@@ -1,0 +1,87 @@
+Action_Angle.o : Action_Angle.cpp Action_Angle.h
+Action_Angle.h : Action.h
+Action_Center.o : Action_Center.cpp Action_Center.h
+Action_Center.h : Action.h
+Action.o : Action.cpp Action.h
+Action_Dihedral.o : Action_Dihedral.cpp Action_Dihedral.h
+Action_Dihedral.h : Action.h
+Action_Distance.o : Action_Distance.cpp Action_Distance.h
+Action_Distance.h : Action.h
+Action_DSSP.o : Action_DSSP.cpp Action_DSSP.h
+Action_DSSP.h : Action.h
+Action.h : FrameList.h ArgList.h DataSetList.h DataFileList.h AmberParm.h
+Action_Hbond.o : Action_Hbond.cpp Action_Hbond.h
+Action_Hbond.h : Action.h
+Action_Image.o : Action_Image.cpp Action_Image.h
+Action_Image.h : Action.h
+Action_Rmsd.o : Action_Rmsd.cpp Action_Rmsd.h
+Action_Rmsd.h : Action.h
+Action_Strip.o : Action_Strip.cpp Action_Strip.h
+Action_Strip.h : Action.h
+AmberNetcdf.o : AmberNetcdf.cpp AmberNetcdf.h
+AmberNetcdf.h : TrajFile.h
+AmberParm.o : AmberParm.cpp AmberParm.h ptrajmask.h PDBfileRoutines.h
+AmberParm.h : PtrajFile.h
+AmberRestart.o : AmberRestart.cpp AmberRestart.h
+AmberRestart.h : TrajFile.h
+AmberTraj.o : AmberTraj.cpp AmberTraj.h
+AmberTraj.h : TrajFile.h
+ArgList.o : ArgList.cpp ArgList.h
+AtomMap.o : AtomMap.cpp AtomMap.h
+AtomMap.h : Action.h
+AtomMask.o : AtomMask.cpp AtomMask.h
+AtomMask.h : AmberParm.h
+BaseFileIO.o : BaseFileIO.cpp BaseFileIO.h
+Bzip2File.o : Bzip2File.cpp Bzip2File.h
+Bzip2File.h : BaseFileIO.h
+CoordFileList.o : CoordFileList.cpp CoordFileList.h AmberTraj.h PDBfile.h AmberRestart.h RemdTraj.h
+CoordFileList.h : TrajFile.h ParmFileList.h ArgList.h
+DataFile.o : DataFile.cpp DataFile.h
+DataFile.h : DataSet.h PtrajFile.h
+DataFileList.o : DataFileList.cpp DataFileList.h PtrajMpi.h
+DataFileList.h : DataFile.h
+DataSet.o : DataSet.cpp DataSet.h
+DataSetList.o : DataSetList.cpp DataSetList.h mapDataSet.h stringDataSet.h intDataSet.h
+DataSetList.h : DataSet.h
+dDataSet.o : dDataSet.cpp dDataSet.h PtrajMpi.h
+dDataSet.h : DataSet.h
+Frame.o : Frame.cpp Frame.h vectormath.h
+Frame.h : AtomMask.h
+FrameList.o : FrameList.cpp FrameList.h
+FrameList.h : Frame.h ArgList.h ParmFileList.h
+GzipFile.o : GzipFile.cpp GzipFile.h
+GzipFile.h : BaseFileIO.h
+intDataSet.o : intDataSet.cpp intDataSet.h PtrajMpi.h
+intDataSet.h : DataSet.h
+main.o : main.cpp PtrajState.h PtrajMpi.h
+mapDataSet.o : mapDataSet.cpp mapDataSet.h PtrajMpi.h
+mapDataSet.h : DataSet.h
+MpiFile.o : MpiFile.cpp MpiFile.h
+MpiFile.h : BaseFileIO.h PtrajMpi.h
+ParmFileList.o : ParmFileList.cpp ParmFileList.h
+ParmFileList.h : AmberParm.h
+PDBfile.o : PDBfile.cpp PDBfile.h PDBfileRoutines.h
+PDBfile.h : TrajFile.h
+PDBfileRoutines.o : PDBfileRoutines.cpp PDBfileRoutines.h
+PtrajActionList.o : PtrajActionList.cpp PtrajActionList.h Action_Distance.h Action_Rmsd.h Action_Dihedral.h Action_Angle.h AtomMap.h Action_Strip.h Action_DSSP.h Action_Center.h Action_Hbond.h Action_Image.h
+PtrajActionList.h : Action.h
+PtrajFile.o : PtrajFile.cpp PtrajFile.h StdFile.h MpiFile.h
+PtrajFile.h : BaseFileIO.h
+ptrajmask.o : ptrajmask.c ptrajmask.h
+PtrajMpi.o : PtrajMpi.c PtrajMpi.h
+PtrajState.o : PtrajState.cpp PtrajState.h PtrajMpi.h
+PtrajState.h : TrajinList.h TrajoutList.h ReferenceList.h ParmFileList.h DataSetList.h DataFileList.h PtrajActionList.h ArgList.h
+ReferenceList.o : ReferenceList.cpp ReferenceList.h
+ReferenceList.h : CoordFileList.h FrameList.h
+RemdTraj.o : RemdTraj.cpp RemdTraj.h
+RemdTraj.h : TrajinList.h ArgList.h
+StdFile.o : StdFile.cpp StdFile.h
+StdFile.h : BaseFileIO.h
+stringDataSet.o : stringDataSet.cpp stringDataSet.h
+stringDataSet.h : DataSet.h
+TrajFile.o : TrajFile.cpp TrajFile.h PtrajMpi.h
+TrajFile.h : Frame.h AmberParm.h
+TrajinList.o : TrajinList.cpp TrajinList.h RemdTraj.h
+TrajinList.h : CoordFileList.h
+TrajoutList.o : TrajoutList.cpp TrajoutList.h
+TrajoutList.h : CoordFileList.h

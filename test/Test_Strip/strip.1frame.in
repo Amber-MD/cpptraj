@@ -1,0 +1,6 @@
+noprogress
+parm ../ChainA-tip3p.parm7
+trajin ../ptraj.run0.crd 1 1 parm ../ChainA-tip3p.parm7
+strip :269-271,273-15290 outprefix strip
+trajout dummy.pdb pdb parm ../ChainA-tip3p.parm7
+trajout dummy.rst7 restart parm ../ChainA-tip3p.parm7

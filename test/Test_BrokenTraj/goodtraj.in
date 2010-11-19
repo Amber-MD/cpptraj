@@ -1,0 +1,4 @@
+noprogress
+parm ../trpcage.parm7
+trajin ../trpcage.crd 1 100 
+rmsd :2-18@N,CA,C out goodrmsd.dat

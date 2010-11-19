@@ -1,0 +1,22 @@
+CPPTRAJ: Trajectory analysis based on Ptraj, written in C++.
+Daniel R. Roe 2010
+
+'./configure gnu' should be adequate to set up compilation for most systems.
+
+Run './configure --help' for list of configure options. 
+
+The configure script by default sets everything up to link dynamically. If you 
+encounter linking errors you may need to specify library locations using the
+'--with-LIB=' options. For example, to use Netcdf compiled with Amber use the
+option:
+
+--with-netcdf=$AMBERHOME/AmberTools/src/netcdf
+
+Alternatively individual libraries can be disabled with the '-noLIB' options.
+
+After config.h has been successfully generated, 'make install' will
+compile and place the cpptraj binary in the ./bin/ directory.
+
+To test the binary in the ./bin/ directory either run 'make check' or change 
+to the 'test' directory and run 'make test'.
+

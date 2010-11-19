@@ -1,0 +1,30 @@
+noprogress     
+distance d1 :1 :2 out distance.dat 
+distance d2 :100 :200 out distance.dat
+trajin ../trpcage.pdb
+trajin ../trpcage.crd.gz
+trajout test.crd
+trajout test.nc netcdf
+trajout Restart/test.rst7 restart
+reference ../trpcage.rst7
+angle a1 :2@CA :3@CA :4@CA out a1.dat 
+angle a2 :2@CA :3@CA :4@CA out a2.dat.gz
+angle a3 :2@CA :3@CA :4@CA out a3.dat.bz2 
+rmsd r4 first out r4.dat :2-10 nofit
+rmsd r1 ref trpcage.rst7 out rmsd.dat
+rmsd r1a refindex 0 out rmsda.dat
+rmsd r2 :1-4@C,CA,N ref trpcage.rst7 :1-4@C,CA,N out r2.dat
+rmsd r3 :1 ref trpcage.rst7 :1 out r3-nofit.dat nofit
+dihedral dh1 :1@C :2@N :2@CA :2@C out phi2.dat
+dihedral dh1 :2@C :3@N :3@CA :3@C
+dihedral phi3 :2@C :3@N :3@CA :3@C out PhiPsi.dat
+dihedral psi3 :3@N :3@CA :3@C :4@N out PhiPsi.dat
+parm ../trpcage.parm7
+parm ../2JJY-chainA-all.parm7
+trajin ../md.nc parm 2JJY-chainA-all.parm7
+#  trajin ../trpcage.nc  
+    # Skip this 
+trajin ../trpcage.crd   \
+ 2 \
+3 \
+2

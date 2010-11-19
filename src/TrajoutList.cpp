@@ -1,0 +1,143 @@
+// TrajoutList
+#include "TrajoutList.h"
+
+// CONSTRUCTOR
+TrajoutList::TrajoutList() {
+  Command="trajout";
+  fileAccess=WRITE;
+}
+
+// DESTRUCTOR
+TrajoutList::~TrajoutList() { }
+
+/* 
+ * TrajoutList::Add()
+ * Add trajectory to the trajectory list as an output trajectory. 
+ * Associate the trajectory with one of the parm files in the 
+ * ParmFileList. 
+ * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
+ *         [<range>]
+ */
+int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
+  TrajFile *T;
+  int boxInfo;
+  FileFormat writeFormat;
+  FileType writeType; 
+
+  // Set up common arguments from arglist
+  if (this->ProcessArgList(A,parmFileList)) return coordErr;
+
+  // Init variables
+  boxInfo=0;
+  writeFormat=AMBERTRAJ; 
+  writeType=UNKNOWN_TYPE;
+ 
+  // Check that this filename is not already in use
+  if (this->CheckFilename(trajfilename)) {
+    fprintf(stdout,"Error: trajout: Filename %s has already been used for trajout.\n",
+            trajfilename);
+    return 1;
+  }
+
+  // Set write or append access
+  if ( A->hasKey("append") ) fileAccess=APPEND;
+
+  // Set the write file format
+  if      ( A->hasKey("pdb")     ) writeFormat=PDBFILE;
+  else if ( A->hasKey("data")    ) writeFormat=DATAFILE;
+  else if ( A->hasKey("netcdf")  ) writeFormat=AMBERNETCDF;
+  else if ( A->hasKey("restart") ) writeFormat=AMBERRESTART;
+
+  // Set the write file type
+  // Since Amber Restart files are written 1 at a time no MPI needed
+  if (worldsize>1 && writeFormat!=AMBERRESTART) 
+    writeType=MPIFILE;
+
+  // Set box info from parm file unless nobox is set.
+  boxInfo=P->ifbox;
+  if (A->hasKey("nobox")) boxInfo=0;
+
+  // Set up basic file for given type and format
+  // If type is unknown it will be determined from extension or will be standard (default)
+  T = this->SetupTrajectory(trajfilename, fileAccess, writeFormat, writeType);
+
+  if (T==NULL) {
+    fprintf(stdout,"ERROR: Setting up file for trajectory %s\n",trajfilename);
+    return 1;
+  }
+
+  // Get a frame range for trajout
+  T->FrameRange = A->NextArgToRange(A->getNextString());
+  if (T->FrameRange!=NULL) {
+    std::list<int>::iterator it;
+    fprintf(stdout,"      Saving frames");
+    for (it=T->FrameRange->begin(); it!=T->FrameRange->end(); it++)
+      fprintf(stdout," %i",*it);
+    fprintf(stdout,"\n");
+  } else
+    fprintf(stdout,"      No frame range given.\n");
+
+  // Set parameter file
+  T->P=P;
+
+  // Set box information (only needed for write)
+  T->isBox=boxInfo;
+
+  // No setup here; Write is set up after first frame read in PtrajState::Run
+  // Add to trajectory file list
+  this->push_back(T); 
+
+  return 0;
+}
+
+/*
+ * TrajoutList::Write()
+ * Go through each output traj, set frame from input frame, call write.
+ * Only set up an output traj in the TrajList for writing the first time Write
+ * is called with the correct (matching) parmtop, based on pindex.
+ * If called with outputSet==-2, end write.
+ */ 
+int TrajoutList::Write(int outputSet, Frame *Fin, AmberParm *CurrentParm) {
+  AmberParm *ParmHolder;
+
+  for (it = this->begin(); it != this->end(); it++) {
+    // Skip if this input frame parm does not match output frame parm
+    if ((*it)->P->pindex!=CurrentParm->pindex) continue;
+    // Temporarily store the trajectory parm in ParmHolder in case currentParm is stripped etc
+    ParmHolder = (*it)->P;
+    (*it)->P = CurrentParm;
+    // If there is a framerange defined, check if this frame matches. If so, pop
+    if ((*it)->FrameRange!=NULL) {
+      // If no more frames in the framerange skip
+      if ( (*it)->FrameRange->empty() ) continue;
+      // NOTE: For compatibility with ptraj user frame args start at 1
+      if ( (*it)->FrameRange->front() - 1 != outputSet ) continue;
+      (*it)->FrameRange->pop_front();
+    }
+    // Open if this is first call - skip flag not otherwise used for output
+    if ((*it)->skip==0) {
+      if ((*it)->SetupWrite()) return 1;
+      (*it)->Begin();
+      (*it)->skip=1;
+    }
+    // Set frame and write
+    (*it)->F=Fin;
+    //fprintf(stdout,"DEBUG: %20s: Writing %i\n",(*it)->File->filename,outputSet);
+    if ((*it)->writeFrame(outputSet)) return 1;
+    // Dont want this F deallocd since it belongs to input traj or action
+    (*it)->F=NULL;
+    // Reset the parm
+    (*it)->P = ParmHolder;
+  }
+  return 0;
+}
+
+/*
+ * TrajoutList::Close()
+ * Close output trajectories. Called after input traj processing completed.
+ */
+void TrajoutList::Close() {
+  for (it = this->begin(); it != this->end(); it++) 
+    (*it)->End();
+}
+

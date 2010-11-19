@@ -1,0 +1,3 @@
+noprogress
+trajin trajectory.netcdf
+trajout trajectory_test.mdcrd

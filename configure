@@ -1,0 +1,263 @@
+#!/bin/bash
+# CPPTRAJ configure script
+# Daniel R. Roe
+# 2010-11-18
+# Simple script to set compiler vars. Create config.h, which will be used
+# by src/Makefile and test/Makefile.
+# Usage: ./configure [gnu/intel] OPTIONS
+
+# Print help message
+Usage() {
+  echo "Usage: ./configure [gnu/intel] OPTIONS"
+  echo "   OPTIONS:"
+  echo "   --help     : Display this message."
+  echo "   -d, -debug : Turn on compiler debugging info"
+  echo "   -debugon   : Add -DDEBUG flag to activate internal debugging"
+  echo "   -mpi       : Use mpicc/mpicxx to compile (STILL EXPERIMENTAL)"
+  echo "   -noopt     : Do not use optimized compiler flags (default when -d specified)"
+  echo "   -nobzlib   : Do not use Bzip2"
+  echo "   -nozlib    : Do not use zlib (gzip/zip)"
+  echo "   -nonetcdf  : Do not use netcdf"
+  echo "   -nolfs     : Do not enable large file support."
+  echo "      Static linking options:"
+  echo "   --with-netcdf=<DIR>"
+  echo "   --with-zlib=<DIR>"
+  echo "   --with-bzlib=<DIR>"
+  echo ""
+}
+
+# If arg is Key=Value, separate into Key and Value
+ParseArg() {
+  KEY=`echo "$1" | awk 'BEGIN{FS = "=";}{print $1;}'`
+  VALUE=`echo "$1" | awk 'BEGIN{FS = "=";}{print $2;}'`
+  if [[ $VALUE = $KEY ]] ; then
+    VALUE=""
+  fi
+}
+
+# Write a C or C++ program to test compiler and flags
+# Arg should be file to write test program to, testp.c or testp.cpp.
+WriteTestProgram() {
+  if [[ $1 = "testp.c" ]] ; then
+    STDIO="<stdio.h>"
+  elif [[ $1 = "testp.cpp" ]] ; then 
+    STDIO="<cstdio>"
+  fi
+  
+  cat > $1 <<EOF
+#include $STDIO
+#ifdef HASBZ2
+#  include "bzlib.h"
+#endif
+#ifdef HASGZ
+#  include "zlib.h"
+#endif
+#ifdef HASNETCDF
+#  include "netcdf.h"
+#endif
+
+int main() {
+#ifdef HASBZ2
+  BZFILE *bfile;
+#endif
+#ifdef HASGZ
+  gzFile gfile;
+#endif
+  int err;
+  err=0;
+  bfile=NULL;
+  gfile=NULL;
+  printf("Testing\n");
+#ifdef HASNETCDF
+  printf("%s\n",nc_strerror(err));
+#endif
+  return 0;
+}
+EOF
+}
+
+# Test compilation with flags
+TestCompile() {
+  # C
+  echo "Testing C compiler:"
+  WriteTestProgram testp.c
+  $CC $CFLAGS -o testp testp.c $ZLIB $BZLIB $NETCDFLIB 
+  ./testp | grep "Testing" > /dev/null
+  status=$?
+  if [[ $status -gt 0 ]] ; then
+      echo "  Error: Unable to compile a C program using:"
+      echo "       $CC $CFLAGS"
+      echo "       Please check your compiler settings or configure flags."
+      echo "       If errors/warnings appear above related to netcdf.h, zlib.h,"
+      echo "       or bzlib.h check that your compiler is able to find the "
+      echo "       correct libraries."
+      echo ""
+      exit 1
+  fi
+  /bin/rm -f testp.c testp
+  echo "  OK"
+
+  # C++
+  echo "Testing C++ compiler:"
+  WriteTestProgram testp.cpp
+  $CXX $CXXFLAGS -o testp testp.cpp $ZLIB $BZLIB $NETCDFLIB 
+  ./testp | grep "Testing" > /dev/null
+  status=$?
+  if [[ $status -gt 0 ]] ; then
+      echo "  Error: Unable to compile a C++ program using:"
+      echo "       $CXX $CXXFLAGS"
+      echo "       Please check your compiler settings or configure flags."
+      echo "       If errors/warnings appear above related to netcdf.h, zlib.h,"
+      echo "       or bzlib.h check that your compiler is able to find the "
+      echo "       correct libraries."
+      echo ""
+      exit 1
+  fi
+  /bin/rm -f testp.cpp testp
+  echo "  OK"
+}
+
+#---------------------------------------------------------------------
+
+if [[ -z $1  || $1 = "--help" ]] ; then
+  Usage
+  exit 0
+fi
+
+KEY=""
+VALUE=""
+
+# Choose compiler
+echo ""
+CC=""
+CXX=""
+case "$1" in 
+  "gnu" )
+    echo "Using gnu compilers"
+    CC=gcc
+    CXX=g++
+    OPT="-O3 -Wall"
+    ;;
+  "intel" )
+    echo "Using intel compilers"
+    CC=icc
+    CXX=icpc
+    OPT="-fast -Wall"
+    ;;
+  * ) 
+    echo "Unrecognized compiler option: $1"
+    Usage
+    exit 1
+    ;;
+esac
+shift
+
+# Process Options
+CPPTRAJHOME=`pwd`
+CPPTRAJBIN=$CPPTRAJHOME/bin
+DIRECTIVES=""
+DBGFLAGS=""
+OPTFLAGS=$OPT
+BZLIB="-lbz2"
+ZLIB="-lz"
+NETCDFLIB="-lnetcdf"
+LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+while [[ ! -z $1 ]] ; do
+  ParseArg $1
+  case "$KEY" in 
+    "-debug" | "-d" ) 
+      echo "Turning on compiler debug info"
+      DBGFLAGS="-g -Wall"
+      OPTFLAGS="" 
+      ;;
+    "-debugon"      ) 
+      echo "Turning on cpptraj internal debug info"
+      DIRECTIVES="$DIRECTIVES -DDEBUG" 
+      ;;
+    "-noopt"          ) 
+      echo "Turning off optimization"
+      OPTFLAGS="" 
+      ;;
+    "-mpi"          )
+      echo "Using MPI"
+      CC=mpicc
+      CXX=mpicxx
+      DIRECTIVES="$DIRECTIVES -DMPI"
+      ;;
+    "-nolfs"        )
+      echo "Disabling large file support"
+      LFS=""
+      ;;
+    "-nobzlib"      )
+      echo "Not using bzip2"
+      BZLIB=""
+    ;;
+    "-nozlib"       )
+      echo "Not using zlib (gzip/zip)"
+      ZLIB=""
+      ;;
+    "-nonetcdf"     )
+      echo "Not using netcdf"
+      NETCDFLIB=""
+      ;;
+    "--with-bzlib"  )
+      BZLIB="-I$VALUE/include $VALUE/lib/libbz2.a"
+      echo "Using BZIP2: $BZLIB"
+      ;;
+    "--with-zlib" )
+      ZLIB="-I$VALUE/include $VALUE/lib/libz.a"
+      echo "Using ZLIB: $ZLIB"
+      ;;
+    "--with-netcdf" )
+      NETCDFLIB="-I$VALUE/include $VALUE/lib/libnetcdf.a"
+      echo "Using NETCDFLIB: $NETCDFLIB"
+      ;;
+    * )
+      echo "Unrecognized OPTION: $1"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+# Add directives
+if [[ ! -z $BZLIB ]] ; then
+  DIRECTIVES="$DIRECTIVES -DHASBZ2"
+fi
+if [[ ! -z $ZLIB ]] ; then
+  DIRECTIVES="$DIRECTIVES -DHASGZ"
+fi
+if [[ ! -z $NETCDFLIB ]] ; then
+  DIRECTIVES="$DIRECTIVES -DHASNETCDF"
+fi
+
+CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS"
+CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS"
+
+# Test compilers
+TestCompile
+
+# Write config.h
+cat > config.h <<EOF
+# config.h for cpptraj
+
+CPPTRAJHOME=$CPPTRAJHOME
+CPPTRAJBIN=$CPPTRAJBIN
+
+CC=$CC
+CXX=$CXX
+CFLAGS=$CFLAGS
+CXXFLAGS=$CXXFLAGS
+ZLIB=$ZLIB
+BZLIB=$BZLIB
+NETCDFLIB=$NETCDFLIB
+
+EOF
+
+# Create directories if necessary
+if [[ ! -e $CPPTRAJBIN ]] ; then
+  mkdir $CPPTRAJBIN
+fi
+
+echo ""
+exit 0

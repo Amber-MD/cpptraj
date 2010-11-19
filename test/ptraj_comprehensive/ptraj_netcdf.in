@@ -1,0 +1,3 @@
+noprogress
+trajin cpptraj.trajectory.mdcrd
+trajout trajectory.netcdf netcdf
