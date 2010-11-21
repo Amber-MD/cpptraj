@@ -332,7 +332,7 @@ int AmberNetcdf::SetupWrite() {
   }
 
   // Attributes
-  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,title,strlen(title),"Test"),
+  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"title",strlen(title),title),
     "Writing title.")) return 1;
   if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"application",5,"AMBER"),
     "Writing application.")) return 1;
