@@ -59,17 +59,15 @@ WriteTestProgram() {
 int main() {
 #ifdef HASBZ2
   BZFILE *bfile;
+  bfile=NULL;
 #endif
 #ifdef HASGZ
   gzFile gfile;
-#endif
-  int err;
-  err=0;
-  bfile=NULL;
   gfile=NULL;
+#endif
   printf("Testing\n");
 #ifdef HASNETCDF
-  printf("%s\n",nc_strerror(err));
+  printf("%s\n",nc_strerror(0));
 #endif
   return 0;
 }
@@ -126,45 +124,36 @@ fi
 
 KEY=""
 VALUE=""
-
-# Choose compiler
 echo ""
-CC=""
-CXX=""
-case "$1" in 
-  "gnu" )
-    echo "Using gnu compilers"
-    CC=gcc
-    CXX=g++
-    OPT="-O3 -Wall"
-    ;;
-  "intel" )
-    echo "Using intel compilers"
-    CC=icc
-    CXX=icpc
-    OPT="-fast -Wall"
-    ;;
-  * ) 
-    echo "Unrecognized compiler option: $1"
-    Usage
-    exit 1
-    ;;
-esac
-shift
 
 # Process Options
+CC=""
+CXX=""
 CPPTRAJHOME=`pwd`
 CPPTRAJBIN=$CPPTRAJHOME/bin
 DIRECTIVES=""
 DBGFLAGS=""
-OPTFLAGS=$OPT
+OPTFLAGS=""
 BZLIB="-lbz2"
 ZLIB="-lz"
 NETCDFLIB="-lnetcdf"
 LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+INCLUDE=""
 while [[ ! -z $1 ]] ; do
   ParseArg $1
-  case "$KEY" in 
+  case "$KEY" in
+    "gnu" )
+      echo "Using gnu compilers"
+      CC=gcc
+      CXX=g++
+      OPTFLAGS="-O3 -Wall"
+      ;;
+    "intel" )
+      echo "Using intel compilers"
+      CC=icc
+      CXX=icpc
+      OPTFLAGS="-fast -Wall"
+      ;; 
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"
       DBGFLAGS="-g -Wall"
@@ -201,14 +190,17 @@ while [[ ! -z $1 ]] ; do
       NETCDFLIB=""
       ;;
     "--with-bzlib"  )
+      INCLUDE="$INCLUDE -I$VALUE/include"
       BZLIB="-I$VALUE/include $VALUE/lib/libbz2.a"
       echo "Using BZIP2: $BZLIB"
       ;;
     "--with-zlib" )
+      INCLUDE="$INCLUDE -I$VALUE/include"
       ZLIB="-I$VALUE/include $VALUE/lib/libz.a"
       echo "Using ZLIB: $ZLIB"
       ;;
     "--with-netcdf" )
+      INCLUDE="$INCLUDE -I$VALUE/include"
       NETCDFLIB="-I$VALUE/include $VALUE/lib/libnetcdf.a"
       echo "Using NETCDFLIB: $NETCDFLIB"
       ;;
@@ -219,6 +211,21 @@ while [[ ! -z $1 ]] ; do
   esac
   shift
 done
+
+# Check for compilers
+if [[ -z $CC || -z $CXX ]] ; then
+  echo "No compiler specified."
+  echo "Specify 'gnu' or 'intel' as an argument to ./configure"
+  Usage
+  exit 1
+fi
+
+# If no netcdf specified and AMBERHOME defined use netcdf from AMBERHOME
+if [[ $NETCDFLIB = "-lnetcdf" && ! -z $AMBERHOME ]] ; then
+  echo "Using netcdf from AMBERHOME: $AMBERHOME"
+  INCLUDE="$INCLUDE -I$AMBERHOME/AmberTools/src/netcdf/include"
+  NETCDFLIB="-I$AMBERHOME/AmberTools/src/netcdf/include $AMBERHOME/AmberTools/src/netcdf/lib/libnetcdf.a"
+fi
 
 # Add directives
 if [[ ! -z $BZLIB ]] ; then
@@ -231,8 +238,8 @@ if [[ ! -z $NETCDFLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DHASNETCDF"
 fi
 
-CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS"
-CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS"
+CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
+CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 
 # Test compilers
 TestCompile
