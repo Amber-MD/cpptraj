@@ -39,11 +39,6 @@ HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
         Action_DSSP.h stringDataSet.h Action_Center.h Bzip2File.h \
         Action_Hbond.h intDataSet.h Action_Image.h
 
-#NETCDFLIB=netcdf/lib/libnetcdf.a
-
-#.c.o:
-#	$(CC) -c $(CFLAGS) -o $@ $<
-
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) 
