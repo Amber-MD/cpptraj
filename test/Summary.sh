@@ -9,22 +9,29 @@ fi
 
 RESULTFILES=`ls */$TEST_RESULTS`
 if [[ ! -z $RESULTFILES ]] ; then
-  ERR=`cat $RESULTFILES | grep failed | wc -l`
-  CERR=`cat $RESULTFILES | grep failed | awk 'BEGIN{sum=0;}{sum+=$1;}END{print sum}'`
-  NOERR=`cat $RESULTFILES | grep failed | awk 'BEGIN{sum=0;}{sum+=$4;}END{print sum}'`
-  OK=`cat $RESULTFILES | grep OK | wc -l`
-  PASSED=`cat $RESULTFILES | grep passed | wc -l`
   cat $RESULTFILES > $TEST_RESULTS
+  # DoTest - Number of comparisons OK
+  OK=`cat $TEST_RESULTS | grep OK | wc -l`
+  # DoTest - Number of comparisons different
+  ERR=`cat $TEST_RESULTS | grep different | wc -l`
+  # Number of tests run
+  NTESTS=`cat $TEST_RESULTS | grep "TEST:" | wc -l`
+  # Number of tests successfully finished
+  PASSED=`cat $TEST_RESULTS | grep "All" | wc -l`
+  #CERR=`cat $RESULTFILES | grep failed | awk 'BEGIN{sum=0;}{sum+=$1;}END{print sum}'`
+  #NOERR=`cat $RESULTFILES | grep failed | awk 'BEGIN{sum=0;}{sum+=$4;}END{print sum}'`
+  #PASSED=`cat $RESULTFILES | grep passed | wc -l`
 else
-  echo "No Test Results found."
+  echo "No Test Results files (./*/$TEST_RESULTS) found."
   exit 0
 fi
 
 echo "===================== TEST SUMMARY ======================"
 echo "  $OK comparisons OK."
-echo "  $CERR comparisons failed."
-echo "  $PASSED tests passed."
-echo "  $ERR tests failed."
+echo "  $ERR comparisons failed."
+echo "  $PASSED out of $NTESTS tests completed with no issues."
+#echo "  $PASSED tests passed."
+#echo "  $ERR tests failed."
 
 if [[ ! -z $VALGRIND ]] ; then
   RESULTFILES=`ls */$ERROR`

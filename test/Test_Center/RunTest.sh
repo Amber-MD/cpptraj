@@ -6,6 +6,7 @@
 CleanFiles center.in centered.crd origin.centered.crd origin.mass.centered.crd
 
 # Test 1
+CheckNetcdf
 cat > center.in <<EOF
 noprogress
 parm ../ChainA-tip3p.parm7

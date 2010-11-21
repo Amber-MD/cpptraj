@@ -7,6 +7,7 @@ CleanFiles *.rst7.?
 #rm distance.dat rmsd.dat rmsda.dat phi2.dat PhiPsi.dat test.crd a1.dat Restart/* test.nc
 #rm r4.dat a2.dat.gz r2.dat r3-nofit.dat
 
+CheckNetcdf
 cat > general.in <<EOF
 noprogress
 parm ../trpcage.parm7

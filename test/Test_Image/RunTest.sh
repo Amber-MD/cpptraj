@@ -6,6 +6,7 @@
 CleanFiles image.in ortho.dat nonortho.dat image.crd image2.crd image3.crd image4.crd
 
 # Test - orthorhombic imaged distance
+CheckNetcdf
 cat > image.in <<EOF
 noprogress
 parm Ala10.parm7

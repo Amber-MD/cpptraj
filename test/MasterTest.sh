@@ -1,17 +1,26 @@
 # This should be sourced from Test run scripts
 
+# If arg is Key=Value, separate into Key and Value
+ParseArg() {
+  KEY=`echo "$1" | awk 'BEGIN{FS = "=";}{print $1;}'`
+  VALUE=`echo "$1" | awk 'BEGIN{FS = "=";}{print $2;}'`
+  if [[ $VALUE = $KEY ]] ; then
+    VALUE=""
+  fi
+}
+
 # DoTest(): Compare File1 to File2, print an error if they differ
 DoTest() {
   if [[ $NOTEST -eq 0 ]] ; then
     ((NUMTEST++))
     if [[ ! -e $2 ]] ; then
-      echo "  $2 not found."
+      echo "  $2 not found." >> $TEST_RESULTS
       ((ERR++))
     elif [[ `diff $1 $2 | wc -l` -gt 0 ]] ; then
       #echo "  $1 $2 differ."
-      echo "  $1 $2 differ." >> $TEST_RESULTS
+      echo "  $1 $2 are different." >> $TEST_RESULTS
       diff $1 $2 >> $TEST_RESULTS 2>&1
-      echo "------------------------------------------------------------" >> $TEST_RESULTS
+      #echo "------------------------------------------------------------" >> $TEST_RESULTS
       ((ERR++))
     else
       #echo "  $2 OK."
@@ -25,8 +34,12 @@ CheckTest() {
   if [[ $ERR -gt 0 ]] ; then
     echo "  $ERR out of $NUMTEST comparisons failed."
     echo "  $ERR out of $NUMTEST comparisons failed." >> $TEST_RESULTS
-    echo ""
+    #echo "---------------------------------------------------------"
+    #echo "---------------------------------------------------------" >> $TEST_RESULTS
     exit 1
+  else
+   echo "  $NUMTEST comparisons ok."
+   echo "  $NUMTEST comparisons ok." >> $TEST_RESULTS
   fi
 }
 
@@ -59,7 +72,8 @@ EndTest() {
     grep LEAK $ERROR
     echo ""
   fi
-  echo "---------------------------------------------------------"
+  #echo "---------------------------------------------------------"
+  #echo "---------------------------------------------------------" >> $TEST_RESULTS
 }
 
 # CleanFiles(): For every arg passed to the function, check for the file and rm it
@@ -79,10 +93,83 @@ CleanFiles() {
   fi
 }
 
+# Library Checks - Tests that depend on certain libraries like Zlib can run
+# these to make sure cpptraj was compiled with that library - exit gracefully
+# if not.
+CheckZlib() {
+  if [[ -z $ZLIB ]] ; then
+    echo "This test requires zlib. Cpptraj was compiled without zlib support."
+    echo "Skipping test."
+    #echo "---------------------------------------------------------"
+    exit 0
+  fi
+}
+
+CheckBzlib() {
+  if [[ -z $BZLIB ]] ; then
+    echo "This test requires bzlib. Cpptraj was compiled without bzlib support."
+    echo "Skipping test."
+    #echo "---------------------------------------------------------"
+    exit 0
+  fi
+}
+
+CheckNetcdf() {
+  if [[ -z $NETCDFLIB ]] ; then
+    echo "This test requires Netcdf. Cpptraj was compiled without Netcdf support."
+    echo "Skipping test."
+    #echo "---------------------------------------------------------"
+    exit 0
+  fi
+}
 #==============================================================================
+# CPPTRAJHOME should be defined
+if [[ -z $CPPTRAJHOME ]] ; then
+  echo "CPPTRAJHOME not defined."
+  # Try AMBERHOME
+  if [[ -z $AMBERHOME ]] ; then
+    echo "Tests require CPPTRAJHOME or AMBERHOME to be defined."
+    echo ""
+    exit 0
+  fi
+  echo "Checking for cpptraj directory in AMBERHOME ($AMBERHOME)"
+  CPPTRAJHOME=$AMBERHOME/AmberTools/src/cpptraj
+fi
+if [[ ! -e $CPPTRAJHOME ]] ; then
+  echo "Cpptraj directory $CPPTRAJHOME does not exist."
+  echo ""
+  exit 1
+fi
+  
+# Check for config.h in CPPTRAJHOME
+CONFIGH=$CPPTRAJHOME/config.h
+if [[ ! -e $CONFIGH ]] ; then
+  echo "$CONFIGH not found."
+  exit 1
+fi
+KEY=""
+VALUE=""
+# Check for libraries in config.h
+ParseArg `grep BZLIB $CONFIGH`
+BZLIB=$VALUE
+ParseArg `grep ZLIB $CONFIGH`
+ZLIB=$VALUE
+ParseArg `grep NETCDFLIB $CONFIGH` 
+NETCDFLIB=$VALUE
+# Check for binary location in config.h
+ParseArg `grep CPPTRAJBIN $CONFIGH`
+if [[ -z $VALUE ]] ; then
+  echo "CPPTRAJBIN not found in config.h"
+  echo "Trying ../../bin/cpptraj"
+  CPPTRAJ=../../bin/cpptraj
+else
+  CPPTRAJ=$VALUE/cpptraj
+fi
+
 TEST_RESULTS=Test_Results.dat
 CleanFiles $TEST_RESULTS
 
+# Option defaults
 TIME=""
 VALGRIND=""
 DO_PARALLEL=""
@@ -156,6 +243,11 @@ if [[ $CLEAN -eq 0 ]] ; then
   if [[ ! -z $DEBUG ]] ; then
     ls -l -t $CPPTRAJ
   fi
+  # Start test results file
+  echo "---------------------------------------------------------"
+  echo "TEST: `pwd`" 
+  echo "---------------------------------------------------------" > $TEST_RESULTS
+  echo "TEST: `pwd`" >> $TEST_RESULTS
 fi
 
 # Set up MPI environment if specified or if >1 processor requested.
@@ -168,5 +260,4 @@ fi
 
 NUMTEST=0
 ERR=0
-
 

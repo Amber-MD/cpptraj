@@ -15,7 +15,6 @@ EOF
 INPUT="-i remd.in"
 RunCpptraj "CRD Replica Trajectory Run with offset"
 DoTest d1.offset.dat.save d1.offset.dat
-#CheckTest
 
 # Test
 cat > remd.in <<EOF
@@ -27,8 +26,10 @@ EOF
 INPUT="-i remd.in"
 RunCpptraj "CRD Replica Trajectory Run"
 DoTest d1.crd.dat.save d1.crd.dat
+CheckTest
 
 # Test 1
+CheckNetcdf
 cat > remd.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7 

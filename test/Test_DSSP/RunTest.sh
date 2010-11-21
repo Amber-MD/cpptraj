@@ -6,6 +6,7 @@
 CleanFiles cpptraj.in dssp.dat dssp.sum.agr
 
 # Test 1
+CheckNetcdf
 cat > cpptraj.in <<EOF
 noprogress
 trajin ../DPDP.nc 

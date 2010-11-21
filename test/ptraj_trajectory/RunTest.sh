@@ -21,6 +21,7 @@ DoTest rem.crd.save rem.crd.combined
 CheckTest
 
 # Test 2
+CheckZlib
 cat > cpptraj.offset.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7
@@ -36,6 +37,7 @@ DoTest rem.crd.save gzip.rem.crd.combined
 CheckTest
 
 # Test 3
+CheckBzlib
 cat > cpptraj.offset.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7

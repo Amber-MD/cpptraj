@@ -18,6 +18,7 @@ DoTest cpptraj.test.mdcrd.save test.mdcrd
 CheckTest
 
 # Test 2
+CheckNetcdf
 INPUT="ptraj_netcdf.in"
 TOP="compound.prmtop"
 RunCpptraj "PTRAJ comprehensive mdcrd -> netcdf test."

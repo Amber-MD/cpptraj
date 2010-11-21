@@ -6,6 +6,7 @@
 CleanFiles hbond.in nhb.dat avghb.dat 
 
 # Test 1
+CheckNetcdf
 cat > hbond.in <<EOF
 noprogress
 parm ../DPDP.mod.GA12.parm7
