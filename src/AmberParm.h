@@ -19,6 +19,16 @@ class AmberParm {
   enum FortranType {
     UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR
   };
+  // Contain data for SA LCPO
+  struct SurfInfoType {
+    double vdwradii;
+    double P1;
+    double P2;
+    double P3;
+    double P4;
+  };
+  typedef struct SurfInfoType SurfInfo;
+  void AssignLCPO(SurfInfo *, double, double, double, double, double);
 
   int *values;
   int *bonds;
@@ -64,11 +74,14 @@ class AmberParm {
   int pindex;       // The index of this parm in the parmfilelist
   int parmFrames;   // For output, # of frames that will be read with this parm
   int outFrame;     // Output, # frames that have been written using this parm
+  // For SA calc
+  SurfInfo *SurfaceInfo;
 
   AmberParm(int);
   ~AmberParm();
   void ResName(char *, int);
   int OpenParm(char *);
+  int SetSurfaceInfo();
   int SetSolventInfo();
   int ReadParmAmber();
   int ReadParmPDB();
