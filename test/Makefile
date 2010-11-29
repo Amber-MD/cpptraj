@@ -37,7 +37,10 @@ test.image:
 test.ptrajcomp:
 	@-cd ptraj_comprehensive && ./RunTest.sh $(OPT)
 
-test.all: test.general test.strip test.brokentraj test.traj test.remdnetcdf test.framerange test.perres test.dssp test.center test.hbond test.image test.ptrajcomp
+test.surf:
+	@-cd Test_Surf && ./RunTest.sh $(OPT)
+
+test.all: test.general test.strip test.brokentraj test.traj test.remdnetcdf test.framerange test.perres test.dssp test.center test.hbond test.image test.ptrajcomp test.surf
 	@./Summary.sh $(OPT)
 
 test: 
