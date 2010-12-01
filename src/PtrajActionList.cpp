@@ -14,6 +14,7 @@
 #include "Action_Hbond.h"
 #include "Action_Image.h"
 #include "Action_Surf.h"
+#include "Action_Radgyr.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -61,6 +62,7 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("hbond"))    {Act=new Hbond;   }
   else if (A->CommandIs("image"))    {Act=new Image;   }
   else if (A->CommandIs("surf"))     {Act=new Surf;    }
+  else if (A->CommandIs("radgyr"))   {Act=new Radgyr;  }
   else return 1; 
 
   // Pass in the argument list

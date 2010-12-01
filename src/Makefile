@@ -13,7 +13,8 @@ SOURCE=main.cpp AmberNetcdf.cpp AmberParm.cpp AmberTraj.cpp TrajFile.cpp \
        GzipFile.cpp AmberRestart.cpp Action_Angle.cpp PtrajMpi.c MpiFile.cpp \
        Action_Strip.cpp Action.cpp RemdTraj.cpp AtomMask.cpp mapDataSet.cpp \
        Action_DSSP.cpp stringDataSet.cpp Action_Center.cpp Bzip2File.cpp \
-       Action_Hbond.cpp intDataSet.cpp Action_Image.cpp Action_Surf.cpp
+       Action_Hbond.cpp intDataSet.cpp Action_Image.cpp Action_Surf.cpp \
+       Action_Radgyr.cpp
 
 OBJECTS=main.o AmberNetcdf.o AmberParm.o AmberTraj.o TrajFile.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
@@ -25,7 +26,8 @@ OBJECTS=main.o AmberNetcdf.o AmberParm.o AmberTraj.o TrajFile.o \
         GzipFile.o AmberRestart.o Action_Angle.o PtrajMpi.o MpiFile.o \
         Action_Strip.o Action.o RemdTraj.o AtomMask.o mapDataSet.o \
         Action_DSSP.o stringDataSet.o Action_Center.o Bzip2File.o \
-        Action_Hbond.o intDataSet.o Action_Image.o Action_Surf.o
+        Action_Hbond.o intDataSet.o Action_Image.o Action_Surf.o \
+        Action_Radgyr.o
 
 HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
@@ -37,7 +39,8 @@ HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
         GzipFile.h AmberRestart.h Action_Angle.h PtrajMpi.h MpiFile.h \
         Action_Strip.h RemdTraj.h AtomMask.h mapDataSet.h \
         Action_DSSP.h stringDataSet.h Action_Center.h Bzip2File.h \
-        Action_Hbond.h intDataSet.h Action_Image.h Action_Surf.h
+        Action_Hbond.h intDataSet.h Action_Image.h Action_Surf.h \
+        Action_Radgyr.h
 
 all: cpptraj$(SFX)
 
