@@ -7,12 +7,12 @@
 
 class Hbond : public Action {
     struct HbondType {
-      int A;
-      int H;
-      int D;
-      int Frames;
-      double dist;
-      double angle;
+      int A;        // Acceptor atom#
+      int H;        // Hydrogen atom#
+      int D;        // Donor atom#
+      int Frames;   // # frames this hbond has been present
+      double dist;  // Used to calc avg distance of this hbond
+      double angle; // Used to calc avg angle of this hbond
     };
 
     int Nframes;
