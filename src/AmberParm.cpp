@@ -201,6 +201,7 @@ AmberParm::AmberParm(int debugIn) {
   solventMoleculeStart=NULL; solventMoleculeStop=NULL;
   ifbox=0;
   parmName=NULL;
+  SurfaceInfo=NULL;
 
   debug=debugIn;
   //debug=5;
@@ -234,6 +235,7 @@ AmberParm::~AmberParm() {
   if (solventMoleculeStop!=NULL) free(solventMoleculeStop);
   if (solventMask!=NULL) free(solventMask);
   if (parmName!=NULL) free(parmName);
+  if (SurfaceInfo!=NULL) free(SurfaceInfo);
 }
 
 /* 
@@ -279,6 +281,162 @@ int AmberParm::OpenParm(char *filename) {
     fprintf(stderr,"  Number of residues= %i\n",nres);
   }
 
+  return 0;
+}
+
+/*
+ * AmberParm::AssignLCPO()
+ * Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
+ */
+void AmberParm::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2, 
+                           double P3, double P4) {
+  S->vdwradii = vdwradii + 1.4;
+  S->P1 = P1;
+  S->P2 = P2;
+  S->P3 = P3;
+  S->P4 = P4;
+}
+
+/*
+ * WarnLCPO()
+ */
+void WarnLCPO(char *atype, int atom, int numBonds) {
+  fprintf(stdout,"Warning: Unusual number of bonds for atom %i (%i), type %-2s.\n",
+          atom, numBonds, atype);
+  fprintf(stdout,"Using default atom parameters.\n");
+}
+
+/* 
+ * AmberParm::SetSurfaceInfo()
+ * Set up parameters only used in surface area calcs.
+ * LCPO method from:
+ *   J. Weiser, P.S. Shenkin, and W.C. Still,
+ *   "Approximate atomic surfaces from linear combinations of pairwise
+ *   overlaps (LCPO)", J. Comp. Chem. 20:217 (1999).
+ * Adapted from gbsa=1 method in SANDER, mdread.f
+ */
+int AmberParm::SetSurfaceInfo() {
+  int *numBonds; // # of bonded neighbors each atom has (LCPO only?)
+  int i,atom1,atom2;
+  char atype[2];
+ 
+  // If surface info already set up exit 
+  if (SurfaceInfo!=NULL) return 0;
+ 
+  // If no bond information exit
+  if (bonds==NULL) {
+    fprintf(stdout,"Error: SetSurfaceInfo(): Parm %s does not contain bond info.\n",parmName);
+    return 1;
+  } 
+
+  // If no atom type information exit
+  if (types==NULL) {
+    fprintf(stdout,"Error: SetSurfaceInfo(): Parm %s does not contain atom type info.\n",
+            parmName);
+    return 1;
+  }
+ 
+  // Get the number of bonded neighbors for each atom
+  numBonds = (int*) malloc(natom * sizeof(int));
+  memset(numBonds, 0, natom * sizeof(int));
+  // NOTE: Why ignore hydrogens?
+  for (i = 0; i < values[MBONA]*3; i+=3) {
+     atom1 = bonds[i  ] / 3;
+     atom2 = bonds[i+1] / 3;
+     numBonds[atom1]++;
+     numBonds[atom2]++;
+  }
+
+  // DEBUG
+  //for (i=0; i<natom; i++)
+  //  fprintf(stdout,"DEBUG:    Atom %6i_%4s: %2i bonds.\n",i,names[i],numBonds[i]);
+
+  // Set vdw radii and LCPO parameters
+  SurfaceInfo = (SurfInfo*) malloc(natom * sizeof(SurfInfo));
+  for (i=0; i < natom; i++) {
+    atype[0] = types[i][0];
+    atype[1] = types[i][1];
+
+    if (atype[0]=='C' && atype[1]=='T') {
+      switch ( numBonds[i] ) {
+        case 1: AssignLCPO(SurfaceInfo+i, 1.70, 0.77887, -0.28063, -0.0012968, 0.00039328); break;
+        case 2: AssignLCPO(SurfaceInfo+i, 1.70, 0.56482, -0.19608, -0.0010219, 0.0002658);  break;
+        case 3: AssignLCPO(SurfaceInfo+i, 1.70, 0.23348, -0.072627, -0.00020079, 0.00007967); break;
+        case 4: AssignLCPO(SurfaceInfo+i, 1.70, 0.00000, 0.00000, 0.00000, 0.00000); break;
+        default: WarnLCPO(atype,i,numBonds[i]);
+                AssignLCPO(SurfaceInfo+i, 1.70, 0.77887, -0.28063, -0.0012968, 0.00039328);
+      }
+    } else if (atype[0]=='C' || atype[0]=='c') {
+      switch ( numBonds[i] ) {
+        case 2: AssignLCPO(SurfaceInfo+i, 1.70, 0.51245, -0.15966, -0.00019781, 0.00016392); break;
+        case 3: AssignLCPO(SurfaceInfo+i, 1.70, 0.070344, -0.019015, -0.000022009, 0.000016875); break;
+        default: WarnLCPO(atype,i,numBonds[i]);
+                AssignLCPO(SurfaceInfo+i, 1.70, 0.77887, -0.28063, -0.0012968, 0.00039328);
+      }
+    } else if (atype[0]=='O' && atype[1]==' ') {
+      AssignLCPO(SurfaceInfo+i, 1.60, 0.68563, -0.1868, -0.00135573, 0.00023743);
+    } else if (atype[0]=='O' && atype[1]=='2') {
+      AssignLCPO(SurfaceInfo+i, 1.60, 0.88857, -0.33421, -0.0018683, 0.00049372);
+    } else if (atype[0]=='O' || atype[0]=='o') {
+      switch (numBonds[i]) {
+        case 1: AssignLCPO(SurfaceInfo+i, 1.60, 0.77914, -0.25262, -0.0016056, 0.00035071); break;
+        case 2: AssignLCPO(SurfaceInfo+i, 1.60, 0.49392, -0.16038, -0.00015512, 0.00016453); break;
+        default: WarnLCPO(atype,i,numBonds[i]);
+                AssignLCPO(SurfaceInfo+i, 1.60, 0.77914, -0.25262, -0.0016056, 0.00035071);
+      }
+    } else if (atype[0]=='N' && atype[1]=='3') {
+      switch (numBonds[i]) {
+        case 1: AssignLCPO(SurfaceInfo+i, 1.65, 0.078602, -0.29198, -0.0006537, 0.00036247); break;
+        case 2: AssignLCPO(SurfaceInfo+i, 1.65, 0.22599, -0.036648, -0.0012297, 0.000080038); break;
+        case 3: AssignLCPO(SurfaceInfo+i, 1.65, 0.051481, -0.012603, -0.00032006, 0.000024774); break;
+        default: WarnLCPO(atype,i,numBonds[i]);
+                AssignLCPO(SurfaceInfo+i, 1.65, 0.078602, -0.29198, -0.0006537, 0.00036247);
+      }
+    } else if (atype[0]=='N' || atype[0]=='n') {
+      switch (numBonds[i]) {
+        case 1: AssignLCPO(SurfaceInfo+i, 1.65, 0.73511, -0.22116, -0.00089148, 0.0002523); break;
+        case 2: AssignLCPO(SurfaceInfo+i, 1.65, 0.41102, -0.12254, -0.000075448, 0.00011804); break;
+        case 3: AssignLCPO(SurfaceInfo+i, 1.65, 0.062577, -0.017874, -0.00008312, 0.000019849); break;
+        default: WarnLCPO(atype,i,numBonds[i]);
+                AssignLCPO(SurfaceInfo+i, 1.65, 0.078602, -0.29198, -0.0006537, 0.00036247);
+      }
+    } else if (atype[0]=='S' && atype[1]=='H') {
+      AssignLCPO(SurfaceInfo+i, 1.90, 0.7722, -0.26393, 0.0010629, 0.0002179);
+    } else if (atype[0]=='S' || atype[0]=='s') {
+      AssignLCPO(SurfaceInfo+i, 1.90, 0.54581, -0.19477, -0.0012873, 0.00029247);
+    } else if (atype[0]=='P' || atype[1]=='p') {
+      switch (numBonds[i]) {
+        case 3: AssignLCPO(SurfaceInfo+i, 1.90, 0.3865, -0.18249, -0.0036598, 0.0004264); break;
+        case 4: AssignLCPO(SurfaceInfo+i, 1.90, 0.03873, -0.0089339, 0.0000083582, 0.0000030381); break;
+        default: WarnLCPO(atype,i,numBonds[i]);
+          AssignLCPO(SurfaceInfo+i, 1.90, 0.3865, -0.18249, -0.0036598, 0.0004264);
+      }
+    } else if (atype[0]=='Z') {
+      AssignLCPO(SurfaceInfo+i, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000);
+    } else if (atype[0]=='H' || atype[0]=='h') {
+      AssignLCPO(SurfaceInfo+i, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000);
+    } else if (atype[0]=='M' && atype[1]=='G') {
+      //  Mg radius = 0.99A: ref. 21 in J. Chem. Phys. 1997, 107, 5422
+      //  Mg radius = 1.18A: ref. 30 in J. Chem. Phys. 1997, 107, 5422
+      //  Mg radius = 1.45A: Aqvist 1992
+      //  The following P1-4 values were taken from O.sp3 with two bonded 
+      //  neighbors -> O has the smallest van der Waals radius 
+      //  compared to all other elements which had been parametrized
+      AssignLCPO(SurfaceInfo+i, 1.18, 0.49392, -0.16038, -0.00015512, 0.00016453);
+    } else {
+      fprintf(stdout,"Warning: Using carbon SA parms for unknown atom type %i %2s\n",i,atype);
+      AssignLCPO(SurfaceInfo+i, 1.70, 0.51245, -0.15966, -0.00019781, 0.00016392);
+    }
+  } // END LOOP OVER natom
+
+  // DEBUG
+  for (i=0; i<natom; i++) {
+    //fprintf(stdout,"%6i %4s: %6.2lf %lf %lf %lf %lf\n",i+1,types[i],SurfaceInfo[i].vdwradii,
+    /*fprintf(stdout,"%6i%6.2lf%12.8lf%12.8lf%12.8lf%12.8lf\n",i+1,SurfaceInfo[i].vdwradii,
+            SurfaceInfo[i].P1,SurfaceInfo[i].P2,SurfaceInfo[i].P3,SurfaceInfo[i].P4);*/
+  }
+
+  free(numBonds);
   return 0;
 }
 

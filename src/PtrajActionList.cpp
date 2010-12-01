@@ -13,6 +13,7 @@
 #include "Action_Center.h"
 #include "Action_Hbond.h"
 #include "Action_Image.h"
+#include "Action_Surf.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -59,6 +60,7 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("center"))   {Act=new Center;  }
   else if (A->CommandIs("hbond"))    {Act=new Hbond;   }
   else if (A->CommandIs("image"))    {Act=new Image;   }
+  else if (A->CommandIs("surf"))     {Act=new Surf;    }
   else return 1; 
 
   // Pass in the argument list

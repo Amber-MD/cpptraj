@@ -18,6 +18,8 @@ Action_Rmsd.o : Action_Rmsd.cpp Action_Rmsd.h
 Action_Rmsd.h : Action.h
 Action_Strip.o : Action_Strip.cpp Action_Strip.h
 Action_Strip.h : Action.h
+Action_Surf.o : Action_Surf.cpp Action_Surf.h vectormath.h
+Action_Surf.h : Action.h
 AmberNetcdf.o : AmberNetcdf.cpp AmberNetcdf.h
 AmberNetcdf.h : TrajFile.h
 AmberParm.o : AmberParm.cpp AmberParm.h ptrajmask.h PDBfileRoutines.h
@@ -63,7 +65,7 @@ ParmFileList.h : AmberParm.h
 PDBfile.o : PDBfile.cpp PDBfile.h PDBfileRoutines.h
 PDBfile.h : TrajFile.h
 PDBfileRoutines.o : PDBfileRoutines.cpp PDBfileRoutines.h
-PtrajActionList.o : PtrajActionList.cpp PtrajActionList.h Action_Distance.h Action_Rmsd.h Action_Dihedral.h Action_Angle.h AtomMap.h Action_Strip.h Action_DSSP.h Action_Center.h Action_Hbond.h Action_Image.h
+PtrajActionList.o : PtrajActionList.cpp PtrajActionList.h Action_Distance.h Action_Rmsd.h Action_Dihedral.h Action_Angle.h AtomMap.h Action_Strip.h Action_DSSP.h Action_Center.h Action_Hbond.h Action_Image.h Action_Surf.h
 PtrajActionList.h : Action.h
 PtrajFile.o : PtrajFile.cpp PtrajFile.h StdFile.h MpiFile.h
 PtrajFile.h : BaseFileIO.h
