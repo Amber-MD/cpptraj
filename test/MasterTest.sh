@@ -193,6 +193,12 @@ while [[ ! -z $1 ]] ; do
   case "$1" in
     "stdout" ) OUTPUT="/dev/stdout" ;;
     "vg"  ) 
+      VG=`which valgrind`
+      if [[ -z $VG ]] ; then
+        echo "Valgrind not found."
+        echo "Make sure valgrind is installed and in your PATH"
+        exit 1
+      fi
       echo "  Using Valgrind."
       VALGRIND="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes" 
       ERROR="valgrind.out"

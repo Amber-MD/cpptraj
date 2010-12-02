@@ -14,6 +14,8 @@ if [[ ! -z $RESULTFILES ]] ; then
   OK=`cat $TEST_RESULTS | grep OK | wc -l`
   # DoTest - Number of comparisons different
   ERR=`cat $TEST_RESULTS | grep different | wc -l`
+  NOTFOUND=`cat $TEST_RESULTS | grep "not found" | wc -l`
+  ((ERR = $ERR + $NOTFOUND))
   # Number of tests run
   NTESTS=`cat $TEST_RESULTS | grep "TEST:" | wc -l`
   # Number of tests successfully finished
