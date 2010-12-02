@@ -43,7 +43,7 @@ int Dihedral::init() {
   M4.SetMaskString(mask4);
 
   // Setup dataset
-  dih = DSL->Add(DOUBLE, A->getNextString());
+  dih = DSL->Add(DOUBLE, A->getNextString(),"Dih");
   if (dih==NULL) return 1;
   // Add dataset to datafile list
   DFL->Add(dihedralFile,dih);

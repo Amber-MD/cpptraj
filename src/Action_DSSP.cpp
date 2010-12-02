@@ -53,7 +53,7 @@ int DSSP::init() {
   Mask.SetMaskString(mask);
 
   // Set up the DSSP data set
-  dssp = DSL->Add(STRING, A->getNextString());
+  dssp = DSL->Add(STRING, A->getNextString(),"DSSP");
   if (dssp==NULL) return 1;
   DFL->Add(outfilename, dssp);
 
@@ -323,7 +323,7 @@ void DSSP::print() {
   // Set up a dataset for each SS type
   for (ss=1; ss<7; ss++) {
     //SetName[0] = SSchar[ss];
-    dsspFile.AddSet( dsspData.Add(DOUBLE, (char*)SSname[ss]) );
+    dsspFile.AddSet( dsspData.Add(DOUBLE, (char*)SSname[ss], "SS") );
   }
 
   // Calc the avg structure of each type for each selected residue 

@@ -37,7 +37,7 @@ int Surf::init() {
   Mask1.SetMaskString(mask1);
 
   // Dataset to store surface area 
-  surf = DSL->Add(DOUBLE, A->getNextString());
+  surf = DSL->Add(DOUBLE, A->getNextString(),"SA");
   if (surf==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(surfFile,surf);

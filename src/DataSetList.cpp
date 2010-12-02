@@ -45,23 +45,24 @@ DataSet *DataSetList::Get(char *nameIn) {
  * Add a DataSet of specified type, set it up and return pointer to it. Before
  * calling this routine actions should have already processed all arguments in 
  * the argument list. The next argument in the ArgList will be used as the 
- * DataSet name. If no name is given then create one.
+ * DataSet name. If no name is given then create one based on the given
+ * default.
  */ 
-DataSet *DataSetList::Add(dataType inType, char *nameIn) {
+DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName) {
   DataSet *D;
-//  char *nameIn;
   char tempName[32];
-  //char *dataFilename;
 
   D=NULL;
-  // Get all dataset keywords here
-  //dataFilename = A->getKeyString("out",NULL);
 
-  // The next (and probably last) string in the arglist should be the dataset name
-//  nameIn=A->getNextString();
+  // Require all calls provide a default
+  if (defaultName==NULL) {
+    fprintf(stderr,"Internal Error: DataSetList::Add() called without default name.\n");
+    return NULL;
+  }
+
+  // If no name given make one up based on the given default 
   if (nameIn==NULL) {
-    // If no name given make one up (no name is a stupid reason to crash)
-    sprintf(tempName,"data_%05i",Ndata);
+    sprintf(tempName,"%s_%05i",defaultName,Ndata);
     nameIn=tempName;
   }
   // Check if dataset name is already in use

@@ -34,10 +34,10 @@ int Radgyr::init() {
   Mask1.SetMaskString(mask1);
 
   // Datasets to store radius of gyration and max 
-  rog = DSL->Add(DOUBLE, A->getNextString());
+  rog = DSL->Add(DOUBLE, A->getNextString(),"RoG");
   if (rog==NULL) return 1;
   //rogmax = DSL->Add(DOUBLE, (char*) "ROGMax\0");
-  rogmax = DSL->Add(DOUBLE, NULL);
+  rogmax = DSL->Add(DOUBLE, NULL, "RoGMax");
   if (rogmax == NULL) return 1; 
   // Add datasets to data file list
   DFL->Add(rogFile,rog);

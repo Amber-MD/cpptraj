@@ -111,7 +111,7 @@ int Rmsd::init( ) {
   RefMask.SetMaskString(maskRef);
 
   // Set up the RMSD data set
-  rmsd = DSL->Add(DOUBLE, A->getNextString());
+  rmsd = DSL->Add(DOUBLE, A->getNextString(),"RMSD");
   if (rmsd==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(rmsdFile,rmsd);
@@ -327,7 +327,7 @@ int Rmsd::setup() {
       sprintf(resArg,"%4s%i",resName,*it);
       // TEST - add all datasets to the same output file
       // NOTE - eventually give this its own output file and make a print routine
-      DFL->Add(perresout,PerResRMSD->Add(DOUBLE, resArg));
+      DFL->Add(perresout,PerResRMSD->Add(DOUBLE, resArg,"PerRes"));
     }
     // Set output file to be inverted if requested
     if (perresinvert) {

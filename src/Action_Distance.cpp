@@ -48,7 +48,7 @@ int Distance::init( ) {
   Mask2.SetMaskString(mask2);
 
   // Dataset to store distances
-  dist = DSL->Add(DOUBLE, A->getNextString());
+  dist = DSL->Add(DOUBLE, A->getNextString(),"Dis");
   if (dist==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(distanceFile,dist);

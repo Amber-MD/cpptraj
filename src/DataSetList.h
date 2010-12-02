@@ -21,9 +21,8 @@ class DataSetList {
     ~DataSetList();
 
     DataSet *Get(char *);
-//    DataSet *Add( dataType , ArgList*);
-    DataSet *Add( dataType , char*);
-    int AddData(int , void *, int );
+    DataSet *Add( dataType, char*, const char*);
+    int AddData(int, void *, int );
     void Info();
     void Sync();
 };

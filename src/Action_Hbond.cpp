@@ -32,7 +32,7 @@ int Hbond::init() {
   Mask.SetMaskString(mask);
 
   // Setup datasets
-  NumHbonds = DSL->Add(INT, A->getNextString());
+  NumHbonds = DSL->Add(INT, A->getNextString(),"NumHB");
   if (NumHbonds==NULL) return 1;
   DFL->Add(outfilename,NumHbonds);
 

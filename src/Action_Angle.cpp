@@ -40,7 +40,7 @@ int Angle::init() {
   Mask3.SetMaskString(mask3);
 
   // Dataset to store angles
-  ang = DSL->Add(DOUBLE, A->getNextString());
+  ang = DSL->Add(DOUBLE, A->getNextString(),"Ang");
   if (ang==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(angleFile,ang);
