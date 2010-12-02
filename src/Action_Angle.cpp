@@ -1,11 +1,11 @@
-// Distance
+// Angle 
 #include <cstdio>
 #include <cstdlib>
 #include "Action_Angle.h"
 
 // CONSTRUCTOR
 Angle::Angle() {
-  //fprintf(stderr,"Distance Con\n");
+  //fprintf(stderr,"Angle Con\n");
   ang=NULL;
 } 
 

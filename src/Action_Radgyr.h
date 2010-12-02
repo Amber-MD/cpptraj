@@ -5,6 +5,7 @@
 
 class Radgyr: public Action {
     DataSet *rog;
+    DataSet *rogmax;
     AtomMask Mask1;
     bool useMass;
   public:

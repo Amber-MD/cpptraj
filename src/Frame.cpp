@@ -407,6 +407,11 @@ void Frame::ClosestImage(double *A, double *B, int *ixyz) {
 
 /*
  * Frame::MinImageNonOrtho()
+ * Given two sets of coordinates and reciprocal space information based on
+ * the current non-orthorhombic box, return the shortest imaged distance
+ * between the coordinates.
+ * The integer coefficients describing the closest reflection in reciprocal
+ * space will be placed in ixyz.
  */
 double Frame::MinImageNonOrtho(double *Coord1, double *Coord2, double *ucell, double *recip,
                                bool origin, int *ixyz) {
@@ -445,6 +450,9 @@ double Frame::MinImageNonOrtho(double *Coord1, double *Coord2, double *ucell, do
 
 /*
  * Frame::DIST_ImageNonOrtho()
+ * Given two masks and reciprocal space information based on 
+ * the current non-orthorhombic box, return the shortest imaged distance 
+ * between the coordinates.
  */
 double Frame::DIST_ImageNonOrtho(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn,
                                  double *ucell, double *recip) { // double closest2
@@ -469,6 +477,11 @@ double Frame::DIST_ImageNonOrtho(AtomMask *Mask1, AtomMask *Mask2, bool useMassI
 
 /*
  * Frame::DIST_ImageNonOrtho()
+ * Given two coordinate sets in reciprocal space, return the minimum imaged
+ * distance between them.
+ * If minIn is > 0.0 it is considered a possible minimum distance.
+ * The integer coefficients describing the closest reflection in reciprocal
+ * space will be placed in ixyz.
  */
 double Frame::DIST_ImageNonOrtho(double *f, double *f2, double minIn,
                                  double *ucell, int *ixyz) { // double closest2
@@ -765,6 +778,53 @@ double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4) {
     angle = -angle;
 
   return angle;
+}
+
+/*
+ * Frame::RADGYR()
+ * Return the radius of gyration of atoms in mask. Also set the maximum 
+ * distance from center. Use center of mass if useMassIn is true.
+ */
+double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
+  double mid[3], Coord[3];
+  double currentMass, total_mass, maxMass, dist2, sumDist2;
+  int i,atom,natom3;
+
+  total_mass=0.0;
+  maxMass=1.0;
+  currentMass=1.0;
+  sumDist2=0.0;
+  *max=0.0;
+
+  this->COM(Mask,mid,useMassIn);
+
+  for (i=0; i < Mask->Nselected; i++) {
+      atom=Mask->Selected[i];
+      natom3=atom*3;
+      if (useMassIn) {
+        currentMass=Mass[atom];
+        total_mass+=currentMass;
+      }
+      Coord[0] = X[natom3  ] - mid[0];
+      Coord[1] = X[natom3+1] - mid[1];
+      Coord[2] = X[natom3+2] - mid[2];
+      dist2 = (Coord[0]*Coord[0]) + (Coord[1]*Coord[1]) + (Coord[2]*Coord[2]);
+      dist2 *= currentMass;
+      if (dist2 > *max) {
+        *max = dist2;
+        maxMass = currentMass;
+      }
+      sumDist2 += dist2;
+  }
+
+  if (!useMassIn) total_mass=(double) Mask->Nselected;
+
+  if (total_mass==0.0) return 0;  
+
+  currentMass = sqrt(sumDist2 / total_mass); // Radius of Gyration
+  *max = sqrt(*max / maxMass);
+
+  return currentMass;
 }
 
 /*

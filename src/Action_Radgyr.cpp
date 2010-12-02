@@ -33,11 +33,15 @@ int Radgyr::init() {
   mask1 = A->getNextMask();
   Mask1.SetMaskString(mask1);
 
-  // Dataset to store radius of gyration 
+  // Datasets to store radius of gyration and max 
   rog = DSL->Add(DOUBLE, A->getNextString());
   if (rog==NULL) return 1;
-  // Add dataset to data file list
+  //rogmax = DSL->Add(DOUBLE, (char*) "ROGMax\0");
+  rogmax = DSL->Add(DOUBLE, NULL);
+  if (rogmax == NULL) return 1; 
+  // Add datasets to data file list
   DFL->Add(rogFile,rog);
+  DFL->Add(rogFile,rogmax);
 
   fprintf(stdout,"    RADGYR: Calculating for atoms in mask %s",Mask1.maskString);
   if (useMass)
@@ -67,13 +71,14 @@ int Radgyr::setup() {
  * Radgyr::action()
  */
 int Radgyr::action() {
-  double Rog;
+  double Rog, max;
 
-  //Ang=F->ANGLE(&Mask1,&Mask2,&Mask3);
+  Rog = F->RADGYR(&Mask1, useMass, &max);
 
   rog->Add(currentFrame, &Rog);
+  rogmax->Add(currentFrame, &max);
 
-  //fprintf(outfile,"%10i %10.4lf\n",currentFrame,Rog);
+  //fprintf(outfile,"%10i %10.4lf %10.4lf\n",currentFrame,Rog,max);
   
   return 0;
 } 
