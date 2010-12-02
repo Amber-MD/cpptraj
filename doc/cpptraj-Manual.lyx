@@ -1,4 +1,4 @@
-#LyX 1.6.4 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.6 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -275,6 +275,11 @@ Cpptraj comes with a very simple configure script.
  and libraries specified actually exist.
 \end_layout
 
+\begin_layout Standard
+Note that unless specified, cpptraj will by default look for netcdf libraries
+ in the AMBERHOME directory first.
+\end_layout
+
 \begin_layout LyX-Code
 Usage: ./configure [gnu/intel] OPTIONS    
 \end_layout
@@ -302,7 +307,7 @@ OPTIONS:
 \end_layout
 
 \begin_layout LyX-Code
--opt       : Do not use optimized compiler flags (default if -d specified)
+-noopt     : Do not use optimized compiler flags (default if -d specified)
    
 \end_layout
 
@@ -364,8 +369,19 @@ Testing Cpptraj
 \begin_layout Standard
 The ./test directory contains numerous tests that check almost all of the
  functionality of Cpptraj.
+ Note that either the CPPTRAJHOME directory needs to be set or cpptraj needs
+ to be located in the directory pointed to by AMBERHOME ($AMBERHOME/AmberTools/s
+rc/cpptraj).
  By default the tests will run on the binary in the ./bin directory.
- To run the tests:
+ To run the tests from CPPTRAJHOME:
+\end_layout
+
+\begin_layout LyX-Code
+make check
+\end_layout
+
+\begin_layout Standard
+or from the test directory:
 \end_layout
 
 \begin_layout LyX-Code
@@ -381,6 +397,19 @@ A summary of the test results will be written to 'Test_Results.dat' in the
  ./test directory and every individual test directory.
  Stdout from each test is recorded to 'test.out' in every individual test
  directory.
+\end_layout
+
+\begin_layout LyX-Code
+cd test
+\end_layout
+
+\begin_layout LyX-Code
+make test.vg
+\end_layout
+
+\begin_layout Standard
+will test the code using 'valgrind' to check for memory errors (if valgrind
+ is present on the system).
 \end_layout
 
 \begin_layout Section*
@@ -836,6 +865,19 @@ If origin is specified center at the origin, otherwise use the box center.
 
 \end_deeper
 \begin_layout Description
+radgyr [<mask>] [out <filename>] [mass]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Calculate the radius of gyration of atoms in <mask> (all atoms if no mask
+ specified).
+ Output radius of gyration and max radius of gyration to <filename>.
+ Use center of mass if 'mass' is specified, otherwise use center of geometry.
+\end_layout
+
+\end_deeper
+\begin_layout Description
 rmsd <mask> [first | reference | ref <reffilename> | refindex <#>] [<refmask>]
  [out <filename>] [nofit] [mass]
 \begin_inset Newline newline
@@ -1176,6 +1218,25 @@ Strip all atoms specified by mask from the frame and modify the topology
  If outprefix is specified, for every topology modified in this way a file
  <name>.<parmFilename> will be written that matches the stripped system.
  Currently these stripped topologies are for visualization purposes only.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+surf [<mask>] [out <filename>]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Calculate the surface area in Å
+\begin_inset Formula $^{\text{2}}$
+\end_inset
+
+ 
+\color red
+of atoms in <mask>
+\color inherit
+ (all solute atoms if no mask specified) using the LCPO algorithm [ref].
+ 
 \end_layout
 
 \end_deeper
