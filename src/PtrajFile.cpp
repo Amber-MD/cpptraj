@@ -15,9 +15,9 @@
 #endif
 
 //typedef char enumToken[30];
-const PtrajFile::enumToken PtrajFile::FileFormatList[9] = {
+const PtrajFile::enumToken PtrajFile::FileFormatList[10] = {
   "UNKNOWN_FORMAT", "PDBFILE", "AMBERTRAJ", "AMBERNETCDF", "AMBERPARM", 
-  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE"
+  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB"
 };
 const PtrajFile::enumToken PtrajFile::FileTypeList[6] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
@@ -428,6 +428,9 @@ int PtrajFile::SetupRead() {
   }
 
   // ID by file characteristics; read the first two lines
+  // Initialize buffers to NULL
+  buffer1[0]='\0';
+  buffer2[0]='\0';
   IO->Open(filename,"r"); // NOTE: Err Check
   IO->Gets(buffer1,BUFFER_SIZE);
   IO->Gets(buffer2,BUFFER_SIZE);
@@ -495,6 +498,16 @@ int PtrajFile::SetupRead() {
       fileFormat=AMBERTRAJ;
       return 0;
     }
+  }
+
+  // NOTE: EXPERIMENTAL
+  // If the file format is still undetermined and the file name is conflib.dat,
+  // assume this is a conflib.dat file from LMOD. Cant think of a better way to
+  // detect this since there is no magic number but the file is binary.
+  if ( strcmp(basefilename,"conflib.dat")==0 ) {
+    fprintf(stdout,"  LMOD CONFLIB file\n");
+    fileFormat=CONFLIB;
+    return 0;
   }
 
   // Unidentified file

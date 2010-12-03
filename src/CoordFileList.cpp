@@ -9,6 +9,7 @@
 #include "PDBfile.h"
 #include "AmberRestart.h"
 #include "RemdTraj.h"
+#include "Conflib.h"
 
 // CONSTRUCTOR
 CoordFileList::CoordFileList() {
@@ -109,6 +110,7 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
 #endif
       break;
     case PDBFILE     : T = new PDBfile();      break;
+    case CONFLIB     : T = new Conflib();      break;
     default:
       fprintf(stdout,"    Error: Could not determine trajectory file %s type, skipping.\n",
               basicTraj->filename);
