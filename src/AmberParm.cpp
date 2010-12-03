@@ -12,7 +12,7 @@
 
 /*
  * AmberParm::ResName()
- * Set buffer with residue name. Replace blanks with _
+ * Given a residue number, set buffer with residue name. Replace blanks with _
  */
 void AmberParm::ResName(char *buffer, int res) {
   if (res<0 || res>nres) return;
@@ -22,11 +22,10 @@ void AmberParm::ResName(char *buffer, int res) {
 
 /*
  * AmberParm::SetFormat()
- * Given a fotran-type format string, set the format type, data type, the 
+ * Given a fortran-type format string, set the format type, data type, the 
  * expected number of columns, width of data, and printf format string.
  * Also calculate the buffer size necessary to read or write 
- * the data in Amber Parm Format given the number of data elements,
- * data width, and number of columns per line.
+ * the data in Amber Parm Format given the number of data elements N.
  */
 void AmberParm::SetFormat(char *Format, int N) {
   int bufferLines;
@@ -80,10 +79,10 @@ void AmberParm::SetFormat(char *Format, int N) {
   BufferSize+=bufferLines;
   //if (debug>0) 
   //  fprintf(stdout,"*** Buffer size is %i including %i newlines.\n",BufferSize,bufferLines);
-
 }
 
-/* AmberParm::getFlagFileValues()
+/* 
+ * AmberParm::getFlagFileValues()
  * Search for the FLAG specified by Key and return the values. The values will 
  * be put into an array type according to the FORMAT string in the top file, 
  * but it is necessary to explictly type the returned array. maxval is used to 
@@ -151,10 +150,9 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
           //fprintf(stdout,"1 %i: %c %i\n",i,ptr[0],ptr[0]);
           strncpy(temp,ptr,width);
           if (debug>3) fprintf(stdout,"DEBUG:   %8i buffer %s\n",i,temp);
-          /* Sanity check: If we have hit another FLAG before we've read maxval
-           * values this is bad.
-           * NOTE: Could do addtional type checking too.
-           */
+          // Sanity check: If we have hit another FLAG before we've read maxval
+          // values this is bad.
+          // NOTE: Could do addtional type checking too.
           if ( strncmp(ptr,"%FLAG",5)==0 ) {
             fprintf(stderr,"Error: #values read (%i) < # expected values (%i).\n",i,maxval);
             if (I!=NULL) free(I);
@@ -177,7 +175,7 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
       } // End if (strcmp(value,Key)==0)
     } // End if ( strncmp(lineBuffer,"%FLAG",5)==0 )
   } // End While loop
-  /* If we have scanned through the input file and have not found Key, bad! */
+  // If we have scanned through the input file and have not found Key, bad! 
   fprintf(stderr,"Error: Could not find key %s in file.\n",Key);
   if (I!=NULL) free(I);
   if (D!=NULL) free(D);
@@ -188,23 +186,37 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
 
 // CONSTRUCTOR
 AmberParm::AmberParm(int debugIn) {
-
+  debug=debugIn;
   fFormat = UNKNOWN_FFORMAT; numCols=0; width=0; FormatString=""; BufferSize=0;
   fType = UNKNOWN_FTYPE;
-  values=NULL; resnums=NULL;  natom=0;    nres=0;
-  names=NULL;  resnames=NULL; mass=NULL;  charge=NULL;
-  bonds=NULL;  bondsh=NULL;   types=NULL; atomsPerMol=NULL; 
-  Box=NULL;
-  pindex=0;         parmFrames=0; outFrame=0;
-  finalSoluteRes=0; molecules=0;  firstSolvMol=0;
-  solventMask=NULL; solventMolecules=0; solventAtoms=0;
-  solventMoleculeStart=NULL; solventMoleculeStop=NULL;
-  ifbox=0;
-  parmName=NULL;
-  SurfaceInfo=NULL;
 
-  debug=debugIn;
-  //debug=5;
+  values=NULL; 
+  resnums=NULL;  
+  names=NULL;  
+  resnames=NULL; 
+  mass=NULL;    
+  charge=NULL;
+  bonds=NULL;  
+  bondsh=NULL;   
+  types=NULL;   
+  atomsPerMol=NULL; 
+  Box=NULL;    
+  pindex=0;      
+  parmFrames=0; 
+  outFrame=0;
+  finalSoluteRes=0; 
+  molecules=0;       
+  firstSolvMol=0;
+  solventMask=NULL; 
+  solventMolecules=0; 
+  solventAtoms=0;
+  solventMoleculeStart=NULL; 
+  solventMoleculeStop=NULL;
+  natom=0;      
+  nres=0; 
+  ifbox=0; 
+  parmName=NULL; 
+  SurfaceInfo=NULL;
 }
 
 // DESTRUCTOR
@@ -261,11 +273,10 @@ int AmberParm::OpenParm(char *filename) {
 
   File.CloseFile();
 
-  /* Create a last dummy residue in resnums that holds natom, which would be
-   * the atom number of the next residue if it existed. Shift the number by 1
-   * to be consistent with the rest of the array. Do this to be
-   * consistent with ptrajmask selection behavior - saves an if-then stmt
-   */
+  // Create a last dummy residue in resnums that holds natom, which would be
+  // the atom number of the next residue if it existed. Shift the number by 1
+  // to be consistent with the rest of the array. Do this to be
+  // consistent with ptrajmask selection behavior - saves an if-then stmt
   resnums=(int*) realloc(resnums,(nres+1)*sizeof(int));
   resnums[nres]=natom+1;
   // DEBUG
@@ -299,6 +310,8 @@ void AmberParm::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2,
 
 /*
  * WarnLCPO()
+ * Called when the number of bonds to the atom of type atype is not 
+ * usual.
  */
 void WarnLCPO(char *atype, int atom, int numBonds) {
   fprintf(stdout,"Warning: Unusual number of bonds for atom %i (%i), type %-2s.\n",
@@ -430,12 +443,13 @@ int AmberParm::SetSurfaceInfo() {
   } // END LOOP OVER natom
 
   // DEBUG
+  /*
   for (i=0; i<natom; i++) {
-    //fprintf(stdout,"%6i %4s: %6.2lf %lf %lf %lf %lf\n",i+1,types[i],SurfaceInfo[i].vdwradii,
-    /*fprintf(stdout,"%6i%6.2lf%12.8lf%12.8lf%12.8lf%12.8lf\n",i+1,SurfaceInfo[i].vdwradii,
-            SurfaceInfo[i].P1,SurfaceInfo[i].P2,SurfaceInfo[i].P3,SurfaceInfo[i].P4);*/
+    fprintf(stdout,"%6i %4s: %6.2lf %lf %lf %lf %lf\n",i+1,types[i],SurfaceInfo[i].vdwradii,
+    fprintf(stdout,"%6i%6.2lf%12.8lf%12.8lf%12.8lf%12.8lf\n",i+1,SurfaceInfo[i].vdwradii,
+            SurfaceInfo[i].P1,SurfaceInfo[i].P2,SurfaceInfo[i].P3,SurfaceInfo[i].P4);
   }
-
+  */
   free(numBonds);
   return 0;
 }
@@ -565,7 +579,8 @@ int AmberParm::ReadParmAmber() {
   return 0;
 }
 
-/* AmberParm::ReadParmPDB()
+/* 
+ * AmberParm::ReadParmPDB()
  * Open the PDB file specified by filename and set up topology data.
  * Mask selection requires natom, nres, names, resnames, resnums.
  */
@@ -664,16 +679,14 @@ void AmberParm::Info(char *buffer) {
 }
   
 
-/* AmberParm::mask
+/* 
+ * AmberParm::mask
  * Wrapper for the old ptraj mask parser from ptrajmask.h
  */
 char *AmberParm::mask(char *maskstr) {
   
   // Should never be called with NULL string
   if (maskstr==NULL) return NULL;
-//    return parseMaskString((char*)"*", natom, nres, names, resnames, resnums,
-//                         NULL, NULL, NULL, 'z',debug);
-//  else
   // NOTE: Last 4 args are for distance criteria selection.
   // 2nd to last arg should be f for float or d for double.
   // Last arg is debug level
@@ -681,39 +694,10 @@ char *AmberParm::mask(char *maskstr) {
                          NULL, NULL, NULL, 'z',debug);
 }
 
-// Count atoms in mask, assume mask string corresponds to this parm
-/*int AmberParm::AtomsInMask(char *maskstr) {
-  int i,num;
-  if (maskstr==NULL) return 0;
-  num=0;
-  for (i=0; i<natom; i++)
-    if (maskstr[i]=='T') num++;
-  return num;
-}*/
-
-/* AmberParm::AtomsInMask()
- * Count atoms in mask, assume mask string corresponds to this parm.
- * Also list atoms in mask.
- */
-/*int AmberParm::AtomsInMask(char *maskstr) {
-  int i,res,num;
-
-  if (maskstr==NULL) return 0;
-  res=0; num=0;
-  //fprintf(stdout,"Mask selection:\n");
-  for (i=0; i<natom; i++) {
-    // figure out the residue number
-    if ( (i+1)==resnums[res+1] ) res++;
-    if (maskstr[i]=='T') {
-      num++;
-      //fprintf(stdout,"    %8i %4s %8i %4s\n",i,names[i],res,resnames[res]);
-    }
-  }
-  return num;
-}*/
-
-/* AmberParm::atomToResidue()
- * Given an atom number, return corresponding residue.
+// NOTE: The following atomToX functions do not do any memory checks!
+/* 
+ * AmberParm::atomToResidue()
+ * Given an atom number, return corresponding residue number.
  */
 int AmberParm::atomToResidue(int atom) {
   int i, atom1;
@@ -728,7 +712,7 @@ int AmberParm::atomToResidue(int atom) {
 
 /*
  * AmberParm::atomToMolecule()
- * Given an atom number, return corresponding molecule
+ * Given an atom number, return corresponding molecule number.
  */
 int AmberParm::atomToMolecule(int atom) {
   int i, a, atom1;
@@ -796,8 +780,8 @@ int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
 /*
  * AmberParm::modifyStateByMask()
  * Adapted from ptraj
- *  The goal of this routine is to create a new ptrajState (newstate)
- *  based on the old ptrajState (oldstate) deleting atoms that are
+ *  The goal of this routine is to create a new AmberParm (newParm)
+ *  based on the current AmberParm (this), deleting atoms that are
  *  not in the Selected array.
  * NOTE: Make all solvent/box related info dependent on IFBOX only?
  */
@@ -807,7 +791,6 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   int i, ires, imol; 
   int j, jres, jmol;
   int curres, curmol; 
-//  int k;
   int *atomMap; // Convert atom # in oldParm to newParm; -1 if atom is not in newParm
 
   // Allocate space for the new state
@@ -992,6 +975,10 @@ char *AmberParm::DataToBuffer(char *bufferIn, const char *format,
   return buffer;
 }
 
+/*
+ * PrintFlagFormat()
+ * Given an Amber Top file FLAG and fortran FORMAT, print to outfile.
+ */
 void PrintFlagFormat(PtrajFile *outfile, const char *Flag, const char *Format) {
   outfile->IO->Printf("%-80s\n",Flag);
   outfile->IO->Printf("%-80s\n",Format);
@@ -999,7 +986,7 @@ void PrintFlagFormat(PtrajFile *outfile, const char *Flag, const char *Format) {
 
 /*
  * AmberParm::WriteAmberParm()
- * Write out information from Amber Parm to Amber parm file
+ * Write out information from current AmberParm to an Amber parm file
  */
 int AmberParm::WriteAmberParm() {
   PtrajFile outfile;
