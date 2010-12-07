@@ -127,6 +127,7 @@ VALUE=""
 echo ""
 
 # Process Options
+OPT=1
 CC=""
 CXX=""
 CPPTRAJHOME=`pwd`
@@ -156,8 +157,9 @@ while [[ ! -z $1 ]] ; do
       ;; 
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"
+      echo "Turning off optimization"
       DBGFLAGS="-g -Wall"
-      OPTFLAGS="" 
+      OPT=0
       ;;
     "-debugon"      ) 
       echo "Turning on cpptraj internal debug info"
@@ -165,7 +167,7 @@ while [[ ! -z $1 ]] ; do
       ;;
     "-noopt"          ) 
       echo "Turning off optimization"
-      OPTFLAGS="" 
+      OPT=0 
       ;;
     "-mpi"          )
       echo "Using MPI"
@@ -218,6 +220,11 @@ if [[ -z $CC || -z $CXX ]] ; then
   echo "Specify 'gnu' or 'intel' as an argument to ./configure"
   Usage
   exit 1
+fi
+
+# Remove opt flags if specified
+if [[ $OPT -eq 0 ]] ; then
+  OPTFLAGS=""
 fi
 
 # If no netcdf specified and AMBERHOME defined use netcdf from AMBERHOME
