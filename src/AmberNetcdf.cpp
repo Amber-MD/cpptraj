@@ -122,7 +122,7 @@ int AmberNetcdf::checkNCerr(int err, const char *message, ...) {
     
 
 /*
- * ncGetDimInfo()
+ * AmberNetcdf::GetDimInfo()
  * Return the dimension ID of a given attribute in netcdf file ncid.
  * Also set dimension length.
  */ 
@@ -146,6 +146,33 @@ int AmberNetcdf::GetDimInfo(const char *attribute, int *length) {
 }
 
 /*
+ * AmberNetcdf::GetAttrText()
+ * Get the information about a netcdf attribute with given vid and 
+ * attribute text.
+ * Since there is no guarantee that NULL char at the end of retrieved string
+ * append one.
+ */
+char *AmberNetcdf::GetAttrText(int vid, const char *attribute) {
+  size_t attlen;
+  char *attrText;
+  // Get attr length
+  if ( checkNCerr(nc_inq_attlen(ncid, vid, attribute, &attlen),
+       "ncGetAttrText: Getting length for attribute %s\n",attribute)) return NULL;
+  // Allocate space for attr text, plus one for NULL char
+  attrText = (char*) malloc( (attlen + 1) * sizeof(char));
+  // Get attr text
+  if ( checkNCerr(nc_get_att_text(ncid, vid, attribute, attrText),
+       "ncGetAttrText: Getting attribute text for %s\n",attribute)) {
+    free(attrText);
+    return NULL;
+  }
+  // Append NULL char
+  attrText[attlen]='\0';
+
+  return attrText;
+}
+
+/*
  * AmberNetcdf::close()
  */
 void AmberNetcdf::close() {
@@ -162,9 +189,13 @@ void AmberNetcdf::close() {
  * Open up Netcdf file and set all dimension and variable IDs.
  * This is done every time the file is opened up since Im not sure
  * the variable IDs stay the same throughout each opening.
- * Could eventually be separated. 
+ * Could eventually be separated.
+ * NOTE: Replace attrText allocs with static buffer? 
  */
 int AmberNetcdf::open() {
+  char *attrText; // For checking conventions and version 
+  int spatial; // For checking spatial dimensions
+
   //fprintf(stdout,"DEBUG: AmberNetcdf::open() called for %s, ncid=%i\n",File->filename,ncid);
   // If already open, return
   if (ncid!=-1) return 0;
@@ -188,12 +219,49 @@ int AmberNetcdf::open() {
   // Netcdf files are always seekable
   seekable=1;
 
+  // Get global attributes
+  if (title==NULL) title = this->GetAttrText(NC_GLOBAL, "title");
+  attrText = this->GetAttrText(NC_GLOBAL, "Conventions");
+  if (attrText==NULL || strstr(attrText,"AMBER")==NULL) 
+    fprintf(stdout,"WARNING: Netcdf file %s conventions do not include \"AMBER\" (%s)\n",
+            File->filename, attrText);
+  if (attrText!=NULL) free(attrText);
+  attrText = this->GetAttrText(NC_GLOBAL, "ConventionVersion");
+  if (attrText==NULL || strcmp(attrText,"1.0")!=0)
+    fprintf(stdout,"WARNING: Netcdf file %s has ConventionVersion that is not 1.0 (%s)\n",
+            File->filename, attrText);
+  if (attrText!=NULL) free(attrText);
+
+  // Get frame, atoms, coord, and spatial info
   frameID=GetDimInfo(NCFRAME,&ncframe);
   if (frameID==-1) return 1;
   atomID=GetDimInfo(NCATOM,&ncatom);
   if (atomID==-1) return 1;
   if (checkNCerr(nc_inq_varid(ncid,NCCOORDS,&coordID),
       "Getting coordinate ID")!=0) return 1;
+  attrText = this->GetAttrText(coordID, "units");
+  if (attrText==NULL || strcmp(attrText,"angstrom")!=0) 
+    fprintf(stdout,"WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
+            File->filename,attrText);
+  if (attrText!=NULL) free(attrText);
+  spatialID=GetDimInfo(NCSPATIAL,&spatial);
+  if (spatialID==-1) return 1;
+  if (spatial!=3) {
+    fprintf(stdout,"Error: ncOpen: Expected 3 spatial dimenions in %s, got %i\n",
+            File->filename, spatial);
+    return 1;
+  }
+  if ( checkNCerr(nc_inq_varid(ncid, NCSPATIAL, &spatialVID),
+       "Getting spatial VID\n")) return 1;
+
+  // Sanity check on Time
+  if ( checkNCerr( nc_inq_varid(ncid, NCTIME, &timeVID),
+       "Getting Netcdf time VID.")) return 1;
+  attrText = this->GetAttrText(timeVID, "units");
+  if (attrText==NULL || strcmp(attrText,"picosecond")!=0) 
+    fprintf(stdout,"WARNING: Netcdf file %s has time units of %s - expected picosecond.\n",
+            File->filename, attrText);
+  if (attrText!=NULL) free(attrText);
 
   // Box info 
   if ( nc_inq_varid(ncid,"cell_lengths",&cellLengthID)==NC_NOERR ) {
@@ -202,7 +270,7 @@ int AmberNetcdf::open() {
     if (debug>0) fprintf(stdout,"  Netcdf Box information found.\n"); 
     if (P->ifbox==0) {
       fprintf(stderr,"Warning: Netcdf file contains box info but no box info found\n");
-      fprintf(stderr,"         in associated parmfile %s; defaulting to rectangular\n",
+      fprintf(stderr,"         in associated parmfile %s; defaulting to orthogonal.\n",
               P->parmName);
       fprintf(stderr,"         box.\n");
       isBox=1;
@@ -219,9 +287,9 @@ int AmberNetcdf::open() {
     TempVarID=-1;
 
   // NOTE: TO BE ADDED
-  //spatialID, labelID;
+  // labelID;
   //int cell_spatialID, cell_angularID;
-  //int spatialVID, timeVID, cell_spatialVID, cell_angularVID;
+  //int spatialVID, cell_spatialVID, cell_angularVID;
 
   return 0;
 }

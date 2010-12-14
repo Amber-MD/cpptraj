@@ -29,6 +29,7 @@ class AmberNetcdf : public TrajFile {
 
   int checkNCerr(int, const char *, ...); 
   int GetDimInfo(const char *, int *);
+  char *GetAttrText(int, const char *);
 
   int SetupRead();
   int SetupWrite();
