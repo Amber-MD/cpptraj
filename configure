@@ -23,6 +23,7 @@ Usage() {
   echo "   --with-netcdf=<DIR>"
   echo "   --with-zlib=<DIR>"
   echo "   --with-bzlib=<DIR>"
+#  echo "   --with-hdf5=<DIR>"
   echo ""
 }
 
@@ -79,12 +80,12 @@ TestCompile() {
   # C
   echo "Testing C compiler:"
   WriteTestProgram testp.c
-  $CC $CFLAGS -o testp testp.c $ZLIB $BZLIB $NETCDFLIB 
+  $CC $CFLAGS -o testp testp.c $BZLIB $NETCDFLIB $ZLIB 
   ./testp | grep "Testing" > /dev/null
   status=$?
   if [[ $status -gt 0 ]] ; then
       echo "  Error: Unable to compile a C program using:"
-      echo "       $CC $CFLAGS"
+      echo "       $CC $CFLAGS $ZLIB $BZLIB $NETCDFLIB"
       echo "       Please check your compiler settings or configure flags."
       echo "       If errors/warnings appear above related to netcdf.h, zlib.h,"
       echo "       or bzlib.h check that your compiler is able to find the "
@@ -98,12 +99,12 @@ TestCompile() {
   # C++
   echo "Testing C++ compiler:"
   WriteTestProgram testp.cpp
-  $CXX $CXXFLAGS -o testp testp.cpp $ZLIB $BZLIB $NETCDFLIB 
+  $CXX $CXXFLAGS -o testp testp.cpp $BZLIB $NETCDFLIB $ZLIB
   ./testp | grep "Testing" > /dev/null
   status=$?
   if [[ $status -gt 0 ]] ; then
       echo "  Error: Unable to compile a C++ program using:"
-      echo "       $CXX $CXXFLAGS"
+      echo "       $CXX $CXXFLAGS $ZLIB $BZLIB $NETCDFLIB"
       echo "       Please check your compiler settings or configure flags."
       echo "       If errors/warnings appear above related to netcdf.h, zlib.h,"
       echo "       or bzlib.h check that your compiler is able to find the "
@@ -138,6 +139,8 @@ OPTFLAGS=""
 BZLIB="-lbz2"
 ZLIB="-lz"
 NETCDFLIB="-lnetcdf"
+#HDF5LIB="-lhdf5_hl -lhdf5"
+HDF5LIB=""
 LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 INCLUDE=""
 while [[ ! -z $1 ]] ; do
@@ -206,6 +209,11 @@ while [[ ! -z $1 ]] ; do
       NETCDFLIB="-I$VALUE/include $VALUE/lib/libnetcdf.a"
       echo "Using NETCDFLIB: $NETCDFLIB"
       ;;
+    "--with-hdf5" )
+      INCLUDE="$INCLUDE -I$VALUE/include"
+      HDF5LIB="-I$VALUE/include $VALUE/lib/libhdf5_hl.a $VALUE/lib/libhdf5.a -lm"
+      echo "Using HDF5LIB: $HDF5LIB"
+      ;;
     * )
       echo "Unrecognized OPTION: $1"
       exit 1
@@ -232,6 +240,11 @@ if [[ $NETCDFLIB = "-lnetcdf" && ! -z $AMBERHOME ]] ; then
   echo "Using netcdf from AMBERHOME: $AMBERHOME"
   INCLUDE="$INCLUDE -I$AMBERHOME/AmberTools/src/netcdf/include"
   NETCDFLIB="-I$AMBERHOME/AmberTools/src/netcdf/include $AMBERHOME/AmberTools/src/netcdf/lib/libnetcdf.a"
+fi
+
+# Add HDF5 flags to NETCDF
+if [[ ! -z $NETCDFLIB ]] ; then
+  NETCDFLIB="$NETCDFLIB $HDF5LIB"
 fi
 
 # Add directives

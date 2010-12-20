@@ -10,39 +10,41 @@ CleanFiles cpptraj.in ptraj.in rmsd.dat time.dat Timing_Results.dat
   # Run each test 3 times
 #  for NTEST in test1 test2 test3 ; do
     #echo $ATOMS
+    #TRAJ=../ptraj.run0.crd
+    TRAJ=../run0.nc
     cat > ptraj.in <<EOF
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
-trajin ../run0.nc
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
+trajin $TRAJ
 rms first out rmsd.dat :1-268@CA 
 rms first out rmsd.dat  
 rms first out rmsd.dat :191-211@N,CA,C 
