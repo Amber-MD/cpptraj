@@ -66,12 +66,14 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
     return 1;
   }
 
+  // Get specified title if any - will not set if NULL
+  T->SetTitle( A->getKeyString("title", NULL) );
+
   // Get a frame range for trajout
   T->FrameRange = A->NextArgToRange(A->getNextString());
   if (T->FrameRange!=NULL) {
-    std::list<int>::iterator it;
     fprintf(stdout,"      Saving frames");
-    for (it=T->FrameRange->begin(); it!=T->FrameRange->end(); it++)
+    for (std::list<int>::iterator it=T->FrameRange->begin(); it!=T->FrameRange->end(); it++)
       fprintf(stdout," %i",*it);
     fprintf(stdout,"\n");
   } else

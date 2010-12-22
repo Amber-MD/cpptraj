@@ -39,6 +39,24 @@ TrajFile::~TrajFile() {
 }
 
 /*
+ * TrajFile::SetTitle()
+ * Set title for this trajfile.
+ */
+void TrajFile::SetTitle(char *titleIn) {
+  size_t titleSize;
+
+  if (titleIn==NULL) return;
+  titleSize = strlen(titleIn);
+  if (titleSize==0) return;
+  this->title = (char*) malloc( (titleSize+1) * sizeof(char));
+  if (this->title==NULL) {
+    fprintf(stdout,"Error: TrajFile::SetTitle(): Could not allocate memory for title.\n");
+    return;
+  }
+  strcpy(this->title, titleIn);
+}
+
+/*
  * TrajFile::PrintInfo()
  * Print general trajectory information. Call TrajFile->Info for specific information.
  */

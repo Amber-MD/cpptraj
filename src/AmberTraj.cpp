@@ -50,7 +50,7 @@ int AmberTraj::open() {
       File->OpenFile();
       // Write title
       // NOTE: THIS WILL SCREW UP IF OPEN CALLED MULTIPLE TIMES FOR WRITE!
-      File->IO->Rank_printf(0,"%-80s\n",title);
+      File->IO->Rank_printf(0,"%-*s\n",titleSize-1,title);
       break;
 
     case APPEND:
@@ -304,13 +304,14 @@ int AmberTraj::SetupWrite() {
     frameSize+=((numBoxCoords*8)+1);
   }
 
-  // Set up title and size 
+  // Set up title and size.  
   if (title==NULL) {
     title=(char*) malloc(81*sizeof(char));
     strcpy(title,"Cpptraj Generated trajectory");
     titleSize=81;
   } else {
-    titleSize=strlen(title);
+    // Check title length - Add one byte for newline char
+    titleSize=strlen(title) + 1;
     if (titleSize>81) {
       fprintf(stdout,"Error: AmberTraj::open: Given title is too long!\n[%s]\n",title);
       return 1;
