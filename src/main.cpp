@@ -5,6 +5,9 @@
 //#include <cstdio>
 #include "PtrajState.h"
 #include "PtrajMpi.h"
+#ifndef CPPTRAJ_VERSION_STRING
+#define CPPTRAJ_VERSION_STRING "V0.9 BETA"
+#endif
 
 void Usage(char *programName) {
   mprintf(stderr,"Usage: %s [-p Top1, -p Top2, ...] [-i Input] [-debug N]\n",programName);
@@ -24,7 +27,7 @@ int main(int argc, char **argv) {
   // Parallel Init: NOTE Should check for err
   parallel_init(argc,argv);
 
-  mprintf(stdout,"\nCPPTRAJ: Trajectory Analysis.\n");
+  mprintf(stdout,"\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
   mprintf(stdout,"    ___  ___  ___  ___\n");
   mprintf(stdout,"     | \\/ | \\/ | \\/ | \n");
   mprintf(stdout,"    _|_/\\_|_/\\_|_/\\_|_\n\n");
