@@ -10,7 +10,7 @@ CheckNetcdf
 cat > center.in <<EOF
 noprogress
 parm ../ChainA-tip3p.parm7
-trajin ../run0.nc 1 10
+trajin ../run0.nc 1 1
 center :1-268
 trajout centered.crd
 EOF
@@ -21,7 +21,7 @@ DoTest centered.crd.save centered.crd
 cat > center.in <<EOF
 noprogress
 parm ../ChainA-tip3p.parm7
-trajin ../run0.nc 1 10
+trajin ../run0.nc 1 1
 center :1-268 origin
 trajout origin.centered.crd
 EOF
@@ -32,7 +32,7 @@ DoTest origin.centered.crd.save origin.centered.crd
 cat > center.in <<EOF
 noprogress
 parm ../ChainA-tip3p.parm7
-trajin ../run0.nc 1 10
+trajin ../run0.nc 1 1
 center :1-268 origin mass
 trajout origin.mass.centered.crd
 EOF

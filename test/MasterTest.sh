@@ -229,7 +229,7 @@ while [[ ! -z $1 ]] ; do
       echo "End of run tests will be skipped."
       NOTEST=1
     ;;
-    "-d"    ) DEBUG="-debug 2" ;;
+    "-d"    ) DEBUG="-debug 4" ;;
     "clean" ) CLEAN=1 ;;
     * ) echo "Unknown opt: $1" ;;
   esac

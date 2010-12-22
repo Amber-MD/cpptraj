@@ -51,7 +51,7 @@ RunCpptraj "Orthorhombic coordinate imaging test."
 cat > image.in <<EOF
 noprogress
 parm ../ChainA-tip3p.parm7
-trajin ../run0.nc 1 10
+trajin ../run0.nc 1 1
 center :190-211
 image origin center
 trajout image2.crd
@@ -64,7 +64,7 @@ RunCpptraj "Nonorthorhombic coordinate imaging test."
 cat > image.in <<EOF
 noprogress
 parm ../ChainA-tip3p.parm7
-trajin ../run0.nc 1 10
+trajin ../run0.nc 1 1
 center :190-211
 image origin center familiar
 trajout image3.crd
@@ -77,7 +77,7 @@ RunCpptraj "Nonorthorhombic coordinate imaging test with familiar."
 cat > image.in <<EOF
 noprogress
 parm ../ChainA-tip3p.parm7
-trajin ../run0.nc 1 10
+trajin ../run0.nc 1 1
 center :190-211
 image origin center familiar com :100
 trajout image4.crd

@@ -24,8 +24,7 @@ TOP="compound.prmtop"
 RunCpptraj "PTRAJ comprehensive mdcrd -> netcdf test."
 INPUT="ptraj_mdcrd.in"
 RunCpptraj "PTRAJ comprehensive netcdf -> mdcrd test."
-#DoTest trajectory.mdcrd trajectory_test.mdcrd
-DoTest cpptraj.trajectory.mdcrd trajectory_test.mdcrd 
+DoTest ../../../../test/ptraj_comprehensive/trajectory.mdcrd trajectory_test.mdcrd 
 CheckTest
 
 EndTest

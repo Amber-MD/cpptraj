@@ -7,7 +7,7 @@ noprogress
 # 100 total snapshots
 # consider each one 
 
-trajin cpptraj.trajectory.mdcrd 1 100 1
+trajin ../../../../test/ptraj_comprehensive/trajectory.mdcrd 1 100 1
 
 #  first calculate some things that don't depend on
 #  the position of the solute in the box
