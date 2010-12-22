@@ -870,6 +870,13 @@ void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
     for (i=0; i < Mask->Nselected; i++) 
       this->Mass[i] = FrameIn->Mass[Mask->Selected[i]];
   }
+
+  // Copy velocities if present
+  if (FrameIn->V!=NULL) {
+    if (this->V==NULL)
+      this->V = new Frame(FrameIn->V->natom, NULL);
+    this->V->SetFrameFromMask(FrameIn->V, Mask);
+  }
 }
 
 /*
