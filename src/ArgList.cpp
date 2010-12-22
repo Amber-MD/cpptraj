@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
+#include <string>
 #include "ArgList.h"
 using namespace std;
 
@@ -113,6 +114,7 @@ void ArgList::Add(char *input) {
 // Separate input by the characters in separator and store as separate args
 ArgList::ArgList(char *input, const char *separator) {
   char *pch;
+  string quotedArg;
   int debug;
   size_t inputSize;
 
@@ -137,8 +139,28 @@ ArgList::ArgList(char *input, const char *separator) {
 
     while (pch!=NULL) {
       if (debug>3) fprintf(stderr,"getArgList:  Arg %i, Token [%s], ",nargs,pch);
-      Add(pch);
-      if (debug>3) fprintf(stderr,"Arglist %s\n",arglist[nargs-1]);
+      if ( pch[0]!='"' ) 
+        Add(pch);
+      else {
+        // If the argument begins with a quote, place this and all subsequent
+        // arguments ending with another quote into the same argument.
+        quotedArg.clear();
+        quotedArg.assign(pch);
+        // Check if this argument itself ends with a quote
+        if (quotedArg.size() == 1 || quotedArg[quotedArg.size()-1]!='"') {
+          while (pch!=NULL) {
+            quotedArg.append(" ");
+            pch=strtok(NULL," ");
+            quotedArg.append(pch);
+            if (strchr(pch,'"')!=NULL) break;
+          }
+        }
+        // Remove the quotes from the argument
+        for (std::string::iterator it=quotedArg.begin(); it < quotedArg.end(); it++)
+          if (*it=='"') quotedArg.erase(it);  
+        Add((char*)quotedArg.c_str());
+      }
+      if (debug>3) fprintf(stderr,"Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
       pch=strtok(NULL,separator);
     }
     // Setup marked array
