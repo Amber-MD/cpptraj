@@ -236,11 +236,11 @@ if [[ $OPT -eq 0 ]] ; then
 fi
 
 # If no netcdf specified and AMBERHOME defined use netcdf from AMBERHOME
-if [[ $NETCDFLIB = "-lnetcdf" && ! -z $AMBERHOME ]] ; then
-  echo "Using netcdf from AMBERHOME: $AMBERHOME"
-  INCLUDE="$INCLUDE -I$AMBERHOME/AmberTools/src/netcdf/include"
-  NETCDFLIB="-I$AMBERHOME/AmberTools/src/netcdf/include $AMBERHOME/AmberTools/src/netcdf/lib/libnetcdf.a"
-fi
+#if [[ $NETCDFLIB = "-lnetcdf" && ! -z $AMBERHOME ]] ; then
+#  echo "Using netcdf from AMBERHOME: $AMBERHOME"
+#  INCLUDE="$INCLUDE -I$AMBERHOME/AmberTools/src/netcdf/include"
+#  NETCDFLIB="-I$AMBERHOME/AmberTools/src/netcdf/include $AMBERHOME/AmberTools/src/netcdf/lib/libnetcdf.a"
+#fi
 
 # Add HDF5 flags to NETCDF
 if [[ ! -z $NETCDFLIB ]] ; then

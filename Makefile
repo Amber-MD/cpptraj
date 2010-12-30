@@ -10,6 +10,10 @@ all:
 install:
 	cd src && $(MAKE) install
 
+# Create cpptraj binary within AmberTools
+at:
+	cd src && $(MAKE) -f Makefile_at install
+
 # Run Tests
 check:
 	cd test && $(MAKE) test
@@ -17,3 +21,7 @@ check:
 # Clean up
 clean:
 	cd src && $(MAKE) clean
+
+# Clean up for AmberTools
+atclean:
+	cd src && $(MAKE) -f Makefile_at clean
