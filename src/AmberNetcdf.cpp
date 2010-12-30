@@ -1,4 +1,4 @@
-#ifdef HASNETCDF
+#ifdef BINTRAJ
 /* 
  * This file contains a collection of routines designed for reading
  * (and writing?) netcdf files used with amber.

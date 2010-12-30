@@ -3,7 +3,7 @@
 #include "CoordFileList.h"
 // All trajectory classes go here
 #include "AmberTraj.h"
-#ifdef HASNETCDF
+#ifdef BINTRAJ
 #  include "AmberNetcdf.h"
 #endif
 #include "PDBfile.h"
@@ -100,11 +100,11 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
     case AMBERRESTART: T = new AmberRestart(); break;
     case AMBERTRAJ   : T = new AmberTraj();    break;
     case AMBERNETCDF : 
-#ifdef HASNETCDF
+#ifdef BINTRAJ
       T = new AmberNetcdf();  
 #else
       fprintf(stdout,"Error: SetupTrajectory(%s):\n",trajfilename);
-      fprintf(stdout,"       Compiled without NETCDF support. Recompile with -DHASNETCDF\n");
+      fprintf(stdout,"       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
       delete basicTraj;
       return NULL;
 #endif

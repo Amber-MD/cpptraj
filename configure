@@ -53,7 +53,7 @@ WriteTestProgram() {
 #ifdef HASGZ
 #  include "zlib.h"
 #endif
-#ifdef HASNETCDF
+#ifdef BINTRAJ
 #  include "netcdf.h"
 #endif
 
@@ -67,7 +67,7 @@ int main() {
   gfile=NULL;
 #endif
   printf("Testing\n");
-#ifdef HASNETCDF
+#ifdef BINTRAJ
   printf("%s\n",nc_strerror(0));
 #endif
   return 0;
@@ -255,7 +255,7 @@ if [[ ! -z $ZLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DHASGZ"
 fi
 if [[ ! -z $NETCDFLIB ]] ; then
-  DIRECTIVES="$DIRECTIVES -DHASNETCDF"
+  DIRECTIVES="$DIRECTIVES -DBINTRAJ"
 fi
 
 CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"

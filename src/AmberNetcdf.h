@@ -1,6 +1,6 @@
 #ifndef INC_AMBERNETCDF_H
 #define INC_AMBERNETCDF_H
-#ifdef HASNETCDF
+#ifdef BINTRAJ
 /* amber_netcdf.h
  * Dan Roe 10-2008
  */
