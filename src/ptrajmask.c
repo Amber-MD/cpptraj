@@ -540,7 +540,7 @@ int torpn(char *infix, char *postfix)
 
 char *
 eval(char *postfix, int atoms, int residues, Name *atomName, 
-     Name *residueName, int *ipres, void *x, void *y, void *z, char type)
+     Name *residueName, int *ipres, void *X, char type)
 {
 
   char *pToken;
@@ -609,7 +609,7 @@ eval(char *postfix, int atoms, int residues, Name *atomName,
       } else {
         pMask1 = (char *)popStack(&Stack); /* This should be the distance criteria like >@2.4 .*/
         pMask2 = (char *)popStack(&Stack);
-        pMask = selectDist(pMask1, pMask2, atoms, residues, ipres, x, y, z, type);
+        pMask = selectDist(pMask1, pMask2, atoms, residues, ipres, X, type);
         if (pMask==NULL) return NULL;
         pushStack(&Stack,pMask);
 
@@ -666,8 +666,8 @@ eval(char *postfix, int atoms, int residues, Name *atomName,
    For :1@O >:5 means the residues whose atoms (any) greater than 5 A to :1@O 
    If you want residue which all its atoms greater than 5 A, use !(:1@O <:5) 
  */
-char * selectDistd(char *criteria, char *center, int atoms, int residues, int *ipres, double *x, double *y, double *z) {
-  int i, j, k;
+char * selectDistd(char *criteria, char *center, int atoms, int residues, int *ipres, double *X) {
+  int i, j, k, i3, j3;
   char *pMask;
   double dx, dy, dz, x2, y2, z2;
   char type; /* : or @*/
@@ -698,11 +698,13 @@ char * selectDistd(char *criteria, char *center, int atoms, int residues, int *i
   for (i = 0; i < atoms; i++) {
     if (i >= ipres[curres+1]-1) curres++;
     if ( pMask[i] == 'T' ) continue;
+    i3 = i * 3;
     for (j = 0; j < atoms; j++) {
       if (center[j] == 'F') continue;
-      dx = x[i] - x[j]; x2 = dx * dx;
-      dy = y[i] - y[j]; y2 = dy * dy;
-      dz = z[i] - z[j]; z2 = dz * dz;
+      j3 = j * 3;
+      dx = X[i3  ] - X[j3  ]; x2 = dx * dx;
+      dy = X[i3+1] - X[j3+1]; y2 = dy * dy;
+      dz = X[i3+2] = X[j3+2]; z2 = dz * dz;
       distance = sqrt(x2 + y2 + z2);
       if (type == ':') {
         if ( comp == '<') {
@@ -751,7 +753,7 @@ char * selectDistd(char *criteria, char *center, int atoms, int residues, int *i
   
 }
 
-char * selectDistf(char *criteria, char *center, int atoms, int residues, int *ipres, float *x, float *y, float *z) {
+char * selectDistf(char *criteria, char *center, int atoms, int residues, int *ipres, float *X) {
 /*  int i, j, k;
   char *pMask;
   float dx, dy, dz, x2, y2, z2;
@@ -766,16 +768,16 @@ char * selectDistf(char *criteria, char *center, int atoms, int residues, int *i
   
 }
 
-char * selectDist(char *criteria, char *center, int atoms, int residues, int *ipres, void *x, void *y, void *z, char type) {
+char * selectDist(char *criteria, char *center, int atoms, int residues, int *ipres, void *X, char type) {
   
-  if ( x == NULL || y == NULL || z == NULL) {
-    fprintf(stderr,"selectDist(): No coordination info for distance operators.\n");
+  if ( X == NULL ) {
+    fprintf(stderr,"selectDist(): No coordinate info for distance operator.\n");
     return NULL;
   }
   if ( type == 'f')
-    return selectDistf(criteria, center, atoms, residues, ipres, x, y, z);
+    return selectDistf(criteria, center, atoms, residues, ipres, X);
   else if (type == 'd')
-    return selectDistd(criteria, center, atoms, residues, ipres, x, y, z);
+    return selectDistd(criteria, center, atoms, residues, ipres, X);
   else {
     fprintf(stderr,"selectDist(): Unknown type of array.\n");
     return NULL;
@@ -1304,7 +1306,7 @@ selectElemMask(char * elmaskstr, int atoms, int residues, Name *atomName,
 
 char * 
 parseMaskString(char *maskstr, int atoms, int residues, Name *atomName,
-                       Name *residueName, int *ipres, void *x, void *y, void *z, char type,
+                       Name *residueName, int *ipres, void *X, char type,
                 int debug) 
 {
   /* this routine is called from ptraj.c:processAtomMask() which
@@ -1334,7 +1336,7 @@ parseMaskString(char *maskstr, int atoms, int residues, Name *atomName,
     printf("postfix  : ==%s==\n", postfix);
 
   /* 3) evaluate postfix notation */
-  mask = eval(postfix, atoms, residues, atomName, residueName, ipres, x,  y, z, type);
+  mask = eval(postfix, atoms, residues, atomName, residueName, ipres, X, type);
 
   return(mask);
   

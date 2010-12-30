@@ -650,8 +650,7 @@ void AmberParm::ParmInfo(char *maskstr) {
     fprintf(stdout,"Error: AmberParm::ParmInfo: No mask given.\n");
     return;
   }
-  mask = parseMaskString(maskstr, natom, nres, names, resnames, resnums,
-                         NULL, NULL, NULL, 'z',debug);
+  mask = parseMaskString(maskstr, natom, nres, names, resnames, resnums, NULL, 'd',debug);
   if (mask==NULL) {
     fprintf(stdout,"Warning: AmberParm::ParmInfo: Atom mask is NULL.\n");
     return;
@@ -690,8 +689,7 @@ char *AmberParm::mask(char *maskstr) {
   // NOTE: Last 4 args are for distance criteria selection.
   // 2nd to last arg should be f for float or d for double.
   // Last arg is debug level
-  return parseMaskString(maskstr, natom, nres, names, resnames, resnums, 
-                         NULL, NULL, NULL, 'z',debug);
+  return parseMaskString(maskstr, natom, nres, names, resnames, resnums, NULL, 'd',debug);
 }
 
 // NOTE: The following atomToX functions do not do any memory checks!

@@ -74,7 +74,7 @@ typedef char* Name;
 #define  TYPELIST 3
 #define  ELEMLIST 4
 
-extern char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, void *, void *, char, int);
+extern char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, char, int);
 
 
 /* DAN ROE: NOTE: Function prototypes are here because they are out of
@@ -86,8 +86,8 @@ int priority(char);
 int tokenize(char *, char *);
 int torpn(char *, char *);
 
-char * eval(char *, int, int, Name *, Name *, int *, void *, void *, void *, char);
-char * selectDist(char *, char *, int, int, int *, void *, void *, void *, char);
+char * eval(char *, int, int, Name *, Name *, int *, void *, char);
+char * selectDist(char *, char *, int, int, int *, void *, char);
 char * binop(char, char *, char *, int);
 char * neg(char *, int);
 int isElemMatch(char *, char *);
@@ -107,7 +107,7 @@ void atom_namelist(char *, char *, int, Name *);
 void atom_typelist(char *, char *, int, Name *);
 void atom_elemlist(char *, char *, int, Name *);
 char * selectElemMask(char *, int, int, Name *, Name *, int *);
-char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, void *, void *, char, int);
+char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, char, int);
 
 #ifdef __cplusplus
 }
