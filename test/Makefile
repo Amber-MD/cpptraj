@@ -1,5 +1,5 @@
 # Test makefile for cpptraj
-include ../config.h
+#include ../config.h
 
 test.general:
 	@-cd Test_General && ./RunTest.sh $(OPT)

@@ -125,15 +125,15 @@ CheckNetcdf() {
 #==============================================================================
 # CPPTRAJHOME should be defined
 if [[ -z $CPPTRAJHOME ]] ; then
-  echo "CPPTRAJHOME not defined."
+  #echo "CPPTRAJHOME not defined."
   # Try AMBERHOME
   if [[ -z $AMBERHOME ]] ; then
     echo "Tests require CPPTRAJHOME or AMBERHOME to be defined."
     echo ""
     exit 0
   fi
-  echo "Checking for cpptraj directory in AMBERHOME ($AMBERHOME)"
-  CPPTRAJHOME=$AMBERHOME/AmberTools/src/cpptraj
+  #echo "Checking for cpptraj directory in AMBERHOME ($AMBERHOME)"
+  CPPTRAJHOME=$AMBERHOME/AmberTools/src
 fi
 if [[ ! -e $CPPTRAJHOME ]] ; then
   echo "Cpptraj directory $CPPTRAJHOME does not exist."
@@ -159,10 +159,19 @@ NETCDFLIB=$VALUE
 # Check for binary location in config.h
 ParseArg `grep CPPTRAJBIN $CONFIGH`
 if [[ -z $VALUE ]] ; then
-  echo "CPPTRAJBIN not found in config.h"
-  echo "Trying ../../bin/cpptraj"
-  CPPTRAJ=../../bin/cpptraj
+  # Check for BINDIR
+  ParseArg `grep BINDIR $CONFIGH`
+  if [[ -z $VALUE ]] ; then
+    echo "CPPTRAJBIN/BINDIR not found in config.h"
+    echo "Trying ../../bin/cpptraj"
+    # Default
+    CPPTRAJ=../../bin/cpptraj
+  else
+    # AMBERTOOLS
+    CPPTRAJ=$VALUE/cpptraj
+  fi
 else
+  # CPPTRAJ STAND-ALONE
   CPPTRAJ=$VALUE/cpptraj
 fi
 
@@ -195,8 +204,8 @@ while [[ ! -z $1 ]] ; do
     "vg"  ) 
       VG=`which valgrind`
       if [[ -z $VG ]] ; then
-        echo "Valgrind not found."
-        echo "Make sure valgrind is installed and in your PATH"
+        echo "vg: Valgrind not found."
+        echo "    Make sure valgrind is installed and in your PATH"
         exit 1
       fi
       echo "  Using Valgrind."
