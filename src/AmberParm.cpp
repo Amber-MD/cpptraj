@@ -686,10 +686,19 @@ char *AmberParm::mask(char *maskstr) {
   
   // Should never be called with NULL string
   if (maskstr==NULL) return NULL;
-  // NOTE: Last 4 args are for distance criteria selection.
-  // 2nd to last arg should be f for float or d for double.
-  // Last arg is debug level
-  return parseMaskString(maskstr, natom, nres, names, resnames, resnums, NULL, 'd',debug);
+  // NOTE: Args 7-8 are for distance criteria selection. Arg 7 is coords,
+  // arg 8 should be f for float (NOT IMPLEMENTED) or d for double.
+  // Last arg is debug level.
+  return parseMaskString(maskstr, natom, nres, names, resnames, resnums, NULL, 'd', debug);
+}
+
+/*
+ * AmberParm::mask
+ * Wrapper for old ptraj mask parser with coordinates
+ */
+char *AmberParm::mask(char *maskstr, double *X) {
+  if (maskstr==NULL) return NULL;
+  return parseMaskString(maskstr, natom, nres, names, resnames, resnums, X, 'd', debug);
 }
 
 // NOTE: The following atomToX functions do not do any memory checks!

@@ -43,7 +43,10 @@ test.surf:
 test.radgyr:
 	@-cd Test_Radgyr && ./RunTest.sh $(OPT)
 
-test.all: test.general test.strip test.brokentraj test.traj test.remdnetcdf test.framerange test.perres test.dssp test.center test.hbond test.image test.ptrajcomp test.surf test.radgyr
+test.mask:
+	@-cd Test_Mask && ./RunTest.sh $(OPT)
+
+test.all: test.general test.strip test.brokentraj test.traj test.remdnetcdf test.framerange test.perres test.dssp test.center test.hbond test.image test.ptrajcomp test.surf test.radgyr test.mask
 	@./Summary.sh $(OPT)
 
 test: 

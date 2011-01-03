@@ -672,7 +672,7 @@ char * selectDistd(char *criteria, char *center, int atoms, int residues, int *i
   double dx, dy, dz, x2, y2, z2;
   char type; /* : or @*/
   char comp; /* < or > */
-  double dist, distance;
+  double dist, dist2, distance;
   int curres;
   //int total_center_atom;
   
@@ -689,6 +689,7 @@ char * selectDistd(char *criteria, char *center, int atoms, int residues, int *i
     fprintf(stderr,"selectDistd: fail to read distance criteria %s.\n", criteria);
     return NULL;
   }
+  dist2 = dist * dist;
   
   pMask = (char *) malloc( atoms * sizeof(char));
   for (i = 0; i < atoms; i++)
@@ -704,11 +705,13 @@ char * selectDistd(char *criteria, char *center, int atoms, int residues, int *i
       j3 = j * 3;
       dx = X[i3  ] - X[j3  ]; x2 = dx * dx;
       dy = X[i3+1] - X[j3+1]; y2 = dy * dy;
-      dz = X[i3+2] = X[j3+2]; z2 = dz * dz;
-      distance = sqrt(x2 + y2 + z2);
+      dz = X[i3+2] - X[j3+2]; z2 = dz * dz;
+      //distance = sqrt(x2 + y2 + z2);
+      distance = x2 + y2 + z2;
+      //fprintf(stdout,"DEBUG: Atom %i to %i %lf\n",i+1,j+1,distance);
       if (type == ':') {
         if ( comp == '<') {
-          if ( distance < dist ) {
+          if ( distance < dist2 ) {
             for (k = ipres[curres] - 1; k < ipres[curres+1]-1; k++) {
               pMask[k] = 'T';
             }
@@ -717,7 +720,7 @@ char * selectDistd(char *criteria, char *center, int atoms, int residues, int *i
           }
         } /*end of if ( comp == '<') */
         else if ( comp == '>') {
-          if ( distance > dist ) {
+          if ( distance > dist2 ) {
             for (k = ipres[curres] - 1; k < ipres[curres+1]-1; k++) {
               pMask[k] = 'T';
             }
@@ -732,11 +735,11 @@ char * selectDistd(char *criteria, char *center, int atoms, int residues, int *i
         }
       } /* end of if (type == ':') */
       else if (type == '@') {
-        if ( comp == '<' && distance < dist ) {
+        if ( comp == '<' && distance < dist2 ) {
           pMask[i] = 'T';
           break;
         }  
-        if ( comp == '>' && distance > dist ) {
+        if ( comp == '>' && distance > dist2 ) {
           pMask[i] = 'T';
           break;
         }  
@@ -1291,7 +1294,7 @@ selectElemMask(char * elmaskstr, int atoms, int residues, Name *atomName,
     all_select(pElemMask, atoms);
   } else if ( strchr("<>", *elmaskstr) ) {
     free(pElemMask);
-    pElemMask = (char *) malloc( strlen(elmaskstr) * sizeof(char));
+    pElemMask = (char *) malloc( (strlen(elmaskstr)+1) * sizeof(char));
     strcpy(pElemMask, elmaskstr);
   } else {
     fprintf(stderr,"Error: elementary mask ==%s== contains nor : neither @\n",elmaskstr);

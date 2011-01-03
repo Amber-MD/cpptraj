@@ -88,6 +88,7 @@ class AmberParm {
   void ParmInfo(char *);
   void Info(char *);
   char *mask(char *);
+  char *mask(char *, double *);
   int atomToResidue(int);
   int atomToMolecule(int);
   int atomToSolventMolecule(int);
