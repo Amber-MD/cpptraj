@@ -1,4 +1,4 @@
-#LyX 1.6.6 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.7 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -861,6 +861,27 @@ If origin is specified center at the origin, otherwise use the box center.
  into the more familiar truncated octahedral shape.
  If com is specified with familiar, center based on the center of mass of
  atoms in <commask> (otherwise center to origin or box center).
+\end_layout
+
+\end_deeper
+\begin_layout Description
+mask <mask> [out <filename>]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+For each frame print out all atoms that correspond to <mask>.
+ This is most useful when using distance-based masks, e.g.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+(:195<:3.0)&:WAT
+\begin_inset Quotes erd
+\end_inset
+
+ selects all atoms within 3.0 Angstroms of residue 195 that are part of residues
+ named WAT.
 \end_layout
 
 \end_deeper
