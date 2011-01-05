@@ -917,7 +917,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     newParm->solventMolecules=0;
   } else {
     // Set up new solvent info based on new resnums and firstSolvMol
-    fprintf(stdout,"    New parm: First solvent molecule is %i\n",newParm->firstSolvMol);
+    fprintf(stdout,"           New parm: First solvent molecule is %i\n",newParm->firstSolvMol);
     newParm->SetSolventInfo();
   }
   
@@ -933,6 +933,11 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm->values[NATOM] = newParm->natom;
   newParm->values[NRES] = newParm->nres;
   newParm->values[IFBOX] = newParm->ifbox;
+
+  fprintf(stdout,"           New parmtop contains %i atoms.\n",newParm->natom);
+  fprintf(stdout,"                                %i residues.\n",newParm->nres);
+  fprintf(stdout,"                                %i molecules.\n",newParm->molecules);
+  fprintf(stdout,"                                %i solvent molcules.\n",newParm->solventMolecules);
 
   return newParm;
 }
