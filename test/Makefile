@@ -58,6 +58,16 @@ test:
 test.vg:
 	$(MAKE) test.all OPT=vg
 
+bench.rmsd:
+	@-cd Bench_RMSD && ./RunTest.sh $(OPT)
+
+bench.closest:
+	@-cd Bench_Closest && ./RunTest.sh $(OPT)
+
+bench.all: bench.rmsd bench.closest
+
+bench: bench.all
+
 clean:
 	@echo "Cleaning all test directories:"
 	(find . -name 'test.out' -o -name 'valgrind.out' -o -name 'Thread.*' | \
@@ -67,3 +77,4 @@ clean:
         done ;\
         )
 	$(MAKE) test.all OPT=clean
+	$(MAKE) bench.all OPT=clean

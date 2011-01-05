@@ -1,0 +1,5 @@
+noprogress
+parm ../ChainA-tip3p.parm7
+trajin ../run0.nc 1 1
+closest 10 :1-268 first
+trajout first.Closest.pdb pdb
