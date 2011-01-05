@@ -8,17 +8,12 @@ Strip::Strip() {
   // oldParm does not need dealloc because it is passed in
   oldParm=NULL;
   newParm=NULL;
-  // mask1 does not need deallocation since it is a passed in Arg
-  //mask1=NULL;
-  //M1=NULL;
-  //currentType=STRIP;
   newFrame=NULL;
   prefix=NULL;
 } 
 
 Strip::~Strip() {
   //fprintf(stderr,"Strip Des\n");
-  //if (M1!=NULL) free(M1);
   if (newParm!=NULL) delete newParm;
   if (newFrame!=NULL) delete newFrame;
 }
@@ -80,14 +75,10 @@ int Strip::setup() {
 
   fprintf(stdout,"    STRIP: %s was stripped of %i atoms.\n",oldParm->parmName,
           oldParm->natom - M1.Nselected);
-  fprintf(stdout,"           New parmtop contains %i atoms.\n",newParm->natom);
-  fprintf(stdout,"                                %i residues.\n",newParm->nres);
-  fprintf(stdout,"                                %i molecules.\n",newParm->molecules);
-  fprintf(stdout,"                                %i solvent molcules.\n",newParm->solventMolecules);
 
   // Allocate space for new frame
   if (newFrame!=NULL) delete newFrame;
-  newFrame = new Frame(newParm->natom, NULL);
+  newFrame = new Frame(newParm->natom, newParm->mass);
 
   // If prefix given then output stripped parm
   if (prefix!=NULL && newParm->parmName==NULL) {
