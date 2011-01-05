@@ -73,7 +73,7 @@ ParmFileList.h : AmberParm.h
 PDBfile.o : PDBfile.cpp PDBfile.h PDBfileRoutines.h
 PDBfile.h : TrajFile.h
 PDBfileRoutines.o : PDBfileRoutines.cpp PDBfileRoutines.h
-PtrajActionList.o : PtrajActionList.cpp PtrajActionList.h Action_Distance.h Action_Rmsd.h Action_Dihedral.h Action_Angle.h AtomMap.h Action_Strip.h Action_DSSP.h Action_Center.h Action_Hbond.h Action_Image.h Action_Surf.h Action_Radgyr.h
+PtrajActionList.o : PtrajActionList.cpp PtrajActionList.h Action_Distance.h Action_Rmsd.h Action_Dihedral.h Action_Angle.h AtomMap.h Action_Strip.h Action_DSSP.h Action_Center.h Action_Hbond.h Action_Image.h Action_Surf.h Action_Radgyr.h Action_Mask.h Action_Closest.h
 PtrajActionList.h : Action.h
 PtrajFile.o : PtrajFile.cpp PtrajFile.h StdFile.h MpiFile.h
 PtrajFile.h : BaseFileIO.h

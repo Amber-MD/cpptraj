@@ -16,6 +16,7 @@
 #include "Action_Surf.h"
 #include "Action_Radgyr.h"
 #include "Action_Mask.h"
+#include "Action_Closest.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -65,6 +66,7 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("surf"))     {Act=new Surf;    }
   else if (A->CommandIs("radgyr"))   {Act=new Radgyr;  }
   else if (A->CommandIs("mask"))     {Act=new ActionMask;  }
+  else if (A->CommandIs("closest"))  {Act=new Closest;}
   else return 1; 
 
   // Pass in the argument list
