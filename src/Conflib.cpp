@@ -7,6 +7,7 @@ Conflib::Conflib() {
   energy=0.0;
   radGyr=0.0;
   timesFound=0;
+  conflibAtom=0;
 }
 
 // DESTRUCTOR
@@ -14,13 +15,15 @@ Conflib::~Conflib() {
   //fprintf(stderr,"Conflib Destructor.\n");
 }
 //------------------------------------------------------------------------
-/* Conflib::close()
+/* 
+ * Conflib::close()
  */
 void Conflib::close() {
   File->CloseFile();
 }
 
-/* Conflib::open()
+/* 
+ * Conflib::open()
  */
 int Conflib::open() {
 
@@ -30,12 +33,11 @@ int Conflib::open() {
 }
 
 
-/* Conflib::SetupRead()
+/* 
+ * Conflib::SetupRead()
  */
 int Conflib::SetupRead() {
   long unsigned int confFrame;
-
-  //if ( this->open() ) return 1;
 
   // Conflib is double,double,int,natom*3*double
   confFrame = (((P->natom * 3) + 2) * sizeof(double)) + sizeof(int);
@@ -50,22 +52,23 @@ int Conflib::SetupRead() {
             confFrame);
     Frames=-1;
     stop=-1;
+    conflibAtom = P->natom;
     return 1;
   }
-
-  //this->close();
 
   return 0;
 }
 
-/* Conflib::getFrame()
+/* 
+ * Conflib::getFrame()
+ * Use conflibAtom instead of P->natom in case of stripped parmtop
  */
 int Conflib::getFrame(int set) {
 
   if (File->IO->Read(&energy,sizeof(double),1) < 0) return 1;
   File->IO->Read(&radGyr,sizeof(double),1);
   File->IO->Read(&timesFound,sizeof(int),1);
-  File->IO->Read(F->X,sizeof(double),P->natom*3); 
+  File->IO->Read(F->X,sizeof(double),conflibAtom*3); 
 
   return 0;
 }
@@ -87,12 +90,4 @@ int Conflib::writeFrame(int set) {
  */
 void Conflib::Info() {
   fprintf(stdout,"  File (%s) is an LMOD conflib file", File->filename);
-/*    if (p->option2 == 1) 
-      printfone(" with no atom wrapping");
-    if (p->option1 == 1)
-      printfone(": AMBER charges and radii in prmtop to occupancy and temp factor columns");
-    else if (p->option1 == 2)
-      printfone(": AMBER charges and PARSE radii to occupancy and temp factor columns");
-    else if (p->option1 == 3)
-      printfone(": AMBER charges and vdw radii (r*) to occupancy and temp factor columns");*/
 }

@@ -6,6 +6,7 @@
 
 class PDBfile: public TrajFile {
     char buffer[256];
+    int pdbAtom;
   public:
 
     PDBfile();

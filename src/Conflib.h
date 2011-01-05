@@ -8,6 +8,7 @@ class Conflib: public TrajFile {
     double energy;
     double radGyr;
     int timesFound;
+    int conflibAtom;
 
   public:
 

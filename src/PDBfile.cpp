@@ -5,20 +5,24 @@
 #include "PDBfileRoutines.h"
 
 // CONSTRUCTOR
-PDBfile::PDBfile() { }
+PDBfile::PDBfile() {
+  pdbAtom=0;
+}
 
 // DESTRUCTOR
 PDBfile::~PDBfile() { 
   //fprintf(stderr,"PDBfile Destructor.\n");
 }
 //------------------------------------------------------------------------
-/* PDBfile::close()
+/* 
+ * PDBfile::close()
  */
 void PDBfile::close() {
   File->CloseFile();
 }
 
-/* PDBfile::open()
+/* 
+ * PDBfile::open()
  */
 int PDBfile::open() {
 
@@ -28,7 +32,9 @@ int PDBfile::open() {
 }
 
 
-/* PDBfile::SetupRead()
+/* 
+ * PDBfile::SetupRead()
+ * Scan PDB file to determine number of frames (models).
  */
 int PDBfile::SetupRead() {
   int atom, scanPDB;
@@ -58,22 +64,24 @@ int PDBfile::SetupRead() {
             atom,P->natom);
     return 1;
   }
-  //seekable=1; // Set seekable since only 1 frame read (i.e. we know size)
-  //Frames=1;
   if (debug>0) fprintf(stdout,"PDBfile::SetupRead(): %s %i atoms %i frames.\n",trajfilename,
                        atom,Frames);
   stop=Frames;
+  pdbAtom = P->natom;
   return 0;
 }
 
-/* PDBfile::getFrame()
+/* 
+ * PDBfile::getFrame()
+ * Read frame (model) from PDB file. Use pdbAtom from SetupRead instead of
+ * P->natom in case of stripped prmtop.
  */
 int PDBfile::getFrame(int set) {
   int atom, atom3;
 
   atom=0;
 
-  while (atom < P->natom) {
+  while (atom < pdbAtom) {
     if ( File->IO->Gets(buffer,256) ) return 1;
     // Skip non-ATOM records
     if (strncmp(buffer,"ATOM",4)!=0 &&
@@ -87,12 +95,18 @@ int PDBfile::getFrame(int set) {
   return 0;
 }
 
-// Set up trajectory for either write or append
+/*
+ * PDBfile::SetupWrite
+ */ 
 int PDBfile::SetupWrite( ) {
   return 0;
 }
 
-// Write a frame
+/*
+ * PDBfile::writeFrame()
+ * Write the frame (model) to PDB file.
+ * NOTE: Eventually give option to write individual files or models.
+ */
 int PDBfile::writeFrame(int set) {
   int i,i3,res, resOut;
   double Occ, B;
