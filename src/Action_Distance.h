@@ -8,8 +8,9 @@
 class Distance: public Action {
     DataSet *dist;
     bool noimage,useMass;
-    enum ImageType {NONE, ORTHO, NONORTHO};
-    ImageType imageType; 
+    //enum ImageType {NONE, ORTHO, NONORTHO};
+    //ImageType imageType;
+    int imageType; 
     AtomMask Mask1, Mask2;
   public:
     Distance();

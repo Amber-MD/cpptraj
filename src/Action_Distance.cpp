@@ -1,6 +1,7 @@
 // Distance
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
 #include "Action_Distance.h"
 
 // CONSTRUCTOR
@@ -9,7 +10,7 @@ Distance::Distance() {
   dist=NULL;
   noimage=false;
   useMass=true;
-  imageType=NONE;
+  imageType=0;
   //currentType=DISTANCE;
 } 
 
@@ -91,21 +92,23 @@ int Distance::setup() {
 
   // Figure out imaging - check box based on prmtop box
   // NOTE: Should box be figured out from read-in coords?
-  imageType = NONE;
+  imageType = 0;
   if (!noimage) {
-    switch (P->ifbox) {
-      case 0: 
+    imageType = P->ifbox;
+    //switch (P->ifbox) {
+    if (P->ifbox==0) {
+//      case 0: 
         fprintf(stdout,"    Warning: Distance::setup: ");
         fprintf(stdout," Imaging specified but no box information in prmtop %s\n",P->parmName);
-        fprintf(stdout,"             Disabling imaging.\n");
-        noimage = true;
-        break;
-      case 1: imageType = ORTHO;    break;
-      case 2: imageType = NONORTHO; break;
-      default:
-        fprintf(stdout,"    Error: Distance::setup: Unrecognized box type (%i) in %s\n.",
-                P->ifbox, P->parmName);
-        return 1;
+        fprintf(stdout,"             No imaging can be performed.\n");
+//        noimage = true;
+//        break;
+//      case 1: imageType = ORTHO;    break;
+//      case 2: imageType = NONORTHO; break;
+//      default:
+//        fprintf(stdout,"    Error: Distance::setup: Unrecognized box type (%i) in %s\n.",
+//                P->ifbox, P->parmName);
+//        return 1;
     }
   }
         
@@ -117,16 +120,10 @@ int Distance::setup() {
  */
 int Distance::action() {
   double D;
-  double ucell[9], recip[9];
 
-  switch (imageType) {
-    case NONE:     D = F->DIST(&Mask1, &Mask2, useMass); break;
-    case ORTHO:    D = F->DIST_ImageOrtho(&Mask1, &Mask2, useMass); break;
-    case NONORTHO: 
-      F->BoxToRecip(ucell, recip);
-      D = F->DIST_ImageNonOrtho(&Mask1, &Mask2, useMass, ucell, recip);
-      break;
-  }
+  if (imageType>0) F->BoxToRecip();
+  D = F->DIST2(&Mask1, &Mask2, useMass, imageType);
+  D = sqrt(D);
 
   dist->Add(currentFrame, &D);
 

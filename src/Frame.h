@@ -5,11 +5,19 @@
 #include "AtomMask.h"
 
 class Frame {
+    void ClosestImage(double *, double *, int *);
+    double DIST2_ImageNonOrtho(double *, double *);
+    double DIST2_ImageNonOrtho(double *, double *, double, int *);
+    double DIST2_ImageOrtho(double *, double *);
+    double DIST2_NoImage(double *, double *);
+
   public:
     double *X;     // Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     int natom;     // Number of atoms
     int N;         // Number of entries in X, natom*3
     double box[6]; // Box coords, 3xlengths, 3xangles
+    double ucell[9];
+    double recip[9];
     double T;      // Temperature
     Frame *V;      // Velocities
     double *Mass;  // Hold mass. For most functions right now mass is passed in,
@@ -34,13 +42,10 @@ class Frame {
     double COM(AtomMask*, double *, bool);
     double COM(double*,bool,int,int);
     double COM(double*,bool);
-    void BoxToRecip(double *, double *);
-    void ClosestImage(double *, double *, int *);
-    double MinImageNonOrtho(double *, double *, double *, double *, bool, int *);
-    double DIST_ImageNonOrtho(AtomMask *, AtomMask *, bool, double *, double *);
-    double DIST_ImageNonOrtho(double *, double *, double, double *, int *);
-    double DIST_ImageOrtho(AtomMask *, AtomMask *, bool);
-    double DIST(AtomMask*, AtomMask*,bool);
+    void BoxToRecip();
+    double MinImageNonOrtho2(double *, double *, bool, int *);
+    double DIST2(AtomMask*, AtomMask*, bool, int);
+    double DIST2(int, int, int);
     double DIST(int, int);
     double ANGLE(AtomMask*, AtomMask*, AtomMask*);
     double ANGLE(int, int, int);

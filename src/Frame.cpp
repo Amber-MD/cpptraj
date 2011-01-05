@@ -20,6 +20,12 @@ Frame::Frame(int natomIn, double *MassIn) {
     for (int atom = 0; atom < natom; atom++)
       Mass[atom] = MassIn[atom];
   }
+  ucell[0]=0; ucell[1]=0; ucell[2]=0;
+  ucell[3]=0; ucell[4]=0; ucell[5]=0;
+  ucell[6]=0; ucell[7]=0; ucell[8]=0;
+  recip[0]=0; recip[1]=0; recip[2]=0;
+  recip[3]=0; recip[4]=0; recip[5]=0;
+  recip[6]=0; recip[7]=0; recip[8]=0;
 }
 
 // DESTRUCTOR
@@ -45,6 +51,10 @@ Frame *Frame::Copy() {
   newFrame->T = this->T;
   if (this->V!=NULL)
     newFrame->V = this->V->Copy();
+  for (i=0; i<9; i++) {
+    newFrame->ucell[i] = this->ucell[i];
+    newFrame->recip[i] = this->recip[i];
+  }
 
   return newFrame;
 }
@@ -316,8 +326,8 @@ double Frame::COM(double *Coord, bool useMass) {
 /*
  * Frame::BoxToRecip()
  */
-//void Frame::BoxToRecip(double ucell[9], double recip[9]) {
-void Frame::BoxToRecip(double *ucell, double *recip) {
+//void Frame::BoxToRecip(double *ucell, double *recip) {
+void Frame::BoxToRecip() {
   double u12x,u12y,u12z;
   double u23x,u23y,u23z;
   double u31x,u31y,u31z;
@@ -413,8 +423,7 @@ void Frame::ClosestImage(double *A, double *B, int *ixyz) {
  * The integer coefficients describing the closest reflection in reciprocal
  * space will be placed in ixyz.
  */
-double Frame::MinImageNonOrtho(double *Coord1, double *Coord2, double *ucell, double *recip,
-                               bool origin, int *ixyz) {
+double Frame::MinImageNonOrtho2(double *Coord1, double *Coord2, bool origin, int *ixyz) {
   double min, f[3], f2[3];
 
   min = 100.0 * (box[0]*box[0]+box[1]*box[1]+box[2]*box[2]);
@@ -443,26 +452,20 @@ double Frame::MinImageNonOrtho(double *Coord1, double *Coord2, double *ucell, do
     f2[2] += 0.5;
   }
 
-  min = this->DIST_ImageNonOrtho(f, f2, min, ucell, ixyz);
+  min = this->DIST2_ImageNonOrtho(f, f2, min, ixyz);
 
   return min;
 }
 
 /*
  * Frame::DIST_ImageNonOrtho()
- * Given two masks and reciprocal space information based on 
+ * Given two coordinates and reciprocal space information based on 
  * the current non-orthorhombic box, return the shortest imaged distance 
  * between the coordinates.
  */
-double Frame::DIST_ImageNonOrtho(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn,
-                                 double *ucell, double *recip) { // double closest2
-  double a1[3];
-  double a2[3];
+double Frame::DIST2_ImageNonOrtho(double *a1, double *a2) { // double closest2
   double f[3], f2[3];
   int ixyz[3];
-
-  COM(Mask1,a1,useMassIn);
-  COM(Mask2,a2,useMassIn);
 
   f[0] = a2[0]*recip[0] + a2[1]*recip[1] + a2[2]*recip[2];
   f[1] = a2[0]*recip[3] + a2[1]*recip[4] + a2[2]*recip[5];
@@ -472,7 +475,7 @@ double Frame::DIST_ImageNonOrtho(AtomMask *Mask1, AtomMask *Mask2, bool useMassI
   f2[1] = a1[0]*recip[3] + a1[1]*recip[4] + a1[2]*recip[5];
   f2[2] = a1[0]*recip[6] + a1[1]*recip[7] + a1[2]*recip[8];
 
-  return this->DIST_ImageNonOrtho(f, f2, -1.0, ucell, ixyz);
+  return this->DIST2_ImageNonOrtho(f, f2, -1.0, ixyz);
 }
 
 /*
@@ -483,8 +486,7 @@ double Frame::DIST_ImageNonOrtho(AtomMask *Mask1, AtomMask *Mask2, bool useMassI
  * The integer coefficients describing the closest reflection in reciprocal
  * space will be placed in ixyz.
  */
-double Frame::DIST_ImageNonOrtho(double *f, double *f2, double minIn,
-                                 double *ucell, int *ixyz) { // double closest2
+double Frame::DIST2_ImageNonOrtho(double *f, double *f2, double minIn, int *ixyz) { // double closest2
   double fx, fy, fz, f2x, f2y, f2z;
   double x,y,z,D,min;
   int ix,iy,iz;
@@ -559,24 +561,19 @@ double Frame::DIST_ImageNonOrtho(double *f, double *f2, double minIn,
     }
   }
 
-  D = sqrt(min);
+  //D = sqrt(min);
 //  fprintf(stdout,"DEBUG: MinDist  = %2i %2i %2i = %8.3f\n", ixmin, iymin, izmin, D);
 //  printf("---------------------------------------------------------------\n");
-  return(D);
+  return(min);
 }
 
 /*
  * Frame::DIST_ImageOrtho()
- * Return the minimum orthorhombic imaged distance between atoms in Mask1 
- * and Mask2.
+ * Return the minimum orthorhombic imaged distance between coordinates a1 
+ * and a2.
  */
-double Frame::DIST_ImageOrtho(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn) {
-  double a1[3];
-  double a2[3];
+double Frame::DIST2_ImageOrtho(double *a1, double *a2) {
   double x,y,z,D;
-
-  COM(Mask1,a1,useMassIn);
-  COM(Mask2,a2,useMassIn);
 
   x = a1[0] - a2[0];
   y = a1[1] - a2[1];
@@ -604,23 +601,18 @@ double Frame::DIST_ImageOrtho(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn) 
   y = y * y;
   z = z * z;
  
-  D = sqrt(x + y + z);
+  //D = sqrt(x + y + z);
+  D = x + y + z;
 
   return D;
 }
 
 /*
- * Frame::DIST()
- * Return distance between COM of atoms in AtomMasks Mask1 and Mask2.
- * If mass is NULL geometric COM is used.
+ * Frame::DIST_NoImage()
+ * Return distance between coordinates in a1 and a2.
  */
-double Frame::DIST(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn) {
-  double a1[3];
-  double a2[3];
+double Frame::DIST2_NoImage(double *a1, double *a2) {
   double x,y,z,D;
-
-  COM(Mask1,a1,useMassIn);
-  COM(Mask2,a2,useMassIn);
 
   x = a1[0] - a2[0];
   y = a1[1] - a2[1];
@@ -630,7 +622,8 @@ double Frame::DIST(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn) {
   y=y*y;
   z=z*z;
 
-  D=sqrt(x + y + z);
+  //D=sqrt(x + y + z);
+  D = x + y + z;
 
   //fprintf(stdout,"Mask1=%8.3lf %8.3lf %8.3lf Mask2=%8.3lf %8.3lf %8.3lf D=%8.3lf\n",
   //        a1[0],a1[1],a1[2],a2[0],a2[1],a2[2],D);
@@ -640,7 +633,70 @@ double Frame::DIST(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn) {
 
 /*
  * Frame::DIST()
- * Return the distance between atoms A1 and A2
+ * Call the appropriate distance calc for atoms in Mask1 and Mask2 based on
+ * given box type.
+ *   0 = None
+ *   1 = Orthorhombic
+ *   2 = Non-orthorhombic
+ * Based on useMassIn, calculate geometric center (false) or center of mass 
+ * (true) of the atoms in each mask.
+ */
+double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int ifbox) {
+  //double ucell[9], recip[9];
+  double a1[3], a2[3];
+
+  COM(Mask1, a1, useMassIn);
+  COM(Mask2, a2, useMassIn);
+
+  if (ifbox == 0) 
+    return this->DIST2_NoImage(a1, a2);
+  else if (ifbox == 1) 
+    return this->DIST2_ImageOrtho(a1, a2);
+  else if (ifbox == 2) {
+    //this->BoxToRecip(ucell, recip);
+    return this->DIST2_ImageNonOrtho(a1, a2);
+  }
+
+  fprintf(stdout,"    Error: Frame::DIST: Unrecognized box type (%i)\n.", ifbox);
+
+  return (-1.0);
+}
+
+/*
+ * Frame::DIST2()
+ * Return the distance between atoms A1 and A2 with optional imaging.
+ */
+double Frame::DIST2(int A1, int A2, int ifbox) {
+  int atom3;
+  //double ucell[9], recip[9];
+  double a1[3], a2[3];
+
+  atom3 = A1 * 3;
+  a1[0] = X[atom3  ];
+  a1[1] = X[atom3+1];
+  a1[2] = X[atom3+2];
+  atom3 = A2 * 3;
+  a2[0] = X[atom3  ];
+  a2[1] = X[atom3+1];
+  a2[2] = X[atom3+2];
+
+  if (ifbox == 0)
+    return this->DIST2_NoImage(a1, a2);
+  else if (ifbox == 1)
+    return this->DIST2_ImageOrtho(a1, a2);
+  else if (ifbox == 2) {
+    //this->BoxToRecip(ucell, recip);
+    return this->DIST2_ImageNonOrtho(a1, a2);
+  }
+
+  fprintf(stdout,"    Error: Frame::DIST: Unrecognized box type (%i)\n.", ifbox);
+
+  return (-1.0);
+}
+
+/*
+ * Frame::DIST()
+ * Return the distance between atoms A1 and A2, no imaging.
  */
 double Frame::DIST(int A1, int A2) {
   int i, j; // Actual indices into X
