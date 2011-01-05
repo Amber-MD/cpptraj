@@ -15,9 +15,6 @@ class AtomMask {
     AmberParm *P;     // Topology that selection is based on
     int N;            // Current position in Selected
     int debug;
-
-    //int NextSelected();
-    //int NextMask();
   public:
     bool invertMask;  // If true atoms outside the mask will be selected.
     char *maskString; // String specifying atom selection
@@ -28,8 +25,7 @@ class AtomMask {
 //    AtomMask(int);
     ~AtomMask();
 
-    //void Start();
-    //int NextAtom();
+    AtomMask *Copy();
     int None();
     void SetMaskString(char*);
     int SetupMask(AmberParm*,int);

@@ -32,43 +32,29 @@ AtomMask::~AtomMask() {
   if (Selected!=NULL) free(Selected);
 }
 
-/* AtomMask::Start()
- * Set N to 0.
- */
-//void AtomMask::Start() {
-//  N=0;
-//}
-
 /*
- * AtomMask::NextSelected()
- * Return the atom index in Selected[N] and increment. If >=Nselected return -1;
+ * AtomMask::Copy()
  */
-//int AtomMask::NextAtom() {
-//  if (N == Nselected) return -1;
-//  return Selected[N++];
-//}
-
-/*
- * AtomMask::NextMask()
- * Return the atom index of next T value in mask. If N>P->natom return -1
- */
-/*
-int AtomMask::NextMask() {
-  while ( N < P->natom ) {
-    if (mask[N++]=='T') return N-1; // Return N-1 since N has been incremented
-    N++;
+AtomMask *AtomMask::Copy() {
+  int mask;
+  AtomMask *newMask;
+  
+  newMask = new AtomMask();
+  newMask->Selected = (int*) malloc(this->Nselected * sizeof(int));
+  for (mask=0; mask < this->Nselected; mask++) 
+    newMask->Selected[mask] = this->Selected[mask];
+  newMask->Nselected = this->Nselected;
+  newMask->invertMask = this->invertMask;
+  if (this->maskString!=NULL) {
+    newMask->maskString = (char*) malloc( (strlen(this->maskString)+1) * sizeof(char));
+    strcpy(newMask->maskString, this->maskString);
   }
-  return -1;
-}
+  newMask->P = this->P;
+  newMask->N = this->N;
+  newMask->debug = this->debug;
 
-// NextAtom
-int AtomMask::NextAtom() {
-  if (Selected!=NULL)
-    return NextSelected();
-  else
-    return NextMask();
+  return newMask;
 }
-*/
 
 /*
  * AtomMask::SetMaskString()
@@ -143,6 +129,7 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
   }
   // Resize array for number of selected atoms
   Selected = (int*) realloc(Selected, Nselected * sizeof(int) );
+
   if (debug>0) {
     if (invertMask)
       fprintf(stdout,"          Inverse of Mask %s corresponds to %i atoms.\n",
@@ -151,18 +138,6 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
       fprintf(stdout,"          Mask %s corresponds to %i atoms.\n",maskString,Nselected);
   }
 
-/*  // Compare mask size to selected size
-  SelectedSize = Nselected * sizeof(int);
-  maskSize = P->natom * sizeof(char);
-  fprintf(stdout,"DEBUG: AtomMask: Size of selected array=%lu, Size of mask=%lu\n",
-          SelectedSize, maskSize);
-*/
-/*  // If overall mask array is smaller than selected, use that
-  if (SelectedSize>maskSize) {
-    fprintf(stdout,"DEBUG: Overall mask array is smaller than selected array. Using mask array\n");
-    free(Selected);
-    Selected=NULL;
-  }*/
   // Free the character mask, no longer needed
   free(mask);
   
