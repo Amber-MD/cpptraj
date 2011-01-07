@@ -238,7 +238,7 @@ int AmberRestart::getFrame(int set) {
   }
   // Convert velocity to Frame if present
   if (hasVelocity) {
-    if (F->V==NULL) F->V = new Frame(P->natom,NULL);
+    if (F->V==NULL) F->V = new Frame(restartAtoms,NULL);
     if ( (bufferPosition = F->V->BufferToFrame(bufferPosition, 12))==NULL ) {
       fprintf(stdout,"Error: AmberRestart::getFrame: * detected in velocities of %s\n",
               trajfilename);
