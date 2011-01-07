@@ -1,19 +1,17 @@
-#ifndef INC_AMBERNETCDF_H
-#define INC_AMBERNETCDF_H
+#ifndef INC_AMBERRESTARTNC_H
+#define INC_AMBERRESTARTNC_H
 #ifdef BINTRAJ
-/* amber_netcdf.h
- * Dan Roe 10-2008
- */
+// AmberRestartNC
 #include "TrajFile.h"
 
-class AmberNetcdf : public TrajFile {
+class AmberRestartNC : public TrajFile {
   int ncid;
-  int frameDID;
-  int ncframe;
   int atomDID;
-  int ncatom; 
-  float *Coord;
+  int ncatom;
   int coordVID;
+  int hasVelocity;
+  int velocityVID;
+  double velocityScale;
   int cellAngleVID;
   int cellLengthVID;
 
@@ -23,17 +21,19 @@ class AmberNetcdf : public TrajFile {
   int cell_angularDID;
   int spatialVID;
   int timeVID;
+  double restartTime;
   int cell_spatialVID;
   int cell_angularVID;
   int TempVID;
 
   int SetupRead();
   int SetupWrite();
+  int setupWriteForSet(int);
 
   public:
-  
-  AmberNetcdf();
-  ~AmberNetcdf();
+
+  AmberRestartNC();
+  ~AmberRestartNC();
 
   int open();
   void close();
@@ -41,5 +41,6 @@ class AmberNetcdf : public TrajFile {
   int writeFrame(int);
   void Info();
 };
+
 #endif
-#endif
+#endif  

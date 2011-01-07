@@ -114,7 +114,8 @@ int PDBfile::writeFrame(int set) {
 
   res=0; resOut=0; Occ=0.0; B=0.0;
   resName[4]='\0';
-  for (i=0; i<P->natom; i++) {
+  // Use F->natom instead of P->natom in case of stripped coordinates?
+  for (i=0; i<F->natom; i++) {
     i3 = i * 3;
     // figure out the residue number
     if ( (i+1)==P->resnums[res+1] ) {res++; resOut++;}

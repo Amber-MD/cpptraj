@@ -5,6 +5,7 @@
 #include "AmberTraj.h"
 #ifdef BINTRAJ
 #  include "AmberNetcdf.h"
+#  include "AmberRestartNC.h"
 #endif
 #include "PDBfile.h"
 #include "AmberRestart.h"
@@ -102,6 +103,16 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
     case AMBERNETCDF : 
 #ifdef BINTRAJ
       T = new AmberNetcdf();  
+#else
+      fprintf(stdout,"Error: SetupTrajectory(%s):\n",trajfilename);
+      fprintf(stdout,"       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
+      delete basicTraj;
+      return NULL;
+#endif
+      break;
+    case AMBERRESTARTNC :
+#ifdef BINTRAJ
+      T = new AmberRestartNC();
 #else
       fprintf(stdout,"Error: SetupTrajectory(%s):\n",trajfilename);
       fprintf(stdout,"       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");

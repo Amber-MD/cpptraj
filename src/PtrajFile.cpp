@@ -4,6 +4,7 @@
 #include <cctype>
 #include <glob.h> // For tilde expansion
 #include "PtrajFile.h"
+#include "NetcdfRoutines.h"
 // File Types
 #include "StdFile.h"
 #ifdef HASGZ
@@ -15,9 +16,9 @@
 #endif
 
 //typedef char enumToken[30];
-const PtrajFile::enumToken PtrajFile::FileFormatList[10] = {
+const PtrajFile::enumToken PtrajFile::FileFormatList[11] = {
   "UNKNOWN_FORMAT", "PDBFILE", "AMBERTRAJ", "AMBERNETCDF", "AMBERPARM", 
-  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB"
+  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", "AMBERRESTARTNC"
 };
 const PtrajFile::enumToken PtrajFile::FileTypeList[6] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
@@ -318,6 +319,7 @@ int PtrajFile::SetupWrite() {
 int PtrajFile::SetupRead() {
   unsigned char magic[3];
   char buffer1[BUFFER_SIZE], buffer2[BUFFER_SIZE];
+  char *CheckConventions; // Only used to check if netcdf is traj or restart
   float TrajCoord[10];
   int i;
 
@@ -419,11 +421,26 @@ int PtrajFile::SetupRead() {
   // NETCDF
   if (magic[0]==0x43 && magic[1]==0x44 && magic[2]==0x46) {
     if (debug>0) fprintf(stdout,"  NETCDF file\n");
-    fileFormat=AMBERNETCDF;
     if (compressType!=NONE) {
       fprintf(stdout,"Error: Compressed NETCDF files are not currently supported.\n");
       return 1;
     }
+    // Determine whether this is a trajectory or restart Netcdf from the Conventions
+    CheckConventions = GetNetcdfConventions(filename);
+    if (CheckConventions==NULL) return 1;
+    if (strcmp(CheckConventions, "AMBER")==0) 
+      fileFormat=AMBERNETCDF;
+    else if (strcmp(CheckConventions,"AMBERRESTART")==0)
+      fileFormat=AMBERRESTARTNC;
+    else {
+      fprintf(stdout,"Error: Netcdf File %s: Unrecognized conventions \"%s\".\n",
+              filename,CheckConventions);
+      fprintf(stdout,"       Expected \"AMBER\" or \"AMBERRESTART\".\n");
+      fileFormat=UNKNOWN_FORMAT;
+      free(CheckConventions);
+      return 1;
+    }
+    free(CheckConventions);
     return 0;
   }
 

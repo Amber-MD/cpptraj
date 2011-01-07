@@ -43,10 +43,11 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   if ( A->hasKey("append") ) fileAccess=APPEND;
 
   // Set the write file format
-  if      ( A->hasKey("pdb")     ) writeFormat=PDBFILE;
-  else if ( A->hasKey("data")    ) writeFormat=DATAFILE;
-  else if ( A->hasKey("netcdf")  ) writeFormat=AMBERNETCDF;
-  else if ( A->hasKey("restart") ) writeFormat=AMBERRESTART;
+  if      ( A->hasKey("pdb")      ) writeFormat=PDBFILE;
+  else if ( A->hasKey("data")     ) writeFormat=DATAFILE;
+  else if ( A->hasKey("netcdf")   ) writeFormat=AMBERNETCDF;
+  else if ( A->hasKey("restart")  ) writeFormat=AMBERRESTART;
+  else if ( A->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
 
   // Set the write file type
   // Since Amber Restart files are written 1 at a time no MPI needed
@@ -119,7 +120,7 @@ int TrajoutList::Write(int outputSet, Frame *Fin, AmberParm *CurrentParm) {
     // Open if this is first call - skip flag not otherwise used for output
     if ((*it)->skip==0) {
       if ((*it)->SetupWrite()) return 1;
-      (*it)->Begin();
+      if ((*it)->Begin()) return 1;
       (*it)->skip=1;
     }
     // Set frame and write

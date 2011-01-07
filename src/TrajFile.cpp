@@ -284,8 +284,7 @@ int TrajFile::Begin(int *OutputStart, int showProgressIN) {
 int TrajFile::Begin() {
   //fprintf(stdout,"DEBUG: Preparing %s for traj write.\n",trajfilename);
   //fprintf(stdout,"DEBUG: open() returned %i\n",open());
-  // NOTE: Error check!
-  open();
+  if (open()) return 1;
   return 0;
 }
 

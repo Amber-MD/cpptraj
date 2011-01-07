@@ -26,12 +26,14 @@ Action_Strip.o : Action_Strip.cpp Action_Strip.h
 Action_Strip.h : Action.h
 Action_Surf.o : Action_Surf.cpp Action_Surf.h vectormath.h
 Action_Surf.h : Action.h
-AmberNetcdf.o : AmberNetcdf.cpp AmberNetcdf.h
+AmberNetcdf.o : AmberNetcdf.cpp AmberNetcdf.h NetcdfRoutines.h
 AmberNetcdf.h : TrajFile.h
 AmberParm.o : AmberParm.cpp AmberParm.h ptrajmask.h PDBfileRoutines.h
 AmberParm.h : PtrajFile.h
 AmberRestart.o : AmberRestart.cpp AmberRestart.h
 AmberRestart.h : TrajFile.h
+AmberRestartNC.o : AmberRestartNC.cpp AmberRestartNC.h NetcdfRoutines.h
+AmberRestartNC.h : TrajFile.h
 AmberTraj.o : AmberTraj.cpp AmberTraj.h
 AmberTraj.h : TrajFile.h
 ArgList.o : ArgList.cpp ArgList.h
@@ -68,6 +70,7 @@ mapDataSet.o : mapDataSet.cpp mapDataSet.h PtrajMpi.h
 mapDataSet.h : DataSet.h
 MpiFile.o : MpiFile.cpp MpiFile.h
 MpiFile.h : BaseFileIO.h PtrajMpi.h
+NetcdfRoutines.o : NetcdfRoutines.cpp NetcdfRoutines.h
 ParmFileList.o : ParmFileList.cpp ParmFileList.h
 ParmFileList.h : AmberParm.h
 PDBfile.o : PDBfile.cpp PDBfile.h PDBfileRoutines.h
@@ -75,7 +78,7 @@ PDBfile.h : TrajFile.h
 PDBfileRoutines.o : PDBfileRoutines.cpp PDBfileRoutines.h
 PtrajActionList.o : PtrajActionList.cpp PtrajActionList.h Action_Distance.h Action_Rmsd.h Action_Dihedral.h Action_Angle.h AtomMap.h Action_Strip.h Action_DSSP.h Action_Center.h Action_Hbond.h Action_Image.h Action_Surf.h Action_Radgyr.h Action_Mask.h Action_Closest.h
 PtrajActionList.h : Action.h
-PtrajFile.o : PtrajFile.cpp PtrajFile.h StdFile.h MpiFile.h
+PtrajFile.o : PtrajFile.cpp PtrajFile.h NetcdfRoutines.h StdFile.h MpiFile.h
 PtrajFile.h : BaseFileIO.h
 ptrajmask.o : ptrajmask.c ptrajmask.h
 PtrajMpi.o : PtrajMpi.c PtrajMpi.h
