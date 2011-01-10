@@ -60,10 +60,10 @@ $(NETCDFLIB): ../../netcdf_config.log
 	cd ../../netcdf/src && $(MAKE) install
 
 .c.o:
-	$(CC) -Wall -c $(CPPTRAJ_FLAGS) -o $@ $<
+	$(CC) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 .cpp.o:
-	$(CXX) -Wall -c $(CPPTRAJ_FLAGS) -o $@ $<
+	$(CXX) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 clean:
 	/bin/rm -f $(OBJECTS) cpptraj$(SFX)
