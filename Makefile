@@ -11,7 +11,7 @@ install:
 	cd src && $(MAKE) install
 
 # Create cpptraj binary within AmberTools
-at:
+yes:
 	cd src && $(MAKE) -f Makefile_at install
 
 # Run Tests
@@ -25,3 +25,7 @@ clean:
 # Clean up for AmberTools
 atclean:
 	cd src && $(MAKE) -f Makefile_at clean
+
+# called if cpptraj was disabled in AT's configure
+no:
+	@echo "Skipping cpptraj"
