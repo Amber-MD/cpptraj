@@ -2,7 +2,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
-#include <glob.h> // For tilde expansion
+#ifndef __PGI
+#  include "glob.h" // For tilde expansion
+#endif
 #include "PtrajFile.h"
 #include "NetcdfRoutines.h"
 // File Types
@@ -215,7 +217,9 @@ void PtrajFile::SetBaseFilename() {
 int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn, 
                          FileFormat fileFormatIn, FileType fileTypeIn, 
                          int debugIn) {
+#ifndef __PGI
   glob_t globbuf;
+#endif
 
   // DEBUG
   if (debug>1) {
@@ -229,6 +233,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
     filename=(char*) malloc( (strlen(filenameIn)+1) * sizeof(char) );
     strcpy(filename,filenameIn);
   }
+#ifndef __PGI
   // On read or append do tilde expansion and store new filename
   if (accessIn!=WRITE) {
     // If no filename this is an error.
@@ -243,6 +248,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
     strcpy(filename, globbuf.gl_pathv[0]);
     globfree(&globbuf);
   }
+#endif
   // Store base filename and determine filename extension
   this->SetBaseFilename();
 
@@ -305,7 +311,6 @@ int PtrajFile::SetupWrite() {
     default : 
       fprintf(stdout,"PtrajFile::SetupWrite: Unrecognized file type.\n");
       return 1;
-      break;
   }
 
   return 0;
