@@ -72,7 +72,7 @@ int AmberRestart::open() {
       // Set up title
       if (title==NULL) {
         title=(char*) malloc(81*sizeof(char));
-        strcpy(title,"Ptraj Generated Restart");
+        strcpy(title,"Cpptraj Generated Restart");
         titleSize=81;
       } else {
         titleSize=strlen(title);
