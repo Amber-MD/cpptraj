@@ -1043,7 +1043,7 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   double *Evector[3], Eigenvalue[3], Emat[9];
   double b[9];
   double cp[3], sig3;
-  int i;
+  int i, m;
   int i3,k,k3,j;
 
   memset(U,     0, 9*sizeof(double));
@@ -1070,6 +1070,7 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   memset(rot, 0, 9*sizeof(double));
   memset(rtr, 0, 9*sizeof(double));
   // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
+  m=0;
   for (i=0; i<N; i+=3) {
     xt = X[i];
     yt = X[i+1];
@@ -1081,7 +1082,7 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
     // Use rms_return to hold mass for this atom if specified
     rms_return = 1.0;
     if (useMassIn) 
-      rms_return = Mass[i/3];
+      rms_return = Mass[m++];
     //total_mass+=rms_return;
 
     mwss += rms_return * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
