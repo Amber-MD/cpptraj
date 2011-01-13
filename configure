@@ -143,6 +143,7 @@ NETCDFLIB="-lnetcdf"
 HDF5LIB=""
 LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 INCLUDE=""
+USEMPI=0
 while [[ ! -z $1 ]] ; do
   ParseArg $1
   case "$KEY" in
@@ -174,9 +175,7 @@ while [[ ! -z $1 ]] ; do
       ;;
     "-mpi"          )
       echo "Using MPI"
-      CC=mpicc
-      CXX=mpicxx
-      DIRECTIVES="$DIRECTIVES -DMPI"
+      USEMPI=1
       ;;
     "-nolfs"        )
       echo "Disabling large file support"
@@ -258,6 +257,13 @@ if [[ ! -z $NETCDFLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DBINTRAJ"
 fi
 
+# Change compilers for MPI if specified
+if [[ $USEMPI -eq 1 ]] ; then
+  CC=mpicc
+  CXX=mpicxx
+  DIRECTIVES="$DIRECTIVES -DMPI"
+fi
+
 CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 
@@ -278,6 +284,9 @@ CXXFLAGS=$CXXFLAGS
 ZLIB=$ZLIB
 BZLIB=$BZLIB
 NETCDFLIB=$NETCDFLIB
+
+LDFLAGS=
+SFX=
 
 EOF
 
