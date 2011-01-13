@@ -1,11 +1,11 @@
 // NetcdfRoutines
-#ifdef BINTRAJ
+#include "CpptrajStdio.h"
 #include <cstdlib>
+#ifdef BINTRAJ
 #include <cstdio>
 #include <cstdarg>
 #include "netcdf.h"
 #include "NetcdfRoutines.h"
-#include "CpptrajStdio.h"
 
 /*  
  * NetcdfDebug()
