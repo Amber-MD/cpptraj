@@ -11,7 +11,8 @@ CleanFiles cpptraj.in ptraj.in rmsd.dat time.dat Timing_Results.dat
 #  for NTEST in test1 test2 test3 ; do
     #echo $ATOMS
     #TRAJ=../ptraj.run0.crd
-    TRAJ=../run0.nc
+#for TRAJ in ../run0.nc ../ptraj.run0.crd ; do
+for TRAJ in ../run0.nc ; do
     cat > ptraj.in <<EOF
 trajin $TRAJ
 trajin $TRAJ
@@ -58,22 +59,23 @@ EOF
     TIME="time"
     ERROR="time.dat"
     echo $CPPTRAJ
-    RunCpptraj "CPPTRAJ: Timing of RMSD command."
+    RunCpptraj "CPPTRAJ: Timing of RMSD command ($TRAJ)."
+    DoTest rmsd.dat.save rmsd.dat
     
     CPPTRAJ=`which ptraj`
     echo $CPPTRAJ
     INPUT="ptraj.in"
-    RunCpptraj "PTRAJ: Timing of RMSD command."
+    RunCpptraj "PTRAJ: Timing of RMSD command ($TRAJ)."
+    DoTest ptraj.rmsd.dat.save rmsd.dat
 
-    #DoTest d1.dat.save d1.dat 
-    #CheckTest
+    CheckTest
     # Discard first test results
     #if [[ $NTEST = "test1" ]] ; then
     #  CleanFiles $ERROR
     #fi
+    cat $ERROR
 #  done
-#done
+done
 mv Test_Results.dat Timing_Results.dat
-#EndTest
-cat $ERROR
+EndTest
 exit 0
