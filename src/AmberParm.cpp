@@ -8,6 +8,7 @@
 #include "AmberParm.h" // PtrajFile.h 
 #include "ptrajmask.h"
 #include "PDBfileRoutines.h"
+#include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
 
 // ================= PRIVATE FUNCTIONS =========================
@@ -268,6 +269,7 @@ int AmberParm::OpenParm(char *filename) {
   switch (File.fileFormat) {
     case AMBERPARM : if (ReadParmAmber()) return 1; break;
     case PDBFILE   : if (ReadParmPDB()  ) return 1; break;
+    case MOL2FILE  : if (ReadParmMol2() ) return 1; break;
     default: 
       rprintf("Unknown parameter file type: %s\n",File.filename);
       return 1;
@@ -637,6 +639,63 @@ int AmberParm::ReadParmPDB() {
     mprintf("Error: No atoms in PDB file.\n");
     return 1;
   }
+
+  return 0;
+}
+
+/*
+ * AmberParm::ReadParmMol2()
+ * Read file as a Tripos Mol2 file.
+ */
+int AmberParm::ReadParmMol2() {
+  char buffer[MOL2BUFFERSIZE];
+  int mol2bonds, atom;
+  int resnum, currentResnum;
+  char resName[5];
+
+  currentResnum=-1;
+  mprintf("    Reading Mol2 file %s as topology file.\n",parmName);
+  // Get @<TRIPOS>MOLECULE information
+  if (Mol2ScanTo(&File, MOLECULE)) return 1;
+  //   Scan title
+  if ( File.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+  mprintf("      Mol2 Title: [%s]\n",buffer);
+  //   Scan # atoms and bonds
+  // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
+  if ( File.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+  mol2bonds=0;
+  sscanf(buffer,"%i %i",&natom, &mol2bonds);
+  mprintf("      Mol2 #atoms: %i\n",natom);
+  mprintf("      Mol2 #bonds: %i\n",mol2bonds);
+
+  // Allocate memory for atom names and types 
+  names = (char**) malloc( natom * sizeof(char*));
+  types = (char**) malloc( natom * sizeof(char*));
+  charge = (double*) malloc( natom * sizeof(double));
+
+  // Get @<TRIPOS>ATOM information
+  if (Mol2ScanTo(&File, ATOM)) return 1;
+  for (atom=0; atom < natom; atom++) {
+    if ( File.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+    names[atom] = (char*) malloc( 5 * sizeof(char));
+    types[atom] = (char*) malloc( 5 * sizeof(char));
+    // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
+    sscanf(buffer,"%*i %s %*f %*f %*f %s %i %s %lf", names[atom], types[atom],
+           &resnum,resName, charge+atom);
+    //mprintf("      %i %s %s %i %s %lf\n",atom,names[atom],types[atom],resnum,resName,charge[atom]);
+    // Check if residue number has changed - if so record it
+    if (resnum != currentResnum) {
+      resnames = (char**) realloc(resnames, (nres+1) * sizeof(char*));
+      resnames[nres] = (char*) malloc( 5 * sizeof(char));
+      resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
+      resnums[nres]=natom+1; // +1 since in Amber Top atoms start from 1
+      strcpy(resnames[nres], resName);
+      currentResnum = resnum;
+      nres++;
+    }
+  }
+
+  mprintf("    Mol2 contains %i atoms, %i residues.\n", natom,nres);
 
   return 0;
 }

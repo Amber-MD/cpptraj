@@ -20,9 +20,10 @@
 #endif
 
 //typedef char enumToken[30];
-const PtrajFile::enumToken PtrajFile::FileFormatList[11] = {
+const PtrajFile::enumToken PtrajFile::FileFormatList[12] = {
   "UNKNOWN_FORMAT", "PDBFILE", "AMBERTRAJ", "AMBERNETCDF", "AMBERPARM", 
-  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", "AMBERRESTARTNC"
+  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", "AMBERRESTARTNC",
+  "MOL2FILE"
 };
 const PtrajFile::enumToken PtrajFile::FileTypeList[6] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
@@ -475,6 +476,15 @@ int PtrajFile::SetupRead() {
   if (isPDBkeyword(buffer1) && isPDBkeyword(buffer2)) {
     if (debug>0) mprintf("  PDB file\n");
     fileFormat=PDBFILE;
+    return 0;
+  }
+
+  // If either buffer contains a TRIPOS keyword assume Mol2
+  // NOTE: This will fail on tripos files with extensive header comments
+  if (strncmp(buffer1,"@<TRIPOS>", 9)==0 ||
+      strncmp(buffer2,"@<TRIPOS>", 9)==0) {
+    if (debug>0) mprintf("  TRIPOS MOL2 file\n");
+    fileFormat=MOL2FILE;
     return 0;
   }
 

@@ -44,6 +44,9 @@ class AmberParm {
   void SetFormat(char *,int);
   void *getFlagFileValues(const char*,int);
   char *DataToBuffer(char*,const char *, int *, double *, char **, int N);
+  int ReadParmMol2();
+  int ReadParmAmber();
+  int ReadParmPDB();
 
   public:
   int Nbonh() { return values[NBONH]; }
@@ -83,8 +86,6 @@ class AmberParm {
   int OpenParm(char *);
   int SetSurfaceInfo();
   int SetSolventInfo();
-  int ReadParmAmber();
-  int ReadParmPDB();
   void ParmInfo(char *);
   void Info(char *);
   char *mask(char *);

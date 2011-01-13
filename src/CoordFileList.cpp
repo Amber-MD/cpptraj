@@ -12,6 +12,7 @@
 #include "AmberRestart.h"
 #include "RemdTraj.h"
 #include "Conflib.h"
+#include "Mol2File.h"
 
 // CONSTRUCTOR
 CoordFileList::CoordFileList() {
@@ -123,6 +124,7 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
       break;
     case PDBFILE     : T = new PDBfile();      break;
     case CONFLIB     : T = new Conflib();      break;
+    case MOL2FILE    : T = new Mol2File();     break;
     default:
       mprintf("    Error: Could not determine trajectory file %s type, skipping.\n",
               basicTraj->filename);
