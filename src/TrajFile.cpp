@@ -54,6 +54,8 @@ void TrajFile::SetTitle(char *titleIn) {
     return;
   }
   strcpy(this->title, titleIn);
+  // Remove terminal newline if one exists
+  if (this->title[titleSize-1]=='\n') this->title[titleSize-1]='\0';
 }
 
 /*

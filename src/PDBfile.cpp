@@ -81,16 +81,17 @@ int PDBfile::getFrame(int set) {
   int atom, atom3;
 
   atom=0;
-
+  atom3=0;
   while (atom < pdbAtom) {
     if ( File->IO->Gets(buffer,256) ) return 1;
     // Skip non-ATOM records
     if (strncmp(buffer,"ATOM",4)!=0 &&
         strncmp(buffer,"HETATM",6)!=0 ) continue;  
     // Read current PDB record XYZ into Frame
-    atom3 = atom * 3;
-    pdb_xyz(buffer,F->X+atom3); 
-    atom++;
+    //atom3 = atom * 3;
+    pdb_xyz(buffer,F->X+atom3);
+    atom++; 
+    atom3+=3;
   }
 
   return 0;
