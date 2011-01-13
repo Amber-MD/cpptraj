@@ -1,7 +1,6 @@
 #ifndef INC_CONFLIB_H
 #define INC_CONFLIB_H
 // Conflib
-//#include <cstdio>
 #include "TrajFile.h"
 
 class Conflib: public TrajFile {

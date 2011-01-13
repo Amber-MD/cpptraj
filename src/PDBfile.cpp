@@ -3,6 +3,7 @@
 #include <cstring>
 #include "PDBfile.h"
 #include "PDBfileRoutines.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 PDBfile::PDBfile() {
@@ -60,11 +61,11 @@ int PDBfile::SetupRead() {
   this->close();
 
   if (Frames<1) {
-    fprintf(stdout,"ERROR: PDBfile::SetupRead(): No frames read. atom=%i expected %i.\n",
+    mprintf("ERROR: PDBfile::SetupRead(): No frames read. atom=%i expected %i.\n",
             atom,P->natom);
     return 1;
   }
-  if (debug>0) fprintf(stdout,"PDBfile::SetupRead(): %s %i atoms %i frames.\n",trajfilename,
+  if (debug>0) mprintf("PDBfile::SetupRead(): %s %i atoms %i frames.\n",trajfilename,
                        atom,Frames);
   stop=Frames;
   pdbAtom = P->natom;
@@ -142,7 +143,7 @@ int PDBfile::writeFrame(int set) {
  * Info()
  */
 void PDBfile::Info() {
-  fprintf(stdout,"  File (%s) is a PDB file", File->filename);
+  mprintf("  File (%s) is a PDB file", File->filename);
 /*    if (p->option2 == 1) 
       printfone(" with no atom wrapping");
     if (p->option1 == 1)

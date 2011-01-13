@@ -1,7 +1,6 @@
 #ifndef INC_PTRAJSTATE_H
 #define INC_PTRAJSTATE_H 
 
-//#include "TrajFileList.h"
 #include "TrajinList.h"
 #include "TrajoutList.h"
 #include "ReferenceList.h"
@@ -12,19 +11,20 @@
 #include "ArgList.h"
 
 class PtrajState {
-    TrajinList trajFileList;       // List of input trajectory files 
+    TrajinList trajFileList;         // List of input trajectory files 
     ReferenceList refFileList;       // List of reference coordinate files
-    TrajoutList outFileList;       // List of output trajectory files 
+    TrajoutList outFileList;         // List of output trajectory files 
     ParmFileList parmFileList;       // List of parameter files 
     PtrajActionList ptrajActionList; // List of actions to be performed each frame
     DataSetList DSL;                 // List of generated data sets
     DataFileList DFL;                // List of datafiles that data sets will be written to
     ArgList *A;                      // Current argument list
 
-    void Dispatch();              // Function that decides where to send commands
-    int ProcessInputStream(char *); // Process lines of input from a file
+    void SetGlobalDebug(int);        // Set debug level for all components
+    void Dispatch();                 // Function that decides where to send commands
+    int ProcessInputStream(char *);  // Process lines of input from a file
     int debug;
-    int showProgress;             // Output traj progress to screen?
+    int showProgress;                // Output traj progress to screen?
 
   public:
 

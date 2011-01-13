@@ -1,5 +1,7 @@
 #include "BaseFileIO.h"
 #include <cstring>
+#include <cstdio>
+#include <cstdarg>
 
 #ifdef MPI
 #  include "PtrajMpi.h"

@@ -2,16 +2,16 @@
  * CPPTRAJ: Rewrite of PTRAJ in C++
  * 2010 Daniel R. Roe
  */
-//#include <cstdio>
 #include "PtrajState.h"
 #include "PtrajMpi.h"
+#include "CpptrajStdio.h"
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V0.9.1 BETA"
+#define CPPTRAJ_VERSION_STRING "V0.9.3 BETA"
 #endif
 
 void Usage(char *programName) {
-  mprintf(stderr,"Usage: %s [-p Top1, -p Top2, ...] [-i Input] [-debug N]\n",programName);
-  mprintf(stderr,"       %s Top1 Input\n",programName);
+  mprinterr("Usage: %s [-p Top1, -p Top2, ...] [-i Input] [-debug N]\n",programName);
+  mprinterr("       %s Top1 Input\n",programName);
 }
 
 /*
@@ -27,28 +27,22 @@ int main(int argc, char **argv) {
   // Parallel Init: NOTE Should check for err
   parallel_init(argc,argv);
 
-  mprintf(stdout,"\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
-  mprintf(stdout,"    ___  ___  ___  ___\n");
-  mprintf(stdout,"     | \\/ | \\/ | \\/ | \n");
-  mprintf(stdout,"    _|_/\\_|_/\\_|_/\\_|_\n\n");
-  // NOTE: Eventually allow stdin mode, like Ptraj
-  //if (argc<2) {
-  //  Usage(argv[0]);
-  //  return 0;
-  //}
+  mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
+  mprintf("    ___  ___  ___  ___\n");
+  mprintf("     | \\/ | \\/ | \\/ | \n");
+  mprintf("    _|_/\\_|_/\\_|_/\\_|_\n\n");
+#ifdef MPI
+  mprintf("Running on %i processors\n\n",worldsize);
+#endif
 
-  // Not set up for parallel yet. 
-  //if (worldrank==0) {
-    err = State.ProcessCmdLineArgs(argc,argv);
-    switch ( err ) {
-      case 0 : State.Run(); break;
-      case 1 : Usage(argv[0]); break;
-    }
-
-  //}
+  err = State.ProcessCmdLineArgs(argc,argv);
+  switch ( err ) {
+    case 0 : State.Run(); break;
+    case 1 : Usage(argv[0]); break;
+  }
 
   parallel_end();
 
-  mprintf(stdout,"\n");
+  mprintf("\n");
   return 0;
 }

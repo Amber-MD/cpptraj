@@ -8,9 +8,7 @@
  */
 #include <list> // For FrameRange
 #include "Frame.h"
-//#include "ArgList.h"
-#include "AmberParm.h" // PtrajFile.h cstdio
-//#include "PtrajFile.h" // cstdio
+#include "AmberParm.h" // PtrajFile.h 
 
 class TrajFile {
   protected:

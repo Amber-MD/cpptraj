@@ -15,6 +15,6 @@ class stringDataSet : public DataSet {
     int isEmpty(int);
     void Add( int, void *vIn );
     void Write(char *, int);
-    //int Sync();
+    int Sync();
 };
 #endif

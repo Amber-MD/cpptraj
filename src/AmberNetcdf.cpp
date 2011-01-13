@@ -5,12 +5,12 @@
  * Dan Roe 10-2008
  * Original implementation of netcdf in Amber by Jon Mongan.
  */
-#include <cstdio>
 #include <cstdlib>
 #include <cstring> // For title length
 #include "netcdf.h"
 #include "AmberNetcdf.h"
 #include "NetcdfRoutines.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 AmberNetcdf::AmberNetcdf() {
@@ -48,7 +48,7 @@ AmberNetcdf::~AmberNetcdf() {
  */
 void AmberNetcdf::close() {
   checkNCerr(nc_close(ncid),"Closing netcdf file.");
-  if (debug>0) fprintf(stdout,"Successfully closed ncid %i\n",ncid);
+  if (debug>0) rprintf("Successfully closed ncid %i\n",ncid);
   ncid=-1;
   frameDID=-1; ncframe=-1; atomDID=-1; ncatom=-1; coordVID=-1;
   cellLengthVID=-1; cellAngleVID=-1;
@@ -85,7 +85,7 @@ int AmberNetcdf::open() {
 
   }
 
-  if (debug>0) fprintf(stdout,"Successfully opened %s, ncid=%i\n",File->filename,ncid);
+  if (debug>0) rprintf("Successfully opened %s, ncid=%i\n",File->filename,ncid);
   if (debug>1) NetcdfDebug(ncid);
   // Netcdf files are always seekable
   seekable=1;
@@ -94,12 +94,12 @@ int AmberNetcdf::open() {
   if (title==NULL) title = GetAttrText(ncid,NC_GLOBAL, "title");
   attrText = GetAttrText(ncid,NC_GLOBAL, "Conventions");
   if (attrText==NULL || strstr(attrText,"AMBER")==NULL) 
-    fprintf(stdout,"WARNING: Netcdf file %s conventions do not include \"AMBER\" (%s)\n",
+    rprintf("WARNING: Netcdf file %s conventions do not include \"AMBER\" (%s)\n",
             File->filename, attrText);
   if (attrText!=NULL) free(attrText);
   attrText = GetAttrText(ncid,NC_GLOBAL, "ConventionVersion");
   if (attrText==NULL || strcmp(attrText,"1.0")!=0)
-    fprintf(stdout,"WARNING: Netcdf file %s has ConventionVersion that is not 1.0 (%s)\n",
+    rprintf("WARNING: Netcdf file %s has ConventionVersion that is not 1.0 (%s)\n",
             File->filename, attrText);
   if (attrText!=NULL) free(attrText);
 
@@ -112,13 +112,13 @@ int AmberNetcdf::open() {
       "Getting coordinate ID")!=0) return 1;
   attrText = GetAttrText(ncid,coordVID, "units");
   if (attrText==NULL || strcmp(attrText,"angstrom")!=0) 
-    fprintf(stdout,"WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
+    rprintf("WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
             File->filename,attrText);
   if (attrText!=NULL) free(attrText);
   spatialDID=GetDimInfo(ncid,NCSPATIAL,&spatial);
   if (spatialDID==-1) return 1;
   if (spatial!=3) {
-    fprintf(stdout,"Error: ncOpen: Expected 3 spatial dimenions in %s, got %i\n",
+    rprintf("Error: ncOpen: Expected 3 spatial dimenions in %s, got %i\n",
             File->filename, spatial);
     return 1;
   }
@@ -130,7 +130,7 @@ int AmberNetcdf::open() {
        "Getting Netcdf time VID.")) return 1;
   attrText = GetAttrText(ncid,timeVID, "units");
   if (attrText==NULL || strcmp(attrText,"picosecond")!=0) 
-    fprintf(stdout,"WARNING: Netcdf file %s has time units of %s - expected picosecond.\n",
+    rprintf("WARNING: Netcdf file %s has time units of %s - expected picosecond.\n",
             File->filename, attrText);
   if (attrText!=NULL) free(attrText);
 
@@ -140,10 +140,10 @@ int AmberNetcdf::open() {
   if ( nc_inq_varid(ncid,"cell_lengths",&cellLengthVID)==NC_NOERR ) {
     if (checkNCerr(nc_inq_varid(ncid,"cell_angles",&cellAngleVID),
       "Getting cell angles.")!=0) return 1;
-    if (debug>0) fprintf(stdout,"  Netcdf Box information found.\n"); 
+    if (debug>0) mprintf("  Netcdf Box information found.\n"); 
     if (P->ifbox==0) {
-      fprintf(stderr,"Warning: Netcdf file contains box info but no box info found\n");
-      fprintf(stderr,"         in associated parmfile %s; defaulting to orthogonal.\n",
+      mprintf("Warning: Netcdf file contains box info but no box info found\n");
+      mprintf("         in associated parmfile %s; defaulting to orthogonal.\n",
               P->parmName);
       isBox=1;
     } else {
@@ -153,7 +153,7 @@ int AmberNetcdf::open() {
 
   // Replica Temperatures
   if ( nc_inq_varid(ncid,NCTEMPERATURE,&TempVID) == NC_NOERR ) {
-    if (debug>0) fprintf(stdout,"    Netcdf file has replica temperatures.\n");
+    if (debug>0) mprintf("    Netcdf file has replica temperatures.\n");
     hasTemperature=1;
   } else 
     TempVID=-1;
@@ -173,9 +173,9 @@ int AmberNetcdf::open() {
 int AmberNetcdf::SetupRead() {
   if (open()) return 1;
   if (ncatom!=P->natom) {
-    fprintf(stdout,"Warning: Number of atoms in NetCDF file %s (%i) does not\n",
+    rprintf("Warning: Number of atoms in NetCDF file %s (%i) does not\n",
             File->filename,ncatom);
-    fprintf(stdout,"         match those in associated parmtop (%i)!\n",P->natom);
+    rprintf("         match those in associated parmtop (%i)!\n",P->natom);
     return 1;
   }
   stop=ncframe;
@@ -201,7 +201,7 @@ int AmberNetcdf::SetupWrite() {
   if (checkNCerr(nc_create(File->filename,NC_64BIT_OFFSET,&ncid),
     "Creating Netcdf file %s",File->filename)) return 1;
   if (debug>0) 
-    fprintf(stdout,"    Successfully created Netcdf file %s, ncid %i\n",File->filename,ncid);
+    mprintf("    Successfully created Netcdf file %s, ncid %i\n",File->filename,ncid);
 
   // Frame, Time
   if (checkNCerr(nc_def_dim(ncid,NCFRAME,NC_UNLIMITED,&frameDID),
@@ -287,7 +287,7 @@ int AmberNetcdf::SetupWrite() {
 
   /* DAN ROE: Replica temperature 
   if (trajInfo->isREMDTRAJ) {
-    fprintf(stdout,"NETCDF: Defining replica temperature in output trajectory.\n");
+    mprintf("NETCDF: Defining replica temperature in output trajectory.\n");
     dimensionID[0] = NCInfo->frameDID;
     netcdfDefineVariable(NCInfo->ncid, NCTEMPERATURE, NC_DOUBLE, 1, dimensionID, &NCInfo->TempVID);
     netcdfPutAttributeText(NCInfo->ncid, NCInfo->TempVID,"units","kelvin");
@@ -420,11 +420,11 @@ int AmberNetcdf::writeFrame(int set) {
  * Info()
  */
 void AmberNetcdf::Info() {
-  fprintf(stdout,"  File (%s) is a NetCDF AMBER trajectory", File->filename
+  mprintf("  File (%s) is a NetCDF AMBER trajectory", File->filename
             //(p->isVelocity ? " and velocities" : "")
          );
 
-  if (TempVID!=-1) fprintf(stdout," with replica temperatures");
+  if (TempVID!=-1) mprintf(" with replica temperatures");
 
   /*if (debug > 2) {
       if (title != NULL)

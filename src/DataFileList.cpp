@@ -1,8 +1,7 @@
 // DataFileList
-#include <cstdio>
-//#include <cstdlib>
 #include "DataFileList.h"
-#include "PtrajMpi.h" // NOTE: Only needed for worldrank - move to DataSet?
+#include "CpptrajStdio.h"
+//#include "PtrajMpi.h" // NOTE: Only needed for worldrank - move to DataSet?
 
 // CONSTRUCTOR
 DataFileList::DataFileList() {
@@ -21,7 +20,7 @@ DataFileList::~DataFileList() {
 void DataFileList::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
-    fprintf(stdout,"DataFileList DEBUG LEVEL SET TO %i\n",debug);
+    mprintf("DataFileList DEBUG LEVEL SET TO %i\n",debug);
 }
 
 /*
@@ -80,7 +79,7 @@ int DataFileList::Add(char *nameIn, DataSet *D) {
   Current->SetDebug(debug);
 
   // DEBUG
-  //fprintf(stdout,"** ADDED DATASET %s TO FILE %s\n",D->Name(),Current->filename);
+  //mprintf("** ADDED DATASET %s TO FILE %s\n",D->Name(),Current->filename);
 
   return 0;
 }
@@ -92,26 +91,26 @@ int DataFileList::Add(char *nameIn, DataSet *D) {
 void DataFileList::Info() {
 
   if (this->empty()) {
-    fprintf(stdout,"NO DATASETS WILL BE OUTPUT\n");
+    mprintf("NO DATASETS WILL BE OUTPUT\n");
     return;
   }
 
-  fprintf(stdout,"DATAFILE OUTPUT:\n");
+  mprintf("DATAFILE OUTPUT:\n");
   for (it = this->begin(); it != this->end(); it++) {
-    fprintf(stdout,"  %s: ",(*it)->filename);
+    mprintf("  %s: ",(*it)->filename);
     (*it)->DataSetNames();
-    fprintf(stdout,"\n");
+    mprintf("\n");
   }
 }
 
 /*
  * DataFileList::Write()
  * Call write for all datafiles in list.
- * Only master does data file writing.
+ * Only master should call this.
  */
 void DataFileList::Write(int maxFrames) {
 
-  if (worldrank!=0) return; // DISABLE FOR DEBUG
+  //if (worldrank!=0) return; 
 
   for (it = this->begin(); it != this->end(); it++)
     (*it)->Write(maxFrames,false);

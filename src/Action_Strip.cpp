@@ -1,7 +1,9 @@
-// Strip 
+// Strip
+#include <cstdio> //sprintf 
 #include <cstdlib>
 #include <cstring>
 #include "Action_Strip.h"
+#include "CpptrajStdio.h"
 
 Strip::Strip() {
   //fprintf(stderr,"Strip Con\n");
@@ -27,9 +29,9 @@ int Strip::init( ) {
 
   // Get mask of atoms to be stripped
   mask1 = A->getNextMask();
-  fprintf(stdout,"    Mask 1: %s\n",mask1);
+  mprintf("    Mask 1: %s\n",mask1);
   if (mask1==NULL) {
-    fprintf(stdout,"    Error: Strip::init: Requires atom mask.\n");
+    mprintf("    Error: Strip::init: Requires atom mask.\n");
     return 1;
   }
   M1.SetMaskString(mask1);
@@ -37,10 +39,10 @@ int Strip::init( ) {
   // Get output stripped parm filename
   prefix = A->getKeyString("outprefix",NULL);
 
-  fprintf(stdout,"    STRIP: %s",M1.maskString);
+  mprintf("    STRIP: %s",M1.maskString);
   if (prefix!=NULL) 
-    fprintf(stdout,", stripped parm will be output with prefix %s",prefix);
-  fprintf(stdout,"\n");
+    mprintf(", stripped parm will be output with prefix %s",prefix);
+  mprintf("\n");
 
   return 0;
 }
@@ -50,15 +52,15 @@ int Strip::init( ) {
  * Attempt to create a new stripped down version of the input parmtop
  */
 int Strip::setup() {
-  fprintf(stdout,"    STRIP: ");
+  mprintf("    STRIP: ");
   M1.invertMask=true;   // Want to keep atoms outside the mask selection
                         // Atoms in the mask will be stripped
                         // Selected atoms will be kept.
   M1.SetupMask(P,debug);
-  //fprintf(stdout,"    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
+  //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
 
   if (M1.None()) {
-    fprintf(stdout,"    Error: Strip::setup: Mask has no atoms.\n");
+    mprintf("    Error: Strip::setup: Mask has no atoms.\n");
     return 1;
   }
 
@@ -69,11 +71,11 @@ int Strip::setup() {
   if (newParm!=NULL) delete newParm;
   newParm = P->modifyStateByMask(M1.Selected, M1.Nselected);
   if (newParm==NULL) {
-    fprintf(stdout,"    Error: Strip::setup: Could not create new parmtop.\n");
+    mprintf("    Error: Strip::setup: Could not create new parmtop.\n");
     return 1;
   }
 
-  fprintf(stdout,"    STRIP: %s was stripped of %i atoms.\n",oldParm->parmName,
+  mprintf("    STRIP: %s was stripped of %i atoms.\n",oldParm->parmName,
           oldParm->natom - M1.Nselected);
 
   // Allocate space for new frame
@@ -85,10 +87,9 @@ int Strip::setup() {
     newParm->parmName=(char*)malloc((strlen(oldParm->parmName)+strlen(prefix)+2)*sizeof(char));
     sprintf(newParm->parmName,"%s.%s",prefix,oldParm->parmName);
     if ( newParm->WriteAmberParm() ) {
-      fprintf(stdout,"ERROR: STRIP: Could not write out stripped parm file %s\n",
+      mprintf("ERROR: STRIP: Could not write out stripped parm file %s\n",
               newParm->parmName);
     }
-    //free(outfilename);
 
   // Otherwise Set stripped parm name only, default prefix strip
   } else if ( newParm->parmName==NULL ) {

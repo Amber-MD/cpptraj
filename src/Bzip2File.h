@@ -2,8 +2,9 @@
 #define INC_BZIP2FILE_H
 // Bzip2 file IO
 #ifdef HASBZ2
-#include "BaseFileIO.h" // cstdio
-#include "bzlib.h"
+#include "BaseFileIO.h"
+// NOTE: bzlib.h has stdio.h. Does it matter that its not cstdio? 
+#include "bzlib.h" 
 class Bzip2File : public BaseFileIO {
     bool isBzread;
     FILE *fp;
@@ -22,7 +23,7 @@ class Bzip2File : public BaseFileIO {
     long long int Size(char *);
     int Read(void *, size_t, size_t );
     int Write(void *, size_t, size_t);  
-    int Seek(off_t, int);
+    int Seek(off_t);
     int Rewind();  
     off_t Tell();  // NOTE: Tell may be unnecessary if only for size reporting.
     int Gets(char *, int );

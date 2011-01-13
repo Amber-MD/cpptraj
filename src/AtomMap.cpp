@@ -1,8 +1,8 @@
 // AtomMap
 #include <cstdlib>
-#include <cstdio>
 #include <cstring>
 #include "AtomMap.h"
+#include "CpptrajStdio.h"
 
 atommap::atommap() {
   M=NULL;
@@ -67,8 +67,8 @@ double atommap::getCut(char *atom1, char *atom2) {
     cut=1.76;
   else {
     if (debug>0) {
-      fprintf(stdout,"Warning: atommap::getCut: Cut not found for %s - %s\n",atom1,atom2);
-      fprintf(stdout,"                          Using default cutoff of %lf\n",cut);
+      mprintf("Warning: atommap::getCut: Cut not found for %s - %s\n",atom1,atom2);
+      mprintf("                          Using default cutoff of %lf\n",cut);
     }
   }
 
@@ -88,37 +88,37 @@ int atommap::calcDist() {
 
   for (i=0; i<natom-1; i++) {
     for(j=i+1; j<natom; j++) {
-      if (debug>0) fprintf(stdout,"%s_%i - %s_%i ",names[i],i,names[j],j);
+      if (debug>0) mprintf("%s_%i - %s_%i ",names[i],i,names[j],j);
       nbondi=M[i].nbond;
       nbondj=M[j].nbond;
       r=F->DIST(i,j);
-      if (debug>0) fprintf(stdout,"%lf ",r);
+      if (debug>0) mprintf("%lf ",r);
       /* Lookup bond distance based on atom names */
       cut=getCut(names[i],names[j]);
       if (r<cut) {
-        if (debug>0) fprintf(stdout,"nbondi=%i nbondj=%i ",nbondi,nbondj);
+        if (debug>0) mprintf("nbondi=%i nbondj=%i ",nbondi,nbondj);
         if ((nbondi<4)&&(nbondj<4)) {
           M[i].bond[nbondi++]=j;
           M[j].bond[nbondj++]=i;
           M[i].nbond=nbondi;
           M[j].nbond=nbondj;
-          if (debug>0) fprintf(stdout,"BONDED!\n");
+          if (debug>0) mprintf("BONDED!\n");
         } else
-          if (debug>0) fprintf(stdout,"MAXED!\n");
+          if (debug>0) mprintf("MAXED!\n");
       } else
-        if (debug>0) fprintf(stdout,"NO_BOND!\n");
+        if (debug>0) mprintf("NO_BOND!\n");
     } /* loop over j */
-    if (debug>0) fprintf(stdout,"\n"); 
+    if (debug>0) mprintf("\n"); 
   } /* loop over i */
 
   // DEBUG - print bonding information
   if (debug>0) {
-    fprintf(stdout,"atommap: Atom Bond information.\n");
+    mprintf("atommap: Atom Bond information.\n");
     for (i=0; i<natom; i++) {
-      fprintf(stdout,"  Atom %s_%i has %i bonds.\n",names[i],i,M[i].nbond);
+      mprintf("  Atom %s_%i has %i bonds.\n",names[i],i,M[i].nbond);
       for (j=0; j<M[i].nbond; j++) {
         nbondj=M[i].bond[j];
-        fprintf(stdout,"    to %s_%i\n",names[nbondj],nbondj);
+        mprintf("    to %s_%i\n",names[nbondj],nbondj);
       }
     }
   }
@@ -146,7 +146,7 @@ void atommap::determineAtomID() {
   char *formula;
 
   formula=(char*) malloc(ATOMIDLENGTH*sizeof(char));
-  if (debug>0) fprintf(stdout,"ATOM IDs:\n");
+  if (debug>0) mprintf("ATOM IDs:\n");
   for (i=0; i<natom; i++) {
     strcpy(formula,"");
     for (j=0; j<M[i].nbond; j++) {
@@ -156,7 +156,7 @@ void atommap::determineAtomID() {
     qsort(formula,strlen(formula),sizeof(char),compareChar);
     strcpy(M[i].atomID,names[i]);
     strcat(M[i].atomID,formula);
-    if (debug>0) fprintf(stdout,"  Atom %i : %s\n",i,M[i].atomID);
+    if (debug>0) mprintf("  Atom %i : %s\n",i,M[i].atomID);
   }
   free(formula);
 
@@ -184,11 +184,11 @@ void atommap::determineAtomID() {
 
   // Debug Output
   if (debug>0) {
-    fprintf(stdout,"UNIQUE IDs:\n");
+    mprintf("UNIQUE IDs:\n");
     for (i=0; i<natom; i++) {
-      fprintf(stdout,"  Atom %i : %s",i,M[i].unique);
-      if (M[i].isUnique) fprintf(stdout," UNIQUE!");
-      fprintf(stdout,"\n");
+      mprintf("  Atom %i : %s",i,M[i].unique);
+      if (M[i].isUnique) mprintf(" UNIQUE!");
+      mprintf("\n");
     }
   }
   
@@ -223,7 +223,7 @@ int atommap::setup() {
     }
     names[i][1]='\0';
     // DEBUG
-    fprintf(stdout,"  Atom %i element: [%s]\n",i,names[i]);
+    mprintf("  Atom %i element: [%s]\n",i,names[i]);
   }
   // Allocate memory for atoms and initialize each atom
   // NOTE: visited still needed?
@@ -256,11 +256,11 @@ int AtomMap::init() {
   refName=A->getNextString();
 
   if (targetName==NULL) {
-    fprintf(stdout,"AtomMap::init: Error: No target specified.\n");
+    mprintf("AtomMap::init: Error: No target specified.\n");
     return 1;
   }
   if (refName==NULL) {
-    fprintf(stdout,"AtomMap::init: Error: No reference specified.\n");
+    mprintf("AtomMap::init: Error: No reference specified.\n");
     return 1;
   }
 
@@ -270,7 +270,7 @@ int AtomMap::init() {
   RefMap.F=FL->GetFrame(refIndex);
   RefMap.P=FL->GetFrameParm(refIndex);
   if (RefMap.F==NULL || RefMap.P==NULL) {
-    fprintf(stdout,"AtomMap::init: Error: Could not get reference frame %s\n",refName);
+    mprintf("AtomMap::init: Error: Could not get reference frame %s\n",refName);
     return 1;
   }
   targetIndex=FL->GetFrameIndex(targetName);
@@ -278,7 +278,7 @@ int AtomMap::init() {
   TargetMap.F=FL->GetFrame(targetIndex);
   TargetMap.P=FL->GetFrameParm(targetIndex);
   if (TargetMap.F==NULL || TargetMap.P==NULL) {
-    fprintf(stdout,"AtomMap::init: Error: Could not get target frame %s\n",targetName);
+    mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName);
     return 1;
   }
 
@@ -291,8 +291,8 @@ int AtomMap::init() {
   TargetMap.determineAtomID();
 
   if (RefMap.natom!=TargetMap.natom) {
-    fprintf(stdout,"AtomMap::init: Warning: # atoms in reference %i not equal\n",RefMap.natom);
-    fprintf(stdout,"               to # atoms in target %i.\n",TargetMap.natom);
+    mprintf("AtomMap::init: Warning: # atoms in reference %i not equal\n",RefMap.natom);
+    mprintf("               to # atoms in target %i.\n",TargetMap.natom);
   }
 
   /* Atoms have now been assigned IDs. Match up the unique strings in Ref with 
@@ -307,7 +307,7 @@ int AtomMap::init() {
           if ( strcmp(TargetMap.M[targetatom].unique,
                       RefMap.M[refatom].unique)==0 ) {
             AtomMap[refatom]=targetatom;
-            fprintf(stdout,"* TargetAtom %i(%s) maps to RefAtom %i(%s)\n",
+            mprintf("* TargetAtom %i(%s) maps to RefAtom %i(%s)\n",
                     targetatom,TargetMap.P->names[targetatom],
                     refatom,RefMap.P->names[refatom]);
           } // If unique strings match
@@ -336,7 +336,7 @@ int AtomMap::init() {
         }
       }
       if (numNonUniqueBond==1) {
-        fprintf(stdout,"  Nonunique RefAtom %i(%s) bound to unique RefAtom %i(%s).\n",
+        mprintf("  Nonunique RefAtom %i(%s) bound to unique RefAtom %i(%s).\n",
                 nonUniqueID,RefMap.P->names[nonUniqueID],
                 refatom,RefMap.P->names[refatom]);
         // Find the same unique atom in Target
@@ -359,7 +359,7 @@ int AtomMap::init() {
   for (refatom=0; refatom<RefMap.natom; refatom++) {
     targetatom=AtomMap[refatom];
     if (targetatom>=0)
-      fprintf(stdout,"* TargetAtom %i(%s) maps to RefAtom %i(%s)\n",
+      mprintf("* TargetAtom %i(%s) maps to RefAtom %i(%s)\n",
                       targetatom,TargetMap.P->names[targetatom],
                       refatom,RefMap.P->names[refatom]);
   }        

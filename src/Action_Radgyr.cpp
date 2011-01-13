@@ -1,7 +1,6 @@
 // Radius of Gyration 
-#include <cstdio>
-#include <cstdlib>
 #include "Action_Radgyr.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Radgyr::Radgyr() {
@@ -43,10 +42,10 @@ int Radgyr::init() {
   DFL->Add(rogFile,rog);
   DFL->Add(rogFile,rogmax);
 
-  fprintf(stdout,"    RADGYR: Calculating for atoms in mask %s",Mask1.maskString);
+  mprintf("    RADGYR: Calculating for atoms in mask %s",Mask1.maskString);
   if (useMass)
-    fprintf(stdout," using mass weighting");
-  fprintf(stdout,".\n");
+    mprintf(" using mass weighting");
+  mprintf(".\n");
 
   return 0;
 }
@@ -60,7 +59,7 @@ int Radgyr::setup() {
 
   if ( Mask1.SetupMask(P,debug) ) return 1;
   if (Mask1.None()) {
-    fprintf(stdout,"    Error: Radgyr::setup: Mask contains 0 atoms.\n");
+    mprintf("    Error: Radgyr::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 

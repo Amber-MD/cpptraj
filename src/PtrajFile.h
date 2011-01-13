@@ -2,8 +2,6 @@
 #define INC_PTRAJFILE_H
 // PtrajFile
 // Class to abstract handling of basic file routines.
-#include <cstdio>
-#include <sys/stat.h>
 #include "BaseFileIO.h"
 
 #define BUFFER_SIZE 1024 // Used in PtrajState, AmberTraj, and PtrajFile 
@@ -53,8 +51,8 @@ class PtrajFile {
     int SetupWrite();
   public:
     AccessType access;
-    struct stat frame_stat;
     long long int uncompressed_size;
+    off_t file_size;
     BaseFileIO *IO; 
     FileType fileType;
     FileFormat fileFormat;

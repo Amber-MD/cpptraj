@@ -1,7 +1,6 @@
 // Angle 
-#include <cstdio>
-#include <cstdlib>
 #include "Action_Angle.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Angle::Angle() {
@@ -32,7 +31,7 @@ int Angle::init() {
   mask2 = A->getNextMask();
   mask3 = A->getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL) {
-    fprintf(stdout,"    Error: Angle::init: Requires 3 masks\n");
+    mprintf("    Error: Angle::init: Requires 3 masks\n");
     return 1;
   }
   Mask1.SetMaskString(mask1);
@@ -46,7 +45,7 @@ int Angle::init() {
   DFL->Add(angleFile,ang);
 
   //dist->Info();
-  fprintf(stdout,"    ANGLE: %s-%s-%s\n",Mask1.maskString,Mask2.maskString,Mask3.maskString);
+  mprintf("    ANGLE: %s-%s-%s\n",Mask1.maskString,Mask2.maskString,Mask3.maskString);
 
   return 0;
 }
@@ -62,7 +61,7 @@ int Angle::setup() {
   if ( Mask2.SetupMask(P,debug) ) return 1;
   if ( Mask3.SetupMask(P,debug) ) return 1;
   if (Mask1.None() || Mask2.None() || Mask3.None()) {
-    fprintf(stdout,"    Error: Angle::setup: One or more masks contain 0 atoms.\n");
+    mprintf("    Error: Angle::setup: One or more masks contain 0 atoms.\n");
     return 1;
   }
 

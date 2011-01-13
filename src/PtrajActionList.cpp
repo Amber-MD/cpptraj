@@ -1,7 +1,7 @@
 // PtrajActionList
 #include <cstdlib>
-//#include <cstring>
 #include "PtrajActionList.h"
+#include "CpptrajStdio.h"
 // All action classes go here
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -41,7 +41,7 @@ PtrajActionList::~PtrajActionList() {
 void PtrajActionList::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
-    fprintf(stdout,"PtrajActionList DEBUG LEVEL SET TO %i\n",debug);
+    mprintf("PtrajActionList DEBUG LEVEL SET TO %i\n",debug);
 }
 
 /*
@@ -72,7 +72,7 @@ int PtrajActionList::Add(ArgList *A) {
   // Pass in the argument list
   Act->setArg(A);
   // Debug
-  if (debug>0) fprintf(stdout,"    Added action %s\n", Act->Name());
+  if (debug>0) mprintf("    Added action %s\n", Act->Name());
 
   // Store action in list
   ActionList=(Action**) realloc(ActionList,(Naction+1) * sizeof(Action*));
@@ -89,20 +89,20 @@ int PtrajActionList::Add(ArgList *A) {
 int PtrajActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL) {
  int act;
 
-  fprintf(stdout,"\nACTIONS: Initializing %i actions:\n",Naction);
+  mprintf("\nACTIONS: Initializing %i actions:\n",Naction);
   for (act=0; act<Naction; act++) {
-    fprintf(stdout,"  %i: [%s]\n",act,ActionList[act]->CmdLine());
+    mprintf("  %i: [%s]\n",act,ActionList[act]->CmdLine());
     if (ActionList[act]->noInit) {
-      fprintf(stdout,"    WARNING: Action %s is not active.\n",ActionList[act]->Name());
+      mprintf("    WARNING: Action %s is not active.\n",ActionList[act]->Name());
     } else {
       ActionList[act]->ResetArg();
       if ( ActionList[act]->Init( DSL, FL, DFL, debug ) ) {
-        fprintf(stdout,"    WARNING: Init failed for action %s: DEACTIVATING\n",
+        mprintf("    WARNING: Init failed for action %s: DEACTIVATING\n",
                 ActionList[act]->Name());
         ActionList[act]->noInit=1;
       }
     }
-    fprintf(stdout,"\n");
+    mprintf("\n");
   }
 
   return 0;
@@ -119,14 +119,14 @@ int PtrajActionList::Setup(AmberParm **ParmAddress) {
 
   P = *ParmAddress;
 
-  fprintf(stdout,"    Setting up %i actions for %s\n",Naction,P->parmName);
+  rprintf("    Setting up %i actions for %s\n",Naction,P->parmName);
   for (act=0; act<Naction; act++) {
     if (ActionList[act]->noInit==0) {
-      if (debug>0) fprintf(stdout,"    %i: [%s]\n",act,ActionList[act]->CmdLine());
+      if (debug>0) mprintf("    %i: [%s]\n",act,ActionList[act]->CmdLine());
       ActionList[act]->noSetup=0;
       ActionList[act]->ResetArg();
       if (ActionList[act]->Setup(ParmAddress)) {
-        fprintf(stdout,"      WARNING: Setup failed for action %i: %s: Skipping\n",
+        mprintf("      WARNING: Setup failed for action %i: %s: Skipping\n",
                 act, ActionList[act]->Name());
         ActionList[act]->noSetup=1;
         //return 1;

@@ -1,5 +1,5 @@
 /*
- * PeakHeader
+ * FindDepend 
  * Dan Roe 2010
  * Given a file with #include directives, print a list of dependencies.
  */
@@ -72,15 +72,10 @@ list<string> *PeakHeader(char *filename, int indent, bool includeStdHeaders) {
       if (headername[pos-1]=='"') headername[pos-1]='\0';
     } else {
       if (includeStdHeaders)
-        sscanf(buffer,"%*s %s", headername);
+        sscanf(includePosition,"%*s %s", headername);
       else
         continue;
     }
-    //ptr=headername;
-    //while (*ptr!='\0') {
-    //  if (*ptr=='"') *ptr=' ';
-    //  ptr++;
-    //}
     // Check for system headers that might be in quotes
     if (!includeStdHeaders) {
       if (strcmp(headername,"mpi.h")==0) continue;
@@ -90,9 +85,6 @@ list<string> *PeakHeader(char *filename, int indent, bool includeStdHeaders) {
     }
     temp.assign(headername);
     HeaderList->push_back(temp);
-
-    // Scan through header name includes
-    //PeakHeader(headername, indent+1);
   }
   fclose(infile);
 
@@ -120,7 +112,6 @@ list<string> *PeakHeader(char *filename, int indent, bool includeStdHeaders) {
     HeaderList->push_front(temp);
   }
 
-//  fprintf(stdout,"| ");
   return HeaderList;
 }
 

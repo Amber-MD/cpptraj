@@ -1,9 +1,10 @@
 // DataSetList
-#include <cstdio>
+#include <cstdio> // sprintf
 #include <cstdlib>
 #include <cstring>
 // This also includes basic DataSet class and dataType
 #include "DataSetList.h"
+#include "CpptrajStdio.h"
 // Data types go here
 //#include "dDataSet.h"
 #include "mapDataSet.h"
@@ -56,7 +57,7 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
 
   // Require all calls provide a default
   if (defaultName==NULL) {
-    fprintf(stderr,"Internal Error: DataSetList::Add() called without default name.\n");
+    mprinterr("Internal Error: DataSetList::Add() called without default name.\n");
     return NULL;
   }
 
@@ -68,7 +69,7 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
   // Check if dataset name is already in use
   D=Get(nameIn);
   if (D!=NULL) {
-    fprintf(stdout,"  Error: DataSetList::Add: Data set %s already defined.\n",nameIn);
+    rprintf("  Error: DataSetList::Add: Data set %s already defined.\n",nameIn);
     return NULL;
   }
   switch (inType) {
@@ -78,13 +79,13 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
     case INT          : D = new intDataSet(); break;
     case UNKNOWN_DATA :
     default           :
-      fprintf(stderr,"  Error: DataSetList::Add: Unknown set type.\n");
+      rprintf("  Error: DataSetList::Add: Unknown set type.\n");
       return NULL;
   }
   if (D==NULL) return NULL;
   // Set up dataset
   if ( D->Setup(nameIn,maxFrames) ) {
-    fprintf(stdout,"  Error setting up data set %s.\n",nameIn);
+    rprintf("  Error setting up data set %s.\n",nameIn);
     delete D;
     return NULL;
   }
@@ -117,20 +118,20 @@ int DataSetList::AddData(int frame, void *dataIn, int SetNumber) {
 void DataSetList::Info() {
   int ds;
 
-  fprintf(stdout,"\nDATASETS:\n");
+  mprintf("\nDATASETS:\n");
   if (Ndata==0)
-    fprintf(stdout,"  There are no data sets.");
+    mprintf("  There are no data sets.");
   else if (Ndata==1)
-    fprintf(stdout,"  There is 1 data set: ");
+    mprintf("  There is 1 data set: ");
   else
-    fprintf(stdout,"  There are %i data sets: ",Ndata);
+    mprintf("  There are %i data sets: ",Ndata);
 
   for (ds=0; ds<Ndata; ds++) {
-    if (ds>0) fprintf(stdout,",");
-    fprintf(stdout,"%s",DataList[ds]->Name());
+    if (ds>0) mprintf(",");
+    mprintf("%s",DataList[ds]->Name());
     //DataList[ds]->Info();
   }
-  fprintf(stdout,"\n");
+  mprintf("\n");
 
   // DataFile Info
   //DFL.Info();
@@ -146,7 +147,7 @@ void DataSetList::Sync() {
   // Sync datasets - does nothing if worldsize is 1
   for (ds=0; ds<Ndata; ds++) {
     if ( DataList[ds]->Sync() ) {
-      fprintf(stdout, "Error syncing dataset %i\n",ds);
+      rprintf( "Error syncing dataset %i\n",ds);
       //return;
     }
   }

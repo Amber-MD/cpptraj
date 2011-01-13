@@ -1,13 +1,11 @@
-// Distance
-#include <cstdio>
-#include <cstdlib>
+// Dihedral
 #include "Action_Dihedral.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Dihedral::Dihedral() {
   //fprintf(stderr,"Dihedral Con\n");
   dih=NULL;
-  //currentType=DIHEDRAL;
 } 
 
 // DESTRUCTOR
@@ -34,7 +32,7 @@ int Dihedral::init() {
   mask3 = A->getNextMask();
   mask4 = A->getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL) {
-    fprintf(stdout,"    Error: Dihedral::init: Requires 4 masks\n");
+    mprintf("    Error: Dihedral::init: Requires 4 masks\n");
     return 1;
   }
   M1.SetMaskString(mask1);
@@ -50,7 +48,7 @@ int Dihedral::init() {
 
 
   //dih->Info();
-  fprintf(stdout,"    DIHEDRAL: %s-%s-%s-%s\n", M1.maskString,M2.maskString,
+  mprintf("    DIHEDRAL: %s-%s-%s-%s\n", M1.maskString,M2.maskString,
           M3.maskString, M4.maskString);
 
   return 0;
@@ -66,7 +64,7 @@ int Dihedral::setup() {
   if ( M3.SetupMask(P,debug) ) return 1;
   if ( M4.SetupMask(P,debug) ) return 1;
   if ( M1.None() || M2.None() || M3.None() || M4.None() ) {
-    fprintf(stdout,"    Error: Dihedral::setup: One or more masks have no atoms.\n");
+    mprintf("    Error: Dihedral::setup: One or more masks have no atoms.\n");
     return 1;
   }
 

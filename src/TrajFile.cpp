@@ -1,9 +1,9 @@
 // TrajFile.cpp
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include "TrajFile.h"
-#include "PtrajMpi.h"
+#include "PtrajMpi.h" // worldrank and worldsize needed to calc frame division
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 TrajFile::TrajFile() {
@@ -50,7 +50,7 @@ void TrajFile::SetTitle(char *titleIn) {
   if (titleSize==0) return;
   this->title = (char*) malloc( (titleSize+1) * sizeof(char));
   if (this->title==NULL) {
-    fprintf(stdout,"Error: TrajFile::SetTitle(): Could not allocate memory for title.\n");
+    mprintf("Error: TrajFile::SetTitle(): Could not allocate memory for title.\n");
     return;
   }
   strcpy(this->title, titleIn);
@@ -63,25 +63,26 @@ void TrajFile::SetTitle(char *titleIn) {
 void TrajFile::PrintInfo(int showExtended) {
   this->Info();
 
-  if (isBox) fprintf(stdout," (with box info)");
+  mprintf(", Parm %i",P->pindex);
+
+  if (isBox) mprintf(" (with box info)");
 
   if (showExtended==0) {
-    fprintf(stdout,"\n");
+    mprintf("\n");
     return;
   }
 
   if (total_read_frames!=-1) {
     if (stop!=-1) 
-      fprintf(stdout,": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,Frames);
+      mprintf(": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,Frames);
     else
-      fprintf(stdout,", unknown #frames, start=%i offset=%i",start,offset);
+      mprintf(", unknown #frames, start=%i offset=%i",start,offset);
   } else {
-    fprintf(stdout, ": Writing %i frames", P->parmFrames);
-    if (File->access==APPEND) fprintf(stdout,", appended"); // NOTE: Dangerous if REMD
+    mprintf(": Writing %i frames", P->parmFrames);
+    if (File->access==APPEND) mprintf(", appended"); // NOTE: Dangerous if REMD
   }
-  if (debug>0) fprintf(stdout,", %i atoms, Box %i, seekable %i",P->natom,isBox,seekable);
-  fprintf(stdout,", Parm %i",P->pindex);
-  fprintf(stdout,"\n");
+  if (debug>0) mprintf(", %i atoms, Box %i, seekable %i",P->natom,isBox,seekable);
+  mprintf("\n");
 }
 
 /*
@@ -96,14 +97,14 @@ void TrajFile::PrintInfo(int showExtended) {
 void TrajFile::SetArgs(int startArg, int stopArg, int offsetArg) {
 
   // DEBUG
-  //fprintf(stdout,"DEBUG: SetArgs: Original start, stop: %i %i\n",startArg,stopArg);
+  //mprintf("DEBUG: SetArgs: Original start, stop: %i %i\n",startArg,stopArg);
  
   if (startArg!=1) {
     if (startArg<1) {
-      fprintf(stdout,"  Warning: start argument < 1, setting to 1.\n");
+      mprintf("  Warning: start argument < 1, setting to 1.\n");
       start=0; // cpptraj = ptraj - 1
     } else if (Frames>=0 && startArg>Frames) {
-      fprintf(stdout,"  Warning: start argument > #Frames (%i), no frames will be processed.\n",
+      mprintf("  Warning: start argument > #Frames (%i), no frames will be processed.\n",
               Frames);
       start=startArg - 1;
     } else
@@ -112,11 +113,11 @@ void TrajFile::SetArgs(int startArg, int stopArg, int offsetArg) {
 
   if (stopArg!=-1) {
     if ((stopArg - 1)<start) { // cpptraj = ptraj - 1
-      fprintf(stdout,"  Warning: stop argument < start, no frames will be processed.\n");
+      mprintf("  Warning: stop argument < start, no frames will be processed.\n");
       //stop=stopArg+1;
       stop = start;
     } else if (Frames>=0 && stopArg>Frames) {
-      fprintf(stdout,"  Warning: stop argument >= #Frames (%i), setting to max.\n", Frames);
+      mprintf("  Warning: stop argument >= #Frames (%i), setting to max.\n", Frames);
       stop=Frames;
     } else
       stop=stopArg;
@@ -124,16 +125,16 @@ void TrajFile::SetArgs(int startArg, int stopArg, int offsetArg) {
 
   if (offsetArg!=1) {
     if (offset<1) {
-      fprintf(stdout,"  Warning: offset argument < 1, setting to 1.\n");
+      mprintf("  Warning: offset argument < 1, setting to 1.\n");
       offset=1;
     } else if (stop!=-1 && offsetArg > stop - start) {
-      fprintf(stdout,"  Warning: offset is so large that only 1 set will be processed.\n");
+      mprintf("  Warning: offset is so large that only 1 set will be processed.\n");
       offset=offsetArg;
     } else
       offset=offsetArg;
   }
   if (debug>0) 
-    fprintf(stdout,"  TrajFile::SetArgs: Start %i Stop %i  Offset %i\n",start,stop,offset);
+    mprintf("  TrajFile::SetArgs: Start %i Stop %i  Offset %i\n",start,stop,offset);
 }
 
 /*
@@ -163,7 +164,7 @@ int TrajFile::setupFrameInfo(int maxFrames) {
     return -1;
   }
 
-  //fprintf(stdout,"DEBUG: Calling setupFrameInfo for %s with %i %i %i\n",trajfilename,
+  //mprintf("DEBUG: Calling setupFrameInfo for %s with %i %i %i\n",trajfilename,
   //        start,stop,offset);
 
   // Calc total frames that will be read
@@ -250,7 +251,7 @@ int TrajFile::Begin(int *OutputStart, int showProgressIN) {
    * if no IO is done by the thread. 
    */
   if (skip) {
-    rprintf(stdout,"\tSkipping %s\n",trajfilename);
+    rprintf("\tSkipping %s\n",trajfilename);
     return 1;
   }
 
@@ -268,8 +269,8 @@ int TrajFile::Begin(int *OutputStart, int showProgressIN) {
     frameskip = 1;
     currentFrame = 0;
   }
-  fprintf(stdout, "TRAJECTORY %s: (%i-%i, %i)\n",trajfilename,currentFrame,stop,offset);
-  //fprintf(stdout,"  Processing %s from frame %i, frameskip %i, OutputStart %i\n",
+  rprintf( "TRAJECTORY %s: (%i-%i, %i)\n",trajfilename,currentFrame,stop,offset);
+  //mprintf("  Processing %s from frame %i, frameskip %i, OutputStart %i\n",
   //        trajfilename, currentFrame, frameskip, *OutputStart);
 #ifdef DEBUG
   dbgprintf("  Processing %s from frame %i, frameskip %i, OutputStart %i, stop %i\n",
@@ -282,8 +283,8 @@ int TrajFile::Begin(int *OutputStart, int showProgressIN) {
  * Prepare a traj file for writing. Only open.
  */
 int TrajFile::Begin() {
-  //fprintf(stdout,"DEBUG: Preparing %s for traj write.\n",trajfilename);
-  //fprintf(stdout,"DEBUG: open() returned %i\n",open());
+  //rprintf("DEBUG: Preparing %s for traj write.\n",trajfilename);
+  //rprintf("DEBUG: open() returned %i\n",open());
   if (open()) return 1;
   return 0;
 }
@@ -350,7 +351,7 @@ void TrajFile::progressBar() {
   i=1;
   // Set number of characters
   numChars = percent / 2;
-  //fprintf(stdout,"[%i] %i : numChars=%i\n",worldrank,set,numChars);
+  //mprintf("[%i] %i : numChars=%i\n",worldrank,set,numChars);
   for (j=0; j<numChars; j++) buffer[i++]='|';
   // Fill the rest
   for (; j<50; j++)
@@ -374,7 +375,7 @@ void TrajFile::progressBar() {
   }
   // Finish off and print
   buffer[i]='\0';
-  mprintf(stdout,"  %s",buffer);
+  mprintf("  %s",buffer);
 
 /*
   // DEBUG - print without the restore char
@@ -392,7 +393,7 @@ void TrajFile::progressBar2() {
   if (stop<0) return; //NOTE: Eventually print dots like ptraj?
 
   if (currentFrame==0) {
-    fprintf(stdout,"[");
+    mprintf("[");
     return;
   }
 
@@ -401,9 +402,9 @@ void TrajFile::progressBar2() {
     if ( ((currentFrame*100) % stop) != 0 ) return;
   }
 
-  fprintf(stdout,"|");
+  mprintf("|");
 
   if (currentFrame==stop) 
-    fprintf(stdout,"] Complete.\n");
+    mprintf("] Complete.\n");
   return;
 }*/

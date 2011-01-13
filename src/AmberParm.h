@@ -1,6 +1,6 @@
 #ifndef INC_AMBERPARM_H
 #define INC_AMBERPARM_H
-#include "PtrajFile.h" // cstdio
+#include "PtrajFile.h" 
 
 class AmberParm {
   // ENUMERATED TYPE for TOPOLOGY VALUES

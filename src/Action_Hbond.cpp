@@ -1,5 +1,6 @@
+#include <cstdio> // sprintf
 #include "Action_Hbond.h"
-//#include <list>
+#include "CpptrajStdio.h"
 // Hbond 
 
 // CONSTRUCTOR
@@ -36,12 +37,12 @@ int Hbond::init() {
   if (NumHbonds==NULL) return 1;
   DFL->Add(outfilename,NumHbonds);
 
-  fprintf(stdout, "  HBOND: Calculating Hbonds in region specified by %s\n",Mask.maskString);
-  fprintf(stdout, "         Distance cutoff = %8.3lf, Angle Cutoff = %8.3lf\n",dcut,acut);
+  mprintf( "  HBOND: Calculating Hbonds in region specified by %s\n",Mask.maskString);
+  mprintf( "         Distance cutoff = %8.3lf, Angle Cutoff = %8.3lf\n",dcut,acut);
   if (outfilename!=NULL) 
-    fprintf(stdout, "         Dumping # Hbond v time results to %s\n", outfilename);
+    mprintf( "         Dumping # Hbond v time results to %s\n", outfilename);
   if (avgout!=NULL)
-    fprintf(stdout, "         Dumping Hbond avgs to %s\n",avgout);
+    mprintf( "         Dumping Hbond avgs to %s\n",avgout);
 
   return 0;
 }
@@ -56,7 +57,7 @@ int Hbond::setup() {
   // Set up mask
   if ( Mask.SetupMask(P,debug) ) return 1;
   if ( Mask.None() ) {
-    fprintf(stdout,"    Error: Hbond::setup: Mask has no atoms.\n");
+    mprintf("    Error: Hbond::setup: Mask has no atoms.\n");
     return 1;
   }
 
@@ -69,9 +70,9 @@ int Hbond::setup() {
         P->names[atom][0]=='N'   )
       Acceptor.push_back(atom);
   }
-  fprintf(stdout,"      HBOND: Set up %i acceptors:\n",(int)Acceptor.size());
+  mprintf("      HBOND: Set up %i acceptors:\n",(int)Acceptor.size());
   for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++)
-    fprintf(stdout,"        %8i: %4s\n",*accept,P->names[*accept]);
+    mprintf("        %8i: %4s\n",*accept,P->names[*accept]);
 
   // Set up donors: O-H, N-H
   // NOTE: Scan donor list and determine which ones have H?
@@ -81,7 +82,7 @@ int Hbond::setup() {
       // Actual atom #s in bondsh array = x / 3
       atom = P->bondsh[selected  ] / 3;
       a2   = P->bondsh[selected+1] / 3;
-      //fprintf(stdout,"DEBUG: HBOND: Donor Setup: Accept=%i, selected=%i, atom=%i, a2=%i\n",
+      //mprintf("DEBUG: HBOND: Donor Setup: Accept=%i, selected=%i, atom=%i, a2=%i\n",
       //        *accept, selected, atom, a2);
       if (*accept == atom) {
         Donor.push_back(atom);
@@ -92,12 +93,12 @@ int Hbond::setup() {
       }
     }
   }
-  fprintf(stdout,"      HBOND: Set up %i donors:\n",((int)Donor.size())/2);
+  mprintf("      HBOND: Set up %i donors:\n",((int)Donor.size())/2);
   for (donor = Donor.begin(); donor!=Donor.end(); donor++) {
     atom = (*donor);
     donor++;
     a2   = (*donor);
-    fprintf(stdout,"        %8i:%4s - %8i:%4s\n",atom,P->names[atom],a2,P->names[a2]);  
+    mprintf("        %8i:%4s - %8i:%4s\n",atom,P->names[atom],a2,P->names[a2]);  
   }
 
 
@@ -126,7 +127,7 @@ int Hbond::action() {
       if (dist > dcut) continue;
       angle = F->ANGLE(*accept, H, D);
       if (angle < acut) continue;
-//      fprintf(stdout, "HBOND[%i]: %i:%s ... %i:%s-%i:%s Dist=%lf Angle=%lf\n", 
+//      mprintf( "HBOND[%i]: %i:%s ... %i:%s-%i:%s Dist=%lf Angle=%lf\n", 
 //              Nhb, *accept, P->names[*accept],
 //              H, P->names[H], D, P->names[D], dist, angle);
       numHB++;
@@ -149,7 +150,7 @@ int Hbond::action() {
     }
   }
   NumHbonds->Add(currentFrame, &numHB);
-//  fprintf(stdout,"HBOND: Scanned %i hbonds.\n",Nhb);
+//  mprintf("HBOND: Scanned %i hbonds.\n",Nhb);
   Nframes++;
 
   return 0;
@@ -157,6 +158,7 @@ int Hbond::action() {
 
 /*
  * Hbond::print()
+ * Print average occupancies over all frames for all detected Hbonds
  */
 void Hbond::print() {
   std::map<int,HbondType>::iterator it;
@@ -174,7 +176,7 @@ void Hbond::print() {
   OutFile.IO->Printf("  %-15s %-15s %-15s %6s %6s %8s %8s\n",
                  "Acceptor","DonorH","Donor","Frames","Frac","AvgDist","AvgAng");
   for (it = HbondMap.begin(); it!=HbondMap.end(); it++) {
-//    fprintf(stdout, "      %8i:%s ... %8i:%s-%8i:%s %8i Frames.\n",
+//    mprintf( "      %8i:%s ... %8i:%s-%8i:%s %8i Frames.\n",
 //              (*it).second.A, P->names[(*it).second.A],
 //              (*it).second.H, P->names[(*it).second.H],
 //              (*it).second.D, P->names[(*it).second.D],

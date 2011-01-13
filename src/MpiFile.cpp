@@ -1,4 +1,5 @@
 // MpiFile
+#include <cstdio>
 #include <cstdlib>
 #include "MpiFile.h"
 
@@ -55,9 +56,9 @@ int MpiFile::Write(void *buffer, size_t size, size_t count) {
   return 0;
 }
 
-int MpiFile::Seek(off_t offset, int origin) {
+int MpiFile::Seek(off_t offset) {
 
-  if ( parallel_fseek(pfile, offset, origin) ) return 1;
+  if ( parallel_fseek(pfile, offset, SEEK_SET) ) return 1;
 
   return 0;
 }

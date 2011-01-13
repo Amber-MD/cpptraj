@@ -1,7 +1,6 @@
 #ifndef INC_PDBFILE_H
 #define INC_PDBFILE_H
 // PDBfile
-#include <cstdio>
 #include "TrajFile.h"
 
 class PDBfile: public TrajFile {

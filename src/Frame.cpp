@@ -1,9 +1,10 @@
 #include <cstdlib>
-#include <cstdio>
+#include <cstdio> // sprintf
 #include <cmath>
-#include <cstring>
+#include <cstring> // memset
 #include "Frame.h"
 #include "vectormath.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR, takes number of atoms and masses
 // NOTE: Probably should throw execeptions on mem errors
@@ -68,7 +69,7 @@ void Frame::printAtomCoord(int atom) {
 
   natom3=atom*3;
   if (natom3>=N) return;
-  fprintf(stdout,"ATOM %i: %lf %lf %lf\n",atom,
+  mprintf("ATOM %i: %lf %lf %lf\n",atom,
           X[natom3],X[natom3+1],X[natom3+2]);
 }
 
@@ -375,13 +376,13 @@ void Frame::ClosestImage(double *A, double *B, int *ixyz) {
   double halfBox[3];//, delta;
   int vectorA[3], vectorB[3], i;
 
-  fprintf(stdout,"DEBUG: CoordA     = %lf %lf %lf\n",A[0],A[1],A[2]);
-  fprintf(stdout,"DEBUG: CoordB     = %lf %lf %lf\n",B[0],B[1],B[2]);
+  mprintf("DEBUG: CoordA     = %lf %lf %lf\n",A[0],A[1],A[2]);
+  mprintf("DEBUG: CoordB     = %lf %lf %lf\n",B[0],B[1],B[2]);
 
   halfBox[0] = box[0] / 6.0; 
   halfBox[1] = box[1] / 6.0; 
   halfBox[2] = box[2] / 6.0;
-  fprintf(stdout,"DEBUG: Half box = %lf %lf %lf\n",halfBox[0],halfBox[1],halfBox[2]);
+  mprintf("DEBUG: Half box = %lf %lf %lf\n",halfBox[0],halfBox[1],halfBox[2]);
 
   // Vector A
   vectorA[0] = 0; vectorA[1] = 0; vectorA[2] = 0;
@@ -393,7 +394,7 @@ void Frame::ClosestImage(double *A, double *B, int *ixyz) {
     if (delta < 0.0) vectorA[i] = -1;
 */
   }
-  fprintf(stdout,"DEBUG:  VectorA = %2i %2i %2i\n",vectorA[0],vectorA[1],vectorA[2]);
+  mprintf("DEBUG:  VectorA = %2i %2i %2i\n",vectorA[0],vectorA[1],vectorA[2]);
 
   // NOT Vector B
   vectorB[0] = 0; vectorB[1] = 0; vectorB[2] = 0;
@@ -405,7 +406,7 @@ void Frame::ClosestImage(double *A, double *B, int *ixyz) {
     if (delta < 0.0) vectorB[i] = 1;  // NOT
 */
   }
-  fprintf(stdout,"DEBUG: !VectorB = %2i %2i %2i\n",vectorB[0],vectorB[1],vectorB[2]);
+  mprintf("DEBUG: !VectorB = %2i %2i %2i\n",vectorB[0],vectorB[1],vectorB[2]);
 
   // A & !B
   ixyz[0]=0; ixyz[1]=0; ixyz[2]=0;
@@ -657,7 +658,7 @@ double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int ifbox)
     return this->DIST2_ImageNonOrtho(a1, a2);
   }
 
-  fprintf(stdout,"    Error: Frame::DIST: Unrecognized box type (%i)\n.", ifbox);
+  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", ifbox);
 
   return (-1.0);
 }
@@ -689,7 +690,7 @@ double Frame::DIST2(int A1, int A2, int ifbox) {
     return this->DIST2_ImageNonOrtho(a1, a2);
   }
 
-  fprintf(stdout,"    Error: Frame::DIST: Unrecognized box type (%i)\n.", ifbox);
+  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", ifbox);
 
   return (-1.0);
 }

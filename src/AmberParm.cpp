@@ -4,9 +4,11 @@
  */
 #include <cstdlib>
 #include <cstring>
-#include "AmberParm.h" // PtrajFile.h, cstdio 
+#include <cstdio> // For sscanf, sprintf
+#include "AmberParm.h" // PtrajFile.h 
 #include "ptrajmask.h"
 #include "PDBfileRoutines.h"
+#include "CpptrajStdio.h"
 
 // ================= PRIVATE FUNCTIONS =========================
 
@@ -67,7 +69,7 @@ void AmberParm::SetFormat(char *Format, int N) {
     numCols=3;
     FormatString="%8i";
   } else {
-    printf("Error: Unrecognized format in parm file %s: %s\n",parmName,Format);
+    rprintf("Error: Unrecognized format in parm file %s: %s\n",parmName,Format);
     return;
   }
 
@@ -99,8 +101,8 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
   double *D;
 
   if (debug>0) {
-    fprintf(stdout,"Reading %s\n",Key);
-    fprintf(stdout,"DEBUG: maxval= %i\n",maxval);
+    mprintf("Reading %s\n",Key);
+    mprintf("DEBUG: maxval= %i\n",maxval);
   }
 
   C=NULL; D=NULL; I=NULL;
@@ -113,13 +115,13 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
     if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
       sscanf(lineBuffer,"%*s %s",value);
       if (strcmp(value,Key)==0) {
-        if (debug>0) fprintf(stdout,"DEBUG: Found Flag Key [%s]\n",value);
+        if (debug>0) mprintf("DEBUG: Found Flag Key [%s]\n",value);
         // Read format line 
         File.IO->Gets(lineBuffer,BUFFER_SIZE);
-        if (debug>0) fprintf(stdout,"DEBUG: Format line [%s]\n",lineBuffer);
+        if (debug>0) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
         // Set format
         this->SetFormat(lineBuffer,maxval);
-        if (debug>0) fprintf(stdout,"DEBUG: Format type %i\n",fFormat);
+        if (debug>0) mprintf("DEBUG: Format type %i\n",fFormat);
         if (fFormat == UNKNOWN_FFORMAT) return NULL;
         // Allocate memory based on data type
         switch (fType) {
@@ -134,11 +136,11 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
         // Allocate memory to read in entire section
         buffer=(char*) calloc(BufferSize,sizeof(char));
         if ( File.IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
-          fprintf(stdout,"ERROR in read of prmtop section %s\n",Key);
+          rprintf("ERROR in read of prmtop section %s\n",Key);
           free(buffer);
           break; // Send us outside the while loop
         }
-        if (debug>3) fprintf(stdout,"DEBUG: Buffer [%s]\n",buffer);
+        if (debug>3) mprintf("DEBUG: Buffer [%s]\n",buffer);
 
         // Convert values in buffer to their type
         ptr=buffer;
@@ -149,12 +151,12 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
           while (ptr[0]=='\n' || ptr[0]=='\r') { ptr++; }
           //fprintf(stdout,"1 %i: %c %i\n",i,ptr[0],ptr[0]);
           strncpy(temp,ptr,width);
-          if (debug>3) fprintf(stdout,"DEBUG:   %8i buffer %s\n",i,temp);
+          if (debug>3) mprintf("DEBUG:   %8i buffer %s\n",i,temp);
           // Sanity check: If we have hit another FLAG before we've read maxval
           // values this is bad.
           // NOTE: Could do addtional type checking too.
           if ( strncmp(ptr,"%FLAG",5)==0 ) {
-            fprintf(stderr,"Error: #values read (%i) < # expected values (%i).\n",i,maxval);
+            rprintf("Error: #values read (%i) < # expected values (%i).\n",i,maxval);
             if (I!=NULL) free(I);
             if (D!=NULL) free(D);
             if (C!=NULL) {for(i=0;i<maxval;i++) free(C[i]); free(C);}
@@ -176,7 +178,7 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
     } // End if ( strncmp(lineBuffer,"%FLAG",5)==0 )
   } // End While loop
   // If we have scanned through the input file and have not found Key, bad! 
-  fprintf(stderr,"Error: Could not find key %s in file.\n",Key);
+  rprintf("Error: Could not find key %s in file.\n",Key);
   if (I!=NULL) free(I);
   if (D!=NULL) free(D);
   if (C!=NULL) {for(i=0;i<maxval;i++) free(C[i]); free(C);}
@@ -267,7 +269,7 @@ int AmberParm::OpenParm(char *filename) {
     case AMBERPARM : if (ReadParmAmber()) return 1; break;
     case PDBFILE   : if (ReadParmPDB()  ) return 1; break;
     default: 
-      fprintf(stdout,"Unknown parameter file type: %s\n",File.filename);
+      rprintf("Unknown parameter file type: %s\n",File.filename);
       return 1;
   }
 
@@ -288,8 +290,8 @@ int AmberParm::OpenParm(char *filename) {
   SetSolventInfo();
 
   if (debug>0) {
-    fprintf(stderr,"  Number of atoms= %i\n",natom);
-    fprintf(stderr,"  Number of residues= %i\n",nres);
+    mprintf("  Number of atoms= %i\n",natom);
+    mprintf("  Number of residues= %i\n",nres);
   }
 
   return 0;
@@ -314,9 +316,9 @@ void AmberParm::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2,
  * usual.
  */
 void WarnLCPO(char *atype, int atom, int numBonds) {
-  fprintf(stdout,"Warning: Unusual number of bonds for atom %i (%i), type %-2s.\n",
+  mprintf("Warning: Unusual number of bonds for atom %i (%i), type %-2s.\n",
           atom, numBonds, atype);
-  fprintf(stdout,"Using default atom parameters.\n");
+  mprintf("Using default atom parameters.\n");
 }
 
 /* 
@@ -338,13 +340,13 @@ int AmberParm::SetSurfaceInfo() {
  
   // If no bond information exit
   if (bonds==NULL) {
-    fprintf(stdout,"Error: SetSurfaceInfo(): Parm %s does not contain bond info.\n",parmName);
+    mprintf("Error: SetSurfaceInfo(): Parm %s does not contain bond info.\n",parmName);
     return 1;
   } 
 
   // If no atom type information exit
   if (types==NULL) {
-    fprintf(stdout,"Error: SetSurfaceInfo(): Parm %s does not contain atom type info.\n",
+    mprintf("Error: SetSurfaceInfo(): Parm %s does not contain atom type info.\n",
             parmName);
     return 1;
   }
@@ -437,7 +439,7 @@ int AmberParm::SetSurfaceInfo() {
       //  compared to all other elements which had been parametrized
       AssignLCPO(SurfaceInfo+i, 1.18, 0.49392, -0.16038, -0.00015512, 0.00016453);
     } else {
-      fprintf(stdout,"Warning: Using carbon SA parms for unknown atom type %i %2s\n",i,atype);
+      mprintf("Warning: Using carbon SA parms for unknown atom type %i %2s\n",i,atype);
       AssignLCPO(SurfaceInfo+i, 1.70, 0.51245, -0.15966, -0.00019781, 0.00016392);
     }
   } // END LOOP OVER natom
@@ -504,7 +506,7 @@ int AmberParm::SetSolventInfo() {
 
   // NOTE: Deallocate memory if no solvent atoms?
   if (debug>0)
-    fprintf(stdout,"    %i solvent molecules, %i solvent atoms.\n",
+    mprintf("    %i solvent molecules, %i solvent atoms.\n",
             solventMolecules, solventAtoms);
 
   return 0; 
@@ -518,11 +520,11 @@ int AmberParm::ReadParmAmber() {
   int err;
   int *solvent_pointer;
 
-  if (debug>0) fprintf(stderr,"Reading Amber Topology file %s\n",parmName);
+  if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
 
   values=(int*) getFlagFileValues("POINTERS",31);
   if (values==NULL) {
-    fprintf(stderr,"Could not get values from topfile\n");
+    mprintf("Could not get values from topfile\n");
     return 1;
   }
 
@@ -530,29 +532,29 @@ int AmberParm::ReadParmAmber() {
   nres=values[NRES];
   ifbox=values[IFBOX];
   if (debug>0)
-    fprintf(stdout,"    Amber top contains %i atoms, %i residues.\n",natom,nres);
+    mprintf("    Amber top contains %i atoms, %i residues.\n",natom,nres);
 
   err=0;
   names=(char**) getFlagFileValues("ATOM_NAME",natom);
-  if (names==NULL) {fprintf(stderr,"Error in atom names.\n"); err++;}
+  if (names==NULL) {mprintf("Error in atom names.\n"); err++;}
   types=(char**) getFlagFileValues("AMBER_ATOM_TYPE",natom);
-  if (types==NULL) {fprintf(stderr,"Error in atom types.\n"); err++;}
+  if (types==NULL) {mprintf("Error in atom types.\n"); err++;}
   resnames=(char**) getFlagFileValues("RESIDUE_LABEL",nres);
-  if (resnames==NULL) {fprintf(stderr,"Error in residue names.\n"); err++;}
+  if (resnames==NULL) {mprintf("Error in residue names.\n"); err++;}
   resnums=(int*) getFlagFileValues("RESIDUE_POINTER",nres);
-  if (resnums==NULL) {fprintf(stderr,"Error in residue numbers.\n"); err++;}
+  if (resnums==NULL) {mprintf("Error in residue numbers.\n"); err++;}
   mass=(double*) getFlagFileValues("MASS",natom);
-  if (mass==NULL) {fprintf(stderr,"Error in masses.\n"); err++;}
+  if (mass==NULL) {mprintf("Error in masses.\n"); err++;}
   charge=(double*) getFlagFileValues("CHARGE",natom);
-  if (charge==NULL) {fprintf(stderr,"Error in charges.\n"); err++;}
+  if (charge==NULL) {mprintf("Error in charges.\n"); err++;}
   bonds=(int*) getFlagFileValues("BONDS_WITHOUT_HYDROGEN",values[MBONA]*3);
-  if (bonds==NULL) {fprintf(stderr,"Error in bonds w/o H.\n"); err++;}
+  if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); err++;}
   bondsh=(int*) getFlagFileValues("BONDS_INC_HYDROGEN",values[NBONH]*3);
-  if (bondsh==NULL) {fprintf(stderr,"Error in bonds inc H.\n"); err++;}
+  if (bondsh==NULL) {mprintf("Error in bonds inc H.\n"); err++;}
   if (ifbox>0) {
     solvent_pointer=(int*) getFlagFileValues("SOLVENT_POINTERS",3);
     if (solvent_pointer==NULL) {
-      fprintf(stderr,"Error in solvent pointers.\n"); 
+      mprintf("Error in solvent pointers.\n"); 
       err++;
     } else {
       finalSoluteRes=solvent_pointer[0];
@@ -561,18 +563,18 @@ int AmberParm::ReadParmAmber() {
       free(solvent_pointer);
     }
     atomsPerMol=(int*) getFlagFileValues("ATOMS_PER_MOLECULE",molecules);
-    if (atomsPerMol==NULL) {fprintf(stderr,"Error in atoms per molecule.\n"); err++;}
+    if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); err++;}
     Box=(double*) getFlagFileValues("BOX_DIMENSIONS",4);
-    if (Box==NULL) {fprintf(stderr,"Error in Box information.\n"); err++;}
+    if (Box==NULL) {mprintf("Error in Box information.\n"); err++;}
     if (debug>0) {
-      fprintf(stdout,"    %s contains box info: %i mols, first solvent mol is %i\n",
+      mprintf("    %s contains box info: %i mols, first solvent mol is %i\n",
               parmName, molecules, firstSolvMol);
-      fprintf(stdout,"    BOX: %lf %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3]);
+      mprintf("    BOX: %lf %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3]);
     }
   }
 
   if ( err>0 ) {
-    fprintf(stderr,"Error reading topfile\n");
+    rprintf("Error reading topfile\n");
     return 1;
   }
 
@@ -589,7 +591,7 @@ int AmberParm::ReadParmPDB() {
   int bufferLen;  
   int currResnum;
 
-  fprintf(stdout,"    Reading PDB file %s as topology file.\n",parmName);
+  mprintf("    Reading PDB file %s as topology file.\n",parmName);
   currResnum=-1;
   memset(buffer,' ',256);
 
@@ -628,11 +630,11 @@ int AmberParm::ReadParmPDB() {
     natom++;
   }
   if (debug>0) 
-    fprintf(stdout,"    PDB contains %i atoms, %i residues, %i molecules.\n",
+    mprintf("    PDB contains %i atoms, %i residues, %i molecules.\n",
             natom,nres,molecules);
   // If no atoms, probably issue with PDB file
   if (natom<=0) {
-    fprintf(stdout,"Error: No atoms in PDB file.\n");
+    mprintf("Error: No atoms in PDB file.\n");
     return 1;
   }
 
@@ -647,22 +649,22 @@ void AmberParm::ParmInfo(char *maskstr) {
   char *mask;
   int atom,res;
   if (maskstr==NULL) {
-    fprintf(stdout,"Error: AmberParm::ParmInfo: No mask given.\n");
+    mprintf("Error: AmberParm::ParmInfo: No mask given.\n");
     return;
   }
   mask = parseMaskString(maskstr, natom, nres, names, resnames, resnums, NULL, 'd',debug);
   if (mask==NULL) {
-    fprintf(stdout,"Warning: AmberParm::ParmInfo: Atom mask is NULL.\n");
+    mprintf("Warning: AmberParm::ParmInfo: Atom mask is NULL.\n");
     return;
   }
   for (atom=0; atom < natom; atom++) {
     if (mask[atom]=='F') continue;
     res = atomToResidue(atom);
-    fprintf(stdout,"Atom %i:%4s Res %i:%4s Mol %i",atom+1,names[atom],res+1,resnames[res],
+    mprintf("Atom %i:%4s Res %i:%4s Mol %i",atom+1,names[atom],res+1,resnames[res],
             atomToMolecule(atom)+1);
-    fprintf(stdout," Type=%4s",types[atom]);
-    fprintf(stdout," Charge=%lf",charge[atom]);
-    fprintf(stdout," Mass=%lf\n",mass[atom]);
+    mprintf(" Type=%4s",types[atom]);
+    mprintf(" Charge=%lf",charge[atom]);
+    mprintf(" Mass=%lf\n",mass[atom]);
   }
   free(mask);
 }
@@ -917,7 +919,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     newParm->solventMolecules=0;
   } else {
     // Set up new solvent info based on new resnums and firstSolvMol
-    fprintf(stdout,"           New parm: First solvent molecule is %i\n",newParm->firstSolvMol);
+    mprintf("           New parm: First solvent molecule is %i\n",newParm->firstSolvMol);
     newParm->SetSolventInfo();
   }
   
@@ -934,10 +936,10 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm->values[NRES] = newParm->nres;
   newParm->values[IFBOX] = newParm->ifbox;
 
-  fprintf(stdout,"           New parmtop contains %i atoms.\n",newParm->natom);
-  fprintf(stdout,"                                %i residues.\n",newParm->nres);
-  fprintf(stdout,"                                %i molecules.\n",newParm->molecules);
-  fprintf(stdout,"                                %i solvent molcules.\n",newParm->solventMolecules);
+  mprintf("           New parmtop contains %i atoms.\n",newParm->natom);
+  mprintf("                                %i residues.\n",newParm->nres);
+  mprintf("                                %i molecules.\n",newParm->molecules);
+  mprintf("                                %i solvent molcules.\n",newParm->solventMolecules);
 
   return newParm;
 }
@@ -1013,7 +1015,7 @@ int AmberParm::WriteAmberParm() {
   buffer=NULL;
   if (outfile.OpenFile()) return 1;
 
-  fprintf(stdout,"    Writing out amber topology file %s.\n",parmName);
+  mprintf("    Writing out amber topology file %s.\n",parmName);
 
   // HEADER AND TITLE - Eventually use actual date and time
   outfile.IO->Printf("%-80s\n","%VERSION  VERSION_STAMP = V0001.000  DATE = 12/03/01  13:16:16");

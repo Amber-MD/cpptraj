@@ -12,7 +12,7 @@ class DSSP : public Action {
                   SECSTRUCT_TURN 
                 };
     static const char SSchar[];
-    static const char SSname[][30];
+    static const char SSname[][6];
     struct Residue {
       SStype sstype;            // Assigned secondary structure
       bool isSelected;          // true if residue is being considered for SS calc
