@@ -50,7 +50,7 @@ install: cpptraj$(SFX)
 	mv cpptraj$(SFX) $(BINDIR)/ 
 
 findDepend: FindDepend.o
-        $(CXX) -Wall -o findDepend FindDepend.o
+	$(CXX) -Wall -o findDepend FindDepend.o
 
 depend: findDepend
 	./findDepend $(SOURCE) > cpptrajdepend
