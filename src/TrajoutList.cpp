@@ -49,6 +49,7 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   else if ( A->hasKey("netcdf")   ) writeFormat=AMBERNETCDF;
   else if ( A->hasKey("restart")  ) writeFormat=AMBERRESTART;
   else if ( A->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
+  else if ( A->hasKey("mol2")     ) writeFormat=MOL2FILE;
 
   // Set the write file type
   // Since Amber Restart files are written 1 at a time no MPI needed

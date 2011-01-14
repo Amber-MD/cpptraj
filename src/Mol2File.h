@@ -3,7 +3,6 @@
 // Mol2File
 #include "TrajFile.h"
 
-//#define MOL2BUFFERSIZE 256
 class Mol2File : public TrajFile {
     int mol2atom;
   public :
@@ -15,8 +14,8 @@ class Mol2File : public TrajFile {
     void close();
     int getFrame(int);
     int SetupRead();
-    //int SetupWrite();
-    //int writeFrame(int);
+    int SetupWrite();
+    int writeFrame(int);
     void Info();
 };
 #endif

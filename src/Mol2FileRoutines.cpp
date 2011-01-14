@@ -4,9 +4,10 @@
 // Mol2FileRoutines
 
 // Tripos Tags - must be in same order as enum type TRIPOSTAG
-const char TRIPOSTAGTEXT[3][20]={"@<TRIPOS>MOLECULE\0",
+const char TRIPOSTAGTEXT[4][30]={"@<TRIPOS>MOLECULE\0",
                                  "@<TRIPOS>ATOM\0",
-                                 "@<TRIPOS>BOND\0"
+                                 "@<TRIPOS>BOND\0",
+                                 "@<TRIPOS>SUBSTRUCTURE\0"
                                 };
 
 /*
