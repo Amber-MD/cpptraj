@@ -651,6 +651,8 @@ int AmberParm::ReadParmMol2() {
   char buffer[MOL2BUFFERSIZE];
   int mol2bonds, atom;
   int resnum, currentResnum;
+  int numbonds, numbondsh;
+  int numbonds3, numbondsh3;
   char resName[5];
 
   currentResnum=-1;
@@ -694,6 +696,43 @@ int AmberParm::ReadParmMol2() {
       nres++;
     }
   }
+
+  // Get @<TRIPOS>BOND information [optional]
+  numbonds=0;
+  numbondsh=0;
+  numbonds3=0;
+  numbondsh3=0;
+  if (Mol2ScanTo(&File, BOND)==0) {
+    for (atom=0; atom < mol2bonds; atom++) {
+      if ( File.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+      // bond_id origin_atom_id target_atom_id bond_type [status_bits]
+      //         resnum         currentResnum
+      sscanf(buffer,"%*i %i %i\n",&resnum,&currentResnum);
+      // mol2 atom #s start from 1
+      if ( names[resnum-1][0]=='H' || names[currentResnum-1][0]=='H' ) {
+        bondsh = (int*) realloc(bondsh, (numbondsh+1)*3*sizeof(int));
+        bondsh[numbondsh3  ]=(resnum-1)*3;
+        bondsh[numbondsh3+1]=(currentResnum-1)*3;
+        bondsh[numbondsh3+2]=0; // Need to assign some force constant eventually
+        mprintf("      Bond to Hydrogen %s-%s %i-%i\n",names[resnum-1],names[currentResnum-1],
+                resnum, currentResnum);
+        numbondsh++;
+        numbondsh3+=3;
+      } else {
+        bonds = (int*) realloc(bonds, (numbonds+1)*3*sizeof(int));
+        bonds[numbonds3  ]=(resnum-1)*3;
+        bonds[numbonds3+1]=(currentResnum-1)*3;
+        bonds[numbonds3+2]=0; // Need to assign some force constant eventually
+        mprintf("      Bond %s-%s %i-%i\n",names[resnum-1],names[currentResnum-1],
+                resnum, currentResnum);
+        numbonds++;
+        numbonds3+=3;
+      }
+    }
+  } else {
+    mprintf("      Mol2 file does not contain bond information.\n");
+  }
+    
 
   mprintf("    Mol2 contains %i atoms, %i residues.\n", natom,nres);
 
