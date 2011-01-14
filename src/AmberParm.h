@@ -31,7 +31,6 @@ class AmberParm {
   void AssignLCPO(SurfInfo *, double, double, double, double, double);
 
   int *values;
-  int *bonds;
   int debug;
   // For determining fortran format
   FortranFormat fFormat;
@@ -49,8 +48,10 @@ class AmberParm {
   int ReadParmPDB();
 
   public:
-  int Nbonh() { return values[NBONH]; }
+  int NbondsWithH();  
+  int NbondsWithoutH();
   int *bondsh;
+  int *bonds;
   PtrajFile File;
   char *parmName;     // Separate from File.filename in case of stripped parm
   char **names;

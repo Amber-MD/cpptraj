@@ -253,6 +253,22 @@ AmberParm::~AmberParm() {
   if (SurfaceInfo!=NULL) free(SurfaceInfo);
 }
 
+/*
+ * ---------========= ROUTINES FOR ACCESSING VALUES ARRAY =========---------
+ */
+int AmberParm::NbondsWithH() { 
+  if (values!=NULL) 
+    return values[NBONH]; 
+  else
+    return -1;
+}
+int AmberParm::NbondsWithoutH() { 
+  if (values!=NULL)
+    return values[MBONA];
+  else
+    return -1;
+}
+
 /* 
  * AmberParm::OpenParm()
  * Attempt to open file and read in parameters.
@@ -519,7 +535,7 @@ int AmberParm::SetSolventInfo() {
  * Read parameters from Amber Topology file
  */
 int AmberParm::ReadParmAmber() {
-  int err;
+  int err, atom;
   int *solvent_pointer;
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
@@ -549,6 +565,9 @@ int AmberParm::ReadParmAmber() {
   if (mass==NULL) {mprintf("Error in masses.\n"); err++;}
   charge=(double*) getFlagFileValues("CHARGE",natom);
   if (charge==NULL) {mprintf("Error in charges.\n"); err++;}
+  // Convert charges to units of electron charge
+  for (atom=0; atom < natom; atom++)
+    charge[atom] /= 18.2223;
   bonds=(int*) getFlagFileValues("BONDS_WITHOUT_HYDROGEN",values[MBONA]*3);
   if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); err++;}
   bondsh=(int*) getFlagFileValues("BONDS_INC_HYDROGEN",values[NBONH]*3);
@@ -690,7 +709,7 @@ int AmberParm::ReadParmMol2() {
       resnames = (char**) realloc(resnames, (nres+1) * sizeof(char*));
       resnames[nres] = (char*) malloc( 5 * sizeof(char));
       resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
-      resnums[nres]=natom+1; // +1 since in Amber Top atoms start from 1
+      resnums[nres]=atom+1; // +1 since in Amber Top atoms start from 1
       strcpy(resnames[nres], resName);
       currentResnum = resnum;
       nres++;
@@ -714,8 +733,8 @@ int AmberParm::ReadParmMol2() {
         bondsh[numbondsh3  ]=(resnum-1)*3;
         bondsh[numbondsh3+1]=(currentResnum-1)*3;
         bondsh[numbondsh3+2]=0; // Need to assign some force constant eventually
-        mprintf("      Bond to Hydrogen %s-%s %i-%i\n",names[resnum-1],names[currentResnum-1],
-                resnum, currentResnum);
+        //mprintf("      Bond to Hydrogen %s-%s %i-%i\n",names[resnum-1],names[currentResnum-1],
+        //        resnum, currentResnum);
         numbondsh++;
         numbondsh3+=3;
       } else {
@@ -723,18 +742,26 @@ int AmberParm::ReadParmMol2() {
         bonds[numbonds3  ]=(resnum-1)*3;
         bonds[numbonds3+1]=(currentResnum-1)*3;
         bonds[numbonds3+2]=0; // Need to assign some force constant eventually
-        mprintf("      Bond %s-%s %i-%i\n",names[resnum-1],names[currentResnum-1],
-                resnum, currentResnum);
+        //mprintf("      Bond %s-%s %i-%i\n",names[resnum-1],names[currentResnum-1],
+        //        resnum, currentResnum);
         numbonds++;
         numbonds3+=3;
       }
     }
+    
   } else {
     mprintf("      Mol2 file does not contain bond information.\n");
   }
-    
 
-  mprintf("    Mol2 contains %i atoms, %i residues.\n", natom,nres);
+  // Set up AMBER Pointers array
+  values = (int*) calloc(31, sizeof(int));
+  values[NATOM] = natom;
+  values[NRES] = nres;
+  values[NBONH] = numbondsh;
+  values[MBONA] = numbonds;
+
+  mprintf("    Mol2 contains %i atoms, %i residues,\n", natom,nres);
+  mprintf("    %i bonds to H, %i other bonds.\n", numbondsh,numbonds);
 
   return 0;
 }
@@ -1104,6 +1131,7 @@ int AmberParm::WriteAmberParm() {
   PtrajFile outfile;
   char *buffer;
   int solvent_pointer[3];
+  int atom;
 
   if (parmName==NULL) return 1;
 
@@ -1131,6 +1159,9 @@ int AmberParm::WriteAmberParm() {
   outfile.IO->Write(buffer, sizeof(char), BufferSize);
 
   // CHARGE
+  // Convert charges to AMBER charge units
+  for (atom=0; atom<natom; atom++)
+    charge[atom] *= 18.2223;
   PrintFlagFormat(&outfile, "%FLAG CHARGE", "%FORMAT(5E16.8)");
   buffer = DataToBuffer(buffer,"%FORMAT(5E16.8)", NULL, charge, NULL, natom);
   outfile.IO->Write(buffer, sizeof(char), BufferSize);

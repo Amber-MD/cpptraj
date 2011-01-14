@@ -281,9 +281,12 @@ int AmberRestart::writeFrame(int set) {
   //restartTime = (double) set; // NOTE: Could be an option to use set eventually
   File->IO->Printf("%5i%15.7lE\n",F->natom,restartTime);
 
+  // Write coords to buffer
   bufferPosition = F->FrameToBuffer(frameBuffer,"%12.7lf",12,6);
+  // Write velocity to buffer
   if (F->V!=NULL)  // NOTE: Use hasVelocity in addition/instead?
     bufferPosition = F->V->FrameToBuffer(bufferPosition,"%12.7lf",12,6);
+  // Write box to buffer
   if (isBox)
     bufferPosition = F->BoxToBuffer(bufferPosition, numBoxCoords, "%12.7lf",12);
 
@@ -292,7 +295,6 @@ int AmberRestart::writeFrame(int set) {
 
   if (File->IO->Write(frameBuffer,sizeof(char),frameSize)) return 1;
 
-  // Write velocity?
   File->IO->Close();
 
   return 0;
