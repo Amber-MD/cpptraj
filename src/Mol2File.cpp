@@ -149,7 +149,7 @@ int Mol2File::writeFrame(int set) {
   for (atom=0; atom < F->natom; atom++) {
     res = P->atomToResidue(atom);
     if (P->charge!=NULL) Charge = P->charge[atom]; 
-    File->IO->Printf("%7i %-7s %9.4lf %9.4lf %9.4lf %-4s %6i %-7s %lf\n",
+    File->IO->Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-4s %6i %-6s %10.6lf\n",
                      atom+1, P->names[atom], F->X[atom3], F->X[atom3+1], F->X[atom3+2],
                      Types[atom], res+1, P->resnames[res], Charge);
     atom3+=3;
