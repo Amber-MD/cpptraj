@@ -11,6 +11,10 @@
 #include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
 
+#define AMBERPOINTERS 31
+
+#define ELECTOAMBER 18.2223
+#define AMBERTOELEC 1/ELECTOAMBER
 // ================= PRIVATE FUNCTIONS =========================
 
 /*
@@ -540,7 +544,7 @@ int AmberParm::ReadParmAmber() {
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
 
-  values=(int*) getFlagFileValues("POINTERS",31);
+  values=(int*) getFlagFileValues("POINTERS",AMBERPOINTERS);
   if (values==NULL) {
     mprintf("Could not get values from topfile\n");
     return 1;
@@ -567,7 +571,7 @@ int AmberParm::ReadParmAmber() {
   if (charge==NULL) {mprintf("Error in charges.\n"); err++;}
   // Convert charges to units of electron charge
   for (atom=0; atom < natom; atom++)
-    charge[atom] /= 18.2223;
+    charge[atom] *= (AMBERTOELEC);
   bonds=(int*) getFlagFileValues("BONDS_WITHOUT_HYDROGEN",values[MBONA]*3);
   if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); err++;}
   bondsh=(int*) getFlagFileValues("BONDS_INC_HYDROGEN",values[NBONH]*3);
@@ -650,6 +654,12 @@ int AmberParm::ReadParmPDB() {
 
     natom++;
   }
+
+  // Set up AMBER Pointers array
+  values = (int*) calloc(AMBERPOINTERS, sizeof(int));
+  values[NATOM] = natom;
+  values[NRES] = nres;
+
   if (debug>0) 
     mprintf("    PDB contains %i atoms, %i residues, %i molecules.\n",
             natom,nres,molecules);
@@ -689,7 +699,7 @@ int AmberParm::ReadParmMol2() {
   mprintf("      Mol2 #atoms: %i\n",natom);
   mprintf("      Mol2 #bonds: %i\n",mol2bonds);
 
-  // Allocate memory for atom names and types 
+  // Allocate memory for atom names, types, and charges.
   names = (char**) malloc( natom * sizeof(char*));
   types = (char**) malloc( natom * sizeof(char*));
   charge = (double*) malloc( natom * sizeof(double));
@@ -754,7 +764,7 @@ int AmberParm::ReadParmMol2() {
   }
 
   // Set up AMBER Pointers array
-  values = (int*) calloc(31, sizeof(int));
+  values = (int*) calloc(AMBERPOINTERS, sizeof(int));
   values[NATOM] = natom;
   values[NRES] = nres;
   values[NBONH] = numbondsh;
@@ -931,7 +941,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm = new AmberParm(debug); 
 
   // Allocate space for arrays and perform initialization
-  newParm->values = (int*) calloc(31, sizeof(int));
+  newParm->values = (int*) calloc(AMBERPOINTERS, sizeof(int));
   atomMap = (int*) malloc( this->natom * sizeof(int));
   for (i=0; i<this->natom; i++) atomMap[i]=-1;
   newParm->names    = (char**)  malloc( this->natom   * sizeof(char*) );
@@ -1150,7 +1160,7 @@ int AmberParm::WriteAmberParm() {
 
   // POINTERS
   PrintFlagFormat(&outfile, "%FLAG POINTERS", "%FORMAT(10I8)");
-  buffer = DataToBuffer(buffer,"%FORMAT(10I8)", values, NULL, NULL, 31);
+  buffer = DataToBuffer(buffer,"%FORMAT(10I8)", values, NULL, NULL, AMBERPOINTERS);
   outfile.IO->Write(buffer, sizeof(char), BufferSize);
 
   // ATOM NAMES
@@ -1161,7 +1171,7 @@ int AmberParm::WriteAmberParm() {
   // CHARGE
   // Convert charges to AMBER charge units
   for (atom=0; atom<natom; atom++)
-    charge[atom] *= 18.2223;
+    charge[atom] *= (ELECTOAMBER);
   PrintFlagFormat(&outfile, "%FLAG CHARGE", "%FORMAT(5E16.8)");
   buffer = DataToBuffer(buffer,"%FORMAT(5E16.8)", NULL, charge, NULL, natom);
   outfile.IO->Write(buffer, sizeof(char), BufferSize);
