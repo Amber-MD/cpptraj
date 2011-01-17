@@ -3,6 +3,9 @@
 #include <cstring>
 #include <cctype>
 #include <sys/stat.h>
+// NOTE: It seems some PGI compilers do not function correctly when glob.h
+//       is included and large file flags are set. Just disable globbing
+//       for PGI.
 #ifndef __PGI
 #  include <glob.h> // For tilde expansion
 #endif
@@ -14,7 +17,9 @@
 #ifdef HASGZ
 #  include "GzipFile.h"
 #endif
-#include "MpiFile.h"
+#ifdef MPI
+#  include "MpiFile.h"
+#endif
 #ifdef HASBZ2
 #  include "Bzip2File.h"
 #endif
@@ -310,7 +315,15 @@ int PtrajFile::SetupWrite() {
     break;
     //case ZIPFILE   : IO = new ZipFile(); break;
     case STANDARD  : IO = new StdFile();  break;
-    case MPIFILE   : IO = new MpiFile();  break;
+    case MPIFILE   : 
+#ifdef MPI
+      IO = new MpiFile();
+#else
+      mprintf("Error: SetupWrite(%s):\n",filename);
+      mprintf("       Compiled without MPI support. Recompile with -DMPI\n");
+      return 1;
+#endif
+      break;
     default : 
       mprintf("PtrajFile::SetupWrite: Unrecognized file type.\n");
       return 1;
