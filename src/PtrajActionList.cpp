@@ -151,9 +151,7 @@ void PtrajActionList::DoActions(Frame **FrameAddress, int frameIn) {
   for (act=0; act<Naction; act++) {
     // Skip deactivated actions
     if (ActionList[act]->noInit || ActionList[act]->noSetup) continue;
-    // Update the frame counter for all actions
-    ActionList[act]->currentFrame=frameIn;
-    if ( ActionList[act]->DoAction(FrameAddress) ) 
+    if ( ActionList[act]->DoAction(FrameAddress, frameIn) ) 
       // Treat actions that fail as if they could not be set up
       ActionList[act]->noSetup=1;
   }

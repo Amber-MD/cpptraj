@@ -21,6 +21,7 @@ class Action {
     DataFileList *DFL;      // Pointer to the data file list in PtrajState (init)
     FrameList *FL;          // Pointer to the reference frame list in PtrajState (init)
     int debug;
+    int currentFrame;       // current frame being processed, set by PtrajActionList
     // --== Inherited by child classes ==--
     virtual int setup()  { return 0; }
     virtual int action() { return 0; }
@@ -28,7 +29,6 @@ class Action {
 
   public:
     //actionType currentType; // The action type
-    int currentFrame;       // current frame being processed, set by PtrajActionList
     int noInit;             // Set to 1 if action could not be initialized
     int noSetup;            // Set to 1 if action could not be set up
   
@@ -42,7 +42,7 @@ class Action {
 
     int Init(DataSetList*, FrameList*, DataFileList*, int); 
     int Setup(AmberParm **);
-    int DoAction(Frame **);    
+    int DoAction(Frame **,int);    
 
     // --== Inherited by child classes ==--
     virtual void info() {return;}

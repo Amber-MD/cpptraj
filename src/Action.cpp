@@ -91,8 +91,9 @@ int Action::Setup(AmberParm **ParmAddress) {
  * pointer to the current frame and allows it to be modified by the action.
  * Calls the actions internal action() routine.
  */
-int Action::DoAction(Frame **FrameAddress) {
+int Action::DoAction(Frame **FrameAddress, int frameIn) {
   F = *FrameAddress;
+  currentFrame = frameIn;
   if (this->action()) return 1;
   // Set the value of frame address in case frame was changed, e.g. in strip
   *FrameAddress = F;
