@@ -3,6 +3,7 @@
 #include "Bzip2File.h" // BaseFileIO.h, cstdio, bzlib.h
 #include <cstring>
 #include <cstdlib>
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Bzip2File::Bzip2File() {
@@ -82,38 +83,38 @@ int Bzip2File::Open(const char *filename, const char *mode) {
   }
 
   // DEBUG
-  //fprintf(stdout,"DEBUG: Bzip2File::Open(%s,%s)\n",filename,mode);
+  //mprintf("DEBUG: Bzip2File::Open(%s,%s)\n",filename,mode);
 
   fp = fopen(filename, mode);
   if (fp==NULL) {
-    fprintf(stdout,"Error: Bzip2File::Open: Could not open %s with mode %s\n",filename,mode);
+    mprintf("Error: Bzip2File::Open: Could not open %s with mode %s\n",filename,mode);
     return 1;
   }
 
   switch ( mode[0] ) {
     case 'r' : 
-      //fprintf(stdout,"DEBUG: Calling bzReadOpen\n");
+      //mprintf("DEBUG: Calling bzReadOpen\n");
       infile = BZ2_bzReadOpen( &err, fp, 1, 0, NULL, 0); 
       isBzread=true;  
       break;
     case 'w' : 
-      //fprintf(stdout,"DEBUG: Calling bzWriteOpen\n");
+      //mprintf("DEBUG: Calling bzWriteOpen\n");
       infile = BZ2_bzWriteOpen( &err, fp, 9, 0, 30);
       isBzread=false; 
       break;
     case 'a' : 
-      fprintf(stdout,"Error: Bzip2File::Open: Append not supported for Bzip2.\n");
+      mprintf("Error: Bzip2File::Open: Append not supported for Bzip2.\n");
       return 1; // No append for Bzip2
     default: return 1; 
   }
 
   if (err != BZ_OK) {
-    fprintf(stdout,"Error: Bzip2File::Open: Could not BZOPEN %s with mode %s\n",filename,mode);
+    mprintf("Error: Bzip2File::Open: Could not BZOPEN %s with mode %s\n",filename,mode);
     return 1;
   }
 
   if (infile==NULL) return 1;
-  //fprintf(stdout,"DEBUG: BZIP2 Opened %s with mode %s\n",filename,mode);
+  //mprintf("DEBUG: BZIP2 Opened %s with mode %s\n",filename,mode);
   position=0L;
   return 0;
 }
@@ -124,10 +125,10 @@ int Bzip2File::Open(const char *filename, const char *mode) {
 int Bzip2File::Close() {
   if (infile!=NULL) {
     if (isBzread) {
-      //fprintf(stdout,"DEBUG: BZ2_bzReadClose\n");
+      //mprintf("DEBUG: BZ2_bzReadClose\n");
       BZ2_bzReadClose(&err, infile);
     } else {
-      //fprintf(stdout,"DEBUG: BZ2_bzWriteClose\n");
+      //mprintf("DEBUG: BZ2_bzWriteClose\n");
       BZ2_bzWriteClose(&err, infile, 0, NULL, NULL);
     }
     infile=NULL;
@@ -156,14 +157,14 @@ long long int Bzip2File::Size(char *filename) {
   // Check that the file being checked is the currently open file.
   // NOTE: Unnecessary?
   //if (strcmp(filename, bzfilename)!=0) {
-  //  fprintf(stdout,"ERROR: Bzip2File::Size: Checking file %s, open file is %s!\n",
+  //  mprintf("ERROR: Bzip2File::Size: Checking file %s, open file is %s!\n",
   //          filename,bzfilename);
   //  return -1L;
   //}
 
   // Open the file
   if (infile==NULL) {
-    fprintf(stdout,"Bzip2File::Size: Opening %s\n",filename);
+    mprintf("Bzip2File::Size: Opening %s\n",filename);
     if (this->Open(filename,"rb")) return -1L;
   }
 
@@ -180,7 +181,7 @@ long long int Bzip2File::Size(char *filename) {
   // Close file
   this->Close();
 
-  //fprintf(stdout,"Bzip2File::Size: Uncompressed size of %s: %lli\n",filename,fileSize);
+  //mprintf("Bzip2File::Size: Uncompressed size of %s: %lli\n",filename,fileSize);
 
   return fileSize;
 }
@@ -199,7 +200,7 @@ int Bzip2File::Read(void *buffer, size_t size, size_t count) {
   if (err!=BZ_OK) return -1;
   // Should never be able to call Read when fp is NULL.
   //if (fp==NULL) {
-  //  fprintf(stdout,"Error: Bzip2File::Read: Attempted to read NULL file pointer.\n");
+  //  mprintf("Error: Bzip2File::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
   numread = BZ2_bzRead(&err, infile, buffer, size * count);
@@ -208,15 +209,15 @@ int Bzip2File::Read(void *buffer, size_t size, size_t count) {
   position = position + ((off_t) numread);
 
   if (err!=BZ_OK && err!=BZ_STREAM_END) {
-    fprintf(stdout, "Error: Bzip2File::Read: BZ2_bzRead error: [%s]\n",this->BZerror());
-    fprintf(stdout, "                        size=%lu  count=%lu\n",size,count);
+    mprintf( "Error: Bzip2File::Read: BZ2_bzRead error: [%s]\n",this->BZerror());
+    mprintf( "                        size=%lu  count=%lu\n",size,count);
     return -1;
   }
   if (err==BZ_STREAM_END && numread==0) {
     return -1;
   }
 
-  //fprintf(stdout, "DEBUG: After Bzip2File::Read: [%s] position %li\n",this->BZerror(),position);
+  //mprintf( "DEBUG: After Bzip2File::Read: [%s] position %li\n",this->BZerror(),position);
 
   return numread;
 }
@@ -229,7 +230,7 @@ int Bzip2File::Write(void *buffer, size_t size, size_t count) {
   int numwrite;
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
-  //  fprintf(stdout,"Error: Bzip2File::Write: Attempted to write to NULL file pointer.\n");
+  //  mprintf("Error: Bzip2File::Write: Attempted to write to NULL file pointer.\n");
   //  return 1;
   //}
   numwrite = size * count;
@@ -239,7 +240,7 @@ int Bzip2File::Write(void *buffer, size_t size, size_t count) {
   position = position + ((off_t)numwrite);
 
   if (err == BZ_IO_ERROR) { 
-    fprintf(stdout, "Error: Bzip2File::Write: BZ2_bzWrite error\n");
+    mprintf( "Error: Bzip2File::Write: BZ2_bzWrite error\n");
     return 1;
   }
 
@@ -252,19 +253,20 @@ int Bzip2File::Write(void *buffer, size_t size, size_t count) {
  * Scan 1 char at a time until desired position achieved.
  * NOTE: Scan in blocks?
  */
-int Bzip2File::Seek(off_t offset, int origin) {
+int Bzip2File::Seek(off_t offset) {
   off_t seekTo;
   char Scan;
   // Determine place to seek to
-  switch (origin) {
-    case SEEK_SET : seekTo = offset; break;
-    case SEEK_CUR : seekTo = position + offset; break;
-    case SEEK_END : 
-      fprintf(stdout,"Error: Bzip2File::Seek: Seek to END not supported (%s).\n",bzfilename);
-    default : return 1;
-  }
+  //switch (origin) {
+  //  case SEEK_SET : seekTo = offset; break;
+  //  case SEEK_CUR : seekTo = position + offset; break;
+  //  case SEEK_END : 
+  //    mprintf("Error: Bzip2File::Seek: Seek to END not supported (%s).\n",bzfilename);
+  //  default : return 1;
+  //}
+  seekTo = offset;
 
-  //fprintf(stdout,"DEBUG: Bzip2File::Seek: %s %li -> %li, ",bzfilename,position,seekTo);
+  //mprintf("DEBUG: Bzip2File::Seek: %s %li -> %li, ",bzfilename,position,seekTo);
 
   // If place to seek to is earlier than current position need to reopen
   if (seekTo<position) 
@@ -275,7 +277,7 @@ int Bzip2File::Seek(off_t offset, int origin) {
     if (this->Read(&Scan,1,1)==-1) break;
   }
 
-  //fprintf(stdout,"%li\n",position);
+  //mprintf("%li\n",position);
 
   return 0;
 }
@@ -311,7 +313,7 @@ off_t Bzip2File::Tell() {
  */
 int Bzip2File::Gets(char *str, int num) {
   int i;
-  //fprintf(stdout,"DEBUG: Bzip2File::Gets: num=%i\n",num);
+  //mprintf("DEBUG: Bzip2File::Gets: num=%i\n",num);
   // Try to read num chars. If newline encountered exit
   if (num<=1) return 1;
   i=0;
@@ -324,8 +326,8 @@ int Bzip2File::Gets(char *str, int num) {
   if (i==0) return 1;
   // i should be at num or 1 after newline; append NULL char
   str[i] = '\0';
-  //fprintf(stdout,"DEBUG: Bzip2File::Gets: num=%i i=%i [%s]\n",num,i,str);
-  //fprintf(stdout, "DEBUG: After Bzip2File::Gets: position %li\n",position);
+  //mprintf("DEBUG: Bzip2File::Gets: num=%i i=%i [%s]\n",num,i,str);
+  //mprintf( "DEBUG: After Bzip2File::Gets: position %li\n",position);
   return 0;
 }
 #endif

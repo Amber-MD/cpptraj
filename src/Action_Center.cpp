@@ -1,7 +1,6 @@
 // Center 
-#include <cstdio>
-#include <cstdlib>
 #include "Action_Center.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Center::Center() {
@@ -35,17 +34,17 @@ int Center::init() {
   mask1 = A->getNextMask();
   Mask1.SetMaskString(mask1);
 
-  fprintf(stdout,"    CENTER: To");
+  mprintf("    CENTER: To");
   if (origin)
-    fprintf(stdout," origin");
+    mprintf(" origin");
   else
-    fprintf(stdout," box center");
-  fprintf(stdout," via center of");
+    mprintf(" box center");
+  mprintf(" via center of");
   if (useMass)
-    fprintf(stdout," mass");
+    mprintf(" mass");
   else
-    fprintf(stdout," geometry");
-  fprintf(stdout," using atoms in mask %s\n",Mask1.maskString);
+    mprintf(" geometry");
+  mprintf(" using atoms in mask %s\n",Mask1.maskString);
 
   return 0;
 }
@@ -59,14 +58,14 @@ int Center::setup() {
 
   if ( Mask1.SetupMask(P,debug) ) return 1;
   if (Mask1.None()) {
-    fprintf(stdout,"    Error: Center::setup: Mask contains 0 atoms.\n");
+    mprintf("    Error: Center::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
   if (useMass && P->mass==NULL) {
-    fprintf(stdout,"    Warning: Center::setup: usemass: Parm %s contains no mass info.\n",
+    mprintf("    Warning: Center::setup: usemass: Parm %s contains no mass info.\n",
             P->parmName);
-    fprintf(stdout,"             Geometric center will be used instead.\n");
+    mprintf("             Geometric center will be used instead.\n");
     useMass=false;
   }
 //    mass = P->mass;
@@ -74,7 +73,7 @@ int Center::setup() {
 //    mass = NULL;
 
   if (!origin && P->ifbox==0) {
-    fprintf(stdout,"    Error: Center::setup: Box center specified but no box information.\n");
+    mprintf("    Error: Center::setup: Box center specified but no box information.\n");
     //fprintf(stdout,"                            Centering on origin.\n");
     return 1;
   }

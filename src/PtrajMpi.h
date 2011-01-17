@@ -1,21 +1,28 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <stdio.h>
-#include <sys/types.h>
-
 // PtrajMpi.h
+// If debug is not defined it will be included in PtrajMpi.c
+#ifdef DEBUG
+#  include <stdio.h>
+#endif
+#include <sys/types.h> // off_t
+
 /* PTRAJMPI_MODULE is defined in PtrajMpi.c. For all other files
  * including PtrajMpi.h worldrank and worldsize should be extern.
  */
 #ifdef PTRAJMPI_MODULE
 int worldrank;
 int worldsize;
+#  ifdef DEBUG
 FILE *mpidebugfile;
+#  endif
 #else
 extern int worldrank;
 extern int worldsize;
+#  ifdef DEBUG
 extern FILE *mpidebugfile;
+#  endif
 #endif
 
 // This allows abstraction of the MPI_File type so no other files need mpi.h
@@ -29,8 +36,6 @@ int parallel_check_error(int );
 #endif
 
 /* ========== Routines that do not require MPI ========== */
-void mprintf(FILE *, const char *, ...);
-void rprintf(FILE *, const char *, ...);
 void dbgprintf(const char *, ...);
 int parallel_init(int, char **);
 int parallel_end();

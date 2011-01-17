@@ -1,6 +1,7 @@
 // TrajinList
 #include "TrajinList.h"
 #include "RemdTraj.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 TrajinList::TrajinList() {
@@ -37,7 +38,7 @@ int TrajinList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
     T = this->SetupTrajectory(trajfilename, fileAccess, UNKNOWN_FORMAT, UNKNOWN_TYPE);
 
   if (T==NULL) {
-    fprintf(stdout,"ERROR: Setting up file for trajectory %s\n",trajfilename);
+    rprintf("ERROR: Setting up file for trajectory %s\n",trajfilename);
     return 1;
   }
 
@@ -46,7 +47,7 @@ int TrajinList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
  
   // Set up trajectory. 
   if ( T->SetupRead() ) {
-    fprintf(stdout,"ERROR: Setting up %s for read.\n",trajfilename);
+    rprintf("ERROR: Setting up %s for read.\n",trajfilename);
     delete T;
     return 1;
   }
@@ -73,7 +74,7 @@ int TrajinList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
 int TrajinList::SetupFrames() {
   int maxFrames, trajFrames;
 
-  fprintf(stdout,"\nTRAJECTORIES:\n");
+  mprintf("\nTRAJECTORIES:\n");
 
   maxFrames=0;
 
@@ -89,9 +90,9 @@ int TrajinList::SetupFrames() {
   }
 
   if (maxFrames==-1)
-    fprintf(stdout,"  Coordinate processing will occur until EOF (unknown number of frames).\n");
+    mprintf("  Coordinate processing will occur until EOF (unknown number of frames).\n");
   else
-    fprintf(stdout,"  Coordinate processing will occur on %i frames.\n",maxFrames);
+    mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
   return maxFrames;
 }
 

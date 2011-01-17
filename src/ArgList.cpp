@@ -1,10 +1,10 @@
 // ArgList
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
 #include <string>
 #include "ArgList.h"
+#include "CpptrajStdio.h"
 using namespace std;
 
 // NOTE: Place checks on memory
@@ -28,7 +28,7 @@ list<int> *ArgList::NextArgToRange(char *ArgIn) {
   list<int> *RangeList;
   list<int>::iterator it;
 
-  //fprintf(stdout,"DEBUG: NextArgToRange(%s)\n",ArgIn);
+  //mprintf("DEBUG: NextArgToRange(%s)\n",ArgIn);
 
   if (ArgIn==NULL) return NULL;
   RangeList=new list<int>;
@@ -47,7 +47,7 @@ list<int> *ArgList::NextArgToRange(char *ArgIn) {
     R[1] = DashList->getNextInteger(-1);
     delete DashList;
     if (R[0]==-1) {
-      fprintf(stderr,"Error: ArgToRange(%s): Range is -1 for %s\n",ArgIn,DashList->ArgLine());
+      mprintf("Error: ArgToRange(%s): Range is -1 for %s\n",ArgIn,DashList->ArgLine());
       err=1;
       break; 
     }
@@ -55,7 +55,7 @@ list<int> *ArgList::NextArgToRange(char *ArgIn) {
     if (upper==-1) upper=R[0];
     upper++; // Want up to and including the upper argument
     if (upper<=R[0]) 
-      fprintf(stderr,"Warning: Converting %s to range: %i-%i is not valid.\n",ArgIn,R[0],R[1]);
+      mprintf("Warning: Converting %s to range: %i-%i is not valid.\n",ArgIn,R[0],R[1]);
     for (range = R[0]; range < upper; range++) 
       RangeList->push_back(range);
   }
@@ -127,7 +127,7 @@ ArgList::ArgList(char *input, const char *separator) {
     if (input[inputSize-1]=='\n') input[inputSize-1]='\0';
   }
   if (debug>3) 
-    fprintf(stderr,"getArgList: Setting up arg list for [%s] with separator [%s]\n",
+    mprintf("getArgList: Setting up arg list for [%s] with separator [%s]\n",
             input, separator);
 
   // Store original argument line
@@ -138,7 +138,7 @@ ArgList::ArgList(char *input, const char *separator) {
   if (pch!=NULL) {
 
     while (pch!=NULL) {
-      if (debug>3) fprintf(stderr,"getArgList:  Arg %i, Token [%s], ",nargs,pch);
+      if (debug>3) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
       if ( pch[0]!='"' ) 
         Add(pch);
       else {
@@ -160,13 +160,13 @@ ArgList::ArgList(char *input, const char *separator) {
           if (*it=='"') quotedArg.erase(it);  
         Add((char*)quotedArg.c_str());
       }
-      if (debug>3) fprintf(stderr,"Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
+      if (debug>3) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
       pch=strtok(NULL,separator);
     }
     // Setup marked array
     Reset();
   }
-  if (debug>3) fprintf(stderr,"getArgList: Processed %i args\n",nargs);
+  if (debug>3) mprintf("getArgList: Processed %i args\n",nargs);
 }
 
 // DESTRUCTOR
@@ -213,8 +213,8 @@ ArgList *ArgList::Copy() {
 void ArgList::print() {
   int i;
   for (i=0; i<nargs; i++) 
-    fprintf(stdout,"  %i: %s\n",i,arglist[i]);
-    //fprintf(stdout,"  ArgList[%i]=%s\n",i,arglist[i]);
+    mprintf("  %i: %s\n",i,arglist[i]);
+    //mprintf("  ArgList[%i]=%s\n",i,arglist[i]);
 }
 
 /*
@@ -285,11 +285,11 @@ void ArgList::CheckForMoreArgs() {
     }
   }
   if (!empty) {
-    fprintf(stdout,"Warning: [%s] Not all arguments handled: [ ",arglist[0]);
+    mprintf("Warning: [%s] Not all arguments handled: [ ",arglist[0]);
     for (i=0; i<nargs; i++) {
-      if (marked[i]=='F') fprintf(stdout,"%s ",arglist[i]);
+      if (marked[i]=='F') mprintf("%s ",arglist[i]);
     }
-    fprintf(stdout," ]\n");
+    mprintf(" ]\n");
   }
 }
 
@@ -329,7 +329,7 @@ int ArgList::getNextInteger(int def) {
     if (marked[i]!='T') {
       // Check that first char is indeed an integer - if not continue
       if (!isdigit(arglist[i][0])) {
-        //fprintf(stderr,"WARNING: Getting integer from arg (%s) that is not digit!\n",arglist[i]);
+        //mprintf("WARNING: Getting integer from arg (%s) that is not digit!\n",arglist[i]);
         continue;
       }
       marked[i]='T';
@@ -383,7 +383,7 @@ int ArgList::getKeyInt(const char *key, int def) {
       marked[i]='T';
       // Brief check that first char is indeed an integer
       if (!isdigit(arglist[i][0])) {
-        fprintf(stderr,"WARNING: Getting integer from arg (%s) that is not digit!\n",arglist[i]);
+        mprintf("WARNING: Getting integer from arg (%s) that is not digit!\n",arglist[i]);
       }
       return atoi(arglist[i]);
     }
@@ -404,7 +404,7 @@ double ArgList::getKeyDouble(const char *key, double def) {
       marked[i]='T';
       // Brief check that first char is indeed a digit or . 
       if (!isdigit(arglist[i][0]) && arglist[i][0]!='.') {
-        fprintf(stderr,"WARNING: getKeyDouble: arg (%s) does not appear to be a number!\n",
+        mprintf("WARNING: getKeyDouble: arg (%s) does not appear to be a number!\n",
                 arglist[i]);
       }
       return atof(arglist[i]);

@@ -1,7 +1,9 @@
 // AmberRestart
+#include <cstdio> // sscanf, sprintf
 #include <cstdlib>
 #include <cstring>
 #include "AmberRestart.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 AmberRestart::AmberRestart() {
@@ -9,7 +11,6 @@ AmberRestart::AmberRestart() {
   frameBuffer=NULL;
   numBoxCoords=0;
   hasVelocity=0;
-//  V=NULL;
   restartAtoms=0;
   restartTime=0;
   restartTemp=-1.0;
@@ -21,15 +22,18 @@ AmberRestart::~AmberRestart() {
   // Close file. Should be safe
   close();
   if (frameBuffer!=NULL) free(frameBuffer);
-//  if (V!=NULL) delete V;
 }
 
-// close()
+/*
+ * AmberRestart::close()
+ */
 void AmberRestart::close() {
   File->CloseFile();
 }
 
-// open()
+/*
+ * AmberRestart::open()
+ */
 int AmberRestart::open() {
   int nread,titleSize;
   char buffer[83];
@@ -41,17 +45,17 @@ int AmberRestart::open() {
       // Read in title
       if (title==NULL) title=(char*) malloc(83*sizeof(char));
       if (File->IO->Gets(title,82)) {
-         fprintf(stdout,"Error: AmberRestart::open(): Reading restart title.\n");
+         mprintf("Error: AmberRestart::open(): Reading restart title.\n");
         return 1;
       }
       // Read in natoms, time, and Replica Temp if present
       if (File->IO->Gets(buffer,82)) {
-        fprintf(stdout,"Error: AmberRestart::open(): Reading restart atoms/time.\n");
+        mprintf("Error: AmberRestart::open(): Reading restart atoms/time.\n");
         return 1;
       }
       nread=sscanf(buffer,"%5i%15lE%15lE",&restartAtoms,&restartTime,&restartTemp);
       if (nread<1) {
-        fprintf(stdout,"Error: AmberRestart::open(): Getting restart atoms/time.\n");
+        mprintf("Error: AmberRestart::open(): Getting restart atoms/time.\n");
         return 1;
       } else if (nread==1) {
         restartTime=0.0;
@@ -59,12 +63,12 @@ int AmberRestart::open() {
       } else if (nread==2) {
         restartTemp=-1.0;
       }
-      if (debug>0) fprintf(stdout,"  Amber restart: Atoms=%i Time=%lf Temp=%lf\n",restartAtoms,
+      if (debug>0) mprintf("  Amber restart: Atoms=%i Time=%lf Temp=%lf\n",restartAtoms,
                            restartTime, restartTemp);
       break;
 
     case APPEND :
-      fprintf(stdout,"Error: Append not supported for Amber Restart files.\n");
+      mprintf("Error: Append not supported for Amber Restart files.\n");
       return 1;
       break;
 
@@ -72,12 +76,12 @@ int AmberRestart::open() {
       // Set up title
       if (title==NULL) {
         title=(char*) malloc(81*sizeof(char));
-        strcpy(title,"Ptraj Generated Restart");
+        strcpy(title,"Cpptraj Generated Restart");
         titleSize=81;
       } else {
         titleSize=strlen(title);
         if (titleSize>81) {
-          fprintf(stdout,"Error: AmberTraj::open: Given title is too long!\n[%s]\n",title);
+          mprintf("Error: AmberTraj::open: Given title is too long!\n[%s]\n",title);
           return 1;
         }
       }
@@ -130,9 +134,9 @@ int AmberRestart::SetupRead() {
 
   // Check that natoms matches parm natoms
   if (restartAtoms!=P->natom) {
-    fprintf(stdout,"Error: AmberRestart::SetupRead(): Number of atoms in restart (%i)  \n",
+    mprintf("Error: AmberRestart::SetupRead(): Number of atoms in restart (%i)  \n",
             restartAtoms);
-    fprintf(stdout,"       does not match number of atoms in parmtop (%i)\n",P->natom);
+    mprintf("       does not match number of atoms in parmtop (%i)\n",P->natom);
     return 1;
   }
 
@@ -144,11 +148,11 @@ int AmberRestart::SetupRead() {
   if (File->isDos) frame_lines*=2;
   frameSize = ((restartAtoms * 3 * 12) + frame_lines);
   frameBuffer=(char*) malloc(frameSize*sizeof(char));
-  //if (debug>0) fprintf(stdout,"    Amber Restart frameSize= %i\n",frameSize);
+  //if (debug>0) mprintf("    Amber Restart frameSize= %i\n",frameSize);
 
   // Read past restart coords 
   if ( File->IO->Read(frameBuffer,sizeof(char),frameSize)==-1 ) {
-    fprintf(stdout,"Error: AmberRestart::SetupRead(): Error reading coordinates.\n");
+    mprintf("Error: AmberRestart::SetupRead(): Error reading coordinates.\n");
     return 1; 
   }
 
@@ -158,7 +162,7 @@ int AmberRestart::SetupRead() {
   // If 0 or -1 no box or velo 
 //  if (lineSize==-1) {
   if (lineSize<=0) {
-//    fprintf(stdout,"Error: AmberRestart::SetupRead(): Error checking for box/velocity info.\n");
+//    mprintf("Error: AmberRestart::SetupRead(): Error checking for box/velocity info.\n");
 //    return 1;
 
   // If 0 probably at EOF. No box or velo.
@@ -181,8 +185,8 @@ int AmberRestart::SetupRead() {
         isBox=1;
         numBoxCoords = (lineSize-1) / 12;
       } else {
-        fprintf(stdout,"Error: AmberRestart::SetupRead():\n");
-        fprintf(stdout,"       Expect only 3 or 6 box coords in box coord line.\n");
+        mprintf("Error: AmberRestart::SetupRead():\n");
+        mprintf("       Expect only 3 or 6 box coords in box coord line.\n");
         return 1;
       }
     } else
@@ -190,9 +194,9 @@ int AmberRestart::SetupRead() {
 
   // Otherwise, who knows what was read?
   } else {
-    fprintf(stdout,"Error: AmberRestart::SetupRead(): When attempting to read in\n");
-    fprintf(stdout,"       box coords/velocity info got %i chars, expected 0, 37,\n",lineSize);
-    fprintf(stdout,"       73, or %i.\n",frameSize);
+    mprintf("Error: AmberRestart::SetupRead(): When attempting to read in\n");
+    mprintf("       box coords/velocity info got %i chars, expected 0, 37,\n",lineSize);
+    mprintf("       73, or %i.\n",frameSize);
     return 1;
   }
 
@@ -202,9 +206,9 @@ int AmberRestart::SetupRead() {
   frameBuffer=(char*) realloc(frameBuffer, frameSize*sizeof(char));
 
   if (debug > 0) {
-    fprintf(stdout,"    Amber Restart isBox=%i hasVelocity=%i numBoxCoords=%i\n",
+    mprintf("    Amber Restart isBox=%i hasVelocity=%i numBoxCoords=%i\n",
             isBox,hasVelocity,numBoxCoords);
-    fprintf(stdout,"    Amber Restart frameSize= %i\n",frameSize);
+    mprintf("    Amber Restart frameSize= %i\n",frameSize);
   }
   
   // Set TrajFile variables
@@ -224,7 +228,7 @@ int AmberRestart::getFrame(int set) {
   char *bufferPosition;
   // Read restart coords into frameBuffer
   if ( File->IO->Read(frameBuffer,sizeof(char),frameSize)==-1 ) {
-    fprintf(stdout,"Error: AmberRestart::getFrame(): Error reading coordinates.\n");
+    mprintf("Error: AmberRestart::getFrame(): Error reading coordinates.\n");
     return 1;
   }
 
@@ -233,14 +237,14 @@ int AmberRestart::getFrame(int set) {
 
   // Convert coords to Frame - Frame expects N coords to be present in buffer
   if ( (bufferPosition = F->BufferToFrame(frameBuffer, 12))==NULL ) {
-    fprintf(stdout,"Error: AmberRestart::getFrame: * detected in coordinates of %s\n",trajfilename);
+    mprintf("Error: AmberRestart::getFrame: * detected in coordinates of %s\n",trajfilename);
     return 1;  
   }
   // Convert velocity to Frame if present
   if (hasVelocity) {
     if (F->V==NULL) F->V = new Frame(restartAtoms,NULL);
     if ( (bufferPosition = F->V->BufferToFrame(bufferPosition, 12))==NULL ) {
-      fprintf(stdout,"Error: AmberRestart::getFrame: * detected in velocities of %s\n",
+      mprintf("Error: AmberRestart::getFrame: * detected in velocities of %s\n",
               trajfilename);
       return 1;
     }
@@ -249,7 +253,7 @@ int AmberRestart::getFrame(int set) {
   // Convert box to Frame if present
   if (isBox) {
     if ( (bufferPosition = F->BufferToBox(bufferPosition, numBoxCoords, 12))==NULL ) {
-      fprintf(stdout,"Error: AmberRestart::getFrame: * detected in box coordinates of %s\n",
+      mprintf("Error: AmberRestart::getFrame: * detected in box coordinates of %s\n",
               trajfilename);
       return 1;
     }
@@ -277,9 +281,12 @@ int AmberRestart::writeFrame(int set) {
   //restartTime = (double) set; // NOTE: Could be an option to use set eventually
   File->IO->Printf("%5i%15.7lE\n",F->natom,restartTime);
 
+  // Write coords to buffer
   bufferPosition = F->FrameToBuffer(frameBuffer,"%12.7lf",12,6);
+  // Write velocity to buffer
   if (F->V!=NULL)  // NOTE: Use hasVelocity in addition/instead?
     bufferPosition = F->V->FrameToBuffer(bufferPosition,"%12.7lf",12,6);
+  // Write box to buffer
   if (isBox)
     bufferPosition = F->BoxToBuffer(bufferPosition, numBoxCoords, "%12.7lf",12);
 
@@ -288,7 +295,6 @@ int AmberRestart::writeFrame(int set) {
 
   if (File->IO->Write(frameBuffer,sizeof(char),frameSize)) return 1;
 
-  // Write velocity?
   File->IO->Close();
 
   return 0;
@@ -298,6 +304,6 @@ int AmberRestart::writeFrame(int set) {
  * Info()
  */
 void AmberRestart::Info() {
-  fprintf(stdout,"  File (%s) is an AMBER restart file ", File->filename);
-  if (hasVelocity) fprintf(stdout,"with velocity info");
+  mprintf("  File (%s) is an AMBER restart file", File->filename);
+  if (hasVelocity) mprintf(" with velocity info");
 }

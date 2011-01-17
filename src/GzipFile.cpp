@@ -1,6 +1,8 @@
 // GzipFile: Gzip file operations
 #ifdef HASGZ
-#include "GzipFile.h" // BaseFileIO.h, cstdio, zlib.h
+#include <cstdio>
+#include "GzipFile.h" // BaseFileIO.h, zlib.h
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 GzipFile::GzipFile() {
@@ -40,7 +42,7 @@ long long int GzipFile::Size(char *filename) {
 
   if (filename==NULL) return -1;
   if ( (infile = fopen(filename,"rb"))==NULL ) {
-    fprintf(stdout,"Error: GzipFile::Size: Could not open %s for reading.\n",filename);
+    mprintf("Error: GzipFile::Size: Could not open %s for reading.\n",filename);
     return -1L;
   }
 
@@ -109,12 +111,12 @@ int GzipFile::Write(void *buffer, size_t size, size_t count) {
 /*
  * GzipFile::Seek()
  */
-int GzipFile::Seek(off_t offset, int origin) {
+int GzipFile::Seek(off_t offset) {
   z_off_t zipOffset;
  
-  if (origin == SEEK_END) return 1; 
+  //if (origin == SEEK_END) return 1; 
   zipOffset=(z_off_t) offset;
-  if ( gzseek(fp, zipOffset, origin) < 0) return 1;
+  if ( gzseek(fp, zipOffset, SEEK_SET) < 0) return 1;
   return 0;
 }
 

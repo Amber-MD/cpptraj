@@ -1,5 +1,7 @@
-#include <cstdlib>
+#include <cstdio> // for sprintf
 #include "Action_Rmsd.h"
+#include "CpptrajStdio.h"
+// RMSD
 using namespace std;
 
 // CONSTRUCTOR
@@ -21,7 +23,6 @@ Rmsd::Rmsd() {
   perresmask=NULL;
   perrescenter=false;
   perresinvert=false;
-  //currentType=RMSD;
 }
 
 // DESTRUCTOR
@@ -56,7 +57,7 @@ Rmsd::~Rmsd() {
 int Rmsd::SetRefMask() {
   if ( RefMask.SetupMask(RefParm,debug) ) return 1;
   if (RefMask.None()) {
-    fprintf(stdout,"    Error: Rmsd::SetRefMask: No atoms in reference mask.\n");
+    mprintf("    Error: Rmsd::SetRefMask: No atoms in reference mask.\n");
     return 1;
   }
   // Allocate frame for selected reference atoms
@@ -70,7 +71,7 @@ int Rmsd::SetRefMask() {
  * Called once before traj processing. Set up reference info.
  * Expected call: 
  * rmsd <name> <mask> [first | ref <filename> | refindex <#>] [<refmask>] [out filename] [nofit]
- *      [perres] [perresout <filename>] [range <res range>] [perresmask <addtl mask>]
+ *      [mass] [perres] [perresout <filename>] [range <res range>] [perresmask <addtl mask>]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -117,8 +118,7 @@ int Rmsd::init( ) {
   DFL->Add(rmsdFile,rmsd);
 
   if (!first && referenceName==NULL && refindex==-1 && referenceKeyword==0) {
-    fprintf(stdout,
-            "    Warning: Rmsd::init: No reference structure given. Defaulting to first.\n");
+    mprintf("    Warning: Rmsd::init: No reference structure given. Defaulting to first.\n");
     first=true;
   }
 
@@ -133,7 +133,7 @@ int Rmsd::init( ) {
     // Get reference frame by index
     RefFrame=FL->GetFrame(refindex);
     if (RefFrame==NULL) {
-      fprintf(stdout,"    Error: Rmsd::init: Could not get reference index %i\n",refindex);
+      mprintf("    Error: Rmsd::init: Could not get reference index %i\n",refindex);
       return 1;
     }
     // Set reference parm
@@ -145,43 +145,43 @@ int Rmsd::init( ) {
   }
 
   //rmsd->Info();
-  fprintf(stdout,"    RMSD: (%s), reference is ",FrameMask.maskString);
+  mprintf("    RMSD: (%s), reference is ",FrameMask.maskString);
   if (RefFrame==NULL)
-    fprintf(stdout,"first frame");
+    mprintf("first frame");
   else if (referenceName!=NULL)
-    fprintf(stdout,"%s",referenceName);
+    mprintf("%s",referenceName);
   else
-    fprintf(stdout,"reference index %i",refindex);
-  fprintf(stdout," (%s)",RefMask.maskString);
+    mprintf("reference index %i",refindex);
+  mprintf(" (%s)",RefMask.maskString);
   if (nofit)
-    fprintf(stdout,", no fitting");
+    mprintf(", no fitting");
   else
-    fprintf(stdout,", with fitting");
-  fprintf(stdout,".\n");
+    mprintf(", with fitting");
+  mprintf(".\n");
   if (useMass) 
-    fprintf(stdout,"          Center of mass will be used.\n");
+    mprintf("          Center of mass will be used.\n");
   else
-    fprintf(stdout,"          Geometric center will be used.\n");
+    mprintf("          Geometric center will be used.\n");
   if (perres) {
-    fprintf(stdout,"          No-fit RMSD will also be calculated for ");
+    mprintf("          No-fit RMSD will also be calculated for ");
     if (range==NULL) 
-      fprintf(stdout,"each solute residue");
+      mprintf("each solute residue");
     else
-      fprintf(stdout,"residues %s",range);
+      mprintf("residues %s",range);
     if (refrange!=NULL)
-      fprintf(stdout," (reference residues %s)",refrange);
-    fprintf(stdout," using mask [:X%s].\n",perresmask);
-    fprintf(stdout,"          WARNING: Currently residues are set up based on the first trajectory read in!\n");
+      mprintf(" (reference residues %s)",refrange);
+    mprintf(" using mask [:X%s].\n",perresmask);
+    mprintf("          WARNING: Currently residues are set up based on the first trajectory read in!\n");
     if (perresout==NULL) {
-      fprintf(stdout,"Error: perres specified but no output filename given (perresout).\n");
+      mprintf("Error: perres specified but no output filename given (perresout).\n");
       perres=false;
       return 1;
     }
-    fprintf(stdout,"          Per-residue output file is %s\n",perresout);
+    mprintf("          Per-residue output file is %s\n",perresout);
     if (perrescenter)
-      fprintf(stdout,"          perrescenter: Each residue will be centered prior to RMS calc.\n");
+      mprintf("          perrescenter: Each residue will be centered prior to RMS calc.\n");
     if (perresinvert)
-      fprintf(stdout,"          perresinvert: Frames will be written in rows instead of columns.\n");
+      mprintf("          perresinvert: Frames will be written in rows instead of columns.\n");
   }
 
   return 0;
@@ -203,7 +203,7 @@ int Rmsd::setup() {
 
   if ( FrameMask.SetupMask(P,debug) ) return 1;
   if ( FrameMask.None() ) {
-    fprintf(stdout,"    Error: Rmsd::setup: No atoms in mask.\n");
+    mprintf("    Error: Rmsd::setup: No atoms in mask.\n");
     return 1;
   }
   // Allocate space for selected atoms in the frame
@@ -221,16 +221,16 @@ int Rmsd::setup() {
 
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( RefMask.Nselected != FrameMask.Nselected ) {
-    fprintf(stdout, "    Error: Number of atoms in RMS mask (%i) does not \n",FrameMask.Nselected);
-    fprintf(stdout, "           equal number of atoms in Ref mask (%i).\n",RefMask.Nselected);
+    mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",FrameMask.Nselected);
+    mprintf( "           equal number of atoms in Ref mask (%i).\n",RefMask.Nselected);
     return 1;
   }
 
   // Check Mass
   if (useMass && P->mass==NULL) {
-    fprintf(stdout,"    Warning: Rmsd::setup: usemass: Parmtop %s does not contain mass info.\n",
+    mprintf("    Warning: Rmsd::setup: usemass: Parmtop %s does not contain mass info.\n",
             P->parmName);
-    fprintf(stdout,"             Geometric center will be used instead.\n");
+    mprintf("             Geometric center will be used instead.\n");
     useMass=false;
   }
 
@@ -250,7 +250,7 @@ int Rmsd::setup() {
       sprintf(resArg,"%i-%i",1,nres);
       ResRange = A->NextArgToRange(resArg);
     } 
-    fprintf(stdout,"      RMSD: PerRes: Setting up for %i residues.\n",(int)ResRange->size());
+    mprintf("      RMSD: PerRes: Setting up for %i residues.\n",(int)ResRange->size());
     PerResRMSD=new DataSetList();
     resName[4]='\0';
     for (it=ResRange->begin(); it!=ResRange->end(); it++) {
@@ -268,18 +268,18 @@ int Rmsd::setup() {
       // Setup mask strings - masks are based off user resnums
       sprintf(resArg,":%i%s",*it,perresmask);
       sprintf(refArg,":%i%s",refRes,perresmask);
-      //fprintf(stdout,"DEBUG: RMSD: PerRes: Mask %s RefMask %s\n",resArg,refArg);
+      //mprintf("DEBUG: RMSD: PerRes: Mask %s RefMask %s\n",resArg,refArg);
 
       // Check that mask can be set up for reference
       ResMask=new AtomMask();
       ResMask->SetMaskString(refArg);
       if ( ResMask->SetupMask(RefParm,0) ) {
-        fprintf(stdout,"Warning: RMSD: PerRes: Could not set up reference for residue %i\n",*it);
+        mprintf("Warning: RMSD: PerRes: Could not set up reference for residue %i\n",*it);
         delete ResMask;
         continue;
       }
       if (ResMask->None()) {
-        fprintf(stdout,"Warning: RMSD: PerRes: No atoms in reference for residue %i\n",*it);
+        mprintf("Warning: RMSD: PerRes: No atoms in reference for residue %i\n",*it);
         delete ResMask;
         continue;
       }
@@ -290,7 +290,7 @@ int Rmsd::setup() {
       ResMask=new AtomMask();
       ResMask->SetMaskString(resArg);
       if ( ResMask->SetupMask(P,0) ) { // NOTE: Allow debug value in here?
-        fprintf(stdout,"Warning: RMSD: PerRes: Could not set up mask for residue %i\n",*it);
+        mprintf("Warning: RMSD: PerRes: Could not set up mask for residue %i\n",*it);
         delete ResMask;
         ResMask = PerRefMask.back();
         delete ResMask;
@@ -298,7 +298,7 @@ int Rmsd::setup() {
         continue;
       }
       if (ResMask->None()) {
-        fprintf(stdout,"Warning: RMSD: PerRes: No atoms in mask for residue %i\n",*it);
+        mprintf("Warning: RMSD: PerRes: No atoms in mask for residue %i\n",*it);
         delete ResMask;
         ResMask = PerRefMask.back();
         delete ResMask;
@@ -307,9 +307,9 @@ int Rmsd::setup() {
       }
       // Check that number of atoms selected in parm is same as reference
       if ( (PerRefMask.back())->Nselected != ResMask->Nselected) {
-        fprintf(stdout,"Warning: RMSD: PerRes: # atoms in mask for residue %i (%i) not equal\n",
+        mprintf("Warning: RMSD: PerRes: # atoms in mask for residue %i (%i) not equal\n",
                 *it,ResMask->Nselected);
-        fprintf(stdout,"                       to # atoms in reference mask (%i).\n",
+        mprintf("                       to # atoms in reference mask (%i).\n",
                 (PerRefMask.back())->Nselected);
         delete ResMask;
         ResMask = PerRefMask.back();
@@ -320,7 +320,7 @@ int Rmsd::setup() {
       PerResMask.push_back(ResMask);
 
       // DEBUG
-      //fprintf(stdout,"PERRES_RMS: Mask %s RefMask %s\n",(PerResMask.back())->maskString,
+      //mprintf("PERRES_RMS: Mask %s RefMask %s\n",(PerResMask.back())->maskString,
       //        (PerRefMask.back())->maskString);
 
       // Setup Dataset for this residue
@@ -363,9 +363,9 @@ int Rmsd::action() {
   SelectedFrame->SetFrameFromMask(F, &FrameMask);
 
   // DEBUG
-/*  fprintf(stdout,"  DEBUG: RMSD: First atom coord in SelectedFrame is : "); 
+/*  mprintf("  DEBUG: RMSD: First atom coord in SelectedFrame is : "); 
   SelectedFrame->printAtomCoord(0);
-  fprintf(stdout,"  DEBUG: RMSD: First atom coord in SelectedRef is : ");
+  mprintf("  DEBUG: RMSD: First atom coord in SelectedRef is : ");
   SelectedRef->printAtomCoord(0);
 */
 
@@ -389,7 +389,7 @@ int Rmsd::action() {
       if (perrescenter) 
         SelectedFrame->ShiftToCenter(SelectedRef); 
       R = SelectedFrame->RMSD(SelectedRef,useMass);
-      //fprintf(stdout,"DEBUG:           Res %i nofit RMSD = %lf\n",res,R);
+      //mprintf("DEBUG:           Res %i nofit RMSD = %lf\n",res,R);
       // NOTE: Should check for error on AddData?
       PerResRMSD->AddData(currentFrame, &R, res);
       res++;

@@ -86,11 +86,11 @@ int StdFile::Write(void *buffer, size_t size, size_t count) {
  * StdFile::Seek()
  * NOTE: Use fseeko for better compatibility with large files.
  */
-int StdFile::Seek(off_t offset, int origin) {
+int StdFile::Seek(off_t offset) {
   // DEBUG
   //printf("Calling standard seek(%i): %li\n",origin,offset);
 
-  return fseeko(fp, offset, origin);
+  return fseeko(fp, offset, SEEK_SET);
 }
 
 /*

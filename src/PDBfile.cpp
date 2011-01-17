@@ -3,6 +3,7 @@
 #include <cstring>
 #include "PDBfile.h"
 #include "PDBfileRoutines.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 PDBfile::PDBfile() {
@@ -60,11 +61,11 @@ int PDBfile::SetupRead() {
   this->close();
 
   if (Frames<1) {
-    fprintf(stdout,"ERROR: PDBfile::SetupRead(): No frames read. atom=%i expected %i.\n",
+    mprintf("ERROR: PDBfile::SetupRead(): No frames read. atom=%i expected %i.\n",
             atom,P->natom);
     return 1;
   }
-  if (debug>0) fprintf(stdout,"PDBfile::SetupRead(): %s %i atoms %i frames.\n",trajfilename,
+  if (debug>0) mprintf("PDBfile::SetupRead(): %s %i atoms %i frames.\n",trajfilename,
                        atom,Frames);
   stop=Frames;
   pdbAtom = P->natom;
@@ -80,16 +81,17 @@ int PDBfile::getFrame(int set) {
   int atom, atom3;
 
   atom=0;
-
+  atom3=0;
   while (atom < pdbAtom) {
     if ( File->IO->Gets(buffer,256) ) return 1;
     // Skip non-ATOM records
     if (strncmp(buffer,"ATOM",4)!=0 &&
         strncmp(buffer,"HETATM",6)!=0 ) continue;  
     // Read current PDB record XYZ into Frame
-    atom3 = atom * 3;
-    pdb_xyz(buffer,F->X+atom3); 
-    atom++;
+    //atom3 = atom * 3;
+    pdb_xyz(buffer,F->X+atom3);
+    atom++; 
+    atom3+=3;
   }
 
   return 0;
@@ -142,7 +144,7 @@ int PDBfile::writeFrame(int set) {
  * Info()
  */
 void PDBfile::Info() {
-  fprintf(stdout,"  File (%s) is a PDB file", File->filename);
+  mprintf("  File (%s) is a PDB file", File->filename);
 /*    if (p->option2 == 1) 
       printfone(" with no atom wrapping");
     if (p->option1 == 1)

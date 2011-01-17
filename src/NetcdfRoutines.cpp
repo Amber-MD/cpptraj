@@ -1,6 +1,7 @@
 // NetcdfRoutines
-#ifdef BINTRAJ
+#include "CpptrajStdio.h"
 #include <cstdlib>
+#ifdef BINTRAJ
 #include <cstdio>
 #include <cstdarg>
 #include "netcdf.h"
@@ -26,25 +27,25 @@ void NetcdfDebug(int ncid) {
   //  there is one for this netCDF dataset. If no unlimited length 
   //  dimension has been defined, -1 is returned.
   varname=(char*) malloc(1024*sizeof(char));
-  fprintf(stdout,"========== BEG. NETCDF DEBUG ==========\n");
+  mprintf("========== BEG. NETCDF DEBUG ==========\n");
   err=nc_inq(ncid,&ndimsp,&nvarsp,&ngattsp,&unlimdimidp);
-  fprintf(stdout,"nc_inq returned %i\n",err);
+  mprintf("nc_inq returned %i\n",err);
   if (err==NC_NOERR)
-    fprintf(stdout,"ndimsp=%i  nvarsp=%i  ngattsp=%i  unlimdimidp=%i\n",
+    mprintf("ndimsp=%i  nvarsp=%i  ngattsp=%i  unlimdimidp=%i\n",
             ndimsp,nvarsp,ngattsp,unlimdimidp);
   else
-    fprintf(stdout,"NETCDF Error occurred.\n");
+    mprintf("NETCDF Error occurred.\n");
   // Print name of each variable defined in netcdf file
-  fprintf(stdout,"NC VARIABLES:\n");
+  mprintf("NC VARIABLES:\n");
   for (i=0; i<nvarsp; i++) {
     err=nc_inq_varname(ncid,i,varname);
-    fprintf(stdout,"  Var %i - ",i);
+    mprintf("  Var %i - ",i);
     if (err==NC_NOERR)
-      fprintf(stdout,"%s\n",varname);
+      mprintf("%s\n",varname);
     else
-      fprintf(stdout,"NETCDF Error occured.\n");
+      mprintf("NETCDF Error occured.\n");
   }
-  fprintf(stdout,"==========  END NETCDF DEBUG ==========\n");
+  mprintf("==========  END NETCDF DEBUG ==========\n");
   free(varname);
   return;
 }
@@ -59,9 +60,9 @@ int checkNCerr(int err, const char *message, ...) {
 
   if (err!=NC_NOERR) {
     va_start(args,message);
-    fprintf(stderr,"NETCDF Error (%s): ",nc_strerror(err));
+    mprinterr("NETCDF Error (%s): ",nc_strerror(err));
     vfprintf(stderr,message,args);
-    fprintf(stderr,"\n");
+    mprinterr("\n");
     va_end(args);
     return 1;
   }
@@ -136,7 +137,7 @@ char *GetNetcdfConventions(char *filename) {
   nc_close(ncid);
   return attrText;
 #else
-   fprintf(stdout,"Error: Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
+   mprintf("Error: Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
    return NULL;
 #endif
 }

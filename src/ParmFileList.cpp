@@ -1,8 +1,8 @@
 // ParmList
 #include <cstdlib>
-#include <cstdio>
 #include <cstring>
 #include "ParmFileList.h"
+#include "CpptrajStdio.h"
 
 // Constructor
 ParmFileList::ParmFileList() {
@@ -26,7 +26,7 @@ ParmFileList::~ParmFileList() {
 
 // Set debug level
 void ParmFileList::SetDebug(int debugIn) {
-  if (debugIn>0) fprintf(stdout,"ParmFileList debug level set to %i\n",debugIn);
+  if (debugIn>0) mprintf("ParmFileList debug level set to %i\n",debugIn);
   debug=debugIn;
 }
 
@@ -64,27 +64,27 @@ int ParmFileList::Add(char *filename) {
 
   // Dont let a list that has copies add a new file
   if (hasCopies) {
-    fprintf(stdout,"    Warning: Attempting to add parm %s to a list that already\n",filename);
-    fprintf(stdout,"             has copies of parm files. This should not occur.\n");
-    fprintf(stdout,"             Skipping.\n");
+    mprintf("    Warning: Attempting to add parm %s to a list that already\n",filename);
+    mprintf("             has copies of parm files. This should not occur.\n");
+    mprintf("             Skipping.\n");
     return 0;
   }
 
   // Check if this file has already been loaded
   if (GetParmIndex(filename)!=-1) {
-    fprintf(stdout,"    Warning: Parm %s already loaded, skipping.\n",filename);
+    mprintf("    Warning: Parm %s already loaded, skipping.\n",filename);
     return 1;
   }
 
   P = new AmberParm(debug);
 
   if (P->OpenParm(filename)) {
-    fprintf(stdout,"Error: Could not open parm %s\n",filename);
+    mprintf("Error: Could not open parm %s\n",filename);
     delete P;
     return 1;
   }
 
-  if (debug>0) fprintf(stdout,"    PARAMETER FILE %i: %s\n",Nparm,filename);
+  if (debug>0) mprintf("    PARAMETER FILE %i: %s\n",Nparm,filename);
   // pindex is used for quick identification of the parm file
   P->pindex=Nparm;
   ParmList=(AmberParm**) realloc(ParmList,(Nparm+1) * sizeof(AmberParm*));
@@ -112,16 +112,16 @@ void ParmFileList::Print() {
   int i;
   char buffer[BUFFER_SIZE];
 
-  fprintf(stdout,"\nPARAMETER FILES:\n");
+  mprintf("\nPARAMETER FILES:\n");
   if (Nparm==0) {
-    fprintf(stdout,"  No parameter files defined.\n");
+    mprintf("  No parameter files defined.\n");
     return;
   }
 
   for (i=0; i<Nparm; i++) {
     ParmList[i]->Info(buffer);
-    fprintf(stdout," %i: %s, %s.\n",i,ParmList[i]->File.filename, buffer);
-    //fprintf(stdout,"  %i: %s, %i atoms (%i trajectory frames associated)\n",
+    mprintf(" %i: %s, %s.\n",i,ParmList[i]->File.filename, buffer);
+    //mprintf("  %i: %s, %i atoms (%i trajectory frames associated)\n",
     //        i,ParmList[i]->File.filename, ParmList[i]->natom, ParmList[i]->parmFrames);
   }
 }

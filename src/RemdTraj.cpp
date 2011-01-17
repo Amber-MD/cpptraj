@@ -1,8 +1,10 @@
 // RemdTraj
+#include <cstdio> // sprintf
 #include <cstring>
 #include <cstdlib>
 #include <cctype>
 #include "RemdTraj.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 RemdTraj::RemdTraj() {
@@ -37,7 +39,7 @@ int RemdTraj::NoTempInfo(TrajFile *T) {
   if (T==NULL) return 1;
 
   if (T->hasTemperature==0) {
-    fprintf(stdout,"Error: REMDTRAJ: Trajectory %s does not contain temperature information.\n",
+    mprintf("Error: REMDTRAJ: Trajectory %s does not contain temperature information.\n",
             T->File->filename);
     return 1;
   }
@@ -62,21 +64,21 @@ int RemdTraj::SetupRead() {
   char *repFilename; // Additional replica filenames
 
   if (debug>0) {
-    fprintf(stdout,"    REMDTRAJ: Using specified file as lowest replica: %s\n",replicaName);
-    fprintf(stdout,"    REMDTRAJ: Frames at %lf K will be processed.\n",remdtrajtemp);
+    mprintf("    REMDTRAJ: Using specified file as lowest replica: %s\n",replicaName);
+    mprintf("    REMDTRAJ: Frames at %lf K will be processed.\n",remdtrajtemp);
   }
 
   // Set up lowest replica file
   T = REMDtraj.SetupTrajectory(replicaName,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE);
   if (T==NULL) {
-    fprintf(stdout,"    ERROR: REMDTRAJ: Could not set up lowest replica file %s\n",replicaName);
+    mprintf("    ERROR: REMDTRAJ: Could not set up lowest replica file %s\n",replicaName);
     return 1;
   }
  
   // Set up lowest replica trajectory
   T->P = P;
   if ( T->SetupRead() ) {
-    fprintf(stdout,"    ERROR: REMDTRAJ: Setting up lowest replica %s for read.\n",replicaName);
+    mprintf("    ERROR: REMDTRAJ: Setting up lowest replica %s for read.\n",replicaName);
     delete T;
     return 1;
   }
@@ -112,9 +114,9 @@ int RemdTraj::SetupRead() {
   for (j=0; j<lastChar; j++)
     if (T->File->basefilename[j]=='.') i=j;
   if (i==-1) {
-    fprintf(stdout,"    ERROR: REMDTRAJ: Could not find numeric extension.\n");
-    fprintf(stdout,"           Check that REMD files have naming scheme NAME.X\n");
-    fprintf(stdout,"           where X is an integer of arbitrary width.\n");
+    mprintf("    ERROR: REMDTRAJ: Could not find numeric extension.\n");
+    mprintf("           Check that REMD files have naming scheme NAME.X\n");
+    mprintf("           where X is an integer of arbitrary width.\n");
     return 1;
   }
 
@@ -122,21 +124,21 @@ int RemdTraj::SetupRead() {
   Prefix=(char*) malloc( (i+1) * sizeof(char));
   strncpy(Prefix,T->File->basefilename,i);
   Prefix[i]='\0';
-  //fprintf(stdout,"  REMDDEBUG: Replica filename prefix: %s\n",Prefix);
+  //mprintf("  REMDDEBUG: Replica filename prefix: %s\n",Prefix);
 
   ExtWidth=lastChar - i - 1;
-  //fprintf(stdout,"  REMDDEBUG: Last . in %s located at %i\n",T->File->basefilename,i);
-  //fprintf(stdout,"  REMDDEBUG: Allocating %i for extension\n",ExtWidth+1);
-  //fprintf(stdout,"  REMDDEBUG: EXTwidth=%i\n",ExtWidth);
+  //mprintf("  REMDDEBUG: Last . in %s located at %i\n",T->File->basefilename,i);
+  //mprintf("  REMDDEBUG: Allocating %i for extension\n",ExtWidth+1);
+  //mprintf("  REMDDEBUG: EXTwidth=%i\n",ExtWidth);
   ReplicaExt=(char*) malloc( (ExtWidth+1) * sizeof(char));
   strncpy(ReplicaExt, T->File->basefilename + i + 1, ExtWidth);
   ReplicaExt[ExtWidth]='\0'; 
-  //fprintf(stdout,"  REMDDEBUG: Replica extension is %s\n",ReplicaExt);
+  //mprintf("  REMDDEBUG: Replica extension is %s\n",ReplicaExt);
 
   // Check that all digits in extension are numbers 
   for (j=0; j<ExtWidth; j++) {
     if (isdigit(ReplicaExt[j])==0) {
-      fprintf(stdout,"    ERROR: REMDTRAJ: Character #%i (%c) in extension %s is not a number!\n",
+      mprintf("    ERROR: REMDTRAJ: Character #%i (%c) in extension %s is not a number!\n",
               j,ReplicaExt[j],ReplicaExt);
       free(ReplicaExt);
       free(Prefix);
@@ -146,7 +148,7 @@ int RemdTraj::SetupRead() {
 
   // Store lowest replica number
   j=atoi(ReplicaExt);
-  //fprintf(stdout,"  REMDDEBUG: index of first replica = %i\n",j);
+  //mprintf("  REMDDEBUG: index of first replica = %i\n",j);
 
   // Assume replica file names all have same length
   repFilename=(char*) malloc( (strlen(T->File->basefilename)+1) * sizeof(char));
@@ -159,10 +161,10 @@ int RemdTraj::SetupRead() {
   sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,j-1,CompressExt);
   T = REMDtraj.SetupTrajectory(repFilename,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE);
   if (T!=NULL) {
-    fprintf(stdout,
+    mprintf(
             "    WARNING: REMDTRAJ: Replica# found lower than file specified with trajin!\n");
-    fprintf(stdout,"              (Found %s)\n",repFilename);
-    fprintf(stdout,"              trajin <file> remdtraj requires lowest # replica!\n");
+    mprintf("              (Found %s)\n",repFilename);
+    mprintf("              trajin <file> remdtraj requires lowest # replica!\n");
     delete T;
   }
 
@@ -172,7 +174,7 @@ int RemdTraj::SetupRead() {
   while ( (T=REMDtraj.SetupTrajectory(repFilename,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE))!=NULL ) {
     T->P = P;
     if ( T->SetupRead() ) {
-      fprintf(stdout,"    ERROR: REMDTRAJ: Setting up replica %s for read.\n",repFilename);
+      mprintf("    ERROR: REMDTRAJ: Setting up replica %s for read.\n",repFilename);
       delete T;
       free(repFilename);
       free(Prefix);
@@ -189,10 +191,10 @@ int RemdTraj::SetupRead() {
     }
     // Check that #Frames and box info matches
     if ( Frames!=T->Frames || isBox!=T->isBox ) {
-      fprintf(stdout,
+      mprintf(
               "    ERROR: REMDTRAJ: #Frames (%i) or box info (%i) in replica does not match\n",
               T->Frames, T->isBox);
-      fprintf(stdout,"                     values in lowest replica (Frames=%i, box=%i)\n",
+      mprintf("                     values in lowest replica (Frames=%i, box=%i)\n",
               Frames,isBox);
       delete T;
       free(repFilename);
@@ -207,7 +209,7 @@ int RemdTraj::SetupRead() {
     numReplicas++;
     sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,j,CompressExt);
   }
-  fprintf(stdout,"REMDTRAJ:\n");
+  mprintf("REMDTRAJ:\n");
   REMDtraj.Info();
   
   free(repFilename);
@@ -267,11 +269,11 @@ int RemdTraj::getFrame(int set) {
     }
   }
   // If we have made it here this means target was not found
-  fprintf(stdout,"\nREMDTRAJ: Final repTemp value read= %lf, set %i\n",F->T,set);
-  fprintf(stdout,"Could not find target %lf in any of the replica trajectories.\n",
+  mprintf("\nREMDTRAJ: Final repTemp value read= %lf, set %i\n",F->T,set);
+  mprintf("Could not find target %lf in any of the replica trajectories.\n",
           remdtrajtemp);
-  fprintf(stdout,"Check that all replica trajectory files were found and that\n");
-  fprintf(stdout,"none of the trajectories are corrupted (e.g. missing a temperature).\n");
+  mprintf("Check that all replica trajectory files were found and that\n");
+  mprintf("none of the trajectories are corrupted (e.g. missing a temperature).\n");
   return 1;
 }
 
@@ -279,7 +281,7 @@ int RemdTraj::getFrame(int set) {
  * Info()
  */
 void RemdTraj::Info() {
-  fprintf(stdout,"  REMD trajectories (%i total, lowest replica: %s)\n",numReplicas,replicaName);
-  fprintf(stdout,"    Looking for frames at %8.2lf K",remdtrajtemp);
+  mprintf("  REMD trajectories (%i total, lowest replica: %s)\n",numReplicas,replicaName);
+  mprintf("    Looking for frames at %8.2lf K",remdtrajtemp);
 }
     

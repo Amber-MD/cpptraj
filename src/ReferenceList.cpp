@@ -1,5 +1,6 @@
 // ReferenceList
 #include "ReferenceList.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 ReferenceList::ReferenceList() {
@@ -29,7 +30,7 @@ int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   T = this->SetupTrajectory(trajfilename, fileAccess, UNKNOWN_FORMAT, UNKNOWN_TYPE);
 
   if (T==NULL) {
-    fprintf(stdout,"ERROR: Setting up file for trajectory %s\n",trajfilename);
+    rprintf("ERROR: Setting up file for trajectory %s\n",trajfilename);
     return 1;
   }
 
@@ -38,7 +39,7 @@ int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
 
   // Set up trajectory. 
   if ( T->SetupRead() ) {
-    fprintf(stdout,"ERROR: Setting up %s for read.\n",trajfilename);
+    rprintf("ERROR: Setting up %s for read.\n",trajfilename);
     delete T;
     return 1;
   }
@@ -63,9 +64,9 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
   int trajFrames;
   Frame *F;
 
-  fprintf(stdout,"\nREFERENCE COORDS:\n");
+  mprintf("\nREFERENCE COORDS:\n");
   if (this->empty()) {
-    fprintf(stdout,"  No reference coordinates.\n");
+    mprintf("  No reference coordinates.\n");
     return 1;
   }
 
@@ -73,12 +74,12 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     // Setup the reference traj for reading. Should only be 1 frame.
     trajFrames=(*it)->setupFrameInfo(-1);
     if ((*it)->total_read_frames<1) {
-      fprintf(stdout,"Error: No frames could be read for reference %s, skipping\n",
+      rprintf("Error: No frames could be read for reference %s, skipping\n",
       (*it)->trajfilename);
       continue;
     }
     if ((*it)->P==NULL) {
-      fprintf(stdout,"Error: No parm associated with ref coords from %s - ignoring.\n",
+      rprintf("Error: No parm associated with ref coords from %s - ignoring.\n",
               (*it)->trajfilename);
       return 1;
     }

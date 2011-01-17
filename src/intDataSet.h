@@ -7,7 +7,6 @@
  */
 #include <map>
 #include "DataSet.h"
-//using namespace std;
 class intDataSet : public DataSet {
     std::map<int,int> Data;
     std::map<int,int>::iterator it;
@@ -15,6 +14,6 @@ class intDataSet : public DataSet {
     int isEmpty(int);
     void Add( int, void *vIn );
     void Write(char *, int);
-//    int Sync();
+    int Sync();
 };
 #endif

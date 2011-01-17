@@ -1,7 +1,7 @@
 // ActionMask
-#include <cstdio>
 #include <cstdlib>
 #include "Action_Mask.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 ActionMask::ActionMask() {
@@ -30,14 +30,14 @@ int ActionMask::init( ) {
 
   // Get Mask
   mask1 = A->getNextMask();
-  //fprintf(stdout,"    Mask 1: %s\n",mask1);
+  //mprintf("    Mask 1: %s\n",mask1);
   Mask1.SetMaskString(mask1);
 
-  fprintf(stdout,"    ActionMask: Information on atoms in mask %s will be printed",
+  mprintf("    ActionMask: Information on atoms in mask %s will be printed",
           Mask1.maskString);
   if (maskFilename!=NULL)
-    fprintf(stdout," to file %s",maskFilename);
-  fprintf(stdout,".\n");
+    mprintf(" to file %s",maskFilename);
+  mprintf(".\n");
 
   // Open output file
   // NOTE: Should this be a buffer? Output at end?
@@ -57,7 +57,7 @@ int ActionMask::setup() {
   //if ( Mask1.SetupMask(P,debug) ) return 1;
 
   //if (Mask1.None()) {
-  //  fprintf(stdout,"    Error: ActionMask::setup: Mask has no atoms.\n");
+  //  mprintf("    Error: ActionMask::setup: Mask has no atoms.\n");
   //  return 1;
   //}
 
@@ -73,7 +73,7 @@ int ActionMask::action() {
 
   mask = P->mask(Mask1.maskString, F->X);
   if (mask==NULL) {
-    fprintf(stdout,"Warning: ActionMask::action: Atom mask %s is NULL.\n",Mask1.maskString);
+    mprintf("Warning: ActionMask::action: Atom mask %s is NULL.\n",Mask1.maskString);
     return 1;
   }
   for (atom=0; atom < P->natom; atom++) {
@@ -81,9 +81,9 @@ int ActionMask::action() {
     res = P->atomToResidue(atom);
     outfile.IO->Printf("%8i %8i %4s %8i %4s %8i",currentFrame,atom+1, P->names[atom], res+1,
             P->resnames[res], P->atomToMolecule(atom)+1);
-    /*fprintf(stdout," Type=%4s",P->types[atom]);
-    fprintf(stdout," Charge=%lf",P->charge[atom]);
-    fprintf(stdout," Mass=%lf",P->mass[atom]);*/
+    /*mprintf(" Type=%4s",P->types[atom]);
+    mprintf(" Charge=%lf",P->charge[atom]);
+    mprintf(" Mass=%lf",P->mass[atom]);*/
     outfile.IO->Printf("\n");
   }
   free(mask); 

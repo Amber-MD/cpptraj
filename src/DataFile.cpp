@@ -1,9 +1,8 @@
 //DataFile
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include "DataFile.h"
-//#include "PtrajFile.h"
+#include "CpptrajStdio.h"
 
 #define DATABUFFERSIZE 128
 
@@ -36,7 +35,7 @@ void DataFile::SetDebug(int debugIn) {
   if (debug==debugIn) return;
   debug=debugIn;
   if (debug>0)
-    fprintf(stdout,"DataFile %s DEBUG LEVEL SET TO %i\n",filename,debug);
+    mprintf("DataFile %s DEBUG LEVEL SET TO %i\n",filename,debug);
 }
 
 /*
@@ -83,8 +82,8 @@ int DataFile::NameIs(char *nameIn) {
 void DataFile::DataSetNames() {
   int set;
   for (set=0; set<Nsets; set++) {
-    if (set>0) fprintf(stdout,",");
-    fprintf(stdout,"%s",SetList[set]->Name());
+    if (set>0) mprintf(",");
+    mprintf("%s",SetList[set]->Name());
   }
 }
 
@@ -102,7 +101,7 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
   nwrite=0;
   for (set=0; set<Nsets; set++) {
     if ( SetList[set]->CheckSet() ) {
-      fprintf(stdout,"Warning: DataFile %s: Set %s contains no data - skipping.\n",
+      mprintf("Warning: DataFile %s: Set %s contains no data - skipping.\n",
               filename, SetList[set]->Name());
       //return;
     } else {
@@ -110,7 +109,7 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
     }
   }
   if (nwrite==0) {
-    fprintf(stdout,"Warning: DataFile %s has no sets containing data - skipping.\n",filename);
+    mprintf("Warning: DataFile %s has no sets containing data - skipping.\n",filename);
     return;
   }
 
@@ -129,7 +128,7 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
         this->WriteData(&outfile, maxFrames); 
       break;
     case XMGRACE    : this->WriteGrace(&outfile, maxFrames); break;
-    default      : fprintf(stdout,"Error: Datafile %s: Unknown type.\n",filename);
+    default      : mprintf("Error: Datafile %s: Unknown type.\n",filename);
   }
 
   outfile.CloseFile();

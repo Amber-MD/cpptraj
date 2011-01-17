@@ -5,12 +5,13 @@
  * (and writing?) netcdf restart files used with amber.
  * Dan Roe 2011-01-07
  */
-#include <cstdio>
+#include <cstdio> // sprintf
 #include <cstdlib>
 #include <cstring> // For title length
 #include "netcdf.h"
 #include "AmberRestartNC.h"
 #include "NetcdfRoutines.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 AmberRestartNC::AmberRestartNC() {
@@ -49,7 +50,7 @@ AmberRestartNC::~AmberRestartNC() {
 void AmberRestartNC::close() {
   if (ncid==-1) return;
   checkNCerr(nc_close(ncid),"Closing netcdf Restart file.");
-  if (debug>0) fprintf(stdout,"Successfully closed ncid %i\n",ncid);
+  if (debug>0) mprintf("Successfully closed ncid %i\n",ncid);
   ncid=-1;
   atomDID=-1; ncatom=-1; coordVID=-1; velocityVID=-1;
   cellLengthVID=-1; cellAngleVID=-1;
@@ -68,7 +69,7 @@ int AmberRestartNC::open() {
   char *attrText; // For checking conventions and version 
   int spatial; // For checking spatial dimensions
 
-  fprintf(stdout,"DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",File->filename,ncid);
+  mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",File->filename,ncid);
   // If already open, return
   if (ncid!=-1) return 0;
 
@@ -80,7 +81,7 @@ int AmberRestartNC::open() {
       break;
     
     case APPEND: 
-      fprintf(stdout,"Error: %s - Append is not supported by netcdf restart.\n",File->filename);
+      mprintf("Error: %s - Append is not supported by netcdf restart.\n",File->filename);
       return 1;
       break;
     case WRITE:
@@ -88,10 +89,8 @@ int AmberRestartNC::open() {
       return 0;
   }
 
-  //if (debug>0) fprintf(stdout,"Successfully opened restart %s, ncid=%i\n",File->filename,ncid);
-  fprintf(stdout,"Successfully opened restart %s, ncid=%i\n",File->filename,ncid);
-  //if (debug>1) NetcdfDebug(ncid);
-  NetcdfDebug(ncid);
+  if (debug>0) mprintf("Successfully opened restart %s, ncid=%i\n",File->filename,ncid);
+  if (debug>1) NetcdfDebug(ncid);
   // Netcdf files are always seekable
   seekable=1;
 
@@ -99,12 +98,12 @@ int AmberRestartNC::open() {
   if (title==NULL) title = GetAttrText(ncid,NC_GLOBAL, "title");
   attrText = GetAttrText(ncid,NC_GLOBAL, "Conventions");
   if (attrText==NULL || strstr(attrText,"AMBERRESTART")==NULL) 
-    fprintf(stdout,"WARNING: Netcdf restart file %s conventions do not include \"AMBERRESTART\" (%s)\n",
+    mprintf("WARNING: Netcdf restart file %s conventions do not include \"AMBERRESTART\" (%s)\n",
             File->filename, attrText);
   if (attrText!=NULL) free(attrText);
   attrText = GetAttrText(ncid,NC_GLOBAL, "ConventionVersion");
   if (attrText==NULL || strcmp(attrText,"1.0")!=0)
-    fprintf(stdout,"WARNING: Netcdf restart file %s has ConventionVersion that is not 1.0 (%s)\n",
+    mprintf("WARNING: Netcdf restart file %s has ConventionVersion that is not 1.0 (%s)\n",
             File->filename, attrText);
   if (attrText!=NULL) free(attrText);
 
@@ -115,13 +114,13 @@ int AmberRestartNC::open() {
       "Getting coordinate ID")!=0) return 1;
   attrText = GetAttrText(ncid,coordVID, "units");
   if (attrText==NULL || strcmp(attrText,"angstrom")!=0) 
-    fprintf(stdout,"WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
+    mprintf("WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
             File->filename,attrText);
   if (attrText!=NULL) free(attrText);
   spatialDID=GetDimInfo(ncid,NCSPATIAL,&spatial);
   if (spatialDID==-1) return 1;
   if (spatial!=3) {
-    fprintf(stdout,"Error: ncOpen: Expected 3 spatial dimenions in %s, got %i\n",
+    mprintf("Error: ncOpen: Expected 3 spatial dimenions in %s, got %i\n",
             File->filename, spatial);
     return 1;
   }
@@ -130,8 +129,7 @@ int AmberRestartNC::open() {
 
   // Get Velocity info
   if ( nc_inq_varid(ncid,NCVELO,&velocityVID)==NC_NOERR ) {
-    //if (debug>0) fprintf(stdout,"    Netcdf restart file has velocities.\n");
-    fprintf(stdout,"    Netcdf restart file has velocities.\n");
+    if (debug>0) mprintf("    Netcdf restart file has velocities.\n");
     hasVelocity=1;
   } else
     velocityVID=-1;
@@ -141,12 +139,12 @@ int AmberRestartNC::open() {
        "Getting Netcdf time VID.")) return 1;
   attrText = GetAttrText(ncid,timeVID, "units");
   if (attrText==NULL || strcmp(attrText,"picosecond")!=0) 
-    fprintf(stdout,"WARNING: Netcdf restart file %s has time units of %s - expected picosecond.\n",
+    mprintf("WARNING: Netcdf restart file %s has time units of %s - expected picosecond.\n",
             File->filename, attrText);
   if (attrText!=NULL) free(attrText);
   if ( checkNCerr(nc_get_var_double(ncid, timeVID, &restartTime),
        "Getting netcdf restart time.")) return 1;
-  fprintf(stdout,"    Netcdf restart time= %lf\n",restartTime);
+  mprintf("    Netcdf restart time= %lf\n",restartTime);
 
   // Box info
   // NOTE: If no box info found in parm should really try to determine correct
@@ -154,11 +152,10 @@ int AmberRestartNC::open() {
   if ( nc_inq_varid(ncid,"cell_lengths",&cellLengthVID)==NC_NOERR ) {
     if (checkNCerr(nc_inq_varid(ncid,"cell_angles",&cellAngleVID),
       "Getting cell angles.")!=0) return 1;
-    //if (debug>0) fprintf(stdout,"  Netcdf restart Box information found.\n"); 
-    fprintf(stdout,"    Netcdf restart Box information found.\n"); 
+    if (debug>0) mprintf("  Netcdf restart Box information found.\n"); 
     if (P->ifbox==0) {
-      fprintf(stderr,"Warning: Netcdf restart file contains box info but no box info found\n");
-      fprintf(stderr,"         in associated parmfile %s; defaulting to orthogonal.\n",
+      mprintf("Warning: Netcdf restart file contains box info but no box info found\n");
+      mprintf("         in associated parmfile %s; defaulting to orthogonal.\n",
               P->parmName);
       isBox=1;
     } else {
@@ -168,8 +165,7 @@ int AmberRestartNC::open() {
 
   // Replica Temperatures
   if ( nc_inq_varid(ncid,NCTEMPERATURE,&TempVID) == NC_NOERR ) {
-    //if (debug>0) fprintf(stdout,"    Netcdf restart file has replica temperature.\n");
-    fprintf(stdout,"    Netcdf restart file has replica temperature.\n");
+    if (debug>0) mprintf("    Netcdf restart file has replica temperature.\n");
     hasTemperature=1;
   } else 
     TempVID=-1;
@@ -189,9 +185,9 @@ int AmberRestartNC::open() {
 int AmberRestartNC::SetupRead() {
   if (open()) return 1;
   if (ncatom!=P->natom) {
-    fprintf(stdout,"Warning: Number of atoms in NetCDF restart file %s (%i) does not\n",
+    mprintf("Warning: Number of atoms in NetCDF restart file %s (%i) does not\n",
             File->filename,ncatom);
-    fprintf(stdout,"         match those in associated parmtop (%i)!\n",P->natom);
+    mprintf("         match those in associated parmtop (%i)!\n",P->natom);
     return 1;
   }
   stop=1;
@@ -228,7 +224,7 @@ int AmberRestartNC::setupWriteForSet(int set) {
   if (checkNCerr(nc_create(buffer,NC_64BIT_OFFSET,&ncid),
     "Creating Netcdf restart file %s",buffer)) return 1;
   //if (debug>0) 
-    fprintf(stdout,"    Successfully created Netcdf restart file %s, ncid %i\n",buffer,ncid);
+    mprintf("    Successfully created Netcdf restart file %s, ncid %i\n",buffer,ncid);
 
   // Time variable
   if (checkNCerr(nc_def_var(ncid,NCTIME,NC_DOUBLE,0,dimensionID,&timeVID),
@@ -319,7 +315,7 @@ int AmberRestartNC::setupWriteForSet(int set) {
 
   // Replica temperature 
   if (hasTemperature) {
-    fprintf(stdout,"NETCDF: Defining replica temperature in output restart.\n");
+    mprintf("NETCDF: Defining replica temperature in output restart.\n");
     if ( checkNCerr(nc_def_var(ncid,NCTEMPERATURE,NC_DOUBLE,0,dimensionID,&TempVID),
          "Defining replica temperature in netcdf restart.") ) return 1;
     if ( checkNCerr(nc_put_att_text(ncid,TempVID,"units",6,"kelvin"),
@@ -373,7 +369,7 @@ int AmberRestartNC::getFrame(int set) {
   if (TempVID!=-1) {
     if ( checkNCerr(nc_get_var_double(ncid, TempVID, &(F->T)),
                     "Getting replica temperature.")!=0 ) return 1;
-    fprintf(stderr,"DEBUG: Replica Temperature %lf\n",F->T);
+    mprintf("DEBUG: Replica Temperature %lf\n",F->T);
   }
 
   // Read Coords 
@@ -450,11 +446,11 @@ int AmberRestartNC::writeFrame(int set) {
  * Info()
  */
 void AmberRestartNC::Info() {
-  fprintf(stdout,"  File (%s) is a NetCDF AMBER restart file", File->filename);
+  mprintf("  File (%s) is a NetCDF AMBER restart file", File->filename);
 
-  if (velocityVID!=-1) fprintf(stdout,", with velocities");
+  if (velocityVID!=-1) mprintf(", with velocities");
  
-  if (TempVID!=-1) fprintf(stdout,", with replica temperatures");
+  if (TempVID!=-1) mprintf(", with replica temperature");
 
   /*if (debug > 2) {
       if (title != NULL)

@@ -1,5 +1,6 @@
 // TrajoutList
 #include "TrajoutList.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 TrajoutList::TrajoutList() {
@@ -34,7 +35,7 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
  
   // Check that this filename is not already in use
   if (this->CheckFilename(trajfilename)) {
-    fprintf(stdout,"Error: trajout: Filename %s has already been used for trajout.\n",
+    mprintf("Error: trajout: Filename %s has already been used for trajout.\n",
             trajfilename);
     return 1;
   }
@@ -48,6 +49,7 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   else if ( A->hasKey("netcdf")   ) writeFormat=AMBERNETCDF;
   else if ( A->hasKey("restart")  ) writeFormat=AMBERRESTART;
   else if ( A->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
+  else if ( A->hasKey("mol2")     ) writeFormat=MOL2FILE;
 
   // Set the write file type
   // Since Amber Restart files are written 1 at a time no MPI needed
@@ -63,7 +65,7 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   T = this->SetupTrajectory(trajfilename, fileAccess, writeFormat, writeType);
 
   if (T==NULL) {
-    fprintf(stdout,"ERROR: Setting up file for trajectory %s\n",trajfilename);
+    rprintf("ERROR: Setting up file for trajectory %s\n",trajfilename);
     return 1;
   }
 
@@ -73,12 +75,12 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   // Get a frame range for trajout
   T->FrameRange = A->NextArgToRange(A->getNextString());
   if (T->FrameRange!=NULL) {
-    fprintf(stdout,"      Saving frames");
+    mprintf("      Saving frames");
     for (std::list<int>::iterator it=T->FrameRange->begin(); it!=T->FrameRange->end(); it++)
-      fprintf(stdout," %i",*it);
-    fprintf(stdout,"\n");
-  } else
-    fprintf(stdout,"      No frame range given.\n");
+      mprintf(" %i",*it);
+    mprintf("\n");
+  } //else
+    //mprintf("      No frame range given.\n");
 
   // Set parameter file
   T->P=P;
@@ -119,6 +121,7 @@ int TrajoutList::Write(int outputSet, Frame *Fin, AmberParm *CurrentParm) {
     }
     // Open if this is first call - skip flag not otherwise used for output
     if ((*it)->skip==0) {
+      if (debug>0) rprintf("    Setting up %s for WRITE\n",(*it)->trajfilename);
       if ((*it)->SetupWrite()) return 1;
       if ((*it)->Begin()) return 1;
       (*it)->skip=1;

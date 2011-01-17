@@ -1,7 +1,9 @@
 // dDataSet
+#include <cstdio> // sprintf
 #include <cstdlib>
 #include "dDataSet.h"
 #include "PtrajMpi.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 dDataSet::dDataSet() {
@@ -47,7 +49,7 @@ void dDataSet::Add( int frame, void *vIn ) {
     current=frame;
 
   if (current>=N) {
-    fprintf(stdout,"Error: DataSet %s attempting to write %i, %i allocated.\n",
+    mprintf("Error: DataSet %s attempting to write %i, %i allocated.\n",
             name,current,N);
     return;
   }

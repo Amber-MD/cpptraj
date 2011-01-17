@@ -1,7 +1,7 @@
 #include <cstdlib>
-#include <cstdio>
 #include <cstring>
 #include "AtomMask.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 AtomMask::AtomMask() {
@@ -99,7 +99,7 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
   char maskChar;
 
   if (Pin==NULL) {
-    fprintf(stdout,"    Error: AtomMask::SetupMask: (%s) Topology is NULL.\n", maskString);
+    mprintf("    Error: AtomMask::SetupMask: (%s) Topology is NULL.\n", maskString);
     return 1;
   }
   debug=debugIn;
@@ -110,7 +110,7 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
   P = Pin;
   mask = P->mask(maskString);
   if (mask==NULL) {
-    fprintf(stdout,"    Error: Could not set up mask %s for topology %s\n",
+    mprintf("    Error: Could not set up mask %s for topology %s\n",
             maskString, P->parmName);
     return 1;
   }
@@ -132,10 +132,10 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
 
   if (debug>0) {
     if (invertMask)
-      fprintf(stdout,"          Inverse of Mask %s corresponds to %i atoms.\n",
+      mprintf("          Inverse of Mask %s corresponds to %i atoms.\n",
               maskString,P->natom - Nselected);
     else
-      fprintf(stdout,"          Mask %s corresponds to %i atoms.\n",maskString,Nselected);
+      mprintf("          Mask %s corresponds to %i atoms.\n",maskString,Nselected);
   }
 
   // Free the character mask, no longer needed

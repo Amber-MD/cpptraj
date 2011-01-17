@@ -1,8 +1,8 @@
 // Closest
 // Find closest waters to atoms in mask.
-#include <cstdio>
 #include <cstdlib>
 #include "Action_Closest.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Closest::Closest() {
@@ -52,7 +52,7 @@ int Closest::init( ) {
   // Get Keywords
   closestWaters = A->getNextInteger(-1);
   if (closestWaters < 0) {
-    fprintf(stdout,"Error: Closest::init(): Invalid # solvent molecules to keep (%i).\n",
+    mprintf("Error: Closest::init(): Invalid # solvent molecules to keep (%i).\n",
             closestWaters);
     return 1;
   }
@@ -63,23 +63,23 @@ int Closest::init( ) {
   // Get Masks
   mask1 = A->getNextMask();
   if (mask1==NULL) {
-    fprintf(stdout,"Error: Closest::init(): No mask specified.\n");
+    mprintf("Error: Closest::init(): No mask specified.\n");
     return 1;
   }
   Mask1.SetMaskString(mask1);
 
-  fprintf(stdout,"    CLOSEST: Finding closest %i solvent molecules to\n",closestWaters);
+  mprintf("    CLOSEST: Finding closest %i solvent molecules to\n",closestWaters);
   //if (mask1==NULL)
   //  fprintf(stdout,"             all solute atoms\n");
   //else
-    fprintf(stdout,"             atoms in mask %s\n",Mask1.maskString);
+    mprintf("             atoms in mask %s\n",Mask1.maskString);
   if (noimage) 
-    fprintf(stdout,"             non-imaged");
+    mprintf("             non-imaged");
   else
-    fprintf(stdout,"             imaged");
+    mprintf("             imaged");
   if (firstAtom)
-    fprintf(stdout,", using first atom in solvent molecule for distance calc");
-  fprintf(stdout,".\n");
+    mprintf(", using first atom in solvent molecule for distance calc");
+  mprintf(".\n");
 
   return 0;
 }
@@ -95,14 +95,14 @@ int Closest::setup() {
 
   // If there are no solvent molecules this action is not valid.
   if (P->solventMolecules==0) {
-    fprintf(stdout,"    Error: Closest::setup: Parm %s does not contain solvent.\n",P->parmName);
+    mprintf("    Error: Closest::setup: Parm %s does not contain solvent.\n",P->parmName);
     return 1;
   }
   // If # solvent to keep >= solvent in this parm the action is not valid.
   if (closestWaters >= P->solventMolecules) {
-    fprintf(stdout,"    Error: Closest::setup: # solvent to keep (%i) >= # solvent molecules in\n",
+    mprintf("    Error: Closest::setup: # solvent to keep (%i) >= # solvent molecules in\n",
             closestWaters);
-    fprintf(stdout,"                           %s (%i).\n",P->parmName,P->solventMolecules);
+    mprintf("                           %s (%i).\n",P->parmName,P->solventMolecules);
     return 1;
   } 
   // Check that all solvent molecules contain same # atoms. Solvent 
@@ -112,9 +112,9 @@ int Closest::setup() {
   for (solventMol = 1; solventMol < P->solventMolecules; solventMol++) {
     if ( NsolventAtoms != 
          (P->solventMoleculeStop[solventMol] - P->solventMoleculeStart[solventMol]) ) {
-      fprintf(stdout,"    Error: Closest::setup: Solvent molecules in %s are not of uniform size.\n",
+      mprintf("    Error: Closest::setup: Solvent molecules in %s are not of uniform size.\n",
               P->parmName);
-      fprintf(stdout,"           First solvent mol=%i atoms, %i solvent mol=%i atoms.\n",
+      mprintf("           First solvent mol=%i atoms, %i solvent mol=%i atoms.\n",
               NsolventAtoms, solventMol,
               P->solventMoleculeStop[solventMol] - P->solventMoleculeStart[solventMol]);
       return 1;
@@ -123,7 +123,7 @@ int Closest::setup() {
 
   if ( Mask1.SetupMask(P,debug) ) return 1;
   if (Mask1.None()) {
-    fprintf(stdout,"    Error: Closest::setup: Mask %s contains no atoms.\n",Mask1.maskString);
+    mprintf("    Error: Closest::setup: Mask %s contains no atoms.\n",Mask1.maskString);
     return 1;
   }
 
@@ -139,9 +139,9 @@ int Closest::setup() {
   if (!noimage) {
     imageType = P->ifbox;
     if (P->ifbox==0) {
-        fprintf(stdout,"    Warning: Closest::setup: ");
-        fprintf(stdout," Imaging specified but no box information in prmtop %s\n",P->parmName);
-        fprintf(stdout,"             No imaging can occur..\n");
+        mprintf("    Warning: Closest::setup: ");
+        mprintf(" Imaging specified but no box information in prmtop %s\n",P->parmName);
+        mprintf("             No imaging can occur..\n");
     }
   }
 
@@ -153,7 +153,7 @@ int Closest::setup() {
   NsolventAtoms = P->solventMoleculeStop[closestWaters-1] - P->solventMoleculeStart[0];
   tempMask->Selected = (int*) realloc( tempMask->Selected, 
                                        (tempMask->Nselected + NsolventAtoms) * sizeof(int));
-  fprintf(stdout,"    CLOSEST: Keeping %i solvent atoms.\n",NsolventAtoms);
+  mprintf("    CLOSEST: Keeping %i solvent atoms.\n",NsolventAtoms);
   // Put solvent atom #s at end of temporary array for creating stripped parm
   for ( solventMol=0; solventMol < closestWaters; solventMol++) {
     for ( solventAtom = P->solventMoleculeStart[solventMol];
@@ -188,7 +188,7 @@ int Closest::setup() {
   if (newParm!=NULL) delete newParm;
   newParm = P->modifyStateByMask(tempMask->Selected, tempMask->Nselected);
   if (newParm==NULL) {
-    fprintf(stdout,"    Error: Closest::setup: Could not create new parmtop.\n");
+    mprintf("    Error: Closest::setup: Could not create new parmtop.\n");
     return 1;
   }
 
@@ -263,7 +263,7 @@ int Closest::action() {
     for (solventAtom = 0; solventAtom < (*it).mask->Nselected; solventAtom++)
       tempMask->Selected[maskPosition++] = (*it).mask->Selected[solventAtom];
     // DEBUG - print first closestWaters distances
-    fprintf(stdout,"DEBUG: Mol %i   D2= %lf   Atom0= %i\n",(*it).mol, (*it).D, (*it).mask->Selected[0]);
+    mprintf("DEBUG: Mol %i   D2= %lf   Atom0= %i\n",(*it).mol, (*it).D, (*it).mask->Selected[0]);
     solventMol++;
     if (solventMol==closestWaters) break;
   }

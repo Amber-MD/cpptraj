@@ -1,6 +1,6 @@
 #ifndef INC_AMBERPARM_H
 #define INC_AMBERPARM_H
-#include "PtrajFile.h" // cstdio
+#include "PtrajFile.h" 
 
 class AmberParm {
   // ENUMERATED TYPE for TOPOLOGY VALUES
@@ -31,7 +31,6 @@ class AmberParm {
   void AssignLCPO(SurfInfo *, double, double, double, double, double);
 
   int *values;
-  int *bonds;
   int debug;
   // For determining fortran format
   FortranFormat fFormat;
@@ -44,10 +43,15 @@ class AmberParm {
   void SetFormat(char *,int);
   void *getFlagFileValues(const char*,int);
   char *DataToBuffer(char*,const char *, int *, double *, char **, int N);
+  int ReadParmMol2();
+  int ReadParmAmber();
+  int ReadParmPDB();
 
   public:
-  int Nbonh() { return values[NBONH]; }
+  int NbondsWithH();  
+  int NbondsWithoutH();
   int *bondsh;
+  int *bonds;
   PtrajFile File;
   char *parmName;     // Separate from File.filename in case of stripped parm
   char **names;
@@ -83,8 +87,6 @@ class AmberParm {
   int OpenParm(char *);
   int SetSurfaceInfo();
   int SetSolventInfo();
-  int ReadParmAmber();
-  int ReadParmPDB();
   void ParmInfo(char *);
   void Info(char *);
   char *mask(char *);

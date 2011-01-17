@@ -2,23 +2,33 @@
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
-#include <glob.h> // For tilde expansion
+#include <sys/stat.h>
+// NOTE: It seems some PGI compilers do not function correctly when glob.h
+//       is included and large file flags are set. Just disable globbing
+//       for PGI.
+#ifndef __PGI
+#  include <glob.h> // For tilde expansion
+#endif
 #include "PtrajFile.h"
 #include "NetcdfRoutines.h"
+#include "CpptrajStdio.h"
 // File Types
 #include "StdFile.h"
 #ifdef HASGZ
 #  include "GzipFile.h"
 #endif
-#include "MpiFile.h"
+#ifdef MPI
+#  include "MpiFile.h"
+#endif
 #ifdef HASBZ2
 #  include "Bzip2File.h"
 #endif
 
 //typedef char enumToken[30];
-const PtrajFile::enumToken PtrajFile::FileFormatList[11] = {
+const PtrajFile::enumToken PtrajFile::FileFormatList[12] = {
   "UNKNOWN_FORMAT", "PDBFILE", "AMBERTRAJ", "AMBERNETCDF", "AMBERPARM", 
-  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", "AMBERRESTARTNC"
+  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", "AMBERRESTARTNC",
+  "MOL2FILE"
 };
 const PtrajFile::enumToken PtrajFile::FileTypeList[6] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
@@ -86,24 +96,24 @@ int PtrajFile::OpenFile() {
   switch (access) {
     case READ:
       if ( IO->Open(filename, "rb")  ) { // NOTE: use rb as mode instead?
-        fprintf(stdout,"Could not open %s for reading.\n",filename);
+        rprintf("Could not open %s for reading.\n",filename);
         return 1;
       }
-      if (debug>0) fprintf(stdout,"Opened %s for reading.\n",filename);
+      if (debug>0) rprintf("Opened %s for reading.\n",filename);
       break;
     case APPEND:
       if ( IO->Open(filename, "ab") ) {
-        fprintf(stdout,"Could not open %s for appending.\n",filename);
+        rprintf("Could not open %s for appending.\n",filename);
         return 1;
       }
-      if (debug>0) fprintf(stdout,"Opened %s for appending.\n",filename);
+      if (debug>0) rprintf("Opened %s for appending.\n",filename);
       break;
     case WRITE:
       if ( IO->Open(filename, "wb") ) { // NOTE: Use wb as mode?
-        fprintf(stdout,"Could not open %s for writing.\n",filename);
+        rprintf("Could not open %s for writing.\n",filename);
         return 1;
       }
-      if (debug>0) fprintf(stdout,"Opened %s for writing.\n",filename);
+      if (debug>0) rprintf("Opened %s for writing.\n",filename);
       break;
   }
       
@@ -194,13 +204,13 @@ void PtrajFile::SetBaseFilename() {
   if (i<0) {
     Ext=NULL;
     if (debug>0) 
-      fprintf(stdout,"PtrajFile: No extension.\n");
+      mprintf("PtrajFile: No extension.\n");
     return;
   } 
   Ext = (char*) malloc( (strlen(basefilename+i) + 1) * sizeof(char));
   strcpy(Ext, basefilename+i);
   if (debug>0)
-    fprintf(stdout,"PtrajFile: Extension= %s  Length= %lu\n",Ext,strlen(basefilename+i));
+    mprintf("PtrajFile: Extension= %s  Length= %lu\n",Ext,strlen(basefilename+i));
 }
 
 /* 
@@ -215,7 +225,9 @@ void PtrajFile::SetBaseFilename() {
 int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn, 
                          FileFormat fileFormatIn, FileType fileTypeIn, 
                          int debugIn) {
+#ifndef __PGI
   glob_t globbuf;
+#endif
 
   // DEBUG
   if (debug>1) {
@@ -229,20 +241,22 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
     filename=(char*) malloc( (strlen(filenameIn)+1) * sizeof(char) );
     strcpy(filename,filenameIn);
   }
+#ifndef __PGI
   // On read or append do tilde expansion and store new filename
   if (accessIn!=WRITE) {
     // If no filename this is an error.
     if (filename==NULL) {
-      fprintf(stdout,"Error: PtrajFile::SetupFile: NULL filename specified on READ or APPEND\n");
+      mprintf("Error: PtrajFile::SetupFile: NULL filename specified on READ or APPEND\n");
       return 1;
     }
     globbuf.gl_offs = 1;
     if ( glob(filename, GLOB_TILDE, NULL, &globbuf)!=0 ) return 1; 
-    if (debug>1) fprintf(stdout,"  GLOB(0): [%s]\n",globbuf.gl_pathv[0]);
+    if (debug>1) mprintf("  GLOB(0): [%s]\n",globbuf.gl_pathv[0]);
     filename=(char*) realloc( filename, (strlen(globbuf.gl_pathv[0])+1) * sizeof(char));
     strcpy(filename, globbuf.gl_pathv[0]);
     globfree(&globbuf);
   }
+#endif
   // Store base filename and determine filename extension
   this->SetBaseFilename();
 
@@ -265,7 +279,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
     default: return 1;
   }
   if (debug>0)
-    printf("PtrajFile::SetupFile: %s is format %s and type %s\n",filename,
+    rprintf("PtrajFile::SetupFile: %s is format %s and type %s\n",filename,
            FileFormatList[fileFormat],FileTypeList[fileType]);
   return 0;
 }
@@ -277,7 +291,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
  */
 int PtrajFile::SetupWrite() {
 
-  //fprintf(stdout,"DEBUG: Setting up write file %s with format %s\n",filename,fileformatIn);
+  //mprintf("DEBUG: Setting up write file %s with format %s\n",filename,fileformatIn);
   // Eventually allow other file types
   //fileType=STANDARD;
   switch (fileType) {
@@ -285,8 +299,8 @@ int PtrajFile::SetupWrite() {
 #ifdef HASGZ
       IO = new GzipFile(); 
 #else
-      fprintf(stdout,"Error: SetupWrite(%s):\n",filename);
-      fprintf(stdout,"       Compiled without Gzip support. Recompile with -DHASGZ\n");
+      mprintf("Error: SetupWrite(%s):\n",filename);
+      mprintf("       Compiled without Gzip support. Recompile with -DHASGZ\n");
       return 1;
 #endif
       break;
@@ -294,18 +308,25 @@ int PtrajFile::SetupWrite() {
 #ifdef HASBZ2 
       IO = new Bzip2File();
 #else
-      fprintf(stdout,"Error: SetupWrite(%s):\n",filename);
-      fprintf(stdout,"       Compiled without Bzip2 support. Recompile with -DHASBZ2\n");
+      mprintf("Error: SetupWrite(%s):\n",filename);
+      mprintf("       Compiled without Bzip2 support. Recompile with -DHASBZ2\n");
       return 1;
 #endif
     break;
     //case ZIPFILE   : IO = new ZipFile(); break;
     case STANDARD  : IO = new StdFile();  break;
-    case MPIFILE   : IO = new MpiFile();  break;
-    default : 
-      fprintf(stdout,"PtrajFile::SetupWrite: Unrecognized file type.\n");
+    case MPIFILE   : 
+#ifdef MPI
+      IO = new MpiFile();
+#else
+      mprintf("Error: SetupWrite(%s):\n",filename);
+      mprintf("       Compiled without MPI support. Recompile with -DMPI\n");
       return 1;
+#endif
       break;
+    default : 
+      mprintf("PtrajFile::SetupWrite: Unrecognized file type.\n");
+      return 1;
   }
 
   return 0;
@@ -322,25 +343,27 @@ int PtrajFile::SetupRead() {
   char *CheckConventions; // Only used to check if netcdf is traj or restart
   float TrajCoord[10];
   int i;
+  struct stat frame_stat;
 
-  //fprintf(stdout,"DEBUG: Setting up read file %s\n",filename);
+  //mprintf("DEBUG: Setting up read file %s\n",filename);
   // Get basic file information
   // An error here means file probably doesnt exist. Dont print an error at 
   // basic debug level since this could also be used to test if file exists.
   if (stat(filename, &frame_stat) == -1) {
     if (debug>0) {
-      fprintf(stdout, "ERROR: PtrajFile::SetupRead: Could not find file status for %s\n", filename);
+      mprintf( "ERROR: PtrajFile::SetupRead: Could not find file status for %s\n", filename);
       perror("     Error from stat: ");
     }
     return 1;
   }
+  file_size = frame_stat.st_size;
 
   // Start off every file as a standard file - may need to change for MPI
   IO = new StdFile();
 
   // ID by magic number - open for binary read access
   if ( IO->Open(filename, "rb") ) { 
-    fprintf(stdout,"Could not open %s for hex signature read.\n",filename);
+    mprintf("Could not open %s for hex signature read.\n",filename);
     return 1;
   }
 
@@ -350,29 +373,29 @@ int PtrajFile::SetupRead() {
   IO->Read(magic+1,1,1);
   IO->Read(magic+2,1,1);
   IO->Close();
-  if (debug>0) fprintf(stdout,"File: %s: Hex sig: %x %x %x", filename,
+  if (debug>0) mprintf("File: %s: Hex sig: %x %x %x", filename,
                        magic[0],magic[1],magic[2]);
 
   // Check compression
   if ((magic[0]==0x1f) && (magic[1]==0x8b) && (magic[2]==0x8)) {
-    if (debug>0) fprintf(stdout,", Gzip file.\n");
+    if (debug>0) mprintf(", Gzip file.\n");
     compressType=GZIP;
     fileType=GZIPFILE;
   } else if ((magic[0]==0x42) && (magic[1]==0x5a) && (magic[2]==0x68)) {
-    if (debug>0) fprintf(stdout,", Bzip2 file.\n");
+    if (debug>0) mprintf(", Bzip2 file.\n");
     compressType=BZIP2;
     fileType=BZIP2FILE;
   } else if ((magic[0]==0x50) && (magic[1]==0x4b) && (magic[2]==0x3)) {
-    if (debug>0) fprintf(stdout,", Zip file.\n");
+    if (debug>0) mprintf(", Zip file.\n");
     compressType=ZIP;
     fileType=ZIPFILE;
   } else {
-    if (debug>0) fprintf(stdout,", No compression.\n");
+    if (debug>0) mprintf(", No compression.\n");
   }
 
   // Appending and compression not supported.
   if (access==APPEND && compressType!=NONE) {
-    fprintf(stdout,"Error: Appending to compressed files is not supported.\n");
+    mprintf("Error: Appending to compressed files is not supported.\n");
     return 1;
   }
 
@@ -384,8 +407,8 @@ int PtrajFile::SetupRead() {
 #ifdef HASGZ
       IO = new GzipFile(); 
 #else
-      fprintf(stdout,"Error: SetupRead(%s):\n",filename);
-      fprintf(stdout,"       Compiled without Gzip support. Recompile with -DHASGZ\n");
+      mprintf("Error: SetupRead(%s):\n",filename);
+      mprintf("       Compiled without Gzip support. Recompile with -DHASGZ\n");
       return 1;
 #endif
       break;
@@ -393,8 +416,8 @@ int PtrajFile::SetupRead() {
 #ifdef HASBZ2
       IO = new Bzip2File(); 
 #else
-      fprintf(stdout,"Error: SetupRead(%s):\n",filename);
-      fprintf(stdout,"       Compiled without Bzip2 support. Recompile with -DHASBZ2\n");
+      mprintf("Error: SetupRead(%s):\n",filename);
+      mprintf("       Compiled without Bzip2 support. Recompile with -DHASBZ2\n");
       return 1;
 #endif
       break;
@@ -415,14 +438,14 @@ int PtrajFile::SetupRead() {
   IO->Read(magic+1,1,1);
   IO->Read(magic+2,1,1);
   IO->Close();
-  if (debug>0) fprintf(stdout,"File: %s: Hex sig 2: %x %x %x", filename,
+  if (debug>0) mprintf("File: %s: Hex sig 2: %x %x %x", filename,
                        magic[0],magic[1],magic[2]);
 
   // NETCDF
   if (magic[0]==0x43 && magic[1]==0x44 && magic[2]==0x46) {
-    if (debug>0) fprintf(stdout,"  NETCDF file\n");
+    if (debug>0) mprintf("  NETCDF file\n");
     if (compressType!=NONE) {
-      fprintf(stdout,"Error: Compressed NETCDF files are not currently supported.\n");
+      mprintf("Error: Compressed NETCDF files are not currently supported.\n");
       return 1;
     }
     // Determine whether this is a trajectory or restart Netcdf from the Conventions
@@ -433,9 +456,9 @@ int PtrajFile::SetupRead() {
     else if (strcmp(CheckConventions,"AMBERRESTART")==0)
       fileFormat=AMBERRESTARTNC;
     else {
-      fprintf(stdout,"Error: Netcdf File %s: Unrecognized conventions \"%s\".\n",
+      mprintf("Error: Netcdf File %s: Unrecognized conventions \"%s\".\n",
               filename,CheckConventions);
-      fprintf(stdout,"       Expected \"AMBER\" or \"AMBERRESTART\".\n");
+      mprintf("       Expected \"AMBER\" or \"AMBERRESTART\".\n");
       fileFormat=UNKNOWN_FORMAT;
       free(CheckConventions);
       return 1;
@@ -457,21 +480,30 @@ int PtrajFile::SetupRead() {
   i = strlen(buffer1);
   if ( i>1 ) {
     if (buffer1[ i - 2 ] == '\r') {
-      if (debug>0) fprintf(stdout,"  [DOS]");
+      if (debug>0) mprintf("  [DOS]");
       isDos=1;
     }
   }
 
   // If both lines have PDB keywords, assume PDB
   if (isPDBkeyword(buffer1) && isPDBkeyword(buffer2)) {
-    if (debug>0) fprintf(stdout,"  PDB file\n");
+    if (debug>0) mprintf("  PDB file\n");
     fileFormat=PDBFILE;
+    return 0;
+  }
+
+  // If either buffer contains a TRIPOS keyword assume Mol2
+  // NOTE: This will fail on tripos files with extensive header comments
+  if (strncmp(buffer1,"@<TRIPOS>", 9)==0 ||
+      strncmp(buffer2,"@<TRIPOS>", 9)==0) {
+    if (debug>0) mprintf("  TRIPOS MOL2 file\n");
+    fileFormat=MOL2FILE;
     return 0;
   }
 
   // If the %VERSION and %FLAG identifiers are present, assume amber parm
   if (strncmp(buffer1,"%VERSION",8)==0 && strncmp(buffer2,"%FLAG",5)==0) {
-    if (debug>0) fprintf(stdout,"  AMBER TOPOLOGY file\n");
+    if (debug>0) mprintf("  AMBER TOPOLOGY file\n");
     fileFormat=AMBERPARM;
     return 0;
   }
@@ -479,16 +511,16 @@ int PtrajFile::SetupRead() {
   // Amber Restart
   // Check for an integer (I5) followed by 0-2 scientific floats (E15.7)
   if (strlen(buffer2)<=36) {
-    //fprintf(stdout,"DEBUG: Checking restart.\n");
-    //fprintf(stdout,"DEBUG: buffer2=[%s]\n",buffer2);
+    //mprintf("DEBUG: Checking restart.\n");
+    //mprintf("DEBUG: buffer2=[%s]\n",buffer2);
     for (i=0; i<5; i++) {
       if (!isspace(buffer2[i]) && !isdigit(buffer2[i])) break;
-      //fprintf(stdout,"DEBUG:    %c is a digit/space.\n",buffer2[i]);
+      //mprintf("DEBUG:    %c is a digit/space.\n",buffer2[i]);
     }
-    //fprintf(stdout,"DEBUG: i=%i\n");
+    //mprintf("DEBUG: i=%i\n");
     //if ( i==5 && strchr(buffer2,'E')!=NULL ) {
     if ( i==5 ) {
-      if (debug>0) fprintf(stdout,"  AMBER RESTART file\n");
+      if (debug>0) mprintf("  AMBER RESTART file\n");
       fileFormat=AMBERRESTART;
       return 0;
     }
@@ -504,14 +536,14 @@ int PtrajFile::SetupRead() {
     //            TrajCoord+9) == 10 )
     // Make sure we can read at least 3 coords of width 8
     if ( sscanf(buffer2, "%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2) == 3 ) {
-      if (debug>0) fprintf(stdout,"  AMBER TRAJECTORY file\n");
+      if (debug>0) mprintf("  AMBER TRAJECTORY file\n");
       fileFormat=AMBERTRAJ;
       return 0;
     }
   } else if (strlen(buffer2)==42) {
     if ( strncmp(buffer2,"REMD",4)==0 ||
          strncmp(buffer2,"HREMD",5)==0   ) {
-      if (debug>0) fprintf(stdout,"  AMBER TRAJECTORY with (H)REMD header.\n");
+      if (debug>0) mprintf("  AMBER TRAJECTORY with (H)REMD header.\n");
       fileFormat=AMBERTRAJ;
       return 0;
     }
@@ -522,13 +554,13 @@ int PtrajFile::SetupRead() {
   // assume this is a conflib.dat file from LMOD. Cant think of a better way to
   // detect this since there is no magic number but the file is binary.
   if ( strcmp(basefilename,"conflib.dat")==0 ) {
-    fprintf(stdout,"  LMOD CONFLIB file\n");
+    mprintf("  LMOD CONFLIB file\n");
     fileFormat=CONFLIB;
     return 0;
   }
 
   // Unidentified file
-  fprintf(stdout,"  Warning: %s: UNKNOWN FILE FORMAT.\n",filename);
+  mprintf("  Warning: %s: UNKNOWN FILE FORMAT.\n",filename);
   return 1; 
 }
 

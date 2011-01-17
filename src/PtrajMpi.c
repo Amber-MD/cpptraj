@@ -4,7 +4,10 @@
  * as int in the PtrajMpi header file.
  */
 #include "PtrajMpi.h"
-#include <stdarg.h>
+// If DEBUG is defined it will be included in PtrajMpi.h
+#ifndef DEBUG
+#  include <stdio.h>
+#endif
 #include <stdlib.h>
 #ifdef MPI
 #  include "mpi.h"
@@ -66,35 +69,6 @@ int parallel_check_error(int err) {
 #endif
 
 /* ========== Routines that do not require MPI ========== */
-/*
- * mprintf()
- * Print message only if this is the master thread
- */
-void mprintf(FILE *infile, const char *format, ...) {
-  va_list args;
-
-  if (worldrank==0) {
-    va_start(args,format);
-    vfprintf(infile,format,args);
-    va_end(args);
-  }
-  return;
-}
-
-/*
- * rprintf()
- * Print message for this worldrank
- */
-void rprintf(FILE *infile, const char *format, ...) {
-  va_list args;
-
-  va_start(args,format);
-  fprintf(infile,"[%i] ",worldrank);
-  vfprintf(infile,format,args);
-  va_end(args);
-  return;
-}
-
 #ifdef DEBUG
 /*
  * dbgprintf()
@@ -124,7 +98,7 @@ int parallel_debug_init() {
   sprintf(outfilename,"Thread.%03i",worldrank);
   mpidebugfile=fopen(outfilename,"w");
   if (mpidebugfile==NULL) {
-    rprintf(stderr,"\tCould not open debug file:\n");
+    fprintf(stderr,"[%i]\tCould not open debug file:\n",worldrank);
     perror("");
     return 1;
   } /*else { 
@@ -144,7 +118,6 @@ int parallel_init(int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &worldsize);
   MPI_Comm_rank(MPI_COMM_WORLD, &worldrank);
-  mprintf(stdout,"Running on %i processors\n\n",worldsize);
 #else
   worldrank=0;
   worldsize=1;
@@ -222,7 +195,7 @@ int parallel_openFile_read(parallelType pfile, const char *filename) {
 
   pfile->mfp=NULL;
   //if (prnlev>0) 
-    rprintf(stdout,"\tparallel_openFile_read: Opening input file %s\n",filename);
+    fprintf(stdout,"[%i]\tparallel_openFile_read: Opening input file %s\n",worldrank,filename);
   mfp = (MPI_File*) malloc(sizeof(MPI_File));
   err=MPI_File_open(MPI_COMM_WORLD, (char*) filename, MPI_MODE_RDONLY, MPI_INFO_NULL, mfp);
   if (err!=MPI_SUCCESS) printMPIerr(err,"parallel_openFile_read()");
@@ -310,7 +283,7 @@ int parallel_fread(parallelType pfile, void *buffer, int count) {
     return -1;
   }
   if (actualCount==MPI_UNDEFINED) {
-    rprintf(stdout,"Error in parallel_fread: Number of bytes read was undefined.\n");
+    fprintf(stdout,"[%i] Error in parallel_fread: Number of bytes read was undefined.\n",worldrank);
     return -1; 
   }
 
@@ -353,11 +326,13 @@ int parallel_fseek(parallelType pfile, off_t offset, int origin) {
 #ifdef MPI
   int err, org;
   MPI_Offset mpiOffset;
-  
+ 
+  org = MPI_SEEK_SET; 
   switch ( origin ) {
     case SEEK_SET : org=MPI_SEEK_SET; break;
     case SEEK_CUR : org=MPI_SEEK_CUR; break;
     case SEEK_END : org=MPI_SEEK_END; break;
+    default: return 1;
   }
 
   mpiOffset = (MPI_Offset) offset;
@@ -438,6 +413,7 @@ int parallel_sendMaster(void *Buffer, int Count, int rank, int datatype) {
   switch (datatype) {
     case 0 : currentType = MPI_INT; break;
     case 1 : currentType = MPI_DOUBLE; break;
+    case 2 : currentType = MPI_CHAR; break;
     default: return 1;
   }
 

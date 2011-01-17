@@ -1,6 +1,7 @@
 // CoordFileList
 #include <cstring> // strcmp
 #include "CoordFileList.h"
+#include "CpptrajStdio.h"
 // All trajectory classes go here
 #include "AmberTraj.h"
 #ifdef BINTRAJ
@@ -11,6 +12,7 @@
 #include "AmberRestart.h"
 #include "RemdTraj.h"
 #include "Conflib.h"
+#include "Mol2File.h"
 
 // CONSTRUCTOR
 CoordFileList::CoordFileList() {
@@ -37,7 +39,7 @@ const int CoordFileList::UNKNOWN_COMMAND=2;
 void CoordFileList::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
-    fprintf(stdout,"CoordFileList(%s) DEBUG LEVEL SET TO %i\n",Command,debug);
+    mprintf("CoordFileList(%s) DEBUG LEVEL SET TO %i\n",Command,debug);
 }
 
 /*
@@ -66,13 +68,13 @@ int CoordFileList::ProcessArgList(ArgList *A, ParmFileList *parmFileList) {
     pindex=parmFileList->GetParmIndex(parmfilename);
   P = parmFileList->GetParm(pindex);
   if (P==NULL) {
-    fprintf(stdout,"    Error: Could not associate %s with a parameter file.\n",trajfilename);
-    fprintf(stdout,"    parmfilename=%s, pindex=%i\n",parmfilename,pindex);
+    mprintf("    Error: Could not associate %s with a parameter file.\n",trajfilename);
+    mprintf("    parmfilename=%s, pindex=%i\n",parmfilename,pindex);
     coordErr=1;
     return 1;
   }
   if (debug>0)
-    fprintf(stdout,"    Associating traj %s with parm %s\n",trajfilename, P->parmName);
+    mprintf("    Associating traj %s with parm %s\n",trajfilename, P->parmName);
 
   return 0;
 }
@@ -92,7 +94,7 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
   if (basicTraj->SetupFile(trajfilenameIN,fileAccess,writeFormat,writeType,debug)) {
     delete basicTraj;
     if (debug>1)
-      fprintf(stdout,"    Error: Could not set up file %s.\n",trajfilenameIN);
+      mprintf("    Error: Could not set up file %s.\n",trajfilenameIN);
     return NULL;
   }
 
@@ -104,8 +106,8 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
 #ifdef BINTRAJ
       T = new AmberNetcdf();  
 #else
-      fprintf(stdout,"Error: SetupTrajectory(%s):\n",trajfilename);
-      fprintf(stdout,"       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
+      mprintf("Error: SetupTrajectory(%s):\n",trajfilename);
+      mprintf("       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
       delete basicTraj;
       return NULL;
 #endif
@@ -114,16 +116,17 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
 #ifdef BINTRAJ
       T = new AmberRestartNC();
 #else
-      fprintf(stdout,"Error: SetupTrajectory(%s):\n",trajfilename);
-      fprintf(stdout,"       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
+      mprintf("Error: SetupTrajectory(%s):\n",trajfilename);
+      mprintf("       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
       delete basicTraj;
       return NULL;
 #endif
       break;
     case PDBFILE     : T = new PDBfile();      break;
     case CONFLIB     : T = new Conflib();      break;
+    case MOL2FILE    : T = new Mol2File();     break;
     default:
-      fprintf(stdout,"    Error: Could not determine trajectory file %s type, skipping.\n",
+      mprintf("    Error: Could not determine trajectory file %s type, skipping.\n",
               basicTraj->filename);
       delete basicTraj;
       return NULL;
@@ -134,7 +137,7 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
   T->File = basicTraj;
   // Set trajectory filename
   T->trajfilename = basicTraj->basefilename;
-  //fprintf(stdout,"DEBUG: trajfilename is %s\n",T->trajfilename);
+  //mprintf("DEBUG: trajfilename is %s\n",T->trajfilename);
   return T;
 }
 
@@ -156,7 +159,7 @@ int CoordFileList::CheckFilename(char *filenameIn) {
 // May not be necessary
 void CoordFileList::Info() {
   if (this->empty()) 
-    fprintf(stdout,"No files.\n");
+    mprintf("No files.\n");
   for (it = this->begin(); it != this->end(); it++)
     (*it)->PrintInfo(0);
 }

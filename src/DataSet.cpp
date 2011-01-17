@@ -1,8 +1,8 @@
 // DataSet
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include "DataSet.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 DataSet::DataSet() {
@@ -28,7 +28,7 @@ DataSet::~DataSet() {
 int DataSet::Setup(char *nameIn, int Nin) {
   // Dataset name
   if (nameIn==NULL) {
-    fprintf(stdout,"Dataset has no name.\n");
+    mprintf("Dataset has no name.\n");
     return 1;
   }
   name=(char*) malloc( (strlen(nameIn)+1) * sizeof(char));
@@ -48,14 +48,14 @@ int DataSet::Setup(char *nameIn, int Nin) {
  * Print dataset information.
  */
 void DataSet::Info() {
-  fprintf(stdout,"    Data set %s",name);
-  fprintf(stdout,", size is ");
+  mprintf("    Data set %s",name);
+  mprintf(", size is ");
   if (isDynamic)
-    fprintf(stdout,"dynamic");
+    mprintf("dynamic");
   else
-    fprintf(stdout,"%i",N);
-  fprintf(stdout,", current is %i",current);
-  fprintf(stdout,".\n");
+    mprintf("%i",N);
+  mprintf(", current is %i",current);
+  mprintf(".\n");
 }
 
 /*

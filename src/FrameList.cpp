@@ -1,7 +1,7 @@
 // FrameList
-#include <cstdio>
 #include <cstdlib>
 #include "FrameList.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 FrameList::FrameList() {
@@ -72,9 +72,9 @@ Frame *FrameList::GetFrame(int idx) {
  */
 void FrameList::Info() {
   if (Nframe==0) {
-    fprintf(stdout,"  No frames defined.\n");
+    mprintf("  No frames defined.\n");
     return;
   }
-  fprintf(stdout,"  The following %i frames have been defined:\n",Nframe);
+  mprintf("  The following %i frames have been defined:\n",Nframe);
   frameNames.print();
 }

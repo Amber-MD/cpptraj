@@ -49,7 +49,13 @@ test.mask:
 test.closest:
 	@-cd Test_Closest && ./RunTest.sh $(OPT)
 
-test.all: test.general test.strip test.brokentraj test.traj test.remdnetcdf test.framerange test.perres test.dssp test.center test.hbond test.image test.ptrajcomp test.surf test.radgyr test.mask test.closest
+test.rmsd:
+	@-cd Test_RMSD && ./RunTest.sh $(OPT)
+
+test.mol2:
+	@-cd Test_Mol2 && ./RunTest.sh $(OPT)
+
+test.all: test.general test.strip test.brokentraj test.traj test.remdnetcdf test.framerange test.perres test.dssp test.center test.hbond test.image test.ptrajcomp test.surf test.radgyr test.mask test.closest test.rmsd test.mol2
 	@./Summary.sh $(OPT)
 
 test: 

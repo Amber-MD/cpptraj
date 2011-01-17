@@ -1,7 +1,8 @@
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include "AmberTraj.h"
+#include "CpptrajStdio.h"
+// AmberTraj
 
 // CONSTRUCTOR
 AmberTraj::AmberTraj() {
@@ -39,8 +40,8 @@ int AmberTraj::open() {
       if (title==NULL)  
         title=(char*) malloc(BUFFER_SIZE * sizeof(char));
       if ( File->IO->Gets(title,BUFFER_SIZE) ) {
-        fprintf(stderr, "WARNING in %s: EOF encountered during reading of\n", ROUTINE);
-        fprintf(stderr, "   title from (%s)\n", File->filename);
+        rprintf( "WARNING in %s: EOF encountered during reading of\n", ROUTINE);
+        rprintf( "   title from (%s)\n", File->filename);
         return 1;
       }
       titleSize=strlen(title);
@@ -82,7 +83,7 @@ int AmberTraj::getFrame(int set) {
     offset = (off_t) set;
     offset *= (off_t) frameSize;
     offset += (off_t) titleSize;
-    File->IO->Seek(offset, SEEK_SET);
+    File->IO->Seek(offset);
   }
 
   if ( File->IO->Read(frameBuffer,sizeof(char),frameSize)==-1 ) return 1;
@@ -96,12 +97,12 @@ int AmberTraj::getFrame(int set) {
   }
   // Get Coordinates - hasREMD is size in bytes of REMD header
   if ( (bufferPosition = F->BufferToFrame(frameBuffer+hasREMD,8))==NULL ) {
-    fprintf(stdout,"Error: AmberTraj::getFrame: * detected in coordinates of %s\n",trajfilename);
+    rprintf("Error: AmberTraj::getFrame: * detected in coordinates of %s\n",trajfilename);
     return 1;  
   } 
   if (isBox) { 
     if ( (bufferPosition = F->BufferToBox(bufferPosition,numBoxCoords,8))==NULL ) {
-      fprintf(stdout,"Error: AmberTraj::getFrame: * detected in box coordinates of %s\n",
+      rprintf("Error: AmberTraj::getFrame: * detected in box coordinates of %s\n",
               trajfilename);
       return 1;
     }
@@ -135,7 +136,7 @@ int AmberTraj::writeFrame(int set) {
   offset = (off_t) set;
   offset *= (off_t) outFrameSize;
   offset += (off_t) titleSize;
-  File->IO->Seek( offset, SEEK_SET);
+  File->IO->Seek( offset);
 
   if (File->IO->Write(frameBuffer,sizeof(char),outFrameSize)) return 1;
 
@@ -151,7 +152,6 @@ int AmberTraj::SetupRead() {
   char buffer[BUFFER_SIZE];
   int frame_lines;
   int lineSize;
-  //struct stat frame_stat;
   long long int file_size, frame_size;
 
   // Attempt to open the file. open() sets the title and titleSize
@@ -159,7 +159,7 @@ int AmberTraj::SetupRead() {
 
   // Read 1 line to check for REMD header
   if ( File->IO->Gets(buffer, BUFFER_SIZE) ) {
-    fprintf(stdout,"Error: AmberTraj::SetupRead(): Reading second line of trajectory.\n");
+    rprintf("Error: AmberTraj::SetupRead(): Reading second line of trajectory.\n");
     return 1;
   }
   if (strncmp(buffer,"REMD",4)==0 || strncmp(buffer,"HREMD",5)==0) {
@@ -180,29 +180,29 @@ int AmberTraj::SetupRead() {
   // REMD header size is 42 bytes if present
   frameSize += hasREMD;
   if (debug>0) {
-    fprintf(stdout,"Each frame has %i chars plus %i newlines",
+    mprintf("Each frame has %i chars plus %i newlines",
             P->natom*3*8,frame_lines);
-    if (hasREMD>0) fprintf(stdout," and REMD header");
-    fprintf(stdout,". Total %i.\n",frameSize);
+    if (hasREMD>0) mprintf(" and REMD header");
+    mprintf(". Total %i.\n",frameSize);
   }
   // Allocate memory to buffer 1 frame
   frameBuffer=(char*) calloc(frameSize, sizeof(char));
   // Read the first frame of coordinates
   if ( File->IO->Read(frameBuffer,sizeof(char),frameSize)==-1 ) {
-    fprintf(stdout,"ERROR in read of Coords frame 1\n");
+    rprintf("ERROR in read of Coords frame 1\n");
     return 1;
   }
   // DEBUG - Print first line of coords
   if (debug>0) {
     memcpy(buffer,frameBuffer,81);
     buffer[80]='\0';
-    fprintf(stdout,"[%i] First 80 bytes: %s\n",0,buffer);
+    rprintf("First 80 bytes: %s\n",buffer);
   }
   /* Check for box coordinates. If present, update the frame size and
    * reallocate the frame buffer.
    */
   if ( File->IO->Gets(buffer,BUFFER_SIZE)==0 ) {
-    if (debug>0) fprintf(stdout,"DEBUG: Line after first frame: (%s)\n",buffer);
+    if (debug>0) rprintf("DEBUG: Line after first frame: (%s)\n",buffer);
     lineSize=strlen(buffer);
 
     if (strncmp(buffer,"REMD",4)==0 || strncmp(buffer,"HREMD",5)==0) {
@@ -214,21 +214,19 @@ int AmberTraj::SetupRead() {
        * enforced to only 3 or 6.
        * Subtract 1 char for newline.
        */
-      if (debug>0) fprintf(stdout,"    Box line is %i chars.\n",lineSize);
+      if (debug>0) mprintf("    Box line is %i chars.\n",lineSize);
       if ( ((lineSize-1)%24)!=0 ) {
-        fprintf(stdout,"[%i] Error in box coord line.\n",0);
-        fprintf(stdout,"Expect only 3 or 6 box coords.\n");
+        rprintf("Error in box coord line.\nExpect only 3 or 6 box coords.\n");
         return 1;
       }
       numBoxCoords=(lineSize-1) / 8;
-      if (debug>0) fprintf(stdout,"    Detected %i box coords.\n",numBoxCoords);
+      if (debug>0) mprintf("    Detected %i box coords.\n",numBoxCoords);
       frameSize+=lineSize;
       // Reallocate frame buffer accordingly
       frameBuffer=(char*) realloc(frameBuffer,frameSize * sizeof(char));
       if (P->ifbox==0) { 
-        fprintf(stdout,
-                "Warning: Box coords detected in trajectory but not defined in topology!\n");
-        fprintf(stdout,"         Setting box type to rectangular.\n");
+        rprintf( "Warning: Box coords detected in trajectory but not defined in topology!\n");
+        rprintf("         Setting box type to rectangular.\n");
         isBox=1;
       } else {
         isBox = P->ifbox;
@@ -246,10 +244,10 @@ int AmberTraj::SetupRead() {
   if (File->uncompressed_size>0)
     file_size = File->uncompressed_size;
   else
-    file_size=File->frame_stat.st_size;
+    file_size=File->file_size;
   if (debug>0)
-    fprintf(stdout,"[%i] Title offset=%i FrameSize=%i UncompressedFileSize=%lli\n",
-            0,titleSize,frameSize,file_size);
+    rprintf("Title offset=%i FrameSize=%i UncompressedFileSize=%lli\n",
+            titleSize,frameSize,file_size);
   frame_size = (long long int) titleSize;
   file_size = file_size - frame_size; // Subtract title size from file total size.
   frame_size = (long long int) frameSize;
@@ -262,16 +260,13 @@ int AmberTraj::SetupRead() {
     stop = -1;
     Frames = -1;
     seekable = 0;
-    printf("  Error: Could not predict # frames in %s. This usually indicates \n",File->filename);
-    printf("         a corrupted trajectory. Frames will be read until EOF.\n");
+    mprintf("  Error: Could not predict # frames in %s. This usually indicates \n",File->filename);
+    mprintf("         a corrupted trajectory. Frames will be read until EOF.\n");
   }
 
   if (debug>0)
-    fprintf(
-      stdout, 
-      "Rank: %i Atoms: %i FrameSize: %i TitleSize: %i NumBox: %i Seekable: %i Frames: %i\n\n", 
-      0, P->natom, frameSize, titleSize, numBoxCoords, seekable, Frames
-    );
+    rprintf("Atoms: %i FrameSize: %i TitleSize: %i NumBox: %i Seekable: %i Frames: %i\n\n", 
+            P->natom, frameSize, titleSize, numBoxCoords, seekable, Frames);
   // Close the file
   close();
 
@@ -313,7 +308,7 @@ int AmberTraj::SetupWrite() {
     // Check title length - Add one byte for newline char
     titleSize=strlen(title) + 1;
     if (titleSize>81) {
-      fprintf(stdout,"Error: AmberTraj::open: Given title is too long!\n[%s]\n",title);
+      rprintf("Error: AmberTraj::open: Given title is too long!\n[%s]\n",title);
       return 1;
     }
   }
@@ -329,10 +324,8 @@ int AmberTraj::SetupWrite() {
   File->CloseFile();
 
   if (debug>0) {
-    fprintf(stdout,"%s\n\tEach frame has %i chars plus %i newlines",
-            File->filename,P->natom*3*8,frame_lines);
-    //if (type==COORD_AMBER_REMD) fprintf(stdout," and REMD header");
-    fprintf(stdout,". Total %i. Filesize %li\n",frameSize,outfilesize);
+    rprintf("(%s): Each frame has %i chars plus %i newlines. Total %i. Filesize %li\n", 
+            File->filename,P->natom*3*8,frame_lines,frameSize,outfilesize);
   }
 
   // Allocate memory to buffer 1 frame
@@ -346,9 +339,9 @@ int AmberTraj::SetupWrite() {
  * Info()
  */
 void AmberTraj::Info() {
-  fprintf(stdout,"  File (%s) is an",File->filename);
+  mprintf("  File (%s) is an",File->filename);
   if (hasREMD) 
-    fprintf(stdout," AMBER REMD trajectory");
+    mprintf(" AMBER REMD trajectory");
   else
-    fprintf(stdout," AMBER trajectory");
+    mprintf(" AMBER trajectory");
 }

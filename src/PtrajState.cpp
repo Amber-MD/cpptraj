@@ -1,9 +1,10 @@
-//#include <cstdio>
-#include <cstdlib>
+#include <cstdio>
+#include <cstdlib> // for atoi
 #include <cstring>
 #include <cctype>
 #include "PtrajState.h"
 #include "PtrajMpi.h"
+#include "CpptrajStdio.h"
 
 // Constructor
 PtrajState::PtrajState() { 
@@ -13,6 +14,21 @@ PtrajState::PtrajState() {
 
 // Destructor
 PtrajState::~PtrajState() { 
+}
+
+/*
+ * PtrajState::SetGlobalDebug()
+ * Set the debug level for all components of PtrajState.
+ */
+void PtrajState::SetGlobalDebug(int debugIn) {
+  debug = debugIn;
+  rprintf("DEBUG LEVEL SET TO %i\n",debug);
+  trajFileList.SetDebug(debug);
+  refFileList.SetDebug(debug);
+  outFileList.SetDebug(debug);
+  parmFileList.SetDebug(debug);
+  ptrajActionList.SetDebug(debug);
+  DFL.SetDebug(debug);
 }
 
 /* 
@@ -36,7 +52,7 @@ int PtrajState::ProcessCmdLineArgs(int argc, char **argv) {
     // -p: Topology file
     } else if (strcmp(argv[i],"-p")==0 && i+1!=argc) {
       i++;
-      if (debug>0) mprintf(stdout,"Adding topology file from command line: %s\n", argv[i]);
+      if (debug>0) mprintf("Adding topology file from command line: %s\n", argv[i]);
       parmFileList.Add(argv[i]);
 
     // -i: Input file
@@ -48,14 +64,7 @@ int PtrajState::ProcessCmdLineArgs(int argc, char **argv) {
     // -debug: Set overall debug level
     } else if (strcmp(argv[i],"-debug")==0 && i+1!=argc) {
       i++;
-      debug = atoi(argv[i]);
-      rprintf(stdout,"DEBUG LEVEL SET TO %i\n",debug);
-      trajFileList.SetDebug(debug);
-      refFileList.SetDebug(debug);
-      outFileList.SetDebug(debug);
-      parmFileList.SetDebug(debug);
-      ptrajActionList.SetDebug(debug);
-      DFL.SetDebug(debug);
+      SetGlobalDebug( atoi(argv[i]) );
 
     // The following 2 are for backwards compatibility with PTRAJ
     // Position 1: TOP file
@@ -67,7 +76,7 @@ int PtrajState::ProcessCmdLineArgs(int argc, char **argv) {
 
     // Unrecognized
     } else {
-      mprintf(stdout,"PtrajState::ProcessArgs: Unrecognized input on command line: %i: %s\n",
+      mprintf("PtrajState::ProcessArgs: Unrecognized input on command line: %i: %s\n",
               i,argv[i]);
       return 1;
     }
@@ -96,13 +105,19 @@ int PtrajState::ProcessInputStream(char *inputFilename) {
   isStdin=false;
   // Open input file or STDIN
   if (inputFilename==NULL) {
-    fprintf(stdout,"INPUT: Reading Input from STDIN, type \"go\" to run, \"quit\" to exit:\n");
+    // Do not allow read from STDIN when > 1 process
+    if (worldsize > 1) {
+      mprintf("Error: Reading from STDIN not allowed with more than 1 thread.\n");
+      mprintf("       To run cpptraj in parallel please use an input file.\n");
+      return 1;
+    }
+    mprintf("INPUT: Reading Input from STDIN, type \"go\" to run, \"quit\" to exit:\n");
     infile=stdin;
     isStdin=true;
   } else {
-    mprintf(stdout,"INPUT: Reading Input from file %s\n",inputFilename);
+    rprintf("INPUT: Reading Input from file %s\n",inputFilename);
     if ( (infile=fopen(inputFilename,"r"))==NULL ) {
-      rprintf(stderr,"Error: Could not open input file %s\n",inputFilename);
+      rprintf("Error: Could not open input file %s\n",inputFilename);
       return 1;
     }
   }
@@ -125,7 +140,7 @@ int PtrajState::ProcessInputStream(char *inputFilename) {
       if (strncmp(inputLine,"go",2)==0) break;
       // If "quit" then abort this - only for stdin
       if (isStdin && strncmp(inputLine,"quit",4)==0) return 1;
-      mprintf(stdout,"  [%s]\n",inputLine);
+      mprintf("  [%s]\n",inputLine);
       // Convert the input line to a list of arguments
       A=new ArgList(inputLine," "); // Space delimited only?
       //A->print();
@@ -163,7 +178,7 @@ int PtrajState::ProcessInputStream(char *inputFilename) {
     inputLine[i++]=ptr;
     // Check to make sure we arent blowing buffer
     if (i==BUFFER_SIZE) {
-      fprintf(stdout,"Error: Input line is greater than BUFFER_SIZE (%u)\n",BUFFER_SIZE);
+      rprintf("Error: Input line is greater than BUFFER_SIZE (%u)\n",BUFFER_SIZE);
       if (!isStdin) fclose(infile);
       return 1;
     }
@@ -185,10 +200,11 @@ void PtrajState::Dispatch() {
   //printf("    *** %s ***\n",A->ArgLine());
   // First argument is the command
   if (A->Command()==NULL) {
-    if (debug>0) mprintf(stdout,"NULL Command.\n");
+    if (debug>0) mprintf("NULL Command.\n");
     return;
   }
 
+  // Check if command pertains to coordinate lists
   err = trajFileList.Add(A, &parmFileList, worldsize);
   if (err!=CoordFileList::UNKNOWN_COMMAND) return;
   err = refFileList.Add( A, &parmFileList, worldsize);
@@ -203,19 +219,12 @@ void PtrajState::Dispatch() {
 
   if (A->CommandIs("noprogress")) {
     showProgress=0;
-    mprintf(stdout,"    noprogress: Progress bar will not be shown.\n");
+    mprintf("    noprogress: Progress bar will not be shown.\n");
     return;
   }
 
   if (A->CommandIs("debug")) {
-    debug = A->getNextInteger(0);
-    rprintf(stdout,"DEBUG LEVEL SET TO %i\n",debug);
-    trajFileList.SetDebug(debug);
-    refFileList.SetDebug(debug);
-    outFileList.SetDebug(debug);
-    parmFileList.SetDebug(debug);
-    ptrajActionList.SetDebug(debug);
-    DFL.SetDebug(debug);
+    SetGlobalDebug( A->getNextInteger(0) );
     return ;
   }
 
@@ -226,9 +235,10 @@ void PtrajState::Dispatch() {
     return;
   }
 
+  // Check if command pertains to an action
   if ( ptrajActionList.Add(A)==0 ) return; 
 
-  mprintf(stdout,"Warning: Unknown Command %s.\n",A->Command());
+  mprintf("Warning: Unknown Command %s.\n",A->Command());
 }
 
 /* 
@@ -261,7 +271,7 @@ int PtrajState::Run() {
   refFrames.Info();
 
   // Output traj
-  mprintf(stdout,"\nOUTPUT TRAJECTORIES:\n");
+  mprintf("\nOUTPUT TRAJECTORIES:\n");
   outFileList.Info();
  
   // Set max frames in the data set list
@@ -276,7 +286,7 @@ int PtrajState::Run() {
   global_set=0;
   process_set=0;
   lastPindex=-1;
-  mprintf(stdout,"BEGIN TRAJECTORY PROCESSING:\n");
+  rprintf("BEGIN TRAJECTORY PROCESSING:\n");
   for (it=trajFileList.begin(); it!=trajFileList.end(); it++) {
     T=(*it);
     // Open up the trajectory file. Return val >0 indicates traj should be skipped 
@@ -293,7 +303,7 @@ int PtrajState::Run() {
 
     // Debug info
     if (debug>0)
-      rprintf(stdout,"    Global set=%i, action set=%i, output set=%i, process set=%i\n",
+      rprintf("    Global set=%i, action set=%i, output set=%i, process set=%i\n",
               global_set, actionSet, outputSet, process_set);
 
     // Set Current Parm if different from last parm
@@ -302,7 +312,7 @@ int PtrajState::Run() {
 
       // If Parm has changed set up the Action list for new topology file
       if (ptrajActionList.Setup( &CurrentParm )) {
-        mprintf(stdout,"WARNING: Could not set up actions for %s: skipping.\n",
+        mprintf("WARNING: Could not set up actions for %s: skipping.\n",
                 CurrentParm->parmName);
         continue;
       }
@@ -332,12 +342,12 @@ int PtrajState::Run() {
     T->End();
     // Update how many frames across all threads have been written for parm
     T->P->outFrame+=T->total_read_frames;
-    mprintf(stdout,"\n");
+    mprintf("\n");
     lastPindex = T->P->pindex;
   }
 
-  rprintf(stdout,"Read %i frames and processed %i frames.\n",global_set,process_set);
-  rprintf(stdout,"Final output set: %i\n",outputSet);
+  rprintf("Read %i frames and processed %i frames.\n",global_set,process_set);
+  rprintf("Final output set: %i\n",outputSet);
 
   // Close output traj
   outFileList.Close();
@@ -355,7 +365,9 @@ int PtrajState::Run() {
   if (maxFrames==-1) DSL.maxFrames=outputSet;
   // Do dataset output - first sync datasets
   DSL.Sync();
-  DFL.Write(DSL.maxFrames);
+  // Only Master does DataFile output
+  if (worldrank==0)
+    DFL.Write(DSL.maxFrames);
  
   return 0;
 }

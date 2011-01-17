@@ -1,7 +1,9 @@
 // mapDataSet
+#include <cstdio>
 #include <cstdlib>
 #include "mapDataSet.h"
 #include "PtrajMpi.h"
+#include "CpptrajStdio.h"
 using namespace std;
 /*
  * mapDataSet::Add()
@@ -61,10 +63,10 @@ int mapDataSet::Sync() {
     // Get size of map on rank 
     if (worldrank>0) {
       // NOTE: current should be equal to size(). Check for now
-      rprintf(stdout, "mapDataSet syncing. current=%i, size=%u\n",
+      rprintf("mapDataSet syncing. current=%i, size=%u\n",
               current, Data.size());
       if (current != (int) Data.size()) {
-        rprintf(stdout,"ERROR: current and map size are not equal.\n");
+        rprintf("ERROR: current and map size are not equal.\n");
         return 1;
       }
       dataSize = current;
@@ -72,7 +74,7 @@ int mapDataSet::Sync() {
 
     // Send size of map on rank to master, allocate arrays on rank and master
     parallel_sendMaster(&dataSize, 1, rank, 0);
-    rprintf(stdout,"mapDataSet allocating %i for send/recv\n",dataSize);
+    rprintf("mapDataSet allocating %i for send/recv\n",dataSize);
     Frames = (int*) malloc(dataSize * sizeof(int));
     Values = (double*) malloc(dataSize * sizeof(double));
       

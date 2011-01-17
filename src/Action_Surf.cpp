@@ -1,8 +1,8 @@
-// Distance
-#include <cstdio>
+// Surf 
 #include <cstdlib>
 #include "Action_Surf.h"
 #include "vectormath.h" // For FOURPI
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Surf::Surf() {
@@ -43,7 +43,7 @@ int Surf::init() {
   DFL->Add(surfFile,surf);
 
   //dist->Info();
-  fprintf(stdout,"    SURF: %s\n",Mask1.maskString);
+  mprintf("    SURF: %s\n",Mask1.maskString);
 
   return 0;
 }
@@ -58,7 +58,7 @@ int Surf::setup() {
 
   if ( Mask1.SetupMask(P,debug) ) return 1;
   if (Mask1.None()) {
-    fprintf(stdout,"    Error: Surf::setup: Mask contains 0 atoms.\n");
+    mprintf("    Error: Surf::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
@@ -73,7 +73,7 @@ int Surf::setup() {
   } else {
     soluteAtoms = P->natom;
   }
-  fprintf(stdout,"    SURF: Setting up %i solute atoms for surface calc.\n",soluteAtoms);
+  mprintf("    SURF: Setting up %i solute atoms for surface calc.\n",soluteAtoms);
 
   // Allocate distance array
   // Use half square matrix minus the diagonal
@@ -140,7 +140,7 @@ int Surf::action() {
     for (atomj = atomi + 1; atomj < soluteAtoms; atomj++) {
       distances[distIndex++] = F->DIST(atomi, atomj);
       // DEBUG
-      //fprintf(stdout,"SURF_DIST:  %i %i %i %lf\n",atomi,atomj,distIndex-1,distances[distIndex-1]);
+      //mprintf("SURF_DIST:  %i %i %i %lf\n",atomi,atomj,distIndex-1,distances[distIndex-1]);
     }
   } 
       
@@ -153,7 +153,7 @@ int Surf::action() {
       if (atomi==atomj) continue;
       distIndex = CalcIndex(atomi, atomj, soluteAtoms);
       // DEBUG
-      //fprintf(stdout,"SURF_NEIG:  %i %i %i %lf\n",atomi,atomj,distIndex,distances[distIndex]);
+      //mprintf("SURF_NEIG:  %i %i %i %lf\n",atomi,atomj,distIndex,distances[distIndex]);
       // Count atoms as neighbors if their VDW radii touch
       if ( (P->SurfaceInfo[atomi].vdwradii + P->SurfaceInfo[atomj].vdwradii) >
            distances[distIndex] ) {
@@ -175,12 +175,12 @@ int Surf::action() {
     sumaijajk = 0.0;
 
     // DEBUG - print neighbor list
-    //fprintf(stdout,"SURF: Neighbors for atom %i:",atomi);
+    //mprintf("SURF: Neighbors for atom %i:",atomi);
     //ineighbor = NeighborList[atomi];
     //for (jt = ineighbor.begin(); jt != ineighbor.end(); jt++) {
-    //  fprintf(stdout," %i",*jt);
+    //  mprintf(" %i",*jt);
     //}
-    //fprintf(stdout,"\n");
+    //mprintf("\n");
 
     // Calculate surface area of atom i
     vdwi = P->SurfaceInfo[atomi].vdwradii;

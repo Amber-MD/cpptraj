@@ -1,8 +1,7 @@
 // Image 
-#include <cstdio>
-#include <cstdlib>
-#include "Action_Image.h"
 #include <cmath> //for floor
+#include "Action_Image.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Image::Image() {
@@ -54,24 +53,24 @@ int Image::init() {
   mask1 = A->getNextMask();
   Mask1.SetMaskString(mask1);
   
-  fprintf(stdout,"    IMAGE: To");
+  mprintf("    IMAGE: To");
   if (origin)
-    fprintf(stdout," origin");
+    mprintf(" origin");
   else
-    fprintf(stdout," box center");
-  fprintf(stdout," based on");
+    mprintf(" box center");
+  mprintf(" based on");
   if (center)
-    fprintf(stdout," center of mass");
+    mprintf(" center of mass");
   else
-    fprintf(stdout," first atom position");
-  fprintf(stdout," using atoms in mask %s\n",Mask1.maskString);
+    mprintf(" first atom position");
+  mprintf(" using atoms in mask %s\n",Mask1.maskString);
   if (triclinic == FORCE)
-    fprintf(stdout, "           Triclinic On.\n");
+    mprintf( "           Triclinic On.\n");
   else if (triclinic == FAMILIAR) {
-    fprintf(stdout, "           Triclinic On, familiar shape");
+    mprintf( "           Triclinic On, familiar shape");
     if (ComMask!=NULL) 
-      fprintf(stdout, " centering on atoms in mask %s", ComMask->maskString);
-    fprintf(stdout,".\n");
+      mprintf( " centering on atoms in mask %s", ComMask->maskString);
+    mprintf(".\n");
   }
 
   return 0;
@@ -86,20 +85,20 @@ int Image::setup() {
 
   if ( Mask1.SetupMask(P,debug) ) return 1;
   if (Mask1.None()) {
-    fprintf(stdout,"    Error: Image::setup: Mask contains 0 atoms.\n");
+    mprintf("    Error: Image::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
   useMass = true;
   if (center && P->mass==NULL) {
-    fprintf(stdout,"    Warning: Image::setup: center: Parm %s contains no mass info.\n",
+    mprintf("    Warning: Image::setup: center: Parm %s contains no mass info.\n",
             P->parmName);
-    fprintf(stdout,"             Geometric center will be used instead.\n");
+    mprintf("             Geometric center will be used instead.\n");
     useMass = false;
   }
 
   if (P->ifbox==0) {
-    fprintf(stdout,"    Error: Image::setup: Parm %s does not contain box information.\n",
+    mprintf("    Error: Image::setup: Parm %s does not contain box information.\n",
             P->parmName);
     return 1;
   }
@@ -111,7 +110,7 @@ int Image::setup() {
     if (ComMask!=NULL) {
       if ( ComMask->SetupMask(P,debug) ) return 1;
       if (ComMask->None()) {
-        fprintf(stdout,"    Error: Image::setup: Mask for 'familiar com' contains no atoms.\n");
+        mprintf("    Error: Image::setup: Mask for 'familiar com' contains no atoms.\n");
         return 1;
       }
     }
@@ -193,7 +192,7 @@ int Image::action() {
   lastAtom = 0;
   end = P->molecules;
   if (debug>2) 
-    fprintf(stdout,"IMAGE: molecules is %i\n", P->molecules); 
+    mprintf("IMAGE: molecules is %i\n", P->molecules); 
 
   for (count = begin; count < end; count++) {
 
@@ -202,7 +201,7 @@ int Image::action() {
     lastAtom = firstAtom + P->atomsPerMol[count];
 
     if (debug>2)
-      fprintf(stdout, "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom); 
+      mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom); 
 
     // boxTrans will hold calculated translation needed to move atoms back into box
     boxTrans[0] = 0.0;
@@ -261,7 +260,7 @@ int Image::action() {
           boxTrans[2] += (ixyz[0]*ucell[2] + ixyz[1]*ucell[5] + ixyz[2]*ucell[8]);
 
           if (debug > 2)
-            fprintf(stdout, "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
+            mprintf( "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
                     ixyz[0], ixyz[1], ixyz[2]);
         }
       }  

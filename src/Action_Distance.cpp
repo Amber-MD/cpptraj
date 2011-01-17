@@ -1,8 +1,7 @@
 // Distance
-#include <cstdio>
-#include <cstdlib>
 #include <cmath>
 #include "Action_Distance.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Distance::Distance() {
@@ -11,7 +10,6 @@ Distance::Distance() {
   noimage=false;
   useMass=true;
   imageType=0;
-  //currentType=DISTANCE;
 } 
 
 // DESTRUCTOR
@@ -42,7 +40,7 @@ int Distance::init( ) {
   //fprintf(stdout,"    Mask 1: %s\n",mask1);
   //fprintf(stdout,"    Mask 2: %s\n",mask2);
   if (mask1==NULL || mask2==NULL) {
-    fprintf(stdout,"    Error: Distance::init: Requires 2 masks\n");
+    mprintf("    Error: Distance::init: Requires 2 masks\n");
     return 1;
   }
   Mask1.SetMaskString(mask1);
@@ -56,59 +54,46 @@ int Distance::init( ) {
 
 
   //dist->Info();
-  fprintf(stdout,"    DISTANCE: %s to %s",Mask1.maskString, Mask2.maskString);
+  mprintf("    DISTANCE: %s to %s",Mask1.maskString, Mask2.maskString);
   if (noimage) 
-    fprintf(stdout,", non-imaged");
+    mprintf(", non-imaged");
   else
-    fprintf(stdout,", imaged");
+    mprintf(", imaged");
   if (useMass) 
-    fprintf(stdout,", center of mass");
+    mprintf(", center of mass");
   else
-    fprintf(stdout,", geometric center");
-  fprintf(stdout,".\n");
+    mprintf(", geometric center");
+  mprintf(".\n");
 
   return 0;
 }
 
 int Distance::setup() {
-//  int m1atoms, m2atoms;
 
-  // DEBUG - Test of AtomMask
   if ( Mask1.SetupMask(P,debug) ) return 1;
   if ( Mask2.SetupMask(P,debug) ) return 1;
 
   if (Mask1.None() || Mask2.None()) {
-    fprintf(stdout,"    Error: Distance::setup: One or both masks have no atoms.\n");
+    mprintf("    Error: Distance::setup: One or both masks have no atoms.\n");
     return 1;
   }
   // Set mass from parm file
   //if (!geom) Mass=P->mass;
 
   if (P->mass==NULL && useMass) {
-    fprintf(stdout,"    Warning: Distance::setup: Mass for this parm is NULL.\n");
-    fprintf(stdout,"             Geometric center of mass will be used.\n");
+    mprintf("    Warning: Distance::setup: Mass for this parm is NULL.\n");
+    mprintf("             Geometric center of mass will be used.\n");
     useMass=false;
   }
 
-  // Figure out imaging - check box based on prmtop box
-  // NOTE: Should box be figured out from read-in coords?
+  // Check imaging - check box based on prmtop box
   imageType = 0;
   if (!noimage) {
     imageType = P->ifbox;
-    //switch (P->ifbox) {
     if (P->ifbox==0) {
-//      case 0: 
-        fprintf(stdout,"    Warning: Distance::setup: ");
-        fprintf(stdout," Imaging specified but no box information in prmtop %s\n",P->parmName);
-        fprintf(stdout,"             No imaging can be performed.\n");
-//        noimage = true;
-//        break;
-//      case 1: imageType = ORTHO;    break;
-//      case 2: imageType = NONORTHO; break;
-//      default:
-//        fprintf(stdout,"    Error: Distance::setup: Unrecognized box type (%i) in %s\n.",
-//                P->ifbox, P->parmName);
-//        return 1;
+      mprintf("    Warning: Distance::setup: ");
+      mprintf(" Imaging specified but no box information in prmtop %s\n",P->parmName);
+      mprintf("             No imaging can be performed.\n");
     }
   }
         

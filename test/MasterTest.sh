@@ -52,12 +52,12 @@ RunCpptraj() {
   fi
   echo "  CPPTRAJ: $1"
   echo "  CPPTRAJ: $1" >> $TEST_RESULTS
-  $STARTMPI
+  #$STARTMPI
   if [[ ! -z $DEBUG ]] ; then
     echo "$TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $DEBUG >> $OUTPUT 2>>$ERROR"
   fi
   $TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $DEBUG >> $OUTPUT 2>>$ERROR
-  $STOPMPI
+  #$STOPMPI
 }
 
 # EndTest(): Called at the end of every test script if no errors found.
@@ -239,6 +239,10 @@ while [[ ! -z $1 ]] ; do
       NOTEST=1
     ;;
     "-d"    ) DEBUG="-debug 4" ;;
+    "debug" )
+      shift
+      DEBUG="-debug $1"
+      ;;
     "clean" ) CLEAN=1 ;;
     * ) echo "Unknown opt: $1" ;;
   esac
@@ -268,8 +272,14 @@ fi
 # Set up MPI environment if specified or if >1 processor requested.
 if [[ $MPI -eq 1 || $NP -gt 1 ]] ; then
   echo "  Using MPI with $NP processors."
-  STARTMPI="mpdboot -n 1"
-  STOPMPI="mpdallexit"
+  # Check that mpi is active and in path
+  mpdringtest > /dev/null
+  if [[ $? -ne 0 ]] ; then
+    echo "  Error: No MPI daemon is running. Aborting parallel test."
+    exit 1
+  fi
+  #STARTMPI="mpdboot -n 1"
+  #STOPMPI="mpdallexit"
   DO_PARALLEL="mpiexec -n $NP"
 fi
 

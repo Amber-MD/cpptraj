@@ -8,9 +8,7 @@
  */
 #include <list> // For FrameRange
 #include "Frame.h"
-//#include "ArgList.h"
-#include "AmberParm.h" // PtrajFile.h cstdio
-//#include "PtrajFile.h" // cstdio
+#include "AmberParm.h" // PtrajFile.h 
 
 class TrajFile {
   protected:
@@ -62,10 +60,10 @@ class TrajFile {
    
     void SetArgs(int,int,int);   // Set the stop, start, and offset args from user input
     // --== Inherited by child classes ==--
-    virtual int getFrame(int) { return 0; } // Read the next coord frame into F
-    virtual int SetupRead()     { return 0; } // Set file up for reading
-    virtual int SetupWrite()    { return 0; } // Set file up for writing
-    virtual int writeFrame(int) { return 0; } // Write coords in frame F to file
+    virtual int getFrame(int) { return 1; } // Read the next coord frame into F
+    virtual int SetupRead()     { return 1; } // Set file up for reading
+    virtual int SetupWrite()    { return 1; } // Set file up for writing
+    virtual int writeFrame(int) { return 1; } // Write coords in frame F to file
     virtual void Info() { return; }           // Print information about this trajectory
 };
 #endif

@@ -1,6 +1,6 @@
 // Conflib
-#include <cstdlib>
 #include "Conflib.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Conflib::Conflib() { 
@@ -42,13 +42,13 @@ int Conflib::SetupRead() {
   // Conflib is double,double,int,natom*3*double
   confFrame = (((P->natom * 3) + 2) * sizeof(double)) + sizeof(int);
 
-  if ( (File->frame_stat.st_size % confFrame) == 0 ) {
-    Frames = (int) (File->frame_stat.st_size / confFrame);
+  if ( (File->file_size % confFrame) == 0 ) {
+    Frames = (int) (File->file_size / confFrame);
     stop = Frames;
   } else {
-    fprintf(stdout,"Warning: Conflib::SetupRead(): Could not predict # frames\n");
-    fprintf(stdout,"         Ensure that associated parm has correct # atoms.\n");
-    fprintf(stdout,"         File size=%lu confFrame=%lu\n",File->frame_stat.st_size,
+    mprintf("Warning: Conflib::SetupRead(): Could not predict # frames\n");
+    mprintf("         Ensure that associated parm has correct # atoms.\n");
+    mprintf("         File size=%lu confFrame=%lu\n",File->file_size,
             confFrame);
     Frames=-1;
     stop=-1;
@@ -75,13 +75,13 @@ int Conflib::getFrame(int set) {
 
 // Set up trajectory for either write or append
 int Conflib::SetupWrite( ) {
-  fprintf(stdout,"Error: conflib writes not yet implemented.\n");
+  mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
 // Write a frame
 int Conflib::writeFrame(int set) {
-  fprintf(stdout,"Error: conflib writes not yet implemented.\n");
+  mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
@@ -89,5 +89,5 @@ int Conflib::writeFrame(int set) {
  * Info()
  */
 void Conflib::Info() {
-  fprintf(stdout,"  File (%s) is an LMOD conflib file", File->filename);
+  mprintf("  File (%s) is an LMOD conflib file", File->filename);
 }
