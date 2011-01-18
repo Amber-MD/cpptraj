@@ -4,7 +4,8 @@
 // Class to abstract handling of basic file routines.
 #include "BaseFileIO.h"
 
-#define BUFFER_SIZE 1024 // Used in PtrajState, AmberTraj, and PtrajFile 
+#define BUFFER_SIZE 1024 // Used in PtrajState, AmberTraj, and PtrajFile
+#define OUTPUTFRAMESHIFT 1 // Used for output in DataFile and some TrajFiles 
 
 /* FILE FORMAT:
  * File format specifies how the data in the file is organized. Not used by

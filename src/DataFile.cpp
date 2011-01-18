@@ -29,8 +29,11 @@ DataFile::~DataFile() {
   if (xlabel!=NULL) free(xlabel);
 }
 
-// Set DataFile debug level
-// NOTE: Pass in constructor?
+/*
+ * DataFile::SetDebug
+ * Set DataFile debug level
+ * NOTE: Pass in constructor?
+ */
 void DataFile::SetDebug(int debugIn) {
   if (debug==debugIn) return;
   debug=debugIn;
@@ -162,7 +165,8 @@ void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
       if (empty!=0) continue;
     }
     // Output Frame
-    outfile->IO->Printf("%8i",frame);
+    // NOTE: For consistency with Ptraj start at frame 1
+    outfile->IO->Printf("%8i",frame + OUTPUTFRAMESHIFT);
     for (set=0; set<Nsets; set++) {
       // Skip those empty sets
       if ( SetList[set]->CheckSet() ) continue;
@@ -175,8 +179,8 @@ void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
 
 /*
  * DataFile::WriteDataInverted()
- * Alternate method of writing out data. Each frame is put into a column, with
- * column 1 containing headers.
+ * Alternate method of writing out data where X and Y values are switched. 
+ * Each frame is put into a column, with column 1 containing headers.
  */
 void DataFile::WriteDataInverted(PtrajFile *outfile, int maxFrames) {
   int frame,set,empty;
@@ -233,7 +237,7 @@ void DataFile::WriteGrace(PtrajFile *outfile, int maxFrames) {
       if (noEmptyFrames) {
         if ( SetList[set]->isEmpty(frame) ) continue; 
       }
-      outfile->IO->Printf("%8i",frame);
+      outfile->IO->Printf("%8i",frame + OUTPUTFRAMESHIFT);
       SetList[set]->Write(buffer,frame);
       outfile->IO->Printf("%s\n",buffer);
     }

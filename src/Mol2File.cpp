@@ -113,7 +113,7 @@ int Mol2File::writeFrame(int set) {
   double Charge;
 
   //mprintf("DEBUG: Calling Mol2File::writeFrame for set %i\n",set);  
-  sprintf(buffer,"%s.%i",File->filename,set);
+  sprintf(buffer,"%s.%i",File->filename,set+OUTPUTFRAMESHIFT);
   if (File->IO->Open(buffer,"wb")) return 1;
 
   //@<TRIPOS>MOLECULE section

@@ -271,7 +271,7 @@ int AmberRestart::writeFrame(int set) {
   char buffer[1024];
   char *bufferPosition;
 
-  sprintf(buffer,"%s.%i",File->filename,set);
+  sprintf(buffer,"%s.%i",File->filename,set + OUTPUTFRAMESHIFT);
   if (File->IO->Open(buffer,"wb")) return 1;
 
   // Write out title

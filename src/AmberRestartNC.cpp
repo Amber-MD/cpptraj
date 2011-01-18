@@ -408,7 +408,7 @@ int AmberRestartNC::writeFrame(int set) {
   size_t start[2], count[2];
 
   // Set up file for this set
-  if ( this->setupWriteForSet(set) ) return 1;
+  if ( this->setupWriteForSet(set+OUTPUTFRAMESHIFT) ) return 1;
 
   // write coords
   start[0]=0;
