@@ -71,8 +71,10 @@ int Hbond::setup() {
       Acceptor.push_back(atom);
   }
   mprintf("      HBOND: Set up %i acceptors:\n",(int)Acceptor.size());
-  for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++)
-    mprintf("        %8i: %4s\n",*accept,P->names[*accept]);
+  if (debug>0) {
+    for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++)
+      mprintf("        %8i: %4s\n",*accept,P->names[*accept]);
+  }
 
   // Set up donors: O-H, N-H
   // NOTE: Scan donor list and determine which ones have H?
@@ -94,13 +96,14 @@ int Hbond::setup() {
     }
   }
   mprintf("      HBOND: Set up %i donors:\n",((int)Donor.size())/2);
-  for (donor = Donor.begin(); donor!=Donor.end(); donor++) {
-    atom = (*donor);
-    donor++;
-    a2   = (*donor);
-    mprintf("        %8i:%4s - %8i:%4s\n",atom,P->names[atom],a2,P->names[a2]);  
+  if (debug>0) {
+    for (donor = Donor.begin(); donor!=Donor.end(); donor++) {
+      atom = (*donor);
+      donor++;
+      a2   = (*donor);
+      mprintf("        %8i:%4s - %8i:%4s\n",atom,P->names[atom],a2,P->names[a2]); 
+    } 
   }
-
 
   return 0;
 }
