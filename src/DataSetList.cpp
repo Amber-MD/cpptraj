@@ -43,11 +43,10 @@ DataSet *DataSetList::Get(char *nameIn) {
 
 /* 
  * DataSetList::Add()
- * Add a DataSet of specified type, set it up and return pointer to it. Before
- * calling this routine actions should have already processed all arguments in 
- * the argument list. The next argument in the ArgList will be used as the 
- * DataSet name. If no name is given then create one based on the given
- * default.
+ * Add a DataSet of specified type, set it up and return pointer to it. 
+ * Name the dataset nameIn if specified, otherwise give it a default
+ * name based on the given defaultName and dataset #. This routine
+ * MUST be called with a default name.
  */ 
 DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName) {
   DataSet *D;
