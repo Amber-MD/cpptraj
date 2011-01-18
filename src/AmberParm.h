@@ -3,98 +3,99 @@
 #include "PtrajFile.h" 
 
 class AmberParm {
-  // ENUMERATED TYPE for TOPOLOGY VALUES
-  enum topValues {
-  //0       1       2      3       4       5       6       7      8       9
-    NATOM,  NTYPES, NBONH, MBONA,  NTHETH, MTHETA, NPHIH,  MPHIA, NHPARM, NPARM, 
-    NNB,    NRES,   NBONA, NTHETA, NPHIA,  NUMBND, NUMANG, NPTRA, NATYP,  NPHB, 
-    IFPERT, NBPER,  NGPER, NDPER,  MBPER,  MGPER,  MDPER,  IFBOX, NMXRS, IFCAP,
-    NEXTRA
-  };
-  // Enumerated type for Fortran Format
-  enum FortranFormat {
-    UNKNOWN_FFORMAT, F10I8, F5E16_8, F20a4, F12I6, F3I8
-  };
-  // Enumerated type for Fortran data type
-  enum FortranType {
-    UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR
-  };
-  // Contain data for SA LCPO
-  struct SurfInfoType {
-    double vdwradii;
-    double P1;
-    double P2;
-    double P3;
-    double P4;
-  };
-  typedef struct SurfInfoType SurfInfo;
-  void AssignLCPO(SurfInfo *, double, double, double, double, double);
+    // ENUMERATED TYPE for TOPOLOGY VALUES
+    enum topValues {
+    //0       1       2      3       4       5       6       7      8       9
+      NATOM,  NTYPES, NBONH, MBONA,  NTHETH, MTHETA, NPHIH,  MPHIA, NHPARM, NPARM, 
+      NNB,    NRES,   NBONA, NTHETA, NPHIA,  NUMBND, NUMANG, NPTRA, NATYP,  NPHB, 
+      IFPERT, NBPER,  NGPER, NDPER,  MBPER,  MGPER,  MDPER,  IFBOX, NMXRS, IFCAP,
+      NEXTRA
+    };
+    // Enumerated type for Fortran Format
+    enum FortranFormat {
+      UNKNOWN_FFORMAT, F10I8, F5E16_8, F20a4, F12I6, F3I8
+    };
+    // Enumerated type for Fortran data type
+    enum FortranType {
+      UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR
+    };
+    // Contain data for SA LCPO
+    struct SurfInfoType {
+      double vdwradii;
+      double P1;
+      double P2;
+      double P3;
+      double P4;
+    };
+    typedef struct SurfInfoType SurfInfo;
 
-  int *values;
-  int debug;
-  // For determining fortran format
-  FortranFormat fFormat;
-  FortranType fType;
-  int numCols;
-  int width;
-  const char *FormatString;
-  int BufferSize;
+    int *values;          // POINTERS
 
-  void SetFormat(char *,int);
-  void *getFlagFileValues(const char*,int);
-  char *DataToBuffer(char*,const char *, int *, double *, char **, int N);
-  int ReadParmMol2();
-  int ReadParmAmber();
-  int ReadParmPDB();
+    int debug;
+    // For determining fortran format
+    FortranFormat fFormat;
+    FortranType fType;
+    int numCols;
+    int width;
+    const char *FormatString;
+    int BufferSize;
+
+    void AssignLCPO(SurfInfo *, double, double, double, double, double);
+    void SetFormat(char *,int);
+    void *getFlagFileValues(const char*,int);
+    char *DataToBuffer(char*,const char *, int *, double *, char **, int N);
+    int ReadParmMol2();
+    int ReadParmAmber();
+    int ReadParmPDB();
 
   public:
-  int NbondsWithH();  
-  int NbondsWithoutH();
-  int *bondsh;
-  int *bonds;
-  PtrajFile File;
-  char *parmName;     // Separate from File.filename in case of stripped parm
-  char **names;
-  char **types;
-  char **resnames;
-  int *resnums;       // IPRES 
-  int natom;
-  int nres;
-  int ifbox;
-  int finalSoluteRes; // IPTRES
-  int molecules;      // NSPM
-  int firstSolvMol;   // NSPSOL
-  int *atomsPerMol;   // NSP
-  double *mass;
-  double *charge;
-  double *Box;
-  // From Ptraj
-  char *solventMask;         // T for atoms in the solvent
-  int solventMolecules;      // number of solvent molecules
-  int *solventMoleculeStart; // pointer into solventMask for first atom of each solvent
-  int *solventMoleculeStop;  // pointer into solventMask for last atom of each solvent
-  int solventAtoms;          // number of solvent atoms
+    PtrajFile File;
+    char *parmName;       // Separate from File.filename in case of stripped parm
+    int pindex;           // The index of this parm in the parmfilelist
+    int parmFrames;       // For output, # of frames that will be read with this parm
+    int outFrame;         // Output, # frames that have been written using this parm
+    // Amber Parmtop
+    int NbondsWithH();    // NBONH
+    int NbondsWithoutH(); // MBONA
+    int *bondsh;          // IBH/JBH/ICBH(NBONH)
+    int *bonds;           // IB/JB/ICB(NBONA) NOTE: Using MBONA
+    char **names;         // IGRAPH(NATOM)
+    char **types;         // ISYMBL(NATOM)
+    char **resnames;      // LBRES(NRES)
+    int *resnums;         // IPRES(NRES) 
+    int natom;            // NATOM
+    int nres;             // NRES
+    int ifbox;            // IFBOX
+    int finalSoluteRes;   // IPTRES
+    int molecules;        // NSPM
+    int firstSolvMol;     // NSPSOL
+    int *atomsPerMol;     // NSP(NSPM)
+    double *mass;         // AMASS(NATOM)
+    double *charge;       // CHARGE(NATOM)
+    double *Box;          // OLDBETA, BOX(1), BOX(2), BOX(3)
+    // From Ptraj
+    char *solventMask;         // T for atoms in the solvent
+    int solventMolecules;      // number of solvent molecules
+    int *solventMoleculeStart; // pointer into solventMask for first atom of each solvent
+    int *solventMoleculeStop;  // pointer into solventMask for last atom of each solvent
+    int solventAtoms;          // number of solvent atoms
+    // For SA calc
+    SurfInfo *SurfaceInfo;
 
-  int pindex;       // The index of this parm in the parmfilelist
-  int parmFrames;   // For output, # of frames that will be read with this parm
-  int outFrame;     // Output, # frames that have been written using this parm
-  // For SA calc
-  SurfInfo *SurfaceInfo;
-
-  AmberParm(int);
-  ~AmberParm();
-  void ResName(char *, int);
-  int OpenParm(char *);
-  int SetSurfaceInfo();
-  int SetSolventInfo();
-  void ParmInfo(char *);
-  void Info(char *);
-  char *mask(char *);
-  char *mask(char *, double *);
-  int atomToResidue(int);
-  int atomToMolecule(int);
-  int atomToSolventMolecule(int);
-  AmberParm *modifyStateByMask(int *, int);
-  int WriteAmberParm(); 
+    AmberParm(int);
+    ~AmberParm();
+    void ResName(char *, int);
+    int OpenParm(char *);
+    int SetSurfaceInfo();
+    int SetSolventInfo();
+    void ParmInfo(char *);
+    void Info(char *);
+    char *mask(char *);
+    char *mask(char *, double *);
+    int atomToResidue(int);
+    int atomToMolecule(int);
+    int atomToSolventMolecule(int);
+    AmberParm *modifyStateByMask(int *, int);
+    int WriteAmberParm(); 
 };
 #endif
