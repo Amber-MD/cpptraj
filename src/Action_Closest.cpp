@@ -1,6 +1,7 @@
 // Closest
 // Find closest waters to atoms in mask.
 #include <cstdlib>
+#include <cmath>
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
 
@@ -15,6 +16,13 @@ Closest::Closest() {
   oldParm=NULL;
   newParm=NULL;
   newFrame=NULL;
+  outFile=NULL;
+  outList=NULL;
+  framedata=NULL;
+  moldata=NULL;
+  distdata=NULL;
+  atomdata=NULL;
+  Nclosest=0;
 } 
 
 // DESTRUCTOR
@@ -24,6 +32,8 @@ Closest::~Closest() {
   if (newParm!=NULL) delete newParm;
   if (newFrame!=NULL) delete newFrame;
   if (tempMask!=NULL) delete tempMask;
+  if (outFile!=NULL) delete outFile;
+  if (outList!=NULL) delete outList;
 }
 
 /*
@@ -59,6 +69,33 @@ int Closest::init( ) {
   if ( A->hasKey("oxygen") || A->hasKey("first") )
     firstAtom=true;
   noimage = A->hasKey("noimage");
+  // Setup output file and sets if requested.
+  // Will keep track of Frame, Mol#, Distance, and first solvent atom
+  mask1 = A->getKeyString("out",NULL);
+  if (mask1 != NULL) {
+    // Set up datafile
+    // NOTE: Use overall datafile list?
+    outFile = new DataFile(mask1);
+    if (outFile==NULL) {
+      mprintf("Error: Closest::init(): Could not setup output file %s\n",mask1);
+      return 1;
+    }
+    // Set up sets
+    outList = new DataSetList();
+    framedata = outList->Add(INT,(char*)"Frame\0","Frame");
+    moldata   = outList->Add(INT,(char*)"Mol\0","Mol");
+    distdata  = outList->Add(DOUBLE,(char*)"Dist\0","Dist");
+    atomdata  = outList->Add(INT,(char*)"FirstAtm\0","FirstAtm");
+    if (framedata==NULL || moldata==NULL || distdata==NULL || atomdata==NULL) {
+      mprintf("Error: Closest::init(): Could not setup data sets for output file %s\n",mask1);
+      return 1;
+    }
+    // Add sets to datafile.
+    outFile->AddSet(framedata);
+    outFile->AddSet(moldata);
+    outFile->AddSet(distdata);
+    outFile->AddSet(atomdata);
+  }
 
   // Get Masks
   mask1 = A->getNextMask();
@@ -80,6 +117,8 @@ int Closest::init( ) {
   if (firstAtom)
     mprintf(", using first atom in solvent molecule for distance calc");
   mprintf(".\n");
+  if (outFile!=NULL)
+    mprintf("             Closest molecules will be saved to %s\n",outFile->filename);
 
   return 0;
 }
@@ -262,8 +301,17 @@ int Closest::action() {
         it++ ) {
     for (solventAtom = 0; solventAtom < (*it).mask->Nselected; solventAtom++)
       tempMask->Selected[maskPosition++] = (*it).mask->Selected[solventAtom];
+    // Record which water molecules are closest if requested
+    if (outFile!=NULL) {
+      framedata->Add(Nclosest, &currentFrame);
+      moldata->Add(Nclosest, &((*it).mol));
+      Dist = sqrt( (*it).D );
+      distdata->Add(Nclosest, &Dist);
+      atomdata->Add(Nclosest, &((*it).mask->Selected[0]));
+      Nclosest++;
+    }
     // DEBUG - print first closestWaters distances
-    mprintf("DEBUG: Mol %i   D2= %lf   Atom0= %i\n",(*it).mol, (*it).D, (*it).mask->Selected[0]);
+    //mprintf("DEBUG: Mol %i   D2= %lf   Atom0= %i\n",(*it).mol, (*it).D, (*it).mask->Selected[0]);
     solventMol++;
     if (solventMol==closestWaters) break;
   }
@@ -275,4 +323,18 @@ int Closest::action() {
   return 0;
 } 
 
+/*
+ * Closest::print()
+ * Write info on what solvent molecules were kept if specified.
+ */
+void Closest::print() {
+  if (outFile==NULL) return;
+  outList->Sync();
+  // NOTE: Write should only happen for master
+  mprintf("    CLOSEST: Writing %s: ",outFile->filename);
+  outFile->DataSetNames();
+  mprintf("\n");
+  outFile->SetNoXcol();
+  outFile->Write(Nclosest, false);
+}
 

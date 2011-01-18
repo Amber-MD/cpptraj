@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles closest.in Closest.pdb closest2.in first.Closest.pdb 
+CleanFiles closest.in Closest.pdb closest2.in first.Closest.pdb closestmols.dat 
 
 # Test 1
 CheckNetcdf
@@ -11,12 +11,13 @@ cat > closest.in <<EOF
 noprogress
 parm ../ChainA-tip3p.parm7
 trajin ../run0.nc 1 1
-closest 10 :1-268 first
+closest 10 :1-268 first out closestmols.dat
 trajout first.Closest.pdb pdb
 EOF
 INPUT="-i closest.in"
 RunCpptraj "Closest command test using first solvent atom."
 DoTest first.Closest.pdb.save first.Closest.pdb
+DoTest closestmols.dat.save closestmols.dat
 
 # Long test, disabled for now.
 #cat > closest2.in <<EOF

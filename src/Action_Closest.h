@@ -6,6 +6,14 @@
 #include <vector>
 
 class Closest: public Action {
+    DataFile *outFile;
+    DataSetList *outList;
+    DataSet *framedata;
+    DataSet *moldata;
+    DataSet *distdata;
+    DataSet *atomdata;
+    int Nclosest;
+
     int closestWaters;
     bool noimage, firstAtom;
     int imageType; 
@@ -37,5 +45,6 @@ class Closest: public Action {
     int init();
     int setup();
     int action();
+    void print();
 };
 #endif  
