@@ -12,6 +12,7 @@ DataFile::DataFile(char *nameIn) {
   xlabel=(char*) malloc( 6 * sizeof(char));
   strcpy(xlabel,"Frame");
   noEmptyFrames=false;
+  noXcolumn=false;
   filename=NULL;
   SetList=NULL;
   Nsets=0;
@@ -39,6 +40,14 @@ void DataFile::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
     mprintf("DataFile %s DEBUG LEVEL SET TO %i\n",filename,debug);
+}
+
+/*
+ * DataFile::SetNoXcol
+ * Turn printing of frame column off.
+ */
+void DataFile::SetNoXcol() {
+  noXcolumn=true;
 }
 
 /*
@@ -144,13 +153,19 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
 void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
   int set,frame,empty;
   char buffer[DATABUFFERSIZE];
+  bool firstSet = true;
 
   // Datafile Header
-  outfile->IO->Printf("#%-7s",xlabel);
+  if (!noXcolumn)
+    outfile->IO->Printf("#%-7s",xlabel);
   for (set=0; set<Nsets; set++) {
     // Skip those empty sets
     if ( SetList[set]->CheckSet() ) continue;
-    outfile->IO->Printf(" %12s",SetList[set]->Name());
+    if (noXcolumn && firstSet) {
+      outfile->IO->Printf("#%-12s",SetList[set]->Name());
+      firstSet=false;
+    } else
+      outfile->IO->Printf(" %12s",SetList[set]->Name());
   }
   outfile->IO->Printf("\n");
 
@@ -166,7 +181,8 @@ void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
     }
     // Output Frame
     // NOTE: For consistency with Ptraj start at frame 1
-    outfile->IO->Printf("%8i",frame + OUTPUTFRAMESHIFT);
+    if (!noXcolumn)
+      outfile->IO->Printf("%8i",frame + OUTPUTFRAMESHIFT);
     for (set=0; set<Nsets; set++) {
       // Skip those empty sets
       if ( SetList[set]->CheckSet() ) continue;

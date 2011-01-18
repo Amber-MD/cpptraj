@@ -11,6 +11,7 @@ class DataFile {
     int Nsets;
     bool noEmptyFrames;
     bool isInverted;  // If true sets will be written in rows instead of columns
+    bool noXcolumn;   // If true the Frame column will not be written.
     char *xlabel;
 
     void WriteGrace(PtrajFile *, int);
@@ -25,6 +26,7 @@ class DataFile {
     void SetDebug(int);
     void SetXlabel(char*);
     void SetInverted();
+    void SetNoXcol();
     int AddSet(DataSet *);
     int NameIs(char *);
     void DataSetNames();
