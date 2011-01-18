@@ -19,11 +19,11 @@ INPUT="-i general.in"
 #CPPTRAJ=/home/droe/bin/cpptraj
 RunCpptraj "Trajout Frame Range"
 
-DoTest test.rst7.2.save test.rst7.2 
-DoTest test.rst7.4.save test.rst7.4 
+DoTest test.rst7.3.save test.rst7.3 
 DoTest test.rst7.5.save test.rst7.5 
 DoTest test.rst7.6.save test.rst7.6 
 DoTest test.rst7.7.save test.rst7.7 
+DoTest test.rst7.8.save test.rst7.8 
 CheckTest
 
 EndTest

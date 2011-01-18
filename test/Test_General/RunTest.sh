@@ -25,7 +25,7 @@ DoTest phi2.dat.save phi2.dat
 DoTest PhiPsi.dat.save PhiPsi.dat
 DoTest test.crd.save test.crd
 DoTest a1.dat.save a1.dat
-DoTest test.rst7.102.save Restart/test.rst7.102
+DoTest test.rst7.103.save Restart/test.rst7.103
 DoTest test.nc.save test.nc
 DoTest r4.dat.save r4.dat
 DoTest a2.dat.gz.save a2.dat.gz

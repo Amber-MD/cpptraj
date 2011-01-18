@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles mol2.in L01.mol2.0 trpcage.mol2.0 
+CleanFiles mol2.in L01.mol2.1 trpcage.mol2.1 
 
 # Test 1
 cat > mol2.in <<EOF
@@ -18,8 +18,8 @@ trajout trpcage.mol2 mol2 parm trpcage.parm7
 EOF
 INPUT="-i mol2.in"
 RunCpptraj "Mol2 Parm/Traj Read/Write Test."
-DoTest L01.mol2.0.save L01.mol2.0
-DoTest trpcage.mol2.0.save trpcage.mol2.0
+DoTest L01.mol2.1.save L01.mol2.1
+DoTest trpcage.mol2.1.save trpcage.mol2.1
 CheckTest
 
 EndTest

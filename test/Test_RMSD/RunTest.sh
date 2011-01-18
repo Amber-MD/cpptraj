@@ -16,7 +16,6 @@ EOF
 INPUT="rms.in"
 RunCpptraj "RMSD Test."
 DoTest rmsd.dat.save rmsd.dat
-CheckTest
 
 # Test 2
 cat > rms.mass.in <<EOF
