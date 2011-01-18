@@ -13,7 +13,10 @@ ParseArg() {
 DoTest() {
   if [[ $NOTEST -eq 0 ]] ; then
     ((NUMTEST++))
-    if [[ ! -e $2 ]] ; then
+    if [[ ! -e $1 ]] ; then
+      echo "  $1 not found." >> $TEST_RESULTS
+      ((ERR++))
+    elif [[ ! -e $2 ]] ; then
       echo "  $2 not found." >> $TEST_RESULTS
       ((ERR++))
     elif [[ `diff $1 $2 | wc -l` -gt 0 ]] ; then
