@@ -2,6 +2,9 @@
 // Find closest waters to atoms in mask.
 #include <cstdlib>
 #include <cmath>
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
 
@@ -257,6 +260,9 @@ int Closest::action() {
   maxD = F->box[0] + F->box[1] + F->box[2];
   maxD = maxD * maxD;
   // Loop over all solvent molecules in original frame
+#pragma omp parallel private(solventMol,moldist,minD,atom,Dist,solventAtom)
+{
+#pragma omp for
   for (solventMol=0; solventMol < oldParm->solventMolecules; solventMol++) {
     moldist.mol = oldParm->firstSolvMol + solventMol;
 
@@ -288,7 +294,8 @@ int Closest::action() {
  
     moldist.mask = MaskList[solventMol];
     Distances.push_back(moldist);
-  }     
+  } // END for loop over solventMol    
+} // END pragma omp parallel
 
   // Sort distances
   Distances.sort( moldist_cmp() );

@@ -13,7 +13,6 @@ Usage() {
   echo "   --help     : Display this message."
   echo "   -d, -debug : Turn on compiler debugging info"
   echo "   -debugon   : Add -DDEBUG flag to activate internal debugging"
-  echo "   -mpi       : Use mpicc/mpicxx to compile (STILL EXPERIMENTAL)"
   echo "   -noopt     : Do not use optimized compiler flags (default when -d specified)"
   echo "   -nobzlib   : Do not use Bzip2"
   echo "   -nozlib    : Do not use zlib (gzip/zip)"
@@ -23,8 +22,12 @@ Usage() {
   echo "   --with-netcdf=<DIR>"
   echo "   --with-zlib=<DIR>"
   echo "   --with-bzlib=<DIR>"
-#  echo "   --with-hdf5=<DIR>"
   echo ""
+  echo "   EXPERIMENTAL OPTIONS:"
+  echo "   -mpi       : Use mpicc/mpicxx to compile."
+  echo "   -openmp    : Use openmp for parallelization of certain routines."
+  echo "   --with-hdf5=<DIR>"
+  echo "   NOTE: -openmp and -mpi are mutually exclusive."
 }
 
 # If arg is Key=Value, separate into Key and Value
@@ -136,6 +139,8 @@ CPPTRAJBIN=$CPPTRAJHOME/bin
 DIRECTIVES=""
 DBGFLAGS=""
 OPTFLAGS=""
+OMPFLAGS=""
+LDFLAGS=""
 BZLIB="-lbz2"
 ZLIB="-lz"
 NETCDFLIB="-lnetcdf"
@@ -144,6 +149,7 @@ HDF5LIB=""
 LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 INCLUDE=""
 USEMPI=0
+USEOPENMP=0
 while [[ ! -z $1 ]] ; do
   ParseArg $1
   case "$KEY" in
@@ -152,12 +158,14 @@ while [[ ! -z $1 ]] ; do
       CC=gcc
       CXX=g++
       OPTFLAGS="-O3 -Wall"
+      OMPFLAGS="-fopenmp"
       ;;
     "intel" )
       echo "Using intel compilers"
       CC=icc
       CXX=icpc
       OPTFLAGS="-fast -Wall"
+      OMPFLAGS="-openmp"
       ;; 
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"
@@ -174,8 +182,12 @@ while [[ ! -z $1 ]] ; do
       OPT=0 
       ;;
     "-mpi"          )
-      echo "Using MPI"
       USEMPI=1
+      USEOPENMP=0
+      ;;
+    "-openmp"       )
+      USEOPENMP=1
+      USEMPI=0
       ;;
     "-nolfs"        )
       echo "Disabling large file support"
@@ -259,9 +271,17 @@ fi
 
 # Change compilers for MPI if specified
 if [[ $USEMPI -eq 1 ]] ; then
+  echo "Using MPI"
   CC=mpicc
   CXX=mpicxx
   DIRECTIVES="$DIRECTIVES -DMPI"
+fi
+
+# Add flags for OPENMP if specified
+if [[ $USEOPENMP -eq 1 ]] ; then
+  echo "Using OPENMP"
+  DIRECTIVES="$OMPFLAGS $DIRECTIVES"
+  LDFLAGS="$OMPFLAGS $LDFLAGS"
 fi
 
 CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
@@ -285,7 +305,7 @@ ZLIB=$ZLIB
 BZLIB=$BZLIB
 NETCDFLIB=$NETCDFLIB
 
-LDFLAGS=
+LDFLAGS=$LDFLAGS
 SFX=
 
 EOF
