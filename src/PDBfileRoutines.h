@@ -3,8 +3,8 @@
 
 char *pdb_title(char *);
 int pdb_atom(char *);
-char *pdb_name(char *);
-char *pdb_resname(char *);
+int pdb_name(char *, char *);
+int pdb_resname(char *, char *);
 char pdb_chain(char *);
 int pdb_resnum(char *);
 int pdb_xyz(char *, double *);

@@ -17,6 +17,34 @@
 #define AMBERTOELEC 1/ELECTOAMBER
 // ================= PRIVATE FUNCTIONS =========================
 
+void TrimName(char *);
+/*
+ * TrimName()
+ * Given a string of length 5 (4 chars + 1 NULL) remove leading whitespace
+ */
+void TrimName(char *NameIn) {
+  if        (NameIn[0]!=' ') { // No leading whitespace
+    return;  
+  } else if (NameIn[1]!=' ') { // [_XXX]
+    NameIn[0]=NameIn[1];
+    NameIn[1]=NameIn[2];
+    NameIn[2]=NameIn[3];
+    NameIn[3]=' ';
+  } else if (NameIn[2]!=' ') { // [__XX]
+    NameIn[0]=NameIn[2];
+    NameIn[1]=NameIn[3];
+    NameIn[2]=' ';
+    NameIn[3]=' ';
+  } else if (NameIn[3]!=' ') { // [___X]
+    NameIn[0]=NameIn[3];
+    NameIn[1]=' ';
+    NameIn[2]=' ';
+    NameIn[3]=' ';
+  }
+  // Otherwise Res is Blank, no trim needed
+  return;
+}
+
 /*
  * AmberParm::ResName()
  * Given a residue number, set buffer with residue name. Replace blanks with _
@@ -101,7 +129,7 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
   char value[83];      // Hold Key from Flag line
   char temp[17];       // Hold data element
   char *buffer,*ptr;
-  char **C;
+  NAME *C;
   int *I;
   double *D;
 
@@ -131,12 +159,9 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
         // Allocate memory based on data type
         switch (fType) {
           case UNKNOWN_FTYPE : return NULL;
-          case FINT   : I=(int*) malloc(maxval*sizeof(int)); break;
+          case FINT   : I=(int*)    malloc(maxval*sizeof(int)); break;
           case FDOUBLE: D=(double*) malloc(maxval*sizeof(double)); break;
-          case FCHAR  : 
-            C=(char**) malloc(maxval*sizeof(char*));
-            for (i=0; i<maxval; i++) C[i]=(char*) malloc(5*sizeof(char));
-            break;
+          case FCHAR  : C=(NAME*)   malloc(maxval*sizeof(NAME)); break;
         }
         // Allocate memory to read in entire section
         buffer=(char*) calloc(BufferSize,sizeof(char));
@@ -164,7 +189,7 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
             rprintf("Error: #values read (%i) < # expected values (%i).\n",i,maxval);
             if (I!=NULL) free(I);
             if (D!=NULL) free(D);
-            if (C!=NULL) {for(i=0;i<maxval;i++) free(C[i]); free(C);}
+            if (C!=NULL) free(C);
             free(buffer);
             return NULL;
           }
@@ -186,7 +211,7 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
   rprintf("Error: Could not find key %s in file.\n",Key);
   if (I!=NULL) free(I);
   if (D!=NULL) free(D);
-  if (C!=NULL) {for(i=0;i<maxval;i++) free(C[i]); free(C);}
+  if (C!=NULL) free(C);
 
   return NULL;
 }
@@ -228,20 +253,9 @@ AmberParm::AmberParm(int debugIn) {
 
 // DESTRUCTOR
 AmberParm::~AmberParm() {
-  int i;
-
-  if (names!=NULL) {
-    for (i=0; i < natom; i++) free(names[i]);
-    free(names);
-  }
-  if (resnames!=NULL) {
-    for (i=0; i < nres; i++) free(resnames[i]);
-    free(resnames);
-  }
-  if (types!=NULL) {
-    for (i=0; i < natom; i++) free(types[i]);
-    free(types);
-  }
+  if (names!=NULL) free(names);
+  if (resnames!=NULL) free(resnames);
+  if (types!=NULL) free(types);
   if (mass!=NULL) free(mass);
   if (charge!=NULL) free(charge);
   if (values!=NULL) free(values);
@@ -273,6 +287,19 @@ int AmberParm::NbondsWithoutH() {
     return -1;
 }
 
+/*
+ * ---------========= ROUTINES FOR ACCESSING OTHER ARRAYS =========---------
+ */
+char *AmberParm::ResidueName(int res) {
+  if (resnames==NULL) {
+    mprintf("Internal Error: AmberParm::ResidueName: Residue names not set!\n");
+    return NULL;
+  }
+  if (res>-1 && res<nres)
+    return (char*)resnames[res];
+  return NULL;
+}
+
 /* 
  * AmberParm::OpenParm()
  * Attempt to open file and read in parameters.
@@ -298,11 +325,13 @@ int AmberParm::OpenParm(char *filename) {
   File.CloseFile();
 
   // Create a last dummy residue in resnums that holds natom, which would be
-  // the atom number of the next residue if it existed. Shift the number by 1
-  // to be consistent with the rest of the array. Do this to be
-  // consistent with ptrajmask selection behavior - saves an if-then stmt
+  // the atom number of the next residue if it existed. Atom #s in resnums
+  // should correspond with cpptraj atom #s (start from 0) instead of Amber
+  // atom #s (start from 1). 
+  // Do this to be consistent with ptrajmask selection behavior - saves an 
+  // if-then statement.
   resnums=(int*) realloc(resnums,(nres+1)*sizeof(int));
-  resnums[nres]=natom+1;
+  resnums[nres]=natom;
   // DEBUG
   //fprintf(stdout,"==== DEBUG ==== Resnums for %s:\n",File.filename);
   //for (err=0; err<nres; err++) 
@@ -509,18 +538,21 @@ int AmberParm::SetSolventInfo() {
       molAtom += atomsPerMol[mol];
     }
 
-  // Treat all residues named WAT as solvent
+  // Treat all residues named WAT/HOH as solvent
+  // Atom #s in resnums at this point should start from 0, not 1
   } else if (resnums!=NULL) {
     for (mol=0; mol < nres; mol++) { 
       if ( strcmp("WAT ", resnames[mol]) == 0 ||
-           strcmp(" WAT", resnames[mol]) == 0    ) {
+           strcmp(" WAT", resnames[mol]) == 0 ||
+           strcmp("HOH ", resnames[mol]) == 0 ||
+           strcmp(" HOH", resnames[mol]) == 0    ) {
         // Add this residue to the list of solvent 
         molAtom = resnums[mol+1] - resnums[mol];
         solventAtoms += molAtom;
-        solventMoleculeStart[solventMolecules] = resnums[mol] - 1;
-        solventMoleculeStop[ solventMolecules] = resnums[mol+1] - 1;
+        solventMoleculeStart[solventMolecules] = resnums[mol];
+        solventMoleculeStop[ solventMolecules] = resnums[mol+1];
         solventMolecules++;
-        for (maskAtom=resnums[mol] - 1; maskAtom < resnums[mol+1] - 1; maskAtom++)
+        for (maskAtom=resnums[mol]; maskAtom < resnums[mol+1]; maskAtom++)
           solventMask[maskAtom] = 'T';
       }
     }
@@ -557,14 +589,18 @@ int AmberParm::ReadParmAmber() {
     mprintf("    Amber top contains %i atoms, %i residues.\n",natom,nres);
 
   err=0;
-  names=(char**) getFlagFileValues("ATOM_NAME",natom);
+  names=(NAME*) getFlagFileValues("ATOM_NAME",natom);
   if (names==NULL) {mprintf("Error in atom names.\n"); err++;}
-  types=(char**) getFlagFileValues("AMBER_ATOM_TYPE",natom);
+  types=(NAME*) getFlagFileValues("AMBER_ATOM_TYPE",natom);
   if (types==NULL) {mprintf("Error in atom types.\n"); err++;}
-  resnames=(char**) getFlagFileValues("RESIDUE_LABEL",nres);
+  resnames=(NAME*) getFlagFileValues("RESIDUE_LABEL",nres);
   if (resnames==NULL) {mprintf("Error in residue names.\n"); err++;}
   resnums=(int*) getFlagFileValues("RESIDUE_POINTER",nres);
   if (resnums==NULL) {mprintf("Error in residue numbers.\n"); err++;}
+  // Atom #s in resnums are currently shifted +1. Shift back to be consistent
+  // with the rest of cpptraj.
+  for (atom=0; atom < nres; atom++)
+    resnums[atom] -= 1;
   mass=(double*) getFlagFileValues("MASS",natom);
   if (mass==NULL) {mprintf("Error in masses.\n"); err++;}
   charge=(double*) getFlagFileValues("CHARGE",natom);
@@ -637,15 +673,18 @@ int AmberParm::ReadParmPDB() {
     if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
 
     // Allocate memory for atom name
-    names=(char**) realloc(names, (natom+1) * sizeof(char*));
-    names[natom]=pdb_name(buffer);
+    names=(NAME*) realloc(names, (natom+1) * sizeof(NAME));
+    pdb_name(buffer, (char*)names[natom]);
 
     // If this residue number is different than the last, allocate mem for new res
     if (currResnum!=pdb_resnum(buffer)) {
-      resnames=(char**) realloc(resnames, (nres+1) * sizeof(char*));
-      resnames[nres]=pdb_resname(buffer);
+      resnames=(NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
+      pdb_resname(buffer, (char*)resnames[nres]);
+      // Trim leading whitespace from residue name
+      TrimName(resnames[nres]);
+      if (debug>3) mprintf("        PDBRes %i [%s]\n",nres,resnames[nres]);
       resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
-      resnums[nres]=natom+1; // +1 since in Amber Top atoms start from 1
+      resnums[nres]=natom; 
       currResnum=pdb_resnum(buffer);
       nres++;
     }
@@ -700,27 +739,24 @@ int AmberParm::ReadParmMol2() {
   mprintf("      Mol2 #bonds: %i\n",mol2bonds);
 
   // Allocate memory for atom names, types, and charges.
-  names = (char**) malloc( natom * sizeof(char*));
-  types = (char**) malloc( natom * sizeof(char*));
+  names = (NAME*) malloc( natom * sizeof(NAME));
+  types = (NAME*) malloc( natom * sizeof(NAME));
   charge = (double*) malloc( natom * sizeof(double));
 
   // Get @<TRIPOS>ATOM information
   if (Mol2ScanTo(&File, ATOM)) return 1;
   for (atom=0; atom < natom; atom++) {
     if ( File.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
-    names[atom] = (char*) malloc( 5 * sizeof(char));
-    types[atom] = (char*) malloc( 5 * sizeof(char));
     // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
     sscanf(buffer,"%*i %s %*f %*f %*f %s %i %s %lf", names[atom], types[atom],
            &resnum,resName, charge+atom);
     //mprintf("      %i %s %s %i %s %lf\n",atom,names[atom],types[atom],resnum,resName,charge[atom]);
     // Check if residue number has changed - if so record it
     if (resnum != currentResnum) {
-      resnames = (char**) realloc(resnames, (nres+1) * sizeof(char*));
-      resnames[nres] = (char*) malloc( 5 * sizeof(char));
-      resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
-      resnums[nres]=atom+1; // +1 since in Amber Top atoms start from 1
+      resnames = (NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
       strcpy(resnames[nres], resName);
+      resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
+      resnums[nres]=atom; 
       currentResnum = resnum;
       nres++;
     }
@@ -844,11 +880,10 @@ char *AmberParm::mask(char *maskstr, double *X) {
  * Given an atom number, return corresponding residue number.
  */
 int AmberParm::atomToResidue(int atom) {
-  int i, atom1;
+  int i;
 
-  atom1 = atom + 1; // Since in resnums atom numbers start from 1
   for (i = 0; i < nres; i++)
-    if ( atom1>=resnums[i] && atom1<resnums[i+1] )
+    if ( atom>=resnums[i] && atom<resnums[i+1] )
       return i;
 
   return -1;
@@ -944,17 +979,11 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm->values = (int*) calloc(AMBERPOINTERS, sizeof(int));
   atomMap = (int*) malloc( this->natom * sizeof(int));
   for (i=0; i<this->natom; i++) atomMap[i]=-1;
-  newParm->names    = (char**)  malloc( this->natom   * sizeof(char*) );
-  for (i=0; i<this->natom; i++) 
-    newParm->names[i]=(char*) malloc(5 * sizeof(char));
-  newParm->types    = (char**)  malloc( this->natom   * sizeof(char*) );
-  for (i=0; i<this->natom; i++)
-    newParm->types[i]=(char*) malloc(5 * sizeof(char));
+  newParm->names    = (NAME*)  malloc( this->natom   * sizeof(NAME) );
+  newParm->types    = (NAME*)  malloc( this->natom   * sizeof(NAME) );
   newParm->charge   = (double*) malloc( this->natom   * sizeof(double));
   newParm->mass     = (double*) malloc( this->natom   * sizeof(double));
-  newParm->resnames = (char**)  malloc( this->nres    * sizeof(char*) );
-  for (i=0; i<this->nres; i++)
-    newParm->resnames[i]=(char*) malloc(5 * sizeof(char));
+  newParm->resnames = (NAME*)  malloc( this->nres    * sizeof(NAME) );
   newParm->resnums  = (int*)    malloc((this->nres+1) * sizeof(int   ));
 
   if (this->molecules>0) 
@@ -986,7 +1015,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     if (ires == -1 || ires != curres) {
       jres++;
       strcpy(newParm->resnames[jres], this->resnames[curres]);
-      newParm->resnums[jres] = j+1;
+      newParm->resnums[jres] = j;
       ires = curres;
     }
 
@@ -1022,7 +1051,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   free(atomMap);
 
   // Fix up IPRES
-  newParm->resnums[jres+1] = j+1;
+  newParm->resnums[jres+1] = j;
 
   // Set up new parm information
   newParm->natom = j;
@@ -1039,12 +1068,9 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm->charge=(double*) realloc(newParm->charge, newParm->natom * sizeof(double));
   newParm->mass=(double*) realloc(newParm->mass, newParm->natom * sizeof(double));
   newParm->resnums=(int*) realloc(newParm->resnums, (newParm->nres+1) * sizeof(int));
-  for (i=newParm->natom; i<this->natom; i++) free(newParm->names[i]);
-  newParm->names=(char**) realloc(newParm->names, newParm->natom * sizeof(char*));
-  for (i=newParm->natom; i<this->natom; i++) free(newParm->types[i]);
-  newParm->types=(char**) realloc(newParm->types, newParm->natom * sizeof(char*));
-  for (i=newParm->nres; i<this->nres; i++) free(newParm->resnames[i]);
-  newParm->resnames=(char**) realloc(newParm->resnames, (newParm->nres+1) * sizeof(char*));
+  newParm->names=(NAME*) realloc(newParm->names, newParm->natom * sizeof(NAME));
+  newParm->types=(NAME*) realloc(newParm->types, newParm->natom * sizeof(NAME));
+  newParm->resnames=(NAME*) realloc(newParm->resnames, (newParm->nres+1) * sizeof(NAME));
   if (newParm->molecules>0)
     newParm->atomsPerMol=(int*) realloc(newParm->atomsPerMol, newParm->molecules * sizeof(int));
 
@@ -1086,7 +1112,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
  * NOTE: Needs error checking
  */
 char *AmberParm::DataToBuffer(char *bufferIn, const char *format, 
-                              int *I, double *D, char **C, int N) {
+                              int *I, double *D, NAME *C, int N) {
   int coord;
   char *ptr, *buffer;
 
@@ -1187,9 +1213,15 @@ int AmberParm::WriteAmberParm() {
   outfile.IO->Write(buffer, sizeof(char), BufferSize);
 
   // RESIDUE POINTER - resnums, IPRES
+  // Shift atom #s in resnums by 1 to be consistent with AMBER
+  for (atom=0; atom < nres; atom++)
+    resnums[atom] += 1;
   PrintFlagFormat(&outfile, "%FLAG RESIDUE_POINTER", "%FORMAT(10I8)");
   buffer = DataToBuffer(buffer,"%FORMAT(10I8)", resnums, NULL, NULL, nres);
   outfile.IO->Write(buffer, sizeof(char), BufferSize);
+  // Now shift them back
+  for (atom=0; atom < nres; atom++)
+    resnums[atom] -= 1;
 
   // AMBER ATOM TYPE - might be null if read from pdb
   if (types!=NULL) {

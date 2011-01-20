@@ -13,11 +13,11 @@ typedef struct _stackType {
 /* From ptraj_local.h */
 /* The parameter file assumes the atom, residue, symbol, etc. names to be *
  * four characters (we will store them as strings, requiring a newline,   *
- * hence the size is 5).                                                  */
-/*#define NAME_SIZE 5
+ * hence the size is 5).                                                  *
+ * NOTE: This is also defined in AmberParm.h.                             */
+#define NAME_SIZE 5
 #define NAME_DEFAULT "    "
-typedef char Name[NAME_SIZE];*/
-typedef char* Name;
+typedef char Name[NAME_SIZE];
 
 
 /*

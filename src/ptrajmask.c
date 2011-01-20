@@ -669,7 +669,7 @@ char * selectDistd(char *criteria, char *center, int atoms, int residues, int *i
   
   curres = 0;
   for (i = 0; i < atoms; i++) {
-    if (i >= ipres[curres+1]-1) curres++;
+    if (i >= ipres[curres+1]) curres++;
     if ( pMask[i] == 'T' ) continue;
     i3 = i * 3;
     for (j = 0; j < atoms; j++) {
@@ -684,19 +684,21 @@ char * selectDistd(char *criteria, char *center, int atoms, int residues, int *i
       if (type == ':') {
         if ( comp == '<') {
           if ( distance < dist2 ) {
-            for (k = ipres[curres] - 1; k < ipres[curres+1]-1; k++) {
+            for (k = ipres[curres]; k < ipres[curres+1]; k++) {
               pMask[k] = 'T';
             }
-            i = ipres[curres+1]-2; /* go to the bottom of i-loop, then i++, i will be ipres[curres+1]-1.*/
+            // go to the bottom of i-loop, then i++, i will be ipres[curres+1]-1
+            i = ipres[curres+1]-1; 
             break;
           }
         } /*end of if ( comp == '<') */
         else if ( comp == '>') {
           if ( distance > dist2 ) {
-            for (k = ipres[curres] - 1; k < ipres[curres+1]-1; k++) {
+            for (k = ipres[curres]; k < ipres[curres+1]; k++) {
               pMask[k] = 'T';
             }
-            i = ipres[curres+1]-2; /* go to the bottom of i-loop, then i++, i will be ipres[curres+1]-1.*/
+            // go to the bottom of i-loop, then i++, i will be ipres[curres+1]-1
+            i = ipres[curres+1]-1; 
             break;
           }
         } /*end of if ( comp == '>') */
@@ -822,7 +824,7 @@ resnum_select(int res1, int res2, char *mask, int residues, int *ipres)
       /* DEBUG 
       fprintf(stderr,"  i=%i i+1=%i\n",i,i+1);*/
       for (j = ipres[i]; j < ipres[i+1]; j++)
-        mask[j-1] = 'T';
+        mask[j] = 'T';
     }
 }
 
@@ -837,7 +839,7 @@ resname_select(char *p, char *mask, int residues, Name *residueName, int *ipres)
     sprintf(str, "%d", i+1);
     if (isNameMatch(residueName[i], p) || isNameMatch(str, p))
       for (j = ipres[i]; j < ipres[i+1]; j++)
-        mask[j-1] = 'T';
+        mask[j] = 'T';
   }
   free(str);
 

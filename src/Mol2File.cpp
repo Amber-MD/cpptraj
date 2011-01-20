@@ -108,7 +108,7 @@ int Mol2File::SetupWrite() {
  */
 int Mol2File::writeFrame(int set) {
   char buffer[1024];
-  char **Types;
+  AmberParm::NAME *Types;
   int mol2bonds, atom, atom3, res;
   double Charge;
 
@@ -179,7 +179,7 @@ int Mol2File::writeFrame(int set) {
   File->IO->Printf("@<TRIPOS>SUBSTRUCTURE\n");
   for (res = 0; res < P->nres; res++) {
     File->IO->Printf("%7d %4s %14d ****               0 ****  **** \n",
-                      res+1, P->resnames[res],P->resnums[res]);
+                      res+1, P->resnames[res],P->resnums[res]+1);
   }
 
   File->IO->Close();

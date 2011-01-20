@@ -2,7 +2,15 @@
 #define INC_AMBERPARM_H
 #include "PtrajFile.h" 
 
+// Default size for atom and residue names, 4 + NULL
+// NOTE: Also defined in ptrajmask.h
+#define NAMESIZE 5
+
 class AmberParm {
+  public:
+    // Default type for atom names, res names, atom types
+    typedef char NAME[NAMESIZE];
+  private:
     // ENUMERATED TYPE for TOPOLOGY VALUES
     enum topValues {
     //0       1       2      3       4       5       6       7      8       9
@@ -43,12 +51,13 @@ class AmberParm {
     void AssignLCPO(SurfInfo *, double, double, double, double, double);
     void SetFormat(char *,int);
     void *getFlagFileValues(const char*,int);
-    char *DataToBuffer(char*,const char *, int *, double *, char **, int N);
+    char *DataToBuffer(char*,const char *, int *, double *, NAME *, int N);
     int ReadParmMol2();
     int ReadParmAmber();
     int ReadParmPDB();
 
   public:
+
     PtrajFile File;
     char *parmName;       // Separate from File.filename in case of stripped parm
     int pindex;           // The index of this parm in the parmfilelist
@@ -59,9 +68,10 @@ class AmberParm {
     int NbondsWithoutH(); // MBONA
     int *bondsh;          // IBH/JBH/ICBH(NBONH)
     int *bonds;           // IB/JB/ICB(NBONA) NOTE: Using MBONA
-    char **names;         // IGRAPH(NATOM)
-    char **types;         // ISYMBL(NATOM)
-    char **resnames;      // LBRES(NRES)
+    NAME *names;         // IGRAPH(NATOM)
+    NAME *types;         // ISYMBL(NATOM)
+    NAME *resnames;      // LBRES(NRES)
+    char *ResidueName(int);
     int *resnums;         // IPRES(NRES) 
     int natom;            // NATOM
     int nres;             // NRES

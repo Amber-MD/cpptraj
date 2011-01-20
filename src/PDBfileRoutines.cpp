@@ -36,31 +36,24 @@ int pdb_atom(char *buffer) {
 }
 
 // PDB Record Atom Name
-char *pdb_name(char *buffer) {
-  char *name;
-
-  name=(char*) malloc(5*sizeof(char));
+int pdb_name(char *buffer, char *name) {
   name[0]=buffer[12];
   name[1]=buffer[13];
   name[2]=buffer[14];
   name[3]=buffer[15];
   name[4]='\0';
-
-  return name;
+  return 0;
 }
 
 // PDB Record Residue Name
-char *pdb_resname(char *buffer) {
-  char *resname;
-
-  resname=(char*) malloc(5*sizeof(char));
+int pdb_resname(char *buffer, char *resname) {
   resname[0]=buffer[16]; // Alternate location indicator
   resname[1]=buffer[17];
   resname[2]=buffer[18];
   resname[3]=buffer[19];
   resname[4]='\0';
 
-  return resname;
+  return 0;
 }
 
 // PDB Record Chain ID
@@ -173,7 +166,8 @@ char *pdb_lastChar(char *buffer) {
 // Element. If blank, try to guess from the name
 // H C N O F Cl Br S P
 char *pdb_elt(char *buffer) {
-  char *E,*name,*ptr;
+  char *E,*ptr;
+  char name[5];
 
   E=(char*) malloc(3*sizeof(char));
   E[0]=buffer[76]; // Element
@@ -181,21 +175,21 @@ char *pdb_elt(char *buffer) {
   E[2]='\0';
 
   if (E[0]==' ' && E[1]==' ') {
-    name=pdb_name(buffer);
+    pdb_name(buffer,name);
     // position ptr at first non-space character
     ptr=name;
     while (*ptr==' ' && *ptr!='\0') ptr++;
     // if NULL something went wrong, abort
-    if (*ptr=='\0') {
-      free(name);
-      return E;
-    }
+    if (*ptr=='\0') return E;
     E[0]=ptr[0];
     // If C, check for L or l for chlorine
     if (ptr[0]=='C') {
       if (ptr[1]=='L' || ptr[1]=='l') E[1]='l';
     }
-    free(name);
+    // If B, check for R or r for bromine
+    if (ptr[0]=='B') {
+      if (ptr[1]=='R' || ptr[1]=='r') E[1]='r';
+    }
   }
 
   return E;

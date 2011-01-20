@@ -120,7 +120,7 @@ int PDBfile::writeFrame(int set) {
   for (i=0; i<F->natom; i++) {
     i3 = i * 3;
     // figure out the residue number
-    if ( (i+1)==P->resnums[res+1] ) {res++; resOut++;}
+    if ( i==P->resnums[res+1] ) {res++; resOut++;}
     if (resOut>9998) resOut=0;
     // Residue names in PDB format are 3 chars long starting at column 18. 
     // However in Amber residues are 4 characters long, usually with a space
