@@ -9,8 +9,8 @@ AtomMask::AtomMask() {
   maskString=NULL;
   Selected=NULL;
   Nselected=0;
-  P=NULL;
-  N=0;
+  //P=NULL;
+  //N=0;
   debug=0;
 }
 
@@ -33,6 +33,16 @@ AtomMask::~AtomMask() {
 }
 
 /*
+ * AtomMask::AddAtom()
+ * Add atom to this mask.
+ */
+void AtomMask::AddAtom(int atom) {
+  Selected = (int*) realloc(Selected, (Nselected+1) * sizeof(int));
+  Selected[Nselected] = atom;
+  Nselected++;
+}
+
+/*
  * AtomMask::Copy()
  */
 AtomMask *AtomMask::Copy() {
@@ -49,8 +59,8 @@ AtomMask *AtomMask::Copy() {
     newMask->maskString = (char*) malloc( (strlen(this->maskString)+1) * sizeof(char));
     strcpy(newMask->maskString, this->maskString);
   }
-  newMask->P = this->P;
-  newMask->N = this->N;
+  //newMask->P = this->P;
+  //newMask->N = this->N;
   newMask->debug = this->debug;
 
   return newMask;
@@ -76,11 +86,11 @@ void AtomMask::SetMaskString(char *maskStringIn) {
 
 /*
  * AtomMask::None()
- * Return 1 if no atoms are selected.
+ * Return true if no atoms are selected.
  */
-int AtomMask::None() {
-  if (Nselected==0) return 1;
-  return 0;
+bool AtomMask::None() {
+  if (Nselected==0) return true;
+  return false;
 }
 
 /*
@@ -107,11 +117,11 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
   if (invertMask) maskChar='F';
 
   // Allocate atom mask - free mask if already allocated
-  P = Pin;
-  mask = P->mask(maskString);
+  //P = Pin;
+  mask = Pin->mask(maskString);
   if (mask==NULL) {
     mprintf("    Error: Could not set up mask %s for topology %s\n",
-            maskString, P->parmName);
+            maskString, Pin->parmName);
     return 1;
   }
 
@@ -120,8 +130,8 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
   //       mask. Could check to see which will be bigger.
   Nselected=0;
   if (Selected!=NULL) free(Selected);
-  Selected = (int*) malloc( P->natom * sizeof(int) );
-  for (atom=0; atom<P->natom; atom++) {
+  Selected = (int*) malloc( Pin->natom * sizeof(int) );
+  for (atom=0; atom<Pin->natom; atom++) {
     if (mask[atom]==maskChar) {
       Selected[Nselected]=atom;
       Nselected++;
@@ -133,7 +143,7 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
   if (debug>0) {
     if (invertMask)
       mprintf("          Inverse of Mask %s corresponds to %i atoms.\n",
-              maskString,P->natom - Nselected);
+              maskString,Pin->natom - Nselected);
     else
       mprintf("          Mask %s corresponds to %i atoms.\n",maskString,Nselected);
   }

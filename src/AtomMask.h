@@ -12,8 +12,8 @@
  */
 #include "AmberParm.h"
 class AtomMask {
-    AmberParm *P;     // Topology that selection is based on
-    int N;            // Current position in Selected
+//    AmberParm *P;     // Topology that selection is based on
+//    int N;            // Current position in Selected
     int debug;
   public:
     bool invertMask;  // If true atoms outside the mask will be selected.
@@ -25,9 +25,10 @@ class AtomMask {
 //    AtomMask(int);
     ~AtomMask();
 
-    AtomMask *Copy();
-    int None();
-    void SetMaskString(char*);
-    int SetupMask(AmberParm*,int);
+    AtomMask *Copy();              // Return a copy of this mask
+    void AddAtom(int atom);        // Add given atom to mask
+    bool None();                   // Return true if Nselected==0
+    void SetMaskString(char*);     // Set the mask string. If NULL, set * (all)
+    int SetupMask(AmberParm*,int); // Set up Selected based on maskString and given parm
 };
 #endif
