@@ -27,6 +27,7 @@ class Frame {
                    // information such as mass is passed in during frame creation.
 
     Frame(int, double*);
+    Frame(AtomMask *, double *);
     ~Frame();
     void printAtomCoord(int);
     void SetCoord(double *, int);
@@ -52,6 +53,7 @@ class Frame {
     double DIHEDRAL(AtomMask *, AtomMask *, AtomMask *, AtomMask *);
     double RADGYR(AtomMask *, bool, double *);
     void SetFrameFromMask(Frame*, AtomMask *);
+    int SetFrameCoordsFromMask(double *, AtomMask *);
     void Translate(double *);
     void Translate(double *, int, int);
     void Rotate(double *);

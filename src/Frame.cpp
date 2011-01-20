@@ -29,6 +29,28 @@ Frame::Frame(int natomIn, double *MassIn) {
   recip[6]=0; recip[7]=0; recip[8]=0;
 }
 
+// CONSTRUCTOR, Create Frame based on size of mask. Put correct masses in.
+Frame::Frame(AtomMask *Mask, double *MassIn) {
+  natom = Mask->Nselected;
+  N = natom * 3;
+  X = (double*) malloc(N * sizeof(double));
+  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
+  T=0.0;
+  V=NULL;
+  // Copy Mass info if present
+  if (MassIn!=NULL) {
+    Mass = (double*) malloc(natom * sizeof(double));
+    for (int i=0; i < Mask->Nselected; i++)
+      Mass[i] = MassIn[ Mask->Selected[i] ];
+  }
+  ucell[0]=0; ucell[1]=0; ucell[2]=0;
+  ucell[3]=0; ucell[4]=0; ucell[5]=0;
+  ucell[6]=0; ucell[7]=0; ucell[8]=0;
+  recip[0]=0; recip[1]=0; recip[2]=0;
+  recip[3]=0; recip[4]=0; recip[5]=0;
+  recip[6]=0; recip[7]=0; recip[8]=0;
+}
+
 // DESTRUCTOR
 Frame::~Frame() {
   if (X!=NULL) free(X);
@@ -886,8 +908,10 @@ double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
 
 /*
  * Frame::SetFrameFromMask()
- * Given an AtomMask with Nselected atoms and atom numbers corresponding to
- * FrameIn, set the coordinates of this frame.
+ * Given an existing Frame and an AtomMask (with Nselected atoms and atom 
+ * numbers corresponding to FrameIn), set this Frame to be a copy of FrameIn
+ * according to Mask. If the number of atoms in the Mask is greater than
+ * this frame has been set up for, resize this Frame accordingly. 
  * For this to work properly AtomMask needs to have been setup based on 
  * FrameIn, although this is not explicitly checked for.
  */
@@ -907,12 +931,13 @@ void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
     N = natom * 3;
   }
 
+  newatom3 = 0;
   for (i=0; i < Mask->Nselected; i++) {
     oldatom3 = Mask->Selected[i] * 3;
-    newatom3 = i * 3;
     this->X[newatom3  ] = FrameIn->X[oldatom3  ];
     this->X[newatom3+1] = FrameIn->X[oldatom3+1];
     this->X[newatom3+2] = FrameIn->X[oldatom3+2];
+    newatom3 += 3;
   }
 
   // Copy box/T as well
@@ -934,6 +959,32 @@ void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
       this->V = new Frame(FrameIn->V->natom, NULL);
     this->V->SetFrameFromMask(FrameIn->V, Mask);
   }
+}
+
+/*
+ * Frame::SetFrameCoordsFromMask()
+ * Like SetFrameFromMask except only copy the coordinates. Unlike
+ * SetFrameFromMask the #atoms in this Frame must match the 
+ * #selected atoms in Mask.
+ */
+int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
+  int i,oldatom3,newatom3;
+
+  if (Mask->Nselected != natom) {
+    mprintf("Internal Error: Frame::SetFrameCoordsFromMask: Frame set for %i atoms\n",natom);
+    mprintf("                but attempting to set %i atoms.\n",Mask->Nselected);
+    return 1;
+  }
+
+  newatom3 = 0;
+  for (i=0; i < Mask->Nselected; i++) {
+    oldatom3 = Mask->Selected[i] * 3;
+    this->X[newatom3  ] = Xin[oldatom3  ];
+    this->X[newatom3+1] = Xin[oldatom3+1];
+    this->X[newatom3+2] = Xin[oldatom3+2];
+    newatom3 += 3;
+  }
+  return 0;
 }
 
 /*

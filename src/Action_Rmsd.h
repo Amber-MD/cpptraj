@@ -18,6 +18,8 @@ class Rmsd: public Action {
     char *perresmask;                   // Additional mask to apply to 
     bool perrescenter;                  // Move residues to common COM before rms calc
     bool perresinvert;                  // If true rows will contain set info instead of cols
+    Frame *ResFrame;                    // Hold residue coords
+    Frame *ResRefFrame;                 // Hold residue reference coords.
     // ------------------------ 
     AtomMask RefMask, FrameMask;        // Frame and reference masks.
     bool nofit, first, perres, useMass; // Action options

@@ -20,6 +20,8 @@ Rmsd::Rmsd() {
   RefParm=NULL;
   SelectedRef=NULL;
   SelectedFrame=NULL;
+  ResFrame=NULL;
+  ResRefFrame=NULL;
   perresmask=NULL;
   perrescenter=false;
   perresinvert=false;
@@ -33,6 +35,8 @@ Rmsd::~Rmsd() {
     delete RefFrame;
   if (SelectedRef!=NULL) delete SelectedRef;
   if (SelectedFrame!=NULL) delete SelectedFrame;
+  if (ResFrame!=NULL) delete ResFrame;
+  if (ResRefFrame!=NULL) delete ResRefFrame;
   if (PerResRMSD!=NULL) delete PerResRMSD;
   while ( !PerResMask.empty() ) {
     ResMask = PerResMask.back();
@@ -61,7 +65,7 @@ int Rmsd::SetRefMask() {
     return 1;
   }
   // Allocate frame for selected reference atoms
-  SelectedRef = new Frame(RefMask.Nselected, NULL);
+  SelectedRef = new Frame(&RefMask, RefParm->mass);
 
   return 0;
 }
@@ -210,7 +214,7 @@ int Rmsd::setup() {
   // NOTE: Should masses be passed in to trigger the Alloc even though the vals will
   //       be wrong initially until set by SetFrameFromMask in action?
   if (SelectedFrame!=NULL) delete SelectedFrame;
-  SelectedFrame = new Frame(FrameMask.Nselected, NULL);
+  SelectedFrame = new Frame(&FrameMask, P->mass);
   
   // first: If RefParm not set, set it here and set the reference mask.
   //        Should only occur once.
@@ -238,14 +242,20 @@ int Rmsd::setup() {
   // If perres was specified, need a data set for each residue
   // Currently perres will only work for the first parmtop used
   // NOTE THAT ALL RESIDUES FROM INPUT SHOULD BE SHIFTED BY -1
-  if (PerResRMSD==NULL && perres) {
+  if (PerResRMSD!=NULL && perres) {
+    // This is the second parm for which perres is being called for. No good
+    // since it would make the output very confusing.
+    mprintf("    Error: Rmsd::setup: The perres option can only be used for 1 topology file.\n");
+    mprintf("           Skipping [%s].\n",this->CmdLine());
+    return 1;
+  } else if (PerResRMSD==NULL && perres) {
     // If no range specified do all solute residues.
     if (ResRange==NULL) {
       if (P->finalSoluteRes>0)
         nres = P->finalSoluteRes;
       else
         nres=P->nres;
-      // Has to match user input where resnums start from 1
+      // Has to match user input where residue nums start from 1
       // Since ArgToRange returns up to and including, want 1-nres
       sprintf(resArg,"%i-%i",1,nres);
       ResRange = A->NextArgToRange(resArg);
@@ -265,7 +275,7 @@ int Rmsd::setup() {
       // Setup Dataset Name to be name of this residue 
       P->ResName(resName,(*it)-1);
       
-      // Setup mask strings - masks are based off user resnums
+      // Setup mask strings - masks are based off user residue nums
       sprintf(resArg,":%i%s",*it,perresmask);
       sprintf(refArg,":%i%s",refRes,perresmask);
       //mprintf("DEBUG: RMSD: PerRes: Mask %s RefMask %s\n",resArg,refArg);
@@ -335,6 +345,12 @@ int Rmsd::setup() {
       if (Current!=NULL)
         Current->SetInverted();
     }
+    // Allocate memory for residue reference frame. Will be dynamically resized during action
+    if (ResRefFrame==NULL)
+      ResRefFrame = new Frame(RefParm->natom, RefParm->mass);
+    // Allocate memory for residue frame. Will be dynamically resized during action
+    if (ResFrame==NULL)
+      ResFrame = new Frame(P->natom, P->mass);
   }
 
   return 0;
@@ -357,10 +373,10 @@ int Rmsd::action() {
     RefFrame = F->Copy();
 
   // Set selected reference atoms - always done since RMS fit modifies SelectedRef 
-  SelectedRef->SetFrameFromMask(RefFrame, &RefMask);
+  SelectedRef->SetFrameCoordsFromMask(RefFrame->X, &RefMask);
 
   // Set selected frame atoms
-  SelectedFrame->SetFrameFromMask(F, &FrameMask);
+  SelectedFrame->SetFrameCoordsFromMask(F->X, &FrameMask);
 
   // DEBUG
 /*  mprintf("  DEBUG: RMSD: First atom coord in SelectedFrame is : "); 
@@ -381,21 +397,21 @@ int Rmsd::action() {
   rmsd->Add(currentFrame, &R);
 
   // Per Residue RMSD - Set reference and selected frame for each mask in PerResMask
+  // Use SetFrameFromMask since each residue can be a different size
   if (perres) {
     res=0;
     for (it = PerResMask.begin(); it!=PerResMask.end(); it++) {
-      SelectedRef->SetFrameFromMask(RefFrame, PerRefMask[res]);
-      SelectedFrame->SetFrameFromMask(F, (*it));
+      ResRefFrame->SetFrameFromMask(RefFrame, PerRefMask[res]);
+      ResFrame->SetFrameFromMask(F, (*it));
       if (perrescenter) 
-        SelectedFrame->ShiftToCenter(SelectedRef); 
-      R = SelectedFrame->RMSD(SelectedRef,useMass);
+        ResFrame->ShiftToCenter(ResRefFrame); 
+      R = ResFrame->RMSD(ResRefFrame,useMass);
       //mprintf("DEBUG:           Res %i nofit RMSD = %lf\n",res,R);
       // NOTE: Should check for error on AddData?
       PerResRMSD->AddData(currentFrame, &R, res);
       res++;
     }
   }
-  
 
   return 0;
 }
