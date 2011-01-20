@@ -81,7 +81,7 @@ int ActionMask::action() {
     res = P->atomToResidue(atom);
     outfile.IO->Printf("%8i %8i %4s %8i %4s %8i",
                        currentFrame+OUTPUTFRAMESHIFT,atom+1, P->names[atom], res+1,
-            P->resnames[res], P->atomToMolecule(atom)+1);
+            P->ResidueName(res), P->atomToMolecule(atom)+1);
     /*mprintf(" Type=%4s",P->types[atom]);
     mprintf(" Charge=%lf",P->charge[atom]);
     mprintf(" Mass=%lf",P->mass[atom]);*/

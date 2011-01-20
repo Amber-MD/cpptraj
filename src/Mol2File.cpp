@@ -151,7 +151,7 @@ int Mol2File::writeFrame(int set) {
     if (P->charge!=NULL) Charge = P->charge[atom]; 
     File->IO->Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-4s %6i %-6s %10.6lf\n",
                      atom+1, P->names[atom], F->X[atom3], F->X[atom3+1], F->X[atom3+2],
-                     Types[atom], res+1, P->resnames[res], Charge);
+                     Types[atom], res+1, P->ResidueName(res), Charge);
     atom3+=3;
   }
 
@@ -179,7 +179,7 @@ int Mol2File::writeFrame(int set) {
   File->IO->Printf("@<TRIPOS>SUBSTRUCTURE\n");
   for (res = 0; res < P->nres; res++) {
     File->IO->Printf("%7d %4s %14d ****               0 ****  **** \n",
-                      res+1, P->resnames[res],P->resnums[res]+1);
+                      res+1, P->ResidueName(res),P->resnums[res]+1);
   }
 
   File->IO->Close();

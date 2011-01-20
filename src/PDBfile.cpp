@@ -112,6 +112,7 @@ int PDBfile::SetupWrite( ) {
 int PDBfile::writeFrame(int set) {
   int i,i3,res, resOut;
   double Occ, B;
+  char *parmResName;
   char resName[5];
 
   res=0; resOut=0; Occ=0.0; B=0.0;
@@ -125,12 +126,13 @@ int PDBfile::writeFrame(int set) {
     // Residue names in PDB format are 3 chars long starting at column 18. 
     // However in Amber residues are 4 characters long, usually with a space
     // at the end. If this is the case remove the space so that the residue name
-    // lines up properly. 
-    resName[0] = P->resnames[res][0];
-    resName[1] = P->resnames[res][1];
-    resName[2] = P->resnames[res][2];
-    if (P->resnames[res][3]!=' ')
-      resName[3] = P->resnames[res][3];
+    // lines up properly.
+    parmResName = P->ResidueName(res);
+    resName[0] = parmResName[0];
+    resName[1] = parmResName[1];
+    resName[2] = parmResName[2];
+    if (parmResName[3]!=' ')
+      resName[3] = parmResName[3];
     else
       resName[3] = '\0';
     File->IO->Printf("%-6s%5i %-4s%4s %c%4i    %8.3lf%8.3lf%8.3lf%6.2lf%6.2lf%14s\n",
