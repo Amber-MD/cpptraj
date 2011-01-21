@@ -17,6 +17,7 @@
 #include "Action_Radgyr.h"
 #include "Action_Mask.h"
 #include "Action_Closest.h"
+#include "Action_NAstruct.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -51,10 +52,9 @@ void PtrajActionList::SetDebug(int debugIn) {
 int PtrajActionList::Add(ArgList *A) {
   Action *Act;
 
-  // Decide what action this is
-  // Constructor should set the type
+  // Decide what action this is based on the command.
   if      (A->CommandIs("distance")) {Act=new Distance;}
-  else if (A->CommandIs("rmsd",3))     {Act=new Rmsd;    }
+  else if (A->CommandIs("rmsd",3))   {Act=new Rmsd;    }
   else if (A->CommandIs("dihedral")) {Act=new Dihedral;}
   else if (A->CommandIs("atommap"))  {Act=new AtomMap; }
   else if (A->CommandIs("angle"))    {Act=new Angle;   }
@@ -67,6 +67,7 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("radgyr"))   {Act=new Radgyr;  }
   else if (A->CommandIs("mask"))     {Act=new ActionMask;  }
   else if (A->CommandIs("closest"))  {Act=new Closest;}
+  else if (A->CommandIs("nastruct")) {Act=new NAstruct;}
   else return 1; 
 
   // Pass in the argument list
@@ -97,8 +98,8 @@ int PtrajActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL) {
     } else {
       ActionList[act]->ResetArg();
       if ( ActionList[act]->Init( DSL, FL, DFL, debug ) ) {
-        mprintf("    WARNING: Init failed for action %s: DEACTIVATING\n",
-                ActionList[act]->Name());
+        mprintf("    WARNING: Init failed for [%s]: DEACTIVATING\n",
+                ActionList[act]->CmdLine());
         ActionList[act]->noInit=1;
       }
     }
@@ -126,8 +127,8 @@ int PtrajActionList::Setup(AmberParm **ParmAddress) {
       ActionList[act]->noSetup=0;
       ActionList[act]->ResetArg();
       if (ActionList[act]->Setup(ParmAddress)) {
-        mprintf("      WARNING: Setup failed for action %i: %s: Skipping\n",
-                act, ActionList[act]->Name());
+        mprintf("      WARNING: Setup failed for [%s]: Skipping\n",
+                ActionList[act]->CmdLine());
         ActionList[act]->noSetup=1;
         //return 1;
       }

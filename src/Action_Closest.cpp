@@ -252,17 +252,19 @@ int Closest::action() {
   std::list<MolDist> Distances;
   MolDist moldist;
   int solventMol, solventAtom, maskPosition, atom;
-  double minD, Dist, maxD;
+  double minD, Dist, maxD, ucell[9], recip[9];
 
-  if (imageType>0) F->BoxToRecip();
+  if (imageType>0) F->BoxToRecip(ucell, recip);
   Distances.clear();
   // Calculate max distance
   maxD = F->box[0] + F->box[1] + F->box[2];
   maxD = maxD * maxD;
   // Loop over all solvent molecules in original frame
+#ifdef _OPENMP
 #pragma omp parallel private(solventMol,moldist,minD,atom,Dist,solventAtom)
 {
 #pragma omp for
+#endif
   for (solventMol=0; solventMol < oldParm->solventMolecules; solventMol++) {
     moldist.mol = oldParm->firstSolvMol + solventMol;
 
@@ -276,13 +278,14 @@ int Closest::action() {
 
     // Calculate distance between each atom in Mask1 and atoms in solvent Mask
     for (atom = 0; atom < Mask1.Nselected; atom++) {
-      Dist = F->DIST2(Mask1.Selected[atom], MaskList[solventMol]->Selected[0], imageType);
+      Dist = F->DIST2(Mask1.Selected[atom], MaskList[solventMol]->Selected[0], imageType, ucell, recip);
       if (Dist < minD) minD=Dist;
       //fprintf(stdout,"D atom %i %i = %lf image %i\n",Mask1.Selected[atom],
       //        MaskList[solventMol]->Selected[0],minD,imageType);
       if (!firstAtom) {
         for (solventAtom=1; solventAtom<MaskList[solventMol]->Nselected; solventAtom++) {
-          Dist = F->DIST2(Mask1.Selected[atom], MaskList[solventMol]->Selected[solventAtom],imageType);
+          Dist = F->DIST2(Mask1.Selected[atom], MaskList[solventMol]->Selected[solventAtom],imageType,
+                          ucell, recip);
           if (Dist < minD) minD=Dist;
         }
       }
@@ -294,8 +297,10 @@ int Closest::action() {
  
     moldist.mask = MaskList[solventMol];
     Distances.push_back(moldist);
-  } // END for loop over solventMol    
+  } // END for loop over solventMol
+#ifdef _OPENMP
 } // END pragma omp parallel
+#endif
 
   // Sort distances
   Distances.sort( moldist_cmp() );

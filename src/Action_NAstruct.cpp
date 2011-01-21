@@ -3,21 +3,65 @@
 #include <cstring>
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
+// DEBUG
+#include "PDBfileRoutines.h"
 
 // CONSTRUCTOR
 NAstruct::NAstruct() {
   //fprintf(stderr,"NAstruct Con\n");
   resRange=NULL;
   outFilename=NULL;
+  REF_TEMP=NULL;
+  EXP_TEMP=NULL;
+  BasePair=NULL;
+  Nbp=0;
+  Nbases=0;
 } 
 
 // DESTRUCTOR
 NAstruct::~NAstruct() { 
   if (resRange!=NULL) delete resRange;
-  for (std::list<AxisType*>::iterator it=RefCoords.begin(); it!=RefCoords.end(); it++) {
-    if ( (*it)->F!=NULL ) delete (*it)->F;
-    if ( (*it)->Name!=NULL) free( (*it)->Name );
-    free(*it);
+  ClearLists();
+  if (REF_TEMP!=NULL) delete REF_TEMP;
+  if (EXP_TEMP!=NULL) delete EXP_TEMP;
+}
+
+// Allocate memory for axis
+NAstruct::AxisType *NAstruct::AllocAxis(int N) {
+  AxisType *axis;
+  axis = (AxisType *) malloc(sizeof(AxisType));
+  if (axis==NULL) {
+    mprintf("Error: NAstruct::AllocAxis: Could not allocate axis memory for %i atoms.\n",N);
+  }
+  axis->F= new Frame(N,NULL);
+  axis->Name = (AmberParm::NAME*) malloc(N * sizeof(AmberParm::NAME));
+  return axis;
+}
+
+// Free Memory allocated by axis
+void NAstruct::FreeAxis( AxisType *axis ) {
+  if (axis->F!=NULL) delete axis->F;
+  if (axis->Name!=NULL) free(axis->Name);
+  free(axis);
+}
+
+// Clear all parm-dependent lists
+void NAstruct::ClearLists() {
+  while (!RefCoords.empty()) {
+    FreeAxis( RefCoords.back() );
+    RefCoords.pop_back();
+  }
+  while (!BaseAxes.empty()) {
+    FreeAxis( BaseAxes.back() );
+    BaseAxes.pop_back();
+  }
+  while (!ExpMasks.empty()) {
+    delete ExpMasks.back();
+    ExpMasks.pop_back();
+  }
+  while (!ExpFrames.empty()) {
+    delete ExpFrames.back();
+    ExpFrames.pop_back();
   }
 }
 
@@ -50,81 +94,106 @@ NAstruct::NAbaseType NAstruct::ID_base(char *resname) {
   return UNKNOWN_BASE;
 }
 
+/* PREPROCESSOR MACRO
+ * setPrincipalAxes
+ * Set coords of X to principal Axes
+ */
+#define setPrincipalAxes(X) { \
+  X[0]=1.0; X[3]=0.0; X[6]=0.0; X[9 ]=0.0; \
+  X[1]=0.0; X[4]=1.0; X[7]=0.0; X[10]=0.0; \
+  X[2]=0.0; X[5]=0.0; X[8]=1.0; X[11]=0.0; }
+
+/*
+ * NAstruct::principalAxes()
+ * Set up a coordinate type with vectors of size 1.0 pointing along the x,
+ * y, and z axes.
+ */
+NAstruct::AxisType *NAstruct::principalAxes() {
+  AxisType *axis;
+
+  axis = AllocAxis(4);
+//  F->X[0]=1.0; F->X[3]=0.0; F->X[6]=0.0; F->X[9 ]=0.0;
+//  F->X[1]=0.0; F->X[4]=1.0; F->X[7]=0.0; F->X[10]=0.0;
+//  F->X[2]=0.0; F->X[5]=0.0; F->X[8]=1.0; F->X[11]=0.0;
+  setPrincipalAxes(axis->F->X);
+  strcpy(axis->Name[0],"X");
+  strcpy(axis->Name[1],"Y");
+  strcpy(axis->Name[2],"Z");
+  strcpy(axis->Name[3],"Orig");
+   
+  return axis;
+}
+
 /*
  * NAstruct::getRefCoords()
  * Allocate and set the coordinates to a standard ref. for the given base type.
- * Also set target atom names.
+ * Also set target atom names. Atom Names should be 4 chars long, AMBER.
  * Coords taken from Olson et al. JMB (2001) 313, 229-237.
  */
 NAstruct::AxisType *NAstruct::getRefCoords( NAbaseType btype) {
   AxisType *axis;
-  Frame *F;
+  Frame *AF;
 
-  F=NULL;
-  axis = (AxisType *) malloc(sizeof(AxisType));
-  if (axis==NULL) {
-    mprintf("Error: NAstruct::getRefCoords: Could not allocate memory for coords.\n");
-    return NULL;
-  }
-  axis->Name=NULL;
+  axis=NULL; 
+  AF=NULL;
   switch (btype) {
     case DA :
-      F = new Frame(11,NULL);
-      axis->Name = (NAME*) malloc(11*sizeof(NAME));
-      F->X[0 ]=-2.479000; F->X[1 ]= 5.346000; F->X[2 ]= 0.000000; strcpy(axis->Name[0 ],"C1'");
-      F->X[3 ]=-1.291000; F->X[4 ]= 4.498000; F->X[5 ]= 0.000000; strcpy(axis->Name[1 ],"N9");
-      F->X[6 ]= 0.024000; F->X[7 ]= 4.897000; F->X[8 ]= 0.000000; strcpy(axis->Name[2 ],"C8");
-      F->X[9 ]= 0.877000; F->X[10]= 3.902000; F->X[11]= 0.000000; strcpy(axis->Name[3 ],"N7");
-      F->X[12]= 0.071000; F->X[13]= 2.771000; F->X[14]= 0.000000; strcpy(axis->Name[4 ],"C5");
-      F->X[15]= 0.369000; F->X[16]= 1.398000; F->X[17]= 0.000000; strcpy(axis->Name[5 ],"C6");
-      F->X[18]= 1.611000; F->X[19]= 0.909000; F->X[20]= 0.000000; strcpy(axis->Name[6 ],"N6");
-      F->X[21]=-0.668000; F->X[22]= 0.532000; F->X[23]= 0.000000; strcpy(axis->Name[7 ],"N1");
-      F->X[24]=-1.912000; F->X[25]= 1.023000; F->X[26]= 0.000000; strcpy(axis->Name[8 ],"C2");
-      F->X[27]=-2.320000; F->X[28]= 2.290000; F->X[29]= 0.000000; strcpy(axis->Name[9 ],"N3");
-      F->X[30]=-1.267000; F->X[31]= 3.124000; F->X[32]= 0.000000; strcpy(axis->Name[10],"C4");
+      if ( (axis = AllocAxis(11))==NULL ) return NULL;
+      AF = axis->F;
+      AF->X[0 ]=-2.479000; AF->X[1 ]= 5.346000; AF->X[2 ]= 0.000000; strcpy(axis->Name[0 ],"C1' ");
+      AF->X[3 ]=-1.291000; AF->X[4 ]= 4.498000; AF->X[5 ]= 0.000000; strcpy(axis->Name[1 ],"N9  ");
+      AF->X[6 ]= 0.024000; AF->X[7 ]= 4.897000; AF->X[8 ]= 0.000000; strcpy(axis->Name[2 ],"C8  ");
+      AF->X[9 ]= 0.877000; AF->X[10]= 3.902000; AF->X[11]= 0.000000; strcpy(axis->Name[3 ],"N7  ");
+      AF->X[12]= 0.071000; AF->X[13]= 2.771000; AF->X[14]= 0.000000; strcpy(axis->Name[4 ],"C5  ");
+      AF->X[15]= 0.369000; AF->X[16]= 1.398000; AF->X[17]= 0.000000; strcpy(axis->Name[5 ],"C6  ");
+      AF->X[18]= 1.611000; AF->X[19]= 0.909000; AF->X[20]= 0.000000; strcpy(axis->Name[6 ],"N6  ");
+      AF->X[21]=-0.668000; AF->X[22]= 0.532000; AF->X[23]= 0.000000; strcpy(axis->Name[7 ],"N1  ");
+      AF->X[24]=-1.912000; AF->X[25]= 1.023000; AF->X[26]= 0.000000; strcpy(axis->Name[8 ],"C2  ");
+      AF->X[27]=-2.320000; AF->X[28]= 2.290000; AF->X[29]= 0.000000; strcpy(axis->Name[9 ],"N3  ");
+      AF->X[30]=-1.267000; AF->X[31]= 3.124000; AF->X[32]= 0.000000; strcpy(axis->Name[10],"C4  ");
       break;
     case DC :
-      F = new Frame(9,NULL);
-      axis->Name = (NAME*) malloc(9*sizeof(NAME));
-      F->X[0 ]=-2.477000; F->X[1 ]= 5.402000; F->X[2 ]= 0.000000; strcpy(axis->Name[0],"C1'");
-      F->X[3 ]=-1.285000; F->X[4 ]= 4.542000; F->X[5 ]= 0.000000; strcpy(axis->Name[1],"N1");
-      F->X[6 ]=-1.472000; F->X[7 ]= 3.158000; F->X[8 ]= 0.000000; strcpy(axis->Name[2],"C2");
-      F->X[9 ]=-2.628000; F->X[10]= 2.709000; F->X[11]= 0.000000; strcpy(axis->Name[3],"O2");
-      F->X[12]=-0.391000; F->X[13]= 2.344000; F->X[14]= 0.000000; strcpy(axis->Name[4],"N3");
-      F->X[15]= 0.837000; F->X[16]= 2.868000; F->X[17]= 0.000000; strcpy(axis->Name[5],"C4");
-      F->X[18]= 1.875000; F->X[19]= 2.027000; F->X[20]= 0.000000; strcpy(axis->Name[6],"N4");
-      F->X[21]= 1.056000; F->X[22]= 4.275000; F->X[23]= 0.000000; strcpy(axis->Name[7],"C5");
-      F->X[24]=-0.023000; F->X[25]= 5.068000; F->X[26]= 0.000000; strcpy(axis->Name[8],"C6");
+      if ( (axis = AllocAxis(9))==NULL ) return NULL;
+      AF = axis->F;
+      AF->X[0 ]=-2.477000; AF->X[1 ]= 5.402000; AF->X[2 ]= 0.000000; strcpy(axis->Name[0],"C1' ");
+      AF->X[3 ]=-1.285000; AF->X[4 ]= 4.542000; AF->X[5 ]= 0.000000; strcpy(axis->Name[1],"N1  ");
+      AF->X[6 ]=-1.472000; AF->X[7 ]= 3.158000; AF->X[8 ]= 0.000000; strcpy(axis->Name[2],"C2  ");
+      AF->X[9 ]=-2.628000; AF->X[10]= 2.709000; AF->X[11]= 0.000000; strcpy(axis->Name[3],"O2  ");
+      AF->X[12]=-0.391000; AF->X[13]= 2.344000; AF->X[14]= 0.000000; strcpy(axis->Name[4],"N3  ");
+      AF->X[15]= 0.837000; AF->X[16]= 2.868000; AF->X[17]= 0.000000; strcpy(axis->Name[5],"C4  ");
+      AF->X[18]= 1.875000; AF->X[19]= 2.027000; AF->X[20]= 0.000000; strcpy(axis->Name[6],"N4  ");
+      AF->X[21]= 1.056000; AF->X[22]= 4.275000; AF->X[23]= 0.000000; strcpy(axis->Name[7],"C5  ");
+      AF->X[24]=-0.023000; AF->X[25]= 5.068000; AF->X[26]= 0.000000; strcpy(axis->Name[8],"C6  ");
       break;
     case DG :
-      F = new Frame(12,NULL);
-      axis->Name = (NAME*) malloc(12*sizeof(NAME));
-      F->X[0 ]=-2.477000; F->X[1 ]= 5.399000; F->X[2 ]= 0.000000; strcpy(axis->Name[0],"C1'");
-      F->X[3 ]=-1.289000; F->X[4 ]= 4.551000; F->X[5 ]= 0.000000; strcpy(axis->Name[1],"N9");
-      F->X[6 ]= 0.023000; F->X[7 ]= 4.962000; F->X[8 ]= 0.000000; strcpy(axis->Name[2],"C8");
-      F->X[9 ]= 0.870000; F->X[10]= 3.969000; F->X[11]= 0.000000; strcpy(axis->Name[3],"N7");
-      F->X[12]= 0.071000; F->X[13]= 2.833000; F->X[14]= 0.000000; strcpy(axis->Name[4],"C5");
-      F->X[15]= 0.424000; F->X[16]= 1.460000; F->X[17]= 0.000000; strcpy(axis->Name[5],"C6");
-      F->X[18]= 1.554000; F->X[19]= 0.955000; F->X[20]= 0.000000; strcpy(axis->Name[6],"O6");
-      F->X[21]=-0.700000; F->X[22]= 0.641000; F->X[23]= 0.000000; strcpy(axis->Name[7],"N1");
-      F->X[24]=-1.999000; F->X[25]= 1.087000; F->X[26]= 0.000000; strcpy(axis->Name[8],"C2");
-      F->X[27]=-2.949000; F->X[28]= 0.139000; F->X[29]=-0.001000; strcpy(axis->Name[9],"N2");
-      F->X[30]=-2.342000; F->X[31]= 2.364000; F->X[32]= 0.001000; strcpy(axis->Name[10],"N3");
-      F->X[33]=-1.265000; F->X[34]= 3.177000; F->X[35]= 0.000000; strcpy(axis->Name[11],"C4");
+      if ( (axis = AllocAxis(12))==NULL ) return NULL;
+      AF = axis->F;
+      AF->X[0 ]=-2.477000; AF->X[1 ]= 5.399000; AF->X[2 ]= 0.000000; strcpy(axis->Name[0],"C1' ");
+      AF->X[3 ]=-1.289000; AF->X[4 ]= 4.551000; AF->X[5 ]= 0.000000; strcpy(axis->Name[1],"N9  ");
+      AF->X[6 ]= 0.023000; AF->X[7 ]= 4.962000; AF->X[8 ]= 0.000000; strcpy(axis->Name[2],"C8  ");
+      AF->X[9 ]= 0.870000; AF->X[10]= 3.969000; AF->X[11]= 0.000000; strcpy(axis->Name[3],"N7  ");
+      AF->X[12]= 0.071000; AF->X[13]= 2.833000; AF->X[14]= 0.000000; strcpy(axis->Name[4],"C5  ");
+      AF->X[15]= 0.424000; AF->X[16]= 1.460000; AF->X[17]= 0.000000; strcpy(axis->Name[5],"C6  ");
+      AF->X[18]= 1.554000; AF->X[19]= 0.955000; AF->X[20]= 0.000000; strcpy(axis->Name[6],"O6  ");
+      AF->X[21]=-0.700000; AF->X[22]= 0.641000; AF->X[23]= 0.000000; strcpy(axis->Name[7],"N1  ");
+      AF->X[24]=-1.999000; AF->X[25]= 1.087000; AF->X[26]= 0.000000; strcpy(axis->Name[8],"C2  ");
+      AF->X[27]=-2.949000; AF->X[28]= 0.139000; AF->X[29]=-0.001000; strcpy(axis->Name[9],"N2  ");
+      AF->X[30]=-2.342000; AF->X[31]= 2.364000; AF->X[32]= 0.001000; strcpy(axis->Name[10],"N3  ");
+      AF->X[33]=-1.265000; AF->X[34]= 3.177000; AF->X[35]= 0.000000; strcpy(axis->Name[11],"C4  ");
       break;
     case DT :
-      F = new Frame(10,NULL);
-      axis->Name = (NAME*) malloc(10*sizeof(NAME));
-      F->X[0 ]=-2.481000; F->X[1 ]= 5.354000; F->X[2 ]=0.000000; strcpy(axis->Name[0],"C1'");
-      F->X[3 ]=-1.284000; F->X[4 ]= 4.500000; F->X[5 ]=0.000000; strcpy(axis->Name[1],"N1");
-      F->X[6 ]=-1.462000; F->X[7 ]= 3.135000; F->X[8 ]=0.000000; strcpy(axis->Name[2],"C2");
-      F->X[9 ]=-2.562000; F->X[10]= 2.608000; F->X[11]=0.000000; strcpy(axis->Name[3],"O2");
-      F->X[12]=-0.298000; F->X[13]= 2.407000; F->X[14]=0.000000; strcpy(axis->Name[4],"N3");
-      F->X[15]= 0.994000; F->X[16]= 2.897000; F->X[17]=0.000000; strcpy(axis->Name[5],"C4");
-      F->X[18]= 1.944000; F->X[19]= 2.119000; F->X[20]=0.000000; strcpy(axis->Name[6],"O4");
-      F->X[21]= 1.106000; F->X[22]= 4.338000; F->X[23]=0.000000; strcpy(axis->Name[7],"C5");
-      F->X[24]= 2.466000; F->X[25]= 4.961000; F->X[26]=0.001000; strcpy(axis->Name[8],"C5M");
-      F->X[27]=-0.024000; F->X[28]= 5.057000; F->X[29]=0.000000; strcpy(axis->Name[9],"C6");
+      if ( (axis = AllocAxis(10))==NULL ) return NULL;
+      AF = axis->F;
+      AF->X[0 ]=-2.481000; AF->X[1 ]= 5.354000; AF->X[2 ]=0.000000; strcpy(axis->Name[0],"C1' ");
+      AF->X[3 ]=-1.284000; AF->X[4 ]= 4.500000; AF->X[5 ]=0.000000; strcpy(axis->Name[1],"N1  ");
+      AF->X[6 ]=-1.462000; AF->X[7 ]= 3.135000; AF->X[8 ]=0.000000; strcpy(axis->Name[2],"C2  ");
+      AF->X[9 ]=-2.562000; AF->X[10]= 2.608000; AF->X[11]=0.000000; strcpy(axis->Name[3],"O2  ");
+      AF->X[12]=-0.298000; AF->X[13]= 2.407000; AF->X[14]=0.000000; strcpy(axis->Name[4],"N3  ");
+      AF->X[15]= 0.994000; AF->X[16]= 2.897000; AF->X[17]=0.000000; strcpy(axis->Name[5],"C4  ");
+      AF->X[18]= 1.944000; AF->X[19]= 2.119000; AF->X[20]=0.000000; strcpy(axis->Name[6],"O4  ");
+      AF->X[21]= 1.106000; AF->X[22]= 4.338000; AF->X[23]=0.000000; strcpy(axis->Name[7],"C5  ");
+      AF->X[24]= 2.466000; AF->X[25]= 4.961000; AF->X[26]=0.001000; strcpy(axis->Name[8],"C7  ");
+      AF->X[27]=-0.024000; AF->X[28]= 5.057000; AF->X[29]=0.000000; strcpy(axis->Name[9],"C6  ");
       break;
     case RA:
     case RC:
@@ -133,10 +202,50 @@ NAstruct::AxisType *NAstruct::getRefCoords( NAbaseType btype) {
     case UNKNOWN_BASE:
       mprintf("Warning: NAstruct missing parameters for residue.\n");
   }
-  
-  axis->F = F;
 
   return axis;
+}
+
+/*
+ * DEBUG: AxisToPDB
+ */
+void NAstruct::AxisToPDB(PtrajFile *outfile, AxisType *axis, int resnum, int *atom) {
+  char buffer[82];
+  int i3=0;
+  for (int i=0; i<axis->F->natom; i++) {
+    pdb_write_ATOM(buffer,"ATOM",(*atom)+i,axis->Name[i],P->ResidueName(resnum),'X',resnum+1,
+                   axis->F->X[i3],axis->F->X[i3+1],axis->F->X[i3+2],1.0,0.0,(char*)"\0");
+    outfile->IO->Write(buffer,sizeof(char),strlen(buffer));
+    i3+=3;
+  } 
+  (*atom) += axis->F->natom; 
+}
+
+/*
+ * NAstruct::determineBasePairing()
+ * Determine which bases are paired from the base axes.
+ */
+int NAstruct::determineBasePairing() {
+  double cutoff, distance;
+  std::vector<bool> isPaired( BaseAxes.size(), false);
+  int base1,base2;
+
+  cutoff=2.0;
+  
+  mprintf(" ==== Setup Base Pairing ==== \n");
+
+  /* For each unpaired base, determine if it is paired with another base
+   * determined by the distance between their axis origins.
+   */
+  for (base1=0; base1 < Nbases-1; base1++) {
+    if (isPaired[base1]) continue;
+    for (base2=base1+1; base2 < Nbases; base2++) {
+      if (isPaired[base2]) continue;
+       
+    }
+  }
+
+  return 0;
 }
 // ----------------------------------------------------------------------------
 
@@ -154,15 +263,10 @@ int NAstruct::init() {
   outFilename = A->getKeyString("out",NULL);
   rangeArg = A->getKeyString("resrange",NULL); 
   resRange = A->NextArgToRange(rangeArg); 
-
   // Get Masks
-  //mask1 = A->getNextMask();
-  //Mask1.SetMaskString(mask1);
-
   // Dataset
   // Add dataset to data file list
 
-  //mprintf("    NAstruct: %s\n",Mask1.maskString);
   mprintf("    NAstruct: ");
   if (resRange==NULL)
     mprintf("Scanning all NA residues");
@@ -182,71 +286,98 @@ int NAstruct::init() {
  */
 int NAstruct::setup() {
   int res, refAtom, atom;
-  std::list<int>::iterator it;
+  std::list<int>::iterator residue;
   AxisType *axis; 
-  //AtomMask *Mask;
+  AtomMask *Mask;
+  Frame *expframe;
+
+  // Clear all lists
+  ClearLists();
 
   // If range arg is NULL look for all NA residues.
   if (resRange==NULL) {
     resRange = new std::list<int>();
     for (res=0; res < P->nres; res++) {
-      if (ID_base(P->resnames[res])!=UNKNOWN_BASE)
+      if ( ID_base(P->ResidueName(res))!=UNKNOWN_BASE )
         resRange->push_back(res);
     }
 
-  // For each residue in resRange determine if it is a NA
+  // Otherwise, for each residue in resRange check if it is a NA
   } else {
-    it=resRange->begin();
-    while (it!=resRange->end()) {
+    residue=resRange->begin();
+    while (residue!=resRange->end()) {
       // User residues numbers start from 1
-      (*it) = (*it) - 1;
-      if (ID_base(P->ResidueName(*it))==UNKNOWN_BASE) 
-        it = resRange->erase(it);
+      (*residue) = (*residue) - 1;
+      if (ID_base(P->ResidueName(*residue))==UNKNOWN_BASE) 
+        residue = resRange->erase(residue);
       else 
-        it++;
+        residue++;
     }
   }
-
+  // Exit if no NA residues specified
   if (resRange->empty()) {
     mprintf("Error: NAstruct::setup: No NA residues found for %s\n",P->parmName);
     return 1;
   }
 
-  // DEBUG
+  // DEBUG - print all residues
   mprintf("    NAstruct: NA res:");
-  for (it=resRange->begin(); it!=resRange->end(); it++)
-    mprintf(" %i",(*it)+1);
+  for (residue=resRange->begin(); residue!=resRange->end(); residue++)
+    mprintf(" %i",(*residue)+1);
   mprintf("\n");
 
   // Set up reference coords for each NA residue
-  // NOTE: Should just be combined above later
-  for (it=resRange->begin(); it!=resRange->end(); it++) {
-    axis = getRefCoords( ID_base(P->ResidueName(*it)) );
+  for (residue=resRange->begin(); residue!=resRange->end(); residue++) {
+    axis = getRefCoords( ID_base(P->ResidueName(*residue)) );
     if (axis==NULL) {
-      mprintf("Error: NAstruct::setup: Could not get ref coords for %s\n",P->ResidueName(*it));
+      mprintf("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
+              (*residue)+1, P->ResidueName(*residue));
       return 1;
     }
     RefCoords.push_back( axis );
 
     // Set up a mask for this NA residue in this parm. The mask will contain
     // only those atoms which are defined in the reference coords.
-    //Mask = new AtomMask();
+    Mask = new AtomMask();
     for (refAtom=0; refAtom < axis->F->natom; refAtom++) {
       res = -1; // Target atom
-      for (atom=P->resnums[*it]; atom < P->resnums[(*it)+1]; atom++) {
+      //mprintf("      Ref atom: [%s]\n",axis->Name[refAtom]);
+      for (atom=P->resnums[*residue]; atom < P->resnums[(*residue)+1]; atom++) {
+        //mprintf("        Scanning %i [%s]\n", atom, P->names[atom]);
         if ( strcmp(axis->Name[refAtom], P->names[atom])==0 ) {
           res = atom;  
           break;
         }
       }
       if (res==-1) {
-        mprintf("Error:: NAstruct::setup: Ref atom %s not found in residue %i:%s\n",
-                 axis->Name[refAtom], *it, P->resnames[(*it)]);
+        mprintf("Error:: NAstruct::setup: Ref atom [%s] not found in residue %i:%s\n",
+                 axis->Name[refAtom], (*residue)+1, P->ResidueName(*residue));
         return 1;
       }
-      //Mask->AddAtom(res);
+      Mask->AddAtom(res);
     } // End Loop over reference atoms
+    if (Mask->None()) {
+      mprintf("Error:: NAstruct::setup: No atoms found for residue %i:%s\n",
+              (*residue)+1, P->ResidueName(*residue));
+      delete Mask;
+      return 1;
+    }
+    ExpMasks.push_back( Mask );
+    mprintf("      NAstruct: Res %i:%s mask atoms: ",(*residue)+1,P->ResidueName(*residue));
+    Mask->PrintMaskAtoms();
+    mprintf("\n");
+
+    // Set up frame to hold input coords for this residue
+    expframe = new Frame(Mask, P->mass);
+    ExpFrames.push_back( expframe );
+
+    // Set up initial axes for this NA residue.
+    // NOTE: OK to overwrite axis here since it has been pushed to RefCoords already.
+    axis = principalAxes();
+    BaseAxes.push_back( axis );
   } // End Loop over NA residues
+  Nbases = RefCoords.size(); // Also BaseAxes, ExpFrames, and ExpMasks size.
+  mprintf("    NAstruct: Set up %i bases.\n",Nbases);
 
   return 0;  
 }
@@ -255,14 +386,77 @@ int NAstruct::setup() {
  * NAstruct::action()
  */
 int NAstruct::action() {
-  //double Ang;
+  double rmsd, RotMatrix[9], TransVec[6];
+  int base;
+  AxisType *Origin;
+  // DEBUG
+  int res = 0;
+  int baseaxesatom = 0;
+  int basesatom = 0;
+  PtrajFile baseaxesfile;
+  PtrajFile basesfile;
+  baseaxesfile.SetupFile((char*)"baseaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
+  baseaxesfile.OpenFile();
+  basesfile.SetupFile((char*)"bases.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
+  basesfile.OpenFile();
+  // END DEBUG
 
-  //Ang=F->ANGLE(&Mask1,&Mask2,&Mask3);
+  // Set up Origin to be a permanent origin
+  Origin = principalAxes();
+  // For each axis in RefCoords, use corresponding mask in ExpMasks to set 
+  // up an axis for ExpCoords.
+  for (base=0; base < Nbases; base++) {
+    // Reset Origin coords so it is always the origin
+    setPrincipalAxes(Origin->F->X);
+    // Set exp coords based on mask
+    ExpFrames[base]->SetFrameCoordsFromMask( F->X, ExpMasks[base] ); 
+    /* Now that we have a set of reference coords and the corresponding input
+     * coords, RMS fit the reference coords to the input coords to obtain the
+     * appropriate rotation and translations that will put the reference coords 
+     * on top of input (experimental) coords.
+     * NOTE: The RMSD routine is destructive to coords. Need copies of frames.
+     */
+    if (REF_TEMP!=NULL) delete REF_TEMP;
+    if (EXP_TEMP!=NULL) delete EXP_TEMP;
+    REF_TEMP = RefCoords[base]->F->Copy();
+    EXP_TEMP = ExpFrames[base]->Copy();
+    rmsd = REF_TEMP->RMSD( EXP_TEMP, RotMatrix, TransVec, false);
+    mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
+    //AxisToPDB(&baseaxesfile, (*baseaxis), res++, &baseaxesatom);
+    // RotMatrix and TransVec now contain rotation and translation
+    // that will orient refcoord to expframe.
+    // Use the translation/rotation to fit principal axes in BaseAxes to experimental coords.
+    BaseAxes[base]->F->Translate( TransVec );
+    BaseAxes[base]->F->Rotate( RotMatrix );
+    BaseAxes[base]->F->Translate( TransVec + 3);
+    /* baseaxis now contains the absolute coordinates of the base reference axes.
+     * Perform a second RMS fit to get the translation and rotation from
+     * the absolute origin to the base reference axes.
+     */
+    delete REF_TEMP;
+    REF_TEMP = BaseAxes[base]->F->Copy();
+    Origin->F->RMSD( REF_TEMP, RotMatrix, TransVec, false);
+    /* RotMatrix and TransVec now contain rotation and translation from 
+     * origin (?absolute?) coords to base reference coords.
+     */
 
-  //ang->Add(currentFrame, &Ang);
-
-  //fprintf(outfile,"%10i %10.4lf\n",currentFrame,Ang);
-  
+    // DEBUG - Write base axis to file
+    AxisToPDB(&baseaxesfile, BaseAxes[base], res, &baseaxesatom);
+    // DEBUG - check that ref coords overlap with input coords       
+    /* NOTE: The rotation matrix and translation [3,4,5] are now
+     * from reference origin.
+     */
+    RefCoords[base]->F->Rotate( RotMatrix );
+    RefCoords[base]->F->Translate( TransVec + 3);
+    AxisToPDB(&basesfile, RefCoords[base], res, &basesatom);
+    res++;
+  }
+  // DEBUG
+  baseaxesfile.CloseFile();
+  basesfile.CloseFile();
+  // Free up Origin
+  FreeAxis( Origin );
+    
   return 0;
 } 
 
