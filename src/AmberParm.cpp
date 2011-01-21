@@ -675,6 +675,8 @@ int AmberParm::ReadParmPDB() {
     // Allocate memory for atom name
     names=(NAME*) realloc(names, (natom+1) * sizeof(NAME));
     pdb_name(buffer, (char*)names[natom]);
+    // Trim leading whitespace from atom name
+    TrimName(names[natom]);
 
     // If this residue number is different than the last, allocate mem for new res
     if (currResnum!=pdb_resnum(buffer)) {

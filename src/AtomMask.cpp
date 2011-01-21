@@ -43,6 +43,19 @@ void AtomMask::AddAtom(int atom) {
 }
 
 /*
+ * AtomMask::PrintMaskAtoms()
+ * Print all atoms in mask to line.
+ */
+void AtomMask::PrintMaskAtoms() {
+  if (this->None()) 
+    mprintf("No atoms selected.");
+  else {
+    for (int atom=0; atom<Nselected; atom++)
+      mprintf(" %i",Selected[atom]);
+  }
+}
+
+/*
  * AtomMask::Copy()
  */
 AtomMask *AtomMask::Copy() {

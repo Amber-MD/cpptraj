@@ -13,5 +13,7 @@ double pdb_Bfactor(char *);
 char *pdb_lastChar(char *);
 char *pdb_elt(char *);
 char *pdb_charge(char*);
+void pdb_write_ATOM(char *, const char *, int, char *, char *, char, int,
+                    double, double, double, float, float, char *);
 
 #endif

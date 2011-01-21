@@ -38,6 +38,7 @@ Frame::Frame(AtomMask *Mask, double *MassIn) {
   T=0.0;
   V=NULL;
   // Copy Mass info if present
+  Mass = NULL;
   if (MassIn!=NULL) {
     Mass = (double*) malloc(natom * sizeof(double));
     for (int i=0; i < Mask->Nselected; i++)
@@ -258,7 +259,7 @@ void Frame::frameToFloat(float *Coord) {
  * Frame::COM()
  * Given an AtomMask put geometric center of atoms in mask into Coord. Put 
  * center of mass instead if useMass is true.
- * Return the sum of all masses.
+ * Return sum of masses in Mask (useMass) or #atoms in Mask (!useMass).
  */
 double Frame::COM(AtomMask *Mask, double *Coord, bool useMass) {
   int i,atom,natom3;
@@ -298,7 +299,7 @@ double Frame::COM(AtomMask *Mask, double *Coord, bool useMass) {
  * Frame::COM()
  * Put geometric center of all atoms between start and stop in frame into 
  * Coord. Put center of mass instead if useMass is true.
- * Return sum of masses.
+ * Return sum of masses (useMass) or #atoms (!useMass).
  * NOTE: overload to get rid of IF in loop?
  */
 double Frame::COM(double *Coord, bool useMass, int startAtom, int stopAtom) {  
@@ -337,8 +338,7 @@ double Frame::COM(double *Coord, bool useMass, int startAtom, int stopAtom) {
  * Frame::COM()
  * Put geometric center of all atoms in frame into Coord. Put center of mass 
  * instead if useMass is true.
- * Return sum of masses.
- * NOTE: overload to get rid of IF in loop?
+ * Return sum of masses (useMass) or #atoms (!useMass).
  */
 double Frame::COM(double *Coord, bool useMass) {
 
@@ -439,9 +439,9 @@ void Frame::ClosestImage(double *A, double *B, int *ixyz) {
 }
 
 /*
- * Frame::MinImageNonOrtho()
+ * Frame::MinImageNonOrtho2()
  * Given two sets of coordinates and reciprocal space information based on
- * the current non-orthorhombic box, return the shortest imaged distance
+ * the current non-orthorhombic box, return the shortest imaged distance^2
  * between the coordinates.
  * The integer coefficients describing the closest reflection in reciprocal
  * space will be placed in ixyz.
@@ -481,9 +481,9 @@ double Frame::MinImageNonOrtho2(double *Coord1, double *Coord2, bool origin, int
 }
 
 /*
- * Frame::DIST_ImageNonOrtho()
+ * Frame::DIST2_ImageNonOrtho()
  * Given two coordinates and reciprocal space information based on 
- * the current non-orthorhombic box, return the shortest imaged distance 
+ * the current non-orthorhombic box, return the shortest imaged distance^2 
  * between the coordinates.
  */
 double Frame::DIST2_ImageNonOrtho(double *a1, double *a2) { // double closest2
@@ -502,9 +502,9 @@ double Frame::DIST2_ImageNonOrtho(double *a1, double *a2) { // double closest2
 }
 
 /*
- * Frame::DIST_ImageNonOrtho()
+ * Frame::DIST2_ImageNonOrtho()
  * Given two coordinate sets in reciprocal space, return the minimum imaged
- * distance between them.
+ * distance^2 between them.
  * If minIn is > 0.0 it is considered a possible minimum distance.
  * The integer coefficients describing the closest reflection in reciprocal
  * space will be placed in ixyz.
@@ -591,8 +591,8 @@ double Frame::DIST2_ImageNonOrtho(double *f, double *f2, double minIn, int *ixyz
 }
 
 /*
- * Frame::DIST_ImageOrtho()
- * Return the minimum orthorhombic imaged distance between coordinates a1 
+ * Frame::DIST2_ImageOrtho()
+ * Return the minimum orthorhombic imaged distance^2 between coordinates a1 
  * and a2.
  */
 double Frame::DIST2_ImageOrtho(double *a1, double *a2) {
@@ -631,8 +631,8 @@ double Frame::DIST2_ImageOrtho(double *a1, double *a2) {
 }
 
 /*
- * Frame::DIST_NoImage()
- * Return distance between coordinates in a1 and a2.
+ * Frame::DIST2_NoImage()
+ * Return distance^2 between coordinates in a1 and a2.
  */
 double Frame::DIST2_NoImage(double *a1, double *a2) {
   double x,y,z,D;
@@ -655,7 +655,7 @@ double Frame::DIST2_NoImage(double *a1, double *a2) {
 }
 
 /*
- * Frame::DIST()
+ * Frame::DIST2()
  * Call the appropriate distance calc for atoms in Mask1 and Mask2 based on
  * given box type.
  *   0 = None

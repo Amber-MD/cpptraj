@@ -3,7 +3,8 @@
  * and return the requested information.
  */
 #include <cstdlib>
-#include <cstring>
+//#include <cstring>
+#include <cstdio> //sprintf
 #include "PDBfileRoutines.h"
 
 // PDB Record Title
@@ -206,3 +207,29 @@ char *pdb_charge(char *buffer) {
   return E;
 }
 
+// Write out an ATOM or HETATM record
+void pdb_write_ATOM(char *buffer, const char *REC, int atom, char *name, 
+                    char *resnameIn, char chain, int resnum, 
+                    double X, double Y, double Z, float Occ, float B,
+                    char *End) {
+  char resName[5];
+
+  resName[4]='\0';
+  // Residue number in PDB format can only be 4 digits wide
+  while (resnum>9999) resnum-=9999;
+  // Residue names in PDB format are 3 chars long starting at column 18. 
+  // However in Amber residues are 4 characters long, usually with a space
+  // at the end. If this is the case remove the space so that the residue name
+  // lines up properly.
+  resName[0] = resnameIn[0];
+  resName[1] = resnameIn[1];
+  resName[2] = resnameIn[2];
+  if (resnameIn[3]!=' ')
+    resName[3] = resnameIn[3];
+  else
+    resName[3] = '\0';
+
+  sprintf(buffer,"%-6s%5i %-4s%4s %c%4i    %8.3lf%8.3lf%8.3lf%6.2f%6.2f%14s\n",
+          REC, atom, name, resName, chain, resnum, X, Y, Z, Occ, B, End);
+}
+                    

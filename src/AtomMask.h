@@ -26,7 +26,8 @@ class AtomMask {
     ~AtomMask();
 
     AtomMask *Copy();              // Return a copy of this mask
-    void AddAtom(int atom);        // Add given atom to mask
+    void AddAtom(int);             // Add given atom to mask
+    void PrintMaskAtoms();         // Print atoms in Selected to line
     bool None();                   // Return true if Nselected==0
     void SetMaskString(char*);     // Set the mask string. If NULL, set * (all)
     int SetupMask(AmberParm*,int); // Set up Selected based on maskString and given parm

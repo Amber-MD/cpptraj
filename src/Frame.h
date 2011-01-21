@@ -20,12 +20,11 @@ class Frame {
     double recip[9];
     double T;      // Temperature
     Frame *V;      // Velocities
-    double *Mass;  // Hold mass. For most functions right now mass is passed in,
-                   // however for functions like RMSD where the coordinates were
-                   // probably modified the frame will need its own copy of the
-                   // modified mass array. Could potentially make it so that
-                   // information such as mass is passed in during frame creation.
-
+    double *Mass;  // Hold mass. Several functions (like COM, RADGYR etc) have 
+                   // the option to factor in the mass of the atoms involved. 
+                   // Mass is passed in when the frame is created, and is 
+                   // modified if necessary by SetFrameFromMask (which is the
+                   // case when e.g. calculating RMSD).
     Frame(int, double*);
     Frame(AtomMask *, double *);
     ~Frame();

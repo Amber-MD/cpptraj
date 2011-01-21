@@ -110,34 +110,19 @@ int PDBfile::SetupWrite( ) {
  * NOTE: Eventually give option to write individual files or models.
  */
 int PDBfile::writeFrame(int set) {
-  int i,i3,res, resOut;
-  double Occ, B;
-  char *parmResName;
-  char resName[5];
+  int i,i3,res;
+  float Occ, B;
 
-  res=0; resOut=0; Occ=0.0; B=0.0;
-  resName[4]='\0';
+  res=0; Occ=0.0; B=0.0;
   // Use F->natom instead of P->natom in case of stripped coordinates?
+  i3=0;
   for (i=0; i<F->natom; i++) {
-    i3 = i * 3;
     // figure out the residue number
-    if ( i==P->resnums[res+1] ) {res++; resOut++;}
-    if (resOut>9998) resOut=0;
-    // Residue names in PDB format are 3 chars long starting at column 18. 
-    // However in Amber residues are 4 characters long, usually with a space
-    // at the end. If this is the case remove the space so that the residue name
-    // lines up properly.
-    parmResName = P->ResidueName(res);
-    resName[0] = parmResName[0];
-    resName[1] = parmResName[1];
-    resName[2] = parmResName[2];
-    if (parmResName[3]!=' ')
-      resName[3] = parmResName[3];
-    else
-      resName[3] = '\0';
-    File->IO->Printf("%-6s%5i %-4s%4s %c%4i    %8.3lf%8.3lf%8.3lf%6.2lf%6.2lf%14s\n",
-            "ATOM",i+1,P->names[i],resName,'X',resOut+1,
-            F->X[i3],F->X[i3+1],F->X[i3+2],Occ,B,"");
+    if ( i==P->resnums[res+1] ) res++; 
+    pdb_write_ATOM(buffer,"ATOM",i+1,P->names[i],P->ResidueName(res),'X',res+1,
+                   F->X[i3],F->X[i3+1],F->X[i3+2],Occ,B,(char*)"\0");
+    File->IO->Write(buffer,sizeof(char),strlen(buffer)); 
+    i3+=3;
   }
   return 0;
 }
