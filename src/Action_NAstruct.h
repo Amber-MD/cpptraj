@@ -6,10 +6,11 @@
 
 class NAstruct: public Action {
     enum NAbaseType { UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU };
+    static const char NAbaseName[][5];
     struct AxisType {
       Frame *F;
       AmberParm::NAME *Name;
-      // Use ucell[9] and recip[6] in Frame for rot mat./trans vectors
+      NAbaseType ID;
       //double R[9];
       //double trans[6];
     };
@@ -18,9 +19,12 @@ class NAstruct: public Action {
     std::vector<Frame*> ExpFrames;
     std::vector<AtomMask*> ExpMasks;
     typedef int BPTYPE[2];
+
     BPTYPE *BasePair;
     int Nbp;
     int Nbases;
+    double HBcut2;
+    double Ocut2;
     Frame *REF_TEMP;
     Frame *EXP_TEMP;
 
@@ -31,6 +35,9 @@ class NAstruct: public Action {
     void FreeAxis( AxisType * );
     void ClearLists();
     NAbaseType ID_base(char*);
+    bool GCpair(AxisType *, AxisType *);
+    bool ATpair(AxisType *, AxisType *);
+    bool basesArePaired(AxisType *, AxisType *);
     AxisType *getRefCoords( NAbaseType);
     AxisType *principalAxes();
     int determineBasePairing();

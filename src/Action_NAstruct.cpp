@@ -3,19 +3,23 @@
 #include <cstring>
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 // DEBUG
 #include "PDBfileRoutines.h"
+#include <cmath>
 
 // CONSTRUCTOR
 NAstruct::NAstruct() {
   //fprintf(stderr,"NAstruct Con\n");
-  resRange=NULL;
-  outFilename=NULL;
-  REF_TEMP=NULL;
-  EXP_TEMP=NULL;
   BasePair=NULL;
   Nbp=0;
   Nbases=0;
+  HBcut2 = 12.25; // 3.5^2
+  Ocut2 = 6.25;   // 2.5^2
+  REF_TEMP=NULL;
+  EXP_TEMP=NULL;
+  resRange=NULL;
+  outFilename=NULL;
 } 
 
 // DESTRUCTOR
@@ -24,9 +28,18 @@ NAstruct::~NAstruct() {
   ClearLists();
   if (REF_TEMP!=NULL) delete REF_TEMP;
   if (EXP_TEMP!=NULL) delete EXP_TEMP;
+  if (BasePair!=NULL) free(BasePair);
 }
 
-// Allocate memory for axis
+// Base names corresponding to NAbaseType
+// UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU
+const char NAstruct::NAbaseName[9][5]={"UNK","DA","DT","DG","DC","RA","RC","RG","RU" };
+
+// -------------------------- MEMORY FUNCTIONS --------------------------------
+/*
+ * NAstruct::AllocAxis()
+ * Allocate memory for axis type
+ */
 NAstruct::AxisType *NAstruct::AllocAxis(int N) {
   AxisType *axis;
   axis = (AxisType *) malloc(sizeof(AxisType));
@@ -35,17 +48,24 @@ NAstruct::AxisType *NAstruct::AllocAxis(int N) {
   }
   axis->F= new Frame(N,NULL);
   axis->Name = (AmberParm::NAME*) malloc(N * sizeof(AmberParm::NAME));
+  axis->ID=UNKNOWN_BASE;
   return axis;
 }
 
-// Free Memory allocated by axis
+/*
+ * NAstruct::FreeAxis()
+ * Free Memory allocated by axis type
+ */
 void NAstruct::FreeAxis( AxisType *axis ) {
   if (axis->F!=NULL) delete axis->F;
   if (axis->Name!=NULL) free(axis->Name);
   free(axis);
 }
 
-// Clear all parm-dependent lists
+/*
+ * NAstruct::ClearLists()
+ * Clear all parm-dependent lists
+ */
 void NAstruct::ClearLists() {
   while (!RefCoords.empty()) {
     FreeAxis( RefCoords.back() );
@@ -96,7 +116,7 @@ NAstruct::NAbaseType NAstruct::ID_base(char *resname) {
 
 /* PREPROCESSOR MACRO
  * setPrincipalAxes
- * Set coords of X to principal Axes
+ * Set coords of double *X to principal Axes
  */
 #define setPrincipalAxes(X) { \
   X[0]=1.0; X[3]=0.0; X[6]=0.0; X[9 ]=0.0; \
@@ -125,6 +145,77 @@ NAstruct::AxisType *NAstruct::principalAxes() {
 }
 
 /*
+ * NAstruct::GCpair()
+ * Look for 3 HB based on heavy atom distances:
+ * 1. G:O6 -- C:N4  6 -- 6
+ * 2. G:N1 -- C:N3  7 -- 4
+ * 3. G:N2 -- C:O2  9 -- 3
+ * Atom positions are known in standard Ref. Multiply by 3 to get into X.
+ */
+bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
+  int Nhbonds = 0;
+  double dist2; 
+  dist2 = DIST2_NoImage(DG->F->X+18, DC->F->X+18);
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            G:O6 -- C:N4 = %lf\n",sqrt(dist2));
+  }
+  dist2 = DIST2_NoImage(DG->F->X+21, DC->F->X+12);
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            G:N1 -- C:N3 = %lf\n",sqrt(dist2));
+  }
+  dist2 = DIST2_NoImage(DG->F->X+27, DC->F->X+9 );
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            G:N2 -- C:O2 = %lf\n",sqrt(dist2));
+  }
+  if (Nhbonds>0) return true;
+  return false;
+}
+
+/*
+ * NAstruct::ATpair()
+ * Look for 2 HB based on heavy atom distances
+ * 1. A:N6 -- T:O4  6 -- 6
+ * 2. A:N1 -- T:N3  7 -- 4
+ */
+bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
+  int Nhbonds = 0;
+  double dist2;
+  dist2 = DIST2_NoImage(DA->F->X+18, DT->F->X+18);
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            A:N6 -- T:O4 = %lf\n",sqrt(dist2));
+  }
+  dist2 = DIST2_NoImage(DA->F->X+21, DT->F->X+12);
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            A:N1 -- T:N3 = %lf\n",sqrt(dist2));
+  }
+  if (Nhbonds>0) return true;
+  return false;
+}
+
+/* 
+ * NAstruct::basesArePaired()
+ * Given two base axes for which IDs have been given and reference coords set,
+ * determine whether the bases are paired via hydrogen bonding criteria.
+ */
+bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
+  // G C
+  if      ( base1->ID==DG && base2->ID==DC ) return GCpair(base1,base2);
+  else if ( base1->ID==DC && base2->ID==DG ) return GCpair(base2,base1);
+  else if ( base1->ID==DA && base2->ID==DT ) return ATpair(base1,base2);
+  else if ( base1->ID==DT && base2->ID==DA ) return ATpair(base2,base1);
+//  else {
+//    mprintf("Warning: NAstruct: Unrecognized pair: %s - %s\n",NAbaseName[base1->ID],
+//             NAbaseName[base2->ID]);
+//  }
+  return false;
+}
+
+/*
  * NAstruct::getRefCoords()
  * Allocate and set the coordinates to a standard ref. for the given base type.
  * Also set target atom names. Atom Names should be 4 chars long, AMBER.
@@ -139,6 +230,7 @@ NAstruct::AxisType *NAstruct::getRefCoords( NAbaseType btype) {
   switch (btype) {
     case DA :
       if ( (axis = AllocAxis(11))==NULL ) return NULL;
+      axis->ID = DA;
       AF = axis->F;
       AF->X[0 ]=-2.479000; AF->X[1 ]= 5.346000; AF->X[2 ]= 0.000000; strcpy(axis->Name[0 ],"C1' ");
       AF->X[3 ]=-1.291000; AF->X[4 ]= 4.498000; AF->X[5 ]= 0.000000; strcpy(axis->Name[1 ],"N9  ");
@@ -154,6 +246,7 @@ NAstruct::AxisType *NAstruct::getRefCoords( NAbaseType btype) {
       break;
     case DC :
       if ( (axis = AllocAxis(9))==NULL ) return NULL;
+      axis->ID = DC;
       AF = axis->F;
       AF->X[0 ]=-2.477000; AF->X[1 ]= 5.402000; AF->X[2 ]= 0.000000; strcpy(axis->Name[0],"C1' ");
       AF->X[3 ]=-1.285000; AF->X[4 ]= 4.542000; AF->X[5 ]= 0.000000; strcpy(axis->Name[1],"N1  ");
@@ -167,6 +260,7 @@ NAstruct::AxisType *NAstruct::getRefCoords( NAbaseType btype) {
       break;
     case DG :
       if ( (axis = AllocAxis(12))==NULL ) return NULL;
+      axis->ID = DG;
       AF = axis->F;
       AF->X[0 ]=-2.477000; AF->X[1 ]= 5.399000; AF->X[2 ]= 0.000000; strcpy(axis->Name[0],"C1' ");
       AF->X[3 ]=-1.289000; AF->X[4 ]= 4.551000; AF->X[5 ]= 0.000000; strcpy(axis->Name[1],"N9  ");
@@ -183,6 +277,7 @@ NAstruct::AxisType *NAstruct::getRefCoords( NAbaseType btype) {
       break;
     case DT :
       if ( (axis = AllocAxis(10))==NULL ) return NULL;
+      axis->ID = DT;
       AF = axis->F;
       AF->X[0 ]=-2.481000; AF->X[1 ]= 5.354000; AF->X[2 ]=0.000000; strcpy(axis->Name[0],"C1' ");
       AF->X[3 ]=-1.284000; AF->X[4 ]= 4.500000; AF->X[5 ]=0.000000; strcpy(axis->Name[1],"N1  ");
@@ -226,11 +321,11 @@ void NAstruct::AxisToPDB(PtrajFile *outfile, AxisType *axis, int resnum, int *at
  * Determine which bases are paired from the base axes.
  */
 int NAstruct::determineBasePairing() {
-  double cutoff, distance;
+  double distance;
   std::vector<bool> isPaired( BaseAxes.size(), false);
-  int base1,base2;
+  int base1,base2,numBP;
 
-  cutoff=2.0;
+  numBP = 0;
   
   mprintf(" ==== Setup Base Pairing ==== \n");
 
@@ -241,9 +336,33 @@ int NAstruct::determineBasePairing() {
     if (isPaired[base1]) continue;
     for (base2=base1+1; base2 < Nbases; base2++) {
       if (isPaired[base2]) continue;
-       
-    }
-  }
+      // First determine if origin axes coords are close enough to consider pairing
+      // Origin is 4th coord
+      distance = DIST2_NoImage(BaseAxes[base1]->F->X+4, BaseAxes[base2]->F->X+4);
+      mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
+              base1,NAbaseName[RefCoords[base1]->ID],
+              base2,NAbaseName[RefCoords[base2]->ID],distance);
+      if (distance < Ocut2) {
+        mprintf("    Checking %i:%s -- %i:%s\n",base1,
+                NAbaseName[RefCoords[base1]->ID],base2,NAbaseName[RefCoords[base2]->ID]);
+        if (basesArePaired(RefCoords[base1], RefCoords[base2])) {
+          if (numBP+1 > Nbp) BasePair = (BPTYPE*) realloc(BasePair, (numBP+1)*sizeof(BPTYPE));
+          BasePair[numBP][0] = base1;
+          BasePair[numBP][1] = base2;
+          isPaired[base1]=true;
+          isPaired[base2]=true;
+          numBP++;
+        }
+      }
+    } // END Loop over base2
+  } // END Loop over base1
+  Nbp = numBP;
+
+  mprintf("    NAstruct: Set up %i base pairs.\n",Nbp);
+  for (base1=0; base1 < Nbp; base1++) 
+    mprintf("        BP %i: Res %i:%s to %i:%s\n",base1+1,
+            BasePair[base1][0]+1, NAbaseName[RefCoords[BasePair[base1][0]]->ID],
+            BasePair[base1][1]+1, NAbaseName[RefCoords[BasePair[base1][1]]->ID]);
 
   return 0;
 }
@@ -442,12 +561,12 @@ int NAstruct::action() {
 
     // DEBUG - Write base axis to file
     AxisToPDB(&baseaxesfile, BaseAxes[base], res, &baseaxesatom);
-    // DEBUG - check that ref coords overlap with input coords       
-    /* NOTE: The rotation matrix and translation [3,4,5] are now
-     * from reference origin.
-     */
+
+    // Overlap ref coords onto input coords
+    // Since ref coords start at origin by default the first translation is not necessary
     RefCoords[base]->F->Rotate( RotMatrix );
     RefCoords[base]->F->Translate( TransVec + 3);
+    // DEBUG - Write ref coords to file
     AxisToPDB(&basesfile, RefCoords[base], res, &basesatom);
     res++;
   }
@@ -456,6 +575,9 @@ int NAstruct::action() {
   basesfile.CloseFile();
   // Free up Origin
   FreeAxis( Origin );
+
+  // Determine Base Pairing
+  determineBasePairing();
     
   return 0;
 } 
