@@ -55,7 +55,13 @@ test.rmsd:
 test.mol2:
 	@-cd Test_Mol2 && ./RunTest.sh $(OPT)
 
-test.all: test.general test.strip test.brokentraj test.traj test.remdnetcdf test.framerange test.perres test.dssp test.center test.hbond test.image test.ptrajcomp test.surf test.radgyr test.mask test.closest test.rmsd test.mol2
+# Temporarily remove test.closest
+ALLTESTS=test.general test.strip test.brokentraj test.traj test.remdnetcdf \
+         test.framerange test.perres test.dssp test.center test.hbond \
+         test.image test.ptrajcomp test.surf test.radgyr test.mask \
+         test.rmsd test.mol2
+
+test.all: $(ALLTESTS)
 	@./Summary.sh $(OPT)
 
 test: 
