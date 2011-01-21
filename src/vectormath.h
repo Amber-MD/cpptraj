@@ -15,6 +15,9 @@ extern "C" {
   TZ = (UX*VY) - (UY*VX)
 
 void normalize(double a[3]);
+double matrix_to_angle(double U[9]);
+int axis_of_rotation(double V[3], double U[9], double theta);
+void calcRotationMatrix(double T[9], double V[3], double theta);
 //int jacobi3(double *a, double *d, double *v, int *nrot);
 int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue);
 

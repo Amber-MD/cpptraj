@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <math.h>
+#include "vectormath.h"
 
 /*
  * normalize()
@@ -18,6 +19,86 @@ void normalize(double a[3]) {
   a[0] *= b;
   a[1] *= b;
   a[2] *= b;
+}
+
+/*
+ * matrix_to_angle()
+ * Return angle of rotation from rotation matrix according to
+ * cos(t)=(trace(R)-1)/2
+ * Equation taken from :
+ *   3D game engine design: a practical approach to real-time Computer Graphics,
+ *   Volume 385, By David H. Eberly, 2001, p. 16.
+ */
+double matrix_to_angle(double U[9]) {
+  double trace;
+
+  trace = U[0] + U[4] + U[8];
+
+  trace = (trace - 1) / 2;
+
+  return acos(trace);
+}
+
+/* 
+ * axis_of_rotation()
+ * If theta is between 0 and pi extract axis of rotation from rotation matrix
+ * U according to:
+ *   R - Rt = (2 * sin(theta)) * S, where S is:
+ *     0 -z  y
+ *     z  0 -x
+ *    -y  x  0
+ * Place result in V.
+ */
+int axis_of_rotation(double V[3], double U[9], double theta) {
+  double dx;
+  if (theta>0 && theta<PI) {
+    dx = 1 / (2 * sin(theta));
+    V[0]=(U[5]-U[7]) * dx;
+    V[1]=(U[6]-U[2]) * dx;
+    V[2]=(U[1]-U[3]) * dx;
+    normalize(V);
+    return 0;
+  } else {
+    fprintf(stdout,"Error: axis_of_rotation: Could not extract axis of rotation, angle is %lf\n",
+            RADDEG*theta);
+  }
+  return 1;
+}
+
+/*
+ * calcRotationMatrix()
+ * Given an axis of rotation V and a magnitude (radians), calculate a 
+ * rotation matrix and store it in T
+ */
+void calcRotationMatrix(double T[9], double V[3], double theta) {
+  double ux2,uxuy,uxuz,uy2,uyuz,uz2,c,s,c1,uxs,uys,uzs;
+
+  // Compute all prefactors
+  ux2 =V[0]*V[0];
+  uxuy=V[0]*V[1];
+  uxuz=V[0]*V[2];
+  uy2 =V[1]*V[1];
+  uyuz=V[1]*V[2];
+  uz2 =V[2]*V[2];
+  c=cos(theta);
+  s=sin(theta);
+  c1=1-c;
+  uxs=V[0]*s;
+  uys=V[1]*s;
+  uzs=V[2]*s;
+
+  // Store rotation matrix elements
+  T[0]=ux2 + ((1 - ux2) * c);
+  T[3]=uxuy * c1 - uzs;
+  T[6]=uxuz * c1 + uys;
+
+  T[1]=uxuy * c1 + uzs;
+  T[4]=uy2 + ((1 - uy2) * c);
+  T[7]=uyuz * c1 - uxs;
+
+  T[2]=uxuz * c1 - uys;
+  T[5]=uyuz * c1 + uxs;
+  T[8]=uz2 + ((1 - uz2) * c);
 }
 
 /*

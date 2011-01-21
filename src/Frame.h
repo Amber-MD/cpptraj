@@ -51,6 +51,7 @@ class Frame {
     void Translate(double *);
     void Translate(double *, int, int);
     void Rotate(double *);
+    void InverseRotate(double *);
     void Center(AtomMask *, double *,bool);
     void ShiftToCenter( Frame * );
 

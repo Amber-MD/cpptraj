@@ -750,6 +750,24 @@ void Frame::Rotate(double *T) {
   }
 } 
 
+/*
+ * Frame::InverseRotate()
+ * Multiply natomx3 matrix X by inverse of 3x3 matrix T. If T is a rotation
+ * matrix this rotates the coords in X in the opposite direction.
+ */
+void Frame::InverseRotate(double *T) {
+  int i;
+  double x,y,z;
+
+  for (i=0; i<N; i+=3) {
+    x=X[i]; y=X[i+1]; z=X[i+2];
+
+    X[i  ]=(x*T[0]) + (y*T[3]) + (z*T[6]);
+    X[i+1]=(x*T[1]) + (y*T[4]) + (z*T[7]);
+    X[i+2]=(x*T[2]) + (y*T[5]) + (z*T[8]);
+  }
+}
+
 /* 
  * Frame::Center()
  * Center coordinates in Mask to the coordinates in box[0-2]. When called from

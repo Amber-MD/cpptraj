@@ -16,6 +16,7 @@ class NAstruct: public Action {
     };
     std::vector<AxisType*> RefCoords;
     std::vector<AxisType*> BaseAxes;
+    std::vector<AxisType*> BasePairAxes;
     std::vector<Frame*> ExpFrames;
     std::vector<AtomMask*> ExpMasks;
     typedef int BPTYPE[2];
@@ -25,22 +26,26 @@ class NAstruct: public Action {
     int Nbases;
     double HBcut2;
     double Ocut2;
-    Frame *REF_TEMP;
-    Frame *EXP_TEMP;
+    Frame *Axes1;
+    Frame *Axes2;
 
     std::list<int> *resRange;
     char *outFilename;
 
     AxisType *AllocAxis(int);
+    //AxisType *AxisCopy( AxisType * );
+    void AxisToFrame( AxisType *, Frame * );
     void FreeAxis( AxisType * );
     void ClearLists();
     NAbaseType ID_base(char*);
+    AxisType *getRefCoords( NAbaseType);
+    AxisType *principalAxes();
     bool GCpair(AxisType *, AxisType *);
     bool ATpair(AxisType *, AxisType *);
     bool basesArePaired(AxisType *, AxisType *);
-    AxisType *getRefCoords( NAbaseType);
-    AxisType *principalAxes();
     int determineBasePairing();
+    void flipAxesYZ( Frame * );
+    int setupBasePairAxes();
     // DEBUG
     void AxisToPDB(PtrajFile *, AxisType *, int, int *);
   public:

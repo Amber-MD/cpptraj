@@ -4,6 +4,7 @@
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "vectormath.h"
 // DEBUG
 #include "PDBfileRoutines.h"
 #include <cmath>
@@ -16,8 +17,8 @@ NAstruct::NAstruct() {
   Nbases=0;
   HBcut2 = 12.25; // 3.5^2
   Ocut2 = 6.25;   // 2.5^2
-  REF_TEMP=NULL;
-  EXP_TEMP=NULL;
+  Axes1=NULL;
+  Axes2=NULL;
   resRange=NULL;
   outFilename=NULL;
 } 
@@ -26,9 +27,9 @@ NAstruct::NAstruct() {
 NAstruct::~NAstruct() { 
   if (resRange!=NULL) delete resRange;
   ClearLists();
-  if (REF_TEMP!=NULL) delete REF_TEMP;
-  if (EXP_TEMP!=NULL) delete EXP_TEMP;
   if (BasePair!=NULL) free(BasePair);
+  if (Axes1!=NULL) delete Axes1;
+  if (Axes2!=NULL) delete Axes2;
 }
 
 // Base names corresponding to NAbaseType
@@ -50,6 +51,28 @@ NAstruct::AxisType *NAstruct::AllocAxis(int N) {
   axis->Name = (AmberParm::NAME*) malloc(N * sizeof(AmberParm::NAME));
   axis->ID=UNKNOWN_BASE;
   return axis;
+}
+
+/*  
+ * NAstruct::AxisCopy()
+ * Return a copy of the given axis.
+ */
+/*NAstruct::AxisType *NAstruct::AxisCopy( AxisType *axisIn ) {
+  AxisType *axis;
+  axis = (AxisType *) malloc(sizeof(AxisType));
+  if (axis==NULL) {
+    mprintf("Error: NAstruct::AxisCopy: Could not allocate axis memory.\n");
+  }
+  axis->F = axisIn->F->Copy();
+  axis->Name = (AmberParm::NAME*) malloc(axisIn->F->natom * sizeof(AmberParm::NAME));
+  for (int i=0; i<axisIn->F->natom; i++)
+    strcpy(axis->Name[i], axisIn->Name[i]);
+  axis->ID=axisIn->ID;
+  return axis;
+}*/
+void NAstruct::AxisToFrame( AxisType *axis, Frame *frame ) {
+  for (int i=0; i < 12; i++)
+    frame->X[i] = axis->F->X[i];
 }
 
 /*
@@ -74,6 +97,10 @@ void NAstruct::ClearLists() {
   while (!BaseAxes.empty()) {
     FreeAxis( BaseAxes.back() );
     BaseAxes.pop_back();
+  }
+  while (!BasePairAxes.empty()) {
+    FreeAxis( BasePairAxes.back() );
+    BasePairAxes.pop_back();
   }
   while (!ExpMasks.empty()) {
     delete ExpMasks.back();
@@ -144,76 +171,6 @@ NAstruct::AxisType *NAstruct::principalAxes() {
   return axis;
 }
 
-/*
- * NAstruct::GCpair()
- * Look for 3 HB based on heavy atom distances:
- * 1. G:O6 -- C:N4  6 -- 6
- * 2. G:N1 -- C:N3  7 -- 4
- * 3. G:N2 -- C:O2  9 -- 3
- * Atom positions are known in standard Ref. Multiply by 3 to get into X.
- */
-bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
-  int Nhbonds = 0;
-  double dist2; 
-  dist2 = DIST2_NoImage(DG->F->X+18, DC->F->X+18);
-  if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    mprintf("            G:O6 -- C:N4 = %lf\n",sqrt(dist2));
-  }
-  dist2 = DIST2_NoImage(DG->F->X+21, DC->F->X+12);
-  if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    mprintf("            G:N1 -- C:N3 = %lf\n",sqrt(dist2));
-  }
-  dist2 = DIST2_NoImage(DG->F->X+27, DC->F->X+9 );
-  if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    mprintf("            G:N2 -- C:O2 = %lf\n",sqrt(dist2));
-  }
-  if (Nhbonds>0) return true;
-  return false;
-}
-
-/*
- * NAstruct::ATpair()
- * Look for 2 HB based on heavy atom distances
- * 1. A:N6 -- T:O4  6 -- 6
- * 2. A:N1 -- T:N3  7 -- 4
- */
-bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
-  int Nhbonds = 0;
-  double dist2;
-  dist2 = DIST2_NoImage(DA->F->X+18, DT->F->X+18);
-  if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    mprintf("            A:N6 -- T:O4 = %lf\n",sqrt(dist2));
-  }
-  dist2 = DIST2_NoImage(DA->F->X+21, DT->F->X+12);
-  if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    mprintf("            A:N1 -- T:N3 = %lf\n",sqrt(dist2));
-  }
-  if (Nhbonds>0) return true;
-  return false;
-}
-
-/* 
- * NAstruct::basesArePaired()
- * Given two base axes for which IDs have been given and reference coords set,
- * determine whether the bases are paired via hydrogen bonding criteria.
- */
-bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
-  // G C
-  if      ( base1->ID==DG && base2->ID==DC ) return GCpair(base1,base2);
-  else if ( base1->ID==DC && base2->ID==DG ) return GCpair(base2,base1);
-  else if ( base1->ID==DA && base2->ID==DT ) return ATpair(base1,base2);
-  else if ( base1->ID==DT && base2->ID==DA ) return ATpair(base2,base1);
-//  else {
-//    mprintf("Warning: NAstruct: Unrecognized pair: %s - %s\n",NAbaseName[base1->ID],
-//             NAbaseName[base2->ID]);
-//  }
-  return false;
-}
 
 /*
  * NAstruct::getRefCoords()
@@ -317,6 +274,77 @@ void NAstruct::AxisToPDB(PtrajFile *outfile, AxisType *axis, int resnum, int *at
 }
 
 /*
+ * NAstruct::GCpair()
+ * Look for 3 HB based on heavy atom distances:
+ * 1. G:O6 -- C:N4  6 -- 6
+ * 2. G:N1 -- C:N3  7 -- 4
+ * 3. G:N2 -- C:O2  9 -- 3
+ * Atom positions are known in standard Ref. Multiply by 3 to get into X.
+ */
+bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
+  int Nhbonds = 0;
+  double dist2; 
+  dist2 = DIST2_NoImage(DG->F->X+18, DC->F->X+18);
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            G:O6 -- C:N4 = %lf\n",sqrt(dist2));
+  }
+  dist2 = DIST2_NoImage(DG->F->X+21, DC->F->X+12);
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            G:N1 -- C:N3 = %lf\n",sqrt(dist2));
+  }
+  dist2 = DIST2_NoImage(DG->F->X+27, DC->F->X+9 );
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            G:N2 -- C:O2 = %lf\n",sqrt(dist2));
+  }
+  if (Nhbonds>0) return true;
+  return false;
+}
+
+/*
+ * NAstruct::ATpair()
+ * Look for 2 HB based on heavy atom distances
+ * 1. A:N6 -- T:O4  6 -- 6
+ * 2. A:N1 -- T:N3  7 -- 4
+ */
+bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
+  int Nhbonds = 0;
+  double dist2;
+  dist2 = DIST2_NoImage(DA->F->X+18, DT->F->X+18);
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            A:N6 -- T:O4 = %lf\n",sqrt(dist2));
+  }
+  dist2 = DIST2_NoImage(DA->F->X+21, DT->F->X+12);
+  if ( dist2 < HBcut2 ) {
+    Nhbonds++;
+    mprintf("            A:N1 -- T:N3 = %lf\n",sqrt(dist2));
+  }
+  if (Nhbonds>0) return true;
+  return false;
+}
+
+/* 
+ * NAstruct::basesArePaired()
+ * Given two base axes for which IDs have been given and reference coords set,
+ * determine whether the bases are paired via hydrogen bonding criteria.
+ */
+bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
+  // G C
+  if      ( base1->ID==DG && base2->ID==DC ) return GCpair(base1,base2);
+  else if ( base1->ID==DC && base2->ID==DG ) return GCpair(base2,base1);
+  else if ( base1->ID==DA && base2->ID==DT ) return ATpair(base1,base2);
+  else if ( base1->ID==DT && base2->ID==DA ) return ATpair(base2,base1);
+//  else {
+//    mprintf("Warning: NAstruct: Unrecognized pair: %s - %s\n",NAbaseName[base1->ID],
+//             NAbaseName[base2->ID]);
+//  }
+  return false;
+}
+
+/*
  * NAstruct::determineBasePairing()
  * Determine which bases are paired from the base axes.
  */
@@ -366,6 +394,112 @@ int NAstruct::determineBasePairing() {
 
   return 0;
 }
+
+/*
+ * NAstruct::flipAxesYZ
+ * Given Axes, flip the Z and Y axes.
+ * Equiv. to rotation around the X axis.
+ */
+void NAstruct::flipAxesYZ( Frame *axis ) {
+  double ox2, oy2, oz2;
+  
+  ox2 = axis->X[9 ] + axis->X[9 ];
+  oy2 = axis->X[10] + axis->X[10];
+  oz2 = axis->X[11] + axis->X[11];
+
+  axis->X[3 ] = ox2 - axis->X[3 ];
+  axis->X[4 ] = oy2 - axis->X[4 ];
+  axis->X[5 ] = oz2 - axis->X[5 ];
+ 
+  axis->X[6 ] = ox2 - axis->X[6 ];
+  axis->X[7 ] = oy2 - axis->X[7 ];
+  axis->X[8 ] = oz2 - axis->X[8 ];
+}
+
+/*
+ * NAstruct::setupBasePairAxes()
+ * Given a list of base pairs and base axes, setup an 
+ * Axestype structure containing reference base pair axes.
+ * The axis extraction equation is based on that found in:
+ *   3D game engine design: a practical approach to real-time Computer Graphics,
+ *   Volume 385, By David H. Eberly, 2001, p. 16.
+ */
+int NAstruct::setupBasePairAxes() {
+  int basepair;
+  double RotMatrix[9], TransVec[6], V[3], theta;
+  AxisType *Base1;
+  AxisType *Base2;
+  // DEBUG
+  int basepairaxesatom=0;
+  PtrajFile basepairaxesfile;
+  basepairaxesfile.SetupFile((char*)"basepairaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
+  basepairaxesfile.OpenFile();
+  // END DEBUG
+
+  mprintf(" ==== Setup Base Pair Axes ==== \n");
+  // Loop over all base pairs
+  for (basepair = 0; basepair < Nbp; basepair++) {
+    Base1 = BaseAxes[ BasePair[basepair][0] ];
+    Base2 = BaseAxes[ BasePair[basepair][1] ];
+    // Copy of the first base in the pair
+    AxisToFrame( Base1, Axes1);
+    // Copy of the second base in the pair
+    AxisToFrame( Base2, Axes2);
+    // Flip the axes in the second pair
+    flipAxesYZ( Axes2 );
+    // RMS fit Axes of Base2 onto Base1
+    Axes2->RMSD( Axes1, RotMatrix, TransVec, false);
+    // Extract angle from resulting rotation matrix
+    theta=matrix_to_angle(RotMatrix);
+    mprintf("Base2 for pair %i will be rotated by %lf degrees.\n",basepair+1,RADDEG*theta);
+    // Calc Axis of rotation
+    if (axis_of_rotation(V, RotMatrix, theta)) {
+      mprintf("Error: NAstruct::setupBasePairAxes(): Could not set up axis of rotation for %i.\n",
+              basepair);
+    }
+    // Calculate new half-rotation matrix
+    calcRotationMatrix(RotMatrix,V,theta/2);
+    /* Rotate Base2 by half rotation towards Base1.
+     * Since the new rotation axis by definition is located at
+     * the origin, the coordinates of the base have to be shifted, rotated,
+     * then shifted back. Use V to store the shift back.
+     */
+    V[0] = -TransVec[0];
+    V[1] = -TransVec[1];
+    V[2] = -TransVec[2];
+    Base2->F->Translate( TransVec );
+    Base2->F->Rotate( RotMatrix );
+    Base2->F->Translate( V );
+    /* Since rotation matrix for Base2 was calculated with same origin as 
+     * Base1, use reverse rotation matrix (transpose) to rotate Base1. 
+     * Shift, rotate, shift back. Use V to store the shift back.
+     */
+    V[0] = -TransVec[3];
+    V[1] = -TransVec[4];
+    V[2] = -TransVec[5];
+    Base1->F->Translate( V );
+    Base1->F->InverseRotate( RotMatrix );
+    Base1->F->Translate( TransVec+3 );
+    // Origin of base pair axes is midpoint between Base1 and Base2 origins
+    V[0] = ( (Base1->F->X[9 ] + Base2->F->X[9 ])/2 ) - Base1->F->X[9 ];
+    V[1] = ( (Base1->F->X[10] + Base2->F->X[10])/2 ) - Base1->F->X[10];
+    V[2] = ( (Base1->F->X[11] + Base2->F->X[11])/2 ) - Base1->F->X[11];
+    // Shift Base1 to midpoint; Base1 becomes the base pair axes
+    Base1->F->Translate( V );
+    // DEBUG
+    mprintf("      %i) %i:%s -- %i:%s  %8.2lf %8.2lf %8.2lf %8.2lf %8.2lf %8.2lf\n",basepair,
+            BasePair[basepair][0], NAbaseName[Base1->ID],
+            BasePair[basepair][1], NAbaseName[Base2->ID],
+            Base1->F->X[9], Base1->F->X[10], Base1->F->X[11],
+            0.0, 0.0, 0.0);
+    // Base1 now contains absolute coords of base pair reference axes
+    AxisToPDB(&basepairaxesfile, Base1, BasePair[basepair][0], &basepairaxesatom);
+  }
+  // DEBUG
+  basepairaxesfile.CloseFile();
+
+  return 0;
+}
 // ----------------------------------------------------------------------------
 
 /*
@@ -385,6 +519,10 @@ int NAstruct::init() {
   // Get Masks
   // Dataset
   // Add dataset to data file list
+
+  // Temporary frames for performing fits on Axes
+  Axes1 = new Frame(4,NULL);
+  Axes2 = new Frame(4,NULL);
 
   mprintf("    NAstruct: ");
   if (resRange==NULL)
@@ -508,6 +646,8 @@ int NAstruct::action() {
   double rmsd, RotMatrix[9], TransVec[6];
   int base;
   AxisType *Origin;
+  Frame *REF_TEMP=NULL;
+  Frame *EXP_TEMP=NULL;
   // DEBUG
   int res = 0;
   int baseaxesatom = 0;
@@ -570,6 +710,9 @@ int NAstruct::action() {
     AxisToPDB(&basesfile, RefCoords[base], res, &basesatom);
     res++;
   }
+  if (REF_TEMP!=NULL) delete REF_TEMP;
+  if (EXP_TEMP!=NULL) delete EXP_TEMP;    
+
   // DEBUG
   baseaxesfile.CloseFile();
   basesfile.CloseFile();
@@ -578,7 +721,10 @@ int NAstruct::action() {
 
   // Determine Base Pairing
   determineBasePairing();
-    
+
+  // Get base pair axes
+  setupBasePairAxes();
+
   return 0;
 } 
 
