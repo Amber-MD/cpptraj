@@ -33,7 +33,7 @@ class NAstruct: public Action {
     char *outFilename;
 
     AxisType *AllocAxis(int);
-    //AxisType *AxisCopy( AxisType * );
+    AxisType *AxisCopy( AxisType * );
     void AxisToFrame( AxisType *, Frame * );
     void FreeAxis( AxisType * );
     void ClearLists();

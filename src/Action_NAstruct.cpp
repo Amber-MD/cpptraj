@@ -57,7 +57,7 @@ NAstruct::AxisType *NAstruct::AllocAxis(int N) {
  * NAstruct::AxisCopy()
  * Return a copy of the given axis.
  */
-/*NAstruct::AxisType *NAstruct::AxisCopy( AxisType *axisIn ) {
+NAstruct::AxisType *NAstruct::AxisCopy( AxisType *axisIn ) {
   AxisType *axis;
   axis = (AxisType *) malloc(sizeof(AxisType));
   if (axis==NULL) {
@@ -69,7 +69,8 @@ NAstruct::AxisType *NAstruct::AllocAxis(int N) {
     strcpy(axis->Name[i], axisIn->Name[i]);
   axis->ID=axisIn->ID;
   return axis;
-}*/
+}
+
 void NAstruct::AxisToFrame( AxisType *axis, Frame *frame ) {
   for (int i=0; i < 12; i++)
     frame->X[i] = axis->F->X[i];
@@ -439,13 +440,15 @@ int NAstruct::setupBasePairAxes() {
   mprintf(" ==== Setup Base Pair Axes ==== \n");
   // Loop over all base pairs
   for (basepair = 0; basepair < Nbp; basepair++) {
-    Base1 = BaseAxes[ BasePair[basepair][0] ];
+    // Set Base1 as a copy, this will become the base pair axes
+    Base1 = AxisCopy( BaseAxes[ BasePair[basepair][0] ] );
     Base2 = BaseAxes[ BasePair[basepair][1] ];
-    // Copy of the first base in the pair
+    // Set frame coords for first base in the pair
     AxisToFrame( Base1, Axes1);
-    // Copy of the second base in the pair
+    // Set frame coords for second base in the pair
     AxisToFrame( Base2, Axes2);
     // Flip the axes in the second pair
+    // NOTE: This flip is only correct for standard WC base-pairing, not explicitly checked
     flipAxesYZ( Axes2 );
     // RMS fit Axes of Base2 onto Base1
     Axes2->RMSD( Axes1, RotMatrix, TransVec, false);
@@ -456,6 +459,8 @@ int NAstruct::setupBasePairAxes() {
     if (axis_of_rotation(V, RotMatrix, theta)) {
       mprintf("Error: NAstruct::setupBasePairAxes(): Could not set up axis of rotation for %i.\n",
               basepair);
+      FreeAxis( Base1 );
+      return 1;
     }
     // Calculate new half-rotation matrix
     calcRotationMatrix(RotMatrix,V,theta/2);
@@ -487,13 +492,19 @@ int NAstruct::setupBasePairAxes() {
     // Shift Base1 to midpoint; Base1 becomes the base pair axes
     Base1->F->Translate( V );
     // DEBUG
+    V[0] = Base1->F->X[6] - Base1->F->X[9];
+    V[1] = Base1->F->X[7] - Base1->F->X[10];
+    V[2] = Base1->F->X[8] - Base1->F->X[11];
+    //normalize(V);
+    // NOTE: Axes are already normalized
     mprintf("      %i) %i:%s -- %i:%s  %8.2lf %8.2lf %8.2lf %8.2lf %8.2lf %8.2lf\n",basepair,
             BasePair[basepair][0], NAbaseName[Base1->ID],
             BasePair[basepair][1], NAbaseName[Base2->ID],
             Base1->F->X[9], Base1->F->X[10], Base1->F->X[11],
-            0.0, 0.0, 0.0);
+            V[0], V[1], V[2]);
     // Base1 now contains absolute coords of base pair reference axes
     AxisToPDB(&basepairaxesfile, Base1, BasePair[basepair][0], &basepairaxesatom);
+    BasePairAxes.push_back( Base1 );
   }
   // DEBUG
   basepairaxesfile.CloseFile();
