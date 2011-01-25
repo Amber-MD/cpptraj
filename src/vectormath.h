@@ -1,6 +1,3 @@
-#ifdef __cplusplus
-extern "C" {
-#endif
 // vectormath.h
 
 #define PI 3.1415926535897932384626433832795
@@ -15,6 +12,7 @@ extern "C" {
   TZ = (UX*VY) - (UY*VX)
 
 void normalize(double a[3]);
+double dot_product(double V[3], double U[3]);
 double matrix_to_angle(double U[9]);
 int axis_of_rotation(double V[3], double U[9], double theta);
 void calcRotationMatrix(double T[9], double V[3], double theta);
@@ -23,6 +21,3 @@ int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue);
 
 void printRotTransInfo(double U[9], double trans[6]);
 
-#ifdef __cplusplus
-}
-#endif

@@ -1,11 +1,12 @@
 /*
- * vectormath.c
+ * vectormath.cpp
  * Simple vector/matrix math routines.
  * ROTATE, jacobi3, and diagEsort routines adapted from PTRAJ
  */
-#include <stdio.h>
-#include <math.h>
+//#include <stdio.h>
+#include <cmath>
 #include "vectormath.h"
+#include "CpptrajStdio.h"
 
 /*
  * normalize()
@@ -19,6 +20,19 @@ void normalize(double a[3]) {
   a[0] *= b;
   a[1] *= b;
   a[2] *= b;
+}
+
+/*
+ * dot_product()
+ */
+double dot_product(double V[3], double U[3]) {
+  double total;
+
+  total = V[0] * U[0];
+  total += V[1] * U[1];
+  total += V[2] * U[2];
+
+  return acos(total);
 }
 
 /*
@@ -59,7 +73,7 @@ int axis_of_rotation(double V[3], double U[9], double theta) {
     normalize(V);
     return 0;
   } else {
-    fprintf(stdout,"Error: axis_of_rotation: Could not extract axis of rotation, angle is %lf\n",
+    mprintf("Error: axis_of_rotation: Could not extract axis of rotation, angle is %lf\n",
             RADDEG*theta);
   }
   return 1;
@@ -190,7 +204,7 @@ int jacobi3(double *a, double *d, double *v, int *nrot) {
       z[ip] = 0.0;
     }
   }
-  printf("Too many iterations in routine JACOBI\n");
+  mprintf("Too many iterations in routine JACOBI\n");
   return(0);
 }
 
@@ -203,7 +217,7 @@ int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
   double eigenvector[9], *eA, v;
 
   if (!jacobi3(mat, Eigenvalue, eigenvector, &njrot)) {
-    printf("convergence failed\n");
+    mprintf("convergence failed\n");
     return(0);
   }
 
@@ -236,18 +250,16 @@ int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
  */
 void printRotTransInfo(double U[9], double trans[6]) {
 
-  fprintf(stdout, "    Rotation matrix follows\n");
-  fprintf(stdout, "     %10.8f %10.8f %10.8f\n",
+  mprintf("    Rotation matrix follows\n");
+  mprintf("     %8.4lf %8.4lf %8.4lf\n",
           U[0], U[1], U[2]);
-  fprintf(stdout, "     %10.8f %10.8f %10.8f\n",
+  mprintf("     %8.4lf %8.4lf %8.4lf\n",
           U[3], U[4], U[5]);
-  fprintf(stdout, "     %10.8f %10.8f %10.8f\n",
+  mprintf("     %8.4lf %8.4lf %8.4lf\n",
           U[6], U[7], U[8]);
-  fprintf(stdout, "    Translation 1 is %10.8f %10.8f %10.8f\n",
+  mprintf("    Translation 1 is %8.4lf %8.4lf %8.4lf\n",
           trans[0], trans[1], trans[2]);
-  fprintf(stdout, "    Translation 2 is %10.8f %10.8f %10.8f\n",
+  mprintf("    Translation 2 is %8.4lf %8.4lf %8.4lf\n",
           trans[3], trans[4], trans[5]);
-
-  return;
 }
 
