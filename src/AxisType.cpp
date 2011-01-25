@@ -69,6 +69,35 @@ AxisType::~AxisType() {
   if (Name!=NULL) free(Name);
 }
 
+// ------------------------- VARIABLE FUNCTIONS -------------------------------
+/*
+ * AxisType::RX()
+ * Put the X unit vector from rotation matrix into Vin.
+ */
+void AxisType::RX(double Vin[3]) {
+  Vin[0] = R[0];
+  Vin[1] = R[3];
+  Vin[2] = R[6];
+}
+/*
+ * AxisType::RY()
+ * Put the Y unit vector from rotation matrix into Vin.
+ */
+void AxisType::RY(double Vin[3]) {
+  Vin[0] = R[1];
+  Vin[1] = R[4];
+  Vin[2] = R[7];
+}
+/*
+ * AxisType::RZ()
+ * Put the Z unit vector from rotation matrix into Vin.
+ */
+void AxisType::RZ(double Vin[3]) {
+  Vin[0] = R[2];
+  Vin[1] = R[5];
+  Vin[2] = R[8];
+}
+
 // ------------------------- PRIVATE FUNCTIONS --------------------------------
 // Base names corresponding to NAbaseType
 // UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU
