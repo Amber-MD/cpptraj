@@ -17,9 +17,10 @@ class Frame {
                    // Mass is passed in when the frame is created, and is 
                    // modified if necessary by SetFrameFromMask (which is the
                    // case when e.g. calculating RMSD).
+    Frame();
     Frame(int, double*);
     Frame(AtomMask *, double *);
-    ~Frame();
+    virtual ~Frame();             // Destructor is virtual since this class can be inherited
     void printAtomCoord(int);
     void SetCoord(double *, int);
     Frame *Copy();

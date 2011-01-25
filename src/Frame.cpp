@@ -7,6 +7,17 @@
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
 
+// CONSTRUCTOR
+Frame::Frame() {
+  natom=0;
+  N=0;
+  X=NULL;
+  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
+  T=0.0;
+  V=NULL;
+  Mass=NULL;
+}
+
 // CONSTRUCTOR, takes number of atoms and masses
 // NOTE: Probably should throw execeptions on mem errors
 Frame::Frame(int natomIn, double *MassIn) {
