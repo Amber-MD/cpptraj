@@ -1,6 +1,6 @@
 include ../../config.h
 
-CPPTRAJ_FLAGS=-I$(INCDIR) $(OCFLAGS)
+CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS)
 
 SOURCE=main.cpp AmberNetcdf.cpp AmberParm.cpp AmberTraj.cpp TrajFile.cpp \
        Frame.cpp PtrajState.cpp ArgList.cpp ptrajmask.c Action_Distance.cpp \
