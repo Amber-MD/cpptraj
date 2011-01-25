@@ -82,7 +82,8 @@ bench: bench.all
 
 clean:
 	@echo "Cleaning all test directories:"
-	(find . -name 'test.out' -o -name 'valgrind.out' -o -name 'Thread.*' | \
+	(find . -name 'test.out' -o -name 'valgrind.out' -o -name 'Thread.*' \
+        -o -name 'Test_Results.dat' | \
         while read dif ;\
         do \
             rm -f $$dif ;\
