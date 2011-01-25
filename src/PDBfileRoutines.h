@@ -1,6 +1,7 @@
 #ifndef INC_PDBFILEROUTINES_H
 #define INC_PDBFILEROUTINES_H
 
+bool isPDBkeyword(char *);
 char *pdb_title(char *);
 int pdb_atom(char *);
 int pdb_name(char *, char *);

@@ -11,6 +11,7 @@
 #endif
 #include "PtrajFile.h"
 #include "NetcdfRoutines.h"
+#include "PDBfileRoutines.h"
 #include "CpptrajStdio.h"
 // File Types
 #include "StdFile.h"
@@ -70,24 +71,8 @@ PtrajFile::~PtrajFile() {
    if (Ext!=NULL) free(Ext);
 }
 
-/*
- * isPDBkeyword()
- * Return 1 if the first 6 chars of buffer match a PDB keyword
- * NOTE: Should really be in PDBFileRoutines, but put here since
- * its currently only used by the PtrajFile class.
- */
-int isPDBkeyword(char *buffer) {
-  if (strncmp(buffer,"HEADER",6)==0) return 1;
-  if (strncmp(buffer,"TITLE ",6)==0) return 1;
-  if (strncmp(buffer,"COMPND",6)==0) return 1;
-  if (strncmp(buffer,"ATOM  ",6)==0) return 1;
-  if (strncmp(buffer,"CRYST1",6)==0) return 1;
-  if (strncmp(buffer,"REMARK",6)==0) return 1;
-  if (strncmp(buffer,"MODEL ",6)==0) return 1;
-  return 0;
-}
-
-/* PtrajFile::OpenFile()
+/* 
+ * PtrajFile::OpenFile()
  * Open the file. If already open, reopen.
  */
 int PtrajFile::OpenFile() {

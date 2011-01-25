@@ -3,9 +3,26 @@
  * and return the requested information.
  */
 #include <cstdlib>
-//#include <cstring>
+#include <cstring>
 #include <cstdio> //sprintf
 #include "PDBfileRoutines.h"
+
+/*
+ * isPDBkeyword()
+ * Return true if the first 6 chars of buffer match a PDB keyword
+ */
+bool isPDBkeyword(char *buffer) {
+  if (strncmp(buffer,"HEADER",6)==0) return true;
+  if (strncmp(buffer,"TITLE ",6)==0) return true;
+  if (strncmp(buffer,"COMPND",6)==0) return true;
+  if (strncmp(buffer,"ATOM  ",6)==0) return true;
+  if (strncmp(buffer,"CRYST1",6)==0) return true;
+  if (strncmp(buffer,"REMARK",6)==0) return true;
+  if (strncmp(buffer,"MODEL ",6)==0) return true;
+  if (strncmp(buffer,"JRNL  ",6)==0) return true;
+  if (strncmp(buffer,"SEQRES",6)==0) return true;
+  return false;
+}
 
 // PDB Record Title
 char *pdb_title(char *buffer) {
