@@ -1,53 +1,36 @@
 #ifndef INC_ACTION_NASTRUCT_H
 #define INC_ACTION_NASTRUCT_H
 // NAstruct
-#include "Action.h"
 #include <vector>
+#include "Action.h"
+#include "AxisType.h"
 
 class NAstruct: public Action {
-    enum NAbaseType { UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU };
-    static const char NAbaseName[][5];
-    struct AxisType {
-      Frame *F;
-      AmberParm::NAME *Name;
-      NAbaseType ID;
-      //double R[9];
-      //double trans[6];
-    };
+    // Variables
     std::vector<AxisType*> RefCoords;
     std::vector<AxisType*> BaseAxes;
     std::vector<AxisType*> BasePairAxes;
-    std::vector<Frame*> ExpFrames;
+    std::vector<AxisType*> ExpFrames;
     std::vector<AtomMask*> ExpMasks;
-    typedef int BPTYPE[2];
-
-    BPTYPE *BasePair;
+    std::vector<int> BasePair;
     int Nbp;
+    int Nbp2;
     int Nbases;
     double HBcut2;
     double Ocut2;
-    Frame *Axes1;
-    Frame *Axes2;
-
+    AxisType ExpFrame;
+    AxisType RefFrame;
+    // Init Args
     std::list<int> *resRange;
     char *outFilename;
-
-    AxisType *AllocAxis(int);
-    AxisType *AxisCopy( AxisType * );
-    void AxisToFrame( AxisType *, Frame * );
-    void FreeAxis( AxisType * );
+    // Functions
     void ClearLists();
-    NAbaseType ID_base(char*);
-    AxisType *getRefCoords( NAbaseType);
-    AxisType *principalAxes();
     bool GCpair(AxisType *, AxisType *);
     bool ATpair(AxisType *, AxisType *);
     bool basesArePaired(AxisType *, AxisType *);
     int determineBasePairing();
-    void flipAxesYZ( Frame * );
     int setupBasePairAxes();
-    // DEBUG
-    void AxisToPDB(PtrajFile *, AxisType *, int, int *);
+    int setupBaseAxes(Frame *);
   public:
     NAstruct();
     ~NAstruct();
