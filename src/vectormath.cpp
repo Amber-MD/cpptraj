@@ -8,6 +8,9 @@
 #include "vectormath.h"
 #include "CpptrajStdio.h"
 
+// PRIVATE ROUTINES
+int jacobi3(double *a, double *d, double *v, int *nrot);
+
 /*
  * normalize()
  * Normalize vector in a[].
@@ -28,9 +31,22 @@ void normalize(double a[3]) {
 double dot_product(double V[3], double U[3]) {
   double total;
 
+  total = (V[0] * U[0]) + (V[1] * U[1]) + (V[2] * U[2]);
+
+  return total;
+}
+
+/*
+ * dot_product_angle()
+ * Return the angle obtained from the dot product between vectors V 
+ * and U. Only works correctly if V and U are normalized beforehand.
+ */
+double dot_product_angle(double V[3], double U[3]) {
+  double total;
+
   total = V[0] * U[0];
-  total += V[1] * U[1];
-  total += V[2] * U[2];
+  total += (V[1] * U[1]);
+  total += (V[2] * U[2]);
 
   return acos(total);
 }
@@ -243,6 +259,13 @@ int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
     }
   }
   return(1);
+}
+
+/*
+ * printVector()
+ */
+void printVector(const char *Name, double V[3]) {
+  mprintf("    %s: %8.4lf %8.4lf %8.4lf\n",Name,V[0], V[1], V[2]);
 }
 
 /*

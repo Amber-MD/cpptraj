@@ -132,6 +132,7 @@ int NAstruct::determineBasePairing() {
   double distance;
   std::vector<bool> isPaired( BaseAxes.size(), false);
   int base1,base2;
+  double V1[3], V2[3];
 
   Nbp = 0;
   BasePair.clear();
@@ -154,9 +155,19 @@ int NAstruct::determineBasePairing() {
       if (distance < Ocut2) {
         mprintf("    Checking %i:%s -- %i:%s\n",base1,RefCoords[base1]->BaseName(),
                 base2,RefCoords[base2]->BaseName());
-        // Figure out if z vectors point in same direction
-        //distance = dot_product(BaseAxes[base1]->X+6,BaseAxes[base2]->X+6);
-        //mprintf("    Dot product of Z vectors: %lf\n",distance*RADDEG);
+        // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
+        // z unit vector is elements 2, 5, and 8 of rotation matrix
+        V1[0] = BaseAxes[base1]->R[2]; V1[1] = BaseAxes[base1]->R[5]; V1[2] = BaseAxes[base1]->R[8];
+        V2[0] = BaseAxes[base2]->R[2]; V2[1] = BaseAxes[base2]->R[5]; V2[2] = BaseAxes[base2]->R[8];
+        //printVector("Base1Z",V1);
+        //printVector("Base2Z",V2);
+        distance = dot_product_angle(V1, V2);
+        mprintf("    Dot product of Z vectors: %lf\n",distance);
+        if (distance > (PIOVER2)) { // If theta(Z) > 90 deg.
+          mprintf("      Base2 %i is anti-parallel to Base1 %i\n",base2,base1);
+        } else {
+          mprintf("      Base2 %i is parallel to Base1 %i\n",base2,base1);
+        }
         if (basesArePaired(RefCoords[base1], RefCoords[base2])) {
           BasePair.push_back(base1);
           BasePair.push_back(base2);
@@ -374,6 +385,82 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
 
   return 0;
 }
+
+/*
+ * NAstruct::determineBaseParameters()
+ * For each base in a base pair, get the values of buckle, propeller twist,
+ * opening, shear, stretch, and stagger.
+ */
+int NAstruct::determineBaseParameters() {
+  int base1, base2, BP;
+  double X1[3], X2[3], Y1[3], Y2[3], Z1[3], Z2[3];
+  double Phi, dpX, dpY, dpZ;
+  double numerator, denominator;
+  double Kappa, Omega, Sigma, Sign, absK, absO, absS;
+  double y1z2, z1y2, z1x2, x1z2, x1y2, y1x2;
+
+  for (BP=0; BP < Nbp2; BP+=2) {
+    base1 = BasePair[BP  ];
+    base2 = BasePair[BP+1];
+    mprintf("\n*** Determining base parameters for pair %i -- %i\n",base1+1,base2+1);
+    BaseAxes[base1]->RX(X1);
+    BaseAxes[base2]->RX(X2);
+    BaseAxes[base1]->RY(Y1);
+    BaseAxes[base2]->RY(Y2);
+    BaseAxes[base1]->RZ(Z1);
+    BaseAxes[base2]->RZ(Z2);
+    //printVector("X1",X1);
+    //printVector("Y1",Y1);
+    //printVector("Z1",Z1);
+    //printVector("X2",X2);
+    //printVector("Y2",Y2);
+    //printVector("Z2",Z2);
+    
+    dpX = dot_product(X1,X2);
+    dpY = dot_product(Y1,Y2);
+    dpZ = dot_product(Z1,Z2);
+    Phi = RADDEG * acos( 0.5 * ( dpX - dpY - dpZ - 1.0 ) );
+    //mprintf("PHI= %lf\n",Phi);
+    denominator = ( dpX - dpY - dpZ - 3.0 );
+    // Kappa (Buckle)
+    numerator = ( - dpX - dpY - dpZ - 1.0 );
+    Kappa = Phi * sqrt( fabs( numerator / denominator ) );
+    absK = fabs(Kappa);
+    // Omega (Propeller Twist)
+    numerator = (   dpX + dpY - dpZ - 1.0 );
+    Omega = Phi * sqrt( fabs( numerator / denominator ) );
+    absO = fabs(Omega);
+    // Sigma (Opening)
+    numerator = (   dpX - dpY + dpZ - 1.0 ); 
+    Sigma = Phi * sqrt( fabs( numerator / denominator ) );
+    absS = fabs(Sigma);
+    // Debug
+    //mprintf("DEBUG: K/O/S = %lf %lf %lf\n",Kappa,Omega,Sigma);
+    // Dot Products for sign determination
+    y1z2 = dot_product(Y1, Z2);
+    z1y2 = dot_product(Z1, Y2);
+    z1x2 = dot_product(Z1, X2);
+    x1z2 = dot_product(X1, Z2);
+    x1y2 = dot_product(X1, Y2);
+    y1x2 = dot_product(Y1, X2);
+    // Kappa Sign determination
+    Sign=-1.0;
+    if      ( absK>=absO && absK>=absS && y1z2<=z1y2 ) Sign=1.0;
+    else if   ( absO>=absK && absO>=absS ) {
+        if      ( z1x2>=(-x1z2) && (x1y2-y1x2)<=0 ) Sign=1.0;
+        else if ( z1x2 <(-x1z2) && (x1y2-y1x2)> 0 ) Sign=1.0;
+    } else if ( absS>=absK && absS>=absO ) {
+        if      ( x1y2<=(-y1x2) && (x1z2-z1x2)<=0 ) Sign=1.0;
+        else if ( x1y2 >(-y1x2) && (x1z2-z1x2)> 0 ) Sign=1.0;
+    }
+    Kappa *= Sign;
+    mprintf("        Kappa = %8.2lf Sign=%lf\n",Kappa,Sign);
+    
+
+  }
+
+  return 0;
+}
 // ----------------------------------------------------------------------------
 
 /*
@@ -527,8 +614,11 @@ int NAstruct::action() {
   // Determine Base Pairing
   determineBasePairing();
 
+  // Determine base parameters
+  determineBaseParameters();
+
   // Get base pair axes
-  setupBasePairAxes();
+  //setupBasePairAxes();
 
   return 0;
 } 

@@ -763,7 +763,7 @@ void Frame::Rotate(double *T) {
 
 /*
  * Frame::InverseRotate()
- * Multiply natomx3 matrix X by inverse of 3x3 matrix T. If T is a rotation
+ * Multiply natomx3 matrix X by transpose of 3x3 matrix T. If T is a rotation
  * matrix this rotates the coords in X in the opposite direction.
  */
 void Frame::InverseRotate(double *T) {

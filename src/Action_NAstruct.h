@@ -31,6 +31,7 @@ class NAstruct: public Action {
     int determineBasePairing();
     int setupBasePairAxes();
     int setupBaseAxes(Frame *);
+    int determineBaseParameters();
   public:
     NAstruct();
     ~NAstruct();
