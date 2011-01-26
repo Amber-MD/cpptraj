@@ -26,6 +26,24 @@ void normalize(double a[3]) {
 }
 
 /*
+ * vector_sub()
+ */
+void vector_sub(double V[3], double U[3], double W[3]) {
+  V[0] = U[0] - W[0];
+  V[1] = U[1] - W[1];
+  V[2] = U[2] - W[2];
+}
+
+/*
+ * vector_sum()
+ */
+void vector_sum(double V[3], double U[3], double W[3]) {
+  V[0] = U[0] + W[0];
+  V[1] = U[1] + W[1];
+  V[2] = U[2] + W[2];
+}
+
+/*
  * dot_product()
  */
 double dot_product(double V[3], double U[3]) {
@@ -49,6 +67,52 @@ double dot_product_angle(double V[3], double U[3]) {
   total += (V[2] * U[2]);
 
   return acos(total);
+}
+
+/*
+ * matrix_transpose()
+ */
+void matrix_transpose(double M[9], double U[9]) {
+  M[0] = U[0];
+  M[1] = U[3];
+  M[2] = U[6];
+  M[3] = U[1];
+  M[4] = U[4];
+  M[5] = U[7];
+  M[6] = U[2];
+  M[7] = U[5];
+  M[8] = U[8];
+}
+
+/*
+ * matrix_times_vector()
+ * Multiple matrix R by vector V, store result in M
+ */
+void matrix_times_vector(double M[3], double R[9], double V[3]) {
+  double x,y,z;
+  // Store V so that M and V may overlap.
+  x = V[0];
+  y = V[1];
+  z = V[2];
+  M[0] = (R[0]*x) + (R[1]*y) + (R[2]*z);
+  M[1] = (R[3]*x) + (R[4]*y) + (R[5]*z);
+  M[2] = (R[6]*x) + (R[7]*y) + (R[8]*z);
+}
+
+/*
+ * matrix_multiply()
+ * Multiple matrix R by vector V, store result in M
+ */
+void matrix_multiply(double M[9], double Row[9], double Col[9]) {
+  M[0] = (Row[0] * Col[0]) + (Row[1] * Col[3]) + (Row[2] * Col[6]);
+  M[1] = (Row[0] * Col[1]) + (Row[1] * Col[4]) + (Row[2] * Col[7]);
+  M[2] = (Row[0] * Col[2]) + (Row[1] * Col[5]) + (Row[2] * Col[8]);
+  M[3] = (Row[3] * Col[0]) + (Row[4] * Col[3]) + (Row[5] * Col[6]);
+  M[4] = (Row[3] * Col[1]) + (Row[4] * Col[4]) + (Row[5] * Col[7]);
+  M[5] = (Row[3] * Col[2]) + (Row[4] * Col[5]) + (Row[5] * Col[8]);
+  M[6] = (Row[6] * Col[0]) + (Row[7] * Col[3]) + (Row[8] * Col[6]);
+  M[7] = (Row[6] * Col[1]) + (Row[7] * Col[4]) + (Row[8] * Col[7]);
+  M[8] = (Row[6] * Col[2]) + (Row[7] * Col[5]) + (Row[8] * Col[8]);
 }
 
 /*
@@ -119,16 +183,33 @@ void calcRotationMatrix(double T[9], double V[3], double theta) {
 
   // Store rotation matrix elements
   T[0]=ux2 + ((1 - ux2) * c);
-  T[3]=uxuy * c1 - uzs;
-  T[6]=uxuz * c1 + uys;
+  T[3]=uxuy * c1 + uzs;
+  T[6]=uxuz * c1 - uys;
 
-  T[1]=uxuy * c1 + uzs;
+  T[1]=uxuy * c1 - uzs;
   T[4]=uy2 + ((1 - uy2) * c);
-  T[7]=uyuz * c1 - uxs;
+  T[7]=uyuz * c1 + uxs;
 
-  T[2]=uxuz * c1 - uys;
-  T[5]=uyuz * c1 + uxs;
+  T[2]=uxuz * c1 + uys;
+  T[5]=uyuz * c1 - uxs;
   T[8]=uz2 + ((1 - uz2) * c);
+}
+
+/* 
+ * calcRotationMatrix()
+ * Given rotations around the X, Y, and Z axes (radians), calculate a
+ * rotation matrix and store it in T.
+ */
+void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ) {
+  double Psi;
+  double V[3];
+
+  Psi = sqrt( (psiX*psiX) + (psiY*psiY) + (psiZ*psiZ) );
+  V[0] = psiX / Psi;
+  V[1] = psiY / Psi;
+  V[2] = psiZ / Psi;
+
+  calcRotationMatrix(T, V, Psi);
 }
 
 /*
@@ -269,20 +350,22 @@ void printVector(const char *Name, double V[3]) {
 }
 
 /*
+ * printMatrix()
+ */
+void printMatrix(const char *Title, double U[9]) {
+  mprintf("    %s\n",Title);
+  mprintf("     %8.4lf %8.4lf %8.4lf\n", U[0], U[1], U[2]);
+  mprintf("     %8.4lf %8.4lf %8.4lf\n", U[3], U[4], U[5]);
+  mprintf("     %8.4lf %8.4lf %8.4lf\n", U[6], U[7], U[8]);
+}
+
+/*
  * printRotTransInfo()
  */
 void printRotTransInfo(double U[9], double trans[6]) {
 
-  mprintf("    Rotation matrix follows\n");
-  mprintf("     %8.4lf %8.4lf %8.4lf\n",
-          U[0], U[1], U[2]);
-  mprintf("     %8.4lf %8.4lf %8.4lf\n",
-          U[3], U[4], U[5]);
-  mprintf("     %8.4lf %8.4lf %8.4lf\n",
-          U[6], U[7], U[8]);
-  mprintf("    Translation 1 is %8.4lf %8.4lf %8.4lf\n",
-          trans[0], trans[1], trans[2]);
-  mprintf("    Translation 2 is %8.4lf %8.4lf %8.4lf\n",
-          trans[3], trans[4], trans[5]);
+  printMatrix("Rotation matrix follows",U);
+  printVector("Translation 1",trans);
+  printVector("Translation 2",trans+3);
 }
 

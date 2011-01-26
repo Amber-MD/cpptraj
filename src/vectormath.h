@@ -13,13 +13,20 @@
   TZ = (UX*VY) - (UY*VX)
 
 void normalize(double a[3]);
+void vector_sub(double V[3], double U[3], double W[3]);
+void vector_sum(double V[3], double U[3], double W[3]);
 double dot_product(double V[3], double U[3]);
 double dot_product_angle(double V[3], double U[3]);
+void matrix_transpose(double M[9], double U[9]);
+void matrix_times_vector(double M[3], double R[9], double V[3]);
+void matrix_multiply(double M[9], double Row[9], double Col[9]);
 double matrix_to_angle(double U[9]);
 int axis_of_rotation(double V[3], double U[9], double theta);
 void calcRotationMatrix(double T[9], double V[3], double theta);
+void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ);
 int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue);
 
 void printVector(const char *Name, double V[3]);
+void printMatrix(const char *Title, double U[9]);
 void printRotTransInfo(double U[9], double trans[6]);
 
