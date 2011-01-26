@@ -29,6 +29,7 @@ class AxisType : public Frame {
     void RX(double Vin[3]);
     void RY(double Vin[3]);
     void RZ(double Vin[3]);
+    double *Origin();
     char *BaseName();
     //int AtomIndex(char *);
     bool AtomNameIs(int, char *);

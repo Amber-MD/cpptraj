@@ -97,6 +97,13 @@ void AxisType::RZ(double Vin[3]) {
   Vin[1] = R[5];
   Vin[2] = R[8];
 }
+/*
+ * AxisType::Origin()
+ * Return pointer to the origin coords.
+ */
+double *AxisType::Origin() {
+  return (X+9);
+}
 
 // ------------------------- PRIVATE FUNCTIONS --------------------------------
 // Base names corresponding to NAbaseType
