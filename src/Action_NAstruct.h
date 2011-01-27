@@ -12,9 +12,8 @@ class NAstruct: public Action {
     std::vector<AxisType*> BasePairAxes;
     std::vector<AxisType*> ExpFrames;
     std::vector<AtomMask*> ExpMasks;
-    std::vector<int> BasePair;
+    std::vector<int> BasePair;           // Base1,Base2,IsAnti,...
     int Nbp;
-    int Nbp2;
     int Nbases;
     double HBcut2;
     double Ocut2;
@@ -32,6 +31,7 @@ class NAstruct: public Action {
     int setupBasePairAxes();
     int setupBaseAxes(Frame *);
     int determineBaseParameters();
+    int determineBasepairParameters();
   public:
     NAstruct();
     ~NAstruct();
