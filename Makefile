@@ -2,6 +2,8 @@
 # Daniel R. Roe
 # 2010-11-18
 
+include ../config.h
+
 # Create cpptraj binary in ./src/
 all:
 	cd src && $(MAKE)
@@ -29,3 +31,6 @@ atclean:
 # called if cpptraj was disabled in AT's configure
 no:
 	@echo "Skipping cpptraj"
+
+uninstall:
+	/bin/rm -f $(BINDIR)/cpptraj
