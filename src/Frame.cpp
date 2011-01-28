@@ -841,10 +841,9 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   int i3,k,k3,j;
 
   memset(U,     0, 9*sizeof(double));
-  memset(Trans, 0, 6+sizeof(double));
+  memset(Trans, 0, 6*sizeof(double));
  
-  // Rotation will occur around geometric center.
-  // NOTE could pass in Mass to make true Center of Mass rotation
+  // Rotation will occur around geometric center/center of mass
   total_mass = this->COM(frameCOM,useMassIn);
   Ref->COM(refCOM,useMassIn);
   //fprintf(stderr,"  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG

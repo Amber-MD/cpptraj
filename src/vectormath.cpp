@@ -27,6 +27,7 @@ void normalize(double a[3]) {
 
 /*
  * vector_sub()
+ * V = U - W
  */
 void vector_sub(double V[3], double U[3], double W[3]) {
   V[0] = U[0] - W[0];
@@ -36,6 +37,7 @@ void vector_sub(double V[3], double U[3], double W[3]) {
 
 /*
  * vector_sum()
+ * V = U + W
  */
 void vector_sum(double V[3], double U[3], double W[3]) {
   V[0] = U[0] + W[0];
@@ -45,6 +47,7 @@ void vector_sum(double V[3], double U[3], double W[3]) {
 
 /*
  * dot_product()
+ * total = V . U
  */
 double dot_product(double V[3], double U[3]) {
   double total;
@@ -71,6 +74,8 @@ double dot_product_angle(double V[3], double U[3]) {
 
 /*
  * matrix_transpose()
+ * M = Ut
+ * Columns of U become rows of M and vice versa.
  */
 void matrix_transpose(double M[9], double U[9]) {
   M[0] = U[0];
