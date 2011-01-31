@@ -21,6 +21,7 @@ class Frame {
     Frame(int, double*);
     Frame(AtomMask *, double *);
     virtual ~Frame();             // Destructor is virtual since this class can be inherited
+
     void printAtomCoord(int);
     void SetCoord(double *, int);
     Frame *Copy();

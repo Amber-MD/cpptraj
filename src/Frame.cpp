@@ -94,7 +94,7 @@ void Frame::printAtomCoord(int atom) {
 
 /*
  * Frame::SetCoord()
- * Set the given coordinates to those of given atom.
+ * Set the coordinates of Coord to those of the specified atom.
  */
 void Frame::SetCoord(double *Coord, int atom) {
   int natom3;
