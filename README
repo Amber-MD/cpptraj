@@ -1,6 +1,10 @@
 CPPTRAJ: Trajectory analysis based on Ptraj, written in C++.
 Daniel R. Roe 2010
 
+CPPTRAJ by default will be installed as part of AmberTools. CPPTRAJ can also
+be installed as a stand-alone program. The configure script in this directory
+is for stand-alone compilation only.
+
 './configure gnu' should be adequate to set up compilation for most systems.
 
 Run './configure --help' for list of configure options. 
@@ -12,11 +16,14 @@ option:
 
 --with-netcdf=$AMBERHOME/AmberTools/src/netcdf
 
-Alternatively individual libraries can be disabled with the '-noLIB' options.
+Alternatively, individual libraries can be disabled with the '-noLIB' options.
 
 After config.h has been successfully generated, 'make install' will
 compile and place the cpptraj binary in the ./bin/ directory.
 
 To test the binary in the ./bin/ directory either run 'make check' or change 
-to the 'test' directory and run 'make test'.
+to the 'test' directory and run 'make test'. If testing the stand-alone
+version the environment variable CPPTRAJHOME should be set to this directory
+and AMBERHOME should be unset (otherwise the binary in AMBERHOME/bin will
+be used for testing).
 
