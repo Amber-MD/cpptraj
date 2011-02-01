@@ -1,3 +1,0 @@
-noprogress
-trajin ../../../../test/ptraj_comprehensive/trajectory.mdcrd 
-trajout trajectory.netcdf netcdf

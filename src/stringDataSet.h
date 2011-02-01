@@ -13,7 +13,7 @@ class stringDataSet : public DataSet {
     std::map<int,std::string>::iterator it;
   public:
     int isEmpty(int);
-    void Add( int, void *vIn );
+    void Add( int, void * );
     void Write(char *, int);
     int Sync();
 };

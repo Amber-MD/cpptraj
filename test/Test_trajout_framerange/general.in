@@ -1,4 +1,0 @@
-noprogress
-parm ../trpcage.parm7
-trajin ../trpcage.nc 
-trajout test.rst7 restart 3,5,6-8

@@ -1,4 +1,0 @@
-parm ../ChainA-tip3p.parm7
-reference ../run0.nc 1
-trajin ../run0.nc 2 2
-rmsd :10-260 refindex 0 perres perresout PerResRMSD.dat  

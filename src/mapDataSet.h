@@ -13,7 +13,7 @@ class mapDataSet : public DataSet {
     std::map<int,double>::iterator it;
   public:
     int isEmpty(int);
-    void Add( int, void *vIn );
+    void Add( int, void * );
     void Write(char *, int);
     int Sync();
 };
