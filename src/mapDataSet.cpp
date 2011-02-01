@@ -31,10 +31,10 @@ int mapDataSet::isEmpty(int frame) {
 
 /*
  * mapDataSet::Write()
- * Write data at frame to buffer, return 0. 
- * If no data for frame write 0.0, return 1.
+ * Write data at frame to buffer. If no data for frame write 0.0.
+ * Return position in buffer after write.
  */
-void mapDataSet::Write(char *buffer, int frame) {
+char *mapDataSet::Write(char *buffer, int frame) {
 
   it = Data.find( frame );
   if (it == Data.end()) 
@@ -42,6 +42,7 @@ void mapDataSet::Write(char *buffer, int frame) {
     sprintf(buffer," %12.4lf", 0.0);
   else 
     sprintf(buffer," %12.4lf",(*it).second);
+  return (buffer + 13);
 }
 
 /*

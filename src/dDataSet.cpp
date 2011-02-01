@@ -64,13 +64,14 @@ void dDataSet::Add( int frame, void *vIn ) {
 /* dDataSet::Write()
  * Formatted write out data for frame to buffer.
  */
-void dDataSet::Write(char *buffer, int frame) {
+char *dDataSet::Write(char *buffer, int frame) {
   //if (frame>=N) fprintf(outfile," %12s","NoData"); 
   //fprintf(outfile," %12.4lf",Data[frame]);
   if (frame>=N) 
     sprintf(buffer," %12s","NoData");
   else 
     sprintf(buffer," %12.4lf",Data[frame]);
+  return (buffer + 13);
 }
 
 /* dDataSet::Sync()

@@ -13,7 +13,7 @@ class intDataSet : public DataSet {
   public:
     int isEmpty(int);
     void Add( int, void * );
-    void Write(char *, int);
+    char *Write(char *, int);
     int Sync();
 };
 #endif

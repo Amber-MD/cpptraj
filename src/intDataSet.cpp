@@ -31,10 +31,10 @@ int intDataSet::isEmpty(int frame) {
 
 /*
  * intDataSet::Write()
- * Write data at frame to buffer, return 0. 
- * If no data for frame write 0.0, return 1.
+ * Write data at frame to buffer. If no data for frame write 0.
+ * Return position in buffer after write.
  */
-void intDataSet::Write(char *buffer, int frame) {
+char *intDataSet::Write(char *buffer, int frame) {
 
   it = Data.find( frame );
   if (it == Data.end()) 
@@ -42,6 +42,7 @@ void intDataSet::Write(char *buffer, int frame) {
     sprintf(buffer," %12i", 0);
   else 
     sprintf(buffer," %12i",(*it).second);
+  return (buffer + 13);
 }
 
 /*
