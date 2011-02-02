@@ -1,4 +1,4 @@
-#LyX 1.6.7 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.6 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -750,6 +750,22 @@ Center all atoms to the center of the box.
 
 \end_deeper
 \begin_layout Description
+closest <# to keep> <mask> [noimage] [first | oxygen]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Similar to the 'strip' command, but modify coordinate frame and topology
+ by keeping only the specified number of closest solvent molecules to the
+ region specified by the given mask.
+ Distances are calculated between every atom in <mask> and either every
+ atom in a solvent molecule, or only the first atom if the 'first' or 'oxygen'
+ keyword is specified.
+ Imaging is turned on by default; the 'noimage' keyword turns it off.
+\end_layout
+
+\end_deeper
+\begin_layout Description
 dihedral <mask1> <mask2> <mask3> <mask4> [out <filename>] 
 \end_layout
 
@@ -882,6 +898,21 @@ For each frame print out all atoms that correspond to <mask>.
 
  selects all atoms within 3.0 Angstroms of residue 195 that are part of residues
  named WAT.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+nastruct [resrange <range>] [out <filename suffix>]
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Calculate basic nucleic acid structure parameters for all residues in the
+ range specified (or all NA residues if no range specifed).
+ If the 'out' keyword is specified, output will be directed to two files:
+ BP.filename and BPstep.filename containing base pair (shear, stretch, stagger,
+ buckle, propeller twist, and opening) and base pair step (shift, slide,
+ rise, tilt, roll, and twist) parameters respectively.
 \end_layout
 
 \end_deeper
