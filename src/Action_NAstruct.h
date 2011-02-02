@@ -19,6 +19,20 @@ class NAstruct: public Action {
     double Ocut2;
     AxisType ExpFrame;
     AxisType RefFrame;
+    // Datasets
+    std::vector<DataSet*> SHEAR;
+    std::vector<DataSet*> STRETCH;
+    std::vector<DataSet*> STAGGER;
+    std::vector<DataSet*> BUCKLE;
+    std::vector<DataSet*> PROPELLER;
+    std::vector<DataSet*> OPENING;
+    std::vector<DataSet*> SHIFT;
+    std::vector<DataSet*> SLIDE;
+    std::vector<DataSet*> RISE;
+    std::vector<DataSet*> TILT;
+    std::vector<DataSet*> ROLL;
+    std::vector<DataSet*> TWIST;
+    int Nframe;                          // Keep track of # frames for print() function           
     // Init Args
     std::list<int> *resRange;
     char *outFilename;
@@ -39,5 +53,6 @@ class NAstruct: public Action {
     int init();
     int setup();
     int action();
+    void print();
 };
 #endif

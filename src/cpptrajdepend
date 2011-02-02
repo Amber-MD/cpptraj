@@ -56,6 +56,6 @@ AmberRestartNC.o : AmberRestartNC.cpp AmberParm.h AmberRestartNC.h AtomMask.h Ba
 CpptrajStdio.o : CpptrajStdio.cpp PtrajMpi.h
 Mol2File.o : Mol2File.cpp AmberParm.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h Mol2File.h Mol2FileRoutines.h PtrajFile.h TrajFile.h
 Mol2FileRoutines.o : Mol2FileRoutines.cpp BaseFileIO.h CpptrajStdio.h Mol2FileRoutines.h PtrajFile.h
-Action_NAstruct.o : Action_NAstruct.cpp Action.h Action_NAstruct.h AmberParm.h ArgList.h AtomMask.h AxisType.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h DistRoutines.h Frame.h FrameList.h ParmFileList.h PtrajFile.h vectormath.h
+Action_NAstruct.o : Action_NAstruct.cpp Action.h Action_NAstruct.h AmberParm.h ArgList.h AtomMask.h AxisType.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h DistRoutines.h Frame.h FrameList.h ParmFileList.h PtrajFile.h mapDataSet.h vectormath.h
 DistRoutines.o : DistRoutines.cpp DistRoutines.h vectormath.h
 AxisType.o : AxisType.cpp AmberParm.h AtomMask.h AxisType.h BaseFileIO.h CpptrajStdio.h Frame.h PDBfileRoutines.h PtrajFile.h
