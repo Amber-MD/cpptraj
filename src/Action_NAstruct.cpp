@@ -5,23 +5,47 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "vectormath.h"
+#include "mapDataSet.h"
 #include <cmath>
+#include <cstdio> // sprintf
 
 // CONSTRUCTOR
 NAstruct::NAstruct() {
   //fprintf(stderr,"NAstruct Con\n");
   Nbp=0;
   Nbases=0;
-  HBcut2 = 12.25; // 3.5^2
-  Ocut2 = 6.25;   // 2.5^2
+  HBcut2=12.25; // 3.5^2
+  Ocut2=6.25;   // 2.5^2
+  Nframe=0;
   resRange=NULL;
   outFilename=NULL;
 } 
+
+// For clearing vectors of pointers to datasets
+void clearVector(std::vector<DataSet*> *);
+void clearVector(std::vector<DataSet*> *Vin) {
+  while (!Vin->empty()) {
+    delete Vin->back();
+    Vin->pop_back();
+  }
+}
 
 // DESTRUCTOR
 NAstruct::~NAstruct() { 
   if (resRange!=NULL) delete resRange;
   ClearLists();
+  clearVector(&SHEAR);
+  clearVector(&STRETCH);
+  clearVector(&STAGGER);
+  clearVector(&BUCKLE);
+  clearVector(&PROPELLER);
+  clearVector(&OPENING);
+  clearVector(&SHIFT);
+  clearVector(&SLIDE);
+  clearVector(&RISE);
+  clearVector(&TILT);
+  clearVector(&ROLL);
+  clearVector(&TWIST);
 }
 
 /*
@@ -139,7 +163,7 @@ int NAstruct::determineBasePairing() {
   Nbp = 0;
   BasePair.clear();
   
-  mprintf(" ==== Setup Base Pairing ==== \n");
+  //mprintf(" ==== Setup Base Pairing ==== \n");
 
   /* For each unpaired base, determine if it is paired with another base
    * determined by the distance between their axis origins.
@@ -163,10 +187,10 @@ int NAstruct::determineBasePairing() {
         distance = dot_product_angle(Z1, Z2);
         //mprintf("    Dot product of Z vectors: %lf\n",distance);
         if (distance > (PIOVER2)) { // If theta(Z) > 90 deg.
-          mprintf("      Base2 %i is anti-parallel to Base1 %i\n",base2,base1);
+          //mprintf("      Base2 %i is anti-parallel to Base1 %i\n",base2,base1);
           AntiParallel = true;
         } else {
-          mprintf("      Base2 %i is parallel to Base1 %i\n",base2,base1);
+          //mprintf("      Base2 %i is parallel to Base1 %i\n",base2,base1);
           AntiParallel = false;
         }
         if (basesArePaired(RefCoords[base1], RefCoords[base2])) {
@@ -184,22 +208,49 @@ int NAstruct::determineBasePairing() {
     } // END Loop over base2
   } // END Loop over base1
 
-  mprintf("    NAstruct: Set up %i base pairs.\n",Nbp);
+  if (debug>0) mprintf("    NAstruct: Set up %i base pairs.\n",Nbp);
   base2=1;
   for (base1=0; base1 < (int)BasePair.size(); base1+=3) {
-    mprintf("        BP %i: Res %i:%s to %i:%s",base2++,
-            BasePair[base1  ]+1, RefCoords[ BasePair[base1  ] ]->BaseName(),
-            BasePair[base1+1]+1, RefCoords[ BasePair[base1+1] ]->BaseName());
-    if ( BasePair[base1+2] )
-      mprintf(" AntiParallel.\n");
-    else
-      mprintf(" Parallel.\n");
+    // For each base pair, set up a dataset for each structural parameter
+    // if one is not already set up.
+    if ( base2 > SHEAR.size() ) {
+      SHEAR.push_back( new mapDataSet() );
+      STRETCH.push_back( new mapDataSet() );
+      STAGGER.push_back( new mapDataSet() );
+      BUCKLE.push_back( new mapDataSet() );
+      PROPELLER.push_back( new mapDataSet() );
+      OPENING.push_back( new mapDataSet() );
+    } 
+    // Print base pair info
+    if (debug>1) {
+      mprintf("        BP %i: Res %i:%s to %i:%s",base2,
+              BasePair[base1  ]+1, RefCoords[ BasePair[base1  ] ]->BaseName(),
+              BasePair[base1+1]+1, RefCoords[ BasePair[base1+1] ]->BaseName());
+      if ( BasePair[base1+2] )
+        mprintf(" AntiParallel.\n");
+      else
+        mprintf(" Parallel.\n");
+    }
+    base2++;
+  }
+  // Also set up base pair step data. One less than # base pairs
+  for (base1=0; base1 < Nbp-1; base1++) {
+    if ( base1+1 > SHIFT.size() ) {
+      SHIFT.push_back( new mapDataSet() );
+      SLIDE.push_back( new mapDataSet() );
+      RISE.push_back( new mapDataSet() );
+      TILT.push_back( new mapDataSet() );
+      ROLL.push_back( new mapDataSet() );
+      TWIST.push_back( new mapDataSet() );
+    }
+    // Print base pair step info
+    //mprintf("        BP step %i: \n",base1+1);
   }
 
   return 0;
 }
 
-/*
+/* CURRENTLY NOT USED
  * NAstruct::setupBasePairAxes()
  * Given a list of base pairs and base axes, setup an 
  * Axestype structure containing reference base pair axes.
@@ -313,15 +364,15 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
   double rmsd, RotMatrix[9], TransVec[6];
   int base;
   // DEBUG
-  int res = 0;
-  int baseaxesatom = 0;
-  int basesatom = 0;
-  PtrajFile baseaxesfile;
-  PtrajFile basesfile;
-  baseaxesfile.SetupFile((char*)"baseaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
-  baseaxesfile.OpenFile();
-  basesfile.SetupFile((char*)"bases.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
-  basesfile.OpenFile();
+  //int res = 0;
+  //int baseaxesatom = 0;
+  //int basesatom = 0;
+  //PtrajFile baseaxesfile;
+  //PtrajFile basesfile;
+  //baseaxesfile.SetupFile((char*)"baseaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
+  //baseaxesfile.OpenFile();
+  //basesfile.SetupFile((char*)"bases.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
+  //basesfile.OpenFile();
   // END DEBUG
 
   // For each axis in RefCoords, use corresponding mask in ExpMasks to set 
@@ -338,7 +389,8 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
     RefFrame.SetFromFrame( RefCoords[base] );
     ExpFrame.SetFromFrame( ExpFrames[base] );
     rmsd = RefFrame.RMSD( &ExpFrame, RotMatrix, TransVec, false);
-    mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
+    if (debug>0) 
+      mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
     // Store the Rotation matrix.
     BaseAxes[base]->StoreRotMatrix( RotMatrix );
     // DEBUG
@@ -377,19 +429,19 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
               BaseAxes[base]->X[8 ]-BaseAxes[base]->X[11]);
     }
     // DEBUG - Write base axis to file
-    BaseAxes[base]->WritePDB(&baseaxesfile, res, P->ResidueName(res), &baseaxesatom);
+    //BaseAxes[base]->WritePDB(&baseaxesfile, res, P->ResidueName(res), &baseaxesatom);
 
     // Overlap ref coords onto input coords. Rotate, then translate to baseaxes origin
     RefCoords[base]->Rotate( RotMatrix );
     RefCoords[base]->Translate( BaseAxes[base]->Origin() );
     // DEBUG - Write ref coords to file
-    RefCoords[base]->WritePDB(&basesfile, res, P->ResidueName(res), &basesatom);
-    res++;
+    //RefCoords[base]->WritePDB(&basesfile, res, P->ResidueName(res), &basesatom);
+    //res++;
   }
 
   // DEBUG
-  baseaxesfile.CloseFile();
-  basesfile.CloseFile();
+  //baseaxesfile.CloseFile();
+  //basesfile.CloseFile();
 
   return 0;
 }
@@ -409,7 +461,7 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
  * rotation matrix for each base pair reference frame.
  */
 int NAstruct::determineBaseParameters() {
-  int base1, base2, BP;
+  int base1, base2, BP, nbasepair;
   AxisType *Base1, *Base2;
   double V1[3], V2[3], Flip[3];
   double X1[3], X2[3], Y1[3], Y2[3], Z1[3], Z2[3];
@@ -422,20 +474,21 @@ int NAstruct::determineBaseParameters() {
   double Shear, Stretch, Stagger;
   AxisType *BPaxes;
   // DEBUG
-  int basepairaxesatom=0;
-  PtrajFile basepairaxesfile;
-  basepairaxesfile.SetupFile((char*)"basepairaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
-  basepairaxesfile.OpenFile();
+  //int basepairaxesatom=0;
+  //PtrajFile basepairaxesfile;
+  //basepairaxesfile.SetupFile((char*)"basepairaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
+  //basepairaxesfile.OpenFile();
   // END DEBUG
 
   // Default pivot points
   V1[0]=0.0; V1[1]=1.808; V1[2]=0.0;
   V2[0]=0.0; V2[1]=1.808; V2[2]=0.0;
 
+  nbasepair=0;
   for (BP=0; BP < (int)BasePair.size(); BP+=3) {
     base1 = BasePair[BP  ];
     base2 = BasePair[BP+1];
-    mprintf("\n*** Determining base parameters for pair %i -- %i\n",base1+1,base2+1);
+    //mprintf("\n*** Determining base parameters for pair %i -- %i\n",base1+1,base2+1);
     Base1 = BaseAxes[base1];
     Base2 = BaseAxes[base2];
     // Fill X, Y, and Z axis unit vectors from Rotation matrices
@@ -629,11 +682,22 @@ int NAstruct::determineBaseParameters() {
     Vec[1] *= 0.5;
     Vec[2] *= 0.5;
 
-    mprintf("Buckle= %8.2lf  Propeller= %8.2lf  Opening= %8.2lf\n",
-            Kappa*RADDEG, Omega*RADDEG, Sigma*RADDEG);
-    mprintf(" Shear= %8.2lf    Stretch= %8.2lf  Stagger= %8.2lf\n",Shear,Stretch,Stagger);
-    mprintf("    Ox= %8.2lf         Oy= %8.2lf       Oz= %8.2lf\n",Vec[0],Vec[1],Vec[2]);
-    mprintf("    Nx= %8.2lf         Ny= %8.2lf       Nz= %8.2lf\n",Rb[2],Rb[5],Rb[8]);
+    if (debug>1) {
+      mprintf("Buckle= %8.2lf  Propeller= %8.2lf  Opening= %8.2lf\n",
+              Kappa*RADDEG, Omega*RADDEG, Sigma*RADDEG);
+      mprintf(" Shear= %8.2lf    Stretch= %8.2lf  Stagger= %8.2lf\n",Shear,Stretch,Stagger);
+      mprintf("    Ox= %8.2lf         Oy= %8.2lf       Oz= %8.2lf\n",Vec[0],Vec[1],Vec[2]);
+      mprintf("    Nx= %8.2lf         Ny= %8.2lf       Nz= %8.2lf\n",Rb[2],Rb[5],Rb[8]);
+    }
+
+    // Store data
+    Kappa*=RADDEG; Omega*=RADDEG; Sigma*=RADDEG;
+    SHEAR[nbasepair]->Add(currentFrame, &Shear);
+    STRETCH[nbasepair]->Add(currentFrame, &Stretch);
+    STAGGER[nbasepair]->Add(currentFrame, &Stagger);
+    BUCKLE[nbasepair]->Add(currentFrame, &Kappa);
+    PROPELLER[nbasepair]->Add(currentFrame, &Omega);
+    OPENING[nbasepair]->Add(currentFrame, &Sigma);
 
     // Store BP axes
     BPaxes = new AxisType();
@@ -651,11 +715,14 @@ int NAstruct::determineBaseParameters() {
     BPaxes->X[7] = Vec[1] + Rb[5];
     BPaxes->X[8] = Vec[2] + Rb[8];
     BPaxes->StoreRotMatrix(Rb);
-    BPaxes->WritePDB(&basepairaxesfile, base1, P->ResidueName(base1), &basepairaxesatom);
+    // DEBUG - write base pair axes
+    //BPaxes->WritePDB(&basepairaxesfile, base1, P->ResidueName(base1), &basepairaxesatom);
     BasePairAxes.push_back( BPaxes );
+
+    nbasepair++; // Actual base pair count; BP is nbasepair*3
   }
   // DEBUG
-  basepairaxesfile.CloseFile(); 
+  //basepairaxesfile.CloseFile(); 
 
   return 0;
 }
@@ -684,7 +751,7 @@ int NAstruct::determineBasepairParameters() {
 
   for (bpi = 0; bpi < ((int)BasePairAxes.size()) - 1; bpi++) {
     bpj = bpi+1;
-    mprintf("\n*** Determining BP parameters for step %i to %i\n",bpi+1,bpj+1);
+    //mprintf("\n*** Determining BP parameters for step %i to %i\n",bpi+1,bpj+1);
     BPi = BasePairAxes[bpi];
     BPj = BasePairAxes[bpj];
     // Fill X Y and Z unit vectors
@@ -775,8 +842,21 @@ int NAstruct::determineBasepairParameters() {
     Slide = Vec[1];
     Rise  = Vec[2];
 
-    mprintf(" Tilt= %8.2lf   Roll= %8.2lf  Twist= %8.2lf\n", Tau*RADDEG, Rho*RADDEG, Omega*RADDEG);
-    mprintf("Shift= %8.2lf  Slide= %8.2lf   Rise= %8.2lf\n", Shift, Slide, Rise);
+    if (debug>1) {
+      mprintf(" Tilt= %8.2lf   Roll= %8.2lf  Twist= %8.2lf\n", Tau*RADDEG, Rho*RADDEG, Omega*RADDEG);
+      mprintf("Shift= %8.2lf  Slide= %8.2lf   Rise= %8.2lf\n", Shift, Slide, Rise);
+    }
+
+    // Store data
+    Tau *= RADDEG;
+    Rho *= RADDEG;
+    Omega *= RADDEG;
+    SHIFT[bpi]->Add(currentFrame, &Shift);
+    SLIDE[bpi]->Add(currentFrame, &Slide);
+    RISE[bpi]->Add(currentFrame, &Rise);
+    TILT[bpi]->Add(currentFrame, &Tau);
+    ROLL[bpi]->Add(currentFrame, &Rho);
+    TWIST[bpi]->Add(currentFrame, &Omega);
   }
 
   return 0;
@@ -903,9 +983,11 @@ int NAstruct::setup() {
       return 1;
     }
     ExpMasks.push_back( Mask );
-    mprintf("      NAstruct: Res %i:%s mask atoms: ",(*residue)+1,P->ResidueName(*residue));
-    Mask->PrintMaskAtoms();
-    mprintf("\n");
+    if (debug>1) {
+      mprintf("      NAstruct: Res %i:%s mask atoms: ",(*residue)+1,P->ResidueName(*residue));
+      Mask->PrintMaskAtoms();
+      mprintf("\n");
+    }
 
     // Set up empty frame to hold input coords for this residue
     axis = new AxisType(Mask->Nselected);
@@ -940,10 +1022,78 @@ int NAstruct::action() {
   // Determine base pair parameters
   determineBasepairParameters();
 
+  Nframe++;
+
   // Get base pair axes
   //setupBasePairAxes();
 
   return 0;
 } 
 
+/*
+ * NAstruct::print()
+ */
+void NAstruct::print() {
+  PtrajFile *outfile;
+  int frame, nbasepair;
+  char buffer[BUFFER_SIZE], *ptr;
+
+  if (outFilename==NULL) return;
+
+  // Base pair parameters
+  sprintf(buffer,"BP.%s",outFilename);
+  outfile = new PtrajFile();
+  if ( outfile->SetupFile(buffer, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
+    delete outfile;
+    return;
+  }
+  if ( outfile->OpenFile() ) {delete outfile; return;}
+  // File header
+  outfile->IO->Printf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BasePair",
+                      "Shear","Stretch","Stagger","Buckle","Propeller","Opening");
+  for (frame=0; frame < Nframe; frame++) {
+    // Base-pair parameters
+    for (nbasepair=0; nbasepair < (int)SHEAR.size(); nbasepair++) {
+      ptr = buffer; 
+      ptr = SHEAR[nbasepair]->Write(ptr,frame);
+      ptr = STRETCH[nbasepair]->Write(ptr,frame);
+      ptr = STAGGER[nbasepair]->Write(ptr,frame);
+      ptr = BUCKLE[nbasepair]->Write(ptr,frame);
+      ptr = PROPELLER[nbasepair]->Write(ptr,frame);
+      ptr = OPENING[nbasepair]->Write(ptr,frame);
+      outfile->IO->Printf("%8i %8i%s\n",frame,nbasepair,buffer);
+    }
+    outfile->IO->Printf("\n");
+  }
+  outfile->CloseFile();
+  delete outfile;
+  
+  // Base pair step parameters
+  sprintf(buffer,"BPstep.%s",outFilename);
+  outfile = new PtrajFile();
+  if ( outfile->SetupFile(buffer, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
+    delete outfile;
+    return;
+  }
+  if ( outfile->OpenFile() ) {delete outfile; return;}
+  // File header
+  outfile->IO->Printf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BPstep",
+                      "Shift","Slide","Rise","Tilt","Roll","Twist");
+  for (frame=0; frame < Nframe; frame++) {
+    // Base-pair parameters
+    for (nbasepair=0; nbasepair < (int)SHIFT.size(); nbasepair++) {
+      ptr = buffer; 
+      ptr = SHIFT[nbasepair]->Write(ptr,frame);
+      ptr = SLIDE[nbasepair]->Write(ptr,frame);
+      ptr = RISE[nbasepair]->Write(ptr,frame);
+      ptr = TILT[nbasepair]->Write(ptr,frame);
+      ptr = ROLL[nbasepair]->Write(ptr,frame);
+      ptr = TWIST[nbasepair]->Write(ptr,frame);
+      outfile->IO->Printf("%8i %8i%s\n",frame,nbasepair,buffer);
+    }
+    outfile->IO->Printf("\n");
+  }
+  outfile->CloseFile();
+  delete outfile;
+}
 

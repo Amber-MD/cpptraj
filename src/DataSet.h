@@ -45,7 +45,7 @@ class DataSet {
 
     virtual int isEmpty(int)         { return 0; }
     virtual void Add( int, void * )  { return;   }
-    virtual void Write(char*, int)   { return;   }
+    virtual char *Write(char*, int)   { return 0; }
     virtual int Sync()               { return 0; }
 
     int Setup(char*,int);

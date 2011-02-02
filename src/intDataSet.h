@@ -12,8 +12,8 @@ class intDataSet : public DataSet {
     std::map<int,int>::iterator it;
   public:
     int isEmpty(int);
-    void Add( int, void *vIn );
-    void Write(char *, int);
+    void Add( int, void * );
+    char *Write(char *, int);
     int Sync();
 };
 #endif

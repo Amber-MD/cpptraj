@@ -15,7 +15,7 @@ class dDataSet: public DataSet {
     int Allocate();
     void Add( int, void * );
     //void Write(FILE*,int);
-    void Write(char*,int);
+    char *Write(char*,int);
     int Sync();
 };
 #endif
