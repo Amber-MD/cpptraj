@@ -661,7 +661,9 @@ int AmberParm::ReadParmPDB() {
     if ( strncmp(buffer,"END",3)==0) break;
     // If TER increment number of molecules and continue
     if ( strncmp(buffer,"TER",3)==0) {
-      molecules++;
+      // NOTE: Do not count # molecules for now. The atomsPerMol array is not being
+      //       set up so this can lead to memory errors.
+      //molecules++;
       continue;
     }
     // Skip all other non-ATOM records
