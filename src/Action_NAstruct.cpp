@@ -213,7 +213,7 @@ int NAstruct::determineBasePairing() {
   for (base1=0; base1 < (int)BasePair.size(); base1+=3) {
     // For each base pair, set up a dataset for each structural parameter
     // if one is not already set up.
-    if ( base2 > SHEAR.size() ) {
+    if ( base2 > (int)SHEAR.size() ) {
       SHEAR.push_back( new mapDataSet() );
       STRETCH.push_back( new mapDataSet() );
       STAGGER.push_back( new mapDataSet() );
@@ -235,7 +235,7 @@ int NAstruct::determineBasePairing() {
   }
   // Also set up base pair step data. One less than # base pairs
   for (base1=0; base1 < Nbp-1; base1++) {
-    if ( base1+1 > SHIFT.size() ) {
+    if ( base1+1 > (int)SHIFT.size() ) {
       SHIFT.push_back( new mapDataSet() );
       SLIDE.push_back( new mapDataSet() );
       RISE.push_back( new mapDataSet() );
