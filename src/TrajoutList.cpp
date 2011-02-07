@@ -72,6 +72,9 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   // Get specified title if any - will not set if NULL
   T->SetTitle( A->getKeyString("title", NULL) );
 
+  // Process any write arguments
+  T->WriteArgs(A);
+
   // Get a frame range for trajout
   T->FrameRange = A->NextArgToRange(A->getNextString());
   if (T->FrameRange!=NULL) {

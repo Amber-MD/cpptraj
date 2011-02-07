@@ -10,9 +10,9 @@
  * to get arguments common to all traj list types. 
  */
 #include <list>
-#include "TrajFile.h"
+#include "TrajFile.h" // ArgList.h
 #include "ParmFileList.h"
-#include "ArgList.h"
+//#include "ArgList.h"
 
 class CoordFileList : public std::list<TrajFile *> {
   protected:

@@ -3,7 +3,7 @@
 //#include "TrajFile.h"
 //#include "TrajFileList.h"
 #include "TrajinList.h"
-#include "ArgList.h"
+//#include "ArgList.h"
 
 class RemdTraj : public TrajFile {
     double remdtrajtemp;

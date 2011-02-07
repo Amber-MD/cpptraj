@@ -1,4 +1,5 @@
 // PDBfile
+#include <cstdio> //sprintf
 #include <cstdlib>
 #include <cstring>
 #include "PDBfile.h"
@@ -8,6 +9,7 @@
 // CONSTRUCTOR
 PDBfile::PDBfile() {
   pdbAtom=0;
+  writeMode=0;
 }
 
 // DESTRUCTOR
@@ -19,17 +21,31 @@ PDBfile::~PDBfile() {
  * PDBfile::close()
  */
 void PDBfile::close() {
-  File->CloseFile();
+  // Only close if not writing 1 pdb per frame
+  if (writeMode!=2)
+    File->CloseFile();
 }
 
 /* 
  * PDBfile::open()
  */
 int PDBfile::open() {
+  int err;
 
-  if (File->OpenFile()) return 1;
-
-  return 0;
+  err = 0; 
+  switch (File->access) {
+    case READ  : err = File->OpenFile(); break;
+    case WRITE :
+      // If writing 1 pdb per frame do not open here
+      if (writeMode!=2) err = File->OpenFile(); 
+      break;
+    case APPEND:
+      mprintf("Error: Append not supported for PDB files.\n");
+      err=1;
+      break;
+  }
+  
+  return err;
 }
 
 
@@ -98,9 +114,24 @@ int PDBfile::getFrame(int set) {
 }
 
 /*
+ * PDBFile::WriteArgs()
+ * Process arguments related to PDB write.
+ */
+int PDBfile::WriteArgs(ArgList *A) {
+  // model: Multiple frames use model keyword (default if #frames<=1)
+  if (A->hasKey("model")) writeMode=1; 
+  // multi: Each frame is written to a different file
+  if (A->hasKey("multi")) writeMode=2; 
+  return 0;
+}
+
+/*
  * PDBfile::SetupWrite
  */ 
 int PDBfile::SetupWrite( ) {
+  // If writing more than 1 frame and not writing 1 pdb per frame, 
+  // use MODEL keyword to separate frames.
+  if (writeMode==0 && P->parmFrames>1) writeMode=1;
   return 0;
 }
 
@@ -113,6 +144,17 @@ int PDBfile::writeFrame(int set) {
   int i,i3,res;
   float Occ, B;
 
+  // If writing 1 pdb per frame set up output filename and open
+  if (writeMode==2) {
+    sprintf(buffer,"%s.%i",File->filename,set + OUTPUTFRAMESHIFT);
+    if (File->IO->Open(buffer,"wb")) return 1;
+  // If specified, write MODEL keyword
+  } else if (writeMode==1) {
+    // 1-6 MODEL, 11-14 model serial #
+    // Since num frames could be large, do not format the integer with width - OK?
+    File->IO->Printf("MODEL     %i\n",set);
+  }
+
   res=0; Occ=0.0; B=0.0;
   // Use F->natom instead of P->natom in case of stripped coordinates?
   i3=0;
@@ -124,6 +166,14 @@ int PDBfile::writeFrame(int set) {
     File->IO->Write(buffer,sizeof(char),strlen(buffer)); 
     i3+=3;
   }
+
+  // If writing 1 pdb per frame, close output file
+  if (writeMode==2) {
+    File->IO->Close();
+  // If MODEL keyword was written, write corresponding ENDMDL record
+  } else if (writeMode==1) {
+    File->IO->Printf("ENDMDL\n");
+  }
   return 0;
 }
 
@@ -132,6 +182,13 @@ int PDBfile::writeFrame(int set) {
  */
 void PDBfile::Info() {
   mprintf("  File (%s) is a PDB file", File->filename);
+  if (File->access==WRITE) {
+    if (writeMode==2)
+      mprintf(" (1 file per frame)");
+    else if (writeMode==1)
+      mprintf(" (1 MODEL per frame)");
+  }
+   
 /*    if (p->option2 == 1) 
       printfone(" with no atom wrapping");
     if (p->option1 == 1)

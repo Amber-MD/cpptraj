@@ -6,9 +6,10 @@
  * e.g.: If the traj is an Amber Trajectory, TrajFile *T=&AmberTraj.
  * The trajectory can then be accessed through virtual members.
  */
-#include <list> // For FrameRange
+//#include <list> // For FrameRange
 #include "Frame.h"
-#include "AmberParm.h" // PtrajFile.h 
+#include "AmberParm.h" // PtrajFile.h
+#include "ArgList.h" // list
 
 class TrajFile {
   protected:
@@ -60,10 +61,11 @@ class TrajFile {
    
     void SetArgs(int,int,int);   // Set the stop, start, and offset args from user input
     // --== Inherited by child classes ==--
-    virtual int getFrame(int) { return 1; } // Read the next coord frame into F
-    virtual int SetupRead()     { return 1; } // Set file up for reading
-    virtual int SetupWrite()    { return 1; } // Set file up for writing
-    virtual int writeFrame(int) { return 1; } // Write coords in frame F to file
-    virtual void Info() { return; }           // Print information about this trajectory
+    virtual int getFrame(int)      { return 1; } // Read the next coord frame into F
+    virtual int SetupRead()        { return 1; } // Set file up for reading
+    virtual int WriteArgs(ArgList*){ return 0; } // (Opt.) Process any args related to writing
+    virtual int SetupWrite()       { return 1; } // Set file up for writing
+    virtual int writeFrame(int)    { return 1; } // Write coords in frame F to file
+    virtual void Info()            { return;   } // Print information about this trajectory
 };
 #endif

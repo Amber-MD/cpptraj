@@ -1,10 +1,6 @@
 // TrajoutList
 #ifndef INC_TRAJOUTLIST_H
 #define INC_TRAJOUTLIST_H
-//#include "TrajFile.h" // Frame.h
-//#include "ArgList.h"
-//#include "ParmFileList.h" // AmberParm.h
-//#include "FrameList.h"
 #include "CoordFileList.h"
 
 class TrajoutList : public CoordFileList {

@@ -2,10 +2,6 @@
 #define INC_PTRAJACTIONLIST_H
 // PtrajActionList
 #include "Action.h"
-//#include "ArgList.h"
-//#include "AmberParm.h"
-//#include "Frame.h"
-//#include "DataSetList.h"
 
 class PtrajActionList {
     Action **ActionList;
