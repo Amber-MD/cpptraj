@@ -24,10 +24,11 @@ Usage() {
   echo "   --with-bzlib=<DIR>"
   echo ""
   echo "   EXPERIMENTAL OPTIONS:"
+  echo "   -profile   : Use Gnu compiler profiling (>= V4.5)"
   echo "   -mpi       : Use mpicc/mpicxx to compile."
   echo "   -openmp    : Use openmp for parallelization of certain routines."
-  echo "   --with-hdf5=<DIR>"
   echo "   NOTE: -openmp and -mpi are mutually exclusive."
+  echo "   --with-hdf5=<DIR>"
 }
 
 # If arg is Key=Value, separate into Key and Value
@@ -150,6 +151,7 @@ LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 INCLUDE=""
 USEMPI=0
 USEOPENMP=0
+PROFILE=0
 while [[ ! -z $1 ]] ; do
   ParseArg $1
   case "$KEY" in
@@ -189,6 +191,7 @@ while [[ ! -z $1 ]] ; do
       USEOPENMP=1
       USEMPI=0
       ;;
+    "-profile"      ) PROFILE=1 ;;
     "-nolfs"        )
       echo "Disabling large file support"
       LFS=""
@@ -286,6 +289,12 @@ fi
 
 CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
+
+# Turn on profiling if specified
+if [[ $PROFILE -eq 1 && $CXX = "g++" ]] ; then
+  echo "Using $CC profiling."
+  CXXFLAGS="-D_GLIBCXX_PROFILE $CXXFLAGS"
+fi
 
 # Test compilers
 TestCompile
