@@ -899,8 +899,6 @@ int NAstruct::init() {
  * P is set in Action::Setup
  */
 int NAstruct::setup() {
-  char parmAtomName[5];
-  parmAtomName[4]='\0';
   int res, refAtom, atom;
   std::list<int>::iterator residue;
   AxisType *axis; 
@@ -958,13 +956,8 @@ int NAstruct::setup() {
       res = -1; // Target atom
       //mprintf("      Ref atom: [%s]\n",axis->Name[refAtom]);
       for (atom=P->resnums[*residue]; atom < P->resnums[(*residue)+1]; atom++) {
-        // Replace any * in atom name with '
-        if (P->names[atom][0]=='*') parmAtomName[0]='\''; else parmAtomName[0]=P->names[atom][0];
-        if (P->names[atom][1]=='*') parmAtomName[1]='\''; else parmAtomName[1]=P->names[atom][1];
-        if (P->names[atom][2]=='*') parmAtomName[2]='\''; else parmAtomName[2]=P->names[atom][2];
-        if (P->names[atom][3]=='*') parmAtomName[3]='\''; else parmAtomName[3]=P->names[atom][3];
-        //mprintf("        Scanning %i [%s]\n", atom, P->names[atom])i;
-        if ( axis->AtomNameIs(refAtom, parmAtomName) ) {
+        //mprintf("        Scanning %i [%s]\n", atom, P->names[atom]);
+        if ( axis->AtomNameIs(refAtom, P->names[atom]) ) {
           res = atom;  
           break;
         }

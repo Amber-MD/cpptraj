@@ -18,6 +18,7 @@
 // ================= PRIVATE FUNCTIONS =========================
 
 void TrimName(char *);
+void ReplaceAsterisk(char *);
 /*
  * TrimName()
  * Given a string of length 5 (4 chars + 1 NULL) remove leading whitespace
@@ -42,6 +43,20 @@ void TrimName(char *NameIn) {
     NameIn[3]=' ';
   }
   // Otherwise Res is Blank, no trim needed
+  return;
+}
+
+/*
+ * ReplaceAsterisk()
+ * Given a string of length 5 (4chars + 1 NULL) change any asterisk (*) to
+ * prime ('). In cpptraj asterisks are considered reserved characters for
+ * atom masks.
+ */
+void ReplaceAsterisk(char *NameIn) {
+  if (NameIn[0]=='*') NameIn[0]='\'';
+  if (NameIn[1]=='*') NameIn[1]='\'';
+  if (NameIn[2]=='*') NameIn[2]='\'';
+  if (NameIn[3]=='*') NameIn[3]='\'';
   return;
 }
 
@@ -679,6 +694,8 @@ int AmberParm::ReadParmPDB() {
     pdb_name(buffer, (char*)names[natom]);
     // Trim leading whitespace from atom name
     TrimName(names[natom]);
+    // Replace asterisks with prime to prevent atom mask problems
+    ReplaceAsterisk(names[natom]);
 
     // If this residue number is different than the last, allocate mem for new res
     if (currResnum!=pdb_resnum(buffer)) {
@@ -686,6 +703,8 @@ int AmberParm::ReadParmPDB() {
       pdb_resname(buffer, (char*)resnames[nres]);
       // Trim leading whitespace from residue name
       TrimName(resnames[nres]);
+      // Replace asterisks with prime to prevent atom mask problems
+      ReplaceAsterisk(resnames[nres]);
       if (debug>3) mprintf("        PDBRes %i [%s]\n",nres,resnames[nres]);
       resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
       resnums[nres]=natom; 
