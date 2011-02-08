@@ -18,6 +18,7 @@
 #include "Action_Mask.h"
 #include "Action_Closest.h"
 #include "Action_NAstruct.h"
+#include "Action_Pucker.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -68,6 +69,7 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("mask"))     {Act=new ActionMask;  }
   else if (A->CommandIs("closest"))  {Act=new Closest;}
   else if (A->CommandIs("nastruct")) {Act=new NAstruct;}
+  else if (A->CommandIs("pucker"))   {Act=new Pucker;}
   else return 1; 
 
   // Pass in the argument list

@@ -3,7 +3,7 @@ AmberNetcdf.o : AmberNetcdf.cpp AmberNetcdf.h AmberParm.h ArgList.h AtomMask.h B
 AmberParm.o : AmberParm.cpp AmberParm.h BaseFileIO.h CpptrajStdio.h Mol2FileRoutines.h PDBfileRoutines.h PtrajFile.h ptrajmask.h
 AmberTraj.o : AmberTraj.cpp AmberParm.h AmberTraj.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h PtrajFile.h TrajFile.h
 TrajFile.o : TrajFile.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h PtrajFile.h PtrajMpi.h TrajFile.h
-Frame.o : Frame.cpp AmberParm.h AtomMask.h BaseFileIO.h CpptrajStdio.h DistRoutines.h Frame.h PtrajFile.h vectormath.h
+Frame.o : Frame.cpp AmberParm.h AtomMask.h BaseFileIO.h CpptrajStdio.h DistRoutines.h Frame.h PtrajFile.h TorsionRoutines.h vectormath.h
 PtrajState.o : PtrajState.cpp Action.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CoordFileList.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajActionList.h PtrajFile.h PtrajMpi.h PtrajState.h ReferenceList.h TrajFile.h TrajinList.h TrajoutList.h
 ArgList.o : ArgList.cpp ArgList.h CpptrajStdio.h
 ptrajmask.o : ptrajmask.c ptrajmask.h
@@ -13,7 +13,7 @@ TrajinList.o : TrajinList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h Coor
 TrajoutList.o : TrajoutList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CoordFileList.h CpptrajStdio.h Frame.h ParmFileList.h PtrajFile.h TrajFile.h TrajoutList.h
 ReferenceList.o : ReferenceList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CoordFileList.h CpptrajStdio.h Frame.h FrameList.h ParmFileList.h PtrajFile.h ReferenceList.h TrajFile.h
 CoordFileList.o : CoordFileList.cpp AmberNetcdf.h AmberParm.h AmberRestart.h AmberRestartNC.h AmberTraj.h ArgList.h AtomMask.h BaseFileIO.h Conflib.h CoordFileList.h CpptrajStdio.h Frame.h Mol2File.h PDBfile.h ParmFileList.h PtrajFile.h RemdTraj.h TrajFile.h TrajinList.h
-PtrajActionList.o : PtrajActionList.cpp Action.h Action_Angle.h Action_Center.h Action_Closest.h Action_DSSP.h Action_Dihedral.h Action_Distance.h Action_Hbond.h Action_Image.h Action_Mask.h Action_NAstruct.h Action_Radgyr.h Action_Rmsd.h Action_Strip.h Action_Surf.h AmberParm.h ArgList.h AtomMap.h AtomMask.h AxisType.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajActionList.h PtrajFile.h
+PtrajActionList.o : PtrajActionList.cpp Action.h Action_Angle.h Action_Center.h Action_Closest.h Action_DSSP.h Action_Dihedral.h Action_Distance.h Action_Hbond.h Action_Image.h Action_Mask.h Action_NAstruct.h Action_Pucker.h Action_Radgyr.h Action_Rmsd.h Action_Strip.h Action_Surf.h AmberParm.h ArgList.h AtomMap.h AtomMask.h AxisType.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajActionList.h PtrajFile.h
 DataSet.o : DataSet.cpp CpptrajStdio.h DataSet.h
 dDataSet.o : dDataSet.cpp CpptrajStdio.h DataSet.h PtrajMpi.h dDataSet.h
 DataSetList.o : DataSetList.cpp CpptrajStdio.h DataSet.h DataSetList.h intDataSet.h mapDataSet.h stringDataSet.h
@@ -59,3 +59,5 @@ Mol2FileRoutines.o : Mol2FileRoutines.cpp BaseFileIO.h CpptrajStdio.h Mol2FileRo
 Action_NAstruct.o : Action_NAstruct.cpp Action.h Action_NAstruct.h AmberParm.h ArgList.h AtomMask.h AxisType.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h DistRoutines.h Frame.h FrameList.h ParmFileList.h PtrajFile.h mapDataSet.h vectormath.h
 DistRoutines.o : DistRoutines.cpp DistRoutines.h vectormath.h
 AxisType.o : AxisType.cpp AmberParm.h AtomMask.h AxisType.h BaseFileIO.h CpptrajStdio.h Frame.h PDBfileRoutines.h PtrajFile.h
+TorsionRoutines.o : TorsionRoutines.cpp TorsionRoutines.h vectormath.h
+Action_Pucker.o : Action_Pucker.cpp Action.h Action_Pucker.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajFile.h
