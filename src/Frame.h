@@ -45,6 +45,7 @@ class Frame {
     double ANGLE(AtomMask*, AtomMask*, AtomMask*);
     double ANGLE(int, int, int);
     double DIHEDRAL(AtomMask *, AtomMask *, AtomMask *, AtomMask *);
+    double PUCKER(AtomMask*,AtomMask*,AtomMask*,AtomMask*,AtomMask*,int,bool,bool);
     double RADGYR(AtomMask *, bool, double *);
 
     void SetFrameFromMask(Frame*, AtomMask *);

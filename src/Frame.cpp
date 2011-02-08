@@ -5,6 +5,7 @@
 #include "Frame.h"
 #include "vectormath.h"
 #include "DistRoutines.h"
+#include "TorsionRoutines.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -544,42 +545,42 @@ double Frame::ANGLE(int A1, int A2, int A3) {
  */
 double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4) {
   double a1[3],a2[3],a3[3],a4[3];
-  double Lx, Ly, Lz, Lnorm;
-  double Rx, Ry, Rz, Rnorm;
-  double Sx, Sy, Sz;
-  double angle;
 
   COM(M1,a1,false);
   COM(M2,a2,false);
   COM(M3,a3,false);
   COM(M4,a4,false);
 
-  CROSS_PRODUCT(     Lx,      Ly,      Lz,
-                (a2[0]-a1[0]), (a2[1]-a1[1]), (a2[2]-a1[2]),
-                (a3[0]-a2[0]), (a3[1]-a2[1]), (a3[2]-a2[2]));
+  return Torsion(a1,a2,a3,a4);
+}
 
-  CROSS_PRODUCT(     Rx,      Ry,      Rz,
-                (a4[0]-a3[0]), (a4[1]-a3[1]), (a4[2]-a3[2]),
-                (a2[0]-a3[0]), (a2[1]-a3[1]), (a2[2]-a3[2]));
+/*
+ * Frame::PUCKER()
+ * Return the pseudorotation between atoms in masks M1-M5 for the given
+ * puckerMethod:
+ *   0: Use Altona & Sundaralingam method/conventions
+ *   1: Use Cremer & Pople method
+ * If amplitude is true, return amplitude instead of pseudorotation.
+ */
+double Frame::PUCKER(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4, AtomMask *M5,
+                     int puckerMethod, bool amplitude, bool useMassIn) {
+  double a1[3],a2[3],a3[3],a4[3],a5[3]; 
+  double angle, amp;
 
-  Lnorm = sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
-  Rnorm = sqrt(Rx*Rx + Ry*Ry + Rz*Rz);
+  COM(M1,a1,useMassIn);
+  COM(M2,a2,useMassIn);
+  COM(M3,a3,useMassIn);
+  COM(M4,a4,useMassIn);
+  COM(M5,a5,useMassIn);
 
-  CROSS_PRODUCT(Sx, Sy, Sz,
-                Lx, Ly, Lz,
-                Rx, Ry, Rz);
+  angle = 0.0;
+  amp = 0.0;
+  switch (puckerMethod) {
+    case 0 : angle = Pucker_AS(a1,a2,a3,a4,a5,&amp); break;
+    case 1 : angle = Pucker_CP(a1,a2,a3,a4,a5,&amp); break;
+  }
 
-  angle = (Lx*Rx + Ly*Ry + Lz*Rz) / (Lnorm * Rnorm);
-
-  if ( angle > 1.0 ) angle = 1.0;
-  if ( angle < -1.0 ) angle = -1.0;
-
-  angle = acos( angle );
-  angle = angle * RADDEG;
-
-  if ( (Sx * (a3[0]-a2[0]) + Sy * (a3[1]-a2[1]) + Sz * (a3[2]-a2[2])) < 0 )
-    angle = -angle;
-
+  if (amplitude) return amp;
   return angle;
 }
 
