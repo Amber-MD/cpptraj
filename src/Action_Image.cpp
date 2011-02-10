@@ -79,12 +79,12 @@ int Image::init() {
 
 /*
  * Image::setup()
- * Set angle up for this parmtop. Get masks etc.
+ * Set Imaging up for this parmtop. Get masks etc.
  * P is set in Action::Setup
  */
 int Image::setup() {
 
-  if ( Mask1.SetupMask(P,debug) ) return 1;
+  if ( Mask1.SetupCharMask(P,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Image::setup: Mask contains 0 atoms.\n");
     return 1;
@@ -136,7 +136,7 @@ int Image::action() {
   int ixyz[3];
   // General
   int begin, end, count;
-  int firstAtom, lastAtom;
+  int firstAtom, lastAtom, Atom;
   double boxTrans[3];
   double Coord[3];
 
@@ -267,7 +267,10 @@ int Image::action() {
 
     // Translate atoms back into the box
     // NOTE: Need to incorporate MASK!
-    F->Translate(boxTrans, firstAtom, lastAtom);
+    for (Atom = firstAtom; Atom < lastAtom; Atom++) {
+      if (Mask1.AtomInCharMask(Atom))
+        F->Translate(boxTrans, Atom);
+    }
 
   } // END loop over count
 
