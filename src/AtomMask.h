@@ -20,6 +20,7 @@ class AtomMask {
     char *maskString; // String specifying atom selection
     int Nselected;    // Number of selected atoms in mask
     int *Selected;    // Int array of selected atom numbers, 1 for each selected atom
+    char *CharMask;   // Char array of atoms, T if selected, F if not.
 
     AtomMask();
 //    AtomMask(int);
@@ -31,5 +32,7 @@ class AtomMask {
     bool None();                   // Return true if Nselected==0
     void SetMaskString(char*);     // Set the mask string. If NULL, set * (all)
     int SetupMask(AmberParm*,int); // Set up Selected based on maskString and given parm
+    int SetupCharMask(AmberParm*,int); // Set up CharMask based on maskString and given parm
+    bool AtomInCharMask(int atom);     // True if given atom is T in CharMask
 };
 #endif

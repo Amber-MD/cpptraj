@@ -12,6 +12,7 @@ AtomMask::AtomMask() {
   //P=NULL;
   //N=0;
   debug=0;
+  CharMask=NULL;
 }
 
 // DEBUG CONSTRUCTOR
@@ -30,6 +31,7 @@ AtomMask::AtomMask(int debugIn) {
 AtomMask::~AtomMask() {
   if (maskString!=NULL) free(maskString);
   if (Selected!=NULL) free(Selected);
+  if (CharMask!=NULL) free(CharMask);
 }
 
 /*
@@ -165,4 +167,41 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
   free(mask);
   
   return 0;
-}  
+}
+
+/*
+ * AtomMask::SetupCharMask()
+ * For cases where we need to know both atoms in and out of mask
+ * just use the old school char array. In this case Nselected will
+ * be the total size of the mask, not just the # of selected atoms.
+ */
+int AtomMask::SetupCharMask(AmberParm *Pin, int debugIn) {
+  if (Pin==NULL) {
+    mprintf("    Error: AtomMask::SetupCharMask: (%s) Topology is NULL.\n", maskString);
+    return 1;
+  }
+  debug=debugIn;
+
+  // Allocate atom mask - free mask if already allocated
+  if (CharMask!=NULL) free(CharMask);
+  CharMask = Pin->mask(maskString);
+  if (CharMask==NULL) {
+    mprintf("    Error: Could not set up mask %s for topology %s\n",
+            maskString, Pin->parmName);
+    return 1;
+  }
+  Nselected = Pin->natom;
+  return 0;
+}
+
+/*
+ * AtomMask::AtomInCharMask()
+ * If CharMask has been set up check if atom has been selected.
+ */
+bool AtomMask::AtomInCharMask(int atom) {
+  if (CharMask==NULL) return false;
+  if (atom < 0) return false;
+  if (atom >= Nselected) return false;
+  if (CharMask[atom]=='T') return true;
+  return false;
+}
