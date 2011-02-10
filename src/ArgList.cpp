@@ -299,6 +299,7 @@ void ArgList::CheckForMoreArgs() {
  *   ':' residue
  *   '@' atom
  *   '*' everything
+ *   NOTE: Disabling the following for now:
  *   '/' element
  *   '%' type
  */
@@ -308,9 +309,11 @@ char *ArgList::getNextMask() {
     if (marked[i]!='T') {
       if ( strchr( arglist[i], ':')!=NULL ||
            strchr( arglist[i], '@')!=NULL ||
-           strchr( arglist[i], '*')!=NULL ||
-           strchr( arglist[i], '/')!=NULL ||
-           strchr( arglist[i], '%')!=NULL    ) {
+           strchr( arglist[i], '*')!=NULL //||
+           //strchr( arglist[i], '/')!=NULL ||
+           //strchr( arglist[i], '%')!=NULL    
+         ) 
+      {
         marked[i]='T';
         return arglist[i];
       }
