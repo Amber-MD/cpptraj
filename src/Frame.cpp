@@ -728,20 +728,17 @@ void Frame::Translate(double *V) {
 
 /*
  * Frame::Translate()
- * Translate atoms between start and end in X by V.
+ * Translate atom in X by V.
  * NOTE: SHOULD CHECK BOUNDS! 
  */
-void Frame::Translate(double *V, int startAtom, int endAtom) {
-  int atom, startAtom3, endAtom3;
+void Frame::Translate(double *V, int Atom) {
+  int atom3;
 
-  startAtom3 = startAtom * 3;
-  endAtom3 = endAtom * 3;
+  atom3 = Atom * 3;
 
-  for (atom=startAtom3; atom<endAtom3; atom+=3) {
-    X[atom  ] += V[0];
-    X[atom+1] += V[1];
-    X[atom+2] += V[2];
-  }
+  X[atom3  ] += V[0];
+  X[atom3+1] += V[1];
+  X[atom3+2] += V[2];
 }
 
 /*  

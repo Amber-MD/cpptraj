@@ -52,7 +52,7 @@ class Frame {
     int SetFrameCoordsFromMask(double *, AtomMask *);
 
     void Translate(double *);
-    void Translate(double *, int, int);
+    void Translate(double *, int);
     void Rotate(double *);
     void InverseRotate(double *);
     void Center(AtomMask *, double *,bool);
