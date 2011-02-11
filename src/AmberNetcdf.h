@@ -29,6 +29,7 @@ class AmberNetcdf : public TrajFile {
 
   int SetupRead();
   int SetupWrite();
+  int WriteArgs(ArgList *A);
 
   public:
   

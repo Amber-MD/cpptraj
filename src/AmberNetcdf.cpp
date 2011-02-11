@@ -186,6 +186,14 @@ int AmberNetcdf::SetupRead() {
 }
 
 /*
+ * AmberNetcdf::WriteArgs()
+ */
+int AmberNetcdf::WriteArgs(ArgList *A) {
+  if (A->hasKey("remdtraj")) hasTemperature=1;
+  return 0;
+}
+
+/*
  * AmberNetcdf::SetupWrite()
  * Create Netcdf file specified by filename and set it up. 
  */
@@ -285,13 +293,15 @@ int AmberNetcdf::SetupWrite() {
   if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"ConventionVersion",3,"1.0"),
     "Writing conventions version.")) return 1;
 
-  /* DAN ROE: Replica temperature 
-  if (trajInfo->isREMDTRAJ) {
+  // Replica temperature
+  if (hasTemperature==1) { 
     mprintf("NETCDF: Defining replica temperature in output trajectory.\n");
-    dimensionID[0] = NCInfo->frameDID;
-    netcdfDefineVariable(NCInfo->ncid, NCTEMPERATURE, NC_DOUBLE, 1, dimensionID, &NCInfo->TempVID);
-    netcdfPutAttributeText(NCInfo->ncid, NCInfo->TempVID,"units","kelvin");
-  }*/
+    dimensionID[0] = frameDID;
+    if (checkNCerr(nc_def_var(ncid,NCTEMPERATURE,NC_DOUBLE,1,dimensionID,&TempVID),
+        "NetCDF error on defining replica temperature")) return 1;
+    if (checkNCerr(nc_put_att_text(ncid,TempVID,"units",6,"kelvin"),
+        "NetCDF error on defining temperature units.")) return 1;
+  }
 
   // Set fill mode
   if (checkNCerr(nc_set_fill(ncid, NC_NOFILL, dimensionID),
@@ -410,6 +420,13 @@ int AmberNetcdf::writeFrame(int set) {
     if (checkNCerr(nc_put_vara_double(ncid,cellAngleVID,start,count, &(F->box[3])),
       "Writing cell angles.")) return 1;
   }
+
+  // Write temperature
+  if (TempVID!=-1) {
+    if ( checkNCerr( nc_put_vara_double(ncid,TempVID,start,count,&(F->T)),
+         "Writing temperature.") ) return 1;
+
+  }
   
   nc_sync(ncid); // Necessary after every write??
 
@@ -424,7 +441,7 @@ void AmberNetcdf::Info() {
             //(p->isVelocity ? " and velocities" : "")
          );
 
-  if (TempVID!=-1) mprintf(" with replica temperatures");
+  if (hasTemperature) mprintf(" with replica temperatures");
 
   /*if (debug > 2) {
       if (title != NULL)
