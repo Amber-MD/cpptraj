@@ -18,6 +18,7 @@ class AmberTraj: public TrajFile {
 
   int SetupRead();
   int SetupWrite();
+  int WriteArgs(ArgList *);
 
   public:
 

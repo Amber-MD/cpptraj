@@ -1,8 +1,12 @@
+#include <cstdio> //sprintf
 #include <cstdlib>
 #include <cstring>
 #include "AmberTraj.h"
 #include "CpptrajStdio.h"
 // AmberTraj
+
+// Size of REMD header
+#define REMD_HEADER_SIZE 42
 
 // CONSTRUCTOR
 AmberTraj::AmberTraj() {
@@ -125,7 +129,15 @@ int AmberTraj::writeFrame(int set) {
   char *bufferPosition;
   off_t offset;
 
-  bufferPosition = F->FrameToBuffer(frameBuffer,"%8.3lf",8,10);
+  bufferPosition = frameBuffer;
+
+  if (hasREMD) {
+    sprintf(bufferPosition,"REMD  %8i %8i %8i %8.3lf\n",0,set+OUTPUTFRAMESHIFT,
+            set+OUTPUTFRAMESHIFT,F->T);
+    bufferPosition += hasREMD;
+  }
+
+  bufferPosition = F->FrameToBuffer(bufferPosition,"%8.3lf",8,10);
   if (isBox) 
     bufferPosition = F->BoxToBuffer(bufferPosition,numBoxCoords,"%8.3lf",8);
 
@@ -163,7 +175,7 @@ int AmberTraj::SetupRead() {
     return 1;
   }
   if (strncmp(buffer,"REMD",4)==0 || strncmp(buffer,"HREMD",5)==0) {
-    hasREMD=42;
+    hasREMD=REMD_HEADER_SIZE;
     hasTemperature=1;
   }
   // Reopen the file
@@ -275,6 +287,15 @@ int AmberTraj::SetupRead() {
 #undef ROUTINE
 
 /*
+ * AmberTraj::WriteArgs()
+ * Check for remdtraj flag.
+ */
+int AmberTraj::WriteArgs(ArgList *A) {
+  if (A->hasKey("remdtraj")) hasREMD=REMD_HEADER_SIZE;
+  return 0;
+}
+
+/*
  * AmberTraj::SetupWrite()
  * Set up trajectory for write. Calculate the length of each cooordinate
  * frame. Set the title and titleSize. Calculate the full output file
@@ -291,7 +312,7 @@ int AmberTraj::SetupWrite() {
     frame_lines++;
   frameSize = ((P->natom * 3 * 8) + frame_lines);
   // REMD header size is 42 bytes
-  //if (type==COORD_AMBER_REMD) frameSize += 42;
+  frameSize += hasREMD;
 
   // If box coords are present, allocate extra space for them
   if (isBox>0) {
@@ -314,6 +335,7 @@ int AmberTraj::SetupWrite() {
   }
 
   // Calculate total output file size.
+  // NOTE: Need to correct for instances where # frames not known
   outfilesize=(long int) (titleSize+(P->parmFrames * frameSize));
 
   File->OpenFile();
