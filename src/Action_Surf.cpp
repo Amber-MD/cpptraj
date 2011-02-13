@@ -42,8 +42,7 @@ int Surf::init() {
   // Add dataset to data file list
   DFL->Add(surfFile,surf);
 
-  //dist->Info();
-  mprintf("    SURF: %s\n",Mask1.maskString);
+  mprintf("    SURF: Calculating surface area for atoms in mask [%s]\n",Mask1.maskString);
 
   return 0;
 }
@@ -73,7 +72,17 @@ int Surf::setup() {
   } else {
     soluteAtoms = P->natom;
   }
-  mprintf("    SURF: Setting up %i solute atoms for surface calc.\n",soluteAtoms);
+  mprintf("    SURF: Setting up parameters for %i solute atoms for surface calc.\n",soluteAtoms);
+  mprintf("          LCPO surface area will be calculated for %i atoms.\n",Mask1.Nselected);
+
+  // Check that each atom in Mask1 is part of solute
+  for (i=0; i < Mask1.Nselected; i++) {
+    if (Mask1.Selected[i] >= soluteAtoms) {
+      mprintf("Error: Surf::setup(): Atom %i in mask %s does not belong to solute.\n",
+              Mask1.Selected[i], Mask1.maskString);
+      return 1;
+    }
+  }
 
   // Allocate distance array
   // Use half square matrix minus the diagonal
@@ -127,7 +136,7 @@ int Surf::action() {
   double Si,vdwi,vdwj,vdwk,vdwi2,vdwj2;
   double dij,djk,tmpaij,tmpajk,vdw2dif,ai,aij,ajk; // NOTE: vdw2dif necessary?
   double sumaij, sumajk, sumajk_2, sumaijajk;
-  int atomi, atomj, distIndex;
+  int atomi, atomj, distIndex, maskIndex;
   std::vector<int> ineighbor;
   std::vector<int>::iterator jt;
   std::vector<int>::iterator kt;
@@ -167,9 +176,10 @@ int Surf::action() {
     NeighborList.push_back(ineighbor);
   }  
 
-  // Step 3: Calculate LCPO surface area
+  // Step 3: Calculate LCPO surface area for atoms in mask
   // Ai = P1*S1 + P2*Sum(Aij) + P3*Sum(Ajk) + P4*Sum(Aij * Sum(Ajk))
-  for (atomi = 0; atomi < soluteAtoms; atomi++) {
+  for (maskIndex=0; maskIndex < Mask1.Nselected; maskIndex++) {
+    atomi = Mask1.Selected[maskIndex];
     sumaij = 0.0;
     sumajk = 0.0;
     sumaijajk = 0.0;
