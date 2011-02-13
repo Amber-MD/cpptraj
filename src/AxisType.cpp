@@ -119,8 +119,9 @@ int AxisType::AllocAxis(int natomIn) {
   maxAtom = natom;
   N = natom * 3;
   X = (double*) malloc(N * sizeof(double));
+  if (X==NULL) return 1;
   Name = (AmberParm::NAME*) malloc( natom * sizeof(AmberParm::NAME));
-  if (X==NULL || Name==NULL) return 1;
+  if (Name==NULL) {free(X); return 1;}
   return 0;
 }
 
@@ -212,6 +213,7 @@ int AxisType::SetRefCoord(char *resname) {
   ID = ID_base(resname);
   switch (ID) {
     case DA :
+    case RA :
       if (AllocAxis(11)) return 1;
       X[0 ]=-2.479000; X[1 ]= 5.346000; X[2 ]= 0.000000; strcpy(Name[0 ],"C1' ");
       X[3 ]=-1.291000; X[4 ]= 4.498000; X[5 ]= 0.000000; strcpy(Name[1 ],"N9  ");
@@ -226,6 +228,7 @@ int AxisType::SetRefCoord(char *resname) {
       X[30]=-1.267000; X[31]= 3.124000; X[32]= 0.000000; strcpy(Name[10],"C4  ");
       break;
     case DC :
+    case RC :
       if (AllocAxis(9)) return 1;
       X[0 ]=-2.477000; X[1 ]= 5.402000; X[2 ]= 0.000000; strcpy(Name[0],"C1' ");
       X[3 ]=-1.285000; X[4 ]= 4.542000; X[5 ]= 0.000000; strcpy(Name[1],"N1  ");
@@ -238,6 +241,7 @@ int AxisType::SetRefCoord(char *resname) {
       X[24]=-0.023000; X[25]= 5.068000; X[26]= 0.000000; strcpy(Name[8],"C6  ");
       break;
     case DG :
+    case RG :
       if (AllocAxis(12)) return 1;
       X[0 ]=-2.477000; X[1 ]= 5.399000; X[2 ]= 0.000000; strcpy(Name[0],"C1' ");
       X[3 ]=-1.289000; X[4 ]= 4.551000; X[5 ]= 0.000000; strcpy(Name[1],"N9  ");
@@ -254,21 +258,29 @@ int AxisType::SetRefCoord(char *resname) {
       break;
     case DT :
       if (AllocAxis(10)) return 1;
-      X[0 ]=-2.481000; X[1 ]= 5.354000; X[2 ]=0.000000; strcpy(Name[0],"C1' ");
-      X[3 ]=-1.284000; X[4 ]= 4.500000; X[5 ]=0.000000; strcpy(Name[1],"N1  ");
-      X[6 ]=-1.462000; X[7 ]= 3.135000; X[8 ]=0.000000; strcpy(Name[2],"C2  ");
-      X[9 ]=-2.562000; X[10]= 2.608000; X[11]=0.000000; strcpy(Name[3],"O2  ");
-      X[12]=-0.298000; X[13]= 2.407000; X[14]=0.000000; strcpy(Name[4],"N3  ");
-      X[15]= 0.994000; X[16]= 2.897000; X[17]=0.000000; strcpy(Name[5],"C4  ");
-      X[18]= 1.944000; X[19]= 2.119000; X[20]=0.000000; strcpy(Name[6],"O4  ");
-      X[21]= 1.106000; X[22]= 4.338000; X[23]=0.000000; strcpy(Name[7],"C5  ");
-      X[24]= 2.466000; X[25]= 4.961000; X[26]=0.001000; strcpy(Name[8],"C7  ");
-      X[27]=-0.024000; X[28]= 5.057000; X[29]=0.000000; strcpy(Name[9],"C6  ");
+      X[0 ]=-2.481000; X[1 ]= 5.354000; X[2 ]= 0.000000; strcpy(Name[0],"C1' ");
+      X[3 ]=-1.284000; X[4 ]= 4.500000; X[5 ]= 0.000000; strcpy(Name[1],"N1  ");
+      X[6 ]=-1.462000; X[7 ]= 3.135000; X[8 ]= 0.000000; strcpy(Name[2],"C2  ");
+      X[9 ]=-2.562000; X[10]= 2.608000; X[11]= 0.000000; strcpy(Name[3],"O2  ");
+      X[12]=-0.298000; X[13]= 2.407000; X[14]= 0.000000; strcpy(Name[4],"N3  ");
+      X[15]= 0.994000; X[16]= 2.897000; X[17]= 0.000000; strcpy(Name[5],"C4  ");
+      X[18]= 1.944000; X[19]= 2.119000; X[20]= 0.000000; strcpy(Name[6],"O4  ");
+      X[21]= 1.106000; X[22]= 4.338000; X[23]= 0.000000; strcpy(Name[7],"C5  ");
+      X[24]= 2.466000; X[25]= 4.961000; X[26]= 0.001000; strcpy(Name[8],"C7  ");
+      X[27]=-0.024000; X[28]= 5.057000; X[29]= 0.000000; strcpy(Name[9],"C6  ");
       break;
-    case RA:
-    case RC:
-    case RG:
     case RU:
+      if (AllocAxis(9)) return 1;
+      X[0 ]=-2.481000; X[1 ]= 5.354000; X[2 ]= 0.000000; strcpy(Name[0],"C1' ");
+      X[3 ]=-1.284000; X[4 ]= 4.500000; X[5 ]= 0.000000; strcpy(Name[1],"N1  ");
+      X[6 ]=-1.462000; X[7 ]= 3.131000; X[8 ]= 0.000000; strcpy(Name[2],"C2  ");
+      X[9 ]=-2.563000; X[10]= 2.608000; X[11]= 0.000000; strcpy(Name[3],"O2  ");
+      X[12]=-0.302000; X[13]= 2.397000; X[14]= 0.000000; strcpy(Name[4],"N3  ");
+      X[15]= 0.989000; X[16]= 2.884000; X[17]= 0.000000; strcpy(Name[5],"C4  ");
+      X[18]= 1.935000; X[19]= 2.094000; X[20]=-0.001000; strcpy(Name[6],"O4  ");
+      X[21]= 1.089000; X[22]= 4.311000; X[23]= 0.000000; strcpy(Name[7],"C5  ");
+      X[24]=-0.024000; X[25]= 5.053000; X[26]= 0.000000; strcpy(Name[8],"C6  ");
+      break;
     case UNKNOWN_BASE:
       mprintf("Warning: AxisType::SetRefCoord: Missing parameters for residue %s.\n",resname);
       return 1;

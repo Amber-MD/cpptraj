@@ -1,6 +1,19 @@
-// NAstruct 
-//#include <cstdlib>
-//#include <cstring>
+/* 
+ * Action_NAstruct
+ * Calculate nucleic acid base/base pair structural parameters.
+ * Algorithms for calculation of base/base pair structural parameters
+ * adapted from:
+ *   Babcock MS, Pednault EPD, Olson WK, "Nucleic Acid Structure Analysis: 
+ *   Mathematics for Local Cartesian and Helical Structure Parameters That
+ *   Are Truly Comparable Between Structures", J. Mol. Biol. (1994) 237,
+ *   125-156.
+ * NA base reference frame coordinates taken from:
+ *   Olson WK, Bansal M, Burley SK, Dickerson RE, Gerstein M, Harvey SC,
+ *   Heinemann U, Lu XJ, Neidle S, Shekked Z, Sklenar H, Suzuki M, Tung CS,
+ *   Westhof E, Wolberger C, Berman H, "A Standard Reference Frame for the 
+ *   Description of Nucleic Acid Base-pair Geometry", J. Mol. Biol. (2001)
+ *   313, 229-237.
+ */
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
@@ -140,8 +153,14 @@ bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   // G C
   if      ( base1->ID==DG && base2->ID==DC ) return GCpair(base1,base2);
   else if ( base1->ID==DC && base2->ID==DG ) return GCpair(base2,base1);
+  else if ( base1->ID==RG && base2->ID==RC ) return GCpair(base1,base2);
+  else if ( base1->ID==RC && base2->ID==RG ) return GCpair(base2,base1);
+  // A T
   else if ( base1->ID==DA && base2->ID==DT ) return ATpair(base1,base2);
   else if ( base1->ID==DT && base2->ID==DA ) return ATpair(base2,base1);
+  // A U
+  else if ( base1->ID==RA && base2->ID==RU ) return ATpair(base1,base2);
+  else if ( base1->ID==RU && base2->ID==RA ) return ATpair(base2,base1);
 //  else {
 //    mprintf("Warning: NAstruct: Unrecognized pair: %s - %s\n",NAbaseName[base1->ID],
 //             NAbaseName[base2->ID]);
