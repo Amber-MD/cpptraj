@@ -361,9 +361,8 @@ int AmberTraj::SetupWrite() {
  * Info()
  */
 void AmberTraj::Info() {
-  mprintf("  File (%s) is an",File->filename);
   if (hasREMD) 
-    mprintf(" AMBER REMD trajectory");
+    mprintf("is an AMBER REMD trajectory");
   else
-    mprintf(" AMBER trajectory");
+    mprintf("is an AMBER trajectory");
 }

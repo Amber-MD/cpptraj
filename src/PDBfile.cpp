@@ -181,7 +181,7 @@ int PDBfile::writeFrame(int set) {
  * Info()
  */
 void PDBfile::Info() {
-  mprintf("  File (%s) is a PDB file", File->filename);
+  mprintf("is a PDB file");
   if (File->access==WRITE) {
     if (writeMode==2)
       mprintf(" (1 file per frame)");

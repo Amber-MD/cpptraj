@@ -752,14 +752,16 @@ int AmberParm::ReadParmMol2() {
   if (Mol2ScanTo(&File, MOLECULE)) return 1;
   //   Scan title
   if ( File.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
-  mprintf("      Mol2 Title: [%s]\n",buffer);
+  if (debug>0) mprintf("      Mol2 Title: [%s]\n",buffer);
   //   Scan # atoms and bonds
   // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
   if ( File.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
   mol2bonds=0;
   sscanf(buffer,"%i %i",&natom, &mol2bonds);
-  mprintf("      Mol2 #atoms: %i\n",natom);
-  mprintf("      Mol2 #bonds: %i\n",mol2bonds);
+  if (debug>0) {
+    mprintf("      Mol2 #atoms: %i\n",natom);
+    mprintf("      Mol2 #bonds: %i\n",mol2bonds);
+  }
 
   // Allocate memory for atom names, types, and charges.
   names = (NAME*) malloc( natom * sizeof(NAME));

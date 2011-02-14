@@ -63,6 +63,7 @@ void TrajFile::SetTitle(char *titleIn) {
  * Print general trajectory information. Call TrajFile->Info for specific information.
  */
 void TrajFile::PrintInfo(int showExtended) {
+  mprintf("  [%s] ",trajfilename);
   this->Info();
 
   mprintf(", Parm %i",P->pindex);

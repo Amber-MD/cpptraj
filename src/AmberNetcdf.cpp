@@ -437,7 +437,7 @@ int AmberNetcdf::writeFrame(int set) {
  * Info()
  */
 void AmberNetcdf::Info() {
-  mprintf("  File (%s) is a NetCDF AMBER trajectory", File->filename
+  mprintf("is a NetCDF AMBER trajectory"
             //(p->isVelocity ? " and velocities" : "")
          );
 

@@ -446,7 +446,7 @@ int AmberRestartNC::writeFrame(int set) {
  * Info()
  */
 void AmberRestartNC::Info() {
-  mprintf("  File (%s) is a NetCDF AMBER restart file", File->filename);
+  mprintf("is a NetCDF AMBER restart file");
 
   if (velocityVID!=-1) mprintf(", with velocities");
  

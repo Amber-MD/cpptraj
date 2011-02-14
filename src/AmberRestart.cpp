@@ -304,6 +304,6 @@ int AmberRestart::writeFrame(int set) {
  * Info()
  */
 void AmberRestart::Info() {
-  mprintf("  File (%s) is an AMBER restart file", File->filename);
+  mprintf("is an AMBER restart file");
   if (hasVelocity) mprintf(" with velocity info");
 }

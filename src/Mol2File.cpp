@@ -56,11 +56,11 @@ int Mol2File::SetupRead() {
   //   Scan title
   if ( File->IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1; 
   this->SetTitle(buffer);
-  mprintf("    Mol2 Title: [%s]\n",title);
+  if (debug>0) mprintf("    Mol2 Title: [%s]\n",title);
   //   Scan # atoms
   if ( File->IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
   sscanf(buffer,"%i",&mol2atom);
-  mprintf("    Mol2 #atoms: %i\n",mol2atom);
+  if (debug>0) mprintf("    Mol2 #atoms: %i\n",mol2atom);
   if (mol2atom!=P->natom) {
     mprintf("Error: # atoms in mol2 file (%i) not equal to # atoms\n");
     mprintf("       in associated parm file %s (%i).\n",P->parmName,P->natom);
@@ -191,5 +191,5 @@ int Mol2File::writeFrame(int set) {
  * Info()
  */
 void Mol2File::Info() {
-  mprintf("  File (%s) is a Tripos Mol2 file", File->filename);
+  mprintf("is a Tripos Mol2 file");
 }

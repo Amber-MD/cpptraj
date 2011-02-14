@@ -281,7 +281,7 @@ int RemdTraj::getFrame(int set) {
  * Info()
  */
 void RemdTraj::Info() {
-  mprintf("  REMD trajectories (%i total, lowest replica: %s)\n",numReplicas,replicaName);
-  mprintf("    Looking for frames at %8.2lf K",remdtrajtemp);
+  mprintf("REMD trajectories (%i total, lowest replica: %s)\n",numReplicas,replicaName);
+  mprintf("        Looking for frames at %8.2lf K",remdtrajtemp);
 }
     

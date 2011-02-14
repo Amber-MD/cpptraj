@@ -89,5 +89,5 @@ int Conflib::writeFrame(int set) {
  * Info()
  */
 void Conflib::Info() {
-  mprintf("  File (%s) is an LMOD conflib file", File->filename);
+  mprintf("is an LMOD conflib file");
 }
