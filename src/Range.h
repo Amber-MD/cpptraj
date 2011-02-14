@@ -14,6 +14,6 @@ class Range : public std::list<int> {
     int SetRange(int,int);
 
     char *RangeArg();
-    void PrintRange(const char*);
+    void PrintRange(const char*,int);
 };
 #endif

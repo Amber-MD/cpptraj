@@ -124,13 +124,13 @@ char *Range::RangeArg() {
 
 /*
  * Range::PrintRange()
- * Print all numbers in the range to a line.
+ * Print all numbers in the range to a line. Increment by offset.
  */
-void Range::PrintRange(const char* header) {
+void Range::PrintRange(const char* header, int offset) {
   if (header!=NULL)
     mprintf("%s",header);
   for (std::list<int>::iterator it=this->begin(); it!=this->end(); it++)
-    mprintf(" %i",*it);
+    mprintf(" %i",(*it)+offset);
   mprintf("\n");
 }
  
