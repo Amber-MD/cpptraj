@@ -76,7 +76,8 @@ void TrajFile::PrintInfo(int showExtended) {
 
   if (total_read_frames!=-1) {
     if (stop!=-1) 
-      mprintf(": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,Frames);
+      //mprintf(": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,Frames);
+      mprintf(" (reading %i of %i)",total_read_frames,Frames);
     else
       mprintf(", unknown #frames, start=%i offset=%i",start,offset);
   } else {
@@ -271,7 +272,7 @@ int TrajFile::Begin(int *OutputStart, int showProgressIN) {
     frameskip = 1;
     currentFrame = 0;
   }
-  rprintf( "TRAJECTORY %s: (%i-%i, %i)\n",trajfilename,currentFrame,stop,offset);
+  rprintf( "----- [%s] (%i-%i, %i) -----\n",trajfilename,currentFrame+1,stop+1,offset);
   //mprintf("  Processing %s from frame %i, frameskip %i, OutputStart %i\n",
   //        trajfilename, currentFrame, frameskip, *OutputStart);
 #ifdef DEBUG

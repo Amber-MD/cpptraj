@@ -90,10 +90,8 @@ int Distance::setup() {
   imageType = 0;
   if (!noimage) {
     imageType = P->ifbox;
-    if (P->ifbox==0) {
-      mprintf("    Warning: Distance::setup: ");
-      mprintf(" Imaging specified but no box information in prmtop %s\n",P->parmName);
-      mprintf("             No imaging can be performed.\n");
+    if (P->ifbox==0 && debug>0) {
+      mprintf("    Warning: No box info in %s, disabling imaging.\n",P->parmName);
     }
   }
         
