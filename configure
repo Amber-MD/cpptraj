@@ -166,7 +166,7 @@ while [[ ! -z $1 ]] ; do
       echo "Using intel compilers"
       CC=icc
       CXX=icpc
-      OPTFLAGS="-fast -Wall"
+      OPTFLAGS="-O3 -Wall"
       OMPFLAGS="-openmp"
       ;; 
     "-debug" | "-d" ) 
