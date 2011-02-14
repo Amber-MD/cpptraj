@@ -1,8 +1,6 @@
 #ifndef INC_ARGLIST_H
 #define INC_ARGLIST_H
 // ArgList
-//using namespace std;
-#include <list>
 
 class ArgList {
     char **arglist;
@@ -18,7 +16,6 @@ class ArgList {
     void print();
     char *ArgLine();
 
-    std::list<int> *NextArgToRange(char*);
     char *Command();
     int CommandIs(const char *);
     int CommandIs(const char *,int);

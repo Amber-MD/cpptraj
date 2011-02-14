@@ -30,7 +30,6 @@ NAstruct::NAstruct() {
   HBcut2=12.25; // 3.5^2
   Ocut2=6.25;   // 2.5^2
   Nframe=0;
-  resRange=NULL;
   outFilename=NULL;
 } 
 
@@ -45,7 +44,6 @@ void clearVector(std::vector<DataSet*> *Vin) {
 
 // DESTRUCTOR
 NAstruct::~NAstruct() { 
-  if (resRange!=NULL) delete resRange;
   ClearLists();
   clearVector(&SHEAR);
   clearVector(&STRETCH);
@@ -891,20 +889,18 @@ int NAstruct::determineBasepairParameters() {
  *    3) Dataset name
  */
 int NAstruct::init() {
-  char *rangeArg;
   // Get keywords
   outFilename = A->getKeyString("out",NULL);
-  rangeArg = A->getKeyString("resrange",NULL); 
-  resRange = A->NextArgToRange(rangeArg); 
+  resRange.SetRange( A->getKeyString("resrange",NULL) );
   // Get Masks
   // Dataset
   // Add dataset to data file list
 
   mprintf("    NAstruct: ");
-  if (resRange==NULL)
+  if (resRange.empty())
     mprintf("Scanning all NA residues");
   else
-    mprintf("Scanning residues %s",rangeArg);
+    mprintf("Scanning residues %s",resRange.RangeArg());
   if (outFilename!=NULL)
     mprintf(", output to file %s",outFilename);
   mprintf("\n");
@@ -926,40 +922,36 @@ int NAstruct::setup() {
   // Clear all lists
   ClearLists();
 
-  // If range arg is NULL look for all NA residues.
-  if (resRange==NULL) {
-    resRange = new std::list<int>();
+  // If range is empty (i.e. no resrange arg given) look for all NA residues.
+  if (resRange.empty()) {
     for (res=0; res < P->nres; res++) {
       if ( ID_base(P->ResidueName(res))!=UNKNOWN_BASE )
-        resRange->push_back(res);
+        resRange.push_back(res);
     }
 
   // Otherwise, for each residue in resRange check if it is a NA
   } else {
-    residue=resRange->begin();
-    while (residue!=resRange->end()) {
+    residue=resRange.begin();
+    while (residue!=resRange.end()) {
       // User residues numbers start from 1
       (*residue) = (*residue) - 1;
       if (ID_base(P->ResidueName(*residue))==UNKNOWN_BASE) 
-        residue = resRange->erase(residue);
+        residue = resRange.erase(residue);
       else 
         residue++;
     }
   }
   // Exit if no NA residues specified
-  if (resRange->empty()) {
+  if (resRange.empty()) {
     mprintf("Error: NAstruct::setup: No NA residues found for %s\n",P->parmName);
     return 1;
   }
 
   // DEBUG - print all residues
-  mprintf("    NAstruct: NA res:");
-  for (residue=resRange->begin(); residue!=resRange->end(); residue++)
-    mprintf(" %i",(*residue)+1);
-  mprintf("\n");
+  resRange.PrintRange("    NAstruct: NA res:",1);
 
   // Set up frame to hold reference coords for each NA residue
-  for (residue=resRange->begin(); residue!=resRange->end(); residue++) {
+  for (residue=resRange.begin(); residue!=resRange.end(); residue++) {
     axis = new AxisType();
     if ( axis->SetRefCoord( P->ResidueName(*residue) ) ) {
       mprintf("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",

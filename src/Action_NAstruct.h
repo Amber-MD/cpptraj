@@ -4,6 +4,7 @@
 #include <vector>
 #include "Action.h"
 #include "AxisType.h"
+#include "Range.h"
 
 class NAstruct: public Action {
     // Variables
@@ -34,7 +35,7 @@ class NAstruct: public Action {
     std::vector<DataSet*> TWIST;
     int Nframe;                          // Keep track of # frames for print() function           
     // Init Args
-    std::list<int> *resRange;
+    Range resRange;
     char *outFilename;
     // Functions
     void ClearLists();

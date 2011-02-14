@@ -3,6 +3,7 @@
 
 #include "Action.h"
 #include <vector>
+#include "Range.h"
 
 
 class Rmsd: public Action {
@@ -10,9 +11,9 @@ class Rmsd: public Action {
     // PerResRMSD -------------
     DataSetList *PerResRMSD;
     int nres;
-    std::list<int> *ResRange;           // Residues to calculate perRes rmsd for
+    Range ResRange;                     // Residues to calculate perRes rmsd for
     std::vector<AtomMask*> PerResMask;  // Hold AtomMasks for each residue in ResRange
-    std::list<int> *RefRange;           // Residues in reference corresponding to those in ResRange
+    Range RefRange;                     // Residues in reference corresponding to those in ResRange
     std::vector<AtomMask*> PerRefMask;  // Hold AtomMasks for each residue in RefRange
     char *perresout;                    // PerRes RMSD data output file
     char *perresmask;                   // Additional mask to apply to 

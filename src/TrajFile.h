@@ -6,10 +6,10 @@
  * e.g.: If the traj is an Amber Trajectory, TrajFile *T=&AmberTraj.
  * The trajectory can then be accessed through virtual members.
  */
-//#include <list> // For FrameRange
 #include "Frame.h"
 #include "AmberParm.h" // PtrajFile.h
-#include "ArgList.h" // list
+#include "ArgList.h"
+#include "Range.h" 
 
 class TrajFile {
   protected:
@@ -36,7 +36,7 @@ class TrajFile {
     int total_read_frames; // Total number of frames that will be read
     int isBox;             // >0 means trajectory has box information
 
-    std::list<int> *FrameRange; // list of frames to be written out
+    Range *FrameRange;     // list of frames to be written out
     int hasTemperature;    // 1 means trajectory has temperature information
     PtrajFile *File;       // Class that handles basic file IO
     AmberParm *P;          // Memory address of the associated parmfile

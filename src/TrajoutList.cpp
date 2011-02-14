@@ -23,7 +23,8 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   TrajFile *T;
   int boxInfo;
   FileFormat writeFormat;
-  FileType writeType; 
+  FileType writeType;
+  char *onlyframes; 
 
   // Set up common arguments from arglist
   if (this->ProcessArgList(A,parmFileList)) return coordErr;
@@ -76,15 +77,17 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   T->WriteArgs(A);
 
   // Get a frame range for trajout
-  T->FrameRange = A->NextArgToRange(A->getNextString());
-  if (T->FrameRange!=NULL) {
-    mprintf("      Saving frames");
-    for (std::list<int>::iterator it=T->FrameRange->begin(); it!=T->FrameRange->end(); it++)
-      mprintf(" %i",*it);
-    mprintf("\n");
-  } //else
-    //mprintf("      No frame range given.\n");
-
+  onlyframes = A->getKeyString("onlyframes",NULL);
+  if (onlyframes!=NULL) {
+    T->FrameRange = new Range();
+    if ( T->FrameRange->SetRange(onlyframes) ) {
+      mprintf("Warning: trajout: onlyframes: %s is not a valid range.\n");
+      delete T->FrameRange;
+    } else {
+      T->FrameRange->PrintRange("      Saving frames",0);
+    }
+  }
+    
   // Set parameter file
   T->P=P;
 

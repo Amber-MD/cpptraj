@@ -2,11 +2,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
-#include <string>
+#include <string> // Used in constructor to detect quoted args
 #include "ArgList.h"
 #include "CpptrajStdio.h"
-using namespace std;
-
 // NOTE: Place checks on memory
 
 // CONSTRUCTOR: Empty Arg List
@@ -17,104 +15,11 @@ ArgList::ArgList() {
   argline=NULL;
 }
 
-/*
- * ArgList::ArgToRange()
- * Convert argument string of format x,x-x to a list of numbers.
- */
-list<int> *ArgList::NextArgToRange(char *ArgIn) {
-  char *temp, *arg;
-  int R[2], range, upper, err;
-  ArgList *CommaList, *DashList;
-  list<int> *RangeList;
-  list<int>::iterator it;
-
-  //mprintf("DEBUG: NextArgToRange(%s)\n",ArgIn);
-
-  if (ArgIn==NULL) return NULL;
-  RangeList=new list<int>;
-  // Copy ArgIn to temp location to avoid modifying it with strtok
-  temp=(char*) malloc( (strlen(ArgIn)+1) * sizeof(char));
-  strcpy(temp,ArgIn);
-  // Split range by comma
-  CommaList = new ArgList(temp, ",");
-  CommaList->ResetAll();
-  err=0;
-  while ( (arg = CommaList->getNextString())!=NULL ) {
-    // Then split by dash
-    DashList = new ArgList(arg, "-");
-    DashList->ResetAll();
-    R[0] = DashList->getNextInteger(-1);
-    R[1] = DashList->getNextInteger(-1);
-    delete DashList;
-    if (R[0]==-1) {
-      mprintf("Error: ArgToRange(%s): Range is -1 for %s\n",ArgIn,DashList->ArgLine());
-      err=1;
-      break; 
-    }
-    upper = R[1];
-    if (upper==-1) upper=R[0];
-    upper++; // Want up to and including the upper argument
-    if (upper<=R[0]) 
-      mprintf("Warning: Converting %s to range: %i-%i is not valid.\n",ArgIn,R[0],R[1]);
-    for (range = R[0]; range < upper; range++) 
-      RangeList->push_back(range);
-  }
-
-  free(temp);
-  delete CommaList;
-  // Dont return an empty list
-  if (err>0 || RangeList->empty()) {
-    delete RangeList;
-    return NULL;
-  }
-
-  // Sort frames using default comparison
-  RangeList->sort();
-  //for (it=RangeList->begin(); it!=RangeList->end(); it++)
-  //  fprintf(stdout,"RangeList= %i\n",*it); 
-  // Remove duplicates
-  err=-1;
-  //fprintf(stdout,"Size of RangeList is %lu\n",RangeList->size());
-  it=RangeList->begin();
-  while (!RangeList->empty()) {
-    //fprintf(stdout,"     List= %i  Last= %i",*it,err);
-    upper=*it;
-    if (*it == err) {
-      //fprintf(stdout,"REMOVING."); 
-      // Erasing effectively increments the iterator
-      it=RangeList->erase(it);
-    } else {
-      it++;
-    }
-    err=upper;
-    //fprintf(stdout,"\n");
-    // If we are past the last element exit now
-    if (it == RangeList->end()) break; 
-  }
-
-  return RangeList;
-}
-
-/* 
- * ArgList::Add()
- * Add input to the argument list.
- */
-void ArgList::Add(char *input) {
-  // Dont store blank tokens
-  if (input==NULL) return;
-  if (input[0]!='\n') {
-    arglist=(char**) realloc(arglist,(nargs+1)*sizeof(char*));
-    arglist[nargs]=(char*) malloc( (strlen(input)+1) * sizeof(char) );
-    strcpy(arglist[nargs],input);
-    nargs++;
-  }
-}
-
 // CONSTRUCTOR
 // Separate input by the characters in separator and store as separate args
 ArgList::ArgList(char *input, const char *separator) {
   char *pch;
-  string quotedArg;
+  std::string quotedArg;
   int debug;
   size_t inputSize;
 
@@ -181,6 +86,22 @@ ArgList::~ArgList() {
   }
   if (marked!=NULL) free(marked);
   if (argline!=NULL) free(argline);
+}
+
+
+/* 
+ * ArgList::Add()
+ * Add input to the argument list.
+ */
+void ArgList::Add(char *input) {
+  // Dont store blank tokens
+  if (input==NULL) return;
+  if (input[0]!='\n') {
+    arglist=(char**) realloc(arglist,(nargs+1)*sizeof(char*));
+    arglist[nargs]=(char*) malloc( (strlen(input)+1) * sizeof(char) );
+    strcpy(arglist[nargs],input);
+    nargs++;
+  }
 }
 
 /*

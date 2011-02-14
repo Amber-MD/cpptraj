@@ -9,8 +9,6 @@ Rmsd::Rmsd() {
   rmsd=NULL;
   PerResRMSD=NULL;
   nres=0;
-  ResRange=NULL;
-  RefRange=NULL;
   perresout=NULL;
   nofit=false;
   first=false;
@@ -48,8 +46,6 @@ Rmsd::~Rmsd() {
     delete ResMask;
     PerRefMask.pop_back();
   }
-  if (ResRange!=NULL) delete ResRange;
-  if (RefRange!=NULL) delete RefRange;
 }
 
 /*
@@ -83,7 +79,7 @@ int Rmsd::SetRefMask() {
  */
 int Rmsd::init( ) {
   char *referenceName, *mask0, *maskRef;
-  char *rmsdFile, *range, *refrange;
+  char *rmsdFile;
   int refindex, referenceKeyword;
 
   // Check for keywords
@@ -98,11 +94,8 @@ int Rmsd::init( ) {
   // Per-res keywords
   perresout = A->getKeyString("perresout",NULL);
   perresinvert = A->hasKey("perresinvert");
-  range = A->getKeyString("range",NULL);
-  ResRange = A->NextArgToRange(range);
-  refrange = A->getKeyString("refrange",NULL);
-  if (refrange!=NULL) 
-    RefRange = A->NextArgToRange(refrange);
+  ResRange.SetRange( A->getKeyString("range",NULL) );
+  RefRange.SetRange( A->getKeyString("refrange",NULL) );
   perresmask = A->getKeyString("perresmask",(char*)"");
   perrescenter = A->hasKey("perrescenter");
 
@@ -168,12 +161,12 @@ int Rmsd::init( ) {
     mprintf("          Geometric center will be used.\n");
   if (perres) {
     mprintf("          No-fit RMSD will also be calculated for ");
-    if (range==NULL) 
+    if (ResRange.empty()) 
       mprintf("each solute residue");
     else
-      mprintf("residues %s",range);
-    if (refrange!=NULL)
-      mprintf(" (reference residues %s)",refrange);
+      mprintf("residues %s",ResRange.RangeArg());
+    if (!RefRange.empty())
+      mprintf(" (reference residues %s)",RefRange.RangeArg());
     mprintf(" using mask [:X%s].\n",perresmask);
     mprintf("          WARNING: Currently residues are set up based on the first trajectory read in!\n");
     if (perresout==NULL) {
@@ -250,26 +243,25 @@ int Rmsd::setup() {
     return 1;
   } else if (PerResRMSD==NULL && perres) {
     // If no range specified do all solute residues.
-    if (ResRange==NULL) {
+    if (ResRange.empty()) {
       if (P->finalSoluteRes>0)
         nres = P->finalSoluteRes;
       else
         nres=P->nres;
       // Has to match user input where residue nums start from 1
       // Since ArgToRange returns up to and including, want 1-nres
-      sprintf(resArg,"%i-%i",1,nres);
-      ResRange = A->NextArgToRange(resArg);
+      ResRange.SetRange(1,nres+1);
     } 
-    mprintf("      RMSD: PerRes: Setting up for %i residues.\n",(int)ResRange->size());
+    mprintf("      RMSD: PerRes: Setting up for %i residues.\n",(int)ResRange.size());
     PerResRMSD=new DataSetList();
     resName[4]='\0';
-    for (it=ResRange->begin(); it!=ResRange->end(); it++) {
+    for (it=ResRange.begin(); it!=ResRange.end(); it++) {
       // Get corresponding reference resnum - if none specified use current res
-      if (RefRange==NULL) 
+      if (RefRange.empty()) 
         refRes = (*it);
       else {
-        refRes = RefRange->front();
-        RefRange->pop_front();
+        refRes = RefRange.front();
+        RefRange.pop_front();
       }
       //res = *it - 1; // res is the internal resnumber, *it the user resnumber
       // Setup Dataset Name to be name of this residue 
