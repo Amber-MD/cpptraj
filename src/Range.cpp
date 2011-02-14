@@ -24,7 +24,7 @@ int Range::SetRange(char *ArgIn) {
   char *temp, *arg;
   int R[2], upper, err;
   ArgList *CommaList, *DashList;
-  list<int>::iterator it;
+  std::list<int>::iterator it;
 
   //mprintf("DEBUG: SetRange(%s)\n",ArgIn);
 
