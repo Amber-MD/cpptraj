@@ -129,7 +129,7 @@ int PtrajState::ProcessInputStream(char *inputFilename) {
   ptr=0;
   if (isStdin) fprintf(stdout,"> ");
   while ( ptr != EOF ) {
-    ptr = fgetc(infile);
+    ptr = (char)fgetc(infile);
     //fprintf(stdout,"DEBUG: %i %c %i\n",i,ptr,ptr);
     // newline, NULL, or EOF terminates the line
     if (ptr=='\n' || ptr=='\0' || ptr==EOF) {
@@ -158,19 +158,19 @@ int PtrajState::ProcessInputStream(char *inputFilename) {
     if (isspace(ptr) && isspace(lastchar)) continue;
     // Skip leading whitespace
     if (i==0 && isspace(ptr)) {
-      while ( (ptr = fgetc(infile))!=EOF )
+      while ( (ptr = (char)fgetc(infile))!=EOF )
         if ( !isspace(ptr) ) break;
     } 
     // Forward slash continues to next line. Anything after slash is ignored
     if (ptr=='\\') {
-      while ( (ptr = fgetc(infile))!='\n' ) 
+      while ( (ptr = (char)fgetc(infile))!='\n' ) 
         if ( ptr == EOF ) break;
       // NOTE: Insert a space into InputLine?
       continue;
     }
     // Skip any line beginning with # character
     if (i==0 && ptr=='#') {
-      while ( (ptr = fgetc(infile))!='\n' ) 
+      while ( (ptr = (char)fgetc(infile))!='\n' ) 
         if ( ptr == EOF ) break;
       if (isStdin) fprintf(stdout,"> ");
       continue;
