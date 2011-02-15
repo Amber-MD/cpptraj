@@ -5,6 +5,8 @@
 
 class Mol2File : public TrajFile {
     int mol2atom;
+    int mol2bonds;
+    AmberParm::NAME *Types;
   public :
 
     Mol2File();

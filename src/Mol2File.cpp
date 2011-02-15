@@ -7,6 +7,8 @@
 // CONSTRUCTOR
 Mol2File::Mol2File() {
   mol2atom=0;
+  mol2bonds=0;
+  Types=NULL;
 }
 
 // DESTRUCTOR
@@ -99,17 +101,34 @@ int Mol2File::getFrame(int set) {
  * Mol2File::SetupWrite()
  */
 int Mol2File::SetupWrite() {
+  // Check number of bonds
+  mol2bonds = P->NbondsWithH() + P->NbondsWithoutH();
+  if (mol2bonds < 0) mol2bonds=0;
+  if (mol2bonds == 0)
+    mprintf("Warning: Mol2File::SetupWrite: %s does not contain bond information.\n",
+            P->parmName);
+  // If more than 99999 atoms this will fail
+  if (P->natom>99999) {
+    mprintf("Warning: Mol2File::SetupWrite: %s: too many atoms for mol2 format.\n",
+            P->parmName);
+    mprintf("         File %s may not write correctly.\n",trajfilename);
+  }
+  // If types are not set just use atom names
+  Types = P->types;
+  if (P->types==NULL)
+    Types = P->names;
+
   return 0;
 }
 
 
 /*
  * Mol2File::writeFrame()
+ * NOTE: P->natom should equal F->natom!
  */
 int Mol2File::writeFrame(int set) {
   char buffer[1024];
-  AmberParm::NAME *Types;
-  int mol2bonds, atom, atom3, res;
+  int atom, atom3, res;
   double Charge;
 
   //mprintf("DEBUG: Calling Mol2File::writeFrame for set %i\n",set);  
@@ -118,17 +137,12 @@ int Mol2File::writeFrame(int set) {
 
   //@<TRIPOS>MOLECULE section
   File->IO->Printf("@<TRIPOS>MOLECULE\n");
-  // If more than 99999 atoms this will fail
-  if (F->natom>99999) 
-    mprintf("Warning: Too many atoms for mol2 format - file may not write correctly.\n");
   // mol_name
   // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
   // mol_type
   // charge_type
   // [status_bits
   // [mol_comment]]
-  mol2bonds = P->NbondsWithH() + P->NbondsWithoutH();
-  if (mol2bonds < 0) mol2bonds=0;
   File->IO->Printf("%s\n",title);
   File->IO->Printf("%5i %5i %5i %5i %5i\n",F->natom,mol2bonds,1,0,0);
   File->IO->Printf("SMALL\n"); // May change this later
@@ -139,10 +153,6 @@ int Mol2File::writeFrame(int set) {
   File->IO->Printf("\n\n");
 
   //@<TRIPOS>ATOM section
-  // If types are not set just use atom names
-  Types = P->types;
-  if (P->types==NULL)
-    Types = P->names;
   Charge = 0.0;
   File->IO->Printf("@<TRIPOS>ATOM\n");
   atom3=0;
@@ -171,8 +181,6 @@ int Mol2File::writeFrame(int set) {
       atom3+=3;
       res++;
     }
-  } else {
-    mprintf("Warning: Mol2File::writeFrame: Parm does not contain bond information.\n");
   }
 
   //@<TRIPOS>SUBSTRUCTURE section
