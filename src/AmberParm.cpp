@@ -719,7 +719,7 @@ int AmberParm::ReadParmPDB() {
       for (atom=resnums[nres-1]; atom < natom; atom++) {
         if ( strcmp(names[natom], names[atom])==0 ) {
           mprintf("      Warning: Duplicate atom name in residue %i [%s]:%i\n",
-                  nres,names[natom],atom+1);
+                  nres,names[natom],natom+1);
         }
       }
     }
