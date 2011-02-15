@@ -284,7 +284,9 @@ double Frame::COM(AtomMask *Mask, double *Coord, bool useMass) {
 
   if (!useMass) sumMass=(double) Mask->Nselected;
 
-  if (sumMass==0.0) return 0;
+  // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL (vectormath.h)
+  if (sumMass < SMALL) return 0;
 
   Coord[0]/=sumMass;
   Coord[1]/=sumMass;
@@ -322,7 +324,9 @@ double Frame::COM(double *Coord, bool useMass, int startAtom, int stopAtom) {
     Coord[2]+=(X[i+2] * mass);
   }
 
-  if (sumMass==0.0) return 0;
+  // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL (vectormath.h)
+  if (sumMass < SMALL) return 0;
 
   Coord[0]/=sumMass;
   Coord[1]/=sumMass;
@@ -623,7 +627,9 @@ double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
 
   if (!useMassIn) total_mass=(double) Mask->Nselected;
 
-  if (total_mass==0.0) return 0;  
+  // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL (vectormath.h)
+  if (total_mass < SMALL) return 0;
 
   currentMass = sqrt(sumDist2 / total_mass); // Radius of Gyration
   *max = sqrt(*max / maxMass);
@@ -956,7 +962,7 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   rms_return = mwss
                - sqrt(fabs(Eigenvalue[0]))
                - sqrt(fabs(Eigenvalue[1]))
-               - sig3*sqrt(fabs(Eigenvalue[2]));
+               - (sig3*sqrt(fabs(Eigenvalue[2])));
 
   if (rms_return<0) {
     //fprintf(stderr,"RMS returned is <0 before sqrt, setting to 0 (%lf)\n",rms_return);
