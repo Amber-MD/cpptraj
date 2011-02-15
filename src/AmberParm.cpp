@@ -666,6 +666,7 @@ int AmberParm::ReadParmPDB() {
   char buffer[256];
   int bufferLen;  
   int currResnum;
+  int atom;
 
   mprintf("    Reading PDB file %s as topology file.\n",parmName);
   currResnum=-1;
@@ -710,6 +711,17 @@ int AmberParm::ReadParmPDB() {
       resnums[nres]=natom; 
       currResnum=pdb_resnum(buffer);
       nres++;
+
+    // If residue number hasnt changed check for duplicate atom names in res
+    // NOTE: At this point nres has been incremented. Want nres-1.
+    //       natom is the current atom.
+    } else {
+      for (atom=resnums[nres-1]; atom < natom; atom++) {
+        if ( strcmp(names[natom], names[atom])==0 ) {
+          mprintf("      Warning: Duplicate atom name in residue %i [%s]:%i\n",
+                  nres,names[natom],atom+1);
+        }
+      }
     }
     // Clear the buffer
     memset(buffer,' ',256);
