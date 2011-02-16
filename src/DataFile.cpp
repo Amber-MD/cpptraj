@@ -4,11 +4,9 @@
 #include "DataFile.h"
 #include "CpptrajStdio.h"
 
-#define DATABUFFERSIZE 128
-
 // CONSTRUCTOR - Arg is datafile name
 DataFile::DataFile(char *nameIn) {
-  // Default xlabel value
+  // Default xlabel value is Frame
   xlabel=(char*) malloc( 6 * sizeof(char));
   strcpy(xlabel,"Frame");
   noEmptyFrames=false;
@@ -152,15 +150,23 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
  */
 void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
   int set,frame,empty;
-  char buffer[DATABUFFERSIZE];
+  char *buffer;
+  int lineSize = 0;
   bool firstSet = true;
 
-  // Datafile Header
-  if (!noXcolumn)
+  buffer=NULL;
+  // Datafile Header - Also calculate line size.
+  // Add 8 to lineSize for frame if !noXcolumn
+  if (!noXcolumn) {
     outfile->IO->Printf("#%-7s",xlabel);
+    lineSize += 8;
+  }
   for (set=0; set<Nsets; set++) {
     // Skip those empty sets
     if ( SetList[set]->CheckSet() ) continue;
+    // Increment lineSize by Width of this set
+    lineSize += SetList[set]->Width();
+    // Print name of this set
     if (noXcolumn && firstSet) {
       outfile->IO->Printf("#%-12s",SetList[set]->Name());
       firstSet=false;
@@ -168,6 +174,11 @@ void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
       outfile->IO->Printf(" %12s",SetList[set]->Name());
   }
   outfile->IO->Printf("\n");
+  // Add 2 to lineSize, 1 for newline, 1 for NULL
+  lineSize += 2;
+  //mprintf("DEBUG: Calculated lineSize is %i\n",lineSize);
+  // Allocate buffer
+  buffer = (char*) malloc( lineSize * sizeof(char) );
 
   // Data
   for (frame=0; frame<maxFrames; frame++) {
@@ -191,6 +202,8 @@ void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
     }
     outfile->IO->Printf("\n");
   }
+  // Free buffer
+  if (buffer!=NULL) free(buffer);
 }
 
 /*
@@ -200,8 +213,11 @@ void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
  */
 void DataFile::WriteDataInverted(PtrajFile *outfile, int maxFrames) {
   int frame,set,empty;
-  char buffer[DATABUFFERSIZE];
+  int currentLineSize=0;
+  int lineSize=0;
+  char *buffer;
 
+  buffer=NULL;
   for (set=0; set < Nsets; set++) {
     // Skip empty sets
     if (SetList[set]->CheckSet()) continue;
@@ -213,6 +229,13 @@ void DataFile::WriteDataInverted(PtrajFile *outfile, int maxFrames) {
       }
       if (empty!=0) continue;
     }
+    // Necessary buffer size is (set width * number of frames) + newline + NULL
+    lineSize = (SetList[set]->Width() * maxFrames) + 2;
+    // Check if lineSize > currentLineSize; if so, reallocate buffer
+    if (lineSize > currentLineSize) {
+      buffer = (char*) realloc(buffer, lineSize * sizeof(char));
+      currentLineSize=lineSize;
+    }
     // Write header as first column
     outfile->IO->Printf("\"%12s\" ",SetList[set]->Name());
     // Write each frame to a column
@@ -222,15 +245,19 @@ void DataFile::WriteDataInverted(PtrajFile *outfile, int maxFrames) {
     }
     outfile->IO->Printf("\n");
   }
+  // free buffer
+  if (buffer!=NULL) free(buffer);
 }
  
 /*
  * DataFile::WriteGrace() 
- * Write out sets to file in xmgrace format
+ * Write out sets to file in xmgrace format.
  */
 void DataFile::WriteGrace(PtrajFile *outfile, int maxFrames) {
   int set,frame;
-  char buffer[DATABUFFERSIZE];
+  int lineSize=0;;
+  int currentLineSize=0;
+  char *buffer;
 
   // Grace Header
   outfile->IO->Printf("@with g0\n");
@@ -240,6 +267,7 @@ void DataFile::WriteGrace(PtrajFile *outfile, int maxFrames) {
   outfile->IO->Printf("@  legend char size 0.60\n");
 
   // Loop over sets in data
+  buffer=NULL;
   for (set=0; set<Nsets; set++) {
     // Skip those empty sets
     if ( SetList[set]->CheckSet() ) continue;
@@ -247,6 +275,12 @@ void DataFile::WriteGrace(PtrajFile *outfile, int maxFrames) {
     outfile->IO->Printf("@  s%i legend \"%s\"\n",set,SetList[set]->Name());
     outfile->IO->Printf("@target G0.S%i\n",set);
     outfile->IO->Printf("@type xy\n");
+    // Calc buffer size; reallocate if bigger than current size
+    lineSize = SetList[set]->Width() + 2;
+    if (lineSize > currentLineSize) {
+      buffer = (char*) realloc(buffer, lineSize * sizeof(char));
+      currentLineSize = lineSize;
+    }
     // Set Data
     for (frame=0; frame<maxFrames; frame++) {
       // If specified, run through every set in the frame and check if empty
@@ -258,6 +292,6 @@ void DataFile::WriteGrace(PtrajFile *outfile, int maxFrames) {
       outfile->IO->Printf("%s\n",buffer);
     }
   }
+  if (buffer!=NULL) free(buffer);
 }
 
-#undef DATABUFFERSIZE

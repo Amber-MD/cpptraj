@@ -20,6 +20,8 @@
  *   Write:
  *     Format data at the specified frame and place into the character buffer
  *     for output.
+ *   Width:
+ *     Report the size in characters necessary to write data from this set.
  *   Sync :
  *     MPI only - sum up this dataset across all threads. 
  */
@@ -45,7 +47,8 @@ class DataSet {
 
     virtual int isEmpty(int)         { return 0; }
     virtual void Add( int, void * )  { return;   }
-    virtual char *Write(char*, int)   { return 0; }
+    virtual char *Write(char*, int)  { return 0; }
+    virtual int Width()              { return 0; }
     virtual int Sync()               { return 0; }
 
     int Setup(char*,int);

@@ -14,6 +14,7 @@ class intDataSet : public DataSet {
     int isEmpty(int);
     void Add( int, void * );
     char *Write(char *, int);
+    int Width();
     int Sync();
 };
 #endif

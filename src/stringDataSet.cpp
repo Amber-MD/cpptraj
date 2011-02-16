@@ -50,6 +50,20 @@ char *stringDataSet::Write(char *buffer, int frame) {
 }
 
 /*
+ * stringDataSet::Width()
+ * Return the width in characters necessary to print data from this dataset.
+ * Use the first data element, assume they all have the same size for now.
+ */
+int stringDataSet::Width() {
+  int tempSize;
+  it = Data.begin();
+  tempSize = (int) (*it).second.size();
+  // Increment by 1 for space
+  tempSize++;
+  return tempSize;
+}
+
+/*
  * stringDataSet::Sync()
  * Since it seems to be very difficult (or impossible) to define Classes
  * as MPI datatypes, first non-master threads need to convert their maps

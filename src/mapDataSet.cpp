@@ -46,6 +46,13 @@ char *mapDataSet::Write(char *buffer, int frame) {
 }
 
 /*
+ * mapDataSet::Width()
+ */
+int mapDataSet::Width() {
+  return 13;
+}
+
+/*
  * mapDataSet::Sync()
  * Since it seems to be very difficult (or impossible) to define Classes
  * as MPI datatypes, first non-master threads need to convert their maps
