@@ -266,7 +266,6 @@ int Image::action() {
     //fprintf(stdout,"DEBUG: BoxTrans: %lf %lf %lf\n",boxTrans[0],boxTrans[1],boxTrans[2]);
 
     // Translate atoms back into the box
-    // NOTE: Need to incorporate MASK!
     for (Atom = firstAtom; Atom < lastAtom; Atom++) {
       if (Mask1.AtomInCharMask(Atom))
         F->Translate(boxTrans, Atom);
