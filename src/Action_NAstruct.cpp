@@ -272,6 +272,7 @@ int NAstruct::determineBasePairing() {
  * Given a list of base pairs and base axes, setup an 
  * Axestype structure containing reference base pair axes.
  */
+/*
 int NAstruct::setupBasePairAxes() {
   int basepair, BP;
   double RotMatrix[9], TransVec[6], V[3], theta;
@@ -370,6 +371,7 @@ int NAstruct::setupBasePairAxes() {
 
   return 0;
 }
+*/
 
 /*
  * NAstruct::setupBaseAxes()

@@ -43,7 +43,7 @@ class NAstruct: public Action {
     bool ATpair(AxisType *, AxisType *);
     bool basesArePaired(AxisType *, AxisType *);
     int determineBasePairing();
-    int setupBasePairAxes();
+    //int setupBasePairAxes();
     int setupBaseAxes(Frame *);
     int determineBaseParameters();
     int determineBasepairParameters();
