@@ -435,3 +435,36 @@ int parallel_sendMaster(void *Buffer, int Count, int rank, int datatype) {
   return 1;
 }
 
+/*
+ * parallel_allreduce()
+ * Perform an mpi allreduce.
+ */
+int parallel_allreduce(void *Return, void *input, int count, int datatype, int op) {
+#ifdef MPI
+  int err;
+  MPI_Datatype currentType;
+  MPI_Op currentOp;
+
+  if (worldsize==1) return 0;
+
+  switch (datatype) {
+    case 0 : currentType = MPI_INT; break;
+    case 1 : currentType = MPI_DOUBLE; break;
+    case 2 : currentType = MPI_CHAR; break;
+    default: return 1;
+  }  
+
+  switch (op) {
+    case 0 : currentOp = MPI_SUM; break;
+    default: return 1;
+  }
+
+  err = MPI_Allreduce(input, Return, count, currentType, currentOp, MPI_COMM_WORLD);
+  if (err!=MPI_SUCCESS) printMPIerr(err, "Performing allreduce for %i elements\n",count);
+
+  if (parallel_check_error(err)!=0) return 1;
+  return 0;
+#endif
+  return 1;
+}
+

@@ -50,6 +50,7 @@ int parallel_fseek(parallelType, off_t, int);
 char *parallel_fgets(parallelType, char *, int);
 int parallel_setSize(parallelType, long int);
 int parallel_sendMaster(void *, int, int, int);
+int parallel_allreduce(void *, void *, int, int, int);
 
 #ifdef __cplusplus
 }
