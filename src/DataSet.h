@@ -38,9 +38,9 @@ class DataSet {
     char *name;        // Name of the dataset
     int N;             // Number of data elements
     int current;       // The current data element
-    int isDynamic;     // 1=N is not known, reallocate as N increases
-                       // 0=N is known, allocate for N
-    // Inherited by classes
+    bool isDynamic;    // True : N is not known, reallocate as N increases
+                       // False: N is known, allocate for N
+    // If not isDynamic, Allocate will reserve space for N data elements 
     virtual int Allocate( )      { return 0; }
 
   public:
