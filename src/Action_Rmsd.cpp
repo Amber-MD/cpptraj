@@ -23,6 +23,7 @@ Rmsd::Rmsd() {
   perresmask=NULL;
   perrescenter=false;
   perresinvert=false;
+  outFile=NULL;
 }
 
 // DESTRUCTOR
@@ -46,6 +47,7 @@ Rmsd::~Rmsd() {
     delete ResMask;
     PerRefMask.pop_back();
   }
+  if (outFile!=NULL) delete outFile;
 }
 
 /*
@@ -175,6 +177,11 @@ int Rmsd::init( ) {
       return 1;
     }
     mprintf("          Per-residue output file is %s\n",perresout);
+    outFile = new DataFile(perresout);
+    if (outFile==NULL) {
+      mprintf("Error: Rmsd::init: Could not set up per-residue output file.\n");
+      return 1;
+    }
     if (perrescenter)
       mprintf("          perrescenter: Each residue will be centered prior to RMS calc.\n");
     if (perresinvert)
@@ -329,13 +336,11 @@ int Rmsd::setup() {
       sprintf(resArg,"%4s%i",resName,*it);
       // TEST - add all datasets to the same output file
       // NOTE - eventually give this its own output file and make a print routine
-      DFL->Add(perresout,PerResRMSD->Add(DOUBLE, resArg,"PerRes"));
+      outFile->AddSet(PerResRMSD->Add(DOUBLE, resArg,"PerRes"));
     }
     // Set output file to be inverted if requested
     if (perresinvert) {
-      DataFile *Current = DFL->GetDataFile(perresout);
-      if (Current!=NULL)
-        Current->SetInverted();
+      outFile->SetInverted();
     }
     // Allocate memory for residue reference frame. Will be dynamically resized during action
     if (ResRefFrame==NULL)
@@ -408,3 +413,17 @@ int Rmsd::action() {
   return 0;
 }
 
+/*
+ * Rmsd::print()
+ */
+void Rmsd::print() {
+  if (!perres || outFile==NULL) return;
+  PerResRMSD->Sync();
+  // NOTE: Write should only happen for master
+  mprintf("    RMSD: Per-residue: Writing data for %i residues to %s\n",
+          (int)PerResMask.size(), outFile->filename);
+  //outFile->DataSetNames();
+  //mprintf("\n");
+  outFile->Write(false);
+}
+ 

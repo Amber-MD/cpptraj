@@ -21,6 +21,7 @@ class Rmsd: public Action {
     bool perresinvert;                  // If true rows will contain set info instead of cols
     Frame *ResFrame;                    // Hold residue coords
     Frame *ResRefFrame;                 // Hold residue reference coords.
+    DataFile *outFile;
     // ------------------------ 
     AtomMask RefMask, FrameMask;        // Frame and reference masks.
     bool nofit, first, perres, useMass; // Action options
@@ -38,6 +39,6 @@ class Rmsd: public Action {
     int init();
     int setup();
     int action();
-
+    void print();
 };
 #endif
