@@ -199,11 +199,11 @@ void Hbond::print() {
     Hres = P->atomToResidue((*hbond).H);
     Dres = P->atomToResidue((*hbond).D);
     P->ResName(temp,Ares);
-    sprintf(Aname,"%s%i@%s",temp,Ares,P->names[(*hbond).A]);
+    sprintf(Aname,"%s%i@%s",temp,Ares+1,P->names[(*hbond).A]);
     P->ResName(temp,Hres);
-    sprintf(Hname,"%s%i@%s",temp,Hres,P->names[(*hbond).H]);
+    sprintf(Hname,"%s%i@%s",temp,Hres+1,P->names[(*hbond).H]);
     P->ResName(temp,Dres);
-    sprintf(Dname,"%s%i@%s",temp,Dres,P->names[(*hbond).D]);
+    sprintf(Dname,"%s%i@%s",temp,Dres+1,P->names[(*hbond).D]);
     OutFile.IO->Printf("%-15s %-15s %-15s %6i %6.2lf %8.3lf %8.3lf\n",
                        Aname,Hname,Dname, (*hbond).Frames,avg,dist,angle);
 //    OutFile.IO->Printf("  %6i:%4s %6i:%4s %6i:%4s %6i %6.2lf %8.3lf %8.3lf\n",
