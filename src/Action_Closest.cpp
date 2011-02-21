@@ -338,6 +338,7 @@ int Closest::action() {
 /*
  * Closest::print()
  * Write info on what solvent molecules were kept if specified.
+ * NOTE: Get this into the master file list!
  */
 void Closest::print() {
   if (outFile==NULL) return;
@@ -347,6 +348,6 @@ void Closest::print() {
   outFile->DataSetNames();
   mprintf("\n");
   outFile->SetNoXcol();
-  outFile->Write(Nclosest, false);
+  outFile->Write(false);
 }
 

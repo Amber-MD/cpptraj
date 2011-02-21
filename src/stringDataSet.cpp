@@ -7,6 +7,19 @@
 #include "CpptrajStdio.h"
 using namespace std;
 /*
+ * stringDataSet::Xmax(()
+ * Return the maximum X value added to this set. By convention this is 
+ * always the last value added.
+ */
+int stringDataSet::Xmax() {
+  // If no data has been added return 0
+  if (current==0) return 0;
+  it=Data.end();
+  it--;
+  return ( (*it).first );
+}
+
+/*
  * stringDataSet::Add()
  * Insert data vIn at frame.
  * String expects char*

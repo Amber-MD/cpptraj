@@ -23,7 +23,10 @@
  *   Width:
  *     Report the size in characters necessary to write data from this set.
  *   Sync :
- *     MPI only - sum up this dataset across all threads. 
+ *     MPI only - sum up this dataset across all threads.
+ *   Xmax:
+ *     Return the largest X/frame value added to set. By convention this should
+ *     be the last value added. 
  */
 
 enum dataType {
@@ -45,6 +48,7 @@ class DataSet {
     DataSet();          // Constructor
     virtual ~DataSet(); // Destructor - virtual since this class is inherited
 
+    virtual int Xmax()               { return 0; }
     virtual int isEmpty(int)         { return 0; }
     virtual void Add( int, void * )  { return;   }
     virtual char *Write(char*, int)  { return 0; }

@@ -12,6 +12,7 @@ class mapDataSet : public DataSet {
     std::map<int,double> Data;
     std::map<int,double>::iterator it;
   public:
+    int Xmax();
     int isEmpty(int);
     void Add( int, void * );
     char *Write(char *, int);

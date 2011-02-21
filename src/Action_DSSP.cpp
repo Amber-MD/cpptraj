@@ -311,6 +311,7 @@ int DSSP::action() {
  * DSSP::print()
  * Calculate the average of each secondary structure type across all residues
  * and output to a file.
+ * NOTE: Get this into the master data set and file list
  */
 void DSSP::print() {
   DataSetList dsspData;
@@ -342,5 +343,5 @@ void DSSP::print() {
   mprintf("%s: ",dsspFile.filename);
   dsspFile.DataSetNames();
   mprintf("\n");
-  dsspFile.Write(Nres,true);
+  dsspFile.Write(true);
 }

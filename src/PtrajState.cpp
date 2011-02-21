@@ -375,7 +375,7 @@ int PtrajState::Run() {
   DSL.Sync();
   // Only Master does DataFile output
   if (worldrank==0)
-    DFL.Write(DSL.maxFrames);
+    DFL.Write();
  
   return 0;
 }
