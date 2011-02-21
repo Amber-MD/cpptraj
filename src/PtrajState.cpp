@@ -283,7 +283,8 @@ int PtrajState::Run() {
   outFileList.Info();
  
   // Set max frames in the data set list
-  DSL.maxFrames=maxFrames; 
+  DSL.SetMax(maxFrames); 
+  
   // Initialize actions and set up data set and data file list
   ptrajActionList.Init( &DSL, &refFrames, &DFL);
 
@@ -368,9 +369,6 @@ int PtrajState::Run() {
   // Print Datafile information
   DFL.Info();
 
-  // Set max frames in the data set list if not already set
-  // NOTE - is this now only needed in DFL?
-  if (maxFrames==-1) DSL.maxFrames=outputSet;
   // Do dataset output - first sync datasets
   DSL.Sync();
   // Only Master does DataFile output
