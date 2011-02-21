@@ -69,25 +69,23 @@ int ActionMask::setup() {
  */
 int ActionMask::action() {
   int atom, res;
-  char *mask;
 
-  mask = P->mask(Mask1.maskString, F->X);
-  if (mask==NULL) {
-    mprintf("Warning: ActionMask::action: Atom mask %s is NULL.\n",Mask1.maskString);
+  if ( Mask1.SetupCharMask(P, F->X, debug) ) {
+    mprintf("Warning: ActionMask::action: Could not set up atom mask [%s]\n",Mask1.maskString);
     return 1;
   }
   for (atom=0; atom < P->natom; atom++) {
-    if (mask[atom]=='F') continue;
-    res = P->atomToResidue(atom);
-    outfile.IO->Printf("%8i %8i %4s %8i %4s %8i",
-                       currentFrame+OUTPUTFRAMESHIFT,atom+1, P->names[atom], res+1,
-            P->ResidueName(res), P->atomToMolecule(atom)+1);
-    /*mprintf(" Type=%4s",P->types[atom]);
-    mprintf(" Charge=%lf",P->charge[atom]);
-    mprintf(" Mass=%lf",P->mass[atom]);*/
-    outfile.IO->Printf("\n");
+    if (Mask1.AtomInCharMask(atom)) {
+      res = P->atomToResidue(atom);
+      outfile.IO->Printf("%8i %8i %4s %8i %4s %8i",
+                         currentFrame+OUTPUTFRAMESHIFT,atom+1, P->names[atom], res+1,
+                         P->ResidueName(res), P->atomToMolecule(atom)+1);
+      /*mprintf(" Type=%4s",P->types[atom]);
+      mprintf(" Charge=%lf",P->charge[atom]);
+      mprintf(" Mass=%lf",P->mass[atom]);*/
+      outfile.IO->Printf("\n");
+    }
   }
-  free(mask); 
   return 0;
 } 
 

@@ -38,7 +38,6 @@ class AmberParm {
     typedef struct SurfInfoType SurfInfo;
 
     int *values;         // POINTERS
-    NAME *resnames;      // LBRES(NRES)
 
     int debug;
     // For determining fortran format
@@ -70,6 +69,7 @@ class AmberParm {
     int *bondsh;          // IBH/JBH/ICBH(NBONH)
     int *bonds;           // IB/JB/ICB(NBONA) NOTE: Using MBONA
     NAME *names;         // IGRAPH(NATOM)
+    NAME *resnames;      // LBRES(NRES)
     NAME *types;         // ISYMBL(NATOM)
     char *ResidueName(int);
     int *resnums;         // IPRES(NRES) 
@@ -98,10 +98,8 @@ class AmberParm {
     int OpenParm(char *);
     int SetSurfaceInfo();
     int SetSolventInfo();
-    void ParmInfo(char *);
+    void AtomInfo(int);
     void Info(char *);
-    char *mask(char *);
-    char *mask(char *, double *);
     int atomToResidue(int);
     int atomToMolecule(int);
     int atomToSolventMolecule(int);

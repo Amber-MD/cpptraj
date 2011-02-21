@@ -1,6 +1,6 @@
 main.o : main.cpp Action.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CoordFileList.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajActionList.h PtrajFile.h PtrajMpi.h PtrajState.h Range.h ReferenceList.h TrajFile.h TrajinList.h TrajoutList.h
 AmberNetcdf.o : AmberNetcdf.cpp AmberNetcdf.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h NetcdfRoutines.h PtrajFile.h Range.h TrajFile.h
-AmberParm.o : AmberParm.cpp AmberParm.h BaseFileIO.h CpptrajStdio.h Mol2FileRoutines.h PDBfileRoutines.h PtrajFile.h ptrajmask.h
+AmberParm.o : AmberParm.cpp AmberParm.h BaseFileIO.h CpptrajStdio.h Mol2FileRoutines.h PDBfileRoutines.h PtrajFile.h
 AmberTraj.o : AmberTraj.cpp AmberParm.h AmberTraj.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h PtrajFile.h Range.h TrajFile.h
 TrajFile.o : TrajFile.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h PtrajFile.h PtrajMpi.h Range.h TrajFile.h
 Frame.o : Frame.cpp AmberParm.h AtomMask.h BaseFileIO.h CpptrajStdio.h DistRoutines.h Frame.h PtrajFile.h TorsionRoutines.h vectormath.h
@@ -37,7 +37,7 @@ MpiFile.o : MpiFile.cpp BaseFileIO.h MpiFile.h PtrajMpi.h
 Action_Strip.o : Action_Strip.cpp Action.h Action_Strip.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajFile.h
 Action.o : Action.cpp Action.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajFile.h
 RemdTraj.o : RemdTraj.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CoordFileList.h CpptrajStdio.h Frame.h ParmFileList.h PtrajFile.h Range.h RemdTraj.h TrajFile.h TrajinList.h
-AtomMask.o : AtomMask.cpp AmberParm.h AtomMask.h BaseFileIO.h CpptrajStdio.h PtrajFile.h
+AtomMask.o : AtomMask.cpp AmberParm.h AtomMask.h BaseFileIO.h CpptrajStdio.h PtrajFile.h ptrajmask.h
 mapDataSet.o : mapDataSet.cpp CpptrajStdio.h DataSet.h PtrajMpi.h mapDataSet.h
 Action_DSSP.o : Action_DSSP.cpp Action.h Action_DSSP.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajFile.h
 stringDataSet.o : stringDataSet.cpp CpptrajStdio.h DataSet.h PtrajMpi.h stringDataSet.h

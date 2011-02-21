@@ -197,6 +197,8 @@ int PtrajState::ProcessInputStream(char *inputFilename) {
  */
 void PtrajState::Dispatch() {
   int err;
+  AtomMask *tempMask;  // For ParmInfo
+  AmberParm *tempParm; // For ParmInfo
   //printf("    *** %s ***\n",A->ArgLine());
   // First argument is the command
   if (A->Command()==NULL) {
@@ -229,9 +231,15 @@ void PtrajState::Dispatch() {
   }
 
   if (A->CommandIs("parminfo")) {
-    AmberParm *TempParm;
-    if ( (TempParm=parmFileList.GetParm(A->getNextInteger(0)))!=NULL )
-      TempParm->ParmInfo(A->getNextMask());
+    if ( (tempParm=parmFileList.GetParm(A->getNextInteger(0)))!=NULL ) {
+      tempMask = new AtomMask();
+      tempMask->SetMaskString( A->getNextMask() );
+      tempMask->SetupCharMask( tempParm, debug);
+      for (int atom=0; atom < tempParm->natom; atom++) {
+        if (tempMask->AtomInCharMask(atom)) tempParm->AtomInfo(atom);
+      }
+      delete tempMask;
+    }
     return;
   }
 
