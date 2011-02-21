@@ -15,6 +15,7 @@ class DataFile {
     char *xlabel;
 
     void WriteGrace(PtrajFile *, int);
+    void WriteGraceInverted(PtrajFile *, int);
     void WriteData(PtrajFile *, int);
     void WriteDataInverted(PtrajFile *, int);
   public:

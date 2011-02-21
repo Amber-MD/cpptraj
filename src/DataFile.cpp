@@ -131,13 +131,18 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
     outfile.fileFormat = DATAFILE;
 
   switch (outfile.fileFormat) {
-    case DATAFILE   : 
+    case DATAFILE : 
       if (isInverted)
         this->WriteDataInverted(&outfile,maxFrames);
       else 
         this->WriteData(&outfile, maxFrames); 
       break;
-    case XMGRACE    : this->WriteGrace(&outfile, maxFrames); break;
+    case XMGRACE  : 
+      if (isInverted)
+        this->WriteGraceInverted(&outfile,maxFrames);
+      else 
+        this->WriteGrace(&outfile, maxFrames); 
+      break;
     default      : mprintf("Error: Datafile %s: Unknown type.\n",filename);
   }
 
@@ -290,6 +295,59 @@ void DataFile::WriteGrace(PtrajFile *outfile, int maxFrames) {
       outfile->IO->Printf("%8i",frame + OUTPUTFRAMESHIFT);
       SetList[set]->Write(buffer,frame);
       outfile->IO->Printf("%s\n",buffer);
+    }
+  }
+  if (buffer!=NULL) free(buffer);
+}
+
+/*
+ * DataFile::WriteGraceInverted() 
+ * Write out sets to file in xmgrace format. Write out data from each
+ * frame as 1 set.
+ */
+void DataFile::WriteGraceInverted(PtrajFile *outfile, int maxFrames) {
+  int set,frame,empty;
+  int lineSize=0;;
+  int currentLineSize=0;
+  char *buffer;
+
+  // Grace Header
+  outfile->IO->Printf("@with g0\n");
+  outfile->IO->Printf("@  xaxis label \"\"\n");
+  outfile->IO->Printf("@  yaxis label \"\"\n");
+  outfile->IO->Printf("@  legend 0.2, 0.995\n");
+  outfile->IO->Printf("@  legend char size 0.60\n");
+
+  // Calculate maximum expected size for output line.
+  for (set=0; set < Nsets; set++) {
+    lineSize = SetList[set]->Width() + 2;
+    if (lineSize > currentLineSize)
+      currentLineSize = lineSize;
+  }
+  buffer = (char*) malloc(lineSize * sizeof(char));
+
+  // Loop over frames
+  for (frame=0; frame<maxFrames; frame++) {
+    // If specified, run through every set in the frame and check if empty
+    if (noEmptyFrames) {
+      empty=0;
+      for (set=0; set<Nsets; set++) {
+        if ( SetList[set]->isEmpty(frame) ) {empty++; break;}
+      }
+      if (empty!=0) continue;
+    }
+
+    // Set information
+    //outfile->IO->Printf("@  s%i legend \"%s\"\n",set,SetList[set]->Name());
+    outfile->IO->Printf("@target G0.S%i\n",frame);
+    outfile->IO->Printf("@type xy\n");
+    // Loop over all Set Data for this frame
+    for (set=0; set<Nsets; set++) {
+      // Skip those empty sets
+      if ( SetList[set]->CheckSet() ) continue;
+      outfile->IO->Printf("%8i",set + OUTPUTFRAMESHIFT);
+      SetList[set]->Write(buffer,frame);
+      outfile->IO->Printf("%s \"%s\"\n",buffer,SetList[set]->Name());
     }
   }
   if (buffer!=NULL) free(buffer);
