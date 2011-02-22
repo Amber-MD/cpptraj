@@ -19,6 +19,7 @@ class DataFile {
     void WriteGraceInverted(PtrajFile *);
     void WriteData(PtrajFile *);
     void WriteDataInverted(PtrajFile *);
+    void WriteGnuplot(PtrajFile *);
   public:
     char *filename;
 
