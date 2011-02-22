@@ -74,7 +74,7 @@ int Closest::init( ) {
   noimage = A->hasKey("noimage");
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
-  mask1 = A->getKeyString("out",NULL);
+  mask1 = A->getKeyString("closestout",NULL);
   if (mask1 != NULL) {
     // Set up datafile
     // NOTE: Use overall datafile list?
