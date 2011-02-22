@@ -2,6 +2,7 @@
 #include <cstring>
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
+#include "ptrajmask.h"
 
 // CONSTRUCTOR
 AtomMask::AtomMask() {
@@ -9,23 +10,8 @@ AtomMask::AtomMask() {
   maskString=NULL;
   Selected=NULL;
   Nselected=0;
-  //P=NULL;
-  //N=0;
-  debug=0;
   CharMask=NULL;
 }
-
-// DEBUG CONSTRUCTOR
-/*
-AtomMask::AtomMask(int debugIn) {
-  invertMask=false;
-  maskString=NULL;
-  Selected=NULL;
-  Nselected=0;
-  P=NULL;
-  N=0;
-  debug=debugIn;
-}*/
 
 // DESTRUCTOR
 AtomMask::~AtomMask() {
@@ -36,7 +22,7 @@ AtomMask::~AtomMask() {
 
 /*
  * AtomMask::AddAtom()
- * Add atom to this mask.
+ * Add atom to Selected array in this mask.
  */
 void AtomMask::AddAtom(int atom) {
   Selected = (int*) realloc(Selected, (Nselected+1) * sizeof(int));
@@ -59,37 +45,41 @@ void AtomMask::PrintMaskAtoms() {
 
 /*
  * AtomMask::Copy()
+ * Return a copy of this atom mask.
  */
 AtomMask *AtomMask::Copy() {
   int mask;
   AtomMask *newMask;
   
   newMask = new AtomMask();
-  newMask->Selected = (int*) malloc(this->Nselected * sizeof(int));
-  for (mask=0; mask < this->Nselected; mask++) 
-    newMask->Selected[mask] = this->Selected[mask];
-  newMask->Nselected = this->Nselected;
+  if (this->Selected!=NULL) {
+    newMask->Selected = (int*) malloc(this->Nselected * sizeof(int));
+    for (mask=0; mask < this->Nselected; mask++) 
+      newMask->Selected[mask] = this->Selected[mask];
+    newMask->Nselected = this->Nselected;
+  }
   newMask->invertMask = this->invertMask;
   if (this->maskString!=NULL) {
     newMask->maskString = (char*) malloc( (strlen(this->maskString)+1) * sizeof(char));
     strcpy(newMask->maskString, this->maskString);
   }
-  //newMask->P = this->P;
-  //newMask->N = this->N;
-  newMask->debug = this->debug;
+  if (this->CharMask!=NULL) {
+    // Nselected is set to natom, the size of char mask array
+    newMask->CharMask = (char*) malloc(this->Nselected * sizeof(char));
+    strcpy(newMask->CharMask, this->CharMask);
+    newMask->Nselected = this->Nselected;
+  }
 
   return newMask;
 }
 
 /*
  * AtomMask::SetMaskString()
- * Set maskString, replacing any existing maskString and Selection. 
+ * Set maskString, replacing any existing maskString 
  * If maskStringIn is NULL set to * (all atoms)
  */
 void AtomMask::SetMaskString(char *maskStringIn) {
   if (maskString!=NULL) free(maskString);
-  if (Selected!=NULL) free(Selected);
-  Selected=NULL;
   if (maskStringIn!=NULL) {
     maskString = (char*) malloc( (strlen(maskStringIn)+1) * sizeof(char));
     strcpy(maskString, maskStringIn);
@@ -115,11 +105,9 @@ bool AtomMask::None() {
  * a char array, 1 for each atom, where selected atoms are denoted by T.
  * Base on this create an array of selected atom numbers. If inverMask is true 
  * create an array of atoms that are not selected.
- * NOTE: Do we really need to store the Parm?
  */
-int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
+int AtomMask::SetupMask(AmberParm *Pin, int debug) {
   int atom;
-  //size_t SelectedSize, maskSize;
   char *mask;
   char maskChar;
 
@@ -127,13 +115,15 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
     mprintf("    Error: AtomMask::SetupMask: (%s) Topology is NULL.\n", maskString);
     return 1;
   }
-  debug=debugIn;
   maskChar='T';
   if (invertMask) maskChar='F';
 
   // Allocate atom mask - free mask if already allocated
-  //P = Pin;
-  mask = Pin->mask(maskString);
+  // NOTE: Args 7-8 are for distance criteria selection. Arg 7 is coords,
+  //       arg 8 should be f for float (NOT IMPLEMENTED) or d for double.
+  //       Last arg is debug level.
+  mask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
+                         Pin->resnums, NULL, 'd', debug);
   if (mask==NULL) {
     mprintf("    Error: Could not set up mask %s for topology %s\n",
             maskString, Pin->parmName);
@@ -175,16 +165,41 @@ int AtomMask::SetupMask(AmberParm *Pin, int debugIn) {
  * just use the old school char array. In this case Nselected will
  * be the total size of the mask, not just the # of selected atoms.
  */
-int AtomMask::SetupCharMask(AmberParm *Pin, int debugIn) {
+int AtomMask::SetupCharMask(AmberParm *Pin, int debug) {
   if (Pin==NULL) {
     mprintf("    Error: AtomMask::SetupCharMask: (%s) Topology is NULL.\n", maskString);
     return 1;
   }
-  debug=debugIn;
 
   // Allocate atom mask - free mask if already allocated
+  Nselected = 0;
   if (CharMask!=NULL) free(CharMask);
-  CharMask = Pin->mask(maskString);
+  CharMask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
+                             Pin->resnums, NULL, 'd', debug);
+  if (CharMask==NULL) {
+    mprintf("    Error: Could not set up mask %s for topology %s\n",
+            maskString, Pin->parmName);
+    return 1;
+  }
+  Nselected = Pin->natom;
+  return 0;
+}
+
+/*
+ * AtomMask::SetupCharMask()
+ * Set up old school char array with coordinates.
+ */
+int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
+  if (Pin==NULL) {
+    mprintf("    Error: AtomMask::SetupCharMask: (%s) Topology is NULL.\n", maskString);
+    return 1;
+  }
+
+  // Allocate atom mask - free mask if already allocated
+  Nselected = 0;
+  if (CharMask!=NULL) free(CharMask);
+  CharMask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
+                             Pin->resnums, Xin, 'd', debug);
   if (CharMask==NULL) {
     mprintf("    Error: Could not set up mask %s for topology %s\n",
             maskString, Pin->parmName);

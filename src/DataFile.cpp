@@ -18,6 +18,7 @@ DataFile::DataFile(char *nameIn) {
   strcpy(filename,nameIn);
   debug=0;
   isInverted=false;
+  maxFrames = 0;
 }
 
 // DESTRUCTOR
@@ -102,9 +103,11 @@ void DataFile::DataSetNames() {
  * Write datasets to file. Check that datasets actually contain data. 
  * Exit if no datasets in this datafile have been used.
  */
-void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
+void DataFile::Write(bool noEmptyFramesIn) {
   PtrajFile outfile;
   int set,nwrite;
+  int maxSetFrames = 0;
+  int currentMax = 0;
 
   noEmptyFrames=noEmptyFramesIn;
   // Check that at least some data sets contain data
@@ -115,6 +118,10 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
               filename, SetList[set]->Name());
       //return;
     } else {
+      // Determine what the maxium x value for this set is.
+      // Should be last value added.
+      maxSetFrames = SetList[set]->Xmax();
+      if (maxSetFrames > currentMax) currentMax = maxSetFrames;
       nwrite++;
     }
   }
@@ -122,6 +129,9 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
     mprintf("Warning: DataFile %s has no sets containing data - skipping.\n",filename);
     return;
   }
+  // Since currentMax is the last frame, increment currentMax by 1 for use in for loops
+  maxFrames = currentMax + 1;
+  //mprintf("DEBUG: Max frames for %s is %i (maxFrames=%i)\n",filename,currentMax,maxFrames);
 
   if (outfile.SetupFile(filename,WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,debug)) return;
   if (outfile.OpenFile()) return;
@@ -131,13 +141,18 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
     outfile.fileFormat = DATAFILE;
 
   switch (outfile.fileFormat) {
-    case DATAFILE   : 
+    case DATAFILE : 
       if (isInverted)
-        this->WriteDataInverted(&outfile,maxFrames);
+        this->WriteDataInverted(&outfile);
       else 
-        this->WriteData(&outfile, maxFrames); 
+        this->WriteData(&outfile); 
       break;
-    case XMGRACE    : this->WriteGrace(&outfile, maxFrames); break;
+    case XMGRACE  : 
+      if (isInverted)
+        this->WriteGraceInverted(&outfile);
+      else 
+        this->WriteGrace(&outfile); 
+      break;
     default      : mprintf("Error: Datafile %s: Unknown type.\n",filename);
   }
 
@@ -148,7 +163,7 @@ void DataFile::Write(int maxFrames, bool noEmptyFramesIn) {
  * DataFile::WriteData()
  * Write datasets to file. Put each set in its own column. 
  */
-void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
+void DataFile::WriteData(PtrajFile *outfile) {
   int set,frame,empty;
   char *buffer;
   int lineSize = 0;
@@ -211,7 +226,7 @@ void DataFile::WriteData(PtrajFile *outfile, int maxFrames) {
  * Alternate method of writing out data where X and Y values are switched. 
  * Each frame is put into a column, with column 1 containing headers.
  */
-void DataFile::WriteDataInverted(PtrajFile *outfile, int maxFrames) {
+void DataFile::WriteDataInverted(PtrajFile *outfile) {
   int frame,set,empty;
   int currentLineSize=0;
   int lineSize=0;
@@ -253,7 +268,7 @@ void DataFile::WriteDataInverted(PtrajFile *outfile, int maxFrames) {
  * DataFile::WriteGrace() 
  * Write out sets to file in xmgrace format.
  */
-void DataFile::WriteGrace(PtrajFile *outfile, int maxFrames) {
+void DataFile::WriteGrace(PtrajFile *outfile) {
   int set,frame;
   int lineSize=0;;
   int currentLineSize=0;
@@ -290,6 +305,59 @@ void DataFile::WriteGrace(PtrajFile *outfile, int maxFrames) {
       outfile->IO->Printf("%8i",frame + OUTPUTFRAMESHIFT);
       SetList[set]->Write(buffer,frame);
       outfile->IO->Printf("%s\n",buffer);
+    }
+  }
+  if (buffer!=NULL) free(buffer);
+}
+
+/*
+ * DataFile::WriteGraceInverted() 
+ * Write out sets to file in xmgrace format. Write out data from each
+ * frame as 1 set.
+ */
+void DataFile::WriteGraceInverted(PtrajFile *outfile) {
+  int set,frame,empty;
+  int lineSize=0;;
+  int currentLineSize=0;
+  char *buffer;
+
+  // Grace Header
+  outfile->IO->Printf("@with g0\n");
+  outfile->IO->Printf("@  xaxis label \"\"\n");
+  outfile->IO->Printf("@  yaxis label \"\"\n");
+  outfile->IO->Printf("@  legend 0.2, 0.995\n");
+  outfile->IO->Printf("@  legend char size 0.60\n");
+
+  // Calculate maximum expected size for output line.
+  for (set=0; set < Nsets; set++) {
+    lineSize = SetList[set]->Width() + 2;
+    if (lineSize > currentLineSize)
+      currentLineSize = lineSize;
+  }
+  buffer = (char*) malloc(lineSize * sizeof(char));
+
+  // Loop over frames
+  for (frame=0; frame<maxFrames; frame++) {
+    // If specified, run through every set in the frame and check if empty
+    if (noEmptyFrames) {
+      empty=0;
+      for (set=0; set<Nsets; set++) {
+        if ( SetList[set]->isEmpty(frame) ) {empty++; break;}
+      }
+      if (empty!=0) continue;
+    }
+
+    // Set information
+    //outfile->IO->Printf("@  s%i legend \"%s\"\n",set,SetList[set]->Name());
+    outfile->IO->Printf("@target G0.S%i\n",frame);
+    outfile->IO->Printf("@type xy\n");
+    // Loop over all Set Data for this frame
+    for (set=0; set<Nsets; set++) {
+      // Skip those empty sets
+      if ( SetList[set]->CheckSet() ) continue;
+      outfile->IO->Printf("%8i",set + OUTPUTFRAMESHIFT);
+      SetList[set]->Write(buffer,frame);
+      outfile->IO->Printf("%s \"%s\"\n",buffer,SetList[set]->Name());
     }
   }
   if (buffer!=NULL) free(buffer);

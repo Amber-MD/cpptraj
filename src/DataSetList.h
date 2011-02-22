@@ -1,30 +1,32 @@
 #ifndef INC_DATASETLIST_H
 #define INC_DATASETLIST_H
 // DataSetList
-/* Data sets are added to the list by various actions. A data file is created
- * and the set is added to the data file list if an out keyword was specified
- * in the action argument line.
+/* Data sets are added to the list by various actions.
+ *   SetMax: Set the maximum number of frames expected to be read in. Used
+ *           to preallocate DataSet size.
+ *   Add: Add a dataset to the list with given type and name (use default 
+ *        name if given name is NULL).
+ *   Get: Return dataset with given name.
+ *   AddData: Add data to a dataset in the list with given index.
+ *   Info: Print names of datasets in the list.
+ *   Sync: Sync up datasets across all threads. 
  */
 
 #include "DataSet.h"
-//#include "DataFileList.h"
 
 class DataSetList {
-
     DataSet **DataList;
     int Ndata;
-
+    int maxFrames;      // Expected number of frames that will be read in
   public:
-    int maxFrames; // The maximum number of frames to be read, set in PtrajState::Run
-
     DataSetList();
     ~DataSetList();
 
+    void SetMax(int);
     DataSet *Get(char *);
     DataSet *Add( dataType, char*, const char*);
     int AddData(int, void *, int );
     void Info();
     void Sync();
 };
-
 #endif

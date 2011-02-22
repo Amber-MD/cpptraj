@@ -12,6 +12,7 @@ class stringDataSet : public DataSet {
     std::map<int,std::string> Data;
     std::map<int,std::string>::iterator it;
   public:
+    int Xmax();
     int isEmpty(int);
     void Add( int, void * );
     char *Write(char *, int);

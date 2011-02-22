@@ -9,7 +9,7 @@ DataSet::DataSet() {
   //fprintf(stderr,"DataSet Constructor.\n");
   name=NULL;
   N=0;
-  isDynamic=0;
+  isDynamic=false;
   current=0;
 }
 
@@ -36,7 +36,7 @@ int DataSet::Setup(char *nameIn, int Nin) {
   // Dataset memory
   N=Nin;
   if (N<=0) {
-    isDynamic=1;
+    isDynamic=true;
     N=0;
   }
   if ( this->Allocate() ) return 1;

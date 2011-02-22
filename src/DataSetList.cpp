@@ -30,6 +30,16 @@ DataSetList::~DataSetList() {
   }
 }
 
+/*
+ * DataSetList::SetMax()
+ * Set the max number frames expected to be read in. Used to preallocate
+ * data set sizes in the list.
+ */
+void DataSetList::SetMax(int expectedMax) {
+  maxFrames = expectedMax;
+  if (maxFrames<0) maxFrames=0;
+}
+
 /* 
  * DataSetList::Get()
  * Return pointer to DataSet with given name
@@ -54,7 +64,7 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
 
   D=NULL;
 
-  // Require all calls provide a default
+  // Require all calls provide a default name
   if (defaultName==NULL) {
     mprinterr("Internal Error: DataSetList::Add() called without default name.\n");
     return NULL;
@@ -88,9 +98,6 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
     delete D;
     return NULL;
   }
-
-  // Add dataset to data file list if out keyword specified
-  //DFL.Add(dataFilename,D);
 
   DataList=(DataSet**) realloc(DataList,(Ndata+1) * sizeof(DataSet*));
   DataList[Ndata++]=D;
@@ -151,5 +158,4 @@ void DataSetList::Sync() {
     }
   }
 
-  //DFL.Write(maxFrames);
 }

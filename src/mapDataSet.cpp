@@ -5,6 +5,20 @@
 #include "PtrajMpi.h"
 #include "CpptrajStdio.h"
 using namespace std;
+
+/*
+ * mapDataSet::Xmax(()
+ * Return the maximum X value added to this set. By convention this is 
+ * always the last value added.
+ */
+int mapDataSet::Xmax() {
+  // If no data has been added return 0
+  if (current==0) return 0;
+  it=Data.end();
+  it--;
+  return ( (*it).first );
+} 
+
 /*
  * mapDataSet::Add()
  * Insert data vIn at frame.

@@ -6,7 +6,6 @@
 #include <cstring>
 #include <cstdio> // For sscanf, sprintf
 #include "AmberParm.h" // PtrajFile.h 
-#include "ptrajmask.h"
 #include "PDBfileRoutines.h"
 #include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
@@ -850,31 +849,16 @@ int AmberParm::ReadParmMol2() {
 }
 
 /*
- * AmberParm::ParmInfo()
- * Print parm information for atoms in mask.
+ * AmberParm::AtomInfo()
+ * Print parm information for atom.
  */
-void AmberParm::ParmInfo(char *maskstr) {
-  char *mask;
-  int atom,res;
-  if (maskstr==NULL) {
-    mprintf("Error: AmberParm::ParmInfo: No mask given.\n");
-    return;
-  }
-  mask = parseMaskString(maskstr, natom, nres, names, resnames, resnums, NULL, 'd',debug);
-  if (mask==NULL) {
-    mprintf("Warning: AmberParm::ParmInfo: Atom mask is NULL.\n");
-    return;
-  }
-  for (atom=0; atom < natom; atom++) {
-    if (mask[atom]=='F') continue;
-    res = atomToResidue(atom);
-    mprintf("Atom %i:%4s Res %i:%4s Mol %i",atom+1,names[atom],res+1,resnames[res],
-            atomToMolecule(atom)+1);
-    mprintf(" Type=%4s",types[atom]);
-    mprintf(" Charge=%lf",charge[atom]);
-    mprintf(" Mass=%lf\n",mass[atom]);
-  }
-  free(mask);
+void AmberParm::AtomInfo(int atom) {
+  int res = atomToResidue(atom);
+  mprintf("Atom %i:%4s Res %i:%4s Mol %i",atom+1,names[atom],res+1,resnames[res],
+          atomToMolecule(atom)+1);
+  mprintf(" Type=%4s",types[atom]);
+  mprintf(" Charge=%lf",charge[atom]);
+  mprintf(" Mass=%lf\n",mass[atom]);
 }
 
 /*
@@ -887,30 +871,6 @@ void AmberParm::Info(char *buffer) {
           natom,nres,ifbox,molecules,solventMolecules,parmFrames);
 }
   
-
-/* 
- * AmberParm::mask
- * Wrapper for the old ptraj mask parser from ptrajmask.h
- */
-char *AmberParm::mask(char *maskstr) {
-  
-  // Should never be called with NULL string
-  if (maskstr==NULL) return NULL;
-  // NOTE: Args 7-8 are for distance criteria selection. Arg 7 is coords,
-  // arg 8 should be f for float (NOT IMPLEMENTED) or d for double.
-  // Last arg is debug level.
-  return parseMaskString(maskstr, natom, nres, names, resnames, resnums, NULL, 'd', debug);
-}
-
-/*
- * AmberParm::mask
- * Wrapper for old ptraj mask parser with coordinates
- */
-char *AmberParm::mask(char *maskstr, double *X) {
-  if (maskstr==NULL) return NULL;
-  return parseMaskString(maskstr, natom, nres, names, resnames, resnums, X, 'd', debug);
-}
-
 // NOTE: The following atomToX functions do not do any memory checks!
 /* 
  * AmberParm::atomToResidue()

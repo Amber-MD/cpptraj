@@ -7,16 +7,18 @@
 
 class DataFile {
     int debug;
-    DataSet **SetList; // Will point to addresses in DataSetList;
+    DataSet **SetList;  // Will point to addresses in DataSetList;
     int Nsets;
-    bool noEmptyFrames;
-    bool isInverted;  // If true sets will be written in rows instead of columns
-    bool noXcolumn;   // If true the Frame column will not be written.
-    char *xlabel;
+    bool noEmptyFrames; // If true, frames in which no sets have data will be skipped
+    bool isInverted;    // If true sets will be written in rows instead of columns
+    bool noXcolumn;     // If true the Frame column will not be written.
+    char *xlabel;       // X axis label for grace plots
+    int maxFrames;      // The largest X value of any sets in SetList
 
-    void WriteGrace(PtrajFile *, int);
-    void WriteData(PtrajFile *, int);
-    void WriteDataInverted(PtrajFile *, int);
+    void WriteGrace(PtrajFile *);
+    void WriteGraceInverted(PtrajFile *);
+    void WriteData(PtrajFile *);
+    void WriteDataInverted(PtrajFile *);
   public:
     char *filename;
 
@@ -30,7 +32,7 @@ class DataFile {
     int AddSet(DataSet *);
     int NameIs(char *);
     void DataSetNames();
-    void Write(int,bool);
+    void Write(bool);
 };    
 
 #endif

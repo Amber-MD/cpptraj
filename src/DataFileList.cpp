@@ -108,10 +108,10 @@ void DataFileList::Info() {
  * Call write for all datafiles in list.
  * Only master should call this.
  */
-void DataFileList::Write(int maxFrames) {
+void DataFileList::Write() {
 
   //if (worldrank!=0) return; 
 
   for (it = this->begin(); it != this->end(); it++)
-    (*it)->Write(maxFrames,false);
+    (*it)->Write(false);
 }

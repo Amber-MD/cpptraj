@@ -16,6 +16,6 @@ class DataFileList : public std::list<DataFile*> {
     DataFile *GetDataFile(char *);
     int Add(char *, DataSet *);
     void Info();
-    void Write(int);
+    void Write();
 };
 #endif
