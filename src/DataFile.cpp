@@ -153,7 +153,12 @@ void DataFile::Write(bool noEmptyFramesIn) {
       else 
         this->WriteGrace(&outfile); 
       break;
-    default      : mprintf("Error: Datafile %s: Unknown type.\n",filename);
+    case GNUPLOT  :
+      if (isInverted)
+        mprintf("Warning: Gnuplot format does not support invert; printing standard.\n");
+      this->WriteGnuplot(&outfile);
+      break;
+    default       : mprintf("Error: Datafile %s: Unknown type.\n",filename);
   }
 
   outfile.CloseFile();
@@ -165,7 +170,7 @@ void DataFile::Write(bool noEmptyFramesIn) {
  */
 void DataFile::WriteData(PtrajFile *outfile) {
   int set,frame,empty;
-  char *buffer;
+  char *ptr,*buffer;
   int lineSize = 0;
   bool firstSet = true;
 
@@ -209,12 +214,14 @@ void DataFile::WriteData(PtrajFile *outfile) {
     // NOTE: For consistency with Ptraj start at frame 1
     if (!noXcolumn)
       outfile->IO->Printf("%8i",frame + OUTPUTFRAMESHIFT);
+    ptr = buffer;
     for (set=0; set<Nsets; set++) {
       // Skip those empty sets
       if ( SetList[set]->CheckSet() ) continue;
-      SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%s",buffer);
+      ptr = SetList[set]->Write(ptr,frame);
     }
+    // IO->Printf is limited to 1024 chars, use Write instead
+    outfile->IO->Write(buffer,sizeof(char),strlen(buffer));
     outfile->IO->Printf("\n");
   }
   // Free buffer
@@ -230,7 +237,7 @@ void DataFile::WriteDataInverted(PtrajFile *outfile) {
   int frame,set,empty;
   int currentLineSize=0;
   int lineSize=0;
-  char *buffer;
+  char *buffer,*ptr;
 
   buffer=NULL;
   for (set=0; set < Nsets; set++) {
@@ -254,10 +261,12 @@ void DataFile::WriteDataInverted(PtrajFile *outfile) {
     // Write header as first column
     outfile->IO->Printf("\"%12s\" ",SetList[set]->Name());
     // Write each frame to a column
+    ptr = buffer;
     for (frame=0; frame<maxFrames; frame++) {
-      SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%s",buffer);
+      ptr = SetList[set]->Write(ptr,frame);
     }
+    // IO->Printf is limited to 1024 chars, use Write instead
+    outfile->IO->Write(buffer,sizeof(char),strlen(buffer));
     outfile->IO->Printf("\n");
   }
   // free buffer
@@ -295,6 +304,12 @@ void DataFile::WriteGrace(PtrajFile *outfile) {
     if (lineSize > currentLineSize) {
       buffer = (char*) realloc(buffer, lineSize * sizeof(char));
       currentLineSize = lineSize;
+      // Since using IO->Printf, buffer cannot be larger than 1024
+      if (lineSize>=1024) {
+        mprintf("Error: DataFile::WriteGrace: %s: Data width >= 1024\n",filename);
+        if (buffer!=NULL) free(buffer);
+        return;
+      }
     }
     // Set Data
     for (frame=0; frame<maxFrames; frame++) {
@@ -302,9 +317,8 @@ void DataFile::WriteGrace(PtrajFile *outfile) {
       if (noEmptyFrames) {
         if ( SetList[set]->isEmpty(frame) ) continue; 
       }
-      outfile->IO->Printf("%8i",frame + OUTPUTFRAMESHIFT);
       SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%s\n",buffer);
+      outfile->IO->Printf("%8i%s\n",frame+OUTPUTFRAMESHIFT,buffer);
     }
   }
   if (buffer!=NULL) free(buffer);
@@ -334,6 +348,11 @@ void DataFile::WriteGraceInverted(PtrajFile *outfile) {
     if (lineSize > currentLineSize)
       currentLineSize = lineSize;
   }
+  // Since using IO->Printf, buffer cannot be larger than 1024
+  if (lineSize>=1024) {
+    mprintf("Error: DataFile::WriteGraceInverted: %s: Data width >= 1024\n",filename);
+    return;
+  }
   buffer = (char*) malloc(lineSize * sizeof(char));
 
   // Loop over frames
@@ -355,11 +374,82 @@ void DataFile::WriteGraceInverted(PtrajFile *outfile) {
     for (set=0; set<Nsets; set++) {
       // Skip those empty sets
       if ( SetList[set]->CheckSet() ) continue;
-      outfile->IO->Printf("%8i",set + OUTPUTFRAMESHIFT);
       SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%s \"%s\"\n",buffer,SetList[set]->Name());
+      outfile->IO->Printf("%8i%s \"%s\"\n",set+OUTPUTFRAMESHIFT,buffer,SetList[set]->Name());
     }
   }
+  if (buffer!=NULL) free(buffer);
+}
+
+/*
+ * DataFile::WriteGnuplot()
+ * Write each frame from all sets in blocks in the following format:
+ *   Frame Set   Value
+ *   1     0.5   X
+ *   1     1.5   X
+ *   1     2.5   X
+ *
+ *   2     0.5   X
+ *   2     1.5   X
+ *   ...
+ * Subtract 0.5 from set number so that grid lines will be centered on Y values
+ */
+void DataFile::WriteGnuplot(PtrajFile *outfile) {
+  char *buffer;
+  int set, frame;
+  int lineSize=0;
+  int currentLineSize=0;
+  float Fset;
+
+  // Calculate maximum expected size for output line.
+  for (set=0; set < Nsets; set++) {
+    lineSize = SetList[set]->Width() + 2;
+    if (lineSize > currentLineSize)
+      currentLineSize = lineSize;
+  }
+  // Since using IO->Printf, buffer cannot be larger than 1024
+  if (lineSize>=1024) {
+    mprintf("Error: DataFile::WriteGnuplot: %s: Data width >= 1024\n",filename);
+    return;
+  }
+  buffer = (char*) malloc(lineSize * sizeof(char));
+
+  // Header
+  // set pm3d map hidden3d 100 corners2color c1
+  // splot "-" with pm3d title "Test"
+  // #  Frame      Set        PerRes
+  outfile->IO->Printf("set pm3d map hidden3d 100 corners2color c1\n");
+  outfile->IO->Printf("set style line 100 lt 2 lw 0.5\n");
+  outfile->IO->Printf("set xlabel \"%s\"\n",xlabel);
+  // Set up Y labels
+  outfile->IO->Printf("set ytics 1,1,%i\nset ytics(",Nsets);
+  for (set=0; set<Nsets; set++) {
+    if (set>0) outfile->IO->Printf(",");
+    outfile->IO->Printf("\"%s\" %i",SetList[set]->Name(),set+1);
+  }
+  // Make Yrange +1 and -1 so entire grid can be seen
+  outfile->IO->Printf(")\nset yrange [0.0:%i.0]\n",Nsets+1);
+  // Make Xrange +1 and -1 as well
+  outfile->IO->Printf("set xrange [0.0:%i.0]\n",maxFrames+1);
+  // Plot command
+  outfile->IO->Printf("splot \"-\" with pm3d title \"%s\"\n",filename);
+
+  // Data
+  for (frame=0; frame < maxFrames; frame++) {
+    Fset = OUTPUTFRAMESHIFT;
+    Fset -= 0.5;
+    for (set=0; set < Nsets; set++) {
+      SetList[set]->Write(buffer,frame);
+      outfile->IO->Printf("%8i %8.1f %s\n",frame+OUTPUTFRAMESHIFT,Fset,buffer);
+      Fset++;
+    }
+    // Print one empty row for gnuplot pm3d
+    outfile->IO->Printf("%8i %8.1f %8i\n\n",frame+OUTPUTFRAMESHIFT,Fset,0);
+  }
+
+  // End and Pause command
+  outfile->IO->Printf("end\npause -1\n");
+  // Free buffer
   if (buffer!=NULL) free(buffer);
 }
 

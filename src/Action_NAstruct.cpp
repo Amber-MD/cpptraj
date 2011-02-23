@@ -191,9 +191,9 @@ int NAstruct::determineBasePairing() {
       if (isPaired[base2]) continue;
       // First determine if origin axes coords are close enough to consider pairing
       distance = DIST2_NoImage(BaseAxes[base1]->Origin(), BaseAxes[base2]->Origin());
-      //mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
-      //        base1,RefCoords[base1]->BaseName(),
-      //        base2,RefCoords[base2]->BaseName(),distance);
+      /*mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
+              base1,RefCoords[base1]->BaseName(),
+              base2,RefCoords[base2]->BaseName(),sqrt(distance));*/
       if (distance < Ocut2) {
         //mprintf("    Checking %i:%s -- %i:%s\n",base1,RefCoords[base1]->BaseName(),
         //        base2,RefCoords[base2]->BaseName());
@@ -227,6 +227,9 @@ int NAstruct::determineBasePairing() {
 
   if (debug>0) mprintf("    NAstruct: Set up %i base pairs.\n",Nbp);
   base2=1;
+  //mprintf("DEBUG: BasePair.size = %i\n",(int)BasePair.size());
+  //mprintf("DEBUG: SHEAR.size = %i\n",(int)SHEAR.size());
+  //mprintf("DEBUG: BasePairAxes.size = %i\n",(int)BasePairAxes.size());
   for (base1=0; base1 < (int)BasePair.size(); base1+=3) {
     // For each base pair, set up a dataset for each structural parameter
     // if one is not already set up.
@@ -237,6 +240,9 @@ int NAstruct::determineBasePairing() {
       BUCKLE.push_back( new mapDataSet() );
       PROPELLER.push_back( new mapDataSet() );
       OPENING.push_back( new mapDataSet() );
+      // Also set up a place to hold the base pair axes
+      BasePairAxes.push_back( new AxisType() );
+      BasePairAxes[base2-1]->SetPrincipalAxes();
     } 
     // Print base pair info
     if (debug>1) {
@@ -251,6 +257,7 @@ int NAstruct::determineBasePairing() {
     base2++;
   }
   // Also set up base pair step data. One less than # base pairs
+  //mprintf("DEBUG: SHIFT.size() = %i\n",(int)SHIFT.size());
   for (base1=0; base1 < Nbp-1; base1++) {
     if ( base1+1 > (int)SHIFT.size() ) {
       SHIFT.push_back( new mapDataSet() );
@@ -261,7 +268,7 @@ int NAstruct::determineBasePairing() {
       TWIST.push_back( new mapDataSet() );
     }
     // Print base pair step info
-    //mprintf("        BP step %i: \n",base1+1);
+    if (debug>1) mprintf("        BP step %i: \n",base1+1);
   }
 
   return 0;
@@ -410,6 +417,8 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
     rmsd = RefFrame.RMSD( &ExpFrame, RotMatrix, TransVec, false);
     if (debug>0) 
       mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
+    // BaseAxes start at origin
+    BaseAxes[base]->SetPrincipalAxes();
     // Store the Rotation matrix.
     BaseAxes[base]->StoreRotMatrix( RotMatrix );
     // DEBUG
@@ -451,8 +460,9 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
     //BaseAxes[base]->WritePDB(&baseaxesfile, res, P->ResidueName(res), &baseaxesatom);
 
     // Overlap ref coords onto input coords. Rotate, then translate to baseaxes origin
-    RefCoords[base]->Rotate( RotMatrix );
-    RefCoords[base]->Translate( BaseAxes[base]->Origin() );
+    //RefFrame.SetFromFrame( RefCoords[base] );
+    //RefFrame.Rotate( RotMatrix );
+    //RefFrame.Translate( BaseAxes[base]->Origin() );
     // DEBUG - Write ref coords to file
     //RefCoords[base]->WritePDB(&basesfile, res, P->ResidueName(res), &basesatom);
     //res++;
@@ -491,7 +501,6 @@ int NAstruct::determineBaseParameters() {
   double O21[3], R1V1[3], Vec[3], FV2[3];
   double Rhalf[9], R2t[9], Rb[9];
   double Shear, Stretch, Stagger;
-  AxisType *BPaxes;
   // DEBUG
   //int basepairaxesatom=0;
   //PtrajFile basepairaxesfile;
@@ -719,24 +728,22 @@ int NAstruct::determineBaseParameters() {
     OPENING[nbasepair]->Add(currentFrame, &Sigma);
 
     // Store BP axes
-    BPaxes = new AxisType();
-    BPaxes->SetPrincipalAxes();
-    BPaxes->X[9 ] = Vec[0];
-    BPaxes->X[10] = Vec[1];
-    BPaxes->X[11] = Vec[2];
-    BPaxes->X[0] = Vec[0] + Rb[0];
-    BPaxes->X[1] = Vec[1] + Rb[3];
-    BPaxes->X[2] = Vec[2] + Rb[6];
-    BPaxes->X[3] = Vec[0] + Rb[1];
-    BPaxes->X[4] = Vec[1] + Rb[4];
-    BPaxes->X[5] = Vec[2] + Rb[7];
-    BPaxes->X[6] = Vec[0] + Rb[2];
-    BPaxes->X[7] = Vec[1] + Rb[5];
-    BPaxes->X[8] = Vec[2] + Rb[8];
-    BPaxes->StoreRotMatrix(Rb);
+    BasePairAxes[nbasepair]->X[9 ] = Vec[0];
+    BasePairAxes[nbasepair]->X[10] = Vec[1];
+    BasePairAxes[nbasepair]->X[11] = Vec[2];
+    BasePairAxes[nbasepair]->X[0] = Vec[0] + Rb[0];
+    BasePairAxes[nbasepair]->X[1] = Vec[1] + Rb[3];
+    BasePairAxes[nbasepair]->X[2] = Vec[2] + Rb[6];
+    BasePairAxes[nbasepair]->X[3] = Vec[0] + Rb[1];
+    BasePairAxes[nbasepair]->X[4] = Vec[1] + Rb[4];
+    BasePairAxes[nbasepair]->X[5] = Vec[2] + Rb[7];
+    BasePairAxes[nbasepair]->X[6] = Vec[0] + Rb[2];
+    BasePairAxes[nbasepair]->X[7] = Vec[1] + Rb[5];
+    BasePairAxes[nbasepair]->X[8] = Vec[2] + Rb[8];
+    BasePairAxes[nbasepair]->StoreRotMatrix(Rb);
     // DEBUG - write base pair axes
     //BPaxes->WritePDB(&basepairaxesfile, base1, P->ResidueName(base1), &basepairaxesatom);
-    BasePairAxes.push_back( BPaxes );
+    //BasePairAxes.push_back( BPaxes );
 
     nbasepair++; // Actual base pair count; BP is nbasepair*3
   }
@@ -914,6 +921,8 @@ int NAstruct::init() {
  * NAstruct::setup()
  * Set up for this parmtop. Get masks etc.
  * P is set in Action::Setup
+ * Determine the number of NA bases that will be analyzed, along with the masks
+ * that correspond to the reference frame atoms.
  */
 int NAstruct::setup() {
   int res, refAtom, atom;

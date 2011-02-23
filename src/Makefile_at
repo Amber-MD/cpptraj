@@ -6,7 +6,7 @@ SOURCE=main.cpp AmberNetcdf.cpp AmberParm.cpp AmberTraj.cpp TrajFile.cpp \
        Frame.cpp PtrajState.cpp ArgList.cpp ptrajmask.c Action_Distance.cpp \
        ParmFileList.cpp TrajinList.cpp TrajoutList.cpp ReferenceList.cpp \
        CoordFileList.cpp PtrajActionList.cpp DataSet.cpp \
-       dDataSet.cpp DataSetList.cpp vectormath.cpp FrameList.cpp Action_Rmsd.cpp \
+       DataSetList.cpp vectormath.cpp FrameList.cpp Action_Rmsd.cpp \
        Action_Dihedral.cpp DataFile.cpp DataFileList.cpp PDBfile.cpp \
        PtrajFile.cpp PDBfileRoutines.cpp AtomMap.cpp BaseFileIO.cpp StdFile.cpp \
        GzipFile.cpp AmberRestart.cpp Action_Angle.cpp PtrajMpi.c MpiFile.cpp \
@@ -22,7 +22,7 @@ OBJECTS=main.o AmberNetcdf.o AmberParm.o AmberTraj.o TrajFile.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
         ParmFileList.o TrajinList.o TrajoutList.o ReferenceList.o \
         CoordFileList.o PtrajActionList.o DataSet.o \
-        dDataSet.o DataSetList.o vectormath.o FrameList.o Action_Rmsd.o \
+        DataSetList.o vectormath.o FrameList.o Action_Rmsd.o \
         Action_Dihedral.o DataFile.o DataFileList.o PDBfile.o \
         PtrajFile.o PDBfileRoutines.o AtomMap.o BaseFileIO.o StdFile.o \
         GzipFile.o AmberRestart.o Action_Angle.o PtrajMpi.o MpiFile.o \
@@ -38,7 +38,7 @@ HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
         ParmFileList.h TrajinList.h TrajoutList.h ReferenceList.h \
         CoordFileList.h PtrajActionList.h DataSet.h \
-        dDataSet.h DataSetList.h vectormath.h FrameList.h Action_Rmsd.h \
+        DataSetList.h vectormath.h FrameList.h Action_Rmsd.h \
         Action_Dihedral.h DataFile.h DataFileList.h PDBfile.h \
         PtrajFile.h PDBfileRoutines.h AtomMap.h BaseFileIO.h StdFile.h \
         GzipFile.h AmberRestart.h Action_Angle.h PtrajMpi.h MpiFile.h \

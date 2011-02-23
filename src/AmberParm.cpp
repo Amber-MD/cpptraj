@@ -986,10 +986,9 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   if (this->molecules>0) 
     newParm->atomsPerMol = (int*) malloc(this->molecules * sizeof(int));
 
-  if (this->solventMolecules>0) {
-    // Set first solvent molecule to -1 for now
-    newParm->firstSolvMol=-1;
-  }
+  // Set first solvent molecule to -1 for now. If there are no solvent 
+  // molecules left in newParm after strip it will be set to 0.
+  newParm->firstSolvMol=-1;
 
   j = 0; 
   jres = -1; jmol = -1;

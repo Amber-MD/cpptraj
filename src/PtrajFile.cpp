@@ -26,10 +26,10 @@
 #endif
 
 //typedef char enumToken[30];
-const PtrajFile::enumToken PtrajFile::FileFormatList[12] = {
+const PtrajFile::enumToken PtrajFile::FileFormatList[13] = {
   "UNKNOWN_FORMAT", "PDBFILE", "AMBERTRAJ", "AMBERNETCDF", "AMBERPARM", 
   "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", "AMBERRESTARTNC",
-  "MOL2FILE"
+  "MOL2FILE", "GNUPLOT"
 };
 const PtrajFile::enumToken PtrajFile::FileTypeList[6] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
@@ -149,6 +149,7 @@ void PtrajFile::determineFormat() {
 
   if      ( strcmp(Ext,".dat")==0 ) fileFormat=DATAFILE;
   else if ( strcmp(Ext,".agr")==0 ) fileFormat=XMGRACE;
+  else if ( strcmp(Ext,".gnu")==0 ) fileFormat=GNUPLOT;
   else fileFormat=DATAFILE;
 }  
 
