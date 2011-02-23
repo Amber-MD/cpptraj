@@ -122,7 +122,7 @@ int PtrajActionList::Setup(AmberParm **ParmAddress) {
 
   P = *ParmAddress;
 
-  rprintf("    Setting up %i actions for %s\n",Naction,P->parmName);
+  mprintf("    .... Setting up %i actions for %s ....\n",Naction,P->parmName);
   for (act=0; act<Naction; act++) {
     if (ActionList[act]->noInit==0) {
       if (debug>0) mprintf("    %i: [%s]\n",act,ActionList[act]->CmdLine());
@@ -138,7 +138,7 @@ int PtrajActionList::Setup(AmberParm **ParmAddress) {
       //fprintf(stdout,"DEBUG: After Action %i Setup parmName is %s\n",act,P->parmName);
     }
   }
-  //fprintf(stdout,"----------------------------------------\n");
+  mprintf("    ...................................................\n");
 
   return 0;
 }

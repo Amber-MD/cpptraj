@@ -29,7 +29,7 @@ int Strip::init( ) {
 
   // Get mask of atoms to be stripped
   mask1 = A->getNextMask();
-  mprintf("    Mask 1: %s\n",mask1);
+  //mprintf("    Mask 1: %s\n",mask1);
   if (mask1==NULL) {
     mprintf("    Error: Strip::init: Requires atom mask.\n");
     return 1;
@@ -39,10 +39,9 @@ int Strip::init( ) {
   // Get output stripped parm filename
   prefix = A->getKeyString("outprefix",NULL);
 
-  mprintf("    STRIP: %s",M1.maskString);
+  mprintf("    STRIP: Stripping atoms in mask [%s]\n",M1.maskString);
   if (prefix!=NULL) 
-    mprintf(", stripped parm will be output with prefix %s",prefix);
-  mprintf("\n");
+    mprintf("           Stripped topology will be output with prefix %s\n",prefix);
 
   return 0;
 }
@@ -52,17 +51,16 @@ int Strip::init( ) {
  * Attempt to create a new stripped down version of the input parmtop
  */
 int Strip::setup() {
-  mprintf("    STRIP: ");
   M1.invertMask=true;   // Want to keep atoms outside the mask selection
                         // Atoms in the mask will be stripped
                         // Selected atoms will be kept.
   M1.SetupMask(P,debug);
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
-
   if (M1.None()) {
-    mprintf("    Error: Strip::setup: Mask has no atoms.\n");
+    mprintf("      Error: Strip::setup: Mask has no atoms.\n");
     return 1;
   }
+  mprintf("      STRIP: Stripping %i atoms.\n",P->natom - M1.Nselected);
 
   // Store old parm
   oldParm = P;
@@ -71,12 +69,9 @@ int Strip::setup() {
   if (newParm!=NULL) delete newParm;
   newParm = P->modifyStateByMask(M1.Selected, M1.Nselected);
   if (newParm==NULL) {
-    mprintf("    Error: Strip::setup: Could not create new parmtop.\n");
+    mprintf("      Error: Strip::setup: Could not create new parmtop.\n");
     return 1;
   }
-
-  mprintf("    STRIP: %s was stripped of %i atoms.\n",oldParm->parmName,
-          oldParm->natom - M1.Nselected);
 
   // Allocate space for new frame
   if (newFrame!=NULL) delete newFrame;
@@ -86,8 +81,9 @@ int Strip::setup() {
   if (prefix!=NULL && newParm->parmName==NULL) {
     newParm->parmName=(char*)malloc((strlen(oldParm->parmName)+strlen(prefix)+2)*sizeof(char));
     sprintf(newParm->parmName,"%s.%s",prefix,oldParm->parmName);
+    mprintf("             Writing out amber topology file %s\n",newParm->parmName);
     if ( newParm->WriteAmberParm() ) {
-      mprintf("ERROR: STRIP: Could not write out stripped parm file %s\n",
+      mprintf("      Error: STRIP: Could not write out stripped parm file %s\n",
               newParm->parmName);
     }
 

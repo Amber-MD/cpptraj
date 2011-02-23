@@ -1173,8 +1173,6 @@ int AmberParm::WriteAmberParm() {
   buffer=NULL;
   if (outfile.OpenFile()) return 1;
 
-  mprintf("    Writing out amber topology file %s.\n",parmName);
-
   // HEADER AND TITLE - Eventually use actual date and time
   outfile.IO->Printf("%-80s\n","%VERSION  VERSION_STAMP = V0001.000  DATE = 12/03/01  13:16:16");
   PrintFlagFormat(&outfile, "%FLAG TITLE", "%FORMAT(20a4)");

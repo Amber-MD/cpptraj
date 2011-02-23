@@ -58,11 +58,11 @@ int DSSP::init() {
   if (dssp==NULL) return 1;
   DFL->Add(outfilename, dssp);
 
-  mprintf( "  SECSTRUCT: Calculating secondary structure using mask (%s)\n",Mask.maskString);
+  mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask.maskString);
   if (outfilename!=NULL) 
-    mprintf( "                 Dumping results to %s,\n", outfilename);
+    mprintf( "               Dumping results to %s,\n", outfilename);
   if (sumOut!=NULL)
-    mprintf( "                 Sum results to %s\n",sumOut);
+    mprintf( "               Sum results to %s\n",sumOut);
 
   return 0;
 }
@@ -79,7 +79,7 @@ int DSSP::setup() {
   // Set up mask
   if ( Mask.SetupMask(P,debug) ) return 1;
   if ( Mask.None() ) {
-    mprintf("    Error: DSSP::setup: Mask has no atoms.\n");
+    mprintf("      Error: DSSP::setup: Mask has no atoms.\n");
     return 1;
   }
 
@@ -88,7 +88,7 @@ int DSSP::setup() {
     Nres = P->finalSoluteRes;
   else
     Nres=P->nres;
-  mprintf("      DSSP: Setting up for %i residues.\n",Nres);
+  //mprintf("      DSSP: Setting up for %i residues.\n",Nres);
 
   // Free up SecStruct if previously allocated.
   // NOTE: In action setup, should check if Parm has really changed...
@@ -132,7 +132,7 @@ int DSSP::setup() {
   for (res=0; res < Nres; res++)
     if (SecStruct[res].isSelected) selected++;
 
-  mprintf("      DSSP: %i residues selected.\n",selected);
+  mprintf("      DSSP: [%s] corresponds to %i residues.\n",Mask.maskString,selected);
 
   // Set up output buffer
   SSline = (char*) realloc(SSline, (selected+1) * sizeof(char));

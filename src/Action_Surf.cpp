@@ -72,8 +72,8 @@ int Surf::setup() {
   } else {
     soluteAtoms = P->natom;
   }
-  mprintf("    SURF: Setting up parameters for %i solute atoms for surface calc.\n",soluteAtoms);
-  mprintf("          LCPO surface area will be calculated for %i atoms.\n",Mask1.Nselected);
+  mprintf("      SURF: Setting up parameters for %i solute atoms.\n",soluteAtoms);
+  mprintf("            LCPO surface area will be calculated for %i atoms.\n",Mask1.Nselected);
 
   // Check that each atom in Mask1 is part of solute
   for (i=0; i < Mask1.Nselected; i++) {
