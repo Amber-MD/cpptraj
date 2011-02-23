@@ -415,20 +415,29 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
   buffer = (char*) malloc(lineSize * sizeof(char));
 
   // Header
-  // set pm3d map hidden3d 100 corners2color c1
-  // splot "-" with pm3d title "Test"
-  // #  Frame      Set        PerRes
-  outfile->IO->Printf("set pm3d map hidden3d 100 corners2color c1\n");
-  outfile->IO->Printf("set style line 100 lt 2 lw 0.5\n");
-  outfile->IO->Printf("set xlabel \"%s\"\n",xlabel);
-  // Set up Y labels
-  outfile->IO->Printf("set ytics 1,1,%i\nset ytics(",Nsets);
-  for (set=0; set<Nsets; set++) {
-    if (set>0) outfile->IO->Printf(",");
-    outfile->IO->Printf("\"%s\" %i",SetList[set]->Name(),set+1);
+  // Turn off labels if number of sets is too large since they 
+  // become unreadable. Should eventually have some sort of 
+  // autotick option.
+  if (Nsets > 30 ) {
+    mprintf("Warning: %s: gnuplot - number of sets %i > 30, turning off Y labels.\n",
+            filename,Nsets);
+    outfile->IO->Printf("set pm3d map corners2color c1\n");
+  } else {
+    outfile->IO->Printf("set pm3d map corners2color c1\n");
+    // NOTE: Add option to turn on grid later?
+    //outfile->IO->Printf("set pm3d map hidden3d 100 corners2color c1\n");
+    //outfile->IO->Printf("set style line 100 lt 2 lw 0.5\n");
+    // Set up Y labels
+    outfile->IO->Printf("set ytics 1,1,%i\nset ytics(",Nsets);
+    for (set=0; set<Nsets; set++) {
+      if (set>0) outfile->IO->Printf(",");
+      outfile->IO->Printf("\"%s\" %i",SetList[set]->Name(),set+1);
+    }
+    outfile->IO->Printf(")\n");
   }
+  outfile->IO->Printf("set xlabel \"%s\"\n",xlabel);
   // Make Yrange +1 and -1 so entire grid can be seen
-  outfile->IO->Printf(")\nset yrange [0.0:%i.0]\n",Nsets+1);
+  outfile->IO->Printf("set yrange [0.0:%i.0]\n",Nsets+1);
   // Make Xrange +1 and -1 as well
   outfile->IO->Printf("set xrange [0.0:%i.0]\n",maxFrames+1);
   // Plot command
