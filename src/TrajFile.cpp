@@ -105,23 +105,33 @@ void TrajFile::SetArgs(int startArg, int stopArg, int offsetArg) {
  
   if (startArg!=1) {
     if (startArg<1) {
-      mprintf("  Warning: start argument < 1, setting to 1.\n");
+      mprintf("    Warning: %s start argument %i < 1, setting to 1.\n",trajfilename,startArg);
       start=0; // cpptraj = ptraj - 1
     } else if (Frames>=0 && startArg>Frames) {
-      mprintf("  Warning: start argument > #Frames (%i), no frames will be processed.\n",
-              Frames);
-      start=startArg - 1;
+      // If startArg==stopArg and is greater than # frames, assume we want
+      // the last frame (useful when reading for reference structure).
+      if (startArg==stopArg) {
+        mprintf("    Warning: %s start %i > #Frames (%i), setting to last frame.\n",
+                trajfilename,startArg,Frames);
+        start=Frames - 1;
+      } else {
+        mprintf("    Warning: %s start %i > #Frames (%i), no frames will be processed.\n",
+                trajfilename,startArg,Frames);
+        start=startArg - 1;
+      }
     } else
       start=startArg - 1;
   }
 
   if (stopArg!=-1) {
     if ((stopArg - 1)<start) { // cpptraj = ptraj - 1
-      mprintf("  Warning: stop argument < start, no frames will be processed.\n");
+      mprintf("    Warning: %s stop %i < start, no frames will be processed.\n",
+              trajfilename,stopArg);
       //stop=stopArg+1;
       stop = start;
     } else if (Frames>=0 && stopArg>Frames) {
-      mprintf("  Warning: stop argument >= #Frames (%i), setting to max.\n", Frames);
+      mprintf("    Warning: %s stop %i >= #Frames (%i), setting to max.\n", 
+              trajfilename,stopArg,Frames);
       stop=Frames;
     } else
       stop=stopArg;
@@ -129,16 +139,18 @@ void TrajFile::SetArgs(int startArg, int stopArg, int offsetArg) {
 
   if (offsetArg!=1) {
     if (offset<1) {
-      mprintf("  Warning: offset argument < 1, setting to 1.\n");
+      mprintf("    Warning: %s offset %i < 1, setting to 1.\n",
+              trajfilename,offsetArg);
       offset=1;
     } else if (stop!=-1 && offsetArg > stop - start) {
-      mprintf("  Warning: offset is so large that only 1 set will be processed.\n");
+      mprintf("    Warning: %s offset %i is so large that only 1 set will be processed.\n",
+              trajfilename,offsetArg);
       offset=offsetArg;
     } else
       offset=offsetArg;
   }
   if (debug>0) 
-    mprintf("  TrajFile::SetArgs: Start %i Stop %i  Offset %i\n",start,stop,offset);
+    mprintf("  [%s] Args: Start %i Stop %i  Offset %i\n",trajfilename,start,stop,offset);
 }
 
 /*
@@ -380,6 +392,8 @@ void TrajFile::progressBar() {
   // Finish off and print
   buffer[i]='\0';
   mprintf("  %s",buffer);
+  // On first frame flush so that progress bar appears
+  if (currentFrame==start) mflush();
 
 /*
   // DEBUG - print without the restore char
