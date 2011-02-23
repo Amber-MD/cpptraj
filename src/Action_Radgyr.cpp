@@ -6,7 +6,9 @@
 Radgyr::Radgyr() {
   //fprintf(stderr,"Radgyr Con\n");
   rog=NULL;
+  rogmax=NULL;
   useMass = false;
+  calcRogmax=true;
 } 
 
 // DESTRUCTOR
@@ -14,7 +16,7 @@ Radgyr::~Radgyr() { }
 
 /*
  * Radgyr::init()
- * Expected call: radgyr <name> <mask1> [out filename] [mass]
+ * Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -27,25 +29,29 @@ int Radgyr::init() {
   // Get keywords
   rogFile = A->getKeyString("out",NULL);
   useMass = A->hasKey("mass");
+  if (A->hasKey("nomax")) calcRogmax=false;
 
   // Get Masks
   mask1 = A->getNextMask();
   Mask1.SetMaskString(mask1);
 
-  // Datasets to store radius of gyration and max 
+  // Datasets to store radius of gyration and max
+  // Also add datasets to data file list 
   rog = DSL->Add(DOUBLE, A->getNextString(),"RoG");
   if (rog==NULL) return 1;
-  //rogmax = DSL->Add(DOUBLE, (char*) "ROGMax\0");
-  rogmax = DSL->Add(DOUBLE, NULL, "RoGMax");
-  if (rogmax == NULL) return 1; 
-  // Add datasets to data file list
   DFL->Add(rogFile,rog);
-  DFL->Add(rogFile,rogmax);
+  if (calcRogmax) {
+    rogmax = DSL->Add(DOUBLE, NULL, "RoGMax");
+    if (rogmax == NULL) return 1; 
+    DFL->Add(rogFile,rogmax);
+  }
 
   mprintf("    RADGYR: Calculating for atoms in mask %s",Mask1.maskString);
   if (useMass)
     mprintf(" using mass weighting");
   mprintf(".\n");
+  if (!calcRogmax)
+    mprintf("            RoG max will not be stored.\n");
 
   return 0;
 }
@@ -75,7 +81,8 @@ int Radgyr::action() {
   Rog = F->RADGYR(&Mask1, useMass, &max);
 
   rog->Add(currentFrame, &Rog);
-  rogmax->Add(currentFrame, &max);
+  if (calcRogmax)
+    rogmax->Add(currentFrame, &max);
 
   //fprintf(outfile,"%10i %10.4lf %10.4lf\n",currentFrame,Rog,max);
   
