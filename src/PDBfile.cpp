@@ -22,8 +22,10 @@ PDBfile::~PDBfile() {
  */
 void PDBfile::close() {
   // Only close if not writing 1 pdb per frame
-  if (writeMode!=2)
+  if (writeMode!=2) {
+    File->IO->Printf("%-6s\n","END");
     File->CloseFile();
+  }
 }
 
 /* 
@@ -141,7 +143,7 @@ int PDBfile::SetupWrite( ) {
  * NOTE: Eventually give option to write individual files or models.
  */
 int PDBfile::writeFrame(int set) {
-  int i,i3,res;
+  int i,i3,res,atom,mol,lastAtomInMol;
   float Occ, B;
 
   // If writing 1 pdb per frame set up output filename and open
@@ -158,17 +160,34 @@ int PDBfile::writeFrame(int set) {
   res=0; Occ=0.0; B=0.0;
   // Use F->natom instead of P->natom in case of stripped coordinates?
   i3=0;
+  atom=1; // Actual PDB atom number
+  mol=0;
+  if (P->atomsPerMol!=NULL)
+    lastAtomInMol=P->atomsPerMol[0];
   for (i=0; i<F->natom; i++) {
+    // If this atom belongs to a new molecule print a TER card
+    /*if (P->atomsPerMol!=NULL) {
+      if (i == lastAtomInMol) {
+        pdb_write_ATOM(buffer,PDBTER,atom,(char*)"",P->ResidueName(res),'X',res+1,
+                       0,0,0,0,0,(char*)"\0");
+        File->IO->Write(buffer,sizeof(char),strlen(buffer));
+        atom++;
+        mol++;
+        if (mol<P->molecules) lastAtomInMol += P->atomsPerMol[mol];
+      }
+    }*/
     // figure out the residue number
     if ( i==P->resnums[res+1] ) res++; 
-    pdb_write_ATOM(buffer,"ATOM",i+1,P->names[i],P->ResidueName(res),'X',res+1,
+    pdb_write_ATOM(buffer,PDBATOM,atom,P->names[i],P->ResidueName(res),'X',res+1,
                    F->X[i3],F->X[i3+1],F->X[i3+2],Occ,B,(char*)"\0");
     File->IO->Write(buffer,sizeof(char),strlen(buffer)); 
     i3+=3;
+    atom++;
   }
 
   // If writing 1 pdb per frame, close output file
   if (writeMode==2) {
+    File->IO->Printf("%-6s\n","END");
     File->IO->Close();
   // If MODEL keyword was written, write corresponding ENDMDL record
   } else if (writeMode==1) {

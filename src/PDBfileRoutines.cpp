@@ -7,6 +7,9 @@
 #include <cstdio> //sprintf
 #include "PDBfileRoutines.h"
 
+// PDB record types
+const char PDB_RECNAME[3][7]={"ATOM", "HETATM", "TER"};
+
 /*
  * isPDBkeyword()
  * Return true if the first 6 chars of buffer match a PDB keyword
@@ -225,11 +228,12 @@ char *pdb_charge(char *buffer) {
 }
 
 // Write out an ATOM or HETATM record
-void pdb_write_ATOM(char *buffer, const char *REC, int atom, char *name, 
+void pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name, 
                     char *resnameIn, char chain, int resnum, 
                     double X, double Y, double Z, float Occ, float B,
                     char *End) {
   char resName[5];
+  char *ptr;
 
   resName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
@@ -246,7 +250,13 @@ void pdb_write_ATOM(char *buffer, const char *REC, int atom, char *name,
   else
     resName[3] = '\0';
 
-  sprintf(buffer,"%-6s%5i %-4s%4s %c%4i    %8.3lf%8.3lf%8.3lf%6.2f%6.2f%14s\n",
-          REC, atom, name, resName, chain, resnum, X, Y, Z, Occ, B, End);
+  ptr=buffer;
+  sprintf(ptr,"%-6s%5i %-4s%4s %c%4i",PDB_RECNAME[Record], atom, name, resName, chain, resnum);
+  ptr+=26;
+  if (Record == PDBTER) {
+    sprintf(ptr,"\n");
+    return;
+  }
+  sprintf(ptr,"    %8.3lf%8.3lf%8.3lf%6.2f%6.2f%14s\n", X, Y, Z, Occ, B, End);
 }
                     
