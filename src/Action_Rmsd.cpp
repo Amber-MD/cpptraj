@@ -418,6 +418,7 @@ int Rmsd::action() {
  */
 void Rmsd::print() {
   if (!perres || outFile==NULL) return;
+  if (PerResRMSD==NULL) return;
   PerResRMSD->Sync();
   // NOTE: Write should only happen for master
   mprintf("    RMSD: Per-residue: Writing data for %i residues to %s\n",
