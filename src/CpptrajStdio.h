@@ -1,5 +1,6 @@
 // CpptrajStdio.h
 
+void mflush();
 void mprintf(const char *, ...);
 void mprinterr(const char *, ...);
 void rprintf(const char *, ...);

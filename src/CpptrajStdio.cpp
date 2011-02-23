@@ -13,6 +13,17 @@
 #endif
 
 /*
+ * mflush()
+ * Call flush on STDOUT only if this is the master thread
+ */
+void mflush() {
+#ifdef MPI
+  if (worldrank!=0) return;
+#endif
+  fflush(stdout);
+}
+
+/*
  * mprintf()
  * Print message to STDOUT only if this is the master thread
  */
