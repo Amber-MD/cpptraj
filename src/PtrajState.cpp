@@ -356,7 +356,7 @@ int PtrajState::Run() {
   }
 
   rprintf("Read %i frames and processed %i frames.\n",global_set,process_set);
-  rprintf("Final output set: %i\n",outputSet);
+  if (debug>0) rprintf("Final output set: %i\n",outputSet);
 
   // Close output traj
   outFileList.Close();
