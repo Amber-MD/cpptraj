@@ -63,6 +63,7 @@ int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
 int ReferenceList::SetupRefFrames(FrameList *refFrames) {
   int trajFrames;
   Frame *F;
+  int skipValue;
 
   mprintf("\nREFERENCE COORDS:\n");
   if (this->empty()) {
@@ -84,8 +85,11 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       return 1;
     }
     // Reset skip flag if set since all threads need reference coords
-    if ((*it)->skip)
+    skipValue=0;
+    if ((*it)->skip) {
+      skipValue=(*it)->skip;
       (*it)->skip=0;
+    }
     (*it)->Begin(&trajFrames, 0);
     // Get and copy the 1 frame from Traj, then close
     // NOTE: What happens when not seekable?
@@ -98,8 +102,10 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     // Associate this frame with the correct parmfile
     //F->P=(*it)->P;
     // NOTE: Also use full file path??
-    refFrames->Add(F,(*it)->File->basefilename,(*it)->P);
+    refFrames->Add(F,(*it)->File->basefilename,(*it)->P,(*it)->Start());
     (*it)->End();
+    // Restore skip value
+    (*it)->skip=skipValue;
   }
   return 0;
 }

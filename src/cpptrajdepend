@@ -17,7 +17,7 @@ PtrajActionList.o : PtrajActionList.cpp Action.h Action_Angle.h Action_Center.h 
 DataSet.o : DataSet.cpp CpptrajStdio.h DataSet.h
 DataSetList.o : DataSetList.cpp CpptrajStdio.h DataSet.h DataSetList.h intDataSet.h mapDataSet.h stringDataSet.h
 vectormath.o : vectormath.cpp CpptrajStdio.h vectormath.h
-FrameList.o : FrameList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h FrameList.h ParmFileList.h PtrajFile.h
+FrameList.o : FrameList.cpp AmberParm.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h FrameList.h ParmFileList.h PtrajFile.h
 Action_Rmsd.o : Action_Rmsd.cpp Action.h Action_Rmsd.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajFile.h Range.h
 Action_Dihedral.o : Action_Dihedral.cpp Action.h Action_Dihedral.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajFile.h
 DataFile.o : DataFile.cpp BaseFileIO.h CpptrajStdio.h DataFile.h DataSet.h PtrajFile.h

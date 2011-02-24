@@ -1,13 +1,15 @@
 #ifndef INC_FRAMELIST_H
 #define INC_FRAMELIST_H
 #include "Frame.h"
-#include "ArgList.h"
 #include "ParmFileList.h"
-
+#include <vector>
+#include <string>
+// FrameList
 class FrameList {
-    Frame **frameList;
+    std::vector<Frame*> frameList;
     ParmFileList FrameParm;
-    ArgList frameNames;
+    std::vector<std::string> frameNames;
+    std::vector<int> frameNums;
     int Nframe;
   
   public:
@@ -15,8 +17,7 @@ class FrameList {
     FrameList();
     ~FrameList();
 
-    int Add(Frame *, char *, AmberParm *);
-    //Frame *GetFrame(char *);
+    int Add(Frame *, char *, AmberParm *,int);
     AmberParm *GetFrameParm(int);
     int GetFrameIndex(char *);
     Frame *GetFrame(int idx);
