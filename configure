@@ -127,6 +127,8 @@ if [[ -z $1  || $1 = "--help" ]] ; then
   exit 0
 fi
 
+CONFIGURECMD="$*"
+
 KEY=""
 VALUE=""
 echo ""
@@ -302,6 +304,7 @@ TestCompile
 # Write config.h
 cat > config.h <<EOF
 # config.h for cpptraj
+# configured using args: "$CONFIGURECMD"
 
 CPPTRAJHOME=$CPPTRAJHOME
 CPPTRAJBIN=$CPPTRAJBIN
