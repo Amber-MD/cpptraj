@@ -35,7 +35,6 @@ Closest::~Closest() {
   if (newParm!=NULL) delete newParm;
   if (newFrame!=NULL) delete newFrame;
   if (tempMask!=NULL) delete tempMask;
-  if (outFile!=NULL) delete outFile;
   if (outList!=NULL) delete outList;
 }
 
@@ -76,14 +75,7 @@ int Closest::init( ) {
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
   mask1 = A->getKeyString("closestout",NULL);
   if (mask1 != NULL) {
-    // Set up datafile
-    // NOTE: Use overall datafile list?
-    outFile = new DataFile(mask1);
-    if (outFile==NULL) {
-      mprintf("Error: Closest::init(): Could not setup output file %s\n",mask1);
-      return 1;
-    }
-    // Set up sets
+    // Set up datasets
     outList = new DataSetList();
     framedata = outList->Add(INT,(char*)"Frame\0","Frame");
     moldata   = outList->Add(INT,(char*)"Mol\0","Mol");
@@ -93,11 +85,15 @@ int Closest::init( ) {
       mprintf("Error: Closest::init(): Could not setup data sets for output file %s\n",mask1);
       return 1;
     }
-    // Add sets to datafile.
-    outFile->AddSet(framedata);
-    outFile->AddSet(moldata);
-    outFile->AddSet(distdata);
-    outFile->AddSet(atomdata);
+    // Add sets to datafile in list.
+    outFile = DFL->Add(mask1, framedata);
+    outFile = DFL->Add(mask1, moldata);
+    outFile = DFL->Add(mask1, distdata);
+    outFile = DFL->Add(mask1, atomdata);
+    if (outFile==NULL) {
+      mprintf("Error: Closest::init(): Could not setup output file %s\n",mask1);
+      return 1;
+    }
   }
 
   // Get Masks
@@ -342,12 +338,10 @@ int Closest::action() {
  */
 void Closest::print() {
   if (outFile==NULL) return;
+  // Sync up the dataset list here since it is not part of the master 
+  // dataset list.
   outList->Sync();
-  // NOTE: Write should only happen for master
-  mprintf("    CLOSEST: Writing %s: ",outFile->filename);
-  outFile->DataSetNames();
-  mprintf("\n");
+  // Set specific datafile options
   outFile->SetNoXcol();
-  outFile->Write(false);
 }
 
