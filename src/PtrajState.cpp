@@ -68,6 +68,26 @@ int PtrajState::ProcessCmdLineArgs(int argc, char **argv) {
       i++;
       SetGlobalDebug( atoi(argv[i]) );
 
+    // Print information on compiler defines used and exit
+    } else if (strcmp(argv[i],"--defines")==0) {
+      mprintf("Compiled with:");
+#ifdef DEBUG
+      mprintf(" -DDEBUG");
+#endif
+#ifdef HASBZ2
+      mprintf(" -DHASBZ2");
+#endif
+#ifdef HASGZ
+      mprintf(" -DHASGZ");
+#endif
+#ifdef BINTRAJ
+      mprintf(" -DBINTRAJ");
+#endif
+#ifdef MPI
+      mprintf(" -DMPI");
+#endif
+      return 2;
+
     // The following 2 are for backwards compatibility with PTRAJ
     // Position 1: TOP file
     } else if (i==1) {
