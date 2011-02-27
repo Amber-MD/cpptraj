@@ -47,7 +47,6 @@ Rmsd::~Rmsd() {
     delete ResMask;
     PerRefMask.pop_back();
   }
-  if (outFile!=NULL) delete outFile;
 }
 
 /*
@@ -177,11 +176,6 @@ int Rmsd::init( ) {
       return 1;
     }
     mprintf("          Per-residue output file is %s\n",perresout);
-    outFile = new DataFile(perresout);
-    if (outFile==NULL) {
-      mprintf("Error: Rmsd::init: Could not set up per-residue output file.\n");
-      return 1;
-    }
     if (perrescenter)
       mprintf("          perrescenter: Each residue will be centered prior to RMS calc.\n");
     if (perresinvert)
@@ -202,7 +196,6 @@ int Rmsd::setup() {
   char resName[5];
   AtomMask *ResMask;
   list<int>::iterator it;
-  //int RefNselected;
   int refRes;;
 
   if ( FrameMask.SetupMask(P,debug) ) return 1;
@@ -238,7 +231,7 @@ int Rmsd::setup() {
     useMass=false;
   }
 
-  // ---===  PER RESIDUE RMSD OPTION ===---
+  // --------------------===  PER RESIDUE RMSD OPTION ===--------------------
   // If perres was specified, need a data set for each residue
   // Currently perres will only work for the first parmtop used
   // NOTE THAT ALL RESIDUES FROM INPUT SHOULD BE SHIFTED BY -1
@@ -336,11 +329,13 @@ int Rmsd::setup() {
       sprintf(resArg,"%4s%i",resName,*it);
       // TEST - add all datasets to the same output file
       // NOTE - eventually give this its own output file and make a print routine
-      outFile->AddSet(PerResRMSD->Add(DOUBLE, resArg,"PerRes"));
+      DFL->Add(perresout, PerResRMSD->Add(DOUBLE, resArg,"PerRes"));
     }
-    // Set output file to be inverted if requested
-    if (perresinvert) {
-      outFile->SetInverted();
+    // Set up pointer to the output file
+    outFile = DFL->GetDataFile(perresout);
+    if (outFile==NULL) {
+      mprintf("Error: RMSD: Perres output file could not be set up.\n");
+      return 1;
     }
     // Allocate memory for residue reference frame. Will be dynamically resized during action
     if (ResRefFrame==NULL)
@@ -419,12 +414,13 @@ int Rmsd::action() {
 void Rmsd::print() {
   if (!perres || outFile==NULL) return;
   if (PerResRMSD==NULL) return;
+  // Sync dataset list here since it is not part of master dataset list
   PerResRMSD->Sync();
-  // NOTE: Write should only happen for master
+  // Set output file to be inverted if requested
+  if (perresinvert) 
+    outFile->SetInverted();
+
   mprintf("    RMSD: Per-residue: Writing data for %i residues to %s\n",
           (int)PerResMask.size(), outFile->filename);
-  //outFile->DataSetNames();
-  //mprintf("\n");
-  outFile->Write(false);
 }
  
