@@ -94,7 +94,12 @@ int DataFile::NameIs(char *nameIn) {
 void DataFile::DataSetNames() {
   int set;
   if (Nsets>10) {
-    mprintf("%i datasets.",Nsets);
+    for (set=0; set < 4; set++)
+      mprintf(" %s",SetList[set]->Name());
+    mprintf(" ...");
+    for (set=Nsets-4; set < Nsets; set++)
+      mprintf(" %s",SetList[set]->Name()); 
+    //mprintf("%i datasets.",Nsets);
   } else {
     for (set=0; set<Nsets; set++) {
       if (set>0) mprintf(",");
