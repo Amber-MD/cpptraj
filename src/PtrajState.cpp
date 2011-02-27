@@ -13,7 +13,9 @@ PtrajState::PtrajState() {
 }
 
 // Destructor
-PtrajState::~PtrajState() { 
+PtrajState::~PtrajState() {
+  for (std::list<ArgList*>::iterator it=DF_Args.begin(); it!=DF_Args.end(); it++) 
+    delete (*it); 
 }
 
 /*
@@ -243,11 +245,89 @@ void PtrajState::Dispatch() {
     return;
   }
 
+  // Check if command pertains to datafiles
+  if ( A->CommandIs("datafile") ) {
+    DF_Args.push_back(A->Copy());
+    return;
+  }
+
   // Check if command pertains to an action
   if ( ptrajActionList.Add(A)==0 ) return; 
 
   mprintf("Warning: Unknown Command %s.\n",A->Command());
 }
+
+/*
+ * PtrajState::ProcessDataFileCmd()
+ * Process command relating to data files. All datafile commands have format:
+ *   datafile <cmd> <datafile> ...
+ */
+void PtrajState::ProcessDataFileCmd() {
+  char *df_cmd = NULL;
+  char *name1 = NULL;
+  char *name2 = NULL;
+  DataFile *df;
+
+  if (DF_Args.empty()) return;
+  mprintf("DATAFILE SETUP:\n");
+
+  // Loop through all "datafile" arguments
+  for (std::list<ArgList*>::iterator it=DF_Args.begin(); it!=DF_Args.end(); it++) {
+    A = (*it);
+    // Next string will be the argument passed to datafile
+    df_cmd = A->getNextString();
+    mprintf("  [%s]\n",A->ArgLine());
+    // Next string is datafile that command pertains to
+    name1 = A->getNextString();
+    if (name1==NULL) {
+      mprintf("Error: datafile %s: No filename given.\n",df_cmd);
+      continue;
+    }
+    df = DFL.GetDataFile(name1);
+
+    // datafile create
+    // Usage: datafile create <filename> <dataset0> <dataset1> ...
+    if ( strcmp(df_cmd,"create")==0 ) {
+      if (df==NULL)
+        mprintf("    Creating file %s\n",name1);
+      while ( (name2=A->getNextString())!=NULL ) {
+        if ( DFL.Add(name1, DSL.Get(name2))==NULL ) {
+          mprintf("Warning: Dataset %s does not exist in main dataset list, skipping.\n",name2);
+        }
+      }
+
+    // datafile xlabel
+    // Usage: datafile xlabel <filename> <label>
+    } else if ( strcmp(df_cmd,"xlabel")==0 ) {
+      if (df==NULL) {
+        mprintf("Error: datafile xlabel: DataFile %s does not exist.\n",name1);
+        continue;
+      }
+      df->SetXlabel(A->getNextString());
+
+    // datafile invert
+    // Usage: datafile invert <filename>
+    } else if ( strcmp(df_cmd,"invert")==0 ) {
+      if (df==NULL) {
+        mprintf("Error: datafile invert: DataFile %s does not exist.\n",name1);
+        continue;
+      }
+      mprintf("    Inverting datafile %s\n",name1);
+      df->SetInverted();
+
+    // datafile noxcol
+    // Usage: datafile noxcol <filename>
+    } else if ( strcmp(df_cmd,"noxcol")==0 ) {
+      if (df==NULL) {
+        mprintf("Error: datafile noxcol: DataFile %s does not exist.\n",name1);
+        continue;
+      }
+      mprintf("    Not printing x column for datafile %s\n",name1);
+      df->SetNoXcol();
+    }
+
+  } // END loop over datafile args
+}  
 
 /* 
  * PtrajState::Run()
@@ -366,6 +446,8 @@ int PtrajState::Run() {
 
   // Print Dataset information
   DSL.Info();
+  // Process any datafile commands
+  ProcessDataFileCmd();
   // Print Datafile information
   DFL.Info();
 

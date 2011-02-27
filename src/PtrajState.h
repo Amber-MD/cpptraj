@@ -19,11 +19,13 @@ class PtrajState {
     DataSetList DSL;                 // List of generated data sets
     DataFileList DFL;                // List of datafiles that data sets will be written to
     ArgList *A;                      // Current argument list
+    std::list<ArgList*> DF_Args;     // List of commands pertaining to datafile creation etc
+    int debug;
 
     void SetGlobalDebug(int);        // Set debug level for all components
     void Dispatch();                 // Function that decides where to send commands
+    void ProcessDataFileCmd();       // Handle datafile commands in DF_Args
     int ProcessInputStream(char *);  // Process lines of input from a file
-    int debug;
     int showProgress;                // Output traj progress to screen?
 
   public:
