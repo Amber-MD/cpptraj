@@ -88,13 +88,18 @@ int DataFile::NameIs(char *nameIn) {
 
 /*
  * DataFile::DataSetNames()
- * Print Dataset names to one line
+ * Print Dataset names to one line. If the number of datasets is very
+ * large just print the number of data sets.
  */
 void DataFile::DataSetNames() {
   int set;
-  for (set=0; set<Nsets; set++) {
-    if (set>0) mprintf(",");
-    mprintf("%s",SetList[set]->Name());
+  if (Nsets>10) {
+    mprintf("%i datasets.",Nsets);
+  } else {
+    for (set=0; set<Nsets; set++) {
+      if (set>0) mprintf(",");
+      mprintf("%s",SetList[set]->Name());
+    }
   }
 }
 
