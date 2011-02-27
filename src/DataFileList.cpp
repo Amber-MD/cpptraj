@@ -53,6 +53,11 @@ DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
 
   // If no filename, no output desired
   if (nameIn==NULL) return NULL;
+  // If DataSet is NULL, dont add
+  if (D==NULL) {
+    mprintf("Error: Attempting to add non-existent dataset to file %s\n",nameIn);
+    return NULL;
+  }
 
   // Append thread prefix to filename
   //sprintf(tempName,"%s.%03i",nameIn,worldrank); // DEBUG
