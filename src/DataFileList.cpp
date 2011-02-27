@@ -1,7 +1,6 @@
 // DataFileList
 #include "DataFileList.h"
 #include "CpptrajStdio.h"
-//#include "PtrajMpi.h" // NOTE: Only needed for worldrank - move to DataSet?
 
 // CONSTRUCTOR
 DataFileList::DataFileList() {
@@ -44,14 +43,16 @@ DataFile *DataFileList::GetDataFile(char *nameIn) {
 
 /* 
  * DataFileList::Add()
- * Add dataset to datafile in list with given file name.
+ * Add dataset to datafile in list with given file name. If the file does
+ * not yet exist in the list create it. Return a pointer to the datafile
+ * in the list.
  */
-int DataFileList::Add(char *nameIn, DataSet *D) {
+DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
   DataFile *Current;
   //char tempName[1024]; // DEBUG
 
   // If no filename, no output desired
-  if (nameIn==NULL) return 0;
+  if (nameIn==NULL) return NULL;
 
   // Append thread prefix to filename
   //sprintf(tempName,"%s.%03i",nameIn,worldrank); // DEBUG
@@ -81,7 +82,7 @@ int DataFileList::Add(char *nameIn, DataSet *D) {
   // DEBUG
   //mprintf("** ADDED DATASET %s TO FILE %s\n",D->Name(),Current->filename);
 
-  return 0;
+  return Current;
 }
 
 /*
