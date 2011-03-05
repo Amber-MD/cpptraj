@@ -19,6 +19,7 @@
 #include "Action_Closest.h"
 #include "Action_NAstruct.h"
 #include "Action_Pucker.h"
+#include "Action_Outtraj.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -66,10 +67,11 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("image"))    {Act=new Image;   }
   else if (A->CommandIs("surf"))     {Act=new Surf;    }
   else if (A->CommandIs("radgyr"))   {Act=new Radgyr;  }
-  else if (A->CommandIs("mask"))     {Act=new ActionMask;  }
-  else if (A->CommandIs("closest"))  {Act=new Closest;}
+  else if (A->CommandIs("mask"))     {Act=new ActionMask;}
+  else if (A->CommandIs("closest"))  {Act=new Closest; }
   else if (A->CommandIs("nastruct")) {Act=new NAstruct;}
-  else if (A->CommandIs("pucker"))   {Act=new Pucker;}
+  else if (A->CommandIs("pucker"))   {Act=new Pucker;  }
+  else if (A->CommandIs("outtraj"))  {Act=new Outtraj; }
   else return 1; 
 
   // Pass in the argument list
@@ -85,11 +87,13 @@ int PtrajActionList::Add(ArgList *A) {
   return 0;  
 }
 
-/* PtrajActionList::Init()
+/* 
+ * PtrajActionList::Init()
  * Initialize non-parm-specific data for each action (like datasets). If an 
  * action cannot be initialized deactivate it. Also set action debug level.
  */
-int PtrajActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL) {
+int PtrajActionList::Init( DataSetList *DSL, FrameList *FL, 
+                           DataFileList *DFL, ParmFileList *PFL) {
  int act;
 
   mprintf("\nACTIONS: Initializing %i actions:\n",Naction);
@@ -99,7 +103,7 @@ int PtrajActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL) {
       mprintf("    WARNING: Action %s is not active.\n",ActionList[act]->Name());
     } else {
       ActionList[act]->ResetArg();
-      if ( ActionList[act]->Init( DSL, FL, DFL, debug ) ) {
+      if ( ActionList[act]->Init( DSL, FL, DFL, PFL, debug ) ) {
         mprintf("    WARNING: Init failed for [%s]: DEACTIVATING\n",
                 ActionList[act]->CmdLine());
         ActionList[act]->noInit=1;
@@ -112,7 +116,8 @@ int PtrajActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL) {
 }
 
 
-/* PtrajActionList::Setup()
+/* 
+ * PtrajActionList::Setup()
  * Attempt to set up all actions in the action list with the given parm
  * If an action cannot be set up skip it.
  */
@@ -143,9 +148,10 @@ int PtrajActionList::Setup(AmberParm **ParmAddress) {
   return 0;
 }
 
-/* PtrajActionList::DoActions()
+/* 
+ * PtrajActionList::DoActions()
  * Perform actions in the action list on the given Frame. Skip actions not 
- * initialized or not setup.
+ * initialized or not setup. frameIn is the current frame number.
  */
 void PtrajActionList::DoActions(Frame **FrameAddress, int frameIn) {
   int act;

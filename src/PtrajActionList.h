@@ -15,7 +15,7 @@ class PtrajActionList {
 
     void SetDebug(int);
     int Add(ArgList *);
-    int Init(DataSetList *, FrameList *, DataFileList *);
+    int Init(DataSetList *, FrameList *, DataFileList *, ParmFileList*);
     int Setup(AmberParm **);
     void DoActions(Frame **, int);
     void Print();

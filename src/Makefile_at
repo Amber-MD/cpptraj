@@ -16,7 +16,7 @@ SOURCE=main.cpp AmberNetcdf.cpp AmberParm.cpp AmberTraj.cpp TrajFile.cpp \
        Action_Radgyr.cpp Conflib.cpp Action_Mask.cpp Action_Closest.cpp \
        NetcdfRoutines.cpp AmberRestartNC.cpp CpptrajStdio.cpp Mol2File.cpp \
        Mol2FileRoutines.cpp Action_NAstruct.cpp DistRoutines.cpp AxisType.cpp \
-       TorsionRoutines.cpp Action_Pucker.cpp Range.cpp
+       TorsionRoutines.cpp Action_Pucker.cpp Range.cpp Action_Outtraj.cpp
 
 OBJECTS=main.o AmberNetcdf.o AmberParm.o AmberTraj.o TrajFile.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
@@ -32,7 +32,7 @@ OBJECTS=main.o AmberNetcdf.o AmberParm.o AmberTraj.o TrajFile.o \
         Action_Radgyr.o Conflib.o Action_Mask.o Action_Closest.o \
         NetcdfRoutines.o AmberRestartNC.o CpptrajStdio.o Mol2File.o \
         Mol2FileRoutines.o Action_NAstruct.o DistRoutines.o AxisType.o \
-        TorsionRoutines.o Action_Pucker.o Range.o
+        TorsionRoutines.o Action_Pucker.o Range.o Action_Outtraj.o
 
 HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
@@ -48,7 +48,7 @@ HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
         Action_Radgyr.h Conflib.h Action_Mask.h Action_Closest.h \
         NetcdfRoutines.h AmberRestartNC.h CpptrajStdio.h Mol2File.h \
         Mol2FileRoutines.h Action_NAstruct.h DistRoutines.h AxisType.h \
-        TorsionRoutines.h Action_Pucker.h Range.h
+        TorsionRoutines.h Action_Pucker.h Range.h Action_Outtraj.h
 
 all: cpptraj$(SFX)
 
