@@ -57,12 +57,14 @@ char *Action::CmdLine() {
  * PtrajState. Called before trajectory processing. Calls the actions 
  * internal init() routine.
  */
-int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin, int debugIn) {
+int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin, 
+                 ParmFileList *PFLin, int debugIn) {
   int err;
 
   DSL=DSLin;
   FL=FLin;
   DFL=DFLin;
+  PFL=PFLin;
   debug=debugIn;
   err = this->init();
   // Check for unhandled keywords

@@ -6,6 +6,7 @@
 #include "ArgList.h"
 #include "DataSetList.h"
 #include "DataFileList.h"
+#include "ParmFileList.h"
 #include "AmberParm.h"
 
 //enum actionType {
@@ -19,6 +20,7 @@ class Action {
     Frame *F;               // The current frame (action)
     DataSetList *DSL;       // Pointer to the data set list in PtrajState (init)
     DataFileList *DFL;      // Pointer to the data file list in PtrajState (init)
+    ParmFileList *PFL;
     FrameList *FL;          // Pointer to the reference frame list in PtrajState (init)
     int debug;
     int currentFrame;       // current frame being processed, set by PtrajActionList
@@ -40,7 +42,7 @@ class Action {
     char *Name();              // Print the command that calls the action
     char *CmdLine();           // Print the entire argument line
 
-    int Init(DataSetList*, FrameList*, DataFileList*, int); 
+    int Init(DataSetList*, FrameList*, DataFileList*, ParmFileList *,int); 
     int Setup(AmberParm **);
     int DoAction(Frame **,int);    
 
