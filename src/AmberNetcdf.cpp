@@ -45,28 +45,23 @@ AmberNetcdf::~AmberNetcdf() {
 
 /*
  * AmberNetcdf::close()
+ * Close netcdf file. Set ncid to -1 since it can change between open
+ * and close calls.
  */
 void AmberNetcdf::close() {
   checkNCerr(nc_close(ncid),"Closing netcdf file.");
   if (debug>0) rprintf("Successfully closed ncid %i\n",ncid);
   ncid=-1;
-  frameDID=-1; ncframe=-1; atomDID=-1; ncatom=-1; coordVID=-1;
-  cellLengthVID=-1; cellAngleVID=-1;
   return;
 }
 
 /*
  * AmberNetcdf::open()
- * Open up Netcdf file and set all dimension and variable IDs.
- * This is done every time the file is opened up since Im not sure
- * the variable IDs stay the same throughout each opening.
- * Could eventually be separated.
- * NOTE: Replace attrText allocs with static buffer? 
+ * Open up Netcdf file and set ncid. Variable and Dimension IDs are set up
+ * by SetupRead / SetupWrite and will not change for a given file between
+ * open and close calls.
  */
 int AmberNetcdf::open() {
-  char *attrText; // For checking conventions and version 
-  int spatial; // For checking spatial dimensions
-
   //fprintf(stdout,"DEBUG: AmberNetcdf::open() called for %s, ncid=%i\n",File->filename,ncid);
   // If already open, return
   if (ncid!=-1) return 0;
@@ -82,13 +77,25 @@ int AmberNetcdf::open() {
     case WRITE:
       if (checkNCerr(nc_open(File->filename,NC_WRITE,&ncid),
           "Opening Netcdf file %s for Write.\n",File->filename)!=0) return 1;
-
   }
 
   if (debug>0) rprintf("Successfully opened %s, ncid=%i\n",File->filename,ncid);
   if (debug>1) NetcdfDebug(ncid);
   // Netcdf files are always seekable
   seekable=1;
+
+  return 0;
+}
+
+/*
+ * AmberNetcdf::SetupRead()
+ * Open the netcdf file, read all dimension and variable IDs, close. 
+ */
+int AmberNetcdf::SetupRead() {
+  char *attrText; // For checking conventions and version 
+  int spatial; // For checking spatial dimensions
+
+  if (open()) return 1;
 
   // Get global attributes
   if (title==NULL) title = GetAttrText(ncid,NC_GLOBAL, "title");
@@ -163,15 +170,6 @@ int AmberNetcdf::open() {
   //int cell_spatialDID, cell_angularDID;
   //int spatialVID, cell_spatialVID, cell_angularVID;
 
-  return 0;
-}
-
-/*
- * AmberNetcdf::SetupRead()
- * Just a frontend to open for now. Also check number of atoms.
- */
-int AmberNetcdf::SetupRead() {
-  if (open()) return 1;
   if (ncatom!=P->natom) {
     rprintf("Warning: Number of atoms in NetCDF file %s (%i) does not\n",
             File->filename,ncatom);
@@ -195,7 +193,8 @@ int AmberNetcdf::WriteArgs(ArgList *A) {
 
 /*
  * AmberNetcdf::SetupWrite()
- * Create Netcdf file specified by filename and set it up. 
+ * Create Netcdf file specified by filename and set up dimension and
+ * variable IDs. 
  */
 int AmberNetcdf::SetupWrite() {
   int dimensionID[NC_MAX_VAR_DIMS];
@@ -274,10 +273,8 @@ int AmberNetcdf::SetupWrite() {
   }
 
   // Set up title
-  if (title==NULL) {
-    title=(char*) malloc(30*sizeof(char));
-    strcpy(title,"Cpptraj Generated trajectory");
-  }
+  if (title==NULL)
+    this->SetTitle((char*)"Cpptraj Generated trajectory\0");
 
   // Attributes
   if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"title",strlen(title),title),
