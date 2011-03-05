@@ -218,7 +218,6 @@ int PtrajState::ProcessInputStream(char *inputFilename) {
  * NOTE: Should differentiate between keyword rejection and outright error.
  */
 void PtrajState::Dispatch() {
-  int err;
   AtomMask *tempMask;  // For ParmInfo
   AmberParm *tempParm; // For ParmInfo
   //printf("    *** %s ***\n",A->ArgLine());
@@ -229,12 +228,18 @@ void PtrajState::Dispatch() {
   }
 
   // Check if command pertains to coordinate lists
-  err = trajFileList.Add(A, &parmFileList, worldsize);
-  if (err!=CoordFileList::UNKNOWN_COMMAND) return;
-  err = refFileList.Add( A, &parmFileList, worldsize);
-  if (err!=CoordFileList::UNKNOWN_COMMAND) return;
-  err = outFileList.Add( A, &parmFileList, worldsize);
-  if (err!=CoordFileList::UNKNOWN_COMMAND) return;
+  if (A->CommandIs("trajin")) {
+    trajFileList.Add(A, &parmFileList, worldsize);
+    return;
+  }
+  if (A->CommandIs("reference")) {
+    refFileList.Add( A, &parmFileList, worldsize);
+    return;
+  }
+  if (A->CommandIs("trajout")) {
+    outFileList.Add( A, &parmFileList, worldsize);
+    return;
+  }
 
   if (A->CommandIs("parm")) {
     parmFileList.Add(A->getNextString());
@@ -386,7 +391,7 @@ int PtrajState::Run() {
   DSL.SetMax(maxFrames); 
   
   // Initialize actions and set up data set and data file list
-  ptrajActionList.Init( &DSL, &refFrames, &DFL);
+  ptrajActionList.Init( &DSL, &refFrames, &DFL, &parmFileList);
 
   // ========== R U N  P H A S E ==========
   // Loop over every trajectory in trajFileList
