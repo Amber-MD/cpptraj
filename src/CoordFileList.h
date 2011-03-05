@@ -20,16 +20,12 @@ class CoordFileList : public std::list<TrajFile *> {
     AmberParm *P;                     // Parm, determined from Args (parm/parmindex)
     AccessType fileAccess;            // READ/WRITE/APPEND, set in constructor/Add(write)
     int debug;                        // Debug level
-    const char *Command;              // Keyword required for Add function
-    int coordErr;                     // Current error status
     std::list<TrajFile *>::iterator it; // Iterator for the list
 
     int CheckFilename(char *);
     int ProcessArgList(ArgList *, ParmFileList *);
 
   public:
-    static const int UNKNOWN_COMMAND; // Value to return from Add when command is unknown 
-
     CoordFileList();
     virtual ~CoordFileList();
 

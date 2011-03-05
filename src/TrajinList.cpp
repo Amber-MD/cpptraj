@@ -5,7 +5,6 @@
 
 // CONSTRUCTOR
 TrajinList::TrajinList() {
-  Command="trajin";
   fileAccess=READ;
 }
 
@@ -25,7 +24,7 @@ int TrajinList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   int startArg, stopArg, offsetArg;
 
   // Set up common arguments from arglist
-  if (this->ProcessArgList(A,parmFileList)) return coordErr;
+  if (this->ProcessArgList(A,parmFileList)) return 1;
 
   // Determine trajectory format and set up appropriate class
   if (A->hasKey("remdtraj")) {

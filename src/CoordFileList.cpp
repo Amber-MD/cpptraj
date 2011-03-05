@@ -19,7 +19,6 @@ CoordFileList::CoordFileList() {
   debug=0;
   trajfilename=NULL; 
   P = NULL;
-  coordErr=0;
 }
 
 // DESTRUCTOR
@@ -29,9 +28,6 @@ CoordFileList::~CoordFileList() {
     delete *it;
 }
 
-// When an Add function is called with wrong command this indicates graceful exit
-const int CoordFileList::UNKNOWN_COMMAND=2;
-
 /*
  * CoordFileList::SetDebug()
  * Set trajectory list debug level.
@@ -39,7 +35,7 @@ const int CoordFileList::UNKNOWN_COMMAND=2;
 void CoordFileList::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
-    mprintf("CoordFileList(%s) DEBUG LEVEL SET TO %i\n",Command,debug);
+    mprintf("CoordFileList() DEBUG LEVEL SET TO %i\n",debug);
 }
 
 /*
@@ -50,12 +46,6 @@ void CoordFileList::SetDebug(int debugIn) {
 int CoordFileList::ProcessArgList(ArgList *A, ParmFileList *parmFileList) {
   char *parmfilename;
   int pindex;
-
-  // Check that this is the proper command
-  if (!A->CommandIs(Command)) {
-    coordErr = UNKNOWN_COMMAND;
-    return 1;
-  }
 
   // Filename should be first arg
   trajfilename = A->getNextString();
@@ -70,7 +60,6 @@ int CoordFileList::ProcessArgList(ArgList *A, ParmFileList *parmFileList) {
   if (P==NULL) {
     mprintf("    Error: Could not associate %s with a parameter file.\n",trajfilename);
     mprintf("    parmfilename=%s, pindex=%i\n",parmfilename,pindex);
-    coordErr=1;
     return 1;
   }
   if (debug>0)

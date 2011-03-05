@@ -4,7 +4,6 @@
 
 // CONSTRUCTOR
 TrajoutList::TrajoutList() {
-  Command="trajout";
   fileAccess=WRITE;
 }
 
@@ -27,7 +26,7 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   char *onlyframes; 
 
   // Set up common arguments from arglist
-  if (this->ProcessArgList(A,parmFileList)) return coordErr;
+  if (this->ProcessArgList(A,parmFileList)) return 1;
 
   // Init variables
   boxInfo=0;

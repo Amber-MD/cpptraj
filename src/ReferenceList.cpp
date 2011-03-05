@@ -4,7 +4,6 @@
 
 // CONSTRUCTOR
 ReferenceList::ReferenceList() {
-  Command="reference";
   fileAccess=READ;
 }
 
@@ -24,7 +23,7 @@ int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   int startArg;
 
   // Set up common arguments from arglist
-  if (this->ProcessArgList(A,parmFileList)) return coordErr;
+  if (this->ProcessArgList(A,parmFileList)) return 1;
 
   // Set up basic file to determine type and format
   T = this->SetupTrajectory(trajfilename, fileAccess, UNKNOWN_FORMAT, UNKNOWN_TYPE);
