@@ -2,8 +2,6 @@
 # Daniel R. Roe
 # 2010-11-18
 
-include ../config.h
-
 # Create cpptraj binary in ./src/
 all:
 	cd src && $(MAKE)
@@ -32,5 +30,7 @@ atclean:
 no:
 	@echo "Skipping cpptraj"
 
+# Remove cpptraj binary from $AMBERHOME/bin
 uninstall:
-	/bin/rm -f $(BINDIR)/cpptraj
+	cd src && $(MAKE) -f Makefile_at uninstall
+

@@ -80,5 +80,8 @@ $(NETCDFLIB): ../../netcdf_config.log
 clean:
 	/bin/rm -f $(OBJECTS) cpptraj$(SFX)
 
+uninstall:
+	/bin/rm -f $(BINDIR)/cpptraj$(SFX)
+
 # Header dependencies
 include cpptrajdepend
