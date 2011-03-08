@@ -126,7 +126,8 @@ int TrajoutList::Write(int outputSet, Frame *Fin, AmberParm *CurrentParm) {
     }
     // Open if this is first call - skip flag not otherwise used for output
     if ((*it)->skip==0) {
-      if (debug>0) rprintf("    Setting up %s for WRITE\n",(*it)->trajfilename);
+      if (debug>0) rprintf("    Setting up %s for WRITE (%i atoms, orig. %i atoms)\n",
+                           (*it)->trajfilename,(*it)->P->natom,ParmHolder->natom);
       if ((*it)->SetupWrite()) return 1;
       if ((*it)->Begin()) return 1;
       (*it)->skip=1;
