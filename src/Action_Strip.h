@@ -18,4 +18,13 @@ class Strip: public Action {
     int setup();
     int action();
 };
+
+class Unstrip: public Action {
+  public:
+    Unstrip() {}
+    ~Unstrip() {}
+
+    int setup() {return 2;}
+    int action() {return 2;}
+};
 #endif  

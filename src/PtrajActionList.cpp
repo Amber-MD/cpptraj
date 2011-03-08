@@ -72,6 +72,7 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("nastruct")) {Act=new NAstruct;}
   else if (A->CommandIs("pucker"))   {Act=new Pucker;  }
   else if (A->CommandIs("outtraj"))  {Act=new Outtraj; }
+  else if (A->CommandIs("unstrip"))  {Act=new Unstrip; }
   else return 1; 
 
   // Pass in the argument list
@@ -122,24 +123,25 @@ int PtrajActionList::Init( DataSetList *DSL, FrameList *FL,
  * If an action cannot be set up skip it.
  */
 int PtrajActionList::Setup(AmberParm **ParmAddress) {
-  int act;
-  AmberParm *P; // Only used here for easy dereferencing
+  int act,err;
+  AmberParm *OriginalParm = *ParmAddress;
 
-  P = *ParmAddress;
-
-  mprintf("    .... Setting up %i actions for %s ....\n",Naction,P->parmName);
+  mprintf("    .... Setting up %i actions for %s ....\n",Naction,(*ParmAddress)->parmName);
   for (act=0; act<Naction; act++) {
     if (ActionList[act]->noInit==0) {
       if (debug>0) mprintf("    %i: [%s]\n",act,ActionList[act]->CmdLine());
       ActionList[act]->noSetup=0;
       ActionList[act]->ResetArg();
-      if (ActionList[act]->Setup(ParmAddress)) {
+      err = ActionList[act]->Setup(ParmAddress);
+      if (err==1) {
         mprintf("      WARNING: Setup failed for [%s]: Skipping\n",
                 ActionList[act]->CmdLine());
         ActionList[act]->noSetup=1;
         //return 1;
+      } else if (err==2) {
+        // Return value of 2 requests return to original parm
+        *ParmAddress = OriginalParm;
       }
-      P = *ParmAddress;
       //fprintf(stdout,"DEBUG: After Action %i Setup parmName is %s\n",act,P->parmName);
     }
   }
@@ -154,15 +156,21 @@ int PtrajActionList::Setup(AmberParm **ParmAddress) {
  * initialized or not setup. frameIn is the current frame number.
  */
 void PtrajActionList::DoActions(Frame **FrameAddress, int frameIn) {
-  int act;
+  int act,err;
+  Frame *OriginalFrame = *FrameAddress;
 
   //fprintf(stdout,"DEBUG: Performing %i actions on frame %i.\n",Naction,frameIn);
   for (act=0; act<Naction; act++) {
     // Skip deactivated actions
     if (ActionList[act]->noInit || ActionList[act]->noSetup) continue;
-    if ( ActionList[act]->DoAction(FrameAddress, frameIn) ) 
+    err = ActionList[act]->DoAction(FrameAddress, frameIn);
+    if (err==1) {
       // Treat actions that fail as if they could not be set up
       ActionList[act]->noSetup=1;
+    } else if (err==2) {
+      // Return value of 2 requests return to original frame
+      *FrameAddress = OriginalFrame;
+    }
   }
 
 }
