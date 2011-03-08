@@ -80,8 +80,11 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
  * changes. Calls the actions internal setup() routine.
  */
 int Action::Setup(AmberParm **ParmAddress) {
+  int err;
+  
   P = *ParmAddress;
-  if (this->setup()) return 1;
+  err = this->setup();
+  if (err) return err;
   // Set the value of parm address in case parm was changed, e.g. in strip
   *ParmAddress = P;
   return 0;
@@ -94,9 +97,12 @@ int Action::Setup(AmberParm **ParmAddress) {
  * Calls the actions internal action() routine.
  */
 int Action::DoAction(Frame **FrameAddress, int frameIn) {
+  int err;
+
   F = *FrameAddress;
   currentFrame = frameIn;
-  if (this->action()) return 1;
+  err = this->action();
+  if (err) return err;
   // Set the value of frame address in case frame was changed, e.g. in strip
   *FrameAddress = F;
   return 0;
