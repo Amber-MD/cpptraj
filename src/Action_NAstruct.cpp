@@ -891,7 +891,7 @@ int NAstruct::determineBasepairParameters() {
 
 /*
  * NAstruct::init()
- * Expected call: nastruct [resrange <range>] [out <filename>]
+ * Expected call: nastruct [resrange <range>] [naout <filename>]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -899,7 +899,7 @@ int NAstruct::determineBasepairParameters() {
  */
 int NAstruct::init() {
   // Get keywords
-  outFilename = A->getKeyString("out",NULL);
+  outFilename = A->getKeyString("naout",NULL);
   resRange.SetRange( A->getKeyString("resrange",NULL) );
   // Get Masks
   // Dataset
