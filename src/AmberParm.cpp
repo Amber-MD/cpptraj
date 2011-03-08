@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio> // For sscanf, sprintf
-#include <cctype> // isdigit
 #include "AmberParm.h" // PtrajFile.h 
 #include "PDBfileRoutines.h"
 #include "Mol2FileRoutines.h"
@@ -15,90 +14,7 @@
 
 #define ELECTOAMBER 18.2223
 #define AMBERTOELEC 1/ELECTOAMBER
-// ================= PRIVATE FUNCTIONS =========================
-
-void TrimName(char *);
-void WrapName(char *);
-void ReplaceAsterisk(char *);
-/*
- * TrimName()
- * Given a string of length 5 (4 chars + 1 NULL) remove leading whitespace
- */
-void TrimName(char *NameIn) {
-  if        (NameIn[0]!=' ') { // No leading whitespace
-    return;  
-  } else if (NameIn[1]!=' ') { // [_XXX]
-    NameIn[0]=NameIn[1];
-    NameIn[1]=NameIn[2];
-    NameIn[2]=NameIn[3];
-    NameIn[3]=' ';
-  } else if (NameIn[2]!=' ') { // [__XX]
-    NameIn[0]=NameIn[2];
-    NameIn[1]=NameIn[3];
-    NameIn[2]=' ';
-    NameIn[3]=' ';
-  } else if (NameIn[3]!=' ') { // [___X]
-    NameIn[0]=NameIn[3];
-    NameIn[1]=' ';
-    NameIn[2]=' ';
-    NameIn[3]=' ';
-  }
-  // Otherwise Res is Blank, no trim needed
-  return;
-}
-
-/*
- * WrapName()
- * Given a string of length 5 (4 chars + 1 NULL), move leading numbers to
- * the back of the string until first char is alphabetic.
- */
-void WrapName(char *NameIn) {
-  int i;
-  int blank=-1;
-  int numalpha=0;
-  char digit;
-  //fprintf(stderr,"NameIn = [%s]\n",NameIn);
-  // First trim leading whitespace if necessary
-  // NOTE: Should already be done
-  //TrimName(NameIn);
-  // Check for last blank char and alpha chars
-  for (i=0; i<4; i++) {
-    if (!isdigit(NameIn[i])) {
-      // If the first char is already alpha exit
-      if (i==0) return;
-      numalpha++;
-    }
-    if (blank<0 && NameIn[i]==' ') blank=i;
-  }
-  if (blank==-1) blank=4;
-  // No alpha chars, return
-  if (numalpha==0) return;
-  // No chars (____), just return
-  if (blank==0) return;
-  // 1 char (X___), also return 
-  if (blank==1) return;
-  // Otherwise 2 char (XX__), 3 char (XXX_), or 4 char (XXXX)
-  while (isdigit(NameIn[0])) {
-    digit=NameIn[0];
-    for (i=1; i<blank; i++) NameIn[i-1]=NameIn[i];
-    NameIn[blank-1]=digit;
-  }
-  //fprintf(stderr,"NameOut= [%s]\n",NameIn);
-}
-
-/*
- * ReplaceAsterisk()
- * Given a string of length 5 (4chars + 1 NULL) change any asterisk (*) to
- * prime ('). In cpptraj asterisks are considered reserved characters for
- * atom masks.
- */
-void ReplaceAsterisk(char *NameIn) {
-  if (NameIn[0]=='*') NameIn[0]='\'';
-  if (NameIn[1]=='*') NameIn[1]='\'';
-  if (NameIn[2]=='*') NameIn[2]='\'';
-  if (NameIn[3]=='*') NameIn[3]='\'';
-  return;
-}
+// =============================================================
 
 /*
  * AmberParm::ResName()
@@ -730,24 +646,19 @@ int AmberParm::ReadParmPDB() {
     bufferLen = strlen(buffer);
     if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
 
-    // Allocate memory for atom name
+    // Allocate memory for atom name.
     names=(NAME*) realloc(names, (natom+1) * sizeof(NAME));
+    // Leading whitespace will automatically be trimmed.
+    // Name will be wrapped if it starts with a digit.
+    // Asterisks will be replaced with prime char
     pdb_name(buffer, (char*)names[natom]);
-    // Trim leading whitespace from atom name
-    TrimName(names[natom]);
-    // Wrap name if it starts with a digit
-    WrapName(names[natom]);
-    // Replace asterisks with prime to prevent atom mask problems
-    ReplaceAsterisk(names[natom]);
 
     // If this residue number is different than the last, allocate mem for new res
     if (currResnum!=pdb_resnum(buffer)) {
       resnames=(NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
+      // Leading whitespace will automatically be trimmed.
+      // Asterisks will be replaced with prime char
       pdb_resname(buffer, (char*)resnames[nres]);
-      // Trim leading whitespace from residue name
-      TrimName(resnames[nres]);
-      // Replace asterisks with prime to prevent atom mask problems
-      ReplaceAsterisk(resnames[nres]);
       if (debug>3) mprintf("        PDBRes %i [%s]\n",nres,resnames[nres]);
       resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
       resnums[nres]=natom; 
