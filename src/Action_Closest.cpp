@@ -2,6 +2,7 @@
 // Find closest waters to atoms in mask.
 #include <cstdlib>
 #include <cmath>
+#include <cstring> //strlen
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -26,6 +27,7 @@ Closest::Closest() {
   distdata=NULL;
   atomdata=NULL;
   Nclosest=0;
+  prefix=NULL;
 } 
 
 // DESTRUCTOR
@@ -71,6 +73,7 @@ int Closest::init( ) {
   if ( A->hasKey("oxygen") || A->hasKey("first") )
     firstAtom=true;
   noimage = A->hasKey("noimage");
+  prefix = A->getKeyString("outprefix",NULL);
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
   mask1 = A->getKeyString("closestout",NULL);
@@ -118,6 +121,8 @@ int Closest::init( ) {
   mprintf(".\n");
   if (outFile!=NULL)
     mprintf("             Closest molecules will be saved to %s\n",outFile->filename);
+  if (prefix!=NULL)
+    mprintf("             Stripped topology file will be written with prefix %s\n",prefix);
 
   return 0;
 }
@@ -233,6 +238,22 @@ int Closest::setup() {
   // Allocate space for new frame
   if (newFrame!=NULL) delete newFrame;
   newFrame = new Frame(newParm->natom, newParm->mass);
+
+  // If prefix given then output stripped parm
+  if (prefix!=NULL && newParm->parmName==NULL) {
+    newParm->parmName=(char*)malloc((strlen(oldParm->parmName)+strlen(prefix)+2)*sizeof(char));
+    sprintf(newParm->parmName,"%s.%s",prefix,oldParm->parmName);
+    mprintf("             Writing out amber topology file %s\n",newParm->parmName);
+    if ( newParm->WriteAmberParm() ) {
+      mprintf("      Error: CLOSEST: Could not write out stripped parm file %s\n",
+              newParm->parmName);
+    }
+
+  // Otherwise Set stripped parm name only, default prefix closest 
+  } else if ( newParm->parmName==NULL ) {
+    newParm->parmName=(char*)malloc((strlen(oldParm->parmName)+9)*sizeof(char));
+    sprintf(newParm->parmName,"closest.%s",oldParm->parmName);
+  }
 
   // Set parm
   P = newParm;

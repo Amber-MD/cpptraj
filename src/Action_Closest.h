@@ -13,7 +13,7 @@ class Closest: public Action {
     DataSet *distdata;
     DataSet *atomdata;
     int Nclosest;
-
+    char *prefix;
     int closestWaters;
     bool noimage, firstAtom;
     int imageType; 
