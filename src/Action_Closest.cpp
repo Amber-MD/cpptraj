@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstring> //strlen
+#include <cstdio> // sprintf
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
