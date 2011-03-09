@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio> // For sscanf, sprintf
+#include <cctype> // isdigit
 #include "AmberParm.h" // PtrajFile.h 
 #include "PDBfileRoutines.h"
 #include "Mol2FileRoutines.h"
@@ -17,6 +18,7 @@
 // ================= PRIVATE FUNCTIONS =========================
 
 void TrimName(char *);
+void WrapName(char *);
 void ReplaceAsterisk(char *);
 /*
  * TrimName()
@@ -43,6 +45,45 @@ void TrimName(char *NameIn) {
   }
   // Otherwise Res is Blank, no trim needed
   return;
+}
+
+/*
+ * WrapName()
+ * Given a string of length 5 (4 chars + 1 NULL), move leading numbers to
+ * the back of the string until first char is alphabetic.
+ */
+void WrapName(char *NameIn) {
+  int i;
+  int blank=-1;
+  int numalpha=0;
+  char digit;
+  //fprintf(stderr,"NameIn = [%s]\n",NameIn);
+  // First trim leading whitespace if necessary
+  // NOTE: Should already be done
+  //TrimName(NameIn);
+  // Check for last blank char and alpha chars
+  for (i=0; i<4; i++) {
+    if (!isdigit(NameIn[i])) {
+      // If the first char is already alpha exit
+      if (i==0) return;
+      numalpha++;
+    }
+    if (blank<0 && NameIn[i]==' ') blank=i;
+  }
+  if (blank==-1) blank=4;
+  // No alpha chars, return
+  if (numalpha==0) return;
+  // No chars (____), just return
+  if (blank==0) return;
+  // 1 char (X___), also return 
+  if (blank==1) return;
+  // Otherwise 2 char (XX__), 3 char (XXX_), or 4 char (XXXX)
+  while (isdigit(NameIn[0])) {
+    digit=NameIn[0];
+    for (i=1; i<blank; i++) NameIn[i-1]=NameIn[i];
+    NameIn[blank-1]=digit;
+  }
+  //fprintf(stderr,"NameOut= [%s]\n",NameIn);
 }
 
 /*
@@ -694,6 +735,8 @@ int AmberParm::ReadParmPDB() {
     pdb_name(buffer, (char*)names[natom]);
     // Trim leading whitespace from atom name
     TrimName(names[natom]);
+    // Wrap name if it starts with a digit
+    WrapName(names[natom]);
     // Replace asterisks with prime to prevent atom mask problems
     ReplaceAsterisk(names[natom]);
 

@@ -15,7 +15,7 @@ ActionMask::~ActionMask() {
 
 /*
  * ActionMask::init()
- * Expected call: mask <mask1> [out filename] 
+ * Expected call: mask <mask1> [maskout filename] 
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -26,7 +26,7 @@ int ActionMask::init( ) {
   char *maskFilename;
 
   // Get Keywords
-  maskFilename = A->getKeyString("out",NULL);
+  maskFilename = A->getKeyString("maskout",NULL);
 
   // Get Mask
   mask1 = A->getNextMask();
