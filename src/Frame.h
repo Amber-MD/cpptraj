@@ -24,6 +24,7 @@ class Frame {
 
     void printAtomCoord(int);
     void SetCoord(double *, int);
+    double *Coord(int);
     Frame *Copy();
 
     char *BufferToBox(char *, int, int);

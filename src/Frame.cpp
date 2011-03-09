@@ -100,10 +100,20 @@ void Frame::printAtomCoord(int atom) {
 void Frame::SetCoord(double *Coord, int atom) {
   int natom3;
   // NOTE: SHOULD CHECK FOR BOUNDARIES
+  if (Coord==NULL) return;
   natom3 = atom * 3;
   Coord[0] = X[natom3  ];
   Coord[1] = X[natom3+1];
   Coord[2] = X[natom3+2];
+}
+
+/*
+ * Frame::Coord()
+ * Return double pointer to XYZ coord of given atom.
+ */
+double *Frame::Coord(int atom) {
+  if (atom<0 || atom>=natom) return NULL;
+  return ( X+(atom*3) );
 }
 
 /* ------------------- Coordinate Conversion Routines ----------------------- */
