@@ -65,6 +65,12 @@ double atommap::getCut(char *atom1, char *atom2) {
     cut=1.43;
   else if ( compareName(atom1,atom2,"C","X")==0 )
     cut=1.76;
+  else if ( compareName(atom1,atom2,"C","S")==0 )
+    cut=1.83;
+  else if ( compareName(atom1,atom2,"N","O")==0 )
+    cut=1.47;
+  else if ( compareName(atom1,atom2,"S","O")==0 )
+    cut=1.48;
   else {
     if (debug>0) {
       mprintf("Warning: atommap::getCut: Cut not found for %s - %s\n",atom1,atom2);
