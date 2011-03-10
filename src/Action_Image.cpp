@@ -209,7 +209,7 @@ int Image::action() {
     if (center) 
       F->COM(Coord,useMass,firstAtom,lastAtom);
     else
-      F->SetCoord(Coord,firstAtom);
+      F->GetCoord(Coord,firstAtom);
 
     // ORTHORHOMBIC
     if (ortho) {
