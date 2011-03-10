@@ -53,10 +53,12 @@ int PDBfile::open() {
 
 /* 
  * PDBfile::SetupRead()
- * Scan PDB file to determine number of frames (models).
+ * Scan PDB file to determine number of frames (models). The first frame will
+ * also be checked to ensure that the atom names match those in the parm file.
  */
 int PDBfile::SetupRead() {
   int atom, scanPDB;
+  AmberParm::NAME namebuffer;
 
   if ( this->open() ) return 1;
 
@@ -72,6 +74,14 @@ int PDBfile::SetupRead() {
       // Skip non-ATOM records
       if (strncmp(buffer,"ATOM",4)!=0 &&
           strncmp(buffer,"HETATM",6)!=0 ) continue;
+      // If still on frame 1, check to see if atom names match those in parm
+      if (Frames==0) {
+        pdb_name(buffer,namebuffer);
+        if ( strcmp(P->names[atom], namebuffer)!=0 ) {
+          mprintf("Warning: %s: Atom %i name [%s] does not match parm name [%s]\n",
+                  trajfilename,atom,namebuffer,P->names[atom]);
+        }
+      }
       atom++;
     }
     if (scanPDB) Frames++;
