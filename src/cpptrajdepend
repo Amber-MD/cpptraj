@@ -25,7 +25,7 @@ DataFileList.o : DataFileList.cpp BaseFileIO.h CpptrajStdio.h DataFile.h DataFil
 PDBfile.o : PDBfile.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h PDBfile.h PDBfileRoutines.h PtrajFile.h Range.h TrajFile.h
 PtrajFile.o : PtrajFile.cpp BaseFileIO.h Bzip2File.h CpptrajStdio.h GzipFile.h MpiFile.h NetcdfRoutines.h PDBfileRoutines.h PtrajFile.h PtrajMpi.h StdFile.h
 PDBfileRoutines.o : PDBfileRoutines.cpp PDBfileRoutines.h
-AtomMap.o : AtomMap.cpp Action.h AmberParm.h ArgList.h AtomMap.h AtomMask.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajFile.h
+AtomMap.o : AtomMap.cpp Action.h AmberParm.h ArgList.h AtomMap.h AtomMask.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h PDBfileRoutines.h ParmFileList.h PtrajFile.h TorsionRoutines.h
 BaseFileIO.o : BaseFileIO.cpp BaseFileIO.h PtrajMpi.h
 StdFile.o : StdFile.cpp BaseFileIO.h StdFile.h
 GzipFile.o : GzipFile.cpp BaseFileIO.h CpptrajStdio.h GzipFile.h

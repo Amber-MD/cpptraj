@@ -3,6 +3,7 @@
 #include <cstring>
 #include "AtomMap.h"
 #include "CpptrajStdio.h"
+#include "TorsionRoutines.h"
 // DEBUG - pdb write
 #include "PDBfileRoutines.h"
 
@@ -117,14 +118,16 @@ int atommap::calcDist() {
       cut=getCut(names[i],names[j]);
       if (r<cut) {
         if (debug>1) mprintf("nbondi=%i nbondj=%i ",nbondi,nbondj);
-        if ((nbondi<4)&&(nbondj<4)) {
+        if ((nbondi<MAXBONDS)&&(nbondj<MAXBONDS)) {
           M[i].bond[nbondi++]=j;
           M[j].bond[nbondj++]=i;
           M[i].nbond=nbondi;
           M[j].nbond=nbondj;
           if (debug>1) mprintf("BONDED!\n");
-        } else
-          if (debug>1) mprintf("MAXED!\n");
+        } else {
+          mprintf("Warning: Bonding %s:%i to %s:%i; Valences MAXED (>%i)!\n",
+                  names[i],i,names[j],j,MAXBONDS);
+        }
       } else
         if (debug>1) mprintf("NO_BOND!\n");
     } // END loop over j
@@ -147,20 +150,29 @@ int atommap::calcDist() {
 }
 
 /*
- * atommap::printBonds()
+ * atommap::markComplete()
+ * Go through each atom in the map. If the atom is unique and all bonded
+ * atoms are unique mark the atom as completely mapped.
  * Print bond information for each atom in the map, indicate whether
  * atoms are unique or not.
  */
-void atommap::printBonds() {
-  int atom,bond,bondatom;
+void atommap::markComplete() {
+  int atom,bond,bondatom,nunique;
 
   for (atom=0; atom<natom; atom++) {
-    mprintf("  Atom %4i: %s-%i |",atom,names[atom],M[atom].isUnique);
+    if (debug>0) mprintf("  Atom %4i: %s-%2i |",atom,names[atom],M[atom].isUnique);
+    nunique=0;
     for (bond=0; bond<M[atom].nbond; bond++) {
       bondatom = M[atom].bond[bond];
-      mprintf(" %s-%i",names[bondatom],M[bondatom].isUnique);
+      if (debug>0) mprintf(" %4i:%s-%2i",bondatom,names[bondatom],M[bondatom].isUnique);
+      if (M[atom].isUnique && M[bondatom].isUnique) nunique++;
+      if (nunique==M[atom].nbond) {
+        if (debug>0) mprintf(" Atom is completely mapped.");
+        M[atom].complete=true;
+      }
     }
-    mprintf("\n");
+    
+    if (debug>0) mprintf("\n");
   }
 }
 
@@ -266,97 +278,260 @@ void atommap::determineAtomID() {
  * to X for now.
  */
 int atommap::setup() {
-  int i;
+  int atom,bond;
   char *ptr;
 
   natom=P->natom;
   names=(char**) malloc(natom * sizeof(char*));
   // Set up atom names.
-  for (i=0; i<natom; i++) {
-    names[i]=(char*) malloc(2*sizeof(char));
+  for (atom=0; atom<natom; atom++) {
+    names[atom]=(char*) malloc(2*sizeof(char));
     // position ptr at first non-space character in name
-    ptr=P->names[i];
+    ptr=P->names[atom];
     while (*ptr==' ' && *ptr!='\0') ptr++;
     // if NULL something went wrong, abort
     if (*ptr=='\0') {
-      strcpy(names[i],"");
+      strcpy(names[atom],"");
       continue;
     }
-    names[i][0]=ptr[0];
+    names[atom][0]=ptr[0];
     // If C, check for L or l for chlorine
     if (ptr[0]=='C') {
-      if (ptr[1]=='L' || ptr[1]=='l') names[i][0]='X';
+      if (ptr[1]=='L' || ptr[1]=='l') names[atom][0]='X';
     }
-    names[i][1]='\0';
+    names[atom][1]='\0';
     // DEBUG
-    mprintf("  Atom %i element: [%s]\n",i,names[i]);
+    mprintf("  Atom %i element: [%s]\n",atom,names[atom]);
   }
   // Allocate memory for atoms and initialize each atom
-  // NOTE: visited still needed?
   M=(mapatom*) malloc( natom * sizeof(mapatom));
-  for (i=0; i<natom; i++) {
-    M[i].bond[0]=-1;
-    M[i].bond[1]=-1;
-    M[i].bond[2]=-1;
-    M[i].bond[3]=-1;
-    M[i].nbond=0;
-    M[i].visited=0;
-    memset(M[i].atomID,' ',ATOMIDLENGTH);
-    memset(M[i].unique,' ',UNIQUELENGTH);
-    M[i].isUnique=1; // Assume unique until proven otherwise
+  for (atom=0; atom<natom; atom++) {
+    for (bond=0; bond<MAXBONDS; bond++) M[atom].bond[bond]=-1;
+    M[atom].nbond=0;
+    M[atom].complete=false;
+    memset(M[atom].atomID,' ',ATOMIDLENGTH);
+    memset(M[atom].unique,' ',UNIQUELENGTH);
+    M[atom].isUnique=1; // Assume unique until proven otherwise
   }
-  return 0;
-}
-
-/*
- * atommap::fourAtoms()
- * Fill the passed in int array with indices of four unique atoms. The first 
- * atom should be bonded to at least 1 non-unique atom. If all atoms are
- * unique, return 1, otherwise return 0;
- */
-int atommap::fourAtoms(int *Atom) {
-  int n, atom, bond, bondedatom;
-
-  if (Atom==NULL) return 2;
-  Atom[0]=-1; Atom[1]=-1; Atom[2]=-1; Atom[3]=-1;
-
-  n=0;
-  for (n=0; n<4; n++) {
-    Atom[n]=-1;
-    // If this is first atom, find unique atom bonded to non-unique atom
-    // If not, make sure this atom is unique and bonded to Atom[n-1]
-    for (atom=0; atom<natom; atom++) {
-      if (!M[atom].isUnique) continue;
-      for (bond=0; bond<M[atom].nbond; bond++) {
-        bondedatom=M[atom].bond[bond];
-
-        if (n==0) {
-          if (!M[bondedatom].isUnique) {
-            Atom[0]=atom;
-            break;
-          }
-        } else {
-          if (bondedatom==Atom[n-1]) {
-            Atom[n]=atom;
-            break;
-          }
-        }
-
-      }
-      // If atom has been found leave loop over natom
-      if (Atom[n]!=-1) break;
-    }
-  }
-  mprintf("    First unique atom bonded to a non-unique atom: %i\n",Atom[0]);
-  if (Atom[0]==-1) return 1;
-
-  // Find 4 unique atoms bonded to first atom
-
-
   return 0;
 }
 
 // ============================================================================
+/*
+ * AtomMap::mapChiral()
+ * Given two atommaps and a map relating the two, find chiral centers for
+ * which at least 3 of the atoms have been mapped. Assign the remaining
+ * two atoms based on improper dihedrals. ONLY WORKS FOR SP3
+ */
+int AtomMap::mapChiral(atommap *Ref, atommap *Tgt, int *AMap) {
+  int atom,tatom,bond,nunique,notunique;
+  int uR[5], uT[5], r, t, nR[4], nT[4];
+  double dR[4], dT[4], delta;
+  bool newchiral;
+
+  newchiral=true;
+
+  while (newchiral) {
+
+  // newchiral will be set to true only if new atoms get mapped.
+  newchiral=false;
+
+  for (atom=0; atom<Ref->natom; atom++) {
+    if (!Ref->M[atom].isUnique) continue;
+    tatom = AMap[atom];
+    if (tatom<0) {
+      mprintf("Error: AtomMap::mapChiral: Atom %i in reference is unique but not mapped!\n",
+              atom);
+      return 1;
+    }
+    // Sanity check - if Ref atom is completely mapped, target should be.
+    // If so, skip
+    if (Ref->M[atom].complete) {
+      if (!Tgt->M[tatom].complete) {
+        mprintf("Error: AtomMap::mapChiral: Ref atom %i is complete but Tgt atom %i is not.\n",
+                atom,tatom);
+        return 1;
+      }
+      continue;
+    }
+    // Check for SP3 (4 bonds)
+    if (Ref->M[atom].nbond!=4) continue;
+    if (Tgt->M[tatom].nbond!=4) {
+      mprintf("Error: AtomMap:::mapChiral: Ref atom %i is SP3 but Tgt atom %i is not!\n",
+              atom,tatom);
+      return 1;
+    }
+    // Place bonded atoms (starting with central atom) in R and T
+    uR[0] = atom;
+    uT[0] = tatom;
+    nunique=1;
+    notunique=0;
+    for (bond=0; bond<Ref->M[atom].nbond; bond++) {
+      r = Ref->M[atom].bond[bond];
+      t = AMap[r];
+      if (Ref->M[r].isUnique && Tgt->M[t].isUnique) {
+        uR[nunique] = r;
+        uT[nunique] = t;
+        nunique++;
+      } else {
+        nR[notunique] = r;
+        nT[notunique] = t;
+        notunique++;
+      }
+    }
+    // At this point non-unique atoms in nT are -1 by definition. Fill nT
+    // with nonunique atoms from target
+    r=0;
+    for (bond=0; bond<Tgt->M[tatom].nbond; bond++) {
+      t = Tgt->M[tatom].bond[bond];
+      if (!Tgt->M[t].isUnique) nT[r++] = t;
+    }
+    mprintf("  Potential Chiral center %i_%s/%i_%s: Unique atoms=%i, non-Unique=%i/%i\n",
+            atom,Ref->names[atom],tatom,Tgt->names[tatom],nunique,notunique,r);
+    for (r=0; r<nunique; r++)
+      mprintf("\t   Mapped\t%4i %4i\n",uR[r],uT[r]);
+    for (r=0; r<notunique; r++)
+      mprintf("\tNotMapped\t%4i %4i\n",nR[r],nT[r]);
+    // If all atoms are unique no need to map
+    if (nunique==5) continue;
+    // Require at least 3 unique atoms for dihedral calc. If < 3 unique this is
+    // probably not really a chircal center anyway.
+    if (nunique<3) {
+      mprintf("    Warning: Center has < 3 mapped atoms, dihedral cannot be calcd.\n");
+      continue;
+    }
+    // Calculate reference improper dihedrals
+    for (r=0; r<notunique; r++) {
+      dR[r] = Torsion(Ref->F->Coord(uR[0]),Ref->F->Coord(uR[1]),
+                      Ref->F->Coord(uR[2]),Ref->F->Coord(nR[r]));
+      mprintf("    Ref Improper %i = %lf\n",r,dR[r]);
+      dT[r] = Torsion(Tgt->F->Coord(uT[0]),Tgt->F->Coord(uT[1]),
+                      Tgt->F->Coord(uT[2]),Tgt->F->Coord(nT[r]));
+      mprintf("    Tgt Improper %i = %lf\n",r,dT[r]);
+    }
+    // Match impropers to each other using a cutoff
+    // NOTE: 10.0 seems reasonable? Also there is currently no check for 
+    //       repeated deltas.
+    for (r=0; r<notunique; r++) {
+      for (t=0; t<notunique; t++) {
+        delta = dR[r] - dT[t];
+        if (delta<0.0) delta=-delta;
+        if (delta<10.0) {
+          mprintf("    Mapping tgt atom %i to ref atom %i based on chirality.\n",nR[r],nT[t]);
+          AMap[ nR[r] ]=nT[t];
+          // Once an atom has been mapped set its unique flag
+          Ref->M[nR[r]].isUnique=1;
+          Tgt->M[nT[t]].isUnique=1;
+          // Since new atoms have been mapped, new chiral centers may have appeared
+          newchiral=true;
+        }
+      }
+    }
+    // Check if atom is now completely mapped
+    nunique=0;
+    for (bond=0; bond < Ref->M[atom].nbond; bond++) {
+      r = Ref->M[atom].bond[bond];
+      t = AMap[r];
+      if (t>-1) nunique++;
+    }
+    if (nunique==Ref->M[atom].nbond) {
+      Ref->M[atom].complete=true;
+      Tgt->M[tatom].complete=true;
+    } 
+  } // End loop over natom
+
+  } // End loop over newchiral
+
+  return 0;
+}
+
+/*
+ * AtomMap::mapByIndex()
+ * Given to atommaps and a map relating the two, attempt to map any remaining
+ * incomplete atoms by assuming the atom indices in reference and target are
+ * in similar orders. At this point all unique atoms and chiral centers should
+ * have been identified, and the remaining unmapped atoms are those in very
+ * symmetrical regions like methyl groups, rings etc.
+ */
+int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt, int *AMap) {
+  int atom,tatom,bond,tbond,numMapped,iterations,r,t,nunique;
+  bool allAtomsMapped=false;
+
+  iterations=0;
+  while (!allAtomsMapped) {
+    numMapped=0;
+    // Find next incompletely mapped atom
+    for (atom=0; atom<Ref->natom; atom++) {
+      // Skip over non-unique (non-mapped) atoms
+      if (!Ref->M[atom].isUnique) continue;
+      tatom = AMap[atom];
+      if (tatom<0) {
+        mprintf("Error: AtomMap::mapByIndex: Atom %i in reference is unique but not mapped!\n",
+                atom);
+        return 1;
+      }
+      // Check that num bonds match in Ref and target
+      if (Ref->M[atom].nbond!=Tgt->M[tatom].nbond) {
+        mprintf("Error: AtomMap:::mapByIndex: Ref atom %i #bonds does not match Tgt atom %i\n",
+                atom,tatom);
+        return 1;
+      }
+      // Skip completely mapped atoms - check that both Ref and Tgt are complete
+      if (Ref->M[atom].complete) {
+        if (!Tgt->M[tatom].complete) {
+          mprintf("Error: AtomMap:mapByIndex: Ref atom %i is complete but Tgt atom %i is not.\n",
+                atom,tatom);
+          return 1;
+        }
+        numMapped++;
+        continue;
+      }
+      // This atom is mapped, but bonded atoms are not completely mapped. Map 
+      // remaining unmapped atoms in target to unmapped atoms in reference. 
+      // Map first by name, then by index.
+      for (bond=0; bond < Ref->M[atom].nbond; bond++) {
+        r = Ref->M[atom].bond[bond];
+        if (Ref->M[r].isUnique) continue;
+        for (tbond=0; tbond < Tgt->M[tatom].nbond; tbond++) {
+          t = Tgt->M[tatom].bond[tbond];
+          if (Tgt->M[t].isUnique) continue;
+          // Atom r bonded to atom, atom t bonded to tatom. r and t are not
+          // yet mapped. Check if names match
+          if (strcmp(Ref->names[r],Tgt->names[t])!=0) continue;
+          // Here we could check to make sure the index order matches as well
+          // MAP THEM
+          mprintf("  Mapping Tgt %i to Ref %i based on name/bonding.\n",t,r);
+          AMap[r] = t;
+          Ref->M[r].isUnique=1;
+          Tgt->M[t].isUnique=1;
+          // Since r has been mapped, exit the loop to avoid remapping
+          break;
+        }
+      }
+      // Check if atom is completely mapped now
+      nunique=0;
+      for (bond=0; bond < Ref->M[atom].nbond; bond++) {
+        r = Ref->M[atom].bond[bond];
+        t = AMap[r];
+        if (t>-1) nunique++;
+      }
+      if (nunique==Ref->M[atom].nbond) {
+        Ref->M[atom].complete=true;
+        Tgt->M[tatom].complete=true;
+        numMapped++;
+      }
+    } // End loop over atoms
+    if (numMapped >= Ref->natom) allAtomsMapped=true;
+    // Safety valve - shouldnt have to map more times than # atoms
+    if (iterations > Ref->natom) {
+      mprintf("Error: AtomMap::mapByIndex: # iterations greater than # atoms.\n");
+      return 1;
+    }
+    iterations++;
+  } // End - allAtomsMapped
+  return 0;
+}
+
 /*
  * AtomMap::init()
  * Expected call: atommap <target> <reference>
@@ -366,14 +541,16 @@ int atommap::fourAtoms(int *Atom) {
 int AtomMap::init() {
   char *refName, *targetName;
   int refIndex, targetIndex;
-  int refatom,targetatom, *AtomMap;
-  // For RMSD
-  int fouratomlist[4];
+  int refatom,targetatom, *AMap;
   int numMappedAtoms=0;
+  // For RMSD
   Frame *refFrame, *tgtFrame;
   double rms, Rot[9],Trans[6];
   // DEBUG - pdb write
   char buffer[83];
+  PtrajFile fitpdb;
+  PtrajFile mappdb;
+  // END DEBUG
 
   // Get Args
   targetName=A->getNextString();
@@ -411,17 +588,15 @@ int AtomMap::init() {
   // For each map, set up (get element for each atom, initialize map mem),
   // determine what atoms are bonded to each other via simple distance
   // cutoffs, the give each atom an ID based on what atoms are bonded to
-  // it, noting which IDs are unique for that map.
+  // it, noting which IDs are unique for that map. 
 
   RefMap.setup();
   RefMap.calcDist();
   RefMap.determineAtomID();
-  RefMap.printBonds();
 
   TargetMap.setup();
   TargetMap.calcDist();
   TargetMap.determineAtomID();
-  TargetMap.printBonds();
 
   // Number of atoms in each map MUST be equal
   if (RefMap.natom!=TargetMap.natom) {
@@ -431,9 +606,9 @@ int AtomMap::init() {
 
   // Atoms have now been assigned IDs. Match up the unique strings in Ref with 
   // unique strings in target.
-  AtomMap=(int*) malloc( RefMap.natom * sizeof(int));
+  AMap=(int*) malloc( RefMap.natom * sizeof(int));
   for (refatom=0; refatom<RefMap.natom; refatom++) {
-    AtomMap[refatom]=-1;
+    AMap[refatom]=-1;
     // If the ID of this reference atom is unique, look for same ID in target
     if (RefMap.M[refatom].isUnique) {
       for (targetatom=0; targetatom<TargetMap.natom; targetatom++) {
@@ -441,7 +616,12 @@ int AtomMap::init() {
         if (TargetMap.M[targetatom].isUnique) {
           if ( strcmp(TargetMap.M[targetatom].unique,
                       RefMap.M[refatom].unique)==0 ) {
-            AtomMap[refatom]=targetatom;
+            // Check that number of bonds is consistent
+            if (RefMap.M[refatom].nbond!=TargetMap.M[targetatom].nbond) {
+              mprintf("Warning: AtomMap: Atoms R%i and T%i have same ID but different # bonds!\n",
+                      refatom,targetatom);
+            }
+            AMap[refatom]=targetatom;
             //mprintf("* TargetAtom %i(%s) maps to RefAtom %i(%s)\n",
             //        targetatom,TargetMap.P->names[targetatom],
             //        refatom,RefMap.P->names[refatom]);
@@ -451,15 +631,22 @@ int AtomMap::init() {
     } // If reference atom is unique
   } // Loop over reference atoms
 
-  /* Two potential strategies for assigning the remainder: (1) try to RMS
-   * fit the unique atoms, then assign based on distances; or (2) try to 
-   * assign each non-unique atom based on bonding information to unique
-   * atoms.
-   */
+  // Search for completely mapped atoms. If an atom and all atoms
+  // it is bonded to are unique, mark the atom as completely mapped.
+  RefMap.markComplete();
+  TargetMap.markComplete();
+
+  // Map any unmapped chiral centers
+  mapChiral(&RefMap, &TargetMap, AMap);
+  //RefMap.markComplete();
+  //TargetMap.markComplete();
+
+  // Try to map the rest by atom name and connectivity
+  mapByIndex(&RefMap, &TargetMap, AMap);
 
   // DEBUG - Print current atom map and count # mapped atoms
   for (refatom=0; refatom<RefMap.natom; refatom++) {
-    targetatom=AtomMap[refatom];
+    targetatom=AMap[refatom];
     if (targetatom>=0) {
       mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
                       targetatom,TargetMap.P->names[targetatom],
@@ -471,6 +658,8 @@ int AtomMap::init() {
     }
   }
   mprintf("* %i total atoms were mapped.\n",numMappedAtoms);
+  if (numMappedAtoms!=RefMap.natom)
+    mprintf("Warning: Not all atoms were mapped.\n");
 
   // Get list of atoms
   //RefMap.fourAtoms(fouratomlist);
@@ -479,10 +668,15 @@ int AtomMap::init() {
   refFrame = new Frame(numMappedAtoms,NULL);
   tgtFrame = new Frame(numMappedAtoms,NULL);
   refIndex = 0; // refIndex is atom number of the frames
-  // DEBUG - targetIndex is refIndex*3
+  // DEBUG - For PDB write, targetIndex is refIndex*3
   targetIndex = 0;
+  mappdb.SetupFile((char*)"targetmap.pdb\0",WRITE,PDBFILE,STANDARD,0);
+  mappdb.OpenFile();
+  fitpdb.SetupFile((char*)"fit.pdb\0",WRITE,PDBFILE,STANDARD,0);
+  fitpdb.OpenFile();
+  // END DEBUG
   for (refatom=0; refatom<RefMap.natom; refatom++) {
-    targetatom=AtomMap[refatom];
+    targetatom=AMap[refatom];
     if (targetatom>=0) {
       refFrame->SetCoord(refIndex, RefMap.F->Coord(refatom));
       tgtFrame->SetCoord(refIndex, TargetMap.F->Coord(targetatom));
@@ -491,7 +685,7 @@ int AtomMap::init() {
                    (char*)"UNK",' ',1,tgtFrame->X[targetIndex],tgtFrame->X[targetIndex+1],
                    tgtFrame->X[targetIndex+2],0.0,0.0,(char*)"\0");
       targetIndex+=3;
-      mprinterr("%s",buffer);
+      mappdb.IO->Printf("%s",buffer);
       // END DEBUG
       //mprintf("Ref %6i: ",refatom);
       //refFrame->printAtomCoord(refIndex);
@@ -510,17 +704,20 @@ int AtomMap::init() {
   tgtFrame->Rotate(Rot);
   tgtFrame->Translate(Trans+3);
   // DEBUG - write fit target out to PDB
-  //targetIndex=0;
-  //for (targetatom=0; targetatom<TargetMap.P->natom; targetatom++) {
-  //  pdb_write_ATOM(buffer,PDBATOM,targetatom+1,TargetMap.P->names[targetatom],
-  //                 (char*)"UNK",' ',1,tgtFrame->X[targetIndex],tgtFrame->X[targetIndex+1],
-  //                 tgtFrame->X[targetIndex+2],0.0,0.0,(char*)"\0");
-  //  targetIndex+=3;
-  //  mprinterr("%s",buffer);
-  //}
+  targetIndex=0;
+  for (targetatom=0; targetatom<TargetMap.P->natom; targetatom++) {
+    pdb_write_ATOM(buffer,PDBATOM,targetatom+1,TargetMap.P->names[targetatom],
+                   (char*)"UNK",' ',1,tgtFrame->X[targetIndex],tgtFrame->X[targetIndex+1],
+                   tgtFrame->X[targetIndex+2],0.0,0.0,(char*)"\0");
+    targetIndex+=3;
+    fitpdb.IO->Printf("%s",buffer);
+  }
+  mappdb.CloseFile();
+  fitpdb.CloseFile();
+  // END DEBUG
 
   // Cleanup
-  free(AtomMap);
+  free(AMap);
   delete refFrame;
   delete tgtFrame;
 

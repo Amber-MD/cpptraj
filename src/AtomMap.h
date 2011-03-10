@@ -5,12 +5,13 @@
 
 #define ATOMIDLENGTH 26
 #define UNIQUELENGTH 131
+#define MAXBONDS 6
 
 class atommap {
     struct mapatom {
-      int bond[4];               // Holds indices of other bonded atoms
+      int bond[MAXBONDS];        // Holds indices of other bonded atoms
       int nbond;                 // Number of bonds
-      int visited;               // 1=Has been visited by traceBonds
+      bool complete;             // true: This atom an all bonded atoms have been mapped
       char atomID[ATOMIDLENGTH]; // ID created from this atom name, then bonded atom names 
       char unique[UNIQUELENGTH]; // ID created from this atomID, then bonded atomIDs
       int isUnique;              // 1 if no other unique ID matches this atom
@@ -29,13 +30,14 @@ class atommap {
     double getCut(char *, char *); // Determine bond length cutoff between two atoms
     int calcDist();                // Determine bonds between atoms based on distance
     void determineAtomID();        // Give each atom an id based on what atoms are bonded to it
-    void printBonds();             // Print bond info and uniqueness for all atoms
-    int fourAtoms(int *);
+    void markComplete();           // Mark unique atoms bonded to all unique atoms as complete 
 };
 
 class AtomMap : public Action {
     atommap RefMap;
     atommap TargetMap;
+    int mapChiral(atommap *, atommap *, int *);
+    int mapByIndex(atommap *, atommap *, int *);
   public:
     AtomMap() {}
     ~AtomMap(){}
