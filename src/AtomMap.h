@@ -41,6 +41,7 @@ class AtomMap : public Action {
     int mapByIndex(atommap *, atommap *);
 
     int *AMap;
+    bool maponly;
     Frame *newFrame;
     AmberParm *newParm;
   public:

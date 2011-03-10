@@ -330,6 +330,7 @@ AtomMap::AtomMap() {
   AMap=NULL;
   newFrame=NULL;
   newParm=NULL;
+  maponly=false;
 }
 
 // DESTRUCTOR
@@ -442,7 +443,8 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
         delta = dR[r] - dT[t];
         if (delta<0.0) delta=-delta;
         if (delta<10.0) {
-          mprintf("    Mapping tgt atom %i to ref atom %i based on chirality.\n",nR[r],nT[t]);
+          if (debug>0)
+            mprintf("    Mapping tgt atom %i to ref atom %i based on chirality.\n",nR[r],nT[t]);
           AMap[ nR[r] ]=nT[t];
           // Once an atom has been mapped set its unique flag
           Ref->M[nR[r]].isUnique=1;
@@ -525,7 +527,7 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
           if (strcmp(Ref->names[r],Tgt->names[t])!=0) continue;
           // Here we could check to make sure the index order matches as well
           // MAP THEM
-          mprintf("    Mapping Tgt %i to Ref %i based on name/bonding.\n",t,r);
+          if (debug>0) mprintf("    Mapping Tgt %i to Ref %i based on name/bonding.\n",t,r);
           AMap[r] = t;
           Ref->M[r].isUnique=1;
           Tgt->M[t].isUnique=1;
@@ -559,12 +561,13 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
 
 /*
  * AtomMap::init()
- * Expected call: atommap <target> <reference>
+ * Expected call: atommap <target> <reference> [mapout <filename>] [maponly]
  * Attempt to create a map from atoms in target to atoms in reference solely
  * based on how they are bonded (not how they are named). 
  */
 int AtomMap::init() {
-  char *refName, *targetName;
+  char *refName, *targetName, *outputname;
+  PtrajFile outputfile;
   int refIndex, targetIndex;
   int refatom,targetatom;
   int numMappedAtoms=0;
@@ -573,6 +576,9 @@ int AtomMap::init() {
   TargetMap.SetDebug(debug);
 
   // Get Args
+  outputname=A->getKeyString("mapout",NULL);
+  maponly = A->hasKey("maponly");
+
   targetName=A->getNextString();
   refName=A->getNextString();
   if (targetName==NULL) {
@@ -604,6 +610,14 @@ int AtomMap::init() {
     mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName);
     return 1;
   }
+
+  mprintf("    ATOMMAP: Atoms in trajectories associated with parm %s will be\n",
+          TargetMap.P->parmName);
+  mprintf("             mapped according to parm %s.\n",RefMap.P->parmName);
+  if (outputname!=NULL)
+    mprintf("             Map will be written to %s\n",outputname);
+  if (maponly)
+    mprintf("             maponly: Map will only be written, not used in trajectory read.\n");
 
   // For each map, set up (get element for each atom, initialize map mem),
   // determine what atoms are bonded to each other via simple distance
@@ -642,9 +656,11 @@ int AtomMap::init() {
                       refatom,targetatom);
             }
             AMap[refatom]=targetatom;
-            //mprintf("* TargetAtom %i(%s) maps to RefAtom %i(%s)\n",
-            //        targetatom,TargetMap.P->names[targetatom],
-            //        refatom,RefMap.P->names[refatom]);
+            if (debug>0) {
+              mprintf("    Mapping Tgt %i(%s) to Ref %i(%s)\n",
+                      targetatom,TargetMap.P->names[targetatom],
+                      refatom,RefMap.P->names[refatom]);
+            }
           } // If unique strings match
         } // If target atom is unique
       } // Loop over target atoms
@@ -665,19 +681,25 @@ int AtomMap::init() {
   mapByIndex(&RefMap, &TargetMap);
 
   // Print atom map and count # mapped atoms
+  outputfile.SetupFile(outputname,WRITE,DATAFILE,UNKNOWN_TYPE,debug);
+  outputfile.OpenFile();
+  outputfile.IO->Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
   for (refatom=0; refatom<RefMap.natom; refatom++) {
     targetatom=AMap[refatom];
+    outputfile.IO->Printf("%6i %4s %6i %4s\n",targetatom+1,TargetMap.P->names[targetatom],
+                          refatom+1,RefMap.P->names[refatom]);
     if (targetatom>=0) {
-      mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
-                      targetatom,TargetMap.P->names[targetatom],
-                      refatom,RefMap.P->names[refatom]);
+      //mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
+      //                targetatom,TargetMap.P->names[targetatom],
+      //                refatom,RefMap.P->names[refatom]);
       numMappedAtoms++;
-    } else {
-      mprintf("* Could not map any TargetAtom to RefAtom %6i(%4s)\n",
-                      refatom,RefMap.P->names[refatom]);
-    }
+    } //else {
+    //  mprintf("* Could not map any TargetAtom to RefAtom %6i(%4s)\n",
+    //                  refatom,RefMap.P->names[refatom]);
+    //}
   }
-  mprintf("* %i total atoms were mapped.\n",numMappedAtoms);
+  outputfile.CloseFile();
+  mprintf("      %i total atoms were mapped.\n",numMappedAtoms);
   // If not all atoms could be mapped, return error since
   // this would screw up frame modification.
   // NOTE: Could do some sort of strip to remove atoms that
@@ -687,15 +709,13 @@ int AtomMap::init() {
     return 1;
   }
 
-  mprintf("    ATOMMAP: Atoms in trajectories associated with parm %s will be\n",
-          TargetMap.P->parmName);
-  mprintf("             mapped according to parm %s.\n",RefMap.P->parmName);
+  if (!maponly) {
+    // Set up new Frame
+    newFrame = new Frame(RefMap.natom,RefMap.P->mass);
 
-  // Set up new Frame
-  newFrame = new Frame(RefMap.natom,RefMap.P->mass);
-
-  // Set up new Parm
-  newParm = TargetMap.P->modifyStateByMap(AMap);
+    // Set up new Parm
+    newParm = TargetMap.P->modifyStateByMap(AMap);
+  }
 
   return 0;
 }
@@ -706,6 +726,10 @@ int AtomMap::init() {
  * replace current parm with mapped parm.
  */
 int AtomMap::setup() {
+  if (maponly) {
+    mprintf("    ATOMMAP: maponly was specified, not using atom map during traj read.\n");
+    return 0;
+  }
   if (P->pindex!=TargetMap.P->pindex ||
       P->natom !=TargetMap.P->natom) {
     if (debug>0) {
@@ -729,6 +753,7 @@ int AtomMap::setup() {
  * Modify the current frame based on the atom map. 
  */
 int AtomMap::action() {
+  if (maponly) return 0;
   for (int atom=0; atom < F->natom; atom++) 
     newFrame->SetCoord(atom, F->Coord(AMap[atom]));
   F = newFrame;
