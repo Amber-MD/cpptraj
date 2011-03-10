@@ -104,6 +104,7 @@ bool isPDBkeyword(char *buffer) {
   if (strncmp(buffer,"HEADER",6)==0) return true;
   if (strncmp(buffer,"TITLE ",6)==0) return true;
   if (strncmp(buffer,"COMPND",6)==0) return true;
+  if (strncmp(buffer,"AUTHOR",6)==0) return true;
   if (strncmp(buffer,"ATOM  ",6)==0) return true;
   if (strncmp(buffer,"HETATM",6)==0) return true;
   if (strncmp(buffer,"CRYST1",6)==0) return true;
