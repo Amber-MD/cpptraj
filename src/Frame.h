@@ -23,7 +23,8 @@ class Frame {
     virtual ~Frame();             // Destructor is virtual since this class can be inherited
 
     void printAtomCoord(int);
-    void SetCoord(double *, int);
+    void GetCoord(double *, int);
+    void SetCoord(int, double *);
     double *Coord(int);
     Frame *Copy();
 

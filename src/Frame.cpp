@@ -94,10 +94,10 @@ void Frame::printAtomCoord(int atom) {
 }
 
 /*
- * Frame::SetCoord()
- * Set the coordinates of Coord to those of the specified atom.
+ * Frame::GetCoord()
+ * Get coordinates of specified atom and put into Coord.
  */
-void Frame::SetCoord(double *Coord, int atom) {
+void Frame::GetCoord(double *Coord, int atom) {
   int natom3;
   // NOTE: SHOULD CHECK FOR BOUNDARIES
   if (Coord==NULL) return;
@@ -105,6 +105,21 @@ void Frame::SetCoord(double *Coord, int atom) {
   Coord[0] = X[natom3  ];
   Coord[1] = X[natom3+1];
   Coord[2] = X[natom3+2];
+}
+
+/*
+ * Frame::SetCoord()
+ * Set coordinates of specified atom to those of Coord.
+ */
+void Frame::SetCoord(int atom, double *Coord) {
+  int natom3;
+  // NOTE: SHOULD CHECK FOR BOUNDARIES
+  if (Coord==NULL) return;
+  //mprintf("      Setting coord %i/%i: %lf %lf %lf\n",atom,natom,Coord[0],Coord[1],Coord[2]);
+  natom3 = atom * 3;
+  X[natom3  ] = Coord[0];
+  X[natom3+1] = Coord[1];
+  X[natom3+2] = Coord[2];
 }
 
 /*
