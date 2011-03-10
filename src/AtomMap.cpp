@@ -278,7 +278,7 @@ void atommap::determineAtomID() {
  * atommap::setup()
  * Allocate memory for atom map. In order to easily create the uniqueID 
  * strings the atom names need to be 1 char long. Convert chlorine 
- * to X for now.
+ * to X for now, bromine to Y etc.
  */
 int atommap::setup() {
   int atom,bond;
@@ -301,6 +301,10 @@ int atommap::setup() {
     // If C, check for L or l for chlorine
     if (ptr[0]=='C') {
       if (ptr[1]=='L' || ptr[1]=='l') names[atom][0]='X';
+    }
+    // If B, check for R or r for bromine
+    if (ptr[0]=='B') {
+      if (ptr[1]=='R' || ptr[1]=='r') names[atom][0]='Y';
     }
     names[atom][1]='\0';
     // DEBUG
