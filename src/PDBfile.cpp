@@ -21,11 +21,16 @@ PDBfile::~PDBfile() {
  * PDBfile::close()
  */
 void PDBfile::close() {
-  // Only close if not writing 1 pdb per frame
-  if (writeMode!=2) {
-    File->IO->Printf("%-6s\n","END");
+  // On WRITE only close if not writing 1 pdb per frame
+  if (File->access==WRITE) {
+    if ( writeMode!=2) {
+      // Dont attempt a write if not successfully set up
+      if (skip==1) File->IO->Printf("%-6s\n","END");
+      File->CloseFile();
+    }
+  // Otherwise just close the file
+  } else
     File->CloseFile();
-  }
 }
 
 /* 

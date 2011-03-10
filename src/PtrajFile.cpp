@@ -277,7 +277,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
  */
 int PtrajFile::SetupWrite() {
 
-  //mprintf("DEBUG: Setting up write file %s with format %s\n",filename,fileformatIn);
+  if (debug>1) mprintf("DEBUG: Setting up WRITE for file %s\n",filename);
   // Eventually allow other file types
   //fileType=STANDARD;
   switch (fileType) {
