@@ -16,16 +16,17 @@ class atommap {
       char unique[UNIQUELENGTH]; // ID created from this atomID, then bonded atomIDs
       int isUnique;              // 1 if no other unique ID matches this atom
     };
+    int debug;
   public:
     mapatom *M;     // Array of atoms, contains bond info etc
     int natom;      // Number of atoms in the map
     char **names;   // Name of each atom
     Frame *F;       // Hold atom coords
     AmberParm *P;   // Hold corresponding parm
-    int debug;
 
     atommap();
     ~atommap();
+    void SetDebug(int);
     int setup();                   // Set up atom map, get atom elmt names, init map
     double getCut(char *, char *); // Determine bond length cutoff between two atoms
     int calcDist();                // Determine bonds between atoms based on distance
@@ -36,11 +37,17 @@ class atommap {
 class AtomMap : public Action {
     atommap RefMap;
     atommap TargetMap;
-    int mapChiral(atommap *, atommap *, int *);
-    int mapByIndex(atommap *, atommap *, int *);
+    int mapChiral(atommap *, atommap *);
+    int mapByIndex(atommap *, atommap *);
+
+    int *AMap;
+    Frame *newFrame;
+    AmberParm *newParm;
   public:
-    AtomMap() {}
-    ~AtomMap(){}
+    AtomMap(); 
+    ~AtomMap();
     int init();
+    int setup();
+    int action();
 };
 #endif

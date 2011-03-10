@@ -4,27 +4,6 @@
 #include "AtomMap.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
-// DEBUG - pdb write
-#include "PDBfileRoutines.h"
-
-// atommap CONSTRUCTOR
-atommap::atommap() {
-  M=NULL;
-  natom=0;
-  names=NULL;
-  F=NULL;
-  debug=1;
-}
-
-// atommap DESTRUCTOR
-atommap::~atommap() {
-  int i;
-  if (M!=NULL) free(M);
-  if (names!=NULL) {
-    for (i=0; i<natom; i++) free(names[i]);
-    free(names);
-  }
-}
 
 //--------- PRIVATE ROUTINES ---------------------------------------
 /*
@@ -49,6 +28,30 @@ int compareChar(const void *a, const void *b) {
   return ( *(char*)a - *(char*)b );
 }
 //------------------------------------------------------------------
+
+// atommap CONSTRUCTOR
+atommap::atommap() {
+  M=NULL;
+  natom=0;
+  names=NULL;
+  F=NULL;
+  debug=0;
+}
+
+// atommap DESTRUCTOR
+atommap::~atommap() {
+  int i;
+  if (M!=NULL) free(M);
+  if (names!=NULL) {
+    for (i=0; i<natom; i++) free(names[i]);
+    free(names);
+  }
+}
+
+// Set atommap debug
+void atommap::SetDebug(int debugIn) {
+  debug=debugIn;
+}
 
 /*
  * atommap::getCut() 
@@ -301,7 +304,7 @@ int atommap::setup() {
     }
     names[atom][1]='\0';
     // DEBUG
-    mprintf("  Atom %i element: [%s]\n",atom,names[atom]);
+    if (debug>0) mprintf("  Atom %i element: [%s]\n",atom,names[atom]);
   }
   // Allocate memory for atoms and initialize each atom
   M=(mapatom*) malloc( natom * sizeof(mapatom));
@@ -317,13 +320,28 @@ int atommap::setup() {
 }
 
 // ============================================================================
+
+// CONSTRUCTOR
+AtomMap::AtomMap() {
+  AMap=NULL;
+  newFrame=NULL;
+  newParm=NULL;
+}
+
+// DESTRUCTOR
+AtomMap::~AtomMap() {
+  if (AMap!=NULL) free(AMap);
+  if (newFrame!=NULL) delete newFrame;
+  if (newParm!=NULL) delete newParm;
+}
+
 /*
  * AtomMap::mapChiral()
  * Given two atommaps and a map relating the two, find chiral centers for
  * which at least 3 of the atoms have been mapped. Assign the remaining
  * two atoms based on improper dihedrals. ONLY WORKS FOR SP3
  */
-int AtomMap::mapChiral(atommap *Ref, atommap *Tgt, int *AMap) {
+int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
   int atom,tatom,bond,nunique,notunique;
   int uR[5], uT[5], r, t, nR[4], nT[4];
   double dR[4], dT[4], delta;
@@ -386,28 +404,31 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt, int *AMap) {
       t = Tgt->M[tatom].bond[bond];
       if (!Tgt->M[t].isUnique) nT[r++] = t;
     }
-    mprintf("  Potential Chiral center %i_%s/%i_%s: Unique atoms=%i, non-Unique=%i/%i\n",
-            atom,Ref->names[atom],tatom,Tgt->names[tatom],nunique,notunique,r);
-    for (r=0; r<nunique; r++)
-      mprintf("\t   Mapped\t%4i %4i\n",uR[r],uT[r]);
-    for (r=0; r<notunique; r++)
-      mprintf("\tNotMapped\t%4i %4i\n",nR[r],nT[r]);
+    if (debug>0) { 
+      mprintf("  Potential Chiral center %i_%s/%i_%s: Unique atoms=%i, non-Unique=%i/%i\n",
+              atom,Ref->names[atom],tatom,Tgt->names[tatom],nunique,notunique,r);
+      for (r=0; r<nunique; r++)
+        mprintf("\t   Mapped\t%4i %4i\n",uR[r],uT[r]);
+      for (r=0; r<notunique; r++)
+        mprintf("\tNotMapped\t%4i %4i\n",nR[r],nT[r]);
+    }
     // If all atoms are unique no need to map
     if (nunique==5) continue;
     // Require at least 3 unique atoms for dihedral calc. If < 3 unique this is
     // probably not really a chircal center anyway.
     if (nunique<3) {
-      mprintf("    Warning: Center has < 3 mapped atoms, dihedral cannot be calcd.\n");
+      if (debug>0) 
+        mprintf("    Warning: Center has < 3 mapped atoms, dihedral cannot be calcd.\n");
       continue;
     }
     // Calculate reference improper dihedrals
     for (r=0; r<notunique; r++) {
       dR[r] = Torsion(Ref->F->Coord(uR[0]),Ref->F->Coord(uR[1]),
                       Ref->F->Coord(uR[2]),Ref->F->Coord(nR[r]));
-      mprintf("    Ref Improper %i = %lf\n",r,dR[r]);
+      if (debug>1) mprintf("    Ref Improper %i = %lf\n",r,dR[r]);
       dT[r] = Torsion(Tgt->F->Coord(uT[0]),Tgt->F->Coord(uT[1]),
                       Tgt->F->Coord(uT[2]),Tgt->F->Coord(nT[r]));
-      mprintf("    Tgt Improper %i = %lf\n",r,dT[r]);
+      if (debug>1) mprintf("    Tgt Improper %i = %lf\n",r,dT[r]);
     }
     // Match impropers to each other using a cutoff
     // NOTE: 10.0 seems reasonable? Also there is currently no check for 
@@ -453,7 +474,7 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt, int *AMap) {
  * have been identified, and the remaining unmapped atoms are those in very
  * symmetrical regions like methyl groups, rings etc.
  */
-int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt, int *AMap) {
+int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
   int atom,tatom,bond,tbond,numMapped,iterations,r,t,nunique;
   bool allAtomsMapped=false;
 
@@ -500,7 +521,7 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt, int *AMap) {
           if (strcmp(Ref->names[r],Tgt->names[t])!=0) continue;
           // Here we could check to make sure the index order matches as well
           // MAP THEM
-          mprintf("  Mapping Tgt %i to Ref %i based on name/bonding.\n",t,r);
+          mprintf("    Mapping Tgt %i to Ref %i based on name/bonding.\n",t,r);
           AMap[r] = t;
           Ref->M[r].isUnique=1;
           Tgt->M[t].isUnique=1;
@@ -541,16 +562,11 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt, int *AMap) {
 int AtomMap::init() {
   char *refName, *targetName;
   int refIndex, targetIndex;
-  int refatom,targetatom, *AMap;
+  int refatom,targetatom;
   int numMappedAtoms=0;
-  // For RMSD
-  Frame *refFrame, *tgtFrame;
-  double rms, Rot[9],Trans[6];
-  // DEBUG - pdb write
-  char buffer[83];
-  PtrajFile fitpdb;
-  PtrajFile mappdb;
-  // END DEBUG
+  
+  RefMap.SetDebug(debug);
+  TargetMap.SetDebug(debug);
 
   // Get Args
   targetName=A->getNextString();
@@ -637,14 +653,14 @@ int AtomMap::init() {
   TargetMap.markComplete();
 
   // Map any unmapped chiral centers
-  mapChiral(&RefMap, &TargetMap, AMap);
+  mapChiral(&RefMap, &TargetMap);
   //RefMap.markComplete();
   //TargetMap.markComplete();
 
   // Try to map the rest by atom name and connectivity
-  mapByIndex(&RefMap, &TargetMap, AMap);
+  mapByIndex(&RefMap, &TargetMap);
 
-  // DEBUG - Print current atom map and count # mapped atoms
+  // Print atom map and count # mapped atoms
   for (refatom=0; refatom<RefMap.natom; refatom++) {
     targetatom=AMap[refatom];
     if (targetatom>=0) {
@@ -658,69 +674,60 @@ int AtomMap::init() {
     }
   }
   mprintf("* %i total atoms were mapped.\n",numMappedAtoms);
-  if (numMappedAtoms!=RefMap.natom)
-    mprintf("Warning: Not all atoms were mapped.\n");
+  // If not all atoms could be mapped, return error since
+  // this would screw up frame modification.
+  // NOTE: Could do some sort of strip to remove atoms that
+  // could not be mapped.
+  if (numMappedAtoms!=RefMap.natom) {
+    mprintf("Error: AtomMap: Not all atoms were mapped.\n");
+    return 1;
+  }
 
-  // Get list of atoms
-  //RefMap.fourAtoms(fouratomlist);
+  mprintf("    ATOMMAP: Atoms in trajectories associated with parm %s will be\n",
+          TargetMap.P->parmName);
+  mprintf("             mapped according to parm %s.\n",RefMap.P->parmName);
 
-  // Set up mapped atoms into frames for RMSD fitting
-  refFrame = new Frame(numMappedAtoms,NULL);
-  tgtFrame = new Frame(numMappedAtoms,NULL);
-  refIndex = 0; // refIndex is atom number of the frames
-  // DEBUG - For PDB write, targetIndex is refIndex*3
-  targetIndex = 0;
-  mappdb.SetupFile((char*)"targetmap.pdb\0",WRITE,PDBFILE,STANDARD,0);
-  mappdb.OpenFile();
-  fitpdb.SetupFile((char*)"fit.pdb\0",WRITE,PDBFILE,STANDARD,0);
-  fitpdb.OpenFile();
-  // END DEBUG
-  for (refatom=0; refatom<RefMap.natom; refatom++) {
-    targetatom=AMap[refatom];
-    if (targetatom>=0) {
-      refFrame->SetCoord(refIndex, RefMap.F->Coord(refatom));
-      tgtFrame->SetCoord(refIndex, TargetMap.F->Coord(targetatom));
-      // DEBUG
-      pdb_write_ATOM(buffer,PDBATOM,refIndex+1,TargetMap.P->names[targetatom],
-                   (char*)"UNK",' ',1,tgtFrame->X[targetIndex],tgtFrame->X[targetIndex+1],
-                   tgtFrame->X[targetIndex+2],0.0,0.0,(char*)"\0");
-      targetIndex+=3;
-      mappdb.IO->Printf("%s",buffer);
-      // END DEBUG
-      //mprintf("Ref %6i: ",refatom);
-      //refFrame->printAtomCoord(refIndex);
-      //mprintf("Tgt %6i: ",targetatom);
-      //tgtFrame->printAtomCoord(refIndex);
-      refIndex++;
+  // Set up new Frame
+  newFrame = new Frame(RefMap.natom,RefMap.P->mass);
+
+  // Set up new Parm
+  newParm = TargetMap.P->modifyStateByMap(AMap);
+
+  return 0;
+}
+
+/*
+ * AtomMap::setup()
+ * If the current parm does not match the target parm, deactivate. Otherwise
+ * replace current parm with mapped parm.
+ */
+int AtomMap::setup() {
+  if (P->pindex!=TargetMap.P->pindex ||
+      P->natom !=TargetMap.P->natom) {
+    if (debug>0) {
+      mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.P->parmName,
+              RefMap.P->parmName,TargetMap.P->natom);
+      mprintf("             Current parm %s (%i atom).\n",P->parmName,P->natom);
+      mprintf("             Not using map for this parm.\n");
     }
+    return 1;
   }
-  // Perform RMSD fit of target mapped atoms to reference mapped atoms
-  rms = tgtFrame->RMSD(refFrame,Rot,Trans,false);
-  mprintf("Rms of target map from ref map is %lf\n",rms);
-  // Rotate and translate original target frame
-  delete tgtFrame;
-  tgtFrame = TargetMap.F->Copy();
-  tgtFrame->Translate(Trans);
-  tgtFrame->Rotate(Rot);
-  tgtFrame->Translate(Trans+3);
-  // DEBUG - write fit target out to PDB
-  targetIndex=0;
-  for (targetatom=0; targetatom<TargetMap.P->natom; targetatom++) {
-    pdb_write_ATOM(buffer,PDBATOM,targetatom+1,TargetMap.P->names[targetatom],
-                   (char*)"UNK",' ',1,tgtFrame->X[targetIndex],tgtFrame->X[targetIndex+1],
-                   tgtFrame->X[targetIndex+2],0.0,0.0,(char*)"\0");
-    targetIndex+=3;
-    fitpdb.IO->Printf("%s",buffer);
-  }
-  mappdb.CloseFile();
-  fitpdb.CloseFile();
-  // END DEBUG
+  mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.P->parmName,
+          RefMap.P->parmName,TargetMap.P->natom);
 
-  // Cleanup
-  free(AMap);
-  delete refFrame;
-  delete tgtFrame;
+  P = newParm;
+  
+  return 0;
+}
 
+/*
+ * AtomMap::action()
+ * Modify the current frame based on the atom map. 
+ */
+int AtomMap::action() {
+  for (int atom=0; atom < F->natom; atom++) 
+    newFrame->SetCoord(atom, F->Coord(AMap[atom]));
+  F = newFrame;
   return 0;
 }
 
