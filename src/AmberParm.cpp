@@ -810,9 +810,13 @@ void AmberParm::AtomInfo(int atom) {
   int res = atomToResidue(atom);
   mprintf("Atom %i:%4s Res %i:%4s Mol %i",atom+1,names[atom],res+1,resnames[res],
           atomToMolecule(atom)+1);
-  mprintf(" Type=%4s",types[atom]);
-  mprintf(" Charge=%lf",charge[atom]);
-  mprintf(" Mass=%lf\n",mass[atom]);
+  if (types!=NULL)
+    mprintf(" Type=%4s",types[atom]);
+  if (charge!=NULL)
+    mprintf(" Charge=%lf",charge[atom]);
+  if (mass!=NULL)
+    mprintf(" Mass=%lf",mass[atom]);
+  mprintf("\n");
 }
 
 /*
@@ -885,6 +889,7 @@ int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
   int *bonds;
   int N3, i, atom1, atom2;
 
+  if (atomMap==NULL || oldBonds==NULL) return NULL;
   bonds=NULL;
   N3=0;
   // Go through Bonds with/without H, use atomMap to determine what goes into newParm
@@ -905,6 +910,87 @@ int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
   
   *newN = N3 / 3;
   return bonds;
+}
+
+/*
+ * AmberParm::modifyStateByMap()
+ * Currently only intended for use with AtomMap.
+ * This routine will create a new amber parm (newParm) base on the
+ * current amber parm (this), mapping atoms in newParm to atoms
+ * in this based on the given atom map.
+ * NOTE: There is no guarantee that atoms that were contiguous in 
+ *       this parm will be contiguous in the old parm since this is not
+ *       currently enforced by AtomMap; therefore the residue information
+ *       will probably be shot unless there is only 1 residue. 
+ * NOTE: Molecule, solvent info etc is not copied over.
+ */
+AmberParm *AmberParm::modifyStateByMap(int *AMap) {
+  AmberParm *newParm;
+  int j=0;
+
+  newParm = new AmberParm(debug);
+  // Allocate space for arrays and perform initialization
+  newParm->values = (int*) calloc(AMBERPOINTERS, sizeof(int));
+  newParm->names    = (NAME*)   malloc( this->natom   * sizeof(NAME) );
+  if (this->types!=NULL)
+    newParm->types    = (NAME*)   malloc( this->natom   * sizeof(NAME) );
+  if (this->charge!=NULL)
+    newParm->charge   = (double*) malloc( this->natom   * sizeof(double));
+  if (this->mass!=NULL)
+    newParm->mass     = (double*) malloc( this->natom   * sizeof(double));
+  newParm->resnames = (NAME*)   malloc( this->nres    * sizeof(NAME) );
+  newParm->resnums  = (int*)    malloc((this->nres+1) * sizeof(int   ));
+
+  // Loop over all atoms in this parm, map them to new parm
+  for (int i=0; i < this->natom; i++) {
+    j = AMap[i];
+    strcpy(newParm->names[i], this->names[j]);
+    if (this->types!=NULL)  strcpy(newParm->types[i], this->types[j]);
+    if (this->charge!=NULL) newParm->charge[i] =      this->charge[j];
+    if (this->mass!=NULL)   newParm->mass[i]   =      this->mass[j];
+  }
+
+  // Copy residue info. If > 1 residue the copy will likely not be correct.
+  if (this->nres>1) {
+    mprintf("WARNING: modifyStateByMap: %s has > 1 residue, modified parm residue info\n",parmName);
+    mprintf("         will most likely not be correct!\n");
+  }
+  for (int res=0; res<this->nres; res++) {
+    strcpy(newParm->resnames[res],this->resnames[res]);
+    newParm->resnums[res] = this->resnums[res];
+  }
+  // Fix up IPRES
+  newParm->resnums[this->nres] = this->natom;
+
+  // Set up bond arrays
+  newParm->bondsh = SetupBondArray(AMap, this->values[NBONH]*3, this->bondsh,
+                                   &(newParm->values[NBONH]));
+  newParm->bonds  = SetupBondArray(AMap, this->values[MBONA]*3, this->bonds,
+                                   &(newParm->values[MBONA])); 
+
+  // Set up new parm information
+  newParm->natom = this->natom;
+  newParm->nres = this->nres;
+  newParm->ifbox = this->ifbox;
+  newParm->parmFrames = this->parmFrames;
+
+  // Give mapped parm the same pindex as original parm
+  newParm->pindex = this->pindex;
+
+  // Copy box information
+  if (this->Box!=NULL) {
+    newParm->Box=(double*) malloc(4*sizeof(double));
+    for (int i=0; i<4; i++)
+      newParm->Box[i] = this->Box[i];
+  }
+
+  // Set values up
+  // NOTE: Eventually set all pointers up?
+  newParm->values[NATOM] = newParm->natom;
+  newParm->values[NRES] = newParm->nres;
+  newParm->values[IFBOX] = newParm->ifbox;
+
+  return newParm;
 }
 
 /*
@@ -930,11 +1016,14 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm->values = (int*) calloc(AMBERPOINTERS, sizeof(int));
   atomMap = (int*) malloc( this->natom * sizeof(int));
   for (i=0; i<this->natom; i++) atomMap[i]=-1;
-  newParm->names    = (NAME*)  malloc( this->natom   * sizeof(NAME) );
-  newParm->types    = (NAME*)  malloc( this->natom   * sizeof(NAME) );
-  newParm->charge   = (double*) malloc( this->natom   * sizeof(double));
-  newParm->mass     = (double*) malloc( this->natom   * sizeof(double));
-  newParm->resnames = (NAME*)  malloc( this->nres    * sizeof(NAME) );
+  newParm->names    = (NAME*)   malloc( this->natom   * sizeof(NAME) );
+  if (this->types!=NULL)
+    newParm->types    = (NAME*)   malloc( this->natom   * sizeof(NAME) );
+  if (this->charge!=NULL)
+    newParm->charge   = (double*) malloc( this->natom   * sizeof(double));
+  if (this->mass!=NULL)
+    newParm->mass     = (double*) malloc( this->natom   * sizeof(double));
+  newParm->resnames = (NAME*)   malloc( this->nres    * sizeof(NAME) );
   newParm->resnums  = (int*)    malloc((this->nres+1) * sizeof(int   ));
 
   if (this->molecules>0) 
@@ -957,9 +1046,9 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     atomMap[i]=j;                    // Store this atom in the atom map
     // Copy over atom information
     strcpy(newParm->names[j], this->names[i]);
-    strcpy(newParm->types[j], this->types[i]);
-    newParm->charge[j]      = this->charge[i];
-    newParm->mass[j]        = this->mass[i];
+    if (this->types!=NULL)  strcpy(newParm->types[j], this->types[i]);
+    if (this->charge!=NULL) newParm->charge[j]      = this->charge[i];
+    if (this->mass!=NULL)   newParm->mass[j]        = this->mass[i];
 
     // Check to see if we are in the same residue or not and copy relevant information
     if (ires == -1 || ires != curres) {
@@ -1015,11 +1104,14 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm->pindex = this->pindex;
   
   // Reallocate memory 
-  newParm->charge=(double*) realloc(newParm->charge, newParm->natom * sizeof(double));
-  newParm->mass=(double*) realloc(newParm->mass, newParm->natom * sizeof(double));
+  if (this->types!=NULL)
+    newParm->types=(NAME*) realloc(newParm->types, newParm->natom * sizeof(NAME));
+  if (this->charge!=NULL)
+    newParm->charge=(double*) realloc(newParm->charge, newParm->natom * sizeof(double));
+  if (this->mass!=NULL)
+    newParm->mass=(double*) realloc(newParm->mass, newParm->natom * sizeof(double));
   newParm->resnums=(int*) realloc(newParm->resnums, (newParm->nres+1) * sizeof(int));
   newParm->names=(NAME*) realloc(newParm->names, newParm->natom * sizeof(NAME));
-  newParm->types=(NAME*) realloc(newParm->types, newParm->natom * sizeof(NAME));
   newParm->resnames=(NAME*) realloc(newParm->resnames, (newParm->nres+1) * sizeof(NAME));
   if (newParm->molecules>0)
     newParm->atomsPerMol=(int*) realloc(newParm->atomsPerMol, newParm->molecules * sizeof(int));
@@ -1142,18 +1234,22 @@ int AmberParm::WriteAmberParm() {
   buffer = DataToBuffer(buffer,"%FORMAT(20a4)", NULL, NULL, names, natom);
   outfile.IO->Write(buffer, sizeof(char), BufferSize);
 
-  // CHARGE
-  // Convert charges to AMBER charge units
-  for (atom=0; atom<natom; atom++)
-    charge[atom] *= (ELECTOAMBER);
-  PrintFlagFormat(&outfile, "%FLAG CHARGE", "%FORMAT(5E16.8)");
-  buffer = DataToBuffer(buffer,"%FORMAT(5E16.8)", NULL, charge, NULL, natom);
-  outfile.IO->Write(buffer, sizeof(char), BufferSize);
+  // CHARGE - might be null if read from pdb
+  if (charge!=NULL) {
+    // Convert charges to AMBER charge units
+    for (atom=0; atom<natom; atom++)
+      charge[atom] *= (ELECTOAMBER);
+    PrintFlagFormat(&outfile, "%FLAG CHARGE", "%FORMAT(5E16.8)");
+    buffer = DataToBuffer(buffer,"%FORMAT(5E16.8)", NULL, charge, NULL, natom);
+    outfile.IO->Write(buffer, sizeof(char), BufferSize);
+  }
 
-  // MASS 
-  PrintFlagFormat(&outfile, "%FLAG MASS", "%FORMAT(5E16.8)");
-  buffer = DataToBuffer(buffer,"%FORMAT(5E16.8)", NULL, mass, NULL, natom);
-  outfile.IO->Write(buffer, sizeof(char), BufferSize);
+  // MASS - might be null if read from pdb
+  if (mass!=NULL) { 
+    PrintFlagFormat(&outfile, "%FLAG MASS", "%FORMAT(5E16.8)");
+    buffer = DataToBuffer(buffer,"%FORMAT(5E16.8)", NULL, mass, NULL, natom);
+    outfile.IO->Write(buffer, sizeof(char), BufferSize);
+  }
 
   // RESIDUE LABEL - resnames
   PrintFlagFormat(&outfile, "%FLAG RESIDUE_LABEL", "%FORMAT(20a4)");

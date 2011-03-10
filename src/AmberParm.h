@@ -104,6 +104,7 @@ class AmberParm {
     int atomToMolecule(int);
     int atomToSolventMolecule(int);
     AmberParm *modifyStateByMask(int *, int);
+    AmberParm *modifyStateByMap(int *);
     int WriteAmberParm(); 
 };
 #endif
