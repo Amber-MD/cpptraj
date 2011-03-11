@@ -45,6 +45,7 @@ class AtomMap : public Action {
     bool maponly;
     Frame *newFrame;
     AmberParm *newParm;
+    AmberParm *stripParm; // For stripping reference
   public:
     AtomMap(); 
     ~AtomMap();

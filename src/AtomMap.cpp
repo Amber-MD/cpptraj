@@ -56,40 +56,89 @@ void atommap::SetDebug(int debugIn) {
 /*
  * atommap::getCut() 
  * Return a cutoff based on optimal covalent bond distance based on the 
- * identities of atom1 and atom2.
- * Treat X as chlorine for now.
+ * identities of atom1 and atom2. When multiple hybridizations are possible
+ * the longest possible bond length is used.
+ * Treat X as chlorine for now, Y as Bromine.
+ * Unless otherwise noted values taken from:
+ *   Huheey, pps. A-21 to A-34; T.L. Cottrell, "The Strengths of Chemical Bonds," 
+ *       2nd ed., Butterworths, London, 1958; 
+ *   B. deB. Darwent, "National Standard Reference Data Series," National Bureau of Standards, 
+ *       No. 31, Washington, DC, 1970; S.W. Benson, J. Chem. Educ., 42, 502 (1965).
+ * Can be found on the web at:
+ *   http://www.wiredchemist.com/chemistry/data/bond_energies_lengths.html
  */
 double atommap::getCut(char *atom1, char *atom2) {
-  double cut;
-
-  cut=1.60;
+  // Default cutoff
+  double cut=1.60;
 
   // Self
   if (strcmp(atom1,atom2)==0) {
-    if (strcmp(atom1,"H")==0) cut=0.74;
-    if (strcmp(atom1,"N")==0) cut=1.45;
-    if (strcmp(atom1,"C")==0) cut=1.54;
-    if (strcmp(atom1,"O")==0) cut=0.74;
+    if      (strcmp(atom1,"H")==0) cut=0.74;
+    else if (strcmp(atom1,"N")==0) cut=1.45;
+    else if (strcmp(atom1,"C")==0) cut=1.54;
+    else if (strcmp(atom1,"O")==0) cut=1.48;
+    else if (strcmp(atom1,"P")==0) cut=2.21;
+    else if (strcmp(atom1,"S")==0) cut=2.05; // Gas-phase value, S=S is 1.49
   }
-  // Others 
+  // Bonds to H 
   else if ( compareName(atom1,atom2,"H","C")==0 )
     cut=1.09;
   else if ( compareName(atom1,atom2,"H","N")==0 )
     cut=1.01;
   else if ( compareName(atom1,atom2,"H","O")==0 )
     cut=0.96;
+  else if ( compareName(atom1,atom2,"H","P")==0 )
+    cut=1.44;
+  else if ( compareName(atom1,atom2,"H","S")==0 )
+    cut=1.34;
+  // Bonds to C
   else if ( compareName(atom1,atom2,"C","N")==0 )
     cut=1.47;
   else if ( compareName(atom1,atom2,"C","O")==0 )
     cut=1.43;
+  else if ( compareName(atom1,atom2,"C","P")==0 )
+    cut=1.84;
+  else if ( compareName(atom1,atom2,"C","F")==0 )
+    cut=1.35;
   else if ( compareName(atom1,atom2,"C","X")==0 )
-    cut=1.76;
+    cut=1.77;
+  else if ( compareName(atom1,atom2,"C","Y")==0 )
+    cut=1.94;
   else if ( compareName(atom1,atom2,"C","S")==0 )
-    cut=1.83;
+    cut=1.82;
+  // Bonds to N
   else if ( compareName(atom1,atom2,"N","O")==0 )
-    cut=1.47;
-  else if ( compareName(atom1,atom2,"S","O")==0 )
+    cut=1.40;
+  else if ( compareName(atom1,atom2,"N","S")==0 )
+    cut=1.68; // Postma & Vos, Acta Cryst. (1973) B29, 915
+  else if ( compareName(atom1,atom2,"N","F")==0 )
+    cut=1.36;
+  else if ( compareName(atom1,atom2,"N","X")==0 )
+    cut=1.75;
+
+  // Bonds to P
+  else if ( compareName(atom1,atom2,"P","O")==0 )
+    cut=1.63;
+  else if ( compareName(atom1,atom2,"P","S")==0 )
+    cut=1.86;
+  else if ( compareName(atom1,atom2,"P","F")==0 )
+    cut=1.54;
+  else if ( compareName(atom1,atom2,"P","X")==0 )
+    cut=2.03; 
+
+  // Bonds to O
+  else if ( compareName(atom1,atom2,"O","S")==0 )
     cut=1.48;
+  else if ( compareName(atom1,atom2,"O","F")==0 )
+    cut=1.42;
+
+  // Bonds to S
+  else if ( compareName(atom1,atom2,"S","F")==0 )
+    cut=1.56;
+  else if ( compareName(atom1,atom2,"S","X")==0 )
+    cut=2.07;
+
+  // No cutoff, use default
   else {
     if (debug>0) {
       mprintf("Warning: atommap::getCut: Cut not found for %s - %s\n",atom1,atom2);
@@ -97,6 +146,7 @@ double atommap::getCut(char *atom1, char *atom2) {
     }
   }
 
+  // Padding value
   cut+=0.1;
   return cut;
 }
@@ -330,6 +380,7 @@ AtomMap::AtomMap() {
   AMap=NULL;
   newFrame=NULL;
   newParm=NULL;
+  stripParm=NULL;
   maponly=false;
 }
 
@@ -338,6 +389,7 @@ AtomMap::~AtomMap() {
   if (AMap!=NULL) free(AMap);
   if (newFrame!=NULL) delete newFrame;
   if (newParm!=NULL) delete newParm;
+  if (stripParm!=NULL) delete stripParm;
 }
 
 /*
@@ -363,7 +415,7 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
     if (!Ref->M[atom].isUnique) continue;
     tatom = AMap[atom];
     if (tatom<0) {
-      mprintf("Warning: AtomMap::mapChiral: Atom %i in reference is unique but not mapped!\n",
+      mprintf("      Warning: mapChiral: Atom %i in reference is unique but not mapped!\n",
               atom);
       continue;
     }
@@ -392,6 +444,8 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
     for (bond=0; bond<Ref->M[atom].nbond; bond++) {
       r = Ref->M[atom].bond[bond];
       t = AMap[r];
+      // If this bonded atom could not be mapped skip it
+      if (t<0) continue;
       if (Ref->M[r].isUnique && Tgt->M[t].isUnique) {
         uR[nunique] = r;
         uT[nunique] = t;
@@ -521,9 +575,9 @@ int AtomMap::mapUniqueRefToTgt(atommap *Ref, atommap *Tgt, int atom) {
       // This Tgt Name matches and at least 1 bond in common with Ref atom
       // Check that a match has not yet been found for ref
       if (match!=-1) {
-        mprintf("Warning: mapUniqueRefToTgt: Ref %i:%s has multiple potential matches\n",
+        mprintf("      Warning: mapUniqueRefToTgt: Ref %i:%s has multiple potential matches\n",
                 atom,Ref->P->names[atom]);
-        mprintf("         among Tgt [%i:%s, %i:%s]\n",
+        mprintf("               among Tgt [%i:%s, %i:%s]\n",
                 t,Tgt->P->names[t],match,Tgt->P->names[match]);
         return 0;
       }
@@ -562,7 +616,7 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
       if (!Ref->M[atom].isUnique) continue;
       tatom = AMap[atom];
       if (tatom<0) {
-        mprintf("Warning: mapByIndex: Atom %i in reference is unique but not mapped!\n",
+        mprintf("      Warning: mapByIndex: Atom %i in reference is unique but not mapped!\n",
                 atom);
         // Reference atom is unique, but hasnt had a target mapped to it.
         // This can arise when the number of atoms in ref and tgt not equal. 
@@ -575,14 +629,14 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
       // The # of bonds might not be equal if the # atoms in ref and tgt
       // not equal.
       if (Ref->M[atom].nbond!=Tgt->M[tatom].nbond) {
-        mprintf("Warning: mapByIndex: Ref atom %i #bonds %i does not match Tgt atom %i (%i)\n",
+        mprintf("      Warning: mapByIndex: Ref atom %i #bonds %i does not match Tgt atom %i (%i)\n",
                 atom,Ref->M[atom].nbond,tatom,Tgt->M[tatom].nbond);
         //return 1;
       }
       // Skip completely mapped atoms - check that both Ref and Tgt are complete
       if (Ref->M[atom].complete) {
         if (!Tgt->M[tatom].complete) {
-          mprintf("Error: AtomMap:mapByIndex: Ref atom %i is complete but Tgt atom %i is not.\n",
+          mprintf("Error: AtomMap::mapByIndex: Ref atom %i is complete but Tgt atom %i is not.\n",
                 atom,tatom);
           return 1;
         }
@@ -630,7 +684,8 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
       mprintf("Error: AtomMap::mapByIndex: # iterations greater than # atoms.\n");
       return 1;
     }
-    mprintf("  mapByIndex: iteration %i: %i atoms mapped.\n",iterations,numMapped);
+    if (debug>1)
+      mprintf("  mapByIndex: iteration %i: %i atoms mapped.\n",iterations,numMapped);
     // If we didnt map any more atoms this iteration than last, exit
     if (lastMapped == numMapped) break;
     lastMapped = numMapped;
@@ -651,6 +706,7 @@ int AtomMap::init() {
   int refIndex, targetIndex;
   int refatom,targetatom;
   int numMappedAtoms=0;
+  AtomMask *M1;
   
   RefMap.SetDebug(debug);
   TargetMap.SetDebug(debug);
@@ -714,8 +770,8 @@ int AtomMap::init() {
 
   // Number of atoms in each map MUST be equal
   if (RefMap.natom!=TargetMap.natom) {
-    mprintf("AtomMap::init: Warning: # atoms in reference %i not equal\n",RefMap.natom);
-    mprintf("               to # atoms in target %i.\n",TargetMap.natom);
+    mprintf("      AtomMap::init: Warning: # atoms in reference (%i) not equal\n",RefMap.natom);
+    mprintf("                     to # atoms in target (%i).\n",TargetMap.natom);
   }
 
   // Atoms have now been assigned IDs. Match up the unique strings in Ref with 
@@ -732,7 +788,7 @@ int AtomMap::init() {
                       RefMap.M[refatom].unique)==0 ) {
             // Check that number of bonds is consistent
             if (RefMap.M[refatom].nbond!=TargetMap.M[targetatom].nbond) {
-              mprintf("Warning: AtomMap: Atoms R%i and T%i have same ID but different # bonds!\n",
+              mprintf("      Warning: AtomMap: Atoms R%i and T%i have same ID but different # bonds!\n",
                       refatom,targetatom);
             }
             AMap[refatom]=targetatom;
@@ -788,13 +844,37 @@ int AtomMap::init() {
   // NOTE: Could do some sort of strip to remove atoms that
   // could not be mapped.
   if (numMappedAtoms!=RefMap.natom) {
-    mprintf("Error: AtomMap: Not all atoms were mapped.\n");
-    return 1;
+    // If the number of mapped atoms is less than the number of reference
+    // atoms but equal to the number of target atoms, can modify the reference
+    // frame to only include mapped atoms
+    if (numMappedAtoms<RefMap.natom && numMappedAtoms==TargetMap.natom) {
+      // Create mask that includes only reference atoms that could be mapped
+      M1 = new AtomMask();
+      for (refatom=0; refatom<RefMap.natom; refatom++) {
+        if (AMap[refatom]!=-1) M1->AddAtom(refatom);
+      }
+      // Strip reference parm
+      mprintf("    Modifying reference %s topology and frame to match mapped atoms.\n",
+              FL->FrameName(refIndex));
+      stripParm = RefMap.P->modifyStateByMask(M1->Selected, numMappedAtoms);
+      // Strip reference frame
+      newFrame = new Frame(numMappedAtoms,RefMap.P->mass);
+      newFrame->SetFrameFromMask(RefMap.F, M1);
+      delete M1;
+      // Replace reference with stripped versions
+      if (FL->Replace(refIndex, newFrame, stripParm)) {
+        mprintf("Error: AtomMap: Could not strip reference.\n");
+        return 1;
+      }
+    } else {
+      mprintf("Error: AtomMap: Not all atoms were mapped.\n");
+      return 1;
+    }
   }
 
   if (!maponly) {
     // Set up new Frame
-    newFrame = new Frame(RefMap.natom,RefMap.P->mass);
+    newFrame = new Frame(TargetMap.natom,TargetMap.P->mass);
 
     // Set up new Parm
     newParm = TargetMap.P->modifyStateByMap(AMap);
