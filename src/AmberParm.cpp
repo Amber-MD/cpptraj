@@ -738,9 +738,13 @@ int AmberParm::ReadParmMol2() {
   for (atom=0; atom < natom; atom++) {
     if ( File.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
     // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
-    sscanf(buffer,"%*i %s %*f %*f %*f %s %i %s %lf", names[atom], types[atom],
-           &resnum,resName, charge+atom);
+    //sscanf(buffer,"%*i %s %*f %*f %*f %s %i %s %lf", names[atom], types[atom],
+    //       &resnum,resName, charge+atom);
     //mprintf("      %i %s %s %i %s %lf\n",atom,names[atom],types[atom],resnum,resName,charge[atom]);
+    Mol2AtomName(buffer,names[atom]);
+    Mol2AtomType(buffer,types[atom]);
+    Mol2ResNumName(buffer,&resnum,resName);
+    charge[atom]=Mol2Charge(buffer);
     // Check if residue number has changed - if so record it
     if (resnum != currentResnum) {
       resnames = (NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
