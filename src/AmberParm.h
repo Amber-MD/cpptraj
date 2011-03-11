@@ -4,7 +4,7 @@
 
 // Default size for atom and residue names, 4 + NULL
 // NOTE: Also defined in ptrajmask.h
-#define NAMESIZE 5
+#define NAMESIZE 6
 
 class AmberParm {
   public:

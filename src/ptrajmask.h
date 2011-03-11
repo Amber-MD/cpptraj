@@ -15,7 +15,7 @@ typedef struct _stackType {
  * four characters (we will store them as strings, requiring a newline,   *
  * hence the size is 5).                                                  *
  * NOTE: This is also defined in AmberParm.h.                             */
-#define NAME_SIZE 5
+#define NAME_SIZE 6
 #define NAME_DEFAULT "    "
 typedef char Name[NAME_SIZE];
 
