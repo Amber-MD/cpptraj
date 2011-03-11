@@ -39,6 +39,7 @@ class AtomMap : public Action {
     atommap TargetMap;
     int mapChiral(atommap *, atommap *);
     int mapByIndex(atommap *, atommap *);
+    int mapUniqueRefToTgt(atommap *, atommap *, int);
 
     int *AMap;
     bool maponly;
