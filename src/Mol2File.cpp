@@ -9,6 +9,7 @@ Mol2File::Mol2File() {
   mol2atom=0;
   mol2bonds=0;
   Types=NULL;
+  writeMode=0;
 }
 
 // DESTRUCTOR
@@ -19,30 +20,38 @@ Mol2File::~Mol2File() {
  * Mol2File::open()
  */
 int Mol2File::open() {
+  int err;
 
+  err=0;
   switch (File->access) {
-    case READ :
-      if (File->OpenFile()) return 1;
-      break;
+    case READ : err = File->OpenFile(); break;
     case APPEND :
       mprintf("Error: Append not supported for mol2 files.\n");
-      return 1;
+      err=1;
       break;
     case WRITE :
       // Set up title
       if (title==NULL)
         this->SetTitle((char*)"Cpptraj generated mol2 file.\0");
+      // If writing 1 mol2 per frame do not open here
+      if (writeMode!=2) err = File->OpenFile();
       break;
   }
       
-  return 0;
+  return err;
 }
 
 /*
  * Mol2File::close() {
  */
 void Mol2File::close() {
-  File->CloseFile();
+  // On WRITE only close if not writing 1 mol2 per frame
+  if (File->access==WRITE) {
+    if (writeMode!=2) File->CloseFile();
+  } else {
+  // Otherwise just close the file
+    File->CloseFile();
+  }
 }
 
 /*
@@ -118,6 +127,18 @@ int Mol2File::getFrame(int set) {
 }
 
 /*
+ * Mol2File::WriteArgs()
+ * Process arguments related to Mol2 write.
+ */
+int Mol2File::WriteArgs(ArgList *A) {
+  // single: Multiple frames are written to same file (default if #frames >1)
+  if (A->hasKey("single")) writeMode=1;
+  // multi: Each frame is written to a different file
+  if (A->hasKey("multi")) writeMode=2;
+  return 0;
+}
+
+/*
  * Mol2File::SetupWrite()
  */
 int Mol2File::SetupWrite() {
@@ -137,6 +158,9 @@ int Mol2File::SetupWrite() {
   Types = P->types;
   if (P->types==NULL)
     Types = P->names;
+  // If writing more than 1 frame and not writing 1 mol2 per frame,
+  // use MOLECULE to separate frames.
+  if (writeMode==0 && P->parmFrames>1) writeMode=1;
 
   return 0;
 }
@@ -151,10 +175,11 @@ int Mol2File::writeFrame(int set) {
   int atom, atom3, res;
   double Charge;
 
-  //mprintf("DEBUG: Calling Mol2File::writeFrame for set %i\n",set);  
-  sprintf(buffer,"%s.%i",File->filename,set+OUTPUTFRAMESHIFT);
-  if (File->IO->Open(buffer,"wb")) return 1;
-
+  //mprintf("DEBUG: Calling Mol2File::writeFrame for set %i\n",set);
+  if (writeMode==2) {
+    sprintf(buffer,"%s.%i",File->filename,set+OUTPUTFRAMESHIFT);
+    if (File->IO->Open(buffer,"wb")) return 1;
+  }
   //@<TRIPOS>MOLECULE section
   File->IO->Printf("@<TRIPOS>MOLECULE\n");
   // mol_name
@@ -210,7 +235,9 @@ int Mol2File::writeFrame(int set) {
                       res+1, P->ResidueName(res),P->resnums[res]+1);
   }
 
-  File->IO->Close();
+  // If writing 1 pdb per frame, close output file
+  if (writeMode==2)
+    File->IO->Close();
 
   return 0;
 }
@@ -220,4 +247,10 @@ int Mol2File::writeFrame(int set) {
  */
 void Mol2File::Info() {
   mprintf("is a Tripos Mol2 file");
+  if (File->access==WRITE) {
+    if (writeMode==2)
+      mprintf(" (1 file per frame)");
+    else if (writeMode==1)
+      mprintf(" (1 MOLECULE per frame)");
+  }
 }

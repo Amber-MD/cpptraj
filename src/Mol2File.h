@@ -7,6 +7,7 @@ class Mol2File : public TrajFile {
     int mol2atom;
     int mol2bonds;
     AmberParm::NAME *Types;
+    int writeMode; // 0=single mol2, 1=single mol2 with multi MOLECULE, 2=multi mol2s
   public :
 
     Mol2File();
@@ -16,6 +17,7 @@ class Mol2File : public TrajFile {
     void close();
     int getFrame(int);
     int SetupRead();
+    int WriteArgs(ArgList *);
     int SetupWrite();
     int writeFrame(int);
     void Info();

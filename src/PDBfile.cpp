@@ -135,7 +135,7 @@ int PDBfile::getFrame(int set) {
  * Process arguments related to PDB write.
  */
 int PDBfile::WriteArgs(ArgList *A) {
-  // model: Multiple frames use model keyword (default if #frames<=1)
+  // model: Multiple frames use model keyword (default if #frames>1)
   if (A->hasKey("model")) writeMode=1; 
   // multi: Each frame is written to a different file
   if (A->hasKey("multi")) writeMode=2; 
@@ -155,7 +155,6 @@ int PDBfile::SetupWrite( ) {
 /*
  * PDBfile::writeFrame()
  * Write the frame (model) to PDB file.
- * NOTE: Eventually give option to write individual files or models.
  */
 int PDBfile::writeFrame(int set) {
   int i,i3,res,atom,mol,lastAtomInMol;
