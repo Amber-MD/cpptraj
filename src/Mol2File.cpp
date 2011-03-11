@@ -47,29 +47,49 @@ void Mol2File::close() {
 
 /*
  * Mol2File::SetupRead()
+ * See how many MOLECULE records are in file, make sure num atoms match
+ * parm and each frame.
  */
 int Mol2File::SetupRead() {
+  int frameAtom;
   char buffer[MOL2BUFFERSIZE];
 
   if (this->open()) return 1;
 
+  Frames=0;
   // Get @<TRIPOS>MOLECULE information
-  if (Mol2ScanTo(this->File, MOLECULE)) return 1;
-  //   Scan title
-  if ( File->IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1; 
-  this->SetTitle(buffer);
-  if (debug>0) mprintf("    Mol2 Title: [%s]\n",title);
-  //   Scan # atoms
-  if ( File->IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
-  sscanf(buffer,"%i",&mol2atom);
-  if (debug>0) mprintf("    Mol2 #atoms: %i\n",mol2atom);
-  if (mol2atom!=P->natom) {
-    mprintf("Error: # atoms in mol2 file (%i) not equal to # atoms\n");
-    mprintf("       in associated parm file %s (%i).\n",P->parmName,P->natom);
+  while (Mol2ScanTo(this->File, MOLECULE)==0) {
+    //   Scan title
+    if ( File->IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1; 
+    // On first frame set title
+    if (Frames==0) {
+      this->SetTitle(buffer);
+      if (debug>0) mprintf("    Mol2 Title: [%s]\n",title);
+    }
+    //   Scan # atoms
+    if ( File->IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+    sscanf(buffer,"%i",&frameAtom);
+    if (Frames==0) {
+      mol2atom=frameAtom;
+      if (debug>0) mprintf("    Mol2 #atoms: %i\n",mol2atom);
+    }
+    if (frameAtom!=P->natom) {
+      mprintf("Error: # atoms in mol2 file frame %i (%i) not equal to # atoms\n",Frames,frameAtom);
+      mprintf("       in associated parm file %s (%i).\n",P->parmName,P->natom);
+      return 1;
+    }
+    if (frameAtom!=mol2atom) {
+      mprintf("Error: # atoms in mol2 file frame %i (%i) not equal to # atoms\n",Frames,frameAtom);
+      mprintf("       in first frame (%i).\n",mol2atom);
+      mprintf("       Only using frame 1.\n");
+      Frames=1;
+      break;
+    }
+    Frames++;
   }
 
-  // Currently allow only 1 Frame
-  Frames=1;
+  this->close();
+  mprintf("      Mol2 file %s has %i frames.\n",trajfilename,Frames);
   stop=Frames;
 
   return 0;
@@ -159,7 +179,7 @@ int Mol2File::writeFrame(int set) {
   for (atom=0; atom < F->natom; atom++) {
     res = P->atomToResidue(atom);
     if (P->charge!=NULL) Charge = P->charge[atom]; 
-    File->IO->Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-4s %6i %-6s %10.6lf\n",
+    File->IO->Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
                      atom+1, P->names[atom], F->X[atom3], F->X[atom3+1], F->X[atom3+2],
                      Types[atom], res+1, P->ResidueName(res), Charge);
     atom3+=3;
