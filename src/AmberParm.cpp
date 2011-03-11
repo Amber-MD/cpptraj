@@ -931,6 +931,7 @@ int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
 AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   AmberParm *newParm;
   int j=0;
+  int *ReverseMap;
 
   newParm = new AmberParm(debug);
   // Allocate space for arrays and perform initialization
@@ -944,10 +945,13 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
     newParm->mass     = (double*) malloc( this->natom   * sizeof(double));
   newParm->resnames = (NAME*)   malloc( this->nres    * sizeof(NAME) );
   newParm->resnums  = (int*)    malloc((this->nres+1) * sizeof(int   ));
+  // Need reverse of AMap, Map[tgt atom] = ref atom for setting up bonds
+  ReverseMap = (int*) malloc(this->natom * sizeof(int));
 
   // Loop over all atoms in this parm, map them to new parm
   for (int i=0; i < this->natom; i++) {
     j = AMap[i];
+    ReverseMap[j] = i;
     strcpy(newParm->names[i], this->names[j]);
     if (this->types!=NULL)  strcpy(newParm->types[i], this->types[j]);
     if (this->charge!=NULL) newParm->charge[i] =      this->charge[j];
@@ -967,10 +971,12 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   newParm->resnums[this->nres] = this->natom;
 
   // Set up bond arrays
-  newParm->bondsh = SetupBondArray(AMap, this->values[NBONH]*3, this->bondsh,
+  newParm->bondsh = SetupBondArray(ReverseMap, this->values[NBONH]*3, this->bondsh,
                                    &(newParm->values[NBONH]));
-  newParm->bonds  = SetupBondArray(AMap, this->values[MBONA]*3, this->bonds,
-                                   &(newParm->values[MBONA])); 
+  newParm->bonds  = SetupBondArray(ReverseMap, this->values[MBONA]*3, this->bonds,
+                                   &(newParm->values[MBONA]));
+  // Clear reverse map
+  free(ReverseMap); 
 
   // Set up new parm information
   newParm->natom = this->natom;
