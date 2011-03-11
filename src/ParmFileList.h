@@ -23,6 +23,7 @@ class ParmFileList {
     int Add(AmberParm *);
     AmberParm *GetParm(int);
     int GetParmIndex(char *);
+    int Replace(int, AmberParm *);
     void Print();
 };
 #endif

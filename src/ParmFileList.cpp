@@ -107,6 +107,18 @@ int ParmFileList::Add(AmberParm *ParmIn) {
   return 0;
 }
 
+/*
+ * ParmFileList::Replace()
+ * Replace parm file at given position with newParm. If this list has only
+ * copies do not delete the old parm, just replace.
+ */
+int ParmFileList::Replace(int num, AmberParm *newParm) {
+  if (num>=Nparm || num<0) return 1;
+  if (hasCopies==0) delete ParmList[num];
+  ParmList[num]=newParm;
+  return 0;
+}
+
 // Print list of loaded parameter files
 void ParmFileList::Print() {
   int i;

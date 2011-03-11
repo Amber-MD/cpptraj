@@ -62,6 +62,20 @@ Frame *FrameList::GetFrame(int idx) {
   return frameList[idx];
 }
 
+/*
+ * FrameList::Replace()
+ * Replace the frame/parm at the given position with the given frame/parm.
+ * The old frame is deleted. 
+ */
+int FrameList::Replace(int idx, Frame *newFrame, AmberParm *newParm) {
+  if (newFrame==NULL || newParm==NULL) return 1;
+  if (idx<0 || idx>=Nframe) return 1;
+  delete frameList[idx];
+  frameList[idx]=newFrame;
+  if (FrameParm.Replace(idx,newParm)) return 1;
+  return 0;
+}
+
 /* 
  * FrameList::Info()
  * Print a list of trajectory names that frames have been taken from.
@@ -76,3 +90,13 @@ void FrameList::Info() {
     mprintf("    %i: %s frame %i\n",fn,frameNames[fn].c_str(),
             frameNums[fn]+OUTPUTFRAMESHIFT);
 }
+
+/*
+ * FrameList::FrameName()
+ * Return name of given frame.
+ */
+const char *FrameList::FrameName(int idx) {
+  if (idx<0 || idx>=Nframe) return NULL;
+  return frameNames[idx].c_str();
+}
+
