@@ -4,6 +4,8 @@
 #include "AtomMap.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
+// DEBUG
+//#include "Mol2File.h"
 
 //--------- PRIVATE ROUTINES ---------------------------------------
 /*
@@ -239,8 +241,9 @@ void atommap::markComplete() {
 void atommap::determineAtomID() {
   int i,j,atom;
   char *formula;
-  bool isRepeated;
-  int k, atom2;
+  // DEBUG
+  //bool isRepeated;
+  //int k, atom2;
 
   formula=(char*) malloc(ATOMIDLENGTH*sizeof(char));
   if (debug>0) mprintf("ATOM IDs:\n");
@@ -279,11 +282,12 @@ void atommap::determineAtomID() {
     }
   }
 
+  // DEBUG
   // For each atom with a truly unique ID, determine if it is bonded to a
   // non-unique partner. If that partner is itself unique among bonded
   // partners (e.g. H2-C-N where C is unique, N is unique by extension),
   // give it a unique ID of atomID-element
-  for (i=0; i<natom; i++) {
+/*  for (i=0; i<natom; i++) {
     if (M[i].isUnique) {
       // Check bonds of unique atom i for non-unique
       for (j=0; j<M[i].nbond; j++) {
@@ -302,15 +306,18 @@ void atommap::determineAtomID() {
           } // END loop k over bonds of atom i
           // If non-unique atom is not repeated, give it a unique ID
           if (!isRepeated) {
-            strcpy(M[atom].unique,M[i].unique);
-            strcat(M[atom].unique,"-");
-            strcat(M[atom].unique,names[atom]);
-            M[atom].isUnique=1;
+            mprintf("DBG: Non-unique Atom %i:%s could be unique by extension.\n",
+                    atom,names[atom]);
+            //strcpy(M[atom].unique,M[i].unique);
+            //strcat(M[atom].unique,"-");
+            //strcat(M[atom].unique,names[atom]);
+            //M[atom].isUnique=1;
           }
         } // End if bonded atom is not unique
       } // End loop j over bonds of atom i
     } // End if atom i is unique
   } // End loop i over atoms in map 
+*/
 
   // Debug Output
   if (debug>0) {
@@ -322,6 +329,29 @@ void atommap::determineAtomID() {
     }
   }
   
+}
+
+/*
+ * atommap::BondIsRepeated()
+ * Check if the name of the atom in bond <bond> bonded to atom <atom>
+ * is the same as the name of any other non-unique atom bonded to 
+ * atom <atom>.
+ */
+bool atommap::BondIsRepeated(int atom, int bond) {
+  int bondedAtom,bondedAtom2;
+  // If 1 or no bonds, atom cant possibly be repeated.
+  if (M[atom].nbond<2) return false;
+  bondedAtom = M[atom].bond[bond];
+  for (int n=0; n < M[atom].nbond; n++) {
+    if (n==bond) continue;
+    bondedAtom2 = M[atom].bond[n];
+    //mprintf("              %i) %i:%s %i:%s\n",n,bondedAtom,names[bondedAtom],
+    //        bondedAtom2,names[bondedAtom2]);
+    // If bondedAtom2 is unique dont check it
+    if (M[bondedAtom2].isUnique) continue;
+    if (strcmp(names[bondedAtom],names[bondedAtom2])==0) return true;
+  }
+  return false;
 }
 
 /* 
@@ -373,6 +403,40 @@ int atommap::setup() {
   return 0;
 }
 
+// DEBUG
+/*
+void atommap::WriteMol2(char *m2filename) {
+  Mol2File outfile;
+  int *Selected;
+  // Temporary parm to play with
+  AmberParm *tmpParm;
+
+  // Create mask containing all atoms
+  Selected = (int*) malloc(natom*sizeof(int));
+  for (int atom=0; atom<natom; atom++) Selected[atom]=atom;
+  // Fake strip, just use as crap way to copy
+  tmpParm = P->modifyStateByMask(Selected,natom);
+  free(Selected);
+  // Modify the bonds array to include this info
+  tmpParm->ResetBondInfo();
+  for (int atom=0; atom<natom; atom++) 
+    for (int bond=0; bond < M[atom].nbond; bond++) 
+      tmpParm->AddBond(atom, M[atom].bond[bond], 0);
+
+  // Trajectory Setup
+  outfile.File=new PtrajFile();
+  outfile.File->SetupFile(m2filename,WRITE,MOL2FILE,UNKNOWN_TYPE,debug);
+  outfile.trajfilename = outfile.File->basefilename;
+  outfile.debug=debug;
+  outfile.SetTitle(m2filename);
+  outfile.P=P;
+  outfile.SetupWrite();
+  outfile.open();
+  outfile.F=F;
+  outfile.writeFrame(0);
+  outfile.close();
+  delete tmpParm;
+}*/
 // ============================================================================
 
 // CONSTRUCTOR
@@ -391,6 +455,61 @@ AtomMap::~AtomMap() {
   if (newParm!=NULL) delete newParm;
   if (stripParm!=NULL) delete stripParm;
 }
+
+/*
+ * AtomMap::mapSingleBonds()
+ */
+int AtomMap::mapSingleBonds(atommap *Ref, atommap *Tgt) {
+  int atom,bond,r;
+  int tatom,tbond,t;
+
+  for (atom=0; atom < Ref->natom; atom++) {
+    // Skip non-unique atoms in Ref
+    if (!Ref->M[atom].isUnique) continue;
+    // Unique atoms should be mapped
+    tatom = AMap[atom];
+    if (tatom<0) {
+      mprintf("      Warning: mapSingleBonds: Ref %i is unique but not mapped.\n",atom);
+      continue;
+    }
+    // For each non-unique atom bonded to unique Reference atom, try to 
+    // find a matching non-unique atom in Target by virtue of it being the
+    // only possible match.
+    for (bond=0; bond < Ref->M[atom].nbond; bond++) {
+      r = Ref->M[atom].bond[bond];
+      // Check that bonded atom r is not unique
+      if (Ref->M[r].isUnique) continue;
+      //mprintf("        Ref: Checking non-unique %i:%s bonded to %i:%s\n",r,Ref->names[r],
+      //        atom,Ref->names[atom]);
+      // Check that non-unique bonded ref atom r name is not the same as any other 
+      // non-unique bonded atom.
+      if ( Ref->BondIsRepeated(atom, bond) ) continue;
+      // At this point r is the only one of its kind bonded to atom.
+      // Check if there is an analogous atom bonded to unique Target atom
+      // tatom.
+      for (tbond=0; tbond < Tgt->M[tatom].nbond; tbond++) {
+        t = Tgt->M[tatom].bond[tbond];
+        // Check that bonded atom t is not unique
+        if (Tgt->M[t].isUnique) continue;
+        //mprintf("          Tgt: Checking non-unique %i:%s bonded to %i:%s\n",t,Tgt->names[t],
+        //        tatom,Tgt->names[tatom]);
+        // Check that non-unique bonded tgt atom t name is not the same as any other
+        // non-unique bonded atom.
+        if ( Tgt->BondIsRepeated(tatom, tbond) ) continue;
+        // At this point t is the only one of its kind bonded to tatom.
+        // Check if its name matches r. If so, map it.
+        if ( strcmp(Ref->names[r], Tgt->names[t])==0 ) {
+          if (debug>0) 
+            mprintf("    Mapping tgt %i to ref %i based on single bond to unique.\n",t,r);
+          AMap[r]=t;
+          Ref->M[r].isUnique=1;
+          Tgt->M[t].isUnique=1;
+        }
+      } // End loop over atoms bonded to tatom
+    } // End loop over atoms bonded to atom
+  } // End loop over ref atoms
+  return 0;
+}        
 
 /*
  * AtomMap::mapChiral()
@@ -444,16 +563,19 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
     for (bond=0; bond<Ref->M[atom].nbond; bond++) {
       r = Ref->M[atom].bond[bond];
       t = AMap[r];
-      // If this bonded atom could not be mapped skip it
-      if (t<0) continue;
-      if (Ref->M[r].isUnique && Tgt->M[t].isUnique) {
-        uR[nunique] = r;
-        uT[nunique] = t;
-        nunique++;
+      // Bonded atom r is not unique
+      if (!Ref->M[r].isUnique) {
+        nR[notunique++] = r;
+      // Bonded atom r is unique. If a target was mapped to it and is unique
+      // (i.e. it is the same atom) store it.
       } else {
-        nR[notunique] = r;
-        nT[notunique] = t;
-        notunique++;
+        if (t>=0) {
+          if (Ref->M[r].isUnique && Tgt->M[t].isUnique) {
+            uR[nunique] = r;
+            uT[nunique] = t;
+            nunique++;
+          }
+        } 
       }
     }
     // At this point non-unique atoms in nT are -1 by definition. Fill nT
@@ -463,6 +585,8 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
       t = Tgt->M[tatom].bond[bond];
       if (!Tgt->M[t].isUnique) nT[r++] = t;
     }
+    // notunique should be the same as r
+    if (notunique!=r) mprintf("Warning: Ref and Tgt do not have the same # of nonunique atoms.\n");
     if (debug>0) { 
       mprintf("  Potential Chiral center %i_%s/%i_%s: Unique atoms=%i, non-Unique=%i/%i\n",
               atom,Ref->names[atom],tatom,Tgt->names[tatom],nunique,notunique,r);
@@ -762,10 +886,12 @@ int AtomMap::init() {
 
   RefMap.setup();
   RefMap.calcDist();
+  //RefMap.WriteMol2((char*)"RefMap.mol2\0"); // DEBUG
   RefMap.determineAtomID();
 
   TargetMap.setup();
   TargetMap.calcDist();
+  //TargetMap.WriteMol2((char*)"TargetMap.mol2\0"); // DEBUG
   TargetMap.determineAtomID();
 
   // Number of atoms in each map MUST be equal
@@ -802,6 +928,10 @@ int AtomMap::init() {
       } // Loop over target atoms
     } // If reference atom is unique
   } // Loop over reference atoms
+
+  // map atoms that are unique by virtue of being the only ones bonded to
+  // other unique atoms
+  mapSingleBonds(&RefMap, &TargetMap);
 
   // Search for completely mapped atoms. If an atom and all atoms
   // it is bonded to are unique, mark the atom as completely mapped.

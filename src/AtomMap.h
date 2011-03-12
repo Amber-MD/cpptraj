@@ -31,12 +31,16 @@ class atommap {
     double getCut(char *, char *); // Determine bond length cutoff between two atoms
     int calcDist();                // Determine bonds between atoms based on distance
     void determineAtomID();        // Give each atom an id based on what atoms are bonded to it
-    void markComplete();           // Mark unique atoms bonded to all unique atoms as complete 
+    void markComplete();           // Mark unique atoms bonded to all unique atoms as complete
+    bool BondIsRepeated(int,int);  // True if bonded atom has same name as another bonded atom
+    // DEBUG
+    //void WriteMol2(char *);
 };
 
 class AtomMap : public Action {
     atommap RefMap;
     atommap TargetMap;
+    int mapSingleBonds(atommap *, atommap *);
     int mapChiral(atommap *, atommap *);
     int mapByIndex(atommap *, atommap *);
     int mapUniqueRefToTgt(atommap *, atommap *, int);
