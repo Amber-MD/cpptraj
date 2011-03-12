@@ -885,6 +885,53 @@ int AmberParm::atomToSolventMolecule(int atom) {
 }
 
 /*
+ * AmberParm::ResetBondInfo()
+ * Reset the bonds and bondsh arrays, as well as NBONH and MBONA
+ */
+void AmberParm::ResetBondInfo() {
+  if (bonds!=NULL) free(bonds);
+  bonds=NULL;
+  if (bondsh!=NULL) free(bondsh);
+  bondsh=NULL;
+  if (values!=NULL) {
+    values[NBONH]=0;
+    values[MBONA]=0;
+  }
+}
+
+/*
+ * AmberParm::AddBond()
+ * Add bond info for the two atoms. Attempt to identify if it is a bond
+ * to hydrogen or not based on names. The atom numbers should start from 0.
+ * Atom indices in bond arrays are * 3.
+ */
+int AmberParm::AddBond(int atom1, int atom2, int icb) {
+  bool isH=false;
+  int N;
+  if (atom1<0 || atom2<0 || atom1>=natom || atom2>=natom) return 1;
+  if (names!=NULL) {
+    if (names[atom1][0]=='H') isH=true;
+    if (names[atom2][0]=='H') isH=true;
+  }
+  if (isH) {
+    N = values[NBONH];
+    bondsh = (int*) realloc(bondsh, ((N+1)*3) * sizeof(int));
+    bondsh[N  ] = atom1 * 3;
+    bondsh[N+1] = atom2 * 3;
+    bondsh[N+2] = icb;
+    values[NBONH]++;
+  } else {
+    N = values[MBONA];
+    bonds = (int*) realloc(bonds, ((N+1)*3) * sizeof(int));
+    bonds[N  ] = atom1 * 3;
+    bonds[N+1] = atom2 * 3;
+    bonds[N+2] = icb;
+    values[MBONA]++;
+  }
+  return 0;
+}
+
+/*
  * SetupBondArray()
  * Given an atom map and new parm, set up bond array
  * NOTE: Set up atom map to be atom*3??
