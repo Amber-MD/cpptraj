@@ -996,6 +996,16 @@ int AtomMap::init() {
         mprintf("Error: AtomMap: Could not strip reference.\n");
         return 1;
       }
+      // Since AMap[ ref ] = tgt but ref is now missing any stripped atoms,
+      // the indices of AMap must be shifted to match
+      refIndex=0; // The new index
+      for (refatom=0; refatom<RefMap.natom; refatom++) {
+        targetatom = AMap[refatom];
+        if (targetatom<0)
+          continue;
+        else
+          AMap[refIndex++]=targetatom;
+      }
     } else {
       mprintf("Error: AtomMap: Not all atoms were mapped.\n");
       return 1;
