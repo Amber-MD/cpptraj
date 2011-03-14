@@ -494,6 +494,10 @@ AtomMap::~AtomMap() {
 
 /*
  * AtomMap::mapSingleBonds()
+ * For each unique atom R in reference mapped to unique atom T in target,
+ * try to match up non-mapped reference atoms r bonded to R to non-mapped
+ * target atoms t bonded to T. Checking is very strict in this routine; 
+ * r and t must be the only possible match and the atomIDs must match.
  */
 int AtomMap::mapSingleBonds(atommap *Ref, atommap *Tgt) {
   int atom,bond,r;
@@ -566,6 +570,11 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
   newchiral=true;
 
   while (newchiral) {
+
+  // Since more atoms may have been mapped, attempt to map atoms based on 
+  // whether they are the only non-mapped atom bonded to a currently 
+  // mapped atom.
+  mapSingleBonds(Ref,Tgt);
 
   // newchiral will be set to true only if new atoms get mapped.
   newchiral=false;
@@ -762,7 +771,7 @@ int AtomMap::mapUniqueRefToTgt(atommap *Ref, atommap *Tgt, int atom) {
  * Given to atommaps and a map relating the two, attempt to map any remaining
  * incomplete atoms by assuming the atom indices in reference and target are
  * in similar orders. At this point all unique atoms should have been mapped.
- * Chiral centers will be looked for first (mapChirral). Then for each 
+ * Chiral centers will be looked for first (mapChiral). Then for each 
  * reference atom R check if R is unique but not mapped and attempt to match it 
  * to a non-mapped target based on local bonding environment 
  * (mapUniqueRefToTgt). Lastly, for reference atom R mapped to target atom T, 
