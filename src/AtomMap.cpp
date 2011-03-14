@@ -502,6 +502,12 @@ AtomMap::~AtomMap() {
 int AtomMap::mapSingleBonds(atommap *Ref, atommap *Tgt) {
   int atom,bond,r;
   int tatom,tbond,t;
+  bool newSingle=true;
+
+  while (newSingle) {
+
+  // newSingle will be set back to true if any atoms are mapped
+  newSingle=false;
 
   for (atom=0; atom < Ref->natom; atom++) {
     // Skip non-unique atoms in Ref
@@ -546,10 +552,13 @@ int AtomMap::mapSingleBonds(atommap *Ref, atommap *Tgt) {
           AMap[r]=t;
           Ref->M[r].isUnique=1;
           Tgt->M[t].isUnique=1;
+          newSingle=true;
         }
       } // End loop over atoms bonded to tatom
     } // End loop over atoms bonded to atom
   } // End loop over ref atoms
+
+  } // End loop over newSingle
   return 0;
 }        
 
@@ -581,7 +590,7 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
 
   for (atom=0; atom<Ref->natom; atom++) {
     if (!Ref->M[atom].isUnique) continue;
-    //mprintf("DBG: mapChiral: Ref atom %i:%s\n",atom,Ref->P->names[atom]);
+    mprintf("DBG: mapChiral: Ref atom %i:%s\n",atom,Ref->P->names[atom]);
     tatom = AMap[atom];
     if (tatom<0) {
       mprintf("      Warning: mapChiral: Ref atom %i:%s is unique but not mapped!\n",
@@ -647,8 +656,7 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
     }
     // If all atoms are unique no need to map
     if (nunique==5) continue;
-    // Require at least 3 unique atoms for dihedral calc. If < 3 unique this is
-    // probably not really a chircal center anyway.
+    // Require at least 3 unique atoms for dihedral calc. 
     if (nunique<3) {
       if (debug>0) 
         mprintf("    Warning: Center has < 3 mapped atoms, dihedral cannot be calcd.\n");
