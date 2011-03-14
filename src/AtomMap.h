@@ -27,14 +27,17 @@ class atommap {
     atommap();
     ~atommap();
     void SetDebug(int);
-    int setup();                   // Set up atom map, get atom elmt names, init map
-    double getCut(char *, char *); // Determine bond length cutoff between two atoms
-    int calcDist();                // Determine bonds between atoms based on distance
-    void determineAtomID();        // Give each atom an id based on what atoms are bonded to it
-    void markComplete();           // Mark unique atoms bonded to all unique atoms as complete
-    bool BondIsRepeated(int,int);  // True if bonded atom has same name as another bonded atom
+    const char *atomID(int);
+    const char *Aname(int);
+    int setup();                    // Set up atom map, get atom elmt names, init map
+    double getCut(char *, char *);  // Determine bond length cutoff between two atoms
+    int calcDist();                 // Determine bonds between atoms based on distance
+    void determineAtomID();         // Give each atom an id based on what atoms are bonded to it
+    void markAtomComplete(int,bool);// Mark complete if atom and all atoms bonded to it are unique
+    void markComplete();            // Mark unique atoms bonded to all unique atoms as complete
+    bool BondIsRepeated(int,int);   // True if bonded atom has same name as another bonded atom
     // DEBUG
-    //void WriteMol2(char *);
+    void WriteMol2(char *);
 };
 
 class AtomMap : public Action {
