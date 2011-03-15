@@ -3,18 +3,25 @@
 // AtomMap
 #include "Action.h"
 
-#define ATOMIDLENGTH 26
-#define UNIQUELENGTH 131
+// Max number of bonds any given atom can have
 #define MAXBONDS 6
+// Hold 1 char for atom and each atom it is bonded to (+null)
+// 1 + maxbonds + 1
+#define ATOMIDLENGTH 8
+// Hold atomID and each atomID it is bonded to (+null)
+// atomidlength * (1 + maxbonds) + 1
+#define UNIQUELENGTH 57
 // Class: atommap
 class atommap {
     struct mapatom {
       int bond[MAXBONDS];        // Holds indices of other bonded atoms
       int nbond;                 // Number of bonds
       bool complete;             // true: This atom an all bonded atoms have been mapped
+      bool isChiral;             // true: Atom is a chiral center
       char atomID[ATOMIDLENGTH]; // ID created from this atom name, then bonded atom names 
       char unique[UNIQUELENGTH]; // ID created from this atomID, then bonded atomIDs
-      int isUnique;              // 1 if no other unique ID matches this atom
+      bool isUnique;             // true: no other unique ID matches this atom
+      bool isMapped;             // true: this atom has been mapped
     };
     int debug;
   public:
