@@ -6,7 +6,7 @@
 #define ATOMIDLENGTH 26
 #define UNIQUELENGTH 131
 #define MAXBONDS 6
-
+// Class: atommap
 class atommap {
     struct mapatom {
       int bond[MAXBONDS];        // Holds indices of other bonded atoms
@@ -39,14 +39,15 @@ class atommap {
     // DEBUG
     void WriteMol2(char *);
 };
-
+// Class: AtomMap
 class AtomMap : public Action {
     atommap RefMap;
     atommap TargetMap;
-    int mapSingleBonds(atommap *, atommap *);
+    int mapBondsToUnique(atommap *, atommap *);
     int mapChiral(atommap *, atommap *);
     int mapByIndex(atommap *, atommap *);
     int mapUniqueRefToTgt(atommap *, atommap *, int);
+    int MapAtoms(atommap *, atommap *);
 
     int *AMap;
     bool maponly;
