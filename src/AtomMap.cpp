@@ -98,7 +98,7 @@ double atommap::getCut(char *atom1, char *atom2) {
     else if (strcmp(atom1,"C")==0) cut=1.54;
     else if (strcmp(atom1,"O")==0) cut=1.48;
     else if (strcmp(atom1,"P")==0) cut=2.21;
-    else if (strcmp(atom1,"S")==0) cut=2.05; // Gas-phase value, S=S is 1.49
+    else if (strcmp(atom1,"S")==0) cut=2.05; // S-S gas-phase value; S=S is 1.49
   }
   // Bonds to H 
   else if ( compareName(atom1,atom2,"H","C")==0 )
@@ -330,6 +330,8 @@ void atommap::determineAtomID() {
         // This unique string is duplicated, set isUnique flags to false
         M[i].isUnique=false;
         M[j].isUnique=false;
+        M[i].Nduplicated++;
+        M[j].Nduplicated++;
       }
     }
   }
@@ -375,12 +377,11 @@ void atommap::determineAtomID() {
   if (debug>0) {
     mprintf("UNIQUE IDs:\n");
     for (i=0; i<natom; i++) {
-      mprintf("  Atom %i : %s",i,M[i].unique);
+      mprintf("  Atom %6i [%3i]: %s",i,M[i].Nduplicated,M[i].unique);
       if (M[i].isUnique) mprintf(" UNIQUE!");
       mprintf("\n");
     }
   }
-  
 }
 
 /*
@@ -452,6 +453,7 @@ int atommap::setup() {
     memset(M[atom].atomID,' ',ATOMIDLENGTH);
     memset(M[atom].unique,' ',UNIQUELENGTH);
     M[atom].isUnique=true; // Assume unique until proven otherwise
+    M[atom].Nduplicated=0;
     M[atom].isMapped=false;
   }
   return 0;
@@ -914,15 +916,114 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
   return numAtomsMapped;
 }
 
+
+/*
+ * AtomMap::MapUniqueAtoms()
+ * Map unique atoms in reference to unique atoms in target. If no atoms
+ * can be mapped in this way, attempt to guess a starting point based
+ * first on uniqueID, then by chirality.
+ * Return number of atoms mapped.
+ */
+int AtomMap::MapUniqueAtoms(atommap *Ref, atommap *Tgt) {
+  int refatom,targetatom;
+  std::list<int> refGuess;
+  std::list<int> tgtGuess;
+  int numAtomsMapped=0;
+  // Atoms have now been assigned IDs. Match up the unique strings in Ref with 
+  // unique strings in target.
+  for (refatom=0; refatom<Ref->natom; refatom++) {
+    AMap[refatom]=-1;
+    // If the ID of this reference atom is unique, look for same ID in target
+    if (Ref->M[refatom].isUnique) {
+      for (targetatom=0; targetatom<Tgt->natom; targetatom++) {
+        // If ID of thie target atom is unique, check if it matches reference atom ID
+        if (Tgt->M[targetatom].isUnique) {
+          if ( strcmp(Tgt->M[targetatom].unique, Ref->M[refatom].unique)==0 ) {
+            // Check that number of bonds is consistent
+            if (Ref->M[refatom].nbond!=Tgt->M[targetatom].nbond) {
+              mprintf("      Warning: AtomMap: Atoms R%i and T%i have same ID but different # bonds!\n",
+                      refatom,targetatom);
+            }
+            AMap[refatom]=targetatom;
+            Ref->M[refatom].isMapped=true;
+            Tgt->M[targetatom].isMapped=true;
+            numAtomsMapped++;
+            if (debug>0) {
+              mprintf("    Mapping Tgt %i:%s to Ref %i:%s based on unique ID\n",
+                      targetatom,Tgt->Aname(targetatom),
+                      refatom,Ref->Aname(refatom));
+            }
+          } // If unique strings match
+        } // If target atom is unique
+      } // Loop over target atoms
+    } // If reference atom is unique
+  } // Loop over reference atoms
+
+  // If no unique atoms could be mapped it means the molecule is probably
+  // very symmetric. At this point just try to guess a good starting
+  // point. Map the first atoms that have a uniqueID duplicated only 1
+  // time, preferably a chiral center.
+  if (numAtomsMapped==0) {
+    mprintf("      Warning: No unique atoms found, usually indicates highly symmetric system.\n");
+    mprintf("               Trying to guess starting point.\n");
+    for (refatom=0; refatom < Ref->natom; refatom++) {
+      if (Ref->M[refatom].Nduplicated==1) {
+        if (Ref->M[refatom].isChiral) 
+          refGuess.push_front(refatom);
+        else 
+          refGuess.push_back(refatom);
+      }
+    }
+    for (targetatom=0; targetatom < Tgt->natom; targetatom++) {
+      if (Tgt->M[targetatom].Nduplicated==1) {
+        if (Tgt->M[targetatom].isChiral)
+          tgtGuess.push_front(targetatom);
+        else
+          tgtGuess.push_back(targetatom);
+      }
+    }
+    if (refGuess.empty()) {
+      mprintf("Error: AtomMap: Could not find starting point in reference.\n");
+      return 0;
+    }
+    if (tgtGuess.empty()) {
+      mprintf("Error: AtomMap: Could not find starting point in target.\n");
+      return 0;
+    }
+    for (std::list<int>::iterator r=refGuess.begin(); r!=refGuess.end(); r++) {
+      //mprintf("  Ref %i to ",*r);
+      for (std::list<int>::iterator t=tgtGuess.begin(); t!=tgtGuess.end(); t++) {
+        //mprintf("Tgt %i:",*t);
+        if (strcmp(Ref->M[*r].unique, Tgt->M[*t].unique)==0) {
+          //mprintf(" MATCH!\n");
+          AMap[*r] = (*t);
+          Ref->M[*r].isMapped=true;
+          Tgt->M[*t].isMapped=true;
+          numAtomsMapped++;
+          mprintf("    Mapping Tgt %i:%s to Ref %i:%s based on guess.\n",*t,Tgt->Aname(*t),
+                  *r,Ref->Aname(*r));
+          break;
+        }
+        //mprintf("\n");
+      }
+      if (numAtomsMapped>0) break;
+    }
+    if (numAtomsMapped==0)
+      mprintf("               Could not guess starting point.\n");
+  } // End if numAtomsMapped==0
+  return numAtomsMapped;
+}
+
 /*
  * AtomMap::MapAtoms()
- * Map atoms in tgt to atoms in reference. First map unmapped atoms that
- * are the only one of their kind bonded to a unique atom (mapBondsToUnique).
- * Then map atoms based on chirality; if any atoms are mapped in this way
- * check to see if mapBondToUnique finds new atoms. Last try to guess mapping
- * based on bonds (mapByIndex), which will also attempt to map atoms in Ref
- * that are unique but not mapped to atoms in Tgt (which can happen e.g. if 
- * Tgt is missing atoms).
+ * Map atoms in tgt to atoms in reference. First map any uniquely identified
+ * atoms. Then map unmapped atoms that are the only one of their kind bonded 
+ * to a unique or already mapped atom (mapBondsToUnique). Then map atoms based 
+ * on chirality; if any atoms are mapped in this way check to see if 
+ * mapBondsToUnique finds new atoms. Last try to guess mapping based on bonds 
+ * (mapByIndex), which will also attempt to map atoms in Ref that are unique 
+ * but not mapped to atoms in Tgt (which can happen e.g. if Tgt is missing 
+ * atoms).
  * Negative return values from map... routines indicates error.
  */
 int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
@@ -930,6 +1031,16 @@ int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
   int numAtomsMapped;
   int iterations=0;
 
+  numAtomsMapped=MapUniqueAtoms(Ref, Tgt);
+  if (debug>0)
+    mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",numAtomsMapped);
+  if (numAtomsMapped==0) return 1;
+  // Search for completely mapped atoms. If an atom and all atoms
+  // it is bonded to are unique, mark the atom as completely mapped.
+  RefMap.markComplete();
+  TargetMap.markComplete();
+
+  // Map remaining non-unique atoms
   while (mapatoms) {
     iterations++;
     // First assign based on bonds to unique (already mapped) atoms.
@@ -1030,50 +1141,18 @@ int AtomMap::init() {
   //TargetMap.WriteMol2((char*)"TargetMap.mol2\0"); // DEBUG
   TargetMap.determineAtomID();
 
-  // Number of atoms in each map MUST be equal
+  // Check if number of atoms in each map is equal
   if (RefMap.natom!=TargetMap.natom) {
     mprintf("      AtomMap::init: Warning: # atoms in reference (%i) not equal\n",RefMap.natom);
     mprintf("                     to # atoms in target (%i).\n",TargetMap.natom);
   }
 
-  // Atoms have now been assigned IDs. Match up the unique strings in Ref with 
-  // unique strings in target.
+  // Allocate memory for atom map
+  //   AMap[reference]=target
   AMap=(int*) malloc( RefMap.natom * sizeof(int));
-  for (refatom=0; refatom<RefMap.natom; refatom++) {
-    AMap[refatom]=-1;
-    // If the ID of this reference atom is unique, look for same ID in target
-    if (RefMap.M[refatom].isUnique) {
-      for (targetatom=0; targetatom<TargetMap.natom; targetatom++) {
-        // If ID of thie target atom is unique, check if it matches reference atom ID
-        if (TargetMap.M[targetatom].isUnique) {
-          if ( strcmp(TargetMap.M[targetatom].unique,
-                      RefMap.M[refatom].unique)==0 ) {
-            // Check that number of bonds is consistent
-            if (RefMap.M[refatom].nbond!=TargetMap.M[targetatom].nbond) {
-              mprintf("      Warning: AtomMap: Atoms R%i and T%i have same ID but different # bonds!\n",
-                      refatom,targetatom);
-            }
-            AMap[refatom]=targetatom;
-            RefMap.M[refatom].isMapped=true;
-            TargetMap.M[targetatom].isMapped=true;
-            if (debug>0) {
-              mprintf("    Mapping Tgt %i:%s to Ref %i:%s based on unique ID\n",
-                      targetatom,TargetMap.Aname(targetatom),
-                      refatom,RefMap.Aname(refatom));
-            }
-          } // If unique strings match
-        } // If target atom is unique
-      } // Loop over target atoms
-    } // If reference atom is unique
-  } // Loop over reference atoms
 
-  // Search for completely mapped atoms. If an atom and all atoms
-  // it is bonded to are unique, mark the atom as completely mapped.
-  RefMap.markComplete();
-  TargetMap.markComplete();
-
-  // Map remaining non-unique atoms
-  MapAtoms(&RefMap,&TargetMap);
+  // Map atoms
+  if (MapAtoms(&RefMap,&TargetMap)) return 1;
 
   // Print atom map and count # mapped atoms
   outputfile.SetupFile(outputname,WRITE,DATAFILE,UNKNOWN_TYPE,debug);
@@ -1098,10 +1177,8 @@ int AtomMap::init() {
   }
   outputfile.CloseFile();
   mprintf("      %i total atoms were mapped.\n",numMappedAtoms);
-  // If not all atoms could be mapped, return error since
-  // this would screw up frame modification.
-  // NOTE: Could do some sort of strip to remove atoms that
-  // could not be mapped.
+
+  // Check if not all atoms could be mapped
   if (numMappedAtoms!=RefMap.natom) {
     // If the number of mapped atoms is less than the number of reference
     // atoms but equal to the number of target atoms, can modify the reference

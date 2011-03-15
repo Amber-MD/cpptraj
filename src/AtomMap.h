@@ -21,6 +21,7 @@ class atommap {
       char atomID[ATOMIDLENGTH]; // ID created from this atom name, then bonded atom names 
       char unique[UNIQUELENGTH]; // ID created from this atomID, then bonded atomIDs
       bool isUnique;             // true: no other unique ID matches this atom
+      int Nduplicated;           // If !isUnique, how many times is uniqueID duplicated
       bool isMapped;             // true: this atom has been mapped
     };
     int debug;
@@ -55,6 +56,7 @@ class AtomMap : public Action {
     int mapByIndex(atommap *, atommap *);
     int mapUniqueRefToTgt(atommap *, atommap *, int);
     int MapAtoms(atommap *, atommap *);
+    int MapUniqueAtoms(atommap *, atommap *);
 
     int *AMap;
     bool maponly;
