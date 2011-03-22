@@ -9,7 +9,7 @@ ParmFileList::ParmFileList() {
   ParmList=NULL;
   Nparm=0;
   debug=0;
-  hasCopies=0;
+  hasCopies=false;
 }
 
 // Destructor
@@ -17,7 +17,7 @@ ParmFileList::~ParmFileList() {
   int i;
 
   if (ParmList!=NULL) {
-    if (hasCopies==0) {
+    if (!hasCopies) {
       for (i=0; i<Nparm; i++) delete ParmList[i];
     }
     free(ParmList);
@@ -99,7 +99,7 @@ int ParmFileList::Add(char *filename) {
  */
 int ParmFileList::Add(AmberParm *ParmIn) {
   // Set the hasCopies flag so we know not to try and delete these parms
-  hasCopies=1;
+  hasCopies=true;
   //P->pindex=Nparm; // pindex should already be set
   ParmList=(AmberParm**) realloc(ParmList,(Nparm+1) * sizeof(AmberParm*));
   ParmList[Nparm]=ParmIn;
@@ -114,7 +114,7 @@ int ParmFileList::Add(AmberParm *ParmIn) {
  */
 int ParmFileList::Replace(int num, AmberParm *newParm) {
   if (num>=Nparm || num<0) return 1;
-  if (hasCopies==0) delete ParmList[num];
+  if (!hasCopies) delete ParmList[num];
   ParmList[num]=newParm;
   return 0;
 }

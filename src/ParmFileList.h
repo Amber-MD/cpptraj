@@ -11,7 +11,7 @@ class ParmFileList {
     AmberParm **ParmList;
     int Nparm;
     int debug;
-    int hasCopies;
+    bool hasCopies;       // true: List contains addresses of parm files, do not delete
 
   public:
 
