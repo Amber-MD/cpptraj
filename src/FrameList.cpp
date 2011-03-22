@@ -13,7 +13,8 @@ FrameList::~FrameList() {
     delete frameList[i];
 }
 
-/* FrameList::Add()
+/* 
+ * FrameList::Add()
  * Add given Frame to the FrameList. Store trajectory name that this frame
  * came from in frameNames. Store the associated parm in FrameParm. 
  */
@@ -26,6 +27,18 @@ int FrameList::Add(Frame *F, char *name, AmberParm *P, int framenum) {
   nameCopy.assign(name);
   frameNames.push_back(nameCopy);
   frameNums.push_back(framenum);
+  FrameParm.Add(P);
+  Nframe++;
+  return 0;
+}
+
+/*
+ * FrameList::Add()
+ * Add given Frame to the FrameList. Store the associated parm in FrameParm.
+ */
+int FrameList::Add(Frame *F, AmberParm *P) {
+  if (F==NULL || P==NULL) return 1;
+  frameList.push_back(F);
   FrameParm.Add(P);
   Nframe++;
   return 0;
