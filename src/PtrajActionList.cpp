@@ -20,6 +20,7 @@
 #include "Action_NAstruct.h"
 #include "Action_Pucker.h"
 #include "Action_Outtraj.h"
+#include "Action_Rms2d.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -56,6 +57,7 @@ int PtrajActionList::Add(ArgList *A) {
 
   // Decide what action this is based on the command.
   if      (A->CommandIs("distance")) {Act=new Distance;}
+  else if (A->CommandIs("rms2d"))    {Act=new Rms2d;   }
   else if (A->CommandIs("rmsd",3))   {Act=new Rmsd;    }
   else if (A->CommandIs("dihedral")) {Act=new Dihedral;}
   else if (A->CommandIs("atommap"))  {Act=new AtomMap; }
