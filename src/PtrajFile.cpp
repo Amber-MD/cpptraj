@@ -12,6 +12,7 @@
 #include "PtrajFile.h"
 #include "NetcdfRoutines.h"
 #include "PDBfileRoutines.h"
+#include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
 // File Types
 #include "StdFile.h"
@@ -470,6 +471,17 @@ int PtrajFile::SetupRead() {
       isDos=1;
     }
   }
+
+  // Reopen and scan for Tripos mol2 molecule section
+  // 0 indicates section found.
+  IO->Open(filename,"r");
+  if (!Mol2ScanTo(this, MOLECULE)) {
+    if (debug>0) mprintf("  TRIPOS MOL2 file\n");
+    fileFormat=MOL2FILE;
+    IO->Close();
+    return 0;
+  }
+  IO->Close();
 
   // If both lines have PDB keywords, assume PDB
   if (isPDBkeyword(buffer1) && isPDBkeyword(buffer2)) {
