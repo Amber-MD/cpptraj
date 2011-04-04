@@ -6,6 +6,7 @@
 #include "TorsionRoutines.h"
 // DEBUG
 #include "Mol2File.h"
+#include <cstdio>
 
 //--------- PRIVATE ROUTINES ---------------------------------------
 /*
@@ -463,21 +464,27 @@ int atommap::setup() {
 // Write atommap out as a mol2 file, useful for checking bond info
 void atommap::WriteMol2(char *m2filename) {
   Mol2File outfile;
-  int *Selected;
+  AtomMask M1;
   // Temporary parm to play with
   AmberParm *tmpParm;
+  Frame *tmpFrame;
 
   // Create mask containing all atoms
-  Selected = (int*) malloc(natom*sizeof(int));
-  for (int atom=0; atom<natom; atom++) Selected[atom]=atom;
+  //for (int atom=0; atom<natom; atom++) Selected[atom]=atom;
   // Fake strip, just use as crap way to copy
-  tmpParm = P->modifyStateByMask(Selected,natom);
-  free(Selected);
+  //tmpParm = P->modifyStateByMask(Selected,natom);
+  //free(Selected);
   // Modify the bonds array to include this info
-  tmpParm->ResetBondInfo();
-  for (int atom=0; atom<natom; atom++) 
-    for (int bond=0; bond < M[atom].nbond; bond++) 
-      tmpParm->AddBond(atom, M[atom].bond[bond], 0);
+  //tmpParm->ResetBondInfo();
+  //for (int atom=0; atom<natom; atom++) 
+  //  for (int bond=0; bond < M[atom].nbond; bond++) 
+  //    tmpParm->AddBond(atom, M[atom].bond[bond], 0);
+  // Create mask with all mapped atoms
+  for (int atom=0; atom<natom; atom++) {if (M[atom].isMapped) M1.AddAtom(atom);}
+  // Strip so only mapped atoms remain
+  tmpParm = P->modifyStateByMask(M1.Selected,M1.Nselected);
+  tmpFrame = new Frame(M1.Nselected,NULL);
+  tmpFrame->SetFrameFromMask(F, &M1);
 
   // Trajectory Setup
   outfile.File=new PtrajFile();
@@ -485,13 +492,14 @@ void atommap::WriteMol2(char *m2filename) {
   outfile.trajfilename = outfile.File->basefilename;
   outfile.debug=debug;
   outfile.SetTitle(m2filename);
-  outfile.P=P;
+  outfile.P=tmpParm;
   outfile.SetupWrite();
   outfile.open();
-  outfile.F=F;
+  outfile.F=tmpFrame;
   outfile.writeFrame(0);
   outfile.close();
   delete tmpParm;
+  delete tmpFrame;
 }
 // ============================================================================
 
@@ -1032,6 +1040,13 @@ int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
   int iterations=0;
 
   numAtomsMapped=MapUniqueAtoms(Ref, Tgt);
+  // DEBUG
+  //char name[1024];
+  //sprintf(name,"Ref.%i.mol2",iterations);
+  //Ref->WriteMol2(name);
+  //sprintf(name,"Tgt.%i.mol2",iterations);
+  //Tgt->WriteMol2(name);
+  // END DEBUG
   if (debug>0)
     mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",numAtomsMapped);
   if (numAtomsMapped==0) return 1;
@@ -1045,17 +1060,35 @@ int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
     iterations++;
     // First assign based on bonds to unique (already mapped) atoms.
     numAtomsMapped=mapBondsToUnique(Ref,Tgt);
+    // DEBUG
+    //sprintf(name,"Ref.%i.u.mol2",iterations);
+    //Ref->WriteMol2(name);
+    //sprintf(name,"Tgt.%i.u.mol2",iterations);
+    //Tgt->WriteMol2(name);
+    // END DEBUG
     if (debug>0)
       mprintf("* [%3i] mapBondsToUnique: %i atoms mapped.\n",iterations,numAtomsMapped);
     if (numAtomsMapped<0) return 1;
     // Next assign based on chirality
     numAtomsMapped=mapChiral(Ref,Tgt);
+    // DEBUG
+    //sprintf(name,"Ref.%i.c.mol2",iterations);
+    //Ref->WriteMol2(name);
+    //sprintf(name,"Tgt.%i.c.mol2",iterations);
+    //Tgt->WriteMol2(name);
+    // END DEBUG
     if (debug>0)
       mprintf("* [%3i]        mapChiral: %i atoms mapped.\n",iterations,numAtomsMapped);
     if (numAtomsMapped<0) return 1;
     if (numAtomsMapped>0) continue;
     // Last assign based on index/element
     numAtomsMapped=mapByIndex(Ref,Tgt);
+    // DEBUG
+    //sprintf(name,"Ref.%i.i.mol2",iterations);
+    //Ref->WriteMol2(name);
+    //sprintf(name,"Tgt.%i.i.mol2",iterations);
+    //Tgt->WriteMol2(name);
+    // END DEBUG
     if (debug>0)
       mprintf("* [%3i]       mapByIndex: %i atoms mapped.\n",iterations,numAtomsMapped);
     if (numAtomsMapped<0) return 1;
