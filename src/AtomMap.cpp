@@ -1210,6 +1210,7 @@ int AtomMap::init() {
   }
   outputfile.CloseFile();
   mprintf("      %i total atoms were mapped.\n",numMappedAtoms);
+  if (maponly) return 0;
 
   // Check if not all atoms could be mapped
   if (numMappedAtoms!=RefMap.natom) {
