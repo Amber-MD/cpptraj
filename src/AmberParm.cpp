@@ -1199,7 +1199,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   mprintf("           New parmtop contains %i atoms.\n",newParm->natom);
   mprintf("                                %i residues.\n",newParm->nres);
   mprintf("                                %i molecules.\n",newParm->molecules);
-  mprintf("                                %i solvent molcules.\n",newParm->solventMolecules);
+  mprintf("                                %i solvent molecules.\n",newParm->solventMolecules);
 
   return newParm;
 }
