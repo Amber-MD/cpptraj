@@ -50,7 +50,7 @@ class TrajFile {
     int Start() { return start; }
     void SetTitle(char *);   // Set trajectory title.
     void PrintInfo(int);     // Print trajectory Information
-    int setupFrameInfo(int); // Set actual start/stop based on total #frames and #threads 
+    int setupFrameInfo(int,int,int); // Set actual start/stop based on total #frames and #threads 
     int Begin(int *, int);   /* Prepare traj for processing. Set output start value, calcd in 
                               * setupFrameInfo. Allocate memory for F. 
                               */

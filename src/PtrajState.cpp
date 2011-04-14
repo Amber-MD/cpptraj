@@ -374,7 +374,7 @@ int PtrajState::Run() {
 
   // ========== S E T U P   P H A S E ========== 
   // Calculate frame division among trajectories
-  maxFrames=trajFileList.SetupFrames();
+  maxFrames=trajFileList.SetupFrames(worldrank,worldsize);
 
   // Parameter file information
   parmFileList.Print();

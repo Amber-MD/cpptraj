@@ -72,7 +72,9 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
 
   for (it = this->begin(); it != this->end(); it++) {
     // Setup the reference traj for reading. Should only be 1 frame.
-    trajFrames=(*it)->setupFrameInfo(-1);
+    // NOTE: For MPI, calling with worldrank 0, worldsize 1 for all ranks.
+    //       This is to ensure each thread has a copy of the ref struct.
+    trajFrames=(*it)->setupFrameInfo(-1,0,1);
     if ((*it)->total_read_frames<1) {
       rprintf("Error: No frames could be read for reference %s, skipping\n",
       (*it)->trajfilename);

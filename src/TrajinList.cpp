@@ -70,7 +70,7 @@ int TrajinList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
  * actual start and stop and how many frames total will be processed.
  * Return the number of frames to be processed.
  */
-int TrajinList::SetupFrames() {
+int TrajinList::SetupFrames(int worldrank, int worldsize) {
   int maxFrames, trajFrames;
 
   mprintf("\nTRAJECTORIES:\n");
@@ -78,7 +78,7 @@ int TrajinList::SetupFrames() {
   maxFrames=0;
 
   for (it = this->begin(); it != this->end(); it++) {
-    trajFrames = (*it)->setupFrameInfo(maxFrames);
+    trajFrames = (*it)->setupFrameInfo(maxFrames,worldrank,worldsize);
     if (trajFrames==-1) {
       maxFrames=-1;
     }

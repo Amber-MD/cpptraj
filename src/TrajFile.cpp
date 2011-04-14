@@ -2,7 +2,6 @@
 #include <cstdlib>
 #include <cstring>
 #include "TrajFile.h"
-#include "PtrajMpi.h" // worldrank and worldsize needed to calc frame division
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -164,7 +163,7 @@ void TrajFile::SetArgs(int startArg, int stopArg, int offsetArg) {
  * Note that the input frames start counting from 1, output starts counting from 0!
  * If called with maxFrames=-1 dont update the frame in parm file.
  */
-int TrajFile::setupFrameInfo(int maxFrames) {
+int TrajFile::setupFrameInfo(int maxFrames, int worldrank, int worldsize) {
   int Nframes;
   int ptraj_start_frame, ptraj_end_frame;
   int traj_start_frame, traj_end_frame;

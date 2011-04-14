@@ -13,7 +13,7 @@ class TrajinList : public CoordFileList {
     // NOTE: worldsize is passed in as last arg to avoid include of PtrajMpi
     int Add(ArgList *A, ParmFileList *, int);
     // TRAJIN: Set up frames to be processed 
-    int SetupFrames();
+    int SetupFrames(int,int);
 };
 #endif
 
