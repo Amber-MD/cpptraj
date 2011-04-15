@@ -20,6 +20,7 @@ class PtrajState {
     DataFileList DFL;                // List of datafiles that data sets will be written to
     ArgList *A;                      // Current argument list
     std::list<ArgList*> DF_Args;     // List of commands pertaining to datafile creation etc
+    int TotalErrors;                 // Sum of all returned error statuses
     int debug;
 
     void SetGlobalDebug(int);        // Set debug level for all components

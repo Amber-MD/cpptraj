@@ -7,7 +7,8 @@
 #include "CpptrajStdio.h"
 
 // Constructor
-PtrajState::PtrajState() { 
+PtrajState::PtrajState() {
+  TotalErrors=0; 
   debug=0;
   showProgress=1;
 }
