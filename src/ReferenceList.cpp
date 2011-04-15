@@ -20,10 +20,14 @@ ReferenceList::~ReferenceList() { }
  */
 int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   TrajFile *T;
-  int startArg;
+  int startArg,stopArg,offsetArg;
+  bool average = false;
 
   // Set up common arguments from arglist
   if (this->ProcessArgList(A,parmFileList)) return 1;
+
+  // Check if we want to obtain the average structure
+  average = A->hasKey("average");
 
   // Set up basic file to determine type and format
   T = this->SetupTrajectory(trajfilename, fileAccess, UNKNOWN_FORMAT, UNKNOWN_TYPE);
@@ -45,10 +49,18 @@ int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   // Get user-specified start arg
   // NOTE: For compatibility with ptraj start from 1
   startArg=A->getNextInteger(1);
-  T->SetArgs(startArg,startArg,1);
+  stopArg=startArg;
+  offsetArg=1;
+  // Get user-specified stop and offset only if getting avg structure
+  if (average) {
+    stopArg=A->getNextInteger(-1);
+    offsetArg=A->getNextInteger(1);
+  }
+  T->SetArgs(startArg,stopArg,offsetArg);
 
   // Add to trajectory file list
-  this->push_back(T); 
+  this->push_back(T);
+  Average.push_back(average); 
 
   return 0;
 }
@@ -60,9 +72,11 @@ int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
  * place that frame in refFrames.
  */
 int ReferenceList::SetupRefFrames(FrameList *refFrames) {
-  int trajFrames;
-  Frame *F;
+  int trajFrames, global_set;
+  double Nframes;
+  Frame *F, *AvgFrame;
   int skipValue;
+  int refTrajNum = 0;
 
   mprintf("\nREFERENCE COORDS:\n");
   if (this->empty()) {
@@ -72,8 +86,12 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
 
   for (it = this->begin(); it != this->end(); it++) {
     // Setup the reference traj for reading. Should only be 1 frame.
-    // NOTE: For MPI, calling with worldrank 0, worldsize 1 for all ranks.
-    //       This is to ensure each thread has a copy of the ref struct.
+    // NOTE: For MPI, calling setupFrameInfo with worldrank 0, worldsize 1 for 
+    //       all ranks. This is to ensure each thread has a copy of the ref 
+    //       struct.
+    //       Calling setupFrameInfo with -1 to ensure the Parm frame count is
+    //       not updated.
+
     trajFrames=(*it)->setupFrameInfo(-1,0,1);
     if ((*it)->total_read_frames<1) {
       rprintf("Error: No frames could be read for reference %s, skipping\n",
@@ -91,12 +109,34 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       skipValue=(*it)->skip;
       (*it)->skip=0;
     }
-    (*it)->Begin(&trajFrames, 0);
-    // Get and copy the 1 frame from Traj, then close
-    // NOTE: What happens when not seekable?
+    // Start trajectory read
+    global_set=0;
+    (*it)->Begin(&global_set, 0);
     (*it)->PrintInfo(1);
-    (*it)->NextFrame(&trajFrames);
-    F=(*it)->F->Copy();
+    // If averaging requested, loop over specified frames and avg coords.
+    if (Average[refTrajNum++]) {
+      mprintf("    Averaging over %i frames.\n",trajFrames);
+      AvgFrame = new Frame((*it)->P->natom, (*it)->P->mass);
+      AvgFrame->ZeroCoords();
+      global_set = 0;
+      Nframes = 0.0;
+      while ( (*it)->NextFrame(&global_set) ) {
+        AvgFrame->AddCoord( (*it)->F );
+        Nframes++;
+      }
+      if (Nframes < 1.0) { 
+        mprintf("Error: reference average: # frames read is less than 1.\n");
+        F=NULL;
+      } else {
+        AvgFrame->Divide( Nframes );
+        F=AvgFrame->Copy();
+      }
+      delete AvgFrame; 
+    // If no averaging, get and copy the 1 frame from Traj, then close
+    } else {
+      (*it)->NextFrame(&trajFrames);
+      F=(*it)->F->Copy();
+    }
     // DEBUG
     //fprintf(stdout,"DEBUG: Ref Coord Atom 0\n");
     //F->printAtomCoord(0);

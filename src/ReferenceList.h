@@ -5,7 +5,7 @@
 #include "FrameList.h"
 
 class ReferenceList : public CoordFileList {
-
+    std::vector<bool> Average;
   public:
     
     ReferenceList();
