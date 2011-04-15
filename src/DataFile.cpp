@@ -66,6 +66,49 @@ void DataFile::SetInverted() {
 }
 
 /*
+ * DataFile::SetPrecision()
+ * Set precision of the specified dataset to width.precision. If '*' specified 
+ * set for all datasets in file.
+ */
+void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
+  int precision, dset;
+  DataSet *Dset = NULL;
+
+  if (dsetName==NULL) {
+    mprintf("Error: SetPrecision must be called with dataset name or '*'.\n");
+    return;
+  }
+  if (widthIn<1) {
+    mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",filename);
+    return;
+  }
+  precision=precisionIn;
+  if (precisionIn<0) precision=0;
+  // If <dsetName>=='*' specified set precision for all data sets
+  if (dsetName[0]=='*') {
+    mprintf("    Setting width.precision for all sets in %s to %i.%i\n",
+            filename,widthIn,precision);
+    for (dset=0; dset<Nsets; dset++)
+      SetList[dset]->SetPrecision(widthIn,precision);
+
+  // Otherwise find dataset <dsetName> and set precision
+  } else {
+    mprintf("    Setting width.precision for dataset %s to %i.%i\n",
+            dsetName,widthIn,precision);
+    for (dset=0; dset<Nsets; dset++) {
+      if ( strcmp(SetList[dset]->Name(), dsetName)==0 ) {
+        Dset=SetList[dset];
+        break;
+      }
+    }
+    if (Dset!=NULL)
+      Dset->SetPrecision(widthIn,precision);
+    else
+      mprintf("Error: Dataset %s not found in datafile %s\n",dsetName,filename);
+  }
+}
+
+/*
  * DataFile::AddSet()
  * Add given set to this datafile
  */

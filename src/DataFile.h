@@ -30,6 +30,7 @@ class DataFile {
     void SetXlabel(char*);
     void SetInverted();
     void SetNoXcol();
+    void SetPrecision(char *, int, int);
     int AddSet(DataSet *);
     int NameIs(char *);
     void DataSetNames();

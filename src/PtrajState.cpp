@@ -292,6 +292,7 @@ void PtrajState::ProcessDataFileCmd() {
   char *df_cmd = NULL;
   char *name1 = NULL;
   char *name2 = NULL;
+  int width,precision;
   DataFile *df;
 
   if (DF_Args.empty()) return;
@@ -350,6 +351,19 @@ void PtrajState::ProcessDataFileCmd() {
       }
       mprintf("    Not printing x column for datafile %s\n",name1);
       df->SetNoXcol();
+    
+    // datafile precision
+    // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
+    //        If width/precision not specified default to 12.4
+    } else if ( strcmp(df_cmd,"precision")==0 ) {
+      if (df==NULL) {
+        mprintf("Error: datafile precision: DataFile %s does not exist.\n",name1);
+        continue;
+      }
+      name2 = A->getNextString();
+      width = A->getNextInteger(12);
+      precision = A->getNextInteger(4);
+      df->SetPrecision(name2,width,precision);
     }
 
   } // END loop over datafile args
