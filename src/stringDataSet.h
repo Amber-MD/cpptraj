@@ -12,6 +12,8 @@ class stringDataSet : public DataSet {
     std::map<int,std::string> Data;
     std::map<int,std::string>::iterator it;
   public:
+    stringDataSet();
+
     int Xmax();
     int isEmpty(int);
     void Add( int, void * );

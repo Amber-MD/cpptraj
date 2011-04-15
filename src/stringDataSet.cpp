@@ -6,6 +6,13 @@
 #include "PtrajMpi.h"
 #include "CpptrajStdio.h"
 using namespace std;
+
+// CONSTRUCTOR
+stringDataSet::stringDataSet() {
+  dType=STRING;
+  setFormatString();
+}
+
 /*
  * stringDataSet::Xmax(()
  * Return the maximum X value added to this set. By convention this is 
@@ -54,10 +61,10 @@ char *stringDataSet::Write(char *buffer, int frame) {
 
   it = Data.find( frame );
   if (it == Data.end()) { 
-    sprintf(buffer," %s", "NoData");
+    sprintf(buffer, format, "NoData");
     return (buffer + 7);
   } else 
-    sprintf(buffer," %s",(*it).second.c_str());
+    sprintf(buffer, format, (*it).second.c_str());
 
   return (buffer + (*it).second.size() + 1);
 }

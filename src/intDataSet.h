@@ -11,6 +11,8 @@ class intDataSet : public DataSet {
     std::map<int,int> Data;
     std::map<int,int>::iterator it;
   public:
+    intDataSet();
+
     int Xmax();
     int isEmpty(int);
     void Add( int, void * );

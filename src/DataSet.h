@@ -36,12 +36,18 @@ enum dataType {
 class DataSet {
   protected:
     char *name;        // Name of the dataset
+    dataType dType;    // The dataset type
     int N;             // Number of data elements
     int current;       // The current data element
+    int width;         // The output width of a data element
+    int precision;     // The output precision of a data element (if applicable)
+    char *format;      // Format of output
+    
     bool isDynamic;    // True : N is not known, reallocate as N increases
                        // False: N is known, allocate for N
     // If not isDynamic, Allocate will reserve space for N data elements 
     virtual int Allocate( )      { return 0; }
+    void setFormatString();
 
   public:
 
@@ -55,6 +61,7 @@ class DataSet {
     virtual int Width()              { return 0; }
     virtual int Sync()               { return 0; }
 
+    void SetPrecision(int,int);
     int Setup(char*,int);
     void Info();
     char *Name() { return name; }

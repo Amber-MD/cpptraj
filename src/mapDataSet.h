@@ -7,11 +7,12 @@
  */
 #include <map>
 #include "DataSet.h"
-//using namespace std;
 class mapDataSet : public DataSet {
     std::map<int,double> Data;
     std::map<int,double>::iterator it;
   public:
+    mapDataSet();
+
     int Xmax();
     int isEmpty(int);
     void Add( int, void * );

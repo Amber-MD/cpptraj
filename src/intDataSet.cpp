@@ -5,6 +5,14 @@
 #include "PtrajMpi.h"
 #include "CpptrajStdio.h"
 using namespace std;
+
+// CONSTRUCTOR
+intDataSet::intDataSet() {
+  width=12;
+  dType=INT;
+  setFormatString();
+}
+
 /*
  * intDataSet::Xmax(()
  * Return the maximum X value added to this set. By convention this is 
@@ -52,17 +60,17 @@ char *intDataSet::Write(char *buffer, int frame) {
   it = Data.find( frame );
   if (it == Data.end()) 
     //sprintf(buffer," %12s","NoData");
-    sprintf(buffer," %12i", 0);
+    sprintf(buffer, format, 0);
   else 
-    sprintf(buffer," %12i",(*it).second);
-  return (buffer + 13);
+    sprintf(buffer, format, (*it).second);
+  return (buffer + width + 1);
 }
 
 /*
  * intDataSet::Width()
  */
 int intDataSet::Width() {
-  return 13;
+  return (width + 1);
 }
 
 /*
