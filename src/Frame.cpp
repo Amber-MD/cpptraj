@@ -61,6 +61,40 @@ Frame::~Frame() {
 }
 
 /*
+ * Frame::ZeroCoords()
+ * Set all coords to 0.0
+ */
+void Frame::ZeroCoords() {
+  for (int coord=0; coord < N; coord++)
+    X[coord]=0.0;
+}
+
+/*
+ * Frame::AddCoord()
+ * Add the coord values from the input frame to the coord values of 
+ * this frame.
+ */
+void Frame::AddCoord(Frame *FrameIn) {
+  if (FrameIn->N != this->N) {
+    mprintf("Error: Frame::AddCoord: Attempting to add %i coords to %i coords.\n",
+            FrameIn->N,this->N);
+  } else {
+    for (int coord=0; coord < N; coord++)
+      this->X[coord] += FrameIn->X[coord];
+  }
+}
+
+/* 
+ * Frame::Divide()
+ * Divide all coord values by input. Dont do it if the number is too small.
+ */
+void Frame::Divide(double divisor) {
+  if (divisor < SMALL) return;
+  for (int coord=0; coord < N; coord++)
+    X[coord] /= divisor;
+}
+
+/*
  * Frame::Copy()
  * Return a copy of the frame
  */
