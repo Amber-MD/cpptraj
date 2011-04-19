@@ -57,6 +57,7 @@ class DataSet {
     virtual int Xmax()               { return 0; }
     virtual int isEmpty(int)         { return 0; }
     virtual void Add( int, void * )  { return;   }
+    virtual int Get( void *, int )   { return 1; }
     virtual char *Write(char*, int)  { return 0; }
     virtual int Width()              { return 0; }
     virtual int Sync()               { return 0; }
@@ -66,5 +67,6 @@ class DataSet {
     void Info();
     char *Name() { return name; }
     int CheckSet();
+    dataType Type() {return dType;}
 };
 #endif 

@@ -43,6 +43,23 @@ void mapDataSet::Add(int frame, void *vIn) {
 }
 
 /*
+ * mapDataSet::Get()
+ * Get data at frame, put into vOut. Return 1 if no data at frame.
+ */
+int mapDataSet::Get(void *vOut, int frame) {
+  double *value;
+  
+  if (vOut==NULL) return 1;
+  //mprintf("DEBUG: Attempting to get double frame %i\n",frame);
+  value = (double*) vOut;
+  it=Data.find( frame );
+  if (it == Data.end()) return 1;
+  //mprintf("DEBUG: Double frame %i is %lf\n",frame,(*it).second);
+  *value = (*it).second;
+  return 0;
+}
+
+/*
  * mapDataSet::isEmpty()
  */
 int mapDataSet::isEmpty(int frame) {

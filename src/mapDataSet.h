@@ -16,6 +16,7 @@ class mapDataSet : public DataSet {
     int Xmax();
     int isEmpty(int);
     void Add( int, void * );
+    int Get(void *, int);
     char *Write(char *, int);
     int Width();
     int Sync();
