@@ -15,6 +15,7 @@ class ArgList {
     void Add(char *);
     void print();
     char *ArgLine();
+    char *Arg(int);
 
     char *Command();
     int CommandIs(const char *);

@@ -147,6 +147,16 @@ char *ArgList::ArgLine() {
 }
 
 /*
+ * ArgList::Arg()
+ * Return arg at specified position.
+ */
+char *ArgList::Arg(int pos) {
+  if (pos>-1 && pos<nargs) 
+    return arglist[pos];
+  return NULL;
+}
+
+/*
  * ArgList::Command()
  * Check the first arg for command
  * Mark and return. Return even if marked.
