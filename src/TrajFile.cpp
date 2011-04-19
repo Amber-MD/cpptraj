@@ -44,12 +44,17 @@ TrajFile::~TrajFile() {
 void TrajFile::SetTitle(char *titleIn) {
   size_t titleSize;
 
+  //mprintf("DEBUG: Attempting to set title for %s: [%s]\n",trajfilename,titleIn);
   if (titleIn==NULL) return;
   titleSize = strlen(titleIn);
-  if (titleSize==0) return;
+  //mprintf("       Title size is %i\n",titleSize);
+  if (titleSize==0) {
+    mprintf("Warning: TrajFile::SetTitle(): Title for %s is 0 length.\n",trajfilename);
+    return;
+  }
   this->title = (char*) malloc( (titleSize+1) * sizeof(char));
   if (this->title==NULL) {
-    mprintf("Error: TrajFile::SetTitle(): Could not allocate memory for title.\n");
+    mprintf("Error: SetTitle: Could not allocate memory for title of %s.\n",trajfilename);
     return;
   }
   strcpy(this->title, titleIn);
