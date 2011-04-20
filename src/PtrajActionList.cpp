@@ -168,6 +168,8 @@ void PtrajActionList::DoActions(Frame **FrameAddress, int frameIn) {
     err = ActionList[act]->DoAction(FrameAddress, frameIn);
     if (err==1) {
       // Treat actions that fail as if they could not be set up
+      mprintf("Warning: Action [%s] failed, frame %i.\n",ActionList[act]->CmdLine(),
+              frameIn);
       ActionList[act]->noSetup=1;
     } else if (err==2) {
       // Return value of 2 requests return to original frame

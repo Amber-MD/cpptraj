@@ -113,6 +113,7 @@ int PtrajFile::OpenFile() {
 void PtrajFile::CloseFile() {
   if (isOpen) {
     IO->Close();
+    if (debug>0) rprintf("Closed %s.\n",filename);
     isOpen=0;
   }
 }
