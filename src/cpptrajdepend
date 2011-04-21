@@ -2,7 +2,7 @@ main.o : main.cpp Action.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CoordFi
 AmberNetcdf.o : AmberNetcdf.cpp AmberNetcdf.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h NetcdfRoutines.h PtrajFile.h Range.h TrajFile.h
 AmberParm.o : AmberParm.cpp AmberParm.h BaseFileIO.h CpptrajStdio.h Mol2FileRoutines.h PDBfileRoutines.h PtrajFile.h
 AmberTraj.o : AmberTraj.cpp AmberParm.h AmberTraj.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h PtrajFile.h Range.h TrajFile.h
-TrajFile.o : TrajFile.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h PtrajFile.h PtrajMpi.h Range.h TrajFile.h
+TrajFile.o : TrajFile.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CpptrajStdio.h Frame.h PtrajFile.h Range.h TrajFile.h
 Frame.o : Frame.cpp AmberParm.h AtomMask.h BaseFileIO.h CpptrajStdio.h DistRoutines.h Frame.h PtrajFile.h TorsionRoutines.h vectormath.h
 PtrajState.o : PtrajState.cpp Action.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CoordFileList.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajActionList.h PtrajFile.h PtrajMpi.h PtrajState.h Range.h ReferenceList.h TrajFile.h TrajinList.h TrajoutList.h
 ArgList.o : ArgList.cpp ArgList.h CpptrajStdio.h
