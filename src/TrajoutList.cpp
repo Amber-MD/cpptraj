@@ -20,7 +20,6 @@ TrajoutList::~TrajoutList() { }
  */
 int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   TrajFile *T;
-  int boxInfo;
   FileFormat writeFormat;
   FileType writeType;
   char *onlyframes; 
@@ -29,7 +28,6 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   if (this->ProcessArgList(A,parmFileList)) return 1;
 
   // Init variables
-  boxInfo=0;
   writeFormat=AMBERTRAJ; 
   writeType=UNKNOWN_TYPE;
  
@@ -55,10 +53,6 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   // Since Amber Restart files are written 1 at a time no MPI needed
   if (worldsize>1 && writeFormat!=AMBERRESTART) 
     writeType=MPIFILE;
-
-  // Set box info from parm file unless nobox is set.
-  boxInfo=P->ifbox;
-  if (A->hasKey("nobox")) boxInfo=0;
 
   // Set up basic file for given type and format
   // If type is unknown it will be determined from extension or will be standard (default)
@@ -90,10 +84,11 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
   // Set parameter file
   T->P=P;
 
-  // Set box information (only needed for write)
-  T->isBox=boxInfo;
+  // Set box type from parm file unless "nobox" specified  
+  T->BoxType=P->BoxType;
+  if (A->hasKey("nobox")) T->BoxType=0;
 
-  // No setup here; Write is set up after first frame read in PtrajState::Run
+  // No more setup here; Write is set up when first frame written.
   // Add to trajectory file list
   this->push_back(T); 
 

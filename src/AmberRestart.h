@@ -14,6 +14,7 @@ class AmberRestart : public TrajFile {
 
   int SetupRead();
   int SetupWrite();
+  void getBoxType(char *, int);
 
   public:
 

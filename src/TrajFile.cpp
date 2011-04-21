@@ -17,7 +17,7 @@ TrajFile::TrajFile() {
   start=0;
   stop=-1;
   offset=1;
-  isBox=0;
+  BoxType=0;
   title=NULL;
   P=NULL;
   frameskip=0;
@@ -63,6 +63,30 @@ void TrajFile::SetTitle(char *titleIn) {
 }
 
 /*
+ * TrajFile::CheckBoxType()
+ * Set the trajectory box type (ortho/nonortho) based on box angles.
+ * Check the current box type against the associated parmfile box type.
+ * Print a warning if they are different.
+ */
+void TrajFile::CheckBoxType(double *box) {
+  // Determine orthogonal / non-orthogonal from angles
+  if (box[3]==0.0 || box[4]==0.0 || box[5]==0.0)
+    BoxType=0;
+  else if (box[3]==90.0 && box[4]==90.0 && box[5]==90.0)
+    BoxType=1;
+  else
+    BoxType=2;
+  if (P->BoxType != BoxType) {
+    mprintf("Warning: %s contains box info of type %i (beta %lf)\n",trajfilename,
+            BoxType,box[4]);
+    mprintf("         but associated parmfile %s has box type %i (beta %lf)\n",P->parmName, 
+            P->BoxType,P->Box[4]);
+    //mprintf("         Box information from trajectory will be used.\n");
+  }
+  if (debug>0) mprintf("    %s: Box type is %i (beta=%lf)\n",trajfilename,BoxType,box[4]);
+}
+
+/*
  * TrajFile::PrintInfo()
  * Print general trajectory information. Call TrajFile->Info for specific information.
  */
@@ -72,7 +96,7 @@ void TrajFile::PrintInfo(int showExtended) {
 
   mprintf(", Parm %i",P->pindex);
 
-  if (isBox) mprintf(" (with box info)");
+  if (BoxType>0) mprintf(" (with box info)");
 
   if (showExtended==0) {
     mprintf("\n");
@@ -89,7 +113,7 @@ void TrajFile::PrintInfo(int showExtended) {
     mprintf(": Writing %i frames", P->parmFrames);
     if (File->access==APPEND) mprintf(", appended"); // NOTE: Dangerous if REMD
   }
-  if (debug>0) mprintf(", %i atoms, Box %i, seekable %i",P->natom,isBox,seekable);
+  if (debug>0) mprintf(", %i atoms, Box %i, seekable %i",P->natom,BoxType,seekable);
   mprintf("\n");
 }
 

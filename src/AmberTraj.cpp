@@ -104,16 +104,18 @@ int AmberTraj::getFrame(int set) {
     rprintf("Error: AmberTraj::getFrame: * detected in coordinates of %s\n",trajfilename);
     return 1;  
   } 
-  if (isBox) { 
+  if (BoxType!=0) { 
     if ( (bufferPosition = F->BufferToBox(bufferPosition,numBoxCoords,8))==NULL ) {
       rprintf("Error: AmberTraj::getFrame: * detected in box coordinates of %s\n",
               trajfilename);
       return 1;
     }
-    // Set box angles to parmtop default
-    F->box[3] = P->Box[0];
-    F->box[4] = P->Box[0];
-    F->box[5] = P->Box[0];
+    // Set box angles to parmtop default if not read in
+    if (numBoxCoords==3) {
+      F->box[3] = P->Box[3];
+      F->box[4] = P->Box[4];
+      F->box[5] = P->Box[5];
+    }
   }
   return 0;
 }
@@ -138,7 +140,7 @@ int AmberTraj::writeFrame(int set) {
   }
 
   bufferPosition = F->FrameToBuffer(bufferPosition,"%8.3lf",8,10);
-  if (isBox) 
+  if (BoxType!=0) 
     bufferPosition = F->BoxToBuffer(bufferPosition,numBoxCoords,"%8.3lf",8);
 
   outFrameSize = (int) (bufferPosition - frameBuffer);
@@ -165,6 +167,7 @@ int AmberTraj::SetupRead() {
   int frame_lines;
   int lineSize;
   long long int file_size, frame_size;
+  double box[6]; // For checking box coordinates
 
   // Attempt to open the file. open() sets the title and titleSize
   if (open()) return 1;
@@ -219,7 +222,7 @@ int AmberTraj::SetupRead() {
 
     if (strncmp(buffer,"REMD",4)==0 || strncmp(buffer,"HREMD",5)==0) {
       // REMD header - no box coords
-      isBox=0;
+      BoxType=0;
     } else if (lineSize<80) {
       /* Line is shorter than 80 chars, indicates box coords.
        * Length of the line HAS to be a multiple of 8, and probably could be
@@ -228,21 +231,22 @@ int AmberTraj::SetupRead() {
        */
       if (debug>0) mprintf("    Box line is %i chars.\n",lineSize);
       if ( ((lineSize-1)%24)!=0 ) {
-        rprintf("Error in box coord line.\nExpect only 3 or 6 box coords.\n");
+        mprintf("Error in box coord line. Expect only 3 or 6 box coords.\n");
         return 1;
       }
       numBoxCoords=(lineSize-1) / 8;
       if (debug>0) mprintf("    Detected %i box coords.\n",numBoxCoords);
-      frameSize+=lineSize;
+      // Determine box type based on angles. Angles are usually not printed 
+      // for orthogonal and truncated octahedral boxes, but check here just
+      // to be safe. If no angles present use parmtop Box Type.
+      if (numBoxCoords>3) {
+        sscanf(buffer, "%8lf%8lf%8lf%8lf%8lf%8lf",box,box+1,box+2,box+3,box+4,box+5);
+        CheckBoxType(box);
+      } else
+        BoxType = P->BoxType; 
       // Reallocate frame buffer accordingly
+      frameSize+=lineSize;
       frameBuffer=(char*) realloc(frameBuffer,frameSize * sizeof(char));
-      if (P->ifbox==0) { 
-        rprintf( "Warning: Box coords detected in trajectory but not defined in topology!\n");
-        rprintf("         Setting box type to rectangular.\n");
-        isBox=1;
-      } else {
-        isBox = P->ifbox;
-      }
     }
   }
 
@@ -315,7 +319,9 @@ int AmberTraj::SetupWrite() {
   frameSize += hasREMD;
 
   // If box coords are present, allocate extra space for them
-  if (isBox>0) {
+  // NOTE: Currently only writing box lengths for all box types. This means
+  //       writing triclinic box type is currently not supported.
+  if (BoxType!=0) {
     numBoxCoords=3; // Only write out box lengths for trajectories
     frameSize+=((numBoxCoords*8)+1);
   }

@@ -25,8 +25,10 @@ class TrajFile {
     int offset;         // Number of frames to skip while processing
 
     // --== Inherited by child classes ==--
-    virtual int open() { return 0; }        // Open the file, prepare for coord read/write
-    virtual void close() {}                 // Close the file
+    virtual int open() { return 0; } // Open the file, prepare for coord read/write
+    virtual void close() {}          // Close the file
+
+    void CheckBoxType(double *);     // Check that traj boxtype matches parm
 
   public:
     int debug;             // Level of debug information to print
@@ -34,7 +36,7 @@ class TrajFile {
     // NOTE: I hate that the following are public. Only necessary for REMD processing!!
     int Frames;            // Total number of frames in trajectory
     int total_read_frames; // Total number of frames that will be read
-    int isBox;             // >0 means trajectory has box information
+    int BoxType;           // 0: None, 1: Ortho, 2: NonOrtho 
 
     Range *FrameRange;     // list of frames to be written out
     int hasTemperature;    // 1 means trajectory has temperature information

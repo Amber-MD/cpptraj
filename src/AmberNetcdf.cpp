@@ -92,8 +92,10 @@ int AmberNetcdf::open() {
  * Open the netcdf file, read all dimension and variable IDs, close. 
  */
 int AmberNetcdf::SetupRead() {
-  char *attrText; // For checking conventions and version 
-  int spatial; // For checking spatial dimensions
+  char *attrText;            // For checking conventions and version 
+  int spatial;               // For checking spatial dimensions
+  double box[6];             // For checking box type
+  size_t start[3], count[3]; // For checking box type
 
   if (open()) return 1;
 
@@ -147,15 +149,15 @@ int AmberNetcdf::SetupRead() {
   if ( nc_inq_varid(ncid,"cell_lengths",&cellLengthVID)==NC_NOERR ) {
     if (checkNCerr(nc_inq_varid(ncid,"cell_angles",&cellAngleVID),
       "Getting cell angles.")!=0) return 1;
-    if (debug>0) mprintf("  Netcdf Box information found.\n"); 
-    if (P->ifbox==0) {
-      mprintf("Warning: Netcdf file contains box info but no box info found\n");
-      mprintf("         in associated parmfile %s; defaulting to orthogonal.\n",
-              P->parmName);
-      isBox=1;
-    } else {
-      isBox=P->ifbox;
-    }
+    if (debug>0) mprintf("  Netcdf Box information found.\n");
+    // Determine box type from angles
+    start[0]=0; start[1]=0; start[2]=0; 
+    count[0]=1; count[1]=3; count[2]=0;
+    if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
+                    "Getting cell lengths.")!=0 ) return 1;
+    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, box+3),
+                    "Getting cell angles.")!=0 ) return 1;
+    CheckBoxType(box);
   } 
 
   // Replica Temperatures
@@ -258,7 +260,7 @@ int AmberNetcdf::SetupWrite() {
     "Defining cell angular variable.")) return 1;
 
   // Box Info
-  if (isBox>0) {
+  if (BoxType!=0) {
     dimensionID[0]=frameDID;
     dimensionID[1]=cell_spatialDID;
     if (checkNCerr(nc_def_var(ncid,"cell_lengths",NC_DOUBLE,2,dimensionID,&cellLengthVID),
@@ -362,7 +364,7 @@ int AmberNetcdf::getFrame(int set) {
                   "Getting frame %i",set)!=0 ) return 1;
 
   // Read box info 
-  if (isBox!=0) {
+  if (BoxType!=0) {
     count [1]=3;
     count [2]=0;
     if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, F->box),
@@ -409,7 +411,7 @@ int AmberNetcdf::writeFrame(int set) {
     "Netcdf Writing frame %i",set)) return 1;
 
   // write box
-  if (isBox>0 && cellLengthVID!=-1) {
+  if (BoxType!=0 && cellLengthVID!=-1) {
     count[1]=3;
     count[2]=0;
     if (checkNCerr(nc_put_vara_double(ncid,cellLengthVID,start,count,F->box),

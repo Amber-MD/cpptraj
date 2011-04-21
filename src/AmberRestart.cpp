@@ -109,7 +109,7 @@ int AmberRestart::SetupWrite() {
   frameSize+=frameSize;
 
   // If box coords are present, allocate extra space for them
-  if (isBox>0) {
+  if (BoxType!=0) {
     numBoxCoords=6;
     frameSize+=((numBoxCoords*12)+1);
   }
@@ -167,13 +167,12 @@ int AmberRestart::SetupRead() {
 
   // If 0 probably at EOF. No box or velo.
 //  } else if (lineSize==0) {
-    isBox=0;
+    BoxType=0;
     hasVelocity=0;
 
   // If 36 or 72 (+1 newline) box info.
   } else if (lineSize==37 || lineSize==73) {
-    isBox=1;
-    numBoxCoords = (lineSize-1) / 12;
+    getBoxType(frameBuffer,lineSize);
     hasVelocity=0;
 
   // If filled framebuffer again, has velocity info. Check for box after velocity.
@@ -182,15 +181,14 @@ int AmberRestart::SetupRead() {
     if (File->IO->Gets(buffer,82)==0) {
       lineSize=strlen(buffer);
       if (lineSize==37 || lineSize==73) {
-        isBox=1;
-        numBoxCoords = (lineSize-1) / 12;
+        getBoxType(buffer,lineSize);
       } else {
         mprintf("Error: AmberRestart::SetupRead():\n");
         mprintf("       Expect only 3 or 6 box coords in box coord line.\n");
         return 1;
       }
     } else
-      isBox=0;
+      BoxType=0;
 
   // Otherwise, who knows what was read?
   } else {
@@ -202,12 +200,12 @@ int AmberRestart::SetupRead() {
 
   // Recalculate the frame size
   if (hasVelocity) frameSize+=frameSize;
-  if (isBox) frameSize+=( (numBoxCoords*12) + 1 );
+  if (BoxType!=0) frameSize+=( (numBoxCoords*12) + 1 );
   frameBuffer=(char*) realloc(frameBuffer, frameSize*sizeof(char));
 
   if (debug > 0) {
-    mprintf("    Amber Restart isBox=%i hasVelocity=%i numBoxCoords=%i\n",
-            isBox,hasVelocity,numBoxCoords);
+    mprintf("    Amber Restart BoxType=%i hasVelocity=%i numBoxCoords=%i\n",
+            BoxType,hasVelocity,numBoxCoords);
     mprintf("    Amber Restart frameSize= %i\n",frameSize);
   }
   
@@ -218,6 +216,20 @@ int AmberRestart::SetupRead() {
 
   close();
   return 0;
+}
+
+/*
+ * AmberRestart::getBoxType()
+ * Based on input buffer, determine box type and num box coords.
+ */
+void AmberRestart::getBoxType(char *boxline, int boxlineSize) {
+  double box[6];
+  numBoxCoords = (boxlineSize-1) / 12;
+  if (numBoxCoords>3) {
+    sscanf(boxline, "%8lf%8lf%8lf%8lf%8lf%8lf",box,box+1,box+2,box+3,box+4,box+5);
+    CheckBoxType(box);
+  } else
+    BoxType = P->BoxType;
 }
 
 /*
@@ -251,7 +263,7 @@ int AmberRestart::getFrame(int set) {
     //F->V->printAtomCoord(0);
   }
   // Convert box to Frame if present
-  if (isBox) {
+  if (BoxType!=0) {
     if ( (bufferPosition = F->BufferToBox(bufferPosition, numBoxCoords, 12))==NULL ) {
       mprintf("Error: AmberRestart::getFrame: * detected in box coordinates of %s\n",
               trajfilename);
@@ -287,7 +299,7 @@ int AmberRestart::writeFrame(int set) {
   if (F->V!=NULL)  // NOTE: Use hasVelocity in addition/instead?
     bufferPosition = F->V->FrameToBuffer(bufferPosition,"%12.7lf",12,6);
   // Write box to buffer
-  if (isBox)
+  if (BoxType!=0)
     bufferPosition = F->BoxToBuffer(bufferPosition, numBoxCoords, "%12.7lf",12);
 
   //if (seekable) fseek(fp, titleSize+(set*frameSize),SEEK_SET);

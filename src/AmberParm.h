@@ -75,14 +75,14 @@ class AmberParm {
     int *resnums;         // IPRES(NRES) 
     int natom;            // NATOM
     int nres;             // NRES
-    int ifbox;            // IFBOX
     int finalSoluteRes;   // IPTRES
     int molecules;        // NSPM
     int firstSolvMol;     // NSPSOL
     int *atomsPerMol;     // NSP(NSPM)
     double *mass;         // AMASS(NATOM)
     double *charge;       // CHARGE(NATOM)
-    double *Box;          // OLDBETA, BOX(1), BOX(2), BOX(3)
+    double Box[6];        // X, Y, Z, alpha, beta, gamma 
+    int BoxType;          // 0: None, 1: Orthogonal, 2: Non-orthogonal
     // From Ptraj
     char *solventMask;         // T for atoms in the solvent
     int solventMolecules;      // number of solvent molecules
@@ -96,6 +96,7 @@ class AmberParm {
     ~AmberParm();
     void ResName(char *, int);
     int OpenParm(char *);
+    int SetBoxInfo(double,double,double,double);
     int SetSurfaceInfo();
     int SetSolventInfo();
     void AtomInfo(int);

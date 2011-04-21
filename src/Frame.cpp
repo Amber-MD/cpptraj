@@ -457,21 +457,21 @@ void Frame::BoxToRecip(double *ucell, double *recip) {
  * Based on useMassIn, calculate geometric center (false) or center of mass 
  * (true) of the atoms in each mask.
  */
-double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int ifbox,
+double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int boxType,
                     double *ucell, double *recip) {
   double a1[3], a2[3];
 
   COM(Mask1, a1, useMassIn);
   COM(Mask2, a2, useMassIn);
 
-  if (ifbox == 0) 
+  if (boxType == 0) 
     return DIST2_NoImage(a1, a2);
-  else if (ifbox == 1) 
+  else if (boxType == 1) 
     return DIST2_ImageOrtho(a1, a2, this->box);
-  else if (ifbox == 2) 
+  else if (boxType == 2) 
     return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
 
-  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", ifbox);
+  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", boxType);
 
   return (-1.0);
 }
@@ -479,8 +479,11 @@ double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int ifbox,
 /*
  * Frame::DIST2()
  * Return the distance between atoms A1 and A2 with optional imaging.
+ *   0 = None
+ *   1 = Orthorhombic
+ *   2 = Non-orthorhombic
  */
-double Frame::DIST2(int A1, int A2, int ifbox, double *ucell, double *recip) {
+double Frame::DIST2(int A1, int A2, int boxType, double *ucell, double *recip) {
   int atom3;
   double a1[3], a2[3];
 
@@ -493,14 +496,14 @@ double Frame::DIST2(int A1, int A2, int ifbox, double *ucell, double *recip) {
   a2[1] = X[atom3+1];
   a2[2] = X[atom3+2];
 
-  if (ifbox == 0)
+  if (boxType == 0)
     return DIST2_NoImage(a1, a2);
-  else if (ifbox == 1)
+  else if (boxType == 1)
     return DIST2_ImageOrtho(a1, a2, this->box);
-  else if (ifbox == 2) 
+  else if (boxType == 2) 
     return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
 
-  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", ifbox);
+  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", boxType);
 
   return (-1.0);
 }

@@ -60,15 +60,8 @@ void AmberRestartNC::close() {
 /*
  * AmberRestartNC::open()
  * Open up Netcdf restart file and set all dimension and variable IDs.
- * This is done every time the file is opened up since Im not sure
- * the variable IDs stay the same throughout each opening.
- * Could eventually be separated.
- * NOTE: Replace attrText allocs with static buffer? 
  */
 int AmberRestartNC::open() {
-  char *attrText; // For checking conventions and version 
-  int spatial; // For checking spatial dimensions
-
   mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",File->filename,ncid);
   // If already open, return
   if (ncid!=-1) return 0;
@@ -93,6 +86,23 @@ int AmberRestartNC::open() {
   if (debug>1) NetcdfDebug(ncid);
   // Netcdf files are always seekable
   seekable=1;
+
+  return 0;
+}
+
+/*
+ * AmberRestartNC::SetupRead()
+ * Set up netcdf restart file for reading, get all variable and dimension IDs. 
+ * Also check number of atoms against associated parmtop.
+ * NOTE: Replace attrText allocs with static buffer? 
+ */
+int AmberRestartNC::SetupRead() {
+  char *attrText; // For checking conventions and version 
+  int spatial; // For checking spatial dimensions
+  double box[6];
+  size_t start[2], count[2];
+
+  if (open()) return 1;
 
   // Get global attributes
   if (title==NULL) title = GetAttrText(ncid,NC_GLOBAL, "title");
@@ -147,20 +157,18 @@ int AmberRestartNC::open() {
   mprintf("    Netcdf restart time= %lf\n",restartTime);
 
   // Box info
-  // NOTE: If no box info found in parm should really try to determine correct
-  //       box type from angles. 
   if ( nc_inq_varid(ncid,"cell_lengths",&cellLengthVID)==NC_NOERR ) {
     if (checkNCerr(nc_inq_varid(ncid,"cell_angles",&cellAngleVID),
       "Getting cell angles.")!=0) return 1;
-    if (debug>0) mprintf("  Netcdf restart Box information found.\n"); 
-    if (P->ifbox==0) {
-      mprintf("Warning: Netcdf restart file contains box info but no box info found\n");
-      mprintf("         in associated parmfile %s; defaulting to orthogonal.\n",
-              P->parmName);
-      isBox=1;
-    } else {
-      isBox=P->ifbox;
-    }
+    if (debug>0) mprintf("  Netcdf restart Box information found.\n");
+    // Determine box type from angles
+    start[0]=0; start[1]=0;
+    count[0]=3; count[1]=0; 
+    if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
+                    "Getting cell lengths.")!=0 ) return 1;
+    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, box+3),
+                    "Getting cell angles.")!=0 ) return 1;
+    CheckBoxType(box);
   } 
 
   // Replica Temperatures
@@ -175,15 +183,6 @@ int AmberRestartNC::open() {
   //int cell_spatialDID, cell_angularDID;
   //int spatialVID, cell_spatialVID, cell_angularVID;
 
-  return 0;
-}
-
-/*
- * AmberRestartNC::SetupRead()
- * Just a frontend to open for now. Also check number of atoms.
- */
-int AmberRestartNC::SetupRead() {
-  if (open()) return 1;
   if (ncatom!=P->natom) {
     mprintf("Warning: Number of atoms in NetCDF restart file %s (%i) does not\n",
             File->filename,ncatom);
@@ -210,7 +209,7 @@ int AmberRestartNC::SetupWrite() {
  */
 int AmberRestartNC::setupWriteForSet(int set) {
   int dimensionID[NC_MAX_VAR_DIMS];
-  size_t start[3], count[3];
+  size_t start[2], count[2];
   char buffer[1024];
   char xyz[3];
   char abc[15] = { 'a', 'l', 'p', 'h', 'a', 
@@ -280,7 +279,7 @@ int AmberRestartNC::setupWriteForSet(int set) {
     "Defining cell angular variable.")) return 1;
 
   // Box Info
-  if (isBox>0) {
+  if (BoxType!=0) {
     dimensionID[0]=cell_spatialDID;
     if (checkNCerr(nc_def_var(ncid,"cell_lengths",NC_DOUBLE,1,dimensionID,&cellLengthVID),
       "Defining cell length variable.")) return 1;
@@ -388,9 +387,9 @@ int AmberRestartNC::getFrame(int set) {
   }
 
   // Read box info 
-  if (isBox!=0) {
-    count [0]=3;
-    count [1]=0;
+  if (BoxType!=0) {
+    count[0]=3;
+    count[1]=0;
     if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, F->box),
                     "Getting cell lengths.")!=0 ) return 1;
     if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, &(F->box[3])),
@@ -425,7 +424,7 @@ int AmberRestartNC::writeFrame(int set) {
   }
 
   // write box
-  if (isBox>0 && cellLengthVID!=-1) {
+  if (BoxType!=0 && cellLengthVID!=-1) {
     count[0]=3;
     count[1]=0;
     if (checkNCerr(nc_put_vara_double(ncid,cellLengthVID,start,count,F->box),

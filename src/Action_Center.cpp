@@ -72,7 +72,7 @@ int Center::setup() {
 // else
 //    mass = NULL;
 
-  if (!origin && P->ifbox==0) {
+  if (!origin && P->BoxType==0) {
     mprintf("    Error: Center::setup: Box center specified but no box information.\n");
     //fprintf(stdout,"                            Centering on origin.\n");
     return 1;

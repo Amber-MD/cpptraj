@@ -1,6 +1,12 @@
 /* AmberParm.cpp
- * Class that holds parameter information. Can be read in from Amber Topology
- * or PDB files.
+ * Class that holds parameter information. Can be read in from Amber Topology,
+ * PDB, or Mol2 files (implemented in the ReadParmXXX functions). The following
+ * parameters of AmberParm must always be set:
+ *   The NATOM, NRES, and IFBOX entries of the values array.
+ *   The names, resnames, resnums arrays.
+ *   The natom and nres variables.
+ * NOTES:
+ *   Eventually make the mol2 read parm function use the AddBond function.
  */
 #include <cstdlib>
 #include <cstring>
@@ -11,7 +17,7 @@
 #include "CpptrajStdio.h"
 
 #define AMBERPOINTERS 31
-
+#define TRUNCOCTBETA 109.4712206344906917365733534097672
 #define ELECTOAMBER 18.2223
 #define AMBERTOELEC 1/ELECTOAMBER
 // =============================================================
@@ -203,7 +209,9 @@ AmberParm::AmberParm(int debugIn) {
   bondsh=NULL;   
   types=NULL;   
   atomsPerMol=NULL; 
-  Box=NULL;    
+  Box[0]=0.0; Box[1]=0.0; Box[2]=0.0;
+  Box[3]=0.0; Box[4]=0.0; Box[5]=0.0;
+  BoxType=0; 
   pindex=0;      
   parmFrames=0; 
   outFrame=0;
@@ -217,7 +225,6 @@ AmberParm::AmberParm(int debugIn) {
   solventMoleculeStop=NULL;
   natom=0;      
   nres=0; 
-  ifbox=0; 
   parmName=NULL; 
   SurfaceInfo=NULL;
 }
@@ -234,7 +241,6 @@ AmberParm::~AmberParm() {
   if (bonds!=NULL) free(bonds);
   if (bondsh!=NULL) free(bondsh);
   if (atomsPerMol!=NULL) free(atomsPerMol);
-  if (Box!=NULL) free(Box);
   if (solventMoleculeStart!=NULL) free(solventMoleculeStart);
   if (solventMoleculeStop!=NULL) free(solventMoleculeStop);
   if (solventMask!=NULL) free(solventMask);
@@ -271,54 +277,7 @@ char *AmberParm::ResidueName(int res) {
   return NULL;
 }
 
-/* 
- * AmberParm::OpenParm()
- * Attempt to open file and read in parameters.
- */
-int AmberParm::OpenParm(char *filename) {
-  if ( File.SetupFile(filename,READ,UNKNOWN_FORMAT, UNKNOWN_TYPE,debug) ) return 1;
-
-  // Copy parm filename to parmName. Separate from File.filename in case of stripped parm
-  parmName=(char*) malloc( (strlen(File.basefilename)+1) * sizeof(char));
-  strcpy(parmName,File.basefilename);
-
-  if ( File.OpenFile() ) return 1;
-
-  switch (File.fileFormat) {
-    case AMBERPARM : if (ReadParmAmber()) return 1; break;
-    case PDBFILE   : if (ReadParmPDB()  ) return 1; break;
-    case MOL2FILE  : if (ReadParmMol2() ) return 1; break;
-    default: 
-      rprintf("Unknown parameter file type: %s\n",File.filename);
-      return 1;
-  }
-
-  File.CloseFile();
-
-  // Create a last dummy residue in resnums that holds natom, which would be
-  // the atom number of the next residue if it existed. Atom #s in resnums
-  // should correspond with cpptraj atom #s (start from 0) instead of Amber
-  // atom #s (start from 1). 
-  // Do this to be consistent with ptrajmask selection behavior - saves an 
-  // if-then statement.
-  resnums=(int*) realloc(resnums,(nres+1)*sizeof(int));
-  resnums[nres]=natom;
-  // DEBUG
-  //fprintf(stdout,"==== DEBUG ==== Resnums for %s:\n",File.filename);
-  //for (err=0; err<nres; err++) 
-  //  fprintf(stdout,"    %i: %i\n",err,resnums[err]);
-
-  // Set up solvent information
-  SetSolventInfo();
-
-  if (debug>0) {
-    mprintf("  Number of atoms= %i\n",natom);
-    mprintf("  Number of residues= %i\n",nres);
-  }
-
-  return 0;
-}
-
+// ---------========= ROUTINES PERTAINING TO SURFACE AREA =========---------
 /*
  * AmberParm::AssignLCPO()
  * Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
@@ -478,6 +437,7 @@ int AmberParm::SetSurfaceInfo() {
   return 0;
 }
 
+// ---------========= ROUTINES PERTAINING TO SOLVENT INFO =========---------
 /*
  * AmberParm::SetSolventInfo()
  * Assuming atomsPerMol has been read in, set solvent information.
@@ -536,7 +496,56 @@ int AmberParm::SetSolventInfo() {
 
   return 0; 
 }
-     
+    
+// --------========= ROUTINES PERTAINING TO READING PARAMETERS =========--------
+/* 
+ * AmberParm::OpenParm()
+ * Attempt to open file and read in parameters.
+ */
+int AmberParm::OpenParm(char *filename) {
+  if ( File.SetupFile(filename,READ,UNKNOWN_FORMAT, UNKNOWN_TYPE,debug) ) return 1;
+
+  // Copy parm filename to parmName. Separate from File.filename in case of stripped parm
+  parmName=(char*) malloc( (strlen(File.basefilename)+1) * sizeof(char));
+  strcpy(parmName,File.basefilename);
+
+  if ( File.OpenFile() ) return 1;
+
+  switch (File.fileFormat) {
+    case AMBERPARM : if (ReadParmAmber()) return 1; break;
+    case PDBFILE   : if (ReadParmPDB()  ) return 1; break;
+    case MOL2FILE  : if (ReadParmMol2() ) return 1; break;
+    default: 
+      rprintf("Unknown parameter file type: %s\n",File.filename);
+      return 1;
+  }
+
+  File.CloseFile();
+
+  // Create a last dummy residue in resnums that holds natom, which would be
+  // the atom number of the next residue if it existed. Atom #s in resnums
+  // should correspond with cpptraj atom #s (start from 0) instead of Amber
+  // atom #s (start from 1). 
+  // Do this to be consistent with ptrajmask selection behavior - saves an 
+  // if-then statement.
+  resnums=(int*) realloc(resnums,(nres+1)*sizeof(int));
+  resnums[nres]=natom;
+  // DEBUG
+  //fprintf(stdout,"==== DEBUG ==== Resnums for %s:\n",File.filename);
+  //for (err=0; err<nres; err++) 
+  //  fprintf(stdout,"    %i: %i\n",err,resnums[err]);
+
+  // Set up solvent information
+  SetSolventInfo();
+
+  if (debug>0) {
+    mprintf("  Number of atoms= %i\n",natom);
+    mprintf("  Number of residues= %i\n",nres);
+  }
+
+  return 0;
+}
+
 /* 
  * AmberParm::ReadParmAmber() 
  * Read parameters from Amber Topology file
@@ -544,6 +553,7 @@ int AmberParm::SetSolventInfo() {
 int AmberParm::ReadParmAmber() {
   int err, atom;
   int *solvent_pointer;
+  double *boxFromParm;
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
 
@@ -555,7 +565,6 @@ int AmberParm::ReadParmAmber() {
 
   natom=values[NATOM];
   nres=values[NRES];
-  ifbox=values[IFBOX];
   if (debug>0)
     mprintf("    Amber top contains %i atoms, %i residues.\n",natom,nres);
 
@@ -583,7 +592,8 @@ int AmberParm::ReadParmAmber() {
   if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); err++;}
   bondsh=(int*) getFlagFileValues("BONDS_INC_HYDROGEN",values[NBONH]*3);
   if (bondsh==NULL) {mprintf("Error in bonds inc H.\n"); err++;}
-  if (ifbox>0) {
+  // Get solvent info if IFBOX>0
+  if (values[IFBOX]>0) {
     solvent_pointer=(int*) getFlagFileValues("SOLVENT_POINTERS",3);
     if (solvent_pointer==NULL) {
       mprintf("Error in solvent pointers.\n"); 
@@ -596,12 +606,20 @@ int AmberParm::ReadParmAmber() {
     }
     atomsPerMol=(int*) getFlagFileValues("ATOMS_PER_MOLECULE",molecules);
     if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); err++;}
-    Box=(double*) getFlagFileValues("BOX_DIMENSIONS",4);
-    if (Box==NULL) {mprintf("Error in Box information.\n"); err++;}
+    // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
+    boxFromParm=(double*) getFlagFileValues("BOX_DIMENSIONS",4);
+    if (boxFromParm==NULL) {mprintf("Error in Box information.\n"); err++;}
+    // Determine box type: 1-Ortho, 2-Nonortho
+    SetBoxInfo(boxFromParm[0],boxFromParm[1],boxFromParm[2],boxFromParm[3]);
+    free(boxFromParm);
     if (debug>0) {
       mprintf("    %s contains box info: %i mols, first solvent mol is %i\n",
               parmName, molecules, firstSolvMol);
-      mprintf("    BOX: %lf %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3]);
+      mprintf("    BOX: %lf %lf %lf | %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3],Box[4],Box[5]);
+      if (BoxType==1)
+        mprintf("         Box is orthogonal.\n");
+      else
+        mprintf("         Box is non-orthogonal.\n");
     }
   }
 
@@ -686,6 +704,7 @@ int AmberParm::ReadParmPDB() {
   values = (int*) calloc(AMBERPOINTERS, sizeof(int));
   values[NATOM] = natom;
   values[NRES] = nres;
+  values[IFBOX] = 0;
 
   if (debug>0) 
     mprintf("    PDB contains %i atoms, %i residues, %i molecules.\n",
@@ -799,11 +818,67 @@ int AmberParm::ReadParmMol2() {
   values[NRES] = nres;
   values[NBONH] = numbondsh;
   values[MBONA] = numbonds;
+  values[IFBOX] = 0;
 
   mprintf("    Mol2 contains %i atoms, %i residues,\n", natom,nres);
   mprintf("    %i bonds to H, %i other bonds.\n", numbondsh,numbonds);
 
   return 0;
+}
+
+// ---------===========================================================---------
+/*
+ * AmberParm::SetBoxInfo()
+ * Given 3 box lengths and an angle determine the box type and set
+ * the box information. If called with negative beta, set no box.
+ * Currently recognized betas:
+ *   90.00 - Orthogonal
+ *  109.47 - Truncated octahedral
+ *   60.00 - Rhombic dodecahedron
+ * Any other beta just sets all angles to beta and a warning is printed.
+ */
+int AmberParm::SetBoxInfo(double beta, double bx, double by, double bz)  {
+  int ifbox=0;
+
+  // Determine box type from beta (none, ortho, non-ortho (truncated oct/triclinic)
+  if (beta<=0.0) {
+    if (BoxType>0) 
+      mprintf("    %s: Removing box information.\n",parmName);
+    BoxType=0;
+    ifbox=0;
+    Box[0]=0.0; Box[1]=0.0; Box[2]=0.0;
+    Box[3]=0.0; Box[4]=0.0; Box[5]=0.0;
+  } else if (beta == 90.0) {
+    BoxType=1;
+    ifbox=1;
+    Box[0]=bx; Box[1]=by; Box[2]=bz;
+    Box[3]=90.0; Box[4]=90.0; Box[5]=90.0;
+    if (debug>0) mprintf("    %s: Setting box to be orthogonal.\n",parmName);
+  } else if (beta > 109.47 && beta < 109.48) {
+    BoxType=2;
+    ifbox=2;
+    Box[0]=bx; Box[1]=by; Box[2]=bz;
+    //Box[3] = TRUNCOCTBETA;
+    Box[3] = beta;
+    Box[4]=Box[3]; Box[5]=Box[3];
+    if (debug>0) mprintf("    %s: Setting box to be a truncated octahedron, angle is %lf\n",
+                         parmName,Box[3]);
+  } else if (beta == 60.0) {
+    BoxType=2;
+    ifbox=1;
+    Box[0]=bx; Box[1]=by; Box[2]=bz;
+    Box[3]=60.0; Box[4]=90.0; Box[5]=60.0;
+    if (debug>0) 
+      mprintf("    %s: Setting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n",
+              parmName);
+  } else {
+    BoxType=2;
+    ifbox=1;
+    Box[0]=bx; Box[1]=by; Box[2]=bz;
+    Box[3]=beta; Box[4]=beta; Box[5]=beta;
+    mprintf("    Warning: %s: Unrecognized box type, beta is %lf\n",beta);
+  }
+  return 0;  
 }
 
 /*
@@ -829,8 +904,8 @@ void AmberParm::AtomInfo(int atom) {
  */
 void AmberParm::Info(char *buffer) {
 
-  sprintf(buffer,"%i atoms, %i res, box %i, %i mol, %i solvent mol, %i frames",
-          natom,nres,ifbox,molecules,solventMolecules,parmFrames);
+  sprintf(buffer,"%i atoms, %i res, boxtype %i, %i mol, %i solvent mol, %i frames",
+          natom,nres,BoxType,molecules,solventMolecules,parmFrames);
 }
   
 // NOTE: The following atomToX functions do not do any memory checks!
@@ -963,6 +1038,7 @@ int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
   return bonds;
 }
 
+// ---------===========================================================---------
 /*
  * AmberParm::modifyStateByMap()
  * Currently only intended for use with AtomMap.
@@ -1028,24 +1104,21 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   // Set up new parm information
   newParm->natom = this->natom;
   newParm->nres = this->nres;
-  newParm->ifbox = this->ifbox;
   newParm->parmFrames = this->parmFrames;
 
   // Give mapped parm the same pindex as original parm
   newParm->pindex = this->pindex;
 
   // Copy box information
-  if (this->Box!=NULL) {
-    newParm->Box=(double*) malloc(4*sizeof(double));
-    for (int i=0; i<4; i++)
-      newParm->Box[i] = this->Box[i];
-  }
+  for (int i=0; i<6; i++)
+    newParm->Box[i] = this->Box[i];
+  newParm->BoxType=this->BoxType;
 
   // Set values up
   // NOTE: Eventually set all pointers up?
   newParm->values[NATOM] = newParm->natom;
   newParm->values[NRES] = newParm->nres;
-  newParm->values[IFBOX] = newParm->ifbox;
+  newParm->values[IFBOX] = this->values[IFBOX];
 
   return newParm;
 }
@@ -1152,7 +1225,6 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   // Set up new parm information
   newParm->natom = j;
   newParm->nres = jres+1; 
-  newParm->ifbox = this->ifbox;
   newParm->parmFrames = this->parmFrames;
   if (this->molecules>0) 
     newParm->molecules = jmol+1;
@@ -1184,17 +1256,15 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   }
   
   // Copy box information
-  if (this->Box!=NULL) {
-    newParm->Box=(double*) malloc(4*sizeof(double));
-    for (i=0; i<4; i++)
-      newParm->Box[i] = this->Box[i];
-  }
+  for (i=0; i<6; i++)
+    newParm->Box[i] = this->Box[i];
+  newParm->BoxType=this->BoxType;
 
   // Set values up
   // NOTE: Eventually set all pointers up?
   newParm->values[NATOM] = newParm->natom;
   newParm->values[NRES] = newParm->nres;
-  newParm->values[IFBOX] = newParm->ifbox;
+  newParm->values[IFBOX] = this->values[IFBOX];
 
   mprintf("           New parmtop contains %i atoms.\n",newParm->natom);
   mprintf("                                %i residues.\n",newParm->nres);
@@ -1204,6 +1274,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   return newParm;
 }
 
+// ---------===========================================================---------
 /* 
  * AmberParm::DataToBuffer()
  * Return char buffer containing N data elements stored in I, D, or C with 
@@ -1267,6 +1338,7 @@ int AmberParm::WriteAmberParm() {
   char *buffer;
   int solvent_pointer[3];
   int atom;
+  double parmBox[4];
 
   if (parmName==NULL) return 1;
 
@@ -1346,7 +1418,7 @@ int AmberParm::WriteAmberParm() {
   }
 
   // SOLVENT POINTERS
-  if (ifbox>0) {
+  if (values[IFBOX]>0) {
     PrintFlagFormat(&outfile, "%FLAG SOLVENT_POINTERS", "%FORMAT(3I8)");
     solvent_pointer[0]=finalSoluteRes;
     solvent_pointer[1]=molecules;
@@ -1360,8 +1432,12 @@ int AmberParm::WriteAmberParm() {
     outfile.IO->Write(buffer, sizeof(char), BufferSize);
 
     // BOX DIMENSIONS
+    parmBox[0] = Box[4]; // beta
+    parmBox[1] = Box[0]; // boxX
+    parmBox[2] = Box[1]; // boxY
+    parmBox[3] = Box[2]; // boxZ
     PrintFlagFormat(&outfile, "%FLAG BOX_DIMENSIONS", "%FORMAT(5E16.8)");
-    buffer = DataToBuffer(buffer,"%FORMAT(5E16.8)", NULL, Box, NULL, 4);
+    buffer = DataToBuffer(buffer,"%FORMAT(5E16.8)", NULL, parmBox, NULL, 4);
     outfile.IO->Write(buffer, sizeof(char), BufferSize);
   }
 

@@ -68,6 +68,11 @@ int Distance::init( ) {
   return 0;
 }
 
+/*
+ * Distance::setup()
+ * Determine what atoms each mask pertains to for the current parm file.
+ * Also determine whether imaging should be performed.
+ */
 int Distance::setup() {
 
   if ( Mask1.SetupMask(P,debug) ) return 1;
@@ -89,8 +94,8 @@ int Distance::setup() {
   // Check imaging - check box based on prmtop box
   imageType = 0;
   if (!noimage) {
-    imageType = P->ifbox;
-    if (P->ifbox==0 && debug>0) {
+    imageType = P->BoxType;
+    if (P->BoxType==0 && debug>0) {
       mprintf("    Warning: No box info in %s, disabling imaging.\n",P->parmName);
     }
   }

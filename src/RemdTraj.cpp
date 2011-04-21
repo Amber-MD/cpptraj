@@ -88,7 +88,7 @@ int RemdTraj::SetupRead() {
   // NOTE: Should check that this is the case for ALL frames.
   stop = T->Frames;
   Frames = T->Frames;
-  isBox = T->isBox;
+  BoxType = T->BoxType;
   trajfilename = T->File->basefilename;
   // Add it to the list
   REMDtraj.push_back(T);
@@ -190,12 +190,12 @@ int RemdTraj::SetupRead() {
       return 1;
     }
     // Check that #Frames and box info matches
-    if ( Frames!=T->Frames || isBox!=T->isBox ) {
+    if ( Frames!=T->Frames || BoxType!=T->BoxType ) {
       mprintf(
-              "    ERROR: REMDTRAJ: #Frames (%i) or box info (%i) in replica does not match\n",
-              T->Frames, T->isBox);
-      mprintf("                     values in lowest replica (Frames=%i, box=%i)\n",
-              Frames,isBox);
+              "    ERROR: REMDTRAJ: #Frames (%i) or box type (%i) in replica does not match\n",
+              T->Frames, T->BoxType);
+      mprintf("                     values in lowest replica (Frames=%i, boxtype=%i)\n",
+              Frames,BoxType);
       delete T;
       free(repFilename);
       free(Prefix);
