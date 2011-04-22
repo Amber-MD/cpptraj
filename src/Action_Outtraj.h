@@ -6,6 +6,9 @@
 
 class Outtraj: public Action {
     TrajoutList outtraj;
+    double max;
+    double min;
+    DataSet *Dset;
   public:
     Outtraj();
     ~Outtraj();
@@ -13,5 +16,6 @@ class Outtraj: public Action {
     int init();
     //int setup();
     int action();
+    void print();
 };
 #endif
