@@ -309,6 +309,8 @@ int AmberRestart::writeFrame(int set) {
 
   File->IO->Close();
 
+  currentFrame++;
+
   return 0;
 }
 

@@ -401,7 +401,7 @@ int AmberNetcdf::writeFrame(int set) {
   F->frameToFloat(Coord);
 
   // write coords
-  start[0]=set;
+  start[0]=currentFrame;
   start[1]=0;
   start[2]=0;
   count[0]=1;
@@ -428,6 +428,8 @@ int AmberNetcdf::writeFrame(int set) {
   }
   
   nc_sync(ncid); // Necessary after every write??
+
+  currentFrame++;
 
   return 0;
 }  

@@ -207,6 +207,9 @@ int PDBfile::writeFrame(int set) {
   } else if (writeMode==1) {
     File->IO->Printf("ENDMDL\n");
   }
+
+  currentFrame++;
+
   return 0;
 }
 

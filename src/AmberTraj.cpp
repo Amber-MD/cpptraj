@@ -147,13 +147,15 @@ int AmberTraj::writeFrame(int set) {
   
   //if (seekable) 
   // NOTE: Seek only needs to happen when traj file changes
-  offset = (off_t) set;
-  offset *= (off_t) outFrameSize;
-  offset += (off_t) titleSize;
-  File->IO->Seek( offset);
+  //offset = (off_t) currentFrame;
+  //offset *= (off_t) outFrameSize;
+  //offset += (off_t) titleSize;
+  //File->IO->Seek( offset);
 
   if (File->IO->Write(frameBuffer,sizeof(char),outFrameSize)) return 1;
 
+  currentFrame++;
+ 
   return 0;
 }
 

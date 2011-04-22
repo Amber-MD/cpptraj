@@ -239,6 +239,8 @@ int Mol2File::writeFrame(int set) {
   if (writeMode==2)
     File->IO->Close();
 
+  currentFrame++;
+
   return 0;
 }
  

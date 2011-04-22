@@ -438,6 +438,8 @@ int AmberRestartNC::writeFrame(int set) {
   // Close file for this set
   close();
 
+  currentFrame++;
+
   return 0;
 }  
 
