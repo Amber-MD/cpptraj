@@ -49,6 +49,7 @@ AmberNetcdf::~AmberNetcdf() {
  * and close calls.
  */
 void AmberNetcdf::close() {
+  if (ncid<0) return;
   checkNCerr(nc_close(ncid),"Closing netcdf file.");
   if (debug>0) rprintf("Successfully closed ncid %i\n",ncid);
   ncid=-1;
