@@ -33,38 +33,36 @@ class TrajFile {
   public:
     int debug;             // Level of debug information to print
     char *trajfilename;    // The base trajectory filename
-    // NOTE: I hate that the following are public. Only necessary for REMD processing!!
+    // NOTE: I hate that the 2 following are public. Only necessary for REMD processing!!
     int Frames;            // Total number of frames in trajectory
     int total_read_frames; // Total number of frames that will be read
     int BoxType;           // 0: None, 1: Ortho, 2: NonOrtho 
-
     Range *FrameRange;     // list of frames to be written out
     int hasTemperature;    // 1 means trajectory has temperature information
     PtrajFile *File;       // Class that handles basic file IO
     AmberParm *P;          // Memory address of the associated parmfile
     Frame *F;              // Hold coordinates of the current frame
-    int skip;              /* READ: If =1 do not process this input trajectory 
-                              WRITE: If =1 this traj has been set up for write */
+    int skip;              // READ: If =1 do not process this input trajectory 
+                           // WRITE: If =1 this traj has been set up for write
 
     TrajFile();            // Constructor
     virtual ~TrajFile();   // Destructor - virtual since this class is inherited.
 
-    int Start() { return start; }
+    int Start()        { return start;        }
+    int CurrentFrame() { return currentFrame; }
     void SetTitle(char *);   // Set trajectory title.
     void PrintInfo(int);     // Print trajectory Information
+    int Begin(int *, int);   // Prepare traj for processing. Set output start value, calcd in 
+                             // setupFrameInfo. Allocate memory for F. 
+    int Begin();             // Prepare trajectory for output
+    int NextFrame(int*);     // Put the next target frame into F.
+    void End();              // Close trajectory and free F memory
+    void progressBar();      // Display trajectory progress to screen
+//    void progressBar2();   // Display trajectory progress to screen
     int setupFrameInfo(int,int,int); // Set actual start/stop based on total #frames and #threads 
-    int Begin(int *, int);   /* Prepare traj for processing. Set output start value, calcd in 
-                              * setupFrameInfo. Allocate memory for F. 
-                              */
-    int Begin();                 // Prepare trajectory for output
-    int NextFrame(int*);         // Put the next target frame into F.
-    void End();                  // Close trajectory and free F memory
-    void progressBar();          // Display trajectory progress to screen
-//    void progressBar2();         // Display trajectory progress to screen
-   
-    void SetArgs(int,int,int);   // Set the stop, start, and offset args from user input
+    void SetArgs(int,int,int);       // Set the stop, start, and offset args from user input
     // --== Inherited by child classes ==--
-    virtual int getFrame(int)      { return 1; } // Read the next coord frame into F
+    virtual int getFrame(int)      { return 1; } // Read specified frame into F
     virtual int SetupRead()        { return 1; } // Set file up for reading
     virtual int WriteArgs(ArgList*){ return 0; } // (Opt.) Process any args related to writing
     virtual int SetupWrite()       { return 1; } // Set file up for writing
