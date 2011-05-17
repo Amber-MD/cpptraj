@@ -76,7 +76,7 @@ int DSSP::setup() {
   int selected, atom, res;
   Residue RES;
 
-  // Set up mask
+  // Set up mask for this parm
   if ( Mask.SetupMask(P,debug) ) return 1;
   if ( Mask.None() ) {
     mprintf("      Error: DSSP::setup: Mask has no atoms.\n");
@@ -90,25 +90,25 @@ int DSSP::setup() {
     Nres=P->nres;
   //mprintf("      DSSP: Setting up for %i residues.\n",Nres);
 
-  // Free up SecStruct if previously allocated.
-  // NOTE: In action setup, should check if Parm has really changed...
-  SecStruct.clear();
+  // Set up for each residue of the current Parm if not already set-up.
   for (res = 0; res < Nres; res++) {
-    RES.sstype=SECSTRUCT_NULL;
-    RES.isSelected=false;
-    RES.C=-1;
-    RES.O=-1;
-    RES.N=-1;
-    RES.H=-1;
-    RES.CO_HN_Hbond.assign( Nres, 0 );
-    RES.SSprob[0]=0.0;
-    RES.SSprob[1]=0.0;
-    RES.SSprob[2]=0.0;
-    RES.SSprob[3]=0.0;
-    RES.SSprob[4]=0.0;
-    RES.SSprob[5]=0.0;
-    RES.SSprob[6]=0.0;
-    SecStruct.push_back(RES);
+    if (res>=(int)SecStruct.size()) {
+      RES.sstype=SECSTRUCT_NULL;
+      RES.isSelected=false;
+      RES.C=-1;
+      RES.O=-1;
+      RES.N=-1;
+      RES.H=-1;
+      RES.CO_HN_Hbond.assign( Nres, 0 );
+      RES.SSprob[0]=0.0;
+      RES.SSprob[1]=0.0;
+      RES.SSprob[2]=0.0;
+      RES.SSprob[3]=0.0;
+      RES.SSprob[4]=0.0;
+      RES.SSprob[5]=0.0;
+      RES.SSprob[6]=0.0;
+      SecStruct.push_back(RES);
+    }
   }
 
   // Go through all atoms in mask. Set up a residue for each C, O, N, and H atom
