@@ -244,8 +244,13 @@ int AmberTraj::SetupRead() {
       if (numBoxCoords>3) {
         sscanf(buffer, "%8lf%8lf%8lf%8lf%8lf%8lf",box,box+1,box+2,box+3,box+4,box+5);
         CheckBoxType(box);
-      } else
+      } else {
         BoxType = P->BoxType; 
+        // If box coords are present in traj but no box in parm, print warning
+        if (BoxType == 0)
+          mprintf("Warning: %s has box coordinates but no box info in %s\n",
+                  trajfilename,P->parmName);
+      }
       // Reallocate frame buffer accordingly
       frameSize+=lineSize;
       frameBuffer=(char*) realloc(frameBuffer,frameSize * sizeof(char));
