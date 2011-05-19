@@ -57,8 +57,6 @@ int Distance::init( ) {
   mprintf("    DISTANCE: %s to %s",Mask1.maskString, Mask2.maskString);
   if (noimage) 
     mprintf(", non-imaged");
-  else
-    mprintf(", imaged");
   if (useMass) 
     mprintf(", center of mass");
   else
@@ -99,6 +97,14 @@ int Distance::setup() {
       mprintf("    Warning: No box info in %s, disabling imaging.\n",P->parmName);
     }
   }
+
+  // Print imaging info for this parm
+  mprintf("    DISTANCE: %s to %s",Mask1.maskString, Mask2.maskString);
+  if (imageType > 0)
+    mprintf(", imaged");
+  else
+    mprintf(", imaging off");
+  mprintf(".\n");
         
   return 0;  
 }
