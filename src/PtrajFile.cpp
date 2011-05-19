@@ -418,8 +418,8 @@ int PtrajFile::SetupRead() {
   // Standard file size is in the frame_stat struct
   uncompressed_size = IO->Size(filename);
 
-  // Determine format
-  // Read first 3 bytes again to determine format by magic number
+  // ========== Determine format ==========
+  // ---------- Read first 3 bytes again to determine format by magic number ----------
   IO->Open(filename,"rb"); // NOTE: Err Check
   memset(magic,0,3*sizeof(unsigned char));
   IO->Read(magic  ,1,1);
@@ -455,7 +455,7 @@ int PtrajFile::SetupRead() {
     return 0;
   }
 
-  // ID by file characteristics; read the first two lines
+  // ---------- ID by file characteristics; read the first two lines ----------
   // Initialize buffers to NULL
   buffer1[0]='\0';
   buffer2[0]='\0';
@@ -473,17 +473,6 @@ int PtrajFile::SetupRead() {
     }
   }
 
-  // Reopen and scan for Tripos mol2 molecule section
-  // 0 indicates section found.
-  IO->Open(filename,"r");
-  if (!Mol2ScanTo(this, MOLECULE)) {
-    if (debug>0) mprintf("  TRIPOS MOL2 file\n");
-    fileFormat=MOL2FILE;
-    IO->Close();
-    return 0;
-  }
-  IO->Close();
-
   // If both lines have PDB keywords, assume PDB
   if (isPDBkeyword(buffer1) && isPDBkeyword(buffer2)) {
     if (debug>0) mprintf("  PDB file\n");
@@ -492,7 +481,8 @@ int PtrajFile::SetupRead() {
   }
 
   // If either buffer contains a TRIPOS keyword assume Mol2
-  // NOTE: This will fail on tripos files with extensive header comments
+  // NOTE: This will fail on tripos files with extensive header comments.
+  //       A more expensive check for mol2 files is below.
   if (strncmp(buffer1,"@<TRIPOS>", 9)==0 ||
       strncmp(buffer2,"@<TRIPOS>", 9)==0) {
     if (debug>0) mprintf("  TRIPOS MOL2 file\n");
@@ -548,7 +538,19 @@ int PtrajFile::SetupRead() {
     }
   }
 
-  // NOTE: EXPERIMENTAL
+  // ---------- MORE EXPENSIVE CHECKS ----------
+  // Reopen and scan for Tripos mol2 molecule section
+  // 0 indicates section found.
+  IO->Open(filename,"r");
+  if (!Mol2ScanTo(this, MOLECULE)) {
+    if (debug>0) mprintf("  TRIPOS MOL2 file\n");
+    fileFormat=MOL2FILE;
+    IO->Close();
+    return 0;
+  }
+  IO->Close();
+
+  // ---------- EXPERIMENTAL ----------
   // If the file format is still undetermined and the file name is conflib.dat,
   // assume this is a conflib.dat file from LMOD. Cant think of a better way to
   // detect this since there is no magic number but the file is binary.
