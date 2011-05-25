@@ -25,5 +25,6 @@ class FrameList {
     int Replace(int, Frame *, AmberParm *);
     void Info();
     const char *FrameName(int);
+    int NumFrames() { return Nframe; }
 };
 #endif

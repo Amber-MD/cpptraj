@@ -10,6 +10,9 @@ class Rms2d: public Action {
     AtomMask RefMask;
     AtomMask FrameMask;
     char *rmsdFile;
+    DataSetList RmsData;
+
+    void progressBar(int, int);
   public:
     Rms2d();
     ~Rms2d();
@@ -17,5 +20,6 @@ class Rms2d: public Action {
     int init();
     int setup();
     int action();
+    void print();
 };
 #endif
