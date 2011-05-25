@@ -70,6 +70,22 @@ void rprintf(const char *format, ...) {
 }
 
 /*
+ * rprinterr()
+ * Print message to STDERR for this worldrank
+ */
+void rprinterr(const char *format, ...) {
+  va_list args;
+
+#ifdef MPI
+  fprintf(stderr,"[%i] ",worldrank);
+#endif
+  va_start(args,format);
+  vfprintf(stderr,format,args);
+  va_end(args);
+  return;
+}
+
+/*
  * printerr()
  * Print error message along with calling routine.
  */
