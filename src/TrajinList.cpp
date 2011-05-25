@@ -2,6 +2,7 @@
 #include "TrajinList.h"
 #include "RemdTraj.h"
 #include "CpptrajStdio.h"
+#include "PtrajMpi.h" // worldrank,worldsize
 
 // CONSTRUCTOR
 TrajinList::TrajinList() {
@@ -11,6 +12,41 @@ TrajinList::TrajinList() {
 // DESTRUCTOR
 TrajinList::~TrajinList() { }
 
+/*
+ * TrajinList::Add()
+ * Add trajectory to the trajectory list as an input trajectory. Associate
+ * with given parm file.
+ */
+int TrajinList::AddTrajin(char *filenameIn, AmberParm *parmIn) {
+  TrajFile *T;
+
+  // Set up basic file to determine type and format
+  T = this->SetupTrajectory(filenameIn, fileAccess, UNKNOWN_FORMAT, UNKNOWN_TYPE);
+
+  if (T==NULL) {
+    rprinterr("Error: AddTrajin: Setting up file for trajectory %s\n",filenameIn);
+    return 1;
+  }
+
+  // Set parameter file
+  T->P=parmIn;
+
+  // Set up trajectory. 
+  if ( T->SetupRead() ) {
+    rprinterr("Error: AddTrajin: Setting up %s for read.\n",filenameIn);
+    delete T;
+    return 1;
+  }
+
+  // Set start, stop and offset args to default
+  T->SetArgs(1, -1, 1);
+
+  // Add to trajectory file list
+  this->push_back(T);
+
+  return 0;
+}
+
 /* 
  * TrajinList::Add()
  * Add trajectory to the trajectory list as an input trajectory. 
@@ -18,7 +54,7 @@ TrajinList::~TrajinList() { }
  * ParmFileList. 
  * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
  */
-int TrajinList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
+int TrajinList::Add(ArgList *A, ParmFileList *parmFileList) {
   TrajFile *T;
   RemdTraj *R; // Needed to access non-inherited functions
   int startArg, stopArg, offsetArg;
@@ -37,7 +73,7 @@ int TrajinList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
     T = this->SetupTrajectory(trajfilename, fileAccess, UNKNOWN_FORMAT, UNKNOWN_TYPE);
 
   if (T==NULL) {
-    rprintf("ERROR: Setting up file for trajectory %s\n",trajfilename);
+    rprinterr("Error: TrajinList::Add: Setting up file for trajectory %s\n",trajfilename);
     return 1;
   }
 
@@ -46,7 +82,7 @@ int TrajinList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
  
   // Set up trajectory. 
   if ( T->SetupRead() ) {
-    rprintf("ERROR: Setting up %s for read.\n",trajfilename);
+    rprinterr("Error: TrajinList::Add: Setting up %s for read.\n",trajfilename);
     delete T;
     return 1;
   }
@@ -70,10 +106,8 @@ int TrajinList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
  * actual start and stop and how many frames total will be processed.
  * Return the number of frames to be processed.
  */
-int TrajinList::SetupFrames(int worldrank, int worldsize) {
+int TrajinList::SetupFrames() {
   int maxFrames, trajFrames;
-
-  mprintf("\nTRAJECTORIES:\n");
 
   maxFrames=0;
 
@@ -88,10 +122,6 @@ int TrajinList::SetupFrames(int worldrank, int worldsize) {
     (*it)->PrintInfo(1);
   }
 
-  if (maxFrames==-1)
-    mprintf("  Coordinate processing will occur until EOF (unknown number of frames).\n");
-  else
-    mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
   return maxFrames;
 }
 

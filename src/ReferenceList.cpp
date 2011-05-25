@@ -18,7 +18,7 @@ ReferenceList::~ReferenceList() { }
  * files in the ParmFileList. 
  * reference <filename> [start] [parm <parmfile> | parmindex <#>]
  */
-int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
+int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList) {
   TrajFile *T;
   int startArg,stopArg,offsetArg;
   bool average = false;

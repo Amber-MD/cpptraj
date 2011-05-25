@@ -11,8 +11,7 @@ class ReferenceList : public CoordFileList {
     ReferenceList();
     ~ReferenceList();
     // Add a traj file to the list with given access and associate with a parm
-    // NOTE: worldsize is passed in as last arg to avoid include of PtrajMpi
-    int Add(ArgList *A, ParmFileList *, int);
+    int Add(ArgList *A, ParmFileList *);
     // REFERENCE: Set up frames to be processed
     int SetupRefFrames(FrameList *);
 };

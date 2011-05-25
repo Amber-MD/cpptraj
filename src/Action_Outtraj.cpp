@@ -1,7 +1,6 @@
 // Outtraj 
 #include "Action_Outtraj.h"
 #include "CpptrajStdio.h"
-#include "PtrajMpi.h" //worldsize
 
 // CONSTRUCTOR
 Outtraj::Outtraj() {
@@ -50,7 +49,7 @@ int Outtraj::init() {
     }
   }
 
-  return ( outtraj.Add(A,PFL,worldsize) );
+  return ( outtraj.Add(A,PFL) );
 } 
 
 /*

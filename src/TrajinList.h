@@ -9,11 +9,12 @@ class TrajinList : public CoordFileList {
     
     TrajinList();
     ~TrajinList();
-    // Add a traj file to the list with given access and associate with a parm
-    // NOTE: worldsize is passed in as last arg to avoid include of PtrajMpi
-    int Add(ArgList *A, ParmFileList *, int);
+    // Add a traj file with given name and parm to the list
+    int AddTrajin(char *, AmberParm *);
+    // Add a traj file to the list based on input from arg list
+    int Add(ArgList *, ParmFileList *);
     // TRAJIN: Set up frames to be processed 
-    int SetupFrames(int,int);
+    int SetupFrames();
 };
 #endif
 

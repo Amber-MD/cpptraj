@@ -230,15 +230,15 @@ void PtrajState::Dispatch() {
 
   // Check if command pertains to coordinate lists
   if (A->CommandIs("trajin")) {
-    trajFileList.Add(A, &parmFileList, worldsize);
+    trajFileList.Add(A, &parmFileList);
     return;
   }
   if (A->CommandIs("reference")) {
-    refFileList.Add( A, &parmFileList, worldsize);
+    refFileList.Add( A, &parmFileList);
     return;
   }
   if (A->CommandIs("trajout")) {
-    outFileList.Add( A, &parmFileList, worldsize);
+    outFileList.Add( A, &parmFileList);
     return;
   }
 
@@ -389,7 +389,12 @@ int PtrajState::Run() {
 
   // ========== S E T U P   P H A S E ========== 
   // Calculate frame division among trajectories
-  maxFrames=trajFileList.SetupFrames(worldrank,worldsize);
+  mprintf("\nTRAJECTORIES:\n");
+  maxFrames=trajFileList.SetupFrames();
+  if (maxFrames==-1)
+    mprintf("  Coordinate processing will occur until EOF (unknown number of frames).\n");
+  else
+    mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
 
   // Parameter file information
   parmFileList.Print();

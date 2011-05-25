@@ -10,8 +10,7 @@ class TrajoutList : public CoordFileList {
     TrajoutList();
     ~TrajoutList();
     // Add a traj file to the list with given access and associate with a parm
-    // NOTE: worldsize is passed in as last arg to avoid include of PtrajMpi
-    int Add(ArgList *A, ParmFileList *, int);
+    int Add(ArgList *A, ParmFileList *);
     int Write(int , Frame *, AmberParm*);
     void Close();
 };

@@ -12,7 +12,6 @@
 #include <list>
 #include "TrajFile.h" // ArgList.h
 #include "ParmFileList.h"
-//#include "ArgList.h"
 
 class CoordFileList : public std::list<TrajFile *> {
   protected:
@@ -33,6 +32,6 @@ class CoordFileList : public std::list<TrajFile *> {
     TrajFile *SetupTrajectory(char *, AccessType, FileFormat, FileType);
     void Info();
 
-    virtual int Add(ArgList *, ParmFileList *, int) { return 1; }
+    virtual int Add(ArgList *, ParmFileList *) { return 1; }
 };
 #endif    

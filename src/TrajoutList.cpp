@@ -1,6 +1,7 @@
 // TrajoutList
 #include "TrajoutList.h"
 #include "CpptrajStdio.h"
+#include "PtrajMpi.h" //worldsize
 
 // CONSTRUCTOR
 TrajoutList::TrajoutList() {
@@ -18,7 +19,7 @@ TrajoutList::~TrajoutList() { }
  * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
  *         [<range>]
  */
-int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList, int worldsize) {
+int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList) {
   TrajFile *T;
   FileFormat writeFormat;
   FileType writeType;
