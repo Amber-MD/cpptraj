@@ -2,17 +2,19 @@
 #define INC_ACTION_RMS2D_H
 // Rms2d
 #include "Action.h"
+#include "TrajinList.h"
 
 class Rms2d: public Action {
-    FrameList ReferenceFrames;
-    bool nofit;
-    bool useMass;
-    AtomMask RefMask;
-    AtomMask FrameMask;
-    char *rmsdFile;
-    DataSetList RmsData;
+    FrameList ReferenceFrames; // Hold frames from all trajin stmts
+    bool nofit;                // Do not perform rms fitting
+    bool useMass;              // Perform mass-weighted rmsd
+    AtomMask RefMask;          // Reference atom mask
+    AtomMask FrameMask;        // Target atom mask
+    char *rmsdFile;            // Output filename
+    DataSetList RmsData;       // 1 data set for each ref frame to each tgt frame
+    TrajinList *RefTraj;       // Reference trajectory, each frame used in turn
+    AmberParm *RefParm;        // Reference trajectory Parm
 
-    void progressBar(int, int);
   public:
     Rms2d();
     ~Rms2d();

@@ -1,4 +1,11 @@
-// Rms2d 
+/* Action: Rms2d
+ * Expected call: rms2d <mask> <refmask> rmsout <filename> [reftraj <traj>] 
+ *                      [mass] [nofit]
+ * Perform RMS calculation between each input frame and each other input 
+ * frame, or each frame read in from a separate reference traj and each 
+ * input frame. 
+ * The actual calcuation is performed in the print function.
+ */
 #include "Action_Rms2d.h"
 #include "CpptrajStdio.h"
 #include <cstdio> //sprintf
@@ -9,26 +16,36 @@ Rms2d::Rms2d() {
   nofit=false;
   useMass=false;
   rmsdFile=NULL;
+  RefTraj=NULL;
+  RefParm=NULL;
 } 
 
 // DESTRUCTOR
-Rms2d::~Rms2d() { }
+Rms2d::~Rms2d() { 
+  if (RefTraj!=NULL) {
+    RefTraj->front()->End();
+    delete RefTraj;
+  }
+}
 
 /*
  * Rms2d::init()
- * Expected call: rms2d <mask> <refmask> [rmsout filename] [mass] [nofit]
+ * Expected call: rms2d <mask> <refmask> rmsout <filename> [reftraj <traj>] [mass] [nofit]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
  *    3) Dataset name
  */
 int Rms2d::init() {
-  char *mask0, *maskRef;
+  char *mask0, *maskRef, *reftraj;
+  int refparmindex;
 
   // Get keywords
   nofit = A->hasKey("nofit");
   useMass = A->hasKey("mass");
   rmsdFile = A->getKeyString("rmsout",NULL);
+  reftraj = A->getKeyString("reftraj",NULL);
+  refparmindex = A->getKeyInt("refparmindex",-1);
   // Require an output filename
   if (rmsdFile==NULL) {
     mprinterr("Error: Rms2d: No output filename specified; use 'rmsout' keyword.\n");
@@ -44,7 +61,33 @@ int Rms2d::init() {
   if (maskRef==NULL) maskRef=mask0;
   RefMask.SetMaskString(maskRef);
 
+  // Check if reference will be a series of frames from a trajectory
+  if (reftraj!=NULL) {
+    // Get reference parm from parm index. If not specified use default parm
+    if (refparmindex<0) refparmindex=0;
+    RefParm = PFL->GetParm(refparmindex);
+    if (RefParm==NULL) {
+      mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftraj);
+      return 1;
+    }
+    // Attempt to set up reference trajectory
+    RefTraj = new TrajinList();
+    if (RefTraj->AddTrajin(reftraj, RefParm)) {
+      mprinterr("Error: Rms2d: Could not set up reftraj %s.\n",reftraj);
+      delete RefTraj;
+      RefTraj=NULL;
+      return 1;
+    }
+  }
+
   mprintf("    RMS2D: (%s) to (%s)",FrameMask.maskString,RefMask.maskString);
+  if (reftraj!=NULL) {
+    mprintf(" reference is trajectory:\n        ");
+    refparmindex = RefTraj->SetupFrames();
+    mprintf("          ");
+    RefTraj->front()->Begin(&refparmindex,0);
+    mprintf("         ");
+  }
   if (nofit)
     mprintf(" (no fitting)");
   if (useMass)
@@ -82,7 +125,6 @@ int Rms2d::action() {
  * Perform the rms calculation of each frame to each other frame.
  */
 void Rms2d::print() {
-  AmberParm *RefParm;
   Frame *RefFrame;
   AmberParm *TgtParm;
   Frame *TgtFrame;
@@ -93,22 +135,35 @@ void Rms2d::print() {
   double R, U[9], Trans[6];
   int current=0;
   int max=0;
+  int totalref=0;
   int currentPercent=0;
   int targetPercent=0;
+  int res=0; // Currently only used as dummy space for getnextframe
   DataSet *rmsdata;
   char setname[256];
 
-  max = ReferenceFrames.NumFrames() * ReferenceFrames.NumFrames();
-  mprintf("  RMS2D: Calculating RMSDs between each frame (%i total).\n  ",max);
+  if (RefTraj==NULL) {
+    totalref = ReferenceFrames.NumFrames();
+    max = ReferenceFrames.NumFrames() * ReferenceFrames.NumFrames();
+    mprintf("  RMS2D: Calculating RMSDs between each frame (%i total).\n  ",max);
+  } else {
+    totalref = RefTraj->front()->total_read_frames;
+    max = totalref * ReferenceFrames.NumFrames();
+    mprintf("  RMS2D: Calculating RMSDs between each input frame and each reference\n"); 
+    mprintf("         trajectory %s frame (%i total).\n  ",
+            RefTraj->front()->trajfilename, max);
+  }
 
-  for (int nref=0; nref < ReferenceFrames.NumFrames(); nref++) {
+  // LOOP OVER REFERENCE FRAMES
+  for (int nref=0; nref < totalref; nref++) {
     currentPercent = (current * 100) / max;
     if (currentPercent >= targetPercent) {
       targetPercent+=10;
       mprintf("%2i%% ",currentPercent);
       mflush();
     }
-    RefParm = ReferenceFrames.GetFrameParm( nref );
+    if (RefTraj==NULL) 
+      RefParm = ReferenceFrames.GetFrameParm( nref );
     // If the current ref parm not same as last ref parm, reset reference mask
     if (RefParm->pindex != lastrefpindex) {
       if ( RefMask.SetupMask(RefParm,debug) ) {
@@ -122,14 +177,19 @@ void Rms2d::print() {
       lastrefpindex = RefParm->pindex;
     }
     // Get the current reference frame
-    RefFrame = ReferenceFrames.GetFrame( nref );
+    if (RefTraj==NULL)
+      RefFrame = ReferenceFrames.GetFrame( nref );
+    else {
+      if ( RefTraj->front()->NextFrame(&res) )
+        RefFrame = RefTraj->front()->F;
+    }
     // Set up dataset for this reference frame
-    sprintf(setname,"Frame_%i",nref);
+    sprintf(setname,"Frame_%i",nref+1);
     rmsdata = RmsData.Add(DOUBLE, setname, "Rms2d");
     DFL->Add(rmsdFile,rmsdata);
 
+    // LOOP OVER TARGET FRAMES
     for (int nframe=0; nframe < ReferenceFrames.NumFrames(); nframe++) {
-      //progressBar(current, max);
       TgtParm = ReferenceFrames.GetFrameParm( nframe );
       // If the current frame parm not same as last frame parm, reset frame mask
       if (TgtParm->pindex != lasttgtpindex) {
@@ -159,13 +219,11 @@ void Rms2d::print() {
       // Set selected target atoms
       SelectedTgt->SetFrameCoordsFromMask(TgtFrame->X, &FrameMask);
 
+      // Perform RMS calculation
       if (nofit) {
         R = SelectedTgt->RMSD(SelectedRef, useMass);
       } else {
         R = SelectedTgt->RMSD(SelectedRef, U, Trans, useMass);
-        //F->Translate(Trans);
-        //F->Rotate(U);
-        //F->Translate(Trans+3);
       }
       RmsData.AddData(nframe, &R, nref);
       // DEBUG
@@ -173,7 +231,6 @@ void Rms2d::print() {
       current++;
     } // END loop over target frames
   } // END loop over reference frames
-  //progressBar(current, max);
   mprintf("100%\n");
 
   if (SelectedRef!=NULL) delete SelectedRef;
@@ -181,45 +238,4 @@ void Rms2d::print() {
   return;
 }
 
-/*
- * Rms2d::progressBar()
- * Print progress bar during 2d rms calc
- */
-void Rms2d::progressBar(int current, int max) {
-  char buffer[128];
-  int i,j,percent,numChars;
 
-  // Fraction complete, max 100. 
-  percent = (current * 100) / max;
-
-  buffer[0]='{';
-  i=1;
-  // Set number of characters
-  numChars = percent / 2;
-  for (j=0; j<numChars; j++) buffer[i++]='+';
-  // Fill the rest
-  for (; j<50; j++)
-    buffer[i++]=' ';
-  // Add last character and reset/newline character
-  if (current==max) buffer[i-1]='+';
-  buffer[i++]='}';
-  buffer[i++]='\r';
-  if (current==max) {
-    buffer[i-1]=' ';
-    buffer[i++]='C';
-    buffer[i++]='o';
-    buffer[i++]='m';
-    buffer[i++]='p';
-    buffer[i++]='l';
-    buffer[i++]='e';
-    buffer[i++]='t';
-    buffer[i++]='e';
-    buffer[i++]='.';
-    buffer[i++]='\n';
-  }
-  // Finish off and print
-  buffer[i]='\0';
-  mprintf("  %s",buffer);
-  // On first frame flush so that progress bar appears
-  if (current==0) mflush();
-}
