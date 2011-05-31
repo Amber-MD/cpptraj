@@ -144,6 +144,8 @@ int Rmsd::init( ) {
       RefTraj = new TrajinList();
       if (RefTraj->AddTrajin(reftraj, RefParm)) {
         mprinterr("Error: Rmsd: Could not set up reftraj %s.\n",reftraj);
+        delete RefTraj;
+        RefTraj=NULL;
         return 1;
       } 
     } else {
