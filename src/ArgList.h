@@ -29,6 +29,7 @@ class ArgList {
     int getKeyInt(const char *, int);
     double getKeyDouble(const char *, double);
     int hasKey(const char *);
+    ArgList *SplitAt(const char *);
     void Reset();
     void ResetAll();
 };

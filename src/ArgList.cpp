@@ -362,6 +362,44 @@ int ArgList::hasKey(const char *key) {
   return 0;
 }
 
+/* ArgList::SplitAt()
+ * Split the argument list at the specified keyword. Remove those arguments
+ * from this list and return as a new list.
+ */
+ArgList *ArgList::SplitAt(const char *key) {
+  int i, argpos;
+  ArgList *split;
+
+  argpos=-1;
+  for (i=0; i<nargs; i++) {
+    if (strcmp(key,arglist[i])==0) {
+      argpos = i;
+      break;
+    }
+  }
+  if (argpos==-1) {
+    mprinterr("Error: Arglist::SplitAt: Key %s not found in arg list beginning\n",key);
+    mprinterr("       with [%s]\n",arglist[0]);
+    return NULL;
+  }
+  // Create new arglist starting from argpos
+  split = new ArgList();
+  for (i=argpos; i < nargs; i++) {
+    split->Add(arglist[i]);
+    free(arglist[i]);
+  }
+  split->Reset();  
+  // Resize the current arg list
+  nargs = argpos;
+  arglist = (char**) realloc(arglist, argpos * sizeof(char*));
+  marked = (char*) realloc(marked, argpos * sizeof(char));
+  // DEBUG
+  mprintf("SPLIT LIST:\n");
+  split->print();
+
+  return split;
+}
+
 /*
  * ArgList::Reset()
  * Reset marked except for the Command (arg 0). Allocate memory for marked
