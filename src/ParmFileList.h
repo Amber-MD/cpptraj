@@ -6,6 +6,7 @@
  * files in a list by index or full/base filename.
  */
 #include "AmberParm.h"
+#include "ArgList.h"
 
 class ParmFileList {
     AmberParm **ParmList;
@@ -22,6 +23,7 @@ class ParmFileList {
     int Add(char *);
     int Add(AmberParm *);
     AmberParm *GetParm(int);
+    AmberParm *GetParm(ArgList *);
     int GetParmIndex(char *);
     int Replace(int, AmberParm *);
     void Print();

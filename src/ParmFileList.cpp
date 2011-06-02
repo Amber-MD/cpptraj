@@ -36,6 +36,32 @@ AmberParm *ParmFileList::GetParm(int num) {
   return ParmList[num];
 }
 
+/* ParmFileList::GetParm()
+ * Return the parm structure based on arguments in the given arg list. 
+ *   parm <parm name>
+ *   parmindex <parm index>
+ */
+AmberParm *ParmFileList::GetParm(ArgList *A) {
+  char *parmfilename;
+  int pindex;
+  AmberParm *P;
+  // Get any parm keywords if present
+  P=NULL;
+  parmfilename=A->getKeyString("parm", NULL);
+  pindex=A->getKeyInt("parmindex",0);
+  // Associate trajectory with parameter file. Associate with default parm if none specified
+  if (parmfilename!=NULL)
+    pindex = this->GetParmIndex(parmfilename);
+  P = this->GetParm(pindex);
+  if (P==NULL) {
+    mprinterr("    Error: Could not get parameter file:\n");
+    mprinterr("           parmfilename=%s, pindex=%i\n",parmfilename,pindex);
+    return NULL;
+  }
+
+  return P;
+}
+
 /*
  * ParmFileList::GetParmIndex()
  * Return the index in ParmList of the given Parm name. Use either the full
