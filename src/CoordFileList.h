@@ -11,18 +11,17 @@
  */
 #include <list>
 #include "TrajFile.h" // ArgList.h
-#include "ParmFileList.h"
 
 class CoordFileList : public std::list<TrajFile *> {
   protected:
-    char *trajfilename;               // Traj filename, from Arg list
-    AmberParm *P;                     // Parm, determined from Args (parm/parmindex)
+    //char *trajfilename;               // Traj filename, from Arg list
+    //AmberParm *P;                     // Parm, determined from Args (parm/parmindex)
     AccessType fileAccess;            // READ/WRITE/APPEND, set in constructor/Add(write)
     int debug;                        // Debug level
     std::list<TrajFile *>::iterator it; // Iterator for the list
 
     int CheckFilename(char *);
-    int ProcessArgList(ArgList *, ParmFileList *);
+    //int ProcessArgList(ArgList *, ParmFileList *);
 
   public:
     CoordFileList();
@@ -30,8 +29,8 @@ class CoordFileList : public std::list<TrajFile *> {
 
     void SetDebug(int);
     TrajFile *SetupTrajectory(char *, AccessType, FileFormat, FileType);
-    void Info();
+    void Info(int);
 
-    virtual int Add(ArgList *, ParmFileList *) { return 1; }
+    virtual int Add(ArgList *, AmberParm *) { return 1; }
 };
 #endif    

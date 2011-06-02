@@ -17,8 +17,8 @@
 // CONSTRUCTOR
 CoordFileList::CoordFileList() {
   debug=0;
-  trajfilename=NULL; 
-  P = NULL;
+  //trajfilename=NULL; 
+  //P = NULL;
 }
 
 // DESTRUCTOR
@@ -39,36 +39,6 @@ void CoordFileList::SetDebug(int debugIn) {
 }
 
 /*
- * CoordFileList::ProcessArgList()
- * Process arguments common to all trajectory lists. Currently gets traj 
- * filename and associated parm file.
- */
-int CoordFileList::ProcessArgList(ArgList *A, ParmFileList *parmFileList) {
-  char *parmfilename;
-  int pindex;
-
-  // Filename should be first arg
-  trajfilename = A->getNextString();
-
-  // Get any parm keywords if present
-  parmfilename=A->getKeyString("parm", NULL);
-  pindex=A->getKeyInt("parmindex",0);
-  // Associate trajectory with parameter file. Associate with default parm if none specified
-  if (parmfilename!=NULL)
-    pindex=parmFileList->GetParmIndex(parmfilename);
-  P = parmFileList->GetParm(pindex);
-  if (P==NULL) {
-    mprintf("    Error: Could not associate %s with a parameter file.\n",trajfilename);
-    mprintf("    parmfilename=%s, pindex=%i\n",parmfilename,pindex);
-    return 1;
-  }
-  if (debug>0)
-    mprintf("    Associating traj %s with parm %s\n",trajfilename, P->parmName);
-
-  return 0;
-}
-
-/*
  * CoordFileList::SetupTrajectory()
  * Return a trajectory class with the File object set up for the specified
  * access; Associate with the given parm.
@@ -78,12 +48,18 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
   PtrajFile *basicTraj;
   TrajFile *T;
 
+  // Must specify a filename
+  if (trajfilenameIN==NULL) {
+    mprinterr("Error: CoordFileList::SetupTrajectory: No filename given.\n");
+    return NULL;
+  }
+
   basicTraj=new PtrajFile();
   // Set up basic file to determine (read) or set (write) type and format
   if (basicTraj->SetupFile(trajfilenameIN,fileAccess,writeFormat,writeType,debug)) {
     delete basicTraj;
     if (debug>1)
-      mprintf("    Error: Could not set up file %s.\n",trajfilenameIN);
+      mprinterr("    Error: Could not set up file %s.\n",trajfilenameIN);
     return NULL;
   }
 
@@ -95,8 +71,8 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
 #ifdef BINTRAJ
       T = new AmberNetcdf();  
 #else
-      mprintf("Error: SetupTrajectory(%s):\n",trajfilename);
-      mprintf("       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
+      mprinterr("Error: SetupTrajectory(%s):\n",trajfilename);
+      mprinterr("       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
       delete basicTraj;
       return NULL;
 #endif
@@ -105,8 +81,8 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
 #ifdef BINTRAJ
       T = new AmberRestartNC();
 #else
-      mprintf("Error: SetupTrajectory(%s):\n",trajfilename);
-      mprintf("       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
+      mprinterr("Error: SetupTrajectory(%s):\n",trajfilename);
+      mprinterr("       Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
       delete basicTraj;
       return NULL;
 #endif
@@ -115,7 +91,7 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
     case CONFLIB     : T = new Conflib();      break;
     case MOL2FILE    : T = new Mol2File();     break;
     default:
-      mprintf("    Error: Could not determine trajectory file %s type, skipping.\n",
+      mprinterr("    Error: Could not determine trajectory file %s type, skipping.\n",
               basicTraj->filename);
       delete basicTraj;
       return NULL;
@@ -136,20 +112,24 @@ TrajFile *CoordFileList::SetupTrajectory(char *trajfilenameIN, AccessType fileAc
  * Check if filenameIn is already in use, return 1 if so.
  */
 int CoordFileList::CheckFilename(char *filenameIn) {
+  if (filenameIn==NULL) {
+    mprinterr("Error: CoordFileList::CheckFilename: Called with NULL filename.\n");
+    return 1;
+  }
   for (it = this->begin(); it != this->end(); it++)
     if ( strcmp(filenameIn, (*it)->File->filename)==0 ) return 1;
 
   return 0;
 }
 
-/*
- * CoordFileList::Info() - Call PrintInfo for each traj in the list.
+/* CoordFileList::Info() - Call PrintInfo for each traj in the list.
  */
-// May not be necessary
-void CoordFileList::Info() {
+void CoordFileList::Info(int indent) {
   if (this->empty()) 
-    mprintf("No files.\n");
-  for (it = this->begin(); it != this->end(); it++)
+    mprintf("  No files.\n");
+  for (it = this->begin(); it != this->end(); it++) {
+    if (indent>0) mprintf("%*s",indent,"");
     (*it)->PrintInfo(0);
+  }
 }
 

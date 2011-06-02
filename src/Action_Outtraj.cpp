@@ -21,6 +21,7 @@ Outtraj::~Outtraj() { }
  */
 int Outtraj::init() {
   char *datasetName;
+  AmberParm *tempParm;
 
 #ifdef MPI
   mprintf("ERROR: OUTTRAJ currently not functional with MPI.\n");
@@ -29,6 +30,11 @@ int Outtraj::init() {
 
   mprintf("    OUTTRAJ: Will write to [%s]\n",A->Arg(1));
   outtraj.SetDebug(debug);
+  tempParm = PFL->GetParm(A);
+  if (tempParm==NULL) {
+    mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",A->Arg(1));
+    return 1;
+  }
   // If maxmin, get the name of the dataset as well as the max and min values.
   datasetName = A->getKeyString("maxmin",NULL);
   if (datasetName!=NULL) {
@@ -49,7 +55,7 @@ int Outtraj::init() {
     }
   }
 
-  return ( outtraj.Add(A,PFL) );
+  return ( outtraj.Add(A,tempParm) );
 } 
 
 /*

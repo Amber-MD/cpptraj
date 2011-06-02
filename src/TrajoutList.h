@@ -10,7 +10,7 @@ class TrajoutList : public CoordFileList {
     TrajoutList();
     ~TrajoutList();
     // Add a traj file to the list with given access and associate with a parm
-    int Add(ArgList *A, ParmFileList *);
+    int Add(ArgList *A, AmberParm *);
     int Write(int , Frame *, AmberParm*);
     void Close();
 };

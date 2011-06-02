@@ -229,16 +229,20 @@ void PtrajState::Dispatch() {
   }
 
   // Check if command pertains to coordinate lists
+  // If it does, get a parm based on parm/parmindex keywords in arg list
   if (A->CommandIs("trajin")) {
-    trajFileList.Add(A, &parmFileList);
+    tempParm = parmFileList.GetParm(A);
+    trajFileList.Add(A, tempParm);
     return;
   }
   if (A->CommandIs("reference")) {
-    refFileList.Add( A, &parmFileList);
+    tempParm = parmFileList.GetParm(A);
+    refFileList.Add( A, tempParm);
     return;
   }
   if (A->CommandIs("trajout")) {
-    outFileList.Add( A, &parmFileList);
+    tempParm = parmFileList.GetParm(A);
+    outFileList.Add( A, tempParm);
     return;
   }
 
@@ -405,7 +409,7 @@ int PtrajState::Run() {
 
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");
-  outFileList.Info();
+  outFileList.Info(0);
  
   // Set max frames in the data set list
   DSL.SetMax(maxFrames); 

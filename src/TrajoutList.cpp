@@ -19,14 +19,20 @@ TrajoutList::~TrajoutList() { }
  * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
  *         [<range>]
  */
-int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList) {
+int TrajoutList::Add(ArgList *A, AmberParm *parmIn) {
   TrajFile *T;
   FileFormat writeFormat;
   FileType writeType;
-  char *onlyframes; 
+  char *onlyframes, *trajfilename; 
 
-  // Set up common arguments from arglist
-  if (this->ProcessArgList(A,parmFileList)) return 1;
+  // Filename must be the first argument
+  trajfilename = A->getNextString();
+
+  // Must be called with a parm file.
+  if (parmIn==NULL) {
+    mprinterr("Error: trajout %s: Could not associate with a parm file.\n",trajfilename);
+    return 1;
+  }
 
   // Init variables
   writeFormat=AMBERTRAJ; 
@@ -34,7 +40,7 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList) {
  
   // Check that this filename is not already in use
   if (this->CheckFilename(trajfilename)) {
-    mprintf("Error: trajout: Filename %s has already been used for trajout.\n",
+    mprinterr("Error: trajout: Filename %s has already been used for trajout.\n",
             trajfilename);
     return 1;
   }
@@ -83,10 +89,10 @@ int TrajoutList::Add(ArgList *A, ParmFileList *parmFileList) {
   }
     
   // Set parameter file
-  T->P=P;
+  T->P=parmIn;
 
   // Set box type from parm file unless "nobox" specified  
-  T->BoxType=P->BoxType;
+  T->BoxType=parmIn->BoxType;
   if (A->hasKey("nobox")) T->BoxType=0;
 
   // No more setup here; Write is set up when first frame written.
@@ -145,7 +151,9 @@ int TrajoutList::Write(int outputSet, Frame *Fin, AmberParm *CurrentParm) {
  * Close output trajectories. Called after input traj processing completed.
  */
 void TrajoutList::Close() {
-  for (it = this->begin(); it != this->end(); it++) 
-    (*it)->End();
+  for (it = this->begin(); it != this->end(); it++) {
+    if ( (*it)->skip==1 ) 
+      (*it)->End();
+  }
 }
 

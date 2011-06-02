@@ -18,13 +18,20 @@ ReferenceList::~ReferenceList() { }
  * files in the ParmFileList. 
  * reference <filename> [start] [parm <parmfile> | parmindex <#>]
  */
-int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList) {
+int ReferenceList::Add(ArgList *A, AmberParm *parmIn) {
   TrajFile *T;
   int startArg,stopArg,offsetArg;
   bool average = false;
+  char *trajfilename;
 
-  // Set up common arguments from arglist
-  if (this->ProcessArgList(A,parmFileList)) return 1;
+  // Filename must be the first argument
+  trajfilename = A->getNextString();
+
+  // Must be called with a parm file.
+  if (parmIn==NULL) {
+    mprinterr("Error: reference %s: Could not associate with a parm file.\n",trajfilename);
+    return 1;
+  }
 
   // Check if we want to obtain the average structure
   average = A->hasKey("average");
@@ -38,7 +45,7 @@ int ReferenceList::Add(ArgList *A, ParmFileList *parmFileList) {
   }
 
   // Set parameter file
-  T->P=P;
+  T->P=parmIn;
 
   // Set up trajectory. 
   if ( T->SetupRead() ) {

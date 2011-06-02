@@ -54,13 +54,20 @@ int TrajinList::AddTrajin(char *filenameIn, AmberParm *parmIn) {
  * ParmFileList. 
  * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
  */
-int TrajinList::Add(ArgList *A, ParmFileList *parmFileList) {
+int TrajinList::Add(ArgList *A, AmberParm *parmIn) {
   TrajFile *T;
   RemdTraj *R; // Needed to access non-inherited functions
   int startArg, stopArg, offsetArg;
+  char *trajfilename;
 
-  // Set up common arguments from arglist
-  if (this->ProcessArgList(A,parmFileList)) return 1;
+  // Filename must be the first argument
+  trajfilename = A->getNextString();
+
+  // Must be called with a parm file.
+  if (parmIn==NULL) {
+    mprinterr("Error: trajin %s: Could not associate with a parm file.\n",trajfilename);
+    return 1;
+  }
 
   // Determine trajectory format and set up appropriate class
   if (A->hasKey("remdtraj")) {
@@ -78,7 +85,7 @@ int TrajinList::Add(ArgList *A, ParmFileList *parmFileList) {
   }
 
   // Set parameter file
-  T->P=P;
+  T->P=parmIn;
  
   // Set up trajectory. 
   if ( T->SetupRead() ) {
