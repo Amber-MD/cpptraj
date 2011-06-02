@@ -394,10 +394,35 @@ ArgList *ArgList::SplitAt(const char *key) {
   arglist = (char**) realloc(arglist, argpos * sizeof(char*));
   marked = (char*) realloc(marked, argpos * sizeof(char));
   // DEBUG
-  mprintf("SPLIT LIST:\n");
-  split->print();
+  //mprintf("SPLIT LIST:\n");
+  //split->print();
 
   return split;
+}
+
+/* ArgList::ReplaceArg()
+ * Replace argument at the given position with a copy of the given argument.
+ * The memory allocated to the original argument will be freed.
+ */
+int ArgList::ReplaceArg(int pos, char *argIn) {
+  if (pos<0 || pos>=nargs) return 1;
+  if (argIn==NULL) return 1;
+  free(arglist[pos]);
+  arglist[pos] = (char*) malloc( (strlen(argIn)+1) * sizeof(char) );
+  strcpy(arglist[pos], argIn);
+  return 0;
+}
+
+/* ArgList::CopyArg()
+ * Return a copy of the argument at given position.
+ */
+char *ArgList::CopyArg(int pos) {
+  char *outArg;
+  if (pos<0 || pos>=nargs) return NULL;
+  outArg = (char*) malloc( (strlen(arglist[pos])+1) * sizeof(char) );
+  if (outArg==NULL) return NULL;
+  strcpy(outArg, arglist[pos]);
+  return outArg;
 }
 
 /*
