@@ -1,13 +1,15 @@
 #ifndef INC_REMDTRAJ_H
 #define INC_REMDTRAJ_H
-//#include "TrajFile.h"
-//#include "TrajFileList.h"
 #include "TrajinList.h"
-//#include "ArgList.h"
+#include "TrajoutList.h"
 
 class RemdTraj : public TrajFile {
     double remdtrajtemp;
     TrajinList REMDtraj;
+    ArgList *RemdOutArgs;
+    TrajoutList REMDtrajout;
+    double *TemperatureList;
+    Frame *remdframe;
     char *replicaName;
     int numReplicas;
   public:
