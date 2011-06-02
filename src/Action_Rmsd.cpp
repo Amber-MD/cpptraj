@@ -77,7 +77,8 @@ int Rmsd::SetRefMask() {
  * Called once before traj processing. Set up reference info.
  * Expected call: 
  * rmsd <name> <mask> [<refmask>] [out filename] [nofit] [mass]
- *      [first | ref <filename> | refindex <#> | reftraj <filename> [refparmindex <parmindex>] ] 
+ *      [ first | ref <filename> | refindex <#> | 
+          reftraj <filename> [parm <parmname> | parmindex <#>] ] 
  *      [perres] [perresout <filename>] [range <res range>] [refrange <ref res range>] 
  *        [perresmask <addtl mask>] [perresinvert] [perrescenter]
  * Dataset name will be the last arg checked for. Check order is:
@@ -88,14 +89,20 @@ int Rmsd::SetRefMask() {
 int Rmsd::init( ) {
   char *referenceName, *mask0, *maskRef, *reftraj;
   char *rmsdFile;
-  int refindex, referenceKeyword, refparmindex;
+  int refindex, referenceKeyword;
 
   // Check for keywords
   referenceKeyword=A->hasKey("reference"); // For compatibility with ptraj
   referenceName=A->getKeyString("ref",NULL);
   refindex=A->getKeyInt("refindex",-1);
   reftraj = A->getKeyString("reftraj",NULL);
-  refparmindex = A->getKeyInt("refparmindex",-1);
+  if (reftraj!=NULL) {
+    RefParm = PFL->GetParm(A);
+    if (RefParm==NULL) {
+      mprinterr("Error: Rmsd: Could not get parm for reftraj %s.\n",reftraj);
+      return 1;
+    }
+  }
   nofit = A->hasKey("nofit");
   first = A->hasKey("first");
   useMass = A->hasKey("mass");
@@ -132,13 +139,6 @@ int Rmsd::init( ) {
   if (!first) {
     // Check if reference will be a series of frames from a trajectory
     if (reftraj!=NULL) {
-      // Get reference parm from parm index. If not specified use default parm
-      if (refparmindex<0) refparmindex=0;
-      RefParm = PFL->GetParm(refparmindex);
-      if (RefParm==NULL) {
-        mprinterr("Error: Rmsd: Could not get parm for reftraj %s.\n",reftraj);
-        return 1;
-      }
       if ( SetRefMask() ) return 1;
       // Attempt to set up reference trajectory
       RefTraj = new TrajinList();
@@ -176,9 +176,9 @@ int Rmsd::init( ) {
   if (reftraj!=NULL) {
     // Open reference trajectory
     mprintf("trajectory:\n        ");
-    refparmindex = RefTraj->SetupFrames();
+    refindex = RefTraj->SetupFrames();
     mprintf("          ");
-    RefTraj->front()->Begin(&refparmindex,0);
+    RefTraj->front()->Begin(&refindex,0);
     mprintf("         ");
   } else if (RefFrame==NULL)
     mprintf("first frame");

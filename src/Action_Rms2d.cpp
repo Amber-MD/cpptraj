@@ -1,6 +1,4 @@
 /* Action: Rms2d
- * Expected call: rms2d <mask> <refmask> rmsout <filename> [reftraj <traj>] 
- *                      [mass] [nofit]
  * Perform RMS calculation between each input frame and each other input 
  * frame, or each frame read in from a separate reference traj and each 
  * input frame. 
@@ -30,7 +28,8 @@ Rms2d::~Rms2d() {
 
 /*
  * Rms2d::init()
- * Expected call: rms2d <mask> <refmask> rmsout <filename> [reftraj <traj>] [mass] [nofit]
+ * Expected call: rms2d <mask> <refmask> rmsout <filename> [mass] [nofit] 
+                  [reftraj <traj> [parm <parmname> | parmindex <#>]] 
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -38,14 +37,20 @@ Rms2d::~Rms2d() {
  */
 int Rms2d::init() {
   char *mask0, *maskRef, *reftraj;
-  int refparmindex;
+  int temp = 0;
 
   // Get keywords
   nofit = A->hasKey("nofit");
   useMass = A->hasKey("mass");
   rmsdFile = A->getKeyString("rmsout",NULL);
   reftraj = A->getKeyString("reftraj",NULL);
-  refparmindex = A->getKeyInt("refparmindex",-1);
+  if (reftraj!=NULL) {
+    RefParm = PFL->GetParm(A);
+    if (RefParm==NULL) {
+      mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftraj);
+      return 1;
+    }
+  }
   // Require an output filename
   if (rmsdFile==NULL) {
     mprinterr("Error: Rms2d: No output filename specified; use 'rmsout' keyword.\n");
@@ -63,13 +68,6 @@ int Rms2d::init() {
 
   // Check if reference will be a series of frames from a trajectory
   if (reftraj!=NULL) {
-    // Get reference parm from parm index. If not specified use default parm
-    if (refparmindex<0) refparmindex=0;
-    RefParm = PFL->GetParm(refparmindex);
-    if (RefParm==NULL) {
-      mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftraj);
-      return 1;
-    }
     // Attempt to set up reference trajectory
     RefTraj = new TrajinList();
     if (RefTraj->AddTrajin(reftraj, RefParm)) {
@@ -83,9 +81,9 @@ int Rms2d::init() {
   mprintf("    RMS2D: (%s) to (%s)",FrameMask.maskString,RefMask.maskString);
   if (reftraj!=NULL) {
     mprintf(" reference is trajectory:\n        ");
-    refparmindex = RefTraj->SetupFrames();
+    RefTraj->SetupFrames();
     mprintf("          ");
-    RefTraj->front()->Begin(&refparmindex,0);
+    RefTraj->front()->Begin(&temp,0);
     mprintf("         ");
   }
   if (nofit)
