@@ -17,7 +17,7 @@ SOURCE=main.cpp AmberNetcdf.cpp AmberParm.cpp AmberTraj.cpp TrajFile.cpp \
        NetcdfRoutines.cpp AmberRestartNC.cpp CpptrajStdio.cpp Mol2File.cpp \
        Mol2FileRoutines.cpp Action_NAstruct.cpp DistRoutines.cpp AxisType.cpp \
        TorsionRoutines.cpp Action_Pucker.cpp Range.cpp Action_Outtraj.cpp \
-       Action_Rms2d.cpp
+       Action_Rms2d.cpp ProgressBar.cpp
 
 OBJECTS=main.o AmberNetcdf.o AmberParm.o AmberTraj.o TrajFile.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
@@ -34,7 +34,7 @@ OBJECTS=main.o AmberNetcdf.o AmberParm.o AmberTraj.o TrajFile.o \
         NetcdfRoutines.o AmberRestartNC.o CpptrajStdio.o Mol2File.o \
         Mol2FileRoutines.o Action_NAstruct.o DistRoutines.o AxisType.o \
         TorsionRoutines.o Action_Pucker.o Range.o Action_Outtraj.o \
-        Action_Rms2d.o
+        Action_Rms2d.o ProgressBar.o
 
 HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
@@ -51,7 +51,7 @@ HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
         NetcdfRoutines.h AmberRestartNC.h CpptrajStdio.h Mol2File.h \
         Mol2FileRoutines.h Action_NAstruct.h DistRoutines.h AxisType.h \
         TorsionRoutines.h Action_Pucker.h Range.h Action_Outtraj.h \
-        Action_Rms2d.h
+        Action_Rms2d.h ProgressBar.h
 
 all: cpptraj$(SFX)
 

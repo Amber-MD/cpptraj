@@ -63,3 +63,4 @@ Action_Pucker.o : Action_Pucker.cpp Action.h Action_Pucker.h AmberParm.h ArgList
 Range.o : Range.cpp ArgList.h CpptrajStdio.h Range.h
 Action_Outtraj.o : Action_Outtraj.cpp Action.h Action_Outtraj.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CoordFileList.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajFile.h Range.h TrajFile.h TrajoutList.h
 Action_Rms2d.o : Action_Rms2d.cpp Action.h Action_Rms2d.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h CoordFileList.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h ParmFileList.h PtrajFile.h Range.h TrajFile.h TrajinList.h
+ProgressBar.o : ProgressBar.cpp CpptrajStdio.h ProgressBar.h
