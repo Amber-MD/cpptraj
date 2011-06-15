@@ -72,6 +72,7 @@ int Strip::setup() {
     mprintf("      Error: Strip::setup: Could not create new parmtop.\n");
     return 1;
   }
+  newParm->Summary();
 
   // Allocate space for new frame
   if (newFrame!=NULL) delete newFrame;
