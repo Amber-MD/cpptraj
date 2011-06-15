@@ -61,7 +61,7 @@ void rprintf(const char *format, ...) {
   va_list args;
 
 #ifdef MPI
-  fprintf(stdout,"[%i] ",worldrank);
+  fprintf(stdout,"[%i]\t",worldrank);
 #endif
   va_start(args,format);
   vfprintf(stdout,format,args);
@@ -77,7 +77,7 @@ void rprinterr(const char *format, ...) {
   va_list args;
 
 #ifdef MPI
-  fprintf(stderr,"[%i] ",worldrank);
+  fprintf(stderr,"[%i]\t",worldrank);
 #endif
   va_start(args,format);
   vfprintf(stderr,format,args);
