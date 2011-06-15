@@ -6,6 +6,7 @@
  */
 #include "Action_Rms2d.h"
 #include "CpptrajStdio.h"
+#include "ProgressBar.h"
 #include <cstdio> //sprintf
 
 // CONSTRUCTOR
@@ -134,8 +135,6 @@ void Rms2d::print() {
   int current=0;
   int max=0;
   int totalref=0;
-  int currentPercent=0;
-  int targetPercent=0;
   int res=0; // Currently only used as dummy space for getnextframe
   DataSet *rmsdata;
   char setname[256];
@@ -152,14 +151,12 @@ void Rms2d::print() {
             RefTraj->front()->trajfilename, max);
   }
 
+  // Set up progress Bar
+  ProgressBar *progress = new ProgressBar(max);
+
   // LOOP OVER REFERENCE FRAMES
   for (int nref=0; nref < totalref; nref++) {
-    currentPercent = (current * 100) / max;
-    if (currentPercent >= targetPercent) {
-      targetPercent+=10;
-      mprintf("%2i%% ",currentPercent);
-      mflush();
-    }
+    progress->Update(current);
     if (RefTraj==NULL) 
       RefParm = ReferenceFrames.GetFrameParm( nref );
     // If the current ref parm not same as last ref parm, reset reference mask
@@ -229,7 +226,8 @@ void Rms2d::print() {
       current++;
     } // END loop over target frames
   } // END loop over reference frames
-  mprintf("100%\n");
+  progress->Complete();
+  delete progress;
 
   if (SelectedRef!=NULL) delete SelectedRef;
   if (SelectedTgt!=NULL) delete SelectedTgt;

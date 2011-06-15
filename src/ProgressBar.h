@@ -4,6 +4,7 @@
 class ProgressBar {
     int max;
     int targetPercent;
+    bool first;
   public:
     ProgressBar(int);
     ~ProgressBar();

@@ -7,6 +7,7 @@
 ProgressBar::ProgressBar(int maxIn) {
   max = maxIn;
   targetPercent=0;
+  first=true;
 }
 
 // DESTRUCTOR
@@ -23,7 +24,10 @@ void ProgressBar::Update(int current) {
   if (currentPercent >= targetPercent) {
     targetPercent+=10;
     mprintf("%2i%% ",currentPercent);
-    mflush();
+    if (first) {
+      mflush();
+      first=false;
+    }
   }
 }
 
