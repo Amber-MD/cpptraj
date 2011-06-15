@@ -1251,7 +1251,6 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     newParm->solventMolecules=0;
   } else {
     // Set up new solvent info based on new resnums and firstSolvMol
-    mprintf("           New parm: First solvent molecule is %i\n",newParm->firstSolvMol);
     newParm->SetSolventInfo();
   }
   
@@ -1266,12 +1265,20 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm->values[NRES] = newParm->nres;
   newParm->values[IFBOX] = this->values[IFBOX];
 
-  mprintf("           New parmtop contains %i atoms.\n",newParm->natom);
-  mprintf("                                %i residues.\n",newParm->nres);
-  mprintf("                                %i molecules.\n",newParm->molecules);
-  mprintf("                                %i solvent molecules.\n",newParm->solventMolecules);
-
   return newParm;
+}
+
+/* AmberParm::Summary()
+ * Print a summary of atoms, residues, molecules, and solvent molecules
+ * in this parm.
+ */
+void AmberParm::Summary() {
+  mprintf("              Topology contains %i atoms.\n",this->natom);
+  mprintf("                                %i residues.\n",this->nres);
+  mprintf("                                %i molecules.\n",this->molecules);
+  mprintf("                                %i solvent molecules.\n",this->solventMolecules);
+  if (this->solventMolecules>0)
+    mprintf("                  First solvent molecule is %i\n",this->firstSolvMol);
 }
 
 // ---------===========================================================---------
