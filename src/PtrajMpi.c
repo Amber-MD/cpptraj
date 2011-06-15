@@ -462,7 +462,7 @@ int parallel_allreduce(void *Return, void *input, int count, int datatype, int o
   err = MPI_Allreduce(input, Return, count, currentType, currentOp, MPI_COMM_WORLD);
   if (err!=MPI_SUCCESS) {
     printMPIerr(err, "Performing allreduce.\n");
-    rprintf("Error: allreduce failed for %i elements.\n",count);
+    printf("[%i]\tError: allreduce failed for %i elements.\n",worldrank,count);
   }
 
   if (parallel_check_error(err)!=0) return 1;
