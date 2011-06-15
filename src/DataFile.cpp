@@ -65,8 +65,7 @@ void DataFile::SetInverted() {
   isInverted=true;
 }
 
-/*
- * DataFile::SetPrecision()
+/* DataFile::SetPrecision()
  * Set precision of the specified dataset to width.precision. If '*' specified 
  * set for all datasets in file.
  */
@@ -108,8 +107,7 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
   }
 }
 
-/*
- * DataFile::AddSet()
+/* DataFile::AddSet()
  * Add given set to this datafile
  */
 int DataFile::AddSet(DataSet *D) {

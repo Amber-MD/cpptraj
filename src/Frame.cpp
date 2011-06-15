@@ -60,8 +60,7 @@ Frame::~Frame() {
   if (Mass!=NULL) free(Mass);
 }
 
-/*
- * Frame::ZeroCoords()
+/* Frame::ZeroCoords()
  * Set all coords to 0.0
  */
 void Frame::ZeroCoords() {
@@ -69,8 +68,7 @@ void Frame::ZeroCoords() {
     X[coord]=0.0;
 }
 
-/*
- * Frame::AddCoord()
+/* Frame::AddCoord()
  * Add the coord values from the input frame to the coord values of 
  * this frame.
  */
@@ -84,8 +82,7 @@ void Frame::AddCoord(Frame *FrameIn) {
   }
 }
 
-/* 
- * Frame::Divide()
+/* Frame::Divide()
  * Divide all coord values by input. Dont do it if the number is too small.
  */
 void Frame::Divide(double divisor) {
@@ -94,8 +91,7 @@ void Frame::Divide(double divisor) {
     X[coord] /= divisor;
 }
 
-/*
- * Frame::Copy()
+/* Frame::Copy()
  * Return a copy of the frame
  */
 Frame *Frame::Copy() {

@@ -42,8 +42,7 @@ void mapDataSet::Add(int frame, void *vIn) {
   current++;
 }
 
-/*
- * mapDataSet::Get()
+/* mapDataSet::Get()
  * Get data at frame, put into vOut. Return 1 if no data at frame.
  */
 int mapDataSet::Get(void *vOut, int frame) {
@@ -59,8 +58,7 @@ int mapDataSet::Get(void *vOut, int frame) {
   return 0;
 }
 
-/*
- * mapDataSet::isEmpty()
+/* mapDataSet::isEmpty()
  */
 int mapDataSet::isEmpty(int frame) {
   it = Data.find( frame );

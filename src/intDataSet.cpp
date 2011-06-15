@@ -41,8 +41,7 @@ void intDataSet::Add(int frame, void *vIn) {
   current++;
 }
 
-/*
- * intDataSet::Get()
+/* intDataSet::Get()
  * Get data at frame, put into vOut. Return 1 if no data at frame.
  */
 int intDataSet::Get(void *vOut, int frame) {
@@ -56,8 +55,7 @@ int intDataSet::Get(void *vOut, int frame) {
   return 0;
 }
 
-/*
- * intDataSet::isEmpty()
+/* intDataSet::isEmpty()
  */
 int intDataSet::isEmpty(int frame) {
   it = Data.find( frame );

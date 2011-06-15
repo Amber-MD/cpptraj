@@ -146,8 +146,7 @@ char *ArgList::ArgLine() {
   return argline;
 }
 
-/*
- * ArgList::Arg()
+/* ArgList::Arg()
  * Return arg at specified position.
  */
 char *ArgList::Arg(int pos) {
@@ -156,8 +155,7 @@ char *ArgList::Arg(int pos) {
   return NULL;
 }
 
-/*
- * ArgList::Command()
+/* ArgList::Command()
  * Check the first arg for command
  * Mark and return. Return even if marked.
  */
