@@ -6,7 +6,7 @@
 #include "PtrajMpi.h"
 #include "CpptrajStdio.h"
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V2.0b"
+#define CPPTRAJ_VERSION_STRING "V2.0.1b"
 #endif
 
 void Usage(char *programName) {

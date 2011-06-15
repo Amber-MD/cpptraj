@@ -7,6 +7,7 @@
 class ActionMask: public Action {
     AtomMask Mask1;
     PtrajFile outfile;
+    char *maskpdb;
   public:
     ActionMask();
     ~ActionMask();

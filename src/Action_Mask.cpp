@@ -2,10 +2,12 @@
 #include <cstdlib>
 #include "Action_Mask.h"
 #include "CpptrajStdio.h"
+#include "PDBfile.h"
 
 // CONSTRUCTOR
 ActionMask::ActionMask() {
   //fprintf(stderr,"ActionMask Con\n");
+  maskpdb=NULL;
 } 
 
 // DESTRUCTOR
@@ -27,6 +29,7 @@ int ActionMask::init( ) {
 
   // Get Keywords
   maskFilename = A->getKeyString("maskout",NULL);
+  maskpdb = A->getKeyString("maskpdb",NULL);
 
   // Get Mask
   mask1 = A->getNextMask();
@@ -38,6 +41,8 @@ int ActionMask::init( ) {
   if (maskFilename!=NULL)
     mprintf(" to file %s",maskFilename);
   mprintf(".\n");
+  if (maskpdb!=NULL)
+    mprintf("                PDBs of atoms in mask will be written to %s.X\n",maskpdb);
 
   // Open output file
   // NOTE: Should this be a buffer? Output at end?
@@ -64,16 +69,17 @@ int ActionMask::setup() {
   return 0;  
 }
 
-/*
- * ActionMask::action()
+/* ActionMask::action()
  */
 int ActionMask::action() {
   int atom, res;
+  PDBfile pdbout;
 
   if ( Mask1.SetupCharMask(P, F->X, debug) ) {
     mprintf("Warning: ActionMask::action: Could not set up atom mask [%s]\n",Mask1.maskString);
     return 1;
   }
+
   for (atom=0; atom < P->natom; atom++) {
     if (Mask1.AtomInCharMask(atom)) {
       res = P->atomToResidue(atom);
@@ -86,6 +92,26 @@ int ActionMask::action() {
       outfile.IO->Printf("\n");
     }
   }
+
+  if (maskpdb!=NULL) {
+    AtomMask *Mask2 = new AtomMask();
+    for (atom=0; atom < P->natom; atom++) 
+      if (Mask1.AtomInCharMask(atom)) Mask2->AddAtom(atom);
+    pdbout.P = P->modifyStateByMask(Mask2->Selected, Mask2->Nselected);
+    pdbout.F = new Frame(Mask2->Nselected,NULL);
+    pdbout.F->SetFrameFromMask(F, Mask2);
+    pdbout.File = new PtrajFile();
+    pdbout.File->SetupFile(maskpdb, WRITE, PDBFILE, UNKNOWN_TYPE, debug);
+    pdbout.writeMode = 2;
+    pdbout.Begin();
+    pdbout.writeFrame(currentFrame);
+    pdbout.End(); // Deletes frame
+    delete pdbout.File;
+    pdbout.File=NULL;
+    delete pdbout.P;
+    delete Mask2;
+  }
+
   return 0;
 } 
 
