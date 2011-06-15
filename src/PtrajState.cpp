@@ -10,7 +10,7 @@
 PtrajState::PtrajState() {
   TotalErrors=0; 
   debug=0;
-  showProgress=1;
+  showProgress=true;
 }
 
 // Destructor
@@ -252,7 +252,7 @@ void PtrajState::Dispatch() {
   }
 
   if (A->CommandIs("noprogress")) {
-    showProgress=0;
+    showProgress=false;
     mprintf("    noprogress: Progress bar will not be shown.\n");
     return;
   }
@@ -462,7 +462,6 @@ int PtrajState::Run() {
     while ( T->NextFrame(&global_set) ) {
       // Set current Frame
       CurrentFrame = T->F;
-      //if (showProgress) T->progressBar();
       // Perform Actions on Frame
       ptrajActionList.DoActions(&CurrentFrame, actionSet);
       // Do Output

@@ -9,17 +9,18 @@
 #include "Frame.h"
 #include "AmberParm.h" // PtrajFile.h
 #include "ArgList.h"
-#include "Range.h" 
+#include "Range.h"
+#include "ProgressBar.h"
 
 class TrajFile {
   protected:
+    ProgressBar *progress; // Hold current trajectory progress.
     char *title;        // The trajectory title
     int outputStart;    // where output should begin
     int frameskip;      // Number of frames to skip while reading; if not seekable this is 1
     int targetSet;      // The next frame to be processed
     int seekable;       // =1 if the file can be randomly accessed
     int currentFrame;   // Current frame in trajectory
-    int showProgress;   // If 1, show progressbar during traj processing
     int start;          // Frame to start processing
     int stop;           // Frame to end processing
     int offset;         // Number of frames to skip while processing
@@ -52,13 +53,11 @@ class TrajFile {
     int CurrentFrame() { return currentFrame; }
     void SetTitle(char *);   // Set trajectory title.
     void PrintInfo(int);     // Print trajectory Information
-    int Begin(int *, int);   // Prepare traj for processing. Set output start value, calcd in 
+    int Begin(int *, bool);   // Prepare traj for processing. Set output start value, calcd in 
                              // setupFrameInfo. Allocate memory for F. 
     int Begin();             // Prepare trajectory for output
     int NextFrame(int*);     // Put the next target frame into F.
     void End();              // Close trajectory and free F memory
-    void progressBar();      // Display trajectory progress to screen
-//    void progressBar2();   // Display trajectory progress to screen
     int setupFrameInfo(int,int,int); // Set actual start/stop based on total #frames and #threads 
     void SetArgs(int,int,int);       // Set the stop, start, and offset args from user input
     // --== Inherited by child classes ==--

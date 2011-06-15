@@ -226,7 +226,7 @@ void Rms2d::print() {
       current++;
     } // END loop over target frames
   } // END loop over reference frames
-  progress->Complete();
+  progress->Update(max);
   delete progress;
 
   if (SelectedRef!=NULL) delete SelectedRef;

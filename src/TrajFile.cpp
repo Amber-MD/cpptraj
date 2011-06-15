@@ -24,7 +24,7 @@ TrajFile::TrajFile() {
   targetSet=0;
   seekable=0;
   debug=0;
-  showProgress=1;
+  progress = NULL;
   hasTemperature=0;
   FrameRange=NULL;
 }
@@ -35,6 +35,7 @@ TrajFile::~TrajFile() {
   if (File!=NULL) delete File;
   if (title!=NULL) free(title);
   if (FrameRange!=NULL) delete FrameRange;
+  if (progress!=NULL) delete progress;
 }
 
 /*
@@ -283,10 +284,10 @@ int TrajFile::setupFrameInfo(int maxFrames, int worldrank, int worldsize) {
  * Allocate memory for the frame.
  * Return 0 on success, 1 if traj should be skipped.
  */
-int TrajFile::Begin(int *OutputStart, int showProgressIN) {
+int TrajFile::Begin(int *OutputStart, bool showProgressIN) {
   // Open the trajectory.
   open();
-  showProgress=showProgressIN;
+  if (showProgressIN) progress = new ProgressBar(stop);
   // If this trajectory is being skipped by this thread no setup needed
   /* NOTE: Right now the trajectory is opened even if it is skipped. Once this
    * routine exits with 1 the trajectory is immediately closed in 
@@ -342,7 +343,9 @@ int TrajFile::NextFrame(int *global_set) {
   int process;
   // If the current frame is out of range, exit
   if (currentFrame>stop && stop!=-1) return 0;
-  if (showProgress) this->progressBar();
+  if (progress!=NULL) 
+    progress->Update(currentFrame);
+    //progress->PrintBar(currentFrame);
 
   process=0;
 
@@ -374,83 +377,3 @@ void TrajFile::End() {
   F=NULL;
 }
 
-/*
- * void TrajFile::progressBar()
- * Print a little something on the screen to let you know traj is being
- * processed.
- */
-void TrajFile::progressBar() {
-  char buffer[128];
-  int i,j,percent,numChars;
-
-  if (stop<0) return; //NOTE: Eventually print dots like ptraj?
-
-  // Fraction complete, max 100. In case of 1 frame (stop=0) set 100
-  if (stop==0)
-    percent = 100;
-  else 
-    percent = (currentFrame * 100) / stop;
-
-  buffer[0]='[';
-  i=1;
-  // Set number of characters
-  numChars = percent / 2;
-  //mprintf("[%i] %i : numChars=%i\n",worldrank,set,numChars);
-  for (j=0; j<numChars; j++) buffer[i++]='|';
-  // Fill the rest
-  for (; j<50; j++)
-    buffer[i++]='-';
-  // Add last character and reset/newline character
-  if (currentFrame==stop) buffer[i-1]='|';
-  buffer[i++]=']';
-  buffer[i++]='\r';
-  if (currentFrame==stop) {
-    buffer[i-1]=' ';
-    buffer[i++]='C';
-    buffer[i++]='o';
-    buffer[i++]='m';
-    buffer[i++]='p';
-    buffer[i++]='l';
-    buffer[i++]='e';
-    buffer[i++]='t';
-    buffer[i++]='e';
-    buffer[i++]='.';
-    buffer[i++]='\n';
-  }
-  // Finish off and print
-  buffer[i]='\0';
-  mprintf("  %s",buffer);
-  // On first frame flush so that progress bar appears
-  if (currentFrame==start) mflush();
-
-/*
-  // DEBUG - print without the restore char
-  fprintf(stderr,"ProgressBar: stop=%i currentFrame=%i percent=%i\n",
-          stop,currentFrame,percent);
-  for (j=0; j < i; j++)
-    if (buffer[j]=='\r') buffer[j]='\n';
-  fprintf(stderr,"           : %s\n",buffer);
-*/
-}
-
-/*
-void TrajFile::progressBar2() {
-
-  if (stop<0) return; //NOTE: Eventually print dots like ptraj?
-
-  if (currentFrame==0) {
-    mprintf("[");
-    return;
-  }
-
-  // Fraction complete, max 100. In case of 1 frame (stop=0) set 100
-  if (stop!=0) {
-    if ( ((currentFrame*100) % stop) != 0 ) return;
-  }
-
-  mprintf("|");
-
-  if (currentFrame==stop) 
-    mprintf("] Complete.\n");
-  return;
-}*/

@@ -27,7 +27,7 @@ class PtrajState {
     void Dispatch();                 // Function that decides where to send commands
     void ProcessDataFileCmd();       // Handle datafile commands in DF_Args
     int ProcessInputStream(char *);  // Process lines of input from a file
-    int showProgress;                // Output traj progress to screen?
+    bool showProgress;               // Output traj progress to screen?
 
   public:
 

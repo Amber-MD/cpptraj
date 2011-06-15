@@ -3,14 +3,17 @@
 
 class ProgressBar {
     int max;
-    int targetPercent;
+    float C_over_max;
+    float targetPercent;
     bool first;
+    bool oneframe;
+    bool unknownframes;
   public:
     ProgressBar(int);
     ~ProgressBar();
 
     void Update(int);
-    void Complete();
+    void PrintBar(int);
 };
 
 #endif
