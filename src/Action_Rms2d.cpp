@@ -124,7 +124,7 @@ int Rms2d::action() {
  * Perform the rms calculation of each frame to each other frame.
  */
 void Rms2d::print() {
-  Frame *RefFrame;
+  Frame *RefFrame = NULL;
   AmberParm *TgtParm;
   Frame *TgtFrame;
   Frame *SelectedRef=NULL;
