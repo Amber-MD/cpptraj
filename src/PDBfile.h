@@ -6,6 +6,7 @@
 class PDBfile: public TrajFile {
     char buffer[256];
     int pdbAtom;
+    bool dumpq;
   public:
     int writeMode; // 0=single pdb, 1=single pdb with MODEL keyword, 2=multiple pdbs
 

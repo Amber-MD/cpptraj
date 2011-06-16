@@ -328,7 +328,7 @@ char *pdb_charge(char *buffer) {
 void pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name, 
                     char *resnameIn, char chain, int resnum, 
                     double X, double Y, double Z, float Occ, float B,
-                    char *End) {
+                    char *End, bool highPrecision) {
   char resName[5];
   char *ptr;
 
@@ -354,6 +354,9 @@ void pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name,
     sprintf(ptr,"\n");
     return;
   }
-  sprintf(ptr,"    %8.3lf%8.3lf%8.3lf%6.2f%6.2f%14s\n", X, Y, Z, Occ, B, End);
+  if (highPrecision)
+    sprintf(ptr,"    %8.3lf%8.3lf%8.3lf%8.4f%8.4f%10s\n", X, Y, Z, Occ, B, End);
+  else
+    sprintf(ptr,"    %8.3lf%8.3lf%8.3lf%6.2f%6.2f%14s\n", X, Y, Z, Occ, B, End);
 }
                     

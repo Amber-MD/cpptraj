@@ -16,6 +16,6 @@ char *pdb_lastChar(char *);
 char *pdb_elt(char *);
 char *pdb_charge(char*);
 void pdb_write_ATOM(char *, PDB_RECTYPE, int, char *, char *, char, int,
-                    double, double, double, float, float, char *);
+                    double, double, double, float, float, char *,bool);
 
 #endif

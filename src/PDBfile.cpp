@@ -10,6 +10,7 @@
 PDBfile::PDBfile() {
   pdbAtom=0;
   writeMode=0;
+  dumpq=false;
 }
 
 // DESTRUCTOR
@@ -138,7 +139,8 @@ int PDBfile::WriteArgs(ArgList *A) {
   // model: Multiple frames use model keyword (default if #frames>1)
   if (A->hasKey("model")) writeMode=1; 
   // multi: Each frame is written to a different file
-  if (A->hasKey("multi")) writeMode=2; 
+  if (A->hasKey("multi")) writeMode=2;
+  dumpq = A->hasKey("dumpq");
   return 0;
 }
 
@@ -183,7 +185,7 @@ int PDBfile::writeFrame(int set) {
     /*if (P->atomsPerMol!=NULL) {
       if (i == lastAtomInMol) {
         pdb_write_ATOM(buffer,PDBTER,atom,(char*)"",P->ResidueName(res),'X',res+1,
-                       0,0,0,0,0,(char*)"\0");
+                       0,0,0,0,0,(char*)"\0",dumpq);
         File->IO->Write(buffer,sizeof(char),strlen(buffer));
         atom++;
         mol++;
@@ -191,9 +193,10 @@ int PDBfile::writeFrame(int set) {
       }
     }*/
     // figure out the residue number
-    if ( i==P->resnums[res+1] ) res++; 
+    if ( i==P->resnums[res+1] ) res++;
+    if (dumpq) Occ = (float) P->charge[i]; 
     pdb_write_ATOM(buffer,PDBATOM,atom,P->names[i],P->ResidueName(res),'X',res+1,
-                   F->X[i3],F->X[i3+1],F->X[i3+2],Occ,B,(char*)"\0");
+                   F->X[i3],F->X[i3+1],F->X[i3+2],Occ,B,(char*)"\0",dumpq);
     File->IO->Write(buffer,sizeof(char),strlen(buffer)); 
     i3+=3;
     atom++;

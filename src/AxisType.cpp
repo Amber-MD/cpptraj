@@ -354,7 +354,7 @@ void AxisType::WritePDB(PtrajFile *outfile, int resnum, char *resname, int *atom
   int i3=0;
   for (int i=0; i<natom; i++) {
     pdb_write_ATOM(buffer,PDBATOM,(*atom)+i,Name[i],resname,'X',resnum+1,
-                   X[i3],X[i3+1],X[i3+2],1.0,0.0,(char*)"\0");
+                   X[i3],X[i3+1],X[i3+2],1.0,0.0,(char*)"\0",false);
     outfile->IO->Write(buffer,sizeof(char),strlen(buffer));
     i3+=3;
   }
