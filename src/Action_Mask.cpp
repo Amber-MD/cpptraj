@@ -103,6 +103,7 @@ int ActionMask::action() {
     pdbout.File = new PtrajFile();
     pdbout.File->SetupFile(maskpdb, WRITE, PDBFILE, UNKNOWN_TYPE, debug);
     pdbout.writeMode = 2;
+    pdbout.dumpq = true;
     pdbout.Begin();
     pdbout.writeFrame(currentFrame);
     pdbout.End(); // Deletes frame
