@@ -1,4 +1,5 @@
 // DataFileList
+#include <cstddef> // NULL
 #include "DataFileList.h"
 #include "CpptrajStdio.h"
 
