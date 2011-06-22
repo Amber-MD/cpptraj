@@ -9,10 +9,9 @@
 #include "ProgressBar.h"
 #include "Range.h"
 class TrajectoryFile {
-    enum BoxType { NONE, ORTHO, NONORTHO };
-
     int debug;
     TrajectoryIO *trajio;
+    FileFormat trajFormat;
     ProgressBar *progress;
     char *trajName;
     AmberParm *trajParm;
@@ -21,7 +20,12 @@ class TrajectoryFile {
     int stop;
     int offset;
     int Frames;
+    int numFramesRead;
     BoxType boxType;
+    int currentFrame;
+    // Specific to input traj
+    int targetSet;
+    int frameskip;
     // Specific to output traj
     Range *FrameRange;
     bool nobox;
@@ -34,9 +38,9 @@ class TrajectoryFile {
 
     int SetupRead(char *, ArgList *, AmberParm *);
     int SetupWrite(char *, ArgList *);
-    int BeginTraj();
+    int BeginTraj(bool);
     int EndTraj();
-    int GetNextFrame();
+    int GetNextFrame(double*,double*,double*);
     int WriteFrame(int, AmberParm *);
 };
 #endif

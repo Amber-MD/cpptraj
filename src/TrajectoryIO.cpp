@@ -6,8 +6,16 @@
 
 // CONSTRUCTOR
 TrajectoryIO::TrajectoryIO() {
+  debug = 0;
   tfile=NULL;
   title=NULL;
+  hasTemperature=false;
+
+  seekable=false;
+  hasBox=false;
+  boxAngle[0]=0.0;
+  boxAngle[1]=0.0;
+  boxAngle[2]=0.0;
 }
 
 // DESTRUCTOR

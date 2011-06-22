@@ -1,11 +1,14 @@
 // TrajectoryFile
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
+// All TrajectoryIO classes go here
+#include "Traj_AmberCoord.h"
 
 // CONSTRUCTOR
 TrajectoryFile::TrajectoryFile() {
   debug = 0;
   trajio=NULL;
+  trajFormat=UNKNOWN_FORMAT;
   progress=NULL;
   trajName=NULL;
   trajParm=NULL;
@@ -14,9 +17,11 @@ TrajectoryFile::TrajectoryFile() {
   stop=-1;
   offset=1;
   Frames=0;
-  boxType=NONE;
+  numFramesRead=0;
+  boxType=NOBOX;
   FrameRange=NULL;
   nobox=false;
+  currentFrame=0;
 };
 
 // DESTRUCTOR
@@ -46,12 +51,14 @@ int TrajectoryFile::setupTraj(char *tname, AccessType accIn, FileFormat fmtIn, F
   // Set trajectory name to the base filename
   trajName = basicTraj->basefilename;
 
-/*
+  // Set trajectory format from file
+  trajFormat = basicTraj->fileFormat;
+
   // Allocate IO type based on format
-  switch ( basicTraj->fileFormat ) {
-    case AMBERRESTART: trajio = new AmberRestart(); break;
-    case AMBERTRAJ   : trajio = new AmberTraj();    break;
-    case AMBERNETCDF :
+  switch ( trajFormat ) {
+//    case AMBERRESTART: trajio = new AmberRestart(); break;
+    case AMBERTRAJ   : trajio = new AmberCoord();    break;
+/*    case AMBERNETCDF :
 #ifdef BINTRAJ
       trajio = new AmberNetcdf();
 #else
@@ -74,12 +81,12 @@ int TrajectoryFile::setupTraj(char *tname, AccessType accIn, FileFormat fmtIn, F
     case PDBFILE     : trajio = new PDBfile();      break;
     case CONFLIB     : trajio = new Conflib();      break;
     case MOL2FILE    : trajio = new Mol2File();     break;
+*/
     default:
       mprinterr("    Error: Could not determine trajectory file %s type, skipping.\n",tname);
       delete basicTraj;
       return 1;
   }
-*/
   
   // Should only happen when memory cannot be allocd
   if (trajio==NULL) return 1;
@@ -182,12 +189,62 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     return 1;
   }
 
-  // Set up the format for reading.
-  if (trajio->setupRead(trajParm->natom)) {
+  // Set up the format for reading. -1 indicates an error, -2 indicates # of
+  // frames could not be determined.
+  Frames = trajio->setupRead(trajParm->natom);
+  if (Frames == -1) {
     mprinterr("    Error: Could not set up IO for %s\n",tname);
     return 1;
   }
 
+  // If the trajectory has box coords, set the box type from the box Angles.
+  if (trajio->hasBox) {
+    // If box coords present but no box info in associated parm, print
+    // a warning.
+    if (trajParm->boxType == NOBOX) {
+      mprintf("Warning: Box info present in trajectory %s but not in\n",tname);
+      mprintf("         associated parm %s\n",trajParm->parmName);
+    }
+    boxType = CheckBoxType(trajio->boxAngle,debug);
+    // If box coords present but returned box type is NOBOX then no angles 
+    // present in trajectory. Set box angles to parm default. If parm has
+    // no box information then exit just to be safe.
+    // NOTE: Is this only good for amber trajectory?
+    if (boxType == NOBOX) {
+      if (trajParm->boxType == NOBOX) {
+        mprinterr("Error: No angle information present in trajectory %s\n",tname);
+        mprinterr("       or parm %s.\n",trajParm->parmName);
+        return 1;
+        //mprintf("         or parm %s - setting angles to 90.0!\n",trajParm->parmName);
+        //trajio->boxAngle[0] = 90.0;
+        //trajio->boxAngle[1] = 90.0;
+        //trajio->boxAngle[2] = 90.0;
+      } else {
+        if (debug>0) {
+          mprintf("Warning: No angle information present in trajectory %s:\n",tname);
+          mprintf("         Using angles from parm %s (beta=%lf).\n",trajParm->parmName,
+                  trajParm->Box[3]);
+        }
+        trajio->boxAngle[0] = trajParm->Box[3];
+        trajio->boxAngle[1] = trajParm->Box[4];
+        trajio->boxAngle[2] = trajParm->Box[5];
+      }
+      boxType = CheckBoxType(trajio->boxAngle,debug);
+    }
+  }
+
+  // Set stop based on calcd number of Frames.
+  if (Frames == -2) {
+    mprintf("  Warning: Could not predict # frames in %s. This usually indicates \n",tname);
+    mprintf("         a corrupted trajectory. Frames will be read until EOF.\n");
+    stop=-1;
+  } else if (Frames==0) {
+    mprinterr("  Error: trajectory %s contains no frames.\n",tname);
+    return 1;
+  } else
+    stop = Frames;
+
+  // Process any more arguments
   if (argIn!=NULL) {
     // Get any user-specified start, stop, and offset args
     // NOTE: For compatibility with ptraj start from 1
@@ -195,6 +252,8 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     stopArg=argIn->getNextInteger(-1);
     offsetArg=argIn->getNextInteger(1);
     SetArgs(startArg,stopArg,offsetArg);
+
+    // Process arguments related to specific formats
   }
 
   return 0;
@@ -265,14 +324,88 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn) {
     nobox = argIn->hasKey("nobox");
 
     // Process any write arguments specific to certain formats
-    //T->WriteArgs(A);
+    if (trajFormat == AMBERTRAJ) { 
+      AmberCoord *T0 = (AmberCoord*) trajio;
+      if (argIn->hasKey("remdtraj")) T0->SetRemdTraj();
+    }
   }
 
   // No more setup here; Write is set up when first frame written.
   return 0;
 }
 
-int BeginTraj() {return 1;}
-int EndTraj() {return 1;}
-int GetNextFrame() { return 1;}
-int WriteFrame(int set, AmberParm *tparmIn) {return 1;}
+/* TrajectoryFile::BeginTraj()
+ * Prepare trajectory file for reading/writing. For reads, open the traj and 
+ * set up a progress bar if requested. For writes, just open the file.
+ */
+int TrajectoryFile::BeginTraj(bool showProgress) {
+  // Open the trajectory
+  if (trajio->openTraj()) {
+    mprinterr("Error: TrajectoryFile::BeginTraj: Could not open %s\n",trajName);
+    return 1;
+  }
+  numFramesRead=0;
+
+  // If writing, this is all that is needed
+  if (fileAccess!=READ) return 0;
+
+  // Set up a progress bar
+  if (showProgress) progress = new ProgressBar(stop);
+
+  // Determine what frames will be read
+  targetSet=start;
+  if (trajio->seekable) {
+    frameskip = offset;
+    currentFrame = start;
+  } else {
+    frameskip = 1;
+    currentFrame = 0;
+  }
+  rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName,currentFrame+1,stop+1,offset);
+
+  return 0;
+}
+
+/* TrajectoryFile::EndTraj()
+ * Close the trajectory.
+ */
+int TrajectoryFile::EndTraj() {
+  trajio->closeTraj();
+  return 0;
+}
+
+/* TrajectoryFile::GetNextFrame()
+ * Get the next target frame from trajectory. Update the number of frames
+ * read while getting to target (if traj is seekable this will always be 1).
+ * Return 0 if no frames could be read.
+ */
+int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) { 
+  bool tgtFrameFound;
+  // If the current frame is out of range, exit
+  if (currentFrame>stop && stop!=-1) return 0;
+  if (progress!=NULL) 
+    progress->Update(currentFrame);
+    //progress->PrintBar(currentFrame);
+
+  tgtFrameFound=false;
+
+  while ( !tgtFrameFound ) {
+
+    if (trajio->readFrame(currentFrame,X,box,T)) return 0;
+    //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
+#ifdef DEBUG
+    dbgprintf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
+#endif
+    if (currentFrame==targetSet) {
+      tgtFrameFound=true;
+      targetSet+=offset;
+    }
+
+    numFramesRead++;
+    currentFrame+=frameskip;
+  }
+
+  return 1;
+}
+
+int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn) {return 1;}

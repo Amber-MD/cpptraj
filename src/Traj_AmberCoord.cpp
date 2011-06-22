@@ -1,5 +1,8 @@
 // AmberCoord
-#include "AmberCoord.h"
+#include "Traj_AmberCoord.h"
+#include <cstdlib>
+#include <cstring>
+#include <cstdio> // sprintf
 #include "CpptrajStdio.h"
 #include "CharBuffer.h"
 // Size of REMD header
@@ -21,7 +24,7 @@ AmberCoord::~AmberCoord() {
 
 /* AmberCoord::closeTraj()
  */ 
-int AmberCoord::closeTraj() {
+void AmberCoord::closeTraj() {
   tfile->CloseFile();
 }
 
@@ -125,13 +128,13 @@ int AmberCoord::readFrame(int set, double *X, double *box, double *T) {
 int AmberCoord::writeFrame(int set, double *X, double *box, double *T) {
   int outFrameSize;
   char *bufferPosition;
-  off_t offset;
+  //off_t offset;
 
   bufferPosition = frameBuffer;
 
   if (hasREMD) {
     sprintf(bufferPosition,"REMD  %8i %8i %8i %8.3lf\n",0,set+OUTPUTFRAMESHIFT,
-            set+OUTPUTFRAMESHIFT,F->T);
+            set+OUTPUTFRAMESHIFT,*T);
     bufferPosition += hasREMD;
   }
 
@@ -277,7 +280,7 @@ int AmberCoord::setupRead(int natom) {
 
   if (debug>0)
     rprintf("Atoms: %i FrameSize: %i TitleSize: %i NumBox: %i Seekable: %i Frames: %i\n\n", 
-            trajParm->natom, frameSize, titleSize, numBoxCoords, (int)seekable, Frames);
+            natom, frameSize, titleSize, numBoxCoords, (int)seekable, Frames);
   // Close the file
   closeTraj();
 
@@ -291,29 +294,29 @@ void AmberCoord::SetRemdTraj() {
   hasREMD=REMD_HEADER_SIZE;
 }
 
-/*
- * AmberTraj::SetupWrite()
+/* AmberCoord::setupWrite()
  * Set up trajectory for write. Calculate the length of each cooordinate
  * frame. Set the title and titleSize. Calculate the full output file
  * size, necessary only for seeking when MPI writing. Allocate memory for
  * the frame buffer. 
  */
-int AmberTraj::SetupWrite() {
+int AmberCoord::setupWrite(int natom) {
   int frame_lines;
-  long int outfilesize;
+  //long int outfilesize;
 
   // Calculate the length of each coordinate frame in bytes
-  frame_lines = (P->natom * 3) / 10;
-  if (((P->natom * 3) % 10) > 0)
+  natom3 = natom * 3;
+  frame_lines = natom3 / 10;
+  if ((natom3 % 10) > 0)
     frame_lines++;
-  frameSize = ((P->natom * 3 * 8) + frame_lines);
+  frameSize = (natom3 * 8) + frame_lines;
   // REMD header size is 42 bytes
   frameSize += hasREMD;
 
   // If box coords are present, allocate extra space for them
   // NOTE: Currently only writing box lengths for all box types. This means
   //       writing triclinic box type is currently not supported.
-  if (BoxType!=0) {
+  if (hasBox) {
     numBoxCoords=3; // Only write out box lengths for trajectories
     frameSize+=((numBoxCoords*8)+1);
   }
@@ -327,25 +330,26 @@ int AmberTraj::SetupWrite() {
     // Check title length - Add one byte for newline char
     titleSize=strlen(title) + 1;
     if (titleSize>81) {
-      rprintf("Error: AmberTraj::open: Given title is too long!\n[%s]\n",title);
+      rprintf("Error: AmberCoord::open: Given title is too long!\n[%s]\n",title);
       return 1;
     }
   }
 
   // Calculate total output file size.
   // NOTE: Need to correct for instances where # frames not known
-  outfilesize=(long int) (titleSize+(P->parmFrames * frameSize));
+  //outfilesize=(long int) (titleSize+(P->parmFrames * frameSize));
 
-  tfile->OpenFile();
+  //tfile->OpenFile();
   // Set file size - relevant for MPI only
-  tfile->IO->SetSize( outfilesize ); 
+  //tfile->IO->SetSize( outfilesize ); 
   // Write title - master only
   //tfile->IO->Rank_printf(0,"%-80s\n",title);
-  tfile->CloseFile();
+  //tfile->CloseFile();
 
   if (debug>0) {
-    rprintf("(%s): Each frame has %i chars plus %i newlines. Total %i. Filesize %li\n", 
-            tfile->filename,P->natom*3*8,frame_lines,frameSize,outfilesize);
+    //rprintf("(%s): Each frame has %i chars plus %i newlines. Total %i. Filesize %li\n", 
+    rprintf("(%s): Each frame has %i chars plus %i newlines. Total %i.\n", 
+            tfile->filename,natom3*8,frame_lines,frameSize);
   }
 
   // Allocate memory to buffer 1 frame
@@ -355,10 +359,9 @@ int AmberTraj::SetupWrite() {
   return 0;
 }
 
-/*
- * Info()
+/* AmberCoord::Info()
  */
-void AmberTraj::Info() {
+void AmberCoord::info() {
   if (hasREMD) 
     mprintf("is an AMBER REMD trajectory");
   else

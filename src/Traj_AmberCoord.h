@@ -19,16 +19,15 @@ class AmberCoord: public TrajectoryIO {
     int setupRead(int);
     int setupWrite(int);
     int openTraj();
-    int closeTraj();
+    void closeTraj();
     int readFrame(int,double*,double*,double*);
     int writeFrame(int,double*,double*,double*);
     void info();
 
-    int WriteArgs(ArgList *);
-
   public:
-
     AmberCoord();
     ~AmberCoord();
+    // AmberCoord-specific functions
+    void SetRemdTraj();
 };
 #endif
