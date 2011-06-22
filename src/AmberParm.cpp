@@ -17,7 +17,6 @@
 #include "CpptrajStdio.h"
 
 #define AMBERPOINTERS 31
-#define TRUNCOCTBETA 109.4712206344906917365733534097672
 #define ELECTOAMBER 18.2223
 #define AMBERTOELEC 1/ELECTOAMBER
 // =============================================================
@@ -211,7 +210,7 @@ AmberParm::AmberParm(int debugIn) {
   atomsPerMol=NULL; 
   Box[0]=0.0; Box[1]=0.0; Box[2]=0.0;
   Box[3]=0.0; Box[4]=0.0; Box[5]=0.0;
-  BoxType=0; 
+  boxType=NOBOX; 
   pindex=0;      
   parmFrames=0; 
   outFrame=0;
@@ -609,14 +608,14 @@ int AmberParm::ReadParmAmber() {
     // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
     boxFromParm=(double*) getFlagFileValues("BOX_DIMENSIONS",4);
     if (boxFromParm==NULL) {mprintf("Error in Box information.\n"); err++;}
-    // Determine box type: 1-Ortho, 2-Nonortho
-    SetBoxInfo(boxFromParm[0],boxFromParm[1],boxFromParm[2],boxFromParm[3]);
+    // Determine box type. Set Box angles and lengths from beta (boxFromParm[0])
+    boxType = SetBoxInfo(boxFromParm,Box,debug);
     free(boxFromParm);
     if (debug>0) {
       mprintf("    %s contains box info: %i mols, first solvent mol is %i\n",
               parmName, molecules, firstSolvMol);
       mprintf("    BOX: %lf %lf %lf | %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3],Box[4],Box[5]);
-      if (BoxType==1)
+      if (boxType==ORTHO)
         mprintf("         Box is orthogonal.\n");
       else
         mprintf("         Box is non-orthogonal.\n");
@@ -828,60 +827,6 @@ int AmberParm::ReadParmMol2() {
 
 // ---------===========================================================---------
 /*
- * AmberParm::SetBoxInfo()
- * Given 3 box lengths and an angle determine the box type and set
- * the box information. If called with negative beta, set no box.
- * Currently recognized betas:
- *   90.00 - Orthogonal
- *  109.47 - Truncated octahedral
- *   60.00 - Rhombic dodecahedron
- * Any other beta just sets all angles to beta and a warning is printed.
- */
-int AmberParm::SetBoxInfo(double beta, double bx, double by, double bz)  {
-  int ifbox=0;
-
-  // Determine box type from beta (none, ortho, non-ortho (truncated oct/triclinic)
-  if (beta<=0.0) {
-    if (BoxType>0) 
-      mprintf("    %s: Removing box information.\n",parmName);
-    BoxType=0;
-    ifbox=0;
-    Box[0]=0.0; Box[1]=0.0; Box[2]=0.0;
-    Box[3]=0.0; Box[4]=0.0; Box[5]=0.0;
-  } else if (beta == 90.0) {
-    BoxType=1;
-    ifbox=1;
-    Box[0]=bx; Box[1]=by; Box[2]=bz;
-    Box[3]=90.0; Box[4]=90.0; Box[5]=90.0;
-    if (debug>0) mprintf("    %s: Setting box to be orthogonal.\n",parmName);
-  } else if (beta > 109.47 && beta < 109.48) {
-    BoxType=2;
-    ifbox=2;
-    Box[0]=bx; Box[1]=by; Box[2]=bz;
-    //Box[3] = TRUNCOCTBETA;
-    Box[3] = beta;
-    Box[4]=Box[3]; Box[5]=Box[3];
-    if (debug>0) mprintf("    %s: Setting box to be a truncated octahedron, angle is %lf\n",
-                         parmName,Box[3]);
-  } else if (beta == 60.0) {
-    BoxType=2;
-    ifbox=1;
-    Box[0]=bx; Box[1]=by; Box[2]=bz;
-    Box[3]=60.0; Box[4]=90.0; Box[5]=60.0;
-    if (debug>0) 
-      mprintf("    %s: Setting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n",
-              parmName);
-  } else {
-    BoxType=2;
-    ifbox=1;
-    Box[0]=bx; Box[1]=by; Box[2]=bz;
-    Box[3]=beta; Box[4]=beta; Box[5]=beta;
-    mprintf("    Warning: %s: Unrecognized box type, beta is %lf\n",beta);
-  }
-  return 0;  
-}
-
-/*
  * AmberParm::AtomInfo()
  * Print parm information for atom.
  */
@@ -905,7 +850,7 @@ void AmberParm::AtomInfo(int atom) {
 void AmberParm::Info(char *buffer) {
 
   sprintf(buffer,"%i atoms, %i res, boxtype %i, %i mol, %i solvent mol, %i frames",
-          natom,nres,BoxType,molecules,solventMolecules,parmFrames);
+          natom,nres,boxType,molecules,solventMolecules,parmFrames);
 }
   
 // NOTE: The following atomToX functions do not do any memory checks!
@@ -1112,7 +1057,7 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   // Copy box information
   for (int i=0; i<6; i++)
     newParm->Box[i] = this->Box[i];
-  newParm->BoxType=this->BoxType;
+  newParm->boxType=this->boxType;
 
   // Set values up
   // NOTE: Eventually set all pointers up?
@@ -1257,7 +1202,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   // Copy box information
   for (i=0; i<6; i++)
     newParm->Box[i] = this->Box[i];
-  newParm->BoxType=this->BoxType;
+  newParm->boxType=this->boxType;
 
   // Set values up
   // NOTE: Eventually set all pointers up?

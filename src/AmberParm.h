@@ -1,6 +1,7 @@
 #ifndef INC_AMBERPARM_H
 #define INC_AMBERPARM_H
-#include "PtrajFile.h" 
+#include "PtrajFile.h"
+#include "BoxType.h" 
 
 // Default size for atom and residue names, 4 + NULL
 // NOTE: Also defined in ptrajmask.h
@@ -82,7 +83,7 @@ class AmberParm {
     double *mass;         // AMASS(NATOM)
     double *charge;       // CHARGE(NATOM)
     double Box[6];        // X, Y, Z, alpha, beta, gamma 
-    int BoxType;          // 0: None, 1: Orthogonal, 2: Non-orthogonal
+    BoxType boxType;      // None, Orthogonal, Non-orthogonal
     // From Ptraj
     char *solventMask;         // T for atoms in the solvent
     int solventMolecules;      // number of solvent molecules
@@ -96,7 +97,6 @@ class AmberParm {
     ~AmberParm();
     void ResName(char *, int);
     int OpenParm(char *);
-    int SetBoxInfo(double,double,double,double);
     int SetSurfaceInfo();
     int SetSolventInfo();
     void AtomInfo(int);
