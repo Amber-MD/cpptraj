@@ -5,7 +5,7 @@
 ///   NONE: No box.
 ///   ORTHO: Orthogonal box (all angles 90.0 degrees).
 ///   NONORTHO: Non-orthogonal box (triclinic or truncated octahedron).
-enum BoxType { NOBOX, ORTHO, NONORTHO };
+enum BoxType { NOBOX=0, ORTHO, NONORTHO };
 BoxType CheckBoxType(double *,int);
 BoxType SetBoxInfo(double *, double *, int);
 #endif

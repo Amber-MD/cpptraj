@@ -92,8 +92,8 @@ int Distance::setup() {
   // Check imaging - check box based on prmtop box
   imageType = 0;
   if (!noimage) {
-    imageType = P->BoxType;
-    if (P->BoxType==0 && debug>0) {
+    imageType = (int)P->boxType;
+    if (P->boxType==NOBOX && debug>0) {
       mprintf("    Warning: No box info in %s, disabling imaging.\n",P->parmName);
     }
   }

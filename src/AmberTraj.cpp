@@ -245,7 +245,7 @@ int AmberTraj::SetupRead() {
         sscanf(buffer, "%8lf%8lf%8lf%8lf%8lf%8lf",box,box+1,box+2,box+3,box+4,box+5);
         CheckBoxType(box);
       } else {
-        BoxType = P->BoxType; 
+        BoxType = (int)P->boxType; 
         // If box coords are present in traj but no box in parm, print warning
         if (BoxType == 0)
           mprintf("Warning: %s has box coordinates but no box info in %s\n",

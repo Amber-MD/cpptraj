@@ -77,11 +77,11 @@ void TrajFile::CheckBoxType(double *box) {
     BoxType=1;
   else
     BoxType=2;
-  if (P->BoxType != BoxType) {
+  if ((int)P->boxType != BoxType) {
     mprintf("Warning: %s contains box info of type %i (beta %lf)\n",trajfilename,
             BoxType,box[4]);
     mprintf("         but associated parmfile %s has box type %i (beta %lf)\n",P->parmName, 
-            P->BoxType,P->Box[4]);
+            P->boxType,P->Box[4]);
     //mprintf("         Box information from trajectory will be used.\n");
   }
   if (debug>0) mprintf("    %s: Box type is %i (beta=%lf)\n",trajfilename,BoxType,box[4]);

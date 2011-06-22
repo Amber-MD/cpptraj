@@ -181,8 +181,8 @@ int Closest::setup() {
   // NOTE: Should box be figured out from read-in coords?
   imageType = 0;
   if (!noimage) {
-    imageType = P->BoxType;
-    if (P->BoxType==0) {
+    imageType = (int)P->boxType;
+    if (P->boxType==NOBOX) {
         mprintf("    Warning: Closest::setup: ");
         mprintf(" Imaging specified but no box information in prmtop %s\n",P->parmName);
         mprintf("             No imaging can occur..\n");

@@ -92,7 +92,7 @@ int TrajoutList::Add(ArgList *A, AmberParm *parmIn) {
   T->P=parmIn;
 
   // Set box type from parm file unless "nobox" specified  
-  T->BoxType=parmIn->BoxType;
+  T->BoxType=(int)parmIn->boxType;
   if (A->hasKey("nobox")) T->BoxType=0;
 
   // No more setup here; Write is set up when first frame written.

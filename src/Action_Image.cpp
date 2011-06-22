@@ -98,14 +98,14 @@ int Image::setup() {
     useMass = false;
   }
 
-  if (P->BoxType==0) {
+  if (P->boxType==NOBOX) {
     mprintf("    Error: Image::setup: Parm %s does not contain box information.\n",
             P->parmName);
     return 1;
   }
 
   ortho = false;  
-  if (P->BoxType==1 && triclinic==OFF) ortho=true;
+  if (P->boxType==ORTHO && triclinic==OFF) ortho=true;
 
   if (triclinic == FAMILIAR) {
     if (ComMask!=NULL) {

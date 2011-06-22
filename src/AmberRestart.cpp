@@ -229,7 +229,7 @@ void AmberRestart::getBoxType(char *boxline, int boxlineSize) {
     sscanf(boxline, "%8lf%8lf%8lf%8lf%8lf%8lf",box,box+1,box+2,box+3,box+4,box+5);
     CheckBoxType(box);
   } else
-    BoxType = P->BoxType;
+    BoxType = (int)P->boxType;
 }
 
 /*
