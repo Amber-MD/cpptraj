@@ -29,6 +29,7 @@ class TrajectoryFile {
     // Specific to output traj
     Range *FrameRange;
     bool nobox;
+    bool setupForWrite;
 
     int setupTraj(char *, AccessType, FileFormat, FileType);
     void SetArgs(int, int, int);
@@ -37,10 +38,10 @@ class TrajectoryFile {
     ~TrajectoryFile();
 
     int SetupRead(char *, ArgList *, AmberParm *);
-    int SetupWrite(char *, ArgList *);
+    int SetupWrite(char *, ArgList *, AmberParm *);
     int BeginTraj(bool);
     int EndTraj();
     int GetNextFrame(double*,double*,double*);
-    int WriteFrame(int, AmberParm *);
+    int WriteFrame(int, AmberParm *, double*,double*,double);
 };
 #endif

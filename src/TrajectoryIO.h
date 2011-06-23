@@ -23,7 +23,7 @@ class TrajectoryIO {
     virtual int setupWrite(int) { return 1; }
     virtual int openTraj() { return 1; }
     virtual int readFrame(int,double*,double*,double*) { return 1; }
-    virtual int writeFrame(int,double*,double*,double*) { return 1; }
+    virtual int writeFrame(int,double*,double*,double) { return 1; }
     virtual void closeTraj() { return; }
     virtual void info() { return; }
 

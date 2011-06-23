@@ -21,7 +21,7 @@ class AmberCoord: public TrajectoryIO {
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*);
-    int writeFrame(int,double*,double*,double*);
+    int writeFrame(int,double*,double*,double);
     void info();
 
   public:

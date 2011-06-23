@@ -21,6 +21,7 @@ TrajectoryFile::TrajectoryFile() {
   boxType=NOBOX;
   FrameRange=NULL;
   nobox=false;
+  setupForWrite=false;
   currentFrame=0;
 };
 
@@ -262,10 +263,11 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
 /* TrajectoryFile::SetupWrite()
  * Set up trajectory for writing. Output trajectory filename can be specified
  * explicitly, or if not it should be the second argument in the given
- * argument list. Setup for the format is not performed here, but on the 
- * first write call. 
+ * argument list. Associate with the given parm file initially, but setup for 
+ * the format is performed on the first write call to accomodate state changes
+ * like stripped atoms and so on. 
  */
-int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn) {
+int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn) {
   char *tname = NULL;
   AccessType access = WRITE;
   FileFormat writeFormat = AMBERTRAJ;
@@ -281,6 +283,13 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn) {
     mprinterr("Error: TrajectoryFile::SetupWrite: Filename is NULL.\n");
     return 1;
   }
+
+  // Check for associated parm file
+  if (tparmIn==NULL) {
+    mprinterr("Error: TrajectoryFile::SetupWrite: Parm file is NULL.\n");
+    return 1;
+  }
+  trajParm = tparmIn;
 
   // Process arguments related to access and format
   if (argIn!=NULL) {
@@ -408,4 +417,40 @@ int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) {
   return 1;
 }
 
-int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn) {return 1;}
+/* TrajectoryFile::WriteFrame()
+ * Write the given coordinates, box, and Temperature. If no parm present
+ * set up trajectory to write for this parm. If trajectory has been
+ * set up, only write if the given parm matches the setup parm.
+ */
+int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
+                               double *box, double T) {
+  // Check that input parm matches setup parm - if not, skip
+  if (tparmIn->pindex != trajParm->pindex) return 0;
+
+  // First frame setup - set up for the input parm, not necessarily the setup
+  // parm; this allows things like atom strippping, etc. A stripped parm will
+  // have the same pindex as the original parm.
+  if (!setupForWrite) {
+    if (debug>0) rprintf("    Setting up %s for WRITE, %i atoms, originally %i atoms.\n",
+                         trajName,tparmIn->natom,trajParm->natom);
+    trajParm = tparmIn;
+    if (trajio->setupWrite(trajParm->natom)) return 1;
+    if (trajio->openTraj()) return 1;
+    setupForWrite=true;
+  }
+
+  // If there is a framerange defined, check if this frame matches. If so, pop
+  if (FrameRange!=NULL) {
+    // If no more frames in the framerange, skip
+    if ( FrameRange->empty() ) return 0;
+    // NOTE: For compatibility with ptraj user frame args start at 1
+    if ( FrameRange->front() - 1 != set ) return 0;
+    FrameRange->pop_front();
+  }
+
+  // Write
+  //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
+  if (trajio->writeFrame(set,X,box,T)) return 1;
+
+  return 0;
+}

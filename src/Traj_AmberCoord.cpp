@@ -125,7 +125,7 @@ int AmberCoord::readFrame(int set, double *X, double *box, double *T) {
  * enough to accomodate all coords in F (handled by SetupWrite).
  * NOTE: The output frame size is calcd here - should it just be precalcd?
  */
-int AmberCoord::writeFrame(int set, double *X, double *box, double *T) {
+int AmberCoord::writeFrame(int set, double *X, double *box, double T) {
   int outFrameSize;
   char *bufferPosition;
   //off_t offset;
@@ -134,7 +134,7 @@ int AmberCoord::writeFrame(int set, double *X, double *box, double *T) {
 
   if (hasREMD) {
     sprintf(bufferPosition,"REMD  %8i %8i %8i %8.3lf\n",0,set+OUTPUTFRAMESHIFT,
-            set+OUTPUTFRAMESHIFT,*T);
+            set+OUTPUTFRAMESHIFT,T);
     bufferPosition += hasREMD;
   }
 
