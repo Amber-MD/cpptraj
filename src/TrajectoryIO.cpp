@@ -31,6 +31,18 @@ void TrajectoryIO::SetFile(PtrajFile *tfileIn) {
   tfile = tfileIn;
 }
 
+/* TrajectoryIO::FilenameIs()
+ * Return true if trajectory full path filename matches input.
+ */
+bool TrajectoryIO::FilenameIs(char *filenameIn) {
+  if (filenameIn==NULL) {
+    mprinterr("Error: CheckFilename: Called with NULL filename.\n");
+    return false;
+  }
+  if (strcmp(tfile->filename, filenameIn)==0) return true;
+  return false;
+}
+
 /* TrajectoryIO::SetTitle()
  * Set title for this trajfile.
  */

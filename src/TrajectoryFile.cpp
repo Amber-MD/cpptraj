@@ -1,6 +1,7 @@
 // TrajectoryFile
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
+#include <cstdlib> //div_t
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
 
@@ -18,6 +19,7 @@ TrajectoryFile::TrajectoryFile() {
   offset=1;
   Frames=0;
   numFramesRead=0;
+  total_read_frames=-1;
   boxType=NOBOX;
   FrameRange=NULL;
   nobox=false;
@@ -29,7 +31,6 @@ TrajectoryFile::TrajectoryFile() {
 TrajectoryFile::~TrajectoryFile() {
   if (trajio!=NULL) delete trajio;
   if (progress!=NULL) delete progress;
-  //if (trajName!=NULL) free(trajName);
   if (FrameRange!=NULL) delete FrameRange;
 }
 
@@ -260,6 +261,36 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   return 0;
 }
 
+/* TrajectoryFile::SetupFrameInfo()
+ * Calculate number of frames that will be read based on start, stop, and
+ * offset. Update the number of frames that will be read for the associated
+ * traj parm. 
+ * Return the total number of frames that will be read for this traj.
+ */
+int TrajectoryFile::SetupFrameInfo() {
+  div_t divresult;
+
+  if (Frames<=0) {
+    //outputStart=-1;
+    total_read_frames=0;
+    return -1;
+  }
+  
+  //mprintf("DEBUG: Calling setupFrameInfo for %s with %i %i %i\n",trajfilename,
+  //        start,stop,offset);
+
+  // Calc total frames that will be read
+  // Round up
+  divresult = div( (stop - start), offset);
+  total_read_frames = divresult.quot;
+  if (divresult.rem!=0) total_read_frames++;
+
+  trajParm->parmFrames+=total_read_frames;
+
+  return total_read_frames;
+}
+  
+
 /* TrajectoryFile::SetupWrite()
  * Set up trajectory for writing. Output trajectory filename can be specified
  * explicitly, or if not it should be the second argument in the given
@@ -462,4 +493,12 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
   if (trajio->writeFrame(set,X,box,T)) return 1;
 
   return 0;
+}
+
+/* TrajectoryFile::TrajFilenameIs()
+ * Call TrajectoryIO FilenameIs routine to check if input filename matches
+ * full path of this trajectory file.
+ */
+bool TrajectoryFile::TrajFilenameIs(char *filenameIn) {
+  return ( trajio->FilenameIs(filenameIn) );
 }

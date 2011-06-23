@@ -29,5 +29,6 @@ class TrajectoryIO {
 
     void SetFile(PtrajFile *);
     void SetTitle(char *);
+    bool FilenameIs(char *); 
 }; 
 #endif

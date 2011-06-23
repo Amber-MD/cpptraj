@@ -21,6 +21,7 @@ class TrajectoryFile {
     int offset;
     int Frames;
     int numFramesRead;
+    int total_read_frames;
     BoxType boxType;
     int currentFrame;
     // Specific to input traj
@@ -38,10 +39,13 @@ class TrajectoryFile {
     ~TrajectoryFile();
 
     int SetupRead(char *, ArgList *, AmberParm *);
+    int SetupFrameInfo();
     int SetupWrite(char *, ArgList *, AmberParm *);
     int BeginTraj(bool);
     int EndTraj();
     int GetNextFrame(double*,double*,double*);
     int WriteFrame(int, AmberParm *, double*,double*,double);
+
+    bool TrajFilenameIs(char *);
 };
 #endif
