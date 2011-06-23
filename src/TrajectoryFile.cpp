@@ -434,6 +434,15 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
     if (debug>0) rprintf("    Setting up %s for WRITE, %i atoms, originally %i atoms.\n",
                          trajName,tparmIn->natom,trajParm->natom);
     trajParm = tparmIn;
+    // Use parm to set up box info unless nobox was specified.
+    if (!nobox) {
+      if (trajParm->boxType!=NOBOX) {
+        trajio->hasBox=true;
+        trajio->boxAngle[0]=trajParm->Box[4];
+        trajio->boxAngle[1]=trajParm->Box[5];
+        trajio->boxAngle[2]=trajParm->Box[6];
+      }
+    } 
     if (trajio->setupWrite(trajParm->natom)) return 1;
     if (trajio->openTraj()) return 1;
     setupForWrite=true;
