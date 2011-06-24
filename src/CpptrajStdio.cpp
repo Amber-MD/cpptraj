@@ -12,8 +12,7 @@
 #  include "PtrajMpi.h"
 #endif
 
-/*
- * mflush()
+/* mflush()
  * Call flush on STDOUT only if this is the master thread
  */
 void mflush() {
@@ -23,8 +22,7 @@ void mflush() {
   fflush(stdout);
 }
 
-/*
- * mprintf()
+/* mprintf()
  * Print message to STDOUT only if this is the master thread
  */
 void mprintf(const char *format, ...) {
@@ -38,8 +36,7 @@ void mprintf(const char *format, ...) {
   va_end(args);
 }
 
-/*
- * mprinterr()
+/* mprinterr()
  * Print message to STDERR only if this is the master thread
  */
 void mprinterr(const char *format, ...) {
@@ -53,8 +50,7 @@ void mprinterr(const char *format, ...) {
   va_end(args);
 }
 
-/*
- * rprintf()
+/* rprintf()
  * Print message to STDOUT for this worldrank
  */
 void rprintf(const char *format, ...) {
@@ -69,8 +65,7 @@ void rprintf(const char *format, ...) {
   return;
 }
 
-/*
- * rprinterr()
+/* rprinterr()
  * Print message to STDERR for this worldrank
  */
 void rprinterr(const char *format, ...) {
@@ -85,8 +80,7 @@ void rprinterr(const char *format, ...) {
   return;
 }
 
-/*
- * printerr()
+/* printerr()
  * Print error message along with calling routine.
  */
 void printerr(const char *ROUTINE, const char *format, ...) {
@@ -102,8 +96,7 @@ void printerr(const char *ROUTINE, const char *format, ...) {
   return;
 }
 
-/*
- * printwar()
+/* printwar()
  * Print warning message along with calling routine.
  */
 void printwar(const char *ROUTINE, const char *format, ...) {
@@ -117,5 +110,17 @@ void printwar(const char *ROUTINE, const char *format, ...) {
   va_end(args);
   fprintf(stdout,"\n");
   return;
+}
+
+/* fileExists()
+ * Return true if file can be opened "r".
+ */
+bool fileExists(char *filenameIn) {
+  FILE *infile = NULL;
+
+  infile=fopen(filenameIn,"rb");
+  if (infile==NULL) return false;
+  fclose(infile);
+  return true;
 }
 
