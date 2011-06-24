@@ -1,4 +1,5 @@
 // TrajinList
+#include <cstddef> //NULL
 #include "TrajinList.h"
 //#include "RemdTraj.h"
 #include "CpptrajStdio.h"

@@ -1,4 +1,5 @@
 // TrajoutList
+#include <cstddef> // NULL
 #include "TrajoutList.h"
 #include "CpptrajStdio.h"
 //#include "PtrajMpi.h" //worldsize
