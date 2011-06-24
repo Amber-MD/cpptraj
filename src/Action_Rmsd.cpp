@@ -34,7 +34,7 @@ Rmsd::~Rmsd() {
   if (first && RefFrame!=NULL)
     delete RefFrame;
   if (RefTraj!=NULL) {
-    RefTraj->front()->End();
+    RefTraj->EndTraj();
     delete RefTraj;
   }
   if (SelectedRef!=NULL) delete SelectedRef;
@@ -141,8 +141,8 @@ int Rmsd::init( ) {
     if (reftraj!=NULL) {
       if ( SetRefMask() ) return 1;
       // Attempt to set up reference trajectory
-      RefTraj = new TrajinList();
-      if (RefTraj->AddTrajin(reftraj, RefParm)) {
+      RefTraj = new TrajectoryFile();
+      if (RefTraj->SetupRead(reftraj, NULL, RefParm)) {
         mprinterr("Error: Rmsd: Could not set up reftraj %s.\n",reftraj);
         delete RefTraj;
         RefTraj=NULL;
@@ -174,12 +174,13 @@ int Rmsd::init( ) {
   //rmsd->Info();
   mprintf("    RMSD: (%s), reference is ",FrameMask.maskString);
   if (reftraj!=NULL) {
-    // Open reference trajectory
-    mprintf("trajectory:\n        ");
-    refindex = RefTraj->SetupFrames();
-    mprintf("          ");
-    RefTraj->front()->Begin(&refindex,0);
-    mprintf("         ");
+    // Set up reference trajectory and open
+    refindex = RefTraj->SetupFrameInfo();
+    mprintf("trajectory %s with %i frames.\n",RefTraj->TrajName(),RefTraj->Total_Read_Frames());
+    if (RefTraj->BeginTraj(false)) {
+      mprinterr("Error: Rmsd: Could not open reference trajectory.\n");
+      return 1;
+    }
   } else if (RefFrame==NULL)
     mprintf("first frame");
   else if (referenceName!=NULL)
@@ -405,8 +406,9 @@ int Rmsd::action() {
   //          could eventually be changed so that the trajectory loops.
   if (RefTraj!=NULL) {
     //mprintf("DBG: RMSD reftraj: Getting ref traj frame %i\n",RefTraj->front()->CurrentFrame());
-    if ( RefTraj->front()->NextFrame(&res) )
-      RefFrame = RefTraj->front()->F;
+    // NOTE: If there are no more frames in the trajectory the frame should
+    //       remain on the last read frame. Close and reopen? Change ref?
+    RefTraj->GetNextFrame(RefFrame->X, RefFrame->box, (&RefFrame->T)); 
   }
 
   // Set selected reference atoms - always done since RMS fit modifies SelectedRef 

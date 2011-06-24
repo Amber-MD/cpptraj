@@ -4,7 +4,7 @@
 #include "Action.h"
 #include <vector>
 #include "Range.h"
-#include "TrajinList.h"
+#include "TrajectoryFile.h"
 
 class Rmsd: public Action {
     DataSet *rmsd;
@@ -28,7 +28,7 @@ class Rmsd: public Action {
     Frame *RefFrame;                    // Hold reference frame coords
     Frame *SelectedRef;                 // Hold only ref coods selected by maskRef
     Frame *SelectedFrame;               // Hold only frame coords selected by mask0
-    TrajinList *RefTraj;                // Reference trajectory, each frame used in turn
+    TrajectoryFile *RefTraj;            // Reference trajectory, each frame used in turn
     AmberParm *RefParm;                 // Reference frame Parm
 
     int SetRefMask();
