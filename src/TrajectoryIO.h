@@ -8,12 +8,12 @@ class TrajectoryIO {
   protected:
     PtrajFile *tfile;
     char *title;
-    bool hasTemperature;
     int debug;
   public:
     bool seekable;
     bool hasBox;
     double boxAngle[3]; // Hold alpha, beta and gamma angles
+    bool hasTemperature;
 
     TrajectoryIO();
     virtual ~TrajectoryIO(); // virtual since this class is inherited.
@@ -26,9 +26,11 @@ class TrajectoryIO {
     virtual int writeFrame(int,double*,double*,double) { return 1; }
     virtual void closeTraj() { return; }
     virtual void info() { return; }
-
+  
     void SetFile(PtrajFile *);
     void SetTitle(char *);
-    bool FilenameIs(char *); 
+    bool FilenameIs(char *);
+
+    FileFormat TrajFormat() {return tfile->fileFormat;}
 }; 
 #endif
