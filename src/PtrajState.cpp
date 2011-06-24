@@ -463,7 +463,7 @@ int PtrajState::Run() {
     // Update how many frames across all threads have been written for parm
     // Do this for the original parm since it may have been modified.
     (*traj)->TrajParm()->outFrame += (*traj)->Total_Read_Frames();
-    readSets+=(*traj)->NumFramesRead();
+    readSets+=(*traj)->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
 
