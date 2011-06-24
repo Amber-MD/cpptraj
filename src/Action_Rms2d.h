@@ -2,7 +2,7 @@
 #define INC_ACTION_RMS2D_H
 // Rms2d
 #include "Action.h"
-#include "TrajinList.h"
+#include "TrajectoryFile.h"
 
 class Rms2d: public Action {
     FrameList ReferenceFrames; // Hold frames from all trajin stmts
@@ -12,7 +12,7 @@ class Rms2d: public Action {
     AtomMask FrameMask;        // Target atom mask
     char *rmsdFile;            // Output filename
     DataSetList RmsData;       // 1 data set for each ref frame to each tgt frame
-    TrajinList *RefTraj;       // Reference trajectory, each frame used in turn
+    TrajectoryFile *RefTraj;   // Reference trajectory, each frame used in turn
     AmberParm *RefParm;        // Reference trajectory Parm
 
   public:

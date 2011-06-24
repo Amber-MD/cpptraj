@@ -22,7 +22,7 @@ Rms2d::Rms2d() {
 // DESTRUCTOR
 Rms2d::~Rms2d() { 
   if (RefTraj!=NULL) {
-    RefTraj->front()->End();
+    RefTraj->EndTraj();
     delete RefTraj;
   }
 }
@@ -38,7 +38,6 @@ Rms2d::~Rms2d() {
  */
 int Rms2d::init() {
   char *mask0, *maskRef, *reftraj;
-  int temp = 0;
 
   // Get keywords
   nofit = A->hasKey("nofit");
@@ -70,8 +69,8 @@ int Rms2d::init() {
   // Check if reference will be a series of frames from a trajectory
   if (reftraj!=NULL) {
     // Attempt to set up reference trajectory
-    RefTraj = new TrajinList();
-    if (RefTraj->AddTrajin(reftraj, RefParm)) {
+    RefTraj = new TrajectoryFile();
+    if (RefTraj->SetupRead(reftraj, NULL, RefParm)) {
       mprinterr("Error: Rms2d: Could not set up reftraj %s.\n",reftraj);
       delete RefTraj;
       RefTraj=NULL;
@@ -81,11 +80,13 @@ int Rms2d::init() {
 
   mprintf("    RMS2D: (%s) to (%s)",FrameMask.maskString,RefMask.maskString);
   if (reftraj!=NULL) {
-    mprintf(" reference is trajectory:\n        ");
-    RefTraj->SetupFrames();
-    mprintf("          ");
-    RefTraj->front()->Begin(&temp,0);
-    mprintf("         ");
+    // Set up reference trajectory and open
+    mprintf("reference is trajectory %s with %i frames.\n",RefTraj->TrajName(),
+            RefTraj->SetupFrameInfo());
+    if (RefTraj->BeginTraj(false)) {
+      mprinterr("Error: Rms2d: Could not open reference trajectory.\n");
+      return 1;
+    }
   }
   if (nofit)
     mprintf(" (no fitting)");
@@ -135,7 +136,6 @@ void Rms2d::print() {
   int current=0;
   int max=0;
   int totalref=0;
-  int res=0; // Currently only used as dummy space for getnextframe
   DataSet *rmsdata;
   char setname[256];
 
@@ -144,11 +144,12 @@ void Rms2d::print() {
     max = ReferenceFrames.NumFrames() * ReferenceFrames.NumFrames();
     mprintf("  RMS2D: Calculating RMSDs between each frame (%i total).\n  ",max);
   } else {
-    totalref = RefTraj->front()->total_read_frames;
+    RefFrame = new Frame(RefParm->natom,RefParm->mass);
+    totalref = RefTraj->Total_Read_Frames();
     max = totalref * ReferenceFrames.NumFrames();
     mprintf("  RMS2D: Calculating RMSDs between each input frame and each reference\n"); 
     mprintf("         trajectory %s frame (%i total).\n  ",
-            RefTraj->front()->trajfilename, max);
+            RefTraj->TrajName(), max);
   }
 
   // Set up progress Bar
@@ -174,10 +175,8 @@ void Rms2d::print() {
     // Get the current reference frame
     if (RefTraj==NULL)
       RefFrame = ReferenceFrames.GetFrame( nref );
-    else {
-      if ( RefTraj->front()->NextFrame(&res) )
-        RefFrame = RefTraj->front()->F;
-    }
+    else 
+      RefTraj->GetNextFrame(RefFrame->X,RefFrame->box,&(RefFrame->T)); 
     // Set up dataset for this reference frame
     sprintf(setname,"Frame_%i",nref+1);
     rmsdata = RmsData.Add(DOUBLE, setname, "Rms2d");

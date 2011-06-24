@@ -55,7 +55,9 @@ int Outtraj::init() {
     }
   }
 
-  return ( outtraj.Add(A,tempParm) );
+  if ( outtraj.SetupWrite(NULL,A,tempParm) ) return 1;
+  if ( outtraj.BeginTraj(false) ) return 1;
+  return 0;
 } 
 
 /*
@@ -86,7 +88,7 @@ int Outtraj::action() {
     // If value from dataset not within min/max, exit now.
     if (dVal < min || dVal > max) return 0;
   }
-  if ( outtraj.Write(currentFrame, F, P) != 0 ) return 1;
+  if ( outtraj.WriteFrame(currentFrame, P, F->X,F->box,F->T) != 0 ) return 1;
   return 0;
 } 
 
@@ -95,7 +97,7 @@ int Outtraj::action() {
  * Close trajectory.
  */
 void Outtraj::print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",A->Arg(1),outtraj.front()->CurrentFrame());
-  outtraj.Close();
+  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",A->Arg(1),outtraj.NumFramesProcessed());
+  outtraj.EndTraj();
 }
 
