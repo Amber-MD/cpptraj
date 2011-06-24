@@ -15,11 +15,13 @@ AmberCoord::AmberCoord() {
   frameSize=0;
   hasREMD=0;
   numBoxCoords=0;
+  frameBuffer=NULL;
 }
 
 // DESTRUCTOR
 AmberCoord::~AmberCoord() {
   //fprintf(stderr,"AmberCoord Destructor.\n");
+  if (frameBuffer!=NULL) free(frameBuffer);
 }    
 
 /* AmberCoord::closeTraj()

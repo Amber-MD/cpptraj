@@ -380,12 +380,12 @@ void PtrajState::ProcessDataFileCmd() {
  */
 int PtrajState::Run() {
   std::list<TrajectoryFile*>::iterator traj;
-  int maxFrames;          // Total # of frames that will be read
-  int actionSet;          // Internal data frame
-  int readSets;           // Number of frames actually read
-  int lastPindex;         // Index of the last loaded parm file
-  AmberParm *CurrentParm; 
-  Frame *CurrentFrame;
+  int maxFrames=0;        // Total # of frames that will be read
+  int actionSet=0;        // Internal data frame
+  int readSets=0;         // Number of frames actually read
+  int lastPindex=-1;      // Index of the last loaded parm file
+  AmberParm *CurrentParm=NULL; 
+  Frame *CurrentFrame=NULL;
   FrameList refFrames;
 
   // ========== S E T U P   P H A S E ========== 
@@ -417,9 +417,6 @@ int PtrajState::Run() {
 
   // ========== R U N  P H A S E ==========
   // Loop over every trajectory in trajFileList
-  actionSet=0;
-  readSets=0;
-  lastPindex=-1;
   rprintf("BEGIN TRAJECTORY PROCESSING:\n");
   for (traj=trajinList.begin(); traj!=trajinList.end(); traj++) {
     // Open up the trajectory file. If an error occurs, bail 
@@ -466,7 +463,7 @@ int PtrajState::Run() {
     readSets+=(*traj)->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
-
+  if (CurrentFrame!=NULL) delete CurrentFrame;
   rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
 
   // Close output traj
