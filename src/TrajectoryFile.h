@@ -31,9 +31,11 @@ class TrajectoryFile {
     bool nobox;
     bool setupForWrite;
 
-    int setupTraj(char *, AccessType, FileFormat, FileType);
+    TrajectoryIO *setupRemdTraj(char *, ArgList*);
+    TrajectoryIO *setupTrajIO(char *, AccessType, FileFormat, FileType);
     void SetArgs(int, int, int);
     void SetTrajName(char *);
+    int SetBoxType(TrajectoryIO *);
 
   public:
     TrajectoryFile();
@@ -51,7 +53,6 @@ class TrajectoryFile {
     bool TrajFilenameIs(char *);
     void PrintInfo(int);
     int SetupFrameInfo();
-    bool HasTemperature();  
     // Functions that return private vars
     int CurrentFrame() { return currentFrame; }
     char *TrajName() { return trajName;}

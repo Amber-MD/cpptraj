@@ -5,6 +5,7 @@
 #include <cstring>
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
+#include "RemdTraj.h"
 /*
 #include "AmberTraj.h"
 #ifdef BINTRAJ
@@ -13,7 +14,6 @@
 #endif
 #include "PDBfile.h"
 #include "AmberRestart.h"
-#include "RemdTraj.h"
 #include "Conflib.h"
 #include "Mol2File.h"
 */
@@ -65,75 +65,108 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
   strcpy(trajName,nameIn);
 }
 
-/* TrajectoryFile::HasTemperature
- * True if trajio indicates trajectory has temperature information.
+/* TrajectoryFile::setupRemdTraj()
+ * Set this trajectory up as an REMD trajectory. A special trajio object
+ * will be set up that itself contains a list of trajio objects, each one
+ * corresponding to a replica.
  */
-bool TrajectoryFile::HasTemperature() {
-  if (trajio==NULL) return false;
-  return trajio->hasTemperature;
+TrajectoryIO *TrajectoryFile::setupRemdTraj(char *lowestRepName, ArgList *argIn) {
+  RemdTraj *remdtraj=NULL;
+  TrajectoryIO *replica=NULL;
+  ArgList *RemdOutArgs=NULL;
+  double remdtrajtemp=0.0;
+
+  // Get target temperature
+  remdtrajtemp=argIn->getKeyDouble("remdtrajtemp",0.0);
+
+  // If remdout specified, treat all arguments following remdout as 
+  // trajout arguments. Temperature trajectories will be written based 
+  // on those arguments.
+  if (argIn->hasKey("remdout")) {
+    RemdOutArgs = argIn->SplitAt("remdout");
+  }
+
+  // Set up lowest replica file trajectory IO 
+  replica = setupTrajIO(lowestRepName,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE);
+  if (replica==NULL) { 
+    mprinterr("    Error: RemdTraj: Could not set up lowest replica file %s\n",lowestRepName);
+    delete replica;
+    return NULL;
+  }
+
+  // Set up the lowest replica for reading. -1 indicates an error, 
+  // -2 indicates # of frames could not be determined.
+  total_frames = replica->setupRead(trajParm->natom);
+  if (total_frames == -1) {
+    mprinterr("    Error: RemdTraj: Could not set up IO for %s\n",lowestRepName);
+    delete replica;
+    return NULL;
+  }
+
+  // Ensure that this frame
+ 
+
+  return (TrajectoryIO*) remdtraj;
 }
 
-/* TrajectoryFile::setupTraj()
- * Set up basic trajectory file for read/write/append. Set up the 
+/* TrajectoryFile::setupTrajIO()
+ * Set up basic trajectory file for read/write/append. Return the 
  * trajectory IO object for the format.
  */
-int TrajectoryFile::setupTraj(char *tname, AccessType accIn,
-                                  FileFormat fmtIn, FileType typeIn) {
+TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
+                                        FileFormat fmtIn, FileType typeIn) {
+  TrajectoryIO *tio = NULL;
   PtrajFile *basicTraj = NULL;
 
   fileAccess=accIn;
   basicTraj = new PtrajFile();
   if (basicTraj->SetupFile(tname,fileAccess,fmtIn,typeIn,debug)) {
+    mprinterr("    Error: Could not set up file %s.\n",tname);
     delete basicTraj;
-    if (debug>1)
-      mprinterr("    Error: Could not set up file %s.\n",tname);
-    return 1;
+    return NULL;
   }
-
-  // Set trajectory name to the base filename
-  SetTrajName( basicTraj->basefilename );
 
   // Allocate IO type based on format
   switch ( basicTraj->fileFormat ) {
-//    case AMBERRESTART: trajio = new AmberRestart(); break;
-    case AMBERTRAJ   : trajio = new AmberCoord();    break;
+//    case AMBERRESTART: tio = new AmberRestart(); break;
+    case AMBERTRAJ   : tio = new AmberCoord();    break;
 /*    case AMBERNETCDF :
 #ifdef BINTRAJ
-      trajio = new AmberNetcdf();
+      tio = new AmberNetcdf();
 #else
       mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
       mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
       delete basicTraj;
-      return 1;
+      return NULL;
 #endif
       break;
     case AMBERRESTARTNC :
 #ifdef BINTRAJ
-      trajio = new AmberRestartNC();
+      tio = new AmberRestartNC();
 #else
       mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
       mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
       delete basicTraj;
-      return 1;
+      return NULL;
 #endif
       break;
-    case PDBFILE     : trajio = new PDBfile();      break;
-    case CONFLIB     : trajio = new Conflib();      break;
-    case MOL2FILE    : trajio = new Mol2File();     break;
+    case PDBFILE     : tio = new PDBfile();      break;
+    case CONFLIB     : tio = new Conflib();      break;
+    case MOL2FILE    : tio = new Mol2File();     break;
 */
     default:
       mprinterr("    Error: Could not determine trajectory file %s type, skipping.\n",tname);
       delete basicTraj;
-      return 1;
+      return NULL;
   }
 
   // Should only happen when memory cannot be allocd
-  if (trajio==NULL) return 1;
+  if (tio==NULL) return NULL;
 
   // Place the basic file in the trajectory IO class
-  trajio->SetFile(basicTraj);
+  tio->SetFile(basicTraj);
 
-  return 0;
+  return tio;
 }
 
 /* TrajectoryFile::SetArgs()
@@ -193,6 +226,48 @@ void TrajectoryFile::SetArgs(int startArg, int stopArg, int offsetArg) {
     mprintf("  [%s] Args: Start %i Stop %i  Offset %i\n",trajName,start,stop,offset);
 }
 
+/* TrajectoryFile::SetBoxType()
+ * Based on box angles in the given trajectory IO object and information in
+ * the associated parmtop, set the box type for this trajectory.
+ */
+int TrajectoryFile::SetBoxType(TrajectoryIO *tio) {
+  if (tio==NULL) return 1;
+  if (trajParm==NULL) return 1;
+  // If box coords present but no box info in associated parm, print
+  // a warning.
+  if (trajParm->boxType == NOBOX) {
+    mprintf("Warning: Box info present in trajectory %s but not in\n",trajName);
+    mprintf("         associated parm %s\n",trajParm->parmName);
+  }
+  boxType = CheckBoxType(tio->boxAngle,debug);
+  // If box coords present but returned box type is NOBOX then no angles 
+  // present in trajectory. Set box angles to parm default. If parm has
+  // no box information then exit just to be safe.
+  // NOTE: Is this only good for amber trajectory?
+  if (boxType == NOBOX) {
+    if (trajParm->boxType == NOBOX) {
+      mprinterr("Error: No angle information present in trajectory %s\n",trajName);
+      mprinterr("       or parm %s.\n",trajParm->parmName);
+      return 1;
+      //mprintf("         or parm %s - setting angles to 90.0!\n",trajParm->parmName);
+      //tio->boxAngle[0] = 90.0;
+      //tio->boxAngle[1] = 90.0;
+      //tio->boxAngle[2] = 90.0;
+    } else {
+      if (debug>0) {
+        mprintf("Warning: No angle information present in trajectory %s:\n",trajName);
+        mprintf("         Using angles from parm %s (beta=%lf).\n",trajParm->parmName,
+                trajParm->Box[3]);
+      }
+      tio->boxAngle[0] = trajParm->Box[3];
+      tio->boxAngle[1] = trajParm->Box[4];
+      tio->boxAngle[2] = trajParm->Box[5];
+    }
+    boxType = CheckBoxType(tio->boxAngle,debug);
+  }
+  return 0;
+}
+
 /* TrajectoryFile::SingleFrame()
  * Tell the trajectory to set up stop and offset so that only start frame
  * will be processed.
@@ -220,6 +295,14 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     mprinterr("Error: TrajectoryFile::SetupRead: Filename is NULL.\n");
     return 1;
   }
+  // Set trajectory name 
+  SetTrajName( tname );
+
+  // Check that file exists
+  if (!fileExists(tname)) {
+    mprinterr("Error: File %s does not exist.\n",tname);
+    return 1;
+  }
 
   // Check for associated parm file
   if (tparmIn==NULL) {
@@ -229,18 +312,20 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   trajParm = tparmIn;
 
   // Check for remdtraj keyword; if present, set up as a Remd Trajectory.
-  // This will set up a special trajio object.
+  // This will set up a special trajio object. All further setup is performed
+  // in setupRemdTraj.
   if (argIn->hasKey("remdtraj")) {
-    if (setupRemdTraj(tname,argIn)) {
+    if ( (trajio=setupRemdTraj(tname,argIn))==NULL ) {
       mprinterr("    Error: Could not set up REMD trajectories using %s as lowest replica.\n",
                 tname);
       return 1;
     }
+    return 0;
 
   // Set up single file; among other things this will determine the type and 
   // format, and set up trajio for the format.
   } else {
-    if (setupTraj(tname,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE)) {
+    if ( (trajio=setupTrajIO(tname,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE))==NULL ) {
       mprinterr("    Error: Could not set up file %s for reading.\n",tname);
       return 1;
     }
@@ -369,6 +454,8 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
     mprinterr("Error: TrajectoryFile::SetupWrite: Filename is NULL.\n");
     return 1;
   }
+  // Set trajectory name 
+  SetTrajName( tname );
 
   // Check for associated parm file
   if (tparmIn==NULL) {
@@ -392,7 +479,7 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
   }
 
   // Set up file with given type and format, and set up trajio for the format.
-  if( setupTraj(tname,access,writeFormat,writeType) ) {
+  if( (trajio=setupTrajIO(tname,access,writeFormat,writeType))==NULL ) {
     mprinterr("    Error: Could not set up file %s for writing.\n",tname);
     return 1;
   }
