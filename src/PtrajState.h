@@ -11,9 +11,9 @@
 #include "ArgList.h"
 
 class PtrajState {
-    TrajinList trajFileList;         // List of input trajectory files 
-    ReferenceList refFileList;       // List of reference coordinate files
-    TrajoutList outFileList;         // List of output trajectory files 
+    TrajinList trajinList;           // List of input trajectory files 
+    ReferenceList referenceList;     // List of reference coordinate files
+    TrajoutList trajoutList;         // List of output trajectory files 
     ParmFileList parmFileList;       // List of parameter files 
     PtrajActionList ptrajActionList; // List of actions to be performed each frame
     DataSetList DSL;                 // List of generated data sets

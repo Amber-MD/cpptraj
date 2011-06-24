@@ -26,9 +26,9 @@ PtrajState::~PtrajState() {
 void PtrajState::SetGlobalDebug(int debugIn) {
   debug = debugIn;
   rprintf("DEBUG LEVEL SET TO %i\n",debug);
-  trajFileList.SetDebug(debug);
-  refFileList.SetDebug(debug);
-  outFileList.SetDebug(debug);
+  trajinList.SetDebug(debug);
+  referenceList.SetDebug(debug);
+  trajoutList.SetDebug(debug);
   parmFileList.SetDebug(debug);
   ptrajActionList.SetDebug(debug);
   DFL.SetDebug(debug);
@@ -232,17 +232,17 @@ void PtrajState::Dispatch() {
   // If it does, get a parm based on parm/parmindex keywords in arg list
   if (A->CommandIs("trajin")) {
     tempParm = parmFileList.GetParm(A);
-    trajFileList.Add(A, tempParm);
+    trajinList.Add(NULL, A, tempParm);
     return;
   }
   if (A->CommandIs("reference")) {
     tempParm = parmFileList.GetParm(A);
-    refFileList.Add( A, tempParm);
+    referenceList.Add(NULL, A, tempParm);
     return;
   }
   if (A->CommandIs("trajout")) {
     tempParm = parmFileList.GetParm(A);
-    outFileList.Add( A, tempParm);
+    trajoutList.Add(NULL, A, tempParm);
     return;
   }
 
@@ -379,22 +379,20 @@ void PtrajState::ProcessDataFileCmd() {
  * to the actions in ptrajActionList for processing.
  */
 int PtrajState::Run() {
-  int maxFrames;
-  int global_set;  // Incremented for every frame read
-  int outputSet;   // Output file frame, changes based on active parm file
-  int actionSet;   // Internal data frame
-  int process_set; // Incremented for every frame processed
-  int lastPindex;  // Index of the last loaded parm file
-  TrajFile *T;
-  std::list<TrajFile*>::iterator it;
-  AmberParm *CurrentParm;
+  std::list<TrajectoryFile*>::iterator traj;
+  int maxFrames;          // Total # of frames that will be read
+  int actionSet;          // Internal data frame
+  int readSets;           // Number of frames actually read
+  int lastPindex;         // Index of the last loaded parm file
+  AmberParm *CurrentParm; 
   Frame *CurrentFrame;
   FrameList refFrames;
 
   // ========== S E T U P   P H A S E ========== 
   // Calculate frame division among trajectories
-  mprintf("\nTRAJECTORIES:\n");
-  maxFrames=trajFileList.SetupFrames();
+  mprintf("\nINPUT TRAJECTORIES:\n");
+  maxFrames=trajinList.SetupFrames();
+  trajinList.Info(1);
   if (maxFrames==-1)
     mprintf("  Coordinate processing will occur until EOF (unknown number of frames).\n");
   else
@@ -404,12 +402,12 @@ int PtrajState::Run() {
   parmFileList.Print();
 
   // Setup reference frames if reference files were specified 
-  refFileList.SetupRefFrames(&refFrames);
+  referenceList.SetupRefFrames(&refFrames);
   refFrames.Info();
 
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");
-  outFileList.Info(0);
+  trajoutList.Info(0);
  
   // Set max frames in the data set list
   DSL.SetMax(maxFrames); 
@@ -420,35 +418,20 @@ int PtrajState::Run() {
   // ========== R U N  P H A S E ==========
   // Loop over every trajectory in trajFileList
   actionSet=0;
-  outputSet=0;
-  global_set=0;
-  process_set=0;
+  readSets=0;
   lastPindex=-1;
   rprintf("BEGIN TRAJECTORY PROCESSING:\n");
-  for (it=trajFileList.begin(); it!=trajFileList.end(); it++) {
-    T=(*it);
-    // Open up the trajectory file. Return val >0 indicates traj should be skipped 
-    if ( T->Begin(&actionSet, showProgress) ) {
-      T->End();
-      continue;
+  for (traj=trajinList.begin(); traj!=trajinList.end(); traj++) {
+    // Open up the trajectory file. If an error occurs, bail 
+    if ((*traj)->BeginTraj(showProgress) ) {
+      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->TrajName());
+      break;
     }
+    // Set current parm from current traj.
+    CurrentParm = (*traj)->TrajParm();
 
-    // Calculate output Start for trajectory parm
-    outputSet=(worldrank * (T->total_read_frames / worldsize)) + T->P->outFrame;
-#ifdef DEBUG
-    dbgprintf("\tOutputstart for %s is %i\n", T->P->parmName, outputSet);
-#endif
-
-    // Debug info
-    if (debug>0)
-      rprintf("    Global set=%i, action set=%i, output set=%i, process set=%i\n",
-              global_set, actionSet, outputSet, process_set);
-
-    // Set Current Parm if different from last parm
-    if (lastPindex != T->P->pindex) {
-      CurrentParm = T->P;
-
-      // If Parm has changed set up the Action list for new topology file
+    // If Parm has changed set up the Action list for new topology file
+    if (lastPindex != CurrentParm->pindex) {
       if (ptrajActionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
                 CurrentParm->parmName);
@@ -456,38 +439,38 @@ int PtrajState::Run() {
       }
       //fprintf(stdout,"DEBUG: After setup of Actions in PtrajState parm name is %s\n",
       //        CurrentParm->parmName);
+      // Set up the Frame for this parm
+      if (CurrentFrame!=NULL) delete CurrentFrame;
+      CurrentFrame = new Frame(CurrentParm->natom, CurrentParm->mass);
+      lastPindex = CurrentParm->pindex;
     }
 
     // Loop over every Frame in trajectory
-    while ( T->NextFrame(&global_set) ) {
-      // Set current Frame
-      CurrentFrame = T->F;
+    while ( (*traj)->GetNextFrame(CurrentFrame->X, CurrentFrame->box, &(CurrentFrame->T)) ) {
       // Perform Actions on Frame
       ptrajActionList.DoActions(&CurrentFrame, actionSet);
       // Do Output
-      outFileList.Write(outputSet, CurrentFrame, CurrentParm);
+      trajoutList.Write(actionSet, CurrentParm, CurrentFrame);
 #ifdef DEBUG
       dbgprintf("\tDEBUG: %30s: %4i\n",CurrentParm->parmName,CurrentParm->outFrame);
 #endif
-      // Increment output, action, and processed frame counters
-      outputSet++;
+      // Increment frame counters
       actionSet++; 
-      process_set++;
     }
 
     // Close the trajectory file
-    T->End();
+    (*traj)->EndTraj();
     // Update how many frames across all threads have been written for parm
-    T->P->outFrame+=T->total_read_frames;
+    // Do this for the original parm since it may have been modified.
+    (*traj)->TrajParm()->outFrame += (*traj)->Total_Read_Frames();
+    readSets+=(*traj)->NumFramesRead();
     mprintf("\n");
-    lastPindex = T->P->pindex;
-  }
+  } // End loop over trajin
 
-  rprintf("Read %i frames and processed %i frames.\n",global_set,process_set);
-  if (debug>0) rprintf("Final output set: %i\n",outputSet);
+  rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
 
   // Close output traj
-  outFileList.Close();
+  trajoutList.Close();
 
   // Do action output
   ptrajActionList.Print( );
