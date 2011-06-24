@@ -18,9 +18,9 @@ class TrajectoryFile {
     int start;
     int stop;
     int offset;
-    int total_frames;      // Total # of frames in the traj
-    int numFramesRead;     // # frames actually read
-    int total_read_frames; // # frames that will be read based on start/stop/offset
+    int total_frames;       // Total # of frames in the traj
+    int numFramesProcessed; // # frames actually read/written
+    int total_read_frames;  // # frames that will be read based on start/stop/offset
     BoxType boxType;
     int currentFrame;
     // Specific to input traj
@@ -31,9 +31,9 @@ class TrajectoryFile {
     bool nobox;
     bool setupForWrite;
 
-    TrajectoryIO *setupRemdTraj(char *, ArgList*);
+    //TrajectoryIO *setupRemdTraj(char *, ArgList*); // REMD
     TrajectoryIO *setupTrajIO(char *, AccessType, FileFormat, FileType);
-    void SetArgs(int, int, int);
+    int SetArgs(ArgList *);
     void SetTrajName(char *);
     int SetBoxType(TrajectoryIO *);
 
@@ -60,6 +60,6 @@ class TrajectoryFile {
     int Start() { return start; }
     int Total_Read_Frames() { return total_read_frames; }
     int Total_Frames() { return total_frames; }
-    int NumFramesRead() { return numFramesRead; }
+    int NumFramesProcessed() { return numFramesProcessed; }
 };
 #endif

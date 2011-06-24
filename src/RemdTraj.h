@@ -6,17 +6,18 @@
 /// matching remdtrajtemp will be used.
 #include <vector>
 class RemdTraj : public TrajectoryIO {
+
+  public:
     double remdtrajtemp;
     std::vector<TrajectoryIO*> REMDtraj;
     std::vector<TrajectoryIO*> REMDtrajout;
     double *TemperatureList;
     int numReplicas;
 
-  public:
+
     RemdTraj();
     ~RemdTraj();
     // Inherited functions
-    int setupRead(int);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*, double*,double*);

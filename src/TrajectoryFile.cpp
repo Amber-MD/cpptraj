@@ -5,7 +5,7 @@
 #include <cstring>
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
-#include "RemdTraj.h"
+//#include "RemdTraj.h"
 /*
 #include "AmberTraj.h"
 #ifdef BINTRAJ
@@ -30,7 +30,7 @@ TrajectoryFile::TrajectoryFile() {
   stop=-1;
   offset=1;
   total_frames=0;
-  numFramesRead=0;
+  numFramesProcessed=0;
   total_read_frames=-1;
   boxType=NOBOX;
   currentFrame=0;
@@ -68,13 +68,22 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
 /* TrajectoryFile::setupRemdTraj()
  * Set this trajectory up as an REMD trajectory. A special trajio object
  * will be set up that itself contains a list of trajio objects, each one
- * corresponding to a replica.
+ * corresponding to a replica. Returns the trajio class of the lowest
+ * replica.
  */
-TrajectoryIO *TrajectoryFile::setupRemdTraj(char *lowestRepName, ArgList *argIn) {
-  RemdTraj *remdtraj=NULL;
-  TrajectoryIO *replica=NULL;
+/*TrajectoryIO *TrajectoryFile::setupRemdTraj(char *lowestRepName, ArgList *argIn) {
+  RemdTraj *remdio=NULL;
+  TrajectoryIO *replica0=NULL;
   ArgList *RemdOutArgs=NULL;
-  double remdtrajtemp=0.0;
+  double remdtrajtemp;
+
+  // Set up lowest replica file trajectory IO 
+  replica0 = setupTrajIO(lowestRepName,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE);
+  if (replica0==NULL) { 
+    mprinterr("    Error: RemdTraj: Could not set up lowest replica file %s\n",lowestRepName);
+    delete replica0;
+    return NULL;
+  }
 
   // Get target temperature
   remdtrajtemp=argIn->getKeyDouble("remdtrajtemp",0.0);
@@ -86,28 +95,44 @@ TrajectoryIO *TrajectoryFile::setupRemdTraj(char *lowestRepName, ArgList *argIn)
     RemdOutArgs = argIn->SplitAt("remdout");
   }
 
-  // Set up lowest replica file trajectory IO 
-  replica = setupTrajIO(lowestRepName,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE);
-  if (replica==NULL) { 
-    mprinterr("    Error: RemdTraj: Could not set up lowest replica file %s\n",lowestRepName);
-    delete replica;
-    return NULL;
-  }
-
-  // Set up the lowest replica for reading. -1 indicates an error, 
+  // Set up the lowest replica traj for reading. -1 indicates an error, 
   // -2 indicates # of frames could not be determined.
-  total_frames = replica->setupRead(trajParm->natom);
+  total_frames = replica0->setupRead(trajParm->natom);
   if (total_frames == -1) {
     mprinterr("    Error: RemdTraj: Could not set up IO for %s\n",lowestRepName);
-    delete replica;
+    delete replica0;
     return NULL;
   }
 
-  // Ensure that this frame
- 
+  // Ensure that lowest replica traj  has temperature information
+  if (!replica0->hasTemperature) {
+    mprinterr("    Error: RemdTraj: Lowest replica file %s does not have temperature info.\n",
+              lowestRepName);
+    delete replica0;
+    return NULL;
+  }
 
-  return (TrajectoryIO*) remdtraj;
+  // Set trajectory box type based on lowest replica traj box type
+  if (SetBoxType(replica0)) {
+    mprinterr("    Error: RemdTraj: Setting box info for lowest replica %s.\n",
+              lowestRepName);
+    delete replica0;
+    return NULL;
+  }
+
+  // Process start, stop, and offset args
+  if (SetArgs(argIn)) {
+    delete replica0;
+    return NULL;
+  }
+
+  // Add lowest replica to the list
+  remdio = new RemdTraj();
+  remdio->REMDtraj.push_back( replica0 ); 
+
+  return (TrajectoryIO*) remdio;
 }
+*/
 
 /* TrajectoryFile::setupTrajIO()
  * Set up basic trajectory file for read/write/append. Return the 
@@ -177,7 +202,24 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
  *   ptraj: 1 2 3 4 5 6 7 8 9 10
  * Defaults: startArg=1, stopArg=-1, offsetArg=1
  */
-void TrajectoryFile::SetArgs(int startArg, int stopArg, int offsetArg) {
+//void TrajectoryFile::SetArgs(int startArg, int stopArg, int offsetArg) {
+int TrajectoryFile::SetArgs(ArgList *argIn) {
+  // Set stop based on calcd number of Frames.
+  if (total_frames == -2) {
+    mprintf("  Warning: Could not predict # frames in %s. This usually indicates \n",trajName);
+    mprintf("         a corrupted trajectory. Frames will be read until EOF.\n");
+    stop=-1;
+  } else if (total_frames==0) {
+    mprinterr("  Error: trajectory %s contains no frames.\n",trajName);
+    return 1;
+  } else
+    stop = total_frames;
+
+  if (argIn==NULL) return 0;
+  int startArg = argIn->getNextInteger(1);
+  int stopArg = argIn->getNextInteger(-1);
+  int offsetArg = argIn->getNextInteger(1);
+
   //mprintf("DEBUG: setArgs: Original start, stop: %i %i\n",startArg,stopArg);
   if (startArg!=1) {
     if (startArg<1) {
@@ -224,11 +266,14 @@ void TrajectoryFile::SetArgs(int startArg, int stopArg, int offsetArg) {
   }
   if (debug>0)
     mprintf("  [%s] Args: Start %i Stop %i  Offset %i\n",trajName,start,stop,offset);
+  return 0;
 }
 
 /* TrajectoryFile::SetBoxType()
  * Based on box angles in the given trajectory IO object and information in
- * the associated parmtop, set the box type for this trajectory.
+ * the associated parmtop, set the box type for this trajectory. Return 0
+ * if successful, 1 if an error occurs.
+ * NOTE: Move to BoxType?
  */
 int TrajectoryFile::SetBoxType(TrajectoryIO *tio) {
   if (tio==NULL) return 1;
@@ -284,7 +329,6 @@ void TrajectoryFile::SingleFrame() {
  */
 int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn) {
   char *tname = NULL;
-  int startArg, stopArg, offsetArg;
 
   // Check for trajectory filename
   if (tnameIn==NULL && argIn!=NULL)
@@ -314,22 +358,22 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   // Check for remdtraj keyword; if present, set up as a Remd Trajectory.
   // This will set up a special trajio object. All further setup is performed
   // in setupRemdTraj.
-  if (argIn->hasKey("remdtraj")) {
-    if ( (trajio=setupRemdTraj(tname,argIn))==NULL ) {
-      mprinterr("    Error: Could not set up REMD trajectories using %s as lowest replica.\n",
-                tname);
-      return 1;
-    }
-    return 0;
+//  if (argIn->hasKey("remdtraj")) {
+//    if ( (trajio=setupRemdTraj(tname,argIn))==NULL ) {
+//      mprinterr("    Error: Could not set up REMD trajectories using %s as lowest replica.\n",
+//                tname);
+//      return 1;
+//    }
+//    return 0;
 
   // Set up single file; among other things this will determine the type and 
   // format, and set up trajio for the format.
-  } else {
+//  } else {
     if ( (trajio=setupTrajIO(tname,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE))==NULL ) {
       mprinterr("    Error: Could not set up file %s for reading.\n",tname);
       return 1;
     }
-  }
+//  }
 
   // Set up the format for reading. -1 indicates an error, -2 indicates # of
   // frames could not be determined.
@@ -341,62 +385,13 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
 
   // If the trajectory has box coords, set the box type from the box Angles.
   if (trajio->hasBox) {
-    // If box coords present but no box info in associated parm, print
-    // a warning.
-    if (trajParm->boxType == NOBOX) {
-      mprintf("Warning: Box info present in trajectory %s but not in\n",tname);
-      mprintf("         associated parm %s\n",trajParm->parmName);
-    }
-    boxType = CheckBoxType(trajio->boxAngle,debug);
-    // If box coords present but returned box type is NOBOX then no angles 
-    // present in trajectory. Set box angles to parm default. If parm has
-    // no box information then exit just to be safe.
-    // NOTE: Is this only good for amber trajectory?
-    if (boxType == NOBOX) {
-      if (trajParm->boxType == NOBOX) {
-        mprinterr("Error: No angle information present in trajectory %s\n",tname);
-        mprinterr("       or parm %s.\n",trajParm->parmName);
-        return 1;
-        //mprintf("         or parm %s - setting angles to 90.0!\n",trajParm->parmName);
-        //trajio->boxAngle[0] = 90.0;
-        //trajio->boxAngle[1] = 90.0;
-        //trajio->boxAngle[2] = 90.0;
-      } else {
-        if (debug>0) {
-          mprintf("Warning: No angle information present in trajectory %s:\n",tname);
-          mprintf("         Using angles from parm %s (beta=%lf).\n",trajParm->parmName,
-                  trajParm->Box[3]);
-        }
-        trajio->boxAngle[0] = trajParm->Box[3];
-        trajio->boxAngle[1] = trajParm->Box[4];
-        trajio->boxAngle[2] = trajParm->Box[5];
-      }
-      boxType = CheckBoxType(trajio->boxAngle,debug);
-    }
+    if (SetBoxType( trajio )) return 1;
   }
 
-  // Set stop based on calcd number of Frames.
-  if (total_frames == -2) {
-    mprintf("  Warning: Could not predict # frames in %s. This usually indicates \n",tname);
-    mprintf("         a corrupted trajectory. Frames will be read until EOF.\n");
-    stop=-1;
-  } else if (total_frames==0) {
-    mprinterr("  Error: trajectory %s contains no frames.\n",tname);
-    return 1;
-  } else
-    stop = total_frames;
+  // Set start, stop, and user args based on calcd number of frames
+  if (SetArgs(argIn)) return 1;
 
   // Process any more arguments
-  if (argIn!=NULL) {
-    // Get any user-specified start, stop, and offset args
-    // NOTE: For compatibility with ptraj start from 1
-    startArg=argIn->getNextInteger(1);
-    stopArg=argIn->getNextInteger(-1);
-    offsetArg=argIn->getNextInteger(1);
-    SetArgs(startArg,stopArg,offsetArg);
-
-    // Process arguments related to specific formats
-  }
 
   return 0;
 }
@@ -526,7 +521,7 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
     mprinterr("Error: TrajectoryFile::BeginTraj: Could not open %s\n",trajName);
     return 1;
   }
-  numFramesRead=0;
+  numFramesProcessed=0;
 
   // If writing, this is all that is needed
   if (fileAccess!=READ) return 0;
@@ -582,7 +577,7 @@ int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) {
       tgtFrameFound=true;
       targetSet+=offset;
     }
-    numFramesRead++;
+    numFramesProcessed++;
     currentFrame+=frameskip;
   }
 
@@ -632,6 +627,7 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
   // Write
   //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
   if (trajio->writeFrame(set,X,box,T)) return 1;
+  numFramesProcessed++;
 
   return 0;
 }
