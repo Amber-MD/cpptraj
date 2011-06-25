@@ -24,6 +24,14 @@ TrajectoryIO::~TrajectoryIO() {
   if (title!=NULL) free(title);
 }
 
+/* TrajectoryIO::SetDebug()
+ * Set debug level.
+ */
+void TrajectoryIO::SetDebug(int debugIn) {
+  debug = debugIn;
+  if (debug>0) mprintf("TrajectoryIO debug level set to %i\n",debug);
+}
+
 /* TrajectoryIO::SetFile()
  * Set the internal file pointer.
  */

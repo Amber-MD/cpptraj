@@ -26,7 +26,7 @@ TrajectoryFile::TrajectoryFile() {
   trajName=NULL;
   trajParm=NULL;
   fileAccess=READ;
-  start=1;
+  start=0;
   stop=-1;
   offset=1;
   total_frames=0;
@@ -188,6 +188,9 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
   // Should only happen when memory cannot be allocd
   if (tio==NULL) return NULL;
 
+  // Set debug level
+  tio->SetDebug(debug);
+
   // Place the basic file in the trajectory IO class
   tio->SetFile(basicTraj);
 
@@ -220,7 +223,9 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
   int stopArg = argIn->getNextInteger(-1);
   int offsetArg = argIn->getNextInteger(1);
 
-  //mprintf("DEBUG: setArgs: Original start, stop: %i %i\n",startArg,stopArg);
+#ifdef DEBUGTRAJ
+  mprinterr("DEBUG: setArgs: Original start, stop: %i %i\n",startArg,stopArg);
+#endif
   if (startArg!=1) {
     if (startArg<1) {
       mprintf("    Warning: %s start argument %i < 1, setting to 1.\n",trajName,startArg);
@@ -309,6 +314,12 @@ int TrajectoryFile::SetBoxType(TrajectoryIO *tio) {
       tio->boxAngle[2] = trajParm->Box[5];
     }
     boxType = CheckBoxType(tio->boxAngle,debug);
+  }
+  if (debug>0) {
+    mprintf("[%s] Box type is ",trajName);
+    if (boxType==NOBOX) mprintf(" None.\n");
+    else if (boxType==ORTHO) mprintf(" Orthorhombic.\n");
+    else if (boxType==NONORTHO) mprintf(" NonOrthorhombic.\n");
   }
   return 0;
 }
@@ -403,7 +414,13 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
  * Return the total number of frames that will be read for this traj.
  */
 int TrajectoryFile::SetupFrameInfo() {
+  int Nframes;
+  int ptraj_start_frame, ptraj_end_frame;
+  int traj_start_frame, traj_end_frame;
   div_t divresult;
+  // DEBUG - No mpi for now
+  int worldrank = 0;
+  int worldsize = 1;
 
   if (total_frames<=0) {
     //outputStart=-1;
@@ -419,6 +436,25 @@ int TrajectoryFile::SetupFrameInfo() {
   divresult = div( (stop - start), offset);
   total_read_frames = divresult.quot;
   if (divresult.rem!=0) total_read_frames++;
+
+  // Calc min num frames read by any given thread
+  // last thread gets leftovers
+  // In case of 0, last thread gets the frame
+  divresult = div(total_read_frames,worldsize);
+  Nframes=divresult.quot;
+
+  // Ptraj (local) start and end frame
+  ptraj_start_frame=(worldrank*Nframes);
+  ptraj_end_frame=ptraj_start_frame+Nframes;
+  // Last thread gets the leftovers
+  if (worldrank==worldsize-1) ptraj_end_frame+=divresult.rem;
+
+  // Actual Traj start and end frame (for seeking)
+  traj_start_frame=(ptraj_start_frame*offset) + start;
+  traj_end_frame=((ptraj_end_frame-1)*offset) + start;
+
+  start=traj_start_frame;
+  stop=traj_end_frame;
 
   trajParm->parmFrames+=total_read_frames;
 
@@ -559,6 +595,9 @@ int TrajectoryFile::EndTraj() {
  */
 int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) { 
   bool tgtFrameFound;
+#ifdef TRAJDEBUG
+  mprinterr("Getting frame %i from %s (stop=%i)\n",currentFrame,trajName,stop);
+#endif
   // If the current frame is out of range, exit
   if (currentFrame>stop && stop!=-1) return 0;
   if (progress!=NULL) 
@@ -568,10 +607,13 @@ int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) {
   tgtFrameFound=false;
 
   while ( !tgtFrameFound ) {
+#ifdef TRAJDEBUG
+    mprinterr("Attempting read of frame %i from %s\n",currentFrame,trajName);
+#endif
     if (trajio->readFrame(currentFrame,X,box,T)) return 0;
     //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
-#ifdef DEBUG
-    dbgprintf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
+#ifdef TRAJDEBUG
+    mprinterr("Frame %i has been read from %s (target=%i)\n",currentFrame,trajName,targetSet);
 #endif
     if (currentFrame==targetSet) {
       tgtFrameFound=true;

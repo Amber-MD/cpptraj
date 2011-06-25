@@ -82,6 +82,10 @@ int AmberCoord::readFrame(int set, double *X, double *box, double *T) {
   char Temp[9];
   char *bufferPosition;
   off_t offset;
+
+#ifdef TRAJDEBUG
+  mprinterr("Reading frame %10i from %s\n",set,tfile->basefilename);
+#endif
  
   // If trajectory is not broken, seek to given frame.
   if (seekable) {
