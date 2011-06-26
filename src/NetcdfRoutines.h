@@ -25,4 +25,6 @@ int GetDimInfo(int, const char *, int *);
 char *GetAttrText(int, int, const char *);
 #endif
 char *GetNetcdfConventions(char *);
+void FloatToDouble(double *, float *, int);
+void DoubleToFloat(float *, double *, int);
 #endif

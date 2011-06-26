@@ -142,3 +142,22 @@ char *GetNetcdfConventions(char *filename) {
 #endif
 }
 
+/* FloatToFrame()
+ * Convert float coords to double coords
+ * NOTE: N needs to match up with size of Coord!
+ */
+void FloatToDouble(double *X, float *Coord, int N) {
+  int i;
+  for (i=0; i<N; i++)
+    X[i]=(double) Coord[i];
+}
+
+/* DoubleToFloat()
+ * Convert double coords to float coords
+ */
+void DoubleToFloat(float *Coord, double *X, int N) {
+  int i;
+  for (i=0; i<N; i++)
+    Coord[i]=(float) X[i];
+}
+
