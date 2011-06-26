@@ -71,7 +71,7 @@ void TrajectoryIO::SetTitle(char *titleIn) {
     mprintf("Warning: SetTitle(): Title for %s is 0 length.\n",tfile->filename);
     return;
   }
-  this->title = (char*) malloc( (titleSize+1) * sizeof(char));
+  this->title = (char*) realloc(this->title, (titleSize+1) * sizeof(char));
   if (this->title==NULL) {
     mprinterr("Error: SetTitle(): Could not allocate memory for title of %s.\n",tfile->filename);
     return;
