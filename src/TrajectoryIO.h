@@ -18,14 +18,20 @@
 #include "PtrajFile.h" 
 class TrajectoryIO {
   protected:
+    // **** This is defined so that arrays from AmberParm can be passed in
+    //      via SetParmInfo, required for things like PDB/Mol2 writes. MUST
+    //      match the definition in AmberParm or memory errors will occur.
+    //      NOTE: Make this definition an include? 
+    typedef char NAME[6];
+
     PtrajFile *tfile;   // Base file.
     char *title;        // Trajectory title.
     int debug;          // Debug level
     // Certain trajectory formats such as PDB and mol2 print out some
     // parm information in addition to coordinates. These variables are
     // only used for those formats.
-    char **trajAtomNames;
-    char **trajResNames;
+    NAME *trajAtomNames;
+    NAME *trajResNames;
     int *trajAtomsPerMol;
     int *trajResNums;
     double *trajCharges;
@@ -52,7 +58,7 @@ class TrajectoryIO {
     void SetTitle(char *);
     bool FilenameIs(char *);
     void SetDebug(int);
-    void SetParmInfo(char **, char **, int *, int *, double *, double *);
+    void SetParmInfo(NAME*, NAME*, int *, int *, double *, double *);
 
     FileFormat TrajFormat() {return tfile->fileFormat;}
 }; 

@@ -9,13 +9,19 @@ TrajectoryIO::TrajectoryIO() {
   debug = 0;
   tfile=NULL;
   title=NULL;
-  hasTemperature=false;
 
   seekable=false;
   hasBox=false;
   boxAngle[0]=0.0;
   boxAngle[1]=0.0;
   boxAngle[2]=0.0;
+  hasTemperature=false;
+
+  trajAtomNames=NULL;
+  trajResNames=NULL;
+  trajAtomsPerMol=NULL;
+  trajCharges=NULL;
+  trajRadii=NULL;
 }
 
 // DESTRUCTOR
@@ -79,13 +85,20 @@ void TrajectoryIO::SetTitle(char *titleIn) {
  * Certain trajectory formats like PDB and Mol2 require some parm info
  * during writes. Set here.
  */
-void TrajectoryIO::SetParmInfo(char **names, char **resnames, int *atomsPerMol, 
+void TrajectoryIO::SetParmInfo(NAME *names, NAME *resnames, int *atomsPerMol, 
                                int *resnums, double *charge, double *radii) {
-    trajAtomNames = names;
-    trajResNames = resnames;
-    trajAtomsPerMol = atomsPerMol;
-    trajResNums = resnums;
-    trajCharges = charge;
-    trajRadii = radii;
+  //mprintf("SETTING PARM INFO FOR TRAJIO\n"); // DEBUG
+  trajAtomNames = names;
+  trajResNames = resnames;
+  trajAtomsPerMol = atomsPerMol;
+  trajResNums = resnums;
+  trajCharges = charge;
+  trajRadii = radii;
+  // DEBUG
+  //mprintf("Atomname 0 %s\n",trajAtomNames[0]);
+  //mprintf("Resname 0  %s\n",trajResNames[0]);
+  //mprintf("AtPerMol 0 %i\n",trajAtomsPerMol[0]);
+  //mprintf("ResNums 0  %i\n",trajResNums[0]);
+  //mprintf("Charge 0   %lf\n",trajCharges[0]);
 }
 
