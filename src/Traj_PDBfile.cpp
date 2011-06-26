@@ -67,7 +67,7 @@ int PDBfile::setupRead(int natom) {
   int atom, Frames;
   bool scanPDB;
 
-  if ( this->openTraj() ) return 1;
+  if ( this->openTraj() ) return -1;
 
   // Allocate space for checking pdb atom names
   pdbAtomNames = (NAME*) realloc(pdbAtomNames,natom * sizeof(NAME));
@@ -97,7 +97,7 @@ int PDBfile::setupRead(int natom) {
       if (pdbAtom!=atom) {
         mprinterr("Error: %s: Reading frame %i, got %i atoms, expected %s.\n",tfile->filename,
                   atom,pdbAtom);
-        return 1;
+        return -1;
       }
     }  
     if (scanPDB) Frames++;
@@ -107,7 +107,7 @@ int PDBfile::setupRead(int natom) {
   if (Frames<1) {
     mprinterr("Error: %s: No frames read. atom=%i expected %i.\n",tfile->filename,
             atom,natom);
-    return 1;
+    return -1;
   }
   if (debug>0) mprintf("PDBfile: %s has %i atoms, %i frames.\n",tfile->filename,
                        pdbAtom,Frames);

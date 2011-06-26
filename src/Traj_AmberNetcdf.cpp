@@ -86,7 +86,8 @@ int AmberNetcdf::openTraj() {
 }
 
 /* AmberNetcdf::setupRead()
- * Open the netcdf file, read all dimension and variable IDs, close. 
+ * Open the netcdf file, read all dimension and variable IDs, close.
+ * Return the number of frames in the file. 
  */
 int AmberNetcdf::setupRead(int natom) {
   char *attrText;            // For checking conventions and version 
@@ -94,7 +95,7 @@ int AmberNetcdf::setupRead(int natom) {
   double box[6];             // For checking box type
   size_t start[3], count[3]; // For checking box type
 
-  if (openTraj()) return 1;
+  if (openTraj()) return -1;
 
   // Get global attributes
   if (title==NULL) title = GetAttrText(ncid,NC_GLOBAL, "title");
@@ -111,30 +112,30 @@ int AmberNetcdf::setupRead(int natom) {
 
   // Get frame, atoms, coord, and spatial info
   frameDID=GetDimInfo(ncid,NCFRAME,&ncframe);
-  if (frameDID==-1) return 1;
+  if (frameDID==-1) return -1;
   atomDID=GetDimInfo(ncid,NCATOM,&ncatom);
-  if (atomDID==-1) return 1;
+  if (atomDID==-1) return -1;
   ncatom3 = ncatom * 3;
   if (checkNCerr(nc_inq_varid(ncid,NCCOORDS,&coordVID),
-      "Getting coordinate ID")!=0) return 1;
+      "Getting coordinate ID")!=0) return -1;
   attrText = GetAttrText(ncid,coordVID, "units");
   if (attrText==NULL || strcmp(attrText,"angstrom")!=0) 
     rprintf("WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
             tfile->filename,attrText);
   if (attrText!=NULL) free(attrText);
   spatialDID=GetDimInfo(ncid,NCSPATIAL,&spatial);
-  if (spatialDID==-1) return 1;
+  if (spatialDID==-1) return -1;
   if (spatial!=3) {
     rprintf("Error: ncOpen: Expected 3 spatial dimenions in %s, got %i\n",
             tfile->filename, spatial);
-    return 1;
+    return -1;
   }
   if ( checkNCerr(nc_inq_varid(ncid, NCSPATIAL, &spatialVID),
-       "Getting spatial VID\n")) return 1;
+       "Getting spatial VID\n")) return -1;
 
   // Sanity check on Time
   if ( checkNCerr( nc_inq_varid(ncid, NCTIME, &timeVID),
-       "Getting Netcdf time VID.")) return 1;
+       "Getting Netcdf time VID.")) return -1;
   attrText = GetAttrText(ncid,timeVID, "units");
   if (attrText==NULL || strcmp(attrText,"picosecond")!=0) 
     rprintf("WARNING: Netcdf file %s has time units of %s - expected picosecond.\n",
@@ -146,7 +147,7 @@ int AmberNetcdf::setupRead(int natom) {
   //       box type from angles. 
   if ( nc_inq_varid(ncid,"cell_lengths",&cellLengthVID)==NC_NOERR ) {
     if (checkNCerr(nc_inq_varid(ncid,"cell_angles",&cellAngleVID),
-      "Getting cell angles.")!=0) return 1;
+      "Getting cell angles.")!=0) return -1;
     if (debug>0) mprintf("  Netcdf Box information found.\n");
     hasBox=true;
     // If present, get box angles. These will be used to determine the box 
@@ -154,9 +155,9 @@ int AmberNetcdf::setupRead(int natom) {
     start[0]=0; start[1]=0; start[2]=0; 
     count[0]=1; count[1]=3; count[2]=0;
     if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
-                    "Getting cell lengths.")!=0 ) return 1;
+                    "Getting cell lengths.")!=0 ) return -1;
     if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, boxAngle),
-                    "Getting cell angles.")!=0 ) return 1;
+                    "Getting cell angles.")!=0 ) return -1;
   } 
 
   // Replica Temperatures
@@ -173,10 +174,10 @@ int AmberNetcdf::setupRead(int natom) {
 
   // Check that specified number of atoms matches expected number.
   if (ncatom!=natom) {
-    rprintf("Warning: Number of atoms in NetCDF file %s (%i) does not\n",
-            tfile->filename,ncatom);
-    rprintf("         match those in associated parmtop (%i)!\n",natom);
-    return 1;
+    mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n",
+              tfile->filename,ncatom);
+    mprinterr("       match number in associated parmtop (%i)!\n",natom);
+    return -1;
   }
 
   // Amber Netcdf coords are float. Allocate a float array for converting
