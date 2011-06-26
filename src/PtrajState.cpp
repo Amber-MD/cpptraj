@@ -392,7 +392,7 @@ int PtrajState::Run() {
   // Calculate frame division among trajectories
   mprintf("\nINPUT TRAJECTORIES:\n");
   maxFrames=trajinList.SetupFrames();
-  trajinList.Info(1);
+  //trajinList.Info(1);
   if (maxFrames==-1)
     mprintf("  Coordinate processing will occur until EOF (unknown number of frames).\n");
   else

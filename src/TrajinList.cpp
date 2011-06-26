@@ -60,6 +60,7 @@ int TrajinList::SetupFrames() {
     }
     if (maxFrames>=0)
       maxFrames+=trajFrames;
+    (*traj)->PrintInfo(1);
   }
 
   return maxFrames;
