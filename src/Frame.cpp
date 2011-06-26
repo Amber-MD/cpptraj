@@ -169,7 +169,7 @@ double *Frame::Coord(int atom) {
  * Return position in buffer after read. If * encountered this indicates
  * overflow in trajectory, return NULL.
  */
-char *Frame::BufferToBox(char *buffer, int numBox, int width) {
+/*char *Frame::BufferToBox(char *buffer, int numBox, int width) {
   char *ptr;
   char number[64]; // Should not have to handle numbers wider than this!
   int i,atom;
@@ -192,7 +192,7 @@ char *Frame::BufferToBox(char *buffer, int numBox, int width) {
 //  free(number);
   return ptr;
 }
-
+*/
 /*
  * Frame::BufferToFrame()
  * Store given character buffer containing XYZ coords with
@@ -201,7 +201,7 @@ char *Frame::BufferToBox(char *buffer, int numBox, int width) {
  * Return position in buffer after read. If * encountered this indicates
  * overflow in trajectory, return NULL.
  */
-char *Frame::BufferToFrame(char *buffer, int width) {
+/*char *Frame::BufferToFrame(char *buffer, int width) {
   char *ptr;
   char number[64]; // Should not have to handle numbers wider than this!
   int i,atom;
@@ -224,14 +224,14 @@ char *Frame::BufferToFrame(char *buffer, int width) {
 //  free(number);
   return ptr;
 }
-
+*/
 /*
  * Frame::FrameToBuffer()
  * Given a character buffer, format, and character width corresponding
  * to format, write coords in frame to buffer. 
  * Return the position in the buffer after write. 
  */
-char *Frame::FrameToBuffer(char *buffer, const char *format, int width, int numCols) {
+/*char *Frame::FrameToBuffer(char *buffer, const char *format, int width, int numCols) {
   int coord;
   char *ptr;
   
@@ -255,14 +255,14 @@ char *Frame::FrameToBuffer(char *buffer, const char *format, int width, int numC
   //return coord;
   return ptr;
 }
-
+*/
 /*
  * Frame::BoxToBuffer()
  * Given a character buffer, format, and character width corresponding
  * to format, write box coords to buffer.
  * Return the position in the buffer after write.
  */
-char *Frame::BoxToBuffer(char *buffer, int numBox, const char *format, int width) {
+/*char *Frame::BoxToBuffer(char *buffer, int numBox, const char *format, int width) {
 //  int coord;
   char *ptr;
 
@@ -283,28 +283,29 @@ char *Frame::BoxToBuffer(char *buffer, int numBox, const char *format, int width
   //coord = (int) (ptr - buffer);
   //return coord;
   return ptr;
-}
+}*/
 
 /*
  * Frame::floatToFrame()
  * Convert float coords to double coords
  * NOTE: N needs to match up with size of Coord!
- */
+ *
 void Frame::floatToFrame(float *Coord) {
   int i;
   for (i=0; i<N; i++)
     X[i]=(double) Coord[i];
 }
 
-/* 
+* 
  * Frame::frameToFloat()
  * Convert double coords to float coords
- */
+ *
 void Frame::frameToFloat(float *Coord) {
   int i;
   for (i=0; i<N; i++)
     Coord[i]=(float) X[i];
 }
+*/
 
 /* ----------------- Coordinate Transformation Routines --------------------- */
 /*

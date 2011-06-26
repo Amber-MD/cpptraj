@@ -31,12 +31,12 @@ class Frame {
     double *Coord(int);
     Frame *Copy();
 
-    char *BufferToBox(char *, int, int);
+/*    char *BufferToBox(char *, int, int);
     char *BufferToFrame(char *, int);
     char *FrameToBuffer(char *, const char*, int,int);
     char *BoxToBuffer(char *, int, const char *, int);
     void floatToFrame(float *);
-    void frameToFloat(float *);
+    void frameToFloat(float *);*/
 
     double COM(AtomMask*, double *, bool);
     double COM(double*,bool,int,int);
