@@ -11,6 +11,7 @@ class AmberNetcdf : public TrajectoryIO {
     int ncframe;
     int atomDID;
     int ncatom; 
+    int ncatom3; 
     float *Coord;
     int coordVID;
     int cellAngleVID;

@@ -18,6 +18,7 @@ AmberNetcdf::AmberNetcdf() {
   ncframe=-1;
   atomDID=-1;
   ncatom=-1;
+  ncatom3=-1;
   Coord=NULL;
   coordVID=-1;
   cellAngleVID=-1;
@@ -113,6 +114,7 @@ int AmberNetcdf::setupRead(int natom) {
   if (frameDID==-1) return 1;
   atomDID=GetDimInfo(ncid,NCATOM,&ncatom);
   if (atomDID==-1) return 1;
+  ncatom3 = ncatom * 3;
   if (checkNCerr(nc_inq_varid(ncid,NCCOORDS,&coordVID),
       "Getting coordinate ID")!=0) return 1;
   attrText = GetAttrText(ncid,coordVID, "units");
@@ -179,7 +181,7 @@ int AmberNetcdf::setupRead(int natom) {
 
   // Amber Netcdf coords are float. Allocate a float array for converting
   // float to/from double.
-  Coord=(float*) realloc(Coord, ncatom*3*sizeof(float));
+  Coord=(float*) realloc(Coord, ncatom3*sizeof(float));
   closeTraj();
   return ncframe;
 }
@@ -210,6 +212,7 @@ int AmberNetcdf::setupWrite(int natom) {
     mprintf("    Successfully created Netcdf file %s, ncid %i\n",tfile->filename,ncid);
 
   // Frame, Time
+  ncframe=0;
   if (checkNCerr(nc_def_dim(ncid,NCFRAME,NC_UNLIMITED,&frameDID),
     "Defining frame dimension.")) return 1;
   dimensionID[0]=frameDID;
@@ -229,6 +232,7 @@ int AmberNetcdf::setupWrite(int natom) {
   if (checkNCerr(nc_def_dim(ncid,NCATOM,natom,&atomDID),
     "Defining atom dimension.")) return 1;
   ncatom=natom;
+  ncatom3 = natom * 3;
 
   // Coords
   dimensionID[0] = frameDID;
@@ -327,25 +331,24 @@ int AmberNetcdf::setupWrite(int natom) {
     return 1;
 
   // Allocate memory and close the file. It will be reopened WRITE
-  Coord=(float*) realloc(Coord, ncatom*3*sizeof(float));
-  close();
+  Coord=(float*) realloc(Coord, ncatom3*sizeof(float));
+  closeTraj();
   
   return 0;
 }
 
-/*
- * AmberNetcdf::getFrame()
+/* AmberNetcdf::readFrame()
  * Get the specified frame from amber netcdf file
  * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
  */
-int AmberNetcdf::getFrame(int set) {
+int AmberNetcdf::readFrame(int set,double *X, double *box, double *T) {
   size_t start[3], count[3];
 
   // Get temperature
   if (TempVID!=-1) {
     start[0]=set;
     count[0]=1;
-    if ( checkNCerr(nc_get_vara_double(ncid, TempVID, start,count,&(F->T)),
+    if ( checkNCerr(nc_get_vara_double(ncid, TempVID, start,count,T),
                     "Getting replica temperature.")!=0 ) return 1;
     //fprintf(stderr,"DEBUG: Replica Temperature %lf\n",F->T);
   }
@@ -361,80 +364,63 @@ int AmberNetcdf::getFrame(int set) {
                   "Getting frame %i",set)!=0 ) return 1;
 
   // Read box info 
-  if (BoxType!=0) {
+  if (hasBox) {
     count [1]=3;
     count [2]=0;
-    if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, F->box),
+    if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
                     "Getting cell lengths.")!=0 ) return 1;
-    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, &(F->box[3])),
+    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, box+3),
                     "Getting cell angles.")!=0 ) return 1;
   }
 
-  F->floatToFrame(Coord);
+  FloatToDouble(X,Coord,ncatom3);
 
   return 0;
 }
 
-/*
- * AmberNetcdf::writeFrame() 
+/* AmberNetcdf::writeFrame() 
  */
-int AmberNetcdf::writeFrame(int set) {
+int AmberNetcdf::writeFrame(int set, double *X, double *box, double T) {
   size_t start[3], count[3];
 
-  // If coords have been stripped and P->natom is different from ncatom, need
-  // to redefine atom IDs etc.
-  // NOTE: This should not occur since all actions are completed before the write
-  //       stage. However if a write action is ever implemented this could become
-  //       a problem.
-  //if (P->natom != ncatom) {
-  //  fprintf(stdout,"Error: AmberNetcdf::writeFrame(%i)\n",set);
-  //  fprintf(stdout,"       %s was set up for %i atoms but attempting to write %i atoms!\n",
-  //          trajfilename, ncatom, P->natom);
-  //  fprintf(stdout,"       This can happen e.g. if there are multiple strip commands\n");
-  //  fprintf(stdout,"       and is not supported by the Netcdf file format.\n");
-  //  return 1;
-  //}
+  DoubleToFloat(Coord,X,ncatom3);
 
-  F->frameToFloat(Coord);
-
-  // write coords
-  start[0]=currentFrame;
+  // Write coords
+  start[0]=ncframe;
   start[1]=0;
   start[2]=0;
   count[0]=1;
-  count[1]=F->natom; // Use F->natom in case of strip
+  count[1]=ncatom;
   count[2]=3;
   if (checkNCerr(nc_put_vara_float(ncid,coordVID,start,count,Coord),
     "Netcdf Writing frame %i",set)) return 1;
 
-  // write box
-  if (BoxType!=0 && cellLengthVID!=-1) {
+  // Write box
+  if (hasBox && cellLengthVID!=-1) {
     count[1]=3;
     count[2]=0;
-    if (checkNCerr(nc_put_vara_double(ncid,cellLengthVID,start,count,F->box),
+    if (checkNCerr(nc_put_vara_double(ncid,cellLengthVID,start,count,box),
       "Writing cell lengths.")) return 1;
-    if (checkNCerr(nc_put_vara_double(ncid,cellAngleVID,start,count, &(F->box[3])),
+    if (checkNCerr(nc_put_vara_double(ncid,cellAngleVID,start,count, box+3),
       "Writing cell angles.")) return 1;
   }
 
   // Write temperature
   if (TempVID!=-1) {
-    if ( checkNCerr( nc_put_vara_double(ncid,TempVID,start,count,&(F->T)),
+    if ( checkNCerr( nc_put_vara_double(ncid,TempVID,start,count,&T),
          "Writing temperature.") ) return 1;
-
   }
   
   nc_sync(ncid); // Necessary after every write??
 
-  currentFrame++;
+  ncframe++;
 
   return 0;
 }  
 
-/*
- * Info()
+/* AmberNetcdf::info()
  */
-void AmberNetcdf::Info() {
+void AmberNetcdf::info() {
   mprintf("is a NetCDF AMBER trajectory"
             //(p->isVelocity ? " and velocities" : "")
          );
