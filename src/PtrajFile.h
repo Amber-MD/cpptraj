@@ -72,5 +72,7 @@ class PtrajFile {
     int SetupFile(char*,AccessType,FileFormat,FileType,int);
     int OpenFile();
     void CloseFile();
+
+    bool IsOpen() { if (isOpen) return true; else return false; }
 };
 #endif
