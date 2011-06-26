@@ -3,7 +3,7 @@
  * and return the requested information.
  */
 #include <cstdlib>
-#include <cstring>
+#include <cstring>//strncmp, strlen
 #include <cstdio> //sprintf
 #include <cctype> //isdigit
 #include "PDBfileRoutines.h"
@@ -15,8 +15,7 @@ const char PDB_RECNAME[3][7]={"ATOM", "HETATM", "TER"};
 void TrimName(char *);
 void WrapName(char *);
 void ReplaceAsterisk(char *);
-/*
- * TrimName()
+/* TrimName()
  * Given a string of length 5 (4 chars + 1 NULL) remove leading whitespace
  */
 void TrimName(char *NameIn) {
@@ -42,8 +41,7 @@ void TrimName(char *NameIn) {
   return;
 }
 
-/*
- * WrapName()
+/* WrapName()
  * Given a string of length 5 (4 chars + 1 NULL), move leading numbers to
  * the back of the string until first char is alphabetic.
  */
@@ -81,8 +79,7 @@ void WrapName(char *NameIn) {
   //fprintf(stderr,"NameOut= [%s]\n",NameIn);
 }
 
-/*
- * ReplaceAsterisk()
+/* ReplaceAsterisk()
  * Given a string of length 5 (4chars + 1 NULL) change any asterisk (*) to
  * prime ('). In cpptraj asterisks are considered reserved characters for
  * atom masks.
@@ -96,8 +93,7 @@ void ReplaceAsterisk(char *NameIn) {
 }
 // ===========================================================================
 
-/*
- * isPDBkeyword()
+/* isPDBkeyword()
  * Return true if the first 6 chars of buffer match a PDB keyword
  */
 bool isPDBkeyword(char *buffer) {
@@ -112,6 +108,15 @@ bool isPDBkeyword(char *buffer) {
   if (strncmp(buffer,"MODEL ",6)==0) return true;
   if (strncmp(buffer,"JRNL  ",6)==0) return true;
   if (strncmp(buffer,"SEQRES",6)==0) return true;
+  return false;
+}
+
+/* isPDBatomKeyword
+ * Return true if the first 6 chars match ATOM or HETATM
+ */
+bool isPDBatomKeyword(char *buffer) {
+  if (strncmp(buffer,"ATOM  ",6)==0) return true;
+  if (strncmp(buffer,"HETATM",6)==0) return true;
   return false;
 }
 
@@ -325,7 +330,8 @@ char *pdb_charge(char *buffer) {
 }
 
 // Write out an ATOM or HETATM record
-void pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name, 
+// Return the number of characters written
+int pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name, 
                     char *resnameIn, char chain, int resnum, 
                     double X, double Y, double Z, float Occ, float B,
                     char *End, bool highPrecision) {
@@ -350,13 +356,12 @@ void pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name,
   ptr=buffer;
   sprintf(ptr,"%-6s%5i %-4s%4s %c%4i",PDB_RECNAME[Record], atom, name, resName, chain, resnum);
   ptr+=26;
-  if (Record == PDBTER) {
+  if (Record == PDBTER) 
     sprintf(ptr,"\n");
-    return;
-  }
-  if (highPrecision)
+  else if (highPrecision)
     sprintf(ptr,"    %8.3lf%8.3lf%8.3lf%8.4f%8.4f%10s\n", X, Y, Z, Occ, B, End);
   else
     sprintf(ptr,"    %8.3lf%8.3lf%8.3lf%6.2f%6.2f%14s\n", X, Y, Z, Occ, B, End);
+  return (int) strlen(buffer);
 }
                     
