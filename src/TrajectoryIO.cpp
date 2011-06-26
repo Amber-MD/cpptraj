@@ -75,3 +75,17 @@ void TrajectoryIO::SetTitle(char *titleIn) {
   if (this->title[titleSize-1]=='\n') this->title[titleSize-1]='\0';
 }
 
+/* TrajectoryIO::SetParmInfo()
+ * Certain trajectory formats like PDB and Mol2 require some parm info
+ * during writes. Set here.
+ */
+void TrajectoryIO::SetParmInfo(char **names, char **resnames, int *atomsPerMol, 
+                               int *resnums, double *charge, double *radii) {
+    trajAtomNames = names;
+    trajResNames = resnames;
+    trajAtomsPerMol = atomsPerMol;
+    trajResNums = resnums;
+    trajCharges = charge;
+    trajRadii = radii;
+}
+
