@@ -2,18 +2,30 @@
 #define INC_TRAJECTORYIO_H
 /// Class: TrajectoryIO
 /// TrajectoryIO will be the base class for performing trajectory reading
-/// and writing that all formats will inherit.
+/// and writing that all formats will inherit. If the trajectory format
+/// reads/writes from a file, a PtrajFile object should be passed in via
+/// the SetFile function. 
+/// The following functions should be implemented by the inheriting class:
+///   setupRead(): Called inside TrajectoryFile::SetupRead. Takes as an 
+///                argument the expected number of atoms in the trajectory. 
+///                Returns the number of frames in the underlying trajectory 
+///                file. Should set all variables (title, seekable, hasBox, 
+///                boxAngle (only if hasBox), and hasTemperature.
+///   openTraj(): Prepare trajectory for read/write
+///   readFrame(): Given a frame number, read that frame; return the
+///                coordinates in the first array, the box lengths/angles in
+///                the second array, and set the temperature in the last var.
 #include "PtrajFile.h" 
 class TrajectoryIO {
   protected:
-    PtrajFile *tfile;
-    char *title;
-    int debug;
+    PtrajFile *tfile;   // Base file.
+    char *title;        // Trajectory title.
+    int debug;          // Debug level
   public:
-    bool seekable;
-    bool hasBox;
-    double boxAngle[3]; // Hold alpha, beta and gamma angles
-    bool hasTemperature;
+    bool seekable;      // True if can seek to frames in this traj.
+    bool hasBox;        // True if the trajectory has box information.
+    double boxAngle[3]; // Hold alpha, beta and gamma angles of box if hasBox.
+    bool hasTemperature;// True if trajectory has temperature information.
 
     TrajectoryIO();
     virtual ~TrajectoryIO(); // virtual since this class is inherited.
