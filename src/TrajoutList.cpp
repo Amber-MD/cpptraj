@@ -44,7 +44,8 @@ int TrajoutList::Add(char *filenameIn, ArgList *A, AmberParm *parmIn) {
     return 1;
   }
   traj->SetDebug(debug);
-  if (traj->SetupWrite(filename,A,parmIn)) {
+  // Default to AMBERTRAJ; format can be changed via args in the arg list
+  if (traj->SetupWrite(filename,A,parmIn,AMBERTRAJ)) {
     mprinterr("Error: trajout: Could not set up trajectory.\n");
     delete traj;
     return 1;

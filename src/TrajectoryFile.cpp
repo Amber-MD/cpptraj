@@ -5,6 +5,8 @@
 #include <cstring>
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
+#include "Traj_AmberNetcdf.h"
+#include "Traj_PDBfile.h"
 //#include "RemdTraj.h"
 /*
 #include "AmberTraj.h"
@@ -155,16 +157,16 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
   switch ( basicTraj->fileFormat ) {
 //    case AMBERRESTART: tio = new AmberRestart(); break;
     case AMBERTRAJ   : tio = new AmberCoord();    break;
-/*    case AMBERNETCDF :
+    case AMBERNETCDF :
 #ifdef BINTRAJ
       tio = new AmberNetcdf();
 #else
       mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
       mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
       delete basicTraj;
-      return NULL;
 #endif
       break;
+/*
     case AMBERRESTARTNC :
 #ifdef BINTRAJ
       tio = new AmberRestartNC();
@@ -175,17 +177,17 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
       return NULL;
 #endif
       break;
-    case PDBFILE     : tio = new PDBfile();      break;
-    case CONFLIB     : tio = new Conflib();      break;
-    case MOL2FILE    : tio = new Mol2File();     break;
 */
+    case PDBFILE     : tio = new PDBfile();      break;
+//    case CONFLIB     : tio = new Conflib();      break;
+//    case MOL2FILE    : tio = new Mol2File();     break;
     default:
       mprinterr("    Error: Could not determine trajectory file %s type, skipping.\n",tname);
       delete basicTraj;
       return NULL;
   }
 
-  // Should only happen when memory cannot be allocd
+  // Happens when memory cannot be allocd or not compiled for netcdf
   if (tio==NULL) return NULL;
 
   // Set debug level
@@ -402,7 +404,16 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   // Set start, stop, and user args based on calcd number of frames
   if (SetArgs(argIn)) return 1;
 
-  // Process any more arguments
+  // Further setup specific to trajectory format
+  if (trajio->TrajFormat() == PDBFILE) {
+    // Check that the names read from the PDB file match the ones in the
+    // associated parm. Will just print warnings for now.
+    PDBfile *T0 = (PDBfile*) trajio;
+    int numMismatch = T0->CheckPdbNames(trajParm->names);
+    if (numMismatch>0) 
+      mprintf("Warning: %s: %i names did not match those in associated parm %s.\n",
+              trajName,numMismatch,trajParm->parmName);
+  }
 
   return 0;
 }
@@ -469,12 +480,16 @@ int TrajectoryFile::SetupFrameInfo() {
  * the format is performed on the first write call to accomodate state changes
  * like stripped atoms and so on. 
  */
-int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn) {
+int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn,
+                               FileFormat writeFormat) {
   char *tname = NULL;
   AccessType access = WRITE;
-  FileFormat writeFormat = AMBERTRAJ;
+  //FileFormat writeFormat = AMBERTRAJ;
   FileType writeType = UNKNOWN_TYPE;
   char *onlyframes=NULL;
+
+  // Mark as not yet set up
+  setupForWrite=false;
 
   // Check for trajectory filename
   if (tnameIn==NULL && argIn!=NULL)
@@ -507,6 +522,8 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
     else if ( argIn->hasKey("restart")  ) writeFormat=AMBERRESTART;
     else if ( argIn->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
     else if ( argIn->hasKey("mol2")     ) writeFormat=MOL2FILE;
+    // If still unknown format default to amber trajectory
+    if (writeFormat==UNKNOWN_FORMAT) writeFormat=AMBERTRAJ;
   }
 
   // Set up file with given type and format, and set up trajio for the format.
@@ -536,10 +553,23 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
     // when trajectory IO is set up.
     nobox = argIn->hasKey("nobox");
 
-    // Process any write arguments specific to certain formats
-    if (trajio->TrajFormat() == AMBERTRAJ) { 
+    // Process any write arguments specific to certain formats not related
+    // to parm file. Options related to parm file are handled on the first
+    // write in WriteFrame
+    if (trajio->TrajFormat() == AMBERTRAJ) {
+      // Amber Trajectory 
       AmberCoord *T0 = (AmberCoord*) trajio;
       if (argIn->hasKey("remdtraj")) T0->SetRemdTraj();
+    } else if (trajio->TrajFormat() == AMBERNETCDF ) {
+      // Amber Netcdf
+      AmberNetcdf *T1 = (AmberNetcdf*) trajio;
+      if (argIn->hasKey("remdtraj")) T1->SetRemdTraj();
+    } else if (trajio->TrajFormat() == PDBFILE ) {
+      // PDB file
+      PDBfile *T2 = (PDBfile*) trajio;
+      if (argIn->hasKey("dumpq")) T2->SetDumpq();
+      if (argIn->hasKey("model")) T2->SetWriteMode(PDBfile::MODEL);
+      if (argIn->hasKey("multi")) T2->SetWriteMode(PDBfile::MULTI);
     }
   }
 
@@ -653,6 +683,14 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
       }
     } 
     if (trajio->setupWrite(trajParm->natom)) return 1;
+    // More Format-specific setup
+    if (trajio->TrajFormat()==PDBFILE) {
+      PDBfile *T0 = (PDBfile*) trajio;
+      T0->NumFramesToWrite(trajParm->parmFrames);
+      trajio->SetParmInfo(trajParm->names,trajParm->resnames,
+                          trajParm->atomsPerMol,trajParm->resnums,trajParm->charge,NULL);
+    }
+    // Open output traj and mark as set up.
     if (trajio->openTraj()) return 1;
     setupForWrite=true;
   }

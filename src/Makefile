@@ -2,12 +2,12 @@ include ../config.h
 
 
 
-SOURCE=main.cpp AmberNetcdf.cpp AmberParm.cpp AmberTraj.cpp TrajFile.cpp \
+SOURCE=main.cpp AmberParm.cpp TrajFile.cpp \
        Frame.cpp PtrajState.cpp ArgList.cpp ptrajmask.c Action_Distance.cpp \
        ParmFileList.cpp TrajinList.cpp TrajoutList.cpp ReferenceList.cpp \
        CoordFileList.cpp PtrajActionList.cpp DataSet.cpp \
        DataSetList.cpp vectormath.cpp FrameList.cpp Action_Rmsd.cpp \
-       Action_Dihedral.cpp DataFile.cpp DataFileList.cpp PDBfile.cpp \
+       Action_Dihedral.cpp DataFile.cpp DataFileList.cpp \
        PtrajFile.cpp PDBfileRoutines.cpp AtomMap.cpp BaseFileIO.cpp StdFile.cpp \
        GzipFile.cpp AmberRestart.cpp Action_Angle.cpp PtrajMpi.c MpiFile.cpp \
        Action_Strip.cpp Action.cpp AtomMask.cpp mapDataSet.cpp \
@@ -18,14 +18,15 @@ SOURCE=main.cpp AmberNetcdf.cpp AmberParm.cpp AmberTraj.cpp TrajFile.cpp \
        Mol2FileRoutines.cpp Action_NAstruct.cpp DistRoutines.cpp AxisType.cpp \
        TorsionRoutines.cpp Action_Pucker.cpp Range.cpp Action_Outtraj.cpp \
        Action_Rms2d.cpp ProgressBar.cpp TrajectoryIO.cpp \
-       TrajectoryFile.cpp BoxType.cpp CharBuffer.cpp Traj_AmberCoord.cpp
+       TrajectoryFile.cpp BoxType.cpp CharBuffer.cpp Traj_AmberCoord.cpp \
+       Traj_AmberNetcdf.cpp Traj_PDBfile.cpp
 
-OBJECTS=main.o AmberNetcdf.o AmberParm.o AmberTraj.o TrajFile.o \
+OBJECTS=main.o AmberParm.o TrajFile.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
         ParmFileList.o TrajinList.o TrajoutList.o ReferenceList.o \
         CoordFileList.o PtrajActionList.o DataSet.o \
         DataSetList.o vectormath.o FrameList.o Action_Rmsd.o \
-        Action_Dihedral.o DataFile.o DataFileList.o PDBfile.o \
+        Action_Dihedral.o DataFile.o DataFileList.o \
         PtrajFile.o PDBfileRoutines.o AtomMap.o BaseFileIO.o StdFile.o \
         GzipFile.o AmberRestart.o Action_Angle.o PtrajMpi.o MpiFile.o \
         Action_Strip.o Action.o AtomMask.o mapDataSet.o \
@@ -36,14 +37,15 @@ OBJECTS=main.o AmberNetcdf.o AmberParm.o AmberTraj.o TrajFile.o \
         Mol2FileRoutines.o Action_NAstruct.o DistRoutines.o AxisType.o \
         TorsionRoutines.o Action_Pucker.o Range.o Action_Outtraj.o \
         Action_Rms2d.o ProgressBar.o TrajectoryIO.o \
-        TrajectoryFile.o BoxType.o CharBuffer.o Traj_AmberCoord.o
+        TrajectoryFile.o BoxType.o CharBuffer.o Traj_AmberCoord.o \
+        Traj_AmberNetcdf.o Traj_PDBfile.o
 
-HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
+HEADERS=AmberParm.h TrajFile.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
         ParmFileList.h TrajinList.h TrajoutList.h ReferenceList.h \
         CoordFileList.h PtrajActionList.h DataSet.h \
         DataSetList.h vectormath.h FrameList.h Action_Rmsd.h \
-        Action_Dihedral.h DataFile.h DataFileList.h PDBfile.h \
+        Action_Dihedral.h DataFile.h DataFileList.h \
         PtrajFile.h PDBfileRoutines.h AtomMap.h BaseFileIO.h StdFile.h \
         GzipFile.h AmberRestart.h Action_Angle.h PtrajMpi.h MpiFile.h \
         Action_Strip.h AtomMask.h mapDataSet.h \
@@ -54,7 +56,8 @@ HEADERS=AmberNetcdf.h AmberParm.h AmberTraj.h TrajFile.h \
         Mol2FileRoutines.h Action_NAstruct.h DistRoutines.h AxisType.h \
         TorsionRoutines.h Action_Pucker.h Range.h Action_Outtraj.h \
         Action_Rms2d.h ProgressBar.h TrajectoryIO.h \
-        TrajectoryFile.h BoxType.h CharBuffer.h Traj_AmberCoord.h
+        TrajectoryFile.h BoxType.h CharBuffer.h Traj_AmberCoord.h \
+        Traj_AmberNetcdf.h Traj_PDBfile.h
 
 all: cpptraj$(SFX)
 

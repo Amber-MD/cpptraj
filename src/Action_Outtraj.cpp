@@ -55,7 +55,7 @@ int Outtraj::init() {
     }
   }
 
-  if ( outtraj.SetupWrite(NULL,A,tempParm) ) return 1;
+  if ( outtraj.SetupWrite(NULL,A,tempParm,AMBERTRAJ) ) return 1;
   if ( outtraj.BeginTraj(false) ) return 1;
   return 0;
 } 

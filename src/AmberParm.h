@@ -5,6 +5,7 @@
 
 // Default size for atom and residue names, 4 + NULL
 // NOTE: Also defined in ptrajmask.h
+//       A similar definition of name is currently found in TrajectoryIO
 #define NAMESIZE 6
 
 class AmberParm {

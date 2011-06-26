@@ -4,6 +4,7 @@
 #include <cstring>
 #include "AmberRestart.h"
 #include "CpptrajStdio.h"
+#include "CharBuffer.h"
 
 // CONSTRUCTOR
 AmberRestart::AmberRestart() {
@@ -248,14 +249,14 @@ int AmberRestart::getFrame(int set) {
   F->T = restartTemp;
 
   // Convert coords to Frame - Frame expects N coords to be present in buffer
-  if ( (bufferPosition = F->BufferToFrame(frameBuffer, 12))==NULL ) {
+  if ( (bufferPosition = BufferToDouble(frameBuffer, F->X, F->N, 12))==NULL ) {
     mprintf("Error: AmberRestart::getFrame: * detected in coordinates of %s\n",trajfilename);
     return 1;  
   }
   // Convert velocity to Frame if present
   if (hasVelocity) {
     if (F->V==NULL) F->V = new Frame(restartAtoms,NULL);
-    if ( (bufferPosition = F->V->BufferToFrame(bufferPosition, 12))==NULL ) {
+    if ( (bufferPosition = BufferToDouble(bufferPosition, F->V->X, F->N, 12))==NULL ) {
       mprintf("Error: AmberRestart::getFrame: * detected in velocities of %s\n",
               trajfilename);
       return 1;
@@ -264,7 +265,7 @@ int AmberRestart::getFrame(int set) {
   }
   // Convert box to Frame if present
   if (BoxType!=0) {
-    if ( (bufferPosition = F->BufferToBox(bufferPosition, numBoxCoords, 12))==NULL ) {
+    if ( (bufferPosition = BufferToDouble(bufferPosition, F->box, numBoxCoords, 12))==NULL ) {
       mprintf("Error: AmberRestart::getFrame: * detected in box coordinates of %s\n",
               trajfilename);
       return 1;
@@ -294,13 +295,13 @@ int AmberRestart::writeFrame(int set) {
   File->IO->Printf("%5i%15.7lE\n",F->natom,restartTime);
 
   // Write coords to buffer
-  bufferPosition = F->FrameToBuffer(frameBuffer,"%12.7lf",12,6);
+  bufferPosition = DoubleToBuffer(frameBuffer,F->X,F->N,"%12.7lf",12,6);
   // Write velocity to buffer
   if (F->V!=NULL)  // NOTE: Use hasVelocity in addition/instead?
-    bufferPosition = F->V->FrameToBuffer(bufferPosition,"%12.7lf",12,6);
+    bufferPosition = DoubleToBuffer(bufferPosition,F->V->X,F->N,"%12.7lf",12,6);
   // Write box to buffer
   if (BoxType!=0)
-    bufferPosition = F->BoxToBuffer(bufferPosition, numBoxCoords, "%12.7lf",12);
+    bufferPosition = BoxToBuffer(bufferPosition, F->box, numBoxCoords, "%12.7lf",12);
 
   //if (seekable) fseek(fp, titleSize+(set*frameSize),SEEK_SET);
   frameSize = (int) (bufferPosition - frameBuffer);

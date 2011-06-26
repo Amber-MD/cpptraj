@@ -42,7 +42,7 @@ class TrajectoryFile {
     ~TrajectoryFile();
     // Trajectory IO functions
     int SetupRead(char *, ArgList *, AmberParm *);
-    int SetupWrite(char *, ArgList *, AmberParm *);
+    int SetupWrite(char *, ArgList *, AmberParm *, FileFormat);
     int BeginTraj(bool);
     int EndTraj();
     int GetNextFrame(double*,double*,double*);
