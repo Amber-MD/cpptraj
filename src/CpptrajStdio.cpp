@@ -124,3 +124,12 @@ bool fileExists(char *filenameIn) {
   return true;
 }
 
+/* NumberFilename()
+ * Given a filename and a number, append number to filename, i.e.
+ * filename.number.
+ * The buffer should have enough space to handle the append.
+ */
+void NumberFilename(char *buffer, char *filenameIn, int number) {
+  sprintf(buffer,"%s.%i",filenameIn,number);
+}
+
