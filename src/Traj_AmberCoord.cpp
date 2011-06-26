@@ -298,6 +298,7 @@ int AmberCoord::setupRead(int natom) {
  */
 void AmberCoord::SetRemdTraj() {
   hasREMD=REMD_HEADER_SIZE;
+  hasTemperature=true;
 }
 
 /* AmberCoord::setupWrite()
