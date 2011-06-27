@@ -7,6 +7,7 @@
 #include "Traj_AmberCoord.h"
 #include "Traj_AmberNetcdf.h"
 #include "Traj_PDBfile.h"
+#include "Traj_AmberRestart.h"
 //#include "RemdTraj.h"
 /*
 #include "AmberTraj.h"
@@ -152,10 +153,12 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
     delete basicTraj;
     return NULL;
   }
+  // Set trajectory name to the base filename
+  SetTrajName( basicTraj->basefilename );
 
   // Allocate IO type based on format
   switch ( basicTraj->fileFormat ) {
-//    case AMBERRESTART: tio = new AmberRestart(); break;
+    case AMBERRESTART: tio = new AmberRestart(); break;
     case AMBERTRAJ   : tio = new AmberCoord();    break;
     case AMBERNETCDF :
 #ifdef BINTRAJ
@@ -226,7 +229,8 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
   int offsetArg = argIn->getNextInteger(1);
 
 #ifdef DEBUGTRAJ
-  mprinterr("DEBUG: setArgs: Original start, stop: %i %i\n",startArg,stopArg);
+  mprintf("DEBUG [%s] SetArgs: Original start, stop: %i %i\n",trajName,start,stop);
+  mprintf("DEBUG [%s] SetArgs: Original startArg, stopArg: %i %i\n",trajName,startArg,stopArg);
 #endif
   if (startArg!=1) {
     if (startArg<1) {
@@ -272,7 +276,7 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
       offset=offsetArg;
   }
   if (debug>0)
-    mprintf("  [%s] Args: Start %i Stop %i  Offset %i\n",trajName,start,stop,offset);
+    mprintf("DEBUG [%s] SetArgs: Start %i Stop %i  Offset %i\n",trajName,start,stop,offset);
   return 0;
 }
 
@@ -331,7 +335,7 @@ int TrajectoryFile::SetBoxType(TrajectoryIO *tio) {
  * will be processed.
  */
 void TrajectoryFile::SingleFrame() {
-  stop = start;
+  stop = start+1;
   offset = 1;
 }
 
@@ -352,8 +356,9 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     mprinterr("Error: TrajectoryFile::SetupRead: Filename is NULL.\n");
     return 1;
   }
-  // Set trajectory name 
-  SetTrajName( tname );
+  // Set trajectory name
+  // Done in setupTrajIO
+  // SetTrajName( tname );
 
   // Check that file exists
   if (!fileExists(tname)) {
@@ -395,6 +400,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     mprinterr("    Error: Could not set up IO for %s\n",tname);
     return 1;
   }
+  mprintf("\t[%s] contains %i frames.\n",trajName,total_frames);
 
   // If the trajectory has box coords, set the box type from the box Angles.
   if (trajio->hasBox) {
@@ -420,8 +426,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
 
 /* TrajectoryFile::SetupFrameInfo()
  * Calculate number of frames that will be read based on start, stop, and
- * offset. Update the number of frames that will be read for the associated
- * traj parm. 
+ * offset (total_read_frames). 
  * Return the total number of frames that will be read for this traj.
  */
 int TrajectoryFile::SetupFrameInfo() {
@@ -467,7 +472,9 @@ int TrajectoryFile::SetupFrameInfo() {
   start=traj_start_frame;
   stop=traj_end_frame;
 
-  trajParm->parmFrames+=total_read_frames;
+#ifdef TRAJDEBUG
+  mprintf("DEBUG SETUPFRAMEINFO: %i-%i total %i\n",start,stop,total_read_frames);
+#endif
 
   return total_read_frames;
 }
@@ -501,7 +508,8 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
     return 1;
   }
   // Set trajectory name 
-  SetTrajName( tname );
+  // Now done in setupTrajIO
+  //SetTrajName( tname );
 
   // Check for associated parm file
   if (tparmIn==NULL) {
@@ -522,9 +530,9 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
     else if ( argIn->hasKey("restart")  ) writeFormat=AMBERRESTART;
     else if ( argIn->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
     else if ( argIn->hasKey("mol2")     ) writeFormat=MOL2FILE;
-    // If still unknown format default to amber trajectory
-    if (writeFormat==UNKNOWN_FORMAT) writeFormat=AMBERTRAJ;
   }
+  // If still unknown format default to amber trajectory
+  if (writeFormat==UNKNOWN_FORMAT) writeFormat=AMBERTRAJ;
 
   // Set up file with given type and format, and set up trajio for the format.
   if( (trajio=setupTrajIO(tname,access,writeFormat,writeType))==NULL ) {
@@ -582,15 +590,15 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
  * set up a progress bar if requested. For writes, just open the file.
  */
 int TrajectoryFile::BeginTraj(bool showProgress) {
+  // For writes the trajectory is opened on first write in WriteFrame 
+  if (fileAccess!=READ) return 0;
+
   // Open the trajectory
   if (trajio->openTraj()) {
     mprinterr("Error: TrajectoryFile::BeginTraj: Could not open %s\n",trajName);
     return 1;
   }
   numFramesProcessed=0;
-
-  // If writing, this is all that is needed
-  if (fileAccess!=READ) return 0;
 
   // Set up a progress bar
   if (showProgress) progress = new ProgressBar(stop);
@@ -657,9 +665,14 @@ int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) {
 }
 
 /* TrajectoryFile::WriteFrame()
- * Write the given coordinates, box, and Temperature. If no parm present
- * set up trajectory to write for this parm. If trajectory has been
- * set up, only write if the given parm matches the setup parm.
+ * Write the given coordinates, box, and Temperature. Only write if the given
+ * parm matches the parm that SetupWrite was called with. This allows for
+ * things like stripped topologies (a stripped top will have the same pindex
+ * as the original top). 
+ * The first time this is called with the correct parm the output trajectory 
+ * will be set up based on the parm it is called with and the file will be 
+ * opened, so there is no need to call BeginTraj for output trajectories.
+ * EndTraj() should still be called. 
  */
 int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
                                double *box, double T) {
@@ -674,6 +687,7 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
                          trajName,tparmIn->natom,trajParm->natom);
     trajParm = tparmIn;
     // Use parm to set up box info unless nobox was specified.
+    // If box angles are present in traj they will be used instead.
     if (!nobox) {
       if (trajParm->boxType!=NOBOX) {
         trajio->hasBox=true;
