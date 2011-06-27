@@ -20,7 +20,7 @@ class CoordFileList : public std::list<TrajectoryFile*> {
     virtual ~CoordFileList();   // Virtual since this class is inherited.
 
     void SetDebug(int);         // Set debug level
-    void Info(int);             // Print information about all trajs in list
+    void Info(int,int);         // Print information about all trajs in list
 
     // Inherited Functions
     virtual int Add(char *, ArgList *, AmberParm *) { return 1; }

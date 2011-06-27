@@ -41,13 +41,13 @@ bool CoordFileList::FilenameInUse(char *filenameIn) {
 
 /* CoordFileList::Info() - Call PrintInfo for each traj in the list.
  */
-void CoordFileList::Info(int indent) {
+void CoordFileList::Info(int showExtended, int indent) {
   std::list<TrajectoryFile*>::iterator traj;
   if (this->empty()) 
     mprintf("  No files.\n");
   for (traj = this->begin(); traj != this->end(); traj++) {
     if (indent>0) mprintf("%*s",indent,"");
-    (*traj)->PrintInfo(0);
+    (*traj)->PrintInfo(showExtended);
   }
 }
 
