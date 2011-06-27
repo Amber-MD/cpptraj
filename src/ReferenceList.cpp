@@ -37,7 +37,8 @@ int ReferenceList::Add(char *filename, ArgList *A, AmberParm *parmIn) {
   }
   // If not obtaining average structure, tell trajectory to only process the
   // start frame.
-  traj->SingleFrame();
+  if (!average)
+    traj->SingleFrame();
 
   // Add trajectory and average status 
   this->push_back(traj);
@@ -107,16 +108,14 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       }
       delete CurrentFrame;
       CurrentFrame = AvgFrame;
-    // If no averaging, get and copy the 1 frame from Traj, then close
+    // If no averaging, get and copy the 1 frame from Traj
     } else {
       (*traj)->GetNextFrame(CurrentFrame->X, CurrentFrame->box, &(CurrentFrame->T));
     }
     (*traj)->EndTraj();
     // DEBUG
     //fprintf(stdout,"DEBUG: Ref Coord Atom 0\n");
-    //F->printAtomCoord(0);
-    // Associate this frame with the correct parmfile
-    //F->P=(*it)->P;
+    //CurrentFrame->printAtomCoord(0);
     if (CurrentFrame==NULL) {
       mprinterr("Error getting frame for %s\n",(*traj)->TrajName());
       return 1;
