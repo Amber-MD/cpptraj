@@ -5,16 +5,28 @@
 /// and writing that all formats will inherit. If the trajectory format
 /// reads/writes from a file, a PtrajFile object should be passed in via
 /// the SetFile function. 
-/// The following functions should be implemented by the inheriting class:
+/// The following functions can be implemented by the inheriting class:
 ///   setupRead(): Called inside TrajectoryFile::SetupRead. Takes as an 
 ///                argument the expected number of atoms in the trajectory. 
 ///                Returns the number of frames in the underlying trajectory 
 ///                file. Should set all variables (title, seekable, hasBox, 
 ///                boxAngle (only if hasBox), and hasTemperature.
+///   setupWrite(): Called inside TrajectoryFile::WriteFrame on the first
+///                 write call. Takes as an argument the expected number of
+///                 atoms in the trajectory. If any additional parm info is
+///                 required it can be set prior to this call using
+///                 SetParmInfo. 
 ///   openTraj(): Prepare trajectory for read/write
+///   closeTraj(): Finish trajectory
 ///   readFrame(): Given a frame number, read that frame; return the
 ///                coordinates in the first array, the box lengths/angles in
 ///                the second array, and set the temperature in the last var.
+///   writeFrame(): Write to output trajectory. This routine is called from
+///                 TrajectoryFile::WriteFrame with the current action set
+///                 number, not the current output number, so it is up to
+///                 the TrajectoryIO object to keep track of what frame it is
+///                 writing.
+///   info(): Print information on what kind of trajectory this is.
 #include "PtrajFile.h" 
 class TrajectoryIO {
   protected:
