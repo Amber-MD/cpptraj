@@ -1294,7 +1294,7 @@ parseMaskString(char *maskstr, int atoms, int residues, Name *atomName,
    */
 
   prnlev=debug;
-  if (prnlev>0) fprintf(stderr,"In parseMaskString, debug active!\n");
+  if (prnlev>2) fprintf(stderr,"In parseMaskString, debug active!\n");
 
   char infix[MAXSELE], postfix[MAXSELE];
   char *mask;
