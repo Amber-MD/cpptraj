@@ -1,5 +1,5 @@
 // Conflib
-#include "Conflib.h"
+#include "Traj_Conflib.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -15,79 +15,70 @@ Conflib::~Conflib() {
   //fprintf(stderr,"Conflib Destructor.\n");
 }
 //------------------------------------------------------------------------
-/* 
- * Conflib::close()
+/* Conflib::closeTraj()
  */
-void Conflib::close() {
-  File->CloseFile();
+void Conflib::closeTraj() {
+  tfile->CloseFile();
 }
 
-/* 
- * Conflib::open()
+/* Conflib::openTraj()
  */
-int Conflib::open() {
-
-  if (File->OpenFile()) return 1;
-
+int Conflib::openTraj() {
+  if (tfile->OpenFile()) return 1;
   return 0;
 }
 
-
-/* 
- * Conflib::SetupRead()
+/* Conflib::setupRead()
  */
-int Conflib::SetupRead() {
+int Conflib::setupRead(int natom) {
   long unsigned int confFrame;
+  int Frames = 0;
 
   // Conflib is double,double,int,natom*3*double
-  confFrame = (((P->natom * 3) + 2) * sizeof(double)) + sizeof(int);
+  confFrame = (((natom * 3) + 2) * sizeof(double)) + sizeof(int);
+  Frames = (int) (tfile->file_size / confFrame);
 
-  if ( (File->file_size % confFrame) == 0 ) {
-    Frames = (int) (File->file_size / confFrame);
-    stop = Frames;
-  } else {
-    mprintf("Warning: Conflib::SetupRead(): Could not predict # frames\n");
-    mprintf("         Ensure that associated parm has correct # atoms.\n");
-    mprintf("         File size=%lu confFrame=%lu\n",File->file_size,
-            confFrame);
-    Frames=-1;
-    stop=-1;
-    conflibAtom = P->natom;
-    return 1;
+  if ( (tfile->file_size % confFrame) != 0 ) {
+    mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
+            tfile->filename);
+    mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
+            Frames);
   }
-
-  return 0;
+  conflibAtom = natom;
+  return Frames;
 }
 
-/* 
- * Conflib::getFrame()
- * Use conflibAtom instead of P->natom in case of stripped parmtop
+/* Conflib::readFrame()
  */
-int Conflib::getFrame(int set) {
+int Conflib::readFrame(int set, double *X, double *box, double *T) {
 
-  if (File->IO->Read(&energy,sizeof(double),1) < 0) return 1;
-  File->IO->Read(&radGyr,sizeof(double),1);
-  File->IO->Read(&timesFound,sizeof(int),1);
-  File->IO->Read(F->X,sizeof(double),conflibAtom*3); 
+  if (tfile->IO->Read(&energy,sizeof(double),1) < 0) return 1;
+  tfile->IO->Read(&radGyr,sizeof(double),1);
+  tfile->IO->Read(&timesFound,sizeof(int),1);
+  tfile->IO->Read(X,sizeof(double),conflibAtom*3); 
 
+  if (debug>0) mprinterr("CONFLIB %10i: %10.4lf %10.4lf %6i %10.4lf %10.4lf %10.4lf\n",
+                         set, energy, radGyr, timesFound, X[0], X[1], X[2]);
   return 0;
 }
 
-// Set up trajectory for either write or append
-int Conflib::SetupWrite( ) {
+/* Conflib::setupWrite()
+ */
+int Conflib::setupWrite(int natom ) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
-// Write a frame
-int Conflib::writeFrame(int set) {
+/* Conflib::setupWrite()
+ */
+int Conflib::writeFrame(int set, double *X, double *box, double T) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
-/*
- * Info()
+/* Conflib::info()
  */
-void Conflib::Info() {
+void Conflib::info() {
   mprintf("is an LMOD conflib file");
 }
+

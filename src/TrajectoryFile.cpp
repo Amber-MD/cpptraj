@@ -12,18 +12,8 @@
 #include "Traj_PDBfile.h"
 #include "Traj_AmberRestart.h"
 #include "Traj_Mol2File.h"
+#include "Traj_Conflib.h"
 //#include "RemdTraj.h"
-/*
-#include "AmberTraj.h"
-#ifdef BINTRAJ
-#  include "AmberNetcdf.h"
-#  include "AmberRestartNC.h"
-#endif
-#include "PDBfile.h"
-#include "AmberRestart.h"
-#include "Conflib.h"
-#include "Mol2File.h"
-*/
 
 // CONSTRUCTOR
 TrajectoryFile::TrajectoryFile() {
@@ -184,7 +174,7 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
 #endif
       break;
     case PDBFILE     : tio = new PDBfile();      break;
-//    case CONFLIB     : tio = new Conflib();      break;
+    case CONFLIB     : tio = new Conflib();      break;
     case MOL2FILE    : tio = new Mol2File();     break;
     default:
       mprinterr("    Error: Could not determine trajectory file %s type, skipping.\n",tname);
