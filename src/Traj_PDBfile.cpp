@@ -176,10 +176,10 @@ int PDBfile::setupWrite(int natom ) {
     mprinterr("Error: setupWrite [%s]: Residue names are NULL.\n",tfile->filename); 
     return 1;
   }
-  if (trajAtomsPerMol==NULL) {
-    mprinterr("Error: setupWrite [%s]: Atoms per molecule is NULL.\n",tfile->filename); 
-    return 1;
-  }
+  //if (trajAtomsPerMol==NULL) {
+  //  mprinterr("Error: setupWrite [%s]: Atoms per molecule is NULL.\n",tfile->filename); 
+  //  return 1;
+  //}
   if (trajResNums==NULL) {
     mprinterr("Error: setupWrite [%s]: Residue #s are NULL.\n",tfile->filename); 
     return 1;
