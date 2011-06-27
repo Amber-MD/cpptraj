@@ -10,7 +10,8 @@
 ///                argument the expected number of atoms in the trajectory. 
 ///                Returns the number of frames in the underlying trajectory 
 ///                file. Should set all variables (title, seekable, hasBox, 
-///                boxAngle (only if hasBox), and hasTemperature.
+///                boxAngle (only if hasBox), and hasTemperature. If an error
+///                occurs should return -1.
 ///   setupWrite(): Called inside TrajectoryFile::WriteFrame on the first
 ///                 write call. Takes as an argument the expected number of
 ///                 atoms in the trajectory. If any additional parm info is

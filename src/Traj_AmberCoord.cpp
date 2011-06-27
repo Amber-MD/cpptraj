@@ -278,10 +278,11 @@ int AmberCoord::setupRead(int natom) {
   if ( (file_size % frame_size) == 0 ) {
     seekable = true;
   } else {
-    Frames = -2;
     seekable = false;
-    //mprintf("  Error: Could not predict # frames in %s. This usually indicates \n",tfile->filename);
-    //mprintf("         a corrupted trajectory. Frames will be read until EOF.\n");
+    mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
+            tfile->filename);
+    mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
+            Frames);
   }
 
   if (debug>0)

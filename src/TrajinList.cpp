@@ -56,12 +56,10 @@ int TrajinList::SetupFrames() {
 
   for (traj = this->begin(); traj != this->end(); traj++) {
     trajFrames = (*traj)->SetupFrameInfo();
-    if (trajFrames==-1)
-      maxFrames=-1;
-    else
-      (*traj)->TrajParm()->parmFrames += trajFrames;
-    if (maxFrames>=0)
-      maxFrames+=trajFrames;
+    // If < 0 frames this indicates an error. 
+    if (trajFrames < 0) return -1;
+    (*traj)->TrajParm()->parmFrames += trajFrames;
+    maxFrames+=trajFrames;
   }
 
   return maxFrames;

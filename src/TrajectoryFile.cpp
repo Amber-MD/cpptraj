@@ -141,8 +141,9 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
 */
 
 /* TrajectoryFile::setupTrajIO()
- * Set up basic trajectory file for read/write/append. Return the 
- * trajectory IO object for the format.
+ * Set up basic trajectory file for read/write/append. Set the trajectory
+ * name to be the base filename. Return the trajectory IO object for 
+ * the format.
  */
 TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
                                         FileFormat fmtIn, FileType typeIn) {
@@ -206,26 +207,16 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
 }
 
 /* TrajectoryFile::SetArgs()
- * Called after initial trajectory setup, set the start, stop, and offset args.
- * Do some bounds checking.
- * For compatibility with ptraj frames start at 1. So for a traj with 10 frames:
- * cpptraj: 0 1 2 3 4 5 6 7 8 9
- *   ptraj: 1 2 3 4 5 6 7 8 9 10
+ * For reading trajectories only, called after initial trajectory setup. 
+ * Set the start, stop, and offset args based on user input. Do some bounds 
+ * checking.
+ * For compatibility with ptraj, frame args start at 1. Internal frame #s 
+ * start at 0. So for a traj with 10 frames:
+ * Internal #: 0 1 2 3 4 5 6 7 8 9
+ * Frame Arg#: 1 2 3 4 5 6 7 8 9 10
  * Defaults: startArg=1, stopArg=-1, offsetArg=1
  */
-//void TrajectoryFile::SetArgs(int startArg, int stopArg, int offsetArg) {
 int TrajectoryFile::SetArgs(ArgList *argIn) {
-  // Set stop based on calcd number of Frames.
-  if (total_frames == -2) {
-    mprintf("  Warning: Could not predict # frames in %s. This usually indicates \n",trajName);
-    mprintf("         a corrupted trajectory. Frames will be read until EOF.\n");
-    stop=-1;
-  } else if (total_frames==0) {
-    mprinterr("  Error: trajectory %s contains no frames.\n",trajName);
-    return 1;
-  } else
-    stop = total_frames;
-
   if (argIn==NULL) return 0;
   int startArg = argIn->getNextInteger(1);
   int stopArg = argIn->getNextInteger(-1);
@@ -359,9 +350,6 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     mprinterr("Error: TrajectoryFile::SetupRead: Filename is NULL.\n");
     return 1;
   }
-  // Set trajectory name
-  // Done in setupTrajIO
-  // SetTrajName( tname );
 
   // Check that file exists
   if (!fileExists(tname)) {
@@ -396,21 +384,28 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     }
 //  }
 
-  // Set up the format for reading. -1 indicates an error, -2 indicates # of
-  // frames could not be determined.
+  // Set up the format for reading and get the number of frames.
+  // -1 indicates an error
   total_frames = trajio->setupRead(trajParm->natom);
-  if (total_frames == -1) {
-    mprinterr("    Error: Could not set up IO for %s\n",tname);
+  if (total_frames < 0) {
+    mprinterr("    Error: Could not set up %s for reading.\n",tname);
     return 1;
   }
   mprintf("\t[%s] contains %i frames.\n",trajName,total_frames);
+
+  // Set stop based on calcd number of frames.
+  if (total_frames==0) {
+    mprinterr("  Error: trajectory %s contains no frames.\n",trajName);
+    return 1;
+  }
+  stop = total_frames; 
 
   // If the trajectory has box coords, set the box type from the box Angles.
   if (trajio->hasBox) {
     if (SetBoxType( trajio )) return 1;
   }
 
-  // Set start, stop, and user args based on calcd number of frames
+  // Set start, stop, and offset args from user input.
   if (SetArgs(argIn)) return 1;
 
   // Further setup specific to trajectory format
@@ -441,13 +436,7 @@ int TrajectoryFile::SetupFrameInfo() {
   int worldrank = 0;
   int worldsize = 1;
 
-  if (total_frames<=0) {
-    //outputStart=-1;
-    total_read_frames=0;
-    return -1;
-  }
-  
-  //mprintf("DEBUG: Calling setupFrameInfo for %s with %i %i %i\n",trajfilename,
+  //mprintf("DEBUG: Calling SetupFrameInfo for %s with %i %i %i\n",trajName,
   //        start,stop,offset);
 
   // Calc total frames that will be read
@@ -510,9 +499,6 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
     mprinterr("Error: TrajectoryFile::SetupWrite: Filename is NULL.\n");
     return 1;
   }
-  // Set trajectory name 
-  // Now done in setupTrajIO
-  //SetTrajName( tname );
 
   // Check for associated parm file
   if (tparmIn==NULL) {
@@ -645,7 +631,8 @@ int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) {
   mprinterr("Getting frame %i from %s (stop=%i)\n",currentFrame,trajName,stop);
 #endif
   // If the current frame is out of range, exit
-  if (currentFrame>stop && stop!=-1) return 0;
+  //if (currentFrame>stop && stop!=-1) return 0;
+  if (currentFrame>stop) return 0;
   if (progress!=NULL) 
     progress->Update(currentFrame);
     //progress->PrintBar(currentFrame);

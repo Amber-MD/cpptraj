@@ -393,11 +393,13 @@ int PtrajState::Run() {
   // Calculate frame division among trajectories
   mprintf("\nINPUT TRAJECTORIES:\n");
   maxFrames=trajinList.SetupFrames();
+  // If we couldnt predict the number of frames, bail out now.
+  if (maxFrames<0) {
+    mprinterr("Error: Could not predict the total number of frames to be processed. Exiting.\n");
+    return 1;
+  }
   trajinList.Info(1,0);
-  if (maxFrames==-1)
-    mprintf("  Coordinate processing will occur until EOF (unknown number of frames).\n");
-  else
-    mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
+  mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
 
   // Parameter file information
   parmFileList.Print();
