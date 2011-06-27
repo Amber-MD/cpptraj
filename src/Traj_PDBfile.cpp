@@ -94,9 +94,9 @@ int PDBfile::setupRead(int natom) {
       pdbAtom = atom;
     } else {
       // Check that # atoms read in this frame match the first frame
-      if (pdbAtom!=atom) {
-        mprinterr("Error: %s: Reading frame %i, got %i atoms, expected %s.\n",tfile->filename,
-                  atom,pdbAtom);
+      if (atom>0 && pdbAtom!=atom) {
+        mprinterr("Error: %s: Reading frame %i, got %i atoms, expected %i.\n",tfile->filename,
+                  Frames,atom,pdbAtom);
         return -1;
       }
     }  
@@ -196,7 +196,7 @@ int PDBfile::writeFrame(int set,double *X,double *box,double T) {
   } else if (pdbWriteMode==MODEL) {
     // 1-6 MODEL, 11-14 model serial #
     // Since num frames could be large, do not format the integer with width - OK?
-    tfile->IO->Printf("MODEL     %i\n",set);
+    tfile->IO->Printf("MODEL     %i\n",set + OUTPUTFRAMESHIFT);
   }
 
   res=0; Occ=0.0; B=0.0;
