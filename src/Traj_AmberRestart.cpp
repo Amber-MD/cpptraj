@@ -16,6 +16,8 @@ AmberRestart::AmberRestart() {
   restartTime=0;
   restartTemp=-1.0;
   velocities=NULL;
+  // Set seekable since only 1 frame read (i.e. we know size) 
+  seekable=true;
 }
 
 // DESTRUCTOR
@@ -98,6 +100,8 @@ int AmberRestart::openTraj() {
 }
 
 /* AmberRestart::setupWrite()
+ * Allocate a character buffer based on number of coords and whether 
+ * velocities/box info is present.
  */
 int AmberRestart::setupWrite(int natom) {
   int frame_lines;
@@ -225,9 +229,6 @@ int AmberRestart::setupRead(int natom) {
             (int)hasBox,(int)hasVelocity,numBoxCoords);
     mprintf("    Amber Restart frameSize= %i\n",frameSize);
   }
- 
-  // Set seekable since only 1 frame read (i.e. we know size) 
-  seekable=true;
  
   closeTraj();
   // Only 1 frame in restart by definition

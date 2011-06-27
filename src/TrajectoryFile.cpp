@@ -7,6 +7,7 @@
 #include "Traj_AmberCoord.h"
 #ifdef BINTRAJ
   #include "Traj_AmberNetcdf.h"
+  #include "Traj_AmberRestartNC.h"
 #endif
 #include "Traj_PDBfile.h"
 #include "Traj_AmberRestart.h"
@@ -173,7 +174,6 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
       delete basicTraj;
 #endif
       break;
-/*
     case AMBERRESTARTNC :
 #ifdef BINTRAJ
       tio = new AmberRestartNC();
@@ -181,10 +181,8 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
       mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
       mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
       delete basicTraj;
-      return NULL;
 #endif
       break;
-*/
     case PDBFILE     : tio = new PDBfile();      break;
 //    case CONFLIB     : tio = new Conflib();      break;
     case MOL2FILE    : tio = new Mol2File();     break;
