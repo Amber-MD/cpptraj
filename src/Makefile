@@ -8,13 +8,13 @@ SOURCE=main.cpp AmberParm.cpp TrajFile.cpp \
        CoordFileList.cpp PtrajActionList.cpp DataSet.cpp \
        DataSetList.cpp vectormath.cpp FrameList.cpp Action_Rmsd.cpp \
        Action_Dihedral.cpp DataFile.cpp DataFileList.cpp \
-       PtrajFile.cpp PDBfileRoutines.cpp AtomMap.cpp BaseFileIO.cpp StdFile.cpp \
+       PtrajFile.cpp PDBfileRoutines.cpp Action_AtomMap.cpp BaseFileIO.cpp StdFile.cpp \
        GzipFile.cpp Action_Angle.cpp PtrajMpi.c MpiFile.cpp \
        Action_Strip.cpp Action.cpp AtomMask.cpp mapDataSet.cpp \
        Action_DSSP.cpp stringDataSet.cpp Action_Center.cpp Bzip2File.cpp \
        Action_Hbond.cpp intDataSet.cpp Action_Image.cpp Action_Surf.cpp \
        Action_Radgyr.cpp Conflib.cpp Action_Mask.cpp Action_Closest.cpp \
-       NetcdfRoutines.cpp AmberRestartNC.cpp CpptrajStdio.cpp Mol2File.cpp \
+       NetcdfRoutines.cpp AmberRestartNC.cpp CpptrajStdio.cpp \
        Mol2FileRoutines.cpp Action_NAstruct.cpp DistRoutines.cpp AxisType.cpp \
        TorsionRoutines.cpp Action_Pucker.cpp Range.cpp Action_Outtraj.cpp \
        Action_Rms2d.cpp ProgressBar.cpp TrajectoryIO.cpp \
@@ -27,13 +27,13 @@ OBJECTS=main.o AmberParm.o TrajFile.o \
         CoordFileList.o PtrajActionList.o DataSet.o \
         DataSetList.o vectormath.o FrameList.o Action_Rmsd.o \
         Action_Dihedral.o DataFile.o DataFileList.o \
-        PtrajFile.o PDBfileRoutines.o AtomMap.o BaseFileIO.o StdFile.o \
+        PtrajFile.o PDBfileRoutines.o Action_AtomMap.o BaseFileIO.o StdFile.o \
         GzipFile.o Action_Angle.o PtrajMpi.o MpiFile.o \
         Action_Strip.o Action.o AtomMask.o mapDataSet.o \
         Action_DSSP.o stringDataSet.o Action_Center.o Bzip2File.o \
         Action_Hbond.o intDataSet.o Action_Image.o Action_Surf.o \
         Action_Radgyr.o Conflib.o Action_Mask.o Action_Closest.o \
-        NetcdfRoutines.o AmberRestartNC.o CpptrajStdio.o Mol2File.o \
+        NetcdfRoutines.o AmberRestartNC.o CpptrajStdio.o \
         Mol2FileRoutines.o Action_NAstruct.o DistRoutines.o AxisType.o \
         TorsionRoutines.o Action_Pucker.o Range.o Action_Outtraj.o \
         Action_Rms2d.o ProgressBar.o TrajectoryIO.o \
@@ -46,13 +46,13 @@ HEADERS=AmberParm.h TrajFile.h \
         CoordFileList.h PtrajActionList.h DataSet.h \
         DataSetList.h vectormath.h FrameList.h Action_Rmsd.h \
         Action_Dihedral.h DataFile.h DataFileList.h \
-        PtrajFile.h PDBfileRoutines.h AtomMap.h BaseFileIO.h StdFile.h \
+        PtrajFile.h PDBfileRoutines.h Action_AtomMap.h BaseFileIO.h StdFile.h \
         GzipFile.h Action_Angle.h PtrajMpi.h MpiFile.h \
         Action_Strip.h AtomMask.h mapDataSet.h \
         Action_DSSP.h stringDataSet.h Action_Center.h Bzip2File.h \
         Action_Hbond.h intDataSet.h Action_Image.h Action_Surf.h \
         Action_Radgyr.h Conflib.h Action_Mask.h Action_Closest.h \
-        NetcdfRoutines.h AmberRestartNC.h CpptrajStdio.h Mol2File.h \
+        NetcdfRoutines.h AmberRestartNC.h CpptrajStdio.h \
         Mol2FileRoutines.h Action_NAstruct.h DistRoutines.h AxisType.h \
         TorsionRoutines.h Action_Pucker.h Range.h Action_Outtraj.h \
         Action_Rms2d.h ProgressBar.h TrajectoryIO.h \

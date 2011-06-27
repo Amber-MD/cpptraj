@@ -1,11 +1,11 @@
 // AtomMap
 #include <cstdlib>
 #include <cstring>
-#include "AtomMap.h"
+#include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
 // DEBUG
-#include "Mol2File.h"
+#include "TrajectoryFile.h"
 #include <cstdio>
 
 //--------- PRIVATE ROUTINES ---------------------------------------
@@ -463,11 +463,12 @@ int atommap::setup() {
 // DEBUG
 // Write atommap out as a mol2 file, useful for checking bond info
 void atommap::WriteMol2(char *m2filename) {
-  Mol2File outfile;
+  TrajectoryFile outfile;
   AtomMask M1;
   // Temporary parm to play with
   AmberParm *tmpParm;
   Frame *tmpFrame;
+  ArgList tmpArg;
 
   // Create mask containing all atoms
   //for (int atom=0; atom<natom; atom++) Selected[atom]=atom;
@@ -487,17 +488,14 @@ void atommap::WriteMol2(char *m2filename) {
   tmpFrame->SetFrameFromMask(F, &M1);
 
   // Trajectory Setup
-  outfile.File=new PtrajFile();
-  outfile.File->SetupFile(m2filename,WRITE,MOL2FILE,UNKNOWN_TYPE,debug);
-  outfile.trajfilename = outfile.File->basefilename;
-  outfile.debug=debug;
-  outfile.SetTitle(m2filename);
-  outfile.P=tmpParm;
-  outfile.SetupWrite();
-  outfile.open();
-  outfile.F=tmpFrame;
-  outfile.writeFrame(0);
-  outfile.close();
+  tmpArg.Add((char*)"title\0");
+  tmpArg.Add(m2filename);
+  tmpArg.ResetAll();
+  outfile.SetDebug(debug);
+  outfile.SetupWrite(m2filename,&tmpArg,tmpParm,MOL2FILE);
+  outfile.WriteFrame(0,tmpParm,tmpFrame->X,tmpFrame->box,tmpFrame->T);
+  outfile.EndTraj();
+
   delete tmpParm;
   delete tmpFrame;
 }

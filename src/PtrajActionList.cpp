@@ -7,7 +7,7 @@
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
 #include "Action_Angle.h"
-#include "AtomMap.h"
+#include "Action_AtomMap.h"
 #include "Action_Strip.h"
 #include "Action_DSSP.h"
 #include "Action_Center.h"
