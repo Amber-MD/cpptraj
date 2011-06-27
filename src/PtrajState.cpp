@@ -386,6 +386,7 @@ int PtrajState::Run() {
   int lastPindex=-1;      // Index of the last loaded parm file
   AmberParm *CurrentParm=NULL; 
   Frame *CurrentFrame=NULL;
+  Frame *OriginalFrame=NULL;
   FrameList refFrames;
 
   // ========== S E T U P   P H A S E ========== 
@@ -427,8 +428,14 @@ int PtrajState::Run() {
     // Set current parm from current traj.
     CurrentParm = (*traj)->TrajParm();
 
-    // If Parm has changed set up the Action list for new topology file
+    // If Parm has changed, reset Frame and actions for new topology.
     if (lastPindex != CurrentParm->pindex) {
+      // Set up the Frame for this parm
+      if (OriginalFrame!=NULL) delete OriginalFrame;
+      OriginalFrame = new Frame(CurrentParm->natom, CurrentParm->mass);
+      // Since Frame can be modified by actions, save Original and use CurrentFrame
+      CurrentFrame = OriginalFrame;
+      // Set up actions for this parm
       if (ptrajActionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
                 CurrentParm->parmName);
@@ -436,9 +443,6 @@ int PtrajState::Run() {
       }
       //fprintf(stdout,"DEBUG: After setup of Actions in PtrajState parm name is %s\n",
       //        CurrentParm->parmName);
-      // Set up the Frame for this parm
-      if (CurrentFrame!=NULL) delete CurrentFrame;
-      CurrentFrame = new Frame(CurrentParm->natom, CurrentParm->mass);
       lastPindex = CurrentParm->pindex;
     }
 
@@ -463,7 +467,7 @@ int PtrajState::Run() {
     readSets+=(*traj)->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
-  if (CurrentFrame!=NULL) delete CurrentFrame;
+  if (OriginalFrame!=NULL) delete OriginalFrame;
   rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
 
   // Close output traj

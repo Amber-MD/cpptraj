@@ -687,6 +687,7 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
                          trajName,tparmIn->natom,trajParm->natom);
     trajParm = tparmIn;
     // Format-specific setup that requires parm information
+    // NOTE: Make SetParmInfo an inherited function?
     if (trajio->TrajFormat()==PDBFILE) {
       PDBfile *T0 = (PDBfile*) trajio;
       T0->NumFramesToWrite(trajParm->parmFrames);
