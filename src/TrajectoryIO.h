@@ -14,8 +14,8 @@
 ///   setupWrite(): Called inside TrajectoryFile::WriteFrame on the first
 ///                 write call. Takes as an argument the expected number of
 ///                 atoms in the trajectory. If any additional parm info is
-///                 required it can be set prior to this call using
-///                 SetParmInfo. 
+///                 required it should be set prior to this call using an
+///                 additional function (e.g. PDBfile::SetParmInfo)
 ///   openTraj(): Prepare trajectory for read/write
 ///   closeTraj(): Finish trajectory
 ///   readFrame(): Given a frame number, read that frame; return the
@@ -39,15 +39,6 @@ class TrajectoryIO {
     PtrajFile *tfile;   // Base file.
     char *title;        // Trajectory title.
     int debug;          // Debug level
-    // Certain trajectory formats such as PDB and mol2 print out some
-    // parm information in addition to coordinates. These variables are
-    // only used for those formats.
-    NAME *trajAtomNames;
-    NAME *trajResNames;
-    int *trajAtomsPerMol;
-    int *trajResNums;
-    double *trajCharges;
-    double *trajRadii;
   public:
     bool seekable;      // True if can seek to frames in this traj.
     bool hasBox;        // True if the trajectory has box information.
@@ -70,7 +61,6 @@ class TrajectoryIO {
     void SetTitle(char *);
     bool FilenameIs(char *);
     void SetDebug(int);
-    void SetParmInfo(NAME*, NAME*, int *, int *, double *, double *);
 
     FileFormat TrajFormat() {return tfile->fileFormat;}
 }; 

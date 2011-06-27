@@ -10,12 +10,18 @@ PDBfile::PDBfile() {
   pdbWriteMode=SINGLE;
   dumpq=false;
   pdbAtomNames=NULL;
+
+  trajResNames=NULL;
+  trajAtomsPerMol=NULL;
+  trajCharges=NULL;
+  trajRadii=NULL;
 }
 
 // DESTRUCTOR
 PDBfile::~PDBfile() { 
   //fprintf(stderr,"PDBfile Destructor.\n");
-  if (pdbAtomNames!=NULL) 
+  // If WRITE/APPEND pdbAtomNames were passed in from a parm so dont free
+  if (tfile->access==READ && pdbAtomNames!=NULL) 
     free(pdbAtomNames);
 }
 //------------------------------------------------------------------------
@@ -56,7 +62,6 @@ int PDBfile::openTraj() {
   
   return err;
 }
-
 
 /* PDBfile::setupRead()
  * Scan PDB file to determine number of frames (models). The first frame will 
@@ -181,6 +186,27 @@ void PDBfile::NumFramesToWrite(int parmFrames) {
   if (pdbWriteMode==SINGLE && parmFrames>1) pdbWriteMode=MODEL;
 }
 
+/* PDBfile::SetParmInfo()
+ * In order to write pdb files, need some parm info like atom names etc.
+ * This should be called before the first write.
+ */
+void PDBfile::SetParmInfo(NAME *names, NAME *resnames, int *atomsPerMol,
+                          int *resnums, double *charge, double *radii) {
+  //mprintf("SETTING PARM INFO FOR PDB FILE\n"); // DEBUG
+  pdbAtomNames = names;
+  trajResNames = resnames;
+  trajAtomsPerMol = atomsPerMol;
+  trajResNums = resnums;
+  trajCharges = charge;
+  trajRadii = radii;
+  // DEBUG
+  //mprintf("Atomname 0 %s\n",trajAtomNames[0]);
+  //mprintf("Resname 0  %s\n",trajResNames[0]);
+  //mprintf("AtPerMol 0 %i\n",trajAtomsPerMol[0]);
+  //mprintf("ResNums 0  %i\n",trajResNums[0]);
+  //mprintf("Charge 0   %lf\n",trajCharges[0]);
+}
+
 /* PDBfile::writeFrame()
  * Write the frame (model) to PDB file.
  */
@@ -220,7 +246,7 @@ int PDBfile::writeFrame(int set,double *X,double *box,double T) {
     // figure out the residue number
     if ( i==trajResNums[res+1] ) res++;
     if (dumpq) Occ = (float) trajCharges[i]; 
-    bufferSize=pdb_write_ATOM(buffer,PDBATOM,atom,trajAtomNames[i],trajResNames[res],'X',
+    bufferSize=pdb_write_ATOM(buffer,PDBATOM,atom,pdbAtomNames[i],trajResNames[res],'X',
                               res+1,X[i3],X[i3+1],X[i3+2],Occ,B,(char*)"\0",dumpq);
     tfile->IO->Write(buffer,sizeof(char),bufferSize); 
     i3+=3;

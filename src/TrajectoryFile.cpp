@@ -686,6 +686,13 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
     if (debug>0) rprintf("    Setting up %s for WRITE, %i atoms, originally %i atoms.\n",
                          trajName,tparmIn->natom,trajParm->natom);
     trajParm = tparmIn;
+    // Format-specific setup that requires parm information
+    if (trajio->TrajFormat()==PDBFILE) {
+      PDBfile *T0 = (PDBfile*) trajio;
+      T0->NumFramesToWrite(trajParm->parmFrames);
+      T0->SetParmInfo(trajParm->names,trajParm->resnames,
+                      trajParm->atomsPerMol,trajParm->resnums,trajParm->charge,NULL);
+    }
     // Use parm to set up box info unless nobox was specified.
     // If box angles are present in traj they will be used instead.
     if (!nobox) {
@@ -695,15 +702,9 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
         trajio->boxAngle[1]=trajParm->Box[5];
         trajio->boxAngle[2]=trajParm->Box[6];
       }
-    } 
-    if (trajio->setupWrite(trajParm->natom)) return 1;
-    // More Format-specific setup
-    if (trajio->TrajFormat()==PDBFILE) {
-      PDBfile *T0 = (PDBfile*) trajio;
-      T0->NumFramesToWrite(trajParm->parmFrames);
-      trajio->SetParmInfo(trajParm->names,trajParm->resnames,
-                          trajParm->atomsPerMol,trajParm->resnums,trajParm->charge,NULL);
     }
+    // Set up write for the current number of atoms 
+    if (trajio->setupWrite(trajParm->natom)) return 1;
     // Open output traj and mark as set up.
     if (trajio->openTraj()) return 1;
     setupForWrite=true;

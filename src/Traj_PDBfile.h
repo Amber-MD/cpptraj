@@ -17,7 +17,14 @@ class PDBfile: public TrajectoryIO {
     PDBWRITEMODE pdbWriteMode;
     bool dumpq; // If true, print charges in Occupancy column
     NAME *pdbAtomNames; // Read in during setupRead for checking against
-                        // parm names via CheckPdbNames
+                        // parm names via CheckPdbNames, or set for writes
+                        // using SetParmInfo
+    // The following are only required for writes and are set in SetParmInfo
+    NAME *trajResNames;
+    int *trajAtomsPerMol;
+    int *trajResNums;
+    double *trajCharges;
+    double *trajRadii;
 
     // Inherited functions
     int setupRead(int);
@@ -36,5 +43,6 @@ class PDBfile: public TrajectoryIO {
     void SetDumpq() { dumpq = true; }
     int CheckPdbNames(NAME*);
     void NumFramesToWrite(int);
+    void SetParmInfo(NAME*, NAME*, int *, int *, double *, double *);
 };
 #endif
