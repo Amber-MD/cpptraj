@@ -5,9 +5,12 @@
 #include <cstring>
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
-#include "Traj_AmberNetcdf.h"
+#ifdef BINTRAJ
+  #include "Traj_AmberNetcdf.h"
+#endif
 #include "Traj_PDBfile.h"
 #include "Traj_AmberRestart.h"
+#include "Traj_Mol2File.h"
 //#include "RemdTraj.h"
 /*
 #include "AmberTraj.h"
@@ -183,7 +186,7 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
 */
     case PDBFILE     : tio = new PDBfile();      break;
 //    case CONFLIB     : tio = new Conflib();      break;
-//    case MOL2FILE    : tio = new Mol2File();     break;
+    case MOL2FILE    : tio = new Mol2File();     break;
     default:
       mprinterr("    Error: Could not determine trajectory file %s type, skipping.\n",tname);
       delete basicTraj;
@@ -578,6 +581,11 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
       if (argIn->hasKey("dumpq")) T2->SetDumpq();
       if (argIn->hasKey("model")) T2->SetWriteMode(PDBfile::MODEL);
       if (argIn->hasKey("multi")) T2->SetWriteMode(PDBfile::MULTI);
+    } else if (trajio->TrajFormat() == MOL2FILE ) {
+      // Mol2 file
+      Mol2File *T3 = (Mol2File*) trajio;
+      if (argIn->hasKey("single")) T3->SetWriteMode(Mol2File::MOL);
+      if (argIn->hasKey("multi"))  T3->SetWriteMode(Mol2File::MULTI);
     }
   }
 
@@ -693,6 +701,13 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
       T0->NumFramesToWrite(trajParm->parmFrames);
       T0->SetParmInfo(trajParm->names,trajParm->resnames,
                       trajParm->atomsPerMol,trajParm->resnums,trajParm->charge,NULL);
+    } else if (trajio->TrajFormat()==MOL2FILE) {
+      Mol2File *T1 = (Mol2File*) trajio;
+      T1->NumFramesToWrite(trajParm->parmFrames);
+      T1->SetParmInfo(trajParm->nres,trajParm->NbondsWithH(),trajParm->NbondsWithoutH(),
+                      trajParm->names,trajParm->resnames,trajParm->types,
+                      trajParm->resnums,trajParm->bonds,trajParm->bondsh,
+                      trajParm->charge);
     }
     // Use parm to set up box info unless nobox was specified.
     // If box angles are present in traj they will be used instead.

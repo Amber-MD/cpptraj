@@ -19,7 +19,8 @@ SOURCE=main.cpp AmberParm.cpp TrajFile.cpp \
        TorsionRoutines.cpp Action_Pucker.cpp Range.cpp Action_Outtraj.cpp \
        Action_Rms2d.cpp ProgressBar.cpp TrajectoryIO.cpp \
        TrajectoryFile.cpp BoxType.cpp CharBuffer.cpp Traj_AmberCoord.cpp \
-       Traj_AmberNetcdf.cpp Traj_PDBfile.cpp Traj_AmberRestart.cpp
+       Traj_AmberNetcdf.cpp Traj_PDBfile.cpp Traj_AmberRestart.cpp \
+       Traj_Mol2File.cpp
 
 OBJECTS=main.o AmberParm.o TrajFile.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
@@ -38,7 +39,8 @@ OBJECTS=main.o AmberParm.o TrajFile.o \
         TorsionRoutines.o Action_Pucker.o Range.o Action_Outtraj.o \
         Action_Rms2d.o ProgressBar.o TrajectoryIO.o \
         TrajectoryFile.o BoxType.o CharBuffer.o Traj_AmberCoord.o \
-        Traj_AmberNetcdf.o Traj_PDBfile.o Traj_AmberRestart.o
+        Traj_AmberNetcdf.o Traj_PDBfile.o Traj_AmberRestart.o \
+        Traj_Mol2File.o
 
 HEADERS=AmberParm.h TrajFile.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
@@ -57,7 +59,8 @@ HEADERS=AmberParm.h TrajFile.h \
         TorsionRoutines.h Action_Pucker.h Range.h Action_Outtraj.h \
         Action_Rms2d.h ProgressBar.h TrajectoryIO.h \
         TrajectoryFile.h BoxType.h CharBuffer.h Traj_AmberCoord.h \
-        Traj_AmberNetcdf.h Traj_PDBfile.h Traj_AmberRestart.h
+        Traj_AmberNetcdf.h Traj_PDBfile.h Traj_AmberRestart.h \
+        Traj_Mol2File.h
 
 all: cpptraj$(SFX)
 

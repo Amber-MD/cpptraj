@@ -15,7 +15,18 @@ class Mol2File : public TrajectoryIO {
     int mol2atom;
     int mol2bonds;
     MOL2WRITEMODE mol2WriteMode;
-    NAME *Types;
+
+    // The following are only required for writes and are set in SetParmInfo
+    int trajnres;
+    int trajnbondsh;
+    int trajnbonds;
+    NAME *trajAtomNames; 
+    NAME *trajTypes;
+    NAME *trajResNames; 
+    int *trajResNums;
+    double *trajCharges;
+    int *trajBonds;
+    int *trajBondsh;
 
     // Inherited functions
     int setupRead(int);
@@ -30,5 +41,7 @@ class Mol2File : public TrajectoryIO {
     ~Mol2File();
     // Mol2-specific functions
     void SetWriteMode(MOL2WRITEMODE);
+    void NumFramesToWrite(int);
+    void SetParmInfo(int,int,int,NAME *,NAME *,NAME *,int *,int *,int *,double *);
 };
 #endif
