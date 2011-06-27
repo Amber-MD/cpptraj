@@ -118,6 +118,7 @@ void printwar(const char *ROUTINE, const char *format, ...) {
 bool fileExists(char *filenameIn) {
   FILE *infile = NULL;
 
+  if (filenameIn==NULL) return false;
   infile=fopen(filenameIn,"rb");
   if (infile==NULL) return false;
   fclose(infile);
