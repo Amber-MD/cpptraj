@@ -13,6 +13,7 @@ PDBfile::PDBfile() {
 
   trajResNames=NULL;
   trajAtomsPerMol=NULL;
+  trajResNums=NULL;
   trajCharges=NULL;
   trajRadii=NULL;
 }
@@ -166,6 +167,27 @@ int PDBfile::readFrame(int set,double *X, double *box, double *T) {
  */ 
 int PDBfile::setupWrite(int natom ) {
   pdbAtom = natom;
+  // Check that SetParmInfo has indeed been called
+  if (pdbAtomNames==NULL) {
+    mprinterr("Error: setupWrite [%s]: Atom names are NULL.\n",tfile->filename); 
+    return 1;
+  }
+  if (trajResNames==NULL) {
+    mprinterr("Error: setupWrite [%s]: Residue names are NULL.\n",tfile->filename); 
+    return 1;
+  }
+  if (trajAtomsPerMol==NULL) {
+    mprinterr("Error: setupWrite [%s]: Atoms per molecule is NULL.\n",tfile->filename); 
+    return 1;
+  }
+  if (trajResNums==NULL) {
+    mprinterr("Error: setupWrite [%s]: Residue #s are NULL.\n",tfile->filename); 
+    return 1;
+  }
+  if (dumpq && trajCharges==NULL) {
+    mprinterr("Error: setupWrite [%s]: Charges are NULL.\n",tfile->filename); 
+    return 1;
+  }
   return 0;
 }
 
@@ -188,7 +210,7 @@ void PDBfile::NumFramesToWrite(int parmFrames) {
 
 /* PDBfile::SetParmInfo()
  * In order to write pdb files, need some parm info like atom names etc.
- * This should be called before the first write.
+ * This should be called before setupWrite.
  */
 void PDBfile::SetParmInfo(NAME *names, NAME *resnames, int *atomsPerMol,
                           int *resnums, double *charge, double *radii) {
@@ -274,6 +296,7 @@ void PDBfile::info() {
       mprintf(" (1 file per frame)");
     else if (pdbWriteMode==MODEL)
       mprintf(" (1 MODEL per frame)");
+    if (dumpq) mprintf(", writing out charges to occupancy column");
   }
    
 /*    if (p->option2 == 1) 
