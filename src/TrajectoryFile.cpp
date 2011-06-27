@@ -13,7 +13,7 @@
 #include "Traj_AmberRestart.h"
 #include "Traj_Mol2File.h"
 #include "Traj_Conflib.h"
-//#include "RemdTraj.h"
+#include "RemdTraj.h"
 
 // CONSTRUCTOR
 TrajectoryFile::TrajectoryFile() {
@@ -65,22 +65,24 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
 /* TrajectoryFile::setupRemdTraj()
  * Set this trajectory up as an REMD trajectory. A special trajio object
  * will be set up that itself contains a list of trajio objects, each one
- * corresponding to a replica. Returns the trajio class of the lowest
- * replica.
+ * corresponding to a replica. Returns a RemdTraj trajio class.
  */
-/*TrajectoryIO *TrajectoryFile::setupRemdTraj(char *lowestRepName, ArgList *argIn) {
+TrajectoryIO *TrajectoryFile::setupRemdTraj(char *lowestRepName, ArgList *argIn) {
   RemdTraj *remdio=NULL;
   TrajectoryIO *replica0=NULL;
   ArgList *RemdOutArgs=NULL;
   double remdtrajtemp;
+  char *repFilename;
+  int repnum, repframes;
 
-  // Set up lowest replica file trajectory IO 
+  // Set up lowest replica file trajectory IO
   replica0 = setupTrajIO(lowestRepName,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE);
   if (replica0==NULL) { 
     mprinterr("    Error: RemdTraj: Could not set up lowest replica file %s\n",lowestRepName);
-    delete replica0;
     return NULL;
   }
+  // NOTE: trajName is now the base filename of lowestRepName. It
+  // will be overwritten by subsequent calls to setupTrajIO.
 
   // Get target temperature
   remdtrajtemp=argIn->getKeyDouble("remdtrajtemp",0.0);
@@ -93,13 +95,21 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
   }
 
   // Set up the lowest replica traj for reading. -1 indicates an error, 
-  // -2 indicates # of frames could not be determined.
   total_frames = replica0->setupRead(trajParm->natom);
-  if (total_frames == -1) {
+  if (total_frames < 0) {
     mprinterr("    Error: RemdTraj: Could not set up IO for %s\n",lowestRepName);
     delete replica0;
     return NULL;
   }
+  mprintf("    RemdTraj: Replica 0 contains %i frames.\n",total_frames);
+
+  // Set stop based on calcd number of frames.
+  if (total_frames==0) {
+    mprinterr("  Error: RemdTraj: lowest replica %s contains no frames.\n",lowestRepName);
+    delete replica0;
+    return NULL;
+  }
+  stop = total_frames;
 
   // Ensure that lowest replica traj  has temperature information
   if (!replica0->hasTemperature) {
@@ -110,26 +120,119 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
   }
 
   // Set trajectory box type based on lowest replica traj box type
-  if (SetBoxType(replica0)) {
-    mprinterr("    Error: RemdTraj: Setting box info for lowest replica %s.\n",
-              lowestRepName);
-    delete replica0;
-    return NULL;
+  if (replica0->hasBox) {
+    if (SetBoxType(replica0)) {
+      mprinterr("    Error: RemdTraj: Setting box info for lowest replica %s.\n",
+                lowestRepName);
+      delete replica0;
+      return NULL;
+    }
   }
 
-  // Process start, stop, and offset args
+  // Process user start, stop, and offset args
   if (SetArgs(argIn)) {
     delete replica0;
     return NULL;
   }
 
-  // Add lowest replica to the list
+  // Add lowest replica to the list. Initial set up of remd trajio object
   remdio = new RemdTraj();
+  remdio->remdtrajtemp = remdtrajtemp;
+  remdio->seekable = replica0->seekable;
+  remdio->hasBox = replica0->hasBox;
+  remdio->hasTemperature = true;
+  remdio->boxAngle[0]=replica0->boxAngle[0];
+  remdio->boxAngle[1]=replica0->boxAngle[1];
+  remdio->boxAngle[2]=replica0->boxAngle[2];
   remdio->REMDtraj.push_back( replica0 ); 
+
+  // ------------------------------------------------------
+  // Scan for additional REMD traj files.
+  // Set base replica name information and get lowest replica number
+  repnum = remdio->SetReplicaName(lowestRepName);
+  if (repnum < 0) {
+    delete remdio;
+    return NULL;
+  }
+
+  // Search for a replica number lower than this. Correct functioning
+  // of the replica code requires the file specified by trajin be the
+  // lowest # replica.
+  repFilename = remdio->GetReplicaName(repnum-1);
+  if (fileExists(repFilename)) {
+    mprintf("    Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
+    mprintf("             (Found %s)\n",repFilename);
+    mprintf("             trajin <file> remdtraj requires lowest # replica!\n");
+  }
+
+  // Search for and add all replicas higher than this.
+  repnum++;
+  repFilename = remdio->GetReplicaName(repnum);
+  while ( fileExists(repFilename) ) {
+    // Set up lowest replica file trajectory IO
+    replica0 = setupTrajIO(repFilename,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE);
+    if (replica0==NULL) {
+      mprinterr("    Error: RemdTraj: Could not set up replica %i file %s\n",repnum,repFilename);
+      delete remdio;
+      return NULL;
+    }
+    // Pushing replica0 here allows the remdio destructor to handle it on errors
+    remdio->REMDtraj.push_back( replica0 );
+    // Check that number of frames matches
+    repframes = replica0->setupRead(trajParm->natom);
+    if (repframes < 0 || repframes != total_frames) {
+      mprinterr("    Error: RemdTraj: Replica %i frames (%i) does not match\n",
+                repnum,repframes);
+      mprinterr("           # frames in replica 0 (%i).\n",total_frames);
+      delete remdio;
+      return NULL;
+    }
+    // Check for temperature information
+    if ( !replica0->hasTemperature) {
+      mprinterr("    Error: RemdTraj: Replica %i does not have temperature info.\n",repnum);
+      delete remdio;
+      return NULL;
+    }
+    // Check box information
+   
+    // Increment
+    repnum++;
+    repFilename = remdio->GetReplicaName(repnum);
+  }
+
+  // If remdout was specified, set up output trajectories
+  if (RemdOutArgs!=NULL) {
+    // Set up temperature list
+    if ( remdio->SetupTemperatureList(trajParm->natom) ) {
+      mprinterr("Error: RemdTraj: remdout: could not get temperature list.\n");
+      delete remdio;
+      return NULL;
+    }
+    // BEGIN LOOP over Temperature
+    for (repnum=0; repnum < (int)remdio->REMDtraj.size(); repnum++) { 
+      // Set up output filename for this temperature
+      //sprintf(repFilename,"%s.%6.2lf",RemdOutArgs->Arg(1),remdio->TemperatureList[j]);
+      mprintf("    Creating remd output traj: %s\n",repFilename);
+      // Replace the filename arg at position 1 with filename.Temperature
+      //if ( RemdOutArgs->ReplaceArg(1,repFilename) ) {
+      //  mprinterr("Error: RemdTraj::setup(): Could not set output replica traj filename [%s].\n",
+      //            repFilename);
+      //  j=-1;
+      //}
+      //RemdOutArgs->print(); // DEBUG
+      // Set up output remd traj file. Reset the arglist so all args are available.
+      //RemdOutArgs->Reset();
+      //replica0 = new TrajectoryIO();
+      //if ( REMDtrajout.Add(NULL, RemdOutArgs, trajParm) ) {
+      //  mprinterr("    Error: remdtraj remdout: Could not set up output traj %s\n",repFilename);
+      //  j=-1;
+      //}
+      // Close input traj
+    } // END LOOP over input remd trajectories
+  } // END REMDtrajout
 
   return (TrajectoryIO*) remdio;
 }
-*/
 
 /* TrajectoryFile::setupTrajIO()
  * Set up basic trajectory file for read/write/append. Set the trajectory
@@ -355,22 +458,22 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   // Check for remdtraj keyword; if present, set up as a Remd Trajectory.
   // This will set up a special trajio object. All further setup is performed
   // in setupRemdTraj.
-//  if (argIn->hasKey("remdtraj")) {
-//    if ( (trajio=setupRemdTraj(tname,argIn))==NULL ) {
-//      mprinterr("    Error: Could not set up REMD trajectories using %s as lowest replica.\n",
-//                tname);
-//      return 1;
-//    }
-//    return 0;
+  if (argIn->hasKey("remdtraj")) {
+    if ( (trajio=setupRemdTraj(tname,argIn))==NULL ) {
+      mprinterr("    Error: Could not set up REMD trajectories using %s as lowest replica.\n",
+                tname);
+      return 1;
+    }
+    return 0;
 
   // Set up single file; among other things this will determine the type and 
   // format, and set up trajio for the format.
-//  } else {
+  } else {
     if ( (trajio=setupTrajIO(tname,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE))==NULL ) {
       mprinterr("    Error: Could not set up file %s for reading.\n",tname);
       return 1;
     }
-//  }
+  }
 
   // Set up the format for reading and get the number of frames.
   // -1 indicates an error

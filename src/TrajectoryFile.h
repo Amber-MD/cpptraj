@@ -31,7 +31,7 @@ class TrajectoryFile {
     bool nobox;
     bool setupForWrite;
 
-    //TrajectoryIO *setupRemdTraj(char *, ArgList*); // REMD
+    TrajectoryIO *setupRemdTraj(char *, ArgList*); // REMD
     TrajectoryIO *setupTrajIO(char *, AccessType, FileFormat, FileType);
     int SetArgs(ArgList *);
     void SetTrajName(char *);

@@ -51,6 +51,14 @@ bool TrajectoryIO::FilenameIs(char *filenameIn) {
   return false;
 }
 
+/* TrajectoryIO::FileFormat()
+ * Return the format of associated file.
+ */
+FileFormat TrajectoryIO::TrajFormat() {
+  if (tfile==NULL) return UNKNOWN_FORMAT;
+  return (tfile->fileFormat);
+}
+
 /* TrajectoryIO::SetTitle()
  * Set title for this trajfile.
  */

@@ -63,6 +63,6 @@ class TrajectoryIO {
     bool FilenameIs(char *);
     void SetDebug(int);
 
-    FileFormat TrajFormat() {return tfile->fileFormat;}
+    FileFormat TrajFormat();
 }; 
 #endif
