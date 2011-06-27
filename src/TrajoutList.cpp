@@ -58,9 +58,9 @@ int TrajoutList::Add(char *filenameIn, ArgList *A, AmberParm *parmIn) {
 }
 
 /* TrajoutList::Write()
- * Go through each output traj, set frame from input frame, call write.
- * Only set up an output traj in the TrajList for writing the first time Write
- * is called with the correct (matching) parmtop, based on pindex.
+ * Go through each output traj, call write. The first time CurrentParm
+ * matches the parm the trajectory was originally set up with it will
+ * be opened, no need to call BeginTraj.
  */ 
 int TrajoutList::Write(int set, AmberParm *CurrentParm, Frame *F) { 
   std::list<TrajectoryFile*>::iterator traj;

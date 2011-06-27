@@ -9,7 +9,7 @@ SOURCE=main.cpp AmberParm.cpp TrajFile.cpp \
        DataSetList.cpp vectormath.cpp FrameList.cpp Action_Rmsd.cpp \
        Action_Dihedral.cpp DataFile.cpp DataFileList.cpp \
        PtrajFile.cpp PDBfileRoutines.cpp AtomMap.cpp BaseFileIO.cpp StdFile.cpp \
-       GzipFile.cpp AmberRestart.cpp Action_Angle.cpp PtrajMpi.c MpiFile.cpp \
+       GzipFile.cpp Action_Angle.cpp PtrajMpi.c MpiFile.cpp \
        Action_Strip.cpp Action.cpp AtomMask.cpp mapDataSet.cpp \
        Action_DSSP.cpp stringDataSet.cpp Action_Center.cpp Bzip2File.cpp \
        Action_Hbond.cpp intDataSet.cpp Action_Image.cpp Action_Surf.cpp \
@@ -19,7 +19,7 @@ SOURCE=main.cpp AmberParm.cpp TrajFile.cpp \
        TorsionRoutines.cpp Action_Pucker.cpp Range.cpp Action_Outtraj.cpp \
        Action_Rms2d.cpp ProgressBar.cpp TrajectoryIO.cpp \
        TrajectoryFile.cpp BoxType.cpp CharBuffer.cpp Traj_AmberCoord.cpp \
-       Traj_AmberNetcdf.cpp Traj_PDBfile.cpp
+       Traj_AmberNetcdf.cpp Traj_PDBfile.cpp Traj_AmberRestart.cpp
 
 OBJECTS=main.o AmberParm.o TrajFile.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
@@ -28,7 +28,7 @@ OBJECTS=main.o AmberParm.o TrajFile.o \
         DataSetList.o vectormath.o FrameList.o Action_Rmsd.o \
         Action_Dihedral.o DataFile.o DataFileList.o \
         PtrajFile.o PDBfileRoutines.o AtomMap.o BaseFileIO.o StdFile.o \
-        GzipFile.o AmberRestart.o Action_Angle.o PtrajMpi.o MpiFile.o \
+        GzipFile.o Action_Angle.o PtrajMpi.o MpiFile.o \
         Action_Strip.o Action.o AtomMask.o mapDataSet.o \
         Action_DSSP.o stringDataSet.o Action_Center.o Bzip2File.o \
         Action_Hbond.o intDataSet.o Action_Image.o Action_Surf.o \
@@ -38,7 +38,7 @@ OBJECTS=main.o AmberParm.o TrajFile.o \
         TorsionRoutines.o Action_Pucker.o Range.o Action_Outtraj.o \
         Action_Rms2d.o ProgressBar.o TrajectoryIO.o \
         TrajectoryFile.o BoxType.o CharBuffer.o Traj_AmberCoord.o \
-        Traj_AmberNetcdf.o Traj_PDBfile.o
+        Traj_AmberNetcdf.o Traj_PDBfile.o Traj_AmberRestart.o
 
 HEADERS=AmberParm.h TrajFile.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
@@ -47,7 +47,7 @@ HEADERS=AmberParm.h TrajFile.h \
         DataSetList.h vectormath.h FrameList.h Action_Rmsd.h \
         Action_Dihedral.h DataFile.h DataFileList.h \
         PtrajFile.h PDBfileRoutines.h AtomMap.h BaseFileIO.h StdFile.h \
-        GzipFile.h AmberRestart.h Action_Angle.h PtrajMpi.h MpiFile.h \
+        GzipFile.h Action_Angle.h PtrajMpi.h MpiFile.h \
         Action_Strip.h AtomMask.h mapDataSet.h \
         Action_DSSP.h stringDataSet.h Action_Center.h Bzip2File.h \
         Action_Hbond.h intDataSet.h Action_Image.h Action_Surf.h \
@@ -57,7 +57,7 @@ HEADERS=AmberParm.h TrajFile.h \
         TorsionRoutines.h Action_Pucker.h Range.h Action_Outtraj.h \
         Action_Rms2d.h ProgressBar.h TrajectoryIO.h \
         TrajectoryFile.h BoxType.h CharBuffer.h Traj_AmberCoord.h \
-        Traj_AmberNetcdf.h Traj_PDBfile.h
+        Traj_AmberNetcdf.h Traj_PDBfile.h Traj_AmberRestart.h
 
 all: cpptraj$(SFX)
 

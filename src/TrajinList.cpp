@@ -44,8 +44,9 @@ int TrajinList::Add(char *filename, ArgList *A, AmberParm *parmIn) {
 /* TrajinList::SetupFrames()
  * Only called for input trajectories.
  * Loop over all trajectories and call their setup frames routine to calc
- * actual start and stop and how many frames total will be processed.
- * Return the number of frames to be processed.
+ * actual start and stop and how many frames total will be processed. Update 
+ * the number of frames that will be read for the associated traj parm.
+ * Return the total number of frames to be processed across all trajins.
  */
 int TrajinList::SetupFrames() {
   std::list<TrajectoryFile*>::iterator traj;
@@ -55,12 +56,12 @@ int TrajinList::SetupFrames() {
 
   for (traj = this->begin(); traj != this->end(); traj++) {
     trajFrames = (*traj)->SetupFrameInfo();
-    if (trajFrames==-1) {
+    if (trajFrames==-1)
       maxFrames=-1;
-    }
+    else
+      (*traj)->TrajParm()->parmFrames += trajFrames;
     if (maxFrames>=0)
       maxFrames+=trajFrames;
-    (*traj)->PrintInfo(1);
   }
 
   return maxFrames;
