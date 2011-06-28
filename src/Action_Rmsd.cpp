@@ -175,7 +175,6 @@ int Rmsd::init( ) {
   mprintf("    RMSD: (%s), reference is ",FrameMask.maskString);
   if (reftraj!=NULL) {
     // Set up reference trajectory and open
-    refindex = RefTraj->SetupFrameInfo();
     mprintf("trajectory %s with %i frames.\n",RefTraj->TrajName(),RefTraj->Total_Read_Frames());
     if (RefTraj->BeginTraj(false)) {
       mprinterr("Error: Rmsd: Could not open reference trajectory.\n");

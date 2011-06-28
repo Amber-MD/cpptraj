@@ -135,6 +135,15 @@ TrajectoryIO *TrajectoryFile::setupRemdTraj(char *lowestRepName, ArgList *argIn)
     return NULL;
   }
 
+  // Call setupFrameInfo to calc actual start and stop values based on
+  // offset, as well as total_read_frames
+  if ( setupFrameInfo() <= 0 ) {
+    mprinterr("  Error: No frames will be read from %s based on start, stop,\n",trajName);
+    mprinterr("         and offset values (%i, %i, %i)\n",start+1,stop+1,offset);
+    delete replica0;
+    return NULL;
+  }
+
   // Add lowest replica to the list. Initial set up of remd trajio object
   remdio = new RemdTraj();
   remdio->remdtrajtemp = remdtrajtemp;
@@ -458,7 +467,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   // Check for remdtraj keyword; if present, set up as a Remd Trajectory.
   // This will set up a special trajio object. All further setup is performed
   // in setupRemdTraj.
-  if (argIn->hasKey("remdtraj")) {
+  if (argIn!=NULL && argIn->hasKey("remdtraj")) {
     if ( (trajio=setupRemdTraj(tname,argIn))==NULL ) {
       mprinterr("    Error: Could not set up REMD trajectories using %s as lowest replica.\n",
                 tname);
@@ -499,6 +508,14 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   // Set start, stop, and offset args from user input.
   if (SetArgs(argIn)) return 1;
 
+  // Call setupFrameInfo to calc actual start and stop values based on
+  // offset, as well as total_read_frames
+  if ( setupFrameInfo() <= 0 ) {
+    mprinterr("  Error: No frames will be read from %s based on start, stop,\n",trajName);
+    mprinterr("         and offset values (%i, %i, %i)\n",start+1,stop+1,offset);
+    return 1;
+  }
+
   // Further setup specific to trajectory format
   if (trajio->TrajFormat() == PDBFILE) {
     // Check that the names read from the PDB file match the ones in the
@@ -513,12 +530,12 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   return 0;
 }
 
-/* TrajectoryFile::SetupFrameInfo()
+/* TrajectoryFile::setupFrameInfo()
  * Calculate number of frames that will be read based on start, stop, and
  * offset (total_read_frames). 
  * Return the total number of frames that will be read for this traj.
  */
-int TrajectoryFile::SetupFrameInfo() {
+int TrajectoryFile::setupFrameInfo() {
   int Nframes;
   int ptraj_start_frame, ptraj_end_frame;
   int traj_start_frame, traj_end_frame;
@@ -527,7 +544,7 @@ int TrajectoryFile::SetupFrameInfo() {
   int worldrank = 0;
   int worldsize = 1;
 
-  //mprintf("DEBUG: Calling SetupFrameInfo for %s with %i %i %i\n",trajName,
+  //mprintf("DEBUG: Calling setupFrameInfo for %s with %i %i %i\n",trajName,
   //        start,stop,offset);
 
   // Calc total frames that will be read

@@ -82,7 +82,7 @@ int Rms2d::init() {
   if (reftraj!=NULL) {
     // Set up reference trajectory and open
     mprintf("reference is trajectory %s with %i frames.\n",RefTraj->TrajName(),
-            RefTraj->SetupFrameInfo());
+            RefTraj->Total_Read_Frames());
     if (RefTraj->BeginTraj(false)) {
       mprinterr("Error: Rms2d: Could not open reference trajectory.\n");
       return 1;

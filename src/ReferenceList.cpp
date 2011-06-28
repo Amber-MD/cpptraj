@@ -75,8 +75,8 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     //       Calling setupFrameInfo with -1 to ensure the Parm frame count is
     //       not updated.
 
-    trajFrames=(*traj)->SetupFrameInfo();
-    if ((*traj)->Total_Read_Frames()<1) {
+    trajFrames=(*traj)->Total_Read_Frames();
+    if (trajFrames<1) {
       mprinterr("Error: No frames could be read for reference %s, skipping\n",
                 (*traj)->TrajName());
       continue;

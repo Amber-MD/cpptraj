@@ -55,7 +55,7 @@ int TrajinList::SetupFrames() {
   maxFrames=0;
 
   for (traj = this->begin(); traj != this->end(); traj++) {
-    trajFrames = (*traj)->SetupFrameInfo();
+    trajFrames = (*traj)->Total_Read_Frames();
     // If < 0 frames this indicates an error. 
     if (trajFrames < 0) return -1;
     (*traj)->TrajParm()->parmFrames += trajFrames;

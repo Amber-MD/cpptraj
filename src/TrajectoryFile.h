@@ -36,6 +36,7 @@ class TrajectoryFile {
     int SetArgs(ArgList *);
     void SetTrajName(char *);
     int SetBoxType(TrajectoryIO *);
+    int setupFrameInfo();
 
   public:
     TrajectoryFile();
@@ -52,7 +53,6 @@ class TrajectoryFile {
     void SingleFrame();
     bool TrajFilenameIs(char *);
     void PrintInfo(int);
-    int SetupFrameInfo();
     // Functions that return private vars
     int CurrentFrame() { return currentFrame; }
     char *TrajName() { return trajName;}
