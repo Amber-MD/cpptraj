@@ -16,7 +16,7 @@ yes:
 
 # Run Tests
 check:
-	cd test && $(MAKE) test
+	cd ../../test/cpptraj/ && $(MAKE) test
 
 # Clean up
 clean:
