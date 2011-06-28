@@ -304,18 +304,19 @@ void WarnLCPO(char *atype, int atom, int numBonds) {
   mprintf("Using default atom parameters.\n");
 }
 
-/* 
- * AmberParm::SetSurfaceInfo()
+/* AmberParm::SetSurfaceInfo()
  * Set up parameters only used in surface area calcs.
  * LCPO method from:
  *   J. Weiser, P.S. Shenkin, and W.C. Still,
  *   "Approximate atomic surfaces from linear combinations of pairwise
  *   overlaps (LCPO)", J. Comp. Chem. 20:217 (1999).
  * Adapted from gbsa=1 method in SANDER, mdread.f
+ * Return the number of solute atoms for which paramters were set.
+ * Return -1 on error.
  */
 int AmberParm::SetSurfaceInfo() {
   int *numBonds; // # of bonded neighbors each atom has (LCPO only?)
-  int i,atom1,atom2;
+  int i,atom1,atom2,soluteAtoms;
   char atype[2];
  
   // If surface info already set up exit 
@@ -324,20 +325,19 @@ int AmberParm::SetSurfaceInfo() {
   // If no bond information exit
   if (bonds==NULL) {
     mprintf("Error: SetSurfaceInfo(): Parm %s does not contain bond info.\n",parmName);
-    return 1;
+    return -1;
   } 
 
   // If no atom type information exit
   if (types==NULL) {
     mprintf("Error: SetSurfaceInfo(): Parm %s does not contain atom type info.\n",
             parmName);
-    return 1;
+    return -1;
   }
  
   // Get the number of bonded neighbors for each atom
   numBonds = (int*) malloc(natom * sizeof(int));
   memset(numBonds, 0, natom * sizeof(int));
-  // NOTE: Why ignore hydrogens?
   for (i = 0; i < values[MBONA]*3; i+=3) {
      atom1 = bonds[i  ] / 3;
      atom2 = bonds[i+1] / 3;
@@ -349,9 +349,19 @@ int AmberParm::SetSurfaceInfo() {
   //for (i=0; i<natom; i++)
   //  fprintf(stdout,"DEBUG:    Atom %6i_%4s: %2i bonds.\n",i,names[i],numBonds[i]);
 
+  // Only set parameters for solute atoms
+  soluteAtoms = 0;
+  if (firstSolvMol > 0) {
+    i = 0;
+    while (i < firstSolvMol) soluteAtoms += atomsPerMol[i++];
+  } else {
+    soluteAtoms = natom;
+  }
+  mprintf("[%s] Setting surface paramters for %i solute atoms.\n",parmName,soluteAtoms);
+
   // Set vdw radii and LCPO parameters
-  SurfaceInfo = (SurfInfo*) malloc(natom * sizeof(SurfInfo));
-  for (i=0; i < natom; i++) {
+  SurfaceInfo = (SurfInfo*) malloc(soluteAtoms * sizeof(SurfInfo));
+  for (i=0; i < soluteAtoms; i++) {
     atype[0] = types[i][0];
     atype[1] = types[i][1];
 
@@ -425,18 +435,18 @@ int AmberParm::SetSurfaceInfo() {
       mprintf("Warning: Using carbon SA parms for unknown atom type %i %2s\n",i,atype);
       AssignLCPO(SurfaceInfo+i, 1.70, 0.51245, -0.15966, -0.00019781, 0.00016392);
     }
-  } // END LOOP OVER natom
+  } // END LOOP OVER soluteAtoms 
 
   // DEBUG
   /*
-  for (i=0; i<natom; i++) {
+  for (i=0; i<soluteAtoms; i++) {
     fprintf(stdout,"%6i %4s: %6.2lf %lf %lf %lf %lf\n",i+1,types[i],SurfaceInfo[i].vdwradii,
     fprintf(stdout,"%6i%6.2lf%12.8lf%12.8lf%12.8lf%12.8lf\n",i+1,SurfaceInfo[i].vdwradii,
             SurfaceInfo[i].P1,SurfaceInfo[i].P2,SurfaceInfo[i].P3,SurfaceInfo[i].P4);
   }
   */
   free(numBonds);
-  return 0;
+  return soluteAtoms;
 }
 
 // ---------========= ROUTINES PERTAINING TO SOLVENT INFO =========---------
