@@ -1,6 +1,7 @@
 // CoordFileList
 #include "CoordFileList.h"
 #include "CpptrajStdio.h"
+#include <cstddef> // NULL
 
 // CONSTRUCTOR
 CoordFileList::CoordFileList() {
