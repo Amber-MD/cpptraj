@@ -125,8 +125,11 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
       sscanf(lineBuffer,"%*s %s",value);
       if (strcmp(value,Key)==0) {
         if (debug>0) mprintf("DEBUG: Found Flag Key [%s]\n",value);
-        // Read format line 
+        // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
+        // read past until you get to the FORMAT line
         File.IO->Gets(lineBuffer,BUFFER_SIZE);
+        while (strncmp(lineBuffer,"%FORMAT",7)!=0)
+          File.IO->Gets(lineBuffer,BUFFER_SIZE);
         if (debug>0) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
         // Set format
         this->SetFormat(lineBuffer,maxval);
