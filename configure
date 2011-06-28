@@ -292,6 +292,11 @@ fi
 CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 
+# Add C++ specific debug flags if debug info on
+if [[ ! -z $DBGFLAGS ]] ; then
+  CXXFLAGS="-fno-inline $CXXFLAGS"
+fi
+
 # Turn on profiling if specified
 if [[ $PROFILE -eq 1 && $CXX = "g++" ]] ; then
   echo "Using $CC profiling."
