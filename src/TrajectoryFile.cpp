@@ -792,9 +792,9 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
     if (!nobox) {
       if (trajParm->boxType!=NOBOX) {
         trajio->hasBox=true;
-        trajio->boxAngle[0]=trajParm->Box[4];
-        trajio->boxAngle[1]=trajParm->Box[5];
-        trajio->boxAngle[2]=trajParm->Box[6];
+        trajio->boxAngle[0]=trajParm->Box[3];
+        trajio->boxAngle[1]=trajParm->Box[4];
+        trajio->boxAngle[2]=trajParm->Box[5];
       }
     }
     // Set up write for the current number of atoms 
