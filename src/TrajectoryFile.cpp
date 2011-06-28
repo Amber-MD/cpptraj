@@ -36,7 +36,7 @@ TrajectoryFile::TrajectoryFile() {
   FrameRange=NULL;
   nobox=false;
   setupForWrite=false;
-};
+}
 
 // DESTRUCTOR
 TrajectoryFile::~TrajectoryFile() {
