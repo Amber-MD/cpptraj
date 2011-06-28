@@ -9,9 +9,8 @@ class Surf: public Action {
     AtomMask Mask1;
     double *distances;
     int soluteAtoms;
-    std::vector< std::vector<int> > NeighborList;
 
-    double CalcLCPO(int);
+    double CalcLCPO(int,std::vector<int>);
   public:
     Surf();
     ~Surf();
