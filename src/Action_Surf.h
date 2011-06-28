@@ -10,6 +10,8 @@ class Surf: public Action {
     double *distances;
     int soluteAtoms;
     std::vector< std::vector<int> > NeighborList;
+
+    double CalcLCPO(int);
   public:
     Surf();
     ~Surf();

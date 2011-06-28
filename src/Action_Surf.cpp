@@ -55,31 +55,36 @@ int Surf::init() {
 int Surf::setup() {
   int matrixSize, i;
 
-  if ( Mask1.SetupMask(P,debug) ) return 1;
+  //if ( Mask1.SetupMask(P,debug) ) return 1;
+  if ( Mask1.SetupCharMask(P,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Surf::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
   // Setup surface area calc for this parm
-  P->SetSurfaceInfo();
-
-  // If solvent is present figure out how many solute atoms
-  if (P->firstSolvMol > 0) {
-    soluteAtoms = 0;
-    i = 0;
-    while (i < P->firstSolvMol) soluteAtoms += P->atomsPerMol[i++];
-  } else {
-    soluteAtoms = P->natom;
+  soluteAtoms = P->SetSurfaceInfo();
+  if (soluteAtoms < 0) {
+    mprinterr("Error: Surf: Could not set up surface paramters for %s.\n",P->parmName);
+    return 1;
   }
-  mprintf("      SURF: Setting up parameters for %i solute atoms.\n",soluteAtoms);
+  mprintf("      SURF: Set up parameters for %i solute atoms.\n",soluteAtoms);
   mprintf("            LCPO surface area will be calculated for %i atoms.\n",Mask1.Nselected);
 
   // Check that each atom in Mask1 is part of solute
+/*
   for (i=0; i < Mask1.Nselected; i++) {
     if (Mask1.Selected[i] >= soluteAtoms) {
       mprintf("Error: Surf::setup(): Atom %i in mask %s does not belong to solute.\n",
               Mask1.Selected[i], Mask1.maskString);
+      return 1;
+    }
+  }
+*/
+  for (i=0; i < Mask1.Nselected; i++) {
+    if (Mask1.AtomInCharMask(i) && i >= soluteAtoms) {
+      mprintf("Error: Surf::setup(): Atom %i:%s in mask %s does not belong to solute.\n",
+              i, P->names[i], Mask1.maskString);
       return 1;
     }
   }
@@ -90,7 +95,9 @@ int Surf::setup() {
   distances = (double*) realloc(distances, matrixSize * sizeof(double));
 
   // Reserve space for neighbor list
-  NeighborList.reserve(soluteAtoms);
+  NeighborList.clear();
+  //NeighborList.reserve(soluteAtoms);
+  NeighborList.resize(soluteAtoms);
 
   return 0;  
 }
@@ -121,6 +128,87 @@ int CalcIndex(int iIn, int jIn, int natom) {
  * Surf::CalcLCPO()
  * Return the surface area for the given atom.
  */
+double Surf::CalcLCPO(int atomi) {
+  double sumaij, sumajk, sumajk_2, sumaijajk;
+  double tmpaij, vdw2dif, tmpajk;
+  double aij, ajk;
+  double vdwi, vdwi2, Si;
+  double vdwj, vdwj2;
+  double vdwk;
+  double dij, djk;
+  int distIndex;
+  std::vector<int> ineighbor;
+  // Step 3: Calculate LCPO surface area for atom
+  // Ai = P1*S1 + P2*Sum(Aij) + P3*Sum(Ajk) + P4*Sum(Aij * Sum(Ajk))
+  sumaij = 0.0;
+  sumajk = 0.0;
+  sumaijajk = 0.0;
+
+  // DEBUG - print neighbor list
+  //mprintf("SURF: Neighbors for atom %i:",atomi);
+  //ineighbor = NeighborList[atomi];
+  //for (jt = ineighbor.begin(); jt != ineighbor.end(); jt++) {
+  //  mprintf(" %i",*jt);
+  //}
+  //mprintf("\n");
+
+  // Calculate surface area of atom i
+  vdwi = P->SurfaceInfo[atomi].vdwradii;
+  vdwi2 = vdwi * vdwi;
+  Si = vdwi2 * FOURPI;
+
+  // Loop over all neighbors of atomi (j)
+  // NOTE: Factor through the 2 in aij and ajk?
+  ineighbor = NeighborList[atomi];
+  for (std::vector<int>::iterator jt = ineighbor.begin(); 
+                                  jt != ineighbor.end(); 
+                                  jt++) 
+  {
+    //printf("i,j %i %i\n",atomi + 1,(*jt)+1);
+    vdwj = P->SurfaceInfo[*jt].vdwradii;
+    vdwj2 = vdwj * vdwj;
+    distIndex = CalcIndex(atomi, *jt, soluteAtoms);
+    dij = distances[distIndex];
+    tmpaij = vdwi - (dij * 0.5) - ( (vdwi2 - vdwj2)/(2.0 * dij) );
+    aij = 2.0 * PI * vdwi * tmpaij;
+    sumaij += aij;
+
+    // Find which neighbors of atom i (j and k) are themselves neighbors
+    sumajk_2 = 0.0;
+    for (std::vector<int>::iterator kt = ineighbor.begin(); 
+                                    kt != ineighbor.end(); 
+                                    kt++) 
+    {
+      if ( (*kt) == (*jt) ) continue;
+      //printf("i,j,k %i %i %i\n",atomi + 1,(*jt)+1,(*kt)+1);
+      vdwk = P->SurfaceInfo[*kt].vdwradii;
+      distIndex = CalcIndex(*jt, *kt, soluteAtoms);
+      djk = distances[distIndex];
+      //printf("%4s%6i%6i%12.8lf\n","DJK ",(*jt)+1,(*kt)+1,djk);
+      //printf("%6s%6.2lf%6.2lf\n","AVD ",vdwj,vdwk);
+      if ( (vdwj + vdwk) > djk ) {
+        vdw2dif = vdwj2 - (vdwk * vdwk);
+        tmpajk = (2.0*vdwj) - djk - (vdw2dif / djk);
+        ajk = PI*vdwj*tmpajk;
+        //tmpajk = vdwj - (djk *0.5) - ( (vdwj2 - (vdwk * vdwk))/(2.0 * djk) );
+        //ajk = 2.0 * PI * vdwi * tmpajk;
+        //printf("%4s%6i%6i%12.8lf%12.8lf%12.8lf\n","AJK ",(*jt)+1,(*kt)+1,ajk,vdw2dif,tmpajk);
+        sumajk += ajk;
+        sumajk_2 += ajk;
+      }
+    } // END loop over neighbor-neighbor pairs of atom i (k)
+
+    sumaijajk += (aij * sumajk_2);
+
+    // DEBUG
+    //printf("%4s%20.8lf %20.8lf %20.8lf\n","AJK ",aij,sumajk,sumaijajk);
+
+  } // END Loop over neighbors of atom i (j)
+  return( (P->SurfaceInfo[atomi].P1 * Si) +
+          (P->SurfaceInfo[atomi].P2 * sumaij) +
+          (P->SurfaceInfo[atomi].P3 * sumajk) +
+          (P->SurfaceInfo[atomi].P4 * sumaijajk) );
+}
 
 /*
  * Surf::action()
@@ -133,15 +221,13 @@ int CalcIndex(int iIn, int jIn, int natom) {
  */
 int Surf::action() {
   double SA; // DEBUG
-  double Si,vdwi,vdwj,vdwk,vdwi2,vdwj2;
-  double dij,djk,tmpaij,tmpajk,vdw2dif,ai,aij,ajk; // NOTE: vdw2dif necessary?
-  double sumaij, sumajk, sumajk_2, sumaijajk;
-  int atomi, atomj, distIndex, maskIndex;
-  std::vector<int> ineighbor;
-  std::vector<int>::iterator jt;
-  std::vector<int>::iterator kt;
-
-  SA = 0.0;
+  //double Si,vdwi,vdwj,vdwk,vdwi2,vdwj2;
+  //double dij,djk,tmpaij,tmpajk,vdw2dif,ai,aij,ajk; // NOTE: vdw2dif necessary?
+  //double sumaij, sumajk, sumajk_2, sumaijajk;
+  int atomi, atomj, distIndex;//, maskIndex;
+  //std::vector<int> ineighbor;
+  //std::vector<int>::iterator jt;
+  //std::vector<int>::iterator kt;
 
   // Step 1: Calculate all distances 
   distIndex = 0;
@@ -152,34 +238,50 @@ int Surf::action() {
       //mprintf("SURF_DIST:  %i %i %i %lf\n",atomi,atomj,distIndex-1,distances[distIndex-1]);
     }
   } 
-      
+
+  SA = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel private(atomi,atomj,distIndex) reduction(+: SA)
+{
+#pragma omp for 
+#endif      
   // Step 2: Set up neighbor list for each atom
-  NeighborList.clear(); 
+  //NeighborList.clear(); 
   for (atomi = 0; atomi < soluteAtoms; atomi++) {
     // Set up neighbor list for atom i
-    ineighbor.clear();
+    //ineighbor.clear();
+    NeighborList[atomi].clear();
     for (atomj = 0; atomj < soluteAtoms; atomj++) {
-      if (atomi==atomj) continue;
-      distIndex = CalcIndex(atomi, atomj, soluteAtoms);
-      // DEBUG
-      //mprintf("SURF_NEIG:  %i %i %i %lf\n",atomi,atomj,distIndex,distances[distIndex]);
-      // Count atoms as neighbors if their VDW radii touch
-      if ( (P->SurfaceInfo[atomi].vdwradii + P->SurfaceInfo[atomj].vdwradii) >
-           distances[distIndex] ) {
-        // Consider all atoms for icosa, only non-H's for LCPO
-        if ( P->SurfaceInfo[atomi].vdwradii > 2.5 &&
-             P->SurfaceInfo[atomj].vdwradii > 2.5 ) {
-          ineighbor.push_back(atomj);
+      if (atomi!=atomj) { 
+        distIndex = CalcIndex(atomi, atomj, soluteAtoms);
+        // DEBUG
+        //mprintf("SURF_NEIG:  %i %i %i %lf\n",atomi,atomj,distIndex,distances[distIndex]);
+        // Count atoms as neighbors if their VDW radii touch
+        if ( (P->SurfaceInfo[atomi].vdwradii + P->SurfaceInfo[atomj].vdwradii) >
+             distances[distIndex] ) {
+          // Consider all atoms for icosa, only non-H's for LCPO
+          if ( P->SurfaceInfo[atomi].vdwradii > 2.5 &&
+               P->SurfaceInfo[atomj].vdwradii > 2.5 ) {
+            //ineighbor.push_back(atomj);
+            NeighborList[atomi].push_back(atomj);
+          }
         }
       }
     }
-    NeighborList.push_back(ineighbor);
+    //NeighborList.push_back(ineighbor);
+    // If atom is in mask calculate surface area here
+    if (Mask1.AtomInCharMask(atomi)) SA+=CalcLCPO(atomi);
   }  
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif
 
   // Step 3: Calculate LCPO surface area for atoms in mask
   // Ai = P1*S1 + P2*Sum(Aij) + P3*Sum(Ajk) + P4*Sum(Aij * Sum(Ajk))
-  for (maskIndex=0; maskIndex < Mask1.Nselected; maskIndex++) {
-    atomi = Mask1.Selected[maskIndex];
+/*  SA = 0.0;
+  for (int maskIndex=0; maskIndex < Mask1.Nselected; maskIndex++) {
+    SA += CalcLCPO(Mask1.Selected[maskIndex]);
+*    atomi = Mask1.Selected[maskIndex];
     sumaij = 0.0;
     sumajk = 0.0;
     sumaijajk = 0.0;
@@ -244,8 +346,9 @@ int Surf::action() {
          (P->SurfaceInfo[atomi].P3 * sumajk) +
          (P->SurfaceInfo[atomi].P4 * sumaijajk);
     SA += ai;
+*
   }
-
+*/
   surf->Add(currentFrame, &SA);
 
   return 0;
