@@ -648,6 +648,7 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
       // Amber Trajectory 
       AmberCoord *T0 = (AmberCoord*) trajio;
       if (argIn->hasKey("remdtraj")) T0->SetRemdTraj();
+      if (argIn->hasKey("highprecision")) T0->SetHighPrecision();
     } else if (trajio->TrajFormat() == AMBERNETCDF ) {
       // Amber Netcdf
       AmberNetcdf *T1 = (AmberNetcdf*) trajio;

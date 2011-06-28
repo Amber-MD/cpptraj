@@ -16,6 +16,8 @@ AmberCoord::AmberCoord() {
   hasREMD=0;
   numBoxCoords=0;
   frameBuffer=NULL;
+  outfmt="%8.3lf";
+  highPrecision=false;
 }
 
 // DESTRUCTOR
@@ -126,6 +128,14 @@ int AmberCoord::readFrame(int set, double *X, double *box, double *T) {
   return 0;
 }
 
+/* AmberCoord::SetHighPrecision()
+ * Change the output format from 8.3 to 8.6
+ */
+void AmberCoord::SetHighPrecision() {
+  outfmt="%8.6lf";
+  highPrecision=true;
+}
+
 /* AmberCoord::writeFrame()
  * Write coordinates from Frame to frameBuffer. frameBuffer must be large
  * enough to accomodate all coords in F (handled by SetupWrite).
@@ -144,9 +154,9 @@ int AmberCoord::writeFrame(int set, double *X, double *box, double T) {
     bufferPosition += hasREMD;
   }
 
-  bufferPosition = DoubleToBuffer(bufferPosition,X,natom3,"%8.3lf",8,10);
+  bufferPosition = DoubleToBuffer(bufferPosition,X,natom3,outfmt,8,10);
   if (hasBox) 
-    bufferPosition = BoxToBuffer(bufferPosition,box,numBoxCoords,"%8.3lf",8);
+    bufferPosition = BoxToBuffer(bufferPosition,box,numBoxCoords,outfmt,8);
 
   outFrameSize = (int) (bufferPosition - frameBuffer);
   
@@ -374,4 +384,5 @@ void AmberCoord::info() {
     mprintf("is an AMBER REMD trajectory");
   else
     mprintf("is an AMBER trajectory");
+  if (highPrecision) mprintf(" (high precision)");
 }

@@ -14,6 +14,8 @@ class AmberCoord: public TrajectoryIO {
     //size_t frameSize; // Use size_t because this will be used with fread?
     char *frameBuffer;  // Hold 1 coord frame (inc. box coords)
     int numBoxCoords;   // Number of box coords, 3 (ortho or truncoct) or 6 (triclinic)
+    const char* outfmt; // Format string for writing coordinates
+    bool highPrecision; // If true output format will be 8.6 instead of 8.3
 
     // Inherited functions
     int setupRead(int);
@@ -29,5 +31,6 @@ class AmberCoord: public TrajectoryIO {
     ~AmberCoord();
     // AmberCoord-specific functions
     void SetRemdTraj();
+    void SetHighPrecision();
 };
 #endif

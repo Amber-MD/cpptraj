@@ -51,6 +51,7 @@ AmberNetcdf::~AmberNetcdf() {
  */
 void AmberNetcdf::closeTraj() {
   if (ncid<0) return;
+  //if (tfile->access!=READ) nc_sync(ncid); 
   checkNCerr(nc_close(ncid),"Closing netcdf file.");
   if (debug>0) rprintf("Successfully closed ncid %i\n",ncid);
   ncid=-1;
