@@ -1,4 +1,4 @@
-SOURCE=main.cpp AmberParm.cpp TrajFile.cpp \
+SOURCE=main.cpp AmberParm.cpp \
        Frame.cpp PtrajState.cpp ArgList.cpp ptrajmask.c Action_Distance.cpp \
        ParmFileList.cpp TrajinList.cpp TrajoutList.cpp ReferenceList.cpp \
        CoordFileList.cpp PtrajActionList.cpp DataSet.cpp \
@@ -18,7 +18,7 @@ SOURCE=main.cpp AmberParm.cpp TrajFile.cpp \
        Traj_AmberNetcdf.cpp Traj_PDBfile.cpp Traj_AmberRestart.cpp \
        Traj_Mol2File.cpp Traj_AmberRestartNC.cpp Traj_Conflib.cpp RemdTraj.cpp
 
-OBJECTS=main.o AmberParm.o TrajFile.o \
+OBJECTS=main.o AmberParm.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
         ParmFileList.o TrajinList.o TrajoutList.o ReferenceList.o \
         CoordFileList.o PtrajActionList.o DataSet.o \
@@ -38,7 +38,7 @@ OBJECTS=main.o AmberParm.o TrajFile.o \
         Traj_AmberNetcdf.o Traj_PDBfile.o Traj_AmberRestart.o \
         Traj_Mol2File.o Traj_AmberRestartNC.o Traj_Conflib.o RemdTraj.o
 
-HEADERS=AmberParm.h TrajFile.h \
+HEADERS=AmberParm.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
         ParmFileList.h TrajinList.h TrajoutList.h ReferenceList.h \
         CoordFileList.h PtrajActionList.h DataSet.h \
