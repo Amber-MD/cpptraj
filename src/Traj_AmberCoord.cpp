@@ -305,10 +305,9 @@ int AmberCoord::setupRead(int natom) {
 }
 
 /* AmberCoord::SetremdTraj()
- * Set hasREMD to REMD_HEADER_SIZE. Triggers write of temperature.
+ * Set hasTemperature to true. Will trigger write of REMD header.
  */
 void AmberCoord::SetRemdTraj() {
-  hasREMD=REMD_HEADER_SIZE;
   hasTemperature=true;
 }
 
@@ -329,6 +328,7 @@ int AmberCoord::setupWrite(int natom) {
     frame_lines++;
   frameSize = (natom3 * 8) + frame_lines;
   // REMD header size is 42 bytes
+  if (hasTemperature) hasREMD = REMD_HEADER_SIZE;
   frameSize += hasREMD;
 
   // If box coords are present, allocate extra space for them
