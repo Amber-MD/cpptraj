@@ -376,6 +376,16 @@ char *RemdTraj::GetReplicaName(int repnum) {
   return repFilename;
 }
 
+/* RemdTraj::GetLowestReplicaName()
+ * If name information has already been set by SetRepicaName, return
+ * the lowest replica filename.
+ */
+char *RemdTraj::GetLowestReplicaName() {
+  if (repFilename==NULL) return NULL;
+  sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,lowestRepnum,CompressExt);
+  return repFilename;
+}
+
 /* RemdTraj::openTraj()
  * Open each trajectory in the list. 
  */
@@ -474,8 +484,7 @@ int RemdTraj::readFrame(int set, double *X, double *box, double *T) {
 /* RemdTraj::info()
  */
 void RemdTraj::info() {
-  mprintf("REMD trajectories (%i total, lowest replica: %s)\n",
-          (int)REMDtraj.size(),GetReplicaName(lowestRepnum));
+  mprintf("REMD trajectories (%i total)\n", (int)REMDtraj.size());
   if (hasTrajout) {
     mprintf("        remdout: trajectories will be converted to temperature trajectories:\n");
     //REMDtrajout.Info(8);

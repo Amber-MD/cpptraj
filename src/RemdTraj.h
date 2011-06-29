@@ -40,5 +40,6 @@ class RemdTraj : public TrajectoryIO {
     int SetupTemperatureList(int);
     int SetReplicaName(char*);
     char *GetReplicaName(int);
+    char *GetLowestReplicaName();
 };
 #endif
