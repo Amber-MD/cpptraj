@@ -111,7 +111,7 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
 
   if (debug>0) {
     mprintf("Reading %s\n",Key);
-    mprintf("DEBUG: maxval= %i\n",maxval);
+    if (debug>1) mprintf("DEBUG: maxval= %i\n",maxval);
   }
 
   C=NULL; D=NULL; I=NULL;
@@ -124,16 +124,16 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
     if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
       sscanf(lineBuffer,"%*s %s",value);
       if (strcmp(value,Key)==0) {
-        if (debug>0) mprintf("DEBUG: Found Flag Key [%s]\n",value);
+        if (debug>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
         // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
         // read past until you get to the FORMAT line
         File.IO->Gets(lineBuffer,BUFFER_SIZE);
         while (strncmp(lineBuffer,"%FORMAT",7)!=0)
           File.IO->Gets(lineBuffer,BUFFER_SIZE);
-        if (debug>0) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
+        if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
         // Set format
         this->SetFormat(lineBuffer,maxval);
-        if (debug>0) mprintf("DEBUG: Format type %i\n",fFormat);
+        if (debug>1) mprintf("DEBUG: Format type %i\n",fFormat);
         if (fFormat == UNKNOWN_FFORMAT) return NULL;
         // Allocate memory based on data type
         switch (fType) {
@@ -145,7 +145,7 @@ void *AmberParm::getFlagFileValues(const char *Key, int maxval){
         // Allocate memory to read in entire section
         buffer=(char*) calloc(BufferSize,sizeof(char));
         if ( File.IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
-          rprintf("ERROR in read of prmtop section %s\n",Key);
+          rprinterr("ERROR in read of prmtop section %s\n",Key);
           free(buffer);
           break; // Send us outside the while loop
         }
