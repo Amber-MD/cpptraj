@@ -31,12 +31,13 @@ class TrajectoryFile {
     bool nobox;
     bool setupForWrite;
 
-    TrajectoryIO *setupRemdTrajIO(char *, double, ArgList*); // REMD
+    TrajectoryIO *setupRemdTrajIO(char *, double, char*, FileFormat); // REMD
     TrajectoryIO *setupTrajIO(char *, AccessType, FileFormat, FileType);
     int SetArgs(ArgList *);
     void SetTrajName(char *);
     int SetBoxType(TrajectoryIO *);
     int setupFrameInfo();
+    FileFormat getFmtFromArg(ArgList*,FileFormat);
 
   public:
     TrajectoryFile();

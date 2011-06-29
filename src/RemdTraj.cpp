@@ -12,6 +12,7 @@ RemdTraj::RemdTraj() {
   ExtWidth=0;
   CompressExt=NULL;
   repFilename=NULL;
+  repOutname=NULL;
   lowestRepnum=0;
 
   hasTrajout=false;
@@ -41,232 +42,26 @@ RemdTraj::~RemdTraj() {
   if (TemperatureList!=NULL) free(TemperatureList);
   if (Prefix!=NULL) free(Prefix);
   if (repFilename!=NULL) free(repFilename);
+  if (repOutname!=NULL) free(repOutname);
   if (CompressExt!=NULL) free(CompressExt);
+  if (remdX!=NULL) free(remdX);
 }
 
-/*
- * RemdTraj::SetupRead()
- * Set up this trajectory for processing as an REMD trajectory. All other
- * replica trajectory files are searched for, and the base filename, starting
- * replica, and number of replicas is recorded so the files may be opened
- * later during processing.
- */
-/*
-int RemdTraj::SetupRead(char *filenameIn, ArgList *argIn, AmberParm *parmIn) {
-  int i,j, ExtWidth, startArg,stopArg,offsetArg;
-  TrajectoryFile *traj;
-  PtrajFile remdfile;  // Used to check for compression and extension
-  int lastChar;        // The last character before compress extension (if any)
-  char *ReplicaExt;    // Hold numeric extension
-  char *CompressExt;   // Hold compression extension
-  char *Prefix;        // Hold filename up until the numeric extension
-  char *repFilename;   // Additional replica filenames
-  char *lowestRepName; // Filename of the lowest # replica (passed in).
-
-  // Check for lowest replica trajectory filename. Set to trajName
-  if (filenameIn==NULL && argIn!=NULL)
-    lowestRepName = argIn->getNextString();
-  else
-    lowestRepName = filenameIn;
-  if (lowestRepName==NULL) {
-    mprinterr("Error: RemdTraj::SetupRead: Filename is NULL.\n");
-    return 1;
-  }
-
-  // Check for associated parm file
-  if (parmIn==NULL) {
-    mprinterr("Error: RemdTraj::SetupRead: Parm file is NULL.\n");
-    return 1;
-  }
-  trajParm = parmIn;
-
-  // Get target temperature
-  remdtrajtemp=argIn->getKeyDouble("remdtrajtemp",0.0);
-
-  // If remdout specified, treat all arguments following remdout as 
-  // trajout arguments. Temperature trajectories will be written based 
-  // on those arguments.
-  if (argIn->hasKey("remdout")) {
-    RemdOutArgs = argIn->SplitAt("remdout");
-  }
-
-  if (debug>0) {
-    mprintf("    RemdTraj: Using specified file as lowest replica: %s\n",lowestRepName);
-    mprintf("    RemdTraj: Frames at %lf K will be processed.\n",remdtrajtemp);
-  }
-
-  // Set up lowest replica file
-  traj = new TrajectoryFile();
-  if (traj==NULL) {
-    mprinterr("Error: RemdTraj: Could not allocate memory for lowest replica.\n");
-    return 1;
-  }
-  if (traj->SetupRead(lowestRepName,NULL,trajParm)) {
-    mprinterr("    Error: RemdTraj: Could not set up lowest replica file %s\n",trajName);
-    delete traj;
-    return 1;
-  }
-
-  // Use this trajectory to set up overall stop, frames, and box info.
-  // NOTE: Should check that this is the case for ALL frames.
-  stop = traj->Total_Frames();
-  total_frames = stop;
-  //BoxType = T->BoxType;
-  // Process start, stop, and offset args from user
-  if (argIn!=NULL) {
-    // Get any user-specified start, stop, and offset args
-    // NOTE: For compatibility with ptraj start from 1
-    startArg=argIn->getNextInteger(1);
-    stopArg=argIn->getNextInteger(-1);
-    offsetArg=argIn->getNextInteger(1);
-    SetArgs(startArg,stopArg,offsetArg);
-  }
-
-  // Set replica traj name to base name of lowest replica
-  SetTrajName( traj->TrajName() );
- 
-  // Check for temperature information
-  if ( NoTempInfo(traj) ) return 1;
-
-  // Add it to the list
-  REMDtraj.push_back(traj);
-  //REMDtraj.Info();
-  numReplicas=1;
-
-  // Scan for additional REMD traj files.
-  // Assume the extension of given trajectory is the number of the lowest 
-  // replica, and that the other files are in sequence (e.g. rem.000, rem.001, 
-  // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
-  // Set up a PtrajFile here to check compression and extension.
-  remdfile.SetupFile(lowestRepName, READ, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug);
-  if (remdfile.compressType!=NONE && remdfile.Ext!=NULL) {
-    CompressExt=remdfile.Ext; 
-    lastChar = strlen(remdfile.filename) - strlen(remdfile.Ext);
-  } else {
-    CompressExt=(char*)"";
-    lastChar = strlen(remdfile.filename);
-  }
-
-  // Find location of last '.' (not including compression extension) and store it in i
-  i=-1;
-  for (j=0; j<lastChar; j++)
-    if (remdfile.filename[j]=='.') i=j;
-  if (i==-1) {
-    mprinterr("    Error: RemdTraj: Could not find numeric extension.\n");
-    mprinterr("           Check that REMD files have naming scheme NAME.X\n");
-    mprinterr("           where X is an integer of arbitrary width.\n");
-    return 1;
-  }
-
-  // Store filename up until the numeric extension
-  Prefix=(char*) malloc( (i+1) * sizeof(char));
-  strncpy(Prefix,remdfile.filename,i);
-  Prefix[i]='\0';
-  //mprintf("  REMDDEBUG: Replica filename prefix: %s\n",Prefix);
-
-  ExtWidth=lastChar - i - 1;
-  //mprintf("  REMDDEBUG: Last . in %s located at %i\n",remdfile.filename,i);
-  //mprintf("  REMDDEBUG: Allocating %i for extension\n",ExtWidth+1);
-  //mprintf("  REMDDEBUG: EXTwidth=%i\n",ExtWidth);
-  ReplicaExt=(char*) malloc( (ExtWidth+1) * sizeof(char));
-  strncpy(ReplicaExt, remdfile.filename + i + 1, ExtWidth);
-  ReplicaExt[ExtWidth]='\0'; 
-  //mprintf("  REMDDEBUG: Replica extension is %s\n",ReplicaExt);
-
-  // Check that all digits in extension are numbers 
-  for (j=0; j<ExtWidth; j++) {
-    if (isdigit(ReplicaExt[j])==0) {
-      mprinterr("    Error: RemdTraj: Character #%i (%c) in extension %s is not a number!\n",
-              j,ReplicaExt[j],ReplicaExt);
-      free(ReplicaExt);
-      free(Prefix);
-      return 1;
-    }
-  }
-
-  // Store lowest replica number
-  j=atoi(ReplicaExt);
-  //mprintf("  REMDDEBUG: index of first replica = %i\n",j);
-  free(ReplicaExt);
-
-  // Assume replica file names all have same length. 
-  // Add some padding just in case
-  repFilename=(char*) malloc( (strlen(remdfile.filename)+32) * sizeof(char));
-
-  // Search for a replica number lower than this. Correct functioning
-  // of the replica code requires the file specified by trajin be the
-  // lowest # replica.
-  sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,j-1,CompressExt);
-  if (fileExists(repFilename)) {
-    mprintf("    Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
-    mprintf("             (Found %s)\n",repFilename);
-    mprintf("             trajin <file> remdtraj requires lowest # replica!\n");
-  }   
-
-  // Search for and add all replicas higher than this.
-  j++;
-  sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,j,CompressExt);
-  while ( fileExists(repFilename) ) {
-    traj = new TrajectoryFile();
-    if (traj==NULL) {
-      mprinterr("Error: RemdTraj: Could not allocate memory for replica %0*i.\n",ExtWidth,j);
-      return 1;
-    }
-    if (traj->SetupRead(lowestRepName,NULL,trajParm)) {
-      mprinterr("    Error: RemdTraj: Could not set up replica file %s\n",repFilename);
-      delete traj;
-      free(repFilename);
-      free(Prefix);
-      return 1;
-    }
-    // Check for temperature information
-    if ( NoTempInfo(traj) ) {
-      delete traj;
-      free(repFilename);
-      free(Prefix);
-      return 1;
-    }
-    // Check that #Frames and box info matches
-    //if ( Frames!=T->Frames || BoxType!=T->BoxType ) {
-    if ( total_frames!=traj->Total_Frames() ) {
-      mprinterr("    Error: RemdTraj: #Frames (%i) in replica %i does not match\n",
-                traj->Total_Frames(), j);
-      mprinterr("           %i frames in lowest replica\n", total_frames);
-      delete traj;
-      free(repFilename);
-      free(Prefix);
-      return 1;
-    }
-    // Set start/stop/offset args
-    // Offset of 1 is for compatibility with ptraj - user frame #s are
-    // offset +1 from internal cpptraj frame #s
-    traj->SetArgs(start+1,stop,offset);
-    // Add it to the list
-    REMDtraj.push_back(traj);
-    // Increment
-    j++;
-    numReplicas++;
-    sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,j,CompressExt);
-  }
-  free(repFilename);
-  free(Prefix);
-  return 0;
-}
-*/
-
-/* RemdTraj::GetTemperatureList()
+/* RemdTraj::SetupTemperatureList()
  * For each REMD input traj get the temperature of the first frame to
- * create a complete list of replica temperatures.
+ * create a complete list of replica temperatures. This list is used
+ * when writing out temperature trajectories from input replica
+ * trajectories.
  */
 int RemdTraj::SetupTemperatureList(int natom) {
   std::vector<TrajectoryIO*>::iterator replica;
-  double *X, box[6];
   int repnum = 0;
   int err = 0;
 
-  // Allocate temp space for reading in coords 
-  X = (double*) malloc( natom * 3 * sizeof(double));
-  if (X==NULL) return 1;
+  // Allocate space for reading in coords
+  remdN = natom * 3; 
+  remdX = (double*) malloc( remdN * sizeof(double));
+  if (remdX==NULL) return 1;
   // Allocate space for temperature list
   repnum = (int) REMDtraj.size();
   TemperatureList = (double*) malloc(repnum*sizeof(double));
@@ -279,7 +74,7 @@ int RemdTraj::SetupTemperatureList(int natom) {
       err = 1;
     } else {
       // Read 1 frame to get temperature
-      err = ((*replica)->readFrame(0,X, box, TemperatureList+repnum));
+      err = ((*replica)->readFrame(0,remdX, remdbox, TemperatureList+repnum));
       mprintf("      Rep %i T = %6.2lf\n",repnum,TemperatureList[repnum]);
       repnum++;
       // Close input traj
@@ -288,7 +83,7 @@ int RemdTraj::SetupTemperatureList(int natom) {
     // If err!=0 an error occurred, bail out.
     if (err!=0) break;
   }
-  free(X);
+  if (err==0) hasTrajout=true;
   return err;
 }
 
@@ -386,20 +181,40 @@ char *RemdTraj::GetLowestReplicaName() {
   return repFilename;
 }
 
+/* RemdTraj::GetTemperatureName()
+ * If the temperature list has been set up, return a filename with the 
+ * specified replica numbers temperature appended to it. Note that the
+ * replica numbers in this case start from 0 as opposed to incoming
+ * replica filenames, where the lowest replica number can be arbitrary.
+ */
+char *RemdTraj::GetTemperatureName(char *prefix, int repnum) {
+  if (TemperatureList==NULL) {
+    mprinterr("Error: RemdTraj::GetTemperatureName: TemperatureList not set.\n");
+    return NULL;
+  }
+  if (prefix==NULL) return NULL;
+  if (repnum<0 || repnum > (int) REMDtraj.size()) return NULL;
+  repOutname = (char*) realloc(repOutname, (strlen(prefix)+32) * sizeof(char));
+  sprintf(repOutname,"%s.%6.2lf",prefix,TemperatureList[repnum]);
+  return repOutname;
+}
+
 /* RemdTraj::openTraj()
  * Open each trajectory in the list. 
  */
 int RemdTraj::openTraj() {
   std::vector<TrajectoryIO *>::iterator replica;
+  // DEBUG
+  mprintf("REMD: OPENING REMD TRAJECTORIES\n");
   // Open the trajectory
   for (replica=REMDtraj.begin(); replica!=REMDtraj.end(); replica++)
-    (*replica)->openTraj();
+    if ((*replica)->openTraj()) return 1;
 
-  // Open output trajectories
-  //if (RemdOutArgs!=NULL) {
-  //  for (traj=REMDtrajout.begin(); traj!=REMDtrajout.end(); traj++)
-  //    (*traj)->BeginTraj(false);
-  //}
+  // Open output trajectories for writing
+  if (hasTrajout) {
+    for (replica=REMDtrajout.begin(); replica!=REMDtrajout.end(); replica++) 
+      if ((*replica)->openTraj()) return 1;
+  }
 
   return 0;
 }
@@ -414,10 +229,10 @@ void RemdTraj::closeTraj() {
     (*replica)->closeTraj();
 
   // Close output trajectories
-  //if (RemdOutArgs!=NULL) {
-  //  for (traj=REMDtrajout.begin(); traj!=REMDtrajout.end(); traj++)
-  //    (*traj)->EndTraj();
-  //}
+  if (hasTrajout) {
+    for (replica=REMDtrajout.begin(); replica!=REMDtrajout.end(); replica++)
+      (*replica)->closeTraj();
+  }
 }
 
 /* RemdTraj::readFrame()
@@ -440,7 +255,7 @@ int RemdTraj::readFrame(int set, double *X, double *box, double *T) {
 
     // All input REMD trajectories converted to temperature trajectories. 
     } else {
-      // remdframe is allocated in SetupRead
+      // remdX, remdN is allocated in SetupTemperatureList 
       if ((*reptrajin)->readFrame(set,remdX,remdbox,&remdT)) return 1;
       // Check if this is the target temp. If so, set main Frame coords/box/temp
       if (remdT == remdtrajtemp) {
@@ -486,9 +301,11 @@ int RemdTraj::readFrame(int set, double *X, double *box, double *T) {
 void RemdTraj::info() {
   mprintf("REMD trajectories (%i total)\n", (int)REMDtraj.size());
   if (hasTrajout) {
-    mprintf("        remdout: trajectories will be converted to temperature trajectories:\n");
-    //REMDtrajout.Info(8);
+    mprintf("  remdout: trajectories will be converted to temperature trajectories (%i total):\n",
+            (int)REMDtrajout.size());
+    for (int repnum=0; repnum < (int)REMDtraj.size(); repnum++)
+      mprintf("\t\t[%6.2lf]\n",TemperatureList[repnum]);
   }
   mprintf("        Looking for frames at %8.2lf K",remdtrajtemp);
 }
-    
+ 

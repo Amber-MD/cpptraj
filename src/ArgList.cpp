@@ -15,6 +15,8 @@ ArgList::ArgList() {
   argline=NULL;
 }
 
+// NOTE: Check Arg, ReplaceArg, SplitAt etc to see how often they are used.
+
 // CONSTRUCTOR
 // Separate input by the characters in separator and store as separate args
 ArgList::ArgList(char *input, const char *separator) {

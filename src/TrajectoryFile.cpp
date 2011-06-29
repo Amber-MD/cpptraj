@@ -2,7 +2,7 @@
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 #include <cstdlib> //div_t
-#include <cstring>
+#include <cstring> // TrajName
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
 #ifdef BINTRAJ
@@ -69,7 +69,7 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
  * corresponding to a replica. Returns a RemdTraj trajio class.
  */
 TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtrajtemp, 
-                                              ArgList *RemdOutArgs) 
+                                              char *remdout, FileFormat remdfmt) 
 {
   RemdTraj *remdio=NULL;
   TrajectoryIO *replica0=NULL;
@@ -136,14 +136,18 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
       return NULL;
     }
     // Check box information
-   
+    if ( replica0->hasBox != trajio->hasBox ) {
+      mprinterr("    Error: RemdTraj: Replica %i box info does not match lowest replica.\n");
+      delete remdio;
+      return NULL;
+    }
     // Increment
     repnum++;
     repFilename = remdio->GetReplicaName(repnum);
   }
 
   // If remdout was specified, set up output trajectories
-  if (RemdOutArgs!=NULL) {
+  if (remdout!=NULL) {
     // Set up temperature list
     if ( remdio->SetupTemperatureList(trajParm->natom) ) {
       mprinterr("Error: RemdTraj: remdout: could not get temperature list.\n");
@@ -153,23 +157,22 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
     // BEGIN LOOP over Temperature
     for (repnum=0; repnum < (int)remdio->REMDtraj.size(); repnum++) { 
       // Set up output filename for this temperature
-      //sprintf(repFilename,"%s.%6.2lf",RemdOutArgs->Arg(1),remdio->TemperatureList[j]);
+      repFilename = remdio->GetTemperatureName(remdout,repnum);
       mprintf("    Creating remd output traj: %s\n",repFilename);
-      // Replace the filename arg at position 1 with filename.Temperature
-      //if ( RemdOutArgs->ReplaceArg(1,repFilename) ) {
-      //  mprinterr("Error: RemdTraj::setup(): Could not set output replica traj filename [%s].\n",
-      //            repFilename);
-      //  j=-1;
-      //}
-      //RemdOutArgs->print(); // DEBUG
-      // Set up output remd traj file. Reset the arglist so all args are available.
-      //RemdOutArgs->Reset();
-      //replica0 = new TrajectoryIO();
-      //if ( REMDtrajout.Add(NULL, RemdOutArgs, trajParm) ) {
-      //  mprinterr("    Error: remdtraj remdout: Could not set up output traj %s\n",repFilename);
-      //  j=-1;
-      //}
-      // Close input traj
+      // Set up file with given type and format, and set up replica0 for the format.
+      if ( (replica0=setupTrajIO(repFilename,WRITE,remdfmt,UNKNOWN_TYPE))==NULL ) {
+        mprinterr("    Error: Could not set up T-replica file %s for writing.\n",repFilename);
+        delete remdio;
+        return NULL;
+      }
+      // Add to the remd trajout list
+      remdio->REMDtrajout.push_back( replica0 );
+      // Set up write here, trajParm will not change
+      replica0->hasBox = trajio->hasBox;
+      if (replica0->setupWrite(trajParm->natom)) {
+        delete remdio;
+        return NULL;
+      }
     } // END LOOP over input remd trajectories
   } // END REMDtrajout
 
@@ -182,7 +185,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
 }
 
 /* TrajectoryFile::setupTrajIO()
- * Set up basic trajectory file for read/write/append. Set the trajectory
+ * Set up basic trajectory file for given access type. Set the trajectory
  * name to be the base filename. Return the trajectory IO object for 
  * the format.
  */
@@ -191,9 +194,8 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
   TrajectoryIO *tio = NULL;
   PtrajFile *basicTraj = NULL;
 
-  fileAccess=accIn;
   basicTraj = new PtrajFile();
-  if (basicTraj->SetupFile(tname,fileAccess,fmtIn,typeIn,debug)) {
+  if (basicTraj->SetupFile(tname,accIn,fmtIn,typeIn,debug)) {
     mprinterr("    Error: Could not set up file %s.\n",tname);
     delete basicTraj;
     return NULL;
@@ -380,8 +382,9 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   char *tname = NULL;
   // REMD
   double remdtrajtemp = 0.0;
-  ArgList *RemdOutArgs = NULL;
+  char *remdout = NULL;
   bool remdtraj=false;
+  FileFormat remdfmt = AMBERTRAJ;
 
   // Check for trajectory filename
   if (tnameIn==NULL && argIn!=NULL)
@@ -411,12 +414,21 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     remdtraj=true;
     // Get target temperature
     remdtrajtemp=argIn->getKeyDouble("remdtrajtemp",0.0);
-    // If remdout specified, treat all following args as belonging to
-    // a trajout statement, used for writing out temperature trajectories.
-    if (argIn->hasKey("remdout")) {
-      RemdOutArgs = argIn->SplitAt("remdout");
+    // If remdout specified, get a filename and optionally a format keyword
+    // (default amber traj if none specified) that will be used for writing 
+    // out temperature trajectories. Currently only AmberNetcdf and AmberTraj
+    // formats supported for this option.
+    remdout = argIn->getKeyString("remdout",NULL);
+    if (remdout!=NULL) remdfmt=getFmtFromArg(argIn,AMBERTRAJ);
+    if (remdfmt!=AMBERTRAJ && remdfmt!=AMBERNETCDF) {
+      mprinterr("Error: remdout (%s): Unsupported format. Currently only amber\n",remdout);
+      mprinterr("       trajectory and amber netcdf files supported for remdout.\n");
+      return 1;
     }
   }
+
+  // Set this trajectory access to READ
+  fileAccess = READ;
 
   // Set up file; among other things this will determine the type and 
   // format, and set up trajio for the format.
@@ -480,7 +492,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     }
     // Replace this trajio with a special replica traj one that will contain
     // trajio objects for all replicas
-    if ( (trajio = setupRemdTrajIO(tname, remdtrajtemp, RemdOutArgs))==NULL )
+    if ( (trajio = setupRemdTrajIO(tname, remdtrajtemp, remdout, remdfmt))==NULL )
       return 1;
   }
   
@@ -535,7 +547,24 @@ int TrajectoryFile::setupFrameInfo() {
 
   return total_read_frames;
 }
-  
+
+/* TrajectoryFile::getFmtFromArg()
+ * Given an arglist, search for one of the file format keywords.
+ * Default to def. 
+ * NOTE: def should probably not be allowed to be UNKNOWN_FORMAT,
+ * but this is currently not explicitly checked.
+ */
+FileFormat TrajectoryFile::getFmtFromArg(ArgList *argIn, FileFormat def) {
+  FileFormat writeFormat = def;
+  if (argIn==NULL) return writeFormat;
+  if      ( argIn->hasKey("pdb")      ) writeFormat=PDBFILE;
+  else if ( argIn->hasKey("data")     ) writeFormat=DATAFILE;
+  else if ( argIn->hasKey("netcdf")   ) writeFormat=AMBERNETCDF;
+  else if ( argIn->hasKey("restart")  ) writeFormat=AMBERRESTART;
+  else if ( argIn->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
+  else if ( argIn->hasKey("mol2")     ) writeFormat=MOL2FILE;
+  return writeFormat;
+}
 
 /* TrajectoryFile::SetupWrite()
  * Set up trajectory for writing. Output trajectory filename can be specified
@@ -543,12 +572,13 @@ int TrajectoryFile::setupFrameInfo() {
  * argument list. Associate with the given parm file initially, but setup for 
  * the format is performed on the first write call to accomodate state changes
  * like stripped atoms and so on. 
+ * NOTE: make remdtraj a generic trigger for hasTemperature?
  */
 int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn,
-                               FileFormat writeFormat) {
+                               FileFormat writeFormatIn) {
   char *tname = NULL;
   AccessType access = WRITE;
-  //FileFormat writeFormat = AMBERTRAJ;
+  FileFormat writeFormat = writeFormatIn;
   FileType writeType = UNKNOWN_TYPE;
   char *onlyframes=NULL;
 
@@ -573,20 +603,17 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
   trajParm = tparmIn;
 
   // Process arguments related to access and format
-  if (argIn!=NULL) {
-    // Check for append keyword
-    if ( argIn->hasKey("append") ) access = APPEND;
-
-    // Set the write file format
-    if      ( argIn->hasKey("pdb")      ) writeFormat=PDBFILE;
-    else if ( argIn->hasKey("data")     ) writeFormat=DATAFILE;
-    else if ( argIn->hasKey("netcdf")   ) writeFormat=AMBERNETCDF;
-    else if ( argIn->hasKey("restart")  ) writeFormat=AMBERRESTART;
-    else if ( argIn->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
-    else if ( argIn->hasKey("mol2")     ) writeFormat=MOL2FILE;
-  }
+  // Set the write file format from arglist; if no format keywords present
+  // this will default to writeFormatIn
+  writeFormat = getFmtFromArg(argIn, writeFormatIn);
   // If still unknown format default to amber trajectory
   if (writeFormat==UNKNOWN_FORMAT) writeFormat=AMBERTRAJ;
+
+  // Check for append keyword
+  if (argIn!=NULL && argIn->hasKey("append")) access = APPEND;
+
+  // Set this trajectory access to the specified type
+  fileAccess = access;
 
   // Set up file with given type and format, and set up trajio for the format.
   if( (trajio=setupTrajIO(tname,access,writeFormat,writeType))==NULL ) {
@@ -762,8 +789,9 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
                       trajParm->resnums,trajParm->bonds,trajParm->bondsh,
                       trajParm->charge);
     }
-    // Use parm to set up box info unless nobox was specified.
+    // Use parm to set up box info for the traj unless nobox was specified.
     // If box angles are present in traj they will be used instead.
+    // NOTE: Probably not necessary to set box angles here, they are passed in
     if (!nobox) {
       if (trajParm->boxType!=NOBOX) {
         trajio->hasBox=true;
