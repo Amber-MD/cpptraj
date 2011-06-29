@@ -42,6 +42,7 @@ class PtrajFile {
     typedef char enumToken[30];
     static const enumToken FileFormatList[];
     static const enumToken FileTypeList[];
+    static const enumToken AccessList[];
 
     int isOpen;
     int debug;

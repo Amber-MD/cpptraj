@@ -35,6 +35,9 @@ const PtrajFile::enumToken PtrajFile::FileFormatList[13] = {
 const PtrajFile::enumToken PtrajFile::FileTypeList[6] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
 };
+const PtrajFile::enumToken PtrajFile::AccessList[3] = {
+  "R", "W", "A"
+};
 
 // CONSTRUCTOR
 PtrajFile::PtrajFile() {
@@ -179,8 +182,8 @@ void PtrajFile::SetBaseFilename() {
     ptr = strtok(NULL,"/");
   }
   if (debug>0) {
-    printf("DEBUG: SetBaseFilename: Filename is %s\n",filename);
-    printf("                        Base filename is %s\n",basefilename);
+    mprintf("\tSetBaseFilename: Filename is %s\n",filename);
+    mprintf("\t                 Base filename is %s\n",basefilename);
   }
   free(tempFilename);
 
@@ -192,13 +195,13 @@ void PtrajFile::SetBaseFilename() {
   if (i<0) {
     Ext=NULL;
     if (debug>0) 
-      mprintf("PtrajFile: No extension.\n");
+      mprintf("\t                 No extension.\n");
     return;
   } 
   Ext = (char*) malloc( (strlen(basefilename+i) + 1) * sizeof(char));
   strcpy(Ext, basefilename+i);
   if (debug>0)
-    mprintf("PtrajFile: Extension= %s  Length= %lu\n",Ext,strlen(basefilename+i));
+    mprintf("\t                 Ext= %s  Len= %lu\n",Ext,strlen(basefilename+i));
 }
 
 /* 
@@ -216,14 +219,13 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
 #ifndef __PGI
   glob_t globbuf;
 #endif
-
-  // DEBUG
-  if (debug>1) {
-    printf("PTRAJFILE::SETUPFILE0: %s called with format %s and type %s\n",filenameIn,
-           FileFormatList[fileFormatIn],FileTypeList[fileTypeIn]);
+  debug=debugIn;
+  if (debug>0) {
+    mprintf("PtrajFile: [%s] FMT %s, TYPE %s, ACC %s\n",filenameIn,
+           FileFormatList[fileFormatIn],FileTypeList[fileTypeIn],
+           AccessList[accessIn]);
   }
 
-  debug=debugIn;
   // Store filename
   if (filenameIn!=NULL) {
     filename=(char*) malloc( (strlen(filenameIn)+1) * sizeof(char) );
@@ -239,7 +241,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
     }
     globbuf.gl_offs = 1;
     if ( glob(filename, GLOB_TILDE, NULL, &globbuf)!=0 ) return 1; 
-    if (debug>1) mprintf("  GLOB(0): [%s]\n",globbuf.gl_pathv[0]);
+    if (debug>1) mprintf("\tGLOB(0): [%s]\n",globbuf.gl_pathv[0]);
     filename=(char*) realloc( filename, (strlen(globbuf.gl_pathv[0])+1) * sizeof(char));
     strcpy(filename, globbuf.gl_pathv[0]);
     globfree(&globbuf);
@@ -267,8 +269,8 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
     default: return 1;
   }
   if (debug>0)
-    rprintf("PtrajFile::SetupFile: %s is format %s and type %s\n",filename,
-           FileFormatList[fileFormat],FileTypeList[fileType]);
+    rprintf("\t[%s] is format %s and type %s with access %s\n",filename,
+           FileFormatList[fileFormat],FileTypeList[fileType],AccessList[access]);
   return 0;
 }
 
@@ -338,8 +340,8 @@ int PtrajFile::SetupRead() {
   // An error here means file probably doesnt exist. Dont print an error at 
   // basic debug level since this could also be used to test if file exists.
   if (stat(filename, &frame_stat) == -1) {
+    mprinterr( "Error: PtrajFile::SetupRead: Could not find file status for %s\n", filename);
     if (debug>0) {
-      mprintf( "ERROR: PtrajFile::SetupRead: Could not find file status for %s\n", filename);
       perror("     Error from stat: ");
     }
     return 1;
@@ -361,8 +363,7 @@ int PtrajFile::SetupRead() {
   IO->Read(magic+1,1,1);
   IO->Read(magic+2,1,1);
   IO->Close();
-  if (debug>0) mprintf("File: %s: Hex sig: %x %x %x", filename,
-                       magic[0],magic[1],magic[2]);
+  if (debug>0) mprintf("\t    Hex sig: %x %x %x", magic[0],magic[1],magic[2]);
 
   // Check compression
   if ((magic[0]==0x1f) && (magic[1]==0x8b) && (magic[2]==0x8)) {
@@ -426,8 +427,7 @@ int PtrajFile::SetupRead() {
   IO->Read(magic+1,1,1);
   IO->Read(magic+2,1,1);
   IO->Close();
-  if (debug>0) mprintf("File: %s: Hex sig 2: %x %x %x", filename,
-                       magic[0],magic[1],magic[2]);
+  if (debug>0) mprintf("\t    Hex sig 2: %x %x %x", magic[0],magic[1],magic[2]);
 
   // NETCDF
   if (magic[0]==0x43 && magic[1]==0x44 && magic[2]==0x46) {
