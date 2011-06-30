@@ -42,8 +42,12 @@ Frame::Frame(int natomIn, double *MassIn, bool hasVelocity) {
   box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
   T=0.0;
   V=NULL;
-  if (hasVelocity)
+  if (hasVelocity) {
     V = (double*) malloc( N * sizeof(double));
+    // Since V will not necessarily be read in, initialize it.
+    for (int coord=0; coord<N; coord++)
+      V[coord]=0.0;
+  }
   Mass=NULL;
   if (MassIn!=NULL) {
     Mass = (double*) malloc(natom * sizeof(double));
