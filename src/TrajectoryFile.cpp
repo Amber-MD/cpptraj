@@ -369,8 +369,15 @@ int TrajectoryFile::SetBoxType(TrajectoryIO *tio) {
  * will be processed.
  */
 void TrajectoryFile::SingleFrame() {
-  stop = start+1;
+  stop = start + 1;
   offset = 1;
+  // Call setupFrameInfo to recalc total_read_frames. Since setupFrameInfo 
+  // should have already been called in SetupRead (and thus any errors 
+  // handled there) dont check for an error here. It should return 1.
+  if ( setupFrameInfo() != 1 ) {
+    mprinterr("  Error: Single frame requested for %s but not calcd!\n",trajName);
+    mprinterr("         start/stop/offset (%i, %i, %i)\n",start+1,stop+1,offset);
+  }
 }
 
 /* TrajectoryFile::SetupRead()
