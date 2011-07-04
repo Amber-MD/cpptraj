@@ -47,8 +47,8 @@ class TrajectoryFile {
     int SetupWrite(char *, ArgList *, AmberParm *, FileFormat);
     int BeginTraj(bool);
     int EndTraj();
-    int GetNextFrame(double*,double*,double*);
-    int WriteFrame(int, AmberParm *, double*,double*,double);
+    int GetNextFrame(double*,double*,double*,double*);
+    int WriteFrame(int, AmberParm *, double*,double*,double*,double);
     // Public functions
     void SetDebug(int);
     void SingleFrame();

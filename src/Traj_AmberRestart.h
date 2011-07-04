@@ -13,15 +13,14 @@ class AmberRestart : public TrajectoryIO {
     bool hasVelocity;     // This restart file has velocity info
     double restartTime;   // Time in restart file, read in
     double restartTemp;   // (Optional) replica temperature, read in.
-    double *velocities;   // Hold velocities
 
     // Inherited functions
     int setupRead(int);
     int setupWrite(int);
     int openTraj();
     void closeTraj();
-    int readFrame(int,double*,double*,double*);
-    int writeFrame(int,double*,double*,double);
+    int readFrame(int,double*,double*,double*,double*);
+    int writeFrame(int,double*,double*,double*,double);
     void info();
 
     void getBoxAngles(char *, int);

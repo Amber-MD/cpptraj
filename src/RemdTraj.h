@@ -15,6 +15,7 @@ class RemdTraj : public TrajectoryIO {
     int lowestRepnum; // Hold the lowest replica number
     bool hasTrajout; // True if writing replica trajectories during read
     double *remdX; // Hold coords of replica traj for writing out
+    double *remdV; 
     double remdbox[6];
     double remdT;
     int remdN; // For output trajectories, number of coords.
@@ -24,7 +25,7 @@ class RemdTraj : public TrajectoryIO {
     // Inherited functions
     int openTraj();
     void closeTraj();
-    int readFrame(int,double*,double*,double*);
+    int readFrame(int,double*,double*,double*,double*);
     //int writeFrame(int,double*,double*,double);
     void info();
 

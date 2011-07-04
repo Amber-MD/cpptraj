@@ -15,7 +15,6 @@ AmberRestart::AmberRestart() {
   hasVelocity=false;
   restartTime=0;
   restartTemp=-1.0;
-  velocities=NULL;
   // Set seekable since only 1 frame read (i.e. we know size) 
   seekable=true;
 }
@@ -26,7 +25,6 @@ AmberRestart::~AmberRestart() {
   // Close file. Should be safe
   closeTraj();
   if (frameBuffer!=NULL) free(frameBuffer);
-  if (velocities!=NULL) free(velocities);
 }
 
 /* AmberRestart::closeTraj()
@@ -128,8 +126,6 @@ int AmberRestart::setupWrite(int natom) {
   // One extra char for NULL
   frameBuffer=(char*) calloc(frameSize+1, sizeof(char));
 
-  velocities = (double*) realloc(velocities, natom3 * sizeof(double));
-
   return 0;
 }
 
@@ -222,8 +218,6 @@ int AmberRestart::setupRead(int natom) {
   if (hasBox) frameSize+=( (numBoxCoords*12) + 1 );
   frameBuffer=(char*) realloc(frameBuffer, frameSize*sizeof(char));
 
-  velocities = (double*) realloc(velocities, natom3 * sizeof(double));
-
   if (debug > 0) {
     mprintf("    Amber Restart hasBox=%i hasVelocity=%i numBoxCoords=%i\n",
             (int)hasBox,(int)hasVelocity,numBoxCoords);
@@ -238,7 +232,7 @@ int AmberRestart::setupRead(int natom) {
 /* AmberRestart::readFrame()
  * Get the restart file frame. If velocities are present, read those too.
  */
-int AmberRestart::readFrame(int set,double *X,double *box, double *T) {
+int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) {
   char *bufferPosition;
   // Read restart coords into frameBuffer
   if ( tfile->IO->Read(frameBuffer,sizeof(char),frameSize)==-1 ) {
@@ -256,8 +250,8 @@ int AmberRestart::readFrame(int set,double *X,double *box, double *T) {
     return 1;  
   }
   // Get velocity from buffer if present
-  if (hasVelocity) {
-    if ( (bufferPosition = BufferToDouble(bufferPosition, velocities, natom3, 12))==NULL ) {
+  if (hasVelocity && V!=NULL) {
+    if ( (bufferPosition = BufferToDouble(bufferPosition, V, natom3, 12))==NULL ) {
       mprintf("Error: AmberRestart::getFrame: * detected in velocities of %s\n",
               tfile->filename);
       return 1;
@@ -280,7 +274,7 @@ int AmberRestart::readFrame(int set,double *X,double *box, double *T) {
  * Write coords in Frame to file in amber restart format. Always calculate the 
  * frame size since coords may have been stripped from Frame.
  */
-int AmberRestart::writeFrame(int set, double *X, double *box, double T) {
+int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double T) {
   char buffer[1024];
   char *bufferPosition;
 
@@ -300,6 +294,8 @@ int AmberRestart::writeFrame(int set, double *X, double *box, double T) {
   // Write coords to buffer
   bufferPosition = DoubleToBuffer(frameBuffer,X,natom3,"%12.7lf",12,6);
   // Write velocity to buffer
+  if (hasVelocity && V!=NULL)
+    bufferPosition = DoubleToBuffer(frameBuffer,V,natom3,"%12.7lf",12,6);
   //if (F->V!=NULL)  // NOTE: Use hasVelocity in addition/instead?
   //  bufferPosition = DoubleToBuffer(bufferPosition,F->V->X,F->N,"%12.7lf",12,6);
   // Write box to buffer

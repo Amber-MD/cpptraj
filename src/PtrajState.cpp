@@ -19,8 +19,7 @@ PtrajState::~PtrajState() {
     delete (*it); 
 }
 
-/*
- * PtrajState::SetGlobalDebug()
+/* PtrajState::SetGlobalDebug()
  * Set the debug level for all components of PtrajState.
  */
 void PtrajState::SetGlobalDebug(int debugIn) {
@@ -34,8 +33,7 @@ void PtrajState::SetGlobalDebug(int debugIn) {
   DFL.SetDebug(debug);
 }
 
-/* 
- * PtrajState::ProcessCmdLineArgs()
+/* PtrajState::ProcessCmdLineArgs()
  * Process arguments on the command line. Process the input file last
  * despite its position on the command line to allow any prmtops to
  * load.
@@ -87,6 +85,9 @@ int PtrajState::ProcessCmdLineArgs(int argc, char **argv) {
 #ifdef MPI
       mprintf(" -DMPI");
 #endif
+#ifdef _OPENMP
+      mprintf(" -openmp");
+#endif
       return 2;
 
     // The following 2 are for backwards compatibility with PTRAJ
@@ -110,8 +111,7 @@ int PtrajState::ProcessCmdLineArgs(int argc, char **argv) {
   return 0;
 }
 
-/*
- * PtrajState::ProcessInputStream()
+/* PtrajState::ProcessInputStream()
  * Process input from the file specified by filename. If filename is NULL
  * process input from STDIN. Set up an argument list and execute commands
  * via the Dispatch routine. 
@@ -211,8 +211,7 @@ int PtrajState::ProcessInputStream(char *inputFilename) {
   return 0;
 }
 
-/* 
- * PtrajState::Dispatch()
+/* PtrajState::Dispatch()
  * Send commands to their appropriate classes.
  * The command is tried on each class in turn. If the class rejects command
  * move onto the next one. If command is accepted return.
@@ -287,8 +286,7 @@ void PtrajState::Dispatch() {
   mprintf("Warning: Unknown Command %s.\n",A->Command());
 }
 
-/*
- * PtrajState::ProcessDataFileCmd()
+/* PtrajState::ProcessDataFileCmd()
  * Process command relating to data files. All datafile commands have format:
  *   datafile <cmd> <datafile> ...
  */
@@ -373,8 +371,7 @@ void PtrajState::ProcessDataFileCmd() {
   } // END loop over datafile args
 }  
 
-/* 
- * PtrajState::Run()
+/* PtrajState::Run()
  * Process trajectories in trajFileList. Each frame in trajFileList is sent
  * to the actions in ptrajActionList for processing.
  */
@@ -434,7 +431,7 @@ int PtrajState::Run() {
     if (lastPindex != CurrentParm->pindex) {
       // Set up the incoming trajectory frame for this parm
       if (TrajFrame!=NULL) delete TrajFrame;
-      TrajFrame = new Frame(CurrentParm->natom, CurrentParm->mass);
+      TrajFrame = new Frame(CurrentParm->natom, CurrentParm->mass, true);
       // Set up actions for this parm
       if (ptrajActionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
@@ -447,7 +444,7 @@ int PtrajState::Run() {
     }
 
     // Loop over every Frame in trajectory
-    while ( (*traj)->GetNextFrame(TrajFrame->X, TrajFrame->box, &(TrajFrame->T)) ) {
+    while ( (*traj)->GetNextFrame(TrajFrame->X, TrajFrame->V, TrajFrame->box, &(TrajFrame->T)) ) {
       // Since Frame can be modified by actions, save original and use CurrentFrame
       CurrentFrame = TrajFrame;
       // Perform Actions on Frame

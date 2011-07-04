@@ -35,8 +35,6 @@ AmberRestartNC::AmberRestartNC() {
   cell_angularVID=-1;
   TempVID=-1;
 
-  velocities=NULL;
-
   // Netcdf restarts always have 1 frame so always seekable
   seekable=true;
 } 
@@ -45,7 +43,6 @@ AmberRestartNC::AmberRestartNC() {
 AmberRestartNC::~AmberRestartNC() {
   //fprintf(stderr,"Amber Netcdf Restart Destructor\n");
   // NOTE: Need to close file?
-  if (velocities!=NULL) free(velocities);
 }
 
 /* AmberRestartNC::closeTraj()
@@ -189,7 +186,6 @@ int AmberRestartNC::setupRead(int natom) {
     mprinterr("       match those in associated parmtop (%i)!\n",natom);
     return -1;
   }
-  velocities = (double*) realloc(velocities, ncatom3 * sizeof(double));
 
   closeTraj();
   return 1;
@@ -201,7 +197,6 @@ int AmberRestartNC::setupRead(int natom) {
 int AmberRestartNC::setupWrite(int natom) {
   ncatom = natom;
   ncatom3 = natom * 3;
-  velocities = (double*) realloc(velocities, ncatom3 * sizeof(double));
   return 0;
 }
 
@@ -360,7 +355,7 @@ int AmberRestartNC::setupWriteForSet(int set) {
  * Get the specified frame from amber netcdf file
  * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
  */
-int AmberRestartNC::readFrame(int set,double *X, double *box, double *T) {
+int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *T) {
   size_t start[2], count[2];
 
   // Get temperature
@@ -379,9 +374,9 @@ int AmberRestartNC::readFrame(int set,double *X, double *box, double *T) {
                   "Getting Coords")!=0 ) return 1;
 
   // Read Velocity
-  if (hasVelocity) {
+  if (hasVelocity && V!=NULL) {
     //if (F->V==NULL) F->V = new Frame(ncatom,NULL);
-    if ( checkNCerr(nc_get_vara_double(ncid, velocityVID, start, count, velocities),
+    if ( checkNCerr(nc_get_vara_double(ncid, velocityVID, start, count, V),
                     "Getting velocities")!=0 ) return 1;
   }
 
@@ -400,7 +395,7 @@ int AmberRestartNC::readFrame(int set,double *X, double *box, double *T) {
 
 /* AmberRestartNC::writeFrame() 
  */
-int AmberRestartNC::writeFrame(int set, double *X, double *box, double T) {
+int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double T) {
   size_t start[2], count[2];
 
   // Set up file for this set
@@ -416,7 +411,7 @@ int AmberRestartNC::writeFrame(int set, double *X, double *box, double T) {
 
   // write velocity
   if (hasVelocity) {
-    if (checkNCerr(nc_put_vara_double(ncid,velocityVID,start,count,velocities),
+    if (checkNCerr(nc_put_vara_double(ncid,velocityVID,start,count,V),
         "Netcdf restart writing velocity %i",set)) return 1;
   }
 

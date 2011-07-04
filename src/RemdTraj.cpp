@@ -20,6 +20,7 @@ RemdTraj::RemdTraj() {
   TemperatureList=NULL;
   // Used for writing replica trajectories
   remdX = NULL;
+  remdV = NULL;
   remdbox[0]=0.0;
   remdbox[1]=0.0;
   remdbox[2]=0.0;
@@ -45,6 +46,7 @@ RemdTraj::~RemdTraj() {
   if (repOutname!=NULL) free(repOutname);
   if (CompressExt!=NULL) free(CompressExt);
   if (remdX!=NULL) free(remdX);
+  if (remdV!=NULL) free(remdV);
 }
 
 /* RemdTraj::SetupTemperatureList()
@@ -58,10 +60,12 @@ int RemdTraj::SetupTemperatureList(int natom) {
   int repnum = 0;
   int err = 0;
 
-  // Allocate space for reading in coords
+  // Allocate space for reading in coords and velocities
   remdN = natom * 3; 
   remdX = (double*) malloc( remdN * sizeof(double));
   if (remdX==NULL) return 1;
+  remdV = (double*) malloc( remdN * sizeof(double));
+  if (remdV==NULL) return 1;
   // Allocate space for temperature list
   repnum = (int) REMDtraj.size();
   TemperatureList = (double*) malloc(repnum*sizeof(double));
@@ -74,7 +78,7 @@ int RemdTraj::SetupTemperatureList(int natom) {
       err = 1;
     } else {
       // Read 1 frame to get temperature
-      err = ((*replica)->readFrame(0,remdX, remdbox, TemperatureList+repnum));
+      err = ((*replica)->readFrame(0,remdX, remdV, remdbox, TemperatureList+repnum));
       mprintf("      Rep %i T = %6.2lf\n",repnum,TemperatureList[repnum]);
       repnum++;
       // Close input traj
@@ -237,7 +241,7 @@ void RemdTraj::closeTraj() {
 
 /* RemdTraj::readFrame()
  */
-int RemdTraj::readFrame(int set, double *X, double *box, double *T) {
+int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
   std::vector<TrajectoryIO *>::iterator reptrajin;
   std::vector<TrajectoryIO *>::iterator reptrajout;
   int trajout, nrep;
@@ -246,7 +250,7 @@ int RemdTraj::readFrame(int set, double *X, double *box, double *T) {
   for (reptrajin=REMDtraj.begin(); reptrajin!=REMDtraj.end(); reptrajin++) {
     // No conversion to replica trajectories: Just find target temp
     if (!hasTrajout) {
-      if ((*reptrajin)->readFrame(set,X,box,T)) return 1;
+      if ((*reptrajin)->readFrame(set,X,V,box,T)) return 1;
       // Check if this is the target temp
       if (*T == remdtrajtemp) {
         //printf("REMDTRAJ: Set %i TEMP=%lf\n",set,F->T);
@@ -255,13 +259,15 @@ int RemdTraj::readFrame(int set, double *X, double *box, double *T) {
 
     // All input REMD trajectories converted to temperature trajectories. 
     } else {
-      // remdX, remdN is allocated in SetupTemperatureList 
-      if ((*reptrajin)->readFrame(set,remdX,remdbox,&remdT)) return 1;
+      // remdX, remdV, remdN is allocated in SetupTemperatureList 
+      if ((*reptrajin)->readFrame(set,remdX,remdV,remdbox,&remdT)) return 1;
       // Check if this is the target temp. If so, set main Frame coords/box/temp
       if (remdT == remdtrajtemp) {
         //printf("REMDTRAJ: remdout: Set %i TEMP=%lf\n",set,remdframe->T);
-        for (int x=0; x < remdN; x++)
+        for (int x=0; x < remdN; x++) {
           X[x] = remdX[x];
+          V[x] = remdV[x];
+        }
         for (int b=0; b < 6; b++)
           box[b] = remdbox[b];
         *T = remdT;
@@ -283,7 +289,7 @@ int RemdTraj::readFrame(int set, double *X, double *box, double *T) {
         return 1;
       }
       // Write to output traj
-      (*reptrajout)->writeFrame(set, remdX,remdbox,remdT);
+      (*reptrajout)->writeFrame(set, remdX,remdV,remdbox,remdT);
     }
   }  // END LOOP over input remd trajectories
   if (found) return 0;

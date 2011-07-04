@@ -176,7 +176,7 @@ void Rms2d::print() {
     if (RefTraj==NULL)
       RefFrame = ReferenceFrames.GetFrame( nref );
     else 
-      RefTraj->GetNextFrame(RefFrame->X,RefFrame->box,&(RefFrame->T)); 
+      RefTraj->GetNextFrame(RefFrame->X,RefFrame->V,RefFrame->box,&(RefFrame->T)); 
     // Set up dataset for this reference frame
     sprintf(setname,"Frame_%i",nref+1);
     rmsdata = RmsData.Add(DOUBLE, setname, "Rms2d");

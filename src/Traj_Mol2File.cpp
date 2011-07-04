@@ -117,7 +117,7 @@ int Mol2File::setupRead(int natom) {
 
 /* Mol2File::readFrame()
  */
-int Mol2File::readFrame(int set,double *X, double *box, double *T) {
+int Mol2File::readFrame(int set,double *X, double *V,double *box, double *T) {
   char buffer[MOL2BUFFERSIZE];
   int atom, atom3;
 
@@ -233,7 +233,7 @@ int Mol2File::setupWrite(int natom) {
 
 /* Mol2File::writeFrame()
  */
-int Mol2File::writeFrame(int set, double *X, double *box, double T) {
+int Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
   char buffer[1024];
   int atom, atom3, res;
   double Charge;

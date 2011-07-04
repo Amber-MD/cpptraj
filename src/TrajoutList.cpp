@@ -66,7 +66,7 @@ int TrajoutList::Write(int set, AmberParm *CurrentParm, Frame *F) {
   std::list<TrajectoryFile*>::iterator traj;
 
   for (traj = this->begin(); traj != this->end(); traj++) {
-    if ( (*traj)->WriteFrame(set, CurrentParm, F->X, F->box, F->T) ) {
+    if ( (*traj)->WriteFrame(set, CurrentParm, F->X, F->V, F->box, F->T) ) {
       mprinterr("Error writing output trajectory.\n");
       return 1;
     }

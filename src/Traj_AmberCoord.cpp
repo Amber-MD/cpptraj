@@ -80,7 +80,7 @@ int AmberCoord::openTraj() {
  * NOTE: Precalculate the header, coord, and box offsets.
  * NOTE: There are currently NO checks for null for X, box, and T!
  */
-int AmberCoord::readFrame(int set, double *X, double *box, double *T) {
+int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T) {
   char Temp[9];
   char *bufferPosition;
   off_t offset;
@@ -141,7 +141,7 @@ void AmberCoord::SetHighPrecision() {
  * enough to accomodate all coords in F (handled by SetupWrite).
  * NOTE: The output frame size is calcd here - should it just be precalcd?
  */
-int AmberCoord::writeFrame(int set, double *X, double *box, double T) {
+int AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T) {
   int outFrameSize;
   char *bufferPosition;
   //off_t offset;

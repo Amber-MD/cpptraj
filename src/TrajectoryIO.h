@@ -20,13 +20,14 @@
 ///   openTraj(): Prepare trajectory for read/write
 ///   closeTraj(): Finish trajectory
 ///   readFrame(): Given a frame number, read that frame; return the
-///                coordinates in the first array, the box lengths/angles in
-///                the second array, and set the temperature in the last var.
+///                coordinates in the first array, velocities in the second
+///                array, the box lengths/angles in the third array, and set 
+///                the temperature in the last var.
 ///   writeFrame(): Write to output trajectory. This routine is called from
 ///                 TrajectoryFile::WriteFrame with the current action set
 ///                 number, not the current output number, so it is up to
 ///                 the TrajectoryIO object to keep track of what frame it is
-///                 writing.
+///                 writing. Vars are same as in readFrame.
 ///   info(): Print information on what kind of trajectory this is.
 #include "PtrajFile.h" 
 class TrajectoryIO {
@@ -53,8 +54,8 @@ class TrajectoryIO {
     virtual int setupRead(int) { return -1; }
     virtual int setupWrite(int) { return 1; }
     virtual int openTraj() { return 1; }
-    virtual int readFrame(int,double*,double*,double*) { return 1; }
-    virtual int writeFrame(int,double*,double*,double) { return 1; }
+    virtual int readFrame(int,double*,double*,double*,double*) { return 1; }
+    virtual int writeFrame(int,double*,double*,double*,double) { return 1; }
     virtual void closeTraj() { return; }
     virtual void info() { return; }
   

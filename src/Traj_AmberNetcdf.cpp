@@ -343,7 +343,7 @@ int AmberNetcdf::setupWrite(int natom) {
  * Get the specified frame from amber netcdf file
  * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
  */
-int AmberNetcdf::readFrame(int set,double *X, double *box, double *T) {
+int AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) {
   size_t start[3], count[3];
 
   // Get temperature
@@ -382,7 +382,7 @@ int AmberNetcdf::readFrame(int set,double *X, double *box, double *T) {
 
 /* AmberNetcdf::writeFrame() 
  */
-int AmberNetcdf::writeFrame(int set, double *X, double *box, double T) {
+int AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, double T) {
   size_t start[3], count[3];
 
   DoubleToFloat(Coord,X,ncatom3);

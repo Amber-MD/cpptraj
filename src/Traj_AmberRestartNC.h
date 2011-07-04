@@ -27,15 +27,13 @@ class AmberRestartNC : public TrajectoryIO {
     int cell_angularVID;
     int TempVID;
 
-    double *velocities;
-
     // Inherited functions
     int setupRead(int);
     int setupWrite(int);
     int openTraj();
     void closeTraj();
-    int readFrame(int,double*,double*,double*);
-    int writeFrame(int,double*,double*,double);
+    int readFrame(int,double*,double*,double*,double*);
+    int writeFrame(int,double*,double*,double*,double);
     void info();
 
     int setupWriteForSet(int);

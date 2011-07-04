@@ -145,7 +145,7 @@ int PDBfile::CheckPdbNames(NAME *names) {
 /* PDBfile::readFrame()
  * Read frame (model) from PDB file. 
  */
-int PDBfile::readFrame(int set,double *X, double *box, double *T) {
+int PDBfile::readFrame(int set,double *X, double *V,double *box, double *T) {
   int atom, atom3;
 
   atom=0;
@@ -232,7 +232,7 @@ void PDBfile::SetParmInfo(NAME *names, NAME *resnames, int *atomsPerMol,
 /* PDBfile::writeFrame()
  * Write the frame (model) to PDB file.
  */
-int PDBfile::writeFrame(int set,double *X,double *box,double T) {
+int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   int i,i3,res,atom,mol,lastAtomInMol,bufferSize;
   float Occ, B;
 

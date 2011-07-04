@@ -725,7 +725,7 @@ int TrajectoryFile::EndTraj() {
  * Return 1 on successful read.
  * Return 0 if no frames could be read.
  */
-int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) { 
+int TrajectoryFile::GetNextFrame(double *X, double *V, double *box, double *T) { 
   bool tgtFrameFound;
 #ifdef TRAJDEBUG
   mprinterr("Getting frame %i from %s (stop=%i)\n",currentFrame,trajName,stop);
@@ -743,7 +743,7 @@ int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) {
 #ifdef TRAJDEBUG
     mprinterr("Attempting read of frame %i from %s\n",currentFrame,trajName);
 #endif
-    if (trajio->readFrame(currentFrame,X,box,T)) return 0;
+    if (trajio->readFrame(currentFrame,X,V,box,T)) return 0;
     //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
 #ifdef TRAJDEBUG
     mprinterr("Frame %i has been read from %s (target=%i)\n",currentFrame,trajName,targetSet);
@@ -770,7 +770,7 @@ int TrajectoryFile::GetNextFrame(double *X, double *box, double *T) {
  * EndTraj() should still be called. 
  */
 int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
-                               double *box, double T) {
+                               double *V, double *box, double T) {
   // Check that input parm matches setup parm - if not, skip
   if (tparmIn->pindex != trajParm->pindex) return 0;
 
@@ -825,7 +825,7 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
 
   // Write
   //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
-  if (trajio->writeFrame(set,X,box,T)) return 1;
+  if (trajio->writeFrame(set,X,V,box,T)) return 1;
   numFramesProcessed++;
 
   return 0;

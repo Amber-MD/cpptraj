@@ -50,7 +50,7 @@ int Conflib::setupRead(int natom) {
 
 /* Conflib::readFrame()
  */
-int Conflib::readFrame(int set, double *X, double *box, double *T) {
+int Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
 
   if (tfile->IO->Read(&energy,sizeof(double),1) < 0) return 1;
   tfile->IO->Read(&radGyr,sizeof(double),1);
@@ -71,7 +71,7 @@ int Conflib::setupWrite(int natom ) {
 
 /* Conflib::setupWrite()
  */
-int Conflib::writeFrame(int set, double *X, double *box, double T) {
+int Conflib::writeFrame(int set, double *X, double *V,double *box, double T) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }

@@ -32,8 +32,8 @@ class AmberNetcdf : public TrajectoryIO {
     int setupWrite(int);
     int openTraj();
     void closeTraj();
-    int readFrame(int,double*,double*,double*);
-    int writeFrame(int,double*,double*,double);
+    int readFrame(int,double*,double*,double*,double*);
+    int writeFrame(int,double*,double*,double*,double);
     void info();
 
   public:
