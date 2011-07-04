@@ -54,8 +54,7 @@ Rmsd::~Rmsd() {
   }
 }
 
-/*
- * Rmsd::SetRefMask()
+/* Rmsd::SetRefMask()
  * Setup reference mask based on maskRef. Requires RefParm to be set. Should 
  * only be called once.
  * If reference, this is called from init. If first, this is called from setup.
@@ -72,8 +71,7 @@ int Rmsd::SetRefMask() {
   return 0;
 }
 
-/*
- * Rmsd::init()
+/* Rmsd::init()
  * Called once before traj processing. Set up reference info.
  * Expected call: 
  * rmsd <name> <mask> [<refmask>] [out filename] [nofit] [mass]
@@ -221,8 +219,7 @@ int Rmsd::init( ) {
   return 0;
 }
 
-/*
- * Rmsd::setup()
+/* Rmsd::setup()
  * Called every time the trajectory changes. Set up FrameMask for the new parmtop
  * and allocate space for selected atoms from the Frame.
  */
@@ -239,9 +236,8 @@ int Rmsd::setup() {
     mprintf("    Error: Rmsd::setup: No atoms in mask.\n");
     return 1;
   }
-  // Allocate space for selected atoms in the frame
-  // NOTE: Should masses be passed in to trigger the Alloc even though the vals will
-  //       be wrong initially until set by SetFrameFromMask in action?
+  // Allocate space for selected atoms in the frame. This will also put the
+  // correct masses in based on the mask.
   if (SelectedFrame!=NULL) delete SelectedFrame;
   SelectedFrame = new Frame(&FrameMask, P->mass);
   
@@ -373,10 +369,12 @@ int Rmsd::setup() {
       mprintf("Error: RMSD: Perres output file could not be set up.\n");
       return 1;
     }
-    // Allocate memory for residue reference frame. Will be dynamically resized during action
+    // Allocate memory for residue frame and residue reference frame. The size 
+    // of each Frame is initially allocated to the maximum number of atoms.
+    // The number of atoms and masses will change based on which residue is 
+    // currently being calcd.
     if (ResRefFrame==NULL)
       ResRefFrame = new Frame(RefParm->natom, RefParm->mass);
-    // Allocate memory for residue frame. Will be dynamically resized during action
     if (ResFrame==NULL)
       ResFrame = new Frame(P->natom, P->mass);
   }
@@ -384,14 +382,13 @@ int Rmsd::setup() {
   return 0;
 }
 
-/*
- * Rmsd::action()
+/* Rmsd::action()
  * Called every time a frame is read in. Calc RMSD. If RefFrame is NULL
  * at this point we want to set the first frame read in as reference.
  */
 int Rmsd::action() {
   double R, U[9], Trans[6];
-  vector<AtomMask*>::iterator it;
+  vector<AtomMask*>::iterator mask;
   int res=0;
 
   // first: If Ref is NULL, allocate this frame as reference
@@ -413,7 +410,7 @@ int Rmsd::action() {
   // Set selected reference atoms - always done since RMS fit modifies SelectedRef 
   SelectedRef->SetFrameCoordsFromMask(RefFrame->X, &RefMask);
 
-  // Set selected frame atoms
+  // Set selected frame atoms. Masses have already been set.
   SelectedFrame->SetFrameCoordsFromMask(F->X, &FrameMask);
 
   // DEBUG
@@ -438,9 +435,9 @@ int Rmsd::action() {
   // Use SetFrameFromMask since each residue can be a different size
   if (perres) {
     res=0;
-    for (it = PerResMask.begin(); it!=PerResMask.end(); it++) {
+    for (mask = PerResMask.begin(); mask!=PerResMask.end(); mask++) {
       ResRefFrame->SetFrameFromMask(RefFrame, PerRefMask[res]);
-      ResFrame->SetFrameFromMask(F, (*it));
+      ResFrame->SetFrameFromMask(F, (*mask));
       if (perrescenter) 
         ResFrame->ShiftToCenter(ResRefFrame); 
       R = ResFrame->RMSD(ResRefFrame,useMass);
@@ -454,8 +451,8 @@ int Rmsd::action() {
   return 0;
 }
 
-/*
- * Rmsd::print()
+/* Rmsd::print()
+ * Write out per-residue RMSD
  */
 void Rmsd::print() {
   if (!perres || outFile==NULL) return;
