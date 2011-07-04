@@ -107,7 +107,7 @@ int ActionMask::action() {
     //pdbParm->Summary(); // DEBUG
     Frame *pdbFrame = new Frame(Mask2->Nselected,NULL);
     // Set only coords
-    pdbFrame->SetFrameCoordsFromMask(F, Mask2);
+    pdbFrame->SetFrameCoordsFromMask(F->X, Mask2);
     // Set up output file. Reset the arg list before every setup so that
     // any args are again available to SetupWrite
     maskpdbarg.ResetAll();
