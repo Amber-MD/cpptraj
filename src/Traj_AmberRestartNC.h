@@ -10,7 +10,6 @@ class AmberRestartNC : public TrajectoryIO {
     int ncatom;
     int ncatom3;
     int coordVID;
-    bool hasVelocity;
     int velocityVID;
     double velocityScale;
     int cellAngleVID;

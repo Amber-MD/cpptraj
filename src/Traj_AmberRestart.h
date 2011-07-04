@@ -10,7 +10,6 @@ class AmberRestart : public TrajectoryIO {
     int frameSize;        // Size of 1 coord frame in bytes, inc box & velo if present
     char *frameBuffer;    // Used to read in restart coord
     int numBoxCoords;     // Number of box coords (3 or 6)
-    bool hasVelocity;     // This restart file has velocity info
     double restartTime;   // Time in restart file, read in
     double restartTemp;   // (Optional) replica temperature, read in.
 

@@ -62,5 +62,6 @@ class TrajectoryFile {
     int Total_Read_Frames() { return total_read_frames; }
     int Total_Frames() { return total_frames; }
     int NumFramesProcessed() { return numFramesProcessed; }
+    bool HasVelocity() { if (trajio!=NULL) return trajio->hasVelocity; else return false;}
 };
 #endif

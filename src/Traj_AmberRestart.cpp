@@ -12,7 +12,6 @@ AmberRestart::AmberRestart() {
   frameSize=0;
   frameBuffer=NULL;
   numBoxCoords=0;
-  hasVelocity=false;
   restartTime=0;
   restartTemp=-1.0;
   // Set seekable since only 1 frame read (i.e. we know size) 

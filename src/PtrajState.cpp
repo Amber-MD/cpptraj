@@ -431,7 +431,7 @@ int PtrajState::Run() {
     if (lastPindex != CurrentParm->pindex) {
       // Set up the incoming trajectory frame for this parm
       if (TrajFrame!=NULL) delete TrajFrame;
-      TrajFrame = new Frame(CurrentParm->natom, CurrentParm->mass, true);
+      TrajFrame = new Frame(CurrentParm->natom, CurrentParm->mass, (*traj)->HasVelocity());
       // Set up actions for this parm
       if (ptrajActionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",

@@ -46,6 +46,7 @@ class TrajectoryIO {
     bool hasBox;        // True if the trajectory has box information.
     double boxAngle[3]; // Hold alpha, beta and gamma angles of box if hasBox.
     bool hasTemperature;// True if trajectory has temperature information.
+    bool hasVelocity;   // True if trajectory has velocity information.
 
     TrajectoryIO();
     virtual ~TrajectoryIO(); // virtual since this class is inherited.

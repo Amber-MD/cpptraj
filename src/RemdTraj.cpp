@@ -264,9 +264,11 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
       // Check if this is the target temp. If so, set main Frame coords/box/temp
       if (remdT == remdtrajtemp) {
         //printf("REMDTRAJ: remdout: Set %i TEMP=%lf\n",set,remdframe->T);
-        for (int x=0; x < remdN; x++) {
+        for (int x=0; x < remdN; x++) 
           X[x] = remdX[x];
-          V[x] = remdV[x];
+        if (V!=NULL) {
+          for (int v=0; v < remdN; v++)
+            V[v] = remdV[v];
         }
         for (int b=0; b < 6; b++)
           box[b] = remdbox[b];

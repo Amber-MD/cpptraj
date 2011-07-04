@@ -16,6 +16,7 @@ TrajectoryIO::TrajectoryIO() {
   boxAngle[1]=0.0;
   boxAngle[2]=0.0;
   hasTemperature=false;
+  hasVelocity=false;
 }
 
 // DESTRUCTOR

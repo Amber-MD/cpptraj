@@ -18,7 +18,6 @@ AmberRestartNC::AmberRestartNC() {
   ncatom=-1;
   ncatom3=-1;
   coordVID=-1;
-  hasVelocity=false;
   velocityVID=-1;
   velocityScale=20.455; // Will be overwritten when read in but should be the same 
   cellAngleVID=-1;
