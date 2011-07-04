@@ -81,6 +81,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
   remdio->remdtrajtemp = remdtrajtemp;
   remdio->seekable = trajio->seekable;
   remdio->hasBox = trajio->hasBox;
+  remdio->hasVelocity = trajio->hasVelocity;
   remdio->hasTemperature = true;
   remdio->boxAngle[0]=trajio->boxAngle[0];
   remdio->boxAngle[1]=trajio->boxAngle[1];

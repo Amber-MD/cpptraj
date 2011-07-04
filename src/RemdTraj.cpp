@@ -64,8 +64,10 @@ int RemdTraj::SetupTemperatureList(int natom) {
   remdN = natom * 3; 
   remdX = (double*) malloc( remdN * sizeof(double));
   if (remdX==NULL) return 1;
-  remdV = (double*) malloc( remdN * sizeof(double));
-  if (remdV==NULL) return 1;
+  if (hasVelocity) {
+    remdV = (double*) malloc( remdN * sizeof(double));
+    if (remdV==NULL) return 1;
+  }
   // Allocate space for temperature list
   repnum = (int) REMDtraj.size();
   TemperatureList = (double*) malloc(repnum*sizeof(double));
@@ -266,7 +268,7 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
         //printf("REMDTRAJ: remdout: Set %i TEMP=%lf\n",set,remdframe->T);
         for (int x=0; x < remdN; x++) 
           X[x] = remdX[x];
-        if (V!=NULL) {
+        if (V!=NULL && hasVelocity) {
           for (int v=0; v < remdN; v++)
             V[v] = remdV[v];
         }
