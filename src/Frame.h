@@ -15,6 +15,7 @@ class Frame {
   public:
     double *X;     // Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     int natom;     // Number of atoms
+    int maxnatom;  // Number of atoms for which space has been allocated
     int N;         // Number of coords, natom*3
     double box[6]; // Box coords, 3xlengths, 3xangles
     double T;      // Temperature
@@ -27,6 +28,7 @@ class Frame {
     Frame(AtomMask *, double *);
     virtual ~Frame();             // Destructor is virtual since this class can be inherited
     Frame *Copy();
+    int Resize(int,bool,bool);
     // Coordinate manipulation
     void ZeroCoords();
     void AddCoord(Frame*);

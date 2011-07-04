@@ -10,6 +10,7 @@
 Frame::Frame() {
   natom=0;
   N=0;
+  maxnatom=0;
   X=NULL;
   box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
   T=0.0;
@@ -21,6 +22,7 @@ Frame::Frame() {
 // NOTE: Probably should throw execeptions on mem errors
 Frame::Frame(int natomIn, double *MassIn) {
   natom=natomIn;
+  maxnatom=natom;
   N=natom*3;
   X=(double*) malloc( N * sizeof(double));
   box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
@@ -37,6 +39,7 @@ Frame::Frame(int natomIn, double *MassIn) {
 // CONSTRUCTOR, takes # atoms, masses, sets up V if neccessary
 Frame::Frame(int natomIn, double *MassIn, bool hasVelocity) {
   natom=natomIn;
+  maxnatom=natom;
   N=natom*3;
   X=(double*) malloc( N * sizeof(double));
   box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
@@ -59,6 +62,7 @@ Frame::Frame(int natomIn, double *MassIn, bool hasVelocity) {
 // CONSTRUCTOR, Create Frame based on size of mask. Put correct masses in.
 Frame::Frame(AtomMask *Mask, double *MassIn) {
   natom = Mask->Nselected;
+  maxnatom=natom;
   N = natom * 3;
   X = (double*) malloc(N * sizeof(double));
   box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
@@ -99,6 +103,40 @@ Frame *Frame::Copy() {
   }
 
   return newFrame;
+}
+
+/* Frame::Resize()
+ * Given a new number of atoms, allocate more space if necessary.
+ * Otherwise just change N and natom.
+ * Only reallocate mass and V if explicitly requested.
+ */
+int Frame::Resize(int natomIn, bool allocV, bool allocMass) {
+  // DEBUG
+  //mprintf("DEBUG: Resizing frame, old natom=%i, new natom=%i, allocV=%i, allocM=%i\n",
+  //        natom,natomIn,(int)allocV,(int)allocMass);
+  // DEBUG
+  if (natomIn>maxnatom) {
+    natom = natomIn;
+    maxnatom = natom;
+    N = natom * 3;
+    X = (double*) realloc(X, N * sizeof(double));
+    if (X==NULL) return 1;
+  } else {
+    natom = natomIn;
+    N = natom * 3;
+  }
+  // (Re)Allocate velocities if requested
+  if (allocV) {
+    V=(double*) realloc(V, N * sizeof(double));
+    if (V==NULL) return 1;
+  }
+  // (Re)Allocate mass if requested
+  if (allocMass) {
+    Mass=(double*) realloc(Mass, natom * sizeof(double));
+    if (Mass==NULL) return 1;
+  }
+
+  return 0;
 }
 
 /* ------------------- Coordinate Manipulation Routines --------------------- */
@@ -282,21 +320,26 @@ double *Frame::Coord(int atom) {
 /* Frame::SetFrameFromMask()
  * Given an existing Frame and an AtomMask (with Nselected atoms and atom 
  * numbers corresponding to FrameIn), set this Frame to be a copy of FrameIn
- * according to Mask. If the number of atoms in the Mask is greater than
- * this frame has been set up for, resize this Frame accordingly. 
+ * according to Mask. 
+ * If the number of atoms in the Mask is greater than this frame has been set 
+ * up for, reallocate to accomodate. Only reallocate/set this frames Mass and V
+ * if the incoming frame has them.
  * For this to work properly AtomMask needs to have been setup based on 
  * FrameIn, although this is not explicitly checked for.
  */
 void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
   int i,oldatom3,newatom3;
+  bool Reallocate = false;
 
   // Check if number of atoms in mask is greater than what is allocd for frame.
   // Realloc X if necessary, set natom and N.
-  if (Mask->Nselected > natom) {
+  //this->Resize(Mask->Nselected, allocV, allocMass);
+  if (Mask->Nselected > maxnatom) {
     natom = Mask->Nselected;
+    maxnatom = natom;
     N = natom * 3;
+    Reallocate = true;
     X = (double*) realloc(X, N * sizeof(double));
-
   // Otherwise just set the new natom and N.
   } else {
     natom = Mask->Nselected;
@@ -318,24 +361,35 @@ void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
     this->box[i] = FrameIn->box[i];
   this->T = FrameIn->T;
 
-  // Copy Mass info if present
-  if (FrameIn->Mass!=NULL) {
-    if (Mask->Nselected>natom || Mass==NULL)
-      Mass = (double*) realloc(Mass, natom * sizeof(double));
-    for (i=0; i < Mask->Nselected; i++) 
-      this->Mass[i] = FrameIn->Mass[Mask->Selected[i]];
-  }
-
   // Copy velocities if present
   if (FrameIn->V!=NULL) {
+    // If no space for V in this frame, allocate based on max atoms
+    if (this->V==NULL)
+      this->V = (double*) malloc(maxnatom * 3 * sizeof(double));
+    else if (Reallocate)
+      this->V = (double*) realloc(this->V, N * sizeof(double));
     newatom3 = 0;
     for (i=0; i < Mask->Nselected; i++) {
       oldatom3 = Mask->Selected[i] * 3;
+      // DEBUG
+      //mprintf("\tAssigning velocities for new atom %i from old atom %i\n",newatom3/3,oldatom3/3);
+      // DEBUG
       this->V[newatom3  ] = FrameIn->V[oldatom3  ];
       this->V[newatom3+1] = FrameIn->V[oldatom3+1];
       this->V[newatom3+2] = FrameIn->V[oldatom3+2];
       newatom3 += 3;
     }
+  }
+
+  // Copy Mass info if present
+  if (FrameIn->Mass!=NULL) {
+    // If no space for mass in this frame, allocate based on max atoms
+    if (this->Mass==NULL)
+      this->Mass=(double*) malloc(maxnatom * sizeof(double));
+    else if (Reallocate)
+      this->Mass=(double*) realloc(this->Mass, natom * sizeof(double));
+    for (i=0; i < Mask->Nselected; i++) 
+      this->Mass[i] = FrameIn->Mass[Mask->Selected[i]];
   }
 }
 
