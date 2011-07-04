@@ -106,7 +106,8 @@ int ActionMask::action() {
     AmberParm *pdbParm = P->modifyStateByMask(Mask2->Selected, Mask2->Nselected);
     //pdbParm->Summary(); // DEBUG
     Frame *pdbFrame = new Frame(Mask2->Nselected,NULL);
-    pdbFrame->SetFrameFromMask(F, Mask2);
+    // Set only coords
+    pdbFrame->SetFrameCoordsFromMask(F, Mask2);
     // Set up output file. Reset the arg list before every setup so that
     // any args are again available to SetupWrite
     maskpdbarg.ResetAll();
