@@ -2,6 +2,7 @@
  * CPPTRAJ: Rewrite of PTRAJ in C++
  * 2010 Daniel R. Roe
  */
+#include <cstddef>
 #include "PtrajState.h"
 #include "PtrajMpi.h"
 #include "CpptrajStdio.h"

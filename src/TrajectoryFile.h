@@ -3,6 +3,7 @@
 /// Class: TrajectoryFile
 /// Main trajectory class. Will have a TrajectoryIO class that will interface
 /// with actual trajectory format.
+#include <cstddef>
 #include "AmberParm.h" // BoxType.h
 #include "ArgList.h"
 #include "ProgressBar.h"
