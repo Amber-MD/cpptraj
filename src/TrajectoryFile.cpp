@@ -658,10 +658,12 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
       AmberCoord *T0 = (AmberCoord*) trajio;
       if (argIn->hasKey("remdtraj")) T0->SetRemdTraj();
       if (argIn->hasKey("highprecision")) T0->SetHighPrecision();
+#ifdef BINTRAJ
     } else if (trajio->TrajFormat() == AMBERNETCDF ) {
       // Amber Netcdf
       AmberNetcdf *T1 = (AmberNetcdf*) trajio;
       if (argIn->hasKey("remdtraj")) T1->SetRemdTraj();
+#endif
     } else if (trajio->TrajFormat() == PDBFILE ) {
       // PDB file
       PDBfile *T2 = (PDBfile*) trajio;
