@@ -492,9 +492,9 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
   outfile->IO->Printf("set xlabel \"%s\"\n",xlabel);
   outfile->IO->Printf("set ylabel \"%s\"\n",ylabel);
   // Make Yrange +1 and -1 so entire grid can be seen
-  outfile->IO->Printf("set yrange [0.0:%i.0]\n",Nsets+1);
+  outfile->IO->Printf("set yrange [0.0:%i.0]\n",Nsets+OUTPUTFRAMESHIFT);
   // Make Xrange +1 and -1 as well
-  outfile->IO->Printf("set xrange [0.0:%i.0]\n",maxFrames+1);
+  outfile->IO->Printf("set xrange [0.0:%i.0]\n",maxFrames+OUTPUTFRAMESHIFT);
   // Plot command
   outfile->IO->Printf("splot \"-\" with pm3d title \"%s\"\n",filename);
 
