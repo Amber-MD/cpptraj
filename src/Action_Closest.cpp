@@ -55,7 +55,7 @@ void Closest::ClearMaskList() {
 
 /*
  * Closest::init()
- * Expected call: closest <# to keep> <mask> [noimage] [first/oxygen]
+ * Expected call: closest <# to keep> <mask> [noimage] [first/oxygen] [outprefix <parmprefix>]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
