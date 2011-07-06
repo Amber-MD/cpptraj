@@ -37,11 +37,12 @@ void ProgressBar::Update(int current) {
   if (currentPercent >= targetPercent) {
     targetPercent+=10;
     mprintf("%2.0f%% ",currentPercent);
-    if (first) {
-      mflush();
-      first=false;
-    }
+    //if (first) {
+    //  mflush();
+    //  first=false;
+    //}
     if (current==max) mprintf("Complete.\n");
+    mflush();
   }
 }
 
