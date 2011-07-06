@@ -3,7 +3,9 @@
 #include "Action_Surf.h"
 #include "vectormath.h" // For FOURPI
 #include "CpptrajStdio.h"
-
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 // CONSTRUCTOR
 Surf::Surf() {
   //fprintf(stderr,"Surf Con\n");
