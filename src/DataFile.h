@@ -13,6 +13,7 @@ class DataFile {
     bool isInverted;    // If true sets will be written in rows instead of columns
     bool noXcolumn;     // If true the Frame column will not be written.
     char *xlabel;       // X axis label for grace plots
+    char *ylabel;       // Y axis label for grace plots
     int maxFrames;      // The largest X value of any sets in SetList
 
     void WriteGrace(PtrajFile *);
@@ -28,9 +29,11 @@ class DataFile {
 
     void SetDebug(int);
     void SetXlabel(char*);
+    void SetYlabel(char*);
     void SetInverted();
     void SetNoXcol();
     void SetPrecision(char *, int, int);
+
     int AddSet(DataSet *);
     int NameIs(char *);
     void DataSetNames();

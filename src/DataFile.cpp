@@ -9,6 +9,9 @@ DataFile::DataFile(char *nameIn) {
   // Default xlabel value is Frame
   xlabel=(char*) malloc( 6 * sizeof(char));
   strcpy(xlabel,"Frame");
+  // Default ylabel value is blank
+  ylabel=(char*) malloc( sizeof(char));
+  strcpy(ylabel,"");
   noEmptyFrames=false;
   noXcolumn=false;
   filename=NULL;
@@ -27,6 +30,7 @@ DataFile::~DataFile() {
   // Individual data sets are freed in DataSetList
   if (SetList!=NULL) free(SetList);
   if (xlabel!=NULL) free(xlabel);
+  if (ylabel!=NULL) free(ylabel);
 }
 
 /* DataFile::SetDebug
@@ -53,6 +57,14 @@ void DataFile::SetXlabel(char *labelIn) {
   if (labelIn==NULL) return;
   xlabel = (char*) realloc ( xlabel, (strlen(labelIn)+1) * sizeof(char) );
   strcpy(xlabel,labelIn);
+}
+
+/* DataFile::SetYlabel()
+ */
+void DataFile::SetYlabel(char *labelIn) {
+  if (labelIn==NULL) return;
+  ylabel = (char*) realloc ( ylabel, (strlen(labelIn)+1) * sizeof(char) );
+  strcpy(ylabel,labelIn);
 }
 
 /* DataFile::SetInverted()
@@ -327,7 +339,7 @@ void DataFile::WriteGrace(PtrajFile *outfile) {
   // Grace Header
   outfile->IO->Printf("@with g0\n");
   outfile->IO->Printf("@  xaxis label \"%s\"\n",xlabel);
-  outfile->IO->Printf("@  yaxis label \"\"\n");
+  outfile->IO->Printf("@  yaxis label \"%s\"\n",ylabel);
   outfile->IO->Printf("@  legend 0.2, 0.995\n");
   outfile->IO->Printf("@  legend char size 0.60\n");
 
@@ -478,6 +490,7 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
     outfile->IO->Printf(")\n");
   }
   outfile->IO->Printf("set xlabel \"%s\"\n",xlabel);
+  outfile->IO->Printf("set ylabel \"%s\"\n",ylabel);
   // Make Yrange +1 and -1 so entire grid can be seen
   outfile->IO->Printf("set yrange [0.0:%i.0]\n",Nsets+1);
   // Make Xrange +1 and -1 as well

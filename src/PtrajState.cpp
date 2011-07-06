@@ -334,6 +334,15 @@ void PtrajState::ProcessDataFileCmd() {
       }
       df->SetXlabel(A->getNextString());
 
+    // datafile ylabel
+    // Usage: datafile ylabel <filename> <label>
+    } else if ( strcmp(df_cmd,"ylabel")==0 ) {
+      if (df==NULL) {
+        mprintf("Error: datafile ylabel: DataFile %s does not exist.\n",name1);
+        continue;
+      }
+      df->SetYlabel(A->getNextString());
+
     // datafile invert
     // Usage: datafile invert <filename>
     } else if ( strcmp(df_cmd,"invert")==0 ) {
