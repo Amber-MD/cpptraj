@@ -3,7 +3,6 @@
 /// Class: TrajectoryFile
 /// Main trajectory class. Will have a TrajectoryIO class that will interface
 /// with actual trajectory format.
-#include <cstddef>
 #include "AmberParm.h" // BoxType.h
 #include "ArgList.h"
 #include "ProgressBar.h"
@@ -63,6 +62,6 @@ class TrajectoryFile {
     int Total_Read_Frames() { return total_read_frames; }
     int Total_Frames() { return total_frames; }
     int NumFramesProcessed() { return numFramesProcessed; }
-    bool HasVelocity() { if (trajio!=NULL) return trajio->hasVelocity; else return false;}
+    bool HasVelocity();
 };
 #endif

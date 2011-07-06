@@ -870,3 +870,11 @@ void TrajectoryFile::PrintInfo(int showExtended) {
   mprintf("\n");
 }
 
+/* HasVelocity()
+ * Return true if underlying trajio object indicates trajectory has velocity
+ * information.
+ */
+bool TrajectoryFile::HasVelocity() { 
+  if (trajio!=NULL) return trajio->hasVelocity; 
+  return false;
+}
