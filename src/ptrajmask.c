@@ -19,8 +19,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
 #include <math.h>
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 
 #define MASK_MODULE
 #include "ptrajmask.h"
@@ -633,102 +635,137 @@ eval(char *postfix, int atoms, int residues, Name *atomName,
 
 } /* eval */
 
-
-/* For :1@O <:5 means the residues whose atoms (any)within 5 A to :1@O 
-   For :1@O >:5 means the residues whose atoms (any) greater than 5 A to :1@O 
-   If you want residue which all its atoms greater than 5 A, use !(:1@O <:5) 
+/* selectDistd()
+ * Given a distance <criteria> of format [OP][TYPE][DIST], where OP is < or >,
+ * TYPE is : or @, and DIST is a floating point number, return a mask
+ * <atoms> long with all atoms/residues that are OP DIST of atoms in
+ * <center> set to 'T'.
+ * For :1@O <:5 means the residues whose atoms (any)within 5 A to :1@O 
+ * For :1@O >:5 means the residues whose atoms (any) greater than 5 A to :1@O 
+ * If you want residue which all its atoms greater than 5 A, use !(:1@O <:5) 
  */
-char * selectDistd(char *criteria, char *center, int atoms, int residues, int *ipres, double *X) {
-  int i, j, k, i3, j3;
-  char *pMask;
+char *selectDistd(char *criteria, char *center, int natom, int nres, int *ipres, double *X) {
+  int atomi, atomj, resatom, i3, j3;
   double dx, dy, dz, x2, y2, z2;
-  char type; /* : or @*/
-  char comp; /* < or > */
   double dist, dist2, distance;
+  char *pMask;
+  char type; // : or @
+  char comp; // < or > 
   int curres;
   //int total_center_atom;
+
+  // DEBUG
+  //printf("selectDistd called with criteria: [%s]\n",criteria);
+  //printf("selectDistd: center: [%s]\n",center);
   
   comp = criteria[0];
-  type = criteria[1];
-  /* Was intended for picking up the atom/residue has a distance greater than threshold to ALL the atoms in the center[]. Not necessary now. 
-  total_center_atom = 0;
-  if (comp == '>') {  
-    for (i = 0; i < atoms; i++)
-      if (center[i] == 'T') total_center_atom++;
+  if (comp!='<' && comp!='>') {
+    fprintf(stderr,"selectDistd: Unknown distance comparison in [%s].\n", criteria);
+    return NULL;
   }
-  */
+  type = criteria[1];
+  if (type!=':' && type!='@') {
+    fprintf(stderr,"selectDistd: Unknown distance type in [%s].\n", criteria);
+    return NULL;
+  }
+
+  // Was intended for picking up the atom/residue has a distance greater than 
+  // threshold to ALL the atoms in the center[]. Not necessary now. 
+  //total_center_atom = 0;
+  //if (comp == '>') {  
+  //  for (i = 0; i < atoms; i++)
+  //    if (center[i] == 'T') total_center_atom++;
+  //}
   if ( sscanf(criteria+2, "%lf", &dist) != 1) { 
     fprintf(stderr,"selectDistd: fail to read distance criteria %s.\n", criteria);
     return NULL;
   }
+  // Compare to square of distance to avoid multiple sqrt calls
   dist2 = dist * dist;
   
-  pMask = (char *) malloc( atoms * sizeof(char));
-  for (i = 0; i < atoms; i++)
-    pMask[i] = 'F';
-  
+  pMask = (char *) malloc( natom * sizeof(char));
+  for (atomi = 0; atomi < natom; atomi++)
+    pMask[atomi] = 'F';
+ 
+  // For each atomi, calculate distance between atom and each atomj in center
+  i3 = 0;
   curres = 0;
-  for (i = 0; i < atoms; i++) {
-    if (i >= ipres[curres+1]) curres++;
-    if ( pMask[i] == 'T' ) continue;
-    i3 = i * 3;
-    for (j = 0; j < atoms; j++) {
-      if (center[j] == 'F') continue;
-      j3 = j * 3;
+#ifdef _OPENMP
+#pragma omp parallel private(curres,atomi,atomj,resatom,i3,j3,dx,dy,dz,x2,y2,z2,distance)
+{
+  // For parallel, need to trigger init of curres and atomi in loop
+  i3 = -1;
+  curres = -1;
+#pragma omp for
+#endif
+  for (atomi = 0; atomi < natom; atomi++) {
+#ifdef _OPENMP
+    // If in parallel the intial values of i3 and curres depend on atomi,
+    // i3 < 0 indicates initial setup must occur.
+    if (i3<0) {
+      i3 = atomi * 3;
+      for ( resatom = 0; resatom < nres; resatom++ ) {
+        if ( atomi>=ipres[resatom] && atomi<ipres[resatom+1] ) {
+          curres = resatom;
+          break;
+        }
+      }
+    }
+#endif
+    // Figure out the current residue (NOTE only == needed ?)
+    if (atomi >= ipres[curres+1]) curres++;
+    // No need to calculate if atomi already selected
+    if ( pMask[atomi] == 'T' ) {i3+=3; continue;}
+    j3 = 0;
+    for (atomj = 0; atomj < natom; atomj++) {
+      // If this atom is not in center dont worry about it
+      if (center[atomj] == 'F') {j3+=3; continue;}
       dx = X[i3  ] - X[j3  ]; x2 = dx * dx;
       dy = X[i3+1] - X[j3+1]; y2 = dy * dy;
       dz = X[i3+2] - X[j3+2]; z2 = dz * dz;
       //distance = sqrt(x2 + y2 + z2);
       distance = x2 + y2 + z2;
       //fprintf(stdout,"DEBUG: Atom %i to %i %lf\n",i+1,j+1,distance);
-      if (type == ':') {
-        if ( comp == '<') {
-          if ( distance < dist2 ) {
-            for (k = ipres[curres]; k < ipres[curres+1]; k++) {
-              pMask[k] = 'T';
-            }
-            // go to the bottom of i-loop, then i++, i will be ipres[curres+1]-1
-            i = ipres[curres+1]-1; 
-            break;
-          }
-        } /*end of if ( comp == '<') */
-        else if ( comp == '>') {
-          if ( distance > dist2 ) {
-            for (k = ipres[curres]; k < ipres[curres+1]; k++) {
-              pMask[k] = 'T';
-            }
-            // go to the bottom of i-loop, then i++, i will be ipres[curres+1]-1
-            i = ipres[curres+1]-1; 
-            break;
-          }
-        } /*end of if ( comp == '>') */
-        else {
-          fprintf(stderr,"selectDistd: Unknown distance criteria %s.\n", criteria);
-          free(pMask);
-          return NULL;
-        }
-      } /* end of if (type == ':') */
-      else if (type == '@') {
+
+      // Figure out if this distance meets the criteria. If an atomi is found
+      // that satisfies the criterion to this atomj, there is no need to check
+      // the rest of the atomjs.
+      // OPENMP NOTE: Since we are in the inner loop here executing a break
+      //              statement should be OK since the pragma applies to 
+      //              the outer loop.
+      //   Type ':', select all atoms in atomi's residue matching criteria
+      if (type == ':') { 
         if ( comp == '<' && distance < dist2 ) {
-          pMask[i] = 'T';
+          for (resatom = ipres[curres]; resatom < ipres[curres+1]; resatom++) 
+            pMask[resatom] = 'T';
           break;
-        }  
-        if ( comp == '>' && distance > dist2 ) {
-          pMask[i] = 'T';
+        } else if ( comp == '>' && distance > dist2 ) {
+          for (resatom = ipres[curres]; resatom < ipres[curres+1]; resatom++) 
+            pMask[resatom] = 'T';
+          break;
+        } 
+      //   Type '@', select atomi if it matches criterion
+      } else if (type == '@') {
+        if ( comp == '<' && distance < dist2 ) {
+          pMask[atomi] = 'T';
+          break;
+        } else if ( comp == '>' && distance > dist2 ) {
+          pMask[atomi] = 'T';
           break;
         }  
       }
-      else {
-        fprintf(stderr,"selectDistd: Unknown distance criteria %s.\n", criteria);
-        free(pMask);
-        return NULL;
-      }
-    }
-  }
+
+      j3+=3; 
+    } // END loop over j
+    i3+=3;
+  } // END loop over i
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif
   
   return (pMask);
-  
 }
+
 
 char * selectDistf(char *criteria, char *center, int atoms, int residues, int *ipres, float *X) {
 /*  int i, j, k;
