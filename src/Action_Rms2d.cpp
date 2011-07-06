@@ -230,6 +230,7 @@ void Rms2d::print() {
 
   if (SelectedRef!=NULL) delete SelectedRef;
   if (SelectedTgt!=NULL) delete SelectedTgt;
+  if (RefTraj!=NULL) delete RefFrame;
   return;
 }
 
