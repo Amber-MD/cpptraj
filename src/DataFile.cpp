@@ -29,8 +29,7 @@ DataFile::~DataFile() {
   if (xlabel!=NULL) free(xlabel);
 }
 
-/*
- * DataFile::SetDebug
+/* DataFile::SetDebug
  * Set DataFile debug level
  * NOTE: Pass in constructor?
  */
@@ -41,16 +40,14 @@ void DataFile::SetDebug(int debugIn) {
     mprintf("DataFile %s DEBUG LEVEL SET TO %i\n",filename,debug);
 }
 
-/*
- * DataFile::SetNoXcol
+/* DataFile::SetNoXcol
  * Turn printing of frame column off.
  */
 void DataFile::SetNoXcol() {
   noXcolumn=true;
 }
 
-/*
- * DataFile::SetXlabel()
+/* DataFile::SetXlabel()
  */
 void DataFile::SetXlabel(char *labelIn) {
   if (labelIn==NULL) return;
@@ -58,8 +55,7 @@ void DataFile::SetXlabel(char *labelIn) {
   strcpy(xlabel,labelIn);
 }
 
-/*
- * DataFile::SetInverted()
+/* DataFile::SetInverted()
  */
 void DataFile::SetInverted() {
   isInverted=true;
@@ -118,8 +114,7 @@ int DataFile::AddSet(DataSet *D) {
   return 0;
 }
 
-/* 
- * DataFile::NameIs()
+/* DataFile::NameIs()
  * Return 1 if datafile name matches nameIn
  */
 int DataFile::NameIs(char *nameIn) {
@@ -127,8 +122,7 @@ int DataFile::NameIs(char *nameIn) {
   return 0;
 }
 
-/*
- * DataFile::DataSetNames()
+/* DataFile::DataSetNames()
  * Print Dataset names to one line. If the number of datasets is very
  * large just print the number of data sets.
  */
@@ -149,8 +143,7 @@ void DataFile::DataSetNames() {
   }
 }
 
-/*
- * DataFile::Write()
+/* DataFile::Write()
  * Write datasets to file. Check that datasets actually contain data. 
  * Exit if no datasets in this datafile have been used.
  */
@@ -215,8 +208,7 @@ void DataFile::Write(bool noEmptyFramesIn) {
   outfile.CloseFile();
 }
 
-/*
- * DataFile::WriteData()
+/* DataFile::WriteData()
  * Write datasets to file. Put each set in its own column. 
  */
 void DataFile::WriteData(PtrajFile *outfile) {
@@ -279,8 +271,7 @@ void DataFile::WriteData(PtrajFile *outfile) {
   if (buffer!=NULL) free(buffer);
 }
 
-/*
- * DataFile::WriteDataInverted()
+/* DataFile::WriteDataInverted()
  * Alternate method of writing out data where X and Y values are switched. 
  * Each frame is put into a column, with column 1 containing headers.
  */
@@ -324,8 +315,7 @@ void DataFile::WriteDataInverted(PtrajFile *outfile) {
   if (buffer!=NULL) free(buffer);
 }
  
-/*
- * DataFile::WriteGrace() 
+/* DataFile::WriteGrace() 
  * Write out sets to file in xmgrace format.
  */
 void DataFile::WriteGrace(PtrajFile *outfile) {
@@ -375,8 +365,7 @@ void DataFile::WriteGrace(PtrajFile *outfile) {
   if (buffer!=NULL) free(buffer);
 }
 
-/*
- * DataFile::WriteGraceInverted() 
+/* DataFile::WriteGraceInverted() 
  * Write out sets to file in xmgrace format. Write out data from each
  * frame as 1 set.
  */
@@ -432,10 +421,11 @@ void DataFile::WriteGraceInverted(PtrajFile *outfile) {
   if (buffer!=NULL) free(buffer);
 }
 
-/*
- * DataFile::WriteGnuplot()
+/* DataFile::WriteGnuplot()
  * Write each frame from all sets in blocks in the following format:
  *   Frame Set   Value
+ * Originally there was a -0.5 offset for the Set values in order to center
+ * grid lines on the Y values, e.g.
  *   1     0.5   X
  *   1     1.5   X
  *   1     2.5   X
@@ -443,7 +433,8 @@ void DataFile::WriteGraceInverted(PtrajFile *outfile) {
  *   2     0.5   X
  *   2     1.5   X
  *   ...
- * Subtract 0.5 from set number so that grid lines will be centered on Y values
+ * However, in the interest of keeping data consistent, this is no longer
+ * done. Could be added back in later as an option.
  */
 void DataFile::WriteGnuplot(PtrajFile *outfile) {
   char *buffer;
@@ -497,7 +488,7 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
   // Data
   for (frame=0; frame < maxFrames; frame++) {
     Fset = OUTPUTFRAMESHIFT;
-    Fset -= 0.5;
+    //Fset -= 0.5;
     for (set=0; set < Nsets; set++) {
       SetList[set]->Write(buffer,frame);
       outfile->IO->Printf("%8i %8.1f %s\n",frame+OUTPUTFRAMESHIFT,Fset,buffer);
@@ -506,6 +497,14 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
     // Print one empty row for gnuplot pm3d
     outfile->IO->Printf("%8i %8.1f %8i\n\n",frame+OUTPUTFRAMESHIFT,Fset,0);
   }
+  // Print one empty set for gnuplot pm3d
+  Fset = OUTPUTFRAMESHIFT;
+  //Fset -= 0.5;
+  for (set=0; set<=Nsets; set++) {
+    outfile->IO->Printf("%8i %8.1f %8i\n",maxFrames+OUTPUTFRAMESHIFT,Fset,0);
+    Fset++;
+  }
+  outfile->IO->Printf("\n");
 
   // End and Pause command
   outfile->IO->Printf("end\npause -1\n");
