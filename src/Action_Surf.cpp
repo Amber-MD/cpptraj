@@ -203,6 +203,18 @@ int Surf::action() {
   std::vector<int> ineighbor;
 
   // Step 1: Calculate distances between all pairs of atoms
+#ifdef _OPENMP
+#pragma omp parallel private(atomi,atomj,distIndex)
+{
+#pragma omp for
+  for (atomi = 0; atomi < soluteAtoms - 1; atomi++) {
+    for (atomj = atomi+1; atomj < soluteAtoms; atomj++) {
+      distIndex = CalcIndex(atomi, atomj, soluteAtoms);
+      distances[distIndex] = F->DIST(atomi, atomj);
+    }
+  }
+}
+#else
   distIndex = 0;
   for (atomi = 0; atomi < soluteAtoms - 1; atomi++) {
     for (atomj = atomi + 1; atomj < soluteAtoms; atomj++) {
@@ -210,7 +222,8 @@ int Surf::action() {
       // DEBUG
       //mprintf("SURF_DIST:  %i %i %i %lf\n",atomi,atomj,distIndex-1,distances[distIndex-1]);
     }
-  } 
+  }
+#endif
 
   SA = 0.0;
 #ifdef _OPENMP
