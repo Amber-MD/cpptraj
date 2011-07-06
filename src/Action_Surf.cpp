@@ -203,6 +203,9 @@ int Surf::action() {
   std::vector<int> ineighbor;
 
   // Step 1: Calculate distances between all pairs of atoms
+  // The parallelized version uses distIndex to calculate the correct
+  // index into the half-diagonal matrix. The serial version does not
+  // need to do this since the distances are calculated sequentially.
 #ifdef _OPENMP
 #pragma omp parallel private(atomi,atomj,distIndex)
 {
@@ -225,13 +228,14 @@ int Surf::action() {
   }
 #endif
 
+  // Step 2: Set up neighbor list for each atom in mask and calc its 
+  // surface area contribution. Sum these up to get the total surface area.
   SA = 0.0;
 #ifdef _OPENMP
 #pragma omp parallel private(atomi,atomj,distIndex,ineighbor) reduction(+: SA)
 {
 #pragma omp for 
 #endif      
-  // Step 2: Set up neighbor list for each atom and calc its surface area
   for (int maskIndex = 0; maskIndex < Mask1.Nselected; maskIndex++) {
     atomi = Mask1.Selected[maskIndex];
     // Set up neighbor list for atom i
