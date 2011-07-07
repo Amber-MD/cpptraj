@@ -66,7 +66,7 @@ void Mol2File::closeTraj() {
  * See how many MOLECULE records are in file, make sure num atoms match
  * parm and each frame.
  */
-int Mol2File::setupRead(int natom) {
+int Mol2File::setupRead(AmberParm *trajParm) {
   int frameAtom;
   int Frames=0;
   char buffer[MOL2BUFFERSIZE];
@@ -89,10 +89,10 @@ int Mol2File::setupRead(int natom) {
       mol2atom=frameAtom;
       if (debug>0) mprintf("    Mol2 #atoms: %i\n",mol2atom);
     }
-    if (frameAtom!=natom) {
+    if (frameAtom!=trajParm->natom) {
       mprinterr("Error: Number of atoms in Mol2 file %s (%i) does not\n",
               tfile->filename,frameAtom);
-      mprinterr("       match number in associated parmtop (%i)!\n",natom);
+      mprinterr("       match number in associated parmtop (%i)!\n",trajParm->natom);
       return -1;
     }
     if (frameAtom!=mol2atom) {
@@ -136,6 +136,14 @@ int Mol2File::readFrame(int set,double *X, double *V,double *box, double *T) {
   return 0;
 }
 
+/* Mol2File::processWriteArgs()
+ */
+int Mol2File::processWriteArgs(ArgList *argIn) {
+  if (argIn->hasKey("single")) this->SetWriteMode(MOL);
+  if (argIn->hasKey("multi"))  this->SetWriteMode(MULTI);
+  return 0;
+}
+
 /* Mol2File::SetWriteMode()
  * Set write mode to SINGLE, MOL, or MULTI
  */
@@ -144,60 +152,44 @@ void Mol2File::SetWriteMode(MOL2WRITEMODE modeIn) {
   //mprintf("MOL2 WRITE MODE SET TO %i\n",(int)mol2WriteMode);
 }
 
-/* Mol2File::NumFramesToWrite()
- * Modify write mode based on expected number of frames being written.
+/* Mol2File::setupWrite()
+ * Set parm information required for write, and check write mode against
+ * number of frames to be written.
  */
-void Mol2File::NumFramesToWrite(int parmFrames) {
+int Mol2File::setupWrite(AmberParm *trajParm) {
   // If writing more than 1 frame and not writing 1 pdb per frame, 
   // use @<TRIPOS>MOLECULE keyword to separate frames.
-  if (mol2WriteMode==SINGLE && parmFrames>1) mol2WriteMode=MOL;
-}
+  if (mol2WriteMode==SINGLE && trajParm->parmFrames>1) mol2WriteMode=MOL;
 
-/* Mol2File::SetParmInfo()
- * In order to write mol2 files, need some parm info like atom names etc.
- * This should be called before setupWrite.
- */
-void Mol2File::SetParmInfo(int nres, int nbondsh, int nbonds, NAME *names,
-                           NAME *resnames, NAME *types, int *resnums,
-                           int *bonds, int *bondsh, double *charge) {
-  //mprintf("SETTING PARM INFO FOR Mol2 FILE\n"); // DEBUG
-  trajnres = nres;
-  trajnbondsh = nbondsh;
-  trajnbonds = nbonds;
-  trajAtomNames = names;
-  trajTypes = types;
-  // If types are not set just use atom names
-  if (trajTypes == NULL) trajTypes = trajAtomNames;
-  trajResNames = resnames;
-  trajResNums = resnums;
-  trajCharges = charge;
-  trajBonds = bonds;
-  trajBondsh = bondsh;
-  // DEBUG
-  //mprintf("Atomname 0 %s\n",trajAtomNames[0]);
-  //mprintf("Resname 0  %s\n",trajResNames[0]);
-  //mprintf("AtPerMol 0 %i\n",trajAtomsPerMol[0]);
-  //mprintf("ResNums 0  %i\n",trajResNums[0]);
-  //mprintf("Charge 0   %lf\n",trajCharges[0]);
-}
-
-/* Mol2File::setupWrite()
- * SetParmInfo should be called before calling this routine.
- */
-int Mol2File::setupWrite(int natom) {
-  mol2atom = natom;
-  // Check number of bonds
-  mol2bonds = trajnbondsh + trajnbonds;
-  if (mol2bonds < 0) mol2bonds=0;
-  if (mol2bonds == 0)
-    mprintf("Warning: %s: topology does not contain bond information.\n",tfile->filename);
-  // If more than 99999 atoms this may fail
+  // Set # atoms; if more than 99999 atoms the file may not write correctly
+  mol2atom = trajParm->natom;
   if (mol2atom>99999) {
     mprintf("Warning: %s: Large # of atoms (%i > 99999) for mol2 format.\n",
             tfile->filename,mol2atom);
     mprintf("         File may not write correctly.\n");
   }
-  // Check that SetParmInfo has indeed been called
+
+  // Check number of bonds
+  trajnbondsh = trajParm->NbondsWithH();
+  trajnbonds  = trajParm->NbondsWithoutH();
+  mol2bonds = trajnbondsh + trajnbonds;
+  if (mol2bonds < 0) mol2bonds=0;
+  if (mol2bonds == 0)
+    mprintf("Warning: %s: topology does not contain bond information.\n",tfile->filename);
+
+  // Set information from parm
+  trajnres = trajParm->nres;
+  trajAtomNames = trajParm->names;
+  trajTypes = trajParm->types;
+  // If types are not set just use atom names
+  if (trajTypes == NULL) trajTypes = trajAtomNames;
+  trajResNames = trajParm->resnames;
+  trajResNums = trajParm->resnums;
+  trajCharges = trajParm->charge;
+  trajBonds = trajParm->bonds;
+  trajBondsh = trajParm->bondsh;
+
+  // Check that all parm info is indeed present
   if (trajAtomNames==NULL) {
     mprinterr("Error: setupWrite [%s]: Atom names are NULL.\n",tfile->filename);
     return 1;

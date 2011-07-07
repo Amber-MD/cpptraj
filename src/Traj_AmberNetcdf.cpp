@@ -90,7 +90,7 @@ int AmberNetcdf::openTraj() {
  * Open the netcdf file, read all dimension and variable IDs, close.
  * Return the number of frames in the file. 
  */
-int AmberNetcdf::setupRead(int natom) {
+int AmberNetcdf::setupRead(AmberParm* trajParm) {
   char *attrText;            // For checking conventions and version 
   int spatial;               // For checking spatial dimensions
   double box[6];             // For checking box type
@@ -174,10 +174,10 @@ int AmberNetcdf::setupRead(int natom) {
   //int spatialVID, cell_spatialVID, cell_angularVID;
 
   // Check that specified number of atoms matches expected number.
-  if (ncatom!=natom) {
+  if (ncatom!=trajParm->natom) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n",
               tfile->filename,ncatom);
-    mprinterr("       match number in associated parmtop (%i)!\n",natom);
+    mprinterr("       match number in associated parmtop (%i)!\n",trajParm->natom);
     return -1;
   }
 
@@ -186,6 +186,13 @@ int AmberNetcdf::setupRead(int natom) {
   Coord=(float*) realloc(Coord, ncatom3*sizeof(float));
   closeTraj();
   return ncframe;
+}
+
+/* AmberNetcdf::processWriteArgs()
+ */
+int AmberNetcdf::processWriteArgs(ArgList *argIn) {
+  if (argIn->hasKey("remdtraj")) this->SetRemdTraj();
+  return 0;
 }
 
 /* AmberNetcdf::SetRemdTraj()
@@ -199,7 +206,7 @@ void AmberNetcdf::SetRemdTraj() {
  * Create Netcdf file specified by filename and set up dimension and
  * variable IDs. 
  */
-int AmberNetcdf::setupWrite(int natom) {
+int AmberNetcdf::setupWrite(AmberParm *trajParm) {
   int dimensionID[NC_MAX_VAR_DIMS];
   size_t start[3], count[3];
   char xyz[3];
@@ -231,10 +238,10 @@ int AmberNetcdf::setupWrite(int natom) {
     "Defining spatial variable.")) return 1;
 
   // Atoms
-  if (checkNCerr(nc_def_dim(ncid,NCATOM,natom,&atomDID),
+  if (checkNCerr(nc_def_dim(ncid,NCATOM,trajParm->natom,&atomDID),
     "Defining atom dimension.")) return 1;
-  ncatom=natom;
-  ncatom3 = natom * 3;
+  ncatom=trajParm->natom;
+  ncatom3 = ncatom * 3;
 
   // Coords
   dimensionID[0] = frameDID;

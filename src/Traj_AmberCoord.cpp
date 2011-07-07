@@ -180,7 +180,7 @@ int AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T)
  * Return -1 if an error occurs, -2 if the number of frames could 
  * not be determined.
  */
-int AmberCoord::setupRead(int natom) {
+int AmberCoord::setupRead(AmberParm *trajParm) {
   char buffer[BUFFER_SIZE];
   int frame_lines;
   int lineSize;
@@ -205,7 +205,7 @@ int AmberCoord::setupRead(int natom) {
   if (openTraj()) return -1;
   
   // Calculate the length of each coordinate frame in bytes
-  natom3 = natom * 3;
+  natom3 = trajParm->natom * 3;
   frame_lines = natom3 / 10;
   if ((natom3 % 10) > 0)
     frame_lines++;
@@ -297,7 +297,7 @@ int AmberCoord::setupRead(int natom) {
 
   if (debug>0)
     rprintf("Atoms: %i FrameSize: %i TitleSize: %i NumBox: %i Seekable: %i Frames: %i\n\n", 
-            natom, frameSize, titleSize, numBoxCoords, (int)seekable, Frames);
+            trajParm->natom, frameSize, titleSize, numBoxCoords, (int)seekable, Frames);
   // Close the file
   closeTraj();
 
@@ -311,18 +311,26 @@ void AmberCoord::SetRemdTraj() {
   hasTemperature=true;
 }
 
+/* AmberCoord::processWriteArgs()
+ */
+int AmberCoord::processWriteArgs(ArgList *argIn) {
+  if (argIn->hasKey("remdtraj")) this->SetRemdTraj();
+  if (argIn->hasKey("highprecision")) this->SetHighPrecision();
+  return 0;
+}
+
 /* AmberCoord::setupWrite()
  * Set up trajectory for write. Calculate the length of each cooordinate
  * frame. Set the title and titleSize. Calculate the full output file
  * size, necessary only for seeking when MPI writing. Allocate memory for
  * the frame buffer. 
  */
-int AmberCoord::setupWrite(int natom) {
+int AmberCoord::setupWrite(AmberParm *trajParm) {
   int frame_lines;
   //long int outfilesize;
 
   // Calculate the length of each coordinate frame in bytes
-  natom3 = natom * 3;
+  natom3 = trajParm->natom * 3;
   frame_lines = natom3 / 10;
   if ((natom3 % 10) > 0)
     frame_lines++;

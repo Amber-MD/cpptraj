@@ -3,10 +3,9 @@
 /// Class: TrajectoryFile
 /// Main trajectory class. Will have a TrajectoryIO class that will interface
 /// with actual trajectory format.
-#include "AmberParm.h" // BoxType.h
-#include "ArgList.h"
+/// NOTE: Remove boxType?
 #include "ProgressBar.h"
-#include "TrajectoryIO.h"
+#include "TrajectoryIO.h" // AmberParm BoxType PtrajFile ArgList 
 #include "Range.h"
 class TrajectoryFile {
     int debug;

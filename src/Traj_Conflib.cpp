@@ -30,12 +30,12 @@ int Conflib::openTraj() {
 
 /* Conflib::setupRead()
  */
-int Conflib::setupRead(int natom) {
+int Conflib::setupRead(AmberParm *trajParm) {
   long unsigned int confFrame;
   int Frames = 0;
 
   // Conflib is double,double,int,natom*3*double
-  confFrame = (((natom * 3) + 2) * sizeof(double)) + sizeof(int);
+  confFrame = (((trajParm->natom * 3) + 2) * sizeof(double)) + sizeof(int);
   Frames = (int) (tfile->file_size / confFrame);
 
   if ( (tfile->file_size % confFrame) != 0 ) {
@@ -44,7 +44,7 @@ int Conflib::setupRead(int natom) {
     mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
             Frames);
   }
-  conflibAtom = natom;
+  conflibAtom = trajParm->natom;
   return Frames;
 }
 
@@ -64,7 +64,7 @@ int Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
 
 /* Conflib::setupWrite()
  */
-int Conflib::setupWrite(int natom ) {
+int Conflib::setupWrite(AmberParm *trajParm) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }

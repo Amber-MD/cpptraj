@@ -10,8 +10,8 @@ class Conflib: public TrajectoryIO {
     int conflibAtom;
 
     // Inherited functions
-    int setupRead(int);
-    int setupWrite(int);
+    int setupRead(AmberParm*);
+    int setupWrite(AmberParm*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);

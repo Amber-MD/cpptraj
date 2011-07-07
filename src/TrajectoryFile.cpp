@@ -123,7 +123,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
     // Pushing replica0 here allows the remdio destructor to handle it on errors
     remdio->REMDtraj.push_back( replica0 );
     // Check that number of frames matches
-    repframes = replica0->setupRead(trajParm->natom);
+    repframes = replica0->setupRead(trajParm);
     if (repframes < 0 || repframes != total_frames) {
       mprinterr("    Error: RemdTraj: Replica %i frames (%i) does not match\n",
                 repnum,repframes);
@@ -171,7 +171,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
       remdio->REMDtrajout.push_back( replica0 );
       // Set up write here, trajParm will not change
       replica0->hasBox = trajio->hasBox;
-      if (replica0->setupWrite(trajParm->natom)) {
+      if (replica0->setupWrite(trajParm)) {
         delete remdio;
         return NULL;
       }
@@ -448,7 +448,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
 
   // Set up the format for reading and get the number of frames.
   // -1 indicates an error
-  total_frames = trajio->setupRead(trajParm->natom);
+  total_frames = trajio->setupRead(trajParm);
   if (total_frames < 0) {
     mprinterr("    Error: Could not set up %s for reading.\n",tname);
     return 1;
@@ -476,17 +476,6 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     mprinterr("  Error: No frames will be read from %s based on start, stop,\n",trajName);
     mprinterr("         and offset values (%i, %i, %i)\n",start+1,stop+1,offset);
     return 1;
-  }
-
-  // Further setup specific to trajectory format
-  if (trajio->TrajFormat() == PDBFILE) {
-    // Check that the names read from the PDB file match the ones in the
-    // associated parm. Will just print warnings for now.
-    PDBfile *T0 = (PDBfile*) trajio;
-    int numMismatch = T0->CheckPdbNames(trajParm->names);
-    if (numMismatch>0) 
-      mprintf("Warning: %s: %i names did not match those in associated parm %s.\n",
-              trajName,numMismatch,trajParm->parmName);
   }
 
   // For replica trajectories, replace the current trajio (which should be
@@ -653,29 +642,10 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
 
     // Process any write arguments specific to certain formats not related
     // to parm file. Options related to parm file are handled on the first
-    // write in WriteFrame
-    if (trajio->TrajFormat() == AMBERTRAJ) {
-      // Amber Trajectory 
-      AmberCoord *T0 = (AmberCoord*) trajio;
-      if (argIn->hasKey("remdtraj")) T0->SetRemdTraj();
-      if (argIn->hasKey("highprecision")) T0->SetHighPrecision();
-#ifdef BINTRAJ
-    } else if (trajio->TrajFormat() == AMBERNETCDF ) {
-      // Amber Netcdf
-      AmberNetcdf *T1 = (AmberNetcdf*) trajio;
-      if (argIn->hasKey("remdtraj")) T1->SetRemdTraj();
-#endif
-    } else if (trajio->TrajFormat() == PDBFILE ) {
-      // PDB file
-      PDBfile *T2 = (PDBfile*) trajio;
-      if (argIn->hasKey("dumpq")) T2->SetDumpq();
-      if (argIn->hasKey("model")) T2->SetWriteMode(PDBfile::MODEL);
-      if (argIn->hasKey("multi")) T2->SetWriteMode(PDBfile::MULTI);
-    } else if (trajio->TrajFormat() == MOL2FILE ) {
-      // Mol2 file
-      Mol2File *T3 = (Mol2File*) trajio;
-      if (argIn->hasKey("single")) T3->SetWriteMode(Mol2File::MOL);
-      if (argIn->hasKey("multi"))  T3->SetWriteMode(Mol2File::MULTI);
+    // write in WriteFrame.
+    if (trajio->processWriteArgs(argIn)) {
+      mprinterr("Error: trajout %s: Could not process arguments.\n",tname);
+      return 1;
     }
   }
 
@@ -785,21 +755,6 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
     if (debug>0) rprintf("    Setting up %s for WRITE, %i atoms, originally %i atoms.\n",
                          trajName,tparmIn->natom,trajParm->natom);
     trajParm = tparmIn;
-    // Format-specific setup that requires parm information
-    // NOTE: Make SetParmInfo an inherited function?
-    if (trajio->TrajFormat()==PDBFILE) {
-      PDBfile *T0 = (PDBfile*) trajio;
-      T0->NumFramesToWrite(trajParm->parmFrames);
-      T0->SetParmInfo(trajParm->names,trajParm->resnames,
-                      trajParm->atomsPerMol,trajParm->resnums,trajParm->charge,NULL);
-    } else if (trajio->TrajFormat()==MOL2FILE) {
-      Mol2File *T1 = (Mol2File*) trajio;
-      T1->NumFramesToWrite(trajParm->parmFrames);
-      T1->SetParmInfo(trajParm->nres,trajParm->NbondsWithH(),trajParm->NbondsWithoutH(),
-                      trajParm->names,trajParm->resnames,trajParm->types,
-                      trajParm->resnums,trajParm->bonds,trajParm->bondsh,
-                      trajParm->charge);
-    }
     // Use parm to set up box info for the traj unless nobox was specified.
     // If box angles are present in traj they will be used instead.
     // NOTE: Probably not necessary to set box angles here, they are passed in
@@ -811,8 +766,8 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
         trajio->boxAngle[2]=trajParm->Box[5];
       }
     }
-    // Set up write for the current number of atoms 
-    if (trajio->setupWrite(trajParm->natom)) return 1;
+    // Set up write for the current parm file 
+    if (trajio->setupWrite(trajParm)) return 1;
     // Open output traj and mark as set up.
     if (trajio->openTraj()) return 1;
     setupForWrite=true;

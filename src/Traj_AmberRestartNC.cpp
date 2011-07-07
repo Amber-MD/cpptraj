@@ -91,7 +91,7 @@ int AmberRestartNC::openTraj() {
  * Also check number of atoms against associated parmtop.
  * NOTE: Replace attrText allocs with static buffer? 
  */
-int AmberRestartNC::setupRead(int natom) {
+int AmberRestartNC::setupRead(AmberParm *trajParm) {
   char *attrText; // For checking conventions and version 
   int spatial; // For checking spatial dimensions
   double box[6];
@@ -115,7 +115,7 @@ int AmberRestartNC::setupRead(int natom) {
   // Get atoms, coord, and spatial info
   atomDID=GetDimInfo(ncid,NCATOM,&ncatom);
   if (atomDID==-1) return -1;
-  ncatom3 = natom * 3;
+  ncatom3 = trajParm->natom * 3;
   if (checkNCerr(nc_inq_varid(ncid,NCCOORDS,&coordVID),
       "Getting coordinate ID")!=0) return -1;
   attrText = GetAttrText(ncid,coordVID, "units");
@@ -179,10 +179,10 @@ int AmberRestartNC::setupRead(int natom) {
   //int cell_spatialDID, cell_angularDID;
   //int spatialVID, cell_spatialVID, cell_angularVID;
 
-  if (ncatom!=natom) {
+  if (ncatom!=trajParm->natom) {
     mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
               tfile->filename,ncatom);
-    mprinterr("       match those in associated parmtop (%i)!\n",natom);
+    mprinterr("       match those in associated parmtop (%i)!\n",trajParm->natom);
     return -1;
   }
 
@@ -193,9 +193,9 @@ int AmberRestartNC::setupRead(int natom) {
 /* AmberRestartNC::setupWrite()
  * Setting up is done for each frame.
  */
-int AmberRestartNC::setupWrite(int natom) {
-  ncatom = natom;
-  ncatom3 = natom * 3;
+int AmberRestartNC::setupWrite(AmberParm *trajParm) {
+  ncatom = trajParm->natom;
+  ncatom3 = ncatom * 3;
   return 0;
 }
 

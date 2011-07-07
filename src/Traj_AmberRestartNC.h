@@ -27,8 +27,8 @@ class AmberRestartNC : public TrajectoryIO {
     int TempVID;
 
     // Inherited functions
-    int setupRead(int);
-    int setupWrite(int);
+    int setupRead(AmberParm*);
+    int setupWrite(AmberParm*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);

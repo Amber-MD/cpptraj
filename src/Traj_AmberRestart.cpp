@@ -100,11 +100,11 @@ int AmberRestart::openTraj() {
  * Allocate a character buffer based on number of coords and whether 
  * velocities/box info is present.
  */
-int AmberRestart::setupWrite(int natom) {
+int AmberRestart::setupWrite(AmberParm *trajParm) {
   int frame_lines;
 
-  restartAtoms=natom;
-  natom3=natom * 3;
+  restartAtoms=trajParm->natom;
+  natom3=trajParm->natom * 3;
   // Calculate the length of coordinate frame in bytes
   frame_lines = (natom3) / 6;
   if ((natom3 % 6) > 0)
@@ -143,17 +143,17 @@ void AmberRestart::getBoxAngles(char *boxline, int boxlineSize) {
  * Set up amber restart file for reading. Check that number of atoms matches
  * number of atoms in associated parmtop. Check for box/velocity info.
  */
-int AmberRestart::setupRead(int natom) {
+int AmberRestart::setupRead(AmberParm *trajParm) {
   char buffer[83];
   int frame_lines,lineSize;
 
   if (openTraj()) return -1; // Gets title, time, natoms, and temp if present
 
   // Check that natoms matches parm natoms
-  if (restartAtoms!=natom) {
+  if (restartAtoms!=trajParm->natom) {
     mprinterr("Error: Number of atoms in Amber Restart %s (%i) does not\n",
               tfile->filename, restartAtoms);
-    mprinterr("       match number in associated parmtop (%i)\n",natom);
+    mprinterr("       match number in associated parmtop (%i)\n",trajParm->natom);
     return -1;
   }
   natom3 = restartAtoms * 3;

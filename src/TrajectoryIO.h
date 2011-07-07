@@ -7,16 +7,14 @@
 /// the SetFile function. 
 /// The following functions can be implemented by the inheriting class:
 ///   setupRead(): Called inside TrajectoryFile::SetupRead. Takes as an 
-///                argument the expected number of atoms in the trajectory. 
-///                Returns the number of frames in the underlying trajectory 
-///                file. Should set all variables (title, seekable, hasBox, 
-///                boxAngle (only if hasBox), and hasTemperature. If an error
-///                occurs should return -1.
+///                argument the AmberParm class that will be associated with
+///                this trajectory. Returns the number of frames in the 
+///                underlying trajectory file. Should set all variables (title,
+///                seekable, hasBox, boxAngle (only if hasBox), hasTemperature,
+///                and hasVelocity. If an error occurs should return -1.
 ///   setupWrite(): Called inside TrajectoryFile::WriteFrame on the first
-///                 write call. Takes as an argument the expected number of
-///                 atoms in the trajectory. If any additional parm info is
-///                 required it should be set prior to this call using an
-///                 additional function (e.g. PDBfile::SetParmInfo)
+///                 write call. Takes as an argument the AmberParm class that
+///                 will be associated with this trajectory. 
 ///   openTraj(): Prepare trajectory for read/write
 ///   closeTraj(): Finish trajectory
 ///   readFrame(): Given a frame number, read that frame; return the
@@ -29,15 +27,17 @@
 ///                 the TrajectoryIO object to keep track of what frame it is
 ///                 writing. Vars are same as in readFrame.
 ///   info(): Print information on what kind of trajectory this is.
-#include "PtrajFile.h" 
+///   processWriteArgs(): (Optional) Process any arguments from the arg list 
+///                       that have to do with setting the trajectory up for 
+///                       writing. It is desireable that any changes made to the
+///                       TrajectoryIO object from within this function are
+///                       implemented as functions that can be called 
+///                       independently if need be (e.g. setting the write
+///                       mode for PDB files).
+#include "AmberParm.h" // PtrajFile BoxType
+#include "ArgList.h"
 class TrajectoryIO {
   protected:
-    // **** This is defined so that arrays from AmberParm can be passed in
-    //      via SetParmInfo, required for things like PDB/Mol2 writes. MUST
-    //      match the definition in AmberParm or memory errors will occur.
-    //      NOTE: Make this definition an include? 
-    typedef char NAME[6];
-
     PtrajFile *tfile;   // Base file.
     char *title;        // Trajectory title.
     int debug;          // Debug level
@@ -52,13 +52,14 @@ class TrajectoryIO {
     virtual ~TrajectoryIO(); // virtual since this class is inherited.
 
     // Inherited functions 
-    virtual int setupRead(int) { return -1; }
-    virtual int setupWrite(int) { return 1; }
+    virtual int setupRead(AmberParm *) { return -1; }
+    virtual int setupWrite(AmberParm *) { return 1; }
     virtual int openTraj() { return 1; }
     virtual int readFrame(int,double*,double*,double*,double*) { return 1; }
     virtual int writeFrame(int,double*,double*,double*,double) { return 1; }
     virtual void closeTraj() { return; }
     virtual void info() { return; }
+    virtual int processWriteArgs(ArgList *) { return 0; }
   
     void SetFile(PtrajFile *);
     void SetTitle(char *);

@@ -9,8 +9,8 @@ PDBfile::PDBfile() {
   pdbAtom=0;
   pdbWriteMode=SINGLE;
   dumpq=false;
-  pdbAtomNames=NULL;
 
+  pdbAtomNames=NULL;
   trajResNames=NULL;
   trajAtomsPerMol=NULL;
   trajResNums=NULL;
@@ -21,9 +21,6 @@ PDBfile::PDBfile() {
 // DESTRUCTOR
 PDBfile::~PDBfile() { 
   //fprintf(stderr,"PDBfile Destructor.\n");
-  // If WRITE/APPEND pdbAtomNames were passed in from a parm so dont free
-  if (tfile->access==READ && pdbAtomNames!=NULL) 
-    free(pdbAtomNames);
 }
 //------------------------------------------------------------------------
 /* PDBfile::closeTraj()
@@ -69,30 +66,39 @@ int PDBfile::openTraj() {
  * also be checked to ensure that the atom names match those in the parm file
  * in TrajectoryFile.
  */
-int PDBfile::setupRead(int natom) {
+int PDBfile::setupRead(AmberParm *trajParm) {
   int atom, Frames;
+  int numMismatch = 0;
   bool scanPDB;
+  char pdbAtomName[5];
 
   if ( this->openTraj() ) return -1;
 
-  // Allocate space for checking pdb atom names
-  pdbAtomNames = (NAME*) realloc(pdbAtomNames,natom * sizeof(NAME));
   // Two strats - check for MODEL keywords or see how many times natom ATOMs can be read
   // Currently employing the latter.
   Frames=0;
   scanPDB=true;
   while (scanPDB) {
     atom=0;
-    while ( atom < natom ) {
+    while ( atom < trajParm->natom ) {
       //fprintf(stdout,"DEBUG: PDB Read atom %i\n",atom);
       if ( tfile->IO->Gets(buffer,256) ) { scanPDB=false; break; }
       //fprintf(stdout,"DEBUG: PDB buffer %i [%s]\n",atom,buffer);
       // Skip non-ATOM records
       if (!isPDBatomKeyword(buffer)) continue;
-      // If still on frame 1, store atom names in order to subsequently check
-      // if they match those in associated parm (TrajectoryFile)
+      // If still on first frame, check pdb atom name against the name in the 
+      // associated parm file.
       if (Frames==0) {
-        pdb_name(buffer,(char*)(pdbAtomNames + atom));
+        pdb_name(buffer,pdbAtomName);
+        if ( (trajParm->names[atom][0] != pdbAtomName[0]) ||
+             (trajParm->names[atom][1] != pdbAtomName[1]) ||
+             (trajParm->names[atom][2] != pdbAtomName[2]) ||
+             (trajParm->names[atom][3] != pdbAtomName[3])   )
+        {
+          mprintf("Warning: %s: Atom %i name [%s] does not match parm atom name [%s]\n",
+                  tfile->filename,atom,pdbAtomName,trajParm->names[atom]);
+          numMismatch++;
+        }
       }
       atom++;
     }
@@ -112,34 +118,17 @@ int PDBfile::setupRead(int natom) {
 
   if (Frames<1) {
     mprinterr("Error: %s: No frames read. atom=%i expected %i.\n",tfile->filename,
-            atom,natom);
+            atom,trajParm->natom);
     return -1;
   }
   if (debug>0) mprintf("PDBfile: %s has %i atoms, %i frames.\n",tfile->filename,
                        pdbAtom,Frames);
-  return Frames;
-}
+  // Report mismatches of pdb atom names against parm names
+  if (numMismatch > 0)
+    mprintf("Warning: In PDB file %s: %i name mismatches with parm %s.\n",tfile->filename,
+            numMismatch,trajParm->parmName);
 
-/* PDBfile::CheckPdbNames
- * Check previously read in PDB names (setupRead) against the provided
- * names, print a warning if they dont match up.
- * Return the number of mismatches
- */
-int PDBfile::CheckPdbNames(NAME *names) {
-  int numMismatch = 0;
-  if (pdbAtomNames==NULL) return -1;
-  for (int atom=0; atom < pdbAtom; atom++) {
-    if ( (names[atom][0] != pdbAtomNames[atom][0]) ||
-         (names[atom][1] != pdbAtomNames[atom][1]) ||
-         (names[atom][2] != pdbAtomNames[atom][2]) ||
-         (names[atom][3] != pdbAtomNames[atom][3])   ) 
-    { 
-      mprintf("Warning: %s: Atom %i name [%s] does not match parm name [%s]\n",
-              tfile->filename,atom,pdbAtomNames[atom],names[atom]);
-      numMismatch++;
-    }
-  }
-  return numMismatch;
+  return Frames;
 }
 
 /* PDBfile::readFrame()
@@ -163,11 +152,33 @@ int PDBfile::readFrame(int set,double *X, double *V,double *box, double *T) {
   return 0;
 }
 
+/* PDBfile::processWriteArgs()
+ */
+int PDBfile::processWriteArgs(ArgList *argIn) {
+  if (argIn->hasKey("dumpq")) this->SetDumpq();
+  if (argIn->hasKey("model")) this->SetWriteMode(MODEL);
+  if (argIn->hasKey("multi")) this->SetWriteMode(MULTI);
+  return 0;
+}
+
 /* PDBfile::setupWrite()
+ * Set parm information needed for write, and check write mode against
+ * number of frames to be written.
+ * NOTE: Set radii eventually.
  */ 
-int PDBfile::setupWrite(int natom ) {
-  pdbAtom = natom;
-  // Check that SetParmInfo has indeed been called
+int PDBfile::setupWrite(AmberParm *trajParm) {
+  pdbAtom = trajParm->natom;
+  pdbAtomNames = trajParm->names;
+  trajResNames = trajParm->resnames;
+  //trajAtomsPerMol = traj->atomsPerMol;
+  trajResNums = trajParm->resnums;
+  trajCharges = trajParm->charge;
+  // trajRadii = 
+
+  // If number of frames to write > 1 and not doing 1 pdb file per frame,
+  // set write mode to MODEL
+  if (pdbWriteMode==SINGLE && trajParm->parmFrames>1) pdbWriteMode=MODEL;
+  // Check that all parm info needed is present
   if (pdbAtomNames==NULL) {
     mprinterr("Error: setupWrite [%s]: Atom names are NULL.\n",tfile->filename); 
     return 1;
@@ -197,36 +208,6 @@ int PDBfile::setupWrite(int natom ) {
 void PDBfile::SetWriteMode(PDBWRITEMODE modeIn) { 
   pdbWriteMode = modeIn; 
   //mprintf("PDB WRITE MODE SET TO %i\n",(int)pdbWriteMode);
-}
-
-/* PDBfile::NumFramesToWrite()
- * Modify write mode based on expected number of frames being written.
- */
-void PDBfile::NumFramesToWrite(int parmFrames) {
-  // If writing more than 1 frame and not writing 1 pdb per frame, 
-  // use MODEL keyword to separate frames.
-  if (pdbWriteMode==SINGLE && parmFrames>1) pdbWriteMode=MODEL;
-}
-
-/* PDBfile::SetParmInfo()
- * In order to write pdb files, need some parm info like atom names etc.
- * This should be called before setupWrite.
- */
-void PDBfile::SetParmInfo(NAME *names, NAME *resnames, int *atomsPerMol,
-                          int *resnums, double *charge, double *radii) {
-  //mprintf("SETTING PARM INFO FOR PDB FILE\n"); // DEBUG
-  pdbAtomNames = names;
-  trajResNames = resnames;
-  trajAtomsPerMol = atomsPerMol;
-  trajResNums = resnums;
-  trajCharges = charge;
-  trajRadii = radii;
-  // DEBUG
-  //mprintf("Atomname 0 %s\n",trajAtomNames[0]);
-  //mprintf("Resname 0  %s\n",trajResNames[0]);
-  //mprintf("AtPerMol 0 %i\n",trajAtomsPerMol[0]);
-  //mprintf("ResNums 0  %i\n",trajResNums[0]);
-  //mprintf("Charge 0   %lf\n",trajCharges[0]);
 }
 
 /* PDBfile::writeFrame()

@@ -18,13 +18,14 @@ class AmberCoord: public TrajectoryIO {
     bool highPrecision; // If true output format will be 8.6 instead of 8.3
 
     // Inherited functions
-    int setupRead(int);
-    int setupWrite(int);
+    int setupRead(AmberParm*);
+    int setupWrite(AmberParm*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
     void info();
+    int processWriteArgs(ArgList*);
 
   public:
     AmberCoord();

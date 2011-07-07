@@ -16,24 +16,23 @@ class PDBfile: public TrajectoryIO {
     int pdbAtom;
     PDBWRITEMODE pdbWriteMode;
     bool dumpq; // If true, print charges in Occupancy column
-    NAME *pdbAtomNames; // Read in during setupRead for checking against
-                        // parm names via CheckPdbNames, or set for writes
-                        // using SetParmInfo
-    // The following are only required for writes and are set in SetParmInfo
-    NAME *trajResNames;
+    // The following are only required for writes and are set in setupWrite 
+    AmberParm::NAME *pdbAtomNames; 
+    AmberParm::NAME *trajResNames;
     int *trajAtomsPerMol;
     int *trajResNums;
     double *trajCharges;
     double *trajRadii;
 
     // Inherited functions
-    int setupRead(int);
-    int setupWrite(int);
+    int setupRead(AmberParm*);
+    int setupWrite(AmberParm*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
     void info();
+    int processWriteArgs(ArgList*);
 
   public:
     PDBfile();
@@ -41,8 +40,5 @@ class PDBfile: public TrajectoryIO {
     // PDBfile-specfic functions
     void SetWriteMode(PDBWRITEMODE);
     void SetDumpq() { dumpq = true; }
-    int CheckPdbNames(NAME*);
-    void NumFramesToWrite(int);
-    void SetParmInfo(NAME*, NAME*, int *, int *, double *, double *);
 };
 #endif
