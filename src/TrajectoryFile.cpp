@@ -63,10 +63,11 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
 }
 
 /* TrajectoryFile::setupRemdTrajIO()
- * Assuming that trajio has already been set up as the lowest replica, set 
- * this trajectory up as an REMD trajectory. A special trajio object
- * will be set up that itself contains a list of trajio objects, each one
- * corresponding to a replica. Returns a RemdTraj trajio class.
+ * Assuming that trajio has already been set up as the lowest replica (and 
+ * checked for temperature information), set this trajectory up as an REMD 
+ * trajectory. A special trajio object will be set up that itself contains 
+ * a list of trajio objects, each one corresponding to a replica. Returns 
+ * a RemdTraj trajio class.
  */
 TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtrajtemp, 
                                               char *remdout, FileFormat remdfmt) 
@@ -82,7 +83,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
   remdio->seekable = trajio->seekable;
   remdio->hasBox = trajio->hasBox;
   remdio->hasVelocity = trajio->hasVelocity;
-  remdio->hasTemperature = true;
+  remdio->hasTemperature = trajio->hasTemperature;
   remdio->boxAngle[0]=trajio->boxAngle[0];
   remdio->boxAngle[1]=trajio->boxAngle[1];
   remdio->boxAngle[2]=trajio->boxAngle[2];
