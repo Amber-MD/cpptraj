@@ -236,7 +236,7 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
       return NULL;
   }
 
-  // Happens when memory cannot be allocd or not compiled for netcdf
+  // Happens when memory cannot be allocd, or not compiled for netcdf
   if (tio==NULL) return NULL;
 
   // Set debug level

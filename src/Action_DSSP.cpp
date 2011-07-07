@@ -191,6 +191,11 @@ int DSSP::action() {
   double rON, rCH, rOH, rCN, E;
 
   // Determine C=0 to H-N hydrogen bonds for each residue to each other residue
+#ifdef _OPENMP
+#pragma omp parallel private(resi,resj,C,O,H,N,rON, rCH, rOH, rCN, E)
+{
+#pragma omp for
+#endif
   for (resi=0; resi < Nres; resi++) {
     if (!SecStruct[resi].isSelected) continue;
     // Reset previous SS assignment
@@ -221,10 +226,12 @@ int DSSP::action() {
       E = DSSP_fac * (1/rON + 1/rCH - 1/rOH - 1/rCN);
       if (E < -0.5)
         SecStruct[resi].CO_HN_Hbond[resj] = 1;
-
 //      if ( SecStruct[resi].CO_HN_Hbond[resj] ) debugout.IO->Printf(" HBONDED!"); // DEBUG
     }
   }
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif
 
   /* Determine Secondary Structure based on Hbonding pattern.
    * In case of structural overlap, priority is given to the structure first in this list: 
