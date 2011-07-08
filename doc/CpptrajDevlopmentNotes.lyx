@@ -1,4 +1,4 @@
-#LyX 1.6.7 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.8 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -17,6 +17,7 @@
 
 \graphics default
 \paperfontsize default
+\spacing single
 \use_hyperref false
 \papersize default
 \use_geometry false
@@ -59,34 +60,59 @@ CPPTRAJ is code intended to be a complement and perhaps eventually a replacement
  for PTRAJ, the MD trajectory analysis software that comes packaged with
  AmberTools.
  CPPTRAJ is a complete rewrite of the PTRAJ code in C++, the intent being
- to make the code leak-free and thread-safe.
+ to make the code more readable, leak-free, and thread-safe.
  The biggest functional change from PTRAJ is the ability to load and process
- trajectories with different topology files at the same time.
- 
+ trajectories with different topology files in the same run.
+\end_layout
+
+\begin_layout Abstract
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Part
-PtrajState Class
+Overall Code Organization
 \end_layout
 
 \begin_layout Standard
 The PtrajState class is the main class in cpptraj.
+ It is responsible for interfacing with the user and redirecting commands
+ to their appropriate classes.
  It contains all relevant data and controls the flow of the program.
- Data in cpptraj can be divided into 4 categories: trajectory files, actions,
- data sets, and parameter files.
- These are handled by TrajFileList, PtrajActionList, DataSetList, and ParmFileLi
-st classes respectively.
+ Data in cpptraj can be divided into 5 categories: trajectory files, parameter
+ files, actions, data sets, and data files.
+ These are handled by the CoordFileList, ParmFileList, PtrajActionList,
+ DataSetList, and DataFileList classes respectively.
  
 \end_layout
 
 \begin_layout Section
-TrajFileList
+PtrajState
+\end_layout
+
+\begin_layout Section
+CoordFileList: TrajinList, TrajoutList, ReferenceList
 \end_layout
 
 \begin_layout Standard
 Input trajectories, input reference structures/trajectories, and output
- trajectories are all handled by the TrajFileList class.
- 
+ trajectories are all handled by classes derived from the CoordFileList
+ class.
+\end_layout
+
+\begin_layout Section
+ParmFileList
+\end_layout
+
+\begin_layout Standard
+All parm information is stored in ParmFileList, which is a list of AmberParm
+ classes.
+ All other classes that use parm information (trajectories and actions)
+ will have pointers into this list.
 \end_layout
 
 \begin_layout Section
@@ -96,35 +122,615 @@ PtrajActionList
 \begin_layout Standard
 An action is defined as an operation that will take place on specified frames
  of input trajectories.
- Actions are handled by the PtrajActionList class.
- 
-\end_layout
-
-\begin_layout Part
-File Handling
+ Actions are stored in the PtrajActionList class.
+ During trajectory reads, each frame that is read is passed to the action
+ list to be processed.
+ The PtrajActionList has the power to modify the current parm and/or frame.
 \end_layout
 
 \begin_layout Section
-File Types and File Formats
+DataSetList
 \end_layout
 
 \begin_layout Standard
-File handling is done by several classes.
- There are two levels in file handling: file types and file formats.
- The lowest-level is file type, which describes the functions that actually
- access the file.
- This is handled by the base class BaseFileIO.
+All data sets created by actions that should be available for further processing
+ and/or analysis will be placed in the DataSetList.
+\end_layout
+
+\begin_layout Section
+DataFileList
+\end_layout
+
+\begin_layout Standard
+List of data files to be written.
+ The paradigm for Cpptraj is to do no data output (other than trajectory
+ writes) during trajectory processing, since 1) this can slow things down
+ quite a bit and 2) there is a subset of commands ('datafile <command>')
+ that are processed after trajectory processing that allow the user to manipulat
+e datafile output.
+ Data files in the DataFileList can contain pointers to DataSets in the
+ DataSetList, or pointers to DataSetLists in Actions.
+\end_layout
+
+\begin_layout Part
+Basic File Handling
+\end_layout
+
+\begin_layout Standard
+Basic file handling in Cpptraj is done by several classes.
+ In Cpptraj, a file is considered to have both a Type and a Format (defined
+ by enumerated types FileType and FileFormat respectively in PtrajFile.h).
+ Type describes what functions actually perform IO operations for the file.
+ These operations are handled by classes derived from the BaseFileIO class.
+ For example, uncompressed files are handled by standard C file operations
+ like fopen, fread etc which are implemented in the StdFile class.
  A class representing each file type should exist for every kind of file
  whose basic IO functions differ, e.g.
  FILE (stdio.h), gzFile (zlib.h), BZFILE (bzlib.h), MPI_File (mpi.h) and so
- on; these classes will inherit the BaseFileIO class.
- As NETCDF files are structured quite differently and are currently only
- used as trajectories, they are considered a format and not a unique file
- type.
+ on.
+ See Table 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:Cpptraj-File-Types"
+
+\end_inset
+
+ for a list of recognized file types.
 \end_layout
 
-\begin_layout Subsection
-BaseFileIO Class
+\begin_layout Standard
+Format describes the overall organization of the file, and is handled by
+ the main file handling class, PtrajFile.
+ PtrajFile contains data common to all files (such as the file name, size,
+ etc), as well as the appropriate BaseFileIO class.
+ Format is detected by the SetupRead function, but this information is not
+ used directly by PtrajFile; instead, Format simply indicates to whatever
+ is using PtrajFile how the information in the file is organized.
+ For example, if the format is AMBERTRAJ, the file has a title, followed
+ by rows of 10 coordinates in %8.3f format.
+ It is up to whatever is using PtrajFile to make use of this information
+ by appropriate calls to the BaseFileIO class.
+ See Table 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:Cpptraj-File-Formats."
+
+\end_inset
+
+ for a list of recognized file formats.
+\end_layout
+
+\begin_layout Standard
+Most file formats can have any file type.
+ For example, an Amber Trajectory can be gzipped, or accessed using MPI
+ file routines.
+ The file format should not need to know anything about the file type.
+ Netcdf files are the exception to this.
+ Since Netcdf files are structured quite different in their underlying structure
+ and are accessed through their own API, they are considered a format and
+ not a type.
+ Netcdf file routines require access to the entire netcdf file and so they
+ cannot be compressed, therefore they can only be of type STANDARD.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="7" columns="2">
+<features>
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+FileType
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Description
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+UNKNOWN_TYPE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+File type is unknown.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+STANDARD
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Normal uncompressed file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+GZIPFILE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Gzipped file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+BZIP2FILE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Bzip2d file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ZIPFILE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Zipped file, currently not implemented.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MPIFILE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Normal file handled in Parallel.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:Cpptraj-File-Types"
+
+\end_inset
+
+Cpptraj File Types
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="14" columns="2">
+<features>
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="10cm">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+FileFormat
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Description
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+UKNOWN_FORMAT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Format is unknown.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+PDBFILE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+PDB file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+AMBERTRAJ
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber trajectory file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+AMBERNETCDF
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber netcdf trajectory file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+AMBERPARM
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber topology file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+DATAFILE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Generic data, organized into columns with an optional header (#) line.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+AMBERRESTART
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber restart file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+AMBERREMD
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber trajectory with REMD/HREMD header
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+XMGRACE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Grace (xmgrace) data file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CONFLIB
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Experimental: conflib.dat file from NAB Lmod output.
+ Detection is based on filename.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+AMBERRESTARTNC
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber netcdf restart file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MOL2FILE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+TRIPOS Mol2 file
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+GNUPLOT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Gnuplot data file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:Cpptraj-File-Formats."
+
+\end_inset
+
+Cpptraj File Formats.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+BaseFileIO
 \end_layout
 
 \begin_layout Standard
@@ -133,16 +739,17 @@ BaseFileIO will be contained inside the PtrajFile class, which will hold
 \end_layout
 
 \begin_layout LyX-Code
-BaseFileIO* IO = (gzipFile*) malloc(sizeof(gzipFile));
+BaseFileIO* IO = new GzipFile();
 \end_layout
 
 \begin_layout Standard
-where gzipFile is a class that inherits BaseFileIO.
- PtrajFile will contain data common to all files, such as the file name,
- size, and so on.
- In order to generalize the functionality of BaseFileIO it will contain
- several virtual members that all inheriting file type classes will have
- equivalent functions for:
+where GzipFile is a class that inherits BaseFileIO.
+ BaseFileIO contains several virtual members that all inheriting file type
+ classes must implement.
+\end_layout
+
+\begin_layout Subsection
+Inheritable Functions
 \end_layout
 
 \begin_layout Description
@@ -174,7 +781,7 @@ char
 \begin_inset space ~
 \end_inset
 
-*mode): Open the file with the specified mode.
+*mode) Open the file <filename> with the specified mode.
 \end_layout
 
 \begin_layout Description
@@ -186,7 +793,36 @@ int
 \begin_inset space ~
 \end_inset
 
-Close(): Closes the file.
+Close() Closes the file.
+\end_layout
+
+\begin_layout Description
+virtual
+\begin_inset space ~
+\end_inset
+
+long
+\begin_inset space ~
+\end_inset
+
+long
+\begin_inset space ~
+\end_inset
+
+int
+\begin_inset space ~
+\end_inset
+
+Size(char
+\begin_inset space ~
+\end_inset
+
+*filename) 
+\shape italic
+[Optional: Compressed Only]
+\shape default
+ Return the uncompressed size of the file.
+ 
 \end_layout
 
 \begin_layout Description
@@ -218,7 +854,7 @@ size_t
 \begin_inset space ~
 \end_inset
 
-count): Read size*count bytes from a file into buffer.
+count) Read size*count bytes from a file into buffer.
 \end_layout
 
 \begin_layout Description
@@ -250,7 +886,7 @@ size_t
 \begin_inset space ~
 \end_inset
 
-count): Write size*count bytes from buffer to a file.
+count) Write size*count bytes from buffer to a file.
 \end_layout
 
 \begin_layout Description
@@ -266,15 +902,8 @@ Seek(off_t
 \begin_inset space ~
 \end_inset
 
-position,
-\begin_inset space ~
-\end_inset
-
-int
-\begin_inset space ~
-\end_inset
-
-offset): Move the file pointer to a specific position in the stream.
+position) Move the file pointer to a specific position in the stream.
+ The offset is always considered to be SEEK_SET.
 \end_layout
 
 \begin_layout Description
@@ -286,7 +915,7 @@ int
 \begin_inset space ~
 \end_inset
 
-Rewind(): Reset the file pointer.
+Rewind() Reset the file pointer.
  In cases where rewind is not supported the file will be closed and reopened.
 \end_layout
 
@@ -299,7 +928,12 @@ off_t
 \begin_inset space ~
 \end_inset
 
-Tell(): Return the position of the file pointer.
+Tell() 
+\shape italic
+[Optional for now: Currently not used by any function in Cpptraj]
+\shape default
+ Return the position of the file pointer.
+ 
 \end_layout
 
 \begin_layout Description
@@ -323,7 +957,11 @@ int
 \begin_inset space ~
 \end_inset
 
-length): Read length bytes into buffer, up until newline, null, or EOF.
+length) Read length bytes into buffer, up until newline, null, or EOF.
+\end_layout
+
+\begin_layout Subsection
+Functions
 \end_layout
 
 \begin_layout Description
@@ -343,26 +981,41 @@ char
 \begin_inset space ~
 \end_inset
 
-...): Write a formatted string to a file.
- Not inherited: uses sprintf to write to a buffer, then the Write() function
- is used.
+...) Write a formatted string to a file.
+ Uses vsprintf to write to a buffer, then the Write() function is used.
+ Note that the buffer size is only 1024 bytes, so this should be used sparingly;
+ it is preferable to use the Write function directly.
 \end_layout
 
-\begin_layout Standard
-File formats are higher level and describe how the data accessed by a file
- type is organized.
- There are several file formats: Amber topology file, Amber Trajectory,
- Amber Restart, PDB file, etc.
- Most file formats can have any file type (with the afformentioned exception
- of Amber NETCDF trajectory).
- For example, an Amber Trajectory can be gzipped, or accessed using MPI
- file routines.
- The file format should not need to know anything about the file type.
- File formats will contain (and not inherit) file types, i.e.
- they will have a PtrajFile instance as part of their class.
+\begin_layout Description
+void
+\begin_inset space ~
+\end_inset
+
+Rank_printf(int
+\begin_inset space ~
+\end_inset
+
+rank,
+\begin_inset space ~
+\end_inset
+
+const
+\begin_inset space ~
+\end_inset
+
+char
+\begin_inset space ~
+\end_inset
+
+*format,
+\begin_inset space ~
+\end_inset
+
+...) Only for MPI: Like Printf(), but only print for the specified worldrank.
 \end_layout
 
-\begin_layout Section
+\begin_layout Part
 Trajectory Files
 \end_layout
 
@@ -373,14 +1026,107 @@ Trajectory files comprise a subset of file formats, and are handled by a
  TrajectoryIO class, which handles all IO operations for the trajectory.
  The TrajectoryIO class is a base class which should be inherited by any
  class implementing trajectory IO operations.
+\end_layout
+
+\begin_layout Section
+TrajectoryIO
+\end_layout
+
+\begin_layout Standard
+TrajectoryIO will be contained inside the TrajectoryFile class, which will
+ hold a pointer to TrajectoryIO that will be assigned based on the file
+ format, e.g.:
+\end_layout
+
+\begin_layout LyX-Code
+TrajectoryIO* trajio = new AmberCoord();
+\end_layout
+
+\begin_layout Standard
+where AmberCoord is a class that inherits TrajectoryIO.
+ TrajectoryIO contains several virtual members that all inheriting trajectory
+ format classes must implement.
+\end_layout
+
+\begin_layout Standard
+The intent has been to make TrajectoryIO as independent as possible from
+ other classes to increase its versatility, so that e.g.
+ even though it depends on AmberParm, AmberParm is only passed in and not
+ stored.
  
 \end_layout
 
 \begin_layout Subsection
-TrajectoryFile Class
+Inheritable Functions
 \end_layout
 
-\begin_layout Subsubsection
+\begin_layout Description
+setupRead(): Called inside TrajectoryFile::SetupRead.
+ Takes as an argument the AmberParm class that will be associated with this
+ trajectory.
+ Returns the number of frames in the underlying trajectory file.
+ Should set all variables (title, seekable, hasBox, boxAngle (only if hasBox),
+ hasTemperature, and hasVelocity.
+ If an error occurs should return -1.
+\end_layout
+
+\begin_layout Description
+setupWrite() Called inside TrajectoryFile::WriteFrame on the first write
+ call.
+ Takes as an argument the AmberParm class that will be associated with this
+ trajectory.
+ 
+\end_layout
+
+\begin_layout Description
+openTraj() Prepare trajectory for read/write
+\end_layout
+
+\begin_layout Description
+closeTraj() Finish trajectory
+\end_layout
+
+\begin_layout Description
+readFrame() Given a frame number, read that frame; return the coordinates
+ in the first array, velocities in the second array, the box lengths/angles
+ in the third array, and set the temperature in the last var.
+\end_layout
+
+\begin_layout Description
+writeFrame() Write to output trajectory.
+ This routine is called from TrajectoryFile::WriteFrame with the current
+ action set number, not the current output number, so it is up to the Trajectory
+IO object to keep track of what frame it is writing.
+ Vars are same as in readFrame.
+\end_layout
+
+\begin_layout Description
+info() Print information on what kind of trajectory this is.
+\end_layout
+
+\begin_layout Description
+processWriteArgs() (Optional) Process any arguments from the arg list that
+ have to do with setting the trajectory up for writing.
+ It is desireable that any changes made to the TrajectoryIO object from
+ within this function are implemented as functions that can be called independen
+tly if need be (e.g.
+ setting the write mode for PDB files).
+\end_layout
+
+\begin_layout Section
+TrajectoryFile
+\end_layout
+
+\begin_layout Standard
+TrajectoryFile is the main class used for handling trajectory files.
+ The intent is for TrajectoryFile to be an easy-to-use class for reading
+ and writing any trajectory format that Cpptraj recognizes.
+ TrajectoryFile will contain information common to all trajectory formats,
+ as well as a TrajectoryIO class that will be used for reading/writing that
+ specific format.
+\end_layout
+
+\begin_layout Subsection
 Variables
 \end_layout
 
@@ -390,14 +1136,6 @@ int
 \end_inset
 
 debug Debug level for the class, set with SetDebug().
-\end_layout
-
-\begin_layout Description
-ProgressBar
-\begin_inset space ~
-\end_inset
-
-*progress Progress bar class, used during reads.
 \end_layout
 
 \begin_layout Description
@@ -442,8 +1180,18 @@ numFramesProcessed # frames actually read/written after calls to GetNextFrame
  or WriteFrame.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Subsubsection
 Specific to trajectory reads:
+\end_layout
+
+\begin_layout Description
+ProgressBar
+\begin_inset space ~
+\end_inset
+
+*progress Hold ProgressBar class.
+ Set up if necessary during BeginTraj based on <stop>, updated during GetNextFra
+me.
 \end_layout
 
 \begin_layout Description
@@ -521,7 +1269,7 @@ frameskip The number of frames to skip over during reads.
  For non-seekable trajectories this is 1.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Subsubsection
 Specific to trajectory writes:
 \end_layout
 

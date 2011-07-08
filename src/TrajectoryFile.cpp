@@ -66,8 +66,10 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
  * Assuming that trajio has already been set up as the lowest replica (and 
  * checked for temperature information), set this trajectory up as an REMD 
  * trajectory. A special trajio object will be set up that itself contains 
- * a list of trajio objects, each one corresponding to a replica. Returns 
- * a RemdTraj trajio class.
+ * a list of trajio objects, each one corresponding to a replica. If a
+ * filename is given via <remdout>, the replica trajectories will be converted
+ * to temperature trajectories with names <remdout>.<Temperature> and format
+ * remdfmt. Returns a RemdTraj trajio class.
  */
 TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtrajtemp, 
                                               char *remdout, FileFormat remdfmt) 
