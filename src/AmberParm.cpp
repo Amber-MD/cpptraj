@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio> // For sscanf, sprintf
+#include <ctime> // for writing time/date to parmtop
 #include "AmberParm.h" // PtrajFile.h 
 #include "PDBfileRoutines.h"
 #include "Mol2FileRoutines.h"
@@ -1245,6 +1246,7 @@ void AmberParm::Summary() {
  * Return char buffer containing N data elements stored in I, D, or C with 
  * given fortran format.
  * NOTE: Needs error checking
+ * NOTE: Eventually move this routine to CharBuffer
  */
 char *AmberParm::DataToBuffer(char *bufferIn, const char *format, 
                               int *I, double *D, NAME *C, int N) {
@@ -1304,6 +1306,9 @@ int AmberParm::WriteAmberParm() {
   int solvent_pointer[3];
   int atom;
   double parmBox[4];
+  // For date and time
+  time_t rawtime;
+  struct tm *timeinfo;
 
   if (parmName==NULL) return 1;
 
@@ -1313,8 +1318,13 @@ int AmberParm::WriteAmberParm() {
   buffer=NULL;
   if (outfile.OpenFile()) return 1;
 
-  // HEADER AND TITLE - Eventually use actual date and time
-  outfile.IO->Printf("%-80s\n","%VERSION  VERSION_STAMP = V0001.000  DATE = 12/03/01  13:16:16");
+  // HEADER AND TITLE
+  time(&rawtime);
+  timeinfo = localtime(&rawtime);
+  outfile.IO->Printf("%-44s%02i/%02i/%02i  %02i:%02i:%02i                  \n",
+                     "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
+                     timeinfo->tm_mon,timeinfo->tm_mday,timeinfo->tm_year%100,
+                     timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
   PrintFlagFormat(&outfile, "%FLAG TITLE", "%FORMAT(20a4)");
   outfile.IO->Printf("%-80s\n","");
 
