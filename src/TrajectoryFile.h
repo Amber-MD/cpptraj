@@ -14,15 +14,15 @@ class TrajectoryFile {
     char *trajName;
     AmberParm *trajParm;
     AccessType fileAccess;
+    int numFramesProcessed; // # frames actually read/written
+    // Specific to input traj
     int start;
     int stop;
     int offset;
     int total_frames;       // Total # of frames in the traj
-    int numFramesProcessed; // # frames actually read/written
     int total_read_frames;  // # frames that will be read based on start/stop/offset
     BoxType boxType;
     int currentFrame;
-    // Specific to input traj
     int targetSet;
     int frameskip;
     // Specific to output traj

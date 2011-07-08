@@ -367,10 +367,189 @@ Trajectory Files
 \end_layout
 
 \begin_layout Standard
-Trajectory files are a subset of file formats, and are given their own base
- class because all of the different trajectory types are processed in the
- same way; they are opened, frames are read, they are closed.
+Trajectory files comprise a subset of file formats, and are handled by a
+ combination of the TrajectoryFile class, which deals with the common features
+ of trajectories (number of frames, start frame, stop frame, etc), and a
+ TrajectoryIO class, which handles all IO operations for the trajectory.
+ The TrajectoryIO class is a base class which should be inherited by any
+ class implementing trajectory IO operations.
  
+\end_layout
+
+\begin_layout Subsection
+TrajectoryFile Class
+\end_layout
+
+\begin_layout Subsubsection
+Variables
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+debug Debug level for the class, set with SetDebug().
+\end_layout
+
+\begin_layout Description
+ProgressBar
+\begin_inset space ~
+\end_inset
+
+*progress Progress bar class, used during reads.
+\end_layout
+
+\begin_layout Description
+TrajectoryIO
+\begin_inset space ~
+\end_inset
+
+*trajio The TrajectoryIO class for the specific trajectory format; setup
+ via setupTrajIO (or setupRemdTrajIO for replica trajectories).
+\end_layout
+
+\begin_layout Description
+char
+\begin_inset space ~
+\end_inset
+
+*trajName Trajectory name, by default set to the base filename in setupTrajIO.
+\end_layout
+
+\begin_layout Description
+AmberParm
+\begin_inset space ~
+\end_inset
+
+*trajParm The associated topology file.
+\end_layout
+
+\begin_layout Description
+AccessType
+\begin_inset space ~
+\end_inset
+
+fileAccess The file access, READ/WRITE/APPEND, set by SetupRead or SetupWrite.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+numFramesProcessed # frames actually read/written after calls to GetNextFrame
+ or WriteFrame.
+\end_layout
+
+\begin_layout Paragraph
+Specific to trajectory reads:
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+start Frame that reads will start at.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+stop Frame that reads will stop at.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+offset Number of frames to skip during reads.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+total_frames Total # of frames in the traj
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+total_read_frames # frames that will be read based on start/stop/offset
+\end_layout
+
+\begin_layout Description
+BoxType
+\begin_inset space ~
+\end_inset
+
+boxType Box type based on angles in boxAngle.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+currentFrame Current frame being read.
+ Not needed for writes since frames are not skipped during writes.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+targetSet The next frame that will be processed.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+frameskip The number of frames to skip over during reads.
+ For seekable trajectories this is offset.
+ For non-seekable trajectories this is 1.
+\end_layout
+
+\begin_layout Paragraph
+Specific to trajectory writes:
+\end_layout
+
+\begin_layout Description
+Range
+\begin_inset space ~
+\end_inset
+
+*FrameRange Set in SetupWrite; if defined, only frames in the frame range
+ will be written.
+\end_layout
+
+\begin_layout Description
+bool
+\begin_inset space ~
+\end_inset
+
+nobox If true then trajectories will be told not include box information
+ when setupWrite is initially called (WriteFrame).
+\end_layout
+
+\begin_layout Description
+bool
+\begin_inset space ~
+\end_inset
+
+setupForWrite Initially false; set to true when WriteFrame has been called
+ for the first time with the topology indicated in SetupWrite.
 \end_layout
 
 \end_body
