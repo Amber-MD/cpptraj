@@ -3,7 +3,8 @@
 #include <cmath>
 #include <cstring> //strlen
 #include <cstdio> // sprintf
-#include <algorithm>
+#include <algorithm> // sort
+#include <cfloat> // DBL_MAX
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -53,7 +54,8 @@ void Closest::ClearMaskList() {
 }
 
 /* Closest::init()
- * Expected call: closest <# to keep> <mask> [noimage] [first/oxygen] [outprefix <parmprefix>]
+ * Expected call: closest <# to keep> <mask> [noimage] [first/oxygen] 
+ *                [closestout <filename> [outprefix <parmprefix>]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -106,18 +108,15 @@ int Closest::init( ) {
   }
   Mask1.SetMaskString(mask1);
 
-  mprintf("    CLOSEST: Finding closest %i solvent molecules to\n",closestWaters);
+  mprintf("    CLOSEST: Finding closest %i solvent molecules to",closestWaters);
   //if (mask1==NULL)
   //  fprintf(stdout,"             all solute atoms\n");
   //else
-    mprintf("             atoms in mask %s\n",Mask1.maskString);
+    mprintf(" atoms in mask %s\n",Mask1.maskString);
   if (noimage) 
-    mprintf("             non-imaged");
-  else
-    mprintf("             imaged");
+    mprintf("             Imaging will be turned off.\n");
   if (firstAtom)
-    mprintf(", using first atom in solvent molecule for distance calc");
-  mprintf(".\n");
+    mprintf("             Only first atom of solvent molecule used for distance calc.\n");
   if (outFile!=NULL)
     mprintf("             Closest molecules will be saved to %s\n",outFile->filename);
   if (prefix!=NULL)
@@ -273,10 +272,15 @@ int Closest::action() {
   int solventMol, solventAtom, maskPosition, atom, maxSolventMolecules;
   double Dist, maxD, ucell[9], recip[9];
 
-  if (imageType>0) F->BoxToRecip(ucell, recip);
-  // Calculate max possible imaged distance
-  maxD = F->box[0] + F->box[1] + F->box[2];
-  maxD = maxD * maxD;
+  if (imageType>0) {
+    F->BoxToRecip(ucell, recip);
+    // Calculate max possible imaged distance
+    maxD = F->box[0] + F->box[1] + F->box[2];
+    maxD = maxD * maxD;
+  } else {
+    // If not imaginig, set max distance to an arbitrarily large number
+    maxD = DBL_MAX;
+  }
 
   // Loop over all solvent molecules in original frame
   maxSolventMolecules = oldParm->solventMolecules;
