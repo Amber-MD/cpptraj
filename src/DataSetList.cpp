@@ -126,7 +126,7 @@ void DataSetList::Info() {
 
   mprintf("\nDATASETS:\n");
   if (Ndata==0)
-    mprintf("  There are no data sets.");
+    mprintf("  There are no data sets set up for analysis.");
   else if (Ndata==1)
     mprintf("  There is 1 data set: ");
   else

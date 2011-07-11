@@ -28,5 +28,7 @@ class DataSetList {
     int AddData(int, void *, int );
     void Info();
     void Sync();
+    
+    int Size() { return Ndata; }
 };
 #endif
