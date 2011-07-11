@@ -27,6 +27,13 @@
 #define MASK_MODULE
 #include "ptrajmask.h"
 
+/* from utility.h */
+typedef struct _stackType {
+  void *entry;
+  struct _stackType *next;
+} stackType;
+
+
 /* 
  * this code takes an "atomic expression" loosely using Chimera/Midas syntax
  * and decomposes it into series of elementary actions that need to be done.

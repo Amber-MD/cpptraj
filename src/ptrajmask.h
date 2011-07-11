@@ -4,11 +4,6 @@ extern "C" {
 
 /*  ________________________________________________________________________
  */
-/* from utility.h */
-typedef struct _stackType {
-  void *entry;
-  struct _stackType *next;
-} stackType;
 
 /* From ptraj_local.h */
 /* The parameter file assumes the atom, residue, symbol, etc. names to be *
