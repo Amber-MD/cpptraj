@@ -65,6 +65,7 @@ class DataSet {
     void SetPrecision(int,int);
     int Setup(char*,int);
     void Info();
+    char *Name(char *,bool);
     char *Name() { return name; }
     int CheckSet();
     dataType Type() {return dType;}

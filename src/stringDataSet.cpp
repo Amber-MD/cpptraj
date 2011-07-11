@@ -9,12 +9,12 @@ using namespace std;
 
 // CONSTRUCTOR
 stringDataSet::stringDataSet() {
+  width=1;
   dType=STRING;
   setFormatString();
 }
 
-/*
- * stringDataSet::Xmax(()
+/* stringDataSet::Xmax(()
  * Return the maximum X value added to this set. By convention this is 
  * always the last value added.
  */
@@ -26,25 +26,27 @@ int stringDataSet::Xmax() {
   return ( (*it).first );
 }
 
-/*
- * stringDataSet::Add()
- * Insert data vIn at frame.
+/* stringDataSet::Add()
+ * Insert data vIn at frame. If the size of the input string is greater
+ * than the current width, increase the width.
  * String expects char*
  */
 void stringDataSet::Add(int frame, void *vIn) {
   char *value;
   string Temp;
+  int strsize;
 
   value = (char*) vIn;
   Temp.assign(value);
+  strsize = (int) Temp.size();
+  if (strsize > width) width = strsize;
   // Always insert at the end
   it=Data.end();
   Data.insert( it, pair<int,string>(frame, Temp) );
   current++;
 }
 
-/*
- * stringDataSet::isEmpty()
+/* stringDataSet::isEmpty()
  */
 int stringDataSet::isEmpty(int frame) {
   it = Data.find( frame );
@@ -52,8 +54,7 @@ int stringDataSet::isEmpty(int frame) {
   return 0;
 }
 
-/*
- * stringDataSet::Write()
+/* stringDataSet::Write()
  * Write data at frame to buffer. If no data for frame write NoData.
  * Return position in buffer after write.
  */
@@ -66,25 +67,19 @@ char *stringDataSet::Write(char *buffer, int frame) {
   } else 
     sprintf(buffer, format, (*it).second.c_str());
 
-  return (buffer + (*it).second.size() + 1);
+  return (buffer + width + 1);
 }
 
-/*
- * stringDataSet::Width()
+/* stringDataSet::Width()
  * Return the width in characters necessary to print data from this dataset.
- * Use the first data element, assume they all have the same size for now.
+ * Width is set whenever data is added and is the size of the largest stored
+ * string.
  */
 int stringDataSet::Width() {
-  int tempSize;
-  it = Data.begin();
-  tempSize = (int) (*it).second.size();
-  // Increment by 1 for space
-  tempSize++;
-  return tempSize;
+  return (width + 1);
 }
 
-/*
- * stringDataSet::Sync()
+/* stringDataSet::Sync()
  * Since it seems to be very difficult (or impossible) to define Classes
  * as MPI datatypes, first non-master threads need to convert their maps
  * into 2 arrays, an int array containing frame #s and a char array
