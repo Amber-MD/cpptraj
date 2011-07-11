@@ -226,7 +226,6 @@ int Rmsd::init( ) {
 int Rmsd::setup() {
   char resArg[1024];
   char refArg[1024];
-  char resName[5];
   AtomMask *ResMask;
   list<int>::iterator it;
   int refRes;;
@@ -286,7 +285,6 @@ int Rmsd::setup() {
     } 
     mprintf("      RMSD: PerRes: Setting up for %i residues.\n",(int)ResRange.size());
     PerResRMSD=new DataSetList();
-    resName[4]='\0';
     for (it=ResRange.begin(); it!=ResRange.end(); it++) {
       // Get corresponding reference resnum - if none specified use current res
       if (RefRange.empty()) 
@@ -296,8 +294,6 @@ int Rmsd::setup() {
         RefRange.pop_front();
       }
       //res = *it - 1; // res is the internal resnumber, *it the user resnumber
-      // Setup Dataset Name to be name of this residue 
-      P->ResName(resName,(*it)-1);
       
       // Setup mask strings - masks are based off user residue nums
       sprintf(resArg,":%i%s",*it,perresmask);
@@ -358,7 +354,8 @@ int Rmsd::setup() {
       //        (PerRefMask.back())->maskString);
 
       // Setup Dataset for this residue
-      sprintf(resArg,"%4s%i",resName,*it);
+      // Setup Dataset Name to be name of this residue 
+      P->ResName(resArg,(*it)-1);
       // TEST - add all datasets to the same output file
       // NOTE - eventually give this its own output file and make a print routine
       DFL->Add(perresout, PerResRMSD->Add(DOUBLE, resArg,"PerRes"));

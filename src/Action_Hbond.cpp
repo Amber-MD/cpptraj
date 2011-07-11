@@ -1,4 +1,3 @@
-#include <cstdio> // sprintf
 #include "Action_Hbond.h"
 #include "CpptrajStdio.h"
 // Hbond 
@@ -12,8 +11,7 @@ Hbond::Hbond() {
 Hbond::~Hbond() {
 }
 
-/*
- * Hbond::init()
+/* Hbond::init()
  * Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [avgout <filename>]
  * Search for Hbonding atoms in region specified by mask. 
  * Arg. check order is:
@@ -47,8 +45,7 @@ int Hbond::init() {
   return 0;
 }
 
-/*
- * Hbond::setup()
+/* Hbond::setup()
  * Search for hbond donors and acceptors. 
  */
 int Hbond::setup() {
@@ -108,8 +105,7 @@ int Hbond::setup() {
   return 0;
 }
 
-/*
- * Hbond::action()
+/* Hbond::action()
  * Calculate distance between all donors and acceptors. Store Hbond info.
  */    
 int Hbond::action() {
@@ -159,8 +155,7 @@ int Hbond::action() {
   return 0;
 }
 
-/*
- * Hbond::print()
+/* Hbond::print()
  * Print average occupancies over all frames for all detected Hbonds
  */
 void Hbond::print() {
@@ -168,8 +163,7 @@ void Hbond::print() {
   std::list<HbondType> HbondList;
   std::list<HbondType>::iterator hbond;
   double avg, dist, angle;
-  int Ares, Hres, Dres;
-  char Aname[20], Hname[20], Dname[20], temp[20];
+  char Aname[32], Hname[32], Dname[32];
   PtrajFile OutFile;
 
   if (OutFile.SetupFile(avgout, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug)) return;
@@ -195,22 +189,13 @@ void Hbond::print() {
     dist = dist / ((double) (*hbond).Frames);
     angle = (double) (*hbond).angle;
     angle = angle / ((double) (*hbond).Frames);
-    Ares = P->atomToResidue((*hbond).A);
-    Hres = P->atomToResidue((*hbond).H);
-    Dres = P->atomToResidue((*hbond).D);
-    P->ResName(temp,Ares);
-    sprintf(Aname,"%s%i@%s",temp,Ares+1,P->names[(*hbond).A]);
-    P->ResName(temp,Hres);
-    sprintf(Hname,"%s%i@%s",temp,Hres+1,P->names[(*hbond).H]);
-    P->ResName(temp,Dres);
-    sprintf(Dname,"%s%i@%s",temp,Dres+1,P->names[(*hbond).D]);
+
+    P->ResAtomName(Aname, (*hbond).A);
+    P->ResAtomName(Hname, (*hbond).H);
+    P->ResAtomName(Dname, (*hbond).D);
+
     OutFile.IO->Printf("%-15s %-15s %-15s %6i %6.2lf %8.3lf %8.3lf\n",
                        Aname,Hname,Dname, (*hbond).Frames,avg,dist,angle);
-//    OutFile.IO->Printf("  %6i:%4s %6i:%4s %6i:%4s %6i %6.2lf %8.3lf %8.3lf\n",
-//              (*hbond).A, P->names[(*hbond).A],
-//              (*hbond).H, P->names[(*hbond).H],
-//              (*hbond).D, P->names[(*hbond).D],
-//              (*hbond).Frames,avg,dist,angle);
   }
   OutFile.CloseFile();
 }
