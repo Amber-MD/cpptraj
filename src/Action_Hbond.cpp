@@ -4,11 +4,13 @@
 
 // CONSTRUCTOR
 Hbond::Hbond() {
-  Nframes=0; 
+  Nframes=0;
+  HBavg=NULL; 
 }
 
 // DESTRUCTOR
 Hbond::~Hbond() {
+  if (HBavg!=NULL) delete HBavg;
 }
 
 /* Hbond::init()
@@ -164,14 +166,27 @@ void Hbond::print() {
   std::list<HbondType>::iterator hbond;
   double avg, dist, angle;
   char Aname[32], Hname[32], Dname[32];
-  PtrajFile OutFile;
+  DataFile *hbavgFile;
 
-  if (OutFile.SetupFile(avgout, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug)) return;
-  OutFile.OpenFile();
+  // If avgout is NULL no averaging.
+  if (avgout==NULL) return;
 
-  OutFile.IO->Printf("HBONDS:\n");
-  OutFile.IO->Printf("  %-15s %-15s %-15s %6s %6s %8s %8s\n",
-                 "Acceptor","DonorH","Donor","Frames","Frac","AvgDist","AvgAng");
+  // Set up data set list for all avg-related data.
+  HBavg = new DataSetList(); 
+  DFL->Add(avgout, HBavg->Add(STRING, (char*)"Acceptor", "Acceptor"));
+  DFL->Add(avgout, HBavg->Add(STRING, (char*)"DonorH", "DonorH"));
+  DFL->Add(avgout, HBavg->Add(STRING, (char*)"Donor", "Donor"));
+  DFL->Add(avgout, HBavg->Add(INT, (char*)"Frames", "Frames"));
+  DFL->Add(avgout, HBavg->Add(DOUBLE, (char*)"Frac", "Frac"));
+  DFL->Add(avgout, HBavg->Add(DOUBLE, (char*)"AvgDist", "AvgDist"));
+  hbavgFile = DFL->Add(avgout, HBavg->Add(DOUBLE, (char*)"AvgAng", "AvgAng"));
+
+  //if (OutFile.SetupFile(avgout, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug)) return;
+  //OutFile.OpenFile();
+
+  //OutFile.IO->Printf("HBONDS:\n");
+  //OutFile.IO->Printf("  %-15s %-15s %-15s %6s %6s %8s %8s\n",
+  //               "Acceptor","DonorH","Donor","Frames","Frac","AvgDist","AvgAng");
   for (it = HbondMap.begin(); it!=HbondMap.end(); it++) {
 //    mprintf( "      %8i:%s ... %8i:%s-%8i:%s %8i Frames.\n",
 //              (*it).second.A, P->names[(*it).second.A],
@@ -182,6 +197,7 @@ void Hbond::print() {
   }
 
   HbondList.sort( hbond_cmp() );
+  int hbondnum=0;
   for ( hbond = HbondList.begin(); hbond!=HbondList.end(); hbond++ ) {
     avg = (double) (*hbond).Frames;
     avg = avg / ((double) Nframes);
@@ -194,8 +210,17 @@ void Hbond::print() {
     P->ResAtomName(Hname, (*hbond).H);
     P->ResAtomName(Dname, (*hbond).D);
 
-    OutFile.IO->Printf("%-15s %-15s %-15s %6i %6.2lf %8.3lf %8.3lf\n",
-                       Aname,Hname,Dname, (*hbond).Frames,avg,dist,angle);
+    HBavg->AddData(hbondnum, Aname, 0);
+    HBavg->AddData(hbondnum, Hname, 1);
+    HBavg->AddData(hbondnum, Dname, 2);
+    HBavg->AddData(hbondnum, &((*hbond).Frames), 3);
+    HBavg->AddData(hbondnum, &avg, 4);
+    HBavg->AddData(hbondnum, &dist, 5);
+    HBavg->AddData(hbondnum, &angle, 6);
+    hbondnum++;
+    //OutFile.IO->Printf("%-15s %-15s %-15s %6i %6.2lf %8.3lf %8.3lf\n",
+    //                   Aname,Hname,Dname, (*hbond).Frames,avg,dist,angle);
   }
-  OutFile.CloseFile();
+  //OutFile.CloseFile();
+  hbavgFile->SetNoXcol();
 }

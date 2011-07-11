@@ -28,6 +28,7 @@ class Hbond : public Action {
     double dcut;
 
     DataSet *NumHbonds;
+    DataSetList *HBavg;
 
     struct hbond_cmp {
       bool operator()(HbondType first, HbondType second) const {
