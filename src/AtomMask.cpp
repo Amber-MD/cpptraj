@@ -123,7 +123,7 @@ int AtomMask::SetupMask(AmberParm *Pin, int debug) {
   //       arg 8 should be f for float (NOT IMPLEMENTED) or d for double.
   //       Last arg is debug level.
   mask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
-                         Pin->resnums, NULL, 'd', debug);
+                         Pin->resnums, NULL, 'd', Pin->types, debug);
   if (mask==NULL) {
     mprintf("    Error: Could not set up mask %s for topology %s\n",
             maskString, Pin->parmName);
@@ -175,7 +175,7 @@ int AtomMask::SetupCharMask(AmberParm *Pin, int debug) {
   Nselected = 0;
   if (CharMask!=NULL) free(CharMask);
   CharMask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
-                             Pin->resnums, NULL, 'd', debug);
+                             Pin->resnums, NULL, 'd', Pin->types, debug);
   if (CharMask==NULL) {
     mprintf("    Error: Could not set up mask %s for topology %s\n",
             maskString, Pin->parmName);
@@ -199,7 +199,7 @@ int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
   Nselected = 0;
   if (CharMask!=NULL) free(CharMask);
   CharMask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
-                             Pin->resnums, Xin, 'd', debug);
+                             Pin->resnums, Xin, 'd', Pin->types, debug);
   if (CharMask==NULL) {
     mprintf("    Error: Could not set up mask %s for topology %s\n",
             maskString, Pin->parmName);

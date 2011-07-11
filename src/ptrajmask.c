@@ -521,7 +521,7 @@ int torpn(char *infix, char *postfix)
 
 char *
 eval(char *postfix, int atoms, int residues, Name *atomName, 
-     Name *residueName, int *ipres, void *X, char type)
+     Name *residueName, int *ipres, void *X, char type, Name *atomType)
 {
 
   char *pToken;
@@ -553,7 +553,7 @@ eval(char *postfix, int atoms, int residues, Name *atomName,
        * i.e. first ']' is followed immediately by '\0' (end of string), 
        * and so no logical operators are contained in (*infix) */
       /* selectElemMask allocates char mask array to which pMask points */
-      pMask = selectElemMask(pToken, atoms, residues, atomName, residueName, ipres); 
+      pMask = selectElemMask(pToken, atoms, residues, atomName, residueName, ipres, atomType); 
       pushStack(&Stack,pMask);
       free((void *) pToken);
     }
@@ -919,17 +919,14 @@ atname_select(char *p, char *mask, int atoms, Name *atomName)
   free(str);
 }
 
-/*DAN DEBUG : Disabled */
-/*void attype_select(char *p, char *mask, int atoms, Name *atomName) {
+void attype_select(char *p, char *mask, int atoms, Name *atomType) {
   int j;
-  Atom *atom;
   
   for (j = 0; j < atoms; j++) {
-    atom = ((parm->atom)+j);
-    if (isNameMatch(atom->isymbl, p))
+    if (isNameMatch(atomType[j], p))
       mask[j] = 'T';
   }
-}*/
+}
 
 void atelem_select(char *p, char *mask, int atoms, Name *atomName) {
   int j,isMatch;
@@ -1153,7 +1150,7 @@ atom_namelist(char *pp, char *mask, int atoms, Name *atomName)
 } /* atom_namelist */
 
 void 
-atom_typelist(char *pp, char *mask, int atoms, Name *atomName) 
+atom_typelist(char *pp, char *mask, int atoms, Name *atomType) 
 {
   char buffer[MAXSELE];
   char *p;
@@ -1164,9 +1161,7 @@ atom_typelist(char *pp, char *mask, int atoms, Name *atomName)
       buffer[i++] = *p;
     if ( *p == ',' || *(p+1) == '\0') {
       buffer[i] = '\0';
-      /* DAN DEBUG: DISABLED 
-      attype_select(buffer, mask, atoms, atomName);*/
-      fprintf(stderr,"WARNING: Atom type selection currently disabled!\n");
+      attype_select(buffer, mask, atoms, atomType);
       i = 0;
     } 
     if ( !( isalnum(*p) || *p == ',' || *p == '?' || *p == '*' || *p == '\'') ) {
@@ -1200,7 +1195,7 @@ atom_elemlist(char *pp, char *mask, int atoms, Name *atomName)
 
 char * 
 selectElemMask(char * elmaskstr, int atoms, int residues, Name *atomName,
-               Name *residueName, int *ipres) 
+               Name *residueName, int *ipres, Name *atomType) 
 {
   int i;
   int atomlist, reslist;  /* change that to enum type?? */
@@ -1295,9 +1290,13 @@ selectElemMask(char * elmaskstr, int atoms, int residues, Name *atomName,
             atom_namelist(buffer, pElemMask, atoms, atomName);
             break;
           case TYPELIST:
-            /* DAN DEBUG: Currently disabled, this needs access to the parm structure */
-            /*atom_typelist(buffer+1, pElemMask, atoms, atomName);*/
-            fprintf(stderr,"ERROR: TYPELIST DISABLED!\n");
+            // Sanity check in case atom types are not defined
+            if (atomType==NULL) {
+              fprintf(stderr,"Error: Cannot select by atom type, no atom types in parm.\n");
+              if (pElemMask!=NULL) free(pElemMask);
+              return NULL;
+            }
+            atom_typelist(buffer+1, pElemMask, atoms, atomType);
             break;
           case ELEMLIST:    /* because there's '/' after '@', position is +2 */
             atom_elemlist(buffer+1, pElemMask, atoms, atomName);
@@ -1328,7 +1327,7 @@ selectElemMask(char * elmaskstr, int atoms, int residues, Name *atomName,
 char * 
 parseMaskString(char *maskstr, int atoms, int residues, Name *atomName,
                        Name *residueName, int *ipres, void *X, char type,
-                int debug) 
+                       Name *atomType, int debug) 
 {
   /* this routine is called from ptraj.c:processAtomMask() which
    * provides access to atoms, residues, atomName[], residueName[]
@@ -1357,7 +1356,7 @@ parseMaskString(char *maskstr, int atoms, int residues, Name *atomName,
     printf("postfix  : ==%s==\n", postfix);
 
   /* 3) evaluate postfix notation */
-  mask = eval(postfix, atoms, residues, atomName, residueName, ipres, X, type);
+  mask = eval(postfix, atoms, residues, atomName, residueName, ipres, X, type, atomType);
 
   return(mask);
   

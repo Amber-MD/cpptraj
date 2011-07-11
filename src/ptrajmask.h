@@ -25,7 +25,7 @@ typedef char Name[NAME_SIZE];
 #define  TYPELIST 3
 #define  ELEMLIST 4
 
-extern char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, char, int);
+extern char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, char, Name *, int);
 
 
 /* DAN ROE: NOTE: Function prototypes are here because they are out of
@@ -37,7 +37,7 @@ int priority(char);
 int tokenize(char *, char *);
 int torpn(char *, char *);
 
-char * eval(char *, int, int, Name *, Name *, int *, void *, char);
+char * eval(char *, int, int, Name *, Name *, int *, void *, char, Name *);
 char * selectDist(char *, char *, int, int, int *, void *, char);
 char * binop(char, char *, char *, int);
 char * neg(char *, int);
@@ -48,8 +48,7 @@ void resname_select(char *, char *, int, Name *, int *);
 void all_select(char *, int);
 void atnum_select(int, int, char *, int);
 void atname_select(char *, char *, int, Name *);
-/* DAN DEBUG: Disabled */
-/*void attype_select(char *, char *, int, Name *);*/
+void attype_select(char *, char *, int, Name *);
 void atelem_select(char *, char *, int, Name *);
 void residue_numlist(char *, char *, int, int *);
 void residue_namelist(char *, char *, int, Name *, int *);
@@ -57,8 +56,8 @@ void atom_numlist(char *, char *, int);
 void atom_namelist(char *, char *, int, Name *);
 void atom_typelist(char *, char *, int, Name *);
 void atom_elemlist(char *, char *, int, Name *);
-char * selectElemMask(char *, int, int, Name *, Name *, int *);
-char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, char, int);
+char * selectElemMask(char *, int, int, Name *, Name *, int *, Name *);
+char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, char, Name *, int);
 
 #ifdef __cplusplus
 }
