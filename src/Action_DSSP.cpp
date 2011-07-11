@@ -5,11 +5,16 @@
 // Dssp
 
 // CONSTRUCTOR
-DSSP::DSSP() { 
+DSSP::DSSP() {
+  outfilename=NULL;
+  dssp=NULL; 
   Nres=0;
   Nframe=0.0;
   sumOut=NULL;
   SSline=NULL;
+  printString=true;
+  SSdata=NULL;
+  dsspData=NULL;
 }
 
 // DESTRUCTOR
@@ -17,13 +22,14 @@ DSSP::~DSSP() {
 //  debugout.CloseFile(); // DEBUG
   if (sumOut!=NULL) free(sumOut);
   if (SSline!=NULL) free(SSline);
+  if (SSdata!=NULL) delete(SSdata);
+  if (dsspData!=NULL) delete(dsspData);
 }
 
 const char DSSP::SSchar[7]={ '0', 'b', 'B', 'G', 'H', 'I', 'T' };
 const char DSSP::SSname[7][6]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn"};
 
-/*
- * DSSP::init()
+/* DSSP::init()
  * Expected call: secstruct [out <filename>] [<mask>] [sumout <filename>]
  * If sumout is not specified the filename specified by out is used with .sum suffix. 
  * Arg. check order is:
@@ -32,7 +38,7 @@ const char DSSP::SSname[7][6]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "T
  * For now dont allow NULL(stdout) filename for output
  */
 int DSSP::init() {
-  char *mask, *outfilename, *temp;
+  char *mask, *temp;
 
   // DEBUG
 //  debugout.SetupFile((char*)"dsspdebug.out",WRITE,UNKNOWN_FORMAT,STANDARD,0);
@@ -49,32 +55,41 @@ int DSSP::init() {
     strcpy(sumOut, outfilename);
     strcat(sumOut,".sum");
   } 
+  if (A->hasKey("nostring")) printString=false;
   // Get masks
   mask = A->getNextMask();
   Mask.SetMaskString(mask);
 
   // Set up the DSSP data set
-  dssp = DSL->Add(STRING, A->getNextString(),"DSSP");
-  if (dssp==NULL) return 1;
-  DFL->Add(outfilename, dssp);
+  if (printString) {
+    dssp = DSL->Add(STRING, A->getNextString(),"DSSP");
+    if (dssp==NULL) return 1;
+    DFL->Add(outfilename, dssp);
+  }
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask.maskString);
   if (outfilename!=NULL) 
-    mprintf( "               Dumping results to %s,\n", outfilename);
+    mprintf("               Dumping results to %s\n", outfilename);
   if (sumOut!=NULL)
-    mprintf( "               Sum results to %s\n",sumOut);
+    mprintf("               Sum results to %s\n",sumOut);
+  if (printString) 
+    mprintf("               SS data for each residue will be stored as a string.\n");
+  else
+    mprintf("               SS data for each residue will be stored as integers.\n");
 
   return 0;
 }
 
-/*
- * DSSP::setup()
+/* DSSP::setup()
  * NOTE: Currently relatively  memory-intensive. Eventually set up so that SecStruct and
  * CO_HN_Hbond members exist only for selected residues. Use Map?
  */
 int DSSP::setup() {
   int selected, atom, res;
   Residue RES;
+  // For Integer dataset, store residue name + number. 32 should be more than
+  // adequate (4 char + 27 int + 1 null).
+  char resArg[32];
 
   // Set up mask for this parm
   if ( Mask.SetupMask(P,debug) ) return 1;
@@ -131,12 +146,27 @@ int DSSP::setup() {
   selected=0;
   for (res=0; res < Nres; res++)
     if (SecStruct[res].isSelected) selected++;
-
   mprintf("      DSSP: [%s] corresponds to %i residues.\n",Mask.maskString,selected);
 
-  // Set up output buffer
-  SSline = (char*) realloc(SSline, (selected+1) * sizeof(char));
-  SSline[selected]='\0';
+  // Make an integer dataset for each residue.
+  // NOTE: Could make 1 dataset only for each selected residue, but then
+  // if this routine is called with multiple parmtops the raw residue
+  // numbers are not guaranteed to match. This way we can ensure there are
+  // enough data sets but only add data to selected residues, then only
+  // print data for residue datasets that have data.
+  if (!printString) {
+    if (SSdata==NULL) SSdata = new DataSetList();
+    for (res=0; res < Nres; res++) {
+      // Setup dataset name for this residue
+      P->ResName(resArg,res);
+      if (res>=(int)SSdata->Size())
+        DFL->Add(outfilename, SSdata->Add(INT, resArg, "Dres"));
+    }
+  // Otherwise set up output buffer to hold string
+  } else {
+    SSline = (char*) realloc(SSline, (selected+1) * sizeof(char));
+    SSline[selected]='\0';
+  }
 
   // DEBUG - Print atom nums for each residue set up
 //  for (res=0; res < Nres; res++) {
@@ -148,8 +178,7 @@ int DSSP::setup() {
   return 0;
 }
 
-/*
- * DSSP::isBonded()
+/* DSSP::isBonded()
  * Return 1 if residue 1 CO bonded to residue 2 NH.
  * Ensure residue numbers are valid and residues are selected.
  */
@@ -164,16 +193,13 @@ int DSSP::isBonded(int res1, int res2) {
   return 0;
 }
 
-/*
- * DSSP::SSassign()
- * Assign residues res1 to res2-1 the secondary structure sstype
+/* DSSP::SSassign()
+ * Assign all residues from res1 to res2-1 the secondary structure sstype
  * only if not already assigned.
- * Assumes res is valid.
+ * Assumes given residue range is valid.
  */
 void DSSP::SSassign(int res1, int res2, SStype typeIn) {
-  int res;
-
-  for (res=res1; res<res2; res++) {
+  for (int res=res1; res<res2; res++) {
     if (res==Nres) break;
     if (!SecStruct[res].isSelected) continue;
     if (SecStruct[res].sstype==SECSTRUCT_NULL)
@@ -181,8 +207,7 @@ void DSSP::SSassign(int res1, int res2, SStype typeIn) {
   }
 }   
  
-/*
- * DSSP::action()
+/* DSSP::action()
  * Determine secondary structure by hydrogen bonding pattern.
  */    
 int DSSP::action() {
@@ -233,10 +258,9 @@ int DSSP::action() {
 } // END pragma omp parallel
 #endif
 
-  /* Determine Secondary Structure based on Hbonding pattern.
-   * In case of structural overlap, priority is given to the structure first in this list: 
-   *   H, B, (E), G, I, T  (s. p. 2595 in the Kabsch & Sander paper)
-   */
+  // Determine Secondary Structure based on Hbonding pattern.
+  // In case of structural overlap, priority is given to the structure first in this list: 
+  //   H, B, (E), G, I, T  (s. p. 2595 in the Kabsch & Sander paper)
   for (resi=0; resi < Nres; resi++) {
     if (!SecStruct[resi].isSelected) continue;
 
@@ -298,57 +322,56 @@ int DSSP::action() {
     }
   }
 
-  // DEBUG - Test output
+  // Store data 
   //fprintf(stdout,"%10i ",currentFrame);
   resj=0;
   for (resi=0; resi < Nres; resi++) {
     if (!SecStruct[resi].isSelected) continue;
-    SSline[resj++] = SSchar[SecStruct[resi].sstype];
     //fprintf(stdout,"%c",SSchar[SecStruct[resi].sstype]);
     SecStruct[resi].SSprob[SecStruct[resi].sstype]++;
+    // Integer data set
+    if (!printString) {
+      int sstype = (int) SecStruct[resi].sstype;
+      SSdata->AddData(currentFrame, &sstype, resi);
+    } else
+      SSline[resj++] = SSchar[SecStruct[resi].sstype];
   }
-  dssp->Add(currentFrame, SSline);
+  if (printString)
+    dssp->Add(currentFrame, SSline);
   //fprintf(stdout,"\n");
   Nframe++;
 
   return 0;
 }
 
-/*
- * DSSP::print()
+/* DSSP::print()
  * Calculate the average of each secondary structure type across all residues
  * and output to a file.
- * NOTE: Get this into the master data set and file list
  */
 void DSSP::print() {
-  DataSetList dsspData;
+  DataFile *dsspFile;
   int resi, ss;
   double avg;
-  //char SetName[2];
 
-  if (sumOut==NULL) return; 
-  DataFile dsspFile( sumOut ); // TEST;
-  dsspFile.SetXlabel((char*)"Residue");
-  //dsspData->maxFrames = Nres; 
-  //SetName[1]='\0';
+  // If not printing a string, sync the integer dataset here since
+  // it is not part of the master dataset list.
+  if (!printString) SSdata->Sync();
+
+  if (sumOut==NULL) return;
+  // Set up dataset list to store averages
+  dsspData = new DataSetList(); 
   // Set up a dataset for each SS type
-  for (ss=1; ss<7; ss++) {
-    //SetName[0] = SSchar[ss];
-    dsspFile.AddSet( dsspData.Add(DOUBLE, (char*)SSname[ss], "SS") );
-  }
+  for (ss=1; ss<7; ss++) 
+    dsspFile = DFL->Add(sumOut, dsspData->Add(DOUBLE, (char*)SSname[ss], "SS") );
+  // Change the X label to Residue
+  dsspFile->SetXlabel((char*)"Residue");
 
   // Calc the avg structure of each type for each selected residue 
   for (resi=0; resi < Nres; resi++) {
     if (!SecStruct[resi].isSelected) continue;
     for (ss=1; ss<7; ss++) {
       avg = SecStruct[resi].SSprob[ss] / Nframe;
-      dsspData.AddData(resi, &avg, ss-1);
+      dsspData->AddData(resi, &avg, ss-1);
     }
   }
-
-  // Output
-  mprintf("%s: ",dsspFile.filename);
-  dsspFile.DataSetNames();
-  mprintf("\n");
-  dsspFile.Write(true);
 }

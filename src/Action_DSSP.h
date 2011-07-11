@@ -25,13 +25,19 @@ class DSSP : public Action {
     };
     std::vector<Residue> SecStruct;
 
-    DataSet *dssp;
-    AtomMask Mask;
-    int Nres;
-    double Nframe; // DEBUG
-    PtrajFile debugout; // DEBUG
-    char *sumOut;               // File to output SS avgs (dssp.dat.sum)
-    char *SSline;               // Hold SS propensity for frame, each char represents a residue
+    char *outfilename;// Data file name
+    DataSet *dssp;    // If printString, hold the string dataset
+    AtomMask Mask;    // Mask used to determine selected residues
+    int Nres;         // Current total # of residues
+    double Nframe;    // For calculating SS avg. NOTE: Should be passed in somehow?
+    //PtrajFile debugout; // DEBUG
+    char *sumOut;     // File to output SS avgs (dssp.dat.sum)
+    char *SSline;     // Hold SS propensity for frame, each char represents a residue
+    bool printString; // If true print 1 char per residue indicating ss type
+
+    // For printString=false, Int dataset, hold SStype for each residue at each frame
+    DataSetList *SSdata;
+    DataSetList *dsspData; // Used to set up datasets for averaging SS
 
     int isBonded(int, int);
     void SSassign(int, int, SStype);
