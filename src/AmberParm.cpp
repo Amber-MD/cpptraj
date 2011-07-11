@@ -22,16 +22,45 @@
 #define AMBERTOELEC 1/ELECTOAMBER
 // =============================================================
 
-/*
- * AmberParm::ResName()
- * Given a residue number, set buffer with residue name. Replace blanks with _
+/* AmberParm::ResName()
+ * Given a residue number, set buffer with residue name and number with format:
+ * <resname[res]><res+1>, e.g. ARG_11. Replace any blanks in resname with '_'.
  */
 void AmberParm::ResName(char *buffer, int res) {
+  char rname[NAMESIZE];
   if (res<0 || res>nres) return;
-  strcpy(buffer, resnames[res]);
-  if (buffer[3]==' ') buffer[3]='_';
+  rname[0]=resnames[res][0];
+  rname[1]=resnames[res][1];
+  rname[2]=resnames[res][2];
+  if (resnames[res][3]==' ') 
+    rname[3]='_';
+  else
+    rname[3]=resnames[res][3];
+  rname[4]='\0';
+  sprintf(buffer,"%s%i",rname,res+1);
 }
 
+/* AmberParm::ResAtomName()
+ * Given an atom number, set buffer with residue name and number along with
+ * atom name with format: <resname[res]><res+1>@<atomname>, e.g. ARG_11@CA.
+ * Replace any blanks in resname with '_'.
+ */
+void AmberParm::ResAtomName(char *buffer, int atom) {
+  int res;
+  char rname[NAMESIZE];
+  if (atom<0 || atom>=natom) return;
+  res = atomToResidue(atom);
+  rname[0]=resnames[res][0];
+  rname[1]=resnames[res][1];
+  rname[2]=resnames[res][2];
+  if (resnames[res][3]==' ') 
+    rname[3]='_';
+  else
+    rname[3]=resnames[res][3];
+  rname[4]='\0';
+  sprintf(buffer,"%s%i@%s",rname,res+1,names[atom]);
+}
+ 
 /*
  * AmberParm::SetFormat()
  * Given a fortran-type format string, set the format type, data type, the 

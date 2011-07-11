@@ -97,6 +97,7 @@ class AmberParm {
     AmberParm(int);
     ~AmberParm();
     void ResName(char *, int);
+    void ResAtomName(char*, int);
     int OpenParm(char *);
     int SetSurfaceInfo();
     int SetSolventInfo();
