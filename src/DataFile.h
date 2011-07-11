@@ -4,6 +4,7 @@
 // Container for one or more DataSets that will be written out to a file.
 #include "DataSet.h"
 #include "PtrajFile.h"
+#include <vector>
 
 class DataFile {
     int debug;
@@ -15,6 +16,7 @@ class DataFile {
     char *xlabel;       // X axis label for grace plots
     char *ylabel;       // Y axis label for grace plots
     int maxFrames;      // The largest X value of any sets in SetList
+    std::vector<bool> setIsEmpty;
 
     void WriteGrace(PtrajFile *);
     void WriteGraceInverted(PtrajFile *);

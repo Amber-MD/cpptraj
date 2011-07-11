@@ -98,7 +98,7 @@ DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
 void DataFileList::Info() {
 
   if (this->empty()) {
-    mprintf("NO DATASETS WILL BE OUTPUT\n");
+    //mprintf("NO DATASETS WILL BE OUTPUT\n");
     return;
   }
 
