@@ -184,7 +184,7 @@ void PtrajActionList::DoActions(Frame **FrameAddress, int frameIn) {
 void PtrajActionList::Print() {
   int act;
 
-  mprintf("\nOUTPUT:\n");
+  mprintf("\nACTION OUTPUT:\n");
   for (act=0; act<Naction; act++) {
     // Skip deactivated actions
     if (ActionList[act]->noInit) continue;
