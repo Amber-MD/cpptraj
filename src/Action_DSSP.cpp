@@ -365,6 +365,8 @@ void DSSP::print() {
     dsspFile = DFL->Add(sumOut, dsspData->Add(DOUBLE, (char*)SSname[ss], "SS") );
   // Change the X label to Residue
   dsspFile->SetXlabel((char*)"Residue");
+  // Dont print empty frames
+  dsspFile->SetNoEmptyFrames();
 
   // Calc the avg structure of each type for each selected residue 
   for (resi=0; resi < Nres; resi++) {
