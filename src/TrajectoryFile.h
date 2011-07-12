@@ -15,6 +15,7 @@ class TrajectoryFile {
     AmberParm *trajParm;
     AccessType fileAccess;
     int numFramesProcessed; // # frames actually read/written
+    bool trajectoryIsOpen;
     // Specific to input traj
     int start;
     int stop;
@@ -28,7 +29,6 @@ class TrajectoryFile {
     // Specific to output traj
     Range *FrameRange;
     bool nobox;
-    bool setupForWrite;
 
     TrajectoryIO *setupRemdTrajIO(char *, double, char*, FileFormat); // REMD
     TrajectoryIO *setupTrajIO(char *, AccessType, FileFormat, FileType);

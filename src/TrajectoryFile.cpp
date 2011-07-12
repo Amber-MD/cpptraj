@@ -28,6 +28,7 @@ TrajectoryFile::TrajectoryFile() {
   offset=1;
   total_frames=0;
   numFramesProcessed=0;
+  trajectoryIsOpen=false;
   total_read_frames=-1;
   boxType=NOBOX;
   currentFrame=0;
@@ -35,11 +36,11 @@ TrajectoryFile::TrajectoryFile() {
   frameskip=1;
   FrameRange=NULL;
   nobox=false;
-  setupForWrite=false;
 }
 
 // DESTRUCTOR
 TrajectoryFile::~TrajectoryFile() {
+  if (trajectoryIsOpen) this->EndTraj();
   if (trajio!=NULL) delete trajio;
   if (FrameRange!=NULL) delete FrameRange;
   if (progress!=NULL) delete progress;
@@ -583,7 +584,7 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
   char *onlyframes=NULL;
 
   // Mark as not yet set up
-  setupForWrite=false;
+  trajectoryIsOpen=false;
 
   // Check for trajectory filename
   if (tnameIn==NULL && argIn!=NULL)
@@ -668,6 +669,7 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
     mprinterr("Error: TrajectoryFile::BeginTraj: Could not open %s\n",trajName);
     return 1;
   }
+  trajectoryIsOpen=true;
   numFramesProcessed=0;
 
   // Set up a progress bar
@@ -692,6 +694,7 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
  */
 int TrajectoryFile::EndTraj() {
   trajio->closeTraj();
+  trajectoryIsOpen=false;
   return 0;
 }
 
@@ -743,7 +746,7 @@ int TrajectoryFile::GetNextFrame(double *X, double *V, double *box, double *T) {
  * The first time this is called with the correct parm the output trajectory 
  * will be set up based on the parm it is called with and the file will be 
  * opened, so there is no need to call BeginTraj for output trajectories.
- * EndTraj() should still be called. 
+ * EndTraj() should still be called.
  */
 int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
                                double *V, double *box, double T) {
@@ -753,7 +756,7 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
   // First frame setup - set up for the input parm, not necessarily the setup
   // parm; this allows things like atom strippping, etc. A stripped parm will
   // have the same pindex as the original parm.
-  if (!setupForWrite) {
+  if (!trajectoryIsOpen) {
     if (debug>0) rprintf("    Setting up %s for WRITE, %i atoms, originally %i atoms.\n",
                          trajName,tparmIn->natom,trajParm->natom);
     trajParm = tparmIn;
@@ -772,7 +775,7 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
     if (trajio->setupWrite(trajParm)) return 1;
     // Open output traj and mark as set up.
     if (trajio->openTraj()) return 1;
-    setupForWrite=true;
+    trajectoryIsOpen=true;
   }
 
   // If there is a framerange defined, check if this frame matches. If so, pop

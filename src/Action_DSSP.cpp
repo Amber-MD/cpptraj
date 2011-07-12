@@ -355,7 +355,7 @@ void DSSP::print() {
 
   // If not printing a string, sync the integer dataset here since
   // it is not part of the master dataset list.
-  if (!printString) SSdata->Sync();
+  if (!printString && SSdata!=NULL) SSdata->Sync();
 
   if (sumOut==NULL) return;
   // Set up dataset list to store averages

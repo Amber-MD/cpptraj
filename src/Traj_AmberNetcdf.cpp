@@ -41,6 +41,7 @@ AmberNetcdf::AmberNetcdf() {
 // DESTRUCTOR
 AmberNetcdf::~AmberNetcdf() {
   //fprintf(stderr,"Amber Netcdf Destructor\n");
+  this->closeTraj();
   if (Coord!=NULL) free(Coord);
   // NOTE: Need to close file?
 }
