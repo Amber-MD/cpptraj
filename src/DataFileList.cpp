@@ -120,5 +120,5 @@ void DataFileList::Write() {
   //if (worldrank!=0) return; 
 
   for (it = this->begin(); it != this->end(); it++)
-    (*it)->Write(false);
+    (*it)->Write();
 }

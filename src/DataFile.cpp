@@ -52,6 +52,12 @@ void DataFile::SetNoXcol() {
   noXcolumn=true;
 }
 
+/* DataFile::SetNoEmptyFrames()
+ */
+void DataFile::SetNoEmptyFrames() {
+  noEmptyFrames=true;
+}
+
 /* DataFile::SetXlabel()
  */
 void DataFile::SetXlabel(char *labelIn) {
@@ -160,24 +166,25 @@ void DataFile::DataSetNames() {
  * Write datasets to file. Check that datasets actually contain data. 
  * Exit if no datasets in this datafile have been used.
  */
-void DataFile::Write(bool noEmptyFramesIn) {
+void DataFile::Write() {
   PtrajFile outfile;
   int set,nwrite;
   int maxSetFrames = 0;
   int currentMax = 0;
+  int NnewList = 0;
+  DataSet **newList;
 
-  noEmptyFrames=noEmptyFramesIn;
-  // Check that at least some data sets contain data. CheckSet will also
-  // set up the format string for the dataset.
-  setIsEmpty.assign(Nsets,false);
+  // Remove data sets that do not contain data from SetList.
+  // NOTE: CheckSet also sets up the format string for the dataset.
+  newList = (DataSet**) malloc( Nsets * sizeof(DataSet*) );
   nwrite=0;
   for (set=0; set<Nsets; set++) {
     if ( SetList[set]->CheckSet() ) {
       mprintf("Warning: DataFile %s: Set %s contains no data - skipping.\n",
               filename, SetList[set]->Name());
-      setIsEmpty[set]=true;
       //return;
     } else {
+      newList[NnewList++] = SetList[set];
       // Determine what the maxium x value for this set is.
       // Should be last value added.
       maxSetFrames = SetList[set]->Xmax();
@@ -185,6 +192,11 @@ void DataFile::Write(bool noEmptyFramesIn) {
       nwrite++;
     }
   }
+  // Reset SetList
+  free(SetList);
+  SetList = newList;
+  Nsets = NnewList;
+  // If all data sets are empty then no need to write
   if (nwrite==0) {
     mprintf("Warning: DataFile %s has no sets containing data - skipping.\n",filename);
     return;
@@ -238,7 +250,7 @@ void DataFile::WriteData(PtrajFile *outfile) {
   // Calculate overall size of the datafile. 
   if (!noXcolumn) lineSize = 8;
   for (set=0; set<Nsets; set++)
-    if (!setIsEmpty[set]) lineSize += SetList[set]->Width();
+    lineSize += SetList[set]->Width();
   // Add 1 to lineSize for newline
   lineSize++;
   // Datafile size is line size times maxFrames+1 lines
@@ -262,7 +274,6 @@ void DataFile::WriteData(PtrajFile *outfile) {
     ptr+=8;
   }
   for (set=0; set<Nsets; set++) {
-    if (setIsEmpty[set]) continue;
     if (noXcolumn && firstSet) {
       ptr = SetList[set]->Name(ptr,true);
       firstSet=false;
@@ -289,8 +300,6 @@ void DataFile::WriteData(PtrajFile *outfile) {
       ptr+=8;
     }
     for (set=0; set<Nsets; set++) {
-      // Skip those empty sets
-      if ( setIsEmpty[set] ) continue;
       ptr = SetList[set]->Write(ptr,frame);
     }
     ptr[0]='\n';
@@ -316,8 +325,6 @@ void DataFile::WriteDataInverted(PtrajFile *outfile) {
 
   buffer=NULL;
   for (set=0; set < Nsets; set++) {
-    // Skip empty sets
-    if ( setIsEmpty[set] ) continue;
     // if specified check for empty frames in the set
     if (noEmptyFrames) {
       empty=0;
@@ -367,8 +374,6 @@ void DataFile::WriteGrace(PtrajFile *outfile) {
   // Loop over sets in data
   buffer=NULL;
   for (set=0; set<Nsets; set++) {
-    // Skip those empty sets
-    if ( setIsEmpty[set] ) continue;
     // Set information
     outfile->IO->Printf("@  s%i legend \"%s\"\n",set,SetList[set]->Name());
     outfile->IO->Printf("@target G0.S%i\n",set);
@@ -445,8 +450,6 @@ void DataFile::WriteGraceInverted(PtrajFile *outfile) {
     outfile->IO->Printf("@type xy\n");
     // Loop over all Set Data for this frame
     for (set=0; set<Nsets; set++) {
-      // Skip those empty sets
-      if ( setIsEmpty[set] ) continue;
       SetList[set]->Write(buffer,frame);
       outfile->IO->Printf("%8i%s \"%s\"\n",set+OUTPUTFRAMESHIFT,buffer,SetList[set]->Name());
     }

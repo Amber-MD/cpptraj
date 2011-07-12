@@ -30,8 +30,7 @@ DataSetList::~DataSetList() {
   }
 }
 
-/*
- * DataSetList::SetMax()
+/* DataSetList::SetMax()
  * Set the max number frames expected to be read in. Used to preallocate
  * data set sizes in the list.
  */
@@ -40,8 +39,7 @@ void DataSetList::SetMax(int expectedMax) {
   if (maxFrames<0) maxFrames=0;
 }
 
-/* 
- * DataSetList::Get()
+/* DataSetList::Get()
  * Return pointer to DataSet with given name
  */
 DataSet *DataSetList::Get(char *nameIn) {
@@ -51,8 +49,7 @@ DataSet *DataSetList::Get(char *nameIn) {
   return NULL;
 }
 
-/* 
- * DataSetList::Add()
+/* DataSetList::Add()
  * Add a DataSet of specified type, set it up and return pointer to it. 
  * Name the dataset nameIn if specified, otherwise give it a default
  * name based on the given defaultName and dataset #. This routine
@@ -105,8 +102,7 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
   return D;
 }
 
-/*
- * DataSetList::AddData()
+/* DataSetList::AddData()
  * Add data to a specific dataset in the list
  * Return 1 on error.
  */
@@ -116,8 +112,7 @@ int DataSetList::AddData(int frame, void *dataIn, int SetNumber) {
   return 0;
 } 
 
-/*
- * DataSetList::Info()
+/* DataSetList::Info()
  * Print information on all data sets in the list, as well as any datafiles
  * that will be written to.
  */
@@ -143,8 +138,7 @@ void DataSetList::Info() {
   //DFL.Info();
 }
 
-/*
- * DataSetList::Sync()
+/* DataSetList::Sync()
  * Call Sync for all datasets in the list
  */
 void DataSetList::Sync() {
@@ -157,5 +151,5 @@ void DataSetList::Sync() {
       //return;
     }
   }
-
 }
+
