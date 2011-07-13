@@ -306,6 +306,11 @@ void DataFile::WriteData(PtrajFile *outfile) {
     ptr++;
   }
 
+  // If noEmptyFrames the actual size of data written may be less than
+  // the size of the data allocated. Recalculate the actual size.
+  if (noEmptyFrames) 
+    dataFileSize = (size_t) (ptr - buffer);
+
   // Write buffer to file
   outfile->IO->Write(buffer,sizeof(char),dataFileSize);
 
