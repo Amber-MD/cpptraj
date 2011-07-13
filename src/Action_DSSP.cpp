@@ -148,19 +148,17 @@ int DSSP::setup() {
     if (SecStruct[res].isSelected) selected++;
   mprintf("      DSSP: [%s] corresponds to %i residues.\n",Mask.maskString,selected);
 
-  // Make an integer dataset for each residue.
-  // NOTE: Could make 1 dataset only for each selected residue, but then
-  // if this routine is called with multiple parmtops the raw residue
-  // numbers are not guaranteed to match. This way we can ensure there are
-  // enough data sets but only add data to selected residues, then only
-  // print data for residue datasets that have data.
+  // Make an integer dataset to hold SS type/frame for each residue.
   if (!printString) {
     if (SSdata==NULL) SSdata = new DataSetList();
     for (res=0; res < Nres; res++) {
-      // Setup dataset name for this residue
-      P->ResName(resArg,res);
-      if (res>=(int)SSdata->Size())
-        DFL->Add(outfilename, SSdata->Add(INT, resArg, "Dres"));
+      if (SecStruct[res].isSelected) {
+        // Setup dataset name for this residue
+        P->ResName(resArg,res);
+        // Create dataset for res - if already present this returns NULL
+        DataSet *resDataSet = SSdata->AddIdx(INT, resArg, res);
+        if (resDataSet!=NULL) DFL->Add(outfilename, resDataSet);
+      }
     }
   // Otherwise set up output buffer to hold string
   } else {
@@ -325,15 +323,15 @@ int DSSP::action() {
   // Store data 
   //fprintf(stdout,"%10i ",currentFrame);
   resj=0;
+  if (SSdata!=NULL) SSdata->Begin();
   for (resi=0; resi < Nres; resi++) {
     if (!SecStruct[resi].isSelected) continue;
     //fprintf(stdout,"%c",SSchar[SecStruct[resi].sstype]);
     SecStruct[resi].SSprob[SecStruct[resi].sstype]++;
     // Integer data set
-    if (!printString) {
-      int sstype = (int) SecStruct[resi].sstype;
-      SSdata->AddData(currentFrame, &sstype, resi);
-    } else
+    if (SSdata!=NULL) 
+      SSdata->AddData(currentFrame, &(SecStruct[resi].sstype));
+    else
       SSline[resj++] = SSchar[SecStruct[resi].sstype];
   }
   if (printString)
@@ -371,9 +369,10 @@ void DSSP::print() {
   // Calc the avg structure of each type for each selected residue 
   for (resi=0; resi < Nres; resi++) {
     if (!SecStruct[resi].isSelected) continue;
+    dsspData->Begin();
     for (ss=1; ss<7; ss++) {
       avg = SecStruct[resi].SSprob[ss] / Nframe;
-      dsspData->AddData(resi, &avg, ss-1);
+      dsspData->AddData(resi, &avg);
     }
   }
 }

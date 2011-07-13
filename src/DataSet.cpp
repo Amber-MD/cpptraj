@@ -9,6 +9,7 @@
 DataSet::DataSet() {
   //fprintf(stderr,"DataSet Constructor.\n");
   name=NULL;
+  idx=-1;
   N=0;
   isDynamic=false;
   current=0;
@@ -103,8 +104,7 @@ int DataSet::Setup(char *nameIn, int Nin) {
   return 0;
 }
 
-/*
- * DataSet::Info()
+/* DataSet::Info()
  * Print dataset information.
  */
 void DataSet::Info() {

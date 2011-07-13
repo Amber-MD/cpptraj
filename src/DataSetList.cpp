@@ -6,7 +6,6 @@
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
 // Data types go here
-//#include "dDataSet.h"
 #include "mapDataSet.h"
 #include "stringDataSet.h"
 #include "intDataSet.h"
@@ -17,6 +16,7 @@ DataSetList::DataSetList() {
   DataList=NULL;
   Ndata=0;
   maxFrames=0;
+  debug=0;
 }
 
 // DESTRUCTOR
@@ -28,6 +28,13 @@ DataSetList::~DataSetList() {
       delete DataList[i];
     free(DataList);
   }
+}
+
+/* DataSetList::SetDebug()
+ */
+void DataSetList::SetDebug(int debugIn) {
+  debug = debugIn;
+  if (debug>0) mprintf("DataSetList Debug Level set to %i\n",debug);
 }
 
 /* DataSetList::SetMax()
@@ -43,9 +50,17 @@ void DataSetList::SetMax(int expectedMax) {
  * Return pointer to DataSet with given name
  */
 DataSet *DataSetList::Get(char *nameIn) {
-  int i;
-  for (i=0; i<Ndata; i++)
+  for (int i=0; i<Ndata; i++)
     if ( strcmp(DataList[i]->Name(),nameIn)==0 ) return DataList[i];
+  return NULL;
+}
+
+/* DataSetList::Get()
+ * Return pointer to DataSet with given idx
+ */
+DataSet *DataSetList::Get(int idxIn) {
+  for (int i=0; i<Ndata; i++)
+    if (DataList[i]->Idx() == idxIn) return DataList[i];
   return NULL;
 }
 
@@ -56,10 +71,8 @@ DataSet *DataSetList::Get(char *nameIn) {
  * MUST be called with a default name.
  */ 
 DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName) {
-  DataSet *D;
+  DataSet *D=NULL;
   char tempName[32];
-
-  D=NULL;
 
   // Require all calls provide a default name
   if (defaultName==NULL) {
@@ -75,23 +88,22 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
   // Check if dataset name is already in use
   D=Get(nameIn);
   if (D!=NULL) {
-    rprintf("  Error: DataSetList::Add: Data set %s already defined.\n",nameIn);
+    mprinterr("Error: DataSetList::Add: Data set %s already defined.\n",nameIn);
     return NULL;
   }
   switch (inType) {
-    //case DOUBLE       : D = new dDataSet(); break;
     case DOUBLE       : D = new mapDataSet(); break;
     case STRING       : D = new stringDataSet(); break;
     case INT          : D = new intDataSet(); break;
     case UNKNOWN_DATA :
     default           :
-      rprintf("  Error: DataSetList::Add: Unknown set type.\n");
+      mprinterr("Error: DataSetList::Add: Unknown set type.\n");
       return NULL;
   }
   if (D==NULL) return NULL;
   // Set up dataset
   if ( D->Setup(nameIn,maxFrames) ) {
-    rprintf("  Error setting up data set %s.\n",nameIn);
+    mprinterr("Error setting up data set %s.\n",nameIn);
     delete D;
     return NULL;
   }
@@ -102,6 +114,76 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
   return D;
 }
 
+/* DataSetList::AddIdx()
+ * Add a dataset to the list with given name and specific numeric index. The
+ * intended use is for things like setting up data for a list of residues,
+ * where the residues may not be sequential or start from 0. Since this 
+ * routine is intended for use internally (i.e. the residue names and numbers
+ * are generated inside other functions like DSSP and PerResRMSD) only
+ * print warnings for higher debug levels. 
+ */
+DataSet *DataSetList::AddIdx(dataType inType, char *nameIn, int idxIn) {
+  DataSet *D = NULL;
+
+  // Check if dataset name is already in use
+  D=Get(nameIn);
+  if (D!=NULL) {
+    if (debug>0) 
+      mprintf("Warning: DataSetList::AddIdx: Data set %s already defined.\n",nameIn);
+    return NULL;
+  }
+  // Check if dataset index already in use
+  D=Get(idxIn);
+  if (D!=NULL) {
+    if (debug>0) 
+      mprintf("Warning: DataSetList::AddIdx: Data set index %i already defined.\n",idxIn);
+    return NULL;
+  }
+
+  // Allocate dataset type
+  switch (inType) {
+    case DOUBLE       : D = new mapDataSet(); break;
+    case STRING       : D = new stringDataSet(); break;
+    case INT          : D = new intDataSet(); break;
+    case UNKNOWN_DATA :
+    default           :
+      mprinterr("Error: DataSetList::AddIdx: Unknown set type.\n");
+      return NULL;
+  }
+  if (D==NULL) return NULL;
+
+  // Set up dataset
+  if ( D->Setup(nameIn,maxFrames) ) {
+    mprinterr("Error: DataSetList::AddIdx: setting up data set %s (%i).\n",nameIn,idxIn);
+    delete D;
+    return NULL;
+  }
+  D->SetIdx(idxIn);
+
+  DataList=(DataSet**) realloc(DataList,(Ndata+1) * sizeof(DataSet*));
+  DataList[Ndata++]=D;
+  //fprintf(stderr,"ADDED dataset %s\n",nameIn);
+  return D;
+}
+
+/* DataSetList::Begin()
+ * Reset the set counter to 0.
+ */
+void DataSetList::Begin() {
+  currentSet=0;
+}
+
+/* DataSetList::AddData()
+ * Add data to the currentSet and increment the counter. Return 1 if at the 
+ * last set. Should be used in conjunction with Begin. 
+ */
+int DataSetList::AddData(int frame, void *dataIn) {
+  if (currentSet == Ndata) return 1;
+  DataList[currentSet]->Add(frame, dataIn);
+  currentSet++;
+  return 0;
+}
+
 /* DataSetList::AddData()
  * Add data to a specific dataset in the list
  * Return 1 on error.
@@ -110,7 +192,19 @@ int DataSetList::AddData(int frame, void *dataIn, int SetNumber) {
   if (SetNumber<0 || SetNumber>=Ndata) return 1;
   DataList[SetNumber]->Add(frame, dataIn);
   return 0;
-} 
+}
+
+/* DataSetList::AddDataToIdx
+ */
+/*
+int DataSetList::AddDataToIdx(int frame, void *dataIn, int idxIn) {
+  DataSet *D = this->Get(idxIn);
+  if (D!=NULL) {
+    D->Add(frame, dataIn);
+    return 0;
+  }
+  return 1;
+}*/
 
 /* DataSetList::Info()
  * Print information on all data sets in the list, as well as any datafiles
