@@ -11,16 +11,15 @@ class Rmsd: public Action {
     // PerResRMSD -------------
     DataSetList *PerResRMSD;
     int nres;
-    Range ResRange;                     // Residues to calculate perRes rmsd for
-    std::vector<AtomMask*> PerResMask;  // Hold AtomMasks for each residue in ResRange
-    Range RefRange;                     // Residues in reference corresponding to those in ResRange
-    std::vector<AtomMask*> PerRefMask;  // Hold AtomMasks for each residue in RefRange
-    char *perresout;                    // PerRes RMSD data output file
-    char *perresmask;                   // Additional mask to apply to 
-    bool perrescenter;                  // Move residues to common COM before rms calc
-    bool perresinvert;                  // If true rows will contain set info instead of cols
-    Frame *ResFrame;                    // Hold residue coords
-    Frame *ResRefFrame;                 // Hold residue reference coords.
+    Range ResRange;                    // Residues to calculate perRes rmsd for
+    std::vector<AtomMask*> PerResMask; // Hold selected and reference masks for each res in ResRange
+    Range RefRange;                    // Residues in reference corresponding to those in ResRange
+    char *perresout;                   // PerRes RMSD data output file
+    char *perresmask;                  // Additional mask to apply to 
+    bool perrescenter;                 // Move residues to common COM before rms calc
+    bool perresinvert;                 // If true rows will contain set info instead of cols
+    Frame *ResFrame;                   // Hold residue coords
+    Frame *ResRefFrame;                // Hold residue reference coords.
     DataFile *outFile;
     // ------------------------ 
     AtomMask RefMask, FrameMask;        // Frame and reference masks.
@@ -32,6 +31,7 @@ class Rmsd: public Action {
     AmberParm *RefParm;                 // Reference frame Parm
 
     int SetRefMask();
+    void clearPerResMask();
 
   public:
     Rmsd();

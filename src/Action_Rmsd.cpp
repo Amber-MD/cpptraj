@@ -29,7 +29,6 @@ Rmsd::Rmsd() {
 
 // DESTRUCTOR
 Rmsd::~Rmsd() {
-  AtomMask *ResMask;
   // If first, ref Frame was allocd (not assigned from reference Frame List)
   if (first && RefFrame!=NULL)
     delete RefFrame;
@@ -42,15 +41,17 @@ Rmsd::~Rmsd() {
   if (ResFrame!=NULL) delete ResFrame;
   if (ResRefFrame!=NULL) delete ResRefFrame;
   if (PerResRMSD!=NULL) delete PerResRMSD;
+  clearPerResMask();
+}
+
+/* Rmsd::clearPerResMask()
+ * Free the memory used by the atom masks in PerResMask.
+ */
+void Rmsd::clearPerResMask() {
   while ( !PerResMask.empty() ) {
-    ResMask = PerResMask.back();
+    AtomMask *ResMask = PerResMask.back();
     delete ResMask;
     PerResMask.pop_back();
-  }
-  while ( !PerRefMask.empty() ) {
-    ResMask = PerRefMask.back();
-    delete ResMask;
-    PerRefMask.pop_back();
   }
 }
 
@@ -194,6 +195,8 @@ int Rmsd::init( ) {
     mprintf("          Center of mass will be used.\n");
   else
     mprintf("          Geometric center will be used.\n");
+
+  // Per-residue RMSD
   if (perres) {
     mprintf("          No-fit RMSD will also be calculated for ");
     if (ResRange.empty()) 
@@ -203,7 +206,6 @@ int Rmsd::init( ) {
     if (!RefRange.empty())
       mprintf(" (reference residues %s)",RefRange.RangeArg());
     mprintf(" using mask [:X%s].\n",perresmask);
-    mprintf("          WARNING: Currently residues are set up based on the first trajectory read in!\n");
     if (perresout==NULL) {
       mprintf("Error: perres specified but no output filename given (perresout).\n");
       perres=false;
@@ -227,7 +229,6 @@ int Rmsd::setup() {
   char resArg[1024];
   char refArg[1024];
   AtomMask *ResMask;
-  list<int>::iterator it;
   int refRes;;
 
   if ( FrameMask.SetupMask(P,debug) ) return 1;
@@ -262,18 +263,21 @@ int Rmsd::setup() {
     useMass=false;
   }
 
-  // --------------------===  PER RESIDUE RMSD OPTION ===--------------------
+  // --------------------====  PER RESIDUE RMSD OPTION ====---------------------
   // If perres was specified, need a data set for each residue
-  // Currently perres will only work for the first parmtop used
   // NOTE THAT ALL RESIDUES FROM INPUT SHOULD BE SHIFTED BY -1
-  if (PerResRMSD!=NULL && perres) {
-    // This is the second parm for which perres is being called for. No good
-    // since it would make the output very confusing.
-    mprintf("    Error: Rmsd::setup: The perres option can only be used for 1 topology file.\n");
-    mprintf("           Skipping [%s].\n",this->CmdLine());
-    return 1;
-  } else if (PerResRMSD==NULL && perres) {
-    // If no range specified do all solute residues.
+  if (perres) {
+    if (PerResRMSD!=NULL) {
+      // This is the second parm for which perres is being called for. 
+      // Potentially problematic since there is no guarantee each residue
+      // matches up in each parmtop. Just print a warning for now.
+      mprintf("    Warning: RMSD: perres option in use for more than 1 prmtop.\n");
+      mprintf("             Residue names are not guaranteed to match.\n");
+    } else {
+      PerResRMSD = new DataSetList();
+    }
+
+    // If no range previously specified do all solute residues.
     if (ResRange.empty()) {
       if (P->finalSoluteRes>0)
         nres = P->finalSoluteRes;
@@ -284,23 +288,34 @@ int Rmsd::setup() {
       ResRange.SetRange(1,nres+1);
     } 
     mprintf("      RMSD: PerRes: Setting up for %i residues.\n",(int)ResRange.size());
-    PerResRMSD=new DataSetList();
-    for (it=ResRange.begin(); it!=ResRange.end(); it++) {
-      // Get corresponding reference resnum - if none specified use current res
-      if (RefRange.empty()) 
-        refRes = (*it);
-      else {
-        refRes = RefRange.front();
-        RefRange.pop_front();
-      }
-      //res = *it - 1; // res is the internal resnumber, *it the user resnumber
-      
+
+    // If the reference range is empty, set it to match the residue range
+    if (RefRange.empty()) RefRange.assign(ResRange.begin(), ResRange.end());
+
+    // Check that the number of reference residues matches number of residues
+    if (RefRange.size() != ResRange.size()) {
+      mprinterr("Error: RMSD: PerRes: Number of residues %i does not match\n",(int)ResRange.size());
+      mprinterr("       number of reference residues %i.\n",(int)RefRange.size());
+      return 1;
+    }
+
+    // For each residue specified in the range, set up an atom mask for selected
+    // and reference atoms, along with a data set.
+    // PerResMask will hold both masks, the ref mask followed by selected mask.
+    // NOTE: res = *it - 1; res is the internal resnum, *it the user resnum
+    clearPerResMask();
+    std::list<int>::iterator refit = RefRange.begin();
+    for (std::list<int>::iterator it=ResRange.begin(); it!=ResRange.end(); it++) {
+      // Get corresponding reference resnum
+      refRes = *refit;
+      refit++;
+
       // Setup mask strings - masks are based off user residue nums
       sprintf(resArg,":%i%s",*it,perresmask);
       sprintf(refArg,":%i%s",refRes,perresmask);
       //mprintf("DEBUG: RMSD: PerRes: Mask %s RefMask %s\n",resArg,refArg);
 
-      // Check that mask can be set up for reference
+      // Set up reference mask for this residue.
       ResMask=new AtomMask();
       ResMask->SetMaskString(refArg);
       if ( ResMask->SetupMask(RefParm,0) ) {
@@ -314,52 +329,54 @@ int Rmsd::setup() {
         continue;
       }
       //RefNselected = RefMask->Nselected;
-      PerRefMask.push_back(ResMask);
+      PerResMask.push_back(ResMask);
 
-      // Set up mask for this parm - If unable make sure reference mask is popped as well
+      // Set up mask for this residue.
+      // If unable make sure reference mask is popped as well
       ResMask=new AtomMask();
       ResMask->SetMaskString(resArg);
       if ( ResMask->SetupMask(P,0) ) { // NOTE: Allow debug value in here?
         mprintf("Warning: RMSD: PerRes: Could not set up mask for residue %i\n",*it);
         delete ResMask;
-        ResMask = PerRefMask.back();
+        ResMask = PerResMask.back();
         delete ResMask;
-        PerRefMask.pop_back();
+        PerResMask.pop_back();
         continue;
       }
       if (ResMask->None()) {
         mprintf("Warning: RMSD: PerRes: No atoms in mask for residue %i\n",*it);
         delete ResMask;
-        ResMask = PerRefMask.back();
+        ResMask = PerResMask.back();
         delete ResMask;
-        PerRefMask.pop_back();
+        PerResMask.pop_back();
         continue;
       }
+
       // Check that number of atoms selected in parm is same as reference
-      if ( (PerRefMask.back())->Nselected != ResMask->Nselected) {
+      if ( (PerResMask.back())->Nselected != ResMask->Nselected) {
         mprintf("Warning: RMSD: PerRes: # atoms in mask for residue %i (%i) not equal\n",
                 *it,ResMask->Nselected);
         mprintf("                       to # atoms in reference mask (%i).\n",
-                (PerRefMask.back())->Nselected);
+                (PerResMask.back())->Nselected);
         delete ResMask;
-        ResMask = PerRefMask.back();
+        ResMask = PerResMask.back();
         delete ResMask;
-        PerRefMask.pop_back();
+        PerResMask.pop_back();
         continue;
       }
       PerResMask.push_back(ResMask);
 
       // DEBUG
       //mprintf("PERRES_RMS: Mask %s RefMask %s\n",(PerResMask.back())->maskString,
-      //        (PerRefMask.back())->maskString);
+      //        (PerResMask.back())->maskString);
 
-      // Setup Dataset for this residue
-      // Setup Dataset Name to be name of this residue 
+      // Setup dataset name for this residue
       P->ResName(resArg,(*it)-1);
-      // TEST - add all datasets to the same output file
-      // NOTE - eventually give this its own output file and make a print routine
-      DFL->Add(perresout, PerResRMSD->Add(DOUBLE, resArg,"PerRes"));
-    }
+      // Create dataset for res - if already present this returns NULL
+      DataSet *prDataSet = PerResRMSD->AddIdx(DOUBLE, resArg, *it);
+      if (prDataSet != NULL) DFL->Add(perresout, prDataSet);
+    } // END loop over residues in range
+
     // Set up pointer to the output file
     outFile = DFL->GetDataFile(perresout);
     if (outFile==NULL) {
@@ -386,7 +403,6 @@ int Rmsd::setup() {
 int Rmsd::action() {
   double R, U[9], Trans[6];
   vector<AtomMask*>::iterator mask;
-  int res=0;
 
   // first: If Ref is NULL, allocate this frame as reference
   //        Should only occur once.
@@ -428,20 +444,22 @@ int Rmsd::action() {
 
   rmsd->Add(currentFrame, &R);
 
-  // Per Residue RMSD - Set reference and selected frame for each mask in PerResMask
+  // Per Residue RMSD - Set reference and selected frame for each mask in 
+  // PerResMask. PerResMask contains the reference mask followed by the
+  // selected mask.
   // Use SetFrameFromMask since each residue can be a different size
   if (perres) {
-    res=0;
+    PerResRMSD->Begin(); 
     for (mask = PerResMask.begin(); mask!=PerResMask.end(); mask++) {
-      ResRefFrame->SetFrameFromMask(RefFrame, PerRefMask[res]);
+      ResRefFrame->SetFrameFromMask(RefFrame, (*mask));
+      mask++;
       ResFrame->SetFrameFromMask(F, (*mask));
       if (perrescenter) 
         ResFrame->ShiftToCenter(ResRefFrame); 
       R = ResFrame->RMSD(ResRefFrame,useMass);
       //mprintf("DEBUG:           Res %i nofit RMSD = %lf\n",res,R);
       // NOTE: Should check for error on AddData?
-      PerResRMSD->AddData(currentFrame, &R, res);
-      res++;
+      PerResRMSD->AddData(currentFrame, &R);
     }
   }
 
@@ -461,6 +479,6 @@ void Rmsd::print() {
     outFile->SetInverted();
 
   mprintf("    RMSD: Per-residue: Writing data for %i residues to %s\n",
-          (int)PerResMask.size(), outFile->filename);
+          (int)PerResMask.size() / 2, outFile->filename);
 }
  
