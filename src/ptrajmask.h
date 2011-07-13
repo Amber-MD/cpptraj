@@ -1,64 +1,35 @@
+/// ptrajmask: The enhanced atom selection mask parser from ptraj.
+/// Originally written by Viktor Hornak, Stony Brook University.
+/// Adapted as standalone code by Dan Roe, NIST.
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*  ________________________________________________________________________
- */
-
-/* From ptraj_local.h */
-/* The parameter file assumes the atom, residue, symbol, etc. names to be *
- * four characters (we will store them as strings, requiring a newline,   *
- * hence the size is 5).                                                  *
- * NOTE: This is also defined in AmberParm.h.                             */
+// The NAME parameters control how the mask parser expects strings to look.
+// Originally, the parameter file assumes the atom, residue, symbol, etc. 
+// names to be four characters. When stored as a string, the NULL character
+// is required, requiring a size of 5. It has been increased to 6 in cpptraj
+// to accomodate the slightly larger names that can be found in MOL2 files.
+// NOTE: this is also defined in AmberParm.h and MUST MATCH!
 #define NAME_SIZE 6
-#define NAME_DEFAULT "    "
+#define NAME_DEFAULT "     "
 typedef char Name[NAME_SIZE];
-
-
-/*
- *  Enhanced atom selection parser: Viktor Hornak, Stony Brook University
- */
+// More defines
 #define  MAXSELE 1000
 #define  ALL      0
 #define  NUMLIST  1
 #define  NAMELIST 2
 #define  TYPELIST 3
 #define  ELEMLIST 4
-
-extern char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, char, Name *, int);
-
-
-/* DAN ROE: NOTE: Function prototypes are here because they are out of
- * order in mask.c. Sloppy.
+/* parseMaskString()
+ * The main interface to the mask parser. Takes a mask expression and some
+ * information from a parameter file (# atoms, # residues, atom names, residue
+ * names, an array containing the first atom # of each residue, atomic coords
+ * in X0Y0Z0X1Y1Z1... format, atom types, and a debug value controlling how
+ * much debug information is printed (internally the global int prnlev).
+ * It returns a character mask array mask[i]='T'|'F', i=0,atoms-1
+ * which contains the resulting atom selection
  */
-int isOperator(char);
-int isOperand(char);
-int priority(char);
-int tokenize(char *, char *);
-int torpn(char *, char *);
-
-char * eval(char *, int, int, Name *, Name *, int *, void *, char, Name *);
-char * selectDist(char *, char *, int, int, int *, void *, char);
-char * binop(char, char *, char *, int);
-char * neg(char *, int);
-int isElemMatch(char *, char *);
-int isNameMatch(char *, char *);
-void resnum_select(int, int, char *, int, int *);
-void resname_select(char *, char *, int, Name *, int *);
-void all_select(char *, int);
-void atnum_select(int, int, char *, int);
-void atname_select(char *, char *, int, Name *);
-void attype_select(char *, char *, int, Name *);
-void atelem_select(char *, char *, int, Name *);
-void residue_numlist(char *, char *, int, int *);
-void residue_namelist(char *, char *, int, Name *, int *);
-void atom_numlist(char *, char *, int);
-void atom_namelist(char *, char *, int, Name *);
-void atom_typelist(char *, char *, int, Name *);
-void atom_elemlist(char *, char *, int, Name *);
-char * selectElemMask(char *, int, int, Name *, Name *, int *, Name *);
-char * parseMaskString(char *, int, int, Name *, Name *, int *, void *, char, Name *, int);
-
+char *parseMaskString(char*,int,int,Name*,Name*,int*,double*,Name*,int);
 #ifdef __cplusplus
 }
 #endif
