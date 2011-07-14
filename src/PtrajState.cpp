@@ -433,6 +433,7 @@ int PtrajState::Run() {
       mprinterr("Error: Could not open trajectory %s.\n",(*traj)->TrajName());
       break;
     }
+    (*traj)->PrintInfoLine();
     // Set current parm from current traj.
     CurrentParm = (*traj)->TrajParm();
 

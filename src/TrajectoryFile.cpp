@@ -684,9 +684,17 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
     frameskip = 1;
     currentFrame = 0;
   }
-  rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName,currentFrame+1,stop+1,offset);
 
   return 0;
+}
+
+/* TrajectoryFile::PrintInfoLine()
+ * Print a smaller amount of information than the PrintInfo function to
+ * a single line. Give the trajectory name, start, stop, and offset.
+ */
+void TrajectoryFile::PrintInfoLine() {
+  //rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName,currentFrame+1,stop+1,offset);
+  rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName,start+1,stop+1,offset);
 }
 
 /* TrajectoryFile::EndTraj()

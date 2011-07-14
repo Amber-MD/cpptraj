@@ -52,6 +52,7 @@ class TrajectoryFile {
     void SetDebug(int);
     void SingleFrame();
     bool TrajFilenameIs(char *);
+    void PrintInfoLine();
     void PrintInfo(int);
     // Functions that return private vars
     int CurrentFrame() { return currentFrame; }
