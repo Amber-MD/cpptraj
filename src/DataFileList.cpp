@@ -31,6 +31,7 @@ void DataFileList::SetDebug(int debugIn) {
 DataFile *DataFileList::GetDataFile(char *nameIn) {
   DataFile *Current;
 
+  if (nameIn==NULL) return NULL;
   Current=NULL;
   for (it = this->begin(); it != this->end(); it++) {
     if ( (*it)->NameIs(nameIn) ) {
