@@ -174,13 +174,17 @@ void Frame::Divide(double divisor) {
 /* Frame::Translate()
  * Translate all coords by Vec. 
  */
-void Frame::Translate(double *Vec) {
+void Frame::Translate(double * Vec) {
   int i;
+  double Vec0, Vec1, Vec2;
 
+  Vec0=Vec[0];
+  Vec1=Vec[1];
+  Vec2=Vec[2];
   for (i=0; i<N; i+=3) {
-    X[i  ]+=Vec[0];
-    X[i+1]+=Vec[1];
-    X[i+2]+=Vec[2];
+    X[i  ]+=Vec0;
+    X[i+1]+=Vec1;
+    X[i+2]+=Vec2;
   }
 }
 
@@ -204,13 +208,23 @@ void Frame::Translate(double *Vec, int Atom) {
 void Frame::Rotate(double *T) {
   int i;
   double x,y,z;
-  
+  double T0,T1,T2,T3,T4,T5,T6,T7,T8;
+ 
+  T0=T[0]; 
+  T1=T[1]; 
+  T2=T[2]; 
+  T3=T[3]; 
+  T4=T[4]; 
+  T5=T[5]; 
+  T6=T[6]; 
+  T7=T[7]; 
+  T8=T[8]; 
   for (i=0; i<N; i+=3) {
     x=X[i]; y=X[i+1]; z=X[i+2];
 
-    X[i  ]=(x*T[0]) + (y*T[1]) + (z*T[2]);
-    X[i+1]=(x*T[3]) + (y*T[4]) + (z*T[5]);
-    X[i+2]=(x*T[6]) + (y*T[7]) + (z*T[8]);
+    X[i  ]=(x*T0) + (y*T1) + (z*T2);
+    X[i+1]=(x*T3) + (y*T4) + (z*T5);
+    X[i+2]=(x*T6) + (y*T7) + (z*T8);
   }
 } 
 
@@ -239,7 +253,10 @@ void Frame::InverseRotate(double *T) {
 void Frame::Center(AtomMask *Mask, double *box, bool useMassIn) {
   double center[3];
 
-  this->COM(Mask, center, useMassIn);
+  if (useMassIn)
+    this->CenterOfMass(Mask, center);
+  else
+    this->GeometricCenter(Mask, center);
   //fprintf(stderr,"  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
 
   // Shift to whatever is in box (origin or center of box in Action_Center) 
@@ -419,84 +436,143 @@ int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
 }
 
 /* ----------------- Center of Mass Calculation Routines -------------------- */
-/* Frame::COM()
- * Given an AtomMask put geometric center of atoms in mask into Coord. Put 
- * center of mass instead if useMass is true.
- * Return sum of masses in Mask (useMass) or #atoms in Mask (!useMass).
+/* Frame::CenterOfMass()
+ * Given an AtomMask put center of mass of atoms in mask into Coord. Return 
+ * sum of masses in Mask.
  */
-double Frame::COM(AtomMask *Mask, double *Coord, bool useMass) {
+double Frame::CenterOfMass(AtomMask *Mask, double *Coord) {
   int i,atom,natom3;
-  double sumMass,mass;
+  double sumMass,mass,Coord0,Coord1,Coord2;
   
-  Coord[0]=0.0;
-  Coord[1]=0.0;
-  Coord[2]=0.0;
+  Coord0=0.0;
+  Coord1=0.0;
+  Coord2=0.0;
   sumMass=0.0;
-  mass=1.0;
 
   for (i=0; i < Mask->Nselected; i++) {
       atom=Mask->Selected[i];
       natom3=atom*3;
-      if (useMass) {
-        mass=Mass[atom];
-        sumMass+=mass;
-      }
-      Coord[0]+=(X[natom3]   * mass);
-      Coord[1]+=(X[natom3+1] * mass);
-      Coord[2]+=(X[natom3+2] * mass);
+      mass=Mass[atom];
+      sumMass+=mass;
+      Coord0+=(X[natom3]   * mass);
+      Coord1+=(X[natom3+1] * mass);
+      Coord2+=(X[natom3+2] * mass);
   }
-
-  if (!useMass) sumMass=(double) Mask->Nselected;
 
   // NOTE: Not using == since it is unreliable for floating point numbers.
   // Should NEVER have a mass smaller than SMALL (vectormath.h)
   if (sumMass < SMALL) return 0;
 
-  Coord[0]/=sumMass;
-  Coord[1]/=sumMass;
-  Coord[2]/=sumMass;
+  Coord[0] = Coord0 / sumMass;
+  Coord[1] = Coord1 / sumMass;
+  Coord[2] = Coord2 / sumMass;
   return sumMass;
 }
 
-/* Frame::COM()
- * Put geometric center of all atoms between start and stop in frame into 
- * Coord. Put center of mass instead if useMass is true.
- * Return sum of masses (useMass) or #atoms (!useMass).
- * NOTE: overload to get rid of IF in loop?
+/* Frame::GeometricCenter()
+ * Given an AtomMask put geometric center of atoms in mask into Coord. Return 
+ * #atoms in Mask.
  */
-double Frame::COM(double *Coord, bool useMass, int startAtom, int stopAtom) {  
+double Frame::GeometricCenter(AtomMask *Mask, double *Coord) {
+  int i,atom,natom3;
+  double sumMass,Coord0,Coord1,Coord2;
+  
+  Coord0=0.0;
+  Coord1=0.0;
+  Coord2=0.0;
+
+  for (i=0; i < Mask->Nselected; i++) {
+      atom=Mask->Selected[i];
+      natom3=atom*3;
+      Coord0+=(X[natom3]  );
+      Coord1+=(X[natom3+1]);
+      Coord2+=(X[natom3+2]);
+  }
+
+  sumMass=(double) Mask->Nselected;
+
+  // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL (vectormath.h)
+  if (sumMass < SMALL) return 0;
+
+  Coord[0] = Coord0 / sumMass;
+  Coord[1] = Coord1 / sumMass;
+  Coord[2] = Coord2 / sumMass;
+  return sumMass;
+}
+
+/* Frame::CenterOfMass()
+ * Put center of mass of all atoms between start and stop in frame into 
+ * Coord. Return sum of masses.
+ */
+double Frame::CenterOfMass(double *Coord, int startAtom, int stopAtom) {  
   int i,m;
   int startAtom3, stopAtom3;
-  double sumMass,mass;
+  double sumMass,mass,Coord0,Coord1,Coord2;
   
-  Coord[0]=0.0;
-  Coord[1]=0.0;
-  Coord[2]=0.0;
+  Coord0=0.0;
+  Coord1=0.0;
+  Coord2=0.0;
   sumMass=0.0;
-  mass=1.0;
   m=startAtom;
   startAtom3 = startAtom * 3;
   stopAtom3 = stopAtom * 3;
   
   for (i=startAtom3; i<stopAtom3; i+=3) {
-    if (useMass) 
-      mass=Mass[m++];
+    mass=Mass[m++];
     sumMass+=mass;
-    Coord[0]+=(X[i  ] * mass);
-    Coord[1]+=(X[i+1] * mass);
-    Coord[2]+=(X[i+2] * mass);
+    Coord0+=(X[i  ] * mass);
+    Coord1+=(X[i+1] * mass);
+    Coord2+=(X[i+2] * mass);
   }
 
   // NOTE: Not using == since it is unreliable for floating point numbers.
   // Should NEVER have a mass smaller than SMALL (vectormath.h)
   if (sumMass < SMALL) return 0;
 
-  Coord[0]/=sumMass;
-  Coord[1]/=sumMass;
-  Coord[2]/=sumMass;
+  Coord[0] = Coord0 / sumMass;
+  Coord[1] = Coord1 / sumMass;
+  Coord[2] = Coord2 / sumMass;
 
   return sumMass;
 }
+
+/* Frame::GeometricCenter()
+ * Put geometric center of all atoms between start and stop in frame into 
+ * Coord. Return #atoms used in calc.
+ */
+double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {  
+  int i,m;
+  int startAtom3, stopAtom3;
+  double sumMass,Coord0,Coord1,Coord2;
+  
+  Coord0=0.0;
+  Coord1=0.0;
+  Coord2=0.0;
+  m=startAtom;
+  startAtom3 = startAtom * 3;
+  stopAtom3 = stopAtom * 3;
+  
+  for (i=startAtom3; i<stopAtom3; i+=3) {
+    Coord0+=(X[i  ]);
+    Coord1+=(X[i+1]);
+    Coord2+=(X[i+2]);
+  }
+
+  i = stopAtom - startAtom;
+  sumMass=(double) i;
+
+  // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL (vectormath.h)
+  if (sumMass < SMALL) return 0;
+
+  Coord[0] = Coord0 / sumMass;
+  Coord[1] = Coord1 / sumMass;
+  Coord[2] = Coord2 / sumMass;
+
+  return sumMass;
+}
+
 
 /* Frame::COM()
  * Put geometric center of all atoms in frame into Coord. Put center of mass 
@@ -504,9 +580,8 @@ double Frame::COM(double *Coord, bool useMass, int startAtom, int stopAtom) {
  * Return sum of masses (useMass) or #atoms (!useMass).
  */
 double Frame::COM(double *Coord, bool useMass) {
-
-  return this->COM(Coord,useMass,0,natom);
-
+  if (useMass) return this->CenterOfMass(Coord,0,natom);
+  return this->GeometricCenter(Coord,0,natom);
 }
 
 /* -------------------- Coordinate Calculation Routines --------------------- */
@@ -565,8 +640,13 @@ double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int boxTyp
                     double *ucell, double *recip) {
   double a1[3], a2[3];
 
-  COM(Mask1, a1, useMassIn);
-  COM(Mask2, a2, useMassIn);
+  if (useMassIn) {
+    CenterOfMass(Mask1, a1);
+    CenterOfMass(Mask2, a2);
+  } else {
+    GeometricCenter(Mask1, a1);
+    GeometricCenter(Mask2, a2);
+  }
 
   if (boxType == 0) 
     return DIST2_NoImage(a1, a2);
@@ -641,9 +721,9 @@ double Frame::ANGLE(AtomMask *M1, AtomMask *M2, AtomMask *M3) {
   double a1[3],a2[3],a3[3];
   double angle, xij, yij, zij, xkj, ykj, zkj, rij, rkj;
   
-  COM(M1,a1,false);
-  COM(M2,a2,false);
-  COM(M3,a3,false);
+  GeometricCenter(M1,a1);
+  GeometricCenter(M2,a2);
+  GeometricCenter(M3,a3);
 
   xij = a1[0] - a2[0];
   yij = a1[1] - a2[1];
@@ -711,10 +791,10 @@ double Frame::ANGLE(int A1, int A2, int A3) {
 double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4) {
   double a1[3],a2[3],a3[3],a4[3];
 
-  COM(M1,a1,false);
-  COM(M2,a2,false);
-  COM(M3,a3,false);
-  COM(M4,a4,false);
+  GeometricCenter(M1,a1);
+  GeometricCenter(M2,a2);
+  GeometricCenter(M3,a3);
+  GeometricCenter(M4,a4);
 
   return Torsion(a1,a2,a3,a4);
 }
@@ -731,11 +811,19 @@ double Frame::PUCKER(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4, Ato
   double a1[3],a2[3],a3[3],a4[3],a5[3]; 
   double angle, amp;
 
-  COM(M1,a1,useMassIn);
-  COM(M2,a2,useMassIn);
-  COM(M3,a3,useMassIn);
-  COM(M4,a4,useMassIn);
-  COM(M5,a5,useMassIn);
+  if (useMassIn) {
+    CenterOfMass(M1,a1);
+    CenterOfMass(M2,a2);
+    CenterOfMass(M3,a3);
+    CenterOfMass(M4,a4);
+    CenterOfMass(M5,a5);
+  } else {
+    GeometricCenter(M1,a1);
+    GeometricCenter(M2,a2);
+    GeometricCenter(M3,a3);
+    GeometricCenter(M4,a4);
+    GeometricCenter(M5,a5);
+  }
 
   angle = 0.0;
   amp = 0.0;
@@ -763,7 +851,10 @@ double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
   sumDist2=0.0;
   *max=0.0;
 
-  this->COM(Mask,mid,useMassIn);
+  if (useMassIn)
+    this->CenterOfMass(Mask,mid);
+  else
+    this->GeometricCenter(Mask,mid);
 
   for (i=0; i < Mask->Nselected; i++) {
       atom=Mask->Selected[i];

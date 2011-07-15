@@ -166,7 +166,10 @@ int Image::action() {
     if (triclinic == FAMILIAR) {
       // Use center of mask of atoms in mask
       if (ComMask!=NULL) {
-        F->COM(ComMask, fcom, useMass);
+        if (useMass)
+          F->CenterOfMass(ComMask, fcom);
+        else
+          F->GeometricCenter(ComMask,fcom);
       // Use origin
       } else if (origin) {
         fcom[0]=0.0;
@@ -206,9 +209,12 @@ int Image::action() {
     boxTrans[2] = 0.0;
 
     // Set up position based on first atom or center of mass
-    if (center) 
-      F->COM(Coord,useMass,firstAtom,lastAtom);
-    else
+    if (center) { 
+      if (useMass)
+        F->CenterOfMass(Coord,firstAtom,lastAtom);
+      else
+        F->GeometricCenter(Coord,firstAtom,lastAtom);
+    } else
       F->GetCoord(Coord,firstAtom);
 
     // ORTHORHOMBIC

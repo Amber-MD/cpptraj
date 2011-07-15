@@ -47,8 +47,10 @@ class Frame {
     void SetFrameFromMask(Frame*, AtomMask *);
     int SetFrameCoordsFromMask(double *, AtomMask *);
     // Center of mass
-    double COM(AtomMask*, double *, bool);
-    double COM(double*,bool,int,int);
+    double CenterOfMass(AtomMask*, double *);
+    double GeometricCenter(AtomMask*, double *);
+    double CenterOfMass(double*,int,int);
+    double GeometricCenter(double*,int,int);
     double COM(double*,bool);
     // Coordinate calculation
     void BoxToRecip(double *, double *);
