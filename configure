@@ -13,6 +13,7 @@ Usage() {
   echo "   --help     : Display this message."
   echo "   -d, -debug : Turn on compiler debugging info"
   echo "   -debugon   : Add -DDEBUG flag to activate internal debugging"
+  echo "   -profile   : Add profiling flag to compile command"
   echo "   -noopt     : Do not use optimized compiler flags (default when -d specified)"
   echo "   -nobzlib   : Do not use Bzip2"
   echo "   -nozlib    : Do not use zlib (gzip/zip)"
@@ -300,7 +301,10 @@ fi
 # Turn on profiling if specified
 if [[ $PROFILE -eq 1 && $CXX = "g++" ]] ; then
   echo "Using $CC profiling."
-  CXXFLAGS="-D_GLIBCXX_PROFILE $CXXFLAGS"
+  #CXXFLAGS="-D_GLIBCXX_PROFILE $CXXFLAGS"
+  CFLAGS="-pg $CFLAGS"
+  CXXFLAGS="-pg $CXXFLAGS"
+  LDFLAGS="-pg $LDFLAGS"
 fi
 
 # Test compilers
