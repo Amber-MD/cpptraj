@@ -274,8 +274,8 @@ void Frame::ShiftToCenter( Frame *Ref ) {
 
   // Rotation will occur around geometric center.
   // NOTE could pass in Mass to make true Center of Mass rotation
-  this->COM(frameCOM, false);
-  Ref->COM(refCOM, false);
+  this->GeometricCenter(frameCOM,0,natom);
+  this->GeometricCenter(refCOM,0,natom);
   //fprintf(stderr,"  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
   //fprintf(stderr,"  REF   COM: %lf %lf %lf\n",refCOM[0],refCOM[1],refCOM[2]); //DEBUG
   
@@ -443,7 +443,10 @@ int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
 double Frame::CenterOfMass(AtomMask *Mask, double *Coord) {
   int i,atom,natom3;
   double sumMass,mass,Coord0,Coord1,Coord2;
-  
+ 
+  Coord[0]=0.0;
+  Coord[1]=0.0;
+  Coord[2]=0.0; 
   Coord0=0.0;
   Coord1=0.0;
   Coord2=0.0;
@@ -476,7 +479,10 @@ double Frame::CenterOfMass(AtomMask *Mask, double *Coord) {
 double Frame::GeometricCenter(AtomMask *Mask, double *Coord) {
   int i,atom,natom3;
   double sumMass,Coord0,Coord1,Coord2;
-  
+ 
+  Coord[0]=0.0; 
+  Coord[1]=0.0; 
+  Coord[2]=0.0; 
   Coord0=0.0;
   Coord1=0.0;
   Coord2=0.0;
@@ -509,7 +515,10 @@ double Frame::CenterOfMass(double *Coord, int startAtom, int stopAtom) {
   int i,m;
   int startAtom3, stopAtom3;
   double sumMass,mass,Coord0,Coord1,Coord2;
-  
+ 
+  Coord[0]=0.0;
+  Coord[1]=0.0;
+  Coord[2]=0.0; 
   Coord0=0.0;
   Coord1=0.0;
   Coord2=0.0;
@@ -545,7 +554,10 @@ double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {
   int i,m;
   int startAtom3, stopAtom3;
   double sumMass,Coord0,Coord1,Coord2;
-  
+ 
+  Coord[0]=0.0;
+  Coord[1]=0.0;
+  Coord[2]=0.0; 
   Coord0=0.0;
   Coord1=0.0;
   Coord2=0.0;
@@ -571,17 +583,6 @@ double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {
   Coord[2] = Coord2 / sumMass;
 
   return sumMass;
-}
-
-
-/* Frame::COM()
- * Put geometric center of all atoms in frame into Coord. Put center of mass 
- * instead if useMass is true.
- * Return sum of masses (useMass) or #atoms (!useMass).
- */
-double Frame::COM(double *Coord, bool useMass) {
-  if (useMass) return this->CenterOfMass(Coord,0,natom);
-  return this->GeometricCenter(Coord,0,natom);
 }
 
 /* -------------------- Coordinate Calculation Routines --------------------- */
@@ -932,8 +933,13 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   // Trans is set at the end
  
   // Rotation will occur around geometric center/center of mass
-  total_mass = this->COM(frameCOM,useMassIn);
-  Ref->COM(refCOM,useMassIn);
+  if (useMassIn) {
+    total_mass = this->CenterOfMass(frameCOM,0,natom);
+    Ref->CenterOfMass(refCOM,0,natom);
+  } else {
+    total_mass = this->GeometricCenter(frameCOM,0,natom);
+    Ref->GeometricCenter(refCOM,0,natom);
+  }
   //fprintf(stderr,"  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
   //fprintf(stderr,"  REF   COM: %lf %lf %lf\n",refCOM[0],refCOM[1],refCOM[2]); //DEBUG
 

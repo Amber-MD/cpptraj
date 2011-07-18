@@ -51,7 +51,6 @@ class Frame {
     double GeometricCenter(AtomMask*, double *);
     double CenterOfMass(double*,int,int);
     double GeometricCenter(double*,int,int);
-    double COM(double*,bool);
     // Coordinate calculation
     void BoxToRecip(double *, double *);
     double DIST2(AtomMask*, AtomMask*, bool, int, double *, double *);
