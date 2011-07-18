@@ -4,8 +4,6 @@
 #include "Action.h"
 #include <vector>
 
-// From ptraj actions.c:transformSecStruct 0.42*0.20*332
-#define DSSP_fac 27.888
 class DSSP : public Action {
     enum SStype { SECSTRUCT_NULL, SECSTRUCT_PARA, SECSTRUCT_ANTI, 
                   SECSTRUCT_3_10, SECSTRUCT_ALPHA, SECSTRUCT_PI, 

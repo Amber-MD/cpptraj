@@ -3,6 +3,9 @@
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
 // Dssp
+// Hbond energy calc prefactor
+// From ptraj actions.c:transformSecStruct 0.42*0.20*332
+#define DSSP_fac 27.888
 
 // CONSTRUCTOR
 DSSP::DSSP() {
@@ -126,20 +129,21 @@ int DSSP::setup() {
     }
   }
 
-  // Go through all atoms in mask. Set up a residue for each C, O, N, and H atom
+  // Go through all atoms in mask. Set up a residue for each C, O, N, 
+  // and H atom. Store the actual coordinate index for use with COORDDIST
   for (selected=0; selected < Mask.Nselected; selected++) {
     atom = Mask.Selected[selected];
     res = P->atomToResidue(atom);
     //fprintf(stdout,"DEBUG: Atom %i Res %i [%s]\n",atom,res,P->names[atom]);
     SecStruct[res].isSelected=true;
     if (      strcmp(P->names[atom], "C   ")==0 )
-      SecStruct[res].C=atom;
+      SecStruct[res].C=atom*3;
     else if ( strcmp(P->names[atom], "O   ")==0 )
-      SecStruct[res].O=atom;
+      SecStruct[res].O=atom*3;
     else if ( strcmp(P->names[atom], "N   ")==0 )
-      SecStruct[res].N=atom;
+      SecStruct[res].N=atom*3;
     else if ( strcmp(P->names[atom], "H   ")==0 )
-      SecStruct[res].H=atom;
+      SecStruct[res].H=atom*3;
   }
 
   // Count number of selected residues
@@ -169,8 +173,8 @@ int DSSP::setup() {
   // DEBUG - Print atom nums for each residue set up
 //  for (res=0; res < Nres; res++) {
 //    if (SecStruct[res].isSelected)
-//      fprintf(stdout,"DEBUG: %i C=%i O=%i N=%i H=%i\n",res,SecStruct[res].C,
-//              SecStruct[res].O, SecStruct[res].N, SecStruct[res].H);
+//      fprintf(stdout,"DEBUG: %i C=%i O=%i N=%i H=%i\n",res,SecStruct[res].C/3,
+//              SecStruct[res].O/3, SecStruct[res].N/3, SecStruct[res].H/3);
 //  }
 
   return 0;
@@ -241,10 +245,10 @@ int DSSP::action() {
       N = SecStruct[resj].N;
       H = SecStruct[resj].H;
 
-      rON = F->DIST(O, N);
-      rCH = F->DIST(C, H);
-      rOH = F->DIST(O, H);
-      rCN = F->DIST(C, N);
+      rON = F->COORDDIST(O, N);
+      rCH = F->COORDDIST(C, H);
+      rOH = F->COORDDIST(O, H);
+      rCN = F->COORDDIST(C, N);
 
       E = DSSP_fac * (1/rON + 1/rCH - 1/rOH - 1/rCN);
       if (E < -0.5)

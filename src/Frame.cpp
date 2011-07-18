@@ -713,6 +713,25 @@ double Frame::DIST(int A1, int A2) {
   return D;
 }
 
+/* Frame::COORDDIST()
+ * Return the distance between atoms i and j, no imaging. i and j
+ * should be actual indices into the coord array (i.e. atom# * 3).
+ */
+double Frame::COORDDIST(int i, int j) {
+  double x,y,z,D;
+
+  x = X[i  ] - X[j  ];
+  y = X[i+1] - X[j+1];
+  z = X[i+2] - X[j+2];
+
+  x=x*x;
+  y=y*y;
+  z=z*z;
+
+  D=sqrt(x + y + z);
+  return D;
+}
+
 /* Frame::ANGLE()
  * Return the angle between atoms in M1, M2, M3.
  * Adapted from PTRAJ.

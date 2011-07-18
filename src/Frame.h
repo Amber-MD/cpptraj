@@ -57,6 +57,7 @@ class Frame {
     double DIST2(AtomMask*, AtomMask*, bool, int, double *, double *);
     double DIST2(int, int, int, double *, double *);
     double DIST(int, int);
+    double COORDDIST(int, int);
     double ANGLE(AtomMask*, AtomMask*, AtomMask*);
     double ANGLE(int, int, int);
     double DIHEDRAL(AtomMask *, AtomMask *, AtomMask *, AtomMask *);
