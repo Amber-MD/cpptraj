@@ -201,7 +201,7 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
 
   basicTraj = new PtrajFile();
   if (basicTraj->SetupFile(tname,accIn,fmtIn,typeIn,debug)) {
-    mprinterr("    Error: Could not set up file %s.\n",tname);
+    //mprinterr("    Error: Could not set up file %s.\n",tname);
     delete basicTraj;
     return NULL;
   }
