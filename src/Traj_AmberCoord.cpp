@@ -184,7 +184,7 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
   char buffer[BUFFER_SIZE];
   int frame_lines;
   int lineSize;
-  long long int file_size, frame_size;
+  long long int file_size, frame_size, tmpfsize;
   int Frames;
   double box[6]; // For checking box coordinates
 
@@ -284,6 +284,25 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
   file_size = file_size - frame_size; // Subtract title size from file total size.
   frame_size = (long long int) frameSize;
   Frames = (int) (file_size / frame_size);
+
+  // Frame calculation for large gzip files
+  if (tfile->compressType == GZIP) {
+    // Since this is gzip compressed, if the file_size % frame size != 0, 
+    // it could be that the uncompressed filesize > 4GB. Since 
+    //   ISIZE = uncompressed % 2^32, 
+    // try ((file_size + (2^32 * i)) % frame_size) and see if any are 0.
+    // NOTE: Currently this method will work for file sizes up to 4 TB 
+    //       (1000 * 2^32).
+    if ( (file_size % frame_size) != 0) {
+      tmpfsize = 0;
+      for (int i = 0; i < 1000; i++ ) {
+        tmpfsize = (4294967296 * i) + file_size;
+        if ( (tmpfsize % frame_size) == 0) break;
+      }
+      file_size = tmpfsize;
+    }
+    Frames = (int) (file_size / frame_size);
+  }
 
   if ( (file_size % frame_size) == 0 ) {
     seekable = true;
