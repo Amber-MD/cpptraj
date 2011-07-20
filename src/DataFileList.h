@@ -1,11 +1,14 @@
 #ifndef INC_DATAFILELIST_H
 #define INC_DATAFILELIST_H
-// DataFileList
+/// Class: DataFileList
+/// Holds a list of DataFile classes. 
+/// NOTE: Currently implemented as a STL::list to make it easy to delete 
+///       DataFiles, but this is currently not done. If that ability is
+///       not needed a vector or an array would be more efficient.
 #include "DataFile.h"
 #include <list>
-//using namespace std;
-
-class DataFileList : public std::list<DataFile*> {
+class DataFileList {
+    std::list<DataFile*> fileList;
     std::list<DataFile*>::iterator it;
     int debug;
   public:

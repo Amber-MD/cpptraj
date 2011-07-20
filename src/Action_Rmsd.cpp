@@ -211,11 +211,11 @@ int Rmsd::init( ) {
   // Per-residue RMSD
   if (perres) {
     mprintf("          No-fit RMSD will also be calculated for ");
-    if (ResRange.empty()) 
+    if (ResRange.Empty()) 
       mprintf("each solute residue");
     else
       mprintf("residues %s",ResRange.RangeArg());
-    if (!RefRange.empty())
+    if (!RefRange.Empty())
       mprintf(" (reference residues %s)",RefRange.RangeArg());
     mprintf(" using mask [:X%s].\n",perresmask);
     if (perresout==NULL) {
@@ -245,29 +245,29 @@ int Rmsd::perResSetup() {
   char refArg[1024];
   Range tgt_range;
   Range ref_range;
-  int N;
+  int N, tgtRes, refRes;
 
   // If no target range previously specified do all solute residues
-  if (ResRange.empty()) {
+  if (ResRange.Empty()) {
     if (P->finalSoluteRes>0)
       nres = P->finalSoluteRes;
     else
       nres = P->nres; 
     tgt_range.SetRange(1,nres+1);
   } else
-    tgt_range.assign(ResRange.begin(), ResRange.end());
+    tgt_range.SetRange(&ResRange);
 
   // If the reference range is empty, set it to match the target range
-  if (RefRange.empty()) 
-    ref_range.assign(tgt_range.begin(), tgt_range.end());
+  if (RefRange.Empty()) 
+    ref_range.SetRange(&tgt_range);
   else
-    ref_range.assign(RefRange.begin(), RefRange.end());
+    ref_range.SetRange(&RefRange);
 
   // Check that the number of reference residues matches number of target residues
-  nres = (int) tgt_range.size();
-  if (nres != (int)ref_range.size()) {
+  nres = tgt_range.Size();
+  if (nres != ref_range.Size()) {
     mprinterr("Error: RMSD: PerRes: Number of residues %i does not match\n",nres);
-    mprinterr("       number of reference residues %i.\n",(int)ref_range.size());
+    mprinterr("       number of reference residues %i.\n",ref_range.Size());
     return 1;
   }
 
@@ -279,53 +279,49 @@ int Rmsd::perResSetup() {
   if (PerResRMSD==NULL) PerResRMSD=new DataSetList();
   resIsActive.reserve(nres);
   resIsActive.assign(nres,false);
-  std::list<int>::iterator refRes = ref_range.begin();
   N = -1; // Set to -1 since increment is at top of loop
-  for (std::list<int>::iterator tgtRes = tgt_range.begin();
-                                tgtRes !=tgt_range.end();
-                                tgtRes++)
-  {
+  tgt_range.Begin();
+  ref_range.Begin();
+  while (tgt_range.NextInRange(&tgtRes)) {
+    ref_range.NextInRange(&refRes);
     N++;
     // Setup dataset name for this residue
-    P->ResName(tgtArg,(*tgtRes)-1);
+    P->ResName(tgtArg,tgtRes-1);
     // Create dataset for res - if already present this returns NULL
-    DataSet *prDataSet = PerResRMSD->AddIdx(DOUBLE, tgtArg, *tgtRes);
+    DataSet *prDataSet = PerResRMSD->AddIdx(DOUBLE, tgtArg, tgtRes);
     if (prDataSet != NULL) DFL->Add(perresout, prDataSet);
 
     // Setup mask strings. Note that masks are based off user residue nums
-    sprintf(tgtArg,":%i%s",*tgtRes,perresmask);
+    sprintf(tgtArg,":%i%s",tgtRes,perresmask);
     tgtResMask[N]->SetMaskString(tgtArg);
-    sprintf(refArg,":%i%s",*refRes,perresmask);
+    sprintf(refArg,":%i%s",refRes,perresmask);
     refResMask[N]->SetMaskString(refArg);
     //mprintf("DEBUG: RMSD: PerRes: Mask %s RefMask %s\n",tgtArg,refArg);
 
     // Setup the reference mask
     if (refResMask[N]->SetupMask(RefParm, debug)) {
-      mprintf("      perres: Could not setup reference mask for residue %i\n",*refRes);
-      refRes++;
+      mprintf("      perres: Could not setup reference mask for residue %i\n",refRes);
       continue;
     }
     if (refResMask[N]->None()) {
-      mprintf("      perres: No atoms selected for reference residue %i\n",*refRes);
-      refRes++;
+      mprintf("      perres: No atoms selected for reference residue %i\n",refRes);
       continue;
     }
-    refRes++;
 
     // Setup the target mask
     if (tgtResMask[N]->SetupMask(P, debug)) {
-      mprintf("      perres: Could not setup target mask for residue %i\n",*tgtRes);
+      mprintf("      perres: Could not setup target mask for residue %i\n",tgtRes);
       continue;
     }
     if (tgtResMask[N]->None()) {
-      mprintf("      perres: No atoms selected for target residue %i\n",*tgtRes);
+      mprintf("      perres: No atoms selected for target residue %i\n",tgtRes);
       continue;
     }
 
     // Check that # atoms in target and reference masks match
     if (tgtResMask[N]->Nselected != refResMask[N]->Nselected) {
       mprintf("      perres: Res %i: # atoms in Tgt [%i] != # atoms in Ref [%i]\n",
-              *tgtRes,tgtResMask[N]->Nselected,refResMask[N]->Nselected);
+              tgtRes,tgtResMask[N]->Nselected,refResMask[N]->Nselected);
       continue;
     }
 

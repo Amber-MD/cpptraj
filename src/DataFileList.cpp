@@ -12,7 +12,7 @@ DataFileList::DataFileList() {
 // DESTRUCTOR
 DataFileList::~DataFileList() {
 //  fprintf(stderr,"DataFileList DESTRUCTOR\n");
-  for (it = this->begin(); it != this->end(); it++)
+  for (it = fileList.begin(); it != fileList.end(); it++)
     delete *it;
 }
 
@@ -33,7 +33,7 @@ DataFile *DataFileList::GetDataFile(char *nameIn) {
 
   if (nameIn==NULL) return NULL;
   Current=NULL;
-  for (it = this->begin(); it != this->end(); it++) {
+  for (it = fileList.begin(); it != fileList.end(); it++) {
     if ( (*it)->NameIs(nameIn) ) {
       Current = *it;
       break;
@@ -66,18 +66,11 @@ DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
 
   // Check if this filename already in use
   Current = this->GetDataFile(nameIn);
-/*  Current=NULL;
-  for (it = this->begin(); it != this->end(); it++) {
-    if ( (*it)->NameIs(nameIn) ) {
-      Current = *it;
-      break;
-    }
-  }*/
 
   // If no DataFile associated with nameIn, create new datafile
   if (Current==NULL) {
     Current = new DataFile(nameIn); 
-    this->push_back(Current);
+    fileList.push_back(Current);
   }
 
   // Add the dataset to the current DataFile
@@ -98,13 +91,13 @@ DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
  */
 void DataFileList::Info() {
 
-  if (this->empty()) {
+  if (fileList.empty()) {
     //mprintf("NO DATASETS WILL BE OUTPUT\n");
     return;
   }
 
   mprintf("DATAFILE OUTPUT:\n");
-  for (it = this->begin(); it != this->end(); it++) {
+  for (it = fileList.begin(); it != fileList.end(); it++) {
     mprintf("  %s: ",(*it)->filename);
     (*it)->DataSetNames();
     mprintf("\n");
@@ -120,6 +113,6 @@ void DataFileList::Write() {
 
   //if (worldrank!=0) return; 
 
-  for (it = this->begin(); it != this->end(); it++)
+  for (it = fileList.begin(); it != fileList.end(); it++)
     (*it)->Write();
 }

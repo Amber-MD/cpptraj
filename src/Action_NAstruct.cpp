@@ -34,8 +34,7 @@ NAstruct::NAstruct() {
 } 
 
 // For clearing vectors of pointers to datasets
-void clearVector(std::vector<DataSet*> *);
-void clearVector(std::vector<DataSet*> *Vin) {
+static void clearVector(std::vector<DataSet*> *Vin) {
   while (!Vin->empty()) {
     delete Vin->back();
     Vin->pop_back();
@@ -889,8 +888,7 @@ int NAstruct::determineBasepairParameters() {
 }
 // ----------------------------------------------------------------------------
 
-/*
- * NAstruct::init()
+/* NAstruct::init()
  * Expected call: nastruct [resrange <range>] [naout <filename>]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
@@ -906,7 +904,7 @@ int NAstruct::init() {
   // Add dataset to data file list
 
   mprintf("    NAstruct: ");
-  if (resRange.empty())
+  if (resRange.Empty())
     mprintf("Scanning all NA residues");
   else
     mprintf("Scanning residues %s",resRange.RangeArg());
@@ -917,8 +915,7 @@ int NAstruct::init() {
   return 0;
 }
 
-/*
- * NAstruct::setup()
+/* NAstruct::setup()
  * Set up for this parmtop. Get masks etc.
  * P is set in Action::Setup
  * Determine the number of NA bases that will be analyzed, along with the masks
@@ -926,47 +923,47 @@ int NAstruct::init() {
  */
 int NAstruct::setup() {
   int res, refAtom, atom;
-  std::list<int>::iterator residue;
+  int residue;
   AxisType *axis; 
   AtomMask *Mask;
+  Range actualRange;
 
   // Clear all lists
   ClearLists();
 
   // If range is empty (i.e. no resrange arg given) look for all NA residues.
-  if (resRange.empty()) {
+  if (resRange.Empty()) {
     for (res=0; res < P->nres; res++) {
       if ( ID_base(P->ResidueName(res))!=UNKNOWN_BASE )
-        resRange.push_back(res);
+        actualRange.AddToRange(res);
     }
 
   // Otherwise, for each residue in resRange check if it is a NA
   } else {
-    residue=resRange.begin();
-    while (residue!=resRange.end()) {
+    resRange.Begin();
+    while (resRange.NextInRange(&res)) {
       // User residues numbers start from 1
-      (*residue) = (*residue) - 1;
-      if (ID_base(P->ResidueName(*residue))==UNKNOWN_BASE) 
-        residue = resRange.erase(residue);
-      else 
-        residue++;
+      res--;
+      if (ID_base(P->ResidueName(res))!=UNKNOWN_BASE) 
+        actualRange.AddToRange(res);
     }
   }
   // Exit if no NA residues specified
-  if (resRange.empty()) {
+  if (actualRange.Empty()) {
     mprintf("Error: NAstruct::setup: No NA residues found for %s\n",P->parmName);
     return 1;
   }
 
   // DEBUG - print all residues
-  resRange.PrintRange("    NAstruct: NA res:",1);
+  actualRange.PrintRange("    NAstruct: NA res:",1);
 
   // Set up frame to hold reference coords for each NA residue
-  for (residue=resRange.begin(); residue!=resRange.end(); residue++) {
+  actualRange.Begin();
+  while (actualRange.NextInRange(&residue)) {
     axis = new AxisType();
-    if ( axis->SetRefCoord( P->ResidueName(*residue) ) ) {
+    if ( axis->SetRefCoord( P->ResidueName(residue) ) ) {
       mprintf("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
-              (*residue)+1, P->ResidueName(*residue));
+              residue+1, P->ResidueName(residue));
       return 1;
     }
     RefCoords.push_back( axis );
@@ -977,7 +974,7 @@ int NAstruct::setup() {
     for (refAtom=0; refAtom < axis->natom; refAtom++) {
       res = -1; // Target atom
       //mprintf("      Ref atom: [%s]\n",axis->Name[refAtom]);
-      for (atom=P->resnums[*residue]; atom < P->resnums[(*residue)+1]; atom++) {
+      for (atom=P->resnums[residue]; atom < P->resnums[residue+1]; atom++) {
         //mprintf("        Scanning %i [%s]\n", atom, P->names[atom]);
         if ( axis->AtomNameIs(refAtom, P->names[atom]) ) {
           res = atom;  
@@ -986,20 +983,20 @@ int NAstruct::setup() {
       }
       if (res==-1) {
         mprintf("Error:: NAstruct::setup: Ref atom [%s] not found in residue %i:%s\n",
-                 axis->AtomName(refAtom), (*residue)+1, P->ResidueName(*residue));
+                 axis->AtomName(refAtom), residue+1, P->ResidueName(residue));
         return 1;
       }
       Mask->AddAtom(res);
     } // End Loop over reference atoms
     if (Mask->None()) {
       mprintf("Error:: NAstruct::setup: No atoms found for residue %i:%s\n",
-              (*residue)+1, P->ResidueName(*residue));
+              residue+1, P->ResidueName(residue));
       delete Mask;
       return 1;
     }
     ExpMasks.push_back( Mask );
     if (debug>1) {
-      mprintf("      NAstruct: Res %i:%s mask atoms: ",(*residue)+1,P->ResidueName(*residue));
+      mprintf("      NAstruct: Res %i:%s mask atoms: ",residue+1,P->ResidueName(residue));
       Mask->PrintMaskAtoms();
       mprintf("\n");
     }
@@ -1020,8 +1017,7 @@ int NAstruct::setup() {
   return 0;  
 }
 
-/*
- * NAstruct::action()
+/* NAstruct::action()
  */
 int NAstruct::action() {
 
@@ -1045,8 +1041,7 @@ int NAstruct::action() {
   return 0;
 } 
 
-/*
- * NAstruct::print()
+/* NAstruct::print()
  */
 void NAstruct::print() {
   PtrajFile *outfile;

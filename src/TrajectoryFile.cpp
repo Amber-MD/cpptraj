@@ -784,15 +784,18 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
     // Open output traj and mark as set up.
     if (trajio->openTraj()) return 1;
     trajectoryIsOpen=true;
+    // If a framerange is defined set it to the begining of the range
+    if (FrameRange!=NULL) FrameRange->Begin();
   }
 
-  // If there is a framerange defined, check if this frame matches. If so, pop
+  // If there is a framerange defined, check if this frame matches. If so,
+  // write this frame and increment to the next frame in the range.
   if (FrameRange!=NULL) {
     // If no more frames in the framerange, skip
-    if ( FrameRange->empty() ) return 0;
+    if ( FrameRange->End() ) return 0;
     // NOTE: For compatibility with ptraj user frame args start at 1
-    if ( FrameRange->front() - 1 != set ) return 0;
-    FrameRange->pop_front();
+    if ( FrameRange->Current() - 1 != set ) return 0;
+    FrameRange->Next();
   }
 
   // Write
