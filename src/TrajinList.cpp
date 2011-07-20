@@ -36,7 +36,7 @@ int TrajinList::Add(char *filename, ArgList *A, AmberParm *parmIn) {
   }
 
   // Add to trajectory file list
-  this->push_back(traj);
+  trajList.push_back(traj);
 
   return 0;
 }
@@ -54,7 +54,7 @@ int TrajinList::SetupFrames() {
 
   maxFrames=0;
 
-  for (traj = this->begin(); traj != this->end(); traj++) {
+  for (traj = trajList.begin(); traj != trajList.end(); traj++) {
     trajFrames = (*traj)->Total_Read_Frames();
     // If < 0 frames this indicates an error. 
     if (trajFrames < 0) return -1;

@@ -12,7 +12,7 @@ CoordFileList::CoordFileList() {
 CoordFileList::~CoordFileList() {
   std::list<TrajectoryFile*>::iterator traj;
   //fprintf(stderr,"CoordFileList destructor\n");
-  for (traj = this->begin(); traj != this->end(); traj++)
+  for (traj = trajList.begin(); traj != trajList.end(); traj++)
     delete *traj;
 }
 
@@ -34,21 +34,41 @@ bool CoordFileList::FilenameInUse(char *filenameIn) {
     mprinterr("Error: CoordFileList::CheckFilename: Called with NULL filename.\n");
     return 1;
   }
-  for (traj = this->begin(); traj != this->end(); traj++)
+  for (traj = trajList.begin(); traj != trajList.end(); traj++)
     if ( (*traj)->TrajFilenameIs(filenameIn) ) return true;
 
   return false;
 }
 
-/* CoordFileList::Info() - Call PrintInfo for each traj in the list.
+/* CoordFileList::Info() 
+ * Call PrintInfo for each traj in the list.
  */
 void CoordFileList::Info(int showExtended, int indent) {
   std::list<TrajectoryFile*>::iterator traj;
-  if (this->empty()) 
+  if (trajList.empty()) 
     mprintf("  No files.\n");
-  for (traj = this->begin(); traj != this->end(); traj++) {
+  for (traj = trajList.begin(); traj != trajList.end(); traj++) {
     if (indent>0) mprintf("%*s",indent,"");
     (*traj)->PrintInfo(showExtended);
   }
+}
+
+/* CoordFileList::Begin()
+ * Set iterator to beginning of trajectory list
+ */
+void CoordFileList::Begin() {
+  currentTraj = trajList.begin();
+}
+
+/* CoordFileList::NextTraj()
+ * Return the current trajectory in the list and increment the iterator.
+ * If at the end of the list return NULL.
+ */
+TrajectoryFile *CoordFileList::NextTraj() {
+  TrajectoryFile *trj;
+  if (currentTraj == trajList.end()) return NULL;
+  trj = *currentTraj;
+  currentTraj++;
+  return trj;
 }
 

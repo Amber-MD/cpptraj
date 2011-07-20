@@ -1,6 +1,6 @@
-// ReferenceList
 #ifndef INC_REFERENCELIST_H
 #define INC_REFERENCELIST_H
+/// Class: ReferenceList
 #include "CoordFileList.h"
 #include "FrameList.h"
 class ReferenceList : public CoordFileList {

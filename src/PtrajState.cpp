@@ -385,7 +385,7 @@ void PtrajState::ProcessDataFileCmd() {
  * to the actions in ptrajActionList for processing.
  */
 int PtrajState::Run() {
-  std::list<TrajectoryFile*>::iterator traj;
+  TrajectoryFile* traj;
   int maxFrames=0;        // Total # of frames that will be read
   int actionSet=0;        // Internal data frame
   int readSets=0;         // Number of frames actually read
@@ -427,21 +427,22 @@ int PtrajState::Run() {
   // ========== R U N  P H A S E ==========
   // Loop over every trajectory in trajFileList
   rprintf("BEGIN TRAJECTORY PROCESSING:\n");
-  for (traj=trajinList.begin(); traj!=trajinList.end(); traj++) {
+  trajinList.Begin();
+  while ( (traj = trajinList.NextTraj()) != NULL ) {
     // Open up the trajectory file. If an error occurs, bail 
-    if ((*traj)->BeginTraj(showProgress) ) {
-      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->TrajName());
+    if ( traj->BeginTraj(showProgress) ) {
+      mprinterr("Error: Could not open trajectory %s.\n",traj->TrajName());
       break;
     }
-    (*traj)->PrintInfoLine();
+    traj->PrintInfoLine();
     // Set current parm from current traj.
-    CurrentParm = (*traj)->TrajParm();
+    CurrentParm = traj->TrajParm();
 
     // If Parm has changed, reset Frame and actions for new topology.
     if (lastPindex != CurrentParm->pindex) {
       // Set up the incoming trajectory frame for this parm
       if (TrajFrame!=NULL) delete TrajFrame;
-      TrajFrame = new Frame(CurrentParm->natom, CurrentParm->mass, (*traj)->HasVelocity());
+      TrajFrame = new Frame(CurrentParm->natom, CurrentParm->mass, traj->HasVelocity());
       // Set up actions for this parm
       if (ptrajActionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
@@ -454,7 +455,7 @@ int PtrajState::Run() {
     }
 
     // Loop over every Frame in trajectory
-    while ( (*traj)->GetNextFrame(TrajFrame->X, TrajFrame->V, TrajFrame->box, &(TrajFrame->T)) ) {
+    while ( traj->GetNextFrame(TrajFrame->X, TrajFrame->V, TrajFrame->box, &(TrajFrame->T)) ) {
       // Since Frame can be modified by actions, save original and use CurrentFrame
       CurrentFrame = TrajFrame;
       // Perform Actions on Frame
@@ -469,11 +470,11 @@ int PtrajState::Run() {
     }
 
     // Close the trajectory file
-    (*traj)->EndTraj();
+    traj->EndTraj();
     // Update how many frames across all threads have been written for parm
     // Do this for the original parm since it may have been modified.
-    (*traj)->TrajParm()->outFrame += (*traj)->Total_Read_Frames();
-    readSets+=(*traj)->NumFramesProcessed();
+    traj->TrajParm()->outFrame += traj->Total_Read_Frames();
+    readSets+=traj->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
   if (TrajFrame!=NULL) delete TrajFrame;

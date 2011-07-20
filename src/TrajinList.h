@@ -1,6 +1,6 @@
-// TrajinList
 #ifndef INC_TRAJINLIST_H
 #define INC_TRAJINLIST_H
+/// Class: TrajinList
 #include "CoordFileList.h"
 class TrajinList : public CoordFileList {
   public:

@@ -1,6 +1,8 @@
 #ifndef INC_PTRAJSTATE_H
 #define INC_PTRAJSTATE_H 
-
+/// Class: PtrajState
+/// This is the main class for cpptraj. It holds all data and controls the 
+/// overall flow of the program. It exists in main.cpp.
 #include "TrajinList.h"
 #include "TrajoutList.h"
 #include "ReferenceList.h"
@@ -9,7 +11,6 @@
 #include "DataFileList.h"
 #include "PtrajActionList.h"
 #include "ArgList.h"
-
 class PtrajState {
     TrajinList trajinList;           // List of input trajectory files 
     ReferenceList referenceList;     // List of reference coordinate files

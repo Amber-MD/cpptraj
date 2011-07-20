@@ -41,7 +41,7 @@ int ReferenceList::Add(char *filename, ArgList *A, AmberParm *parmIn) {
     traj->SingleFrame();
 
   // Add trajectory and average status 
-  this->push_back(traj);
+  trajList.push_back(traj);
   Average.push_back(average); 
 
   return 0;
@@ -61,12 +61,12 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
   int refTrajNum = 0;
 
   mprintf("\nREFERENCE COORDS:\n");
-  if (this->empty()) {
+  if (trajList.empty()) {
     mprintf("  No reference coordinates.\n");
     return 1;
   }
 
-  for (traj = this->begin(); traj != this->end(); traj++) {
+  for (traj = trajList.begin(); traj != trajList.end(); traj++) {
     // Setup the reference traj for reading. Should only be 1 frame
     // if not averaged.
     // NOTE: For MPI, calling setupFrameInfo with worldrank 0, worldsize 1 for 

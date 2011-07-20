@@ -1,6 +1,6 @@
-// TrajoutList
 #ifndef INC_TRAJOUTLIST_H
 #define INC_TRAJOUTLIST_H
+/// Class: TrajoutList
 #include "CoordFileList.h"
 #include "Frame.h"
 class TrajoutList : public CoordFileList {

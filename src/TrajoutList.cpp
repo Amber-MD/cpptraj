@@ -52,7 +52,7 @@ int TrajoutList::Add(char *filenameIn, ArgList *A, AmberParm *parmIn) {
   }
 
   // Add to trajectory file list
-  this->push_back(traj); 
+  trajList.push_back(traj); 
 
   return 0;
 }
@@ -65,7 +65,7 @@ int TrajoutList::Add(char *filenameIn, ArgList *A, AmberParm *parmIn) {
 int TrajoutList::Write(int set, AmberParm *CurrentParm, Frame *F) { 
   std::list<TrajectoryFile*>::iterator traj;
 
-  for (traj = this->begin(); traj != this->end(); traj++) {
+  for (traj = trajList.begin(); traj != trajList.end(); traj++) {
     if ( (*traj)->WriteFrame(set, CurrentParm, F->X, F->V, F->box, F->T) ) {
       mprinterr("Error writing output trajectory.\n");
       return 1;
@@ -81,7 +81,7 @@ int TrajoutList::Write(int set, AmberParm *CurrentParm, Frame *F) {
 void TrajoutList::Close() {
   std::list<TrajectoryFile*>::iterator traj;
 
-  for (traj = this->begin(); traj != this->end(); traj++)
+  for (traj = trajList.begin(); traj != trajList.end(); traj++)
     (*traj)->EndTraj();
 }
 
