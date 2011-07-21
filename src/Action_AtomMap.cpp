@@ -9,11 +9,10 @@
 #include <cstdio>
 
 //--------- PRIVATE ROUTINES ---------------------------------------
-/*
- * compareName(A1,A2,B1,B2) 
+/* compareName(A1,A2,B1,B2) 
  * Compares pairs of names, return 1 if they match.  e.g. (A,B)==(A,B)==(B,A)
  */
-int compareName(char *nameA1, char *nameA2, 
+static int compareName(char *nameA1, char *nameA2, 
                 const char *nameB1, const char *nameB2) {
 
   if ( ((strcmp(nameA1,nameB1)==0) && (strcmp(nameA2,nameB2)==0)) ||
@@ -23,11 +22,10 @@ int compareName(char *nameA1, char *nameA2,
     return 1;
 }
 
-/*
- * compare(a,b)
+/* compare(a,b)
  * Compare characters a and b, for use with qsort
  */
-int compareChar(const void *a, const void *b) {
+static int compareChar(const void *a, const void *b) {
   return ( *(char*)a - *(char*)b );
 }
 //------------------------------------------------------------------

@@ -551,7 +551,7 @@ double Frame::CenterOfMass(double *Coord, int startAtom, int stopAtom) {
  * Coord. Return #atoms used in calc.
  */
 double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {  
-  int i,m;
+  int i;
   int startAtom3, stopAtom3;
   double sumMass,Coord0,Coord1,Coord2;
  
@@ -561,7 +561,6 @@ double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {
   Coord0=0.0;
   Coord1=0.0;
   Coord2=0.0;
-  m=startAtom;
   startAtom3 = startAtom * 3;
   stopAtom3 = stopAtom * 3;
   
@@ -1051,10 +1050,10 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
         U[i3+j] += Evector[k][j] * b[k3+i]; 
 
   // E=E0-sqrt(mu1)-sqrt(mu2)-sig3*sqrt(mu3) 
-  rms_return = mwss
-               - sqrt(fabs(Eigenvalue[0]))
-               - sqrt(fabs(Eigenvalue[1]))
-               - (sig3*sqrt(fabs(Eigenvalue[2])));
+  rms_return = mwss;
+  rms_return -= sqrt(fabs(Eigenvalue[0]));
+  rms_return -= sqrt(fabs(Eigenvalue[1]));
+  rms_return -= (sig3*sqrt(fabs(Eigenvalue[2])));
 
   if (rms_return<0) {
     //fprintf(stderr,"RMS returned is <0 before sqrt, setting to 0 (%lf)\n",rms_return);

@@ -11,14 +11,11 @@
 // PDB record types
 const char PDB_RECNAME[3][7]={"ATOM", "HETATM", "TER"};
 
-// ====================== PRIVATE ROUTINES ===================================
-void TrimName(char *);
-void WrapName(char *);
-void ReplaceAsterisk(char *);
+// ======================== PRIVATE ROUTINES ===================================
 /* TrimName()
  * Given a string of length 5 (4 chars + 1 NULL) remove leading whitespace
  */
-void TrimName(char *NameIn) {
+static void TrimName(char *NameIn) {
   if        (NameIn[0]!=' ') { // No leading whitespace
     return;
   } else if (NameIn[1]!=' ') { // [_XXX]
@@ -45,7 +42,7 @@ void TrimName(char *NameIn) {
  * Given a string of length 5 (4 chars + 1 NULL), move leading numbers to
  * the back of the string until first char is alphabetic.
  */
-void WrapName(char *NameIn) {
+static void WrapName(char *NameIn) {
   int i;
   int blank=-1;
   int numalpha=0;
@@ -84,14 +81,14 @@ void WrapName(char *NameIn) {
  * prime ('). In cpptraj asterisks are considered reserved characters for
  * atom masks.
  */
-void ReplaceAsterisk(char *NameIn) {
+static void ReplaceAsterisk(char *NameIn) {
   if (NameIn[0]=='*') NameIn[0]='\'';
   if (NameIn[1]=='*') NameIn[1]='\'';
   if (NameIn[2]=='*') NameIn[2]='\'';
   if (NameIn[3]=='*') NameIn[3]='\'';
   return;
 }
-// ===========================================================================
+// =============================================================================
 
 /* isPDBkeyword()
  * Return true if the first 6 chars of buffer match a PDB keyword

@@ -3,16 +3,11 @@
  * Simple vector/matrix math routines.
  * ROTATE, jacobi3, and diagEsort routines adapted from PTRAJ
  */
-//#include <stdio.h>
 #include <cmath>
 #include "vectormath.h"
 #include "CpptrajStdio.h"
 
-// PRIVATE ROUTINES
-int jacobi3(double *a, double *d, double *v, int *nrot);
-
-/*
- * normalize()
+/* normalize()
  * Normalize vector in a[].
  */
 void normalize(double a[3]) {
@@ -25,8 +20,7 @@ void normalize(double a[3]) {
   a[2] *= b;
 }
 
-/*
- * vector_sub()
+/* vector_sub()
  * V = U - W
  */
 void vector_sub(double V[3], double U[3], double W[3]) {
@@ -35,8 +29,7 @@ void vector_sub(double V[3], double U[3], double W[3]) {
   V[2] = U[2] - W[2];
 }
 
-/*
- * vector_sum()
+/* vector_sum()
  * V = U + W
  */
 void vector_sum(double V[3], double U[3], double W[3]) {
@@ -45,8 +38,7 @@ void vector_sum(double V[3], double U[3], double W[3]) {
   V[2] = U[2] + W[2];
 }
 
-/*
- * dot_product()
+/* dot_product()
  * total = V . U
  */
 double dot_product(double V[3], double U[3]) {
@@ -57,8 +49,7 @@ double dot_product(double V[3], double U[3]) {
   return total;
 }
 
-/*
- * dot_product_angle()
+/* dot_product_angle()
  * Return the angle obtained from the dot product between vectors V 
  * and U. Only works correctly if V and U are normalized beforehand.
  */
@@ -72,8 +63,7 @@ double dot_product_angle(double V[3], double U[3]) {
   return acos(total);
 }
 
-/*
- * matrix_transpose()
+/* matrix_transpose()
  * M = Ut
  * Columns of U become rows of M and vice versa.
  */
@@ -89,8 +79,7 @@ void matrix_transpose(double M[9], double U[9]) {
   M[8] = U[8];
 }
 
-/*
- * matrix_times_vector()
+/* matrix_times_vector()
  * Multiple matrix R by vector V, store result in M
  */
 void matrix_times_vector(double M[3], double R[9], double V[3]) {
@@ -104,8 +93,7 @@ void matrix_times_vector(double M[3], double R[9], double V[3]) {
   M[2] = (R[6]*x) + (R[7]*y) + (R[8]*z);
 }
 
-/*
- * matrix_multiply()
+/* matrix_multiply()
  * Multiple matrix R by vector V, store result in M
  */
 void matrix_multiply(double M[9], double Row[9], double Col[9]) {
@@ -120,8 +108,7 @@ void matrix_multiply(double M[9], double Row[9], double Col[9]) {
   M[8] = (Row[6] * Col[2]) + (Row[7] * Col[5]) + (Row[8] * Col[8]);
 }
 
-/*
- * matrix_to_angle()
+/* matrix_to_angle()
  * Return angle of rotation from rotation matrix according to
  * cos(t)=(trace(R)-1)/2
  * Equation taken from :
@@ -138,8 +125,7 @@ double matrix_to_angle(double U[9]) {
   return acos(trace);
 }
 
-/* 
- * axis_of_rotation()
+/* axis_of_rotation()
  * If theta is between 0 and pi extract axis of rotation from rotation matrix
  * U according to:
  *   R - Rt = (2 * sin(theta)) * S, where S is:
@@ -164,8 +150,7 @@ int axis_of_rotation(double V[3], double U[9], double theta) {
   return 1;
 }
 
-/*
- * calcRotationMatrix()
+/* calcRotationMatrix()
  * Given an axis of rotation V and a magnitude (radians), calculate a 
  * rotation matrix and store it in T
  */
@@ -200,8 +185,7 @@ void calcRotationMatrix(double T[9], double V[3], double theta) {
   T[8]=uz2 + ((1 - uz2) * c);
 }
 
-/* 
- * calcRotationMatrix()
+/* calcRotationMatrix()
  * Given rotations around the X, Y, and Z axes (radians), calculate a
  * rotation matrix and store it in T.
  */
@@ -217,8 +201,7 @@ void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ) {
   calcRotationMatrix(T, V, Psi);
 }
 
-/*
- * ROTATE()
+/* ROTATE()
  */
 #define ROTATE(ARR,MAJ1,MIN1,MAJ2,MIN2) { \
   g = ARR[MAJ1 + MIN1]; \
@@ -226,10 +209,9 @@ void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ) {
   ARR[MAJ1 + MIN1] = g - s*(h+g*tau); \
   ARR[MAJ2 + MIN2] = h + s*(g-h*tau); }
 
-/*
- * jacobi3()
+/* jacobi3()
  */
-int jacobi3(double *a, double *d, double *v, int *nrot) { 
+static int jacobi3(double *a, double *d, double *v, int *nrot) { 
 /* n must be 3.  see b[3] and z[3] below */
   int  i, j, ip, iq, p3, j3;
   double  tresh, theta, tau, t, sm, s, h, g, c, b[3], z[3];
@@ -310,8 +292,7 @@ int jacobi3(double *a, double *d, double *v, int *nrot) {
   return(0);
 }
 
-/*
- * diagEsort()
+/* diagEsort()
  */
 int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
   int njrot;
@@ -347,15 +328,13 @@ int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
   return(1);
 }
 
-/*
- * printVector()
+/* printVector()
  */
 void printVector(const char *Name, double V[3]) {
   mprintf("    %s: %8.4lf %8.4lf %8.4lf\n",Name,V[0], V[1], V[2]);
 }
 
-/*
- * printMatrix()
+/* printMatrix()
  */
 void printMatrix(const char *Title, double U[9]) {
   mprintf("    %s\n",Title);
@@ -364,8 +343,7 @@ void printMatrix(const char *Title, double U[9]) {
   mprintf("     %8.4lf %8.4lf %8.4lf\n", U[6], U[7], U[8]);
 }
 
-/*
- * printRotTransInfo()
+/* printRotTransInfo()
  */
 void printRotTransInfo(double U[9], double trans[6]) {
 

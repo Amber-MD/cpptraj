@@ -6,19 +6,18 @@
 #include "PtrajMpi.h"
 #include "CpptrajStdio.h"
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V2.1.8b"
+#define CPPTRAJ_VERSION_STRING "V2.1.9b"
 #endif
 
-void Usage(char *programName) {
+static void Usage(char *programName) {
   mprinterr("Usage: %s [-p Top1, -p Top2, ...] [-i Input] [-debug N]\n",programName);
   mprinterr("       %s Top1 Input\n",programName);
 }
 
-/*
- * ---=== CPPTRAJ MAIN ROUTINE ===---
- * Call parallel Init (does nothing if not a parallel run)
- * Process input from command line/inputfiles/stdin
- * Run
+/* ---=== CPPTRAJ MAIN ROUTINE ===---
+ * 1. Call parallel Init (does nothing if not a parallel run)
+ * 2. Process input from command line/inputfiles/stdin
+ * 3. Run
  */
 int main(int argc, char **argv) {
   PtrajState State;
