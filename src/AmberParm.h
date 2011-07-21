@@ -47,7 +47,7 @@ class AmberParm {
     char *parmName;       // Parm name, set to base filename on reads 
     int pindex;           // The index of this parm in the parmfilelist
     int parmFrames;       // For output, # of frames that will be read with this parm
-    int outFrame;         // Output, # frames that have been written using this parm
+    //int outFrame;         // Output, # frames that have been written using this parm
 
     // Amber Parmtop
     int NbondsWithH;    // NBONH
@@ -93,7 +93,7 @@ class AmberParm {
     int OpenParm(char *);
 
     void AtomInfo(int);
-    void Info(char *);
+    void ParmInfo();
     void Summary();
 
     int atomToResidue(int);

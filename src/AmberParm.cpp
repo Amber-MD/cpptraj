@@ -29,7 +29,7 @@ AmberParm::AmberParm() {
   parmName=NULL;
   pindex=0;
   parmFrames=0;
-  outFrame=0;
+  //outFrame=0;
 
   NbondsWithH=0;
   NbondsWithoutH=0;
@@ -720,10 +720,22 @@ void AmberParm::AtomInfo(int atom) {
 /* AmberParm::Info()
  * Print information about this parm to buffer.
  */
-void AmberParm::Info(char *buffer) {
+void AmberParm::ParmInfo() {
 
-  sprintf(buffer,"%i atoms, %i res, boxtype %i, %i mol, %i solvent mol, %i frames",
-          natom,nres,boxType,molecules,solventMolecules,parmFrames);
+  mprintf(" %i: %s, %i atoms, %i res",pindex,parmfileName,natom,nres);
+  if (boxType==NOBOX)
+    mprintf(", no box");
+  else if (boxType==ORTHO)
+    mprintf(", ortho. box");
+  else if (boxType==NONORTHO)
+    mprintf(", non-ortho. box");
+  if (molecules>0)
+    mprintf(", %i mol",molecules);
+  if (solventMolecules>0)
+    mprintf(", %i solvent mol",solventMolecules);
+  if (parmFrames>0)
+    mprintf(", %i frames",parmFrames);
+  mprintf("\n");
 }
 
 /* AmberParm::Summary()
