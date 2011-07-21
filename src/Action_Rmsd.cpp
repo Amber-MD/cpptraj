@@ -77,6 +77,13 @@ int Rmsd::SetRefMask() {
     mprintf("    Error: Rmsd::SetRefMask: No atoms in reference mask.\n");
     return 1;
   }
+  // Check if reference parm has masses
+  if (useMass && RefParm->mass==NULL) {
+    mprintf("    Warning: usemass: Ref Parmtop %s does not contain mass info.\n",
+            RefParm->parmName);
+    mprintf("             Geometric center will be used instead.\n");
+    useMass=false;
+  }
   // Allocate frame for selected reference atoms
   SelectedRef = new Frame(&RefMask, RefParm->mass);
 
