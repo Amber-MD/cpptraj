@@ -120,7 +120,7 @@ int AxisType::AllocAxis(int natomIn) {
   N = natom * 3;
   X = (double*) malloc(N * sizeof(double));
   if (X==NULL) return 1;
-  Name = (AmberParm::NAME*) malloc( natom * sizeof(AmberParm::NAME));
+  Name = (NAME*) malloc( natom * sizeof(NAME));
   if (Name==NULL) {free(X); return 1;}
   return 0;
 }

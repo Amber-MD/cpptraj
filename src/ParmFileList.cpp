@@ -73,8 +73,8 @@ int ParmFileList::GetParmIndex(char *name) {
 
   pindex=-1;
   for (i=0; i<Nparm; i++)
-    if ( strcmp(name,ParmList[i]->File.filename)==0 ||
-         strcmp(name,ParmList[i]->File.basefilename)==0 ) {
+    if ( strcmp(name,ParmList[i]->parmfileName)==0 ||
+         strcmp(name,ParmList[i]->parmName)==0 ) {
       pindex=i;
       break;
     }
@@ -102,7 +102,8 @@ int ParmFileList::Add(char *filename) {
     return 1;
   }
 
-  P = new AmberParm(debug);
+  P = new AmberParm();
+  P->SetDebug(debug);
 
   if (P->OpenParm(filename)) {
     mprintf("Error: Could not open parm %s\n",filename);
@@ -158,7 +159,7 @@ void ParmFileList::Print() {
 
   for (i=0; i<Nparm; i++) {
     ParmList[i]->Info(buffer);
-    mprintf(" %i: %s, %s.\n",i,ParmList[i]->File.filename, buffer);
+    mprintf(" %i: %s, %s.\n",i,ParmList[i]->parmfileName, buffer);
     //mprintf("  %i: %s, %i atoms (%i trajectory frames associated)\n",
     //        i,ParmList[i]->File.filename, ParmList[i]->natom, ParmList[i]->parmFrames);
   }

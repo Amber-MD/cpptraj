@@ -170,8 +170,8 @@ int Mol2File::setupWrite(AmberParm *trajParm) {
   }
 
   // Check number of bonds
-  trajnbondsh = trajParm->NbondsWithH();
-  trajnbonds  = trajParm->NbondsWithoutH();
+  trajnbondsh = trajParm->NbondsWithH;
+  trajnbonds  = trajParm->NbondsWithoutH;
   mol2bonds = trajnbondsh + trajnbonds;
   if (mol2bonds < 0) mol2bonds=0;
   if (mol2bonds == 0)

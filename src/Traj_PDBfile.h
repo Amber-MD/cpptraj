@@ -17,8 +17,8 @@ class PDBfile: public TrajectoryIO {
     PDBWRITEMODE pdbWriteMode;
     bool dumpq; // If true, print charges in Occupancy column
     // The following are only required for writes and are set in setupWrite 
-    AmberParm::NAME *pdbAtomNames; 
-    AmberParm::NAME *trajResNames;
+    NAME *pdbAtomNames; 
+    NAME *trajResNames;
     int *trajAtomsPerMol;
     int *trajResNums;
     double *trajCharges;

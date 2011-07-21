@@ -249,7 +249,7 @@ int Closest::setup() {
     newParm->parmName=(char*)malloc((strlen(oldParm->parmName)+strlen(prefix)+2)*sizeof(char));
     sprintf(newParm->parmName,"%s.%s",prefix,oldParm->parmName);
     mprintf("             Writing out amber topology file %s\n",newParm->parmName);
-    if ( newParm->WriteAmberParm() ) {
+    if ( newParm->WriteAmberParm(newParm->parmName) ) {
       mprintf("      Error: CLOSEST: Could not write out stripped parm file %s\n",
               newParm->parmName);
     }

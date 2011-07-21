@@ -790,7 +790,7 @@ static void resnum_select(int res1, int res2, char *mask, int residues,
 /* resname_select()
  * Select all atoms of residues named residueName.
  */
-static void resname_select(char *p, char *mask, int residues, Name *residueName, 
+static void resname_select(char *p, char *mask, int residues, NAME *residueName, 
                            int *ipres) {
   int i,j;
   char* str;
@@ -830,7 +830,7 @@ static void atnum_select(int at1, int at2, char *mask, int atoms) {
 /* atname_select()
  * Select all atoms with given name.
  */
-static void atname_select(char *p, char *mask, int atoms, Name *atomName) {
+static void atname_select(char *p, char *mask, int atoms, NAME *atomName) {
   int j;
   char* str;
 
@@ -846,7 +846,7 @@ static void atname_select(char *p, char *mask, int atoms, Name *atomName) {
 /* attype_select()
  * Select all atoms with given type.
  */
-static void attype_select(char *p, char *mask, int atoms, Name *atomType) {
+static void attype_select(char *p, char *mask, int atoms, NAME *atomType) {
   int j;
   
   for (j = 0; j < atoms; j++) {
@@ -858,7 +858,7 @@ static void attype_select(char *p, char *mask, int atoms, Name *atomType) {
 /* atelem_select()
  * Select all atoms of given element (based on first 1 or 2 chars of atom name).
  */
-static void atelem_select(char *p, char *mask, int atoms, Name *atomName) {
+static void atelem_select(char *p, char *mask, int atoms, NAME *atomName) {
   int j,isMatch;
   
   for (j = 0; j < atoms; j++) {
@@ -920,7 +920,7 @@ static void residue_numlist(char *pp, char *mask, int residues, int *ipres) {
 /* residue_namelist()
  */
 static void residue_namelist(char *pp, char *mask, int residues, 
-                             Name *residueName, int *ipres) 
+                             NAME *residueName, int *ipres) 
 {
   char buffer[MAXSELE];
   char *p;
@@ -996,7 +996,7 @@ static void atom_numlist(char *pp, char *mask, int atoms) {
 
 /* atom_namelist()
  */
-static void atom_namelist(char *pp, char *mask, int atoms, Name *atomName) {
+static void atom_namelist(char *pp, char *mask, int atoms, NAME *atomName) {
   char buffer[MAXSELE];
   char *p;
   int i = 0;
@@ -1025,7 +1025,7 @@ static void atom_namelist(char *pp, char *mask, int atoms, Name *atomName) {
 
 /* atom_typelist()
  */
-static void atom_typelist(char *pp, char *mask, int atoms, Name *atomType) {
+static void atom_typelist(char *pp, char *mask, int atoms, NAME *atomType) {
   char buffer[MAXSELE];
   char *p;
   int i = 0;
@@ -1047,7 +1047,7 @@ static void atom_typelist(char *pp, char *mask, int atoms, Name *atomType) {
 
 /* atom_elemlist()
  */
-static void atom_elemlist(char *pp, char *mask, int atoms, Name *atomName) {
+static void atom_elemlist(char *pp, char *mask, int atoms, NAME *atomName) {
   char buffer[MAXSELE];
   char *p;
   int i = 0;
@@ -1073,8 +1073,8 @@ static void atom_elemlist(char *pp, char *mask, int atoms, Name *atomName) {
  * types, etc).
  */
 static char *selectElemMask(char * elmaskstr, int atoms, int residues, 
-                            Name *atomName, Name *residueName, int *ipres, 
-                            Name *atomType) 
+                            NAME *atomName, NAME *residueName, int *ipres, 
+                            NAME *atomType) 
 {
   int i;
   int atomlist, reslist;  /* change that to enum type?? */
@@ -1211,8 +1211,8 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
  * the char array is freed up.
  *
  */
-static char *eval(char *postfix, int atoms, int residues, Name *atomName, 
-                  Name *residueName, int *ipres, void *X, Name *atomType)
+static char *eval(char *postfix, int atoms, int residues, NAME *atomName, 
+                  NAME *residueName, int *ipres, void *X, NAME *atomType)
 {
   char *pToken;
   char buffer[MAXSELE];
@@ -1330,9 +1330,9 @@ static char *eval(char *postfix, int atoms, int residues, Name *atomName,
  * It returns a character mask array mask[i]='T'|'F', i=0,atoms-1
  * which contains the resulting atom selection
  */
-char *parseMaskString(char *maskstr, int atoms, int residues, Name *atomName,
-                      Name *residueName, int *ipres, double *X, 
-                      Name *atomType, int debug) 
+char *parseMaskString(char *maskstr, int atoms, int residues, NAME *atomName,
+                      NAME *residueName, int *ipres, double *X, 
+                      NAME *atomType, int debug) 
 {
   char infix[MAXSELE], postfix[MAXSELE];
   char *mask;

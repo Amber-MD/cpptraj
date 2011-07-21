@@ -15,7 +15,7 @@ NAbaseType ID_base(char*);
  */
 class AxisType : public Frame {
     static const char NAbaseName[][5];
-    AmberParm::NAME *Name;  // Atom/Axis names
+    NAME *Name;  // Atom/Axis names
     int maxAtom; // Actual size of memory. natom may be less than this.
 
     int AllocAxis(int);

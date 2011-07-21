@@ -23,8 +23,22 @@ BoxType CheckBoxType(double *box, int debug) {
   return btype;
 }
 
-/*
- * SetBoxInfo()
+/* AmberIfbox()
+ * Based on beta, return Amber IFBOX type:
+ *   0: No box
+ *   1: Box
+ *   2: Truncated octahedral box
+ */
+int AmberIfbox(double beta) {
+  if (beta <= 0.0)
+    return 0;
+  else if (beta > 109.47 && beta < 109.48) 
+    return 2;
+  else
+    return 1;
+}
+
+/* SetBoxInfo()
  * Given an angle (beta) and 3 edge lengths, set up a box 
  * (3 lengths + 3 angles) and return box type. Also set the
  * ifbox flag if not NULL (0=no box, 1 = std periodic, 

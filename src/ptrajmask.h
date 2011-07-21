@@ -9,10 +9,7 @@ extern "C" {
 // names to be four characters. When stored as a string, the NULL character
 // is required, requiring a size of 5. It has been increased to 6 in cpptraj
 // to accomodate the slightly larger names that can be found in MOL2 files.
-// NOTE: this is also defined in AmberParm.h and MUST MATCH!
-#define NAME_SIZE 6
-#define NAME_DEFAULT "     "
-typedef char Name[NAME_SIZE];
+#include "Name.h"
 // More defines
 #define  MAXSELE 1000
 #define  ALL      0
@@ -29,7 +26,7 @@ typedef char Name[NAME_SIZE];
  * It returns a character mask array mask[i]='T'|'F', i=0,atoms-1
  * which contains the resulting atom selection
  */
-char *parseMaskString(char*,int,int,Name*,Name*,int*,double*,Name*,int);
+char *parseMaskString(char*,int,int,NAME*,NAME*,int*,double*,NAME*,int);
 #ifdef __cplusplus
 }
 #endif

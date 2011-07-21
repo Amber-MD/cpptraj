@@ -20,9 +20,9 @@ class Mol2File : public TrajectoryIO {
     int trajnres;
     int trajnbondsh;
     int trajnbonds;
-    AmberParm::NAME *trajAtomNames; 
-    AmberParm::NAME *trajTypes;
-    AmberParm::NAME *trajResNames; 
+    NAME *trajAtomNames; 
+    NAME *trajTypes;
+    NAME *trajResNames; 
     int *trajResNums;
     double *trajCharges;
     int *trajBonds;

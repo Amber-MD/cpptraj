@@ -7,5 +7,6 @@
 ///   NONORTHO: Non-orthogonal box (triclinic or truncated octahedron).
 enum BoxType { NOBOX=0, ORTHO, NONORTHO };
 BoxType CheckBoxType(double *,int);
+int AmberIfbox(double);
 BoxType SetBoxInfo(double *, double *, int);
 #endif

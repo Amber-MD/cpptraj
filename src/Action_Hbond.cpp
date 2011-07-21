@@ -79,7 +79,7 @@ int Hbond::setup() {
   // NOTE: Scan donor list and determine which ones have H?
   for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++) {
     // Is this atom in the bondsh array? If so the other atom must be hydrogen
-    for ( selected=0; selected < P->NbondsWithH()*3; selected+=3) {
+    for ( selected=0; selected < P->NbondsWithH*3; selected+=3) {
       // Actual atom #s in bondsh array = x / 3
       atom = P->bondsh[selected  ] / 3;
       a2   = P->bondsh[selected+1] / 3;
