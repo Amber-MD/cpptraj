@@ -77,17 +77,23 @@ long long int GzipFile::Size(char *filename) {
 
 /*
  * GzipFile::Read()
+ * NOTE: gzread returns 0 on EOF, -1 on error
  */
 int GzipFile::Read(void *buffer, size_t size, size_t count) {
   //size_t numread;
   int numread;
+  int expectedread;
+
+  expectedread = (int)size;
+  expectedread *= (int)count;
   // Should never be able to call Read when fp is NULL.
   //if (fp==NULL) {
   //  fprintf(stdout,"Error: GzipFile::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
-  numread = gzread(fp, buffer, size * count);
-  if (numread == -1) return -1;
+  numread = gzread(fp, buffer, expectedread);
+  if (numread != expectedread) return -1;
+  //if (numread < 1 ) return -1;
 
   // NOTE: Check for errors here.
   return numread;
