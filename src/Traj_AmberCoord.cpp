@@ -182,8 +182,7 @@ int AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T)
  */
 int AmberCoord::setupRead(AmberParm *trajParm) {
   char buffer[BUFFER_SIZE];
-  int frame_lines;
-  int lineSize;
+  int frame_lines, lineSize, maxi;
   long long int file_size, frame_size, tmpfsize, title_size;
   int Frames;
   double box[6]; // For checking box coordinates
@@ -299,12 +298,17 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
         // it could be that the uncompressed filesize > 4GB. Since 
         //   ISIZE = uncompressed % 2^32, 
         // try ((file_size + (2^32 * i)) % frame_size) and see if any are 0.
-        // NOTE: Currently this method will work for file sizes up to 4 TB 
-        //       (1000 * 2^32).
         if ( (file_size % frame_size) != 0) {
+          // Determine the maximum number of iterations to try based on the
+          // fact that Amber trajectories typically compress about 3x with
+          // gzip.
+          tmpfsize = ((tfile->file_size * 4) - tfile->uncompressed_size) / 4294967296;
+          maxi = (int) tmpfsize;
+          if (debug>1)
+            mprintf("\tLooking for uncompressed gzip size > 4GB, %i iterations.\n",maxi);
           tmpfsize = 0;
           sizeFound=false;
-          for (int i = 0; i < 1000; i++ ) {
+          for (int i = 0; i < maxi; i++ ) {
             tmpfsize = (4294967296 * i) + file_size;
             if ( (tmpfsize % frame_size) == 0) {sizeFound=true; break;}
           }

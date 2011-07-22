@@ -14,8 +14,8 @@ ProgressBar::ProgressBar(int maxIn) {
     oneframe=true;
   else if (max < 0) {
     unknownframes=true;
-    mprintf("Progress: '+' = 100 frames processed.\n");
-    targetPercent=99;
+    mprintf("Progress: '+' = 200 frames processed.\n");
+    targetPercent=199;
   } else {
     C_over_max = (float) max;
     C_over_max = 100 / C_over_max;
@@ -45,9 +45,9 @@ void ProgressBar::Update(int current) {
       mprintf("+");
       target = (int) targetPercent;
       target++;
-      if ((target % 2000) == 0)
+      if ((target % 5000) == 0)
         mprintf("\n%10i ",current);
-      targetPercent+=100;
+      targetPercent+=200;
       mflush();
     } 
   } else {
