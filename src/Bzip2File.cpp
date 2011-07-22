@@ -144,16 +144,19 @@ int Bzip2File::Close() {
  * Since the uncompressed size of Bzip files is not stored anywhere in the file
  * need to read every possible byte in the file :(. 
  * NOTE: The input filename is currently IGNORED.
+ * NOTE: This can be ridiculously time consuming for large bzip files, so
+ *       just return 0. 
  */
 #define BUFINSIZE 10240
 long long int Bzip2File::Size(char *filename) {
-  long long int fileSize, numread;
-  char bufIn[BUFINSIZE];
+  //long long int fileSize, numread;
+  //char bufIn[BUFINSIZE];
 //  char Scan;
 
   if (filename==NULL) return -1L;
-  fileSize=0L;
-
+  //fileSize=0L;
+  return 0L;
+/*
   // Check that the file being checked is the currently open file.
   // NOTE: Unnecessary?
   //if (strcmp(filename, bzfilename)!=0) {
@@ -184,6 +187,7 @@ long long int Bzip2File::Size(char *filename) {
   //mprintf("Bzip2File::Size: Uncompressed size of %s: %lli\n",filename,fileSize);
 
   return fileSize;
+*/
 }
 #undef BUFINSIZE
 
@@ -196,27 +200,28 @@ long long int Bzip2File::Size(char *filename) {
 int Bzip2File::Read(void *buffer, size_t size, size_t count) {
   //size_t numread;
   int numread;
+  int expectedread;
   
-  if (err!=BZ_OK) return -1;
+  //if (err!=BZ_OK) return -1;
   // Should never be able to call Read when fp is NULL.
   //if (fp==NULL) {
   //  mprintf("Error: Bzip2File::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
-  numread = BZ2_bzRead(&err, infile, buffer, size * count);
+  expectedread = (int) size;
+  expectedread *= (int) count;
+  numread = BZ2_bzRead(&err, infile, buffer, expectedread);
 
   // Update position
   position = position + ((off_t) numread);
 
-  if (err!=BZ_OK && err!=BZ_STREAM_END) {
-    mprintf( "Error: Bzip2File::Read: BZ2_bzRead error: [%s]\n",this->BZerror());
-    mprintf( "                        size=%lu  count=%lu\n",size,count);
+  if (numread != expectedread) {
+    if (err!=BZ_OK && err!=BZ_STREAM_END) {
+      mprintf( "Error: Bzip2File::Read: BZ2_bzRead error: [%s]\n",this->BZerror());
+      mprintf( "                        size=%lu  count=%lu\n",size,count);
+    }
     return -1;
   }
-  if (err==BZ_STREAM_END && numread==0) {
-    return -1;
-  }
-
   //mprintf( "DEBUG: After Bzip2File::Read: [%s] position %li\n",this->BZerror(),position);
 
   return numread;
