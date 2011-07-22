@@ -380,8 +380,8 @@ void TrajectoryFile::SingleFrame() {
   // should have already been called in SetupRead (and thus any errors 
   // handled there) dont check for an error here. It should return 1.
   if ( setupFrameInfo() != 1 ) {
-    mprinterr("  Error: Single frame requested for %s but not calcd!\n",trajName);
-    mprinterr("         start/stop/offset (%i, %i, %i)\n",start+1,stop+1,offset);
+    mprintf("  Warning: Single frame requested for %s but not calcd!\n",trajName);
+    mprintf("           start/stop/offset (%i, %i, %i)\n",start+1,stop+1,offset);
   }
 }
 
@@ -450,20 +450,27 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   }
 
   // Set up the format for reading and get the number of frames.
-  // -1 indicates an error
+  // -1 indicates an error.
+  // -2 indicates the number of frames could not be determined, read to EOF.
   total_frames = trajio->setupRead(trajParm);
-  if (total_frames < 0) {
+  if (total_frames == -1) {
     mprinterr("    Error: Could not set up %s for reading.\n",tname);
     return 1;
   }
-  mprintf("\t[%s] contains %i frames.\n",trajName,total_frames);
+  if (total_frames>-1)
+    mprintf("\t[%s] contains %i frames.\n",trajName,total_frames);
+  else
+    mprintf("\t[%s] contains an unknown number of frames.\n",trajName);
 
   // Set stop based on calcd number of frames.
   if (total_frames==0) {
     mprinterr("  Error: trajectory %s contains no frames.\n",trajName);
     return 1;
   }
-  stop = total_frames; 
+  if (total_frames>0)
+    stop = total_frames; 
+  else
+    stop = -1;
 
   // If the trajectory has box coords, set the box type from the box Angles.
   if (trajio->hasBox) {
@@ -475,7 +482,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
 
   // Call setupFrameInfo to calc actual start and stop values based on
   // offset, as well as total_read_frames
-  if ( setupFrameInfo() <= 0 ) {
+  if ( setupFrameInfo() == 0 ) {
     mprinterr("  Error: No frames will be read from %s based on start, stop,\n",trajName);
     mprinterr("         and offset values (%i, %i, %i)\n",start+1,stop+1,offset);
     return 1;
@@ -504,6 +511,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
  * Calculate number of frames that will be read based on start, stop, and
  * offset (total_read_frames). 
  * Return the total number of frames that will be read for this traj.
+ * If the number of frames could not be determined return -1.
  */
 int TrajectoryFile::setupFrameInfo() {
   int Nframes;
@@ -516,6 +524,7 @@ int TrajectoryFile::setupFrameInfo() {
 
   //mprintf("DEBUG: Calling setupFrameInfo for %s with %i %i %i\n",trajName,
   //        start,stop,offset);
+  if (stop==-1) return -1;
 
   // Calc total frames that will be read
   // Round up
@@ -694,7 +703,10 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
  */
 void TrajectoryFile::PrintInfoLine() {
   //rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName,currentFrame+1,stop+1,offset);
-  rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName,start+1,stop+1,offset);
+  if (stop!=-1)
+    rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName,start+1,stop+1,offset);
+  else
+    rprintf( "----- [%s] (%i-EOF, %i) -----\n",trajName,start+1,offset);
 }
 
 /* TrajectoryFile::EndTraj()
@@ -718,8 +730,8 @@ int TrajectoryFile::GetNextFrame(double *X, double *V, double *box, double *T) {
   mprinterr("Getting frame %i from %s (stop=%i)\n",currentFrame,trajName,stop);
 #endif
   // If the current frame is out of range, exit
-  //if (currentFrame>stop && stop!=-1) return 0;
-  if (currentFrame>stop) return 0;
+  if (currentFrame>stop && stop!=-1) return 0;
+  //if (currentFrame>stop) return 0;
   if (progress!=NULL) 
     progress->Update(currentFrame);
     //progress->PrintBar(currentFrame);
@@ -831,9 +843,11 @@ void TrajectoryFile::PrintInfo(int showExtended) {
   }
 
   if (fileAccess==READ) {
-    if (stop!=-1)
+    if (stop!=-1 && total_frames>0)
       //mprintf(": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,total_frames);
       mprintf(" (reading %i of %i)",total_read_frames,total_frames);
+    else if (stop!=-1 && total_frames < 0)
+      mprintf(" (reading %i)",total_read_frames);
     else
       mprintf(", unknown #frames, start=%i offset=%i",start,offset);
   } else {

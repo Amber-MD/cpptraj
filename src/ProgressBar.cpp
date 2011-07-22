@@ -9,15 +9,17 @@ ProgressBar::ProgressBar(int maxIn) {
   oneframe=false;
   unknownframes=false;
   C_over_max = 1;
+  targetPercent=0;
   if (max == 0)
     oneframe=true;
-  else if (max < 0)
+  else if (max < 0) {
     unknownframes=true;
-  else {
+    mprintf("Progress: '+' = 100 frames processed.\n");
+    targetPercent=99;
+  } else {
     C_over_max = (float) max;
     C_over_max = 100 / C_over_max;
   }
-  targetPercent=0;
   first=true;
 }
 
@@ -30,19 +32,36 @@ ProgressBar::~ProgressBar() { }
  */
 void ProgressBar::Update(int current) {
   float currentPercent;
+  int target;
 
-  if (unknownframes) return;
-
-  currentPercent = current * C_over_max;
-  if (currentPercent >= targetPercent) {
-    targetPercent+=10;
-    mprintf("%2.0f%% ",currentPercent);
-    //if (first) {
-    //  mflush();
-    //  first=false;
-    //}
-    if (current==max) mprintf("Complete.\n");
-    mflush();
+  if (unknownframes) {
+    if (first) {
+      mprintf("%10i ",current);
+      first=false;
+      mflush();
+    }
+    currentPercent = (float) current;
+    if (currentPercent > targetPercent) {
+      mprintf("+");
+      target = (int) targetPercent;
+      target++;
+      if ((target % 2000) == 0)
+        mprintf("\n%10i ",current);
+      targetPercent+=100;
+      mflush();
+    } 
+  } else {
+    currentPercent = current * C_over_max;
+    if (currentPercent >= targetPercent) {
+      targetPercent+=10;
+      mprintf("%2.0f%% ",currentPercent);
+      //if (first) {
+      //  mflush();
+      //  first=false;
+      //}
+      if (current==max) mprintf("Complete.\n");
+      mflush();
+    }
   }
 }
 

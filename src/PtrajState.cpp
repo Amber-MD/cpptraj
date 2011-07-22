@@ -399,13 +399,11 @@ int PtrajState::Run() {
   // Calculate frame division among trajectories
   mprintf("\nINPUT TRAJECTORIES:\n");
   maxFrames=trajinList.SetupFrames();
-  // If we couldnt predict the number of frames, bail out now.
-  if (maxFrames<0) {
-    mprinterr("Error: Could not predict the total number of frames to be processed. Exiting.\n");
-    return 1;
-  }
   trajinList.Info(1,0);
-  mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
+  if (maxFrames<0)  
+    mprintf("  Coordinate processing will occur on an unknown number of frames.\n");
+  else
+    mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
 
   // Parameter file information
   parmFileList.Print();
@@ -462,9 +460,9 @@ int PtrajState::Run() {
       ptrajActionList.DoActions(&CurrentFrame, actionSet);
       // Do Output
       trajoutList.Write(actionSet, CurrentParm, CurrentFrame);
-#ifdef DEBUG
-      dbgprintf("\tDEBUG: %30s: %4i\n",CurrentParm->parmName,CurrentParm->outFrame);
-#endif
+//#ifdef DEBUG
+//      dbgprintf("\tDEBUG: %30s: %4i\n",CurrentParm->parmName,CurrentParm->outFrame);
+//#endif
       // Increment frame counters
       actionSet++; 
     }
@@ -473,7 +471,7 @@ int PtrajState::Run() {
     traj->EndTraj();
     // Update how many frames across all threads have been written for parm
     // Do this for the original parm since it may have been modified.
-    traj->TrajParm()->outFrame += traj->Total_Read_Frames();
+    //traj->TrajParm()->outFrame += traj->Total_Read_Frames();
     readSets+=traj->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin

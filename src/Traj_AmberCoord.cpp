@@ -184,9 +184,10 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
   char buffer[BUFFER_SIZE];
   int frame_lines;
   int lineSize;
-  long long int file_size, frame_size, tmpfsize;
+  long long int file_size, frame_size, tmpfsize, title_size;
   int Frames;
   double box[6]; // For checking box coordinates
+  bool sizeFound;
 
   // Attempt to open the file. open() sets the title and titleSize
   if (openTraj()) return -1;
@@ -267,51 +268,74 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
     }
   }
 
-  // Calculate number of frames. If not possible and this is not a
+  // Calculate Frames and determine seekable. If not possible and this is not a
   // compressed file the trajectory is probably corrupted. Frames will
-  // be read until EOF.
-  // NOTE: It is necessary to use the stat command to get the file size
-  // instead of fseek in case the file has been popen'd.
-  // NOTE: Need the uncompressed file size!
-  if (tfile->uncompressed_size>0)
-    file_size = tfile->uncompressed_size;
-  else
-    file_size=tfile->file_size;
+  // be read until EOF (Frames = -2).
   if (debug>0)
-    rprintf("Title offset=%i FrameSize=%i UncompressedFileSize=%lli\n",
-            titleSize,frameSize,file_size);
-  frame_size = (long long int) titleSize;
-  file_size = file_size - frame_size; // Subtract title size from file total size.
+    rprintf("Title offset=%i FrameSize=%i Size=%lli UncompressedFileSize=%lli\n",
+            titleSize,frameSize,tfile->file_size,tfile->uncompressed_size);
+  title_size = (long long int) titleSize;
   frame_size = (long long int) frameSize;
-  Frames = (int) (file_size / frame_size);
-
-  // Frame calculation for large gzip files
-  if (tfile->compressType == GZIP) {
-    // Since this is gzip compressed, if the file_size % frame size != 0, 
-    // it could be that the uncompressed filesize > 4GB. Since 
-    //   ISIZE = uncompressed % 2^32, 
-    // try ((file_size + (2^32 * i)) % frame_size) and see if any are 0.
-    // NOTE: Currently this method will work for file sizes up to 4 TB 
-    //       (1000 * 2^32).
-    if ( (file_size % frame_size) != 0) {
-      tmpfsize = 0;
-      for (int i = 0; i < 1000; i++ ) {
-        tmpfsize = (4294967296 * i) + file_size;
-        if ( (tmpfsize % frame_size) == 0) break;
+  // -----==== AMBER TRAJ COMPRESSED ====------
+  if (tfile->compressType!=NONE) {
+    // If the uncompressed size of compressed file is reported as <= 0,
+    // uncompressed size cannot be determined. Read coordinates until
+    // EOF.
+    if (tfile->uncompressed_size <= 0) {
+      mprintf("Warning: %s: Uncompressed size of trajectory could not be determined.\n",
+              tfile->filename);
+      if (tfile->compressType==BZIP2)
+        mprintf("         (This is normal for bzipped files)\n");
+      mprintf("         Number of frames could not be calculated.\n");
+      mprintf("         Frames will be read until EOF.\n");
+      Frames = -2;
+      seekable = false;
+    } else {
+      file_size = tfile->uncompressed_size;
+      file_size = file_size - title_size;
+      // Frame calculation for large gzip files
+      if (tfile->compressType == GZIP) {
+        // Since this is gzip compressed, if the file_size % frame size != 0, 
+        // it could be that the uncompressed filesize > 4GB. Since 
+        //   ISIZE = uncompressed % 2^32, 
+        // try ((file_size + (2^32 * i)) % frame_size) and see if any are 0.
+        // NOTE: Currently this method will work for file sizes up to 4 TB 
+        //       (1000 * 2^32).
+        if ( (file_size % frame_size) != 0) {
+          tmpfsize = 0;
+          sizeFound=false;
+          for (int i = 0; i < 1000; i++ ) {
+            tmpfsize = (4294967296 * i) + file_size;
+            if ( (tmpfsize % frame_size) == 0) {sizeFound=true; break;}
+          }
+          if (sizeFound) file_size = tmpfsize;
+        }
       }
-      file_size = tmpfsize;
+      if ((file_size % frame_size) == 0) {
+        Frames = (int) (file_size / frame_size);
+        seekable = true;
+      } else {
+        mprintf("Warning: %s: Number of frames in compressed traj could not be determined.\n",
+                tfile->filename);
+        mprintf("         Frames will be read until EOF.\n");
+        Frames=-2;
+        seekable=false;
+      }
     }
+  // ----==== AMBER TRAJ NOT COMPRESSED ====----
+  } else {     
+    file_size = tfile->file_size;
+    file_size = file_size - title_size;
     Frames = (int) (file_size / frame_size);
-  }
-
-  if ( (file_size % frame_size) == 0 ) {
-    seekable = true;
-  } else {
-    seekable = false;
-    mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
-            tfile->filename);
-    mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
-            Frames);
+    if ( (file_size % frame_size) == 0 ) {
+      seekable = true;
+    } else {
+      mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
+              tfile->filename);
+      mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
+              Frames);
+      seekable=false;
+    }
   }
 
   if (debug>0)

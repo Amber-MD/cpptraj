@@ -149,7 +149,6 @@ int ParmFileList::Replace(int num, AmberParm *newParm) {
 // Print list of loaded parameter files
 void ParmFileList::Print() {
   int i;
-  char buffer[BUFFER_SIZE];
 
   mprintf("\nPARAMETER FILES:\n");
   if (Nparm==0) {
@@ -158,8 +157,7 @@ void ParmFileList::Print() {
   }
 
   for (i=0; i<Nparm; i++) {
-    ParmList[i]->Info(buffer);
-    mprintf(" %i: %s, %s.\n",i,ParmList[i]->parmfileName, buffer);
+    ParmList[i]->ParmInfo();
     //mprintf("  %i: %s, %i atoms (%i trajectory frames associated)\n",
     //        i,ParmList[i]->File.filename, ParmList[i]->natom, ParmList[i]->parmFrames);
   }
