@@ -21,6 +21,7 @@
 #include "Action_Pucker.h"
 #include "Action_Outtraj.h"
 #include "Action_Rms2d.h"
+#include "Action_Average.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -76,6 +77,7 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("pucker"))   {Act=new Pucker;  }
   else if (A->CommandIs("outtraj"))  {Act=new Outtraj; }
   else if (A->CommandIs("unstrip"))  {Act=new Unstrip; }
+  else if (A->CommandIs("average"))  {Act=new Average; }
   else return 1; 
 
   // Pass in the argument list
