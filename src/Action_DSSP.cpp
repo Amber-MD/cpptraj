@@ -15,7 +15,7 @@ DSSP::DSSP() {
   Nframe=0.0;
   sumOut=NULL;
   SSline=NULL;
-  printString=true;
+  printString=false;
   SSdata=NULL;
   dsspData=NULL;
 }
@@ -58,7 +58,7 @@ int DSSP::init() {
     strcpy(sumOut, outfilename);
     strcat(sumOut,".sum");
   } 
-  if (A->hasKey("nostring")) printString=false;
+  if (A->hasKey("outputstring")) printString=true;
   // Get masks
   mask = A->getNextMask();
   Mask.SetMaskString(mask);
@@ -347,8 +347,8 @@ int DSSP::action() {
 }
 
 /* DSSP::print()
- * Calculate the average of each secondary structure type across all residues
- * and output to a file.
+ * Calculate the average of each secondary structure type across all residues.
+ * Prepare for output via the master data file list.
  */
 void DSSP::print() {
   DataFile *dsspFile;
