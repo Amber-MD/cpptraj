@@ -35,10 +35,10 @@ int GzipFile::Close() {
 /*
  * GzipFile::Size()
  */
-long long int GzipFile::Size(char *filename) {
+off_t GzipFile::Size(char *filename) {
   FILE *infile;
   unsigned char b1,b2,b3,b4;
-  long long int val,temp;
+  off_t val,temp;
 
   if (filename==NULL) return -1;
   if ( (infile = fopen(filename,"rb"))==NULL ) {
@@ -56,21 +56,21 @@ long long int GzipFile::Size(char *filename) {
   fread(&b1,1,1,infile);
 
   val = 0;
-  temp = (long long int) b1;
+  temp = (off_t) b1;
   temp <<= 24;
   val = val | temp;
-  temp = (long long int) b2;
+  temp = (off_t) b2;
   temp <<= 16;
   val = val | temp;
-  temp = (long long int) b3;
+  temp = (off_t) b3;
   temp <<= 8;
   val = val | temp;
-  temp = (long long int) b4;
+  temp = (off_t) b4;
   val = val | temp;
 
   fclose(infile);
 
-  //fprintf(stdout,"GzipFile::Size: Uncompressed size of %s: %lli\n",filename,val);
+  //fprintf(stdout,"GzipFile::Size: Uncompressed size of %s: %lu\n",filename,val);
 
   return val;
 }

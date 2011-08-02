@@ -183,7 +183,7 @@ int AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T)
 int AmberCoord::setupRead(AmberParm *trajParm) {
   char buffer[BUFFER_SIZE];
   int frame_lines, lineSize, maxi;
-  long long int file_size, frame_size, tmpfsize, title_size;
+  off_t file_size, frame_size, tmpfsize, title_size;
   int Frames;
   double box[6]; // For checking box coordinates
   bool sizeFound;
@@ -271,10 +271,10 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
   // compressed file the trajectory is probably corrupted. Frames will
   // be read until EOF (Frames = -2).
   if (debug>0)
-    rprintf("Title offset=%i FrameSize=%i Size=%lli UncompressedFileSize=%lli\n",
+    rprintf("Title offset=%i FrameSize=%i Size=%lu UncompressedFileSize=%lu\n",
             titleSize,frameSize,tfile->file_size,tfile->uncompressed_size);
-  title_size = (long long int) titleSize;
-  frame_size = (long long int) frameSize;
+  title_size = (off_t) titleSize;
+  frame_size = (off_t) frameSize;
   // -----==== AMBER TRAJ COMPRESSED ====------
   if (tfile->compressType!=NONE) {
     // If the uncompressed size of compressed file is reported as <= 0,
@@ -302,14 +302,14 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
           // Determine the maximum number of iterations to try based on the
           // fact that Amber trajectories typically compress about 3x with
           // gzip.
-          tmpfsize = ((tfile->file_size * 4) - tfile->uncompressed_size) / 4294967296;
+          tmpfsize = ((tfile->file_size * 4) - tfile->uncompressed_size) / 4294967296LL;
           maxi = (int) tmpfsize;
           if (debug>1)
             mprintf("\tLooking for uncompressed gzip size > 4GB, %i iterations.\n",maxi);
           tmpfsize = 0;
           sizeFound=false;
           for (int i = 0; i < maxi; i++ ) {
-            tmpfsize = (4294967296 * i) + file_size;
+            tmpfsize = (4294967296LL * i) + file_size;
             if ( (tmpfsize % frame_size) == 0) {sizeFound=true; break;}
           }
           if (sizeFound) file_size = tmpfsize;

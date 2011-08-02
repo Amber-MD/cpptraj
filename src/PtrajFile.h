@@ -54,7 +54,7 @@ class PtrajFile {
     int SetupWrite();
   public:
     AccessType access;
-    long long int uncompressed_size;
+    off_t uncompressed_size;
     off_t file_size;
     BaseFileIO *IO; 
     FileType fileType;

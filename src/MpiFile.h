@@ -12,7 +12,6 @@ class MpiFile : public BaseFileIO {
 
     int Open(const char *, const char *);    
     int Close();
-    //long long int Size(char *);
     int Read(void *, size_t, size_t );
     int Write(void *, size_t, size_t);  
     int Seek(off_t);

@@ -148,8 +148,8 @@ int Bzip2File::Close() {
  *       just return 0. 
  */
 #define BUFINSIZE 10240
-long long int Bzip2File::Size(char *filename) {
-  //long long int fileSize, numread;
+off_t Bzip2File::Size(char *filename) {
+  //off_t fileSize, numread;
   //char bufIn[BUFINSIZE];
 //  char Scan;
 
@@ -175,7 +175,7 @@ long long int Bzip2File::Size(char *filename) {
   // NOTE: Use sizeof(char)??
   // NOTE: Larger buffer? Dynamically allocate?
 //  bufIn = (char*) malloc(10240 * sizeof(char));
-  while ( (numread = (long long int) this->Read(bufIn, 1, BUFINSIZE))!=-1 )
+  while ( (numread = (off_t) this->Read(bufIn, 1, BUFINSIZE))!=-1 )
     fileSize += numread;
 //  free(bufIn);
 //  while ( this->Read(&Scan, 1, 1)!=-1 )
@@ -184,7 +184,7 @@ long long int Bzip2File::Size(char *filename) {
   // Close file
   this->Close();
 
-  //mprintf("Bzip2File::Size: Uncompressed size of %s: %lli\n",filename,fileSize);
+  //mprintf("Bzip2File::Size: Uncompressed size of %s: %lu\n",filename,fileSize);
 
   return fileSize;
 */

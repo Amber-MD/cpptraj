@@ -16,7 +16,8 @@ class BaseFileIO {
     virtual ~BaseFileIO() {}
     virtual int Open(const char *, const char *) { return 0;  }
     virtual int Close()                          { return 0;  }
-    virtual long long int Size(char *)           { return 0UL;}
+    // Only needed for compressed files
+    virtual off_t Size(char *)                   { return 0;  }
     virtual int Read(void *, size_t, size_t)     { return 0;  }
     virtual int Write(void *, size_t, size_t)    { return 0;  }
     virtual int Seek(off_t)                      { return 0;  }

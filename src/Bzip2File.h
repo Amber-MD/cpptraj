@@ -20,7 +20,7 @@ class Bzip2File : public BaseFileIO {
     ~Bzip2File(); 
     int Open(const char *, const char *);    
     int Close();
-    long long int Size(char *);
+    off_t Size(char *);
     int Read(void *, size_t, size_t );
     int Write(void *, size_t, size_t);  
     int Seek(off_t);
