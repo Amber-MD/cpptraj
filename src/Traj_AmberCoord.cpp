@@ -304,6 +304,7 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
           // gzip.
           tmpfsize = ((tfile->file_size * 4) - tfile->uncompressed_size) / 4294967296LL;
           maxi = (int) tmpfsize;
+          maxi++;
           if (debug>1)
             mprintf("\tLooking for uncompressed gzip size > 4GB, %i iterations.\n",maxi);
           tmpfsize = 0;
