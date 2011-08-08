@@ -47,7 +47,6 @@ class Action {
     int DoAction(Frame **,int);    
 
     // --== Inherited by child classes ==--
-    virtual void info() {return;}
     virtual void print() { }   // Print anything besides datasets, called at end of execution 
 };
 #endif  
