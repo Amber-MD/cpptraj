@@ -13,6 +13,7 @@ class Hist : public Analysis {
     double Temp;
     bool normalize;
     bool gnuplot;
+    int Ndata;
 
     double min;
     double max;
@@ -25,7 +26,7 @@ class Hist : public Analysis {
     ~Hist();
 
     int Setup(DataSetList*);
-    //int Analyze();
+    int Analyze();
     //void Print();
 };
 #endif

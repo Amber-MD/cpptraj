@@ -71,4 +71,18 @@ int AnalysisList::Setup(DataSetList *datasetlist) {
   mprintf("    ...................................................\n\n");
   return 0;
 }
+
+/* AnalysisList::Analyze()
+ */
+void AnalysisList::Analyze() {
+  if (Nanalysis==0) return;
+  mprintf("\nANALYSIS:\n");
+  mprintf("    .... Performing %i analyses ....\n",Nanalysis);
+  for (int ana=0; ana < Nanalysis; ana++) {
+    mprintf("    %i: [%s]\n",ana,analysisList[ana]->Name());
+    if (!analysisList[ana]->noSetup)
+      analysisList[ana]->Analyze(); 
+  }
+  mprintf("    ...................................................\n\n");
+}
  

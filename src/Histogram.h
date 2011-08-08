@@ -31,6 +31,8 @@ class Histogram {
                                                       // min, max, step, and bins.
     int BinData(double*); // Bin the given data. Dimension must be the same as what
                           // the histogram has been set up for.
-    void PrintBins(int);
+    void PrintBins(int,bool);
+
+    int NumDimension() { return numDimension; }
 };
 #endif

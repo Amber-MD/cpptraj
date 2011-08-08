@@ -140,7 +140,7 @@ void Histogram::count2coord(int *count) {
  * landscape will be printed.
  * if SD is not NULL, the standard deviation array will also be printed.
  */
-void Histogram::PrintBins(int circular) {
+void Histogram::PrintBins(int circular, bool gnuplot) {
   int *count,idx,index,ndim;
   bool loop;
   //int *iBins;
@@ -211,9 +211,9 @@ void Histogram::PrintBins(int circular) {
     // Increment highest order coord
     count[numDimension-1]++;
     // If gnuplot, print extra space when highest order coord cycles
-    //if (S->gnuplot==1) {
-    //  if (count[numDimension-1]==Dimension[numDimension-1].bins+circular) fprintf(stdout,"\n");
-    //}
+    if (gnuplot) {
+      if (count[numDimension-1]==Dimension[numDimension-1].bins+circular) mprintf("\n");
+    }
     // Increment other coords if necessary
     for (ndim=numDimension-1; ndim>0; ndim--)
       if (count[ndim]==Dimension[ndim].bins+circular) {count[ndim]=0-circular; count[ndim-1]++;}

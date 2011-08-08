@@ -15,6 +15,8 @@ Hist::Hist() {
   max = 0.0;
   step = -1.0;
   bins = -1;
+
+  Ndata = -1;
 }
 
 // DESTRUCTOR
@@ -53,6 +55,18 @@ int Hist::SetupDimension(char *input, DataSetList *datasetlist) {
     mprintf("\t      Dataset not found.\n");
     delete arglist;
     return 1;
+  }
+
+  // Check that the number of data points in each dimension are equal
+  if (Ndata==-1)
+    Ndata = dset->Xmax();
+  else {
+    if (Ndata != dset->Xmax()) {
+      mprinterr("Error: Hist: Dataset %s does not have correct number of data points (%i).\n",
+                dset->Name(),Ndata);
+      delete arglist;
+      return 1;
+    }
   }
 
   /* 
@@ -171,5 +185,26 @@ int Hist::Setup(DataSetList *datasetlist) {
   while ( (datasetstring = analyzeArg->getNextString())!=NULL )
     SetupDimension(datasetstring,datasetlist);
 
+  mprintf("\tHist: Set up for %i dimensions.\n",hist.NumDimension());
+
+  return 0;
+}
+
+/* Hist::Analyze()
+ */
+int Hist::Analyze() {
+  double *coord;
+
+  coord = (double*) malloc( hist.NumDimension() * sizeof(double));
+
+  for (int n=0; n < Ndata; n++) {
+    for (int hd=0; hd < (int)histdata.size(); hd++)
+      coord[hd] = histdata[hd]->Get((void*)(coord+hd), n);
+    hist.BinData(coord);
+  }
+
+  free(coord);
+
+  hist.PrintBins(0,false);
   return 0;
 }

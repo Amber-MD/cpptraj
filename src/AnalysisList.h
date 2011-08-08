@@ -11,6 +11,7 @@ class AnalysisList {
     
     void SetDebug(int);
     int Add(ArgList *A);
-    int Setup(DataSetList*); 
+    int Setup(DataSetList*);
+    void Analyze(); 
 };
 #endif
