@@ -56,7 +56,9 @@ int AnalysisList::Add(ArgList *argIn) {
  * Set up all analysis in list with given datasetlist
  */
 int AnalysisList::Setup(DataSetList *datasetlist) {
-  mprintf("    .... Setting up %i analysis ....\n",Nanalysis);
+  if (Nanalysis==0) return 0;
+  mprintf("\nANALYSIS:\n");
+  mprintf("    .... Setting up %i analyses ....\n",Nanalysis);
   for (int ana=0; ana < Nanalysis; ana++) {
     mprintf("    %i: [%s]\n",ana,analysisList[ana]->Name());
     analysisList[ana]->noSetup=false;
@@ -66,7 +68,7 @@ int AnalysisList::Setup(DataSetList *datasetlist) {
     }
   }
      
-  mprintf("    ...................................................\n");
+  mprintf("    ...................................................\n\n");
   return 0;
 }
  

@@ -281,7 +281,10 @@ void PtrajState::Dispatch() {
   }
 
   // Check if command pertains to an action
-  if ( ptrajActionList.Add(A)==0 ) return; 
+  if ( ptrajActionList.Add(A)==0 ) return;
+
+  // Check if command pertains to analysis
+  if ( analysisList.Add(A)==0 ) return; 
 
   mprintf("Warning: Unknown Command %s.\n",A->Command());
 }
@@ -421,6 +424,9 @@ int PtrajState::Run() {
   
   // Initialize actions and set up data set and data file list
   ptrajActionList.Init( &DSL, &refFrames, &DFL, &parmFileList);
+
+  // Set up analysis - checks that datasets are present etc
+  analysisList.Setup(&DSL);
 
   // ========== R U N  P H A S E ==========
   // Loop over every trajectory in trajFileList

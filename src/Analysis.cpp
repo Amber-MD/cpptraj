@@ -7,6 +7,7 @@
 Analysis::Analysis() {
   debug = 0;
   analyzeArg = NULL;
+  noSetup=false;
 }
 
 // DESTRUCTOR
@@ -27,5 +28,11 @@ void Analysis::SetArg(ArgList *argIn) {
 void Analysis::SetDebug(int debugIn) {
   debug = debugIn;
   if (debug>0) mprintf("ANALYSIS DEBUG LEVEL SET TO %i\n",debug);
+}
+
+/* Analysis::Name()
+ */
+char *Analysis::Name() {
+  return analyzeArg->Command();
 }
 

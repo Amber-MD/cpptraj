@@ -22,7 +22,7 @@ Histogram::~Histogram() {
  */
 void Histogram::SetDebug(int debugIn) {
   debug = debugIn;
-  if (debug>0) mprinterr("HISTOGRAM DEBUG LEVEL SET TO %i\n", debug);
+  if (debug>0) mprintf("HISTOGRAM DEBUG LEVEL SET TO %i\n", debug);
 }
 
 /* Histogram::AddDimension()
@@ -42,19 +42,21 @@ int Histogram::AddDimension(char *labelIn, double minIn, double maxIn,
   Dimension[numDimension].max = maxIn;
   Dimension[numDimension].step = stepIn;
   Dimension[numDimension].bins = binsIn;
+  mprintf("\t\t%s: %8.3lf:%8.3lf:%6.2lf:%i\n",Dimension[numDimension].label, 
+          Dimension[numDimension].min, Dimension[numDimension].max, 
+          Dimension[numDimension].step, Dimension[numDimension].bins);
   numDimension++;
-
   // NOTE: Should the following be its own routine?
   // Recalculate offsets for all dimensions starting at farthest coord. This 
   // follows column major ordering. 
   offset=1; 
   for (int i = numDimension-1; i >= 0; i--) {
-    if (debug>0) mprinterr("\tHIST: %s offset is %i\n",Dimension[i].label, offset);
+    if (debug>0) mprintf("\tHIST: %s offset is %i\n",Dimension[i].label, offset);
     Dimension[i].offset=offset;
     offset *= Dimension[i].bins; 
   }
   // offset should now be equal to the total number of bins across all dimensions
-  mprinterr("\tHIST: Total Bins = %i\n",offset);
+  mprintf("\tHIST: Total Bins = %i\n",offset);
   numBins = offset;
   // Allocate space for bins
   Bins = (int*) realloc( Bins, numBins * sizeof(int));
@@ -75,7 +77,7 @@ int Histogram::BinData(double *Data) {
   // Loop over defined dimensions. 
   // Calculate an index into Bins based on precalcd offsets for dimensions.
   // Populate bin.
-  if (debug>1) mprinterr("{");
+  if (debug>1) mprintf("{");
   for (int n=0; n<numDimension; n++) {
     // Check if Data is out of bounds for this coordinate
     if (Data[n]>Dimension[n].max || Data[n]<Dimension[n].min) {
@@ -88,7 +90,7 @@ int Histogram::BinData(double *Data) {
     //modf(coord,&intpart);
     idx=(int) coord;
     //idx=(int) intpart;
-    if (debug>1) mprinterr(" [%s:%lf (%i)],",Dimension[n].label,Data[n],idx);
+    if (debug>1) mprintf(" [%s:%lf (%i)],",Dimension[n].label,Data[n],idx);
 
     /* 
     // Check if i is out of bounds for this dimension 
@@ -105,11 +107,11 @@ int Histogram::BinData(double *Data) {
 
   // If index was successfully calculated, populate bin */
   if (index!=-1) {
-    if (debug>1) mprinterr(" |index=%i",index);
+    if (debug>1) mprintf(" |index=%i",index);
     Bins[index]++;
   }
 
-  if (debug>1) mprinterr("}\n");
+  if (debug>1) mprintf("}\n");
   return 0;
 }
 
@@ -155,9 +157,9 @@ void Histogram::PrintBins(int circular) {
 
   if (debug>0) {
     if (circular)
-      mprinterr("Printing %i bins in circular fashion.\n",numBins);
+      mprintf("Printing %i bins in circular fashion.\n",numBins);
     else
-      mprinterr("Printing %i bins.\n",numBins);
+      mprintf("Printing %i bins.\n",numBins);
   }
 
   // Set format 

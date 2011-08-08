@@ -46,7 +46,8 @@ int Hist::SetupDimension(char *input, DataSetList *datasetlist) {
   }
 
   // First argument should specify dataset name
-  if (debug>0) mprintf("\tHist: Setting up dataset %s\n",arglist->Arg(0));
+  if (debug>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
+                       arglist->Arg(0));
   dset = datasetlist->Get(arglist->Arg(0));
   if (dset == NULL) {
     mprintf("\t      Dataset not found.\n");
@@ -94,7 +95,7 @@ int Hist::SetupDimension(char *input, DataSetList *datasetlist) {
     //}
 
     // Check that min < max
-    if (dmin <= dmax) {
+    if (dmin >= dmax) {
       mprinterr("Error: Hist: Dimension %s: min (%lf) must be less than max (%lf).\n",dset->Name(),
                 dmin,dmax);
       return 1;
@@ -152,6 +153,8 @@ int Hist::SetupDimension(char *input, DataSetList *datasetlist) {
  */
 int Hist::Setup(DataSetList *datasetlist) {
   char *datasetstring;
+
+  debug=1;
   // Keywords
   Temp = analyzeArg->getKeyDouble("free",-1.0);
   if (Temp!=-1.0) calcFreeE = true;

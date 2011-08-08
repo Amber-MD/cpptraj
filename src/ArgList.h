@@ -13,13 +13,16 @@ class ArgList {
     ~ArgList();
     ArgList *Copy();
     void Add(char *);
+
     void print();
     char *ArgLine();
     char *Arg(int);
+    bool ArgIs(int,const char*);
 
     char *Command();
     int CommandIs(const char *);
     int CommandIs(const char *,int);
+
     char *getNextString();
     void CheckForMoreArgs();
     char *getNextMask();
@@ -29,10 +32,13 @@ class ArgList {
     int getKeyInt(const char *, int);
     double getKeyDouble(const char *, double);
     int hasKey(const char *);
+
     ArgList *SplitAt(const char *);
     int ReplaceArg(int, char *);
     char *CopyArg(int);
     void Reset();
     void ResetAll();
+
+    int Nargs() { return nargs; }
 };
 #endif

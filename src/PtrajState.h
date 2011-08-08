@@ -10,6 +10,7 @@
 #include "DataSetList.h"
 #include "DataFileList.h"
 #include "PtrajActionList.h"
+#include "AnalysisList.h"
 #include "ArgList.h"
 class PtrajState {
     TrajinList trajinList;           // List of input trajectory files 
@@ -17,6 +18,7 @@ class PtrajState {
     TrajoutList trajoutList;         // List of output trajectory files 
     ParmFileList parmFileList;       // List of parameter files 
     PtrajActionList ptrajActionList; // List of actions to be performed each frame
+    AnalysisList analysisList;       // List of analyses to be performed on datasets
     DataSetList DSL;                 // List of generated data sets
     DataFileList DFL;                // List of datafiles that data sets will be written to
     ArgList *A;                      // Current argument list

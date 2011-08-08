@@ -14,8 +14,11 @@ class Analysis {
     Analysis();
     virtual ~Analysis();
 
+    bool noSetup;
+
     void SetArg(ArgList *);
     void SetDebug(int);
+    char *Name(); 
   
     virtual int Setup(DataSetList *) {return 1;}
     virtual int Analyze()            {return 1;}

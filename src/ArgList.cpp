@@ -157,6 +157,15 @@ char *ArgList::Arg(int pos) {
   return NULL;
 }
 
+/* ArgList::ArgIs()
+ * Return true if arg at specified position matches input.
+ */
+bool ArgList::ArgIs(int pos, const char *input) {
+  if (pos>-1 && pos<nargs)
+    return ( strcmp(input, arglist[pos])==0 );
+  return false;
+}
+
 /* ArgList::Command()
  * Check the first arg for command
  * Mark and return. Return even if marked.
