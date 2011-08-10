@@ -29,6 +29,7 @@ DataSet::~DataSet() {
 /* DataSet::setFormatString()
  * Set up the output format string for each data element based on the given 
  * dataType and the current width, and precision.
+ * NOTE: Should this be split up and moved into the individual datasets?
  */
 void DataSet::setFormatString() {
   size_t stringWidth = 0;
@@ -60,6 +61,17 @@ void DataSet::setFormatString() {
       stringWidth = wWidth + 4;
       format = (char*) malloc( stringWidth * sizeof(char) );
       sprintf(format, " %%%ii", width);
+      break;
+    case MAP :
+      // Calc num of chars necessary to hold precision
+      pWidth = (precision / 10) + 1;
+      // String fmt: "%w.plf %w.plf %w.plf\0"
+      stringWidth = pWidth + wWidth + 5;
+      stringWidth *= 3;
+      stringWidth++;
+      format = (char*) malloc( stringWidth * sizeof(char) );
+      sprintf(format, "%%%i.%ilf %%%i.%ilf %%%i.%ilf",width,precision,width,precision,
+              width,precision);
       break;
     case UNKNOWN_DATA :
       mprintf("Internal Error: setFormatString called with unknown data type.\n");

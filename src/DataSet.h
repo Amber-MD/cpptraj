@@ -27,7 +27,7 @@
 ///   Xmax:
 ///     Return the largest X/frame value added to set. By convention this should
 ///     be the last value added.
-enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT}; 
+enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT, MAP}; 
 class DataSet {
   protected:
     char *name;        // Name of the dataset

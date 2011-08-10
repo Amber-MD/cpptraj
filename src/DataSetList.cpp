@@ -9,6 +9,7 @@
 #include "doubleDataSet.h"
 #include "stringDataSet.h"
 #include "intDataSet.h"
+#include "mapDataSet.h"
 
 // CONSTRUCTOR
 DataSetList::DataSetList() {
@@ -95,6 +96,7 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
     case DOUBLE       : D = new doubleDataSet(); break;
     case STRING       : D = new stringDataSet(); break;
     case INT          : D = new intDataSet(); break;
+    case MAP          : D = new mapDataSet(); break;
     case UNKNOWN_DATA :
     default           :
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");

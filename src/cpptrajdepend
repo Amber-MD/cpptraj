@@ -12,7 +12,7 @@ ReferenceList.o : ReferenceList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.
 CoordFileList.o : CoordFileList.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CoordFileList.h CpptrajStdio.h Name.h ProgressBar.h PtrajFile.h Range.h TrajectoryFile.h TrajectoryIO.h
 PtrajActionList.o : PtrajActionList.cpp Action.h Action_Angle.h Action_AtomMap.h Action_Average.h Action_Center.h Action_Closest.h Action_DSSP.h Action_Dihedral.h Action_Distance.h Action_Hbond.h Action_Image.h Action_Mask.h Action_NAstruct.h Action_Outtraj.h Action_Pucker.h Action_Radgyr.h Action_Rms2d.h Action_Rmsd.h Action_Strip.h Action_Surf.h AmberParm.h ArgList.h AtomMask.h AxisType.h BaseFileIO.h BoxType.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h PtrajActionList.h PtrajFile.h Range.h TrajectoryFile.h TrajectoryIO.h
 DataSet.o : DataSet.cpp CpptrajStdio.h DataSet.h
-DataSetList.o : DataSetList.cpp CpptrajStdio.h DataSet.h DataSetList.h doubleDataSet.h intDataSet.h stringDataSet.h
+DataSetList.o : DataSetList.cpp CpptrajStdio.h DataSet.h DataSetList.h doubleDataSet.h intDataSet.h mapDataSet.h stringDataSet.h
 vectormath.o : vectormath.cpp CpptrajStdio.h vectormath.h
 FrameList.o : FrameList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajStdio.h Frame.h FrameList.h Name.h ParmFileList.h PtrajFile.h
 Action_Rmsd.o : Action_Rmsd.cpp Action.h Action_Rmsd.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h PtrajFile.h Range.h TrajectoryFile.h TrajectoryIO.h
@@ -73,3 +73,4 @@ Histogram.o : Histogram.cpp CpptrajStdio.h Histogram.h
 Analysis.o : Analysis.cpp Analysis.h ArgList.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h PtrajFile.h
 AnalysisList.o : AnalysisList.cpp Analysis.h AnalysisList.h Analysis_Hist.h ArgList.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Histogram.h PtrajFile.h
 Analysis_Hist.o : Analysis_Hist.cpp Analysis.h Analysis_Hist.h ArgList.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Histogram.h PtrajFile.h
+mapDataSet.o : mapDataSet.cpp CpptrajStdio.h DataSet.h PtrajMpi.h mapDataSet.h
