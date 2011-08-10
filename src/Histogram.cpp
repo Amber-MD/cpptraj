@@ -10,12 +10,16 @@ Histogram::Histogram() {
   Dimension=NULL;
   numDimension=0;
   Bins=NULL;
+  currentBin=0;
+  isCircular=0;
+  BinIndices=NULL;
 }
 
 // DESTRUCTOR
 Histogram::~Histogram() {
   if (Dimension!=NULL) free(Dimension);
   if (Bins!=NULL) free(Bins);
+  if (BinIndices!=NULL) free(BinIndices);
 }
 
 /* Histogram::SetDebug()
@@ -28,6 +32,7 @@ void Histogram::SetDebug(int debugIn) {
 /* Histogram::AddDimension()
  * Add a dimension to the histogram with the given min, max, step,
  * and number of bins.
+ * NOTE: NO ERROR CHECKING IS PERFORMED.
  */
 int Histogram::AddDimension(char *labelIn, double minIn, double maxIn, 
                             double stepIn, int binsIn) {
@@ -42,21 +47,23 @@ int Histogram::AddDimension(char *labelIn, double minIn, double maxIn,
   Dimension[numDimension].max = maxIn;
   Dimension[numDimension].step = stepIn;
   Dimension[numDimension].bins = binsIn;
-  mprintf("\t\t%s: %8.3lf:%8.3lf:%6.2lf:%i\n",Dimension[numDimension].label, 
-          Dimension[numDimension].min, Dimension[numDimension].max, 
-          Dimension[numDimension].step, Dimension[numDimension].bins);
+  if (debug>0) {
+    mprintf("\t\t%s: %8.3lf:%8.3lf:%6.2lf:%i\n",Dimension[numDimension].label, 
+            Dimension[numDimension].min, Dimension[numDimension].max, 
+            Dimension[numDimension].step, Dimension[numDimension].bins);
+  }
   numDimension++;
   // NOTE: Should the following be its own routine?
   // Recalculate offsets for all dimensions starting at farthest coord. This 
   // follows column major ordering. 
   offset=1; 
   for (int i = numDimension-1; i >= 0; i--) {
-    if (debug>0) mprintf("\tHIST: %s offset is %i\n",Dimension[i].label, offset);
+    if (debug>0) mprintf("\tHistogram: %s offset is %i\n",Dimension[i].label, offset);
     Dimension[i].offset=offset;
     offset *= Dimension[i].bins; 
   }
   // offset should now be equal to the total number of bins across all dimensions
-  mprintf("\tHIST: Total Bins = %i\n",offset);
+  mprintf("\tHistogram: Total Bins = %i\n",offset);
   numBins = offset;
   // Allocate space for bins
   Bins = (int*) realloc( Bins, numBins * sizeof(int));
@@ -74,10 +81,14 @@ int Histogram::BinData(double *Data) {
   int index=0,idx;
   double coord;
 
+  // DEBUG
+  mprintf("Binning [");
+  for (int i=0; i<numDimension; i++) mprintf("%lf,",Data[i]);
+  mprintf("]\n");
   // Loop over defined dimensions. 
   // Calculate an index into Bins based on precalcd offsets for dimensions.
   // Populate bin.
-  if (debug>1) mprintf("{");
+  if (debug>1) mprintf("\t{");
   for (int n=0; n<numDimension; n++) {
     // Check if Data is out of bounds for this coordinate
     if (Data[n]>Dimension[n].max || Data[n]<Dimension[n].min) {
@@ -93,9 +104,9 @@ int Histogram::BinData(double *Data) {
     if (debug>1) mprintf(" [%s:%lf (%i)],",Dimension[n].label,Data[n],idx);
 
     /* 
-    // Check if i is out of bounds for this dimension 
-    if ( (i<0)||(i >= Dimension[n].numBins) ) {
-      if (debug>1) fprintf(stdout,"Out of bounds.\n");
+    // Check if idx is out of bounds for this dimension 
+    if ( (idx<0)||(idx >= Dimension[n].numBins) ) {
+      if (debug>1) mprintf("Out of bounds.\n");
       index=-1;
       break;
     }
@@ -140,11 +151,13 @@ void Histogram::count2coord(int *count) {
  * landscape will be printed.
  * if SD is not NULL, the standard deviation array will also be printed.
  */
-void Histogram::PrintBins(int circular, bool gnuplot) {
+void Histogram::PrintBins(bool circularIn, bool gnuplot) {
   int *count,idx,index,ndim;
+  int circular = 0;
   bool loop;
   //int *iBins;
   //double *fBins;
+  if (circularIn) circular=1;
 
   //iBins=NULL; fBins=NULL;
 
@@ -176,13 +189,13 @@ void Histogram::PrintBins(int circular, bool gnuplot) {
     index=0;
     // Calculate index, converting wrapped indices to actual indices 
     for (int n=0; n<numDimension; n++) {
-      //fprintf(stdout,"%i ",count[n]);
+      mprinterr(" %i",count[n]);
       if (count[n]==-1) idx=Dimension[n].bins-1;
       else if (count[n]==Dimension[n].bins) idx=0;
       else idx=count[n];
       index+=(idx*Dimension[n].offset);
     }
-    //fprintf(stdout," = %i\n",index);
+    mprinterr(" = %i\n",index);
 
     // If we dont care about zero bins or bin pop > 0, output
     //if (S->nozero==0 || S->Bins[index]!=0) {
@@ -224,3 +237,92 @@ void Histogram::PrintBins(int circular, bool gnuplot) {
   free(count);
 }
 
+/* Histogram::BinStart()
+ * Set current bin to 0 and initialize indices. If isCircularIn is true the
+ * bin indices will wrap in each dimension.
+ */
+void Histogram::BinStart(bool isCircularIn) {
+  currentBin=0;
+  if (isCircularIn) 
+    isCircular=1;
+  else
+    isCircular=0;
+  BinIndices = (int*) realloc( BinIndices, numDimension * sizeof(int));
+  if (isCircular) 
+    for (int dim=0; dim < numDimension; dim++) BinIndices[dim]=-1;
+  else
+    for (int dim=0; dim < numDimension; dim++) BinIndices[dim]=0;
+}
+
+/* Histogram::CurrentBinData()
+ * Return the data at current bin.
+ */
+int Histogram::CurrentBinData() {
+  int index, idx;
+
+  if (isCircular) {
+  // If circular, some bins will be accessed more than once so the current 
+  // bin must be calculated from indices.
+    index=0;
+    // Calculate index, converting wrapped indices to actual indices 
+    for (int n=0; n<numDimension; n++) {
+      mprinterr(" %i",BinIndices[n]);
+      if (BinIndices[n]==-1) idx=Dimension[n].bins-1;
+      else if (BinIndices[n]==Dimension[n].bins) idx=0;
+      else idx=BinIndices[n];
+      index+=(idx*Dimension[n].offset);
+    }
+    mprinterr(" = %i\n",index);
+    currentBin = index;
+  }
+  return Bins[currentBin]; 
+}
+
+/* Histogram::CurrentBinCoord()
+ * Set numDimension coordinates corresponding to the current bin indices.
+ */
+void Histogram::CurrentBinCoord(double *coord) {
+  for (int i=0; i<numDimension; i++)
+    coord[i] = (BinIndices[i]*Dimension[i].step)+Dimension[i].min;
+}
+
+/* Histogram::NextBin()
+ * Increment bin and indices. Return 1 if final bin reached.
+ */
+int Histogram::NextBin() {
+  int dim;
+
+  // Increment bin # - only matters if not circular.
+  currentBin++;
+
+  // Increment highest order coord
+  BinIndices[numDimension-1]++;
+  // Increment other coords if necessary
+  for (dim=numDimension-1; dim>0; dim--) {
+    if (BinIndices[dim]==Dimension[dim].bins+isCircular) {
+      BinIndices[dim]=0-isCircular;
+      BinIndices[dim-1]++;
+    }
+  }
+
+  // If last bin, return 1
+  if (BinIndices[0] == Dimension[dim].bins+isCircular) return 1;
+
+  return 0;
+}
+
+/* Histogram::NumBins1D()
+ */
+int Histogram::NumBins1D() {
+  if (numDimension<1) return 0;
+  return Dimension[0].bins;
+}
+
+/* Histogram::Info()
+ */
+void Histogram::Info() {
+  int sumBin = 0;
+  for (int bin=0; bin < numBins; bin++)
+    sumBin += Bins[bin];
+  mprintf("HISTOGRAM: Sum of all bins is %i\n",sumBin);
+}

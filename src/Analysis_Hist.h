@@ -14,19 +14,21 @@ class Hist : public Analysis {
     bool normalize;
     bool gnuplot;
     int Ndata;
+    char *outfilename;
 
     double min;
     double max;
     double step;
     int bins;
+    DataSetList histout;
 
-    int SetupDimension(char *,DataSetList *);
+    int setupDimension(char *,DataSetList *);
   public :
     Hist();
     ~Hist();
 
     int Setup(DataSetList*);
     int Analyze();
-    //void Print();
+    void Print(DataFileList*);
 };
 #endif

@@ -494,7 +494,7 @@ int PtrajState::Run() {
   DSL.Info();
 
   // DataSet Analysis
-  analysisList.Analyze();
+  analysisList.Analyze(&DFL);
 
   // Process any datafile commands
   ProcessDataFileCmd();

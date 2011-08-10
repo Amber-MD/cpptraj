@@ -63,7 +63,7 @@ int AnalysisList::Setup(DataSetList *datasetlist) {
     mprintf("    %i: [%s]\n",ana,analysisList[ana]->Name());
     analysisList[ana]->noSetup=false;
     if (analysisList[ana]->Setup(datasetlist)) {
-      mprintf("    Error setting up analysis %i - skipping.\n",ana);
+      mprintf("    Error setting up analysis %i [%s] - skipping.\n",ana,analysisList[ana]->Name());
       analysisList[ana]->noSetup=true;
     }
   }
@@ -74,15 +74,16 @@ int AnalysisList::Setup(DataSetList *datasetlist) {
 
 /* AnalysisList::Analyze()
  */
-void AnalysisList::Analyze() {
+void AnalysisList::Analyze(DataFileList *datafilelist) {
   if (Nanalysis==0) return;
   mprintf("\nANALYSIS:\n");
   mprintf("    .... Performing %i analyses ....\n",Nanalysis);
   for (int ana=0; ana < Nanalysis; ana++) {
     mprintf("    %i: [%s]\n",ana,analysisList[ana]->Name());
-    if (!analysisList[ana]->noSetup)
-      analysisList[ana]->Analyze(); 
+    if (!analysisList[ana]->noSetup) {
+      if (analysisList[ana]->Analyze()==0) analysisList[ana]->Print(datafilelist); 
+      // NOTE: Move print function ??
+    }
   }
   mprintf("    ...................................................\n\n");
 }
- 
