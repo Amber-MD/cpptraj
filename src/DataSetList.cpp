@@ -6,7 +6,7 @@
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
 // Data types go here
-#include "mapDataSet.h"
+#include "doubleDataSet.h"
 #include "stringDataSet.h"
 #include "intDataSet.h"
 
@@ -92,7 +92,7 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
     return NULL;
   }
   switch (inType) {
-    case DOUBLE       : D = new mapDataSet(); break;
+    case DOUBLE       : D = new doubleDataSet(); break;
     case STRING       : D = new stringDataSet(); break;
     case INT          : D = new intDataSet(); break;
     case UNKNOWN_DATA :
@@ -142,7 +142,7 @@ DataSet *DataSetList::AddIdx(dataType inType, char *nameIn, int idxIn) {
 
   // Allocate dataset type
   switch (inType) {
-    case DOUBLE       : D = new mapDataSet(); break;
+    case DOUBLE       : D = new doubleDataSet(); break;
     case STRING       : D = new stringDataSet(); break;
     case INT          : D = new intDataSet(); break;
     case UNKNOWN_DATA :

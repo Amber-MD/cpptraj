@@ -6,7 +6,7 @@ SOURCE=main.cpp AmberParm.cpp \
        Action_Dihedral.cpp DataFile.cpp DataFileList.cpp \
        PtrajFile.cpp PDBfileRoutines.cpp Action_AtomMap.cpp BaseFileIO.cpp StdFile.cpp \
        GzipFile.cpp Action_Angle.cpp PtrajMpi.c MpiFile.cpp \
-       Action_Strip.cpp Action.cpp AtomMask.cpp mapDataSet.cpp \
+       Action_Strip.cpp Action.cpp AtomMask.cpp doubleDataSet.cpp \
        Action_DSSP.cpp stringDataSet.cpp Action_Center.cpp Bzip2File.cpp \
        Action_Hbond.cpp intDataSet.cpp Action_Image.cpp Action_Surf.cpp \
        Action_Radgyr.cpp Action_Mask.cpp Action_Closest.cpp \
@@ -28,7 +28,7 @@ OBJECTS=main.o AmberParm.o \
         Action_Dihedral.o DataFile.o DataFileList.o \
         PtrajFile.o PDBfileRoutines.o Action_AtomMap.o BaseFileIO.o StdFile.o \
         GzipFile.o Action_Angle.o PtrajMpi.o MpiFile.o \
-        Action_Strip.o Action.o AtomMask.o mapDataSet.o \
+        Action_Strip.o Action.o AtomMask.o doubleDataSet.o \
         Action_DSSP.o stringDataSet.o Action_Center.o Bzip2File.o \
         Action_Hbond.o intDataSet.o Action_Image.o Action_Surf.o \
         Action_Radgyr.o Action_Mask.o Action_Closest.o \
@@ -50,7 +50,7 @@ HEADERS=AmberParm.h \
         Action_Dihedral.h DataFile.h DataFileList.h \
         PtrajFile.h PDBfileRoutines.h Action_AtomMap.h BaseFileIO.h StdFile.h \
         GzipFile.h Action_Angle.h PtrajMpi.h MpiFile.h \
-        Action_Strip.h AtomMask.h mapDataSet.h \
+        Action_Strip.h AtomMask.h doubleDataSet.h \
         Action_DSSP.h stringDataSet.h Action_Center.h Bzip2File.h \
         Action_Hbond.h intDataSet.h Action_Image.h Action_Surf.h \
         Action_Radgyr.h Action_Mask.h Action_Closest.h \

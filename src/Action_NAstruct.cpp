@@ -18,7 +18,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "vectormath.h"
-#include "mapDataSet.h"
+#include "doubleDataSet.h"
 #include <cmath>
 #include <cstdio> // sprintf
 
@@ -233,12 +233,12 @@ int NAstruct::determineBasePairing() {
     // For each base pair, set up a dataset for each structural parameter
     // if one is not already set up.
     if ( base2 > (int)SHEAR.size() ) {
-      SHEAR.push_back( new mapDataSet() );
-      STRETCH.push_back( new mapDataSet() );
-      STAGGER.push_back( new mapDataSet() );
-      BUCKLE.push_back( new mapDataSet() );
-      PROPELLER.push_back( new mapDataSet() );
-      OPENING.push_back( new mapDataSet() );
+      SHEAR.push_back( new doubleDataSet() );
+      STRETCH.push_back( new doubleDataSet() );
+      STAGGER.push_back( new doubleDataSet() );
+      BUCKLE.push_back( new doubleDataSet() );
+      PROPELLER.push_back( new doubleDataSet() );
+      OPENING.push_back( new doubleDataSet() );
       // Also set up a place to hold the base pair axes
       BasePairAxes.push_back( new AxisType() );
       BasePairAxes[base2-1]->SetPrincipalAxes();
@@ -259,12 +259,12 @@ int NAstruct::determineBasePairing() {
   //mprintf("DEBUG: SHIFT.size() = %i\n",(int)SHIFT.size());
   for (base1=0; base1 < Nbp-1; base1++) {
     if ( base1+1 > (int)SHIFT.size() ) {
-      SHIFT.push_back( new mapDataSet() );
-      SLIDE.push_back( new mapDataSet() );
-      RISE.push_back( new mapDataSet() );
-      TILT.push_back( new mapDataSet() );
-      ROLL.push_back( new mapDataSet() );
-      TWIST.push_back( new mapDataSet() );
+      SHIFT.push_back( new doubleDataSet() );
+      SLIDE.push_back( new doubleDataSet() );
+      RISE.push_back( new doubleDataSet() );
+      TILT.push_back( new doubleDataSet() );
+      ROLL.push_back( new doubleDataSet() );
+      TWIST.push_back( new doubleDataSet() );
     }
     // Print base pair step info
     if (debug>1) mprintf("        BP step %i: \n",base1+1);
