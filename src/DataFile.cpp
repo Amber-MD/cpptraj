@@ -5,6 +5,21 @@
 #include "DataFile.h"
 #include "CpptrajStdio.h"
 
+// CONSTRUCTOR
+DataFile::DataFile() {
+  xlabel=NULL;
+  ylabel=NULL;
+  noEmptyFrames=false;
+  noXcolumn=false;
+  filename=NULL;
+  SetList=NULL;
+  Nsets=0;
+  filename=NULL;
+  debug=0;
+  isInverted=false;
+  maxFrames = 0;
+}
+
 // CONSTRUCTOR - Arg is datafile name
 DataFile::DataFile(char *nameIn) {
   // Default xlabel value is Frame

@@ -24,6 +24,7 @@ class DataFile {
   public:
     char *filename;
 
+    DataFile();
     DataFile(char *);
     ~DataFile();
 
