@@ -1,5 +1,5 @@
-#ifndef INC_MAPDATASET_H
-#define INC_MAPDATASET_H
+#ifndef INC_DOUBLEDATASET_H
+#define INC_DOUBLEDATASET_H
 /// Class: doubleDataSet
 /// Use the C++ STL map class instead of a straight array of doubles. This
 /// will allow Y values with non-consecutive X values to be stored. This is the
