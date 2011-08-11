@@ -424,6 +424,7 @@ void DataFile::WriteGrace(PtrajFile *outfile) {
   int lineSize=0;;
   int currentLineSize=0;
   char *buffer;
+  double xcoord;
 
   // Grace Header
   outfile->IO->Printf("@with g0\n");
@@ -457,8 +458,9 @@ void DataFile::WriteGrace(PtrajFile *outfile) {
       if (noEmptyFrames) {
         if ( SetList[set]->isEmpty(frame) ) continue; 
       }
+      xcoord = (xstep * frame) + xmin;
       SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%8i%s\n",frame+OUTPUTFRAMESHIFT,buffer);
+      outfile->IO->Printf("%lf %s\n",xcoord,buffer);
     }
   }
   if (buffer!=NULL) free(buffer);
@@ -538,7 +540,6 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
   int set, frame;
   int lineSize=0;
   int currentLineSize=0;
-  //float Fset;
   double xcoord, ycoord;
 
   // Calculate maximum expected size for output line.
@@ -596,29 +597,28 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
 
   // Data
   for (frame=0; frame < maxFrames; frame++) {
-    //Fset = OUTPUTFRAMESHIFT;
-    //Fset -= 0.5;
     xcoord = (xstep * frame) + xmin;
     for (set=0; set < Nsets; set++) {
       ycoord = (ystep * set) + ymin;
       SetList[set]->Write(buffer,frame);
       outfile->IO->Printf("%lf %lf %s\n",xcoord,ycoord,buffer);
-      //Fset++;
     }
-    // Print one empty row for gnuplot pm3d
-    ycoord = (ystep * set) + ymin;
-    outfile->IO->Printf("%lf %lf %8i\n\n",xcoord,ycoord,0);
+    if (!useMap) {
+      // Print one empty row for gnuplot pm3d without map
+      ycoord = (ystep * set) + ymin;
+      outfile->IO->Printf("%lf %lf %8i\n",xcoord,ycoord,0);
+    }
+    outfile->IO->Printf("\n");
   }
-  // Print one empty set for gnuplot pm3d
-  //Fset = OUTPUTFRAMESHIFT;
-  //Fset -= 0.5;
-  xcoord = (xstep * frame) + xmin;
-  for (set=0; set<=Nsets; set++) {
-    ycoord = (ystep * set) + ymin;
-    outfile->IO->Printf("%lf %lf %8i\n",xcoord,ycoord,0);
-    //Fset++;
+  if (!useMap) {
+    // Print one empty set for gnuplot pm3d without map
+    xcoord = (xstep * frame) + xmin;
+    for (set=0; set<=Nsets; set++) {
+      ycoord = (ystep * set) + ymin;
+      outfile->IO->Printf("%lf %lf %8i\n",xcoord,ycoord,0);
+    }
+    outfile->IO->Printf("\n");
   }
-  outfile->IO->Printf("\n");
 
   // End and Pause command
   outfile->IO->Printf("end\npause -1\n");
