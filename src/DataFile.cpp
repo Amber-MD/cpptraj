@@ -18,6 +18,13 @@ DataFile::DataFile() {
   debug=0;
   isInverted=false;
   maxFrames = 0;
+
+  xmin=1;
+  xstep=1;
+  ymin=1;
+  ystep=1;
+  useMap=false;
+  printLabels=true;
 }
 
 // CONSTRUCTOR - Arg is datafile name
@@ -38,6 +45,12 @@ DataFile::DataFile(char *nameIn) {
   debug=0;
   isInverted=false;
   maxFrames = 0;
+  xmin=1;
+  xstep=1;
+  ymin=1;
+  ystep=1;
+  useMap=false;
+  printLabels=true;
 }
 
 // DESTRUCTOR
@@ -93,6 +106,34 @@ void DataFile::SetYlabel(char *labelIn) {
  */
 void DataFile::SetInverted() {
   isInverted=true;
+}
+
+/* DataFile::SetCoordMinStep()
+ * For use with certain types of output.
+ */
+void DataFile::SetCoordMinStep(double xminIn, double xstepIn, 
+                               double yminIn, double ystepIn) {
+  xmin = xminIn;
+  xstep = xstepIn;
+  ymin = yminIn;
+  ystep = ystepIn;
+}
+
+/* DataFile::SetMap()
+ * Gnuplot only currently. Turn off the cornerstocolor option, i.e.
+ * gnuplot will be directed to generated a true interpolated contour
+ * map.
+ */
+void DataFile::SetMap() {
+  useMap=true;
+}
+
+/* DataFile::SetNoLabels()
+ * Gnuplot only currently. Do not print y axis labels (dataset names). This
+ * will automatically be turned off if the # labels > 30.
+ */
+void DataFile::SetNoLabels() {
+  printLabels=false;
 }
 
 /* DataFile::SetPrecision()
@@ -497,7 +538,8 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
   int set, frame;
   int lineSize=0;
   int currentLineSize=0;
-  float Fset;
+  //float Fset;
+  double xcoord, ycoord;
 
   // Calculate maximum expected size for output line.
   for (set=0; set < Nsets; set++) {
@@ -512,54 +554,69 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
   }
   buffer = (char*) malloc(lineSize * sizeof(char));
 
-  // Header
+  if (!useMap)
+    outfile->IO->Printf("set pm3d map corners2color c1\n");
+  else
+    outfile->IO->Printf("set pm3d map\n");
+
   // Turn off labels if number of sets is too large since they 
   // become unreadable. Should eventually have some sort of 
   // autotick option.
-  if (Nsets > 30 ) {
+  if (printLabels && Nsets > 30 ) {
     mprintf("Warning: %s: gnuplot - number of sets %i > 30, turning off Y labels.\n",
             filename,Nsets);
-    outfile->IO->Printf("set pm3d map corners2color c1\n");
-  } else {
-    outfile->IO->Printf("set pm3d map corners2color c1\n");
+    printLabels=false;
+  }
+
+  if (printLabels) {
     // NOTE: Add option to turn on grid later?
     //outfile->IO->Printf("set pm3d map hidden3d 100 corners2color c1\n");
     //outfile->IO->Printf("set style line 100 lt 2 lw 0.5\n");
     // Set up Y labels
-    outfile->IO->Printf("set ytics 1,1,%i\nset ytics(",Nsets);
+    outfile->IO->Printf("set ytics %lf,%lf\nset ytics(",ymin,ystep);
     for (set=0; set<Nsets; set++) {
       if (set>0) outfile->IO->Printf(",");
-      outfile->IO->Printf("\"%s\" %i",SetList[set]->Name(),set+1);
+      ycoord = (ystep * set) + ymin;
+      outfile->IO->Printf("\"%s\" %lf",SetList[set]->Name(),ycoord);
     }
     outfile->IO->Printf(")\n");
   }
+
+  // Set axis labels
   outfile->IO->Printf("set xlabel \"%s\"\n",xlabel);
   outfile->IO->Printf("set ylabel \"%s\"\n",ylabel);
   // Make Yrange +1 and -1 so entire grid can be seen
-  outfile->IO->Printf("set yrange [0.0:%i.0]\n",Nsets+OUTPUTFRAMESHIFT);
+  ycoord = (ystep * Nsets) + ymin;
+  outfile->IO->Printf("set yrange [%lf:%lf]\n",ymin-ystep,ycoord+ystep);
   // Make Xrange +1 and -1 as well
-  outfile->IO->Printf("set xrange [0.0:%i.0]\n",maxFrames+OUTPUTFRAMESHIFT);
+  xcoord = (xstep * maxFrames) + xmin;
+  outfile->IO->Printf("set xrange [%lf:%lf]\n",xmin-xstep,xcoord+xstep);
   // Plot command
   outfile->IO->Printf("splot \"-\" with pm3d title \"%s\"\n",filename);
 
   // Data
   for (frame=0; frame < maxFrames; frame++) {
-    Fset = OUTPUTFRAMESHIFT;
+    //Fset = OUTPUTFRAMESHIFT;
     //Fset -= 0.5;
+    xcoord = (xstep * frame) + xmin;
     for (set=0; set < Nsets; set++) {
+      ycoord = (ystep * set) + ymin;
       SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%8i %8.1f %s\n",frame+OUTPUTFRAMESHIFT,Fset,buffer);
-      Fset++;
+      outfile->IO->Printf("%lf %lf %s\n",xcoord,ycoord,buffer);
+      //Fset++;
     }
     // Print one empty row for gnuplot pm3d
-    outfile->IO->Printf("%8i %8.1f %8i\n\n",frame+OUTPUTFRAMESHIFT,Fset,0);
+    ycoord = (ystep * set) + ymin;
+    outfile->IO->Printf("%lf %lf %8i\n\n",xcoord,ycoord,0);
   }
   // Print one empty set for gnuplot pm3d
-  Fset = OUTPUTFRAMESHIFT;
+  //Fset = OUTPUTFRAMESHIFT;
   //Fset -= 0.5;
+  xcoord = (xstep * frame) + xmin;
   for (set=0; set<=Nsets; set++) {
-    outfile->IO->Printf("%8i %8.1f %8i\n",maxFrames+OUTPUTFRAMESHIFT,Fset,0);
-    Fset++;
+    ycoord = (ystep * set) + ymin;
+    outfile->IO->Printf("%lf %lf %8i\n",xcoord,ycoord,0);
+    //Fset++;
   }
   outfile->IO->Printf("\n");
 
@@ -568,4 +625,5 @@ void DataFile::WriteGnuplot(PtrajFile *outfile) {
   // Free buffer
   if (buffer!=NULL) free(buffer);
 }
+
 

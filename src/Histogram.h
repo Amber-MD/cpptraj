@@ -42,6 +42,7 @@ class Histogram {
     int NumBins1D();                // Only used for converting to datafile 2D format
     double Step(int);               // Return step for the given dimension
     double Min(int);                // Return min for the given dimension
+    char *Label(int);               // Return label for the given dimension
 
     void Info();
 

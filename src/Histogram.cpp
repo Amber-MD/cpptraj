@@ -334,6 +334,14 @@ if (dim < 0 || dim >= numDimension) return -1.0;
   return Dimension[dim].min;
 }
 
+/* Histogram::Label()
+ * Return label for given dimension.
+ */
+char *Histogram::Label(int dim) {
+  if (dim < 0 || dim >= numDimension) return NULL;
+  return Dimension[dim].label;
+}
+
 /* Histogram::Info()
  */
 void Histogram::Info() {

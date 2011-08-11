@@ -292,6 +292,11 @@ void Hist::Print(DataFileList *datafilelist) {
   }
 
   outfile->SetNoXcol();
+  outfile->SetCoordMinStep(hist.Min(0),hist.Step(0),hist.Min(1),hist.Step(1));
+  outfile->SetXlabel(hist.Label(0));
+  outfile->SetYlabel(hist.Label(1));
+  outfile->SetMap();
+  outfile->SetNoLabels();
   //hist.PrintBins(false,false);
   free(coord);
 }

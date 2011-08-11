@@ -16,6 +16,14 @@ class DataFile {
     char *ylabel;       // Y axis label for grace plots
     int maxFrames;      // The largest X value of any sets in SetList
 
+    // The following are currently used for gnuplot output only
+    double xmin;
+    double xstep;
+    double ymin;
+    double ystep;
+    bool useMap;
+    bool printLabels;
+
     void WriteGrace(PtrajFile *);
     void WriteGraceInverted(PtrajFile *);
     void WriteData(PtrajFile *);
@@ -35,6 +43,9 @@ class DataFile {
     void SetNoXcol();
     void SetPrecision(char *, int, int);
     void SetNoEmptyFrames();
+    void SetCoordMinStep(double,double,double,double);
+    void SetMap();
+    void SetNoLabels();
 
     int AddSet(DataSet *);
     int NameIs(char *);
