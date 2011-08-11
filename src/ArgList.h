@@ -27,6 +27,7 @@ class ArgList {
     void CheckForMoreArgs();
     char *getNextMask();
     int getNextInteger(int );
+    double getNextDouble(double);
     char *getKeyString(const char *, char *);
     int getKeyIndex(char *);
     int getKeyInt(const char *, int);

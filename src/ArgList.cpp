@@ -272,6 +272,25 @@ int ArgList::getNextInteger(int def) {
   return def;
 }
 
+/* ArgList::getNextDouble()
+ * Convert next unmarked string to double and return, otherwise return def
+ */
+double ArgList::getNextDouble(double def) {
+  for (int i=0; i<nargs; i++)
+    if (marked[i]!='T') {
+      // Check that first char is indeed a digit, '.', or '-', if not then continue
+      if (!isdigit(arglist[i][0]) && arglist[i][0]!='.' && arglist[i][0]!='-' ) {
+        //mprintf("WARNING: getKeyDouble: arg (%s) does not appear to be a number!\n",
+        //        arglist[i]);
+        continue;
+      }
+      marked[i]='T';
+      return atof(arglist[i]);
+    }
+  return def;
+}
+
+
 /* ArgList::getKeyString()
  * Search for unmarked key in arglist, return if found, otherwise return def
  */
