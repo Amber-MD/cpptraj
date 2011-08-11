@@ -18,6 +18,7 @@ DataSetList::DataSetList() {
   Ndata=0;
   maxFrames=0;
   debug=0;
+  currentSet=0;
 }
 
 // DESTRUCTOR
