@@ -21,7 +21,7 @@ char *BufferToDouble(char *buffer, double *X, int N, int width) {
   for (atom=0; atom<N; atom++) {
     i=0;
     while (i<width) {
-      if (*ptr=='\n') ptr++;
+      if (*ptr=='\n' || *ptr=='\r') ptr++;
       if (*ptr=='*') return NULL;//{free(number); return 1;}
       number[i++]=*ptr;
       ptr++;
