@@ -33,6 +33,7 @@ class ArgList {
     double getKeyDouble(const char *, double);
     int hasKey(const char *);
 
+    int Contains(const char *);
     ArgList *SplitAt(const char *);
     int ReplaceArg(int, char *);
     char *CopyArg(int);
