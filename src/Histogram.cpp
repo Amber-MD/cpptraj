@@ -352,6 +352,14 @@ if (dim < 0 || dim >= numDimension) return -1.0;
   return Dimension[dim].min;
 }
 
+/* Histogram::Max() 
+ * Return max value for given dimension.
+ */
+double Histogram::Max(int dim) {
+if (dim < 0 || dim >= numDimension) return -1.0;
+  return Dimension[dim].max;
+}
+
 /* Histogram::Label()
  * Return label for given dimension.
  */

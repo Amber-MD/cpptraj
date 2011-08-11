@@ -47,6 +47,7 @@ class Histogram {
     int NBins(int);                 // Return number of bins for given dimension
     double Step(int);               // Return step for the given dimension
     double Min(int);                // Return min for the given dimension
+    double Max(int);                // Return max for the given dimension
     char *Label(int);               // Return label for the given dimension
     void Info();
 
