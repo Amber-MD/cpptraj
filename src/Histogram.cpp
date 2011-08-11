@@ -31,6 +31,22 @@ void Histogram::SetDebug(int debugIn) {
 }
 
 /* Histogram::AddDimension()
+ * Add a dimension to the histogram with the given min, max, and step.
+ * Number of bins will be calculated.
+ */
+int Histogram::AddDimension(char *labelIn, double minIn, double maxIn, double stepIn) {
+  if (debug>0) mprintf("\t\tCalculating bins.\n");
+  if (stepIn<=0) {
+    mprinterr("Error: Histogram: Dimension %s: step <=0!\n",labelIn);
+    return 1;
+  }
+  double temp = ((maxIn - minIn) / stepIn);
+  temp = ceil(temp);
+  int dbins = (int) temp;
+  return ( AddDimension(labelIn,minIn,maxIn,stepIn,dbins) );
+}
+
+/* Histogram::AddDimension()
  * Add a dimension to the histogram with the given min, max, step,
  * and number of bins.
  * NOTE: NO ERROR CHECKING IS PERFORMED.
@@ -366,7 +382,7 @@ int Histogram::CalcFreeE(double T, int refbin) {
   binmax = Bins[0];
   for (int bin=1; bin < numBins; bin++) 
     if (Bins[bin] > binmax) binmax = Bins[bin];
-  mprintf("\t           Bins max is %i\n",binmax);
+  mprintf("\t           Bins max is %.0lf\n",binmax);
   if (binmax==0) {
     mprinterr("Histogram: Cannot calc free E, no bins populated!\n");
     return 1;

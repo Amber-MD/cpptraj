@@ -32,6 +32,8 @@ class Histogram {
 
     int AddDimension(char*,double,double,double,int); // Add dimension to histogram with given
                                                       // min, max, step, and bins.
+    int AddDimension(char*,double,double,double); // Add dimension to histogram with given
+                                                  // min, max, and step. Bins will be calcd.
     int BinData(double*); // Bin the given data. Dimension must be the same as what
                           // the histogram has been set up for.
     int CalcFreeE(double,int);
