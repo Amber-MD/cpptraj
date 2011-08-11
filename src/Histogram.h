@@ -40,6 +40,8 @@ class Histogram {
     int CurrentBinData();           // Return value of current bin
     int NextBin();                  // Increment bin and indices
     int NumBins1D();                // Only used for converting to datafile 2D format
+    double Step(int);               // Return step for the given dimension
+    double Min(int);                // Return min for the given dimension
 
     void Info();
 

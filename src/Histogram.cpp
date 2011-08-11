@@ -318,6 +318,22 @@ int Histogram::NumBins1D() {
   return Dimension[0].bins;
 }
 
+/* Histogram::Step() 
+ * Return step value for given dimension.
+ */
+double Histogram::Step(int dim) {
+  if (dim < 0 || dim >= numDimension) return -1.0;
+  return Dimension[dim].step;
+}
+
+/* Histogram::Min()
+ * Return min value for given dimension.
+ */
+double Histogram::Min(int dim) {
+if (dim < 0 || dim >= numDimension) return -1.0;
+  return Dimension[dim].min;
+}
+
 /* Histogram::Info()
  */
 void Histogram::Info() {
