@@ -79,8 +79,8 @@ void AnalysisList::Analyze(DataFileList *datafilelist) {
   mprintf("\nANALYSIS:\n");
   mprintf("    .... Performing %i analyses ....\n",Nanalysis);
   for (int ana=0; ana < Nanalysis; ana++) {
-    mprintf("    %i: [%s]\n",ana,analysisList[ana]->Name());
     if (!analysisList[ana]->noSetup) {
+      mprintf("    %i: [%s]\n",ana,analysisList[ana]->Name());
       if (analysisList[ana]->Analyze()==0) analysisList[ana]->Print(datafilelist); 
       // NOTE: Move print function ??
     }
