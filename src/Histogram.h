@@ -35,6 +35,7 @@ class Histogram {
     int BinData(double*); // Bin the given data. Dimension must be the same as what
                           // the histogram has been set up for.
     int CalcFreeE(double,int);
+    int Normalize();
     void PrintBins(bool,bool);
 
     void BinStart(bool);            // Set current bin and indices to 0

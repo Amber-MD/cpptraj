@@ -350,7 +350,7 @@ void Histogram::Info() {
   double sumBin = 0;
   for (int bin=0; bin < numBins; bin++)
     sumBin += Bins[bin];
-  mprintf("\tHistogram: Sum of all bins is %.0lf\n",sumBin);
+  mprintf("\tHistogram: Sum of all bins is %lf\n",sumBin);
 }
 
 /* Histogram::CalcFreeE()
@@ -400,3 +400,22 @@ int Histogram::CalcFreeE(double T, int refbin) {
 
   return 0;
 }
+
+/* Histogram::Normalize()
+ * Normalize bins so that sum over all bins is 1.0
+ */
+int Histogram::Normalize() {
+  double sum = 0.0;
+  mprintf("\tHistogram: Normalizing bin populations to 1.0\n");
+  for (int i=0; i < numBins; i++)
+    sum += Bins[i];
+  mprintf("\t           Sum over all bins is %lf\n",sum);
+  if (sum == 0.0) {
+    mprinterr("Error: Histogram::Normalize: Sum over bin populations is 0.0\n");
+    return 1;
+  }
+  for (int i=0; i < numBins; i++)
+    Bins[i] /= sum;
+  return 0;
+}
+
