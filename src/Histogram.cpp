@@ -1,6 +1,7 @@
 #include "Histogram.h"
 #include <cstdlib>
 #include <cstring> //strcpy
+#include <cmath> // log
 #include "CpptrajStdio.h"
 // Histogram
 
@@ -26,7 +27,7 @@ Histogram::~Histogram() {
  */
 void Histogram::SetDebug(int debugIn) {
   debug = debugIn;
-  if (debug>0) mprintf("HISTOGRAM DEBUG LEVEL SET TO %i\n", debug);
+  if (debug>0) mprintf("Histogram DEBUG LEVEL SET TO %i\n", debug);
 }
 
 /* Histogram::AddDimension()
@@ -63,10 +64,10 @@ int Histogram::AddDimension(char *labelIn, double minIn, double maxIn,
     offset *= Dimension[i].bins; 
   }
   // offset should now be equal to the total number of bins across all dimensions
-  mprintf("\tHistogram: Total Bins = %i\n",offset);
+  if (debug>0) mprintf("\tHistogram: Total Bins = %i\n",offset);
   numBins = offset;
   // Allocate space for bins
-  Bins = (int*) realloc( Bins, numBins * sizeof(int));
+  Bins = (double*) realloc( Bins, numBins * sizeof(double));
   // Set all bins to 0.
   for (int n=0; n < numBins; n++)
     Bins[n]=0; 
@@ -82,13 +83,13 @@ int Histogram::BinData(double *Data) {
   double coord;
 
   // DEBUG
-  mprintf("Binning [");
-  for (int i=0; i<numDimension; i++) mprintf("%lf,",Data[i]);
-  mprintf("]\n");
+  //mprintf("Binning [");
+  //for (int i=0; i<numDimension; i++) mprintf("%lf,",Data[i]);
+  //mprintf("]\n");
   // Loop over defined dimensions. 
   // Calculate an index into Bins based on precalcd offsets for dimensions.
   // Populate bin.
-  if (debug>1) mprintf("\t{");
+  //if (debug>1) mprintf("\t{");
   for (int n=0; n<numDimension; n++) {
     // Check if Data is out of bounds for this coordinate
     if (Data[n]>Dimension[n].max || Data[n]<Dimension[n].min) {
@@ -101,7 +102,7 @@ int Histogram::BinData(double *Data) {
     //modf(coord,&intpart);
     idx=(int) coord;
     //idx=(int) intpart;
-    if (debug>1) mprintf(" [%s:%lf (%i)],",Dimension[n].label,Data[n],idx);
+    //if (debug>1) mprintf(" [%s:%lf (%i)],",Dimension[n].label,Data[n],idx);
 
     /* 
     // Check if idx is out of bounds for this dimension 
@@ -118,11 +119,11 @@ int Histogram::BinData(double *Data) {
 
   // If index was successfully calculated, populate bin */
   if (index!=-1) {
-    if (debug>1) mprintf(" |index=%i",index);
+    //if (debug>1) mprintf(" |index=%i",index);
     Bins[index]++;
   }
 
-  if (debug>1) mprintf("}\n");
+  //if (debug>1) mprintf("}\n");
   return 0;
 }
 
@@ -189,13 +190,13 @@ void Histogram::PrintBins(bool circularIn, bool gnuplot) {
     index=0;
     // Calculate index, converting wrapped indices to actual indices 
     for (int n=0; n<numDimension; n++) {
-      mprinterr(" %i",count[n]);
+      //mprinterr(" %i",count[n]);
       if (count[n]==-1) idx=Dimension[n].bins-1;
       else if (count[n]==Dimension[n].bins) idx=0;
       else idx=count[n];
       index+=(idx*Dimension[n].offset);
     }
-    mprinterr(" = %i\n",index);
+    //mprinterr(" = %i\n",index);
 
     // If we dont care about zero bins or bin pop > 0, output
     //if (S->nozero==0 || S->Bins[index]!=0) {
@@ -203,7 +204,7 @@ void Histogram::PrintBins(bool circularIn, bool gnuplot) {
       count2coord(count);
       //switch (binType) {
         //case 0 :
-          mprintf("%i\n",Bins[index]);
+          mprintf("%lf\n",Bins[index]);
         //break;
         //case 1 :
         //  fprintf(stdout,"%lf",S->Landscape[index]);
@@ -257,7 +258,7 @@ void Histogram::BinStart(bool isCircularIn) {
 /* Histogram::CurrentBinData()
  * Return the data at current bin.
  */
-int Histogram::CurrentBinData() {
+double Histogram::CurrentBinData() {
   int index, idx;
 
   if (isCircular) {
@@ -266,13 +267,13 @@ int Histogram::CurrentBinData() {
     index=0;
     // Calculate index, converting wrapped indices to actual indices 
     for (int n=0; n<numDimension; n++) {
-      mprinterr(" %i",BinIndices[n]);
+      //mprintf(" %i",BinIndices[n]);
       if (BinIndices[n]==-1) idx=Dimension[n].bins-1;
       else if (BinIndices[n]==Dimension[n].bins) idx=0;
       else idx=BinIndices[n];
       index+=(idx*Dimension[n].offset);
     }
-    mprinterr(" = %i\n",index);
+    //mprintf(" = %i\n",index);
     currentBin = index;
   }
   return Bins[currentBin]; 
@@ -311,11 +312,12 @@ int Histogram::NextBin() {
   return 0;
 }
 
-/* Histogram::NumBins1D()
+/* Histogram::NBins()
+ * Return number of bins for the given dimension
  */
-int Histogram::NumBins1D() {
-  if (numDimension<1) return 0;
-  return Dimension[0].bins;
+int Histogram::NBins(int dim) {
+  if (dim < 0 || dim >= numDimension) return -1;
+  return Dimension[dim].bins;
 }
 
 /* Histogram::Step() 
@@ -345,8 +347,56 @@ char *Histogram::Label(int dim) {
 /* Histogram::Info()
  */
 void Histogram::Info() {
-  int sumBin = 0;
+  double sumBin = 0;
   for (int bin=0; bin < numBins; bin++)
     sumBin += Bins[bin];
-  mprintf("HISTOGRAM: Sum of all bins is %i\n",sumBin);
+  mprintf("\tHistogram: Sum of all bins is %.0lf\n",sumBin);
+}
+
+/* Histogram::CalcFreeE()
+ * Calculate free energy based on bin populations.
+ */
+int Histogram::CalcFreeE(double T, int refbin) {
+  double KT, binmax, temp, ceiling;
+
+  mprintf("\tHistogram: Calculating free E at %lf K.\n",T);
+  KT=(-.001985886596*T);
+
+  // Find most populated bin for G=0
+  binmax = Bins[0];
+  for (int bin=1; bin < numBins; bin++) 
+    if (Bins[bin] > binmax) binmax = Bins[bin];
+  mprintf("\t           Bins max is %i\n",binmax);
+  if (binmax==0) {
+    mprinterr("Histogram: Cannot calc free E, no bins populated!\n");
+    return 1;
+  }
+
+  // If requested, set up reference bin other than max
+  if (refbin>-1) {
+    if (Bins[refbin] > 0) {
+      binmax=(double)Bins[refbin];
+      mprintf("\t           Calculating free E w.r.t bin %i, population %lf\n",refbin,binmax);
+    } else
+      mprintf("Warning: Reference bin %i has no population. Using %lf\n",refbin,binmax);
+  }
+
+  // Set artificial ceiling for bins with 0 population. Make it equivalent
+  // to a bin population of 0.5. 
+  temp=0.5/binmax;
+  ceiling=log(temp)*KT;
+  //ceiling*=1.10;
+  mprintf("\t           Artificial ceiling is %lf kcal/mol.\n",ceiling);
+
+  // Calculate free E based on populations
+  for (int i=0; i<numBins; i++) {
+    temp = Bins[i];                // Store Bin population in temp
+    if (temp>0) {
+      temp/=binmax;                // bin/max
+      Bins[i]=log(temp)*KT;   // -R*T*ln(bin/max)
+    } else
+      Bins[i]=ceiling;        // Artificial ceiling for 0 pop bins.
+  }
+
+  return 0;
 }

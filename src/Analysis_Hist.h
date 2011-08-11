@@ -17,7 +17,9 @@ class Hist : public Analysis {
     char *outfilename;
 
     double min;
+    bool defaultMinSet;
     double max;
+    bool defaultMaxSet;
     double step;
     int bins;
     DataSetList histout;

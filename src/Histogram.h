@@ -16,11 +16,11 @@ class Histogram {
     dimensionType *Dimension;
     int numDimension; // Number of dimensions
 
-    int *Bins; // Histogram data
-    int numBins; // Total number of bins
-    int currentBin; // The current bin
-    int isCircular; // 1 if data will wrap
-    int* BinIndices; // Hold the bin indices in each dimension 
+    double *Bins;    // Histogram data - double in case free E calculated
+    int numBins;     // Total number of bins
+    int currentBin;  // The current bin
+    int isCircular;  // 1 if data will wrap
+    int* BinIndices; // Hold the bin indices in each dimension
 
     // Private Functions
     void count2coord(int *);
@@ -34,18 +34,20 @@ class Histogram {
                                                       // min, max, step, and bins.
     int BinData(double*); // Bin the given data. Dimension must be the same as what
                           // the histogram has been set up for.
+    int CalcFreeE(double,int);
     void PrintBins(bool,bool);
+
     void BinStart(bool);            // Set current bin and indices to 0
     void CurrentBinCoord(double *); // Set coordinates for current bin
-    int CurrentBinData();           // Return value of current bin
+    double CurrentBinData();        // Return value of current bin
     int NextBin();                  // Increment bin and indices
-    int NumBins1D();                // Only used for converting to datafile 2D format
+    int NBins(int);                 // Return number of bins for given dimension
     double Step(int);               // Return step for the given dimension
     double Min(int);                // Return min for the given dimension
     char *Label(int);               // Return label for the given dimension
-
     void Info();
 
+    // Functions that return private vars
     int NumDimension() { return numDimension; }
     int NumBins()      { return numBins;      }
     int CurrentBin()   { return currentBin;   }
