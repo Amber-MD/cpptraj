@@ -11,6 +11,7 @@ Hist::Hist() {
   Temp = -1.0;
   normalize = false;
   gnuplot = false;
+  circular = false;
   Ndata = -1;
   outfilename=NULL;
 
@@ -53,7 +54,7 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
                        arglist.Arg(0));
   dset = datasetlist->Get(arglist.Arg(0));
   if (dset == NULL) {
-    mprintf("\t      Dataset not found.\n");
+    mprintf("\t      Dataset %s not found.\n",arglist.Arg(0));
     return 1;
   }
 
@@ -162,7 +163,7 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
 /* Hist::Setup()
  * Set up histogram with specified data sets.
  * usage: hist(ogram) <dataset_name>[:min:max:step:bins] ...
- *        [free <temperature>] [norm] [gnu] out <filename>
+ *        [free <temperature>] [norm] [gnu] [circular] out <filename>
  *        min <min> max <max> step <step> bins <bins>
  */
 int Hist::Setup(DataSetList *datasetlist) {
@@ -179,6 +180,7 @@ int Hist::Setup(DataSetList *datasetlist) {
   if (Temp!=-1.0) calcFreeE = true;
   if (analyzeArg->hasKey("gnu")) gnuplot = true;
   if (analyzeArg->hasKey("norm")) normalize = true;
+  //if (analyzeArg->hasKey("circular")) circular = true;
   // NOTE: The following may only need to be local
   if (analyzeArg->Contains("min")) {
     min = analyzeArg->getKeyDouble("min",0.0);
@@ -204,6 +206,8 @@ int Hist::Setup(DataSetList *datasetlist) {
   mprintf("]\n");
   if (calcFreeE)
     mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp);
+  if (circular)
+    mprintf("\t      circular: Output coordinates will be wrapped.\n");
 
   return 0;
 }
@@ -257,8 +261,11 @@ void Hist::Print(DataFileList *datafilelist) {
   // Calc free energy if requested
   if (calcFreeE) hist.CalcFreeE(Temp,-1);
 
+  // Normalize if requested
+  if (normalize) hist.Normalize();
+
   coord = (double*) malloc(hist.NumDimension() * sizeof(double));
-  hist.BinStart(false);
+  hist.BinStart(circular);
 
   // For 1 dimension just need to hold bin counts
   if (hist.NumDimension() == 1) {
@@ -333,6 +340,6 @@ void Hist::Print(DataFileList *datafilelist) {
   outfile->SetNoXcol();
   outfile->SetMap();
   outfile->SetNoLabels();
-  //hist.PrintBins(false,false);
+  //hist.PrintBins(circular,false);
   free(coord);
 }

@@ -13,6 +13,7 @@ class Hist : public Analysis {
     double Temp;
     bool normalize;
     bool gnuplot;
+    bool circular;
     int Ndata;
     char *outfilename;
 
