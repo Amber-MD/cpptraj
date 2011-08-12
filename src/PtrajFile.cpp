@@ -459,7 +459,7 @@ int PtrajFile::SetupRead() {
   // Initialize buffers to NULL
   buffer1[0]='\0';
   buffer2[0]='\0';
-  IO->Open(filename,"r"); // NOTE: Err Check
+  IO->Open(filename,"rb"); // NOTE: Err Check
   IO->Gets(buffer1,BUFFER_SIZE);
   IO->Gets(buffer2,BUFFER_SIZE);
   IO->Close();
@@ -519,7 +519,7 @@ int PtrajFile::SetupRead() {
   // If second line is 42 bytes, check for Amber Traj with REMD
   // NOTE: Check for digit every 8 char?
   // NOTE: This wont work for trajectories with <3 coords.
-  if (strlen(buffer2)==81) {
+  if (strlen(buffer2)==81+isDos) {
     //if ( sscanf(buffer2, "%8f%8f%8f%8f%8f%8f%8f%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2,
     //            TrajCoord+3, TrajCoord+4, TrajCoord+5, TrajCoord+6, TrajCoord+7, TrajCoord+8,
     //            TrajCoord+9) == 10 )
