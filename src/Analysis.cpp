@@ -36,3 +36,9 @@ char *Analysis::Name() {
   return analyzeArg->Command();
 }
 
+/* Analysis::CmdLine()
+ * Print the command and all args
+ */
+char *Analysis::CmdLine() {
+  return analyzeArg->ArgLine();
+}

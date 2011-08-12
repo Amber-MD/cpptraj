@@ -60,7 +60,7 @@ int AnalysisList::Setup(DataSetList *datasetlist) {
   mprintf("\nANALYSIS:\n");
   mprintf("    .... Setting up %i analyses ....\n",Nanalysis);
   for (int ana=0; ana < Nanalysis; ana++) {
-    mprintf("    %i: [%s]\n",ana,analysisList[ana]->Name());
+    mprintf("    %i: [%s]\n",ana,analysisList[ana]->CmdLine());
     analysisList[ana]->noSetup=false;
     if (analysisList[ana]->Setup(datasetlist)) {
       mprintf("    Error setting up analysis %i [%s] - skipping.\n",ana,analysisList[ana]->Name());
@@ -80,7 +80,7 @@ void AnalysisList::Analyze(DataFileList *datafilelist) {
   mprintf("    .... Performing %i analyses ....\n",Nanalysis);
   for (int ana=0; ana < Nanalysis; ana++) {
     if (!analysisList[ana]->noSetup) {
-      mprintf("    %i: [%s]\n",ana,analysisList[ana]->Name());
+      mprintf("    %i: [%s]\n",ana,analysisList[ana]->CmdLine());
       if (analysisList[ana]->Analyze()==0) analysisList[ana]->Print(datafilelist); 
       // NOTE: Move print function ??
     }

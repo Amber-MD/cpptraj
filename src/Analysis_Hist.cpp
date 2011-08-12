@@ -208,6 +208,8 @@ int Hist::Setup(DataSetList *datasetlist) {
     mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp);
   if (circular)
     mprintf("\t      circular: Output coordinates will be wrapped.\n");
+  if (normalize)
+    mprintf("\t      norm: Bins will be normalized to 1.0.\n");
 
   return 0;
 }
