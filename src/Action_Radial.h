@@ -8,7 +8,6 @@
 class Radial: public Action {
     Histogram rdf;
     bool noimage;
-    bool hasSecondMask;
     int imageType; 
     AtomMask Mask1, Mask2;
     char *outfilename;
@@ -18,6 +17,7 @@ class Radial: public Action {
     DataSetList rdfdata;
     int numFrames;
     int numDistances;
+    double density;
   public:
     Radial();
     ~Radial();

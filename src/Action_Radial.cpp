@@ -10,12 +10,14 @@ Radial::Radial() {
   //fprintf(stderr,"Radial Con\n");
   noimage=false;
   imageType=0;
-  hasSecondMask=false;
-  spacing=-1;
+  outfilename=NULL;
   maximum=0;
   maximum2=0;
+  spacing=-1;
   numFrames=0;
   numDistances=0;
+  // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
+  density = 0.033456;
 } 
 
 // DESTRUCTOR
@@ -25,6 +27,7 @@ Radial::~Radial() {
 
 /* Radial::init()
  * Expected call: radial <name> <spacing> <maximum> <mask1> [<mask2>] [noimage]
+ *                       [density <density>]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -35,6 +38,8 @@ int Radial::init() {
 
   // Get Keywords
   noimage = A->hasKey("noimage");
+  // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
+  density = A->getKeyDouble("density",0.033456);
 
   // Get required args
   outfilename = A->getNextString();
@@ -52,6 +57,8 @@ int Radial::init() {
     mprinterr("Error: Radial: No maximum argument or arg < 0.\n");
     return 1;
   }
+  // Store max^2, distances^2 greater than max^2 do not need to be
+  // binned and therefore do not need a sqrt calc.
   maximum2 = maximum * maximum;
 
   // Get First Mask
@@ -64,10 +71,9 @@ int Radial::init() {
 
   // Check for second mask - if none specified use first mask
   mask2 = A->getNextMask();
-  if (mask2!=NULL) {
-    hasSecondMask=true;
+  if (mask2!=NULL) 
     Mask2.SetMaskString(mask2);
-  } else
+  else
     Mask2.SetMaskString(mask1);
 
   // Set up histogram
@@ -78,11 +84,12 @@ int Radial::init() {
   }
 
   mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1.maskString);
-  if (hasSecondMask) 
+  if (mask2!=NULL) 
     mprintf(" to atoms in mask [%s]",Mask2.maskString);
-  mprintf(", output to %s.\n",outfilename);
+  mprintf("\n            Output to %s.\n",outfilename);
   mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",rdf.Max(0),
           rdf.Step(0),rdf.NBins(0));
+  mprintf("            Normalizing using particle density of %lf mols/Ang^3.\n",density);
   if (noimage) 
     mprintf("            Imaging disabled.\n");
 
@@ -132,11 +139,18 @@ int Radial::setup() {
 int Radial::action() {
   double D, ucell[9], recip[9];
   int atom1, atom2;
+  int nmask1, nmask2;
 
   if (imageType>0) F->BoxToRecip(ucell,recip);
-  for (int nmask1 = 0; nmask1 < Mask1.Nselected; nmask1++) {
+//#ifdef _OPENMP
+//#pragma omp parallel private(nmask1,nmask2,atom1,atom2,D)
+//{
+//  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+//#pragma omp for
+//#endif
+  for (nmask1 = 0; nmask1 < Mask1.Nselected; nmask1++) {
     atom1 = Mask1.Selected[nmask1];
-    for (int nmask2 = 0; nmask2 < Mask2.Nselected; nmask2++) {
+    for (nmask2 = 0; nmask2 < Mask2.Nselected; nmask2++) {
       atom2 = Mask2.Selected[nmask2];
       if (atom1 != atom2) {
         D = F->DIST2(atom1,atom2,imageType,ucell,recip);
@@ -149,6 +163,9 @@ int Radial::action() {
       }
     } // END loop over 2nd mask
   } // END loop over 1st mask
+//#ifdef _OPENMP
+//} // END pragma omp parallel
+//#endif
 
   numFrames++;
 
@@ -163,11 +180,8 @@ void Radial::print() {
   DataSet *Dset;
   bool histloop=true;
   int bin;
-  double four_thirds_pi = (4/3) * PI;
   double R, Rdr, dv, norm;
   double N;
-  double avgDistances;
-  double density = 0.033456;
   char temp[128];
   
   // Create label from mask strings
@@ -181,23 +195,31 @@ void Radial::print() {
   }
 
   mprintf("    RADIAL: %i frames, %i distances.\n",numFrames,numDistances);
-  avgDistances = (double) numDistances;
-  avgDistances /= (double) numFrames;
-  mprintf("    RADIAL: Avg number of distances = %lf\n",avgDistances);
-  mprintf("    RADIAL: Histogram has %.0lf values.\n",rdf.BinTotal());
+  //mprintf("            Histogram has %.0lf values.\n",rdf.BinTotal());
 
+  // Need to normalize each bin, which holds the particle count at that
+  // distance. Calculate the expected number of molecules for that 
+  // volume slice. Expected # of molecules is particle density times volume 
+  // of each slice:
+  // Density * ( [(4/3)*PI*(R+dr)^3] - [(4/3)*PI*(dr)^3] )
   rdf.BinStart(false);
   bin = 0;
   while (histloop) {
+    // Number of particles in this volume slice over all frames.
     N = rdf.CurrentBinData();
-    // R
+    // r
     rdf.CurrentBinCoord(&R);
-    // R + dr
+    // r + dr
     Rdr = R + rdf.Step(0);
-    // 4/3 pi * density * [(r+dr)^3 - r^3]
-    dv = four_thirds_pi * density * ( (Rdr * Rdr * Rdr) - (R * R * R) );
-    // normalized w.r.t. the average # of particles binned per frame
-    norm = dv * numDistances;
+    // Volume of slice: 4/3_pi * [(r+dr)^3 - (dr)^3]
+    dv = FOURTHIRDSPI * ( (Rdr * Rdr * Rdr) - (R * R * R) );
+    // Expected # molecules in this volume slice
+    norm = dv * density;
+    if (debug>0)
+      mprintf("    \tBin %lf->%lf has volume %lf, density %lf, expect %lf molecules.\n",
+              R,Rdr,dv,density,norm);
+    // Divide by # frames and expected # of molecules
+    norm *= numFrames;
     N /= norm;
 
     Dset->Add(bin,&N);

@@ -252,7 +252,7 @@ int Hist::Analyze() {
  * native output to print.
  */
 void Hist::Print(DataFileList *datafilelist) {
-  DataFile *outfile;
+  DataFile *outfile=NULL;
   double *coord;
   int dim, bin;
   double N;
