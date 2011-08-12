@@ -89,8 +89,11 @@ int StdFile::Write(void *buffer, size_t size, size_t count) {
 int StdFile::Seek(off_t offset) {
   // DEBUG
   //printf("Calling standard seek(%i): %li\n",origin,offset);
-
+#ifdef _MSC_VER
+	return _fseeki64(fp,offset,SEEK_SET);
+#else
   return fseeko(fp, offset, SEEK_SET);
+#endif
 }
 
 /*
@@ -105,7 +108,11 @@ int StdFile::Rewind() {
  * StdFile::Tell()
  */
 off_t StdFile::Tell() {
+#ifdef _MSC_VER
+	return _ftelli64(fp);
+#else
   return ftello(fp);
+#endif
 }
 
 /*
