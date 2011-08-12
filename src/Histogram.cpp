@@ -368,13 +368,15 @@ char *Histogram::Label(int dim) {
   return Dimension[dim].label;
 }
 
-/* Histogram::Info()
+/* Histogram::BinTotal()
+ * Return sum of all bin values
  */
-void Histogram::Info() {
+double Histogram::BinTotal() {
   double sumBin = 0;
   for (int bin=0; bin < numBins; bin++)
     sumBin += Bins[bin];
   mprintf("\tHistogram: Sum of all bins is %lf\n",sumBin);
+  return sumBin;
 }
 
 /* Histogram::CalcFreeE()

@@ -49,7 +49,7 @@ class Histogram {
     double Min(int);                // Return min for the given dimension
     double Max(int);                // Return max for the given dimension
     char *Label(int);               // Return label for the given dimension
-    void Info();
+    double BinTotal();              // Return sum of all bin values
 
     // Functions that return private vars
     int NumDimension() { return numDimension; }
