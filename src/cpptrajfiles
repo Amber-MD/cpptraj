@@ -18,7 +18,7 @@ SOURCE=main.cpp AmberParm.cpp \
        Traj_AmberNetcdf.cpp Traj_PDBfile.cpp Traj_AmberRestart.cpp \
        Traj_Mol2File.cpp Traj_AmberRestartNC.cpp Traj_Conflib.cpp RemdTraj.cpp \
        FortranFormat.cpp Action_Average.cpp Histogram.cpp Analysis.cpp \
-       AnalysisList.cpp Analysis_Hist.cpp mapDataSet.cpp
+       AnalysisList.cpp Analysis_Hist.cpp mapDataSet.cpp Action_Radial.cpp
 
 OBJECTS=main.o AmberParm.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
@@ -40,7 +40,7 @@ OBJECTS=main.o AmberParm.o \
         Traj_AmberNetcdf.o Traj_PDBfile.o Traj_AmberRestart.o \
         Traj_Mol2File.o Traj_AmberRestartNC.o Traj_Conflib.o RemdTraj.o \
         FortranFormat.o Action_Average.o Histogram.o Analysis.o \
-       AnalysisList.o Analysis_Hist.o mapDataSet.o
+       AnalysisList.o Analysis_Hist.o mapDataSet.o Action_Radial.o
 
 HEADERS=AmberParm.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
@@ -62,5 +62,5 @@ HEADERS=AmberParm.h \
         Traj_AmberNetcdf.h Traj_PDBfile.h Traj_AmberRestart.h \
         Traj_Mol2File.h Traj_AmberRestartNC.h Traj_Conflib.h RemdTraj.h \
         FortranFormat.h Name.h Action_Average.h Histogram.h Analysis.h \
-       AnalysisList.h Analysis_Hist.h mapDataSet.h
+       AnalysisList.h Analysis_Hist.h mapDataSet.h Action_Radial.h
 

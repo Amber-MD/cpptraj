@@ -22,6 +22,7 @@
 #include "Action_Outtraj.h"
 #include "Action_Rms2d.h"
 #include "Action_Average.h"
+#include "Action_Radial.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -78,6 +79,7 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("outtraj"))  {Act=new Outtraj; }
   else if (A->CommandIs("unstrip"))  {Act=new Unstrip; }
   else if (A->CommandIs("average"))  {Act=new Average; }
+  else if (A->CommandIs("radial"))   {Act=new Radial;  }
   else return 1; 
 
   // Pass in the argument list
