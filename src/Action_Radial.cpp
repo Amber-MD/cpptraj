@@ -202,6 +202,9 @@ void Radial::print() {
   // volume slice. Expected # of molecules is particle density times volume 
   // of each slice:
   // Density * ( [(4/3)*PI*(R+dr)^3] - [(4/3)*PI*(dr)^3] )
+  // If there is more than 1 atom in the first mask we have essentially
+  // created Mask1.Nselected RDFs and are averaging them, so further divide
+  // by Mask1.Nselected. 
   rdf.BinStart(false);
   bin = 0;
   while (histloop) {
@@ -216,10 +219,13 @@ void Radial::print() {
     // Expected # molecules in this volume slice
     norm = dv * density;
     if (debug>0)
-      mprintf("    \tBin %lf->%lf has volume %lf, density %lf, expect %lf molecules.\n",
-              R,Rdr,dv,density,norm);
-    // Divide by # frames and expected # of molecules
+      mprintf("    \tBin %lf->%lf %lf V %lf, D %lf, expect %lf molecules.\n",
+              R,Rdr,N/numFrames,dv,density,norm);
+    // DEBUG: Hack for selecting both Hs and O.
+    //norm *= 3;
+    // Divide by # frames, expected # of molecules, and # of RDFs
     norm *= numFrames;
+    norm *= Mask1.Nselected;
     N /= norm;
 
     Dset->Add(bin,&N);
