@@ -190,6 +190,21 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
   return 1;
 }
 
+/* AmberRestartNC::SetNoVelocity()
+ */
+void AmberRestartNC::SetNoVelocity() {
+  hasVelocity=false;
+}
+
+/* AmberRestartNC::processWriteArgs()
+ */
+int AmberRestartNC::processWriteArgs(ArgList *argIn) {
+  // For write, assume we want velocities unless specified
+  hasVelocity=true;
+  if (argIn->hasKey("novelocity")) this->SetNoVelocity();
+  return 0;
+}
+
 /* AmberRestartNC::setupWrite()
  * Setting up is done for each frame.
  */
@@ -200,9 +215,10 @@ int AmberRestartNC::setupWrite(AmberParm *trajParm) {
 }
 
 /* AmberRestartNC::setupWriteForSet()
- * Create Netcdf restart file for the given frame and set it up. 
+ * Create Netcdf restart file for the given frame and set it up. Only set
+ * up velocity info if both hasVelocity and V is not NULL.
  */
-int AmberRestartNC::setupWriteForSet(int set) {
+int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
   int dimensionID[NC_MAX_VAR_DIMS];
   size_t start[2], count[2];
   char buffer[1024];
@@ -246,7 +262,7 @@ int AmberRestartNC::setupWriteForSet(int set) {
     "Writing coordinates variable units.")) return 1;
 
   // Velocity variable
-  if (hasVelocity) {
+  if (hasVelocity && Vin!=NULL) {
     if (checkNCerr(nc_def_var(ncid,NCVELO,NC_DOUBLE,2,dimensionID,&velocityVID),
       "Defining velocities variable.")) return 1;
     if (checkNCerr(nc_put_att_text(ncid,velocityVID,"units",19,"angstrom/picosecond"),
@@ -398,7 +414,7 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
   size_t start[2], count[2];
 
   // Set up file for this set
-  if ( this->setupWriteForSet(set) ) return 1;
+  if ( this->setupWriteForSet(set,V) ) return 1;
 
   // write coords
   start[0]=0;
@@ -409,7 +425,7 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
       "Netcdf restart Writing coordinates %i",set)) return 1;
 
   // write velocity
-  if (hasVelocity) {
+  if (hasVelocity && V!=NULL) {
     if (checkNCerr(nc_put_vara_double(ncid,velocityVID,start,count,V),
         "Netcdf restart writing velocity %i",set)) return 1;
   }

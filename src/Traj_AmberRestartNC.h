@@ -33,14 +33,16 @@ class AmberRestartNC : public TrajectoryIO {
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
+    int processWriteArgs(ArgList*);
     void info();
 
-    int setupWriteForSet(int);
+    int setupWriteForSet(int,double*);
 
   public:
     AmberRestartNC();
     ~AmberRestartNC();
     // AmberNetcdf-specific functions
+    void SetNoVelocity();
 };
 #endif
 #endif  
