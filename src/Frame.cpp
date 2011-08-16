@@ -691,6 +691,33 @@ double Frame::DIST2(int A1, int A2, int boxType, double *ucell, double *recip) {
   return (-1.0);
 }
 
+/* Frame::DIST2()
+ * Return the distance between a point and atom A2 with optional imaging.
+ *   0 = None
+ *   1 = Orthorhombic
+ *   2 = Non-orthorhombic
+ */
+double Frame::DIST2(double *a1, int A2, int boxType, double *ucell, double *recip) {
+  int atom3;
+  double a2[3];
+  
+  atom3 = A2 * 3;
+  a2[0] = X[atom3  ];
+  a2[1] = X[atom3+1];
+  a2[2] = X[atom3+2];
+  
+  if (boxType == 0)
+    return DIST2_NoImage(a1, a2);
+  else if (boxType == 1)
+    return DIST2_ImageOrtho(a1, a2, this->box);
+  else if (boxType == 2) 
+    return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
+
+  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", boxType);
+
+  return (-1.0);
+}
+
 /* Frame::DIST()
  * Return the distance between atoms A1 and A2, no imaging.
  */
