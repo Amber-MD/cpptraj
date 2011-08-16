@@ -51,16 +51,16 @@ void AmberRestartNC::closeTraj() {
   checkNCerr(nc_close(ncid),"Closing netcdf Restart file.");
   if (debug>0) mprintf("Successfully closed ncid %i\n",ncid);
   ncid=-1;
-  atomDID=-1; ncatom=-1; coordVID=-1; velocityVID=-1;
-  cellLengthVID=-1; cellAngleVID=-1;
   return;
 }
 
 /* AmberRestartNC::openTraj()
- * Open up Netcdf restart file. 
+ * Open up Netcdf restart file and set ncid. Variable and Dimension IDs are set 
+ * up by SetupRead / SetupWrite and will not change for a given file between
+ * open and close calls. 
  */
 int AmberRestartNC::openTraj() {
-  mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",tfile->filename,ncid);
+  //mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",tfile->filename,ncid);
   // If already open, return
   if (ncid!=-1) return 0;
 
@@ -150,7 +150,7 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
   if (attrText!=NULL) free(attrText);
   if ( checkNCerr(nc_get_var_double(ncid, timeVID, &restartTime),
        "Getting netcdf restart time.")) return -1;
-  mprintf("    Netcdf restart time= %lf\n",restartTime);
+  if (debug>0) mprintf("    Netcdf restart time= %lf\n",restartTime);
 
   // Box info
   if ( nc_inq_varid(ncid,NCCELL_LENGTHS,&cellLengthVID)==NC_NOERR ) {
@@ -361,7 +361,7 @@ int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *
   if (TempVID!=-1) {
     if ( checkNCerr(nc_get_var_double(ncid, TempVID, T),
                     "Getting replica temperature.")!=0 ) return 1;
-    mprintf("DEBUG: %s: Replica Temperature %lf\n",tfile->filename,T);
+    if (debug>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",tfile->filename,T);
   }
 
   // Read Coords 
