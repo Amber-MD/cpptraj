@@ -96,6 +96,21 @@ int AmberRestart::openTraj() {
   return 0; 
 }
 
+/* AmberRestart::SetNoVelocity()
+ */
+void AmberRestart::SetNoVelocity() {
+  hasVelocity=false;
+}
+
+/* AmberRestart::processWriteArgs()
+ */
+int AmberRestart::processWriteArgs(ArgList *argIn) {
+  // For write, assume we want velocities unless specified
+  hasVelocity=true;
+  if (argIn->hasKey("novelocity")) this->SetNoVelocity();
+  return 0;
+}
+
 /* AmberRestart::setupWrite()
  * Allocate a character buffer based on number of coords and whether 
  * velocities/box info is present.
@@ -112,7 +127,7 @@ int AmberRestart::setupWrite(AmberParm *trajParm) {
   frameSize = ((natom3 * 12) + frame_lines);
 
   // Dont know ahead of time if velocities will be used, allocate space
-  // just in case
+  // just in case. Veolcity will not be written if V input is NULL.
   frameSize+=frameSize;
 
   // If box coords are present, allocate extra space for them
@@ -292,9 +307,9 @@ int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double 
 
   // Write coords to buffer
   bufferPosition = DoubleToBuffer(frameBuffer,X,natom3,"%12.7lf",12,6);
-  // Write velocity to buffer
+  // Write velocity to buffer. Check V since velocity not known ahead of time
   if (hasVelocity && V!=NULL)
-    bufferPosition = DoubleToBuffer(frameBuffer,V,natom3,"%12.7lf",12,6);
+    bufferPosition = DoubleToBuffer(bufferPosition,V,natom3,"%12.7lf",12,6);
   //if (F->V!=NULL)  // NOTE: Use hasVelocity in addition/instead?
   //  bufferPosition = DoubleToBuffer(bufferPosition,F->V->X,F->N,"%12.7lf",12,6);
   // Write box to buffer

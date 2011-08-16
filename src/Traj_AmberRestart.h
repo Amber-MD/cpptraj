@@ -20,14 +20,16 @@ class AmberRestart : public TrajectoryIO {
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
+    int processWriteArgs(ArgList*);
     void info();
 
     void getBoxAngles(char *, int);
 
   public:
 
-  AmberRestart();
-  ~AmberRestart();
-  // AmberRestart-specific functions
+    AmberRestart();
+    ~AmberRestart();
+    // AmberRestart-specific functions
+    void SetNoVelocity();
 };
 #endif
