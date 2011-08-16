@@ -572,6 +572,7 @@ FileFormat TrajectoryFile::getFmtFromArg(ArgList *argIn, FileFormat def) {
   else if ( argIn->hasKey("netcdf")   ) writeFormat=AMBERNETCDF;
   else if ( argIn->hasKey("restart")  ) writeFormat=AMBERRESTART;
   else if ( argIn->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
+  else if ( argIn->hasKey("restartnc")) writeFormat=AMBERRESTARTNC;
   else if ( argIn->hasKey("mol2")     ) writeFormat=MOL2FILE;
   return writeFormat;
 }
