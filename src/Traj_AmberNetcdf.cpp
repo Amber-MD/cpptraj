@@ -147,8 +147,8 @@ int AmberNetcdf::setupRead(AmberParm* trajParm) {
   // Box info
   // NOTE: If no box info found in parm should really try to determine correct
   //       box type from angles. 
-  if ( nc_inq_varid(ncid,"cell_lengths",&cellLengthVID)==NC_NOERR ) {
-    if (checkNCerr(nc_inq_varid(ncid,"cell_angles",&cellAngleVID),
+  if ( nc_inq_varid(ncid,NCCELL_LENGTHS,&cellLengthVID)==NC_NOERR ) {
+    if (checkNCerr(nc_inq_varid(ncid,NCCELL_ANGLES,&cellAngleVID),
       "Getting cell angles.")!=0) return -1;
     if (debug>0) mprintf("  Netcdf Box information found.\n");
     hasBox=true;
@@ -275,12 +275,12 @@ int AmberNetcdf::setupWrite(AmberParm *trajParm) {
   if (hasBox) {
     dimensionID[0]=frameDID;
     dimensionID[1]=cell_spatialDID;
-    if (checkNCerr(nc_def_var(ncid,"cell_lengths",NC_DOUBLE,2,dimensionID,&cellLengthVID),
+    if (checkNCerr(nc_def_var(ncid,NCCELL_LENGTHS,NC_DOUBLE,2,dimensionID,&cellLengthVID),
       "Defining cell length variable.")) return 1;
     if (checkNCerr(nc_put_att_text(ncid,cellLengthVID,"units",8,"angstrom"),
     "Writing cell length variable units.")) return 1;
     dimensionID[1]=cell_angularDID;
-    if (checkNCerr(nc_def_var(ncid,"cell_angles",NC_DOUBLE,2,dimensionID,&cellAngleVID),
+    if (checkNCerr(nc_def_var(ncid,NCCELL_ANGLES,NC_DOUBLE,2,dimensionID,&cellAngleVID),
       "Defining cell angle variable.")) return 1;
     if (checkNCerr(nc_put_att_text(ncid,cellAngleVID,"units",6,"degree"),
     "Writing cell angle variable units.")) return 1;
