@@ -12,6 +12,7 @@ class AmberRestart : public TrajectoryIO {
     int numBoxCoords;     // Number of box coords (3 or 6)
     double restartTime;   // Time in restart file, read in
     double restartTemp;   // (Optional) replica temperature, read in.
+    double time0;         // For writes, restart time offset
 
     // Inherited functions
     int setupRead(AmberParm*);

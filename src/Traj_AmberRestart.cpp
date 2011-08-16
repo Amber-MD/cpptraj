@@ -16,6 +16,7 @@ AmberRestart::AmberRestart() {
   restartTemp=-1.0;
   // Set seekable since only 1 frame read (i.e. we know size) 
   seekable=true;
+  time0 = OUTPUTFRAMESHIFT;
 }
 
 // DESTRUCTOR
@@ -108,6 +109,7 @@ int AmberRestart::processWriteArgs(ArgList *argIn) {
   // For write, assume we want velocities unless specified
   hasVelocity=true;
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
+  time0 = argIn->getKeyDouble("time0", OUTPUTFRAMESHIFT);
   return 0;
 }
 
@@ -299,8 +301,9 @@ int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double 
   tfile->IO->Printf("%-80s\n",title);
   // Write out atoms, time, and temp (if not -1)
   // NOTE: Use F->natom instead of restart Atoms in case of strip cmd
-  restartTime = (double) set; // NOTE: Could be an option to use set eventually
-  tfile->IO->Printf("%5i%15.7lE",restartAtoms,restartTime + OUTPUTFRAMESHIFT);
+  restartTime = time0;
+  restartTime += (double) set; 
+  tfile->IO->Printf("%5i%15.7lE",restartAtoms,restartTime);
   if (hasTemperature)
     tfile->IO->Printf("%15.7lE",T);
   tfile->IO->Printf("\n");
