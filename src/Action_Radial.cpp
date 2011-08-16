@@ -10,6 +10,7 @@ Radial::Radial() {
   //fprintf(stderr,"Radial Con\n");
   noimage=false;
   imageType=0;
+  center1=false;
   outfilename=NULL;
   maximum=0;
   maximum2=0;
@@ -27,7 +28,7 @@ Radial::~Radial() {
 
 /* Radial::init()
  * Expected call: radial <name> <spacing> <maximum> <mask1> [<mask2>] [noimage]
- *                       [density <density>]
+ *                       [density <density>] [center1]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -40,6 +41,7 @@ int Radial::init() {
   noimage = A->hasKey("noimage");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density = A->getKeyDouble("density",0.033456);
+  center1 = A->hasKey("center1");
 
   // Get required args
   outfilename = A->getNextString();
@@ -87,6 +89,8 @@ int Radial::init() {
   if (mask2!=NULL) 
     mprintf(" to atoms in mask [%s]",Mask2.maskString);
   mprintf("\n            Output to %s.\n",outfilename);
+  if (center1)
+    mprintf("            Using center of atoms in mask1.\n");
   mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",rdf.Max(0),
           rdf.Step(0),rdf.NBins(0));
   mprintf("            Normalizing using particle density of %lf mols/Ang^3.\n",density);
@@ -137,11 +141,27 @@ int Radial::setup() {
  * bin them.
  */
 int Radial::action() {
-  double D, ucell[9], recip[9];
+  double D, ucell[9], recip[9], coord_center[3];
   int atom1, atom2;
   int nmask1, nmask2;
 
+  // Set imaging information
   if (imageType>0) F->BoxToRecip(ucell,recip);
+
+  if (center1) {
+    F->GeometricCenter(&Mask1,coord_center);
+    for (nmask2 = 0; nmask2 < Mask2.Nselected; nmask2++) {
+      atom2 = Mask2.Selected[nmask2];
+      D = F->DIST2(coord_center,atom2,imageType,ucell,recip);
+      if (D > maximum2) continue;
+      // NOTE: Can we modify the histogram to store D^2?
+      D = sqrt(D);
+      //fprintf(outfile,"%10i %10.4lf\n",currentFrame,D);
+      rdf.BinData(&D);
+      numDistances++;
+    } // END loop over 2nd mask
+
+  } else {
 //#ifdef _OPENMP
 //#pragma omp parallel private(nmask1,nmask2,atom1,atom2,D)
 //{
@@ -166,6 +186,7 @@ int Radial::action() {
 //#ifdef _OPENMP
 //} // END pragma omp parallel
 //#endif
+  }
 
   numFrames++;
 
