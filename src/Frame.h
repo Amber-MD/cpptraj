@@ -52,7 +52,7 @@ class Frame {
     double CenterOfMass(double*,int,int);
     double GeometricCenter(double*,int,int);
     // Coordinate calculation
-    void BoxToRecip(double *, double *);
+    double BoxToRecip(double *, double *);
     double DIST2(AtomMask*, AtomMask*, bool, int, double *, double *);
     double DIST2(int, int, int, double *, double *);
     double DIST2(double*, int, int, double *, double *);
