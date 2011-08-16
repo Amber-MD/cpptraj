@@ -11,6 +11,8 @@ class Radial: public Action {
     int imageType; 
     AtomMask Mask1, Mask2;
     bool center1;
+    bool useVolume;
+    double volume;
     char *outfilename;
     double maximum;
     double maximum2;

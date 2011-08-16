@@ -11,6 +11,8 @@ Radial::Radial() {
   noimage=false;
   imageType=0;
   center1=false;
+  useVolume=false;
+  volume=0;
   outfilename=NULL;
   maximum=0;
   maximum2=0;
@@ -42,6 +44,7 @@ int Radial::init() {
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density = A->getKeyDouble("density",0.033456);
   center1 = A->hasKey("center1");
+  useVolume = A->hasKey("volume");
 
   // Get required args
   outfilename = A->getNextString();
@@ -93,7 +96,10 @@ int Radial::init() {
     mprintf("            Using center of atoms in mask1.\n");
   mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",rdf.Max(0),
           rdf.Step(0),rdf.NBins(0));
-  mprintf("            Normalizing using particle density of %lf mols/Ang^3.\n",density);
+  if (useVolume)
+    mprintf("            Normalizing based on cell volume.\n");
+  else
+    mprintf("            Normalizing using particle density of %lf mols/Ang^3.\n",density);
   if (noimage) 
     mprintf("            Imaging disabled.\n");
 
@@ -126,6 +132,13 @@ int Radial::setup() {
     }
   }
 
+  // Check volume information
+  if (useVolume && P->boxType==NOBOX) {
+    mprintf("    Warning: Radial: 'volume' specified but no box information for %s, skipping.\n",
+            P->parmName);
+    return 1;
+  }
+
   // Print imaging info for this parm
   mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",Mask1.Nselected,Mask2.Nselected);
   if (imageType > 0)
@@ -145,8 +158,12 @@ int Radial::action() {
   int atom1, atom2;
   int nmask1, nmask2;
 
-  // Set imaging information
-  if (imageType>0) F->BoxToRecip(ucell,recip);
+  // Set imaging information and store volume if specified
+  // NOTE: Ucell and recip only needed for non-orthogonal boxes.
+  if (imageType>0) {
+    D = F->BoxToRecip(ucell,recip);
+    if (useVolume)  volume += D;
+  }
 
   if (center1) {
     F->GeometricCenter(&Mask1,coord_center);
@@ -217,6 +234,14 @@ void Radial::print() {
 
   mprintf("    RADIAL: %i frames, %i distances.\n",numFrames,numDistances);
   //mprintf("            Histogram has %.0lf values.\n",rdf.BinTotal());
+  
+  // If useVolume, calculate the density from the average volume
+  if (useVolume) {
+    dv = volume / numFrames;
+    mprintf("            Average volume is %lf Ang^3.\n",dv);
+    density = (Mask1.Nselected * Mask2.Nselected) / dv;
+    mprintf("            Average density is %lf distances / Ang^3.\n",density);
+  }
 
   // Need to normalize each bin, which holds the particle count at that
   // distance. Calculate the expected number of molecules for that 
