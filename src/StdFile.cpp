@@ -50,13 +50,13 @@ int StdFile::Read(void *buffer, size_t size, size_t count) {
   //  fprintf(stdout,"Error: StdFile::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
+  if (feof(fp)) return -1;
   numread = fread(buffer, size, count, fp);
   // NOTE: Check for errors here?
   if (ferror(fp)) {
     perror("Error during StdFile::Read");
     return -1;
   }
-  if (feof(fp)) return -1;
   //if (numread!=(size*count)) return 1;
   return (int) numread;
 }
