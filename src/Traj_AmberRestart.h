@@ -24,7 +24,7 @@ class AmberRestart : public TrajectoryIO {
     int processWriteArgs(ArgList*);
     void info();
 
-    void getBoxAngles(char *, int);
+    int getBoxAngles(char *, int);
 
   public:
 
