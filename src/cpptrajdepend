@@ -74,4 +74,4 @@ Analysis.o : Analysis.cpp Analysis.h ArgList.h BaseFileIO.h CpptrajStdio.h DataF
 AnalysisList.o : AnalysisList.cpp Analysis.h AnalysisList.h Analysis_Hist.h ArgList.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Histogram.h PtrajFile.h
 Analysis_Hist.o : Analysis_Hist.cpp Analysis.h Analysis_Hist.h ArgList.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Histogram.h PtrajFile.h
 mapDataSet.o : mapDataSet.cpp CpptrajStdio.h DataSet.h PtrajMpi.h mapDataSet.h
-Action_Radial.o : Action_Radial.cpp Action.h Action_Radial.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Histogram.h Name.h ParmFileList.h PtrajFile.h
+Action_Radial.o : Action_Radial.cpp Action.h Action_Radial.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Histogram.h Name.h ParmFileList.h PtrajFile.h vectormath.h

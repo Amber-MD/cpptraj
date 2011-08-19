@@ -65,6 +65,7 @@ class TrajectoryIO {
     void SetTitle(char *);
     bool FilenameIs(char *);
     void SetDebug(int);
+    void SetTemperature();
 
     FileFormat TrajFormat();
 }; 

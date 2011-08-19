@@ -41,7 +41,6 @@ class AmberNetcdf : public TrajectoryIO {
     AmberNetcdf();
     ~AmberNetcdf();
     // AmberNetcdf-specific functions
-    void SetRemdTraj();
 };
 #endif
 #endif

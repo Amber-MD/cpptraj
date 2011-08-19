@@ -36,6 +36,8 @@ AmberRestartNC::AmberRestartNC() {
 
   // Netcdf restarts always have 1 frame so always seekable
   seekable=true;
+  time0 = OUTPUTFRAMESHIFT;
+  singleWrite=false;
 } 
 
 // DESTRUCTOR
@@ -112,10 +114,11 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
             tfile->filename, attrText);
   if (attrText!=NULL) free(attrText);
 
-  // Get atoms, coord, and spatial info
+  // Get natom info
   atomDID=GetDimInfo(ncid,NCATOM,&ncatom);
   if (atomDID==-1) return -1;
   ncatom3 = trajParm->natom * 3;
+  // Get coord info
   if (checkNCerr(nc_inq_varid(ncid,NCCOORDS,&coordVID),
       "Getting coordinate ID")!=0) return -1;
   attrText = GetAttrText(ncid,coordVID, "units");
@@ -123,6 +126,7 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
     mprintf("WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
             tfile->filename,attrText);
   if (attrText!=NULL) free(attrText);
+  // Get spatial info
   spatialDID=GetDimInfo(ncid,NCSPATIAL,&spatial);
   if (spatialDID==-1) return -1;
   if (spatial!=3) {
@@ -141,16 +145,19 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
     velocityVID=-1;
 
   // Get Time info
-  if ( checkNCerr( nc_inq_varid(ncid, NCTIME, &timeVID),
-       "Getting Netcdf time VID.")) return -1;
-  attrText = GetAttrText(ncid,timeVID, "units");
-  if (attrText==NULL || strcmp(attrText,"picosecond")!=0) 
-    mprintf("WARNING: Netcdf restart file %s has time units of %s - expected picosecond.\n",
-            tfile->filename, attrText);
-  if (attrText!=NULL) free(attrText);
-  if ( checkNCerr(nc_get_var_double(ncid, timeVID, &restartTime),
-       "Getting netcdf restart time.")) return -1;
-  if (debug>0) mprintf("    Netcdf restart time= %lf\n",restartTime);
+  if ( nc_inq_varid(ncid, NCTIME, &timeVID) == NC_NOERR) {
+    attrText = GetAttrText(ncid,timeVID, "units");
+    if (attrText==NULL || strcmp(attrText,"picosecond")!=0) 
+      mprintf("WARNING: Netcdf restart file %s has time units of %s - expected picosecond.\n",
+              tfile->filename, attrText);
+    if (attrText!=NULL) free(attrText);
+    if ( checkNCerr(nc_get_var_double(ncid, timeVID, &restartTime),
+         "Getting netcdf restart time.")) return -1;
+    if (debug>0) mprintf("    Netcdf restart time= %lf\n",restartTime);
+  } else {
+    timeVID = -1;
+    time0 = -1;
+  }
 
   // Box info
   if ( nc_inq_varid(ncid,NCCELL_LENGTHS,&cellLengthVID)==NC_NOERR ) {
@@ -202,6 +209,8 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
   // For write, assume we want velocities unless specified
   hasVelocity=true;
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
+  time0 = argIn->getKeyDouble("time0", OUTPUTFRAMESHIFT);
+  if (argIn->hasKey("remdtraj"))   this->SetTemperature();
   return 0;
 }
 
@@ -211,6 +220,9 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
 int AmberRestartNC::setupWrite(AmberParm *trajParm) {
   ncatom = trajParm->natom;
   ncatom3 = ncatom * 3;
+  // If number of frames to write == 1 set singleWrite so we dont append
+  // frame # to filename.
+  if (trajParm->parmFrames==1) singleWrite=true;
   return 0;
 }
 
@@ -228,7 +240,11 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
                    'g', 'a', 'm', 'm', 'a' };
 
   // Create filename for this set
-  NumberFilename(buffer,tfile->filename,set+OUTPUTFRAMESHIFT);
+  // If just writing 1 frame dont modify output filename
+  if (singleWrite)
+    strcpy(buffer,tfile->filename);
+  else
+    NumberFilename(buffer,tfile->filename,set+OUTPUTFRAMESHIFT);
 
   // Create file
   if (checkNCerr(nc_create(buffer,NC_64BIT_OFFSET,&ncid),
@@ -237,10 +253,12 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
     mprintf("    Successfully created Netcdf restart file %s, ncid %i\n",buffer,ncid);
 
   // Time variable
-  if (checkNCerr(nc_def_var(ncid,NCTIME,NC_DOUBLE,0,dimensionID,&timeVID),
-    "Defining time variable.")) return 1;
-  if (checkNCerr(nc_put_att_text(ncid,timeVID,"units",10,"picosecond"),
-    "Writing time VID units.")) return 1;
+  if (time0>=0) {
+    if (checkNCerr(nc_def_var(ncid,NCTIME,NC_DOUBLE,0,dimensionID,&timeVID),
+      "Defining time variable.")) return 1;
+    if (checkNCerr(nc_put_att_text(ncid,timeVID,"units",10,"picosecond"),
+      "Writing time VID units.")) return 1;
+  }
 
   // Spatial dimension and variable
   if (checkNCerr(nc_def_dim(ncid,NCSPATIAL,3,&spatialDID),
@@ -439,6 +457,20 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
     if (checkNCerr(nc_put_vara_double(ncid,cellAngleVID,start,count, box+3),
       "Writing cell angles.")) return 1;
   }
+
+  // write time
+  if (time0>=0) {
+    restartTime = time0;
+    restartTime += (double) set;
+    if (checkNCerr(nc_put_var_double(ncid,timeVID,&restartTime),
+      "Writing restart time.")) return 1;
+  }
+
+  // write temperature
+  if (hasTemperature) {
+    if (checkNCerr(nc_put_var_double(ncid,TempVID,&T),
+      "Writing restart temperature.")) return 1;
+  }
   
   nc_sync(ncid); // Necessary? File about to close anyway... 
 
@@ -453,9 +485,9 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
 void AmberRestartNC::info() {
   mprintf("is a NetCDF AMBER restart file");
 
-  if (velocityVID!=-1) mprintf(", with velocities");
+  if (hasVelocity) mprintf(", with velocities");
  
-  if (TempVID!=-1) mprintf(", with replica temperature");
+  if (hasTemperature) mprintf(", with replica temperature");
 
   /*if (debug > 2) {
       if (title != NULL)

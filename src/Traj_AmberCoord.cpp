@@ -352,17 +352,10 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
   return Frames;
 }
 
-/* AmberCoord::SetremdTraj()
- * Set hasTemperature to true. Will trigger write of REMD header.
- */
-void AmberCoord::SetRemdTraj() {
-  hasTemperature=true;
-}
-
 /* AmberCoord::processWriteArgs()
  */
 int AmberCoord::processWriteArgs(ArgList *argIn) {
-  if (argIn->hasKey("remdtraj")) this->SetRemdTraj();
+  if (argIn->hasKey("remdtraj")) this->SetTemperature();
   if (argIn->hasKey("highprecision")) this->SetHighPrecision();
   return 0;
 }

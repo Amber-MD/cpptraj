@@ -84,3 +84,10 @@ void TrajectoryIO::SetTitle(char *titleIn) {
   if (this->title[titleSize-1]=='\n') this->title[titleSize-1]='\0';
 }
 
+/* TrajectoryIO::SetTemperature()
+ * Indicate temperature information should be read/written.
+ */
+void TrajectoryIO::SetTemperature() {
+  hasTemperature = true;
+}
+

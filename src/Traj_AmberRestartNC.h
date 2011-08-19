@@ -26,6 +26,9 @@ class AmberRestartNC : public TrajectoryIO {
     int cell_angularVID;
     int TempVID;
 
+    bool singleWrite;
+    double time0;
+
     // Inherited functions
     int setupRead(AmberParm*);
     int setupWrite(AmberParm*);

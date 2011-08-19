@@ -31,7 +31,6 @@ class AmberCoord: public TrajectoryIO {
     AmberCoord();
     ~AmberCoord();
     // AmberCoord-specific functions
-    void SetRemdTraj();
     void SetHighPrecision();
 };
 #endif

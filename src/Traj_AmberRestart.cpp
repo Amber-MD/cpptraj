@@ -17,6 +17,7 @@ AmberRestart::AmberRestart() {
   // Set seekable since only 1 frame read (i.e. we know size) 
   seekable=true;
   time0 = OUTPUTFRAMESHIFT;
+  singleWrite = false;
 }
 
 // DESTRUCTOR
@@ -110,6 +111,7 @@ int AmberRestart::processWriteArgs(ArgList *argIn) {
   hasVelocity=true;
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
   time0 = argIn->getKeyDouble("time0", OUTPUTFRAMESHIFT);
+  if (argIn->hasKey("remdtraj")) this->SetTemperature();
   return 0;
 }
 
@@ -141,6 +143,10 @@ int AmberRestart::setupWrite(AmberParm *trajParm) {
   // Allocate memory to buffer 1 frame
   // One extra char for NULL
   frameBuffer=(char*) calloc(frameSize+1, sizeof(char));
+
+  // If number of frames to write == 1 set singleWrite so we dont append
+  // frame # to filename.
+  if (trajParm->parmFrames==1) singleWrite=true;
 
   return 0;
 }
@@ -209,7 +215,7 @@ int AmberRestart::setupRead(AmberParm *trajParm) {
 
   // Attempt a second read to get velocities or box coords
   lineSize = tfile->IO->Read(frameBuffer,sizeof(char),frameSize);
-  mprintf("DEBUG: Restart lineSize on second read = %i\n",lineSize);
+  //mprintf("DEBUG: Restart lineSize on second read = %i\n",lineSize);
 
   // If 0 or -1 no box or velo 
   if (lineSize<=0) {
@@ -308,16 +314,25 @@ int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double 
   char buffer[1024];
   char *bufferPosition;
 
-  NumberFilename(buffer,tfile->filename,set + OUTPUTFRAMESHIFT);
-  if (tfile->IO->Open(buffer,"wb")) return 1;
+  // If just writing 1 frame dont modify output filename
+  if (singleWrite) {
+    if (tfile->IO->Open(tfile->filename,"wb")) return 1;
+  } else {
+    NumberFilename(buffer,tfile->filename,set + OUTPUTFRAMESHIFT);
+    if (tfile->IO->Open(buffer,"wb")) return 1;
+  }
 
   // Write out title
   tfile->IO->Printf("%-80s\n",title);
-  // Write out atoms, time, and temp (if not -1)
-  // NOTE: Use F->natom instead of restart Atoms in case of strip cmd
-  restartTime = time0;
-  restartTime += (double) set; 
-  tfile->IO->Printf("%5i%15.7lE",restartAtoms,restartTime);
+  // Write out atoms
+  tfile->IO->Printf("%5i",restartAtoms);
+  // Write out restart time
+  if (time0>=0) {
+    restartTime = time0;
+    restartTime += (double) set; 
+    tfile->IO->Printf("%15.7lE",restartAtoms,restartTime);
+  }
+  // Write out temperature
   if (hasTemperature)
     tfile->IO->Printf("%15.7lE",T);
   tfile->IO->Printf("\n");

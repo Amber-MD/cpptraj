@@ -192,15 +192,8 @@ int AmberNetcdf::setupRead(AmberParm* trajParm) {
 /* AmberNetcdf::processWriteArgs()
  */
 int AmberNetcdf::processWriteArgs(ArgList *argIn) {
-  if (argIn->hasKey("remdtraj")) this->SetRemdTraj();
+  if (argIn->hasKey("remdtraj")) this->SetTemperature();
   return 0;
-}
-
-/* AmberNetcdf::SetRemdTraj()
- * Indicate this trajectory will have temperature information.
- */
-void AmberNetcdf::SetRemdTraj() {
-  hasTemperature=true;
 }
 
 /* AmberNetcdf::setupWrite()
