@@ -593,18 +593,19 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
   double u12x,u12y,u12z;
   double u23x,u23y,u23z;
   double u31x,u31y,u31z;
-  double volume;
+  double volume,onevolume;
 
-  ucell[0] = box[0];
-  ucell[1] = 0.0;
-  ucell[2] = 0.0;
-  ucell[3] = box[1]*cos(DEGRAD*box[5]);
-  ucell[4] = box[1]*sin(DEGRAD*box[5]);
-  ucell[5] = 0.0;
-  ucell[6] = box[2]*cos(DEGRAD*box[4]);
-  ucell[7] = (box[1]*box[2]*cos(DEGRAD*box[3]) - ucell[6]*ucell[3]) / ucell[4];
-  ucell[8] = sqrt(box[2]*box[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
-  
+  ucell[0] = box[0]; // ucell(1,1)
+  ucell[1] = 0.0;    // ucell(2,1)
+  ucell[2] = 0.0;    // ucell(3,1)
+  ucell[3] = box[1]*cos(DEGRAD*box[5]); // ucell(1,2)
+  ucell[4] = box[1]*sin(DEGRAD*box[5]); // ucell(2,2)
+  ucell[5] = 0.0;                       // ucell(3,2)
+  ucell[6] = box[2]*cos(DEGRAD*box[4]);                                         // ucell(1,3)
+  ucell[7] = (box[1]*box[2]*cos(DEGRAD*box[3]) - ucell[6]*ucell[3]) / ucell[4]; // ucell(2,3)
+  ucell[8] = sqrt(box[2]*box[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);       // ucell(3,3)
+
+  // Get reciprocal vectors
   u23x = ucell[4]*ucell[8] - ucell[5]*ucell[7];
   u23y = ucell[5]*ucell[6] - ucell[3]*ucell[8];
   u23z = ucell[3]*ucell[7] - ucell[4]*ucell[6];
@@ -615,16 +616,18 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
   u12y = ucell[2]*ucell[3] - ucell[0]*ucell[5];
   u12z = ucell[0]*ucell[4] - ucell[1]*ucell[3];
   volume=ucell[0]*u23x + ucell[1]*u23y + ucell[2]*u23z;
+  onevolume = 1.0 / volume;
 
-  recip[0] = u23x/volume;
-  recip[1] = u23y/volume;
-  recip[2] = u23z/volume;
-  recip[3] = u31x/volume;
-  recip[4] = u31y/volume;
-  recip[5] = u31z/volume;
-  recip[6] = u12x/volume;
-  recip[7] = u12y/volume;
-  recip[8] = u12z/volume;
+  recip[0] = u23x*onevolume;
+  recip[1] = u23y*onevolume;
+  recip[2] = u23z*onevolume;
+  recip[3] = u31x*onevolume;
+  recip[4] = u31y*onevolume;
+  recip[5] = u31z*onevolume;
+  recip[6] = u12x*onevolume;
+  recip[7] = u12y*onevolume;
+  recip[8] = u12z*onevolume;
+
   return volume;
 }
 
