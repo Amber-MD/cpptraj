@@ -49,13 +49,14 @@ atommap::~atommap() {
   }
 }
 
-// Set atommap debug
+/* atommap::SetDebug()
+ * Set atommap debug
+ */
 void atommap::SetDebug(int debugIn) {
   debug=debugIn;
 }
 
-/*
- * atommap::atomID()
+/* atommap::atomID()
  * Return the atomID of the given atom.
  */
 const char *atommap::atomID(int atom) {
@@ -63,8 +64,7 @@ const char *atommap::atomID(int atom) {
   return (M[atom].atomID);
 }
 
-/*
- * atommap::Aname()
+/* atommap::Aname()
  * Return the parm atom name of the given atom.
  */
 const char *atommap::Aname(int atom) {
@@ -72,8 +72,7 @@ const char *atommap::Aname(int atom) {
   return (P->names[atom]);
 }
 
-/*
- * atommap::getCut() 
+/* atommap::getCut() 
  * Return a cutoff based on optimal covalent bond distance based on the 
  * identities of atom1 and atom2. When multiple hybridizations are possible
  * the longest possible bond length is used.
@@ -170,8 +169,7 @@ double atommap::getCut(char *atom1, char *atom2) {
   return cut;
 }
 
-/*
- * atommap::calcDist()
+/* atommap::calcDist()
  * Determine which atoms are bonded to each other in a given set of atoms
  * based on how close they are and their identity.
  */
@@ -236,8 +234,7 @@ int atommap::calcDist() {
   return 0;
 }
 
-/*
- * atommap::markAtomComplete()
+/* atommap::markAtomComplete()
  * If atom is mapped and all bonded atoms are mapped mark atom as completely 
  * mapped.
  * If printAtoms is true print isMapped value for this atom and all atoms
@@ -269,8 +266,7 @@ void atommap::markAtomComplete(int atom, bool printAtoms) {
   }
 }
 
-/*
- * atommap::markComplete()
+/* atommap::markComplete()
  * Go through each atom in the map. If the atom is unique and all bonded
  * atoms are unique mark the atom as completely mapped.
  * Print bond information for each atom in the map, indicate whether
@@ -282,8 +278,7 @@ void atommap::markComplete() {
     markAtomComplete(atom, printAtoms);
 }
 
-/*
- * atommap::determineAtomID()
+/* atommap::determineAtomID()
  * Give each atom an identifier based on what atoms are bonded to it. The
  * first part is the atom itself, followed by an alphabetized list of 
  * bonded atoms. So C in O=C-H2 would be CHHO.
@@ -383,8 +378,7 @@ void atommap::determineAtomID() {
   }
 }
 
-/*
- * atommap::BondIsRepeated()
+/* atommap::BondIsRepeated()
  * Check if the atomID of the atom in bond <bond> bonded to atom <atom>
  * is the same as the atomID of any other non-mapped atom bonded to 
  * atom <atom>.
@@ -406,8 +400,7 @@ bool atommap::BondIsRepeated(int atom, int bond) {
   return false;
 }
 
-/* 
- * atommap::setup()
+/* atommap::setup()
  * Allocate memory for atom map. In order to easily create the uniqueID 
  * strings the atom names need to be 1 char long. Convert chlorine 
  * to X for now, bromine to Y etc.
@@ -459,7 +452,9 @@ int atommap::setup() {
 }
 
 // DEBUG
-// Write atommap out as a mol2 file, useful for checking bond info
+/* atommap::WriteMol2()
+ * Write atommap out as a mol2 file, useful for checking bond info
+ */
 void atommap::WriteMol2(char *m2filename) {
   TrajectoryFile outfile;
   AtomMask M1;
@@ -516,8 +511,7 @@ AtomMap::~AtomMap() {
   if (stripParm!=NULL) delete stripParm;
 }
 
-/*
- * AtomMap::mapBondsToUnique()
+/* AtomMap::mapBondsToUnique()
  * For each atom R in reference already mapped to unique atom T in 
  * target, try to match up non-mapped reference atoms r bonded to R to 
  * non-mapped target atoms t bonded to T. Repeat until no more reference 
@@ -594,8 +588,7 @@ int AtomMap::mapBondsToUnique(atommap *Ref, atommap *Tgt) {
   return numMappedAtoms;
 }        
 
-/*
- * AtomMap::mapChiral()
+/* AtomMap::mapChiral()
  * Given two atommaps and a map relating the two, find chiral centers for
  * which at least 3 of the atoms have been mapped. Assign the remaining
  * two atoms based on improper dihedrals. 
@@ -737,8 +730,7 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
   return numMappedAtoms;
 }
 
-/*
- * AtomMap::mapUniqueRefToTgt()
+/* AtomMap::mapUniqueRefToTgt()
  * If the number of atoms in Ref is different from Tgt, it is possible that
  * Tgt is missing atoms (or maybe vice versa). If the difference is not too
  * great it may be possible to look for an unmapped atom in Ref that has
@@ -809,8 +801,7 @@ int AtomMap::mapUniqueRefToTgt(atommap *Ref, atommap *Tgt, int atom) {
   return 1;
 }
 
-/*
- * AtomMap::mapByIndex()
+/* AtomMap::mapByIndex()
  * Given to atommaps and a map relating the two, attempt to map any remaining
  * incomplete atoms by assuming the atom indices in reference and target are
  * in similar orders. At this point all unique atoms should have been mapped.
@@ -921,8 +912,7 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
 }
 
 
-/*
- * AtomMap::MapUniqueAtoms()
+/* AtomMap::MapUniqueAtoms()
  * Map unique atoms in reference to unique atoms in target. If no atoms
  * can be mapped in this way, attempt to guess a starting point based
  * first on uniqueID, then by chirality.
@@ -1018,8 +1008,7 @@ int AtomMap::MapUniqueAtoms(atommap *Ref, atommap *Tgt) {
   return numAtomsMapped;
 }
 
-/*
- * AtomMap::MapAtoms()
+/* AtomMap::MapAtoms()
  * Map atoms in tgt to atoms in reference. First map any uniquely identified
  * atoms. Then map unmapped atoms that are the only one of their kind bonded 
  * to a unique or already mapped atom (mapBondsToUnique). Then map atoms based 
@@ -1094,8 +1083,7 @@ int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
   return 0;
 }
 
-/*
- * AtomMap::init()
+/* AtomMap::init()
  * Expected call: atommap <target> <reference> [mapout <filename>] [maponly]
  * Attempt to create a map from atoms in target to atoms in reference solely
  * based on how they are bonded (not how they are named). 
@@ -1259,8 +1247,7 @@ int AtomMap::init() {
   return 0;
 }
 
-/*
- * AtomMap::setup()
+/* AtomMap::setup()
  * If the current parm does not match the target parm, deactivate. Otherwise
  * replace current parm with mapped parm.
  */
@@ -1270,13 +1257,12 @@ int AtomMap::setup() {
     return 0;
   }
   if (P->pindex!=TargetMap.P->pindex ||
-      P->natom !=TargetMap.P->natom) {
-    if (debug>0) {
-      mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.P->parmName,
-              RefMap.P->parmName,TargetMap.P->natom);
-      mprintf("             Current parm %s (%i atom).\n",P->parmName,P->natom);
-      mprintf("             Not using map for this parm.\n");
-    }
+      P->natom !=TargetMap.P->natom) 
+  {
+    mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.P->parmName,
+            RefMap.P->parmName,TargetMap.P->natom);
+    mprintf("             Current parm %s (%i atom).\n",P->parmName,P->natom);
+    mprintf("             Not using map for this parm.\n");
     return 1;
   }
   mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.P->parmName,
@@ -1287,8 +1273,7 @@ int AtomMap::setup() {
   return 0;
 }
 
-/*
- * AtomMap::action()
+/* AtomMap::action()
  * Modify the current frame based on the atom map. 
  */
 int AtomMap::action() {
