@@ -5,7 +5,6 @@
 // CONSTRUCTOR
 Center::Center() {
   //fprintf(stderr,"Center Con\n");
-//  mass=NULL;
   box[0]=0.0;
   box[1]=0.0;
   box[2]=0.0;
@@ -16,8 +15,7 @@ Center::Center() {
 // DESTRUCTOR
 Center::~Center() { }
 
-/*
- * Center::init()
+/* Center::init()
  * Expected call: center <mask> [origin] [mass] 
  * Check order is:
  *    1) Keywords
@@ -49,8 +47,7 @@ int Center::init() {
   return 0;
 }
 
-/*
- * Center::setup()
+/* Center::setup()
  * Set angle up for this parmtop. Get masks etc.
  * P is set in Action::Setup
  */
@@ -62,16 +59,6 @@ int Center::setup() {
     return 1;
   }
 
-  if (useMass && P->mass==NULL) {
-    mprintf("    Warning: Center::setup: usemass: Parm %s contains no mass info.\n",
-            P->parmName);
-    mprintf("             Geometric center will be used instead.\n");
-    useMass=false;
-  }
-//    mass = P->mass;
-// else
-//    mass = NULL;
-
   if (!origin && P->boxType==NOBOX) {
     mprintf("    Error: Center::setup: Box center specified but no box information.\n");
     //fprintf(stdout,"                            Centering on origin.\n");
@@ -81,8 +68,8 @@ int Center::setup() {
   return 0;  
 }
 
-/*
- * Center::action()
+/* Center::action()
+ # Center coordinates in frame to coord origin or box origin (corner).
  */
 int Center::action() {
 
@@ -97,5 +84,4 @@ int Center::action() {
 
   return 0;
 } 
-
 

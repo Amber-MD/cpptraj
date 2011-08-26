@@ -1,15 +1,21 @@
 #include "Action.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Action::Action() {
-  //currentType=UNKNOWN_ACTION; 
   A=NULL; 
+
+  P=NULL;
+  F=NULL;
+  DSL=NULL;
+  DFL=NULL;
+  PFL=NULL;
+  FL=NULL;
+  useMass=false;
+  debug=0;
   currentFrame=0; 
   noInit=0; 
   noSetup=0; 
-  P=NULL;
-  F=NULL;
-  debug=0;
 }
 
 // DESTRUCTOR - virtual since this class is inherited
@@ -18,40 +24,35 @@ Action::~Action() {
   if (A!=NULL) delete A;
 }
 
-/*
- * Action::setArg()
+/* Action::setArg()
  * Set the argument list
  */
 void Action::setArg(ArgList *inA) { 
   A=inA->Copy();       
 }
 
-/*
- * Action::ResetArg()
+/* Action::ResetArg()
  * Reset arguments in the argument list
  */
 void Action::ResetArg() { 
   A->Reset();          
 }
 
-/*
- * Action::Name()
+/* Action::Name()
  *  Print the command that calls the action
  */
 char *Action::Name() { 
   return A->Command(); 
 }
 
-/*
- * Action::CmdLine()
+/* Action::CmdLine()
  * Print the command and all args
  */
 char *Action::CmdLine() { 
   return A->ArgLine(); 
 }
 
-/*
- * Action::Init()
+/* Action::Init()
  * Allocate non-parm dependent things like I/O files and datasets. Sets
  * the pointers to DataSetList, DataFileList and reference FrameList from
  * PtrajState. Called before trajectory processing. Calls the actions 
@@ -73,8 +74,7 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   return ( err );
 }
 
-/*
- * Action::Setup()
+/* Action::Setup()
  * Allocate parm-dependent things like masks. Sets the pointer to the current
  * parmtop and allows it to be modified by the action. Called every time traj 
  * changes. Calls the actions internal setup() routine.
@@ -83,6 +83,12 @@ int Action::Setup(AmberParm **ParmAddress) {
   int err;
   
   P = *ParmAddress;
+  // If useMass, check that parm actually has masses.
+  if (P->mass==NULL && useMass) {
+    mprintf("    Warning: %s: Mass for this parm is NULL.\n",A->Command());
+    mprintf("             Geometric center will be used instead of center of mass.\n");
+    useMass=false;
+  }
   err = this->setup();
   if (err) return err;
   // Set the value of parm address in case parm was changed, e.g. in strip
@@ -90,8 +96,7 @@ int Action::Setup(AmberParm **ParmAddress) {
   return 0;
 }
 
-/*
- * Action::DoAction() 
+/* Action::DoAction() 
  * Perform the action. Called every time a frame is to be processed. Sets the
  * pointer to the current frame and allows it to be modified by the action.
  * Calls the actions internal action() routine.

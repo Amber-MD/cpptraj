@@ -1,15 +1,11 @@
 #ifndef INC_ACTION_DISTANCE_H
 #define INC_ACTION_DISTANCE_H
-
-// Should automatically include AmberParm.h from Action.h
+/// Class: Distance
+/// Action to calculate a distance between atoms in two masks.
 #include "Action.h"
-//#include "AtomMask.h" // NOTE: Should be included in Action.h instead?
-
 class Distance: public Action {
     DataSet *dist;
-    bool noimage,useMass;
-    //enum ImageType {NONE, ORTHO, NONORTHO};
-    //ImageType imageType;
+    bool noimage;
     int imageType; 
     AtomMask Mask1, Mask2;
   public:

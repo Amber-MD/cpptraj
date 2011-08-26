@@ -20,8 +20,11 @@ class Action {
     Frame *F;               // The current frame (action)
     DataSetList *DSL;       // Pointer to the data set list in PtrajState (init)
     DataFileList *DFL;      // Pointer to the data file list in PtrajState (init)
-    ParmFileList *PFL;
+    ParmFileList *PFL;      // Pointer to the parm file list in PtrajState (init)
     FrameList *FL;          // Pointer to the reference frame list in PtrajState (init)
+    
+    bool useMass;           // If set to true, calculations will use mass info
+
     int debug;
     int currentFrame;       // current frame being processed, set by PtrajActionList
     // --== Inherited by child classes ==--

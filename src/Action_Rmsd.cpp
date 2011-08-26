@@ -384,14 +384,6 @@ int Rmsd::setup() {
     return 1;
   }
 
-  // Check Mass
-  if (useMass && P->mass==NULL) {
-    mprintf("    Warning: Rmsd::setup: usemass: Parmtop %s does not contain mass info.\n",
-            P->parmName);
-    mprintf("             Geometric center will be used instead.\n");
-    useMass=false;
-  }
-
   // Per residue rmsd setup
   if (perres) { 
     if (this->perResSetup()) return 1;

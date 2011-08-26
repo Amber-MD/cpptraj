@@ -15,8 +15,7 @@ Pucker::Pucker() {
 // DESTRUCTOR
 Pucker::~Pucker() { }
 
-/*
- * Pucker::init()
+/* Pucker::init()
  * Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>
  *                [amplitude] [altona | cremer] [offset <offset>]
  * Dataset name will be the last arg checked for. Check order is:
@@ -74,8 +73,7 @@ int Pucker::init() {
   return 0;
 }
 
-/*
- * Pucker::setup
+/* Pucker::setup
  */
 int Pucker::setup() {
 
@@ -89,19 +87,10 @@ int Pucker::setup() {
     return 1;
   }
 
-  // Use mass weighting unless no masses are present
-  useMass = true;
-  if (P->mass==NULL) {
-    mprintf("    Warning: Pucker::setup: No mass information in %s, not using mass-weighting.\n",
-            P->parmName);
-    useMass=false;
-  }
-
   return 0;  
 }
 
-/*
- * Pucker::action()
+/* Pucker::action()
  */
 int Pucker::action() {
   double D;
@@ -121,5 +110,4 @@ int Pucker::action() {
   
   return 0;
 } 
-
 

@@ -14,8 +14,7 @@ Radgyr::Radgyr() {
 // DESTRUCTOR
 Radgyr::~Radgyr() { }
 
-/*
- * Radgyr::init()
+/* Radgyr::init()
  * Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
@@ -56,8 +55,7 @@ int Radgyr::init() {
   return 0;
 }
 
-/*
- * Radgyr::setup()
+/* Radgyr::setup()
  * Set radius of gyration up for this parmtop. Get masks etc.
  * P is set in Action::Setup
  */
@@ -72,8 +70,7 @@ int Radgyr::setup() {
   return 0;  
 }
 
-/*
- * Radgyr::action()
+/* Radgyr::action()
  */
 int Radgyr::action() {
   double Rog, max;
@@ -88,5 +85,4 @@ int Radgyr::action() {
   
   return 0;
 } 
-
 

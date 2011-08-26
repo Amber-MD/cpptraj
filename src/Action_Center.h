@@ -1,14 +1,12 @@
 #ifndef INC_ACTION_CENTER_H
 #define INC_ACTION_CENTER_H
-// Center
+/// Class: Center
+/// Action to center coordinates to coord origin or box origin.
 #include "Action.h"
-
 class Center: public Action {
     AtomMask Mask1;
-//    double *mass;
     double box[3];
     bool origin;
-    bool useMass;
   public:
     Center();
     ~Center();

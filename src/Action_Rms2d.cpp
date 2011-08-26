@@ -27,10 +27,9 @@ Rms2d::~Rms2d() {
   }
 }
 
-/*
- * Rms2d::init()
+/* Rms2d::init()
  * Expected call: rms2d <mask> <refmask> rmsout <filename> [mass] [nofit] 
-                  [reftraj <traj> [parm <parmname> | parmindex <#>]] 
+ *                [reftraj <traj> [parm <parmname> | parmindex <#>]] 
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -99,16 +98,14 @@ int Rms2d::init() {
   return 0;
 }
 
-/*
- * Rms2d::setup()
+/* Rms2d::setup()
  * Not important for Rms2d, initial pass is only for storing frames.
  */
 int Rms2d::setup() {
   return 0;  
 }
 
-/*
- * Rms2d::action()
+/* Rms2d::action()
  * Store current frame as a reference frame.
  */
 int Rms2d::action() {
@@ -120,8 +117,7 @@ int Rms2d::action() {
   return 0;
 } 
 
-/*
- * Rms2d::print()
+/* Rms2d::print()
  * Perform the rms calculation of each frame to each other frame.
  */
 void Rms2d::print() {

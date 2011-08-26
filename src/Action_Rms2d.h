@@ -1,13 +1,12 @@
 #ifndef INC_ACTION_RMS2D_H
 #define INC_ACTION_RMS2D_H
-// Rms2d
+/// Class: Rms2d
+/// Action to calculate the RMSD between two sets of frames.
 #include "Action.h"
 #include "TrajectoryFile.h"
-
 class Rms2d: public Action {
     FrameList ReferenceFrames; // Hold frames from all trajin stmts
     bool nofit;                // Do not perform rms fitting
-    bool useMass;              // Perform mass-weighted rmsd
     AtomMask RefMask;          // Reference atom mask
     AtomMask FrameMask;        // Target atom mask
     char *rmsdFile;            // Output filename

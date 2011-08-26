@@ -20,8 +20,7 @@ Image::~Image() {
   if (ComMask!=NULL) delete ComMask;
 }
 
-/*
- * Image::init()
+/* Image::init()
  * Expected call: image [origin] [center] [triclinic | familiar [com <mask>]] <mask>  
  *   origin: center at 0.0, 0.0, 0.0, otherwise center at box center.
  *   center: Use center of mass for imaging, otherwise use first atom.
@@ -77,8 +76,7 @@ int Image::init() {
   return 0;
 }
 
-/*
- * Image::setup()
+/* Image::setup()
  * Set Imaging up for this parmtop. Get masks etc.
  * P is set in Action::Setup
  */
@@ -88,14 +86,6 @@ int Image::setup() {
   if (Mask1.None()) {
     mprintf("    Error: Image::setup: Mask contains 0 atoms.\n");
     return 1;
-  }
-
-  useMass = true;
-  if (center && P->mass==NULL) {
-    mprintf("    Warning: Image::setup: center: Parm %s contains no mass info.\n",
-            P->parmName);
-    mprintf("             Geometric center will be used instead.\n");
-    useMass = false;
   }
 
   if (P->boxType==NOBOX) {
@@ -120,8 +110,7 @@ int Image::setup() {
   return 0;  
 }
 
-/*
- * Image::action()
+/* Image::action()
  */
 int Image::action() {
   // Orthorhombic
@@ -131,7 +120,7 @@ int Image::action() {
   double ucell[9];
   double recip[9];
   double fc[3], ffc[3];
-  //   Familiar
+  // Familiar
   double fcom[3];
   int ixyz[3];
   // General

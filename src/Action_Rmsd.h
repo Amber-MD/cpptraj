@@ -1,11 +1,11 @@
 #ifndef INC_ACTION_RMSD_H
 #define INC_ACTION_RMSD_H
-
+/// Class: Rmsd
+/// Action to calculate the RMSD between frame and a reference frame.
 #include "Action.h"
 #include <vector>
 #include "Range.h"
 #include "TrajectoryFile.h"
-
 class Rmsd: public Action {
     DataSet *rmsd;
     // PerResRMSD -------------
@@ -24,7 +24,7 @@ class Rmsd: public Action {
     Frame *ResRefFrame;                // Hold residue reference coords.
     // ------------------------ 
     AtomMask RefMask, FrameMask;        // Frame and reference masks.
-    bool nofit, first, perres, useMass; // Action options
+    bool nofit, first, perres;          // Action options
     Frame *RefFrame;                    // Hold reference frame coords
     Frame *SelectedRef;                 // Hold only ref coods selected by maskRef
     Frame *SelectedFrame;               // Hold only frame coords selected by mask0

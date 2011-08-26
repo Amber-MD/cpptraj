@@ -17,8 +17,7 @@ Distance::~Distance() {
   //fprintf(stderr,"Distance Destructor.\n");
 }
 
-/*
- * Distance::init()
+/* Distance::init()
  * Expected call: distance <name> <mask1> <mask2> [out filename] [geom] [noimage]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
@@ -52,8 +51,6 @@ int Distance::init( ) {
   // Add dataset to data file list
   DFL->Add(distanceFile,dist);
 
-
-  //dist->Info();
   mprintf("    DISTANCE: %s to %s",Mask1.maskString, Mask2.maskString);
   if (noimage) 
     mprintf(", non-imaged");
@@ -66,8 +63,7 @@ int Distance::init( ) {
   return 0;
 }
 
-/*
- * Distance::setup()
+/* Distance::setup()
  * Determine what atoms each mask pertains to for the current parm file.
  * Also determine whether imaging should be performed.
  */
@@ -79,14 +75,6 @@ int Distance::setup() {
   if (Mask1.None() || Mask2.None()) {
     mprintf("    Error: Distance::setup: One or both masks have no atoms.\n");
     return 1;
-  }
-  // Set mass from parm file
-  //if (!geom) Mass=P->mass;
-
-  if (P->mass==NULL && useMass) {
-    mprintf("    Warning: Distance::setup: Mass for this parm is NULL.\n");
-    mprintf("             Geometric center of mass will be used.\n");
-    useMass=false;
   }
 
   // Check imaging - check box based on prmtop box
@@ -109,8 +97,7 @@ int Distance::setup() {
   return 0;  
 }
 
-/*
- * Distance::action()
+/* Distance::action()
  */
 int Distance::action() {
   double D, ucell[9], recip[9];
@@ -125,5 +112,4 @@ int Distance::action() {
   
   return 0;
 } 
-
 
