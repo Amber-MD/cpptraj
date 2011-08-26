@@ -36,14 +36,15 @@ Hist::~Hist() {
  * Return 1 if error occurs, 0 otherwise.
  */
 int Hist::setupDimension(char *input, DataSetList *datasetlist) {
-  // Separate input string by ':'
-  ArgList arglist(input, ":");
+  ArgList arglist;
   double dmin,dmax,dstep;
   bool minArg=false;
   bool maxArg=false;
   int dbins;
   DataSet *dset = NULL;
 
+  // Separate input string by ':'
+  arglist.SetList(input, ":");
   if (arglist.Nargs()<1) {
     mprintf("Warning: Hist::setupDimension: No arguments found in input: %s\n",input);
     return 1;

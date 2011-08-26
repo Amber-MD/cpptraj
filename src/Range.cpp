@@ -23,7 +23,7 @@ Range::~Range() {
 int Range::SetRange(char *ArgIn) {
   char *temp, *arg;
   int R[2], upper, err;
-  ArgList *CommaList, *DashList;
+  ArgList CommaList, DashList;
   std::list<int>::iterator it;
 
   //mprintf("DEBUG: SetRange(%s)\n",ArgIn);
@@ -38,18 +38,17 @@ int Range::SetRange(char *ArgIn) {
   temp=(char*) malloc( (strlen(ArgIn)+1) * sizeof(char));
   strcpy(temp,ArgIn);
   // Split range by comma
-  CommaList = new ArgList(temp, ",");
-  CommaList->ResetAll();
+  CommaList.SetList(temp, ",");
+  CommaList.ResetAll();
   err=0;
-  while ( (arg = CommaList->getNextString())!=NULL ) {
+  while ( (arg = CommaList.getNextString())!=NULL ) {
     // Then split by dash
-    DashList = new ArgList(arg, "-");
-    DashList->ResetAll();
-    R[0] = DashList->getNextInteger(-1);
-    R[1] = DashList->getNextInteger(-1);
-    delete DashList;
+    DashList.SetList(arg, "-");
+    DashList.ResetAll();
+    R[0] = DashList.getNextInteger(-1);
+    R[1] = DashList.getNextInteger(-1);
     if (R[0]==-1) {
-      mprintf("Error: Range::SetRange(%s): Range is -1 for %s\n",ArgIn,DashList->ArgLine());
+      mprintf("Error: Range::SetRange(%s): Range is -1 for %s\n",ArgIn,DashList.ArgLine());
       err=1;
       break;
     }
@@ -61,7 +60,6 @@ int Range::SetRange(char *ArgIn) {
   }
 
   free(temp);
-  delete CommaList;
   // Dont return an empty list
   if ( err>0 || rangeList.empty() ) 
     return 1;

@@ -6,6 +6,7 @@
 #include "ArgList.h"
 #include "CpptrajStdio.h"
 // NOTE: Place checks on memory
+// NOTE: Check Arg, ReplaceArg, SplitAt etc to see how often they are used.
 
 // CONSTRUCTOR: Empty Arg List
 ArgList::ArgList() {
@@ -15,16 +16,35 @@ ArgList::ArgList() {
   argline=NULL;
 }
 
-// NOTE: Check Arg, ReplaceArg, SplitAt etc to see how often they are used.
+// DESTRUCTOR
+ArgList::~ArgList() {
+  if (arglist!=NULL){
+    for (int i=0; i<nargs; i++)
+      if (arglist[i]!=NULL) free(arglist[i]);
+    free(arglist);
+  }
+  if (marked!=NULL) free(marked);
+  if (argline!=NULL) free(argline);
+}
 
-// CONSTRUCTOR
-// Separate input by the characters in separator and store as separate args
-ArgList::ArgList(char *input, const char *separator) {
+/* ArgList::SetList()
+ * Separate input by the characters in separator and store as separate args.
+ * This overwrites any existing args and completely resets the list.
+ */
+int ArgList::SetList(char *input, const char *separator) {
   char *pch;
   std::string quotedArg;
   int debug;
   size_t inputSize;
 
+  // Reset existing args
+  if (arglist!=NULL){
+    for (int i=0; i<nargs; i++)
+      if (arglist[i]!=NULL) free(arglist[i]);
+    free(arglist);
+  }
+  if (marked!=NULL) free(marked);
+  if (argline!=NULL) free(argline);
   arglist=NULL; marked=NULL; argline=NULL; nargs=0; debug=0;
 
   inputSize = strlen(input);
@@ -74,22 +94,8 @@ ArgList::ArgList(char *input, const char *separator) {
     Reset();
   }
   if (debug>3) mprintf("getArgList: Processed %i args\n",nargs);
+  return 0;
 }
-
-// DESTRUCTOR
-ArgList::~ArgList() {
-  int i;
-
-  if (arglist!=NULL){
-
-    for (i=0; i<nargs; i++)
-      if (arglist[i]!=NULL) free(arglist[i]);
-    free(arglist);
-  }
-  if (marked!=NULL) free(marked);
-  if (argline!=NULL) free(argline);
-}
-
 
 /* ArgList::Add()
  * Add input to the argument list.

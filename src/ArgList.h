@@ -9,8 +9,10 @@ class ArgList {
     char *argline;
   public:
     ArgList();
-    ArgList(char *, const char *);
+    //ArgList(char *, const char *);
     ~ArgList();
+
+    int SetList(char*, const char*);
     ArgList *Copy();
     void Add(char *);
 
