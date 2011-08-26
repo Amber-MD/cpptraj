@@ -1,10 +1,10 @@
 #ifndef INC_ACTION_HBOND_H
 #define INC_ACTION_HBOND_H
-
+/// Class: Hbond
+/// Action to calculate the Hbonds present in each frame.
 #include "Action.h"
 #include <vector>
 #include <map>
-
 class Hbond : public Action {
     struct HbondType {
       int A;        // Acceptor atom#
@@ -22,6 +22,8 @@ class Hbond : public Action {
     std::vector<int> Donor;
     std::vector<int> Acceptor;
     AtomMask Mask;
+    AtomMask DonorMask;
+    AtomMask AcceptorMask;
     std::vector<int>::iterator accept;
     std::vector<int>::iterator donor;
     double acut;
@@ -40,7 +42,9 @@ class Hbond : public Action {
     };
 
     //bool HbondSort( HbondType, HbondType);
-
+    void SearchAcceptor(AtomMask*,bool);
+    void SearchDonor(AtomMask*,bool);
+    
   public:
     Hbond();
     ~Hbond();
@@ -50,5 +54,4 @@ class Hbond : public Action {
     int action();
     void print();
 };
-
 #endif

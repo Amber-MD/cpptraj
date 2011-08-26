@@ -15,10 +15,18 @@ Hbond::~Hbond() {
 
 /* Hbond::init()
  * Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [avgout <filename>]
+ *                      [donormask <mask>] [acceptormask <mask>]
  * Search for Hbonding atoms in region specified by mask. 
  * Arg. check order is:
  *    1) Keywords
  *    2) Masks
+ * If just <mask> is specified donors and acceptors will be automatically
+ * searched for.
+ * If donormask is specified but not acceptormask, acceptors will be 
+ * automatically searched for in <mask>.
+ * If acceptormask is specified but not donormask, donors will be automatically
+ * searched for in <mask>.
+ * If both donormask and acceptor mask are specified no searching will occur.
  */
 int Hbond::init() {
   char *mask, *outfilename;
@@ -28,7 +36,13 @@ int Hbond::init() {
   avgout = A->getKeyString("avgout",NULL);
   acut = A->getKeyDouble("angle",135.0);
   dcut = A->getKeyDouble("dist",3.0);
-  // Get masks
+  // Get donor mask
+  mask = A->getKeyString("donormask",NULL);
+  if (mask!=NULL) DonorMask.SetMaskString(mask);
+  // Get acceptor mask
+  mask = A->getKeyString("acceptormask",NULL);
+  if (mask!=NULL) AcceptorMask.SetMaskString(mask);
+  // Get generic mask
   mask = A->getNextMask();
   Mask.SetMaskString(mask);
 
@@ -37,7 +51,18 @@ int Hbond::init() {
   if (NumHbonds==NULL) return 1;
   DFL->Add(outfilename,NumHbonds);
 
-  mprintf( "  HBOND: Calculating Hbonds in region specified by %s\n",Mask.maskString);
+  mprintf( "  HBOND: ");
+  if (DonorMask.maskString==NULL && AcceptorMask.maskString==NULL)
+    mprintf("Searching for Hbond donors/acceptors in region specified by %s\n",Mask.maskString);
+  else if (DonorMask.maskString!=NULL && AcceptorMask.maskString==NULL)
+    mprintf("Donor mask is %s, acceptors will be searched for in region specified by %s\n",
+            DonorMask.maskString,Mask.maskString);
+  else if (AcceptorMask.maskString!=NULL && DonorMask.maskString==NULL)
+    mprintf("Acceptor mask is %s, donors will be searched for in a region specified by %s\n",
+            AcceptorMask.maskString,Mask.maskString);
+  else
+    mprintf("Donor mask is %s, Acceptor mask is %s\n",
+            DonorMask.maskString,AcceptorMask.maskString);
   mprintf( "         Distance cutoff = %8.3lf, Angle Cutoff = %8.3lf\n",dcut,acut);
   if (outfilename!=NULL) 
     mprintf( "         Dumping # Hbond v time results to %s\n", outfilename);
@@ -47,52 +72,130 @@ int Hbond::init() {
   return 0;
 }
 
+/* Hbond::SearchAcceptor()
+ * Search for hbond acceptors X in the region specified by amask.
+ * If Auto is true select acceptors based on the rule that "Hydrogen 
+ * bonds are FON"
+ */
+void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
+  int atom;
+  bool isAcceptor;
+  // Set up acceptors: F, O, N
+  // NOTE: Attempt to determine electronegative carbons?
+  for (int selected=0; selected < amask->Nselected; selected++) {
+    atom = amask->Selected[selected];
+    isAcceptor=true;
+    // If auto searching, only consider acceptor atoms as F, O, N
+    if (Auto) {
+      isAcceptor=false;
+      if (P->names[atom][0]=='F' ||
+          P->names[atom][0]=='O' ||
+          P->names[atom][0]=='N'   )
+        isAcceptor=true;
+    }
+    if (isAcceptor)
+      Acceptor.push_back(atom);
+  }
+}
+
+/* Hbond::SearchDonor()
+ * Search for hydrogen bond donors X-H in the region specified by dmask.
+ * If Auto is true select donors based on the rule that "Hydrogen bonds 
+ * are FON"
+ */
+void Hbond::SearchDonor(AtomMask *dmask, bool Auto) {
+  int donoratom, atom1, atom2;
+  bool isDonor;
+  // Set up donors: F-H, O-H, N-H
+  for (int selected=0; selected < dmask->Nselected; selected++) {
+    donoratom = dmask->Selected[selected];
+    // If this is already an H atom continue
+    if (P->names[donoratom][0]=='H') continue;
+    isDonor = true;
+    // If auto searching, only consider donor atoms as F, O, N
+    if (Auto) {
+      isDonor=false;
+      if (P->names[donoratom][0]=='F' ||
+          P->names[donoratom][0]=='O' ||
+          P->names[donoratom][0]=='N')
+        isDonor=true;
+    }
+    if (isDonor) { 
+      // Search the list of bonds to hydrogen for this atom.
+      for (int bh=0; bh < P->NbondsWithH*3; bh+=3) {
+        // Actual atom #s in bondsh array = x / 3
+        atom1 = P->bondsh[bh  ] / 3;
+        atom2 = P->bondsh[bh+1] / 3;
+        if (atom1==donoratom) {
+          Donor.push_back(atom1);
+          Donor.push_back(atom2);
+        } else if (atom2==donoratom) {
+          Donor.push_back(atom2);
+          Donor.push_back(atom1);
+        }
+      } // END loop over bonds to hydrogen
+    } // END atom is potential donor
+  } // END loop over selected atoms
+}
+
 /* Hbond::setup()
  * Search for hbond donors and acceptors. 
  */
 int Hbond::setup() {
-  int atom, selected, a2;
+  int atom, a2;
 
   // Set up mask
-  if ( Mask.SetupMask(P,debug) ) return 1;
-  if ( Mask.None() ) {
-    mprintf("    Error: Hbond::setup: Mask has no atoms.\n");
-    return 1;
+  if (DonorMask.maskString==NULL || AcceptorMask.maskString==NULL) {
+    if ( Mask.SetupMask(P,debug) ) return 1;
+    if ( Mask.None() ) {
+      mprintf("    Error: Hbond::setup: Mask has no atoms.\n");
+      return 1;
+    }
+  }
+  // Set up donor mask
+  if (DonorMask.maskString!=NULL) {
+    if (DonorMask.SetupMask(P,debug)) return 1;
+    if (DonorMask.None()) {
+      mprintf("    Error: Hbond: DonorMask has no atoms.\n");
+      return 1;
+    }
+  }
+  // Set up acceptor mask
+  if (AcceptorMask.maskString!=NULL) {
+    if (AcceptorMask.SetupMask(P,debug)) return 1;
+    if (AcceptorMask.None()) {
+      mprintf("    Error: Hbond: AcceptorMask has no atoms.\n");
+      return 1;
+    }
   }
 
-  // Set up acceptors: F, O, N
-  // NOTE: Attempt to determine electronegative carbons?
-  for (selected=0; selected < Mask.Nselected; selected++) {
-    atom = Mask.Selected[selected];
-    if (P->names[atom][0]=='F' ||
-        P->names[atom][0]=='O' ||
-        P->names[atom][0]=='N'   )
-      Acceptor.push_back(atom);
+  // Four cases:
+  // 1) DonorMask and AcceptorMask NULL: donors and acceptors automatically searched for.
+  if (DonorMask.maskString==NULL && AcceptorMask.maskString==NULL) {
+    SearchAcceptor(&Mask,true);
+    SearchDonor(&Mask,true);
+  
+  // 2) DonorMask only: acceptors automatically searched for in Mask
+  } else if (DonorMask.maskString!=NULL && AcceptorMask.maskString==NULL) {
+    SearchAcceptor(&Mask,true);
+    SearchDonor(&DonorMask, false);
+
+  // 3) AcceptorMask only: donors automatically searched for in Mask
+  } else if (DonorMask.maskString==NULL && AcceptorMask.maskString!=NULL) {
+    SearchAcceptor(&AcceptorMask, false);
+    SearchDonor(&Mask,true);
+
+  // 4) Both DonorMask and AcceptorMask: No automatic search.
+  } else {
+    SearchAcceptor(&AcceptorMask, false);
+    SearchDonor(&DonorMask, false);
   }
+
+  // Print acceptor/donor information
   mprintf("      HBOND: Set up %i acceptors:\n",(int)Acceptor.size());
   if (debug>0) {
     for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++)
       mprintf("        %8i: %4s\n",*accept,P->names[*accept]);
-  }
-
-  // Set up donors: O-H, N-H
-  // NOTE: Scan donor list and determine which ones have H?
-  for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++) {
-    // Is this atom in the bondsh array? If so the other atom must be hydrogen
-    for ( selected=0; selected < P->NbondsWithH*3; selected+=3) {
-      // Actual atom #s in bondsh array = x / 3
-      atom = P->bondsh[selected  ] / 3;
-      a2   = P->bondsh[selected+1] / 3;
-      //mprintf("DEBUG: HBOND: Donor Setup: Accept=%i, selected=%i, atom=%i, a2=%i\n",
-      //        *accept, selected, atom, a2);
-      if (*accept == atom) {
-        Donor.push_back(atom);
-        Donor.push_back(a2);
-      } else if (*accept == a2) {
-        Donor.push_back(a2);
-        Donor.push_back(atom);
-      }
-    }
   }
   mprintf("      HBOND: Set up %i donors:\n",((int)Donor.size())/2);
   if (debug>0) {
