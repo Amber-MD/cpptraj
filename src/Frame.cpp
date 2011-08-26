@@ -767,13 +767,19 @@ double Frame::COORDDIST(int i, int j) {
  * Return the angle between atoms in M1, M2, M3.
  * Adapted from PTRAJ.
  */
-double Frame::ANGLE(AtomMask *M1, AtomMask *M2, AtomMask *M3) {
+double Frame::ANGLE(AtomMask *M1, AtomMask *M2, AtomMask *M3,bool useMass) {
   double a1[3],a2[3],a3[3];
   double angle, xij, yij, zij, xkj, ykj, zkj, rij, rkj;
   
-  GeometricCenter(M1,a1);
-  GeometricCenter(M2,a2);
-  GeometricCenter(M3,a3);
+  if (useMass) {
+    CenterOfMass(M1,a1);
+    CenterOfMass(M2,a2);
+    CenterOfMass(M3,a3);
+  } else {
+    GeometricCenter(M1,a1);
+    GeometricCenter(M2,a2);
+    GeometricCenter(M3,a3);
+  }
 
   xij = a1[0] - a2[0];
   yij = a1[1] - a2[1];
@@ -838,13 +844,21 @@ double Frame::ANGLE(int A1, int A2, int A3) {
  * Return dihedral angle between COM of atoms in M1-M4
  * Adapted from PTRAJ
  */
-double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4) {
+double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4,
+                       bool useMass) {
   double a1[3],a2[3],a3[3],a4[3];
 
-  GeometricCenter(M1,a1);
-  GeometricCenter(M2,a2);
-  GeometricCenter(M3,a3);
-  GeometricCenter(M4,a4);
+  if (useMass) {
+    CenterOfMass(M1,a1); 
+    CenterOfMass(M2,a2); 
+    CenterOfMass(M3,a3); 
+    CenterOfMass(M4,a4); 
+  } else {
+    GeometricCenter(M1,a1);
+    GeometricCenter(M2,a2);
+    GeometricCenter(M3,a3);
+    GeometricCenter(M4,a4);
+  }
 
   return Torsion(a1,a2,a3,a4);
 }

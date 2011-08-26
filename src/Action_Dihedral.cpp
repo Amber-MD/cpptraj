@@ -6,14 +6,15 @@
 Dihedral::Dihedral() {
   //fprintf(stderr,"Dihedral Con\n");
   dih=NULL;
+  useMass=false;
 } 
 
 // DESTRUCTOR
 Dihedral::~Dihedral() { }
 
-/*
- * Dihedral::init()
+/* Dihedral::init()
  * Expected call: dihedral <name> <mask1> <mask2> <mask3> <mask4> [out filename]
+ *                         [mass]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -25,6 +26,7 @@ int Dihedral::init() {
 
   // Get keywords
   dihedralFile = A->getKeyString("out",NULL);
+  useMass = A->hasKey("mass");
 
   // Get Masks
   mask1 = A->getNextMask();
@@ -54,8 +56,7 @@ int Dihedral::init() {
   return 0;
 }
 
-/*
- * Dihedral::setup
+/* Dihedral::setup
  */
 int Dihedral::setup() {
 
@@ -71,13 +72,12 @@ int Dihedral::setup() {
   return 0;  
 }
 
-/*
- * Dihedral::action()
+/* Dihedral::action()
  */
 int Dihedral::action() {
   double D;
 
-  D=F->DIHEDRAL(&M1,&M2,&M3,&M4);
+  D=F->DIHEDRAL(&M1,&M2,&M3,&M4,useMass);
 
   dih->Add(currentFrame, &D);
 
