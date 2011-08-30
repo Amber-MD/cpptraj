@@ -69,7 +69,8 @@ class PtrajFile {
     ~PtrajFile();
 
     char *Type();
-    char *Format();    
+    char *Format();
+    int SetupFile(char *, AccessType, int); 
     int SetupFile(char*,AccessType,FileFormat,FileType,int);
     int OpenFile();
     void CloseFile();

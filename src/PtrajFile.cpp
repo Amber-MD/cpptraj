@@ -75,8 +75,7 @@ PtrajFile::~PtrajFile() {
    if (Ext!=NULL) free(Ext);
 }
 
-/* 
- * PtrajFile::OpenFile()
+/* PtrajFile::OpenFile()
  * Open the file. If already open, reopen.
  */
 int PtrajFile::OpenFile() {
@@ -140,8 +139,7 @@ void PtrajFile::determineType() {
   else fileType=STANDARD;
 }
 
-/*
- * PtrajFile::determineFormat()
+/* PtrajFile::determineFormat()
  * If the file format is unknown attempt to determine from filename extension.
  * Default to datafile.
  */
@@ -158,8 +156,7 @@ void PtrajFile::determineFormat() {
   else fileFormat=DATAFILE;
 }  
 
-/*
- * PtrajFile::SetBaseFilename()
+/* PtrajFile::SetBaseFilename()
  * Strip leading path from input filename. Use strtok routine to separate 
  * filename by / and use the last string as the base filename. Internal 
  * filename is not used since strtok modifies the char array.
@@ -204,8 +201,16 @@ void PtrajFile::SetBaseFilename() {
     mprintf("\t                 Ext= %s  Len= %lu\n",Ext,strlen(basefilename+i));
 }
 
-/* 
- * PtrajFile::SetupFile()
+/* PtrajFile::SetupFile()
+ * Set up the given file for the specified access, assume DATAFILE format
+ * (no autodetection of format). Implicitly requests autodetection of the 
+ * file type.
+ */
+int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn, int debugIn) {
+  return SetupFile(filenameIn,accessIn,DATAFILE,UNKNOWN_TYPE,debugIn);
+}
+
+/* PtrajFile::SetupFile()
  * Sets the file name, access type (R/W/A), file type and file format (for 
  * WRITE), and debug level. If called with READ or append file type and format
  * will be determined by SetupRead. If called with WRITE the given type and 
@@ -253,8 +258,13 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
   access=accessIn;
   switch (access) {
     case APPEND:
+      // If appending, type and format MUST be determined.
+      if ( SetupRead()  ) return 1;
+      break;
     case READ:  
-      // SetupRead determines type and format
+      // SetupRead will determine format if fileFormatIn is UNKNOWN.
+      // SetupRead always determines type.
+      fileFormat = fileFormatIn;
       if ( SetupRead()  ) return 1; 
       break;
     case WRITE: 
@@ -274,8 +284,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
   return 0;
 }
 
-/* 
- * PtrajFile::SetupWrite()
+/* PtrajFile::SetupWrite()
  * Set up file with specified type for writing. fileFormat is set by SetupFile.
  * NOTE: Determine if compression is requested, either by arg or from name
  */
@@ -322,8 +331,7 @@ int PtrajFile::SetupWrite() {
   return 0;
 }
 
-/*
- * PtrajFile::SetupRead() 
+/* PtrajFile::SetupRead() 
  * Open the file specified by filename for READ or APPEND access. Attempt to 
  * identify the file type and format.
  */
@@ -419,7 +427,13 @@ int PtrajFile::SetupRead() {
   // Standard file size is in the frame_stat struct
   uncompressed_size = IO->Size(filename);
 
-  // ========== Determine format ==========
+  // If file format already determined, exit.
+  if (fileFormat!=UNKNOWN_FORMAT) {
+    if (debug>0) mprintf("PtrajFile: %s: Not detecting file format.\n",filename);
+    return 0;
+  }
+
+  // ========== Determine format if UNKNOWN ==========
   // ---------- Read first 3 bytes again to determine format by magic number ----------
   IO->Open(filename,"rb"); // NOTE: Err Check
   memset(magic,0,3*sizeof(unsigned char));
