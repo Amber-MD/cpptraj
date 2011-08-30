@@ -23,6 +23,7 @@
 #include "Action_Rms2d.h"
 #include "Action_Average.h"
 #include "Action_Radial.h"
+#include "Action_Jcoupling.h"
 
 // Constructor
 PtrajActionList::PtrajActionList() {
@@ -50,8 +51,7 @@ void PtrajActionList::SetDebug(int debugIn) {
     mprintf("PtrajActionList DEBUG LEVEL SET TO %i\n",debug);
 }
 
-/*
- * PtrajActionList::Add()
+/* PtrajActionList::Add()
  * Add a specific type of action class to the action list. 
  */
 int PtrajActionList::Add(ArgList *A) {
@@ -80,6 +80,7 @@ int PtrajActionList::Add(ArgList *A) {
   else if (A->CommandIs("unstrip"))  {Act=new Unstrip; }
   else if (A->CommandIs("average"))  {Act=new Average; }
   else if (A->CommandIs("radial"))   {Act=new Radial;  }
+  else if (A->CommandIs("jcoupling")){Act=new Jcoupling;}
   else return 1; 
 
   // Pass in the argument list
@@ -95,8 +96,7 @@ int PtrajActionList::Add(ArgList *A) {
   return 0;  
 }
 
-/* 
- * PtrajActionList::Init()
+/* PtrajActionList::Init()
  * Initialize non-parm-specific data for each action (like datasets). If an 
  * action cannot be initialized deactivate it. Also set action debug level.
  */
@@ -124,8 +124,7 @@ int PtrajActionList::Init( DataSetList *DSL, FrameList *FL,
 }
 
 
-/* 
- * PtrajActionList::Setup()
+/* PtrajActionList::Setup()
  * Attempt to set up all actions in the action list with the given parm
  * If an action cannot be set up skip it.
  */
@@ -157,8 +156,7 @@ int PtrajActionList::Setup(AmberParm **ParmAddress) {
   return 0;
 }
 
-/* 
- * PtrajActionList::DoActions()
+/* PtrajActionList::DoActions()
  * Perform actions in the action list on the given Frame. Skip actions not 
  * initialized or not setup. frameIn is the current frame number.
  */
