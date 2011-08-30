@@ -16,8 +16,9 @@ class Jcoupling: public Action {
       int offset[4];
       double C[4];
       int type;
-    //  NAME resName; // TEMPORARY
     };
+    typedef std::vector<karplusConstant> *karplusConstantList;
+    std::map<std::string,karplusConstantList> KarplusConstants;
     // Hold info for single j-coupling calculation
     struct jcouplingInfo {
       int residue;
@@ -25,11 +26,12 @@ class Jcoupling: public Action {
       double C[4];
       int type;
     };
-    typedef std::vector<karplusConstant> *karplusConstantList;
-    std::map<std::string,karplusConstantList> KarplusConstants;
     std::vector<jcouplingInfo> JcouplingInfo;
+
     AtomMask Mask1;
     int Nconstants;
+    // DEBUG
+    PtrajFile outputfile;
 
     int loadKarplus(char*);
   public:
@@ -38,6 +40,6 @@ class Jcoupling: public Action {
 
     int init();
     int setup();
-    //int action();
+    int action();
 };
 #endif  
