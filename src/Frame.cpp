@@ -842,7 +842,6 @@ double Frame::ANGLE(int A1, int A2, int A3) {
 
 /* Frame::DIHEDRAL()
  * Return dihedral angle between COM of atoms in M1-M4
- * Adapted from PTRAJ
  */
 double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4,
                        bool useMass) {
@@ -861,6 +860,19 @@ double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4,
   }
 
   return Torsion(a1,a2,a3,a4);
+}
+
+/* Frame::DIHEDRAL()
+ * Return dihedral angle between atoms A1-A4
+ */
+double Frame::DIHEDRAL(int A1, int A2, int A3, int A4) {
+  int a1,a2,a3,a4;
+  
+  a1 = A1 * 3;
+  a2 = A2 * 3;
+  a3 = A3 * 3;
+  a4 = A4 * 3;
+  return Torsion(X+a1,X+a2,X+a3,X+a4);
 }
 
 /* Frame::PUCKER()

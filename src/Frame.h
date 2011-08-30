@@ -61,6 +61,7 @@ class Frame {
     double ANGLE(AtomMask*, AtomMask*, AtomMask*,bool);
     double ANGLE(int, int, int);
     double DIHEDRAL(AtomMask *, AtomMask *, AtomMask *, AtomMask *,bool);
+    double DIHEDRAL(int,int,int,int);
     double PUCKER(AtomMask*,AtomMask*,AtomMask*,AtomMask*,AtomMask*,int,bool,bool);
     double RADGYR(AtomMask *, bool, double *);
     double RMSD(Frame*, double*, double*,bool);
