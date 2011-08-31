@@ -1,7 +1,7 @@
 // Surf 
 #include <cstdlib>
 #include "Action_Surf.h"
-#include "vectormath.h" // For FOURPI
+#include "Constants.h" // For FOURPI
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
 #  include "omp.h"

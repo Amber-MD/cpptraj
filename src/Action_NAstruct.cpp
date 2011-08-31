@@ -1,5 +1,4 @@
-/* 
- * Action_NAstruct
+/* Action_NAstruct
  * Calculate nucleic acid base/base pair structural parameters.
  * Algorithms for calculation of base/base pair structural parameters
  * adapted from:
@@ -17,6 +16,7 @@
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "Constants.h"
 #include "vectormath.h"
 #include "doubleDataSet.h"
 #include <cmath>

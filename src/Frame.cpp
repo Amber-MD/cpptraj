@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <cmath>
 #include "Frame.h"
+#include "Constants.h"
 #include "vectormath.h"
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"

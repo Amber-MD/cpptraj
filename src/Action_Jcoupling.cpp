@@ -5,7 +5,7 @@
 #include <cstring> //strcpy, strlen
 #include <cmath> //cos
 #include "CpptrajStdio.h"
-#include "vectormath.h" // DEGRAD, RADDEG
+#include "Constants.h" // DEGRAD, RADDEG
 
 // CONSTRUCTOR
 Jcoupling::Jcoupling() {
@@ -329,7 +329,7 @@ static double JcouplingC(double C[4], double phi) {
  * Jcoupling calculation.
  */
 int Jcoupling::action() {
-  double phi,J;
+  double phi,J,phiInRadians;
   int residue;
   char buffer[53];
 
@@ -338,10 +338,14 @@ int Jcoupling::action() {
                                             jc++)
   {
     phi = F->DIHEDRAL( (*jc).atom[0], (*jc).atom[1], (*jc).atom[2], (*jc).atom[3] );
+    // NOTE: DIHEDRAL returns torsion in degrees. Needs to be in radians for
+    //       this calc. Convert for now, but eventually make DIHEDRAL and ANGLE
+    //       routines return radians.
+    phiInRadians = phi * DEGRAD;
     if ((*jc).type==1)
-      J = JcouplingC((*jc).C, phi);
+      J = JcouplingC((*jc).C, phiInRadians);
     else
-      J = JcouplingABC((*jc).C, phi);
+      J = JcouplingABC((*jc).C, phiInRadians);
 
     residue = (*jc).residue;
     // DEBUG - output

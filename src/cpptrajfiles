@@ -65,5 +65,5 @@ HEADERS=AmberParm.h \
         Traj_Mol2File.h Traj_AmberRestartNC.h Traj_Conflib.h RemdTraj.h \
         FortranFormat.h Name.h Action_Average.h Histogram.h Analysis.h \
         AnalysisList.h Analysis_Hist.h mapDataSet.h Action_Radial.h \
-        Action_Jcoupling.h
+        Action_Jcoupling.h Constants.h
 
