@@ -95,8 +95,9 @@ int PDBfile::setupRead(AmberParm *trajParm) {
              (trajParm->names[atom][2] != pdbAtomName[2]) ||
              (trajParm->names[atom][3] != pdbAtomName[3])   )
         {
-          mprintf("Warning: %s: Atom %i name [%s] does not match parm atom name [%s]\n",
-                  tfile->filename,atom,pdbAtomName,trajParm->names[atom]);
+          if (debug>1) 
+            mprintf("Warning: %s: Atom %i name [%s] does not match parm atom name [%s]\n",
+                    tfile->filename,atom,pdbAtomName,trajParm->names[atom]);
           numMismatch++;
         }
       }
