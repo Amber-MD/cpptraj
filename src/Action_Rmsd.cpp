@@ -291,6 +291,16 @@ int Rmsd::perResSetup() {
   ref_range.Begin();
   while (tgt_range.NextInRange(&tgtRes)) {
     ref_range.NextInRange(&refRes);
+    // Check if either the residue num or the reference residue num out of range.
+    if ( tgtRes < 1 || tgtRes > P->nres) {
+      mprintf("    Warning: Rmsd: perres: Specified residue # %i is out of range.\n",tgtRes);
+      continue;
+    }
+    if ( refRes < 1 || refRes > P->nres ) {
+      mprintf("    Warning: Rmsd: perres: Specified reference residue # %i is out of range.\n",
+              refRes);
+      continue;
+    }
     N++;
     // Setup dataset name for this residue
     P->ResName(tgtArg,tgtRes-1);
