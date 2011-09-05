@@ -65,5 +65,6 @@ class Frame {
     double RADGYR(AtomMask *, bool, double *);
     double RMSD(Frame*, double*, double*,bool);
     double RMSD(Frame*,bool);
+    double DISTRMSD( Frame * );
 };
 #endif

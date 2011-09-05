@@ -1151,3 +1151,56 @@ double Frame::RMSD( Frame *Ref, bool useMass ) {
 
   return rms_return;
 }
+
+/* Frame::DISTRMSD()
+ * Calcuate the distance RMSD of Frame to Ref. Frames must contain
+ * same # of atoms. Should not be called for 0 atoms.
+ */
+double Frame::DISTRMSD( Frame *Ref ) {
+  double TgtDist, RefDist;
+  double diff, rms_return;
+  double x,y,z;
+  int a10,a11,a12;
+  int a20,a21,a22; 
+  double Ndistances = ((natom * natom) - natom) / 2;
+
+  rms_return = 0;
+  a10 = 0;
+  for (int atom1 = 0; atom1 < natom-1; atom1++) {
+    a20 = a10 + 3;
+    for (int atom2 = atom1+1; atom2 < natom; atom2++) {
+      a11 = a10 + 1;
+      a12 = a10 + 2;
+      a21 = a20 + 1;
+      a22 = a20 + 2;
+      // Tgt
+      x = X[a10] - X[a20];
+      x = x * x;
+      y = X[a11] - X[a21];
+      y = y * y;
+      z = X[a12] - X[a22];
+      z = z * z;
+      TgtDist = sqrt(x + y + z);
+      // Ref
+      x = Ref->X[a10] - Ref->X[a20];
+      x = x * x;
+      y = Ref->X[a11] - Ref->X[a21];
+      y = y * y;
+      z = Ref->X[a12] - Ref->X[a22];
+      z = z * z;
+      RefDist = sqrt(x + y + z);
+      // DRMSD
+      diff = TgtDist - RefDist;
+      diff *= diff;
+      rms_return += diff;
+
+      a20 += 3;
+    } 
+    a10 += 3;
+  }
+
+  TgtDist = rms_return / Ndistances;
+  rms_return = sqrt(TgtDist);
+
+  return rms_return;
+}  
