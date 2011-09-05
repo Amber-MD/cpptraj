@@ -228,7 +228,7 @@ int DistRmsd::action() {
   SelectedRef->printAtomCoord(0);
 */
 
-  DR = F->DISTRMSD( SelectedRef );
+  DR = SelectedTgt->DISTRMSD( SelectedRef );
 
   drmsd->Add(currentFrame, &DR);
 
