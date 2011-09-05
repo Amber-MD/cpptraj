@@ -2,6 +2,7 @@
 #include <cmath>
 #include "vectormath.h"
 #include "TorsionRoutines.h"
+#include "Constants.h"
 
 /*
  * Torsion()

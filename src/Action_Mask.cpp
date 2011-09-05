@@ -16,7 +16,7 @@ ActionMask::~ActionMask() {
 }
 
 /* ActionMask::init()
- * Expected call: mask <mask1> [maskout filename] 
+ * Expected call: mask <mask1> [maskout <filename>] [maskpdb <filename>] 
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks

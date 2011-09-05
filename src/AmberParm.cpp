@@ -97,7 +97,7 @@ void AmberParm::SetDebug(int debugIn) {
  */
 void AmberParm::ResName(char *buffer, int res) {
   char rname[NAMESIZE];
-  if (res<0 || res>nres) return;
+  if (res<0 || res>=nres) return;
   rname[0]=resnames[res][0];
   rname[1]=resnames[res][1];
   rname[2]=resnames[res][2];

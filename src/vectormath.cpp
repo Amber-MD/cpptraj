@@ -1,11 +1,11 @@
-/*
- * vectormath.cpp
+/* vectormath.cpp
  * Simple vector/matrix math routines.
  * ROTATE, jacobi3, and diagEsort routines adapted from PTRAJ
  */
 #include <cmath>
 #include "vectormath.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
 
 /* normalize()
  * Normalize vector in a[].
