@@ -118,7 +118,8 @@ int Jcoupling::loadKarplus(char* filename) {
   } // END Gets over input file
   KarplusFile.CloseFile();
   // DEBUG - Print out all parameters
-  //if (debug>0) {
+  if (debug>0) {
+      mprintf("    KARPLUS PARAMETERS:\n");
       for (std::map<std::string,karplusConstantList>::iterator reslist=KarplusConstants.begin();
                                                         reslist!=KarplusConstants.end();
                                                         reslist++) {
@@ -135,7 +136,7 @@ int Jcoupling::loadKarplus(char* filename) {
           mprintf(" %6.2lf %6.2lf %6.2lf %6.2lf\n",(*kc).C[0],(*kc).C[1],(*kc).C[2],(*kc).C[3]);
         }
       }
-  //}
+  }
   return 0;
 }
 
@@ -224,14 +225,15 @@ int Jcoupling::setup() {
   int startatom,endatom,MaxResidues;
   jcouplingInfo JC;
 
-  if ( Mask1.SetupMask(P,debug) ) return 1;
+  if ( Mask1.SetupCharMask(P,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
     return 1;
   }
 
   // For each residue, set up 1 jcoupling calc for each parameter defined in
-  // KarplusConstants for this resdiue.
+  // KarplusConstants for this resdiue. Only set up the Jcoupling calc if all
+  // atoms involved are present in the mask.
   MaxResidues = P->nres;
   if (P->finalSoluteRes > 0) MaxResidues = P->finalSoluteRes;
   for (int residue=0; residue < MaxResidues; residue++) {
@@ -282,16 +284,26 @@ int Jcoupling::setup() {
           return 1;
         }
       }
+      // Check that all the atoms involved in this Jcouple dihedral are
+      // in the atom mask.
+      if (!Mask1.AtomInCharMask(JC.atom[0])) continue;
+      if (!Mask1.AtomInCharMask(JC.atom[1])) continue;
+      if (!Mask1.AtomInCharMask(JC.atom[2])) continue;
+      if (!Mask1.AtomInCharMask(JC.atom[3])) continue;
       // Add this jcoupling info to the list
       JcouplingInfo.push_back(JC);
     } // END loop over karplus parameters for this residue
   } // END loop over all residues
 
   // Print info for this parm
-  mprintf("    JCOUPLING: [%s] Will calculate J-coupling for %u dihedrals.\n",Mask1.maskString,
+  mprintf("    J-COUPLING: [%s] Will calculate J-coupling for %u dihedrals.\n",Mask1.maskString,
           JcouplingInfo.size());
+  if (JcouplingInfo.size()==0) {
+    mprintf("    Warning: No dihedrals found for J-coupling calculation!\n");
+    return 1;
+  }
   // DEBUG
-  //if (debug>0) {
+  if (debug>0) {
     startatom=0;
     for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo.begin();
                                               jc !=JcouplingInfo.end();
@@ -306,7 +318,7 @@ int Jcoupling::setup() {
               (*jc).type);
       startatom++;
     }
-  //}    
+  }    
   return 0;  
 }
 
