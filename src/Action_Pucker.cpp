@@ -1,6 +1,7 @@
 // Pucker
 #include "Action_Pucker.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // RADDEG
 
 // CONSTRUCTOR
 Pucker::Pucker() {
@@ -96,7 +97,7 @@ int Pucker::action() {
   double D;
 
   D=F->PUCKER(&M1,&M2,&M3,&M4,&M5,puckerMethod,amplitude,useMass);
-
+  D *= RADDEG;
   // Deal with offset
   D -= offset;
 

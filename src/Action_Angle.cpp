@@ -1,6 +1,7 @@
 // Angle 
 #include "Action_Angle.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // RADDEG
 
 // CONSTRUCTOR
 Angle::Angle() {
@@ -45,8 +46,9 @@ int Angle::init() {
   // Add dataset to data file list
   DFL->Add(angleFile,ang);
 
-  //dist->Info();
   mprintf("    ANGLE: %s-%s-%s\n",Mask1.maskString,Mask2.maskString,Mask3.maskString);
+  if (useMass)
+    mprintf("              Using center of mass of atoms in masks.\n");
 
   return 0;
 }
@@ -74,6 +76,8 @@ int Angle::action() {
   double Ang;
 
   Ang=F->ANGLE(&Mask1,&Mask2,&Mask3,useMass);
+
+  Ang *= RADDEG;
 
   ang->Add(currentFrame, &Ang);
 

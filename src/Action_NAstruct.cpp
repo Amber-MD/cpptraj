@@ -16,7 +16,7 @@
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
-#include "Constants.h"
+#include "Constants.h" // RADDEG
 #include "vectormath.h"
 #include "doubleDataSet.h"
 #include <cmath>
@@ -58,8 +58,7 @@ NAstruct::~NAstruct() {
   clearVector(&TWIST);
 }
 
-/*
- * NAstruct::ClearLists()
+/* NAstruct::ClearLists()
  * Clear all parm-dependent lists
  */
 void NAstruct::ClearLists() {
@@ -87,8 +86,7 @@ void NAstruct::ClearLists() {
 
 // ------------------------- PRIVATE FUNCTIONS --------------------------------
 
-/*
- * NAstruct::GCpair()
+/* NAstruct::GCpair()
  * Look for 3 HB based on heavy atom distances:
  * 1. G:O6 -- C:N4  6 -- 6
  * 2. G:N1 -- C:N3  7 -- 4
@@ -117,8 +115,7 @@ bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   return false;
 }
 
-/*
- * NAstruct::ATpair()
+/* NAstruct::ATpair()
  * Look for 2 HB based on heavy atom distances
  * 1. A:N6 -- T:O4  6 -- 6
  * 2. A:N1 -- T:N3  7 -- 4
@@ -140,8 +137,7 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   return false;
 }
 
-/* 
- * NAstruct::basesArePaired()
+/* NAstruct::basesArePaired()
  * Given two base axes for which IDs have been given and reference coords set,
  * determine whether the bases are paired via hydrogen bonding criteria.
  * NOTE: Currently only set up for Antiparallel WC detection
@@ -165,8 +161,7 @@ bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   return false;
 }
 
-/*
- * NAstruct::determineBasePairing()
+/* NAstruct::determineBasePairing()
  * Determine which bases are paired from the individual base axes.
  */
 int NAstruct::determineBasePairing() {
@@ -379,8 +374,7 @@ int NAstruct::setupBasePairAxes() {
 }
 */
 
-/*
- * NAstruct::setupBaseAxes()
+/* NAstruct::setupBaseAxes()
  * For each residue defined in reference coords, get the corresponding input
  * coords and fit the reference coords (and reference axes) on top of input 
  * coords. This sets up the reference axes for each base.
@@ -474,16 +468,14 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
   return 0;
 }
 
-/* 
- * FLIP_V
+/* FLIP_V
  * Multiply each element of vector V by corresponding element of flip vector.
  */
 #define FLIP_V( V, F ) { \
   V[0]*=F[0]; \
   V[1]*=F[1]; \
   V[2]*=F[2]; } 
-/*
- * NAstruct::determineBaseParameters()
+/* NAstruct::determineBaseParameters()
  * For each base in a base pair, get the values of buckle, propeller twist,
  * opening, shear, stretch, and stagger. Also determine the origin and 
  * rotation matrix for each base pair reference frame.
@@ -752,8 +744,7 @@ int NAstruct::determineBaseParameters() {
   return 0;
 }
 
-/*
- * NAstruct::determineBasepairParameters() 
+/* NAstruct::determineBasepairParameters() 
  * For each base pair step, determine values of Tilt, Roll, Twist, Shift,
  * Slide, and Rise.
  */

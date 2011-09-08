@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include <cmath> // sqrt
 #include <cstdio> // sprintf
-#include "Constants.h" // PI
+#include "Constants.h" // FOURTHIRDSPI
 
 // CONSTRUCTOR
 Radial::Radial() {

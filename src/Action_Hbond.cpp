@@ -1,6 +1,7 @@
+// Hbond 
 #include "Action_Hbond.h"
 #include "CpptrajStdio.h"
-// Hbond 
+#include "Constants.h" // RADDEG, DEGRAD
 
 // CONSTRUCTOR
 Hbond::Hbond() {
@@ -35,6 +36,8 @@ int Hbond::init() {
   outfilename = A->getKeyString("out",NULL);
   avgout = A->getKeyString("avgout",NULL);
   acut = A->getKeyDouble("angle",135.0);
+  // Convert angle cutoff to radians
+  acut *= DEGRAD;
   dcut = A->getKeyDouble("dist",3.0);
   // Get donor mask
   mask = A->getKeyString("donormask",NULL);
@@ -63,7 +66,7 @@ int Hbond::init() {
   else
     mprintf("Donor mask is %s, Acceptor mask is %s\n",
             DonorMask.maskString,AcceptorMask.maskString);
-  mprintf( "         Distance cutoff = %8.3lf, Angle Cutoff = %8.3lf\n",dcut,acut);
+  mprintf( "         Distance cutoff = %8.3lf, Angle Cutoff = %8.3lf\n",dcut,acut*RADDEG);
   if (outfilename!=NULL) 
     mprintf( "         Dumping # Hbond v time results to %s\n", outfilename);
   if (avgout!=NULL)
@@ -308,6 +311,7 @@ void Hbond::print() {
     dist = dist / ((double) (*hbond).Frames);
     angle = (double) (*hbond).angle;
     angle = angle / ((double) (*hbond).Frames);
+    angle *= RADDEG;
 
     P->ResAtomName(Aname, (*hbond).A);
     P->ResAtomName(Hname, (*hbond).H);

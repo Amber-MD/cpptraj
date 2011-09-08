@@ -2,11 +2,10 @@
 #include <cmath>
 #include "vectormath.h"
 #include "TorsionRoutines.h"
-#include "Constants.h"
+#include "Constants.h" // PI, TWOPI
 
-/*
- * Torsion()
- * Given 4 sets of XYZ coords, calculate the torsion (in degrees) between the 
+/* Torsion()
+ * Given 4 sets of XYZ coords, calculate the torsion (in radians) between the 
  * planes formed by a1-a2-a3 and a2-a3-a4.
  */
 double Torsion(double *a1, double *a2, double *a3, double *a4) {
@@ -36,7 +35,6 @@ double Torsion(double *a1, double *a2, double *a3, double *a4) {
   if ( angle < -1.0 ) angle = -1.0;
 
   angle = acos( angle );
-  angle = angle * RADDEG;
 
   if ( (Sx * (a3[0]-a2[0]) + Sy * (a3[1]-a2[1]) + Sz * (a3[2]-a2[2])) < 0 )
     angle = -angle;
@@ -44,9 +42,8 @@ double Torsion(double *a1, double *a2, double *a3, double *a4) {
   return angle;
 }
 
-/*
- * Pucker_AS()
- * Return the pucker (in degrees) of coords stored in a1-a5 based on 
+/* Pucker_AS()
+ * Return the pucker (in radians) of coords stored in a1-a5 based on 
  * Altona & Sundaralingam method.
  */
 double Pucker_AS(double *a1, double *a2, double *a3, double *a4, double *a5, double *amp) {
@@ -79,15 +76,14 @@ double Pucker_AS(double *a1, double *a2, double *a3, double *a4, double *a5, dou
   *amp = sqrt(a*a + b*b);
 
   if (*amp != 0.0)
-    pucker = atan2(b,a)*RADDEG;
-  if (pucker < 0) pucker += 360.0;
+    pucker = atan2(b,a);
+  if (pucker < 0) pucker += TWOPI;
 
   return pucker;
 }
 
-/*
- * Pucker_CP()
- * Return the pucker (in degrees) of coords in a1-a5 based on method of
+/* Pucker_CP()
+ * Return the pucker (in radians) of coords in a1-a5 based on method of
  * Cremer & Pople.
  */
 double Pucker_CP(double *a1, double *a2, double *a3, double *a4, double *a5, double *amplitude) {
@@ -192,9 +188,7 @@ double Pucker_CP(double *a1, double *a2, double *a3, double *a4, double *a5, dou
   if (sum1 < 0.0)
     pucker = PI - pucker;
   else if (pucker < 0.0)
-    pucker += 2.0*PI;
-
-  pucker *= RADDEG;
+    pucker += TWOPI;
 
   return pucker;
 }

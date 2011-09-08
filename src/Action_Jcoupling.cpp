@@ -329,7 +329,7 @@ static double JcouplingC(double C[4], double phi) {
  * Jcoupling calculation.
  */
 int Jcoupling::action() {
-  double phi,J,phiInRadians;
+  double phi,J;//,phiInRadians;
   int residue;
   char buffer[53];
 
@@ -338,20 +338,16 @@ int Jcoupling::action() {
                                             jc++)
   {
     phi = F->DIHEDRAL( (*jc).atom[0], (*jc).atom[1], (*jc).atom[2], (*jc).atom[3] );
-    // NOTE: DIHEDRAL returns torsion in degrees. Needs to be in radians for
-    //       this calc. Convert for now, but eventually make DIHEDRAL and ANGLE
-    //       routines return radians.
-    phiInRadians = phi * DEGRAD;
     if ((*jc).type==1)
-      J = JcouplingC((*jc).C, phiInRadians);
+      J = JcouplingC((*jc).C, phi);
     else
-      J = JcouplingABC((*jc).C, phiInRadians);
+      J = JcouplingABC((*jc).C, phi);
 
     residue = (*jc).residue;
     // DEBUG - output
     sprintf(buffer,"%5i %4s%4s%4s%4s%4s%12lf%12lf\n",residue+1,P->resnames[residue],
             P->names[(*jc).atom[0]],P->names[(*jc).atom[1]],P->names[(*jc).atom[2]],
-            P->names[(*jc).atom[3]],phi,J);
+            P->names[(*jc).atom[3]],phi*RADDEG,J);
     outputfile.IO->Write(buffer,1,51);
     //mprintf("%5i %4s",residue+1,P->resnames[residue]);
     //mprintf("%4s",P->names[(*jc).atom[0]]);

@@ -1,6 +1,7 @@
 // Dihedral
 #include "Action_Dihedral.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // RADDEG
 
 // CONSTRUCTOR
 Dihedral::Dihedral() {
@@ -48,10 +49,10 @@ int Dihedral::init() {
   // Add dataset to datafile list
   DFL->Add(dihedralFile,dih);
 
-
-  //dih->Info();
   mprintf("    DIHEDRAL: %s-%s-%s-%s\n", M1.maskString,M2.maskString,
           M3.maskString, M4.maskString);
+  if (useMass)
+    mprintf("              Using center of mass of atoms in masks.\n");
 
   return 0;
 }
@@ -78,6 +79,8 @@ int Dihedral::action() {
   double D;
 
   D=F->DIHEDRAL(&M1,&M2,&M3,&M4,useMass);
+
+  D *= RADDEG;
 
   dih->Add(currentFrame, &D);
 

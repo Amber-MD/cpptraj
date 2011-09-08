@@ -765,7 +765,7 @@ double Frame::COORDDIST(int i, int j) {
 }
 
 /* Frame::ANGLE()
- * Return the angle between atoms in M1, M2, M3.
+ * Return the angle (in radians) between atoms in M1, M2, M3.
  * Adapted from PTRAJ.
  */
 double Frame::ANGLE(AtomMask *M1, AtomMask *M2, AtomMask *M3,bool useMass) {
@@ -799,7 +799,7 @@ double Frame::ANGLE(AtomMask *M1, AtomMask *M2, AtomMask *M3,bool useMass) {
       angle = 1.0;
     else if (angle < -1.0)
       angle = -1.0;
-    angle = acos(angle) * RADDEG;
+    angle = acos(angle);
   } else
     angle = 0.0;
 
@@ -807,7 +807,7 @@ double Frame::ANGLE(AtomMask *M1, AtomMask *M2, AtomMask *M3,bool useMass) {
 }
 
 /* Frame::ANGLE()
- * Return the angle between atoms specified by A1, A2, A3.
+ * Return the angle (in radians) between atoms specified by A1, A2, A3.
  * Adapted from PTRAJ.
  */
 double Frame::ANGLE(int A1, int A2, int A3) {
@@ -834,7 +834,7 @@ double Frame::ANGLE(int A1, int A2, int A3) {
       angle = 1.0;
     else if (angle < -1.0)
       angle = -1.0;
-    angle = acos(angle) * RADDEG;
+    angle = acos(angle);
   } else
     angle = 0.0;
 
@@ -842,7 +842,8 @@ double Frame::ANGLE(int A1, int A2, int A3) {
 }
 
 /* Frame::DIHEDRAL()
- * Return dihedral angle between COM of atoms in M1-M4
+ * Return dihedral angle between COM of atoms in M1-M4.
+ * NOTE: Torsion returns angles in radians.
  */
 double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4,
                        bool useMass) {
@@ -864,7 +865,8 @@ double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4,
 }
 
 /* Frame::DIHEDRAL()
- * Return dihedral angle between atoms A1-A4
+ * Return dihedral angle between atoms A1-A4.
+ * NOTE: Torsion returns angles in radians.
  */
 double Frame::DIHEDRAL(int A1, int A2, int A3, int A4) {
   int a1,a2,a3,a4;
@@ -882,6 +884,7 @@ double Frame::DIHEDRAL(int A1, int A2, int A3, int A4) {
  *   0: Use Altona & Sundaralingam method/conventions
  *   1: Use Cremer & Pople method
  * If amplitude is true, return amplitude instead of pseudorotation.
+ * NOTE: Pucker routines return angles in radians.
  */
 double Frame::PUCKER(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4, AtomMask *M5,
                      int puckerMethod, bool amplitude, bool useMassIn) {

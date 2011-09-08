@@ -703,14 +703,15 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
       if (debug>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",r,
                            uR[0],uR[1],uR[2],nT[r],dT[r]);
     }
-    // Match impropers to each other using a cutoff
-    // NOTE: 10.0 seems reasonable? Also there is currently no check for 
-    //       repeated deltas.
+    // Match impropers to each other using a cutoff. Note that all torsions
+    // are in radians.
+    // NOTE: 10.0 degrees seems reasonable? Also there is currently no 
+    //       check for repeated deltas.
     for (r=0; r<notunique_r; r++) {
       for (t=0; t<notunique_t; t++) {
         delta = dR[r] - dT[t];
         if (delta<0.0) delta=-delta;
-        if (delta<10.0) {
+        if (delta<0.17453292519943295769236907684886) {
           if (debug>0)
             mprintf("    Mapping tgt atom %i:%s to ref atom %i:%s based on chirality.\n",
                     nT[t],Tgt->Aname(nT[t]),nR[r],Ref->Aname(nR[r]) );
