@@ -1,18 +1,33 @@
 #ifndef INC_ATOMMASK_H
 #define INC_ATOMMASK_H
-/* 
- * Class: AtomMask
- * AtomMask is used to hold an array of integers that represent atom numbers
- * of atoms selected based on a mask string. The base mask parser is in 
- * AmberParm since it requires access to ipres, atom names, etc. 
- * Although an array of ints becomes larger than a simple character mask once
- * more than 25% of the system is selected, it tends to be faster than the 
- * character array up until about 80% of the system is selected, at which 
- * point the speed is comparable.
- */
+/// Class: AtomMask
+/// AtomMask is used to hold an array of integers that represent atom numbers
+/// of atoms selected based on a mask string. This class is actually an 
+/// interface to the ptraj mask parser written by Viktor Hornak (ptrajmask.c).
+/// Takes as input a string and an AmberParm class since the basic parser 
+/// requires access to ipres, atom names, etc.
+/// First the mask string is set via SetMaskString. Then the actual mask can
+/// be set up in two ways.
+/// 1) Integer mask
+///    Although an array of ints becomes larger than a simple character mask 
+///    once more than 25% of the system is selected, it tends to be faster 
+///    than the character array up until about 80% of the system is selected, 
+///    at which point the speed is comparable. This is the default way to use
+///    AtomMask and is how most of the routines in the Frame class have been
+///    written to use AtomMask.
+/// 2) Character mask
+///    This is the original way to use the atom mask, useful e.g. when 
+///    you need to know what atoms are not selected as well as what atoms
+///    are selected. Unlike the integer mask, the character mask is not
+///    directly accessible by outside routines, only by the AtomInCharMask
+///    routine.
+/// *** NOTE ***
+/// Currently no checking is done to prevent the mask from being set up as 
+/// both an integer and a char mask!!
 #include "AmberParm.h"
 class AtomMask {
     char *CharMask;   // Char array of atoms, T if selected, F if not.
+    int Nchar;        // Number of chars in CharMask array.
   public:
     bool invertMask;  // If true atoms outside the mask will be selected.
     char *maskString; // String specifying atom selection
