@@ -5,7 +5,7 @@
 #include <cmath>
 #include "vectormath.h"
 #include "CpptrajStdio.h"
-#include "Constants.h"
+#include "Constants.h" // RADDEG, PI
 
 /* normalize()
  * Normalize vector in a[].
