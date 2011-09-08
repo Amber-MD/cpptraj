@@ -300,6 +300,9 @@ int Jcoupling::setup() {
           JcouplingInfo.size());
   if (JcouplingInfo.size()==0) {
     mprintf("    Warning: No dihedrals found for J-coupling calculation!\n");
+    mprintf("             Check that all atoms of dihedrals are included in mask [%s]\n",
+            Mask1.maskString);
+    mprintf("             and/or that dihedrals are defined in Karplus parameter file.\n");
     return 1;
   }
   // DEBUG
