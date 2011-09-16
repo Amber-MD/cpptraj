@@ -35,6 +35,7 @@ int Clustering::init() {
   epsilon = A->getKeyDouble("epsilon",-1.0);
   if (A->hasKey("linkage")) Linkage=SINGLELINK;
   if (A->hasKey("averagelinkage")) Linkage=AVERAGELINK;
+  if (A->hasKey("complete")) Linkage=COMPLETELINK;
   cnumvtimefile = A->getKeyString("out",NULL);
   summaryfile = A->getKeyString("summary",NULL);
 
@@ -65,6 +66,8 @@ int Clustering::init() {
     mprintf(" single-linkage");
   else if (Linkage==AVERAGELINK)
     mprintf(" average-linkage");
+  else if (Linkage==COMPLETELINK)
+    mprintf(" complete-linkage");
   mprintf(".\n");
   if (summaryfile!=NULL)
     mprintf("            Summary of cluster results will be written to %s\n",summaryfile);
@@ -259,6 +262,8 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *C
       CList->calcAvgDist(C1_it, FrameDistances, ClusterDistances);
     else if (Linkage==SINGLELINK)
       CList->calcMinDist(C1_it, FrameDistances, ClusterDistances);
+    else if (Linkage==COMPLETELINK)
+      CList->calcMaxDist(C1_it, FrameDistances, ClusterDistances);
    
     if (debug>2) { 
       mprintf("NEW CLUSTER DISTANCES:\n");

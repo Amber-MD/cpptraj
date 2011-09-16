@@ -153,8 +153,43 @@ void ClusterList::calcMinDist(std::list<ClusterList::clusterNode>::iterator C1_i
         if ( Dist < min ) min = Dist;
       }
     }
-    //mprintf("\t\tNew distance between %i and %i: %lf\n",C1,newc2,min);
+    //mprintf("\t\tMin distance between %i and %i: %lf\n",C1,newc2,min);
     ClusterDistances->SetElement( (*C1_it).num, (*C2_it).num, min );
+  } 
+}
+
+/* ClusterList::calcMaxDist()
+ * Calculate the maximum distance between frames in cluster specified by
+ * iterator C1 and frames in all other clusters.
+ */
+void ClusterList::calcMaxDist(std::list<ClusterList::clusterNode>::iterator C1_it,
+                              TriangleMatrix *FrameDistances,
+                              TriangleMatrix *ClusterDistances) 
+{
+  double max, Dist;
+  std::list<clusterNode>::iterator C2_it;
+
+  // All cluster distances to C1 must be recalcd.
+  for (C2_it = clusters.begin(); C2_it != clusters.end(); C2_it++) {
+    if (C2_it == C1_it) continue;
+    //mprintf("\t\tRecalc distance between %i and %i:\n",C1,newc2);
+    // Pick the maximum distance between newc2 and C1
+    max = -1.0;
+    for (std::list<int>::iterator c1frames = (*C1_it).frameList.begin();
+                                  c1frames != (*C1_it).frameList.end();
+                                  c1frames++) 
+    {
+      for (std::list<int>::iterator c2frames = (*C2_it).frameList.begin();
+                                    c2frames != (*C2_it).frameList.end();
+                                    c2frames++)
+      {
+        Dist = FrameDistances->GetElement(*c1frames, *c2frames);
+        //mprintf("\t\t\tFrame %i to frame %i = %lf\n",*c1frames,*c2frames,Dist);
+        if ( Dist > max ) max = Dist;
+      }
+    }
+    //mprintf("\t\tMax distance between %i and %i: %lf\n",C1,newc2,max);
+    ClusterDistances->SetElement( (*C1_it).num, (*C2_it).num, max );
   } 
 }
 

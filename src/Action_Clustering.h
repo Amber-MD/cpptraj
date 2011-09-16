@@ -5,7 +5,7 @@
 #include "TriangleMatrix.h"
 #include "ClusterList.h"
 class Clustering: public Action {
-    enum LINKAGETYPE {SINGLELINK, AVERAGELINK};
+    enum LINKAGETYPE {SINGLELINK, AVERAGELINK, COMPLETELINK};
     LINKAGETYPE Linkage;
     FrameList ReferenceFrames; // Hold frames from all trajin stmts
     AtomMask Mask0;        // Target atom mask

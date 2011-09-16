@@ -33,6 +33,8 @@ class ClusterList {
     int Merge(std::list<clusterNode>::iterator,std::list<clusterNode>::iterator);
     void calcMinDist(std::list<ClusterList::clusterNode>::iterator,
                      TriangleMatrix *, TriangleMatrix *);
+    void calcMaxDist(std::list<ClusterList::clusterNode>::iterator,
+                     TriangleMatrix *, TriangleMatrix *);
     void calcAvgDist(std::list<ClusterList::clusterNode>::iterator,
                      TriangleMatrix *, TriangleMatrix *);
     void Cnumvtime(DataSet *);
