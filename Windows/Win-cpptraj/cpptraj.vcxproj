@@ -27,9 +27,11 @@
     <ClCompile Include="..\..\src\Action_Closest.cpp" />
     <ClCompile Include="..\..\src\Action_Dihedral.cpp" />
     <ClCompile Include="..\..\src\Action_Distance.cpp" />
+    <ClCompile Include="..\..\src\Action_DistRmsd.cpp" />
     <ClCompile Include="..\..\src\Action_DSSP.cpp" />
     <ClCompile Include="..\..\src\Action_Hbond.cpp" />
     <ClCompile Include="..\..\src\Action_Image.cpp" />
+    <ClCompile Include="..\..\src\Action_Jcoupling.cpp" />
     <ClCompile Include="..\..\src\Action_Mask.cpp" />
     <ClCompile Include="..\..\src\Action_NAstruct.cpp" />
     <ClCompile Include="..\..\src\Action_Outtraj.cpp" />
@@ -106,9 +108,11 @@
     <ClInclude Include="..\..\src\Action_Closest.h" />
     <ClInclude Include="..\..\src\Action_Dihedral.h" />
     <ClInclude Include="..\..\src\Action_Distance.h" />
+    <ClInclude Include="..\..\src\Action_DistRmsd.h" />
     <ClInclude Include="..\..\src\Action_DSSP.h" />
     <ClInclude Include="..\..\src\Action_Hbond.h" />
     <ClInclude Include="..\..\src\Action_Image.h" />
+    <ClInclude Include="..\..\src\Action_Jcoupling.h" />
     <ClInclude Include="..\..\src\Action_Mask.h" />
     <ClInclude Include="..\..\src\Action_NAstruct.h" />
     <ClInclude Include="..\..\src\Action_Outtraj.h" />
@@ -130,6 +134,7 @@
     <ClInclude Include="..\..\src\BoxType.h" />
     <ClInclude Include="..\..\src\Bzip2File.h" />
     <ClInclude Include="..\..\src\CharBuffer.h" />
+    <ClInclude Include="..\..\src\Constants.h" />
     <ClInclude Include="..\..\src\CoordFileList.h" />
     <ClInclude Include="..\..\src\CpptrajStdio.h" />
     <ClInclude Include="..\..\src\DataFile.h" />
@@ -224,7 +229,28 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetName>$(ProjectName).$(Configuration)</TargetName>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName).$(Configuration)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName).$(Configuration)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\</OutDir>
+    <TargetName>$(ProjectName).$(Configuration)</TargetName>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -235,6 +261,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);"..\netcdf.lib"; </AdditionalDependencies>
+      <InterproceduralOptimization>false</InterproceduralOptimization>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -248,16 +275,22 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <InterproceduralOptimization>false</InterproceduralOptimization>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>MaxSpeedHighLevel</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions); BINTRAJ; __PGI;</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>"..\..\..\netcdf\src\libsrc\"</AdditionalIncludeDirectories>
+      <UseMSVC>false</UseMSVC>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <Parallelization>true</Parallelization>
+      <UseIntelOptimizedHeaders>true</UseIntelOptimizedHeaders>
+      <AdditionalOptions>/QaxSSE2,SSE3,SSSE3,SSE4.1,SSE4.2,AVX %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -269,12 +302,16 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>MaxSpeedHighLevel</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions); __PGI;</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <Parallelization>true</Parallelization>
+      <UseIntelOptimizedHeaders>true</UseIntelOptimizedHeaders>
+      <AdditionalOptions>/QaxSSE2,SSE3,SSSE3,SSE4.1,SSE4.2,AVX %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

@@ -9,10 +9,28 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\ptrajmask.c">
+    <ClCompile Include="..\..\src\TorsionRoutines.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\PtrajMpi.c">
+    <ClCompile Include="..\..\src\Traj_AmberCoord.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Traj_AmberNetcdf.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Traj_AmberRestart.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Traj_AmberRestartNC.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Traj_Conflib.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Traj_Mol2File.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Traj_PDBfile.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\TrajectoryFile.cpp">
@@ -54,6 +72,9 @@
     <ClCompile Include="..\..\src\Action_Distance.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Action_DistRmsd.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\Action_DSSP.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -61,6 +82,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Action_Image.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Action_Jcoupling.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Action_Mask.cpp">
@@ -216,50 +240,14 @@
     <ClCompile Include="..\..\src\stringDataSet.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\TorsionRoutines.cpp">
+    <ClCompile Include="..\..\src\PtrajMpi.c">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Traj_AmberCoord.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Traj_AmberNetcdf.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Traj_AmberRestart.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Traj_AmberRestartNC.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Traj_Conflib.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Traj_Mol2File.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Traj_PDBfile.cpp">
+    <ClCompile Include="..\..\src\ptrajmask.c">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\Traj_PDBfile.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TrajectoryFile.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TrajectoryIO.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TrajinList.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TrajoutList.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\vectormath.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\Action.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -284,6 +272,9 @@
     <ClInclude Include="..\..\src\Action_Distance.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Action_DistRmsd.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\Action_DSSP.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -291,6 +282,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Action_Image.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Action_Jcoupling.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Action_Mask.h">
@@ -354,6 +348,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\CharBuffer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Constants.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\CoordFileList.h">
@@ -471,6 +468,24 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Traj_Mol2File.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Traj_PDBfile.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\TrajectoryFile.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\TrajectoryIO.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\TrajinList.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\TrajoutList.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\vectormath.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
