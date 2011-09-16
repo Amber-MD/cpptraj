@@ -6,15 +6,26 @@
 /// would be zero and element i,j == element j,i
 class TriangleMatrix {
     double *elements; // Hold all elements
-    int Nrows;        // Number of elements in one row
-    int Nelements;    // Total number of elements
-    int currentElement;
+    int nrows;        // Number of elements in one row
+    int nelements;    // Total number of elements
+    int currentElement; // Current element, used in AddElement only.
+    bool *ignore;     // If true, ignore the row/col when printing/searching etc
+
+    int calcIndex(int,int);
   public :
     TriangleMatrix();
     ~TriangleMatrix();
 
+    int Nrows() {return nrows;}
+    int Nelements() {return nelements;}
+
+    TriangleMatrix *Copy();
     int Setup(int);
+    void Ignore(int);
     int AddElement(double);
+    void SetElement(int,int,double);
     double GetElement(int,int);
+    double FindMin(int *, int *);
+    void PrintElements();
 };
 #endif
