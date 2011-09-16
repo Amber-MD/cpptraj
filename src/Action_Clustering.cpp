@@ -388,7 +388,7 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances) {
   while (!clusteringComplete) {
     // Find the minimum distance between clusters
     min = ClusterDistances->FindMin(&C1, &C2);
-    mprintf("\tMinimum found between clusters %i and %i (%lf)\n",C1,C2,min);
+    if (debug>0) mprintf("\tMinimum found between clusters %i and %i (%lf)\n",C1,C2,min);
     // If the minimum distance is greater than epsilon we are done
     if (min > epsilon) {
       mprintf("Minimum distance is greater than epsilon (%lf) clustering complete.\n",epsilon);
