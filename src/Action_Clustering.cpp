@@ -4,182 +4,13 @@
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 #include <cfloat>
-// ============================================================================
-/// Class: ClusterList
-#include <list>
-/// Store information on clusters
-class ClusterList {
-  public :
-    // Store individual cluster info; frame numbers, centroid, etc.
-    struct clusterNode {
-      std::list<int> frameList; // List of frames in the cluster
-      int num;                  // Cluster number (index in Distances)
-    };
-    std::list<clusterNode> clusters;
 
-    ClusterList();
-    ~ClusterList();
-   
-    int AddCluster(std::list<int> *, int);
-    void PrintClusters();
-    std::list<clusterNode>::iterator GetCluster(int);
-    int Merge(std::list<clusterNode>::iterator,std::list<clusterNode>::iterator);
-    void calcMinDist(std::list<ClusterList::clusterNode>::iterator,
-                     TriangleMatrix *, TriangleMatrix *);
-    void calcAvgDist(std::list<ClusterList::clusterNode>::iterator,
-                     TriangleMatrix *, TriangleMatrix *);
-};
-
-// CONSTRUCTOR
-ClusterList::ClusterList() {
-}
-
-// DESTRUCTOR
-ClusterList::~ClusterList() {
-}
-
-/* ClusterList::AddCluster()
- * Add a cluster made up of frames specified by the given framelist to 
- * the list.
- */
-int ClusterList::AddCluster( std::list<int> *framelistIn, int numIn  ) {
-  clusterNode CN;
-
-  CN.frameList = *framelistIn;
-  CN.num = numIn;
-
-  clusters.push_back(CN);
-
-  return 0;
-}
-
-/* ClusterList::PrintClusters()
- * Print list of clusters and frame numbers belonging to each cluster.
- */
-void ClusterList::PrintClusters() {
-  mprintf("CLUSTER: %u clusters.\n", clusters.size());
-  for (std::list<clusterNode>::iterator C = clusters.begin(); C != clusters.end(); C++) {
-    mprintf("\t%8i : ",(*C).num);
-    for (std::list<int>::iterator fnum = (*C).frameList.begin();
-                                  fnum != (*C).frameList.end();
-                                  fnum++)
-    {
-      mprintf("%i,",*fnum);
-    }
-    mprintf("\n");
-  }
-}
-
-/* ClusterList::GetCluster
- * Return an iterator to the specified cluster.
- */
-std::list<ClusterList::clusterNode>::iterator ClusterList::GetCluster(int C1) {
-  std::list<clusterNode>::iterator c1;
-  // Find C1
-  for (c1 = clusters.begin(); c1 != clusters.end(); c1++) {
-    if ( (*c1).num == C1 ) break;
-  }
-  if (c1 == clusters.end()) {
-    mprinterr("Error: ClusterList::Merge: C1 (%i) not found.\n",C1);
-    //return 1;
-  }
-  return c1;
-}
-
-/* ClusterList::Merge()
- * Merge cluster C2 into C1; remove C2. 
- */
-int ClusterList::Merge(std::list<ClusterList::clusterNode>::iterator c1, 
-                       std::list<ClusterList::clusterNode>::iterator c2) 
-{
-  // Merge C2 into C1
-  std::list<int>::iterator frameit = (*c1).frameList.begin();
-  (*c1).frameList.splice( frameit, (*c2).frameList );
-  // Remove c2
-  clusters.erase( c2 );
-
-  return 0;
-}        
-
-/* ClusterList::calcMinDist()
- * Calculate the minimum distance between frames in cluster specified by
- * iterator C1 and frames in all other clusters.
- */
-void ClusterList::calcMinDist(std::list<ClusterList::clusterNode>::iterator C1_it,
-                              TriangleMatrix *FrameDistances,
-                              TriangleMatrix *ClusterDistances) 
-{
-  double min, Dist;
-  std::list<clusterNode>::iterator C2_it;
-
-  // All cluster distances to C1 must be recalcd.
-  for (C2_it = clusters.begin(); C2_it != clusters.end(); C2_it++) {
-    if (C2_it == C1_it) continue;
-    //mprintf("\t\tRecalc distance between %i and %i:\n",C1,newc2);
-    // Pick the minimum distance between newc2 and C1
-    min = DBL_MAX;
-    for (std::list<int>::iterator c1frames = (*C1_it).frameList.begin();
-                                  c1frames != (*C1_it).frameList.end();
-                                  c1frames++) 
-    {
-      for (std::list<int>::iterator c2frames = (*C2_it).frameList.begin();
-                                    c2frames != (*C2_it).frameList.end();
-                                    c2frames++)
-      {
-        Dist = FrameDistances->GetElement(*c1frames, *c2frames);
-        //mprintf("\t\t\tFrame %i to frame %i = %lf\n",*c1frames,*c2frames,Dist);
-        if ( Dist < min ) min = Dist;
-      }
-    }
-    //mprintf("\t\tNew distance between %i and %i: %lf\n",C1,newc2,min);
-    ClusterDistances->SetElement( (*C1_it).num, (*C2_it).num, min );
-  } 
-}
-
-/* ClusterList::calcAvgDist()
- * Calculate the average distance between frames in cluster specified by
- * iterator C1 and frames in all other clusters.
- */
-void ClusterList::calcAvgDist(std::list<ClusterList::clusterNode>::iterator C1_it,
-                              TriangleMatrix *FrameDistances,
-                              TriangleMatrix *ClusterDistances) 
-{
-  double N, Dist, sumDist;
-  std::list<clusterNode>::iterator C2_it;
-
-  // All cluster distances to C1 must be recalcd.
-  for (C2_it = clusters.begin(); C2_it != clusters.end(); C2_it++) {
-    if (C2_it == C1_it) continue;
-    //mprintf("\t\tRecalc distance between %i and %i:\n",(*C1_it).num,(*C2_it).num);
-    // Pick the minimum distance between newc2 and C1
-    sumDist=0.0;
-    N=0.0;
-    for (std::list<int>::iterator c1frames = (*C1_it).frameList.begin();
-                                  c1frames != (*C1_it).frameList.end();
-                                  c1frames++) 
-    {
-      for (std::list<int>::iterator c2frames = (*C2_it).frameList.begin();
-                                    c2frames != (*C2_it).frameList.end();
-                                    c2frames++)
-      {
-        Dist = FrameDistances->GetElement(*c1frames, *c2frames);
-        //mprintf("\t\t\tFrame %i to frame %i = %lf\n",*c1frames,*c2frames,Dist);
-        sumDist += Dist;
-        N++;
-      }
-    }
-    Dist = sumDist / N;
-    //mprintf("\t\tAvg distance between %i and %i: %lf\n",(*C1_it).num,(*C2_it).num,Dist);
-    ClusterDistances->SetElement( (*C1_it).num, (*C2_it).num, Dist );
-  } 
-}
-
-// ============================================================================ 
 // CONSTRUCTOR
 Clustering::Clustering() {
   //fprintf(stderr,"Clustering Con\n");
   useMass=false;
   Linkage = AVERAGELINK;
+  cnumvtime=NULL;
 } 
 
 // DESTRUCTOR
@@ -187,25 +18,35 @@ Clustering::~Clustering() {
 }
 
 /* Clustering::init()
- * Expected call: cluster <mask>  
+ * Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]
+ *                        [ linkage | averagelinkage ]  
+ *                        [summary <summaryfile>] 
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
  *    3) Dataset name
  */
 int Clustering::init() {
-  char *mask0;
+  char *mask0,*cnumvtimefile;
 
   // Get keywords
   useMass = A->hasKey("mass");
   targetNclusters = A->getKeyInt("clusters",-1);
   epsilon = A->getKeyDouble("epsilon",-1.0);
   if (A->hasKey("linkage")) Linkage=SINGLELINK;
-  if (A->hasKey("averagelinkage")) Linkage=SINGLELINK;
+  if (A->hasKey("averagelinkage")) Linkage=AVERAGELINK;
+  cnumvtimefile = A->getKeyString("out",NULL);
+  summaryfile = A->getKeyString("summary",NULL);
 
   // Get the mask string 
   mask0 = A->getNextMask();
   Mask0.SetMaskString(mask0);
+
+  // Dataset to store cluster number v time
+  cnumvtime = DSL->Add(INT,A->getNextString(),"Cnum");
+  if (cnumvtime==NULL) return 1;
+  // Add dataset to data file list
+  DFL->Add(cnumvtimefile,cnumvtime);
 
   // Determine finish criteria. If nothing specified default to 10 clusters.
   if (targetNclusters==-1 && epsilon==-1.0)
@@ -225,6 +66,8 @@ int Clustering::init() {
   else if (Linkage==AVERAGELINK)
     mprintf(" average-linkage");
   mprintf(".\n");
+  if (summaryfile!=NULL)
+    mprintf("            Summary of cluster results will be written to %s\n",summaryfile);
 
   // If epsilon not given make it huge 
   if (epsilon == -1.0) epsilon = DBL_MAX;
@@ -361,9 +204,8 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
  *   single-linkage : The minimum distance between frames in clusters are used.
  *   average-linkage: The average distance between frames in clusters are used.
  */
-int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances) {
+int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *CList) {
   TriangleMatrix *ClusterDistances;
-  ClusterList CList;
   std::list<int> frames;
   bool clusteringComplete = false;
   int C1 = 0;
@@ -377,13 +219,13 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances) {
   // Build initial clusters.
   for (int cluster = 0; cluster < maxClusters; cluster++) {
     frames.assign(1,cluster);
-    CList.AddCluster(&frames,cluster);
+    CList->AddCluster(&frames,cluster);
   }
   // Build initial cluster distance matrix.
   ClusterDistances = FrameDistances->Copy();
 
   // DEBUG
-  if (debug>1) CList.PrintClusters();
+  if (debug>1) CList->PrintClusters();
 
   while (!clusteringComplete) {
     // Find the minimum distance between clusters
@@ -391,57 +233,56 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances) {
     if (debug>0) mprintf("\tMinimum found between clusters %i and %i (%lf)\n",C1,C2,min);
     // If the minimum distance is greater than epsilon we are done
     if (min > epsilon) {
-      mprintf("Minimum distance is greater than epsilon (%lf) clustering complete.\n",epsilon);
+      mprintf("\tMinimum distance is greater than epsilon (%lf), clustering complete.\n",
+              epsilon);
       break;
     }
 
     // Find the clusters in the cluster list
-    C1_it = CList.GetCluster(C1);
-    C2_it = CList.GetCluster(C2);
+    C1_it = CList->GetCluster(C1);
+    C2_it = CList->GetCluster(C2);
     // Sanity check
     //if (C1_it==CList.clusters.end() || C2_it==CList.clusters.end()) return 
 
     // Merge the closest clusters
-    CList.Merge(C1_it,C2_it);
+    CList->Merge(C1_it,C2_it);
     // DEBUG
     if (debug>1) {
       mprintf("\nAFTER MERGE of %i and %i:\n",C1,C2);
-      CList.PrintClusters();
+      CList->PrintClusters();
     }
     // Remove all distances having to do with C2
     ClusterDistances->Ignore(C2);
-
-    // If the target number of clusters is reached we are done
-    if ((int)CList.clusters.size() <= targetNclusters) {
-      mprintf("Target # of clusters (%i) met (%u), clustering complete.\n",targetNclusters,
-              CList.clusters.size());
-      break;
-    } 
-
+  
     // Recalculate distances between C1 and all other clusters
     if (Linkage==AVERAGELINK)
-      CList.calcAvgDist(C1_it, FrameDistances, ClusterDistances);
+      CList->calcAvgDist(C1_it, FrameDistances, ClusterDistances);
     else if (Linkage==SINGLELINK)
-      CList.calcMinDist(C1_it, FrameDistances, ClusterDistances);
+      CList->calcMinDist(C1_it, FrameDistances, ClusterDistances);
    
     if (debug>2) { 
       mprintf("NEW CLUSTER DISTANCES:\n");
       ClusterDistances->PrintElements();
     }
  
-    iterations++;
-
     // Check if clustering is complete.
-    if (CList.clusters.size() == 1) clusteringComplete = true; // Sanity check
+    // If the target number of clusters is reached we are done
+    if ((int)CList->clusters.size() <= targetNclusters) {
+      mprintf("\tTarget # of clusters (%i) met (%u), clustering complete.\n",targetNclusters,
+              CList->clusters.size());
+      break;
+    } 
+    if (CList->clusters.size() == 1) clusteringComplete = true; // Sanity check
+    iterations++;
   }
+  mprintf("\tCLUSTER: Completed after %i iterations, %u clusters.\n",iterations,
+          CList->clusters.size());
 
-  // DEBUG
-  mprintf("\nFINAL CLUSTERS after %i iterations:\n",iterations);
-  CList.PrintClusters();
 
   delete ClusterDistances;
   return 0;
 }
+
 
 /* Clustering::print()
  * This is where the clustering is actually performed. First the distances
@@ -449,6 +290,7 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances) {
  */
 void Clustering::print() {
   TriangleMatrix Distances;
+  ClusterList CList;
 
   calcDistFromRmsd( &Distances );
 
@@ -459,5 +301,22 @@ void Clustering::print() {
   }
 
   // Cluster
-  ClusterHierAgglo( &Distances);
+  ClusterHierAgglo( &Distances, &CList);
+
+  // Sort clusters and renumber
+  CList.Renumber();
+
+  // DEBUG
+  if (debug>0) {
+    mprintf("\nFINAL CLUSTERS:\n");
+    CList.PrintClusters();
+  }
+
+  // Print a summary of clusters
+  if (summaryfile!=NULL)
+    CList.Summary(summaryfile);
+
+  // Create cluster v time data from clusters.
+  CList.Cnumvtime( cnumvtime );
+
 }

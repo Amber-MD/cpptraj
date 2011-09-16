@@ -3,6 +3,7 @@
 /// Class: Clustering
 #include "Action.h"
 #include "TriangleMatrix.h"
+#include "ClusterList.h"
 class Clustering: public Action {
     enum LINKAGETYPE {SINGLELINK, AVERAGELINK};
     LINKAGETYPE Linkage;
@@ -10,9 +11,11 @@ class Clustering: public Action {
     AtomMask Mask0;        // Target atom mask
     double epsilon; // Once the min distance is > epsilon, stop clustering
     int targetNclusters; // Once there are targetNclusters, stop clustering
+    DataSet *cnumvtime;
+    char *summaryfile; // SUmmary file name
 
     int calcDistFromRmsd( TriangleMatrix *);
-    int ClusterHierAgglo( TriangleMatrix *);
+    int ClusterHierAgglo( TriangleMatrix *, ClusterList*);
   public:
     Clustering();
     ~Clustering();

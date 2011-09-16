@@ -20,7 +20,7 @@ SOURCE=main.cpp AmberParm.cpp \
        FortranFormat.cpp Action_Average.cpp Histogram.cpp Analysis.cpp \
        Action_DistRmsd.cpp \
        AnalysisList.cpp Analysis_Hist.cpp mapDataSet.cpp Action_Radial.cpp \
-       Action_Jcoupling.cpp TriangleMatrix.cpp Action_Clustering.cpp
+       Action_Jcoupling.cpp TriangleMatrix.cpp Action_Clustering.cpp ClusterList.cpp
 
 OBJECTS=main.o AmberParm.o \
         Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
@@ -44,7 +44,7 @@ OBJECTS=main.o AmberParm.o \
         FortranFormat.o Action_Average.o Histogram.o Analysis.o \
         Action_DistRmsd.o \
         AnalysisList.o Analysis_Hist.o mapDataSet.o Action_Radial.o \
-        Action_Jcoupling.o TriangleMatrix.o Action_Clustering.o
+        Action_Jcoupling.o TriangleMatrix.o Action_Clustering.o ClusterList.o
 
 HEADERS=AmberParm.h \
         Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
@@ -68,5 +68,5 @@ HEADERS=AmberParm.h \
         FortranFormat.h Name.h Action_Average.h Histogram.h Analysis.h \
         Action_DistRmsd.h \
         AnalysisList.h Analysis_Hist.h mapDataSet.h Action_Radial.h \
-        Action_Jcoupling.h Constants.h TriangleMatrix.h Action_Clustering.h
+        Action_Jcoupling.h Constants.h TriangleMatrix.h Action_Clustering.h ClusterList.h
 
