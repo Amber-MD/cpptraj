@@ -320,8 +320,7 @@ void ClusterList::calcAvgDist(std::list<ClusterList::clusterNode>::iterator C1_i
  * Put cluster number v frame into dataset.
  */
 void ClusterList::Cnumvtime(DataSet *cnumvtimeIn) {
-  // Temp array
-  int *CVT = new int[ maxframes ];
+  int cnum;
 
   for (std::list<clusterNode>::iterator node = clusters.begin();
                                         node != clusters.end();
@@ -330,13 +329,9 @@ void ClusterList::Cnumvtime(DataSet *cnumvtimeIn) {
     for (std::list<int>::iterator frame = (*node).frameList.begin();
                                   frame != (*node).frameList.end();
                                   frame++) {
-      CVT[ *frame ] = (*node).num;
+      cnum = (*node).num;
+      cnumvtimeIn->Add( *frame, &cnum );
     }
   }
-
-  for (int N=0; N < maxframes; N++) 
-    cnumvtimeIn->Add(N,CVT + N);
-  delete[] CVT;
 }
-
 
