@@ -29,6 +29,8 @@ void ClusterList::Renumber() {
                                         node++) 
   {
     (*node).num = newNum;
+    // Sort the frame lists for good measure
+    (*node).frameList.sort();
     newNum++;
   }
 }
