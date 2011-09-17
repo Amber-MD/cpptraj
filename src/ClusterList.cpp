@@ -7,7 +7,9 @@
 
 // CONSTRUCTOR
 ClusterList::ClusterList() {
+  debug=0;
   maxframes=0;
+  Linkage = AVERAGELINK;
 }
 
 // DESTRUCTOR
@@ -75,6 +77,31 @@ int ClusterList::AddCluster( std::list<int> *framelistIn, int numIn  ) {
   return 0;
 }
 
+/* ClusterList::Initialize()
+ * Given a triangle matrix containing the distances between all frames,
+ * set up the initial distances between clusters.
+ * Should be called before any clustering is performed. 
+ */
+void ClusterList::Initialize(TriangleMatrix *matrixIn) {
+  std::list<clusterNode>::iterator C1_it;
+  std::list<clusterNode>::iterator C2_it;
+
+  FrameDistances = matrixIn;
+  ClusterDistances.Setup( FrameDistances->Nrows() );
+  // Build initial cluster distances
+  // NOTE: Modify the calcXDist routines to take an iterator.
+  if (Linkage==AVERAGELINK) {
+    for (C1_it = clusters.begin(); C1_it != clusters.end(); C1_it++) 
+      calcAvgDist(C1_it);
+  } else if (Linkage==SINGLELINK) {
+    for (C1_it = clusters.begin(); C1_it != clusters.end(); C1_it++) 
+      calcMinDist(C1_it);
+  } else if (Linkage==COMPLETELINK) {
+    for (C1_it = clusters.begin(); C1_it != clusters.end(); C1_it++) 
+      calcMaxDist(C1_it);
+  }
+}
+    
 /* ClusterList::PrintClusters()
  * Print list of clusters and frame numbers belonging to each cluster.
  */
@@ -92,10 +119,10 @@ void ClusterList::PrintClusters() {
   }
 }
 
-/* ClusterList::GetCluster
+/* ClusterList::GetClusterIt
  * Return an iterator to the specified cluster.
  */
-std::list<ClusterList::clusterNode>::iterator ClusterList::GetCluster(int C1) {
+std::list<ClusterList::clusterNode>::iterator ClusterList::GetClusterIt(int C1) {
   std::list<clusterNode>::iterator c1;
   // Find C1
   for (c1 = clusters.begin(); c1 != clusters.end(); c1++) {
@@ -106,6 +133,68 @@ std::list<ClusterList::clusterNode>::iterator ClusterList::GetCluster(int C1) {
     //return 1;
   }
   return c1;
+}
+
+/* ClusterList::MergeClosest()
+ * Find and merge the two closest clusters.
+ */
+int ClusterList::MergeClosest(double epsilon) {
+  double min;
+  int C1, C2;
+  std::list<clusterNode>::iterator C1_it;
+  std::list<clusterNode>::iterator C2_it;
+
+  // Find the minimum distance between clusters. C1 will be lower than C2.
+  min = ClusterDistances.FindMin(&C1, &C2);
+  if (debug>0) mprintf("\tMinimum found between clusters %i and %i (%lf)\n",C1,C2,min);
+  // If the minimum distance is greater than epsilon we are done
+  if (min > epsilon) {
+    mprintf("\tMinimum distance is greater than epsilon (%lf), clustering complete.\n",
+            epsilon);
+    return 1;
+  }
+
+  // Find the clusters in the cluster list
+  // Find C1
+  for (C1_it = clusters.begin(); C1_it != clusters.end(); C1_it++) {
+    if ( (*C1_it).num == C1 ) break;
+  }
+  if (C1_it == clusters.end()) {
+    mprinterr("Error: ClusterList::MergeClosest: C1 (%i) not found.\n",C1);
+    return 1;
+  }
+  // Find C2 - start from C1 since C1 < C2
+  for (C2_it = C1_it; C2_it != clusters.end(); C2_it++) {
+    if ( (*C2_it).num == C2 ) break;
+  }
+  if (C2_it == clusters.end()) {
+    mprinterr("Error: ClusterList::MergeClosest: C2 (%i) not found.\n",C2);
+    return 1;
+  }
+
+  // Merge the closest clusters
+  Merge(C1_it,C2_it);
+  // DEBUG
+  if (debug>1) {
+    mprintf("\nAFTER MERGE of %i and %i:\n",C1,C2);
+    PrintClusters();
+  }
+  // Remove all distances having to do with C2
+  ClusterDistances.Ignore(C2);
+
+  // Recalculate distances between C1 and all other clusters
+  if (Linkage==AVERAGELINK)
+    calcAvgDist(C1_it);
+  else if (Linkage==SINGLELINK)
+    calcMinDist(C1_it);
+  else if (Linkage==COMPLETELINK)
+    calcMaxDist(C1_it);
+ 
+  if (debug>2) { 
+    mprintf("NEW CLUSTER DISTANCES:\n");
+    ClusterDistances.PrintElements();
+  }
+  return 0;
 }
 
 /* ClusterList::Merge()
@@ -127,9 +216,7 @@ int ClusterList::Merge(std::list<ClusterList::clusterNode>::iterator c1,
  * Calculate the minimum distance between frames in cluster specified by
  * iterator C1 and frames in all other clusters.
  */
-void ClusterList::calcMinDist(std::list<ClusterList::clusterNode>::iterator C1_it,
-                              TriangleMatrix *FrameDistances,
-                              TriangleMatrix *ClusterDistances) 
+void ClusterList::calcMinDist(std::list<ClusterList::clusterNode>::iterator C1_it) 
 {
   double min, Dist;
   std::list<clusterNode>::iterator C2_it;
@@ -154,7 +241,7 @@ void ClusterList::calcMinDist(std::list<ClusterList::clusterNode>::iterator C1_i
       }
     }
     //mprintf("\t\tMin distance between %i and %i: %lf\n",C1,newc2,min);
-    ClusterDistances->SetElement( (*C1_it).num, (*C2_it).num, min );
+    ClusterDistances.SetElement( (*C1_it).num, (*C2_it).num, min );
   } 
 }
 
@@ -162,9 +249,7 @@ void ClusterList::calcMinDist(std::list<ClusterList::clusterNode>::iterator C1_i
  * Calculate the maximum distance between frames in cluster specified by
  * iterator C1 and frames in all other clusters.
  */
-void ClusterList::calcMaxDist(std::list<ClusterList::clusterNode>::iterator C1_it,
-                              TriangleMatrix *FrameDistances,
-                              TriangleMatrix *ClusterDistances) 
+void ClusterList::calcMaxDist(std::list<ClusterList::clusterNode>::iterator C1_it) 
 {
   double max, Dist;
   std::list<clusterNode>::iterator C2_it;
@@ -189,7 +274,7 @@ void ClusterList::calcMaxDist(std::list<ClusterList::clusterNode>::iterator C1_i
       }
     }
     //mprintf("\t\tMax distance between %i and %i: %lf\n",C1,newc2,max);
-    ClusterDistances->SetElement( (*C1_it).num, (*C2_it).num, max );
+    ClusterDistances.SetElement( (*C1_it).num, (*C2_it).num, max );
   } 
 }
 
@@ -197,9 +282,7 @@ void ClusterList::calcMaxDist(std::list<ClusterList::clusterNode>::iterator C1_i
  * Calculate the average distance between frames in cluster specified by
  * iterator C1 and frames in all other clusters.
  */
-void ClusterList::calcAvgDist(std::list<ClusterList::clusterNode>::iterator C1_it,
-                              TriangleMatrix *FrameDistances,
-                              TriangleMatrix *ClusterDistances) 
+void ClusterList::calcAvgDist(std::list<ClusterList::clusterNode>::iterator C1_it) 
 {
   double N, Dist, sumDist;
   std::list<clusterNode>::iterator C2_it;
@@ -227,7 +310,7 @@ void ClusterList::calcAvgDist(std::list<ClusterList::clusterNode>::iterator C1_i
     }
     Dist = sumDist / N;
     //mprintf("\t\tAvg distance between %i and %i: %lf\n",(*C1_it).num,(*C2_it).num,Dist);
-    ClusterDistances->SetElement( (*C1_it).num, (*C2_it).num, Dist );
+    ClusterDistances.SetElement( (*C1_it).num, (*C2_it).num, Dist );
   } 
 }
 

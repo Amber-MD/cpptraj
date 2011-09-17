@@ -9,7 +9,7 @@
 Clustering::Clustering() {
   //fprintf(stderr,"Clustering Con\n");
   useMass=false;
-  Linkage = AVERAGELINK;
+  Linkage = ClusterList::AVERAGELINK;
   cnumvtime=NULL;
 } 
 
@@ -33,9 +33,9 @@ int Clustering::init() {
   useMass = A->hasKey("mass");
   targetNclusters = A->getKeyInt("clusters",-1);
   epsilon = A->getKeyDouble("epsilon",-1.0);
-  if (A->hasKey("linkage")) Linkage=SINGLELINK;
-  if (A->hasKey("averagelinkage")) Linkage=AVERAGELINK;
-  if (A->hasKey("complete")) Linkage=COMPLETELINK;
+  if (A->hasKey("linkage")) Linkage=ClusterList::SINGLELINK;
+  if (A->hasKey("averagelinkage")) Linkage=ClusterList::AVERAGELINK;
+  if (A->hasKey("complete")) Linkage=ClusterList::COMPLETELINK;
   cnumvtimefile = A->getKeyString("out",NULL);
   summaryfile = A->getKeyString("summary",NULL);
 
@@ -62,11 +62,11 @@ int Clustering::init() {
     mprintf(" epsilon is %8.3lf",epsilon);
   mprintf("\n");
   mprintf("            Using hierarchical top-down clustering algorithm,");
-  if (Linkage==SINGLELINK)
+  if (Linkage==ClusterList::SINGLELINK)
     mprintf(" single-linkage");
-  else if (Linkage==AVERAGELINK)
+  else if (Linkage==ClusterList::AVERAGELINK)
     mprintf(" average-linkage");
-  else if (Linkage==COMPLETELINK)
+  else if (Linkage==ClusterList::COMPLETELINK)
     mprintf(" complete-linkage");
   mprintf(".\n");
   if (summaryfile!=NULL)
@@ -78,13 +78,6 @@ int Clustering::init() {
   if (targetNclusters == -1) targetNclusters=1;
 
   return 0;
-}
-
-/* Clustering::setup()
- * Not important for Clustering, initial pass is only for storing frames.
- */
-int Clustering::setup() {
-  return 0;  
 }
 
 /* Clustering::action()
@@ -204,90 +197,45 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
  * start in their own cluster. The closest two clusters are merged, and 
  * distances between the newly merged cluster and all remaining clusters are
  * recalculated according to one of the following metrics:
- *   single-linkage : The minimum distance between frames in clusters are used.
- *   average-linkage: The average distance between frames in clusters are used.
+ *   single-linkage  : The minimum distance between frames in clusters are used.
+ *   average-linkage : The average distance between frames in clusters are used.
+ *   complete-linkage: The maximum distance between frames in clusters are used.
  */
 int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *CList) {
-  TriangleMatrix *ClusterDistances;
   std::list<int> frames;
   bool clusteringComplete = false;
-  int C1 = 0;
-  int C2 = 0;
-  std::list<ClusterList::clusterNode>::iterator C1_it;
-  std::list<ClusterList::clusterNode>::iterator C2_it;
-  int maxClusters = FrameDistances->Nrows();
   int iterations = 0;
-  double min;
 
   // Build initial clusters.
-  for (int cluster = 0; cluster < maxClusters; cluster++) {
+  for (int cluster = 0; cluster < FrameDistances->Nrows(); cluster++) {
     frames.assign(1,cluster);
     CList->AddCluster(&frames,cluster);
   }
   // Build initial cluster distance matrix.
-  ClusterDistances = FrameDistances->Copy();
+  CList->Initialize( FrameDistances );
 
   // DEBUG
   if (debug>1) CList->PrintClusters();
 
   while (!clusteringComplete) {
-    // Find the minimum distance between clusters
-    min = ClusterDistances->FindMin(&C1, &C2);
-    if (debug>0) mprintf("\tMinimum found between clusters %i and %i (%lf)\n",C1,C2,min);
-    // If the minimum distance is greater than epsilon we are done
-    if (min > epsilon) {
-      mprintf("\tMinimum distance is greater than epsilon (%lf), clustering complete.\n",
-              epsilon);
-      break;
-    }
+    // Merge 2 closest clusters
+    if (CList->MergeClosest(epsilon)) break;
 
-    // Find the clusters in the cluster list
-    C1_it = CList->GetCluster(C1);
-    C2_it = CList->GetCluster(C2);
-    // Sanity check
-    //if (C1_it==CList.clusters.end() || C2_it==CList.clusters.end()) return 
-
-    // Merge the closest clusters
-    CList->Merge(C1_it,C2_it);
-    // DEBUG
-    if (debug>1) {
-      mprintf("\nAFTER MERGE of %i and %i:\n",C1,C2);
-      CList->PrintClusters();
-    }
-    // Remove all distances having to do with C2
-    ClusterDistances->Ignore(C2);
-  
-    // Recalculate distances between C1 and all other clusters
-    if (Linkage==AVERAGELINK)
-      CList->calcAvgDist(C1_it, FrameDistances, ClusterDistances);
-    else if (Linkage==SINGLELINK)
-      CList->calcMinDist(C1_it, FrameDistances, ClusterDistances);
-    else if (Linkage==COMPLETELINK)
-      CList->calcMaxDist(C1_it, FrameDistances, ClusterDistances);
-   
-    if (debug>2) { 
-      mprintf("NEW CLUSTER DISTANCES:\n");
-      ClusterDistances->PrintElements();
-    }
- 
     // Check if clustering is complete.
     // If the target number of clusters is reached we are done
-    if ((int)CList->clusters.size() <= targetNclusters) {
+    if (CList->Nclusters() <= targetNclusters) {
       mprintf("\tTarget # of clusters (%i) met (%u), clustering complete.\n",targetNclusters,
-              CList->clusters.size());
+              CList->Nclusters());
       break;
     } 
-    if (CList->clusters.size() == 1) clusteringComplete = true; // Sanity check
+    if (CList->Nclusters() == 1) clusteringComplete = true; // Sanity check
     iterations++;
   }
   mprintf("\tCLUSTER: Completed after %i iterations, %u clusters.\n",iterations,
-          CList->clusters.size());
+          CList->Nclusters());
 
-
-  delete ClusterDistances;
   return 0;
 }
-
 
 /* Clustering::print()
  * This is where the clustering is actually performed. First the distances
@@ -306,6 +254,7 @@ void Clustering::print() {
   }
 
   // Cluster
+  CList.SetLinkage(Linkage);
   ClusterHierAgglo( &Distances, &CList);
 
   // Sort clusters and renumber
