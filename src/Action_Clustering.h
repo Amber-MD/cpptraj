@@ -15,6 +15,7 @@ class Clustering: public Action {
 
     int calcDistFromRmsd( TriangleMatrix *);
     int ClusterHierAgglo( TriangleMatrix *, ClusterList*);
+    void CreateCnumvtime( ClusterList * );
   public:
     Clustering();
     ~Clustering();

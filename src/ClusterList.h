@@ -41,6 +41,8 @@ class ClusterList {
     void calcMaxDist(std::list<ClusterList::clusterNode>::iterator);
     void calcAvgDist(std::list<ClusterList::clusterNode>::iterator);
 
+    std::list<ClusterList::clusterNode>::iterator currentCluster;
+
   public :
     ClusterList();
     ~ClusterList();
@@ -54,8 +56,14 @@ class ClusterList {
     std::list<clusterNode>::iterator GetClusterIt(int);
     int Merge(std::list<clusterNode>::iterator,std::list<clusterNode>::iterator);
     int MergeClosest(double);
-    void Cnumvtime(DataSet *);
     void Renumber();
     void Summary(char *);
+
+    void Begin();
+    bool End();
+    void NextCluster();
+    int CurrentNum();
+    std::list<int>::iterator CurrentFrameBegin();
+    std::list<int>::iterator CurrentFrameEnd();
 };
 #endif

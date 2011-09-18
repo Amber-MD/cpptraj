@@ -316,22 +316,46 @@ void ClusterList::calcAvgDist(std::list<ClusterList::clusterNode>::iterator C1_i
   } 
 }
 
-/* ClusterList::Cnumvtime()
- * Put cluster number v frame into dataset.
+/* ClusterList::Begin()
+ * Place current cluster at beginning of list.
  */
-void ClusterList::Cnumvtime(DataSet *cnumvtimeIn) {
-  int cnum;
+void ClusterList::Begin() {
+  currentCluster = clusters.begin();
+}
 
-  for (std::list<clusterNode>::iterator node = clusters.begin();
-                                        node != clusters.end();
-                                        node++)
-  {
-    for (std::list<int>::iterator frame = (*node).frameList.begin();
-                                  frame != (*node).frameList.end();
-                                  frame++) {
-      cnum = (*node).num;
-      cnumvtimeIn->Add( *frame, &cnum );
-    }
-  }
+/* ClusterList::End()
+ * Return true if current cluster is at the end of list.
+ */
+bool ClusterList::End() {
+  if (currentCluster == clusters.end()) return true;
+  return false;
+}
+
+/* ClusterList::NextCluster()
+ * Advance current cluster to the next cluster.
+ */
+void ClusterList::NextCluster() {
+  currentCluster++;
+}
+
+/* ClusterList::CurrentNum()
+ * Return number of the current cluster.
+ */
+int ClusterList::CurrentNum() {
+  return (*currentCluster).num;
+}
+
+/* ClusterList::CurrentFrameBegin()
+ * Return iterator to the beginning of the current clusters framelist.
+ */
+std::list<int>::iterator ClusterList::CurrentFrameBegin() {
+  return (*currentCluster).frameList.begin();
+}
+
+/* ClusterList::CurrentFrameEnd()
+ * Return iterator to the end of the current clusters framelist.
+ */
+std::list<int>::iterator ClusterList::CurrentFrameEnd() {
+  return (*currentCluster).frameList.end();
 }
 

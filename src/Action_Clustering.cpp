@@ -237,6 +237,31 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *C
   return 0;
 }
 
+/* Clustering::CreateCnumvtime()
+ * Put cluster number vs frame into dataset.
+ */
+void Clustering::CreateCnumvtime( ClusterList *CList ) {
+  std::list<int>::iterator E;
+  int cnum;
+
+  CList->Begin();
+  while (!CList->End()) {
+    //mprinterr("Cluster %i:\n",CList->CurrentNum());
+    cnum = CList->CurrentNum();
+    E = CList->CurrentFrameEnd();
+    for (std::list<int>::iterator frame = CList->CurrentFrameBegin();
+                                  frame != E;
+                                  frame++)
+    {
+      //mprinterr("%i,",*frame);
+      cnumvtime->Add( *frame, &cnum );
+    }
+    //mprinterr("\n");
+    CList->NextCluster();
+    //break;
+  }
+}
+
 /* Clustering::print()
  * This is where the clustering is actually performed. First the distances
  * between each frame are calculated. Then the clustering routine is called.
@@ -271,6 +296,6 @@ void Clustering::print() {
     CList.Summary(summaryfile);
 
   // Create cluster v time data from clusters.
-  CList.Cnumvtime( cnumvtime );
-
+  //CList.Cnumvtime( cnumvtime );
+  CreateCnumvtime( &CList );
 }
