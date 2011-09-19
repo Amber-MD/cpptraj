@@ -3,7 +3,10 @@
 #include "Action_Clustering.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#include "TrajectoryFile.h"
 #include <cfloat>
+#include <cstdio> // sprintf
+#include <cstring> // strlen
 
 // CONSTRUCTOR
 Clustering::Clustering() {
@@ -19,15 +22,19 @@ Clustering::~Clustering() {
 
 /* Clustering::init()
  * Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]
- *                        [ linkage | averagelinkage ]  
+ *                        [ linkage | averagelinkage | complete ]  
  *                        [summary <summaryfile>] 
+ *                        [ clusterout <trajfilename> [clusterfmt <trajformat>] ] 
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
  *    3) Dataset name
  */
 int Clustering::init() {
-  char *mask0,*cnumvtimefile;
+  char *mask0,*cnumvtimefile,*clusterformat;
+  // NOTE: PtrajFile is here just for determining/writing format. Should those
+  //       functions be separate?
+  PtrajFile TempFile;
 
   // Get keywords
   useMass = A->hasKey("mass");
@@ -38,6 +45,14 @@ int Clustering::init() {
   if (A->hasKey("complete")) Linkage=ClusterList::COMPLETELINK;
   cnumvtimefile = A->getKeyString("out",NULL);
   summaryfile = A->getKeyString("summary",NULL);
+  // Output trajectory stuff
+  clusterfile = A->getKeyString("clusterout",NULL);
+  clusterformat = A->getKeyString("clusterfmt",NULL);
+
+  // Figure out cluster format
+  if (clusterfile!=NULL) {
+    clusterfmt = TempFile.GetFmtFromArg(clusterformat,AMBERTRAJ);
+  }
 
   // Get the mask string 
   mask0 = A->getNextMask();
@@ -71,6 +86,9 @@ int Clustering::init() {
   mprintf(".\n");
   if (summaryfile!=NULL)
     mprintf("            Summary of cluster results will be written to %s\n",summaryfile);
+  if (clusterfile!=NULL)
+    mprintf("            Cluster trajectories will be written to %s, format %s\n",
+            clusterfile,TempFile.Format(clusterfmt));
 
   // If epsilon not given make it huge 
   if (epsilon == -1.0) epsilon = DBL_MAX;
@@ -262,6 +280,61 @@ void Clustering::CreateCnumvtime( ClusterList *CList ) {
   }
 }
 
+/* Clustering::WriteClusterTraj()
+ * Write frames in each cluster to a trajectory file.
+ */
+void Clustering::WriteClusterTraj( ClusterList *CList ) {
+  std::list<int>::iterator E;
+  std::list<int>::iterator B;
+  char *cfilename;
+  int cnum,framenum;
+  TrajectoryFile *clusterout = NULL;
+  AmberParm *clusterparm;
+  Frame *clusterframe;
+
+  // Figure out max size of cluster filename
+  cnum = CList->Nclusters();
+  cnum = (cnum / 10) + 3;
+  cfilename = new char[ strlen(clusterfile)+cnum+1 ];
+
+  CList->Begin();
+  while (!CList->End()) {
+    // Create filename based on cluster number.
+    cnum = CList->CurrentNum();
+    sprintf(cfilename,"%s.c%i",clusterfile,cnum);
+    // Set up trajectory file - use parm from first frame of cluster (pot. dangerous)
+    if (clusterout!=NULL) delete clusterout;
+    clusterout = new TrajectoryFile;
+    B = CList->CurrentFrameBegin();
+    clusterparm = ReferenceFrames.GetFrameParm( *B );
+    if (clusterout->SetupWrite(cfilename,NULL,clusterparm,clusterfmt)) {
+      mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
+                cfilename);
+      delete clusterout;
+      delete[] cfilename;
+      return;
+    }
+    //mprinterr("Cluster %i:\n",CList->CurrentNum());
+    
+    E = CList->CurrentFrameEnd();
+    framenum = 0;
+    for (std::list<int>::iterator frame = B; frame != E; frame++)
+    {
+      //mprinterr("%i,",*frame);
+      clusterframe = ReferenceFrames.GetFrame( *frame );
+      clusterout->WriteFrame(framenum++, clusterparm, clusterframe->X, NULL, 
+                             clusterframe->box, clusterframe->T);
+    }
+    // Close traj
+    clusterout->EndTraj();
+    //mprinterr("\n");
+    CList->NextCluster();
+    //break;
+  }
+  delete[] cfilename;
+  if (clusterout!=NULL) delete clusterout;
+}
+
 /* Clustering::print()
  * This is where the clustering is actually performed. First the distances
  * between each frame are calculated. Then the clustering routine is called.
@@ -270,6 +343,7 @@ void Clustering::print() {
   TriangleMatrix Distances;
   ClusterList CList;
 
+  // Get distances between frames
   calcDistFromRmsd( &Distances );
 
   // DEBUG
@@ -296,6 +370,9 @@ void Clustering::print() {
     CList.Summary(summaryfile);
 
   // Create cluster v time data from clusters.
-  //CList.Cnumvtime( cnumvtime );
   CreateCnumvtime( &CList );
+
+  // Write clusters to trajectories
+  if (clusterfile!=NULL)
+    WriteClusterTraj( &CList );  
 }

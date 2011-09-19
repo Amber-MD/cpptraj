@@ -56,13 +56,13 @@ PtrajFile::PtrajFile() {
 }
 
 // Return enumerated type for FileFormat
-char *PtrajFile::Format() {
-  return (char*)FileFormatList[fileFormat];
+char *PtrajFile::Format(FileFormat FFin) {
+  return (char*)FileFormatList[FFin];
 }
 
 // Return enumerated type for FileType
-char *PtrajFile::Type() {
-  return (char*)FileTypeList[fileType];
+char *PtrajFile::Type(FileType FTin) {
+  return (char*)FileTypeList[FTin];
 }
 
 // DESTRUCTOR
@@ -73,6 +73,24 @@ PtrajFile::~PtrajFile() {
    if (filename!=NULL) free(filename);
    if (basefilename!=NULL) free(basefilename);
    if (Ext!=NULL) free(Ext);
+}
+
+/* PtrajFile::GetFmtFromArg()
+ * Return file format given a file format keyword. Default to def. 
+ * NOTE: def should probably not be allowed to be UNKNOWN_FORMAT,
+ * but this is currently not explicitly checked.
+ */
+FileFormat PtrajFile::GetFmtFromArg(char *argIn, FileFormat def) {
+  FileFormat writeFormat = def;
+  if (argIn==NULL) return writeFormat;
+  if      ( strcmp(argIn,"pdb")==0      ) writeFormat=PDBFILE;
+  else if ( strcmp(argIn,"data")==0     ) writeFormat=DATAFILE;
+  else if ( strcmp(argIn,"netcdf")==0   ) writeFormat=AMBERNETCDF;
+  else if ( strcmp(argIn,"restart")==0  ) writeFormat=AMBERRESTART;
+  else if ( strcmp(argIn,"ncrestart")==0) writeFormat=AMBERRESTARTNC;
+  else if ( strcmp(argIn,"restartnc")==0) writeFormat=AMBERRESTARTNC;
+  else if ( strcmp(argIn,"mol2")==0     ) writeFormat=MOL2FILE;
+  return writeFormat;
 }
 
 /* PtrajFile::OpenFile()

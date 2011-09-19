@@ -19,6 +19,7 @@ class ClusterList {
     struct clusterNode {
       std::list<int> frameList; // List of frames in the cluster
       int num;                  // Cluster number (index in Distances)
+      int centroid;             // Frame number of the cluster centroid
     };
     std::list<clusterNode> clusters;
 
@@ -37,9 +38,10 @@ class ClusterList {
       }
     };
     // Distance calculation routines
-    void calcMinDist(std::list<ClusterList::clusterNode>::iterator);
-    void calcMaxDist(std::list<ClusterList::clusterNode>::iterator);
-    void calcAvgDist(std::list<ClusterList::clusterNode>::iterator);
+    void calcMinDist(std::list<clusterNode>::iterator);
+    void calcMaxDist(std::list<clusterNode>::iterator);
+    void calcAvgDist(std::list<clusterNode>::iterator);
+
 
     std::list<ClusterList::clusterNode>::iterator currentCluster;
 
@@ -56,6 +58,7 @@ class ClusterList {
     std::list<clusterNode>::iterator GetClusterIt(int);
     int Merge(std::list<clusterNode>::iterator,std::list<clusterNode>::iterator);
     int MergeClosest(double);
+    void FindCentroid(std::list<clusterNode>::iterator);
     void Renumber();
     void Summary(char *);
 

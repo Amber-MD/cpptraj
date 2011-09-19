@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "PtrajFile.h"
 #include <cfloat>
+#include <cmath>
 
 // CONSTRUCTOR
 ClusterList::ClusterList() {
@@ -40,8 +41,9 @@ void ClusterList::Renumber() {
  */
 void ClusterList::Summary(char *summaryfile) {
   PtrajFile outfile;
-  int numframes;
+  int numframes,numdist;
   float frac;
+  double dist,avgdist,sdist,*distances;
 
   if (outfile.SetupFile(summaryfile, WRITE, 0)) {
     mprinterr("Error: ClusterList::Summary: Could not set up file.\n");
@@ -49,15 +51,57 @@ void ClusterList::Summary(char *summaryfile) {
   }
   outfile.OpenFile();
 
-  outfile.IO->Printf("%-8s %8s %8s\n","#Cluster","Frames","Frac");
+  outfile.IO->Printf("%-8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac","AvgDist","Stdev");
   for (std::list<clusterNode>::iterator node = clusters.begin();
                                         node != clusters.end();
                                         node++)
   {
+    // Calculate size and fraction of total size of this cluster
     numframes = (*node).frameList.size();
     frac = (float) maxframes;
     frac = ((float) numframes) / frac;
-    outfile.IO->Printf("%8i %8i %8.3f\n",(*node).num,numframes,frac);
+    // Calculate the average distance between frames in the cluster
+    numdist = ((numframes * numframes) - numframes) / 2;
+    distances = new double[ numdist ];
+    // DEBUG
+    //mprintf("\tCluster %i\n",(*node).num);
+    avgdist = 0;
+    numdist = 0;
+    for (std::list<int>::iterator frame1 = (*node).frameList.begin();
+                                  frame1 != (*node).frameList.end();
+                                  frame1++)
+    {
+      std::list<int>::iterator frame2 = frame1;
+      frame2++;
+      for (; frame2 != (*node).frameList.end(); frame2++) 
+      {
+        if (frame1==frame2) continue;
+        dist = FrameDistances->GetElement(*frame1,*frame2);
+        distances[numdist] = dist;
+        // DEBUG
+        //mprintf("\t\tFrame %3i to %3i %8.3lf\n",*frame1,*frame2,dist);
+        avgdist += dist;
+        numdist++;
+      }
+    }
+    if (numdist > 0) {
+      avgdist /= ((double) numdist);
+      // Stdev
+      sdist = 0;
+      for (int N=0; N < numdist; N++) {
+        dist = distances[N] - avgdist;
+        dist *= dist;
+        sdist += dist;
+      }
+      sdist /= ((double) numdist);
+      sdist = sqrt(sdist);
+    } else {
+      avgdist = 0;
+      sdist = 0;
+    }
+    // OUTPUT
+    outfile.IO->Printf("%8i %8i %8.3f %8.3lf %8.3lf\n",(*node).num,numframes,frac,avgdist,sdist);
+    delete[] distances;
   }
 
   outfile.CloseFile();
@@ -72,6 +116,9 @@ int ClusterList::AddCluster( std::list<int> *framelistIn, int numIn  ) {
 
   CN.frameList = *framelistIn;
   CN.num = numIn;
+  // Set initial centroid to front, even though that will probably be wrong
+  // when number of frames in the list > 1
+  CN.centroid = framelistIn->front();
   maxframes += CN.frameList.size();
 
   clusters.push_back(CN);
@@ -314,6 +361,39 @@ void ClusterList::calcAvgDist(std::list<ClusterList::clusterNode>::iterator C1_i
     //mprintf("\t\tAvg distance between %i and %i: %lf\n",(*C1_it).num,(*C2_it).num,Dist);
     ClusterDistances.SetElement( (*C1_it).num, (*C2_it).num, Dist );
   } 
+}
+
+/* ClusterList::FindCentroid()
+ * Find the frame in the given cluster that is the centroid, i.e. has the
+ * lowest cumulative distance to every other point in the cluster.
+ */
+void ClusterList::FindCentroid(std::list<ClusterList::clusterNode>::iterator C1_it) {
+  double mindist = DBL_MAX;
+  double cdist;
+  int minframe = -1;
+  for (std::list<int>::iterator frame1 = (*C1_it).frameList.begin(); 
+                                frame1 != (*C1_it).frameList.end();
+                                frame1++)
+  {
+    cdist = 0;
+    for (std::list<int>::iterator frame2 = (*C1_it).frameList.begin();
+                                  frame2 != (*C1_it).frameList.end();
+                                  frame2++)
+    {
+      if (frame1==frame2) continue;
+      cdist += FrameDistances->GetElement(*frame1, *frame2);
+    }
+    if (cdist < mindist) {
+      mindist = cdist;
+      minframe = (*frame1);
+    }
+  }
+  if (minframe==-1) {
+    mprinterr("Error: ClusterList::FindCentroid: Cluster %i could not determine centroid frame.\n",
+              (*C1_it).num);
+    return;
+  }
+  (*C1_it).centroid = minframe;
 }
 
 /* ClusterList::Begin()

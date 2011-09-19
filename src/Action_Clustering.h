@@ -12,10 +12,13 @@ class Clustering: public Action {
     int targetNclusters;       // Once there are targetNclusters, stop clustering
     DataSet *cnumvtime;        // Cluster vs time dataset
     char *summaryfile;         // Summary file name
+    char *clusterfile;         // Cluster trajectory base filename.
+    FileFormat clusterfmt;     // Cluster trajectory format.
 
     int calcDistFromRmsd( TriangleMatrix *);
     int ClusterHierAgglo( TriangleMatrix *, ClusterList*);
     void CreateCnumvtime( ClusterList * );
+    void WriteClusterTraj( ClusterList * );
   public:
     Clustering();
     ~Clustering();

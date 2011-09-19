@@ -68,8 +68,9 @@ class PtrajFile {
     PtrajFile();
     ~PtrajFile();
 
-    char *Type();
-    char *Format();
+    FileFormat GetFmtFromArg(char *, FileFormat);
+    char *Type(FileType);
+    char *Format(FileFormat);
     int SetupFile(char *, AccessType, int); 
     int SetupFile(char*,AccessType,FileFormat,FileType,int);
     int OpenFile();
