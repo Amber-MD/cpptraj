@@ -43,7 +43,7 @@ AmberParm::AmberParm() {
   nres=0;
   finalSoluteRes=0;
   molecules=0;
-  firstSolvMol=0;
+  firstSolvMol=-1;
   atomsPerMol=NULL;
   mass=NULL;
   charge=NULL;
@@ -334,6 +334,9 @@ bool AmberParm::IsSolventResname(NAME resnameIn) {
 int AmberParm::SetSolventInfo() {
   int mol, molAtom, maskAtom; 
 
+  // If no solvent, exit
+  if (firstSolvMol==-1) return 0;
+
   // Allocate memory
   solventMask=(char*) malloc(natom * sizeof(char));
   for (maskAtom=0; maskAtom<natom; maskAtom++) solventMask[maskAtom]='F';
@@ -375,10 +378,19 @@ int AmberParm::SetSolventInfo() {
     }
   }
 
-  // NOTE: Deallocate memory if no solvent atoms?
   if (debug>0)
     mprintf("    %i solvent molecules, %i solvent atoms.\n",
             solventMolecules, solventAtoms);
+
+  // Deallocate memory if no solvent 
+  if (solventMolecules==0) {
+    free(solventMask);
+    solventMask=NULL;
+    free(solventMoleculeStart);
+    solventMoleculeStart=NULL;
+    free(solventMoleculeStop);
+    solventMoleculeStop=NULL;
+  }
 
   return 0; 
 }
@@ -565,9 +577,6 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
   currResnum=-1;
   memset(buffer,' ',256);
 
-  // Set firstSolvMol to -1. Will be reset to 0 if no solvent
-  firstSolvMol = -1;
-
   while ( parmfile->IO->Gets(buffer,256)==0 ) {
     // If ENDMDL or END is reached stop reading
     if ( strncmp(buffer,"END",3)==0) break;
@@ -635,7 +644,6 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
       }
     }
   }
-  if (firstSolvMol==-1) firstSolvMol=0;
 
   // No box for PDB - maybe change later to include unit cell info?
   boxType = NOBOX;
@@ -1189,8 +1197,10 @@ int AmberParm::WriteAmberParm(char *filename) {
   if (bondsh!=NULL) BufferSize += (GetFortranBufferSize(F10I8,NbondsWithH*3,0)+FFSIZE); // BONDSH
   if (bonds!=NULL) BufferSize += (GetFortranBufferSize(F10I8,NbondsWithoutH*3,0)+FFSIZE); // BONDS
   if (AmberIfbox(Box[4])>0) {
-    BufferSize += (GetFortranBufferSize(F3I8,3,0)+FFSIZE); // SOLVENT_POINTER
-    BufferSize += (GetFortranBufferSize(F10I8,molecules,0)+FFSIZE); // ATOMSPERMOL
+    if (firstSolvMol!=-1)
+      BufferSize += (GetFortranBufferSize(F3I8,3,0)+FFSIZE); // SOLVENT_POINTER
+    if (atomsPerMol!=NULL)
+      BufferSize += (GetFortranBufferSize(F10I8,molecules,0)+FFSIZE); // ATOMSPERMOL
     BufferSize += (GetFortranBufferSize(F5E16_8,4,0)+FFSIZE); // BOX
   }
   // 1 extra char for NULL
@@ -1258,15 +1268,19 @@ int AmberParm::WriteAmberParm(char *filename) {
 
   // SOLVENT POINTERS
   if (values[IFBOX]>0) {
-    solvent_pointer[0]=finalSoluteRes;
-    solvent_pointer[1]=molecules;
-    solvent_pointer[2]=firstSolvMol;
-    buffer = DataToFortranBuffer(buffer,"%FLAG SOLVENT_POINTERS",F3I8, solvent_pointer, 
-                                 NULL, NULL, 3);
+    if (firstSolvMol!=-1) {
+      solvent_pointer[0]=finalSoluteRes;
+      solvent_pointer[1]=molecules;
+      solvent_pointer[2]=firstSolvMol;
+      buffer = DataToFortranBuffer(buffer,"%FLAG SOLVENT_POINTERS",F3I8, solvent_pointer, 
+                                   NULL, NULL, 3);
+    }
 
     // ATOMS PER MOLECULE
-    buffer = DataToFortranBuffer(buffer,"%FLAG ATOMS_PER_MOLECULE",F10I8, atomsPerMol, 
-                                 NULL, NULL, molecules);
+    if (atomsPerMol!=NULL) {
+      buffer = DataToFortranBuffer(buffer,"%FLAG ATOMS_PER_MOLECULE",F10I8, atomsPerMol, 
+                                   NULL, NULL, molecules);
+    }
 
     // BOX DIMENSIONS
     parmBox[0] = Box[4]; // beta
