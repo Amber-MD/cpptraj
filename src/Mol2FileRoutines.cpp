@@ -11,8 +11,7 @@ const char TRIPOSTAGTEXT[4][30]={"@<TRIPOS>MOLECULE\0",
                                  "@<TRIPOS>SUBSTRUCTURE\0"
                                 };
 
-/*
- * Mol2ScanTo()
+/* Mol2ScanTo()
  * Scan to the specified TRIPOS section of file
  */
 int Mol2ScanTo( PtrajFile *File, TRIPOSTAG tag ) {
@@ -32,10 +31,31 @@ int Mol2ScanTo( PtrajFile *File, TRIPOSTAG tag ) {
   return 1;
 }
 
-/*
- * Mol2AtomName
+/* PadWithSpaces()
+ * For consistency with Amber names, replace any NULL in the first 4 chars
+ * with spaces.
+ */
+static void PadWithSpaces(char *name) {
+  if (name[0]=='\0') {
+    name[0]=' ';
+    name[1]=' ';
+    name[2]=' ';
+    name[3]=' ';
+  } else if (name[1]=='\0') {
+    name[1]=' ';
+    name[2]=' ';
+    name[3]=' ';
+  } else if (name[2]=='\0') {
+    name[2]=' ';
+    name[3]=' ';
+  } else if (name[3]=='\0') {
+    name[3]=' ';
+  }
+}
+
+/* Mol2AtomName()
  * Given a Mol2 ATOM line, return atom name. Trim to 4 chars to be consistent 
- * with the rest of Amber.
+ * with the rest of Amber. 
  */
 int Mol2AtomName(char *buffer, char *name) {
   char tmp[10];
@@ -45,12 +65,13 @@ int Mol2AtomName(char *buffer, char *name) {
   name[1]=tmp[1];
   name[2]=tmp[2];
   name[3]=tmp[3];
+  PadWithSpaces(name); 
   name[4]='\0';
+  mprintf("DEBUG: MOL2: name [%s]\n",name);
   return 0;
 }
 
-/*
- * Mol2AtomType
+/* Mol2AtomType
  * Given a Mol2 ATOM line, return atom type. Try to convert Sybyl atom type
  * to amber type.
  * Sybyl atom types seem to have at most 5 chars - increasing size of NAME
@@ -93,7 +114,9 @@ int Mol2AtomType(char *buffer, char *type) {
   return 0;
 }
 
-// Get residue number and name, trim to 4 chars
+/* Mol2ResNumName()
+ * Get residue number and name, trim to 4 chars
+ */
 int Mol2ResNumName(char *buffer, int *resnum, char *resname) {
   char tmp[10];
   if (buffer==NULL || resnum==NULL || resname==NULL) return 1;
@@ -102,11 +125,14 @@ int Mol2ResNumName(char *buffer, int *resnum, char *resname) {
   resname[1]=tmp[1]; 
   resname[2]=tmp[2]; 
   resname[3]=tmp[3];
+  PadWithSpaces(resname);
   resname[4]='\0';
   return 0;
 }
 
-// Get charge
+/* Mol2Charge()
+ * Get charge
+ */
 double Mol2Charge(char *buffer) {
   double q;
   sscanf(buffer,"%*i %*s %*f %*f %*f %*s %*i %*s %lf",&q);
