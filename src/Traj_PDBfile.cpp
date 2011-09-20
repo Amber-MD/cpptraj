@@ -171,7 +171,7 @@ int PDBfile::setupWrite(AmberParm *trajParm) {
   pdbAtom = trajParm->natom;
   pdbAtomNames = trajParm->names;
   trajResNames = trajParm->resnames;
-  //trajAtomsPerMol = traj->atomsPerMol;
+  trajAtomsPerMol = trajParm->atomsPerMol;
   trajResNums = trajParm->resnums;
   trajCharges = trajParm->charge;
   // trajRadii = 
@@ -188,10 +188,10 @@ int PDBfile::setupWrite(AmberParm *trajParm) {
     mprinterr("Error: setupWrite [%s]: Residue names are NULL.\n",tfile->filename); 
     return 1;
   }
-  //if (trajAtomsPerMol==NULL) {
-  //  mprinterr("Error: setupWrite [%s]: Atoms per molecule is NULL.\n",tfile->filename); 
-  //  return 1;
-  //}
+  if (trajAtomsPerMol==NULL) {
+    mprintf("Warning: setupWrite [%s]: Atoms per molecule is NULL.\n",tfile->filename); 
+    mprintf("         TER cards will not be written to PDB.\n");
+  }
   if (trajResNums==NULL) {
     mprinterr("Error: setupWrite [%s]: Residue #s are NULL.\n",tfile->filename); 
     return 1;
@@ -233,20 +233,19 @@ int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   i3=0;
   atom=1; // Actual PDB atom number
   mol=0;
+  lastAtomInMol=-1;
   if (trajAtomsPerMol!=NULL)
     lastAtomInMol=trajAtomsPerMol[0];
   for (i=0; i<pdbAtom; i++) {
     // If this atom belongs to a new molecule print a TER card
-    /*if (P->atomsPerMol!=NULL) {
-      if (i == lastAtomInMol) {
-        pdb_write_ATOM(buffer,PDBTER,atom,(char*)"",P->ResidueName(res),'X',res+1,
-                       0,0,0,0,0,(char*)"\0",dumpq);
-        tfile->IO->Write(buffer,sizeof(char),strlen(buffer));
-        atom++;
-        mol++;
-        if (mol<P->molecules) lastAtomInMol += P->atomsPerMol[mol];
-      }
-    }*/
+    if (i == lastAtomInMol) {
+      bufferSize=pdb_write_ATOM(buffer,PDBTER,atom,(char*)"",trajResNames[res],'X',res+1,
+                                0,0,0,0,0,(char*)"\0",dumpq);
+      tfile->IO->Write(buffer,sizeof(char),bufferSize);
+      atom++;
+      mol++;
+      lastAtomInMol += trajAtomsPerMol[mol];
+    }
     // figure out the residue number
     if ( i==trajResNums[res+1] ) res++;
     if (dumpq) Occ = (float) trajCharges[i]; 

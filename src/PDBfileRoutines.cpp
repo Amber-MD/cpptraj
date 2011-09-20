@@ -332,10 +332,11 @@ int pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name,
                     char *resnameIn, char chain, int resnum, 
                     double X, double Y, double Z, float Occ, float B,
                     char *End, bool highPrecision) {
-  char resName[5];
+  char resName[5],atomName[5];
   char *ptr;
 
   resName[4]='\0';
+  atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
   while (resnum>9999) resnum-=9999;
   // Residue names in PDB format are 3 chars long starting at column 18. 
@@ -349,9 +350,21 @@ int pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name,
     resName[3] = resnameIn[3];
   else
     resName[3] = '\0';
+  // Atom names in PDB format start from col 14 when <= 3 chars, 13 when 4 chars.
+  if (name[3]!=' ') { // 4 chars
+    atomName[0] = name[0];
+    atomName[1] = name[1];
+    atomName[2] = name[2];
+    atomName[3] = name[3];
+  } else {            // <= 3 chars
+    atomName[0] = ' ';
+    atomName[1] = name[0];
+    atomName[2] = name[1];
+    atomName[3] = name[2];
+  }
 
   ptr=buffer;
-  sprintf(ptr,"%-6s%5i %-4s%4s %c%4i",PDB_RECNAME[Record], atom, name, resName, chain, resnum);
+  sprintf(ptr,"%-6s%5i %-4s%4s %c%4i",PDB_RECNAME[Record], atom, atomName, resName, chain, resnum);
   ptr+=26;
   if (Record == PDBTER) 
     sprintf(ptr,"\n");
