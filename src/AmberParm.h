@@ -35,11 +35,13 @@ class AmberParm {
     void AssignLCPO(SurfInfo*,double,double,double,double,double);
 
     // Set up solvent info
+    bool IsSolventResname(NAME);
     int SetSolventInfo();
 
     // Parm format readers
     int ReadParmMol2(PtrajFile *);
     int ReadParmAmber(PtrajFile *);
+    int SetAtomsPerMolPDB(int);
     int ReadParmPDB(PtrajFile *);
 
   public:

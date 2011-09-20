@@ -312,6 +312,20 @@ int AmberParm::SetSurfaceInfo() {
 }
 
 // -------------------- ROUTINES PERTAINING TO SOLVENT INFO --------------------
+/* AmberParm::IsSolventResname()
+ * Return true if the residue name corresponds to solvent.
+ */
+bool AmberParm::IsSolventResname(NAME resnameIn) {
+  if ( strcmp("WAT ", resnameIn) == 0 ||
+       strcmp(" WAT", resnameIn) == 0 ||
+       strcmp("HOH ", resnameIn) == 0 ||
+       strcmp(" HOH", resnameIn) == 0    )
+  {
+    return true;
+  }
+  return false;
+}
+
 /* AmberParm::SetSolventInfo()
  * Assuming atomsPerMol has been read in, set solvent information based on what
  * the firstSolvMol is. If atomsPerMol is not set, set solvent information by
@@ -348,10 +362,7 @@ int AmberParm::SetSolventInfo() {
   // Atom #s in resnums at this point should start from 0, not 1
   } else if (resnums!=NULL) {
     for (mol=0; mol < nres; mol++) { 
-      if ( strcmp("WAT ", resnames[mol]) == 0 ||
-           strcmp(" WAT", resnames[mol]) == 0 ||
-           strcmp("HOH ", resnames[mol]) == 0 ||
-           strcmp(" HOH", resnames[mol]) == 0    ) {
+      if ( IsSolventResname(resnames[mol])) {
         // Add this residue to the list of solvent 
         molAtom = resnums[mol+1] - resnums[mol];
         solventAtoms += molAtom;
@@ -516,6 +527,29 @@ int AmberParm::ReadParmAmber(PtrajFile *parmfile) {
   return 0;
 }
 
+/* AmberParm::SetAtomsPerMolPDB()
+ * Use in ReadParmPDB only, when TER is encountered or end of PDB file
+ * update the atomsPerMol array. Take number of atoms in the molecule
+ * (calcd as current #atoms - #atoms in previous molecule) as input. 
+ * Check if the last residue is solvent; if so, set up solvent information.
+ * Return the current number of atoms.
+ */
+int AmberParm::SetAtomsPerMolPDB(int numAtoms) {
+  if (numAtoms<1) return 0;
+  // Check if the current residue is a solvent molecule
+  //mprintf("DEBUG: Checking if %s is solvent.\n",resnames[nres-1]);
+  if (nres>0 && IsSolventResname(resnames[nres-1])) {
+    if (firstSolvMol==-1) {
+      firstSolvMol = molecules + 1; // +1 to be consistent w/ Amber top
+      finalSoluteRes = nres - 1;    // +1 to be consistent w/ Amber top
+    }
+  }
+  atomsPerMol = (int*) realloc(atomsPerMol, (molecules+1) * sizeof(int) );
+  atomsPerMol[molecules] = numAtoms;
+  molecules++;
+  return natom;
+}
+
 /* AmberParm::ReadParmPDB()
  * Open the PDB file specified by filename and set up topology data.
  * Mask selection requires natom, nres, names, resnames, resnums.
@@ -525,64 +559,83 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
   int bufferLen;  
   int currResnum;
   int atom;
+  int atomInLastMol = 0;
 
   mprintf("    Reading PDB file %s as topology file.\n",parmName);
   currResnum=-1;
   memset(buffer,' ',256);
+
+  // Set firstSolvMol to -1. Will be reset to 0 if no solvent
+  firstSolvMol = -1;
 
   while ( parmfile->IO->Gets(buffer,256)==0 ) {
     // If ENDMDL or END is reached stop reading
     if ( strncmp(buffer,"END",3)==0) break;
     // If TER increment number of molecules and continue
     if ( strncmp(buffer,"TER",3)==0) {
-      // NOTE: Do not count # molecules for now. The atomsPerMol array is not being
-      //       set up so this can lead to memory errors.
-      //molecules++;
+      atomInLastMol = SetAtomsPerMolPDB(natom - atomInLastMol);
       continue;
     }
     // Skip all other non-ATOM records
-    if (strncmp(buffer,"ATOM",4)!=0 &&
-        strncmp(buffer,"HETATM",6)!=0 ) continue;
+    if (isPDBatomKeyword(buffer)) {
+      // Detect and remove trailing newline
+      bufferLen = strlen(buffer);
+      if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
 
-    // Detect and remove trailing newline
-    bufferLen = strlen(buffer);
-    if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
-
-    // Allocate memory for atom name.
-    names=(NAME*) realloc(names, (natom+1) * sizeof(NAME));
-    // Leading whitespace will automatically be trimmed.
-    // Name will be wrapped if it starts with a digit.
-    // Asterisks will be replaced with prime char
-    pdb_name(buffer, (char*)names[natom]);
-
-    // If this residue number is different than the last, allocate mem for new res
-    if (currResnum!=pdb_resnum(buffer)) {
-      resnames=(NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
+      // Allocate memory for atom name.
+      names=(NAME*) realloc(names, (natom+1) * sizeof(NAME));
       // Leading whitespace will automatically be trimmed.
+      // Name will be wrapped if it starts with a digit.
       // Asterisks will be replaced with prime char
-      pdb_resname(buffer, (char*)resnames[nres]);
-      if (debug>3) mprintf("        PDBRes %i [%s]\n",nres,resnames[nres]);
-      resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
-      resnums[nres]=natom; 
-      currResnum=pdb_resnum(buffer);
-      nres++;
+      pdb_name(buffer, (char*)names[natom]);
 
-    // If residue number hasnt changed check for duplicate atom names in res
-    // NOTE: At this point nres has been incremented. Want nres-1.
-    //       natom is the current atom.
-    } else {
-      for (atom=resnums[nres-1]; atom < natom; atom++) {
-        if ( strcmp(names[natom], names[atom])==0 ) {
-          mprintf("      Warning: Duplicate atom name in residue %i [%s]:%i\n",
-                  nres,names[natom],natom+1);
+      // If this residue number is different than the last, allocate mem for new res
+      if (currResnum!=pdb_resnum(buffer)) {
+        resnames=(NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
+        // Leading whitespace will automatically be trimmed.
+        // Asterisks will be replaced with prime char
+        pdb_resname(buffer, (char*)resnames[nres]);
+        if (debug>3) mprintf("        PDBRes %i [%s]\n",nres,resnames[nres]);
+        resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
+        resnums[nres]=natom; 
+        currResnum=pdb_resnum(buffer);
+        nres++;
+  
+      // If residue number hasnt changed check for duplicate atom names in res
+      // NOTE: At this point nres has been incremented. Want nres-1.
+      //       natom is the current atom.
+      } else {
+        for (atom=resnums[nres-1]; atom < natom; atom++) {
+          if ( strcmp(names[natom], names[atom])==0 ) {
+            mprintf("      Warning: Duplicate atom name in residue %i [%s]:%i\n",
+                    nres,names[natom],natom+1);
+          }
         }
       }
-    }
-    // Clear the buffer
-    memset(buffer,' ',256);
+      // Clear the buffer
+      memset(buffer,' ',256);
 
-    natom++;
+      natom++;
+    } // END if atom/hetatm keyword
+  } // END read in parmfile
+
+  // If a TER card has been read and we are setting up the number of molecules,
+  // finish up info on the last molecule read.
+  if (molecules>0) {
+    SetAtomsPerMolPDB(natom - atomInLastMol);
+    // DEBUG
+    if (debug>0) {
+      mprintf("PDB: firstSolvMol= %i\n",firstSolvMol);
+      mprintf("PDB: finalSoluteRes= %i\n",finalSoluteRes);
+      if (debug>1) {
+        mprintf("PDB: Atoms Per Molecule:\n");
+        for (atom=0; atom < molecules; atom++) {
+          mprintf("%8i %8i\n",atom,atomsPerMol[atom]);
+        } 
+      }
+    }
   }
+  if (firstSolvMol==-1) firstSolvMol=0;
 
   // No box for PDB - maybe change later to include unit cell info?
   boxType = NOBOX;
