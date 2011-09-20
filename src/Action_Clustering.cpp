@@ -360,10 +360,10 @@ void Clustering::print() {
   CList.Renumber();
 
   // DEBUG
-  if (debug>0) {
+  //if (debug>0) {
     mprintf("\nFINAL CLUSTERS:\n");
     CList.PrintClusters();
-  }
+  //}
 
   // Print a summary of clusters
   if (summaryfile!=NULL)

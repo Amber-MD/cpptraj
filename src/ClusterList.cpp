@@ -51,7 +51,8 @@ void ClusterList::Summary(char *summaryfile) {
   }
   outfile.OpenFile();
 
-  outfile.IO->Printf("%-8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac","AvgDist","Stdev");
+  outfile.IO->Printf("%-8s %8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac",
+                     "AvgDist","Stdev","Centroid");
   for (std::list<clusterNode>::iterator node = clusters.begin();
                                         node != clusters.end();
                                         node++)
@@ -60,6 +61,8 @@ void ClusterList::Summary(char *summaryfile) {
     numframes = (*node).frameList.size();
     frac = (float) maxframes;
     frac = ((float) numframes) / frac;
+    // Find centroid
+    FindCentroid(node); 
     // Calculate the average distance between frames in the cluster
     numdist = ((numframes * numframes) - numframes) / 2;
     distances = new double[ numdist ];
@@ -100,7 +103,8 @@ void ClusterList::Summary(char *summaryfile) {
       sdist = 0;
     }
     // OUTPUT
-    outfile.IO->Printf("%8i %8i %8.3f %8.3lf %8.3lf\n",(*node).num,numframes,frac,avgdist,sdist);
+    outfile.IO->Printf("%8i %8i %8.3f %8.3lf %8.3lf %8i\n",(*node).num,numframes,
+                       frac,avgdist,sdist,(*node).centroid+1);
     delete[] distances;
   }
 
