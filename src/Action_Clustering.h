@@ -14,11 +14,14 @@ class Clustering: public Action {
     char *summaryfile;         // Summary file name
     char *clusterfile;         // Cluster trajectory base filename.
     FileFormat clusterfmt;     // Cluster trajectory format.
+    char *singlerepfile;       // Cluster all rep single trajectory filename
+    FileFormat singlerepfmt;   // Cluster all rep single trajectory format.
 
     int calcDistFromRmsd( TriangleMatrix *);
     int ClusterHierAgglo( TriangleMatrix *, ClusterList*);
     void CreateCnumvtime( ClusterList * );
     void WriteClusterTraj( ClusterList * );
+    void WriteSingleRepTraj( ClusterList * );
   public:
     Clustering();
     ~Clustering();

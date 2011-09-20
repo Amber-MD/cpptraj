@@ -79,4 +79,4 @@ Action_Radial.o : Action_Radial.cpp Action.h Action_Radial.h AmberParm.h ArgList
 Action_Jcoupling.o : Action_Jcoupling.cpp Action.h Action_Jcoupling.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h Constants.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Name.h ParmFileList.h PtrajFile.h
 TriangleMatrix.o : TriangleMatrix.cpp CpptrajStdio.h TriangleMatrix.h
 Action_Clustering.o : Action_Clustering.cpp Action.h Action_Clustering.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h ClusterList.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h PtrajFile.h Range.h TrajectoryFile.h TrajectoryIO.h TriangleMatrix.h
-ClusterList.o : ClusterList.cpp BaseFileIO.h ClusterList.h CpptrajStdio.h DataSet.h PtrajFile.h TriangleMatrix.h
+ClusterList.o : ClusterList.cpp BaseFileIO.h ClusterList.h CpptrajStdio.h PtrajFile.h TriangleMatrix.h

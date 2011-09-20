@@ -24,14 +24,15 @@ Clustering::~Clustering() {
  * Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]
  *                        [ linkage | averagelinkage | complete ]  
  *                        [summary <summaryfile>] 
- *                        [ clusterout <trajfilename> [clusterfmt <trajformat>] ] 
+ *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ] 
+ *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
  *    3) Dataset name
  */
 int Clustering::init() {
-  char *mask0,*cnumvtimefile,*clusterformat;
+  char *mask0,*cnumvtimefile,*clusterformat,*singlerepformat;
   // NOTE: PtrajFile is here just for determining/writing format. Should those
   //       functions be separate?
   PtrajFile TempFile;
@@ -48,10 +49,15 @@ int Clustering::init() {
   // Output trajectory stuff
   clusterfile = A->getKeyString("clusterout",NULL);
   clusterformat = A->getKeyString("clusterfmt",NULL);
+  singlerepfile = A->getKeyString("singlerepout",NULL);
+  singlerepformat = A->getKeyString("singlerepfmt",NULL);
 
-  // Figure out cluster format
+  // Figure out trajectory formats
   if (clusterfile!=NULL) {
     clusterfmt = TempFile.GetFmtFromArg(clusterformat,AMBERTRAJ);
+  }
+  if (singlerepfile!=NULL) {
+    singlerepfmt = TempFile.GetFmtFromArg(singlerepformat,AMBERTRAJ);
   }
 
   // Get the mask string 
@@ -89,6 +95,9 @@ int Clustering::init() {
   if (clusterfile!=NULL)
     mprintf("            Cluster trajectories will be written to %s, format %s\n",
             clusterfile,TempFile.Format(clusterfmt));
+  if (singlerepfile!=NULL)
+    mprintf("            Cluster representatives will be written to 1 traj (%s), format %s\n",
+            singlerepfile,TempFile.Format(singlerepfmt));
 
   // If epsilon not given make it huge 
   if (epsilon == -1.0) epsilon = DBL_MAX;
@@ -335,6 +344,49 @@ void Clustering::WriteClusterTraj( ClusterList *CList ) {
   if (clusterout!=NULL) delete clusterout;
 }
 
+/* Clustering::WriteSingleRepTraj()
+ * Write representative frame of each cluster to a trajectory file.
+ */
+void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
+  int framenum, framecounter;
+  TrajectoryFile clusterout;
+  AmberParm *clusterparm;
+  Frame *clusterframe;
+
+  // Find centroid of first cluster in order to set up parm
+  // NOTE: This is redundant if the Summary routine has already been called.
+  CList->Begin();
+  framenum = CList->CurrentCentroid();
+
+  // Set up trajectory file. Use parm from first frame of cluster (pot. dangerous)
+  clusterparm = ReferenceFrames.GetFrameParm( framenum );
+  if (clusterout.SetupWrite(singlerepfile,NULL,clusterparm,singlerepfmt)) {
+    mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
+                singlerepfile);
+     return;
+  }
+  // Write first cluster rep frame
+  framecounter=0;
+  clusterframe = ReferenceFrames.GetFrame( framenum );
+  clusterout.WriteFrame(framecounter++, clusterparm, clusterframe->X, NULL,
+                        clusterframe->box, clusterframe->T);
+
+  CList->NextCluster();
+  while (!CList->End()) {
+    //mprinterr("Cluster %i: ",CList->CurrentNum());
+   framenum = CList->CurrentCentroid();
+   //mprinterr("%i\n",framenum);
+   clusterframe = ReferenceFrames.GetFrame( framenum );
+   clusterout.WriteFrame(framecounter++, clusterparm, clusterframe->X, NULL, 
+                         clusterframe->box, clusterframe->T);
+    //mprinterr("\n");
+    CList->NextCluster();
+    //break;
+  }
+  // Close traj
+  clusterout.EndTraj();
+}
+
 /* Clustering::print()
  * This is where the clustering is actually performed. First the distances
  * between each frame are calculated. Then the clustering routine is called.
@@ -374,5 +426,9 @@ void Clustering::print() {
 
   // Write clusters to trajectories
   if (clusterfile!=NULL)
-    WriteClusterTraj( &CList );  
+    WriteClusterTraj( &CList ); 
+
+  // Write all representative frames to a single traj
+  if (singlerepfile!=NULL)
+    WriteSingleRepTraj( &CList );
 }

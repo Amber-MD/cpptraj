@@ -8,7 +8,6 @@
 /// calculated.
 #include <list>
 #include "TriangleMatrix.h"
-#include "DataSet.h"
 class ClusterList {
   public:
     enum LINKAGETYPE {SINGLELINK, AVERAGELINK, COMPLETELINK};
@@ -37,11 +36,15 @@ class ClusterList {
           return false;
       }
     };
+
+    int Merge(std::list<clusterNode>::iterator,std::list<clusterNode>::iterator);
+    void FindCentroid(std::list<clusterNode>::iterator);
+    std::list<clusterNode>::iterator GetClusterIt(int);
+
     // Distance calculation routines
     void calcMinDist(std::list<clusterNode>::iterator);
     void calcMaxDist(std::list<clusterNode>::iterator);
     void calcAvgDist(std::list<clusterNode>::iterator);
-
 
     std::list<ClusterList::clusterNode>::iterator currentCluster;
 
@@ -55,10 +58,7 @@ class ClusterList {
     void Initialize(TriangleMatrix *);
     int AddCluster(std::list<int> *, int);
     void PrintClusters();
-    std::list<clusterNode>::iterator GetClusterIt(int);
-    int Merge(std::list<clusterNode>::iterator,std::list<clusterNode>::iterator);
     int MergeClosest(double);
-    void FindCentroid(std::list<clusterNode>::iterator);
     void Renumber();
     void Summary(char *);
 
@@ -66,6 +66,7 @@ class ClusterList {
     bool End();
     void NextCluster();
     int CurrentNum();
+    int CurrentCentroid();
     std::list<int>::iterator CurrentFrameBegin();
     std::list<int>::iterator CurrentFrameEnd();
 };

@@ -429,6 +429,14 @@ int ClusterList::CurrentNum() {
   return (*currentCluster).num;
 }
 
+/* ClusterList::CurrentCentroid()
+ * Return frame number of centroid of current cluster.
+ */
+int ClusterList::CurrentCentroid() {
+  FindCentroid(currentCluster);
+  return (*currentCluster).centroid;
+}
+
 /* ClusterList::CurrentFrameBegin()
  * Return iterator to the beginning of the current clusters framelist.
  */
