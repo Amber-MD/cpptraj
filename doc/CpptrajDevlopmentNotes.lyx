@@ -1,4 +1,4 @@
-#LyX 1.6.8 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.7 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -1013,6 +1013,118 @@ char
 \end_inset
 
 ...) Only for MPI: Like Printf(), but only print for the specified worldrank.
+\end_layout
+
+\begin_layout Part
+Parameter Files
+\end_layout
+
+\begin_layout Standard
+Parameter files are read into the AmberParm class.
+ 
+\end_layout
+
+\begin_layout Section
+Solvent Information
+\end_layout
+
+\begin_layout Standard
+Several variables in AmberParm relate to solvent information:
+\end_layout
+
+\begin_layout Description
+finalSoluteRes: IPTRES in sander.
+ Residue number of the final residue of solute, starts from 1.
+ Read in from the SOLVENT_POINTERS section of a parmtop if IFBOX > 0.
+\begin_inset Newline newline
+\end_inset
+
+Used in Action_DSSP.cpp, Action_Jcoupling.cpp, and Action_Rmsd.cpp when automatical
+ly determining what residues to perform calculations on.
+\end_layout
+
+\begin_layout Description
+molecules: NSPM in sander.
+ Number of individual molecules (i.e.
+ no bonds connect them) in the parm.
+ Read in from the SOLVENT_POINTERS section of a parmtop if IFBOX > 0.
+ 
+\begin_inset Newline newline
+\end_inset
+
+Used in Action_Image.cpp when imaging by molecule.
+\end_layout
+
+\begin_layout Description
+firstSolvMol: NSPSOL in sander.
+ Molecule number of the first solvent molecule.
+ Starts from 1.
+ Read in from the SOLVENT_POINTERS section of a parmtop if IFBOX > 0.
+ 
+\begin_inset Newline newline
+\end_inset
+
+Used in Action_Closest to determine the original molecule number of solvent
+ molecules.
+\end_layout
+
+\begin_layout Description
+atomsPerMol: NSP(NSPM) in sander.
+ Integer array of size 
+\series bold
+molecules
+\series default
+ holding the number of atoms in each molecule.
+ Read in from the ATOMS_PER_MOLECULE section of a parmtop if IFBOX > 0.
+ 
+\begin_inset Newline newline
+\end_inset
+
+Used in Traj_PDBfile.cpp to determine where TER cards should be output, and
+ in Action_Image.cpp to determine imaging by molecule.
+\end_layout
+
+\begin_layout Standard
+Variables originally from Ptraj:
+\end_layout
+
+\begin_layout Description
+solventMask: Char array of size 
+\series bold
+natom
+\series default
+.
+ 'T' for atoms in solvent.
+ 
+\begin_inset Newline newline
+\end_inset
+
+Used in AmberParm when stripping parm info.
+\end_layout
+
+\begin_layout Description
+solventMolecules: The number of solvent molecules.
+\end_layout
+
+\begin_layout Description
+solventMoleculeStart: Integer array of size 
+\series bold
+solventMolecules
+\series default
+ that holds the starting atom number of the solvent molecule.
+\end_layout
+
+\begin_layout Description
+solventMoleculeStop: Integer array of size 
+\series bold
+solventMolecules
+\series default
+ that holds the final atom number of the solvent molecule +1 (ostensibly
+ the starting atom num of the next solvent molecule).
+\end_layout
+
+\begin_layout Description
+solventAtoms: Number of solvent atoms.
 \end_layout
 
 \begin_layout Part
