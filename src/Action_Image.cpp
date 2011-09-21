@@ -97,6 +97,13 @@ int Image::setup() {
   ortho = false;  
   if (P->boxType==ORTHO && triclinic==OFF) ortho=true;
 
+  // If box is originally truncated oct and not forcing triclinic, 
+  // turn familiar on.
+  if (AmberIfbox(P->Box[5])==2 && triclinic!=FORCE && triclinic!=FAMILIAR) {
+    mprintf("    IMAGE: Original box is truncated octahedron, turning on 'familiar'.\n");
+    triclinic=FAMILIAR;
+  }
+
   if (triclinic == FAMILIAR) {
     if (ComMask!=NULL) {
       if ( ComMask->SetupMask(P,debug) ) return 1;
