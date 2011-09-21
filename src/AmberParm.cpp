@@ -327,17 +327,16 @@ bool AmberParm::IsSolventResname(NAME resnameIn) {
 }
 
 /* AmberParm::SetSolventInfo()
- * Assuming atomsPerMol has been read in, set solvent information based on what
+ * If atomsPerMol has been read in, set solvent information based on what
  * the firstSolvMol is. If atomsPerMol is not set, set solvent information by
  * residue name. 
  */
 int AmberParm::SetSolventInfo() {
-  int mol, molAtom, maskAtom; 
-
-  // If no solvent, exit
-  if (firstSolvMol==-1) return 0;
+  int molAtom, maskAtom; 
 
   // Allocate memory
+  // Since the number of solvent molecules is not yet known allocate
+  // natom for solventMoleculeX arrays. Will be resized after.
   solventMask=(char*) malloc(natom * sizeof(char));
   for (maskAtom=0; maskAtom<natom; maskAtom++) solventMask[maskAtom]='F';
   solventMoleculeStart=(int*) malloc(natom * sizeof(int));
@@ -347,8 +346,12 @@ int AmberParm::SetSolventInfo() {
 
   // Treat all the molecules starting with firstSolvMol (nspsol) as solvent
   if (atomsPerMol!=NULL) {
+    if (firstSolvMol==-1) {
+      mprinterr("Error: SetSolventInfo(): atomsPerMol is set but firstSolvMol==-1!\n");
+      return 1;
+    }
     molAtom = 0;
-    for (mol=0; mol < molecules; mol++) {
+    for (int mol=0; mol < molecules; mol++) {
       if (mol+1 >= firstSolvMol) {
         // Add this molecule to the solvent list
         solventAtoms += atomsPerMol[mol];
@@ -361,26 +364,55 @@ int AmberParm::SetSolventInfo() {
       molAtom += atomsPerMol[mol];
     }
 
-  // Treat all residues named WAT/HOH as solvent
+  // Treat all residues named WAT/HOH as solvent.
+  // Consider all residues up to the first solvent residue to be in a
+  // single molecule.
   // Atom #s in resnums at this point should start from 0, not 1
   } else if (resnums!=NULL) {
-    for (mol=0; mol < nres; mol++) { 
-      if ( IsSolventResname(resnames[mol])) {
+    firstSolvMol=-1;
+    for (int res=0; res < nres; res++) { 
+      if ( IsSolventResname(resnames[res])) {
         // Add this residue to the list of solvent 
-        molAtom = resnums[mol+1] - resnums[mol];
+        molAtom = resnums[res+1] - resnums[res];
         solventAtoms += molAtom;
-        solventMoleculeStart[solventMolecules] = resnums[mol];
-        solventMoleculeStop[ solventMolecules] = resnums[mol+1];
-        solventMolecules++;
-        for (maskAtom=resnums[mol]; maskAtom < resnums[mol+1]; maskAtom++)
+        solventMoleculeStart[solventMolecules] = resnums[res];
+        solventMoleculeStop[ solventMolecules] = resnums[res+1];
+        for (maskAtom=resnums[res]; maskAtom < resnums[res+1]; maskAtom++)
           solventMask[maskAtom] = 'T';
-      }
+        // First time setup for atomsPerMol array
+        if (firstSolvMol==-1) {
+          // First residue is solvent, all is solvent.
+          if (res==0) {
+            finalSoluteRes=0; // Starts from 1, Amber convention
+            firstSolvMol=1;   // Starts from 1, Amber convention
+            molecules=0;
+            atomsPerMol=NULL;
+          } else {
+            finalSoluteRes=res; // Starts from 1, Amber convention
+            firstSolvMol=2;     // Starts from 1, Amber convention
+            molecules=1;
+            atomsPerMol = (int*) malloc( sizeof(int) );
+            atomsPerMol[0] = resnums[res];
+          }
+        } 
+        // Update atomsPerMol
+        atomsPerMol = (int*) realloc(atomsPerMol, (molecules+1) * sizeof(int));
+        atomsPerMol[molecules] = molAtom; 
+        solventMolecules++;
+        molecules++;
+      } // END if residue is solvent
     }
   }
 
-  if (debug>0)
+  //if (debug>0)
     mprintf("    %i solvent molecules, %i solvent atoms.\n",
             solventMolecules, solventAtoms);
+    mprintf("    FirstSolvMol= %i, FinalSoluteRes= %i\n",firstSolvMol,finalSoluteRes);
+
+  // DEBUG
+  //mprintf("MOLECULE INFORMATION:\n");
+  //for (int mol = 0; mol < molecules; mol++)
+  //  mprintf("\t%8i %8i\n",mol,atomsPerMol[mol]);
 
   // Deallocate memory if no solvent 
   if (solventMolecules==0) {
@@ -390,6 +422,11 @@ int AmberParm::SetSolventInfo() {
     solventMoleculeStart=NULL;
     free(solventMoleculeStop);
     solventMoleculeStop=NULL;
+
+  // Resize the solventMoleculeX arrays
+  } else {
+    solventMoleculeStart = (int*) realloc(solventMoleculeStart, solventMolecules * sizeof(int));
+    solventMoleculeStop  = (int*) realloc(solventMoleculeStop,  solventMolecules * sizeof(int));
   }
 
   return 0; 
@@ -438,7 +475,7 @@ int AmberParm::OpenParm(char *filename) {
   //  fprintf(stdout,"    %i: %i\n",err,resnums[err]);
 
   // Set up solvent information
-  SetSolventInfo();
+  if (SetSolventInfo()) return 1;
 
   if (debug>0) {
     mprintf("  Number of atoms= %i\n",natom);
@@ -1140,7 +1177,10 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     newParm->solventMolecules=0;
   } else {
     // Set up new solvent info based on new resnums and firstSolvMol
-    newParm->SetSolventInfo();
+    if (newParm->SetSolventInfo()) {
+      delete newParm;
+      return NULL;
+    }
   }
   
   // Copy box information
