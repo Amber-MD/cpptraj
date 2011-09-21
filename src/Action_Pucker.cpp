@@ -69,7 +69,7 @@ int Pucker::init() {
   if (amplitude)
     mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
   if (offset!=0)
-    mprintf("            Offset: %lf will be subtracted from data.\n");
+    mprintf("            Offset: %lf will be added to final values.\n");
 
   return 0;
 }
@@ -98,12 +98,13 @@ int Pucker::action() {
 
   D=F->PUCKER(&M1,&M2,&M3,&M4,&M5,puckerMethod,amplitude,useMass);
   D *= RADDEG;
-  // Deal with offset
-  D -= offset;
 
   // Wrap values > 180 or < -180
   if      (D >  180.0) D -= 360.0;
   else if (D < -180.0) D += 360.0;
+
+  // Deal with offset
+  D += offset;
 
   puck->Add(currentFrame, &D);
 
