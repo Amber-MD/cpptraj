@@ -11,6 +11,8 @@ Pucker::Pucker() {
   amplitude=false;
   useMass=true;
   offset=0;
+  puckermin = -180.0;
+  puckermax = 180.0;
 } 
 
 // DESTRUCTOR
@@ -18,7 +20,7 @@ Pucker::~Pucker() { }
 
 /* Pucker::init()
  * Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>
- *                [amplitude] [altona | cremer] [offset <offset>]
+ *                [range360] [amplitude] [altona | cremer] [offset <offset>]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -34,6 +36,10 @@ int Pucker::init() {
   else if (A->hasKey("cremer")) puckerMethod=1;
   if (A->hasKey("amplitude")) amplitude=true;
   offset = A->getKeyDouble("offset",0.0);
+  if (A->hasKey("range360")) {
+    puckermax=360.0;
+    puckermin=0.0;
+  }
 
   // Get Masks
   mask1 = A->getNextMask();
@@ -69,7 +75,8 @@ int Pucker::init() {
   if (amplitude)
     mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
   if (offset!=0)
-    mprintf("            Offset: %lf will be added to final values.\n");
+    mprintf("            Offset: %lf will be added to values.\n");
+  mprintf  ("            Values will range from %.1lf to %.1lf\n",puckermin,puckermax);
 
   return 0;
 }
@@ -99,12 +106,12 @@ int Pucker::action() {
   D=F->PUCKER(&M1,&M2,&M3,&M4,&M5,puckerMethod,amplitude,useMass);
   D *= RADDEG;
 
-  // Wrap values > 180 or < -180
-  if      (D >  180.0) D -= 360.0;
-  else if (D < -180.0) D += 360.0;
-
   // Deal with offset
   D += offset;
+
+  // Wrap values > puckermax or < puckermin
+  if      (D > puckermax) D -= 360.0;
+  else if (D < puckermin) D += 360.0;
 
   puck->Add(currentFrame, &D);
 

@@ -9,6 +9,7 @@ class Pucker: public Action {
     int puckerMethod;
     bool amplitude;
     double offset;
+    double puckermin, puckermax;
   public:
     Pucker();
     ~Pucker();
