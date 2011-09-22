@@ -433,6 +433,31 @@ ArgList *ArgList::SplitAt(const char *key) {
   return split;
 }
 
+/* ArgList::RemainingArgs()
+ * Create a new argument list from args that have not been marked. Mark all
+ * arguments from the old list. 
+ */
+ArgList *ArgList::RemainingArgs() {
+  ArgList *newList = new ArgList();
+
+  for (int i=0; i<nargs; i++) {
+    if (marked[i]=='F') {
+      newList->Add(arglist[i]);
+      marked[i]='T';
+    }
+  }
+
+  // If new arglist is empty return null
+  if (newList->Nargs()==0) {
+    delete newList;
+    newList=NULL;
+  // Otherwise set up the marked list to F for the new list
+  } else {
+    newList->ResetAll();
+  }
+  return newList;
+}
+
 /* ArgList::ReplaceArg()
  * Replace argument at the given position with a copy of the given argument.
  * The memory allocated to the original argument will be freed.

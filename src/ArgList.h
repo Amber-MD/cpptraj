@@ -38,6 +38,7 @@ class ArgList {
 
     int Contains(const char *);
     ArgList *SplitAt(const char *);
+    ArgList *RemainingArgs();
     int ReplaceArg(int, char *);
     char *CopyArg(int);
     void Reset();
