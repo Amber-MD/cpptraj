@@ -63,6 +63,9 @@ static int ProcessInputStream(char *inputFilename, PtrajState *State) {
   while ( ptr != EOF ) {
     ptr = (char)fgetc(infile);
     //fprintf(stdout,"DEBUG: %i %c %i\n",i,ptr,ptr);
+    // If '#' is encountered, skip the rest of the line
+    if (ptr=='#')
+      while (ptr!='\n' && ptr!=EOF && ptr!='\0') ptr=(char)fgetc(infile); 
     // newline, NULL, or EOF terminates the line
     if (ptr=='\n' || ptr=='\0' || ptr==EOF) {
       inputLine[i]='\0';
