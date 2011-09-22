@@ -96,8 +96,8 @@ int Rmsd::SetRefMask() {
  * rmsd <name> <mask> [<refmask>] [out filename] [nofit] [mass]
  *      [ first | ref <filename> | refindex <#> | 
           reftraj <filename> [parm <parmname> | parmindex <#>] ] 
- *      [perres] [perresout <filename>] [range <res range>] [refrange <ref res range>] 
- *        [perresmask <addtl mask>] [perresinvert] [perrescenter]
+ *      [ perres perresout <filename> [range <res range>] [refrange <ref res range>] 
+ *        [perresmask <addtl mask>] [perresinvert] [perrescenter] ]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks

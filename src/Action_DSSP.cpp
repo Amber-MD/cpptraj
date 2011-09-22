@@ -34,6 +34,7 @@ const char DSSP::SSname[7][6]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "T
 
 /* DSSP::init()
  * Expected call: secstruct [out <filename>] [<mask>] [sumout <filename>]
+ *                          [outputstring]
  * If sumout is not specified the filename specified by out is used with .sum suffix. 
  * Arg. check order is:
  *    1) Keywords
