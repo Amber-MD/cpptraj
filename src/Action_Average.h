@@ -8,6 +8,8 @@ class Average: public Action {
     AtomMask Mask1;
     Frame *AvgFrame;
     AmberParm *AvgParm;
+    ArgList *trajArgs;
+    bool parmStripped;
     int Natom;
     int Nframes;
     int start;

@@ -12,17 +12,21 @@ Average::Average() {
   stop=0;
   avgfilename=NULL;
   AvgParm=NULL;
+  parmStripped=false;
+  trajArgs=NULL;
 } 
 
 // DESTRUCTOR
 Average::~Average() {
   //fprintf(stderr,"Average Destructor.\n");
   if (AvgFrame!=NULL) delete AvgFrame;
+  if (parmStripped && AvgParm!=NULL) delete AvgParm;
+  if (trajArgs!=NULL) delete trajArgs;
 }
 
 /* Average::init()
  * Expected call: average <filename> [mask] [start <start>] [stop <stop>] [offset <offset>]
- *                [nobox]  
+ *                [TRAJOUT ARGS]  
  */
 int Average::init( ) {
   char *mask1;
@@ -46,12 +50,21 @@ int Average::init( ) {
   //fprintf(stdout,"    Mask 1: %s\n",mask1);
   Mask1.SetMaskString(mask1);
 
+  // Save all remaining arguments for setting up the trajectory at the end.
+  trajArgs = A->RemainingArgs();
+
   mprintf("    AVERAGE: Averaging over");
   if (mask1!=NULL)
-    mprintf(" coordinates in mask %s",Mask1.maskString);
+    mprintf(" coordinates in mask [%s]",Mask1.maskString);
   else
     mprintf(" all atoms");
-  mprintf(", writing to [%s]\n",avgfilename);
+  if (stop==-1) 
+    mprintf(", starting from frame %i",start+1);
+  else
+    mprintf(", frames %i-%i",start+1,stop+1);
+  if (offset!=1)
+    mprintf(", offset %i",offset);
+  mprintf(".\n             Writing averaged coords to [%s]\n",avgfilename);
 
   Nframes = 0;
 
@@ -74,11 +87,23 @@ int Average::setup() {
     return 1;
   }
 
+  mprintf("    AVERAGE:");
+
   if (AvgFrame==NULL) {
+    mprintf(" Averaging over %i atoms.\n",Mask1.Nselected);
     AvgFrame = new Frame(&Mask1,P->mass);
     AvgFrame->ZeroCoords();
-    AvgParm = P; // Will be used for coordinate output
     Natom = AvgFrame->natom; // Equal to Mask1.Nselected
+    // AvgParm will be used for coordinate output
+    // If the number of selected atoms is less than the current parm, strip
+    // the parm for output purposes.
+    if (Mask1.Nselected<P->natom) {
+      mprintf("             Atom selection < natom, stripping parm for averaging only:\n");
+      AvgParm = P->modifyStateByMask(Mask1.Selected, Mask1.Nselected);
+      parmStripped=true;
+      AvgParm->Summary();
+    } else 
+      AvgParm = P; 
   } else {
     // If the frame is already set up, check to see if the current number
     // of atoms is bigger or smaller. If bigger, only average Natom coords.
@@ -135,10 +160,14 @@ void Average::print() {
   d_Nframes = (double) Nframes;
   AvgFrame->Divide(d_Nframes);
 
-  if (outfile.SetupWrite(avgfilename, A, AvgParm, AMBERTRAJ)) {
+  mprintf("    AVERAGE: [%s]\n",this->CmdLine());
+
+  if (outfile.SetupWrite(avgfilename, trajArgs, AvgParm, AMBERTRAJ)) {
     mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename);
     return;
   }
+
+  outfile.PrintInfo(0);
 
   outfile.WriteFrame(0, AvgParm, AvgFrame->X, AvgFrame->V, AvgFrame->box, AvgFrame->T);
 
