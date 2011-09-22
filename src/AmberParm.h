@@ -44,6 +44,7 @@ class AmberParm {
     int ReadParmAmber(PtrajFile *);
     int SetAtomsPerMolPDB(int);
     int ReadParmPDB(PtrajFile *);
+    int ReadParmPSF(PtrajFile *);
 
   public:
     char *parmfileName;   // Parm filename (full path)

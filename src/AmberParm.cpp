@@ -441,6 +441,7 @@ int AmberParm::SetSolventInfo() {
  */
 int AmberParm::OpenParm(char *filename) {
   PtrajFile parmfile;
+  int err=0;
 
   if ( parmfile.SetupFile(filename,READ,UNKNOWN_FORMAT, UNKNOWN_TYPE,debug) ) 
     return 1;
@@ -454,15 +455,17 @@ int AmberParm::OpenParm(char *filename) {
   if ( parmfile.OpenFile() ) return 1;
 
   switch (parmfile.fileFormat) {
-    case AMBERPARM : if (ReadParmAmber(&parmfile)) return 1; break;
-    case PDBFILE   : if (ReadParmPDB(&parmfile)  ) return 1; break;
-    case MOL2FILE  : if (ReadParmMol2(&parmfile) ) return 1; break;
+    case AMBERPARM : err = ReadParmAmber(&parmfile); break;
+    case PDBFILE   : err = ReadParmPDB(&parmfile)  ; break;
+    case MOL2FILE  : err = ReadParmMol2(&parmfile) ; break;
+    case CHARMMPSF : err = ReadParmPSF(&parmfile)  ; break;
     default: 
       rprintf("Unknown parameter file type: %s\n",parmfile.filename);
-      return 1;
+      err=1;
   }
 
   parmfile.CloseFile();
+  if (err>0) return 1;
 
   // Create a last dummy residue in resnums that holds natom, which would be
   // the atom number of the next residue if it existed. Atom #s in resnums
@@ -476,6 +479,22 @@ int AmberParm::OpenParm(char *filename) {
   //fprintf(stdout,"==== DEBUG ==== Resnums for %s:\n",parmfile.filename);
   //for (err=0; err<nres; err++) 
   //  fprintf(stdout,"    %i: %i\n",err,resnums[err]);
+
+  // Standardize lengths of atom names and residue names. 4 chars, no
+  // leading whitespace. Wrap atom names if they start with a digit, e.g.
+  // 1CA becomes CA1. Replace asterisks with ', * is reserved for the mask
+  // parser.
+  for (int atom=0; atom < natom; atom++) { 
+    PadWithSpaces(names[atom]);
+    TrimName(names[atom]);
+    WrapName(names[atom]);
+    ReplaceAsterisk(names[atom]);
+  }
+  for (int res=0; res < nres; res++) {
+    PadWithSpaces(resnames[res]); 
+    TrimName(resnames[res]);
+    ReplaceAsterisk(names[res]);
+  }
 
   // Set up solvent information
   if (SetSolventInfo()) return 1;
@@ -801,16 +820,101 @@ int AmberParm::ReadParmMol2(PtrajFile *parmfile) {
   return 0;
 }
 
+/* AmberParm::ReadParmPSF()
+ * Open the Charmm PSF file specified by filename and set up topology data.
+ * Mask selection requires natom, nres, names, resnames, resnums.
+ */
+int AmberParm::ReadParmPSF(PtrajFile *parmfile) {
+  char buffer[256],tag[256],psfname[NAMESIZE];
+  int currResnum;
+  int psfresnum;
+  int psfattype;
+
+  mprintf("    Reading Charmm PSF file %s as topology file.\n",parmName);
+  currResnum=-1;
+  memset(buffer,' ',256);
+  memset(tag,' ',256);
+  tag[0]='\0';
+
+  // Read the first line, should contain PSF...
+  if (parmfile->IO->Gets(buffer,256)) return 1;
+  // Sanity check
+  if (buffer[0]!='P' || buffer[1]!='S' || buffer[2]!='F') {
+    mprinterr("Error: ReadParmPSF(): Could not read Charmm PSF file.\n");
+    return 1;
+  }
+  // Advance to <natom> !NATOM
+  while (strncmp(tag,"!NATOM",6)!=0) {
+    if (parmfile->IO->Gets(buffer,256)) return 1;
+    sscanf(buffer,"%i %s",&natom,tag);
+  }
+  mprintf("\tPSF: !NATOM tag found, natom=%i\n",natom);
+  // If no atoms, probably issue with PSF file
+  if (natom<=0) {
+    mprintf("Error: No atoms in PSF file.\n");
+    return 1;
+  }
+
+  // Allocate memory for atom name, charge, mass.
+  names=(NAME*)    malloc(natom * sizeof(NAME));
+  mass=(double*)   malloc(natom * sizeof(double));
+  charge=(double*) malloc(natom * sizeof(double));
+
+  // Read the next natom lines
+  for (int atom=0; atom < natom; atom++) {
+    if (parmfile->IO->Gets(buffer,256) ) {
+      mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
+      return 1;
+    }
+
+    // Detect and remove trailing newline
+    //bufferLen = strlen(buffer);
+    //if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
+
+    // Read line
+    // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
+    sscanf(buffer,"%*8i %*4s %i %4s %4s %4i %14lf %14lf",&psfresnum,tag,psfname,
+           &psfattype,charge+atom,mass+atom);
+    strcpy(names[atom],psfname);
+
+    // If this residue number is different than the last, allocate mem for new res
+    if (currResnum!=psfresnum) {
+        resnames=(NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
+        strcpy(resnames[nres],tag);
+        //if (debug>3) mprintf("        PSFRes %i [%s]\n",nres,resnames[nres]);
+        mprintf("\t\tPSFRes %i [%s]\n",nres,resnames[nres]);
+        resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
+        resnums[nres]=atom; 
+        currResnum=psfresnum;
+        nres++;
+    }
+  
+    // Clear the buffer
+    memset(buffer,' ',256);
+  } // END loop over atoms 
+
+  //boxType = NOBOX;
+
+  //if (debug>0) 
+    mprintf("    PSF contains %i atoms, %i residues, %i molecules.\n",
+            natom,nres,molecules);
+
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 /* AmberParm::AtomInfo()
  * Print parm information for atom.
  */
 void AmberParm::AtomInfo(int atom) {
   int res = atomToResidue(atom);
-  mprintf("Atom %i:%4s Res %i:%4s Mol %i",atom+1,names[atom],res+1,resnames[res],
-          atomToMolecule(atom)+1);
+  mprintf("Atom %i:",atom+1);
+  mprintf("[%s]",names[atom]);
+  mprintf(" Res %i:",res+1);
+  mprintf("[%s]",resnames[res]);
+  mprintf(" Mol %i", atomToMolecule(atom)+1);
   if (types!=NULL)
-    mprintf(" Type=%4s",types[atom]);
+    mprintf(" Type=[%s]",types[atom]);
   if (charge!=NULL)
     mprintf(" Charge=%lf",charge[atom]);
   if (mass!=NULL)
