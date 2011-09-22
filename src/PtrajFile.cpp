@@ -27,10 +27,10 @@
 #endif
 
 //typedef char enumToken[30];
-const PtrajFile::enumToken PtrajFile::FileFormatList[13] = {
+const PtrajFile::enumToken PtrajFile::FileFormatList[14] = {
   "UNKNOWN_FORMAT", "PDBFILE", "AMBERTRAJ", "AMBERNETCDF", "AMBERPARM", 
-  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", "AMBERRESTARTNC",
-  "MOL2FILE", "GNUPLOT"
+  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", 
+  "AMBERRESTARTNC", "MOL2FILE", "GNUPLOT", "CHARMMPSF"
 };
 const PtrajFile::enumToken PtrajFile::FileTypeList[6] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
@@ -526,6 +526,13 @@ int PtrajFile::SetupRead() {
   if (strncmp(buffer1,"%VERSION",8)==0 && strncmp(buffer2,"%FLAG",5)==0) {
     if (debug>0) mprintf("  AMBER TOPOLOGY file\n");
     fileFormat=AMBERPARM;
+    return 0;
+  }
+
+  // If the first 3 chars are P S F, assume char PSF
+  if (strncmp(buffer1,"PSF",3)==0) {
+    if (debug>0) mprintf("  CHARMM PSF file\n");
+    fileFormat=CHARMMPSF;
     return 0;
   }
 
