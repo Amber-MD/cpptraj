@@ -33,6 +33,7 @@ class AmberParm {
       double P4;
     };
     void AssignLCPO(SurfInfo*,double,double,double,double,double);
+    int numSoluteAtoms;
 
     // Set up solvent info
     bool IsSolventResname(NAME);

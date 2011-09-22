@@ -58,6 +58,7 @@ AmberParm::AmberParm() {
   solventAtoms=0;
 
   SurfaceInfo=NULL;
+  numSoluteAtoms=0;
 }
 
 // DESTRUCTOR
@@ -178,11 +179,11 @@ static void WarnLCPO(char *atype, int atom, int numBonds) {
  */
 int AmberParm::SetSurfaceInfo() {
   int *numBonds; // # of bonded neighbors each atom has (LCPO only?)
-  int i,atom1,atom2,soluteAtoms;
+  int i,atom1,atom2;
   char atype[2];
  
   // If surface info already set up exit 
-  if (SurfaceInfo!=NULL) return 0;
+  if (SurfaceInfo!=NULL) return numSoluteAtoms;
  
   // If no bond information exit
   if (bonds==NULL) {
@@ -212,18 +213,18 @@ int AmberParm::SetSurfaceInfo() {
   //  fprintf(stdout,"DEBUG:    Atom %6i_%4s: %2i bonds.\n",i,names[i],numBonds[i]);
 
   // Only set parameters for solute atoms
-  soluteAtoms = 0;
+  numSoluteAtoms = 0;
   if (firstSolvMol > 0) {
     i = 0;
-    while (i < firstSolvMol) soluteAtoms += atomsPerMol[i++];
+    while (i < firstSolvMol) numSoluteAtoms += atomsPerMol[i++];
   } else {
-    soluteAtoms = natom;
+    numSoluteAtoms = natom;
   }
-  mprintf("[%s] Setting surface paramters for %i solute atoms.\n",parmName,soluteAtoms);
+  mprintf("[%s] Setting surface paramters for %i solute atoms.\n",parmName,numSoluteAtoms);
 
   // Set vdw radii and LCPO parameters
-  SurfaceInfo = (SurfInfo*) malloc(soluteAtoms * sizeof(SurfInfo));
-  for (i=0; i < soluteAtoms; i++) {
+  SurfaceInfo = (SurfInfo*) malloc(numSoluteAtoms * sizeof(SurfInfo));
+  for (i=0; i < numSoluteAtoms; i++) {
     atype[0] = types[i][0];
     atype[1] = types[i][1];
 
@@ -297,18 +298,18 @@ int AmberParm::SetSurfaceInfo() {
       mprintf("Warning: Using carbon SA parms for unknown atom type %i %2s\n",i,atype);
       AssignLCPO(SurfaceInfo+i, 1.70, 0.51245, -0.15966, -0.00019781, 0.00016392);
     }
-  } // END LOOP OVER soluteAtoms 
+  } // END LOOP OVER numSoluteAtoms 
 
   // DEBUG
   /*
-  for (i=0; i<soluteAtoms; i++) {
+  for (i=0; i<numSoluteAtoms; i++) {
     fprintf(stdout,"%6i %4s: %6.2lf %lf %lf %lf %lf\n",i+1,types[i],SurfaceInfo[i].vdwradii,
     fprintf(stdout,"%6i%6.2lf%12.8lf%12.8lf%12.8lf%12.8lf\n",i+1,SurfaceInfo[i].vdwradii,
             SurfaceInfo[i].P1,SurfaceInfo[i].P2,SurfaceInfo[i].P3,SurfaceInfo[i].P4);
   }
   */
   free(numBonds);
-  return soluteAtoms;
+  return numSoluteAtoms;
 }
 
 // -------------------- ROUTINES PERTAINING TO SOLVENT INFO --------------------
