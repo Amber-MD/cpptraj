@@ -405,10 +405,12 @@ int AmberParm::SetSolventInfo() {
     }
   }
 
-  //if (debug>0)
+  if (debug>0) {
     mprintf("    %i solvent molecules, %i solvent atoms.\n",
             solventMolecules, solventAtoms);
-    mprintf("    FirstSolvMol= %i, FinalSoluteRes= %i\n",firstSolvMol,finalSoluteRes);
+    if (debug>1)
+      mprintf("    FirstSolvMol= %i, FinalSoluteRes= %i\n",firstSolvMol,finalSoluteRes);
+  }
 
   // DEBUG
   //mprintf("MOLECULE INFORMATION:\n");
@@ -844,10 +846,12 @@ void AmberParm::ParmInfo() {
 void AmberParm::Summary() {
   mprintf("              Topology contains %i atoms.\n",this->natom);
   mprintf("                                %i residues.\n",this->nres);
-  mprintf("                                %i molecules.\n",this->molecules);
-  mprintf("                                %i solvent molecules.\n",this->solventMolecules);
-  if (this->solventMolecules>0)
+  if (this->molecules>0)
+    mprintf("                                %i molecules.\n",this->molecules);
+  if (this->solventMolecules>0) {
+    mprintf("                                %i solvent molecules.\n",this->solventMolecules);
     mprintf("                  First solvent molecule is %i\n",this->firstSolvMol);
+  }
 }
  
 // -----------------------------------------------------------------------------
