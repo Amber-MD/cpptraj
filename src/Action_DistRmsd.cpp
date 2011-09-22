@@ -56,9 +56,9 @@ int DistRmsd::SetRefMask() {
 /* DistRmsd::init()
  * Called once before traj processing. Set up reference info.
  * Expected call: 
- * rmsd <name> <mask> [<refmask>] [out filename] 
- *      [ first | ref <filename> | refindex <#> | 
- *        reftraj <filename> [parm <parmname> | parmindex <#>] ] 
+ * drmsd <name> <mask> [<refmask>] [out filename] 
+ *       [ first | ref <filename> | refindex <#> | 
+ *         reftraj <filename> [parm <parmname> | parmindex <#>] ] 
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
