@@ -6,4 +6,9 @@
 #define NAME_DEFAULT "     "
 // Default type for atom names, res names, atom types etc
 typedef char NAME[NAMESIZE];
+
+void PadWithSpaces(NAME);
+void TrimName(NAME);
+void WrapName(NAME);
+void ReplaceAsterisk(NAME);
 #endif

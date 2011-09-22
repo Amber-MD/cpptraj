@@ -17,7 +17,7 @@ SOURCE=main.cpp AmberParm.cpp \
        TrajectoryFile.cpp BoxType.cpp CharBuffer.cpp Traj_AmberCoord.cpp \
        Traj_AmberNetcdf.cpp Traj_PDBfile.cpp Traj_AmberRestart.cpp \
        Traj_Mol2File.cpp Traj_AmberRestartNC.cpp Traj_Conflib.cpp RemdTraj.cpp \
-       FortranFormat.cpp Action_Average.cpp Histogram.cpp Analysis.cpp \
+       FortranFormat.cpp Name.cpp Action_Average.cpp Histogram.cpp Analysis.cpp \
        Action_DistRmsd.cpp \
        AnalysisList.cpp Analysis_Hist.cpp mapDataSet.cpp Action_Radial.cpp \
        Action_Jcoupling.cpp TriangleMatrix.cpp Action_Clustering.cpp ClusterList.cpp
@@ -41,7 +41,7 @@ OBJECTS=main.o AmberParm.o \
         TrajectoryFile.o BoxType.o CharBuffer.o Traj_AmberCoord.o \
         Traj_AmberNetcdf.o Traj_PDBfile.o Traj_AmberRestart.o \
         Traj_Mol2File.o Traj_AmberRestartNC.o Traj_Conflib.o RemdTraj.o \
-        FortranFormat.o Action_Average.o Histogram.o Analysis.o \
+        FortranFormat.o Name.o Action_Average.o Histogram.o Analysis.o \
         Action_DistRmsd.o \
         AnalysisList.o Analysis_Hist.o mapDataSet.o Action_Radial.o \
         Action_Jcoupling.o TriangleMatrix.o Action_Clustering.o ClusterList.o

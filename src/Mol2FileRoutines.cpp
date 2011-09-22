@@ -31,28 +31,6 @@ int Mol2ScanTo( PtrajFile *File, TRIPOSTAG tag ) {
   return 1;
 }
 
-/* PadWithSpaces()
- * For consistency with Amber names, replace any NULL in the first 4 chars
- * with spaces.
- */
-static void PadWithSpaces(char *name) {
-  if (name[0]=='\0') {
-    name[0]=' ';
-    name[1]=' ';
-    name[2]=' ';
-    name[3]=' ';
-  } else if (name[1]=='\0') {
-    name[1]=' ';
-    name[2]=' ';
-    name[3]=' ';
-  } else if (name[2]=='\0') {
-    name[2]=' ';
-    name[3]=' ';
-  } else if (name[3]=='\0') {
-    name[3]=' ';
-  }
-}
-
 /* Mol2AtomName()
  * Given a Mol2 ATOM line, return atom name. Trim to 4 chars to be consistent 
  * with the rest of Amber. 
@@ -65,7 +43,7 @@ int Mol2AtomName(char *buffer, char *name) {
   name[1]=tmp[1];
   name[2]=tmp[2];
   name[3]=tmp[3];
-  PadWithSpaces(name); 
+  //PadWithSpaces(name); 
   name[4]='\0';
   mprintf("DEBUG: MOL2: name [%s]\n",name);
   return 0;
@@ -125,7 +103,7 @@ int Mol2ResNumName(char *buffer, int *resnum, char *resname) {
   resname[1]=tmp[1]; 
   resname[2]=tmp[2]; 
   resname[3]=tmp[3];
-  PadWithSpaces(resname);
+  //PadWithSpaces(resname);
   resname[4]='\0';
   return 0;
 }
