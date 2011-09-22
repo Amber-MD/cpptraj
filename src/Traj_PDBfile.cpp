@@ -189,8 +189,10 @@ int PDBfile::setupWrite(AmberParm *trajParm) {
     return 1;
   }
   if (trajAtomsPerMol==NULL) {
-    mprintf("Warning: setupWrite [%s]: Atoms per molecule is NULL.\n",tfile->filename); 
-    mprintf("         TER cards will not be written to PDB.\n");
+    if (debug>0) {
+      mprintf("Warning: setupWrite [%s]: Atoms per molecule is NULL.\n",tfile->filename); 
+      mprintf("         TER cards will not be written to PDB.\n");
+    }
   }
   if (trajResNums==NULL) {
     mprinterr("Error: setupWrite [%s]: Residue #s are NULL.\n",tfile->filename); 
