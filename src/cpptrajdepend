@@ -20,7 +20,7 @@ Action_Dihedral.o : Action_Dihedral.cpp Action.h Action_Dihedral.h AmberParm.h A
 DataFile.o : DataFile.cpp BaseFileIO.h CpptrajStdio.h DataFile.h DataSet.h PtrajFile.h
 DataFileList.o : DataFileList.cpp BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h PtrajFile.h
 PtrajFile.o : PtrajFile.cpp BaseFileIO.h Bzip2File.h CpptrajStdio.h GzipFile.h Mol2FileRoutines.h MpiFile.h NetcdfRoutines.h PDBfileRoutines.h PtrajFile.h PtrajMpi.h StdFile.h
-PDBfileRoutines.o : PDBfileRoutines.cpp PDBfileRoutines.h
+PDBfileRoutines.o : PDBfileRoutines.cpp Name.h PDBfileRoutines.h
 Action_AtomMap.o : Action_AtomMap.cpp Action.h Action_AtomMap.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h PtrajFile.h Range.h TorsionRoutines.h TrajectoryFile.h TrajectoryIO.h
 BaseFileIO.o : BaseFileIO.cpp BaseFileIO.h PtrajMpi.h
 StdFile.o : StdFile.cpp BaseFileIO.h StdFile.h
@@ -56,7 +56,7 @@ Action_Outtraj.o : Action_Outtraj.cpp Action.h Action_Outtraj.h AmberParm.h ArgL
 Action_Rms2d.o : Action_Rms2d.cpp Action.h Action_Rms2d.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h PtrajFile.h Range.h TrajectoryFile.h TrajectoryIO.h
 ProgressBar.o : ProgressBar.cpp CpptrajStdio.h ProgressBar.h
 TrajectoryIO.o : TrajectoryIO.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CpptrajStdio.h Name.h PtrajFile.h TrajectoryIO.h
-TrajectoryFile.o : TrajectoryFile.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CpptrajStdio.h Name.h ProgressBar.h PtrajFile.h Range.h RemdTraj.h Traj_AmberCoord.h Traj_AmberNetcdf.h Traj_AmberRestart.h Traj_AmberRestartNC.h Traj_Conflib.h Traj_Mol2File.h Traj_PDBfile.h TrajectoryFile.h TrajectoryIO.h
+TrajectoryFile.o : TrajectoryFile.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CpptrajStdio.h Name.h ProgressBar.h PtrajFile.h Range.h RemdTraj.h Traj_AmberCoord.h Traj_AmberNetcdf.h Traj_AmberRestart.h Traj_AmberRestartNC.h Traj_CharmmDcd.h Traj_Conflib.h Traj_Mol2File.h Traj_PDBfile.h TrajectoryFile.h TrajectoryIO.h
 BoxType.o : BoxType.cpp BoxType.h CpptrajStdio.h
 CharBuffer.o : CharBuffer.cpp CharBuffer.h
 Traj_AmberCoord.o : Traj_AmberCoord.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CharBuffer.h CpptrajStdio.h Name.h PtrajFile.h Traj_AmberCoord.h TrajectoryIO.h
@@ -68,6 +68,7 @@ Traj_AmberRestartNC.o : Traj_AmberRestartNC.cpp AmberParm.h ArgList.h BaseFileIO
 Traj_Conflib.o : Traj_Conflib.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CpptrajStdio.h Name.h PtrajFile.h Traj_Conflib.h TrajectoryIO.h
 RemdTraj.o : RemdTraj.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CpptrajStdio.h Name.h PtrajFile.h RemdTraj.h TrajectoryIO.h
 FortranFormat.o : FortranFormat.cpp BaseFileIO.h CpptrajStdio.h FortranFormat.h Name.h PtrajFile.h
+Name.o : Name.cpp Name.h
 Action_Average.o : Action_Average.cpp Action.h Action_Average.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h PtrajFile.h Range.h TrajectoryFile.h TrajectoryIO.h
 Histogram.o : Histogram.cpp CpptrajStdio.h Histogram.h
 Analysis.o : Analysis.cpp Analysis.h ArgList.h BaseFileIO.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h PtrajFile.h
@@ -80,3 +81,4 @@ Action_Jcoupling.o : Action_Jcoupling.cpp Action.h Action_Jcoupling.h AmberParm.
 TriangleMatrix.o : TriangleMatrix.cpp CpptrajStdio.h TriangleMatrix.h
 Action_Clustering.o : Action_Clustering.cpp Action.h Action_Clustering.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h ClusterList.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h PtrajFile.h Range.h TrajectoryFile.h TrajectoryIO.h TriangleMatrix.h
 ClusterList.o : ClusterList.cpp BaseFileIO.h ClusterList.h CpptrajStdio.h PtrajFile.h TriangleMatrix.h
+Traj_CharmmDcd.o : Traj_CharmmDcd.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CpptrajStdio.h Name.h PtrajFile.h Traj_CharmmDcd.h TrajectoryIO.h

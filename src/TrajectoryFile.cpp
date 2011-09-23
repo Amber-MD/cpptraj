@@ -14,6 +14,7 @@
 #include "Traj_Mol2File.h"
 #include "Traj_Conflib.h"
 #include "RemdTraj.h"
+#include "Traj_CharmmDcd.h"
 
 // CONSTRUCTOR
 TrajectoryFile::TrajectoryFile() {
@@ -233,6 +234,7 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
     case PDBFILE     : tio = new PDBfile();      break;
     case CONFLIB     : tio = new Conflib();      break;
     case MOL2FILE    : tio = new Mol2File();     break;
+    case CHARMMDCD   : tio = new CharmmDcd();    break;
     default:
       mprinterr("    Error: Could not determine trajectory file %s type, skipping.\n",tname);
       delete basicTraj;

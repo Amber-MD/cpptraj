@@ -5,11 +5,23 @@
 /// TrajectoryIO class for reading coordinates from charmm dcd files.
 class CharmmDcd : public TrajectoryIO {
     int dcdatom;
+    bool dcdExtraBlock;
+    bool dcd4D;
+    int istart;
+    int nsavc;
+    int namnf;
+    float timestep;
 
     union byte {
       unsigned char c[4];
       int i;
       float f;
+    };
+
+    union doublebyte {
+      unsigned char c[8];
+      int i[2];
+      double d;
     };
 
     // Inherited functions
@@ -22,8 +34,6 @@ class CharmmDcd : public TrajectoryIO {
     void info();
     int processWriteArgs(ArgList *);
 
-    int binaryByteOrder(int, int *);
-    int readBinaryInteger(int);
   public :
     CharmmDcd();
     ~CharmmDcd();
