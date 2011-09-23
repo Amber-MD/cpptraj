@@ -5,7 +5,11 @@
 /// TrajectoryIO class for reading coordinates from charmm dcd files.
 class CharmmDcd : public TrajectoryIO {
     int dcdatom;
-    bool dcdExtraBlock;
+    int dcdframes;
+    bool isBigEndian;
+    bool is64bit;
+    unsigned int readSize;
+    //bool dcdExtraBlock;
     bool dcd4D;
     int istart;
     int nsavc;
@@ -13,6 +17,9 @@ class CharmmDcd : public TrajectoryIO {
     int nfreat;
     int *freeat;
     float timestep;
+    float *xcoord;
+    float *ycoord;
+    float *zcoord;
 
     union doublebyte {
       unsigned char c[8];
@@ -24,6 +31,8 @@ class CharmmDcd : public TrajectoryIO {
       int i[20];
       float f[20];
     };
+    int ReadBlock(int);
+    int readDcdHeader();
 
     // Inherited functions
     int setupRead(AmberParm *);
