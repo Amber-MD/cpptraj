@@ -320,7 +320,9 @@ bool AmberParm::IsSolventResname(NAME resnameIn) {
   if ( strcmp("WAT ", resnameIn) == 0 ||
        strcmp(" WAT", resnameIn) == 0 ||
        strcmp("HOH ", resnameIn) == 0 ||
-       strcmp(" HOH", resnameIn) == 0    )
+       strcmp(" HOH", resnameIn) == 0 ||
+       strcmp("TIP3", resnameIn) == 0 
+     )
   {
     return true;
   }
@@ -826,9 +828,11 @@ int AmberParm::ReadParmMol2(PtrajFile *parmfile) {
  */
 int AmberParm::ReadParmPSF(PtrajFile *parmfile) {
   char buffer[256],tag[256],psfname[NAMESIZE];
+  int bondatoms[8];
   int currResnum;
   int psfresnum;
   int psfattype;
+  int nbond,nlines;
 
   mprintf("    Reading Charmm PSF file %s as topology file.\n",parmName);
   currResnum=-1;
@@ -866,32 +870,52 @@ int AmberParm::ReadParmPSF(PtrajFile *parmfile) {
       mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
       return 1;
     }
-
     // Detect and remove trailing newline
     //bufferLen = strlen(buffer);
     //if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
-
     // Read line
     // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
     sscanf(buffer,"%*8i %*4s %i %4s %4s %4i %14lf %14lf",&psfresnum,tag,psfname,
            &psfattype,charge+atom,mass+atom);
     strcpy(names[atom],psfname);
-
     // If this residue number is different than the last, allocate mem for new res
     if (currResnum!=psfresnum) {
         resnames=(NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
         strcpy(resnames[nres],tag);
-        //if (debug>3) mprintf("        PSFRes %i [%s]\n",nres,resnames[nres]);
-        mprintf("\t\tPSFRes %i [%s]\n",nres,resnames[nres]);
+        if (debug>3) mprintf("        PSFRes %i [%s]\n",nres,resnames[nres]);
         resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
         resnums[nres]=atom; 
         currResnum=psfresnum;
         nres++;
     }
-  
     // Clear the buffer
     memset(buffer,' ',256);
   } // END loop over atoms 
+
+  // Advance to <nbond> !NBOND
+  while (strncmp(tag,"!NBOND",6)!=0) {
+    if (parmfile->IO->Gets(buffer,256)) return 1;
+    sscanf(buffer,"%i %s",&nbond,tag);
+  }
+  nlines = nbond / 4;
+  if ( (nbond % 4) != 0) nlines++;
+  for (int bondline=0; bondline < nlines; bondline++) {
+    if (parmfile->IO->Gets(buffer,256) ) {
+      mprinterr("Error: ReadParmPSF(): Reading bond line %i\n",bondline+1);
+      return 1;
+    }
+    // Each line has 4 pairs of atom numbers
+    int nbondsread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
+                            bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
+                            bondatoms+6,bondatoms+7);
+    // NOTE: Charmm atom nums start from 1
+    for (int bondidx=0; bondidx < nbondsread; bondidx+=2)
+      AddBond(bondatoms[bondidx]-1,bondatoms[bondidx+1]-1,-1);
+  }
+  //mprintf("DEBUG: Charmm PSF last line after bond read:\n");
+  //mprintf("\t[%s]\n",buffer);
+  mprintf("\t%i bonds to hydrogen.\n\t%i bonds to non-hydrogen.\n",NbondsWithH,NbondsWithoutH);
+    
 
   //boxType = NOBOX;
 
