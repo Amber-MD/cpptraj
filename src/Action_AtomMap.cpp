@@ -10,7 +10,7 @@
 
 //--------- PRIVATE ROUTINES ---------------------------------------
 /* compareName(A1,A2,B1,B2) 
- * Compares pairs of names, return 1 if they match.  e.g. (A,B)==(A,B)==(B,A)
+ * Compares pairs of names, return 0 if they match.  e.g. (A,B)==(A,B)==(B,A)
  */
 static int compareName(char *nameA1, char *nameA2, 
                 const char *nameB1, const char *nameB2) {

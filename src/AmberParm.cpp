@@ -16,6 +16,9 @@
 #include "PDBfileRoutines.h"
 #include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
+// For PDB distance search
+#include "DistRoutines.h"
+#include "Bonds.h"
 
 #define AMBERPOINTERS 31
 #define ELECTOAMBER 18.2223
@@ -633,6 +636,8 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
   int currResnum;
   int atom;
   int atomInLastMol = 0;
+  double *coords=NULL;
+  unsigned int crdidx = 0;
 
   mprintf("    Reading PDB file %s as topology file.\n",parmName);
   currResnum=-1;
@@ -658,6 +663,11 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
       // Name will be wrapped if it starts with a digit.
       // Asterisks will be replaced with prime char
       pdb_name(buffer, (char*)names[natom]);
+
+      // Allocate memory for coords
+      coords = (double*) realloc(coords, (natom+1)*3*sizeof(double));
+      pdb_xyz(buffer, coords + crdidx);
+      crdidx+=3;
 
       // If this residue number is different than the last, allocate mem for new res
       if (currResnum!=pdb_resnum(buffer)) {
@@ -695,12 +705,12 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
     SetAtomsPerMolPDB(natom - atomInLastMol);
     // DEBUG
     if (debug>0) {
-      mprintf("PDB: firstSolvMol= %i\n",firstSolvMol);
-      mprintf("PDB: finalSoluteRes= %i\n",finalSoluteRes);
+      mprintf("\tPDB: firstSolvMol= %i\n",firstSolvMol);
+      mprintf("\tPDB: finalSoluteRes= %i\n",finalSoluteRes);
       if (debug>1) {
-        mprintf("PDB: Atoms Per Molecule:\n");
+        mprintf("\tPDB: Atoms Per Molecule:\n");
         for (atom=0; atom < molecules; atom++) {
-          mprintf("%8i %8i\n",atom,atomsPerMol[atom]);
+          mprintf("\t     %8i %8i\n",atom,atomsPerMol[atom]);
         } 
       }
     }
@@ -710,14 +720,34 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
   boxType = NOBOX;
 
   if (debug>0) 
-    mprintf("    PDB contains %i atoms, %i residues, %i molecules.\n",
+    mprintf("\tPDB contains %i atoms, %i residues, %i molecules.\n",
             natom,nres,molecules);
   // If no atoms, probably issue with PDB file
   if (natom<=0) {
     mprintf("Error: No atoms in PDB file.\n");
+    free(coords);
     return 1;
   }
 
+  // Determine bonding from distance search.
+  mprintf("\tPDB: determining bond info from distances.\n");
+  for (int atom1 = 0; atom1 < natom - 1; atom1++) {
+    int idx1 = atom1 * 3;
+    for (int atom2 = atom1 + 1; atom2 < natom; atom2++) {
+      int idx2 = atom2 * 3;
+      double D = DIST2_NoImage(coords + idx1, coords + idx2);
+      double cut = GetBondedCut(names[atom1],names[atom2]);
+      cut *= cut;
+      //mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
+      //        names[atom2],atom2+1,D,cut);
+      //if (D<cut) mprintf(" bonded!");
+      if (D < cut) AddBond(atom1,atom2,-1); 
+      //mprintf("\n");
+    }
+  }
+  mprintf("\tPDB: %i bonds to hydrogen, %i other bonds.\n",NbondsWithH,NbondsWithoutH);
+
+  free(coords);
   return 0;
 }
 
