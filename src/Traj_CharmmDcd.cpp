@@ -11,11 +11,14 @@ CharmmDcd::CharmmDcd() {
   istart=0;
   nsavc=0;
   namnf=0;
+  nfreat=0;
+  freeat=NULL;
   timestep=0;
 }
 
 // DESTRUCTOR
 CharmmDcd::~CharmmDcd() {
+  if (freeat!=NULL) delete[] freeat;
 }
 
 /* CharmmDcd::openTraj()
@@ -91,6 +94,7 @@ int CharmmDcd::setupRead(AmberParm *trajParm) {
 
   if ( openTraj() ) return -1;
 
+  // Step 1 - Determine endianness.
   // Read first 8 bytes - first number in dcd header should be 84.
   // If 32 bit the number is in the first 4 bytes, 64 bit is first
   // 8 bytes.
@@ -259,6 +263,43 @@ int CharmmDcd::setupRead(AmberParm *trajParm) {
     mprinterr("Error: Expected to read block size of 4 after natom block.\n");
     return -1;
   }
+
+  // If number of fixed atoms not 0, need to read list of free atoms.
+  if (namnf!=0) {
+    // Set nfreat, natom - namnf
+    nfreat = dcdatom - namnf;
+    mprintf("\tNfreat %i\n",nfreat);
+    // Allocate space for nfreat atom indices
+    freeat = new int[ nfreat ];
+    // Read index array size
+    LEbyte.i[1] = 0;
+    if (tfile->IO->Read(LEbyte.c, sizeof(unsigned char), readSize) < 1) {
+      mprinterr("Error: Could not read index array size from DCD.\n");
+      return -1;
+    }
+    if ( (LEbyte.i[0] + LEbyte.i[1]) != (nfreat * 4) ) {
+      mprinterr("Error: DCD: Expected index array size %i, got %i\n",(nfreat * 4),
+                (LEbyte.i[0] + LEbyte.i[1]));
+      return -1;
+    }
+    // Read index array
+    if (tfile->IO->Read( freeat, sizeof(int), nfreat) < 1) {
+      mprinterr("Error reading DCD index array.\n");
+      return -1;
+    }
+    // Read end index array size
+    LEbyte.i[1] = 0;
+    if (tfile->IO->Read(LEbyte.c, sizeof(unsigned char), readSize) < 1) {
+      mprinterr("Error: Could not read end index array size from DCD.\n");
+      return -1;
+    }
+    if ( (LEbyte.i[0] + LEbyte.i[1]) != (nfreat * 4) ) {
+      mprinterr("Error: DCD: Expected end index array size %i, got %i\n",(nfreat * 4),
+              (LEbyte.i[0] + LEbyte.i[1]));
+      return -1;
+    }
+  }
+
 
   closeTraj();
 
