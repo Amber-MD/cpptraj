@@ -12,12 +12,6 @@ class CharmmDcd : public TrajectoryIO {
     int namnf;
     float timestep;
 
-    union byte {
-      unsigned char c[4];
-      int i;
-      float f;
-    };
-
     union doublebyte {
       unsigned char c[8];
       int i[2];
