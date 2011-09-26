@@ -500,7 +500,6 @@ int PtrajFile::SetupRead() {
 
   // Check for terminal CR before newline, indicates DOS file
   i = strlen(buffer1);
-  mprintf("DEBUG: Length of line 1 is %i\n",i);
   if ( i>1 ) {
     if (buffer1[ i - 2 ] == '\r') {
       if (debug>0) mprintf("  [DOS]");

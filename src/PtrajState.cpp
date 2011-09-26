@@ -95,6 +95,13 @@ void PtrajState::Dispatch(char *inputLine) {
     return;
   }
 
+  if (dispatchArg.CommandIs("parmbondinfo")) {
+    if ( (tempParm=parmFileList.GetParm(dispatchArg.getNextInteger(0)))!=NULL ) {
+      tempParm->PrintBondInfo();
+    }
+    return;
+  }
+
   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {
     DF_Args.push_back(dispatchArg.Copy());

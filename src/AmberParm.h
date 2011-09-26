@@ -106,6 +106,7 @@ class AmberParm {
 
     void ResetBondInfo(); 
     int AddBond(int, int, int);
+    void PrintBondInfo();
 
     AmberParm *modifyStateByMask(int *, int);
     AmberParm *modifyStateByMap(int *);

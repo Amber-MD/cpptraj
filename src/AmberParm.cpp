@@ -739,11 +739,16 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
       //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
       double cut = GetBondedCut(names[atom1],names[atom2]);
       cut *= cut;
-      if (debug > 1) {
-        mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
-                names[atom2],atom2+1,D,cut);
-        if (D<cut) mprintf(" bonded!");
-        mprintf("\n");
+      if (debug>0) {
+        if (debug==1) {
+          if (D<cut) mprintf("\tBOND: %s %i to %s %i\n",names[atom1],atom1+1,
+                              names[atom2],atom2+1);
+        } else if (debug > 1) {
+          mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
+                  names[atom2],atom2+1,D,cut);
+          if (D<cut) mprintf(" bonded!");
+          mprintf("\n");
+        }
       }
       if (D < cut) AddBond(atom1,atom2,-1); 
     }
@@ -1084,6 +1089,7 @@ void AmberParm::ResetBondInfo() {
  */ 
 int AmberParm::AddBond(int atom1, int atom2, int icb) {
   bool isH=false;
+  int bondidx;
   if (atom1<0 || atom2<0 || atom1>=natom || atom2>=natom) return 1;
   if (names!=NULL) {
     if (names[atom1][0]=='H') isH=true;
@@ -1091,20 +1097,51 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
   }
   if (isH) {
     //NbondsWithH = values[NBONH];
-    bondsh = (int*) realloc(bondsh, ((NbondsWithH+1)*3) * sizeof(int));
-    bondsh[NbondsWithH  ] = atom1 * 3;
-    bondsh[NbondsWithH+1] = atom2 * 3;
-    bondsh[NbondsWithH+2] = icb;
+    bondidx = NbondsWithH * 3;
+    bondsh = (int*) realloc(bondsh, (bondidx+3) * sizeof(int));
+    bondsh[bondidx  ] = atom1 * 3;
+    bondsh[bondidx+1] = atom2 * 3;
+    bondsh[bondidx+2] = icb;
     NbondsWithH++;
   } else {
     //NbondsWithoutH = values[MBONA];
-    bonds = (int*) realloc(bonds, ((NbondsWithoutH+1)*3) * sizeof(int));
-    bonds[NbondsWithoutH  ] = atom1 * 3;
-    bonds[NbondsWithoutH+1] = atom2 * 3;
-    bonds[NbondsWithoutH+2] = icb;
+    bondidx = NbondsWithoutH * 3;
+    bonds = (int*) realloc(bonds, (bondidx+3) * sizeof(int));
+    bonds[bondidx  ] = atom1 * 3;
+    bonds[bondidx+1] = atom2 * 3;
+    bonds[bondidx+2] = icb;
     NbondsWithoutH++;
   }
   return 0;
+}
+
+/* AmberParm::PrintBondInfo()
+ * Print information contained in bonds and bondsh arrays.
+ */
+void AmberParm::PrintBondInfo() {
+  int atom1,atom2,atomi;
+  if ((NbondsWithH + NbondsWithoutH) <= 0) {
+    mprintf("NO BOND INFORMATION IN PRMTOP\n");
+    return;
+  }
+  if (NbondsWithH>0) {
+    mprintf("%i BONDS TO HYDROGEN:\n",NbondsWithH);
+    for (int ibond=0; ibond < NbondsWithH * 3; ibond += 3) {
+      atom1 = (bondsh[ibond  ]/3) + 1;
+      atom2 = (bondsh[ibond+1]/3) + 1;
+      atomi = (bondsh[ibond+2]  );
+      mprintf("\tAtom %i to %i, %i\n",atom1,atom2,atomi);
+    }
+  }
+  if (NbondsWithoutH>0) {
+    mprintf("%i BONDS TO NON-HYDROGEN:\n",NbondsWithoutH);
+    for (int ibond=0; ibond < NbondsWithoutH * 3; ibond += 3) {
+      atom1 = (bonds[ibond  ]/3) + 1;
+      atom2 = (bonds[ibond+1]/3) + 1;
+      atomi = (bonds[ibond+2]  );
+      mprintf("\tAtom %i to %i, %i\n",atom1,atom2,atomi);
+    }
+  }
 }
 
 /* SetupBondArray()
