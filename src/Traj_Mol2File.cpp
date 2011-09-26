@@ -211,11 +211,11 @@ int Mol2File::setupWrite(AmberParm *trajParm) {
   //  return 1;
   //}
   if (mol2bonds > 0) {
-    if (trajBonds==NULL) {
+    if ( trajnbonds>0 && trajBonds==NULL) {
       mprinterr("Error: setupWrite [%s]: Bonds are NULL.\n",tfile->filename);
       return 1;
     }
-    if (trajBondsh==NULL) {
+    if (trajnbondsh>0 && trajBondsh==NULL) {
       mprinterr("Error: setupWrite [%s]: BondsH are NULL.\n",tfile->filename);
       return 1;
     }
@@ -271,17 +271,23 @@ int Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
   if (mol2bonds > 0) {
     // Atom #s in the bonds and bondh array are * 3
     tfile->IO->Printf("@<TRIPOS>BOND\n");
-    atom3=0;
-    for (atom=0; atom < trajnbonds; atom++) {
-      tfile->IO->Printf("%5d %5d %5d 1\n",atom+1,(trajBonds[atom3]/3)+1,(trajBonds[atom3+1]/3)+1);
-      atom3+=3;
+    atom=0;
+    if (trajnbonds>0) {
+      atom3=0;
+      for (atom=0; atom < trajnbonds; atom++) {
+        tfile->IO->Printf("%5d %5d %5d 1\n",atom+1,(trajBonds[atom3]/3)+1,(trajBonds[atom3+1]/3)+1);
+        atom3+=3;
+      }
     }
-    atom3=0;
-    res = atom; // Where bonds left off
-    for (atom=0; atom < trajnbondsh; atom++) {
-      tfile->IO->Printf("%5d %5d %5d 1\n",res+1,(trajBondsh[atom3]/3)+1,(trajBondsh[atom3+1]/3)+1);
-      atom3+=3;
-      res++;
+    if (trajnbondsh>0) {
+      atom3=0;
+      res = atom; // Where bonds left off
+      for (atom=0; atom < trajnbondsh; atom++) {
+        tfile->IO->Printf("%5d %5d %5d 1\n",res+1,(trajBondsh[atom3]/3)+1,
+                          (trajBondsh[atom3+1]/3)+1);
+        atom3+=3;
+        res++;
+      }
     }
   }
 
