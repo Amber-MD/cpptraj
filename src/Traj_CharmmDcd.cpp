@@ -320,9 +320,9 @@ int CharmmDcd::readDcdHeader() {
   }
   if (isBigEndian) endian_swap(&dcdatom,1);
   mprintf("\tNatom %i\n",dcdatom);
-  xcoord = new float[dcdatom];
-  ycoord = new float[dcdatom];
-  zcoord = new float[dcdatom];
+  if (xcoord==NULL) xcoord = new float[dcdatom];
+  if (ycoord==NULL) ycoord = new float[dcdatom];
+  if (zcoord==NULL) zcoord = new float[dcdatom];
 
 // ********** Step 5 - Read in free atom indices if necessary
   // Read in next block size, should also be 4
