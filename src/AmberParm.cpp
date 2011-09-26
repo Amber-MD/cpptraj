@@ -736,13 +736,16 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
     for (int atom2 = atom1 + 1; atom2 < natom; atom2++) {
       int idx2 = atom2 * 3;
       double D = DIST2_NoImage(coords + idx1, coords + idx2);
+      //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
       double cut = GetBondedCut(names[atom1],names[atom2]);
       cut *= cut;
-      //mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
-      //        names[atom2],atom2+1,D,cut);
-      //if (D<cut) mprintf(" bonded!");
+      if (debug > 1) {
+        mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
+                names[atom2],atom2+1,D,cut);
+        if (D<cut) mprintf(" bonded!");
+        mprintf("\n");
+      }
       if (D < cut) AddBond(atom1,atom2,-1); 
-      //mprintf("\n");
     }
   }
   mprintf("\tPDB: %i bonds to hydrogen, %i other bonds.\n",NbondsWithH,NbondsWithoutH);

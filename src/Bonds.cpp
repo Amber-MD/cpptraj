@@ -108,7 +108,8 @@ double GetBondedCut(char *A1, char *A2) {
     cut=1.36;
   else if ( compareElement(atom1,atom2,'N','X') )
     cut=1.75;
-
+  else if ( compareElement(atom1,atom2,'N','P') )
+    cut=1.71; // Avg over all nX-pX from gaff.dat
   // Bonds to P
   else if ( compareElement(atom1,atom2,'P','O') )
     cut=1.63;
@@ -118,22 +119,19 @@ double GetBondedCut(char *A1, char *A2) {
     cut=1.54;
   else if ( compareElement(atom1,atom2,'P','X') )
     cut=2.03; 
-
   // Bonds to O
   else if ( compareElement(atom1,atom2,'O','S') )
     cut=1.48;
   else if ( compareElement(atom1,atom2,'O','F') )
     cut=1.42;
-
   // Bonds to S
   else if ( compareElement(atom1,atom2,'S','F') )
     cut=1.56;
   else if ( compareElement(atom1,atom2,'S','X') )
     cut=2.07;
-
   // No cutoff, use default
   else {
-    mprintf("Warning: GetBondedCut: Cut not found for %s - %s\n",atom1,atom2);
+    mprintf("Warning: GetBondedCut: Cut not found for %c - %c\n",atom1,atom2);
     mprintf("                       Using default cutoff of %lf\n",cut);
   }
 
