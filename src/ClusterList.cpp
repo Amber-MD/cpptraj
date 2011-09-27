@@ -32,6 +32,8 @@ void ClusterList::Renumber() {
     (*node).num = newNum;
     // Sort the frame lists for good measure
     (*node).frameList.sort();
+    // Find the centroid.
+    FindCentroid( node );
     newNum++;
   }
 }
@@ -61,8 +63,8 @@ void ClusterList::Summary(char *summaryfile) {
     numframes = (*node).frameList.size();
     frac = (float) maxframes;
     frac = ((float) numframes) / frac;
-    // Find centroid
-    FindCentroid(node); 
+    // Find centroid - now done in Renumber
+    //FindCentroid(node); 
     // Calculate the average distance between frames in the cluster
     numdist = ((numframes * numframes) - numframes) / 2;
     distances = new double[ numdist ];
@@ -433,7 +435,8 @@ int ClusterList::CurrentNum() {
  * Return frame number of centroid of current cluster.
  */
 int ClusterList::CurrentCentroid() {
-  FindCentroid(currentCluster);
+  // FindCentroid is now called in Renumber
+  //FindCentroid(currentCluster);
   return (*currentCluster).centroid;
 }
 

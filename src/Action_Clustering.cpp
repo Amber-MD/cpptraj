@@ -408,7 +408,8 @@ void Clustering::print() {
   CList.SetLinkage(Linkage);
   ClusterHierAgglo( &Distances, &CList);
 
-  // Sort clusters and renumber
+  // Sort clusters and renumber; also finds centroids for printing
+  // representative frames.
   CList.Renumber();
 
   // DEBUG
