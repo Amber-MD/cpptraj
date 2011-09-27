@@ -20,10 +20,33 @@ ClusterList::~ClusterList() {
 /* ClusterList::Renumber()
  * Sort clusters by size and renumber starting from 0, where cluster 0
  * is the largest.
+ * NOTE: This destroys indexing into ClusterDistances.
  */
 void ClusterList::Renumber() {
   int newNum = 0;
+  double numdist;
 
+  // Before clusters are renumbered, calculate the average distance of 
+  // this cluster to every other cluster
+  numdist = (double) (clusters.size() - 1);
+  for (std::list<clusterNode>::iterator node = clusters.begin();
+                                        node != clusters.end();
+                                        node++)
+  {
+    (*node).avgclusterdist = 0;
+    for (std::list<clusterNode>::iterator node2 = clusters.begin();
+                                          node2 != clusters.end();
+                                          node2++)
+    {
+      if (node == node2) continue;
+      //mprintf("DBG:\t\t%i to %i %lf\n",(*node).num, (*node2).num, 
+      //        ClusterDistances.GetElement( (*node).num, (*node2).num ));
+      (*node).avgclusterdist += ClusterDistances.GetElement( (*node).num, (*node2).num );
+    }
+    (*node).avgclusterdist /= numdist;
+    //mprintf("DBG:\tCluster %i avg dist = %lf\n",(*node).num,avgclusterdist);
+  }
+  
   clusters.sort( cluster_cmp() );
   for (std::list<clusterNode>::iterator node = clusters.begin();
                                         node != clusters.end();
@@ -32,7 +55,8 @@ void ClusterList::Renumber() {
     (*node).num = newNum;
     // Sort the frame lists for good measure
     (*node).frameList.sort();
-    // Find the centroid.
+    // Find the centroid. Since FindCentroid uses FrameDistances and not
+    // ClusterDistances its ok to call after sorting/renumbering.
     FindCentroid( node );
     newNum++;
   }
@@ -53,8 +77,8 @@ void ClusterList::Summary(char *summaryfile) {
   }
   outfile.OpenFile();
 
-  outfile.IO->Printf("%-8s %8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac",
-                     "AvgDist","Stdev","Centroid");
+  outfile.IO->Printf("%-8s %8s %8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac",
+                     "AvgDist","Stdev","Centroid","AvgCDist");
   for (std::list<clusterNode>::iterator node = clusters.begin();
                                         node != clusters.end();
                                         node++)
@@ -64,7 +88,7 @@ void ClusterList::Summary(char *summaryfile) {
     frac = (float) maxframes;
     frac = ((float) numframes) / frac;
     // Find centroid - now done in Renumber
-    //FindCentroid(node); 
+    //FindCentroid(node);
     // Calculate the average distance between frames in the cluster
     numdist = ((numframes * numframes) - numframes) / 2;
     distances = new double[ numdist ];
@@ -105,8 +129,8 @@ void ClusterList::Summary(char *summaryfile) {
       sdist = 0;
     }
     // OUTPUT
-    outfile.IO->Printf("%8i %8i %8.3f %8.3lf %8.3lf %8i\n",(*node).num,numframes,
-                       frac,avgdist,sdist,(*node).centroid+1);
+    outfile.IO->Printf("%8i %8i %8.3f %8.3lf %8.3lf %8i %8.3lf\n",(*node).num,numframes,
+                       frac,avgdist,sdist,(*node).centroid+1,(*node).avgclusterdist);
     delete[] distances;
   }
 
@@ -172,6 +196,15 @@ void ClusterList::PrintClusters() {
     }
     mprintf("\n");
   }
+}
+
+/* ClusterList::PrintRepFrames()
+ * Print representative frame of each cluster to 1 line.
+ */
+void ClusterList::PrintRepFrames() {
+  for (std::list<clusterNode>::iterator C = clusters.begin(); C != clusters.end(); C++) 
+    mprintf("%i ",(*C).centroid+1);
+  mprintf("\n");
 }
 
 /* ClusterList::GetClusterIt

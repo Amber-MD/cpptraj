@@ -16,9 +16,10 @@ class ClusterList {
     int debug;
     // clusterNode: Store individual cluster info; frame numbers, centroid, etc.
     struct clusterNode {
-      std::list<int> frameList; // List of frames in the cluster
-      int num;                  // Cluster number (index in Distances)
+      double avgclusterdist;    // Avg distance of this cluster to each other cluster
+      int num;                  // Cluster number (index in ClusterDistances)
       int centroid;             // Frame number of the cluster centroid
+      std::list<int> frameList; // List of frames in the cluster
     };
     std::list<clusterNode> clusters;
 
@@ -58,6 +59,7 @@ class ClusterList {
     void Initialize(TriangleMatrix *);
     int AddCluster(std::list<int> *, int);
     void PrintClusters();
+    void PrintRepFrames();
     int MergeClosest(double);
     void Renumber();
     void Summary(char *);

@@ -416,6 +416,8 @@ void Clustering::print() {
   //if (debug>0) {
     mprintf("\nFINAL CLUSTERS:\n");
     CList.PrintClusters();
+    mprintf("\nREPRESENTATIVE FRAMES:\n");
+    CList.PrintRepFrames();
   //}
 
   // Print a summary of clusters
