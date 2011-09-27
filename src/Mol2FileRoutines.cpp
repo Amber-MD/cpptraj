@@ -45,7 +45,7 @@ int Mol2AtomName(char *buffer, char *name) {
   name[3]=tmp[3];
   //PadWithSpaces(name); 
   name[4]='\0';
-  mprintf("DEBUG: MOL2: name [%s]\n",name);
+  //mprintf("DEBUG: MOL2: name [%s]\n",name);
   return 0;
 }
 
