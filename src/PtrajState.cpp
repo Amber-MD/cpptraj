@@ -85,10 +85,15 @@ void PtrajState::Dispatch(char *inputLine) {
   if (dispatchArg.CommandIs("parminfo")) {
     if ( (tempParm=parmFileList.GetParm(dispatchArg.getNextInteger(0)))!=NULL ) {
       tempMask = new AtomMask();
-      tempMask->SetMaskString( dispatchArg.getNextMask() );
-      tempMask->SetupCharMask( tempParm, debug);
-      for (int atom=0; atom < tempParm->natom; atom++) {
-        if (tempMask->AtomInCharMask(atom)) tempParm->AtomInfo(atom);
+      char *maskarg = dispatchArg.getNextMask();
+      if (maskarg!=NULL) {
+        tempMask->SetMaskString( maskarg );
+        tempMask->SetupCharMask( tempParm, debug);
+        for (int atom=0; atom < tempParm->natom; atom++) {
+          if (tempMask->AtomInCharMask(atom)) tempParm->AtomInfo(atom);
+        }
+      } else {
+        tempParm->Summary();
       }
       delete tempMask;
     }
@@ -98,6 +103,13 @@ void PtrajState::Dispatch(char *inputLine) {
   if (dispatchArg.CommandIs("parmbondinfo")) {
     if ( (tempParm=parmFileList.GetParm(dispatchArg.getNextInteger(0)))!=NULL ) {
       tempParm->PrintBondInfo();
+    }
+    return;
+  }
+
+  if (dispatchArg.CommandIs("parmmolinfo")) {
+    if ( (tempParm=parmFileList.GetParm(dispatchArg.getNextInteger(0)))!=NULL ) {
+      tempParm->PrintMoleculeInfo();
     }
     return;
   }

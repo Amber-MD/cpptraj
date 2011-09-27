@@ -99,6 +99,8 @@ class AmberParm {
     void AtomInfo(int);
     void ParmInfo();
     void Summary();
+    void PrintBondInfo();
+    void PrintMoleculeInfo();
 
     int atomToResidue(int);
     int atomToMolecule(int);
@@ -106,7 +108,6 @@ class AmberParm {
 
     void ResetBondInfo(); 
     int AddBond(int, int, int);
-    void PrintBondInfo();
 
     AmberParm *modifyStateByMask(int *, int);
     AmberParm *modifyStateByMap(int *);

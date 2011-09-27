@@ -350,12 +350,12 @@ int AmberParm::SetSolventInfo() {
   solventMolecules=0;
   solventAtoms=0;
 
+  // If atomsPerMol is set but firstSolvMol==-1, assume no solvent.
+  if (atomsPerMol!=NULL && firstSolvMol==-1) {
+    mprintf("\tWarning: atomsPerMol is set but no solvent detected.\n");
+
   // Treat all the molecules starting with firstSolvMol (nspsol) as solvent
-  if (atomsPerMol!=NULL) {
-    if (firstSolvMol==-1) {
-      mprinterr("Error: SetSolventInfo(): atomsPerMol is set but firstSolvMol==-1!\n");
-      return 1;
-    }
+  } else if (atomsPerMol!=NULL) {
     molAtom = 0;
     for (int mol=0; mol < molecules; mol++) {
       if (mol+1 >= firstSolvMol) {
@@ -970,7 +970,7 @@ int AmberParm::ReadParmPSF(PtrajFile *parmfile) {
  */
 void AmberParm::AtomInfo(int atom) {
   int res = atomToResidue(atom);
-  mprintf("Atom %i:",atom+1);
+  mprintf("  Atom %i:",atom+1);
   mprintf("[%s]",names[atom]);
   mprintf(" Res %i:",res+1);
   mprintf("[%s]",resnames[res]);
@@ -1019,7 +1019,56 @@ void AmberParm::Summary() {
     mprintf("                  First solvent molecule is %i\n",this->firstSolvMol);
   }
 }
- 
+
+/* AmberParm::PrintBondInfo()
+ * Print information contained in bonds and bondsh arrays.
+ */
+void AmberParm::PrintBondInfo() {
+  int atom1,atom2,atomi;
+  if ((NbondsWithH + NbondsWithoutH) <= 0) {
+    mprintf("NO BOND INFORMATION IN PRMTOP\n");
+    return;
+  }
+  if (NbondsWithH>0) {
+    mprintf("%i BONDS TO HYDROGEN:\n",NbondsWithH);
+    for (int ibond=0; ibond < NbondsWithH * 3; ibond += 3) {
+      atom1 = (bondsh[ibond  ]/3) + 1;
+      atom2 = (bondsh[ibond+1]/3) + 1;
+      atomi = (bondsh[ibond+2]  );
+      mprintf("\tAtom %i to %i, %i\n",atom1,atom2,atomi);
+    }
+  }
+  if (NbondsWithoutH>0) {
+    mprintf("%i BONDS TO NON-HYDROGEN:\n",NbondsWithoutH);
+    for (int ibond=0; ibond < NbondsWithoutH * 3; ibond += 3) {
+      atom1 = (bonds[ibond  ]/3) + 1;
+      atom2 = (bonds[ibond+1]/3) + 1;
+      atomi = (bonds[ibond+2]  );
+      mprintf("\tAtom %i to %i, %i\n",atom1,atom2,atomi);
+    }
+  }
+}
+
+/* AmberParm::PrintMoleculeInfo()
+ * Print information on molecules in PRMTOP
+ */
+void AmberParm::PrintMoleculeInfo() {
+  int atomcount = 0;
+  int resid;
+  char rtemp[32];
+  if (molecules==0 || atomsPerMol==NULL) {
+    mprintf("NO MOLECULE INFORMATION IN PRMTOP\n");
+    return;
+  }
+  mprintf("MOLECULES:\n");
+  for (int mol=0; mol < molecules; mol++) {
+    resid = atomToResidue(atomcount);
+    ResName(rtemp,resid);
+    mprintf("\tMolecule %i, %i atoms, first residue %s\n",mol+1,atomsPerMol[mol],rtemp);
+    atomcount += atomsPerMol[mol];
+  }
+}
+
 // -----------------------------------------------------------------------------
 // NOTE: The following atomToX functions do not do any memory checks!
 /* AmberParm::atomToResidue()
@@ -1113,35 +1162,6 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
     NbondsWithoutH++;
   }
   return 0;
-}
-
-/* AmberParm::PrintBondInfo()
- * Print information contained in bonds and bondsh arrays.
- */
-void AmberParm::PrintBondInfo() {
-  int atom1,atom2,atomi;
-  if ((NbondsWithH + NbondsWithoutH) <= 0) {
-    mprintf("NO BOND INFORMATION IN PRMTOP\n");
-    return;
-  }
-  if (NbondsWithH>0) {
-    mprintf("%i BONDS TO HYDROGEN:\n",NbondsWithH);
-    for (int ibond=0; ibond < NbondsWithH * 3; ibond += 3) {
-      atom1 = (bondsh[ibond  ]/3) + 1;
-      atom2 = (bondsh[ibond+1]/3) + 1;
-      atomi = (bondsh[ibond+2]  );
-      mprintf("\tAtom %i to %i, %i\n",atom1,atom2,atomi);
-    }
-  }
-  if (NbondsWithoutH>0) {
-    mprintf("%i BONDS TO NON-HYDROGEN:\n",NbondsWithoutH);
-    for (int ibond=0; ibond < NbondsWithoutH * 3; ibond += 3) {
-      atom1 = (bonds[ibond  ]/3) + 1;
-      atom2 = (bonds[ibond+1]/3) + 1;
-      atomi = (bonds[ibond+2]  );
-      mprintf("\tAtom %i to %i, %i\n",atom1,atom2,atomi);
-    }
-  }
 }
 
 /* SetupBondArray()
