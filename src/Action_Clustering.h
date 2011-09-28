@@ -16,6 +16,7 @@ class Clustering: public Action {
     FileFormat clusterfmt;     // Cluster trajectory format.
     char *singlerepfile;       // Cluster all rep single trajectory filename
     FileFormat singlerepfmt;   // Cluster all rep single trajectory format.
+    bool nofitrms;             // If true do not best-fit when calc RMSD
 
     int calcDistFromRmsd( TriangleMatrix *);
     int ClusterHierAgglo( TriangleMatrix *, ClusterList*);

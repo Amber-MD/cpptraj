@@ -14,6 +14,7 @@ Clustering::Clustering() {
   useMass=false;
   Linkage = ClusterList::AVERAGELINK;
   cnumvtime=NULL;
+  nofitrms = true;
 } 
 
 // DESTRUCTOR
@@ -21,7 +22,7 @@ Clustering::~Clustering() {
 }
 
 /* Clustering::init()
- * Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]
+ * Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>] [fitrms]
  *                        [ linkage | averagelinkage | complete ]  
  *                        [summary <summaryfile>] 
  *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ] 
@@ -46,6 +47,7 @@ int Clustering::init() {
   if (A->hasKey("complete")) Linkage=ClusterList::COMPLETELINK;
   cnumvtimefile = A->getKeyString("out",NULL);
   summaryfile = A->getKeyString("summary",NULL);
+  if (A->hasKey("fitrms")) nofitrms=false;
   // Output trajectory stuff
   clusterfile = A->getKeyString("clusterout",NULL);
   clusterformat = A->getKeyString("clusterfmt",NULL);
@@ -82,7 +84,7 @@ int Clustering::init() {
   if (epsilon != -1.0)
     mprintf(" epsilon is %8.3lf",epsilon);
   mprintf("\n");
-  mprintf("            Using hierarchical top-down clustering algorithm,");
+  mprintf("            Using hierarchical bottom-up clustering algorithm,");
   if (Linkage==ClusterList::SINGLELINK)
     mprintf(" single-linkage");
   else if (Linkage==ClusterList::AVERAGELINK)
@@ -134,7 +136,7 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   Frame *SelectedTgt=NULL;
   int lasttgtpindex=-1;
   // Other vars
-  double R;
+  double R, U[9], Trans[6];
   int current=0;
   int max=0;
   int totalref=0;
@@ -143,7 +145,10 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   Distances->Setup(totalref);
 
   max = Distances->Nelements();
-  mprintf("  CLUSTER: Calculating RMSDs between each frame (%i total).\n  ",max);
+  if (nofitrms)
+    mprintf("  CLUSTER: Calculating RMSDs between each frame (%i total).\n  ",max);
+  else
+    mprintf("  CLUSTER: Calculating RMSDs with fitting between each frame (%i total).\n",max);
 
   // Set up progress Bar
   ProgressBar *progress = new ProgressBar(max);
@@ -201,7 +206,10 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
       SelectedTgt->SetFrameCoordsFromMask(TgtFrame->X, &Mask0);
 
       // Perform RMS calculation
-      R = SelectedTgt->RMSD(SelectedRef, useMass);
+      if (nofitrms)
+        R = SelectedTgt->RMSD(SelectedRef, useMass);
+      else 
+        R = SelectedTgt->RMSD(SelectedRef, U, Trans, useMass);
 
       Distances->AddElement( R );
       // DEBUG
