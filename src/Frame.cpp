@@ -251,7 +251,7 @@ void Frame::InverseRotate(double *T) {
  * Action_Center box will be either 0.0 or box center. Use geometric center if 
  * mass is NULL, otherwise center of mass will be used.
  */
-void Frame::Center(AtomMask *Mask, double *box, bool useMassIn) {
+void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
   double center[3];
 
   if (useMassIn)
@@ -260,10 +260,10 @@ void Frame::Center(AtomMask *Mask, double *box, bool useMassIn) {
     this->GeometricCenter(Mask, center);
   //fprintf(stderr,"  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
 
-  // Shift to whatever is in box (origin or center of box in Action_Center) 
-  center[0] = box[0] - center[0]; 
-  center[1] = box[1] - center[1]; 
-  center[2] = box[2] - center[2];
+  // Shift to whatever is in boxcoord (origin or center of box in Action_Center) 
+  center[0] = boxcoord[0] - center[0]; 
+  center[1] = boxcoord[1] - center[1]; 
+  center[2] = boxcoord[2] - center[2];
   this->Translate(center);
 }
 
