@@ -41,6 +41,7 @@ int Jcoupling::loadKarplus(char* filename) {
   karplusConstant KC;
   std::vector<karplusConstant> *currentResList=NULL;
   std::string CurrentRes;
+  std::map<std::string,karplusConstantList>::iterator reslist;
 
   if (KarplusFile.SetupFile(filename,READ,debug)) {
     mprinterr("Error: jcoupling: Could not read Karplus file %s\n",filename);
@@ -86,9 +87,6 @@ int Jcoupling::loadKarplus(char* filename) {
       mprintf("       Line: [%s]\n",buffer);
       return 1;
     } else if (i==3) KC.C[3]=0.0;
-    //for(i=0; i<4; i++, p+=6) {
-    //  C[i]=atof(buffer+p);
-    //}
     KC.C[3]*=DEGRAD;
     // Place the read-in karplus constants in a map indexed by residue name 
     // so that all karplus constants for a given residue are in one place. 
@@ -103,12 +101,14 @@ int Jcoupling::loadKarplus(char* filename) {
       residue[3] = ptr[3];
       CurrentRes.assign(residue);
       //mprintf("DEBUG:\t[%s]\n",CurrentRes.c_str());
-      std::map<std::string,karplusConstantList>::iterator reslist = KarplusConstants.find(CurrentRes);
+      reslist = KarplusConstants.find(CurrentRes);
       // If list does not exist for residue yet, create it.
       // Otherwise, retrieve it
       if (reslist == KarplusConstants.end() ) {
         currentResList = new std::vector<karplusConstant>;
-        KarplusConstants.insert(reslist, std::pair<std::string,karplusConstantList>(CurrentRes,currentResList));
+        KarplusConstants.insert(reslist, 
+                                std::pair<std::string,karplusConstantList>(
+                                  CurrentRes,currentResList));
       } else
         currentResList = (*reslist).second;
 
@@ -120,9 +120,7 @@ int Jcoupling::loadKarplus(char* filename) {
   // DEBUG - Print out all parameters
   if (debug>0) {
       mprintf("    KARPLUS PARAMETERS:\n");
-      for (std::map<std::string,karplusConstantList>::iterator reslist=KarplusConstants.begin();
-                                                        reslist!=KarplusConstants.end();
-                                                        reslist++) {
+      for (reslist=KarplusConstants.begin(); reslist!=KarplusConstants.end(); reslist++) {
         mprintf("\t[%4s]\n",(*reslist).first.c_str());
         for (std::vector<karplusConstant>::iterator kc=currentResList->begin();
                                                     kc!=currentResList->end();
@@ -163,10 +161,7 @@ int Jcoupling::init( ) {
   Mask1.SetMaskString(mask1);
 
   // Dataset setup 
-  //dist = DSL->Add(DOUBLE, A->getNextString(),"Dis");
-  //if (dist==NULL) return 1;
   // Add dataset to data file list
-  //DFL->Add(distanceFile,dist);
 
   // Get Karplus parameters from file.
   karpluspath=NULL;
@@ -217,7 +212,6 @@ int Jcoupling::init( ) {
 /* Jcoupling::setup()
  * Set up a j-coupling calculation for dihedrals defined by atoms within
  * the mask.
- * NOTE: For now not using mask
  */
 int Jcoupling::setup() {
   std::string resName;
@@ -239,7 +233,7 @@ int Jcoupling::setup() {
   for (int residue=0; residue < MaxResidues; residue++) {
     resName.assign(P->resnames[residue]);
     std::map<std::string,karplusConstantList>::iterator reslist = KarplusConstants.find(resName);
-    // If list does not exist for residue, skip it .
+    // If list does not exist for residue, skip it.
     if (reslist == KarplusConstants.end() ) {
       mprintf("    Warning: Jcoupling::setup: Karplus parameters not found for residue [%i:%s]\n",
               residue+1, resName.c_str());
@@ -325,26 +319,13 @@ int Jcoupling::setup() {
   return 0;  
 }
 
-/* JcouplingABC()
- * JcouplingC()
- * Jcoupling calculation routines.
- * Merge these into action eventually
- */
-static double JcouplingABC(double C[4], double phi) {
-  phi=cos(phi+C[3]);
-  return C[0]*phi*phi+C[1]*phi+C[2];
-}
-static double JcouplingC(double C[4], double phi) {
-  phi+=C[3];
-  return C[0]+C[1]*cos(phi)+C[2]*cos(phi*(double)2.0);
-}
-
 /* Jcoupling::action()
  * For each dihedral defined in JcouplingInfo, perform the dihedral and
  * Jcoupling calculation.
  */
 int Jcoupling::action() {
-  double phi,J;//,phiInRadians;
+  double phi,J;
+  double phitemp,C0,C1,C2,C3;
   int residue;
   char buffer[53];
 
@@ -353,10 +334,19 @@ int Jcoupling::action() {
                                             jc++)
   {
     phi = F->DIHEDRAL( (*jc).atom[0], (*jc).atom[1], (*jc).atom[2], (*jc).atom[3] );
-    if ((*jc).type==1)
-      J = JcouplingC((*jc).C, phi);
-    else
-      J = JcouplingABC((*jc).C, phi);
+    C0 = (*jc).C[0];
+    C1 = (*jc).C[1];
+    C2 = (*jc).C[2];
+    C3 = (*jc).C[3];
+    if ((*jc).type==1) {
+      //J = JcouplingC((*jc).C, phi);
+      phitemp = phi + C3;
+      J = C0 + (C1 * cos(phitemp)) + (C2 * cos(phitemp * 2.0)); 
+    } else {
+      //J = JcouplingABC((*jc).C, phi);
+      phitemp = cos( phi + C3 );
+      J = (C0 * phitemp * phitemp) + (C1 * phitemp) + C2;
+    }
 
     residue = (*jc).residue;
     // DEBUG - output
