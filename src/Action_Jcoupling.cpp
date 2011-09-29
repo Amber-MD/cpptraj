@@ -216,7 +216,7 @@ int Jcoupling::init( ) {
 int Jcoupling::setup() {
   std::string resName;
   std::vector<karplusConstant> *currentResList=NULL;
-  int startatom,endatom,MaxResidues;
+  int MaxResidues;
   jcouplingInfo JC;
 
   if ( Mask1.SetupCharMask(P,debug) ) return 1;
@@ -239,8 +239,6 @@ int Jcoupling::setup() {
               residue+1, resName.c_str());
       continue;
     }
-    startatom = P->resnums[residue];
-    endatom = P->resnums[residue+1];
     currentResList = (*reslist).second;
     // For each parameter set in the list find the corresponding atoms.
     for (std::vector<karplusConstant>::iterator kc = currentResList->begin();
@@ -260,13 +258,9 @@ int Jcoupling::setup() {
       JC.C[3]=0;
       JC.type=(*kc).type;
       // For each atom in the dihedral specified in this Karplus constant, find
-      // corresponding atoms in parm.
+      // corresponding atoms in parm. Also set the Karplus constant.
       for (int idx=0; idx < 4; idx++) {
-        for (int resatom = startatom; resatom < endatom; resatom++) {
-          if (strcmp(P->names[resatom], (*kc).atomName[idx])==0) {
-            JC.atom[idx] = resatom;
-          }
-        }
+        JC.atom[idx] = P->FindAtomInResidue(residue+(*kc).offset[idx],(*kc).atomName[idx]);
         // At the same time, set the Karplus constant
         JC.C[idx] = (*kc).C[idx];
       }
@@ -301,19 +295,19 @@ int Jcoupling::setup() {
   }
   // DEBUG
   if (debug>0) {
-    startatom=0;
+    MaxResidues=0;
     for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo.begin();
                                               jc !=JcouplingInfo.end();
                                               jc++) 
     {
-      mprintf("%8i [%i:%4s]",startatom+1,(*jc).residue,P->resnames[(*jc).residue]);
+      mprintf("%8i [%i:%4s]",MaxResidues+1,(*jc).residue,P->resnames[(*jc).residue]);
       mprintf(" %6i:%-4s",(*jc).atom[0],P->names[(*jc).atom[0]]);
       mprintf(" %6i:%-4s",(*jc).atom[1],P->names[(*jc).atom[1]]);
       mprintf(" %6i:%-4s",(*jc).atom[2],P->names[(*jc).atom[2]]);
       mprintf(" %6i:%-4s",(*jc).atom[3],P->names[(*jc).atom[3]]);
       mprintf(" %6.2lf%6.2lf%6.2lf%6.2lf %i\n",(*jc).C[0],(*jc).C[1],(*jc).C[2],(*jc).C[3],
               (*jc).type);
-      startatom++;
+      MaxResidues++;
     }
   }    
   return 0;  
