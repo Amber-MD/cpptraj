@@ -91,6 +91,7 @@ class AmberParm {
     void ResName(char *, int);
     void ResAtomName(char*, int);
     char *ResidueName(int);
+    int FindAtomInResidue(int, char *);
 
     int SetSurfaceInfo();
 

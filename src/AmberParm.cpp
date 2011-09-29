@@ -147,6 +147,18 @@ char *AmberParm::ResidueName(int res) {
   return NULL;
 }
 
+/* AmberParm::FindAtomInResidue()
+ * Given a residue number and an atom name, return the atom number. If
+ * the given atom name is not in the given residue, return -1.
+ */
+int AmberParm::FindAtomInResidue(int res, char *atname) {
+  if (res < 0 || res >= nres) return -1;
+  for (int atnum = resnums[res]; atnum < resnums[res+1]; atnum++) {
+    if (strcmp(names[atnum],atname)==0) return atnum;
+  }
+  return -1;
+}
+
 // -------------------- ROUTINES PERTAINING TO SURFACE AREA --------------------
 /* AssignLCPO()
  * Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
