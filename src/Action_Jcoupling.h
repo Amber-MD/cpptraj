@@ -23,7 +23,7 @@ class Jcoupling: public Action {
     struct jcouplingInfo {
       int residue;
       int atom[4];
-      double C[4];
+      double *C;
       int type;
     };
     std::vector<jcouplingInfo> JcouplingInfo;

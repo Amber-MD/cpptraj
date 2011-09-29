@@ -221,8 +221,15 @@ int Jcoupling::setup() {
 
   if ( Mask1.SetupCharMask(P,debug) ) return 1;
   if (Mask1.None()) {
-    mprintf("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
+    mprinterr("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
     return 1;
+  }
+  // If JcouplingInfo has already been set up, print a warning and reset for
+  // new parm.
+  if (JcouplingInfo.size() > 0) {
+    mprintf("    Warning: Jcoupling has been set up for another parm.\n");
+    mprintf("             Resetting jcoupling info for new parm %s\n",P->parmName);
+    JcouplingInfo.clear();
   }
 
   // For each residue, set up 1 jcoupling calc for each parameter defined in
@@ -246,29 +253,23 @@ int Jcoupling::setup() {
                                                 kc++) 
     {
       // Init jcoupling info
-      // NOTE: Should C[] just point to inside KarplusConstants?
+      // Constants will point inside KarplusConstants
       JC.residue = residue;
       JC.atom[0] = -1;
       JC.atom[1] = -1;
       JC.atom[2] = -1;
       JC.atom[3] = -1;
-      JC.C[0]=0;
-      JC.C[1]=0;
-      JC.C[2]=0;
-      JC.C[3]=0;
+      JC.C=(*kc).C;
       JC.type=(*kc).type;
       // For each atom in the dihedral specified in this Karplus constant, find
-      // corresponding atoms in parm. Also set the Karplus constant.
-      for (int idx=0; idx < 4; idx++) {
+      // corresponding atoms in parm. 
+      for (int idx=0; idx < 4; idx++) 
         JC.atom[idx] = P->FindAtomInResidue(residue+(*kc).offset[idx],(*kc).atomName[idx]);
-        // At the same time, set the Karplus constant
-        JC.C[idx] = (*kc).C[idx];
-      }
       // Check that all atoms were found
       for (int idx=0; idx < 4; idx++) {
         if (JC.atom[idx]==-1) {
           mprinterr("Error: jcoupling::setup: Atom %4s:%i not found for residue %i\n",
-                    (*kc).atomName[idx], idx, residue);
+                    (*kc).atomName[idx], idx, residue+(*kc).offset[idx]);
           return 1;
         }
       }
