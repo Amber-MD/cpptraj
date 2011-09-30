@@ -335,8 +335,8 @@ int Jcoupling::action() {
     C3 = (*jc).C[3];
     if ((*jc).type==1) {
       //J = JcouplingC((*jc).C, phi);
-      phitemp = phi + C3;
-      J = C0 + (C1 * cos(phitemp)) + (C2 * cos(phitemp * 2.0)); 
+      //phitemp = phi + C3; // Only necessary if offsets become used in perez-type calc
+      J = C0 + (C1 * cos(phi)) + (C2 * cos(phi * 2.0)); 
     } else {
       //J = JcouplingABC((*jc).C, phi);
       phitemp = cos( phi + C3 );
