@@ -2,6 +2,7 @@
 #define INC_PTRAJFILE_H
 // PtrajFile
 // Class to abstract handling of basic file routines.
+// NOTE: Should Format/Type etc stuff be in their own files?
 #include "BaseFileIO.h"
 
 #define BUFFER_SIZE 1024 // Used in PtrajState, AmberTraj, and PtrajFile
@@ -69,6 +70,7 @@ class PtrajFile {
     ~PtrajFile();
 
     FileFormat GetFmtFromArg(char *, FileFormat);
+    void SetExtFromFmt(char *, FileFormat);
     char *Type(FileType);
     char *Format(FileFormat);
     int SetupFile(char *, AccessType, int); 

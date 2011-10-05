@@ -93,6 +93,30 @@ FileFormat PtrajFile::GetFmtFromArg(char *argIn, FileFormat def) {
   return writeFormat;
 }
 
+/* PtrajFile::SetExtFromFmt()
+ * Set buffer with a filename extension corresponding to the given file 
+ * format. Currently the longest extension requires buffer size of 7.
+ */
+void PtrajFile::SetExtFromFmt(char *buffer, FileFormat fmtIn) {
+  if (buffer==NULL) return;
+  switch (fmtIn) {
+    case PDBFILE       : strcpy(buffer,".pdb"  ); break;
+    case AMBERTRAJ     : strcpy(buffer,".crd"  ); break;
+    case AMBERNETCDF   : strcpy(buffer,".nc"   ); break;
+    case AMBERPARM     : strcpy(buffer,".parm7"); break;
+    case DATAFILE      : strcpy(buffer,".dat"  ); break;
+    case AMBERRESTART  : strcpy(buffer,".rst7" ); break;
+    case XMGRACE       : strcpy(buffer,".agr"  ); break;
+    case AMBERRESTARTNC: strcpy(buffer,".ncrst"); break;
+    case MOL2FILE      : strcpy(buffer,".mol2" ); break;
+    case GNUPLOT       : strcpy(buffer,".gnu"  ); break;
+    case CHARMMPSF     : strcpy(buffer,".psf"  ); break;
+    case CHARMMDCD     : strcpy(buffer,".dcd"  ); break;
+    default:
+      strcpy(buffer,"");
+  }
+}
+
 /* PtrajFile::OpenFile()
  * Open the file. If already open, reopen.
  */
