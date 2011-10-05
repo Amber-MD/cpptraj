@@ -14,15 +14,18 @@ class Clustering: public Action {
     char *summaryfile;         // Summary file name
     char *clusterfile;         // Cluster trajectory base filename.
     FileFormat clusterfmt;     // Cluster trajectory format.
-    char *singlerepfile;       // Cluster all rep single trajectory filename
+    char *singlerepfile;       // Cluster all rep single trajectory filename.
     FileFormat singlerepfmt;   // Cluster all rep single trajectory format.
-    bool nofitrms;             // If true do not best-fit when calc RMSD
+    char *repfile;             // Cluster rep to separate trajectory filename.
+    FileFormat repfmt;         // Cluster rep to separate trajectory format.
+    bool nofitrms;             // If true do not best-fit when calc RMSD.
 
     int calcDistFromRmsd( TriangleMatrix *);
     int ClusterHierAgglo( TriangleMatrix *, ClusterList*);
     void CreateCnumvtime( ClusterList * );
     void WriteClusterTraj( ClusterList * );
     void WriteSingleRepTraj( ClusterList * );
+    void WriteRepTraj( ClusterList * );
   public:
     Clustering();
     ~Clustering();

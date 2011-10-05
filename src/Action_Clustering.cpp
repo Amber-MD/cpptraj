@@ -27,13 +27,14 @@ Clustering::~Clustering() {
  *                        [summary <summaryfile>] 
  *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ] 
  *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]
+ *                        [ repout <repprefix> [repfmt <repfmt>] ]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
  *    3) Dataset name
  */
 int Clustering::init() {
-  char *mask0,*cnumvtimefile,*clusterformat,*singlerepformat;
+  char *mask0,*cnumvtimefile,*clusterformat,*singlerepformat,*repformat;
   // NOTE: PtrajFile is here just for determining/writing format. Should those
   //       functions be separate?
   PtrajFile TempFile;
@@ -53,7 +54,8 @@ int Clustering::init() {
   clusterformat = A->getKeyString("clusterfmt",NULL);
   singlerepfile = A->getKeyString("singlerepout",NULL);
   singlerepformat = A->getKeyString("singlerepfmt",NULL);
-
+  repfile = A->getKeyString("repout",NULL);
+  repformat = A->getKeyString("repfmt",NULL);
   // Figure out trajectory formats
   if (clusterfile!=NULL) {
     clusterfmt = TempFile.GetFmtFromArg(clusterformat,AMBERTRAJ);
@@ -61,7 +63,9 @@ int Clustering::init() {
   if (singlerepfile!=NULL) {
     singlerepfmt = TempFile.GetFmtFromArg(singlerepformat,AMBERTRAJ);
   }
-
+  if (repfile!=NULL) {
+    repfmt = TempFile.GetFmtFromArg(repformat,AMBERTRAJ);
+  }
   // Get the mask string 
   mask0 = A->getNextMask();
   Mask0.SetMaskString(mask0);
@@ -395,6 +399,57 @@ void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
   clusterout.EndTraj();
 }
 
+/* Clustering::WriteRepTraj()
+ * Write representative frame of each cluster to a separate trajectory file,
+ * repfile.REPNUM.FMT
+ */
+void Clustering::WriteRepTraj( ClusterList *CList ) {
+  int framenum, cnum;
+  TrajectoryFile *clusterout = NULL;
+  AmberParm *clusterparm;
+  Frame *clusterframe;
+  char ext[8];
+  char *cfilename = NULL;
+  // NOTE: USED TO GET FORMAT EXTENSION ONLY. EVENTUALLY MOVE FORMAT TO ITS OWN FILE
+  PtrajFile temp;
+
+  // Set output extension for this file format
+  temp.SetExtFromFmt(ext,repfmt);
+
+  CList->Begin();
+  while (!CList->End()) {
+    // Create trajectory file object
+    if (clusterout!=NULL) delete clusterout;
+    clusterout = new TrajectoryFile();
+
+    // Find centroid of first cluster in order to set up parm
+    framenum = CList->CurrentCentroid();
+
+    // Set up trajectory filename for this rep frame
+    cnum = (framenum / 10) + 8;
+    if (cfilename!=NULL) delete[] cfilename;
+    cfilename = new char[ strlen(repfile)+cnum+1 ];
+    sprintf(cfilename, "%s.%i%s", repfile, framenum+1, ext);
+
+    // Set up trajectory file. Use parm from first frame of cluster (pot. dangerous)
+    clusterparm = ReferenceFrames.GetFrameParm( framenum );
+    if (clusterout->SetupWrite(cfilename,NULL,clusterparm,repfmt)) {
+      mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
+                cfilename);
+       return;
+    }
+
+    // Write cluster rep frame
+    clusterframe = ReferenceFrames.GetFrame( framenum );
+    clusterout->WriteFrame(framenum, clusterparm, clusterframe->X, NULL,
+                           clusterframe->box, clusterframe->T);
+    // Close traj
+    clusterout->EndTraj();
+
+    CList->NextCluster();
+  }
+}
+
 /* Clustering::print()
  * This is where the clustering is actually performed. First the distances
  * between each frame are calculated. Then the clustering routine is called.
@@ -442,4 +497,8 @@ void Clustering::print() {
   // Write all representative frames to a single traj
   if (singlerepfile!=NULL)
     WriteSingleRepTraj( &CList );
+
+  // Write all representative frames to separate trajs
+  if (repfile!=NULL)
+    WriteRepTraj( &CList );
 }
