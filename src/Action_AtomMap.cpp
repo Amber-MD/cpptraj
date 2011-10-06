@@ -4,25 +4,13 @@
 #include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
+#include "Bonds.h"
 // DEBUG
 #include "TrajectoryFile.h"
 #include <cstdio>
 
 //--------- PRIVATE ROUTINES ---------------------------------------
-/* compareName(A1,A2,B1,B2) 
- * Compares pairs of names, return 0 if they match.  e.g. (A,B)==(A,B)==(B,A)
- */
-static int compareName(char *nameA1, char *nameA2, 
-                const char *nameB1, const char *nameB2) {
-
-  if ( ((strcmp(nameA1,nameB1)==0) && (strcmp(nameA2,nameB2)==0)) ||
-       ((strcmp(nameA1,nameB2)==0) && (strcmp(nameA2,nameB1)==0)) )
-    return 0;
-  else
-    return 1;
-}
-
-/* compare(a,b)
+/* compareChar(a,b)
  * Compare characters a and b, for use with qsort
  */
 static int compareChar(const void *a, const void *b) {
@@ -72,103 +60,6 @@ const char *atommap::Aname(int atom) {
   return (P->names[atom]);
 }
 
-/* atommap::getCut() 
- * Return a cutoff based on optimal covalent bond distance based on the 
- * identities of atom1 and atom2. When multiple hybridizations are possible
- * the longest possible bond length is used.
- * Treat X as chlorine for now, Y as Bromine.
- * Unless otherwise noted values taken from:
- *   Huheey, pps. A-21 to A-34; T.L. Cottrell, "The Strengths of Chemical Bonds," 
- *       2nd ed., Butterworths, London, 1958; 
- *   B. deB. Darwent, "National Standard Reference Data Series," National Bureau of Standards, 
- *       No. 31, Washington, DC, 1970; S.W. Benson, J. Chem. Educ., 42, 502 (1965).
- * Can be found on the web at:
- *   http://www.wiredchemist.com/chemistry/data/bond_energies_lengths.html
- */
-double atommap::getCut(char *atom1, char *atom2) {
-  // Default cutoff
-  double cut=1.60;
-
-  // Self
-  if (strcmp(atom1,atom2)==0) {
-    if      (strcmp(atom1,"H")==0) cut=0.74;
-    else if (strcmp(atom1,"N")==0) cut=1.45;
-    else if (strcmp(atom1,"C")==0) cut=1.54;
-    else if (strcmp(atom1,"O")==0) cut=1.48;
-    else if (strcmp(atom1,"P")==0) cut=2.21;
-    else if (strcmp(atom1,"S")==0) cut=2.05; // S-S gas-phase value; S=S is 1.49
-  }
-  // Bonds to H 
-  else if ( compareName(atom1,atom2,"H","C")==0 )
-    cut=1.09;
-  else if ( compareName(atom1,atom2,"H","N")==0 )
-    cut=1.01;
-  else if ( compareName(atom1,atom2,"H","O")==0 )
-    cut=0.96;
-  else if ( compareName(atom1,atom2,"H","P")==0 )
-    cut=1.44;
-  else if ( compareName(atom1,atom2,"H","S")==0 )
-    cut=1.34;
-  // Bonds to C
-  else if ( compareName(atom1,atom2,"C","N")==0 )
-    cut=1.47;
-  else if ( compareName(atom1,atom2,"C","O")==0 )
-    cut=1.43;
-  else if ( compareName(atom1,atom2,"C","P")==0 )
-    cut=1.84;
-  else if ( compareName(atom1,atom2,"C","F")==0 )
-    cut=1.35;
-  else if ( compareName(atom1,atom2,"C","X")==0 )
-    cut=1.77;
-  else if ( compareName(atom1,atom2,"C","Y")==0 )
-    cut=1.94;
-  else if ( compareName(atom1,atom2,"C","S")==0 )
-    cut=1.82;
-  // Bonds to N
-  else if ( compareName(atom1,atom2,"N","O")==0 )
-    cut=1.40;
-  else if ( compareName(atom1,atom2,"N","S")==0 )
-    cut=1.68; // Postma & Vos, Acta Cryst. (1973) B29, 915
-  else if ( compareName(atom1,atom2,"N","F")==0 )
-    cut=1.36;
-  else if ( compareName(atom1,atom2,"N","X")==0 )
-    cut=1.75;
-
-  // Bonds to P
-  else if ( compareName(atom1,atom2,"P","O")==0 )
-    cut=1.63;
-  else if ( compareName(atom1,atom2,"P","S")==0 )
-    cut=1.86;
-  else if ( compareName(atom1,atom2,"P","F")==0 )
-    cut=1.54;
-  else if ( compareName(atom1,atom2,"P","X")==0 )
-    cut=2.03; 
-
-  // Bonds to O
-  else if ( compareName(atom1,atom2,"O","S")==0 )
-    cut=1.48;
-  else if ( compareName(atom1,atom2,"O","F")==0 )
-    cut=1.42;
-
-  // Bonds to S
-  else if ( compareName(atom1,atom2,"S","F")==0 )
-    cut=1.56;
-  else if ( compareName(atom1,atom2,"S","X")==0 )
-    cut=2.07;
-
-  // No cutoff, use default
-  else {
-    if (debug>0) {
-      mprintf("Warning: atommap::getCut: Cut not found for %s - %s\n",atom1,atom2);
-      mprintf("                          Using default cutoff of %lf\n",cut);
-    }
-  }
-
-  // Padding value
-  cut+=0.1;
-  return cut;
-}
-
 /* atommap::calcDist()
  * Determine which atoms are bonded to each other in a given set of atoms
  * based on how close they are and their identity.
@@ -185,7 +76,9 @@ int atommap::calcDist() {
       r=F->DIST(i,j);
       if (debug>1) mprintf("%lf ",r);
       // Lookup bond distance based on atom names 
-      cut=getCut(names[i],names[j]);
+      // NOTE: Atom names should be 1 char at this point
+      //cut=getCut(names[i],names[j]);
+      cut = GetBondedCut(names[i][0],names[j][0]);
       if (r<cut) {
         if (debug>1) mprintf("nbondi=%i nbondj=%i ",nbondi,nbondj);
         if ((nbondi<MAXBONDS)&&(nbondj<MAXBONDS)) {
@@ -407,30 +300,13 @@ bool atommap::BondIsRepeated(int atom, int bond) {
  */
 int atommap::setup() {
   int atom,bond;
-  char *ptr;
 
   natom=P->natom;
   names=(char**) malloc(natom * sizeof(char*));
   // Set up atom names.
   for (atom=0; atom<natom; atom++) {
     names[atom]=(char*) malloc(2*sizeof(char));
-    // position ptr at first non-space character in name
-    ptr=P->names[atom];
-    while (*ptr==' ' && *ptr!='\0') ptr++;
-    // if NULL something went wrong, abort
-    if (*ptr=='\0') {
-      strcpy(names[atom],"");
-      continue;
-    }
-    names[atom][0]=ptr[0];
-    // If C, check for L or l for chlorine
-    if (ptr[0]=='C') {
-      if (ptr[1]=='L' || ptr[1]=='l') names[atom][0]='X';
-    }
-    // If B, check for R or r for bromine
-    if (ptr[0]=='B') {
-      if (ptr[1]=='R' || ptr[1]=='r') names[atom][0]='Y';
-    }
+    names[atom][0] = ElementFromName(P->names[atom]);
     names[atom][1]='\0';
     // DEBUG
     if (debug>0) mprintf("  Atom %i element: [%s]\n",atom,names[atom]);

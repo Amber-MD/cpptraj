@@ -4,7 +4,7 @@
  * Base on atom name, return 1 character signifying the element.
  * Convert chlorine to X, bromine to Y
  */
-static char ElementFromName(char *Name) {
+char ElementFromName(char *Name) {
   char *ptr;
   char element = 0;
   // position ptr at first non-space character in name
@@ -43,6 +43,17 @@ static bool compareElement(char a1, char a2, const char b1, const char b2) {
   return false;
 }
 
+/* GetBondedCut()
+ */
+double GetBondedCut(char *A1, char *A2) {
+  char atom1;
+  char atom2;
+  // Convert atom names to element names.
+  atom1 = ElementFromName(A1);
+  atom2 = ElementFromName(A2);
+  return GetBondedCut(atom1,atom2);
+}
+
 /* GetBondedCut() 
  * Return a cutoff based on optimal covalent bond distance based on the 
  * identities of atom1 and atom2. When multiple hybridizations are possible
@@ -56,14 +67,9 @@ static bool compareElement(char a1, char a2, const char b1, const char b2) {
  * Can be found on the web at:
  *   http://www.wiredchemist.com/chemistry/data/bond_energies_lengths.html
  */
-double GetBondedCut(char *A1, char *A2) {
-  char atom1;
-  char atom2;
+double GetBondedCut(char atom1, char atom2) {
   // Default cutoff
   double cut=1.60;
-  // Convert atom names to element names.
-  atom1 = ElementFromName(A1);
-  atom2 = ElementFromName(A2);
   // Self
   if (atom1==atom2) {
     if      (atom1=='H') cut=0.74;

@@ -38,7 +38,7 @@ class atommap {
     const char *atomID(int);
     const char *Aname(int);
     int setup();                    // Set up atom map, get atom elmt names, init map
-    double getCut(char *, char *);  // Determine bond length cutoff between two atoms
+    //double getCut(char *, char *);  // Determine bond length cutoff between two atoms
     int calcDist();                 // Determine bonds between atoms based on distance
     void determineAtomID();         // Give each atom an id based on what atoms are bonded to it
     void markAtomComplete(int,bool);// Mark complete if atom and all atoms bonded to it are unique
