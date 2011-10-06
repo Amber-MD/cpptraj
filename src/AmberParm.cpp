@@ -5,18 +5,17 @@
  *   The names, resnames, resnums arrays.
  *   The natom, ifbox and nres variables.
  * NOTES:
- *   Eventually make the mol2 read parm function use the AddBond function.
  */
 #include <cstdlib>
 #include <cstring>
 #include <cstdio> // For sscanf, sprintf
-#include <ctime> // for writing time/date to parmtop
+#include <ctime> // for writing time/date to amber parmtop
 #include "AmberParm.h" // PtrajFile.h
 #include "FortranFormat.h" 
 #include "PDBfileRoutines.h"
 #include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
-// For PDB distance search
+// For searching for bonds by distance (PDB etc)
 #include "DistRoutines.h"
 #include "Bonds.h"
 
@@ -32,7 +31,7 @@ AmberParm::AmberParm() {
   parmName=NULL;
   pindex=0;
   parmFrames=0;
-  //outFrame=0;
+  parmCoords=NULL;
 
   NbondsWithH=0;
   NbondsWithoutH=0;
@@ -84,6 +83,7 @@ AmberParm::~AmberParm() {
   if (solventMoleculeStop!=NULL) free(solventMoleculeStop);
 
   if (SurfaceInfo!=NULL) free(SurfaceInfo);
+  if (parmCoords!=NULL) free(parmCoords);
 }
 
 /* SetDebug()
@@ -516,11 +516,18 @@ int AmberParm::OpenParm(char *filename) {
   // Set up solvent information
   if (SetSolventInfo()) return 1;
 
+  // Set up bond information if necessary
+  if (bonds==NULL && bondsh==NULL && parmCoords!=NULL)
+    GetBondsFromCoords();
+
   if (debug>0) {
     mprintf("  Number of atoms= %i\n",natom);
     mprintf("  Number of residues= %i\n",nres);
   }
 
+  // Free coords if they were allocated
+  if (parmCoords!=NULL) free(parmCoords);
+  parmCoords=NULL;
   return 0;
 }
 
@@ -648,7 +655,6 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
   int currResnum;
   int atom;
   int atomInLastMol = 0;
-  double *coords=NULL;
   unsigned int crdidx = 0;
 
   mprintf("    Reading PDB file %s as topology file.\n",parmName);
@@ -677,8 +683,8 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
       pdb_name(buffer, (char*)names[natom]);
 
       // Allocate memory for coords
-      coords = (double*) realloc(coords, (natom+1)*3*sizeof(double));
-      pdb_xyz(buffer, coords + crdidx);
+      parmCoords = (double*) realloc(parmCoords, (natom+1)*3*sizeof(double));
+      pdb_xyz(buffer, parmCoords + crdidx);
       crdidx+=3;
 
       // If this residue number is different than the last, allocate mem for new res
@@ -737,37 +743,9 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
   // If no atoms, probably issue with PDB file
   if (natom<=0) {
     mprintf("Error: No atoms in PDB file.\n");
-    free(coords);
     return 1;
   }
 
-  // Determine bonding from distance search.
-  mprintf("\tPDB: determining bond info from distances.\n");
-  for (int atom1 = 0; atom1 < natom - 1; atom1++) {
-    int idx1 = atom1 * 3;
-    for (int atom2 = atom1 + 1; atom2 < natom; atom2++) {
-      int idx2 = atom2 * 3;
-      double D = DIST2_NoImage(coords + idx1, coords + idx2);
-      //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
-      double cut = GetBondedCut(names[atom1],names[atom2]);
-      cut *= cut;
-      if (debug>0) {
-        if (debug==1) {
-          if (D<cut) mprintf("\tBOND: %s %i to %s %i\n",names[atom1],atom1+1,
-                              names[atom2],atom2+1);
-        } else if (debug > 1) {
-          mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
-                  names[atom2],atom2+1,D,cut);
-          if (D<cut) mprintf(" bonded!");
-          mprintf("\n");
-        }
-      }
-      if (D < cut) AddBond(atom1,atom2,-1); 
-    }
-  }
-  mprintf("\tPDB: %i bonds to hydrogen, %i other bonds.\n",NbondsWithH,NbondsWithoutH);
-
-  free(coords);
   return 0;
 }
 
@@ -776,9 +754,9 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
  */
 int AmberParm::ReadParmMol2(PtrajFile *parmfile) {
   char buffer[MOL2BUFFERSIZE];
-  int mol2bonds, atom;
+  int mol2bonds;
   int resnum, currentResnum;
-  int numbonds3, numbondsh3;
+  unsigned int crdidx = 0;
   char resName[5];
 
   currentResnum=-1;
@@ -802,10 +780,12 @@ int AmberParm::ReadParmMol2(PtrajFile *parmfile) {
   names = (NAME*) malloc( natom * sizeof(NAME));
   types = (NAME*) malloc( natom * sizeof(NAME));
   charge = (double*) malloc( natom * sizeof(double));
+  // Allocate space for coords
+  parmCoords = (double*) malloc( natom * 3 * sizeof(double));
 
   // Get @<TRIPOS>ATOM information
   if (Mol2ScanTo(parmfile, ATOM)) return 1;
-  for (atom=0; atom < natom; atom++) {
+  for (int atom=0; atom < natom; atom++) {
     if ( parmfile->IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
     // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
     //sscanf(buffer,"%*i %s %*f %*f %*f %s %i %s %lf", names[atom], types[atom],
@@ -813,6 +793,8 @@ int AmberParm::ReadParmMol2(PtrajFile *parmfile) {
     //mprintf("      %i %s %s %i %s %lf\n",atom,names[atom],types[atom],resnum,resName,charge[atom]);
     Mol2AtomName(buffer,names[atom]);
     Mol2AtomType(buffer,types[atom]);
+    Mol2XYZ(buffer,parmCoords + crdidx);
+    crdidx += 3;
     Mol2ResNumName(buffer,&resnum,resName);
     charge[atom]=Mol2Charge(buffer);
     // Check if residue number has changed - if so record it
@@ -829,36 +811,15 @@ int AmberParm::ReadParmMol2(PtrajFile *parmfile) {
   // Get @<TRIPOS>BOND information [optional]
   NbondsWithoutH=0;
   NbondsWithH=0;
-  numbonds3=0;
-  numbondsh3=0;
   if (Mol2ScanTo(parmfile, BOND)==0) {
-    for (atom=0; atom < mol2bonds; atom++) {
+    for (int bond=0; bond < mol2bonds; bond++) {
       if ( parmfile->IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
       // bond_id origin_atom_id target_atom_id bond_type [status_bits]
       //         resnum         currentResnum
       sscanf(buffer,"%*i %i %i\n",&resnum,&currentResnum);
       // mol2 atom #s start from 1
-      if ( names[resnum-1][0]=='H' || names[currentResnum-1][0]=='H' ) {
-        bondsh = (int*) realloc(bondsh, (NbondsWithH+1)*3*sizeof(int));
-        bondsh[numbondsh3  ]=(resnum-1)*3;
-        bondsh[numbondsh3+1]=(currentResnum-1)*3;
-        bondsh[numbondsh3+2]=0; // Need to assign some force constant eventually
-        //mprintf("      Bond to Hydrogen %s-%s %i-%i\n",names[resnum-1],names[currentResnum-1],
-        //        resnum, currentResnum);
-        NbondsWithH++;
-        numbondsh3+=3;
-      } else {
-        bonds = (int*) realloc(bonds, (NbondsWithoutH+1)*3*sizeof(int));
-        bonds[numbonds3  ]=(resnum-1)*3;
-        bonds[numbonds3+1]=(currentResnum-1)*3;
-        bonds[numbonds3+2]=0; // Need to assign some force constant eventually
-        //mprintf("      Bond %s-%s %i-%i\n",names[resnum-1],names[currentResnum-1],
-        //        resnum, currentResnum);
-        NbondsWithoutH++;
-        numbonds3+=3;
-      }
+      AddBond(resnum-1, currentResnum-1,0);
     }
-    
   } else {
     mprintf("      Mol2 file does not contain bond information.\n");
   }
@@ -1173,6 +1134,68 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
     bonds[bondidx+2] = icb;
     NbondsWithoutH++;
   }
+  return 0;
+}
+
+/* AmberParm::GetBondsFromCoords()
+ * Given an array of coordinates X0Y0Z0X1Y1Z1...XNYNZN determine which
+ * atoms are bonded via distance search.
+ */
+void AmberParm::GetBondsFromCoords() {
+  if (parmCoords==NULL) return;
+  // Determine bonding from distance search.
+  mprintf("\t%s: determining bond info from distances.\n",parmName);
+  for (int atom1 = 0; atom1 < natom - 1; atom1++) {
+    int idx1 = atom1 * 3;
+    for (int atom2 = atom1 + 1; atom2 < natom; atom2++) {
+      int idx2 = atom2 * 3;
+      double D = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
+      //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
+      double cut = GetBondedCut(names[atom1],names[atom2]);
+      cut *= cut; // Op '*' less expensive than sqrt
+      if (debug>0) {
+        if (debug==1) {
+          if (D<cut) mprintf("\tBOND: %s %i to %s %i\n",names[atom1],atom1+1,
+                              names[atom2],atom2+1);
+        } else if (debug > 1) {
+          mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
+                  names[atom2],atom2+1,D,cut);
+          if (D<cut) mprintf(" bonded!");
+          mprintf("\n");
+        }
+      }
+      if (D < cut) AddBond(atom1,atom2,-1); 
+    }
+  }
+  mprintf("\t%s: %i bonds to hydrogen, %i other bonds.\n",parmName,NbondsWithH,NbondsWithoutH);
+}
+
+/* AmberParm::DetermineMolecules()
+ * Given that bonding information for the parm has been set up, attempt
+ * to determine how many molecules (i.e. entities that are not covalently
+ * bonded) there are.
+ */
+int AmberParm::DetermineMolecules() {
+  // Mol maxbonds #bonds bond1 bond2 bond3 bond4 bond5 bond6 bond7 
+  // 0   1        2      3     4     5     6     7     8     9
+  typedef int bondinfo[10];
+  bondinfo *Molecule;
+
+  Molecule = (bondinfo*) malloc(natom * sizeof(bondinfo));
+  // Initialize molecule info for all atoms
+  for (int atom=0; atom < natom; atom++) {
+    Molecule[atom][0] = -1;
+    Molecule[atom][1] = 0;
+    Molecule[atom][2] = 0;
+    Molecule[atom][3] = -1;
+    Molecule[atom][4] = -1;
+    Molecule[atom][5] = -1;
+    Molecule[atom][6] = -1;
+    Molecule[atom][7] = -1;
+    Molecule[atom][8] = -1;
+    Molecule[atom][9] = -1;
+  }
+
   return 0;
 }
 

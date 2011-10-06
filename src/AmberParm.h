@@ -46,6 +46,10 @@ class AmberParm {
     int ReadParmPDB(PtrajFile *);
     int ReadParmPSF(PtrajFile *);
 
+    void GetBondsFromCoords();
+    double *parmCoords;
+    int DetermineMolecules();
+
   public:
     char *parmfileName;   // Parm filename (full path)
     char *parmName;       // Parm name, set to base filename on reads 
