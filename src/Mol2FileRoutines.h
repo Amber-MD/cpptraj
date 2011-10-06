@@ -6,6 +6,7 @@ enum TRIPOSTAG { MOLECULE, ATOM, BOND, SUBSTRUCT };
 
 int Mol2ScanTo( PtrajFile *, TRIPOSTAG );
 int Mol2AtomName(char *, char *);
+int Mol2XYZ(char *, double *);
 int Mol2AtomType(char *, char *);
 int Mol2ResNumName(char *, int *, char *);
 double Mol2Charge(char *);

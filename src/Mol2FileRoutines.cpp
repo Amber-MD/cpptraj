@@ -49,6 +49,15 @@ int Mol2AtomName(char *buffer, char *name) {
   return 0;
 }
 
+/* Mol2XYZ()
+ * Given a Mol2 ATOM line, get the X Y and Z coords.
+ */
+int Mol2XYZ(char *buffer, double *X) {
+  if (buffer==NULL || X==NULL) return 1;
+  sscanf(buffer,"%*i %*s %lf %lf %lf",X, X+1, X+2);
+  return 0;
+}
+
 /* Mol2AtomType
  * Given a Mol2 ATOM line, return atom type. Try to convert Sybyl atom type
  * to amber type.
