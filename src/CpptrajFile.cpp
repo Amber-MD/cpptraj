@@ -26,19 +26,6 @@
 #  include "Bzip2File.h"
 #endif
 
-//typedef char enumToken[30];
-const CpptrajFile::enumToken CpptrajFile::FileFormatList[15] = {
-  "UNKNOWN_FORMAT", "PDBFILE", "AMBERTRAJ", "AMBERNETCDF", "AMBERPARM", 
-  "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", 
-  "AMBERRESTARTNC", "MOL2FILE", "GNUPLOT", "CHARMMPSF", "CHARMMDCD"
-};
-const CpptrajFile::enumToken CpptrajFile::FileTypeList[6] = {
-  "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
-};
-const CpptrajFile::enumToken CpptrajFile::AccessList[3] = {
-  "R", "W", "A"
-};
-
 // CONSTRUCTOR
 CpptrajFile::CpptrajFile() {
   IO=NULL;
@@ -55,16 +42,6 @@ CpptrajFile::CpptrajFile() {
   isDos=0;
 }
 
-// Return enumerated type for FileFormat
-char *CpptrajFile::Format(FileFormat FFin) {
-  return (char*)FileFormatList[FFin];
-}
-
-// Return enumerated type for FileType
-char *CpptrajFile::Type(FileType FTin) {
-  return (char*)FileTypeList[FTin];
-}
-
 // DESTRUCTOR
 CpptrajFile::~CpptrajFile() {
    //fprintf(stderr,"CPPTRAJFILE DESTRUCTOR\n");
@@ -73,48 +50,6 @@ CpptrajFile::~CpptrajFile() {
    if (filename!=NULL) free(filename);
    if (basefilename!=NULL) free(basefilename);
    if (Ext!=NULL) free(Ext);
-}
-
-/* CpptrajFile::GetFmtFromArg()
- * Return file format given a file format keyword. Default to def. 
- * NOTE: def should probably not be allowed to be UNKNOWN_FORMAT,
- * but this is currently not explicitly checked.
- */
-FileFormat CpptrajFile::GetFmtFromArg(char *argIn, FileFormat def) {
-  FileFormat writeFormat = def;
-  if (argIn==NULL) return writeFormat;
-  if      ( strcmp(argIn,"pdb")==0      ) writeFormat=PDBFILE;
-  else if ( strcmp(argIn,"data")==0     ) writeFormat=DATAFILE;
-  else if ( strcmp(argIn,"netcdf")==0   ) writeFormat=AMBERNETCDF;
-  else if ( strcmp(argIn,"restart")==0  ) writeFormat=AMBERRESTART;
-  else if ( strcmp(argIn,"ncrestart")==0) writeFormat=AMBERRESTARTNC;
-  else if ( strcmp(argIn,"restartnc")==0) writeFormat=AMBERRESTARTNC;
-  else if ( strcmp(argIn,"mol2")==0     ) writeFormat=MOL2FILE;
-  return writeFormat;
-}
-
-/* CpptrajFile::SetExtFromFmt()
- * Set buffer with a filename extension corresponding to the given file 
- * format. Currently the longest extension requires buffer size of 7.
- */
-void CpptrajFile::SetExtFromFmt(char *buffer, FileFormat fmtIn) {
-  if (buffer==NULL) return;
-  switch (fmtIn) {
-    case PDBFILE       : strcpy(buffer,".pdb"  ); break;
-    case AMBERTRAJ     : strcpy(buffer,".crd"  ); break;
-    case AMBERNETCDF   : strcpy(buffer,".nc"   ); break;
-    case AMBERPARM     : strcpy(buffer,".parm7"); break;
-    case DATAFILE      : strcpy(buffer,".dat"  ); break;
-    case AMBERRESTART  : strcpy(buffer,".rst7" ); break;
-    case XMGRACE       : strcpy(buffer,".agr"  ); break;
-    case AMBERRESTARTNC: strcpy(buffer,".ncrst"); break;
-    case MOL2FILE      : strcpy(buffer,".mol2" ); break;
-    case GNUPLOT       : strcpy(buffer,".gnu"  ); break;
-    case CHARMMPSF     : strcpy(buffer,".psf"  ); break;
-    case CHARMMDCD     : strcpy(buffer,".dcd"  ); break;
-    default:
-      strcpy(buffer,"");
-  }
 }
 
 /* CpptrajFile::OpenFile()
@@ -161,42 +96,6 @@ void CpptrajFile::CloseFile() {
     isOpen=0;
   }
 }
-
-/* CpptrajFile::determineType()
- * If the file type is unknown attempt to determine it from filename extension.
- * Default to standard.
- */
-void CpptrajFile::determineType() {
-
-  if (fileType!=UNKNOWN_TYPE) return;
-
-  // No extension
-  if (Ext==NULL) {
-    fileType=STANDARD;
-    return;
-  }
-
-  if      ( strcmp(Ext,".gz")==0  ) fileType=GZIPFILE;
-  else if ( strcmp(Ext,".bz2")==0 ) fileType=BZIP2FILE;
-  else fileType=STANDARD;
-}
-
-/* CpptrajFile::determineFormat()
- * If the file format is unknown attempt to determine from filename extension.
- * Default to datafile.
- */
-void CpptrajFile::determineFormat() {
-
-  if (fileFormat!=UNKNOWN_FORMAT) return;
-
-  // No extension
-  if (Ext==NULL) return;
-
-  if      ( strcmp(Ext,".dat")==0 ) fileFormat=DATAFILE;
-  else if ( strcmp(Ext,".agr")==0 ) fileFormat=XMGRACE;
-  else if ( strcmp(Ext,".gnu")==0 ) fileFormat=GNUPLOT;
-  else fileFormat=DATAFILE;
-}  
 
 /* CpptrajFile::SetBaseFilename()
  * Strip leading path from input filename. Use strtok routine to separate 
@@ -269,8 +168,8 @@ int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn,
   debug=debugIn;
   if (debug>0) {
     mprintf("CpptrajFile: [%s] FMT %s, TYPE %s, ACC %s\n",filenameIn,
-           FileFormatList[fileFormatIn],FileTypeList[fileTypeIn],
-           AccessList[accessIn]);
+           File_Format(fileFormatIn),File_Type(fileTypeIn),
+           File_Access(accessIn));
   }
 
   // Store filename
@@ -312,17 +211,15 @@ int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn,
     case WRITE: 
       // If file type is not specified, try to determine from filename
       // NOTE: Also determine format from name??
-      fileType=fileTypeIn;
-      fileFormat=fileFormatIn;
-      this->determineType();
-      this->determineFormat();
+      fileType=DetermineType(fileTypeIn,Ext);
+      fileFormat=DetermineFormat(fileFormatIn,Ext);
       if ( SetupWrite() ) return 1; 
       break;
     default: return 1;
   }
   if (debug>0)
     rprintf("\t[%s] is format %s and type %s with access %s\n",filename,
-           FileFormatList[fileFormat],FileTypeList[fileType],AccessList[access]);
+           File_Format(fileFormat),File_Type(fileType),File_Access(access));
   return 0;
 }
 

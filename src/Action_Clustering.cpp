@@ -35,10 +35,6 @@ Clustering::~Clustering() {
  */
 int Clustering::init() {
   char *mask0,*cnumvtimefile,*clusterformat,*singlerepformat,*repformat;
-  // NOTE: CpptrajFile is here just for determining/writing format. Should those
-  //       functions be separate?
-  CpptrajFile TempFile;
-
   // Get keywords
   useMass = A->hasKey("mass");
   targetNclusters = A->getKeyInt("clusters",-1);
@@ -58,13 +54,13 @@ int Clustering::init() {
   repformat = A->getKeyString("repfmt",NULL);
   // Figure out trajectory formats
   if (clusterfile!=NULL) {
-    clusterfmt = TempFile.GetFmtFromArg(clusterformat,AMBERTRAJ);
+    clusterfmt = GetFmtFromArg(clusterformat,AMBERTRAJ);
   }
   if (singlerepfile!=NULL) {
-    singlerepfmt = TempFile.GetFmtFromArg(singlerepformat,AMBERTRAJ);
+    singlerepfmt = GetFmtFromArg(singlerepformat,AMBERTRAJ);
   }
   if (repfile!=NULL) {
-    repfmt = TempFile.GetFmtFromArg(repformat,AMBERTRAJ);
+    repfmt = GetFmtFromArg(repformat,AMBERTRAJ);
   }
   // Get the mask string 
   mask0 = A->getNextMask();
@@ -100,11 +96,14 @@ int Clustering::init() {
     mprintf("            Summary of cluster results will be written to %s\n",summaryfile);
   if (clusterfile!=NULL)
     mprintf("            Cluster trajectories will be written to %s, format %s\n",
-            clusterfile,TempFile.Format(clusterfmt));
+            clusterfile,File_Format(clusterfmt));
   if (singlerepfile!=NULL)
     mprintf("            Cluster representatives will be written to 1 traj (%s), format %s\n",
-            singlerepfile,TempFile.Format(singlerepfmt));
-
+            singlerepfile,File_Format(singlerepfmt));
+  if (repfile!=NULL) {
+    mprintf("            Cluster representatives will be written to separate trajectories,\n");
+    mprintf("            prefix (%s), format %s\n",repfile,File_Format(repfmt));
+  }
   // If epsilon not given make it huge 
   if (epsilon == -1.0) epsilon = DBL_MAX;
   // if target clusters not given make it 1
@@ -410,11 +409,9 @@ void Clustering::WriteRepTraj( ClusterList *CList ) {
   Frame *clusterframe;
   char ext[8];
   char *cfilename = NULL;
-  // NOTE: USED TO GET FORMAT EXTENSION ONLY. EVENTUALLY MOVE FORMAT TO ITS OWN FILE
-  CpptrajFile temp;
 
   // Set output extension for this file format
-  temp.SetExtFromFmt(ext,repfmt);
+  SetExtFromFmt(ext,repfmt);
 
   CList->Begin();
   while (!CList->End()) {
