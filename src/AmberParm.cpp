@@ -362,9 +362,23 @@ int AmberParm::SetSolventInfo() {
   solventMolecules=0;
   solventAtoms=0;
 
-  // If atomsPerMol is set but firstSolvMol==-1, assume no solvent.
+  // If atomsPerMol is set but firstSolvMol==-1, try to find first solvent
+  // molecule by residue name. 
   if (atomsPerMol!=NULL && firstSolvMol==-1) {
-    mprintf("\tWarning: atomsPerMol is set but no solvent detected.\n");
+    int atomcount=0;
+    for (int mol = 0; mol < molecules; mol++) {
+      int resid = atomToResidue(atomcount);
+      if (IsSolventResname( resnames[resid] ) ) {
+        firstSolvMol = atomToMolecule(atomcount) + 1;
+        break;
+      }
+      atomcount += atomsPerMol[mol];
+    }
+  }
+
+  // If atomsPerMol is set but firstSolvMol is still -1, assume no solvent.
+  if (atomsPerMol!=NULL && firstSolvMol==-1) {
+      mprintf("\tWarning: atomsPerMol is set but no solvent detected.\n");
 
   // Treat all the molecules starting with firstSolvMol (nspsol) as solvent
   } else if (atomsPerMol!=NULL) {
@@ -513,16 +527,21 @@ int AmberParm::OpenParm(char *filename) {
     ReplaceAsterisk(names[res]);
   }
 
-  // Set up solvent information
-  if (SetSolventInfo()) return 1;
-
   // Set up bond information if necessary
   if (bonds==NULL && bondsh==NULL && parmCoords!=NULL)
     GetBondsFromCoords();
 
+  // DEBUG: Molecule test
+  if (atomsPerMol==NULL)
+    DetermineMolecules();
+
+  // Set up solvent information
+  if (SetSolventInfo()) return 1;
+
   if (debug>0) {
     mprintf("  Number of atoms= %i\n",natom);
     mprintf("  Number of residues= %i\n",nres);
+    mprintf("  Number of molecules= %i\n",molecules);
   }
 
   // Free coords if they were allocated
@@ -1176,25 +1195,38 @@ void AmberParm::GetBondsFromCoords() {
  * bonded) there are.
  */
 int AmberParm::DetermineMolecules() {
-  // Mol maxbonds #bonds bond1 bond2 bond3 bond4 bond5 bond6 bond7 
-  // 0   1        2      3     4     5     6     7     8     9
-  typedef int bondinfo[10];
-  bondinfo *Molecule;
+  BondInfo mol;
+  int bond3;
 
-  Molecule = (bondinfo*) malloc(natom * sizeof(bondinfo));
-  // Initialize molecule info for all atoms
-  for (int atom=0; atom < natom; atom++) {
-    Molecule[atom][0] = -1;
-    Molecule[atom][1] = 0;
-    Molecule[atom][2] = 0;
-    Molecule[atom][3] = -1;
-    Molecule[atom][4] = -1;
-    Molecule[atom][5] = -1;
-    Molecule[atom][6] = -1;
-    Molecule[atom][7] = -1;
-    Molecule[atom][8] = -1;
-    Molecule[atom][9] = -1;
+  if (bonds==NULL || bondsh==NULL) {
+    mprinterr("Error: DetermineMolecules: No bond information set up.\n");
+    return 1;
   }
+  mprintf("\t%s: Determining molecule information from bonds.\n",parmName);
+
+  mol.Setup(natom);
+
+  // Set max valences
+  for (int atom=0; atom < natom; atom++) 
+    mol.SetValence(atom,names[atom]);
+
+  // Go through the bonds and bondsh arrays
+  bond3 = NbondsWithH * 3;
+  for (int bond=0; bond < bond3; bond+=3) {
+    int atom1 = bondsh[bond  ] / 3;
+    int atom2 = bondsh[bond+1] / 3;
+    mol.CreateBond(atom1,atom2);
+  }
+  bond3 = NbondsWithoutH * 3;
+  for (int bond=0; bond < bond3; bond+=3) {
+    int atom1 = bonds[bond  ] / 3;
+    int atom2 = bonds[bond+1] / 3;
+    mol.CreateBond(atom1,atom2);
+  }
+ 
+  atomsPerMol = mol.DetermineMolecules(&molecules);
+ 
+  //mol.PrintBonds();
 
   return 0;
 }
