@@ -1,5 +1,174 @@
 #include "Bonds.h"
 #include "CpptrajStdio.h"
+#include <cstdlib> // NULL, malloc
+
+// CONSTRUCTOR
+BondInfo::BondInfo() {
+  natom = 0;
+  Molecule=NULL;
+}
+
+// DESTRUCTOR
+BondInfo::~BondInfo() {
+  if (Molecule!=NULL) delete[] Molecule;
+}
+
+/* BondInfo::Setup()
+ * Set up for the given number of atoms.
+ */
+int BondInfo::Setup(int natomIn) {
+  natom = natomIn;
+  Molecule = new bondinfo[natom];
+  // Initialize molecule info for all atoms
+  for (int atom=0; atom < natom; atom++) {
+    Molecule[atom][0] = -1;
+    Molecule[atom][1] = 0;
+    Molecule[atom][2] = 0;
+    Molecule[atom][3] = -1;
+    Molecule[atom][4] = -1;
+    Molecule[atom][5] = -1;
+    Molecule[atom][6] = -1;
+    Molecule[atom][7] = -1;
+    Molecule[atom][8] = -1;
+    Molecule[atom][9] = -1;
+  }
+  return 0;
+}
+
+/* BondInfo::SetValence()
+ * Set max valence for the given atom based on the given atom name
+ * NOTE: Just set to max (7) for now.
+ */
+void BondInfo::SetValence(int atom, char *Name) {
+  //Molecule[atom][1] = MaxValence(Name);
+  Molecule[atom][1] = 7;
+}
+
+/* BondInfo::BondAtoms()
+ * Create a bond from atom2 to atom1.
+ */
+int BondInfo::BondAtoms(int atom1, int atom2) {
+  // Add atom2 to atom1
+  if (Molecule[atom1][2] + 1 > Molecule[atom1][1]) {
+    mprintf("Warning: BondAtoms: Valences for atom %i maxed (%i)!\n",atom1+1,
+            Molecule[atom1][1]);
+    return 1;
+  }
+  int idx = Molecule[atom1][2] + 3;
+  Molecule[atom1][idx] = atom2;
+  Molecule[atom1][2]++;
+  return 0;
+}
+
+/* BondInfo::CreateBond()
+ * Create bond between both atoms.
+ */
+int BondInfo::CreateBond(int atom1, int atom2) {
+  BondAtoms(atom1,atom2);
+  BondAtoms(atom2,atom1);
+  return 0;
+}
+
+/* BondInfo::PrintBonds()
+ */
+void BondInfo::PrintBonds() {
+  int idx;
+  for (int atom=0; atom < natom; atom++) {
+    mprintf("\t%8i [%8i]:",atom+1,Molecule[atom][0]);
+    idx = 3;
+    for (int bond=0; bond < Molecule[atom][2]; bond++) {
+      mprintf(" %i",Molecule[atom][idx++]+1);
+    }
+    mprintf("\n");
+  }
+}
+
+/* BondInfo::VisitAtom()
+ */
+void BondInfo::VisitAtom(int atom, int mol) {
+  // If this atom has already been visited return
+  if (Molecule[atom][0]!=-1) return;
+  // Mark this atom as visited
+  Molecule[atom][0]=mol;
+  // Visit each atom bonded to this atom
+  int idx = 3;
+  for (int bond = 0; bond < Molecule[atom][2]; bond++) {
+    VisitAtom(Molecule[atom][idx], mol);
+    idx++;
+  }
+}
+
+/* BondInfo::DetermineMolecules() 
+ */
+int *BondInfo::DetermineMolecules(int *molecules) {
+  int mol=0;
+  int *atomsPerMol = NULL;
+  // First perform recursive search along bonds to determine molecules
+  for (int atom = 0; atom < natom; atom++) {
+    if (Molecule[atom][0]==-1) {
+      //mprintf("\t\tStarting search for molecule %i at atom %i\n",mol,atom+1);
+      VisitAtom(atom, mol);
+      mol++;
+    }
+  }
+  mprintf("\t%i molecules.\n",mol);
+
+  // Second count how many atoms are in each molecule
+  //atomsPerMol = new int[mol];
+  // NOTE: cant use 'new' here yet since AmberParm still uses 'free'
+  atomsPerMol = (int*) malloc(mol * sizeof(int));
+  for (int molecule = 0; molecule < mol; molecule++)
+    atomsPerMol[ molecule ] = 0;
+  for (int atom=0; atom < natom; atom++) {
+    int molecule = Molecule[atom][0];
+    if (molecule>-1)
+      atomsPerMol[ molecule ]++;
+  }
+  // DEBUG
+  //for (int molecule = 0; molecule < mol; molecule++) 
+  //  mprintf("\tAtomsPerMol %8i: %i\n",molecule,atomsPerMol[ molecule ]);
+
+  *molecules = mol;
+  return atomsPerMol;
+}
+
+/* ========================================================================== */
+/* AtomicNumberFromName()
+ */
+int AtomicNumberFromName(char *Name) {
+  char *ptr;
+  int element = -1;
+  // position ptr at first non-space character in name
+  ptr=Name;
+  while (*ptr==' ' && *ptr!='\0') ptr++;
+  // if NULL something went wrong, abort
+  if (*ptr=='\0') {
+    return -1;
+  }
+  switch (ptr[0]) {
+    case 'H' : element = 1; break;
+    case 'B' :
+      if (ptr[1]=='r' || ptr[1]=='R') element = 35;
+      else element = 5;
+      break;
+    case 'C' :
+      if (ptr[1]=='l' || ptr[1]=='L') element = 17;
+      else element = 6;
+      break;
+    case 'N' : element = 7; break;
+    case 'O' : element = 8; break;
+    case 'F' :
+      if (ptr[1]=='e' || ptr[1]=='E') element = 26;
+      else element = 9;
+      break;
+    case 'P' : element = 15; break;
+    case 'S' : element = 16; break;
+    default:
+      mprintf("Warning: Could not determine atomic number from name [%s]\n",Name);
+  }
+  return element;
+}
+ 
 /* GetElementFromName()
  * Base on atom name, return 1 character signifying the element.
  * Convert chlorine to X, bromine to Y
@@ -43,7 +212,36 @@ static bool compareElement(char a1, char a2, const char b1, const char b2) {
   return false;
 }
 
+/* MaxValence()
+ * For the given atom name, determine the element with ElementFromName
+ * and return the maximum number of bonds.
+ * NOTE: Although Cl and Br (X and Y) can theoretically have 5 bonds,
+ * in most cases they should only have 1, so return 1.
+*/
+int MaxValence(char *Name) {
+  char element = ElementFromName(Name);
+  int valence = 7; // default
+  switch (element) {
+    case 'H' : valence = 1; break;
+    case 'B' : valence = 3; break;
+    case 'C' : valence = 4; break;
+    case 'N' : valence = 3; break;
+    case 'O' : valence = 2; break;
+    case 'F' : valence = 1; break;
+    case 'P' : valence = 5; break;
+    case 'S' : valence = 6; break;
+    case 'X' : valence = 1; break;
+    case 'Y' : valence = 1; break;
+    default:
+      mprintf("\tWarning: Could not determine element for %s, using max valence (%i)\n",
+              valence);
+  }
+  return valence;
+}
+
 /* GetBondedCut()
+ * See below. This version converts atom names to 1 char element codes, then
+ * determines the cutoff.
  */
 double GetBondedCut(char *A1, char *A2) {
   char atom1;
