@@ -3,7 +3,7 @@
 #include "TrajinList.h"
 //#include "RemdTraj.h"
 #include "CpptrajStdio.h"
-//#include "PtrajMpi.h" // worldrank,worldsize
+//#include "MpiRoutines.h" // worldrank,worldsize
 
 // CONSTRUCTOR
 TrajinList::TrajinList() {

@@ -2,7 +2,7 @@
 #define INC_MPIFILE_H
 // MPI file IO
 #include "BaseFileIO.h" 
-#include "PtrajMpi.h"
+#include "MpiRoutines.h"
 
 class MpiFile : public BaseFileIO {
     parallelType pfile; 

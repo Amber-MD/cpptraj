@@ -3,7 +3,7 @@
 /// Class: TrajectoryIO
 /// TrajectoryIO will be the base class for performing trajectory reading
 /// and writing that all formats will inherit. If the trajectory format
-/// reads/writes from a file, a PtrajFile object should be passed in via
+/// reads/writes from a file, a CpptrajFile object should be passed in via
 /// the SetFile function. 
 /// The following functions can be implemented by the inheriting class:
 ///   setupRead(): Called inside TrajectoryFile::SetupRead. Takes as an 
@@ -34,11 +34,11 @@
 ///                       implemented as functions that can be called 
 ///                       independently if need be (e.g. setting the write
 ///                       mode for PDB files).
-#include "AmberParm.h" // PtrajFile BoxType
+#include "AmberParm.h" // CpptrajFile BoxType
 #include "ArgList.h"
 class TrajectoryIO {
   protected:
-    PtrajFile *tfile;   // Base file.
+    CpptrajFile *tfile;   // Base file.
     char *title;        // Trajectory title.
     int debug;          // Debug level
   public:
@@ -61,7 +61,7 @@ class TrajectoryIO {
     virtual void info() { return; }
     virtual int processWriteArgs(ArgList *) { return 0; }
   
-    void SetFile(PtrajFile *);
+    void SetFile(CpptrajFile *);
     void SetTitle(char *);
     bool FilenameIs(char *);
     void SetDebug(int);

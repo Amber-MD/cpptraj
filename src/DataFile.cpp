@@ -223,7 +223,7 @@ void DataFile::DataSetNames() {
  * Exit if no datasets in this datafile have been used.
  */
 void DataFile::Write() {
-  PtrajFile outfile;
+  CpptrajFile outfile;
   int set,nwrite;
   int maxSetFrames = 0;
   int currentMax = 0;
@@ -295,7 +295,7 @@ void DataFile::Write() {
 /* DataFile::WriteData()
  * Write datasets to file. Put each set in its own column. 
  */
-void DataFile::WriteData(PtrajFile *outfile) {
+void DataFile::WriteData(CpptrajFile *outfile) {
   int set,frame,empty;
   char *ptr,*buffer;
   int lineSize = 0;
@@ -378,7 +378,7 @@ void DataFile::WriteData(PtrajFile *outfile) {
  * Alternate method of writing out data where X and Y values are switched. 
  * Each frame is put into a column, with column 1 containing headers.
  */
-void DataFile::WriteDataInverted(PtrajFile *outfile) {
+void DataFile::WriteDataInverted(CpptrajFile *outfile) {
   int frame,set,empty;
   int currentLineSize=0;
   int lineSize=0;
@@ -419,7 +419,7 @@ void DataFile::WriteDataInverted(PtrajFile *outfile) {
 /* DataFile::WriteGrace() 
  * Write out sets to file in xmgrace format.
  */
-void DataFile::WriteGrace(PtrajFile *outfile) {
+void DataFile::WriteGrace(CpptrajFile *outfile) {
   int set,frame;
   int lineSize=0;;
   int currentLineSize=0;
@@ -470,7 +470,7 @@ void DataFile::WriteGrace(PtrajFile *outfile) {
  * Write out sets to file in xmgrace format. Write out data from each
  * frame as 1 set.
  */
-void DataFile::WriteGraceInverted(PtrajFile *outfile) {
+void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
   int set,frame,empty;
   int lineSize=0;;
   int currentLineSize=0;
@@ -535,7 +535,7 @@ void DataFile::WriteGraceInverted(PtrajFile *outfile) {
  * However, in the interest of keeping data consistent, this is no longer
  * done. Could be added back in later as an option.
  */
-void DataFile::WriteGnuplot(PtrajFile *outfile) {
+void DataFile::WriteGnuplot(CpptrajFile *outfile) {
   char *buffer;
   int set, frame;
   int lineSize=0;

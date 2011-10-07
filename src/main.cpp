@@ -3,7 +3,7 @@
  * 2010 Daniel R. Roe
  */
 #include "CpptrajState.h"
-#include "PtrajMpi.h"
+#include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 #include <cstring>
 #include <cstdio>

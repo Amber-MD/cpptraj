@@ -1,10 +1,9 @@
 #ifndef INC_DATAFILE_H
 #define INC_DATAFILE_H
-// DataFile
-// Container for one or more DataSets that will be written out to a file.
+/// Class: DataFile
+/// Container for one or more DataSets that will be written out to a file.
 #include "DataSet.h"
-#include "PtrajFile.h"
-
+#include "CpptrajFile.h"
 class DataFile {
     int debug;
     DataSet **SetList;  // Will point to addresses in DataSetList;
@@ -24,11 +23,11 @@ class DataFile {
     bool useMap;
     bool printLabels;
 
-    void WriteGrace(PtrajFile *);
-    void WriteGraceInverted(PtrajFile *);
-    void WriteData(PtrajFile *);
-    void WriteDataInverted(PtrajFile *);
-    void WriteGnuplot(PtrajFile *);
+    void WriteGrace(CpptrajFile *);
+    void WriteGraceInverted(CpptrajFile *);
+    void WriteData(CpptrajFile *);
+    void WriteDataInverted(CpptrajFile *);
+    void WriteGnuplot(CpptrajFile *);
   public:
     char *filename;
 
@@ -52,5 +51,4 @@ class DataFile {
     void DataSetNames();
     void Write();
 };    
-
 #endif

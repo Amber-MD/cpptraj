@@ -1,7 +1,7 @@
 // FortranFormat
 // This file contains routines that pertain to reading and writing files with
 // fortran FLAG and FORMAT keywords (currently only Amber Topology files).
-#include "PtrajFile.h"
+#include "CpptrajFile.h"
 #include "Name.h"
 // Enumerated type for Fortran Format
 enum FortranFormat {
@@ -11,5 +11,5 @@ enum FortranFormat {
 // FFSIZE: Combined size of %FLAG and %FORMAT lines (81 * 2)
 #define FFSIZE 162
 int GetFortranBufferSize(FortranFormat,int,int);
-void *getFlagFileValues(PtrajFile *,const char*,int,int);
+void *getFlagFileValues(CpptrajFile *,const char*,int,int);
 char *DataToFortranBuffer(char*,const char*,FortranFormat,int*,double*,NAME*,int);

@@ -198,9 +198,9 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
 TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
                                         FileFormat fmtIn, FileType typeIn) {
   TrajectoryIO *tio = NULL;
-  PtrajFile *basicTraj = NULL;
+  CpptrajFile *basicTraj = NULL;
 
-  basicTraj = new PtrajFile();
+  basicTraj = new CpptrajFile();
   if (basicTraj->SetupFile(tname,accIn,fmtIn,typeIn,debug)) {
     //mprinterr("    Error: Could not set up file %s.\n",tname);
     delete basicTraj;

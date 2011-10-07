@@ -67,7 +67,7 @@ static FortranFormat GetFortranFormat(char *Format) {
  * but it is necessary to explictly type the returned array. maxval is used to 
  * allocate memory for the return array - only maxval values will be read.
  */
-void *getFlagFileValues(PtrajFile *File, const char *Key, int maxval, int debug){
+void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debug){
   int i; 
   char lineBuffer[BUFFER_SIZE]; // Hold flag/format line from parmfile
   char value[83];      // Hold Key from Flag line

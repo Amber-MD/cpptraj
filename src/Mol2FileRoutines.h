@@ -1,10 +1,10 @@
 // Mol2FileRoutines
-#include "PtrajFile.h"
+#include "CpptrajFile.h"
 #define MOL2BUFFERSIZE 256
 
 enum TRIPOSTAG { MOLECULE, ATOM, BOND, SUBSTRUCT };
 
-int Mol2ScanTo( PtrajFile *, TRIPOSTAG );
+int Mol2ScanTo( CpptrajFile *, TRIPOSTAG );
 int Mol2AtomName(char *, char *);
 int Mol2XYZ(char *, double *);
 int Mol2AtomType(char *, char *);

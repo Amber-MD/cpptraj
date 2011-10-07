@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "intDataSet.h"
-#include "PtrajMpi.h"
+#include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 using namespace std;
 

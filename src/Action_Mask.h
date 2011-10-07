@@ -7,7 +7,7 @@
 #include "Action.h"
 class ActionMask: public Action {
     AtomMask Mask1;
-    PtrajFile outfile;
+    CpptrajFile outfile;
     char *maskpdb;
     ArgList maskpdbarg;
   public:

@@ -101,7 +101,7 @@ int RemdTraj::SetupTemperatureList(int natom) {
  * Set and return the number of the lowest replica, or -1 on error.
  */
 int RemdTraj::SetReplicaName(char* filenameIn) {
-  PtrajFile remdfile;
+  CpptrajFile remdfile;
   int lastChar,lastDot,j;
   char *ReplicaExt;
 
@@ -109,7 +109,7 @@ int RemdTraj::SetReplicaName(char* filenameIn) {
   // Assume the extension of given trajectory is the number of the lowest 
   // replica, and that the other files are in sequence (e.g. rem.000, rem.001, 
   // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
-  // Set up a PtrajFile here to check compression and extension.  
+  // Set up a CpptrajFile here to check compression and extension.  
   if (remdfile.SetupFile(filenameIn, READ, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug)) 
     return -1;
   if (remdfile.compressType!=NONE && remdfile.Ext!=NULL) {

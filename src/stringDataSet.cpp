@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include "stringDataSet.h"
-#include "PtrajMpi.h"
+#include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 using namespace std;
 

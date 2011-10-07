@@ -281,7 +281,7 @@ int NAstruct::setupBasePairAxes() {
   AxisType *Base2;
   // DEBUG
   int basepairaxesatom=0;
-  PtrajFile basepairaxesfile;
+  CpptrajFile basepairaxesfile;
   basepairaxesfile.SetupFile((char*)"basepairaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
   basepairaxesfile.OpenFile();
   // END DEBUG
@@ -386,8 +386,8 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
   //int res = 0;
   //int baseaxesatom = 0;
   //int basesatom = 0;
-  //PtrajFile baseaxesfile;
-  //PtrajFile basesfile;
+  //CpptrajFile baseaxesfile;
+  //CpptrajFile basesfile;
   //baseaxesfile.SetupFile((char*)"baseaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
   //baseaxesfile.OpenFile();
   //basesfile.SetupFile((char*)"bases.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
@@ -494,7 +494,7 @@ int NAstruct::determineBaseParameters() {
   double Shear, Stretch, Stagger;
   // DEBUG
   //int basepairaxesatom=0;
-  //PtrajFile basepairaxesfile;
+  //CpptrajFile basepairaxesfile;
   //basepairaxesfile.SetupFile((char*)"basepairaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
   //basepairaxesfile.OpenFile();
   // END DEBUG
@@ -1035,7 +1035,7 @@ int NAstruct::action() {
 /* NAstruct::print()
  */
 void NAstruct::print() {
-  PtrajFile *outfile;
+  CpptrajFile *outfile;
   int frame, nbasepair;
   char buffer[BUFFER_SIZE], *ptr;
 
@@ -1043,7 +1043,7 @@ void NAstruct::print() {
 
   // Base pair parameters
   sprintf(buffer,"BP.%s",outFilename);
-  outfile = new PtrajFile();
+  outfile = new CpptrajFile();
   if ( outfile->SetupFile(buffer, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
     delete outfile;
     return;
@@ -1071,7 +1071,7 @@ void NAstruct::print() {
   
   // Base pair step parameters
   sprintf(buffer,"BPstep.%s",outFilename);
-  outfile = new PtrajFile();
+  outfile = new CpptrajFile();
   if ( outfile->SetupFile(buffer, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
     delete outfile;
     return;

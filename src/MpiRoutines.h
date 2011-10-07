@@ -1,17 +1,17 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-// PtrajMpi.h
-// If debug is not defined it will be included in PtrajMpi.c
+// MpiRoutines.h
+// If debug is not defined it will be included in MpiRoutines.c
 #ifdef DEBUG
 #  include <stdio.h>
 #endif
 #include <sys/types.h> // off_t
 
-/* PTRAJMPI_MODULE is defined in PtrajMpi.c. For all other files
- * including PtrajMpi.h worldrank and worldsize should be extern.
+/* MPIROUTINES_MODULE is defined in MpiRoutines.c. For all other files
+ * including MpiRoutines.h worldrank and worldsize should be extern.
  */
-#ifdef PTRAJMPI_MODULE
+#ifdef MPIROUTINES_MODULE
 int worldrank;
 int worldsize;
 #  ifdef DEBUG

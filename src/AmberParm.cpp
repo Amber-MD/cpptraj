@@ -10,7 +10,7 @@
 #include <cstring>
 #include <cstdio> // For sscanf, sprintf
 #include <ctime> // for writing time/date to amber parmtop
-#include "AmberParm.h" // PtrajFile.h
+#include "AmberParm.h" // CpptrajFile.h
 #include "FortranFormat.h" 
 #include "PDBfileRoutines.h"
 #include "Mol2FileRoutines.h"
@@ -471,7 +471,7 @@ int AmberParm::SetSolventInfo() {
  * Attempt to open file and read in parameters.
  */
 int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
-  PtrajFile parmfile;
+  CpptrajFile parmfile;
   int err=0;
 
   if ( parmfile.SetupFile(filename,READ,UNKNOWN_FORMAT, UNKNOWN_TYPE,debug) ) 
@@ -557,7 +557,7 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
 /* AmberParm::ReadParmAmber() 
  * Read parameters from Amber Topology file
  */
-int AmberParm::ReadParmAmber(PtrajFile *parmfile) {
+int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   int err, atom;
   int *solvent_pointer;
   double *boxFromParm;
@@ -672,7 +672,7 @@ int AmberParm::SetAtomsPerMolPDB(int numAtoms) {
  * Open the PDB file specified by filename and set up topology data.
  * Mask selection requires natom, nres, names, resnames, resnums.
  */
-int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
+int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
   char buffer[256];
   int bufferLen;  
   int currResnum;
@@ -775,7 +775,7 @@ int AmberParm::ReadParmPDB(PtrajFile *parmfile) {
 /* AmberParm::ReadParmMol2()
  * Read file as a Tripos Mol2 file.
  */
-int AmberParm::ReadParmMol2(PtrajFile *parmfile) {
+int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
   char buffer[MOL2BUFFERSIZE];
   int mol2bonds;
   int resnum, currentResnum;
@@ -860,7 +860,7 @@ int AmberParm::ReadParmMol2(PtrajFile *parmfile) {
  * Open the Charmm PSF file specified by filename and set up topology data.
  * Mask selection requires natom, nres, names, resnames, resnums.
  */
-int AmberParm::ReadParmPSF(PtrajFile *parmfile) {
+int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
   char buffer[256],tag[256],psfname[NAMESIZE];
   int bondatoms[8];
   int currResnum;
@@ -1490,7 +1490,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
  * Write out information from current AmberParm to an Amber parm file
  */
 int AmberParm::WriteAmberParm(char *filename) {
-  PtrajFile outfile;
+  CpptrajFile outfile;
   char *buffer,*filebuffer;
   int solvent_pointer[3];
   int atom;

@@ -123,7 +123,7 @@ char *GetAttrText(int ncid, int vid, const char *attribute) {
 
 /*
  * GetNetcdfConventions()
- * This is called from PtrajFile to determine whether filename is a netcdf
+ * This is called from CpptrajFile to determine whether filename is a netcdf
  * trajectory or restart file. Return conventions string.
  * Return NULL if error or netcdf not compiled in.
  */

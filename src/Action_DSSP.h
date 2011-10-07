@@ -28,7 +28,7 @@ class DSSP : public Action {
     AtomMask Mask;    // Mask used to determine selected residues
     int Nres;         // Current total # of residues
     double Nframe;    // For calculating SS avg. NOTE: Should be passed in somehow?
-    //PtrajFile debugout; // DEBUG
+    //CpptrajFile debugout; // DEBUG
     char *sumOut;     // File to output SS avgs (dssp.dat.sum)
     char *SSline;     // Hold SS propensity for frame, each char represents a residue
     bool printString; // If true print 1 char per residue indicating ss type

@@ -1,11 +1,11 @@
-#ifndef INC_PTRAJFILE_H
-#define INC_PTRAJFILE_H
-// PtrajFile
+#ifndef INC_CPPTRAJFILE_H
+#define INC_CPPTRAJFILE_H
+// CpptrajFile
 // Class to abstract handling of basic file routines.
 // NOTE: Should Format/Type etc stuff be in their own files?
 #include "BaseFileIO.h"
 // BUFFER_SIZE: Used in Action_NAstruct.cpp FortranFormat.cpp main.cpp 
-// PtrajFile.cpp PtrajFile.h Traj_AmberCoord.cpp
+// CpptrajFile.cpp CpptrajFile.h Traj_AmberCoord.cpp
 #define BUFFER_SIZE 1024 
 #define OUTPUTFRAMESHIFT 1 // Used for output in DataFile and some TrajFiles 
 
@@ -39,7 +39,7 @@ enum AccessType {
   READ, WRITE, APPEND
 };
 
-class PtrajFile {
+class CpptrajFile {
   protected:
     typedef char enumToken[30];
     static const enumToken FileFormatList[];
@@ -67,8 +67,8 @@ class PtrajFile {
     CompressType compressType;
     int isDos;                       // 1 if CR present, need to count them as newlines
 
-    PtrajFile();
-    ~PtrajFile();
+    CpptrajFile();
+    ~CpptrajFile();
 
     FileFormat GetFmtFromArg(char *, FileFormat);
     void SetExtFromFmt(char *, FileFormat);

@@ -5,7 +5,7 @@
 /// with actual trajectory format.
 /// NOTE: Remove boxType?
 #include "ProgressBar.h"
-#include "TrajectoryIO.h" // AmberParm BoxType PtrajFile ArgList 
+#include "TrajectoryIO.h" // AmberParm BoxType CpptrajFile ArgList 
 #include "Range.h"
 class TrajectoryFile {
     int debug;

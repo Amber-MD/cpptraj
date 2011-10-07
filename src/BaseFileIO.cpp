@@ -4,7 +4,7 @@
 #include <cstdarg>
 
 #ifdef MPI
-#  include "PtrajMpi.h"
+#  include "MpiRoutines.h"
 #endif
 
 // BaseFileIO

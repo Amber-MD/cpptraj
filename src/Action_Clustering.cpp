@@ -35,9 +35,9 @@ Clustering::~Clustering() {
  */
 int Clustering::init() {
   char *mask0,*cnumvtimefile,*clusterformat,*singlerepformat,*repformat;
-  // NOTE: PtrajFile is here just for determining/writing format. Should those
+  // NOTE: CpptrajFile is here just for determining/writing format. Should those
   //       functions be separate?
-  PtrajFile TempFile;
+  CpptrajFile TempFile;
 
   // Get keywords
   useMass = A->hasKey("mass");
@@ -411,7 +411,7 @@ void Clustering::WriteRepTraj( ClusterList *CList ) {
   char ext[8];
   char *cfilename = NULL;
   // NOTE: USED TO GET FORMAT EXTENSION ONLY. EVENTUALLY MOVE FORMAT TO ITS OWN FILE
-  PtrajFile temp;
+  CpptrajFile temp;
 
   // Set output extension for this file format
   temp.SetExtFromFmt(ext,repfmt);

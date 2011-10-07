@@ -349,7 +349,7 @@ double ox2, oy2, oz2;
 /*
  * DEBUG: AxisToPDB
  */
-void AxisType::WritePDB(PtrajFile *outfile, int resnum, char *resname, int *atom) {
+void AxisType::WritePDB(CpptrajFile *outfile, int resnum, char *resname, int *atom) {
   char buffer[82];
   int i3=0;
   for (int i=0; i<natom; i++) {

@@ -2,7 +2,7 @@
 #include <cstddef> // NULL
 #include "TrajoutList.h"
 #include "CpptrajStdio.h"
-//#include "PtrajMpi.h" //worldsize
+//#include "MpiRoutines.h" //worldsize
 
 // CONSTRUCTOR
 TrajoutList::TrajoutList() {

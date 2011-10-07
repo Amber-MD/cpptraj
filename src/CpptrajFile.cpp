@@ -1,4 +1,4 @@
-// PtrajFile 
+// CpptrajFile 
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
@@ -9,7 +9,7 @@
 #ifndef __PGI
 #  include <glob.h> // For tilde expansion
 #endif
-#include "PtrajFile.h"
+#include "CpptrajFile.h"
 #include "NetcdfRoutines.h"
 #include "PDBfileRoutines.h"
 #include "Mol2FileRoutines.h"
@@ -27,20 +27,20 @@
 #endif
 
 //typedef char enumToken[30];
-const PtrajFile::enumToken PtrajFile::FileFormatList[15] = {
+const CpptrajFile::enumToken CpptrajFile::FileFormatList[15] = {
   "UNKNOWN_FORMAT", "PDBFILE", "AMBERTRAJ", "AMBERNETCDF", "AMBERPARM", 
   "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB", 
   "AMBERRESTARTNC", "MOL2FILE", "GNUPLOT", "CHARMMPSF", "CHARMMDCD"
 };
-const PtrajFile::enumToken PtrajFile::FileTypeList[6] = {
+const CpptrajFile::enumToken CpptrajFile::FileTypeList[6] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
 };
-const PtrajFile::enumToken PtrajFile::AccessList[3] = {
+const CpptrajFile::enumToken CpptrajFile::AccessList[3] = {
   "R", "W", "A"
 };
 
 // CONSTRUCTOR
-PtrajFile::PtrajFile() {
+CpptrajFile::CpptrajFile() {
   IO=NULL;
   isOpen=0;
   uncompressed_size=0UL;
@@ -56,18 +56,18 @@ PtrajFile::PtrajFile() {
 }
 
 // Return enumerated type for FileFormat
-char *PtrajFile::Format(FileFormat FFin) {
+char *CpptrajFile::Format(FileFormat FFin) {
   return (char*)FileFormatList[FFin];
 }
 
 // Return enumerated type for FileType
-char *PtrajFile::Type(FileType FTin) {
+char *CpptrajFile::Type(FileType FTin) {
   return (char*)FileTypeList[FTin];
 }
 
 // DESTRUCTOR
-PtrajFile::~PtrajFile() {
-   //fprintf(stderr,"PTRAJFILE DESTRUCTOR\n");
+CpptrajFile::~CpptrajFile() {
+   //fprintf(stderr,"CPPTRAJFILE DESTRUCTOR\n");
    CloseFile();
    delete IO;
    if (filename!=NULL) free(filename);
@@ -75,12 +75,12 @@ PtrajFile::~PtrajFile() {
    if (Ext!=NULL) free(Ext);
 }
 
-/* PtrajFile::GetFmtFromArg()
+/* CpptrajFile::GetFmtFromArg()
  * Return file format given a file format keyword. Default to def. 
  * NOTE: def should probably not be allowed to be UNKNOWN_FORMAT,
  * but this is currently not explicitly checked.
  */
-FileFormat PtrajFile::GetFmtFromArg(char *argIn, FileFormat def) {
+FileFormat CpptrajFile::GetFmtFromArg(char *argIn, FileFormat def) {
   FileFormat writeFormat = def;
   if (argIn==NULL) return writeFormat;
   if      ( strcmp(argIn,"pdb")==0      ) writeFormat=PDBFILE;
@@ -93,11 +93,11 @@ FileFormat PtrajFile::GetFmtFromArg(char *argIn, FileFormat def) {
   return writeFormat;
 }
 
-/* PtrajFile::SetExtFromFmt()
+/* CpptrajFile::SetExtFromFmt()
  * Set buffer with a filename extension corresponding to the given file 
  * format. Currently the longest extension requires buffer size of 7.
  */
-void PtrajFile::SetExtFromFmt(char *buffer, FileFormat fmtIn) {
+void CpptrajFile::SetExtFromFmt(char *buffer, FileFormat fmtIn) {
   if (buffer==NULL) return;
   switch (fmtIn) {
     case PDBFILE       : strcpy(buffer,".pdb"  ); break;
@@ -117,10 +117,10 @@ void PtrajFile::SetExtFromFmt(char *buffer, FileFormat fmtIn) {
   }
 }
 
-/* PtrajFile::OpenFile()
+/* CpptrajFile::OpenFile()
  * Open the file. If already open, reopen.
  */
-int PtrajFile::OpenFile() {
+int CpptrajFile::OpenFile() {
   if (isOpen) CloseFile();
 
   switch (access) {
@@ -151,10 +151,10 @@ int PtrajFile::OpenFile() {
   return 0;
 }
 
-/* PtrajFile::CloseFile()
+/* CpptrajFile::CloseFile()
  * Close the file.
  */
-void PtrajFile::CloseFile() {
+void CpptrajFile::CloseFile() {
   if (isOpen) {
     IO->Close();
     if (debug>0) rprintf("Closed %s.\n",filename);
@@ -162,11 +162,11 @@ void PtrajFile::CloseFile() {
   }
 }
 
-/* PtrajFile::determineType()
+/* CpptrajFile::determineType()
  * If the file type is unknown attempt to determine it from filename extension.
  * Default to standard.
  */
-void PtrajFile::determineType() {
+void CpptrajFile::determineType() {
 
   if (fileType!=UNKNOWN_TYPE) return;
 
@@ -181,11 +181,11 @@ void PtrajFile::determineType() {
   else fileType=STANDARD;
 }
 
-/* PtrajFile::determineFormat()
+/* CpptrajFile::determineFormat()
  * If the file format is unknown attempt to determine from filename extension.
  * Default to datafile.
  */
-void PtrajFile::determineFormat() {
+void CpptrajFile::determineFormat() {
 
   if (fileFormat!=UNKNOWN_FORMAT) return;
 
@@ -198,13 +198,13 @@ void PtrajFile::determineFormat() {
   else fileFormat=DATAFILE;
 }  
 
-/* PtrajFile::SetBaseFilename()
+/* CpptrajFile::SetBaseFilename()
  * Strip leading path from input filename. Use strtok routine to separate 
  * filename by / and use the last string as the base filename. Internal 
  * filename is not used since strtok modifies the char array.
  * Also determine the file extension.
  */
-void PtrajFile::SetBaseFilename() {
+void CpptrajFile::SetBaseFilename() {
   char *ptr, *tempFilename;
   int i, nameLen;
 
@@ -243,16 +243,16 @@ void PtrajFile::SetBaseFilename() {
     mprintf("\t                 Ext= %s  Len= %lu\n",Ext,strlen(basefilename+i));
 }
 
-/* PtrajFile::SetupFile()
+/* CpptrajFile::SetupFile()
  * Set up the given file for the specified access, assume DATAFILE format
  * (no autodetection of format). Implicitly requests autodetection of the 
  * file type.
  */
-int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn, int debugIn) {
+int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn, int debugIn) {
   return SetupFile(filenameIn,accessIn,DATAFILE,UNKNOWN_TYPE,debugIn);
 }
 
-/* PtrajFile::SetupFile()
+/* CpptrajFile::SetupFile()
  * Sets the file name, access type (R/W/A), file type and file format (for 
  * WRITE), and debug level. If called with READ or append file type and format
  * will be determined by SetupRead. If called with WRITE the given type and 
@@ -260,7 +260,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn, int debugIn) {
  * try to be determined by the given file extension. 
  * Can be called with NULL for write, this will write to stdout.
  */
-int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn, 
+int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn, 
                          FileFormat fileFormatIn, FileType fileTypeIn, 
                          int debugIn) {
 #ifndef __PGI
@@ -268,7 +268,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
 #endif
   debug=debugIn;
   if (debug>0) {
-    mprintf("PtrajFile: [%s] FMT %s, TYPE %s, ACC %s\n",filenameIn,
+    mprintf("CpptrajFile: [%s] FMT %s, TYPE %s, ACC %s\n",filenameIn,
            FileFormatList[fileFormatIn],FileTypeList[fileTypeIn],
            AccessList[accessIn]);
   }
@@ -283,7 +283,7 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
   if (accessIn!=WRITE) {
     // If no filename this is an error.
     if (filename==NULL) {
-      mprintf("Error: PtrajFile::SetupFile: NULL filename specified on READ or APPEND\n");
+      mprintf("Error: CpptrajFile::SetupFile: NULL filename specified on READ or APPEND\n");
       return 1;
     }
     globbuf.gl_offs = 1;
@@ -326,11 +326,11 @@ int PtrajFile::SetupFile(char *filenameIn, AccessType accessIn,
   return 0;
 }
 
-/* PtrajFile::SetupWrite()
+/* CpptrajFile::SetupWrite()
  * Set up file with specified type for writing. fileFormat is set by SetupFile.
  * NOTE: Determine if compression is requested, either by arg or from name
  */
-int PtrajFile::SetupWrite() {
+int CpptrajFile::SetupWrite() {
 
   if (debug>1) mprintf("DEBUG: Setting up WRITE for file %s\n",filename);
   // Eventually allow other file types
@@ -366,18 +366,18 @@ int PtrajFile::SetupWrite() {
 #endif
       break;
     default : 
-      mprintf("PtrajFile::SetupWrite: Unrecognized file type.\n");
+      mprintf("CpptrajFile::SetupWrite: Unrecognized file type.\n");
       return 1;
   }
 
   return 0;
 }
 
-/* PtrajFile::SetupRead() 
+/* CpptrajFile::SetupRead() 
  * Open the file specified by filename for READ or APPEND access. Attempt to 
  * identify the file type and format.
  */
-int PtrajFile::SetupRead() {
+int CpptrajFile::SetupRead() {
   unsigned char magic[3];
   char buffer1[BUFFER_SIZE], buffer2[BUFFER_SIZE];
   char *CheckConventions; // Only used to check if netcdf is traj or restart
@@ -390,7 +390,7 @@ int PtrajFile::SetupRead() {
   // An error here means file probably doesnt exist. Dont print an error at 
   // basic debug level since this could also be used to test if file exists.
   if (stat(filename, &frame_stat) == -1) {
-    mprinterr( "Error: PtrajFile::SetupRead: Could not find file status for %s\n", filename);
+    mprinterr( "Error: CpptrajFile::SetupRead: Could not find file status for %s\n", filename);
     if (debug>0) {
       perror("     Error from stat: ");
     }
@@ -471,7 +471,7 @@ int PtrajFile::SetupRead() {
 
   // If file format already determined, exit.
   if (fileFormat!=UNKNOWN_FORMAT) {
-    if (debug>0) mprintf("PtrajFile: %s: Not detecting file format.\n",filename);
+    if (debug>0) mprintf("CpptrajFile: %s: Not detecting file format.\n",filename);
     return 0;
   }
 

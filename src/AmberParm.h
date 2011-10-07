@@ -7,7 +7,7 @@
 /// always be set:
 ///   1. Variables: natom, nres, and ifbox
 ///   2.    Arrays: names, resnames, resnums
-#include "PtrajFile.h"
+#include "CpptrajFile.h"
 #include "BoxType.h" 
 // NAMESIZE: Default size for atom and residue names, 5 + NULL.
 // Amber atom/residue names are 4, but some mol2 atom types are larger.
@@ -40,11 +40,11 @@ class AmberParm {
     int SetSolventInfo();
 
     // Parm format readers
-    int ReadParmMol2(PtrajFile *);
-    int ReadParmAmber(PtrajFile *);
+    int ReadParmMol2(CpptrajFile *);
+    int ReadParmAmber(CpptrajFile *);
     int SetAtomsPerMolPDB(int);
-    int ReadParmPDB(PtrajFile *);
-    int ReadParmPSF(PtrajFile *);
+    int ReadParmPDB(CpptrajFile *);
+    int ReadParmPSF(CpptrajFile *);
 
     void GetBondsFromCoords();
     double *parmCoords;

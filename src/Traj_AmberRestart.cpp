@@ -354,7 +354,7 @@ int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double 
   if (tfile->IO->Write(frameBuffer,sizeof(char),frameSize)) return 1;
 
   // Since when writing amber restarts a number is appended to the filename
-  // dont use the CloseFile function in PtrajFile, just close.
+  // dont use the CloseFile function in CpptrajFile, just close.
   tfile->IO->Close();
 
   return 0;

@@ -40,6 +40,6 @@ class AxisType : public Frame {
     int SetRefCoord(char *);
     void FlipYZ();
     void FlipXY();
-    void WritePDB(PtrajFile *, int, char *, int *); // DEBUG
+    void WritePDB(CpptrajFile *, int, char *, int *); // DEBUG
 };
 #endif  

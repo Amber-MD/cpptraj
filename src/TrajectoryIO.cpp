@@ -36,7 +36,7 @@ void TrajectoryIO::SetDebug(int debugIn) {
 /* TrajectoryIO::SetFile()
  * Set the internal file pointer.
  */
-void TrajectoryIO::SetFile(PtrajFile *tfileIn) {
+void TrajectoryIO::SetFile(CpptrajFile *tfileIn) {
   tfile = tfileIn;
 }
 

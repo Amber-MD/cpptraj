@@ -1,10 +1,10 @@
-//PtrajMpi
-#define PTRAJMPI_MODULE
-/* PTRAJMPI_MODULE is defined here so that worldrank and worldsize are defined
- * as int in the PtrajMpi header file.
+// MpiRoutines
+#define MPIROUTINES_MODULE
+/* MPIROUTINES_MODULE is defined here so that worldrank and worldsize are defined
+ * as int in the MpiRoutines header file.
  */
-#include "PtrajMpi.h"
-// If DEBUG is defined it will be included in PtrajMpi.h
+#include "MpiRoutines.h"
+// If DEBUG is defined it will be included in MpiRoutines.h
 #ifndef DEBUG
 #  include <stdio.h>
 #endif

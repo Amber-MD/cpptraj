@@ -2,7 +2,7 @@
  */
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
-#include "PtrajFile.h"
+#include "CpptrajFile.h"
 #include <cfloat>
 #include <cmath>
 
@@ -66,7 +66,7 @@ void ClusterList::Renumber() {
  * Print a summary of clusters.
  */
 void ClusterList::Summary(char *summaryfile) {
-  PtrajFile outfile;
+  CpptrajFile outfile;
   int numframes,numdist;
   float frac;
   double dist,avgdist,sdist,*distances;

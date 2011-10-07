@@ -31,7 +31,7 @@ class Jcoupling: public Action {
     AtomMask Mask1;
     int Nconstants;
     // DEBUG
-    PtrajFile outputfile;
+    CpptrajFile outputfile;
 
     int loadKarplus(char*);
   public:

@@ -37,7 +37,7 @@ int Jcoupling::loadKarplus(char* filename) {
   char buffer[512],residue[5];
   char *end, *ptr;
   int i;
-  PtrajFile KarplusFile;
+  CpptrajFile KarplusFile;
   karplusConstant KC;
   std::vector<karplusConstant> *currentResList=NULL;
   std::string CurrentRes;

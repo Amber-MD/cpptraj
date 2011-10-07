@@ -1,5 +1,5 @@
 #include "CpptrajState.h"
-#include "PtrajMpi.h"
+#include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 
 // Constructor

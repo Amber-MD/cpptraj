@@ -14,7 +14,7 @@ const char TRIPOSTAGTEXT[4][30]={"@<TRIPOS>MOLECULE\0",
 /* Mol2ScanTo()
  * Scan to the specified TRIPOS section of file
  */
-int Mol2ScanTo( PtrajFile *File, TRIPOSTAG tag ) {
+int Mol2ScanTo( CpptrajFile *File, TRIPOSTAG tag ) {
   int tagSize;
   char buffer[MOL2BUFFERSIZE];
 

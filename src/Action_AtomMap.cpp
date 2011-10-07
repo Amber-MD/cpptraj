@@ -967,7 +967,7 @@ int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
  */
 int AtomMap::init() {
   char *refName, *targetName, *outputname;
-  PtrajFile outputfile;
+  CpptrajFile outputfile;
   int refIndex, targetIndex;
   int refatom,targetatom;
   int numMappedAtoms=0;
