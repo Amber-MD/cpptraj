@@ -239,6 +239,19 @@ int MaxValence(char *Name) {
   return valence;
 }
 
+/* IsIon()
+ * Check for a '-' or '+' anywhere after the first char of the name;
+ * if found assume this is an ion.
+ */
+static bool IsIon(char *Name) {
+  char *ptr = Name + 1;
+  while (*ptr!='\0') {
+    if (*ptr=='-' || *ptr=='+') return true;
+    ptr++;
+  }
+  return false;
+}
+
 /* GetBondedCut()
  * See below. This version converts atom names to 1 char element codes, then
  * determines the cutoff.
@@ -246,6 +259,9 @@ int MaxValence(char *Name) {
 double GetBondedCut(char *A1, char *A2) {
   char atom1;
   char atom2;
+  // First check for ions, which will never covalently bond
+  if (IsIon(A1)) return 0;
+  if (IsIon(A2)) return 0;
   // Convert atom names to element names.
   atom1 = ElementFromName(A1);
   atom2 = ElementFromName(A2);
