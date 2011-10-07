@@ -470,7 +470,7 @@ int AmberParm::SetSolventInfo() {
 /* AmberParm::OpenParm()
  * Attempt to open file and read in parameters.
  */
-int AmberParm::OpenParm(char *filename) {
+int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   PtrajFile parmfile;
   int err=0;
 
@@ -527,13 +527,17 @@ int AmberParm::OpenParm(char *filename) {
     ReplaceAsterisk(names[res]);
   }
 
-  // Set up bond information if necessary
-  if (bonds==NULL && bondsh==NULL && parmCoords!=NULL)
-    GetBondsFromCoords();
+  // Set up bond information if specified and necessary
+  if (bondsearch) {
+    if (bonds==NULL && bondsh==NULL && parmCoords!=NULL)
+      GetBondsFromCoords();
+  }
 
-  // DEBUG: Molecule test
-  if (atomsPerMol==NULL)
-    DetermineMolecules();
+  // Set up molecule information if specified and necessary
+  if (molsearch) {
+    if (atomsPerMol==NULL)
+      DetermineMolecules();
+  }
 
   // Set up solvent information
   if (SetSolventInfo()) return 1;

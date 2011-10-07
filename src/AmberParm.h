@@ -99,7 +99,7 @@ class AmberParm {
 
     int SetSurfaceInfo();
 
-    int OpenParm(char *);
+    int OpenParm(char *,bool,bool);
 
     void AtomInfo(int);
     void ParmInfo();

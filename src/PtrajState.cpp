@@ -114,6 +114,26 @@ void PtrajState::Dispatch(char *inputLine) {
     return;
   }
 
+  if (dispatchArg.CommandIs("bondsearch")) {
+    parmFileList.SetBondSearch();
+    return;
+  }
+
+  if (dispatchArg.CommandIs("molsearch")) {
+    parmFileList.SetMolSearch();
+    return;
+  }
+
+  if (dispatchArg.CommandIs("nobondsearch")) {
+    parmFileList.SetNoBondSearch();
+    return;
+  }
+
+  if (dispatchArg.CommandIs("nomolsearch")) {
+    parmFileList.SetNoMolSearch();
+    return;
+  }
+
   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {
     DF_Args.push_back(dispatchArg.Copy());

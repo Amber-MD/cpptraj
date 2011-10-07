@@ -4,33 +4,67 @@
 #include "ParmFileList.h"
 #include "CpptrajStdio.h"
 
-// Constructor
+// CONSTRUCTOR 
 ParmFileList::ParmFileList() {
   ParmList=NULL;
   Nparm=0;
   debug=0;
   hasCopies=false;
+  bondsearch=true;
+  molsearch=true;
 }
 
-// Destructor
+// DESTRUCTOR
 ParmFileList::~ParmFileList() {
-  int i;
-
   if (ParmList!=NULL) {
     if (!hasCopies) {
-      for (i=0; i<Nparm; i++) delete ParmList[i];
+      for (int i=0; i<Nparm; i++) delete ParmList[i];
     }
     free(ParmList);
   }
 }
 
-// Set debug level
+/* ParmFileList::SetDebug()
+ * Set debug level.
+ */
 void ParmFileList::SetDebug(int debugIn) {
   if (debugIn>0) mprintf("ParmFileList debug level set to %i\n",debugIn);
   debug=debugIn;
 }
 
-// Return the parm structure with index num
+/* ParmFileList::SetBondSearch()
+ */
+void ParmFileList::SetBondSearch() {
+  bondsearch=true;
+  mprintf("BondSearch: If no bond information in parm, attempt to determine\n");
+  mprintf("            via distance search (can be slow for large systems.\n");
+}
+
+/* ParmFileList::SetNoBondSearch()
+ */
+void ParmFileList::SetNoBondSearch() {
+  bondsearch=false;
+  mprintf("NoBondSearch: Bond determination via distance search disabled.\n");
+}
+
+/* ParmFileList::SetMolSearch()
+ */
+void ParmFileList::SetMolSearch() {
+  molsearch=true;
+  mprintf("MolSearch: If no molecule information in parm, attempt to determine\n");
+  mprintf("           via bond information.\n");
+}
+
+/* ParmFileList::SetNoMolSearch()
+ */
+void ParmFileList::SetNoMolSearch() {
+  molsearch=false;
+  mprintf("MolSearch: Molecule determination via bond information disabled.\n");
+}
+
+/* ParmFileList::GetParm()
+ * Return the parm structure with index num.
+ */
 AmberParm *ParmFileList::GetParm(int num) {
   if (num>=Nparm || num<0) return NULL;
   return ParmList[num];
@@ -62,8 +96,7 @@ AmberParm *ParmFileList::GetParm(ArgList *A) {
   return P;
 }
 
-/*
- * ParmFileList::GetParmIndex()
+/* ParmFileList::GetParmIndex()
  * Return the index in ParmList of the given Parm name. Use either the full
  * path or the base filename.
  */
@@ -105,7 +138,7 @@ int ParmFileList::Add(char *filename) {
   P = new AmberParm();
   P->SetDebug(debug);
 
-  if (P->OpenParm(filename)) {
+  if (P->OpenParm(filename,bondsearch,molsearch)) {
     mprintf("Error: Could not open parm %s\n",filename);
     delete P;
     return 1;
@@ -134,8 +167,7 @@ int ParmFileList::Add(AmberParm *ParmIn) {
   return 0;
 }
 
-/*
- * ParmFileList::Replace()
+/* ParmFileList::Replace()
  * Replace parm file at given position with newParm. If this list has only
  * copies do not delete the old parm, just replace.
  */
@@ -146,17 +178,17 @@ int ParmFileList::Replace(int num, AmberParm *newParm) {
   return 0;
 }
 
-// Print list of loaded parameter files
+/* ParmFileList::Print()
+ * Print list of loaded parameter files
+ */
 void ParmFileList::Print() {
-  int i;
-
   mprintf("\nPARAMETER FILES:\n");
   if (Nparm==0) {
     mprintf("  No parameter files defined.\n");
     return;
   }
 
-  for (i=0; i<Nparm; i++) {
+  for (int i=0; i<Nparm; i++) {
     ParmList[i]->ParmInfo();
     //mprintf("  %i: %s, %i atoms (%i trajectory frames associated)\n",
     //        i,ParmList[i]->File.filename, ParmList[i]->natom, ParmList[i]->parmFrames);
