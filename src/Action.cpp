@@ -55,7 +55,7 @@ char *Action::CmdLine() {
 /* Action::Init()
  * Allocate non-parm dependent things like I/O files and datasets. Sets
  * the pointers to DataSetList, DataFileList and reference FrameList from
- * PtrajState. Called before trajectory processing. Calls the actions 
+ * CpptrajState. Called before trajectory processing. Calls the actions 
  * internal init() routine.
  */
 int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin, 

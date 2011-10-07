@@ -1,41 +1,41 @@
-#include "PtrajState.h"
+#include "CpptrajState.h"
 #include "PtrajMpi.h"
 #include "CpptrajStdio.h"
 
 // Constructor
-PtrajState::PtrajState() {
+CpptrajState::CpptrajState() {
   TotalErrors=0; 
   debug=0;
   showProgress=true;
 }
 
 // Destructor
-PtrajState::~PtrajState() {
+CpptrajState::~CpptrajState() {
   for (std::list<ArgList*>::iterator it=DF_Args.begin(); it!=DF_Args.end(); it++) 
     delete (*it); 
 }
 
-/* PtrajState::SetGlobalDebug()
- * Set the debug level for all components of PtrajState.
+/* CpptrajState::SetGlobalDebug()
+ * Set the debug level for all components of CpptrajState.
  */
-void PtrajState::SetGlobalDebug(int debugIn) {
+void CpptrajState::SetGlobalDebug(int debugIn) {
   debug = debugIn;
   rprintf("DEBUG LEVEL SET TO %i\n",debug);
   trajinList.SetDebug(debug);
   referenceList.SetDebug(debug);
   trajoutList.SetDebug(debug);
   parmFileList.SetDebug(debug);
-  ptrajActionList.SetDebug(debug);
+  actionList.SetDebug(debug);
   DFL.SetDebug(debug);
 }
 
-/* PtrajState::Dispatch()
+/* CpptrajState::Dispatch()
  * Send commands to their appropriate classes.
  * The command is tried on each class in turn. If the class rejects command
  * move onto the next one. If command is accepted return.
  * NOTE: Should differentiate between keyword rejection and outright error.
  */
-void PtrajState::Dispatch(char *inputLine) {
+void CpptrajState::Dispatch(char *inputLine) {
   AtomMask *tempMask;  // For ParmInfo
   AmberParm *tempParm; // For ParmInfo
   ArgList dispatchArg;
@@ -141,7 +141,7 @@ void PtrajState::Dispatch(char *inputLine) {
   }
 
   // Check if command pertains to an action
-  if ( ptrajActionList.Add(&dispatchArg)==0 ) return;
+  if ( actionList.Add(&dispatchArg)==0 ) return;
 
   // Check if command pertains to analysis
   if ( analysisList.Add(&dispatchArg)==0 ) return; 
@@ -149,11 +149,11 @@ void PtrajState::Dispatch(char *inputLine) {
   mprintf("Warning: Unknown Command %s.\n",dispatchArg.Command());
 }
 
-/* PtrajState::ProcessDataFileCmd()
+/* CpptrajState::ProcessDataFileCmd()
  * Process command relating to data files. All datafile commands have format:
  *   datafile <cmd> <datafile> ...
  */
-void PtrajState::ProcessDataFileCmd() {
+void CpptrajState::ProcessDataFileCmd() {
   char *df_cmd = NULL;
   char *name1 = NULL;
   char *name2 = NULL;
@@ -244,11 +244,11 @@ void PtrajState::ProcessDataFileCmd() {
   } // END loop over datafile args
 }  
 
-/* PtrajState::Run()
+/* CpptrajState::Run()
  * Process trajectories in trajFileList. Each frame in trajFileList is sent
- * to the actions in ptrajActionList for processing.
+ * to the actions in actionList for processing.
  */
-int PtrajState::Run() {
+int CpptrajState::Run() {
   TrajectoryFile* traj;
   int maxFrames=0;        // Total # of frames that will be read
   int actionSet=0;        // Internal data frame
@@ -284,7 +284,7 @@ int PtrajState::Run() {
   DSL.SetMax(maxFrames); 
   
   // Initialize actions and set up data set and data file list
-  ptrajActionList.Init( &DSL, &refFrames, &DFL, &parmFileList);
+  actionList.Init( &DSL, &refFrames, &DFL, &parmFileList);
 
   // Set up analysis - checks that datasets are present etc
   analysisList.Setup(&DSL);
@@ -309,12 +309,12 @@ int PtrajState::Run() {
       if (TrajFrame!=NULL) delete TrajFrame;
       TrajFrame = new Frame(CurrentParm->natom, CurrentParm->mass, traj->HasVelocity());
       // Set up actions for this parm
-      if (ptrajActionList.Setup( &CurrentParm )) {
+      if (actionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
                 CurrentParm->parmName);
         continue;
       }
-      //fprintf(stdout,"DEBUG: After setup of Actions in PtrajState parm name is %s\n",
+      //fprintf(stdout,"DEBUG: After setup of Actions in CpptrajState parm name is %s\n",
       //        CurrentParm->parmName);
       lastPindex = CurrentParm->pindex;
     }
@@ -324,7 +324,7 @@ int PtrajState::Run() {
       // Since Frame can be modified by actions, save original and use CurrentFrame
       CurrentFrame = TrajFrame;
       // Perform Actions on Frame
-      ptrajActionList.DoActions(&CurrentFrame, actionSet);
+      actionList.DoActions(&CurrentFrame, actionSet);
       // Do Output
       trajoutList.Write(actionSet, CurrentParm, CurrentFrame);
 //#ifdef DEBUG
@@ -349,7 +349,7 @@ int PtrajState::Run() {
   trajoutList.Close();
 
   // Do action output
-  ptrajActionList.Print( );
+  actionList.Print( );
 
   // Print Dataset information
   DSL.Info();

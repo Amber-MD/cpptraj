@@ -1,6 +1,6 @@
-// PtrajActionList
+// ActionList
 #include <cstdlib>
-#include "PtrajActionList.h"
+#include "ActionList.h"
 #include "CpptrajStdio.h"
 // All action classes go here
 #include "Action_Distance.h"
@@ -27,36 +27,36 @@
 #include "Action_Jcoupling.h"
 #include "Action_Clustering.h"
 
-// Constructor
-PtrajActionList::PtrajActionList() {
-  ActionList=NULL;
+// CONSTRUCTOR
+ActionList::ActionList() {
+  actionlist=NULL;
   Naction=0;
   debug=0;
 }
 
-// Destructor
-PtrajActionList::~PtrajActionList() {
-  int i;
-
-  if (ActionList!=NULL) {
+// DESTRUCTOR
+ActionList::~ActionList() {
+  if (actionlist!=NULL) {
     // No need to cast back to whatever action was allocd since Action destructor is virtual
-    for (i=0; i<Naction; i++) 
-      delete ActionList[i];
-    free(ActionList);
+    for (int i=0; i<Naction; i++) 
+      delete actionlist[i];
+    free(actionlist);
   } 
 }
 
-// Set Action debug level
-void PtrajActionList::SetDebug(int debugIn) {
+/* ActionList::SetDebug()
+ * Set Action debug level
+ */
+void ActionList::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
-    mprintf("PtrajActionList DEBUG LEVEL SET TO %i\n",debug);
+    mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug);
 }
 
-/* PtrajActionList::Add()
+/* ActionList::Add()
  * Add a specific type of action class to the action list. 
  */
-int PtrajActionList::Add(ArgList *A) {
+int ActionList::Add(ArgList *A) {
   Action *Act;
 
   // Decide what action this is based on the command.
@@ -93,32 +93,30 @@ int PtrajActionList::Add(ArgList *A) {
   if (debug>0) mprintf("    Added action %s\n", Act->Name());
 
   // Store action in list
-  ActionList=(Action**) realloc(ActionList,(Naction+1) * sizeof(Action*));
-  ActionList[Naction]=Act;
+  actionlist=(Action**) realloc(actionlist,(Naction+1) * sizeof(Action*));
+  actionlist[Naction]=Act;
   Naction++;
 
   return 0;  
 }
 
-/* PtrajActionList::Init()
+/* ActionList::Init()
  * Initialize non-parm-specific data for each action (like datasets). If an 
  * action cannot be initialized deactivate it. Also set action debug level.
  */
-int PtrajActionList::Init( DataSetList *DSL, FrameList *FL, 
+int ActionList::Init( DataSetList *DSL, FrameList *FL, 
                            DataFileList *DFL, ParmFileList *PFL) {
- int act;
-
   mprintf("\nACTIONS: Initializing %i actions:\n",Naction);
-  for (act=0; act<Naction; act++) {
-    mprintf("  %i: [%s]\n",act,ActionList[act]->CmdLine());
-    if (ActionList[act]->noInit) {
-      mprintf("    WARNING: Action %s is not active.\n",ActionList[act]->Name());
+  for (int act=0; act<Naction; act++) {
+    mprintf("  %i: [%s]\n",act,actionlist[act]->CmdLine());
+    if (actionlist[act]->noInit) {
+      mprintf("    WARNING: Action %s is not active.\n",actionlist[act]->Name());
     } else {
-      ActionList[act]->ResetArg();
-      if ( ActionList[act]->Init( DSL, FL, DFL, PFL, debug ) ) {
+      actionlist[act]->ResetArg();
+      if ( actionlist[act]->Init( DSL, FL, DFL, PFL, debug ) ) {
         mprintf("    WARNING: Init failed for [%s]: DEACTIVATING\n",
-                ActionList[act]->CmdLine());
-        ActionList[act]->noInit=1;
+                actionlist[act]->CmdLine());
+        actionlist[act]->noInit=1;
       }
     }
     mprintf("\n");
@@ -127,26 +125,25 @@ int PtrajActionList::Init( DataSetList *DSL, FrameList *FL,
   return 0;
 }
 
-
-/* PtrajActionList::Setup()
+/* ActionList::Setup()
  * Attempt to set up all actions in the action list with the given parm
  * If an action cannot be set up skip it.
  */
-int PtrajActionList::Setup(AmberParm **ParmAddress) {
-  int act,err;
+int ActionList::Setup(AmberParm **ParmAddress) {
+  int err;
   AmberParm *OriginalParm = *ParmAddress;
 
   mprintf("    .... Setting up %i actions for %s ....\n",Naction,(*ParmAddress)->parmName);
-  for (act=0; act<Naction; act++) {
-    if (ActionList[act]->noInit==0) {
-      if (debug>0) mprintf("    %i: [%s]\n",act,ActionList[act]->CmdLine());
-      ActionList[act]->noSetup=0;
-      ActionList[act]->ResetArg();
-      err = ActionList[act]->Setup(ParmAddress);
+  for (int act=0; act<Naction; act++) {
+    if (actionlist[act]->noInit==0) {
+      if (debug>0) mprintf("    %i: [%s]\n",act,actionlist[act]->CmdLine());
+      actionlist[act]->noSetup=0;
+      actionlist[act]->ResetArg();
+      err = actionlist[act]->Setup(ParmAddress);
       if (err==1) {
         mprintf("      WARNING: Setup failed for [%s]: Skipping\n",
-                ActionList[act]->CmdLine());
-        ActionList[act]->noSetup=1;
+                actionlist[act]->CmdLine());
+        actionlist[act]->noSetup=1;
         //return 1;
       } else if (err==2) {
         // Return value of 2 requests return to original parm
@@ -160,40 +157,39 @@ int PtrajActionList::Setup(AmberParm **ParmAddress) {
   return 0;
 }
 
-/* PtrajActionList::DoActions()
+/* ActionList::DoActions()
  * Perform actions in the action list on the given Frame. Skip actions not 
  * initialized or not setup. frameIn is the current frame number.
  */
-void PtrajActionList::DoActions(Frame **FrameAddress, int frameIn) {
-  int act,err;
+void ActionList::DoActions(Frame **FrameAddress, int frameIn) {
+  int err;
   Frame *OriginalFrame = *FrameAddress;
 
   //fprintf(stdout,"DEBUG: Performing %i actions on frame %i.\n",Naction,frameIn);
-  for (act=0; act<Naction; act++) {
+  for (int act=0; act<Naction; act++) {
     // Skip deactivated actions
-    if (ActionList[act]->noInit || ActionList[act]->noSetup) continue;
-    err = ActionList[act]->DoAction(FrameAddress, frameIn);
+    if (actionlist[act]->noInit || actionlist[act]->noSetup) continue;
+    err = actionlist[act]->DoAction(FrameAddress, frameIn);
     if (err==1) {
       // Treat actions that fail as if they could not be set up
-      mprintf("Warning: Action [%s] failed, frame %i.\n",ActionList[act]->CmdLine(),
+      mprintf("Warning: Action [%s] failed, frame %i.\n",actionlist[act]->CmdLine(),
               frameIn);
-      ActionList[act]->noSetup=1;
+      actionlist[act]->noSetup=1;
     } else if (err==2) {
       // Return value of 2 requests return to original frame
       *FrameAddress = OriginalFrame;
     }
   }
-
 }
 
-// Non-dataset print for all actions. 
-void PtrajActionList::Print() {
-  int act;
-
+/* ActionList::Print()
+ * Non-dataset print for all actions. 
+ */
+void ActionList::Print() {
   mprintf("\nACTION OUTPUT:\n");
-  for (act=0; act<Naction; act++) {
+  for (int act=0; act<Naction; act++) {
     // Skip deactivated actions
-    if (ActionList[act]->noInit) continue;
-    ActionList[act]->print();
+    if (actionlist[act]->noInit) continue;
+    actionlist[act]->print();
   }
 }

@@ -1,7 +1,7 @@
 SOURCE=main.cpp AmberParm.cpp \
-       Frame.cpp PtrajState.cpp ArgList.cpp ptrajmask.c Action_Distance.cpp \
+       Frame.cpp CpptrajState.cpp ArgList.cpp ptrajmask.c Action_Distance.cpp \
        ParmFileList.cpp TrajinList.cpp TrajoutList.cpp ReferenceList.cpp \
-       CoordFileList.cpp PtrajActionList.cpp DataSet.cpp \
+       CoordFileList.cpp ActionList.cpp DataSet.cpp \
        DataSetList.cpp vectormath.cpp FrameList.cpp Action_Rmsd.cpp \
        Action_Dihedral.cpp DataFile.cpp DataFileList.cpp \
        PtrajFile.cpp PDBfileRoutines.cpp Action_AtomMap.cpp BaseFileIO.cpp StdFile.cpp \
@@ -24,9 +24,9 @@ SOURCE=main.cpp AmberParm.cpp \
        Traj_CharmmDcd.cpp Bonds.cpp
 
 OBJECTS=main.o AmberParm.o \
-        Frame.o PtrajState.o ArgList.o ptrajmask.o Action_Distance.o \
+        Frame.o CpptrajState.o ArgList.o ptrajmask.o Action_Distance.o \
         ParmFileList.o TrajinList.o TrajoutList.o ReferenceList.o \
-        CoordFileList.o PtrajActionList.o DataSet.o \
+        CoordFileList.o ActionList.o DataSet.o \
         DataSetList.o vectormath.o FrameList.o Action_Rmsd.o \
         Action_Dihedral.o DataFile.o DataFileList.o \
         PtrajFile.o PDBfileRoutines.o Action_AtomMap.o BaseFileIO.o StdFile.o \
@@ -49,9 +49,9 @@ OBJECTS=main.o AmberParm.o \
         Traj_CharmmDcd.o Bonds.o
 
 HEADERS=AmberParm.h \
-        Frame.h PtrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
+        Frame.h CpptrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
         ParmFileList.h TrajinList.h TrajoutList.h ReferenceList.h \
-        CoordFileList.h PtrajActionList.h DataSet.h \
+        CoordFileList.h ActionList.h DataSet.h \
         DataSetList.h vectormath.h FrameList.h Action_Rmsd.h \
         Action_Dihedral.h DataFile.h DataFileList.h \
         PtrajFile.h PDBfileRoutines.h Action_AtomMap.h BaseFileIO.h StdFile.h \

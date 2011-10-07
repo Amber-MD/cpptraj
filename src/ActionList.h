@@ -1,17 +1,18 @@
-#ifndef INC_PTRAJACTIONLIST_H
-#define INC_PTRAJACTIONLIST_H
-// PtrajActionList
+#ifndef INC_ACTIONLIST_H
+#define INC_ACTIONLIST_H
+/// Class: ActionList
+/// Hold actions that will be performed every frame. Each time a new parm is
+/// loaded the setup routin will be called.
 #include "Action.h"
-
-class PtrajActionList {
-    Action **ActionList;
+class ActionList {
+    Action **actionlist;
     int Naction;
     int debug;
 
   public:
 
-    PtrajActionList();
-    ~PtrajActionList();
+    ActionList();
+    ~ActionList();
 
     void SetDebug(int);
     int Add(ArgList *);
@@ -20,5 +21,4 @@ class PtrajActionList {
     void DoActions(Frame **, int);
     void Print();
 };
-
 #endif

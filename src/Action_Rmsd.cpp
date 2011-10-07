@@ -476,7 +476,7 @@ int Rmsd::action() {
 
 /* Rmsd::print()
  * For per-residue RMSD only. Sync the per-residue RMSD data set since
- * it is not part of the master DataSetList in PtrajState. Setup output
+ * it is not part of the master DataSetList in CpptrajState. Setup output
  * file options.
  */
 void Rmsd::print() {

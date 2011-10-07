@@ -18,15 +18,15 @@ class Action {
     ArgList *A;             // The action arguments (setArg)
     AmberParm *P;           // The current parmtop (setup)
     Frame *F;               // The current frame (action)
-    DataSetList *DSL;       // Pointer to the data set list in PtrajState (init)
-    DataFileList *DFL;      // Pointer to the data file list in PtrajState (init)
-    ParmFileList *PFL;      // Pointer to the parm file list in PtrajState (init)
-    FrameList *FL;          // Pointer to the reference frame list in PtrajState (init)
+    DataSetList *DSL;       // Pointer to the data set list in CpptrajState (init)
+    DataFileList *DFL;      // Pointer to the data file list in CpptrajState (init)
+    ParmFileList *PFL;      // Pointer to the parm file list in CpptrajState (init)
+    FrameList *FL;          // Pointer to the reference frame list in CpptrajState (init)
     
     bool useMass;           // If set to true, calculations will use mass info
 
     int debug;
-    int currentFrame;       // current frame being processed, set by PtrajActionList
+    int currentFrame;       // current frame being processed, set by ActionList
     // --== Inherited by child classes ==--
     virtual int setup()  { return 0; }
     virtual int action() { return 0; }

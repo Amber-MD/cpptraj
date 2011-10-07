@@ -4,8 +4,9 @@
 // Class to abstract handling of basic file routines.
 // NOTE: Should Format/Type etc stuff be in their own files?
 #include "BaseFileIO.h"
-
-#define BUFFER_SIZE 1024 // Used in PtrajState, AmberTraj, and PtrajFile
+// BUFFER_SIZE: Used in Action_NAstruct.cpp FortranFormat.cpp main.cpp 
+// PtrajFile.cpp PtrajFile.h Traj_AmberCoord.cpp
+#define BUFFER_SIZE 1024 
 #define OUTPUTFRAMESHIFT 1 // Used for output in DataFile and some TrajFiles 
 
 /* FILE FORMAT:
