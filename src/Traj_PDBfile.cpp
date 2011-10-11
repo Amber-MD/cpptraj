@@ -16,11 +16,15 @@ PDBfile::PDBfile() {
   trajResNums=NULL;
   trajCharges=NULL;
   trajRadii=NULL;
+
+  chainID=NULL;
+  chainchar=' ';
 }
 
 // DESTRUCTOR
 PDBfile::~PDBfile() { 
   //fprintf(stderr,"PDBfile Destructor.\n");
+  if (chainID!=NULL) delete[] chainID;
 }
 //------------------------------------------------------------------------
 /* PDBfile::closeTraj()
@@ -159,6 +163,8 @@ int PDBfile::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("dumpq")) this->SetDumpq();
   if (argIn->hasKey("model")) this->SetWriteMode(MODEL);
   if (argIn->hasKey("multi")) this->SetWriteMode(MULTI);
+  char *temp = argIn->getKeyString("chainid",NULL);
+  if (temp!=NULL) chainchar = temp[0];
   return 0;
 }
 
@@ -175,6 +181,11 @@ int PDBfile::setupWrite(AmberParm *trajParm) {
   trajResNums = trajParm->resnums;
   trajCharges = trajParm->charge;
   // trajRadii = 
+
+  // Set a chainID for each atom
+  if (chainID!=NULL) delete[] chainID;
+  chainID = new char[pdbAtom];
+  for (int atom=0; atom < pdbAtom; atom++) chainID[atom] = chainchar;
 
   // If number of frames to write > 1 and not doing 1 pdb file per frame,
   // set write mode to MODEL
@@ -241,7 +252,7 @@ int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   for (i=0; i<pdbAtom; i++) {
     // If this atom belongs to a new molecule print a TER card
     if (i == lastAtomInMol) {
-      bufferSize=pdb_write_ATOM(buffer,PDBTER,atom,(char*)"",trajResNames[res],'X',res+1,
+      bufferSize=pdb_write_ATOM(buffer,PDBTER,atom,(char*)"",trajResNames[res],chainID[i],res+1,
                                 0,0,0,0,0,(char*)"\0",dumpq);
       tfile->IO->Write(buffer,sizeof(char),bufferSize);
       atom++;
@@ -251,7 +262,7 @@ int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     // figure out the residue number
     if ( i==trajResNums[res+1] ) res++;
     if (dumpq) Occ = (float) trajCharges[i]; 
-    bufferSize=pdb_write_ATOM(buffer,PDBATOM,atom,pdbAtomNames[i],trajResNames[res],'X',
+    bufferSize=pdb_write_ATOM(buffer,PDBATOM,atom,pdbAtomNames[i],trajResNames[res],chainID[i],
                               res+1,X[i3],X[i3+1],X[i3+2],Occ,B,(char*)"\0",dumpq);
     tfile->IO->Write(buffer,sizeof(char),bufferSize); 
     i3+=3;

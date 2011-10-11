@@ -24,6 +24,9 @@ class PDBfile: public TrajectoryIO {
     double *trajCharges;
     double *trajRadii;
 
+    char *chainID;
+    char chainchar;
+
     // Inherited functions
     int setupRead(AmberParm*);
     int setupWrite(AmberParm*);
