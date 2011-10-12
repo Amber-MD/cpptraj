@@ -139,7 +139,7 @@ int ParmFileList::Add(char *filename) {
   P->SetDebug(debug);
 
   if (P->OpenParm(filename,bondsearch,molsearch)) {
-    mprintf("Error: Could not open parm %s\n",filename);
+    mprinterr("Error: Could not open parm %s\n",filename);
     delete P;
     return 1;
   }
