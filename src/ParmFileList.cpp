@@ -10,8 +10,8 @@ ParmFileList::ParmFileList() {
   Nparm=0;
   debug=0;
   hasCopies=false;
-  bondsearch=true;
-  molsearch=true;
+  bondsearch=false;
+  molsearch=false;
 }
 
 // DESTRUCTOR
