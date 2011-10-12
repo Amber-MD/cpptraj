@@ -47,18 +47,18 @@ int AmberRestart::openTraj() {
       if (tfile->OpenFile()) return 1;
       // Read in title
       if (tfile->IO->Gets(buffer,82)) {
-         mprintf("Error: AmberRestart::open(): Reading restart title.\n");
+         mprinterr("Error: AmberRestart::open(): Reading restart title.\n");
         return 1;
       }
       SetTitle(buffer);
       // Read in natoms, time, and Replica Temp if present
       if (tfile->IO->Gets(buffer,82)) {
-        mprintf("Error: AmberRestart::open(): Reading restart atoms/time.\n");
+        mprinterr("Error: AmberRestart::open(): Reading restart atoms/time.\n");
         return 1;
       }
       nread=sscanf(buffer,"%5i%15lE%15lE",&restartAtoms,&restartTime,&restartTemp);
       if (nread<1) {
-        mprintf("Error: AmberRestart::open(): Getting restart atoms/time.\n");
+        mprinterr("Error: AmberRestart::open(): Getting restart atoms/time.\n");
         return 1;
       } else if (nread==1) {
         restartTime=0.0;
@@ -75,7 +75,7 @@ int AmberRestart::openTraj() {
       break;
 
     case APPEND :
-      mprintf("Error: Append not supported for Amber Restart files.\n");
+      mprinterr("Error: Append not supported for Amber Restart files.\n");
       return 1;
       break;
 
@@ -88,7 +88,7 @@ int AmberRestart::openTraj() {
       } else {
         titleSize=strlen(title);
         if (titleSize>81) {
-          mprintf("Error: AmberTraj::open: Given title is too long!\n[%s]\n",title);
+          mprinterr("Error: AmberTraj::open: Given title is too long!\n[%s]\n",title);
           return 1;
         }
       }
@@ -171,8 +171,8 @@ int AmberRestart::getBoxAngles(char *boxline, int boxlineSize) {
     boxAngle[1]=box[4];
     boxAngle[2]=box[5];
   } else {
-    mprintf("Error: AmberRestart::getBoxAngles():\n");
-    mprintf("       Expect only 3 or 6 box coords in box coord line.\n");
+    mprinterr("Error: AmberRestart::getBoxAngles():\n");
+    mprinterr("       Expect only 3 or 6 box coords in box coord line, got %i.\n",numBoxCoords);
     return 1;
   }
   return 0;
@@ -209,7 +209,7 @@ int AmberRestart::setupRead(AmberParm *trajParm) {
 
   // Read past restart coords 
   if ( tfile->IO->Read(frameBuffer,sizeof(char),frameSize)==-1 ) {
-    mprintf("Error: AmberRestart::SetupRead(): Error reading coordinates.\n");
+    mprinterr("Error: AmberRestart::SetupRead(): Error reading coordinates.\n");
     return -1; 
   }
 
@@ -242,9 +242,10 @@ int AmberRestart::setupRead(AmberParm *trajParm) {
 
   // Otherwise, who knows what was read?
   } else {
-    mprintf("Error: AmberRestart::SetupRead(): When attempting to read in\n");
-    mprintf("       box coords/velocity info got %i chars, expected 0, 37,\n",lineSize);
-    mprintf("       73, or %i.\n",frameSize);
+    mprinterr("Error: AmberRestart::SetupRead(): When attempting to read in\n");
+    mprinterr("       box coords/velocity info got %i chars, expected 0, 37,\n",lineSize);
+    mprinterr("       73, or %i.\n",frameSize);
+    mprinterr("       This usually indicates a malformed or corrupted restart file.\n");
     return -1;
   }
 
@@ -272,7 +273,7 @@ int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) 
   char *bufferPosition;
   // Read restart coords into frameBuffer
   if ( tfile->IO->Read(frameBuffer,sizeof(char),frameSize)==-1 ) {
-    mprintf("Error: AmberRestart::getFrame(): Error reading coordinates.\n");
+    mprinterr("Error: AmberRestart::getFrame(): Error reading coordinates.\n");
     return 1;
   }
 
@@ -282,13 +283,13 @@ int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) 
 
   // Get coords from buffer
   if ( (bufferPosition = BufferToDouble(frameBuffer, X, natom3, 12))==NULL ) {
-    mprintf("Error: AmberRestart::getFrame: * detected in coordinates of %s\n",tfile->filename);
+    mprinterr("Error: AmberRestart::getFrame: * detected in coordinates of %s\n",tfile->filename);
     return 1;  
   }
   // Get velocity from buffer if present
   if (hasVelocity && V!=NULL) {
     if ( (bufferPosition = BufferToDouble(bufferPosition, V, natom3, 12))==NULL ) {
-      mprintf("Error: AmberRestart::getFrame: * detected in velocities of %s\n",
+      mprinterr("Error: AmberRestart::getFrame: * detected in velocities of %s\n",
               tfile->filename);
       return 1;
     }
@@ -297,7 +298,7 @@ int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) 
   // Get box from buffer if present
   if (hasBox) {
     if ( (bufferPosition = BufferToDouble(bufferPosition, box, numBoxCoords, 12))==NULL ) {
-      mprintf("Error: AmberRestart::getFrame: * detected in box coordinates of %s\n",
+      mprinterr("Error: AmberRestart::getFrame: * detected in box coordinates of %s\n",
               tfile->filename);
       return 1;
     }
