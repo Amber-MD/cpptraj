@@ -365,5 +365,23 @@ int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double 
  */
 void AmberRestart::info() {
   mprintf("is an AMBER restart file");
-  if (hasVelocity) mprintf(" with velocity info");
+  if (tfile!=NULL) {
+    // If read access we know for sure whether there are velocities.
+    if (tfile->access!=WRITE) {
+      if (hasVelocity)
+        mprintf(" with velocity info");
+      else
+        mprintf(", no velocities");
+
+    // If write, not sure yet whether velocities will be written since
+    // it also depends on if the frame has velocity info, so only state
+    // if novelocity was specified.
+    } else {
+      if (!hasVelocity) mprintf(", no velocities");
+    }
+  } else {
+    // Safety valve: This routine shouldnt be called if tfile is NULL, but 
+    // just in case...
+    if (hasVelocity) mprintf(" with velocity info");
+  }
 }
