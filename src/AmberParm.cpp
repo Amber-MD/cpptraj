@@ -1539,7 +1539,8 @@ int AmberParm::WriteAmberParm(char *filename) {
   }
   // 1 extra char for NULL
   filebuffer = (char*) malloc( (BufferSize+1) * sizeof(char));
-  mprintf("DEBUG: Parm %s: Buffer size is %lu bytes.\n",filename,BufferSize);
+  if (debug>0)
+    mprintf("DEBUG: Parm %s: Buffer size is %lu bytes.\n",filename,BufferSize);
   if (filebuffer==NULL) {
     mprinterr("Error: Could not allocate memory to write Amber topology %s\n",filename);
     return 1;
