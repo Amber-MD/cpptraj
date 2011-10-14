@@ -36,9 +36,8 @@ void CpptrajState::SetGlobalDebug(int debugIn) {
  * NOTE: Should differentiate between keyword rejection and outright error.
  */
 void CpptrajState::Dispatch(char *inputLine) {
-  AtomMask *tempMask;  // For ParmInfo
-  AmberParm *tempParm; // For ParmInfo
   ArgList dispatchArg;
+  AmberParm *tempParm; // For coordinate lists
 
   dispatchArg.SetList(inputLine," "); // Space delimited only?
   //printf("    *** %s ***\n",dispatchArg.ArgLine());
@@ -46,6 +45,19 @@ void CpptrajState::Dispatch(char *inputLine) {
   if (dispatchArg.Command()==NULL) {
     if (debug>0) mprintf("NULL Command.\n");
     return;
+  }
+
+  // General commands
+  // noprogress: Turn off progress bar when processing trajectories.
+  if (dispatchArg.CommandIs("noprogress")) {
+    showProgress=false;
+    mprintf("    noprogress: Progress bar will not be shown.\n");
+    return;
+  }
+  // debug: Set global debug level
+  if (dispatchArg.CommandIs("debug")) {
+    SetGlobalDebug( dispatchArg.getNextInteger(0) );
+    return ;
   }
 
   // Check if command pertains to coordinate lists
@@ -66,73 +78,8 @@ void CpptrajState::Dispatch(char *inputLine) {
     return;
   }
 
-  if (dispatchArg.CommandIs("parm")) {
-    parmFileList.Add(dispatchArg.getNextString());
-    return;
-  }
-
-  if (dispatchArg.CommandIs("noprogress")) {
-    showProgress=false;
-    mprintf("    noprogress: Progress bar will not be shown.\n");
-    return;
-  }
-
-  if (dispatchArg.CommandIs("debug")) {
-    SetGlobalDebug( dispatchArg.getNextInteger(0) );
-    return ;
-  }
-
-  if (dispatchArg.CommandIs("parminfo")) {
-    if ( (tempParm=parmFileList.GetParm(dispatchArg.getNextInteger(0)))!=NULL ) {
-      tempMask = new AtomMask();
-      char *maskarg = dispatchArg.getNextMask();
-      if (maskarg!=NULL) {
-        tempMask->SetMaskString( maskarg );
-        tempMask->SetupCharMask( tempParm, debug);
-        for (int atom=0; atom < tempParm->natom; atom++) {
-          if (tempMask->AtomInCharMask(atom)) tempParm->AtomInfo(atom);
-        }
-      } else {
-        tempParm->Summary();
-      }
-      delete tempMask;
-    }
-    return;
-  }
-
-  if (dispatchArg.CommandIs("parmbondinfo")) {
-    if ( (tempParm=parmFileList.GetParm(dispatchArg.getNextInteger(0)))!=NULL ) {
-      tempParm->PrintBondInfo();
-    }
-    return;
-  }
-
-  if (dispatchArg.CommandIs("parmmolinfo")) {
-    if ( (tempParm=parmFileList.GetParm(dispatchArg.getNextInteger(0)))!=NULL ) {
-      tempParm->PrintMoleculeInfo();
-    }
-    return;
-  }
-
-  if (dispatchArg.CommandIs("bondsearch")) {
-    parmFileList.SetBondSearch();
-    return;
-  }
-
-  if (dispatchArg.CommandIs("molsearch")) {
-    parmFileList.SetMolSearch();
-    return;
-  }
-
-  if (dispatchArg.CommandIs("nobondsearch")) {
-    parmFileList.SetNoBondSearch();
-    return;
-  }
-
-  if (dispatchArg.CommandIs("nomolsearch")) {
-    parmFileList.SetNoMolSearch();
-    return;
-  }
+  // Check if command pertains to a parm file
+  if (parmFileList.CheckCommand(&dispatchArg)==0) return;
 
   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {
@@ -254,10 +201,10 @@ int CpptrajState::Run() {
   int actionSet=0;        // Internal data frame
   int readSets=0;         // Number of frames actually read
   int lastPindex=-1;      // Index of the last loaded parm file
-  AmberParm *CurrentParm=NULL; 
-  Frame *CurrentFrame=NULL;
-  Frame *TrajFrame=NULL;
-  FrameList refFrames;
+  AmberParm *CurrentParm=NULL; // Parm for actions; can be modified 
+  Frame *CurrentFrame=NULL;    // Frame for actions; can be modified
+  Frame *TrajFrame=NULL;       // Original Frame read in from traj
+  FrameList refFrames;         // List of reference frames from referenceList
 
   // ========== S E T U P   P H A S E ========== 
   // Calculate frame division among trajectories

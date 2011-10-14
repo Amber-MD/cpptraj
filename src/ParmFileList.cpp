@@ -3,6 +3,7 @@
 #include <cstring>
 #include "ParmFileList.h"
 #include "CpptrajStdio.h"
+#include "AtomMask.h"
 
 // CONSTRUCTOR 
 ParmFileList::ParmFileList() {
@@ -32,34 +33,81 @@ void ParmFileList::SetDebug(int debugIn) {
   debug=debugIn;
 }
 
-/* ParmFileList::SetBondSearch()
+/* ParmFileList::CheckCommand()
+ * Check if the command in the arglist pertains to topology files.
+ * Return 0 if command was recognized, 1 if not.
  */
-void ParmFileList::SetBondSearch() {
-  bondsearch=true;
-  mprintf("BondSearch: If no bond information in parm, attempt to determine\n");
-  mprintf("            via distance search (can be slow for large systems.\n");
-}
-
-/* ParmFileList::SetNoBondSearch()
- */
-void ParmFileList::SetNoBondSearch() {
-  bondsearch=false;
-  mprintf("NoBondSearch: Bond determination via distance search disabled.\n");
-}
-
-/* ParmFileList::SetMolSearch()
- */
-void ParmFileList::SetMolSearch() {
-  molsearch=true;
-  mprintf("MolSearch: If no molecule information in parm, attempt to determine\n");
-  mprintf("           via bond information.\n");
-}
-
-/* ParmFileList::SetNoMolSearch()
- */
-void ParmFileList::SetNoMolSearch() {
-  molsearch=false;
-  mprintf("MolSearch: Molecule determination via bond information disabled.\n");
+int ParmFileList::CheckCommand(ArgList *argIn) {
+  AtomMask tempMask;
+  int pindex;
+  // parm <filename>: Add <filename> to parm list
+  if (argIn->CommandIs("parm")) {
+    this->Add(argIn->getNextString());
+    return 0;
+  }
+  // parminfo [<parmindex>] [<mask>]: Print information on parm <parmindex> 
+  //     (0 by default). If <mask> is given print info on atoms in mask. If
+  //     no mask given print overall information.
+  if (argIn->CommandIs("parminfo")) {
+    pindex = argIn->getNextInteger(0);
+    if (pindex>=0 && pindex<Nparm) {
+      char *maskarg = argIn->getNextMask();
+      if (maskarg!=NULL) {
+        tempMask.SetMaskString( maskarg );
+        tempMask.SetupCharMask( ParmList[pindex], debug);
+        for (int atom=0; atom < ParmList[pindex]->natom; atom++) 
+          if (tempMask.AtomInCharMask(atom)) ParmList[pindex]->AtomInfo(atom);
+      } else {
+        ParmList[pindex]->Summary();
+      }
+    } else
+      mprinterr("\tError: parm %i not loaded.\n",pindex);
+    return 0;
+  }
+  // parmbondinfo [<parmindex>]: Print bond information for parm <parmindex>
+  //     (0 by default).
+  if (argIn->CommandIs("parmbondinfo")) {
+    pindex = argIn->getNextInteger(0);
+    if (pindex>=0 && pindex<Nparm) 
+      ParmList[pindex]->PrintBondInfo();
+    else
+      mprinterr("\tError: parm %i not loaded.\n",pindex);
+    return 0;
+  }
+  // parmmolinfo [<parmindex>]: Print molecule information for parm
+  //     <parmindex> (0 by default).
+  if (argIn->CommandIs("parmmolinfo")) {
+    pindex = argIn->getNextInteger(0);
+    if (pindex>=0 && pindex<Nparm)
+      ParmList[pindex]->PrintMoleculeInfo();
+    else
+      mprinterr("\tError: parm %i not loaded.\n",pindex);
+    return 0;
+  }
+  // bondsearch: Indicate that if bond information not found in topology
+  //     it should be determined by distance search.
+  if (argIn->CommandIs("bondsearch")) {
+    bondsearch=true;
+    return 0;
+  }
+  // molsearch: Indicate that if molecule information not found in 
+  //     topology file it should be determined by bonding information.
+  if (argIn->CommandIs("molsearch")) {
+    molsearch=true;
+    return 0;
+  }
+  // nobondsearch: Turn off bond search.
+  if (argIn->CommandIs("nobondsearch")) {
+    bondsearch=false;
+    return 0;
+  }
+  // nomolsearch: Turn off molecule search.
+  if (argIn->CommandIs("nomolsearch")) {
+    molsearch=false;
+    return 0;
+  }
+  // Unrecognized parm command
+  return 1;
 }
 
 /* ParmFileList::GetParm()

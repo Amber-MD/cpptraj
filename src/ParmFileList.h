@@ -20,10 +20,7 @@ class ParmFileList {
     ~ParmFileList();
 
     void SetDebug(int);
-    void SetBondSearch();
-    void SetNoBondSearch();
-    void SetMolSearch();
-    void SetNoMolSearch();
+    int CheckCommand(ArgList *);
     int Add(char *);
     int Add(AmberParm *);
     AmberParm *GetParm(int);

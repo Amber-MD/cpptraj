@@ -5,7 +5,7 @@ CpptrajState.o : CpptrajState.cpp Action.h ActionList.h AmberParm.h Analysis.h A
 ArgList.o : ArgList.cpp ArgList.h CpptrajStdio.h
 ptrajmask.o : ptrajmask.c Name.h ptrajmask.h
 Action_Distance.o : Action_Distance.cpp Action.h Action_Distance.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
-ParmFileList.o : ParmFileList.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CpptrajFile.h CpptrajStdio.h FileRoutines.h Name.h ParmFileList.h
+ParmFileList.o : ParmFileList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajFile.h CpptrajStdio.h FileRoutines.h Name.h ParmFileList.h
 TrajinList.o : TrajinList.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CoordFileList.h CpptrajFile.h CpptrajStdio.h FileRoutines.h Name.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h TrajinList.h
 TrajoutList.o : TrajoutList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CoordFileList.h CpptrajFile.h CpptrajStdio.h FileRoutines.h Frame.h Name.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h TrajoutList.h
 ReferenceList.o : ReferenceList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CoordFileList.h CpptrajFile.h CpptrajStdio.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h Range.h ReferenceList.h TrajectoryFile.h TrajectoryIO.h
