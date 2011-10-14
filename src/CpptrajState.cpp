@@ -59,6 +59,36 @@ void CpptrajState::Dispatch(char *inputLine) {
     SetGlobalDebug( dispatchArg.getNextInteger(0) );
     return ;
   }
+  // actiondebug: Set actions debug level
+  if (dispatchArg.CommandIs("actiondebug")) {
+    actionList.SetDebug( dispatchArg.getNextInteger(0) );
+    return;
+  }
+  // trajindebug: Set input trajectory debug level
+  if (dispatchArg.CommandIs("trajindebug")) {
+    trajinList.SetDebug( dispatchArg.getNextInteger(0) );
+    return;
+  }
+  // trajoutdebug: Set output trajectory debug level
+  if (dispatchArg.CommandIs("trajoutdebug")) {
+    trajoutList.SetDebug( dispatchArg.getNextInteger(0) );
+    return;
+  }
+  // referencedebug: Set reference trajectory debug level
+  if (dispatchArg.CommandIs("referencedebug")) {
+    referenceList.SetDebug( dispatchArg.getNextInteger(0) );
+    return;
+  }
+  // parmdebug: Set parm debug level
+  if (dispatchArg.CommandIs("parmdebug")) {
+    parmFileList.SetDebug( dispatchArg.getNextInteger(0) );
+    return;
+  }
+  // datafiledebug: Set master data file list debug
+  if (dispatchArg.CommandIs("datafiledebug")) {
+    DFL.SetDebug( dispatchArg.getNextInteger(0) );
+    return;
+  }
 
   // Check if command pertains to coordinate lists
   // If it does, get a parm based on parm/parmindex keywords in arg list
