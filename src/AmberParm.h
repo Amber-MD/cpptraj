@@ -9,8 +9,7 @@
 ///   2.    Arrays: names, resnames, resnums
 #include "CpptrajFile.h"
 #include "BoxType.h" 
-// NAMESIZE: Default size for atom and residue names, 5 + NULL.
-// Amber atom/residue names are 4, but some mol2 atom types are larger.
+// Name.h has definition for NAME 
 #include "Name.h"
 class AmberParm {
   private:
@@ -46,6 +45,7 @@ class AmberParm {
     int ReadParmPDB(CpptrajFile *);
     int ReadParmPSF(CpptrajFile *);
 
+    // Routines to fill in missing Bond/Molecule info
     void GetBondsFromCoords();
     double *parmCoords;
     int DetermineMolecules();
@@ -55,7 +55,6 @@ class AmberParm {
     char *parmName;       // Parm name, set to base filename on reads 
     int pindex;           // The index of this parm in the parmfilelist
     int parmFrames;       // For output, # of frames that will be read with this parm
-    //int outFrame;         // Output, # frames that have been written using this parm
 
     // Amber Parmtop
     int NbondsWithH;    // NBONH
@@ -74,6 +73,7 @@ class AmberParm {
     int *atomsPerMol;   // NSP(NSPM)
     double *mass;       // AMASS(NATOM)
     double *charge;     // CHARGE(NATOM)
+
     double Box[6];      // X, Y, Z, alpha, beta, gamma 
     BoxType boxType;    // None, Orthogonal, Non-orthogonal
 
