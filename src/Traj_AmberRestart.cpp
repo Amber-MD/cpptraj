@@ -329,9 +329,9 @@ int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double 
   tfile->IO->Printf("%5i",restartAtoms);
   // Write out restart time
   if (time0>=0) {
-    restartTime = time0;
-    restartTime += (double) set; 
-    tfile->IO->Printf("%15.7lE",restartAtoms,restartTime);
+    restartTime = (double) set;
+    restartTime += time0;
+    tfile->IO->Printf("%15.7lE",restartTime);
   }
   // Write out temperature
   if (hasTemperature)
