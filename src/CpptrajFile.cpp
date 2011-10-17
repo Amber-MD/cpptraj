@@ -3,12 +3,6 @@
 #include <cstring>
 #include <cctype>
 #include <sys/stat.h>
-// NOTE: It seems some PGI compilers do not function correctly when glob.h
-//       is included and large file flags are set. Just disable globbing
-//       for PGI.
-#ifndef __PGI
-#  include <glob.h> // For tilde expansion
-#endif
 #include "CpptrajFile.h"
 #include "NetcdfRoutines.h"
 #include "PDBfileRoutines.h"
@@ -161,38 +155,28 @@ int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn, int debugIn) {
  */
 int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn, 
                          FileFormat fileFormatIn, FileType fileTypeIn, 
-                         int debugIn) {
-#ifndef __PGI
-  glob_t globbuf;
-#endif
+                         int debugIn) 
+{
   debug=debugIn;
   if (debug>0) {
     mprintf("CpptrajFile: [%s] FMT %s, TYPE %s, ACC %s\n",filenameIn,
            File_Format(fileFormatIn),File_Type(fileTypeIn),
            File_Access(accessIn));
   }
-
-  // Store filename
-  if (filenameIn!=NULL) {
-    filename=(char*) malloc( (strlen(filenameIn)+1) * sizeof(char) );
-    strcpy(filename,filenameIn);
-  }
-#ifndef __PGI
-  // On read or append do tilde expansion and store new filename
+  // Store tilde-expanded filename on read/append
   if (accessIn!=WRITE) {
-    // If no filename this is an error.
+    filename = tildeExpansion(filenameIn,debug);
     if (filename==NULL) {
-      mprintf("Error: CpptrajFile::SetupFile: NULL filename specified on READ or APPEND\n");
+      mprinterr("Error: CpptrajFile::SetupFile: NULL filename specified on READ or APPEND\n");
       return 1;
     }
-    globbuf.gl_offs = 1;
-    if ( glob(filename, GLOB_TILDE, NULL, &globbuf)!=0 ) return 1; 
-    if (debug>1) mprintf("\tGLOB(0): [%s]\n",globbuf.gl_pathv[0]);
-    filename=(char*) realloc( filename, (strlen(globbuf.gl_pathv[0])+1) * sizeof(char));
-    strcpy(filename, globbuf.gl_pathv[0]);
-    globfree(&globbuf);
+  // On WRITE, just store filename if not NULL (NULL indicates STDOUT)
+  } else { 
+    if (filenameIn!=NULL) {
+      filename=(char*) malloc( (strlen(filenameIn)+1) * sizeof(char) );
+      strcpy(filename,filenameIn);
+    }
   }
-#endif
   // Store base filename and determine filename extension
   this->SetBaseFilename();
 

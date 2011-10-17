@@ -8,6 +8,7 @@ void rprintf(const char *, ...);
 void rprinterr(const char *, ...);
 void printerr(const char *, const char *, ...);
 void printwar(const char *, const char *, ...);
+char *tildeExpansion(char *, int);
 bool fileExists(char *);
 void NumberFilename(char *, char *, int);
 #endif

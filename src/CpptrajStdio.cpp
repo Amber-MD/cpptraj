@@ -8,6 +8,11 @@
  */
 #include <cstdio>
 #include <cstdarg>
+#include <cstdlib> // tildeExpansion
+#include <cstring> // tildeExpansion
+#ifndef __PGI
+#  include <glob.h> // For tilde expansion
+#endif
 #ifdef MPI
 #  include "MpiRoutines.h"
 #endif
@@ -112,14 +117,48 @@ void printwar(const char *ROUTINE, const char *format, ...) {
   return;
 }
 
+/* tildeExpansion()
+ * Use glob.h to perform tilde expansion on a filename, returning the 
+ * expanded filename. The calling function is responsible for freeing
+ * memory allocated with tildeExpansion.
+ */
+char *tildeExpansion(char *filenameIn, int debug) {
+  char *returnFilename;
+#ifdef __PGI
+  // NOTE: It seems some PGI compilers do not function correctly when glob.h
+  //       is included and large file flags are set. Just disable globbing
+  //       for PGI and return a copy of filenameIn.
+  returnFilename = (char*) malloc( (strlen(filenameIn)+1) * sizeof(char));
+  strcpy(returnFilename, filenameIn);
+  return returnFilename;
+#else
+  glob_t globbuf;
+  if (filenameIn==NULL) {
+    mprinterr("Error: tildeExpansion: NULL filename specified.\n");
+    return NULL;
+  }
+  globbuf.gl_offs = 1;
+  if ( glob(filenameIn, GLOB_TILDE, NULL, &globbuf)!=0 ) return NULL;
+  if (debug>1) mprintf("\tGLOB(0): [%s]\n",globbuf.gl_pathv[0]);
+  returnFilename=(char*) malloc( (strlen(globbuf.gl_pathv[0])+1) * sizeof(char));
+  strcpy(returnFilename, globbuf.gl_pathv[0]);
+  globfree(&globbuf);
+  return returnFilename;
+#endif
+} 
+
 /* fileExists()
  * Return true if file can be opened "r".
  */
 bool fileExists(char *filenameIn) {
   FILE *infile = NULL;
+  char *fname;
 
-  if (filenameIn==NULL) return false;
+  // Perform tilde expansion
+  fname = tildeExpansion(filenameIn,0);
+  if (fname==NULL) return false;
   infile=fopen(filenameIn,"rb");
+  free(fname);
   if (infile==NULL) return false;
   fclose(infile);
   return true;
