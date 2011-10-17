@@ -6,6 +6,7 @@
   TZ = (UX*VY) - (UY*VX)
 
 void normalize(double a[3]);
+double vector_norm(double V[3], double *);
 void vector_sub(double V[3], double U[3], double W[3]);
 void vector_sum(double V[3], double U[3], double W[3]);
 double dot_product(double V[3], double U[3]);

@@ -20,6 +20,22 @@ void normalize(double a[3]) {
   a[2] *= b;
 }
 
+/* vector_norm()
+ * Normalize vector in V. Return vector length, and set r2 to
+ * vector length squared.
+ */
+double vector_norm(double V[3], double *r2) {
+  double b, r;
+
+  *r2=(V[0]*V[0])+(V[1]*V[1])+(V[2]*V[2]);
+  r = sqrt(*r2);
+  b = 1.0 / r;
+  V[0] *= b;
+  V[1] *= b;
+  V[2] *= b;
+  return r;
+}
+
 /* vector_sub()
  * V = U - W
  */
