@@ -11,5 +11,6 @@ enum FortranFormat {
 // FFSIZE: Combined size of %FLAG and %FORMAT lines (81 * 2)
 #define FFSIZE 162
 int GetFortranBufferSize(FortranFormat,int,int);
+char *getFlagFileString(CpptrajFile *, const char *, int);
 void *getFlagFileValues(CpptrajFile *,const char*,int,int);
 char *DataToFortranBuffer(char*,const char*,FortranFormat,int*,double*,NAME*,int);

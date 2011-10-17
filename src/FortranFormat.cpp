@@ -61,6 +61,44 @@ static FortranFormat GetFortranFormat(char *Format) {
   }
 }
 
+/* getFlagFileString()
+ * Search for the FLAG specified by Key. Assume the next line is a string 
+ * of max length 80 chars and return it.
+ */
+char *getFlagFileString(CpptrajFile *File, const char *Key, int debug) {
+  char *lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
+  char value[83];
+
+  if (debug>0) mprintf("Reading %s\n",Key);
+
+  // First, rewind the input file.
+  File->IO->Rewind();
+
+  // Next, search for the required FLAG
+  while ( File->IO->Gets(lineBuffer,82) == 0) {
+    if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
+      sscanf(lineBuffer,"%*s %s",value);
+      if (strcmp(value,Key)==0) {
+        if (debug>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
+        // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
+        // read past until you get to the FORMAT line
+        File->IO->Gets(lineBuffer,82);
+        while (strncmp(lineBuffer,"%FORMAT",7)!=0)
+          File->IO->Gets(lineBuffer,82);
+        if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
+        // Read next line and return
+        File->IO->Gets(lineBuffer,82);
+        return lineBuffer;
+      }
+    }
+  }
+
+  // If here, Key not found, bad news.
+  mprinterr("Error: Could not find Key %s in file.\n",Key);
+  delete[] lineBuffer;
+  return NULL;
+}
+
 /* getFlagFileValues()
  * Search for the FLAG specified by Key and return the values. The values will 
  * be put into an array type according to the FORMAT string in the top file, 
