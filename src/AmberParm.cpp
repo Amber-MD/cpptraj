@@ -71,6 +71,8 @@ AmberParm::AmberParm() {
   radius_set=NULL;
   gb_radii=NULL;
   gb_screen=NULL;
+  ntypes=0;
+  nnb=0;
 }
 
 // DESTRUCTOR
@@ -189,6 +191,19 @@ int AmberParm::NumExcludedAtoms(int atom) {
 int AmberParm::Natex(int idx) {
   if (excludedAtoms==NULL) return -1;
   return excludedAtoms[idx];
+}
+
+int AmberParm::GetLJparam(double *A, double *B, int atom1, int atom2) {
+  int param, index;
+  // atype_index = IAC(NATOM)
+  // NB_index    = ICO(NTYPES*NTYPES)
+  if (LJ_A==NULL || LJ_B==NULL) return 1;
+  if (atype_index==NULL || NB_index==NULL) return 1;
+  param = ((ntypes*(atype_index[atom1]-1))+atype_index[atom2])-1; // cpptraj arrays start from 0
+  index = NB_index[param]-1;                                      // cpptraj arrays start from 0
+  *A = LJ_A[index];
+  *B = LJ_B[index];
+  return 0;
 }
 
 // -------------------- ROUTINES PERTAINING TO SURFACE AREA --------------------
@@ -595,7 +610,6 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   double *boxFromParm;
   int *values;
   char *title;
-  int ntypes,nnb;
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
   // Title
