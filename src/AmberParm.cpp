@@ -61,6 +61,16 @@ AmberParm::AmberParm() {
 
   SurfaceInfo=NULL;
   numSoluteAtoms=0;
+
+  numex=NULL;
+  atype_index=NULL;
+  NB_index=NULL;
+  LJ_A=NULL;
+  LJ_B=NULL;
+  excludedAtoms=NULL;
+  radius_set=NULL;
+  gb_radii=NULL;
+  gb_screen=NULL;
 }
 
 // DESTRUCTOR
@@ -84,6 +94,16 @@ AmberParm::~AmberParm() {
 
   if (SurfaceInfo!=NULL) free(SurfaceInfo);
   if (parmCoords!=NULL) free(parmCoords);
+
+  if (numex!=NULL) free(numex);
+  if (atype_index!=NULL) free(atype_index);
+  if (NB_index!=NULL) free(NB_index);
+  if (LJ_A!=NULL) free(LJ_A);
+  if (LJ_B!=NULL) free(LJ_B);
+  if (excludedAtoms!=NULL) free(excludedAtoms);
+  if (radius_set!=NULL) delete[] radius_set; // getFlagFileString uses 'new'
+  if (gb_radii!=NULL) free(gb_radii);
+  if (gb_screen!=NULL) free(gb_screen);
 }
 
 /* SetDebug()
@@ -157,6 +177,18 @@ int AmberParm::FindAtomInResidue(int res, char *atname) {
     if (strcmp(names[atnum],atname)==0) return atnum;
   }
   return -1;
+}
+
+// -------------------- ROUTINES FOR ACCESSING INTERNAL DATA -------------------
+int AmberParm::NumExcludedAtoms(int atom) {
+  if (numex==NULL) return -1;
+  if (atom<0 || atom>=natom) return -1;
+  return numex[atom];
+}
+
+int AmberParm::Natex(int idx) {
+  if (excludedAtoms==NULL) return -1;
+  return excludedAtoms[idx];
 }
 
 // -------------------- ROUTINES PERTAINING TO SURFACE AREA --------------------
@@ -562,15 +594,22 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   int *solvent_pointer;
   double *boxFromParm;
   int *values;
+  char *title;
+  int ntypes,nnb;
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
-
+  // Title
+  // NOTE: getFlagFileString uses 'new' operator.
+  title = getFlagFileString(parmfile, "TITLE",debug);
+  mprintf("\tAmberParm Title: %s\n",title);
+  delete[] title;
+  // Pointers
   values=(int*) getFlagFileValues(parmfile,"POINTERS",AMBERPOINTERS,debug);
   if (values==NULL) {
     mprintf("Could not get values from topfile\n");
     return 1;
   }
-
+  // Set some commonly used values
   natom=values[NATOM];
   nres=values[NRES];
   NbondsWithH=values[NBONH];
@@ -579,7 +618,10 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
     mprintf("    Amber top contains %i atoms, %i residues.\n",natom,nres);
     mprintf("    %i bonds to hydrogen, %i other bonds.\n",NbondsWithH,NbondsWithoutH);
   }
-
+  // Other values
+  ntypes = values[NTYPES];
+  nnb = values[NNB];
+  // Atom names/types, residue names/nums
   err=0;
   names=(NAME*) getFlagFileValues(parmfile,"ATOM_NAME",natom,debug);
   if (names==NULL) {mprintf("Error in atom names.\n"); err++;}
@@ -593,6 +635,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   // with the rest of cpptraj.
   for (atom=0; atom < nres; atom++)
     resnums[atom] -= 1;
+  // Mass/charge
   mass=(double*) getFlagFileValues(parmfile,"MASS",natom,debug);
   if (mass==NULL) {mprintf("Error in masses.\n"); err++;}
   charge=(double*) getFlagFileValues(parmfile,"CHARGE",natom,debug);
@@ -600,10 +643,38 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   // Convert charges to units of electron charge
   for (atom=0; atom < natom; atom++)
     charge[atom] *= (AMBERTOELEC);
+  // Bond information
   bonds=(int*) getFlagFileValues(parmfile,"BONDS_WITHOUT_HYDROGEN",NbondsWithoutH*3,debug);
   if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); err++;}
   bondsh=(int*) getFlagFileValues(parmfile,"BONDS_INC_HYDROGEN",NbondsWithH*3,debug);
   if (bondsh==NULL) {mprintf("Error in bonds inc H.\n"); err++;}
+  // Atom type index
+  atype_index = (int*) getFlagFileValues(parmfile,"ATOM_TYPE_INDEX",natom,debug);
+  if (atype_index==NULL) {mprintf("Error in atom type index.\n"); err++;}
+  // Number of excluded atoms
+  numex = (int*) getFlagFileValues(parmfile,"NUMBER_EXCLUDED_ATOMS",natom,debug);
+  if (numex==NULL) {mprintf("Error in number of excluded atoms.\n"); err++;}
+  // Nonbonded parm index
+  NB_index = (int*) getFlagFileValues(parmfile,"NONBONDED_PARM_INDEX",ntypes*ntypes,debug);
+  if (NB_index==NULL) {mprintf("Error in nonbonded parameter index.\n"); err++;}
+  // Lennard-Jones A/B coefficient
+  LJ_A = (double*) getFlagFileValues(parmfile,"LENNARD_JONES_ACOEF",ntypes*(ntypes+1)/2,debug);
+  LJ_B = (double*) getFlagFileValues(parmfile,"LENNARD_JONES_BCOEF",ntypes*(ntypes+1)/2,debug);
+  if (LJ_A==NULL || LJ_B==NULL) {mprintf("Error reading LJ parameters.\n"); err++;}
+  // List of excluded atoms
+  excludedAtoms = (int*) getFlagFileValues(parmfile,"EXCLUDED_ATOMS_LIST",nnb,debug);
+  if (excludedAtoms==NULL) {mprintf("Error reading list of excluded atoms.\n"); err++;}
+  // Atom #s in excludedAtoms are currently shifted +1. Shift back to be consistent
+  // with the rest of cpptraj.
+  for (atom=0; atom < nnb; atom++)
+    excludedAtoms[atom] -= 1;
+  // GB parameters
+  title = getFlagFileString(parmfile,"RADIUS_SET",debug);
+  mprintf("\tRadius Set: %s\n",title);
+  delete[] title;
+  gb_radii = (double*) getFlagFileValues(parmfile,"RADII",natom,debug);
+  gb_screen = (double*) getFlagFileValues(parmfile,"SCREEN",natom,debug);
+  if (gb_radii==NULL || gb_screen==NULL) {mprintf("Error reading gb parameters.\n"); err++;}
   // Get solvent info if IFBOX>0
   if (values[IFBOX]>0) {
     solvent_pointer=(int*) getFlagFileValues(parmfile,"SOLVENT_POINTERS",3,debug);
@@ -638,7 +709,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   free(values);
 
   if ( err>0 ) {
-    rprintf("Error reading topfile\n");
+    mprinterr("Error: %i errors when reading amber topology file %s\n",err,parmfileName);
     return 1;
   }
 

@@ -50,6 +50,16 @@ class AmberParm {
     double *parmCoords;
     int DetermineMolecules();
 
+    int *numex;         // NUMEX(NATOM)
+    int *atype_index;   // IAC(NATOM)
+    int *NB_index;      // ICO(NTYPES*NTYPES)
+    double *LJ_A;       // CN1(NTYPES*(NTYPES+1)/2)
+    double *LJ_B;       // CN2(NTYPES*(NTYPES+1)/2)
+    int *excludedAtoms; // INB(NNB)
+    char *radius_set;   // TYPE
+    double *gb_radii;   // RBORN(NATOM)
+    double *gb_screen;  // FS(NATOM)
+
   public:
     char *parmfileName;   // Parm filename (full path)
     char *parmName;       // Parm name, set to base filename on reads 
@@ -73,6 +83,9 @@ class AmberParm {
     int *atomsPerMol;   // NSP(NSPM)
     double *mass;       // AMASS(NATOM)
     double *charge;     // CHARGE(NATOM)
+
+    int NumExcludedAtoms(int);
+    int Natex(int);
 
     double Box[6];      // X, Y, Z, alpha, beta, gamma 
     BoxType boxType;    // None, Orthogonal, Non-orthogonal
