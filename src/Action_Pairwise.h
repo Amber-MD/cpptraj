@@ -8,6 +8,10 @@ class Pairwise: public Action {
     bool *skipv;
     int *natexidx;
     bool hasExclusion;
+    double kes;
+    DataSetList Eout;
+    DataSet *ds_vdw;
+    DataSet *ds_elec;
   public:
     Pairwise();
     ~Pairwise();
