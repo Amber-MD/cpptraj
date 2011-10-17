@@ -87,7 +87,8 @@ int Distance::setup() {
   }
 
   // Print imaging info for this parm
-  mprintf("    DISTANCE: %s to %s",Mask1.maskString, Mask2.maskString);
+  mprintf("    DISTANCE: %s (%i atoms) to %s (%i atoms)",Mask1.maskString, Mask1.Nselected,
+          Mask2.maskString,Mask2.Nselected);
   if (imageType > 0)
     mprintf(", imaged");
   else
