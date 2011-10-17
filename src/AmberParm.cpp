@@ -197,8 +197,14 @@ int AmberParm::GetLJparam(double *A, double *B, int atom1, int atom2) {
   int param, index;
   // atype_index = IAC(NATOM)
   // NB_index    = ICO(NTYPES*NTYPES)
-  if (LJ_A==NULL || LJ_B==NULL) return 1;
-  if (atype_index==NULL || NB_index==NULL) return 1;
+  if (LJ_A==NULL || LJ_B==NULL) {
+    mprinterr("Error: param file %s does not have LJ A/B coefficients.\n",parmName);
+    return 1;
+  }
+  if (atype_index==NULL || NB_index==NULL) {
+    mprinterr("Error: param file %s does not have LJ index information.\n",parmName);
+    return 1;
+  }
   param = ((ntypes*(atype_index[atom1]-1))+atype_index[atom2])-1; // cpptraj arrays start from 0
   index = NB_index[param]-1;                                      // cpptraj arrays start from 0
   *A = LJ_A[index];
@@ -615,7 +621,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   // Title
   // NOTE: getFlagFileString uses 'new' operator.
   title = getFlagFileString(parmfile, "TITLE",debug);
-  mprintf("\tAmberParm Title: %s\n",title);
+  if (debug>0) mprintf("\tAmberParm Title: %s\n",title);
   delete[] title;
   // Pointers
   values=(int*) getFlagFileValues(parmfile,"POINTERS",AMBERPOINTERS,debug);
@@ -684,7 +690,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
     excludedAtoms[atom] -= 1;
   // GB parameters
   title = getFlagFileString(parmfile,"RADIUS_SET",debug);
-  mprintf("\tRadius Set: %s\n",title);
+  if (debug>0) mprintf("\tRadius Set: %s\n",title);
   delete[] title;
   gb_radii = (double*) getFlagFileValues(parmfile,"RADII",natom,debug);
   gb_screen = (double*) getFlagFileValues(parmfile,"SCREEN",natom,debug);

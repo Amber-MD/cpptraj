@@ -86,7 +86,16 @@ int Pairwise::setup() {
         mprintf("\tAtom %i: Index %i\n",atom,natexidx[atom]);
     }
   }
-
+  // Check if LJ parameters present - need at least 2 atoms for it to matter.
+  if (P->natom>1) {
+    double Atemp = 0;
+    double Btemp = 0;
+    if (P->GetLJparam(&Atemp, &Btemp, 0, 1)) {
+      mprinterr("Error: Pairwise::setup(): Parm does not have LJ information.\n");
+      return 1;
+    }
+  }
+  
   // Print info for this parm
   mprintf("    PAIRWISE: Mask %s corresponds to %i atoms.\n",Mask0.maskString, Mask0.Nselected);
         

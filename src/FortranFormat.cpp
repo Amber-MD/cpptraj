@@ -93,8 +93,9 @@ char *getFlagFileString(CpptrajFile *File, const char *Key, int debug) {
     }
   }
 
-  // If here, Key not found, bad news.
-  mprinterr("Error: Could not find Key %s in file.\n",Key);
+  // If here, Key not found, could be bad news, but let the calling function
+  // print the error message.
+  mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key);
   delete[] lineBuffer;
   return NULL;
 }
@@ -200,8 +201,9 @@ void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debu
       } // End if (strcmp(value,Key)==0)
     } // End if ( strncmp(lineBuffer,"%FLAG",5)==0 )
   } // End While loop
-  // If we have scanned through the input file and have not found Key, bad! 
-  rprintf("Error: Could not find key %s in file.\n",Key);
+  // If here, Key not found, could be bad news, but let the calling function
+  // print the error message.
+  mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key); 
   if (I!=NULL) free(I);
   if (D!=NULL) free(D);
   if (C!=NULL) free(C);
