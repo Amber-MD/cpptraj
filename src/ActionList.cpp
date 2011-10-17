@@ -26,6 +26,7 @@
 #include "Action_DistRmsd.h"
 #include "Action_Jcoupling.h"
 #include "Action_Clustering.h"
+#include "Action_Pairwise.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() {
@@ -85,6 +86,7 @@ int ActionList::Add(ArgList *A) {
   else if (A->CommandIs("drmsd",4))  {Act=new DistRmsd;}
   else if (A->CommandIs("jcoupling")){Act=new Jcoupling;}
   else if (A->CommandIs("cluster"))  {Act=new Clustering;}
+  else if (A->CommandIs("pairwise")) {Act=new Pairwise;}
   else return 1; 
 
   // Pass in the argument list

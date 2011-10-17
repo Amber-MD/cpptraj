@@ -21,7 +21,7 @@ SOURCE=main.cpp AmberParm.cpp \
        Action_DistRmsd.cpp \
        AnalysisList.cpp Analysis_Hist.cpp mapDataSet.cpp Action_Radial.cpp \
        Action_Jcoupling.cpp TriangleMatrix.cpp Action_Clustering.cpp ClusterList.cpp \
-       Traj_CharmmDcd.cpp Bonds.cpp FileRoutines.cpp
+       Traj_CharmmDcd.cpp Bonds.cpp FileRoutines.cpp Action_Pairwise.cpp
 
 OBJECTS=main.o AmberParm.o \
         Frame.o CpptrajState.o ArgList.o ptrajmask.o Action_Distance.o \
@@ -46,7 +46,7 @@ OBJECTS=main.o AmberParm.o \
         Action_DistRmsd.o \
         AnalysisList.o Analysis_Hist.o mapDataSet.o Action_Radial.o \
         Action_Jcoupling.o TriangleMatrix.o Action_Clustering.o ClusterList.o \
-        Traj_CharmmDcd.o Bonds.o FileRoutines.o
+        Traj_CharmmDcd.o Bonds.o FileRoutines.o Action_Pairwise.o
 
 HEADERS=AmberParm.h \
         Frame.h CpptrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
@@ -71,5 +71,5 @@ HEADERS=AmberParm.h \
         Action_DistRmsd.h \
         AnalysisList.h Analysis_Hist.h mapDataSet.h Action_Radial.h \
         Action_Jcoupling.h Constants.h TriangleMatrix.h Action_Clustering.h ClusterList.h \
-        Traj_CharmmDcd.h Bonds.h FileRoutines.h
+        Traj_CharmmDcd.h Bonds.h FileRoutines.h Action_Pairwise.h
 
