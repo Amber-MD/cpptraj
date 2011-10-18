@@ -66,6 +66,26 @@ DataSet *DataSetList::Get(int idxIn) {
   return NULL;
 }
 
+/* DataSetList::AddMult()
+ * Works like Add, except the dataset will be named 
+ *   nameprefix_namesuffx
+ * if nameprefix is not NULL, and
+ *   namesuffix_XXXXX
+ * otherwise.
+ */
+DataSet *DataSetList::AddMulti(dataType inType, char *prefix, const char *suffix) {
+  char tempName[32];
+  if (prefix==NULL)
+    return this->Add(inType,NULL,suffix);
+ // Sanity check - make sure name is not too big
+ if (strlen(prefix)+strlen(suffix)+1 > 32) {
+   mprinterr("Internal Error: DataSetList::AddMulti: size of %s+%s > 32\n",prefix,suffix);
+   return NULL;
+ } 
+ sprintf(tempName,"%s_%s",prefix,suffix);
+ return this->Add(inType,tempName,suffix);
+}
+
 /* DataSetList::Add()
  * Add a DataSet of specified type, set it up and return pointer to it. 
  * Name the dataset nameIn if specified, otherwise give it a default
