@@ -177,7 +177,7 @@ int Rmsd::init( ) {
       // Get reference frame by index
       RefFrame=FL->GetFrame(refindex);
       if (RefFrame==NULL) {
-        mprintf("    Error: Rmsd::init: Could not get reference index %i\n",refindex);
+        mprinterr("    Error: Rmsd::init: Could not get reference index %i\n",refindex);
         return 1;
       }
       // Set reference parm
