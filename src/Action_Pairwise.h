@@ -12,12 +12,18 @@ class Pairwise: public Action {
     int *natexidx;
     bool hasExclusion;
     double kes;
-    DataSetList Eout;
     DataSet *ds_vdw;
     DataSet *ds_elec;
     double ELJ, Eelec;
+    int Ncomparison;
+    std::vector<double> ref_eelec;
+    double cut_eelec;
+    double cut_eelec1;
+    bool isReference;
+    std::vector<double> atom_eelec;
 
     int AllocateExclusion(AmberParm *);
+    int NumInteractions(AtomMask *, AmberParm *);
     int SetupExclusion(AmberParm *, int);
     double Energy_LJ(AmberParm *, int, int, double, double *);
     double Energy_Coulomb(AmberParm *, int, int, double, double *);
@@ -29,5 +35,6 @@ class Pairwise: public Action {
     int init();
     int setup();
     int action();
+    void print();
 };
 #endif  

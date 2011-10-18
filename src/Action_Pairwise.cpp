@@ -15,6 +15,9 @@ Pairwise::Pairwise() {
   kes = 1.0;
   ELJ=0;
   Eelec=0;
+  cut_eelec=1.0;
+  cut_eelec1=-1.0;
+  isReference=false;
 } 
 
 // DESTRUCTOR
@@ -32,7 +35,7 @@ Pairwise::~Pairwise() {
  *    3) Dataset name
  */
 int Pairwise::init( ) {
-  char *mask0, *eout, *refmask, *referenceName;
+  char *mask0, *eout, *refmask, *referenceName, *ds_name;
   int refindex;
 
   // Get Keywords
@@ -43,6 +46,8 @@ int Pairwise::init( ) {
   }
   referenceName=A->getKeyString("ref",NULL);
   refindex=A->getKeyInt("refindex",-1);
+  cut_eelec = A->getKeyDouble("cuteelec",1.0);
+  cut_eelec1 = -cut_eelec;
   
   // Get Masks
   mask0 = A->getNextMask();
@@ -75,19 +80,33 @@ int Pairwise::init( ) {
     }
     // Allocate exclusion list for reference
     AllocateExclusion(RefParm);
+    // Set up comparison array
+    int N_interactions = NumInteractions(&RefMask, RefParm);
+    ref_eelec.clear();
+    ref_eelec.resize( N_interactions, 0 );
     // Calculate energy for reference
+    // Setting isReference to true lets energy routines know to fill the
+    // ref_X arrays.
+    isReference = true;
     Energy(&RefMask, RefFrame, RefParm);
-    mprintf("DEBUG:\tReference ELJ= %12.4lf  Eelec= %12.4lf\n",ELJ,Eelec); 
+    mprintf("DEBUG:\tReference ELJ= %12.4lf  Eelec= %12.4lf\n",ELJ,Eelec);
+    mprintf("\tSize of reference eelec array: %u\n",ref_eelec.size());
+    isReference=false;
   }
 
   // Datasets
-  ds_vdw = Eout.Add(DOUBLE, (char*)NULL, "EVDW");
-  ds_elec= Eout.Add(DOUBLE, (char*)NULL,"EELEC");
+  ds_name = A->getNextString();
+  ds_vdw = DSL->AddMulti(DOUBLE, ds_name, "EVDW");
+  ds_elec= DSL->AddMulti(DOUBLE, ds_name, "EELEC");
   // Add datasets to data file list
   DFL->Add(eout,ds_vdw);
   DFL->Add(eout,ds_elec);
 
   mprintf("    PAIRWISE: Atoms in mask %s, output to %s.\n",Mask0.maskString,eout);
+  if (RefFrame!=NULL) {
+    mprintf("              Reference index %i\n",refindex);
+    mprintf("              Eelec absolute cutoff: %12.4lf\n",cut_eelec);
+  }
 
   return 0;
 }
@@ -96,6 +115,8 @@ int Pairwise::init( ) {
  * Allocate memory for the exclusion list based on the given parm.
  */
 int Pairwise::AllocateExclusion(AmberParm *Parm) {
+  int idx = 0;
+
   if (skipv!=NULL) delete[] skipv;
   skipv = new bool[ Parm->natom ];
   for (int atom=0; atom < Parm->natom; atom++) 
@@ -106,7 +127,6 @@ int Pairwise::AllocateExclusion(AmberParm *Parm) {
     // Create an array holding indices for each atom into NATEX
     if (natexidx!=NULL) delete[] natexidx;
     natexidx = new int[ Parm->natom ];
-    int idx = 0;
     for (int atom=0; atom < Parm->natom; atom++) {
       natexidx[atom] = idx;
       idx += Parm->NumExcludedAtoms(atom);
@@ -127,7 +147,38 @@ int Pairwise::AllocateExclusion(AmberParm *Parm) {
       return 1;
     }
   }
+
   return 0;
+}
+
+/* Pairwise::NumInteractions()
+ * Based on the given atom mask and parm determine the total number of
+ * pairwise interactions that will be calculated.
+ * There should be ((N^2 - N) / 2) - SUM(Numex) interactions, however
+ * since the excluded atoms list can include 0 (which translates to 
+ * atom -1, nonexistent) there may be more interactions than expected,
+ * so each one must be explicitly counted.
+ */
+int Pairwise::NumInteractions(AtomMask *atommask, AmberParm *Parm) {
+  int Nselected = atommask->Nselected;
+  int N_interactions = 0;
+
+  if (hasExclusion) {
+    for (int maskidx = 0; maskidx < Nselected - 1; maskidx++) {
+      int atom1 = atommask->Selected[maskidx];
+      SetupExclusion(Parm, atom1);
+      for (int maskidx2 = maskidx + 1; maskidx2 < Nselected; maskidx2++) {
+        int atom2 = atommask->Selected[maskidx2];
+        if (!skipv[atom2]) N_interactions++; 
+      }
+    }
+  } else {
+    N_interactions = (((Nselected * Nselected) - Nselected) / 2);
+  }
+
+  // DEBUG
+  mprintf("DEBUG:\t%i total interactions.\n",N_interactions);
+  return N_interactions;
 }
 
 /* Pairwise::setup()
@@ -141,8 +192,20 @@ int Pairwise::setup() {
     return 1;
   }
   // Allocate memory for exclusion list
-  if (AllocateExclusion(P)) return 1; 
-  // Print info for this parm
+  if (AllocateExclusion(P)) return 1;
+  // If a reference frame is defined for atom-by-atom comparison make sure 
+  // the number of interactions is the same in reference and parm.
+  if (RefFrame!=NULL) {
+    int N_interactions = NumInteractions(&Mask0, P);
+    if (N_interactions != (int) ref_eelec.size()) {
+      mprinterr("Error: Pairwise::action: Size of ref %u != size of frame %i.\n",
+                ref_eelec.size(), N_interactions);
+      return 1;
+    }
+    atom_eelec.clear();
+    atom_eelec.resize(P->natom, 0);
+  }
+  // Print pairwise info for this parm
   mprintf("    PAIRWISE: Mask %s corresponds to %i atoms.\n",Mask0.maskString, Mask0.Nselected);
         
   return 0;  
@@ -151,7 +214,8 @@ int Pairwise::setup() {
 /* Pairwise::SetupExclusion()
  * Sets up the exclusion list, skipv, for the given atom; skipv will be
  * true for atoms that will be skipped (i.e. excluded) in the non-bonded
- * calc. skipv and natexidx should be set up prior to calling this routine.
+ * calc. skipv should be allocd and natexidx should be set up prior to 
+ * calling this routine.
  */
 int Pairwise::SetupExclusion(AmberParm *Parm, int atom1) {
   int jexcl, jexcl_last, natex;
@@ -219,6 +283,21 @@ double Pairwise::Energy_Coulomb(AmberParm *Parm, int atom1, int atom2, double ri
   qj = Parm->charge[atom2] * 18.2223;
   qiqj = qi * qj;
   energy=kes * (qiqj/rij);
+  if (RefFrame!=NULL) {
+    if (!isReference) {
+      double delta = ref_eelec[ Ncomparison ] - energy;
+      if (delta > cut_eelec || delta < cut_eelec1) {
+        mprintf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",atom1+1,Parm->names[atom1],
+                atom2+1,Parm->names[atom2],delta);
+      }
+      // Divide the total pair energy between both atoms.
+      double delta2 = delta * 0.5;
+      atom_eelec[atom1] += delta2;
+      atom_eelec[atom2] += delta2;
+    } else {
+      ref_eelec[ Ncomparison ] = energy;
+    }
+  }
   //Eelec+=energy;
   // Coulomb Force
   *force=energy/rij; // kes*(qiqj/r)*(1/r)
@@ -249,6 +328,7 @@ void Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
   ELJ = 0;
   Eelec = 0;
   JI[0]=0; JI[1]=0; JI[2]=0;
+  Ncomparison = 0;
   // Outer loop
   for (int maskidx1 = 0; maskidx1 < atommask->Nselected - 1; maskidx1++) {
     atom1 = atommask->Selected[maskidx1];
@@ -271,12 +351,34 @@ void Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
         // Lennard Jones 6-12 Energy
         ELJ += Energy_LJ(Parm, atom1, atom2, rij2, &force);
         // Coulomb Energy
+        // DEBUG - safety valve
+        if (RefFrame != NULL && Ncomparison >= (int) ref_eelec.size()) {
+          mprinterr("Internal Error: Attempting to access element %i of array with size %u\n",
+                    Ncomparison, ref_eelec.size());
+          mprintf("Internal Error: Attempting to access element %i of array with size %u\n",
+                  Ncomparison, ref_eelec.size());
+          mprintf("atom1: %i  atom2: %i\n",atom1,atom2);
+          return;
+        }
         Eelec += Energy_Coulomb(Parm, atom1, atom2, rij, &force);
+        Ncomparison++;
       }
     } // End Inner loop
 
   } // End Outer loop
   //mprintf("\tPAIRWISE: ELJ = %12.4lf  Eelec = %12.4lf\n",ELJ,Eelec);
+  //mprintf("\tPAIRWISE: %i interactions.\n",Ncomparison);
+
+  if (!isReference && RefFrame!=NULL) {
+    mprintf("\tPAIRWISE: Cumulative dEelec:\n");
+    for (int atom = 0; atom < Parm->natom; atom++) { 
+      if (atom_eelec[atom]>cut_eelec || atom_eelec[atom]<cut_eelec1)
+        mprintf("\t\t%6i@%s: %12.4lf\n",atom,Parm->names[atom],atom_eelec[atom]);
+    }
+    // Reset
+    atom_eelec.assign(Parm->natom, 0);
+  }
+
 }
 
 /* Pairwise::action()
@@ -285,7 +387,20 @@ int Pairwise::action() {
   Energy(&Mask0, F, P);
   ds_vdw->Add(currentFrame, &ELJ);
   ds_elec->Add(currentFrame, &Eelec);
-  
+
   return 0;
 } 
 
+/* Pairwise::print()
+ */
+void Pairwise::print() {
+/*  if (RefFrame!=NULL) {
+    mprintf("\tPAIRWISE: Cumulative dEelec:\n");
+    int iatom = 0;
+    for (std::vector<double>::iterator atom = atom_eelec.begin();
+         atom != atom_eelec.end(); atom++)
+    {
+      mprintf("\t\t%6i: %12.4lf\n",iatom++,*atom);
+    }
+  }*/
+}
