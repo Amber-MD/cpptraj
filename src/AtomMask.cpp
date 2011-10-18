@@ -25,6 +25,9 @@ AtomMask::~AtomMask() {
  * Add atom to Selected array in this mask.
  */
 void AtomMask::AddAtom(int atom) {
+  // Ensure atom is not already in mask
+  for (int maskidx=0; maskidx < Nselected; maskidx++)
+    if (Selected[maskidx]==atom) return;
   Selected = (int*) realloc(Selected, (Nselected+1) * sizeof(int));
   Selected[Nselected] = atom;
   Nselected++;
