@@ -1466,6 +1466,14 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     newParm->mass     = (double*) malloc( this->natom   * sizeof(double));
   newParm->resnames = (NAME*)   malloc( this->nres    * sizeof(NAME) );
   newParm->resnums  = (int*)    malloc((this->nres+1) * sizeof(int   ));
+  if (this->gb_radii!=NULL)
+    newParm->gb_radii = (double*) malloc(this->natom * sizeof(double));
+  if (this->gb_screen!=NULL) 
+    newParm->gb_screen = (double*) malloc(this->natom * sizeof(double));
+  if (this->radius_set!=NULL) {
+    newParm->radius_set = new char[ strlen(this->radius_set)+1 ];
+    strcpy(newParm->radius_set, this->radius_set);
+  } 
 
   if (this->molecules>0) 
     newParm->atomsPerMol = (int*) malloc(this->molecules * sizeof(int));
@@ -1487,9 +1495,11 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     atomMap[i]=j;                    // Store this atom in the atom map
     // Copy over atom information
     strcpy(newParm->names[j], this->names[i]);
-    if (this->types!=NULL)  strcpy(newParm->types[j], this->types[i]);
-    if (this->charge!=NULL) newParm->charge[j]      = this->charge[i];
-    if (this->mass!=NULL)   newParm->mass[j]        = this->mass[i];
+    if (this->types!=NULL)     strcpy(newParm->types[j], this->types[i]);
+    if (this->charge!=NULL)    newParm->charge[j]      = this->charge[i];
+    if (this->mass!=NULL)      newParm->mass[j]        = this->mass[i];
+    if (this->gb_radii!=NULL)  newParm->gb_radii[j]    = this->gb_radii[i];
+    if (this->gb_screen!=NULL) newParm->gb_screen[j]   = this->gb_screen[i];
 
     // Check to see if we are in the same residue or not and copy relevant information
     if (ires == -1 || ires != curres) {
@@ -1550,6 +1560,10 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     newParm->charge=(double*) realloc(newParm->charge, newParm->natom * sizeof(double));
   if (this->mass!=NULL)
     newParm->mass=(double*) realloc(newParm->mass, newParm->natom * sizeof(double));
+  if (this->gb_radii!=NULL)
+    newParm->gb_radii=(double*) realloc(newParm->gb_radii, newParm->natom * sizeof(double));
+  if (this->gb_screen!=NULL)
+    newParm->gb_screen=(double*) realloc(newParm->gb_screen, newParm->natom * sizeof(double));
   newParm->resnums=(int*) realloc(newParm->resnums, (newParm->nres+1) * sizeof(int));
   newParm->names=(NAME*) realloc(newParm->names, newParm->natom * sizeof(NAME));
   newParm->resnames=(NAME*) realloc(newParm->resnames, (newParm->nres+1) * sizeof(NAME));

@@ -86,6 +86,8 @@ class AmberParm {
     double *mass;       // AMASS(NATOM)
     double *charge;     // CHARGE(NATOM)
 
+    double *GB_radii() { return gb_radii; } // RBORN(NATOM)
+
     int NumExcludedAtoms(int);
     int Natex(int);
     int GetLJparam(double *, double *, int, int);
