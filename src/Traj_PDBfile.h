@@ -16,6 +16,7 @@ class PDBfile: public TrajectoryIO {
     int pdbAtom;
     PDBWRITEMODE pdbWriteMode;
     bool dumpq; // If true, print charges in Occupancy column
+    bool dumpr; // If true, print radii in B-factor column.
     // The following are only required for writes and are set in setupWrite 
     NAME *pdbAtomNames; 
     NAME *trajResNames;
@@ -42,6 +43,6 @@ class PDBfile: public TrajectoryIO {
     ~PDBfile();
     // PDBfile-specfic functions
     void SetWriteMode(PDBWRITEMODE);
-    void SetDumpq() { dumpq = true; }
+    void SetDumpq() { dumpq = true; dumpr=true; }
 };
 #endif

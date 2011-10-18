@@ -9,6 +9,7 @@ PDBfile::PDBfile() {
   pdbAtom=0;
   pdbWriteMode=SINGLE;
   dumpq=false;
+  dumpr=false;
 
   pdbAtomNames=NULL;
   trajResNames=NULL;
@@ -180,7 +181,7 @@ int PDBfile::setupWrite(AmberParm *trajParm) {
   trajAtomsPerMol = trajParm->atomsPerMol;
   trajResNums = trajParm->resnums;
   trajCharges = trajParm->charge;
-  // trajRadii = 
+  trajRadii = trajParm->GB_radii(); 
 
   // Set a chainID for each atom
   if (chainID!=NULL) delete[] chainID;
@@ -212,6 +213,11 @@ int PDBfile::setupWrite(AmberParm *trajParm) {
   if (dumpq && trajCharges==NULL) {
     mprinterr("Error: setupWrite [%s]: Charges are NULL.\n",tfile->filename); 
     return 1;
+  }
+  if (dumpr && trajRadii==NULL) {
+    mprintf("Warning: setupWrite[%s]: Radii are NULL and will not be printed.\n",
+            tfile->filename);
+    dumpr=false;
   }
   return 0;
 }
@@ -261,7 +267,8 @@ int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     }
     // figure out the residue number
     if ( i==trajResNums[res+1] ) res++;
-    if (dumpq) Occ = (float) trajCharges[i]; 
+    if (dumpq) Occ = (float) trajCharges[i];
+    if (dumpr) B = (float) trajRadii[i]; 
     bufferSize=pdb_write_ATOM(buffer,PDBATOM,atom,pdbAtomNames[i],trajResNames[res],chainID[i],
                               res+1,X[i3],X[i3+1],X[i3+2],Occ,B,(char*)"\0",dumpq);
     tfile->IO->Write(buffer,sizeof(char),bufferSize); 
