@@ -5,6 +5,9 @@
 #include "Action.h"
 class Pairwise: public Action {
     AtomMask Mask0;
+    AtomMask RefMask;
+    AmberParm *RefParm;
+    Frame *RefFrame;
     bool *skipv;
     int *natexidx;
     bool hasExclusion;
@@ -12,6 +15,13 @@ class Pairwise: public Action {
     DataSetList Eout;
     DataSet *ds_vdw;
     DataSet *ds_elec;
+    double ELJ, Eelec;
+
+    int AllocateExclusion(AmberParm *);
+    int SetupExclusion(AmberParm *, int);
+    double Energy_LJ(AmberParm *, int, int, double, double *);
+    double Energy_Coulomb(AmberParm *, int, int, double, double *);
+    void Energy(AtomMask*,Frame*,AmberParm*);
   public:
     Pairwise();
     ~Pairwise();
