@@ -1,8 +1,12 @@
 // Pairwise
 #include <cmath>
+#include <cstdio>
 #include "Action_Pairwise.h"
 #include "CpptrajStdio.h"
 #include "vectormath.h"
+// TEST
+//#include "Traj_Mol2File.h"
+#include "TrajectoryFile.h"
 
 // CONSTRUCTOR
 Pairwise::Pairwise() {
@@ -17,6 +21,8 @@ Pairwise::Pairwise() {
   Eelec=0;
   cut_eelec=1.0;
   cut_eelec1=-1.0;
+  cut_evdw=1.0;
+  cut_evdw1=-1.0;
   isReference=false;
 } 
 
@@ -28,7 +34,8 @@ Pairwise::~Pairwise() {
 }
 
 /* Pairwise::init()
- * Expected call: pairwise [<mask>] eout <filename>
+ * Expected call: pairwise [<name>] [<mask>] [out <filename>] [cuteelec <cute>] [cutevdw <cutv>]
+                           [ref <reffilename> | refindex <ref#>]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -39,15 +46,13 @@ int Pairwise::init( ) {
   int refindex;
 
   // Get Keywords
-  eout = A->getKeyString("eout",NULL);
-  if (eout==NULL) {
-    mprinterr("Error: Pairwise::init(): No output file specified (use 'eout' keyword).\n");
-    return 1;
-  }
+  eout = A->getKeyString("out",NULL);
   referenceName=A->getKeyString("ref",NULL);
   refindex=A->getKeyInt("refindex",-1);
   cut_eelec = A->getKeyDouble("cuteelec",1.0);
   cut_eelec1 = -cut_eelec;
+  cut_evdw = A->getKeyDouble("cutevdw",1.0);
+  cut_evdw1 = -cut_evdw;
   
   // Get Masks
   mask0 = A->getNextMask();
@@ -58,6 +63,14 @@ int Pairwise::init( ) {
     RefMask.SetMaskString(refmask);
   else
     RefMask.SetMaskString(mask0);
+
+   // Datasets
+  ds_name = A->getNextString();
+  ds_vdw = DSL->AddMulti(DOUBLE, ds_name, "EVDW");
+  ds_elec= DSL->AddMulti(DOUBLE, ds_name, "EELEC");
+  // Add datasets to data file list
+  DFL->Add(eout,ds_vdw);
+  DFL->Add(eout,ds_elec);
 
   // Get reference structure
   if (referenceName!=NULL || refindex!=-1) {
@@ -84,6 +97,8 @@ int Pairwise::init( ) {
     int N_interactions = NumInteractions(&RefMask, RefParm);
     ref_eelec.clear();
     ref_eelec.resize( N_interactions, 0 );
+    ref_evdw.clear();
+    ref_evdw.resize( N_interactions, 0 );
     // Calculate energy for reference
     // Setting isReference to true lets energy routines know to fill the
     // ref_X arrays.
@@ -91,21 +106,15 @@ int Pairwise::init( ) {
     Energy(&RefMask, RefFrame, RefParm);
     mprintf("DEBUG:\tReference ELJ= %12.4lf  Eelec= %12.4lf\n",ELJ,Eelec);
     mprintf("\tSize of reference eelec array: %u\n",ref_eelec.size());
+    mprintf("\tSize of reference evdw array: %u\n",ref_evdw.size());
     isReference=false;
   }
-
-  // Datasets
-  ds_name = A->getNextString();
-  ds_vdw = DSL->AddMulti(DOUBLE, ds_name, "EVDW");
-  ds_elec= DSL->AddMulti(DOUBLE, ds_name, "EELEC");
-  // Add datasets to data file list
-  DFL->Add(eout,ds_vdw);
-  DFL->Add(eout,ds_elec);
 
   mprintf("    PAIRWISE: Atoms in mask %s, output to %s.\n",Mask0.maskString,eout);
   if (RefFrame!=NULL) {
     mprintf("              Reference index %i\n",refindex);
     mprintf("              Eelec absolute cutoff: %12.4lf\n",cut_eelec);
+    mprintf("              Evdw absolute cutoff: %12.4lf\n",cut_evdw);
   }
 
   return 0;
@@ -204,6 +213,8 @@ int Pairwise::setup() {
     }
     atom_eelec.clear();
     atom_eelec.resize(P->natom, 0);
+    atom_evdw.clear();
+    atom_evdw.resize(P->natom, 0);
   }
   // Print pairwise info for this parm
   mprintf("    PAIRWISE: Mask %s corresponds to %i atoms.\n",Mask0.maskString, Mask0.Nselected);
@@ -250,6 +261,22 @@ double Pairwise::Energy_LJ(AmberParm *Parm, int atom1, int atom2, double rij2, d
   f12=Acoef*r12;               // A/r^12
   f6=Bcoef*r6;                 // B/r^6
   energy=f12-f6;               // (A/r^12)-(B/r^6)
+  // Calculate difference to reference
+  if (RefFrame!=NULL) {
+    if (!isReference) {
+      double delta = ref_evdw[ Ncomparison ] - energy;
+      if (delta > cut_evdw || delta < cut_evdw1) {
+        mprintf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",atom1+1,Parm->names[atom1],
+                atom2+1,Parm->names[atom2],delta);
+      }
+      // Divide the total pair energy between both atoms.
+      double delta2 = delta * 0.5;
+      atom_evdw[atom1] += delta2;
+      atom_evdw[atom2] += delta2;
+    } else {
+      ref_evdw[ Ncomparison ] = energy;
+    }
+  }
   //ELJ+=energy;
   // LJ Force 
   *force=((12*f12)-(6*f6))*r2; // (12A/r^13)-(6B/r^7)
@@ -283,6 +310,7 @@ double Pairwise::Energy_Coulomb(AmberParm *Parm, int atom1, int atom2, double ri
   qj = Parm->charge[atom2] * 18.2223;
   qiqj = qi * qj;
   energy=kes * (qiqj/rij);
+  // Calcualte difference to reference
   if (RefFrame!=NULL) {
     if (!isReference) {
       double delta = ref_eelec[ Ncomparison ] - energy;
@@ -317,6 +345,26 @@ double Pairwise::Energy_Coulomb(AmberParm *Parm, int atom1, int atom2, double ri
   return energy;
 }
 
+/* Pairwise::WriteCutFrame()
+ */
+void Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharges,
+                             Frame *frame, char *outfilename) 
+{
+    AmberParm *CutParm;
+    Frame *CutFrame;
+    TrajectoryFile tout;
+    // TEST: Write file containing only cut atoms
+    CutParm = Parm->modifyStateByMask(CutMask->Selected, CutMask->Nselected);
+    CutParm->SetCharges(CutCharges);
+    CutFrame = new Frame(CutParm->natom, CutParm->mass);
+    CutFrame->SetFrameFromMask(frame, CutMask);
+    tout.SetupWrite(outfilename,NULL,CutParm,MOL2FILE);
+    tout.WriteFrame(0,CutParm,CutFrame->X, NULL, NULL, 0.0);
+    tout.EndTraj();
+    delete CutParm;
+    delete CutFrame;
+}
+
 /* Pairwise::Energy()
  * Calculate pairwise energy for the given mask, frame, and parm. Sets
  * ELJ and Eelec.
@@ -324,6 +372,7 @@ double Pairwise::Energy_Coulomb(AmberParm *Parm, int atom1, int atom2, double ri
 void Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
   int atom1, atom2;
   double rij, rij2, JI[3], force;
+  char buffer[256]; // NOTE: Temporary
   // Loop over all atom pairs excluding self
   ELJ = 0;
   Eelec = 0;
@@ -370,13 +419,47 @@ void Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
   //mprintf("\tPAIRWISE: %i interactions.\n",Ncomparison);
 
   if (!isReference && RefFrame!=NULL) {
+    AtomMask CutMask; // TEST
+    std::vector<double> CutCharges; // TEST
+
+    mprintf("\tPAIRWISE: Cumulative dEvdw:\n");
+    for (int atom = 0; atom < Parm->natom; atom++) {
+      if (atom_evdw[atom]>cut_evdw || atom_evdw[atom]<cut_evdw1) {
+        mprintf("\t\t%6i@%s: %12.4lf\n",atom,Parm->names[atom],atom_evdw[atom]);
+        CutMask.AddAtom(atom);
+        CutCharges.push_back(atom_evdw[atom]);
+      }
+    }
+    sprintf(buffer,"evdw.test.mol2");
+    WriteCutFrame(Parm, &CutMask, &CutCharges[0], frame, buffer);
+    CutMask.Reset();
+    CutCharges.clear();
+
     mprintf("\tPAIRWISE: Cumulative dEelec:\n");
     for (int atom = 0; atom < Parm->natom; atom++) { 
-      if (atom_eelec[atom]>cut_eelec || atom_eelec[atom]<cut_eelec1)
+      if (atom_eelec[atom]>cut_eelec || atom_eelec[atom]<cut_eelec1) {
         mprintf("\t\t%6i@%s: %12.4lf\n",atom,Parm->names[atom],atom_eelec[atom]);
+        // TEST: Create mask for keeping only atoms that satisfy cut
+        CutMask.AddAtom(atom);
+        CutCharges.push_back(atom_eelec[atom]);
+      }  
     }
+    // TEST: Write file containing only cut atoms
+    sprintf(buffer,"eelec.test.mol2");
+    WriteCutFrame(Parm, &CutMask, &CutCharges[0], frame,buffer);
+/*    AmberParm *CutParm = P->modifyStateByMask(CutMask.Selected, CutMask.Nselected);
+    CutParm->SetCharges(&CutCharges[0]);
+    Frame *CutFrame = new Frame(CutParm->natom, CutParm->mass);
+    CutFrame->SetFrameFromMask(frame, &CutMask);
+    TrajectoryFile tout;
+    tout.SetupWrite((char*)"test.mol2",NULL,CutParm,MOL2FILE);
+    tout.WriteFrame(0,CutParm,CutFrame->X, NULL, NULL, 0.0);
+    tout.EndTraj();
+    delete CutParm;
+    delete CutFrame;*/
     // Reset
     atom_eelec.assign(Parm->natom, 0);
+    atom_evdw.assign(Parm->natom, 0);
   }
 
 }
