@@ -21,6 +21,8 @@ ActionMask::~ActionMask() {
  *    1) Keywords
  *    2) Masks
  *    3) Dataset name
+ * NOTE: Could also split the arglist at maskpdb and make it so any type of 
+ *       file can be written out.
  */
 int ActionMask::init( ) {
   char *mask1;
@@ -42,13 +44,8 @@ int ActionMask::init( ) {
   mprintf(".\n");
   if (maskpdb!=NULL) {
     mprintf("                PDBs of atoms in mask will be written to %s.X\n",maskpdb);
-    // Set pdb output options: multi so that 1 file per frame is written; dumpq
-    // so that charges are written out. 
-    // NOTE: Could also split the arglist at maskpdb and make it so any type of 
-    //       file can be written out.
-    maskpdbarg.Add((char*)"multi\0");
-    maskpdbarg.Add((char*)"dumpq\0");
-  }
+
+    }
 
   // Open output file
   // NOTE: Should this be a buffer? Output at end?
@@ -108,11 +105,11 @@ int ActionMask::action() {
     Frame *pdbFrame = new Frame(Mask2->Nselected,NULL);
     // Set only coords
     pdbFrame->SetFrameCoordsFromMask(F->X, Mask2);
-    // Set up output file. Reset the arg list before every setup so that
-    // any args are again available to SetupWrite
-    maskpdbarg.ResetAll();
+    // Set up output file. 
     pdbout.SetDebug(debug);
-    if (pdbout.SetupWrite(maskpdb,&maskpdbarg,pdbParm,PDBFILE)) {
+    // Set pdb output options: multi so that 1 file per frame is written; dumpq
+    // so that charges are written out. 
+    if (pdbout.SetupWriteWithArgs(maskpdb,"multi dumpq",pdbParm,PDBFILE)) {
       mprinterr("Error: Action_Mask: maskpdb %s: Could not set up for write of frame %i.\n",
                 maskpdb,currentFrame);
     } else {

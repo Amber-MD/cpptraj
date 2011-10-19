@@ -9,7 +9,6 @@ class ActionMask: public Action {
     AtomMask Mask1;
     CpptrajFile outfile;
     char *maskpdb;
-    ArgList maskpdbarg;
   public:
     ActionMask();
     ~ActionMask();
