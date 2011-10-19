@@ -14,6 +14,7 @@ ArgList::ArgList() {
   arglist=NULL;
   marked=NULL;
   argline=NULL;
+  debug=0;
 }
 
 // DESTRUCTOR
@@ -27,6 +28,15 @@ ArgList::~ArgList() {
   if (argline!=NULL) free(argline);
 }
 
+/* ArgList::SetDebug()
+ * Set the arglist debug level.
+ */
+void ArgList::SetDebug(int debugIn) {
+  debug = debugIn;
+  if (debug>0) 
+    mprintf("ArgList debug level set to %i\n",debug);
+}
+
 /* ArgList::SetList()
  * Separate input by the characters in separator and store as separate args.
  * This overwrites any existing args and completely resets the list.
@@ -34,10 +44,10 @@ ArgList::~ArgList() {
 int ArgList::SetList(char *input, const char *separator) {
   char *pch;
   std::string quotedArg;
-  int debug;
   size_t inputSize;
 
-  // Reset existing args
+  if (input==NULL || separator==NULL) return 1;
+  // Free existing arglist
   if (arglist!=NULL){
     for (int i=0; i<nargs; i++)
       if (arglist[i]!=NULL) free(arglist[i]);
@@ -45,15 +55,14 @@ int ArgList::SetList(char *input, const char *separator) {
   }
   if (marked!=NULL) free(marked);
   if (argline!=NULL) free(argline);
-  arglist=NULL; marked=NULL; argline=NULL; nargs=0; debug=0;
+  arglist=NULL; marked=NULL; argline=NULL; nargs=0; 
 
   inputSize = strlen(input);
   // Replace any trailing newline char from input with NULL
-  //nargs=strlen(input);
   if (inputSize>0) {
     if (input[inputSize-1]=='\n') input[inputSize-1]='\0';
   }
-  if (debug>3) 
+  if (debug>0) 
     mprintf("getArgList: Setting up arg list for [%s] with separator [%s]\n",
             input, separator);
 
@@ -65,7 +74,7 @@ int ArgList::SetList(char *input, const char *separator) {
   if (pch!=NULL) {
 
     while (pch!=NULL) {
-      if (debug>3) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
+      if (debug>1) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
       if ( pch[0]!='"' ) 
         Add(pch);
       else {
@@ -87,13 +96,13 @@ int ArgList::SetList(char *input, const char *separator) {
           if (*it=='"') quotedArg.erase(it);  
         Add((char*)quotedArg.c_str());
       }
-      if (debug>3) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
+      if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
       pch=strtok(NULL,separator);
     }
     // Setup marked array
-    Reset();
+    ResetAll();
   }
-  if (debug>3) mprintf("getArgList: Processed %i args\n",nargs);
+  if (debug>0) mprintf("getArgList: Processed %i args\n",nargs);
   return 0;
 }
 
@@ -182,17 +191,20 @@ char *ArgList::Command() {
 }
 
 /* ArgList::CommandIs()
- * Check if key is command, return 1 if true
+ * Check if key is command, return 1 if true. Mark command no matter what.
  */
 int ArgList::CommandIs(const char *key) {
+  marked[0]='T';
   if (strcmp(this->Command(),key)==0) return 1;
   return 0;
 }
 
 /* ArgList::CommandIs()
- * Check if first N chars of Command are key, return 1 if true
+ * Check if first N chars of Command are key, return 1 if true. Mark command
+ * no matter what.
  */
 int ArgList::CommandIs(const char *key, int N) {
+  marked[0]='T';
   if (strncmp(this->Command(),key,N)==0) return 1;
   return 0;
 }

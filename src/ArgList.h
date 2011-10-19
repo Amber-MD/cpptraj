@@ -1,16 +1,22 @@
 #ifndef INC_ARGLIST_H
 #define INC_ARGLIST_H
-// ArgList
-
+/// Class: ArgList
+/// Hold a list of string arguments, can be set from a delimited list
+/// with SetList or arguments can be added individually with Add. 
+/// Arguments can be accessed with the various getX routines,
+/// where X is specific to certain types, e.g. getNextDouble returns
+/// the next double, getNextMask returns an atom mask expression (i.e.
+/// it has :, @, % characters etc).
 class ArgList {
     char **arglist;
     char *marked;
     int nargs;
     char *argline;
+    int debug;
   public:
     ArgList();
-    //ArgList(char *, const char *);
     ~ArgList();
+    void SetDebug(int);
 
     int SetList(char*, const char*);
     ArgList *Copy();
@@ -21,6 +27,8 @@ class ArgList {
     char *Arg(int);
     bool ArgIs(int,const char*);
 
+    // In some cases (e.g. lines from input file) the first argument
+    // is called the Command.
     char *Command();
     int CommandIs(const char *);
     int CommandIs(const char *,int);
