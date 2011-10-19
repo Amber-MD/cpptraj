@@ -43,6 +43,7 @@ class TrajectoryFile {
     ~TrajectoryFile();
     // Trajectory IO functions
     int SetupRead(char *, ArgList *, AmberParm *);
+    int SetupWriteWithArgs(char *, const char *, AmberParm *, FileFormat);
     int SetupWrite(char *, ArgList *, AmberParm *, FileFormat);
     int BeginTraj(bool);
     int EndTraj();

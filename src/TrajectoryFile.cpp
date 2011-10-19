@@ -579,6 +579,25 @@ FileFormat TrajectoryFile::getFmtFromArg(ArgList *argIn, FileFormat def) {
   return writeFormat;
 }
 
+/* TrajectoryFile::SetupWriteWithArgs()
+ * Like SetupWrite, but intended for internal use. Allows a static
+ * space-separated string to be passed in, which will be converted
+ * to an argument list and passed to SetupWrite.
+ */
+int TrajectoryFile::SetupWriteWithArgs(char *tnameIn, const char *argstring,
+                                       AmberParm *tparmIn, FileFormat fmtIn) {
+  ArgList tempArg;
+  char *tempString;
+  //tempArg.SetDebug(2);
+  // Since ArgList uses strtok cannot pass it a const string, copy to 
+  // temporary string.
+  tempString = new char[ strlen(argstring) + 1];
+  strcpy(tempString,argstring);
+  tempArg.SetList(tempString, " ");
+  delete[] tempString;
+  return SetupWrite(tnameIn,&tempArg,tparmIn,fmtIn);
+}
+
 /* TrajectoryFile::SetupWrite()
  * Set up trajectory for writing. Output trajectory filename can be specified
  * explicitly, or if not it should be the second argument in the given
