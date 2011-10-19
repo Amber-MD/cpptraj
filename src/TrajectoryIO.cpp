@@ -40,6 +40,24 @@ void TrajectoryIO::SetFile(CpptrajFile *tfileIn) {
   tfile = tfileIn;
 }
 
+/* TrajectoryIO::NewFile()
+ * For use when TrajectoryIO has already been set up to a specific format,
+ * set up the IO file. the given format MUST match the type for which
+ * this file has been set up, otherwise bad things could happen.
+ */
+int TrajectoryIO::NewFile(char *filenameIn, AccessType accIn,
+                          FileFormat fmtIn, FileType typeIn, int debugIn) 
+{
+  debug = debugIn;
+  tfile = new CpptrajFile();
+  if (tfile->SetupFile(filenameIn,accIn,fmtIn,typeIn,debug)) {
+    //mprinterr("    Error: Could not set up file %s.\n",tname);
+    delete tfile;
+    return 1;
+  }
+  return 0;
+}
+
 /* TrajectoryIO::FilenameIs()
  * Return true if trajectory full path filename matches input.
  */
