@@ -297,15 +297,11 @@ void PDBfile::info() {
       mprintf(" (1 file per frame)");
     else if (pdbWriteMode==MODEL)
       mprintf(" (1 MODEL per frame)");
-    if (dumpq) mprintf(", writing out charges to occupancy column");
+    if (dumpq && !dumpr) 
+      mprintf(", writing charges to occupancy column");
+    else if (dumpr && !dumpq) 
+      mprintf(", writing GB radii to B-factor column");
+    else if (dumpr && dumpq)
+      mprintf(", writing charges/GB radii to occupancy/B-factor columns");
   }
-   
-/*    if (p->option2 == 1) 
-      printfone(" with no atom wrapping");
-    if (p->option1 == 1)
-      printfone(": AMBER charges and radii in prmtop to occupancy and temp factor columns");
-    else if (p->option1 == 2)
-      printfone(": AMBER charges and PARSE radii to occupancy and temp factor columns");
-    else if (p->option1 == 3)
-      printfone(": AMBER charges and vdw radii (r*) to occupancy and temp factor columns");*/
 }
