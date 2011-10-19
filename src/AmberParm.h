@@ -91,6 +91,7 @@ class AmberParm {
     int NumExcludedAtoms(int);
     int Natex(int);
     int GetLJparam(double *, double *, int, int);
+    int SetCharges(double*);
 
     double Box[6];      // X, Y, Z, alpha, beta, gamma 
     BoxType boxType;    // None, Orthogonal, Non-orthogonal

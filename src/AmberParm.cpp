@@ -212,6 +212,13 @@ int AmberParm::GetLJparam(double *A, double *B, int atom1, int atom2) {
   return 0;
 }
 
+int AmberParm::SetCharges(double *chargeIn) {
+  if (chargeIn==NULL) return 1;
+  if (charge==NULL) charge = (double*) malloc(natom * sizeof(double));
+  memcpy(charge, chargeIn, natom * sizeof(double));
+  return 0;
+}
+
 // -------------------- ROUTINES PERTAINING TO SURFACE AREA --------------------
 /* AssignLCPO()
  * Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
