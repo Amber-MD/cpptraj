@@ -16,15 +16,15 @@ DataFileList::~DataFileList() {
     delete *it;
 }
 
-// Set DataFile debug level
+/* DataFileList::SetDebug()
+ * Set debug level for DataFileList and all datafiles in it.  */
 void DataFileList::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
     mprintf("DataFileList DEBUG LEVEL SET TO %i\n",debug);
 }
 
-/*
- * DataFileList::GetDataFile()
+/* DataFileList::GetDataFile()
  * Return DataFile specified by given file name if it exists in the list,
  * otherwise return null.
  */
@@ -43,8 +43,7 @@ DataFile *DataFileList::GetDataFile(char *nameIn) {
   return Current;
 }
 
-/* 
- * DataFileList::Add()
+/* DataFileList::Add()
  * Add dataset to datafile in list with given file name. If the file does
  * not yet exist in the list create it. Return a pointer to the datafile
  * in the list.
@@ -85,8 +84,7 @@ DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
   return Current;
 }
 
-/*
- * DataFileList::Info()
+/* DataFileList::Info()
  * Print information on what datasets are going to what datafiles
  */
 void DataFileList::Info() {
@@ -104,8 +102,7 @@ void DataFileList::Info() {
   }
 }
 
-/*
- * DataFileList::Write()
+/* DataFileList::Write()
  * Call write for all datafiles in list.
  * Only master should call this.
  */
