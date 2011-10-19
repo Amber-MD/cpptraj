@@ -21,6 +21,20 @@ AtomMask::~AtomMask() {
   if (CharMask!=NULL) free(CharMask);
 }
 
+/* AtomMask::Reset()
+ */
+void AtomMask::Reset() {
+  if (maskString!=NULL) free(maskString);
+  if (Selected!=NULL) free(Selected);
+  if (CharMask!=NULL) free(CharMask);
+  invertMask=false;
+  maskString=NULL;
+  Selected=NULL;
+  Nselected=0;
+  Nchar=0;
+  CharMask=NULL;
+}
+
 /* AtomMask::AddAtom()
  * Add atom to Selected array in this mask.
  */

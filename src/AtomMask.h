@@ -37,6 +37,7 @@ class AtomMask {
     AtomMask();
     ~AtomMask();
 
+    void Reset();                  // Reset atom mask
     AtomMask *Copy();              // Return a copy of this mask
     void AddAtom(int);             // Add given atom to mask
     void PrintMaskAtoms();         // Print atoms in Selected to line
