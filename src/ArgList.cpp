@@ -107,6 +107,8 @@ void ArgList::Add(char *input) {
     arglist=(char**) realloc(arglist,(nargs+1)*sizeof(char*));
     arglist[nargs]=(char*) malloc( (strlen(input)+1) * sizeof(char) );
     strcpy(arglist[nargs],input);
+    marked=(char*) realloc(marked,(nargs+1)*sizeof(char*));
+    marked[nargs]='F';
     nargs++;
   }
 }
