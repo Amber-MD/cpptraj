@@ -1,8 +1,8 @@
 // TriangleMatrix
 #include "TriangleMatrix.h"
 #include <cfloat>
-#include <cstdlib>
 #include "CpptrajStdio.h"
+#include <cstring> //memcpy
 
 // CONSTRUCTOR
 TriangleMatrix::TriangleMatrix() {
@@ -15,8 +15,8 @@ TriangleMatrix::TriangleMatrix() {
 
 // DESTRUCTOR
 TriangleMatrix::~TriangleMatrix() {
-  if (elements!=NULL) free(elements);
-  if (ignore!=NULL) free(ignore);
+  if (elements!=NULL) delete[] elements;
+  if (ignore!=NULL) delete[] ignore;
 }
 
 /* TriangleMatrix::Setup()
@@ -27,8 +27,12 @@ int TriangleMatrix::Setup(int sizeIn) {
   nrows = sizeIn;
   // Use half square matrix minus the diagonal
   nelements = ( (nrows * nrows) - nrows ) / 2;
-  elements = (double*) realloc(elements, nelements * sizeof(double));
-  ignore = (bool*) realloc(ignore, nrows * sizeof(bool));
+  if (elements!=NULL) delete[] elements;
+  elements = new float[ nelements ];
+  //elements = (float*) realloc(elements, nelements * sizeof(float));
+  if (ignore!=NULL) delete[] ignore;
+  ignore = new bool[ nrows ];
+  //ignore = (bool*) realloc(ignore, nrows * sizeof(bool));
   for (int n=0; n<nrows; n++) ignore[n]=false;
   currentElement=0;
   if (elements==NULL) return 1;
@@ -42,17 +46,29 @@ void TriangleMatrix::Ignore(int row) {
   ignore[row] = true;
 }
 
-/* TriangleMatrix::Copy()
+/* TriangleMatrix::operator=()
  */
-TriangleMatrix *TriangleMatrix::Copy() {
-  TriangleMatrix *copy;
-  copy = new TriangleMatrix();
-  copy->Setup( this->nrows );
-  for (int N = 0; N < this->nelements; N++)
-    copy->AddElement( this->elements[N] );
-  for (int N = 0; N < this->nrows; N++)
-    if (this->ignore[N]) copy->Ignore(N);
-  return copy;
+TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
+  // Check for self assignment
+  if ( this == &rhs ) return *this;
+
+  // Deallocate
+  if (elements!=NULL) delete[] elements;
+  if (ignore!=NULL) delete[] ignore;
+
+  // Allocate
+  nelements = rhs.nelements;
+  nrows = rhs.nrows;
+  currentElement = rhs.currentElement;
+  elements = new float[ nelements ];
+  ignore = new bool[ nrows ];
+
+  // Copy
+  memcpy(elements, rhs.elements, nelements * sizeof(float));
+  memcpy(ignore,   rhs.ignore,   nrows * sizeof(bool));
+
+  // Return *this
+  return *this;
 }
 
 /* TriangleMatrix::AddElement()
@@ -61,7 +77,7 @@ TriangleMatrix *TriangleMatrix::Copy() {
  */
 int TriangleMatrix::AddElement(double elementIn) {
   if (currentElement>=nelements) return 0;
-  elements[currentElement] = elementIn;
+  elements[currentElement] = (float) elementIn;
   currentElement++;
   return 1;
 }
@@ -92,7 +108,7 @@ void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
 
   idx = calcIndex(iIn, jIn);
 
-  elements[idx] = elementIn;
+  elements[idx] = (float) elementIn;
 }
 
 /* TriangleMatrix::GetElement()
@@ -103,14 +119,14 @@ double TriangleMatrix::GetElement(int iIn, int jIn) {
   
   idx = calcIndex(iIn, jIn);
 
-  return elements[idx];
+  return (double)elements[idx];
 }
 
 /* TriangleMatrix::FindMin()
  * Find the minimum, set row and column. 
  */
 double TriangleMatrix::FindMin(int *iOut, int *jOut) {
-  double min;
+  float min;
   int iVal, jVal;
 
   *iOut = -1;
@@ -119,7 +135,7 @@ double TriangleMatrix::FindMin(int *iOut, int *jOut) {
 
   iVal = 0;
   jVal = 1;
-  min = DBL_MAX;
+  min = FLT_MAX;
   for (int idx = 0; idx < nelements; idx++) {
     // If we dont care about this row/col, just increment
     if (ignore[iVal] || ignore[jVal]) {
@@ -146,7 +162,7 @@ double TriangleMatrix::FindMin(int *iOut, int *jOut) {
       }
     }
   }
-  return min;
+  return (double)min;
 }
 
 /* TriangleMatrix::PrintElements()
@@ -157,7 +173,7 @@ void TriangleMatrix::PrintElements() {
 
   for (int idx = 0; idx < nelements; idx++) {
     if (!ignore[iVal] && !ignore[jVal])
-      mprintf("\t%i %i %8.3lf\n",iVal,jVal,elements[idx]);
+      mprintf("\t%i %i %8.3f\n",iVal,jVal,elements[idx]);
     // Increment indices
     jVal++;
     if (jVal == nrows) {

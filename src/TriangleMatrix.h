@@ -4,22 +4,23 @@
 /// Store the upper half of a symmetric matrix, useful when calculating
 /// e.g. all N^2 distances between all atoms, where the diagonal elements
 /// would be zero and element i,j == element j,i
+/// Accepts doubles, but internal storage is float to reduce memory footprint
 class TriangleMatrix {
-    double *elements; // Hold all elements
-    int nrows;        // Number of elements in one row
-    int nelements;    // Total number of elements
+    float *elements;    // Hold all elements
+    int nrows;          // Number of elements in one row
+    int nelements;      // Total number of elements
     int currentElement; // Current element, used in AddElement only.
-    bool *ignore;     // If true, ignore the row/col when printing/searching etc
+    bool *ignore;       // If true, ignore the row/col when printing/searching etc
 
     int calcIndex(int,int);
   public :
+    int Nrows()            { return nrows;     }
+    int Nelements()        { return nelements; }
+
     TriangleMatrix();
     ~TriangleMatrix();
 
-    int Nrows() {return nrows;}
-    int Nelements() {return nelements;}
-
-    TriangleMatrix *Copy();
+    TriangleMatrix & operator=(const TriangleMatrix &);
     int Setup(int);
     void Ignore(int);
     int AddElement(double);
