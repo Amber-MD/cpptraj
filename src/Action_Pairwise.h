@@ -2,38 +2,42 @@
 #define INC_ACTIONS_PAIRWISE_H
 /// Class: Pairwise 
 /// Action to compare pairs of atoms. Will function in two ways:
-/// 1) Calculate Lennard-Jones and Coulomb energy for each frame. Save
-///    the total energy each frame, also save the total energy on each
-///    atom. 
+/// 1) Calculate Lennard-Jones and Coulomb energy for each frame. 
+///    Also calculate the cumulative LJ and Coulomb energy on each atom.
+/// 2) Calculate the Lennard-Jones and Coulomb energy between each
+///    pair of atoms in a reference structure. Calculate the difference
+///    in each pair from frame to reference (d = Ref - Frame). 
 #include "Action.h"
 class Pairwise: public Action {
-    AtomMask Mask0;
-    AtomMask RefMask;
-    AmberParm *RefParm;
-    Frame *RefFrame;
-    bool *skipv;
-    int *natexidx;
-    bool hasExclusion;
-    double kes;
-    DataSet *ds_vdw;
-    DataSet *ds_elec;
-    double ELJ, Eelec;
-    int Ncomparison;
-    std::vector<double> ref_evdw;
-    double cut_evdw, cut_evdw1;
-    std::vector<double> atom_evdw;
-    std::vector<double> ref_eelec;
-    double cut_eelec, cut_eelec1;
-    std::vector<double> atom_eelec;
-    bool isReference;
+    AtomMask Mask0;                 // Calculate energy for atoms in mask
+    AtomMask RefMask;               // Reference mask
+    AmberParm *RefParm;             // Reference parm
+    Frame *RefFrame;                // Reference coordinates
+    bool *skipv;                    // Set by SetupExclusion, T for excluded (skipped) atoms
+    int *natexidx;                  // Indices into excluded atom list NATEX for each atom
+    bool hasExclusion;              // If true use the exclusion list
+    double kes;                     // Electrostatic constant, 1.0 when using Amber units
+    DataSet *ds_vdw;                // Evdw dataset
+    DataSet *ds_elec;               // Eelec dataset
+    double ELJ, Eelec;              // Total Evdw and Eelec over all atoms
+    int N_ref_interactions;         // # of pairwise interactions in reference
+    std::vector<double> ref_evdw;   // Evdw for each pair of atoms in reference
+    double cut_evdw, cut_evdw1;     // Evdw cutoff ( Evdw < cutevdw1 && Evdw > cutevdw )
+    std::vector<double> atom_evdw;  // Cumulative Evdw on each atom
+    std::vector<double> ref_eelec;  // Eelec for each pair of atoms in reference
+    double cut_eelec, cut_eelec1;   // Eelec cutoff ( Eelec < cuteelec1 && Eelec > cuteelec )
+    std::vector<double> atom_eelec; // Cumulative Eelec on each atom
+    char *cutout;                   // Mol2 file prefix for atoms satisfying cutoffs
+    CpptrajFile Eout;               // Output file for atom energies.
 
     int AllocateExclusion(AmberParm *);
     int NumInteractions(AtomMask *, AmberParm *);
     int SetupExclusion(AmberParm *, int);
     double Energy_LJ(AmberParm *, int, int, double, double *);
     double Energy_Coulomb(AmberParm *, int, int, double, double *);
-    void WriteCutFrame(AmberParm *, AtomMask *, double *, Frame *, char*);
-    void Energy(AtomMask*,Frame*,AmberParm*);
+    int WriteCutFrame(AmberParm *, AtomMask *, double *, Frame *, char*);
+    void RefEnergy();
+    int Energy(AtomMask*,Frame*,AmberParm*);
   public:
     Pairwise();
     ~Pairwise();
