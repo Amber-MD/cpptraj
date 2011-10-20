@@ -111,7 +111,7 @@ int Rms2d::setup() {
 int Rms2d::action() {
   Frame *fCopy;
 
-  fCopy = F->Copy();
+  fCopy = F->FrameCopy();
   ReferenceFrames.Add(fCopy,P);
   
   return 0;

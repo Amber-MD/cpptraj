@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cmath>
+#include <cstring>
 #include "Frame.h"
 #include "Constants.h"
 #include "vectormath.h"
@@ -85,23 +86,20 @@ Frame::~Frame() {
   if (Mass!=NULL) free(Mass);
 }
 
-/* Frame::Copy()
+/* Frame::FrameCopy()
  * Return a copy of the frame
  */
-Frame *Frame::Copy() {
+Frame *Frame::FrameCopy() {
   Frame *newFrame;
-  int i;
 
   newFrame=new Frame(this->natom, this->Mass, this->V!=NULL);
-  for (i=0; i<this->N; i++)
-    newFrame->X[i] = this->X[i];
-  for (i=0; i<6; i++)
-    newFrame->box[i] = this->box[i];
+  memcpy(newFrame->X, this->X, N * sizeof(double));
+  memcpy(newFrame->box, this->box, 6 * sizeof(double));
   newFrame->T = this->T;
-  if (this->V!=NULL) {
-    for (i=0; i<this->N; i++)
-    newFrame->V[i] = this->V[i];
-  }
+  if (this->V!=NULL) 
+    memcpy(newFrame->V, this->V, N * sizeof(double));
+  if (this->Mass!=NULL) 
+    memcpy(newFrame->Mass, this->Mass, natom * sizeof(double));
 
   return newFrame;
 }

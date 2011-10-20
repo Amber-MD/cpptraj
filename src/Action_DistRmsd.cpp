@@ -203,7 +203,7 @@ int DistRmsd::action() {
   //        Should only occur once.
   // NOTE: For MPI this will currently result in different references between threads.
   if (first && RefFrame==NULL) 
-    RefFrame = F->Copy();
+    RefFrame = F->FrameCopy();
 
   // reftraj: Get the next frame from the reference trajectory
   //          If no more frames are left, the last frame will be used. This
