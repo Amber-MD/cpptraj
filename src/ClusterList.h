@@ -63,6 +63,7 @@ class ClusterList {
     int MergeClosest(double);
     void Renumber();
     void Summary(char *);
+    void Summary_Half(char *);
 
     void Begin();
     bool End();

@@ -12,6 +12,7 @@ class Clustering: public Action {
     int targetNclusters;       // Once there are targetNclusters, stop clustering
     DataSet *cnumvtime;        // Cluster vs time dataset
     char *summaryfile;         // Summary file name
+    char *halffile;            // 1st/2nd half summary file name
     char *clusterfile;         // Cluster trajectory base filename.
     FileFormat clusterfmt;     // Cluster trajectory format.
     char *singlerepfile;       // Cluster all rep single trajectory filename.
@@ -19,6 +20,7 @@ class Clustering: public Action {
     char *repfile;             // Cluster rep to separate trajectory filename.
     FileFormat repfmt;         // Cluster rep to separate trajectory format.
     bool nofitrms;             // If true do not best-fit when calc RMSD.
+    bool grace_color;          // If true print grace colors instead of cluster number
 
     int calcDistFromRmsd( TriangleMatrix *);
     int ClusterHierAgglo( TriangleMatrix *, ClusterList*);

@@ -13,8 +13,19 @@ Clustering::Clustering() {
   //fprintf(stderr,"Clustering Con\n");
   useMass=false;
   Linkage = ClusterList::AVERAGELINK;
+  epsilon=-1.0;
+  targetNclusters=-1;
   cnumvtime=NULL;
+  summaryfile=NULL;
+  halffile=NULL;
+  clusterfile=NULL;
+  clusterfmt=UNKNOWN_FORMAT;
+  singlerepfile=NULL;
+  singlerepfmt=UNKNOWN_FORMAT;
+  repfile=NULL;
+  repfmt=UNKNOWN_FORMAT;
   nofitrms = true;
+  grace_color = false;
 } 
 
 // DESTRUCTOR
@@ -23,8 +34,8 @@ Clustering::~Clustering() {
 
 /* Clustering::init()
  * Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>] [fitrms]
- *                        [ linkage | averagelinkage | complete ]  
- *                        [summary <summaryfile>] 
+ *                        [ linkage | averagelinkage | complete ] [gracecolor] 
+ *                        [summary <summaryfile>] [summaryhalf <halffile>] 
  *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ] 
  *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]
  *                        [ repout <repprefix> [repfmt <repfmt>] ]
@@ -44,7 +55,9 @@ int Clustering::init() {
   if (A->hasKey("complete")) Linkage=ClusterList::COMPLETELINK;
   cnumvtimefile = A->getKeyString("out",NULL);
   summaryfile = A->getKeyString("summary",NULL);
+  halffile = A->getKeyString("summaryhalf",NULL);
   if (A->hasKey("fitrms")) nofitrms=false;
+  if (A->hasKey("gracecolor")) grace_color=true;
   // Output trajectory stuff
   clusterfile = A->getKeyString("clusterout",NULL);
   clusterformat = A->getKeyString("clusterfmt",NULL);
@@ -92,8 +105,12 @@ int Clustering::init() {
   else if (Linkage==ClusterList::COMPLETELINK)
     mprintf(" complete-linkage");
   mprintf(".\n");
+  if (grace_color)
+    mprintf("            Grace color instead of cluster number (1-15) will be saved.\n");
   if (summaryfile!=NULL)
     mprintf("            Summary of cluster results will be written to %s\n",summaryfile);
+  if (halffile!=NULL)
+    mprintf("            Summary comparing first/second half of data for clusters will be written to %s\n",halffile);
   if (clusterfile!=NULL)
     mprintf("            Cluster trajectories will be written to %s, format %s\n",
             clusterfile,File_Format(clusterfmt));
@@ -244,6 +261,9 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *C
   bool clusteringComplete = false;
   int iterations = 0;
 
+  mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
+  ProgressBar cluster_progress(-1);
+
   // Build initial clusters.
   for (int cluster = 0; cluster < FrameDistances->Nrows(); cluster++) {
     frames.assign(1,cluster);
@@ -267,6 +287,7 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *C
       break;
     } 
     if (CList->Nclusters() == 1) clusteringComplete = true; // Sanity check
+    cluster_progress.Update( iterations );
     iterations++;
   }
   mprintf("\tCLUSTER: Completed after %i iterations, %u clusters.\n",iterations,
@@ -286,6 +307,12 @@ void Clustering::CreateCnumvtime( ClusterList *CList ) {
   while (!CList->End()) {
     //mprinterr("Cluster %i:\n",CList->CurrentNum());
     cnum = CList->CurrentNum();
+    // If grace colors, return integer in range from 1 to 15 (1 most populated)
+    if (grace_color) {
+      cnum = cnum + 1;
+      if (cnum > 15) cnum = 15;
+    } 
+    // Loop over all frames in the cluster
     E = CList->CurrentFrameEnd();
     for (std::list<int>::iterator frame = CList->CurrentFrameBegin();
                                   frame != E;
@@ -483,6 +510,10 @@ void Clustering::print() {
   // Print a summary of clusters
   if (summaryfile!=NULL)
     CList.Summary(summaryfile);
+
+  // Print a summary comparing first half to second half of data for clusters
+  if (halffile!=NULL)
+    CList.Summary_Half(halffile);
 
   // Create cluster v time data from clusters.
   CreateCnumvtime( &CList );

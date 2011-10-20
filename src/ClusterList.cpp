@@ -6,6 +6,26 @@
 #include <cfloat>
 #include <cmath>
 
+// XMGRACE colors
+// NOTE: Should this be somewhere else?
+const char XMGRACE_COLOR[16][12] = {
+"white",
+"black",
+"red",
+"green",
+"blue",
+"yellow",
+"brown",
+"grey",
+"violet",
+"cyan",
+"magenta",
+"orange",
+"indigo",
+"maroon",
+"turquoise",
+"darkgreen" };
+
 // CONSTRUCTOR
 ClusterList::ClusterList() {
   debug=0;
@@ -134,6 +154,63 @@ void ClusterList::Summary(char *summaryfile) {
     delete[] distances;
   }
 
+  outfile.CloseFile();
+}
+
+/* ClusterList::Summary_Half
+ * Print a summary of the first half of the data to the second half.
+ */
+void ClusterList::Summary_Half(char *summaryfile) {
+  CpptrajFile outfile;
+  int numInFirstHalf, numInSecondHalf;
+  int numframes, half, color;
+  float frac, frac1, frac2;
+
+  if (outfile.SetupFile(summaryfile, WRITE, 0)) {
+    mprinterr("Error: ClusterList::Summary_Half: Could not set up file.\n");
+    return;
+  }
+  outfile.OpenFile();
+
+  // Calculate halfway point
+  half = maxframes / 2;
+  // xmgrace color
+  color=1;
+
+  outfile.IO->Printf("#%-7s %8s %6s %2s %10s %8s %8s %6s %6s\n", "Cluster", "Total",
+                     "Frac", "C#", "Color", "NumIn1st", "NumIn2nd","Frac1","Frac2");
+  for (std::list<clusterNode>::iterator node = clusters.begin();
+                                        node != clusters.end();
+                                        node++)
+  {
+    // Calculate size and fraction of total size of this cluster
+    numframes = (*node).frameList.size();
+    frac = (float) maxframes;
+    frac = ((float) numframes) / frac;
+    numInFirstHalf=0;
+    numInSecondHalf=0;
+    // DEBUG
+    //mprintf("\tCluster %i\n",(*node).num);
+    // Count how many frames are in the first half and how many 
+    // are in the second half.
+    for (std::list<int>::iterator frame1 = (*node).frameList.begin();
+                                  frame1 != (*node).frameList.end();
+                                  frame1++)
+    {
+      if (*frame1 < half)
+        numInFirstHalf++;
+      else
+        numInSecondHalf++;
+    }
+    frac1 = (float) numframes;
+    frac1 = ((float) numInFirstHalf) / frac1;
+    frac2 = (float) numframes;
+    frac2 = ((float) numInSecondHalf) / frac2;
+    outfile.IO->Printf("%-8i %8i %6.2f %2i %10s %8i %8i %6.2f %6.2f\n",(*node).num,numframes,
+                       frac,color,XMGRACE_COLOR[color],numInFirstHalf,numInSecondHalf,
+                       frac1,frac2);
+    if (color<15) color++;
+  }
   outfile.CloseFile();
 }
 
