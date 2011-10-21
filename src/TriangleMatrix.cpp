@@ -3,6 +3,7 @@
 #include <cfloat>
 #include "CpptrajStdio.h"
 #include <cstring> //memcpy
+#include <cstdio> // save and load
 
 // CONSTRUCTOR
 TriangleMatrix::TriangleMatrix() {
@@ -19,6 +20,82 @@ TriangleMatrix::~TriangleMatrix() {
   if (ignore!=NULL) delete[] ignore;
 }
 
+/* TriangleMatrix::SaveFile()
+ */
+int TriangleMatrix::SaveFile(char *filename) {
+  FILE *outfile;
+  char magic[4];
+
+  magic[0]='C'; // Cpptraj
+  magic[1]='T'; // Triangle
+  magic[2]='M'; // Matrix
+  magic[3]=0;   // Version
+
+  outfile = fopen(filename,"wb");
+  if (outfile==NULL) {
+    mprinterr("Error: TriangleMatrix::SaveFile: Could not open file %s\n",filename);
+    return 1;
+  }
+  // Write magic byte
+  fwrite(magic, sizeof(char), 4, outfile);
+  // Write nrows
+  fwrite(&nrows, sizeof(int), 1, outfile);
+  // Write number of elements
+  fwrite(&nelements, sizeof(int), 1, outfile);
+  // Write elements
+  fwrite(elements, sizeof(float), nelements, outfile);
+  // Write ignore
+  //fwrite(ignore, sizeof(bool), nrows, outfile);
+
+  fclose(outfile);
+  return 0;
+}
+
+/* TriangleMatrix::LoadFile
+ */
+int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
+  FILE *infile;
+  char magic[4];
+
+  infile = fopen(filename, "rb");
+  if (infile==NULL) {
+    mprinterr("Error: TriangleMatrix::LoadFile: Could not open file %s\n",filename);
+    return 1;
+  }
+  // Read and check magic byte
+  fread(magic, sizeof(char), 4, infile);
+  if (magic[0] != 'C' ||
+      magic[1] != 'T' ||
+      magic[2] != 'M' ||
+      magic[3] != 0     ) {
+    mprinterr("Error: TriangleMatrix::LoadFile: File %s magic number not CTM0!\n",filename);
+    fclose(infile);
+    return 1;
+  }
+  // Read nrows
+  fread(&nrows, sizeof(int), 1, infile);
+  // If number of rows is not what was expected, abort
+  if (nrows != sizeIn) {
+    mprintf("Warning: TriangleMatrix::LoadFile: File %s has %i rows, expected %i.\n",nrows,sizeIn);
+    fclose(infile);
+    return 1;
+  }
+  // Read number of elements
+  fread(&nelements, sizeof(int), 1, infile);
+  if (elements!=NULL) delete[] elements;
+  elements = new float[ nelements ];
+  // Read elements
+  fread(elements,sizeof(float), nelements, infile);
+  // Setup ignore array
+  if (ignore!=NULL) delete[] ignore;
+  ignore = new bool[ nrows ];
+  for (int n=0; n<nrows; n++) ignore[n]=false;
+  currentElement=0;
+
+  fclose(infile);
+  return 0;
+}
+
 /* TriangleMatrix::Setup()
  * Set matrix up based on the given size of 1 side of the square matrix.
  * Set the current element to 0.
@@ -29,10 +106,9 @@ int TriangleMatrix::Setup(int sizeIn) {
   nelements = ( (nrows * nrows) - nrows ) / 2;
   if (elements!=NULL) delete[] elements;
   elements = new float[ nelements ];
-  //elements = (float*) realloc(elements, nelements * sizeof(float));
+  // Setup ignore array
   if (ignore!=NULL) delete[] ignore;
   ignore = new bool[ nrows ];
-  //ignore = (bool*) realloc(ignore, nrows * sizeof(bool));
   for (int n=0; n<nrows; n++) ignore[n]=false;
   currentElement=0;
   if (elements==NULL) return 1;

@@ -26,15 +26,18 @@ Clustering::Clustering() {
   repfmt=UNKNOWN_FORMAT;
   nofitrms = true;
   grace_color = false;
+  load_pair = true;
 } 
 
 // DESTRUCTOR
 Clustering::~Clustering() { 
 }
 
+const char Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
+
 /* Clustering::init()
  * Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>] [fitrms]
- *                        [ linkage | averagelinkage | complete ] [gracecolor] 
+ *                        [ linkage | averagelinkage | complete ] [gracecolor] [noload]
  *                        [summary <summaryfile>] [summaryhalf <halffile>] 
  *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ] 
  *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]
@@ -58,6 +61,7 @@ int Clustering::init() {
   halffile = A->getKeyString("summaryhalf",NULL);
   if (A->hasKey("fitrms")) nofitrms=false;
   if (A->hasKey("gracecolor")) grace_color=true;
+  if (A->hasKey("noload")) load_pair=false;
   // Output trajectory stuff
   clusterfile = A->getKeyString("clusterout",NULL);
   clusterformat = A->getKeyString("clusterfmt",NULL);
@@ -107,6 +111,11 @@ int Clustering::init() {
   mprintf(".\n");
   if (grace_color)
     mprintf("            Grace color instead of cluster number (1-15) will be saved.\n");
+  if (load_pair)
+    mprintf("            Previously calcd pair distances %s will be used if found.\n",
+            PAIRDISTFILE);
+  else
+    mprintf("            Previously calcd pair distances will be ignored.\n");
   if (summaryfile!=NULL)
     mprintf("            Summary of cluster results will be written to %s\n",summaryfile);
   if (halffile!=NULL)
@@ -482,8 +491,17 @@ void Clustering::print() {
   TriangleMatrix Distances;
   ClusterList CList;
 
-  // Get distances between frames
-  calcDistFromRmsd( &Distances );
+  // If PAIRDISTFILE exists load pair distances from there
+  if (load_pair && fileExists((char*)PAIRDISTFILE)) {
+    mprintf("CLUSTER: %s found, loading pairwise distances.\n",PAIRDISTFILE);
+    if (Distances.LoadFile((char*)PAIRDISTFILE,ReferenceFrames.NumFrames())) return;
+  } else {
+    // Get distances between frames
+    calcDistFromRmsd( &Distances );
+    // Save distances
+    // NOTE: Only if load_pair?
+    Distances.SaveFile((char*)PAIRDISTFILE);
+  }
 
   // DEBUG
   if (debug>1) {

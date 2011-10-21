@@ -21,6 +21,8 @@ class Clustering: public Action {
     FileFormat repfmt;         // Cluster rep to separate trajectory format.
     bool nofitrms;             // If true do not best-fit when calc RMSD.
     bool grace_color;          // If true print grace colors instead of cluster number
+    bool load_pair;            // If true, previously calcd pair dist file will be used if found
+    static const char PAIRDISTFILE[];
 
     int calcDistFromRmsd( TriangleMatrix *);
     int ClusterHierAgglo( TriangleMatrix *, ClusterList*);
