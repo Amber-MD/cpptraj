@@ -19,6 +19,7 @@ class Clustering: public Action {
     FileFormat singlerepfmt;   // Cluster all rep single trajectory format.
     char *repfile;             // Cluster rep to separate trajectory filename.
     FileFormat repfmt;         // Cluster rep to separate trajectory format.
+    char *clusterinfo;         // Ptraj-like cluster output
     bool nofitrms;             // If true do not best-fit when calc RMSD.
     bool grace_color;          // If true print grace colors instead of cluster number
     bool load_pair;            // If true, previously calcd pair dist file will be used if found

@@ -24,6 +24,7 @@ Clustering::Clustering() {
   singlerepfmt=UNKNOWN_FORMAT;
   repfile=NULL;
   repfmt=UNKNOWN_FORMAT;
+  clusterinfo=NULL;
   nofitrms = true;
   grace_color = false;
   load_pair = true;
@@ -38,7 +39,7 @@ const char Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 /* Clustering::init()
  * Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>] [fitrms]
  *                        [ linkage | averagelinkage | complete ] [gracecolor] [noload]
- *                        [summary <summaryfile>] [summaryhalf <halffile>] 
+ *                        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>] 
  *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ] 
  *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]
  *                        [ repout <repprefix> [repfmt <repfmt>] ]
@@ -57,6 +58,7 @@ int Clustering::init() {
   if (A->hasKey("averagelinkage")) Linkage=ClusterList::AVERAGELINK;
   if (A->hasKey("complete")) Linkage=ClusterList::COMPLETELINK;
   cnumvtimefile = A->getKeyString("out",NULL);
+  clusterinfo = A->getKeyString("info",NULL);
   summaryfile = A->getKeyString("summary",NULL);
   halffile = A->getKeyString("summaryhalf",NULL);
   if (A->hasKey("fitrms")) nofitrms=false;
@@ -116,6 +118,8 @@ int Clustering::init() {
             PAIRDISTFILE);
   else
     mprintf("            Previously calcd pair distances will be ignored.\n");
+  if (clusterinfo!=NULL)
+    mprintf("            Cluster information will be written to %s\n",clusterinfo);
   if (summaryfile!=NULL)
     mprintf("            Summary of cluster results will be written to %s\n",summaryfile);
   if (halffile!=NULL)
@@ -130,7 +134,8 @@ int Clustering::init() {
     mprintf("            Cluster representatives will be written to separate trajectories,\n");
     mprintf("            prefix (%s), format %s\n",repfile,File_Format(repfmt));
   }
-  // If epsilon not given make it huge 
+  // If epsilon not given make it huge
+  // NOTE: Currently only valid for Hierarchical Agglomerative 
   if (epsilon == -1.0) epsilon = DBL_MAX;
   // if target clusters not given make it 1
   if (targetNclusters == -1) targetNclusters=1;
@@ -284,9 +289,12 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *C
   // DEBUG
   if (debug>1) CList->PrintClusters();
 
+  // Initial check to see if epsilon is satisfied.
+  //clusteringComplete = CList->CheckEpsilon(epsilon);
+
   while (!clusteringComplete) {
     // Merge 2 closest clusters
-    if (CList->MergeClosest(epsilon)) break;
+    if (CList->MergeClosest(epsilon)) break; 
 
     // Check if clustering is complete.
     // If the target number of clusters is reached we are done
@@ -510,6 +518,7 @@ void Clustering::print() {
   }
 
   // Cluster
+  CList.SetDebug(debug);
   CList.SetLinkage(Linkage);
   ClusterHierAgglo( &Distances, &CList);
 
@@ -518,12 +527,16 @@ void Clustering::print() {
   CList.Renumber();
 
   // DEBUG
-  //if (debug>0) {
+  if (debug>0) {
     mprintf("\nFINAL CLUSTERS:\n");
     CList.PrintClusters();
     mprintf("\nREPRESENTATIVE FRAMES:\n");
     CList.PrintRepFrames();
-  //}
+  }
+
+  // Print ptraj-like cluster info
+  if (clusterinfo!=NULL)
+    CList.PrintClustersToFile(clusterinfo);
 
   // Print a summary of clusters
   if (summaryfile!=NULL)

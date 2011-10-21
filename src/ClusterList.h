@@ -17,6 +17,7 @@ class ClusterList {
     // clusterNode: Store individual cluster info; frame numbers, centroid, etc.
     struct clusterNode {
       double avgclusterdist;    // Avg distance of this cluster to each other cluster
+      double eccentricity;      // Max distance of any pair of frames in cluster
       int num;                  // Cluster number (index in ClusterDistances)
       int centroid;             // Frame number of the cluster centroid
       std::list<int> frameList; // List of frames in the cluster
@@ -47,23 +48,28 @@ class ClusterList {
     void calcMaxDist(std::list<clusterNode>::iterator);
     void calcAvgDist(std::list<clusterNode>::iterator);
 
+    void CalcEccentricity(std::list<ClusterList::clusterNode>::iterator);
+
     std::list<ClusterList::clusterNode>::iterator currentCluster;
 
   public :
     ClusterList();
     ~ClusterList();
-  
+ 
     void SetLinkage(LINKAGETYPE Lin) { Linkage = Lin; }
     int Nclusters() { return (int) clusters.size(); }
 
+    void SetDebug(int);
     void Initialize(TriangleMatrix *);
     int AddCluster(std::list<int> *, int);
     void PrintClusters();
+    void PrintClustersToFile(char *);
     void PrintRepFrames();
     int MergeClosest(double);
     void Renumber();
     void Summary(char *);
     void Summary_Half(char *);
+    bool CheckEpsilon(double);
 
     void Begin();
     bool End();

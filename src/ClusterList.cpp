@@ -5,6 +5,7 @@
 #include "CpptrajFile.h"
 #include <cfloat>
 #include <cmath>
+#include <cstring> // memset
 
 // XMGRACE colors
 // NOTE: Should this be somewhere else?
@@ -35,6 +36,14 @@ ClusterList::ClusterList() {
 
 // DESTRUCTOR
 ClusterList::~ClusterList() {
+}
+
+/* ClusterList::SetDebug()
+ * Set the debug level
+ */
+void ClusterList::SetDebug(int debugIn) {
+  debug = debugIn;
+  if (debug>0) mprintf("ClusterList debug set to %i\n",debug);
 }
 
 /* ClusterList::Renumber()
@@ -166,7 +175,7 @@ void ClusterList::Summary_Half(char *summaryfile) {
   int numframes, half, color;
   float frac, frac1, frac2;
 
-  if (outfile.SetupFile(summaryfile, WRITE, 0)) {
+  if (outfile.SetupFile(summaryfile, WRITE, debug)) {
     mprinterr("Error: ClusterList::Summary_Half: Could not set up file.\n");
     return;
   }
@@ -240,12 +249,10 @@ int ClusterList::AddCluster( std::list<int> *framelistIn, int numIn  ) {
  */
 void ClusterList::Initialize(TriangleMatrix *matrixIn) {
   std::list<clusterNode>::iterator C1_it;
-  std::list<clusterNode>::iterator C2_it;
 
   FrameDistances = matrixIn;
   ClusterDistances.Setup( FrameDistances->Nrows() );
   // Build initial cluster distances
-  // NOTE: Modify the calcXDist routines to take an iterator.
   if (Linkage==AVERAGELINK) {
     for (C1_it = clusters.begin(); C1_it != clusters.end(); C1_it++) 
       calcAvgDist(C1_it);
@@ -273,6 +280,48 @@ void ClusterList::PrintClusters() {
     }
     mprintf("\n");
   }
+}
+
+/* ClusterList::PrintClustersToFile()
+ * Print list of clusters in a style similar to ptraj; each cluster is
+ * given a line maxframes characters long, with X for each frame that is
+ * in the clusters and . for all other frames. Also print out the
+ * representative frame numbers.
+ */
+void ClusterList::PrintClustersToFile(char *filename) {
+  CpptrajFile outfile;
+  char *buffer;
+  int buffersize = maxframes + 1; // + 1 for newline char
+  
+  buffer = new char[ buffersize ]; 
+  buffer[maxframes]='\n';
+  if ( outfile.SetupFile(filename,WRITE,debug) ) {
+    mprinterr("Error: ClusterList::PrintClustersToFile: Could not set up file %s\n",filename);
+    return;
+  }
+  outfile.OpenFile();
+  outfile.IO->Printf("#Clustering: %u clusters %i frames\n",clusters.size(),maxframes);
+  for (std::list<clusterNode>::iterator C1_it = clusters.begin(); 
+       C1_it != clusters.end();
+       C1_it++)
+  {
+    memset(buffer,'.',maxframes);
+    for (std::list<int>::iterator frame1 = (*C1_it).frameList.begin();
+                                  frame1 != (*C1_it).frameList.end();
+                                  frame1++)
+    {
+      buffer[ *frame1 ]='X';
+    }
+    outfile.IO->Write(buffer, sizeof(char), buffersize);
+  }
+  // Print representative frames
+  outfile.IO->Printf("#Representative frames:");
+  for (std::list<clusterNode>::iterator C = clusters.begin(); C != clusters.end(); C++)
+    outfile.IO->Printf(" %i",(*C).centroid+1);
+  outfile.IO->Printf("\n");
+  
+  outfile.CloseFile();
+  delete[] buffer;
 }
 
 /* ClusterList::PrintRepFrames()
@@ -303,7 +352,7 @@ std::list<ClusterList::clusterNode>::iterator ClusterList::GetClusterIt(int C1) 
 /* ClusterList::MergeClosest()
  * Find and merge the two closest clusters.
  */
-int ClusterList::MergeClosest(double epsilon) {
+int ClusterList::MergeClosest(double epsilon) { 
   double min;
   int C1, C2;
   std::list<clusterNode>::iterator C1_it;
@@ -337,7 +386,7 @@ int ClusterList::MergeClosest(double epsilon) {
     return 1;
   }
 
-  // Merge the closest clusters
+  // Merge the closest clusters, C2 -> C1
   Merge(C1_it,C2_it);
   // DEBUG
   if (debug>1) {
@@ -354,11 +403,21 @@ int ClusterList::MergeClosest(double epsilon) {
     calcMinDist(C1_it);
   else if (Linkage==COMPLETELINK)
     calcMaxDist(C1_it);
- 
+
   if (debug>2) { 
     mprintf("NEW CLUSTER DISTANCES:\n");
     ClusterDistances.PrintElements();
   }
+
+  // Calculate the new eccentricity of C1
+  //CalcEccentricity(C1_it);
+  // Check if eccentricity is less than epsilon
+  //if ( (*C1_it).eccentricity < epsilon) {
+  //  mprintf("\tCluster %i eccentricity %lf > epsilon (%lf), clustering complete.\n",
+  //          (*C1_it).num, (*C1_it).eccentricity, epsilon);
+  //  return 1;
+  //}
+
   return 0;
 }
 
@@ -510,6 +569,46 @@ void ClusterList::FindCentroid(std::list<ClusterList::clusterNode>::iterator C1_
     return;
   }
   (*C1_it).centroid = minframe;
+}
+
+/* ClusterList::CalcEccentricity()
+ * Calculate the eccentricity of the given cluster, i.e. the largest distance
+ * between any two points in the cluster.
+ */
+void ClusterList::CalcEccentricity(std::list<ClusterList::clusterNode>::iterator C1_it) {
+  double maxdist = 0;
+  double fdist;
+  std::list<int>::iterator frame1_end = (*C1_it).frameList.end();
+  frame1_end--;
+
+  for (std::list<int>::iterator frame1 = (*C1_it).frameList.begin();
+                                frame1 != frame1_end;
+                                frame1++)
+  {
+    std::list<int>::iterator frame2 = frame1;
+    frame2++;
+    for (; frame2 != (*C1_it).frameList.end(); frame2++) {
+      fdist = FrameDistances->GetElement(*frame1, *frame2);
+      if (fdist > maxdist) maxdist = fdist;
+    }
+  } 
+  (*C1_it).eccentricity = maxdist;
+}
+
+/* ClusterList::CheckEpsilon()
+ * Check the eccentricity of every cluster against the given epsilon. If
+ * any cluster has an eccentricity less than epsilon return true, 
+ * otherwise return false.
+ */
+bool ClusterList::CheckEpsilon(double epsilon) {
+  for (std::list<clusterNode>::iterator C1_it = clusters.begin();
+       C1_it != clusters.end();
+       C1_it++) 
+  {
+    CalcEccentricity( C1_it );
+    if ( (*C1_it).eccentricity < epsilon) return true;
+  }
+  return false;
 }
 
 /* ClusterList::Begin()
