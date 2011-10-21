@@ -6,39 +6,44 @@
 /// reads/writes from a file, a CpptrajFile object should be passed in via
 /// the SetFile function. 
 /// The following functions can be implemented by the inheriting class:
-///   setupRead(): Called inside TrajectoryFile::SetupRead. Takes as an 
-///                argument the AmberParm class that will be associated with
-///                this trajectory. Returns the number of frames in the 
-///                underlying trajectory file. Should set all variables (title,
-///                seekable, hasBox, boxAngle (only if hasBox), hasTemperature,
-///                and hasVelocity. If an error occurs should return -1.
-///   setupWrite(): Called inside TrajectoryFile::WriteFrame on the first
-///                 write call. Takes as an argument the AmberParm class that
-///                 will be associated with this trajectory. 
-///   openTraj(): Prepare trajectory for read/write
-///   closeTraj(): Finish trajectory
-///   readFrame(): Given a frame number, read that frame; return the
-///                coordinates in the first array, velocities in the second
-///                array, the box lengths/angles in the third array, and set 
-///                the temperature in the last var.
-///   writeFrame(): Write to output trajectory. This routine is called from
-///                 TrajectoryFile::WriteFrame with the current action set
-///                 number, not the current output number, so it is up to
-///                 the TrajectoryIO object to keep track of what frame it is
-///                 writing. Vars are same as in readFrame.
-///   info(): Print information on what kind of trajectory this is.
-///   processWriteArgs(): (Optional) Process any arguments from the arg list 
-///                       that have to do with setting the trajectory up for 
-///                       writing. It is desireable that any changes made to the
-///                       TrajectoryIO object from within this function are
-///                       implemented as functions that can be called 
-///                       independently if need be (e.g. setting the write
-///                       mode for PDB files).
+///   setupRead(): 
+///     Called inside TrajectoryFile::SetupRead. Takes as an argument the 
+///     AmberParm class that will be associated with this trajectory. Returns 
+///     the number of frames in the underlying trajectory file. Should set all 
+///     variables (title, seekable, hasBox, boxAngle (only if hasBox), 
+///     hasTemperature, and hasVelocity. If an error occurs should return -1.
+///   setupWrite(): 
+///     Called inside TrajectoryFile::WriteFrame on the first write call. Takes
+///     as an argument the AmberParm class that will be associated with this 
+///     trajectory. 
+///   openTraj(): 
+///     Open file, prepare trajectory for read/write.
+///   closeTraj(): 
+///     Finish trajectory, close file.
+///   readFrame(): 
+///     Given a frame number, read that frame; return the coordinates in the 
+///     first array, velocities in the second array, the box lengths/angles in 
+///     the third array, and set the temperature in the last var.
+///   writeFrame(): 
+///     Write to output trajectory. This routine is called from
+///     TrajectoryFile::WriteFrame with the current action set
+///     number, not the current output number, so it is up to
+///     the TrajectoryIO object to keep track of what frame it is
+///     writing. Vars are same as in readFrame.
+///   info(): 
+///     Print information on what kind of trajectory this is.
+///   processWriteArgs(): 
+///     (Optional) Process any arguments from the arg list that have to do with 
+///     setting the trajectory up for writing. Called before setupWrite, so 
+///     none of the arguments should be parm-related. It is desireable that any 
+///     changes made to the TrajectoryIO object from within this function are
+///     implemented as functions that can be called independently if need be 
+///     (e.g. setting the write  mode for PDB files).
 #include "AmberParm.h" // CpptrajFile BoxType
 #include "ArgList.h"
 class TrajectoryIO {
   protected:
-    CpptrajFile *tfile;   // Base file.
+    CpptrajFile *tfile; // Base file.
     char *title;        // Trajectory title.
     int debug;          // Debug level
   public:

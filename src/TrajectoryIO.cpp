@@ -6,9 +6,9 @@
 
 // CONSTRUCTOR
 TrajectoryIO::TrajectoryIO() {
-  debug = 0;
   tfile=NULL;
   title=NULL;
+  debug = 0;
 
   seekable=false;
   hasBox=false;
@@ -45,10 +45,9 @@ void TrajectoryIO::SetFile(CpptrajFile *tfileIn) {
  * set up the IO file. the given format MUST match the type for which
  * this file has been set up, otherwise bad things could happen.
  */
-int TrajectoryIO::NewFile(char *filenameIn, AccessType accIn,
-                          FileFormat fmtIn, FileType typeIn, int debugIn) 
+int TrajectoryIO::NewFile(char *filenameIn, AccessType accIn, FileFormat fmtIn, 
+                          FileType typeIn) 
 {
-  debug = debugIn;
   tfile = new CpptrajFile();
   if (tfile->SetupFile(filenameIn,accIn,fmtIn,typeIn,debug)) {
     //mprinterr("    Error: Could not set up file %s.\n",tname);
