@@ -67,7 +67,7 @@ class TrajectoryIO {
     virtual int processWriteArgs(ArgList *) { return 0; }
   
     void SetFile(CpptrajFile *);
-    int NewFile(char *, AccessType, FileFormat, FileType, int);
+    int NewFile(char *, AccessType, FileFormat, FileType);
     void SetTitle(char *);
     bool FilenameIs(char *);
     void SetDebug(int);
