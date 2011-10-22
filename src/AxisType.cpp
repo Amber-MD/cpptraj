@@ -1,5 +1,4 @@
 // AxisType
-#include <cstdlib>
 #include <cstring>
 #include "AxisType.h"
 #include "CpptrajStdio.h"
@@ -45,7 +44,6 @@ NAbaseType ID_base(char *resname) {
 AxisType::AxisType() {
   ID = UNKNOWN_BASE;
   Name = NULL;
-  maxAtom = 0;
   R[0]=0.0; R[1]=0.0; R[2]=0.0;
   R[3]=0.0; R[4]=0.0; R[5]=0.0;
   R[6]=0.0; R[7]=0.0; R[8]=0.0;
@@ -54,9 +52,9 @@ AxisType::AxisType() {
 // CONSTRUCTOR - Only allocate coords
 AxisType::AxisType(int natomIn) {
   natom = natomIn;
-  maxAtom = natom;
+  maxnatom = natom;
   N = natom * 3;
-  X = (double*) malloc(N * sizeof(double));
+  X = new double[ N ];
   ID = UNKNOWN_BASE;
   Name = NULL;
   R[0]=0.0; R[1]=0.0; R[2]=0.0;
@@ -66,7 +64,7 @@ AxisType::AxisType(int natomIn) {
 
 // DESTRUCTOR
 AxisType::~AxisType() {
-  if (Name!=NULL) free(Name);
+  if (Name!=NULL) delete[] Name;
 }
 
 // ------------------------- VARIABLE FUNCTIONS -------------------------------
@@ -112,16 +110,18 @@ const char AxisType::NAbaseName[9][5]={"UNK","DA","DT","DG","DC","RA","RC","RG",
 
 /*
  * AxisType::AllocAxis()
- * Allocate mem for coords and names
+ * Allocate mem for coords and names. Replace any existing coords / names.
  */
 int AxisType::AllocAxis(int natomIn) {
+  if (X!=NULL) delete[] X;
+  if (Name!=NULL) delete[] Name;
   natom = natomIn;
-  maxAtom = natom;
+  maxnatom = natom;
   N = natom * 3;
-  X = (double*) malloc(N * sizeof(double));
+  X = new double[ N ];
   if (X==NULL) return 1;
-  Name = (NAME*) malloc( natom * sizeof(NAME));
-  if (Name==NULL) {free(X); return 1;}
+  Name = new NAME[ natom ]; // (NAME*) malloc( natom * sizeof(NAME));
+  if (Name==NULL) {delete[] X; return 1;}
   return 0;
 }
 
@@ -160,15 +160,15 @@ char *AxisType::AtomName(int atom) {
  * AxisIn->natom > maxatom.
  */
 void AxisType::SetFromFrame(AxisType *AxisIn) {
-  this->natom = AxisIn->natom;
-  this->N     = AxisIn->N;
-  if (AxisIn->natom > this->maxAtom) { 
-    X = (double*) realloc(X, this->N * sizeof(double));
+  natom = AxisIn->natom;
+  N     = AxisIn->N;
+  if (AxisIn->natom > maxnatom) {
+    delete[] X;
+    X = new double[ N ];
     // Dont care about Name here
-    this->maxAtom = this->natom;
+    maxnatom = natom;
   }
-  for (int i=0; i < this->N; i++)
-    this->X[i] = AxisIn->X[i];
+  memcpy(X, AxisIn->X, N * sizeof(double));
 }
 
 /*

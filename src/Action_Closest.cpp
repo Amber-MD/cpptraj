@@ -20,7 +20,6 @@ Closest::Closest() {
   imageType=0;
   oldParm=NULL;
   newParm=NULL;
-  newFrame=NULL;
   outFile=NULL;
   outList=NULL;
   framedata=NULL;
@@ -36,7 +35,6 @@ Closest::~Closest() {
   //fprintf(stderr,"Closest Destructor.\n");
   this->ClearMaskList(); 
   if (newParm!=NULL) delete newParm;
-  if (newFrame!=NULL) delete newFrame;
   if (tempMask!=NULL) delete tempMask;
   if (outList!=NULL) delete outList;
 }
@@ -241,8 +239,7 @@ int Closest::setup() {
   newParm->Summary();
 
   // Allocate space for new frame
-  if (newFrame!=NULL) delete newFrame;
-  newFrame = new Frame(newParm->natom, newParm->mass);
+  newFrame.SetupFrame(newParm->natom, newParm->mass);
 
   // If prefix given then output stripped parm
   if (prefix!=NULL && newParm->parmName==NULL) {
@@ -362,8 +359,8 @@ int Closest::action() {
   }
 
   // Modify and set frame
-  newFrame->SetFrameFromMask(F, tempMask);
-  F = newFrame;
+  newFrame.SetFrameFromMask(F, tempMask);
+  F = &newFrame;
 
   return 0;
 } 

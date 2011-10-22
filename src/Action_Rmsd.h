@@ -25,9 +25,9 @@ class Rmsd: public Action {
     // ------------------------ 
     AtomMask RefMask, FrameMask;        // Frame and reference masks.
     bool nofit, first, perres;          // Action options
-    Frame *RefFrame;                    // Hold reference frame coords
-    Frame *SelectedRef;                 // Hold only ref coods selected by maskRef
-    Frame *SelectedFrame;               // Hold only frame coords selected by mask0
+    Frame RefFrame;                    // Hold reference frame coords
+    Frame SelectedRef;                 // Hold only ref coods selected by maskRef
+    Frame SelectedFrame;               // Hold only frame coords selected by mask0
     TrajectoryFile *RefTraj;            // Reference trajectory, each frame used in turn
     AmberParm *RefParm;                 // Reference frame Parm
 

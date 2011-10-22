@@ -16,6 +16,7 @@ ReferenceList::~ReferenceList() { }
  * trajectories are processed. Associate the trajectory with one of the parm 
  * files in the ParmFileList. 
  * reference <filename> [start] [parm <parmfile> | parmindex <#>]
+ * NOTE: Do not allocate Frames with new, should be static?
  */
 int ReferenceList::Add(char *filename, ArgList *A, AmberParm *parmIn) {
   TrajectoryFile *traj;
@@ -89,11 +90,13 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     (*traj)->PrintInfo(1);
     CurrentParm = (*traj)->TrajParm();
     // NOTE: If ever need ref velocity change this alloc
-    CurrentFrame = new Frame(CurrentParm->natom, CurrentParm->mass);
+    CurrentFrame = new Frame();
+    CurrentFrame->SetupFrame(CurrentParm->natom, CurrentParm->mass);
     // If averaging requested, loop over specified frames and avg coords.
     if (Average[refTrajNum++]) {
       mprintf("    Averaging over %i frames.\n",trajFrames);
-      AvgFrame = new Frame(CurrentParm->natom, CurrentParm->mass);
+      AvgFrame = new Frame();
+      AvgFrame->SetupFrame(CurrentParm->natom, CurrentParm->mass);
       AvgFrame->ZeroCoords();
       Nframes = 0.0;
       while ( (*traj)->GetNextFrame(CurrentFrame->X, CurrentFrame->V, 

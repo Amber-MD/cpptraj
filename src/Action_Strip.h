@@ -7,7 +7,7 @@
 class Strip: public Action {
     AmberParm *oldParm;
     AmberParm *newParm;
-    Frame *newFrame;
+    Frame newFrame;
     char *prefix;
     AtomMask M1;
   public:

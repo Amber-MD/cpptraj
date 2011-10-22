@@ -102,7 +102,8 @@ int ActionMask::action() {
     // Create new parm and frame based on atoms in Mask
     AmberParm *pdbParm = P->modifyStateByMask(Mask2->Selected, Mask2->Nselected);
     //pdbParm->Summary(); // DEBUG
-    Frame *pdbFrame = new Frame(Mask2->Nselected,NULL);
+    Frame *pdbFrame = new Frame();
+    pdbFrame->SetupFrame(Mask2->Nselected,NULL);
     // Set only coords
     pdbFrame->SetFrameCoordsFromMask(F->X, Mask2);
     // Set up output file. 

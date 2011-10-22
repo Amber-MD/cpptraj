@@ -233,7 +233,7 @@ int CpptrajState::Run() {
   int lastPindex=-1;      // Index of the last loaded parm file
   AmberParm *CurrentParm=NULL; // Parm for actions; can be modified 
   Frame *CurrentFrame=NULL;    // Frame for actions; can be modified
-  Frame *TrajFrame=NULL;       // Original Frame read in from traj
+  Frame TrajFrame;       // Original Frame read in from traj
   FrameList refFrames;         // List of reference frames from referenceList
 
   // ========== S E T U P   P H A S E ========== 
@@ -283,8 +283,7 @@ int CpptrajState::Run() {
     // If Parm has changed, reset Frame and actions for new topology.
     if (lastPindex != CurrentParm->pindex) {
       // Set up the incoming trajectory frame for this parm
-      if (TrajFrame!=NULL) delete TrajFrame;
-      TrajFrame = new Frame(CurrentParm->natom, CurrentParm->mass, traj->HasVelocity());
+      TrajFrame.SetupFrameV(CurrentParm->natom, CurrentParm->mass, traj->HasVelocity());
       // Set up actions for this parm
       if (actionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
@@ -297,9 +296,9 @@ int CpptrajState::Run() {
     }
 
     // Loop over every Frame in trajectory
-    while ( traj->GetNextFrame(TrajFrame->X, TrajFrame->V, TrajFrame->box, &(TrajFrame->T)) ) {
+    while ( traj->GetNextFrame(TrajFrame.X, TrajFrame.V, TrajFrame.box, &(TrajFrame.T)) ) {
       // Since Frame can be modified by actions, save original and use CurrentFrame
-      CurrentFrame = TrajFrame;
+      CurrentFrame = &TrajFrame;
       // Perform Actions on Frame
       actionList.DoActions(&CurrentFrame, actionSet);
       // Do Output
@@ -319,7 +318,6 @@ int CpptrajState::Run() {
     readSets+=traj->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
-  if (TrajFrame!=NULL) delete TrajFrame;
   rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
 
   // Close output traj

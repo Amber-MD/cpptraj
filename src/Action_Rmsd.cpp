@@ -14,10 +14,7 @@ Rmsd::Rmsd() {
   useMass=false;
   perres=false;
   RefTraj=NULL;
-  RefFrame=NULL;
   RefParm=NULL;
-  SelectedRef=NULL;
-  SelectedFrame=NULL;
   ResFrame=NULL;
   ResRefFrame=NULL;
   perresmask=NULL;
@@ -29,15 +26,10 @@ Rmsd::Rmsd() {
 Rmsd::~Rmsd() {
   //mprinterr("RMSD DESTRUCTOR\n");
   // If first, ref Frame was allocd (not assigned from reference Frame List)
-  if (first && RefFrame!=NULL)
-    delete RefFrame;
   if (RefTraj!=NULL) {
     RefTraj->EndTraj();
     delete RefTraj;
-    if (RefFrame!=NULL) delete RefFrame;
   }
-  if (SelectedRef!=NULL) delete SelectedRef;
-  if (SelectedFrame!=NULL) delete SelectedFrame;
   if (ResFrame!=NULL) delete ResFrame;
   if (ResRefFrame!=NULL) delete ResRefFrame;
   if (PerResRMSD!=NULL) delete PerResRMSD;
@@ -85,7 +77,7 @@ int Rmsd::SetRefMask() {
     useMass=false;
   }
   // Allocate frame for selected reference atoms
-  SelectedRef = new Frame(&RefMask, RefParm->mass);
+  SelectedRef.SetupFrameFromMask(&RefMask, RefParm->mass);
 
   return 0;
 }
@@ -165,7 +157,7 @@ int Rmsd::init( ) {
         RefTraj=NULL;
         return 1;
       } 
-      RefFrame = new Frame(RefParm->natom, RefParm->mass, RefTraj->HasVelocity());
+      RefFrame.SetupFrameV(RefParm->natom, RefParm->mass, RefTraj->HasVelocity());
     } else {
       // Attempt to get reference index by name
       if (referenceName!=NULL)
@@ -175,17 +167,18 @@ int Rmsd::init( ) {
       if (referenceKeyword) refindex=0;
 
       // Get reference frame by index
-      RefFrame=FL->GetFrame(refindex);
-      if (RefFrame==NULL) {
+      Frame *TempFrame=FL->GetFrame(refindex);
+      if (TempFrame==NULL) {
         mprinterr("    Error: Rmsd::init: Could not get reference index %i\n",refindex);
         return 1;
       }
+      RefFrame = *TempFrame;
       // Set reference parm
       RefParm=FL->GetFrameParm(refindex);
       // Setup reference mask here since reference frame/parm are allocated
       if ( SetRefMask() ) return 1;
-      //RefFrame->printAtomCoord(0);
-      //fprintf(stderr,"  NATOMS IN REF IS %i\n",RefFrame->P->natom); // DEBUG
+      //RefFrame.printAtomCoord(0);
+      //fprintf(stderr,"  NATOMS IN REF IS %i\n",RefFrame.natom); // DEBUG
     }
   }
 
@@ -198,7 +191,7 @@ int Rmsd::init( ) {
       mprinterr("Error: Rmsd: Could not open reference trajectory.\n");
       return 1;
     }
-  } else if (RefFrame==NULL)
+  } else if (first)
     mprintf("first frame");
   else if (referenceName!=NULL)
     mprintf("%s",referenceName);
@@ -357,9 +350,11 @@ int Rmsd::perResSetup() {
   // The number of atoms and masses will change based on which residue is 
   // currently being calcd.
   if (ResRefFrame!=NULL) delete ResRefFrame;
-  ResRefFrame = new Frame(RefParm->natom, RefParm->mass);
+  ResRefFrame = new Frame();
+  ResRefFrame->SetupFrame(RefParm->natom, RefParm->mass);
   if (ResFrame!=NULL) delete ResFrame;
-  ResFrame = new Frame(P->natom, P->mass);
+  ResFrame = new Frame();
+  ResFrame->SetupFrame(P->natom, P->mass);
 
   return 0;
 }
@@ -377,8 +372,7 @@ int Rmsd::setup() {
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  if (SelectedFrame!=NULL) delete SelectedFrame;
-  SelectedFrame = new Frame(&FrameMask, P->mass);
+  SelectedFrame.SetupFrameFromMask(&FrameMask, P->mass);
   
   // first: If RefParm not set, set it here and set the reference mask.
   //        Should only occur once.
@@ -403,8 +397,9 @@ int Rmsd::setup() {
 }
 
 /* Rmsd::action()
- * Called every time a frame is read in. Calc RMSD. If RefFrame is NULL
- * at this point we want to set the first frame read in as reference.
+ * Called every time a frame is read in. Calc RMSD. If first is true
+ * at this point we want to set the current (i.e. first) frame read 
+ * in as reference.
  */
 int Rmsd::action() {
   double R, U[9], Trans[6];
@@ -412,8 +407,10 @@ int Rmsd::action() {
   // first: If Ref is NULL, allocate this frame as reference
   //        Should only occur once.
   // NOTE: For MPI this will currently result in different references between threads.
-  if (first && RefFrame==NULL) 
-    RefFrame = F->FrameCopy();
+  if (first) { 
+    RefFrame = *F;
+    first = false;
+  }
 
   // reftraj: Get the next frame from the reference trajectory
   //          If no more frames are left, the last frame will be used. This
@@ -422,26 +419,26 @@ int Rmsd::action() {
     //mprintf("DBG: RMSD reftraj: Getting ref traj frame %i\n",RefTraj->front()->CurrentFrame());
     // NOTE: If there are no more frames in the trajectory the frame should
     //       remain on the last read frame. Close and reopen? Change ref?
-    RefTraj->GetNextFrame(RefFrame->X, RefFrame->V, RefFrame->box, (&RefFrame->T)); 
+    RefTraj->GetNextFrame(RefFrame.X, RefFrame.V, RefFrame.box, (&RefFrame.T)); 
   }
 
   // Set selected reference atoms - always done since RMS fit modifies SelectedRef 
-  SelectedRef->SetFrameCoordsFromMask(RefFrame->X, &RefMask);
+  SelectedRef.SetFrameCoordsFromMask(RefFrame.X, &RefMask);
 
   // Set selected frame atoms. Masses have already been set.
-  SelectedFrame->SetFrameCoordsFromMask(F->X, &FrameMask);
+  SelectedFrame.SetFrameCoordsFromMask(F->X, &FrameMask);
 
   // DEBUG
 /*  mprintf("  DEBUG: RMSD: First atom coord in SelectedFrame is : "); 
-  SelectedFrame->printAtomCoord(0);
+  SelectedFrame.printAtomCoord(0);
   mprintf("  DEBUG: RMSD: First atom coord in SelectedRef is : ");
-  SelectedRef->printAtomCoord(0);
+  SelectedRef.printAtomCoord(0);
 */
 
   if (nofit) {
-    R = SelectedFrame->RMSD(SelectedRef, useMass);
+    R = SelectedFrame.RMSD(&SelectedRef, useMass);
   } else {
-    R = SelectedFrame->RMSD(SelectedRef, U, Trans, useMass);
+    R = SelectedFrame.RMSD(&SelectedRef, U, Trans, useMass);
     F->Translate(Trans);
     F->Rotate(U);
     F->Translate(Trans+3);
@@ -459,7 +456,7 @@ int Rmsd::action() {
         //mprintf("DEBUG:           [%4i] Not Active.\n",N);
         continue;
       }
-      ResRefFrame->SetFrameFromMask(RefFrame, refResMask[N]);
+      ResRefFrame->SetFrameFromMask(&RefFrame, refResMask[N]);
       ResFrame->SetFrameFromMask(F, tgtResMask[N]);
       if (perrescenter)
         ResFrame->ShiftToCenter(ResRefFrame);

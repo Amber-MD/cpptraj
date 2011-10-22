@@ -334,21 +334,20 @@ int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharg
                             Frame *frame, char *outfilename) 
 {
   AmberParm *CutParm;
-  Frame *CutFrame;
+  Frame CutFrame;
   TrajectoryFile tout;
   // TEST: Write file containing only cut atoms
   CutParm = Parm->modifyStateByMask(CutMask->Selected, CutMask->Nselected);
   CutParm->SetCharges(CutCharges);
-  CutFrame = new Frame(CutParm->natom, CutParm->mass);
-  CutFrame->SetFrameFromMask(frame, CutMask);
+  CutFrame.SetupFrame(CutParm->natom, CutParm->mass);
+  CutFrame.SetFrameFromMask(frame, CutMask);
   if (tout.SetupWriteWithArgs(outfilename,"multi",CutParm,MOL2FILE)) {
     mprinterr("Error: Pairwise: Could not set up cut mol2 file %s\n",outfilename);
     return 1;
   }
-  tout.WriteFrame(currentFrame,CutParm,CutFrame->X, NULL, NULL, 0.0);
+  tout.WriteFrame(currentFrame,CutParm,CutFrame.X, NULL, NULL, 0.0);
   tout.EndTraj();
   delete CutParm;
-  delete CutFrame;
   return 0;
 }
 

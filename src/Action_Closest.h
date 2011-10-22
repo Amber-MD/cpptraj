@@ -20,7 +20,7 @@ class Closest: public Action {
     AtomMask *tempMask;
     AmberParm *newParm;
     AmberParm *oldParm;
-    Frame *newFrame;
+    Frame newFrame;
     // The moldist structure is used in order to preserve the original
     // solvent molecule and atom numbers after sorting.
     struct MolDist {

@@ -161,13 +161,13 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   // Reference
   AmberParm *RefParm = NULL;
   Frame *RefFrame = NULL;
-  Frame *SelectedRef=NULL;
+  Frame SelectedRef;
   int lastrefpindex=-1;
   int refatoms = 0;
   // Target
   AmberParm *TgtParm;
   Frame *TgtFrame;
-  Frame *SelectedTgt=NULL;
+  Frame SelectedTgt;
   int lasttgtpindex=-1;
   // Other vars
   double R, U[9], Trans[6];
@@ -195,13 +195,10 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
     if (RefParm->pindex != lastrefpindex) {
       if ( Mask0.SetupMask(RefParm,debug) ) {
         mprinterr("Error: Clustering: Could not set up reference mask for %s\n",RefParm->parmName);
-        if (SelectedRef!=NULL) delete SelectedRef;
-        if (SelectedTgt!=NULL) delete SelectedTgt;
         return 1;
       }
       refatoms = Mask0.Nselected;
-      if ( SelectedRef!=NULL ) delete SelectedRef;
-      SelectedRef = new Frame(&Mask0, RefParm->mass);
+      SelectedRef.SetupFrameFromMask(&Mask0, RefParm->mass);
       lastrefpindex = RefParm->pindex;
     }
     // Get the current reference frame
@@ -214,8 +211,6 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
       if (TgtParm->pindex != lasttgtpindex) {
         if ( Mask0.SetupMask(TgtParm,debug) ) {
           mprinterr("Error: Clustering: Could not set up target mask for %s\n",TgtParm->parmName);
-          if (SelectedRef!=NULL) delete SelectedRef;
-          if (SelectedTgt!=NULL) delete SelectedTgt;
           return 1;
         }
         // Check that num atoms in mask are the same
@@ -223,27 +218,24 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
           mprinterr(
             "Error: Clustering: Num atoms in target mask (%i) != num atoms in ref mask (%i)\n",
                     Mask0.Nselected, refatoms);
-          if (SelectedRef!=NULL) delete SelectedRef;
-          if (SelectedTgt!=NULL) delete SelectedTgt;
           return 1;
         }
-        if ( SelectedTgt!=NULL ) delete SelectedTgt;
-        SelectedTgt = new Frame(&Mask0, TgtParm->mass);
+        SelectedTgt.SetupFrameFromMask(&Mask0, TgtParm->mass);
         lasttgtpindex = TgtParm->pindex;
       }
       // Get the current target frame
       TgtFrame = ReferenceFrames.GetFrame( nframe );
 
       // Set selected reference atoms - always done since RMS fit modifies SelectedRef
-      SelectedRef->SetFrameCoordsFromMask(RefFrame->X, &Mask0);
+      SelectedRef.SetFrameCoordsFromMask(RefFrame->X, &Mask0);
       // Set selected target atoms
-      SelectedTgt->SetFrameCoordsFromMask(TgtFrame->X, &Mask0);
+      SelectedTgt.SetFrameCoordsFromMask(TgtFrame->X, &Mask0);
 
       // Perform RMS calculation
       if (nofitrms)
-        R = SelectedTgt->RMSD(SelectedRef, useMass);
+        R = SelectedTgt.RMSD(&SelectedRef, useMass);
       else 
-        R = SelectedTgt->RMSD(SelectedRef, U, Trans, useMass);
+        R = SelectedTgt.RMSD(&SelectedRef, U, Trans, useMass);
 
       Distances->AddElement( R );
       // DEBUG
@@ -254,8 +246,6 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   progress->Update(max);
   delete progress;
 
-  if (SelectedRef!=NULL) delete SelectedRef;
-  if (SelectedTgt!=NULL) delete SelectedTgt;
 
   
   return 0;

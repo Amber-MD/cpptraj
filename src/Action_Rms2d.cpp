@@ -124,8 +124,8 @@ void Rms2d::print() {
   Frame *RefFrame = NULL;
   AmberParm *TgtParm;
   Frame *TgtFrame;
-  Frame *SelectedRef=NULL;
-  Frame *SelectedTgt=NULL;
+  Frame SelectedRef;
+  Frame SelectedTgt;
   int lastrefpindex=-1;
   int lasttgtpindex=-1;
   double R, U[9], Trans[6];
@@ -140,7 +140,8 @@ void Rms2d::print() {
     max = ReferenceFrames.NumFrames() * ReferenceFrames.NumFrames();
     mprintf("  RMS2D: Calculating RMSDs between each frame (%i total).\n  ",max);
   } else {
-    RefFrame = new Frame(RefParm->natom,RefParm->mass);
+    RefFrame = new Frame();
+    RefFrame->SetupFrame(RefParm->natom,RefParm->mass);
     totalref = RefTraj->Total_Read_Frames();
     max = totalref * ReferenceFrames.NumFrames();
     mprintf("  RMS2D: Calculating RMSDs between each input frame and each reference\n"); 
@@ -160,12 +161,9 @@ void Rms2d::print() {
     if (RefParm->pindex != lastrefpindex) {
       if ( RefMask.SetupMask(RefParm,debug) ) {
         mprinterr("Error: Rms2d: Could not set up reference mask for %s\n",RefParm->parmName);
-        if (SelectedRef!=NULL) delete SelectedRef;
-        if (SelectedTgt!=NULL) delete SelectedTgt;
         return;
       }
-      if ( SelectedRef!=NULL ) delete SelectedRef;
-      SelectedRef = new Frame(&RefMask, RefParm->mass);
+      SelectedRef.SetupFrameFromMask(&RefMask, RefParm->mass);
       lastrefpindex = RefParm->pindex;
     }
     // Get the current reference frame
@@ -185,35 +183,30 @@ void Rms2d::print() {
       if (TgtParm->pindex != lasttgtpindex) {
         if ( FrameMask.SetupMask(TgtParm,debug) ) {
           mprinterr("Error: Rms2d: Could not set up target mask for %s\n",TgtParm->parmName);
-          if (SelectedRef!=NULL) delete SelectedRef;
-          if (SelectedTgt!=NULL) delete SelectedTgt;
           return;
         }
         // Check that num atoms in mask are the same
         if (FrameMask.Nselected != RefMask.Nselected) {
           mprinterr("Error: Rms2d: Num atoms in target mask (%i) != num atoms in ref mask (%i)\n",
                     FrameMask.Nselected, RefMask.Nselected);
-          if (SelectedRef!=NULL) delete SelectedRef;
-          if (SelectedTgt!=NULL) delete SelectedTgt;
           return;
         }
-        if ( SelectedTgt!=NULL ) delete SelectedTgt;
-        SelectedTgt = new Frame(&FrameMask, TgtParm->mass);
+        SelectedTgt.SetupFrameFromMask(&FrameMask, TgtParm->mass);
         lasttgtpindex = TgtParm->pindex;
       }
       // Get the current target frame
       TgtFrame = ReferenceFrames.GetFrame( nframe );
 
       // Set selected reference atoms - always done since RMS fit modifies SelectedRef
-      SelectedRef->SetFrameCoordsFromMask(RefFrame->X, &RefMask);
+      SelectedRef.SetFrameCoordsFromMask(RefFrame->X, &RefMask);
       // Set selected target atoms
-      SelectedTgt->SetFrameCoordsFromMask(TgtFrame->X, &FrameMask);
+      SelectedTgt.SetFrameCoordsFromMask(TgtFrame->X, &FrameMask);
 
       // Perform RMS calculation
       if (nofit) {
-        R = SelectedTgt->RMSD(SelectedRef, useMass);
+        R = SelectedTgt.RMSD(&SelectedRef, useMass);
       } else {
-        R = SelectedTgt->RMSD(SelectedRef, U, Trans, useMass);
+        R = SelectedTgt.RMSD(&SelectedRef, U, Trans, useMass);
       }
       RmsData.AddData(nframe, &R, nref);
       // DEBUG
@@ -224,8 +217,6 @@ void Rms2d::print() {
   progress->Update(max);
   delete progress;
 
-  if (SelectedRef!=NULL) delete SelectedRef;
-  if (SelectedTgt!=NULL) delete SelectedTgt;
   if (RefTraj!=NULL) delete RefFrame;
   return;
 }

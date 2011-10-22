@@ -7,9 +7,6 @@
 DistRmsd::DistRmsd() {
   drmsd=NULL;
   first=false;
-  RefFrame=NULL;
-  SelectedRef=NULL;
-  SelectedTgt=NULL;
   RefTraj=NULL;
   RefParm=NULL;
 }
@@ -17,16 +14,10 @@ DistRmsd::DistRmsd() {
 // DESTRUCTOR
 DistRmsd::~DistRmsd() {
   //mprinterr("RMSD DESTRUCTOR\n");
-  // If first, ref Frame was allocd (not assigned from reference Frame List)
-  if (first && RefFrame!=NULL)
-    delete RefFrame;
   if (RefTraj!=NULL) {
     RefTraj->EndTraj();
     delete RefTraj;
-    if (RefFrame!=NULL) delete RefFrame;
   }
-  if (SelectedRef!=NULL) delete SelectedRef;
-  if (SelectedTgt!=NULL) delete SelectedTgt;
 }
 
 /* DistRmsd::SetRefMask()
@@ -48,7 +39,7 @@ int DistRmsd::SetRefMask() {
     useMass=false;
   }
   // Allocate frame for selected reference atoms
-  SelectedRef = new Frame(&RefMask, RefParm->mass);
+  SelectedRef.SetupFrameFromMask(&RefMask, RefParm->mass);
 
   return 0;
 }
@@ -116,7 +107,7 @@ int DistRmsd::init( ) {
         RefTraj=NULL;
         return 1;
       } 
-      RefFrame = new Frame(RefParm->natom, RefParm->mass, RefTraj->HasVelocity());
+      RefFrame.SetupFrameV(RefParm->natom, RefParm->mass, RefTraj->HasVelocity());
     } else {
       // Attempt to get reference index by name
       if (referenceName!=NULL)
@@ -126,17 +117,18 @@ int DistRmsd::init( ) {
       if (referenceKeyword) refindex=0;
 
       // Get reference frame by index
-      RefFrame=FL->GetFrame(refindex);
-      if (RefFrame==NULL) {
+      Frame *TempFrame=FL->GetFrame(refindex);
+      if (TempFrame==NULL) {
         mprintf("    Error: DistRmsd::init: Could not get reference index %i\n",refindex);
         return 1;
       }
+      RefFrame = *TempFrame;
       // Set reference parm
       RefParm=FL->GetFrameParm(refindex);
       // Setup reference mask here since reference frame/parm are allocated
       if ( SetRefMask() ) return 1;
-      //RefFrame->printAtomCoord(0);
-      //fprintf(stderr,"  NATOMS IN REF IS %i\n",RefFrame->P->natom); // DEBUG
+      //RefFrame.printAtomCoord(0);
+      //fprintf(stderr,"  NATOMS IN REF IS %i\n",RefFrame.natom); // DEBUG
     }
   }
 
@@ -148,7 +140,7 @@ int DistRmsd::init( ) {
       mprinterr("Error: Rmsd: Could not open reference trajectory.\n");
       return 1;
     }
-  } else if (RefFrame==NULL)
+  } else if (first)
     mprintf("first frame");
   else if (referenceName!=NULL)
     mprintf("%s",referenceName);
@@ -172,8 +164,7 @@ int DistRmsd::setup() {
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  if (SelectedTgt!=NULL) delete SelectedTgt;
-  SelectedTgt = new Frame(&TgtMask, P->mass);
+  SelectedTgt.SetupFrameFromMask(&TgtMask, P->mass);
   
   // first: If RefParm not set, set it here and set the reference mask.
   //        Should only occur once.
@@ -193,7 +184,7 @@ int DistRmsd::setup() {
 }
 
 /* DistRmsd::action()
- * Called every time a frame is read in. Calc distance RMSD. If RefFrame is NULL
+ * Called every time a frame is read in. Calc distance RMSD. If first is true 
  * at this point we want to set the first frame read in as reference.
  */
 int DistRmsd::action() {
@@ -202,8 +193,10 @@ int DistRmsd::action() {
   // first: If Ref is NULL, allocate this frame as reference
   //        Should only occur once.
   // NOTE: For MPI this will currently result in different references between threads.
-  if (first && RefFrame==NULL) 
-    RefFrame = F->FrameCopy();
+  if (first) {
+    RefFrame = *F;
+    first = false;
+  }
 
   // reftraj: Get the next frame from the reference trajectory
   //          If no more frames are left, the last frame will be used. This
@@ -212,14 +205,14 @@ int DistRmsd::action() {
     //mprintf("DBG: RMSD reftraj: Getting ref traj frame %i\n",RefTraj->front()->CurrentFrame());
     // NOTE: If there are no more frames in the trajectory the frame should
     //       remain on the last read frame. Close and reopen? Change ref?
-    RefTraj->GetNextFrame(RefFrame->X, RefFrame->V, RefFrame->box, (&RefFrame->T)); 
+    RefTraj->GetNextFrame(RefFrame.X, RefFrame.V, RefFrame.box, (&RefFrame.T)); 
   }
 
   // Set selected reference atoms - always done since RMS fit modifies SelectedRef 
-  SelectedRef->SetFrameCoordsFromMask(RefFrame->X, &RefMask);
+  SelectedRef.SetFrameCoordsFromMask(RefFrame.X, &RefMask);
 
   // Set selected frame atoms. Masses have already been set.
-  SelectedTgt->SetFrameCoordsFromMask(F->X, &TgtMask);
+  SelectedTgt.SetFrameCoordsFromMask(F->X, &TgtMask);
 
   // DEBUG
 /*  mprintf("  DEBUG: RMSD: First atom coord in SelectedTgt is : "); 
@@ -228,7 +221,7 @@ int DistRmsd::action() {
   SelectedRef->printAtomCoord(0);
 */
 
-  DR = SelectedTgt->DISTRMSD( SelectedRef );
+  DR = SelectedTgt.DISTRMSD( &SelectedRef );
 
   drmsd->Add(currentFrame, &DR);
 

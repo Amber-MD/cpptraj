@@ -12,6 +12,8 @@
 /// RMSD).
 #include "AtomMask.h"
 class Frame {
+    static const size_t COORDSIZE;
+    static const size_t BOXSIZE;
   public:
     double *X;     // Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     int natom;     // Number of atoms
@@ -23,12 +25,15 @@ class Frame {
     double *Mass;  // Mass
 
     Frame();
-    Frame(int, double*);
-    Frame(int,double*,bool);
-    Frame(AtomMask *, double *);
     virtual ~Frame();             // Destructor is virtual since this class can be inherited
+
+    int SetupFrame(int, double*);
+    int SetupFrameV(int,double*,bool);
+    Frame & operator=(const Frame&);
+    int SetupFrameFromMask(AtomMask *, double *);
     Frame *FrameCopy();
     int Resize(int,bool,bool);
+
     // Coordinate manipulation
     void ZeroCoords();
     void AddCoord(Frame*);

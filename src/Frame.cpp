@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <cmath>
 #include <cstring>
 #include "Frame.h"
@@ -7,6 +6,9 @@
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 #include "CpptrajStdio.h"
+
+const size_t Frame::COORDSIZE = 3 * sizeof(double);
+const size_t Frame::BOXSIZE = 6 * sizeof(double);
 
 // CONSTRUCTOR
 Frame::Frame() {
@@ -20,70 +22,131 @@ Frame::Frame() {
   Mass=NULL;
 }
 
-// CONSTRUCTOR, takes number of atoms and masses
-// NOTE: Probably should throw execeptions on mem errors
-Frame::Frame(int natomIn, double *MassIn) {
-  natom=natomIn;
-  maxnatom=natom;
-  N=natom*3;
-  X=(double*) malloc( N * sizeof(double));
-  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
-  T=0.0;
-  V=NULL;
-  Mass=NULL;
-  if (MassIn!=NULL) {
-    Mass = (double*) malloc(natom * sizeof(double));
-    for (int atom = 0; atom < natom; atom++)
-      Mass[atom] = MassIn[atom];
-  }
-}
-
-// CONSTRUCTOR, takes # atoms, masses, sets up V if neccessary
-Frame::Frame(int natomIn, double *MassIn, bool hasVelocity) {
-  natom=natomIn;
-  maxnatom=natom;
-  N=natom*3;
-  X=(double*) malloc( N * sizeof(double));
-  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
-  T=0.0;
-  V=NULL;
-  if (hasVelocity) {
-    V = (double*) malloc( N * sizeof(double));
-    // Since V will not necessarily be read in, initialize it.
-    for (int coord=0; coord<N; coord++)
-      V[coord]=0.0;
-  }
-  Mass=NULL;
-  if (MassIn!=NULL) {
-    Mass = (double*) malloc(natom * sizeof(double));
-    for (int atom = 0; atom < natom; atom++)
-      Mass[atom] = MassIn[atom];
-  }
-}
-
-// CONSTRUCTOR, Create Frame based on size of mask. Put correct masses in.
-Frame::Frame(AtomMask *Mask, double *MassIn) {
-  natom = Mask->Nselected;
-  maxnatom=natom;
-  N = natom * 3;
-  X = (double*) malloc(N * sizeof(double));
-  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
-  T=0.0;
-  V=NULL;
-  // Copy Mass info if present
-  Mass = NULL;
-  if (MassIn!=NULL) {
-    Mass = (double*) malloc(natom * sizeof(double));
-    for (int i=0; i < Mask->Nselected; i++)
-      Mass[i] = MassIn[ Mask->Selected[i] ];
-  }
-}
-
 // DESTRUCTOR
 Frame::~Frame() {
-  if (X!=NULL) free(X);
-  if (V!=NULL) free(V);
-  if (Mass!=NULL) free(Mass);
+  if (X!=NULL) delete[] X;
+  if (V!=NULL) delete[] V;
+  if (Mass!=NULL) delete[] Mass;
+}
+
+/* Frame::SetupFrame()
+ * Set up frame for given number of atoms. Store mass information
+ * if passed in.
+ */
+int Frame::SetupFrame(int natomIn, double *massIn) {
+  // Delete any existing info
+  if (X!=NULL) delete[] X;
+  if (V!=NULL) delete[] V;
+  if (Mass!=NULL) delete[] Mass;
+  X=NULL;
+  V=NULL;
+  Mass=NULL;
+  natom = natomIn;
+  maxnatom = natom;
+  N = natom * 3;
+  X = new double[ N ];
+  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
+  T = 0.0;
+  V = NULL;
+  if (massIn!=NULL) {
+    Mass = new double[ natom ];
+    memcpy(Mass, massIn, natom * sizeof(double));
+  }
+  return 0;
+}
+
+/* Frame::SetupFrameV()
+ * Set up frame for given number of atoms. Store mass information
+ * if passed in. Set up space for storing velocity if hasVelocity = true.
+ */ 
+int Frame::SetupFrameV(int natomIn, double *massIn, bool hasVelocity) {
+  // Delete any existing info
+  if (X!=NULL) delete[] X;
+  if (V!=NULL) delete[] V; 
+  if (Mass!=NULL) delete[] Mass;
+  X=NULL;
+  V=NULL;
+  Mass=NULL;
+  natom = natomIn;
+  maxnatom = natom;
+  N = natom * 3; 
+  X = new double[ N ];
+  if (hasVelocity) { 
+    V = new double[ N ];
+    // Since V will not necessarily be read in, initialize it
+    memset(V, 0, N * sizeof(double));
+  }
+  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
+  T = 0.0;
+  if (massIn!=NULL) {
+    Mass = new double[ natom ];
+    memcpy(Mass, massIn, natom * sizeof(double));
+  }
+  return 0;
+}
+
+/* Frame::operator=
+ */
+Frame &Frame::operator=(const Frame &rhs) {
+  // Check for self assignment
+  if ( this == &rhs ) return *this;
+  
+  // Deallocate
+  if (X!=NULL) delete[] X;
+  if (V!=NULL) delete[] V;
+  if (Mass!=NULL) delete[] Mass;
+  X=NULL;
+  V=NULL;
+  Mass=NULL;
+
+  // Allocate and copy
+  natom = rhs.natom;
+  maxnatom = rhs.maxnatom;
+  N = rhs.N;
+  memcpy(box, rhs.box, BOXSIZE);
+  T = rhs.T;
+  X = new double[ N ];
+  memcpy(X, rhs.X, N * sizeof(double));
+  if (rhs.V != NULL) {
+    V = new double[ N ];
+    memcpy(V, rhs.V, N * sizeof(double));
+  }
+  if (rhs.Mass!=NULL) {
+    Mass = new double[ natom ];
+    memcpy(Mass, rhs.Mass, natom * sizeof(double));
+  }
+  // Return *this
+  return *this;
+}
+
+/* Frame::SetupFrameFromMask()
+ * Create Frame based on the size of the given mask. If mass information
+ * is also passed in, use the mask to determine which masses to keep. 
+ * Ignores velocity info.
+ */ 
+int Frame::SetupFrameFromMask(AtomMask *Mask, double *massIn) {
+  //if (massIn==NULL) {
+  //  mprinterr("Error: Frame::SetupFrameFromMask: massIn is NULL.\n");
+  //  return 1;
+  //}
+  // Delete any existing info
+  if (X!=NULL) delete[] X;
+  if (Mass!=NULL) delete[] Mass;
+  X=NULL;
+  Mass=NULL;
+
+  natom = Mask->Nselected;
+  maxnatom = natom;
+  N = natom * 3; 
+  X = new double[ N ]; 
+  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
+  T = 0.0;
+  if (massIn!=NULL) {
+    Mass = new double[ natom ];
+    for (int i=0; i < natom; i++)
+      Mass[i] = massIn[ Mask->Selected[i] ];
+  }
+  return 0;
 }
 
 /* Frame::FrameCopy()
@@ -92,14 +155,22 @@ Frame::~Frame() {
 Frame *Frame::FrameCopy() {
   Frame *newFrame;
 
-  newFrame=new Frame(this->natom, this->Mass, this->V!=NULL);
+  newFrame=new Frame();
+  newFrame->natom = this->natom;
+  newFrame->maxnatom = this->maxnatom;
+  newFrame->N = this->N;
+  newFrame->X = new double[ N ];
   memcpy(newFrame->X, this->X, N * sizeof(double));
-  memcpy(newFrame->box, this->box, 6 * sizeof(double));
+  memcpy(newFrame->box, this->box, BOXSIZE);
   newFrame->T = this->T;
-  if (this->V!=NULL) 
+  if (this->V!=NULL) {
+    newFrame->V = new double[ N ];
     memcpy(newFrame->V, this->V, N * sizeof(double));
-  if (this->Mass!=NULL) 
+  }
+  if (this->Mass!=NULL) {
+    newFrame->Mass = new double[ natom ];
     memcpy(newFrame->Mass, this->Mass, natom * sizeof(double));
+  }
 
   return newFrame;
 }
@@ -110,31 +181,40 @@ Frame *Frame::FrameCopy() {
  * Only reallocate mass and V if explicitly requested.
  */
 int Frame::Resize(int natomIn, bool allocV, bool allocMass) {
+  int newN = natom * 3;;
   // DEBUG
   //mprintf("DEBUG: Resizing frame, old natom=%i, new natom=%i, allocV=%i, allocM=%i\n",
   //        natom,natomIn,(int)allocV,(int)allocMass);
   // DEBUG
   if (natomIn>maxnatom) {
-    natom = natomIn;
-    maxnatom = natom;
-    N = natom * 3;
-    X = (double*) realloc(X, N * sizeof(double));
-    if (X==NULL) return 1;
-  } else {
-    natom = natomIn;
-    N = natom * 3;
+    maxnatom = natomIn;
+    double *newX = new double[ newN ];
+    if (X!=NULL) {
+      memcpy(newX, X, N * sizeof(double));
+      delete[] X;
+    }
+    X = newX;
   }
   // (Re)Allocate velocities if requested
   if (allocV) {
-    V=(double*) realloc(V, N * sizeof(double));
-    if (V==NULL) return 1;
+    double *newV = new double[ newN ];
+    if (V!=NULL) {
+      memcpy(newV, V, N * sizeof(double));
+      delete[] V;
+    }
+    V = newV;
   }
   // (Re)Allocate mass if requested
   if (allocMass) {
-    Mass=(double*) realloc(Mass, natom * sizeof(double));
-    if (Mass==NULL) return 1;
+    double *newMass = new double[ natomIn ];
+    if (Mass!=NULL) {
+      memcpy(newMass, Mass, natom * sizeof(double));
+      delete[] Mass;
+    }
+    Mass = newMass;
   }
-
+  N = newN;
+  natom = natomIn;
   return 0;
 }
 
@@ -143,8 +223,7 @@ int Frame::Resize(int natomIn, bool allocV, bool allocMass) {
  * Set all coords to 0.0
  */
 void Frame::ZeroCoords() {
-  for (int coord=0; coord < N; coord++)
-    X[coord]=0.0;
+  memset(X, 0, N * sizeof(double));
 }
 
 /* Frame::AddCoord()
@@ -344,69 +423,59 @@ double *Frame::Coord(int atom) {
  * FrameIn, although this is not explicitly checked for.
  */
 void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
-  int i,oldatom3,newatom3;
   bool Reallocate = false;
+  int oldatom3;
+  double *newX;
 
-  // Check if number of atoms in mask is greater than what is allocd for frame.
-  // Realloc X if necessary, set natom and N.
-  //this->Resize(Mask->Nselected, allocV, allocMass);
-  if (Mask->Nselected > maxnatom) {
-    natom = Mask->Nselected;
-    maxnatom = natom;
-    N = natom * 3;
+  // If # atoms in mask > current natom, reallocate coords array
+  natom = Mask->Nselected;
+  N = natom * 3;
+  if (natom>maxnatom) {
     Reallocate = true;
-    X = (double*) realloc(X, N * sizeof(double));
-  // Otherwise just set the new natom and N.
-  } else {
-    natom = Mask->Nselected;
-    N = natom * 3;
+    maxnatom = natom;
+    if (X!=NULL) delete[] X;
+    X = new double[ N ];
+  }
+  // Copy atoms in Mask to coords array
+  newX = X;
+  for (int maskidx = 0; maskidx < natom; maskidx++) {
+    oldatom3 = Mask->Selected[maskidx] * 3;
+    memcpy(newX, FrameIn->X + oldatom3, COORDSIZE);
+    newX += 3;
   }
 
-  // Copy coords
-  newatom3 = 0;
-  for (i=0; i < Mask->Nselected; i++) {
-    oldatom3 = Mask->Selected[i] * 3;
-    this->X[newatom3  ] = FrameIn->X[oldatom3  ];
-    this->X[newatom3+1] = FrameIn->X[oldatom3+1];
-    this->X[newatom3+2] = FrameIn->X[oldatom3+2];
-    newatom3 += 3;
-  }
-
-  // Copy box/T 
-  for (i=0; i<6; i++)
-    this->box[i] = FrameIn->box[i];
-  this->T = FrameIn->T;
-
-  // Copy velocities if present
+  // (Re)Allocate velocities if requested
   if (FrameIn->V!=NULL) {
-    // If no space for V in this frame, allocate based on max atoms
-    if (this->V==NULL)
-      this->V = (double*) malloc(maxnatom * 3 * sizeof(double));
-    else if (Reallocate)
-      this->V = (double*) realloc(this->V, N * sizeof(double));
-    newatom3 = 0;
-    for (i=0; i < Mask->Nselected; i++) {
-      oldatom3 = Mask->Selected[i] * 3;
-      // DEBUG
-      //mprintf("\tAssigning velocities for new atom %i from old atom %i\n",newatom3/3,oldatom3/3);
-      // DEBUG
-      this->V[newatom3  ] = FrameIn->V[oldatom3  ];
-      this->V[newatom3+1] = FrameIn->V[oldatom3+1];
-      this->V[newatom3+2] = FrameIn->V[oldatom3+2];
-      newatom3 += 3;
+    if (V==NULL)
+      V = new double[ N ];
+    else if (Reallocate) {
+      delete[] V;
+      V = new double[N];
+    }
+    // Copy velocities in Mask to velocity array
+    newX = V;
+    for (int maskidx = 0; maskidx < natom; maskidx++) {
+      oldatom3 = Mask->Selected[maskidx] * 3;
+      memcpy(newX, FrameIn->V + oldatom3, COORDSIZE);
     }
   }
 
-  // Copy Mass info if present
+  // (Re)Allocate mass if requested
   if (FrameIn->Mass!=NULL) {
-    // If no space for mass in this frame, allocate based on max atoms
-    if (this->Mass==NULL)
-      this->Mass=(double*) malloc(maxnatom * sizeof(double));
-    else if (Reallocate)
-      this->Mass=(double*) realloc(this->Mass, natom * sizeof(double));
-    for (i=0; i < Mask->Nselected; i++) 
-      this->Mass[i] = FrameIn->Mass[Mask->Selected[i]];
+    if (Mass==NULL)
+      Mass = new double[ natom ];
+    else if (Reallocate) {
+      delete[] Mass;
+      Mass = new double[ natom ];
+    }
+    // Copy masses in Mask to mass array
+    for (int maskidx = 0; maskidx < natom; maskidx++)
+      Mass[maskidx] = FrameIn->Mass[ Mask->Selected[maskidx] ];
   }
+
+  // Copy box/T
+  memcpy(box, FrameIn->box, BOXSIZE);
+  T = FrameIn->T;
 }
 
 /* Frame::SetFrameCoordsFromMask()
@@ -415,7 +484,8 @@ void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
  * #selected atoms in Mask.
  */
 int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
-  int i,oldatom3,newatom3;
+  int oldatom3;
+  double *newX;
 
   if (Mask->Nselected != natom) {
     mprintf("Internal Error: Frame::SetFrameCoordsFromMask: Frame set for %i atoms\n",natom);
@@ -423,13 +493,11 @@ int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
     return 1;
   }
 
-  newatom3 = 0;
-  for (i=0; i < Mask->Nselected; i++) {
+  newX = X;
+  for (int i=0; i < natom; i++) {
     oldatom3 = Mask->Selected[i] * 3;
-    this->X[newatom3  ] = Xin[oldatom3  ];
-    this->X[newatom3+1] = Xin[oldatom3+1];
-    this->X[newatom3+2] = Xin[oldatom3+2];
-    newatom3 += 3;
+    memcpy(newX, Xin + oldatom3, COORDSIZE);
+    newX += 3;
   }
   return 0;
 }

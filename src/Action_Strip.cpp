@@ -10,14 +10,12 @@ Strip::Strip() {
   // oldParm does not need dealloc because it is passed in
   oldParm=NULL;
   newParm=NULL;
-  newFrame=NULL;
   prefix=NULL;
 } 
 
 Strip::~Strip() {
   //fprintf(stderr,"Strip Des\n");
   if (newParm!=NULL) delete newParm;
-  if (newFrame!=NULL) delete newFrame;
 }
 
 /*
@@ -75,8 +73,7 @@ int Strip::setup() {
   newParm->Summary();
 
   // Allocate space for new frame
-  if (newFrame!=NULL) delete newFrame;
-  newFrame = new Frame(newParm->natom, newParm->mass);
+  newFrame.SetupFrame(newParm->natom, newParm->mass);
 
   // If prefix given then output stripped parm
   if (prefix!=NULL && newParm->parmName==NULL) {
@@ -105,12 +102,11 @@ int Strip::setup() {
  * Modify the coordinate frame to reflect stripped parmtop.
  */
 int Strip::action() {
-  //int i;//,j,natom3;
 
-  newFrame->SetFrameFromMask(F, &M1);
+  newFrame.SetFrameFromMask(F, &M1);
 
   // Set frame
-  F = newFrame;
+  F = &newFrame;
 
   return 0;
 } 

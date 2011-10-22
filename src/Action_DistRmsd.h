@@ -8,9 +8,9 @@ class DistRmsd: public Action {
     DataSet *drmsd;
     AtomMask RefMask, TgtMask;          // Target and reference masks.
     bool first;                         // Action options
-    Frame *RefFrame;                    // Hold reference frame coords
-    Frame *SelectedRef;                 // Hold only ref coods selected by RefMask 
-    Frame *SelectedTgt;                 // Hold only target coords selected by TgtMask
+    Frame RefFrame;                    // Hold reference frame coords
+    Frame SelectedRef;                 // Hold only ref coods selected by RefMask 
+    Frame SelectedTgt;                 // Hold only target coords selected by TgtMask
     TrajectoryFile *RefTraj;            // Reference trajectory, each frame used in turn
     AmberParm *RefParm;                 // Reference frame Parm
 

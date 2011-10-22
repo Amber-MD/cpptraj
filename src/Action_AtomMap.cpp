@@ -336,7 +336,7 @@ void atommap::WriteMol2(char *m2filename) {
   AtomMask M1;
   // Temporary parm to play with
   AmberParm *tmpParm;
-  Frame *tmpFrame;
+  Frame tmpFrame;
   ArgList tmpArg;
 
   // Create mask containing all atoms
@@ -353,8 +353,8 @@ void atommap::WriteMol2(char *m2filename) {
   for (int atom=0; atom<natom; atom++) {if (M[atom].isMapped) M1.AddAtom(atom);}
   // Strip so only mapped atoms remain
   tmpParm = P->modifyStateByMask(M1.Selected,M1.Nselected);
-  tmpFrame = new Frame(M1.Nselected,NULL);
-  tmpFrame->SetFrameFromMask(F, &M1);
+  tmpFrame.SetupFrame(M1.Nselected,NULL);
+  tmpFrame.SetFrameFromMask(F, &M1);
 
   // Trajectory Setup
   tmpArg.Add((char*)"title\0");
@@ -362,11 +362,10 @@ void atommap::WriteMol2(char *m2filename) {
   tmpArg.ResetAll();
   outfile.SetDebug(debug);
   outfile.SetupWrite(m2filename,&tmpArg,tmpParm,MOL2FILE);
-  outfile.WriteFrame(0,tmpParm,tmpFrame->X,NULL,tmpFrame->box,tmpFrame->T);
+  outfile.WriteFrame(0,tmpParm,tmpFrame.X,NULL,tmpFrame.box,tmpFrame.T);
   outfile.EndTraj();
 
   delete tmpParm;
-  delete tmpFrame;
 }
 // ============================================================================
 
@@ -1089,7 +1088,8 @@ int AtomMap::init() {
               FL->FrameName(refIndex));
       stripParm = RefMap.P->modifyStateByMask(M1->Selected, numMappedAtoms);
       // Strip reference frame
-      newFrame = new Frame(numMappedAtoms,RefMap.P->mass);
+      newFrame = new Frame();
+      newFrame->SetupFrame(numMappedAtoms,RefMap.P->mass);
       newFrame->SetFrameFromMask(RefMap.F, M1);
       delete M1;
       // Replace reference with stripped versions
@@ -1115,7 +1115,8 @@ int AtomMap::init() {
 
   if (!maponly) {
     // Set up new Frame
-    newFrame = new Frame(TargetMap.natom,TargetMap.P->mass);
+    newFrame = new Frame();
+    newFrame->SetupFrame(TargetMap.natom,TargetMap.P->mass);
 
     // Set up new Parm
     newParm = TargetMap.P->modifyStateByMap(AMap);
