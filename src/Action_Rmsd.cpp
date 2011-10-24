@@ -439,9 +439,7 @@ int Rmsd::action() {
     R = SelectedFrame.RMSD(&SelectedRef, useMass);
   } else {
     R = SelectedFrame.RMSD(&SelectedRef, U, Trans, useMass);
-    F->Translate(Trans);
-    F->Rotate(U);
-    F->Translate(Trans+3);
+    F->Trans_Rot_Trans(Trans,U);
   }
 
   rmsd->Add(currentFrame, &R);

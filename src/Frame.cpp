@@ -279,6 +279,45 @@ void Frame::Translate(double *Vec, int Atom) {
   X[atom3+2] += Vec[2];
 }
 
+/* Frame::Trans_Rot_Trans()
+ * Given an array Vec of size 6 containing two translations:
+ *   T0x T0y T0z T1x T1y T1z
+ * and a rotation matrix T, apply the first translation, then
+ * the rotation, then the second translation.
+ */
+void Frame::Trans_Rot_Trans(double *Vec, double *T) {
+  double Vec0, Vec1, Vec2, Vec3, Vec4, Vec5;
+  double x, y, z;
+  double T0,T1,T2,T3,T4,T5,T6,T7,T8;
+
+  Vec0=Vec[0];
+  Vec1=Vec[1];
+  Vec2=Vec[2];
+  Vec3=Vec[3];
+  Vec4=Vec[4];
+  Vec5=Vec[5];
+
+  T0=T[0]; 
+  T1=T[1]; 
+  T2=T[2]; 
+  T3=T[3]; 
+  T4=T[4]; 
+  T5=T[5]; 
+  T6=T[6]; 
+  T7=T[7]; 
+  T8=T[8]; 
+
+  for (int i=0; i<N; i+=3) {
+    x = X[i  ] + Vec0;
+    y = X[i+1] + Vec1;
+    z = X[i+2] + Vec2;
+
+    X[i  ]=(x*T0) + (y*T1) + (z*T2) + Vec3;
+    X[i+1]=(x*T3) + (y*T4) + (z*T5) + Vec4;
+    X[i+2]=(x*T6) + (y*T7) + (z*T8) + Vec5;
+  }
+}
+
 /* Frame::Rotate()
  * Multiply natomx3 matrix X by 3x3 matrix T. If T is a rotation matrix
  * this rotates the coords in X. 

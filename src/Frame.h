@@ -40,6 +40,7 @@ class Frame {
     void Divide(double);
     void Translate(double *);
     void Translate(double *, int);
+    void Trans_Rot_Trans(double *, double *);
     void Rotate(double *);
     void InverseRotate(double *);
     void Center(AtomMask *, double *,bool);

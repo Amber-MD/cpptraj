@@ -426,10 +426,8 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
      * X, Y, and Z unit vectors of the base reference coordinates.
      */
 
-     // Use the translation/rotation to fit principal axes in BaseAxes to experimental coords.
-    BaseAxes[base]->Translate( TransVec );
-    BaseAxes[base]->Rotate( RotMatrix );
-    BaseAxes[base]->Translate( TransVec + 3);
+    // Use the translation/rotation to fit principal axes in BaseAxes to experimental coords.
+    BaseAxes[base]->Trans_Rot_Trans(TransVec, RotMatrix);
     // This BaseAxis now contains the absolute coordinates of the base reference axes.
     
     // DEBUG
