@@ -556,7 +556,10 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   }
 
   parmfile.CloseFile();
-  if (err>0) return 1;
+  if (err>0) {
+    mprinterr("Error reading parm file [%s]\n",filename);
+    return 1;
+  }
 
   // Create a last dummy residue in resnums that holds natom, which would be
   // the atom number of the next residue if it existed. Atom #s in resnums
@@ -618,7 +621,7 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
  * Read parameters from Amber Topology file
  */
 int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
-  int err, atom;
+  int atom;
   int *solvent_pointer;
   double *boxFromParm;
   int *values;
@@ -628,6 +631,9 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   // Title
   // NOTE: getFlagFileString uses 'new' operator.
   title = getFlagFileString(parmfile, "TITLE",debug);
+  // If title is NULL, check for CTITLE (chamber parm)
+  if (title==NULL)
+    title = getFlagFileString(parmfile,"CTITLE",debug);
   if (debug>0) mprintf("\tAmberParm Title: %s\n",title);
   delete[] title;
   // Pointers
@@ -649,48 +655,47 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   ntypes = values[NTYPES];
   nnb = values[NNB];
   // Atom names/types, residue names/nums
-  err=0;
   names=(NAME*) getFlagFileValues(parmfile,"ATOM_NAME",natom,debug);
-  if (names==NULL) {mprintf("Error in atom names.\n"); err++;}
+  if (names==NULL) {mprintf("Error in atom names.\n"); return 1;}
   types=(NAME*) getFlagFileValues(parmfile,"AMBER_ATOM_TYPE",natom,debug);
-  if (types==NULL) {mprintf("Error in atom types.\n"); err++;}
+  if (types==NULL) {mprintf("Error in atom types.\n"); return 1;}
   resnames=(NAME*) getFlagFileValues(parmfile,"RESIDUE_LABEL",nres,debug);
-  if (resnames==NULL) {mprintf("Error in residue names.\n"); err++;}
+  if (resnames==NULL) {mprintf("Error in residue names.\n"); return 1;}
   resnums=(int*) getFlagFileValues(parmfile,"RESIDUE_POINTER",nres,debug);
-  if (resnums==NULL) {mprintf("Error in residue numbers.\n"); err++;}
+  if (resnums==NULL) {mprintf("Error in residue numbers.\n"); return 1;}
   // Atom #s in resnums are currently shifted +1. Shift back to be consistent
   // with the rest of cpptraj.
   for (atom=0; atom < nres; atom++)
     resnums[atom] -= 1;
   // Mass/charge
   mass=(double*) getFlagFileValues(parmfile,"MASS",natom,debug);
-  if (mass==NULL) {mprintf("Error in masses.\n"); err++;}
+  if (mass==NULL) {mprintf("Error in masses.\n"); return 1;}
   charge=(double*) getFlagFileValues(parmfile,"CHARGE",natom,debug);
-  if (charge==NULL) {mprintf("Error in charges.\n"); err++;}
+  if (charge==NULL) {mprintf("Error in charges.\n"); return 1;}
   // Convert charges to units of electron charge
   for (atom=0; atom < natom; atom++)
     charge[atom] *= (AMBERTOELEC);
   // Bond information
   bonds=(int*) getFlagFileValues(parmfile,"BONDS_WITHOUT_HYDROGEN",NbondsWithoutH*3,debug);
-  if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); err++;}
+  if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); return 1;}
   bondsh=(int*) getFlagFileValues(parmfile,"BONDS_INC_HYDROGEN",NbondsWithH*3,debug);
-  if (bondsh==NULL) {mprintf("Error in bonds inc H.\n"); err++;}
+  if (bondsh==NULL) {mprintf("Error in bonds inc H.\n"); return 1;}
   // Atom type index
   atype_index = (int*) getFlagFileValues(parmfile,"ATOM_TYPE_INDEX",natom,debug);
-  if (atype_index==NULL) {mprintf("Error in atom type index.\n"); err++;}
+  if (atype_index==NULL) {mprintf("Error in atom type index.\n"); return 1;}
   // Number of excluded atoms
   numex = (int*) getFlagFileValues(parmfile,"NUMBER_EXCLUDED_ATOMS",natom,debug);
-  if (numex==NULL) {mprintf("Error in number of excluded atoms.\n"); err++;}
+  if (numex==NULL) {mprintf("Error in number of excluded atoms.\n"); return 1;}
   // Nonbonded parm index
   NB_index = (int*) getFlagFileValues(parmfile,"NONBONDED_PARM_INDEX",ntypes*ntypes,debug);
-  if (NB_index==NULL) {mprintf("Error in nonbonded parameter index.\n"); err++;}
+  if (NB_index==NULL) {mprintf("Error in nonbonded parameter index.\n"); return 1;}
   // Lennard-Jones A/B coefficient
   LJ_A = (double*) getFlagFileValues(parmfile,"LENNARD_JONES_ACOEF",ntypes*(ntypes+1)/2,debug);
   LJ_B = (double*) getFlagFileValues(parmfile,"LENNARD_JONES_BCOEF",ntypes*(ntypes+1)/2,debug);
-  if (LJ_A==NULL || LJ_B==NULL) {mprintf("Error reading LJ parameters.\n"); err++;}
+  if (LJ_A==NULL || LJ_B==NULL) {mprintf("Error reading LJ parameters.\n"); return 1;}
   // List of excluded atoms
   excludedAtoms = (int*) getFlagFileValues(parmfile,"EXCLUDED_ATOMS_LIST",nnb,debug);
-  if (excludedAtoms==NULL) {mprintf("Error reading list of excluded atoms.\n"); err++;}
+  if (excludedAtoms==NULL) {mprintf("Error reading list of excluded atoms.\n"); return 1;}
   // Atom #s in excludedAtoms are currently shifted +1. Shift back to be consistent
   // with the rest of cpptraj.
   for (atom=0; atom < nnb; atom++)
@@ -701,13 +706,13 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   delete[] title;
   gb_radii = (double*) getFlagFileValues(parmfile,"RADII",natom,debug);
   gb_screen = (double*) getFlagFileValues(parmfile,"SCREEN",natom,debug);
-  if (gb_radii==NULL || gb_screen==NULL) {mprintf("Error reading gb parameters.\n"); err++;}
+  if (gb_radii==NULL || gb_screen==NULL) {mprintf("Error reading gb parameters.\n"); return 1;}
   // Get solvent info if IFBOX>0
   if (values[IFBOX]>0) {
     solvent_pointer=(int*) getFlagFileValues(parmfile,"SOLVENT_POINTERS",3,debug);
     if (solvent_pointer==NULL) {
       mprintf("Error in solvent pointers.\n"); 
-      err++;
+      return 1;
     } else {
       finalSoluteRes=solvent_pointer[0];
       molecules=solvent_pointer[1];
@@ -715,10 +720,10 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
       free(solvent_pointer);
     }
     atomsPerMol=(int*) getFlagFileValues(parmfile,"ATOMS_PER_MOLECULE",molecules,debug);
-    if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); err++;}
+    if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); return 1;}
     // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
     boxFromParm=(double*) getFlagFileValues(parmfile,"BOX_DIMENSIONS",4,debug);
-    if (boxFromParm==NULL) {mprintf("Error in Box information.\n"); err++;}
+    if (boxFromParm==NULL) {mprintf("Error in Box information.\n"); return 1;}
     // Determine box type. Set Box angles and lengths from beta (boxFromParm[0])
     boxType = SetBoxInfo(boxFromParm,Box,debug);
     free(boxFromParm);
@@ -734,11 +739,6 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   }
 
   free(values);
-
-  if ( err>0 ) {
-    mprinterr("Error: %i errors when reading amber topology file %s\n",err,parmfileName);
-    return 1;
-  }
 
   return 0;
 }
@@ -1632,22 +1632,23 @@ int AmberParm::WriteAmberParm(char *filename) {
   //outfile.IO->Printf("%-80s\n",parmName);
 
   // Calculate necessary buffer size
+  // FFSIZE is defined in FortranFormat.h, Combined size of %FLAG and %FORMAT lines (81 * 2)
   BufferSize=0;
-  BufferSize += (GetFortranBufferSize(F10I8,AMBERPOINTERS,0)+FFSIZE); // POINTERS
-  BufferSize += (GetFortranBufferSize(F20a4,natom,0)+FFSIZE); // ATOM_NAME 
-  if (charge!=NULL) BufferSize += (GetFortranBufferSize(F5E16_8,natom,0)+FFSIZE); // CHARGE
-  if (mass!=NULL) BufferSize += (GetFortranBufferSize(F5E16_8,natom,0)+FFSIZE); // MASS
-  BufferSize += (GetFortranBufferSize(F20a4,nres,0)+FFSIZE); // RESIDUE_LABEL
-  BufferSize += (GetFortranBufferSize(F10I8,nres,0)+FFSIZE); // RESIDUE_POINTER
-  if (types!=NULL) BufferSize += (GetFortranBufferSize(F20a4,natom,0)+FFSIZE); // ATOM_TYPE
-  if (bondsh!=NULL) BufferSize += (GetFortranBufferSize(F10I8,NbondsWithH*3,0)+FFSIZE); // BONDSH
-  if (bonds!=NULL) BufferSize += (GetFortranBufferSize(F10I8,NbondsWithoutH*3,0)+FFSIZE); // BONDS
+  BufferSize += (GetFortranBufferSize(AMBERPOINTERS,0,8,10)+FFSIZE); // POINTERS
+  BufferSize += (GetFortranBufferSize(natom,0,4,20)+FFSIZE); // ATOM_NAME 
+  if (charge!=NULL) BufferSize += (GetFortranBufferSize(natom,0,16,5)+FFSIZE); // CHARGE
+  if (mass!=NULL) BufferSize += (GetFortranBufferSize(natom,0,16,5)+FFSIZE); // MASS
+  BufferSize += (GetFortranBufferSize(nres,0,4,20)+FFSIZE); // RESIDUE_LABEL
+  BufferSize += (GetFortranBufferSize(nres,0,8,10)+FFSIZE); // RESIDUE_POINTER
+  if (types!=NULL) BufferSize += (GetFortranBufferSize(natom,0,4,20)+FFSIZE); // ATOM_TYPE
+  if (bondsh!=NULL) BufferSize += (GetFortranBufferSize(NbondsWithH*3,0,8,10)+FFSIZE); // BONDSH
+  if (bonds!=NULL) BufferSize += (GetFortranBufferSize(NbondsWithoutH*3,0,8,10)+FFSIZE); // BONDS
   if (AmberIfbox(Box[4])>0) {
     if (firstSolvMol!=-1)
-      BufferSize += (GetFortranBufferSize(F3I8,3,0)+FFSIZE); // SOLVENT_POINTER
+      BufferSize += (GetFortranBufferSize(3,0,8,3)+FFSIZE); // SOLVENT_POINTER
     if (atomsPerMol!=NULL)
-      BufferSize += (GetFortranBufferSize(F10I8,molecules,0)+FFSIZE); // ATOMSPERMOL
-    BufferSize += (GetFortranBufferSize(F5E16_8,4,0)+FFSIZE); // BOX
+      BufferSize += (GetFortranBufferSize(molecules,0,8,10)+FFSIZE); // ATOMSPERMOL
+    BufferSize += (GetFortranBufferSize(4,0,16,5)+FFSIZE); // BOX
   }
   // 1 extra char for NULL
   filebuffer = (char*) malloc( (BufferSize+1) * sizeof(char));
@@ -1666,76 +1667,72 @@ int AmberParm::WriteAmberParm(char *filename) {
   values[NBONH]=NbondsWithH;
   values[MBONA]=NbondsWithoutH;
   values[IFBOX]=AmberIfbox(Box[4]);
-  buffer = DataToFortranBuffer(buffer,"%FLAG POINTERS", F10I8, values, NULL, NULL, AMBERPOINTERS);
-
+  buffer = DataToFortranBuffer(buffer,"%FLAG POINTERS", "%FORMAT(10I8)\0", 
+                               values, NULL, NULL, AMBERPOINTERS);
   // ATOM NAMES
-  buffer = DataToFortranBuffer(buffer,"%FLAG ATOM_NAME", F20a4, NULL, NULL, names, natom);
-
+  buffer = DataToFortranBuffer(buffer,"%FLAG ATOM_NAME", "%FORMAT(20a4)\0", 
+                               NULL, NULL, names, natom);
   // CHARGE - might be null if read from pdb
   if (charge!=NULL) {
     // Convert charges to AMBER charge units
     for (atom=0; atom<natom; atom++)
       charge[atom] *= (ELECTOAMBER);
-    buffer = DataToFortranBuffer(buffer,"%FLAG CHARGE",F5E16_8, NULL, charge, NULL, natom);
+    buffer = DataToFortranBuffer(buffer,"%FLAG CHARGE","%FORMAT(5E16.8)\0", 
+                                 NULL, charge, NULL, natom);
   }
-
   // MASS - might be null if read from pdb
   if (mass!=NULL) { 
-    buffer = DataToFortranBuffer(buffer,"%FLAG MASS",F5E16_8, NULL, mass, NULL, natom);
+    buffer = DataToFortranBuffer(buffer,"%FLAG MASS","%FORMAT(5E16.8)\0", 
+                                 NULL, mass, NULL, natom);
   }
-
   // RESIDUE LABEL - resnames
-  buffer = DataToFortranBuffer(buffer,"%FLAG RESIDUE_LABEL",F20a4, NULL, NULL, resnames, nres);
-
+  buffer = DataToFortranBuffer(buffer,"%FLAG RESIDUE_LABEL","%FORMAT(20a4)\0", 
+                               NULL, NULL, resnames, nres);
   // RESIDUE POINTER - resnums, IPRES
   // Shift atom #s in resnums by 1 to be consistent with AMBER
   for (atom=0; atom < nres; atom++)
     resnums[atom] += 1;
-  buffer = DataToFortranBuffer(buffer,"%FLAG RESIDUE_POINTER",F10I8, resnums, NULL, NULL, nres);
+  buffer = DataToFortranBuffer(buffer,"%FLAG RESIDUE_POINTER","%FORMAT(10I8)\0", 
+                               resnums, NULL, NULL, nres);
   // Now shift them back
   for (atom=0; atom < nres; atom++)
     resnums[atom] -= 1;
-
   // AMBER ATOM TYPE - might be null if read from pdb
   if (types!=NULL) {
-    buffer = DataToFortranBuffer(buffer,"%FLAG AMBER_ATOM_TYPE",F20a4, NULL, NULL, types, natom);
+    buffer = DataToFortranBuffer(buffer,"%FLAG AMBER_ATOM_TYPE","%FORMAT(20a4)\0", 
+                                 NULL, NULL, types, natom);
   }
-
   // BONDS INCLUDING HYDROGEN - might be null if read from pdb
   if (bondsh != NULL) {
-    buffer = DataToFortranBuffer(buffer,"%FLAG BONDS_INC_HYDROGEN",F10I8, bondsh, 
-                                 NULL, NULL, NbondsWithH*3);
+    buffer = DataToFortranBuffer(buffer,"%FLAG BONDS_INC_HYDROGEN","%FORMAT(10I8)\0", 
+                                 bondsh, NULL, NULL, NbondsWithH*3);
   }
-
   // BONDS WITHOUT HYDROGEN - might be null if read from pdb
   if (bonds!=NULL) {
-    buffer = DataToFortranBuffer(buffer,"%FLAG BONDS_WITHOUT_HYDROGEN",F10I8, bonds, 
-                          NULL, NULL, NbondsWithoutH*3);
+    buffer = DataToFortranBuffer(buffer,"%FLAG BONDS_WITHOUT_HYDROGEN","%FORMAT(10I8)\0", 
+                                 bonds, NULL, NULL, NbondsWithoutH*3);
   }
-
   // SOLVENT POINTERS
   if (values[IFBOX]>0) {
     if (firstSolvMol!=-1) {
       solvent_pointer[0]=finalSoluteRes;
       solvent_pointer[1]=molecules;
       solvent_pointer[2]=firstSolvMol;
-      buffer = DataToFortranBuffer(buffer,"%FLAG SOLVENT_POINTERS",F3I8, solvent_pointer, 
-                                   NULL, NULL, 3);
+      buffer = DataToFortranBuffer(buffer,"%FLAG SOLVENT_POINTERS","%FORMAT(3I8)\0", 
+                                   solvent_pointer, NULL, NULL, 3);
     }
-
     // ATOMS PER MOLECULE
     if (atomsPerMol!=NULL) {
-      buffer = DataToFortranBuffer(buffer,"%FLAG ATOMS_PER_MOLECULE",F10I8, atomsPerMol, 
-                                   NULL, NULL, molecules);
+      buffer = DataToFortranBuffer(buffer,"%FLAG ATOMS_PER_MOLECULE","%FORMAT(10I8)\0", 
+                                   atomsPerMol, NULL, NULL, molecules);
     }
-
     // BOX DIMENSIONS
     parmBox[0] = Box[4]; // beta
     parmBox[1] = Box[0]; // boxX
     parmBox[2] = Box[1]; // boxY
     parmBox[3] = Box[2]; // boxZ
-    buffer = DataToFortranBuffer(buffer,"%FLAG BOX_DIMENSIONS",F5E16_8, NULL, 
-                                 parmBox, NULL, 4);
+    buffer = DataToFortranBuffer(buffer,"%FLAG BOX_DIMENSIONS","%FORMAT(5E16.8)\0", 
+                                 NULL, parmBox, NULL, 4);
   }
 
   // Write buffer to file

@@ -3,35 +3,24 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <cctype> // toupper
+
 // Enumerated type for Fortran data type
 enum FortranType {
-  UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR
-};
-// Static arrays containing data for each Fortran Format
-const FortranType FortranFType[NUMFORTRANFORMAT]  = {
-  UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FINT, FINT
-};
-const int FortranFWidth[NUMFORTRANFORMAT] = {0,  8, 16,  4,  6, 8};
-const int FortranFCols[NUMFORTRANFORMAT]  = {0, 10,  5, 20, 12, 3};
-const char FortranFString[NUMFORTRANFORMAT][8] = {
-  "\0", "%8i", "%16.8lE", "%4s", "%6i", "%8i"
-};
-const char FortranFOutString[NUMFORTRANFORMAT][16] = {
-  "\0", "%FORMAT(10I8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",
-  "%FORMAT(12I6)", "%FORMAT(3I8)"
+  UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
 };
 
 /* GetFortranBufferSize()
- * Given a fortran format, return the necessary char buffer size for
- * N data elements of that format.
+ * Given number of columns and the width of each column, return the 
+ * necessary char buffer size for N data elements.
  */
-int GetFortranBufferSize(FortranFormat fFormat, int N, int isDos) {
+int GetFortranBufferSize(int N, int isDos, int width, int ncols) {
   int bufferLines=0;
   int BufferSize=0;
 
-  BufferSize= N * FortranFWidth[fFormat];
-  bufferLines = N / FortranFCols[fFormat];
-  if ((N % FortranFCols[fFormat])!=0) bufferLines++;
+  BufferSize= N * width;
+  bufferLines = N / ncols;
+  if ((N % ncols)!=0) bufferLines++;
   // If DOS file there are CR before Newlines
   if (isDos) bufferLines*=2;
   BufferSize+=bufferLines;
@@ -40,25 +29,68 @@ int GetFortranBufferSize(FortranFormat fFormat, int N, int isDos) {
   return BufferSize;
 }
 
-/* GetFortranFormat()
+/* GetFortranType()
  * Given a fortran-type format string, return the corresponding fortran
- * type. 
+ * type. Set ncols (if present), width, and precision (if present).
+ * 01234567
+ * %FORMAT([<cols>][(]<type><width>[<precision>][)])
  */
-static FortranFormat GetFortranFormat(char *Format) {
-  if        ( strncmp(Format,"%FORMAT(10I8)"  ,13)==0 ) {
-    return F10I8;
-  } else if ( strncmp(Format,"%FORMAT(5E16.8)",15)==0 ) {
-    return F5E16_8;
-  } else if ( strncmp(Format,"%FORMAT(20a4)"  ,13)==0 ) {
-    return F20a4;
-  } else if ( strncmp(Format,"%FORMAT(12I6)",  13)==0 ) {
-    return F12I6;
-  } else if ( strncmp(Format,"%FORMAT(3I8)"   ,12)==0 ) {
-    return F3I8;
-  } else {
-    mprinterr("Error: Unrecognized fortran format [%s]\n",Format);
-    return UNKNOWN_FFORMAT;
+static FortranType GetFortranType(char *FormatIn, int *ncols, int *width, int *precision) {
+  int idx;
+  char temp[32];
+  char Format[32];
+  char *ptr;
+  FortranType ftype;
+  // Make sure characters are upper-case
+  // NOTE: Maybe do some checking for parentheses etc here
+  //       Not expecting format strings to be > 32
+  ptr = FormatIn;
+  idx = 0;
+  while (*ptr!='\0') {
+    Format[idx++] = toupper( *ptr );
+    if (idx==32) break;
+    ptr++;
   }
+  // Advance past left parentheses
+  ptr = Format + 7;
+  while (*ptr=='(') ptr++;
+  // If digit, have number of data columns
+  *ncols = 0;
+  if (isdigit(*ptr)) {
+    idx = 0;
+    while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
+    temp[idx]='\0';
+    *ncols = atoi(temp);
+  }
+  // Advance past any more left parentheses
+  while (*ptr=='(') ptr++;
+  // Type
+  switch (*ptr) {
+    case 'I' : ftype = FINT;    break;
+    case 'E' : ftype = FDOUBLE; break;
+    case 'A' : ftype = FCHAR;   break;
+    case 'F' : ftype = FFLOAT;  break;
+    default  : ftype = UNKNOWN_FTYPE;
+  }
+  ptr++;
+  // Width
+  idx = 0;
+  while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
+  temp[idx]='\0';
+  *width = atoi(temp);
+  // Precision
+  *precision = 0;
+  if (*ptr == '.') {
+    ptr++;
+    idx = 0;
+    while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
+    temp[idx]='\0';
+    *precision = atoi(temp);
+  }
+  //mprintf("[%s]: cols=%i type=%c width=%i precision=%i\n",Format,
+  //        *ncols,(int)ftype,*width,*precision);
+
+  return ftype;
 }
 
 /* getFlagFileString()
@@ -95,7 +127,8 @@ char *getFlagFileString(CpptrajFile *File, const char *Key, int debug) {
 
   // If here, Key not found, could be bad news, but let the calling function
   // print the error message.
-  mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key);
+  if (debug>0)
+    mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key);
   delete[] lineBuffer;
   return NULL;
 }
@@ -107,7 +140,7 @@ char *getFlagFileString(CpptrajFile *File, const char *Key, int debug) {
  * allocate memory for the return array - only maxval values will be read.
  */
 void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debug){
-  int i; 
+  int i, ncols, width, precision; 
   char lineBuffer[BUFFER_SIZE]; // Hold flag/format line from parmfile
   char value[83];      // Hold Key from Flag line
   char temp[17];       // Hold data element
@@ -115,11 +148,8 @@ void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debu
   NAME *C;
   int *I;
   double *D;
-
-  FortranFormat fFormat;
   FortranType fType;
   int BufferSize;
-  int width;
 
   if (debug>0) {
     mprintf("Reading %s\n",Key);
@@ -144,20 +174,22 @@ void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debu
           File->IO->Gets(lineBuffer,BUFFER_SIZE);
         if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
         // Set format
-        fFormat = GetFortranFormat(lineBuffer);
-        if (debug>1) mprintf("DEBUG: Format type %i\n",fFormat);
-        if (fFormat == UNKNOWN_FFORMAT) return NULL;
-        fType = FortranFType[fFormat];
-        width = FortranFWidth[fFormat];
+        fType = GetFortranType(lineBuffer, &ncols, &width, &precision);
+        if (debug>1) mprintf("DEBUG: Format type %i\n",(int)fType);
+        if (fType == UNKNOWN_FTYPE) {
+          mprinterr("Error: Unrecognized fortran format [%s] for key [%s]\n",lineBuffer,Key);
+          return NULL;
+        } 
         // Allocate memory based on data type
         switch (fType) {
           case UNKNOWN_FTYPE : return NULL;
           case FINT   : I=(int*)    malloc(maxval*sizeof(int)); break;
           case FDOUBLE: D=(double*) malloc(maxval*sizeof(double)); break;
           case FCHAR  : C=(NAME*)   malloc(maxval*sizeof(NAME)); break;
+          case FFLOAT : D=(double*) malloc(maxval*sizeof(double)); break;
         }
         // Allocate memory to read in entire section
-        BufferSize = GetFortranBufferSize(fFormat, maxval, File->isDos);
+        BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
         buffer=(char*) calloc(BufferSize,sizeof(char));
         if ( File->IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
           rprinterr("ERROR in read of prmtop section %s\n",Key);
@@ -203,7 +235,8 @@ void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debu
   } // End While loop
   // If here, Key not found, could be bad news, but let the calling function
   // print the error message.
-  mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key); 
+  if (debug>0)
+    mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key); 
   if (I!=NULL) free(I);
   if (D!=NULL) free(D);
   if (C!=NULL) free(C);
@@ -215,17 +248,21 @@ void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debu
  * Write N data elements stored in I, D, or C to buffer with given 
  * fortran format.
  */
-char *DataToFortranBuffer(char *bufferIn, const char *FLAG, FortranFormat fFormat, 
-                          int *I, double *D, NAME *C, int N) {
-  int coord, width, numCols;
+char *DataToFortranBuffer(char *bufferIn, const char *FLAG,
+                          const char* FortranFormatString, 
+                          int *I, double *D, NAME *C, int N) 
+{
+  int coord, width, numCols, precision;
   char *ptr;
   FortranType fType;
-  const char *FormatString;
+  char FormatString[32];
 
-  width = FortranFWidth[fFormat];
-  numCols=FortranFCols[fFormat];
-  fType = FortranFType[fFormat];
-  FormatString = FortranFString[fFormat];
+  // Determine type, cols, width, and precision from format string
+  fType = GetFortranType((char*)FortranFormatString, &numCols, &width, &precision);
+  if (fType == UNKNOWN_FTYPE) {
+    mprinterr("Error: DataToFortranBuffer: Unknown format string [%s]\n",FortranFormatString);
+    return NULL;
+  }
 
   if (bufferIn==NULL) return NULL;
   ptr = bufferIn;
@@ -237,28 +274,9 @@ char *DataToFortranBuffer(char *bufferIn, const char *FLAG, FortranFormat fForma
   // Print FLAG and FORMAT lines
   sprintf(ptr,"%-80s\n",FLAG);
   ptr += 81;
-  sprintf(ptr,"%-80s\n",FortranFOutString[fFormat]);
+  sprintf(ptr,"%-80s\n",FortranFormatString);
   ptr += 81;
-/*
-  for (coord=0; coord<N; coord++) {
-    if      (I!=NULL) sprintf(ptr,FormatString,I[coord]);
-    else if (D!=NULL) sprintf(ptr,FormatString,D[coord]);
-    else if (C!=NULL) sprintf(ptr,FormatString,C[coord]);
-    ptr+=width;
-    if ( ((coord+1)%numCols)==0 ) {
-      sprintf(ptr,"\n");
-      ptr++;
-    }
-  } 
-  // If the coord record didnt end on a newline, print one
-  if ( (coord%numCols)!=0 ) {
-    sprintf(ptr,"\n");
-    ptr++; // Only needed if more will be written
-  } 
-  
-  //fprintf(stdout,"*** Ptr ended on %p\n",ptr);
-  return ptr;
-*/ 
+
   // Write Integer data
   // NOTE: move the coord+1 code?
   coord=0;
@@ -267,6 +285,7 @@ char *DataToFortranBuffer(char *bufferIn, const char *FLAG, FortranFormat fForma
       mprinterr("Error: DataToFortranBuffer: INT is NULL.\n");
       return NULL;
     }
+    sprintf(FormatString,"%%%ii",width);
     for (coord=0; coord < N; coord++) {
       sprintf(ptr,FormatString,I[coord]);
       ptr+=width;
@@ -282,6 +301,7 @@ char *DataToFortranBuffer(char *bufferIn, const char *FLAG, FortranFormat fForma
       mprinterr("Error: DataToFortranBuffer: DOUBLE is NULL.\n");
       return NULL;
     }
+    sprintf(FormatString,"%%%i.%ilE",width,precision);
     for (coord=0; coord < N; coord++) {
       sprintf(ptr,FormatString,D[coord]);
       ptr+=width;
@@ -297,8 +317,25 @@ char *DataToFortranBuffer(char *bufferIn, const char *FLAG, FortranFormat fForma
       mprinterr("Error: DataToFortranBuffer: CHAR is NULL.\n");
       return NULL;
     }
+    sprintf(FormatString,"%%%is",width);
     for (coord=0; coord < N; coord++) {
       sprintf(ptr,FormatString,C[coord]);
+      ptr+=width;
+      if ( ((coord+1)%numCols)==0 ) {
+        sprintf(ptr,"\n");
+        ptr++;
+      }
+    }
+
+  // Write Float data
+  } else if (fType==FFLOAT) {
+    if (D==NULL) {
+      mprinterr("Error: DataToFortranBuffer: FLOAT is NULL.\n");
+      return NULL;
+    }
+    sprintf(FormatString,"%%%i.%ilf",width,precision);
+    for (coord=0; coord < N; coord++) {
+      sprintf(ptr,FormatString,D[coord]);
       ptr+=width;
       if ( ((coord+1)%numCols)==0 ) {
         sprintf(ptr,"\n");
