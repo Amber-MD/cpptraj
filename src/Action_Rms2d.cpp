@@ -128,7 +128,8 @@ void Rms2d::print() {
   Frame SelectedTgt;
   int lastrefpindex=-1;
   int lasttgtpindex=-1;
-  double R, U[9], Trans[6];
+  double U[9], Trans[6];
+  float R;
   int current=0;
   int max=0;
   int totalref=0;
@@ -173,7 +174,7 @@ void Rms2d::print() {
       RefTraj->GetNextFrame(RefFrame->X,RefFrame->V,RefFrame->box,&(RefFrame->T)); 
     // Set up dataset for this reference frame
     sprintf(setname,"Frame_%i",nref+1);
-    rmsdata = RmsData.Add(DOUBLE, setname, "Rms2d");
+    rmsdata = RmsData.Add(FLOAT, setname, "Rms2d");
     DFL->Add(rmsdFile,rmsdata);
 
     // LOOP OVER TARGET FRAMES
@@ -204,9 +205,9 @@ void Rms2d::print() {
 
       // Perform RMS calculation
       if (nofit) {
-        R = SelectedTgt.RMSD(&SelectedRef, useMass);
+        R = (float) SelectedTgt.RMSD(&SelectedRef, useMass);
       } else {
-        R = SelectedTgt.RMSD(&SelectedRef, U, Trans, useMass);
+        R = (float) SelectedTgt.RMSD(&SelectedRef, U, Trans, useMass);
       }
       RmsData.AddData(nframe, &R, nref);
       // DEBUG
