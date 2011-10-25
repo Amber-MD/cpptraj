@@ -3,7 +3,7 @@ AmberParm.o : AmberParm.cpp AmberParm.h BaseFileIO.h Bonds.h BoxType.h CpptrajFi
 Frame.o : Frame.cpp AmberParm.h AtomMask.h BaseFileIO.h BoxType.h Constants.h CpptrajFile.h CpptrajStdio.h DistRoutines.h FileRoutines.h Frame.h Name.h TorsionRoutines.h vectormath.h
 CpptrajState.o : CpptrajState.cpp Action.h ActionList.h AmberParm.h Analysis.h AnalysisList.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CoordFileList.h CpptrajFile.h CpptrajState.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileRoutines.h Frame.h FrameList.h MpiRoutines.h Name.h ParmFileList.h ProgressBar.h Range.h ReferenceList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h
 ArgList.o : ArgList.cpp ArgList.h CpptrajStdio.h
-ptrajmask.o : ptrajmask.c Name.h ptrajmask.h
+ptrajmask.o : ptrajmask.cpp Name.h ptrajmask.h
 Action_Distance.o : Action_Distance.cpp Action.h Action_Distance.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
 ParmFileList.o : ParmFileList.cpp AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajFile.h CpptrajStdio.h FileRoutines.h Name.h ParmFileList.h
 TrajinList.o : TrajinList.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CoordFileList.h CpptrajFile.h CpptrajStdio.h FileRoutines.h Name.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h TrajinList.h
@@ -84,4 +84,4 @@ ClusterList.o : ClusterList.cpp BaseFileIO.h ClusterList.h CpptrajFile.h Cpptraj
 Traj_CharmmDcd.o : Traj_CharmmDcd.cpp AmberParm.h ArgList.h BaseFileIO.h BoxType.h CpptrajFile.h CpptrajStdio.h FileRoutines.h Name.h Traj_CharmmDcd.h TrajectoryIO.h
 Bonds.o : Bonds.cpp Bonds.h CpptrajStdio.h
 FileRoutines.o : FileRoutines.cpp FileRoutines.h
-Action_Pairwise.o : Action_Pairwise.cpp Action.h Action_Pairwise.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
+Action_Pairwise.o : Action_Pairwise.cpp Action.h Action_Pairwise.h AmberParm.h ArgList.h AtomMask.h BaseFileIO.h BoxType.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h vectormath.h

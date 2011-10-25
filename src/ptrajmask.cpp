@@ -17,6 +17,7 @@
  * 
  *  The code was made into a stand-alone module by Dan Roe in Oct. 2008. 
  *  Dan Roe also parallelized the selectDistd function with OpenMP Jul. 2011.
+ *  Updated for C++ by DRR Oct. 2011.
  *
  *                -------- Detailed Description --------
  * This code takes an "atomic expression" loosely using Chimera/Midas syntax
@@ -73,7 +74,7 @@
  *                  water, lysine or arginine residues
  * :LIG <: 5.0 & !@H= & !:LIG
  *              ... all heavy atoms in the residues within 5.0 A distance 
-                    to :LIG but excluding :LIG
+ *                  to :LIG but excluding :LIG
  *
  * Assumptions:
  * - residue, atom and atom type names:
@@ -98,83 +99,16 @@
  * NOTE: All functions except parseMaskString are declared static and are 
  *       only available to functions inside this file.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
+#include <cmath>
+#include <stack>
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
 #include "ptrajmask.h"
-// -----------------------------------------------------------------------------
-// Stack functions from ptraj: utility.h 
-typedef struct _stackType {
-  void *entry;
-  struct _stackType *next;
-} stackType;
-
-/* pushStack()
- * Add entry to the stack.
- */
-static void pushStack( stackType **stackp, void *entry ) {
-  stackType *sp;
-
-  sp = malloc( (size_t) sizeof(stackType) );
-  sp->entry = entry;
-  sp->next = *stackp;
-  *stackp = sp;
-}
-
-/* popStack()
- * Get the last entry from the stack and free stack entry.
- */
-static void *popStack( stackType **stackp ) {
-  void *entry;
-  stackType *sp;
-
-  if ( *stackp == NULL ) {
-    return( (char *) NULL );
-  }
-
-  sp = *stackp;
-  entry = sp->entry;
-
-  *stackp = sp->next;
-  sp->next=NULL;
-  free( sp );
-  return( entry );
-}
-
-/* freeStack()
- * Free up memory used by stack. 
- */
-static void freeStack(stackType *Stack) {
-  /*char *pch;
-
-  fprintf(stderr,"Freeing Stack:\n");
-  while ( (pch=(char*) popStack(&Stack))!=NULL ) {
-    fprintf(stderr,"  %c\n",*pch);
-  }*/
-  while ( popStack(&Stack)!=NULL ) {}
-
-  return;
-}
-
-/* freeStackEntry()
- * Free up memory used by stack. Also free up entries.
- */
-static void freeStackEntry(stackType *Stack) {
-  char *pch;
-
-  while ( (pch=(char*) popStack(&Stack))!=NULL ) {
-    free(pch);
-  }
-
-  return;
-}
-
-// -----------------------------------------------------------------------------
 // This is the only global and controls the level of debug information printed.
 int prnlev;
 
@@ -349,7 +283,7 @@ static int tokenize(char *input, char *infix) {
          * --------------------------------------------------- */
       }
       infix[i++] = *p; 
-      /*else if ( strchr("<>", *p) ) {  The last '\0' will be matched. */
+      // Else if ( strchr("<>", *p) ) {  The last '\0' will be matched.
       if ( *p == '>' || *p == '<' ) {
         n = 0;
         buffer[n++] = '('; 
@@ -374,7 +308,7 @@ static int tokenize(char *input, char *infix) {
          return 1;
         }
       }
-      if (*p == '=') {  /* The new AMBER9 definition of wildcard '=' is equivalent to '*'. */
+      if (*p == '=') {  // The new AMBER9 definition of wildcard '=' is equivalent to '*'.
         if (flag > 0)
           *p = '*'; 
         else {
@@ -426,10 +360,10 @@ static int tokenize(char *input, char *infix) {
 	    *p, input);
       return 1;
     }
-  } /* for p */
+  } // End for loop over p
 
-  /* operator should have at least 4 characters: [:1],[@C] */
-  /* is this check worth it? */
+  // Operator should have at least 4 characters: [:1],[@C] 
+  // NOTE: is this check worth it? */
   for (flag = 0, n = 0, p = infix; *p != '\0'; p++) {
     if ( *p == '[' ) {
       flag = 1;
@@ -445,7 +379,7 @@ static int tokenize(char *input, char *infix) {
     }
   }
   
-  /* add terminal symbol '_' - needed in next step */
+  // Add terminal symbol '_' - needed in next step 
   infix[i-1] = '_';  
   infix[i] = '\0';
 
@@ -484,22 +418,21 @@ static int tokenize(char *input, char *infix) {
  *   and an unrecoverable error has occurred.
  */
 static int torpn(char *infix, char *postfix) {
-  char *p, *pp, *term;
+  char *p, *pp;
+  char term = '_';
   int i,P1,P2;
   int flag;
+  std::stack<char*> Stack;
 
-  stackType *Stack = NULL;
   p=NULL;
 
-  /* push terminal symbol '_' to stack */
-  term = (char *) malloc(sizeof(char)); 
-  *term = '_';
-  pushStack(&Stack,term);
+  // push terminal symbol '_' to stack 
+  Stack.push(&term);
 
   i = 0;
-  flag = 0; /* 1 when start with "[", 0 when "]" is finished. */
+  flag = 0; // 1 when start with "[", 0 when "]" is finished. 
   for (p = infix; *p != '\0'; p++) {
-    /*if ( isOperand(*p) || strchr(":@", *p) ) {*/
+    //if ( isOperand(*p) || strchr(":@", *p) ) {
     if (*p == '[') {
       postfix[i++] = *p;
       flag = 1;
@@ -509,67 +442,60 @@ static int torpn(char *infix, char *postfix) {
     } else if ( flag ) {
       postfix[i++] = *p;
     } else if (*p == '(') {
-      pushStack(&Stack,p);
+      Stack.push(p);
     } else if (*p == ')') {
-      while (*(pp = (char *)popStack(&Stack)) != '(') {
+      while (*(pp = Stack.top()) != '(') {
+        Stack.pop();
         if (*pp == '_') {
           fprintf(stderr,"parsing atom mask: unbalanced parentheses in expression\n");
-          freeStack(Stack);
-          free(term);
           return 1;
         }
         postfix[i++] = *pp;
       }
-      /* at this point both parentheses are discarded */
+      Stack.pop(); // Discard '('
+      // At this point both parentheses are discarded 
     } else if (*p == '_') { 
-      while (*(pp=(char *)popStack(&Stack)) != '_') {
+      while (*(pp=Stack.top()) != '_') {
+        Stack.pop();
         if (*pp == '(') { 
           fprintf(stderr,"parsing atom mask: unbalanced parentheses in expression\n");
-          freeStack(Stack);
-          free(term);
           return 1;
          }
         postfix[i++] = *pp;
       }
+      Stack.pop(); // Discard '_'
     } else if ( isOperator(*p) ) {
       P1=priority(*p);
-      P2=priority(*((char*)((Stack)->entry)));
+      P2=priority(*(Stack.top()));
       if ((P1==0)||(P2==0)) {
         fprintf(stderr,"Error in priority.\n");
-        freeStack(Stack);
-        free(term);
         return 1;
       }
       if ( P1 > P2 )
-        pushStack(&Stack,p);
+        Stack.push(p);
       else {
         while ( P1 <= P2 ) {
-          pp = (char *)popStack(&Stack);
+          pp = Stack.top();
+          Stack.pop();
           postfix[i++] = *pp;
           P1=priority(*p);
-          P2=priority(*((char*)((Stack)->entry)));
+          P2=priority(*(Stack.top()));
           if ((P1==0)||(P2==0)) {
             fprintf(stderr,"Error in priority.\n");
-            freeStack(Stack);
-            free(term);
             return 1;
           }
         }
-        pushStack(&Stack,p);
+        Stack.push(p);
       }
     }
     else {
       fprintf(stderr,"parsing atom mask: unknown symbol (%c)\n", *p);
-      freeStack(Stack);
-      free(term);
       return 1;
     }
   }    
   postfix[i] = '\0';
 
-  free((void *) term);
   return 0;
-
 } // end torpn 
 
 
@@ -629,9 +555,8 @@ static char *selectDistd(char *criteria, char *center, int natom, int nres,
   // Compare to square of distance to avoid multiple sqrt calls
   dist2 = dist * dist;
   
-  pMask = (char *) malloc( natom * sizeof(char));
-  for (atomi = 0; atomi < natom; atomi++)
-    pMask[atomi] = 'F';
+  pMask = new char[ natom ];
+  memset(pMask,'F',natom);
  
   // For each atomi, calculate distance between atom and each atomj in center
   i3 = 0;
@@ -723,9 +648,8 @@ static char *binop(char op, char *m2, char *m1, int atoms) {
    * by returning the result in m2[] (or m1[]) but creating a new
    * char array for results and freeing up m2[] and m1[] up in 
    * the calling routine is more straightforward and clearer */
-  pMask = (char *) malloc( atoms * sizeof(char) );
-  for (i = 0; i < atoms; i++)
-    pMask[i] = 'F';
+  pMask = new char[ atoms ];
+  memset(pMask, 'F', atoms);
   
   switch (op) {
     case '&': 
@@ -740,7 +664,7 @@ static char *binop(char op, char *m2, char *m1, int atoms) {
       break;
     default:
       printf("Error: unknown operator ==%c==\n", op);
-      free(pMask);
+      delete[] pMask;
       return NULL;
   }
   return(pMask);
@@ -765,7 +689,7 @@ static char * neg(char *m1, int atoms) {
 /* 
  * the routines below deal with parsing elementary expressions,
  * which were obtained by the routines above (specifically the
- * last one of them  eval(char *postfix) )
+ * last one of them eval(char *postfix) )
  */
 
 /* resnum_select()
@@ -792,18 +716,14 @@ static void resnum_select(int res1, int res2, char *mask, int residues,
  */
 static void resname_select(char *p, char *mask, int residues, NAME *residueName, 
                            int *ipres) {
-  int i,j;
-  char* str;
+  char str[20];
 
-  str = (char *) malloc(20 * sizeof(char));
-  for (i = 0; i < residues; i++) {
+  for (int i = 0; i < residues; i++) {
     sprintf(str, "%d", i+1);
     if (isNameMatch(residueName[i], p) || isNameMatch(str, p))
-      for (j = ipres[i]; j < ipres[i+1]; j++)
+      for (int j = ipres[i]; j < ipres[i+1]; j++)
         mask[j] = 'T';
   }
-  free(str);
-
 }
 
 /* all_select()
@@ -831,16 +751,13 @@ static void atnum_select(int at1, int at2, char *mask, int atoms) {
  * Select all atoms with given name.
  */
 static void atname_select(char *p, char *mask, int atoms, NAME *atomName) {
-  int j;
-  char* str;
+  char str[20];
 
-  str = (char *) malloc(20 * sizeof(char));
-  for (j = 0; j < atoms; j++) {
+  for (int j = 0; j < atoms; j++) {
     sprintf(str, "%d", j+1);
     if (isNameMatch(atomName[j], p)|| isNameMatch(str, p))
       mask[j] = 'T';
   }
-  free(str);
 }
 
 /* attype_select()
@@ -869,7 +786,6 @@ static void atelem_select(char *p, char *mask, int atoms, NAME *atomName) {
       return;
   }
 }
-
 
 // -----------------------------------------------------------------------------
 /* residue_numlist()
@@ -915,7 +831,7 @@ static void residue_numlist(char *pp, char *mask, int residues, int *ipres) {
       return;
     }
   }
-} /* residue_numlist */
+} // residue_numlist 
 
 /* residue_namelist()
  */
@@ -929,11 +845,11 @@ static void residue_namelist(char *pp, char *mask, int residues,
   for (p = pp; *p != '\0'; p++) {
     if ( isalnum(*p) || *p == '*' || *p == '?' || *p == '+' )
       buffer[i++] = *p;
-    if ( *p == '-' )  /* '-' is used in numeric context, */
+    if ( *p == '-' )  // '-' is used in numeric context, 
       buffer[i++] = *p;
     if ( *p == ',' || *(p+1) == '\0') {
       buffer[i] = '\0';
-      if (strchr(buffer, '-') && isdigit(buffer[0])) { /* '-' is used in numeric context, */
+      if (strchr(buffer, '-') && isdigit(buffer[0])) { // '-' is used in numeric context, 
         residue_numlist(buffer, mask, residues, ipres);
       } else {
         resname_select(buffer, mask, residues, residueName, ipres);
@@ -945,7 +861,7 @@ static void residue_namelist(char *pp, char *mask, int residues,
       return;
     }
   }
-} /* residue_namelist */
+} // residue_namelist 
 
 /* atom_numlist()
  */
@@ -992,7 +908,7 @@ static void atom_numlist(char *pp, char *mask, int atoms) {
       return;
     }
   }
-} /* atom_numlist */
+} // atom_numlist 
 
 /* atom_namelist()
  */
@@ -1008,7 +924,7 @@ static void atom_namelist(char *pp, char *mask, int atoms, NAME *atomName) {
       buffer[i++] = *p;
     if ( *p == ',' || *(p+1) == '\0') {
       buffer[i] = '\0';
-      if (strchr(buffer, '-') && isdigit(buffer[0])) {  /* '-' is used in numeric context, */
+      if (strchr(buffer, '-') && isdigit(buffer[0])) {  // '-' is used in numeric context, 
       	atom_numlist(buffer, mask, atoms);
       } else {
       	atname_select(buffer, mask, atoms, atomName);
@@ -1021,7 +937,7 @@ static void atom_namelist(char *pp, char *mask, int atoms, NAME *atomName) {
       return;
     }
   }
-} /* atom_namelist */
+} // atom_namelist 
 
 /* atom_typelist()
  */
@@ -1043,7 +959,7 @@ static void atom_typelist(char *pp, char *mask, int atoms, NAME *atomType) {
       return;
     }
   }
-} /* atom_typelist */
+} // atom_typelist 
 
 /* atom_elemlist()
  */
@@ -1065,7 +981,7 @@ static void atom_elemlist(char *pp, char *mask, int atoms, NAME *atomName) {
       return;
     }
   }
-} /* atom_elemlist */
+} // atom_elemlist 
 
 /* selectElemMask()
  * Given an elementary mask expression constructed by tokenize and called from
@@ -1076,17 +992,15 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
                             NAME *atomName, NAME *residueName, int *ipres, 
                             NAME *atomType) 
 {
-  int i;
-  int atomlist, reslist;  /* change that to enum type?? */
+  int atomlist, reslist;  // NOTE: change that to enum type?? 
   char *pElemMask, *p;
   int buffer_p;
   char buffer[MAXSELE];
   
-  pElemMask = (char *) malloc( atoms * sizeof(char));
-  for (i = 0; i < atoms; i++)
-    pElemMask[i] = 'F';
+  pElemMask = new char[atoms];
+  memset(pElemMask, 'F', atoms);
 
-  if ( *elmaskstr == ':' ) { /* residue mask expression */
+  if ( *elmaskstr == ':' ) { // residue mask expression 
     buffer_p = 0;
     buffer[0] = '\0';
     reslist = NUMLIST;
@@ -1122,13 +1036,14 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
           reslist = NUMLIST;
       }
     }
-  } else if ( *elmaskstr == '@' ) {   /* atom selection mask */
-    /* because atom names can have digits, and even can start with
-       a digit, we need to search the whole expression to decide
-       whether it's an atom numlist or namelist and it's still ambiguous.
-       
-       It should be OK now, since anything with non-numerical will be treated
-       as NAMELIST, and the residue or atom number will be searched in the NAME search. */
+  } else if ( *elmaskstr == '@' ) {   // atom selection mask 
+    /* Because atom names can have digits, and even can start with
+     * a digit, we need to search the whole expression to decide
+     * whether it's an atom numlist or namelist and it's still ambiguous.
+     * 
+     * It should be OK now, since anything with non-numerical will be treated
+     * as NAMELIST, and the residue or atom number will be searched in the NAME search. 
+     */
     buffer_p = 0;
     buffer[0] = '\0';
     atomlist = NUMLIST;
@@ -1150,7 +1065,7 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
       } 
       else if ( *p == '/' ) {
         atomlist = ELEMLIST;
-      } /* endif */
+      } // endif 
 /*      if ( *p == ',' || *(p+1) == '\0') {*/
       if ( *(p+1) == '\0') {
         buffer[buffer_p] = '\0';
@@ -1172,7 +1087,7 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
             // Sanity check in case atom types are not defined
             if (atomType==NULL) {
               fprintf(stderr,"Error: Cannot select by atom type, no atom types in parm.\n");
-              if (pElemMask!=NULL) free(pElemMask);
+              if (pElemMask!=NULL) delete[] pElemMask;
               return NULL;
             }
             atom_typelist(buffer+1, pElemMask, atoms, atomType);
@@ -1189,18 +1104,17 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
      * selecting all residues by '*' as opposed to ":*" */
     all_select(pElemMask, atoms);
   } else if ( strchr("<>", *elmaskstr) ) {
-    free(pElemMask);
-    pElemMask = (char *) malloc( (strlen(elmaskstr)+1) * sizeof(char));
+    delete[] pElemMask;
+    pElemMask = new char[ strlen(elmaskstr)+1 ];
     strcpy(pElemMask, elmaskstr);
   } else {
     fprintf(stderr,"Error: elementary mask ==%s== contains nor : neither @\n",elmaskstr);
-    free(pElemMask);
+    delete[] pElemMask;
     return NULL;
   }
   
   return(pElemMask);
-  
-} /* selectElemMask */
+} // End selectElemMask 
 
 /* eval()
  * elementary atom expressions are converted to mask character
@@ -1212,35 +1126,38 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
  *
  */
 static char *eval(char *postfix, int atoms, int residues, NAME *atomName, 
-                  NAME *residueName, int *ipres, void *X, NAME *atomType)
+                  NAME *residueName, int *ipres, double *X, NAME *atomType)
 {
   char *pToken;
   char buffer[MAXSELE];
-  int i, j, numSelAtoms = 0;
+  int i;
   char *p, *pMask1, *pMask2, *pMask;
-  stackType *Stack = NULL;
+  std::stack<char*> Stack;
+  int error = 0;
 
   i = 0;
   for (p = postfix; *p != '\0'; p++) {
-    if (*p == '[')        /* 'operand' begins here */
+    if (*p == '[')        // 'operand' begins here 
       i = 0;
-    else if (*p == ']') { /* 'operand' is completed */
+    else if (*p == ']') { // 'operand' is completed 
       buffer[i] = '\0';
-      pToken = (char *) malloc( (strlen(buffer)+1) * sizeof(char));
+      pToken = new char[ strlen(buffer)+1 ];
       strcpy(pToken, buffer);
       /* this code should also be ok if this is just a single expression,
        * i.e. first ']' is followed immediately by '\0' (end of string), 
        * and so no logical operators are contained in (*infix) */
       /* selectElemMask allocates char mask array to which pMask points */
       pMask = selectElemMask(pToken, atoms, residues, atomName, residueName, ipres, atomType); 
-      pushStack(&Stack,pMask);
-      free((void *) pToken);
+      Stack.push(pMask);
+      delete[] pToken;
     }
-    else if ( isOperand(*p)||strchr(":@", *p))  /* operand is a part inside [...] */
+    else if ( isOperand(*p)||strchr(":@", *p))  // operand is a part inside [...] 
       buffer[i++] = *p;
     else if (*p == '&' || *p == '|') {
-      pMask1 = (char *)popStack(&Stack);
-      pMask2 = (char *)popStack(&Stack);
+      pMask1 = Stack.top();
+      Stack.pop();;
+      pMask2 = Stack.top();
+      Stack.pop();
       /* printf("[%s] %s [%s]\n", pMask2, (*p == '&') ? "AND" : "OR", pMask1); */
       /* binop performs the operation and returns the result in pMask
        * pMask array is allocated in binop and therefore you can release both
@@ -1249,68 +1166,86 @@ static char *eval(char *postfix, int atoms, int residues, NAME *atomName,
       if (pMask2 != NULL && pMask1 != NULL) {
         pMask = binop(*p, pMask2, pMask1, atoms);
         if (pMask==NULL) {
-          fprintf(stderr,"Error: binary op failed.\b");
-          freeStackEntry(Stack);
-          return NULL;
+          fprintf(stderr,"Error: binary op failed.\n");
+          error = 1;;
+          break;
         }
       } else {
         fprintf(stderr,"Error: illegal binary operation\n");
-        freeStackEntry(Stack);
-        return NULL;
+        error = 1;
+        break;
       }
-      pushStack(&Stack,pMask);
+      Stack.push(pMask);
 
-      free((void *) pMask1);
-      free((void *) pMask2);
+      delete[] pMask1;
+      delete[] pMask2;
     } 
     else if ( strchr("<>", *p) ) {
       if(strchr(":@", *(p+1)) && *(p+1) != '\0') {
         buffer[i++] = *p;
       } else {
-        pMask1 = (char *)popStack(&Stack); /* This should be the distance criteria like >@2.4 .*/
-        pMask2 = (char *)popStack(&Stack);
+        pMask1 = Stack.top(); // This should be the distance criteria like >@2.4 .
+        Stack.pop();
+        pMask2 = Stack.top();
+        Stack.pop();
         pMask = selectDistd(pMask1, pMask2, atoms, residues, ipres, X);
-        if (pMask==NULL) return NULL;
-        pushStack(&Stack,pMask);
+        if (pMask==NULL) {
+          fprintf(stderr,"Error: selectDistd failed.\n");
+          error = 1;
+          break;
+        }
+        Stack.push(pMask);
 
-        free((void *) pMask1);
-        free((void *) pMask2);
+        delete[] pMask1;
+        delete[] pMask2;
       }
     } 
     else if (*p == '!') {
-      pMask1 = (char *)popStack(&Stack);
-      /* printf("NEG [%s]\n", pMask1); */
+      pMask1 = Stack.top();
+      Stack.pop();
+      //printf("NEG [%s]\n", pMask1);
       if (pMask1 != NULL) 
         pMask = neg(pMask1, atoms);
       else {
         fprintf(stderr,"Error: illegal unary neg operation\n");
-        freeStackEntry(Stack);
-        return NULL;
+        error = 1;
+        break;
       }
-      pushStack(&Stack,pMask);
+      Stack.push(pMask);
 
     } else {
       printf("Error: unknown symbol while evaluating RPN/n");
-      freeStackEntry(Stack);
-      return NULL;
+      error = 1;
+      break;
     }
-  } /* for (p) */
- 
-  pMask = (char *)popStack(&Stack);      /* pMask should point to the resulting mask, but   */
-                      /* this should also free up the last item on Stack */
-                      /* If not, there must be missing operand. */
-  if (Stack) {
-    printf("Error: there might be missing operands in the mask.\n");
-    freeStackEntry(Stack);
-    free(pMask);
+  } // END for loop over (p) 
+
+  if (error == 0 ) {
+    // pMask should point to the resulting mask
+    pMask = Stack.top();
+    Stack.pop(); 
+    // Stack should be empty now
+    if (!Stack.empty()) {
+      error = 1;
+      delete[] pMask;
+    }
+  } 
+
+  // If error is set free stack memory and exit
+  if (error!=0) {
+    while (!Stack.empty()) {
+      delete[] Stack.top();
+      Stack.pop();
+    }
     return NULL;
   }
-  for (j = 0; j < atoms; j++)
-    if ( pMask[j] == 'T' ) 
-      numSelAtoms++;
+
+  //for (j = 0; j < atoms; j++)
+  //  if ( pMask[j] == 'T' ) 
+  //    numSelAtoms++;
 
   if (prnlev > 7) {
-    for (j = 0; j < atoms; j++) {
+    for (int j = 0; j < atoms; j++) {
       if (j % 20 == 0) printf("\n%4d:  ", j+1);
       printf("%c,", pMask[j]);
     }

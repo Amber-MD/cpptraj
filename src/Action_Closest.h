@@ -17,7 +17,7 @@ class Closest: public Action {
     bool noimage, firstAtom;
     int imageType; 
     AtomMask Mask1;
-    AtomMask *tempMask;
+    AtomMask tempMask;
     AmberParm *newParm;
     AmberParm *oldParm;
     Frame newFrame;

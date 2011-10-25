@@ -1,5 +1,5 @@
 SOURCE=main.cpp AmberParm.cpp \
-       Frame.cpp CpptrajState.cpp ArgList.cpp ptrajmask.c Action_Distance.cpp \
+       Frame.cpp CpptrajState.cpp ArgList.cpp ptrajmask.cpp Action_Distance.cpp \
        ParmFileList.cpp TrajinList.cpp TrajoutList.cpp ReferenceList.cpp \
        CoordFileList.cpp ActionList.cpp DataSet.cpp \
        DataSetList.cpp vectormath.cpp FrameList.cpp Action_Rmsd.cpp \

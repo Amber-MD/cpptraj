@@ -3,7 +3,7 @@
 /// Class: AtomMask
 /// AtomMask is used to hold an array of integers that represent atom numbers
 /// of atoms selected based on a mask string. This class is actually an 
-/// interface to the ptraj mask parser written by Viktor Hornak (ptrajmask.c).
+/// interface to the ptraj mask parser written by Viktor Hornak (ptrajmask.cpp).
 /// Takes as input a string and an AmberParm class since the basic parser 
 /// requires access to ipres, atom names, etc.
 /// First the mask string is set via SetMaskString. Then the actual mask can
@@ -38,8 +38,11 @@ class AtomMask {
     ~AtomMask();
 
     void Reset();                  // Reset atom mask
-    AtomMask *Copy();              // Return a copy of this mask
+    AtomMask & operator=(const AtomMask&);
+    AtomMask *CopyMask();          // Return a copy of this mask
     void AddAtom(int);             // Add given atom to mask
+    void AddAtoms(int *, int);     // Add a list of atoms to mask
+    void AddAtomRange(int,int);    // Add minAtom <= atom < maxAtom to mask
     void PrintMaskAtoms();         // Print atoms in Selected to line
     bool None();                   // Return true if Nselected==0
     void SetMaskString(char*);     // Set the mask string. If NULL, set * (all)

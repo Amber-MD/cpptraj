@@ -85,7 +85,7 @@ int Frame::SetupFrameV(int natomIn, double *massIn, bool hasVelocity) {
   return 0;
 }
 
-/* Frame::operator=
+/* Frame::operator=()
  */
 Frame &Frame::operator=(const Frame &rhs) {
   // Check for self assignment
