@@ -9,4 +9,5 @@ enum BoxType { NOBOX=0, ORTHO, NONORTHO };
 BoxType CheckBoxType(double *,int);
 int AmberIfbox(double);
 BoxType SetBoxInfo(double *, double *, int);
+BoxType SetBoxInfoFromIfbox(int, double *, int);
 #endif
