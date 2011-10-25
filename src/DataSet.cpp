@@ -43,6 +43,7 @@ void DataSet::setFormatString() {
 
   switch (dType) {
     case DOUBLE :
+    case FLOAT  :
       // Calc num of chars necessary to hold precision
       pWidth = (precision / 10) + 1;
       // String fmt: " %w.plf\0"
