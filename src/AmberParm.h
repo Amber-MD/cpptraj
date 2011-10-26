@@ -5,7 +5,7 @@
 /// etc). Can be read in from Amber Topology, PDB, or Mol2 files (implemented 
 /// in the ReadParmXXX functions). The following parameters of AmberParm must 
 /// always be set:
-///   1. Variables: natom, nres, and ifbox
+///   1. Variables: natom, nres, boxType 
 ///   2.    Arrays: names, resnames, resnums
 #include "CpptrajFile.h"
 #include "BoxType.h" 
@@ -66,7 +66,6 @@ class AmberParm {
     char *parmfileName;   // Parm filename (full path)
     char *parmName;       // Parm name, set to base filename on reads 
     int pindex;           // The index of this parm in the parmfilelist
-    bool chamber;         // This topology file is a chamber-created topology file
     int parmFrames;       // For output, # of frames that will be read with this parm
 
     // Amber Parmtop
@@ -80,7 +79,6 @@ class AmberParm {
     int *resnums;       // IPRES(NRES) 
     int natom;          // NATOM
     int nres;           // NRES
-    int ifbox;          // IFBOX
     int finalSoluteRes; // IPTRES
     int molecules;      // NSPM
     int firstSolvMol;   // NSPSOL

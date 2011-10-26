@@ -5,6 +5,31 @@
 #include <cstdlib>
 #include <cctype> // toupper
 
+//  F_POINTERS = 0, F_NAMES,  F_CHARGE, F_MASS,   F_RESNAMES,             
+//  F_RESNUMS,      F_TYPES,  F_BONDSH, F_BONDS,  F_SOLVENT_POINTER, 
+//  F_ATOMSPERMOL,  F_PARMBOX
+
+// Constant strings for fortran formats corresponding to Amber parm flags
+static const char AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
+"%FORMAT(10I8)",  "%FORMAT(20a4)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)","%FORMAT(20a4)",
+"%FORMAT(10I8)",  "%FORMAT(20a4)", "%FORMAT(10I8)",   "%FORMAT(10I8)",  "%FORMAT(3I8)",
+"%FORMAT(10I8)",  "%FORMAT(5E16.8)"
+}; 
+static const char AmberParmFlag[NUMAMBERPARMFLAGS][23] = {
+  "POINTERS",
+  "ATOM_NAME",
+  "CHARGE",
+  "MASS",
+  "RESIDUE_LABEL",
+  "RESIDUE_POINTER",
+  "AMBER_ATOM_TYPE",
+  "BONDS_INC_HYDROGEN",
+  "BONDS_WITHOUT_HYDROGEN",
+  "SOLVENT_POINTERS",
+  "ATOMS_PER_MOLECULE",
+  "BOX_DIMENSIONS"
+};
+
 // Enumerated type for Fortran data type
 enum FortranType {
   UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
@@ -248,8 +273,7 @@ void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debu
  * Write N data elements stored in I, D, or C to buffer with given 
  * fortran format.
  */
-char *DataToFortranBuffer(char *bufferIn, const char *FLAG,
-                          const char* FortranFormatString, 
+char *DataToFortranBuffer(char *bufferIn, AmberParmFlagType fFlag,
                           int *I, double *D, NAME *C, int N) 
 {
   int coord, width, numCols, precision;
@@ -257,10 +281,11 @@ char *DataToFortranBuffer(char *bufferIn, const char *FLAG,
   FortranType fType;
   char FormatString[32];
 
+
   // Determine type, cols, width, and precision from format string
-  fType = GetFortranType((char*)FortranFormatString, &numCols, &width, &precision);
+  fType = GetFortranType((char*)AmberParmFmt[fFlag], &numCols, &width, &precision);
   if (fType == UNKNOWN_FTYPE) {
-    mprinterr("Error: DataToFortranBuffer: Unknown format string [%s]\n",FortranFormatString);
+    mprinterr("Error: DataToFortranBuffer: Unknown format string [%s]\n",AmberParmFmt[fFlag]);
     return NULL;
   }
 
@@ -272,9 +297,12 @@ char *DataToFortranBuffer(char *bufferIn, const char *FLAG,
   //fprintf(stdout,"*** Buffer address is %p\n",buffer);
 
   // Print FLAG and FORMAT lines
-  sprintf(ptr,"%-80s\n",FLAG);
+  // '%FLAG '
+  //  012345
+  sprintf(ptr,"%%FLAG %-74s\n",AmberParmFlag[fFlag]);
+  //sprintf(ptr,"%-80s\n",FLAG);
   ptr += 81;
-  sprintf(ptr,"%-80s\n",FortranFormatString);
+  sprintf(ptr,"%-80s\n",AmberParmFmt[fFlag]);
   ptr += 81;
 
   // Write Integer data

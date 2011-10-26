@@ -3,7 +3,7 @@
  * PDB, or Mol2 files (implemented in the ReadParmXXX functions). The following
  * parameters of AmberParm must always be set:
  *   The names, resnames, resnums arrays.
- *   The natom, ifbox and nres variables.
+ *   The natom, boxType and nres variables.
  * NOTES:
  */
 #include <cstdlib>
@@ -621,11 +621,12 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
  * Read parameters from Amber Topology file
  */
 int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
-  int atom;
+  int atom, ifbox;
   int *solvent_pointer;
   double *boxFromParm;
   int *values;
   char *title;
+  bool chamber;         // This topology file is a chamber-created topology file
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
   // Title
@@ -1628,7 +1629,6 @@ int AmberParm::WriteAmberParm(char *filename) {
   CpptrajFile outfile;
   char *buffer,*filebuffer;
   int solvent_pointer[3];
-  int atom;
   int *values;
   double parmBox[4];
   // For date and time
@@ -1674,7 +1674,7 @@ int AmberParm::WriteAmberParm(char *filename) {
     BufferSize += (GetFortranBufferSize(4,0,16,5)+FFSIZE); // BOX
   }
   // 1 extra char for NULL
-  filebuffer = (char*) malloc( (BufferSize+1) * sizeof(char));
+  filebuffer = new char[ BufferSize + 1];
   if (debug>0)
     mprintf("DEBUG: Parm %s: Buffer size is %lu bytes.\n",filename,BufferSize);
   if (filebuffer==NULL) {
@@ -1690,77 +1690,64 @@ int AmberParm::WriteAmberParm(char *filename) {
   values[NBONH]=NbondsWithH;
   values[MBONA]=NbondsWithoutH;
   values[IFBOX]=AmberIfbox(Box[4]);
-  buffer = DataToFortranBuffer(buffer,"%FLAG POINTERS", "%FORMAT(10I8)\0", 
-                               values, NULL, NULL, AMBERPOINTERS);
+  buffer = DataToFortranBuffer(buffer,F_POINTERS, values, NULL, NULL, AMBERPOINTERS);
   // ATOM NAMES
-  buffer = DataToFortranBuffer(buffer,"%FLAG ATOM_NAME", "%FORMAT(20a4)\0", 
-                               NULL, NULL, names, natom);
+  buffer = DataToFortranBuffer(buffer,F_NAMES, NULL, NULL, names, natom);
   // CHARGE - might be null if read from pdb
   if (charge!=NULL) {
     // Convert charges to AMBER charge units
-    for (atom=0; atom<natom; atom++)
-      charge[atom] *= (ELECTOAMBER);
-    buffer = DataToFortranBuffer(buffer,"%FLAG CHARGE","%FORMAT(5E16.8)\0", 
-                                 NULL, charge, NULL, natom);
+    double *tempCharge = new double[ natom ];
+    memcpy(tempCharge, charge, natom * sizeof(double));
+    for (int atom=0; atom<natom; atom++)
+      tempCharge[atom] *= (ELECTOAMBER);
+    buffer = DataToFortranBuffer(buffer,F_CHARGE, NULL, tempCharge, NULL, natom);
+    delete[] tempCharge;
   }
   // MASS - might be null if read from pdb
-  if (mass!=NULL) { 
-    buffer = DataToFortranBuffer(buffer,"%FLAG MASS","%FORMAT(5E16.8)\0", 
-                                 NULL, mass, NULL, natom);
-  }
+  if (mass!=NULL)  
+    buffer = DataToFortranBuffer(buffer,F_MASS, NULL, mass, NULL, natom);
   // RESIDUE LABEL - resnames
-  buffer = DataToFortranBuffer(buffer,"%FLAG RESIDUE_LABEL","%FORMAT(20a4)\0", 
-                               NULL, NULL, resnames, nres);
+  buffer = DataToFortranBuffer(buffer,F_RESNAMES, NULL, NULL, resnames, nres);
   // RESIDUE POINTER - resnums, IPRES
   // Shift atom #s in resnums by 1 to be consistent with AMBER
-  for (atom=0; atom < nres; atom++)
-    resnums[atom] += 1;
-  buffer = DataToFortranBuffer(buffer,"%FLAG RESIDUE_POINTER","%FORMAT(10I8)\0", 
-                               resnums, NULL, NULL, nres);
-  // Now shift them back
-  for (atom=0; atom < nres; atom++)
-    resnums[atom] -= 1;
+  int *tempResnums = new int[ nres ];
+  memcpy(tempResnums, resnums, nres * sizeof(int));
+  for (int res=0; res < nres; res++)
+    tempResnums[res] += 1;
+  buffer = DataToFortranBuffer(buffer,F_RESNUMS, tempResnums, NULL, NULL, nres);
+  delete[] tempResnums;
   // AMBER ATOM TYPE - might be null if read from pdb
-  if (types!=NULL) {
-    buffer = DataToFortranBuffer(buffer,"%FLAG AMBER_ATOM_TYPE","%FORMAT(20a4)\0", 
-                                 NULL, NULL, types, natom);
-  }
+  if (types!=NULL) 
+    buffer = DataToFortranBuffer(buffer,F_TYPES, NULL, NULL, types, natom);
   // BONDS INCLUDING HYDROGEN - might be null if read from pdb
-  if (bondsh != NULL) {
-    buffer = DataToFortranBuffer(buffer,"%FLAG BONDS_INC_HYDROGEN","%FORMAT(10I8)\0", 
-                                 bondsh, NULL, NULL, NbondsWithH*3);
-  }
+  if (bondsh != NULL) 
+    buffer = DataToFortranBuffer(buffer,F_BONDSH, bondsh, NULL, NULL, NbondsWithH*3);
   // BONDS WITHOUT HYDROGEN - might be null if read from pdb
-  if (bonds!=NULL) {
-    buffer = DataToFortranBuffer(buffer,"%FLAG BONDS_WITHOUT_HYDROGEN","%FORMAT(10I8)\0", 
-                                 bonds, NULL, NULL, NbondsWithoutH*3);
-  }
+  if (bonds!=NULL) 
+    buffer = DataToFortranBuffer(buffer,F_BONDS, bonds, NULL, NULL, NbondsWithoutH*3);
   // SOLVENT POINTERS
   if (values[IFBOX]>0) {
     if (firstSolvMol!=-1) {
       solvent_pointer[0]=finalSoluteRes;
       solvent_pointer[1]=molecules;
       solvent_pointer[2]=firstSolvMol;
-      buffer = DataToFortranBuffer(buffer,"%FLAG SOLVENT_POINTERS","%FORMAT(3I8)\0", 
-                                   solvent_pointer, NULL, NULL, 3);
+      buffer = DataToFortranBuffer(buffer,F_SOLVENT_POINTER, solvent_pointer, NULL, NULL, 3);
     }
     // ATOMS PER MOLECULE
     if (atomsPerMol!=NULL) {
-      buffer = DataToFortranBuffer(buffer,"%FLAG ATOMS_PER_MOLECULE","%FORMAT(10I8)\0", 
-                                   atomsPerMol, NULL, NULL, molecules);
+      buffer = DataToFortranBuffer(buffer,F_ATOMSPERMOL, atomsPerMol, NULL, NULL, molecules);
     }
     // BOX DIMENSIONS
     parmBox[0] = Box[4]; // beta
     parmBox[1] = Box[0]; // boxX
     parmBox[2] = Box[1]; // boxY
     parmBox[3] = Box[2]; // boxZ
-    buffer = DataToFortranBuffer(buffer,"%FLAG BOX_DIMENSIONS","%FORMAT(5E16.8)\0", 
-                                 NULL, parmBox, NULL, 4);
+    buffer = DataToFortranBuffer(buffer,F_PARMBOX, NULL, parmBox, NULL, 4);
   }
 
   // Write buffer to file
   outfile.IO->Write(filebuffer, sizeof(char), BufferSize);
-  free(filebuffer);
+  delete[] filebuffer;
   free(values);
   outfile.CloseFile();
 
