@@ -728,24 +728,36 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
     if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); return 1;}
     // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
     boxFromParm=(double*) getFlagFileValues(parmfile,"BOX_DIMENSIONS",4,debug);
+    // If no box information present in the parm (such as with Chamber prmtops)
+    // set the box info if ifbox = 2, otherwise set to NOBOX; the box info will 
+    // eventually be set by angles from the first trajectory associated with 
+    // this parm.
     if (boxFromParm==NULL) {
-      // Chamber prmtops don't have box information, so don't warn if it's a chamber topology
       if (not chamber) mprintf("Warning: Prmtop missing Box information.\n");
-      // If BOX_DIMENSIONS doesn't exist in the topology file, set it up from the value of IFBOX
-      boxType = SetBoxInfoFromIfbox(ifbox,Box,debug);
-    // Determine box type. Set Box angles and lengths from beta (boxFromParm[0])
+      // ifbox 2: truncated octahedron for certain
+      if (ifbox == 2) {
+        boxType = NONORTHO;
+        Box[0] = 0.0; Box[1] = 0.0; Box[2] = 0.0;
+        Box[3] = TRUNCOCTBETA;
+        Box[4] = TRUNCOCTBETA;
+        Box[5] = TRUNCOCTBETA;
+      } else
+        boxType = NOBOX;
+    // Determine box type, set Box angles and lengths from beta (boxFromParm[0])
     } else {
       boxType = SetBoxInfo(boxFromParm,Box,debug);
       free(boxFromParm);
     }
     if (debug>0) {
-      mprintf("    %s contains box info: %i mols, first solvent mol is %i\n",
+      mprintf("\t%s contains box info: %i mols, first solvent mol is %i\n",
               parmName, molecules, firstSolvMol);
-      mprintf("    BOX: %lf %lf %lf | %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3],Box[4],Box[5]);
+      mprintf("\tBOX: %lf %lf %lf | %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3],Box[4],Box[5]);
       if (boxType==ORTHO)
-        mprintf("         Box is orthogonal.\n");
+        mprintf("\t     Box is orthogonal.\n");
+      else if (boxType==NONORTHO)
+        mprintf("\t     Box is non-orthogonal.\n");
       else
-        mprintf("         Box is non-orthogonal.\n");
+        mprintf("\t     Box will be determined from first associated trajectory.\n");
     }
   }
 
