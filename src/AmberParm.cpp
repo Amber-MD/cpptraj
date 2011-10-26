@@ -1206,14 +1206,10 @@ int AmberParm::atomToResidue(int atom) {
  * Given an atom number, return corresponding molecule number.
  */
 int AmberParm::atomToMolecule(int atom) {
-  int i, a, atom1;
-
-  atom1 = atom + 1; // Since in atomsPerMol numbers start from 1
-  a = 0;
-  for (i = 0; i < molecules; i++) {
+  int a = 0;
+  for (int i = 0; i < molecules; i++) {
     a += atomsPerMol[i];
-    if (atom1 <= a)
-      return i;
+    if (atom < a) return i;
   }
   return -1;
 }
@@ -1284,34 +1280,87 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
 
 /* AmberParm::GetBondsFromCoords()
  * Given an array of coordinates X0Y0Z0X1Y1Z1...XNYNZN determine which
- * atoms are bonded via distance search.
+ * atoms are bonded via distance search. First check for bonds within
+ * residues, then check for bonds between adjacent residues. Adjacent
+ * residues in different molecules are not considered.
  */
 void AmberParm::GetBondsFromCoords() {
+  int res, startatom, stopatom, midatom,atom1, atom2, idx1, idx2;
+  double D, cut;
+  int *resmols;
   if (parmCoords==NULL) return;
-  // Determine bonding from distance search.
   mprintf("\t%s: determining bond info from distances.\n",parmName);
-  for (int atom1 = 0; atom1 < natom - 1; atom1++) {
-    int idx1 = atom1 * 3;
-    for (int atom2 = atom1 + 1; atom2 < natom; atom2++) {
-      int idx2 = atom2 * 3;
-      double D = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
-      //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
-      double cut = GetBondedCut(names[atom1],names[atom2]);
-      cut *= cut; // Op '*' less expensive than sqrt
-      if (debug>0) {
-        if (debug==1) {
-          if (D<cut) mprintf("\tBOND: %s %i to %s %i\n",names[atom1],atom1+1,
-                              names[atom2],atom2+1);
-        } else if (debug > 1) {
-          mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
-                  names[atom2],atom2+1,D,cut);
-          if (D<cut) mprintf(" bonded!");
-          mprintf("\n");
-        }
+  // Determine bonds within residues.
+  for (res = 0; res < nres; res++) {
+    startatom = resnums[res];
+    stopatom = resnums[res+1];
+    //mprintf("\t\tDetermining bonds within residue %i\n",res);
+    for (atom1 = startatom; atom1 < stopatom - 1; atom1++) {
+      idx1 = atom1 * 3;
+      for (atom2 = atom1 + 1; atom2 < stopatom; atom2++) {
+        idx2 = atom2 * 3;
+        D = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
+        //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
+        cut = GetBondedCut(names[atom1],names[atom2]);
+        cut *= cut; // Op '*' less expensive than sqrt
+//        if (debug>0) {
+//          if (debug==1) {
+//            if (D<cut) mprintf("\tBOND: %s %i to %s %i\n",names[atom1],atom1+1,
+//                                names[atom2],atom2+1);
+//          } else if (debug > 1) {
+//            mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
+//                    names[atom2],atom2+1,D,cut);
+//            if (D<cut) mprintf(" bonded!");
+//            mprintf("\n");
+//          }
+//        }
+        if (D < cut) AddBond(atom1,atom2,-1);
       }
-      if (D < cut) AddBond(atom1,atom2,-1); 
     }
   }
+
+  // If atomsPerMol has been set up, create an array that will contain the 
+  // molecule number of each residue.
+  resmols = new int[ nres ];
+  if (atomsPerMol!=NULL) {
+    int molnum = 0;
+    int atotal = atomsPerMol[0];
+    for (res = 0; res < nres; res++) {
+      resmols[res] = molnum;
+      if (resnums[res+1] >= atotal) {
+        molnum++;
+        if (molnum >= molecules) break;
+        atotal += atomsPerMol[molnum];
+      }
+    }
+  } else
+    memset(resmols, 0, nres * sizeof(int));
+  // DEBUG
+  //for (res = 0; res < nres; res++) 
+  //  mprintf("DEBUG\tRes %8i %4s Mol %8i\n",res+1,resnames[res],resmols[res]);
+
+  // Determine bonds between adjacent residues.
+  for (res = 1; res < nres; res++) {
+    // Dont check for bonds between residues that are in different molecules
+    if (resmols[res-1] != resmols[res]) continue;
+    startatom = resnums[res-1];
+    midatom = resnums[res];
+    stopatom = resnums[res+1];
+    //mprintf("\t\tDetermining bonds between residues %i and %i\n",res-1,res);
+    for (atom1 = startatom; atom1 < midatom; atom1++) {
+      idx1 = atom1 * 3;
+      for (atom2 = midatom; atom2 < stopatom; atom2++) {
+        idx2 = atom2 * 3;
+        D = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
+        cut = GetBondedCut(names[atom1],names[atom2]);
+        cut *= cut;
+        if (D < cut) AddBond(atom1,atom2,-1);
+      } 
+    }
+  }
+  
+  delete[] resmols;
+
   mprintf("\t%s: %i bonds to hydrogen, %i other bonds.\n",parmName,NbondsWithH,NbondsWithoutH);
 }
 
