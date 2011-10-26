@@ -149,6 +149,24 @@ int Frame::SetupFrameFromMask(AtomMask *Mask, double *massIn) {
   return 0;
 }
 
+/* Frame::SetupFrameFromCoords()
+ * Given an array of floats, assign to coordinates. Reallocate as necessary.
+ */
+int Frame::SetupFrameFromCoords(float *CoordIn, int ncoord) {
+  // If # atoms in mask > current natom, reallocate coords array
+  natom = ncoord;
+  N = natom * 3;
+  if (natom>maxnatom) {
+    maxnatom = natom;
+    if (X!=NULL) delete[] X;
+    X = new double[ N ];
+  }
+  // Copy atoms in CoordIn to coords array
+  for (int crd = 0; crd < N; crd++)
+    X[crd] = (double) CoordIn[crd];
+  return 0;
+}
+
 /* Frame::FrameCopy()
  * Return a copy of the frame
  */
