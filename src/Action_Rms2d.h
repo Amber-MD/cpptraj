@@ -5,6 +5,7 @@
 #include "Action.h"
 #include "TrajectoryFile.h"
 #include "CoordList.h"
+#include "TriangleMatrix.h"
 class Rms2d: public Action {
     CoordList ReferenceCoords; // Hold coords from input frames.
     bool nofit;                // Do not perform rms fitting
@@ -15,7 +16,7 @@ class Rms2d: public Action {
     TrajectoryFile *RefTraj;   // Reference trajectory, each frame used in turn
     AmberParm *RefParm;        // Reference trajectory Parm
 
-    void Calc2drms();
+    void Calc2drms(TriangleMatrix*);
     void CalcRmsToTraj();
   public:
     Rms2d();

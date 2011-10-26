@@ -118,21 +118,23 @@ int Rms2d::action() {
 
 /* Rms2d::Calc2drms()
  * Calculate the RMSD of each frame in ReferenceCoords to each other frame.
+ * Since this results in a symmetric matrix use TriangleMatrix to store
+ * results.
  */
-void Rms2d::Calc2drms() {
+void Rms2d::Calc2drms(TriangleMatrix *Distances) {
   Frame RefFrame;
   Frame TgtFrame;
   Frame SelectedRef;
   Frame SelectedTgt;
-  DataSet *rmsdata;
   float *coord;
-  char setname[256];
   double U[9], Trans[6];
   float R;
   int natom_ref, natom_tgt;
-  int totalref = ReferenceCoords.Ncoords();
-  int totaltgt = totalref;
-  int max = totalref * totaltgt;
+  int totalref, max;
+ 
+  totalref = ReferenceCoords.Ncoords();
+  Distances->Setup( totalref );
+  max = Distances->Nelements();
   mprintf("  RMS2D: Calculating RMSDs between each frame (%i total).\n  ",max);
 
   // Set up progress Bar
@@ -140,19 +142,14 @@ void Rms2d::Calc2drms() {
 
   // LOOP OVER REFERENCE FRAMES
   int current = 0;
-  for (int nref=0; nref < totalref; nref++) {
+  for (int nref=0; nref < totalref - 1; nref++) {
     progress->Update(current);
     // Get the current reference frame
     coord = ReferenceCoords.Coord(nref, &natom_ref);
     RefFrame.SetupFrameFromCoords( coord, natom_ref );
   
-    // Set up dataset for this reference frame
-    sprintf(setname,"Frame_%i",nref+1);
-    rmsdata = RmsData.Add(FLOAT, setname, "Rms2d");
-    DFL->Add(rmsdFile,rmsdata);
-
     // LOOP OVER TARGET FRAMES
-    for (int nframe=0; nframe < totaltgt; nframe++) {
+    for (int nframe=nref+1; nframe < totalref; nframe++) {
       // Get the current target frame
       coord = ReferenceCoords.Coord(nframe, &natom_tgt);
       TgtFrame.SetupFrameFromCoords( coord, natom_tgt );
@@ -163,7 +160,7 @@ void Rms2d::Calc2drms() {
                 nref+1,natom_ref,nframe+1,natom_tgt);
         mprintf("\t         Assigning this pair RMSD of -1.0\n");
         R = -1.0;
-        RmsData.AddData(nframe, &R, nref);
+        Distances->AddElement( R );
         continue;
       }
       // Set selected reference atoms - always done since RMS fit modifies SelectedRef
@@ -177,7 +174,7 @@ void Rms2d::Calc2drms() {
       } else {
         R = (float) SelectedTgt.RMSD(&SelectedRef, U, Trans, false);
       }
-      RmsData.AddData(nframe, &R, nref);
+      Distances->AddElement( R );
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
       current++;
@@ -278,9 +275,27 @@ void Rms2d::CalcRmsToTraj() {
  * Perform the rms calculation of each frame to each other frame.
  */
 void Rms2d::print() {
-  if (RefTraj==NULL) 
-    Calc2drms();
-  else
+  TriangleMatrix *Distances;
+  char setname[256];
+
+  if (RefTraj==NULL) {
+    Distances = new TriangleMatrix(); 
+    Calc2drms(Distances);
+    // Convert TriangleMatrix to a dataset.
+    // NOTE: This currently uses way more memory than it needs to.
+    // TriangleMatrix should just be a dataset that can be output.
+    for (int nref=0; nref < ReferenceCoords.Ncoords(); nref++) {
+      // Set up dataset for this reference frame
+      sprintf(setname,"Frame_%i",nref+1);
+      DataSet *rmsdata = RmsData.Add(FLOAT, setname, "Rms2d");
+      DFL->Add(rmsdFile,rmsdata);
+      for (int nframe=0; nframe < ReferenceCoords.Ncoords(); nframe++) {
+        float R = Distances->GetElementF(nref, nframe);
+        RmsData.AddData(nframe, &R, nref);
+      }
+    }
+    delete Distances;
+  } else
     CalcRmsToTraj();
 }
 
