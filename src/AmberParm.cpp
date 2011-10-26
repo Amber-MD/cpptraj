@@ -632,8 +632,12 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   // NOTE: getFlagFileString uses 'new' operator.
   title = getFlagFileString(parmfile, "TITLE",debug);
   // If title is NULL, check for CTITLE (chamber parm)
-  if (title==NULL)
+  if (title==NULL) {
     title = getFlagFileString(parmfile,"CTITLE",debug);
+    chamber = true;
+  } else {
+    chamber = false;
+  }
   if (debug>0) mprintf("\tAmberParm Title: %s\n",title);
   delete[] title;
   // Pointers
@@ -645,6 +649,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   // Set some commonly used values
   natom=values[NATOM];
   nres=values[NRES];
+  ifbox=values[IFBOX];
   NbondsWithH=values[NBONH];
   NbondsWithoutH=values[MBONA];
   if (debug>0) {
@@ -723,10 +728,16 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
     if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); return 1;}
     // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
     boxFromParm=(double*) getFlagFileValues(parmfile,"BOX_DIMENSIONS",4,debug);
-    if (boxFromParm==NULL) {mprintf("Error in Box information.\n"); return 1;}
+    if (boxFromParm==NULL) {
+      // Chamber prmtops don't have box information, so don't warn if it's a chamber topology
+      if (not chamber) mprintf("Warning: Prmtop missing Box information.\n");
+      // If BOX_DIMENSIONS doesn't exist in the topology file, set it up from the value of IFBOX
+      boxType = SetBoxInfoFromIfbox(ifbox,Box,debug);
     // Determine box type. Set Box angles and lengths from beta (boxFromParm[0])
-    boxType = SetBoxInfo(boxFromParm,Box,debug);
-    free(boxFromParm);
+    } else {
+      boxType = SetBoxInfo(boxFromParm,Box,debug);
+      free(boxFromParm);
+    }
     if (debug>0) {
       mprintf("    %s contains box info: %i mols, first solvent mol is %i\n",
               parmName, molecules, firstSolvMol);

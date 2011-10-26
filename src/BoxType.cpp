@@ -97,3 +97,42 @@ BoxType SetBoxInfo(double *bIn, double *Box, int debug) {
   }
   return btype;
 }
+
+/* SetChamberBoxInfo()
+ * Given the original value of IFBOX pulled from the topology file,
+ * this method will set up the Box angles according to
+ *   ifbox == 0 --> NOBOX
+ *   ifbox == 1 --> ORTHO
+ *   ifbox == 2 --> NONORTHO
+ * Because the box information doesn't exist in the topology file,
+ * there are no box dimensions, so these will just be set to 0
+ */
+BoxType SetBoxInfoFromIfbox (int orig_ifbox, double *Box, int debug) {
+
+  BoxType btype = NOBOX;
+
+  // Since we don't know the box dimensions, just zero them
+  Box[0] = 0.0; Box[1] = 0.0; Box[2] = 0.0;
+
+  if (orig_ifbox == 0) {
+    // No box
+    btype = NOBOX;
+    Box[3] = 0.0; Box[4] = 0.0; Box[5] = 0.0;
+  } else if (orig_ifbox == 1) {
+    // Orthogonal box
+    btype = ORTHO;
+    Box[3] = 90.0; Box[4] = 90.0; Box[5] = 90.0;
+  } else if (orig_ifbox == 1) {
+    // Non-orthogonal box. Assume truncated octahedron, since that's
+    // all LEaP produces by default
+    btype = NONORTHO;
+    Box[3] = TRUNCOCTBETA; Box[4] = TRUNCOCTBETA; Box[5] = TRUNCOCTBETA;
+  } else {
+    // This should never be hit, so print out a warning and set no box
+    mprintf("    Warning: Unrecognized ifbox value %i. Assuming no box\n", orig_ifbox);
+    btype = NOBOX;
+    Box[3] = 0.0; Box[4] = 0.0; Box[5] = 0.0; 
+  }
+
+  return btype;
+}

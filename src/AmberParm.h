@@ -66,6 +66,7 @@ class AmberParm {
     char *parmfileName;   // Parm filename (full path)
     char *parmName;       // Parm name, set to base filename on reads 
     int pindex;           // The index of this parm in the parmfilelist
+    bool chamber;         // This topology file is a chamber-created topology file
     int parmFrames;       // For output, # of frames that will be read with this parm
 
     // Amber Parmtop
@@ -79,6 +80,7 @@ class AmberParm {
     int *resnums;       // IPRES(NRES) 
     int natom;          // NATOM
     int nres;           // NRES
+    int ifbox;          // IFBOX
     int finalSoluteRes; // IPTRES
     int molecules;      // NSPM
     int firstSolvMol;   // NSPSOL
