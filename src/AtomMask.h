@@ -3,7 +3,7 @@
 /// Class: AtomMask
 /// AtomMask is used to hold an array of integers that represent atom numbers
 /// of atoms selected based on a mask string. This class is actually an 
-/// interface to the ptraj mask parser written by Viktor Hornak (ptrajmask.cpp).
+/// interface to the ptraj mask parser written by Viktor Hornak (PtrajMask.cpp).
 /// Takes as input a string and an AmberParm class since the basic parser 
 /// requires access to ipres, atom names, etc.
 /// First the mask string is set via SetMaskString. Then the actual mask can

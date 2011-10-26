@@ -1,5 +1,5 @@
 SOURCE=main.cpp AmberParm.cpp \
-       Frame.cpp CpptrajState.cpp ArgList.cpp ptrajmask.cpp Action_Distance.cpp \
+       Frame.cpp CpptrajState.cpp ArgList.cpp PtrajMask.cpp Action_Distance.cpp \
        ParmFileList.cpp TrajinList.cpp TrajoutList.cpp ReferenceList.cpp \
        CoordFileList.cpp ActionList.cpp DataSet.cpp \
        DataSetList.cpp vectormath.cpp FrameList.cpp Action_Rmsd.cpp \
@@ -25,7 +25,7 @@ SOURCE=main.cpp AmberParm.cpp \
        DataSet_float.cpp CoordList.cpp
 
 OBJECTS=main.o AmberParm.o \
-        Frame.o CpptrajState.o ArgList.o ptrajmask.o Action_Distance.o \
+        Frame.o CpptrajState.o ArgList.o PtrajMask.o Action_Distance.o \
         ParmFileList.o TrajinList.o TrajoutList.o ReferenceList.o \
         CoordFileList.o ActionList.o DataSet.o \
         DataSetList.o vectormath.o FrameList.o Action_Rmsd.o \
@@ -51,7 +51,7 @@ OBJECTS=main.o AmberParm.o \
         DataSet_float.o CoordList.o
 
 HEADERS=AmberParm.h \
-        Frame.h CpptrajState.h ArgList.h ptrajmask.hpp Action.h Action_Distance.h \
+        Frame.h CpptrajState.h ArgList.h PtrajMask.h Action.h Action_Distance.h \
         ParmFileList.h TrajinList.h TrajoutList.h ReferenceList.h \
         CoordFileList.h ActionList.h DataSet.h \
         DataSetList.h vectormath.h FrameList.h Action_Rmsd.h \

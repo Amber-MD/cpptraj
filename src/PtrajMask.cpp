@@ -1,5 +1,5 @@
 /*  ____________________________________________________________________________
- *  ptrajmask:
+ *  PtrajMask:
  *  This is code for an enhanced atom mask parser developed by Viktor Hornak
  *  at SUNY Stony Brook (Stony Brook University), in March of 2003.  Cheatham
  *  long sat on this very nice code that greatly extends the capabilities (and
@@ -108,7 +108,7 @@
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
-#include "ptrajmask.hpp"
+#include "PtrajMask.h"
 // This is the only global and controls the level of debug information printed.
 int prnlev;
 

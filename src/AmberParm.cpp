@@ -565,7 +565,7 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   // the atom number of the next residue if it existed. Atom #s in resnums
   // should correspond with cpptraj atom #s (start from 0) instead of Amber
   // atom #s (start from 1). 
-  // Do this to be consistent with ptrajmask selection behavior - saves an 
+  // Do this to be consistent with PtrajMask selection behavior - saves an 
   // if-then statement.
   resnums=(int*) realloc(resnums,(nres+1)*sizeof(int));
   resnums[nres]=natom;
