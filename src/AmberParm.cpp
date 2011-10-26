@@ -1366,7 +1366,7 @@ int AmberParm::DetermineMolecules() {
   BondInfo mol;
   int bond3;
 
-  if (bonds==NULL || bondsh==NULL) {
+  if (bonds==NULL && bondsh==NULL) {
     mprinterr("Error: DetermineMolecules: No bond information set up.\n");
     return 1;
   }
@@ -1379,19 +1379,22 @@ int AmberParm::DetermineMolecules() {
     mol.SetValence(atom,names[atom]);
 
   // Go through the bonds and bondsh arrays
-  bond3 = NbondsWithH * 3;
-  for (int bond=0; bond < bond3; bond+=3) {
-    int atom1 = bondsh[bond  ] / 3;
-    int atom2 = bondsh[bond+1] / 3;
-    mol.CreateBond(atom1,atom2);
+  if (bondsh!=NULL) {
+    bond3 = NbondsWithH * 3;
+    for (int bond=0; bond < bond3; bond+=3) {
+      int atom1 = bondsh[bond  ] / 3;
+      int atom2 = bondsh[bond+1] / 3;
+      mol.CreateBond(atom1,atom2);
+    }
   }
-  bond3 = NbondsWithoutH * 3;
-  for (int bond=0; bond < bond3; bond+=3) {
-    int atom1 = bonds[bond  ] / 3;
-    int atom2 = bonds[bond+1] / 3;
-    mol.CreateBond(atom1,atom2);
+  if (bonds!=NULL) {
+    bond3 = NbondsWithoutH * 3;
+    for (int bond=0; bond < bond3; bond+=3) {
+      int atom1 = bonds[bond  ] / 3;
+      int atom2 = bonds[bond+1] / 3;
+      mol.CreateBond(atom1,atom2);
+    }
   }
- 
   atomsPerMol = mol.DetermineMolecules(&molecules);
  
   //mol.PrintBonds();
