@@ -51,7 +51,7 @@ OBJECTS=main.o AmberParm.o \
         DataSet_float.o CoordList.o
 
 HEADERS=AmberParm.h \
-        Frame.h CpptrajState.h ArgList.h ptrajmask.h Action.h Action_Distance.h \
+        Frame.h CpptrajState.h ArgList.h ptrajmask.hpp Action.h Action_Distance.h \
         ParmFileList.h TrajinList.h TrajoutList.h ReferenceList.h \
         CoordFileList.h ActionList.h DataSet.h \
         DataSetList.h vectormath.h FrameList.h Action_Rmsd.h \

@@ -108,7 +108,7 @@
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
-#include "ptrajmask.h"
+#include "ptrajmask.hpp"
 // This is the only global and controls the level of debug information printed.
 int prnlev;
 

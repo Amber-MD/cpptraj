@@ -1,7 +1,7 @@
 #include <cstring>
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
-#include "ptrajmask.h"
+#include "ptrajmask.hpp"
 
 // CONSTRUCTOR
 AtomMask::AtomMask() {
