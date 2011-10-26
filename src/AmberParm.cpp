@@ -405,9 +405,10 @@ bool AmberParm::IsSolventResname(NAME resnameIn) {
 }
 
 /* AmberParm::SetSolventInfo()
- * If atomsPerMol has been read in, set solvent information based on what
- * the firstSolvMol is. If atomsPerMol is not set, set solvent information by
- * residue name. 
+ * If atomsPerMol has been read in and firstSolvMol is set, determine solvent 
+ * information based on what firstSolvMol is. If firstSolvMol is not set, 
+ * determine solvent information by residue name, setting/resetting 
+ * atomsPerMol as necessary.
  */
 int AmberParm::SetSolventInfo() {
   int molAtom, maskAtom; 
@@ -422,26 +423,9 @@ int AmberParm::SetSolventInfo() {
   solventMolecules=0;
   solventAtoms=0;
 
-  // If atomsPerMol is set but firstSolvMol==-1, try to find first solvent
-  // molecule by residue name. 
-  if (atomsPerMol!=NULL && firstSolvMol==-1) {
-    int atomcount=0;
-    for (int mol = 0; mol < molecules; mol++) {
-      int resid = atomToResidue(atomcount);
-      if (IsSolventResname( resnames[resid] ) ) {
-        firstSolvMol = atomToMolecule(atomcount) + 1;
-        break;
-      }
-      atomcount += atomsPerMol[mol];
-    }
-  }
-
-  // If atomsPerMol is set but firstSolvMol is still -1, assume no solvent.
-  if (atomsPerMol!=NULL && firstSolvMol==-1) {
-      mprintf("\tWarning: atomsPerMol is set but no solvent detected.\n");
-
-  // Treat all the molecules starting with firstSolvMol (nspsol) as solvent
-  } else if (atomsPerMol!=NULL) {
+  // If atomsPerMol is set and firstSolvMol (nspsol) is also set, treat all 
+  // the molecules starting with firstSolvMol as solvent.
+  if (atomsPerMol!=NULL && firstSolvMol!=-1) {
     molAtom = 0;
     for (int mol=0; mol < molecules; mol++) {
       if (mol+1 >= firstSolvMol) {
@@ -456,13 +440,14 @@ int AmberParm::SetSolventInfo() {
       molAtom += atomsPerMol[mol];
     }
 
-  // Treat all residues named WAT/HOH as solvent.
-  // Consider all residues up to the first solvent residue to be in a
+  // Treat all residues with a recognized solvent name as solvent. This will 
+  // reset atomsPerMol from the first solvent molecule on. If atomsPerMol is 
+  // not set consider all residues up to the first solvent residue to be in a
   // single molecule.
-  // Atom #s in resnums at this point should start from 0, not 1
   } else if (resnums!=NULL) {
     firstSolvMol=-1;
-    for (int res=0; res < nres; res++) { 
+    for (int res=0; res < nres; res++) {
+      //mprintf("DEBUG:\tConsidering res %i %4s",res,resnames[res]); 
       if ( IsSolventResname(resnames[res])) {
         // Add this residue to the list of solvent 
         molAtom = resnums[res+1] - resnums[res];
@@ -471,28 +456,36 @@ int AmberParm::SetSolventInfo() {
         solventMoleculeStop[ solventMolecules] = resnums[res+1];
         for (maskAtom=resnums[res]; maskAtom < resnums[res+1]; maskAtom++)
           solventMask[maskAtom] = 'T';
-        // First time setup for atomsPerMol array
+        // If firstSolvMol==-1 this residue is the first solvent molecule 
         if (firstSolvMol==-1) {
-          // First residue is solvent, all is solvent.
-          if (res==0) {
-            finalSoluteRes=0; // Starts from 1, Amber convention
-            firstSolvMol=1;   // Starts from 1, Amber convention
-            molecules=0;
-            atomsPerMol=NULL;
-          } else {
-            finalSoluteRes=res; // Starts from 1, Amber convention
-            firstSolvMol=2;     // Starts from 1, Amber convention
-            molecules=1;
-            atomsPerMol = (int*) malloc( sizeof(int) );
-            atomsPerMol[0] = resnums[res];
+          // If atomsPerMol is not yet set up, initialize it. Consider all
+          // residues up to this one to be in a single molecule.
+          if (atomsPerMol==NULL) {
+            // First residue is solvent, all is solvent.
+            if (res==0) {
+              finalSoluteRes=0;   // Starts from 1, Amber convention
+              firstSolvMol=1;     // Starts from 1, Amber convention
+              molecules=0;
+            } else {
+              finalSoluteRes=res; // Starts from 1, Amber convention
+              firstSolvMol=2;     // Starts from 1, Amber convention
+              molecules=1;
+              atomsPerMol = (int*) malloc( sizeof(int) );
+              atomsPerMol[0] = resnums[res];
+            }
+          } else { 
+            molecules = atomToMolecule(resnums[res]);
+            firstSolvMol = molecules + 1; // Starts from 1, Amber convention
           }
         } 
+        //mprintf(" solvent mol %i, mol %i\n",solventMolecules,molecules); // DEBUG
         // Update atomsPerMol
         atomsPerMol = (int*) realloc(atomsPerMol, (molecules+1) * sizeof(int));
         atomsPerMol[molecules] = molAtom; 
         solventMolecules++;
         molecules++;
       } // END if residue is solvent
+        //else mprintf(" not solvent.\n"); // DEBUG
     }
   }
 
@@ -778,12 +771,12 @@ int AmberParm::SetAtomsPerMolPDB(int numAtoms) {
   if (numAtoms<1) return 0;
   // Check if the current residue is a solvent molecule
   //mprintf("DEBUG: Checking if %s is solvent.\n",resnames[nres-1]);
-  if (nres>0 && IsSolventResname(resnames[nres-1])) {
-    if (firstSolvMol==-1) {
-      firstSolvMol = molecules + 1; // +1 to be consistent w/ Amber top
-      finalSoluteRes = nres - 1;    // +1 to be consistent w/ Amber top
-    }
-  }
+  //if (nres>0 && IsSolventResname(resnames[nres-1])) {
+  //  if (firstSolvMol==-1) {
+  //    firstSolvMol = molecules + 1; // +1 to be consistent w/ Amber top
+  //    finalSoluteRes = nres - 1;    // +1 to be consistent w/ Amber top
+  //  }
+  //}
   atomsPerMol = (int*) realloc(atomsPerMol, (molecules+1) * sizeof(int) );
   atomsPerMol[molecules] = numAtoms;
   molecules++;
@@ -868,7 +861,7 @@ int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
     SetAtomsPerMolPDB(natom - atomInLastMol);
     // DEBUG
     if (debug>0) {
-      mprintf("\tPDB: firstSolvMol= %i\n",firstSolvMol);
+      //mprintf("\tPDB: firstSolvMol= %i\n",firstSolvMol);
       mprintf("\tPDB: finalSoluteRes= %i\n",finalSoluteRes);
       if (debug>1) {
         mprintf("\tPDB: Atoms Per Molecule:\n");
