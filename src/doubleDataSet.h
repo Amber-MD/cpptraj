@@ -14,6 +14,8 @@ class doubleDataSet : public DataSet {
     doubleDataSet();
 
     int Xmax();
+    double Min();
+    double Max();
     int isEmpty(int);
     void Add( int, void * );
     int Get(void *, int);

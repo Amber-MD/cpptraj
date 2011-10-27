@@ -55,6 +55,8 @@ class DataSet {
     virtual char *Write(char*, int)  { return 0; }
     virtual int Width()              { return 0; }
     virtual int Sync()               { return 0; }
+    virtual double Min()             { return 0; }
+    virtual double Max()             { return 0; }
     // Public functions
     void SetPrecision(int,int);
     int Setup(char*,int);

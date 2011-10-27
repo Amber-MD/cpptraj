@@ -108,7 +108,11 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
     //}
 
     // If no min arg and no default min arg, get min from dataset
+    if (!minArg && dmin == 0) 
+      dmin = dset->Min();
     // If no max arg and no default max arg, get max from dataset
+    if (!maxArg && dmax == 0)
+      dmax = dset->Max();
 
     // Check that min < max
     if (dmin >= dmax) {

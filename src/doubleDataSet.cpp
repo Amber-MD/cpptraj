@@ -27,6 +27,28 @@ int doubleDataSet::Xmax() {
   return ( (*it).first );
 } 
 
+/* doubleDataSet::Max()
+ */
+double doubleDataSet::Max() {
+  double max;
+  it = Data.begin();
+  max = (*it).second;
+  for (; it != Data.end(); it++)
+    if ( (*it).second > max ) max = (*it).second;
+  return max;
+}
+
+/* doubleDataSet::Min()
+ */
+double doubleDataSet::Min() {
+  double min;
+  it = Data.begin();
+  min = (*it).second;
+  for (; it != Data.end(); it++)
+    if ( (*it).second < min ) min = (*it).second;
+  return min;
+}
+
 /*
  * doubleDataSet::Add()
  * Insert data vIn at frame.
