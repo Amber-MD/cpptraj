@@ -246,8 +246,6 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   progress->Update(max);
   delete progress;
 
-
-  
   return 0;
 }
 
