@@ -1,8 +1,7 @@
-#include <cstdlib>
 #include <cstring>
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
-#include "ptrajmask.h"
+#include "PtrajMask.h"
 
 // CONSTRUCTOR
 AtomMask::AtomMask() {
@@ -16,17 +15,17 @@ AtomMask::AtomMask() {
 
 // DESTRUCTOR
 AtomMask::~AtomMask() {
-  if (maskString!=NULL) free(maskString);
-  if (Selected!=NULL) free(Selected);
-  if (CharMask!=NULL) free(CharMask);
+  if (maskString!=NULL) delete[] maskString;
+  if (Selected!=NULL) delete[] Selected;
+  if (CharMask!=NULL) delete[] CharMask;
 }
 
 /* AtomMask::Reset()
  */
 void AtomMask::Reset() {
-  if (maskString!=NULL) free(maskString);
-  if (Selected!=NULL) free(Selected);
-  if (CharMask!=NULL) free(CharMask);
+  if (maskString!=NULL) delete[] maskString;
+  if (Selected!=NULL) delete[] Selected;
+  if (CharMask!=NULL) delete[] CharMask;
   invertMask=false;
   maskString=NULL;
   Selected=NULL;
@@ -42,9 +41,57 @@ void AtomMask::AddAtom(int atom) {
   // Ensure atom is not already in mask
   for (int maskidx=0; maskidx < Nselected; maskidx++)
     if (Selected[maskidx]==atom) return;
-  Selected = (int*) realloc(Selected, (Nselected+1) * sizeof(int));
-  Selected[Nselected] = atom;
-  Nselected++;
+  int newN = Nselected + 1;
+  int *newSelected = new int[ newN ];
+  if (Selected!=NULL) {
+    memcpy(newSelected,Selected,Nselected*sizeof(int));
+    delete[] Selected;
+  }
+  newSelected[Nselected] = atom;
+  Selected = newSelected;
+  Nselected = newN;
+}
+
+/* AtomMask::AddAtoms()
+ * Given an array, add the atom numbers in array to the Selected array.
+ * NOTE: Unlike AddAtom the incoming list is not checked for duplicates.
+ */
+void AtomMask::AddAtoms(int *atomList, int N_to_add) {
+  if (atomList==NULL || N_to_add < 1) return;
+  // Allocate space for new array
+  int newN = Nselected + N_to_add;
+  int *newSelected = new int[ newN ];
+  // Copy over old selected array
+  if (Selected!=NULL) {
+    memcpy(newSelected, Selected, Nselected * sizeof(int));
+    delete[] Selected;
+  }
+  // Add atoms in atomList
+  for (int atom = 0; atom < N_to_add; atom++) 
+    newSelected[Nselected++] = atomList[atom];
+  Selected = newSelected;
+  Nselected = newN;
+}
+
+/* AtomMask::AddAtomRange()
+ * Add atoms in range from minAtom up to but not including maxAtom to 
+ * Selected array.
+ * NOTE: Does not check for duplicates.
+ */
+void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
+  if (minAtom >= maxAtom) return;
+  int newN = Nselected + (maxAtom - minAtom);
+  int *newSelected = new int[ newN ];
+  // Copy over old selected array
+  if (Selected!=NULL) {
+    memcpy(newSelected, Selected, Nselected * sizeof(int));
+    delete[] Selected;
+  }
+  // Add minAtom <= atom < maxAtom to Selected
+  for (int atom = minAtom; atom < maxAtom; atom++) 
+    newSelected[Nselected++] = atom;
+  Selected = newSelected;
+  Nselected = newN;
 }
 
 /* AtomMask::PrintMaskAtoms()
@@ -63,32 +110,62 @@ void AtomMask::PrintMaskAtoms() {
     mprintf("Warning: Mask [%s] has not been set up yet.\n",maskString);
 }
 
-/* AtomMask::Copy()
+/* AtomMask::operator=()
+ */
+AtomMask &AtomMask::operator=(const AtomMask &rhs) {
+  // Check for self assignment
+  if ( this == &rhs ) return *this;
+
+  // Deallocate
+  if (CharMask!=NULL) delete[] CharMask;
+  if (maskString!=NULL) delete[] maskString;
+  if (Selected!=NULL) delete[] Selected;
+
+  // Allocate and copy
+  invertMask = rhs.invertMask;
+  Nchar = rhs.Nchar;
+  Nselected = rhs.Nselected;
+  if (rhs.CharMask!=NULL) {
+    CharMask = new char[ Nchar ];
+    memcpy(CharMask, rhs.CharMask, Nchar * sizeof(char));
+  }
+  if (rhs.maskString!=NULL) {
+    maskString = new char[ strlen(rhs.maskString) + 1 ];
+    strcpy(maskString, rhs.maskString);
+  }
+  if (rhs.Selected!=NULL) {
+    Selected = new int[ Nselected ];
+    memcpy(Selected, rhs.Selected, Nselected * sizeof(int));
+  }
+
+  // Return *this
+  return *this;
+}
+
+/* AtomMask::CopyMask()
  * Return a copy of this atom mask.
  */
-AtomMask *AtomMask::Copy() {
-  int mask;
+AtomMask *AtomMask::CopyMask() {
   AtomMask *newMask;
   
   newMask = new AtomMask();
 
   if (this->Selected!=NULL) {
-    newMask->Selected = (int*) malloc(this->Nselected * sizeof(int));
-    for (mask=0; mask < this->Nselected; mask++) 
-      newMask->Selected[mask] = this->Selected[mask];
+    newMask->Selected = new int[ this->Nselected ];
+    memcpy(newMask->Selected, this->Selected, this->Nselected * sizeof(int));
     newMask->Nselected = this->Nselected;
   }
 
   newMask->invertMask = this->invertMask;
 
   if (this->maskString!=NULL) {
-    newMask->maskString = (char*) malloc( (strlen(this->maskString)+1) * sizeof(char));
+    newMask->maskString = new char[ strlen(this->maskString)+1 ];
     strcpy(newMask->maskString, this->maskString);
   }
 
   if (this->CharMask!=NULL) {
-    newMask->CharMask = (char*) malloc(this->Nchar * sizeof(char));
-    strcpy(newMask->CharMask, this->CharMask);
+    newMask->CharMask = new char[ this->Nchar ];
+    memcpy(newMask->CharMask, this->CharMask, this->Nchar * sizeof(char));
     newMask->Nchar = this->Nchar;
     newMask->Nselected = Nselected;
   }
@@ -101,13 +178,14 @@ AtomMask *AtomMask::Copy() {
  * If maskStringIn is NULL set to * (all atoms)
  */
 void AtomMask::SetMaskString(char *maskStringIn) {
-  if (maskString!=NULL) free(maskString);
+  if (maskString!=NULL) delete[] maskString;
   if (maskStringIn!=NULL) {
-    maskString = (char*) malloc( (strlen(maskStringIn)+1) * sizeof(char));
+    maskString = new char[ strlen(maskStringIn)+1 ];
     strcpy(maskString, maskStringIn);
   } else {
-    maskString = (char*) malloc( 2 * sizeof(char));
-    strcpy(maskString, "*");
+    maskString = new char[2];
+    maskString[0] = '*';
+    maskString[1] = '\0'; 
   }
 }
 
@@ -127,7 +205,6 @@ bool AtomMask::None() {
  * create an array of atoms that are not selected.
  */
 int AtomMask::SetupMask(AmberParm *Pin, int debug) {
-  int atom;
   char *mask;
   char maskChar;
 
@@ -153,16 +230,19 @@ int AtomMask::SetupMask(AmberParm *Pin, int debug) {
   // NOTE: For large selections this will use 4x the memory of the char atom
   //       mask. Could check to see which will be bigger.
   Nselected=0;
-  if (Selected!=NULL) free(Selected);
-  Selected = (int*) malloc( Pin->natom * sizeof(int) );
-  for (atom=0; atom<Pin->natom; atom++) {
+  if (Selected!=NULL) delete[] Selected;
+  Selected = new int[ Pin->natom ];
+  for (int atom=0; atom<Pin->natom; atom++) {
     if (mask[atom]==maskChar) {
       Selected[Nselected]=atom;
       Nselected++;
     }
   }
   // Resize array for number of selected atoms
-  Selected = (int*) realloc(Selected, Nselected * sizeof(int) );
+  int *newSelected = new int[ Nselected ];
+  memcpy(newSelected, Selected, Nselected * sizeof(int));
+  delete[] Selected;
+  Selected = newSelected;
 
   if (debug>0) {
     if (invertMask)
@@ -172,8 +252,8 @@ int AtomMask::SetupMask(AmberParm *Pin, int debug) {
       mprintf("          Mask %s corresponds to %i atoms.\n",maskString,Nselected);
   }
 
-  // Free the character mask, no longer needed
-  free(mask);
+  // Free the character mask, no longer needed.
+  delete[] mask;
   
   return 0;
 }
@@ -190,7 +270,7 @@ int AtomMask::SetupCharMask(AmberParm *Pin, int debug) {
 
   // Allocate atom mask - free mask if already allocated
   Nchar = 0;
-  if (CharMask!=NULL) free(CharMask);
+  if (CharMask!=NULL) delete[] CharMask;
   CharMask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
                              Pin->resnums, NULL, Pin->types, debug);
   if (CharMask==NULL) {
@@ -217,7 +297,7 @@ int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
 
   // Allocate atom mask - free mask if already allocated
   Nchar = 0;
-  if (CharMask!=NULL) free(CharMask);
+  if (CharMask!=NULL) delete[] CharMask;
   CharMask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
                              Pin->resnums, Xin, Pin->types, debug);
   if (CharMask==NULL) {

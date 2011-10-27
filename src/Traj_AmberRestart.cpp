@@ -153,27 +153,41 @@ int AmberRestart::setupWrite(AmberParm *trajParm) {
 
 /* AmberRestart::getBoxAngles()
  * Based on input buffer, determine num box coords and get box angles.
+ * If successful set hasBox to true.
  */
 int AmberRestart::getBoxAngles(char *boxline, int boxlineSize) {
   double box[6];
 
-  if (debug>0) mprintf("DEBUG: Restart BoxLine [%s]\n",boxline);
-  numBoxCoords = sscanf(boxline, "%8lf%8lf%8lf%8lf%8lf%8lf",box,box+1,box+2,box+3,box+4,box+5);
-  if (debug>0) mprintf("DEBUG: Restart numBoxCoords=%i\n",numBoxCoords);
-  if (numBoxCoords==3) {
+  numBoxCoords = sscanf(boxline, "%12lf%12lf%12lf%12lf%12lf%12lf",
+                        box,box+1,box+2,box+3,box+4,box+5);
+  if (debug>0) {
+    mprintf("DEBUG: Restart BoxLine [%s]\n",boxline);
+    mprintf("       Restart numBoxCoords=%i\n",numBoxCoords);
+  }
+  if (numBoxCoords==-1) {
+    // This can occur if there is an extra newline or whitespace at the end
+    // of the restart. Warn the user.
+    mprintf("Warning: Restart [%s] appears to have an extra newline or whitespace.\n",
+            tfile->basefilename);
+    mprintf("         Assuming no box information present.\n");
+    hasBox = false;
+
+  } else if (numBoxCoords==3) {
     // Lengths read but no angles. Set angles to 0.0, which indicates
     // the prmtop angle should be used in TrajectoryFile
     boxAngle[0]=0.0;
     boxAngle[1]=0.0;
     boxAngle[2]=0.0;
+    hasBox = true;
   } else if (numBoxCoords==6) {
     boxAngle[0]=box[3];
     boxAngle[1]=box[4];
     boxAngle[2]=box[5];
+    hasBox = true;
   } else {
-    mprinterr("Error: AmberRestart::getBoxAngles():\n");
-    mprinterr("       Expect only 3 or 6 box coords in box coord line, got %i.\n",numBoxCoords);
-    return 1;
+    mprintf("Warning: AmberRestart::getBoxAngles():\n");
+    mprintf("         Expect only 3 or 6 box coords in box coord line, got %i.\n",numBoxCoords);
+    hasBox = false;
   }
   return 0;
 }
@@ -216,29 +230,28 @@ int AmberRestart::setupRead(AmberParm *trajParm) {
   // Attempt a second read to get velocities or box coords
   lineSize = tfile->IO->Read(frameBuffer,sizeof(char),frameSize);
   //mprintf("DEBUG: Restart lineSize on second read = %i\n",lineSize);
+  hasVelocity = false;
+  hasBox = false;
 
   // If 0 or -1 no box or velo 
   if (lineSize<=0) {
-    hasBox=false; 
     hasVelocity=false;
+    hasBox=false; 
 
   // If filled framebuffer again, has velocity info. 
   } else if (lineSize==frameSize) {
     hasVelocity=true;
-    hasBox=false;
     // If we can read 1 more line after velocity, should be box info.
     if (tfile->IO->Gets(buffer,82)==0) {
       if (getBoxAngles(buffer,lineSize)) return -1;
-      hasBox=true;
     } 
 
   // If we read something but didnt fill framebuffer, should have box coords.
   } else if (lineSize<82) {
+    hasVelocity=false;
     strncpy(buffer,frameBuffer,lineSize);
     buffer[lineSize]='\0';
     if (getBoxAngles(buffer,lineSize)) return -1;
-    hasBox=true;
-    hasVelocity=false;
 
   // Otherwise, who knows what was read?
   } else {
@@ -259,6 +272,8 @@ int AmberRestart::setupRead(AmberParm *trajParm) {
     mprintf("    Amber Restart hasBox=%i hasVelocity=%i numBoxCoords=%i\n",
             (int)hasBox,(int)hasVelocity,numBoxCoords);
     mprintf("    Amber Restart frameSize= %i\n",frameSize);
+    if (hasBox) 
+      mprintf("    Amber Restart box: %lf %lf %lf\n", boxAngle[0],boxAngle[1],boxAngle[2]);
   }
  
   closeTraj();

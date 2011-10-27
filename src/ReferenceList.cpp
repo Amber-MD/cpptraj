@@ -127,7 +127,7 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       return 1;
     }
     // NOTE: Also use full file path??
-    refFrames->Add(CurrentFrame,(*traj)->TrajName(),CurrentParm,(*traj)->Start());
+    refFrames->AddRefFrame(CurrentFrame,(*traj)->TrajName(),CurrentParm,(*traj)->Start());
   }
   return 0;
 }

@@ -21,6 +21,9 @@ TriangleMatrix::~TriangleMatrix() {
 }
 
 /* TriangleMatrix::SaveFile()
+ * Save the matrix to a binary file. Format is 
+ *   Data: [4*char][int][int][nelements*float]
+ *   Vars: ['C''T''M'0][nrows][nelements][elements]
  */
 int TriangleMatrix::SaveFile(char *filename) {
   FILE *outfile;
@@ -68,7 +71,8 @@ int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
       magic[1] != 'T' ||
       magic[2] != 'M' ||
       magic[3] != 0     ) {
-    mprinterr("Error: TriangleMatrix::LoadFile: File %s magic number not CTM0!\n",filename);
+    mprinterr("Error: TriangleMatrix::LoadFile: File %s magic number not [%c%c%c%c]!\n",
+              magic[0],magic[1],magic[2],magic[3],filename);
     fclose(infile);
     return 1;
   }
@@ -148,7 +152,7 @@ TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
 }
 
 /* TriangleMatrix::AddElement()
- * Add the input value to the element array and increment currentElement.
+ * Add the input double to the element array and increment currentElement.
  * Return 1 on success, 0 if no more elements can be added.
  */
 int TriangleMatrix::AddElement(double elementIn) {
@@ -158,8 +162,20 @@ int TriangleMatrix::AddElement(double elementIn) {
   return 1;
 }
 
+/* TriangleMatrix::AddElement()
+ * Add the input float to the element array and increment currentElement.
+ * Return 1 on success, 0 if no more elements can be added.
+ */
+int TriangleMatrix::AddElement(float elementIn) {
+  if (currentElement>=nelements) return 0;
+  elements[currentElement] = elementIn;
+  currentElement++;
+  return 1;
+}
+
 /* TriangleMatrix::calcIndex()
  * Calculate index in elements array for given row and column.
+ * SHOULD NEVER BE CALLED WITH iIn == jIn!
  */
 int TriangleMatrix::calcIndex(int iIn, int jIn) {
   int i, j, i1;
@@ -182,20 +198,37 @@ int TriangleMatrix::calcIndex(int iIn, int jIn) {
 void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
   int idx;
 
+  if (iIn == jIn) return;
+
   idx = calcIndex(iIn, jIn);
 
   elements[idx] = (float) elementIn;
 }
 
 /* TriangleMatrix::GetElement()
- * Get the element at specified row and column.
+ * Get the element at specified row and column as a double.
  */
 double TriangleMatrix::GetElement(int iIn, int jIn) {
   int idx;
-  
+ 
+  if (iIn == jIn) return 0;
+ 
   idx = calcIndex(iIn, jIn);
 
   return (double)elements[idx];
+}
+
+/* TriangleMatrix::GetElementF()
+ * Get the element at specified row and column.
+ */
+float TriangleMatrix::GetElementF(int iIn, int jIn) {
+  int idx;
+  
+  if (iIn == jIn) return 0;
+ 
+  idx = calcIndex(iIn, jIn);
+
+  return elements[idx];
 }
 
 /* TriangleMatrix::FindMin()

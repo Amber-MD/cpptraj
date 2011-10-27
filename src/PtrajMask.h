@@ -1,9 +1,8 @@
-/// ptrajmask: The enhanced atom selection mask parser from ptraj.
+#ifndef INC_PTRAJMASK_H
+#define INC_PTRAJMASK_H
+/// PtrajMask: The enhanced atom selection mask parser from ptraj.
 /// Originally written by Viktor Hornak, Stony Brook University.
 /// Adapted as standalone code by Dan Roe, NIST.
-#ifdef __cplusplus
-extern "C" {
-#endif
 // The NAME parameters control how the mask parser expects strings to look.
 // Originally, the parameter file assumes the atom, residue, symbol, etc. 
 // names to be four characters. When stored as a string, the NULL character
@@ -27,6 +26,4 @@ extern "C" {
  * which contains the resulting atom selection
  */
 char *parseMaskString(char*,int,int,NAME*,NAME*,int*,double*,NAME*,int);
-#ifdef __cplusplus
-}
 #endif

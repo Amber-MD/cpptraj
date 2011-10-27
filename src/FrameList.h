@@ -17,8 +17,8 @@ class FrameList {
     FrameList();
     ~FrameList();
 
-    int Add(Frame *, char *, AmberParm *,int);
-    int Add(Frame *, AmberParm *);
+    int AddRefFrame(Frame *, char *, AmberParm *,int);
+    int AddFrame(Frame *, AmberParm *);
     AmberParm *GetFrameParm(int);
     int GetFrameIndex(char *);
     Frame *GetFrame(int idx);

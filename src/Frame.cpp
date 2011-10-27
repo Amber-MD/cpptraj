@@ -85,7 +85,7 @@ int Frame::SetupFrameV(int natomIn, double *massIn, bool hasVelocity) {
   return 0;
 }
 
-/* Frame::operator=
+/* Frame::operator=()
  */
 Frame &Frame::operator=(const Frame &rhs) {
   // Check for self assignment
@@ -146,6 +146,24 @@ int Frame::SetupFrameFromMask(AtomMask *Mask, double *massIn) {
     for (int i=0; i < natom; i++)
       Mass[i] = massIn[ Mask->Selected[i] ];
   }
+  return 0;
+}
+
+/* Frame::SetupFrameFromCoords()
+ * Given an array of floats, assign to coordinates. Reallocate as necessary.
+ */
+int Frame::SetupFrameFromCoords(float *CoordIn, int ncoord) {
+  // If # atoms in mask > current natom, reallocate coords array
+  natom = ncoord;
+  N = natom * 3;
+  if (natom>maxnatom) {
+    maxnatom = natom;
+    if (X!=NULL) delete[] X;
+    X = new double[ N ];
+  }
+  // Copy atoms in CoordIn to coords array
+  for (int crd = 0; crd < N; crd++)
+    X[crd] = (double) CoordIn[crd];
   return 0;
 }
 

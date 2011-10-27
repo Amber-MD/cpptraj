@@ -3,7 +3,7 @@
  * PDB, or Mol2 files (implemented in the ReadParmXXX functions). The following
  * parameters of AmberParm must always be set:
  *   The names, resnames, resnums arrays.
- *   The natom, ifbox and nres variables.
+ *   The natom, boxType and nres variables.
  * NOTES:
  */
 #include <cstdlib>
@@ -405,9 +405,10 @@ bool AmberParm::IsSolventResname(NAME resnameIn) {
 }
 
 /* AmberParm::SetSolventInfo()
- * If atomsPerMol has been read in, set solvent information based on what
- * the firstSolvMol is. If atomsPerMol is not set, set solvent information by
- * residue name. 
+ * If atomsPerMol has been read in and firstSolvMol is set, determine solvent 
+ * information based on what firstSolvMol is. If firstSolvMol is not set, 
+ * determine solvent information by residue name, setting/resetting 
+ * atomsPerMol as necessary.
  */
 int AmberParm::SetSolventInfo() {
   int molAtom, maskAtom; 
@@ -422,26 +423,9 @@ int AmberParm::SetSolventInfo() {
   solventMolecules=0;
   solventAtoms=0;
 
-  // If atomsPerMol is set but firstSolvMol==-1, try to find first solvent
-  // molecule by residue name. 
-  if (atomsPerMol!=NULL && firstSolvMol==-1) {
-    int atomcount=0;
-    for (int mol = 0; mol < molecules; mol++) {
-      int resid = atomToResidue(atomcount);
-      if (IsSolventResname( resnames[resid] ) ) {
-        firstSolvMol = atomToMolecule(atomcount) + 1;
-        break;
-      }
-      atomcount += atomsPerMol[mol];
-    }
-  }
-
-  // If atomsPerMol is set but firstSolvMol is still -1, assume no solvent.
-  if (atomsPerMol!=NULL && firstSolvMol==-1) {
-      mprintf("\tWarning: atomsPerMol is set but no solvent detected.\n");
-
-  // Treat all the molecules starting with firstSolvMol (nspsol) as solvent
-  } else if (atomsPerMol!=NULL) {
+  // If atomsPerMol is set and firstSolvMol (nspsol) is also set, treat all 
+  // the molecules starting with firstSolvMol as solvent.
+  if (atomsPerMol!=NULL && firstSolvMol!=-1) {
     molAtom = 0;
     for (int mol=0; mol < molecules; mol++) {
       if (mol+1 >= firstSolvMol) {
@@ -456,13 +440,14 @@ int AmberParm::SetSolventInfo() {
       molAtom += atomsPerMol[mol];
     }
 
-  // Treat all residues named WAT/HOH as solvent.
-  // Consider all residues up to the first solvent residue to be in a
+  // Treat all residues with a recognized solvent name as solvent. This will 
+  // reset atomsPerMol from the first solvent molecule on. If atomsPerMol is 
+  // not set consider all residues up to the first solvent residue to be in a
   // single molecule.
-  // Atom #s in resnums at this point should start from 0, not 1
   } else if (resnums!=NULL) {
     firstSolvMol=-1;
-    for (int res=0; res < nres; res++) { 
+    for (int res=0; res < nres; res++) {
+      //mprintf("DEBUG:\tConsidering res %i %4s",res,resnames[res]); 
       if ( IsSolventResname(resnames[res])) {
         // Add this residue to the list of solvent 
         molAtom = resnums[res+1] - resnums[res];
@@ -471,28 +456,36 @@ int AmberParm::SetSolventInfo() {
         solventMoleculeStop[ solventMolecules] = resnums[res+1];
         for (maskAtom=resnums[res]; maskAtom < resnums[res+1]; maskAtom++)
           solventMask[maskAtom] = 'T';
-        // First time setup for atomsPerMol array
+        // If firstSolvMol==-1 this residue is the first solvent molecule 
         if (firstSolvMol==-1) {
-          // First residue is solvent, all is solvent.
-          if (res==0) {
-            finalSoluteRes=0; // Starts from 1, Amber convention
-            firstSolvMol=1;   // Starts from 1, Amber convention
-            molecules=0;
-            atomsPerMol=NULL;
-          } else {
-            finalSoluteRes=res; // Starts from 1, Amber convention
-            firstSolvMol=2;     // Starts from 1, Amber convention
-            molecules=1;
-            atomsPerMol = (int*) malloc( sizeof(int) );
-            atomsPerMol[0] = resnums[res];
+          // If atomsPerMol is not yet set up, initialize it. Consider all
+          // residues up to this one to be in a single molecule.
+          if (atomsPerMol==NULL) {
+            // First residue is solvent, all is solvent.
+            if (res==0) {
+              finalSoluteRes=0;   // Starts from 1, Amber convention
+              firstSolvMol=1;     // Starts from 1, Amber convention
+              molecules=0;
+            } else {
+              finalSoluteRes=res; // Starts from 1, Amber convention
+              firstSolvMol=2;     // Starts from 1, Amber convention
+              molecules=1;
+              atomsPerMol = (int*) malloc( sizeof(int) );
+              atomsPerMol[0] = resnums[res];
+            }
+          } else { 
+            molecules = atomToMolecule(resnums[res]);
+            firstSolvMol = molecules + 1; // Starts from 1, Amber convention
           }
         } 
+        //mprintf(" solvent mol %i, mol %i\n",solventMolecules,molecules); // DEBUG
         // Update atomsPerMol
         atomsPerMol = (int*) realloc(atomsPerMol, (molecules+1) * sizeof(int));
         atomsPerMol[molecules] = molAtom; 
         solventMolecules++;
         molecules++;
       } // END if residue is solvent
+        //else mprintf(" not solvent.\n"); // DEBUG
     }
   }
 
@@ -556,13 +549,16 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   }
 
   parmfile.CloseFile();
-  if (err>0) return 1;
+  if (err>0) {
+    mprinterr("Error reading parm file [%s]\n",filename);
+    return 1;
+  }
 
   // Create a last dummy residue in resnums that holds natom, which would be
   // the atom number of the next residue if it existed. Atom #s in resnums
   // should correspond with cpptraj atom #s (start from 0) instead of Amber
   // atom #s (start from 1). 
-  // Do this to be consistent with ptrajmask selection behavior - saves an 
+  // Do this to be consistent with PtrajMask selection behavior - saves an 
   // if-then statement.
   resnums=(int*) realloc(resnums,(nres+1)*sizeof(int));
   resnums[nres]=natom;
@@ -618,16 +614,24 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
  * Read parameters from Amber Topology file
  */
 int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
-  int err, atom;
+  int atom, ifbox;
   int *solvent_pointer;
   double *boxFromParm;
   int *values;
   char *title;
+  bool chamber;         // This topology file is a chamber-created topology file
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
   // Title
   // NOTE: getFlagFileString uses 'new' operator.
   title = getFlagFileString(parmfile, "TITLE",debug);
+  // If title is NULL, check for CTITLE (chamber parm)
+  if (title==NULL) {
+    title = getFlagFileString(parmfile,"CTITLE",debug);
+    chamber = true;
+  } else {
+    chamber = false;
+  }
   if (debug>0) mprintf("\tAmberParm Title: %s\n",title);
   delete[] title;
   // Pointers
@@ -639,6 +643,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   // Set some commonly used values
   natom=values[NATOM];
   nres=values[NRES];
+  ifbox=values[IFBOX];
   NbondsWithH=values[NBONH];
   NbondsWithoutH=values[MBONA];
   if (debug>0) {
@@ -649,48 +654,47 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   ntypes = values[NTYPES];
   nnb = values[NNB];
   // Atom names/types, residue names/nums
-  err=0;
   names=(NAME*) getFlagFileValues(parmfile,"ATOM_NAME",natom,debug);
-  if (names==NULL) {mprintf("Error in atom names.\n"); err++;}
+  if (names==NULL) {mprintf("Error in atom names.\n"); return 1;}
   types=(NAME*) getFlagFileValues(parmfile,"AMBER_ATOM_TYPE",natom,debug);
-  if (types==NULL) {mprintf("Error in atom types.\n"); err++;}
+  if (types==NULL) {mprintf("Error in atom types.\n"); return 1;}
   resnames=(NAME*) getFlagFileValues(parmfile,"RESIDUE_LABEL",nres,debug);
-  if (resnames==NULL) {mprintf("Error in residue names.\n"); err++;}
+  if (resnames==NULL) {mprintf("Error in residue names.\n"); return 1;}
   resnums=(int*) getFlagFileValues(parmfile,"RESIDUE_POINTER",nres,debug);
-  if (resnums==NULL) {mprintf("Error in residue numbers.\n"); err++;}
+  if (resnums==NULL) {mprintf("Error in residue numbers.\n"); return 1;}
   // Atom #s in resnums are currently shifted +1. Shift back to be consistent
   // with the rest of cpptraj.
   for (atom=0; atom < nres; atom++)
     resnums[atom] -= 1;
   // Mass/charge
   mass=(double*) getFlagFileValues(parmfile,"MASS",natom,debug);
-  if (mass==NULL) {mprintf("Error in masses.\n"); err++;}
+  if (mass==NULL) {mprintf("Error in masses.\n"); return 1;}
   charge=(double*) getFlagFileValues(parmfile,"CHARGE",natom,debug);
-  if (charge==NULL) {mprintf("Error in charges.\n"); err++;}
+  if (charge==NULL) {mprintf("Error in charges.\n"); return 1;}
   // Convert charges to units of electron charge
   for (atom=0; atom < natom; atom++)
     charge[atom] *= (AMBERTOELEC);
   // Bond information
   bonds=(int*) getFlagFileValues(parmfile,"BONDS_WITHOUT_HYDROGEN",NbondsWithoutH*3,debug);
-  if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); err++;}
+  if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); return 1;}
   bondsh=(int*) getFlagFileValues(parmfile,"BONDS_INC_HYDROGEN",NbondsWithH*3,debug);
-  if (bondsh==NULL) {mprintf("Error in bonds inc H.\n"); err++;}
+  if (bondsh==NULL) {mprintf("Error in bonds inc H.\n"); return 1;}
   // Atom type index
   atype_index = (int*) getFlagFileValues(parmfile,"ATOM_TYPE_INDEX",natom,debug);
-  if (atype_index==NULL) {mprintf("Error in atom type index.\n"); err++;}
+  if (atype_index==NULL) {mprintf("Error in atom type index.\n"); return 1;}
   // Number of excluded atoms
   numex = (int*) getFlagFileValues(parmfile,"NUMBER_EXCLUDED_ATOMS",natom,debug);
-  if (numex==NULL) {mprintf("Error in number of excluded atoms.\n"); err++;}
+  if (numex==NULL) {mprintf("Error in number of excluded atoms.\n"); return 1;}
   // Nonbonded parm index
   NB_index = (int*) getFlagFileValues(parmfile,"NONBONDED_PARM_INDEX",ntypes*ntypes,debug);
-  if (NB_index==NULL) {mprintf("Error in nonbonded parameter index.\n"); err++;}
+  if (NB_index==NULL) {mprintf("Error in nonbonded parameter index.\n"); return 1;}
   // Lennard-Jones A/B coefficient
   LJ_A = (double*) getFlagFileValues(parmfile,"LENNARD_JONES_ACOEF",ntypes*(ntypes+1)/2,debug);
   LJ_B = (double*) getFlagFileValues(parmfile,"LENNARD_JONES_BCOEF",ntypes*(ntypes+1)/2,debug);
-  if (LJ_A==NULL || LJ_B==NULL) {mprintf("Error reading LJ parameters.\n"); err++;}
+  if (LJ_A==NULL || LJ_B==NULL) {mprintf("Error reading LJ parameters.\n"); return 1;}
   // List of excluded atoms
   excludedAtoms = (int*) getFlagFileValues(parmfile,"EXCLUDED_ATOMS_LIST",nnb,debug);
-  if (excludedAtoms==NULL) {mprintf("Error reading list of excluded atoms.\n"); err++;}
+  if (excludedAtoms==NULL) {mprintf("Error reading list of excluded atoms.\n"); return 1;}
   // Atom #s in excludedAtoms are currently shifted +1. Shift back to be consistent
   // with the rest of cpptraj.
   for (atom=0; atom < nnb; atom++)
@@ -701,13 +705,13 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   delete[] title;
   gb_radii = (double*) getFlagFileValues(parmfile,"RADII",natom,debug);
   gb_screen = (double*) getFlagFileValues(parmfile,"SCREEN",natom,debug);
-  if (gb_radii==NULL || gb_screen==NULL) {mprintf("Error reading gb parameters.\n"); err++;}
+  if (gb_radii==NULL || gb_screen==NULL) {mprintf("Error reading gb parameters.\n"); return 1;}
   // Get solvent info if IFBOX>0
   if (values[IFBOX]>0) {
     solvent_pointer=(int*) getFlagFileValues(parmfile,"SOLVENT_POINTERS",3,debug);
     if (solvent_pointer==NULL) {
       mprintf("Error in solvent pointers.\n"); 
-      err++;
+      return 1;
     } else {
       finalSoluteRes=solvent_pointer[0];
       molecules=solvent_pointer[1];
@@ -715,30 +719,43 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
       free(solvent_pointer);
     }
     atomsPerMol=(int*) getFlagFileValues(parmfile,"ATOMS_PER_MOLECULE",molecules,debug);
-    if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); err++;}
+    if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); return 1;}
     // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
     boxFromParm=(double*) getFlagFileValues(parmfile,"BOX_DIMENSIONS",4,debug);
-    if (boxFromParm==NULL) {mprintf("Error in Box information.\n"); err++;}
-    // Determine box type. Set Box angles and lengths from beta (boxFromParm[0])
-    boxType = SetBoxInfo(boxFromParm,Box,debug);
-    free(boxFromParm);
+    // If no box information present in the parm (such as with Chamber prmtops)
+    // set the box info if ifbox = 2, otherwise set to NOBOX; the box info will 
+    // eventually be set by angles from the first trajectory associated with 
+    // this parm.
+    if (boxFromParm==NULL) {
+      if (not chamber) mprintf("Warning: Prmtop missing Box information.\n");
+      // ifbox 2: truncated octahedron for certain
+      if (ifbox == 2) {
+        boxType = NONORTHO;
+        Box[0] = 0.0; Box[1] = 0.0; Box[2] = 0.0;
+        Box[3] = TRUNCOCTBETA;
+        Box[4] = TRUNCOCTBETA;
+        Box[5] = TRUNCOCTBETA;
+      } else
+        boxType = NOBOX;
+    // Determine box type, set Box angles and lengths from beta (boxFromParm[0])
+    } else {
+      boxType = SetBoxInfo(boxFromParm,Box,debug);
+      free(boxFromParm);
+    }
     if (debug>0) {
-      mprintf("    %s contains box info: %i mols, first solvent mol is %i\n",
+      mprintf("\t%s contains box info: %i mols, first solvent mol is %i\n",
               parmName, molecules, firstSolvMol);
-      mprintf("    BOX: %lf %lf %lf | %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3],Box[4],Box[5]);
+      mprintf("\tBOX: %lf %lf %lf | %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3],Box[4],Box[5]);
       if (boxType==ORTHO)
-        mprintf("         Box is orthogonal.\n");
+        mprintf("\t     Box is orthogonal.\n");
+      else if (boxType==NONORTHO)
+        mprintf("\t     Box is non-orthogonal.\n");
       else
-        mprintf("         Box is non-orthogonal.\n");
+        mprintf("\t     Box will be determined from first associated trajectory.\n");
     }
   }
 
   free(values);
-
-  if ( err>0 ) {
-    mprinterr("Error: %i errors when reading amber topology file %s\n",err,parmfileName);
-    return 1;
-  }
 
   return 0;
 }
@@ -754,12 +771,12 @@ int AmberParm::SetAtomsPerMolPDB(int numAtoms) {
   if (numAtoms<1) return 0;
   // Check if the current residue is a solvent molecule
   //mprintf("DEBUG: Checking if %s is solvent.\n",resnames[nres-1]);
-  if (nres>0 && IsSolventResname(resnames[nres-1])) {
-    if (firstSolvMol==-1) {
-      firstSolvMol = molecules + 1; // +1 to be consistent w/ Amber top
-      finalSoluteRes = nres - 1;    // +1 to be consistent w/ Amber top
-    }
-  }
+  //if (nres>0 && IsSolventResname(resnames[nres-1])) {
+  //  if (firstSolvMol==-1) {
+  //    firstSolvMol = molecules + 1; // +1 to be consistent w/ Amber top
+  //    finalSoluteRes = nres - 1;    // +1 to be consistent w/ Amber top
+  //  }
+  //}
   atomsPerMol = (int*) realloc(atomsPerMol, (molecules+1) * sizeof(int) );
   atomsPerMol[molecules] = numAtoms;
   molecules++;
@@ -844,7 +861,7 @@ int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
     SetAtomsPerMolPDB(natom - atomInLastMol);
     // DEBUG
     if (debug>0) {
-      mprintf("\tPDB: firstSolvMol= %i\n",firstSolvMol);
+      //mprintf("\tPDB: firstSolvMol= %i\n",firstSolvMol);
       mprintf("\tPDB: finalSoluteRes= %i\n",finalSoluteRes);
       if (debug>1) {
         mprintf("\tPDB: Atoms Per Molecule:\n");
@@ -1182,14 +1199,10 @@ int AmberParm::atomToResidue(int atom) {
  * Given an atom number, return corresponding molecule number.
  */
 int AmberParm::atomToMolecule(int atom) {
-  int i, a, atom1;
-
-  atom1 = atom + 1; // Since in atomsPerMol numbers start from 1
-  a = 0;
-  for (i = 0; i < molecules; i++) {
+  int a = 0;
+  for (int i = 0; i < molecules; i++) {
     a += atomsPerMol[i];
-    if (atom1 <= a)
-      return i;
+    if (atom < a) return i;
   }
   return -1;
 }
@@ -1260,34 +1273,87 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
 
 /* AmberParm::GetBondsFromCoords()
  * Given an array of coordinates X0Y0Z0X1Y1Z1...XNYNZN determine which
- * atoms are bonded via distance search.
+ * atoms are bonded via distance search. First check for bonds within
+ * residues, then check for bonds between adjacent residues. Adjacent
+ * residues in different molecules are not considered.
  */
 void AmberParm::GetBondsFromCoords() {
+  int res, startatom, stopatom, midatom,atom1, atom2, idx1, idx2;
+  double D, cut;
+  int *resmols;
   if (parmCoords==NULL) return;
-  // Determine bonding from distance search.
   mprintf("\t%s: determining bond info from distances.\n",parmName);
-  for (int atom1 = 0; atom1 < natom - 1; atom1++) {
-    int idx1 = atom1 * 3;
-    for (int atom2 = atom1 + 1; atom2 < natom; atom2++) {
-      int idx2 = atom2 * 3;
-      double D = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
-      //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
-      double cut = GetBondedCut(names[atom1],names[atom2]);
-      cut *= cut; // Op '*' less expensive than sqrt
-      if (debug>0) {
-        if (debug==1) {
-          if (D<cut) mprintf("\tBOND: %s %i to %s %i\n",names[atom1],atom1+1,
-                              names[atom2],atom2+1);
-        } else if (debug > 1) {
-          mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
-                  names[atom2],atom2+1,D,cut);
-          if (D<cut) mprintf(" bonded!");
-          mprintf("\n");
-        }
+  // Determine bonds within residues.
+  for (res = 0; res < nres; res++) {
+    startatom = resnums[res];
+    stopatom = resnums[res+1];
+    //mprintf("\t\tDetermining bonds within residue %i\n",res);
+    for (atom1 = startatom; atom1 < stopatom - 1; atom1++) {
+      idx1 = atom1 * 3;
+      for (atom2 = atom1 + 1; atom2 < stopatom; atom2++) {
+        idx2 = atom2 * 3;
+        D = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
+        //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
+        cut = GetBondedCut(names[atom1],names[atom2]);
+        cut *= cut; // Op '*' less expensive than sqrt
+//        if (debug>0) {
+//          if (debug==1) {
+//            if (D<cut) mprintf("\tBOND: %s %i to %s %i\n",names[atom1],atom1+1,
+//                                names[atom2],atom2+1);
+//          } else if (debug > 1) {
+//            mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
+//                    names[atom2],atom2+1,D,cut);
+//            if (D<cut) mprintf(" bonded!");
+//            mprintf("\n");
+//          }
+//        }
+        if (D < cut) AddBond(atom1,atom2,-1);
       }
-      if (D < cut) AddBond(atom1,atom2,-1); 
     }
   }
+
+  // If atomsPerMol has been set up, create an array that will contain the 
+  // molecule number of each residue.
+  resmols = new int[ nres ];
+  if (atomsPerMol!=NULL) {
+    int molnum = 0;
+    int atotal = atomsPerMol[0];
+    for (res = 0; res < nres; res++) {
+      resmols[res] = molnum;
+      if (resnums[res+1] >= atotal) {
+        molnum++;
+        if (molnum >= molecules) break;
+        atotal += atomsPerMol[molnum];
+      }
+    }
+  } else
+    memset(resmols, 0, nres * sizeof(int));
+  // DEBUG
+  //for (res = 0; res < nres; res++) 
+  //  mprintf("DEBUG\tRes %8i %4s Mol %8i\n",res+1,resnames[res],resmols[res]);
+
+  // Determine bonds between adjacent residues.
+  for (res = 1; res < nres; res++) {
+    // Dont check for bonds between residues that are in different molecules
+    if (resmols[res-1] != resmols[res]) continue;
+    startatom = resnums[res-1];
+    midatom = resnums[res];
+    stopatom = resnums[res+1];
+    //mprintf("\t\tDetermining bonds between residues %i and %i\n",res-1,res);
+    for (atom1 = startatom; atom1 < midatom; atom1++) {
+      idx1 = atom1 * 3;
+      for (atom2 = midatom; atom2 < stopatom; atom2++) {
+        idx2 = atom2 * 3;
+        D = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
+        cut = GetBondedCut(names[atom1],names[atom2]);
+        cut *= cut;
+        if (D < cut) AddBond(atom1,atom2,-1);
+      } 
+    }
+  }
+  
+  delete[] resmols;
+
   mprintf("\t%s: %i bonds to hydrogen, %i other bonds.\n",parmName,NbondsWithH,NbondsWithoutH);
 }
 
@@ -1300,7 +1366,7 @@ int AmberParm::DetermineMolecules() {
   BondInfo mol;
   int bond3;
 
-  if (bonds==NULL || bondsh==NULL) {
+  if (bonds==NULL && bondsh==NULL) {
     mprinterr("Error: DetermineMolecules: No bond information set up.\n");
     return 1;
   }
@@ -1313,19 +1379,22 @@ int AmberParm::DetermineMolecules() {
     mol.SetValence(atom,names[atom]);
 
   // Go through the bonds and bondsh arrays
-  bond3 = NbondsWithH * 3;
-  for (int bond=0; bond < bond3; bond+=3) {
-    int atom1 = bondsh[bond  ] / 3;
-    int atom2 = bondsh[bond+1] / 3;
-    mol.CreateBond(atom1,atom2);
+  if (bondsh!=NULL) {
+    bond3 = NbondsWithH * 3;
+    for (int bond=0; bond < bond3; bond+=3) {
+      int atom1 = bondsh[bond  ] / 3;
+      int atom2 = bondsh[bond+1] / 3;
+      mol.CreateBond(atom1,atom2);
+    }
   }
-  bond3 = NbondsWithoutH * 3;
-  for (int bond=0; bond < bond3; bond+=3) {
-    int atom1 = bonds[bond  ] / 3;
-    int atom2 = bonds[bond+1] / 3;
-    mol.CreateBond(atom1,atom2);
+  if (bonds!=NULL) {
+    bond3 = NbondsWithoutH * 3;
+    for (int bond=0; bond < bond3; bond+=3) {
+      int atom1 = bonds[bond  ] / 3;
+      int atom2 = bonds[bond+1] / 3;
+      mol.CreateBond(atom1,atom2);
+    }
   }
- 
   atomsPerMol = mol.DetermineMolecules(&molecules);
  
   //mol.PrintBonds();
@@ -1605,7 +1674,6 @@ int AmberParm::WriteAmberParm(char *filename) {
   CpptrajFile outfile;
   char *buffer,*filebuffer;
   int solvent_pointer[3];
-  int atom;
   int *values;
   double parmBox[4];
   // For date and time
@@ -1632,25 +1700,26 @@ int AmberParm::WriteAmberParm(char *filename) {
   //outfile.IO->Printf("%-80s\n",parmName);
 
   // Calculate necessary buffer size
+  // FFSIZE is defined in FortranFormat.h, Combined size of %FLAG and %FORMAT lines (81 * 2)
   BufferSize=0;
-  BufferSize += (GetFortranBufferSize(F10I8,AMBERPOINTERS,0)+FFSIZE); // POINTERS
-  BufferSize += (GetFortranBufferSize(F20a4,natom,0)+FFSIZE); // ATOM_NAME 
-  if (charge!=NULL) BufferSize += (GetFortranBufferSize(F5E16_8,natom,0)+FFSIZE); // CHARGE
-  if (mass!=NULL) BufferSize += (GetFortranBufferSize(F5E16_8,natom,0)+FFSIZE); // MASS
-  BufferSize += (GetFortranBufferSize(F20a4,nres,0)+FFSIZE); // RESIDUE_LABEL
-  BufferSize += (GetFortranBufferSize(F10I8,nres,0)+FFSIZE); // RESIDUE_POINTER
-  if (types!=NULL) BufferSize += (GetFortranBufferSize(F20a4,natom,0)+FFSIZE); // ATOM_TYPE
-  if (bondsh!=NULL) BufferSize += (GetFortranBufferSize(F10I8,NbondsWithH*3,0)+FFSIZE); // BONDSH
-  if (bonds!=NULL) BufferSize += (GetFortranBufferSize(F10I8,NbondsWithoutH*3,0)+FFSIZE); // BONDS
+  BufferSize += (GetFortranBufferSize(AMBERPOINTERS,0,8,10)+FFSIZE); // POINTERS
+  BufferSize += (GetFortranBufferSize(natom,0,4,20)+FFSIZE); // ATOM_NAME 
+  if (charge!=NULL) BufferSize += (GetFortranBufferSize(natom,0,16,5)+FFSIZE); // CHARGE
+  if (mass!=NULL) BufferSize += (GetFortranBufferSize(natom,0,16,5)+FFSIZE); // MASS
+  BufferSize += (GetFortranBufferSize(nres,0,4,20)+FFSIZE); // RESIDUE_LABEL
+  BufferSize += (GetFortranBufferSize(nres,0,8,10)+FFSIZE); // RESIDUE_POINTER
+  if (types!=NULL) BufferSize += (GetFortranBufferSize(natom,0,4,20)+FFSIZE); // ATOM_TYPE
+  if (bondsh!=NULL) BufferSize += (GetFortranBufferSize(NbondsWithH*3,0,8,10)+FFSIZE); // BONDSH
+  if (bonds!=NULL) BufferSize += (GetFortranBufferSize(NbondsWithoutH*3,0,8,10)+FFSIZE); // BONDS
   if (AmberIfbox(Box[4])>0) {
     if (firstSolvMol!=-1)
-      BufferSize += (GetFortranBufferSize(F3I8,3,0)+FFSIZE); // SOLVENT_POINTER
+      BufferSize += (GetFortranBufferSize(3,0,8,3)+FFSIZE); // SOLVENT_POINTER
     if (atomsPerMol!=NULL)
-      BufferSize += (GetFortranBufferSize(F10I8,molecules,0)+FFSIZE); // ATOMSPERMOL
-    BufferSize += (GetFortranBufferSize(F5E16_8,4,0)+FFSIZE); // BOX
+      BufferSize += (GetFortranBufferSize(molecules,0,8,10)+FFSIZE); // ATOMSPERMOL
+    BufferSize += (GetFortranBufferSize(4,0,16,5)+FFSIZE); // BOX
   }
   // 1 extra char for NULL
-  filebuffer = (char*) malloc( (BufferSize+1) * sizeof(char));
+  filebuffer = new char[ BufferSize + 1];
   if (debug>0)
     mprintf("DEBUG: Parm %s: Buffer size is %lu bytes.\n",filename,BufferSize);
   if (filebuffer==NULL) {
@@ -1666,81 +1735,64 @@ int AmberParm::WriteAmberParm(char *filename) {
   values[NBONH]=NbondsWithH;
   values[MBONA]=NbondsWithoutH;
   values[IFBOX]=AmberIfbox(Box[4]);
-  buffer = DataToFortranBuffer(buffer,"%FLAG POINTERS", F10I8, values, NULL, NULL, AMBERPOINTERS);
-
+  buffer = DataToFortranBuffer(buffer,F_POINTERS, values, NULL, NULL, AMBERPOINTERS);
   // ATOM NAMES
-  buffer = DataToFortranBuffer(buffer,"%FLAG ATOM_NAME", F20a4, NULL, NULL, names, natom);
-
+  buffer = DataToFortranBuffer(buffer,F_NAMES, NULL, NULL, names, natom);
   // CHARGE - might be null if read from pdb
   if (charge!=NULL) {
     // Convert charges to AMBER charge units
-    for (atom=0; atom<natom; atom++)
-      charge[atom] *= (ELECTOAMBER);
-    buffer = DataToFortranBuffer(buffer,"%FLAG CHARGE",F5E16_8, NULL, charge, NULL, natom);
+    double *tempCharge = new double[ natom ];
+    memcpy(tempCharge, charge, natom * sizeof(double));
+    for (int atom=0; atom<natom; atom++)
+      tempCharge[atom] *= (ELECTOAMBER);
+    buffer = DataToFortranBuffer(buffer,F_CHARGE, NULL, tempCharge, NULL, natom);
+    delete[] tempCharge;
   }
-
   // MASS - might be null if read from pdb
-  if (mass!=NULL) { 
-    buffer = DataToFortranBuffer(buffer,"%FLAG MASS",F5E16_8, NULL, mass, NULL, natom);
-  }
-
+  if (mass!=NULL)  
+    buffer = DataToFortranBuffer(buffer,F_MASS, NULL, mass, NULL, natom);
   // RESIDUE LABEL - resnames
-  buffer = DataToFortranBuffer(buffer,"%FLAG RESIDUE_LABEL",F20a4, NULL, NULL, resnames, nres);
-
+  buffer = DataToFortranBuffer(buffer,F_RESNAMES, NULL, NULL, resnames, nres);
   // RESIDUE POINTER - resnums, IPRES
   // Shift atom #s in resnums by 1 to be consistent with AMBER
-  for (atom=0; atom < nres; atom++)
-    resnums[atom] += 1;
-  buffer = DataToFortranBuffer(buffer,"%FLAG RESIDUE_POINTER",F10I8, resnums, NULL, NULL, nres);
-  // Now shift them back
-  for (atom=0; atom < nres; atom++)
-    resnums[atom] -= 1;
-
+  int *tempResnums = new int[ nres ];
+  memcpy(tempResnums, resnums, nres * sizeof(int));
+  for (int res=0; res < nres; res++)
+    tempResnums[res] += 1;
+  buffer = DataToFortranBuffer(buffer,F_RESNUMS, tempResnums, NULL, NULL, nres);
+  delete[] tempResnums;
   // AMBER ATOM TYPE - might be null if read from pdb
-  if (types!=NULL) {
-    buffer = DataToFortranBuffer(buffer,"%FLAG AMBER_ATOM_TYPE",F20a4, NULL, NULL, types, natom);
-  }
-
+  if (types!=NULL) 
+    buffer = DataToFortranBuffer(buffer,F_TYPES, NULL, NULL, types, natom);
   // BONDS INCLUDING HYDROGEN - might be null if read from pdb
-  if (bondsh != NULL) {
-    buffer = DataToFortranBuffer(buffer,"%FLAG BONDS_INC_HYDROGEN",F10I8, bondsh, 
-                                 NULL, NULL, NbondsWithH*3);
-  }
-
+  if (bondsh != NULL) 
+    buffer = DataToFortranBuffer(buffer,F_BONDSH, bondsh, NULL, NULL, NbondsWithH*3);
   // BONDS WITHOUT HYDROGEN - might be null if read from pdb
-  if (bonds!=NULL) {
-    buffer = DataToFortranBuffer(buffer,"%FLAG BONDS_WITHOUT_HYDROGEN",F10I8, bonds, 
-                          NULL, NULL, NbondsWithoutH*3);
-  }
-
+  if (bonds!=NULL) 
+    buffer = DataToFortranBuffer(buffer,F_BONDS, bonds, NULL, NULL, NbondsWithoutH*3);
   // SOLVENT POINTERS
   if (values[IFBOX]>0) {
     if (firstSolvMol!=-1) {
       solvent_pointer[0]=finalSoluteRes;
       solvent_pointer[1]=molecules;
       solvent_pointer[2]=firstSolvMol;
-      buffer = DataToFortranBuffer(buffer,"%FLAG SOLVENT_POINTERS",F3I8, solvent_pointer, 
-                                   NULL, NULL, 3);
+      buffer = DataToFortranBuffer(buffer,F_SOLVENT_POINTER, solvent_pointer, NULL, NULL, 3);
     }
-
     // ATOMS PER MOLECULE
     if (atomsPerMol!=NULL) {
-      buffer = DataToFortranBuffer(buffer,"%FLAG ATOMS_PER_MOLECULE",F10I8, atomsPerMol, 
-                                   NULL, NULL, molecules);
+      buffer = DataToFortranBuffer(buffer,F_ATOMSPERMOL, atomsPerMol, NULL, NULL, molecules);
     }
-
     // BOX DIMENSIONS
     parmBox[0] = Box[4]; // beta
     parmBox[1] = Box[0]; // boxX
     parmBox[2] = Box[1]; // boxY
     parmBox[3] = Box[2]; // boxZ
-    buffer = DataToFortranBuffer(buffer,"%FLAG BOX_DIMENSIONS",F5E16_8, NULL, 
-                                 parmBox, NULL, 4);
+    buffer = DataToFortranBuffer(buffer,F_PARMBOX, NULL, parmBox, NULL, 4);
   }
 
   // Write buffer to file
   outfile.IO->Write(filebuffer, sizeof(char), BufferSize);
-  free(filebuffer);
+  delete[] filebuffer;
   free(values);
   outfile.CloseFile();
 

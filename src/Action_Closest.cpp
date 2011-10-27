@@ -15,7 +15,6 @@
 Closest::Closest() {
   //fprintf(stderr,"Closest Con\n");
   noimage=false;
-  tempMask=NULL;
   firstAtom=false;
   imageType=0;
   oldParm=NULL;
@@ -35,7 +34,6 @@ Closest::~Closest() {
   //fprintf(stderr,"Closest Destructor.\n");
   this->ClearMaskList(); 
   if (newParm!=NULL) delete newParm;
-  if (tempMask!=NULL) delete tempMask;
   if (outList!=NULL) delete outList;
 }
 
@@ -130,7 +128,7 @@ int Closest::init( ) {
  * parm file. Atom masks for each solvent molecule will be set up.
  */
 int Closest::setup() {
-  int solventMol, solventAtom, NsolventAtoms;
+  int solventMol, NsolventAtoms; // solventAtom, 
   MolDist solvent;
 
   // If there are no solvent molecules this action is not valid.
@@ -162,6 +160,7 @@ int Closest::setup() {
   }
 
   // Setup solute atom mask
+  // NOTE: Should ensure that no solvent atoms are selected!
   if ( Mask1.SetupMask(P,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Closest::setup: Mask %s contains no atoms.\n",Mask1.maskString);
@@ -191,21 +190,12 @@ int Closest::setup() {
   // parm.
   // solventMoleculeStop is really the first atom of the next molecule.
   // Use temporary mask to keep original mask unmodified.
-  if (tempMask!=NULL) delete tempMask;
-  tempMask = Mask1.Copy();
+  tempMask = Mask1;
   NsolventAtoms = P->solventMoleculeStop[closestWaters-1] - P->solventMoleculeStart[0];
-  tempMask->Selected = (int*) realloc( tempMask->Selected, 
-                                       (tempMask->Nselected + NsolventAtoms) * sizeof(int));
+  //int *atomList = new int[ NsolventAtoms ];
   mprintf("    CLOSEST: Keeping %i solvent atoms.\n",NsolventAtoms);
   // Put solvent atom #s at end of temporary array for creating stripped parm
-  for ( solventMol=0; solventMol < closestWaters; solventMol++) {
-    for ( solventAtom = P->solventMoleculeStart[solventMol];
-          solventAtom < P->solventMoleculeStop[solventMol];
-          solventAtom++ ) {
-      //fprintf(stdout,"      Saving solvent atom %i\n",solventAtom+1);
-      tempMask->Selected[tempMask->Nselected++] = solventAtom;
-    }
-  }
+  tempMask.AddAtomRange(P->solventMoleculeStart[0], P->solventMoleculeStop[closestWaters-1]);
 
   // Store old parm
   oldParm = P;
@@ -221,17 +211,13 @@ int Closest::setup() {
     SolventMols[solventMol].mol = oldParm->firstSolvMol + solventMol;
     // Setup solvent molecule mask
     SolventMols[solventMol].mask = new AtomMask();
-    for (solventAtom = oldParm->solventMoleculeStart[solventMol];
-         solventAtom < oldParm->solventMoleculeStop[solventMol];
-         solventAtom++) 
-    {
-      SolventMols[solventMol].mask->AddAtom(solventAtom);
-    }
+    SolventMols[solventMol].mask->AddAtomRange(oldParm->solventMoleculeStart[solventMol],
+                                               oldParm->solventMoleculeStop[solventMol]  );
   }
 
   // Create stripped Parm
   if (newParm!=NULL) delete newParm;
-  newParm = P->modifyStateByMask(tempMask->Selected, tempMask->Nselected);
+  newParm = P->modifyStateByMask(tempMask.Selected, tempMask.Nselected);
   if (newParm==NULL) {
     mprintf("    Error: Closest::setup: Could not create new parmtop.\n");
     return 1;
@@ -342,7 +328,7 @@ int Closest::action() {
                                        solvent++ ) 
   {
     for (solventAtom = 0; solventAtom < (*solvent).mask->Nselected; solventAtom++)
-      tempMask->Selected[maskPosition++] = (*solvent).mask->Selected[solventAtom];
+      tempMask.Selected[maskPosition++] = (*solvent).mask->Selected[solventAtom];
     // Record which water molecules are closest if requested
     if (outFile!=NULL) {
       framedata->Add(Nclosest, &currentFrame);
@@ -359,7 +345,7 @@ int Closest::action() {
   }
 
   // Modify and set frame
-  newFrame.SetFrameFromMask(F, tempMask);
+  newFrame.SetFrameFromMask(F, &tempMask);
   F = &newFrame;
 
   return 0;

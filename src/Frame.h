@@ -31,6 +31,7 @@ class Frame {
     int SetupFrameV(int,double*,bool);
     Frame & operator=(const Frame&);
     int SetupFrameFromMask(AtomMask *, double *);
+    int SetupFrameFromCoords(float *, int);
     Frame *FrameCopy();
     int Resize(int,bool,bool);
 

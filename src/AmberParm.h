@@ -5,7 +5,7 @@
 /// etc). Can be read in from Amber Topology, PDB, or Mol2 files (implemented 
 /// in the ReadParmXXX functions). The following parameters of AmberParm must 
 /// always be set:
-///   1. Variables: natom, nres, and ifbox
+///   1. Variables: natom, nres, boxType 
 ///   2.    Arrays: names, resnames, resnums
 #include "CpptrajFile.h"
 #include "BoxType.h" 

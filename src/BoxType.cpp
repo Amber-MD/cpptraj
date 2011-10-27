@@ -3,8 +3,6 @@
 #include <cstddef>
 #include "CpptrajStdio.h"
 
-#define TRUNCOCTBETA 109.4712206344906917365733534097672
-
 /* CheckBoxType()
  * Determine box type (none/ortho/nonortho) based on box angles.
  */
@@ -97,3 +95,4 @@ BoxType SetBoxInfo(double *bIn, double *Box, int debug) {
   }
   return btype;
 }
+

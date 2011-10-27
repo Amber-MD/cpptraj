@@ -10,6 +10,7 @@
 #include "stringDataSet.h"
 #include "intDataSet.h"
 #include "mapDataSet.h"
+#include "DataSet_float.h"
 
 // CONSTRUCTOR
 DataSetList::DataSetList() {
@@ -115,6 +116,7 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
   }
   switch (inType) {
     case DOUBLE       : D = new doubleDataSet(); break;
+    case FLOAT        : D = new DataSet_float(); break;
     case STRING       : D = new stringDataSet(); break;
     case INT          : D = new intDataSet(); break;
     case MAP          : D = new mapDataSet(); break;
@@ -166,8 +168,10 @@ DataSet *DataSetList::AddIdx(dataType inType, char *nameIn, int idxIn) {
   // Allocate dataset type
   switch (inType) {
     case DOUBLE       : D = new doubleDataSet(); break;
+    case FLOAT        : D = new DataSet_float(); break;
     case STRING       : D = new stringDataSet(); break;
     case INT          : D = new intDataSet(); break;
+    case MAP          : D = new mapDataSet(); break;
     case UNKNOWN_DATA :
     default           :
       mprinterr("Error: DataSetList::AddIdx: Unknown set type.\n");

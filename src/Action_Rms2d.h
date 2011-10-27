@@ -4,8 +4,10 @@
 /// Action to calculate the RMSD between two sets of frames.
 #include "Action.h"
 #include "TrajectoryFile.h"
+#include "CoordList.h"
+#include "TriangleMatrix.h"
 class Rms2d: public Action {
-    FrameList ReferenceFrames; // Hold frames from all trajin stmts
+    CoordList ReferenceCoords; // Hold coords from input frames.
     bool nofit;                // Do not perform rms fitting
     AtomMask RefMask;          // Reference atom mask
     AtomMask FrameMask;        // Target atom mask
@@ -14,6 +16,8 @@ class Rms2d: public Action {
     TrajectoryFile *RefTraj;   // Reference trajectory, each frame used in turn
     AmberParm *RefParm;        // Reference trajectory Parm
 
+    void Calc2drms(TriangleMatrix*);
+    void CalcRmsToTraj();
   public:
     Rms2d();
     ~Rms2d();

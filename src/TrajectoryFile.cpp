@@ -333,40 +333,51 @@ int TrajectoryFile::SetBoxType(TrajectoryIO *tio) {
   // If box coords present but no box info in associated parm, print
   // a warning.
   if (trajParm->boxType == NOBOX) {
-    mprintf("Warning: Box info present in trajectory %s but not in\n",trajName);
-    mprintf("         associated parm %s\n",trajParm->parmName);
+    mprintf("\tWarning: Box info present in trajectory %s but not in\n",trajName);
+    mprintf("\t         associated parm %s\n",trajParm->parmName);
   }
   boxType = CheckBoxType(tio->boxAngle,debug);
   // If box coords present but returned box type is NOBOX then no angles 
   // present in trajectory. Set box angles to parm default. If parm has
-  // no box information then exit just to be safe.
+  // no box information then assume orthorhombic box.
   // NOTE: Is this only good for amber trajectory?
   if (boxType == NOBOX) {
     if (trajParm->boxType == NOBOX) {
-      mprinterr("Error: No angle information present in trajectory %s\n",trajName);
-      mprinterr("       or parm %s.\n",trajParm->parmName);
-      return 1;
-      //mprintf("         or parm %s - setting angles to 90.0!\n",trajParm->parmName);
-      //tio->boxAngle[0] = 90.0;
-      //tio->boxAngle[1] = 90.0;
-      //tio->boxAngle[2] = 90.0;
+      //mprinterr("Error: No angle information present in trajectory %s\n",trajName);
+      //mprinterr("       or parm %s.\n",trajParm->parmName);
+      //return 1;
+      mprintf("\tWarning: No angle information present in trajectory %s\n",trajName);
+      mprintf("\t         or parm %s - setting angles to 90.0!\n",trajParm->parmName);
+      tio->boxAngle[0] = 90.0;
+      tio->boxAngle[1] = 90.0;
+      tio->boxAngle[2] = 90.0;
     } else {
       if (debug>0) {
-        mprintf("Warning: No angle information present in trajectory %s:\n",trajName);
-        mprintf("         Using angles from parm %s (beta=%lf).\n",trajParm->parmName,
+        mprintf("\tWarning: No angle information present in trajectory %s:\n",trajName);
+        mprintf("\t         Using angles from parm %s (beta=%lf).\n",trajParm->parmName,
                 trajParm->Box[3]);
       }
       tio->boxAngle[0] = trajParm->Box[3];
       tio->boxAngle[1] = trajParm->Box[4];
       tio->boxAngle[2] = trajParm->Box[5];
     }
+    // Set trajectory box type from angles in boxAngle
     boxType = CheckBoxType(tio->boxAngle,debug);
   }
-  if (debug>0) {
-    mprintf("[%s] Box type is ",trajName);
+  if (debug>0 || trajParm->boxType == NOBOX) {
+    mprintf("\t[%s] Box type is",trajName);
     if (boxType==NOBOX) mprintf(" None.\n");
     else if (boxType==ORTHO) mprintf(" Orthorhombic.\n");
     else if (boxType==NONORTHO) mprintf(" NonOrthorhombic.\n");
+  }
+  // If no box info in parm, set it from trajectory
+  if (trajParm->boxType == NOBOX) {
+    mprintf("\tWarning: Setting parm %s box information from trajectory %s.\n",
+            trajParm->parmName,trajName);
+    trajParm->boxType = boxType;
+    trajParm->Box[3] = tio->boxAngle[0]; 
+    trajParm->Box[4] = tio->boxAngle[1]; 
+    trajParm->Box[5] = tio->boxAngle[2]; 
   }
   return 0;
 }
@@ -476,6 +487,8 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
 
   // If the trajectory has box coords, set the box type from the box Angles.
   if (trajio->hasBox) {
+    //mprintf("DEBUG:\tBOX ANGLES: %lf %lf %lf\n",trajio->boxAngle[0],
+    //        trajio->boxAngle[1], trajio->boxAngle[2]);
     if (SetBoxType( trajio )) return 1;
   }
 
