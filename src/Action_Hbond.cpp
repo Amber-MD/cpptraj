@@ -2,6 +2,7 @@
 #include "Action_Hbond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG, DEGRAD
+#include <cmath> // sqrt
 
 // CONSTRUCTOR
 Hbond::Hbond() {
@@ -39,6 +40,7 @@ int Hbond::init() {
   // Convert angle cutoff to radians
   acut *= DEGRAD;
   dcut = A->getKeyDouble("dist",3.0);
+  dcut2 = dcut * dcut;
   // Get donor mask
   mask = A->getKeyString("donormask",NULL);
   if (mask!=NULL) DonorMask.SetMaskString(mask);
@@ -219,7 +221,7 @@ int Hbond::setup() {
 int Hbond::action() {
   // accept ... H-D
   int D, H, Nhb, numHB;
-  double dist, angle;
+  double dist, dist2, angle;//, ucell[9], recip[9];
   std::map<int,HbondType>::iterator it;
   HbondType HB;
 
@@ -230,14 +232,16 @@ int Hbond::action() {
     H = (*donor);
     for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++, Nhb++) {
       if (*accept == D) continue;
-      dist = F->DIST(*accept, D);
-      if (dist > dcut) continue;
+      dist2 = F->DIST2(*accept, D);
+      //dist2 = F->DIST2(*accept, D, (int)P->boxType, ucell, recip);
+      if (dist2 > dcut2) continue;
       angle = F->ANGLE(*accept, H, D);
       if (angle < acut) continue;
 //      mprintf( "HBOND[%i]: %i:%s ... %i:%s-%i:%s Dist=%lf Angle=%lf\n", 
 //              Nhb, *accept, P->names[*accept],
 //              H, P->names[H], D, P->names[D], dist, angle);
       numHB++;
+      dist = sqrt(dist2);
       // Find hbond in map
       it = HbondMap.find( Nhb );
       if (it == HbondMap.end() ) {

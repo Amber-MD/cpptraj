@@ -868,6 +868,28 @@ double Frame::DIST(int A1, int A2) {
   return D;
 }
 
+/* Frame::DIST2()
+ * Return the distance squared between atoms A1 and A2, no imaging.
+ */
+double Frame::DIST2(int A1, int A2) {
+  int i, j; // Actual indices into X
+  double x,y,z,D2;
+
+  i = A1 * 3;
+  j = A2 * 3;
+
+  x = X[i  ] - X[j  ];
+  y = X[i+1] - X[j+1];
+  z = X[i+2] - X[j+2];
+
+  x=x*x;
+  y=y*y;
+  z=z*z;
+
+  D2=(x + y + z);
+  return D2;
+}
+
 /* Frame::COORDDIST()
  * Return the distance between atoms i and j, no imaging. i and j
  * should be actual indices into the coord array (i.e. atom# * 3).
