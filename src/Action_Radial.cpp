@@ -271,7 +271,7 @@ void Radial::print() {
     //norm *= 3;
     // Divide by # frames, expected # of molecules, and # of RDFs
     norm *= numFrames;
-    norm *= Mask1.Nselected;
+    //norm *= Mask1.Nselected;
     N /= norm;
 
     Dset->Add(bin,&N);
