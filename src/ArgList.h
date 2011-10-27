@@ -19,7 +19,8 @@ class ArgList {
     void SetDebug(int);
 
     int SetList(char*, const char*);
-    ArgList *Copy();
+    //ArgList *Copy();
+    ArgList & operator=(const ArgList&);
     void Add(char *);
 
     void print();

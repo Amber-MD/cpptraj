@@ -12,14 +12,14 @@ Analysis::Analysis() {
 
 // DESTRUCTOR
 Analysis::~Analysis() {
-  if (analyzeArg!=NULL) delete analyzeArg;
 }
 
 /* Analysis::SetArg()
  * Set analyzeArg to be a copy of the input argument list.
  */
 void Analysis::SetArg(ArgList *argIn) {
-  analyzeArg = argIn->Copy();
+  analyzeArgs = *argIn;
+  analyzeArg = &analyzeArgs;
 }
 
 /* Analysis::SetDebug()

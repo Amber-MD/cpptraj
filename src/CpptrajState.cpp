@@ -12,7 +12,7 @@ CpptrajState::CpptrajState() {
 // Destructor
 CpptrajState::~CpptrajState() {
   for (std::list<ArgList*>::iterator it=DF_Args.begin(); it!=DF_Args.end(); it++) 
-    delete (*it); 
+    delete (*it);
 }
 
 /* CpptrajState::SetGlobalDebug()
@@ -113,7 +113,9 @@ void CpptrajState::Dispatch(char *inputLine) {
 
   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {
-    DF_Args.push_back(dispatchArg.Copy());
+    ArgList *tempArg = new ArgList();
+    *tempArg = dispatchArg;
+    DF_Args.push_back(tempArg);
     return;
   }
 

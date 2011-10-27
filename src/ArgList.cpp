@@ -122,10 +122,51 @@ void ArgList::Add(char *input) {
   }
 }
 
+/* ArgList::operator=()
+ */
+ArgList &ArgList::operator=(const ArgList &rhs) {
+  // Check for self assignment
+  if (this == &rhs) return *this;
+
+  // Deallocate
+  if (arglist!=NULL){
+    for (int i=0; i<nargs; i++)
+      if (arglist[i]!=NULL) free(arglist[i]);
+    free(arglist);
+  }
+  if (marked!=NULL) free(marked);
+  if (argline!=NULL) free(argline);
+  marked=NULL;
+  argline=NULL;
+  arglist=NULL;
+
+  // Allocate and copy
+  debug = rhs.debug;
+  nargs = rhs.nargs;
+  if (rhs.arglist!=NULL) {
+    arglist = (char**) malloc(nargs * sizeof(char*));
+    for (int i=0; i < nargs; i++) {
+      arglist[i] = (char*) malloc( (strlen(rhs.arglist[i])+1) * sizeof(char));
+      strcpy(arglist[i], rhs.arglist[i]);
+    }
+  }
+  if (rhs.marked!=NULL) {
+    marked = (char*) malloc(nargs * sizeof(char));
+    memcpy(marked, rhs.marked, nargs*sizeof(char));
+  }
+  if (argline!=NULL) {
+    argline = (char*) malloc( (strlen(rhs.argline)+1) * sizeof(char));
+    strcpy(argline, rhs.argline);
+  }
+
+  // return *this
+  return *this;
+}
+
 /* ArgList::Copy()
  * Return a copy of this arglist
  */
-ArgList *ArgList::Copy() {
+/*ArgList *ArgList::Copy() {
   ArgList *temp; 
   int i;
 
@@ -142,7 +183,7 @@ ArgList *ArgList::Copy() {
   temp->Reset();
 
   return temp;
-}
+}*/
 
 /* ArgList::print()
  * Print out each arg on separate lines

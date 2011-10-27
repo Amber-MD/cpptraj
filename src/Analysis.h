@@ -11,6 +11,7 @@ class Analysis {
   protected:
     int debug;
     ArgList *analyzeArg;
+    ArgList analyzeArgs;
   public:
     Analysis();
     virtual ~Analysis();

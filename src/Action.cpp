@@ -21,14 +21,15 @@ Action::Action() {
 // DESTRUCTOR - virtual since this class is inherited
 Action::~Action() {
   //fprintf(stderr,"Action Destructor.\n"); 
-  if (A!=NULL) delete A;
+  //if (A!=NULL) delete A;
 }
 
 /* Action::setArg()
  * Set the argument list
  */
 void Action::setArg(ArgList *inA) { 
-  A=inA->Copy();       
+  actionArgs = *inA;
+  A = &actionArgs;
 }
 
 /* Action::ResetArg()
