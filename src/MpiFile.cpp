@@ -12,15 +12,16 @@ MpiFile::~MpiFile() {
 }
 
 int MpiFile::Open(const char *filename, const char *mode) {
-  int err;
+  int err=0;
 
   switch( mode[0] ) {
     case 'r' : err=parallel_openFile_read(pfile, filename); break;
     case 'w' : err=parallel_open_file_write(pfile, filename); break;
     case 'a' : err=1; break; // NOTE: No MPI append for now
+    default  : err=1; break;
   }
 
-  return 0;
+  return err;
 }
 
 int MpiFile::Close() {
