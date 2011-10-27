@@ -24,6 +24,16 @@ Rms2d::~Rms2d() {
   if (RefTraj!=NULL) delete RefTraj; 
 }
 
+/* Rms2d::SeparateInit()
+ * For use when not part of the action list, i.e. using the Rms2d action
+ * to calculate a distance matrix for e.g. clustering.
+ */
+int Rms2d::SeparateInit(bool nofitIn, char *maskIn) {
+  nofit = nofitIn;
+  FrameMask.SetMaskString(maskIn);
+  return 0;
+};
+
 /* Rms2d::init()
  * Expected call: rms2d <mask> <refmask> rmsout <filename> [nofit] 
  *                [reftraj <traj> [parm <parmname> | parmindex <#>]] 
@@ -56,14 +66,14 @@ int Rms2d::init() {
   // Get the RMS mask string for frames
   mask0 = A->getNextMask();
   FrameMask.SetMaskString(mask0);
-  // Get RMS mask string for reference
-  maskRef = A->getNextMask();
-  // If no reference mask specified, make same as RMS mask
-  if (maskRef==NULL) maskRef=mask0;
-  RefMask.SetMaskString(maskRef);
 
   // Check if reference will be a series of frames from a trajectory
   if (reftraj!=NULL) {
+    // Get RMS mask string for reference trajectory
+    maskRef = A->getNextMask();
+    // If no reference mask specified, make same as RMS mask
+    if (maskRef==NULL) maskRef=mask0;
+    RefMask.SetMaskString(maskRef);
     // Attempt to set up reference trajectory
     RefTraj = new TrajectoryFile();
     if (RefTraj->SetupRead(reftraj, NULL, RefParm)) {
@@ -72,11 +82,11 @@ int Rms2d::init() {
     }
   }
 
-  mprintf("    RMS2D: (%s) to (%s)",FrameMask.maskString,RefMask.maskString);
+  mprintf("    RMS2D: Mask [%s]",FrameMask.maskString);
   if (reftraj!=NULL) {
     // Set up reference trajectory and open
-    mprintf("reference is trajectory %s with %i frames.\n",RefTraj->TrajName(),
-            RefTraj->Total_Read_Frames());
+    mprintf(", ref traj %s (mask [%s]) %i frames",RefTraj->TrajName(),
+            RefMask.maskString,RefTraj->Total_Read_Frames());
   }
   if (nofit)
     mprintf(" (no fitting)");

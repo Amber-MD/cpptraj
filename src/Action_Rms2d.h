@@ -16,11 +16,13 @@ class Rms2d: public Action {
     TrajectoryFile *RefTraj;   // Reference trajectory, each frame used in turn
     AmberParm *RefParm;        // Reference trajectory Parm
 
-    void Calc2drms(TriangleMatrix*);
     void CalcRmsToTraj();
   public:
     Rms2d();
     ~Rms2d();
+
+    int SeparateInit(bool, char *);
+    void Calc2drms(TriangleMatrix*);
 
     int init();
     int setup();
