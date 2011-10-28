@@ -54,45 +54,45 @@ void ActionList::SetDebug(int debugIn) {
     mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug);
 }
 
-/* ActionList::Add()
+/* ActionList::AddAction()
  * Add a specific type of action class to the action list. 
  */
-int ActionList::Add(ArgList *A) {
+int ActionList::AddAction(ArgList &argIn) {
   Action *Act;
 
   // Decide what action this is based on the command.
-  if      (A->CommandIs("distance")) {Act=new Distance;}
-  else if (A->CommandIs("rms2d"))    {Act=new Rms2d;   }
-  else if (A->CommandIs("2drms"))    {Act=new Rms2d;   }
-  else if (A->CommandIs("rmsd"))     {Act=new Rmsd;    }
-  else if (A->CommandIs("rms"))      {Act=new Rmsd;    }
-  else if (A->CommandIs("dihedral")) {Act=new Dihedral;}
-  else if (A->CommandIs("atommap"))  {Act=new AtomMap; }
-  else if (A->CommandIs("angle"))    {Act=new Angle;   }
-  else if (A->CommandIs("strip"))    {Act=new Strip;   }
-  else if (A->CommandIs("secstruct")){Act=new DSSP;    }
-  else if (A->CommandIs("center"))   {Act=new Center;  }
-  else if (A->CommandIs("hbond"))    {Act=new Hbond;   }
-  else if (A->CommandIs("image"))    {Act=new Image;   }
-  else if (A->CommandIs("surf"))     {Act=new Surf;    }
-  else if (A->CommandIs("radgyr"))   {Act=new Radgyr;  }
-  else if (A->CommandIs("mask"))     {Act=new ActionMask;}
-  else if (A->CommandIs("closest"))  {Act=new Closest; }
-  else if (A->CommandIs("nastruct")) {Act=new NAstruct;}
-  else if (A->CommandIs("pucker"))   {Act=new Pucker;  }
-  else if (A->CommandIs("outtraj"))  {Act=new Outtraj; }
-  else if (A->CommandIs("unstrip"))  {Act=new Unstrip; }
-  else if (A->CommandIs("average"))  {Act=new Average; }
-  else if (A->CommandIs("radial"))   {Act=new Radial;  }
-  else if (A->CommandIs("drmsd"))    {Act=new DistRmsd;}
-  else if (A->CommandIs("drms"))     {Act=new DistRmsd;}
-  else if (A->CommandIs("jcoupling")){Act=new Jcoupling;}
-  else if (A->CommandIs("cluster"))  {Act=new Clustering;}
-  else if (A->CommandIs("pairwise")) {Act=new Pairwise;}
+  if      (argIn.CommandIs("distance")) {Act=new Distance;}
+  else if (argIn.CommandIs("rms2d"))    {Act=new Rms2d;   }
+  else if (argIn.CommandIs("2drms"))    {Act=new Rms2d;   }
+  else if (argIn.CommandIs("rmsd"))     {Act=new Rmsd;    }
+  else if (argIn.CommandIs("rms"))      {Act=new Rmsd;    }
+  else if (argIn.CommandIs("dihedral")) {Act=new Dihedral;}
+  else if (argIn.CommandIs("atommap"))  {Act=new AtomMap; }
+  else if (argIn.CommandIs("angle"))    {Act=new Angle;   }
+  else if (argIn.CommandIs("strip"))    {Act=new Strip;   }
+  else if (argIn.CommandIs("secstruct")){Act=new DSSP;    }
+  else if (argIn.CommandIs("center"))   {Act=new Center;  }
+  else if (argIn.CommandIs("hbond"))    {Act=new Hbond;   }
+  else if (argIn.CommandIs("image"))    {Act=new Image;   }
+  else if (argIn.CommandIs("surf"))     {Act=new Surf;    }
+  else if (argIn.CommandIs("radgyr"))   {Act=new Radgyr;  }
+  else if (argIn.CommandIs("mask"))     {Act=new ActionMask;}
+  else if (argIn.CommandIs("closest"))  {Act=new Closest; }
+  else if (argIn.CommandIs("nastruct")) {Act=new NAstruct;}
+  else if (argIn.CommandIs("pucker"))   {Act=new Pucker;  }
+  else if (argIn.CommandIs("outtraj"))  {Act=new Outtraj; }
+  else if (argIn.CommandIs("unstrip"))  {Act=new Unstrip; }
+  else if (argIn.CommandIs("average"))  {Act=new Average; }
+  else if (argIn.CommandIs("radial"))   {Act=new Radial;  }
+  else if (argIn.CommandIs("drmsd"))    {Act=new DistRmsd;}
+  else if (argIn.CommandIs("drms"))     {Act=new DistRmsd;}
+  else if (argIn.CommandIs("jcoupling")){Act=new Jcoupling;}
+  else if (argIn.CommandIs("cluster"))  {Act=new Clustering;}
+  else if (argIn.CommandIs("pairwise")) {Act=new Pairwise;}
   else return 1; 
 
   // Pass in the argument list
-  Act->setArg(A);
+  Act->setArg(argIn);
   // Debug
   if (debug>0) mprintf("    Added action %s\n", Act->ActionCommand());
 

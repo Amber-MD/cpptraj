@@ -15,7 +15,7 @@ class ActionList {
     ~ActionList();
 
     void SetDebug(int);
-    int Add(ArgList *);
+    int AddAction(ArgList &);
     int Init(DataSetList *, FrameList *, DataFileList *, ParmFileList*);
     int Setup(AmberParm **);
     void DoActions(Frame **, int);

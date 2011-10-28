@@ -72,7 +72,7 @@ class Action {
     Action();               // Constructor
     virtual ~Action();      // Destructor - virtual since this class is inherited
 
-    void setArg(ArgList *inA); // Set the argument list
+    void setArg(const ArgList&); // Set the argument list
 //    void ResetArg();           // Reset arguments in the argument list
     const char *ActionCommand();              // Print the command that calls the action
     const char *CmdLine();           // Print the entire argument line

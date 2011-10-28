@@ -27,8 +27,8 @@ Action::~Action() {
  * Set the argument list
  * NOTE: Eventually get rid of A in favor of actionArgs
  */
-void Action::setArg(ArgList *inA) { 
-  actionArgs = *inA;
+void Action::setArg( const ArgList &inA) { 
+  actionArgs = inA;
   A = &actionArgs;
 }
 

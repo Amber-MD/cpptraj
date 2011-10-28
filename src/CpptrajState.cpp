@@ -116,7 +116,7 @@ void CpptrajState::Dispatch(char *inputLine) {
   }
 
   // Check if command pertains to an action
-  if ( actionList.Add(&dispatchArg)==0 ) return;
+  if ( actionList.AddAction(dispatchArg)==0 ) return;
 
   // Check if command pertains to analysis
   if ( analysisList.Add(&dispatchArg)==0 ) return; 
