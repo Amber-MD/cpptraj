@@ -1092,7 +1092,7 @@ int AtomMap::init() {
       newFrame->SetFrameFromMask(RefMap.F, M1);
       delete M1;
       // Replace reference with stripped versions
-      if (FL->Replace(refIndex, newFrame, stripParm)) {
+      if (FL->ReplaceFrame(refIndex, newFrame, stripParm)) {
         mprintf("Error: AtomMap: Could not strip reference.\n");
         return 1;
       }

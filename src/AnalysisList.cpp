@@ -1,6 +1,5 @@
 #include "AnalysisList.h"
 #include "CpptrajStdio.h"
-#include <cstdlib>
 // All analysis classes go here
 #include "Analysis_Hist.h"
 

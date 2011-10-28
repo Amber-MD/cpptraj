@@ -139,7 +139,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
     } else if (strcmp(argv[i],"-p")==0 && i+1!=argc) {
       i++;
       if (debug>0) mprintf("Adding topology file from command line: %s\n", argv[i]);
-      State->parmFileList.Add(argv[i]);
+      State->parmFileList.AddParmFile(argv[i]);
 
     // -i: Input file
     } else if (strcmp(argv[i],"-i")==0 && i+1!=argc) {
@@ -179,7 +179,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
     // The following 2 are for backwards compatibility with PTRAJ
     // Position 1: TOP file
     } else if (i==1) {
-      State->parmFileList.Add(argv[i]);
+      State->parmFileList.AddParmFile(argv[i]);
     // Position 2: INPUT file
     } else if (i==2) {
       inputFilename=argv[i];

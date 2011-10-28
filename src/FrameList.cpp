@@ -27,7 +27,7 @@ int FrameList::AddRefFrame(Frame *F, char *name, AmberParm *P, int framenum) {
   nameCopy.assign(name);
   frameNames.push_back(nameCopy);
   frameNums.push_back(framenum);
-  FrameParm.Add(P);
+  FrameParm.AddParm(P);
   Nframe++;
   return 0;
 }
@@ -38,7 +38,7 @@ int FrameList::AddRefFrame(Frame *F, char *name, AmberParm *P, int framenum) {
 int FrameList::AddFrame(Frame *F, AmberParm *P) {
   if (F==NULL || P==NULL) return 1;
   frameList.push_back(F);
-  FrameParm.Add(P);
+  FrameParm.AddParm(P);
   Nframe++;
   return 0;
 }
@@ -71,16 +71,16 @@ Frame *FrameList::GetFrame(int idx) {
   return frameList[idx];
 }
 
-/* FrameList::Replace()
+/* FrameList::ReplaceFrame()
  * Replace the frame/parm at the given position with the given frame/parm.
  * The old frame is deleted. 
  */
-int FrameList::Replace(int idx, Frame *newFrame, AmberParm *newParm) {
+int FrameList::ReplaceFrame(int idx, Frame *newFrame, AmberParm *newParm) {
   if (newFrame==NULL || newParm==NULL) return 1;
   if (idx<0 || idx>=Nframe) return 1;
   delete frameList[idx];
   frameList[idx]=newFrame;
-  if (FrameParm.Replace(idx,newParm)) return 1;
+  if (FrameParm.ReplaceParm(idx,newParm)) return 1;
   return 0;
 }
 

@@ -22,7 +22,7 @@ class FrameList {
     AmberParm *GetFrameParm(int);
     int GetFrameIndex(char *);
     Frame *GetFrame(int idx);
-    int Replace(int, Frame *, AmberParm *);
+    int ReplaceFrame(int, Frame *, AmberParm *);
     void Info();
     const char *FrameName(int);
     int NumFrames() { return Nframe; }
