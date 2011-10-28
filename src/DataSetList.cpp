@@ -1,6 +1,5 @@
 // DataSetList
 #include <cstdio> // sprintf
-#include <cstdlib>
 #include <cstring>
 // This also includes basic DataSet class and dataType
 #include "DataSetList.h"
@@ -15,7 +14,6 @@
 // CONSTRUCTOR
 DataSetList::DataSetList() {
   //fprintf(stderr,"DSL Constructor\n");
-  DataList=NULL;
   Ndata=0;
   maxFrames=0;
   debug=0;
@@ -24,13 +22,9 @@ DataSetList::DataSetList() {
 
 // DESTRUCTOR
 DataSetList::~DataSetList() {
-  int i;
   //fprintf(stderr,"DSL Destructor\n"); 
-  if (DataList!=NULL) {
-    for (i=0; i<Ndata; i++)
+    for (int i=0; i<Ndata; i++)
       delete DataList[i];
-    free(DataList);
-  }
 }
 
 /* DataSetList::SetDebug()
@@ -133,8 +127,8 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
     return NULL;
   }
 
-  DataList=(DataSet**) realloc(DataList,(Ndata+1) * sizeof(DataSet*));
-  DataList[Ndata++]=D;
+  DataList.push_back(D); 
+  Ndata++;
   //fprintf(stderr,"ADDED dataset %s\n",nameIn);
   return D;
 }
@@ -187,8 +181,8 @@ DataSet *DataSetList::AddIdx(dataType inType, char *nameIn, int idxIn) {
   }
   D->SetIdx(idxIn);
 
-  DataList=(DataSet**) realloc(DataList,(Ndata+1) * sizeof(DataSet*));
-  DataList[Ndata++]=D;
+  DataList.push_back(D);
+  Ndata++; 
   //fprintf(stderr,"ADDED dataset %s\n",nameIn);
   return D;
 }
