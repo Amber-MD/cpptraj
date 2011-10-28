@@ -2,10 +2,10 @@
 #define INC_ACTIONLIST_H
 /// Class: ActionList
 /// Hold actions that will be performed every frame. Each time a new parm is
-/// loaded the setup routin will be called.
+/// loaded the setup routine will be called.
 #include "Action.h"
 class ActionList {
-    Action **actionlist;
+    std::vector<Action*> actionlist;
     int Naction;
     int debug;
 

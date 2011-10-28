@@ -1,5 +1,4 @@
 // ActionList
-#include <cstdlib>
 #include "ActionList.h"
 #include "CpptrajStdio.h"
 // All action classes go here
@@ -30,19 +29,15 @@
 
 // CONSTRUCTOR
 ActionList::ActionList() {
-  actionlist=NULL;
   Naction=0;
   debug=0;
 }
 
 // DESTRUCTOR
 ActionList::~ActionList() {
-  if (actionlist!=NULL) {
     // No need to cast back to whatever action was allocd since Action destructor is virtual
     for (int i=0; i<Naction; i++) 
       delete actionlist[i];
-    free(actionlist);
-  } 
 }
 
 /* ActionList::SetDebug()
@@ -97,8 +92,7 @@ int ActionList::AddAction(ArgList &argIn) {
   if (debug>0) mprintf("    Added action %s\n", Act->ActionCommand());
 
   // Store action in list
-  actionlist=(Action**) realloc(actionlist,(Naction+1) * sizeof(Action*));
-  actionlist[Naction]=Act;
+  actionlist.push_back(Act);
   Naction++;
 
   return 0;  
