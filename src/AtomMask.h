@@ -26,8 +26,9 @@
 /// both an integer and a char mask!!
 #include "AmberParm.h"
 class AtomMask {
-    char *CharMask;   // Char array of atoms, T if selected, F if not.
-    int Nchar;        // Number of chars in CharMask array.
+    char *CharMask;      // Char array of atoms, T if selected, F if not.
+    int Nchar;           // Number of chars in CharMask array.
+    char *Postfix;       // maskString tokenized and converted to RPN
   public:
     bool invertMask;  // If true atoms outside the mask will be selected.
     char *maskString; // String specifying atom selection
@@ -45,7 +46,7 @@ class AtomMask {
     void AddAtomRange(int,int);    // Add minAtom <= atom < maxAtom to mask
     void PrintMaskAtoms();         // Print atoms in Selected to line
     bool None();                   // Return true if Nselected==0
-    void SetMaskString(char*);     // Set the mask string. If NULL, set * (all)
+    int SetMaskString(char*);     // Set the mask string. If NULL, set * (all)
     int SetupMask(AmberParm*,int); // Set up Selected based on maskString and given parm
     int SetupCharMask(AmberParm*,int); // Set up CharMask based on maskString and given parm
     int SetupCharMask(AmberParm*,double*,int); // Set up CharMask potentially using coords 

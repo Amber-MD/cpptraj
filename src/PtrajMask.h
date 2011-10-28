@@ -16,6 +16,8 @@
 #define  NAMELIST 2
 #define  TYPELIST 3
 #define  ELEMLIST 4
+int tokenize(char *, char *);
+int torpn(char *, char *);
 /* parseMaskString()
  * The main interface to the mask parser. Takes a mask expression and some
  * information from a parameter file (# atoms, # residues, atom names, residue

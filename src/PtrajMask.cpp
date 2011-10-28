@@ -232,7 +232,7 @@ static int priority(char op) {
  */
 #undef ROUTINE
 #define ROUTINE "tokenize()"
-static int tokenize(char *input, char *infix) {
+int tokenize(char *input, char *infix) {
   char *p;
   char buffer[MAXSELE];
   int i, j, n, flag;
@@ -417,7 +417,7 @@ static int tokenize(char *input, char *infix) {
  *   stack, the parentheses of the atom expression were unbalanced
  *   and an unrecoverable error has occurred.
  */
-static int torpn(char *infix, char *postfix) {
+int torpn(char *infix, char *postfix) {
   char *p, *pp;
   char term = '_';
   int i,P1,P2;
@@ -1116,17 +1116,21 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
   return(pElemMask);
 } // End selectElemMask 
 
-/* eval()
- * elementary atom expressions are converted to mask character
- * arrays (mask[i] = 'T'|'F', i=1,natom) when they are pushed 
- * to a stack. In fact, just a pointer to this char array is pushed
- * onto the stack. Whenever an operator pops the stack the 
- * appropriate binary (or unary) operation is carried out and
- * the char array is freed up.
- *
+// -----------------------------------------------------------------------------
+/* parseMaskString()
+ * The main interface to the mask parser. Takes a postfix mask expression 
+ * previously converted with tokenize and torpn, along with some information 
+ * from a parameter file (# atoms, # residues, atom names, residue names, an 
+ * array containing the first atom # of each residue, atomic coords with format
+ * [X0Y0Z0X1Y1Z1...], atom types, and a debug value controlling how much debug 
+ * information is printed (internally the global int prnlev).
+ * Returns a character mask array 
+ *   mask[i]='T'|'F', i=0,atoms-1
+ * which contains the resulting atom selection.
  */
-static char *eval(char *postfix, int atoms, int residues, NAME *atomName, 
-                  NAME *residueName, int *ipres, double *X, NAME *atomType)
+char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
+                      NAME *residueName, int *ipres, double *X, 
+                      NAME *atomType, int debug) 
 {
   char *pToken;
   char buffer[MAXSELE];
@@ -1134,7 +1138,14 @@ static char *eval(char *postfix, int atoms, int residues, NAME *atomName,
   char *p, *pMask1, *pMask2, *pMask;
   std::stack<char*> Stack;
   int error = 0;
-
+  /* Elementary atom expressions are converted to mask character
+   * arrays (mask[i] = 'T'|'F', i=1,natom) when they are pushed 
+   * to a stack. In fact, just a pointer to this char array is pushed
+   * onto the stack. Whenever an operator pops the stack the 
+   * appropriate binary (or unary) operation is carried out and
+   * the char array is freed up.
+   */
+  prnlev = debug;
   i = 0;
   for (p = postfix; *p != '\0'; p++) {
     if (*p == '[')        // 'operand' begins here 
@@ -1240,10 +1251,6 @@ static char *eval(char *postfix, int atoms, int residues, NAME *atomName,
     return NULL;
   }
 
-  //for (j = 0; j < atoms; j++)
-  //  if ( pMask[j] == 'T' ) 
-  //    numSelAtoms++;
-
   if (prnlev > 7) {
     for (int j = 0; j < atoms; j++) {
       if (j % 20 == 0) printf("\n%4d:  ", j+1);
@@ -1253,41 +1260,5 @@ static char *eval(char *postfix, int atoms, int residues, NAME *atomName,
   }
   
   return(pMask);
-} // eval 
-
-// -----------------------------------------------------------------------------
-/* parseMaskString()
- * The main interface to the mask parser. Takes a mask expression and some
- * information from a parameter file (# atoms, # residues, atom names, residue
- * names, an array containing the first atom # of each residue, atomic coords
- * in X0Y0Z0X1Y1Z1... format, atom types, and a debug value controlling how
- * much debug information is printed (internally the global int prnlev).
- * It returns a character mask array mask[i]='T'|'F', i=0,atoms-1
- * which contains the resulting atom selection
- */
-char *parseMaskString(char *maskstr, int atoms, int residues, NAME *atomName,
-                      NAME *residueName, int *ipres, double *X, 
-                      NAME *atomType, int debug) 
-{
-  char infix[MAXSELE], postfix[MAXSELE];
-  char *mask;
-
-  prnlev=debug;
-  if (prnlev>2) fprintf(stderr,"In parseMaskString, debug active!\n");
-
-  if (prnlev > 5) printf("original : ==%s==\n", maskstr);
-
-  // 1) preprocess input expression
-  if (tokenize(maskstr, infix)!=0) return NULL;
-  if (prnlev > 5) printf("tokenized: ==%s==\n", infix);
-
-  // 2) construct postfix (RPN) notation 
-  if (torpn(infix, postfix)!=0) return NULL;
-  if (prnlev > 5) printf("postfix  : ==%s==\n", postfix);
-
-  // 3) evaluate postfix notation
-  mask = eval(postfix, atoms, residues, atomName, residueName, ipres, X, atomType);
-
-  return(mask);
-}
+} 
 
