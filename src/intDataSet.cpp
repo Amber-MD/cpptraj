@@ -79,6 +79,19 @@ char *intDataSet::Write(char *buffer, int frame) {
   return (buffer + width + 1);
 }
 
+/* intDataSet::WriteBuffer()
+ * Write data at frame to CharBuffer. If no data for frame write 0.
+ */
+void intDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
+  int ival;
+  it = Data.find( frame );
+  if (it == Data.end())
+    ival = 0;
+  else
+    ival = (*it).second;
+  cbuffer.WriteInteger(format, ival);
+}
+
 /*
  * intDataSet::Width()
  */

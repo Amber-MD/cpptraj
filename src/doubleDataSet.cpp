@@ -104,6 +104,19 @@ char *doubleDataSet::Write(char *buffer, int frame) {
   return (buffer + width + 1);
 }
 
+/* doubleDataSet::WriteBuffer()
+ * Write data at frame to CharBuffer. If no data for frame write 0.0.
+ */
+void doubleDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
+  double dval;
+  it = Data.find( frame );
+  if (it == Data.end())
+    dval = 0.0;
+  else
+    dval = (*it).second;
+  cbuffer.WriteDouble(format, dval);
+}
+
 /*
  * doubleDataSet::Width()
  */

@@ -83,6 +83,24 @@ char *mapDataSet::Write(char *buffer, int frame) {
   return (buffer + totalwidth);
 }
 
+/* mapDataSet::WriteBuffer()
+ * Write data at frame to CharBuffer. If no data for frame write 0.0.
+ */
+void mapDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
+  double darray[3];
+  if (isEmpty(frame)) {
+    darray[0] = 0;
+    darray[1] = 0;
+    darray[2] = 0;
+  } else {
+    darray[0] = xData[frame];
+    darray[1] = yData[frame];
+    darray[2] = zData[frame];
+  }
+  cbuffer.WriteDoubleXYZ(format, darray);
+}
+
+
 /* mapDataSet::Width()
  */
 int mapDataSet::Width() {

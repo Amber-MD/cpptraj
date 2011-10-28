@@ -3,6 +3,92 @@
 #include <cstdio> // sprintf
 #include <cstdlib> // atof
 
+// CONSTRUCTOR
+CharBuffer::CharBuffer() {
+  buffer = NULL;
+  ptr = NULL;
+  bufferSize = 0;
+}
+
+// DESTRUCTOR
+CharBuffer::~CharBuffer() {
+  if (buffer!=NULL) delete[] buffer;
+}
+
+/* CharBuffer::Allocate()
+ */
+void CharBuffer::Allocate(size_t sizeIn) {
+  if (buffer!=NULL) delete[] buffer;
+  bufferSize = sizeIn;
+  buffer = new char[ bufferSize ];
+  ptr = buffer;
+}
+
+/* CharBuffer::CurrentSize()
+ */
+size_t CharBuffer::CurrentSize() {
+  return (size_t) (ptr - buffer);
+}
+
+/* CharBuffer::WriteDouble()
+ */
+void CharBuffer::WriteDouble(const char *format, double dval) {
+  int n_char_written;
+  n_char_written = sprintf(ptr, format, dval);
+  ptr += n_char_written;
+}
+
+/* CharBuffer::WriteInteger()
+ */
+void CharBuffer::WriteInteger(const char *format, int ival) {
+  int n_char_written;
+  n_char_written = sprintf(ptr, format, ival);
+  ptr += n_char_written;
+}
+
+/* CharBuffer::WriteString()
+ */
+void CharBuffer::WriteString(const char *format, const char *sval) {
+  int n_char_written;
+  n_char_written = sprintf(ptr, format, sval);
+  ptr += n_char_written;
+}
+
+/* CharBuffer::WriteStringN()
+ */
+void CharBuffer::WriteStringN(char *sval, int width, bool leftAlign) {
+  int c, n_char_written, actualWidth;
+  actualWidth = width;
+  if (leftAlign) actualWidth--;
+  char *temps = new char[ actualWidth + 1];
+  for (c = 0; c < actualWidth; c++) { 
+    temps[c] = sval[c];
+    if (temps[c]=='\0') break;
+  }
+  temps[c]='\0';
+  if (leftAlign)
+    n_char_written = sprintf(ptr, "#%-*s ",actualWidth,temps);
+  else
+    n_char_written = sprintf(ptr, " %*s",actualWidth,temps);
+  //printf("DEBUG:\tWriteStringN(%s) width=%i n_char_written=%i\n",sval,width,n_char_written);
+  delete[] temps;
+  ptr += n_char_written;
+}
+
+/* CharBuffer::WriteDoubleXYZ()
+ */
+void CharBuffer::WriteDoubleXYZ(const char *format, double *XYZ) {
+  int n_char_written;
+  n_char_written = sprintf(ptr, format, XYZ[0], XYZ[1], XYZ[2]);
+  ptr += n_char_written;
+}
+
+void CharBuffer::NewLine() {
+  ptr[0]='\n';
+  ptr++;
+}
+
+// =============================================================================
 /* BufferToDouble()
  * Store character buffer containing XYZ coords with format 
  * X0Y0Z0X1Y1Z1...XNYNZN to the given double array. Each coord has given width,

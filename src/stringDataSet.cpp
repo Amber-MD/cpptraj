@@ -70,6 +70,17 @@ char *stringDataSet::Write(char *buffer, int frame) {
   return (buffer + width + 1);
 }
 
+/* stringDataSet::WriteBuffer()
+ * Write data at frame to CharBuffer. If no data for frame write 0.0.
+ */
+void stringDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
+  it = Data.find( frame );
+  if (it == Data.end())
+    cbuffer.WriteString(format,"NoData");
+  else
+    cbuffer.WriteString(format, (*it).second.c_str());
+}
+
 /* stringDataSet::Width()
  * Return the width in characters necessary to print data from this dataset.
  * Width is set whenever data is added and is the size of the largest stored

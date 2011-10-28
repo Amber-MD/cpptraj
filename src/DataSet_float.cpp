@@ -76,6 +76,19 @@ char *DataSet_float::Write(char *buffer, int frame) {
   return (buffer + width + 1);
 }
 
+/* DataSet_float::WriteBuffer()
+ * Write data at frame to CharBuffer. If no data for frame write 0.0.
+ */
+void DataSet_float::WriteBuffer(CharBuffer &cbuffer, int frame) {
+  double dval;
+  datum = Data.find( frame );
+  if (datum == Data.end())
+    dval = 0.0;
+  else
+    dval = (double)(*datum).second;
+  cbuffer.WriteDouble(format, dval);
+}
+
 /* DataSet_float::Width()
  */
 int DataSet_float::Width() {

@@ -20,6 +20,7 @@ class doubleDataSet : public DataSet {
     void Add( int, void * );
     int Get(void *, int);
     char *Write(char *, int);
+    void WriteBuffer(CharBuffer&, int);
     int Width();
     int Sync();
 };

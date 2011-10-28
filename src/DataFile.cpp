@@ -1,9 +1,9 @@
 //DataFile
 #include <cstdlib>
 #include <cstring>
-#include <cstdio> //sprintf for frame #
 #include "DataFile.h"
 #include "CpptrajStdio.h"
+#include "CharBuffer.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() {
@@ -297,12 +297,18 @@ void DataFile::Write() {
  */
 void DataFile::WriteData(CpptrajFile *outfile) {
   int set,frame,empty;
-  char *ptr,*buffer;
+  CharBuffer buffer;
   int lineSize = 0;
   bool firstSet = true;
   size_t dataFileSize = 0;
+  double xcoord;
+  char x_format[6];
 
-  buffer=NULL;
+  // Create format string for X column
+  strcpy(x_format, "%8.0f");
+  // If xstep is not 1, set precision to 3
+  if (xstep!=1) strcpy(x_format, "%8.3f"); 
+   
   // Calculate overall size of the datafile. 
   if (!noXcolumn) lineSize = 8;
   for (set=0; set<Nsets; set++)
@@ -315,29 +321,26 @@ void DataFile::WriteData(CpptrajFile *outfile) {
   dataFileSize *= (size_t) lineSize;
   // NOTE: Since we are manually writing the newlines to this file there is
   //       no need to allocate space for a NULL char. If something like 
-  //       sprintf is ever used 1 more byte needs to be allocd for NULL.
-  buffer = (char*) malloc (dataFileSize * sizeof(char));
-  if (buffer==NULL) {
-    mprinterr("Error: DataFile %s: Could not allocate buffer memory.\n",filename);
-    return;
-  }
+  //       sprintf is ever used to write newlines or any data that is at the
+  //       end of the file, 1 more byte needs to be allocd for NULL.
+  buffer.Allocate( dataFileSize );
 
   // Write header to buffer
-  ptr = buffer;
   if (!noXcolumn) {
-    // NOTE: Eventually use xlabel
-    strncpy(ptr,"#Frame  ",8);
-    ptr+=8;
+    // NOTE: Calling WriteStringN with width-1 since it automatically inserts
+    //       a space along with the label (before or after according to 
+    //       leftAlign). Currently total width written with WriteStringN is
+    //       width+1. 
+    buffer.WriteStringN(xlabel,7,true); 
   }
   for (set=0; set<Nsets; set++) {
     if (noXcolumn && firstSet) {
-      ptr = SetList[set]->Name(ptr,true);
+      SetList[set]->WriteNameToBuffer(buffer,true);
       firstSet=false;
     } else
-      ptr = SetList[set]->Name(ptr,false);
+      SetList[set]->WriteNameToBuffer(buffer,false);
   }
-  ptr[0]='\n';
-  ptr++;
+  buffer.NewLine();
 
   // Write Data to buffer
   for (frame=0; frame<maxFrames; frame++) {
@@ -350,28 +353,24 @@ void DataFile::WriteData(CpptrajFile *outfile) {
       if (empty!=0) continue;
     }
     // Output Frame
-    // NOTE: For consistency with Ptraj start at frame 1
     if (!noXcolumn) {
-      sprintf(ptr,"%8i",frame + OUTPUTFRAMESHIFT);
-      ptr+=8;
+      xcoord = (xstep * frame) + xmin;
+      buffer.WriteDouble(x_format,xcoord);
     }
     for (set=0; set<Nsets; set++) {
-      ptr = SetList[set]->Write(ptr,frame);
+      SetList[set]->WriteBuffer(buffer,frame);
     }
-    ptr[0]='\n';
-    ptr++;
+    buffer.NewLine();
   }
 
   // If noEmptyFrames the actual size of data written may be less than
   // the size of the data allocated. Recalculate the actual size.
-  if (noEmptyFrames) 
-    dataFileSize = (size_t) (ptr - buffer);
+  if (noEmptyFrames)
+    dataFileSize = buffer.CurrentSize(); 
 
   // Write buffer to file
-  outfile->IO->Write(buffer,sizeof(char),dataFileSize);
-
-  // Free buffer
-  if (buffer!=NULL) free(buffer);
+  // NOTE: Should probably just always pass in buffer.CurrentSize
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),dataFileSize);
 }
 
 /* DataFile::WriteDataInverted()
@@ -380,11 +379,15 @@ void DataFile::WriteData(CpptrajFile *outfile) {
  */
 void DataFile::WriteDataInverted(CpptrajFile *outfile) {
   int frame,set,empty;
-  int currentLineSize=0;
-  int lineSize=0;
-  char *buffer,*ptr;
+  CharBuffer buffer;
+  size_t dataFileSize = 0;
 
-  buffer=NULL;
+  // Determine max output file size
+  // Each line is (set width * (number of frames+1) + newline
+  for (set = 0; set < Nsets; set++)
+    dataFileSize += ((SetList[set]->Width() * (maxFrames+1)) + 1);
+  buffer.Allocate( dataFileSize );
+
   for (set=0; set < Nsets; set++) {
     // if specified check for empty frames in the set
     if (noEmptyFrames) {
@@ -394,26 +397,15 @@ void DataFile::WriteDataInverted(CpptrajFile *outfile) {
       }
       if (empty!=0) continue;
     }
-    // Necessary buffer size is (set width * number of frames) + newline + NULL
-    lineSize = (SetList[set]->Width() * maxFrames) + 2;
-    // Check if lineSize > currentLineSize; if so, reallocate buffer
-    if (lineSize > currentLineSize) {
-      buffer = (char*) realloc(buffer, lineSize * sizeof(char));
-      currentLineSize=lineSize;
-    }
-    // Write header as first column
-    outfile->IO->Printf("\"%12s\" ",SetList[set]->Name());
-    // Write each frame to a column
-    ptr = buffer;
+    // Write dataset name as first column
+    SetList[set]->WriteNameToBuffer(buffer,false);
+    // Write each frame to subsequent columns
     for (frame=0; frame<maxFrames; frame++) {
-      ptr = SetList[set]->Write(ptr,frame);
+      SetList[set]->WriteBuffer(buffer,frame);
     }
-    // IO->Printf is limited to 1024 chars, use Write instead
-    outfile->IO->Write(buffer,sizeof(char),strlen(buffer));
-    outfile->IO->Printf("\n");
+    buffer.NewLine();
   }
-  // free buffer
-  if (buffer!=NULL) free(buffer);
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
  
 /* DataFile::WriteGrace() 

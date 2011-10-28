@@ -27,6 +27,7 @@
 ///   Xmax:
 ///     Return the largest X/frame value added to set. By convention this should
 ///     be the last value added.
+#include "CharBuffer.h"
 enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT, MAP, FLOAT}; 
 class DataSet {
   protected:
@@ -53,6 +54,7 @@ class DataSet {
     virtual void Add( int, void * )  { return;   }
     virtual int Get( void *, int )   { return 1; }
     virtual char *Write(char*, int)  { return 0; }
+    virtual void WriteBuffer(CharBuffer&,int) {return;}
     virtual int Width()              { return 0; }
     virtual int Sync()               { return 0; }
     virtual double Min()             { return 0; }
@@ -61,6 +63,7 @@ class DataSet {
     void SetPrecision(int,int);
     int Setup(char*,int);
     void Info();
+    void WriteNameToBuffer(CharBuffer &, bool);
     char *Name(char *,bool);
     int CheckSet();
     // Functions that return private vars
