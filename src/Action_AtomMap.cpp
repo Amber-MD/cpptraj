@@ -975,11 +975,11 @@ int AtomMap::init() {
   TargetMap.SetDebug(debug);
 
   // Get Args
-  outputname=A->getKeyString("mapout",NULL);
-  maponly = A->hasKey("maponly");
+  outputname=actionArgs.getKeyString("mapout",NULL);
+  maponly = actionArgs.hasKey("maponly");
 
-  targetName=A->getNextString();
-  refName=A->getNextString();
+  targetName=actionArgs.getNextString();
+  refName=actionArgs.getNextString();
   if (targetName==NULL) {
     mprintf("AtomMap::init: Error: No target specified.\n");
     return 1;

@@ -29,16 +29,16 @@ int Outtraj::init() {
 #endif
 
   outtraj.SetDebug(debug);
-  tempParm = PFL->GetParm(A);
+  tempParm = PFL->GetParm(actionArgs);
   if (tempParm==NULL) {
-    mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",A->ArgAt(1));
+    mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",actionArgs.ArgAt(1));
     return 1;
   }
-  if ( outtraj.SetupWrite(NULL,A,tempParm,AMBERTRAJ) ) return 1;
+  if ( outtraj.SetupWrite(NULL,&actionArgs,tempParm,AMBERTRAJ) ) return 1;
   mprintf("    OUTTRAJ:");
   outtraj.PrintInfo(1);
   // If maxmin, get the name of the dataset as well as the max and min values.
-  datasetName = A->getKeyString("maxmin",NULL);
+  datasetName = actionArgs.getKeyString("maxmin",NULL);
   if (datasetName!=NULL) {
     Dset = DSL->Get(datasetName);
     if (Dset==NULL) {
@@ -50,8 +50,8 @@ int Outtraj::init() {
         mprintf("Error: Outtraj maxmin: String dataset (%s) not supported.\n",datasetName);
         return 1;
       }
-      max = A->getKeyDouble("max",0.0);
-      min = A->getKeyDouble("min",0.0);
+      max = actionArgs.getKeyDouble("max",0.0);
+      min = actionArgs.getKeyDouble("min",0.0);
       mprintf("             maxmin: Printing trajectory frames based on %lf <= %s <= %lf\n",
               min, datasetName, max);
     }
@@ -97,7 +97,7 @@ int Outtraj::action() {
  * Close trajectory.
  */
 void Outtraj::print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",A->ArgAt(1),outtraj.NumFramesProcessed());
+  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",actionArgs.ArgAt(1),outtraj.NumFramesProcessed());
   outtraj.EndTraj();
 }
 

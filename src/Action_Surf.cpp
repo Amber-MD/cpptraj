@@ -31,14 +31,14 @@ int Surf::init() {
   char *surfFile;
 
   // Get keywords
-  surfFile = A->getKeyString("out",NULL);
+  surfFile = actionArgs.getKeyString("out",NULL);
 
   // Get Masks
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   Mask1.SetMaskString(mask1);
 
   // Dataset to store surface area 
-  surf = DSL->Add(DOUBLE, A->getNextString(),"SA");
+  surf = DSL->Add(DOUBLE, actionArgs.getNextString(),"SA");
   if (surf==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(surfFile,surf);

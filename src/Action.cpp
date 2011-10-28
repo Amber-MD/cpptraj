@@ -3,8 +3,6 @@
 
 // CONSTRUCTOR
 Action::Action() {
-  A=NULL; 
-
   P=NULL;
   F=NULL;
   DSL=NULL;
@@ -29,7 +27,6 @@ Action::~Action() {
  */
 void Action::setArg( const ArgList &inA) { 
   actionArgs = inA;
-  A = &actionArgs;
 }
 
 /* Action::ActionCommand()

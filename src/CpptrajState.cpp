@@ -91,17 +91,17 @@ void CpptrajState::Dispatch(char *inputLine) {
   // Check if command pertains to coordinate lists
   // If it does, get a parm based on parm/parmindex keywords in arg list
   if (dispatchArg.CommandIs("trajin")) {
-    tempParm = parmFileList.GetParm(&dispatchArg);
+    tempParm = parmFileList.GetParm(dispatchArg);
     trajinList.Add(NULL, &dispatchArg, tempParm);
     return;
   }
   if (dispatchArg.CommandIs("reference")) {
-    tempParm = parmFileList.GetParm(&dispatchArg);
+    tempParm = parmFileList.GetParm(dispatchArg);
     referenceList.Add(NULL, &dispatchArg, tempParm);
     return;
   }
   if (dispatchArg.CommandIs("trajout")) {
-    tempParm = parmFileList.GetParm(&dispatchArg);
+    tempParm = parmFileList.GetParm(dispatchArg);
     trajoutList.Add(NULL, &dispatchArg, tempParm);
     return;
   }

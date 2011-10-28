@@ -29,13 +29,13 @@ int Distance::init( ) {
   char *distanceFile;
 
   // Get Keywords
-  noimage = A->hasKey("noimage");
-  useMass = !(A->hasKey("geom"));
-  distanceFile = A->getKeyString("out",NULL);
+  noimage = actionArgs.hasKey("noimage");
+  useMass = !(actionArgs.hasKey("geom"));
+  distanceFile = actionArgs.getKeyString("out",NULL);
 
   // Get Masks
-  mask1 = A->getNextMask();
-  mask2 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
+  mask2 = actionArgs.getNextMask();
   //fprintf(stdout,"    Mask 1: %s\n",mask1);
   //fprintf(stdout,"    Mask 2: %s\n",mask2);
   if (mask1==NULL || mask2==NULL) {
@@ -46,7 +46,7 @@ int Distance::init( ) {
   Mask2.SetMaskString(mask2);
 
   // Dataset to store distances
-  dist = DSL->Add(DOUBLE, A->getNextString(),"Dis");
+  dist = DSL->Add(DOUBLE, actionArgs.getNextString(),"Dis");
   if (dist==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(distanceFile,dist);

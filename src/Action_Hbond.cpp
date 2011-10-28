@@ -34,25 +34,25 @@ int Hbond::init() {
   char *mask, *outfilename;
 
   // Get keywords
-  outfilename = A->getKeyString("out",NULL);
-  avgout = A->getKeyString("avgout",NULL);
-  acut = A->getKeyDouble("angle",135.0);
+  outfilename = actionArgs.getKeyString("out",NULL);
+  avgout = actionArgs.getKeyString("avgout",NULL);
+  acut = actionArgs.getKeyDouble("angle",135.0);
   // Convert angle cutoff to radians
   acut *= DEGRAD;
-  dcut = A->getKeyDouble("dist",3.0);
+  dcut = actionArgs.getKeyDouble("dist",3.0);
   dcut2 = dcut * dcut;
   // Get donor mask
-  mask = A->getKeyString("donormask",NULL);
+  mask = actionArgs.getKeyString("donormask",NULL);
   if (mask!=NULL) DonorMask.SetMaskString(mask);
   // Get acceptor mask
-  mask = A->getKeyString("acceptormask",NULL);
+  mask = actionArgs.getKeyString("acceptormask",NULL);
   if (mask!=NULL) AcceptorMask.SetMaskString(mask);
   // Get generic mask
-  mask = A->getNextMask();
+  mask = actionArgs.getNextMask();
   Mask.SetMaskString(mask);
 
   // Setup datasets
-  NumHbonds = DSL->Add(INT, A->getNextString(),"NumHB");
+  NumHbonds = DSL->Add(INT, actionArgs.getNextString(),"NumHB");
   if (NumHbonds==NULL) return 1;
   DFL->Add(outfilename,NumHbonds);
 

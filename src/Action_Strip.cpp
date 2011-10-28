@@ -26,7 +26,7 @@ int Strip::init( ) {
   char *mask1;
 
   // Get mask of atoms to be stripped
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   //mprintf("    Mask 1: %s\n",mask1);
   if (mask1==NULL) {
     mprintf("    Error: Strip::init: Requires atom mask.\n");
@@ -35,7 +35,7 @@ int Strip::init( ) {
   M1.SetMaskString(mask1);
 
   // Get output stripped parm filename
-  prefix = A->getKeyString("outprefix",NULL);
+  prefix = actionArgs.getKeyString("outprefix",NULL);
 
   mprintf("    STRIP: Stripping atoms in mask [%s]\n",M1.maskString);
   if (prefix!=NULL) 

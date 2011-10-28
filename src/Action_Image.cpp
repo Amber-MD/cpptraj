@@ -37,20 +37,20 @@ int Image::init() {
   char *mask1;
 
   // Get keywords
-  origin = A->hasKey("origin");
-  center = A->hasKey("center");
-  if (A->hasKey("familiar")) triclinic = FAMILIAR;
-  if (A->hasKey("triclinic")) triclinic = FORCE;
+  origin = actionArgs.hasKey("origin");
+  center = actionArgs.hasKey("center");
+  if (actionArgs.hasKey("familiar")) triclinic = FAMILIAR;
+  if (actionArgs.hasKey("triclinic")) triclinic = FORCE;
 
   // Get Masks
   if (triclinic == FAMILIAR) {
-    mask1 = A->getKeyString("com",NULL);
+    mask1 = actionArgs.getKeyString("com",NULL);
     if (mask1!=NULL) {
       ComMask = new AtomMask();
       ComMask->SetMaskString(mask1);
     }
   }
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   Mask1.SetMaskString(mask1);
   
   mprintf("    IMAGE: To");

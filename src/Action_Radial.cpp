@@ -40,24 +40,24 @@ int Radial::init() {
   char *mask1, *mask2;
 
   // Get Keywords
-  noimage = A->hasKey("noimage");
+  noimage = actionArgs.hasKey("noimage");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
-  density = A->getKeyDouble("density",0.033456);
-  center1 = A->hasKey("center1");
-  useVolume = A->hasKey("volume");
+  density = actionArgs.getKeyDouble("density",0.033456);
+  center1 = actionArgs.hasKey("center1");
+  useVolume = actionArgs.hasKey("volume");
 
   // Get required args
-  outfilename = A->getNextString();
+  outfilename = actionArgs.getNextString();
   if (outfilename==NULL) {
     mprinterr("Error: Radial: No output filename given.\n");
     return 1;
   }
-  spacing = A->getNextDouble(-1.0);
+  spacing = actionArgs.getNextDouble(-1.0);
   if (spacing < 0) {
     mprinterr("Error: Radial: No spacing argument or arg < 0.\n");
     return 1;
   }
-  maximum = A->getNextDouble(-1.0);
+  maximum = actionArgs.getNextDouble(-1.0);
   if (maximum < 0) {
     mprinterr("Error: Radial: No maximum argument or arg < 0.\n");
     return 1;
@@ -67,7 +67,7 @@ int Radial::init() {
   maximum2 = maximum * maximum;
 
   // Get First Mask
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   if (mask1==NULL) {
     mprinterr("Error: Radial: No mask given.\n");
     return 1;
@@ -75,7 +75,7 @@ int Radial::init() {
   Mask1.SetMaskString(mask1);
 
   // Check for second mask - if none specified use first mask
-  mask2 = A->getNextMask();
+  mask2 = actionArgs.getNextMask();
   if (mask2!=NULL) 
     Mask2.SetMaskString(mask2);
   else

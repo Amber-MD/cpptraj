@@ -47,8 +47,7 @@
 #include "AmberParm.h"
 class Action {
   protected:
-    ArgList actionArgs;
-    ArgList *A;             // The action arguments (setArg)
+    ArgList actionArgs;     // The action arguments (setArg)
     AmberParm *P;           // The current parmtop (setup)
     Frame *F;               // The current frame (action)
     DataSetList *DSL;       // Pointer to the data set list in CpptrajState (init)

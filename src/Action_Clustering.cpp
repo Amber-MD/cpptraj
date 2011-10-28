@@ -51,26 +51,26 @@ const char Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 int Clustering::init() {
   char *mask0,*cnumvtimefile,*clusterformat,*singlerepformat,*repformat;
   // Get keywords
-  useMass = A->hasKey("mass");
-  targetNclusters = A->getKeyInt("clusters",-1);
-  epsilon = A->getKeyDouble("epsilon",-1.0);
-  if (A->hasKey("linkage")) Linkage=ClusterList::SINGLELINK;
-  if (A->hasKey("averagelinkage")) Linkage=ClusterList::AVERAGELINK;
-  if (A->hasKey("complete")) Linkage=ClusterList::COMPLETELINK;
-  cnumvtimefile = A->getKeyString("out",NULL);
-  clusterinfo = A->getKeyString("info",NULL);
-  summaryfile = A->getKeyString("summary",NULL);
-  halffile = A->getKeyString("summaryhalf",NULL);
-  if (A->hasKey("fitrms")) nofitrms=false;
-  if (A->hasKey("gracecolor")) grace_color=true;
-  if (A->hasKey("noload")) load_pair=false;
+  useMass = actionArgs.hasKey("mass");
+  targetNclusters = actionArgs.getKeyInt("clusters",-1);
+  epsilon = actionArgs.getKeyDouble("epsilon",-1.0);
+  if (actionArgs.hasKey("linkage")) Linkage=ClusterList::SINGLELINK;
+  if (actionArgs.hasKey("averagelinkage")) Linkage=ClusterList::AVERAGELINK;
+  if (actionArgs.hasKey("complete")) Linkage=ClusterList::COMPLETELINK;
+  cnumvtimefile = actionArgs.getKeyString("out",NULL);
+  clusterinfo = actionArgs.getKeyString("info",NULL);
+  summaryfile = actionArgs.getKeyString("summary",NULL);
+  halffile = actionArgs.getKeyString("summaryhalf",NULL);
+  if (actionArgs.hasKey("fitrms")) nofitrms=false;
+  if (actionArgs.hasKey("gracecolor")) grace_color=true;
+  if (actionArgs.hasKey("noload")) load_pair=false;
   // Output trajectory stuff
-  clusterfile = A->getKeyString("clusterout",NULL);
-  clusterformat = A->getKeyString("clusterfmt",NULL);
-  singlerepfile = A->getKeyString("singlerepout",NULL);
-  singlerepformat = A->getKeyString("singlerepfmt",NULL);
-  repfile = A->getKeyString("repout",NULL);
-  repformat = A->getKeyString("repfmt",NULL);
+  clusterfile = actionArgs.getKeyString("clusterout",NULL);
+  clusterformat = actionArgs.getKeyString("clusterfmt",NULL);
+  singlerepfile = actionArgs.getKeyString("singlerepout",NULL);
+  singlerepformat = actionArgs.getKeyString("singlerepfmt",NULL);
+  repfile = actionArgs.getKeyString("repout",NULL);
+  repformat = actionArgs.getKeyString("repfmt",NULL);
   // Figure out trajectory formats
   if (clusterfile!=NULL) {
     clusterfmt = GetFmtFromArg(clusterformat,AMBERTRAJ);
@@ -82,11 +82,11 @@ int Clustering::init() {
     repfmt = GetFmtFromArg(repformat,AMBERTRAJ);
   }
   // Get the mask string 
-  mask0 = A->getNextMask();
+  mask0 = actionArgs.getNextMask();
   Mask0.SetMaskString(mask0);
 
   // Dataset to store cluster number v time
-  cnumvtime = DSL->Add(INT,A->getNextString(),"Cnum");
+  cnumvtime = DSL->Add(INT,actionArgs.getNextString(),"Cnum");
   if (cnumvtime==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(cnumvtimefile,cnumvtime);

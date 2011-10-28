@@ -61,19 +61,19 @@ int Closest::init( ) {
   char *mask1;
 
   // Get Keywords
-  closestWaters = A->getNextInteger(-1);
+  closestWaters = actionArgs.getNextInteger(-1);
   if (closestWaters < 0) {
     mprintf("Error: Closest::init(): Invalid # solvent molecules to keep (%i).\n",
             closestWaters);
     return 1;
   }
-  if ( A->hasKey("oxygen") || A->hasKey("first") )
+  if ( actionArgs.hasKey("oxygen") || actionArgs.hasKey("first") )
     firstAtom=true;
-  noimage = A->hasKey("noimage");
-  prefix = A->getKeyString("outprefix",NULL);
+  noimage = actionArgs.hasKey("noimage");
+  prefix = actionArgs.getKeyString("outprefix",NULL);
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
-  mask1 = A->getKeyString("closestout",NULL);
+  mask1 = actionArgs.getKeyString("closestout",NULL);
   if (mask1 != NULL) {
     // Set up datasets
     outList = new DataSetList();
@@ -97,7 +97,7 @@ int Closest::init( ) {
   }
 
   // Get Masks
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   if (mask1==NULL) {
     mprintf("Error: Closest::init(): No mask specified.\n");
     return 1;

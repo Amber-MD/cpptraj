@@ -46,12 +46,12 @@ int Rms2d::init() {
   char *mask0, *maskRef, *reftraj;
 
   // Get keywords
-  nofit = A->hasKey("nofit");
-  //useMass = A->hasKey("mass"); Since parm info no longer stored, useMass is redundant
-  rmsdFile = A->getKeyString("rmsout",NULL);
-  reftraj = A->getKeyString("reftraj",NULL);
+  nofit = actionArgs.hasKey("nofit");
+  //useMass = actionArgs.hasKey("mass"); Since parm info no longer stored, useMass is redundant
+  rmsdFile = actionArgs.getKeyString("rmsout",NULL);
+  reftraj = actionArgs.getKeyString("reftraj",NULL);
   if (reftraj!=NULL) {
-    RefParm = PFL->GetParm(A);
+    RefParm = PFL->GetParm(actionArgs);
     if (RefParm==NULL) {
       mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftraj);
       return 1;
@@ -64,13 +64,13 @@ int Rms2d::init() {
   }
 
   // Get the RMS mask string for frames
-  mask0 = A->getNextMask();
+  mask0 = actionArgs.getNextMask();
   FrameMask.SetMaskString(mask0);
 
   // Check if reference will be a series of frames from a trajectory
   if (reftraj!=NULL) {
     // Get RMS mask string for reference trajectory
-    maskRef = A->getNextMask();
+    maskRef = actionArgs.getNextMask();
     // If no reference mask specified, make same as RMS mask
     if (maskRef==NULL) maskRef=mask0;
     RefMask.SetMaskString(maskRef);

@@ -886,8 +886,8 @@ int NAstruct::determineBasepairParameters() {
  */
 int NAstruct::init() {
   // Get keywords
-  outFilename = A->getKeyString("naout",NULL);
-  resRange.SetRange( A->getKeyString("resrange",NULL) );
+  outFilename = actionArgs.getKeyString("naout",NULL);
+  resRange.SetRange( actionArgs.getKeyString("resrange",NULL) );
   // Get Masks
   // Dataset
   // Add dataset to data file list

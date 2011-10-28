@@ -26,17 +26,17 @@ int Radgyr::init() {
   char *rogFile;
 
   // Get keywords
-  rogFile = A->getKeyString("out",NULL);
-  useMass = A->hasKey("mass");
-  if (A->hasKey("nomax")) calcRogmax=false;
+  rogFile = actionArgs.getKeyString("out",NULL);
+  useMass = actionArgs.hasKey("mass");
+  if (actionArgs.hasKey("nomax")) calcRogmax=false;
 
   // Get Masks
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   Mask1.SetMaskString(mask1);
 
   // Datasets to store radius of gyration and max
   // Also add datasets to data file list 
-  rog = DSL->Add(DOUBLE, A->getNextString(),"RoG");
+  rog = DSL->Add(DOUBLE, actionArgs.getNextString(),"RoG");
   if (rog==NULL) return 1;
   DFL->Add(rogFile,rog);
   if (calcRogmax) {
