@@ -64,7 +64,8 @@ int ActionList::Add(ArgList *A) {
   if      (A->CommandIs("distance")) {Act=new Distance;}
   else if (A->CommandIs("rms2d"))    {Act=new Rms2d;   }
   else if (A->CommandIs("2drms"))    {Act=new Rms2d;   }
-  else if (A->CommandIs("rmsd",3))   {Act=new Rmsd;    }
+  else if (A->CommandIs("rmsd"))     {Act=new Rmsd;    }
+  else if (A->CommandIs("rms"))      {Act=new Rmsd;    }
   else if (A->CommandIs("dihedral")) {Act=new Dihedral;}
   else if (A->CommandIs("atommap"))  {Act=new AtomMap; }
   else if (A->CommandIs("angle"))    {Act=new Angle;   }
@@ -83,7 +84,8 @@ int ActionList::Add(ArgList *A) {
   else if (A->CommandIs("unstrip"))  {Act=new Unstrip; }
   else if (A->CommandIs("average"))  {Act=new Average; }
   else if (A->CommandIs("radial"))   {Act=new Radial;  }
-  else if (A->CommandIs("drmsd",4))  {Act=new DistRmsd;}
+  else if (A->CommandIs("drmsd"))    {Act=new DistRmsd;}
+  else if (A->CommandIs("drms"))     {Act=new DistRmsd;}
   else if (A->CommandIs("jcoupling")){Act=new Jcoupling;}
   else if (A->CommandIs("cluster"))  {Act=new Clustering;}
   else if (A->CommandIs("pairwise")) {Act=new Pairwise;}
@@ -92,7 +94,7 @@ int ActionList::Add(ArgList *A) {
   // Pass in the argument list
   Act->setArg(A);
   // Debug
-  if (debug>0) mprintf("    Added action %s\n", Act->Name());
+  if (debug>0) mprintf("    Added action %s\n", Act->ActionCommand());
 
   // Store action in list
   actionlist=(Action**) realloc(actionlist,(Naction+1) * sizeof(Action*));
@@ -112,9 +114,9 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL,
   for (int act=0; act<Naction; act++) {
     mprintf("  %i: [%s]\n",act,actionlist[act]->CmdLine());
     if (actionlist[act]->noInit) {
-      mprintf("    WARNING: Action %s is not active.\n",actionlist[act]->Name());
+      mprintf("    WARNING: Action %s is not active.\n",actionlist[act]->ActionCommand());
     } else {
-      actionlist[act]->ResetArg();
+      //actionlist[act]->ResetArg();
       if ( actionlist[act]->Init( DSL, FL, DFL, PFL, debug ) ) {
         mprintf("    WARNING: Init failed for [%s]: DEACTIVATING\n",
                 actionlist[act]->CmdLine());
@@ -140,7 +142,7 @@ int ActionList::Setup(AmberParm **ParmAddress) {
     if (actionlist[act]->noInit==0) {
       if (debug>0) mprintf("    %i: [%s]\n",act,actionlist[act]->CmdLine());
       actionlist[act]->noSetup=0;
-      actionlist[act]->ResetArg();
+      //actionlist[act]->ResetArg();
       err = actionlist[act]->Setup(ParmAddress);
       if (err==1) {
         mprintf("      WARNING: Setup failed for [%s]: Skipping\n",

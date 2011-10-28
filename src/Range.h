@@ -5,8 +5,9 @@
 /// either be set using a range expression, e.g. X-Y,C-D (X to Y and
 /// C to D) etc, or can be set using a beginning and end number.
 #include <list>
+#include <string>
 class Range {
-    char *rangeArg;
+    std::string rangeArg;
     std::list<int> rangeList;
     std::list<int>::iterator rangeNum;
   public:

@@ -73,9 +73,9 @@ class Action {
     virtual ~Action();      // Destructor - virtual since this class is inherited
 
     void setArg(ArgList *inA); // Set the argument list
-    void ResetArg();           // Reset arguments in the argument list
-    char *Name();              // Print the command that calls the action
-    char *CmdLine();           // Print the entire argument line
+//    void ResetArg();           // Reset arguments in the argument list
+    const char *ActionCommand();              // Print the command that calls the action
+    const char *CmdLine();           // Print the entire argument line
 
     int Init(DataSetList*, FrameList*, DataFileList*, ParmFileList *,int); 
     int Setup(AmberParm **);

@@ -18,39 +18,32 @@ Action::Action() {
   noSetup=0; 
 }
 
-// DESTRUCTOR - virtual since this class is inherited
+// DESTRUCTOR
 Action::~Action() {
   //fprintf(stderr,"Action Destructor.\n"); 
-  //if (A!=NULL) delete A;
 }
 
 /* Action::setArg()
  * Set the argument list
+ * NOTE: Eventually get rid of A in favor of actionArgs
  */
 void Action::setArg(ArgList *inA) { 
   actionArgs = *inA;
   A = &actionArgs;
 }
 
-/* Action::ResetArg()
- * Reset arguments in the argument list
- */
-void Action::ResetArg() { 
-  A->Reset();          
-}
-
-/* Action::Name()
+/* Action::ActionCommand()
  *  Print the command that calls the action
  */
-char *Action::Name() { 
-  return A->Command(); 
+const char *Action::ActionCommand() { 
+  return actionArgs.Command(); 
 }
 
 /* Action::CmdLine()
  * Print the command and all args
  */
-char *Action::CmdLine() { 
-  return A->ArgLine(); 
+const char *Action::CmdLine() { 
+  return actionArgs.ArgLine(); 
 }
 
 /* Action::Init()
@@ -70,7 +63,7 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   debug=debugIn;
   err = this->init();
   // Check for unhandled keywords
-  this->A->CheckForMoreArgs();
+  actionArgs.CheckForMoreArgs();
 
   return ( err );
 }
@@ -86,7 +79,7 @@ int Action::Setup(AmberParm **ParmAddress) {
   P = *ParmAddress;
   // If useMass, check that parm actually has masses.
   if (P->mass==NULL && useMass) {
-    mprintf("    Warning: %s: Mass for this parm is NULL.\n",A->Command());
+    mprintf("    Warning: %s: Mass for this parm is NULL.\n",actionArgs.Command());
     mprintf("             Geometric center will be used instead of center of mass.\n");
     useMass=false;
   }

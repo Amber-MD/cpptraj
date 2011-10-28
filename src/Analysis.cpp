@@ -30,15 +30,15 @@ void Analysis::SetDebug(int debugIn) {
   if (debug>0) mprintf("ANALYSIS DEBUG LEVEL SET TO %i\n",debug);
 }
 
-/* Analysis::Name()
+/* Analysis::AnalysisCommand()
  */
-char *Analysis::Name() {
+const char *Analysis::AnalysisCommand() {
   return analyzeArg->Command();
 }
 
 /* Analysis::CmdLine()
  * Print the command and all args
  */
-char *Analysis::CmdLine() {
+const char *Analysis::CmdLine() {
   return analyzeArg->ArgLine();
 }

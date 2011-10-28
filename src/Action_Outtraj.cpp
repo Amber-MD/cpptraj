@@ -31,7 +31,7 @@ int Outtraj::init() {
   outtraj.SetDebug(debug);
   tempParm = PFL->GetParm(A);
   if (tempParm==NULL) {
-    mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",A->Arg(1));
+    mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",A->ArgAt(1));
     return 1;
   }
   if ( outtraj.SetupWrite(NULL,A,tempParm,AMBERTRAJ) ) return 1;
@@ -97,7 +97,7 @@ int Outtraj::action() {
  * Close trajectory.
  */
 void Outtraj::print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",A->Arg(1),outtraj.NumFramesProcessed());
+  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",A->ArgAt(1),outtraj.NumFramesProcessed());
   outtraj.EndTraj();
 }
 

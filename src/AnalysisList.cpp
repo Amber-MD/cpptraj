@@ -35,7 +35,8 @@ void AnalysisList::SetDebug(int debugIn) {
 int AnalysisList::Add(ArgList *argIn) {
   Analysis *Ana=NULL;
  
-  if     (argIn->CommandIs("histogram",4)) { Ana = new Hist(); }
+  if      (argIn->CommandIs("histogram")) { Ana = new Hist(); }
+  else if (argIn->CommandIs("hist"))      { Ana = new Hist(); }
   else return 1;
 
   // Pass in the argument list
@@ -63,7 +64,8 @@ int AnalysisList::Setup(DataSetList *datasetlist) {
     mprintf("    %i: [%s]\n",ana,analysisList[ana]->CmdLine());
     analysisList[ana]->noSetup=false;
     if (analysisList[ana]->Setup(datasetlist)) {
-      mprintf("    Error setting up analysis %i [%s] - skipping.\n",ana,analysisList[ana]->Name());
+      mprintf("    Error setting up analysis %i [%s] - skipping.\n",ana,
+              analysisList[ana]->AnalysisCommand());
       analysisList[ana]->noSetup=true;
     }
   }

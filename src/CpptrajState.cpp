@@ -11,8 +11,6 @@ CpptrajState::CpptrajState() {
 
 // Destructor
 CpptrajState::~CpptrajState() {
-  for (std::list<ArgList*>::iterator it=DF_Args.begin(); it!=DF_Args.end(); it++) 
-    delete (*it);
 }
 
 /* CpptrajState::SetGlobalDebug()
@@ -113,9 +111,7 @@ void CpptrajState::Dispatch(char *inputLine) {
 
   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {
-    ArgList *tempArg = new ArgList();
-    *tempArg = dispatchArg;
-    DF_Args.push_back(tempArg);
+    DF_Args.push_back(dispatchArg);
     return;
   }
 
@@ -138,19 +134,20 @@ void CpptrajState::ProcessDataFileCmd() {
   char *name2 = NULL;
   int width,precision;
   DataFile *df;
-  ArgList *dataArg;
 
   if (DF_Args.empty()) return;
   mprintf("DATAFILE SETUP:\n");
 
   // Loop through all "datafile" arguments
-  for (std::list<ArgList*>::iterator it=DF_Args.begin(); it!=DF_Args.end(); it++) {
-    dataArg = (*it);
+  for (std::list<ArgList>::iterator dataArg=DF_Args.begin(); 
+                                    dataArg!=DF_Args.end(); 
+                                    dataArg++) 
+  {
     // Next string will be the argument passed to datafile
-    df_cmd = dataArg->getNextString();
-    mprintf("  [%s]\n",dataArg->ArgLine());
+    df_cmd = (*dataArg).getNextString();
+    mprintf("  [%s]\n",(*dataArg).ArgLine());
     // Next string is datafile that command pertains to
-    name1 = dataArg->getNextString();
+    name1 = (*dataArg).getNextString();
     if (name1==NULL) {
       mprintf("Error: datafile %s: No filename given.\n",df_cmd);
       continue;
@@ -159,10 +156,10 @@ void CpptrajState::ProcessDataFileCmd() {
 
     // datafile create
     // Usage: datafile create <filename> <dataset0> <dataset1> ...
-    if ( dataArg->ArgIs(1,"create") ) {
+    if ( (*dataArg).ArgIs(1,"create") ) {
       if (df==NULL)
         mprintf("    Creating file %s\n",name1);
-      while ( (name2=dataArg->getNextString())!=NULL ) {
+      while ( (name2=(*dataArg).getNextString())!=NULL ) {
         if ( DFL.Add(name1, DSL.Get(name2))==NULL ) {
           mprintf("Warning: Dataset %s does not exist in main dataset list, skipping.\n",name2);
         }
@@ -170,25 +167,25 @@ void CpptrajState::ProcessDataFileCmd() {
 
     // datafile xlabel
     // Usage: datafile xlabel <filename> <label>
-    } else if ( dataArg->ArgIs(1,"xlabel") ) {
+    } else if ( (*dataArg).ArgIs(1,"xlabel") ) {
       if (df==NULL) {
         mprintf("Error: datafile xlabel: DataFile %s does not exist.\n",name1);
         continue;
       }
-      df->SetXlabel(dataArg->getNextString());
+      df->SetXlabel((*dataArg).getNextString());
 
     // datafile ylabel
     // Usage: datafile ylabel <filename> <label>
-    } else if ( dataArg->ArgIs(1,"ylabel") ) {
+    } else if ( (*dataArg).ArgIs(1,"ylabel") ) {
       if (df==NULL) {
         mprintf("Error: datafile ylabel: DataFile %s does not exist.\n",name1);
         continue;
       }
-      df->SetYlabel(dataArg->getNextString());
+      df->SetYlabel((*dataArg).getNextString());
 
     // datafile invert
     // Usage: datafile invert <filename>
-    } else if ( dataArg->ArgIs(1,"invert") ) {
+    } else if ( (*dataArg).ArgIs(1,"invert") ) {
       if (df==NULL) {
         mprintf("Error: datafile invert: DataFile %s does not exist.\n",name1);
         continue;
@@ -198,7 +195,7 @@ void CpptrajState::ProcessDataFileCmd() {
 
     // datafile noxcol
     // Usage: datafile noxcol <filename>
-    } else if ( dataArg->ArgIs(1,"noxcol") ) {
+    } else if ( (*dataArg).ArgIs(1,"noxcol") ) {
       if (df==NULL) {
         mprintf("Error: datafile noxcol: DataFile %s does not exist.\n",name1);
         continue;
@@ -209,14 +206,14 @@ void CpptrajState::ProcessDataFileCmd() {
     // datafile precision
     // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
     //        If width/precision not specified default to 12.4
-    } else if ( dataArg->ArgIs(1,"precision") ) {
+    } else if ( (*dataArg).ArgIs(1,"precision") ) {
       if (df==NULL) {
         mprintf("Error: datafile precision: DataFile %s does not exist.\n",name1);
         continue;
       }
-      name2 = dataArg->getNextString();
-      width = dataArg->getNextInteger(12);
-      precision = dataArg->getNextInteger(4);
+      name2 = (*dataArg).getNextString();
+      width = (*dataArg).getNextInteger(12);
+      precision = (*dataArg).getNextInteger(4);
       df->SetPrecision(name2,width,precision);
     }
 

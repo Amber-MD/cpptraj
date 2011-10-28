@@ -20,8 +20,8 @@ class Analysis {
 
     void SetArg(ArgList *);
     void SetDebug(int);
-    char *Name();              // Print the command that calls the analysis
-    char *CmdLine();           // Print the entire argument line 
+    const char *AnalysisCommand();              // Print the command that calls the analysis
+    const char *CmdLine();           // Print the entire argument line 
   
     virtual int Setup(DataSetList*)   {return 1;}
     virtual int Analyze()             {return 1;}

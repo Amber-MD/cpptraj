@@ -1,19 +1,14 @@
 // Range
 #include "Range.h"
-#include <cstdlib>
 #include <cstring>
 #include "ArgList.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Range::Range() {
-  rangeArg=NULL;
-}
+Range::Range() { }
 
 // DESTRUCTOR
-Range::~Range() {
-  if (rangeArg!=NULL) free(rangeArg);
-}
+Range::~Range() { }
 
 /* Range::SetRange()
  * Given an argument containing numbers separated by "," (concatentation), and 
@@ -31,20 +26,17 @@ int Range::SetRange(char *ArgIn) {
   if (ArgIn==NULL) return 1;
   rangeList.clear();
 
-  // Set rangeArg - realloc to allow re-use
-  rangeArg=(char*) realloc( rangeArg, (strlen(ArgIn)+1) * sizeof(char));
-  strcpy(rangeArg,ArgIn);
+  // Set rangeArg
+  rangeArg.assign(ArgIn); 
   // Copy ArgIn to temp location to avoid modifying it with strtok
-  temp=(char*) malloc( (strlen(ArgIn)+1) * sizeof(char));
+  temp = new char[ strlen(ArgIn)+1 ];
   strcpy(temp,ArgIn);
   // Split range by comma
   CommaList.SetList(temp, ",");
-  CommaList.ResetAll();
   err=0;
   while ( (arg = CommaList.getNextString())!=NULL ) {
     // Then split by dash
     DashList.SetList(arg, "-");
-    DashList.ResetAll();
     R[0] = DashList.getNextInteger(-1);
     R[1] = DashList.getNextInteger(-1);
     if (R[0]==-1) {
@@ -59,7 +51,7 @@ int Range::SetRange(char *ArgIn) {
       mprintf("Warning: Converting %s to range [%i-%i] is not valid.\n",ArgIn,R[0],R[1]);
   }
 
-  free(temp);
+  delete[] temp;
   // Dont return an empty list
   if ( err>0 || rangeList.empty() ) 
     return 1;
@@ -195,7 +187,7 @@ void Range::RemoveFromRange(int num) {
  * Return the range argument
  */
 char *Range::RangeArg() {
-  return rangeArg;
+  return (char*)rangeArg.c_str();
 }
 
 /* Range::PrintRange()

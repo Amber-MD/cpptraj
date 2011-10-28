@@ -357,9 +357,8 @@ void atommap::WriteMol2(char *m2filename) {
   tmpFrame.SetFrameFromMask(F, &M1);
 
   // Trajectory Setup
-  tmpArg.Add((char*)"title\0");
-  tmpArg.Add(m2filename);
-  tmpArg.ResetAll();
+  tmpArg.AddArg((char*)"title\0");
+  tmpArg.AddArg(m2filename);
   outfile.SetDebug(debug);
   outfile.SetupWrite(m2filename,&tmpArg,tmpParm,MOL2FILE);
   outfile.WriteFrame(0,tmpParm,tmpFrame.X,NULL,tmpFrame.box,tmpFrame.T);

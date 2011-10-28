@@ -52,10 +52,10 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
 
   // First argument should specify dataset name
   if (debug>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
-                       arglist.Arg(0));
-  dset = datasetlist->Get(arglist.Arg(0));
+                       arglist.ArgAt(0));
+  dset = datasetlist->Get(arglist.ArgAt(0));
   if (dset == NULL) {
-    mprintf("\t      Dataset %s not found.\n",arglist.Arg(0));
+    mprintf("\t      Dataset %s not found.\n",arglist.ArgAt(0));
     return 1;
   }
 
@@ -85,14 +85,14 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
   // Cycle through coordinate arguments. Any argument left blank will be 
   // assigned a default value later.
   for (int i=1; i<arglist.Nargs(); i++) {
-    if (debug>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist.Arg(i));
+    if (debug>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist.ArgAt(i));
     // Default explicitly requested
     if (arglist.ArgIs(i,"*")) continue;
     switch (i) {
-      case 1 : dmin = atof(arglist.Arg(i)); minArg=true; break;
-      case 2 : dmax = atof(arglist.Arg(i)); maxArg=true; break;
-      case 3 : dstep= atof(arglist.Arg(i)); break;
-      case 4 : dbins= atoi(arglist.Arg(i)); break;
+      case 1 : dmin = atof(arglist.ArgAt(i)); minArg=true; break;
+      case 2 : dmax = atof(arglist.ArgAt(i)); maxArg=true; break;
+      case 3 : dstep= atof(arglist.ArgAt(i)); break;
+      case 4 : dbins= atoi(arglist.ArgAt(i)); break;
     }
   }
 
