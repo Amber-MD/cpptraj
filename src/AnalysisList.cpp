@@ -6,18 +6,14 @@
 
 // CONSTRUCTOR
 AnalysisList::AnalysisList() {
-  analysisList=NULL;
   Nanalysis=0;
   debug=0;
 }
 
 // DESTRUCTOR
 AnalysisList::~AnalysisList() {
-  if (analysisList!=NULL) {
     for (int i=0; i<Nanalysis; i++)
       delete analysisList[i];
-    free(analysisList);
-  }
 }
 
 /* AnalysisList::SetDebug()
@@ -29,14 +25,14 @@ void AnalysisList::SetDebug(int debugIn) {
     mprintf("AnalysisList DEBUG LEVEL SET TO %i\n",debug);
 }
 
-/* AnalysisList::Add()
+/* AnalysisList::AddAnalysis()
  * Add specific type of analysis to the list.
  */
-int AnalysisList::Add(ArgList *argIn) {
+int AnalysisList::AddAnalysis(ArgList &argIn) {
   Analysis *Ana=NULL;
  
-  if      (argIn->CommandIs("histogram")) { Ana = new Hist(); }
-  else if (argIn->CommandIs("hist"))      { Ana = new Hist(); }
+  if      (argIn.CommandIs("histogram")) { Ana = new Hist(); }
+  else if (argIn.CommandIs("hist"))      { Ana = new Hist(); }
   else return 1;
 
   // Pass in the argument list
@@ -46,8 +42,7 @@ int AnalysisList::Add(ArgList *argIn) {
   if (debug>0) Ana->SetDebug(debug);
 
   // Store in analysis list
-  analysisList = (Analysis**) realloc(analysisList, (Nanalysis+1) * sizeof(Analysis*));
-  analysisList[Nanalysis] = Ana;
+  analysisList.push_back(Ana);
   Nanalysis++;
 
   return 0;

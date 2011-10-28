@@ -21,11 +21,10 @@ Action::~Action() {
   //fprintf(stderr,"Action Destructor.\n"); 
 }
 
-/* Action::setArg()
+/* Action::SetArg()
  * Set the argument list
- * NOTE: Eventually get rid of A in favor of actionArgs
  */
-void Action::setArg( const ArgList &inA) { 
+void Action::SetArg( const ArgList &inA) { 
   actionArgs = inA;
 }
 

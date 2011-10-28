@@ -6,7 +6,6 @@
 // CONSTRUCTOR
 Analysis::Analysis() {
   debug = 0;
-  analyzeArg = NULL;
   noSetup=false;
 }
 
@@ -17,9 +16,8 @@ Analysis::~Analysis() {
 /* Analysis::SetArg()
  * Set analyzeArg to be a copy of the input argument list.
  */
-void Analysis::SetArg(ArgList *argIn) {
-  analyzeArgs = *argIn;
-  analyzeArg = &analyzeArgs;
+void Analysis::SetArg(const ArgList &argIn) {
+  analyzeArgs = argIn;
 }
 
 /* Analysis::SetDebug()
@@ -33,12 +31,12 @@ void Analysis::SetDebug(int debugIn) {
 /* Analysis::AnalysisCommand()
  */
 const char *Analysis::AnalysisCommand() {
-  return analyzeArg->Command();
+  return analyzeArgs.Command();
 }
 
 /* Analysis::CmdLine()
  * Print the command and all args
  */
 const char *Analysis::CmdLine() {
-  return analyzeArg->ArgLine();
+  return analyzeArgs.ArgLine();
 }

@@ -87,7 +87,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else return 1; 
 
   // Pass in the argument list
-  Act->setArg(argIn);
+  Act->SetArg(argIn);
   // Debug
   if (debug>0) mprintf("    Added action %s\n", Act->ActionCommand());
 
@@ -110,7 +110,6 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL,
     if (actionlist[act]->noInit) {
       mprintf("    WARNING: Action %s is not active.\n",actionlist[act]->ActionCommand());
     } else {
-      //actionlist[act]->ResetArg();
       if ( actionlist[act]->Init( DSL, FL, DFL, PFL, debug ) ) {
         mprintf("    WARNING: Init failed for [%s]: DEACTIVATING\n",
                 actionlist[act]->CmdLine());
@@ -136,7 +135,6 @@ int ActionList::Setup(AmberParm **ParmAddress) {
     if (actionlist[act]->noInit==0) {
       if (debug>0) mprintf("    %i: [%s]\n",act,actionlist[act]->CmdLine());
       actionlist[act]->noSetup=0;
-      //actionlist[act]->ResetArg();
       err = actionlist[act]->Setup(ParmAddress);
       if (err==1) {
         mprintf("      WARNING: Setup failed for [%s]: Skipping\n",

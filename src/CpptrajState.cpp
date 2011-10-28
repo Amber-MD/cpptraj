@@ -119,7 +119,7 @@ void CpptrajState::Dispatch(char *inputLine) {
   if ( actionList.AddAction(dispatchArg)==0 ) return;
 
   // Check if command pertains to analysis
-  if ( analysisList.Add(&dispatchArg)==0 ) return; 
+  if ( analysisList.AddAnalysis(dispatchArg)==0 ) return; 
 
   mprintf("Warning: Unknown Command %s.\n",dispatchArg.Command());
 }

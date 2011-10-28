@@ -10,7 +10,6 @@
 class Analysis {
   protected:
     int debug;
-    ArgList *analyzeArg;
     ArgList analyzeArgs;
   public:
     Analysis();
@@ -18,7 +17,7 @@ class Analysis {
 
     bool noSetup;
 
-    void SetArg(ArgList *);
+    void SetArg(const ArgList &);
     void SetDebug(int);
     const char *AnalysisCommand();              // Print the command that calls the analysis
     const char *CmdLine();           // Print the entire argument line 
