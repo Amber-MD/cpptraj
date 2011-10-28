@@ -10,7 +10,7 @@ ReferenceList::ReferenceList() {
 // DESTRUCTOR
 ReferenceList::~ReferenceList() { }
 
-/* ReferenceList::Add()
+/* ReferenceList::AddReference()
  * Add trajectory to the trajectory list as a reference trajectory. The list
  * will be converted to a list of reference frames by SetupRefFrames before
  * trajectories are processed. Associate the trajectory with one of the parm 
@@ -18,7 +18,7 @@ ReferenceList::~ReferenceList() { }
  * reference <filename> [start] [parm <parmfile> | parmindex <#>]
  * NOTE: Do not allocate Frames with new, should be static?
  */
-int ReferenceList::Add(char *filename, ArgList *A, AmberParm *parmIn) {
+int ReferenceList::AddReference(char *filename, ArgList *A, AmberParm *parmIn) {
   TrajectoryFile *traj;
   bool average = false;
 
