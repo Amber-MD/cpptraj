@@ -24,7 +24,7 @@ class ParmFileList {
     int Add(char *);
     int Add(AmberParm *);
     AmberParm *GetParm(int);
-    AmberParm *GetParm(ArgList *);
+    AmberParm *GetParm(ArgList &);
     int GetParmIndex(char *);
     int Replace(int, AmberParm *);
     void Print();

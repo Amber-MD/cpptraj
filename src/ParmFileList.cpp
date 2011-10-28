@@ -123,14 +123,14 @@ AmberParm *ParmFileList::GetParm(int num) {
  *   parm <parm name>
  *   parmindex <parm index>
  */
-AmberParm *ParmFileList::GetParm(ArgList *A) {
+AmberParm *ParmFileList::GetParm(ArgList &argIn) {
   char *parmfilename;
   int pindex;
   AmberParm *P;
   // Get any parm keywords if present
   P=NULL;
-  parmfilename=A->getKeyString("parm", NULL);
-  pindex=A->getKeyInt("parmindex",0);
+  parmfilename=argIn.getKeyString("parm", NULL);
+  pindex=argIn.getKeyInt("parmindex",0);
   // Associate trajectory with parameter file. Associate with default parm if none specified
   if (parmfilename!=NULL)
     pindex = this->GetParmIndex(parmfilename);
