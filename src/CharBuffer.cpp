@@ -30,6 +30,31 @@ size_t CharBuffer::CurrentSize() {
   return (size_t) (ptr - buffer);
 }
 
+/* CharBuffer::WriteStringBuffer()
+ */
+/*
+void CharBuffer::WriteStringBuffer(char *sval) {
+  size_t len = 0;
+  char *s_ptr = sval;
+  while (*s_ptr!='\0') {
+    s_ptr++;
+    len++;
+  }
+  size_t currentSize = CurrentSize();
+  size_t newSize = currentSize + len + 1;
+  // If not enough room to add sval to buffer, reallocate buffer
+  if ( newSize > bufferSize ) {
+    char *newBuffer = new char[ newSize ];
+    memcpy(newBuffer, buffer, currentSize * sizeof(char));
+    delete[] buffer;
+    buffer = newBuffer;
+    // Reposition ptr to same place it was in old buffer
+    ptr = buffer + currentSize;
+  }
+  strcpy(ptr, sval);
+  ptr += (len + 1); // +1 for NULL
+}*/
+
 /* CharBuffer::WriteDouble()
  */
 void CharBuffer::WriteDouble(const char *format, double dval) {
@@ -53,6 +78,15 @@ void CharBuffer::WriteString(const char *format, const char *sval) {
   n_char_written = sprintf(ptr, format, sval);
   ptr += n_char_written;
 }
+
+/* CharBuffer::WriteString()
+ */
+void CharBuffer::WriteString(const char *sval) {
+  int n_char_written;
+  n_char_written = sprintf(ptr, "%s", sval);
+  ptr += n_char_written;
+}
+
 
 /* CharBuffer::WriteStringN()
  */

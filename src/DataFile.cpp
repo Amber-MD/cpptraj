@@ -413,37 +413,39 @@ void DataFile::WriteDataInverted(CpptrajFile *outfile) {
  */
 void DataFile::WriteGrace(CpptrajFile *outfile) {
   int set,frame;
-  int lineSize=0;;
-  int currentLineSize=0;
-  char *buffer;
+  CharBuffer buffer;
   double xcoord;
+  size_t dataFileSize;
 
-  // Grace Header
-  outfile->IO->Printf("@with g0\n");
-  outfile->IO->Printf("@  xaxis label \"%s\"\n",xlabel);
-  outfile->IO->Printf("@  yaxis label \"%s\"\n",ylabel);
-  outfile->IO->Printf("@  legend 0.2, 0.995\n");
-  outfile->IO->Printf("@  legend char size 0.60\n");
+  // Calculate file size:
+  // 1) Initial Header: 91 + xlabel + ylabel
+  dataFileSize = (91 + strlen(xlabel) + strlen(ylabel));
+  // 2) Set Headers: 37 + 8 + SetName + 8 (fixing integers at size 8)
+  for (set = 0; set < Nsets; set++) {
+    dataFileSize += (53 + strlen( SetList[set]->Name() ));
+  // 3) Set Data: (8 + SetWidth + 1) * maxFrames
+    dataFileSize += ((9 + SetList[set]->Width() ) * maxFrames);
+  }
+  // Allocate buffer
+  buffer.Allocate( dataFileSize );
+  // Grace header
+  buffer.WriteString("@with g0\n@  xaxis label \""); // 25
+  buffer.WriteString(xlabel);
+  buffer.WriteString("\"\n@  yaxis label \""); // 43 
+  buffer.WriteString(ylabel);
+  buffer.WriteString("\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n"); // 91
 
   // Loop over sets in data
-  buffer=NULL;
   for (set=0; set<Nsets; set++) {
     // Set information
-    outfile->IO->Printf("@  s%i legend \"%s\"\n",set,SetList[set]->Name());
-    outfile->IO->Printf("@target G0.S%i\n",set);
-    outfile->IO->Printf("@type xy\n");
-    // Calc buffer size; reallocate if bigger than current size
-    lineSize = SetList[set]->Width() + 2;
-    if (lineSize > currentLineSize) {
-      buffer = (char*) realloc(buffer, lineSize * sizeof(char));
-      currentLineSize = lineSize;
-      // Since using IO->Printf, buffer cannot be larger than 1024
-      if (lineSize>=1024) {
-        mprintf("Error: DataFile::WriteGrace: %s: Data width >= 1024\n",filename);
-        if (buffer!=NULL) free(buffer);
-        return;
-      }
-    }
+    buffer.WriteString("@  s"); // 4
+    buffer.WriteInteger("%-8i",set); // 12
+    buffer.WriteString(" legend \""); // 21
+    buffer.WriteString(SetList[set]->Name());
+    buffer.WriteString("\"\n@target G0.S"); // 35
+    buffer.WriteInteger("%-8i",set); // 43
+    buffer.WriteString("\n@type xy\n"); // 53
+
     // Set Data
     for (frame=0; frame<maxFrames; frame++) {
       // If specified, run through every set in the frame and check if empty
@@ -451,11 +453,12 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
         if ( SetList[set]->isEmpty(frame) ) continue; 
       }
       xcoord = (xstep * frame) + xmin;
-      SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%lf %s\n",xcoord,buffer);
+      buffer.WriteDouble("%8.3f",xcoord);
+      SetList[set]->WriteBuffer(buffer,frame);
+      buffer.NewLine();
     }
   }
-  if (buffer!=NULL) free(buffer);
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
 
 /* DataFile::WriteGraceInverted() 
