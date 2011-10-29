@@ -429,23 +429,13 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
   // Allocate buffer
   buffer.Allocate( dataFileSize );
   // Grace header
-  buffer.WriteString("@with g0\n@  xaxis label \""); // 25
-  buffer.WriteString(xlabel);
-  buffer.WriteString("\"\n@  yaxis label \""); // 43 
-  buffer.WriteString(ylabel);
-  buffer.WriteString("\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n"); // 91
+  buffer.Sprintf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",xlabel,ylabel);
 
   // Loop over sets in data
   for (set=0; set<Nsets; set++) {
     // Set information
-    buffer.WriteString("@  s"); // 4
-    buffer.WriteInteger("%-8i",set); // 12
-    buffer.WriteString(" legend \""); // 21
-    buffer.WriteString(SetList[set]->Name());
-    buffer.WriteString("\"\n@target G0.S"); // 35
-    buffer.WriteInteger("%-8i",set); // 43
-    buffer.WriteString("\n@type xy\n"); // 53
-
+    buffer.Sprintf("@  s%-8i legend \"%s\"\n@target G0.S%-8i\n@type xy\n",
+                   set,SetList[set]->Name(),set);
     // Set Data
     for (frame=0; frame<maxFrames; frame++) {
       // If specified, run through every set in the frame and check if empty
@@ -467,29 +457,23 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
  */
 void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
   int set,frame,empty;
-  int lineSize=0;;
-  int currentLineSize=0;
-  char *buffer;
+  size_t dataFileSize;
+  CharBuffer buffer;
+  double xcoord;
+
+  // Calculate file size
+  // 1) Initial header: 91 + xlabel + ylabel
+  dataFileSize = (91 + strlen(xlabel) + strlen(ylabel));
+  // 2) Set Headers: (22 + 8) * maxFrames  (fixing integers at size 8)
+  dataFileSize += (30 * maxFrames);
+  // 3) Set Data: (8 + SetWidth + 4 + SetName) * maxFrames
+  for (set = 0; set < Nsets; set++)
+    dataFileSize += ((12 + SetList[set]->Width() + strlen( SetList[set]->Name() ))*maxFrames);
+  // Allocate buffer
+  buffer.Allocate(dataFileSize);
 
   // Grace Header
-  outfile->IO->Printf("@with g0\n");
-  outfile->IO->Printf("@  xaxis label \"\"\n");
-  outfile->IO->Printf("@  yaxis label \"\"\n");
-  outfile->IO->Printf("@  legend 0.2, 0.995\n");
-  outfile->IO->Printf("@  legend char size 0.60\n");
-
-  // Calculate maximum expected size for output line.
-  for (set=0; set < Nsets; set++) {
-    lineSize = SetList[set]->Width() + 2;
-    if (lineSize > currentLineSize)
-      currentLineSize = lineSize;
-  }
-  // Since using IO->Printf, buffer cannot be larger than 1024
-  if (lineSize>=1024) {
-    mprintf("Error: DataFile::WriteGraceInverted: %s: Data width >= 1024\n",filename);
-    return;
-  }
-  buffer = (char*) malloc(lineSize * sizeof(char));
+  buffer.Sprintf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",ylabel,xlabel);
 
   // Loop over frames
   for (frame=0; frame<maxFrames; frame++) {
@@ -503,16 +487,17 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
     }
 
     // Set information
-    //outfile->IO->Printf("@  s%i legend \"%s\"\n",set,SetList[set]->Name());
-    outfile->IO->Printf("@target G0.S%i\n",frame);
-    outfile->IO->Printf("@type xy\n");
+    buffer.Sprintf("@target G0.S%-8i\n@type xy\n",frame);
     // Loop over all Set Data for this frame
     for (set=0; set<Nsets; set++) {
-      SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%8i%s \"%s\"\n",set+OUTPUTFRAMESHIFT,buffer,SetList[set]->Name());
+      xcoord = (ystep * set) + ymin;
+      buffer.WriteDouble("%8.3f",xcoord);
+      SetList[set]->WriteBuffer(buffer,frame);
+      buffer.Sprintf(" \"%s\"",SetList[set]->Name());
+      buffer.NewLine();
     }
   }
-  if (buffer!=NULL) free(buffer);
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
 
 /* DataFile::WriteGnuplot()
