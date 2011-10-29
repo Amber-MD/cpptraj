@@ -516,29 +516,10 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
  * done. Could be added back in later as an option.
  */
 void DataFile::WriteGnuplot(CpptrajFile *outfile) {
-  char *buffer;
+  CharBuffer buffer;
   int set, frame;
-  int lineSize=0;
-  int currentLineSize=0;
   double xcoord, ycoord;
-
-  // Calculate maximum expected size for output line.
-  for (set=0; set < Nsets; set++) {
-    lineSize = SetList[set]->Width() + 2;
-    if (lineSize > currentLineSize)
-      currentLineSize = lineSize;
-  }
-  // Since using IO->Printf, buffer cannot be larger than 1024
-  if (lineSize>=1024) {
-    mprintf("Error: DataFile::WriteGnuplot: %s: Data width >= 1024\n",filename);
-    return;
-  }
-  buffer = (char*) malloc(lineSize * sizeof(char));
-
-  if (!useMap)
-    outfile->IO->Printf("set pm3d map corners2color c1\n");
-  else
-    outfile->IO->Printf("set pm3d map\n");
+  size_t dataFileSize;
 
   // Turn off labels if number of sets is too large since they 
   // become unreadable. Should eventually have some sort of 
@@ -549,61 +530,104 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
     printLabels=false;
   }
 
+  // Calculate data file size
+  // 1) Label, range, plot, and end commands:
+  //    87 + xlabel + ylabel + [4*8] + filename + 13
+  dataFileSize = 132 + strlen(xlabel) + strlen(ylabel) + strlen(filename);
+  // 2) Data labels:
+  //    22 + 8 + 8 + 2 + SUM[Nsets]:(4+8+SetName)
+  if (printLabels) {
+    dataFileSize += 40;
+    for (set = 0; set < Nsets; set++)
+      dataFileSize += ( 12 + strlen( SetList[set]->Name() ) );
+  }
+  // NOT useMap
+  //   3) Header and data: (extra row and column) 
+  //      30 + (SUM[Nsets]:(width + 8 + 8 + 3) + (8 + 8 + 8 + 4)) * maxFrames
+  //      + ((Nsets+1) * (8 + 8 + 3)) + 1
+  if (!useMap) {
+    dataFileSize += 30;
+    for (set = 0; set < Nsets; set++)
+      dataFileSize += (( SetList[set]->Width() + 47 ) * maxFrames);
+    dataFileSize += (((Nsets+1) * 19) + 1);
+  // useMap
+  //   3) Header and data:
+  //      13 + (SUM[Nsets]:(width + 8 + 8 + 4)) * maxFrames
+  } else {
+    dataFileSize += 13;
+    for (set = 0; set < Nsets; set++)
+      dataFileSize += (( SetList[set]->Width() + 20 ) * maxFrames);
+  } 
+  // Allocate buffer
+  buffer.Allocate( dataFileSize );
+
+  // Map command
+  if (!useMap)
+    buffer.WriteString("%s","set pm3d map corners2color c1\n");
+  else
+    buffer.WriteString("%s","set pm3d map\n");
+
+  // Y axis Data Labels
   if (printLabels) {
     // NOTE: Add option to turn on grid later?
     //outfile->IO->Printf("set pm3d map hidden3d 100 corners2color c1\n");
     //outfile->IO->Printf("set style line 100 lt 2 lw 0.5\n");
     // Set up Y labels
-    outfile->IO->Printf("set ytics %lf,%lf\nset ytics(",ymin,ystep);
+    buffer.Sprintf("set ytics %8.3f,%8.3f\nset ytics(",ymin,ystep);
     for (set=0; set<Nsets; set++) {
-      if (set>0) outfile->IO->Printf(",");
+      if (set>0) buffer.WriteString("%s",",");
       ycoord = (ystep * set) + ymin;
-      outfile->IO->Printf("\"%s\" %lf",SetList[set]->Name(),ycoord);
+      buffer.Sprintf("\"%s\" %8.3f",SetList[set]->Name(),ycoord);
     }
-    outfile->IO->Printf(")\n");
+    buffer.Sprintf(")\n");
   }
 
-  // Set axis labels
-  outfile->IO->Printf("set xlabel \"%s\"\n",xlabel);
-  outfile->IO->Printf("set ylabel \"%s\"\n",ylabel);
+  // Set axis label and range, write plot command
   // Make Yrange +1 and -1 so entire grid can be seen
   ycoord = (ystep * Nsets) + ymin;
-  outfile->IO->Printf("set yrange [%lf:%lf]\n",ymin-ystep,ycoord+ystep);
   // Make Xrange +1 and -1 as well
   xcoord = (xstep * maxFrames) + xmin;
-  outfile->IO->Printf("set xrange [%lf:%lf]\n",xmin-xstep,xcoord+xstep);
-  // Plot command
-  outfile->IO->Printf("splot \"-\" with pm3d title \"%s\"\n",filename);
+  buffer.Sprintf("set xlabel \"%s\"\nset ylabel \"%s\"\nset yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\nsplot \"-\" with pm3d title \"%s\"\n",
+                 xlabel,ylabel,ymin-ystep,ycoord+ystep,xmin-xstep,xcoord+xstep,filename);
 
   // Data
   for (frame=0; frame < maxFrames; frame++) {
     xcoord = (xstep * frame) + xmin;
     for (set=0; set < Nsets; set++) {
       ycoord = (ystep * set) + ymin;
-      SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%lf %lf %s\n",xcoord,ycoord,buffer);
+      buffer.WriteDouble("%8.3f ",xcoord);
+      buffer.WriteDouble("%8.3f ",ycoord);
+      SetList[set]->WriteBuffer(buffer,frame);
+      buffer.NewLine();
     }
     if (!useMap) {
       // Print one empty row for gnuplot pm3d without map
       ycoord = (ystep * set) + ymin;
-      outfile->IO->Printf("%lf %lf %8i\n",xcoord,ycoord,0);
+      buffer.WriteDouble("%8.3f ",xcoord);
+      buffer.WriteDouble("%8.3f ",ycoord);
+      buffer.WriteInteger("%1i",0);
+      buffer.NewLine();
     }
-    outfile->IO->Printf("\n");
+    buffer.NewLine();
   }
   if (!useMap) {
     // Print one empty set for gnuplot pm3d without map
     xcoord = (xstep * frame) + xmin;
     for (set=0; set<=Nsets; set++) {
       ycoord = (ystep * set) + ymin;
-      outfile->IO->Printf("%lf %lf %8i\n",xcoord,ycoord,0);
+      buffer.WriteDouble("%8.3f ",xcoord);
+      buffer.WriteDouble("%8.3f ",ycoord);
+      buffer.WriteInteger("%1i",0);
+      buffer.NewLine();
     }
-    outfile->IO->Printf("\n");
+    buffer.NewLine();
   }
 
   // End and Pause command
-  outfile->IO->Printf("end\npause -1\n");
-  // Free buffer
-  if (buffer!=NULL) free(buffer);
+  buffer.WriteString("%s","end\npause -1");
+  buffer.NewLine();
+  // Write buffer
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
 
 
