@@ -135,6 +135,11 @@ static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
     if (strcmp(argv[i],"--help")==0 || strcmp(argv[i],"-help")==0) {
       return 1;
 
+    // -V, --version: Print version number and exit
+    // NOTE: version number is already printed - should order be changed?
+    } else if (strcmp(argv[i],"-V")==0 || strcmp(argv[i],"--version")==0) {
+      return 2;
+
     // -p: Topology file
     } else if (strcmp(argv[i],"-p")==0 && i+1!=argc) {
       i++;
