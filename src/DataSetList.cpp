@@ -61,11 +61,42 @@ DataSet *DataSetList::Get(int idxIn) {
   return NULL;
 }
 
-/* DataSetList::AddMult()
+/* DataSetList::GetDataSetN()
+ * Return pointer to DataSet N in the list.
+ */
+DataSet *DataSetList::GetDataSetN(int ndataset) {
+  if (ndataset < 0 || ndataset >= Ndata) return NULL;
+  return DataList[ndataset];
+}
+
+/* DataSetList::AddMultiN()
+ * Works like Add, except the dataset will be named
+ *   <prefix>_<suffix><Nin>
+ * if <prefix> is not NULL, and
+ *   <suffix><Nin>_XXXXX
+ * otherwise.
+ */
+DataSet *DataSetList::AddMultiN(dataType inType, const char *prefix, 
+                                const char *suffix, int Nin) {
+  char tempName[64];
+  char tempSuffix[32];
+  sprintf(tempSuffix,"%s%i",suffix,Nin);
+  if (prefix==NULL)
+    return this->Add(inType,NULL,tempSuffix);
+ // Sanity check - make sure name is not too big
+ if (strlen(prefix)+strlen(tempSuffix)+1 > 64) {
+   mprinterr("Internal Error: DataSetList::AddMultiN: size of %s+%s > 64\n",prefix,tempSuffix);
+   return NULL;
+ } 
+ sprintf(tempName,"%s_%s",prefix,tempSuffix);
+ return this->Add(inType,tempName,tempSuffix);
+}
+
+/* DataSetList::AddMulti()
  * Works like Add, except the dataset will be named 
- *   nameprefix_namesuffx
- * if nameprefix is not NULL, and
- *   namesuffix_XXXXX
+ *   <prefix>_<suffix>
+ * if <prefix> is not NULL, and
+ *   <suffix>_XXXXX
  * otherwise.
  */
 DataSet *DataSetList::AddMulti(dataType inType, char *prefix, const char *suffix) {

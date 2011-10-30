@@ -26,7 +26,9 @@ class DataSetList {
     void SetMax(int);
     DataSet *Get(char *);
     DataSet *Get(int);
+    DataSet *GetDataSetN(int);
     DataSet *AddMulti(dataType, char *, const char *);
+    DataSet *AddMultiN(dataType, const char *, const char *, int);
     DataSet *Add( dataType, char*, const char*);
     DataSet *AddIdx( dataType, char*, int);
     void Begin();
