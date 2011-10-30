@@ -54,22 +54,6 @@ int stringDataSet::isEmpty(int frame) {
   return 0;
 }
 
-/* stringDataSet::Write()
- * Write data at frame to buffer. If no data for frame write NoData.
- * Return position in buffer after write.
- */
-char *stringDataSet::Write(char *buffer, int frame) {
-
-  it = Data.find( frame );
-  if (it == Data.end()) { 
-    sprintf(buffer, format, "NoData");
-    return (buffer + 7);
-  } else 
-    sprintf(buffer, format, (*it).second.c_str());
-
-  return (buffer + width + 1);
-}
-
 /* stringDataSet::WriteBuffer()
  * Write data at frame to CharBuffer. If no data for frame write 0.0.
  */

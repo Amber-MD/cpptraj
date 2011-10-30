@@ -63,22 +63,6 @@ int intDataSet::isEmpty(int frame) {
   return 0;
 }
 
-/*
- * intDataSet::Write()
- * Write data at frame to buffer. If no data for frame write 0.
- * Return position in buffer after write.
- */
-char *intDataSet::Write(char *buffer, int frame) {
-
-  it = Data.find( frame );
-  if (it == Data.end()) 
-    //sprintf(buffer," %12s","NoData");
-    sprintf(buffer, format, 0);
-  else 
-    sprintf(buffer, format, (*it).second);
-  return (buffer + width + 1);
-}
-
 /* intDataSet::WriteBuffer()
  * Write data at frame to CharBuffer. If no data for frame write 0.
  */

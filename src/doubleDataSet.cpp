@@ -88,22 +88,6 @@ int doubleDataSet::isEmpty(int frame) {
   return 0;
 }
 
-/*
- * doubleDataSet::Write()
- * Write data at frame to buffer. If no data for frame write 0.0.
- * Return position in buffer after write.
- */
-char *doubleDataSet::Write(char *buffer, int frame) {
-
-  it = Data.find( frame );
-  if (it == Data.end()) 
-    //sprintf(buffer," %12s","NoData");
-    sprintf(buffer, format, 0.0);
-  else 
-    sprintf(buffer, format,(*it).second);
-  return (buffer + width + 1);
-}
-
 /* doubleDataSet::WriteBuffer()
  * Write data at frame to CharBuffer. If no data for frame write 0.0.
  */
