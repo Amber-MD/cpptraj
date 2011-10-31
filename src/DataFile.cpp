@@ -1,9 +1,9 @@
 //DataFile
 #include <cstdlib>
 #include <cstring>
-#include <cstdio> //sprintf for frame #
 #include "DataFile.h"
 #include "CpptrajStdio.h"
+#include "CharBuffer.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() {
@@ -297,12 +297,18 @@ void DataFile::Write() {
  */
 void DataFile::WriteData(CpptrajFile *outfile) {
   int set,frame,empty;
-  char *ptr,*buffer;
+  CharBuffer buffer;
   int lineSize = 0;
   bool firstSet = true;
   size_t dataFileSize = 0;
+  double xcoord;
+  char x_format[6];
 
-  buffer=NULL;
+  // Create format string for X column
+  strcpy(x_format, "%8.0f");
+  // If xstep is not 1, set precision to 3
+  if (xstep!=1) strcpy(x_format, "%8.3f"); 
+   
   // Calculate overall size of the datafile. 
   if (!noXcolumn) lineSize = 8;
   for (set=0; set<Nsets; set++)
@@ -315,29 +321,26 @@ void DataFile::WriteData(CpptrajFile *outfile) {
   dataFileSize *= (size_t) lineSize;
   // NOTE: Since we are manually writing the newlines to this file there is
   //       no need to allocate space for a NULL char. If something like 
-  //       sprintf is ever used 1 more byte needs to be allocd for NULL.
-  buffer = (char*) malloc (dataFileSize * sizeof(char));
-  if (buffer==NULL) {
-    mprinterr("Error: DataFile %s: Could not allocate buffer memory.\n",filename);
-    return;
-  }
+  //       sprintf is ever used to write newlines or any data that is at the
+  //       end of the file, 1 more byte needs to be allocd for NULL.
+  buffer.Allocate( dataFileSize );
 
   // Write header to buffer
-  ptr = buffer;
   if (!noXcolumn) {
-    // NOTE: Eventually use xlabel
-    strncpy(ptr,"#Frame  ",8);
-    ptr+=8;
+    // NOTE: Calling WriteStringN with width-1 since it automatically inserts
+    //       a space along with the label (before or after according to 
+    //       leftAlign). Currently total width written with WriteStringN is
+    //       width+1. 
+    buffer.WriteStringN(xlabel,7,true); 
   }
   for (set=0; set<Nsets; set++) {
     if (noXcolumn && firstSet) {
-      ptr = SetList[set]->Name(ptr,true);
+      SetList[set]->WriteNameToBuffer(buffer,true);
       firstSet=false;
     } else
-      ptr = SetList[set]->Name(ptr,false);
+      SetList[set]->WriteNameToBuffer(buffer,false);
   }
-  ptr[0]='\n';
-  ptr++;
+  buffer.NewLine();
 
   // Write Data to buffer
   for (frame=0; frame<maxFrames; frame++) {
@@ -350,28 +353,24 @@ void DataFile::WriteData(CpptrajFile *outfile) {
       if (empty!=0) continue;
     }
     // Output Frame
-    // NOTE: For consistency with Ptraj start at frame 1
     if (!noXcolumn) {
-      sprintf(ptr,"%8i",frame + OUTPUTFRAMESHIFT);
-      ptr+=8;
+      xcoord = (xstep * frame) + xmin;
+      buffer.WriteDouble(x_format,xcoord);
     }
     for (set=0; set<Nsets; set++) {
-      ptr = SetList[set]->Write(ptr,frame);
+      SetList[set]->WriteBuffer(buffer,frame);
     }
-    ptr[0]='\n';
-    ptr++;
+    buffer.NewLine();
   }
 
   // If noEmptyFrames the actual size of data written may be less than
   // the size of the data allocated. Recalculate the actual size.
-  if (noEmptyFrames) 
-    dataFileSize = (size_t) (ptr - buffer);
+  if (noEmptyFrames)
+    dataFileSize = buffer.CurrentSize(); 
 
   // Write buffer to file
-  outfile->IO->Write(buffer,sizeof(char),dataFileSize);
-
-  // Free buffer
-  if (buffer!=NULL) free(buffer);
+  // NOTE: Should probably just always pass in buffer.CurrentSize
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),dataFileSize);
 }
 
 /* DataFile::WriteDataInverted()
@@ -380,11 +379,15 @@ void DataFile::WriteData(CpptrajFile *outfile) {
  */
 void DataFile::WriteDataInverted(CpptrajFile *outfile) {
   int frame,set,empty;
-  int currentLineSize=0;
-  int lineSize=0;
-  char *buffer,*ptr;
+  CharBuffer buffer;
+  size_t dataFileSize = 0;
 
-  buffer=NULL;
+  // Determine max output file size
+  // Each line is (set width * (number of frames+1) + newline
+  for (set = 0; set < Nsets; set++)
+    dataFileSize += ((SetList[set]->Width() * (maxFrames+1)) + 1);
+  buffer.Allocate( dataFileSize );
+
   for (set=0; set < Nsets; set++) {
     // if specified check for empty frames in the set
     if (noEmptyFrames) {
@@ -394,26 +397,15 @@ void DataFile::WriteDataInverted(CpptrajFile *outfile) {
       }
       if (empty!=0) continue;
     }
-    // Necessary buffer size is (set width * number of frames) + newline + NULL
-    lineSize = (SetList[set]->Width() * maxFrames) + 2;
-    // Check if lineSize > currentLineSize; if so, reallocate buffer
-    if (lineSize > currentLineSize) {
-      buffer = (char*) realloc(buffer, lineSize * sizeof(char));
-      currentLineSize=lineSize;
-    }
-    // Write header as first column
-    outfile->IO->Printf("\"%12s\" ",SetList[set]->Name());
-    // Write each frame to a column
-    ptr = buffer;
+    // Write dataset name as first column
+    SetList[set]->WriteNameToBuffer(buffer,false);
+    // Write each frame to subsequent columns
     for (frame=0; frame<maxFrames; frame++) {
-      ptr = SetList[set]->Write(ptr,frame);
+      SetList[set]->WriteBuffer(buffer,frame);
     }
-    // IO->Printf is limited to 1024 chars, use Write instead
-    outfile->IO->Write(buffer,sizeof(char),strlen(buffer));
-    outfile->IO->Printf("\n");
+    buffer.NewLine();
   }
-  // free buffer
-  if (buffer!=NULL) free(buffer);
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
  
 /* DataFile::WriteGrace() 
@@ -421,37 +413,29 @@ void DataFile::WriteDataInverted(CpptrajFile *outfile) {
  */
 void DataFile::WriteGrace(CpptrajFile *outfile) {
   int set,frame;
-  int lineSize=0;;
-  int currentLineSize=0;
-  char *buffer;
+  CharBuffer buffer;
   double xcoord;
+  size_t dataFileSize;
 
-  // Grace Header
-  outfile->IO->Printf("@with g0\n");
-  outfile->IO->Printf("@  xaxis label \"%s\"\n",xlabel);
-  outfile->IO->Printf("@  yaxis label \"%s\"\n",ylabel);
-  outfile->IO->Printf("@  legend 0.2, 0.995\n");
-  outfile->IO->Printf("@  legend char size 0.60\n");
+  // Calculate file size:
+  // 1) Initial Header: 91 + xlabel + ylabel
+  dataFileSize = (91 + strlen(xlabel) + strlen(ylabel));
+  // 2) Set Headers: 37 + 8 + SetName + 8 (fixing integers at size 8)
+  for (set = 0; set < Nsets; set++) {
+    dataFileSize += (53 + strlen( SetList[set]->Name() ));
+  // 3) Set Data: (8 + SetWidth + 1) * maxFrames
+    dataFileSize += ((9 + SetList[set]->Width() ) * maxFrames);
+  }
+  // Allocate buffer
+  buffer.Allocate( dataFileSize );
+  // Grace header
+  buffer.Sprintf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",xlabel,ylabel);
 
   // Loop over sets in data
-  buffer=NULL;
   for (set=0; set<Nsets; set++) {
     // Set information
-    outfile->IO->Printf("@  s%i legend \"%s\"\n",set,SetList[set]->Name());
-    outfile->IO->Printf("@target G0.S%i\n",set);
-    outfile->IO->Printf("@type xy\n");
-    // Calc buffer size; reallocate if bigger than current size
-    lineSize = SetList[set]->Width() + 2;
-    if (lineSize > currentLineSize) {
-      buffer = (char*) realloc(buffer, lineSize * sizeof(char));
-      currentLineSize = lineSize;
-      // Since using IO->Printf, buffer cannot be larger than 1024
-      if (lineSize>=1024) {
-        mprintf("Error: DataFile::WriteGrace: %s: Data width >= 1024\n",filename);
-        if (buffer!=NULL) free(buffer);
-        return;
-      }
-    }
+    buffer.Sprintf("@  s%-8i legend \"%s\"\n@target G0.S%-8i\n@type xy\n",
+                   set,SetList[set]->Name(),set);
     // Set Data
     for (frame=0; frame<maxFrames; frame++) {
       // If specified, run through every set in the frame and check if empty
@@ -459,11 +443,12 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
         if ( SetList[set]->isEmpty(frame) ) continue; 
       }
       xcoord = (xstep * frame) + xmin;
-      SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%lf %s\n",xcoord,buffer);
+      buffer.WriteDouble("%8.3f",xcoord);
+      SetList[set]->WriteBuffer(buffer,frame);
+      buffer.NewLine();
     }
   }
-  if (buffer!=NULL) free(buffer);
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
 
 /* DataFile::WriteGraceInverted() 
@@ -472,29 +457,23 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
  */
 void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
   int set,frame,empty;
-  int lineSize=0;;
-  int currentLineSize=0;
-  char *buffer;
+  size_t dataFileSize;
+  CharBuffer buffer;
+  double xcoord;
+
+  // Calculate file size
+  // 1) Initial header: 91 + xlabel + ylabel
+  dataFileSize = (91 + strlen(xlabel) + strlen(ylabel));
+  // 2) Set Headers: (22 + 8) * maxFrames  (fixing integers at size 8)
+  dataFileSize += (30 * maxFrames);
+  // 3) Set Data: (8 + SetWidth + 4 + SetName) * maxFrames
+  for (set = 0; set < Nsets; set++)
+    dataFileSize += ((12 + SetList[set]->Width() + strlen( SetList[set]->Name() ))*maxFrames);
+  // Allocate buffer
+  buffer.Allocate(dataFileSize);
 
   // Grace Header
-  outfile->IO->Printf("@with g0\n");
-  outfile->IO->Printf("@  xaxis label \"\"\n");
-  outfile->IO->Printf("@  yaxis label \"\"\n");
-  outfile->IO->Printf("@  legend 0.2, 0.995\n");
-  outfile->IO->Printf("@  legend char size 0.60\n");
-
-  // Calculate maximum expected size for output line.
-  for (set=0; set < Nsets; set++) {
-    lineSize = SetList[set]->Width() + 2;
-    if (lineSize > currentLineSize)
-      currentLineSize = lineSize;
-  }
-  // Since using IO->Printf, buffer cannot be larger than 1024
-  if (lineSize>=1024) {
-    mprintf("Error: DataFile::WriteGraceInverted: %s: Data width >= 1024\n",filename);
-    return;
-  }
-  buffer = (char*) malloc(lineSize * sizeof(char));
+  buffer.Sprintf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",ylabel,xlabel);
 
   // Loop over frames
   for (frame=0; frame<maxFrames; frame++) {
@@ -508,16 +487,17 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
     }
 
     // Set information
-    //outfile->IO->Printf("@  s%i legend \"%s\"\n",set,SetList[set]->Name());
-    outfile->IO->Printf("@target G0.S%i\n",frame);
-    outfile->IO->Printf("@type xy\n");
+    buffer.Sprintf("@target G0.S%-8i\n@type xy\n",frame);
     // Loop over all Set Data for this frame
     for (set=0; set<Nsets; set++) {
-      SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%8i%s \"%s\"\n",set+OUTPUTFRAMESHIFT,buffer,SetList[set]->Name());
+      xcoord = (ystep * set) + ymin;
+      buffer.WriteDouble("%8.3f",xcoord);
+      SetList[set]->WriteBuffer(buffer,frame);
+      buffer.Sprintf(" \"%s\"",SetList[set]->Name());
+      buffer.NewLine();
     }
   }
-  if (buffer!=NULL) free(buffer);
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
 
 /* DataFile::WriteGnuplot()
@@ -536,29 +516,10 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
  * done. Could be added back in later as an option.
  */
 void DataFile::WriteGnuplot(CpptrajFile *outfile) {
-  char *buffer;
+  CharBuffer buffer;
   int set, frame;
-  int lineSize=0;
-  int currentLineSize=0;
   double xcoord, ycoord;
-
-  // Calculate maximum expected size for output line.
-  for (set=0; set < Nsets; set++) {
-    lineSize = SetList[set]->Width() + 2;
-    if (lineSize > currentLineSize)
-      currentLineSize = lineSize;
-  }
-  // Since using IO->Printf, buffer cannot be larger than 1024
-  if (lineSize>=1024) {
-    mprintf("Error: DataFile::WriteGnuplot: %s: Data width >= 1024\n",filename);
-    return;
-  }
-  buffer = (char*) malloc(lineSize * sizeof(char));
-
-  if (!useMap)
-    outfile->IO->Printf("set pm3d map corners2color c1\n");
-  else
-    outfile->IO->Printf("set pm3d map\n");
+  size_t dataFileSize;
 
   // Turn off labels if number of sets is too large since they 
   // become unreadable. Should eventually have some sort of 
@@ -569,61 +530,104 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
     printLabels=false;
   }
 
+  // Calculate data file size
+  // 1) Label, range, plot, and end commands:
+  //    87 + xlabel + ylabel + [4*8] + filename + 13
+  dataFileSize = 132 + strlen(xlabel) + strlen(ylabel) + strlen(filename);
+  // 2) Data labels:
+  //    22 + 8 + 8 + 2 + SUM[Nsets]:(4+8+SetName)
+  if (printLabels) {
+    dataFileSize += 40;
+    for (set = 0; set < Nsets; set++)
+      dataFileSize += ( 12 + strlen( SetList[set]->Name() ) );
+  }
+  // NOT useMap
+  //   3) Header and data: (extra row and column) 
+  //      30 + (SUM[Nsets]:(width + 8 + 8 + 3) + (8 + 8 + 8 + 4)) * maxFrames
+  //      + ((Nsets+1) * (8 + 8 + 3)) + 1
+  if (!useMap) {
+    dataFileSize += 30;
+    for (set = 0; set < Nsets; set++)
+      dataFileSize += (( SetList[set]->Width() + 47 ) * maxFrames);
+    dataFileSize += (((Nsets+1) * 19) + 1);
+  // useMap
+  //   3) Header and data:
+  //      13 + (SUM[Nsets]:(width + 8 + 8 + 4)) * maxFrames
+  } else {
+    dataFileSize += 13;
+    for (set = 0; set < Nsets; set++)
+      dataFileSize += (( SetList[set]->Width() + 20 ) * maxFrames);
+  } 
+  // Allocate buffer
+  buffer.Allocate( dataFileSize );
+
+  // Map command
+  if (!useMap)
+    buffer.WriteString("%s","set pm3d map corners2color c1\n");
+  else
+    buffer.WriteString("%s","set pm3d map\n");
+
+  // Y axis Data Labels
   if (printLabels) {
     // NOTE: Add option to turn on grid later?
     //outfile->IO->Printf("set pm3d map hidden3d 100 corners2color c1\n");
     //outfile->IO->Printf("set style line 100 lt 2 lw 0.5\n");
     // Set up Y labels
-    outfile->IO->Printf("set ytics %lf,%lf\nset ytics(",ymin,ystep);
+    buffer.Sprintf("set ytics %8.3f,%8.3f\nset ytics(",ymin,ystep);
     for (set=0; set<Nsets; set++) {
-      if (set>0) outfile->IO->Printf(",");
+      if (set>0) buffer.WriteString("%s",",");
       ycoord = (ystep * set) + ymin;
-      outfile->IO->Printf("\"%s\" %lf",SetList[set]->Name(),ycoord);
+      buffer.Sprintf("\"%s\" %8.3f",SetList[set]->Name(),ycoord);
     }
-    outfile->IO->Printf(")\n");
+    buffer.Sprintf(")\n");
   }
 
-  // Set axis labels
-  outfile->IO->Printf("set xlabel \"%s\"\n",xlabel);
-  outfile->IO->Printf("set ylabel \"%s\"\n",ylabel);
+  // Set axis label and range, write plot command
   // Make Yrange +1 and -1 so entire grid can be seen
   ycoord = (ystep * Nsets) + ymin;
-  outfile->IO->Printf("set yrange [%lf:%lf]\n",ymin-ystep,ycoord+ystep);
   // Make Xrange +1 and -1 as well
   xcoord = (xstep * maxFrames) + xmin;
-  outfile->IO->Printf("set xrange [%lf:%lf]\n",xmin-xstep,xcoord+xstep);
-  // Plot command
-  outfile->IO->Printf("splot \"-\" with pm3d title \"%s\"\n",filename);
+  buffer.Sprintf("set xlabel \"%s\"\nset ylabel \"%s\"\nset yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\nsplot \"-\" with pm3d title \"%s\"\n",
+                 xlabel,ylabel,ymin-ystep,ycoord+ystep,xmin-xstep,xcoord+xstep,filename);
 
   // Data
   for (frame=0; frame < maxFrames; frame++) {
     xcoord = (xstep * frame) + xmin;
     for (set=0; set < Nsets; set++) {
       ycoord = (ystep * set) + ymin;
-      SetList[set]->Write(buffer,frame);
-      outfile->IO->Printf("%lf %lf %s\n",xcoord,ycoord,buffer);
+      buffer.WriteDouble("%8.3f ",xcoord);
+      buffer.WriteDouble("%8.3f ",ycoord);
+      SetList[set]->WriteBuffer(buffer,frame);
+      buffer.NewLine();
     }
     if (!useMap) {
       // Print one empty row for gnuplot pm3d without map
       ycoord = (ystep * set) + ymin;
-      outfile->IO->Printf("%lf %lf %8i\n",xcoord,ycoord,0);
+      buffer.WriteDouble("%8.3f ",xcoord);
+      buffer.WriteDouble("%8.3f ",ycoord);
+      buffer.WriteInteger("%1i",0);
+      buffer.NewLine();
     }
-    outfile->IO->Printf("\n");
+    buffer.NewLine();
   }
   if (!useMap) {
     // Print one empty set for gnuplot pm3d without map
     xcoord = (xstep * frame) + xmin;
     for (set=0; set<=Nsets; set++) {
       ycoord = (ystep * set) + ymin;
-      outfile->IO->Printf("%lf %lf %8i\n",xcoord,ycoord,0);
+      buffer.WriteDouble("%8.3f ",xcoord);
+      buffer.WriteDouble("%8.3f ",ycoord);
+      buffer.WriteInteger("%1i",0);
+      buffer.NewLine();
     }
-    outfile->IO->Printf("\n");
+    buffer.NewLine();
   }
 
   // End and Pause command
-  outfile->IO->Printf("end\npause -1\n");
-  // Free buffer
-  if (buffer!=NULL) free(buffer);
+  buffer.WriteString("%s","end\npause -1");
+  buffer.NewLine();
+  // Write buffer
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
 
 

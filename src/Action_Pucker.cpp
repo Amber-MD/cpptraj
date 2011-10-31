@@ -31,22 +31,22 @@ int Pucker::init() {
   char *puckerFile;
 
   // Get keywords
-  puckerFile = A->getKeyString("out",NULL);
-  if (A->hasKey("altona")) puckerMethod=0;
-  else if (A->hasKey("cremer")) puckerMethod=1;
-  if (A->hasKey("amplitude")) amplitude=true;
-  offset = A->getKeyDouble("offset",0.0);
-  if (A->hasKey("range360")) {
+  puckerFile = actionArgs.getKeyString("out",NULL);
+  if (actionArgs.hasKey("altona")) puckerMethod=0;
+  else if (actionArgs.hasKey("cremer")) puckerMethod=1;
+  if (actionArgs.hasKey("amplitude")) amplitude=true;
+  offset = actionArgs.getKeyDouble("offset",0.0);
+  if (actionArgs.hasKey("range360")) {
     puckermax=360.0;
     puckermin=0.0;
   }
 
   // Get Masks
-  mask1 = A->getNextMask();
-  mask2 = A->getNextMask();
-  mask3 = A->getNextMask();
-  mask4 = A->getNextMask();
-  mask5 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
+  mask2 = actionArgs.getNextMask();
+  mask3 = actionArgs.getNextMask();
+  mask4 = actionArgs.getNextMask();
+  mask5 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL || mask5==NULL) {
     mprintf("    Error: Pucker::init: Requires 5 masks\n");
     return 1;
@@ -58,7 +58,7 @@ int Pucker::init() {
   M5.SetMaskString(mask5);
 
   // Setup dataset
-  puck = DSL->Add(DOUBLE, A->getNextString(),"Pucker");
+  puck = DSL->Add(DOUBLE, actionArgs.getNextString(),"Pucker");
   if (puck==NULL) return 1;
   // Add dataset to datafile list
   DFL->Add(puckerFile,puck);

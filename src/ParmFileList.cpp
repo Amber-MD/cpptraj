@@ -1,13 +1,11 @@
 // ParmList
-#include <cstdlib>
-#include <cstring>
+#include <cstring> // strcmp
 #include "ParmFileList.h"
 #include "CpptrajStdio.h"
 #include "AtomMask.h"
 
 // CONSTRUCTOR 
 ParmFileList::ParmFileList() {
-  ParmList=NULL;
   Nparm=0;
   debug=0;
   hasCopies=false;
@@ -17,12 +15,9 @@ ParmFileList::ParmFileList() {
 
 // DESTRUCTOR
 ParmFileList::~ParmFileList() {
-  if (ParmList!=NULL) {
     if (!hasCopies) {
       for (int i=0; i<Nparm; i++) delete ParmList[i];
     }
-    free(ParmList);
-  }
 }
 
 /* ParmFileList::SetDebug()
@@ -42,7 +37,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
   int pindex;
   // parm <filename>: Add <filename> to parm list
   if (argIn->CommandIs("parm")) {
-    this->Add(argIn->getNextString());
+    this->AddParmFile(argIn->getNextString());
     return 0;
   }
   // parminfo [<parmindex>] [<mask>]: Print information on parm <parmindex> 
@@ -123,14 +118,14 @@ AmberParm *ParmFileList::GetParm(int num) {
  *   parm <parm name>
  *   parmindex <parm index>
  */
-AmberParm *ParmFileList::GetParm(ArgList *A) {
+AmberParm *ParmFileList::GetParm(ArgList &argIn) {
   char *parmfilename;
   int pindex;
   AmberParm *P;
   // Get any parm keywords if present
   P=NULL;
-  parmfilename=A->getKeyString("parm", NULL);
-  pindex=A->getKeyInt("parmindex",0);
+  parmfilename=argIn.getKeyString("parm", NULL);
+  pindex=argIn.getKeyInt("parmindex",0);
   // Associate trajectory with parameter file. Associate with default parm if none specified
   if (parmfilename!=NULL)
     pindex = this->GetParmIndex(parmfilename);
@@ -163,10 +158,10 @@ int ParmFileList::GetParmIndex(char *name) {
   return pindex;
 }
 
-/* ParmFileList::Add()
+/* ParmFileList::AddParmFile()
  * Add a parameter file to the parm file list.
  */
-int ParmFileList::Add(char *filename) {
+int ParmFileList::AddParmFile(char *filename) {
   AmberParm *P;
 
   // Dont let a list that has copies add a new file
@@ -195,31 +190,29 @@ int ParmFileList::Add(char *filename) {
   if (debug>0) mprintf("    PARAMETER FILE %i: %s\n",Nparm,filename);
   // pindex is used for quick identification of the parm file
   P->pindex=Nparm;
-  ParmList=(AmberParm**) realloc(ParmList,(Nparm+1) * sizeof(AmberParm*));
-  ParmList[Nparm]=P;
+  ParmList.push_back(P);
   Nparm++;
   return 0;
 }
 
-/* ParmFileList::Add()
+/* ParmFileList::AddParm()
  * Add an existing AmberParm to parm file list. Currently used to keep track
  * of parm files corresponding to frames in the reference frame list.
  */
-int ParmFileList::Add(AmberParm *ParmIn) {
+int ParmFileList::AddParm(AmberParm *ParmIn) {
   // Set the hasCopies flag so we know not to try and delete these parms
   hasCopies=true;
   //P->pindex=Nparm; // pindex should already be set
-  ParmList=(AmberParm**) realloc(ParmList,(Nparm+1) * sizeof(AmberParm*));
-  ParmList[Nparm]=ParmIn;
+  ParmList.push_back(ParmIn);
   Nparm++;
   return 0;
 }
 
-/* ParmFileList::Replace()
+/* ParmFileList::ReplaceParm()
  * Replace parm file at given position with newParm. If this list has only
  * copies do not delete the old parm, just replace.
  */
-int ParmFileList::Replace(int num, AmberParm *newParm) {
+int ParmFileList::ReplaceParm(int num, AmberParm *newParm) {
   if (num>=Nparm || num<0) return 1;
   if (!hasCopies) delete ParmList[num];
   ParmList[num]=newParm;

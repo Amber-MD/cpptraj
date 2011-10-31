@@ -14,10 +14,12 @@ class doubleDataSet : public DataSet {
     doubleDataSet();
 
     int Xmax();
+    double Min();
+    double Max();
     int isEmpty(int);
     void Add( int, void * );
     int Get(void *, int);
-    char *Write(char *, int);
+    void WriteBuffer(CharBuffer&, int);
     int Width();
     int Sync();
 };

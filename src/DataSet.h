@@ -27,6 +27,7 @@
 ///   Xmax:
 ///     Return the largest X/frame value added to set. By convention this should
 ///     be the last value added.
+#include "CharBuffer.h"
 enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT, MAP, FLOAT}; 
 class DataSet {
   protected:
@@ -48,23 +49,26 @@ class DataSet {
     DataSet();          // Constructor
     virtual ~DataSet(); // Destructor - virtual since this class is inherited
     // Inheritable functions
-    virtual int Xmax()               { return 0; }
-    virtual int isEmpty(int)         { return 0; }
-    virtual void Add( int, void * )  { return;   }
-    virtual int Get( void *, int )   { return 1; }
-    virtual char *Write(char*, int)  { return 0; }
-    virtual int Width()              { return 0; }
-    virtual int Sync()               { return 0; }
+    virtual int Xmax()                        { return 0; }
+    virtual int isEmpty(int)                  { return 0; }
+    virtual void Add( int, void * )           { return;   }
+    virtual int Get( void *, int )            { return 1; }
+    virtual void WriteBuffer(CharBuffer&,int) { return;   }
+    virtual int Width()                       { return 0; }
+    virtual int Sync()                        { return 0; }
+    virtual double Min()                      { return 0; }
+    virtual double Max()                      { return 0; }
     // Public functions
     void SetPrecision(int,int);
     int Setup(char*,int);
     void Info();
+    void WriteNameToBuffer(CharBuffer &, bool);
     char *Name(char *,bool);
     int CheckSet();
     // Functions that return private vars
-    char *Name() { return name; }
-    void SetIdx(int idxIn) { idx = idxIn; }
-    int Idx() { return idx; }
-    dataType Type() {return dType;}
+    char *Name()           { return name;  }
+    void SetIdx(int idxIn) { idx = idxIn;  }
+    int Idx()              { return idx;   }
+    dataType Type()        { return dType; }
 };
 #endif 

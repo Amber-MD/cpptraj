@@ -29,11 +29,11 @@ int ActionMask::init( ) {
   char *maskFilename;
 
   // Get Keywords
-  maskFilename = A->getKeyString("maskout",NULL);
-  maskpdb = A->getKeyString("maskpdb",NULL);
+  maskFilename = actionArgs.getKeyString("maskout",NULL);
+  maskpdb = actionArgs.getKeyString("maskpdb",NULL);
 
   // Get Mask
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   //mprintf("    Mask 1: %s\n",mask1);
   Mask1.SetMaskString(mask1);
 

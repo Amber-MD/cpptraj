@@ -40,7 +40,7 @@ CpptrajFile::CpptrajFile() {
 CpptrajFile::~CpptrajFile() {
    //fprintf(stderr,"CPPTRAJFILE DESTRUCTOR\n");
    CloseFile();
-   delete IO;
+   if (IO!=NULL) delete IO;
    if (filename!=NULL) free(filename);
    if (basefilename!=NULL) free(basefilename);
    if (Ext!=NULL) free(Ext);
@@ -157,6 +157,20 @@ int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn,
                          FileFormat fileFormatIn, FileType fileTypeIn, 
                          int debugIn) 
 {
+  // If file has been previously setup / opened, clear file.
+  CloseFile();
+  if (IO!=NULL) delete IO;
+  if (filename!=NULL) free(filename);
+  if (basefilename!=NULL) free(basefilename);
+  if (Ext!=NULL) free(Ext);
+  IO=NULL;
+  filename=NULL;
+  basefilename=NULL;
+  Ext=NULL;
+  isOpen=0;
+  uncompressed_size=0UL;
+  compressType=NONE;
+  isDos=0;
   debug=debugIn;
   if (debug>0) {
     mprintf("CpptrajFile: [%s] FMT %s, TYPE %s, ACC %s\n",filenameIn,

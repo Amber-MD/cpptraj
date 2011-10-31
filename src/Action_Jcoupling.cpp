@@ -153,10 +153,10 @@ int Jcoupling::init( ) {
   char *karpluspath;
 
   // Get Keywords
-  outfilename = A->getKeyString("outfile",NULL);
+  outfilename = actionArgs.getKeyString("outfile",NULL);
 
   // Get Masks
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   //fprintf(stdout,"    Mask 1: %s\n",mask1);
   Mask1.SetMaskString(mask1);
 

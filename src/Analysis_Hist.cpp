@@ -52,10 +52,10 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
 
   // First argument should specify dataset name
   if (debug>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
-                       arglist.Arg(0));
-  dset = datasetlist->Get(arglist.Arg(0));
+                       arglist.ArgAt(0));
+  dset = datasetlist->Get(arglist.ArgAt(0));
   if (dset == NULL) {
-    mprintf("\t      Dataset %s not found.\n",arglist.Arg(0));
+    mprintf("\t      Dataset %s not found.\n",arglist.ArgAt(0));
     return 1;
   }
 
@@ -85,14 +85,14 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
   // Cycle through coordinate arguments. Any argument left blank will be 
   // assigned a default value later.
   for (int i=1; i<arglist.Nargs(); i++) {
-    if (debug>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist.Arg(i));
+    if (debug>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist.ArgAt(i));
     // Default explicitly requested
     if (arglist.ArgIs(i,"*")) continue;
     switch (i) {
-      case 1 : dmin = atof(arglist.Arg(i)); minArg=true; break;
-      case 2 : dmax = atof(arglist.Arg(i)); maxArg=true; break;
-      case 3 : dstep= atof(arglist.Arg(i)); break;
-      case 4 : dbins= atoi(arglist.Arg(i)); break;
+      case 1 : dmin = atof(arglist.ArgAt(i)); minArg=true; break;
+      case 2 : dmax = atof(arglist.ArgAt(i)); maxArg=true; break;
+      case 3 : dstep= atof(arglist.ArgAt(i)); break;
+      case 4 : dbins= atoi(arglist.ArgAt(i)); break;
     }
   }
 
@@ -108,7 +108,11 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
     //}
 
     // If no min arg and no default min arg, get min from dataset
+    if (!minArg && dmin == 0) 
+      dmin = dset->Min();
     // If no max arg and no default max arg, get max from dataset
+    if (!maxArg && dmax == 0)
+      dmax = dset->Max();
 
     // Check that min < max
     if (dmin >= dmax) {
@@ -172,31 +176,31 @@ int Hist::Setup(DataSetList *datasetlist) {
 
   hist.SetDebug(debug);
   // Keywords
-  outfilename = analyzeArg->getKeyString("out",NULL);
+  outfilename = analyzeArgs.getKeyString("out",NULL);
   if (outfilename==NULL) {
     mprintf("Error: Hist: No output filename specified.\n");
     return 1;
   }
-  Temp = analyzeArg->getKeyDouble("free",-1.0);
+  Temp = analyzeArgs.getKeyDouble("free",-1.0);
   if (Temp!=-1.0) calcFreeE = true;
-  if (analyzeArg->hasKey("gnu")) gnuplot = true;
-  if (analyzeArg->hasKey("norm")) normalize = true;
-  //if (analyzeArg->hasKey("circular")) circular = true;
+  if (analyzeArgs.hasKey("gnu")) gnuplot = true;
+  if (analyzeArgs.hasKey("norm")) normalize = true;
+  //if (analyzeArgs.hasKey("circular")) circular = true;
   // NOTE: The following may only need to be local
-  if (analyzeArg->Contains("min")) {
-    min = analyzeArg->getKeyDouble("min",0.0);
+  if (analyzeArgs.Contains("min")) {
+    min = analyzeArgs.getKeyDouble("min",0.0);
     defaultMinSet = true;
   }
-  if (analyzeArg->Contains("max")) {
-    max = analyzeArg->getKeyDouble("max",0.0);
+  if (analyzeArgs.Contains("max")) {
+    max = analyzeArgs.getKeyDouble("max",0.0);
     defaultMaxSet = true;
   }
-  step = analyzeArg->getKeyDouble("step",-1.0);
-  bins = analyzeArg->getKeyInt("bins",-1);
+  step = analyzeArgs.getKeyDouble("step",-1.0);
+  bins = analyzeArgs.getKeyInt("bins",-1);
 
   // Datasets
   // Treat all remaining arguments as dataset names. 
-  while ( (datasetstring = analyzeArg->getNextString())!=NULL )
+  while ( (datasetstring = analyzeArgs.getNextString())!=NULL )
     if (setupDimension(datasetstring,datasetlist)) return 1;
 
   mprintf("\tHist: %s: Set up for %i dimensions using the following datasets:\n", 

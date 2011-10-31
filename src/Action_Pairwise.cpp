@@ -47,28 +47,28 @@ int Pairwise::init( ) {
   int refindex;
 
   // Get Keywords
-  dataout = A->getKeyString("out",NULL);
-  eout = A->getKeyString("eout",NULL);
-  referenceName=A->getKeyString("ref",NULL);
-  refindex=A->getKeyInt("refindex",-1);
-  cut_eelec = A->getKeyDouble("cuteelec",1.0);
+  dataout = actionArgs.getKeyString("out",NULL);
+  eout = actionArgs.getKeyString("eout",NULL);
+  referenceName=actionArgs.getKeyString("ref",NULL);
+  refindex=actionArgs.getKeyInt("refindex",-1);
+  cut_eelec = actionArgs.getKeyDouble("cuteelec",1.0);
   cut_eelec1 = -cut_eelec;
-  cut_evdw = A->getKeyDouble("cutevdw",1.0);
+  cut_evdw = actionArgs.getKeyDouble("cutevdw",1.0);
   cut_evdw1 = -cut_evdw;
-  cutout = A->getKeyString("cutout",NULL);
+  cutout = actionArgs.getKeyString("cutout",NULL);
   
   // Get Masks
-  mask0 = A->getNextMask();
+  mask0 = actionArgs.getNextMask();
   //fprintf(stdout,"    Mask 1: %s\n",mask0);
   Mask0.SetMaskString(mask0);
-  refmask = A->getNextMask();
+  refmask = actionArgs.getNextMask();
   if (refmask!=NULL)
     RefMask.SetMaskString(refmask);
   else
     RefMask.SetMaskString(mask0);
 
    // Datasets
-  ds_name = A->getNextString();
+  ds_name = actionArgs.getNextString();
   ds_vdw = DSL->AddMulti(DOUBLE, ds_name, "EVDW");
   ds_elec= DSL->AddMulti(DOUBLE, ds_name, "EELEC");
   // Add datasets to data file list

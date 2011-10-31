@@ -131,6 +131,12 @@ void DataSet::Info() {
   mprintf(".\n");
 }
 
+/* DataSet::WriteNameToBuffer()
+ */
+void DataSet::WriteNameToBuffer(CharBuffer &cbuffer, bool leftAlign) {
+  cbuffer.WriteStringN(name,width,leftAlign);
+}
+
 /* DataSet::Name()
  * Write the name of the dataset to buffer with the correct width. If 
  * specified left-align the name - it is assumed in this case that this

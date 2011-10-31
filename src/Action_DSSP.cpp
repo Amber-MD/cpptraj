@@ -49,8 +49,8 @@ int DSSP::init() {
 //  debugout.OpenFile();
 
   // Get keywords
-  outfilename = A->getKeyString("out",NULL);
-  temp = A->getKeyString("sumout",NULL);
+  outfilename = actionArgs.getKeyString("out",NULL);
+  temp = actionArgs.getKeyString("sumout",NULL);
   if (temp!=NULL) {
     sumOut = (char*) malloc( (strlen(temp) + 1) * sizeof(char));
     strcpy(sumOut, temp);
@@ -59,14 +59,14 @@ int DSSP::init() {
     strcpy(sumOut, outfilename);
     strcat(sumOut,".sum");
   } 
-  if (A->hasKey("outputstring")) printString=true;
+  if (actionArgs.hasKey("outputstring")) printString=true;
   // Get masks
-  mask = A->getNextMask();
+  mask = actionArgs.getNextMask();
   Mask.SetMaskString(mask);
 
   // Set up the DSSP data set
   if (printString) {
-    dssp = DSL->Add(STRING, A->getNextString(),"DSSP");
+    dssp = DSL->Add(STRING, actionArgs.getNextString(),"DSSP");
     if (dssp==NULL) return 1;
     DFL->Add(outfilename, dssp);
   }

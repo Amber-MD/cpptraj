@@ -13,7 +13,7 @@ class NAstruct: public Action {
     std::vector<AxisType*> BasePairAxes;
     std::vector<AxisType*> ExpFrames;
     std::vector<AtomMask*> ExpMasks;
-    std::vector<int> BasePair;           // Base1,Base2,IsAnti,...
+    std::vector<int> BasePair;           // [Base1-0,Base2-0,IsAnti-0], [Base1-1...
     int Nbp;
     int Nbases;
     double HBcut2;
@@ -21,22 +21,24 @@ class NAstruct: public Action {
     AxisType ExpFrame;
     AxisType RefFrame;
     // Datasets
-    std::vector<DataSet*> SHEAR;
-    std::vector<DataSet*> STRETCH;
-    std::vector<DataSet*> STAGGER;
-    std::vector<DataSet*> BUCKLE;
-    std::vector<DataSet*> PROPELLER;
-    std::vector<DataSet*> OPENING;
-    std::vector<DataSet*> SHIFT;
-    std::vector<DataSet*> SLIDE;
-    std::vector<DataSet*> RISE;
-    std::vector<DataSet*> TILT;
-    std::vector<DataSet*> ROLL;
-    std::vector<DataSet*> TWIST;
+    DataSetList SHEAR;
+    DataSetList STRETCH;
+    DataSetList STAGGER;
+    DataSetList BUCKLE;
+    DataSetList PROPELLER;
+    DataSetList OPENING;
+    DataSetList SHIFT;
+    DataSetList SLIDE;
+    DataSetList RISE;
+    DataSetList TILT;
+    DataSetList ROLL;
+    DataSetList TWIST;
     int Nframe;                          // Keep track of # frames for print() function           
     // Init Args
     Range resRange;
     char *outFilename;
+    char *naoutFilename;
+    bool noheader;
     // Functions
     void ClearLists();
     bool GCpair(AxisType *, AxisType *);

@@ -7,7 +7,7 @@ class TrajinList : public CoordFileList {
     TrajinList();
     ~TrajinList();
     // Inherited: Add a traj file to the list based on input from arg list
-    int Add(char*, ArgList *, AmberParm *);
+    int AddTrajin(char*, ArgList *, AmberParm *);
     // TRAJIN: Set up frames to be processed 
     int SetupFrames();
 };

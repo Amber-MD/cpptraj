@@ -17,7 +17,7 @@ class stringDataSet : public DataSet {
     int Xmax();
     int isEmpty(int);
     void Add( int, void * );
-    char *Write(char *, int);
+    void WriteBuffer(CharBuffer&, int);
     int Width();
     int Sync();
 };

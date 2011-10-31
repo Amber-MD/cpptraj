@@ -2,7 +2,7 @@
 #define INC_ANALYSISLIST_H
 #include "Analysis.h"
 class AnalysisList {
-    Analysis** analysisList;
+    std::vector<Analysis*> analysisList;
     int Nanalysis;
     int debug;
   public: 
@@ -10,7 +10,7 @@ class AnalysisList {
     ~AnalysisList();
     
     void SetDebug(int);
-    int Add(ArgList *A);
+    int AddAnalysis(ArgList &);
     int Setup(DataSetList*);
     void Analyze(DataFileList*); 
 };

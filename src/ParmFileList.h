@@ -7,7 +7,7 @@
 #include "AmberParm.h"
 #include "ArgList.h"
 class ParmFileList {
-    AmberParm **ParmList;
+    std::vector<AmberParm*> ParmList;
     int Nparm;
     int debug;
     bool hasCopies;  // true: List contains addresses of parm files, do not delete
@@ -21,12 +21,12 @@ class ParmFileList {
 
     void SetDebug(int);
     int CheckCommand(ArgList *);
-    int Add(char *);
-    int Add(AmberParm *);
+    int AddParmFile(char *);
+    int AddParm(AmberParm *);
     AmberParm *GetParm(int);
-    AmberParm *GetParm(ArgList *);
+    AmberParm *GetParm(ArgList &);
     int GetParmIndex(char *);
-    int Replace(int, AmberParm *);
+    int ReplaceParm(int, AmberParm *);
     void Print();
 };
 #endif

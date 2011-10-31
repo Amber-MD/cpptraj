@@ -12,14 +12,14 @@ TrajoutList::TrajoutList() {
 // DESTRUCTOR
 TrajoutList::~TrajoutList() { }
 
-/* TrajoutList::Add()
+/* TrajoutList::AddTrajout()
  * Add trajectory to the trajectory list as an output trajectory. 
  * Associate the trajectory with one of the parm files in the 
  * ParmFileList. 
  * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
  *         [<range>]
  */
-int TrajoutList::Add(char *filenameIn, ArgList *A, AmberParm *parmIn) {
+int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, AmberParm *parmIn) {
   TrajectoryFile *traj;
   char *filename;
 

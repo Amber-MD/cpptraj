@@ -28,6 +28,7 @@ class Hbond : public Action {
     std::vector<int>::iterator donor;
     double acut;
     double dcut;
+    double dcut2;
 
     DataSet *NumHbonds;
     DataSetList *HBavg;

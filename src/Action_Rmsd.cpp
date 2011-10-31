@@ -101,41 +101,41 @@ int Rmsd::init( ) {
   int refindex, referenceKeyword;
 
   // Check for keywords
-  referenceKeyword=A->hasKey("reference"); // For compatibility with ptraj
-  referenceName=A->getKeyString("ref",NULL);
-  refindex=A->getKeyInt("refindex",-1);
-  reftraj = A->getKeyString("reftraj",NULL);
+  referenceKeyword=actionArgs.hasKey("reference"); // For compatibility with ptraj
+  referenceName=actionArgs.getKeyString("ref",NULL);
+  refindex=actionArgs.getKeyInt("refindex",-1);
+  reftraj = actionArgs.getKeyString("reftraj",NULL);
   if (reftraj!=NULL) {
-    RefParm = PFL->GetParm(A);
+    RefParm = PFL->GetParm(actionArgs);
     if (RefParm==NULL) {
       mprinterr("Error: Rmsd: Could not get parm for reftraj %s.\n",reftraj);
       return 1;
     }
   }
-  nofit = A->hasKey("nofit");
-  first = A->hasKey("first");
-  useMass = A->hasKey("mass");
-  perres = A->hasKey("perres");
-  rmsdFile = A->getKeyString("out",NULL);
+  nofit = actionArgs.hasKey("nofit");
+  first = actionArgs.hasKey("first");
+  useMass = actionArgs.hasKey("mass");
+  perres = actionArgs.hasKey("perres");
+  rmsdFile = actionArgs.getKeyString("out",NULL);
   // Per-res keywords
-  perresout = A->getKeyString("perresout",NULL);
-  perresinvert = A->hasKey("perresinvert");
-  ResRange.SetRange( A->getKeyString("range",NULL) );
-  RefRange.SetRange( A->getKeyString("refrange",NULL) );
-  perresmask = A->getKeyString("perresmask",(char*)"");
-  perrescenter = A->hasKey("perrescenter");
+  perresout = actionArgs.getKeyString("perresout",NULL);
+  perresinvert = actionArgs.hasKey("perresinvert");
+  ResRange.SetRange( actionArgs.getKeyString("range",NULL) );
+  RefRange.SetRange( actionArgs.getKeyString("refrange",NULL) );
+  perresmask = actionArgs.getKeyString("perresmask",(char*)"");
+  perrescenter = actionArgs.hasKey("perrescenter");
 
   // Get the RMS mask string for frames
-  mask0 = A->getNextMask();
+  mask0 = actionArgs.getNextMask();
   FrameMask.SetMaskString(mask0);
   // Get RMS mask string for reference
-  maskRef = A->getNextMask();
+  maskRef = actionArgs.getNextMask();
   // If no reference mask specified, make same as RMS mask
   if (maskRef==NULL) maskRef=mask0; 
   RefMask.SetMaskString(maskRef);
 
   // Set up the RMSD data set
-  rmsd = DSL->Add(DOUBLE, A->getNextString(),"RMSD");
+  rmsd = DSL->Add(DOUBLE, actionArgs.getNextString(),"RMSD");
   if (rmsd==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(rmsdFile,rmsd);

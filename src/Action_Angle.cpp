@@ -25,13 +25,13 @@ int Angle::init() {
   char *angleFile;
 
   // Get keywords
-  angleFile = A->getKeyString("out",NULL);
-  useMass = A->hasKey("mass");
+  angleFile = actionArgs.getKeyString("out",NULL);
+  useMass = actionArgs.hasKey("mass");
 
   // Get Masks
-  mask1 = A->getNextMask();
-  mask2 = A->getNextMask();
-  mask3 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
+  mask2 = actionArgs.getNextMask();
+  mask3 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL) {
     mprintf("    Error: Angle::init: Requires 3 masks\n");
     return 1;
@@ -41,7 +41,7 @@ int Angle::init() {
   Mask3.SetMaskString(mask3);
 
   // Dataset to store angles
-  ang = DSL->Add(DOUBLE, A->getNextString(),"Ang");
+  ang = DSL->Add(DOUBLE, actionArgs.getNextString(),"Ang");
   if (ang==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(angleFile,ang);

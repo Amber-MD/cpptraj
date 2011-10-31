@@ -26,14 +26,14 @@ int Dihedral::init() {
   char *dihedralFile;
 
   // Get keywords
-  dihedralFile = A->getKeyString("out",NULL);
-  useMass = A->hasKey("mass");
+  dihedralFile = actionArgs.getKeyString("out",NULL);
+  useMass = actionArgs.hasKey("mass");
 
   // Get Masks
-  mask1 = A->getNextMask();
-  mask2 = A->getNextMask();
-  mask3 = A->getNextMask();
-  mask4 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
+  mask2 = actionArgs.getNextMask();
+  mask3 = actionArgs.getNextMask();
+  mask4 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL) {
     mprintf("    Error: Dihedral::init: Requires 4 masks\n");
     return 1;
@@ -44,7 +44,7 @@ int Dihedral::init() {
   M4.SetMaskString(mask4);
 
   // Setup dataset
-  dih = DSL->Add(DOUBLE, A->getNextString(),"Dih");
+  dih = DSL->Add(DOUBLE, actionArgs.getNextString(),"Dih");
   if (dih==NULL) return 1;
   // Add dataset to datafile list
   DFL->Add(dihedralFile,dih);

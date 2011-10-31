@@ -61,31 +61,31 @@ int DistRmsd::init( ) {
   int refindex, referenceKeyword;
 
   // Check for keywords
-  referenceKeyword=A->hasKey("reference"); // For compatibility with ptraj
-  referenceName=A->getKeyString("ref",NULL);
-  refindex=A->getKeyInt("refindex",-1);
-  reftraj = A->getKeyString("reftraj",NULL);
+  referenceKeyword=actionArgs.hasKey("reference"); // For compatibility with ptraj
+  referenceName=actionArgs.getKeyString("ref",NULL);
+  refindex=actionArgs.getKeyInt("refindex",-1);
+  reftraj = actionArgs.getKeyString("reftraj",NULL);
   if (reftraj!=NULL) {
-    RefParm = PFL->GetParm(A);
+    RefParm = PFL->GetParm(actionArgs);
     if (RefParm==NULL) {
       mprinterr("Error: DistRmsd: Could not get parm for reftraj %s.\n",reftraj);
       return 1;
     }
   }
-  first = A->hasKey("first");
-  rmsdFile = A->getKeyString("out",NULL);
+  first = actionArgs.hasKey("first");
+  rmsdFile = actionArgs.getKeyString("out",NULL);
 
   // Get the RMS mask string for frames
-  mask0 = A->getNextMask();
+  mask0 = actionArgs.getNextMask();
   TgtMask.SetMaskString(mask0);
   // Get RMS mask string for reference
-  maskRef = A->getNextMask();
+  maskRef = actionArgs.getNextMask();
   // If no reference mask specified, make same as RMS mask
   if (maskRef==NULL) maskRef=mask0; 
   RefMask.SetMaskString(maskRef);
 
   // Set up the RMSD data set
-  drmsd = DSL->Add(DOUBLE, A->getNextString(),"DRMSD");
+  drmsd = DSL->Add(DOUBLE, actionArgs.getNextString(),"DRMSD");
   if (drmsd==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(rmsdFile,drmsd);

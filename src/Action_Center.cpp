@@ -25,11 +25,11 @@ int Center::init() {
   char *mask1;
 
   // Get keywords
-  origin = A->hasKey("origin");
-  useMass = A->hasKey("mass");
+  origin = actionArgs.hasKey("origin");
+  useMass = actionArgs.hasKey("mass");
 
   // Get Masks
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   Mask1.SetMaskString(mask1);
 
   mprintf("    CENTER: To");

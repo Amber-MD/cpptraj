@@ -69,19 +69,23 @@ int mapDataSet::isEmpty(int frame) {
   return 0;
 }
 
-/* mapDataSet::Write()
- * Write data at frame to buffer. If no data for frame write 0.0.
- * Return position in buffer after write.
+/* mapDataSet::WriteBuffer()
+ * Write data at frame to CharBuffer. If no data for frame write 0.0.
  */
-char *mapDataSet::Write(char *buffer, int frame) {
-
-  if (isEmpty(frame)) 
-    //sprintf(buffer," %12s","NoData");
-    sprintf(buffer, format, 0.0, 0.0, 0.0);
-  else 
-    sprintf(buffer, format,xData[frame],yData[frame],zData[frame]);
-  return (buffer + totalwidth);
+void mapDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
+  double darray[3];
+  if (isEmpty(frame)) {
+    darray[0] = 0;
+    darray[1] = 0;
+    darray[2] = 0;
+  } else {
+    darray[0] = xData[frame];
+    darray[1] = yData[frame];
+    darray[2] = zData[frame];
+  }
+  cbuffer.WriteDoubleXYZ(format, darray);
 }
+
 
 /* mapDataSet::Width()
  */

@@ -1,57 +1,50 @@
 #ifndef INC_ARGLIST_H
 #define INC_ARGLIST_H
 /// Class: ArgList
+/// Test of ArgList using vector and string STL classes.
 /// Hold a list of string arguments, can be set from a delimited list
-/// with SetList or arguments can be added individually with Add. 
+/// with SetList or arguments can be added individually with AddArg. 
 /// Arguments can be accessed with the various getX routines,
 /// where X is specific to certain types, e.g. getNextDouble returns
 /// the next double, getNextMask returns an atom mask expression (i.e.
 /// it has :, @, % characters etc).
+#include <vector>
+#include <string>
 class ArgList {
-    char **arglist;
-    char *marked;
-    int nargs;
-    char *argline;
+    std::vector<std::string> arglist;
+    std::string argline;
+    std::vector<bool> marked;
     int debug;
   public:
     ArgList();
     ~ArgList();
     void SetDebug(int);
 
-    int SetList(char*, const char*);
-    ArgList *Copy();
-    void Add(char *);
+    int SetList(char *, const char *);
+    void AddArg(char*);
+    void ResetMarked(bool);
+    void MarkAll();
+    void CheckForMoreArgs();
+    
+    void PrintList();
 
-    void print();
-    char *ArgLine();
-    char *Arg(int);
+    const char *ArgLine();
+    char *ArgAt(int);
     bool ArgIs(int,const char*);
-
-    // In some cases (e.g. lines from input file) the first argument
-    // is called the Command.
-    char *Command();
-    int CommandIs(const char *);
-    int CommandIs(const char *,int);
+    const char *Command();
+    bool CommandIs(const char*);
+    //bool CommandIs(const char*,size_t);
+    int Nargs() { return (int)arglist.size(); }
 
     char *getNextString();
-    void CheckForMoreArgs();
     char *getNextMask();
-    int getNextInteger(int );
+    int getNextInteger(int);
     double getNextDouble(double);
-    char *getKeyString(const char *, char *);
-    int getKeyIndex(char *);
+    char *getKeyString(const char *, char*);
+    //int getKeyIndex(char*); 
     int getKeyInt(const char *, int);
-    double getKeyDouble(const char *, double);
-    int hasKey(const char *);
-
-    int Contains(const char *);
-    ArgList *SplitAt(const char *);
-    ArgList *RemainingArgs();
-    int ReplaceArg(int, char *);
-    char *CopyArg(int);
-    void Reset();
-    void ResetAll();
-
-    int Nargs() { return nargs; }
+    double getKeyDouble(const char*, double);
+    bool hasKey(const char*);
+    bool Contains(const char*);
 };
 #endif

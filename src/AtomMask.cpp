@@ -1,7 +1,7 @@
-#include <cstring>
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
 #include "PtrajMask.h"
+#include <cstring>
 
 // CONSTRUCTOR
 AtomMask::AtomMask() {
@@ -11,6 +11,7 @@ AtomMask::AtomMask() {
   Nselected=0;
   Nchar=0;
   CharMask=NULL;
+  Postfix = NULL;
 }
 
 // DESTRUCTOR
@@ -18,6 +19,7 @@ AtomMask::~AtomMask() {
   if (maskString!=NULL) delete[] maskString;
   if (Selected!=NULL) delete[] Selected;
   if (CharMask!=NULL) delete[] CharMask;
+  if (Postfix!=NULL) delete[] Postfix;
 }
 
 /* AtomMask::Reset()
@@ -177,7 +179,10 @@ AtomMask *AtomMask::CopyMask() {
  * Set maskString, replacing any existing maskString 
  * If maskStringIn is NULL set to * (all atoms)
  */
-void AtomMask::SetMaskString(char *maskStringIn) {
+int AtomMask::SetMaskString(char *maskStringIn) {
+  char infix[MAXSELE], postfix[MAXSELE];
+  int debug = 0; // temporary hack
+
   if (maskString!=NULL) delete[] maskString;
   if (maskStringIn!=NULL) {
     maskString = new char[ strlen(maskStringIn)+1 ];
@@ -187,6 +192,25 @@ void AtomMask::SetMaskString(char *maskStringIn) {
     maskString[0] = '*';
     maskString[1] = '\0'; 
   }
+
+  // 1) preprocess input expression
+  if (tokenize(maskString, infix)!=0) {
+    delete[] maskString; 
+    maskString=NULL;
+    return 1;
+  }
+  if (debug > 5) mprintf("tokenized: ==%s==\n", infix);
+
+  // 2) construct postfix (RPN) notation 
+  if (torpn(infix, postfix)!=0) {
+    delete[] maskString;
+    maskString=NULL;
+    return 1;
+  }
+  if (debug > 5) mprintf("postfix  : ==%s==\n", postfix);
+  Postfix = new char[ strlen(postfix)+1 ];
+  strcpy(Postfix,postfix);
+  return 0;
 }
 
 /* AtomMask::None()
@@ -215,10 +239,12 @@ int AtomMask::SetupMask(AmberParm *Pin, int debug) {
   maskChar='T';
   if (invertMask) maskChar='F';
 
+  if (debug>1) mprintf("\tAtomMask: Parsing postfix [%s]\n",Postfix);
+
   // Allocate atom mask - free mask if already allocated
   // NOTE: Arg 7 is Coords for distance criteria selection. 
   //       Last arg is debug level.
-  mask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
+  mask = parseMaskString(Postfix, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
                          Pin->resnums, NULL, Pin->types, debug);
   if (mask==NULL) {
     mprintf("    Error: Could not set up mask %s for topology %s\n",
@@ -271,7 +297,7 @@ int AtomMask::SetupCharMask(AmberParm *Pin, int debug) {
   // Allocate atom mask - free mask if already allocated
   Nchar = 0;
   if (CharMask!=NULL) delete[] CharMask;
-  CharMask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
+  CharMask = parseMaskString(Postfix, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
                              Pin->resnums, NULL, Pin->types, debug);
   if (CharMask==NULL) {
     mprintf("    Error: Could not set up mask %s for topology %s\n",
@@ -298,7 +324,7 @@ int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
   // Allocate atom mask - free mask if already allocated
   Nchar = 0;
   if (CharMask!=NULL) delete[] CharMask;
-  CharMask = parseMaskString(maskString, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
+  CharMask = parseMaskString(Postfix, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
                              Pin->resnums, Xin, Pin->types, debug);
   if (CharMask==NULL) {
     mprintf("    Error: Could not set up mask %s for topology %s\n",

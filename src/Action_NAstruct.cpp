@@ -31,31 +31,13 @@ NAstruct::NAstruct() {
   Ocut2=6.25;   // 2.5^2
   Nframe=0;
   outFilename=NULL;
+  naoutFilename=NULL;
+  noheader = false;
 } 
-
-// For clearing vectors of pointers to datasets
-static void clearVector(std::vector<DataSet*> *Vin) {
-  while (!Vin->empty()) {
-    delete Vin->back();
-    Vin->pop_back();
-  }
-}
 
 // DESTRUCTOR
 NAstruct::~NAstruct() { 
   ClearLists();
-  clearVector(&SHEAR);
-  clearVector(&STRETCH);
-  clearVector(&STAGGER);
-  clearVector(&BUCKLE);
-  clearVector(&PROPELLER);
-  clearVector(&OPENING);
-  clearVector(&SHIFT);
-  clearVector(&SLIDE);
-  clearVector(&RISE);
-  clearVector(&TILT);
-  clearVector(&ROLL);
-  clearVector(&TWIST);
 }
 
 /* NAstruct::ClearLists()
@@ -224,16 +206,23 @@ int NAstruct::determineBasePairing() {
   //mprintf("DEBUG: BasePair.size = %i\n",(int)BasePair.size());
   //mprintf("DEBUG: SHEAR.size = %i\n",(int)SHEAR.size());
   //mprintf("DEBUG: BasePairAxes.size = %i\n",(int)BasePairAxes.size());
+  DataSet *na_dataset = NULL;
   for (base1=0; base1 < (int)BasePair.size(); base1+=3) {
     // For each base pair, set up a dataset for each structural parameter
     // if one is not already set up.
-    if ( base2 > (int)SHEAR.size() ) {
-      SHEAR.push_back( new doubleDataSet() );
-      STRETCH.push_back( new doubleDataSet() );
-      STAGGER.push_back( new doubleDataSet() );
-      BUCKLE.push_back( new doubleDataSet() );
-      PROPELLER.push_back( new doubleDataSet() );
-      OPENING.push_back( new doubleDataSet() );
+    if ( base2 > SHEAR.Size() ) {
+      na_dataset = SHEAR.AddMultiN(DOUBLE, "SHR", "BP", base2);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = STRETCH.AddMultiN(DOUBLE, "STR", "BP", base2);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = STAGGER.AddMultiN(DOUBLE, "STA", "BP", base2);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = BUCKLE.AddMultiN(DOUBLE, "BCK", "BP", base2);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = PROPELLER.AddMultiN(DOUBLE, "PRP", "BP", base2);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = OPENING.AddMultiN(DOUBLE, "OPN", "BP", base2);
+      DFL->Add(outFilename, na_dataset);
       // Also set up a place to hold the base pair axes
       BasePairAxes.push_back( new AxisType() );
       BasePairAxes[base2-1]->SetPrincipalAxes();
@@ -253,13 +242,19 @@ int NAstruct::determineBasePairing() {
   // Also set up base pair step data. One less than # base pairs
   //mprintf("DEBUG: SHIFT.size() = %i\n",(int)SHIFT.size());
   for (base1=0; base1 < Nbp-1; base1++) {
-    if ( base1+1 > (int)SHIFT.size() ) {
-      SHIFT.push_back( new doubleDataSet() );
-      SLIDE.push_back( new doubleDataSet() );
-      RISE.push_back( new doubleDataSet() );
-      TILT.push_back( new doubleDataSet() );
-      ROLL.push_back( new doubleDataSet() );
-      TWIST.push_back( new doubleDataSet() );
+    if ( base1+1 > SHIFT.Size() ) {
+      na_dataset = SHIFT.AddMultiN(DOUBLE, "SHF", "BS", base1 + 1);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = SLIDE.AddMultiN(DOUBLE, "SLD", "BS", base1 + 1);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = RISE.AddMultiN(DOUBLE, "RIS", "BS", base1 + 1);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = TILT.AddMultiN(DOUBLE, "TLT", "BS", base1 + 1);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = ROLL.AddMultiN(DOUBLE, "RLL", "BS", base1 + 1);
+      DFL->Add(outFilename, na_dataset);
+      na_dataset = TWIST.AddMultiN(DOUBLE, "TWS", "BS", base1 + 1);
+      DFL->Add(outFilename, na_dataset);
     }
     // Print base pair step info
     if (debug>1) mprintf("        BP step %i: \n",base1+1);
@@ -709,12 +704,12 @@ int NAstruct::determineBaseParameters() {
 
     // Store data
     Kappa*=RADDEG; Omega*=RADDEG; Sigma*=RADDEG;
-    SHEAR[nbasepair]->Add(currentFrame, &Shear);
-    STRETCH[nbasepair]->Add(currentFrame, &Stretch);
-    STAGGER[nbasepair]->Add(currentFrame, &Stagger);
-    BUCKLE[nbasepair]->Add(currentFrame, &Kappa);
-    PROPELLER[nbasepair]->Add(currentFrame, &Omega);
-    OPENING[nbasepair]->Add(currentFrame, &Sigma);
+    SHEAR.AddData(currentFrame, &Shear, nbasepair);
+    STRETCH.AddData(currentFrame, &Stretch, nbasepair);
+    STAGGER.AddData(currentFrame, &Stagger, nbasepair);
+    BUCKLE.AddData(currentFrame, &Kappa, nbasepair);
+    PROPELLER.AddData(currentFrame, &Omega, nbasepair);
+    OPENING.AddData(currentFrame, &Sigma, nbasepair);
 
     // Store BP axes
     BasePairAxes[nbasepair]->X[9 ] = Vec[0];
@@ -865,12 +860,12 @@ int NAstruct::determineBasepairParameters() {
     Tau *= RADDEG;
     Rho *= RADDEG;
     Omega *= RADDEG;
-    SHIFT[bpi]->Add(currentFrame, &Shift);
-    SLIDE[bpi]->Add(currentFrame, &Slide);
-    RISE[bpi]->Add(currentFrame, &Rise);
-    TILT[bpi]->Add(currentFrame, &Tau);
-    ROLL[bpi]->Add(currentFrame, &Rho);
-    TWIST[bpi]->Add(currentFrame, &Omega);
+    SHIFT.AddData(currentFrame, &Shift, bpi);
+    SLIDE.AddData(currentFrame, &Slide, bpi);
+    RISE.AddData(currentFrame, &Rise, bpi);
+    TILT.AddData(currentFrame, &Tau, bpi);
+    ROLL.AddData(currentFrame, &Rho, bpi);
+    TWIST.AddData(currentFrame, &Omega, bpi);
   }
 
   return 0;
@@ -878,7 +873,8 @@ int NAstruct::determineBasepairParameters() {
 // ----------------------------------------------------------------------------
 
 /* NAstruct::init()
- * Expected call: nastruct [resrange <range>] [naout <filename>]
+ * Expected call: nastruct [resrange <range>] [out <filename>] [naout <nafilename>]
+ *                         [noheader]
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
  *    2) Masks
@@ -886,8 +882,10 @@ int NAstruct::determineBasepairParameters() {
  */
 int NAstruct::init() {
   // Get keywords
-  outFilename = A->getKeyString("naout",NULL);
-  resRange.SetRange( A->getKeyString("resrange",NULL) );
+  outFilename = actionArgs.getKeyString("out",NULL);
+  naoutFilename = actionArgs.getKeyString("naout",NULL);
+  resRange.SetRange( actionArgs.getKeyString("resrange",NULL) );
+  noheader = actionArgs.hasKey("noheader");
   // Get Masks
   // Dataset
   // Add dataset to data file list
@@ -897,9 +895,11 @@ int NAstruct::init() {
     mprintf("Scanning all NA residues");
   else
     mprintf("Scanning residues %s",resRange.RangeArg());
-  if (outFilename!=NULL)
-    mprintf(", output to file %s",outFilename);
-  mprintf("\n");
+  if (naoutFilename!=NULL) {
+      mprintf(", formatted output to file %s",naoutFilename);
+    if (noheader) mprintf(", no header");
+  }
+  mprintf(".\n");
 
   return 0;
 }
@@ -1033,66 +1033,109 @@ int NAstruct::action() {
 /* NAstruct::print()
  */
 void NAstruct::print() {
-  CpptrajFile *outfile;
+  CpptrajFile outfile;
+  CharBuffer buffer;
   int frame, nbasepair;
-  char buffer[BUFFER_SIZE], *ptr;
+  char tempName[64]; // NOTE: Replce with string?
+  size_t dataFileSize;
+  DataSet *na_dataset = NULL;
 
-  if (outFilename==NULL) return;
+  if (naoutFilename==NULL) return;
 
-  // Base pair parameters
-  sprintf(buffer,"BP.%s",outFilename);
-  outfile = new CpptrajFile();
-  if ( outfile->SetupFile(buffer, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
-    delete outfile;
+  // ---------- Base pair parameters ----------
+  sprintf(tempName,"BP.%s",naoutFilename);
+  if ( outfile.SetupFile(tempName, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
+    mprinterr("Error: NAstruct::print(): Could not set up naout file %s\n",tempName);
     return;
   }
-  if ( outfile->OpenFile() ) {delete outfile; return;}
-  // File header
-  outfile->IO->Printf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BasePair",
-                      "Shear","Stretch","Stagger","Buckle","Propeller","Opening");
+  if ( outfile.OpenFile() ) return;
+  // Calculate dataFileSize
+  // First 2 cols 8, rest are 12 because all double datasets being used.
+  // 1) Header: [8*2] + [12*6] + 8
+  if (!noheader)
+    dataFileSize = 96;
+  else 
+    dataFileSize = 0;
+  // 2) Data: 
+  //   ((header size * nbasepair)+1) * nframes
+  dataFileSize += (((96 * SHEAR.Size())+1) * Nframe);
+  // Allocate buffer
+  buffer.Allocate( dataFileSize );
+  // Write File header
+  if (!noheader)
+    buffer.Sprintf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BasePair",
+                   "Shear","Stretch","Stagger","Buckle","Propeller","Opening");
+  // Write Base pair data for each frame
   for (frame=0; frame < Nframe; frame++) {
     // Base-pair parameters
-    for (nbasepair=0; nbasepair < (int)SHEAR.size(); nbasepair++) {
-      ptr = buffer; 
-      ptr = SHEAR[nbasepair]->Write(ptr,frame);
-      ptr = STRETCH[nbasepair]->Write(ptr,frame);
-      ptr = STAGGER[nbasepair]->Write(ptr,frame);
-      ptr = BUCKLE[nbasepair]->Write(ptr,frame);
-      ptr = PROPELLER[nbasepair]->Write(ptr,frame);
-      ptr = OPENING[nbasepair]->Write(ptr,frame);
-      outfile->IO->Printf("%8i %8i%s\n",frame,nbasepair,buffer);
+    for (nbasepair=0; nbasepair < SHEAR.Size(); nbasepair++) {
+      // Frame and base pair #
+      buffer.Sprintf("%8i %8i",frame,nbasepair);
+      na_dataset = SHEAR.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = STRETCH.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = STAGGER.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = BUCKLE.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = PROPELLER.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = OPENING.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      buffer.NewLine();
     }
-    outfile->IO->Printf("\n");
+    buffer.NewLine(); 
   }
-  outfile->CloseFile();
-  delete outfile;
+  outfile.IO->Write(buffer.Buffer(), sizeof(char), buffer.CurrentSize());
+  outfile.CloseFile();
   
-  // Base pair step parameters
-  sprintf(buffer,"BPstep.%s",outFilename);
-  outfile = new CpptrajFile();
-  if ( outfile->SetupFile(buffer, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
-    delete outfile;
+  // ---------- Base pair step parameters ----------
+  sprintf(tempName,"BPstep.%s",naoutFilename);
+  if ( outfile.SetupFile(tempName, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
+    mprinterr("Error: NAstruct::print(): Could not set up naout file %s\n",tempName);
     return;
   }
-  if ( outfile->OpenFile() ) {delete outfile; return;}
-  // File header
-  outfile->IO->Printf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BPstep",
-                      "Shift","Slide","Rise","Tilt","Roll","Twist");
+  if ( outfile.OpenFile() ) return;
+  // Calculate dataFileSize
+  // First 2 cols 8, rest are 12 because all double datasets being used.
+  // 1) Header: [8*2] + [12*6] + 8
+  if (!noheader)
+    dataFileSize = 96;
+  else
+    dataFileSize = 0;
+  // 2) Data: 
+  //   ((header size * nbpstep)+1) * nframes
+  dataFileSize += (((96 * SHIFT.Size())+1) * Nframe);
+  // Allocate buffer
+  buffer.Allocate( dataFileSize );
+  // Write File header
+  if (!noheader)
+    buffer.Sprintf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BPstep",
+                   "Shift","Slide","Rise","Tilt","Roll","Twist");
+  // Write base pair step data for each frame
   for (frame=0; frame < Nframe; frame++) {
-    // Base-pair parameters
-    for (nbasepair=0; nbasepair < (int)SHIFT.size(); nbasepair++) {
-      ptr = buffer; 
-      ptr = SHIFT[nbasepair]->Write(ptr,frame);
-      ptr = SLIDE[nbasepair]->Write(ptr,frame);
-      ptr = RISE[nbasepair]->Write(ptr,frame);
-      ptr = TILT[nbasepair]->Write(ptr,frame);
-      ptr = ROLL[nbasepair]->Write(ptr,frame);
-      ptr = TWIST[nbasepair]->Write(ptr,frame);
-      outfile->IO->Printf("%8i %8i%s\n",frame,nbasepair,buffer);
+    // Base-pair step parameters
+    for (nbasepair=0; nbasepair < SHIFT.Size(); nbasepair++) {
+      // Frame and base pair #
+      buffer.Sprintf("%8i %8i",frame,nbasepair);
+      na_dataset = SHIFT.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = SLIDE.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = RISE.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = TILT.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = ROLL.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      na_dataset = TWIST.GetDataSetN(nbasepair);
+      na_dataset->WriteBuffer(buffer,frame);
+      buffer.NewLine();
     }
-    outfile->IO->Printf("\n");
+    buffer.NewLine();
   }
-  outfile->CloseFile();
-  delete outfile;
+  outfile.IO->Write(buffer.Buffer(), sizeof(char), buffer.CurrentSize());
+  outfile.CloseFile();
 }
 

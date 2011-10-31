@@ -1,5 +1,6 @@
 // CoordList
 #include "CoordList.h"
+#include <cstddef>
 
 // CONSTRUCTOR
 CoordList::CoordList() {

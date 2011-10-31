@@ -38,9 +38,7 @@ int AmberIfbox(double beta) {
 
 /* SetBoxInfo()
  * Given an angle (beta) and 3 edge lengths, set up a box 
- * (3 lengths + 3 angles) and return box type. Also set the
- * ifbox flag if not NULL (0=no box, 1 = std periodic, 
- * 2 = truncated oct.
+ * (3 lengths + 3 angles) and return box type. 
  * Currently recognized betas:
  *   90.00 - Orthogonal
  *  109.47 - Truncated octahedral
@@ -48,7 +46,6 @@ int AmberIfbox(double beta) {
  * Any other betas just sets all angles to beta and a warning is printed.
  */
 BoxType SetBoxInfo(double *bIn, double *Box, int debug) {
-  int ifbox=0;
   BoxType btype = NOBOX;
   double beta, bx, by, bz;
 
@@ -62,18 +59,15 @@ BoxType SetBoxInfo(double *bIn, double *Box, int debug) {
     //if (BoxType>0)
     //  mprintf("    %s: Removing box information.\n",parmName);
     btype=NOBOX;
-    ifbox=0;
     Box[0]=0.0; Box[1]=0.0; Box[2]=0.0;
     Box[3]=0.0; Box[4]=0.0; Box[5]=0.0;
   } else if (beta == 90.0) {
     btype=ORTHO;
-    ifbox=1;
     Box[0]=bx; Box[1]=by; Box[2]=bz;
     Box[3]=90.0; Box[4]=90.0; Box[5]=90.0;
     if (debug>0) mprintf("    Setting box to be orthogonal.\n");
   } else if (beta > 109.47 && beta < 109.48) {
     btype=NONORTHO;
-    ifbox=2;
     Box[0]=bx; Box[1]=by; Box[2]=bz;
     //Box[3] = TRUNCOCTBETA;
     Box[3] = beta;
@@ -81,14 +75,12 @@ BoxType SetBoxInfo(double *bIn, double *Box, int debug) {
     if (debug>0) mprintf("    Setting box to be a truncated octahedron, angle is %lf\n",Box[3]);
   } else if (beta == 60.0) {
     btype=NONORTHO;
-    ifbox=1;
     Box[0]=bx; Box[1]=by; Box[2]=bz;
     Box[3]=60.0; Box[4]=90.0; Box[5]=60.0;
     if (debug>0)
       mprintf("    Setting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
   } else {
     btype=NONORTHO;
-    ifbox=1;
     Box[0]=bx; Box[1]=by; Box[2]=bz;
     Box[3]=beta; Box[4]=beta; Box[5]=beta;
     mprintf("    Warning: Unrecognized box type, beta is %lf\n",beta);

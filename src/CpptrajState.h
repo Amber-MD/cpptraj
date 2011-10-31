@@ -20,7 +20,7 @@ class CpptrajState {
     AnalysisList analysisList;   // List of analyses to be performed on datasets
     DataSetList DSL;             // List of generated data sets
     DataFileList DFL;            // List of datafiles that data sets will be written to
-    std::list<ArgList*> DF_Args; // List of commands pertaining to datafile creation etc
+    std::list<ArgList> DF_Args; // List of commands pertaining to datafile creation etc
     int TotalErrors;             // Sum of all returned error statuses
     int debug;
 

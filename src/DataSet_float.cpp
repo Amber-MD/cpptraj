@@ -61,19 +61,17 @@ int DataSet_float::isEmpty(int frame) {
   return 0;
 }
 
-/* DataSet_float::Write()
- * Write data at frame to buffer. If no data for frame write 0.0.
- * Return position in buffer after write.
+/* DataSet_float::WriteBuffer()
+ * Write data at frame to CharBuffer. If no data for frame write 0.0.
  */
-char *DataSet_float::Write(char *buffer, int frame) {
-
+void DataSet_float::WriteBuffer(CharBuffer &cbuffer, int frame) {
+  double dval;
   datum = Data.find( frame );
-  if (datum == Data.end()) 
-    //sprintf(buffer," %12s","NoData");
-    sprintf(buffer, format, 0.0);
-  else 
-    sprintf(buffer, format,(*datum).second);
-  return (buffer + width + 1);
+  if (datum == Data.end())
+    dval = 0.0;
+  else
+    dval = (double)(*datum).second;
+  cbuffer.WriteDouble(format, dval);
 }
 
 /* DataSet_float::Width()

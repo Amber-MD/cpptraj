@@ -11,9 +11,10 @@
 ///   Info: Print names of datasets in the list.
 ///   Sync: Sync up datasets across all threads. 
 #include "DataSet.h"
+#include <vector>
 class DataSetList {
     int debug;
-    DataSet **DataList;
+    std::vector<DataSet*> DataList;
     int Ndata;
     int maxFrames;      // Expected number of frames that will be read in
     int currentSet;
@@ -25,7 +26,9 @@ class DataSetList {
     void SetMax(int);
     DataSet *Get(char *);
     DataSet *Get(int);
+    DataSet *GetDataSetN(int);
     DataSet *AddMulti(dataType, char *, const char *);
+    DataSet *AddMultiN(dataType, const char *, const char *, int);
     DataSet *Add( dataType, char*, const char*);
     DataSet *AddIdx( dataType, char*, int);
     void Begin();

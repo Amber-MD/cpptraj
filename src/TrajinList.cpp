@@ -13,14 +13,14 @@ TrajinList::TrajinList() {
 // DESTRUCTOR
 TrajinList::~TrajinList() { }
 
-/* TrajinList::Add()
+/* TrajinList::AddTrajin()
  * Add trajectory to the trajectory list as an input trajectory. 
  * Associate the trajectory with one of the parm files in the 
  * ParmFileList. 
  * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
  *        [remdtraj remdtrajtemp <T>]
  */
-int TrajinList::Add(char *filename, ArgList *A, AmberParm *parmIn) {
+int TrajinList::AddTrajin(char *filename, ArgList *A, AmberParm *parmIn) {
   TrajectoryFile *traj;
 
   traj = new TrajectoryFile(); 

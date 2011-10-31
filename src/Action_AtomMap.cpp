@@ -357,9 +357,8 @@ void atommap::WriteMol2(char *m2filename) {
   tmpFrame.SetFrameFromMask(F, &M1);
 
   // Trajectory Setup
-  tmpArg.Add((char*)"title\0");
-  tmpArg.Add(m2filename);
-  tmpArg.ResetAll();
+  tmpArg.AddArg((char*)"title\0");
+  tmpArg.AddArg(m2filename);
   outfile.SetDebug(debug);
   outfile.SetupWrite(m2filename,&tmpArg,tmpParm,MOL2FILE);
   outfile.WriteFrame(0,tmpParm,tmpFrame.X,NULL,tmpFrame.box,tmpFrame.T);
@@ -976,11 +975,11 @@ int AtomMap::init() {
   TargetMap.SetDebug(debug);
 
   // Get Args
-  outputname=A->getKeyString("mapout",NULL);
-  maponly = A->hasKey("maponly");
+  outputname=actionArgs.getKeyString("mapout",NULL);
+  maponly = actionArgs.hasKey("maponly");
 
-  targetName=A->getNextString();
-  refName=A->getNextString();
+  targetName=actionArgs.getNextString();
+  refName=actionArgs.getNextString();
   if (targetName==NULL) {
     mprintf("AtomMap::init: Error: No target specified.\n");
     return 1;
@@ -1093,7 +1092,7 @@ int AtomMap::init() {
       newFrame->SetFrameFromMask(RefMap.F, M1);
       delete M1;
       // Replace reference with stripped versions
-      if (FL->Replace(refIndex, newFrame, stripParm)) {
+      if (FL->ReplaceFrame(refIndex, newFrame, stripParm)) {
         mprintf("Error: AtomMap: Could not strip reference.\n");
         return 1;
       }

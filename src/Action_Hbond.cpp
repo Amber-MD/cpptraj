@@ -2,6 +2,7 @@
 #include "Action_Hbond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG, DEGRAD
+#include <cmath> // sqrt
 
 // CONSTRUCTOR
 Hbond::Hbond() {
@@ -33,24 +34,25 @@ int Hbond::init() {
   char *mask, *outfilename;
 
   // Get keywords
-  outfilename = A->getKeyString("out",NULL);
-  avgout = A->getKeyString("avgout",NULL);
-  acut = A->getKeyDouble("angle",135.0);
+  outfilename = actionArgs.getKeyString("out",NULL);
+  avgout = actionArgs.getKeyString("avgout",NULL);
+  acut = actionArgs.getKeyDouble("angle",135.0);
   // Convert angle cutoff to radians
   acut *= DEGRAD;
-  dcut = A->getKeyDouble("dist",3.0);
+  dcut = actionArgs.getKeyDouble("dist",3.0);
+  dcut2 = dcut * dcut;
   // Get donor mask
-  mask = A->getKeyString("donormask",NULL);
+  mask = actionArgs.getKeyString("donormask",NULL);
   if (mask!=NULL) DonorMask.SetMaskString(mask);
   // Get acceptor mask
-  mask = A->getKeyString("acceptormask",NULL);
+  mask = actionArgs.getKeyString("acceptormask",NULL);
   if (mask!=NULL) AcceptorMask.SetMaskString(mask);
   // Get generic mask
-  mask = A->getNextMask();
+  mask = actionArgs.getNextMask();
   Mask.SetMaskString(mask);
 
   // Setup datasets
-  NumHbonds = DSL->Add(INT, A->getNextString(),"NumHB");
+  NumHbonds = DSL->Add(INT, actionArgs.getNextString(),"NumHB");
   if (NumHbonds==NULL) return 1;
   DFL->Add(outfilename,NumHbonds);
 
@@ -219,7 +221,7 @@ int Hbond::setup() {
 int Hbond::action() {
   // accept ... H-D
   int D, H, Nhb, numHB;
-  double dist, angle;
+  double dist, dist2, angle;//, ucell[9], recip[9];
   std::map<int,HbondType>::iterator it;
   HbondType HB;
 
@@ -230,14 +232,16 @@ int Hbond::action() {
     H = (*donor);
     for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++, Nhb++) {
       if (*accept == D) continue;
-      dist = F->DIST(*accept, D);
-      if (dist > dcut) continue;
+      dist2 = F->DIST2(*accept, D);
+      //dist2 = F->DIST2(*accept, D, (int)P->boxType, ucell, recip);
+      if (dist2 > dcut2) continue;
       angle = F->ANGLE(*accept, H, D);
       if (angle < acut) continue;
 //      mprintf( "HBOND[%i]: %i:%s ... %i:%s-%i:%s Dist=%lf Angle=%lf\n", 
 //              Nhb, *accept, P->names[*accept],
 //              H, P->names[H], D, P->names[D], dist, angle);
       numHB++;
+      dist = sqrt(dist2);
       // Find hbond in map
       it = HbondMap.find( Nhb );
       if (it == HbondMap.end() ) {

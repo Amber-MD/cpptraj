@@ -1,39 +1,28 @@
-// ArgList
-#include <cstdlib>
-#include <cstring>
-#include <cctype>
-#include <string> // Used in constructor to detect quoted args
 #include "ArgList.h"
+//ArgList.cpp
+#include <cstring>
 #include "CpptrajStdio.h"
-// NOTE: Place checks on memory
-// NOTE: Check Arg, ReplaceArg, SplitAt etc to see how often they are used.
+#include <locale>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+ 
+using namespace std;
 
-// CONSTRUCTOR: Empty Arg List
+// CONSTRUCTOR
 ArgList::ArgList() {
-  nargs=0;
-  arglist=NULL;
-  marked=NULL;
-  argline=NULL;
-  debug=0;
+  debug = 0;
 }
 
 // DESTRUCTOR
-ArgList::~ArgList() {
-  if (arglist!=NULL){
-    for (int i=0; i<nargs; i++)
-      if (arglist[i]!=NULL) free(arglist[i]);
-    free(arglist);
-  }
-  if (marked!=NULL) free(marked);
-  if (argline!=NULL) free(argline);
-}
+ArgList::~ArgList() {}
 
 /* ArgList::SetDebug()
  * Set the arglist debug level.
  */
 void ArgList::SetDebug(int debugIn) {
   debug = debugIn;
-  if (debug>0) 
+  if (debug>0)
     mprintf("ArgList debug level set to %i\n",debug);
 }
 
@@ -41,185 +30,97 @@ void ArgList::SetDebug(int debugIn) {
  * Separate input by the characters in separator and store as separate args.
  * This overwrites any existing args and completely resets the list.
  */
-int ArgList::SetList(char *input, const char *separator) {
-  char *pch;
-  std::string quotedArg;
-  size_t inputSize;
+int ArgList::SetList(char *inputString, const char *separator) {
+  string argument;
 
-  if (input==NULL || separator==NULL) return 1;
+  if (inputString==NULL || separator==NULL) return 1;
+  // Copy inputString to temp since it is destroyed by tokenize,
+  // this allows const strings to be passed in.
+  char *tempString = new char[strlen(inputString)+1];
+  strcpy(tempString,inputString);
+  
   // Free existing arglist
-  if (arglist!=NULL){
-    for (int i=0; i<nargs; i++)
-      if (arglist[i]!=NULL) free(arglist[i]);
-    free(arglist);
-  }
-  if (marked!=NULL) free(marked);
-  if (argline!=NULL) free(argline);
-  arglist=NULL; marked=NULL; argline=NULL; nargs=0; 
+  arglist.clear();
+  marked.clear();
+  
+  // Store inputString
+  argline.assign(inputString);
 
-  inputSize = strlen(input);
-  // Replace any trailing newline char from input with NULL
-  if (inputSize>0) {
-    if (input[inputSize-1]=='\n') input[inputSize-1]='\0';
-  }
-  if (debug>0) 
-    mprintf("getArgList: Setting up arg list for [%s] with separator [%s]\n",
-            input, separator);
-
-  // Store original argument line
-  argline=(char*) malloc( (inputSize+1) * sizeof(char) );
-  strcpy(argline, input);
-
-  pch=strtok(input,separator);
+  // Begin tokenization
+  char *pch = strtok(tempString, separator);
   if (pch!=NULL) {
-
     while (pch!=NULL) {
-      if (debug>1) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
-      if ( pch[0]!='"' ) 
-        Add(pch);
-      else {
-        // If the argument begins with a quote, place this and all subsequent
-        // arguments ending with another quote into the same argument.
-        quotedArg.clear();
-        quotedArg.assign(pch);
+      //if (debug>1) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
+      // If the argument is not quoted add it to the list
+      if (pch[0]!='"') {
+        argument.assign(pch);
+        arglist.push_back(argument);
+
+      // If the argument begins with a quote, place this and all subsequent
+      // arguments ending with another quote into this argument
+      } else {
+        argument.assign(pch);
         // Check if this argument itself ends with a quote
-        if (quotedArg.size() == 1 || quotedArg[quotedArg.size()-1]!='"') {
+        unsigned int argsize = argument.size();
+        if (argsize == 1 || argument[argsize-1]!='"') {
           while (pch!=NULL) {
-            quotedArg.append(" ");
+            argument.append(" ");
             pch=strtok(NULL," ");
-            quotedArg.append(pch);
+            argument.append(pch);
             if (strchr(pch,'"')!=NULL) break;
           }
         }
-        // Remove the quotes from the argument
-        for (std::string::iterator it=quotedArg.begin(); it < quotedArg.end(); it++)
-          if (*it=='"') quotedArg.erase(it);  
-        Add((char*)quotedArg.c_str());
+        // Remove quotes from the argument
+        for (string::iterator character = argument.begin();
+                              character < argument.end();
+                              character++)
+          if (*character == '"') character = argument.erase(character);
+        arglist.push_back(argument);
       }
-      if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
-      pch=strtok(NULL,separator);
-    }
-    // Setup marked array
-    ResetAll();
+      //if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
+      pch = strtok(NULL,separator);
+    } // END while loop
+    // Set up marked array
+    marked.resize( arglist.size(), false );
   }
-  if (debug>0) mprintf("getArgList: Processed %i args\n",nargs);
+  // if (debug>0) mprintf("getArgList: Processed %i args\n",nargs);
+  delete[] tempString;
   return 0;
 }
 
-/* ArgList::Add()
+/* ArgList::AddArg()
  * Add input to the argument list.
  */
-void ArgList::Add(char *input) {
+void ArgList::AddArg(char *input) {
+  string argument;
   // Dont store blank tokens
   if (input==NULL) return;
-  if (input[0]!='\n') {
-    arglist=(char**) realloc(arglist,(nargs+1)*sizeof(char*));
-    arglist[nargs]=(char*) malloc( (strlen(input)+1) * sizeof(char) );
-    strcpy(arglist[nargs],input);
-    marked=(char*) realloc(marked,(nargs+1)*sizeof(char*));
-    marked[nargs]='F';
-    nargs++;
-  }
+  if (input[0]=='\n') return;
+  argument.assign(input);
+  arglist.push_back(argument);
+  argline.append(argument);
+  argline.append(" ");
+  marked.push_back(false);
 }
 
-/* ArgList::Copy()
- * Return a copy of this arglist
+/* ArgList::ResetMarked()
+ * Reset all entries in the marked list to false. If noResetCmd is true
+ * dont reset the first arg.
+ * NOTE: Is this essential? If it is, is the bool essential?
  */
-ArgList *ArgList::Copy() {
-  ArgList *temp; 
-  int i;
-
-  temp=new ArgList();
-
-  for (i=0; i<nargs; i++) 
-    temp->Add(arglist[i]);
-
-  if (argline!=NULL) {
-    temp->argline=(char*) malloc( (strlen(argline)+1) * sizeof(char));
-    strcpy(temp->argline,argline);
-  }
-
-  temp->Reset();
-
-  return temp;
+void ArgList::ResetMarked(bool noResetCmd) {
+  unsigned int startarg = 0;
+  if (noResetCmd) startarg = 1;
+  for (unsigned int arg = startarg; arg < marked.size(); arg++)
+    marked[arg]=false;
 }
 
-/* ArgList::print()
- * Print out each arg on separate lines
+/* ArgList::MarkAll()
+ * Set all entries in the marked list to true.
  */
-void ArgList::print() {
-  int i;
-  for (i=0; i<nargs; i++) 
-    mprintf("  %i: %s\n",i,arglist[i]);
-    //mprintf("  ArgList[%i]=%s\n",i,arglist[i]);
-}
-
-/* ArgList::ArgLine()
- * Return the original argument string
- */
-char *ArgList::ArgLine() {
-  return argline;
-}
-
-/* ArgList::Arg()
- * Return arg at specified position.
- */
-char *ArgList::Arg(int pos) {
-  if (pos>-1 && pos<nargs) 
-    return arglist[pos];
-  return NULL;
-}
-
-/* ArgList::ArgIs()
- * Return true if arg at specified position matches input.
- */
-bool ArgList::ArgIs(int pos, const char *input) {
-  if (pos>-1 && pos<nargs)
-    return ( strcmp(input, arglist[pos])==0 );
-  return false;
-}
-
-/* ArgList::Command()
- * Check the first arg for command
- * Mark and return. Return even if marked.
- */
-char *ArgList::Command() {
-
-  if (nargs==0) return NULL;
-  marked[0]='T';
-  return arglist[0];
-}
-
-/* ArgList::CommandIs()
- * Check if key is command, return 1 if true. Mark command no matter what.
- */
-int ArgList::CommandIs(const char *key) {
-  marked[0]='T';
-  if (strcmp(this->Command(),key)==0) return 1;
-  return 0;
-}
-
-/* ArgList::CommandIs()
- * Check if first N chars of Command are key, return 1 if true. Mark command
- * no matter what.
- */
-int ArgList::CommandIs(const char *key, int N) {
-  marked[0]='T';
-  if (strncmp(this->Command(),key,N)==0) return 1;
-  return 0;
-}
-
-/* ArgList::getNextString()
- * Return next unmarked string
- */
-char *ArgList::getNextString() {
-  int i;
-  for (i=0; i<nargs; i++)
-    if (marked[i]!='T') {
-      marked[i]='T';
-      return arglist[i];
-    }
-  return NULL;
+void ArgList::MarkAll() {
+  for (unsigned int arg = 0; arg < marked.size(); arg++)
+    marked[arg]=true;
 }
 
 /* ArgList::CheckForMoreArgs()
@@ -227,23 +128,101 @@ char *ArgList::getNextString() {
  * with all unprocessed arguments.
  */
 void ArgList::CheckForMoreArgs() {
-  int i;
-  bool empty;
-
-  empty=true;
-  for (i=0; i<nargs; i++) {
-    if (marked[i]=='F') {
+  bool empty = true;
+  string notmarked;
+  
+  for (unsigned int arg=0; arg < arglist.size(); arg++) {
+    if (!marked[arg]) {
       empty=false;
-      break;
+      notmarked.append(arglist[arg] + " ");
     }
   }
-  if (!empty) {
-    mprintf("Warning: [%s] Not all arguments handled: [ ",arglist[0]);
-    for (i=0; i<nargs; i++) {
-      if (marked[i]=='F') mprintf("%s ",arglist[i]);
-    }
-    mprintf(" ]\n");
+  if (!empty)  
+    mprintf("Warning: [%s] Not all arguments handled: [ %s]\n",arglist[0].c_str(),
+            notmarked.c_str());
+}
+
+/* ArgList::PrintList()
+ * Print out each arg on separate lines.
+ */
+void ArgList::PrintList() {
+  unsigned int nargs = arglist.size();
+  if (debug==0) {
+    for (unsigned int arg = 0; arg < nargs; arg++) 
+      mprintf("  %u: %s\n",arg,arglist[arg].c_str());
+  } else {
+    mprintf("ArgLine: %s\n",argline.c_str());
+    for (unsigned int arg = 0; arg < nargs; arg++)
+      mprintf("\tArg %u: %s (%i)\n",arg,arglist[arg].c_str(),(int)marked[arg]);
   }
+}
+
+/* ArgList::ArgLine()
+ * Return the original argument string
+ */
+const char *ArgList::ArgLine() {
+  return argline.c_str();
+}        
+        
+/* ArgList::ArgAt()
+ * Return arg at specified position.
+ */
+char *ArgList::ArgAt(int pos) {
+  if (pos < 0 || pos >= (int) arglist.size()) return NULL;
+  return (char*)arglist[pos].c_str();
+}
+
+/* ArgList::ArgIs()
+ * Return true if arg at specified position matches input.
+ */
+bool ArgList::ArgIs(int pos, const char *input) {
+  if (pos < 0 || pos >= (int) arglist.size()) return false;
+  if (arglist[pos].compare( input )==0) return true;
+  return false;
+}
+
+/* ArgList::Command()
+ * Return the first argument and mark it, even if already marked.
+ */
+const char *ArgList::Command() {
+  if (arglist.empty()) return NULL;
+  marked[0]=true;
+  return arglist[0].c_str();
+}
+
+/* ArgList::CommandIs()
+ * Check if key is command, return true if so. Mark command no matter what.
+ */
+bool ArgList::CommandIs(const char *key) {
+  if (arglist.empty()) return false;
+  marked[0]=true;
+  if (arglist[0].compare( key )==0) return true;
+  return false;
+}
+
+/* ArgList::CommandIs()
+ * Check the first nchar characters of key against command, return true if
+ * they match. Mark command no matter what.
+ */
+/*bool ArgList::CommandIs(const char *key, size_t nchar) {
+  if (arglist.empty()) return false;
+  marked[0]=true;
+  if (arglist[0].compare( 0, nchar, key )==0) return true;
+  return false;
+}*/
+
+/* ArgList::getNextString()
+ * Return the next unmarked string.
+ * NOTE: The case back to char* is potentially dangerous if calling routine
+ *       modifies the string in any way.
+ */
+char *ArgList::getNextString() {
+  for (unsigned int arg = 0; arg < arglist.size(); arg++)
+    if (!marked[arg]) {
+      marked[arg]=true;
+      return (char*)arglist[arg].c_str();
+    }
+  return NULL;
 }
 
 /* ArgList::getNextMask()
@@ -256,38 +235,90 @@ void ArgList::CheckForMoreArgs() {
  *   '%' type
  */
 char *ArgList::getNextMask() {
-  int i;
-  for (i=0; i<nargs; i++) {
-    if (marked[i]!='T') {
-      if ( strchr( arglist[i], ':')!=NULL ||
-           strchr( arglist[i], '@')!=NULL ||
-           strchr( arglist[i], '*')!=NULL //||
-           //strchr( arglist[i], '/')!=NULL ||
-           //strchr( arglist[i], '%')!=NULL    
-         ) 
+  for (unsigned int arg=0; arg < arglist.size(); arg++) {
+    if (!marked[arg]) {
+      const char *argmnt = arglist[arg].c_str();
+      if ( strchr( argmnt, ':')!=NULL ||
+           strchr( argmnt, '@')!=NULL ||
+           strchr( argmnt, '*')!=NULL //||
+           //strchr( argmnt, '/')!=NULL ||
+           //strchr( argmnt, '%')!=NULL    
+         )
       {
-        marked[i]='T';
-        return arglist[i];
+        marked[arg]=true;
+        return (char*)argmnt;
       }
     }
   }
   return NULL;
 }
 
+/* Class: BadConversion
+ * Runtime exception class for catching bad conversions from the 
+ * convertToX routines.
+ */
+class BadConversion : public std::runtime_error {
+public:
+  BadConversion(std::string const &s)
+    : std::runtime_error(s)
+    { }
+};
+
+/* convertToInteger()
+ * Convert the input string to an integer.
+ */
+inline int convertToInteger(string const &s) {
+  istringstream iss(s);
+  int i;
+  if (!(iss >> i))
+    throw BadConversion("convertToInteger(\"" + s + "\")");
+  return i;
+}
+
+/* convertToDouble()
+ * Convert the input string to a double.
+ */
+inline double convertToDouble(string const &s) {
+  istringstream iss(s);
+  double d;
+  if (!(iss >> d))
+    throw BadConversion("convertToDouble(\"" + s + "\")");
+  return d;
+}
+
+/* validInteger()
+ * Brief check that the passed in string begins with a digit
+ * or '-'
+ */
+inline bool validInteger(string const &argument) {
+  locale loc;
+  if (isdigit(argument[0],loc) || argument[0]=='-') return true;
+  return false;
+}
+
+/* validDouble()
+ * Brief check that the passed in string begins with a digit,
+ * '-', or '.'
+ */
+inline bool validDouble(string const &argument) {
+  locale loc;
+  if (isdigit(argument[0],loc) || argument[0]=='-' || argument[0]=='.' ) return true;
+  return false;
+}
+
 /* ArgList::getNextInteger()
  * Convert next unmarked string to int and return, otherwise return def
  */
 int ArgList::getNextInteger(int def) {
-  int i;
-  for (i=0; i<nargs; i++)
-    if (marked[i]!='T') {
+  locale loc;
+  for (unsigned int arg=0; arg < arglist.size(); arg++)
+    if (!marked[arg]) {
       // Check that first char is indeed an integer or '-', if not then continue
-      if (!isdigit(arglist[i][0]) && arglist[i][0]!='-') {
-        //mprintf("WARNING: Getting integer from arg (%s) that is not digit!\n",arglist[i]);
-        continue;
+      if (validInteger(arglist[arg])) {
+        int ival = convertToInteger(arglist[arg]);
+        marked[arg]=true;
+        return ival;
       }
-      marked[i]='T';
-      return atoi(arglist[i]);
     }
   return def;
 }
@@ -296,33 +327,32 @@ int ArgList::getNextInteger(int def) {
  * Convert next unmarked string to double and return, otherwise return def
  */
 double ArgList::getNextDouble(double def) {
-  for (int i=0; i<nargs; i++)
-    if (marked[i]!='T') {
+  locale loc;
+  for (unsigned int arg=0; arg < arglist.size(); arg++)
+    if (!marked[arg]) {
       // Check that first char is indeed a digit, '.', or '-', if not then continue
-      if (!isdigit(arglist[i][0]) && arglist[i][0]!='.' && arglist[i][0]!='-' ) {
-        //mprintf("WARNING: getKeyDouble: arg (%s) does not appear to be a number!\n",
-        //        arglist[i]);
-        continue;
+      if (validDouble(arglist[arg])) {
+        double dval = convertToDouble(arglist[arg]);
+        marked[arg]=true;
+        return dval;
       }
-      marked[i]='T';
-      return atof(arglist[i]);
     }
   return def;
 }
-
 
 /* ArgList::getKeyString()
  * Search for unmarked key in arglist, return if found, otherwise return def
  */
 char *ArgList::getKeyString(const char *key, char *def) {
-  int i;
-
-  for (i=0; i<nargs-1; i++)
-    if (marked[i]!='T' && strcmp(key,arglist[i])==0) {
-      marked[i]='T';
-      i++;
-      marked[i]='T';
-      return arglist[i];
+  unsigned int nargs = arglist.size() - 1;
+  for (unsigned int arg=0; arg < nargs; arg++)
+    if (!marked[arg]) {
+      if (arglist[arg].compare(key)==0) { 
+        marked[arg]=true;
+        arg++;
+        marked[arg]=true;
+        return (char*)arglist[arg].c_str();
+      }
     }
   return def;
 }
@@ -331,31 +361,31 @@ char *ArgList::getKeyString(const char *key, char *def) {
  * Search for unmarked key in arglist, return its position in the ArgList
  * if found, otherwise return -1
  */
+/*
 int ArgList::getKeyIndex(char *key) {
-  int i;
-
-  for (i=0; i<nargs; i++) {
-    if (strcmp(key,arglist[i])==0) return i;
+  for (unsigned int arg=0; arg < arglist.size(); arg++) {
+    if (arglist[arg].compare(key)==0) return arg;
   }
   return -1;
 }
+*/
 
 /* ArgList::getKeyInt()
  * Search for unmarked key in arglist, return if found, otherwise returh def
  */
 int ArgList::getKeyInt(const char *key, int def) {
-  int i;
-
-  for (i=0; i<nargs-1; i++)
-    if (marked[i]!='T' && strcmp(key,arglist[i])==0) {
-      marked[i]='T'; 
-      i++;
-      marked[i]='T';
-      // Brief check that first char is indeed an integer or '-'
-      if (!isdigit(arglist[i][0]) && arglist[i][0]!='-') {
-        mprintf("WARNING: Getting integer from arg (%s) that is not digit!\n",arglist[i]);
+  unsigned int nargs = arglist.size() - 1;
+  for (unsigned int arg=0; arg < nargs; arg++)
+    if (!marked[arg]) {
+      if (arglist[arg].compare(key)==0) {
+        if (validInteger(arglist[arg+1])) {
+          marked[arg]=true;
+          arg++;
+          int ival = convertToInteger(arglist[arg]);
+          marked[arg]=true;
+          return ival;
+        }
       }
-      return atoi(arglist[i]);
     }
   return def;
 }
@@ -364,161 +394,49 @@ int ArgList::getKeyInt(const char *key, int def) {
  * Search for unmarked key in arglist, return if found, otherwise return def
  */
 double ArgList::getKeyDouble(const char *key, double def) {
-  int i;
-
-  for (i=0; i<nargs-1; i++)
-    if (marked[i]!='T' && strcmp(key,arglist[i])==0) {
-      marked[i]='T';
-      i++;
-      marked[i]='T';
-      // Brief check that first char is indeed a digit, '.', or '-' 
-      if (!isdigit(arglist[i][0]) && arglist[i][0]!='.' && arglist[i][0]!='-' ) {
-        mprintf("WARNING: getKeyDouble: arg (%s) does not appear to be a number!\n",
-                arglist[i]);
+  unsigned int nargs = arglist.size() - 1;
+  for (unsigned int arg=0; arg < nargs; arg++)
+    if (!marked[arg]) {
+      if (arglist[arg].compare(key)==0) {
+        if (validDouble(arglist[arg+1])) {
+          marked[arg]=true;
+          arg++;
+          double dval = convertToDouble(arglist[arg]);
+          marked[arg]=true;
+          return dval;
+        }
       }
-      return atof(arglist[i]);
     }
   return def;
 }
 
 /* ArgList::hasKey()
- * Return 1 if key is found, 0 if not. Mark key if found.
+ * Return true if key is found, false if not. Mark key if found.
  */
-int ArgList::hasKey(const char *key) {
-  int i;
-
-  for (i=0; i<nargs; i++) {
-    if (marked[i]!='T' && strcmp(key,arglist[i])==0) {
-      marked[i]='T';
-      return 1;
+bool ArgList::hasKey(const char *key) {
+  for (unsigned int arg = 0; arg < arglist.size(); arg++) 
+    if (!marked[arg]) {
+      if (arglist[arg].compare(key)==0) {
+        marked[arg]=true;
+        return true;
+      }
     }
-  }
-  return 0;
+  return false;
 }
 
 /* ArgList::Contains()
- * Like hasKey(), but key is not marked. Return 1 if key is found, 0 if not.
+ * Like hasKey(), but key is not marked. Return true if key is found, 
+ * false if not.
  * NOTE: Should this be ignoring previously marked strings?
  */
-int ArgList::Contains(const char *key) {
-  for (int i=0; i<nargs; i++) {
-    if (marked[i]!='T' && strcmp(key,arglist[i])==0) {
-      return 1;
+bool ArgList::Contains(const char *key) {
+  for (unsigned int arg = 0; arg < arglist.size(); arg++) 
+    if (!marked[arg]) {
+      if (arglist[arg].compare(key)==0) {
+        return true;
+      }
     }
-  }
-  return 0;
+  return false;
 }
 
-/* ArgList::SplitAt()
- * Split the argument list at the specified keyword. Remove those arguments
- * from this list and return as a new list.
- */
-ArgList *ArgList::SplitAt(const char *key) {
-  int i, argpos;
-  ArgList *split;
 
-  argpos=-1;
-  for (i=0; i<nargs; i++) {
-    if (strcmp(key,arglist[i])==0) {
-      argpos = i;
-      break;
-    }
-  }
-  if (argpos==-1) {
-    mprinterr("Error: Arglist::SplitAt: Key %s not found in arg list beginning\n",key);
-    mprinterr("       with [%s]\n",arglist[0]);
-    return NULL;
-  }
-  // Create new arglist starting from argpos
-  split = new ArgList();
-  for (i=argpos; i < nargs; i++) {
-    split->Add(arglist[i]);
-    free(arglist[i]);
-  }
-  split->Reset();  
-  // Resize the current arg list
-  nargs = argpos;
-  arglist = (char**) realloc(arglist, argpos * sizeof(char*));
-  marked = (char*) realloc(marked, argpos * sizeof(char));
-  // DEBUG
-  //mprintf("SPLIT LIST:\n");
-  //split->print();
-
-  return split;
-}
-
-/* ArgList::RemainingArgs()
- * Create a new argument list from args that have not been marked. Mark all
- * arguments from the old list. 
- */
-ArgList *ArgList::RemainingArgs() {
-  ArgList *newList = new ArgList();
-
-  for (int i=0; i<nargs; i++) {
-    if (marked[i]=='F') {
-      newList->Add(arglist[i]);
-      marked[i]='T';
-    }
-  }
-
-  // If new arglist is empty return null
-  if (newList->Nargs()==0) {
-    delete newList;
-    newList=NULL;
-  // Otherwise set up the marked list to F for the new list
-  } else {
-    newList->ResetAll();
-  }
-  return newList;
-}
-
-/* ArgList::ReplaceArg()
- * Replace argument at the given position with a copy of the given argument.
- * The memory allocated to the original argument will be freed.
- */
-int ArgList::ReplaceArg(int pos, char *argIn) {
-  if (pos<0 || pos>=nargs) return 1;
-  if (argIn==NULL) return 1;
-  free(arglist[pos]);
-  arglist[pos] = (char*) malloc( (strlen(argIn)+1) * sizeof(char) );
-  strcpy(arglist[pos], argIn);
-  return 0;
-}
-
-/* ArgList::CopyArg()
- * Return a copy of the argument at given position.
- */
-char *ArgList::CopyArg(int pos) {
-  char *outArg;
-  if (pos<0 || pos>=nargs) return NULL;
-  outArg = (char*) malloc( (strlen(arglist[pos])+1) * sizeof(char) );
-  if (outArg==NULL) return NULL;
-  strcpy(outArg, arglist[pos]);
-  return outArg;
-}
-
-/* ArgList::Reset()
- * Reset marked except for the Command (arg 0). Allocate memory for marked
- * if not already done.
- */
-void ArgList::Reset() {
-  if (nargs==0) return;
-  if (marked==NULL) 
-    marked=(char*) malloc(nargs*sizeof(char));
-  if (marked!=NULL) {
-    memset(marked,'F',nargs);
-    marked[0]='T';
-  }
-}
-
-/* ArgList::ResetAll()
- * Reset all arguments including Command (arg 0)
- */
-void ArgList::ResetAll() {
-  if (nargs==0) return;
-  if (marked==NULL)
-    marked=(char*) malloc(nargs*sizeof(char));
-  if (marked!=NULL) 
-    memset(marked,'F',nargs);
-}
-    

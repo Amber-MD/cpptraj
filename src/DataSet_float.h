@@ -17,7 +17,7 @@ class DataSet_float : public DataSet {
     int isEmpty(int);
     void Add( int, void * );
     int Get(void *, int);
-    char *Write(char *, int);
+    void WriteBuffer(CharBuffer&,int);
     int Width();
     int Sync();
 };

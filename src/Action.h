@@ -47,7 +47,7 @@
 #include "AmberParm.h"
 class Action {
   protected:
-    ArgList *A;             // The action arguments (setArg)
+    ArgList actionArgs;     // The action arguments (setArg)
     AmberParm *P;           // The current parmtop (setup)
     Frame *F;               // The current frame (action)
     DataSetList *DSL;       // Pointer to the data set list in CpptrajState (init)
@@ -71,10 +71,9 @@ class Action {
     Action();               // Constructor
     virtual ~Action();      // Destructor - virtual since this class is inherited
 
-    void setArg(ArgList *inA); // Set the argument list
-    void ResetArg();           // Reset arguments in the argument list
-    char *Name();              // Print the command that calls the action
-    char *CmdLine();           // Print the entire argument line
+    void SetArg(const ArgList&); // Set the argument list
+    const char *ActionCommand();              // Print the command that calls the action
+    const char *CmdLine();           // Print the entire argument line
 
     int Init(DataSetList*, FrameList*, DataFileList*, ParmFileList *,int); 
     int Setup(AmberParm **);

@@ -13,7 +13,6 @@ Average::Average() {
   avgfilename=NULL;
   AvgParm=NULL;
   parmStripped=false;
-  trajArgs=NULL;
 } 
 
 // DESTRUCTOR
@@ -21,7 +20,6 @@ Average::~Average() {
   //fprintf(stderr,"Average Destructor.\n");
   if (AvgFrame!=NULL) delete AvgFrame;
   if (parmStripped && AvgParm!=NULL) delete AvgParm;
-  if (trajArgs!=NULL) delete trajArgs;
 }
 
 /* Average::init()
@@ -32,26 +30,29 @@ int Average::init( ) {
   char *mask1;
 
   // Get Keywords
-  avgfilename = A->getNextString();
+  avgfilename = actionArgs.getNextString();
   if (avgfilename==NULL) {
     mprinterr("Error: average: No filename given.\n");
     return 1;
   }
   // User start/stop args are +1
-  start = A->getKeyInt("start",1);
+  start = actionArgs.getKeyInt("start",1);
   start--;
   targetFrame=start;
-  stop = A->getKeyInt("stop",-1);
+  stop = actionArgs.getKeyInt("stop",-1);
   if (stop!=-1) stop--;
-  offset = A->getKeyInt("offset",1);
+  offset = actionArgs.getKeyInt("offset",1);
 
   // Get Masks
-  mask1 = A->getNextMask();
+  mask1 = actionArgs.getNextMask();
   //fprintf(stdout,"    Mask 1: %s\n",mask1);
   Mask1.SetMaskString(mask1);
 
   // Save all remaining arguments for setting up the trajectory at the end.
-  trajArgs = A->RemainingArgs();
+  trajArgs = actionArgs;
+  // Mark all action args complete, otherwise cpptraj thinks there were
+  // unhandled args and will print a phantom error.
+  actionArgs.MarkAll(); 
 
   mprintf("    AVERAGE: Averaging over");
   if (mask1!=NULL)
@@ -163,7 +164,7 @@ void Average::print() {
 
   mprintf("    AVERAGE: [%s]\n",this->CmdLine());
 
-  if (outfile.SetupWrite(avgfilename, trajArgs, AvgParm, AMBERTRAJ)) {
+  if (outfile.SetupWrite(avgfilename, &trajArgs, AvgParm, AMBERTRAJ)) {
     mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename);
     return;
   }
