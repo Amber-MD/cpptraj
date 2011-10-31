@@ -38,6 +38,10 @@ NAstruct::NAstruct() {
 // DESTRUCTOR
 NAstruct::~NAstruct() { 
   ClearLists();
+  while (!BasePairAxes.empty()) {
+    delete BasePairAxes.back();
+    BasePairAxes.pop_back();
+  }
 }
 
 /* NAstruct::ClearLists()
@@ -52,10 +56,12 @@ void NAstruct::ClearLists() {
     delete BaseAxes.back();
     BaseAxes.pop_back();
   }
-  while (!BasePairAxes.empty()) {
-    delete BasePairAxes.back();
-    BasePairAxes.pop_back();
-  }
+// NOTE: Since BasePairAxes are set up to correspond with SHEAR etc dont
+// free in this routine - should only be freed at the very end.
+//  while (!BasePairAxes.empty()) {
+//    delete BasePairAxes.back();
+//    BasePairAxes.pop_back();
+//  }
   while (!ExpMasks.empty()) {
     delete ExpMasks.back();
     ExpMasks.pop_back();
@@ -944,7 +950,8 @@ int NAstruct::setup() {
   }
 
   // DEBUG - print all residues
-  actualRange.PrintRange("    NAstruct: NA res:",1);
+  if (debug>0)
+    actualRange.PrintRange("    NAstruct: NA res:",1);
 
   // Set up frame to hold reference coords for each NA residue
   actualRange.Begin();
@@ -1039,6 +1046,20 @@ void NAstruct::print() {
   char tempName[64]; // NOTE: Replce with string?
   size_t dataFileSize;
   DataSet *na_dataset = NULL;
+
+  // Set precision of all datasets
+/*  SHEAR.SetPrecisionOfDatasets(8,3);
+  STRETCH.SetPrecisionOfDatasets(8,3);
+  STAGGER.SetPrecisionOfDatasets(8,3);
+  BUCKLE.SetPrecisionOfDatasets(8,3);
+  PROPELLER.SetPrecisionOfDatasets(8,3);
+  OPENING.SetPrecisionOfDatasets(8,3);
+  SHIFT.SetPrecisionOfDatasets(8,3);
+  SLIDE.SetPrecisionOfDatasets(8,3);
+  RISE.SetPrecisionOfDatasets(8,3);
+  TILT.SetPrecisionOfDatasets(8,3);
+  ROLL.SetPrecisionOfDatasets(8,3);
+  TWIST.SetPrecisionOfDatasets(8,3);*/
 
   if (naoutFilename==NULL) return;
 
