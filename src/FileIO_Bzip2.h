@@ -1,11 +1,12 @@
-#ifndef INC_BZIP2FILE_H
-#define INC_BZIP2FILE_H
-// Bzip2 file IO
+#ifndef INC_FILEIO_BZIP2_H
+#define INC_FILEIO_BZIP2_H
 #ifdef HASBZ2
-#include "BaseFileIO.h"
+#include "FileIO.h"
 // NOTE: bzlib.h has stdio.h. Does it matter that its not cstdio? 
-#include "bzlib.h" 
-class Bzip2File : public BaseFileIO {
+#include "bzlib.h"
+/// Class: FileIO_Bzip2
+/// Bzip2 file IO.
+class FileIO_Bzip2 : public FileIO {
     bool isBzread;
     FILE *fp;
     BZFILE *infile;
@@ -16,8 +17,8 @@ class Bzip2File : public BaseFileIO {
 
     const char *BZerror();
   public:
-    Bzip2File(); 
-    ~Bzip2File(); 
+    FileIO_Bzip2(); 
+    ~FileIO_Bzip2(); 
     int Open(const char *, const char *);    
     int Close();
     off_t Size(char *);

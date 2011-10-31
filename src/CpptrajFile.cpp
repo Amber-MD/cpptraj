@@ -9,15 +9,15 @@
 #include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
 // File Types
-#include "StdFile.h"
+#include "FileIO_Std.h"
 #ifdef HASGZ
-#  include "GzipFile.h"
+#  include "FileIO_Gzip.h"
 #endif
 #ifdef MPI
-#  include "MpiFile.h"
+#  include "FileIO_Mpi.h"
 #endif
 #ifdef HASBZ2
-#  include "Bzip2File.h"
+#  include "FileIO_Bzip2.h"
 #endif
 
 // CONSTRUCTOR
@@ -233,7 +233,7 @@ int CpptrajFile::SetupWrite() {
   switch (fileType) {
     case GZIPFILE  : 
 #ifdef HASGZ
-      IO = new GzipFile(); 
+      IO = new FileIO_Gzip(); 
 #else
       mprintf("Error: SetupWrite(%s):\n",filename);
       mprintf("       Compiled without Gzip support. Recompile with -DHASGZ\n");
@@ -242,7 +242,7 @@ int CpptrajFile::SetupWrite() {
       break;
     case BZIP2FILE :
 #ifdef HASBZ2 
-      IO = new Bzip2File();
+      IO = new FileIO_Bzip2();
 #else
       mprintf("Error: SetupWrite(%s):\n",filename);
       mprintf("       Compiled without Bzip2 support. Recompile with -DHASBZ2\n");
@@ -250,10 +250,10 @@ int CpptrajFile::SetupWrite() {
 #endif
     break;
     //case ZIPFILE   : IO = new ZipFile(); break;
-    case STANDARD  : IO = new StdFile();  break;
+    case STANDARD  : IO = new FileIO_Std();  break;
     case MPIFILE   : 
 #ifdef MPI
-      IO = new MpiFile();
+      IO = new FileIO_Mpi();
 #else
       mprintf("Error: SetupWrite(%s):\n",filename);
       mprintf("       Compiled without MPI support. Recompile with -DMPI\n");
@@ -294,7 +294,7 @@ int CpptrajFile::SetupRead() {
   file_size = frame_stat.st_size;
 
   // Start off every file as a standard file - may need to change for MPI
-  IO = new StdFile();
+  IO = new FileIO_Std();
 
   // ID by magic number - open for binary read access
   if ( IO->Open(filename, "rb") ) { 
@@ -334,12 +334,12 @@ int CpptrajFile::SetupRead() {
   }
 
   // Assign the appropriate IO type based on the file
-  delete (StdFile*) IO;
+  delete (FileIO_Std*) IO;
   IO = NULL;
   switch (fileType) {
     case GZIPFILE  : 
 #ifdef HASGZ
-      IO = new GzipFile(); 
+      IO = new FileIO_Gzip(); 
 #else
       mprintf("Error: SetupRead(%s):\n",filename);
       mprintf("       Compiled without Gzip support. Recompile with -DHASGZ\n");
@@ -348,7 +348,7 @@ int CpptrajFile::SetupRead() {
       break;
     case BZIP2FILE : 
 #ifdef HASBZ2
-      IO = new Bzip2File(); 
+      IO = new FileIO_Bzip2(); 
 #else
       mprintf("Error: SetupRead(%s):\n",filename);
       mprintf("       Compiled without Bzip2 support. Recompile with -DHASBZ2\n");
@@ -356,7 +356,7 @@ int CpptrajFile::SetupRead() {
 #endif
       break;
     //case ZIPFILE   : IO = new ZipFile(); break;
-    default        : IO = new StdFile();  break;
+    default        : IO = new FileIO_Std();  break;
   }
 
   // If the file is compressed, get the uncompressed size

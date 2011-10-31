@@ -1,23 +1,22 @@
-// StdFile: Standard C file operations
-#include "StdFile.h" // BaseFileIO.h, cstdio
+// FileIO_Std: Standard C file operations
+#include "FileIO_Std.h" // FileIO.h, cstdio
 
 // CONSTRUCTOR
-StdFile::StdFile() {
+FileIO_Std::FileIO_Std() {
   fp = NULL;
   isStdout=false;
 }
 
 // DESTRUCTOR
-StdFile::~StdFile() {
+FileIO_Std::~FileIO_Std() {
   if (fp!=NULL) this->Close();
 }
 
-/*
- * StdFile::Open()
+/* FileIO_Std::Open()
  * Open file using standard C routines. If mode is WRITE and no
  * filename given default to stdout.
  */
-int StdFile::Open(const char *filename, const char *mode) {
+int FileIO_Std::Open(const char *filename, const char *mode) {
   if (filename==NULL) {
     if (mode[0]=='w') 
       fp=stdout;
@@ -30,45 +29,42 @@ int StdFile::Open(const char *filename, const char *mode) {
   return 0;
 }
 
-/*
- * StdFile::Close()
+/* FileIO_Std::Close()
  * Close stream if not stdout
  */
-int StdFile::Close() {
+int FileIO_Std::Close() {
   if (fp!=NULL && !isStdout) fclose(fp);
   fp=NULL;
   return 0;
 }
 
-/*
- * StdFile::Read()
+/* FileIO_Std::Read()
  */
-int StdFile::Read(void *buffer, size_t size, size_t count) {
+int FileIO_Std::Read(void *buffer, size_t size, size_t count) {
   size_t numread;
   // Should never be able to call Read when fp is NULL.
   //if (fp==NULL) {
-  //  fprintf(stdout,"Error: StdFile::Read: Attempted to read NULL file pointer.\n");
+  //  fprintf(stdout,"Error: FileIO_Std::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
   if (feof(fp)) return -1;
   numread = fread(buffer, size, count, fp);
   // NOTE: Check for errors here?
   if (ferror(fp)) {
-    perror("Error during StdFile::Read");
+    perror("Error during FileIO_Std::Read");
     return -1;
   }
   //if (numread!=(size*count)) return 1;
   return (int) numread;
 }
 
-/*
- * StdFile::Write()
+/* FileIO_Std::Write()
  */
-int StdFile::Write(void *buffer, size_t size, size_t count) {
+int FileIO_Std::Write(void *buffer, size_t size, size_t count) {
   size_t numwrite;
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
-  //  fprintf(stdout,"Error: StdFile::Write: Attempted to write to NULL file pointer.\n");
+  //  fprintf(stdout,"Error: FileIO_Std::Write: Attempted to write to NULL file pointer.\n");
   //  return 1;
   //}
   // DEBUG
@@ -82,11 +78,10 @@ int StdFile::Write(void *buffer, size_t size, size_t count) {
   return 0;
 }
 
-/*
- * StdFile::Seek()
+/* FileIO_Std::Seek()
  * NOTE: Use fseeko for better compatibility with large files.
  */
-int StdFile::Seek(off_t offset) {
+int FileIO_Std::Seek(off_t offset) {
   // DEBUG
   //printf("Calling standard seek(%i): %li\n",origin,offset);
 #ifdef _MSC_VER
@@ -96,18 +91,16 @@ int StdFile::Seek(off_t offset) {
 #endif
 }
 
-/*
- * StdFile::Rewind()
+/* FileIO_Std::Rewind()
  */
-int StdFile::Rewind() {
+int FileIO_Std::Rewind() {
   rewind(fp);
   return 0;
 }
 
-/*
- * StdFile::Tell()
+/* FileIO_Std::Tell()
  */
-off_t StdFile::Tell() {
+off_t FileIO_Std::Tell() {
 #ifdef _MSC_VER
 	return _ftelli64(fp);
 #else
@@ -115,12 +108,11 @@ off_t StdFile::Tell() {
 #endif
 }
 
-/*
- * StdFile::Gets()
+/* FileIO_Std::Gets()
  */
-int StdFile::Gets(char *str, int num) {
+int FileIO_Std::Gets(char *str, int num) {
   if ( fgets(str,num,fp) == NULL ) {
-    //fprintf(stdout,"DEBUG: StdFile::Gets returned NULL (%s) %i\n",str,num);
+    //fprintf(stdout,"DEBUG: FileIO_Std::Gets returned NULL (%s) %i\n",str,num);
     return 1;
   } else
     return 0;

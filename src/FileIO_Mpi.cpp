@@ -1,17 +1,21 @@
-// MpiFile
+// FileIO_Mpi
 #include <cstdio>
 #include <cstdlib>
-#include "MpiFile.h"
+#include "FileIO_Mpi.h"
 
-MpiFile::MpiFile() {
-  pfile=(parallelType) malloc(sizeof(parallelType));
+// CONSTRUCTOR
+FileIO_Mpi::FileIO_Mpi() {
+  pfile = (parallelType) malloc( sizeof(parallelType));
 }
 
-MpiFile::~MpiFile() {
+// DESTRUCTOR
+FileIO_Mpi::~FileIO_Mpi() {
   free(pfile);
 }
 
-int MpiFile::Open(const char *filename, const char *mode) {
+/* FileIO_Mpi::Open()
+ */
+int FileIO_Mpi::Open(const char *filename, const char *mode) {
   int err=0;
 
   switch( mode[0] ) {
@@ -24,17 +28,21 @@ int MpiFile::Open(const char *filename, const char *mode) {
   return err;
 }
 
-int MpiFile::Close() {
+/* FileIO_Mpi::Close()
+ */
+int FileIO_Mpi::Close() {
   parallel_closeFile(pfile);
   return 0;
 }
 
-int MpiFile::Read(void *buffer, size_t size, size_t count) {
+/* FileIO_Mpi::Read()
+ */
+int FileIO_Mpi::Read(void *buffer, size_t size, size_t count) {
   //size_t numread;
   int numread;
   // Should never be able to call Read when fp is NULL.
   //if (fp==NULL) {
-  //  fprintf(stdout,"Error: GzipFile::Read: Attempted to read NULL file pointer.\n");
+  //  fprintf(stdout,"Error: FileIO_Mpi::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
   numread = parallel_fread(pfile, buffer, size * count);
@@ -44,11 +52,13 @@ int MpiFile::Read(void *buffer, size_t size, size_t count) {
   return numread;
 }
 
-int MpiFile::Write(void *buffer, size_t size, size_t count) {
+/* FileIO_Mpi::Write()
+ */
+int FileIO_Mpi::Write(void *buffer, size_t size, size_t count) {
   //size_t numwrite;
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
-  //  fprintf(stdout,"Error: GzipFile::Write: Attempted to write to NULL file pointer.\n");
+  //  fprintf(stdout,"Error: FileIO_Mpi::Write: Attempted to write to NULL file pointer.\n");
   //  return 1;
   //}
   if ( parallel_fwrite(pfile, buffer, size * count) ) return 1;
@@ -57,36 +67,41 @@ int MpiFile::Write(void *buffer, size_t size, size_t count) {
   return 0;
 }
 
-int MpiFile::Seek(off_t offset) {
+/* FileIO_Mpi::Seek()
+ */
+int FileIO_Mpi::Seek(off_t offset) {
 
   if ( parallel_fseek(pfile, offset, SEEK_SET) ) return 1;
 
   return 0;
 }
 
-int MpiFile::Rewind() {
+/* FileIO_Mpi::Rewind()
+ */
+int FileIO_Mpi::Rewind() {
   if ( parallel_fseek(pfile, 0L, SEEK_SET) ) return 1;
   return 0;
 }
 
-/*long int MpiFile::Tell() {
+/*long int FileIO_Mpi::Tell() {
   z_off_t zipOffset;
 
   zipOffset = gztell(fp);
   return (long int) zipOffset;
 }*/
 
-int MpiFile::Gets(char *str, int num) {
+/* FileIO_Mpi::Gets()
+ */
+int FileIO_Mpi::Gets(char *str, int num) {
 
   if ( parallel_fgets(pfile,str,num) == NULL ) return 1;
   return 0;
 }
 
-/*
- * MpiFile::SetSize()
+/* FileIO_Mpi::SetSize()
  * Set size of mpi file, required when splitting up writes.
  */
-int MpiFile::SetSize(long int offset) {
+int FileIO_Mpi::SetSize(long int offset) {
 
   if ( parallel_setSize(pfile, offset) ) return 1;
   return 0;

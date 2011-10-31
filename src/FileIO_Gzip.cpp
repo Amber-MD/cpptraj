@@ -1,48 +1,45 @@
-// GzipFile: Gzip file operations
+// FileIO_Gzip: Gzip file operations
 #ifdef HASGZ
 #include <cstdio>
-#include "GzipFile.h" // BaseFileIO.h, zlib.h
+#include "FileIO_Gzip.h" // FileIO.h, zlib.h
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-GzipFile::GzipFile() {
+FileIO_Gzip::FileIO_Gzip() {
   fp = NULL;
 }
 
 // DESTRUCTOR
-GzipFile::~GzipFile() {
+FileIO_Gzip::~FileIO_Gzip() {
   if (fp!=NULL) this->Close();
 }
 
-/*
- * GzipFile::Open()
+/* FileIO_Gzip::Open()
  */
-int GzipFile::Open(const char *filename, const char *mode) {
+int FileIO_Gzip::Open(const char *filename, const char *mode) {
   fp = gzopen(filename, mode);
   if (fp==NULL) return 1;
   return 0;
 }
 
-/*
- * GzipFile::Close()
+/* FileIO_Gzip::Close()
  */
-int GzipFile::Close() {
+int FileIO_Gzip::Close() {
   if (fp!=NULL) gzclose(fp);
   fp=NULL;
   return 0;
 }
 
-/*
- * GzipFile::Size()
+/* FileIO_Gzip::Size()
  */
-off_t GzipFile::Size(char *filename) {
+off_t FileIO_Gzip::Size(char *filename) {
   FILE *infile;
   unsigned char b1,b2,b3,b4;
   off_t val,temp;
 
   if (filename==NULL) return -1;
   if ( (infile = fopen(filename,"rb"))==NULL ) {
-    mprintf("Error: GzipFile::Size: Could not open %s for reading.\n",filename);
+    mprintf("Error: FileIO_Gzip::Size: Could not open %s for reading.\n",filename);
     return -1L;
   }
 
@@ -70,16 +67,15 @@ off_t GzipFile::Size(char *filename) {
 
   fclose(infile);
 
-  //fprintf(stdout,"GzipFile::Size: Uncompressed size of %s: %lu\n",filename,val);
+  //fprintf(stdout,"FileIO_Gzip::Size: Uncompressed size of %s: %lu\n",filename,val);
 
   return val;
 }
 
-/*
- * GzipFile::Read()
+/* FileIO_Gzip::Read()
  * NOTE: gzread returns 0 on EOF, -1 on error
  */
-int GzipFile::Read(void *buffer, size_t size, size_t count) {
+int FileIO_Gzip::Read(void *buffer, size_t size, size_t count) {
   //size_t numread;
   int numread;
   int expectedread;
@@ -88,7 +84,7 @@ int GzipFile::Read(void *buffer, size_t size, size_t count) {
   expectedread *= (int)count;
   // Should never be able to call Read when fp is NULL.
   //if (fp==NULL) {
-  //  fprintf(stdout,"Error: GzipFile::Read: Attempted to read NULL file pointer.\n");
+  //  fprintf(stdout,"Error: FileIO_Gzip::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
   numread = gzread(fp, buffer, expectedread);
@@ -99,14 +95,13 @@ int GzipFile::Read(void *buffer, size_t size, size_t count) {
   return numread;
 }
 
-/*
- * GzipFile::Write()
+/* FileIO_Gzip::Write()
  */
-int GzipFile::Write(void *buffer, size_t size, size_t count) {
+int FileIO_Gzip::Write(void *buffer, size_t size, size_t count) {
   //size_t numwrite;
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
-  //  fprintf(stdout,"Error: GzipFile::Write: Attempted to write to NULL file pointer.\n");
+  //  fprintf(stdout,"Error: FileIO_Gzip::Write: Attempted to write to NULL file pointer.\n");
   //  return 1;
   //}
   if ( gzwrite(fp, buffer, size * count)==0 ) return 1;
@@ -114,10 +109,9 @@ int GzipFile::Write(void *buffer, size_t size, size_t count) {
   return 0;
 }
 
-/*
- * GzipFile::Seek()
+/* FileIO_Gzip::Seek()
  */
-int GzipFile::Seek(off_t offset) {
+int FileIO_Gzip::Seek(off_t offset) {
   z_off_t zipOffset;
  
   //if (origin == SEEK_END) return 1; 
@@ -126,28 +120,25 @@ int GzipFile::Seek(off_t offset) {
   return 0;
 }
 
-/*
- * GzipFile::Rewind()
+/* FileIO_Gzip::Rewind()
  */
-int GzipFile::Rewind() {
+int FileIO_Gzip::Rewind() {
   gzrewind(fp);
   return 0;
 }
 
-/*
- * GzipFile::Tell()
+/* FileIO_Gzip::Tell()
  */
-off_t GzipFile::Tell() {
+off_t FileIO_Gzip::Tell() {
   z_off_t zipOffset;
   
   zipOffset = gztell(fp);
   return (off_t) zipOffset;
 }
 
-/*
- * GzipFile::Gets()
+/* FileIO_Gzip::Gets()
  */
-int GzipFile::Gets(char *str, int num) {
+int FileIO_Gzip::Gets(char *str, int num) {
   if ( gzgets(fp,str,num) == NULL )
     return 1;
   else

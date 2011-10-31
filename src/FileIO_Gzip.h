@@ -1,14 +1,15 @@
-#ifndef INC_GZIPFILE_H
-#define INC_GZIPFILE_H
+#ifndef INC_FILEIO_GZIP_H
+#define INC_FILEIO_GZIP_H
 #ifdef HASGZ
-// Gzip file IO
-#include "BaseFileIO.h" 
+#include "FileIO.h" 
 #include "zlib.h"
-class GzipFile : public BaseFileIO {
+/// Class: FileIO_Gzip
+/// Gzip file IO
+class FileIO_Gzip : public FileIO {
     gzFile fp;
   public:
-    GzipFile(); 
-    ~GzipFile(); 
+    FileIO_Gzip(); 
+    ~FileIO_Gzip(); 
     int Open(const char *, const char *);    
     int Close();
     off_t Size(char *);

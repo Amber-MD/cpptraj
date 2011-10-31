@@ -1,14 +1,14 @@
-#ifndef INC_MPIFILE_H
-#define INC_MPIFILE_H
-// MPI file IO
-#include "BaseFileIO.h" 
+#ifndef INC_FILEIO_MPI_H
+#define INC_FILEIO_MPI_H
+#include "FileIO.h" 
 #include "MpiRoutines.h"
-
-class MpiFile : public BaseFileIO {
+/// Class: FileIO_Mpi
+/// MPI file IO, wrappers for the MPI routines in MpiRoutines.h
+class FileIO_Mpi : public FileIO {
     parallelType pfile; 
   public:
-    MpiFile(); 
-    ~MpiFile(); 
+    FileIO_Mpi(); 
+    ~FileIO_Mpi(); 
 
     int Open(const char *, const char *);    
     int Close();

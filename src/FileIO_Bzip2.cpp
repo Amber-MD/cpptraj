@@ -1,13 +1,13 @@
-// Bzip2File: Bzip2 file operations
+// FileIO_Bzip2: Bzip2 file operations
 #ifdef HASBZ2
-#include "Bzip2File.h" // BaseFileIO.h, cstdio, bzlib.h
+#include "FileIO_Bzip2.h" // FileIO.h, cstdio, bzlib.h
 #include <cstring>
 #include <cstdlib>
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Bzip2File::Bzip2File() {
-  //fprintf(stderr,"Bzip2File CONSTRUCTOR\n");
+FileIO_Bzip2::FileIO_Bzip2() {
+  //fprintf(stderr,"FileIO_Bzip2 CONSTRUCTOR\n");
   fp = NULL;
   infile = NULL;
   err = BZ_OK;
@@ -18,14 +18,17 @@ Bzip2File::Bzip2File() {
 }
 
 // DESTRUCTOR
-Bzip2File::~Bzip2File() {
-  //fprintf(stderr,"Bzip2File DESTRUCTOR\n");
+FileIO_Bzip2::~FileIO_Bzip2() {
+  //fprintf(stderr,"FileIO_Bzip2 DESTRUCTOR\n");
   if (fp!=NULL || infile!=NULL) this->Close();
   if (bzfilename!=NULL) free(bzfilename);
   if (bzmode!=NULL) free(bzmode);
 }
 
-const char *Bzip2File::BZerror() {
+/* FileIO_Bzip2::BZerror()
+ * Return a string corresponding to the current error bit.
+ */
+const char *FileIO_Bzip2::BZerror() {
   switch (err) {
     case BZ_OK : return "BZ_OK";
     case BZ_PARAM_ERROR : return "BZ_PARAM_ERROR";
@@ -40,19 +43,18 @@ const char *Bzip2File::BZerror() {
   return "Unknown Bzip2 error";
 }
 
-/*
- * Bzip2File::Open()
+/* FileIO_Bzip2::Open()
  * Need to store mode and filename in case of Rewind.
  *
  * NOTES from Bzip2 docs:
- * BZFILE *BZ2_bzReadOpen( int *bzerror, FILE *f, int verbosity, int small,
- *                         void *unused, int nUnused );
+   BZFILE *BZ2_bzReadOpen( int *bzerror, FILE *f, int verbosity, int small,
+                           void *unused, int nUnused );
  *   If small is 1, the library will try to decompress using less memory, at 
  *   the expense of speed. BZ2_bzRead will decompress the nUnused bytes starting 
  *   at unused, before starting to read from the file f. At most BZ_MAX_UNUSED 
  *   bytes may be supplied like this. If this facility is not required, you 
  *   should pass NULL and 0 for unused and nUnused respectively.
- * BZFILE *BZ2_bzWriteOpen( int *bzerror, FILE *f, int blockSize100k, 
+   BZFILE *BZ2_bzWriteOpen( int *bzerror, FILE *f, int blockSize100k, 
                             int verbosity, int workFactor );
  *   Parameter blockSize100k specifies the block size to be used for compression.
  *   It should be a value between 1 and 9 inclusive, and the actual block size 
@@ -71,7 +73,7 @@ const char *Bzip2File::BZerror() {
  *   times can become very large. The default value of 30 gives reasonable 
  *   behaviour over a wide range of circumstances.
  */
-int Bzip2File::Open(const char *filename, const char *mode) {
+int FileIO_Bzip2::Open(const char *filename, const char *mode) {
   // Store filename and mode - reallocate in case of reopen
   if (bzfilename!=filename) {
     bzfilename = (char*) realloc(bzfilename, (strlen(filename)+1) * sizeof(char));
@@ -83,11 +85,11 @@ int Bzip2File::Open(const char *filename, const char *mode) {
   }
 
   // DEBUG
-  //mprintf("DEBUG: Bzip2File::Open(%s,%s)\n",filename,mode);
+  //mprintf("DEBUG: FileIO_Bzip2::Open(%s,%s)\n",filename,mode);
 
   fp = fopen(filename, mode);
   if (fp==NULL) {
-    mprintf("Error: Bzip2File::Open: Could not open %s with mode %s\n",filename,mode);
+    mprintf("Error: FileIO_Bzip2::Open: Could not open %s with mode %s\n",filename,mode);
     return 1;
   }
 
@@ -103,13 +105,13 @@ int Bzip2File::Open(const char *filename, const char *mode) {
       isBzread=false; 
       break;
     case 'a' : 
-      mprintf("Error: Bzip2File::Open: Append not supported for Bzip2.\n");
+      mprintf("Error: FileIO_Bzip2::Open: Append not supported for Bzip2.\n");
       return 1; // No append for Bzip2
     default: return 1; 
   }
 
   if (err != BZ_OK) {
-    mprintf("Error: Bzip2File::Open: Could not BZOPEN %s with mode %s\n",filename,mode);
+    mprintf("Error: FileIO_Bzip2::Open: Could not BZOPEN %s with mode %s\n",filename,mode);
     return 1;
   }
 
@@ -119,10 +121,9 @@ int Bzip2File::Open(const char *filename, const char *mode) {
   return 0;
 }
 
-/*
- * Bzip2File::Close()
+/* FileIO_Bzip2::Close()
  */
-int Bzip2File::Close() {
+int FileIO_Bzip2::Close() {
   if (infile!=NULL) {
     if (isBzread) {
       //mprintf("DEBUG: BZ2_bzReadClose\n");
@@ -139,8 +140,7 @@ int Bzip2File::Close() {
   return 0;
 }
 
-/*
- * Bzip2File::Size()
+/* FileIO_Bzip2::Size()
  * Since the uncompressed size of Bzip files is not stored anywhere in the file
  * need to read every possible byte in the file :(. 
  * NOTE: The input filename is currently IGNORED.
@@ -148,7 +148,7 @@ int Bzip2File::Close() {
  *       just return 0. 
  */
 #define BUFINSIZE 10240
-off_t Bzip2File::Size(char *filename) {
+off_t FileIO_Bzip2::Size(char *filename) {
   //off_t fileSize, numread;
   //char bufIn[BUFINSIZE];
 //  char Scan;
@@ -160,14 +160,14 @@ off_t Bzip2File::Size(char *filename) {
   // Check that the file being checked is the currently open file.
   // NOTE: Unnecessary?
   //if (strcmp(filename, bzfilename)!=0) {
-  //  mprintf("ERROR: Bzip2File::Size: Checking file %s, open file is %s!\n",
+  //  mprintf("ERROR: FileIO_Bzip2::Size: Checking file %s, open file is %s!\n",
   //          filename,bzfilename);
   //  return -1L;
   //}
 
   // Open the file
   if (infile==NULL) {
-    mprintf("Bzip2File::Size: Opening %s\n",filename);
+    mprintf("FileIO_Bzip2::Size: Opening %s\n",filename);
     if (this->Open(filename,"rb")) return -1L;
   }
 
@@ -184,20 +184,19 @@ off_t Bzip2File::Size(char *filename) {
   // Close file
   this->Close();
 
-  //mprintf("Bzip2File::Size: Uncompressed size of %s: %lu\n",filename,fileSize);
+  //mprintf("FileIO_Bzip2::Size: Uncompressed size of %s: %lu\n",filename,fileSize);
 
   return fileSize;
 */
 }
 #undef BUFINSIZE
 
-/*
- * Bzip2File::Read()
+/* FileIO_Bzip2::Read()
  * Read size*count bytes from bzip2file stream. Return number of bytes read.
  * If an error occurs or no more bytes to be read return -1;
  * Dont attempt to read if error bit is set.
  */
-int Bzip2File::Read(void *buffer, size_t size, size_t count) {
+int FileIO_Bzip2::Read(void *buffer, size_t size, size_t count) {
   //size_t numread;
   int numread;
   int expectedread;
@@ -205,7 +204,7 @@ int Bzip2File::Read(void *buffer, size_t size, size_t count) {
   //if (err!=BZ_OK) return -1;
   // Should never be able to call Read when fp is NULL.
   //if (fp==NULL) {
-  //  mprintf("Error: Bzip2File::Read: Attempted to read NULL file pointer.\n");
+  //  mprintf("Error: FileIO_Bzip2::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
   expectedread = (int) size;
@@ -217,25 +216,24 @@ int Bzip2File::Read(void *buffer, size_t size, size_t count) {
 
   if (numread != expectedread) {
     if (err!=BZ_OK && err!=BZ_STREAM_END) {
-      mprintf( "Error: Bzip2File::Read: BZ2_bzRead error: [%s]\n",this->BZerror());
+      mprintf( "Error: FileIO_Bzip2::Read: BZ2_bzRead error: [%s]\n",this->BZerror());
       mprintf( "                        size=%lu  count=%lu\n",size,count);
     }
     return -1;
   }
-  //mprintf( "DEBUG: After Bzip2File::Read: [%s] position %li\n",this->BZerror(),position);
+  //mprintf( "DEBUG: After FileIO_Bzip2::Read: [%s] position %li\n",this->BZerror(),position);
 
   return numread;
 }
 
-/*
- * Bzip2File::Write()
+/* FileIO_Bzip2::Write()
  */
-int Bzip2File::Write(void *buffer, size_t size, size_t count) {
+int FileIO_Bzip2::Write(void *buffer, size_t size, size_t count) {
   //size_t numwrite;
   int numwrite;
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
-  //  mprintf("Error: Bzip2File::Write: Attempted to write to NULL file pointer.\n");
+  //  mprintf("Error: FileIO_Bzip2::Write: Attempted to write to NULL file pointer.\n");
   //  return 1;
   //}
   numwrite = size * count;
@@ -245,20 +243,19 @@ int Bzip2File::Write(void *buffer, size_t size, size_t count) {
   position = position + ((off_t)numwrite);
 
   if (err == BZ_IO_ERROR) { 
-    mprintf( "Error: Bzip2File::Write: BZ2_bzWrite error\n");
+    mprintf( "Error: FileIO_Bzip2::Write: BZ2_bzWrite error\n");
     return 1;
   }
 
   return 0;
 }
 
-/*
- * Bzip2File::Seek
+/* FileIO_Bzip2::Seek
  * NOTE: Seek not really possible with bzip2. Use Read to get to position?
  * Scan 1 char at a time until desired position achieved.
  * NOTE: Scan in blocks?
  */
-int Bzip2File::Seek(off_t offset) {
+int FileIO_Bzip2::Seek(off_t offset) {
   off_t seekTo;
   char Scan;
   // Determine place to seek to
@@ -266,12 +263,12 @@ int Bzip2File::Seek(off_t offset) {
   //  case SEEK_SET : seekTo = offset; break;
   //  case SEEK_CUR : seekTo = position + offset; break;
   //  case SEEK_END : 
-  //    mprintf("Error: Bzip2File::Seek: Seek to END not supported (%s).\n",bzfilename);
+  //    mprintf("Error: FileIO_Bzip2::Seek: Seek to END not supported (%s).\n",bzfilename);
   //  default : return 1;
   //}
   seekTo = offset;
 
-  //mprintf("DEBUG: Bzip2File::Seek: %s %li -> %li, ",bzfilename,position,seekTo);
+  //mprintf("DEBUG: FileIO_Bzip2::Seek: %s %li -> %li, ",bzfilename,position,seekTo);
 
   // If place to seek to is earlier than current position need to reopen
   if (seekTo<position) 
@@ -287,27 +284,24 @@ int Bzip2File::Seek(off_t offset) {
   return 0;
 }
 
-/*
- * Bzip2File::Rewind()
+/* FileIO_Bzip2::Rewind()
  * Close and reopen.
  */
-int Bzip2File::Rewind() {
+int FileIO_Bzip2::Rewind() {
   if (bzfilename==NULL || bzmode==NULL) return 1;
   this->Close();
   this->Open(bzfilename,bzmode);
   return 0;
 }
 
-/*
- * Bzip2File::Tell()
+/* FileIO_Bzip2::Tell()
  * NOTE: Tell not possible with bzip2. Use position.
  */
-off_t Bzip2File::Tell() {
+off_t FileIO_Bzip2::Tell() {
   return position;
 }
 
-/*
- * Bzip2File::Gets()
+/* FileIO_Bzip2::Gets()
  * Analogous to fgets, reads characters from stream and stores them as a C 
  * string into str until (num-1) characters have been read or either a newline
  * or the End-of-File is reached, whichever comes first.
@@ -316,9 +310,9 @@ off_t Bzip2File::Tell() {
  * A null character is automatically appended in str after the characters read
  * to signal the end of the C string.
  */
-int Bzip2File::Gets(char *str, int num) {
+int FileIO_Bzip2::Gets(char *str, int num) {
   int i;
-  //mprintf("DEBUG: Bzip2File::Gets: num=%i\n",num);
+  //mprintf("DEBUG: FileIO_Bzip2::Gets: num=%i\n",num);
   // Try to read num chars. If newline encountered exit
   if (num<=1) return 1;
   i=0;
@@ -331,8 +325,8 @@ int Bzip2File::Gets(char *str, int num) {
   if (i==0) return 1;
   // i should be at num or 1 after newline; append NULL char
   str[i] = '\0';
-  //mprintf("DEBUG: Bzip2File::Gets: num=%i i=%i [%s]\n",num,i,str);
-  //mprintf( "DEBUG: After Bzip2File::Gets: position %li\n",position);
+  //mprintf("DEBUG: FileIO_Bzip2::Gets: num=%i i=%i [%s]\n",num,i,str);
+  //mprintf( "DEBUG: After FileIO_Bzip2::Gets: position %li\n",position);
   return 0;
 }
 #endif

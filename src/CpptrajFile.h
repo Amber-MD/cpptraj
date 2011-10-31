@@ -2,7 +2,7 @@
 #define INC_CPPTRAJFILE_H
 /// Class: CpptrajFile
 /// Class to abstract handling of basic file routines.
-#include "BaseFileIO.h"
+#include "FileIO.h"
 #include "FileRoutines.h"
 // BUFFER_SIZE: Used in Action_NAstruct.cpp FortranFormat.cpp main.cpp 
 // CpptrajFile.cpp CpptrajFile.h Traj_AmberCoord.cpp
@@ -19,7 +19,7 @@ class CpptrajFile {
     AccessType access;
     off_t uncompressed_size;
     off_t file_size;
-    BaseFileIO *IO; 
+    FileIO *IO; 
     FileType fileType;
     FileFormat fileFormat;
     char *filename;                  // Passed in filename

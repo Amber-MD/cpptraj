@@ -1,14 +1,15 @@
-#ifndef INC_STDFILE_H
-#define INC STDFILE_H
-// Standard file IO
+#ifndef INC_FILEIO_STD_H
+#define INC FILEIO_STD_H
+#include "FileIO.h"
 #include <cstdio> // For FILE
-#include "BaseFileIO.h" 
-class StdFile : public BaseFileIO {
+/// Class: FileIO_Std
+/// Standard file IO
+class FileIO_Std : public FileIO {
     FILE *fp;
     bool isStdout;
   public:
-    StdFile();
-    ~StdFile();
+    FileIO_Std();
+    ~FileIO_Std();
     int Open(const char *, const char *);    
     int Close();
     int Read(void *, size_t, size_t );

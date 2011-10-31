@@ -4,10 +4,10 @@ SOURCE=main.cpp AmberParm.cpp \
        CoordFileList.cpp ActionList.cpp DataSet.cpp \
        DataSetList.cpp vectormath.cpp FrameList.cpp Action_Rmsd.cpp \
        Action_Dihedral.cpp DataFile.cpp DataFileList.cpp \
-       CpptrajFile.cpp PDBfileRoutines.cpp Action_AtomMap.cpp BaseFileIO.cpp StdFile.cpp \
-       GzipFile.cpp Action_Angle.cpp MpiRoutines.c MpiFile.cpp \
+       CpptrajFile.cpp PDBfileRoutines.cpp Action_AtomMap.cpp FileIO.cpp FileIO_Std.cpp \
+       FileIO_Gzip.cpp Action_Angle.cpp MpiRoutines.c FileIO_Mpi.cpp \
        Action_Strip.cpp Action.cpp AtomMask.cpp DataSet_double.cpp \
-       Action_DSSP.cpp DataSet_string.cpp Action_Center.cpp Bzip2File.cpp \
+       Action_DSSP.cpp DataSet_string.cpp Action_Center.cpp FileIO_Bzip2.cpp \
        Action_Hbond.cpp DataSet_integer.cpp Action_Image.cpp Action_Surf.cpp \
        Action_Radgyr.cpp Action_Mask.cpp Action_Closest.cpp \
        NetcdfRoutines.cpp CpptrajStdio.cpp \
@@ -30,10 +30,10 @@ OBJECTS=main.o AmberParm.o \
         CoordFileList.o ActionList.o DataSet.o \
         DataSetList.o vectormath.o FrameList.o Action_Rmsd.o \
         Action_Dihedral.o DataFile.o DataFileList.o \
-        CpptrajFile.o PDBfileRoutines.o Action_AtomMap.o BaseFileIO.o StdFile.o \
-        GzipFile.o Action_Angle.o MpiRoutines.o MpiFile.o \
+        CpptrajFile.o PDBfileRoutines.o Action_AtomMap.o FileIO.o FileIO_Std.o \
+        FileIO_Gzip.o Action_Angle.o MpiRoutines.o FileIO_Mpi.o \
         Action_Strip.o Action.o AtomMask.o DataSet_double.o \
-        Action_DSSP.o DataSet_string.o Action_Center.o Bzip2File.o \
+        Action_DSSP.o DataSet_string.o Action_Center.o FileIO_Bzip2.o \
         Action_Hbond.o DataSet_integer.o Action_Image.o Action_Surf.o \
         Action_Radgyr.o Action_Mask.o Action_Closest.o \
         NetcdfRoutines.o CpptrajStdio.o \
@@ -56,10 +56,10 @@ HEADERS=AmberParm.h \
         CoordFileList.h ActionList.h DataSet.h \
         DataSetList.h vectormath.h FrameList.h Action_Rmsd.h \
         Action_Dihedral.h DataFile.h DataFileList.h \
-        CpptrajFile.h PDBfileRoutines.h Action_AtomMap.h BaseFileIO.h StdFile.h \
-        GzipFile.h Action_Angle.h MpiRoutines.h MpiFile.h \
+        CpptrajFile.h PDBfileRoutines.h Action_AtomMap.h FileIO.h FileIO_Std.h \
+        FileIO_Gzip.h Action_Angle.h MpiRoutines.h FileIO_Mpi.h \
         Action_Strip.h AtomMask.h DataSet_double.h \
-        Action_DSSP.h DataSet_string.h Action_Center.h Bzip2File.h \
+        Action_DSSP.h DataSet_string.h Action_Center.h FileIO_Bzip2.h \
         Action_Hbond.h DataSet_integer.h Action_Image.h Action_Surf.h \
         Action_Radgyr.h Action_Mask.h Action_Closest.h \
         NetcdfRoutines.h CpptrajStdio.h \
