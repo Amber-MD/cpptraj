@@ -1123,6 +1123,8 @@ void AmberParm::ParmInfo() {
 void AmberParm::Summary() {
   mprintf("              Topology contains %i atoms.\n",this->natom);
   mprintf("                                %i residues.\n",this->nres);
+  int number_of_bonds = NbondsWithH + NbondsWithoutH;
+  mprintf("                                %i bonds.\n",number_of_bonds);
   if (this->molecules>0)
     mprintf("                                %i molecules.\n",this->molecules);
   if (this->solventMolecules>0) {
