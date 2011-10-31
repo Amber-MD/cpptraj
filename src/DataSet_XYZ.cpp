@@ -1,35 +1,33 @@
-// mapDataSet
-#include <cstdio>
-#include <cstdlib>
-#include "mapDataSet.h"
+// DataSet_XYZ
+#include "DataSet_XYZ.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 using namespace std;
 
 // CONSTRUCTOR
-mapDataSet::mapDataSet() {
+DataSet_XYZ::DataSet_XYZ() {
   width = 12;
   precision = 4;
   totalwidth = 39;
-  dType=MAP;
+  dType=XYZ;
   setFormatString();
 }
 
-/* mapDataSet::Xmax(()
+/* DataSet_XYZ::Xmax(()
  * Return the maximum X value added to this set. By convention this is 
  * always the last value added.
  */
-int mapDataSet::Xmax() {
+int DataSet_XYZ::Xmax() {
   // If no data has been added return 0
   if (current==0) return 0;
   return xData.back();
 } 
 
-/* mapDataSet::Add()
+/* DataSet_XYZ::Add()
  * Insert data vIn. Expect an array of size 3. frame is not used in 
  * this case.
  */
-void mapDataSet::Add(int frame, void *vIn) {
+void DataSet_XYZ::Add(int frame, void *vIn) {
   double *value;
 
   value = (double*) vIn;
@@ -42,10 +40,10 @@ void mapDataSet::Add(int frame, void *vIn) {
   current++;
 }
 
-/* mapDataSet::Get()
+/* DataSet_XYZ::Get()
  * Get data at frame, put into vOut. Return 1 if no data at frame.
  */
-int mapDataSet::Get(void *vOut, int frame) {
+int DataSet_XYZ::Get(void *vOut, int frame) {
   double *value;
   
   if (vOut==NULL) return 1;
@@ -59,20 +57,20 @@ int mapDataSet::Get(void *vOut, int frame) {
   return 0;
 }
 
-/* mapDataSet::isEmpty()
+/* DataSet_XYZ::isEmpty()
  * By definition no part of the map can be empty unless frame is out of bounds.
  */
-int mapDataSet::isEmpty(int frame) {
+int DataSet_XYZ::isEmpty(int frame) {
   if (frame < 0 || frame >= (int)xData.size()) return 1;
   //it = Data.find( frame );
   //if (it == Data.end()) return 1;
   return 0;
 }
 
-/* mapDataSet::WriteBuffer()
+/* DataSet_XYZ::WriteBuffer()
  * Write data at frame to CharBuffer. If no data for frame write 0.0.
  */
-void mapDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
+void DataSet_XYZ::WriteBuffer(CharBuffer &cbuffer, int frame) {
   double darray[3];
   if (isEmpty(frame)) {
     darray[0] = 0;
@@ -87,21 +85,20 @@ void mapDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
 }
 
 
-/* mapDataSet::Width()
+/* DataSet_XYZ::Width()
  */
-int mapDataSet::Width() {
+int DataSet_XYZ::Width() {
   return (totalwidth);
 }
 
-/*
- * mapDataSet::Sync()
+/* DataSet_XYZ::Sync()
  * Since it seems to be very difficult (or impossible) to define Classes
  * as MPI datatypes, first non-master threads need to convert their maps
  * into 2 arrays, an int array containing frame #s and a double array
  * containing mapped values. These arrays are then sent to the master,
  * where they are converted pairs and inserted into the master map.
  */
-int mapDataSet::Sync() {
+int DataSet_XYZ::Sync() {
   int rank, idx, dataSize;
   double *Values;
 
@@ -112,7 +109,7 @@ int mapDataSet::Sync() {
     if (worldrank>0) {
       // NOTE: current should be equal to size(). Check for now
       // Should really check all three datasets
-      rprintf("mapDataSet syncing. current=%i, size=%u\n",
+      rprintf("DataSet_XYZ syncing. current=%i, size=%u\n",
               current, xData.size());
       if (current != (int) xData.size()) {
         rprintf("ERROR: current and map size are not equal.\n");
@@ -123,10 +120,11 @@ int mapDataSet::Sync() {
 
     // Send size of map on rank to master, allocate arrays on rank and master
     parallel_sendMaster(&dataSize, 1, rank, 0);
-    rprintf("mapDataSet allocating %i for send/recv\n",dataSize);
-    Values = (double*) malloc(3 * dataSize * sizeof(double));
+    rprintf("DataSet_XYZ allocating %i for send/recv\n",dataSize);
+    Values = new double[ 3 * dataSize ];
       
     // On non-master convert map arrays to giant double array.
+    // NOTE: Could use memcopys eventually
     if (worldrank > 0) {
       idx=0;
       for ( int N = 0; N < dataSize; N++)
@@ -152,7 +150,7 @@ int mapDataSet::Sync() {
     }
 
     // Free arrays
-    free(Values);
+    delete[] Values;
   } // End loop over ranks>0
 
   return 0;

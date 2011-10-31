@@ -5,10 +5,10 @@
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
 // Data types go here
-#include "doubleDataSet.h"
-#include "stringDataSet.h"
-#include "intDataSet.h"
-#include "mapDataSet.h"
+#include "DataSet_double.h"
+#include "DataSet_string.h"
+#include "DataSet_integer.h"
+#include "DataSet_XYZ.h"
 #include "DataSet_float.h"
 
 // CONSTRUCTOR
@@ -148,11 +148,11 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
     return NULL;
   }
   switch (inType) {
-    case DOUBLE       : D = new doubleDataSet(); break;
+    case DOUBLE       : D = new DataSet_double(); break;
     case FLOAT        : D = new DataSet_float(); break;
-    case STRING       : D = new stringDataSet(); break;
-    case INT          : D = new intDataSet(); break;
-    case MAP          : D = new mapDataSet(); break;
+    case STRING       : D = new DataSet_string(); break;
+    case INT          : D = new DataSet_integer(); break;
+    case XYZ          : D = new DataSet_XYZ(); break;
     case UNKNOWN_DATA :
     default           :
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");
@@ -200,11 +200,11 @@ DataSet *DataSetList::AddIdx(dataType inType, char *nameIn, int idxIn) {
 
   // Allocate dataset type
   switch (inType) {
-    case DOUBLE       : D = new doubleDataSet(); break;
+    case DOUBLE       : D = new DataSet_double(); break;
     case FLOAT        : D = new DataSet_float(); break;
-    case STRING       : D = new stringDataSet(); break;
-    case INT          : D = new intDataSet(); break;
-    case MAP          : D = new mapDataSet(); break;
+    case STRING       : D = new DataSet_string(); break;
+    case INT          : D = new DataSet_integer(); break;
+    case XYZ          : D = new DataSet_XYZ(); break;
     case UNKNOWN_DATA :
     default           :
       mprinterr("Error: DataSetList::AddIdx: Unknown set type.\n");

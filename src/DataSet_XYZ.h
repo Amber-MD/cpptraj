@@ -1,17 +1,17 @@
-#ifndef INC_MAPDATASET_H
-#define INC_MAPDATASET_H
-/// Class: mapDataSet
+#ifndef INC_DATASET_XYZ_H
+#define INC_DATASET_XYZ_H
+/// Class: DataSet_XYZ
 /// Hold a dataset which can have multiple columns, intended for 3 or 4 column
 /// datasets, e.g. 2d histograms with or without stdev values.
 #include <vector>
 #include "DataSet.h"
-class mapDataSet : public DataSet {
+class DataSet_XYZ : public DataSet {
     std::vector<double> xData;
     std::vector<double> yData;
     std::vector<double> zData;
     int totalwidth; 
   public:
-    mapDataSet();
+    DataSet_XYZ();
 
     int Xmax();
     int isEmpty(int);

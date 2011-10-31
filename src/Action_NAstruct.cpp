@@ -18,7 +18,6 @@
 #include "DistRoutines.h"
 #include "Constants.h" // RADDEG
 #include "vectormath.h"
-#include "doubleDataSet.h"
 #include <cmath>
 #include <cstdio> // sprintf
 

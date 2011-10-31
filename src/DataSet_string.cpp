@@ -1,24 +1,22 @@
-// stringDataSet
-#include <cstdlib>
-#include <cstdio>
+// DataSet_string
 #include <cstring>
-#include "stringDataSet.h"
+#include "DataSet_string.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 using namespace std;
 
 // CONSTRUCTOR
-stringDataSet::stringDataSet() {
+DataSet_string::DataSet_string() {
   width=1;
   dType=STRING;
   setFormatString();
 }
 
-/* stringDataSet::Xmax(()
+/* DataSet_string::Xmax(()
  * Return the maximum X value added to this set. By convention this is 
  * always the last value added.
  */
-int stringDataSet::Xmax() {
+int DataSet_string::Xmax() {
   // If no data has been added return 0
   if (current==0) return 0;
   it=Data.end();
@@ -26,12 +24,12 @@ int stringDataSet::Xmax() {
   return ( (*it).first );
 }
 
-/* stringDataSet::Add()
+/* DataSet_string::Add()
  * Insert data vIn at frame. If the size of the input string is greater
  * than the current width, increase the width.
  * String expects char*
  */
-void stringDataSet::Add(int frame, void *vIn) {
+void DataSet_string::Add(int frame, void *vIn) {
   char *value;
   string Temp;
   int strsize;
@@ -46,18 +44,18 @@ void stringDataSet::Add(int frame, void *vIn) {
   current++;
 }
 
-/* stringDataSet::isEmpty()
+/* DataSet_string::isEmpty()
  */
-int stringDataSet::isEmpty(int frame) {
+int DataSet_string::isEmpty(int frame) {
   it = Data.find( frame );
   if (it == Data.end()) return 1;
   return 0;
 }
 
-/* stringDataSet::WriteBuffer()
+/* DataSet_string::WriteBuffer()
  * Write data at frame to CharBuffer. If no data for frame write 0.0.
  */
-void stringDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
+void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
   it = Data.find( frame );
   if (it == Data.end())
     cbuffer.WriteString(format,"NoData");
@@ -65,16 +63,16 @@ void stringDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
     cbuffer.WriteString(format, (*it).second.c_str());
 }
 
-/* stringDataSet::Width()
+/* DataSet_string::Width()
  * Return the width in characters necessary to print data from this dataset.
  * Width is set whenever data is added and is the size of the largest stored
  * string.
  */
-int stringDataSet::Width() {
+int DataSet_string::Width() {
   return (width + 1);
 }
 
-/* stringDataSet::Sync()
+/* DataSet_string::Sync()
  * Since it seems to be very difficult (or impossible) to define Classes
  * as MPI datatypes, first non-master threads need to convert their maps
  * into 2 arrays, an int array containing frame #s and a char array
@@ -83,7 +81,7 @@ int stringDataSet::Width() {
  * 1 big chunk. These arrays are then sent to the master, where they are 
  * converted to pairs and inserted into the master map.
  */
-int stringDataSet::Sync() {
+int DataSet_string::Sync() {
   int rank, i, dataSize, totalCharSize;
   int *Frames;
   char *Values;
@@ -97,7 +95,7 @@ int stringDataSet::Sync() {
     // Get size of map on rank 
     if (worldrank>0) {
       // NOTE: current should be equal to size(). Check for now
-      rprintf( "stringDataSet syncing. current=%i, size=%u\n",
+      rprintf( "DataSet_string syncing. current=%i, size=%u\n",
               current, Data.size());
       if (current != (int) Data.size()) {
         rprintf("ERROR: current and map size are not equal.\n");
@@ -109,9 +107,9 @@ int stringDataSet::Sync() {
     // Send size of map on rank to master, allocate frame and sizes arrays on 
     // rank and master.
     parallel_sendMaster(&dataSize, 1, rank, 0);
-    rprintf("stringDataSet allocating %i for send/recv\n",dataSize);
-    Frames = (int*) malloc(dataSize * sizeof(int));
-    Sizes = (int*) malloc(dataSize * sizeof(int));
+    rprintf("DataSet_string allocating %i for send/recv\n",dataSize);
+    Frames = new int[ dataSize ];
+    Sizes = new int[ dataSize ];
 
     // On non-master get the size of each string in map and total size for
     // char array. Also get frame #s.
@@ -130,8 +128,8 @@ int stringDataSet::Sync() {
 
     // Send total size of char array to master. allocate char array on rank and master
     parallel_sendMaster(&totalCharSize, 1, rank, 0);
-    rprintf("stringDataSet allocating %i for char send/recv\n",totalCharSize);
-    Values = (char*) malloc( totalCharSize * sizeof(char));
+    rprintf("DataSet_string allocating %i for char send/recv\n",totalCharSize);
+    Values = new char[ totalCharSize ];
     strcpy(Values,"");
 
     // On non-master put all strings into giant char array
@@ -162,9 +160,9 @@ int stringDataSet::Sync() {
     }
 
     // Free arrays
-    free(Frames);
-    free(Sizes);
-    free(Values);
+    delete[] Frames;
+    delete[] Sizes;
+    delete[] Values;
   } // End loop over ranks>0
 
   return 0;

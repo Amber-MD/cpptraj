@@ -28,7 +28,7 @@
 ///     Return the largest X/frame value added to set. By convention this should
 ///     be the last value added.
 #include "CharBuffer.h"
-enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT, MAP, FLOAT}; 
+enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT, XYZ, FLOAT}; 
 class DataSet {
   protected:
     char *name;        // Name of the dataset

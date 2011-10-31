@@ -63,7 +63,7 @@ void DataSet::setFormatString() {
       format = (char*) malloc( stringWidth * sizeof(char) );
       sprintf(format, " %%%ii", width);
       break;
-    case MAP :
+    case XYZ :
       // Calc num of chars necessary to hold precision
       pWidth = (precision / 10) + 1;
       // String fmt: "%w.plf %w.plf %w.plf\0"

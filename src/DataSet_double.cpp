@@ -1,25 +1,22 @@
-// doubleDataSet
-#include <cstdio>
-#include <cstdlib>
-#include "doubleDataSet.h"
+// DataSet_double
+#include "DataSet_double.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 using namespace std;
 
 // CONSTRUCTOR
-doubleDataSet::doubleDataSet() {
+DataSet_double::DataSet_double() {
   width = 12;
   precision = 4;
   dType=DOUBLE;
   setFormatString();
 }
 
-/*
- * doubleDataSet::Xmax(()
+/* DataSet_double::Xmax(()
  * Return the maximum X value added to this set. By convention this is 
  * always the last value added.
  */
-int doubleDataSet::Xmax() {
+int DataSet_double::Xmax() {
   // If no data has been added return 0
   if (current==0) return 0;
   it=Data.end();
@@ -27,9 +24,10 @@ int doubleDataSet::Xmax() {
   return ( (*it).first );
 } 
 
-/* doubleDataSet::Max()
+/* DataSet_double::Max()
+ * Return the maximum value in the dataset.
  */
-double doubleDataSet::Max() {
+double DataSet_double::Max() {
   double max;
   it = Data.begin();
   max = (*it).second;
@@ -38,9 +36,10 @@ double doubleDataSet::Max() {
   return max;
 }
 
-/* doubleDataSet::Min()
+/* DataSet_double::Min()
+ * Return the minimum value in the dataset.
  */
-double doubleDataSet::Min() {
+double DataSet_double::Min() {
   double min;
   it = Data.begin();
   min = (*it).second;
@@ -49,11 +48,10 @@ double doubleDataSet::Min() {
   return min;
 }
 
-/*
- * doubleDataSet::Add()
+/* DataSet_double::Add()
  * Insert data vIn at frame.
  */
-void doubleDataSet::Add(int frame, void *vIn) {
+void DataSet_double::Add(int frame, void *vIn) {
   double *value;
 
   value = (double*) vIn;
@@ -64,10 +62,10 @@ void doubleDataSet::Add(int frame, void *vIn) {
   current++;
 }
 
-/* doubleDataSet::Get()
+/* DataSet_double::Get()
  * Get data at frame, put into vOut. Return 1 if no data at frame.
  */
-int doubleDataSet::Get(void *vOut, int frame) {
+int DataSet_double::Get(void *vOut, int frame) {
   double *value;
   
   if (vOut==NULL) return 1;
@@ -80,18 +78,18 @@ int doubleDataSet::Get(void *vOut, int frame) {
   return 0;
 }
 
-/* doubleDataSet::isEmpty()
+/* DataSet_double::isEmpty()
  */
-int doubleDataSet::isEmpty(int frame) {
+int DataSet_double::isEmpty(int frame) {
   it = Data.find( frame );
   if (it == Data.end()) return 1;
   return 0;
 }
 
-/* doubleDataSet::WriteBuffer()
+/* DataSet_double::WriteBuffer()
  * Write data at frame to CharBuffer. If no data for frame write 0.0.
  */
-void doubleDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
+void DataSet_double::WriteBuffer(CharBuffer &cbuffer, int frame) {
   double dval;
   it = Data.find( frame );
   if (it == Data.end())
@@ -101,22 +99,20 @@ void doubleDataSet::WriteBuffer(CharBuffer &cbuffer, int frame) {
   cbuffer.WriteDouble(format, dval);
 }
 
-/*
- * doubleDataSet::Width()
+/* DataSet_double::Width()
  */
-int doubleDataSet::Width() {
+int DataSet_double::Width() {
   return (width + 1);
 }
 
-/*
- * doubleDataSet::Sync()
+/* DataSet_double::Sync()
  * Since it seems to be very difficult (or impossible) to define Classes
  * as MPI datatypes, first non-master threads need to convert their maps
  * into 2 arrays, an int array containing frame #s and a double array
  * containing mapped values. These arrays are then sent to the master,
  * where they are converted pairs and inserted into the master map.
  */
-int doubleDataSet::Sync() {
+int DataSet_double::Sync() {
   int rank, i, dataSize;
   int *Frames;
   double *Values;
@@ -127,7 +123,7 @@ int doubleDataSet::Sync() {
     // Get size of map on rank 
     if (worldrank>0) {
       // NOTE: current should be equal to size(). Check for now
-      rprintf("doubleDataSet syncing. current=%i, size=%u\n",
+      rprintf("DataSet_double syncing. current=%i, size=%u\n",
               current, Data.size());
       if (current != (int) Data.size()) {
         rprintf("ERROR: current and map size are not equal.\n");
@@ -138,9 +134,9 @@ int doubleDataSet::Sync() {
 
     // Send size of map on rank to master, allocate arrays on rank and master
     parallel_sendMaster(&dataSize, 1, rank, 0);
-    rprintf("doubleDataSet allocating %i for send/recv\n",dataSize);
-    Frames = (int*) malloc(dataSize * sizeof(int));
-    Values = (double*) malloc(dataSize * sizeof(double));
+    rprintf("DataSet_double allocating %i for send/recv\n",dataSize);
+    Frames = new int[ dataSize ];
+    Values = new double[ dataSize ];
       
     // On non-master convert map to int and double arrays.
     if (worldrank > 0) {
@@ -163,8 +159,8 @@ int doubleDataSet::Sync() {
     }
 
     // Free arrays
-    free(Frames);
-    free(Values);
+    delete[] Frames;
+    delete[] Values;
   } // End loop over ranks>0
 
   return 0;
