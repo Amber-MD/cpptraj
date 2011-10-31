@@ -29,7 +29,7 @@ Radial::~Radial() {
 }
 
 /* Radial::init()
- * Expected call: radial <name> <spacing> <maximum> <mask1> [<mask2>] [noimage]
+ * Expected call: radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]
  *                       [density <density> | volume] [center1] 
  * Dataset name will be the last arg checked for. Check order is:
  *    1) Keywords
