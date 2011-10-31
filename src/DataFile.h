@@ -1,7 +1,9 @@
 #ifndef INC_DATAFILE_H
 #define INC_DATAFILE_H
 /// Class: DataFile
-/// Container for one or more DataSets that will be written out to a file.
+/// Container for one or more DataSets that will be written out to a file. 
+/// Only the addresses of the data sets are stored in the datafile; the
+/// actual datasets should reside somewhere else in memory. 
 #include "DataSet.h"
 #include "CpptrajFile.h"
 class DataFile {
@@ -15,11 +17,11 @@ class DataFile {
     char *ylabel;       // Y axis label for grace plots
     int maxFrames;      // The largest X value of any sets in SetList
 
-    // The following are currently used for gnuplot output only
     double xmin;
     double xstep;
     double ymin;
     double ystep;
+    // The following are currently used for gnuplot output only
     bool useMap;
     bool printLabels;
 

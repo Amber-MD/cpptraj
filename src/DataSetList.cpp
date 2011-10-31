@@ -43,6 +43,14 @@ void DataSetList::SetMax(int expectedMax) {
   if (maxFrames<0) maxFrames=0;
 }
 
+/* DataSetList::SetPrecisionOfDatasets()
+ * Set the width and precision for all datasets in the list.
+ */
+void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
+  for (int ds = 0; ds < Ndata; ds++) 
+    DataList[ds]->SetPrecision(widthIn,precisionIn);
+}
+
 /* DataSetList::Get()
  * Return pointer to DataSet with given name
  */

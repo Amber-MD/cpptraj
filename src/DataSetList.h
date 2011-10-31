@@ -24,6 +24,7 @@ class DataSetList {
 
     void SetDebug(int);
     void SetMax(int);
+    void SetPrecisionOfDatasets(int, int);
     DataSet *Get(char *);
     DataSet *Get(int);
     DataSet *GetDataSetN(int);
