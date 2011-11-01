@@ -7,6 +7,7 @@ CpptrajState::CpptrajState() {
   TotalErrors=0; 
   debug=0;
   showProgress=true;
+  activeRef = -1;
 }
 
 // Destructor
@@ -98,6 +99,10 @@ void CpptrajState::Dispatch(char *inputLine) {
   if (dispatchArg.CommandIs("reference")) {
     tempParm = parmFileList.GetParm(dispatchArg);
     referenceList.AddReference(NULL, &dispatchArg, tempParm);
+    return;
+  }
+  if (dispatchArg.CommandIs("activeref")) {
+    activeRef = dispatchArg.getNextInteger(0);
     return;
   }
   if (dispatchArg.CommandIs("trajout")) {
@@ -250,6 +255,8 @@ int CpptrajState::Run() {
 
   // Setup reference frames if reference files were specified 
   referenceList.SetupRefFrames(&refFrames);
+  if (activeRef!=-1)
+    refFrames.SetActiveRef(activeRef);
   refFrames.Info();
 
   // Output traj

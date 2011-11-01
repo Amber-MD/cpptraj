@@ -85,11 +85,11 @@ int Pucker::init() {
  */
 int Pucker::setup() {
 
-  if ( M1.SetupMask(P,debug) ) return 1;
-  if ( M2.SetupMask(P,debug) ) return 1;
-  if ( M3.SetupMask(P,debug) ) return 1;
-  if ( M4.SetupMask(P,debug) ) return 1;
-  if ( M5.SetupMask(P,debug) ) return 1;
+  if ( M1.SetupMask(P,activeReference,debug) ) return 1;
+  if ( M2.SetupMask(P,activeReference,debug) ) return 1;
+  if ( M3.SetupMask(P,activeReference,debug) ) return 1;
+  if ( M4.SetupMask(P,activeReference,debug) ) return 1;
+  if ( M5.SetupMask(P,activeReference,debug) ) return 1;
   if ( M1.None() || M2.None() || M3.None() || M4.None() || M5.None() ) {
     mprintf("    Error: Pucker::setup: One or more masks have no atoms.\n");
     return 1;

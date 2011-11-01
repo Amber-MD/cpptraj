@@ -82,7 +82,7 @@ int Image::init() {
  */
 int Image::setup() {
 
-  if ( Mask1.SetupCharMask(P,debug) ) return 1;
+  if ( Mask1.SetupCharMask(P,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Image::setup: Mask contains 0 atoms.\n");
     return 1;
@@ -106,7 +106,7 @@ int Image::setup() {
 
   if (triclinic == FAMILIAR) {
     if (ComMask!=NULL) {
-      if ( ComMask->SetupMask(P,debug) ) return 1;
+      if ( ComMask->SetupMask(P,activeReference,debug) ) return 1;
       if (ComMask->None()) {
         mprintf("    Error: Image::setup: Mask for 'familiar com' contains no atoms.\n");
         return 1;

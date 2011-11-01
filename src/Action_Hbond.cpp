@@ -151,7 +151,7 @@ int Hbond::setup() {
 
   // Set up mask
   if (DonorMask.maskString==NULL || AcceptorMask.maskString==NULL) {
-    if ( Mask.SetupMask(P,debug) ) return 1;
+    if ( Mask.SetupMask(P,activeReference,debug) ) return 1;
     if ( Mask.None() ) {
       mprintf("    Error: Hbond::setup: Mask has no atoms.\n");
       return 1;
@@ -159,7 +159,7 @@ int Hbond::setup() {
   }
   // Set up donor mask
   if (DonorMask.maskString!=NULL) {
-    if (DonorMask.SetupMask(P,debug)) return 1;
+    if (DonorMask.SetupMask(P,activeReference,debug)) return 1;
     if (DonorMask.None()) {
       mprintf("    Error: Hbond: DonorMask has no atoms.\n");
       return 1;
@@ -167,7 +167,7 @@ int Hbond::setup() {
   }
   // Set up acceptor mask
   if (AcceptorMask.maskString!=NULL) {
-    if (AcceptorMask.SetupMask(P,debug)) return 1;
+    if (AcceptorMask.SetupMask(P,activeReference,debug)) return 1;
     if (AcceptorMask.None()) {
       mprintf("    Error: Hbond: AcceptorMask has no atoms.\n");
       return 1;

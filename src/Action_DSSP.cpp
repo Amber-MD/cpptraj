@@ -96,7 +96,7 @@ int DSSP::setup() {
   char resArg[32];
 
   // Set up mask for this parm
-  if ( Mask.SetupMask(P,debug) ) return 1;
+  if ( Mask.SetupMask(P,activeReference,debug) ) return 1;
   if ( Mask.None() ) {
     mprintf("      Error: DSSP::setup: Mask has no atoms.\n");
     return 1;

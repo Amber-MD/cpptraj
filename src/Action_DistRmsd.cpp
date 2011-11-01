@@ -26,7 +26,7 @@ DistRmsd::~DistRmsd() {
  * If reference, this is called from init. If first, this is called from setup.
  */
 int DistRmsd::SetRefMask() {
-  if ( RefMask.SetupMask(RefParm,debug) ) return 1;
+  if ( RefMask.SetupMask(RefParm,activeReference,debug) ) return 1;
   if (RefMask.None()) {
     mprintf("    Error: DistRmsd::SetRefMask: No atoms in reference mask.\n");
     return 1;
@@ -157,7 +157,7 @@ int DistRmsd::init( ) {
  */
 int DistRmsd::setup() {
 
-  if ( TgtMask.SetupMask(P,debug) ) return 1;
+  if ( TgtMask.SetupMask(P,activeReference,debug) ) return 1;
   if ( TgtMask.None() ) {
     mprintf("    Error: DistRmsd::setup: No atoms in mask.\n");
     return 1;

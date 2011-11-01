@@ -61,7 +61,7 @@ int Radgyr::init() {
  */
 int Radgyr::setup() {
 
-  if ( Mask1.SetupMask(P,debug) ) return 1;
+  if ( Mask1.SetupMask(P,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Radgyr::setup: Mask contains 0 atoms.\n");
     return 1;

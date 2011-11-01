@@ -184,6 +184,8 @@ int AtomMask::SetMaskString(char *maskStringIn) {
   int debug = 0; // temporary hack
 
   if (maskString!=NULL) delete[] maskString;
+  if (Postfix!=NULL) delete[] Postfix;
+  Postfix = NULL;
   if (maskStringIn!=NULL) {
     maskString = new char[ strlen(maskStringIn)+1 ];
     strcpy(maskString, maskStringIn);
@@ -223,35 +225,42 @@ bool AtomMask::None() {
 
 /* AtomMask::SetupMask()
  * Set up an atom mask given a parm file. The basic atom mask is allocated
- * using PTRAJs old mask parser (accessed from the AmberParm) which returns
- * a char array, 1 for each atom, where selected atoms are denoted by T.
- * Base on this create an array of selected atom numbers. If inverMask is true 
- * create an array of atoms that are not selected.
+ * using a version of PTRAJs mask parser (PtrajMask::parseMaskString)
+ * which returns a char array of size P->natom, where selected atoms are 
+ * denoted by T. Based on this create an array of selected atom numbers. 
+ * If invertMask is true create an array of atoms that are not selected
+ * instead.
  */
-int AtomMask::SetupMask(AmberParm *Pin, int debug) {
+int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
   char *mask;
-  char maskChar;
+  char maskChar = 'T';
 
   if (Pin==NULL) {
-    mprintf("    Error: AtomMask::SetupMask: (%s) Topology is NULL.\n", maskString);
+    mprinterr("    Error: AtomMask::SetupMask: (%s) Topology is NULL.\n", maskString);
     return 1;
   }
-  maskChar='T';
+  if (Postfix==NULL) {
+    mprinterr("    Error: AtomMask::SetupMask: Postfix is NULL.\n");
+    return 1;
+  }
+
   if (invertMask) maskChar='F';
 
   if (debug>1) mprintf("\tAtomMask: Parsing postfix [%s]\n",Postfix);
 
-  // Allocate atom mask - free mask if already allocated
-  // NOTE: Arg 7 is Coords for distance criteria selection. 
-  //       Last arg is debug level.
+  // Allocate character atom mask
   mask = parseMaskString(Postfix, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
-                         Pin->resnums, NULL, Pin->types, debug);
+                         Pin->resnums, Xin, Pin->types, debug);
   if (mask==NULL) {
-    mprintf("    Error: Could not set up mask %s for topology %s\n",
+    mprinterr("    Error: Could not set up mask %s for topology %s\n",
             maskString, Pin->parmName);
     return 1;
   }
 
+  // Wipe out previous char mask if allocated
+  Nchar = 0;
+  if (CharMask!=NULL) delete[] CharMask;
+  CharMask = NULL;
   // Set up an integer list of the selected atoms. 
   // NOTE: For large selections this will use 4x the memory of the char atom
   //       mask. Could check to see which will be bigger.
@@ -288,7 +297,7 @@ int AtomMask::SetupMask(AmberParm *Pin, int debug) {
  * For cases where we need to know both atoms in and out of mask
  * just use the old school char array. 
  */
-int AtomMask::SetupCharMask(AmberParm *Pin, int debug) {
+/*int AtomMask::SetupCharMask(AmberParm *Pin, int debug) {
   if (Pin==NULL) {
     mprintf("    Error: AtomMask::SetupCharMask: (%s) Topology is NULL.\n", maskString);
     return 1;
@@ -310,16 +319,26 @@ int AtomMask::SetupCharMask(AmberParm *Pin, int debug) {
     if (CharMask[atom]=='T') Nselected++;
   Nchar = Pin->natom;
   return 0;
-}
+}*/
 
 /* AtomMask::SetupCharMask()
- * Set up old school char array with coordinates.
+ * For cases where we need to know both atoms in and out of mask use
+ * the output of parseMaskString (1 char for each atom, T for selected,
+ * F for not.). 
  */
 int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
   if (Pin==NULL) {
-    mprintf("    Error: AtomMask::SetupCharMask: (%s) Topology is NULL.\n", maskString);
+    mprinterr("    Error: AtomMask::SetupCharMask: (%s) Topology is NULL.\n", maskString);
     return 1;
   }
+  if (Postfix==NULL) {
+    mprinterr("    Error: AtomMask::SetupCharMask: Postfix is NULL.\n");
+    return 1;
+  }
+
+  // Wipe out previous Selected mask if allocated
+  if (Selected!=NULL) delete[] Selected;
+  Selected = NULL;
 
   // Allocate atom mask - free mask if already allocated
   Nchar = 0;
@@ -327,7 +346,7 @@ int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
   CharMask = parseMaskString(Postfix, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
                              Pin->resnums, Xin, Pin->types, debug);
   if (CharMask==NULL) {
-    mprintf("    Error: Could not set up mask %s for topology %s\n",
+    mprinterr("    Error: Could not set up mask %s for topology %s\n",
             maskString, Pin->parmName);
     return 1;
   }

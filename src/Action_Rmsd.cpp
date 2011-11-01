@@ -64,7 +64,7 @@ void Rmsd::resizeResMasks() {
  * If reference, this is called from init. If first, this is called from setup.
  */
 int Rmsd::SetRefMask() {
-  if ( RefMask.SetupMask(RefParm,debug) ) return 1;
+  if ( RefMask.SetupMask(RefParm,activeReference,debug) ) return 1;
   if (RefMask.None()) {
     mprintf("    Error: Rmsd::SetRefMask: No atoms in reference mask.\n");
     return 1;
@@ -309,7 +309,7 @@ int Rmsd::perResSetup() {
     //mprintf("DEBUG: RMSD: PerRes: Mask %s RefMask %s\n",tgtArg,refArg);
 
     // Setup the reference mask
-    if (refResMask[N]->SetupMask(RefParm, debug)) {
+    if (refResMask[N]->SetupMask(RefParm, activeReference,debug)) {
       mprintf("      perres: Could not setup reference mask for residue %i\n",refRes);
       continue;
     }
@@ -319,7 +319,7 @@ int Rmsd::perResSetup() {
     }
 
     // Setup the target mask
-    if (tgtResMask[N]->SetupMask(P, debug)) {
+    if (tgtResMask[N]->SetupMask(P, activeReference, debug)) {
       mprintf("      perres: Could not setup target mask for residue %i\n",tgtRes);
       continue;
     }
@@ -365,7 +365,7 @@ int Rmsd::perResSetup() {
  */
 int Rmsd::setup() {
 
-  if ( FrameMask.SetupMask(P,debug) ) return 1;
+  if ( FrameMask.SetupMask(P,activeReference,debug) ) return 1;
   if ( FrameMask.None() ) {
     mprintf("    Error: Rmsd::setup: No atoms in mask.\n");
     return 1;

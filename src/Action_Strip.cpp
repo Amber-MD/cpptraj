@@ -29,7 +29,7 @@ int Strip::init( ) {
   mask1 = actionArgs.getNextMask();
   //mprintf("    Mask 1: %s\n",mask1);
   if (mask1==NULL) {
-    mprintf("    Error: Strip::init: Requires atom mask.\n");
+    mprinterr("    Error: Strip::init: Requires atom mask.\n");
     return 1;
   }
   M1.SetMaskString(mask1);
@@ -52,10 +52,10 @@ int Strip::setup() {
   M1.invertMask=true;   // Want to keep atoms outside the mask selection
                         // Atoms in the mask will be stripped
                         // Selected atoms will be kept.
-  M1.SetupMask(P,debug);
+  M1.SetupMask(P,activeReference,debug);
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
   if (M1.None()) {
-    mprintf("      Error: Strip::setup: Mask has no atoms.\n");
+    mprinterr("      Error: Strip::setup: Mask has no atoms.\n");
     return 1;
   }
   mprintf("      STRIP: Stripping %i atoms.\n",P->natom - M1.Nselected);
@@ -67,7 +67,7 @@ int Strip::setup() {
   if (newParm!=NULL) delete newParm;
   newParm = P->modifyStateByMask(M1.Selected, M1.Nselected);
   if (newParm==NULL) {
-    mprintf("      Error: Strip::setup: Could not create new parmtop.\n");
+    mprinterr("      Error: Strip::setup: Could not create new parmtop.\n");
     return 1;
   }
   newParm->Summary();
@@ -81,7 +81,7 @@ int Strip::setup() {
     sprintf(newParm->parmName,"%s.%s",prefix,oldParm->parmName);
     mprintf("             Writing out amber topology file %s\n",newParm->parmName);
     if ( newParm->WriteAmberParm(newParm->parmName) ) {
-      mprintf("      Error: STRIP: Could not write out stripped parm file %s\n",
+      mprinterr("      Error: STRIP: Could not write out stripped parm file %s\n",
               newParm->parmName);
     }
 

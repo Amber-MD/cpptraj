@@ -49,7 +49,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
       char *maskarg = argIn->getNextMask();
       if (maskarg!=NULL) {
         tempMask.SetMaskString( maskarg );
-        tempMask.SetupCharMask( ParmList[pindex], debug);
+        tempMask.SetupCharMask( ParmList[pindex], NULL, debug);
         for (int atom=0; atom < ParmList[pindex]->natom; atom++) 
           if (tempMask.AtomInCharMask(atom)) ParmList[pindex]->AtomInfo(atom);
       } else {

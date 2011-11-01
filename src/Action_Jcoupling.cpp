@@ -219,7 +219,7 @@ int Jcoupling::setup() {
   int MaxResidues;
   jcouplingInfo JC;
 
-  if ( Mask1.SetupCharMask(P,debug) ) return 1;
+  if ( Mask1.SetupCharMask(P,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprinterr("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
     return 1;

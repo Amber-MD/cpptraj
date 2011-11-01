@@ -23,6 +23,7 @@ class CpptrajState {
     std::list<ArgList> DF_Args; // List of commands pertaining to datafile creation etc
     int TotalErrors;             // Sum of all returned error statuses
     int debug;
+    int activeRef;
 
     void ProcessDataFileCmd();   // Handle datafile commands in DF_Args
     bool showProgress;           // Output traj progress to screen?

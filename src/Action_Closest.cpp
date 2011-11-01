@@ -161,7 +161,7 @@ int Closest::setup() {
 
   // Setup solute atom mask
   // NOTE: Should ensure that no solvent atoms are selected!
-  if ( Mask1.SetupMask(P,debug) ) return 1;
+  if ( Mask1.SetupMask(P,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Closest::setup: Mask %s contains no atoms.\n",Mask1.maskString);
     return 1;

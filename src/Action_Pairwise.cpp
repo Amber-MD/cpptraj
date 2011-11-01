@@ -89,7 +89,7 @@ int Pairwise::init( ) {
     // Set reference parm
     RefParm=FL->GetFrameParm(refindex);
     // Set up reference mask
-    if (RefMask.SetupMask(RefParm, debug)) return 1;
+    if (RefMask.SetupMask(RefParm, activeReference, debug)) return 1;
     if (RefMask.None()) {
       mprinterr("    Error: Pairwise::init: No atoms selected in reference mask.\n");
       return 1;
@@ -207,7 +207,7 @@ int Pairwise::NumInteractions(AtomMask *atommask, AmberParm *Parm) {
  */
 int Pairwise::setup() {
   // Set up mask
-  if ( Mask0.SetupMask(P,debug) ) return 1;
+  if ( Mask0.SetupMask(P,activeReference,debug) ) return 1;
   if (Mask0.None()) {
     mprintf("    Error: Pairwise::setup: Mask has no atoms.\n");
     return 1;

@@ -112,12 +112,12 @@ int Radial::init() {
  */
 int Radial::setup() {
 
-  if ( Mask1.SetupMask(P,debug) ) return 1;
+  if ( Mask1.SetupMask(P,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Radial::setup: Masks has no atoms.\n");
     return 1;
   }
-  if ( Mask2.SetupMask(P,debug) ) return 1;
+  if ( Mask2.SetupMask(P,activeReference,debug) ) return 1;
   if (Mask2.None()) {
     mprintf("    Error: Radial::setup: Second mask has no atoms.\n");
     return 1;

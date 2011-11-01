@@ -54,6 +54,7 @@ class Action {
     DataFileList *DFL;      // Pointer to the data file list in CpptrajState (init)
     ParmFileList *PFL;      // Pointer to the parm file list in CpptrajState (init)
     FrameList *FL;          // Pointer to the reference frame list in CpptrajState (init)
+    double *activeReference; // Pointer to coords of active ref frame in frame list
     
     bool useMass;           // If set to true, calculations will use mass info
 

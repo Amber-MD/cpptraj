@@ -22,8 +22,8 @@
 ///    directly accessible by outside routines, only by the AtomInCharMask
 ///    routine.
 /// *** NOTE ***
-/// Currently no checking is done to prevent the mask from being set up as 
-/// both an integer and a char mask!!
+/// invertMask, AddAtom, AddAtoms, and AddAtomRange currently only apply
+/// to the Selected array.
 #include "AmberParm.h"
 class AtomMask {
     char *CharMask;      // Char array of atoms, T if selected, F if not.
@@ -47,8 +47,8 @@ class AtomMask {
     void PrintMaskAtoms();         // Print atoms in Selected to line
     bool None();                   // Return true if Nselected==0
     int SetMaskString(char*);     // Set the mask string. If NULL, set * (all)
-    int SetupMask(AmberParm*,int); // Set up Selected based on maskString and given parm
-    int SetupCharMask(AmberParm*,int); // Set up CharMask based on maskString and given parm
+    int SetupMask(AmberParm*,double*,int); // Set up Selected based on maskString and given parm
+    //int SetupCharMask(AmberParm*,int); // Set up CharMask based on maskString and given parm
     int SetupCharMask(AmberParm*,double*,int); // Set up CharMask potentially using coords 
     bool AtomInCharMask(int atom); // True if given atom is T in CharMask
 };

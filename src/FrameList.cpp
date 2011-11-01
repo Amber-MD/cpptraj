@@ -5,12 +5,32 @@
 // CONSTRUCTOR
 FrameList::FrameList() {
   Nframe=0;
+  referenceFrameNum = 0;
 }
 
 // DESTRUCTOR
 FrameList::~FrameList() {
   for (int i=0; i<Nframe; i++)
     delete frameList[i];
+}
+
+/* FrameList::ActiveRefCoords()
+ * Return the coords of frame pointed to by referenceFrameNum.
+ */
+double *FrameList::ActiveReference() {
+  if (Nframe<1) return NULL;
+  return frameList[referenceFrameNum]->X;
+}
+
+/* FrameList::SetActiveRef()
+ * Set the given frame list number as the active reference.
+ */
+void FrameList::SetActiveRef(int numIn) {
+  if (numIn < 0 || numIn >= Nframe) {
+    mprintf("Warning: FrameList::SetActiveRef: Ref # %i out of bounds.\n",numIn);
+    return;
+  }
+  referenceFrameNum = numIn;
 }
 
 /* FrameList::AddRefFrame()
@@ -100,6 +120,7 @@ void FrameList::Info() {
   } else {
     mprintf("  %i frames have been defined.\n",Nframe);
   }
+  mprintf("\tActive reference frame for masks is %i\n",referenceFrameNum);
 }
 
 /* FrameList::FrameName()

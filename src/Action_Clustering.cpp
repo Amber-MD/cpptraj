@@ -193,7 +193,7 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
     RefParm = ReferenceFrames.GetFrameParm( nref );
     // If the current ref parm not same as last ref parm, reset reference mask
     if (RefParm->pindex != lastrefpindex) {
-      if ( Mask0.SetupMask(RefParm,debug) ) {
+      if ( Mask0.SetupMask(RefParm,activeReference,debug) ) {
         mprinterr("Error: Clustering: Could not set up reference mask for %s\n",RefParm->parmName);
         return 1;
       }
@@ -209,7 +209,7 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
       TgtParm = ReferenceFrames.GetFrameParm( nframe );
       // If the current frame parm not same as last frame parm, reset frame mask
       if (TgtParm->pindex != lasttgtpindex) {
-        if ( Mask0.SetupMask(TgtParm,debug) ) {
+        if ( Mask0.SetupMask(TgtParm,activeReference,debug) ) {
           mprinterr("Error: Clustering: Could not set up target mask for %s\n",TgtParm->parmName);
           return 1;
         }

@@ -9,6 +9,7 @@ Action::Action() {
   DFL=NULL;
   PFL=NULL;
   FL=NULL;
+  activeReference=NULL;
   useMass=false;
   debug=0;
   currentFrame=0; 
@@ -54,6 +55,7 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
 
   DSL=DSLin;
   FL=FLin;
+  activeReference = FL->ActiveReference();
   DFL=DFLin;
   PFL=PFLin;
   debug=debugIn;
