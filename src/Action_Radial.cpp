@@ -221,7 +221,9 @@ void Radial::print() {
   double R, Rdr, dv, norm;
   double N;
   char temp[128];
-  
+ 
+  if (numFrames==0) return;
+ 
   // Create label from mask strings
   sprintf(temp,"[%s] => [%s]",Mask1.maskString,Mask2.maskString);
 
