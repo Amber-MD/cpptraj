@@ -82,9 +82,9 @@ int Dihedral::action() {
 
   D *= RADDEG;
 
-  dih->Add(currentFrame, &D);
+  dih->Add(frameNum, &D);
 
-  //fprintf(outfile,"%10i %10.4lf\n",currentFrame,D);
+  //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
   
   return 0;
 } 

@@ -77,11 +77,11 @@ int Radgyr::action() {
 
   Rog = F->RADGYR(&Mask1, useMass, &max);
 
-  rog->Add(currentFrame, &Rog);
+  rog->Add(frameNum, &Rog);
   if (calcRogmax)
-    rogmax->Add(currentFrame, &max);
+    rogmax->Add(frameNum, &max);
 
-  //fprintf(outfile,"%10i %10.4lf %10.4lf\n",currentFrame,Rog,max);
+  //fprintf(outfile,"%10i %10.4lf %10.4lf\n",frameNum,Rog,max);
   
   return 0;
 } 

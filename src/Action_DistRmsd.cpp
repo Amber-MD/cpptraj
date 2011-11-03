@@ -223,7 +223,7 @@ int DistRmsd::action() {
 
   DR = SelectedTgt.DISTRMSD( &SelectedRef );
 
-  drmsd->Add(currentFrame, &DR);
+  drmsd->Add(frameNum, &DR);
 
   return 0;
 }

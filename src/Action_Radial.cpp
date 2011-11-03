@@ -173,7 +173,7 @@ int Radial::action() {
       if (D > maximum2) continue;
       // NOTE: Can we modify the histogram to store D^2?
       D = sqrt(D);
-      //fprintf(outfile,"%10i %10.4lf\n",currentFrame,D);
+      //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
       rdf.BinData(&D);
       numDistances++;
     } // END loop over 2nd mask
@@ -194,7 +194,7 @@ int Radial::action() {
         if (D > maximum2) continue;
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
-        //fprintf(outfile,"%10i %10.4lf\n",currentFrame,D);
+        //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
         rdf.BinData(&D);
         numDistances++;
       }

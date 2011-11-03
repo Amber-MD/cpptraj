@@ -113,9 +113,9 @@ int Pucker::action() {
   if      (D > puckermax) D -= 360.0;
   else if (D < puckermin) D += 360.0;
 
-  puck->Add(currentFrame, &D);
+  puck->Add(frameNum, &D);
 
-  //fprintf(outfile,"%10i %10.4lf\n",currentFrame,D);
+  //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
   
   return 0;
 } 

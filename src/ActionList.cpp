@@ -155,21 +155,21 @@ int ActionList::Setup(AmberParm **ParmAddress) {
 
 /* ActionList::DoActions()
  * Perform actions in the action list on the given Frame. Skip actions not 
- * initialized or not setup. frameIn is the current frame number.
+ * initialized or not setup. frameNumIn is the current frame number.
  */
-void ActionList::DoActions(Frame **FrameAddress, int frameIn) {
+void ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
   int err;
   Frame *OriginalFrame = *FrameAddress;
 
-  //fprintf(stdout,"DEBUG: Performing %i actions on frame %i.\n",Naction,frameIn);
+  //fprintf(stdout,"DEBUG: Performing %i actions on frame %i.\n",Naction,frameNumIn);
   for (int act=0; act<Naction; act++) {
     // Skip deactivated actions
     if (actionlist[act]->noInit || actionlist[act]->noSetup) continue;
-    err = actionlist[act]->DoAction(FrameAddress, frameIn);
+    err = actionlist[act]->DoAction(FrameAddress, frameNumIn);
     if (err==1) {
       // Treat actions that fail as if they could not be set up
       mprintf("Warning: Action [%s] failed, frame %i.\n",actionlist[act]->CmdLine(),
-              frameIn);
+              frameNumIn);
       actionlist[act]->noSetup=1;
     } else if (err==2) {
       // Return value of 2 requests return to original frame

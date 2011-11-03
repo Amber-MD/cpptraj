@@ -442,7 +442,7 @@ int Rmsd::action() {
     F->Trans_Rot_Trans(Trans,U);
   }
 
-  rmsd->Add(currentFrame, &R);
+  rmsd->Add(frameNum, &R);
 
   // ---=== Per Residue RMSD ===---
   // Set reference and selected frame for each residue using the previously
@@ -462,7 +462,7 @@ int Rmsd::action() {
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,
       //        tgtResMask[N]->maskString,refResMask[N]->maskString,R);
       // NOTE: Should check for error on AddData?
-      PerResRMSD->AddData(currentFrame, &R, N);
+      PerResRMSD->AddData(frameNum, &R, N);
     }
   }
 

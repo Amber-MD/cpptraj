@@ -357,7 +357,7 @@ int Jcoupling::action() {
     //mprintf("%12lf%12lf\n",phi,J);
   }
 
-  //fprintf(outfile,"%10i %10.4lf\n",currentFrame,D);
+  //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
   
   return 0;
 } 

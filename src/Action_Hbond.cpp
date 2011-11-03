@@ -260,7 +260,7 @@ int Hbond::action() {
       }
     }
   }
-  NumHbonds->Add(currentFrame, &numHB);
+  NumHbonds->Add(frameNum, &numHB);
 //  mprintf("HBOND: Scanned %i hbonds.\n",Nhb);
   Nframes++;
 

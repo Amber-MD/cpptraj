@@ -107,9 +107,9 @@ int Distance::action() {
   D = F->DIST2(&Mask1, &Mask2, useMass, imageType, ucell, recip);
   D = sqrt(D);
 
-  dist->Add(currentFrame, &D);
+  dist->Add(frameNum, &D);
 
-  //fprintf(outfile,"%10i %10.4lf\n",currentFrame,D);
+  //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
   
   return 0;
 } 

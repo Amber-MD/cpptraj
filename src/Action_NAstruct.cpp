@@ -709,12 +709,12 @@ int NAstruct::determineBaseParameters() {
 
     // Store data
     Kappa*=RADDEG; Omega*=RADDEG; Sigma*=RADDEG;
-    SHEAR.AddData(currentFrame, &Shear, nbasepair);
-    STRETCH.AddData(currentFrame, &Stretch, nbasepair);
-    STAGGER.AddData(currentFrame, &Stagger, nbasepair);
-    BUCKLE.AddData(currentFrame, &Kappa, nbasepair);
-    PROPELLER.AddData(currentFrame, &Omega, nbasepair);
-    OPENING.AddData(currentFrame, &Sigma, nbasepair);
+    SHEAR.AddData(frameNum, &Shear, nbasepair);
+    STRETCH.AddData(frameNum, &Stretch, nbasepair);
+    STAGGER.AddData(frameNum, &Stagger, nbasepair);
+    BUCKLE.AddData(frameNum, &Kappa, nbasepair);
+    PROPELLER.AddData(frameNum, &Omega, nbasepair);
+    OPENING.AddData(frameNum, &Sigma, nbasepair);
 
     // Store BP axes
     BasePairAxes[nbasepair]->X[9 ] = Vec[0];
@@ -865,12 +865,12 @@ int NAstruct::determineBasepairParameters() {
     Tau *= RADDEG;
     Rho *= RADDEG;
     Omega *= RADDEG;
-    SHIFT.AddData(currentFrame, &Shift, bpi);
-    SLIDE.AddData(currentFrame, &Slide, bpi);
-    RISE.AddData(currentFrame, &Rise, bpi);
-    TILT.AddData(currentFrame, &Tau, bpi);
-    ROLL.AddData(currentFrame, &Rho, bpi);
-    TWIST.AddData(currentFrame, &Omega, bpi);
+    SHIFT.AddData(frameNum, &Shift, bpi);
+    SLIDE.AddData(frameNum, &Slide, bpi);
+    RISE.AddData(frameNum, &Rise, bpi);
+    TILT.AddData(frameNum, &Tau, bpi);
+    ROLL.AddData(frameNum, &Rho, bpi);
+    TWIST.AddData(frameNum, &Omega, bpi);
   }
 
   return 0;

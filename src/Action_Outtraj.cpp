@@ -78,9 +78,9 @@ int Outtraj::action() {
   // If dataset defined, check if frame is within max/min
   if (Dset!=NULL) {
     if (Dset->Type() == DOUBLE) {
-      if (Dset->Get(&dVal, currentFrame)) return 1;
+      if (Dset->Get(&dVal, frameNum)) return 1;
     } else if (Dset->Type() == INT) {
-      if (Dset->Get(&iVal, currentFrame)) return 1;
+      if (Dset->Get(&iVal, frameNum)) return 1;
       dVal = (double) iVal;
     } else
       return 1;
@@ -88,7 +88,7 @@ int Outtraj::action() {
     // If value from dataset not within min/max, exit now.
     if (dVal < min || dVal > max) return 0;
   }
-  if ( outtraj.WriteFrame(currentFrame, P, F->X,F->V,F->box,F->T) != 0 ) return 1;
+  if ( outtraj.WriteFrame(frameNum, P, F->X,F->V,F->box,F->T) != 0 ) return 1;
   return 0;
 } 
 

@@ -268,7 +268,7 @@ int Closest::action() {
   // Loop over all solvent molecules in original frame
   maxSolventMolecules = oldParm->solventMolecules;
   // DEBUG
-  //mprintf("Closest: Begin parallel loop for %i\n",currentFrame);
+  //mprintf("Closest: Begin parallel loop for %i\n",frameNum);
   // DEBUG
 #ifdef _OPENMP
 #pragma omp parallel private(solventMol,atom,Dist,solventAtom)
@@ -311,13 +311,13 @@ int Closest::action() {
 } // END pragma omp parallel
 #endif
   // DEBUG
-  //mprintf("Closest: End parallel loop for %i, got %i Distances.\n",currentFrame,(int)SolventMols.size());
+  //mprintf("Closest: End parallel loop for %i, got %i Distances.\n",frameNum,(int)SolventMols.size());
   // DEBUG
 
   // Sort distances
   sort( SolventMols.begin(), SolventMols.end(), moldist_cmp() );
   // DEBUG
-  //mprintf("Closest: Distances sorted for %i\n",currentFrame);
+  //mprintf("Closest: Distances sorted for %i\n",frameNum);
   // DEBUG
 
   // Add first closestWaters solvent atoms to tempMask
@@ -331,7 +331,7 @@ int Closest::action() {
       tempMask.Selected[maskPosition++] = (*solvent).mask->Selected[solventAtom];
     // Record which water molecules are closest if requested
     if (outFile!=NULL) {
-      framedata->Add(Nclosest, &currentFrame);
+      framedata->Add(Nclosest, &frameNum);
       moldata->Add(Nclosest, &((*solvent).mol));
       Dist = sqrt( (*solvent).D );
       distdata->Add(Nclosest, &Dist);

@@ -345,7 +345,7 @@ int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharg
     mprinterr("Error: Pairwise: Could not set up cut mol2 file %s\n",outfilename);
     return 1;
   }
-  tout.WriteFrame(currentFrame,CutParm,CutFrame.X, NULL, NULL, 0.0);
+  tout.WriteFrame(frameNum,CutParm,CutFrame.X, NULL, NULL, 0.0);
   tout.EndTraj();
   delete CutParm;
   return 0;
@@ -409,7 +409,7 @@ int Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
   Ncomparison = 0; // Pairwise interaction counter
   // Data output
   if (Eout.IsOpen())
-    Eout.IO->Printf("PAIRWISE: Frame %i\n",currentFrame);
+    Eout.IO->Printf("PAIRWISE: Frame %i\n",frameNum);
   // Outer loop
   for (int maskidx1 = 0; maskidx1 < atommask->Nselected - 1; maskidx1++) {
     atom1 = atommask->Selected[maskidx1];
@@ -531,8 +531,8 @@ int Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
  */
 int Pairwise::action() {
   if (Energy(&Mask0, F, P)) return 1;
-  ds_vdw->Add(currentFrame, &ELJ);
-  ds_elec->Add(currentFrame, &Eelec);
+  ds_vdw->Add(frameNum, &ELJ);
+  ds_elec->Add(frameNum, &Eelec);
 
   return 0;
 } 

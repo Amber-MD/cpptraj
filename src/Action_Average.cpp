@@ -134,7 +134,7 @@ int Average::setup() {
 int Average::action() {
   int atom3,i3;
 
-  if (currentFrame != targetFrame) return 0;
+  if (frameNum != targetFrame) return 0;
 
   i3=0;
   for (int n = 0; n < Natom; n++) {
@@ -147,7 +147,7 @@ int Average::action() {
   Nframes++; 
 
   targetFrame+=offset;
-  // Since currentFrame will never be -1 this effectively disables the routine
+  // Since frameNum will never be -1 this effectively disables the routine
   if (targetFrame>stop && stop!=-1) targetFrame=-1;
   return 0;
 } 

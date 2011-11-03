@@ -235,7 +235,7 @@ int DSSP::action() {
     O = SecStruct[resi].O;
     for (resj=0; resj < Nres; resj++) {
 // DEBUG
-//      debugout.IO->Printf("\n%i Res%i-Res%i:",currentFrame,resi,resj);
+//      debugout.IO->Printf("\n%i Res%i-Res%i:",frameNum,resi,resj);
 //      debugout.IO->Printf(" C=%i O=%i | N=%i H=%i:",C,O,SecStruct[resj].N,SecStruct[resj].H);
 // DEBUG 
       if (!SecStruct[resj].isSelected) continue;
@@ -313,7 +313,7 @@ int DSSP::action() {
     if (!SecStruct[resi].isSelected) continue;
 
     for (resj=5; resj > 2; resj--) {
-//      fprintf(stdout,"DEBUG: %i Res %i and %i+%i are",currentFrame,resi,resi,resj);
+//      fprintf(stdout,"DEBUG: %i Res %i and %i+%i are",frameNum,resi,resi,resj);
 //      if ( isBonded( resi, resi+resj) )
 //        fprintf(stdout," BONDED!\n");
 //      else
@@ -326,7 +326,7 @@ int DSSP::action() {
   }
 
   // Store data 
-  //fprintf(stdout,"%10i ",currentFrame);
+  //fprintf(stdout,"%10i ",frameNum);
   resj=0;
   if (SSdata!=NULL) SSdata->Begin();
   for (resi=0; resi < Nres; resi++) {
@@ -335,12 +335,12 @@ int DSSP::action() {
     SecStruct[resi].SSprob[SecStruct[resi].sstype]++;
     // Integer data set
     if (SSdata!=NULL) 
-      SSdata->AddData(currentFrame, &(SecStruct[resi].sstype));
+      SSdata->AddData(frameNum, &(SecStruct[resi].sstype));
     else
       SSline[resj++] = SSchar[SecStruct[resi].sstype];
   }
   if (printString)
-    dssp->Add(currentFrame, SSline);
+    dssp->Add(frameNum, SSline);
   //fprintf(stdout,"\n");
   Nframe++;
 

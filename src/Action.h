@@ -59,7 +59,7 @@ class Action {
     bool useMass;           // If set to true, calculations will use mass info
 
     int debug;
-    int currentFrame;       // current frame being processed, set by ActionList
+    int frameNum;           // # of current frame being processed, set by ActionList
     // --== Inherited by child classes ==--
     virtual int setup()  { return 0; }
     virtual int action() { return 0; }

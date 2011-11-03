@@ -85,7 +85,7 @@ int ActionMask::action() {
     if (Mask1.AtomInCharMask(atom)) {
       res = P->atomToResidue(atom);
       outfile.IO->Printf("%8i %8i %4s %8i %4s %8i",
-                         currentFrame+OUTPUTFRAMESHIFT,atom+1, P->names[atom], res+1,
+                         frameNum+OUTPUTFRAMESHIFT,atom+1, P->names[atom], res+1,
                          P->ResidueName(res), P->atomToMolecule(atom)+1);
       /*mprintf(" Type=%4s",P->types[atom]);
       mprintf(" Charge=%lf",P->charge[atom]);
@@ -112,10 +112,10 @@ int ActionMask::action() {
     // so that charges are written out. 
     if (pdbout.SetupWriteWithArgs(maskpdb,"multi dumpq",pdbParm,PDBFILE)) {
       mprinterr("Error: Action_Mask: maskpdb %s: Could not set up for write of frame %i.\n",
-                maskpdb,currentFrame);
+                maskpdb,frameNum);
     } else {
       pdbout.PrintInfo(0);
-      pdbout.WriteFrame(currentFrame,pdbParm,pdbFrame->X,NULL,pdbFrame->box,pdbFrame->T);
+      pdbout.WriteFrame(frameNum,pdbParm,pdbFrame->X,NULL,pdbFrame->box,pdbFrame->T);
       pdbout.EndTraj();
     }
     delete pdbParm;

@@ -263,7 +263,7 @@ int Surf::action() {
 } // END pragma omp parallel
 #endif
 
-  surf->Add(currentFrame, &SA);
+  surf->Add(frameNum, &SA);
 
   return 0;
 } 

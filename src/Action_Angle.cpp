@@ -79,9 +79,9 @@ int Angle::action() {
 
   Ang *= RADDEG;
 
-  ang->Add(currentFrame, &Ang);
+  ang->Add(frameNum, &Ang);
 
-  //fprintf(outfile,"%10i %10.4lf\n",currentFrame,Ang);
+  //fprintf(outfile,"%10i %10.4lf\n",frameNum,Ang);
   
   return 0;
 } 
