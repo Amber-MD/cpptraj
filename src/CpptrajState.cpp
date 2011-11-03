@@ -4,7 +4,6 @@
 
 // Constructor
 CpptrajState::CpptrajState() {
-  TotalErrors=0; 
   debug=0;
   showProgress=true;
   activeRef = -1;
