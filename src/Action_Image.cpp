@@ -78,35 +78,35 @@ int Image::init() {
 
 /* Image::setup()
  * Set Imaging up for this parmtop. Get masks etc.
- * P is set in Action::Setup
+ * currentParm is set in Action::Setup
  */
 int Image::setup() {
 
-  if ( Mask1.SetupCharMask(P,activeReference,debug) ) return 1;
+  if ( Mask1.SetupCharMask(currentParm,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Image::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
-  if (P->boxType==NOBOX) {
+  if (currentParm->boxType==NOBOX) {
     mprintf("    Error: Image::setup: Parm %s does not contain box information.\n",
-            P->parmName);
+            currentParm->parmName);
     return 1;
   }
 
   ortho = false;  
-  if (P->boxType==ORTHO && triclinic==OFF) ortho=true;
+  if (currentParm->boxType==ORTHO && triclinic==OFF) ortho=true;
 
   // If box is originally truncated oct and not forcing triclinic, 
   // turn familiar on.
-  if (AmberIfbox(P->Box[5])==2 && triclinic!=FORCE && triclinic!=FAMILIAR) {
+  if (AmberIfbox(currentParm->Box[5])==2 && triclinic!=FORCE && triclinic!=FAMILIAR) {
     mprintf("    IMAGE: Original box is truncated octahedron, turning on 'familiar'.\n");
     triclinic=FAMILIAR;
   }
 
   if (triclinic == FAMILIAR) {
     if (ComMask!=NULL) {
-      if ( ComMask->SetupMask(P,activeReference,debug) ) return 1;
+      if ( ComMask->SetupMask(currentParm,activeReference,debug) ) return 1;
       if (ComMask->None()) {
         mprintf("    Error: Image::setup: Mask for 'familiar com' contains no atoms.\n");
         return 1;
@@ -186,15 +186,15 @@ int Image::action() {
   // Loop over molecules
   firstAtom = 0;
   lastAtom = 0;
-  end = P->molecules;
+  end = currentParm->molecules;
   if (debug>2) 
-    mprintf("IMAGE: molecules is %i\n", P->molecules); 
+    mprintf("IMAGE: molecules is %i\n", currentParm->molecules); 
 
   for (count = begin; count < end; count++) {
 
     // Molecules
     firstAtom = lastAtom;
-    lastAtom = firstAtom + P->atomsPerMol[count];
+    lastAtom = firstAtom + currentParm->atomsPerMol[count];
 
     if (debug>2)
       mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom); 

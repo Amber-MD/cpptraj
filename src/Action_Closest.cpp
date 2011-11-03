@@ -132,42 +132,46 @@ int Closest::setup() {
   MolDist solvent;
 
   // If there are no solvent molecules this action is not valid.
-  if (P->solventMolecules==0) {
-    mprintf("    Error: Closest::setup: Parm %s does not contain solvent.\n",P->parmName);
+  if (currentParm->solventMolecules==0) {
+    mprintf("    Error: Closest::setup: Parm %s does not contain solvent.\n",currentParm->parmName);
     return 1;
   }
   // If # solvent to keep >= solvent in this parm the action is not valid.
-  if (closestWaters >= P->solventMolecules) {
+  if (closestWaters >= currentParm->solventMolecules) {
     mprintf("    Error: Closest::setup: # solvent to keep (%i) >= # solvent molecules in\n",
             closestWaters);
-    mprintf("                           %s (%i).\n",P->parmName,P->solventMolecules);
+    mprintf("                           %s (%i).\n",currentParm->parmName,
+            currentParm->solventMolecules);
     return 1;
   } 
   // Check that all solvent molecules contain same # atoms. Solvent 
   // molecules must be identical for the command to work properly; 
   // the prmtop strip occurs only once so the solvent params become fixed.
-  NsolventAtoms = P->solventMoleculeStop[0] - P->solventMoleculeStart[0];
-  for (solventMol = 1; solventMol < P->solventMolecules; solventMol++) {
+  NsolventAtoms = currentParm->solventMoleculeStop[0] - currentParm->solventMoleculeStart[0];
+  for (solventMol = 1; solventMol < currentParm->solventMolecules; solventMol++) {
     if ( NsolventAtoms != 
-         (P->solventMoleculeStop[solventMol] - P->solventMoleculeStart[solventMol]) ) {
+         (currentParm->solventMoleculeStop[solventMol] - 
+          currentParm->solventMoleculeStart[solventMol]) ) 
+    {
       mprintf("    Error: Closest::setup: Solvent molecules in %s are not of uniform size.\n",
-              P->parmName);
+              currentParm->parmName);
       mprintf("           First solvent mol=%i atoms, %i solvent mol=%i atoms.\n",
               NsolventAtoms, solventMol,
-              P->solventMoleculeStop[solventMol] - P->solventMoleculeStart[solventMol]);
+              currentParm->solventMoleculeStop[solventMol] - 
+              currentParm->solventMoleculeStart[solventMol]);
       return 1;
     }
   }
 
   // Setup solute atom mask
   // NOTE: Should ensure that no solvent atoms are selected!
-  if ( Mask1.SetupMask(P,activeReference,debug) ) return 1;
+  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Closest::setup: Mask %s contains no atoms.\n",Mask1.maskString);
     return 1;
   }
 
-/*  if (P->mass==NULL && useMass) {
+/*  if (currentParm->mass==NULL && useMass) {
     fprintf(stdout,"    Warning: Closest::setup: Mass for this parm is NULL.\n");
     fprintf(stdout,"             Geometric center of mass will be used.\n");
     useMass=false;
@@ -177,10 +181,10 @@ int Closest::setup() {
   // NOTE: Should box be figured out from read-in coords?
   imageType = 0;
   if (!noimage) {
-    imageType = (int)P->boxType;
-    if (P->boxType==NOBOX) {
+    imageType = (int)currentParm->boxType;
+    if (currentParm->boxType==NOBOX) {
         mprintf("    Warning: Closest::setup: ");
-        mprintf(" Imaging specified but no box information in prmtop %s\n",P->parmName);
+        mprintf(" Imaging specified but no box information in prmtop %s\n",currentParm->parmName);
         mprintf("             No imaging can occur..\n");
     }
   }
@@ -191,14 +195,16 @@ int Closest::setup() {
   // solventMoleculeStop is really the first atom of the next molecule.
   // Use temporary mask to keep original mask unmodified.
   tempMask = Mask1;
-  NsolventAtoms = P->solventMoleculeStop[closestWaters-1] - P->solventMoleculeStart[0];
+  NsolventAtoms = currentParm->solventMoleculeStop[closestWaters-1] - 
+                  currentParm->solventMoleculeStart[0];
   //int *atomList = new int[ NsolventAtoms ];
   mprintf("    CLOSEST: Keeping %i solvent atoms.\n",NsolventAtoms);
   // Put solvent atom #s at end of temporary array for creating stripped parm
-  tempMask.AddAtomRange(P->solventMoleculeStart[0], P->solventMoleculeStop[closestWaters-1]);
+  tempMask.AddAtomRange(currentParm->solventMoleculeStart[0], 
+                        currentParm->solventMoleculeStop[closestWaters-1]);
 
   // Store old parm
-  oldParm = P;
+  oldParm = currentParm;
  
   // Get atom masks for all solvent molecules in old parm.
   this->ClearMaskList();
@@ -217,7 +223,7 @@ int Closest::setup() {
 
   // Create stripped Parm
   if (newParm!=NULL) delete newParm;
-  newParm = P->modifyStateByMask(tempMask.Selected, tempMask.Nselected);
+  newParm = currentParm->modifyStateByMask(tempMask.Selected, tempMask.Nselected);
   if (newParm==NULL) {
     mprintf("    Error: Closest::setup: Could not create new parmtop.\n");
     return 1;
@@ -243,7 +249,7 @@ int Closest::setup() {
   }
 
   // Set parm
-  P = newParm;
+  currentParm = newParm;
 
   return 0;  
 }

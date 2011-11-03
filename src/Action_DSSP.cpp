@@ -96,17 +96,17 @@ int DSSP::setup() {
   char resArg[32];
 
   // Set up mask for this parm
-  if ( Mask.SetupMask(P,activeReference,debug) ) return 1;
+  if ( Mask.SetupMask(currentParm,activeReference,debug) ) return 1;
   if ( Mask.None() ) {
     mprintf("      Error: DSSP::setup: Mask has no atoms.\n");
     return 1;
   }
 
   // Set up SecStruct for each solute residue
-  if (P->finalSoluteRes>0)
-    Nres = P->finalSoluteRes;
+  if (currentParm->finalSoluteRes>0)
+    Nres = currentParm->finalSoluteRes;
   else
-    Nres=P->nres;
+    Nres=currentParm->nres;
   //mprintf("      DSSP: Setting up for %i residues.\n",Nres);
 
   // Set up for each residue of the current Parm if not already set-up.
@@ -134,16 +134,16 @@ int DSSP::setup() {
   // and H atom. Store the actual coordinate index for use with COORDDIST
   for (selected=0; selected < Mask.Nselected; selected++) {
     atom = Mask.Selected[selected];
-    res = P->atomToResidue(atom);
+    res = currentParm->atomToResidue(atom);
     //fprintf(stdout,"DEBUG: Atom %i Res %i [%s]\n",atom,res,P->names[atom]);
     SecStruct[res].isSelected=true;
-    if (      strcmp(P->names[atom], "C   ")==0 )
+    if (      strcmp(currentParm->names[atom], "C   ")==0 )
       SecStruct[res].C=atom*3;
-    else if ( strcmp(P->names[atom], "O   ")==0 )
+    else if ( strcmp(currentParm->names[atom], "O   ")==0 )
       SecStruct[res].O=atom*3;
-    else if ( strcmp(P->names[atom], "N   ")==0 )
+    else if ( strcmp(currentParm->names[atom], "N   ")==0 )
       SecStruct[res].N=atom*3;
-    else if ( strcmp(P->names[atom], "H   ")==0 )
+    else if ( strcmp(currentParm->names[atom], "H   ")==0 )
       SecStruct[res].H=atom*3;
   }
 
@@ -159,7 +159,7 @@ int DSSP::setup() {
     for (res=0; res < Nres; res++) {
       if (SecStruct[res].isSelected) {
         // Setup dataset name for this residue
-        P->ResName(resArg,res);
+        currentParm->ResName(resArg,res);
         // Create dataset for res - if already present this returns NULL
         DataSet *resDataSet = SSdata->AddIdx(INT, resArg, res);
         if (resDataSet!=NULL) DFL->Add(outfilename, resDataSet);

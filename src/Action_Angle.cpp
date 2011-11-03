@@ -55,13 +55,13 @@ int Angle::init() {
 
 /* Angle::setup()
  * Set angle up for this parmtop. Get masks etc.
- * P is set in Action::Setup
+ * currentParm is set in Action::Setup
  */
 int Angle::setup() {
 
-  if ( Mask1.SetupMask(P,activeReference,debug) ) return 1;
-  if ( Mask2.SetupMask(P,activeReference,debug) ) return 1;
-  if ( Mask3.SetupMask(P,activeReference,debug) ) return 1;
+  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( Mask2.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( Mask3.SetupMask(currentParm,activeReference,debug) ) return 1;
   if (Mask1.None() || Mask2.None() || Mask3.None()) {
     mprintf("    Error: Angle::setup: One or more masks contain 0 atoms.\n");
     return 1;

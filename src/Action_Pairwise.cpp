@@ -207,17 +207,17 @@ int Pairwise::NumInteractions(AtomMask *atommask, AmberParm *Parm) {
  */
 int Pairwise::setup() {
   // Set up mask
-  if ( Mask0.SetupMask(P,activeReference,debug) ) return 1;
+  if ( Mask0.SetupMask(currentParm,activeReference,debug) ) return 1;
   if (Mask0.None()) {
     mprintf("    Error: Pairwise::setup: Mask has no atoms.\n");
     return 1;
   }
   // Allocate memory for exclusion list
-  if (AllocateExclusion(P)) return 1;
+  if (AllocateExclusion(currentParm)) return 1;
   // If a reference frame is defined for atom-by-atom comparison make sure 
   // the number of interactions is the same in reference and parm.
   if (RefFrame!=NULL) {
-    int N_interactions = NumInteractions(&Mask0, P);
+    int N_interactions = NumInteractions(&Mask0, currentParm);
     if (N_interactions != N_ref_interactions) {
       mprinterr(
         "Error: Pairwise: # reference interactions (%i) != # interactions for this parm (%i)\n",
@@ -228,9 +228,9 @@ int Pairwise::setup() {
   }
   // Set up cumulative energy arrays
   atom_eelec.clear();
-  atom_eelec.resize(P->natom, 0);
+  atom_eelec.resize(currentParm->natom, 0);
   atom_evdw.clear();
-  atom_evdw.resize(P->natom, 0);
+  atom_evdw.resize(currentParm->natom, 0);
   // Print pairwise info for this parm
   mprintf("    PAIRWISE: Mask %s corresponds to %i atoms.\n",Mask0.maskString, Mask0.Nselected);
         
@@ -530,7 +530,7 @@ int Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
 /* Pairwise::action()
  */
 int Pairwise::action() {
-  if (Energy(&Mask0, F, P)) return 1;
+  if (Energy(&Mask0, F, currentParm)) return 1;
   ds_vdw->Add(frameNum, &ELJ);
   ds_elec->Add(frameNum, &Eelec);
 

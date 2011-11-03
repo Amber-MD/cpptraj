@@ -57,11 +57,11 @@ int Radgyr::init() {
 
 /* Radgyr::setup()
  * Set radius of gyration up for this parmtop. Get masks etc.
- * P is set in Action::Setup
+ * currentParm is set in Action::Setup
  */
 int Radgyr::setup() {
 
-  if ( Mask1.SetupMask(P,activeReference,debug) ) return 1;
+  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Radgyr::setup: Mask contains 0 atoms.\n");
     return 1;

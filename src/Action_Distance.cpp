@@ -69,8 +69,8 @@ int Distance::init( ) {
  */
 int Distance::setup() {
 
-  if ( Mask1.SetupMask(P,activeReference,debug) ) return 1;
-  if ( Mask2.SetupMask(P,activeReference,debug) ) return 1;
+  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( Mask2.SetupMask(currentParm,activeReference,debug) ) return 1;
 
   if (Mask1.None() || Mask2.None()) {
     mprintf("    Error: Distance::setup: One or both masks have no atoms.\n");
@@ -80,9 +80,9 @@ int Distance::setup() {
   // Check imaging - check box based on prmtop box
   imageType = 0;
   if (!noimage) {
-    imageType = (int)P->boxType;
-    if (P->boxType==NOBOX && debug>0) {
-      mprintf("    Warning: No box info in %s, disabling imaging.\n",P->parmName);
+    imageType = (int)currentParm->boxType;
+    if (currentParm->boxType==NOBOX && debug>0) {
+      mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->parmName);
     }
   }
 

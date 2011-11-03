@@ -93,9 +93,9 @@ void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
     // If auto searching, only consider acceptor atoms as F, O, N
     if (Auto) {
       isAcceptor=false;
-      if (P->names[atom][0]=='F' ||
-          P->names[atom][0]=='O' ||
-          P->names[atom][0]=='N'   )
+      if (currentParm->names[atom][0]=='F' ||
+          currentParm->names[atom][0]=='O' ||
+          currentParm->names[atom][0]=='N'   )
         isAcceptor=true;
     }
     if (isAcceptor)
@@ -115,22 +115,22 @@ void Hbond::SearchDonor(AtomMask *dmask, bool Auto) {
   for (int selected=0; selected < dmask->Nselected; selected++) {
     donoratom = dmask->Selected[selected];
     // If this is already an H atom continue
-    if (P->names[donoratom][0]=='H') continue;
+    if (currentParm->names[donoratom][0]=='H') continue;
     isDonor = true;
     // If auto searching, only consider donor atoms as F, O, N
     if (Auto) {
       isDonor=false;
-      if (P->names[donoratom][0]=='F' ||
-          P->names[donoratom][0]=='O' ||
-          P->names[donoratom][0]=='N')
+      if (currentParm->names[donoratom][0]=='F' ||
+          currentParm->names[donoratom][0]=='O' ||
+          currentParm->names[donoratom][0]=='N')
         isDonor=true;
     }
     if (isDonor) { 
       // Search the list of bonds to hydrogen for this atom.
-      for (int bh=0; bh < P->NbondsWithH*3; bh+=3) {
+      for (int bh=0; bh < currentParm->NbondsWithH*3; bh+=3) {
         // Actual atom #s in bondsh array = x / 3
-        atom1 = P->bondsh[bh  ] / 3;
-        atom2 = P->bondsh[bh+1] / 3;
+        atom1 = currentParm->bondsh[bh  ] / 3;
+        atom2 = currentParm->bondsh[bh+1] / 3;
         if (atom1==donoratom) {
           Donor.push_back(atom1);
           Donor.push_back(atom2);
@@ -151,7 +151,7 @@ int Hbond::setup() {
 
   // Set up mask
   if (DonorMask.maskString==NULL || AcceptorMask.maskString==NULL) {
-    if ( Mask.SetupMask(P,activeReference,debug) ) return 1;
+    if ( Mask.SetupMask(currentParm,activeReference,debug) ) return 1;
     if ( Mask.None() ) {
       mprintf("    Error: Hbond::setup: Mask has no atoms.\n");
       return 1;
@@ -159,7 +159,7 @@ int Hbond::setup() {
   }
   // Set up donor mask
   if (DonorMask.maskString!=NULL) {
-    if (DonorMask.SetupMask(P,activeReference,debug)) return 1;
+    if (DonorMask.SetupMask(currentParm,activeReference,debug)) return 1;
     if (DonorMask.None()) {
       mprintf("    Error: Hbond: DonorMask has no atoms.\n");
       return 1;
@@ -167,7 +167,7 @@ int Hbond::setup() {
   }
   // Set up acceptor mask
   if (AcceptorMask.maskString!=NULL) {
-    if (AcceptorMask.SetupMask(P,activeReference,debug)) return 1;
+    if (AcceptorMask.SetupMask(currentParm,activeReference,debug)) return 1;
     if (AcceptorMask.None()) {
       mprintf("    Error: Hbond: AcceptorMask has no atoms.\n");
       return 1;
@@ -200,7 +200,7 @@ int Hbond::setup() {
   mprintf("      HBOND: Set up %i acceptors:\n",(int)Acceptor.size());
   if (debug>0) {
     for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++)
-      mprintf("        %8i: %4s\n",*accept,P->names[*accept]);
+      mprintf("        %8i: %4s\n",*accept,currentParm->names[*accept]);
   }
   mprintf("      HBOND: Set up %i donors:\n",((int)Donor.size())/2);
   if (debug>0) {
@@ -208,7 +208,8 @@ int Hbond::setup() {
       atom = (*donor);
       donor++;
       a2   = (*donor);
-      mprintf("        %8i:%4s - %8i:%4s\n",atom,P->names[atom],a2,P->names[a2]); 
+      mprintf("        %8i:%4s - %8i:%4s\n",atom,
+              currentParm->names[atom],a2,currentParm->names[a2]); 
     } 
   }
 
@@ -317,9 +318,9 @@ void Hbond::print() {
     angle = angle / ((double) (*hbond).Frames);
     angle *= RADDEG;
 
-    P->ResAtomName(Aname, (*hbond).A);
-    P->ResAtomName(Hname, (*hbond).H);
-    P->ResAtomName(Dname, (*hbond).D);
+    currentParm->ResAtomName(Aname, (*hbond).A);
+    currentParm->ResAtomName(Hname, (*hbond).H);
+    currentParm->ResAtomName(Dname, (*hbond).D);
 
     HBavg->AddData(hbondnum, Aname, 0);
     HBavg->AddData(hbondnum, Hname, 1);

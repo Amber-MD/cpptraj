@@ -75,21 +75,21 @@ int ActionMask::action() {
   TrajectoryFile pdbout;
 
   // Get atom selection
-  if ( Mask1.SetupCharMask(P, F->X, debug) ) {
+  if ( Mask1.SetupCharMask(currentParm, F->X, debug) ) {
     mprintf("Warning: ActionMask::action: Could not set up atom mask [%s]\n",Mask1.maskString);
     return 1;
   }
 
   // Print out information for every atom in the mask
-  for (atom=0; atom < P->natom; atom++) {
+  for (atom=0; atom < currentParm->natom; atom++) {
     if (Mask1.AtomInCharMask(atom)) {
-      res = P->atomToResidue(atom);
+      res = currentParm->atomToResidue(atom);
       outfile.IO->Printf("%8i %8i %4s %8i %4s %8i",
-                         frameNum+OUTPUTFRAMESHIFT,atom+1, P->names[atom], res+1,
-                         P->ResidueName(res), P->atomToMolecule(atom)+1);
-      /*mprintf(" Type=%4s",P->types[atom]);
-      mprintf(" Charge=%lf",P->charge[atom]);
-      mprintf(" Mass=%lf",P->mass[atom]);*/
+                         frameNum+OUTPUTFRAMESHIFT,atom+1, currentParm->names[atom], res+1,
+                         currentParm->ResidueName(res), currentParm->atomToMolecule(atom)+1);
+      /*mprintf(" Type=%4s",currentParm->types[atom]);
+      mprintf(" Charge=%lf",currentParm->charge[atom]);
+      mprintf(" Mass=%lf",currentParm->mass[atom]);*/
       outfile.IO->Printf("\n");
     }
   }
@@ -97,10 +97,10 @@ int ActionMask::action() {
   // Optional PDB write out of selected atoms for the frame.
   if (maskpdb!=NULL) {
     AtomMask *Mask2 = new AtomMask();
-    for (atom=0; atom < P->natom; atom++) 
+    for (atom=0; atom < currentParm->natom; atom++) 
       if (Mask1.AtomInCharMask(atom)) Mask2->AddAtom(atom);
     // Create new parm and frame based on atoms in Mask
-    AmberParm *pdbParm = P->modifyStateByMask(Mask2->Selected, Mask2->Nselected);
+    AmberParm *pdbParm = currentParm->modifyStateByMask(Mask2->Selected, Mask2->Nselected);
     //pdbParm->Summary(); // DEBUG
     Frame *pdbFrame = new Frame();
     pdbFrame->SetupFrame(Mask2->Nselected,NULL);

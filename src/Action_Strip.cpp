@@ -52,20 +52,20 @@ int Strip::setup() {
   M1.invertMask=true;   // Want to keep atoms outside the mask selection
                         // Atoms in the mask will be stripped
                         // Selected atoms will be kept.
-  M1.SetupMask(P,activeReference,debug);
+  M1.SetupMask(currentParm,activeReference,debug);
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
   if (M1.None()) {
     mprinterr("      Error: Strip::setup: Mask has no atoms.\n");
     return 1;
   }
-  mprintf("      STRIP: Stripping %i atoms.\n",P->natom - M1.Nselected);
+  mprintf("      STRIP: Stripping %i atoms.\n",currentParm->natom - M1.Nselected);
 
   // Store old parm
-  oldParm = P;
+  oldParm = currentParm;
 
   // Attempt to create new parmtop based on mask
   if (newParm!=NULL) delete newParm;
-  newParm = P->modifyStateByMask(M1.Selected, M1.Nselected);
+  newParm = currentParm->modifyStateByMask(M1.Selected, M1.Nselected);
   if (newParm==NULL) {
     mprinterr("      Error: Strip::setup: Could not create new parmtop.\n");
     return 1;
@@ -92,7 +92,7 @@ int Strip::setup() {
   }
 
   // Set parm
-  P = newParm;
+  currentParm = newParm;
 
   return 0;  
 }

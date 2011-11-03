@@ -219,7 +219,7 @@ int Jcoupling::setup() {
   int MaxResidues;
   jcouplingInfo JC;
 
-  if ( Mask1.SetupCharMask(P,activeReference,debug) ) return 1;
+  if ( Mask1.SetupCharMask(currentParm,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprinterr("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
     return 1;
@@ -228,17 +228,17 @@ int Jcoupling::setup() {
   // new parm.
   if (JcouplingInfo.size() > 0) {
     mprintf("    Warning: Jcoupling has been set up for another parm.\n");
-    mprintf("             Resetting jcoupling info for new parm %s\n",P->parmName);
+    mprintf("             Resetting jcoupling info for new parm %s\n",currentParm->parmName);
     JcouplingInfo.clear();
   }
 
   // For each residue, set up 1 jcoupling calc for each parameter defined in
   // KarplusConstants for this resdiue. Only set up the Jcoupling calc if all
   // atoms involved are present in the mask.
-  MaxResidues = P->nres;
-  if (P->finalSoluteRes > 0) MaxResidues = P->finalSoluteRes;
+  MaxResidues = currentParm->nres;
+  if (currentParm->finalSoluteRes > 0) MaxResidues = currentParm->finalSoluteRes;
   for (int residue=0; residue < MaxResidues; residue++) {
-    resName.assign(P->resnames[residue]);
+    resName.assign(currentParm->resnames[residue]);
     std::map<std::string,karplusConstantList>::iterator reslist = KarplusConstants.find(resName);
     // If list does not exist for residue, skip it.
     if (reslist == KarplusConstants.end() ) {
@@ -264,7 +264,8 @@ int Jcoupling::setup() {
       // For each atom in the dihedral specified in this Karplus constant, find
       // corresponding atoms in parm. 
       for (int idx=0; idx < 4; idx++) 
-        JC.atom[idx] = P->FindAtomInResidue(residue+(*kc).offset[idx],(*kc).atomName[idx]);
+        JC.atom[idx] = currentParm->FindAtomInResidue(residue+(*kc).offset[idx],
+                                                      (*kc).atomName[idx]       );
       // Check that all atoms were found
       for (int idx=0; idx < 4; idx++) {
         if (JC.atom[idx]==-1) {
@@ -301,11 +302,11 @@ int Jcoupling::setup() {
                                               jc !=JcouplingInfo.end();
                                               jc++) 
     {
-      mprintf("%8i [%i:%4s]",MaxResidues+1,(*jc).residue,P->resnames[(*jc).residue]);
-      mprintf(" %6i:%-4s",(*jc).atom[0],P->names[(*jc).atom[0]]);
-      mprintf(" %6i:%-4s",(*jc).atom[1],P->names[(*jc).atom[1]]);
-      mprintf(" %6i:%-4s",(*jc).atom[2],P->names[(*jc).atom[2]]);
-      mprintf(" %6i:%-4s",(*jc).atom[3],P->names[(*jc).atom[3]]);
+      mprintf("%8i [%i:%4s]",MaxResidues+1,(*jc).residue,currentParm->resnames[(*jc).residue]);
+      mprintf(" %6i:%-4s",(*jc).atom[0],currentParm->names[(*jc).atom[0]]);
+      mprintf(" %6i:%-4s",(*jc).atom[1],currentParm->names[(*jc).atom[1]]);
+      mprintf(" %6i:%-4s",(*jc).atom[2],currentParm->names[(*jc).atom[2]]);
+      mprintf(" %6i:%-4s",(*jc).atom[3],currentParm->names[(*jc).atom[3]]);
       mprintf(" %6.2lf%6.2lf%6.2lf%6.2lf %i\n",(*jc).C[0],(*jc).C[1],(*jc).C[2],(*jc).C[3],
               (*jc).type);
       MaxResidues++;
@@ -345,9 +346,9 @@ int Jcoupling::action() {
 
     residue = (*jc).residue;
     // DEBUG - output
-    sprintf(buffer,"%5i %4s%4s%4s%4s%4s%12lf%12lf\n",residue+1,P->resnames[residue],
-            P->names[(*jc).atom[0]],P->names[(*jc).atom[1]],P->names[(*jc).atom[2]],
-            P->names[(*jc).atom[3]],phi*RADDEG,J);
+    sprintf(buffer,"%5i %4s%4s%4s%4s%4s%12lf%12lf\n",residue+1,currentParm->resnames[residue],
+            currentParm->names[(*jc).atom[0]],currentParm->names[(*jc).atom[1]],
+            currentParm->names[(*jc).atom[2]], currentParm->names[(*jc).atom[3]],phi*RADDEG,J);
     outputfile.IO->Write(buffer,1,51);
     //mprintf("%5i %4s",residue+1,P->resnames[residue]);
     //mprintf("%4s",P->names[(*jc).atom[0]]);

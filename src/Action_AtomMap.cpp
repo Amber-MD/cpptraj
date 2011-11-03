@@ -23,7 +23,8 @@ atommap::atommap() {
   M=NULL;
   natom=0;
   names=NULL;
-  F=NULL;
+  mapFrame=NULL;
+  mapParm=NULL;
   debug=0;
 }
 
@@ -57,7 +58,7 @@ const char *atommap::atomID(int atom) {
  */
 const char *atommap::Aname(int atom) {
   if (atom<0 || atom>=natom) return NULL;
-  return (P->names[atom]);
+  return (mapParm->names[atom]);
 }
 
 /* atommap::calcDist()
@@ -73,7 +74,7 @@ int atommap::calcDist() {
       if (debug>1) mprintf("%s_%i - %s_%i ",names[i],i,names[j],j);
       nbondi=M[i].nbond;
       nbondj=M[j].nbond;
-      r=F->DIST(i,j);
+      r=mapFrame->DIST(i,j);
       if (debug>1) mprintf("%lf ",r);
       // Lookup bond distance based on atom names 
       // NOTE: Atom names should be 1 char at this point
@@ -301,12 +302,12 @@ bool atommap::BondIsRepeated(int atom, int bond) {
 int atommap::setup() {
   int atom,bond;
 
-  natom=P->natom;
+  natom=mapParm->natom;
   names=(char**) malloc(natom * sizeof(char*));
   // Set up atom names.
   for (atom=0; atom<natom; atom++) {
     names[atom]=(char*) malloc(2*sizeof(char));
-    names[atom][0] = ElementFromName(P->names[atom]);
+    names[atom][0] = ElementFromName(mapParm->names[atom]);
     names[atom][1]='\0';
     // DEBUG
     if (debug>0) mprintf("  Atom %i element: [%s]\n",atom,names[atom]);
@@ -352,9 +353,9 @@ void atommap::WriteMol2(char *m2filename) {
   // Create mask with all mapped atoms
   for (int atom=0; atom<natom; atom++) {if (M[atom].isMapped) M1.AddAtom(atom);}
   // Strip so only mapped atoms remain
-  tmpParm = P->modifyStateByMask(M1.Selected,M1.Nselected);
+  tmpParm = mapParm->modifyStateByMask(M1.Selected,M1.Nselected);
   tmpFrame.SetupFrame(M1.Nselected,NULL);
-  tmpFrame.SetFrameFromMask(F, &M1);
+  tmpFrame.SetFrameFromMask(mapFrame, &M1);
 
   // Trajectory Setup
   tmpArg.AddArg((char*)"title\0");
@@ -565,15 +566,15 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
     }
     // Calculate reference improper dihedrals
     for (r=0; r<notunique_r; r++) {
-      dR[r] = Torsion(Ref->F->Coord(uR[0]),Ref->F->Coord(uR[1]),
-                      Ref->F->Coord(uR[2]),Ref->F->Coord(nR[r]));
+      dR[r] = Torsion(Ref->mapFrame->Coord(uR[0]),Ref->mapFrame->Coord(uR[1]),
+                      Ref->mapFrame->Coord(uR[2]),Ref->mapFrame->Coord(nR[r]));
       if (debug>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %lf\n",r,
                            uR[0],uR[1],uR[2],nR[r],dR[r]);
     }
     // Calculate target improper dihedrals
     for (r=0; r<notunique_t; r++) {
-      dT[r] = Torsion(Tgt->F->Coord(uT[0]),Tgt->F->Coord(uT[1]),
-                      Tgt->F->Coord(uT[2]),Tgt->F->Coord(nT[r]));
+      dT[r] = Torsion(Tgt->mapFrame->Coord(uT[0]),Tgt->mapFrame->Coord(uT[1]),
+                      Tgt->mapFrame->Coord(uT[2]),Tgt->mapFrame->Coord(nT[r]));
       if (debug>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",r,
                            uR[0],uR[1],uR[2],nT[r],dT[r]);
     }
@@ -992,27 +993,27 @@ int AtomMap::init() {
   // Get reference index based on filename 
   refIndex=FL->GetFrameIndex(refName);
   // Get reference frame
-  RefMap.F=FL->GetFrame(refIndex);
+  RefMap.mapFrame=FL->GetFrame(refIndex);
   // Get reference parm
-  RefMap.P=FL->GetFrameParm(refIndex);
-  if (RefMap.F==NULL || RefMap.P==NULL) {
+  RefMap.mapParm=FL->GetFrameParm(refIndex);
+  if (RefMap.mapFrame==NULL || RefMap.mapParm==NULL) {
     mprintf("AtomMap::init: Error: Could not get reference frame %s\n",refName);
     return 1;
   }
   // Get target index based on filename
   targetIndex=FL->GetFrameIndex(targetName);
   // Get target frame 
-  TargetMap.F=FL->GetFrame(targetIndex);
+  TargetMap.mapFrame=FL->GetFrame(targetIndex);
   // Get target parm
-  TargetMap.P=FL->GetFrameParm(targetIndex);
-  if (TargetMap.F==NULL || TargetMap.P==NULL) {
+  TargetMap.mapParm=FL->GetFrameParm(targetIndex);
+  if (TargetMap.mapFrame==NULL || TargetMap.mapParm==NULL) {
     mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName);
     return 1;
   }
 
   mprintf("    ATOMMAP: Atoms in trajectories associated with parm %s will be\n",
-          TargetMap.P->parmName);
-  mprintf("             mapped according to parm %s.\n",RefMap.P->parmName);
+          TargetMap.mapParm->parmName);
+  mprintf("             mapped according to parm %s.\n",RefMap.mapParm->parmName);
   if (outputname!=NULL)
     mprintf("             Map will be written to %s\n",outputname);
   if (maponly)
@@ -1085,11 +1086,11 @@ int AtomMap::init() {
       // Strip reference parm
       mprintf("    Modifying reference %s topology and frame to match mapped atoms.\n",
               FL->FrameName(refIndex));
-      stripParm = RefMap.P->modifyStateByMask(M1->Selected, numMappedAtoms);
+      stripParm = RefMap.mapParm->modifyStateByMask(M1->Selected, numMappedAtoms);
       // Strip reference frame
       newFrame = new Frame();
-      newFrame->SetupFrame(numMappedAtoms,RefMap.P->mass);
-      newFrame->SetFrameFromMask(RefMap.F, M1);
+      newFrame->SetupFrame(numMappedAtoms,RefMap.mapParm->mass);
+      newFrame->SetFrameFromMask(RefMap.mapFrame, M1);
       delete M1;
       // Replace reference with stripped versions
       if (FL->ReplaceFrame(refIndex, newFrame, stripParm)) {
@@ -1115,10 +1116,10 @@ int AtomMap::init() {
   if (!maponly) {
     // Set up new Frame
     newFrame = new Frame();
-    newFrame->SetupFrame(TargetMap.natom,TargetMap.P->mass);
+    newFrame->SetupFrame(TargetMap.natom,TargetMap.mapParm->mass);
 
     // Set up new Parm
-    newParm = TargetMap.P->modifyStateByMap(AMap);
+    newParm = TargetMap.mapParm->modifyStateByMap(AMap);
   }
 
   return 0;
@@ -1133,19 +1134,19 @@ int AtomMap::setup() {
     mprintf("    ATOMMAP: maponly was specified, not using atom map during traj read.\n");
     return 0;
   }
-  if (P->pindex!=TargetMap.P->pindex ||
-      P->natom !=TargetMap.P->natom) 
+  if (currentParm->pindex!=TargetMap.mapParm->pindex ||
+      currentParm->natom !=TargetMap.mapParm->natom) 
   {
-    mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.P->parmName,
-            RefMap.P->parmName,TargetMap.P->natom);
-    mprintf("             Current parm %s (%i atom).\n",P->parmName,P->natom);
+    mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.mapParm->parmName,
+            RefMap.mapParm->parmName,TargetMap.mapParm->natom);
+    mprintf("             Current parm %s (%i atom).\n",currentParm->parmName,currentParm->natom);
     mprintf("             Not using map for this parm.\n");
     return 1;
   }
-  mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.P->parmName,
-          RefMap.P->parmName,TargetMap.P->natom);
+  mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.mapParm->parmName,
+          RefMap.mapParm->parmName,TargetMap.mapParm->natom);
 
-  P = newParm;
+  currentParm = newParm;
   
   return 0;
 }

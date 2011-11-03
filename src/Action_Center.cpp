@@ -49,17 +49,17 @@ int Center::init() {
 
 /* Center::setup()
  * Set angle up for this parmtop. Get masks etc.
- * P is set in Action::Setup
+ * currentParm is set in Action::Setup
  */
 int Center::setup() {
 
-  if ( Mask1.SetupMask(P,activeReference,debug) ) return 1;
+  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Center::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
-  if (!origin && P->boxType==NOBOX) {
+  if (!origin && currentParm->boxType==NOBOX) {
     mprintf("    Error: Center::setup: Box center specified but no box information.\n");
     //fprintf(stdout,"                            Centering on origin.\n");
     return 1;

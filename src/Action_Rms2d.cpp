@@ -103,14 +103,14 @@ int Rms2d::init() {
  * Set up frame mask so that only selected atoms in frames will be stored.
  */
 int Rms2d::setup() {
-  if (FrameMask.SetupMask(P, activeReference, debug)) {
+  if (FrameMask.SetupMask(currentParm, activeReference, debug)) {
     mprinterr("Error: Rms2d::setup: Could not set up mask [%s] for parm %s\n",
-              FrameMask.maskString, P->parmName);
+              FrameMask.maskString, currentParm->parmName);
     return 1;
   }
   if (FrameMask.None()) {
     mprinterr("Error: Rms2d::setup: No atoms selected for mask [%s], parm %s\n",
-              FrameMask.maskString, P->parmName);
+              FrameMask.maskString, currentParm->parmName);
     return 1;
   }
   return 0;  

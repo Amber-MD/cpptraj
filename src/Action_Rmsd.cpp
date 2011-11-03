@@ -249,10 +249,10 @@ int Rmsd::perResSetup() {
 
   // If no target range previously specified do all solute residues
   if (ResRange.Empty()) {
-    if (P->finalSoluteRes>0)
-      nres = P->finalSoluteRes;
+    if (currentParm->finalSoluteRes>0)
+      nres = currentParm->finalSoluteRes;
     else
-      nres = P->nres; 
+      nres = currentParm->nres; 
     tgt_range.SetRange(1,nres+1);
   } else
     tgt_range.SetRange(&ResRange);
@@ -274,7 +274,7 @@ int Rmsd::perResSetup() {
   // Setup a dataset, target mask, and reference mask, for each residue.
   // Since we will only calculate per res rmsd for residues that can be
   // successfully set up, keep track of that as well.
-  //mprinterr("DEBUG: Setting up %i masks and data for %s\n",nres,P->parmName);
+  //mprinterr("DEBUG: Setting up %i masks and data for %s\n",nres,currentParm->parmName);
   resizeResMasks();
   if (PerResRMSD==NULL) PerResRMSD=new DataSetList();
   resIsActive.reserve(nres);
@@ -285,18 +285,18 @@ int Rmsd::perResSetup() {
   while (tgt_range.NextInRange(&tgtRes)) {
     ref_range.NextInRange(&refRes);
     // Check if either the residue num or the reference residue num out of range.
-    if ( tgtRes < 1 || tgtRes > P->nres) {
+    if ( tgtRes < 1 || tgtRes > currentParm->nres) {
       mprintf("    Warning: Rmsd: perres: Specified residue # %i is out of range.\n",tgtRes);
       continue;
     }
-    if ( refRes < 1 || refRes > P->nres ) {
+    if ( refRes < 1 || refRes > currentParm->nres ) {
       mprintf("    Warning: Rmsd: perres: Specified reference residue # %i is out of range.\n",
               refRes);
       continue;
     }
     N++;
     // Setup dataset name for this residue
-    P->ResName(tgtArg,tgtRes-1);
+    currentParm->ResName(tgtArg,tgtRes-1);
     // Create dataset for res - if already present this returns NULL
     DataSet *prDataSet = PerResRMSD->AddIdx(DOUBLE, tgtArg, tgtRes);
     if (prDataSet != NULL) DFL->Add(perresout, prDataSet);
@@ -319,7 +319,7 @@ int Rmsd::perResSetup() {
     }
 
     // Setup the target mask
-    if (tgtResMask[N]->SetupMask(P, activeReference, debug)) {
+    if (tgtResMask[N]->SetupMask(currentParm, activeReference, debug)) {
       mprintf("      perres: Could not setup target mask for residue %i\n",tgtRes);
       continue;
     }
@@ -354,7 +354,7 @@ int Rmsd::perResSetup() {
   ResRefFrame->SetupFrame(RefParm->natom, RefParm->mass);
   if (ResFrame!=NULL) delete ResFrame;
   ResFrame = new Frame();
-  ResFrame->SetupFrame(P->natom, P->mass);
+  ResFrame->SetupFrame(currentParm->natom, currentParm->mass);
 
   return 0;
 }
@@ -365,19 +365,19 @@ int Rmsd::perResSetup() {
  */
 int Rmsd::setup() {
 
-  if ( FrameMask.SetupMask(P,activeReference,debug) ) return 1;
+  if ( FrameMask.SetupMask(currentParm,activeReference,debug) ) return 1;
   if ( FrameMask.None() ) {
     mprintf("    Error: Rmsd::setup: No atoms in mask.\n");
     return 1;
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  SelectedFrame.SetupFrameFromMask(&FrameMask, P->mass);
+  SelectedFrame.SetupFrameFromMask(&FrameMask, currentParm->mass);
   
   // first: If RefParm not set, set it here and set the reference mask.
   //        Should only occur once.
   if (first && RefParm==NULL) {
-    RefParm=P;
+    RefParm=currentParm;
     if ( SetRefMask() ) return 1;
   } 
 

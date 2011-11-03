@@ -26,11 +26,11 @@ class atommap {
     };
     int debug;
   public:
-    mapatom *M;     // Array of atoms, contains bond info etc
-    int natom;      // Number of atoms in the map
-    char **names;   // Name of each atom
-    Frame *F;       // Hold atom coords
-    AmberParm *P;   // Hold corresponding parm
+    mapatom *M;         // Array of atoms, contains bond info etc
+    int natom;          // Number of atoms in the map
+    char **names;       // Name of each atom
+    Frame *mapFrame;    // Hold atom coords
+    AmberParm *mapParm; // Hold corresponding parm
 
     atommap();
     ~atommap();

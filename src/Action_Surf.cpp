@@ -50,21 +50,21 @@ int Surf::init() {
 
 /* Surf::setup()
  * Set surf up for this parmtop. Get masks etc.
- * P is set in Action::Setup
+ * currentParm is set in Action::Setup
  */
 int Surf::setup() {
   int matrixSize, i;
 
-  if ( Mask1.SetupMask(P,activeReference,debug) ) return 1;
+  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Surf::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
   // Setup surface area calc for this parm
-  soluteAtoms = P->SetSurfaceInfo();
+  soluteAtoms = currentParm->SetSurfaceInfo();
   if (soluteAtoms < 0) {
-    mprinterr("Error: Surf: Could not set up surface parameters for %s.\n",P->parmName);
+    mprinterr("Error: Surf: Could not set up surface parameters for %s.\n",currentParm->parmName);
     return 1;
   }
   mprintf("      SURF: Set up parameters for %i solute atoms.\n",soluteAtoms);
@@ -137,7 +137,7 @@ double Surf::CalcLCPO(int atomi, std::vector<int> ineighbor) {
   //mprintf("\n");
 
   // Calculate surface area of atom i
-  vdwi = P->SurfaceInfo[atomi].vdwradii;
+  vdwi = currentParm->SurfaceInfo[atomi].vdwradii;
   vdwi2 = vdwi * vdwi;
   Si = vdwi2 * FOURPI;
 
@@ -148,7 +148,7 @@ double Surf::CalcLCPO(int atomi, std::vector<int> ineighbor) {
                                   jt++) 
   {
     //printf("i,j %i %i\n",atomi + 1,(*jt)+1);
-    vdwj = P->SurfaceInfo[*jt].vdwradii;
+    vdwj = currentParm->SurfaceInfo[*jt].vdwradii;
     vdwj2 = vdwj * vdwj;
     distIndex = CalcIndex(atomi, *jt, soluteAtoms);
     dij = distances[distIndex];
@@ -164,7 +164,7 @@ double Surf::CalcLCPO(int atomi, std::vector<int> ineighbor) {
     {
       if ( (*kt) == (*jt) ) continue;
       //printf("i,j,k %i %i %i\n",atomi + 1,(*jt)+1,(*kt)+1);
-      vdwk = P->SurfaceInfo[*kt].vdwradii;
+      vdwk = currentParm->SurfaceInfo[*kt].vdwradii;
       distIndex = CalcIndex(*jt, *kt, soluteAtoms);
       djk = distances[distIndex];
       //printf("%4s%6i%6i%12.8lf\n","DJK ",(*jt)+1,(*kt)+1,djk);
@@ -187,10 +187,10 @@ double Surf::CalcLCPO(int atomi, std::vector<int> ineighbor) {
     //printf("%4s%20.8lf %20.8lf %20.8lf\n","AJK ",aij,sumajk,sumaijajk);
 
   } // END Loop over neighbors of atom i (j)
-  return( (P->SurfaceInfo[atomi].P1 * Si) +
-          (P->SurfaceInfo[atomi].P2 * sumaij) +
-          (P->SurfaceInfo[atomi].P3 * sumajk) +
-          (P->SurfaceInfo[atomi].P4 * sumaijajk) );
+  return( (currentParm->SurfaceInfo[atomi].P1 * Si) +
+          (currentParm->SurfaceInfo[atomi].P2 * sumaij) +
+          (currentParm->SurfaceInfo[atomi].P3 * sumajk) +
+          (currentParm->SurfaceInfo[atomi].P4 * sumaijajk) );
 }
 
 /* Surf::action()
@@ -246,11 +246,11 @@ int Surf::action() {
         // DEBUG
         //mprintf("SURF_NEIG:  %i %i %i %lf\n",atomi,atomj,distIndex,distances[distIndex]);
         // Count atoms as neighbors if their VDW radii touch
-        if ( (P->SurfaceInfo[atomi].vdwradii + P->SurfaceInfo[atomj].vdwradii) >
+        if ( (currentParm->SurfaceInfo[atomi].vdwradii + currentParm->SurfaceInfo[atomj].vdwradii) >
              distances[distIndex] ) {
           // Consider all atoms for icosa, only non-H's for LCPO
-          if ( P->SurfaceInfo[atomi].vdwradii > 2.5 &&
-               P->SurfaceInfo[atomj].vdwradii > 2.5 ) {
+          if ( currentParm->SurfaceInfo[atomi].vdwradii > 2.5 &&
+               currentParm->SurfaceInfo[atomj].vdwradii > 2.5 ) {
             ineighbor.push_back(atomj);
           }
         }

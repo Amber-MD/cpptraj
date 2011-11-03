@@ -157,19 +157,19 @@ int DistRmsd::init( ) {
  */
 int DistRmsd::setup() {
 
-  if ( TgtMask.SetupMask(P,activeReference,debug) ) return 1;
+  if ( TgtMask.SetupMask(currentParm,activeReference,debug) ) return 1;
   if ( TgtMask.None() ) {
     mprintf("    Error: DistRmsd::setup: No atoms in mask.\n");
     return 1;
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  SelectedTgt.SetupFrameFromMask(&TgtMask, P->mass);
+  SelectedTgt.SetupFrameFromMask(&TgtMask, currentParm->mass);
   
   // first: If RefParm not set, set it here and set the reference mask.
   //        Should only occur once.
   if (first && RefParm==NULL) {
-    RefParm=P;
+    RefParm=currentParm;
     if ( SetRefMask() ) return 1;
   } 
 

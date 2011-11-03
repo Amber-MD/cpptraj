@@ -3,7 +3,7 @@
 
 // CONSTRUCTOR
 Action::Action() {
-  P=NULL;
+  currentParm=NULL;
   F=NULL;
   DSL=NULL;
   DFL=NULL;
@@ -74,9 +74,9 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
 int Action::Setup(AmberParm **ParmAddress) {
   int err;
   
-  P = *ParmAddress;
+  currentParm = *ParmAddress;
   // If useMass, check that parm actually has masses.
-  if (P->mass==NULL && useMass) {
+  if (currentParm->mass==NULL && useMass) {
     mprintf("    Warning: %s: Mass for this parm is NULL.\n",actionArgs.Command());
     mprintf("             Geometric center will be used instead of center of mass.\n");
     useMass=false;
@@ -84,7 +84,7 @@ int Action::Setup(AmberParm **ParmAddress) {
   err = this->setup();
   if (err) return err;
   // Set the value of parm address in case parm was changed, e.g. in strip
-  *ParmAddress = P;
+  *ParmAddress = currentParm;
   return 0;
 }
 

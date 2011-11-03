@@ -88,7 +88,7 @@ int Outtraj::action() {
     // If value from dataset not within min/max, exit now.
     if (dVal < min || dVal > max) return 0;
   }
-  if ( outtraj.WriteFrame(frameNum, P, F->X,F->V,F->box,F->T) != 0 ) return 1;
+  if ( outtraj.WriteFrame(frameNum, currentParm, F->X,F->V,F->box,F->T) != 0 ) return 1;
   return 0;
 } 
 
