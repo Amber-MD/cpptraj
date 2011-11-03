@@ -17,19 +17,20 @@ ArgList::ArgList() {
 // DESTRUCTOR
 ArgList::~ArgList() {}
 
-/* ArgList::SetDebug()
- * Set the arglist debug level.
- */
+// ArgList::SetDebug()
 void ArgList::SetDebug(int debugIn) {
   debug = debugIn;
   if (debug>0)
     mprintf("ArgList debug level set to %i\n",debug);
 }
 
-/* ArgList::SetList()
- * Separate input by the characters in separator and store as separate args.
- * This overwrites any existing args and completely resets the list.
- */
+// ArgList::SetList()
+/** Separate input by the characters in separator and store as separate args.
+  * This overwrites any existing args and completely resets the list.
+  * \param inputString NULL terminated string to be converted to arguments
+  * \param separator string containing characters used to separate arguments
+  * \return 0 if arglist successfully set up, 1 if not.
+  */
 int ArgList::SetList(char *inputString, const char *separator) {
   string argument;
 
@@ -88,9 +89,9 @@ int ArgList::SetList(char *inputString, const char *separator) {
   return 0;
 }
 
-/* ArgList::AddArg()
- * Add input to the argument list.
- */
+// ArgList::AddArg()
+/** \param input NULL terminated string to add to argument list
+  */
 void ArgList::AddArg(char *input) {
   string argument;
   // Dont store blank tokens
@@ -103,11 +104,10 @@ void ArgList::AddArg(char *input) {
   marked.push_back(false);
 }
 
-/* ArgList::ResetMarked()
- * Reset all entries in the marked list to false. If noResetCmd is true
- * dont reset the first arg.
- * NOTE: Is this essential? If it is, is the bool essential?
- */
+// ArgList::ResetMarked()
+/** \param noResetCmd If true dont reset the marked status of the first arg.
+  */
+// NOTE: Is this essential? If it is, is the bool essential?
 void ArgList::ResetMarked(bool noResetCmd) {
   unsigned int startarg = 0;
   if (noResetCmd) startarg = 1;
@@ -115,18 +115,16 @@ void ArgList::ResetMarked(bool noResetCmd) {
     marked[arg]=false;
 }
 
-/* ArgList::MarkAll()
- * Set all entries in the marked list to true.
- */
+// ArgList::MarkAll()
 void ArgList::MarkAll() {
   for (unsigned int arg = 0; arg < marked.size(); arg++)
     marked[arg]=true;
 }
 
-/* ArgList::CheckForMoreArgs()
- * Check if all arguments have been processed. If not print a warning along
- * with all unprocessed arguments.
- */
+// ArgList::CheckForMoreArgs()
+/** Check if all arguments have been processed. If not print a warning along
+  * with all unprocessed arguments.
+  */
 void ArgList::CheckForMoreArgs() {
   bool empty = true;
   string notmarked;
@@ -142,9 +140,7 @@ void ArgList::CheckForMoreArgs() {
             notmarked.c_str());
 }
 
-/* ArgList::PrintList()
- * Print out each arg on separate lines.
- */
+// ArgList::PrintList()
 void ArgList::PrintList() {
   unsigned int nargs = arglist.size();
   if (debug==0) {
@@ -157,32 +153,34 @@ void ArgList::PrintList() {
   }
 }
 
-/* ArgList::ArgLine()
- * Return the original argument string
- */
+// ArgList::ArgLine()
 const char *ArgList::ArgLine() {
   return argline.c_str();
 }        
         
-/* ArgList::ArgAt()
- * Return arg at specified position.
- */
+// ArgList::ArgAt()
+/** \param pos argument position
+  * \return pointer to the argument at pos or NULL if pos is out of bounds.
+  */
 char *ArgList::ArgAt(int pos) {
   if (pos < 0 || pos >= (int) arglist.size()) return NULL;
   return (char*)arglist[pos].c_str();
 }
 
-/* ArgList::ArgIs()
- * Return true if arg at specified position matches input.
- */
+// ArgList::ArgIs()
+/** \param pos argument position
+  * \param input Key to check arguments against.
+  * \return true if argument at pos is input
+  */
 bool ArgList::ArgIs(int pos, const char *input) {
   if (pos < 0 || pos >= (int) arglist.size()) return false;
   if (arglist[pos].compare( input )==0) return true;
   return false;
 }
 
-/* ArgList::Command()
- * Return the first argument and mark it, even if already marked.
+// ArgList::Command()
+/** Return the first argument and mark it, even if already marked.
+ * \return pointer to the first argument
  */
 const char *ArgList::Command() {
   if (arglist.empty()) return NULL;
@@ -190,9 +188,11 @@ const char *ArgList::Command() {
   return arglist[0].c_str();
 }
 
-/* ArgList::CommandIs()
- * Check if key is command, return true if so. Mark command no matter what.
- */
+// ArgList::CommandIs()
+/** Check if key matches the first argument. Mark command no matter what.
+  * \param key Key to check first argument against
+  * \return true if first argument matches key
+  */
 bool ArgList::CommandIs(const char *key) {
   if (arglist.empty()) return false;
   marked[0]=true;
@@ -211,11 +211,11 @@ bool ArgList::CommandIs(const char *key) {
   return false;
 }*/
 
-/* ArgList::getNextString()
- * Return the next unmarked string.
- * NOTE: The case back to char* is potentially dangerous if calling routine
- *       modifies the string in any way.
- */
+// ArgList::getNextString()
+/** \return the next unmarked string.
+  */
+// NOTE: The case back to char* is potentially dangerous if calling routine
+//        modifies the string in any way.
 char *ArgList::getNextString() {
   for (unsigned int arg = 0; arg < arglist.size(); arg++)
     if (!marked[arg]) {
@@ -225,15 +225,16 @@ char *ArgList::getNextString() {
   return NULL;
 }
 
-/* ArgList::getNextMask()
- * Return next unmarked Mask. A mask MUST include one of the following: 
- *   ':' residue
- *   '@' atom
- *   '*' everything
- *   NOTE: Disabling the following for now:
- *   '/' element
- *   '%' type
- */
+// ArgList::getNextMask()
+/** Return next unmarked Mask. A mask MUST include one of the following: 
+  *   ':' residue
+  *   '@' atom
+  *   '*' everything
+  * \return the next unmarked atom mask expression
+  */
+// NOTE: Disabling the following for now:
+// '/' element
+// '%' type
 char *ArgList::getNextMask() {
   for (unsigned int arg=0; arg < arglist.size(); arg++) {
     if (!marked[arg]) {
@@ -253,10 +254,8 @@ char *ArgList::getNextMask() {
   return NULL;
 }
 
-/* Class: BadConversion
- * Runtime exception class for catching bad conversions from the 
- * convertToX routines.
- */
+// Class: BadConversion
+/// Runtime exception for catching bad conversions from the convertToX routines.
 class BadConversion : public std::runtime_error {
 public:
   BadConversion(std::string const &s)
@@ -264,9 +263,8 @@ public:
     { }
 };
 
-/* convertToInteger()
- * Convert the input string to an integer.
- */
+// convertToInteger()
+/// Convert the input string to an integer.
 inline int convertToInteger(string const &s) {
   istringstream iss(s);
   int i;
@@ -275,9 +273,8 @@ inline int convertToInteger(string const &s) {
   return i;
 }
 
-/* convertToDouble()
- * Convert the input string to a double.
- */
+// convertToDouble()
+/// Convert the input string to a double.
 inline double convertToDouble(string const &s) {
   istringstream iss(s);
   double d;
@@ -286,29 +283,26 @@ inline double convertToDouble(string const &s) {
   return d;
 }
 
-/* validInteger()
- * Brief check that the passed in string begins with a digit
- * or '-'
- */
+// validInteger()
+/// Brief check that the passed in string begins with a digit or '-'
 inline bool validInteger(string const &argument) {
   locale loc;
   if (isdigit(argument[0],loc) || argument[0]=='-') return true;
   return false;
 }
 
-/* validDouble()
- * Brief check that the passed in string begins with a digit,
- * '-', or '.'
- */
+// validDouble()
+/// Brief check that the passed in string begins with a digit, '-', or '.'
 inline bool validDouble(string const &argument) {
   locale loc;
   if (isdigit(argument[0],loc) || argument[0]=='-' || argument[0]=='.' ) return true;
   return false;
 }
 
-/* ArgList::getNextInteger()
- * Convert next unmarked string to int and return, otherwise return def
- */
+// ArgList::getNextInteger()
+/** \param def Value to return if no integer args found
+  * \return Next unmarked integer argument or def
+  */
 int ArgList::getNextInteger(int def) {
   locale loc;
   for (unsigned int arg=0; arg < arglist.size(); arg++)
@@ -323,9 +317,10 @@ int ArgList::getNextInteger(int def) {
   return def;
 }
 
-/* ArgList::getNextDouble()
- * Convert next unmarked string to double and return, otherwise return def
- */
+// ArgList::getNextDouble()
+/** \param def Value to return if no double args found
+  * \return Next unmarked double argument or def
+  */
 double ArgList::getNextDouble(double def) {
   locale loc;
   for (unsigned int arg=0; arg < arglist.size(); arg++)
@@ -340,9 +335,12 @@ double ArgList::getNextDouble(double def) {
   return def;
 }
 
-/* ArgList::getKeyString()
- * Search for unmarked key in arglist, return if found, otherwise return def
- */
+// ArgList::getKeyString()
+/** Search the argument list for key, return the argument following key
+  * as a string if found, otherwise return def.
+  * \param key string to search for
+  * \param def Value to return if key not found.
+  */
 char *ArgList::getKeyString(const char *key, char *def) {
   unsigned int nargs = arglist.size() - 1;
   for (unsigned int arg=0; arg < nargs; arg++)
@@ -370,9 +368,12 @@ int ArgList::getKeyIndex(char *key) {
 }
 */
 
-/* ArgList::getKeyInt()
- * Search for unmarked key in arglist, return if found, otherwise returh def
- */
+// ArgList::getKeyInt()
+/** Search the argument list for key, return the argument following key
+  * as an integer if found, otherwise return def.
+  * \param key string to search for
+  * \param def Value to return if key not found.
+  */
 int ArgList::getKeyInt(const char *key, int def) {
   unsigned int nargs = arglist.size() - 1;
   for (unsigned int arg=0; arg < nargs; arg++)
@@ -390,9 +391,12 @@ int ArgList::getKeyInt(const char *key, int def) {
   return def;
 }
 
-/* ArgList::getKeyDouble()
- * Search for unmarked key in arglist, return if found, otherwise return def
- */
+// ArgList::getKeyDouble()
+/** Search the argument list for key, return the argument following key
+  * as a double if found, otherwise return def.
+  * \param key string to search for
+  * \param def Value to return if key not found.
+  */
 double ArgList::getKeyDouble(const char *key, double def) {
   unsigned int nargs = arglist.size() - 1;
   for (unsigned int arg=0; arg < nargs; arg++)
@@ -410,9 +414,11 @@ double ArgList::getKeyDouble(const char *key, double def) {
   return def;
 }
 
-/* ArgList::hasKey()
- * Return true if key is found, false if not. Mark key if found.
- */
+// ArgList::hasKey()
+/** Search the argument list for key, mark and return true if found.
+  * \param key string to search for
+  * \return true if key is found, false if not.
+  */
 bool ArgList::hasKey(const char *key) {
   for (unsigned int arg = 0; arg < arglist.size(); arg++) 
     if (!marked[arg]) {
@@ -424,11 +430,11 @@ bool ArgList::hasKey(const char *key) {
   return false;
 }
 
-/* ArgList::Contains()
- * Like hasKey(), but key is not marked. Return true if key is found, 
- * false if not.
- * NOTE: Should this be ignoring previously marked strings?
- */
+// ArgList::Contains()
+/** \param key string to search for
+  * \return true if key is found, false if not.
+  */
+// NOTE: Should this be ignoring previously marked strings?
 bool ArgList::Contains(const char *key) {
   for (unsigned int arg = 0; arg < arglist.size(); arg++) 
     if (!marked[arg]) {

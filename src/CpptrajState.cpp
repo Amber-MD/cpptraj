@@ -28,12 +28,13 @@ void CpptrajState::SetGlobalDebug(int debugIn) {
   DFL.SetDebug(debug);
 }
 
-/* CpptrajState::Dispatch()
- * Send commands to their appropriate classes.
+// CpptrajState::Dispatch()
+/** Send commands to their appropriate classes.
  * The command is tried on each class in turn. If the class rejects command
  * move onto the next one. If command is accepted return.
- * NOTE: Should differentiate between keyword rejection and outright error.
+ * \param inputLine NULL-terminated string consisting of commands and arguments.
  */
+// NOTE: Should differentiate between keyword rejection and outright error.
 void CpptrajState::Dispatch(char *inputLine) {
   ArgList dispatchArg;
   AmberParm *tempParm; // For coordinate lists
@@ -129,9 +130,9 @@ void CpptrajState::Dispatch(char *inputLine) {
   mprintf("Warning: Unknown Command %s.\n",dispatchArg.Command());
 }
 
-/* CpptrajState::Run()
- * Process trajectories in trajFileList. Each frame in trajFileList is sent
- * to the actions in actionList for processing.
+// CpptrajState::Run()
+/** Process trajectories in trajinList. Each frame in trajinList is sent
+ *  to the actions in actionList for processing.
  */
 int CpptrajState::Run() {
   TrajectoryFile* traj;

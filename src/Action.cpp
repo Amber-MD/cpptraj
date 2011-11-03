@@ -22,33 +22,38 @@ Action::~Action() {
   //fprintf(stderr,"Action Destructor.\n"); 
 }
 
-/* Action::SetArg()
- * Set the argument list
- */
+// Action::SetArg()
+/** \param inA argument list for the action
+  */
 void Action::SetArg( const ArgList &inA) { 
   actionArgs = inA;
 }
 
-/* Action::ActionCommand()
- *  Print the command that calls the action
- */
+// Action::ActionCommand()
 const char *Action::ActionCommand() { 
   return actionArgs.Command(); 
 }
 
-/* Action::CmdLine()
- * Print the command and all args
- */
+// Action::CmdLine()
 const char *Action::CmdLine() { 
   return actionArgs.ArgLine(); 
 }
 
-/* Action::Init()
- * Allocate non-parm dependent things like I/O files and datasets. Sets
- * the pointers to DataSetList, DataFileList and reference FrameList from
- * CpptrajState. Called before trajectory processing. Calls the actions 
- * internal init() routine.
- */
+// Action::Init()
+/** Get all relevant arguments from the
+  * argument list, set up any datasets which will be available for 
+  * analysis after trajectory processing, and set memory references 
+  * to the master dataset, datafile, reference frame, and parm file lists.
+  * Actions can have datasets not related to master datasets, e.g.
+  * in the NAstruct action, since data is stored for each nucleobase at
+  * each frame its output would not match up with other actions in the 
+  * master dataset list, so it has its own dataset list.
+  * \param DSLin pointer to the master DataSetList
+  * \param FLin pointer to the master Reference FrameList
+  * \param DFLin pointer to the master DataFileList
+  * \param PFLin pointer to the master ParmFileList
+  * \param debugIn Debug level that action should be set to
+  */
 int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin, 
                  ParmFileList *PFLin, int debugIn) {
   int err;
@@ -66,11 +71,17 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   return ( err );
 }
 
-/* Action::Setup()
- * Allocate parm-dependent things like masks. Sets the pointer to the current
- * parmtop and allows it to be modified by the action. Called every time traj 
- * changes. Calls the actions internal setup() routine.
- */
+// Action::Setup()
+/** Set up action for the current parm file. This is where any 
+  * parm-dependent variables should be set such as atom masks etc. The
+  * current parm memory address is set here but can also be modified
+  * by the action, this allows e.g. stripping of the parm. Only copies
+  * of the parm should be modified; a reference to the original parm is
+  * always stored in CpptrajState and can be reset there with the 'unstrip'
+  * command.
+  * \param ParmAddress memory address of current parm; may be changed
+  *        by the action.
+  */
 int Action::Setup(AmberParm **ParmAddress) {
   int err;
   
@@ -88,11 +99,14 @@ int Action::Setup(AmberParm **ParmAddress) {
   return 0;
 }
 
-/* Action::DoAction() 
- * Perform the action. Called every time a frame is to be processed. Sets the
- * pointer to the current frame and allows it to be modified by the action.
- * Calls the actions internal action() routine.
- */
+// Action::DoAction() 
+/** Perform action on the current frame. The current frame memory address
+  * is passed in and can be modified by the action, again for things like
+  * stripping etc. The current frame number is also passed in.
+  * \param FrameAddress memory address of the current frame; may be
+  *        changed by the action.
+  * \param frameNumIn number of the current frame
+  */
 int Action::DoAction(Frame **FrameAddress, int frameNumIn) {
   int err;
 

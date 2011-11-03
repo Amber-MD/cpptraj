@@ -12,16 +12,16 @@
 #define CPPTRAJ_VERSION_STRING "V2.2.7b"
 #endif
 
-/* Usage()
- * Print command line usage.
- */
+// Usage()
+/// Print command line usage.
 static void Usage(char *programName) {
   mprinterr("Usage: %s [-p Top1, -p Top2, ...] [-i Input] [-debug N]\n",programName);
   mprinterr("       %s Top1 Input\n",programName);
 }
 
-/* ProcessInputStream()
- * Process input from the file specified by filename. If filename is NULL
+// ProcessInputStream()
+/// Process input from the file specified by filename. 
+/** If filename is NULL
  * process input from STDIN. Set up an input line that will be converted
  * to an argument list and processed by the CpptrajState::Dispatch routine.
  * Leading and consectuive whitespace is skipped. \n or NULL executes command.
@@ -119,12 +119,13 @@ static int ProcessInputStream(char *inputFilename, CpptrajState *State) {
   return 0;
 }
 
-/* ProcessCmdLineArgs()
- * Process arguments on the command line. Process the input file last
+// ProcessCmdLineArgs()
+/// Process arguments on the command line. 
+/** Process the input file last
  * despite its position on the command line to allow any prmtops to
  * load.
- * Return 1 if unrecognized input on command line.
- * Return 2 if ProcessInputStream indicates we should just quit.
+ * \return 1 if unrecognized input on command line, 2 if ProcessInputStream indicates 
+ *         we should just quit.
  */
 static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
   char *inputFilename = NULL;
@@ -201,8 +202,9 @@ static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
   return 0;
 }
 
-/* ----------========== CPPTRAJ MAIN ROUTINE ==========----------
- * 1. Call parallel Init (does nothing if not a parallel run)
+// ----------========== CPPTRAJ MAIN ROUTINE ==========----------
+/// Main routine.
+/** 1. Call parallel Init (does nothing if not a parallel run)
  * 2. Process input from command line/inputfiles/stdin
  * 3. Run
  */

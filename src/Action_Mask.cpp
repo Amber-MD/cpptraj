@@ -15,15 +15,10 @@ ActionMask::~ActionMask() {
   //fprintf(stderr,"ActionMask Destructor.\n");
 }
 
-/* ActionMask::init()
- * Expected call: mask <mask1> [maskout <filename>] [maskpdb <filename>] 
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- * NOTE: Could also split the arglist at maskpdb and make it so any type of 
- *       file can be written out.
- */
+// ActionMask::init()
+/// Expected call: mask <mask1> [maskout <filename>] [maskpdb <filename>] 
+// NOTE: Could also split the arglist at maskpdb and make it so any type of 
+//       file can be written out.
 int ActionMask::init( ) {
   char *mask1;
   char *maskFilename;
@@ -60,16 +55,15 @@ int ActionMask::init( ) {
   return 0;
 }
 
-/* ActionMask::setup()
- * No setup performed here, all done in action so that the coords can be
- * passed to the mask parser.
- */
+// ActionMask::setup()
+/** No setup performed here, all done in action so that the coords can be
+  * passed to the mask parser.
+  */
 int ActionMask::setup() {
   return 0;  
 }
 
-/* ActionMask::action()
- */
+// ActionMask::action()
 int ActionMask::action() {
   int atom, res;
   TrajectoryFile pdbout;
@@ -126,9 +120,8 @@ int ActionMask::action() {
   return 0;
 } 
 
-/* ActionMask::print()
- * Close the output file.
- */
+// ActionMask::print()
+/// Close the output file.
 void ActionMask::print() {
   outfile.CloseFile();
 }

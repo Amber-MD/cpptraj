@@ -40,18 +40,20 @@ ActionList::~ActionList() {
       delete actionlist[i];
 }
 
-/* ActionList::SetDebug()
- * Set Action debug level
- */
+// ActionList::SetDebug()
 void ActionList::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
     mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug);
 }
 
-/* ActionList::AddAction()
- * Add a specific type of action class to the action list. 
- */
+// ActionList::AddAction()
+/** Check if the first argument of the given arglist is an action keyword.
+  * if so set up the appropriate action class.
+  * \param argIn input argument list
+  * \return 0 if action successfully added to the list, 1 if argument
+  *           not recognized.
+  */
 int ActionList::AddAction(ArgList &argIn) {
   Action *Act;
 
@@ -98,10 +100,10 @@ int ActionList::AddAction(ArgList &argIn) {
   return 0;  
 }
 
-/* ActionList::Init()
- * Initialize non-parm-specific data for each action (like datasets). If an 
- * action cannot be initialized deactivate it. Also set action debug level.
- */
+// ActionList::Init()
+/** Initialize non-parm-specific data for each action (like datasets). If an 
+  * action cannot be initialized deactivate it. Also set action debug level.
+  */
 int ActionList::Init( DataSetList *DSL, FrameList *FL, 
                            DataFileList *DFL, ParmFileList *PFL) {
   mprintf("\nACTIONS: Initializing %i actions:\n",Naction);
@@ -122,10 +124,10 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL,
   return 0;
 }
 
-/* ActionList::Setup()
- * Attempt to set up all actions in the action list with the given parm
- * If an action cannot be set up skip it.
- */
+// ActionList::Setup()
+/** Attempt to set up all actions in the action list with the given parm
+  * If an action cannot be set up skip it.
+  */
 int ActionList::Setup(AmberParm **ParmAddress) {
   int err;
   AmberParm *OriginalParm = *ParmAddress;
@@ -153,10 +155,10 @@ int ActionList::Setup(AmberParm **ParmAddress) {
   return 0;
 }
 
-/* ActionList::DoActions()
- * Perform actions in the action list on the given Frame. Skip actions not 
- * initialized or not setup. frameNumIn is the current frame number.
- */
+// ActionList::DoActions()
+/** Perform actions in the action list on the given Frame. Skip actions not 
+  * initialized or not setup. frameNumIn is the current frame number.
+  */
 void ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
   int err;
   Frame *OriginalFrame = *FrameAddress;
@@ -178,9 +180,7 @@ void ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
   }
 }
 
-/* ActionList::Print()
- * Non-dataset print for all actions. 
- */
+// ActionList::Print()
 void ActionList::Print() {
   mprintf("\nACTION OUTPUT:\n");
   for (int act=0; act<Naction; act++) {
