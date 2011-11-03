@@ -113,7 +113,7 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL,
       if ( actionlist[act]->Init( DSL, FL, DFL, PFL, debug ) ) {
         mprintf("    WARNING: Init failed for [%s]: DEACTIVATING\n",
                 actionlist[act]->CmdLine());
-        actionlist[act]->noInit=1;
+        actionlist[act]->noInit=true;
       }
     }
     mprintf("\n");
@@ -132,14 +132,14 @@ int ActionList::Setup(AmberParm **ParmAddress) {
 
   mprintf("    .... Setting up %i actions for %s ....\n",Naction,(*ParmAddress)->parmName);
   for (int act=0; act<Naction; act++) {
-    if (actionlist[act]->noInit==0) {
+    if (!actionlist[act]->noInit) {
       if (debug>0) mprintf("    %i: [%s]\n",act,actionlist[act]->CmdLine());
-      actionlist[act]->noSetup=0;
+      actionlist[act]->noSetup=false;
       err = actionlist[act]->Setup(ParmAddress);
       if (err==1) {
         mprintf("      WARNING: Setup failed for [%s]: Skipping\n",
                 actionlist[act]->CmdLine());
-        actionlist[act]->noSetup=1;
+        actionlist[act]->noSetup=true;
         //return 1;
       } else if (err==2) {
         // Return value of 2 requests return to original parm
@@ -170,7 +170,7 @@ void ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
       // Treat actions that fail as if they could not be set up
       mprintf("Warning: Action [%s] failed, frame %i.\n",actionlist[act]->CmdLine(),
               frameNumIn);
-      actionlist[act]->noSetup=1;
+      actionlist[act]->noSetup=true;
     } else if (err==2) {
       // Return value of 2 requests return to original frame
       *FrameAddress = OriginalFrame;

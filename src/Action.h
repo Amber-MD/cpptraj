@@ -66,15 +66,15 @@ class Action {
     virtual int init()   { return 0; }
 
   public:
-    int noInit;             // Set to 1 if action could not be initialized
-    int noSetup;            // Set to 1 if action could not be set up
+    bool noInit;             // True if action could not be initialized
+    bool noSetup;            // True if action could not be set up
   
     Action();               // Constructor
     virtual ~Action();      // Destructor - virtual since this class is inherited
 
     void SetArg(const ArgList&); // Set the argument list
-    const char *ActionCommand();              // Print the command that calls the action
-    const char *CmdLine();           // Print the entire argument line
+    const char *ActionCommand(); // Print the command that calls the action
+    const char *CmdLine();       // Print the entire argument line
 
     int Init(DataSetList*, FrameList*, DataFileList*, ParmFileList *,int); 
     int Setup(AmberParm **);

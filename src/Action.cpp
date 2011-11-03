@@ -13,8 +13,8 @@ Action::Action() {
   useMass=false;
   debug=0;
   frameNum=0; 
-  noInit=0; 
-  noSetup=0; 
+  noInit=false; 
+  noSetup=false; 
 }
 
 // DESTRUCTOR
