@@ -116,7 +116,7 @@ void CpptrajState::Dispatch(char *inputLine) {
 
   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {
-    DF_Args.push_back(dispatchArg);
+    DFL.DF_Args.push_back(dispatchArg);
     return;
   }
 
@@ -128,102 +128,6 @@ void CpptrajState::Dispatch(char *inputLine) {
 
   mprintf("Warning: Unknown Command %s.\n",dispatchArg.Command());
 }
-
-/* CpptrajState::ProcessDataFileCmd()
- * Process command relating to data files. All datafile commands have format:
- *   datafile <cmd> <datafile> ...
- */
-void CpptrajState::ProcessDataFileCmd() {
-  char *df_cmd = NULL;
-  char *name1 = NULL;
-  char *name2 = NULL;
-  int width,precision;
-  DataFile *df;
-
-  if (DF_Args.empty()) return;
-  mprintf("DATAFILE SETUP:\n");
-
-  // Loop through all "datafile" arguments
-  for (std::list<ArgList>::iterator dataArg=DF_Args.begin(); 
-                                    dataArg!=DF_Args.end(); 
-                                    dataArg++) 
-  {
-    // Next string will be the argument passed to datafile
-    df_cmd = (*dataArg).getNextString();
-    mprintf("  [%s]\n",(*dataArg).ArgLine());
-    // Next string is datafile that command pertains to
-    name1 = (*dataArg).getNextString();
-    if (name1==NULL) {
-      mprintf("Error: datafile %s: No filename given.\n",df_cmd);
-      continue;
-    }
-    df = DFL.GetDataFile(name1);
-
-    // datafile create
-    // Usage: datafile create <filename> <dataset0> <dataset1> ...
-    if ( (*dataArg).ArgIs(1,"create") ) {
-      if (df==NULL)
-        mprintf("    Creating file %s\n",name1);
-      while ( (name2=(*dataArg).getNextString())!=NULL ) {
-        if ( DFL.Add(name1, DSL.Get(name2))==NULL ) {
-          mprintf("Warning: Dataset %s does not exist in main dataset list, skipping.\n",name2);
-        }
-      }
-
-    // datafile xlabel
-    // Usage: datafile xlabel <filename> <label>
-    } else if ( (*dataArg).ArgIs(1,"xlabel") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile xlabel: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      df->SetXlabel((*dataArg).getNextString());
-
-    // datafile ylabel
-    // Usage: datafile ylabel <filename> <label>
-    } else if ( (*dataArg).ArgIs(1,"ylabel") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile ylabel: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      df->SetYlabel((*dataArg).getNextString());
-
-    // datafile invert
-    // Usage: datafile invert <filename>
-    } else if ( (*dataArg).ArgIs(1,"invert") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile invert: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      mprintf("    Inverting datafile %s\n",name1);
-      df->SetInverted();
-
-    // datafile noxcol
-    // Usage: datafile noxcol <filename>
-    } else if ( (*dataArg).ArgIs(1,"noxcol") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile noxcol: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      mprintf("    Not printing x column for datafile %s\n",name1);
-      df->SetNoXcol();
-    
-    // datafile precision
-    // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
-    //        If width/precision not specified default to 12.4
-    } else if ( (*dataArg).ArgIs(1,"precision") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile precision: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      name2 = (*dataArg).getNextString();
-      width = (*dataArg).getNextInteger(12);
-      precision = (*dataArg).getNextInteger(4);
-      df->SetPrecision(name2,width,precision);
-    }
-
-  } // END loop over datafile args
-}  
 
 /* CpptrajState::Run()
  * Process trajectories in trajFileList. Each frame in trajFileList is sent
@@ -339,7 +243,7 @@ int CpptrajState::Run() {
   analysisList.Analyze(&DFL);
 
   // Process any datafile commands
-  ProcessDataFileCmd();
+  DFL.ProcessDataFileArgs(&DSL);
   // Print Datafile information
   DFL.Info();
 
