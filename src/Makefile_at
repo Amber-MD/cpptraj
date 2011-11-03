@@ -19,10 +19,10 @@ dependclean:
 	-/bin/rm FindDepend.o
 	-/bin/rm findDepend
 
-cpptraj$(SFX): $(NETCDF) $(OBJECTS)
+cpptraj$(SFX): $(NETCDFLIB) $(OBJECTS)
 	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(NETCDFLIB) $(ZLIB) $(BZLIB)
 
-$(NETCDF): ../../netcdf_config.log
+$(NETCDFLIB): ../../netcdf_config.log
 	cd ../../netcdf/src && $(MAKE) install
 
 .c.o:
