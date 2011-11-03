@@ -139,9 +139,9 @@ int Average::action() {
   i3=0;
   for (int n = 0; n < Natom; n++) {
     atom3 = Mask1.Selected[n] * 3;
-    AvgFrame->X[i3  ] += F->X[atom3  ];
-    AvgFrame->X[i3+1] += F->X[atom3+1];
-    AvgFrame->X[i3+2] += F->X[atom3+2];
+    AvgFrame->X[i3  ] += currentFrame->X[atom3  ];
+    AvgFrame->X[i3+1] += currentFrame->X[atom3+1];
+    AvgFrame->X[i3+2] += currentFrame->X[atom3+2];
     i3 += 3;
   }
   Nframes++; 

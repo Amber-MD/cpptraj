@@ -213,7 +213,7 @@ int Surf::action() {
   for (atomi = 0; atomi < soluteAtoms - 1; atomi++) {
     for (atomj = atomi+1; atomj < soluteAtoms; atomj++) {
       distIndex = CalcIndex(atomi, atomj, soluteAtoms);
-      distances[distIndex] = F->DIST(atomi, atomj);
+      distances[distIndex] = currentFrame->DIST(atomi, atomj);
     }
   }
 }
@@ -221,7 +221,7 @@ int Surf::action() {
   distIndex = 0;
   for (atomi = 0; atomi < soluteAtoms - 1; atomi++) {
     for (atomj = atomi + 1; atomj < soluteAtoms; atomj++) {
-      distances[distIndex++] = F->DIST(atomi, atomj);
+      distances[distIndex++] = currentFrame->DIST(atomi, atomj);
       // DEBUG
       //mprintf("SURF_DIST:  %i %i %i %lf\n",atomi,atomj,distIndex-1,distances[distIndex-1]);
     }

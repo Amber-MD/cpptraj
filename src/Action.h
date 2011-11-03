@@ -49,7 +49,7 @@ class Action {
   protected:
     ArgList actionArgs;     // The action arguments (setArg)
     AmberParm *currentParm; // The current parmtop (setup)
-    Frame *F;               // The current frame (action)
+    Frame *currentFrame;    // The current frame (action)
     DataSetList *DSL;       // Pointer to the data set list in CpptrajState (init)
     DataFileList *DFL;      // Pointer to the data file list in CpptrajState (init)
     ParmFileList *PFL;      // Pointer to the parm file list in CpptrajState (init)

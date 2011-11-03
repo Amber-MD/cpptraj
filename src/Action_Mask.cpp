@@ -75,7 +75,7 @@ int ActionMask::action() {
   TrajectoryFile pdbout;
 
   // Get atom selection
-  if ( Mask1.SetupCharMask(currentParm, F->X, debug) ) {
+  if ( Mask1.SetupCharMask(currentParm, currentFrame->X, debug) ) {
     mprintf("Warning: ActionMask::action: Could not set up atom mask [%s]\n",Mask1.maskString);
     return 1;
   }
@@ -105,7 +105,7 @@ int ActionMask::action() {
     Frame *pdbFrame = new Frame();
     pdbFrame->SetupFrame(Mask2->Nselected,NULL);
     // Set only coords
-    pdbFrame->SetFrameCoordsFromMask(F->X, Mask2);
+    pdbFrame->SetFrameCoordsFromMask(currentFrame->X, Mask2);
     // Set up output file. 
     pdbout.SetDebug(debug);
     // Set pdb output options: multi so that 1 file per frame is written; dumpq

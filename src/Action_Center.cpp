@@ -75,12 +75,12 @@ int Center::action() {
 
   // Set up box
   if (!origin) {
-    box[0] = F->box[0] / 2.0;
-    box[1] = F->box[1] / 2.0;
-    box[2] = F->box[2] / 2.0;
+    box[0] = currentFrame->box[0] / 2.0;
+    box[1] = currentFrame->box[1] / 2.0;
+    box[2] = currentFrame->box[2] / 2.0;
   }
   
-  F->Center(&Mask1, box, useMass);
+  currentFrame->Center(&Mask1, box, useMass);
 
   return 0;
 } 

@@ -246,10 +246,10 @@ int DSSP::action() {
       N = SecStruct[resj].N;
       H = SecStruct[resj].H;
 
-      rON = F->COORDDIST(O, N);
-      rCH = F->COORDDIST(C, H);
-      rOH = F->COORDDIST(O, H);
-      rCN = F->COORDDIST(C, N);
+      rON = currentFrame->COORDDIST(O, N);
+      rCH = currentFrame->COORDDIST(C, H);
+      rOH = currentFrame->COORDDIST(O, H);
+      rCN = currentFrame->COORDDIST(C, N);
 
       E = DSSP_fac * (1/rON + 1/rCH - 1/rOH - 1/rCN);
       if (E < -0.5)

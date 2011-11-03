@@ -103,10 +103,10 @@ int Strip::setup() {
  */
 int Strip::action() {
 
-  newFrame.SetFrameFromMask(F, &M1);
+  newFrame.SetFrameFromMask(currentFrame, &M1);
 
   // Set frame
-  F = &newFrame;
+  currentFrame = &newFrame;
 
   return 0;
 } 

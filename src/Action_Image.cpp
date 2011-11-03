@@ -139,16 +139,16 @@ int Image::action() {
   // Set up information for orthorhombic cell
   if (ortho) {
     if ( origin ) {
-      bp[0] = F->box[0] / 2.0;
-      bp[1] = F->box[1] / 2.0;
-      bp[2] = F->box[2] / 2.0;
+      bp[0] = currentFrame->box[0] / 2.0;
+      bp[1] = currentFrame->box[1] / 2.0;
+      bp[2] = currentFrame->box[2] / 2.0;
       bm[0] = -bp[0]; 
       bm[1] = -bp[1];
       bm[2] = -bp[2]; 
     } else {
-      bp[0] = F->box[0];
-      bp[1] = F->box[1];
-      bp[2] = F->box[2];
+      bp[0] = currentFrame->box[0];
+      bp[1] = currentFrame->box[1];
+      bp[2] = currentFrame->box[2];
       bm[0] = 0.0;
       bm[1] = 0.0; 
       bm[2] = 0.0; 
@@ -157,15 +157,15 @@ int Image::action() {
   // Set up information for non-orthorhombic cell
   } else {
     // NOTE: Does this need to be done every time?
-    F->BoxToRecip(ucell, recip);
+    currentFrame->BoxToRecip(ucell, recip);
     // Set up centering if putting nonortho cell into familiar trunc. oct. shape
     if (triclinic == FAMILIAR) {
       // Use center of mask of atoms in mask
       if (ComMask!=NULL) {
         if (useMass)
-          F->CenterOfMass(ComMask, fcom);
+          currentFrame->CenterOfMass(ComMask, fcom);
         else
-          F->GeometricCenter(ComMask,fcom);
+          currentFrame->GeometricCenter(ComMask,fcom);
       // Use origin
       } else if (origin) {
         fcom[0]=0.0;
@@ -173,9 +173,9 @@ int Image::action() {
         fcom[2]=0.0;
       // Use box center
       } else {
-        fcom[0]=F->box[0] / 2.0; 
-        fcom[1]=F->box[1] / 2.0; 
-        fcom[2]=F->box[2] / 2.0;
+        fcom[0]=currentFrame->box[0] / 2.0; 
+        fcom[1]=currentFrame->box[1] / 2.0; 
+        fcom[2]=currentFrame->box[2] / 2.0;
       }
       //fprintf(stdout,"DEBUG: fcom = %lf %lf %lf\n",fcom[0],fcom[1],fcom[2]);
     } 
@@ -207,23 +207,23 @@ int Image::action() {
     // Set up position based on first atom or center of mass
     if (center) { 
       if (useMass)
-        F->CenterOfMass(Coord,firstAtom,lastAtom);
+        currentFrame->CenterOfMass(Coord,firstAtom,lastAtom);
       else
-        F->GeometricCenter(Coord,firstAtom,lastAtom);
+        currentFrame->GeometricCenter(Coord,firstAtom,lastAtom);
     } else
-      F->GetCoord(Coord,firstAtom);
+      currentFrame->GetCoord(Coord,firstAtom);
 
     // ORTHORHOMBIC
     if (ortho) {
       // Determine how far coords are out of box
       for (int i=0; i<3; i++) {
         while (Coord[i] < bm[i]) {
-          Coord[i] += F->box[i];
-          boxTrans[i] += F->box[i];
+          Coord[i] += currentFrame->box[i];
+          boxTrans[i] += currentFrame->box[i];
         }
         while (Coord[i] > bp[i]) {
-          Coord[i] -= F->box[i];
-          boxTrans[i] -= F->box[i];
+          Coord[i] -= currentFrame->box[i];
+          boxTrans[i] -= currentFrame->box[i];
         }
       }
 
@@ -252,7 +252,7 @@ int Image::action() {
         Coord[0] += boxTrans[0];
         Coord[1] += boxTrans[1];
         Coord[2] += boxTrans[2];
-        MinImageNonOrtho2(Coord, fcom, F->box, origin, ixyz, ucell, recip);
+        MinImageNonOrtho2(Coord, fcom, currentFrame->box, origin, ixyz, ucell, recip);
         if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
           boxTrans[0] += (ixyz[0]*ucell[0] + ixyz[1]*ucell[3] + ixyz[2]*ucell[6]);
           boxTrans[1] += (ixyz[0]*ucell[1] + ixyz[1]*ucell[4] + ixyz[2]*ucell[7]);
@@ -270,7 +270,7 @@ int Image::action() {
     // Translate atoms back into the box
     for (Atom = firstAtom; Atom < lastAtom; Atom++) {
       if (Mask1.AtomInCharMask(Atom))
-        F->Translate(boxTrans, Atom);
+        currentFrame->Translate(boxTrans, Atom);
     }
 
   } // END loop over count

@@ -4,7 +4,7 @@
 // CONSTRUCTOR
 Action::Action() {
   currentParm=NULL;
-  F=NULL;
+  currentFrame=NULL;
   DSL=NULL;
   DFL=NULL;
   PFL=NULL;
@@ -96,12 +96,12 @@ int Action::Setup(AmberParm **ParmAddress) {
 int Action::DoAction(Frame **FrameAddress, int frameNumIn) {
   int err;
 
-  F = *FrameAddress;
+  currentFrame = *FrameAddress;
   frameNum = frameNumIn;
   err = this->action();
   if (err) return err;
   // Set the value of frame address in case frame was changed, e.g. in strip
-  *FrameAddress = F;
+  *FrameAddress = currentFrame;
   return 0;
 }
 

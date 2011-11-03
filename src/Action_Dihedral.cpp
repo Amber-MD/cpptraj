@@ -78,7 +78,7 @@ int Dihedral::setup() {
 int Dihedral::action() {
   double D;
 
-  D=F->DIHEDRAL(&M1,&M2,&M3,&M4,useMass);
+  D=currentFrame->DIHEDRAL(&M1,&M2,&M3,&M4,useMass);
 
   D *= RADDEG;
 

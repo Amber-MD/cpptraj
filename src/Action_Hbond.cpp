@@ -233,10 +233,10 @@ int Hbond::action() {
     H = (*donor);
     for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++, Nhb++) {
       if (*accept == D) continue;
-      dist2 = F->DIST2(*accept, D);
-      //dist2 = F->DIST2(*accept, D, (int)P->boxType, ucell, recip);
+      dist2 = currentFrame->DIST2(*accept, D);
+      //dist2 = currentFrame->DIST2(*accept, D, (int)P->boxType, ucell, recip);
       if (dist2 > dcut2) continue;
-      angle = F->ANGLE(*accept, H, D);
+      angle = currentFrame->ANGLE(*accept, H, D);
       if (angle < acut) continue;
 //      mprintf( "HBOND[%i]: %i:%s ... %i:%s-%i:%s Dist=%lf Angle=%lf\n", 
 //              Nhb, *accept, P->names[*accept],

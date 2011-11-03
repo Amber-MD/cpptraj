@@ -408,7 +408,7 @@ int Rmsd::action() {
   //        Should only occur once.
   // NOTE: For MPI this will currently result in different references between threads.
   if (first) { 
-    RefFrame = *F;
+    RefFrame = *currentFrame;
     first = false;
   }
 
@@ -426,7 +426,7 @@ int Rmsd::action() {
   SelectedRef.SetFrameCoordsFromMask(RefFrame.X, &RefMask);
 
   // Set selected frame atoms. Masses have already been set.
-  SelectedFrame.SetFrameCoordsFromMask(F->X, &FrameMask);
+  SelectedFrame.SetFrameCoordsFromMask(currentFrame->X, &FrameMask);
 
   // DEBUG
 /*  mprintf("  DEBUG: RMSD: First atom coord in SelectedFrame is : "); 
@@ -439,7 +439,7 @@ int Rmsd::action() {
     R = SelectedFrame.RMSD(&SelectedRef, useMass);
   } else {
     R = SelectedFrame.RMSD(&SelectedRef, U, Trans, useMass);
-    F->Trans_Rot_Trans(Trans,U);
+    currentFrame->Trans_Rot_Trans(Trans,U);
   }
 
   rmsd->Add(frameNum, &R);
@@ -455,7 +455,7 @@ int Rmsd::action() {
         continue;
       }
       ResRefFrame->SetFrameFromMask(&RefFrame, refResMask[N]);
-      ResFrame->SetFrameFromMask(F, tgtResMask[N]);
+      ResFrame->SetFrameFromMask(currentFrame, tgtResMask[N]);
       if (perrescenter)
         ResFrame->ShiftToCenter(ResRefFrame);
       R = ResFrame->RMSD(ResRefFrame,useMass);

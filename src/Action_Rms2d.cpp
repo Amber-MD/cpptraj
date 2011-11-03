@@ -121,7 +121,7 @@ int Rms2d::setup() {
  */
 int Rms2d::action() {
  
-  if (ReferenceCoords.AddCoordsByMask(F->X, &FrameMask)) return 1;
+  if (ReferenceCoords.AddCoordsByMask(currentFrame->X, &FrameMask)) return 1;
 
   return 0;
 } 

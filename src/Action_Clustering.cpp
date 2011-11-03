@@ -149,7 +149,7 @@ int Clustering::init() {
 int Clustering::action() {
   Frame *fCopy;
 
-  fCopy = F->FrameCopy();
+  fCopy = currentFrame->FrameCopy();
   ReferenceFrames.AddFrame(fCopy,currentParm);
   
   return 0;

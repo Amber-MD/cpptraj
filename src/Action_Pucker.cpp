@@ -103,7 +103,7 @@ int Pucker::setup() {
 int Pucker::action() {
   double D;
 
-  D=F->PUCKER(&M1,&M2,&M3,&M4,&M5,puckerMethod,amplitude,useMass);
+  D=currentFrame->PUCKER(&M1,&M2,&M3,&M4,&M5,puckerMethod,amplitude,useMass);
   D *= RADDEG;
 
   // Deal with offset

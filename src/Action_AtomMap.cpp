@@ -1156,9 +1156,9 @@ int AtomMap::setup() {
  */
 int AtomMap::action() {
   if (maponly) return 0;
-  for (int atom=0; atom < F->natom; atom++) 
-    newFrame->SetCoord(atom, F->Coord(AMap[atom]));
-  F = newFrame;
+  for (int atom=0; atom < currentFrame->natom; atom++) 
+    newFrame->SetCoord(atom, currentFrame->Coord(AMap[atom]));
+  currentFrame = newFrame;
   return 0;
 }
 

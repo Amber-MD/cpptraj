@@ -103,8 +103,8 @@ int Distance::setup() {
 int Distance::action() {
   double D, ucell[9], recip[9];
 
-  if (imageType>0) F->BoxToRecip(ucell,recip);
-  D = F->DIST2(&Mask1, &Mask2, useMass, imageType, ucell, recip);
+  if (imageType>0) currentFrame->BoxToRecip(ucell,recip);
+  D = currentFrame->DIST2(&Mask1, &Mask2, useMass, imageType, ucell, recip);
   D = sqrt(D);
 
   dist->Add(frameNum, &D);

@@ -75,7 +75,7 @@ int Angle::setup() {
 int Angle::action() {
   double Ang;
 
-  Ang=F->ANGLE(&Mask1,&Mask2,&Mask3,useMass);
+  Ang=currentFrame->ANGLE(&Mask1,&Mask2,&Mask3,useMass);
 
   Ang *= RADDEG;
 

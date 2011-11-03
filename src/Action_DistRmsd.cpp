@@ -194,7 +194,7 @@ int DistRmsd::action() {
   //        Should only occur once.
   // NOTE: For MPI this will currently result in different references between threads.
   if (first) {
-    RefFrame = *F;
+    RefFrame = *currentFrame;
     first = false;
   }
 
@@ -212,7 +212,7 @@ int DistRmsd::action() {
   SelectedRef.SetFrameCoordsFromMask(RefFrame.X, &RefMask);
 
   // Set selected frame atoms. Masses have already been set.
-  SelectedTgt.SetFrameCoordsFromMask(F->X, &TgtMask);
+  SelectedTgt.SetFrameCoordsFromMask(currentFrame->X, &TgtMask);
 
   // DEBUG
 /*  mprintf("  DEBUG: RMSD: First atom coord in SelectedTgt is : "); 

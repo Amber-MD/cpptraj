@@ -1017,7 +1017,7 @@ int NAstruct::setup() {
 int NAstruct::action() {
 
   // Set up base axes
-  if ( setupBaseAxes(F) ) return 1;
+  if ( setupBaseAxes(currentFrame) ) return 1;
 
   // Determine Base Pairing
   if ( determineBasePairing() ) return 1;

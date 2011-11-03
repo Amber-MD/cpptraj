@@ -161,15 +161,15 @@ int Radial::action() {
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
   if (imageType>0) {
-    D = F->BoxToRecip(ucell,recip);
+    D = currentFrame->BoxToRecip(ucell,recip);
     if (useVolume)  volume += D;
   }
 
   if (center1) {
-    F->GeometricCenter(&Mask1,coord_center);
+    currentFrame->GeometricCenter(&Mask1,coord_center);
     for (nmask2 = 0; nmask2 < Mask2.Nselected; nmask2++) {
       atom2 = Mask2.Selected[nmask2];
-      D = F->DIST2(coord_center,atom2,imageType,ucell,recip);
+      D = currentFrame->DIST2(coord_center,atom2,imageType,ucell,recip);
       if (D > maximum2) continue;
       // NOTE: Can we modify the histogram to store D^2?
       D = sqrt(D);
@@ -190,7 +190,7 @@ int Radial::action() {
     for (nmask2 = 0; nmask2 < Mask2.Nselected; nmask2++) {
       atom2 = Mask2.Selected[nmask2];
       if (atom1 != atom2) {
-        D = F->DIST2(atom1,atom2,imageType,ucell,recip);
+        D = currentFrame->DIST2(atom1,atom2,imageType,ucell,recip);
         if (D > maximum2) continue;
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);

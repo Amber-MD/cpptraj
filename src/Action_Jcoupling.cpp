@@ -329,7 +329,7 @@ int Jcoupling::action() {
                                             jc !=JcouplingInfo.end();
                                             jc++)
   {
-    phi = F->DIHEDRAL( (*jc).atom[0], (*jc).atom[1], (*jc).atom[2], (*jc).atom[3] );
+    phi = currentFrame->DIHEDRAL( (*jc).atom[0], (*jc).atom[1], (*jc).atom[2], (*jc).atom[3] );
     C0 = (*jc).C[0];
     C1 = (*jc).C[1];
     C2 = (*jc).C[2];

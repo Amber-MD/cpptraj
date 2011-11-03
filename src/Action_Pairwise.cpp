@@ -530,7 +530,7 @@ int Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
 /* Pairwise::action()
  */
 int Pairwise::action() {
-  if (Energy(&Mask0, F, currentParm)) return 1;
+  if (Energy(&Mask0, currentFrame, currentParm)) return 1;
   ds_vdw->Add(frameNum, &ELJ);
   ds_elec->Add(frameNum, &Eelec);
 

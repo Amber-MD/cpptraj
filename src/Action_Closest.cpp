@@ -262,9 +262,9 @@ int Closest::action() {
   double Dist, maxD, ucell[9], recip[9];
 
   if (imageType>0) {
-    F->BoxToRecip(ucell, recip);
+    currentFrame->BoxToRecip(ucell, recip);
     // Calculate max possible imaged distance
-    maxD = F->box[0] + F->box[1] + F->box[2];
+    maxD = currentFrame->box[0] + currentFrame->box[1] + currentFrame->box[2];
     maxD = maxD * maxD;
   } else {
     // If not imaginig, set max distance to an arbitrarily large number
@@ -294,8 +294,9 @@ int Closest::action() {
 
     // Calculate distance between each atom in Mask1 and atoms in solvent Mask
     for (atom = 0; atom < Mask1.Nselected; atom++) {
-      Dist = F->DIST2(Mask1.Selected[atom], SolventMols[solventMol].mask->Selected[0], 
-                      imageType, ucell, recip);
+      Dist = currentFrame->DIST2(Mask1.Selected[atom], 
+                                 SolventMols[solventMol].mask->Selected[0], 
+                                 imageType, ucell, recip);
       if (Dist < SolventMols[solventMol].D) SolventMols[solventMol].D=Dist;
       //fprintf(stdout,"D atom %i %i = %lf image %i\n",Mask1.Selected[atom],
       //        MaskList[solventMol]->Selected[0],minD,imageType);
@@ -303,8 +304,9 @@ int Closest::action() {
       if (!firstAtom) {
         for (solventAtom=1; solventAtom<SolventMols[solventMol].mask->Nselected; solventAtom++) 
         {
-          Dist = F->DIST2(Mask1.Selected[atom], SolventMols[solventMol].mask->Selected[solventAtom],
-                          imageType, ucell, recip);
+          Dist = currentFrame->DIST2(Mask1.Selected[atom], 
+                               SolventMols[solventMol].mask->Selected[solventAtom],
+                               imageType, ucell, recip);
           if (Dist < SolventMols[solventMol].D) SolventMols[solventMol].D=Dist;
         }
       }
@@ -351,8 +353,8 @@ int Closest::action() {
   }
 
   // Modify and set frame
-  newFrame.SetFrameFromMask(F, &tempMask);
-  F = &newFrame;
+  newFrame.SetFrameFromMask(currentFrame, &tempMask);
+  currentFrame = &newFrame;
 
   return 0;
 } 
