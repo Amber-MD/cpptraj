@@ -1,5 +1,4 @@
 #include <cstring>
-#include <cstdlib> // for abs, malloc, free
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
 // Dssp
@@ -13,7 +12,6 @@ DSSP::DSSP() {
   dssp=NULL; 
   Nres=0;
   Nframe=0.0;
-  sumOut=NULL;
   SSline=NULL;
   printString=false;
   SSdata=NULL;
@@ -23,24 +21,20 @@ DSSP::DSSP() {
 // DESTRUCTOR
 DSSP::~DSSP() {
 //  debugout.CloseFile(); // DEBUG
-  if (sumOut!=NULL) free(sumOut);
-  if (SSline!=NULL) free(SSline);
-  if (SSdata!=NULL) delete(SSdata);
-  if (dsspData!=NULL) delete(dsspData);
+  if (SSline!=NULL) delete[] SSline;
+  if (SSdata!=NULL) delete SSdata;
+  if (dsspData!=NULL) delete dsspData;
 }
 
 const char DSSP::SSchar[7]={ '0', 'b', 'B', 'G', 'H', 'I', 'T' };
 const char DSSP::SSname[7][6]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn"};
 
-/* DSSP::init()
- * Expected call: secstruct [out <filename>] [<mask>] [sumout <filename>]
- *                          [outputstring]
- * If sumout is not specified the filename specified by out is used with .sum suffix. 
- * Arg. check order is:
- *    1) Keywords
- *    2) Masks
- * For now dont allow NULL(stdout) filename for output
- */
+// DSSP::init()
+/** Expected call: secstruct [out <filename>] [<mask>] [sumout <filename>]
+  *                          [outputstring]
+  * If sumout is not specified the filename specified by out is used with .sum suffix. 
+*/
+// For now dont allow NULL(stdout) filename for output
 int DSSP::init() {
   char *mask, *temp;
 
@@ -52,12 +46,10 @@ int DSSP::init() {
   outfilename = actionArgs.getKeyString("out",NULL);
   temp = actionArgs.getKeyString("sumout",NULL);
   if (temp!=NULL) {
-    sumOut = (char*) malloc( (strlen(temp) + 1) * sizeof(char));
-    strcpy(sumOut, temp);
+    sumOut.assign(temp);
   } else if (outfilename!=NULL) {
-    sumOut = (char*) malloc( ( strlen(outfilename) + 5) * sizeof(char));
-    strcpy(sumOut, outfilename);
-    strcat(sumOut,".sum");
+    sumOut.assign(outfilename);
+    sumOut += ".sum";
   } 
   if (actionArgs.hasKey("outputstring")) printString=true;
   // Get masks
@@ -74,8 +66,8 @@ int DSSP::init() {
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask.maskString);
   if (outfilename!=NULL) 
     mprintf("               Dumping results to %s\n", outfilename);
-  if (sumOut!=NULL)
-    mprintf("               Sum results to %s\n",sumOut);
+  if (!sumOut.empty())
+    mprintf("               Sum results to %s\n",sumOut.c_str());
   if (printString) 
     mprintf("               SS data for each residue will be stored as a string.\n");
   else
@@ -167,7 +159,8 @@ int DSSP::setup() {
     }
   // Otherwise set up output buffer to hold string
   } else {
-    SSline = (char*) realloc(SSline, (selected+1) * sizeof(char));
+    delete[] SSline;
+    SSline = new char[ selected + 1 ];
     SSline[selected]='\0';
   }
 
@@ -278,7 +271,9 @@ int DSSP::action() {
       for (resj=0; resj < Nres; resj++) {
         if (!SecStruct[resj].isSelected) continue;
         // Only consider residues spaced more than 2 apart
-        if (abs(resi - resj) > 2) {
+        int abs_resi_resj = resi - resj;
+        if (abs_resi_resj<0) abs_resi_resj = -abs_resi_resj;
+        if (abs_resi_resj > 2) {
           // Parallel
           if ( (isBonded(resi-1, resj) && isBonded(resj, resi+1)) ||
                (isBonded(resj-1, resi) && isBonded(resi, resj+1)) ) {
@@ -360,12 +355,12 @@ void DSSP::print() {
   // it is not part of the master dataset list.
   if (!printString && SSdata!=NULL) SSdata->Sync();
 
-  if (sumOut==NULL) return;
+  if (sumOut.empty()) return;
   // Set up dataset list to store averages
   dsspData = new DataSetList(); 
   // Set up a dataset for each SS type
   for (ss=1; ss<7; ss++) 
-    dsspFile = DFL->Add(sumOut, dsspData->Add(DOUBLE, (char*)SSname[ss], "SS") );
+    dsspFile = DFL->Add((char*)sumOut.c_str(), dsspData->Add(DOUBLE, (char*)SSname[ss], "SS") );
   // Change the X label to Residue
   dsspFile->SetXlabel((char*)"Residue");
   // Dont print empty frames
