@@ -101,7 +101,8 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       Nframes = 0.0;
       while ( (*traj)->GetNextFrame(CurrentFrame->X, CurrentFrame->V, 
                                     CurrentFrame->box, &(CurrentFrame->T)) ) {
-        AvgFrame->AddCoord( CurrentFrame );
+        //AvgFrame->AddCoord( CurrentFrame );
+        *AvgFrame += *CurrentFrame;
         Nframes++;
       }
       if (Nframes < 1.0) { 

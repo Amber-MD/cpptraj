@@ -119,6 +119,20 @@ Frame &Frame::operator=(const Frame &rhs) {
   return *this;
 }
 
+// Frame::operator+=()
+// NOTE: Replace AddCoord?
+Frame &Frame::operator+=(const Frame &rhs) {
+  // For now ensure same natom
+  if (natom != rhs.natom) {
+    mprinterr("Error: Frame::operator+=: Attempting to add 2 frames with different natom.\n");
+    return *this;
+  }
+  for (int i = 0; i < N; i++)
+    X[i] += rhs.X[i];
+  return *this;
+}
+
+
 /* Frame::SetupFrameFromMask()
  * Create Frame based on the size of the given mask. If mass information
  * is also passed in, use the mask to determine which masses to keep. 

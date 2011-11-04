@@ -1,28 +1,30 @@
 #ifndef INC_FRAME_H
 #define INC_FRAME_H
-/// Class: Frame
-/// Hold the coordinates of a trajectory frame or reference frame, along 
-/// with box coordinates (used in imaging calculations) and optionally with 
-/// mass information and/or velocity information. Mass is stored since several 
-/// functions (like COM, RADGYR etc) have the option to factor in the mass of 
-/// the atoms involved, and this avoids having to pass a mass pointer in, 
-/// which takes the burden of keeping track of mass away from actions etc.
-/// Mass is stored when the frame is initially created, and is modified if 
-/// necessary by SetFrameFromMask (which is the case when e.g. calculating 
-/// RMSD).
 #include "AtomMask.h"
+// Class: Frame
+/// Hold coordinates, perform various operations/transformations on them.
+/** Intended to hold coordinates e.g. from a trajectory or reference frame,
+  * along with box coordinates (used in imaging calculations) and optionally 
+  * with mass information and/or velocity information. Mass is stored since 
+  * several functions (like COM, RADGYR etc) have the option to factor in 
+  * the mass of the atoms involved, and this avoids having to pass a mass 
+  * pointer in, which takes the burden of keeping track of mass away from 
+  * actions etc. Mass is stored when the frame is initially created, and is 
+  * modified if necessary by SetFrameFromMask (which is the case when e.g. 
+  * calculating RMSD).
+  */
 class Frame {
     static const size_t COORDSIZE;
     static const size_t BOXSIZE;
   public:
-    double *X;     // Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
-    int natom;     // Number of atoms
-    int maxnatom;  // Number of atoms for which space has been allocated
-    int N;         // Number of coords, natom*3
-    double box[6]; // Box coords, 3xlengths, 3xangles
-    double T;      // Temperature
-    double *V;     // Velocities
-    double *Mass;  // Mass
+    double *X;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
+    int natom;     ///< Number of atoms
+    int maxnatom;  ///< Number of atoms for which space has been allocated
+    int N;         ///< Number of coords, natom*3
+    double box[6]; ///< Box coords, 3xlengths, 3xangles
+    double T;      ///< Temperature
+    double *V;     ///< Velocities
+    double *Mass;  ///< Mass
 
     Frame();
     virtual ~Frame();             // Destructor is virtual since this class can be inherited
@@ -30,6 +32,7 @@ class Frame {
     int SetupFrame(int, double*);
     int SetupFrameV(int,double*,bool);
     Frame & operator=(const Frame&);
+    Frame & operator+=(const Frame&);
     int SetupFrameFromMask(AtomMask *, double *);
     int SetupFrameFromCoords(float *, int);
     Frame *FrameCopy();
