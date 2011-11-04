@@ -59,8 +59,8 @@ class DataSet {
     virtual double Min()                      { return 0; }
     /// Return the largest value added to the set
     virtual double Max()                      { return 0; }
-    /// Return the average of all values in the set
-    virtual double Avg()                      { return 0; }
+    /// Return the average/stdev of all values in the set
+    virtual double Avg(double*)               { return 0; }
     // -----===== Public functions =====-----
     /// Set output precision
     void SetPrecision(int,int);
@@ -70,12 +70,16 @@ class DataSet {
     void Info();
     /// Write the dataset name to character buffer
     void WriteNameToBuffer(CharBuffer &, bool);
-    char *Name(char *,bool);
+    /// Check if set has been written to, set format string.
     int CheckSet();
     // -----===== Functions that return private vars =====-----
+    /// Dataset name
     char *Name()           { return name;  }
+    /// Set dataset index
     void SetIdx(int idxIn) { idx = idxIn;  }
+    /// Return dataset index
     int Idx()              { return idx;   }
+    /// Return dataset type
     dataType Type()        { return dType; }
 };
 #endif 

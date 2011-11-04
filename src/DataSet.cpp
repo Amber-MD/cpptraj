@@ -26,11 +26,11 @@ DataSet::~DataSet() {
   if (format!=NULL) free(format);
 }
 
-/* DataSet::setFormatString()
- * Set up the output format string for each data element based on the given 
- * dataType and the current width, and precision.
- * NOTE: Should this be split up and moved into the individual datasets?
- */
+// DataSet::setFormatString()
+/** Set up the output format string for each data element based on the given 
+  * dataType and the current width, and precision.
+  */
+// NOTE: Should this be split up and moved into the individual datasets?
 void DataSet::setFormatString() {
   size_t stringWidth = 0;
   int wWidth = 0;
@@ -85,20 +85,20 @@ void DataSet::setFormatString() {
   //  mprintf("DEBUG: Format string: [%s]\n",format);
 }    
 
-/* DataSet::SetPrecision()
- * Set dataset width and precision and recalc output format string.
- */
+// DataSet::SetPrecision()
+/** Set dataset width and precision and recalc output format string.
+  */
 void DataSet::SetPrecision(int widthIn, int precisionIn) {
   width=widthIn;
   precision=precisionIn;
   setFormatString();
 }
 
-/* DataSet::Setup()
- * Set up common to all data sets. The dataset name should be unique and is
- * checked for in DataSetList prior to this call. Nin is the expected size 
- * of the dataset. If Nin<=0 the dataset will be allocated dynamically.
- */
+// DataSet::Setup()
+/** Set up common to all data sets. The dataset name should be unique and is
+  * checked for in DataSetList prior to this call. Nin is the expected size 
+  * of the dataset. If Nin<=0 the dataset will be allocated dynamically.
+  */
 int DataSet::Setup(char *nameIn, int Nin) {
   // Dataset name
   if (nameIn==NULL) {
@@ -117,9 +117,7 @@ int DataSet::Setup(char *nameIn, int Nin) {
   return 0;
 }
 
-/* DataSet::Info()
- * Print dataset information.
- */
+// DataSet::Info()
 void DataSet::Info() {
   mprintf("    Data set %s",name);
   mprintf(", size is ");
@@ -131,52 +129,20 @@ void DataSet::Info() {
   mprintf(".\n");
 }
 
-/* DataSet::WriteNameToBuffer()
- */
+// DataSet::WriteNameToBuffer()
+/** Write the dataset name to the given character buffer.
+  */
 void DataSet::WriteNameToBuffer(CharBuffer &cbuffer, bool leftAlign) {
   cbuffer.WriteStringN(name,width,leftAlign);
 }
 
-/* DataSet::Name()
- * Write the name of the dataset to buffer with the correct width. If 
- * specified left-align the name - it is assumed in this case that this
- * set is the first set in the header, so start the line with a '#'. If the
- * dataset name is larger than the current width, truncate the name. Could
- * also adjust the width and call setFormatString.
- * Return a pointer to just after the write in buffer.
- */
-char *DataSet::Name(char *buffer,bool leftAlign) {
-  int actualWidth;
-
-  actualWidth = width;
-  if (leftAlign) actualWidth--;
-  // Check if the name needs to be truncated
-  if ((int)strlen(name)>actualWidth) {
-    mprintf("Warning: Dataset %s name too big (width is %i), truncating.\n",name,width);
-    char *tempname = (char*) malloc( (actualWidth+1) * sizeof(char));
-    strncpy(tempname,name,actualWidth);
-    tempname[actualWidth]='\0';
-    if (leftAlign)
-      sprintf(buffer,"#%-*s ",actualWidth,tempname);
-    else
-      sprintf(buffer," %*s",actualWidth,tempname);
-    free(tempname);
-  } else {
-    if (leftAlign)
-      sprintf(buffer,"#%-*s ",actualWidth,name);
-    else
-      sprintf(buffer," %*s",actualWidth,name);
-  }
-  return (buffer + width + 1);
-}
-
-/* DataSet::CheckSet()
- * Return 1 if current==0, which indicates set has not been written to.
- * Otherwise return 0.
- * Call setFormatString; mostly just needed for string data sets which
- * have variable width based on the size of the strings that have been
- * stored.
- */
+// DataSet::CheckSet()
+/** Return 1 if current==0, which indicates set has not been written to.
+  * Otherwise return 0.
+  * Call setFormatString; mostly just needed for string data sets which
+  * have variable width based on the size of the strings that have been
+  * stored.
+  */
 int DataSet::CheckSet() {
   if (current==0) return 1;
   setFormatString();

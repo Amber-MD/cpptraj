@@ -2,6 +2,7 @@
 #include "DataSet_double.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
+#include <cmath>
 using namespace std;
 
 // CONSTRUCTOR
@@ -23,6 +24,34 @@ int DataSet_double::Xmax() {
   it--;
   return ( (*it).first );
 } 
+
+// DataSet_double::Avg()
+double DataSet_double::Avg(double *stdev) {
+  double sum, ival, avg, diff;
+  sum = 0;
+  for (it = Data.begin(); it != Data.end(); it++) {
+    ival = (*it).second;
+    sum += ival;
+  }
+  ival = (double) Data.size();
+  sum /= ival;
+  if (stdev==NULL) return sum;
+
+  // Stdev
+  avg = sum;
+  sum = 0;
+  for (it = Data.begin(); it != Data.end(); it++) {
+    ival = (*it).second;
+    diff = avg - ival;
+    diff *= diff;
+    sum += diff;
+  }
+  ival = (double) Data.size();
+  sum /= ival;
+  *stdev = sqrt(sum);
+
+  return avg;
+}
 
 /* DataSet_double::Max()
  * Return the maximum value in the dataset.

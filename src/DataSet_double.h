@@ -14,6 +14,7 @@ class DataSet_double : public DataSet {
     DataSet_double();
 
     int Xmax();
+    double Avg(double*);
     double Min();
     double Max();
     int isEmpty(int);

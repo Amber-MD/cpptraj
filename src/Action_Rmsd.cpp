@@ -20,6 +20,7 @@ Rmsd::Rmsd() {
   perresmask=NULL;
   perrescenter=false;
   perresinvert=false;
+  perresavg=NULL;
 }
 
 // DESTRUCTOR
@@ -41,11 +42,11 @@ Rmsd::~Rmsd() {
     delete (*mask);
 }
 
-/* Rmsd::resizeResMasks()
- * For perres rmsd. If the current number of residues is greater than
- * the size of the residue mask lists, allocate as many extra masks
- * as needed. 
- */
+// Rmsd::resizeResMasks()
+/** For perres rmsd. If the current number of residues is greater than
+  * the size of the residue mask lists, allocate as many extra masks
+  * as needed. 
+  */
 void Rmsd::resizeResMasks() {
   int currentSize = (int)tgtResMask.size();
   if (nres > currentSize) {
@@ -58,11 +59,11 @@ void Rmsd::resizeResMasks() {
   }
 } 
     
-/* Rmsd::SetRefMask()
- * Setup reference mask based on maskRef. Requires RefParm to be set. Should 
- * only be called once.
- * If reference, this is called from init. If first, this is called from setup.
- */
+// Rmsd::SetRefMask()
+/** Setup reference mask based on maskRef. Requires RefParm to be set. Should 
+  * only be called once.
+  * If reference, this is called from init. If first, this is called from setup.
+  */
 int Rmsd::SetRefMask() {
   if ( RefMask.SetupMask(RefParm,activeReference,debug) ) return 1;
   if (RefMask.None()) {
@@ -82,19 +83,15 @@ int Rmsd::SetRefMask() {
   return 0;
 }
 
-/* Rmsd::init()
- * Called once before traj processing. Set up reference info.
- * Expected call: 
- * rmsd <name> <mask> [<refmask>] [out filename] [nofit] [mass]
- *      [ first | ref <filename> | refindex <#> | 
-          reftraj <filename> [parm <parmname> | parmindex <#>] ] 
- *      [ perres perresout <filename> [range <res range>] [refrange <ref res range>] 
- *        [perresmask <addtl mask>] [perresinvert] [perrescenter] ]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// Rmsd::init()
+/** Called once before traj processing. Set up reference info.
+  * Expected call: 
+  * rmsd <name> <mask> [<refmask>] [out filename] [nofit] [mass]
+  *      [ first | ref <filename> | refindex <#> | 
+  *        reftraj <filename> [parm <parmname> | parmindex <#>] ] 
+  *      [ perres perresout <filename> [range <res range>] [refrange <ref res range>] 
+  *        [perresmask <addtl mask>] [perresinvert] [perrescenter] perresavg <pravg> ]
+  */
 int Rmsd::init( ) {
   char *referenceName, *mask0, *maskRef, *reftraj;
   char *rmsdFile;
@@ -124,6 +121,7 @@ int Rmsd::init( ) {
   RefRange.SetRange( actionArgs.getKeyString("refrange",NULL) );
   perresmask = actionArgs.getKeyString("perresmask",(char*)"");
   perrescenter = actionArgs.hasKey("perrescenter");
+  perresavg = actionArgs.getKeyString("perresavg",NULL);
 
   // Get the RMS mask string for frames
   mask0 = actionArgs.getNextMask();
@@ -218,12 +216,15 @@ int Rmsd::init( ) {
     if (!RefRange.Empty())
       mprintf(" (reference residues %s)",RefRange.RangeArg());
     mprintf(" using mask [:X%s].\n",perresmask);
-    if (perresout==NULL) {
-      mprintf("Error: perres specified but no output filename given (perresout).\n");
+    if (perresout==NULL && perresavg==NULL) {
+      mprintf("Error: perres specified but no output filename given (perresout | perresavg).\n");
       perres=false;
       return 1;
     }
-    mprintf("          Per-residue output file is %s\n",perresout);
+    if (perresout!=NULL)
+      mprintf("          Per-residue output file is %s\n",perresout);
+    if (perresavg!=NULL)
+      mprintf("          Avg per-residue output file is %s\n",perresavg);
     if (perrescenter)
       mprintf("          perrescenter: Each residue will be centered prior to RMS calc.\n");
     if (perresinvert)
@@ -233,13 +234,13 @@ int Rmsd::init( ) {
   return 0;
 }
 
-/* Rmsd::perResSetup()
- * Perform setup required for per residue rmsd calculation.
- * Need to set up a target mask, reference mask, and dataset for each
- * residue specified in ResRange.
- * NOTE: Residues in the range arguments from user start at 1, internal
- *       res nums start from 0.
- */
+// Rmsd::perResSetup()
+/** Perform setup required for per residue rmsd calculation.
+  * Need to set up a target mask, reference mask, and dataset for each
+  * residue specified in ResRange.
+  * NOTE: Residues in the range arguments from user start at 1, internal
+  *       res nums start from 0.
+  */
 int Rmsd::perResSetup() {
   char tgtArg[1024];
   char refArg[1024];
@@ -298,7 +299,8 @@ int Rmsd::perResSetup() {
     // Setup dataset name for this residue
     currentParm->ResName(tgtArg,tgtRes-1);
     // Create dataset for res - if already present this returns NULL
-    DataSet *prDataSet = PerResRMSD->AddIdx(DOUBLE, tgtArg, tgtRes);
+    DataSet *prDataSet = PerResRMSD->AddMultiN(DOUBLE, "", currentParm->ResidueName(tgtRes-1),
+                                               tgtRes);
     if (prDataSet != NULL) DFL->Add(perresout, prDataSet);
 
     // Setup mask strings. Note that masks are based off user residue nums
@@ -340,9 +342,11 @@ int Rmsd::perResSetup() {
   }   
 
   // Check pointer to the output file
-  if (DFL->GetDataFile(perresout)==NULL) {
-    mprintf("Error: RMSD: Perres output file could not be set up.\n");
-    return 1;
+  if (perresout!=NULL) {
+    if (DFL->GetDataFile(perresout)==NULL) {
+      mprinterr("Error: RMSD: Perres output file could not be set up.\n");
+      return 1;
+    }
   }
 
   // Allocate memory for residue frame and residue reference frame. The size 
@@ -359,10 +363,10 @@ int Rmsd::perResSetup() {
   return 0;
 }
 
-/* Rmsd::setup()
- * Called every time the trajectory changes. Set up FrameMask for the new 
- *parmtop and allocate space for selected atoms from the Frame.
- */
+// Rmsd::setup()
+/** Called every time the trajectory changes. Set up FrameMask for the new 
+  * parmtop and allocate space for selected atoms from the Frame.
+  */
 int Rmsd::setup() {
 
   if ( FrameMask.SetupMask(currentParm,activeReference,debug) ) return 1;
@@ -396,11 +400,11 @@ int Rmsd::setup() {
   return 0;
 }
 
-/* Rmsd::action()
- * Called every time a frame is read in. Calc RMSD. If first is true
- * at this point we want to set the current (i.e. first) frame read 
- * in as reference.
- */
+// Rmsd::action()
+/** Called every time a frame is read in. Calc RMSD. If first is true
+  * at this point we want to set the current (i.e. first) frame read 
+  * in as reference.
+  */
 int Rmsd::action() {
   double R, U[9], Trans[6];
 
@@ -469,28 +473,47 @@ int Rmsd::action() {
   return 0;
 }
 
-/* Rmsd::print()
- * For per-residue RMSD only. Sync the per-residue RMSD data set since
- * it is not part of the master DataSetList in CpptrajState. Setup output
- * file options.
- */
+// Rmsd::print()
+/** For per-residue RMSD only. Sync the per-residue RMSD data set since
+  * it is not part of the master DataSetList in CpptrajState. Setup output
+  * file options. Calculate averages if requested.
+  */
 void Rmsd::print() {
   DataFile *outFile;
 
-  if (!perres) return;
-  outFile = DFL->GetDataFile(perresout);
-  if (outFile==NULL) {
-    mprinterr("Error: RMSD: PerRes: Could not get perresout file %s.\n",perresout);
-    return;
-  }
-  if (PerResRMSD==NULL) return;
+  if (!perres || PerResRMSD==NULL) return;
   // Sync dataset list here since it is not part of master dataset list
   PerResRMSD->Sync();
-  // Set output file to be inverted if requested
-  if (perresinvert) 
-    outFile->SetInverted();
+  // Per-residue output
+  outFile = DFL->GetDataFile(perresout);
+  if (outFile!=NULL) {
+    // Set output file to be inverted if requested
+    if (perresinvert) 
+      outFile->SetInverted();
+    mprintf("    RMSD: Per-residue: Writing data for %i residues to %s\n",
+            PerResRMSD->Size(), outFile->filename);
+  }
 
-  mprintf("    RMSD: Per-residue: Writing data for %i residues to %s\n",
-          PerResRMSD->Size(), outFile->filename);
+  // Average
+  if (perresavg==NULL) return;
+  int Nperres = PerResRMSD->Size();
+  // Use the per residue rmsd dataset list to add one more for averaging
+  DataSet *PerResAvg = PerResRMSD->Add(DOUBLE, (char*)"AvgRMSD", "AvgRMSD");
+  // another for stdev
+  DataSet *PerResStdev = PerResRMSD->Add(DOUBLE, (char*)"Stdev", "Stdev");
+  // Add the average and stdev datasets to the master datafile list
+  outFile = DFL->Add(perresavg, PerResAvg);
+  outFile = DFL->Add(perresavg, PerResStdev);
+  outFile->SetXlabel((char*)"Residue");
+  // For each residue, get the average rmsd
+  double stdev = 0;
+  double avg = 0;
+  for (int pridx = 0; pridx < Nperres; pridx++) {
+    DataSet *tempDS = PerResRMSD->GetDataSetN(pridx);
+    avg = tempDS->Avg(&stdev);
+    int dsidx = tempDS->Idx() - 1; // When set up actual resnum is used - change?
+    PerResAvg->Add(dsidx, &avg);
+    PerResStdev->Add(dsidx,&stdev);
+  }
 }
  

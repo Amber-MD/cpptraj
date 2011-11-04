@@ -16,18 +16,19 @@ CoordFileList::~CoordFileList() {
     delete *traj;
 }
 
-/* CoordFileList::SetDebug()
- * Set trajectory list debug level.
- */
+// CoordFileList::SetDebug()
+/** \param debugIn debug level to set.
+  */
 void CoordFileList::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
     mprintf("CoordFileList() DEBUG LEVEL SET TO %i\n",debug);
 }
 
-/* CoordFileList::CheckFilename()
- * Check if filenameIn is already in use, return true if so.
- */
+// CoordFileList::CheckFilename()
+/** \param filenameIn filename to check
+  * \return true if filenameIn is already in the list.
+  */
 bool CoordFileList::FilenameInUse(char *filenameIn) {
   std::list<TrajectoryFile*>::iterator traj;
   if (filenameIn==NULL) {
@@ -40,9 +41,10 @@ bool CoordFileList::FilenameInUse(char *filenameIn) {
   return false;
 }
 
-/* CoordFileList::Info() 
- * Call PrintInfo for each traj in the list.
- */
+// CoordFileList::Info()
+/** \param showExtended if true show extended information about the trajectory
+  * \param indent number of spaces to indent before printing info. 
+  */
 void CoordFileList::Info(int showExtended, int indent) {
   std::list<TrajectoryFile*>::iterator traj;
   if (trajList.empty()) 
@@ -53,17 +55,14 @@ void CoordFileList::Info(int showExtended, int indent) {
   }
 }
 
-/* CoordFileList::Begin()
- * Set iterator to beginning of trajectory list
- */
+// CoordFileList::Begin()
 void CoordFileList::Begin() {
   currentTraj = trajList.begin();
 }
 
-/* CoordFileList::NextTraj()
- * Return the current trajectory in the list and increment the iterator.
- * If at the end of the list return NULL.
- */
+// CoordFileList::NextTraj()
+/** /return Trajectory pointed to by iterator, or NULL if no more trajectories.
+  */
 TrajectoryFile *CoordFileList::NextTraj() {
   TrajectoryFile *trj;
   if (currentTraj == trajList.end()) return NULL;

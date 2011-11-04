@@ -2,6 +2,7 @@
 #include "DataSet_integer.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
+#include <cmath>
 using namespace std;
 
 // CONSTRUCTOR
@@ -24,8 +25,9 @@ int DataSet_integer::Xmax() {
 }
 
 // DataSet_integer::Avg()
-double DataSet_integer::Avg() {
-  double sum, ival;
+double DataSet_integer::Avg(double *stdev) {
+  double sum, ival, avg, diff;
+  if (Data.empty()) return 0;
   sum = 0;
   for (it = Data.begin(); it != Data.end(); it++) {
     ival = (double) (*it).second;
@@ -33,7 +35,22 @@ double DataSet_integer::Avg() {
   }
   ival = (double) Data.size();
   sum /= ival;
-  return sum;
+  if (stdev==NULL) return sum;
+
+  // Stdev
+  avg = sum;
+  sum = 0;
+  for (it = Data.begin(); it != Data.end(); it++) {
+    ival = (double) (*it).second;
+    diff = avg - ival;
+    diff *= diff;
+    sum += diff;
+  }
+  ival = (double) Data.size();
+  sum /= ival;
+  *stdev = sqrt(sum);
+
+  return avg;
 }
 
 /* DataSet_integer::Add()

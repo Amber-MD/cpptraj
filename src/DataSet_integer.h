@@ -14,7 +14,7 @@ class DataSet_integer : public DataSet {
 
     int Xmax();
     int isEmpty(int);
-    double Avg();
+    double Avg(double*);
     void Add( int, void * );
     int Get(void *, int);
     void WriteBuffer(CharBuffer&,int);

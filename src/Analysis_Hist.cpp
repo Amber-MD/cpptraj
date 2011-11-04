@@ -299,7 +299,7 @@ void Hist::Print(DataFileList *datafilelist) {
     char temp[32];
     for (bin = 0; bin < hist.NBins(1); bin++) {
       sprintf(temp,"%8.3lf",(bin*hist.Step(1))+hist.Min(1));
-      outfile = datafilelist->Add(outfilename, histout.AddIdx( DOUBLE, temp, bin ));
+      outfile = datafilelist->Add(outfilename, histout.AddMultiN( DOUBLE, "", temp, bin ));
     }
     bin = 0; // y coord index
     dim = 0; // x coord index
