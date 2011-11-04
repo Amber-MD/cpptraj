@@ -1,13 +1,13 @@
 #ifndef INC_CPPTRAJFILE_H
 #define INC_CPPTRAJFILE_H
-/// Class: CpptrajFile
-/// Class to abstract handling of basic file routines.
 #include "FileIO.h"
 #include "FileRoutines.h"
-// BUFFER_SIZE: Used in Action_NAstruct.cpp FortranFormat.cpp main.cpp 
-// CpptrajFile.cpp CpptrajFile.h Traj_AmberCoord.cpp
+/// Used in Action_NAstruct.cpp FortranFormat.cpp main.cpp 
+/// CpptrajFile.cpp CpptrajFile.h Traj_AmberCoord.cpp
 #define BUFFER_SIZE 1024 
-#define OUTPUTFRAMESHIFT 1 // Used for output in DataFile and some TrajFiles 
+#define OUTPUTFRAMESHIFT 1 ///< Used for output in DataFile and some TrajFiles 
+// Class: CpptrajFile
+/// Class to abstract handling of basic file routines.
 class CpptrajFile {
     int isOpen;
     int debug;
@@ -22,11 +22,11 @@ class CpptrajFile {
     FileIO *IO; 
     FileType fileType;
     FileFormat fileFormat;
-    char *filename;                  // Passed in filename
-    char *basefilename;              // Filename minus any path
-    char *Ext;                       // Filename extension
+    char *filename;                  ///< Passed in filename
+    char *basefilename;              ///< Filename minus any path
+    char *Ext;                       ///< Filename extension
     CompressType compressType;
-    int isDos;                       // 1 if CR present, need to count them as newlines
+    int isDos;                       ///< 1 if CR present, need to count them as newlines
 
     CpptrajFile();
     ~CpptrajFile();
