@@ -13,12 +13,13 @@ class DSSP : public Action {
     struct Residue {
       double SSprob[7];         ///< Hold probabilities for each SS
       SStype sstype;            ///< Assigned secondary structure
-      bool isSelected;          ///< true if residue is being considered for SS calc
+      bool isSelected;          ///< True if C, H, N, and O atom of res selected 
       int C;                    ///< atom idx of BB carbon
       int O;                    ///< atom idx of BB oxygen
       int N;                    ///< atom idx of BB nitrogen
       int H;                    ///< atom idx of BB hydrogen
       std::vector<int> CO_HN_Hbond;  ///< Size=# residues, 1 if this residue CO-HN hbonded to res X
+      DataSet *resDataSet;
     };
     std::vector<Residue> SecStruct;
 

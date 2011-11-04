@@ -25,6 +25,7 @@ class DataSetList {
     void SetDebug(int);
     void SetMax(int);
     void SetPrecisionOfDatasets(int, int);
+    //DataSet & operator[](int);
     DataSet *Get(char *);
     DataSet *Get(int);
     DataSet *GetDataSetN(int);
@@ -32,9 +33,9 @@ class DataSetList {
     DataSet *AddMultiN(dataType, const char *, const char *, int);
     DataSet *Add( dataType, char*, const char*);
     DataSet *AddIdx( dataType, char*, int);
-    void Begin();
+    //void Begin();
     int AddData(int, void *, int);
-    int AddData(int, void *);
+    //int AddData(int, void *);
     //int AddDataToIdx(int, void *, int );
     void Info();
     void Sync();

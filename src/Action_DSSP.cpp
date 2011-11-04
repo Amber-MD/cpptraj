@@ -31,7 +31,7 @@ const char DSSP::SSname[7][6]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "T
 
 // DSSP::init()
 /** Expected call: secstruct [out <filename>] [<mask>] [sumout <filename>]
-  *                          [outputstring]
+  *                          [ptrajformat]
   * If sumout is not specified the filename specified by out is used with .sum suffix. 
 */
 // For now dont allow NULL(stdout) filename for output
@@ -51,7 +51,7 @@ int DSSP::init() {
     sumOut.assign(outfilename);
     sumOut += ".sum";
   } 
-  if (actionArgs.hasKey("outputstring")) printString=true;
+  if (actionArgs.hasKey("ptrajformat")) printString=true;
   // Get masks
   mask = actionArgs.getNextMask();
   Mask.SetMaskString(mask);
@@ -61,7 +61,8 @@ int DSSP::init() {
     dssp = DSL->Add(STRING, actionArgs.getNextString(),"DSSP");
     if (dssp==NULL) return 1;
     DFL->Add(outfilename, dssp);
-  }
+  } else
+    SSdata = new DataSetList;
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask.maskString);
   if (outfilename!=NULL) 
@@ -76,22 +77,34 @@ int DSSP::init() {
   return 0;
 }
 
-/* DSSP::setup()
- * NOTE: Currently relatively  memory-intensive. Eventually set up so that SecStruct and
- * CO_HN_Hbond members exist only for selected residues. Use Map?
- */
+// DSSP::setup()
+/** Set up secondary structure calculation for all residues selected by the
+  * mask expression. A residue is selected if at least one of the following 
+  * atoms named "C   ", "O   ", "N   ", or "H   " (i.e. standard atom protein 
+  * BB atom names) is selected. The residue is only initialized if it has not
+  * been previously selected and set up by a prior call to setup.
+  */
+// NOTE: Currently relatively memory-intensive. Eventually set up so that SecStruct and
+// CO_HN_Hbond members exist only for selected residues? Use Map?
 int DSSP::setup() {
   int selected, atom, res;
   Residue RES;
-  // For Integer dataset, store residue name + number. 32 should be more than
-  // adequate (4 char + 27 int + 1 null).
-  char resArg[32];
 
   // Set up mask for this parm
   if ( Mask.SetupMask(currentParm,activeReference,debug) ) return 1;
   if ( Mask.None() ) {
     mprintf("      Error: DSSP::setup: Mask has no atoms.\n");
     return 1;
+  }
+
+  // Initially mark all residues already set up as not selected and 
+  // reset all atom numbers
+  for (res = 0; res < (int)SecStruct.size(); res++) {
+    SecStruct[res].isSelected = false;
+    SecStruct[res].C = -1;
+    SecStruct[res].H = -1;
+    SecStruct[res].N = -1;
+    SecStruct[res].O = -1;
   }
 
   // Set up SecStruct for each solute residue
@@ -102,33 +115,35 @@ int DSSP::setup() {
   //mprintf("      DSSP: Setting up for %i residues.\n",Nres);
 
   // Set up for each residue of the current Parm if not already set-up.
-  for (res = 0; res < Nres; res++) {
-    if (res>=(int)SecStruct.size()) {
-      RES.sstype=SECSTRUCT_NULL;
-      RES.isSelected=false;
-      RES.C=-1;
-      RES.O=-1;
-      RES.N=-1;
-      RES.H=-1;
-      RES.CO_HN_Hbond.assign( Nres, 0 );
-      RES.SSprob[0]=0.0;
-      RES.SSprob[1]=0.0;
-      RES.SSprob[2]=0.0;
-      RES.SSprob[3]=0.0;
-      RES.SSprob[4]=0.0;
-      RES.SSprob[5]=0.0;
-      RES.SSprob[6]=0.0;
-      SecStruct.push_back(RES);
-    }
-  }
+  RES.sstype=SECSTRUCT_NULL;
+  RES.isSelected=false;
+  RES.C=-1;
+  RES.O=-1;
+  RES.N=-1;
+  RES.H=-1;
+  RES.CO_HN_Hbond.assign( Nres, 0 );
+  RES.SSprob[0]=0.0;
+  RES.SSprob[1]=0.0;
+  RES.SSprob[2]=0.0;
+  RES.SSprob[3]=0.0;
+  RES.SSprob[4]=0.0;
+  RES.SSprob[5]=0.0;
+  RES.SSprob[6]=0.0;
+  RES.resDataSet = NULL;
+  // Only resize SecStruct if current # residues > previous # residues
+  if (Nres > (int) SecStruct.size())
+    SecStruct.resize(Nres, RES);
 
-  // Go through all atoms in mask. Set up a residue for each C, O, N, 
-  // and H atom. Store the actual coordinate index for use with COORDDIST
+  // Go through all atoms in mask. Determine which residues have their C,
+  // O, N, or H atoms selected. Store the actual coordinate index 
+  // (i.e. atom# * 3) for use with COORDDIST routine.
   for (selected=0; selected < Mask.Nselected; selected++) {
     atom = Mask.Selected[selected];
     res = currentParm->atomToResidue(atom);
+    // If residue is out of bounds skip it
+    if ( res >= Nres ) continue;
     //fprintf(stdout,"DEBUG: Atom %i Res %i [%s]\n",atom,res,P->names[atom]);
-    SecStruct[res].isSelected=true;
+    SecStruct[res].isSelected = true;
     if (      strcmp(currentParm->names[atom], "C   ")==0 )
       SecStruct[res].C=atom*3;
     else if ( strcmp(currentParm->names[atom], "O   ")==0 )
@@ -139,29 +154,29 @@ int DSSP::setup() {
       SecStruct[res].H=atom*3;
   }
 
+  // For each residue selected in the mask, check if residue is already 
+  // set up in SecStruct. If so update the atom indices, otherwise set it up.
+  selected = 0;
+  for (int res = 0; res < Nres; res++) {
+    if (!SecStruct[res].isSelected) continue;
+    // Residue needs at least C=O or N-H, Check?
+    // Set up dataset if necessary 
+    if (!printString && SecStruct[res].resDataSet==NULL) {
+      // Setup dataset name for this residue
+      SecStruct[res].resDataSet = SSdata->AddMultiN(INT,"",currentParm->ResidueName(res),res+1);
+      if (SecStruct[res].resDataSet!=NULL) DFL->Add(outfilename, SecStruct[res].resDataSet);
+    }
+    selected++;
+  }
+
   // Count number of selected residues
-  selected=0;
-  for (res=0; res < Nres; res++)
-    if (SecStruct[res].isSelected) selected++;
   mprintf("      DSSP: [%s] corresponds to %i residues.\n",Mask.maskString,selected);
 
-  // Make an integer dataset to hold SS type/frame for each residue.
-  if (!printString) {
-    if (SSdata==NULL) SSdata = new DataSetList();
-    for (res=0; res < Nres; res++) {
-      if (SecStruct[res].isSelected) {
-        // Setup dataset name for this residue
-        currentParm->ResName(resArg,res);
-        // Create dataset for res - if already present this returns NULL
-        DataSet *resDataSet = SSdata->AddIdx(INT, resArg, res);
-        if (resDataSet!=NULL) DFL->Add(outfilename, resDataSet);
-      }
-    }
-  // Otherwise set up output buffer to hold string
-  } else {
+  // Set up output buffer to hold string
+  if (printString) {
     delete[] SSline;
-    SSline = new char[ selected + 1 ];
-    SSline[selected]='\0';
+    SSline = new char[ (2*selected) + 1 ];
+    SSline[(2*selected)]='\0';
   }
 
   // DEBUG - Print atom nums for each residue set up
@@ -227,15 +242,15 @@ int DSSP::action() {
     C = SecStruct[resi].C;
     O = SecStruct[resi].O;
     for (resj=0; resj < Nres; resj++) {
+      if (!SecStruct[resj].isSelected) continue;
 // DEBUG
 //      debugout.IO->Printf("\n%i Res%i-Res%i:",frameNum,resi,resj);
 //      debugout.IO->Printf(" C=%i O=%i | N=%i H=%i:",C,O,SecStruct[resj].N,SecStruct[resj].H);
 // DEBUG 
-      if (!SecStruct[resj].isSelected) continue;
       if (resi==resj) continue;
+      
       // NOTE: Should check all atoms here?
       if (SecStruct[resj].H==-1 || SecStruct[resj].N==-1) continue;
-      
       N = SecStruct[resj].N;
       H = SecStruct[resj].H;
 
@@ -259,7 +274,6 @@ int DSSP::action() {
   //   H, B, (E), G, I, T  (s. p. 2595 in the Kabsch & Sander paper)
   for (resi=0; resi < Nres; resi++) {
     if (!SecStruct[resi].isSelected) continue;
-
     // Alpha helices
     if ( isBonded( resi - 1, resi+3 ) && isBonded( resi, resi + 4) ) {
       SSassign(resi,resi+4,SECSTRUCT_ALPHA);
@@ -320,22 +334,27 @@ int DSSP::action() {
     }
   }
 
-  // Store data 
+  // Store data for each residue 
   //fprintf(stdout,"%10i ",frameNum);
-  resj=0;
-  if (SSdata!=NULL) SSdata->Begin();
-  for (resi=0; resi < Nres; resi++) {
-    if (!SecStruct[resi].isSelected) continue;
-    //fprintf(stdout,"%c",SSchar[SecStruct[resi].sstype]);
-    SecStruct[resi].SSprob[SecStruct[resi].sstype]++;
-    // Integer data set
-    if (SSdata!=NULL) 
-      SSdata->AddData(frameNum, &(SecStruct[resi].sstype));
-    else
+  // String data set
+  if (printString) {
+    resj = 0;
+    for (resi=0; resi < Nres; resi++) {
+      if (!SecStruct[resi].isSelected) continue;
+      SecStruct[resi].SSprob[SecStruct[resi].sstype]++;
       SSline[resj++] = SSchar[SecStruct[resi].sstype];
-  }
-  if (printString)
+      SSline[resj++] = ' ';
+    }
     dssp->Add(frameNum, SSline);
+  // Integer data sets
+  } else {
+    for (resi=0; resi < Nres; resi++) {
+      if (!SecStruct[resi].isSelected) continue;
+      //fprintf(stdout,"%c",SSchar[SecStruct[resi].sstype]);
+      SecStruct[resi].SSprob[SecStruct[resi].sstype]++;
+      SecStruct[resi].resDataSet->Add(frameNum, &(SecStruct[resi].sstype));
+    }
+  }
   //fprintf(stdout,"\n");
   Nframe++;
 
@@ -369,10 +388,10 @@ void DSSP::print() {
   // Calc the avg structure of each type for each selected residue 
   for (resi=0; resi < Nres; resi++) {
     if (!SecStruct[resi].isSelected) continue;
-    dsspData->Begin();
     for (ss=1; ss<7; ss++) {
       avg = SecStruct[resi].SSprob[ss] / Nframe;
-      dsspData->AddData(resi, &avg);
+      DataSet *tempDS = dsspData->GetDataSetN(ss-1);
+      tempDS->Add(resi, &avg);
     }
   }
 }

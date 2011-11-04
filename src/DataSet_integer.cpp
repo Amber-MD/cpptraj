@@ -23,6 +23,19 @@ int DataSet_integer::Xmax() {
   return ( (*it).first );
 }
 
+// DataSet_integer::Avg()
+double DataSet_integer::Avg() {
+  double sum, ival;
+  sum = 0;
+  for (it = Data.begin(); it != Data.end(); it++) {
+    ival = (double) (*it).second;
+    sum += ival;
+  }
+  ival = (double) Data.size();
+  sum /= ival;
+  return sum;
+}
+
 /* DataSet_integer::Add()
  * Insert data vIn at frame.
  */

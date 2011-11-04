@@ -1,6 +1,7 @@
 // DataSetList
 #include <cstdio> // sprintf
 #include <cstring>
+//#include <stdexcept>
 // This also includes basic DataSet class and dataType
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
@@ -51,6 +52,13 @@ void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
     DataList[ds]->SetPrecision(widthIn,precisionIn);
 }
 
+// DataSetList::operator[]()
+/*DataSet &DataSetList::operator[](int ndataset) {
+  if (ndataset < 0 || ndataset >= Ndata)
+    throw std::out_of_range("DataSetList[]");
+  return *(DataList[ndataset]);
+}*/
+
 /* DataSetList::Get()
  * Return pointer to DataSet with given name
  */
@@ -80,7 +88,9 @@ DataSet *DataSetList::GetDataSetN(int ndataset) {
 /* DataSetList::AddMultiN()
  * Works like Add, except the dataset will be named
  *   <prefix>_<suffix><Nin>
- * if <prefix> is not NULL, and
+ * if <prefix> is not NULL, 
+ *   <suffix><Nin>
+ * if <prefix> is blank (i.e. ""), and
  *   <suffix><Nin>_XXXXX
  * otherwise.
  */
@@ -91,13 +101,15 @@ DataSet *DataSetList::AddMultiN(dataType inType, const char *prefix,
   sprintf(tempSuffix,"%s%i",suffix,Nin);
   if (prefix==NULL)
     return this->Add(inType,NULL,tempSuffix);
- // Sanity check - make sure name is not too big
- if (strlen(prefix)+strlen(tempSuffix)+1 > 64) {
-   mprinterr("Internal Error: DataSetList::AddMultiN: size of %s+%s > 64\n",prefix,tempSuffix);
-   return NULL;
- } 
- sprintf(tempName,"%s_%s",prefix,tempSuffix);
- return this->Add(inType,tempName,tempSuffix);
+  if (strcmp(prefix,"")==0) 
+    return this->Add(inType,tempSuffix,tempSuffix);
+  // Sanity check - make sure name is not too big
+  if (strlen(prefix)+strlen(tempSuffix)+1 > 64) {
+    mprinterr("Internal Error: DataSetList::AddMultiN: size of %s+%s > 64\n",prefix,tempSuffix);
+    return NULL;
+  }
+  sprintf(tempName,"%s_%s",prefix,tempSuffix);
+  return this->Add(inType,tempName,tempSuffix);
 }
 
 /* DataSetList::AddMulti()
@@ -229,20 +241,20 @@ DataSet *DataSetList::AddIdx(dataType inType, char *nameIn, int idxIn) {
 /* DataSetList::Begin()
  * Reset the set counter to 0.
  */
-void DataSetList::Begin() {
+/*void DataSetList::Begin() {
   currentSet=0;
-}
+}*/
 
 /* DataSetList::AddData()
  * Add data to the currentSet and increment the counter. Return 1 if at the 
  * last set. Should be used in conjunction with Begin. 
  */
-int DataSetList::AddData(int frame, void *dataIn) {
+/*int DataSetList::AddData(int frame, void *dataIn) {
   if (currentSet == Ndata) return 1;
   DataList[currentSet]->Add(frame, dataIn);
   currentSet++;
   return 0;
-}
+}*/
 
 /* DataSetList::AddData()
  * Add data to a specific dataset in the list
