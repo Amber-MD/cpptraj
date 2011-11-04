@@ -22,7 +22,7 @@ Radgyr::~Radgyr() { }
  *    3) Dataset name
  */
 int Radgyr::init() {
-  char *mask1;
+  char *mask1, *rogname;
   char *rogFile;
 
   // Get keywords
@@ -35,12 +35,14 @@ int Radgyr::init() {
   Mask1.SetMaskString(mask1);
 
   // Datasets to store radius of gyration and max
-  // Also add datasets to data file list 
-  rog = DSL->Add(DOUBLE, actionArgs.getNextString(),"RoG");
+  // Also add datasets to data file list
+  rogname = actionArgs.getNextString();
+  rog = DSL->Add(DOUBLE, rogname, "RoG");
   if (rog==NULL) return 1;
   DFL->Add(rogFile,rog);
   if (calcRogmax) {
-    rogmax = DSL->Add(DOUBLE, NULL, "RoGMax");
+    rogmax = DSL->AddMulti(DOUBLE, rogname, "Max");
+    //rogmax = DSL->Add(DOUBLE, NULL, "RoGMax");
     if (rogmax == NULL) return 1; 
     DFL->Add(rogFile,rogmax);
   }
