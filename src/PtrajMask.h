@@ -28,4 +28,9 @@ int torpn(char *, char *);
  * which contains the resulting atom selection
  */
 char *parseMaskString(char*,int,int,NAME*,NAME*,int*,double*,NAME*,int);
+
+#ifdef __cplusplus
+extern "C"
+#endif 
+char* parseMaskC(char*,int,int,NAME*,NAME*,int*,double*,NAME*,int);
 #endif

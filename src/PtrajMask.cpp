@@ -1262,3 +1262,29 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
   return(pMask);
 } 
 
+// parseMaskC()
+/// C-accessible mask parser, for functions in ptraj_actions.c
+extern "C" char* parseMaskC(char *maskstr, int atoms, int residues, NAME *atomName,
+                            NAME *residueName, int *ipres, double *X,
+                            NAME *atomType, int debug) {
+  char infix[MAXSELE], postfix[MAXSELE];
+  char *mask;
+  if (debug > 5)
+    printf("original : ==%s==\n", maskstr);
+
+  /* 1) preprocess input expression */
+  tokenize(maskstr, infix);
+  if (debug > 5)
+    printf("tokenized: ==%s==\n", infix);
+
+  /* 2) construct postfix (RPN) notation */
+  torpn(infix, postfix);
+  if (debug > 5)
+    printf("postfix  : ==%s==\n", postfix);
+
+  /* 3) evaluate postfix notation */
+  mask = parseMaskString(postfix, atoms, residues, atomName, residueName, ipres, NULL, NULL, debug);
+
+  return(mask);
+}
+
