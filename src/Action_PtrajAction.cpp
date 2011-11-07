@@ -13,6 +13,13 @@ PtrajAction::PtrajAction() {
   x_coord = NULL;
   y_coord = NULL;
   z_coord = NULL;
+  CalledSetup = false;
+  ptraj_box[0] = 0;
+  ptraj_box[1] = 0;
+  ptraj_box[2] = 0;
+  ptraj_box[3] = 0;
+  ptraj_box[4] = 0;
+  ptraj_box[5] = 0;
 } 
 
 // DESTRUCTOR
@@ -28,7 +35,8 @@ PtrajAction::~PtrajAction() {
   }
   if (actioninfo != NULL) {
     // Call actions cleanup routine
-    actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, NULL, PTRAJ_CLEANUP);
+    if (CalledSetup)
+      actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, ptraj_box, PTRAJ_CLEANUP);
     // Free state
     free(actioninfo->state->ipres);
     free(actioninfo->state->solventMask);
@@ -220,7 +228,7 @@ int PtrajAction::setup() {
                         state->solventMoleculeStart[0];
   state->atomName = currentParm->names;
   state->residueName = currentParm->resnames;
-  state->maxFrames = currentParm->parmFrames; // NOTE: Is this correct?
+  state->maxFrames = DSL->MaxFrames(); // NOTE: Is this correct?
   state->temp0 = 0.0;
 
   // Now that the state info has been allocated, call setup
@@ -228,7 +236,11 @@ int PtrajAction::setup() {
     mprinterr("Error: PtrajAction: Could not set up action %s\n",actionArgs.Command());
     return 1;
   }
-
+  // Since the functions in ptraj_actions.c are not on the stack, they are
+  // not automatically initialized, so dont want to call them in action, 
+  // print, or cleanup if set up failed or wasnt called.
+  CalledSetup = true;
+  
   // Print status
   actioninfo->fxn(actioninfo, NULL, NULL, NULL, NULL, PTRAJ_STATUS);
 
@@ -245,6 +257,8 @@ int PtrajAction::setup() {
 
 // PtrajAction::action()
 int PtrajAction::action() {
+  // NOTE: Not checking for Called Setup here since the noSetup
+  // flag should catch it.
   // Convert coordinates array X0Y0Z0X1... into separate X Y Z vectors
   int i3 = 0;
   for (int atom = 0; atom < currentFrame->natom; atom++) {
@@ -252,8 +266,15 @@ int PtrajAction::action() {
     y_coord[atom] = currentFrame->X[i3++];
     z_coord[atom] = currentFrame->X[i3++];
   }
+  // Protect state box coords
+  ptraj_box[0] = currentFrame->box[0];
+  ptraj_box[1] = currentFrame->box[1];
+  ptraj_box[2] = currentFrame->box[2];
+  ptraj_box[3] = currentFrame->box[3];
+  ptraj_box[4] = currentFrame->box[4];
+  ptraj_box[5] = currentFrame->box[5];
   
-  actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, currentFrame->box, PTRAJ_ACTION);
+  actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, ptraj_box, PTRAJ_ACTION);
 
   return 0;
 } 
@@ -261,5 +282,6 @@ int PtrajAction::action() {
 // PtrajAction::print()
 void PtrajAction::print() {
   // NOTE: Is it ok to just call this will NULLs?
-  actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, currentParm->Box, PTRAJ_PRINT);
+  if (CalledSetup)
+    actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, ptraj_box, PTRAJ_PRINT);
 }

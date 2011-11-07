@@ -10,6 +10,8 @@ class PtrajAction: public Action {
     double *x_coord;
     double *y_coord;
     double *z_coord;
+    double ptraj_box[6];
+    bool CalledSetup;
   public:
     PtrajAction();
     ~PtrajAction();
