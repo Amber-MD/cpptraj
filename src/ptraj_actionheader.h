@@ -23,7 +23,8 @@ typedef struct _ptrajState {
   double *charges;           // atom charges 
   int atoms;                 // number of atoms 
   int residues;              // number of residues 
-  int *ipres;                // atoms in each residue 
+  int *ipres;                // atoms in each residue (atom #s start from 1)
+  int *ipres_mask;           // ipres for mask parser, atom #s start from 0 
   int IFBOX;                 // is there box information? 
   int boxfixed[6];           // equal to 1 if this box coordinate is fixed 
   int molecules;             // total number of molecules 

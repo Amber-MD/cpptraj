@@ -54,7 +54,7 @@ int PtrajAction::init( ) {
   // Set up action information structure
   actioninfo = (actionInformation *) malloc(sizeof(actionInformation));
   // DEBUG
-  mprintf("DEBUG:\taction address (init): %x\n",actioninfo);
+  //mprintf("DEBUG:\taction address (init): %x\n",actioninfo);
   INITIALIZE_actionInformation(actioninfo);
   actioninfo->type = TRANSFORM_NOOP;
 
@@ -126,7 +126,7 @@ int PtrajAction::init( ) {
 
   // Convert the ArgList to the argStackType used by functions in ptraj_actions.c
   argumentStack = (argStackType*) malloc( sizeof(argStackType) );
-  mprintf("DEBUG:\targumentStack address (init): %x\n",argumentStack);
+  //mprintf("DEBUG:\targumentStack address (init): %x\n",argumentStack);
   argumentStack->arglist = NULL;
   argumentStack->marked = NULL;
   int nargs = 0;
@@ -142,18 +142,19 @@ int PtrajAction::init( ) {
   argumentStack->marked = (char*) malloc(nargs * sizeof(char));
   memset(argumentStack->marked, 'F', nargs);
   actioninfo->carg1 = (void *) &argumentStack;
-  mprintf("DEBUG:\taction->carg1 address (init): %x\n",actioninfo->carg1);
+  //mprintf("DEBUG:\taction->carg1 address (init): %x\n",actioninfo->carg1);
   // NOTE: Should ptraj be freeing up the args?
   // DEBUG
-  argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
-  mprintf("DEBUG:\targumentStack address (init 2): %x\n",*argumentStackPointer);
-  printArgumentStack(argumentStackPointer);
+  //argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
+  //mprintf("DEBUG:\targumentStack address (init 2): %x\n",*argumentStackPointer);
+  if (debug>0) printArgumentStack(&argumentStack);
 
   // Initialize state memory
   actioninfo->state = (ptrajState*) malloc( sizeof(ptrajState) );
   INITIALIZE_ptrajState( actioninfo->state );
 
   // Dont call setup here since there is no state information yet
+  mprintf("    PTRAJ ACTION: [%s]\n",actionArgs.Command());
   
   return 0;
 }
@@ -164,11 +165,11 @@ int PtrajAction::init( ) {
   */
 int PtrajAction::setup() {
   // DEBUG
-  mprintf("DEBUG:\taction address (setup): %x\n",actioninfo);
-  mprintf("DEBUG:\taction->carg1 address (setup): %x\n",actioninfo->carg1);
-  argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
-  mprintf("DEBUG:\targumentStack address (setup): %x\n",*argumentStackPointer);
-  printArgumentStack(argumentStackPointer);
+  //mprintf("DEBUG:\taction address (setup): %x\n",actioninfo);
+  //mprintf("DEBUG:\taction->carg1 address (setup): %x\n",actioninfo->carg1);
+  //argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
+  //mprintf("DEBUG:\targumentStack address (setup): %x\n",*argumentStackPointer);
+  //printArgumentStack(argumentStackPointer);
   ptrajState *state = actioninfo->state;
   // Place a copy of the current state into the action
   state->box[0] = currentParm->Box[0];
@@ -188,6 +189,7 @@ int PtrajAction::setup() {
   for (int res = 0; res < currentParm->nres; res++)
     state->ipres[res] = currentParm->resnums[res]+1;
   state->ipres[currentParm->nres] = currentParm->natom;
+  state->ipres_mask = currentParm->resnums;
   state->IFBOX = AmberIfbox(currentParm->Box[4]);
   //state->boxfixed
   state->molecules = currentParm->molecules;

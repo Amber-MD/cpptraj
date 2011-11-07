@@ -316,15 +316,243 @@ void printArgumentStack(argStackType **argumentStackAddress) {
 }
 // =============================================================================
 // Mask Functions
+// isActiveDetailed()
+static int isActiveDetailed(int atom, int residue, int *mask, int atoms, int residues,
+                            Name *atomName, Name *residueName, int *ipres)
+{
+  int i;
+
+  if (residue >= residues || residue < 0) {
+    printf("WARNING: residue out of range in isActiveDetailed, res %i (total %i)\n",
+           residue, residues);
+    return 0;
+  }
+  for (i = ipres[residue]-1; i < ipres[residue+1]-1; i++)
+    if ( mask[i] && strcmp(atomName[i], atomName[atom]) == 0 )
+      return 1;
+
+  return 0;
+
+}
+// printAtomMaskDetailed()
 static void printAtomMaskDetailed(FILE *file, int *mask, int atoms, int residues,
                                   Name *atomName, Name *residueName, int *ipres)
 {
-  fprintf(stdout,"Warning: printAtomMaskDetailed not implemented for Cpptraj.\n");
+  //fprintf(stdout,"Warning: printAtomMaskDetailed not implemented for Cpptraj.\n");
+
+  int i, j, curres;
+  char tmpatom[20];
+  int *resactive, *ressimilar;
+  int printed, numactive, numresactive, numressimilar;
+  int incurres, innextres;
+
+  printed = 0;
+  numactive = 0;
+  numresactive = 0;
+  numressimilar = 0;
+
+  /*
+   *  This routine is kind of junky since in general I want to avoid printing
+   *  as much detail as possible.  Therefore, we check to see is certain ranges 
+   *  residues have all atoms active, etc. to avoid printing each atom in a residue.
+   *  This makes it ugly and obtuse.
+   */
+
+
+  if (mask == NULL) {
+    fprintf(file, "[No atoms are selected]");
+    return;
+  }
+ j=0;
+  for (i=0; i < atoms; i++)
+    if (mask[i]) j++;
+
+  if (j == 0) {
+    fprintf(file, "[No atoms are selected]");
+    return;
+  }
+
+     /*
+      *  check if all atoms are active and if so print an asterisk
+      */
+
+  j = 0;
+  for (i=0; i < atoms; i++) {
+    j += mask[i];
+  }
+  if ( j == atoms ) {
+    fprintf(file, "  * (All atoms are selected)");
+    return;
+  }
+  numactive = j;
+
+     /*
+      *  determine which residues have all the atoms in that residue active
+      */
+
+  resactive = (int *) safe_malloc(sizeof(int) * residues);
+  for (i=0; i < residues; i++) {
+    resactive[i] = 0.0;
+  }
+ curres = 0;
+  j = 0;
+  for (i=0; i < atoms; i++) {
+    if (i == ipres[curres+1]-1) {
+      if (j == ipres[curres+1] - ipres[curres]) {
+        resactive[curres] = 1.0;
+        numresactive++;
+      }
+      j = 0;
+      curres++;
+    }
+    if (mask[i])
+      j++;
+  }
+  if (j == ipres[curres+1] - ipres[curres]) {
+    resactive[curres] = 1.0;
+  }
+
+     /*
+      *  determine the range over which the residues are fully active
+      */
+
+  for (curres = residues-2; curres >= 0; curres--) {
+    if (resactive[curres]) {
+      resactive[curres] += resactive[curres+1];
+      numresactive--;
+    }
+  }
+
+
+ /*
+   *  determine ranges over which residues have the same atoms active
+   *  as the next residue
+   */
+  ressimilar = (int *) safe_malloc(sizeof(int) * residues);
+  for (i=0; i < residues; i++) {
+    ressimilar[i] = 0.0;
+  }
+
+  for (curres = residues-2; curres >=0; curres--) {
+
+    incurres = 0;
+    innextres = 0;
+    for (i = ipres[curres]-1; i < ipres[curres+2]-1; i++) { /* check current and next residue */
+      if ( mask[i] ) {
+        incurres++;
+      }
+
+      if (isActiveDetailed(i, i<ipres[curres+1]-1 ? curres+1 : curres, mask,
+                           atoms, residues, atomName, residueName, ipres))
+        innextres++;
+
+      if (incurres != innextres) /* select counterparts in next residues too! */
+        break;
+    }
+    if (incurres && innextres == incurres) {
+      ressimilar[curres] = ressimilar[curres+1] + 1;
+    } else {
+      numressimilar++;
+    }
+
+  }
+   /*
+      *  do the actual printing
+      */
+
+  j = 0;
+  for (curres = 0; curres < residues; curres++) {
+
+    if (resactive[curres] ) {
+
+      /*
+       *  If all of the atoms are active in this residue print either the
+       *  residue number or range as appropriate
+       */
+
+      if (resactive[curres] > 2) {
+        if (j!=0 && j%10 != 0) fprintf(file, ",");
+        fprintf(file, ":%i-%i", curres+1, curres+resactive[curres]);
+        curres += resactive[curres]-1;
+      } else {
+        if (j!=0 && j%10 != 0) fprintf(file, ",");
+        fprintf(file, ":%i", curres+1);
+      }
+      j++;
+      if (j != 0 && j % 10 == 0) {
+        fprintf(file, "\n    ");
+        j = 0;
+      }
+    } else if (ressimilar[curres]) {
+
+      /*
+       *  If there is a set of residues with a similar atom selection...
+       */
+      printed = 0;
+      if (ressimilar[curres] >= 1) {
+        if (j!=0 && j%10 != 0) fprintf(file, ",");
+        fprintf(file, ":%i-%i", curres+1, curres+ressimilar[curres]+1);
+        curres += ressimilar[curres];
+      } else {
+        if (j!=0 && j%10 != 0) fprintf(file, ",");
+        fprintf(file, ":%i", curres+1);
+      }
+
+      for (i = ipres[curres]-1; i < ipres[curres+1]-1; i++) {
+        if ( mask[i] ) {
+          if (printed)
+            fprintf(file, ",");
+          else {
+            fprintf(file, "@");
+            printed = 1;
+          }
+          strcpy(tmpatom, atomName[i]);
+          fprintf(file, "%s", strtok(tmpatom, " "));
+        }
+      }
+      j++;
+      if (j != 0 && j % 10 == 0) {
+        fprintf(file, "\n    ");
+        j = 0;
+      }
+
+
+    } else {
+
+      /*
+       *  Print individual atoms
+       */
+      if (numactive > 10 && numressimilar > 10 && numresactive > 10) {
+        fprintf(file, "\n    ");
+        numactive = 0;
+      }
+      for (i = ipres[curres]-1; i < ipres[curres+1]-1; i++) {
+        if ( mask[i] ) {
+          if (j!=0 && j%10 != 0) fprintf(file, ",");
+
+          strcpy(tmpatom, atomName[i]);
+          fprintf(file, ":%i@%s", curres+1, strtok(tmpatom, " "));
+          j++;
+        }
+        if (j != 0 && j % 10 == 0) {
+          fprintf(file, "\n    ");
+          j = 0;
+        }
+      }
+    }
+  }
+  /*
+    if (j!=0 && j%10 != 0) fprintf(file, "\n");
+  */
+  safe_free(resactive);
+  safe_free(ressimilar);
 }
+// printAtomMask()
 static void printAtomMask(FILE *file, int *mask, ptrajState *state) {
   printAtomMaskDetailed(file, mask, state->atoms, state->residues, state->atomName,
                         state->residueName, state->ipres);
 }
+// processAtomMask()
 static int *processAtomMask( char *maskString, ptrajState *state ) {
   char *charmask;
   int *intmask;
@@ -337,7 +565,7 @@ static int *processAtomMask( char *maskString, ptrajState *state ) {
   }
 
  charmask = parseMaskC(maskString, state->atoms, state->residues,
-                        state->atomName, state->residueName, state->ipres,
+                        state->atomName, state->residueName, state->ipres_mask,
                         NULL, NULL, prnlev);
   /*
    *  the new mask parsing routine returns a character array
@@ -12255,14 +12483,14 @@ transformWatershell(actionInformation *action,
 #endif
 
     // DEBUG
-    fprintf(stdout,"DEBUG:\taction address (watershell): %x\n",action);
-    fprintf(stdout,"DEBUG:\taction->carg1 address (watershell): %x\n",action->carg1);
+    //fprintf(stdout,"DEBUG:\taction address (watershell): %x\n",action);
+    //fprintf(stdout,"DEBUG:\taction->carg1 address (watershell): %x\n",action->carg1);
 
     argumentStackPointer = (argStackType **) action->carg1;
     action->carg1 = NULL;
     // DEBUG
-    fprintf(stdout,"DEBUG:\targumentStack address (watershell): %x\n",*argumentStackPointer);
-    printArgumentStack( argumentStackPointer );
+    //fprintf(stdout,"DEBUG:\targumentStack address (watershell): %x\n",*argumentStackPointer);
+    //printArgumentStack( argumentStackPointer );
 
     info = (transformShellInfo *)
       safe_malloc(sizeof(transformShellInfo));
@@ -12299,10 +12527,10 @@ transformWatershell(actionInformation *action,
 
     buffer = getArgumentString(argumentStackPointer, NULL);
     if (buffer != NULL) { 
-      fprintf(stdout,"DEBUG:\tWATERSHELL: Using %s as solvent mask.\n",buffer);
+      //fprintf(stdout,"DEBUG:\tWATERSHELL: Using %s as solvent mask.\n",buffer);
       info->solventMask = processAtomMask(buffer, action->state);
     } else {
-      fprintf(stdout,"DEBUG:\tWATERSHELL: Using :WAT as solvent mask.\n");
+      //fprintf(stdout,"DEBUG:\tWATERSHELL: Using :WAT as solvent mask.\n");
       info->solventMask = processAtomMask(":WAT", action->state);
     }
     if (info->solventMask==NULL) {
