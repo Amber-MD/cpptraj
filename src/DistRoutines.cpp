@@ -399,7 +399,7 @@ double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
   if (D < x) x = D;
   D = box[1] - y;
   if (D < y) y = D;  
-  D = box[0] - z;
+  D = box[2] - z;
   if (D < z) z = D;
 
   x = x * x;
