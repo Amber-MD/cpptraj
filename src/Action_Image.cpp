@@ -252,7 +252,7 @@ int Image::action() {
         Coord[0] += boxTrans[0];
         Coord[1] += boxTrans[1];
         Coord[2] += boxTrans[2];
-        MinImageNonOrtho2(Coord, fcom, currentFrame->box, origin, ixyz, ucell, recip);
+        MinImageNonOrtho2(Coord, fcom, currentFrame->box, (int)origin, ixyz, ucell, recip);
         if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
           boxTrans[0] += (ixyz[0]*ucell[0] + ixyz[1]*ucell[3] + ixyz[2]*ucell[6]);
           boxTrans[1] += (ixyz[0]*ucell[1] + ixyz[1]*ucell[4] + ixyz[2]*ucell[7]);

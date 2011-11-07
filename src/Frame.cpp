@@ -723,10 +723,11 @@ double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {
 }
 
 /* -------------------- Coordinate Calculation Routines --------------------- */
-/* Frame::BoxToRecip()
- * Use box coordinates to calculate reciprocal space conversions for use
- * with imaging routines. Return cell volume.
- */
+// Frame::BoxToRecip()
+/** Use box coordinates to calculate reciprocal space conversions for use
+  * with imaging routines. Return cell volume.
+  */
+// NOTE: Move to separate routine in DistRoutines?
 double Frame::BoxToRecip(double *ucell, double *recip) {
   double u12x,u12y,u12z;
   double u23x,u23y,u23z;

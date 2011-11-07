@@ -26,6 +26,7 @@
 #include "Action_Jcoupling.h"
 #include "Action_Clustering.h"
 #include "Action_Pairwise.h"
+#include "Action_PtrajAction.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() {
@@ -86,7 +87,30 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("jcoupling")){Act=new Jcoupling;}
   else if (argIn.CommandIs("cluster"))  {Act=new Clustering;}
   else if (argIn.CommandIs("pairwise")) {Act=new Pairwise;}
-  else return 1; 
+  // PTRAJ
+  else if (argIn.CommandIs("atomicfluct") ||
+           argIn.CommandIs("atomicfluct3D") ||
+           argIn.CommandIs("checkoverlap") ||
+           argIn.CommandIs("contacts") ||
+           argIn.CommandIs("correlation") ||
+           argIn.CommandIs("clusterdihedral") ||
+           argIn.CommandIs("diffusion") ||
+           argIn.CommandIs("dipole") ||
+           argIn.CommandIs("dnaiontracker") ||
+           argIn.CommandIs("echo") ||
+           argIn.CommandIs("grid") ||
+           argIn.CommandIs("matrix") ||
+           argIn.CommandIs("principal") ||
+           argIn.CommandIs("projection") ||
+           argIn.CommandIs("randomizeions") ||
+           argIn.CommandIs("runningaverage") ||
+           argIn.CommandIs("scale") ||
+           argIn.CommandIs("unwrap") ||
+           argIn.CommandIs("vector") ||
+           argIn.CommandIs("watershell") )
+  {
+    Act = new PtrajAction;
+  } else return 1; 
 
   // Pass in the argument list
   Act->SetArg(argIn);

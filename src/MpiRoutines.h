@@ -1,3 +1,5 @@
+#ifndef INC_MPIROUTINES_H
+#define INC_MPIROUTINES_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -55,4 +57,4 @@ int parallel_allreduce(void *, void *, int, int, int);
 #ifdef __cplusplus
 }
 #endif
-
+#endif

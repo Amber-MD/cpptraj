@@ -8,7 +8,7 @@
  * Given 4 sets of XYZ coords, calculate the torsion (in radians) between the 
  * planes formed by a1-a2-a3 and a2-a3-a4.
  */
-double Torsion(double *a1, double *a2, double *a3, double *a4) {
+extern "C" double Torsion(double *a1, double *a2, double *a3, double *a4) {
   double Lx, Ly, Lz, Lnorm;
   double Rx, Ry, Rz, Rnorm;
   double Sx, Sy, Sz;

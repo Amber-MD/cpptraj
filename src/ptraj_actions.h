@@ -39,11 +39,11 @@ extern "C" {
  *
  */
 
-//#include "contributors.h"
-//#include "version.h"
 #include <stdio.h> // FILE
-#include "../../ptraj/evec.h" // modesInfo
-
+#include "ptraj_evec.h" // modesInfo
+// Redefine Name to match definition in Ptraj
+#include "Name.h"
+typedef NAME Name;
 /*  ________________________________________________________________________
  */
 
@@ -69,10 +69,6 @@ typedef struct _argStackType {
 /*
  * (1) EXTERNALLY VISIBLE DEFINITIONS
  */
-
-// Redefine Name to match definition in Ptraj
-#include "Name.h"
-typedef NAME Name;
 
 // Ptraj State - originally from ptraj_local.h
 typedef struct _ptrajState {

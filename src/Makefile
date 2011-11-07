@@ -23,5 +23,9 @@ cpptraj$(SFX): $(OBJECTS)
 clean:
 	/bin/rm -f $(OBJECTS) cpptraj$(SFX)
 
+# Test for evec.o
+evec.o: ../../ptraj/evec.o
+	/bin/cp ../../ptraj/evec.o .
+
 # Header dependencies
 include cpptrajdepend

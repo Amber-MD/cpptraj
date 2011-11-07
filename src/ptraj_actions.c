@@ -38,16 +38,13 @@
 // ---------- CSTDLIB includes ----------
 //#include <time.h> // for cluster
 #include <string.h>
-#include <stdarg.h>
 #include <float.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdarg.h>
 //#include <ctype.h>
 
 #define ACTION_MODULE
-#ifndef BUFFER_SIZE
-#define BUFFER_SIZE 1024
-#endif
        /* Multiply the transpose of the 3x3 matrix times the 
         * coordinates specified in x, y and z.  xx, yy and zz 
         * are temporary variables. 
@@ -73,15 +70,15 @@
 
 
 // ---------- PTRAJ includes ----------
-//#include "ptraj.h"
 #include "ptraj_actions.h"
 #include "ptraj_analyze.h" // scalarInfo etc
+#include "ptraj_common.h"
 //typedef struct _arrayType {
 //  int length;
 //  void *entry;
 //} arrayType;
-//#include "../../ptraj/clusterLib.h"
-//#include "../../ptraj/cluster.h"
+//# inc lude "../../ptraj/clusterLib.h"
+//# inc lude "../../ptraj/cluster.h"
 
 // ---------- CPPTRAJ includes ----------
 // Mask parser
@@ -92,13 +89,15 @@
 #include "DistRoutines.h"
 // Torsion Routines
 #include "TorsionRoutines.h"
+// MPI worldrank and size
+#include "MpiRoutines.h"
 
 // ---------- GLOBAL variables ---------- 
 // prnlev - used to set overall debug level
 int prnlev;
 // worldrank and worldsize - for MPI code
-const int worldrank = 0;
-const int worldsize = 1;
+//const int worldrank = 0;
+//const int worldsize = 1;
 // from ptraj.h
 //arrayType *attributeArray = NULL;
 //arrayType *attributeArrayTorsion = NULL;
@@ -106,55 +105,6 @@ stackType *vectorStack = NULL;
 stackType *matrixStack = NULL;
 
 // =============================================================================
-// ----- Originally from utility.c -----
-// Print functions: error and warning
-static void error(char *function, char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  fprintf(stderr, "\nERROR in %s: ", function);
-  vfprintf(stderr, fmt, args);
-  fprintf(stderr, "\n" );
-  va_end(args);
-  //exit(1);
-}
-static void warning(char *function, char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  fprintf(stderr, "\nWARNING in %s: ", function);
-  vfprintf(stderr, fmt, args);
-  fprintf(stderr, "\n" );
-  va_end(args);
-}
-// Memory functions: safe_malloc, safe_realloc, and safe_free
-static void *safe_malloc(size_t size) {
-  void *mem;
-  if ( size ) {
-    if ( (mem = (void *) malloc( size )) == NULL )
-      error( "safe_malloc", "Error in alloc of %i bytes", size);
-    mem = memset(mem, (char) 0, size);
-  } else
-    mem = NULL;
-  return( mem );
-}
-static void *safe_realloc(void *mem, size_t cur_size, size_t increase) {
-  void *temp;
-
-  if ( cur_size == 0 )
-    return ( safe_malloc( increase ) );
-  else if ( (temp = (void *)
-             realloc((void *) mem, (size_t) (cur_size + increase))) == NULL )
-    error( "safe_realloc", "Couldn't allocate %i bytes more", increase);
-
-  /* cast temp to avoid pointer arithmetic on void* which has unknown size */
-  /* use char* as a byte level pointer per traditional malloc/realloc usage */
-  memset( (char *) temp + cur_size, (char) 0, increase);
-
-  mem = temp;
-  return(mem);
-}
-static void safe_free(void *pointer) {
- if ( pointer != NULL ) free(pointer);
-}
 // String functions
 /*
 static char *toLowerCase( char *string_in ) {
@@ -527,9 +477,6 @@ static double calculateDistance2(int i, int j, double *x, double *y, double *z,
   // NON-ORTHORHOMBIC
   return DIST2_ImageNonOrtho(A0, A1, ucell, recip);
 }
-
-//#include "contributors.h"
-//#include "version.h"
 
 /*  ________________________________________________________________________
  */
@@ -12488,9 +12435,8 @@ transformWatershell(actionInformation *action,
   return 1;
 }
 
-/*
-void
-printError(char *actionName, char *fmt, ...)
+
+void printError(char *actionName, char *fmt, ...)
 {
   va_list argp;
   va_start(argp, fmt);
@@ -12504,7 +12450,7 @@ printError(char *actionName, char *fmt, ...)
 #endif
   va_end(argp);
 }
-*/
+
 void
 printParallelError(char *actionName)
 {

@@ -1,6 +1,6 @@
 #include <cmath> //floor
 #include "DistRoutines.h"
-#include "vectormath.h" // DEGRAD
+#include "Constants.h" // DEGRAD
 
 /* Frame::ClosestImage()
  * Given two coordinates A and B, determine the unit XYZ vector that points 
@@ -60,7 +60,7 @@ void Frame::ClosestImage(double *A, double *B, int *ixyz) {
  * The integer coefficients describing the closest reflection in reciprocal
  * space will be placed in ixyz.
  */
-double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, bool origin, int *ixyz,
+double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, int origin, int *ixyz,
                          double *ucell, double *recip) {
   double min, f[3], f2[3];
 
@@ -90,7 +90,7 @@ double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, bool origi
     f2[2] += 0.5;
   }
 
-  min = DIST2_ImageNonOrtho(f, f2, min, ixyz, ucell);
+  min = DIST2_ImageNonOrthoRecip(f, f2, min, ixyz, ucell);
 
   return min;
 }
@@ -100,7 +100,7 @@ double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, bool origi
  * the current non-orthorhombic box, return the shortest imaged distance^2 
  * between the coordinates.
  */
-double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip) { 
+extern "C" double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip) { 
 // double closest2
   double f[3], f2[3];
   int ixyz[3];
@@ -113,7 +113,7 @@ double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip)
   f2[1] = a1[0]*recip[3] + a1[1]*recip[4] + a1[2]*recip[5];
   f2[2] = a1[0]*recip[6] + a1[1]*recip[7] + a1[2]*recip[8];
 
-  return DIST2_ImageNonOrtho(f, f2, -1.0, ixyz, ucell);
+  return DIST2_ImageNonOrthoRecip(f, f2, -1.0, ixyz, ucell);
 }
 
 /* DIST2_ImageNonOrtho()
@@ -123,7 +123,7 @@ double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip)
  * The integer coefficients describing the closest reflection in reciprocal
  * space will be placed in ixyz.
  */
-double DIST2_ImageNonOrtho(double *f, double *f2, double minIn, int *ixyz, double *ucell) { 
+double DIST2_ImageNonOrthoRecip(double *f, double *f2, double minIn, int *ixyz, double *ucell) { 
   //double closest2
   double fx, fy, fz, f2x, f2y, f2z, X_factor, Y_factor, Z_factor;
   double fxm1, fxp1, fym1, fyp1, fzm1, fzp1;
@@ -376,7 +376,7 @@ double DIST2_ImageNonOrtho(double *f, double *f2, double minIn, int *ixyz, doubl
  * Return the minimum orthorhombic imaged distance^2 between coordinates a1 
  * and a2.
  */
-double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
+extern "C" double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
   double x,y,z,D;
 
   x = a1[0] - a2[0];
@@ -415,7 +415,7 @@ double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
  * Frame::DIST2_NoImage()
  * Return distance^2 between coordinates in a1 and a2.
  */
-double DIST2_NoImage(double *a1, double *a2) {
+extern "C" double DIST2_NoImage(double *a1, double *a2) {
   double x,y,z,D;
 
   x = a1[0] - a2[0];
@@ -435,3 +435,46 @@ double DIST2_NoImage(double *a1, double *a2) {
   return D;
 }
 
+// boxToRecip()
+/// C-accessible boxToRecip routine for use in ptraj_action.c
+extern "C" double boxToRecip(double *box, double *ucell, double *recip) {
+  double u12x,u12y,u12z;
+  double u23x,u23y,u23z;
+  double u31x,u31y,u31z;
+  double volume,onevolume;
+
+  ucell[0] = box[0]; // ucell(1,1)
+  ucell[1] = 0.0;    // ucell(2,1)
+  ucell[2] = 0.0;    // ucell(3,1)
+  ucell[3] = box[1]*cos(DEGRAD*box[5]); // ucell(1,2)
+  ucell[4] = box[1]*sin(DEGRAD*box[5]); // ucell(2,2)
+  ucell[5] = 0.0;                       // ucell(3,2)
+  ucell[6] = box[2]*cos(DEGRAD*box[4]);                                         // ucell(1,3)
+  ucell[7] = (box[1]*box[2]*cos(DEGRAD*box[3]) - ucell[6]*ucell[3]) / ucell[4]; // ucell(2,3)
+  ucell[8] = sqrt(box[2]*box[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);       // ucell(3,3)
+
+  // Get reciprocal vectors
+  u23x = ucell[4]*ucell[8] - ucell[5]*ucell[7];
+  u23y = ucell[5]*ucell[6] - ucell[3]*ucell[8];
+  u23z = ucell[3]*ucell[7] - ucell[4]*ucell[6];
+  u31x = ucell[7]*ucell[2] - ucell[8]*ucell[1];
+  u31y = ucell[8]*ucell[0] - ucell[6]*ucell[2];
+  u31z = ucell[6]*ucell[1] - ucell[7]*ucell[0];
+  u12x = ucell[1]*ucell[5] - ucell[2]*ucell[4];
+  u12y = ucell[2]*ucell[3] - ucell[0]*ucell[5];
+  u12z = ucell[0]*ucell[4] - ucell[1]*ucell[3];
+  volume=ucell[0]*u23x + ucell[1]*u23y + ucell[2]*u23z;
+  onevolume = 1.0 / volume;
+
+  recip[0] = u23x*onevolume;
+  recip[1] = u23y*onevolume;
+  recip[2] = u23z*onevolume;
+  recip[3] = u31x*onevolume;
+  recip[4] = u31y*onevolume;
+  recip[5] = u31z*onevolume;
+  recip[6] = u12x*onevolume;
+  recip[7] = u12y*onevolume;
+  recip[8] = u12z*onevolume;
+
+  return volume;
+}
