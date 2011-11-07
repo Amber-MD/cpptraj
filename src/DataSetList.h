@@ -56,5 +56,7 @@ class DataSetList {
     void Sync();
     /// Return number of datasets in the list 
     int Size() { return Ndata; }
+    /// Return the max # expected frames
+    int MaxFrames() { return maxFrames; }
 };
 #endif
