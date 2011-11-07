@@ -8,7 +8,8 @@
 // CONSTRUCTOR
 PtrajAction::PtrajAction() {
   //fprintf(stderr,"PtrajAction Con\n");
-  actionptr = NULL;
+  actioninfo = NULL;
+  argumentStack = NULL;
   x_coord = NULL;
   y_coord = NULL;
   z_coord = NULL;
@@ -17,22 +18,24 @@ PtrajAction::PtrajAction() {
 // DESTRUCTOR
 PtrajAction::~PtrajAction() {
   //fprintf(stderr,"PtrajAction Destructor.\n");
-  if (actionptr != NULL) {
-    actionInformation *tmpaction = (actionInformation*) actionptr;
-    // Call actions cleanup routine
-    tmpaction->fxn(tmpaction, x_coord, y_coord, z_coord, NULL, PTRAJ_CLEANUP);
-    // Free args
-    argStackType **argumentStackAddress = (argStackType **) tmpaction->carg1;
-    argStackType *argumentStack = *argumentStackAddress;
+  if (argumentStack!=NULL) {
     // free individual args?
+    for (int arg=0; arg < argumentStack->nargs; arg++)
+      free(argumentStack->arglist[arg]);
+    free(argumentStack->arglist);
     free(argumentStack->marked);
     free(argumentStack);
+  }
+  if (actioninfo != NULL) {
+    // Call actions cleanup routine
+    actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, NULL, PTRAJ_CLEANUP);
     // Free state
-    free(tmpaction->state->solventMask);
-    free(tmpaction->state->solventMoleculeStart);
-    free(tmpaction->state->solventMoleculeStop);
-    free(tmpaction->state);
-    free(tmpaction);
+    free(actioninfo->state->ipres);
+    free(actioninfo->state->solventMask);
+    free(actioninfo->state->solventMoleculeStart);
+    free(actioninfo->state->solventMoleculeStop);
+    free(actioninfo->state);
+    free(actioninfo);
   }
   // Free coords
   if (x_coord!=NULL) free(x_coord);
@@ -48,81 +51,84 @@ PtrajAction::~PtrajAction() {
   * state memory.
   */
 int PtrajAction::init( ) {
-  actionInformation *action = NULL;
-
   // Set up action information structure
-  action = (actionInformation *) malloc(sizeof(actionInformation));
-  INITIALIZE_actionInformation(action);
-  action->type = TRANSFORM_NOOP;
+  actioninfo = (actionInformation *) malloc(sizeof(actionInformation));
+  // DEBUG
+  mprintf("DEBUG:\taction address (init): %x\n",actioninfo);
+  INITIALIZE_actionInformation(actioninfo);
+  actioninfo->type = TRANSFORM_NOOP;
 
   // Set the action type and function based on the command
   if      ( actionArgs.CommandIs("atomicfluct")    ) {
-    action->type = TRANSFORM_ATOMICFLUCT;
-    action->fxn = (actionFunction) transformAtomicFluct;
+    actioninfo->type = TRANSFORM_ATOMICFLUCT;
+    actioninfo->fxn = (actionFunction) transformAtomicFluct;
   } else if ( actionArgs.CommandIs("atomicfluct3D")  ) {
-    action->type = TRANSFORM_ATOMICFLUCT3D;
-    action->fxn = (actionFunction) transformAtomicFluct3D;
+    actioninfo->type = TRANSFORM_ATOMICFLUCT3D;
+    actioninfo->fxn = (actionFunction) transformAtomicFluct3D;
   } else if ( actionArgs.CommandIs("checkoverlap")   ) {
-    action->type = TRANSFORM_CHECKOVERLAP;
-    action->fxn  = (actionFunction) transformCheckOverlap;
+    actioninfo->type = TRANSFORM_CHECKOVERLAP;
+    actioninfo->fxn  = (actionFunction) transformCheckOverlap;
   } else if ( actionArgs.CommandIs("contacts")       ) {
-    action->type = TRANSFORM_CONTACTS;
-    action->fxn  = (actionFunction) transformContacts;
+    actioninfo->type = TRANSFORM_CONTACTS;
+    actioninfo->fxn  = (actionFunction) transformContacts;
   } else if ( actionArgs.CommandIs("correlation")    ) {
-    action->type = TRANSFORM_CORRELATION;
-    action->fxn  = (actionFunction) transformCorr;
+    actioninfo->type = TRANSFORM_CORRELATION;
+    actioninfo->fxn  = (actionFunction) transformCorr;
   } else if ( actionArgs.CommandIs("clusterdihedral")) {
-    action->type = TRANSFORM_DIHEDRALCLUSTER;
-    action->fxn  = (actionFunction) transformDihedralCluster;
+    actioninfo->type = TRANSFORM_DIHEDRALCLUSTER;
+    actioninfo->fxn  = (actionFunction) transformDihedralCluster;
   } else if ( actionArgs.CommandIs("diffusion")      ) {
-    action->type = TRANSFORM_DIFFUSION;
-    action->fxn  = (actionFunction) transformDiffusion;
+    actioninfo->type = TRANSFORM_DIFFUSION;
+    actioninfo->fxn  = (actionFunction) transformDiffusion;
   } else if ( actionArgs.CommandIs("dipole")         ) {
-    action->type = TRANSFORM_DIPOLE;
-    action->fxn  = (actionFunction) transformDipole;
+    actioninfo->type = TRANSFORM_DIPOLE;
+    actioninfo->fxn  = (actionFunction) transformDipole;
   } else if ( actionArgs.CommandIs("dnaiontracker")  ) {
-    action->type = TRANSFORM_DNAIONTRACKER;
-    action->fxn  = (actionFunction) transformDNAiontracker;
+    actioninfo->type = TRANSFORM_DNAIONTRACKER;
+    actioninfo->fxn  = (actionFunction) transformDNAiontracker;
   } else if ( actionArgs.CommandIs("echo")           ) {
-    action->type = TRANSFORM_ECHO;
-    action->fxn = (actionFunction) transformEcho;
+    actioninfo->type = TRANSFORM_ECHO;
+    actioninfo->fxn = (actionFunction) transformEcho;
   } else if ( actionArgs.CommandIs("grid")           ) {
-    action->type = TRANSFORM_GRID;
-    action->fxn  = (actionFunction) transformGrid;
+    actioninfo->type = TRANSFORM_GRID;
+    actioninfo->fxn  = (actionFunction) transformGrid;
   } else if ( actionArgs.CommandIs("matrix")         ) {
-    action->type = TRANSFORM_MATRIX;
-    action->fxn  = (actionFunction) transformMatrix;
+    actioninfo->type = TRANSFORM_MATRIX;
+    actioninfo->fxn  = (actionFunction) transformMatrix;
   } else if ( actionArgs.CommandIs("principal")      ) {
-    action->type = TRANSFORM_PRINCIPAL;
-    action->fxn  = (actionFunction) transformPrincipal;
+    actioninfo->type = TRANSFORM_PRINCIPAL;
+    actioninfo->fxn  = (actionFunction) transformPrincipal;
   } else if ( actionArgs.CommandIs("projection")     ) {
-    action->type = TRANSFORM_PROJECTION;
-    action->fxn  = (actionFunction) transformProjection;
+    actioninfo->type = TRANSFORM_PROJECTION;
+    actioninfo->fxn  = (actionFunction) transformProjection;
   } else if ( actionArgs.CommandIs("randomizeions")  ) {
-    action->type = TRANSFORM_RANDOMIZEIONS;
-    action->fxn  = (actionFunction) transformRandomizeIons;
+    actioninfo->type = TRANSFORM_RANDOMIZEIONS;
+    actioninfo->fxn  = (actionFunction) transformRandomizeIons;
   } else if ( actionArgs.CommandIs("runningaverage") ) {
-    action->type = TRANSFORM_RUNNINGAVERAGE;
-    action->fxn  = (actionFunction) transformRunningAverage;
+    actioninfo->type = TRANSFORM_RUNNINGAVERAGE;
+    actioninfo->fxn  = (actionFunction) transformRunningAverage;
   } else if ( actionArgs.CommandIs("scale")          ) {
-    action->type = TRANSFORM_SCALE;
-    action->fxn  = (actionFunction) transformScale;
+    actioninfo->type = TRANSFORM_SCALE;
+    actioninfo->fxn  = (actionFunction) transformScale;
   } else if ( actionArgs.CommandIs("unwrap")         ) {
-    action->type = TRANSFORM_UNWRAP;
-    action->fxn  = (actionFunction) transformUnwrap;
+    actioninfo->type = TRANSFORM_UNWRAP;
+    actioninfo->fxn  = (actionFunction) transformUnwrap;
   } else if ( actionArgs.CommandIs("vector")         ) {
-    action->type = TRANSFORM_VECTOR;
-    action->fxn  = (actionFunction) transformVector;
+    actioninfo->type = TRANSFORM_VECTOR;
+    actioninfo->fxn  = (actionFunction) transformVector;
   } else if ( actionArgs.CommandIs("watershell")     ) {
-    action->type = TRANSFORM_WATERSHELL;
-    action->fxn  = (actionFunction) transformWatershell;
+    actioninfo->type = TRANSFORM_WATERSHELL;
+    actioninfo->fxn  = (actionFunction) transformWatershell;
   } else {
     mprinterr("Error: PtrajAction: Unrecognized Ptraj command: %s\n",actionArgs.Command());
     return 1;
   }
 
   // Convert the ArgList to the argStackType used by functions in ptraj_actions.c
-  argStackType *argumentStack = (argStackType*) malloc( sizeof(argStackType) );
+  argumentStack = (argStackType*) malloc( sizeof(argStackType) );
+  mprintf("DEBUG:\targumentStack address (init): %x\n",argumentStack);
+  argumentStack->arglist = NULL;
+  argumentStack->marked = NULL;
   int nargs = 0;
   char *currentArg = actionArgs.getNextString();
   while (currentArg != NULL) {
@@ -135,16 +141,20 @@ int PtrajAction::init( ) {
   argumentStack->nargs = nargs;
   argumentStack->marked = (char*) malloc(nargs * sizeof(char));
   memset(argumentStack->marked, 'F', nargs);
-  action->carg1 = (void *) &argumentStack;
+  actioninfo->carg1 = (void *) &argumentStack;
+  mprintf("DEBUG:\taction->carg1 address (init): %x\n",actioninfo->carg1);
   // NOTE: Should ptraj be freeing up the args?
+  // DEBUG
+  argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
+  mprintf("DEBUG:\targumentStack address (init 2): %x\n",*argumentStackPointer);
+  printArgumentStack(argumentStackPointer);
 
   // Initialize state memory
-  action->state = (ptrajState*) malloc( sizeof(ptrajState) );
-  INITIALIZE_ptrajState( action->state );
+  actioninfo->state = (ptrajState*) malloc( sizeof(ptrajState) );
+  INITIALIZE_ptrajState( actioninfo->state );
 
   // Dont call setup here since there is no state information yet
   
-  actionptr = (void*) action;
   return 0;
 }
 
@@ -153,8 +163,13 @@ int PtrajAction::init( ) {
   * action routine with mode PTRAJ_SETUP.
   */
 int PtrajAction::setup() {
-  actionInformation *action = (actionInformation*) actionptr;
-  ptrajState *state = action->state;
+  // DEBUG
+  mprintf("DEBUG:\taction address (setup): %x\n",actioninfo);
+  mprintf("DEBUG:\taction->carg1 address (setup): %x\n",actioninfo->carg1);
+  argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
+  mprintf("DEBUG:\targumentStack address (setup): %x\n",*argumentStackPointer);
+  printArgumentStack(argumentStackPointer);
+  ptrajState *state = actioninfo->state;
   // Place a copy of the current state into the action
   state->box[0] = currentParm->Box[0];
   state->box[1] = currentParm->Box[1];
@@ -166,7 +181,13 @@ int PtrajAction::setup() {
   state->charges = currentParm->charge;
   state->atoms = currentParm->natom;
   state->residues = currentParm->nres;
-  state->ipres = currentParm->resnums;
+  // IPRES - in Cpptraj the atom #s in IPRES (resnums) is shifted by -1
+  // to be consistent with the rest of cpptraj; however, ptraj expects
+  // standard ipres. Create a copy.
+  state->ipres = (int*) malloc( (currentParm->nres+1) * sizeof(int));
+  for (int res = 0; res < currentParm->nres; res++)
+    state->ipres[res] = currentParm->resnums[res]+1;
+  state->ipres[currentParm->nres] = currentParm->natom;
   state->IFBOX = AmberIfbox(currentParm->Box[4]);
   //state->boxfixed
   state->molecules = currentParm->molecules;
@@ -201,13 +222,13 @@ int PtrajAction::setup() {
   state->temp0 = 0.0;
 
   // Now that the state info has been allocated, call setup
-  if (action->fxn(action, NULL, NULL, NULL, NULL, PTRAJ_SETUP) < 0) {
+  if (actioninfo->fxn(actioninfo, NULL, NULL, NULL, NULL, PTRAJ_SETUP) < 0) {
     mprinterr("Error: PtrajAction: Could not set up action %s\n",actionArgs.Command());
     return 1;
   }
 
   // Print status
-  action->fxn(action, NULL, NULL, NULL, NULL, PTRAJ_STATUS);
+  actioninfo->fxn(actioninfo, NULL, NULL, NULL, NULL, PTRAJ_STATUS);
 
   // Allocate space for the X Y and Z vectors
   if (x_coord!=NULL) free(x_coord);
@@ -222,7 +243,6 @@ int PtrajAction::setup() {
 
 // PtrajAction::action()
 int PtrajAction::action() {
-  actionInformation *action = (actionInformation*) actionptr;
   // Convert coordinates array X0Y0Z0X1... into separate X Y Z vectors
   int i3 = 0;
   for (int atom = 0; atom < currentFrame->natom; atom++) {
@@ -231,14 +251,13 @@ int PtrajAction::action() {
     z_coord[atom] = currentFrame->X[i3++];
   }
   
-  action->fxn(action, x_coord, y_coord, z_coord, currentFrame->box, PTRAJ_ACTION);
+  actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, currentFrame->box, PTRAJ_ACTION);
 
   return 0;
 } 
 
 // PtrajAction::print()
 void PtrajAction::print() {
-  actionInformation *action = (actionInformation*) actionptr;
   // NOTE: Is it ok to just call this will NULLs?
-  action->fxn(action, x_coord, y_coord, z_coord, currentParm->Box, PTRAJ_PRINT);
+  actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, currentParm->Box, PTRAJ_PRINT);
 }

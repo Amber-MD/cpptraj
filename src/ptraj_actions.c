@@ -158,12 +158,24 @@ static void safe_fclose(FILE *fileIn) {
 // NOTE: May need to return a copy.
 static char *getArgumentString(argStackType **argumentStackAddress, char *defvalue) {
   int arg;
+  char *retvalue = NULL;
   argStackType *argumentStack;
   argumentStack = *argumentStackAddress;
   for (arg = 0; arg < argumentStack->nargs; arg++) {
-    if ( argumentStack->marked[arg] == 'F' ) return argumentStack->arglist[arg];
+    // If arg is unmarked, mark and return copy
+    if ( argumentStack->marked[arg] == 'F' ) {
+      argumentStack->marked[arg] = 'T';
+      retvalue = (char*) malloc( (strlen(argumentStack->arglist[arg])+1) * sizeof(char));
+      strcpy(retvalue, argumentStack->arglist[arg]);
+      return retvalue;
+    }
   }
-  return defvalue;
+  // No more unmarked args; return copy of defvalue
+  if (defvalue!=NULL) {
+    retvalue = (char*) malloc( (strlen(defvalue)+1) * sizeof(char));
+    strcpy(retvalue, defvalue);
+  }
+  return retvalue;
 }
 // getArgumentInteger()
 /// Return the next unmarked argument as an integer
@@ -172,8 +184,13 @@ static int getArgumentInteger(argStackType **argumentStackAddress, int defvalue)
   argStackType *argumentStack;
   argumentStack = *argumentStackAddress;
   for (arg = 0; arg < argumentStack->nargs; arg++) {
-    if ( argumentStack->marked[arg] == 'F' ) return atoi(argumentStack->arglist[arg]);
+    // If arg is unmarked, mark and return
+    if ( argumentStack->marked[arg] == 'F' ) {
+      argumentStack->marked[arg] = 'T';
+      return atoi(argumentStack->arglist[arg]);
+    }
   }
+  // No more unmarked args; return defvalue
   return defvalue;
 }
 // getArgumentDouble()
@@ -183,8 +200,13 @@ static double getArgumentDouble(argStackType **argumentStackAddress, double defv
   argStackType *argumentStack;
   argumentStack = *argumentStackAddress;
   for (arg = 0; arg < argumentStack->nargs; arg++) {
-    if ( argumentStack->marked[arg] == 'F' ) return atof(argumentStack->arglist[arg]);
+    // If arg is unmarked, mark and return
+    if ( argumentStack->marked[arg] == 'F' ) {
+      argumentStack->marked[arg] = 'T';
+      return atof(argumentStack->arglist[arg]);
+    }
   }
+  // No more unmarked args; return defvalue
   return defvalue;
 }
 // argumentStringContains()
@@ -194,6 +216,7 @@ static int argumentStringContains(argStackType **argumentStackAddress, char *mat
   argStackType *argumentStack;
   argumentStack = *argumentStackAddress;
   for (arg = 0; arg < argumentStack->nargs; arg++) {
+    // If arg is unmarked and matches, mark and return 1, otherwise return 0
     if ( argumentStack->marked[arg] == 'F' ) {
       if (strcmp(argumentStack->arglist[arg], match)==0) {
         argumentStack->marked[arg] = 'T';
@@ -212,9 +235,12 @@ static int argumentStackContains(argStackType **argumentStackAddress, char *matc
   argStackType *argumentStack;
   argumentStack = *argumentStackAddress;
   for (arg = 0; arg < argumentStack->nargs; arg++) {
-    if ( argumentStack->marked[arg]=='F' && strcmp(argumentStack->arglist[arg], match)==0 ) {
-      argumentStack->marked[arg] = 'T';
-      return 1;
+    // If arg is unmarked and matches, mark and return 1
+    if ( argumentStack->marked[arg]=='F') {
+      if ( strcmp(argumentStack->arglist[arg], match)==0 ) {
+        argumentStack->marked[arg] = 'T';
+        return 1;
+      }
     }
   }
   return 0;
@@ -258,6 +284,7 @@ static double argumentStackKeyToDouble(argStackType **argumentStackAddress,
 static char* argumentStackKeyToString(argStackType **argumentStackAddress, 
                                       char *match, char* defvalue) {
   int arg;
+  char *retvalue = NULL;
   argStackType *argumentStack;
   argumentStack = *argumentStackAddress;
   for (arg = 0; arg < argumentStack->nargs - 1; arg++) {
@@ -267,12 +294,26 @@ static char* argumentStackKeyToString(argStackType **argumentStackAddress,
       argumentStack->marked[arg] = 'T';
       arg++;
       argumentStack->marked[arg] = 'T';
-      return argumentStack->arglist[arg];
+      retvalue = (char*) malloc( (strlen(argumentStack->arglist[arg])+1) * sizeof(char));
+      strcpy(retvalue, argumentStack->arglist[arg]);
+      return retvalue;
     }
   }
-  return defvalue;
+  if (defvalue!=NULL) {
+    retvalue = (char*) malloc( (strlen(defvalue)+1) * sizeof(char));
+    strcpy(retvalue, defvalue);
+  }
+  return retvalue;
 }
-
+// printArgumentStack()
+void printArgumentStack(argStackType **argumentStackAddress) {
+  int arg;
+  argStackType *argumentStack;
+  argumentStack = *argumentStackAddress;
+  for (arg = 0; arg < argumentStack->nargs; arg++)
+    fprintf(stdout,"Arg %i: %s [%c]\n",arg,argumentStack->arglist[arg],
+            argumentStack->marked[arg]);
+}
 // =============================================================================
 // Mask Functions
 static void printAtomMaskDetailed(FILE *file, int *mask, int atoms, int residues,
@@ -12213,8 +12254,15 @@ transformWatershell(actionInformation *action,
 
 #endif
 
+    // DEBUG
+    fprintf(stdout,"DEBUG:\taction address (watershell): %x\n",action);
+    fprintf(stdout,"DEBUG:\taction->carg1 address (watershell): %x\n",action->carg1);
+
     argumentStackPointer = (argStackType **) action->carg1;
     action->carg1 = NULL;
+    // DEBUG
+    fprintf(stdout,"DEBUG:\targumentStack address (watershell): %x\n",*argumentStackPointer);
+    printArgumentStack( argumentStackPointer );
 
     info = (transformShellInfo *)
       safe_malloc(sizeof(transformShellInfo));
@@ -12250,10 +12298,13 @@ transformWatershell(actionInformation *action,
       argumentStackKeyToDouble(argumentStackPointer, "upper", info->upperCutoff);
 
     buffer = getArgumentString(argumentStackPointer, NULL);
-    if (buffer != NULL) 
+    if (buffer != NULL) { 
+      fprintf(stdout,"DEBUG:\tWATERSHELL: Using %s as solvent mask.\n",buffer);
       info->solventMask = processAtomMask(buffer, action->state);
-    else
+    } else {
+      fprintf(stdout,"DEBUG:\tWATERSHELL: Using :WAT as solvent mask.\n");
       info->solventMask = processAtomMask(":WAT", action->state);
+    }
     if (info->solventMask==NULL) {
       if (buffer!=NULL)
         fprintf(stdout,"ERROR: WATERSHELL: Solvent mask %s corresponds to 0 atoms.\n",buffer);

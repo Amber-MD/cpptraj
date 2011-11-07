@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "PtrajMask.h"
 #include <cstring>
+#include <cstdlib> // needed for malloc / free, ptraj_actions.c
 
 // CONSTRUCTOR
 AtomMask::AtomMask() {
@@ -18,7 +19,8 @@ AtomMask::AtomMask() {
 AtomMask::~AtomMask() {
   if (maskString!=NULL) delete[] maskString;
   if (Selected!=NULL) delete[] Selected;
-  if (CharMask!=NULL) delete[] CharMask;
+  //if (CharMask!=NULL) delete[] CharMask;
+  if (CharMask!=NULL) free(CharMask);
   if (Postfix!=NULL) delete[] Postfix;
 }
 
@@ -27,7 +29,8 @@ AtomMask::~AtomMask() {
 void AtomMask::Reset() {
   if (maskString!=NULL) delete[] maskString;
   if (Selected!=NULL) delete[] Selected;
-  if (CharMask!=NULL) delete[] CharMask;
+  //if (CharMask!=NULL) delete[] CharMask;
+  if (CharMask!=NULL) free(CharMask);
   invertMask=false;
   maskString=NULL;
   Selected=NULL;
@@ -119,7 +122,8 @@ AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   if ( this == &rhs ) return *this;
 
   // Deallocate
-  if (CharMask!=NULL) delete[] CharMask;
+  //if (CharMask!=NULL) delete[] CharMask;
+  if (CharMask!=NULL) free(CharMask);
   if (maskString!=NULL) delete[] maskString;
   if (Selected!=NULL) delete[] Selected;
 
@@ -128,7 +132,8 @@ AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   Nchar = rhs.Nchar;
   Nselected = rhs.Nselected;
   if (rhs.CharMask!=NULL) {
-    CharMask = new char[ Nchar ];
+    //CharMask = new char[ Nchar ];
+    CharMask = (char*) malloc( Nchar * sizeof(char));
     memcpy(CharMask, rhs.CharMask, Nchar * sizeof(char));
   }
   if (rhs.maskString!=NULL) {
@@ -166,7 +171,8 @@ AtomMask *AtomMask::CopyMask() {
   }
 
   if (this->CharMask!=NULL) {
-    newMask->CharMask = new char[ this->Nchar ];
+    //newMask->CharMask = new char[ this->Nchar ];
+    newMask->CharMask = (char*) malloc(this->Nchar * sizeof(char));
     memcpy(newMask->CharMask, this->CharMask, this->Nchar * sizeof(char));
     newMask->Nchar = this->Nchar;
     newMask->Nselected = Nselected;
@@ -259,7 +265,8 @@ int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
 
   // Wipe out previous char mask if allocated
   Nchar = 0;
-  if (CharMask!=NULL) delete[] CharMask;
+  //if (CharMask!=NULL) delete[] CharMask;
+  if (CharMask!=NULL) free(CharMask);
   CharMask = NULL;
   // Set up an integer list of the selected atoms. 
   // NOTE: For large selections this will use 4x the memory of the char atom
@@ -288,7 +295,10 @@ int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
   }
 
   // Free the character mask, no longer needed.
-  delete[] mask;
+  // NOTE: Use free() for now while PtrajMask uses free, needed by
+  //       ptraj_actions.c
+  //delete[] mask;
+  free(mask);
   
   return 0;
 }
@@ -342,7 +352,8 @@ int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
 
   // Allocate atom mask - free mask if already allocated
   Nchar = 0;
-  if (CharMask!=NULL) delete[] CharMask;
+  //if (CharMask!=NULL) delete[] CharMask;
+  if (CharMask!=NULL) free( CharMask);
   CharMask = parseMaskString(Postfix, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
                              Pin->resnums, Xin, Pin->types, debug);
   if (CharMask==NULL) {
