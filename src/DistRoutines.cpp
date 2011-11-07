@@ -1,4 +1,5 @@
 #include <cmath> //floor
+#include <cstddef> // NULL
 #include "DistRoutines.h"
 #include "Constants.h" // DEGRAD
 
@@ -100,7 +101,7 @@ double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, int origin
  * the current non-orthorhombic box, return the shortest imaged distance^2 
  * between the coordinates.
  */
-extern "C" double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip) { 
+double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip) { 
 // double closest2
   double f[3], f2[3];
   int ixyz[3];
@@ -376,7 +377,7 @@ double DIST2_ImageNonOrthoRecip(double *f, double *f2, double minIn, int *ixyz, 
  * Return the minimum orthorhombic imaged distance^2 between coordinates a1 
  * and a2.
  */
-extern "C" double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
+double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
   double x,y,z,D;
 
   x = a1[0] - a2[0];
@@ -415,7 +416,7 @@ extern "C" double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
  * Frame::DIST2_NoImage()
  * Return distance^2 between coordinates in a1 and a2.
  */
-extern "C" double DIST2_NoImage(double *a1, double *a2) {
+double DIST2_NoImage(double *a1, double *a2) {
   double x,y,z,D;
 
   x = a1[0] - a2[0];
@@ -478,3 +479,30 @@ extern "C" double boxToRecip(double *box, double *ucell, double *recip) {
 
   return volume;
 }
+
+// calculateDistance2
+/// C-accessible distance calc routine for functions in ptraj_actions.c
+extern "C" double calculateDistance2(int i, int j, double *x, double *y, double *z,
+                                     double *box, double *ucell, double *recip,
+                                     double closest2, int noimage)
+{
+  double A0[3];
+  double A1[3];
+  
+  A0[0] = x[i];
+  A0[1] = y[i];
+  A0[2] = z[i];
+  A1[0] = x[j];
+  A1[1] = y[j];
+  A1[2] = z[j];
+
+  // NO IMAGE
+  if (box == NULL || box[0] == 0.0 || noimage > 0)
+    return DIST2_NoImage(A0, A1);
+  // ORTHORHOMBIC IMAGING  
+  if (box[3] == 90.0 && box[4] == 90.0 && box[5] == 90.0)
+    return DIST2_ImageOrtho(A0, A1, box);
+  // NON-ORTHORHOMBIC
+  return DIST2_ImageNonOrtho(A0, A1, ucell, recip);
+}
+

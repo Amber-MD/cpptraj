@@ -186,9 +186,9 @@ int PtrajAction::setup() {
   // to be consistent with the rest of cpptraj; however, ptraj expects
   // standard ipres. Create a copy.
   state->ipres = (int*) malloc( (currentParm->nres+1) * sizeof(int));
-  for (int res = 0; res < currentParm->nres; res++)
+  for (int res = 0; res <= currentParm->nres; res++)
     state->ipres[res] = currentParm->resnums[res]+1;
-  state->ipres[currentParm->nres] = currentParm->natom;
+  //state->ipres[currentParm->nres] = currentParm->natom;
   state->ipres_mask = currentParm->resnums;
   state->IFBOX = AmberIfbox(currentParm->Box[4]);
   //state->boxfixed

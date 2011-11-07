@@ -408,9 +408,11 @@ static void printAtomMaskDetailed(FILE *file, int *mask, int atoms, int residues
     if (mask[i])
       j++;
   }
-  if (j == ipres[curres+1] - ipres[curres]) {
-    resactive[curres] = 1.0;
-  }
+  //fprintf(stdout,"DEBUG:\tprintAtomMaskDetailed: curres = %i\n",curres);
+  // NOTE: DRR - unneccessary, curres will end up == residues
+  //if (j == ipres[curres+1] - ipres[curres]) {
+  //  resactive[curres] = 1.0;
+  //}
 
      /*
       *  determine the range over which the residues are fully active
@@ -567,11 +569,9 @@ static int *processAtomMask( char *maskString, ptrajState *state ) {
  charmask = parseMaskC(maskString, state->atoms, state->residues,
                         state->atomName, state->residueName, state->ipres_mask,
                         NULL, NULL, prnlev);
-  /*
-   *  the new mask parsing routine returns a character array
-   *  rather than integer; this makes more sense, however in the meantime
-   *  we need to convert between the two.
-   */
+  //  The new mask parsing routine returns a character array
+  //  rather than integer; this makes more sense, however in the meantime
+  //  we need to convert between the two.
   actualAtoms = 0;
   for (i = 0; i < state->atoms; i++) {
     if (charmask[i] == 'T') { 
@@ -591,6 +591,10 @@ static int *processAtomMask( char *maskString, ptrajState *state ) {
     safe_free(intmask);
     intmask = NULL;
   }
+  // DEBUG
+  fprintf(stdout,"Mask:\n");
+  for (i = 0; i < state->atoms; i++) 
+    fprintf(stdout,"\t%8i[%s]: %i\n",i,state->atomName[i],intmask[i]);
 
   if (prnlev > 2) {
     fprintf(stdout, "Parsed mask string matches:\n");
@@ -720,32 +724,6 @@ typedef struct _coordinateInfo {
 
 // Ref coords
 coordinateInfo *referenceInfo = NULL;
-
-
-// =============================================================================
-static double calculateDistance2(int i, int j, double *x, double *y, double *z,
-                                 double *box, double *ucell, double *recip, 
-                                 double closest2, int noimage) 
-{
-  double A0[3];
-  double A1[3];
-  
-  A0[0] = x[i];
-  A0[1] = y[i];
-  A0[2] = z[i];
-  A1[0] = x[j];
-  A1[1] = y[j];
-  A1[2] = z[j];
-
-  // NO IMAGE
-  if (box == NULL || box[0] == 0.0 || noimage > 0)
-    return DIST2_NoImage(A0, A1); 
-  // ORTHORHOMBIC IMAGING  
-  if (box[3] == 90.0 && box[4] == 90.0 && box[5] == 90.0)
-    return DIST2_ImageOrtho(A0, A1, box);
-  // NON-ORTHORHOMBIC
-  return DIST2_ImageNonOrtho(A0, A1, ucell, recip);
-}
 
 /*  ________________________________________________________________________
  */
