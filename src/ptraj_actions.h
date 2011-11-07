@@ -1,10 +1,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdio.h> // FILE
-#include "../../ptraj/evec.h" // modesInfo
-
 /*  _______________________________________________________________________
  *
  *                        RDPARM/PTRAJ: 2008
@@ -45,11 +41,11 @@ extern "C" {
 
 //#include "contributors.h"
 //#include "version.h"
+#include <stdio.h> // FILE
+#include "../../ptraj/evec.h" // modesInfo
 
 /*  ________________________________________________________________________
  */
-
-
 
 /*
  *  This is the header file for action.c which contains the basic structures
@@ -62,19 +58,19 @@ extern "C" {
  * (4) LOCAL STRUCTURES
  */
 
-// stackType - just used to set up arglist
-typedef struct _stackType {
+// argStackType - just used to set up arglist
+typedef struct _argStackType {
   int nargs;
   char **arglist;
   char *marked;
-} stackType;
+} argStackType;
 
 
 /*
  * (1) EXTERNALLY VISIBLE DEFINITIONS
  */
 
-// Redefine Name to match definition in Ptrja
+// Redefine Name to match definition in Ptraj
 #include "Name.h"
 typedef NAME Name;
 
@@ -187,6 +183,17 @@ typedef enum _actionType {
   TRANSFORM_2DRMS
 } actionType;
 
+// ptrajMode - originally from ptraj_local.h
+typedef enum _ptrajMode {
+  PTRAJ_NOOP,
+  PTRAJ_ACTION,
+  PTRAJ_FIRSTPASS,
+  PTRAJ_SECONDPASS,
+  PTRAJ_SETUP, 
+  PTRAJ_STATUS,
+  PTRAJ_PRINT,
+  PTRAJ_CLEANUP 
+} ptrajMode;
 
    /*
     *  ACTION FUNCTION TYPE DEFINITION
