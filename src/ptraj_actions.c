@@ -592,9 +592,9 @@ static int *processAtomMask( char *maskString, ptrajState *state ) {
     intmask = NULL;
   }
   // DEBUG
-  fprintf(stdout,"Mask:\n");
-  for (i = 0; i < state->atoms; i++) 
-    fprintf(stdout,"\t%8i[%s]: %i\n",i,state->atomName[i],intmask[i]);
+  //fprintf(stdout,"Mask:\n");
+  //for (i = 0; i < state->atoms; i++) 
+  //  fprintf(stdout,"\t%8i[%s]: %i\n",i,state->atomName[i],intmask[i]);
 
   if (prnlev > 2) {
     fprintf(stdout, "Parsed mask string matches:\n");
@@ -12660,6 +12660,8 @@ transformWatershell(actionInformation *action,
 
 	    distance = calculateDistance2(i, jj, x, y, z, box, ucell, recip, 0.0, action->iarg1);
 	    distance = sqrt(distance);
+            // DEBUG
+            //fprintf(stderr,"%i %i %i %lf\n",info->visits, i, jj, distance);
 
 	    if (distance < info->upperCutoff && 
 		info->activeResidues[j] == 0) {
