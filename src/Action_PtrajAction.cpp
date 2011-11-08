@@ -208,6 +208,7 @@ int PtrajAction::setup() {
   state->solventMoleculeStart = (int*) malloc( currentParm->solventMolecules * sizeof(int));
   state->solventMoleculeStop = (int*) malloc( currentParm->solventMolecules * sizeof(int));
   // Convert solvent mask
+  // Assume if no solvent mask, no solvent present
   if (currentParm->solventMask!=NULL) {
     for (int atom = 0; atom < currentParm->natom; atom++) {
       if (currentParm->solventMask[atom]=='T')
@@ -219,13 +220,14 @@ int PtrajAction::setup() {
       state->solventMoleculeStart[mol] = currentParm->solventMoleculeStart[mol];
       state->solventMoleculeStop[mol] = currentParm->solventMoleculeStop[mol];
     }
+    state->solventAtoms = state->solventMoleculeStop[currentParm->solventMolecules-1] - 
+                          state->solventMoleculeStart[0];
   } else {
     memset(state->solventMask,0,currentParm->natom);
     memset(state->solventMoleculeStart,0,currentParm->solventMolecules);
     memset(state->solventMoleculeStop,0,currentParm->solventMolecules);
+    state->solventAtoms = 0;
   }
-  state->solventAtoms = state->solventMoleculeStop[currentParm->solventMolecules-1] - 
-                        state->solventMoleculeStart[0];
   state->atomName = currentParm->names;
   state->residueName = currentParm->resnames;
   state->maxFrames = DSL->MaxFrames(); // NOTE: Is this correct?
