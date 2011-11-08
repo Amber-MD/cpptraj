@@ -3807,13 +3807,16 @@ transformDiffusion(actionInformation *action,
     /*
      *  ACTION: PTRAJ_CLEANUP
      */
-
+    safe_free(action->mask); 
     safe_free(diffusionInfo->dx);
     safe_free(diffusionInfo->dy);
     safe_free(diffusionInfo->dz);
     safe_free(diffusionInfo->prevx);
     safe_free(diffusionInfo->prevy);
     safe_free(diffusionInfo->prevz);
+    safe_free(diffusionInfo->distancex);
+    safe_free(diffusionInfo->distancey);
+    safe_free(diffusionInfo->distancez);
     safe_free(diffusionInfo->distance);
     safe_free(diffusionInfo->deltax);
     safe_free(diffusionInfo->deltay);
