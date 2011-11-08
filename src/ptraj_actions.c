@@ -1,41 +1,13 @@
-/*  _______________________________________________________________________
- *
- *                        RDPARM/PTRAJ: 2008
- *  _______________________________________________________________________
- *
- *  This file is part of rdparm/ptraj.
- *
- *  rdparm/ptraj is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  rdparm/ptraj is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You can receive a copy of the GNU General Public License from
- *  http://www.gnu.org or by writing to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *  ________________________________________________________________________
- *
- *  CVS tracking:
- *
- *  $Header: /home/case/cvsroot/amber11/AmberTools/src/ptraj/actions.c,v 10.11 2010/02/25 13:29:54 droe Exp $
- *
- *  Revision: $Revision: 10.11 $
- *  Date: $Date: 2010/02/25 13:29:54 $
- *  Last checked in by $Author: droe $
- *  ________________________________________________________________________
- *
- *
- *  CONTACT INFO: To learn who the code developers are, who to contact for
- *  more information, and to know what version of the code this is, refer
- *  to the CVS information and the include files (contributors.h && version.h)
- *
- */
-// ---------- CSTDLIB includes ----------
+// ptraj_actions.c
+// ORIGINALLY FROM PTRAJ
+// This file has ptraj actions originally from actions.c that have not yet
+// been incorporated into the cpptraj framework. They have been modified
+// to use Cpptraj mask, distance, and torsion routines and are called from
+// Cpptraj via the PtrajAction class. 
+// Ptraj originally written by Thomas E. Cheatham III et al.
+// See $AMBERHOME/AmberTools/src/ptraj/contributors.h for more author info.
+
+// ---------- CSTDLIB includes -------------------------------------------------
 //#include <time.h> // for cluster
 #include <string.h>
 #include <float.h>
@@ -44,6 +16,7 @@
 #include <stdarg.h>
 //#include <ctype.h>
 
+// ---------- Defines ----------------------------------------------------------
 #define ACTION_MODULE
        /* Multiply the transpose of the 3x3 matrix times the 
         * coordinates specified in x, y and z.  xx, yy and zz 
@@ -68,8 +41,7 @@
   t[2][1] = u[2][0] * v[0][1] + u[2][1] * v[1][1] + u[2][2] * v[2][1]; \
   t[2][2] = u[2][0] * v[0][2] + u[2][1] * v[1][2] + u[2][2] * v[2][2]
 
-
-// ---------- PTRAJ includes ----------
+// ---------- PTRAJ includes ---------------------------------------------------
 #include "ptraj_actions.h"
 #include "ptraj_analyze.h" // scalarInfo etc
 #include "ptraj_common.h"
@@ -80,7 +52,7 @@
 //# inc lude "../../ptraj/clusterLib.h"
 //# inc lude "../../ptraj/cluster.h"
 
-// ---------- CPPTRAJ includes ----------
+// ---------- CPPTRAJ includes -------------------------------------------------
 // Mask parser
 #include "PtrajMask.h"
 // Constants
@@ -92,7 +64,123 @@
 // MPI worldrank and size
 #include "MpiRoutines.h"
 
-// ---------- GLOBAL variables ---------- 
+// ========== TYPE Definitions =================================================
+// coodType - Ptraj coordinate types
+typedef enum _coordType {
+  COORD_UNKNOWN,
+  COORD_AMBER_TRAJECTORY,
+  COORD_AMBER_RESTART,
+  COORD_AMBER_NETCDF,
+  COORD_AMBER_REMD,
+  COORD_PDB,
+  COORD_BINPOS,
+  COORD_CHARMM_TRAJECTORY
+} coordType;
+// CoordinateInfo
+typedef struct _coordinateInfo {
+  FILE *file;      // File pointer
+#ifdef MPI
+  MPI_File *mfp;
+#endif
+  char *filename;  // File name
+  int start;       // Frame to start processing
+  int stop;        // Frame to end processing
+  int Nframes;     // Total number of frames in the file.
+  int offset;      // # of frames to skip
+  int append;      // File will be appended to
+  int isBox;       // File has box information
+  int isVelocity;  
+  int option1;
+  int option2;
+  int *mask;
+  double *x;
+  double *y;
+  double *z;
+  double *time;
+  double *vx;
+  double *vy;
+  double *vz;
+  char *title;
+  char *application;
+  char *program;
+  char *version;
+  void *info;          // Holds NETCDF or CHARMM trajectory info
+//  netcdfTrajectoryInfo *NCInfo;  // Holds NETCDF trajectory info
+  coordType type;      // Identify coordinate type
+  int accessMode;      // 0 for read, 1 for write, 2 for append
+  int compressType;    // 1 gzip 2 bzip 3 zip 
+     //  LES information
+/*  LesAction les_action;
+  int nlescopy;
+  LesStatus les_status;*/
+     //  REMD Trajectory info
+  struct _coordinateInfo **REMDtraj; // Hold information of other replica trajectories
+  int isREMDTRAJ;       // 0 = normal trajectory, 1 = replica trajectory
+  char *compressEXT;    /* If not NULL, contains compressed traj ext.*/
+  int numREMDTRAJ;      /* How many replica trajectories are present */
+  int firstREMDTRAJ;    /* Index of first replica                    */
+  int EXTwidth;         /* Length of replica extension               */
+  char* baseFilename;   /* To hold replica traj base filename        */
+  int linesperset;      /* for fast scanthrough of other REMD files  */
+  double remdtrajtemp;  /* Target temperature                        */
+  /* Write file with MPI IO? */
+  int isMPI;
+  int isNetcdf;
+   //  AMBER trajectory file information
+  int seekable;
+  int titleSize;
+  int frameSize;
+  int numBox;
+  char *buffer;
+} coordinateInfo;
+
+#define INITIALIZE_coordinateInfo(_p_) \
+  _p_->file = NULL; \
+  _p_->filename = NULL; \
+  _p_->start = 1; \
+  _p_->stop = -1; \
+  _p_->Nframes = 0; \
+  _p_->offset = 1; \
+  _p_->append = 0; \
+  _p_->isBox = 0; \
+  _p_->isVelocity = 0; \
+  _p_->option1 = 0; \
+  _p_->option2 = 0; \
+  _p_->mask = NULL; \
+  _p_->frameSize = 0; \
+  _p_->x = NULL; \
+  _p_->y = NULL; \
+  _p_->z = NULL; \
+  _p_->time = NULL; \
+  _p_->vx = NULL; \
+  _p_->vy = NULL; \
+  _p_->vz = NULL; \
+  _p_->title = NULL; \
+  _p_->application = NULL; \
+  _p_->program = NULL; \
+  _p_->version = NULL; \
+  _p_->info = NULL; \
+  _p_->type = COORD_UNKNOWN; \
+  _p_->accessMode = 0; \
+  _p_->compressType = 0; \
+  _p_->REMDtraj = NULL; \
+  _p_->isREMDTRAJ = 0; \
+  _p_->compressEXT = NULL; \
+  _p_->numREMDTRAJ = 0; \
+  _p_->firstREMDTRAJ = 0; \
+  _p_->EXTwidth = 0; \
+  _p_->baseFilename = NULL; \
+  _p_->linesperset = 0; \
+  _p_->remdtrajtemp = 0.0; \
+  _p_->isMPI = 0; \
+  _p_->isNetcdf = 0; \
+  _p_->seekable = 0; \
+  _p_->titleSize = 0; \
+  _p_->frameSize = 0; \
+  _p_->numBox = 0; \
+  _p_->buffer = NULL; \
+
+// ========== GLOBAL variables =================================================
 // prnlev - used to set overall debug level
 int prnlev;
 // worldrank and worldsize - for MPI code
@@ -103,9 +191,44 @@ int prnlev;
 //arrayType *attributeArrayTorsion = NULL;
 stackType *vectorStack = NULL;
 stackType *matrixStack = NULL;
+// Ref coords
+coordinateInfo *referenceInfo = NULL;
 
-// =============================================================================
-// String functions
+// ========== Functions that access GLOBALs ====================================
+// SetReferenceInfo()
+// It seems that the functions that require a reference only need 
+// x y and z set up.
+void SetReferenceInfo(double *X, int natom) {
+  int i3 = 0;
+  int atom;
+
+  referenceInfo = (coordinateInfo*) malloc(sizeof(coordinateInfo));
+  INITIALIZE_coordinateInfo(referenceInfo);
+  referenceInfo->x = (double*) malloc(natom * sizeof(double));
+  referenceInfo->y = (double*) malloc(natom * sizeof(double));
+  referenceInfo->z = (double*) malloc(natom * sizeof(double));
+  for (atom = 0; atom < natom; atom++) {
+    referenceInfo->x[atom] = X[i3++];
+    referenceInfo->y[atom] = X[i3++];
+    referenceInfo->z[atom] = X[i3++];
+  }
+}
+// FreeReferenceInfo()
+void FreeReferenceInfo() {
+  if (referenceInfo!=NULL) {
+    safe_free(referenceInfo->x);
+    safe_free(referenceInfo->y);
+    safe_free(referenceInfo->z);
+    safe_free(referenceInfo);
+  }
+}
+// SetPrnlev()
+void SetPrnlev(int prnlevIn) {
+  prnlev = prnlevIn;
+  if (prnlev>0) printf("Info: ptraj_actions prnlev set to %i\n",prnlev);
+} 
+
+// ========== STRING functions =================================================
 /*
 static char *toLowerCase( char *string_in ) {
   int i, length;
@@ -141,6 +264,7 @@ static int stringMatch(char *string, char *match) {
   }
 }
 */
+// ========== FILE IO functions ================================================
 // ----- Originally from io.c -----
 static FILE *safe_fopen(char *buffer, char *mode) {
   return( fopen(buffer, mode) );
@@ -149,13 +273,11 @@ static void safe_fclose(FILE *fileIn) {
   fclose( fileIn );
 }
 
-// =============================================================================
-// Argument Functions
-// Uses argStackType from ptraj_actions.h
-
+// ========== ARGUMENT functions ===============================================
+// Uses argStackType from ptraj_actions.h. To be consistent with original
+// argument stack behavior, copies of strings are returned.
 // getArgumentString()
 /// Return the next unmarked argument
-// NOTE: May need to return a copy.
 static char *getArgumentString(argStackType **argumentStackAddress, char *defvalue) {
   int arg;
   char *retvalue = NULL;
@@ -314,8 +436,8 @@ void printArgumentStack(argStackType **argumentStackAddress) {
     fprintf(stdout,"Arg %i: %s [%c]\n",arg,argumentStack->arglist[arg],
             argumentStack->marked[arg]);
 }
-// =============================================================================
-// Mask Functions
+
+// ========== MASK functions ===================================================
 // isActiveDetailed()
 static int isActiveDetailed(int atom, int residue, int *mask, int atoms, int residues,
                             Name *atomName, Name *residueName, int *ipres)
@@ -607,154 +729,6 @@ static int *processAtomMask( char *maskString, ptrajState *state ) {
 }
 
 // =============================================================================
-// Ptraj coordinate types
-typedef enum _coordType {
-  COORD_UNKNOWN,
-  COORD_AMBER_TRAJECTORY,
-  COORD_AMBER_RESTART,
-  COORD_AMBER_NETCDF,
-  COORD_AMBER_REMD,
-  COORD_PDB,
-  COORD_BINPOS,
-  COORD_CHARMM_TRAJECTORY
-} coordType;
-// CoordinateInfo
-typedef struct _coordinateInfo {
-  FILE *file;      // File pointer
-//#ifdef MPI
-//  MPI_File *mfp;
-//#endif
-  char *filename;  // File name
-  int start;       // Frame to start processing
-  int stop;        // Frame to end processing
-  int Nframes;     // Total number of frames in the file.
-  int offset;      // # of frames to skip
-  int append;      // File will be appended to
-  int isBox;       // File has box information
-  int isVelocity;  
-  int option1;
-  int option2;
-  int *mask;
-  double *x;
-  double *y;
-  double *z;
-  double *time;
-  double *vx;
-  double *vy;
-  double *vz;
-  char *title;
-  char *application;
-  char *program;
-  char *version;
-  void *info;          // Holds NETCDF or CHARMM trajectory info
-//  netcdfTrajectoryInfo *NCInfo;  // Holds NETCDF trajectory info
-  coordType type;      // Identify coordinate type
-  int accessMode;      // 0 for read, 1 for write, 2 for append
-  int compressType;    // 1 gzip 2 bzip 3 zip 
-     //  LES information
-/*  LesAction les_action;
-  int nlescopy;
-  LesStatus les_status;*/
-     //  REMD Trajectory info
-  struct _coordinateInfo **REMDtraj; // Hold information of other replica trajectories
-  int isREMDTRAJ;       // 0 = normal trajectory, 1 = replica trajectory
-  char *compressEXT;    /* If not NULL, contains compressed traj ext.*/
-  int numREMDTRAJ;      /* How many replica trajectories are present */
-  int firstREMDTRAJ;    /* Index of first replica                    */
-  int EXTwidth;         /* Length of replica extension               */
-  char* baseFilename;   /* To hold replica traj base filename        */
-  int linesperset;      /* for fast scanthrough of other REMD files  */
-  double remdtrajtemp;  /* Target temperature                        */
-  /* Write file with MPI IO? */
-  int isMPI;
-  int isNetcdf;
-   //  AMBER trajectory file information
-  int seekable;
-  int titleSize;
-  int frameSize;
-  int numBox;
-  char *buffer;
-} coordinateInfo;
-
-#define INITIALIZE_coordinateInfo(_p_) \
-  _p_->file = NULL; \
-  _p_->filename = NULL; \
-  _p_->start = 1; \
-  _p_->stop = -1; \
-  _p_->Nframes = 0; \
-  _p_->offset = 1; \
-  _p_->append = 0; \
-  _p_->isBox = 0; \
-  _p_->isVelocity = 0; \
-  _p_->option1 = 0; \
-  _p_->option2 = 0; \
-  _p_->mask = NULL; \
-  _p_->frameSize = 0; \
-  _p_->x = NULL; \
-  _p_->y = NULL; \
-  _p_->z = NULL; \
-  _p_->time = NULL; \
-  _p_->vx = NULL; \
-  _p_->vy = NULL; \
-  _p_->vz = NULL; \
-  _p_->title = NULL; \
-  _p_->application = NULL; \
-  _p_->program = NULL; \
-  _p_->version = NULL; \
-  _p_->info = NULL; \
-  _p_->type = COORD_UNKNOWN; \
-  _p_->accessMode = 0; \
-  _p_->compressType = 0; \
-  _p_->REMDtraj = NULL; \
-  _p_->isREMDTRAJ = 0; \
-  _p_->compressEXT = NULL; \
-  _p_->numREMDTRAJ = 0; \
-  _p_->firstREMDTRAJ = 0; \
-  _p_->EXTwidth = 0; \
-  _p_->baseFilename = NULL; \
-  _p_->linesperset = 0; \
-  _p_->remdtrajtemp = 0.0; \
-  _p_->isMPI = 0; \
-  _p_->isNetcdf = 0; \
-  _p_->seekable = 0; \
-  _p_->titleSize = 0; \
-  _p_->frameSize = 0; \
-  _p_->numBox = 0; \
-  _p_->buffer = NULL; \
-
-// Ref coords
-coordinateInfo *referenceInfo = NULL;
-// It seems that the functions that require a reference only need 
-// x y and z set up.
-void SetReferenceInfo(double *X, int natom) {
-  int i3 = 0;
-  int atom;
-
-  referenceInfo = (coordinateInfo*) malloc(sizeof(coordinateInfo));
-  INITIALIZE_coordinateInfo(referenceInfo);
-  referenceInfo->x = (double*) malloc(natom * sizeof(double));
-  referenceInfo->y = (double*) malloc(natom * sizeof(double));
-  referenceInfo->z = (double*) malloc(natom * sizeof(double));
-  for (atom = 0; atom < natom; atom++) {
-    referenceInfo->x[atom] = X[i3++];
-    referenceInfo->y[atom] = X[i3++];
-    referenceInfo->z[atom] = X[i3++];
-  }
-}
-void FreeReferenceInfo() {
-  if (referenceInfo!=NULL) {
-    safe_free(referenceInfo->x);
-    safe_free(referenceInfo->y);
-    safe_free(referenceInfo->z);
-    safe_free(referenceInfo);
-  }
-}
-    
-
-/*  ________________________________________________________________________
- */
-
-
 /*
  *  The code in this file implements the various "actions" of ptraj to
  *  perform various coordinate manipulations or analyses.
@@ -992,9 +966,6 @@ actionTest(actionInformation *action,
    *  should be processed at the PTRAJ_SETUP stage as shown below.
    */
 
-
-
-
   state = (ptrajState *) action->state;
   if (prnlev > 2) {
     fprintf(stdout, "In actionTest: currently set to process %i frames\n",
@@ -1130,8 +1101,6 @@ actionTest(actionInformation *action,
    */
 
   return 1;
-
-
 }
 
 /** ACTION ROUTINE *************************************************************
@@ -4464,6 +4433,11 @@ transformContacts(actionInformation *action,
 
     nativeNumber = 0;
     if (action->iarg1 == (int) CONTACTS_REFERENCE) {
+      // Check that a reference structure has been defined
+      if (referenceInfo == NULL) {
+        fprintf(stdout,"Error: No reference coordinates defined.\n");
+        return -1;
+      }
       n = action->state->atoms;
       list = (contactList *) safe_malloc(sizeof(contactList) * n);
       for(i = 0; i < n; i++){

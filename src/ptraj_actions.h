@@ -18,6 +18,9 @@ extern "C" {
 // (4) LOCAL STRUCTURES
 
 void printArgumentStack(argStackType **);
+void SetReferenceInfo(double*,int);
+void FreeReferenceInfo();
+void SetPrnlev(int);
 
 // ptrajMode - originally from ptraj_local.h
 typedef enum _ptrajMode {
@@ -283,8 +286,6 @@ void ptrajfprintfone(void *, char *, ...);
 void ptrajCloseFile(void *);
 
 #ifndef ACTION_MODULE
-extern void SetReferenceInfo(double*,int);
-extern void FreeReferenceInfo();
 
 //#  ifdef __STDC__
 

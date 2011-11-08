@@ -39,7 +39,7 @@ PtrajAction::~PtrajAction() {
   // Free actionInfo
   if (actioninfo != NULL) {
     // Call actions cleanup routine
-    if (CalledSetup)
+    //if (CalledSetup)
       actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, ptraj_box, PTRAJ_CLEANUP);
     // Free state
     free(actioninfo->state->ipres);
@@ -174,7 +174,7 @@ int PtrajAction::init( ) {
   mprintf("    PTRAJ ACTION: [%s]\n",actionArgs.Command());
 
   // Set prnlev
-  //prnlev = debug;
+  SetPrnlev(debug);
   
   return 0;
 }
