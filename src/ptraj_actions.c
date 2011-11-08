@@ -1411,13 +1411,13 @@ transformAtomicFluct(actionInformation *action,
 	safe_fclose(info->file);
 	info->file = NULL;
       }
-
+      safe_free(results);
 #ifdef MPI
       safe_free(xx);
       safe_free(yy);
       safe_free(zz);
 #endif      
-    }
+    } // END if worldrank == 0
 
   } else if (mode == PTRAJ_CLEANUP) {
 
@@ -1430,6 +1430,8 @@ transformAtomicFluct(actionInformation *action,
     yy = (double *) action->carg3;
     zz = (double *) action->carg4;
 
+    safe_free(action->mask);
+    safe_free(info->filename);
     safe_free(info);
     safe_free(xx);
     safe_free(yy);
@@ -2022,19 +2024,18 @@ transformCheckOverlap(actionInformation *action,
        /*
         *  process the atom masks
         */
-    buffer = getArgumentString(argumentStackPointer, NULL);
-    if (buffer != NULL) {
-      action->mask = processAtomMask(buffer, action->state);
-      safe_free(buffer);
-    }
-
-
     buffer = argumentStackKeyToString(argumentStackPointer, "around", NULL);
     if (buffer != NULL) {
       action->carg1 = processAtomMask(buffer, action->state);
       safe_free(buffer);
     } else {
       action->carg1 = NULL;
+    }
+
+    buffer = getArgumentString(argumentStackPointer, NULL);
+    if (buffer != NULL) {
+      action->mask = processAtomMask(buffer, action->state);
+      safe_free(buffer);
     }
 
     return 0;
@@ -2076,11 +2077,17 @@ transformCheckOverlap(actionInformation *action,
 	fprintf(stdout, "\n");
       }
     }
+    return 0;
+  }
+
+  //  ACTION: PTRAJ_CLEANUP
+  if ( mode == PTRAJ_CLEANUP) {
+    safe_free( action->carg1);
+    safe_free( action->mask );
+    return 0;
   }
 
   if (mode != PTRAJ_ACTION) return 0;
-
-
   /*
    *  ACTION: PTRAJ_ACTION
    */
