@@ -883,7 +883,7 @@ actionTest(actionInformation *action,
 	   double *x, double *y, double *z, 
 	   double *box, int mode)
 {
-  char *name = "test";
+  //char *name = "test";
   argStackType **argumentStackPointer;
   ptrajState *state;
   char *buffer;
@@ -1113,7 +1113,7 @@ transformAtomicFluct(actionInformation *action,
 		     double *x, double *y, double *z,
 		     double *box, int mode)
 {
-  char *name = "atomicfluct";
+  //char *name = "atomicfluct";
   argStackType **argumentStackPointer;
   char *buffer;
 
@@ -1569,13 +1569,14 @@ transformAtomicFluct3D(actionInformation *action,
 		       double *x, double *y, double *z,
 		       double *box, int mode)
 {
-  char *name = "atomicfluct3D";
+  //char *name = "atomicfluct3D";
   argStackType **argumentStackPointer;
   char *buffer;
 
   char *filename;
   coordinateInfo *info;
-  double *xx, *yy, *zz, *results;
+  //double *xx, *yy, *zz;
+  double *results;
   double xi, yi, zi, fluct, bfactor;
   int i, j, w, ind, minwin, maxwin, windowWidth, windowOffset;
   windowInfoType *windowInfo;
@@ -1963,7 +1964,7 @@ transformCheckOverlap(actionInformation *action,
 		  double *x, double *y, double *z, 
 		  double *box, int mode)
 {
-  char *name = "checkoverlap";
+//  char *name = "checkoverlap";
   argStackType **argumentStackPointer;
   char *buffer;
   ptrajState *state;
@@ -2221,2098 +2222,6 @@ ptrajCopyAction(actionInformation **actioninp)
   return action;
 }
 
-
-/** ACTION ROUTINE *************************************************************
- *
- *  transformCluster() --- organizes trajectory frames into clusters.
- *
- *
- ******************************************************************************/
-
-
-/*
- *  To use this action, the user should choose a clustering algorithm, and either
- *  a number of clusters or a value of epsilon governing maxiumum cluster size.  
- *
- *  The available clustering algorithms are:
- *
- *  Hierarchical: Hierarchical divisive clustering first places all points
- *     in one cluster.  The algorithm splits, in each iteration, a cluster into
- *     two subclusters; this continues until either the target number of clusters
- *     is reached, or until the maximum eccentricity of any cluster is less than
- *     epsilon.  At each iteration, choose the cluster with the largest eccentricity.
- *     Choose two extrema (points with maximal pairwise distance) from this cluster; 
- *     these become the centroids of two new clusters, and points are assigned
- *     to one child cluster or the other based on which centroid they are closest to.
- *     The centroid of each child cluster is then calculated, and points reassigned
- *     to child clusters based on these new centroids.  Three centroids are chosen in all.
- *
- *  Single Linkage: Begin with the original collection of points as your cluster 
- *     collection.  Choose the two closest points, and form a cluster; remove those
- *     two points from the cluster collection, and insert the centroid of this new 
- *     cluster.  Repeat the process until all points lie in a cluster.  To cluster 
- *     two centroids, merge their two clusters into a supercluster with new centroid; 
- *     to cluster a point and a centroid, add the point to the centroid's cluster.  
- *     If an epsilon is provided: Do not cluster two points if their distance is epsilon 
- *     or greater.  If a cluster count is provided: Continue until every point is clustered;
- *     then, continue merging clusters as long as the number of clusters exceeds the desired
- *     cluster count.
- *
- *  k-means: If a cluster count n is specified, assign the first n frames to n initial 
- *     clusters.  Iterate over all the points.  Assign each new point to the cluster whose 
- *     ncentroid it is nearest to, and recompute the cluster's centroid.  If an epsilon value
- *     is specified: Start with 1 cluster.  If a point has distance less than epsilon from a
- *     centroid, add it to an existing cluster; otherwise, form a new cluster with the point.
- *
- *  Centripetal: Based on the CURE clustering algorithm. 
- *
- *  Cobweb: Based on the COBWEB clustering algorithm.  See cluster.h for details.
- *
- *  Bayesian: Based on the AutoClass clustering algorithm.  See cluster.h for details.
- *  
- *  SOM: Self-organizing maps.  See cluster.h for details
- *
- ******************************************************************************/
-/*  ========== DISABLED FOR CPPTRAJ ==========
-#define INVALID_ARGUMENTS_RETURN_CODE -1
-
-//  Save x, y, and z coordinates of atoms into the arrays in trajInfo.  
-//  Called once for each frame, normally.  Only accumulates atoms according to the action mask.
-//  If FullTrajInfo is not null, it gets *all* the atom information.
-   void
-AccumulateCoordinates(trajectoryInfo* trajInfo, actionInformation* action,
-		      double* x, double* y, double* z, trajectoryInfo* FullTrajInfo)
-{
-    int i;
-    int ValidIndex = 0;
-    int NumberOfFrames;
-    int Sieve = 0;
-    int FrameIndex;
-    PtrajClustering* Clustering;
-
-       // Special case: If we're sieving through the coordinates in a first pass, then
-       // skip over all but every nth frame 
-    if (action->type == TRANSFORM_CLUSTER)
-    {
-        Clustering = (PtrajClustering*)action->carg5;	      
-	   // iarg3 is the sieve size.
-	   // iarg4 is the number of frames we'll process in our sieve 
-        Sieve = action->iarg3;
-        if (!action->iarg4)
-        {
-            if (Sieve> 0)
-            {	      
-	      PtrajClusteringChooseSievePoints(Clustering, action->state->maxFrames);
-            }
-            else
-            {
-                action->iarg4 = action->state->maxFrames;
-		Clustering->PointCount = action->iarg4;
-            }
-        }
-        NumberOfFrames = action->iarg4;
-    }
-    else
-    {
-        NumberOfFrames = action->state->maxFrames;
-    }
-
-       // allocate memory if this is the first visit
-    if (trajInfo->x == NULL)
-    {
-        trajInfo->x = (float *) safe_malloc(sizeof(float) * trajInfo->atoms * NumberOfFrames);
-        memset(trajInfo->x, 0, sizeof(float) * trajInfo->atoms * NumberOfFrames);
-        trajInfo->y = (float *) safe_malloc(sizeof(float) * trajInfo->atoms * NumberOfFrames);
-        memset(trajInfo->y, 0, sizeof(float) * trajInfo->atoms * NumberOfFrames);
-        trajInfo->z = (float *) safe_malloc(sizeof(float) * trajInfo->atoms * NumberOfFrames);
-        memset(trajInfo->z, 0, sizeof(float) * trajInfo->atoms * NumberOfFrames);
-        trajInfo->allocated = action->state->maxFrames;
-        trajInfo->current = 0;
-    }
-    if (FullTrajInfo && FullTrajInfo->x==NULL)
-    {
-        FullTrajInfo->x = (float *) safe_malloc(sizeof(float) * FullTrajInfo->atoms * NumberOfFrames);
-        memset(FullTrajInfo->x, 0, sizeof(float) * FullTrajInfo->atoms * NumberOfFrames);
-        FullTrajInfo->y = (float *) safe_malloc(sizeof(float) * FullTrajInfo->atoms * NumberOfFrames);
-        memset(FullTrajInfo->y, 0, sizeof(float) * FullTrajInfo->atoms * NumberOfFrames);
-        FullTrajInfo->z = (float *) safe_malloc(sizeof(float) * FullTrajInfo->atoms * NumberOfFrames);
-        memset(FullTrajInfo->z, 0, sizeof(float) * FullTrajInfo->atoms * NumberOfFrames);
-        FullTrajInfo->allocated = action->state->maxFrames;
-        FullTrajInfo->current = 0;
-    }
-
-       // accumulate coordinates for the current frame - unless we're sieving them out 
-    if (Sieve==0 || Clustering->SieveFirstPass[trajInfo->current])
-    {
-      //fprintf(stdout, "In the first pass, do frame %d\n", trajInfo->current);  
-        FrameIndex = trajInfo->current;
-        if (Sieve)
-        {
-	  FrameIndex = Clustering->SievedIndex; //trajInfo->current / Sieve;  
-	  Clustering->SievedIndex++;
-        }
-        ValidIndex = 0;
-        for (i = 0; i < action->state->atoms; i++)
-        {
-            if (action->mask[i])
-            {            
-                trajInfo->x[FrameIndex * trajInfo->atoms + ValidIndex] = (float)x[i];
-                trajInfo->y[FrameIndex * trajInfo->atoms + ValidIndex] = (float)y[i];
-                trajInfo->z[FrameIndex * trajInfo->atoms + ValidIndex] = (float)z[i];            
-                ValidIndex ++;
-            }
-            if (FullTrajInfo)
-            {
-                FullTrajInfo->x[FrameIndex * FullTrajInfo->atoms + i] = (float)x[i];
-                FullTrajInfo->y[FrameIndex * FullTrajInfo->atoms + i] = (float)y[i];
-                FullTrajInfo->z[FrameIndex * FullTrajInfo->atoms + i] = (float)z[i]; 
-            }
-        }
-    }
-
-    trajInfo->current++;
-    if (FullTrajInfo)
-    {
-        FullTrajInfo->current++;
-    }
-
-}
-
-   // GetOutputFileFormat is a helper routine that parses a trajectory file format from the stack 
-   int
-GetOutputFileFormat(char* argument)
-{
-    if (stringMatch(argument, "pdb"))
-    {
-        return COORD_PDB;
-    }
-    else if (stringMatch(argument, "rest"))
-    {
-        return COORD_AMBER_RESTART;
-    }
-    else if (stringMatch(argument, "binpos"))
-    {
-        return COORD_BINPOS;
-    }
-    else if (stringMatch(argument, "amber"))
-    {
-        return COORD_AMBER_TRAJECTORY;
-    }
-    else if (stringMatch(argument, "none"))
-    {
-        return CLUSTER_OUTPUT_NONE;
-    }
-    else
-    {
-        fprintf(stderr, "WARNING: invalid file format %s!\n", argument);
-        return CLUSTER_OUTPUT_NONE;
-    }
-	
-}
-
-   void
-PrintClusterFileInfo(int FileFormat,char* OutputType)
-{
-    char* FileFormatString = "No output written";
-    if (FileFormat == COORD_AMBER_TRAJECTORY)
-    {
-        FileFormatString = "Amber trajectory";
-    }
-    if (FileFormat == COORD_AMBER_RESTART)
-    {
-        FileFormatString = "Amber restart";
-    }
-    if (FileFormat == COORD_PDB)
-    {
-        FileFormatString = "PDB";
-    }
-    if (FileFormat == COORD_BINPOS)
-    {
-        FileFormatString = "Binpos";
-    }
-    if (FileFormat == COORD_CHARMM_TRAJECTORY)
-    {
-        FileFormatString = "CHARMM trajectory";
-    }
-    fprintf(stdout,"      Output of type '%s' will be written to a file of type: '%s'\n",OutputType,FileFormatString);
-
-}
-
-
-// Wrapper for ClusteringOutputClusterInfo; also FREES the clustering 
-void PtrajPrintClustering(actionInformation* action)
-{
-    char FilePath[512];
-    int ElapsedTime;
-    PtrajClustering* pClustering;
-    pClustering = (PtrajClustering*)action->carg5;
-    ElapsedTime = time(NULL) - pClustering->StartTime;
-    
-    PtrajClusteringOutputClusterInfo(pClustering,action);
-    
-    ClusteringFree( (Clustering *) pClustering);
-}
-
-// Check cached pairwise distance file. 
-// Check the 9 distance pairs between frames 1, 2, 3 and frames n-2, n-1, n. 
-// If the difference between the freshly calcuated distance and the distance read from the is not within 
-// == 0, need to calcute or recalculate.
-// != 0, file seems OK, return the Matrix.
-SymmetricMatrix* CheckPairwiseDistance(PtrajClustering* This, trajectoryInfo* trajInfo,  actionInformation* action, char *CacheDistanceFile)
-{
-    int FrameIndex;
-    int OtherFrameIndex;
-    int AtomIndex;
-    int OtherAtomIndex;
-    float* FrameX;
-    float* FrameY;
-    float* FrameZ;
-    float* OtherFrameX;
-    float* OtherFrameY;
-    float* OtherFrameZ;
-    float Distance;
-    float AtomDistance;
-    float OtherAtomDistance;
-    SymmetricMatrix* PairwiseDistance;
-    int FrameCount;
-    FILE* DistanceFile = NULL;
-    int SymMatrixReady = 0;
-
-    FrameCount = action->iarg4;
-
-    PairwiseDistance =  AllocateSymmetricMatrix(FrameCount);
-
-    // If we have a distance cached on disk already, use it!   
-    DistanceFile = fopen(CacheDistanceFile,"r");
-    if (DistanceFile)
-    {
-      fclose(DistanceFile);
-      fprintf(stdout, "  Read in the existing PairwiseDistances file\n");
-      SymMatrixReady = ReadSymMatrix(CacheDistanceFile, PairwiseDistance);
-      if (SymMatrixReady)
-      { // To test if the PairwiseDistance is reusable by comparing 4 values in the table. It does not garrant to be correct!!   
-        if (FrameCount < 6)
-          fprintf(stderr, "Too few frames.\n");
-        for (FrameIndex=0; FrameIndex<3; FrameIndex++)
-     	{
-	      FrameX = trajInfo->x + trajInfo->atoms*FrameIndex;
-	      FrameY = trajInfo->y + trajInfo->atoms*FrameIndex;
-	      FrameZ = trajInfo->z + trajInfo->atoms*FrameIndex;
-	  	  for (OtherFrameIndex=FrameCount-3; OtherFrameIndex<FrameCount; OtherFrameIndex++)
-	      {
-	        OtherFrameX = trajInfo->x + trajInfo->atoms*OtherFrameIndex;
-	        OtherFrameY = trajInfo->y + trajInfo->atoms*OtherFrameIndex;
-	        OtherFrameZ = trajInfo->z + trajInfo->atoms*OtherFrameIndex;
-	      
-	        Distance=PtrajGetDistance(This, FrameIndex, OtherFrameIndex,
-					  FrameX, FrameY, FrameZ,
-					  OtherFrameX, OtherFrameY, OtherFrameZ);
-
-            double error = abs(Distance - GetSymElement(PairwiseDistance,FrameIndex,OtherFrameIndex)) / Distance;
-            if (error > 0.000001){
-              SymMatrixReady = 0;
-              fprintf(stdout, "  Error: distance between %d and %d does not match. difference: %.2f%%.       \n",
-		      FrameIndex, OtherFrameIndex, error*100);
-              return(NULL);
-            }
-          }            
-        }
-      }  
-    }
-    if (SymMatrixReady)
-    {
-	  This->PairwiseDistances = PairwiseDistance;
-      This->PointCount = PairwiseDistance->Size;
-      return PairwiseDistance;
-    }
-    return(NULL);
-}
-
-
-
-#define REPRESENTATIVE_COUNT 5
-
-void PtrajPerformClustering(trajectoryInfo* trajInfo,actionInformation* action)
-{
-    PtrajClustering* pClustering;
-    int* SeedPoints;
-    int DesiredClusterCount;
-    float Epsilon;
-    char FilePath[1024];
-    FILE* File;
-
-    pClustering = (PtrajClustering*)action->carg5;
-    pClustering->StartTime = time(NULL);
-    pClustering->PointCount = action->iarg4;
-    pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, "PairwiseDistances");
-    
-       // iarg5 is the requested distance metric 
-    if ( action->iarg1 == CLUSTER_LINKAGE              ||
-	 action->iarg1 == CLUSTER_CENTRIPETAL          || 
-	 action->iarg1 == CLUSTER_EDGELINK             ||
-	 action->iarg1 == CLUSTER_COMPLETELINK         ||
-	 action->iarg1 == CLUSTER_HIERARCHICAL         ||
-	 action->iarg1 == CLUSTER_CENTRIPETAL_COMPLETE ||
-	 action->iarg1 == CLUSTER_AVERAGELINK          || 
-	 action->iarg1 == CLUSTER_ANOVA                || 
-	 action->iarg1 == CLUSTER_AVERAGELINK_FP       ||
-	 action->iarg1 == CLUSTER_LINKAGE_FP           ||
-	 action->iarg1 == CLUSTER_EDGELINK_FP          ||
-	 action->iarg1 == CLUSTER_COMPLETELINK_FP      ||
-	 action->iarg1 == CLUSTER_SOM2 )
-
-       //action->iarg1 == CLUSTER_READMERGE            ||
-       //action->iarg1 == CLUSTER_DBI                  || 
-       //action->iarg1 == CLUSTER_COMPARE              ||
-       //action->iarg1 == CLUSTER_BAYESIAN             ||
-       //action->iarg1 == CLUSTER_COBWEB               ||
-       //action->iarg1 == CLUSTER_COBWEB2              || 
-       //action->iarg1 == CLUSTER_SOM                  || 
-       //action->iarg1 == CLUSTER_SOM2                 ||
-       //action->iarg1 == CLUSTER_BYCHANCE             ||
-       //action->iarg1 == CLUSTER_DECOY                || 
-       //action->iarg1 == CLUSTER_MEANS                ||
-       //action->iarg1 == CLUSTER_MEANS2               ||
-       //action->iarg1 == CLUSTER_MEANS3 
-
-    {
-	//  The pairwise Distance matrix is not needed with the SOM, Cobweb and Bayesian algorithms, 
-	//  but is needed when calculating pSF and dBI. Will optimize later. 
-      
-      //pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, "PairwiseDistances");
-
-      if (! pClustering->PairwiseDistances) {
-	remove("PairwiseDistances"); // avoid changing the PairwiseDistances file in case that it is a link. 
-	pClustering->PairwiseDistances = ComputePairwiseDistance(pClustering, trajInfo, action, "PairwiseDistances");
-      }
-    }
-
-    if (action->iarg1 == CLUSTER_SOM     || 
-	action->iarg1 == CLUSTER_SOM2    || 
-	action->iarg1 == CLUSTER_COBWEB  || 
-	action->iarg1 == CLUSTER_COBWEB2 || 
-	action->iarg1 == CLUSTER_BAYESIAN) { 
-      if (attributeArray != NULL || attributeArrayTorsion != NULL) {
-	pClustering->attributeArray = attributeArray;
-	pClustering->attributeArrayTorsion = attributeArrayTorsion;
-   		}
-      if (attributeArray != NULL && attributeArray->length == 0) {
-	fprintf(stderr, "No attribute is detected. Exit ptraj clustering.\n");
-	fflush(stderr); fflush(stdout);
-	exit(1);
-      }
-        
-    }
-
-    PtrajClusteringBuildTotalCluster(pClustering);
-
-
-    pClustering->MatrixTime = time(NULL);
-    DesiredClusterCount = PtrajClusteringGetDesiredClusterCount(pClustering);
-    Epsilon = PtrajClusteringGetDesiredEpsilon(pClustering);
-
-     // Note: *Hackiness*  If you are using epsilon, call PtrajClusteringFoo and not
-     // the base ClusteringFoo; otherwise, the epsilon will get lost along the way.
-    
-     // Seed random number generator
-    srand(time(NULL) + clock());
-
-
-    switch ( action->iarg1 ) {
-
-    case CLUSTER_HIERARCHICAL:
-
-      fprintf(stdout, "  Clustering using the hierarchical algorithm.\n");
-      PtrajClusteringClusterHierarchical(pClustering,DesiredClusterCount,Epsilon);
-      break;
-
-    case CLUSTER_LINKAGE:
-
-      fprintf(stdout, "  Clustering using the single linkage algorithm.\n");
-      PtrajClusteringClusterLinkage(pClustering,DesiredClusterCount,Epsilon);
-      break;
-
-    case CLUSTER_LINKAGE_FP:
-
-      fprintf(stdout, "  Clustering using the linkage finger print algorithm.\n");
-      PtrajClusteringClusterLinkageFingerPrint(pClustering,DesiredClusterCount,Epsilon);
-      break;
-
-    case CLUSTER_EDGELINK:
-
-      fprintf(stdout, "  Clustering using the edge link algorithm.\n");
-      PtrajClusteringEdgeLinkage(pClustering,DesiredClusterCount,Epsilon);
-      break;
-
-    case CLUSTER_EDGELINK_FP:
-
-      fprintf(stdout, "  Clustering using the edge link finger print algorithm.\n");
-      PtrajClusteringEdgeLinkageFingerPrint(pClustering,DesiredClusterCount,Epsilon);
-      break;
-
-    case CLUSTER_COMPLETELINK:
-
-      fprintf(stdout, "  Clustering using the complete linkage algorithm.\n");
-      PtrajClusteringCompleteLinkage(pClustering,DesiredClusterCount,Epsilon);
-      break;
-
-    case CLUSTER_COMPLETELINK_FP:
-
-      fprintf(stdout, "  Clustering using the complete linkage finger print algorithm.\n");
-      PtrajClusteringCompleteLinkageFingerPrint(pClustering,DesiredClusterCount,Epsilon);
-      break;
-
-    case CLUSTER_AVERAGELINK:
-
-      fprintf(stdout, "  Clustering using the average linkage algorithm.\n");
-      PtrajClusteringAverageLinkage(pClustering,DesiredClusterCount,Epsilon);
-      break;
-
-    case CLUSTER_AVERAGELINK_FP:
-
-      fprintf(stdout, "  Clustering using the average linkage finger print algorithm.\n");
-      PtrajClusteringAverageLinkageFingerPrint(pClustering,DesiredClusterCount,Epsilon);
-      break;
-
-    case CLUSTER_MEANS:
-
-      fprintf(stdout, "  Clustering using the means algorithm.\n");
-      SeedPoints = ClusteringFindKmeansSeeds( (Clustering *) pClustering,DesiredClusterCount);
-      ClusteringClusterMeans( (Clustering *) pClustering,SeedPoints,DesiredClusterCount,action->iarg7, 1);
-      safe_free(SeedPoints);
-      break;
-
-    case CLUSTER_MEANS2:
-
-      fprintf(stdout, "  Clustering using the means \"2\" algorithm.\n");
-      SeedPoints = ClusteringFindKmeansSeeds( (Clustering *) pClustering,DesiredClusterCount);
-      ClusteringClusterMeans( (Clustering *) pClustering,SeedPoints,DesiredClusterCount,action->iarg7, 2);
-      safe_free(SeedPoints);
-      break;
-
-    case CLUSTER_MEANS3:
-
-      fprintf(stdout, "  Clustering using the means \"3\" algorithm.\n");
-      SeedPoints = ClusteringFindKmeansSeeds( (Clustering *) pClustering,DesiredClusterCount);
-      PtrajClusteringClusterDecoy( pClustering,SeedPoints,DesiredClusterCount,action->iarg7);  
-      safe_free(SeedPoints);
-      break;
-
-    case CLUSTER_CENTRIPETAL:
-
-      fprintf(stdout, "  Clustering using the centripetal algorithm.\n");
-      PtrajClusteringClusterCentripetal(pClustering,DesiredClusterCount,Epsilon,REPRESENTATIVE_COUNT);
-      break;
-
-    case CLUSTER_CENTRIPETAL_COMPLETE:
-
-      fprintf(stdout, "  Clustering using the centripetal complete algorithm.\n");
-      PtrajClusteringClusterCentripetalComplete(pClustering,DesiredClusterCount,Epsilon,REPRESENTATIVE_COUNT);
-      break;
-
-    case CLUSTER_COBWEB:
-
-      fprintf(stdout, "  Clustering using the CobWeb algorithm.\n");
-      PtrajClusteringClusterCobweb( (Clustering *) pClustering,DesiredClusterCount,1);
-      break;
-
-    case CLUSTER_COBWEB2:
-
-      fprintf(stdout, "  Clustering using the CobWeb \"2\" algorithm.\n");
-      PtrajClusteringClusterCobweb( (Clustering *) pClustering,DesiredClusterCount,2);
-      break;
-
-    case CLUSTER_BAYESIAN:
-
-      fprintf(stdout, "  Clustering using the Bayesian algorithm.\n");
-      PtrajClusteringClusterBayesian(pClustering,DesiredClusterCount);
-      break;
-
-    case CLUSTER_SOM2:
-
-      fprintf(stdout, "  Clustering using the SOM \"2\" algorithm.\n");
-      PtrajClusteringAverageLinkage(pClustering,DesiredClusterCount,Epsilon);
-      fprintf(stdout, "Performing SOM2 using the SOM Map.\n");
-      PtrajClusteringClusterSOM2(pClustering,DesiredClusterCount);
-      break;
-
-    case CLUSTER_SOM:
-
-      fprintf(stdout, "  Clustering using the SOM algorithm.\n");
-      PtrajClusteringClusterSOM(pClustering,DesiredClusterCount,(int)action->darg4);
-      break;
-
-    case CLUSTER_DECOY:
-
-      {
-	trajectoryInfo *DecoyTrajInfo, *trajInfo;
-	DecoyTrajInfo = PtrajClusteringReadDecoy(pClustering,(char*)action->carg7,DesiredClusterCount);
-	DesiredClusterCount = PtrajClusteringGetDesiredClusterCount(pClustering);
-	PtrajClusteringAssignDecoyToCentroid(pClustering, DesiredClusterCount, DecoyTrajInfo);
-	trajInfo = (trajectoryInfo *) action->carg2;
-	PtrajClusteringClusterDecoy(pClustering,NULL,DesiredClusterCount,action->iarg7);
-      }
-      break;
-
-    case CLUSTER_BYCHANCE:
-
-      fprintf(stdout, "  Clustering using the by-chance algorithm.\n");
-      PtrajClusteringClusterByChance(pClustering,DesiredClusterCount);
-      break;
-
-    case CLUSTER_READMERGE:
-
-      PtrajClusteringReadFromMergeFile(pClustering, ClusterMergingFile);
-      break;
-
-    case CLUSTER_READTXT:
-
-      if (!pClustering->PairwiseDistances) 
-	pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, 
-							       "FullPairwiseDistances");
-
-      if (!pClustering->PairwiseDistances) 
-	pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, 
-							       "PairwiseDistances");
-
-      if (! pClustering->PairwiseDistances) {
-	remove("PairwiseDistances"); // avoid changing the PairwiseDistances file in case that it is a link. 
-      }
-      strcpy(FilePath,(char*)action->carg1);
-      strcat(FilePath,".txt");
-      pClustering->Head = NULL;
-      pClustering->Tail = NULL;
-      PtrajClusteringReadFromDisk(pClustering,FilePath);
-      ClusteringFindAllCentroids( (Clustering *) pClustering);
-      break;
-
-    case CLUSTER_DBI:
-
-      if (!pClustering->PairwiseDistances)
-	pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, 
-							       "FullPairwiseDistances");
-
-      if (!pClustering->PairwiseDistances) 
-	pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, 
-							       "PairwiseDistances");
-
-      if (! pClustering->PairwiseDistances) {
-	remove("PairwiseDistances"); // avoid changing the PairwiseDistances file in case that it is a link. 
-      }
-      strcpy(FilePath,(char*)action->carg1);
-      strcat(FilePath,".txt");
-      pClustering->Head = NULL;
-      pClustering->Tail = NULL;
-      PtrajClusteringReadFromDisk(pClustering,FilePath);
-      ClusteringFindAllCentroids( (Clustering *) pClustering);
-      File = fopen(FilePath,"a");
-      fprintf(File, "# Added by CLUSTER_DBI\n");
-      OutputClusteringStats(pClustering, File);
-      fclose(File);
-      break;
-
-    case CLUSTER_ANOVA:
-
-      if (!pClustering->PairwiseDistances) 
-	pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, 
-							       "FullPairwiseDistances");
-
-      if (!pClustering->PairwiseDistances) 
-	pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, 
-							       "PairwiseDistances");
-      if (! pClustering->PairwiseDistances) {
-	remove("PairwiseDistances"); // avoid changing the PairwiseDistances file in case that it is a link. 
-	pClustering->PairwiseDistances = ComputePairwiseDistance(pClustering, trajInfo, action, "PairwiseDistances");
-      }
-      strcpy(FilePath,(char*)action->carg1);
-      strcat(FilePath,".txt");
-      pClustering->Head = NULL;
-      pClustering->Tail = NULL;
-      PtrajClusteringReadFromDisk(pClustering,FilePath);
-      ClusteringFindAllCentroids( (Clustering *) pClustering);
-      File = fopen(FilePath,"a");
-      //fprintf(File, "# Added by CLUSTER_ANOVA\n");
-      //OutputClusteringStats(pClustering, File);
-      ClusteringComputeANOVA(pClustering);
-      fclose(File);
-      //strcpy(FilePath,(char*)action->carg1);
-      //strcat(FilePath,"DBI");
-	//	strcpy(action->carg1, FilePath);
-	//	PtrajClusteringOutputClusterInfo(pClustering,action);
-      break;
-
-    case CLUSTER_COMPARE:
-
-      if (!pClustering->PairwiseDistances)
-	pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, 
-							       "FullPairwiseDistances");
-
-      if (!pClustering->PairwiseDistances) 
-	pClustering->PairwiseDistances = CheckPairwiseDistance(pClustering, trajInfo, action, 
-							       "PairwiseDistances");
-      if (! pClustering->PairwiseDistances) {
-	remove("PairwiseDistances"); // avoid changing the PairwiseDistances file in case that it is a link. 
-	pClustering->PairwiseDistances = ComputePairwiseDistance(pClustering, trajInfo, action, "PairwiseDistances");
-      }
-      if ((!((char**)action->carg4)[0]) || (!((char**)action->carg4)[1])) {
-	fprintf(stderr, "Error in ptraj(), cluster comparing: must specify two files for comparing.\n");
-      }
-
-      int i;
-      PtrajClustering** Clusterings;
-#define MAX_COMPARE_FILE 10
-      Clusterings = (PtrajClustering **) 
-	SafeMalloc(__FILE__, __LINE__, sizeof(PtrajClustering *) * (MAX_COMPARE_FILE+1));
-      for (i=0; i<MAX_COMPARE_FILE+1;i++) 
-	Clusterings[i] = NULL;
-      for (i=0; ((char**)action->carg4)[i];i++) {
-	Clusterings[i] = PtrajClusteringNew(NULL,trajInfo, action);
-	strcpy(FilePath,((char**)action->carg4)[i]);
-	if (strcmp(FilePath+strlen(FilePath)-4, ".txt"))
-	  strcat(FilePath,".txt");
-	Clusterings[i]->Head = Clusterings[i]->Tail = NULL;
-	Clusterings[i]->PairwiseDistances = pClustering->PairwiseDistances;
-	Clusterings[i]->action = pClustering->action;
-	Clusterings[i]->trajInfo = pClustering->trajInfo;
-	Clusterings[i]->TotalCluster = pClustering->TotalCluster;
-	PtrajClusteringReadFromDisk(Clusterings[i],FilePath);
-	ClusteringFindAllCentroids( (Clustering *) Clusterings[i]);
-      }
-      action->carg6 = (void *) Clusterings;
-      //PtrajClustering* Clustering2;
-      //Clustering2 = PtrajClusteringNew(NULL,pClustering->trajInfo, pClustering->action);
-      //strcpy(FilePath,(char*)action->carg6);
-      //if (strcmp(FilePath+strlen(FilePath)-4, ".txt"))
-      //        strcat(FilePath,".txt");
-      //	Clustering2->Head = Clustering2->Tail = NULL;
-      //Clustering2->PairwiseDistances = pClustering->PairwiseDistances;
-      //PtrajClusteringReadFromDisk(Clustering2,FilePath);
-//		ClusteringFindAllCentroids(Clustering2);
-      FILE* CompareFile;
-      CompareFile = fopen((char *) pClustering->action->carg1, "w");
-      for (i = 0; ((char**)action->carg4)[i];i++) {
-	fprintf(CompareFile, "Comparefile %2d: %s\n", i+1, ((char**)action->carg4)[i]);
-      }
-      fclose(CompareFile);
-      ClusteringCompare( (Clustering **) Clusterings, (char *) pClustering->action->carg1);        
-      break;
-
-    }
-    
-    PtrajClusteringPrintTransformMap(pClustering);
-    //printClusters(pClustering);
-
-//    FreeMatrix((Matrix*)pClustering->PairwiseDistances);
- 
-}
-*/
-
-
-/** ACTION ROUTINE *************************************************************
- *
- *  transformCluster() --- cluster the MD trajectories
- *
- *  Supplementary routines: **** many!!! ***
- *
- *
- ******************************************************************************/
-
-  /*
-   *  transformCluster organizes all the frames into clusters.  To use this action, 
-   *  the user should choose a clustering algorithm, and either a number of 
-   *  clusters or a value of epsilon governing maxiumum cluster size.  
-   *
-   *  The available clustering algorithms are:
-   *
-   *  Hierarchical: Hierarchical divisive clustering first places all points in 
-   *    one cluster.  The algorithm splits, in each iteration, a cluster into two 
-   *    subclusters; this continues until either the target number of clusters is 
-   *    reached, or until the maximum eccentricity of any cluster is less than epsilon.
-   *    At each iteration, choose the cluster with the largest eccentricity.
-   *    Choose two extrema (points with maximal pairwise distance) from this cluster; 
-   *    these become the centroids of two new clusters, and points are assigned to one child
-   *    cluster or the other based on which centroid they are closest to.  The
-   *    centroid of each child cluster is then calculated, and points
-   *    reassigned to child clusters based on these new centroids.  Three
-   *    centroids are chosen in all.
-   *
-   *  Single Linkage: Begin with the original collection of points as your cluster 
-   *    collection.  Choose the two closest points, and form a cluster; remove those two points 
-   *    from the cluster collection, and insert the centroid of this new cluster.  Repeat the
-   *    process until all points lie in a cluster.  To cluster two centroids, merge their two
-   *    clusters into a supercluster with new centroid; to cluster a point and a centroid, add
-   *    the point to the centroid's cluster.  If an epsilon is provided: Do not cluster two 
-   *    points if their distance is epsilon or greater.  If a cluster count is provided: Continue
-   *    until every point is clustered; then, continue merging clusters as long as
-   *    the number of clusters exceeds the desired cluster count.
-   *
-   *  k-means: If a cluster count n is specified, assign the first n frames to n initial 
-   *    clusters.  Iterate over all the points.  Assign each new point to the cluster whose 
-   *    centroid it is nearest to, and recompute the cluster's centroid.  If an epsilon value
-   *    is specified: Start with 1 cluster.  If a point has distance less than epsilon from a
-   *    centroid, add it to an existing cluster; otherwise, form a new cluster with the point.
-   *
-   *  Centripetal: Based on the CURE clustering algorithm. 
-   *
-   *  Cobweb: Based on the COBWEB clustering algorithm.  See cluster.h for details.
-   *
-   *  Bayesian: Based on the AutoClass clustering algorithm.  See cluster.h for details.
-   *
-   *   SOM: Self-organizing maps.  See cluster.h for details
-   *
-   ******************************************************************************/
-/* DISABLED FOR CPPTRAJ
-#define INVALID_ARGUMENTS_RETURN_CODE -1
-extern int transformCluster(actionInformation* action,double* x, double* y, double* z,
-    double* box, int mode)
-{
-    char *name = "cluster";
-    stackType** argumentStackPointer;
-    char* buffer;
-    ptrajState* state;
-    trajectoryInfo* trajInfo;
-    trajectoryInfo* FullTrajInfo;
-    SymmetricMatrix* PairwiseDistance;
-    PtrajClustering* TheClustering;
-    int AtomCount;
-//  
-//  USAGE:
-//   
-//      cluster out <filename> [average <fileformat>] [representative <fileformat>] [all <fileformat>] 
-//        <algorithm>  <distance> [clusters <clustercount>] [epsilon <epsilon>] 
-//        [sieve <n> [random | start n] ] [verbose] mask
-
-//      Valid clustering algorithms:
-
-//        hierarchical | linkage | means | centripetal | cobweb | bayesian | SOM | edge
-//        
-//      Valid distance metrics:
-
-//        rms | dme
-
-//      The fileformat argument can be pdb, rest, binpos, none, or amber.
-
-//  Argument usage:
-//    
-//    iarg1: clustering algorithm
-//    iarg2: cluster count      
-//    iarg3: sieve number.  We use this to handle large volumes of data (too many 
-//           coordinates to cluster all at once because of time and/or memory considerations).
-//           If sieve is set to n>0, then we make two passes through the trajectory files.
-//           On the first pass, we cluster every nth frame.  On the second pass, we add all
-//           the remaining frames to whichever of the existing clusters is the best fit.  
-//           This technique is not guaranteed to work well, especially if the sieve number is
-//           large relative to the speed with which the molecule thrashes about.
-//    iarg4: frame count - equal to the actual number of frames, unless we're sieving;
-//           if sieving, it's equal to the number of sieved frames.
-//    iarg5: Distance metric, by number
-//    iarg6: mass
-//    iarg7: SOM Map
-//    darg1: epsilon
-//    darg2: Set to non-zero if we're working in verbose mode
-//    darg3: sieve mode. less than 0: randomly picking; 0.0|1.0|2.0... the starting frame number
-//    darg4: cluster-to-cluster distance. 0.0:best representative; 1.0:centroid  (default)
-//    darg5: acuity
-//    carg1: output filename
-//    carg2: trajectory info
-//    carg3: trajectory info with unmasked coordinates
-//    carg4: file format flags for average, representative, and all
-//    carg5: PtrajClustering object 
-//    carg6: Used in CLUSTER_COMPARE, to store the clusterings.
-//    carg7: filename for decoy
-    
-#define C2C_CENTROID 1
-#define C2C_BESTREP 0
-    
-    if (mode == PTRAJ_SETUP)
-      {
-#ifdef MPI
-	printParallelError(name);
-	return -1;
-#endif
-
-        argumentStackPointer = (stackType **) action->carg1;
-        action->carg1 = NULL;        
-
-        // Parse the output file name 
-        buffer = argumentStackKeyToString(argumentStackPointer, "out", NULL);
-        if (buffer == NULL)
-        {
-            fprintf(stdout, "WARNING in ptraj(), cluster: you need to specify an output file,\n");
-            fprintf(stdout, "i.e. \"out cluster\"  ...ignoring command.\n");
-            return INVALID_ARGUMENTS_RETURN_CODE;
-        }
-        action->carg1 = (void *) buffer;
-
-        // Parse the clustering algorithm: 
-        if (argumentStackContains(argumentStackPointer, "hierarchical"))
-        {
-            action->iarg1 = CLUSTER_HIERARCHICAL;
-        }
-        // CentripetalComplete should be scanned before Centripetal and Complete. 
-        else if (argumentStackContains(argumentStackPointer, "centripetalcomplete")) 
-        {
-            action->iarg1 = CLUSTER_CENTRIPETAL_COMPLETE;
-        }
-        else if (argumentStackContains(argumentStackPointer, "averagelinkage"))
-        {
-            action->iarg1 = CLUSTER_AVERAGELINK;
-        }
-        else if (argumentStackContains(argumentStackPointer, "linkage"))
-        {
-            action->iarg1 = CLUSTER_LINKAGE;
-        }
-        else if (argumentStackContains(argumentStackPointer, "edge"))
-        {
-            action->iarg1 = CLUSTER_EDGELINK;
-        }
-        else if (argumentStackContains(argumentStackPointer, "complete"))
-        {
-            action->iarg1 = CLUSTER_COMPLETELINK;
-        }
-        else if (argumentStackContains(argumentStackPointer, "means1"))
-        {
-            action->iarg1 = CLUSTER_MEANS;
-        }
-        else if (argumentStackContains(argumentStackPointer, "means2"))
-        {
-            action->iarg1 = CLUSTER_MEANS2;
-        }
-        else if (argumentStackContains(argumentStackPointer, "means3"))
-        {
-            action->iarg1 = CLUSTER_MEANS3;
-        }
-        else if (argumentStackContains(argumentStackPointer, "means"))
-        {
-            action->iarg1 = CLUSTER_MEANS;
-        }
-        else if (argumentStackContains(argumentStackPointer, "centripetal"))
-        {
-            action->iarg1 = CLUSTER_CENTRIPETAL;
-        }
-        else if (argumentStackContains(argumentStackPointer, "cobweb1"))
-        {
-            action->iarg1 = CLUSTER_COBWEB;
-        }
-        else if (argumentStackContains(argumentStackPointer, "cobweb2"))
-        {
-            action->iarg1 = CLUSTER_COBWEB2;
-        }
-        else if (argumentStackContains(argumentStackPointer, "cobweb"))
-        {
-            action->iarg1 = CLUSTER_COBWEB;
-        }
-        else if (argumentStackContains(argumentStackPointer, "bayesian"))
-        {
-            action->iarg1 = CLUSTER_BAYESIAN;
-        }
-        else if (argumentStackContains(argumentStackPointer, "som2"))
-        {
-            action->iarg1 = CLUSTER_SOM2;
-        }
-        else if (argumentStackContains(argumentStackPointer, "som"))
-        {
-            action->iarg1 = CLUSTER_SOM;
-        }
-        else if (action->carg7 = (void *) argumentStackKeyToString(argumentStackPointer, "decoy", NULL))
-        { 				// Search for Means, SOM first. 
-	  	    action->iarg1 = CLUSTER_DECOY; 
-        }
-        else if (argumentStackContains(argumentStackPointer, "bychance"))
-        { 
-	  	    action->iarg1 = CLUSTER_BYCHANCE; // Generate random clusters. 
-        }
-        else if (argumentStackContains(argumentStackPointer, "dbi"))
-        {
-	  	    action->iarg1 = CLUSTER_DBI; // NO clustering, just read old output and do DBI! 
-        }
-        else if (argumentStackContains(argumentStackPointer, "anova"))
-        {
-  		    action->iarg1 = CLUSTER_ANOVA; // NO clustering, just read old output and do ANOVA! 
-        }
-        else if (argumentStackContains(argumentStackPointer, "readmerge"))
-        {
-  		    action->iarg1 = CLUSTER_READMERGE; // Generate clustering from ClusterMerging.txt 
-        }
-        else if (argumentStackContains(argumentStackPointer, "readtxt"))
-        {
-  		    action->iarg1 = CLUSTER_READTXT; // Generate clustering from previous output .txt 
-        }
-        else if (argumentStackContains(argumentStackPointer, "clusteringcompare"))
-        {
-  		    action->iarg1 = CLUSTER_COMPARE; // Compare clustering from old output files. 
-        }
-        else
-        {
-            fprintf(stdout,"WARNING in ptraj(), cluster: Unknown clustering algorithm!\n");
-            return INVALID_ARGUMENTS_RETURN_CODE;
-        }
-        
-        if (!action->carg7)
-			action->carg7 = (void *) argumentStackKeyToString(argumentStackPointer, "decoy", NULL);
-        
-#define MAX_COMPARE_FILE 10        
-        if (action->iarg1 == CLUSTER_COMPARE) { // carg4 is borrowed to store filename of clustering to be compared. 
-	        action->carg4 = (char**)SafeMalloc(__FILE__, __LINE__, sizeof(char *) * (MAX_COMPARE_FILE+1));
-            int i;
-            for (i=0; i<MAX_COMPARE_FILE+1;i++) ((char**)action->carg4)[i] = NULL;
-            char temp[100];
-            for (i=0; i<MAX_COMPARE_FILE;i++) {
-            	sprintf(temp, "comparefile%i", i+1);
-                buffer = argumentStackKeyToString(argumentStackPointer, temp, NULL);
-		        if (buffer == NULL)
-    		    {
-        		    break;
-                  //fprintf(stdout, "WARNING in ptraj(), cluster comparing: you need to specify an compare file,\n");
-            	  //    fprintf(stdout, "i.e. \"comparefile1 clustering%d\"  ...ignoring command.\n," i);
-	          //	return INVALID_ARGUMENTS_RETURN_CODE;
-    	    	}
-	        	((char**)action->carg4)[i] = buffer;
-            }
-           	sprintf(temp, "comparefile%i", i);
-            buffer = argumentStackKeyToString(argumentStackPointer, temp, NULL);
-	        if (buffer != NULL)
-    	    {
-        	    fprintf(stdout, "WARNING in ptraj(), cluster comparing: too much files for comparing, ignoring %s and beyond.\n", temp);
-            	fprintf(stdout, "i.e. \"comparefile1 clustering1\"  ...ignoring command.\n");
-	            return INVALID_ARGUMENTS_RETURN_CODE;
-    	    }
-        }
-
-        
-        // Parse the cluster output formats.  The default is to output all clusters as an 
-	// amber trajectory. 
-        action->carg4 = (int*)SafeMalloc(__FILE__, __LINE__, sizeof(int) * CLUSTER_FILEFORMAT_LEN);
-        memset(action->carg4,CLUSTER_OUTPUT_NONE,sizeof(int)*CLUSTER_FILEFORMAT_LEN);
-        ((int*)action->carg4)[CLUSTER_FILEFORMAT_ALL] = COORD_AMBER_TRAJECTORY; // default 
-        
-        buffer = argumentStackKeyToString(argumentStackPointer, "average", NULL);
-        if (buffer) {
-	  ( (int *) action->carg4 )[CLUSTER_FILEFORMAT_AVERAGE] = GetOutputFileFormat(buffer);
-            safe_free(buffer);
-        }
-        buffer = argumentStackKeyToString(argumentStackPointer, "all", NULL);
-        if (buffer) {
-        	((int*)action->carg4)[CLUSTER_FILEFORMAT_ALL] = GetOutputFileFormat(buffer);
-            safe_free(buffer);
-        }
-        buffer = argumentStackKeyToString(argumentStackPointer, "representative", NULL);
-        if (buffer) {
-        	((int*)action->carg4)[CLUSTER_FILEFORMAT_REPRESENTATIVE] = GetOutputFileFormat(buffer);
-            safe_free(buffer);
-        }
-      //if (argumentStringContains(argumentStackPointer, "average"))
-      //{
-      //    ((int*)action->carg4)[CLUSTER_FILEFORMAT_AVERAGE] = GetOutputFileFormat(argumentStackPointer);
-      //}
-      //if (argumentStringContains(argumentStackPointer, "representative"))
-      //{
-      //    ((int*)action->carg4)[CLUSTER_FILEFORMAT_REPRESENTATIVE] = GetOutputFileFormat(argumentStackPointer);
-      //}
-      //if (argumentStringContains(argumentStackPointer, "all"))
-      //{
-      //    ((int*)action->carg4)[CLUSTER_FILEFORMAT_ALL] = GetOutputFileFormat(argumentStackPointer);
-      //}
-
-        // Parse the distance metric 
-        if (argumentStackContains(argumentStackPointer, "rms"))
-        {
-	     	action->iarg5 = DISTANCE_METRIC_RMSD; // default 
-        }
-        else if (argumentStackContains(argumentStackPointer, "dme"))
-        {
-			action->iarg5 = DISTANCE_METRIC_DME;
-        }
-        else if (argumentStackContains(argumentStackPointer, "mds"))
-        {
-			action->iarg5 = DISTANCE_METRIC_MDS;
-        }
-        
-        if (argumentStackContains(argumentStackPointer, "fingerprint")) 
-        {
-        	switch (action->iarg1) 
-            {
-            	case CLUSTER_AVERAGELINK:
-                	action->iarg1 = CLUSTER_AVERAGELINK_FP;
-                    break;
-            	case CLUSTER_EDGELINK:
-                	action->iarg1 = CLUSTER_EDGELINK_FP;
-                    break;
-            	case CLUSTER_COMPLETELINK:
-                	action->iarg1 = CLUSTER_COMPLETELINK_FP;
-                    break;
-            	case CLUSTER_CENTRIPETAL:
-                	action->iarg1 = CLUSTER_CENTRIPETAL_FP;
-                    break;
-            	case CLUSTER_CENTRIPETAL_COMPLETE:
-                	action->iarg1 = CLUSTER_CC_FP;
-                    break;
-            	case CLUSTER_LINKAGE:
-                	action->iarg1 = CLUSTER_LINKAGE_FP;
-                    break;
-            }
-        }
-
-        // Parse the cluster to cluster measuring method, if it is use the BestRep to BestRep or 
-        // Centroid to Centroid (default). Actual value is saved in action->darg4 
-
-    	char *temp1;
-        temp1 = argumentStackKeyToString(argumentStackPointer, "c2c", "Centroid"); // default 
-        
-        if (stringMatch(temp1, "bestrep")) 
-        {
-        	action->darg4 = C2C_BESTREP;
-        }
-        else if (stringMatch(temp1, "centroid")) 
-        {
-        	action->darg4 = C2C_CENTROID;
-        }
-        else 
-        {
-        	fprintf(stdout, "WARNING in ptraj(), cluster: Unknown method for cluster to cluster.\n");
-        }
-
-#define SOM_ISOLATE	0
-#define SOM_LOOP	1
-#define SOM_STRING	2
-#define SOM_BARBLOOP	3
-#define SOM_BARBSTRING	4
-
-   	    // If SOM, The iarg7 will be used for the SOM map. 
-        if (action->iarg1 == CLUSTER_SOM || action->iarg1 == CLUSTER_SOM2) {
-	        if (argumentStackContains(argumentStackPointer, "barbstring")) {
-        	    action->iarg7 = SOM_BARBSTRING;
-        	}
-	        else if (argumentStackContains(argumentStackPointer, "barbloop")) {
-        	    action->iarg7 = SOM_BARBLOOP;
-        	}
-	        else if (argumentStackContains(argumentStackPointer, "string")) {
-        	    action->iarg7 = SOM_STRING;
-        	}
-	        else if (argumentStackContains(argumentStackPointer, "loop")) {
-        	    action->iarg7 = SOM_LOOP;
-        	}
-	        else if (argumentStackContains(argumentStackPointer, "isolate")) {
-        	    action->iarg7 = SOM_ISOLATE;
-        	}
-	        else {
-        	    fprintf(stdout,"WARNING in ptraj(), cluster: Unknown SOM map! Use SOM_LOOP map.\n");
-                action->iarg7 = SOM_LOOP;
-        	}
-			        
-        }
-   	    // If Means or Decoy, The iarg7 will be used for the iteration steps. 
-
-#define ASSIGN_ITERATION_COUNT 100
-
-        if (action->iarg1 == CLUSTER_MEANS || action->iarg1 == CLUSTER_MEANS2 || action->iarg1 == CLUSTER_MEANS3 || action->iarg1 == CLUSTER_DECOY) {
-	        action->iarg7 = argumentStackKeyToInteger(argumentStackPointer, "iteration", ASSIGN_ITERATION_COUNT);
-	    }
-        
-        // If Cobweb, darg5 is acuity.
-        if (action->iarg1 == CLUSTER_COBWEB || action->iarg1 == CLUSTER_COBWEB2)
-        	action->darg5 = argumentStackKeyToDouble(argumentStackPointer, "acuity", 0.1); 
-            
-            
-        action->darg2 = argumentStackKeyToDouble(argumentStackPointer, "verbose", 1.0); 
-        action->iarg2 = argumentStackKeyToInteger(argumentStackPointer, "clusters", 0);
-        action->iarg3 = argumentStackKeyToInteger(argumentStackPointer, "sieve", 0);
-        
-        // If we are to perform sieve-clustering, then we demand a second pass through the data! 
-        if (action->iarg3)
-        {
-            action->performSecondPass = 1;
-            if (argumentStackContains(argumentStackPointer, "random"))
-            {
-            	action->darg3 = -1;
-            } 
-            else 
-            {
-            	int temp = argumentStackKeyToInteger(argumentStackPointer, "start", 1);
-                action->darg3 = (double) temp - 1;
-                if (action->darg3 < 0)
-                {
-                	fprintf(stdout, "WARNING in ptraj(), cluster: start need to be greater than 0. Now start from frame 1\n");
-                	action->darg3 = 0;
-                }
-                if (action->darg3 > action->iarg3 - 1) {
-                    int temp = (int)action->darg3;
-                    temp = temp % action->iarg3;
-                    action->darg3 = (double) temp;
-                	fprintf(stdout, "WARNING in ptraj(), cluster: start need to be less than sieve size. Now start from frame %i\n", temp + 1);
-                }
-            }
-        }
-        if (action->iarg3 == 1)
-        {
-        	action->iarg3 = 0;
-            action->performSecondPass = 0;
-            fprintf(stdout, "WARNING in ptraj(), sieve 1 is equivalent to sieve 0 (no sieving).\n");
-        }
-        if (argumentStackContains(argumentStackPointer, "random"))
-        {
-        	fprintf(stdout, "WARNING in ptraj(), cluster. Ignore \"random\" in the cluster command without sieve context.\n");
-        }
-        if (argumentStackContains(argumentStackPointer, "start"))
-        {
-        	fprintf(stdout, "WARNING in ptraj(), cluster. Ignore \"start\" in the cluster command without sieve context, may cause other misintepretations.\n");
-        }
-
-        action->darg1 = argumentStackKeyToDouble(argumentStackPointer, "epsilon", 0.0);
-        action->iarg6 = argumentStackContains(argumentStackPointer, "mass");
-        if (action->iarg2 == 0 && action->darg1 == 0)
-        {
-            fprintf(stdout,"WARNING in ptraj(), cluster: Must specify either 'clusters' or 'epsilon'.\n");
-            return INVALID_ARGUMENTS_RETURN_CODE;
-        }
-		// Not all algorithms can handle 'epsilon'.  Reject arguments we can't handle 
-		if (action->darg1 != 0 && \
-	    	(action->iarg1 == CLUSTER_COBWEB || action->iarg1 == CLUSTER_BAYESIAN || action->iarg1 == CLUSTER_SOM || action->iarg1 == CLUSTER_SOM2 || action->iarg1 == CLUSTER_MEANS))
-        {
-            fprintf(stdout,"WARNING in ptraj(), cluster: This clustering algorhtim can't handle \
-'epsilon'.  Please specify a number for clusters.\n");
-            return INVALID_ARGUMENTS_RETURN_CODE;
-		}
-        // For Edge and Complete linkage, the distance between cluster and cluster is not defined by it centroid of bestrep.
-        // So, if Edge or Complete linkage is selected, use bestrep to save alignment time.
-      //if (action->iarg1 == CLUSTER_EDGELINK || action->iarg1 == CLUSTER_COMPLETELINK)
-      //{
-      //	if (action->darg4 != C2C_BESTREP)
-      //    {
-      //    	fprintf(stdout,"WARNING in ptraj(), cluster: use Bestrep for edge linkage or complete linkage.\n");
-      //        action->darg4 = C2C_BESTREP;
-      //    }
-      //}
-        if (action->iarg1 == CLUSTER_CENTRIPETAL)
-        {
-        	if (action->darg4 == C2C_BESTREP)
-            {
-            	fprintf(stdout,"WARNING in ptraj(), cluster: use Centroid for centripetal linkage.\n");
-                action->darg4 = C2C_CENTROID;
-            }
-        }
-        // Most DBI calculation is need by the sieve treatment. So disabling the sieve will accumulate the coordinates of all the frames and get DBI and pSF calculated. 
-        if (action->iarg1 == CLUSTER_DBI) { 
-           	action->iarg3 = 0;
-            action->performSecondPass = 0;
-        }
-            
-        AtomCount = action->state->atoms;
-        trajInfo = (trajectoryInfo *) SafeMalloc(__FILE__, __LINE__, sizeof(trajectoryInfo));
-        INITIALIZE_trajectoryInfo(trajInfo);
-        
-        buffer = getArgumentString(argumentStackPointer, NULL);
-
-	fprintf(stdout, "MASK = %s\n", buffer);
-
-        if (buffer != NULL)
-        {
-            action->mask = processAtomMask(buffer, action->state);
-            safe_free(buffer);
-        }
-        else
-        {
-            action->mask = processAtomMask("*", action->state);
-        }
-        if (action->mask==NULL) 
-          return INVALID_ARGUMENTS_RETURN_CODE;
-        // Create a new "substate" trajInfo->state containing only some atoms: 
-        modifyStateByMask(&trajInfo->state, &action->state, action->mask, 0);
-        trajInfo->atoms = trajInfo->state->atoms;
-        action->carg2 = (void *) trajInfo;
-
-        // We want to save *all* the coordinates, so that we can output complete cluster information.  So,
-        //if the mask excludes some atoms, we use a second trajectoryInfo structure to hold the positions
-        //of the full, unmasked trajectory. 
-       	action->carg3 = NULL; // default 
-        if (AtomCount != trajInfo->atoms)
-        {
-            FullTrajInfo = (trajectoryInfo *) SafeMalloc(__FILE__, __LINE__, sizeof(trajectoryInfo));
-            INITIALIZE_trajectoryInfo(FullTrajInfo);
-            FullTrajInfo->atoms = AtomCount;
-            FullTrajInfo->state = action->state;            
-            action->carg3 = (void *) FullTrajInfo;
-        }
-        TheClustering = PtrajClusteringNew(NULL,trajInfo,action);
-        TheClustering->Acuity = (float)action->darg5;
-		action->carg5 = TheClustering;
-    
-        return 0;
-    }
-
-    if (mode == PTRAJ_STATUS)
-    {
-      buffer = (char*)action->carg1;
-      if (action->iarg1 == CLUSTER_COMPARE) {
-	fprintf(stdout, "  Comparing clustering files, output file: %s\n", buffer);
-	int i;
-	for (i = 0; ((char**)action->carg4)[i]; i++) {
-	  fprintf(stdout, "        comparefile%d: %s\n", i+1,((char**)action->carg4)[i]);
-	}
-	return;
-      }
-
-      fprintf(stdout, "  CLUSTERING.\n\n");
-      fprintf(stdout, "      Clusters will be assigned and output to files with the prefix \"%s\".\n", buffer);
-      fprintf(stdout, "      The clustering algorithm is ");
-      if (action->iarg1 != CLUSTER_SOM && 
-	  action->iarg1 != CLUSTER_SOM2 && 
-	  action->iarg1 != CLUSTER_COBWEB && 
-	  action->iarg1 != CLUSTER_BAYESIAN) { 
-	fprintf(stdout,"%s using %s as the distance metric.\n", 
-		CLUSTER_ALGORITHM_NAMES[action->iarg1],
-		DISTANCE_METRIC_NAMES[action->iarg5]);
-
-	if (action->darg4 == C2C_BESTREP)
-	  fprintf(stdout,"      Cluster-to-cluster distance is measured by its best representative.\n");
-	if (action->darg4 == C2C_CENTROID)
-	  fprintf(stdout,"      Cluster-to-cluster distance is measured by its centroid.\n");
-      } else {
-	fprintf(stdout,"%s, ", CLUSTER_ALGORITHM_NAMES[action->iarg1]);
-	if (attributeArray != NULL || attributeArrayTorsion != NULL) {
-	  fprintf(stdout," using attributes defined by previous ClusterAttribute commands.\n");
-	} else
-	  fprintf(stdout," using XYZ coordinates as attributes.\n");
-        }
-   	  
-	  // If SOM, print the SOM map. 
-      if (action->iarg1 == CLUSTER_SOM || action->iarg1 == CLUSTER_SOM2) {
-	if (action->iarg7 == SOM_BARBSTRING) {
-	  fprintf(stdout,"      SOM map is Barbed string.\n");
-	}
-	else if (action->iarg7 == SOM_BARBLOOP) {
-	  fprintf(stdout,"      SOM map is Barbed loop.\n");
-	}
-	else if (action->iarg7 == SOM_STRING) {
-	  fprintf(stdout,"      SOM map is String (open loop).\n");
-	}
-	else if (action->iarg7 == SOM_LOOP) {
-	  fprintf(stdout,"      SOM map is Loop.\n");
-	}
-	else if (action->iarg7 == SOM_ISOLATE) {
-	  fprintf(stdout,"      SOM map is Isolated points.\n");
-	}
-      }
-   	
-	 // If Means, print the iteration. 
-      if (action->iarg1 == CLUSTER_MEANS) {
-	fprintf(stdout,"      Maximum of %d iterations with means.\n", action->iarg7);
-      }
-      if (action->carg7) 
-        {
-	  fprintf(stdout,"      Decoy structure will be read from %s.\n", action->carg7);
-        }
-      if (action->iarg2)
-        {
-	  fprintf(stdout,"      The cluster count is set to %d.\n",action->iarg2);
-        }
-        else
-        {
-            fprintf(stdout,"      Maximum eccentricity (epsilon) is %f.\n",action->darg1);
-        }
-        if (action->iarg3)
-        {
-            fprintf(stdout,"      Clustering will be performed in two passes (sieve method).\n");
-            fprintf(stdout,"      Sieved frames in the first pass will be selected ");
-	    if (action->darg3 < 0) fprintf(stdout, "randomly");
-	    if (action->darg3>= 0) fprintf(stdout, "every %i frames starting from frame %i", 
-					       action->iarg3, (int)action->darg3 +1);
-	    fprintf(stdout, ".\n");
-        }
-        fprintf(stdout, "      The atom selection for best fit is ");
-        printAtomMask(stdout, action->mask, action->state);
-	fprintf(stdout, "\n");
-        PrintClusterFileInfo(((int*)action->carg4)[CLUSTER_FILEFORMAT_ALL],"all");
-        PrintClusterFileInfo(((int*)action->carg4)[CLUSTER_FILEFORMAT_REPRESENTATIVE],"representative");        
-        PrintClusterFileInfo(((int*)action->carg4)[CLUSTER_FILEFORMAT_AVERAGE],"average");
-    } 
-
-    if (mode == PTRAJ_PRINT)
-    {
-        if (action->iarg1 == CLUSTER_DBI) return;
-        if (action->iarg1 == CLUSTER_ANOVA) return;
-        if (action->iarg1 == CLUSTER_COMPARE) return;
-
-	fprintf(stdout, "\nPTRAJ CLUSTER:");
-        PtrajPrintClustering(action);
-
-    } // end of PTRAJ_PRINT 
-
-    if (mode == PTRAJ_CLEANUP)
-    {        
-        trajInfo = (trajectoryInfo *) action->carg2;
-        safe_free(trajInfo->x);
-        safe_free(trajInfo->y);
-        safe_free(trajInfo->z);
-        trajInfo->x = NULL;
-        trajInfo->y = NULL;
-        trajInfo->z = NULL;
-        safe_free(trajInfo);
-        if (action->carg3)
-        {
-            trajInfo = (trajectoryInfo *) action->carg3;
-            safe_free(trajInfo->x);
-            safe_free(trajInfo->y);
-            safe_free(trajInfo->z);
-            trajInfo->x = NULL;
-            trajInfo->y = NULL;
-            trajInfo->z = NULL;
-            safe_free(trajInfo);
-        }
-        safe_free(action->carg4);
-        safe_free(action->carg7);
-    }
-
-
-    if (mode == PTRAJ_FIRSTPASS)
-    {
-        //This is where the meat of the computation occurs; up until now, we were just
-        //accumulating the necessary coordinates.  
-        fprintf(stdout,"\n\n  The first pass through the trajectory is complete.\n");
-        trajInfo = (trajectoryInfo *) action->carg2;
-      
-        PtrajPerformClustering(trajInfo,action);
-        if (action->iarg1 == CLUSTER_DBI || action->iarg1 == CLUSTER_ANOVA || action->iarg1 == CLUSTER_COMPARE)
-        	return;
-
-        AlignBestReps((PtrajClustering*)action->carg5);
-
-
-        // Get ready for the second pass, if we are sieving: 
-        if (action->iarg3)
-        {
-            // Our centroids will not necessarily be up-to-date, especially if we're doing an algorithm like
-            //Cobweb Clustering that doesn't use them.  We need centroids for the second pass, so update them! 
-            fprintf(stdout,"  Sieve was active.  Preparing for the second pass.\n");
-	    fprintf(stdout,"  Dumping out current clusters to file EndFirstPass.txt.\n");
-
-	    FILE* temp;
-            ((PtrajClustering*)action->carg5)->FirstPassTime = time(NULL);
-            temp = fopen("EndFirstPass.txt", "w");
-            int tempclusters = ((PtrajClustering*)action->carg5)->action->iarg3;
-	    // to fool OutputClusteringStats to print out the DBI and pSF value for the first pass 
-            ((PtrajClustering*)action->carg5)->action->iarg3 = 0;
-            PtrajClusteringOutputHeaderToFile((PtrajClustering*)action->carg5,temp);
-            OutputClusteringStats((PtrajClustering*)action->carg5,temp);
-            ClusteringOutputClusterListToFile( (Clustering*) action->carg5,temp,0);
-            fclose(temp);
-            ((PtrajClustering*)action->carg5)->action->iarg3 = tempclusters;
-            //ClusteringOutputClusterList((PtrajClustering*)action->carg5,"EndFirstPass.txt");
-
-	    fprintf(stdout,"  Computing centroids");
-	    fflush(stdout);
-            ClusteringFindAllCentroids( (Clustering *) action->carg5);
-	  	  fprintf(stdout," and expanding clusters.\n");
-            PtrajClusteringExpandClusterListSizes((PtrajClustering*)action->carg5,
-						  action->iarg3,action->state->maxFrames);
-            trajInfo->current = 0;
-            PtrajClusteringSetupSecondPassInfo((PtrajClustering*)action->carg5,action);
-	    fprintf(stdout,"  Ready for the second pass through the trajectories...\n");
-        }
-    }
-
-
-    if (mode == PTRAJ_SECONDPASS)
-    {
-        if (action->iarg3 &&  action->iarg1 != CLUSTER_DBI)
-        {
-            PtrajClusteringSecondPass(action,x,y,z);
-        }
-    }
-
-    if (mode != PTRAJ_ACTION)
-    {
-        // We're done: The remainder of the routine handles the case of action 
-        return 0;
-    }
-
-    // ACTION: PTRAJ_ACTION     
-    // Load up the current coordinates into the trajInfo
-    // structure.  We keep accumulating until the PRINT event triggers. 
-    state = (ptrajState *) action->state;
-    trajInfo = (trajectoryInfo *) action->carg2;
-    FullTrajInfo = (trajectoryInfo *) action->carg3;
-    AccumulateCoordinates(trajInfo, action, x, y, z, FullTrajInfo);
-    return 0;
-
-}
-*/
-
-// ACTION ROUTINE ****
-// transformClusterAttribute
-// Argument usage:
-//    
-//    iarg1: attribute from stack|file|xyz|backbone
-//    iarg2: data manupilation. Nochange/Normalize/Meanshift/Autoscale/Weighted
-//    iarg3: 
-//    iarg4: 
-//    iarg5: 
-//    darg1: output time, default 1.0 ps
-//    darg2: weight, valid only if defined "weight", default 1.0, 
-//    darg3: 
-//    darg4: 
-//    carg1: temporary for command parameter stack
-//    carg2: filename and colume info for attributes input
-//    carg3: filename for output
-//    carg4: a stackType pointer to the attributes list defined by action 
-//    carg5: 
-/* DISABLED FOR CPPTRAJ
-#define ATTRIBUTE_STACK     1
-#define ATTRIBUTE_FILE      2
-#define ATTRIBUTE_BACKBONE  3
-#define ATTRIBUTE_XYZ       0
-
-#define ATTRIBUTE_NOCHANGE  	0
-#define ATTRIBUTE_NORMALIZE 	1
-#define ATTRIBUTE_MEANSHIFT 	2
-#define ATTRIBUTE_AUTOSCALE 	3
-#define ATTRIBUTE_LINEARSCALE 	4
-#define ATTRIBUTE_WEIGHT    	5
-#define ATTRIBUTE_EIGHTY_PERCENTILE    	8
-
-extern int transformClusterAttribute(actionInformation* action, double* x, double* y, double* z,
-    double* box, int mode)
-{
-    char *name = "clusterattribute";
-    stackType** argumentStackPointer;
-    stackType *s, *ss;
-    scalarInfo *info, *match;
-    scalarInfo *attributeInfo;
-    scalarInfo **array;
-    char **attributes, *a, *filename;
-    int *columes;
-    char* buffer;
-    char *line, *col;
-    double value;
-    int invalid;
-    int i, j, k, start, end;
-    double **array1;
-    double **array2;
-    FILE *outFile;
-    FILE *inFile;
-    int torsion; // define the data is torsion/dihe or not when read data from a file 
-	int angle; 
-    int SkipAttribute = 0;
-    double max, min;
-    double sum, sum2, stdev, mean;
-    double sinX, cosX, sinX2, cosX2;
-    
-    if (mode == PTRAJ_SETUP)
-    {
-#ifdef MPI
-      printParallelError(name);
-      return -1;
-#endif
-
-        argumentStackPointer = (stackType **) action->carg1;
-        action->carg1 = NULL;        
-        //  grab a time interval between frames in ps (for output)
-        action->darg1 = argumentStackKeyToDouble(argumentStackPointer, "time", 1.0);
-        //  grab output filename
-        buffer = argumentStackKeyToString(argumentStackPointer, "out", NULL);
-        action->iarg2 = ATTRIBUTE_NOCHANGE;
-        if (argumentStackContains(argumentStackPointer, "normalize"))
-        {
-            action->iarg2 = ATTRIBUTE_NORMALIZE;
-        }
-        else if (argumentStackContains(argumentStackPointer, "meanshift")) 
-        {
-            action->iarg2 = ATTRIBUTE_MEANSHIFT;
-        }
-        else if (argumentStackContains(argumentStackPointer, "autoscale")) 
-        {
-            action->iarg2 = ATTRIBUTE_AUTOSCALE;
-        }
-        else if (argumentStackContains(argumentStackPointer, "linearscale")) 
-        {
-            action->iarg2 = ATTRIBUTE_LINEARSCALE;
-        }
-        else if (argumentStackContains(argumentStackPointer, "percentile")) 
-        {
-            action->iarg2 = ATTRIBUTE_EIGHTY_PERCENTILE;
-        }
-        action->darg2 = argumentStackKeyToDouble(argumentStackPointer, "weight", 1.0);
-        if (action->darg2 == 0)
-        	fprintf(stdout, "WARNING in ptraj(), clusterAttribute: weight is 0. This attribute will have no effect.\n");
-        action->carg3 = (void *)buffer;
-        if ( argumentStackContains(argumentStackPointer, "pairwisedistance") ) {
-          fprintf(stderr,"Error: pairwisedistance: Disabled for cpptraj.\n");
-//            action->iarg1 = ATTRIBUTE_STACK;
-//            buffer = getArgumentString(argumentStackPointer, NULL);
-//  	    if (buffer != NULL)
-//      	{
-//      	    action->mask = processAtomMask(buffer, action->state);
-//      	    safe_free(buffer);
-//      	}
-//      	else
-//      	{
-//      	    action->mask = processAtomMask("*", action->state);
-//      	}
-//      	char TempCommand[512];
-//          stackType *argumentStack = NULL;
-//          for (i = 1; i <= action->state->atoms; i++) {
-//      	if (action->mask[i-1] == 0) continue;
-//              for (j = i+1; j <= action->state->atoms; j++) {
-//      		if (action->mask[j-1] == 0) continue;
-//                  sprintf(TempCommand, "distance tempdist_%d_%d @%d @%d\0", i, j, i, j);
-//                  printf("%s\n", TempCommand);
-//                  dispatchToken((Token *) &ptrajTokenlist, argumentStack, TempCommand);
-//              }
-//          }
-//          // Modify the current ClusterAttribute command by pushing "tempdist*" and "stack" (reversed order) into the argumentStack. 
-//          buffer = safe_malloc(sizeof(char)*512);
-//          pushStack(argumentStackPointer, strcpy(buffer, "tempdist*"));
-//          buffer = safe_malloc(sizeof(char)*512);
-//          pushStack(argumentStackPointer, strcpy(buffer, "stack"));
-//          //sprintf(TempCommand, "ClusterAttribute stack tempdist* \0");
-//          //dispatchToken((Token *) &ptrajTokenlist, argumentStack, TempCommand);
-        }
-        if (buffer = argumentStackKeyToString(argumentStackPointer, "stack", NULL)) {
-            action->iarg1 = ATTRIBUTE_STACK;
-            action->carg2 = buffer;
-            attributes = stringSplit(buffer, ", ");
-	    for (i = 0; attributes[i] != NULL; i++) { 
-    	        for (s = scalarStack; s != NULL; s = s->next) {
-				    info = (scalarInfo *) s->entry;
-			    	attributeInfo = NULL;
-                    if ( stringMatchWild(info->name, attributes[i]) == 1 ) {
-		    	        attributeInfo = (scalarInfo *) SafeMalloc(__FILE__, __LINE__, sizeof(scalarInfo));
-			   		    INITIALIZE_scalarInfo(attributeInfo);
-    				    attributeInfo->mode = info->mode;
-	        			attributeInfo->totalFrames = -1;
-			    		attributeInfo->name = info->name;
-                	    attributeInfo->results = info;
-						// If buffer already in the attributeStack, skip
-    		            match = scalarStackGetName(&attributeStack, attributeInfo->name);
-	    	            if (match != NULL) {
-            	    		safe_free(attributeInfo);
-                	        attributeInfo = NULL;
-            	    	} 
-	                    if (attributeInfo != NULL) {
-    	    	        	pushStack(&attributeStack, (void*) attributeInfo);
-    	    	        	pushStack( (stackType **) &(action->carg4), (void*) attributeInfo);
-    		            }
-            	    }
-				}
-            }
-        } else if (filename = argumentStackKeyToString(argumentStackPointer, "file", NULL)) {
-            action->iarg1 = ATTRIBUTE_FILE;
-            buffer = argumentStackKeyToString(argumentStackPointer, "column", NULL);
-            action->carg2 = SafeMalloc(__FILE__, __LINE__, sizeof(char) * (strlen(filename)+ strlen(buffer) + 10));
-            sprintf(action->carg2, "%s", filename);
-            attributes = stringSplit(buffer,", ");
-            torsion = argumentStackContains(argumentStackPointer, "torsion");
-            if (!torsion) 
-            	torsion = argumentStackContains(argumentStackPointer, "dihedral");
-            angle = argumentStackContains(argumentStackPointer, "angle");
-			for (i = 0;  attributes[i] != NULL; i++) { 
-                attributeInfo = NULL;
-            	if (strchr(attributes[i], '-')) {
-                	if (sscanf(attributes[i], "%i-%i", &start, &end) < 1) {
-                    	fprintf(stderr, "Scanning integer argument failed in %s\n", attributes[i]);
-                    }
-                } else {
-                	if (sscanf(attributes[i], "%i", &start) < 1) {
-                    	fprintf(stderr, "Scanning integer argument failed in %s\n", attributes[i]);
-                    } else {
-                    	end = start;
-                    }
-                }
-                for (j = start; j <= end; j++) {
-	    	        attributeInfo = (scalarInfo *) SafeMalloc(__FILE__, __LINE__, sizeof(scalarInfo));
-		   		    INITIALIZE_scalarInfo(attributeInfo);
-   				    if (torsion) 
-	                    attributeInfo->mode = SCALAR_TORSION;
-                    else if (angle)
-	                    attributeInfo->mode = SCALAR_ANGLE;
-                    else 
-    	                attributeInfo->mode = SCALAR_NULL;
-        			attributeInfo->totalFrames = -1;
-//		    		attributeInfo->name = SafeMalloc(__FILE__, __LINE__, sizeof(char) * (strlen(filename)+ (log10(j+1)) + 1));
-		    		attributeInfo->name = SafeMalloc(__FILE__, __LINE__, (size_t)(sizeof(char) * (strlen(filename)+ log10(j+1.0) + 10)));
-                    sprintf(attributeInfo->name, "%s:%d", filename, j);
-               	    attributeInfo->results = NULL;
-					// If buffer already in the attributeStack, skip
-   		            match = scalarStackGetName(&attributeStack, attributeInfo->name);
-        	        if (match != NULL) {
-            	   		safe_free(attributeInfo->name);
-            	   		safe_free(attributeInfo);
-                	    attributeInfo = NULL;
-            		} 
-        	        if (attributeInfo != NULL) {
-    	    	       	pushBottomStack(&attributeStack, (void*) attributeInfo);
-   	    	        	pushBottomStack( (stackType **) &(action->carg4), (void*) attributeInfo);
-	    	        }
-                }
-            }
-            
-        } else if (argumentStackContains(argumentStackPointer, "backbone")) {
-            action->iarg1 = ATTRIBUTE_BACKBONE;
-        } else {
-            action->iarg1 = ATTRIBUTE_XYZ;
-    	}
-        return 0;
-    } else
-    
-    if (mode == PTRAJ_FIRSTPASS) {
-      //array1 = (double **)attributeArray->entry;
-      //array2 = (double **)attributeArrayTorsion->entry;
-        array = (scalarInfo**)attributeArray->entry;
-		if (action->iarg1 == ATTRIBUTE_FILE) { // Read in the file 
-	        s = (stackType *)action->carg4;
-            //filename = SafeMalloc(__FILE__, __LINE__, sizeof(char)*strlen((char*)s->entry));
-            if (!action->carg3)
-    	    {
-        	    fprintf(stdout, "WARNING in ptraj(), No attribute info from %s will be saved.\n", action->carg2);
-    	    } 
-        	if (openFile(&inFile, (char*)action->carg2, "r") == 0)
-	        {
-    	        fprintf(stdout, "WARNING in ptraj(), ClusterAttribute: couldn't open file %s.\n", action->carg2);
-            	return 0;
-	        }
-	   	    for (s = (stackType *)action->carg4, i = 0, j = 0; s != NULL; s = s->next) {
-        	   	info = (scalarInfo *) s->entry;
-		        info->totalFrames = action->state->maxFrames;
-        		info->value = (double *) SafeMalloc(__FILE__, __LINE__, sizeof(double) * info->totalFrames);
-            }
-		    line = (char *) SafeMalloc(__FILE__, __LINE__, sizeof(char) * BUFFER_SIZE);
-            k = 0;
-            while (fgets(line, BUFFER_SIZE, inFile)) {
-            	attributes = stringSplit(line,"\t ");
-		   	    invalid = 0;
-                for (s = (stackType *)action->carg4; s != NULL; s = s->next) {
-    	    	   	info = (scalarInfo *) s->entry;
-                    col = (char *) strrchr( info->name, ':');
-                    *col = '\0';
-                    if (strcmp((char*)action->carg2, info->name)) {
-	                    *col = ':'; 
-                        continue;
-                    }
-                    *col = ':'; 
-                    col++;
-                    j = atoi(col) - 1;
-                    value = atof(attributes[j]);
-                    if (value == 0 && attributes[j][0] != '0') {
-                    	invalid = 1;
-                        continue;
-                    }
-                    info->value[k] = value;
-                }
-                if (invalid == 0) {
-                    k++;
-                } else {
-                	fprintf(stdout, "Line %d in %s is not valid. Skip. \n", k+1, (char*)action->carg2);
-                }
-                for (j = 0; attributes[j]; j++) safe_free(attributes[j]);
-                safe_free(attributes);
-            }
-            for (i = 0; array[i]; i++);
-	   	    for (s = (stackType *)action->carg4, j = 0; s != NULL; s = s->next, i++) {
-        	   	info = (scalarInfo *) s->entry;
-    	        info->results = info;
-                col = (char *) (strrchr(info->name, ':') - info->name);
-                if (strncmp( (char *) action->carg2, (char *) info->name, (size_t) col)) {
-                    continue;
-                }
-	        //  if (info->mode != SCALAR_TORSION) 
-            	// 	array1[i++] = (double *)info->value;
-        	//  else
-    	        // 	array2[j++] = (double *)info->value;
-	            if (info->mode != SCALAR_TORSION) 
-            	   	array[i] = (scalarInfo *)info;
-        	    else {
-    	           	info->cos = (double *) SafeMalloc(__FILE__, __LINE__, sizeof(double) * info->totalFrames);
-    	           	info->sin = (double *) SafeMalloc(__FILE__, __LINE__, sizeof(double) * info->totalFrames);
-                    for (k = 0; k < info->totalFrames; k++) {
-                        if (info->value[k] < 0) 
-                        	info->value[k] += 360;
-                    	info->cos[k] = cos(info->value[k]/RADDEG);
-                    	info->sin[k] = sin(info->value[k]/RADDEG);
-                    }
-                    array[i] = (scalarInfo *)info;
-                }
-	       	}
-            fclose(inFile);
-        }
-		else if (action->iarg1 == ATTRIBUTE_STACK) {
-	   	    for (i = 0; array[i]; i++);
-            for (s = (stackType *)action->carg4, j = 0; s != NULL; s = s->next, i++) {
-        	   	info = (scalarInfo *) s->entry;
-		        info->totalFrames = action->state->maxFrames;
-        		info->value = (double *) SafeMalloc(__FILE__, __LINE__, sizeof(double) * info->totalFrames);
-    	        attributeInfo = (scalarInfo *)info->results;
-	            info->results = NULL;
-                if (info->action) {
-		    scalarInfo *scalar = ptrajCopyScalar(&info);
-                    scalar->totalFrames = 1;
-                    scalar->mean = scalar->stddev = scalar->max = scalar->min = 0;
-                    scalar->value = SafeMalloc(__FILE__, __LINE__, sizeof(double)*scalar->totalFrames);// just for one value. 
-                    actionInformation *actionInfo = ptrajCopyAction(&(info->action));
-                    if (actionInfo->type == TRANSFORM_ANGLE || actionInfo->type == TRANSFORM_DIHEDRAL || actionInfo->type == TRANSFORM_DISTANCE || actionInfo->type == TRANSFORM_PUCKER) { // Although the rms also store one scalarInfo for the rms value, but it is saved on carg2. 
-                    	actionInfo->carg1 = (void *)scalar;
-                        info->action = actionInfo;
-                    } else {
-                    	fprintf(stderr, "Caution: This attribute can not be updated during clustering!\n");
-                        info->action = NULL;
-                    }
-                }
-              //if (info->mode != SCALAR_TORSION) 
-              //   	array1[i++] = (double *)attributeInfo->value;
-              //    else
-    	      //   	array2[j++] = (double *)attributeInfo->value;
-                if (info->mode != SCALAR_TORSION) { 
-                    for (k = 0; k < info->totalFrames; k++) {
-                    	info->value[k] = attributeInfo->value[k];
-            	   	}
-                    array[i] = (scalarInfo *)info;
-        	    }
-                else {
-    	           	info->cos = (double *) SafeMalloc(__FILE__, __LINE__, sizeof(double) * info->totalFrames);
-    	           	info->sin = (double *) SafeMalloc(__FILE__, __LINE__, sizeof(double) * info->totalFrames);
-                    for (k = 0; k < info->totalFrames; k++) {
-                        if (attributeInfo->value[k] < 0) 
-                        	attributeInfo->value[k] += 360;
-                    	info->value[k] = attributeInfo->value[k];
-                    	info->cos[k] = cos(attributeInfo->value[k]/RADDEG);
-                    	info->sin[k] = sin(attributeInfo->value[k]/RADDEG);
-                    }
-    	           	array[i] = (scalarInfo *)info;
-	       		}
-            }
-        } 
-        else if (action->iarg1 == ATTRIBUTE_BACKBONE) {
-        
-        } 
-        else if(action->iarg1 == ATTRIBUTE_XYZ) {
-        	//  # Use the old XYZ functions
-        } 
-        
-		        
-        // Normalization 
-   	    if ( 1 // Always calculate the mean and stddev.  
-        	||action->iarg2 == ATTRIBUTE_NORMALIZE || action->iarg2 == ATTRIBUTE_MEANSHIFT || action->iarg2 == ATTRIBUTE_AUTOSCALE || action->iarg2 == ATTRIBUTE_LINEARSCALE || action->iarg2 == ATTRIBUTE_EIGHTY_PERCENTILE) {
-        	for (s = (stackType *)action->carg4; s != NULL; s = s->next, i++) {
-    	   	   	info = (scalarInfo *) s->entry;
-                for (i = 0; strcmp(array[i]->name, info->name);i++);
-              //col = strrchr(info->name, ':') - info->name;
-              //if (strncmp((char*)action->carg2, info->name, (int)col)) {
-              //    continue;
-              //}
-                max = min = (array[i]->value)[0];
-                sum = sum2 = 0;
-           	    sinX = cosX = sinX2 = cosX2 = 0;
-                for (k = 0; k < info->totalFrames; k++) {
-           	    	value = (array[i]->value)[k];
-                    sum += value;
-                    sum2 += value * value;
-                    max = max(max, value);
-          	    	min = min(min, value);
-                    if (info->mode == SCALAR_TORSION) {
-                    	sinX += (array[i]->sin)[k];
-                    	sinX2 += (array[i]->sin)[k] * (array[i]->sin)[k];
-                    	cosX += (array[i]->cos)[k];
-                    	cosX2 += (array[i]->cos)[k] * (array[i]->cos)[k];
-                    }
-                }
-                mean = sum / info->totalFrames;
-                stdev = sqrt(sum2 / info->totalFrames - mean * mean );
-                if (info->mode == SCALAR_TORSION) {
-                	mean = atan2(sinX, cosX) * RADDEG;
-                    if (mean < 0) mean += 360;
-                    stdev = (sinX2 + cosX2)/info->totalFrames - (sinX*sinX+cosX*cosX)/(info->totalFrames*info->totalFrames);
-                    stdev = acos(1-stdev/2) *RADDEG;
-                }
-                fprintf(stdout, "attribute %4d: %-20s\tmin is %.2f, max is %.2f, mean is %.3f, stdev is %.3f , ", i, array[i]->name, min, max, mean, stdev);
-                info->max = max; info->min = min; info->mean = mean; info->stddev = stdev;
-                float FitNormal(scalarInfo*);
-                float fitnorm = FitNormal(info);
-                fprintf(stdout, "fitnorm is %f\n", fitnorm);
-                if (fitnorm < -1000) {  // Do not omit any attributes now. 
-                	fprintf(stdout, "  !!This attribute shapes like normal distribution, clustering will omit this attribute\n");
-			attributeArray->length--;
-                    for (k = i; k < attributeArray->length; k++) {
-                    	array[k] = array[k+1];
-                    }
-                }
-	            if (info->mode != SCALAR_TORSION && info->mode != SCALAR_ANGLE) {
-                    if (action->iarg2 == ATTRIBUTE_NORMALIZE) {
-                    	for (k = 0; k < info->totalFrames; k++) {
-                    		info->value[k] = (info->value[k] - mean) / stdev;
-	        	        }
-	    	        	fprintf(stdout, "Normalize for scalar value %s.\n", info->name);
-                    }
-                    if (action->iarg2 == ATTRIBUTE_MEANSHIFT) {
-                    	for (k = 0; k < info->totalFrames; k++) {
-                    		info->value[k] = info->value[k] - mean;
-	        	        }
-	    	        	fprintf(stdout, "Meanshift for scalar value %s.\n", info->name);
-                    }
-                    if (action->iarg2 == ATTRIBUTE_AUTOSCALE) {
-                    	for (k = 0; k < info->totalFrames; k++) {
-                    		info->value[k] = (info->value[k] - mean) / stdev + mean;
-	        	        }
-    		        	fprintf(stdout, "Autoscale for scalar value %s.\n", info->name);
-                    }
-                    if (action->iarg2 == ATTRIBUTE_LINEARSCALE) {
-                    	for (k = 0; k < info->totalFrames; k++) {
-                    		info->value[k] = (info->value[k] - min)/(max - min);
-	        	        }
-	    	        	fprintf(stdout, "Linearscale for scalar value %s.\n", info->name);
-                    }
-                    if (action->iarg2 == ATTRIBUTE_EIGHTY_PERCENTILE) {
-                    	float *tempval = SafeMalloc(__FILE__, __LINE__, info->totalFrames * sizeof(float));
-                    	memset(tempval, 0, info->totalFrames * sizeof(float));
-                        int l;
-                        for (k = 0; k < info->totalFrames; k++) {
-                    		for (l = k-1; l >= 0; l--) {
-                            	if (tempval[l] > info->value[k]) 
-                                	tempval[l+1] = tempval[l];
-                                else
-                                	break;
-                            }
-                            tempval[l+1] = info->value[k];
-	        	        }
-                        int low, up;
-                        low = (int)(info->totalFrames / 10);
-                        up = (int)(info->totalFrames * 9 / 10);
-	    	        	fprintf(stdout, "80%% percentile is (%.2f, %.2f). its ratio to stdev is %.2f for scalar value %s.\n", tempval[low], tempval[up], (tempval[up]-tempval[low])/stdev,  info->name);
-                        safe_free(tempval);
-                    }
-	            } else {
-            		fprintf(stdout, "WARNING in ptraj() ClusterAttribute, %s is not a scalar value, so no normalization will be done.\n", info->name);
-        	        continue;
-    	        }
-	        }
-        }
-    } else 
-    if (mode == PTRAJ_STATUS) {
-   	    for (s = attributeStack, i = 0, j = 0; s != NULL; s = s->next) {
-           	info = (scalarInfo *) s->entry;
-            if (info->mode != SCALAR_TORSION) 
-               	i++;
-            else
-              	j++;
-       	}
-      //
-      //attributeArray = (arrayType *)SafeMalloc(__FILE__, __LINE__, sizeof(arrayType));
-      //attributeArray->length = i;
-      //attributeArray->entry = (double **)SafeMalloc(__FILE__, __LINE__, sizeof(double*) * i);
-      //array1 = (double **)attributeArray->entry;
-      //attributeArrayTorsion = (arrayType *)SafeMalloc(__FILE__, __LINE__, sizeof(arrayType));
-      //attributeArrayTorsion->length = j;
-      //attributeArrayTorsion->entry = (double **)SafeMalloc(__FILE__, __LINE__, sizeof(double*) * j);
-      //array2 = (double **)attributeArrayTorsion->entry;
-        
-        if (!attributeArray) {
-        	attributeArray = (arrayType *)SafeMalloc(__FILE__, __LINE__, sizeof(arrayType));
-        	attributeArray->length = i+j;
-        	attributeArray->entry = (scalarInfo **)SafeMalloc(__FILE__, __LINE__, sizeof(scalarInfo *) * (i+j));
-            memset(attributeArray->entry, 0, sizeof(scalarInfo *) * (i+j));
-        }
-        fprintf(stdout,  "  Assign cluster attributes ");
-        if (action->darg2 != 1) 
-        	fprintf(stdout,  "with weight of %.2f ", action->darg2);
-        if (action->iarg2 == ATTRIBUTE_NORMALIZE) 
-        	fprintf(stdout,  "as NORMALIZED attributes\n");
-        if (action->iarg2 == ATTRIBUTE_MEANSHIFT) 
-        	fprintf(stdout,  "as meanshifting adjusted attributes\n");
-        if (action->iarg2 == ATTRIBUTE_AUTOSCALE) 
-        	fprintf(stdout,  "as autoscaling adjusted attributes\n");
-        if (action->iarg2 == ATTRIBUTE_LINEARSCALE) 
-        	fprintf(stdout,  "as linear scaling adjusted attributes\n");
-        if (action->iarg1 == ATTRIBUTE_STACK) {
-	    	fprintf(stdout,  "      Cluster attributes come from %s in stack.\n", action->carg2);
-	    	fprintf(stdout,  "      Stack selections are ");
-    	    if (action->carg4 == NULL) {
-            	fprintf(stdout,  "No found. ");
-            } else {
-            	for (s = (stackType *)action->carg4; s != NULL; s = s->next) {
-            		    fprintf(stdout,  "%s,", ((scalarInfo *)s->entry)->name);
-            	}
-            }
-            fprintf(stdout, "\b\n");
-        	
-        } else if (action->iarg1 == ATTRIBUTE_FILE) {
-	    	fprintf(stdout,  "      Cluster attributes come from in file %s.\n", action->carg2);
-        } else if (action->iarg1 == ATTRIBUTE_BACKBONE) {
-        
-        } else if(action->iarg1 == ATTRIBUTE_XYZ) {
-        	//  # Use the old XYZ functions
-        } 
-    } else 
-    if (mode == PTRAJ_PRINT)
-    {
-        if (!action->carg3)
-        {
-            fprintf(stdout, "WARNING in ptraj(), No attribute info will be saved for %s\n", action->carg2);
-        	return 0;
-        } 
-        if (openFile(&outFile, action->carg3, "w") == 0)
-        {
-            fprintf(stdout, "WARNING in ptraj(), ClusterAttribute: couldn't open file %s\n",
-                    action->carg3);
-            return 0;
-        }
-        fprintf(stdout, "PTRAJ ClusterAttribute dumping attributes into %s\n", action->carg3);
-        //reverseStack((stackType **)&(action->carg4));
-        fprintf(stdout, "             attributes ");
-        for (s = (stackType *)attributeStack; s != NULL; s = s->next)
-        {
-            info = (scalarInfo *) s->entry;
-            fprintf(stdout, "%s,", info->name);
-        }
-        fprintf(stdout, "\b\n");
-        fprintf(outFile, "    Time  \t");
-        for (s = (stackType *)attributeStack; s != NULL; s = s->next)
-        {
-            info = (scalarInfo *) s->entry;
-            fprintf(outFile, "%8s\t", info->name);
-        }
-        fprintf(outFile, "\n");
-        for (i = 0; i < action->state->maxFrames; i++)
-        {
-            fprintf(outFile, "%10.2f\t", (i + 1) * action->darg1);
-        	for (s = (stackType *)attributeStack; s != NULL; s = s->next)
-        	{
-	            info = (scalarInfo *) s->entry;
-	            //info = (scalarInfo *) info->results;
-    	        fprintf(outFile, "%f\t", info->value[i]);
-            }
-	        fprintf(outFile, "\n");
-        }
-        safe_fclose(outFile);
-    	
-    } else if (mode == PTRAJ_CLEANUP)
-    {
-    	safe_free(action->carg2);
-    	safe_free(action->carg3);
-      	s = (stackType *)action->carg4; 
-        while (s != NULL )
-     	{
-        	ss = s->next;
-            info = (scalarInfo *) s->entry;
-
-            if (action->iarg1 != ATTRIBUTE_STACK) 
-            	safe_free(info->name);   // The name of the attributes in stack will be freed by the operations in stack. Not here. 
-			
-            safe_free(info->filename);
-            safe_free(info->cos);
-            safe_free(info->sin);
-            safe_free(info);
-            
-            safe_free(s);
-            s = ss;
-        }
-    } else 
-    
-    if (mode != PTRAJ_ACTION)
-    {
-        // We're done: The remainder of the routine handles the case of action 
-        return 0;
-    }
-
-    // ACTION: PTRAJ_ACTION     
-    // Load up the current coordinates into the trajInfo
-    // structure.  We keep accumulating until the PRINT event triggers. 
-}
-  
-//  1/sqrt(2*pi) 
-#define GAUSSIAN_MULTIPLIER 0.39894228040
-// This function is to fit the values of an attribute to the normal distribution. 
-// Here, we do not do best fit, just fit the normal distribution using the mean and standard deviation of the values.
-// 
-    float 
-FitNormal(scalarInfo* info) 
-{
-	double max, min, range;
-    double mean, stdev;
-    float* bins;
-    int bin, binCount;
-    double span;
-    int i,j;
-    float totaldev, dev, var;
-    float x, gpd;
-    
-    
-    max = info->max;
-    min = info->min;
-    mean = info->mean;
-    stdev = info->stddev;
-    range = max - min;
-    max += range/2;
-    min -= range/2;
-    binCount = (int)(info->totalFrames / 5);
-    if (binCount > 100) binCount = 100;
-    if (info->mode == SCALAR_TORSION || info->mode == SCALAR_ANGLE) binCount = 360;
-    bins = (float*)SafeMalloc(__FILE__, __LINE__, sizeof(float*) * binCount);
-    memset(bins,0,sizeof(float*)*binCount);
-    span = (max - min) / binCount;
-    for (i = 0; i < info->totalFrames; i++) {
-    	bin = (int) (info->value[i] - min) / span;
-        bins[bin] += 1;
-    }
-    
-    for (i = 0; i < binCount; i++) {
-    	bins[i] = bins[i] / info->totalFrames * binCount / (max - min) ;
-    }
-    	
-    if (info->mode == SCALAR_TORSION || info->mode == SCALAR_ANGLE) {
-    	int lowpos = 0;
-        int low = bins[0];
-        int lowlength = 1;
-        int newlow = bins[0];
-        int newlowpos = 0;
-        int newlowlength = 1;
-        for (i = 1; i < binCount * 2; i++) {
-        	int currpos = (i>=binCount)?i-binCount:i;
-            if (bins[currpos] < low) {
-            	lowpos = currpos;
-                low = bins[currpos];
-                lowlength = 1;
-            } else if (bins[currpos] == low) {
-            	if (lowpos == currpos - lowlength) lowlength++;
-                else if (lowpos == currpos - newlowlength) {
-                	newlowlength++;
-                } else {
-                	newlow = bins[currpos];
-                    newlowpos = currpos;
-                    newlowlength = 1;
-                }
-                if (newlowlength > lowlength) {
-                	low = newlow;
-                    lowpos = newlowpos;
-                    lowlength = newlowlength;
-                }
-            }
-            lowpos = lowpos +lowlength/2;
-            lowpos = lowpos > 360 ? lowpos - 360: lowpos;
-        }
-    	totaldev = 0;
-    	for (i = 0; i < binCount; i++) {
-        	if (i * span > lowpos)
-            	x = i*span - lowpos;
-            else
-            	x = i*span +360;
-            gpd = GAUSSIAN_MULTIPLIER / stdev * exp (-(x-mean)*(x-mean)/(2*stdev*stdev));
-            var = (gpd - bins[i]) * (gpd - bins[i]);
-            totaldev += var;
-        }
-        dev = sqrt(totaldev * span / binCount);
-    } else {
-    	totaldev = 0;
-    	for (i = 0; i < binCount; i++) {
-        	x = min + i * span + span / 2;
-            gpd = GAUSSIAN_MULTIPLIER / stdev * exp (-(x-mean)*(x-mean)/(2*stdev*stdev));
-            var = (gpd - bins[i]) * (gpd - bins[i]);
-            totaldev += var;
-        }
-        dev = sqrt(totaldev * span / binCount);
-    }
-    
-    return(dev);
-}
-*/
-
 /** ACTION ROUTINE ************************************************************
  *
  *  transformContacts()   --- perform referenced contact calculation
@@ -4324,7 +2233,7 @@ transformContacts(actionInformation *action,
 		  double *x, double *y, double *z,
 		  double *box, int mode)
 {
-  char *name = "contacts";
+  //char *name = "contacts";
   argStackType **argumentStackPointer;
   char *buffer, *buffer2, *buffer3;
   transformContactsInfo *contactsInfo;
@@ -4928,7 +2837,7 @@ transformCorr(actionInformation *action,
 	      double *x, double *y, double *z, 
 	      double *box, int mode)
 {
-  char *name = "correlation";
+  //char *name = "correlation";
   argStackType **argumentStackPointer;
   char *buffer;
   transformCorrInfo *corrInfo;
@@ -5151,7 +3060,6 @@ transformCorr(actionInformation *action,
 int DCbin(int* Bins,int level, DCnodetype* T, int max, double FRAME,long int* numCluster)
 {
   long int i,j;
-  FILE *outfile;
   /*DEBUG Output*/
   if (prnlev>1) {
     if (level==0) printf("DIHEDRAL CLUSTER, FRAME %lf\n",FRAME);
@@ -5349,7 +3257,7 @@ int transformDihedralCluster(actionInformation *action,
                              double *x, double *y, double *z, double *box,
                              int mode)
 {
-  char *name = "clusterdihedral";
+  //char *name = "clusterdihedral";
   argStackType **argumentStackPointer;
   ptrajState *state;
   char *buffer = NULL;
@@ -5779,9 +3687,9 @@ int transformDihedralCluster(actionInformation *action,
     action->darg4=(double) numCluster;
     action->carg2=(void*) T;
     action->darg3=FRAME;
-    return 0;
+    return 1;
   }
-  return 1;
+  return 0;
 }
 /*DAN ROE*/
 
@@ -5799,7 +3707,7 @@ transformDiffusion(actionInformation *action,
 		   double *x, double *y, double *z,
 		   double *box, int mode)
 {
-  char *name = "diffusion";
+  //char *name = "diffusion";
   argStackType **argumentStackPointer;
   char *buffer;
   ptrajState *state;
@@ -6216,7 +4124,7 @@ transformDipole(actionInformation *action,
 		double *x, double *y, double *z,
 		double *box, int mode)
 {
-  char *name = "dipole";
+  //char *name = "dipole";
   argStackType **argumentStackPointer;
   char *buffer;
   ptrajState *state;
@@ -6712,7 +4620,7 @@ transformDNAiontracker(actionInformation *action,
 		       double *x, double *y, double *z, 
 		       double *box, int mode)
 {
-  char *name = "dnaiontracker";
+  //char *name = "dnaiontracker";
   argStackType **argumentStackPointer;
   char *buffer;
   scalarInfo *distanceInfo;
@@ -7235,7 +5143,7 @@ transformEcho(actionInformation *action,
 	      double *x, double *y, double *z, 
 	      double *box, int mode)
 {
-  char *name = "echo";
+  //char *name = "echo";
   argStackType **argumentStackPointer;
 
   /*
@@ -7440,7 +5348,7 @@ transformGrid(actionInformation *action,
 	      double *x, double *y, double *z,
 	      double *box, int mode)
 {
-  char *name = "grid";
+  //char *name = "grid";
   argStackType **argumentStackPointer;
   char *buffer;
   ptrajState *state;
@@ -7946,7 +5854,7 @@ transformMatrix(actionInformation *action,
   	        double *x, double *y, double *z,
 		double *box, int mode)
 {
-  char *name = "matrix";
+  //char *name = "matrix";
   argStackType **argumentStackPointer;
   char *buffer;
 
@@ -8465,7 +6373,8 @@ transformMatrix(actionInformation *action,
                     mat[ind++] -= vect[(ind2 + i)*3+2] * vect[j*3+2];
                   }
                 }
-                else if(mask1 == mask2 && i < j || mask1 != mask2){
+                //else if(mask1 == mask2 && i < j || mask1 != mask2){
+                else if(((mask1 == mask2) && (i < j)) || (mask1 != mask2)){
                   if(l == 0){
                     mat[ind++] -= vect[(ind2 + i)*3  ] * vect[j*3  ];
                     mat[ind++] -= vect[(ind2 + i)*3  ] * vect[j*3+1];
@@ -9666,7 +7575,7 @@ transformPrincipal(actionInformation *action,
 		   double *x, double *y, double *z, 
 		   double *box, int mode)
 {
-  char *name = "principal";
+  //char *name = "principal";
   argStackType **argumentStackPointer;
   char *buffer;
 
@@ -9770,7 +7679,7 @@ transformProjection(actionInformation *action,
    	            double *x, double *y, double *z,
 		    double *box, int mode)
 {
-  char *name = "projection";
+  //char *name = "projection";
   argStackType **argumentStackPointer;
   ptrajState *state;
   char *buffer;
@@ -10146,7 +8055,7 @@ transformRandomizeIons(actionInformation *action,
 		       double *x, double *y, double *z, 
 		       double *box, int mode)
 {
-  char *name = "randomizeions";
+  //char *name = "randomizeions";
   char *buffer;
   double distance, sx, sy, sz;
   int ion, i, j, w;
@@ -10466,7 +8375,7 @@ transformRunningAverage(actionInformation *action,
 			double *x, double *y, double *z,
 			double *box, int mode)
 {
-  char *name = "runningaverage";
+  //char *name = "runningaverage";
   argStackType **argumentStackPointer;
 
   trajectoryInfo *trajInfo;
@@ -10612,7 +8521,7 @@ transformScale(actionInformation *action,
 		   double *x, double *y, double *z,
 		   double *box, int mode)
 {
-  char *name = "scale";
+  //char *name = "scale";
   argStackType **argumentStackPointer;
   char *buffer;
   int i;
@@ -11040,7 +8949,7 @@ transformUnwrap( actionInformation *action,
                  double *x, double *y, double *z,
                  double *box, int mode )
 {
-  char *name = "unwrap";
+  //char *name = "unwrap";
   argStackType **argumentStackPointer;
   transformUnwrapInfo *unwrapInfo; 
   char *buffer;
@@ -11055,7 +8964,7 @@ transformUnwrap( actionInformation *action,
   double dx, dy, dz;
   double cx, cy, cz;
   double ccx, ccy, ccz;
-  double boxXtrans, boxYtrans, boxZtrans;
+  //double boxXtrans, boxYtrans, boxZtrans;
   int ix, iy, iz;
   double newX, newY, newZ;
   double minX, minY, minZ;
@@ -11581,9 +9490,9 @@ freeTransformVectorMemory(actionInformation *action){
 
     if(vinfo->avgcrd != NULL)
       safe_free(vinfo->avgcrd);
-    if((vinfo->mode == VECTOR_CORRIRED && vinfo->master == 1 ||
-        vinfo->mode != VECTOR_CORRIRED) &&
-        vinfo->cftmp != NULL)
+    if( (((vinfo->mode == VECTOR_CORRIRED) && (vinfo->master == 1)) ||
+         (vinfo->mode != VECTOR_CORRIRED)) &&
+        (vinfo->cftmp != NULL) )
       safe_free(vinfo->cftmp);
     if(vinfo->p2cftmp != NULL)
       safe_free(vinfo->p2cftmp);
@@ -11600,7 +9509,7 @@ transformVector(actionInformation *action,
 		double *x, double *y, double *z, 
 		double *box, int mode)
 {
-  char *name = "vector";
+  //char *name = "vector";
   argStackType **argumentStackPointer;
   stackType *vectorStackTmp = NULL; // NOTE: STACK TYPE CHANGE
   char *buffer;
@@ -11927,6 +9836,9 @@ transformVector(actionInformation *action,
     case VECTOR_BOX:
       fprintf(stdout, "      The box lengths will be treated as a vector\n");
       break;
+    case VECTOR_NOOP:
+      fprintf(stdout, "Error: vector: No operation.\n");
+      return -1;
     }
 
     if(vectorInfo->mode == VECTOR_CORRPLANE ||
@@ -12425,6 +10337,9 @@ transformVector(actionInformation *action,
     }
 
     break;
+  case VECTOR_NOOP:
+    return 0;
+
   }
 
   if(vectorInfo->mode != VECTOR_IRED)
@@ -12448,9 +10363,9 @@ transformWatershell(actionInformation *action,
 		    double *x, double *y, double *z,
 		    double *box, int mode)
 {
-  char *name = "watershell";
+  //char *name = "watershell";
   argStackType **argumentStackPointer;
-  char *buffer, buffer2[BUFFER_SIZE];
+  char *buffer;//, buffer2[BUFFER_SIZE];
   ptrajState *state;
   transformShellInfo *info;
   int i, j, jj;

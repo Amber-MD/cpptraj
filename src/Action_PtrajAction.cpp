@@ -287,8 +287,10 @@ int PtrajAction::action() {
   ptraj_box[3] = currentFrame->box[3];
   ptraj_box[4] = currentFrame->box[4];
   ptraj_box[5] = currentFrame->box[5];
-  
-  actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, ptraj_box, PTRAJ_ACTION);
+ 
+  // Ptraj actions return 1 on success, 0 on failure 
+  if (actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, ptraj_box, PTRAJ_ACTION)==0)
+    return 1;
 
   return 0;
 } 
