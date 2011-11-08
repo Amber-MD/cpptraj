@@ -163,6 +163,9 @@ int PtrajAction::init( ) {
 
   // Dont call setup here since there is no state information yet
   mprintf("    PTRAJ ACTION: [%s]\n",actionArgs.Command());
+
+  // Set prnlev
+  //prnlev = debug;
   
   return 0;
 }

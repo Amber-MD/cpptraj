@@ -5242,8 +5242,10 @@ void freeDCbin(DCnodetype* T) {
   long int i;
 
   if (T->branch!=NULL)
-    for (i=0; i<T->numBranch; i++) 
+    for (i=0; i<T->numBranch; i++) { 
       freeDCbin(T->branch[i]);
+      safe_free(T->branch[i]);
+    }
   if (T->count!=NULL)
     safe_free(T->count);
   if (T->frames!=NULL) {
@@ -5396,21 +5398,25 @@ int transformDihedralCluster(actionInformation *action,
     if (buffer!=NULL) {
       filenames[0]=(char*) safe_malloc((strlen(buffer)+1)*sizeof(char));
       strcpy(filenames[0],buffer);
+      safe_free(buffer);
     } else filenames[0]=NULL;
     buffer=argumentStackKeyToString(argumentStackPointer, "framefile",NULL);
     if (buffer!=NULL) {
       filenames[1]=(char*) safe_malloc((strlen(buffer)+1)*sizeof(char));
       strcpy(filenames[1],buffer);
+      safe_free(buffer);
     } else filenames[1]=NULL;
     buffer=argumentStackKeyToString(argumentStackPointer, "clusterinfo",NULL);
     if (buffer!=NULL) {
       filenames[2]=(char*) safe_malloc((strlen(buffer)+1)*sizeof(char));
       strcpy(filenames[2],buffer);
+      safe_free(buffer);
     } else filenames[2]=NULL;
     buffer=argumentStackKeyToString(argumentStackPointer, "clustervtime",NULL);
     if (buffer!=NULL) {
       filenames[3]=(char*) safe_malloc((strlen(buffer)+1)*sizeof(char));
       strcpy(filenames[3],buffer);
+      safe_free(buffer);
     } else filenames[3]=NULL;
     action->carg4=(void*) filenames;
     /*Input Dihedral file*/
@@ -5444,6 +5450,7 @@ int transformDihedralCluster(actionInformation *action,
         action->iarg2=1;
         safe_fclose(outfile);
       }
+      safe_free(buffer);
     }
     /*Allocate Memory to hold cluster info*/
     action->darg4=0;
@@ -5541,6 +5548,7 @@ int transformDihedralCluster(actionInformation *action,
     if (filenames[1]!=NULL) safe_free(filenames[1]);
     if (filenames[2]!=NULL) safe_free(filenames[2]);
     if (filenames[3]!=NULL) safe_free(filenames[3]);
+    safe_free(filenames);
     if (prnlev>1) printf("DIHEDRAL: Freeing %i dihedral masks.\n",numDihedral);
     for (i=0; i<numDihedral; i++)
       safe_free(DCmasks[i]);
@@ -5548,6 +5556,7 @@ int transformDihedralCluster(actionInformation *action,
     freeDCbin(T);
     safe_free(T);
     safe_free(Bins);
+    safe_free(action->mask);
     return 0;
   }
   /*
@@ -5666,7 +5675,7 @@ int transformDihedralCluster(actionInformation *action,
         fprintf(outfile,"\n");
       }
     }
-    if (buffer!=NULL) safe_fclose(outfile);
+    if (outfile!=NULL && outfile!=stdout) safe_fclose(outfile);
     /*cluster for each frame*/
     if (filenames[1]!=NULL) {
       printf("Printing cluster number for each frame.\n");
@@ -5713,6 +5722,7 @@ int transformDihedralCluster(actionInformation *action,
     for (j=0; j<numCluster; j++) {
       safe_free(A[j]->Bins);
       safe_free(A[j]->frames);
+      safe_free(A[j]);
     }
     safe_free(A);
     safe_free(framecluster);
@@ -5740,7 +5750,7 @@ int transformDihedralCluster(actionInformation *action,
       cx2[0]=x[N2]; cx2[1]=y[N2]; cx2[2]=z[N2];
       cx3[0]=x[CA]; cx3[1]=y[CA]; cx3[2]=z[CA];
       cx4[0]=x[C2]; cx4[1]=y[C2]; cx4[2]=z[C2];
-      PHI=Torsion(cx1,cx2,cx3,cx4);
+      PHI=Torsion(cx1,cx2,cx3,cx4) * RADDEG; // Torsion is in radians
       if (prnlev>0) printf("%9s%8.2lf    ","Dihedral=",PHI);
       PHI+=180;
       phistep=360/DCmasks[i][4];
