@@ -2,7 +2,7 @@
 #include "ptraj_stack.h"
 #include <stdlib.h>
 
-// pushStack
+// pushStack()
 void pushStack( stackType **stackp, void *entry ) {
   stackType *sp;
 
@@ -12,7 +12,7 @@ void pushStack( stackType **stackp, void *entry ) {
   *stackp = sp;
 }   
   
-// pushBottomStack  
+// pushBottomStack()  
 void pushBottomStack( stackType **stackp, void *entry ) {   
   stackType *sp;
   
@@ -27,4 +27,39 @@ void pushBottomStack( stackType **stackp, void *entry ) {
   }
 }
 
+// popStack()
+void *popStack( stackType **stackp ) {
+  void *entry;
+  stackType *sp;
 
+  if ( *stackp == NULL ) {
+    return( (char *) NULL );
+  }
+
+  sp = *stackp;
+  entry = sp->entry;
+
+  *stackp = sp->next;
+  sp->next=NULL;
+  free( sp );
+  return( entry );
+}
+
+// clearStack()
+void clearStack( stackType **stackp ) {
+  stackType *sp, *tmp;
+
+  if (stackp == NULL) {
+    return;
+  }
+
+  tmp = NULL;
+  for (sp = *stackp; sp != NULL; ) {
+    if ( tmp != NULL ) free( (void *) tmp);
+    free( (void *) sp->entry);
+    sp->entry = NULL;
+    tmp = sp;
+    sp = sp->next;
+  }
+  *stackp = NULL;
+}

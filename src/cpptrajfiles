@@ -74,5 +74,5 @@ HEADERS=AmberParm.h \
         AnalysisList.h Analysis_Hist.h DataSet_XYZ.h Action_Radial.h \
         Action_Jcoupling.h Constants.h TriangleMatrix.h Action_Clustering.h ClusterList.h \
         Traj_CharmmDcd.h Bonds.h FileRoutines.h Action_Pairwise.h \
-        DataSet_float.h CoordList.h ptraj_stack.h ptraj_actions.h Action_PtrajAction.h ptraj_analyze.h ptraj_evec.h ptraj_common.h ptraj_actionheader.h
+        DataSet_float.h CoordList.h ptraj_stack.h ptraj_actions.h Action_PtrajAction.h ptraj_analyze.h ptraj_evec.h ptraj_common.h
 

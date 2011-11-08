@@ -8,12 +8,13 @@
 // See $AMBERHOME/AmberTools/src/ptraj/contributors.h for more author info.
 
 // ---------- CSTDLIB includes -------------------------------------------------
-//#include <time.h> // for cluster
-#include <string.h>
-#include <float.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <stdarg.h>
+//#include <time.h> // for cluster
+//#include <float.h>
 //#include <ctype.h>
 
 // ---------- Defines ----------------------------------------------------------
@@ -180,6 +181,36 @@ typedef struct _coordinateInfo {
   _p_->numBox = 0; \
   _p_->buffer = NULL; \
 
+// ACTION: TRANSFORM_GRID, TRANSFORM_DIPOLE
+typedef struct _transformGridInfo {
+  double dx;
+  double dy;
+  double dz;
+  int nx;
+  int ny;
+  int nz;
+  int frames;
+  float *grid;
+  float *dipolex;
+  float *dipoley;
+  float *dipolez;
+  char *filename;
+} transformGridInfo;
+
+#define INITIALIZE_transformGridInfo(_p_) \
+  _p_->dx        = 0.0;  \
+  _p_->dy        = 0.0;  \
+  _p_->dz        = 0.0;  \
+  _p_->nx        = 0;    \
+  _p_->ny        = 0;    \
+  _p_->nz        = 0;    \
+  _p_->frames    = 0;    \
+  _p_->grid      = NULL; \
+  _p_->dipolex   = NULL; \
+  _p_->dipoley   = NULL; \
+  _p_->dipolez   = NULL; \
+  _p_->filename  = NULL
+
 // ========== GLOBAL variables =================================================
 // prnlev - used to set overall debug level
 int prnlev;
@@ -228,6 +259,88 @@ void SetPrnlev(int prnlevIn) {
   if (prnlev>0) printf("Info: ptraj_actions prnlev set to %i\n",prnlev);
 } 
 
+// ========== COMMON internal functions ========================================
+static void printError(char *actionName, char *fmt, ...) {
+  va_list argp;
+  va_start(argp, fmt);
+#ifdef MPI
+  if (worldrank == 0) {
+#endif    
+    printf("WARNING in ptraj(), %s: ", actionName);
+    vprintf(fmt, argp);
+#ifdef MPI
+  }
+#endif
+  va_end(argp);
+}
+static void printParallelError(char *actionName) {
+  printError(actionName, "Parallel implementation of action not supported.\nIgnoring command...\n");
+}
+// ptrajfprintf()
+/// printf wrapper: If MPI use MPI_Write_ordered, otherwise use normal system calls.
+static void ptrajfprintf(void *fp, char *fmt, ...) {
+  va_list argp;
+  va_start(argp, fmt);
+#ifdef MPI
+  char buffer[BUFFER_SIZE];
+  int err;
+
+  if (fp == stdout) 
+    vprintf(fmt, argp);
+  else if (fp == stderr) 
+    vfprintf(stderr, fmt, argp);
+  else {
+    vsprintf(buffer, fmt, argp);
+    err=MPI_File_write_ordered(*((MPI_File *) fp), buffer, strlen(buffer), MPI_CHAR, MPI_STATUS_IGNORE);
+    if (err!=MPI_SUCCESS) printMPIerr(err,"ptrajfprintf"); 
+  }
+#else
+  vfprintf((FILE *) fp, fmt, argp);
+#endif
+  va_end(argp);
+  return;
+}
+// ptrajfprintfone()
+/// Similar to ptrajfprintf but only print on master
+static void ptrajfprintfone(void *fp, char *fmt, ...) {
+  va_list argp;
+  va_start(argp, fmt);
+#ifdef MPI
+  if (worldrank > 0) return;
+  if (fp == stdout) {
+    vprintf(fmt, argp);
+    return;
+  } else if (fp == stderr) {
+    vfprintf(stderr, fmt, argp);
+    return;
+  }
+
+  char buffer[BUFFER_SIZE];
+  vsprintf(buffer, fmt, argp);
+  MPI_File_write_shared(* ((MPI_File *) fp), buffer, strlen(buffer), MPI_CHAR, MPI_STATUS_IGNORE);
+#else
+  vfprintf((FILE *) fp, fmt, argp);
+#endif
+  va_end(argp);
+}
+#ifdef MPI
+// printMPIerr()
+/// Wrapper for MPI_Error string.
+static void printMPIerr(int err, char *actionName) {
+  int len,eclass,i;
+  char buffer[BUFFER_SIZE];
+  
+  MPI_Error_string(err,buffer,&len);
+  MPI_Error_class(err,&eclass);
+  // Remove newlines from MPI error string
+  for (i=0; i<len; i++) 
+    if (buffer[i]=='\n') buffer[i]=':';
+  fprintf(stdout,"[%i] MPI ERROR %d: %s: [%s]\n",worldrank,eclass,actionName,buffer);
+
+  return;
+}
+#endif
+
 // ========== STRING functions =================================================
 /*
 static char *toLowerCase( char *string_in ) {
@@ -271,6 +384,50 @@ static FILE *safe_fopen(char *buffer, char *mode) {
 }
 static void safe_fclose(FILE *fileIn) {
   fclose( fileIn );
+}
+// ptrajOpenW()
+/// Open a file using MPI calls if MPI defined, or regular system call if not.
+static void *ptrajOpenW( char *filename ) {
+#ifdef MPI
+  MPI_File *fp;
+  int err,errtotal;
+
+  fp = (MPI_File*) safe_malloc(sizeof(MPI_File));
+  err=MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, fp);
+  if (err!=MPI_SUCCESS) printMPIerr(err,"ptrajOpenW");
+  /* Check that all threads were able to open the file. If not, all will exit.
+   * err is local error, errtotal is global error.
+   */
+  errtotal=0;
+  MPI_Allreduce(&err,&errtotal,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
+  if (errtotal>0) {
+    safe_free(fp);
+    return NULL;
+  }
+#else
+  FILE *fp;
+  fp = safe_fopen(filename, "w");
+#endif  
+  return (void *) fp;
+}
+// ptrajCloseFile()
+/// Close an open file handle via appropriate system call.
+// DAN ROE: The get position and set size routines end up causing an error,
+// probably because they are supposed to be collective and are only called
+// by rank 0. Removed for now.
+static void ptrajCloseFile(void *fp) {
+#ifdef MPI
+/*  MPI_Offset offset;
+  if (worldrank == 0) {
+    MPI_File_get_position_shared(* ((MPI_File *) fp), &offset);
+    MPI_File_set_size(* ((MPI_File *) fp), offset);
+  }*/
+  MPI_File_close((MPI_File *) fp);
+  // DAN ROE - Free the memory used by the file pointer
+  safe_free( fp );
+#else
+  safe_fclose((FILE *) fp);
+#endif
 }
 
 // ========== ARGUMENT functions ===============================================
@@ -736,38 +893,27 @@ static int *processAtomMask( char *maskString, ptrajState *state ) {
  *  The following routines (along with supplemental routines as necessary)
  *  are defined:
  *
- *    actionTest                  --- the prototypical action routine (see comments below)
- *    transformAngle              --- compute angles and place on the scalarStack
- *    transformAtomicFluct        --- compute atomic positional fluctuations or B-factors
- *    transformAverage            --- average the coordinates and output to a file
- *    transformCenter             --- center the coordinates to the origin or box center
- *    transformCheckOverlap       --- check for close contacts
- *    transformClosestWaters      --- find the closest set of "n" waters
- *    transformContacts           --- calculate number of nearest neighbors of an atom (Holger Gohlke, JWGU)
- *    transformCorr               --- perform correlation analysis (Vickie Tsui, Scripps)
- *    transformDihedral           --- calculate torsion/dihedral angles
- *    transformDihedralCluster    --- calculate torsion/dihedral angles (Dan Roe)
- *    transformDiffusion          --- calculate mean squared displacements vs. time
- *    transformDipole             --- bin dipoles (Jed Pitera, UCSF)
- *    transformDistance           --- compute/store (imaged) distances
- *    transformDNAiontracker      --- track ions a' la Hambelberg/Wilson/Williams
- *    transformGrid               --- grid atomic densities
- *    transformHBond              --- calculate hydrogen bond information
- *    transformImage              --- Image molecules outside of a periodic box back in
- *    transformMatrix             --- calculate matrices of covariances, cross-correlations, distances (Gohlke)
- *    transformPrincipal          --- align coordinates along the principal axis
- *    transformPucker             --- compute/store pucker values
- *    transformRadial             --- compute radial distribution functions
- *    transformRadiusOfGyration   --- compute radius of gyration (Holger Gohlke, JWGU)
- *    transformRMS                --- perform RMS fitting
- *    transformScale              --- scale the coordinates by a specified amount
- *    transformSecondaryStructure --- determine secondary structure following the method by Kabsch & Sander (Gohlke)
- *    transformStrip              --- strip coordinates
- *    transformTranslate          --- shift the coordinates by a specified amount
- *    transformTruncOct           --- trim/orient a box to make it a truncated octahedron
- *    transformUnwrap             --- unwrap atoms (InSuk Joung, Rutgers)
- *    transformVector             --- compute/store various vector quantities (IRED, CORR, CORRIRED vectors: Gohlke)
- *    transformWatershell         --- calculate the number of waters in a given shell
+ *    actionTest               --- the prototypical action routine (see comments below)
+ *    transformAtomicFluct     --- compute atomic positional fluctuations or B-factors
+ *    transformCheckOverlap    --- check for close contacts
+ *    transformContacts        --- calculate number of nearest neighbors of an atom 
+ *                                 (Holger Gohlke, JWGU)
+ *    transformCorr            --- perform correlation analysis (Vickie Tsui, Scripps)
+ *    transformDihedralCluster --- calculate torsion/dihedral angles (Dan Roe)
+ *    transformDiffusion       --- calculate mean squared displacements vs. time
+ *    transformDipole          --- bin dipoles (Jed Pitera, UCSF)
+ *    transformDNAiontracker   --- track ions a' la Hambelberg/Wilson/Williams
+ *    transformGrid            --- grid atomic densities
+ *    transformMatrix          --- calculate matrices of covariances, cross-correlations, 
+ *                                 distances (Gohlke)
+ *    transformPrincipal       --- align coordinates along the principal axis
+ *    transformScale           --- scale the coordinates by a specified amount
+ *    transformStrip           --- strip coordinates
+ *    transformTruncOct        --- trim/orient a box to make it a truncated octahedron
+ *    transformUnwrap          --- unwrap atoms (InSuk Joung, Rutgers)
+ *    transformVector          --- compute/store various vector quantities (IRED, 
+ *                                 CORR, CORRIRED vectors: Gohlke)
+ *    transformWatershell      --- calculate the number of waters in a given shell
  *
  *  Each of these routines performs its function by being called in a series of
  *  modes defined as follows:
@@ -861,9 +1007,6 @@ static int *processAtomMask( char *maskString, ptrajState *state ) {
  *   o  transformDiffusion is currently only setup to image distances in
  *      orthorhombic lattices!!!
  */
-
-
-
 
 /** ACTION ROUTINE *************************************************************
  *
@@ -1466,9 +1609,25 @@ transformAtomicFluct(actionInformation *action,
   return 1;
 }
 
-
-windowInfoType *
-setupWindowInfo(windowInfoType *windowInfo, 
+/** ACTION ROUTINE *************************************************************
+ *
+ *  transformAtomicFluct3D() --- compute atomic positional fluctuations in 3D
+ *
+ ******************************************************************************/
+// windowInfoType
+typedef struct _windowInfoType {
+  int windowWidth;
+  int windowOffset;
+  int windows;
+  int *windowStart;
+  int *windowStop;
+  int *windowVisits;
+  double *x;
+  double *y;
+  double *z;
+} windowInfoType;
+// setupWindowInfo()
+windowInfoType * setupWindowInfo(windowInfoType *windowInfo, 
 		int windowWidth,   /* width between the windows */
 		int windowOffset,  /* offset between windows */
 		int windows,       /* number of windows to create or increase */
@@ -1554,18 +1713,8 @@ setupWindowInfo(windowInfoType *windowInfo,
 
 }
 
-
-
-
-
-/** ACTION ROUTINE *************************************************************
- *
- *  transformAtomicFluct3D() --- compute atomic positional fluctuations in 3D
- *
- ******************************************************************************/
-
-   int
-transformAtomicFluct3D(actionInformation *action, 
+// transformAtomicFluct3D()
+int transformAtomicFluct3D(actionInformation *action, 
 		       double *x, double *y, double *z,
 		       double *box, int mode)
 {
@@ -1931,6 +2080,7 @@ transformAtomicFluct3D(actionInformation *action,
  *  transformCheckOverlap  --- check for bad atom overlaps
  *
  ******************************************************************************/
+// atomToResidue()
 static int atomToResidue(int atom, int nres, int *resnums) {
   int i;
 
@@ -1942,7 +2092,8 @@ static int atomToResidue(int atom, int nres, int *resnums) {
 
   return -1;
 }
-void printAtomCompact(FILE *fpout, int atom, ptrajState *state) {
+// printAtomCompact()
+static void printAtomCompact(FILE *fpout, int atom, ptrajState *state) {
   int curres;
   char buffer[50], *bufferp;
 
@@ -1956,11 +2107,8 @@ void printAtomCompact(FILE *fpout, int atom, ptrajState *state) {
 
 
 }
-
-
-
-   int
-transformCheckOverlap(actionInformation *action, 
+// transformCheckOverlap()
+int transformCheckOverlap(actionInformation *action, 
 		  double *x, double *y, double *z, 
 		  double *box, int mode)
 {
@@ -2144,9 +2292,9 @@ transformCheckOverlap(actionInformation *action,
   return 1;
 }
 
-   scalarInfo *
-ptrajCopyScalar(scalarInfo **scalarinp) 
-{
+// -----------------------------------------------------------------------------
+// ptrajCopyScalar()
+scalarInfo *ptrajCopyScalar(scalarInfo **scalarinp) {
   scalarInfo *scalar, *scalarin;
   /*
    *  Make a copy of the input scalar pointer.
@@ -2182,10 +2330,8 @@ ptrajCopyScalar(scalarInfo **scalarinp)
   
 }
 
-
-   actionInformation *
-ptrajCopyAction(actionInformation **actioninp)
-{
+// ptrajCopyAction()
+actionInformation *ptrajCopyAction(actionInformation **actioninp) {
   actionInformation *action, *actionin;
   /*
    *  Make a copy of the input action pointer.
@@ -2221,15 +2367,51 @@ ptrajCopyAction(actionInformation **actioninp)
   action->carg7	= actionin->carg7; 
   return action;
 }
+// -----------------------------------------------------------------------------
 
 /** ACTION ROUTINE ************************************************************
  *
  *  transformContacts()   --- perform referenced contact calculation
  *
  ******************************************************************************/
+typedef enum _transformContactsType {
+  CONTACTS_NULL = 0,
+  CONTACTS_FIRST,
+  CONTACTS_REFERENCE
+} transformContactsType;
 
-int
-transformContacts(actionInformation *action,
+typedef struct _transformContactsInfo {
+  double *refx, *refy, *refz;
+  char *filename;
+  void *outFile;
+  void *outFile2;
+  int currentFrame;
+  int byResidue;
+} transformContactsInfo;
+
+#define INITIALIZE_transformContactsInfo(_p_) \
+  _p_->refx      = NULL; \
+  _p_->refy      = NULL; \
+  _p_->refz      = NULL; \
+  _p_->filename  = NULL; \
+  _p_->outFile   = NULL; \
+  _p_->outFile2  = NULL; \
+  _p_->currentFrame = 0; \
+  _p_->byResidue    = 0;
+
+typedef struct _contactList {
+  int index;
+  char *name;
+  struct _contactList *next;
+} contactList;
+
+#define INITIALIZE_contactList(_p_) \
+  _p_->index = -1; \
+  _p_->name  = NULL; \
+  _p_->next  = NULL;
+
+// transformContacts()
+int transformContacts(actionInformation *action,
 		  double *x, double *y, double *z,
 		  double *box, int mode)
 {
@@ -2644,11 +2826,9 @@ transformContacts(actionInformation *action,
  *    compute_corr()
  *
  ******************************************************************************/
-
-
-void
-compute_corr(char *outfile, double *x, double *y, double *z, int ts, int tc, int tm, int tf)
-#define MAXFRAME 5000
+// compute_corr()
+void compute_corr(char *outfile, double *x, double *y, double *z, 
+                  int ts, int tc, int tm, int tf)
 {
   typedef struct _complex {
     double real;
@@ -2829,11 +3009,8 @@ compute_corr(char *outfile, double *x, double *y, double *z, int ts, int tc, int
 
 }
 
-
-
-
-   int
-transformCorr(actionInformation *action, 
+// transformCorr()
+int transformCorr(actionInformation *action, 
 	      double *x, double *y, double *z, 
 	      double *box, int mode)
 {
@@ -3044,20 +3221,40 @@ transformCorr(actionInformation *action,
 }
 
 
-/** ACTION ROUTINE ****************************************************
+/** ACTION ROUTINE ************************************************************
  *
  *  transformDihedralCluster()  --- Cluster trajectory by dihedral angles
  *
  *    Written by Dan Roe, Stonybrook U.
  *
  ******************************************************************************/
+typedef struct _DCnodetype {
+  struct _DCnodetype **branch;
+  int *bin;
+  long int numBranch;
+  long int *count;
+  double **frames;
+} DCnodetype;
+
+#define INITIALIZE_transformDihedralCluster(_p_) \
+  _p_->branch = NULL; \
+  _p_->bin = NULL; \
+  _p_->numBranch = 0; \
+  _p_->count = NULL; \
+  _p_->frames = NULL ;
+
+typedef struct _DCarray {
+  int* Bins;
+  long int count;
+  double* frames;
+} DCarray;
 /*NOTE: Place checks after the realloc statements*/
 
 /* DCbin: recursive function to place diedral bin combinations in a Tree
  * structure - this conserves memory and has better search performance than
  * a linear array.
  */
-int DCbin(int* Bins,int level, DCnodetype* T, int max, double FRAME,long int* numCluster)
+static int DCbin(int* Bins,int level, DCnodetype* T, int max, double FRAME,long int* numCluster)
 {
   long int i,j;
   /*DEBUG Output*/
@@ -3150,7 +3347,7 @@ int DCbin(int* Bins,int level, DCnodetype* T, int max, double FRAME,long int* nu
 
 /* freeDCbin: recursive function to free memory allocated to Tree
  */
-void freeDCbin(DCnodetype* T) {
+static void freeDCbin(DCnodetype* T) {
   long int i;
 
   if (T->branch!=NULL)
@@ -3172,7 +3369,7 @@ void freeDCbin(DCnodetype* T) {
 
 /* DCtree2array: recursive function to put contents of tree into array for sorting.
  */
-void DCtree2array(int* Bins, int level, DCnodetype* T,long int* numCluster,DCarray** A) {
+static void DCtree2array(int* Bins, int level, DCnodetype* T,long int* numCluster,DCarray** A) {
   long int i,j,k;
 
   for (i=0; i<T->numBranch; i++) {
@@ -3212,7 +3409,7 @@ void DCtree2array(int* Bins, int level, DCnodetype* T,long int* numCluster,DCarr
 
 /*compare: used by the qsort function in sorting cluster array
 */
-int compare(const void *a, const void *b) {
+static int compare(const void *a, const void *b) {
   DCarray *A;
   DCarray *B;
 
@@ -3223,36 +3420,37 @@ int compare(const void *a, const void *b) {
 }  
 
 // transformDihedralCluster
-// Usage: clusterdihedral
-//        [phibins N] number of bins in phi direction
-//        [psibins M] number of bins in psi direction
-//        Note: phibins and psibins only used if dihedralfile not specified
-//        [out <FILE>] file to print cluster information to
-//        [cut CUT] only print clusters with pop > CUT
-//        [framefile <FILE>] file to print frame-cluster info
-//        [clusterinfo <FILE>] print cluster info in format sander can read
-//                             for NB weighted RREMD
-//        [dihedralfile] read dihedral definitions from FILE. Format is 
-//                       ATOM#1 ATOM#2 ATOM#3 ATOM#4 BINS
-//                       Note: This functionality treats atom numbers as 
-//                       starting from 1 to be consistent with sander.
-//        [<MASK>] if not reading dihedrals from file Backbone dihedrals will
-//                 be searched for within MASK.
+/** Usage: clusterdihedral
+ *        [phibins N] number of bins in phi direction
+ *        [psibins M] number of bins in psi direction
+ *        Note: phibins and psibins only used if dihedralfile not specified
+ *        [out <FILE>] file to print cluster information to
+ *        [cut CUT] only print clusters with pop > CUT
+ *        [framefile <FILE>] file to print frame-cluster info
+ *        [clusterinfo <FILE>] print cluster info in format sander can read
+ *                             for NB weighted RREMD
+ *        [dihedralfile] read dihedral definitions from FILE. Format is 
+ *                       ATOM#1 ATOM#2 ATOM#3 ATOM#4 BINS
+ *                       Note: This functionality treats atom numbers as 
+ *                       starting from 1 to be consistent with sander.
+ *        [<MASK>] if not reading dihedrals from file Backbone dihedrals will
+ *                 be searched for within MASK.
 
-// Action argument usage:
-// iarg1 = number of dihedral angles to keep track of
-// iarg2 = if 1, dihedral angles were read from a file, otherwise backbone
-//         dihedrals were searched for in MASK.
-// iarg4 = store CUT
-// darg3 = keep track of number of frames, used for memory allocation at end
-// darg4 = number of clusters
-// carg1 = int array; atom masks of each dihedral and the number of bins
-// carg2 = hold the DCnodetype tree
-// carg3 = int array; during run, store which bin each dihedral falls into
-//         Note: Even though no information from carg3 needs to be carried over
-//         from frame to frame, it is stored here to avoid reallocating the 
-//         memory each time.      
-// carg4 = char* array to hold output filenames
+ * Action argument usage:
+ * iarg1 = number of dihedral angles to keep track of
+ * iarg2 = if 1, dihedral angles were read from a file, otherwise backbone
+ *         dihedrals were searched for in MASK.
+ * iarg4 = store CUT
+ * darg3 = keep track of number of frames, used for memory allocation at end
+ * darg4 = number of clusters
+ * carg1 = int array; atom masks of each dihedral and the number of bins
+ * carg2 = hold the DCnodetype tree
+ * carg3 = int array; during run, store which bin each dihedral falls into
+ *         Note: Even though no information from carg3 needs to be carried over
+ *         from frame to frame, it is stored here to avoid reallocating the 
+ *         memory each time.      
+ * carg4 = char* array to hold output filenames
+ */
 int transformDihedralCluster(actionInformation *action,
                              double *x, double *y, double *z, double *box,
                              int mode)
@@ -3693,17 +3891,63 @@ int transformDihedralCluster(actionInformation *action,
 }
 /*DAN ROE*/
 
-
-
 /** ACTION ROUTINE *************************************************************
  *
  *  transformDiffusion()   --- calculate mean squared displacements vs. time
  *
  ******************************************************************************/
+typedef struct _transformDiffusionInfo {
+  double *dx;           /* reference coordinates: MUST BE SET */
+  double *dy;           /*  TO NULL IN transformSetup         */
+  double *dz;
+  double timePerFrame;  /*  in picoseconds */
+  double *prevx;        /*  the previous x for active atoms */
+  double *prevy;        /*  the previous y                  */
+  double *prevz;        /*  the previous z                  */
+  double *distancex;    /*  the active atoms distances      */
+  double *distancey;    /*  the active atoms distances      */
+  double *distancez;    /*  the active atoms distances      */
+  double *distance;     /*  the active atoms distances      */
+  double *deltax;
+  double *deltay;
+  double *deltaz;
+  int activeAtoms;      /*  the total number of active atoms in the mask */
+  int elapsedFrames;    /*  number of frames so far... */
+  char *outputFilenameRoot;
+  FILE *outputx;
+  FILE *outputy;
+  FILE *outputz;
+  FILE *outputr;
+  FILE *outputa;
+  FILE *outputxyz;
+} transformDiffusionInfo;
 
+#define INITIALIZE_transformDiffusionInfo(_p_) \
+  _p_->dx             = NULL; \
+  _p_->dy             = NULL; \
+  _p_->dz             = NULL; \
+  _p_->timePerFrame   = 0.0;  \
+  _p_->prevx          = NULL; \
+  _p_->prevy          = NULL; \
+  _p_->prevz          = NULL; \
+  _p_->distancex      = NULL; \
+  _p_->distancey      = NULL; \
+  _p_->distancez      = NULL; \
+  _p_->distance       = NULL; \
+  _p_->deltax         = NULL; \
+  _p_->deltay         = NULL; \
+  _p_->deltaz         = NULL; \
+  _p_->activeAtoms    = 0; \
+  _p_->elapsedFrames  = 0; \
+  _p_->outputFilenameRoot = NULL; \
+  _p_->outputx        = NULL; \
+  _p_->outputy        = NULL; \
+  _p_->outputz        = NULL; \
+  _p_->outputr        = NULL; \
+  _p_->outputxyz      = NULL
 
-   int
-transformDiffusion(actionInformation *action, 
+// transformDiffusion()
+int transformDiffusion(actionInformation *action, 
 		   double *x, double *y, double *z,
 		   double *box, int mode)
 {
@@ -4112,8 +4356,6 @@ transformDiffusion(actionInformation *action,
   fflush(diffusionInfo->outputa);
   return 1;
 }
-
-
 
 /** ACTION ROUTINE *************************************************************
  *
@@ -4544,6 +4786,11 @@ transformDipole(actionInformation *action,
   return 1;
 }
 
+/** ACTION ROUTINE *************************************************************
+ *
+ *  transformDNAiontracker
+ *
+ ******************************************************************************/
 // setupDistance()
 static void setupDistance(double *X, double *Y, double *Z, double *x, double *y, double *z,
                           ptrajState *state, int *mask1, int *mask2, int atom1, int atom2)
@@ -4609,17 +4856,8 @@ static void setupDistance(double *X, double *Y, double *Z, double *x, double *y,
   }
 }
 
-
-/** ACTION ROUTINE *************************************************************
- *
- *  transformDNAiontracker
- *
- ******************************************************************************/
-
-
-
-   int
-transformDNAiontracker(actionInformation *action, 
+// transformDNAiontracker()
+int transformDNAiontracker(actionInformation *action, 
 		       double *x, double *y, double *z, 
 		       double *box, int mode)
 {
@@ -7644,10 +7882,29 @@ transformPrincipal(actionInformation *action,
  *    readEvecFile (in evec.h/.c)
  *
  ******************************************************************************/
+typedef struct _transformProjectionInfo {
+  char *outfile;
+  FILE *fp;
+  int ibeg;
+  int iend;
+  int start;
+  int stop;
+  int offset;
+  double *sqrtmasses;
+} transformProjectionInfo;
 
-   void
-freeTransformProjectionMemory(actionInformation *action){
+#define INITIALIZE_transformProjectionInfo(_p_) \
+  _p_->outfile    = NULL; \
+  _p_->fp         = NULL; \
+  _p_->ibeg       = 1;    \
+  _p_->iend       = 2;    \
+  _p_->start      = 1;    \
+  _p_->stop       = -1;   \
+  _p_->offset     = 1;    \
+  _p_->sqrtmasses = NULL;
 
+// freeTransformProjectionMemory()
+static void freeTransformProjectionMemory(actionInformation *action) { 
   transformProjectionInfo *pinfo;
   modesInfo *modinfo;
 
@@ -7677,8 +7934,8 @@ freeTransformProjectionMemory(actionInformation *action){
   }
 }
 
-   int
-transformProjection(actionInformation *action, 
+// transformProjection()
+int transformProjection(actionInformation *action, 
    	            double *x, double *y, double *z,
 		    double *box, int mode)
 {
@@ -8372,9 +8629,30 @@ transformRandomizeIons(actionInformation *action,
  *  transformRunningAverage() --- perform a running average over the coords
  *
  ******************************************************************************/
+// trajectoryInfo
+// NOTE: Move inside ptraj_actions.c?
+typedef struct _trajectoryInfo {
+  ptrajState *state;
+  int atoms;
+  int current;
+  int allocated;
+  int rollover;
+  float *x;
+  float *y;
+  float *z;
+} trajectoryInfo;
+#define INITIALIZE_trajectoryInfo(_p_) \
+  _p_->state = NULL; \
+  _p_->atoms = 0; \
+  _p_->current = 0; \
+  _p_->allocated = 0; \
+  _p_->rollover = 0; \
+  _p_->x = NULL; \
+  _p_->y = NULL; \
+  _p_->z = NULL
 
-   int
-transformRunningAverage(actionInformation *action, 
+// transformRunningAverage()
+int transformRunningAverage(actionInformation *action, 
 			double *x, double *y, double *z,
 			double *box, int mode)
 {
@@ -8947,8 +9225,19 @@ transformTruncOct(actionInformation *action,
   return 1;
 }
 */
-   int
-transformUnwrap( actionInformation *action,
+
+/** ACTION ROUTINE *************************************************************
+ *
+ *  transformUnwrap() --- opposite of image 
+ *
+ ******************************************************************************/
+typedef struct _transformUnwrapInfo {
+  double *refx;
+  double *refy;
+  double *refz;
+} transformUnwrapInfo;
+// transformUnwrap()
+int transformUnwrap( actionInformation *action,
                  double *x, double *y, double *z,
                  double *box, int mode )
 {
@@ -10359,7 +10648,29 @@ transformVector(actionInformation *action,
  *  transformWatershell()  --- calculate the number of waters in a given shell
  *
  ******************************************************************************/
+typedef struct _transformShellInfo {
+  int *soluteMask; 
+  int *solventMask;
+  int *activeResidues;
+  int *lower;
+  int *upper;
+  int visits;
+  double lowerCutoff;
+  double upperCutoff;
+  char *filename;
 
+} transformShellInfo;
+
+#define INITIALIZE_transformShellInfo(_p_) \
+  _p_->soluteMask     = NULL; \
+  _p_->solventMask    = NULL; \
+  _p_->activeResidues = NULL; \
+  _p_->lower          = NULL; \
+  _p_->upper          = NULL; \
+  _p_->visits         = 0;    \
+  _p_->lowerCutoff    = 0.0;  \
+  _p_->upperCutoff    = 0.0;  \
+  _p_->filename       = NULL
 
    int
 transformWatershell(actionInformation *action, 
@@ -10634,152 +10945,5 @@ transformWatershell(actionInformation *action,
 }
 
 
-void printError(char *actionName, char *fmt, ...)
-{
-  va_list argp;
-  va_start(argp, fmt);
-#ifdef MPI
-  if (worldrank == 0) {
-#endif    
-    printf("WARNING in ptraj(), %s: ", actionName);
-    vprintf(fmt, argp);
-#ifdef MPI
-  }
-#endif
-  va_end(argp);
-}
 
-void
-printParallelError(char *actionName)
-{
-  printError(actionName, "Parallel implementation of action not supported.\nIgnoring command...\n");
-}
 
-/*
-#ifdef MPI
- *
- * printMPIerr()
- * Wrapper for MPI_Error string.
- * 
-void printMPIerr(int err, char *actionName) {
-  int len,eclass,i;
-  char buffer[BUFFER_SIZE];
-  
-  MPI_Error_string(err,buffer,&len);
-  MPI_Error_class(err,&eclass);
-  // Remove newlines from MPI error string
-  for (i=0; i<len; i++) 
-    if (buffer[i]=='\n') buffer[i]=':';
-  fprintf(stdout,"[%i] MPI ERROR %d: %s: [%s]\n",worldrank,eclass,actionName,buffer);
-
-  return;
-}
-#endif
-*/
-
-/*
- * ptrajOpenW()
- * Open a file using MPI calls if MPI defined, or regular system call if not.
- * DAN ROE: Cleaned up and added error handling.
- */
-void *
-ptrajOpenW( char *filename ) {
-#ifdef MPI
-  MPI_File *fp;
-  int err,errtotal;
-
-  fp = (MPI_File*) safe_malloc(sizeof(MPI_File));
-  err=MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, fp);
-  if (err!=MPI_SUCCESS) printMPIerr(err,"ptrajOpenW");
-  /* Check that all threads were able to open the file. If not, all will exit.
-   * err is local error, errtotal is global error.
-   */
-  errtotal=0;
-  MPI_Allreduce(&err,&errtotal,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
-  if (errtotal>0) {
-    safe_free(fp);
-    return NULL;
-  }
-#else
-  FILE *fp;
-  fp = safe_fopen(filename, "w");
-#endif  
-  return (void *) fp;
-}
-
-/*
- * ptrajfprintf()
- * Wrapper for printf. If MPI use MPI_Write_ordered, otherwise use normal 
- * system calls.
- * DAN ROE: Cleaned up and added error check. Exit at the bottom so that
- *          va_end is always called.
- */
-void
-ptrajfprintf(void *fp, char *fmt, ...) {
-  va_list argp;
-  va_start(argp, fmt);
-#ifdef MPI
-  char buffer[BUFFER_SIZE];
-  int err;
-
-  if (fp == stdout) 
-    vprintf(fmt, argp);
-  else if (fp == stderr) 
-    vfprintf(stderr, fmt, argp);
-  else {
-    vsprintf(buffer, fmt, argp);
-    err=MPI_File_write_ordered(*((MPI_File *) fp), buffer, strlen(buffer), MPI_CHAR, MPI_STATUS_IGNORE);
-    if (err!=MPI_SUCCESS) printMPIerr(err,"ptrajfprintf"); 
-  }
-#else
-  vfprintf((FILE *) fp, fmt, argp);
-#endif
-  va_end(argp);
-  return;
-}
-
-void
-ptrajfprintfone(void *fp, char *fmt, ...) {
-  va_list argp;
-  va_start(argp, fmt);
-#ifdef MPI
-  if (worldrank > 0) return;
-  if (fp == stdout) {
-    vprintf(fmt, argp);
-    return;
-  } else if (fp == stderr) {
-    vfprintf(stderr, fmt, argp);
-    return;
-  }
-
-  char buffer[BUFFER_SIZE];
-  vsprintf(buffer, fmt, argp);
-  MPI_File_write_shared(* ((MPI_File *) fp), buffer, strlen(buffer), MPI_CHAR, MPI_STATUS_IGNORE);
-#else
-  vfprintf((FILE *) fp, fmt, argp);
-#endif
-  va_end(argp);
-}
-
-/*
- * ptrajCloseFile()
- * Close an open file handle via appropriate system call.
- * DAN ROE: The get position and set size routines end up causing an error,
- * probably because they are supposed to be collective and are only called
- * by rank 0. Removed for now.
- */
-void
-ptrajCloseFile(void *fp) {
-#ifdef MPI
-/*  MPI_Offset offset;
-  if (worldrank == 0) {
-    MPI_File_get_position_shared(* ((MPI_File *) fp), &offset);
-    MPI_File_set_size(* ((MPI_File *) fp), offset);
-  }*/
-  MPI_File_close((MPI_File *) fp);
-  // DAN ROE - Free the memory used by the file pointer
-  safe_free( fp );
-#else
-  safe_fclose((FILE *) fp);
-#endif
-}

@@ -3,7 +3,7 @@
 // Class: PtrajAction
 /// Wrapper for ptraj functions in ptraj_actions.c
 #include "Action.h"
-#include "ptraj_actionheader.h"
+#include "ptraj_actions.h"
 class PtrajAction: public Action {
     actionInformation *actioninfo;
     argStackType *argumentStack;

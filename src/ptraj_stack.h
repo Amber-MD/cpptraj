@@ -8,3 +8,6 @@ typedef struct _stackType {
 
 void pushBottomStack( stackType **, void * );
 void pushStack( stackType **, void * );
+void *popStack( stackType ** );
+void clearStack( stackType ** );
+
