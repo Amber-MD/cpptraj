@@ -5659,7 +5659,7 @@ transformGrid(actionInformation *action,
     /*
      *  ACTION: PTRAJ_CLEANUP
      */
-
+    safe_free(action->mask);
     safe_free(gridInfo->filename);
     safe_free(gridInfo->grid);
     INITIALIZE_transformGridInfo(gridInfo);
