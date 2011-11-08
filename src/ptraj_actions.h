@@ -283,7 +283,8 @@ void ptrajfprintfone(void *, char *, ...);
 void ptrajCloseFile(void *);
 
 #ifndef ACTION_MODULE
-
+extern void SetReferenceInfo(double*,int);
+extern void FreeReferenceInfo();
 
 //#  ifdef __STDC__
 

@@ -724,6 +724,32 @@ typedef struct _coordinateInfo {
 
 // Ref coords
 coordinateInfo *referenceInfo = NULL;
+// It seems that the functions that require a reference only need 
+// x y and z set up.
+void SetReferenceInfo(double *X, int natom) {
+  int i3 = 0;
+  int atom;
+
+  referenceInfo = (coordinateInfo*) malloc(sizeof(coordinateInfo));
+  INITIALIZE_coordinateInfo(referenceInfo);
+  referenceInfo->x = (double*) malloc(natom * sizeof(double));
+  referenceInfo->y = (double*) malloc(natom * sizeof(double));
+  referenceInfo->z = (double*) malloc(natom * sizeof(double));
+  for (atom = 0; atom < natom; atom++) {
+    referenceInfo->x[atom] = X[i3++];
+    referenceInfo->y[atom] = X[i3++];
+    referenceInfo->z[atom] = X[i3++];
+  }
+}
+void FreeReferenceInfo() {
+  if (referenceInfo!=NULL) {
+    safe_free(referenceInfo->x);
+    safe_free(referenceInfo->y);
+    safe_free(referenceInfo->z);
+    safe_free(referenceInfo);
+  }
+}
+    
 
 /*  ________________________________________________________________________
  */
@@ -4331,8 +4357,10 @@ transformContacts(actionInformation *action,
 {
   char *name = "contacts";
   argStackType **argumentStackPointer;
-  char *buffer, *buffer2, *buffer3, *buffer2ptr, *buffer3ptr;
+  char *buffer, *buffer2, *buffer3;
   transformContactsInfo *contactsInfo;
+  char buffer2ptr[BUFFER_SIZE];
+  char buffer3ptr[BUFFER_SIZE];
 
   double x1,y1,z1,x2,y2,z2,dist;
   int i, j;
@@ -4366,10 +4394,12 @@ transformContacts(actionInformation *action,
 
   /* Set up buffers for printing */
 
-  buffer2 = safe_malloc( BUFFER_SIZE * sizeof *buffer2);
-  buffer3 = safe_malloc( BUFFER_SIZE * sizeof *buffer3);
-  buffer2ptr = buffer2;
-  buffer3ptr = buffer3;
+  //buffer2 = safe_malloc( BUFFER_SIZE * sizeof *buffer2);
+  //buffer3 = safe_malloc( BUFFER_SIZE * sizeof *buffer3);
+  //buffer2ptr = buffer2;
+  //buffer3ptr = buffer3;
+  buffer2 = buffer2ptr;
+  buffer3 = buffer3ptr;
 
   if (mode == PTRAJ_SETUP) {
 
@@ -4679,7 +4709,7 @@ transformContacts(actionInformation *action,
     /*
      *  ACTION PTRAJ_CLEANUP
      */
-
+    safe_free(action->mask);
     contactsInfo = (transformContactsInfo *) action->carg1;
     if(contactsInfo != NULL){
       if (contactsInfo->byResidue){

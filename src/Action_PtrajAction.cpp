@@ -25,6 +25,9 @@ PtrajAction::PtrajAction() {
 // DESTRUCTOR
 PtrajAction::~PtrajAction() {
   //fprintf(stderr,"PtrajAction Destructor.\n");
+  // Free reference information
+  FreeReferenceInfo();
+  // Free arguments
   if (argumentStack!=NULL) {
     // free individual args?
     for (int arg=0; arg < argumentStack->nargs; arg++)
@@ -33,6 +36,7 @@ PtrajAction::~PtrajAction() {
     free(argumentStack->marked);
     free(argumentStack);
   }
+  // Free actionInfo
   if (actioninfo != NULL) {
     // Call actions cleanup routine
     if (CalledSetup)
@@ -160,6 +164,11 @@ int PtrajAction::init( ) {
   // Initialize state memory
   actioninfo->state = (ptrajState*) malloc( sizeof(ptrajState) );
   INITIALIZE_ptrajState( actioninfo->state );
+
+  // Set reference structure
+  Frame *refframe = FL->GetFrame(0);
+  if (refframe!=NULL) 
+    SetReferenceInfo(refframe->X, refframe->natom);
 
   // Dont call setup here since there is no state information yet
   mprintf("    PTRAJ ACTION: [%s]\n",actionArgs.Command());
