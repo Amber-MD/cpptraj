@@ -2,6 +2,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#define PTRAJ_COMMON_MODULE
+#include "ptraj_common.h"
+#undef PTRAJ_COMMON_MODULE
+
 // ----- Originally from utility.c -----
 // Print functions: error and warning
 // error()
@@ -23,6 +27,7 @@ void warning(char *function, char *fmt, ...) {
   fprintf(stderr, "\n" );
   va_end(args);
 }
+
 // Memory functions: safe_malloc, safe_realloc, and safe_free
 // safe_malloc
 void *safe_malloc(size_t size) {
@@ -55,5 +60,14 @@ void *safe_realloc(void *mem, size_t cur_size, size_t increase) {
 // safe_free()
 void safe_free(void *pointer) {
  if ( pointer != NULL ) free(pointer);
+}
+
+// FILE IO: safe_fopen and safe_fclose
+// ----- Originally from io.c -----
+FILE *safe_fopen(char *buffer, char *mode) {
+  return( fopen(buffer, mode) );
+} 
+void safe_fclose(FILE *fileIn) {
+  fclose( fileIn );
 }
 

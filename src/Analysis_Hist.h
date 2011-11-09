@@ -1,6 +1,6 @@
 #ifndef INC_ANALYSIS_HIST_H
 #define INC_ANALYSIS_HIST_H
-/// Class: Hist
+// Class: Hist
 /// Create an N-dimensional histogram from N input datasets
 #include "Analysis.h"
 #include "Histogram.h"

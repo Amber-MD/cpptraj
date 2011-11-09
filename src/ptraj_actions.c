@@ -44,8 +44,10 @@
 
 // ---------- PTRAJ includes ---------------------------------------------------
 #include "ptraj_actions.h"
-#include "ptraj_analyze.h" // scalarInfo etc
-#include "ptraj_common.h"
+#include "ptraj_common.h" // scalarInfo
+#include "ptraj_stack.h"
+#include "ptraj_arg.h"
+#include "ptraj_scalar.h"
 //typedef struct _arrayType {
 //  int length;
 //  void *entry;
@@ -54,8 +56,6 @@
 //# inc lude "../../ptraj/cluster.h"
 
 // ---------- CPPTRAJ includes -------------------------------------------------
-// Mask parser
-#include "PtrajMask.h"
 // Constants
 #include "Constants.h"
 // Distance routines
@@ -213,15 +213,15 @@ typedef struct _transformGridInfo {
 
 // ========== GLOBAL variables =================================================
 // prnlev - used to set overall debug level
-int prnlev;
+//int prnlev;
 // worldrank and worldsize - for MPI code
 //const int worldrank = 0;
 //const int worldsize = 1;
 // from ptraj.h
 //arrayType *attributeArray = NULL;
 //arrayType *attributeArrayTorsion = NULL;
-stackType *vectorStack = NULL;
-stackType *matrixStack = NULL;
+//stackType *vectorStack = NULL;
+//stackType *matrixStack = NULL;
 // Ref coords
 coordinateInfo *referenceInfo = NULL;
 
@@ -273,9 +273,11 @@ static void printError(char *actionName, char *fmt, ...) {
 #endif
   va_end(argp);
 }
+#ifdef MPI
 static void printParallelError(char *actionName) {
   printError(actionName, "Parallel implementation of action not supported.\nIgnoring command...\n");
 }
+#endif
 // ptrajfprintf()
 /// printf wrapper: If MPI use MPI_Write_ordered, otherwise use normal system calls.
 static void ptrajfprintf(void *fp, char *fmt, ...) {
@@ -378,13 +380,6 @@ static int stringMatch(char *string, char *match) {
 }
 */
 // ========== FILE IO functions ================================================
-// ----- Originally from io.c -----
-static FILE *safe_fopen(char *buffer, char *mode) {
-  return( fopen(buffer, mode) );
-}
-static void safe_fclose(FILE *fileIn) {
-  fclose( fileIn );
-}
 // ptrajOpenW()
 /// Open a file using MPI calls if MPI defined, or regular system call if not.
 static void *ptrajOpenW( char *filename ) {
@@ -428,461 +423,6 @@ static void ptrajCloseFile(void *fp) {
 #else
   safe_fclose((FILE *) fp);
 #endif
-}
-
-// ========== ARGUMENT functions ===============================================
-// Uses argStackType from ptraj_actions.h. To be consistent with original
-// argument stack behavior, copies of strings are returned.
-// getArgumentString()
-/// Return the next unmarked argument
-static char *getArgumentString(argStackType **argumentStackAddress, char *defvalue) {
-  int arg;
-  char *retvalue = NULL;
-  argStackType *argumentStack;
-  argumentStack = *argumentStackAddress;
-  for (arg = 0; arg < argumentStack->nargs; arg++) {
-    // If arg is unmarked, mark and return copy
-    if ( argumentStack->marked[arg] == 'F' ) {
-      argumentStack->marked[arg] = 'T';
-      retvalue = (char*) malloc( (strlen(argumentStack->arglist[arg])+1) * sizeof(char));
-      strcpy(retvalue, argumentStack->arglist[arg]);
-      return retvalue;
-    }
-  }
-  // No more unmarked args; return copy of defvalue
-  if (defvalue!=NULL) {
-    retvalue = (char*) malloc( (strlen(defvalue)+1) * sizeof(char));
-    strcpy(retvalue, defvalue);
-  }
-  return retvalue;
-}
-// getArgumentInteger()
-/// Return the next unmarked argument as an integer
-static int getArgumentInteger(argStackType **argumentStackAddress, int defvalue) {
-  int arg;
-  argStackType *argumentStack;
-  argumentStack = *argumentStackAddress;
-  for (arg = 0; arg < argumentStack->nargs; arg++) {
-    // If arg is unmarked, mark and return
-    if ( argumentStack->marked[arg] == 'F' ) {
-      argumentStack->marked[arg] = 'T';
-      return atoi(argumentStack->arglist[arg]);
-    }
-  }
-  // No more unmarked args; return defvalue
-  return defvalue;
-}
-// getArgumentDouble()
-/// Return the next unmarked argument as a double
-static double getArgumentDouble(argStackType **argumentStackAddress, double defvalue) {
-  int arg;
-  argStackType *argumentStack;
-  argumentStack = *argumentStackAddress;
-  for (arg = 0; arg < argumentStack->nargs; arg++) {
-    // If arg is unmarked, mark and return
-    if ( argumentStack->marked[arg] == 'F' ) {
-      argumentStack->marked[arg] = 'T';
-      return atof(argumentStack->arglist[arg]);
-    }
-  }
-  // No more unmarked args; return defvalue
-  return defvalue;
-}
-// argumentStringContains()
-/// Return true and mark argument if next unmarked arg matches, false otherwise
-static int argumentStringContains(argStackType **argumentStackAddress, char *match) {
-  int arg;
-  argStackType *argumentStack;
-  argumentStack = *argumentStackAddress;
-  for (arg = 0; arg < argumentStack->nargs; arg++) {
-    // If arg is unmarked and matches, mark and return 1, otherwise return 0
-    if ( argumentStack->marked[arg] == 'F' ) {
-      if (strcmp(argumentStack->arglist[arg], match)==0) {
-        argumentStack->marked[arg] = 'T';
-        return 1;
-      } else {
-        return 0;
-      }
-    }
-  }
-  return 0;
-}
-// argumentStackContains()
-/// Return true and mark argument if argument is present, false otherwise.
-static int argumentStackContains(argStackType **argumentStackAddress, char *match) {
-  int arg;
-  argStackType *argumentStack;
-  argumentStack = *argumentStackAddress;
-  for (arg = 0; arg < argumentStack->nargs; arg++) {
-    // If arg is unmarked and matches, mark and return 1
-    if ( argumentStack->marked[arg]=='F') {
-      if ( strcmp(argumentStack->arglist[arg], match)==0 ) {
-        argumentStack->marked[arg] = 'T';
-        return 1;
-      }
-    }
-  }
-  return 0;
-}
-// argumentStackKeyToInteger()
-static int argumentStackKeyToInteger(argStackType **argumentStackAddress, char *match, int defvalue) {
-  int arg;
-  argStackType *argumentStack;
-  argumentStack = *argumentStackAddress;
-  for (arg = 0; arg < argumentStack->nargs - 1; arg++) {
-    if ( argumentStack->marked[arg]=='F' && strcmp(argumentStack->arglist[arg], match)==0 ) {
-      // Check if next arg already marked
-      if (argumentStack->marked[arg+1]=='T') continue; 
-      argumentStack->marked[arg] = 'T';
-      arg++;
-      argumentStack->marked[arg] = 'T';
-      return atoi(argumentStack->arglist[arg]);
-    }
-  }
-  return defvalue;
-}
-// argumentStackKeyToDouble()
-static double argumentStackKeyToDouble(argStackType **argumentStackAddress, 
-                                       char *match, double defvalue) {
-  int arg;
-  argStackType *argumentStack;
-  argumentStack = *argumentStackAddress;
-  for (arg = 0; arg < argumentStack->nargs - 1; arg++) {
-    if ( argumentStack->marked[arg]=='F' && strcmp(argumentStack->arglist[arg], match)==0 ) {
-      // Check if next arg already marked
-      if (argumentStack->marked[arg+1]=='T') continue; 
-      argumentStack->marked[arg] = 'T';
-      arg++;
-      argumentStack->marked[arg] = 'T';
-      return atof(argumentStack->arglist[arg]);
-    }
-  }
-  return defvalue;
-}
-// argumentStackKeyToString()
-static char* argumentStackKeyToString(argStackType **argumentStackAddress, 
-                                      char *match, char* defvalue) {
-  int arg;
-  char *retvalue = NULL;
-  argStackType *argumentStack;
-  argumentStack = *argumentStackAddress;
-  for (arg = 0; arg < argumentStack->nargs - 1; arg++) {
-    if ( argumentStack->marked[arg]=='F' && strcmp(argumentStack->arglist[arg], match)==0 ) {
-      // Check if next arg already marked
-      if (argumentStack->marked[arg+1]=='T') continue; 
-      argumentStack->marked[arg] = 'T';
-      arg++;
-      argumentStack->marked[arg] = 'T';
-      retvalue = (char*) malloc( (strlen(argumentStack->arglist[arg])+1) * sizeof(char));
-      strcpy(retvalue, argumentStack->arglist[arg]);
-      return retvalue;
-    }
-  }
-  if (defvalue!=NULL) {
-    retvalue = (char*) malloc( (strlen(defvalue)+1) * sizeof(char));
-    strcpy(retvalue, defvalue);
-  }
-  return retvalue;
-}
-// printArgumentStack()
-void printArgumentStack(argStackType **argumentStackAddress) {
-  int arg;
-  argStackType *argumentStack;
-  argumentStack = *argumentStackAddress;
-  for (arg = 0; arg < argumentStack->nargs; arg++)
-    fprintf(stdout,"Arg %i: %s [%c]\n",arg,argumentStack->arglist[arg],
-            argumentStack->marked[arg]);
-}
-
-// ========== MASK functions ===================================================
-// isActiveDetailed()
-static int isActiveDetailed(int atom, int residue, int *mask, int atoms, int residues,
-                            Name *atomName, Name *residueName, int *ipres)
-{
-  int i;
-
-  if (residue >= residues || residue < 0) {
-    printf("WARNING: residue out of range in isActiveDetailed, res %i (total %i)\n",
-           residue, residues);
-    return 0;
-  }
-  for (i = ipres[residue]-1; i < ipres[residue+1]-1; i++)
-    if ( mask[i] && strcmp(atomName[i], atomName[atom]) == 0 )
-      return 1;
-
-  return 0;
-
-}
-// printAtomMaskDetailed()
-static void printAtomMaskDetailed(FILE *file, int *mask, int atoms, int residues,
-                                  Name *atomName, Name *residueName, int *ipres)
-{
-  //fprintf(stdout,"Warning: printAtomMaskDetailed not implemented for Cpptraj.\n");
-
-  int i, j, curres;
-  char tmpatom[20];
-  int *resactive, *ressimilar;
-  int printed, numactive, numresactive, numressimilar;
-  int incurres, innextres;
-
-  printed = 0;
-  numactive = 0;
-  numresactive = 0;
-  numressimilar = 0;
-
-  /*
-   *  This routine is kind of junky since in general I want to avoid printing
-   *  as much detail as possible.  Therefore, we check to see is certain ranges 
-   *  residues have all atoms active, etc. to avoid printing each atom in a residue.
-   *  This makes it ugly and obtuse.
-   */
-
-
-  if (mask == NULL) {
-    fprintf(file, "[No atoms are selected]");
-    return;
-  }
- j=0;
-  for (i=0; i < atoms; i++)
-    if (mask[i]) j++;
-
-  if (j == 0) {
-    fprintf(file, "[No atoms are selected]");
-    return;
-  }
-
-     /*
-      *  check if all atoms are active and if so print an asterisk
-      */
-
-  j = 0;
-  for (i=0; i < atoms; i++) {
-    j += mask[i];
-  }
-  if ( j == atoms ) {
-    fprintf(file, "  * (All atoms are selected)");
-    return;
-  }
-  numactive = j;
-
-     /*
-      *  determine which residues have all the atoms in that residue active
-      */
-
-  resactive = (int *) safe_malloc(sizeof(int) * residues);
-  for (i=0; i < residues; i++) {
-    resactive[i] = 0.0;
-  }
- curres = 0;
-  j = 0;
-  for (i=0; i < atoms; i++) {
-    if (i == ipres[curres+1]-1) {
-      if (j == ipres[curres+1] - ipres[curres]) {
-        resactive[curres] = 1.0;
-        numresactive++;
-      }
-      j = 0;
-      curres++;
-    }
-    if (mask[i])
-      j++;
-  }
-  //fprintf(stdout,"DEBUG:\tprintAtomMaskDetailed: curres = %i\n",curres);
-  // NOTE: DRR - unneccessary, curres will end up == residues
-  //if (j == ipres[curres+1] - ipres[curres]) {
-  //  resactive[curres] = 1.0;
-  //}
-
-     /*
-      *  determine the range over which the residues are fully active
-      */
-
-  for (curres = residues-2; curres >= 0; curres--) {
-    if (resactive[curres]) {
-      resactive[curres] += resactive[curres+1];
-      numresactive--;
-    }
-  }
-
-
- /*
-   *  determine ranges over which residues have the same atoms active
-   *  as the next residue
-   */
-  ressimilar = (int *) safe_malloc(sizeof(int) * residues);
-  for (i=0; i < residues; i++) {
-    ressimilar[i] = 0.0;
-  }
-
-  for (curres = residues-2; curres >=0; curres--) {
-
-    incurres = 0;
-    innextres = 0;
-    for (i = ipres[curres]-1; i < ipres[curres+2]-1; i++) { /* check current and next residue */
-      if ( mask[i] ) {
-        incurres++;
-      }
-
-      if (isActiveDetailed(i, i<ipres[curres+1]-1 ? curres+1 : curres, mask,
-                           atoms, residues, atomName, residueName, ipres))
-        innextres++;
-
-      if (incurres != innextres) /* select counterparts in next residues too! */
-        break;
-    }
-    if (incurres && innextres == incurres) {
-      ressimilar[curres] = ressimilar[curres+1] + 1;
-    } else {
-      numressimilar++;
-    }
-
-  }
-   /*
-      *  do the actual printing
-      */
-
-  j = 0;
-  for (curres = 0; curres < residues; curres++) {
-
-    if (resactive[curres] ) {
-
-      /*
-       *  If all of the atoms are active in this residue print either the
-       *  residue number or range as appropriate
-       */
-
-      if (resactive[curres] > 2) {
-        if (j!=0 && j%10 != 0) fprintf(file, ",");
-        fprintf(file, ":%i-%i", curres+1, curres+resactive[curres]);
-        curres += resactive[curres]-1;
-      } else {
-        if (j!=0 && j%10 != 0) fprintf(file, ",");
-        fprintf(file, ":%i", curres+1);
-      }
-      j++;
-      if (j != 0 && j % 10 == 0) {
-        fprintf(file, "\n    ");
-        j = 0;
-      }
-    } else if (ressimilar[curres]) {
-
-      /*
-       *  If there is a set of residues with a similar atom selection...
-       */
-      printed = 0;
-      if (ressimilar[curres] >= 1) {
-        if (j!=0 && j%10 != 0) fprintf(file, ",");
-        fprintf(file, ":%i-%i", curres+1, curres+ressimilar[curres]+1);
-        curres += ressimilar[curres];
-      } else {
-        if (j!=0 && j%10 != 0) fprintf(file, ",");
-        fprintf(file, ":%i", curres+1);
-      }
-
-      for (i = ipres[curres]-1; i < ipres[curres+1]-1; i++) {
-        if ( mask[i] ) {
-          if (printed)
-            fprintf(file, ",");
-          else {
-            fprintf(file, "@");
-            printed = 1;
-          }
-          strcpy(tmpatom, atomName[i]);
-          fprintf(file, "%s", strtok(tmpatom, " "));
-        }
-      }
-      j++;
-      if (j != 0 && j % 10 == 0) {
-        fprintf(file, "\n    ");
-        j = 0;
-      }
-
-
-    } else {
-
-      /*
-       *  Print individual atoms
-       */
-      if (numactive > 10 && numressimilar > 10 && numresactive > 10) {
-        fprintf(file, "\n    ");
-        numactive = 0;
-      }
-      for (i = ipres[curres]-1; i < ipres[curres+1]-1; i++) {
-        if ( mask[i] ) {
-          if (j!=0 && j%10 != 0) fprintf(file, ",");
-
-          strcpy(tmpatom, atomName[i]);
-          fprintf(file, ":%i@%s", curres+1, strtok(tmpatom, " "));
-          j++;
-        }
-        if (j != 0 && j % 10 == 0) {
-          fprintf(file, "\n    ");
-          j = 0;
-        }
-      }
-    }
-  }
-  /*
-    if (j!=0 && j%10 != 0) fprintf(file, "\n");
-  */
-  safe_free(resactive);
-  safe_free(ressimilar);
-}
-// printAtomMask()
-static void printAtomMask(FILE *file, int *mask, ptrajState *state) {
-  printAtomMaskDetailed(file, mask, state->atoms, state->residues, state->atomName,
-                        state->residueName, state->ipres);
-}
-// processAtomMask()
-static int *processAtomMask( char *maskString, ptrajState *state ) {
-  char *charmask;
-  int *intmask;
-  int i, actualAtoms;
-
-  intmask = (int *) safe_malloc( state->atoms * sizeof(int) );
-  
-  if ( strcmp(maskString, "") == 0) {
-    maskString = strcpy(maskString, "*");
-  }
-
- charmask = parseMaskC(maskString, state->atoms, state->residues,
-                        state->atomName, state->residueName, state->ipres_mask,
-                        NULL, NULL, prnlev);
-  //  The new mask parsing routine returns a character array
-  //  rather than integer; this makes more sense, however in the meantime
-  //  we need to convert between the two.
-  actualAtoms = 0;
-  for (i = 0; i < state->atoms; i++) {
-    if (charmask[i] == 'T') { 
-      intmask[i] = 1;
-      actualAtoms++;
-    } else
-      intmask[i] = 0;
-  }
-  
-  if (actualAtoms > 0) {
-    fprintf(stdout, "Mask [%s] represents %i atoms\n",
-            maskString, actualAtoms);
-  } else  {
-    fprintf(stdout, "Mask [%s] represents %i atoms ",
-            maskString, actualAtoms);
-    fprintf(stdout, "!!!NO ATOMS DETECTED!!!\n");
-    safe_free(intmask);
-    intmask = NULL;
-  }
-  // DEBUG
-  //fprintf(stdout,"Mask:\n");
-  //for (i = 0; i < state->atoms; i++) 
-  //  fprintf(stdout,"\t%8i[%s]: %i\n",i,state->atomName[i],intmask[i]);
-
-  if (prnlev > 2) {
-    fprintf(stdout, "Parsed mask string matches:\n");
-    printAtomMaskDetailed(stdout, intmask, state->atoms, state->residues, state->atomName, 
-                          state->residueName, state->ipres);
-  }
-
-  safe_free(charmask);
-  return(intmask);
 }
 
 // =============================================================================
@@ -2080,18 +1620,6 @@ int transformAtomicFluct3D(actionInformation *action,
  *  transformCheckOverlap  --- check for bad atom overlaps
  *
  ******************************************************************************/
-// atomToResidue()
-static int atomToResidue(int atom, int nres, int *resnums) {
-  int i;
-
-  if (resnums == NULL) return -1;
-  
-  for (i = 0; i < nres; i++)
-    if ( atom>=resnums[i] && atom<resnums[i+1] )
-      return (i+1);
-
-  return -1;
-}
 // printAtomCompact()
 static void printAtomCompact(FILE *fpout, int atom, ptrajState *state) {
   int curres;
@@ -2293,43 +1821,6 @@ int transformCheckOverlap(actionInformation *action,
 }
 
 // -----------------------------------------------------------------------------
-// ptrajCopyScalar()
-scalarInfo *ptrajCopyScalar(scalarInfo **scalarinp) {
-  scalarInfo *scalar, *scalarin;
-  /*
-   *  Make a copy of the input scalar pointer.
-   */
-  scalarin = *scalarinp;
-  scalar = (scalarInfo*)safe_malloc(sizeof(scalarInfo));
-  INITIALIZE_scalarInfo(scalar);
-  scalar->mode = scalarin->mode;
-  scalar->totalFrames = scalarin->totalFrames;
-  scalar->frame = scalarin->frame;
-  scalar->mean = scalarin->mean;
-  scalar->stddev = scalarin->stddev;
-  scalar->max = scalarin->max;
-  scalar->min = scalarin->min;
-  scalar->atom1 = scalarin->atom1;
-  scalar->atom2 = scalarin->atom2;
-  scalar->atom3 = scalarin->atom3;
-  scalar->atom4 = scalarin->atom4;
-  scalar->atom5 = scalarin->atom5;
-  scalar->mask1 = scalarin->mask1;
-  scalar->mask2 = scalarin->mask2;
-  scalar->mask3 = scalarin->mask3;
-  scalar->mask4 = scalarin->mask4;
-  scalar->mask5 = scalarin->mask5;
-  scalar->cos = scalarin->cos;
-  scalar->sin = scalarin->sin;
-  scalar->value = scalarin->value;
-  scalar->results = scalarin->results;
-  scalar->action = scalarin->action;
-  scalar->name = scalarin->name;
-  scalar->filename = scalarin->filename;
-  return scalar;
-  
-}
-
 // ptrajCopyAction()
 actionInformation *ptrajCopyAction(actionInformation **actioninp) {
   actionInformation *action, *actionin;
@@ -5994,7 +5485,7 @@ transformGrid(actionInformation *action,
  *
  *  Supplementary routines:
  *    halfmatindex (below)
- *    distindex (below)
+ *    distindex (ptraj_scalar.c)
  *    free_matrix_memory (below)
  *    lenpl (below)
  ******************************************************************************/
@@ -6008,17 +5499,6 @@ halfmatindex(int mask1tot, int i, int j){
    */
 
   return (i * mask1tot - (i * (i-1) / 2) + (j - i));
-}
-
-   int
-distindex(int mask1tot, int i, int j){
-  
-  /* Assure in call that i < j.
-   * Returns index 0 for A-B, 1 for A-C, 2 for A-D, ...,
-   *   NOT including main diagonal (i.e. A-A, ...)
-   */
-
-  return (i * mask1tot - (i * (i+1) / 2) + (j - i - 1));
 }
 
    void

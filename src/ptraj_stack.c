@@ -1,6 +1,8 @@
 // ptraj_stack
-#include "ptraj_stack.h"
 #include <stdlib.h>
+#define PTRAJ_STACK_MODULE
+#include "ptraj_stack.h"
+#undef PTRAJ_STACK_MODULE
 
 // pushStack()
 void pushStack( stackType **stackp, void *entry ) {
@@ -63,3 +65,16 @@ void clearStack( stackType **stackp ) {
   }
   *stackp = NULL;
 }
+
+// printStack()
+/*void printStack( stackType **stackp, fxnPrintStackEntry fxn, char *babble) {
+  stackType *p;
+  int i;
+  for (p = *stackp, i = 1; p != NULL; p = p->next, i++) {
+    if ( babble != NULL )
+      fprintf(stdout, "%s (%i)\n", babble, i);
+    fxn(p->entry);
+  }
+
+}*/
+

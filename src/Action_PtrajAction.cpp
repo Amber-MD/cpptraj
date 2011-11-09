@@ -3,7 +3,6 @@
 #include <cstring>
 #include "Action_PtrajAction.h"
 #include "CpptrajStdio.h"
-#include "ptraj_actions.h"
 
 // CONSTRUCTOR
 PtrajAction::PtrajAction() {
@@ -71,7 +70,7 @@ int PtrajAction::init( ) {
   actioninfo->type = TRANSFORM_NOOP;
 
   // Set the action type and function based on the command
-  if      ( actionArgs.CommandIs("atomicfluct")    ) {
+  if      ( actionArgs.CommandIs("atomicfluct")      ) {
     actioninfo->type = TRANSFORM_ATOMICFLUCT;
     actioninfo->fxn = (actionFunction) transformAtomicFluct;
   } else if ( actionArgs.CommandIs("atomicfluct3D")  ) {

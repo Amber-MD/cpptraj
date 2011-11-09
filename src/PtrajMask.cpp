@@ -112,7 +112,7 @@
 #endif
 #include "PtrajMask.h"
 // This is the only global and controls the level of debug information printed.
-int prnlev;
+//int prnlev;
 
 // -----------------------------------------------------------------------------
 /* isElemMatch()
@@ -1154,7 +1154,7 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
    * appropriate binary (or unary) operation is carried out and
    * the char array is freed up.
    */
-  prnlev = debug;
+  //prnlev = debug;
   i = 0;
   for (p = postfix; *p != '\0'; p++) {
     if (*p == '[')        // 'operand' begins here 
@@ -1268,7 +1268,7 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
     return NULL;
   }
 
-  if (prnlev > 7) {
+  if (debug > 7) {
     for (int j = 0; j < atoms; j++) {
       if (j % 20 == 0) printf("\n%4d:  ", j+1);
       printf("%c,", pMask[j]);

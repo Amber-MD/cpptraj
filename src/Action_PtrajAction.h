@@ -4,6 +4,7 @@
 /// Wrapper for ptraj functions in ptraj_actions.c
 #include "Action.h"
 #include "ptraj_actions.h"
+#include "ptraj_arg.h"
 class PtrajAction: public Action {
     actionInformation *actioninfo;
     argStackType *argumentStack;
