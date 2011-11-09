@@ -260,20 +260,20 @@ void SetPrnlev(int prnlevIn) {
 } 
 
 // ========== COMMON internal functions ========================================
+#ifdef MPI
 static void printError(char *actionName, char *fmt, ...) {
   va_list argp;
   va_start(argp, fmt);
-#ifdef MPI
+//#ifdef MPI
   if (worldrank == 0) {
-#endif    
+//#endif    
     printf("WARNING in ptraj(), %s: ", actionName);
     vprintf(fmt, argp);
-#ifdef MPI
+//#ifdef MPI
   }
-#endif
+//#endif
   va_end(argp);
 }
-#ifdef MPI
 static void printParallelError(char *actionName) {
   printError(actionName, "Parallel implementation of action not supported.\nIgnoring command...\n");
 }
@@ -1922,6 +1922,8 @@ int transformContacts(actionInformation *action,
   int *nativeNumberList;
   int n, nativeNumber, contactNumber,resNum;
 
+  nativeNumber = 0; contactNumber = 0;
+
   /*
    *  USAGE
    *
@@ -3472,6 +3474,7 @@ int transformDiffusion(actionInformation *action,
    *    the transformDiffusionInfo structure 
    *
    */
+  xx = 0; yy = 0; zz = 0;
 
   if (mode == PTRAJ_SETUP) {
     /*
@@ -4188,6 +4191,7 @@ transformDipole(actionInformation *action,
    *  "largest" solvent molecule; allocate space for this
    *  many coordinates
    */
+  j=0;
   for (i_solvent=0; i_solvent < state->solventMolecules; i_solvent++) {
     i = state->solventMoleculeStop[i_solvent] - state->solventMoleculeStart[i_solvent];
     if (i_solvent == 0 || j < i) j = i;
@@ -5598,7 +5602,8 @@ transformMatrix(actionInformation *action,
   stackType *vectorStackTmp  = NULL; // NOTE: STACK TYPE CHANGE
   stackType *vectorStackTmp2 = NULL; // NOTEL STACK TYPE CHANGE
   transformVectorInfo *vInfo1, *vInfo2;
-
+ 
+  l = 0;
   /*
    *  USAGE:
    *
@@ -9109,6 +9114,8 @@ lsqplane(int n,
   double dnorm;
   double x1, y1, z1, x2, y2, z2;
 
+  root = 0;
+
   if(n == 3){
     x1 = cx[1] - cx[0];
     y1 = cy[1] - cy[0];
@@ -9300,6 +9307,19 @@ transformVector(actionInformation *action,
   double *avgcrd, *cftmp, *p2cftmp, *rcftmp; 
   double *principal, *evec;
   FILE *outFile, *fp;
+
+  npair = 0;
+  nvect = 0;
+  nvectelem = 0;
+  avgcrd = NULL;
+  p2cftmp = NULL;
+  rcftmp = NULL;
+  evec = NULL;
+  r3i = 0;
+  indplus = 0;
+  indminus = 0;
+  dminusreal = 0;
+  dminusimg = 0;
 
   /*
    *  USAGE:
