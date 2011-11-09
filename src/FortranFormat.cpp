@@ -283,6 +283,12 @@ void *F_loadFormat(CpptrajFile *File, FortranType fType, int width, int ncols,
   int BufferSize;
   char *ptr,*buffer;
   char temp[17];       // Hold data element
+  // If # expected values is 0 there will still be a newline placeholder
+  // in the parmtop. Read past that and return NULL 
+  if (maxval==0) {
+    File->IO->Gets(temp,16);
+    return NULL;
+  }
   // Allocate memory based on data type
   switch (fType) { 
     case UNKNOWN_FTYPE : return NULL;

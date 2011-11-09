@@ -617,9 +617,9 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
 int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   char *title;
   int *values, ifbox;
-  if (debug>=0) mprintf("Reading Old-style Amber Topology file %s\n",parmName);
+  if (debug>0) mprintf("Reading Old-style Amber Topology file %s\n",parmName);
   title = F_load20a4(parmfile);
-  if (debug>=0) mprintf("\tOld AmberParm Title: %s\n",title);
+  if (debug>0) mprintf("\tOld AmberParm Title: %s\n",title);
   delete[] title;
   // Pointers - same as new format except only 30 values, no NEXTRA
   values = (int*) F_loadFormat(parmfile, FINT, 6, 12, 30, debug);
@@ -650,7 +650,88 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   NB_index = (int*) F_loadFormat(parmfile,FINT, 6, 12, ntypes*ntypes, debug);
   resnames = (NAME*) F_loadFormat(parmfile, FCHAR, 4, 20, nres, debug);
   resnums = (int*) F_loadFormat(parmfile,FINT, 6, 12, nres, debug);
-
+  // The following are not stored for now
+  double *bond_rk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
+  double *bond_req = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
+  double *angle_tk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMANG],debug);
+  double *angle_teq = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMANG],debug);
+  double *dihedral_pk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
+  double *dihedral_pn = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
+  double *dihedral_phase = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
+  double *solty = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NATYP],debug);
+  if (bond_rk!=NULL) free(bond_rk);
+  if (bond_req!=NULL) free(bond_req);
+  if (angle_tk!=NULL) free(angle_tk);
+  if (angle_teq!=NULL) free(angle_teq);
+  if (dihedral_pk!=NULL) free(dihedral_pk);
+  if (dihedral_pn!=NULL) free(dihedral_pn);
+  if (dihedral_phase!=NULL) free(dihedral_phase);
+  if (solty!=NULL) free(solty);
+  // LJ params
+  LJ_A = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
+  LJ_B = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
+  // Bonds
+  bondsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NBONH]*3,debug);
+  bonds = (int*) F_loadFormat(parmfile,FINT,6,12,values[NBONA]*3,debug);
+  // Again not stored
+  int *anglesh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETH]*4,debug); 
+  int *angles = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETA]*4,debug); 
+  int *dihedralsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIH]*5,debug);
+  int *dihedrals = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIA]*5,debug);
+  if (anglesh!=NULL) free(anglesh);
+  if (angles!=NULL) free(angles);
+  if (dihedralsh!=NULL) free(dihedralsh);
+  if (dihedrals!=NULL) free(dihedrals);
+  // Excluded atoms
+  excludedAtoms = (int*) F_loadFormat(parmfile,FINT,6,12,nnb,debug);
+  // Not stored
+  double *asol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
+  double *bsol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
+  double *hbcut = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
+  if (asol!=NULL) free(asol);
+  if (bsol!=NULL) free(bsol);
+  if (hbcut!=NULL) free(hbcut);
+  // Atom types
+  types = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
+  // Not stored
+  NAME *itree = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
+  int *join = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
+  int *irotat = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
+  if (itree!=NULL) free(itree);
+  if (join!=NULL) free(join);
+  if (irotat!=NULL) free(irotat);
+  // Solvent/Box info
+  if (ifbox > 0) {
+    int *solvent_pointer=(int*) F_loadFormat(parmfile,FINT,6,12,3,debug);
+    if (solvent_pointer==NULL) {
+      mprintf("Error in solvent pointers.\n");
+      free(values);
+      return 1;
+    } else {
+      finalSoluteRes=solvent_pointer[0];
+      molecules=solvent_pointer[1];
+      firstSolvMol=solvent_pointer[2];
+      free(solvent_pointer);
+    }
+    atomsPerMol=(int*) F_loadFormat(parmfile,FINT,6,12,molecules,debug);
+    if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); return 1;}
+    // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
+    double *boxFromParm=(double*)  F_loadFormat(parmfile,FDOUBLE,16,5,4,debug);
+    if (boxFromParm==NULL) {mprintf("Error in box info.\n"); return 1;}
+    boxType = SetBoxInfo(boxFromParm,Box,debug);
+    free(boxFromParm);
+    if (debug>0) {
+      mprintf("\t%s contains box info: %i mols, first solvent mol is %i\n",
+              parmName, molecules, firstSolvMol);
+      mprintf("\tBOX: %lf %lf %lf | %lf %lf %lf\n",Box[0],Box[1],Box[2],Box[3],Box[4],Box[5]);
+      if (boxType==ORTHO)
+        mprintf("\t     Box is orthogonal.\n");
+      else if (boxType==NONORTHO)
+        mprintf("\t     Box is non-orthogonal.\n");
+      else
+        mprintf("\t     Box will be determined from first associated trajectory.\n");
+    } 
+  }
   free(values);
   return 0;
 }
@@ -755,7 +836,8 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   if (values[IFBOX]>0) {
     solvent_pointer=(int*) getFlagFileValues(parmfile,F_SOLVENT_POINTER,3,debug);
     if (solvent_pointer==NULL) {
-      mprintf("Error in solvent pointers.\n"); 
+      mprintf("Error in solvent pointers.\n");
+      free(values); 
       return 1;
     } else {
       finalSoluteRes=solvent_pointer[0];
