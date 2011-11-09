@@ -1,6 +1,12 @@
 include ../../config.h
 
 CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS)
+# The following are needed for the ptraj_analyze routines
+PTRAJ_OBJECTS=thermo.o pubfft.o
+# These libraries are also in the FLIBS_PTRAJ line, but since the
+# FLIBS_PTRAJ line also contains other linking flags use
+# EXTERNAL_LIBS for dependencies, FLIBS_PTRAJ for linking.
+EXTERNAL_LIBS=$(LIBDIR)/arpack.a $(LIBDIR)/lapack.a $(LIBDIR)/blas.a
 
 include cpptrajfiles
 
@@ -19,11 +25,27 @@ dependclean:
 	-/bin/rm FindDepend.o
 	-/bin/rm findDepend
 
-cpptraj$(SFX): $(NETCDFLIB) $(OBJECTS)
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(NETCDFLIB) $(ZLIB) $(BZLIB)
+cpptraj$(SFX): $(NETCDFLIB) $(OBJECTS) $(PTRAJ_OBJECTS) $(EXTERNAL_LIBS) 
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) \
+               $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
 
 $(NETCDFLIB): ../../netcdf_config.log
 	cd ../../netcdf/src && $(MAKE) install
+
+$(LIBDIR)/arpack.a:
+	cd ../../arpack && $(MAKE) install
+
+$(LIBDIR)/lapack.a:
+	cd ../../lapack && $(MAKE) $(LAPACK)
+
+$(LIBDIR)/blas.a:
+	cd ../../blas && $(MAKE) $(BLAS)
+
+thermo.o:  ../../ptraj/thermo.f
+	$(FC) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/thermo.f
+
+pubfft.o:  ../../ptraj/pubfft.f
+	$(FC) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/pubfft.f 
 
 .c.o:
 	$(CC) -c $(CPPTRAJ_FLAGS) -o $@ $<
@@ -32,7 +54,7 @@ $(NETCDFLIB): ../../netcdf_config.log
 	$(CXX) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 clean:
-	/bin/rm -f $(OBJECTS) cpptraj$(SFX)
+	/bin/rm -f $(OBJECTS) $(PTRAJ_OBJECTS) cpptraj$(SFX)
 
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX)
