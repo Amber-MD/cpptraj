@@ -174,7 +174,7 @@ int CpptrajState::Run() {
   actionList.Init( &DSL, &refFrames, &DFL, &parmFileList);
 
   // Set up analysis - checks that datasets are present etc
-  analysisList.Setup(&DSL);
+  analysisList.Setup(&DSL, &parmFileList);
 
   // ========== R U N  P H A S E ==========
   // Loop over every trajectory in trajFileList

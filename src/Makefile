@@ -2,9 +2,6 @@ include ../config.h
 
 include cpptrajfiles
 
-LIBDIR=/opt/Amber/GIT/amber/lib
-FLIBS_PTRAJ=../../ptraj/thermo.o ../../ptraj/pubfft.o $(LIBDIR)/arpack.a $(LIBDIR)/lapack.a $(LIBDIR)/blas.a   -L/cottus/opt/intel/Compiler/11.1/072/lib/intel64/ -lifport -lifcore -lsvml
-
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) 
@@ -20,11 +17,33 @@ dependclean:
 	-/bin/rm FindDepend.o
 	-/bin/rm findDepend
 
-cpptraj$(SFX): $(OBJECTS)
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(FLIBS_PTRAJ) $(NETCDFLIB) $(ZLIB) $(BZLIB)
+cpptraj$(SFX): $(OBJECTS) $(PTRAJ_OBJECTS) $(ARPACK) $(LAPACK) $(BLAS) 
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) $(FLIBS_PTRAJ) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
+
+
+$(BLAS):
+	cd ../../blas && $(MAKE) install
+
+$(ARPACK):
+	cd ../../arpack && $(MAKE) install
+
+$(LAPACK):
+	cd ../../lapack && $(MAKE) install 
+
+thermo.o:  ../../ptraj/thermo.f
+	$(FC) -c $(FFLAGS) -o $@ ../../ptraj/thermo.f
+
+pubfft.o:  ../../ptraj/pubfft.f
+	$(FC) -c $(FFLAGS) -o $@ ../../ptraj/pubfft.f
 
 clean:
-	/bin/rm -f $(OBJECTS) cpptraj$(SFX)
+	/bin/rm -f $(OBJECTS) $(PTRAJ_OBJECTS) cpptraj$(SFX)
+
+libclean:
+	cd ../../blas && $(MAKE) clean
+	cd ../../lapack && $(MAKE) clean
+	cd ../../arpack && $(MAKE) clean
+	/bin/rm -f $(BLAS) $(ARPACK) $(LAPACK)
 
 # Header dependencies
 include cpptrajdepend

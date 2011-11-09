@@ -49,10 +49,11 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
   return 0;
 }
 
-/* AnalysisList::Setup()
- * Set up all analysis in list with given datasetlist
- */
-int AnalysisList::Setup(DataSetList *datasetlist) {
+// AnalysisList::Setup()
+/** Set up all analysis in list with given datasetlist. Also set the parm
+  * (first parm will be set if parm/parmindex keywords not specified).
+  */
+int AnalysisList::Setup(DataSetList *datasetlist, ParmFileList *parmfilelist) {
   if (Nanalysis==0) return 0;
   mprintf("\nANALYSIS:\n");
   mprintf("    .... Setting up %i analyses ....\n",Nanalysis);
@@ -64,6 +65,7 @@ int AnalysisList::Setup(DataSetList *datasetlist) {
               analysisList[ana]->AnalysisCommand());
       analysisList[ana]->noSetup=true;
     }
+    analysisList[ana]->SetParm(parmfilelist);
   }
      
   mprintf("    ...................................................\n\n");

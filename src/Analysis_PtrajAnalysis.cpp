@@ -3,6 +3,7 @@
 #include <cstring>
 #include "Analysis_PtrajAnalysis.h"
 #include "CpptrajStdio.h"
+#include "ptraj_convert.h"
 
 // CONSTRUCTOR
 PtrajAnalysis::PtrajAnalysis() {
@@ -13,21 +14,23 @@ PtrajAnalysis::PtrajAnalysis() {
 // DESTRUCTOR
 PtrajAnalysis::~PtrajAnalysis() {
   // Free arguments
-  if (argumentStack!=NULL) {
-    // free individual args?
-    for (int arg=0; arg < argumentStack->nargs; arg++)
-      free(argumentStack->arglist[arg]);
-    free(argumentStack->arglist);
-    free(argumentStack->marked);
-    free(argumentStack);
-  }
+  FreeArgumentStack(argumentStack);
   // Free analyzeinfo
   if (analyzeinfo!=NULL) {
-    // NOTE: Only for ANALYZE_MODES
+    analyzeinfo->fxn(analyzeinfo, NULL, PTRAJ_CLEANUP);
+    // NOTE: Clean state only for ANALYZE_MODES
     if (analyzeinfo->type==ANALYZE_MODES) 
-      free(analyzeinfo->state); 
+      FreeState(analyzeinfo->state); 
     free(analyzeinfo);
   }
+  // Clear the stacks. Set to NULL since the stacks are global. This 
+  // prevents another PtrajAnalysis from trying to free them again.
+  //if (vectorStack!=NULL) clearStack( &vectorStack );
+  //if (matrixStack!=NULL) clearStack( &matrixStack );
+  //if (modesStack!=NULL) clearStack( &modesStack );
+  //vectorStack = NULL;
+  //matrixStack = NULL;
+  //modesStack = NULL;
 }
 
 // PtrajAnalysis::Setup()
@@ -59,42 +62,36 @@ int PtrajAnalysis::Analyze() {
   } else if ( analyzeArgs.ArgIs(1,"matrix")           ) {
     analyzeinfo->type = ANALYZE_MATRIX;
     analyzeinfo->fxn  = (analyzeFunction) analyzeMatrix;
+  } else if ( analyzeArgs.ArgIs(1,"modes")            ) {
+    analyzeinfo->type = ANALYZE_MODES;
+    analyzeinfo->fxn  = (analyzeFunction) analyzeModes;
+  } else if ( analyzeArgs.ArgIs(1,"set")              ) {
+    analyzeinfo->type = ANALYZE_SET;
+    analyzeinfo->fxn  = (analyzeFunction) analyzeSet;
+  } else if ( analyzeArgs.ArgIs(1,"stat")             ) {
+    analyzeinfo->type = ANALYZE_STATISTICS;
+    analyzeinfo->fxn  = (analyzeFunction) analyzeStatistics;
+  } else if ( analyzeArgs.ArgIs(1,"timecorr")         ) {
+    analyzeinfo->type = ANALYZE_TIMECORR;
+    analyzeinfo->fxn  = (analyzeFunction) analyzeTimecorr;
+  } else if ( analyzeArgs.ArgIs(1,"test")             ) {
+    analyzeinfo->type = ANALYZE_TEST;
+    analyzeinfo->fxn  = (analyzeFunction) analyzeTest;
   } else {
     mprinterr("Error: PtrajAnalysis: Unrecognized command: %s\n",analyzeArgs.ArgAt(1));
     return 1;
   }
 
-  // Mark the arg after command
+  // Mark the arg after 'analyze' command
   analyzeArgs.MarkArg(1);
-  // Convert the ArgList to the argStackType used by functions in ptraj_analyze.c
-  argumentStack = (argStackType*) malloc( sizeof(argStackType) );
-  //mprintf("DEBUG:\targumentStack address (init): %x\n",argumentStack);
-  argumentStack->arglist = NULL;
-  argumentStack->marked = NULL;
-  int nargs = 0;
-  char *currentArg = analyzeArgs.getNextString();
-  while (currentArg != NULL) {
-    argumentStack->arglist = (char**) realloc(argumentStack->arglist, (nargs+1) * sizeof(char*));
-    argumentStack->arglist[nargs] = (char*) malloc( (strlen(currentArg)+1) * sizeof(char) );
-    strcpy(argumentStack->arglist[nargs], currentArg);
-    currentArg = analyzeArgs.getNextString();
-    nargs++;
-  } 
-  argumentStack->nargs = nargs;
-  argumentStack->marked = (char*) malloc(nargs * sizeof(char));
-  memset(argumentStack->marked, 'F', nargs);
+  // Convert the remaining args in ArgList to the argStackType used by 
+  // functions in ptraj_analyze.c
+  argumentStack = CreateArgumentStack(analyzeArgs, debug);
   analyzeinfo->carg1 = (void *) &argumentStack;
-  //mprintf("DEBUG:\taction->carg1 address (init): %x\n",actioninfo->carg1);
-  // NOTE: Should ptraj be freeing up the args?
-  // DEBUG
-  //argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
-  //mprintf("DEBUG:\targumentStack address (init 2): %x\n",*argumentStackPointer);
-  if (debug>0) printArgumentStack(&argumentStack);
 
   // Initialize state memory - only for ANALYZE_MODES
   if (analyzeinfo->type == ANALYZE_MODES) {
-    analyzeinfo->state = (ptrajState*) malloc( sizeof(ptrajState) );
-    INITIALIZE_ptrajState( analyzeinfo->state );
+    analyzeinfo->state = CreateState( analyzeParm, analyzeParm->parmFrames ); // NOTE: maxFrames?
   }
 
   mprintf("    PTRAJ ANALYZE: [%s %s]\n",analyzeArgs.Command(),analyzeArgs.ArgAt(1));
@@ -104,15 +101,19 @@ int PtrajAnalysis::Analyze() {
   // Call setup
   if ( analyzeinfo->fxn(analyzeinfo, NULL, PTRAJ_SETUP) < 0 )
     return 1;
+
+  // Print status
   analyzeinfo->fxn(analyzeinfo, NULL, PTRAJ_STATUS);
 
   // Set prnlev
 
+  // Analyze
   analyzeinfo->fxn(analyzeinfo, NULL, PTRAJ_ACTION);
 
   return 0;
 }
 
+// PtrajAnalysis::Print()
 void PtrajAnalysis::Print(DataFileList *datafilelist) {
 
   analyzeinfo->fxn(analyzeinfo, NULL, PTRAJ_PRINT);

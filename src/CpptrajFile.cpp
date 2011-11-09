@@ -277,6 +277,7 @@ int CpptrajFile::SetupRead() {
   char buffer1[BUFFER_SIZE], buffer2[BUFFER_SIZE];
   char *CheckConventions; // Only used to check if netcdf is traj or restart
   float TrajCoord[10];
+  int iamber[10];
   int i;
   struct stat frame_stat;
 
@@ -478,6 +479,20 @@ int CpptrajFile::SetupRead() {
     if ( i==5 ) {
       if (debug>0) mprintf("  AMBER RESTART file\n");
       fileFormat=AMBERRESTART;
+      return 0;
+    }
+  }
+
+  // If first line is 81 bytes and the second line has 12 numbers in
+  // 12I6 format, assume old-style Amber topology
+  // NOTE: Could also be less than 81? Only look for 12 numbers?
+  if ((int)strlen(buffer1)==81+isDos) {
+    if ( sscanf(buffer2,"%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i", iamber, iamber+1,
+                iamber+2, iamber+3, iamber+4, iamber+5, iamber+6, 
+                iamber+7, iamber+8, iamber+9, iamber+10, iamber+11) == 12 )
+    {
+      if (debug>0) mprintf("  AMBER TOPOLOGY, OLD FORMAT\n");
+      fileFormat=OLDAMBERPARM;
       return 0;
     }
   }

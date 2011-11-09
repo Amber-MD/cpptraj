@@ -40,6 +40,7 @@ class AmberParm {
 
     // Parm format readers
     int ReadParmMol2(CpptrajFile *);
+    int ReadParmOldAmber(CpptrajFile *);
     int ReadParmAmber(CpptrajFile *);
     int SetAtomsPerMolPDB(int);
     int ReadParmPDB(CpptrajFile *);

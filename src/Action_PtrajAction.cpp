@@ -1,8 +1,9 @@
 // PtrajAction
 #include <cstdlib>
-#include <cstring>
+#include <cstring> // memset
 #include "Action_PtrajAction.h"
 #include "CpptrajStdio.h"
+#include "ptraj_convert.h"
 
 // CONSTRUCTOR
 PtrajAction::PtrajAction() {
@@ -27,25 +28,14 @@ PtrajAction::~PtrajAction() {
   // Free reference information
   FreeReferenceInfo();
   // Free arguments
-  if (argumentStack!=NULL) {
-    // free individual args?
-    for (int arg=0; arg < argumentStack->nargs; arg++)
-      free(argumentStack->arglist[arg]);
-    free(argumentStack->arglist);
-    free(argumentStack->marked);
-    free(argumentStack);
-  }
+  FreeArgumentStack(argumentStack);
   // Free actionInfo
   if (actioninfo != NULL) {
     // Call actions cleanup routine
-    //if (CalledSetup)
+    if (CalledSetup)
       actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, ptraj_box, PTRAJ_CLEANUP);
     // Free state
-    free(actioninfo->state->ipres);
-    free(actioninfo->state->solventMask);
-    free(actioninfo->state->solventMoleculeStart);
-    free(actioninfo->state->solventMoleculeStop);
-    free(actioninfo->state);
+    FreeState(actioninfo->state);
     free(actioninfo);
   }
   // Free coords
@@ -136,33 +126,13 @@ int PtrajAction::init( ) {
   }
 
   // Convert the ArgList to the argStackType used by functions in ptraj_actions.c
-  argumentStack = (argStackType*) malloc( sizeof(argStackType) );
-  //mprintf("DEBUG:\targumentStack address (init): %x\n",argumentStack);
-  argumentStack->arglist = NULL;
-  argumentStack->marked = NULL;
-  int nargs = 0;
-  char *currentArg = actionArgs.getNextString();
-  while (currentArg != NULL) {
-    argumentStack->arglist = (char**) realloc(argumentStack->arglist, (nargs+1) * sizeof(char*));
-    argumentStack->arglist[nargs] = (char*) malloc( (strlen(currentArg)+1) * sizeof(char) );
-    strcpy(argumentStack->arglist[nargs], currentArg);
-    currentArg = actionArgs.getNextString();
-    nargs++;
-  }
-  argumentStack->nargs = nargs;
-  argumentStack->marked = (char*) malloc(nargs * sizeof(char));
-  memset(argumentStack->marked, 'F', nargs);
+  argumentStack = CreateArgumentStack(actionArgs,debug);
   actioninfo->carg1 = (void *) &argumentStack;
   //mprintf("DEBUG:\taction->carg1 address (init): %x\n",actioninfo->carg1);
   // NOTE: Should ptraj be freeing up the args?
   // DEBUG
   //argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
   //mprintf("DEBUG:\targumentStack address (init 2): %x\n",*argumentStackPointer);
-  if (debug>0) printArgumentStack(&argumentStack);
-
-  // Initialize state memory
-  actioninfo->state = (ptrajState*) malloc( sizeof(ptrajState) );
-  INITIALIZE_ptrajState( actioninfo->state );
 
   // Set reference structure
   Frame *refframe = FL->GetFrame(0);
@@ -189,60 +159,7 @@ int PtrajAction::setup() {
   //argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
   //mprintf("DEBUG:\targumentStack address (setup): %x\n",*argumentStackPointer);
   //printArgumentStack(argumentStackPointer);
-  ptrajState *state = actioninfo->state;
-  // Place a copy of the current state into the action
-  state->box[0] = currentParm->Box[0];
-  state->box[1] = currentParm->Box[1];
-  state->box[2] = currentParm->Box[2];
-  state->box[3] = currentParm->Box[3];
-  state->box[4] = currentParm->Box[4];
-  state->box[5] = currentParm->Box[5];
-  state->masses = currentParm->mass;
-  state->charges = currentParm->charge;
-  state->atoms = currentParm->natom;
-  state->residues = currentParm->nres;
-  // IPRES - in Cpptraj the atom #s in IPRES (resnums) is shifted by -1
-  // to be consistent with the rest of cpptraj; however, ptraj expects
-  // standard ipres. Create a copy.
-  state->ipres = (int*) malloc( (currentParm->nres+1) * sizeof(int));
-  for (int res = 0; res <= currentParm->nres; res++)
-    state->ipres[res] = currentParm->resnums[res]+1;
-  //state->ipres[currentParm->nres] = currentParm->natom;
-  state->ipres_mask = currentParm->resnums;
-  state->IFBOX = AmberIfbox(currentParm->Box[4]);
-  //state->boxfixed
-  state->molecules = currentParm->molecules;
-  state->moleculeInfo = currentParm->atomsPerMol;
-  // Solvent info
-  state->solventMask = (int*) malloc( currentParm->natom * sizeof(int));
-  state->solventMolecules = currentParm->solventMolecules;
-  state->solventMoleculeStart = (int*) malloc( currentParm->solventMolecules * sizeof(int));
-  state->solventMoleculeStop = (int*) malloc( currentParm->solventMolecules * sizeof(int));
-  // Convert solvent mask
-  // Assume if no solvent mask, no solvent present
-  if (currentParm->solventMask!=NULL) {
-    for (int atom = 0; atom < currentParm->natom; atom++) {
-      if (currentParm->solventMask[atom]=='T')
-        state->solventMask[atom] = 1;
-      else
-        state->solventMask[atom] = 0;
-    }
-    for (int mol = 0; mol < currentParm->solventMolecules; mol++) {
-      state->solventMoleculeStart[mol] = currentParm->solventMoleculeStart[mol];
-      state->solventMoleculeStop[mol] = currentParm->solventMoleculeStop[mol];
-    }
-    state->solventAtoms = state->solventMoleculeStop[currentParm->solventMolecules-1] - 
-                          state->solventMoleculeStart[0];
-  } else {
-    memset(state->solventMask,0,currentParm->natom);
-    memset(state->solventMoleculeStart,0,currentParm->solventMolecules);
-    memset(state->solventMoleculeStop,0,currentParm->solventMolecules);
-    state->solventAtoms = 0;
-  }
-  state->atomName = currentParm->names;
-  state->residueName = currentParm->resnames;
-  state->maxFrames = DSL->MaxFrames(); // NOTE: Is this correct?
-  state->temp0 = 0.0;
+  actioninfo->state = CreateState(currentParm, DSL->MaxFrames());
 
   // Now that the state info has been allocated, call setup
   if (actioninfo->fxn(actioninfo, NULL, NULL, NULL, NULL, PTRAJ_SETUP) < 0) {

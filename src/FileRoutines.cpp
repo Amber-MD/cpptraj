@@ -2,10 +2,13 @@
 #include <cstring>
 // FileRoutines
 
-const char FileFormatList[15][30] = {
+// When adding to FileFormatList etc be sure to increment the first # of
+// the array and update FileFormat in FileRoutines.h 
+const char FileFormatList[16][30] = {
   "UNKNOWN_FORMAT", "PDBFILE", "AMBERTRAJ", "AMBERNETCDF", "AMBERPARM",
   "DATAFILE", "AMBERRESTART", "AMBERREMD", "XMGRACE", "CONFLIB",
-  "AMBERRESTARTNC", "MOL2FILE", "GNUPLOT", "CHARMMPSF", "CHARMMDCD"
+  "AMBERRESTARTNC", "MOL2FILE", "GNUPLOT", "CHARMMPSF", "CHARMMDCD",
+  "OLDAMBERPARM"
 };
 const char FileTypeList[6][30] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"

@@ -113,11 +113,13 @@ AmberParm *ParmFileList::GetParm(int num) {
   return ParmList[num];
 }
 
-/* ParmFileList::GetParm()
- * Return the parm structure based on arguments in the given arg list. 
- *   parm <parm name>
- *   parmindex <parm index>
- */
+// ParmFileList::GetParm()
+/** Return the parm structure based on arguments in the given arg list. 
+  *   parm <parm name>
+  *   parmindex <parm index>
+  * \param argIn argument list that contains parm-related keyword
+  * \return parm specified by 'parm' or 'parmindex', or the first parm. NULL on error.
+  */
 AmberParm *ParmFileList::GetParm(ArgList &argIn) {
   char *parmfilename;
   int pindex;

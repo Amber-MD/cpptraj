@@ -7,6 +7,7 @@
 Analysis::Analysis() {
   debug = 0;
   noSetup=false;
+  analyzeParm = NULL;
 }
 
 // DESTRUCTOR
@@ -26,6 +27,11 @@ void Analysis::SetArg(const ArgList &argIn) {
 void Analysis::SetDebug(int debugIn) {
   debug = debugIn;
   if (debug>0) mprintf("ANALYSIS DEBUG LEVEL SET TO %i\n",debug);
+}
+
+// Analysis::SetParm()
+void Analysis::SetParm(ParmFileList *parmfilelist) {
+  analyzeParm = parmfilelist->GetParm(analyzeArgs);
 }
 
 /* Analysis::AnalysisCommand()

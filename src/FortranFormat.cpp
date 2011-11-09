@@ -5,15 +5,17 @@
 #include <cstdlib>
 #include <cctype> // toupper
 
-//  F_POINTERS = 0, F_NAMES,  F_CHARGE, F_MASS,   F_RESNAMES,             
-//  F_RESNUMS,      F_TYPES,  F_BONDSH, F_BONDS,  F_SOLVENT_POINTER, 
-//  F_ATOMSPERMOL,  F_PARMBOX
+//  F_POINTERS = 0, F_NAMES,  F_CHARGE,  F_MASS,    F_RESNAMES,             
+//  F_RESNUMS,      F_TYPES,  F_BONDSH,  F_BONDS,   F_SOLVENT_POINTER, 
+//  F_ATOMSPERMOL,  F_PARMBOX,F_ATYPEIDX,F_NUMEX,   F_NB_INDEX,
+//  F_LJ_A,         F_LJ_B,   F_EXCLUDE, F_RADII,   F_SCREEN
 
 // Constant strings for fortran formats corresponding to Amber parm flags
 static const char AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
-"%FORMAT(10I8)",  "%FORMAT(20a4)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)","%FORMAT(20a4)",
-"%FORMAT(10I8)",  "%FORMAT(20a4)", "%FORMAT(10I8)",   "%FORMAT(10I8)",  "%FORMAT(3I8)",
-"%FORMAT(10I8)",  "%FORMAT(5E16.8)"
+"%FORMAT(10I8)",  "%FORMAT(20a4)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)","%FORMAT(20a4)",
+"%FORMAT(10I8)",  "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",  "%FORMAT(3I8)",
+"%FORMAT(10I8)",  "%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(10I8)",  "%FORMAT(10I8)",  
+"%FORMAT(5E16.8)","%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(5E16.8)","%FORMAT(5E16.8)"
 }; 
 static const char AmberParmFlag[NUMAMBERPARMFLAGS][23] = {
   "POINTERS",
@@ -27,18 +29,21 @@ static const char AmberParmFlag[NUMAMBERPARMFLAGS][23] = {
   "BONDS_WITHOUT_HYDROGEN",
   "SOLVENT_POINTERS",
   "ATOMS_PER_MOLECULE",
-  "BOX_DIMENSIONS"
+  "BOX_DIMENSIONS",
+  "ATOM_TYPE_INDEX",
+  "NUMBER_EXCLUDED_ATOMS",
+  "NONBONDED_PARM_INDEX",
+  "LENNARD_JONES_ACOEF",
+  "LENNARD_JONES_BCOEF", 
+  "EXCLUDED_ATOMS_LIST",
+  "RADII",
+  "SCREEN"
 };
 
-// Enumerated type for Fortran data type
-enum FortranType {
-  UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
-};
-
-/* GetFortranBufferSize()
- * Given number of columns and the width of each column, return the 
- * necessary char buffer size for N data elements.
- */
+// GetFortranBufferSize()
+/** Given number of columns and the width of each column, return the 
+  * necessary char buffer size for N data elements.
+  */
 int GetFortranBufferSize(int N, int isDos, int width, int ncols) {
   int bufferLines=0;
   int BufferSize=0;
@@ -54,12 +59,12 @@ int GetFortranBufferSize(int N, int isDos, int width, int ncols) {
   return BufferSize;
 }
 
-/* GetFortranType()
- * Given a fortran-type format string, return the corresponding fortran
- * type. Set ncols (if present), width, and precision (if present).
- * 01234567
- * %FORMAT([<cols>][(]<type><width>[<precision>][)])
- */
+// GetFortranType()
+/** Given a fortran-type format string, return the corresponding fortran
+  * type. Set ncols (if present), width, and precision (if present).
+  */
+// 01234567
+// %FORMAT([<cols>][(]<type><width>[<precision>][)])
 static FortranType GetFortranType(char *FormatIn, int *ncols, int *width, int *precision) {
   int idx;
   char temp[32];
@@ -118,75 +123,19 @@ static FortranType GetFortranType(char *FormatIn, int *ncols, int *width, int *p
   return ftype;
 }
 
-/* getFlagFileString()
- * Search for the FLAG specified by Key. Assume the next line is a string 
- * of max length 80 chars and return it.
- */
-char *getFlagFileString(CpptrajFile *File, const char *Key, int debug) {
-  char *lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
+// PositionFileAtFlag()
+/// Position the given file at the given flag. Set the corresponding format.
+/** If fformat is NULL just report whether flag was found.
+  * \return true if flag was found, false if not.
+  */
+static bool PositionFileAtFlag(CpptrajFile *File, const char *Key, char *fformat, int debug) {
+  char lineBuffer[BUFFER_SIZE]; // Hold flag/format line from parmfile
   char value[83];
 
   if (debug>0) mprintf("Reading %s\n",Key);
-
   // First, rewind the input file.
   File->IO->Rewind();
-
-  // Next, search for the required FLAG
-  while ( File->IO->Gets(lineBuffer,82) == 0) {
-    if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
-      sscanf(lineBuffer,"%*s %s",value);
-      if (strcmp(value,Key)==0) {
-        if (debug>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
-        // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
-        // read past until you get to the FORMAT line
-        File->IO->Gets(lineBuffer,82);
-        while (strncmp(lineBuffer,"%FORMAT",7)!=0)
-          File->IO->Gets(lineBuffer,82);
-        if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
-        // Read next line and return
-        File->IO->Gets(lineBuffer,82);
-        return lineBuffer;
-      }
-    }
-  }
-
-  // If here, Key not found, could be bad news, but let the calling function
-  // print the error message.
-  if (debug>0)
-    mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key);
-  delete[] lineBuffer;
-  return NULL;
-}
-
-/* getFlagFileValues()
- * Search for the FLAG specified by Key and return the values. The values will 
- * be put into an array type according to the FORMAT string in the top file, 
- * but it is necessary to explictly type the returned array. maxval is used to 
- * allocate memory for the return array - only maxval values will be read.
- */
-void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debug){
-  int i, ncols, width, precision; 
-  char lineBuffer[BUFFER_SIZE]; // Hold flag/format line from parmfile
-  char value[83];      // Hold Key from Flag line
-  char temp[17];       // Hold data element
-  char *buffer,*ptr;
-  NAME *C;
-  int *I;
-  double *D;
-  FortranType fType;
-  int BufferSize;
-
-  if (debug>0) {
-    mprintf("Reading %s\n",Key);
-    if (debug>1) mprintf("DEBUG: maxval= %i\n",maxval);
-  }
-
-  C=NULL; D=NULL; I=NULL;
-  
-  // First, rewind the input file.
-  File->IO->Rewind();
-
-  // Next, search for the required FLAG
+  // Search for %FLAG <Key>
   while ( File->IO->Gets(lineBuffer,BUFFER_SIZE) == 0) {
     if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
       sscanf(lineBuffer,"%*s %s",value);
@@ -199,80 +148,194 @@ void *getFlagFileValues(CpptrajFile *File, const char *Key, int maxval, int debu
           File->IO->Gets(lineBuffer,BUFFER_SIZE);
         if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
         // Set format
-        fType = GetFortranType(lineBuffer, &ncols, &width, &precision);
-        if (debug>1) mprintf("DEBUG: Format type %i\n",(int)fType);
-        if (fType == UNKNOWN_FTYPE) {
-          mprinterr("Error: Unrecognized fortran format [%s] for key [%s]\n",lineBuffer,Key);
-          return NULL;
-        } 
-        // Allocate memory based on data type
-        switch (fType) {
-          case UNKNOWN_FTYPE : return NULL;
-          case FINT   : I=(int*)    malloc(maxval*sizeof(int)); break;
-          case FDOUBLE: D=(double*) malloc(maxval*sizeof(double)); break;
-          case FCHAR  : C=(NAME*)   malloc(maxval*sizeof(NAME)); break;
-          case FFLOAT : D=(double*) malloc(maxval*sizeof(double)); break;
-        }
-        // Allocate memory to read in entire section
-        BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
-        buffer=(char*) calloc(BufferSize,sizeof(char));
-        if ( File->IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
-          rprinterr("ERROR in read of prmtop section %s\n",Key);
-          free(buffer);
-          break; // Send us outside the while loop
-        }
-        if (debug>3) mprintf("DEBUG: Buffer [%s]\n",buffer);
+        if (fformat!=NULL) strcpy(fformat, lineBuffer);
+        return true;
+      } // END found Key
+    } // END found FLAG line
+  } // END scan through file
 
-        // Convert values in buffer to their type
-        ptr=buffer;
-        temp[width]='\0';          
-        for (i=0; i<maxval; i++) {
-          // Advance past newlines - DOS newline is CR
-          //fprintf(stdout,"0 %i: %c %i\n",i,ptr[0],ptr[0]);
-          while (ptr[0]=='\n' || ptr[0]=='\r') { ptr++; }
-          //fprintf(stdout,"1 %i: %c %i\n",i,ptr[0],ptr[0]);
-          strncpy(temp,ptr,width);
-          if (debug>3) mprintf("DEBUG:   %8i buffer %s\n",i,temp);
-          // Sanity check: If we have hit another FLAG before we've read maxval
-          // values this is bad.
-          // NOTE: Could do addtional type checking too.
-          if ( strncmp(ptr,"%FLAG",5)==0 ) {
-            rprintf("Error: #values read (%i) < # expected values (%i).\n",i,maxval);
-            if (I!=NULL) free(I);
-            if (D!=NULL) free(D);
-            if (C!=NULL) free(C);
-            free(buffer);
-            return NULL;
-          }
-          /* Now convert temp to appropriate type */
-          if (I!=NULL) I[i]=atoi(temp);
-          if (D!=NULL) D[i]=atof(temp);
-          if (C!=NULL) strcpy(C[i],temp);
-          ptr+=width;
-        }
-        /* All done! */
-        free(buffer);
-        if (I!=NULL) return I;
-        if (D!=NULL) return D;
-        if (C!=NULL) return C;
-      } // End if (strcmp(value,Key)==0)
-    } // End if ( strncmp(lineBuffer,"%FLAG",5)==0 )
-  } // End While loop
-  // If here, Key not found, could be bad news, but let the calling function
-  // print the error message.
+  // If we reached here Key was not found.
   if (debug>0)
-    mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key); 
-  if (I!=NULL) free(I);
-  if (D!=NULL) free(D);
-  if (C!=NULL) free(C);
+    mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key);
+  if (fformat!=NULL) strcpy(fformat,"");
+  return false;
+}  
+
+// getFlagFileString()
+/** Search for the FLAG specified by Key. Assume the next line is a string 
+  * of max length 80 chars and return it.
+  */
+char *getFlagFileString(CpptrajFile *File, const char *Key, int debug) {
+  char *lineBuffer;
+
+  // Find flag
+  if (PositionFileAtFlag(File,Key,NULL,debug)) {
+    // Read next line and return
+    lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
+    File->IO->Gets(lineBuffer,82);
+    return lineBuffer;
+  }
 
   return NULL;
 }
 
-/* DataToFortranBuffer()
- * Write N data elements stored in I, D, or C to buffer with given 
- * fortran format.
- */
+// getFlagFileValues()
+/** Search for the FLAG specified by Key and return the values. The values will 
+  * be put into an array type according to the FORMAT string in the top file, 
+  * but it is necessary to explictly type the returned array. maxval is used to 
+  * allocate memory for the return array - only maxval values will be read.
+  */
+void *getFlagFileValues(CpptrajFile *File, AmberParmFlagType fflag, int maxval, int debug){
+  int ncols, width, precision; 
+  char fformat[83];    // Hold Format from FORMAT line
+  char temp[17];       // Hold data element
+  char *buffer,*ptr,*Key;
+  NAME *C = NULL;
+  int *I = NULL;
+  double *D = NULL;
+  FortranType fType;
+  int BufferSize;
+
+  // Get Flag Key
+  Key = (char*) AmberParmFlag[fflag];
+
+  // Find flag, get format
+  if (!PositionFileAtFlag(File,Key,fformat,debug)) return NULL;
+  if (debug>1) mprintf("DEBUG: maxval= %i\n",maxval);
+  
+  // Determine cols, width etc from format
+  fType = GetFortranType(fformat, &ncols, &width, &precision);
+  if (debug>1) mprintf("DEBUG: Format type %i\n",(int)fType);
+  if (fType == UNKNOWN_FTYPE) {
+    mprinterr("Error: Unrecognized fortran format [%s] for key [%s]\n",fformat,Key);
+    return NULL;
+  } 
+  // Allocate memory based on data type
+  switch (fType) {
+    case UNKNOWN_FTYPE : return NULL;
+    case FINT   : I=(int*)    malloc(maxval*sizeof(int)); break;
+    case FDOUBLE: D=(double*) malloc(maxval*sizeof(double)); break;
+    case FCHAR  : C=(NAME*)   malloc(maxval*sizeof(NAME)); break;
+    case FFLOAT : D=(double*) malloc(maxval*sizeof(double)); break;
+  }
+  // Allocate memory to read in entire section
+  BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
+  buffer=(char*) calloc(BufferSize,sizeof(char));
+  if ( File->IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
+    rprinterr("ERROR in read of prmtop section %s\n",Key);
+    free(buffer);
+    if (I!=NULL) free(I);
+    if (D!=NULL) free(D);
+    if (C!=NULL) free(C);
+    return NULL; 
+  }
+  if (debug>3) mprintf("DEBUG: Buffer [%s]\n",buffer);
+
+  // Convert values in buffer to their type
+  ptr=buffer;
+  temp[width]='\0';          
+  for (int i=0; i<maxval; i++) {
+    // Advance past newlines - DOS newline is CR
+    //fprintf(stdout,"0 %i: %c %i\n",i,ptr[0],ptr[0]);
+    while (ptr[0]=='\n' || ptr[0]=='\r') { ptr++; }
+    //fprintf(stdout,"1 %i: %c %i\n",i,ptr[0],ptr[0]);
+    strncpy(temp,ptr,width);
+    if (debug>3) mprintf("DEBUG:   %8i buffer %s\n",i,temp);
+    // Sanity check: If we have hit another FLAG before we've read maxval
+    // values this is bad.
+    // NOTE: Could do addtional type checking too.
+    if ( strncmp(ptr,"%FLAG",5)==0 ) {
+      rprintf("Error: #values read (%i) < # expected values (%i).\n",i,maxval);
+      if (I!=NULL) free(I);
+      if (D!=NULL) free(D);
+      if (C!=NULL) free(C);
+      free(buffer);
+      return NULL;
+    }
+    // Now convert temp to appropriate type
+    if (I!=NULL) I[i]=atoi(temp);
+    if (D!=NULL) D[i]=atof(temp);
+    if (C!=NULL) strcpy(C[i],temp);
+    ptr+=width;
+  } // END loop over maxval
+  // All done! 
+  free(buffer);
+  if (I!=NULL) return I;
+  if (D!=NULL) return D;
+  if (C!=NULL) return C;
+
+  return NULL;
+}
+
+// F_load20a4()
+char *F_load20a4(CpptrajFile *File) {
+  char *lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
+  File->IO->Gets(lineBuffer,82);
+  return lineBuffer;
+}
+
+// F_loadFormat()
+void *F_loadFormat(CpptrajFile *File, FortranType fType, int width, int ncols, 
+                   int maxval, int debug) {
+  int *I = NULL;
+  double *D = NULL;
+  NAME *C = NULL;
+  int BufferSize;
+  char *ptr,*buffer;
+  char temp[17];       // Hold data element
+  // Allocate memory based on data type
+  switch (fType) { 
+    case UNKNOWN_FTYPE : return NULL;
+    case FINT   : I=(int*)    malloc(maxval*sizeof(int)); break;
+    case FDOUBLE: D=(double*) malloc(maxval*sizeof(double)); break;
+    case FCHAR  : C=(NAME*)   malloc(maxval*sizeof(NAME)); break;
+    case FFLOAT : D=(double*) malloc(maxval*sizeof(double)); break;
+  } 
+  // Allocate memory to read in entire section
+  BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
+  buffer=(char*) calloc(BufferSize,sizeof(char));
+  if ( File->IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
+    rprinterr("ERROR in read of prmtop section; width=%i ncols=%i maxval=%i\n",
+              width,ncols,maxval);
+    free(buffer);
+    if (I!=NULL) free(I);
+    if (D!=NULL) free(D);
+    if (C!=NULL) free(C);
+    return NULL;
+  }
+  //mprintf("DEBUG: fType=%i width=%i ncols=%i maxval=%i\n",(int)fType,
+  //        width,ncols,maxval);
+  if (debug>3) mprintf("DEBUG: Buffer [%s]\n",buffer);
+
+  // Convert values in buffer to their type
+  ptr=buffer;
+  temp[width]='\0';
+  for (int i=0; i<maxval; i++) {
+    // Advance past newlines - DOS newline is CR
+    //fprintf(stdout,"0 %i: %c %i\n",i,ptr[0],ptr[0]);
+    while (ptr[0]=='\n' || ptr[0]=='\r') { ptr++; }
+    //fprintf(stdout,"1 %i: %c %i\n",i,ptr[0],ptr[0]);
+    strncpy(temp,ptr,width);
+    if (debug>3) mprintf("DEBUG:   %8i buffer %s\n",i,temp);
+    // Now convert temp to appropriate type
+    if (I!=NULL) I[i]=atoi(temp);
+    if (D!=NULL) D[i]=atof(temp);
+    if (C!=NULL) strcpy(C[i],temp);
+    ptr+=width;
+  } // END loop over maxval
+  // All done! 
+  free(buffer);
+  if (I!=NULL) return I;
+  if (D!=NULL) return D;
+  if (C!=NULL) return C;
+
+  return NULL;
+}
+
+// DataToFortranBuffer()
+/** Write N data elements stored in I, D, or C to buffer with given 
+  * fortran format.
+  */
 char *DataToFortranBuffer(char *bufferIn, AmberParmFlagType fFlag,
                           int *I, double *D, NAME *C, int N) 
 {

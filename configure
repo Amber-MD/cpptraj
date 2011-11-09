@@ -120,6 +120,29 @@ TestCompile() {
   fi
   /bin/rm -f testp.cpp testp
   echo "  OK"
+
+  # Fortran
+  echo "Testing Fortran compiler:"
+  cat > testp.f <<EOF
+      program testf
+      write(6,*) 'testing a Fortran program'
+      end program testf
+EOF
+  $FC $FFLAGS -o testp testp.f 
+  ./testp | grep "testing a Fortran program" > /dev/null
+  status=$?
+  if [[ $status -gt 0 ]] ; then
+      echo "  Error: Unable to compile a Fortran program using:"
+      echo "       $FC $FFLAGS" 
+      echo "       Please check your compiler settings or configure flags."
+      echo "       If errors/warnings appear above related to netcdf.h, zlib.h,"
+      echo "       or bzlib.h check that your compiler is able to find the "
+      echo "       correct libraries."
+      echo ""
+      exit 1
+  fi
+  /bin/rm -f testp.f testp
+  echo "  OK"
 }
 
 #---------------------------------------------------------------------
@@ -139,16 +162,24 @@ echo ""
 OPT=1
 CC=""
 CXX=""
+FC=""
 CPPTRAJHOME=`pwd`
 CPPTRAJBIN=$CPPTRAJHOME/bin
 DIRECTIVES=""
 DBGFLAGS=""
 OPTFLAGS=""
 OMPFLAGS=""
+FFLAGS=""
+FOPTFLAGS=""
 LDFLAGS=""
 BZLIB="-lbz2"
 ZLIB="-lz"
 NETCDFLIB="-lnetcdf"
+BLAS=$AMBERHOME/lib/blas.a
+LAPACK=$AMBERHOME/lib/lapack.a
+ARPACK=$AMBERHOME/lib/arpack.a
+FLIBS=""
+PTRAJ_OBJECTS="thermo.o pubfft.o"
 #HDF5LIB="-lhdf5_hl -lhdf5"
 HDF5LIB=""
 LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
@@ -163,15 +194,23 @@ while [[ ! -z $1 ]] ; do
       echo "Using gnu compilers"
       CC=gcc
       CXX=g++
+      FC=gfortran
       OPTFLAGS="-O3 -Wall"
       OMPFLAGS="-fopenmp"
+      FFLAGS="-ffree-form"
+      FOPTFLAGS="-O3"
+      FLIBS="$FLIBS -lgfortran -w"
       ;;
     "intel" )
       echo "Using intel compilers"
       CC=icc
       CXX=icpc
+      FC=ifort
       OPTFLAGS="-O3 -Wall"
       OMPFLAGS="-openmp"
+      FFLAGS="-FR"
+      FOPTFLAGS="-ip -O3"
+      FLIBS="$FLIBS -lifport -lifcore"
       ;; 
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"
@@ -252,6 +291,7 @@ fi
 # Remove opt flags if specified
 if [[ $OPT -eq 0 ]] ; then
   OPTFLAGS=""
+  FOPTFLAGS=""
 fi
 
 # If no netcdf specified and AMBERHOME defined use netcdf from AMBERHOME
@@ -282,6 +322,7 @@ if [[ $USEMPI -eq 1 ]] ; then
   echo "Using MPI"
   CC=mpicc
   CXX=mpicxx
+  FC=mpif90
   DIRECTIVES="$DIRECTIVES -DMPI"
 fi
 
@@ -294,6 +335,7 @@ fi
 
 CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
+FFLAGS="$FFLAGS $DBGFLAGS $FOPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 
 # Add C++ specific debug flags if debug info on
 if [[ ! -z $DBGFLAGS ]] ; then
@@ -311,7 +353,6 @@ elif [[ $PROFILE -eq 2 && $CXX = "g++" ]] ; then
   CXXFLAGS="-D_GLIBCXX_PROFILE $CXXFLAGS"
 fi
 
-
 # Test compilers
 TestCompile
 
@@ -325,14 +366,22 @@ CPPTRAJBIN=$CPPTRAJBIN
 
 CC=$CC
 CXX=$CXX
+FC=$FC
 CFLAGS=$CFLAGS
 CXXFLAGS=$CXXFLAGS
+FFLAGS=$FFLAGS
 ZLIB=$ZLIB
 BZLIB=$BZLIB
 NETCDFLIB=$NETCDFLIB
+ARPACK=$ARPACK
+LAPACK=$LAPACK
+BLAS=$BLAS
+FLIBS=$FLIBS
 
 LDFLAGS=$LDFLAGS
 SFX=
+
+PTRAJ_OBJECTS=$PTRAJ_OBJECTS
 
 EOF
 

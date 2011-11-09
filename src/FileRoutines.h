@@ -1,6 +1,9 @@
 #ifndef INC_FILEROUTINES_H
 #define INC_FILEROUTINES_H
 
+// NOTE: When adding to FileFormat etc be sure to update FileFormatList
+// in FileRoutines.c
+
 /* FILE FORMAT:
  * File format specifies how the data in the file is organized. Not used by
  * Ptrajfile itself but by higher-level classes.
@@ -8,7 +11,8 @@
 enum FileFormat {
   UNKNOWN_FORMAT, PDBFILE, AMBERTRAJ, AMBERNETCDF, AMBERPARM,
   DATAFILE, AMBERRESTART, AMBERREMD, XMGRACE, CONFLIB,
-  AMBERRESTARTNC, MOL2FILE, GNUPLOT, CHARMMPSF, CHARMMDCD
+  AMBERRESTARTNC, MOL2FILE, GNUPLOT, CHARMMPSF, CHARMMDCD,
+  OLDAMBERPARM
 };
     
 /* FILE TYPE:
