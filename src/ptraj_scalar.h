@@ -62,11 +62,16 @@ typedef struct _scalarInfo {
 #define INITIALIZE_scalarInfo(_p_) \
   _p_->name      = NULL; \
   _p_->filename  = NULL; \
-  _p_->mode      = SCALAR_TYPE_UNDEFINED; \
+  _p_->mode      = SCALAR_NULL; \
+  _p_->type      = SCALAR_TYPE_UNDEFINED; \
   _p_->atom1 = -1; _p_->atom2 = -1; _p_->atom3 = -1; _p_->atom4 = -1; _p_->atom5 = -1; \
   _p_->mask1=NULL; _p_->mask2=NULL; _p_->mask3=NULL; _p_->mask4=NULL; _p_->mask5=NULL; \
   _p_->totalFrames = 0;  \
   _p_->frame     = 0;    \
+  _p_->mean      = 0.0; \
+  _p_->stddev     = 0.0; \
+  _p_->max       = 0.0; \
+  _p_->min       = 0.0; \
   _p_->bound     = 0.0;    \
   _p_->boundh    = 0.0;    \
   _p_->state     = NULL; \

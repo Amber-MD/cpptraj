@@ -61,16 +61,16 @@ typedef struct _modesInfo {
   _p_->freq      = NULL;          \
   _p_->evec      = NULL;
 
-#ifndef EVEC_MODULE
-#  ifdef __STDC__
+//#ifndef EVEC_MODULE
+//#  ifdef __STDC__
 
-extern int readEvecFile(FILE *, int, int, modesInfo *);
+int readEvecFile(FILE *, int, int, modesInfo *);
 
-#  else
+//#  else
 
-extern int readEvecFile();
+//extern int readEvecFile();
 
-#  endif
-#endif
+//#  endif
+//#endif
 
 #endif
