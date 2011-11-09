@@ -86,7 +86,7 @@ TestCompile() {
   # C
   echo "Testing C compiler:"
   WriteTestProgram testp.c
-  $CC $CFLAGS -o testp testp.c $BZLIB $NETCDFLIB $ZLIB 
+  $CC $CFLAGS -o testp testp.c $BZLIB $NETCDFLIB $ZLIB > /dev/null 2>&1 
   ./testp | grep "Testing" > /dev/null
   status=$?
   if [[ $status -gt 0 ]] ; then
@@ -105,7 +105,7 @@ TestCompile() {
   # C++
   echo "Testing C++ compiler:"
   WriteTestProgram testp.cpp
-  $CXX $CXXFLAGS -o testp testp.cpp $BZLIB $NETCDFLIB $ZLIB
+  $CXX $CXXFLAGS -o testp testp.cpp $BZLIB $NETCDFLIB $ZLIB > /dev/null 2>&1
   ./testp | grep "Testing" > /dev/null
   status=$?
   if [[ $status -gt 0 ]] ; then
@@ -128,7 +128,7 @@ TestCompile() {
       write(6,*) 'testing a Fortran program'
       end program testf
 EOF
-  $FC $FFLAGS -o testp testp.f 
+  $FC $FFLAGS -o testp testp.f > /dev/null 2>&1
   ./testp | grep "testing a Fortran program" > /dev/null
   status=$?
   if [[ $status -gt 0 ]] ; then
