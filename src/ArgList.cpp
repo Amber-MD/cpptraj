@@ -121,6 +121,12 @@ void ArgList::MarkAll() {
     marked[arg]=true;
 }
 
+// ArgList::MarkArg()
+void ArgList::MarkArg(unsigned int arg) {
+  if (arg < 0 || arg >= marked.size()) return;
+  marked[arg]=true;
+}
+
 // ArgList::CheckForMoreArgs()
 /** Check if all arguments have been processed. If not print a warning along
   * with all unprocessed arguments.

@@ -37,6 +37,8 @@ class ArgList {
     void ResetMarked(bool);
     /// Mark all arguments
     void MarkAll();
+    /// Mark given argument
+    void MarkArg(unsigned int);
     /// Print a warning if not all arguments are marked
     void CheckForMoreArgs();
     /// Print the argument list
