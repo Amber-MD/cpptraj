@@ -277,7 +277,7 @@ int CpptrajFile::SetupRead() {
   char buffer1[BUFFER_SIZE], buffer2[BUFFER_SIZE];
   char *CheckConventions; // Only used to check if netcdf is traj or restart
   float TrajCoord[10];
-  int iamber[10];
+  int iamber[12];
   int i;
   struct stat frame_stat;
 
