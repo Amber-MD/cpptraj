@@ -27,6 +27,7 @@
 #include "Action_Clustering.h"
 #include "Action_Pairwise.h"
 #include "Action_PtrajAction.h"
+#include "Action_Molsurf.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() {
@@ -87,6 +88,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("jcoupling")){Act=new Jcoupling;}
   else if (argIn.CommandIs("cluster"))  {Act=new Clustering;}
   else if (argIn.CommandIs("pairwise")) {Act=new Pairwise;}
+  else if (argIn.CommandIs("molsurf"))  {Act=new Molsurf; }
   // PTRAJ
   else if (argIn.CommandIs("atomicfluct") ||
            argIn.CommandIs("atomicfluct3D") ||
