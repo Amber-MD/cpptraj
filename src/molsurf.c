@@ -15,7 +15,7 @@
 
 // ---------- DEFINES ----------------------------------------------------------
 #define ERROR (-1)
-#define MAXAT 100000
+//#define MAXAT 100000
 #define MAXRES 5000
 // NOTE: Replace these with Constants.h eventually
 #define PI   3.14159265358979323846
@@ -23,7 +23,6 @@
 #define Rad2Deg      (180.0/PI)
 #define Deg2Rad      (PI/180.0)
 
-#define MAXAT_EDGE        30
 #define MAXAT_CYCLES      10
 #define MAXTOR_PROBE      10
 #define MAXTOR_EDGE       20
@@ -33,7 +32,6 @@
 #define BURIED_TORUS      -2
 #define MAX_FACE_CYCLES    4
 #define MAXTMP            20
-//#define USAGE "Usage: %s pqrfile probe_rad\n", argv[0]
 // size limitations: these are multiplied by the number of atoms 
 #define NUM_NEIGHBOR 100
 #define NUM_PROBE 100
@@ -44,7 +42,6 @@
 #define NUM_VERTEX 20
 #define NUM_EDGE 20
 #define NUM_CUSP 20
-#define NAME_SIZE 8
 
 #define DOT(pi,pj) ( (pi)[0]*(pj)[0] + (pi)[1]*(pj)[1] + (pi)[2]*(pj)[2] )
 
@@ -57,33 +54,12 @@
 int natm_sel = 0;
 
 // ---------- DATA structures --------------------------------------------------
-typedef REAL_T POINT[3];
 typedef struct res {
 #ifdef DEBUG
         char nam[NAME_SIZE];
 #endif
         int num;
 } RES;
-typedef struct atom {
-        POINT pos;
-        REAL_T q, rad;
-        char anam[NAME_SIZE];
-        char rnam[NAME_SIZE];
-        int anum;
-        int rnum;
-        int buried;     /* 1 = buried */
-        int neighbor_start, n_neighbors;
-        int upper_start, n_upper;   /* points to neighbor_torus struct */
-        int torus_start;            /* points to torus struct */
-    int ntorus; /* note that the toruslist[] only contains pairs of atoms 
-                         in ascending order if you want all tori that contain an 
-                         atom you have to look through the whole toruslist  */
-        int n_convex_edges;     /*  convex edges associated with atom */
-        int convex_edges[MAXAT_EDGE]; /*  convex edges associated with atom */
-        int n_cycles;       /*  cycles of edges associated with atom */
-        int cycle_start;    /*  points to start of cyclelist for the atom */
-        REAL_T area;    /* accessible surface area  associated with the atom */
-} ATOM;
 typedef struct neighbor_torus {
         int iatom;
         int nprobes;    /* -1 = buried, 0 = free, +1 = partially free */
@@ -237,9 +213,8 @@ typedef struct extreme_vertex {
 // =============================================================================
 //                    INTERNAL FUNCTIONS
 // -----------------------------------------------------------------------------
-static void check_broken_faces (n_broken_concave_faces, broken_concave_face)
-	 int n_broken_concave_faces;
-	 BROKEN_CONCAVE_FACE broken_concave_face[];
+static void check_broken_faces(int n_broken_concave_faces,
+                               BROKEN_CONCAVE_FACE broken_concave_face[])
 {
   int i;
   for (i = 0; i < n_broken_concave_faces; ++i) {
@@ -250,13 +225,8 @@ static void check_broken_faces (n_broken_concave_faces, broken_concave_face)
   }
 }
 
-static void add_edge (n_edges, edge, v1, v2, icircle,
-		  vertex, circle)
-	 int *n_edges;
-	 EDGE edge[];
-	 int v1, v2, icircle;
-	 VERTEX vertex[];
-	 CIRCLE circle[];
+static void add_edge(int *n_edges, EDGE edge[], int v1, int v2, int icircle,
+                     VERTEX vertex[], CIRCLE circle[])
 {
   int ii;
   REAL_T d1, d2, r2;
@@ -392,7 +362,6 @@ static void add_saddle_face (saddle_face, nface, itorus,
 }
 
 /***********************************************************************/
-/*
 static void memory_usage ()
 {
 
@@ -447,7 +416,7 @@ static void memory_usage ()
   printf ("Sum total             %ld\n\n", total);
 
   return;
-}*/
+}
 
 static void vnorm (v, n)
 	 REAL_T v[];
@@ -6549,12 +6518,6 @@ static void non_axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probel
 }
 
 
-
-
-
-
-
-
 #ifdef trim_3_cusps
 static void trim_3_cusps (probe, nverts, vertex, n_concave_edges,
 			  concave_edge, n_concave_circles, concave_circle,
@@ -7966,13 +7929,12 @@ static int readpqr(FILE *pqrfile)
   return(nat);
 } */
 /*****************************************************************************/
-REAL_T molsurf(REAL_T probe_rad, REAL_T *coords, int natomIn, NAME *namesIn, 
-               NAME *resnamesIn, int *resnumsIn, REAL_T *chargesIn, REAL_T *radiiIn) 
+REAL_T molsurf(REAL_T probe_rad, ATOM *atom, int natomIn)
 {
   // --------------------
-  ATOM *atom;
+  //ATOM *atom;
   RES res[MAXRES]; 
-  int  nat,nres, i3, error_status;
+  int  nat, error_status;
   /* neighbor arrays:  these are big so amount of data stored must be small
      upper_neighbors is of the NEIGHBOR_TORUS type, which contains 2
      small ints, one for the index of the neighbor the other for the
@@ -8014,55 +7976,13 @@ REAL_T molsurf(REAL_T probe_rad, REAL_T *coords, int natomIn, NAME *namesIn,
   int n_convex_circles = 0, n_concave_circles = 0, n_low_torus = 0;
   int n_cusps = 0;
   int n_cusp_pairs = 0;
-
-  //int getneighbors ();
-  //void memory_usage ();
-  //int get_probes (), t_buried (), get_torus (), convex_circles ();
-  //void sort_edges (), convex_edges (), cycles ();
-  //void draw_edges (), convex_faces ();
-  //void convex_faces ();
-  //void write_verts ();
-  //int concave_area (), saddle_area ();
-  //REAL_T convex_area (), get_cone_area ();
   REAL_T conv_area, conc_area, sad_area, cone_area;
-  //int broken_concave_area ();
   REAL_T broken_conc_area;
-  //void make_cones (), make_broken_faces (), axial_trim ();
-  //void non_axial_trim ();
-  //void concentric_axial_cusps ();
-  //void check_broken_faces ();
 
-            //&atom[nat].anum, atom[nat].anam, atom[nat].rnam, &atom[nat].rnum,
-            //&atom[nat].pos[0], &atom[nat].pos[1], &atom[nat].pos[2],
-            //&atom[nat].q, &atom[nat].rad);
-  // Convert input coordinates to molsurf format
-  atom = (ATOM*) malloc(natomIn * sizeof(ATOM));
-  if (atom==NULL) {
-    fprintf(stderr,"Error: molsurf: Could not allocate memory for ATOMs.\n");
-    return ERROR;
-  }
-  nres=0;
-  i3 = 0;
-  for (nat = 0; nat < natomIn; nat++) {
-    // Increment residue if necessary
-    if (nat >= resnumsIn[nres+1]) nres++;
-    atom[nat].anum = nat + 1; // based on readpqr, atoms start from 1
-    strcpy(atom[nat].anam,namesIn[nat]);
-    strcpy(atom[nat].rnam,resnamesIn[nres]);
-    atom[nat].rnum = nres + 1; // again based on readpqr, residues start from 1
-    atom[nat].pos[0] = coords[i3++];
-    atom[nat].pos[1] = coords[i3++];
-    atom[nat].pos[2] = coords[i3++];
-    atom[nat].q = chargesIn[nat];
-    atom[nat].rad = radiiIn[nat];
-  }
-    
-/*  Take info from NAB molecule and put into Paul's data structure,
-   (only for atoms matching aex).                                    */
   nat = natomIn;
   natm_sel = nat;
   error_status = 0;
-// ---------- Allocate Memory --------------------
+  // ---------- Allocate Memory --------------------
   if ((upper_neighbors = (NEIGHBOR_TORUS *) malloc (
 		NUM_NEIGHBOR * natm_sel * sizeof (NEIGHBOR_TORUS))) == NULL) {
 	fprintf (stderr, "Unable to allocate space for upper_neighbors\n");
@@ -8158,10 +8078,10 @@ REAL_T molsurf(REAL_T probe_rad, REAL_T *coords, int natomIn, NAME *namesIn,
 	fprintf (stderr, "Unable to allocate space for cusp_pair\n");
 	error_status++;
   }
-// ------------------------------
-//#ifdef DEBUG
-//  memory_usage ();
-//#endif
+  // ------------------------------
+#ifdef DEBUG
+  memory_usage ();
+#endif
   if (error_status == 0) {
 
     getneighbors (nat, atom, neighbors, upper_neighbors, probe_rad);
@@ -8359,7 +8279,7 @@ REAL_T molsurf(REAL_T probe_rad, REAL_T *coords, int natomIn, NAME *namesIn,
   free (low_torus);
   free (cusp_edge);
   free (cusp_pair);
-  free (atom);
+  //free (atom);
   // ------------------------------ 
 
   if (error_status != 0) return ERROR;
