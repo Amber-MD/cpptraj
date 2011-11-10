@@ -89,6 +89,18 @@ void CpptrajState::Dispatch(char *inputLine) {
     return;
   }
 
+  // Mask Selection.
+  if (dispatchArg.CommandIs("select")) {
+    tempParm = parmFileList.GetParm(dispatchArg);
+    AtomMask *tempMask = new AtomMask();
+    tempMask->SetMaskString( dispatchArg.getNextMask() );
+    // NOTE: No coords for now, Frame list not set up.
+    tempMask->SetupMask( tempParm, NULL, debug );
+    tempMask->PrintMaskAtoms();
+    delete tempMask;
+    return;
+  }
+
   // Check if command pertains to coordinate lists
   // If it does, get a parm based on parm/parmindex keywords in arg list
   if (dispatchArg.CommandIs("trajin")) {
