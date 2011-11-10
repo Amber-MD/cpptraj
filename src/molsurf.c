@@ -1377,10 +1377,10 @@ static void addvert (probe_rad, ia, atom, ip, probe, nverts, vert)
   /* in counter-clockwise orientation.  This should be taken care of by         */
   /* add_probe()                                                                */
 /******************************************************************************/
-
-static void concave_edges (probe_rad, atom, nprobes, probe, nverts, vert,
-			   nedges, edge, nfaces, face, ntorus, torus)
-	 REAL_T probe_rad;
+static void concave_edges (REAL_T probe_rad, ATOM atom[], int nprobes, PROBE probe[], 
+                           int *nverts, VERTEX vert[], int *nedges, EDGE edge[], 
+                           int *nfaces, CONCAVE_FACE face[], int ntorus, TORUS torus[])
+/*	 REAL_T probe_rad;
 	 ATOM atom[];
 	 int nprobes;
 	 PROBE probe[];
@@ -1391,7 +1391,7 @@ static void concave_edges (probe_rad, atom, nprobes, probe, nverts, vert,
 	 int *nfaces;
 	 CONCAVE_FACE face[];
 	 int ntorus;
-	 TORUS torus[];
+	 TORUS torus[];*/
 {
   int ic1, ic2, ic3;			/* 3 circles on probe */
   int iv1, iv2;			/* vertices for the 3 atoms touching the probe */
@@ -4366,130 +4366,51 @@ static void axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probelist,
   return;
 }
 
-/* concentric_axial_cusps(): at this stage if a face has 2 or 3 
-   axial cusps from the same probe, then it must be split up, and
-   so must the face adjoining those cusps. */
-
-static void concentric_axial_cusps (n_concave_edges, concave_edge,
-						n_broken_concave_faces, broken_concave_face,
-						concave_cycle, n_concave_cycles, cusp_edge, n_cusps)
-	 int *n_concave_edges;
+/******************************************************************/
+static void dump_cycle (concave_cycle, concave_edge)
+	 CONCAVE_CYCLE *concave_cycle;
 	 EDGE concave_edge[];
-	 int *n_broken_concave_faces;
-	 BROKEN_CONCAVE_FACE broken_concave_face[];
-	 CONCAVE_CYCLE concave_cycle[];
-	 int *n_concave_cycles;
-	 CUSP_EDGE cusp_edge[];
-	 int *n_cusps;
 {
-  int icycle, jcycle, iprobe, jprobe, icusp, jcusp;
-  void reroute ();
+  int i, ie;
 
-#ifdef DEBUG
-  printf ("trimming concentric axial cusps\n");
-#endif
-  for (icusp = 0; icusp < *n_cusps; ++icusp) {
-	iprobe = cusp_edge[icusp].probe1;
-	jprobe = cusp_edge[icusp].probe2;
-	icycle = cusp_edge[icusp].cycle1;
-	jcycle = cusp_edge[icusp].cycle2;
-	for (jcusp = icusp + 1; jcusp < *n_cusps; ++jcusp) {
-	  if ((cusp_edge[jcusp].probe1 == iprobe ||
-		   cusp_edge[jcusp].probe1 == jprobe) &&
-		  (cusp_edge[jcusp].probe2 == iprobe ||
-		   cusp_edge[jcusp].probe2 == jprobe)) {
+  printf ("\n");
+  printf ("cycle has %d edges:", concave_cycle->nedges);
+  for (i = 0; i < concave_cycle->nedges; ++i) {
+	ie = concave_cycle->edge[i];
+	if (concave_cycle->edge_direction[i] == 1)
+	  if (concave_cycle->cusp_edge[i] == -1)
+		printf (" %d (%d %d)", ie, concave_edge[ie].vert1, concave_edge[ie].vert2);
+	  else
+		printf (" %d (C %d %d)", ie, concave_edge[ie].vert1, concave_edge[ie].vert2);
+	else if (concave_cycle->cusp_edge[i] == -1)
+	  printf (" %d ((%d %d))", ie, concave_edge[ie].vert1, concave_edge[ie].vert2);
+	else
+	  printf (" %d ((C %d %d))", ie, concave_edge[ie].vert1, concave_edge[ie].vert2);
+  }
+  printf ("\n\n");
+}
 
-		if ((cusp_edge[jcusp].cycle1 != icycle &&
-			 cusp_edge[jcusp].cycle1 != jcycle) ||
-			(cusp_edge[jcusp].cycle2 != icycle &&
-			 cusp_edge[jcusp].cycle2 != jcycle)) {
-
-		  printf ("concentric_axial_cusps(): cycle mismatch\n");
-		  exit (ERROR);
-		}
-#ifdef DEBUG
-		printf ("rerouting cycles %d and %d\n", icycle, jcycle);
-#endif
-		reroute (icycle, jcycle, icusp, jcusp, n_concave_cycles, concave_cycle,
-				 cusp_edge, concave_edge, n_broken_concave_faces, broken_concave_face);
-		cusp_edge[icusp].concentric_pair = 1;
-		cusp_edge[jcusp].concentric_pair = 1;
-	  }
+/******************************************************************/
+static int next_cycle_edge (cycle, concave_edge, next_vert, edge_used)
+	 CONCAVE_CYCLE cycle;
+	 EDGE concave_edge[];
+	 int next_vert;
+	 int edge_used[];
+{
+  int i;
+  for (i = 0; i < cycle.nedges; ++i) {
+	if (!edge_used[i] &&
+		(concave_edge[cycle.edge[i]].vert1 == next_vert ||
+		 concave_edge[cycle.edge[i]].vert2 == next_vert)) {
+	  edge_used[i] = 1;
+	  return i;
 	}
   }
+  printf ("next_cycle_edge(): could not find next edge with vertex %d\n", next_vert);
+  exit (ERROR);
+  return -1;
 }
-/***************************************************************/
-static void reroute (icycle, jcycle, cusp1, cusp2,
-		 n_concave_cycles, concave_cycle, cusp_edge, concave_edge,
-		 n_broken_concave_faces, broken_concave_face)
-	 int icycle, jcycle, cusp1, cusp2, *n_concave_cycles;
-	 CONCAVE_CYCLE concave_cycle[];
-	 CUSP_EDGE cusp_edge[];
-	 EDGE concave_edge[];
-	 int *n_broken_concave_faces;
-	 BROKEN_CONCAVE_FACE broken_concave_face[];
-{
-  int ii, jj, iedge1, iedge2, ie1, ie2, je;
-  void dump_cycle (), split_cycle ();
-  int direction1, endpoint1, direction2, endpoint2;
 
-  for (ii = 0; ii < concave_cycle[icycle].nedges; ++ii) {
-	if (concave_cycle[icycle].cusp_edge[ii] == cusp1)
-	  iedge1 = ii;
-	if (concave_cycle[icycle].cusp_edge[ii] == cusp2)
-	  iedge2 = ii;
-  }
-  ie1 = cusp_edge[concave_cycle[icycle].cusp_edge[iedge1]].edge;
-  ie2 = cusp_edge[concave_cycle[icycle].cusp_edge[iedge2]].edge;
-  direction1 = concave_cycle[icycle].edge_direction[iedge1];
-  direction2 = concave_cycle[icycle].edge_direction[iedge2];
-
-  if (direction1 == 1)
-	endpoint1 = concave_edge[ie1].vert2;
-  else
-	endpoint1 = concave_edge[ie1].vert1;
-
-  if (direction2 == 1)
-	endpoint2 = concave_edge[ie2].vert2;
-  else
-	endpoint2 = concave_edge[ie2].vert1;
-
-  if (direction1 == 1)
-	concave_edge[ie1].vert2 = endpoint2;
-  else
-	concave_edge[ie1].vert1 = endpoint2;
-
-  if (direction2 == 1)
-	concave_edge[ie2].vert2 = endpoint1;
-  else
-	concave_edge[ie2].vert1 = endpoint1;
-
-  /* need to correct jcycle now */
-  for (jj = 0; jj < concave_cycle[jcycle].nedges; ++jj) {
-	if (concave_cycle[jcycle].cusp_edge[jj] != -1) {
-	  je = cusp_edge[concave_cycle[jcycle].cusp_edge[jj]].edge;
-	  if (je == ie1) {
-		concave_cycle[jcycle].edge_direction[jj] =
-		  -concave_cycle[icycle].edge_direction[iedge1];
-		concave_cycle[jcycle].edge[jj] = concave_cycle[icycle].edge[iedge1];
-	  } else if (je == ie2) {
-		concave_cycle[jcycle].edge_direction[jj] =
-		  -concave_cycle[icycle].edge_direction[iedge2];
-		concave_cycle[jcycle].edge[jj] = concave_cycle[icycle].edge[iedge2];
-	  } else {
-		printf ("reroute(): cusp edge mismatch\n");
-		exit (ERROR);
-	  }
-	}
-  }
-  /* dump_cycle(&concave_cycle[icycle], concave_edge);
-     dump_cycle(&concave_cycle[jcycle], concave_edge); */
-  split_cycle (n_broken_concave_faces, broken_concave_face, n_concave_cycles, concave_cycle,
-			   icycle, concave_edge, cusp_edge);
-  split_cycle (n_broken_concave_faces, broken_concave_face, n_concave_cycles, concave_cycle,
-			   jcycle, concave_edge, cusp_edge);
-  return;
-}
 /*****************************************************************/
 static void split_cycle (n_broken_concave_faces, broken_concave_face, n_concave_cycles, concave_cycle,
 			 icycle, concave_edge, cusp_edge)
@@ -4505,8 +4426,8 @@ static void split_cycle (n_broken_concave_faces, broken_concave_face, n_concave_
   int *edge_used;
   int iface, ntot, i, first_vert, next_vert, ne, iedge;
   int ncycle, istart, no_start, icusp;
-  void dump_cycle ();
-  int next_cycle_edge ();
+  //void dump_cycle ();
+  //int next_cycle_edge ();
 
   if ((edge_used = (int *) malloc (NUM_EDGE * natm_sel * sizeof (int))) == NULL) {
 	fprintf (stderr, "Unable to allocate space for edge_used\n");
@@ -4647,299 +4568,329 @@ static void split_cycle (n_broken_concave_faces, broken_concave_face, n_concave_
   free (edge_used);
   return;
 }
-/******************************************************************/
 
-static int next_cycle_edge (cycle, concave_edge, next_vert, edge_used)
-	 CONCAVE_CYCLE cycle;
+/***************************************************************/
+static void reroute (icycle, jcycle, cusp1, cusp2,
+		 n_concave_cycles, concave_cycle, cusp_edge, concave_edge,
+		 n_broken_concave_faces, broken_concave_face)
+	 int icycle, jcycle, cusp1, cusp2, *n_concave_cycles;
+	 CONCAVE_CYCLE concave_cycle[];
+	 CUSP_EDGE cusp_edge[];
 	 EDGE concave_edge[];
-	 int next_vert;
-	 int edge_used[];
+	 int *n_broken_concave_faces;
+	 BROKEN_CONCAVE_FACE broken_concave_face[];
 {
-  int i;
-  for (i = 0; i < cycle.nedges; ++i) {
-	if (!edge_used[i] &&
-		(concave_edge[cycle.edge[i]].vert1 == next_vert ||
-		 concave_edge[cycle.edge[i]].vert2 == next_vert)) {
-	  edge_used[i] = 1;
-	  return i;
+  int ii, jj, iedge1, iedge2, ie1, ie2, je;
+  //void dump_cycle (), split_cycle ();
+  int direction1, endpoint1, direction2, endpoint2;
+
+  for (ii = 0; ii < concave_cycle[icycle].nedges; ++ii) {
+	if (concave_cycle[icycle].cusp_edge[ii] == cusp1)
+	  iedge1 = ii;
+	if (concave_cycle[icycle].cusp_edge[ii] == cusp2)
+	  iedge2 = ii;
+  }
+  ie1 = cusp_edge[concave_cycle[icycle].cusp_edge[iedge1]].edge;
+  ie2 = cusp_edge[concave_cycle[icycle].cusp_edge[iedge2]].edge;
+  direction1 = concave_cycle[icycle].edge_direction[iedge1];
+  direction2 = concave_cycle[icycle].edge_direction[iedge2];
+
+  if (direction1 == 1)
+	endpoint1 = concave_edge[ie1].vert2;
+  else
+	endpoint1 = concave_edge[ie1].vert1;
+
+  if (direction2 == 1)
+	endpoint2 = concave_edge[ie2].vert2;
+  else
+	endpoint2 = concave_edge[ie2].vert1;
+
+  if (direction1 == 1)
+	concave_edge[ie1].vert2 = endpoint2;
+  else
+	concave_edge[ie1].vert1 = endpoint2;
+
+  if (direction2 == 1)
+	concave_edge[ie2].vert2 = endpoint1;
+  else
+	concave_edge[ie2].vert1 = endpoint1;
+
+  /* need to correct jcycle now */
+  for (jj = 0; jj < concave_cycle[jcycle].nedges; ++jj) {
+	if (concave_cycle[jcycle].cusp_edge[jj] != -1) {
+	  je = cusp_edge[concave_cycle[jcycle].cusp_edge[jj]].edge;
+	  if (je == ie1) {
+		concave_cycle[jcycle].edge_direction[jj] =
+		  -concave_cycle[icycle].edge_direction[iedge1];
+		concave_cycle[jcycle].edge[jj] = concave_cycle[icycle].edge[iedge1];
+	  } else if (je == ie2) {
+		concave_cycle[jcycle].edge_direction[jj] =
+		  -concave_cycle[icycle].edge_direction[iedge2];
+		concave_cycle[jcycle].edge[jj] = concave_cycle[icycle].edge[iedge2];
+	  } else {
+		printf ("reroute(): cusp edge mismatch\n");
+		exit (ERROR);
+	  }
 	}
   }
-  printf ("next_cycle_edge(): could not find next edge with vertex %d\n", next_vert);
-  exit (ERROR);
-  return -1;
+  /* dump_cycle(&concave_cycle[icycle], concave_edge);
+     dump_cycle(&concave_cycle[jcycle], concave_edge); */
+  split_cycle (n_broken_concave_faces, broken_concave_face, n_concave_cycles, concave_cycle,
+			   icycle, concave_edge, cusp_edge);
+  split_cycle (n_broken_concave_faces, broken_concave_face, n_concave_cycles, concave_cycle,
+			   jcycle, concave_edge, cusp_edge);
+  return;
+}
+
+/* concentric_axial_cusps(): at this stage if a face has 2 or 3 
+   axial cusps from the same probe, then it must be split up, and
+   so must the face adjoining those cusps. */
+static void concentric_axial_cusps (n_concave_edges, concave_edge,
+						n_broken_concave_faces, broken_concave_face,
+						concave_cycle, n_concave_cycles, cusp_edge, n_cusps)
+	 int *n_concave_edges;
+	 EDGE concave_edge[];
+	 int *n_broken_concave_faces;
+	 BROKEN_CONCAVE_FACE broken_concave_face[];
+	 CONCAVE_CYCLE concave_cycle[];
+	 int *n_concave_cycles;
+	 CUSP_EDGE cusp_edge[];
+	 int *n_cusps;
+{
+  int icycle, jcycle, iprobe, jprobe, icusp, jcusp;
+  //void reroute ();
+
+#ifdef DEBUG
+  printf ("trimming concentric axial cusps\n");
+#endif
+  for (icusp = 0; icusp < *n_cusps; ++icusp) {
+	iprobe = cusp_edge[icusp].probe1;
+	jprobe = cusp_edge[icusp].probe2;
+	icycle = cusp_edge[icusp].cycle1;
+	jcycle = cusp_edge[icusp].cycle2;
+	for (jcusp = icusp + 1; jcusp < *n_cusps; ++jcusp) {
+	  if ((cusp_edge[jcusp].probe1 == iprobe ||
+		   cusp_edge[jcusp].probe1 == jprobe) &&
+		  (cusp_edge[jcusp].probe2 == iprobe ||
+		   cusp_edge[jcusp].probe2 == jprobe)) {
+
+		if ((cusp_edge[jcusp].cycle1 != icycle &&
+			 cusp_edge[jcusp].cycle1 != jcycle) ||
+			(cusp_edge[jcusp].cycle2 != icycle &&
+			 cusp_edge[jcusp].cycle2 != jcycle)) {
+
+		  printf ("concentric_axial_cusps(): cycle mismatch\n");
+		  exit (ERROR);
+		}
+#ifdef DEBUG
+		printf ("rerouting cycles %d and %d\n", icycle, jcycle);
+#endif
+		reroute (icycle, jcycle, icusp, jcusp, n_concave_cycles, concave_cycle,
+				 cusp_edge, concave_edge, n_broken_concave_faces, broken_concave_face);
+		cusp_edge[icusp].concentric_pair = 1;
+		cusp_edge[jcusp].concentric_pair = 1;
+	  }
+	}
+  }
 }
 
 /*****************************************************************/
-
-static void non_axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probelist,
-
-				n_concave_faces, concave_face, n_vertex, vertexlist,
-				n_concave_edges, concave_edge,
-				n_concave_circles, concave_circle_list,
-				probe_rad,
-		n_low_torus, low_torus, n_broken_concave_faces, broken_concave_face,
-			 concave_cycle, n_concave_cycles, cone_face, cusp_edge, n_cusps,
-				cusp_pair, n_cusp_pairs)
-	 int nat;
-	 ATOM atom[];
-	 RES res[];
-	 int n_torus;
-	 TORUS toruslist[];
-	 int n_probes;
-	 PROBE probelist[];
-	 int n_concave_faces;
-	 CONCAVE_FACE concave_face[];
-	 int n_vertex;
-	 VERTEX vertexlist[];
-	 int *n_concave_edges;
-	 EDGE concave_edge[];
-	 int *n_concave_circles;
-	 CIRCLE concave_circle_list[];
-	 REAL_T probe_rad;
-	 int n_low_torus;
-	 LOW_TORUS low_torus[];
-	 int n_broken_concave_faces;
-	 BROKEN_CONCAVE_FACE broken_concave_face[];
-	 CONCAVE_CYCLE concave_cycle[];
-	 int n_concave_cycles;
-	 CONE_FACE cone_face[];
+static void get_probe_id (cusp_edge, icusp, jcusp, concave_cycle, probe1, probe2)
 	 CUSP_EDGE cusp_edge[];
-	 int *n_cusps;
-	 CUSP_PAIR cusp_pair[];
-	 int *n_cusp_pairs;
+	 int icusp, jcusp;
+	 CONCAVE_CYCLE concave_cycle[];
+	 int *probe1, *probe2;
 {
-  CUSP_GROUP *group;
-  int n_groups;
-  int icusp, jcusp, ig, i, j;
-  int iedge, jedge, icircle, jcircle;
-  int cycle_intersect ();
-  void trim_1_pair (), trim_2_pair (), trim_3_pair ();
-  int nc;
-  void cusp_intersect ();
-  int cusp_added;
-  int new_cusp_in_group ();
-  int number_of_cusps ();
-  int n;
-  void make_circle ();
-
-#ifdef DEBUG
-  printf ("non axial trim\n");
-  printf ("There are %d cusp edges\n", *n_cusps);
-#endif
-  if ((group = (CUSP_GROUP *) malloc (
-			NUM_CUSP * natm_sel * sizeof (CUSP_GROUP))) == NULL) {
-	fprintf (stderr, "Unable to allocate space for group\n");
-	exit (1);
+  if (cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle1) {
+	*probe1 = concave_cycle[cusp_edge[icusp].cycle2].iprobe;
+	*probe2 = concave_cycle[cusp_edge[jcusp].cycle2].iprobe;
+  } else if (cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle2) {
+	*probe1 = concave_cycle[cusp_edge[icusp].cycle2].iprobe;
+	*probe2 = concave_cycle[cusp_edge[jcusp].cycle1].iprobe;
+  } else if (cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle1) {
+	*probe1 = concave_cycle[cusp_edge[icusp].cycle1].iprobe;
+	*probe2 = concave_cycle[cusp_edge[jcusp].cycle2].iprobe;
+  } else if (cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle2) {
+	*probe1 = concave_cycle[cusp_edge[icusp].cycle1].iprobe;
+	*probe2 = concave_cycle[cusp_edge[jcusp].cycle1].iprobe;
+  } else {
+	printf ("get_probeid(): no cycles match\n");
+	exit (ERROR);
   }
-  *n_cusp_pairs = 0;
-  for (icusp = 0; icusp < *n_cusps; ++icusp) {
-	iedge = cusp_edge[icusp].edge;
-	icircle = concave_edge[iedge].circle;
-	if (cusp_edge[icusp].concentric_pair == 1)
-	  continue;
+}
 
-	/*
-	   for (jcusp = icusp+1; jcusp < *n_cusps; ++jcusp) {
-	   if (cusp_edge[jcusp].concentric_pair == 1) continue;
-	   cusp_intersect(cusp_edge, icusp, jcusp, probelist, concave_cycle,
-	   concave_edge, vertexlist, concave_circle_list, 
-	   probe_rad, cusp_pair, n_cusp_pairs);
+/************************************************************************/
+static int center_cycle (cusp, icusp, jcusp)
+	 CUSP_EDGE cusp[];
+	 int icusp, jcusp;
+{
+  if (cusp[icusp].cycle1 == cusp[jcusp].cycle1 ||
+	  cusp[icusp].cycle1 == cusp[jcusp].cycle2) {
+	return cusp[icusp].cycle1;
+  } else if
+	  (cusp[icusp].cycle2 == cusp[jcusp].cycle1 ||
+	   cusp[icusp].cycle2 == cusp[jcusp].cycle2) {
+	return cusp[icusp].cycle2;
+  } else {
+	printf ("center_cycle():no cusp match\n");
+	exit (ERROR);
+    return -1;
+  }
+}
 
-	   }
-	 */
 
-	for (jcusp = 0; jcusp < *n_cusps; ++jcusp) {
-	  if (icusp == jcusp)
-		continue;
-	  if (cusp_edge[jcusp].concentric_pair == 1)
-		continue;
-	  jedge = cusp_edge[jcusp].edge;
-	  jcircle = concave_edge[jedge].circle;
-	  if (concave_circle_list[icircle].rad < concave_circle_list[jcircle].rad) {
-		cusp_intersect (cusp_edge, icusp, jcusp, probelist, concave_cycle,
-						concave_edge, vertexlist, concave_circle_list,
-						probe_rad, cusp_pair, n_cusp_pairs);
-	  }
+/*****************************************************************/
+static void add_new_cusp (cusp_edge, icusp, jcusp, probe, concave_cycle,
+			  concave_edge, vertex, concave_circle,
+			  probe_rad, cusp_pair, n, angle_range, midpoint, c1,
+			  xaxis, yaxis, zaxis, flag)
+	 CUSP_EDGE cusp_edge[];
+	 int icusp, jcusp;
+	 PROBE probe[];
+	 CONCAVE_CYCLE concave_cycle[];
+	 EDGE concave_edge[];
+	 VERTEX vertex[];
+	 CIRCLE concave_circle[];
+	 REAL_T probe_rad;
+	 CUSP_PAIR cusp_pair[];
+	 int *n;
+	 REAL_T angle_range;
+	 POINT midpoint;
+	 int c1;
+	 POINT xaxis, yaxis, zaxis;
+	 int flag;
+{
+  REAL_T d_pp;
+  void get_probe_id ();
+  int p1, p2, ii;
+  POINT v1, v2;
+  int ie, iv1;
+  int center_cycle ();
+  POINT v_a, v_b, v_c;
+  REAL_T angle1, angle2;
+
+
+  for (ii = 0; ii < 3; ++ii) {
+	v1[ii] = midpoint[ii] +
+	  concave_circle[c1].rad * sin (angle_range) * zaxis[ii];
+	v2[ii] = midpoint[ii] -
+	  concave_circle[c1].rad * sin (angle_range) * zaxis[ii];
+  }
+  if (flag) {
+	printf ("angle range %8.1f\n", angle_range * Rad2Deg);
+	printf ("sin angle %8.3f\n", sin (angle_range));
+	printf ("radius %8.3f\n", concave_circle[c1].rad);
+	printf ("zaxis: %8.3f%8.3f%8.3f\n", zaxis[0], zaxis[1], zaxis[2]);
+
+	printf ("v1: %8.3f%8.3f%8.3f\n", v1[0], v1[1], v1[2]);
+	printf ("v2: %8.3f%8.3f%8.3f\n", v2[0], v2[1], v2[2]);
+  }
+  get_probe_id (cusp_edge, icusp, jcusp, concave_cycle, &p1, &p2);
+  d_pp = sqrt ((probe[p1].pos[0] - probe[p2].pos[0]) *
+			   (probe[p1].pos[0] - probe[p2].pos[0]) +
+			   (probe[p1].pos[1] - probe[p2].pos[1]) *
+			   (probe[p1].pos[1] - probe[p2].pos[1]) +
+			   (probe[p1].pos[2] - probe[p2].pos[2]) *
+			   (probe[p1].pos[2] - probe[p2].pos[2]));
+
+  cusp_pair[*n].cusp1 = icusp;
+  cusp_pair[*n].cusp2 = jcusp;
+  cusp_pair[*n].circle_rad = sqrt (probe_rad * probe_rad - d_pp * d_pp / 4);
+
+  cusp_pair[*n].cycle2 = center_cycle (cusp_edge, icusp, jcusp);
+  if (cusp_edge[icusp].cycle1 != cusp_pair[*n].cusp2) {
+	cusp_pair[*n].cycle1 = cusp_edge[icusp].cycle1;
+  } else {
+	cusp_pair[*n].cycle1 = cusp_edge[icusp].cycle2;
+  }
+  if (cusp_edge[jcusp].cycle1 != cusp_pair[*n].cusp2) {
+	cusp_pair[*n].cycle3 = cusp_edge[icusp].cycle1;
+  } else {
+	cusp_pair[*n].cycle3 = cusp_edge[icusp].cycle2;
+  }
+
+  for (ii = 0; ii < 3; ++ii) {
+	cusp_pair[*n].circle_center[ii] = 0.5 * (probe[p1].pos[ii] + probe[p2].pos[ii]);
+	cusp_pair[*n].circle_axis[ii] = probe[p1].pos[ii] - probe[p2].pos[ii];
+  }
+  vnorm (cusp_pair[*n].circle_axis, 3);
+  cusp_pair[*n].cusp1 = icusp;
+  cusp_pair[*n].cusp2 = jcusp;
+
+  /* now make sure you have the verts in the right order */
+  ie = cusp_edge[icusp].edge;
+  iv1 = concave_edge[ie].vert1;
+
+  for (ii = 0; ii < 3; ++ii) {
+	v_a[ii] = vertex[iv1].pos[ii] - concave_circle[c1].center[ii];
+	v_b[ii] = v1[ii] - concave_circle[c1].center[ii];
+	v_c[ii] = v2[ii] - concave_circle[c1].center[ii];
+  }
+
+  angle1 = get_angle (v_a, v_b, yaxis);
+  angle2 = get_angle (v_a, v_c, yaxis);
+  if (angle1 < 0.0)
+	angle1 = angle1 + 2 * PI;
+  if (angle2 < 0.0)
+	angle2 = angle2 + 2 * PI;
+
+  if (angle2 > angle1) {		/* order is correct */
+	for (ii = 0; ii < 3; ++ii) {
+	  cusp_pair[*n].vert1[ii] = v1[ii];
+	  cusp_pair[*n].vert2[ii] = v2[ii];
 	}
-
-  }
-  for (i = 0; i < *n_cusp_pairs; ++i) {
-	cusp_pair[i].group = -1;
-  }
-
-#ifdef DEBUG
-  printf ("number of cusp pairs %d\n", *n_cusp_pairs);
-#endif
-
-  ig = 0;
-  for (i = 0; i < *n_cusp_pairs; ++i) {
-	if (cusp_pair[i].group >= 0)
-	  continue;
-	cusp_pair[i].group = ig;
-	nc = 0;
-	group[ig].cusp_pair[nc] = i;
-	++nc;
-	group[ig].n_pairs = nc;
-
-	cusp_added = 1;
-
-	while (cusp_added) {
-	  cusp_added = 0;
-	  for (j = i + 1; j < *n_cusp_pairs; ++j) {
-		if (cusp_pair[j].group >= 0)
-		  continue;
-		if (new_cusp_in_group (j, ig, cusp_pair, group)) {
-		  cusp_pair[j].group = ig;
-		  group[ig].cusp_pair[nc] = j;
-		  ++nc;
-		  group[ig].n_pairs = nc;
-		  cusp_added = 1;
-		}
-	  }
-	}
-	++ig;
-  }
-
-  n_groups = ig;
-
-#ifdef DEBUG
-  printf ("cusp groups\n");
-  i = 0;
-  for (ig = 0; ig < n_groups; ++ig) {
-	printf ("group %d has %d cusp_pairs:", ig, group[ig].n_pairs);
-	for (nc = 0; nc < group[ig].n_pairs; ++nc) {
-	  inew = group[ig].cusp_pair[nc];
-	  printf ("  %d (%d %d)", inew, cusp_pair[inew].cusp1, cusp_pair[inew].cusp2);
-	}
-	printf ("\n");
-  }
-#endif
-
-  for (ig = 0; ig < n_groups; ++ig) {
-/******* TEMP ************/
-	/*
-	   if (ig == 0) continue;
-	   itmp = group[ig].cusp_pair[0];
-	   group[ig].cusp_pair[0] = group[ig].cusp_pair[1]; 
-	   group[ig].cusp_pair[1] = itmp;
-	   group[ig].n_pairs = 1;
-	   n_groups = 0;
-	   printf("ig = %d\n", ig);
-	   cusp1 = cusp_pair[group[ig].cusp_pair[0]].cusp1;
-	   cusp2 = cusp_pair[group[ig].cusp_pair[0]].cusp2;
-	   cusp3 = cusp_pair[group[ig].cusp_pair[1]].cusp1;
-	   cusp4 = cusp_pair[group[ig].cusp_pair[1]].cusp2;
-	   printf("cusp: %d probes: %d %d\n",  cusp1,
-	   cusp_edge[cusp1].probe1,
-	   cusp_edge[cusp1].probe2);
-	   printf("cusp: %d probes: %d %d\n",  cusp2,
-	   cusp_edge[cusp2].probe1,
-	   cusp_edge[cusp2].probe2);
-	   printf("cusp: %d probes: %d %d\n",  cusp3,
-	   cusp_edge[cusp3].probe1,
-	   cusp_edge[cusp3].probe2);
-	   printf("cusp: %d probes: %d %d\n",  cusp4,
-	   cusp_edge[cusp4].probe1,
-	   cusp_edge[cusp4].probe2);
-
-	   make_circle(probelist,probe_rad,
-	   n_concave_circles, concave_circle_list);
-	   exit(ERROR);
-	 */
-
-/******* END TEMP ************/
-#ifdef DEBUG
-	printf ("ig: %d\n", ig);
-	printf ("number of cusps %d\n", *n_cusps);
-#endif
-	n = number_of_cusps (group, ig, cusp_pair);
-	if (n == 1) {
-	  continue;
-	} else if (n == 2) {
-	  trim_2_cusps (probelist, &n_vertex, vertexlist, n_concave_edges,
-					concave_edge, n_concave_circles, concave_circle_list,
-					probe_rad, &n_broken_concave_faces, broken_concave_face,
-					concave_cycle, &n_concave_cycles, cusp_edge, n_cusps,
-					cusp_pair, n_cusp_pairs, group, ig);
-	} else if (n == 3) {
-	  printf ("WARNING: 3 cusps intersection: not trimmed (surface area will be slightly overestimated)\n");
-	  /*
-	     trim_3_cusps( probelist, &n_vertex, vertexlist, n_concave_edges,
-	     concave_edge, n_concave_circles, concave_circle_list,
-	     probe_rad, &n_broken_concave_faces, broken_concave_face,
-	     concave_cycle, &n_concave_cycles, cusp_edge, n_cusps,
-	     cusp_pair, n_cusp_pairs, group, ig);
-	   */
-	} else if (n == 4) {
-	  printf ("WARNING: 4 cusps intersection: not trimmed (surface area will be slightly overestimated\n");
-	  /*
-	     printf("trim 4 cusps\n");
-	     trim_4_cusps( probelist, &n_vertex, vertexlist, n_concave_edges,
-	     concave_edge, n_concave_circles, concave_circle_list,
-	     probe_rad, &n_broken_concave_faces, broken_concave_face,
-	     concave_cycle, &n_concave_cycles, cusp_edge, n_cusps,
-	     cusp_pair, n_cusp_pairs, group, ig);
-	   */
-	} else {
-	  printf ("WARNING: %d cusps intersection: not trimmed (surface area will be slightly overestimated)\n", n);
+  } else {
+	for (ii = 0; ii < 3; ++ii) {
+	  cusp_pair[*n].vert1[ii] = v2[ii];
+	  cusp_pair[*n].vert2[ii] = v1[ii];
 	}
   }
 
-  /*
-     for (ig = 0; ig < n_groups; ++ig) {
-     for (nc = 0; nc < group[ig].n_pairs; ++ nc) {
-     inew = group[ig].cusp_pair[nc]; 
-     printf("ATOM      1 O    VAN  %4d    %8.3f%8.3f%8.3f\n", ig,
-     cusp_pair[inew].circle_center[0], 
-     cusp_pair[inew].circle_center[1], 
-     cusp_pair[inew].circle_center[2]);
-     printf("ATOM      1 C    VAN  %4d    %8.3f%8.3f%8.3f\n", ig,
-     cusp_pair[inew].vert1[0], 
-     cusp_pair[inew].vert1[1], 
-     cusp_pair[inew].vert1[2]);
-     printf("ATOM      1 N    VAN  %4d    %8.3f%8.3f%8.3f\n", ig,
-     cusp_pair[inew].vert2[0], 
-     cusp_pair[inew].vert2[1], 
-     cusp_pair[inew].vert2[2]);
-     ++i;
-     }
-     }
-   */
-  /*
-     i = 0;
-     for (ig = 0; ig < n_groups; ++ig) {
-     for (nc = 0; nc < group[ig].n_pairs; ++ nc) {
-     inew = group[ig].cusp_pair[nc]; 
-     printf("%d %d\n", i+1, i+2);
-     printf("%d %d\n", i+1, i+3);
-     i = i + 3;
-     }
-     }
-   */
 
-  free (group);
+  ++(*n);
+  if (*n >= NUM_CUSP * natm_sel) {
+	printf ("add_new_cusp(): MAX_CUSP_PAIRS exceeded\n");
+	exit (ERROR);
+  }
   return;
 }
 
 /*****************************************************************/
-static int new_cusp_in_group (icusp, igroup, cusp_pair, group)
-	 CUSP_PAIR cusp_pair[];
-	 CUSP_GROUP group[];
-	 int icusp, igroup;
+static int get_cycle_id (cusp_edge, icusp, jcusp, flag)
+	 CUSP_EDGE cusp_edge[];
+	 int icusp, jcusp, flag;
 {
-  int nc;
-  int jcusp;
 
-  for (nc = 0; nc < group[igroup].n_pairs; ++nc) {
-	jcusp = group[igroup].cusp_pair[nc];
-	if (cusp_pair[icusp].cusp1 == cusp_pair[jcusp].cusp1 ||
-		cusp_pair[icusp].cusp2 == cusp_pair[jcusp].cusp1 ||
-		cusp_pair[icusp].cusp1 == cusp_pair[jcusp].cusp2 ||
-		cusp_pair[icusp].cusp2 == cusp_pair[jcusp].cusp2)
-	  return 1;
+  if (cusp_edge[icusp].cycle1 != cusp_edge[jcusp].cycle1 &&
+	  cusp_edge[icusp].cycle2 != cusp_edge[jcusp].cycle1 &&
+	  cusp_edge[icusp].cycle1 != cusp_edge[jcusp].cycle2 &&
+	  cusp_edge[icusp].cycle2 != cusp_edge[jcusp].cycle2)
+	return -1;
+
+  if ((cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle1 &&
+	   cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle2) ||
+	  (cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle1 &&
+	   cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle2)) {
+	printf ("cusps have identical cycles\n");
+	printf ("icusp %d cycles %d %d\n", icusp,
+			cusp_edge[icusp].cycle1, cusp_edge[icusp].cycle2);
+	printf ("jcusp %d cycles %d %d\n", jcusp,
+			cusp_edge[jcusp].cycle1, cusp_edge[jcusp].cycle2);
+	exit (ERROR);
   }
-  return 0;
+  if (cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle1 ||
+	  cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle2) {
+	return cusp_edge[icusp].cycle1;
+  } else if (cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle1 ||
+			 cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle2) {
+	return cusp_edge[icusp].cycle2;
+  } else {
+	printf ("no cycles found\n");
+	exit (ERROR);
+    return -1;
+  }
 }
+
 
 static void cusp_intersect (cusp_edge, icusp, jcusp, probe, concave_cycle,
 				concave_edge, vertex, concave_circle,
@@ -5213,198 +5164,38 @@ static void cusp_intersect (cusp_edge, icusp, jcusp, probe, concave_cycle,
 }
 
 /*****************************************************************/
-static int get_cycle_id (cusp_edge, icusp, jcusp, flag)
-	 CUSP_EDGE cusp_edge[];
-	 int icusp, jcusp, flag;
-{
-
-  if (cusp_edge[icusp].cycle1 != cusp_edge[jcusp].cycle1 &&
-	  cusp_edge[icusp].cycle2 != cusp_edge[jcusp].cycle1 &&
-	  cusp_edge[icusp].cycle1 != cusp_edge[jcusp].cycle2 &&
-	  cusp_edge[icusp].cycle2 != cusp_edge[jcusp].cycle2)
-	return -1;
-
-  if ((cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle1 &&
-	   cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle2) ||
-	  (cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle1 &&
-	   cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle2)) {
-	printf ("cusps have identical cycles\n");
-	printf ("icusp %d cycles %d %d\n", icusp,
-			cusp_edge[icusp].cycle1, cusp_edge[icusp].cycle2);
-	printf ("jcusp %d cycles %d %d\n", jcusp,
-			cusp_edge[jcusp].cycle1, cusp_edge[jcusp].cycle2);
-	exit (ERROR);
-  }
-  if (cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle1 ||
-	  cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle2) {
-	return cusp_edge[icusp].cycle1;
-  } else if (cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle1 ||
-			 cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle2) {
-	return cusp_edge[icusp].cycle2;
-  } else {
-	printf ("no cycles found\n");
-	exit (ERROR);
-    return -1;
-  }
-}
-
-/*****************************************************************/
-static void get_probe_id (cusp_edge, icusp, jcusp, concave_cycle, probe1, probe2)
-	 CUSP_EDGE cusp_edge[];
-	 int icusp, jcusp;
-	 CONCAVE_CYCLE concave_cycle[];
-	 int *probe1, *probe2;
-{
-  if (cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle1) {
-	*probe1 = concave_cycle[cusp_edge[icusp].cycle2].iprobe;
-	*probe2 = concave_cycle[cusp_edge[jcusp].cycle2].iprobe;
-  } else if (cusp_edge[icusp].cycle1 == cusp_edge[jcusp].cycle2) {
-	*probe1 = concave_cycle[cusp_edge[icusp].cycle2].iprobe;
-	*probe2 = concave_cycle[cusp_edge[jcusp].cycle1].iprobe;
-  } else if (cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle1) {
-	*probe1 = concave_cycle[cusp_edge[icusp].cycle1].iprobe;
-	*probe2 = concave_cycle[cusp_edge[jcusp].cycle2].iprobe;
-  } else if (cusp_edge[icusp].cycle2 == cusp_edge[jcusp].cycle2) {
-	*probe1 = concave_cycle[cusp_edge[icusp].cycle1].iprobe;
-	*probe2 = concave_cycle[cusp_edge[jcusp].cycle1].iprobe;
-  } else {
-	printf ("get_probeid(): no cycles match\n");
-	exit (ERROR);
-  }
-}
-/*****************************************************************/
-static void add_new_cusp (cusp_edge, icusp, jcusp, probe, concave_cycle,
-			  concave_edge, vertex, concave_circle,
-			  probe_rad, cusp_pair, n, angle_range, midpoint, c1,
-			  xaxis, yaxis, zaxis, flag)
-	 CUSP_EDGE cusp_edge[];
-	 int icusp, jcusp;
-	 PROBE probe[];
-	 CONCAVE_CYCLE concave_cycle[];
-	 EDGE concave_edge[];
-	 VERTEX vertex[];
-	 CIRCLE concave_circle[];
-	 REAL_T probe_rad;
+static int new_cusp_in_group (icusp, igroup, cusp_pair, group)
 	 CUSP_PAIR cusp_pair[];
-	 int *n;
-	 REAL_T angle_range;
-	 POINT midpoint;
-	 int c1;
-	 POINT xaxis, yaxis, zaxis;
-	 int flag;
+	 CUSP_GROUP group[];
+	 int icusp, igroup;
 {
-  REAL_T d_pp;
-  void get_probe_id ();
-  int p1, p2, ii;
-  POINT v1, v2;
-  int ie, iv1;
-  int center_cycle ();
-  POINT v_a, v_b, v_c;
-  REAL_T angle1, angle2;
+  int nc;
+  int jcusp;
 
-
-  for (ii = 0; ii < 3; ++ii) {
-	v1[ii] = midpoint[ii] +
-	  concave_circle[c1].rad * sin (angle_range) * zaxis[ii];
-	v2[ii] = midpoint[ii] -
-	  concave_circle[c1].rad * sin (angle_range) * zaxis[ii];
+  for (nc = 0; nc < group[igroup].n_pairs; ++nc) {
+	jcusp = group[igroup].cusp_pair[nc];
+	if (cusp_pair[icusp].cusp1 == cusp_pair[jcusp].cusp1 ||
+		cusp_pair[icusp].cusp2 == cusp_pair[jcusp].cusp1 ||
+		cusp_pair[icusp].cusp1 == cusp_pair[jcusp].cusp2 ||
+		cusp_pair[icusp].cusp2 == cusp_pair[jcusp].cusp2)
+	  return 1;
   }
-  if (flag) {
-	printf ("angle range %8.1f\n", angle_range * Rad2Deg);
-	printf ("sin angle %8.3f\n", sin (angle_range));
-	printf ("radius %8.3f\n", concave_circle[c1].rad);
-	printf ("zaxis: %8.3f%8.3f%8.3f\n", zaxis[0], zaxis[1], zaxis[2]);
-
-	printf ("v1: %8.3f%8.3f%8.3f\n", v1[0], v1[1], v1[2]);
-	printf ("v2: %8.3f%8.3f%8.3f\n", v2[0], v2[1], v2[2]);
-  }
-  get_probe_id (cusp_edge, icusp, jcusp, concave_cycle, &p1, &p2);
-  d_pp = sqrt ((probe[p1].pos[0] - probe[p2].pos[0]) *
-			   (probe[p1].pos[0] - probe[p2].pos[0]) +
-			   (probe[p1].pos[1] - probe[p2].pos[1]) *
-			   (probe[p1].pos[1] - probe[p2].pos[1]) +
-			   (probe[p1].pos[2] - probe[p2].pos[2]) *
-			   (probe[p1].pos[2] - probe[p2].pos[2]));
-
-  cusp_pair[*n].cusp1 = icusp;
-  cusp_pair[*n].cusp2 = jcusp;
-  cusp_pair[*n].circle_rad = sqrt (probe_rad * probe_rad - d_pp * d_pp / 4);
-
-  cusp_pair[*n].cycle2 = center_cycle (cusp_edge, icusp, jcusp);
-  if (cusp_edge[icusp].cycle1 != cusp_pair[*n].cusp2) {
-	cusp_pair[*n].cycle1 = cusp_edge[icusp].cycle1;
-  } else {
-	cusp_pair[*n].cycle1 = cusp_edge[icusp].cycle2;
-  }
-  if (cusp_edge[jcusp].cycle1 != cusp_pair[*n].cusp2) {
-	cusp_pair[*n].cycle3 = cusp_edge[icusp].cycle1;
-  } else {
-	cusp_pair[*n].cycle3 = cusp_edge[icusp].cycle2;
-  }
-
-  for (ii = 0; ii < 3; ++ii) {
-	cusp_pair[*n].circle_center[ii] = 0.5 * (probe[p1].pos[ii] + probe[p2].pos[ii]);
-	cusp_pair[*n].circle_axis[ii] = probe[p1].pos[ii] - probe[p2].pos[ii];
-  }
-  vnorm (cusp_pair[*n].circle_axis, 3);
-  cusp_pair[*n].cusp1 = icusp;
-  cusp_pair[*n].cusp2 = jcusp;
-
-  /* now make sure you have the verts in the right order */
-  ie = cusp_edge[icusp].edge;
-  iv1 = concave_edge[ie].vert1;
-
-  for (ii = 0; ii < 3; ++ii) {
-	v_a[ii] = vertex[iv1].pos[ii] - concave_circle[c1].center[ii];
-	v_b[ii] = v1[ii] - concave_circle[c1].center[ii];
-	v_c[ii] = v2[ii] - concave_circle[c1].center[ii];
-  }
-
-  angle1 = get_angle (v_a, v_b, yaxis);
-  angle2 = get_angle (v_a, v_c, yaxis);
-  if (angle1 < 0.0)
-	angle1 = angle1 + 2 * PI;
-  if (angle2 < 0.0)
-	angle2 = angle2 + 2 * PI;
-
-  if (angle2 > angle1) {		/* order is correct */
-	for (ii = 0; ii < 3; ++ii) {
-	  cusp_pair[*n].vert1[ii] = v1[ii];
-	  cusp_pair[*n].vert2[ii] = v2[ii];
-	}
-  } else {
-	for (ii = 0; ii < 3; ++ii) {
-	  cusp_pair[*n].vert1[ii] = v2[ii];
-	  cusp_pair[*n].vert2[ii] = v1[ii];
-	}
-  }
-
-
-  ++(*n);
-  if (*n >= NUM_CUSP * natm_sel) {
-	printf ("add_new_cusp(): MAX_CUSP_PAIRS exceeded\n");
-	exit (ERROR);
-  }
-  return;
+  return 0;
 }
-/************************************************************************/
-static int center_cycle (cusp, icusp, jcusp)
-	 CUSP_EDGE cusp[];
-	 int icusp, jcusp;
+
+/*********************************************************************/
+static int new_cusp (icusp, cusplist, ncusps)
+	 int icusp, ncusps;
+	 int cusplist[];
 {
-  if (cusp[icusp].cycle1 == cusp[jcusp].cycle1 ||
-	  cusp[icusp].cycle1 == cusp[jcusp].cycle2) {
-	return cusp[icusp].cycle1;
-  } else if
-	  (cusp[icusp].cycle2 == cusp[jcusp].cycle1 ||
-	   cusp[icusp].cycle2 == cusp[jcusp].cycle2) {
-	return cusp[icusp].cycle2;
-  } else {
-	printf ("center_cycle():no cusp match\n");
-	exit (ERROR);
-    return -1;
+  int i;
+  for (i = 0; i < ncusps; ++i) {
+	if (cusplist[i] == icusp)
+	  return 0;
   }
+  return 1;
 }
+
 /************************************************************************/
 static int number_of_cusps (group, ig, cusp_pair)
 	 CUSP_GROUP group[];
@@ -5434,18 +5225,6 @@ static int number_of_cusps (group, ig, cusp_pair)
 	}
   }
   return i;
-}
-/*********************************************************************/
-static int new_cusp (icusp, cusplist, ncusps)
-	 int icusp, ncusps;
-	 int cusplist[];
-{
-  int i;
-  for (i = 0; i < ncusps; ++i) {
-	if (cusplist[i] == icusp)
-	  return 0;
-  }
-  return 1;
 }
 
 /*********************************************************************/
@@ -5492,6 +5271,928 @@ static void make_circle (probe, probe_rad,
   return;
 }
 
+/***************************************************************/
+static void copy_vert (va, vb)
+	 EXTREME_VERTEX *va, *vb;
+{
+  vb->cusp_pair = va->cusp_pair;
+  vb->vert = va->vert;
+  return;
+}
+
+static void get_xvertex (nspan, four_cusp, concave_edge, cusp_edge, vertex,
+			 concave_circle, group, ig, cusp_pair, xvertex)
+	 int nspan;					/* number of cusps that span the group */
+	 int four_cusp[];
+	 EDGE concave_edge[];
+	 CUSP_EDGE cusp_edge[];
+	 VERTEX vertex[];
+	 CIRCLE concave_circle[];
+	 CUSP_GROUP group[];
+	 int ig;
+	 CUSP_PAIR cusp_pair[];
+	 EXTREME_VERTEX xvertex[];
+{
+
+  int min_pair, max_pair;		/* which pair is min and max vertex */
+  int min_vert, max_vert;		/* which vert 1 = vert1  2 = vert2 */
+  REAL_T min_theta, max_theta;
+  int k, icusp, icircle, iv0, ip;
+  POINT vec0, vec1, vec2;
+  EXTREME_VERTEX tmp_vert;
+  REAL_T theta, get_angle (), dist2 ();
+  void copy_vert ();
+  int ii, ic;
+  int ip0, ip2, ip3;
+  POINT v0, v2, v3;
+
+  for (k = 0; k < nspan; ++k) {
+	icusp = four_cusp[k];		/* 1st 2 cusps in the array span the group */
+	icircle = concave_edge[cusp_edge[icusp].edge].circle;
+	iv0 = concave_edge[cusp_edge[icusp].edge].vert1;
+
+	for (ii = 0; ii < 3; ++ii) {
+	  vec0[ii] = vertex[iv0].pos[ii] - concave_circle[icircle].center[ii];
+	}
+	vnorm (vec0, 3);
+
+	min_pair = -1;
+	max_pair = -1;
+	min_vert = -1;
+	max_vert = -1;
+	min_theta = 100.0;
+	max_theta = -100.0;
+
+	for (ic = 0; ic < group[ig].n_pairs; ++ic) {	/* search pairs for icusp */
+	  ip = group[ig].cusp_pair[ic];
+	  if (cusp_pair[ip].cusp1 != icusp && cusp_pair[ip].cusp2 != icusp)
+		continue;
+	  for (ii = 0; ii < 3; ++ii) {
+		vec1[ii] = cusp_pair[ip].vert1[ii] - concave_circle[icircle].center[ii];
+		vec2[ii] = cusp_pair[ip].vert2[ii] - concave_circle[icircle].center[ii];
+	  }
+	  vnorm (vec1, 3);
+	  vnorm (vec2, 3);
+
+	  theta = get_angle (vec0, vec1, concave_circle[icircle].axis);
+	  if (theta < 0.0)
+		theta = theta + TWOPI;
+	  if (theta < min_theta) {
+		min_pair = ip;
+		min_vert = 1;
+		min_theta = theta;
+	  }
+	  if (theta > max_theta) {
+		max_pair = ip;
+		max_vert = 1;
+		max_theta = theta;
+	  }
+	  theta = get_angle (vec0, vec2, concave_circle[icircle].axis);
+	  if (theta < 0.0)
+		theta = theta + TWOPI;
+	  if (theta < min_theta) {
+		min_pair = ip;
+		min_vert = 2;
+		min_theta = theta;
+	  }
+	  if (theta > max_theta) {
+		max_pair = ip;
+		max_vert = 2;
+		max_theta = theta;
+	  }
+	}
+	xvertex[2 * k].cusp_pair = min_pair;
+	xvertex[2 * k].vert = min_vert;
+	xvertex[2 * k + 1].cusp_pair = max_pair;
+	xvertex[2 * k + 1].vert = max_vert;
+  }
+  if (nspan == 1)
+	return;
+
+  ip0 = xvertex[0].cusp_pair;
+  ip2 = xvertex[2].cusp_pair;
+  ip3 = xvertex[3].cusp_pair;
+
+  if (xvertex[0].vert == 1) {
+	v0[0] = cusp_pair[ip0].vert1[0];
+	v0[1] = cusp_pair[ip0].vert1[1];
+	v0[2] = cusp_pair[ip0].vert1[2];
+  } else {
+	v0[0] = cusp_pair[ip0].vert2[0];
+	v0[1] = cusp_pair[ip0].vert2[1];
+	v0[2] = cusp_pair[ip0].vert2[2];
+  }
+
+  if (xvertex[2].vert == 1) {
+	v2[0] = cusp_pair[ip2].vert1[0];
+	v2[1] = cusp_pair[ip2].vert1[1];
+	v2[2] = cusp_pair[ip2].vert1[2];
+  } else {
+	v2[0] = cusp_pair[ip2].vert2[0];
+	v2[1] = cusp_pair[ip2].vert2[1];
+	v2[2] = cusp_pair[ip2].vert2[2];
+  }
+
+  if (xvertex[3].vert == 1) {
+	v3[0] = cusp_pair[ip3].vert1[0];
+	v3[1] = cusp_pair[ip3].vert1[1];
+	v3[2] = cusp_pair[ip3].vert1[2];
+  } else {
+	v3[0] = cusp_pair[ip3].vert2[0];
+	v3[1] = cusp_pair[ip3].vert2[1];
+	v3[2] = cusp_pair[ip3].vert2[2];
+  }
+
+  if (dist2 (v0, v2) < dist2 (v0, v3)) {
+	copy_vert (&xvertex[1], &tmp_vert);
+	copy_vert (&xvertex[2], &xvertex[1]);
+	copy_vert (&tmp_vert, &xvertex[2]);
+  } else {
+	copy_vert (&xvertex[1], &tmp_vert);
+	copy_vert (&xvertex[3], &xvertex[1]);
+	copy_vert (&tmp_vert, &xvertex[3]);
+  }
+
+  /*
+     printf("xvertex: cusp_pair %d vert %d\n", xvertex[0].cusp_pair, xvertex[0].vert);
+     printf("xvertex: cusp_pair %d vert %d\n", xvertex[1].cusp_pair, xvertex[1].vert);
+     printf("xvertex: cusp_pair %d vert %d\n", xvertex[2].cusp_pair, xvertex[2].vert);
+     printf("xvertex: cusp_pair %d vert %d\n", xvertex[3].cusp_pair, xvertex[3].vert);
+
+     for (i = 0; i < 4; ++i) {
+     ip0 = xvertex[i].cusp_pair;
+     printf("ATOM      1 O    VRT     1    ");
+     if (xvertex[i].vert == 1) {
+     printf("%8.3f%8.3f%8.3f\n", 
+     cusp_pair[ip0].vert1[0],
+     cusp_pair[ip0].vert1[1],
+     cusp_pair[ip0].vert1[2]);
+     } else {
+     printf("%8.3f%8.3f%8.3f\n", 
+     cusp_pair[ip0].vert2[0],
+     cusp_pair[ip0].vert2[1],
+     cusp_pair[ip0].vert2[2]);
+     }
+     }
+   */
+
+  return;
+}
+
+/******************************************************/
+static void unique_cycles (cusp1, cusp2, icycle, jcycle)
+	 CUSP_EDGE *cusp1, *cusp2;
+	 int *icycle, *jcycle;
+{
+  int c1, c2, c3, c4;
+
+  c1 = cusp1->cycle1;
+  c2 = cusp1->cycle2;
+  c3 = cusp2->cycle1;
+  c4 = cusp2->cycle2;
+
+  if (c1 != c3 && c1 != c4) {
+	*icycle = c1;
+  } else if (c2 != c3 && c2 != c4) {
+	*icycle = c2;
+  } else {
+	printf ("no unique cycle found\n");
+  }
+
+  if (c3 != c1 && c3 != c2) {
+	*jcycle = c3;
+  } else if (c4 != c1 && c4 != c2) {
+	*jcycle = c4;
+  } else {
+	printf ("no unique cycle found\n");
+  }
+  return;
+}
+
+static void get_2_cycles (cusp_edge, ix, jx, xvertex, cusp_pair, icycle, jcycle)
+	 CUSP_EDGE cusp_edge[];
+	 int ix, jx;
+	 EXTREME_VERTEX xvertex[];
+	 CUSP_PAIR cusp_pair[];
+	 int *icycle, *jcycle;
+{
+  /* need to find 2 cycles that are shared by the pair
+     (cusp1,cusp2) and the pair (cusp3,cusp4).  The probes
+     associated with these cycles are the ones that determine
+     the arc of the new cusp edge */
+
+  int cusp1, cusp2, cusp3, cusp4, ip1, ip2;
+  int a_cycle[3], b_cycle[3];
+  int common_cycle[3], nmatch, i;
+
+  ip1 = xvertex[ix].cusp_pair;
+  ip2 = xvertex[jx].cusp_pair;
+  cusp1 = cusp_pair[ip1].cusp1;
+  cusp2 = cusp_pair[ip1].cusp2;
+  cusp3 = cusp_pair[ip2].cusp1;
+  cusp4 = cusp_pair[ip2].cusp2,
+
+	a_cycle[0] = cusp_edge[cusp1].cycle1;
+  a_cycle[1] = cusp_edge[cusp1].cycle2;
+  if (cusp_edge[cusp2].cycle1 != a_cycle[0] &&
+	  cusp_edge[cusp2].cycle1 != a_cycle[1]) {
+	a_cycle[2] = cusp_edge[cusp2].cycle1;
+  } else if (cusp_edge[cusp2].cycle2 != a_cycle[0] &&
+			 cusp_edge[cusp2].cycle2 != a_cycle[1]) {
+	a_cycle[2] = cusp_edge[cusp2].cycle2;
+  } else {
+	printf ("get_2_cycles(): could not find unique 3rd cycle\n");
+	exit (ERROR);
+  }
+
+  b_cycle[0] = cusp_edge[cusp3].cycle1;
+  b_cycle[1] = cusp_edge[cusp3].cycle2;
+  if (cusp_edge[cusp4].cycle1 != b_cycle[0] &&
+	  cusp_edge[cusp4].cycle1 != b_cycle[1]) {
+	b_cycle[2] = cusp_edge[cusp4].cycle1;
+  } else if (cusp_edge[cusp4].cycle2 != b_cycle[0] &&
+			 cusp_edge[cusp4].cycle2 != b_cycle[1]) {
+	b_cycle[2] = cusp_edge[cusp4].cycle2;
+  } else {
+	printf ("get_2_cycles(): could not find unique 3rd cycle\n");
+	exit (ERROR);
+  }
+
+  nmatch = 0;
+  for (i = 0; i < 3; ++i) {
+	if (a_cycle[i] == b_cycle[0] ||
+		a_cycle[i] == b_cycle[1] ||
+		a_cycle[i] == b_cycle[2]) {
+	  common_cycle[nmatch] = a_cycle[i];
+	  ++nmatch;
+	}
+  }
+  if (nmatch != 2) {
+	printf ("get_2_cycles(): 2 cycles not found\n");
+	printf ("cusp %d cycles %d %d\n", cusp1, cusp_edge[cusp1].cycle1, cusp_edge[cusp1].cycle2);
+	printf ("cusp %d cycles %d %d\n", cusp2, cusp_edge[cusp2].cycle1, cusp_edge[cusp2].cycle2);
+	printf ("cusp %d cycles %d %d\n", cusp3, cusp_edge[cusp3].cycle1, cusp_edge[cusp3].cycle2);
+	printf ("cusp %d cycles %d %d\n", cusp4, cusp_edge[cusp4].cycle1, cusp_edge[cusp4].cycle2);
+	exit (ERROR);
+  }
+  *icycle = common_cycle[0];
+  *jcycle = common_cycle[1];
+  return;
+}
+
+/***************************************************************************/
+static void add_cusp_circle (nc, circle, probe, ip, jp, probe_rad)
+	 int *nc;
+	 CIRCLE circle[];
+	 PROBE probe[];
+	 int ip, jp;
+	 REAL_T probe_rad;
+{
+  int ii;
+  REAL_T d_pp2;
+
+  d_pp2 = 0.0;
+  for (ii = 0; ii < 3; ++ii) {
+	circle[*nc].center[ii] = 0.5 * (probe[ip].pos[ii] + probe[jp].pos[ii]);
+	/*
+	   circle[*nc].axis[ii] = probe[ip].pos[ii] - probe[jp].pos[ii];
+	 */
+	circle[*nc].axis[ii] = probe[jp].pos[ii] - probe[ip].pos[ii];
+	d_pp2 = d_pp2 + (probe[ip].pos[ii] - probe[jp].pos[ii]) *
+	  (probe[ip].pos[ii] - probe[jp].pos[ii]);
+  }
+  vnorm (circle[*nc].axis, 3);
+  circle[*nc].rad = sqrt (probe_rad * probe_rad - d_pp2 / 4.0);
+  circle[*nc].torus = -1;
+  circle[*nc].atom_or_probe_num = -1;
+  ++(*nc);
+  if (*nc >= NUM_CIRCLE * natm_sel) {
+	printf ("MAX_CIRCLE exceeded\n");
+	exit (ERROR);
+  }
+  return;
+}
+
+/***************************************************************/
+static void add_1_vert (nv, vertex, v)
+	 int *nv;
+	 VERTEX vertex[];
+	 POINT v;
+{
+  int ii;
+
+  for (ii = 0; ii < 3; ++ii)
+	vertex[*nv].pos[ii] = v[ii];
+  ++(*nv);
+  if (*nv > NUM_VERTEX * natm_sel) {
+	printf ("MAX_VERTS exceeded\n");
+	exit (ERROR);
+  }
+  return;
+}
+
+/***************************************************************************/
+static void add_2cusp_verts (nverts, vertex, cusp_pair, xvertex, ix, jx,
+				 concave_circle, icircle)
+	 int *nverts;
+	 VERTEX vertex[];
+	 CUSP_PAIR cusp_pair[];
+	 EXTREME_VERTEX xvertex[];
+	 int ix, jx;
+	 CIRCLE concave_circle[];
+	 int icircle;
+{
+  int ip1, ip2, ii;
+  POINT vert1, vert2, va, vb, vc;
+  void add_1_vert ();
+
+  ip1 = xvertex[ix].cusp_pair;
+  if (xvertex[ix].vert == 1) {
+	for (ii = 0; ii < 3; ++ii)
+	  vert1[ii] = cusp_pair[ip1].vert1[ii];
+  } else {
+	for (ii = 0; ii < 3; ++ii)
+	  vert1[ii] = cusp_pair[ip1].vert2[ii];
+  }
+
+  ip2 = xvertex[jx].cusp_pair;
+  if (xvertex[jx].vert == 1) {
+	for (ii = 0; ii < 3; ++ii)
+	  vert2[ii] = cusp_pair[ip2].vert1[ii];
+  } else {
+	for (ii = 0; ii < 3; ++ii)
+	  vert2[ii] = cusp_pair[ip2].vert2[ii];
+  }
+
+  /* CRITERION IS BOGUS unless it is a 4 cusp intersection */
+
+  for (ii = 0; ii < 3; ++ii) {
+	va[ii] = vert1[ii] - concave_circle[icircle].center[ii];
+	vb[ii] = vert2[ii] - concave_circle[icircle].center[ii];
+  }
+
+  vnorm (va, 3);
+  vnorm (vb, 3);
+
+  cross (va, vb, vc);
+
+  if (DOT (vc, concave_circle[icircle].axis) > 0.0) {
+	add_1_vert (nverts, vertex, vert1);
+	xvertex[ix].vert_index = (*nverts) - 1;
+	add_1_vert (nverts, vertex, vert2);
+	xvertex[jx].vert_index = (*nverts) - 1;
+  } else {
+	add_1_vert (nverts, vertex, vert2);
+	xvertex[jx].vert_index = (*nverts) - 1;
+	add_1_vert (nverts, vertex, vert1);
+	xvertex[ix].vert_index = (*nverts) - 1;
+  }
+
+  return;
+}
+
+/*****************************************************************/
+static void add_non_axial_cusp (nc, cusp_edge, icycle, jcycle,
+					iprobe, jprobe, iedge)
+	 int *nc;
+	 CUSP_EDGE cusp_edge[];
+	 int icycle, jcycle, iprobe, jprobe, iedge;
+{
+  cusp_edge[*nc].cycle1 = icycle;
+  cusp_edge[*nc].cycle2 = jcycle;
+  cusp_edge[*nc].probe1 = iprobe;
+  cusp_edge[*nc].probe2 = jprobe;
+  cusp_edge[*nc].edge = iedge;
+  cusp_edge[*nc].alive = 1;
+  cusp_edge[*nc].concentric_pair = 0;
+  ++(*nc);
+  if (*nc > NUM_CUSP * natm_sel) {
+	printf ("MAX_CUSPS exceeded\n");
+	exit (ERROR);
+  }
+  return;
+}
+
+/***************************************************************/
+static void add_2_cusps (xvertex, n_cusps, cusp_edge, concave_cycle,
+			 n_concave_edges,
+			 concave_edge, nverts, vertex, probe, n_concave_circles,
+			 concave_circle, probe_rad, cusp_pair)
+	 EXTREME_VERTEX xvertex[];
+	 int *n_cusps;
+	 CUSP_EDGE cusp_edge[];
+	 CONCAVE_CYCLE concave_cycle[];
+	 int *n_concave_edges;
+	 EDGE concave_edge[];
+	 int *nverts;
+	 VERTEX vertex[];
+	 PROBE probe[];
+	 int *n_concave_circles;
+	 CIRCLE concave_circle[];
+	 REAL_T probe_rad;
+	 CUSP_PAIR cusp_pair[];
+
+{
+  int i, ix, jx, icycle, jcycle, iprobe, jprobe;
+  void get_2_cycles (), add_cusp_circle (), add_2cusp_verts ();
+  void add_edge (), add_non_axial_cusp ();
+
+  for (i = 0; i < 2; ++i) {
+	ix = 2 * i;
+	jx = 2 * i + 1;
+	get_2_cycles (cusp_edge, ix, jx, xvertex, cusp_pair, &icycle, &jcycle);
+
+	iprobe = concave_cycle[icycle].iprobe;
+	jprobe = concave_cycle[jcycle].iprobe;
+	add_cusp_circle (n_concave_circles, concave_circle, probe,
+					 iprobe, jprobe, probe_rad);
+	add_2cusp_verts (nverts, vertex, cusp_pair, xvertex, ix, jx,
+				  concave_circle, (*n_concave_circles) - 1 );
+
+	add_edge (n_concave_edges, concave_edge, (*nverts) - 2,
+			  (*nverts) - 1, (*n_concave_circles) - 1,
+			  vertex, concave_circle);
+	add_non_axial_cusp (n_cusps, cusp_edge, icycle, jcycle,
+						iprobe, jprobe, (*n_concave_edges) - 1);
+  }
+  return;
+}
+
+static void make_new_cusp (nc, cusp_edge, iold, new_edge)
+	 int *nc;
+	 CUSP_EDGE cusp_edge[];
+	 int iold, new_edge;
+{
+  if (cusp_edge[iold].alive) {
+	printf ("new_cusp(): old cusp not dead\n");
+	exit (ERROR);
+  }
+  cusp_edge[*nc].cycle1 = cusp_edge[iold].cycle1;
+  cusp_edge[*nc].cycle2 = cusp_edge[iold].cycle2;
+  cusp_edge[*nc].edge = new_edge;
+  cusp_edge[*nc].probe1 = cusp_edge[iold].probe1;
+  cusp_edge[*nc].probe2 = cusp_edge[iold].probe2;
+  cusp_edge[*nc].alive = 1;
+  cusp_edge[*nc].concentric_pair = 0;
+
+  ++(*nc);
+
+  if (*nc > NUM_CUSP * natm_sel) {
+	printf ("MAX_CUSPS exceeded\n");
+	exit (ERROR);
+  }
+  return;
+}
+
+
+static void split_old_cusps (cusp_list, nlist, cusp_edge, n_cusps, xvertex, nx, cusp_pair,
+				 vertex, n_concave_edges, concave_edge, concave_circle)
+	 int cusp_list[];
+	 int nlist;
+	 CUSP_EDGE cusp_edge[];
+	 int *n_cusps;
+	 EXTREME_VERTEX xvertex[];
+	 int nx;
+	 CUSP_PAIR cusp_pair[];
+	 VERTEX vertex[];
+	 int *n_concave_edges;
+	 EDGE concave_edge[];
+	 CIRCLE concave_circle[];
+{
+
+  int cut_vert[MAXTMP], icut, ncut, i, ix, icusp, ip;
+  REAL_T cut_angle[2];
+  int iva, ivb, iedge, icircle, ii, itmp;
+  POINT va, vb;
+  REAL_T get_angle ();
+  void make_new_cusp ();
+
+  for (i = 0; i < nlist; ++i) {
+	icusp = cusp_list[i];
+	iedge = cusp_edge[icusp].edge;
+	icircle = concave_edge[iedge].circle;
+	ncut = 0;
+	for (ix = 0; ix < nx; ++ix) {
+	  ip = xvertex[ix].cusp_pair;
+	  if (cusp_pair[ip].cusp1 == icusp ||
+		  cusp_pair[ip].cusp2 == icusp) {
+		cut_vert[ncut] = xvertex[ix].vert_index;
+		ncut = ncut + 1;
+		if (ncut >= MAXTMP) {
+		  printf ("MAXTMP exceeded\n");
+		  exit (ERROR);
+		}
+	  }
+	}
+	if (ncut != 2) {
+	  printf ("split_old_cusps: not cutting with 2 verts\n");
+	  printf ("ncut %d\n", ncut);
+	  exit (ERROR);
+	}
+	iva = concave_edge[iedge].vert1;
+	for (ii = 0; ii < 3; ++ii)
+	  va[ii] = vertex[iva].pos[ii] - concave_circle[icircle].center[ii];
+	for (icut = 0; icut < ncut; ++icut) {
+	  ivb = cut_vert[icut];
+	  for (ii = 0; ii < 3; ++ii)
+		vb[ii] = vertex[ivb].pos[ii] - concave_circle[icircle].center[ii];
+	  cut_angle[icut] = get_angle (vb, va, concave_circle[icircle].axis);
+	  if (cut_angle[icut] < 0.0)
+		cut_angle[icut] = cut_angle[icut] + TWOPI;
+	}
+
+	if (cut_angle[0] > cut_angle[1]) {
+	  itmp = cut_vert[0];
+	  cut_vert[0] = cut_vert[1];
+	  cut_vert[1] = itmp;
+	}
+	/* now we are ready to split the cusp */
+	add_edge (n_concave_edges, concave_edge,
+			  concave_edge[iedge].vert1, cut_vert[0],
+			  icircle, vertex, concave_circle);
+	make_new_cusp (n_cusps, cusp_edge, icusp, (*n_concave_edges) - 1);
+
+	add_edge (n_concave_edges, concave_edge,
+			  cut_vert[1], concave_edge[iedge].vert2,
+			  icircle, vertex, concave_circle);
+	make_new_cusp (n_cusps, cusp_edge, icusp, (*n_concave_edges) - 1);
+  }
+  return;
+}
+
+/*********************************************/
+static int is_new_face (iface, four_face, nf)
+	 int iface, four_face[], nf;
+{
+  int i;
+  for (i = 0; i < nf; ++i)
+	if (iface == four_face[i])
+	  return 0;
+  return 1;
+}
+
+static void get_faces (face_list, nfaces, cusp_list, nlist, cusp_edge,
+		   concave_cycle, broken_concave_face)
+	 int face_list[];
+	 int *nfaces;
+	 int cusp_list[];
+	 int nlist;
+	 CUSP_EDGE cusp_edge[];
+	 CONCAVE_CYCLE concave_cycle[];
+	 BROKEN_CONCAVE_FACE broken_concave_face[];
+{
+  int i, icusp, cycle[2], face[2], j;
+  int is_new_face (), nf;
+
+  nf = 0;
+  for (i = 0; i < nlist; ++i) {
+	icusp = cusp_list[i];
+	cycle[0] = cusp_edge[icusp].cycle1;
+	face[0] = concave_cycle[cycle[0]].iface;
+	cycle[1] = cusp_edge[icusp].cycle2;
+	face[1] = concave_cycle[cycle[1]].iface;
+
+	for (j = 0; j < 2; ++j) {
+	  if (broken_concave_face[face[j]].n_cycles != 1) {
+		printf ("broken concave face has more than one cycle\n");
+		printf ("face %d number of cycles %d\n", face[j],
+				broken_concave_face[face[j]].n_cycles);
+		exit (ERROR);
+	  }
+	  if (broken_concave_face[face[j]].concave_cycle[0] != cycle[j]) {
+		printf ("face cycle mismatch\n");
+		printf ("face %d face.cycle = %d  cycle = %d\n",
+				face[j],
+				broken_concave_face[face[j]].concave_cycle[0],
+				cycle[j]);
+		exit (ERROR);
+	  }
+	  if (is_new_face (face[j], face_list, nf)) {
+		face_list[nf] = face[j];
+		++nf;
+		if (nf > MAXTMP) {
+		  printf ("MAXTMP exceeded\n");
+		  exit (ERROR);
+		}
+	  }
+	}
+  }
+  *nfaces = nf;
+  return;
+}
+
+/************************************************************/
+static void get_starters (start, ns, concave_cycle, icycle, concave_edge)
+	 int start[], *ns;
+	 CONCAVE_CYCLE concave_cycle[];
+	 int icycle;
+	 EDGE concave_edge[];
+{
+  int j;
+
+  *ns = 0;
+  for (j = 0; j < concave_cycle[icycle].nedges; ++j) {
+	if (concave_cycle[icycle].cusp_edge[j] != -1 &&
+		concave_edge[concave_cycle[icycle].edge[j]].alive == 0) {
+	  /* next edge is starting edge */
+	  if (j == concave_cycle[icycle].nedges - 1)
+		start[*ns] = 0;
+	  else
+		start[*ns] = j + 1;
+	  ++(*ns);
+	  if (*ns > MAXTMP) {
+		printf ("too many starting edges\n");
+		exit (ERROR);
+	  }
+	}
+  }
+  if (*ns > 2) {
+	printf ("split_face(): num starting edges  > 2  (%d)\n", *ns);
+	exit (ERROR);
+  }
+}
+/************************************************************/
+static void copy_cycle (c1, c2)
+	 CONCAVE_CYCLE *c1, *c2;
+{
+  int i;
+
+  c2->nedges = c1->nedges;
+  c2->iprobe = c1->iprobe;
+  c2->iface = c1->iface;
+  c2->intersects_self = c1->intersects_self;
+
+  for (i = 0; i < c2->nedges; ++i) {
+	c2->edge[i] = c1->edge[i];
+	c2->edge_direction[i] = c1->edge_direction[i];
+	c2->cusp_edge[i] = c1->cusp_edge[i];
+  }
+  return;
+}
+/************************************************************/
+static int cusp_match (lastvert, ncusps, cusp_index, icycle,
+			cusp_used, cusp_edge, concave_edge, direction)
+	 int lastvert, ncusps, cusp_index[], cusp_used[];
+	 int icycle;
+	 CUSP_EDGE cusp_edge[];
+	 EDGE concave_edge[];
+	 int *direction;
+{
+  int i, icusp, ie;
+
+  for (i = 0; i < ncusps; ++i) {
+	icusp = cusp_index[i];
+	if (cusp_used[i])
+	  continue;
+	if (cusp_edge[icusp].cycle1 != icycle &&
+		cusp_edge[icusp].cycle2 != icycle)
+	  continue;
+	ie = cusp_edge[icusp].edge;
+	if (concave_edge[ie].vert1 == lastvert) {
+	  *direction = 1;
+	  cusp_used[i] = 1;
+	  return icusp;
+	}
+	if (concave_edge[ie].vert2 == lastvert) {
+	  *direction = -1;
+	  cusp_used[i] = 1;
+	  return icusp;
+	}
+  }
+
+  printf ("cusp_match(): could not find match for vertex %d\n", lastvert);
+  exit (ERROR);
+  return -1;
+}
+/**************************************************/
+static int normal_match (tmp_cycle, concave_edge, lastvert, edge_used)
+	 CONCAVE_CYCLE tmp_cycle;
+	 EDGE concave_edge[];
+	 int lastvert;
+	 int edge_used[];
+{
+  int i, ie;
+
+  for (i = 0; i < tmp_cycle.nedges; ++i) {
+	if (edge_used[i])
+	  continue;
+	ie = tmp_cycle.edge[i];
+	if (concave_edge[ie].alive == 0)
+	  continue;
+	if (concave_edge[ie].vert1 == lastvert ||
+		concave_edge[ie].vert2 == lastvert) {
+	  edge_used[i] = 1;
+	  return i;
+	}
+  }
+  return -1;
+}
+
+/************************************************************/
+static void split_face (iface, n_broken_faces, broken_concave_face,
+			n_concave_cycles, concave_cycle,
+			cusp_edge, cusp_list, n_list,
+			n_concave_edges, concave_edge, vertex, concave_circle)
+	 int iface;
+	 int *n_broken_faces;
+	 BROKEN_CONCAVE_FACE broken_concave_face[];
+	 int *n_concave_cycles;
+	 CONCAVE_CYCLE concave_cycle[];
+	 CUSP_EDGE cusp_edge[];
+	 int cusp_list[];			/* cusps to search */
+	 int n_list;
+	 int *n_concave_edges;
+	 EDGE concave_edge[];
+	 VERTEX vertex[];
+	 CIRCLE concave_circle[];
+{
+  int icycle, ie;
+  int start[MAXTMP], ns;		/* starting edges for the 2 subcycles */
+  CONCAVE_CYCLE tmp_cycle;
+  void get_starters (), copy_cycle ();
+  int cusp_match ();
+  int cusp_used[MAXTMP];
+  int edge_used[MAXTMP];
+  int i, direction;
+  int firstvert, nextvert;
+  int icusp;
+  int normal_match ();
+  int two_cycle[2];
+  int jj;
+
+  if (n_list >= MAXTMP) {
+	printf ("split_face(): MAXTMP exceeded\n");
+	exit (ERROR);
+  }
+
+  for (i = 0; i < n_list; ++i)
+	cusp_used[i] = 0;
+
+  icycle = broken_concave_face[iface].concave_cycle[0];
+  two_cycle[0] = icycle;
+  two_cycle[1] = *n_concave_cycles;
+
+
+  /* copy cycle to tmp_cycle */
+
+  copy_cycle (&concave_cycle[icycle], &tmp_cycle);
+
+  /*
+     dump_cycle(&tmp_cycle, concave_edge);
+   */
+  if (tmp_cycle.nedges > MAXTMP) {
+	printf ("MAXTMP exceeded\n");
+	exit (ERROR);
+  }
+  for (i = 0; i < tmp_cycle.nedges; ++i)
+	edge_used[i] = 0;
+
+  /* find the starting edges for the subcycles */
+  get_starters (start, &ns, concave_cycle, icycle, concave_edge);
+
+  /* the first cycle will go right back in the original
+     cycle spot. the 2nd one will be new */
+
+  for (jj = 0; jj < ns; ++jj) {
+	ie = start[jj];
+	i = 0;
+	concave_cycle[two_cycle[jj]].edge[i] = tmp_cycle.edge[ie];
+	concave_cycle[two_cycle[jj]].edge_direction[i] = tmp_cycle.edge_direction[ie];
+	concave_cycle[two_cycle[jj]].cusp_edge[i] = tmp_cycle.cusp_edge[ie];
+	++i;
+	firstvert = concave_edge[tmp_cycle.edge[ie]].vert1;
+	nextvert = concave_edge[tmp_cycle.edge[ie]].vert2;
+
+	while (nextvert != firstvert) {
+	  /* 1st look through "normal" edges for next vertex 
+	     also include cusp edges that are not dead */
+	  ie = normal_match (tmp_cycle, concave_edge, nextvert, edge_used);
+	  if (ie != -1) {			/* normal cusp was found */
+		concave_cycle[two_cycle[jj]].edge[i] = tmp_cycle.edge[ie];
+		concave_cycle[two_cycle[jj]].edge_direction[i] = tmp_cycle.edge_direction[ie];
+		concave_cycle[two_cycle[jj]].cusp_edge[i] = tmp_cycle.cusp_edge[ie];
+	  } else {					/* look through new cusps */
+		icusp = cusp_match (nextvert, n_list, cusp_list, icycle,
+							cusp_used, cusp_edge, concave_edge, &direction);
+		concave_cycle[two_cycle[jj]].edge[i] = cusp_edge[icusp].edge;
+		concave_cycle[two_cycle[jj]].edge_direction[i] = direction;
+		concave_cycle[two_cycle[jj]].cusp_edge[i] = icusp;
+	  }
+
+	  if (concave_cycle[two_cycle[jj]].edge_direction[i] == 1)
+		nextvert = concave_edge[concave_cycle[two_cycle[jj]].edge[i]].vert2;
+	  else
+		nextvert = concave_edge[concave_cycle[two_cycle[jj]].edge[i]].vert1;
+	  ++i;
+	}
+	concave_cycle[two_cycle[jj]].nedges = i;
+  }
+  if (ns == 2) {
+
+	broken_concave_face[*n_broken_faces].itorus[0] =
+	  broken_concave_face[iface].itorus[0];
+	broken_concave_face[*n_broken_faces].itorus[1] =
+	  broken_concave_face[iface].itorus[1];
+	broken_concave_face[*n_broken_faces].itorus[2] =
+	  broken_concave_face[iface].itorus[2];
+	broken_concave_face[*n_broken_faces].probe =
+	  broken_concave_face[iface].probe;
+	broken_concave_face[*n_broken_faces].n_cycles = 1;
+	broken_concave_face[*n_broken_faces].concave_cycle[0] = *n_concave_cycles;
+	broken_concave_face[*n_broken_faces].alive = 1;
+	broken_concave_face[*n_broken_faces].area = 0.0;
+
+	/* reset n_cycle count to 1 for iface */
+	broken_concave_face[iface].n_cycles = 1;
+
+	++(*n_concave_cycles);
+	if (*n_concave_cycles > NUM_CYCLE * natm_sel) {
+	  printf ("MAX_CYCLES exceeded\n");
+	  exit (ERROR);
+	}
+	++(*n_broken_faces);
+	if (*n_broken_faces > NUM_FACE * natm_sel) {
+	  printf ("MAX_FACE exceeded\n");
+	  exit (ERROR);
+	}
+  } else if (ns > 2) {
+	printf ("split_face(): face has more than 2 cycles\n");
+	exit (ERROR);
+  }
+  /*
+     printf(" remade icycle %d\n", icycle);
+     dump_cycle(&concave_cycle[icycle], concave_edge);
+     printf(" new cycle %d\n", *n_concave_cycles - 1);
+     dump_cycle(&concave_cycle[*n_concave_cycles - 1], concave_edge);
+   */
+
+  return;
+}
+
+static void add_cusp_verts (nverts, vertex, cusp_pair, xvertex, ix, jx,
+				concave_circle, icircle)
+	 int *nverts;
+	 VERTEX vertex[];
+	 CUSP_PAIR cusp_pair[];
+	 EXTREME_VERTEX xvertex[];
+	 int ix, jx;
+	 CIRCLE concave_circle[];
+	 int icircle;
+{
+  int ip1, ip2, ii;
+  POINT vert1, vert2;
+  void add_1_vert ();
+
+  ip1 = xvertex[ix].cusp_pair;
+  if (xvertex[ix].vert == 1) {
+	for (ii = 0; ii < 3; ++ii)
+	  vert1[ii] = cusp_pair[ip1].vert1[ii];
+  } else {
+	for (ii = 0; ii < 3; ++ii)
+	  vert1[ii] = cusp_pair[ip1].vert2[ii];
+  }
+
+  ip2 = xvertex[jx].cusp_pair;
+  if (xvertex[jx].vert == 1) {
+	for (ii = 0; ii < 3; ++ii)
+	  vert2[ii] = cusp_pair[ip2].vert1[ii];
+  } else {
+	for (ii = 0; ii < 3; ++ii)
+	  vert2[ii] = cusp_pair[ip2].vert2[ii];
+  }
+
+  /* START HERE:  I THINK COMMENTED  CRITERION IS BOGUS! 
+     and the one just below is correct */
+
+  add_1_vert (nverts, vertex, vert1);
+  xvertex[ix].vert_index = (*nverts) - 1;
+  add_1_vert (nverts, vertex, vert2);
+  xvertex[jx].vert_index = (*nverts) - 1;
+  /*
+     for (ii = 0; ii < 3; ++ii) {
+     va[ii] = vert1[ii] - concave_circle[icircle].center[ii];
+     vb[ii] = vert2[ii] - concave_circle[icircle].center[ii];
+     }
+
+     vnorm(va,3);
+     vnorm(vb,3);
+
+     cross (va, vb, vc);
+
+     if (DOT(vc, concave_circle[icircle].axis) > 0.0 ) {
+     add_1_vert(nverts, vertex, vert1);
+     xvertex[ix].vert_index = (*nverts) - 1;
+     add_1_vert(nverts, vertex, vert2);
+     xvertex[jx].vert_index = (*nverts) - 1;
+     } else {
+     add_1_vert(nverts, vertex, vert2);
+     xvertex[jx].vert_index = (*nverts) - 1;
+     add_1_vert(nverts, vertex, vert1);
+     xvertex[ix].vert_index = (*nverts) - 1;
+     }
+   */
+  return;
+}
 
 static void trim_2_cusps (probe, nverts, vertex, n_concave_edges,
 			  concave_edge, n_concave_circles, concave_circle,
@@ -5531,7 +6232,7 @@ static void trim_2_cusps (probe, nverts, vertex, n_concave_edges,
   void add_2_cusps (), split_old_cusps (), get_faces ();
   int iface;
   void split_face ();
-  void dump_cycle ();
+  //void dump_cycle ();
   int cusp_list[MAXTMP], n_list;
 
   ip = group[ig].cusp_pair[0];
@@ -5596,36 +6297,263 @@ static void trim_2_cusps (probe, nverts, vertex, n_concave_edges,
   return;
 }
 
+/*****************************************************************/
+static void non_axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probelist,
 
-/******************************************************/
-static void unique_cycles (cusp1, cusp2, icycle, jcycle)
-	 CUSP_EDGE *cusp1, *cusp2;
-	 int *icycle, *jcycle;
+				n_concave_faces, concave_face, n_vertex, vertexlist,
+				n_concave_edges, concave_edge,
+				n_concave_circles, concave_circle_list,
+				probe_rad,
+		n_low_torus, low_torus, n_broken_concave_faces, broken_concave_face,
+			 concave_cycle, n_concave_cycles, cone_face, cusp_edge, n_cusps,
+				cusp_pair, n_cusp_pairs)
+	 int nat;
+	 ATOM atom[];
+	 RES res[];
+	 int n_torus;
+	 TORUS toruslist[];
+	 int n_probes;
+	 PROBE probelist[];
+	 int n_concave_faces;
+	 CONCAVE_FACE concave_face[];
+	 int n_vertex;
+	 VERTEX vertexlist[];
+	 int *n_concave_edges;
+	 EDGE concave_edge[];
+	 int *n_concave_circles;
+	 CIRCLE concave_circle_list[];
+	 REAL_T probe_rad;
+	 int n_low_torus;
+	 LOW_TORUS low_torus[];
+	 int n_broken_concave_faces;
+	 BROKEN_CONCAVE_FACE broken_concave_face[];
+	 CONCAVE_CYCLE concave_cycle[];
+	 int n_concave_cycles;
+	 CONE_FACE cone_face[];
+	 CUSP_EDGE cusp_edge[];
+	 int *n_cusps;
+	 CUSP_PAIR cusp_pair[];
+	 int *n_cusp_pairs;
 {
-  int c1, c2, c3, c4;
+  CUSP_GROUP *group;
+  int n_groups;
+  int icusp, jcusp, ig, i, j;
+  int iedge, jedge, icircle, jcircle;
+  //int cycle_intersect ();
+  //void trim_1_pair (), trim_2_pair (), trim_3_pair ();
+  int nc;
+  //void cusp_intersect ();
+  int cusp_added;
+  //int new_cusp_in_group ();
+  //int number_of_cusps ();
+  int n;
+  //void make_circle ();
 
-  c1 = cusp1->cycle1;
-  c2 = cusp1->cycle2;
-  c3 = cusp2->cycle1;
-  c4 = cusp2->cycle2;
+#ifdef DEBUG
+  printf ("non axial trim\n");
+  printf ("There are %d cusp edges\n", *n_cusps);
+#endif
+  if ((group = (CUSP_GROUP *) malloc (
+			NUM_CUSP * natm_sel * sizeof (CUSP_GROUP))) == NULL) {
+	fprintf (stderr, "Unable to allocate space for group\n");
+	exit (1);
+  }
+  *n_cusp_pairs = 0;
+  for (icusp = 0; icusp < *n_cusps; ++icusp) {
+	iedge = cusp_edge[icusp].edge;
+	icircle = concave_edge[iedge].circle;
+	if (cusp_edge[icusp].concentric_pair == 1)
+	  continue;
 
-  if (c1 != c3 && c1 != c4) {
-	*icycle = c1;
-  } else if (c2 != c3 && c2 != c4) {
-	*icycle = c2;
-  } else {
-	printf ("no unique cycle found\n");
+	/*
+	   for (jcusp = icusp+1; jcusp < *n_cusps; ++jcusp) {
+	   if (cusp_edge[jcusp].concentric_pair == 1) continue;
+	   cusp_intersect(cusp_edge, icusp, jcusp, probelist, concave_cycle,
+	   concave_edge, vertexlist, concave_circle_list, 
+	   probe_rad, cusp_pair, n_cusp_pairs);
+
+	   }
+	 */
+
+	for (jcusp = 0; jcusp < *n_cusps; ++jcusp) {
+	  if (icusp == jcusp)
+		continue;
+	  if (cusp_edge[jcusp].concentric_pair == 1)
+		continue;
+	  jedge = cusp_edge[jcusp].edge;
+	  jcircle = concave_edge[jedge].circle;
+	  if (concave_circle_list[icircle].rad < concave_circle_list[jcircle].rad) {
+		cusp_intersect (cusp_edge, icusp, jcusp, probelist, concave_cycle,
+						concave_edge, vertexlist, concave_circle_list,
+						probe_rad, cusp_pair, n_cusp_pairs);
+	  }
+	}
+
+  }
+  for (i = 0; i < *n_cusp_pairs; ++i) {
+	cusp_pair[i].group = -1;
   }
 
-  if (c3 != c1 && c3 != c2) {
-	*jcycle = c3;
-  } else if (c4 != c1 && c4 != c2) {
-	*jcycle = c4;
-  } else {
-	printf ("no unique cycle found\n");
+#ifdef DEBUG
+  printf ("number of cusp pairs %d\n", *n_cusp_pairs);
+#endif
+
+  ig = 0;
+  for (i = 0; i < *n_cusp_pairs; ++i) {
+	if (cusp_pair[i].group >= 0)
+	  continue;
+	cusp_pair[i].group = ig;
+	nc = 0;
+	group[ig].cusp_pair[nc] = i;
+	++nc;
+	group[ig].n_pairs = nc;
+
+	cusp_added = 1;
+
+	while (cusp_added) {
+	  cusp_added = 0;
+	  for (j = i + 1; j < *n_cusp_pairs; ++j) {
+		if (cusp_pair[j].group >= 0)
+		  continue;
+		if (new_cusp_in_group (j, ig, cusp_pair, group)) {
+		  cusp_pair[j].group = ig;
+		  group[ig].cusp_pair[nc] = j;
+		  ++nc;
+		  group[ig].n_pairs = nc;
+		  cusp_added = 1;
+		}
+	  }
+	}
+	++ig;
   }
+
+  n_groups = ig;
+
+#ifdef DEBUG
+  printf ("cusp groups\n");
+  i = 0;
+  for (ig = 0; ig < n_groups; ++ig) {
+	printf ("group %d has %d cusp_pairs:", ig, group[ig].n_pairs);
+	for (nc = 0; nc < group[ig].n_pairs; ++nc) {
+	  inew = group[ig].cusp_pair[nc];
+	  printf ("  %d (%d %d)", inew, cusp_pair[inew].cusp1, cusp_pair[inew].cusp2);
+	}
+	printf ("\n");
+  }
+#endif
+
+  for (ig = 0; ig < n_groups; ++ig) {
+/******* TEMP ************/
+	/*
+	   if (ig == 0) continue;
+	   itmp = group[ig].cusp_pair[0];
+	   group[ig].cusp_pair[0] = group[ig].cusp_pair[1]; 
+	   group[ig].cusp_pair[1] = itmp;
+	   group[ig].n_pairs = 1;
+	   n_groups = 0;
+	   printf("ig = %d\n", ig);
+	   cusp1 = cusp_pair[group[ig].cusp_pair[0]].cusp1;
+	   cusp2 = cusp_pair[group[ig].cusp_pair[0]].cusp2;
+	   cusp3 = cusp_pair[group[ig].cusp_pair[1]].cusp1;
+	   cusp4 = cusp_pair[group[ig].cusp_pair[1]].cusp2;
+	   printf("cusp: %d probes: %d %d\n",  cusp1,
+	   cusp_edge[cusp1].probe1,
+	   cusp_edge[cusp1].probe2);
+	   printf("cusp: %d probes: %d %d\n",  cusp2,
+	   cusp_edge[cusp2].probe1,
+	   cusp_edge[cusp2].probe2);
+	   printf("cusp: %d probes: %d %d\n",  cusp3,
+	   cusp_edge[cusp3].probe1,
+	   cusp_edge[cusp3].probe2);
+	   printf("cusp: %d probes: %d %d\n",  cusp4,
+	   cusp_edge[cusp4].probe1,
+	   cusp_edge[cusp4].probe2);
+
+	   make_circle(probelist,probe_rad,
+	   n_concave_circles, concave_circle_list);
+	   exit(ERROR);
+	 */
+
+/******* END TEMP ************/
+#ifdef DEBUG
+	printf ("ig: %d\n", ig);
+	printf ("number of cusps %d\n", *n_cusps);
+#endif
+	n = number_of_cusps (group, ig, cusp_pair);
+	if (n == 1) {
+	  continue;
+	} else if (n == 2) {
+	  trim_2_cusps (probelist, &n_vertex, vertexlist, n_concave_edges,
+					concave_edge, n_concave_circles, concave_circle_list,
+					probe_rad, &n_broken_concave_faces, broken_concave_face,
+					concave_cycle, &n_concave_cycles, cusp_edge, n_cusps,
+					cusp_pair, n_cusp_pairs, group, ig);
+	} else if (n == 3) {
+	  printf ("WARNING: 3 cusps intersection: not trimmed (surface area will be slightly overestimated)\n");
+	  /*
+	     trim_3_cusps( probelist, &n_vertex, vertexlist, n_concave_edges,
+	     concave_edge, n_concave_circles, concave_circle_list,
+	     probe_rad, &n_broken_concave_faces, broken_concave_face,
+	     concave_cycle, &n_concave_cycles, cusp_edge, n_cusps,
+	     cusp_pair, n_cusp_pairs, group, ig);
+	   */
+	} else if (n == 4) {
+	  printf ("WARNING: 4 cusps intersection: not trimmed (surface area will be slightly overestimated\n");
+	  /*
+	     printf("trim 4 cusps\n");
+	     trim_4_cusps( probelist, &n_vertex, vertexlist, n_concave_edges,
+	     concave_edge, n_concave_circles, concave_circle_list,
+	     probe_rad, &n_broken_concave_faces, broken_concave_face,
+	     concave_cycle, &n_concave_cycles, cusp_edge, n_cusps,
+	     cusp_pair, n_cusp_pairs, group, ig);
+	   */
+	} else {
+	  printf ("WARNING: %d cusps intersection: not trimmed (surface area will be slightly overestimated)\n", n);
+	}
+  }
+
+  /*
+     for (ig = 0; ig < n_groups; ++ig) {
+     for (nc = 0; nc < group[ig].n_pairs; ++ nc) {
+     inew = group[ig].cusp_pair[nc]; 
+     printf("ATOM      1 O    VAN  %4d    %8.3f%8.3f%8.3f\n", ig,
+     cusp_pair[inew].circle_center[0], 
+     cusp_pair[inew].circle_center[1], 
+     cusp_pair[inew].circle_center[2]);
+     printf("ATOM      1 C    VAN  %4d    %8.3f%8.3f%8.3f\n", ig,
+     cusp_pair[inew].vert1[0], 
+     cusp_pair[inew].vert1[1], 
+     cusp_pair[inew].vert1[2]);
+     printf("ATOM      1 N    VAN  %4d    %8.3f%8.3f%8.3f\n", ig,
+     cusp_pair[inew].vert2[0], 
+     cusp_pair[inew].vert2[1], 
+     cusp_pair[inew].vert2[2]);
+     ++i;
+     }
+     }
+   */
+  /*
+     i = 0;
+     for (ig = 0; ig < n_groups; ++ig) {
+     for (nc = 0; nc < group[ig].n_pairs; ++ nc) {
+     inew = group[ig].cusp_pair[nc]; 
+     printf("%d %d\n", i+1, i+2);
+     printf("%d %d\n", i+1, i+3);
+     i = i + 3;
+     }
+     }
+   */
+
+  free (group);
   return;
 }
+
+
+
+
+
+
+
 
 #ifdef trim_3_cusps
 static void trim_3_cusps (probe, nverts, vertex, n_concave_edges,
@@ -5661,7 +6589,7 @@ static void trim_3_cusps (probe, nverts, vertex, n_concave_edges,
   void add_2_cusps (), split_old_cusps (), get_faces ();
   int iface, icycle;
   void split_face ();
-  void dump_cycle ();
+  //void dump_cycle ();
   int cusp_list[MAXTMP], n_list;
   int ii;
   POINT vert1, vert2;
@@ -6009,6 +6937,99 @@ static void split_3_cusps (cusp_list, nlist, cusp_edge, n_cusps, xvertex, nx, cu
   return;
 }
 
+/***************************************************************/
+static int span_pairs (icusp, jcusp, group, ig, cusp_pair)
+	 int icusp, jcusp, ig;
+	 CUSP_GROUP group[];
+	 CUSP_PAIR cusp_pair[];
+{
+  int i, ip;
+
+  for (i = 0; i < group[ig].n_pairs; ++i) {
+	ip = group[ig].cusp_pair[i];
+	if (
+		 cusp_pair[ip].cusp1 != icusp &&
+		 cusp_pair[ip].cusp2 != icusp &&
+		 cusp_pair[ip].cusp1 != jcusp &&
+		 cusp_pair[ip].cusp2 != jcusp)
+	  return 0;
+  }
+  return 1;
+}
+
+
+static int get_cusps (four_cusp, group, ig, cusp_pair)
+	 int four_cusp[];
+	 CUSP_GROUP group[];
+	 int ig;
+	 CUSP_PAIR cusp_pair[];
+{
+  int i, ic, ip, ncusps;
+  int j, span_pairs (), itmp;
+
+  i = 0;
+  for (ic = 0; ic < group[ig].n_pairs; ++ic) {
+	ip = group[ig].cusp_pair[ic];
+	if (new_cusp (cusp_pair[ip].cusp1, four_cusp, i)) {
+	  four_cusp[i] = cusp_pair[ip].cusp1;
+	  ++i;
+	}
+	if (i > 4) {
+	  printf ("get_cusps(): too many unique cusps\n");
+	}
+	if (new_cusp (cusp_pair[ip].cusp2, four_cusp, i)) {
+	  four_cusp[i] = cusp_pair[ip].cusp2;
+	  ++i;
+	}
+	if (i > 4) {
+	  printf ("get_cusps(): too many unique cusps\n");
+	}
+  }
+  ncusps = i;
+  /*
+     printf("group %d has %d unique cusps:", ig, i);
+     for (i = 0; i < ncusps; ++i) {
+     printf(" %d", four_cusp[i]);
+     }
+     printf("\n");
+   */
+  if (ncusps != 4) {
+	printf ("get_cusps(): ncusps != 4\n");
+	exit (ERROR);
+  }
+/*  now arrange them so the first two cusps span the
+   set of pairs */
+  i = 0;
+  j = 1;
+  while (!span_pairs (four_cusp[i], four_cusp[j],
+					  group, ig, cusp_pair)) {
+	if (j == 3) {
+	  ++i;
+	  if (i == 3) {
+		printf ("unable to span pairs\n");
+		exit (ERROR);
+	  }
+	  j = i + 1;
+	} else {
+	  ++j;
+	}
+  }
+  /*
+     printf("cusps %d %d span cusp pairs\n", four_cusp[i], four_cusp[j]);
+   */
+
+  if (i != 0) {
+	itmp = four_cusp[0];
+	four_cusp[0] = four_cusp[i];
+	four_cusp[i] = itmp;
+  }
+  if (j != 1) {
+	itmp = four_cusp[1];
+	four_cusp[1] = four_cusp[j];
+	four_cusp[j] = itmp;
+  }
+  return ncusps;
+}
 
 
 static void trim_4_cusps (probe, nverts, vertex, n_concave_edges,
@@ -6047,7 +7068,7 @@ static void trim_4_cusps (probe, nverts, vertex, n_concave_edges,
   void add_2_cusps (), split_old_cusps (), get_faces ();
   int iface;
   void split_face ();
-  void dump_cycle ();
+  //void dump_cycle ();
   int cusp_list[MAXTMP], n_list;
   int nspan = 2;
 
@@ -6106,174 +7127,18 @@ static void trim_4_cusps (probe, nverts, vertex, n_concave_edges,
   return;
 }
 
-static void get_xvertex (nspan, four_cusp, concave_edge, cusp_edge, vertex,
-			 concave_circle, group, ig, cusp_pair, xvertex)
-	 int nspan;					/* number of cusps that span the group */
-	 int four_cusp[];
-	 EDGE concave_edge[];
-	 CUSP_EDGE cusp_edge[];
-	 VERTEX vertex[];
-	 CIRCLE concave_circle[];
-	 CUSP_GROUP group[];
-	 int ig;
-	 CUSP_PAIR cusp_pair[];
-	 EXTREME_VERTEX xvertex[];
-{
-
-  int min_pair, max_pair;		/* which pair is min and max vertex */
-  int min_vert, max_vert;		/* which vert 1 = vert1  2 = vert2 */
-  REAL_T min_theta, max_theta;
-  int k, icusp, icircle, iv0, ip;
-  POINT vec0, vec1, vec2;
-  EXTREME_VERTEX tmp_vert;
-  REAL_T theta, get_angle (), dist2 ();
-  void copy_vert ();
-  int ii, ic;
-  int ip0, ip2, ip3;
-  POINT v0, v2, v3;
-
-  for (k = 0; k < nspan; ++k) {
-	icusp = four_cusp[k];		/* 1st 2 cusps in the array span the group */
-	icircle = concave_edge[cusp_edge[icusp].edge].circle;
-	iv0 = concave_edge[cusp_edge[icusp].edge].vert1;
-
-	for (ii = 0; ii < 3; ++ii) {
-	  vec0[ii] = vertex[iv0].pos[ii] - concave_circle[icircle].center[ii];
-	}
-	vnorm (vec0, 3);
-
-	min_pair = -1;
-	max_pair = -1;
-	min_vert = -1;
-	max_vert = -1;
-	min_theta = 100.0;
-	max_theta = -100.0;
-
-	for (ic = 0; ic < group[ig].n_pairs; ++ic) {	/* search pairs for icusp */
-	  ip = group[ig].cusp_pair[ic];
-	  if (cusp_pair[ip].cusp1 != icusp && cusp_pair[ip].cusp2 != icusp)
-		continue;
-	  for (ii = 0; ii < 3; ++ii) {
-		vec1[ii] = cusp_pair[ip].vert1[ii] - concave_circle[icircle].center[ii];
-		vec2[ii] = cusp_pair[ip].vert2[ii] - concave_circle[icircle].center[ii];
-	  }
-	  vnorm (vec1, 3);
-	  vnorm (vec2, 3);
-
-	  theta = get_angle (vec0, vec1, concave_circle[icircle].axis);
-	  if (theta < 0.0)
-		theta = theta + TWOPI;
-	  if (theta < min_theta) {
-		min_pair = ip;
-		min_vert = 1;
-		min_theta = theta;
-	  }
-	  if (theta > max_theta) {
-		max_pair = ip;
-		max_vert = 1;
-		max_theta = theta;
-	  }
-	  theta = get_angle (vec0, vec2, concave_circle[icircle].axis);
-	  if (theta < 0.0)
-		theta = theta + TWOPI;
-	  if (theta < min_theta) {
-		min_pair = ip;
-		min_vert = 2;
-		min_theta = theta;
-	  }
-	  if (theta > max_theta) {
-		max_pair = ip;
-		max_vert = 2;
-		max_theta = theta;
-	  }
-	}
-	xvertex[2 * k].cusp_pair = min_pair;
-	xvertex[2 * k].vert = min_vert;
-	xvertex[2 * k + 1].cusp_pair = max_pair;
-	xvertex[2 * k + 1].vert = max_vert;
-  }
-  if (nspan == 1)
-	return;
-
-  ip0 = xvertex[0].cusp_pair;
-  ip2 = xvertex[2].cusp_pair;
-  ip3 = xvertex[3].cusp_pair;
-
-  if (xvertex[0].vert == 1) {
-	v0[0] = cusp_pair[ip0].vert1[0];
-	v0[1] = cusp_pair[ip0].vert1[1];
-	v0[2] = cusp_pair[ip0].vert1[2];
-  } else {
-	v0[0] = cusp_pair[ip0].vert2[0];
-	v0[1] = cusp_pair[ip0].vert2[1];
-	v0[2] = cusp_pair[ip0].vert2[2];
-  }
-
-  if (xvertex[2].vert == 1) {
-	v2[0] = cusp_pair[ip2].vert1[0];
-	v2[1] = cusp_pair[ip2].vert1[1];
-	v2[2] = cusp_pair[ip2].vert1[2];
-  } else {
-	v2[0] = cusp_pair[ip2].vert2[0];
-	v2[1] = cusp_pair[ip2].vert2[1];
-	v2[2] = cusp_pair[ip2].vert2[2];
-  }
-
-  if (xvertex[3].vert == 1) {
-	v3[0] = cusp_pair[ip3].vert1[0];
-	v3[1] = cusp_pair[ip3].vert1[1];
-	v3[2] = cusp_pair[ip3].vert1[2];
-  } else {
-	v3[0] = cusp_pair[ip3].vert2[0];
-	v3[1] = cusp_pair[ip3].vert2[1];
-	v3[2] = cusp_pair[ip3].vert2[2];
-  }
-
-  if (dist2 (v0, v2) < dist2 (v0, v3)) {
-	copy_vert (&xvertex[1], &tmp_vert);
-	copy_vert (&xvertex[2], &xvertex[1]);
-	copy_vert (&tmp_vert, &xvertex[2]);
-  } else {
-	copy_vert (&xvertex[1], &tmp_vert);
-	copy_vert (&xvertex[3], &xvertex[1]);
-	copy_vert (&tmp_vert, &xvertex[3]);
-  }
-
-  /*
-     printf("xvertex: cusp_pair %d vert %d\n", xvertex[0].cusp_pair, xvertex[0].vert);
-     printf("xvertex: cusp_pair %d vert %d\n", xvertex[1].cusp_pair, xvertex[1].vert);
-     printf("xvertex: cusp_pair %d vert %d\n", xvertex[2].cusp_pair, xvertex[2].vert);
-     printf("xvertex: cusp_pair %d vert %d\n", xvertex[3].cusp_pair, xvertex[3].vert);
-
-     for (i = 0; i < 4; ++i) {
-     ip0 = xvertex[i].cusp_pair;
-     printf("ATOM      1 O    VRT     1    ");
-     if (xvertex[i].vert == 1) {
-     printf("%8.3f%8.3f%8.3f\n", 
-     cusp_pair[ip0].vert1[0],
-     cusp_pair[ip0].vert1[1],
-     cusp_pair[ip0].vert1[2]);
-     } else {
-     printf("%8.3f%8.3f%8.3f\n", 
-     cusp_pair[ip0].vert2[0],
-     cusp_pair[ip0].vert2[1],
-     cusp_pair[ip0].vert2[2]);
-     }
-     }
-   */
-
-  return;
-}
-
-
 /***************************************************************/
-static void copy_vert (va, vb)
-	 EXTREME_VERTEX *va, *vb;
+static void copyvec (va, vb)
+	 POINT va, vb;
 {
-  vb->cusp_pair = va->cusp_pair;
-  vb->vert = va->vert;
+  vb[0] = va[0];
+  vb[1] = va[1];
+  vb[2] = va[2];
   return;
 }
+
+
+
 /***************************************************************/
 
 static void get_3_xvertex (nspan, three_cusp, concave_edge, cusp_edge, vertex,
@@ -6419,850 +7284,10 @@ static void get_3_xvertex (nspan, three_cusp, concave_edge, cusp_edge, vertex,
 
   return;
 }
-/***************************************************************/
-static void copyvec (va, vb)
-	 POINT va, vb;
-{
-  vb[0] = va[0];
-  vb[1] = va[1];
-  vb[2] = va[2];
-  return;
-}
 
-static int get_cusps (four_cusp, group, ig, cusp_pair)
-	 int four_cusp[];
-	 CUSP_GROUP group[];
-	 int ig;
-	 CUSP_PAIR cusp_pair[];
-{
-  int i, ic, ip, ncusps;
-  int j, span_pairs (), itmp;
-
-  i = 0;
-  for (ic = 0; ic < group[ig].n_pairs; ++ic) {
-	ip = group[ig].cusp_pair[ic];
-	if (new_cusp (cusp_pair[ip].cusp1, four_cusp, i)) {
-	  four_cusp[i] = cusp_pair[ip].cusp1;
-	  ++i;
-	}
-	if (i > 4) {
-	  printf ("get_cusps(): too many unique cusps\n");
-	}
-	if (new_cusp (cusp_pair[ip].cusp2, four_cusp, i)) {
-	  four_cusp[i] = cusp_pair[ip].cusp2;
-	  ++i;
-	}
-	if (i > 4) {
-	  printf ("get_cusps(): too many unique cusps\n");
-	}
-  }
-  ncusps = i;
-  /*
-     printf("group %d has %d unique cusps:", ig, i);
-     for (i = 0; i < ncusps; ++i) {
-     printf(" %d", four_cusp[i]);
-     }
-     printf("\n");
-   */
-  if (ncusps != 4) {
-	printf ("get_cusps(): ncusps != 4\n");
-	exit (ERROR);
-  }
-/*  now arrange them so the first two cusps span the
-   set of pairs */
-  i = 0;
-  j = 1;
-  while (!span_pairs (four_cusp[i], four_cusp[j],
-					  group, ig, cusp_pair)) {
-	if (j == 3) {
-	  ++i;
-	  if (i == 3) {
-		printf ("unable to span pairs\n");
-		exit (ERROR);
-	  }
-	  j = i + 1;
-	} else {
-	  ++j;
-	}
-  }
-  /*
-     printf("cusps %d %d span cusp pairs\n", four_cusp[i], four_cusp[j]);
-   */
-
-  if (i != 0) {
-	itmp = four_cusp[0];
-	four_cusp[0] = four_cusp[i];
-	four_cusp[i] = itmp;
-  }
-  if (j != 1) {
-	itmp = four_cusp[1];
-	four_cusp[1] = four_cusp[j];
-	four_cusp[j] = itmp;
-  }
-  return ncusps;
-}
-/***************************************************************/
-static int span_pairs (icusp, jcusp, group, ig, cusp_pair)
-	 int icusp, jcusp, ig;
-	 CUSP_GROUP group[];
-	 CUSP_PAIR cusp_pair[];
-{
-  int i, ip;
-
-  for (i = 0; i < group[ig].n_pairs; ++i) {
-	ip = group[ig].cusp_pair[i];
-	if (
-		 cusp_pair[ip].cusp1 != icusp &&
-		 cusp_pair[ip].cusp2 != icusp &&
-		 cusp_pair[ip].cusp1 != jcusp &&
-		 cusp_pair[ip].cusp2 != jcusp)
-	  return 0;
-  }
-  return 1;
-}
-
-static void dump_cycle (concave_cycle, concave_edge)
-	 CONCAVE_CYCLE *concave_cycle;
-	 EDGE concave_edge[];
-{
-  int i, ie;
-
-  printf ("\n");
-  printf ("cycle has %d edges:", concave_cycle->nedges);
-  for (i = 0; i < concave_cycle->nedges; ++i) {
-	ie = concave_cycle->edge[i];
-	if (concave_cycle->edge_direction[i] == 1)
-	  if (concave_cycle->cusp_edge[i] == -1)
-		printf (" %d (%d %d)", ie, concave_edge[ie].vert1, concave_edge[ie].vert2);
-	  else
-		printf (" %d (C %d %d)", ie, concave_edge[ie].vert1, concave_edge[ie].vert2);
-	else if (concave_cycle->cusp_edge[i] == -1)
-	  printf (" %d ((%d %d))", ie, concave_edge[ie].vert1, concave_edge[ie].vert2);
-	else
-	  printf (" %d ((C %d %d))", ie, concave_edge[ie].vert1, concave_edge[ie].vert2);
-  }
-  printf ("\n\n");
-}
-/*****************************************************************/
-
-static void add_2_cusps (xvertex, n_cusps, cusp_edge, concave_cycle,
-			 n_concave_edges,
-			 concave_edge, nverts, vertex, probe, n_concave_circles,
-			 concave_circle, probe_rad, cusp_pair)
-	 EXTREME_VERTEX xvertex[];
-	 int *n_cusps;
-	 CUSP_EDGE cusp_edge[];
-	 CONCAVE_CYCLE concave_cycle[];
-	 int *n_concave_edges;
-	 EDGE concave_edge[];
-	 int *nverts;
-	 VERTEX vertex[];
-	 PROBE probe[];
-	 int *n_concave_circles;
-	 CIRCLE concave_circle[];
-	 REAL_T probe_rad;
-	 CUSP_PAIR cusp_pair[];
-
-{
-  int i, ix, jx, icycle, jcycle, iprobe, jprobe;
-  void get_2_cycles (), add_cusp_circle (), add_2cusp_verts ();
-  void add_edge (), add_non_axial_cusp ();
-
-  for (i = 0; i < 2; ++i) {
-	ix = 2 * i;
-	jx = 2 * i + 1;
-	get_2_cycles (cusp_edge, ix, jx, xvertex, cusp_pair, &icycle, &jcycle);
-
-	iprobe = concave_cycle[icycle].iprobe;
-	jprobe = concave_cycle[jcycle].iprobe;
-	add_cusp_circle (n_concave_circles, concave_circle, probe,
-					 iprobe, jprobe, probe_rad);
-	add_2cusp_verts (nverts, vertex, cusp_pair, xvertex, ix, jx,
-				  concave_circle, (*n_concave_circles) - 1 );
-
-	add_edge (n_concave_edges, concave_edge, (*nverts) - 2,
-			  (*nverts) - 1, (*n_concave_circles) - 1,
-			  vertex, concave_circle);
-	add_non_axial_cusp (n_cusps, cusp_edge, icycle, jcycle,
-						iprobe, jprobe, (*n_concave_edges) - 1);
-  }
-  return;
-}
-
-/***************************************************************************/
-static void add_2cusp_verts (nverts, vertex, cusp_pair, xvertex, ix, jx,
-				 concave_circle, icircle)
-	 int *nverts;
-	 VERTEX vertex[];
-	 CUSP_PAIR cusp_pair[];
-	 EXTREME_VERTEX xvertex[];
-	 int ix, jx;
-	 CIRCLE concave_circle[];
-	 int icircle;
-{
-  int ip1, ip2, ii;
-  POINT vert1, vert2, va, vb, vc;
-  void add_1_vert ();
-
-  ip1 = xvertex[ix].cusp_pair;
-  if (xvertex[ix].vert == 1) {
-	for (ii = 0; ii < 3; ++ii)
-	  vert1[ii] = cusp_pair[ip1].vert1[ii];
-  } else {
-	for (ii = 0; ii < 3; ++ii)
-	  vert1[ii] = cusp_pair[ip1].vert2[ii];
-  }
-
-  ip2 = xvertex[jx].cusp_pair;
-  if (xvertex[jx].vert == 1) {
-	for (ii = 0; ii < 3; ++ii)
-	  vert2[ii] = cusp_pair[ip2].vert1[ii];
-  } else {
-	for (ii = 0; ii < 3; ++ii)
-	  vert2[ii] = cusp_pair[ip2].vert2[ii];
-  }
-
-  /* CRITERION IS BOGUS unless it is a 4 cusp intersection */
-
-  for (ii = 0; ii < 3; ++ii) {
-	va[ii] = vert1[ii] - concave_circle[icircle].center[ii];
-	vb[ii] = vert2[ii] - concave_circle[icircle].center[ii];
-  }
-
-  vnorm (va, 3);
-  vnorm (vb, 3);
-
-  cross (va, vb, vc);
-
-  if (DOT (vc, concave_circle[icircle].axis) > 0.0) {
-	add_1_vert (nverts, vertex, vert1);
-	xvertex[ix].vert_index = (*nverts) - 1;
-	add_1_vert (nverts, vertex, vert2);
-	xvertex[jx].vert_index = (*nverts) - 1;
-  } else {
-	add_1_vert (nverts, vertex, vert2);
-	xvertex[jx].vert_index = (*nverts) - 1;
-	add_1_vert (nverts, vertex, vert1);
-	xvertex[ix].vert_index = (*nverts) - 1;
-  }
-
-  return;
-}
-
-static void split_old_cusps (cusp_list, nlist, cusp_edge, n_cusps, xvertex, nx, cusp_pair,
-				 vertex, n_concave_edges, concave_edge, concave_circle)
-	 int cusp_list[];
-	 int nlist;
-	 CUSP_EDGE cusp_edge[];
-	 int *n_cusps;
-	 EXTREME_VERTEX xvertex[];
-	 int nx;
-	 CUSP_PAIR cusp_pair[];
-	 VERTEX vertex[];
-	 int *n_concave_edges;
-	 EDGE concave_edge[];
-	 CIRCLE concave_circle[];
-{
-
-  int cut_vert[MAXTMP], icut, ncut, i, ix, icusp, ip;
-  REAL_T cut_angle[2];
-  int iva, ivb, iedge, icircle, ii, itmp;
-  POINT va, vb;
-  REAL_T get_angle ();
-  void make_new_cusp ();
-
-  for (i = 0; i < nlist; ++i) {
-	icusp = cusp_list[i];
-	iedge = cusp_edge[icusp].edge;
-	icircle = concave_edge[iedge].circle;
-	ncut = 0;
-	for (ix = 0; ix < nx; ++ix) {
-	  ip = xvertex[ix].cusp_pair;
-	  if (cusp_pair[ip].cusp1 == icusp ||
-		  cusp_pair[ip].cusp2 == icusp) {
-		cut_vert[ncut] = xvertex[ix].vert_index;
-		ncut = ncut + 1;
-		if (ncut >= MAXTMP) {
-		  printf ("MAXTMP exceeded\n");
-		  exit (ERROR);
-		}
-	  }
-	}
-	if (ncut != 2) {
-	  printf ("split_old_cusps: not cutting with 2 verts\n");
-	  printf ("ncut %d\n", ncut);
-	  exit (ERROR);
-	}
-	iva = concave_edge[iedge].vert1;
-	for (ii = 0; ii < 3; ++ii)
-	  va[ii] = vertex[iva].pos[ii] - concave_circle[icircle].center[ii];
-	for (icut = 0; icut < ncut; ++icut) {
-	  ivb = cut_vert[icut];
-	  for (ii = 0; ii < 3; ++ii)
-		vb[ii] = vertex[ivb].pos[ii] - concave_circle[icircle].center[ii];
-	  cut_angle[icut] = get_angle (vb, va, concave_circle[icircle].axis);
-	  if (cut_angle[icut] < 0.0)
-		cut_angle[icut] = cut_angle[icut] + TWOPI;
-	}
-
-	if (cut_angle[0] > cut_angle[1]) {
-	  itmp = cut_vert[0];
-	  cut_vert[0] = cut_vert[1];
-	  cut_vert[1] = itmp;
-	}
-	/* now we are ready to split the cusp */
-	add_edge (n_concave_edges, concave_edge,
-			  concave_edge[iedge].vert1, cut_vert[0],
-			  icircle, vertex, concave_circle);
-	make_new_cusp (n_cusps, cusp_edge, icusp, (*n_concave_edges) - 1);
-
-	add_edge (n_concave_edges, concave_edge,
-			  cut_vert[1], concave_edge[iedge].vert2,
-			  icircle, vertex, concave_circle);
-	make_new_cusp (n_cusps, cusp_edge, icusp, (*n_concave_edges) - 1);
-  }
-  return;
-}
-
-static void make_new_cusp (nc, cusp_edge, iold, new_edge)
-	 int *nc;
-	 CUSP_EDGE cusp_edge[];
-	 int iold, new_edge;
-{
-  if (cusp_edge[iold].alive) {
-	printf ("new_cusp(): old cusp not dead\n");
-	exit (ERROR);
-  }
-  cusp_edge[*nc].cycle1 = cusp_edge[iold].cycle1;
-  cusp_edge[*nc].cycle2 = cusp_edge[iold].cycle2;
-  cusp_edge[*nc].edge = new_edge;
-  cusp_edge[*nc].probe1 = cusp_edge[iold].probe1;
-  cusp_edge[*nc].probe2 = cusp_edge[iold].probe2;
-  cusp_edge[*nc].alive = 1;
-  cusp_edge[*nc].concentric_pair = 0;
-
-  ++(*nc);
-
-  if (*nc > NUM_CUSP * natm_sel) {
-	printf ("MAX_CUSPS exceeded\n");
-	exit (ERROR);
-  }
-  return;
-}
-static void get_faces (face_list, nfaces, cusp_list, nlist, cusp_edge,
-		   concave_cycle, broken_concave_face)
-	 int face_list[];
-	 int *nfaces;
-	 int cusp_list[];
-	 int nlist;
-	 CUSP_EDGE cusp_edge[];
-	 CONCAVE_CYCLE concave_cycle[];
-	 BROKEN_CONCAVE_FACE broken_concave_face[];
-{
-  int i, icusp, cycle[2], face[2], j;
-  int is_new_face (), nf;
-
-  nf = 0;
-  for (i = 0; i < nlist; ++i) {
-	icusp = cusp_list[i];
-	cycle[0] = cusp_edge[icusp].cycle1;
-	face[0] = concave_cycle[cycle[0]].iface;
-	cycle[1] = cusp_edge[icusp].cycle2;
-	face[1] = concave_cycle[cycle[1]].iface;
-
-	for (j = 0; j < 2; ++j) {
-	  if (broken_concave_face[face[j]].n_cycles != 1) {
-		printf ("broken concave face has more than one cycle\n");
-		printf ("face %d number of cycles %d\n", face[j],
-				broken_concave_face[face[j]].n_cycles);
-		exit (ERROR);
-	  }
-	  if (broken_concave_face[face[j]].concave_cycle[0] != cycle[j]) {
-		printf ("face cycle mismatch\n");
-		printf ("face %d face.cycle = %d  cycle = %d\n",
-				face[j],
-				broken_concave_face[face[j]].concave_cycle[0],
-				cycle[j]);
-		exit (ERROR);
-	  }
-	  if (is_new_face (face[j], face_list, nf)) {
-		face_list[nf] = face[j];
-		++nf;
-		if (nf > MAXTMP) {
-		  printf ("MAXTMP exceeded\n");
-		  exit (ERROR);
-		}
-	  }
-	}
-  }
-  *nfaces = nf;
-  return;
-}
-/*********************************************/
-
-static int is_new_face (iface, four_face, nf)
-	 int iface, four_face[], nf;
-{
-  int i;
-  for (i = 0; i < nf; ++i)
-	if (iface == four_face[i])
-	  return 0;
-  return 1;
-}
-/************************************************************/
-static void split_face (iface, n_broken_faces, broken_concave_face,
-			n_concave_cycles, concave_cycle,
-			cusp_edge, cusp_list, n_list,
-			n_concave_edges, concave_edge, vertex, concave_circle)
-	 int iface;
-	 int *n_broken_faces;
-	 BROKEN_CONCAVE_FACE broken_concave_face[];
-	 int *n_concave_cycles;
-	 CONCAVE_CYCLE concave_cycle[];
-	 CUSP_EDGE cusp_edge[];
-	 int cusp_list[];			/* cusps to search */
-	 int n_list;
-	 int *n_concave_edges;
-	 EDGE concave_edge[];
-	 VERTEX vertex[];
-	 CIRCLE concave_circle[];
-{
-  int icycle, ie;
-  int start[MAXTMP], ns;		/* starting edges for the 2 subcycles */
-  CONCAVE_CYCLE tmp_cycle;
-  void get_starters (), copy_cycle ();
-  int cusp_match ();
-  int cusp_used[MAXTMP];
-  int edge_used[MAXTMP];
-  int i, direction;
-  int firstvert, nextvert;
-  int icusp;
-  int normal_match ();
-  int two_cycle[2];
-  int jj;
-
-  if (n_list >= MAXTMP) {
-	printf ("split_face(): MAXTMP exceeded\n");
-	exit (ERROR);
-  }
-
-  for (i = 0; i < n_list; ++i)
-	cusp_used[i] = 0;
-
-  icycle = broken_concave_face[iface].concave_cycle[0];
-  two_cycle[0] = icycle;
-  two_cycle[1] = *n_concave_cycles;
-
-
-  /* copy cycle to tmp_cycle */
-
-  copy_cycle (&concave_cycle[icycle], &tmp_cycle);
-
-  /*
-     dump_cycle(&tmp_cycle, concave_edge);
-   */
-  if (tmp_cycle.nedges > MAXTMP) {
-	printf ("MAXTMP exceeded\n");
-	exit (ERROR);
-  }
-  for (i = 0; i < tmp_cycle.nedges; ++i)
-	edge_used[i] = 0;
-
-  /* find the starting edges for the subcycles */
-  get_starters (start, &ns, concave_cycle, icycle, concave_edge);
-
-  /* the first cycle will go right back in the original
-     cycle spot. the 2nd one will be new */
-
-  for (jj = 0; jj < ns; ++jj) {
-	ie = start[jj];
-	i = 0;
-	concave_cycle[two_cycle[jj]].edge[i] = tmp_cycle.edge[ie];
-	concave_cycle[two_cycle[jj]].edge_direction[i] = tmp_cycle.edge_direction[ie];
-	concave_cycle[two_cycle[jj]].cusp_edge[i] = tmp_cycle.cusp_edge[ie];
-	++i;
-	firstvert = concave_edge[tmp_cycle.edge[ie]].vert1;
-	nextvert = concave_edge[tmp_cycle.edge[ie]].vert2;
-
-	while (nextvert != firstvert) {
-	  /* 1st look through "normal" edges for next vertex 
-	     also include cusp edges that are not dead */
-	  ie = normal_match (tmp_cycle, concave_edge, nextvert, edge_used);
-	  if (ie != -1) {			/* normal cusp was found */
-		concave_cycle[two_cycle[jj]].edge[i] = tmp_cycle.edge[ie];
-		concave_cycle[two_cycle[jj]].edge_direction[i] = tmp_cycle.edge_direction[ie];
-		concave_cycle[two_cycle[jj]].cusp_edge[i] = tmp_cycle.cusp_edge[ie];
-	  } else {					/* look through new cusps */
-		icusp = cusp_match (nextvert, n_list, cusp_list, icycle,
-							cusp_used, cusp_edge, concave_edge, &direction);
-		concave_cycle[two_cycle[jj]].edge[i] = cusp_edge[icusp].edge;
-		concave_cycle[two_cycle[jj]].edge_direction[i] = direction;
-		concave_cycle[two_cycle[jj]].cusp_edge[i] = icusp;
-	  }
-
-	  if (concave_cycle[two_cycle[jj]].edge_direction[i] == 1)
-		nextvert = concave_edge[concave_cycle[two_cycle[jj]].edge[i]].vert2;
-	  else
-		nextvert = concave_edge[concave_cycle[two_cycle[jj]].edge[i]].vert1;
-	  ++i;
-	}
-	concave_cycle[two_cycle[jj]].nedges = i;
-  }
-  if (ns == 2) {
-
-	broken_concave_face[*n_broken_faces].itorus[0] =
-	  broken_concave_face[iface].itorus[0];
-	broken_concave_face[*n_broken_faces].itorus[1] =
-	  broken_concave_face[iface].itorus[1];
-	broken_concave_face[*n_broken_faces].itorus[2] =
-	  broken_concave_face[iface].itorus[2];
-	broken_concave_face[*n_broken_faces].probe =
-	  broken_concave_face[iface].probe;
-	broken_concave_face[*n_broken_faces].n_cycles = 1;
-	broken_concave_face[*n_broken_faces].concave_cycle[0] = *n_concave_cycles;
-	broken_concave_face[*n_broken_faces].alive = 1;
-	broken_concave_face[*n_broken_faces].area = 0.0;
-
-	/* reset n_cycle count to 1 for iface */
-	broken_concave_face[iface].n_cycles = 1;
-
-	++(*n_concave_cycles);
-	if (*n_concave_cycles > NUM_CYCLE * natm_sel) {
-	  printf ("MAX_CYCLES exceeded\n");
-	  exit (ERROR);
-	}
-	++(*n_broken_faces);
-	if (*n_broken_faces > NUM_FACE * natm_sel) {
-	  printf ("MAX_FACE exceeded\n");
-	  exit (ERROR);
-	}
-  } else if (ns > 2) {
-	printf ("split_face(): face has more than 2 cycles\n");
-	exit (ERROR);
-  }
-  /*
-     printf(" remade icycle %d\n", icycle);
-     dump_cycle(&concave_cycle[icycle], concave_edge);
-     printf(" new cycle %d\n", *n_concave_cycles - 1);
-     dump_cycle(&concave_cycle[*n_concave_cycles - 1], concave_edge);
-   */
-
-  return;
-}
-/************************************************************/
-static void get_starters (start, ns, concave_cycle, icycle, concave_edge)
-	 int start[], *ns;
-	 CONCAVE_CYCLE concave_cycle[];
-	 int icycle;
-	 EDGE concave_edge[];
-{
-  int j;
-
-  *ns = 0;
-  for (j = 0; j < concave_cycle[icycle].nedges; ++j) {
-	if (concave_cycle[icycle].cusp_edge[j] != -1 &&
-		concave_edge[concave_cycle[icycle].edge[j]].alive == 0) {
-	  /* next edge is starting edge */
-	  if (j == concave_cycle[icycle].nedges - 1)
-		start[*ns] = 0;
-	  else
-		start[*ns] = j + 1;
-	  ++(*ns);
-	  if (*ns > MAXTMP) {
-		printf ("too many starting edges\n");
-		exit (ERROR);
-	  }
-	}
-  }
-  if (*ns > 2) {
-	printf ("split_face(): num starting edges  > 2  (%d)\n", *ns);
-	exit (ERROR);
-  }
-}
-/************************************************************/
-static void copy_cycle (c1, c2)
-	 CONCAVE_CYCLE *c1, *c2;
-{
-  int i;
-
-  c2->nedges = c1->nedges;
-  c2->iprobe = c1->iprobe;
-  c2->iface = c1->iface;
-  c2->intersects_self = c1->intersects_self;
-
-  for (i = 0; i < c2->nedges; ++i) {
-	c2->edge[i] = c1->edge[i];
-	c2->edge_direction[i] = c1->edge_direction[i];
-	c2->cusp_edge[i] = c1->cusp_edge[i];
-  }
-  return;
-}
-/************************************************************/
-static int cusp_match (lastvert, ncusps, cusp_index, icycle,
-			cusp_used, cusp_edge, concave_edge, direction)
-	 int lastvert, ncusps, cusp_index[], cusp_used[];
-	 int icycle;
-	 CUSP_EDGE cusp_edge[];
-	 EDGE concave_edge[];
-	 int *direction;
-{
-  int i, icusp, ie;
-
-  for (i = 0; i < ncusps; ++i) {
-	icusp = cusp_index[i];
-	if (cusp_used[i])
-	  continue;
-	if (cusp_edge[icusp].cycle1 != icycle &&
-		cusp_edge[icusp].cycle2 != icycle)
-	  continue;
-	ie = cusp_edge[icusp].edge;
-	if (concave_edge[ie].vert1 == lastvert) {
-	  *direction = 1;
-	  cusp_used[i] = 1;
-	  return icusp;
-	}
-	if (concave_edge[ie].vert2 == lastvert) {
-	  *direction = -1;
-	  cusp_used[i] = 1;
-	  return icusp;
-	}
-  }
-
-  printf ("cusp_match(): could not find match for vertex %d\n", lastvert);
-  exit (ERROR);
-  return -1;
-}
-/**************************************************/
-static int normal_match (tmp_cycle, concave_edge, lastvert, edge_used)
-	 CONCAVE_CYCLE tmp_cycle;
-	 EDGE concave_edge[];
-	 int lastvert;
-	 int edge_used[];
-{
-  int i, ie;
-
-  for (i = 0; i < tmp_cycle.nedges; ++i) {
-	if (edge_used[i])
-	  continue;
-	ie = tmp_cycle.edge[i];
-	if (concave_edge[ie].alive == 0)
-	  continue;
-	if (concave_edge[ie].vert1 == lastvert ||
-		concave_edge[ie].vert2 == lastvert) {
-	  edge_used[i] = 1;
-	  return i;
-	}
-  }
-  return -1;
-}
 
 /***************************************************************/
-static void add_non_axial_cusp (nc, cusp_edge, icycle, jcycle,
-					iprobe, jprobe, iedge)
-	 int *nc;
-	 CUSP_EDGE cusp_edge[];
-	 int icycle, jcycle, iprobe, jprobe, iedge;
-{
-  cusp_edge[*nc].cycle1 = icycle;
-  cusp_edge[*nc].cycle2 = jcycle;
-  cusp_edge[*nc].probe1 = iprobe;
-  cusp_edge[*nc].probe2 = jprobe;
-  cusp_edge[*nc].edge = iedge;
-  cusp_edge[*nc].alive = 1;
-  cusp_edge[*nc].concentric_pair = 0;
-  ++(*nc);
-  if (*nc > NUM_CUSP * natm_sel) {
-	printf ("MAX_CUSPS exceeded\n");
-	exit (ERROR);
-  }
-  return;
-}
-/***************************************************************/
-static void add_1_vert (nv, vertex, v)
-	 int *nv;
-	 VERTEX vertex[];
-	 POINT v;
-{
-  int ii;
 
-  for (ii = 0; ii < 3; ++ii)
-	vertex[*nv].pos[ii] = v[ii];
-  ++(*nv);
-  if (*nv > NUM_VERTEX * natm_sel) {
-	printf ("MAX_VERTS exceeded\n");
-	exit (ERROR);
-  }
-  return;
-}
-static void add_cusp_verts (nverts, vertex, cusp_pair, xvertex, ix, jx,
-				concave_circle, icircle)
-	 int *nverts;
-	 VERTEX vertex[];
-	 CUSP_PAIR cusp_pair[];
-	 EXTREME_VERTEX xvertex[];
-	 int ix, jx;
-	 CIRCLE concave_circle[];
-	 int icircle;
-{
-  int ip1, ip2, ii;
-  POINT vert1, vert2;
-  void add_1_vert ();
-
-  ip1 = xvertex[ix].cusp_pair;
-  if (xvertex[ix].vert == 1) {
-	for (ii = 0; ii < 3; ++ii)
-	  vert1[ii] = cusp_pair[ip1].vert1[ii];
-  } else {
-	for (ii = 0; ii < 3; ++ii)
-	  vert1[ii] = cusp_pair[ip1].vert2[ii];
-  }
-
-  ip2 = xvertex[jx].cusp_pair;
-  if (xvertex[jx].vert == 1) {
-	for (ii = 0; ii < 3; ++ii)
-	  vert2[ii] = cusp_pair[ip2].vert1[ii];
-  } else {
-	for (ii = 0; ii < 3; ++ii)
-	  vert2[ii] = cusp_pair[ip2].vert2[ii];
-  }
-
-  /* START HERE:  I THINK COMMENTED  CRITERION IS BOGUS! 
-     and the one just below is correct */
-
-  add_1_vert (nverts, vertex, vert1);
-  xvertex[ix].vert_index = (*nverts) - 1;
-  add_1_vert (nverts, vertex, vert2);
-  xvertex[jx].vert_index = (*nverts) - 1;
-  /*
-     for (ii = 0; ii < 3; ++ii) {
-     va[ii] = vert1[ii] - concave_circle[icircle].center[ii];
-     vb[ii] = vert2[ii] - concave_circle[icircle].center[ii];
-     }
-
-     vnorm(va,3);
-     vnorm(vb,3);
-
-     cross (va, vb, vc);
-
-     if (DOT(vc, concave_circle[icircle].axis) > 0.0 ) {
-     add_1_vert(nverts, vertex, vert1);
-     xvertex[ix].vert_index = (*nverts) - 1;
-     add_1_vert(nverts, vertex, vert2);
-     xvertex[jx].vert_index = (*nverts) - 1;
-     } else {
-     add_1_vert(nverts, vertex, vert2);
-     xvertex[jx].vert_index = (*nverts) - 1;
-     add_1_vert(nverts, vertex, vert1);
-     xvertex[ix].vert_index = (*nverts) - 1;
-     }
-   */
-  return;
-}
-/***************************************************************/
-
-/***************************************************************************/
-static void add_cusp_circle (nc, circle, probe, ip, jp, probe_rad)
-	 int *nc;
-	 CIRCLE circle[];
-	 PROBE probe[];
-	 int ip, jp;
-	 REAL_T probe_rad;
-{
-  int ii;
-  REAL_T d_pp2;
-
-  d_pp2 = 0.0;
-  for (ii = 0; ii < 3; ++ii) {
-	circle[*nc].center[ii] = 0.5 * (probe[ip].pos[ii] + probe[jp].pos[ii]);
-	/*
-	   circle[*nc].axis[ii] = probe[ip].pos[ii] - probe[jp].pos[ii];
-	 */
-	circle[*nc].axis[ii] = probe[jp].pos[ii] - probe[ip].pos[ii];
-	d_pp2 = d_pp2 + (probe[ip].pos[ii] - probe[jp].pos[ii]) *
-	  (probe[ip].pos[ii] - probe[jp].pos[ii]);
-  }
-  vnorm (circle[*nc].axis, 3);
-  circle[*nc].rad = sqrt (probe_rad * probe_rad - d_pp2 / 4.0);
-  circle[*nc].torus = -1;
-  circle[*nc].atom_or_probe_num = -1;
-  ++(*nc);
-  if (*nc >= NUM_CIRCLE * natm_sel) {
-	printf ("MAX_CIRCLE exceeded\n");
-	exit (ERROR);
-  }
-  return;
-}
-
-static void get_2_cycles (cusp_edge, ix, jx, xvertex, cusp_pair, icycle, jcycle)
-	 CUSP_EDGE cusp_edge[];
-	 int ix, jx;
-	 EXTREME_VERTEX xvertex[];
-	 CUSP_PAIR cusp_pair[];
-	 int *icycle, *jcycle;
-{
-  /* need to find 2 cycles that are shared by the pair
-     (cusp1,cusp2) and the pair (cusp3,cusp4).  The probes
-     associated with these cycles are the ones that determine
-     the arc of the new cusp edge */
-
-  int cusp1, cusp2, cusp3, cusp4, ip1, ip2;
-  int a_cycle[3], b_cycle[3];
-  int common_cycle[3], nmatch, i;
-
-  ip1 = xvertex[ix].cusp_pair;
-  ip2 = xvertex[jx].cusp_pair;
-  cusp1 = cusp_pair[ip1].cusp1;
-  cusp2 = cusp_pair[ip1].cusp2;
-  cusp3 = cusp_pair[ip2].cusp1;
-  cusp4 = cusp_pair[ip2].cusp2,
-
-	a_cycle[0] = cusp_edge[cusp1].cycle1;
-  a_cycle[1] = cusp_edge[cusp1].cycle2;
-  if (cusp_edge[cusp2].cycle1 != a_cycle[0] &&
-	  cusp_edge[cusp2].cycle1 != a_cycle[1]) {
-	a_cycle[2] = cusp_edge[cusp2].cycle1;
-  } else if (cusp_edge[cusp2].cycle2 != a_cycle[0] &&
-			 cusp_edge[cusp2].cycle2 != a_cycle[1]) {
-	a_cycle[2] = cusp_edge[cusp2].cycle2;
-  } else {
-	printf ("get_2_cycles(): could not find unique 3rd cycle\n");
-	exit (ERROR);
-  }
-
-  b_cycle[0] = cusp_edge[cusp3].cycle1;
-  b_cycle[1] = cusp_edge[cusp3].cycle2;
-  if (cusp_edge[cusp4].cycle1 != b_cycle[0] &&
-	  cusp_edge[cusp4].cycle1 != b_cycle[1]) {
-	b_cycle[2] = cusp_edge[cusp4].cycle1;
-  } else if (cusp_edge[cusp4].cycle2 != b_cycle[0] &&
-			 cusp_edge[cusp4].cycle2 != b_cycle[1]) {
-	b_cycle[2] = cusp_edge[cusp4].cycle2;
-  } else {
-	printf ("get_2_cycles(): could not find unique 3rd cycle\n");
-	exit (ERROR);
-  }
-
-  nmatch = 0;
-  for (i = 0; i < 3; ++i) {
-	if (a_cycle[i] == b_cycle[0] ||
-		a_cycle[i] == b_cycle[1] ||
-		a_cycle[i] == b_cycle[2]) {
-	  common_cycle[nmatch] = a_cycle[i];
-	  ++nmatch;
-	}
-  }
-  if (nmatch != 2) {
-	printf ("get_2_cycles(): 2 cycles not found\n");
-	printf ("cusp %d cycles %d %d\n", cusp1, cusp_edge[cusp1].cycle1, cusp_edge[cusp1].cycle2);
-	printf ("cusp %d cycles %d %d\n", cusp2, cusp_edge[cusp2].cycle1, cusp_edge[cusp2].cycle2);
-	printf ("cusp %d cycles %d %d\n", cusp3, cusp_edge[cusp3].cycle1, cusp_edge[cusp3].cycle2);
-	printf ("cusp %d cycles %d %d\n", cusp4, cusp_edge[cusp4].cycle1, cusp_edge[cusp4].cycle2);
-	exit (ERROR);
-  }
-  *icycle = common_cycle[0];
-  *jcycle = common_cycle[1];
-  return;
-}
 
 
 static void add_1_cusp (xvertex, n_cusps, cusp_edge, concave_cycle,
@@ -7654,67 +7679,63 @@ static void cusp_intersect_2 (cusp_edge, icusp, jcusp, probe, iprobe,
   return;
 }
 
-static int broken_concave_area (probe_rad,
-					 n_broken_concave_faces, broken_concave_face,
-					 concave_cycle, concave_edge, circle,
-					 vertex,
-					 broken_conc_area,
-					 probe)
-	 REAL_T probe_rad;
-	 int n_broken_concave_faces;
-	 BROKEN_CONCAVE_FACE broken_concave_face[];
-	 CONCAVE_CYCLE concave_cycle[];
+/**********************************************************************/
+static REAL_T interior_angle (e1, dir1, e2, dir2, concave_edge, circle, vertex)
+	 int e1, e2;
+	 int dir1, dir2;
 	 EDGE concave_edge[];
 	 CIRCLE circle[];
 	 VERTEX vertex[];
-	 REAL_T *broken_conc_area;
-	 PROBE probe[];
-
 {
-  int iface, ic, icycle, chi, iprobe;
-  REAL_T area, total_area = 0;
-  REAL_T conc_cycle_piece ();
-  int n_surfaced = 0;
+  int c1, c2, ii;
+  POINT v1, v2, zaxis, vtmp1, vtmp2;
+  void vnorm (), cross ();
+  REAL_T get_angle ();
 
-  *broken_conc_area = 0;
+  c1 = concave_edge[e1].circle;
+  c2 = concave_edge[e2].circle;
 
-  for (iface = 0; iface < n_broken_concave_faces; ++iface) {
-	++n_surfaced;
-	chi = 2 - broken_concave_face[iface].n_cycles;
-	area = 0;
-	iprobe = broken_concave_face[iface].probe;
-	for (ic = 0; ic < broken_concave_face[iface].n_cycles; ++ic) {
-	  icycle = broken_concave_face[iface].concave_cycle[ic];
-	  area = area + conc_cycle_piece (icycle, concave_cycle,
-					circle, concave_edge, vertex, iprobe, probe, probe_rad);
-	}
-	broken_concave_face[iface].area =
-	  probe_rad * probe_rad * (2 * PI * chi + area);
+  /* e1 and e2 share a vertex: need to find the two tangent
+     vectors at this vertex. the common vertex should 
+     be the 2nd vertex of e1 and the 1st vertex of e2,
+     unless dir1 or dir2 are -1, which means the
+     directions are reversed */
 
-	total_area += broken_concave_face[iface].area;
-	*broken_conc_area += broken_concave_face[iface].area;
-#ifdef DEBUG
-	printf ("-----\nbroken concave face probe %8.3f%8.3f%8.3f n_cycles %d\n",
-			probe[iprobe].pos[0], probe[iprobe].pos[1], probe[iprobe].pos[2],
-			broken_concave_face[iface].n_cycles);
-	for (ic = 0; ic < broken_concave_face[iface].n_cycles; ++ic) {
-	  printf ("   cycle %d ( ", ic);
-	  icycle = broken_concave_face[iface].concave_cycle[ic];
-	  for (ie = 0; ie < concave_cycle[icycle].nedges; ++ie) {
-		iedge = concave_cycle[icycle].edge[ie];
-		if (concave_cycle[icycle].edge_direction[ie] == -1) {
-		  printf (" !", iedge);
-		}
-		printf ("%d:%d ", concave_edge[iedge].vert1, concave_edge[iedge].vert2);
-	  }
-	  printf (" )\n");
-	}
-	printf (" area: %10.3f\n", broken_concave_face[iface].area);
-#endif
+  if (dir1 > 0) {				/* normal direction edge */
+	for (ii = 0; ii < 3; ++ii)
+	  vtmp1[ii] = vertex[concave_edge[e1].vert2].pos[ii] - circle[c1].center[ii];
+	vnorm (vtmp1, 3);
+	cross (circle[c1].axis, vtmp1, v1);
+  } else {
+	for (ii = 0; ii < 3; ++ii)
+	  vtmp1[ii] = vertex[concave_edge[e1].vert1].pos[ii] - circle[c1].center[ii];
+	vnorm (vtmp1, 3);
+	cross (vtmp1, circle[c1].axis, v1);
   }
-  return n_surfaced;;
-}
 
+  if (dir2 > 0) {				/* normal direction edge */
+	for (ii = 0; ii < 3; ++ii)
+	  vtmp2[ii] = vertex[concave_edge[e2].vert1].pos[ii] - circle[c2].center[ii];
+	vnorm (vtmp2, 3);
+	cross (vtmp2, circle[c2].axis, v2);
+  } else {
+	for (ii = 0; ii < 3; ++ii)
+	  vtmp2[ii] = vertex[concave_edge[e2].vert2].pos[ii] - circle[c2].center[ii];
+	vnorm (vtmp2, 3);
+	cross (circle[c2].axis, vtmp2, v2);
+  }
+
+  vnorm (v1, 3);
+  vnorm (v2, 3);
+
+  /* angle between v1 and v2 is always < 180,
+     so no ambiguity in cross product */
+  cross (v1, v2, zaxis);
+  vnorm (zaxis, 3);
+
+  return get_angle (v2, v1, zaxis);
+
+}
 
 static REAL_T conc_cycle_piece (ic, concave_cycle,
 				  circle, concave_edge, vertex, iprobe, probe, probe_rad)
@@ -7814,63 +7835,68 @@ static REAL_T conc_cycle_piece (ic, concave_cycle,
   return sum;
 }
 
-/**********************************************************************/
-static REAL_T interior_angle (e1, dir1, e2, dir2, concave_edge, circle, vertex)
-	 int e1, e2;
-	 int dir1, dir2;
+static int broken_concave_area (probe_rad,
+					 n_broken_concave_faces, broken_concave_face,
+					 concave_cycle, concave_edge, circle,
+					 vertex,
+					 broken_conc_area,
+					 probe)
+	 REAL_T probe_rad;
+	 int n_broken_concave_faces;
+	 BROKEN_CONCAVE_FACE broken_concave_face[];
+	 CONCAVE_CYCLE concave_cycle[];
 	 EDGE concave_edge[];
 	 CIRCLE circle[];
 	 VERTEX vertex[];
+	 REAL_T *broken_conc_area;
+	 PROBE probe[];
+
 {
-  int c1, c2, ii;
-  POINT v1, v2, zaxis, vtmp1, vtmp2;
-  void vnorm (), cross ();
-  REAL_T get_angle ();
+  int iface, ic, icycle, chi, iprobe;
+  REAL_T area, total_area = 0;
+  REAL_T conc_cycle_piece ();
+  int n_surfaced = 0;
 
-  c1 = concave_edge[e1].circle;
-  c2 = concave_edge[e2].circle;
+  *broken_conc_area = 0;
 
-  /* e1 and e2 share a vertex: need to find the two tangent
-     vectors at this vertex. the common vertex should 
-     be the 2nd vertex of e1 and the 1st vertex of e2,
-     unless dir1 or dir2 are -1, which means the
-     directions are reversed */
+  for (iface = 0; iface < n_broken_concave_faces; ++iface) {
+	++n_surfaced;
+	chi = 2 - broken_concave_face[iface].n_cycles;
+	area = 0;
+	iprobe = broken_concave_face[iface].probe;
+	for (ic = 0; ic < broken_concave_face[iface].n_cycles; ++ic) {
+	  icycle = broken_concave_face[iface].concave_cycle[ic];
+	  area = area + conc_cycle_piece (icycle, concave_cycle,
+					circle, concave_edge, vertex, iprobe, probe, probe_rad);
+	}
+	broken_concave_face[iface].area =
+	  probe_rad * probe_rad * (2 * PI * chi + area);
 
-  if (dir1 > 0) {				/* normal direction edge */
-	for (ii = 0; ii < 3; ++ii)
-	  vtmp1[ii] = vertex[concave_edge[e1].vert2].pos[ii] - circle[c1].center[ii];
-	vnorm (vtmp1, 3);
-	cross (circle[c1].axis, vtmp1, v1);
-  } else {
-	for (ii = 0; ii < 3; ++ii)
-	  vtmp1[ii] = vertex[concave_edge[e1].vert1].pos[ii] - circle[c1].center[ii];
-	vnorm (vtmp1, 3);
-	cross (vtmp1, circle[c1].axis, v1);
+	total_area += broken_concave_face[iface].area;
+	*broken_conc_area += broken_concave_face[iface].area;
+#ifdef DEBUG
+	printf ("-----\nbroken concave face probe %8.3f%8.3f%8.3f n_cycles %d\n",
+			probe[iprobe].pos[0], probe[iprobe].pos[1], probe[iprobe].pos[2],
+			broken_concave_face[iface].n_cycles);
+	for (ic = 0; ic < broken_concave_face[iface].n_cycles; ++ic) {
+	  printf ("   cycle %d ( ", ic);
+	  icycle = broken_concave_face[iface].concave_cycle[ic];
+	  for (ie = 0; ie < concave_cycle[icycle].nedges; ++ie) {
+		iedge = concave_cycle[icycle].edge[ie];
+		if (concave_cycle[icycle].edge_direction[ie] == -1) {
+		  printf (" !", iedge);
+		}
+		printf ("%d:%d ", concave_edge[iedge].vert1, concave_edge[iedge].vert2);
+	  }
+	  printf (" )\n");
+	}
+	printf (" area: %10.3f\n", broken_concave_face[iface].area);
+#endif
   }
-
-  if (dir2 > 0) {				/* normal direction edge */
-	for (ii = 0; ii < 3; ++ii)
-	  vtmp2[ii] = vertex[concave_edge[e2].vert1].pos[ii] - circle[c2].center[ii];
-	vnorm (vtmp2, 3);
-	cross (vtmp2, circle[c2].axis, v2);
-  } else {
-	for (ii = 0; ii < 3; ++ii)
-	  vtmp2[ii] = vertex[concave_edge[e2].vert2].pos[ii] - circle[c2].center[ii];
-	vnorm (vtmp2, 3);
-	cross (circle[c2].axis, vtmp2, v2);
-  }
-
-  vnorm (v1, 3);
-  vnorm (v2, 3);
-
-  /* angle between v1 and v2 is always < 180,
-     so no ambiguity in cross product */
-  cross (v1, v2, zaxis);
-  vnorm (zaxis, 3);
-
-  return get_angle (v2, v1, zaxis);
-
+  return n_surfaced;;
 }
+
+
 
 // -----------------------------------------------------------------------------
 
@@ -8162,7 +8188,7 @@ REAL_T molsurf(REAL_T probe_rad, REAL_T *coords, int natomIn, NAME *namesIn,
        4. create concave face                                                       */
     concave_edges (probe_rad, atom, n_probes, probelist, &n_vertex, vertexlist,
                    &n_concave_edges, concave_edge_list, &n_concave_faces, concave_face,
-                   n_torus, toruslist, concave_circles);
+                   n_torus, toruslist);//, concave_circles);
     sort_edges (n_concave_edges, concave_edge_list, n_torus,
                 toruslist, n_vertex, vertexlist, convex_circle_list);
   /*
