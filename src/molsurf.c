@@ -686,7 +686,7 @@ static int probe_pos (ai, aj, ak,
   w_sin = sin (w_ijk);
   if (fabs (w_sin) < 1.0e-10)
 	return 0;					/* no probe possible */
-
+
   cross (u_ij, u_ik, u_ijk);
   for (i = 0; i < 3; ++i)
 	u_ijk[i] = u_ijk[i] / w_sin;
@@ -807,7 +807,6 @@ static int get_probes (atom, nat, neighbors, upper_neighbors, probelist, probe_r
   int nprobes = 0;
 
   probe_diam = 2 * probe_rad;
-
 
   for (ia = 0; ia < *nat; ++ia) {
 
@@ -865,87 +864,6 @@ static int get_probes (atom, nat, neighbors, upper_neighbors, probelist, probe_r
   }
   return nprobes;
 }
-
-static int bury_check (ia, ja, atom, probe_rad, probe_diam, neighbors)
-	 int ia;
-	 int ja;
-	 ATOM atom[];
-	 REAL_T probe_rad;
-	 REAL_T probe_diam;
-	 NEIGHBOR neighbors[];
-{
-  int i1, i2, k1, k2;
-  int is_buried ();
-
-  for (i1 = atom[ia].neighbor_start;
-	   i1 < atom[ia].neighbor_start + atom[ia].n_neighbors;
-	   ++i1) {
-	k1 = neighbors[i1].iatom;
-	for (i2 = atom[ja].neighbor_start;
-		 i2 < atom[ja].neighbor_start + atom[ja].n_neighbors;
-		 ++i2) {
-	  k2 = neighbors[i2].iatom;
-	  if (k1 == k2 && is_buried (&atom[ia], &atom[ja], &atom[k1],
-								 probe_rad, probe_diam))
-		return 1;
-	}
-  }
-  return 0;
-}
-
-
-/* only check tori that are still marked "free"
-   (i.e., nprobes = -1). all others have nprobes > 0
-   nprobes = 0 (buried) or nprobes = -2 (buried).
-   Here is where we determine whether those that are
-   currently -1 (free) should be -2 (buried)
-
-   This routine only checks those tori that are
-   buried by a single atom.  The more common case
-   is for a torus to be buried by several atoms.
-   These tori are readily identified because
-   they have t->nprobes = 0, but have no probes
-   associated with them.
- */
-
-static int t_buried (atom, nat, neighbors, upper_neighbors, probe_rad)
-	 ATOM atom[];
-	 int *nat;
-	 NEIGHBOR neighbors[];
-	 NEIGHBOR_TORUS upper_neighbors[];
-	 REAL_T probe_rad;
-{
-  REAL_T probe_diam;
-  int ia, ij, nb = 0;
-  //int bury_check ();
-
-  probe_diam = 2 * probe_rad;
-
-  for (ia = 0; ia < *nat; ++ia) {
-	for (ij = atom[ia].upper_start;
-		 ij < atom[ia].upper_start + atom[ia].n_upper;
-		 ++ij) {
-
-	  if (upper_neighbors[ij].nprobes != -1)
-		continue;				/* only check free */
-
-	  if (atom[ia].buried || atom[upper_neighbors[ij].iatom].buried) {
-		/* torus containing these two atoms is buried 
-		   because one of the two atoms is buried  */
-		upper_neighbors[ij].nprobes = -2;
-		continue;
-	  }
-	  if (bury_check (ia, upper_neighbors[ij].iatom, atom,
-					  probe_rad, probe_diam, neighbors)) {
-		upper_neighbors[ij].nprobes = -2;
-		++nb;
-	  }
-	}
-  }
-
-  return nb;
-}
-
 
 static int is_buried (ai, aj, ak, probe_rad, probe_diam)
 	 ATOM *ai;
@@ -1067,6 +985,135 @@ static int is_buried (ai, aj, ak, probe_rad, probe_diam)
   return 0;
 }
 
+static int bury_check (ia, ja, atom, probe_rad, probe_diam, neighbors)
+	 int ia;
+	 int ja;
+	 ATOM atom[];
+	 REAL_T probe_rad;
+	 REAL_T probe_diam;
+	 NEIGHBOR neighbors[];
+{
+  int i1, i2, k1, k2;
+  //int is_buried ();
+
+  for (i1 = atom[ia].neighbor_start;
+	   i1 < atom[ia].neighbor_start + atom[ia].n_neighbors;
+	   ++i1) {
+	k1 = neighbors[i1].iatom;
+	for (i2 = atom[ja].neighbor_start;
+		 i2 < atom[ja].neighbor_start + atom[ja].n_neighbors;
+		 ++i2) {
+	  k2 = neighbors[i2].iatom;
+	  if (k1 == k2 && is_buried (&atom[ia], &atom[ja], &atom[k1],
+								 probe_rad, probe_diam))
+		return 1;
+	}
+  }
+  return 0;
+}
+
+
+/* only check tori that are still marked "free"
+   (i.e., nprobes = -1). all others have nprobes > 0
+   nprobes = 0 (buried) or nprobes = -2 (buried).
+   Here is where we determine whether those that are
+   currently -1 (free) should be -2 (buried)
+
+   This routine only checks those tori that are
+   buried by a single atom.  The more common case
+   is for a torus to be buried by several atoms.
+   These tori are readily identified because
+   they have t->nprobes = 0, but have no probes
+   associated with them.
+ */
+
+static int t_buried (atom, nat, neighbors, upper_neighbors, probe_rad)
+	 ATOM atom[];
+	 int *nat;
+	 NEIGHBOR neighbors[];
+	 NEIGHBOR_TORUS upper_neighbors[];
+	 REAL_T probe_rad;
+{
+  REAL_T probe_diam;
+  int ia, ij, nb = 0;
+  //int bury_check ();
+
+  probe_diam = 2 * probe_rad;
+
+  for (ia = 0; ia < *nat; ++ia) {
+	for (ij = atom[ia].upper_start;
+		 ij < atom[ia].upper_start + atom[ia].n_upper;
+		 ++ij) {
+
+	  if (upper_neighbors[ij].nprobes != -1)
+		continue;				/* only check free */
+
+	  if (atom[ia].buried || atom[upper_neighbors[ij].iatom].buried) {
+		/* torus containing these two atoms is buried 
+		   because one of the two atoms is buried  */
+		upper_neighbors[ij].nprobes = -2;
+		continue;
+	  }
+	  if (bury_check (ia, upper_neighbors[ij].iatom, atom,
+					  probe_rad, probe_diam, neighbors)) {
+		upper_neighbors[ij].nprobes = -2;
+		++nb;
+	  }
+	}
+  }
+
+  return nb;
+}
+
+static void torus_data (tor, nt, atom, ia, ja, prad)
+	 TORUS tor[];
+	 int nt;
+	 ATOM atom[];
+	 int ia;
+	 int ja;
+	 REAL_T prad;
+{
+  REAL_T d_ij, c_fact;
+  REAL_T sarg1, sarg2;
+  int ii;
+  REAL_T ri, rj;
+
+  ri = atom[ia].rad;
+  rj = atom[ja].rad;
+
+  d_ij = DIST (atom[ia].pos, atom[ja].pos);
+
+  c_fact = ((ri + prad) * (ri + prad) -
+			(rj + prad) * (rj + prad)) / (d_ij * d_ij);
+
+
+  sarg1 = (ri + rj + 2 * prad) * (ri + rj + 2 * prad) - d_ij * d_ij;
+  sarg2 = d_ij * d_ij - (ri - rj) * (ri - rj);
+  assert( sarg1 >= 0.0 );
+  assert( sarg2 >= 0.0 );
+  tor[nt].rad = (0.5 / d_ij) * sqrt (sarg1) * sqrt (sarg2);
+
+  if (tor[nt].rad < prad) {
+	tor[nt].low = 1;
+  } else {
+	tor[nt].low = 0;
+  }
+
+  for (ii = 0; ii < 3; ++ii) {
+
+	tor[nt].uv[ii] = (atom[ja].pos[ii] - atom[ia].pos[ii]) / d_ij;
+
+	tor[nt].center[ii] = 0.5 * (atom[ia].pos[ii] + atom[ja].pos[ii]) +
+	  0.5 * c_fact * (atom[ja].pos[ii] - atom[ia].pos[ii]);
+  }
+
+  return;
+
+}
+
+
+
+
 static int get_torus (atom, nat, neighbors, upper_neighbors, probe_rad, toruslist)
 	 ATOM atom[];
 	 int *nat;
@@ -1076,7 +1123,7 @@ static int get_torus (atom, nat, neighbors, upper_neighbors, probe_rad, toruslis
 	 TORUS toruslist[];
 {
   int ia, ja, in, nt = 0;
-  void torus_data ();
+  //void torus_data ();
 
   for (ia = 0; ia < *nat; ++ia) {
 	atom[ia].torus_start = nt;	/* points to start of torus list for that atom */
@@ -1131,53 +1178,6 @@ static int get_torus (atom, nat, neighbors, upper_neighbors, probe_rad, toruslis
 	}
   }
   return nt;
-}
-
-
-static void torus_data (tor, nt, atom, ia, ja, prad)
-	 TORUS tor[];
-	 int nt;
-	 ATOM atom[];
-	 int ia;
-	 int ja;
-	 REAL_T prad;
-{
-  REAL_T d_ij, c_fact;
-  REAL_T sarg1, sarg2;
-  int ii;
-  REAL_T ri, rj;
-
-  ri = atom[ia].rad;
-  rj = atom[ja].rad;
-
-  d_ij = DIST (atom[ia].pos, atom[ja].pos);
-
-  c_fact = ((ri + prad) * (ri + prad) -
-			(rj + prad) * (rj + prad)) / (d_ij * d_ij);
-
-
-  sarg1 = (ri + rj + 2 * prad) * (ri + rj + 2 * prad) - d_ij * d_ij;
-  sarg2 = d_ij * d_ij - (ri - rj) * (ri - rj);
-  assert( sarg1 >= 0.0 );
-  assert( sarg2 >= 0.0 );
-  tor[nt].rad = (0.5 / d_ij) * sqrt (sarg1) * sqrt (sarg2);
-
-  if (tor[nt].rad < prad) {
-	tor[nt].low = 1;
-  } else {
-	tor[nt].low = 0;
-  }
-
-  for (ii = 0; ii < 3; ++ii) {
-
-	tor[nt].uv[ii] = (atom[ja].pos[ii] - atom[ia].pos[ii]) / d_ij;
-
-	tor[nt].center[ii] = 0.5 * (atom[ia].pos[ii] + atom[ja].pos[ii]) +
-	  0.5 * c_fact * (atom[ja].pos[ii] - atom[ia].pos[ii]);
-  }
-
-  return;
-
 }
 
 
@@ -1240,6 +1240,34 @@ static int convex_circles (atom, nat, toruslist, n_torus, circlelist, probe_rad)
   return nc;
 }
 
+static int id_torus (ia1, ia2, atom, torus)
+	 int ia1;
+	 int ia2;
+	 ATOM atom[];
+	 TORUS torus[];
+{
+  int it, itmp;
+
+  if (ia1 >= ia2) {
+	itmp = ia2;
+	ia2 = ia1;
+	ia1 = itmp;
+	/*
+	   fprintf(stderr, "id_torus(): atom indices reversed\n");
+	   exit(ERROR);
+	 */
+  }
+  for (it = atom[ia1].torus_start; it < atom[ia1].torus_start +
+	   atom[ia1].ntorus; ++it)
+	if (torus[it].a2 == ia2)
+	  return it;
+
+  fprintf (stderr, "id_torus(): Could not find torus for atoms %d and %d\n",
+		   ia1, ia2);
+  exit (ERROR);
+  return -1;
+}
+
 /******************************************************************/
 /* this routine assumes that the orientation of the atoms in the  */
 /* probe triplet is counter-clockwise.  This should be assured by */
@@ -1255,13 +1283,13 @@ static int concave_circles (atom, n_probes, probelist, toruslist,
 	 REAL_T probe_rad;
 {
 
-  int id_torus ();
+  //int id_torus ();
   int ic, ip, ii, jj, it;
   POINT r_pt, vec;
   void vnorm ();
   int p_torus[3], p_atom[3];
   REAL_T change_sign[3];
-
+
   ic = 0;
   for (ip = 0; ip < n_probes; ++ip) {
 
@@ -1313,6 +1341,32 @@ static int concave_circles (atom, n_probes, probelist, toruslist,
   return ic;
 }
 
+static void addvert (probe_rad, ia, atom, ip, probe, nverts, vert)
+	 REAL_T probe_rad;
+	 int ia, ip;
+	 ATOM atom[];
+	 PROBE probe[];
+	 int *nverts;
+	 VERTEX vert[];
+{
+  REAL_T invradsum;
+  int ii;
+
+  invradsum = 1.0 / (probe_rad + atom[ia].rad);
+  vert[*nverts].iatom = ia;
+  vert[*nverts].iprobe = ip;
+  for (ii = 0; ii < 3; ++ii) {
+	vert[*nverts].pos[ii] = invradsum *
+	  (atom[ia].rad * probe[ip].pos[ii] + probe_rad * atom[ia].pos[ii]);
+  }
+  ++(*nverts);
+  if (*nverts >= NUM_VERTEX * natm_sel) {
+	printf ("MAX_VERTS exceeded\n");
+	exit (ERROR);
+  }
+  return;
+}
+
 /******************************************************************************/
   /* 1. fill up concave edge list, orient edges                                 */
   /* 2. add edge pointers to torus array                                        */
@@ -1345,7 +1399,7 @@ static void concave_edges (probe_rad, atom, nprobes, probe, nverts, vert,
   int iface = 0, i, ii, it, ie;
   int probe_atom[3];			/* 3 atoms touching probe */
   int id_torus ();
-  void addvert ();
+  //void addvert ();
 
 
   *nedges = 0;
@@ -1449,31 +1503,6 @@ static void concave_edges (probe_rad, atom, nprobes, probe, nverts, vert,
 }
 
 
-static void addvert (probe_rad, ia, atom, ip, probe, nverts, vert)
-	 REAL_T probe_rad;
-	 int ia, ip;
-	 ATOM atom[];
-	 PROBE probe[];
-	 int *nverts;
-	 VERTEX vert[];
-{
-  REAL_T invradsum;
-  int ii;
-
-  invradsum = 1.0 / (probe_rad + atom[ia].rad);
-  vert[*nverts].iatom = ia;
-  vert[*nverts].iprobe = ip;
-  for (ii = 0; ii < 3; ++ii) {
-	vert[*nverts].pos[ii] = invradsum *
-	  (atom[ia].rad * probe[ip].pos[ii] + probe_rad * atom[ia].pos[ii]);
-  }
-  ++(*nverts);
-  if (*nverts >= NUM_VERTEX * natm_sel) {
-	printf ("MAX_VERTS exceeded\n");
-	exit (ERROR);
-  }
-  return;
-}
 /******************************************************************************/
 /* 1. use torus array concave edge pointers to fill up convex edge list       */
 /* 2. fill up atom array convex edge pointers                                 */
@@ -1495,184 +1524,6 @@ static void addvert (probe_rad, ia, atom, ip, probe, nverts, vert)
 /*                    torus.atom1                                             */
 /*                                                                            */
 /******************************************************************************/
-
-
-static void convex_edges (probe_rad, nat, atom, n_probes, probelist, n_vertex, vertexlist,
-			  n_concave_edges, concave_edge, n_convex_edges, convex_edge,
-			  n_torus, toruslist, n_saddle_faces, saddle_face, circlelist)
-	 REAL_T probe_rad;
-	 int nat;
-	 ATOM atom[];
-	 int n_probes;
-	 PROBE probelist[];
-	 int n_vertex;
-	 VERTEX vertexlist[];
-	 int n_concave_edges;
-	 EDGE concave_edge[];
-	 int *n_convex_edges;
-	 EDGE convex_edge[];
-	 int n_torus;
-	 TORUS toruslist[];
-	 int *n_saddle_faces;
-	 SADDLE_FACE saddle_face[];
-	 CIRCLE circlelist[];
-{
-  int i, icc1, icc2, ia, ja, c1, c2, it, n_free_edges = 0;
-  int cc1_v1, cc1_v2, cc2_v1, cc2_v2;
-  int ne = 0;
-  int iface = 0;
-  void face_info ();
-  void check_convex_edges ();
-  void atom_vertex_match ();
-  void add_saddle_face ();
-  void add_free_edge (), add_edge ();
-  void add_convex_edge_to_torus ();
-  void add_convex_edge_to_atom ();
-  void check_data ();
-
-  *n_convex_edges = 0;
-  *n_saddle_faces = 0;
-
-  for (ia = 0; ia < nat; ++ia) {
-	atom[ia].n_convex_edges = 0;
-  }
-
-  for (it = 0; it < n_torus; ++it) {
-	ia = toruslist[it].a1;
-	ja = toruslist[it].a2;
-	c1 = toruslist[it].circle1;
-	c2 = toruslist[it].circle2;
-	if (toruslist[it].n_concave_edges == 0 &&
-		toruslist[it].n_convex_edges == -2) {	/* free torus */
-	  n_free_edges = n_free_edges + 2;
-	  toruslist[it].n_convex_edges = 0;
-
-	  add_saddle_face (saddle_face, &iface, it, -1, -1, ne + 1, ne);
-
-	  add_convex_edge_to_torus (it, toruslist, 0, ne);
-	  add_convex_edge_to_atom (ia, atom, ne);
-	  add_free_edge (&ne, convex_edge, c1);
-
-	  add_convex_edge_to_torus (it, toruslist, 1, ne);
-	  add_convex_edge_to_atom (ja, atom, ne);
-	  add_free_edge (&ne, convex_edge, c2);
-
-	  continue;
-	}
-	for (i = 0; i < toruslist[it].n_concave_edges; i = i + 2) {
-
-	  icc1 = toruslist[it].concave_edges[i];
-	  icc2 = toruslist[it].concave_edges[i + 1];
-
-	  cc1_v1 = concave_edge[icc1].vert1;
-	  cc1_v2 = concave_edge[icc1].vert2;
-	  cc2_v1 = concave_edge[icc2].vert1;
-	  cc2_v2 = concave_edge[icc2].vert2;
-
-	  atom_vertex_match (vertexlist, cc1_v1, ia);
-	  atom_vertex_match (vertexlist, cc1_v2, ja);
-	  atom_vertex_match (vertexlist, cc2_v1, ja);
-	  atom_vertex_match (vertexlist, cc2_v2, ia);
-
-	  add_saddle_face (saddle_face, &iface, it, icc1, icc2, ne + 1, ne);
-
-	  add_convex_edge_to_torus (it, toruslist, i, ne);
-	  add_convex_edge_to_atom (ia, atom, ne);
-	  add_edge (&ne, convex_edge,
-				concave_edge[icc2].vert2, concave_edge[icc1].vert1,
-				c1, vertexlist, circlelist);
-
-	  add_convex_edge_to_torus (it, toruslist, i + 1, ne);
-	  add_convex_edge_to_atom (ja, atom, ne);
-	  add_edge (&ne, convex_edge,
-				convex_edge[ne].vert1 = concave_edge[icc1].vert2,
-				convex_edge[ne].vert2 = concave_edge[icc2].vert1,
-				c2, vertexlist, circlelist);
-	}
-  }
-
-  *n_convex_edges = ne;
-  *n_saddle_faces = iface;
-
-  if (ne - n_free_edges != n_concave_edges) {
-	printf ("convex_edges() convex and concave edges not paired\n");
-	exit (ERROR);
-  }
-  check_data (n_torus, toruslist, nat, atom, vertexlist, convex_edge, ne);
-
-  /*
-     printf("number of convex edges %d\n", ne);
-     printf("number of free   edges %d\n", n_free_edges);
-     for (iface = 0; iface < *n_saddle_faces; ++iface)
-     face_info(iface, saddle_face, concave_edge, convex_edge,vertexlist,toruslist);
-     check_convex_edges(ne, convex_edge, circlelist);
-   */
-
-  return;
-}
-/********************************************************************************/
-static void check_data (n_torus, toruslist, nat, atom, vertexlist, convex_edge, ne)
-	 int n_torus, nat, ne;
-	 TORUS toruslist[];
-	 ATOM atom[];
-	 VERTEX vertexlist[];
-	 EDGE convex_edge[];
-{
-  int ntmp, it, i, ia, ie;
-
-  ntmp = 0;
-  for (it = 0; it < n_torus; ++it) {
-	for (i = 0; i < toruslist[it].n_convex_edges; ++i) {
-	  ntmp = ntmp + 1;
-	}
-  }
-  if (ntmp != ne) {
-	printf ("convex_edges(): number of convex edges from toruslist %d\n", ntmp);
-	printf (" not equal to total number of convex edges %d\n", ne);
-	exit (ERROR);
-  }
-  ntmp = 0;
-  for (ia = 0; ia < nat; ++ia) {
-	for (i = 0; i < atom[ia].n_convex_edges; ++i) {
-	  ntmp = ntmp + 1;
-	  ie = atom[ia].convex_edges[i];
-	  if (vertexlist[convex_edge[ie].vert1].iatom != ia &&
-		  convex_edge[ie].vert1 >= 0) {
-		printf ("convex vertex atom mismatch 2 \n");
-		printf ("iatom: %d\n", ia);
-		printf ("number of convex edges %d\n", atom[ia].n_convex_edges);
-		printf ("ie: %d\n", ie);
-		printf ("edge vertices: v1 %d v2 %d\n",
-				convex_edge[ie].vert1, convex_edge[ie].vert2);
-		printf ("edge v1.atom %d\n", vertexlist[convex_edge[ie].vert1].iatom);
-		printf ("edge v2.atom %d\n", vertexlist[convex_edge[ie].vert2].iatom);
-		exit (ERROR);
-	  }
-	  if (vertexlist[convex_edge[ie].vert2].iatom != ia &&
-		  convex_edge[ie].vert1 >= 0) {
-		printf ("convex vertex atom mismatch 3\n");
-		printf ("iatom: %d\n", ia);
-		printf ("number of convex edges %d\n", atom[ia].n_convex_edges);
-		printf ("ie: %d\n", ie);
-		printf ("edge vertices: v1 %d v2 %d\n",
-				convex_edge[ie].vert1, convex_edge[ie].vert2);
-		printf ("edge v1.atom %d\n", vertexlist[convex_edge[ie].vert1].iatom);
-		printf ("edge v2.atom %d\n", vertexlist[convex_edge[ie].vert2].iatom);
-		printf ("convex vertex atom mismatch\n");
-		exit (ERROR);
-	  }
-	}
-  }
-  if (ntmp != ne) {
-	printf ("convex_edges(): number of convex edges from atomlist %d\n", ntmp);
-	printf (" not equal to total number of convex edges %d\n", ne);
-	exit (ERROR);
-  }
-  return;
-}
-
-/********************************************************************************/
-
 static void face_info (iface, face, concave_edge, convex_edge, vertexlist, toruslist)
 	 int iface;
 	 SADDLE_FACE face[];
@@ -1785,6 +1636,390 @@ static void add_convex_edge_to_atom (ia, atom, ne)
   return;
 }
 
+static void check_data (n_torus, toruslist, nat, atom, vertexlist, convex_edge, ne)
+	 int n_torus, nat, ne;
+	 TORUS toruslist[];
+	 ATOM atom[];
+	 VERTEX vertexlist[];
+	 EDGE convex_edge[];
+{
+  int ntmp, it, i, ia, ie;
+
+  ntmp = 0;
+  for (it = 0; it < n_torus; ++it) {
+	for (i = 0; i < toruslist[it].n_convex_edges; ++i) {
+	  ntmp = ntmp + 1;
+	}
+  }
+  if (ntmp != ne) {
+	printf ("convex_edges(): number of convex edges from toruslist %d\n", ntmp);
+	printf (" not equal to total number of convex edges %d\n", ne);
+	exit (ERROR);
+  }
+  ntmp = 0;
+  for (ia = 0; ia < nat; ++ia) {
+	for (i = 0; i < atom[ia].n_convex_edges; ++i) {
+	  ntmp = ntmp + 1;
+	  ie = atom[ia].convex_edges[i];
+	  if (vertexlist[convex_edge[ie].vert1].iatom != ia &&
+		  convex_edge[ie].vert1 >= 0) {
+		printf ("convex vertex atom mismatch 2 \n");
+		printf ("iatom: %d\n", ia);
+		printf ("number of convex edges %d\n", atom[ia].n_convex_edges);
+		printf ("ie: %d\n", ie);
+		printf ("edge vertices: v1 %d v2 %d\n",
+				convex_edge[ie].vert1, convex_edge[ie].vert2);
+		printf ("edge v1.atom %d\n", vertexlist[convex_edge[ie].vert1].iatom);
+		printf ("edge v2.atom %d\n", vertexlist[convex_edge[ie].vert2].iatom);
+		exit (ERROR);
+	  }
+	  if (vertexlist[convex_edge[ie].vert2].iatom != ia &&
+		  convex_edge[ie].vert1 >= 0) {
+		printf ("convex vertex atom mismatch 3\n");
+		printf ("iatom: %d\n", ia);
+		printf ("number of convex edges %d\n", atom[ia].n_convex_edges);
+		printf ("ie: %d\n", ie);
+		printf ("edge vertices: v1 %d v2 %d\n",
+				convex_edge[ie].vert1, convex_edge[ie].vert2);
+		printf ("edge v1.atom %d\n", vertexlist[convex_edge[ie].vert1].iatom);
+		printf ("edge v2.atom %d\n", vertexlist[convex_edge[ie].vert2].iatom);
+		printf ("convex vertex atom mismatch\n");
+		exit (ERROR);
+	  }
+	}
+  }
+  if (ntmp != ne) {
+	printf ("convex_edges(): number of convex edges from atomlist %d\n", ntmp);
+	printf (" not equal to total number of convex edges %d\n", ne);
+	exit (ERROR);
+  }
+  return;
+}
+
+static void convex_edges (probe_rad, nat, atom, n_probes, probelist, n_vertex, vertexlist,
+			  n_concave_edges, concave_edge, n_convex_edges, convex_edge,
+			  n_torus, toruslist, n_saddle_faces, saddle_face, circlelist)
+	 REAL_T probe_rad;
+	 int nat;
+	 ATOM atom[];
+	 int n_probes;
+	 PROBE probelist[];
+	 int n_vertex;
+	 VERTEX vertexlist[];
+	 int n_concave_edges;
+	 EDGE concave_edge[];
+	 int *n_convex_edges;
+	 EDGE convex_edge[];
+	 int n_torus;
+	 TORUS toruslist[];
+	 int *n_saddle_faces;
+	 SADDLE_FACE saddle_face[];
+	 CIRCLE circlelist[];
+{
+  int i, icc1, icc2, ia, ja, c1, c2, it, n_free_edges = 0;
+  int cc1_v1, cc1_v2, cc2_v1, cc2_v2;
+  int ne = 0;
+  int iface = 0;
+  //void face_info ();
+  //void check_convex_edges ();
+  void atom_vertex_match ();
+  void add_saddle_face ();
+  void add_free_edge (), add_edge ();
+  //void add_convex_edge_to_torus ();
+  //void add_convex_edge_to_atom ();
+  //void check_data ();
+
+  *n_convex_edges = 0;
+  *n_saddle_faces = 0;
+
+  for (ia = 0; ia < nat; ++ia) {
+	atom[ia].n_convex_edges = 0;
+  }
+
+  for (it = 0; it < n_torus; ++it) {
+	ia = toruslist[it].a1;
+	ja = toruslist[it].a2;
+	c1 = toruslist[it].circle1;
+	c2 = toruslist[it].circle2;
+	if (toruslist[it].n_concave_edges == 0 &&
+		toruslist[it].n_convex_edges == -2) {	/* free torus */
+	  n_free_edges = n_free_edges + 2;
+	  toruslist[it].n_convex_edges = 0;
+
+	  add_saddle_face (saddle_face, &iface, it, -1, -1, ne + 1, ne);
+
+	  add_convex_edge_to_torus (it, toruslist, 0, ne);
+	  add_convex_edge_to_atom (ia, atom, ne);
+	  add_free_edge (&ne, convex_edge, c1);
+
+	  add_convex_edge_to_torus (it, toruslist, 1, ne);
+	  add_convex_edge_to_atom (ja, atom, ne);
+	  add_free_edge (&ne, convex_edge, c2);
+
+	  continue;
+	}
+	for (i = 0; i < toruslist[it].n_concave_edges; i = i + 2) {
+
+	  icc1 = toruslist[it].concave_edges[i];
+	  icc2 = toruslist[it].concave_edges[i + 1];
+
+	  cc1_v1 = concave_edge[icc1].vert1;
+	  cc1_v2 = concave_edge[icc1].vert2;
+	  cc2_v1 = concave_edge[icc2].vert1;
+	  cc2_v2 = concave_edge[icc2].vert2;
+
+	  atom_vertex_match (vertexlist, cc1_v1, ia);
+	  atom_vertex_match (vertexlist, cc1_v2, ja);
+	  atom_vertex_match (vertexlist, cc2_v1, ja);
+	  atom_vertex_match (vertexlist, cc2_v2, ia);
+
+	  add_saddle_face (saddle_face, &iface, it, icc1, icc2, ne + 1, ne);
+
+	  add_convex_edge_to_torus (it, toruslist, i, ne);
+	  add_convex_edge_to_atom (ia, atom, ne);
+	  add_edge (&ne, convex_edge,
+				concave_edge[icc2].vert2, concave_edge[icc1].vert1,
+				c1, vertexlist, circlelist);
+
+	  add_convex_edge_to_torus (it, toruslist, i + 1, ne);
+	  add_convex_edge_to_atom (ja, atom, ne);
+	  add_edge (&ne, convex_edge,
+				convex_edge[ne].vert1 = concave_edge[icc1].vert2,
+				convex_edge[ne].vert2 = concave_edge[icc2].vert1,
+				c2, vertexlist, circlelist);
+	}
+  }
+
+  *n_convex_edges = ne;
+  *n_saddle_faces = iface;
+
+  if (ne - n_free_edges != n_concave_edges) {
+	printf ("convex_edges() convex and concave edges not paired\n");
+	exit (ERROR);
+  }
+  check_data (n_torus, toruslist, nat, atom, vertexlist, convex_edge, ne);
+
+  /*
+     printf("number of convex edges %d\n", ne);
+     printf("number of free   edges %d\n", n_free_edges);
+     for (iface = 0; iface < *n_saddle_faces; ++iface)
+     face_info(iface, saddle_face, concave_edge, convex_edge,vertexlist,toruslist);
+     check_convex_edges(ne, convex_edge, circlelist);
+   */
+
+  return;
+}
+/********************************************************************************/
+
+/************************************************************************/
+/* get_angle() returns the angle between two vectors u and v            */
+/* as measured looking down from the +z axis                            */
+/* from -pi to pi  measured clockwise                                   */
+/*                                                                      */
+/* relying on calling routine to be suze z in perp to u v plane         */
+/*                                                                      */
+/*                                                                      */
+/*             u(Y)                                                     */
+/*         v2                                                           */
+/*         ^    ^    ^ v1                                               */
+/*          \   |   /                                                   */
+/*           \  |  /                                                    */
+/*            \ | /                                                     */
+/*              o ------> (X)                                           */
+/*           / (Z)\                                                     */
+/*          /      \                                                    */
+/*         /        \                                                   */
+/*     v3 v          v v4                                               */
+/*                                                                      */
+/*                                                                      */
+/*  set up u to lie along +y axis  atan2 returns arctan between -pi     */
+/*  ang pi with the sign determined by the sign of the first arguemnt   */
+/* in this case v_y  so call atan2(v_x,v_y)                             */
+/*   so       atan(u,v4) > atan(u,v1) > 0                               */
+/*   so       atan(u,v3) < atan(u,v2) < 0                               */
+/*                                                                      */
+/************************************************************************/
+
+static REAL_T get_angle (u, v, zaxis)
+	 POINT u;
+	 POINT v;
+	 POINT zaxis;
+{
+  REAL_T x, y;
+  POINT xaxis, yaxis;
+
+  extern void cross ();
+  void vnorm ();
+
+  yaxis[0] = u[0];
+  yaxis[1] = u[1];
+  yaxis[2] = u[2];
+  vnorm (yaxis, 3);
+
+  cross (yaxis, zaxis, xaxis);
+  vnorm (xaxis, 3);
+
+  x = DOT (v, xaxis);
+  y = DOT (v, yaxis);
+
+  return atan2 (x, y);
+}
+
+/**************************************************************/
+/* is_cycle_inside()  determines wheter cycle ic is           */
+/* inside cycle jc.  It does this by taking a point on        */
+/* cycle ic  and using it to project cycle jc onto the plane  */
+/* that is tangent to the antipode of ic.  If the orientation */
+/* of the polygon is counter-clockwise, the point is inside   */
+/* and cycle ic is contained by jc.  Note if cycle ic is a    */
+/* circle use the center of the circle projected out to the   */
+/* sphere surface along the radius containing that point      */
+/*                                                            */
+/* cycles appear counterclockwise when viewed from above      */
+/* their interior                                             */
+/*                                                            */
+/* P is the North Pole, Q is the South Pole u_pq is the unit  */
+/* vector pointing from North to South                        */
+/**************************************************************/
+
+static int is_cycle_inside (icycle, jcycle, cycle, edge, circle, vert, atom)
+	 int icycle;
+	 int jcycle;
+	 CYCLE cycle[];
+	 EDGE edge[];
+	 CIRCLE circle[];
+	 VERTEX vert[];
+	 ATOM atom[];
+{
+  void vnorm ();
+  int ic, ia, iv, i, j, ii, ie, je, ne;
+  POINT p, u_qp, u_pq, u_pr, uvec, vvec;
+  POINT pt[MAXAT_EDGE];
+  REAL_T dist, sdist, theta, theta_tot, dpq;
+  REAL_T get_angle ();
+
+  if (icycle == jcycle)
+	return 0;
+
+/****************************************************/
+  /*  special cases                                   */
+/****************************************************/
+  if (cycle[jcycle].nedges < 3) {
+	return 1;
+  }
+  for (i = 0; i < cycle[icycle].nedges; ++i) {
+	ie = cycle[icycle].edge[i];
+	for (j = 0; j < cycle[jcycle].nedges; ++j) {
+	  je = cycle[jcycle].edge[j];
+	  if (edge[ie].circle == edge[je].circle) {
+		return 0;
+	  }
+	}
+  }
+
+
+/****************************************************/
+  /* first determine point P, the north pole of the   */
+  /*   stereographic projection                       */
+/****************************************************/
+
+  ie = cycle[icycle].edge[0];
+  ia = cycle[icycle].atom;
+
+  if (cycle[icycle].nedges == 1) {
+	ic = edge[ie].circle;
+	/* you have a circle: set p to center of exterior of circle */
+
+	p[0] = atom[ia].pos[0] - atom[ia].rad * circle[ic].axis[0];
+	p[1] = atom[ia].pos[1] - atom[ia].rad * circle[ic].axis[1];
+	p[2] = atom[ia].pos[2] - atom[ia].rad * circle[ic].axis[2];
+
+  } else {
+	/* you have a cycle: set p to 1st vertex */
+	iv = edge[ie].vert1;
+	p[0] = vert[iv].pos[0];
+	p[1] = vert[iv].pos[1];
+	p[2] = vert[iv].pos[2];
+  }
+
+  if (cycle[jcycle].nedges > MAXAT_EDGE) {
+	printf ("is_cycle_inside(): MAXAT_EDGE exceeded\n");
+	exit (ERROR);
+  }
+  for (ii = 0; ii < 3; ++ii)
+	u_pq[ii] = atom[ia].pos[ii] - p[ii];
+  for (ii = 0; ii < 3; ++ii)
+	u_qp[ii] = p[ii] - atom[ia].pos[ii];
+  vnorm (u_qp, 3);
+  vnorm (u_pq, 3);
+
+
+  ne = cycle[jcycle].nedges;
+
+
+  for (i = 0; i < ne; ++i) {
+	ie = cycle[jcycle].edge[i];
+	iv = edge[ie].vert1;
+
+	u_pr[0] = vert[iv].pos[0] - p[0];
+	u_pr[1] = vert[iv].pos[1] - p[1];
+	u_pr[2] = vert[iv].pos[2] - p[2];
+
+	dist = sqrt (u_pr[0] * u_pr[0] +
+				 u_pr[1] * u_pr[1] +
+				 u_pr[2] * u_pr[2]);
+
+	u_pr[0] = u_pr[0] / dist;
+	u_pr[1] = u_pr[1] / dist;
+	u_pr[2] = u_pr[2] / dist;
+
+
+	dpq = 2.0 * atom[ia].rad;
+	sdist = dpq / (DOT (u_pq, u_pr));
+
+	if (sdist < 0) {
+	  printf ("is_cycle_inside(): sdist < 0\n");
+	  exit (ERROR);
+	}
+	for (ii = 0; ii < 3; ++ii)
+	  pt[i][ii] = p[ii] + sdist * u_pr[ii];
+  }
+
+  theta_tot = 0.0;
+  for (i = 1; i < ne - 1; ++i) {
+	for (ii = 0; ii < 3; ++ii) {
+	  uvec[ii] = pt[i][ii] - pt[i - 1][ii];
+	  vvec[ii] = pt[i + 1][ii] - pt[i][ii];
+	}
+	theta = get_angle (uvec, vvec, u_qp);
+	theta_tot += theta;
+  }
+
+  for (ii = 0; ii < 3; ++ii) {
+	uvec[ii] = pt[ne - 1][ii] - pt[ne - 2][ii];
+	vvec[ii] = pt[0][ii] - pt[ne - 1][ii];
+  }
+  theta = get_angle (uvec, vvec, u_qp);
+  theta_tot += theta;
+
+  for (ii = 0; ii < 3; ++ii) {
+	uvec[ii] = pt[0][ii] - pt[ne - 1][ii];
+	vvec[ii] = pt[1][1] - pt[0][ii];
+  }
+  theta = get_angle (uvec, vvec, u_qp);
+  theta_tot += theta;
+
+  if (theta_tot < 0) {
+	return 1;					/* inside */
+  } else {
+	return 0;
+  }
+
+
+}
+
+/********************************************************************************/
+
 static void convex_faces (nat, atom, nface, face, n_cycles, cycle, edge, circle, nverts, vert)
 	 int nat;
 	 ATOM atom[];
@@ -1802,7 +2037,7 @@ static void convex_faces (nat, atom, nface, face, n_cycles, cycle, edge, circle,
   int iface = 0;
   int inside[MAXAT_CYCLES][MAXAT_CYCLES];
   int in_face[MAXAT_CYCLES];	/* has face number for cycle, -1 if none set */
-  int is_cycle_inside ();
+  //int is_cycle_inside ();
 
   /*  inside[i][j] = 1 if cycle i is inside cycle j */
 
@@ -1832,7 +2067,7 @@ static void convex_faces (nat, atom, nface, face, n_cycles, cycle, edge, circle,
 		  /* printf("inside[%d][%d] = %d\n", i, j, inside[i][j]); */
 		}
 	  }
-
+
 	  for (i = 0; i < atom[ia].n_cycles; ++i) {
 		ic = atom[ia].cycle_start + i;
 		if (in_face[i] == -1) {	/* not part of a face yet */
@@ -1940,7 +2175,7 @@ static void sort_edges (n_concave_edges, concave_edge_list, n_torus, toruslist,
   /* u[3] is the vector from the circle center to the first vertex    */
   /* v[3] is the vector from the circle center each successive vertex */
   POINT u, v;
-  REAL_T get_angle ();
+  //REAL_T get_angle ();
   int i, j, n;
   REAL_T vtmp, twopi;
 
@@ -2000,7 +2235,7 @@ static void sort_edges (n_concave_edges, concave_edge_list, n_torus, toruslist,
 	  if (vsort[itmp] < 0.0)
 		vsort[itmp] = twopi + vsort[itmp];
 	}
-
+
 /*****************************************************************/
 	/* sort the edges based on the angles                            */
 /*****************************************************************/
@@ -2065,6 +2300,75 @@ static void sort_edges (n_concave_edges, concave_edge_list, n_torus, toruslist,
   return;
 }
 
+static int new_edge (ia, atom, nae, atom_edge_cycle, ncycle)
+	 int ia;
+	 ATOM atom[];
+	 int nae;
+	 int atom_edge_cycle[];
+	 int ncycle;
+{
+  int iae, ie;
+
+  for (iae = 0; iae < nae; ++iae) {
+	if (atom_edge_cycle[iae] == -1) {
+	  atom_edge_cycle[iae] = ncycle;
+	  ie = atom[ia].convex_edges[iae];
+	  /* printf("new_edge() found edge %d\n", ie); */
+	  return ie;
+	}
+  }
+  return -1;					/* no new edges found */
+}
+
+static void dump_atom_edges (ivert, ia, atom, nae, convex_edges, atom_edge_cycle)
+	 int ivert;
+	 int ia;
+	 ATOM atom[];
+	 int nae;
+	 EDGE convex_edges[];
+	 int atom_edge_cycle[];
+{
+  int iae, ie;
+
+
+  printf ("looking for 1st vertex of : %d\n", ivert);
+  printf ("amoung edges for atom %d\n", ia);
+
+  for (iae = 0; iae < nae; ++iae) {
+	ie = atom[ia].convex_edges[iae];
+	printf ("edge: %d  v1: %d v2: %d\n",
+			ie, convex_edges[ie].vert1, convex_edges[ie].vert2);
+  }
+  return;
+}
+
+static int next_edge (ivert, ia, atom, nae, convex_edges, atom_edge_cycle, ncycle)
+	 int ivert;
+	 int ia;
+	 ATOM atom[];
+	 int nae;					/* number of edges on atom */
+	 EDGE convex_edges[];
+	 int atom_edge_cycle[];
+	 int ncycle;
+{
+
+  int iae, ie;
+  //void dump_atom_edges ();
+
+  for (iae = 0; iae < nae; ++iae) {
+	ie = atom[ia].convex_edges[iae];
+	if (atom_edge_cycle[iae] == -1 && convex_edges[ie].vert1 == ivert) {
+	  atom_edge_cycle[iae] = ncycle;
+	  return ie;
+	}
+  }
+  printf ("next_edge(): No edge found\n");
+  dump_atom_edges (ivert, ia, atom, nae, convex_edges, atom_edge_cycle);
+
+  exit (ERROR);
+  return -1;
+}
+
 static void cycles (nat, atom, vertexlist, n_convex_edges, convex_edge_list,
 		n_cycles, clist, circlelist, toruslist)
 	 int nat;
@@ -2087,7 +2391,7 @@ static void cycles (nat, atom, vertexlist, n_convex_edges, convex_edge_list,
      making cycles for that atom */
   int ice;						/* edge list index for a cycle */
   int nc;						/* index for cyclelist */
-  int new_edge (), next_edge ();
+  //int new_edge (), next_edge ();
 
   int ia, i, ie, je, last_vert, second_vert;
 
@@ -2166,74 +2470,7 @@ static void cycles (nat, atom, vertexlist, n_convex_edges, convex_edge_list,
 }
 
 
-static int new_edge (ia, atom, nae, atom_edge_cycle, ncycle)
-	 int ia;
-	 ATOM atom[];
-	 int nae;
-	 int atom_edge_cycle[];
-	 int ncycle;
-{
-  int iae, ie;
 
-  for (iae = 0; iae < nae; ++iae) {
-	if (atom_edge_cycle[iae] == -1) {
-	  atom_edge_cycle[iae] = ncycle;
-	  ie = atom[ia].convex_edges[iae];
-	  /* printf("new_edge() found edge %d\n", ie); */
-	  return ie;
-	}
-  }
-  return -1;					/* no new edges found */
-}
-
-static int next_edge (ivert, ia, atom, nae, convex_edges, atom_edge_cycle, ncycle)
-	 int ivert;
-	 int ia;
-	 ATOM atom[];
-	 int nae;					/* number of edges on atom */
-	 EDGE convex_edges[];
-	 int atom_edge_cycle[];
-	 int ncycle;
-{
-
-  int iae, ie;
-  void dump_atom_edges ();
-
-  for (iae = 0; iae < nae; ++iae) {
-	ie = atom[ia].convex_edges[iae];
-	if (atom_edge_cycle[iae] == -1 && convex_edges[ie].vert1 == ivert) {
-	  atom_edge_cycle[iae] = ncycle;
-	  return ie;
-	}
-  }
-  printf ("next_edge(): No edge found\n");
-  dump_atom_edges (ivert, ia, atom, nae, convex_edges, atom_edge_cycle);
-
-  exit (ERROR);
-  return -1;
-}
-
-static void dump_atom_edges (ivert, ia, atom, nae, convex_edges, atom_edge_cycle)
-	 int ivert;
-	 int ia;
-	 ATOM atom[];
-	 int nae;
-	 EDGE convex_edges[];
-	 int atom_edge_cycle[];
-{
-  int iae, ie;
-
-
-  printf ("looking for 1st vertex of : %d\n", ivert);
-  printf ("amoung edges for atom %d\n", ia);
-
-  for (iae = 0; iae < nae; ++iae) {
-	ie = atom[ia].convex_edges[iae];
-	printf ("edge: %d  v1: %d v2: %d\n",
-			ie, convex_edges[ie].vert1, convex_edges[ie].vert2);
-  }
-  return;
-}
 
 static void draw_arc (narc, npt, n, atomfile, bondfile, propfile,
 		  p1, p2, center, zaxis, resnum)
@@ -2254,7 +2491,7 @@ static void draw_arc (narc, npt, n, atomfile, bondfile, propfile,
   int i, ii;
   REAL_T umag, zmag;
   REAL_T s, c, theta, dtheta, twopi;
-  REAL_T get_angle ();
+  //REAL_T get_angle ();
   void cross ();
 
   (*narc)++;
@@ -2630,265 +2867,18 @@ static void draw_edges (n_cycles, atom, n_concave_faces, concave_face_list,
 }
 #endif
 
-
-/**************************************************************/
-/* is_cycle_inside()  determines wheter cycle ic is           */
-/* inside cycle jc.  It does this by taking a point on        */
-/* cycle ic  and using it to project cycle jc onto the plane  */
-/* that is tangent to the antipode of ic.  If the orientation */
-/* of the polygon is counter-clockwise, the point is inside   */
-/* and cycle ic is contained by jc.  Note if cycle ic is a    */
-/* circle use the center of the circle projected out to the   */
-/* sphere surface along the radius containing that point      */
-/*                                                            */
-/* cycles appear counterclockwise when viewed from above      */
-/* their interior                                             */
-/*                                                            */
-/* P is the North Pole, Q is the South Pole u_pq is the unit  */
-/* vector pointing from North to South                        */
-/**************************************************************/
-
-static int is_cycle_inside (icycle, jcycle, cycle, edge, circle, vert, atom)
-	 int icycle;
-	 int jcycle;
-	 CYCLE cycle[];
-	 EDGE edge[];
-	 CIRCLE circle[];
-	 VERTEX vert[];
-	 ATOM atom[];
+static void write_info (ic, ie, icircle, iatom, itorus, iv1, iv2)
+	 int ic, ie, icircle, iatom, itorus, iv1, iv2;
 {
-  void vnorm ();
-  int ic, ia, iv, i, j, ii, ie, je, ne;
-  POINT p, u_qp, u_pq, u_pr, uvec, vvec;
-  POINT pt[MAXAT_EDGE];
-  REAL_T dist, sdist, theta, theta_tot, dpq;
-  REAL_T get_angle ();
-
-  if (icycle == jcycle)
-	return 0;
-
-/****************************************************/
-  /*  special cases                                   */
-/****************************************************/
-  if (cycle[jcycle].nedges < 3) {
-	return 1;
-  }
-  for (i = 0; i < cycle[icycle].nedges; ++i) {
-	ie = cycle[icycle].edge[i];
-	for (j = 0; j < cycle[jcycle].nedges; ++j) {
-	  je = cycle[jcycle].edge[j];
-	  if (edge[ie].circle == edge[je].circle) {
-		return 0;
-	  }
-	}
-  }
-
-
-/****************************************************/
-  /* first determine point P, the north pole of the   */
-  /*   stereographic projection                       */
-/****************************************************/
-
-  ie = cycle[icycle].edge[0];
-  ia = cycle[icycle].atom;
-
-  if (cycle[icycle].nedges == 1) {
-	ic = edge[ie].circle;
-	/* you have a circle: set p to center of exterior of circle */
-
-	p[0] = atom[ia].pos[0] - atom[ia].rad * circle[ic].axis[0];
-	p[1] = atom[ia].pos[1] - atom[ia].rad * circle[ic].axis[1];
-	p[2] = atom[ia].pos[2] - atom[ia].rad * circle[ic].axis[2];
-
-  } else {
-	/* you have a cycle: set p to 1st vertex */
-	iv = edge[ie].vert1;
-	p[0] = vert[iv].pos[0];
-	p[1] = vert[iv].pos[1];
-	p[2] = vert[iv].pos[2];
-  }
-
-  if (cycle[jcycle].nedges > MAXAT_EDGE) {
-	printf ("is_cycle_inside(): MAXAT_EDGE exceeded\n");
-	exit (ERROR);
-  }
-  for (ii = 0; ii < 3; ++ii)
-	u_pq[ii] = atom[ia].pos[ii] - p[ii];
-  for (ii = 0; ii < 3; ++ii)
-	u_qp[ii] = p[ii] - atom[ia].pos[ii];
-  vnorm (u_qp, 3);
-  vnorm (u_pq, 3);
-
-
-  ne = cycle[jcycle].nedges;
-
-
-  for (i = 0; i < ne; ++i) {
-	ie = cycle[jcycle].edge[i];
-	iv = edge[ie].vert1;
-
-	u_pr[0] = vert[iv].pos[0] - p[0];
-	u_pr[1] = vert[iv].pos[1] - p[1];
-	u_pr[2] = vert[iv].pos[2] - p[2];
-
-	dist = sqrt (u_pr[0] * u_pr[0] +
-				 u_pr[1] * u_pr[1] +
-				 u_pr[2] * u_pr[2]);
-
-	u_pr[0] = u_pr[0] / dist;
-	u_pr[1] = u_pr[1] / dist;
-	u_pr[2] = u_pr[2] / dist;
-
-
-	dpq = 2.0 * atom[ia].rad;
-	sdist = dpq / (DOT (u_pq, u_pr));
-
-	if (sdist < 0) {
-	  printf ("is_cycle_inside(): sdist < 0\n");
-	  exit (ERROR);
-	}
-	for (ii = 0; ii < 3; ++ii)
-	  pt[i][ii] = p[ii] + sdist * u_pr[ii];
-  }
-
-  theta_tot = 0.0;
-  for (i = 1; i < ne - 1; ++i) {
-	for (ii = 0; ii < 3; ++ii) {
-	  uvec[ii] = pt[i][ii] - pt[i - 1][ii];
-	  vvec[ii] = pt[i + 1][ii] - pt[i][ii];
-	}
-	theta = get_angle (uvec, vvec, u_qp);
-	theta_tot += theta;
-  }
-
-  for (ii = 0; ii < 3; ++ii) {
-	uvec[ii] = pt[ne - 1][ii] - pt[ne - 2][ii];
-	vvec[ii] = pt[0][ii] - pt[ne - 1][ii];
-  }
-  theta = get_angle (uvec, vvec, u_qp);
-  theta_tot += theta;
-
-  for (ii = 0; ii < 3; ++ii) {
-	uvec[ii] = pt[0][ii] - pt[ne - 1][ii];
-	vvec[ii] = pt[1][1] - pt[0][ii];
-  }
-  theta = get_angle (uvec, vvec, u_qp);
-  theta_tot += theta;
-
-  if (theta_tot < 0) {
-	return 1;					/* inside */
-  } else {
-	return 0;
-  }
-
-
+  printf ("ic %d\n", ic);
+  printf ("ie %d\n", ie);
+  printf ("icircle, %d\n", icircle);
+  printf ("iatom %d\n", iatom);
+  printf ("itorus %d\n", itorus);
+  printf ("iv1 %d\n", iv1);
+  printf ("iv2 %d\n", iv2);
+  return;
 }
-
-/************************************************************************/
-/* get_angle() returns the angle between two vectors u and v            */
-/* as measured looking down from the +z axis                            */
-/* from -pi to pi  measured clockwise                                   */
-/*                                                                      */
-/* relying on calling routine to be suze z in perp to u v plane         */
-/*                                                                      */
-/*                                                                      */
-/*             u(Y)                                                     */
-/*         v2                                                           */
-/*         ^    ^    ^ v1                                               */
-/*          \   |   /                                                   */
-/*           \  |  /                                                    */
-/*            \ | /                                                     */
-/*              o ------> (X)                                           */
-/*           / (Z)\                                                     */
-/*          /      \                                                    */
-/*         /        \                                                   */
-/*     v3 v          v v4                                               */
-/*                                                                      */
-/*                                                                      */
-/*  set up u to lie along +y axis  atan2 returns arctan between -pi     */
-/*  ang pi with the sign determined by the sign of the first arguemnt   */
-/* in this case v_y  so call atan2(v_x,v_y)                             */
-/*   so       atan(u,v4) > atan(u,v1) > 0                               */
-/*   so       atan(u,v3) < atan(u,v2) < 0                               */
-/*                                                                      */
-/************************************************************************/
-
-static REAL_T get_angle (u, v, zaxis)
-	 POINT u;
-	 POINT v;
-	 POINT zaxis;
-{
-  REAL_T x, y;
-  POINT xaxis, yaxis;
-
-  extern void cross ();
-  void vnorm ();
-
-  yaxis[0] = u[0];
-  yaxis[1] = u[1];
-  yaxis[2] = u[2];
-  vnorm (yaxis, 3);
-
-  cross (yaxis, zaxis, xaxis);
-  vnorm (xaxis, 3);
-
-  x = DOT (v, xaxis);
-  y = DOT (v, yaxis);
-
-  return atan2 (x, y);
-}
-
-static REAL_T convex_area (atom, res, cycle, n_faces, face,
-			 convex_edge, circle, vert, torus)
-	 ATOM atom[];
-	 RES res[];
-	 CYCLE cycle[];
-	 int n_faces;
-	 CONVEX_FACE face[];
-	 EDGE convex_edge[];
-	 CIRCLE circle[];
-	 VERTEX vert[];
-	 TORUS torus[];
-{
-  int iface, ic, icycle, chi, ia;
-  REAL_T arad, area, total_area = 0;
-  REAL_T cycle_piece ();
-
-  for (iface = 0; iface < n_faces; ++iface) {
-
-	chi = 2 - face[iface].n_cycles;
-
-	area = 0;
-	ia = face[iface].atom;
-	arad = atom[ia].rad;
-
-	/*
-	   printf("max area of spherical atom %f\n", 4.0*PI*arad*arad);
-	 */
-
-	for (ic = 0; ic < face[iface].n_cycles; ++ic) {
-	  icycle = face[iface].cycle[ic];
-	  area = area + cycle_piece (icycle, cycle, circle, convex_edge, vert, atom, torus);
-	}
-
-	face[iface].area = arad * arad * (2 * PI * chi + area);
-
-	total_area += face[iface].area;
-	atom[ia].area += face[iface].area;
-#ifdef DEBUG
-	printf ("convex face atom %-4s %-4s %4d area: %10.3f\n",
-			atom[ia].anam,
-			res[atom[ia].res].nam,
-			res[atom[ia].res].num,
-			face[iface].area);
-
-	printf ("area of face %d = %f\n\n\n", iface, face[iface].area);
-#endif
-
-  }
-  return total_area;
-}
-
 
 
 static REAL_T cycle_piece (ic, cycle, circle, convex_edge, vert, atom, torus)
@@ -2905,14 +2895,14 @@ static REAL_T cycle_piece (ic, cycle, circle, convex_edge, vert, atom, torus)
   POINT v1, v2, d_c;
   REAL_T get_angle ();
   REAL_T cos_theta;
-  void write_info ();
+  //void write_info ();
   sum = 0;
 
   /*
      printf("   cycle_piece()\n");
      printf("   number of edges %d\n", cycle[ic].nedges);
    */
-
+
   for (i = 0; i < cycle[ic].nedges; ++i) {
 	ie = cycle[ic].edge[i];
 	icircle = convex_edge[ie].circle;
@@ -2979,20 +2969,59 @@ static REAL_T cycle_piece (ic, cycle, circle, convex_edge, vert, atom, torus)
   /* printf("contribution from edge %f\n", sum); */
   return sum;
 }
-
 
-static void write_info (ic, ie, icircle, iatom, itorus, iv1, iv2)
-	 int ic, ie, icircle, iatom, itorus, iv1, iv2;
+
+static REAL_T convex_area (atom, res, cycle, n_faces, face,
+			 convex_edge, circle, vert, torus)
+	 ATOM atom[];
+	 RES res[];
+	 CYCLE cycle[];
+	 int n_faces;
+	 CONVEX_FACE face[];
+	 EDGE convex_edge[];
+	 CIRCLE circle[];
+	 VERTEX vert[];
+	 TORUS torus[];
 {
-  printf ("ic %d\n", ic);
-  printf ("ie %d\n", ie);
-  printf ("icircle, %d\n", icircle);
-  printf ("iatom %d\n", iatom);
-  printf ("itorus %d\n", itorus);
-  printf ("iv1 %d\n", iv1);
-  printf ("iv2 %d\n", iv2);
-  return;
+  int iface, ic, icycle, chi, ia;
+  REAL_T arad, area, total_area = 0;
+  //REAL_T cycle_piece ();
+
+  for (iface = 0; iface < n_faces; ++iface) {
+
+	chi = 2 - face[iface].n_cycles;
+
+	area = 0;
+	ia = face[iface].atom;
+	arad = atom[ia].rad;
+
+	/*
+	   printf("max area of spherical atom %f\n", 4.0*PI*arad*arad);
+	 */
+
+	for (ic = 0; ic < face[iface].n_cycles; ++ic) {
+	  icycle = face[iface].cycle[ic];
+	  area = area + cycle_piece (icycle, cycle, circle, convex_edge, vert, atom, torus);
+	}
+
+	face[iface].area = arad * arad * (2 * PI * chi + area);
+
+	total_area += face[iface].area;
+	atom[ia].area += face[iface].area;
+#ifdef DEBUG
+	printf ("convex face atom %-4s %-4s %4d area: %10.3f\n",
+			atom[ia].anam,
+			res[atom[ia].res].nam,
+			res[atom[ia].res].num,
+			face[iface].area);
+
+	printf ("area of face %d = %f\n\n\n", iface, face[iface].area);
+#endif
+
+  }
+  return total_area;
 }
+
 
 
 static int concave_area (probe_rad, n_c_faces, vertex, c_face,
@@ -3051,6 +3080,27 @@ static int concave_area (probe_rad, n_c_faces, vertex, c_face,
   return n_surfaced;
 }
 
+/************************************************************************************/
+static int one_sided_torus (i, torus, atom)
+	 int i;
+	 TORUS torus[];
+	 ATOM atom[];
+{
+  int ia, ja;
+
+  ia = torus[i].a1;
+  ja = torus[i].a2;
+
+  if (DIST (atom[ia].pos, torus[i].center) >
+	  DIST (atom[ia].pos, atom[ja].pos) ||
+	  DIST (atom[ja].pos, torus[i].center) >
+	  DIST (atom[ia].pos, atom[ja].pos)
+	) {
+	return 1;
+  }
+  return 0;
+}
+
 static int saddle_area (n_faces, saddle_face, convex_edge, concave_edge, convex_circle_list,
   torus, atom, res, vertex, probe, probe_rad, concave_circle_list, sad_area)
 	 int n_faces;
@@ -3076,7 +3126,7 @@ static int saddle_area (n_faces, saddle_face, convex_edge, concave_edge, convex_
   REAL_T sin_theta1, sin_theta2;
   REAL_T get_angle ();
   REAL_T area1, area2, total_area = 0.0;
-  int one_sided_torus ();
+  //int one_sided_torus ();
   int n_surfaced = 0;
 
   for (iface = 0; iface < n_faces; ++iface) {
@@ -3210,33 +3260,125 @@ static int saddle_area (n_faces, saddle_face, convex_edge, concave_edge, convex_
   return n_surfaced;
 }
 
-static int id_torus (ia1, ia2, atom, torus)
-	 int ia1;
-	 int ia2;
-	 ATOM atom[];
+/************************************************************************************/
+static void add_2_verts (prad, i, torus, n_vertex, vertex)
+	 REAL_T prad;
+	 int i;
 	 TORUS torus[];
+	 int *n_vertex;
+	 VERTEX vertex[];
 {
-  int it, itmp;
+  int ii, nv;
+  REAL_T d_tq;
 
-  if (ia1 >= ia2) {
-	itmp = ia2;
-	ia2 = ia1;
-	ia1 = itmp;
-	/*
-	   fprintf(stderr, "id_torus(): atom indices reversed\n");
-	   exit(ERROR);
-	 */
+  nv = *n_vertex;
+
+  d_tq = sqrt (prad * prad - torus[i].rad * torus[i].rad);
+
+  for (ii = 0; ii < 3; ++ii) {
+	vertex[nv].pos[ii] = torus[i].center[ii] - d_tq * torus[i].uv[ii];
+	vertex[nv + 1].pos[ii] = torus[i].center[ii] + d_tq * torus[i].uv[ii];
   }
-  for (it = atom[ia1].torus_start; it < atom[ia1].torus_start +
-	   atom[ia1].ntorus; ++it)
-	if (torus[it].a2 == ia2)
-	  return it;
 
-  fprintf (stderr, "id_torus(): Could not find torus for atoms %d and %d\n",
-		   ia1, ia2);
+  vertex[nv].iatom = torus[i].a1;
+  vertex[nv + 1].iatom = torus[i].a2;
+  vertex[nv].iprobe = -1;		/* no probe associated with cusp point */
+  vertex[nv + 1].iprobe = -1;
+
+  nv = nv + 2;
+  if (nv >= NUM_VERTEX * natm_sel) {
+	printf ("MAX_VERTS exceeded %d\n", nv);
+	exit (ERROR);
+  }
+  *n_vertex = nv;
+
+  return;
+}
+
+/************************************************************************************/
+static int get_low_torus_index (nlow, low_torus, it)
+	 int nlow, it;
+	 LOW_TORUS low_torus[];
+{
+  int i;
+
+  for (i = 0; i < nlow; ++i) {
+	if (low_torus[i].itorus == it)
+	  return i;
+  }
+
+  printf ("get_low_torus_index() low torus not found!\n");
   exit (ERROR);
   return -1;
 }
+/************************************************************************************/
+static void make_2_cone_faces ()
+{
+  printf ("replacing a torus with 2 cones \n");
+  return;
+}
+/************************************************************************************/
+static void kill_saddle_face (it, torus, iface, saddle_face, concave_edge, e1, e3)
+	 int it;
+	 TORUS torus[];
+	 int iface;
+	 SADDLE_FACE saddle_face[];
+	 EDGE concave_edge[];
+	 int e1, e3;
+{
+  saddle_face[iface].alive = 0;
+  if (torus[it].n_concave_edges > 0) {	/* mark concave edges as dead */
+	concave_edge[e1].alive = 0;
+	concave_edge[e3].alive = 0;
+  }
+  return;
+}
+/************************************************************************************/
+static void cone_init (ncones, cone_face, it, iedge_convex, ivertex)
+	 int ncones;
+	 CONE_FACE cone_face[];
+	 int it, iedge_convex, ivertex;
+{
+
+  if (ncones >= NUM_FACE * natm_sel) {
+	printf ("MAX_CONE_FACE exceeded\n");
+	exit (ERROR);
+  }
+  cone_face[ncones].itorus = it;
+  cone_face[ncones].e1_convex = iedge_convex;
+  cone_face[ncones].e2_concave = -1;
+  cone_face[ncones].e3_concave = -1;
+  cone_face[ncones].cusp_vertex = ivertex;
+  return;
+}
+
+/************************************************************************************/
+static void write_cone_info (ncones, cone_face, concave_edge, convex_edge)
+	 int ncones;
+	 CONE_FACE cone_face[];
+	 EDGE concave_edge[];
+	 EDGE convex_edge[];
+{
+  int i, v1, v2, iconvex, iconcave1, iconcave2;
+
+  for (i = 0; i < ncones; ++i) {
+	iconvex = cone_face[i].e1_convex;
+	iconcave1 = cone_face[i].e2_concave;
+	iconcave2 = cone_face[i].e3_concave;
+	printf ("cone %d \n", i);
+	v1 = convex_edge[iconvex].vert1;
+	v2 = convex_edge[iconvex].vert2;
+	printf ("convex  edge %d v1: %d v2: %d\n", iconvex, v1, v2);
+	v1 = concave_edge[iconcave1].vert1;
+	v2 = concave_edge[iconcave1].vert2;
+	printf ("concave edge %d v1: %d v2: %d\n", iconcave1, v1, v2);
+	v1 = concave_edge[iconcave2].vert1;
+	v2 = concave_edge[iconcave2].vert2;
+	printf ("concave edge %d v1: %d v2: %d\n", iconcave2, v1, v2);
+  }
+  return;
+}
+
 
 
 static void make_cones (nat, atom, n_torus, torus, n_probes, probe,
@@ -3271,12 +3413,12 @@ static void make_cones (nat, atom, n_torus, torus, n_probes, probe,
 {
   int i, it, ilow, iface;
   int nlow = 0, e1, e3;
-  int one_sided_torus ();
-  void add_2_verts ();
-  void make_2_cone_faces ();
-  void kill_saddle_face ();
-  void write_cone_info ();
-  void cone_init ();
+  //int one_sided_torus ();
+  //void add_2_verts ();
+  //void make_2_cone_faces ();
+  //void kill_saddle_face ();
+  //void write_cone_info ();
+  //void cone_init ();
   void add_edge ();
   int ncones;
   int vertex1, vertex2;
@@ -3306,7 +3448,6 @@ static void make_cones (nat, atom, n_torus, torus, n_probes, probe,
   printf ("number of low tori %d\n", *n_low_torus);
   */
 #endif
-
 
 
 	ncones = 0;
@@ -3387,144 +3528,56 @@ static void make_cones (nat, atom, n_torus, torus, n_probes, probe,
 
   return;
 }
-
-/************************************************************************************/
-static int one_sided_torus (i, torus, atom)
+
+//------------------------------------------------------------------------------
+static void add_concave_cycle (i, concave_cycle, e1, e2, e3, iprobe, iface)
 	 int i;
-	 TORUS torus[];
-	 ATOM atom[];
+	 CONCAVE_CYCLE concave_cycle[];
+	 int e1, e2, e3, iprobe, iface;
 {
-  int ia, ja;
-
-  ia = torus[i].a1;
-  ja = torus[i].a2;
-
-  if (DIST (atom[ia].pos, torus[i].center) >
-	  DIST (atom[ia].pos, atom[ja].pos) ||
-	  DIST (atom[ja].pos, torus[i].center) >
-	  DIST (atom[ia].pos, atom[ja].pos)
-	) {
-	return 1;
-  }
-  return 0;
-}
-/************************************************************************************/
-static void add_2_verts (prad, i, torus, n_vertex, vertex)
-	 REAL_T prad;
-	 int i;
-	 TORUS torus[];
-	 int *n_vertex;
-	 VERTEX vertex[];
-{
-  int ii, nv;
-  REAL_T d_tq;
-
-  nv = *n_vertex;
-
-  d_tq = sqrt (prad * prad - torus[i].rad * torus[i].rad);
-
-  for (ii = 0; ii < 3; ++ii) {
-	vertex[nv].pos[ii] = torus[i].center[ii] - d_tq * torus[i].uv[ii];
-	vertex[nv + 1].pos[ii] = torus[i].center[ii] + d_tq * torus[i].uv[ii];
-  }
-
-  vertex[nv].iatom = torus[i].a1;
-  vertex[nv + 1].iatom = torus[i].a2;
-  vertex[nv].iprobe = -1;		/* no probe associated with cusp point */
-  vertex[nv + 1].iprobe = -1;
-
-  nv = nv + 2;
-  if (nv >= NUM_VERTEX * natm_sel) {
-	printf ("MAX_VERTS exceeded %d\n", nv);
+  if (i > NUM_CYCLE * natm_sel) {
+	fprintf (stderr, "add_concave_cycle() MAX_CYCLES exceeded\n");
 	exit (ERROR);
   }
-  *n_vertex = nv;
-
+  concave_cycle[i].nedges = 3;
+  concave_cycle[i].edge[0] = e1;
+  concave_cycle[i].edge_direction[0] = 1;
+  concave_cycle[i].cusp_edge[0] = -1;
+  concave_cycle[i].edge[1] = e2;
+  concave_cycle[i].edge_direction[1] = 1;
+  concave_cycle[i].cusp_edge[1] = -1;
+  concave_cycle[i].edge[2] = e3;
+  concave_cycle[i].edge_direction[2] = 1;
+  concave_cycle[i].cusp_edge[2] = -1;
+  concave_cycle[i].iprobe = iprobe;
+  concave_cycle[i].area = 0.0;
+  concave_cycle[i].iface = iface;
   return;
 }
-
-/************************************************************************************/
-static int get_low_torus_index (nlow, low_torus, it)
-	 int nlow, it;
-	 LOW_TORUS low_torus[];
-{
-  int i;
 
-  for (i = 0; i < nlow; ++i) {
-	if (low_torus[i].itorus == it)
-	  return i;
-  }
-
-  printf ("get_low_torus_index() low torus not found!\n");
-  exit (ERROR);
-  return -1;
-}
-/************************************************************************************/
-static void make_2_cone_faces ()
-{
-  printf ("replacing a torus with 2 cones \n");
-  return;
-}
-/************************************************************************************/
-static void kill_saddle_face (it, torus, iface, saddle_face, concave_edge, e1, e3)
-	 int it;
-	 TORUS torus[];
+static void broken_face_info (iface, broken_concave_face, concave_cycle)
 	 int iface;
-	 SADDLE_FACE saddle_face[];
-	 EDGE concave_edge[];
-	 int e1, e3;
+	 BROKEN_CONCAVE_FACE broken_concave_face[];
+	 CONCAVE_CYCLE concave_cycle[];
 {
-  saddle_face[iface].alive = 0;
-  if (torus[it].n_concave_edges > 0) {	/* mark concave edges as dead */
-	concave_edge[e1].alive = 0;
-	concave_edge[e3].alive = 0;
-  }
-  return;
-}
-/************************************************************************************/
-static void cone_init (ncones, cone_face, it, iedge_convex, ivertex)
-	 int ncones;
-	 CONE_FACE cone_face[];
-	 int it, iedge_convex, ivertex;
-{
+  int i, icycle, ie;
 
-  if (ncones >= NUM_FACE * natm_sel) {
-	printf ("MAX_CONE_FACE exceeded\n");
-	exit (ERROR);
-  }
-  cone_face[ncones].itorus = it;
-  cone_face[ncones].e1_convex = iedge_convex;
-  cone_face[ncones].e2_concave = -1;
-  cone_face[ncones].e3_concave = -1;
-  cone_face[ncones].cusp_vertex = ivertex;
-  return;
-}
-
-/************************************************************************************/
-static void write_cone_info (ncones, cone_face, concave_edge, convex_edge)
-	 int ncones;
-	 CONE_FACE cone_face[];
-	 EDGE concave_edge[];
-	 EDGE convex_edge[];
-{
-  int i, v1, v2, iconvex, iconcave1, iconcave2;
 
-  for (i = 0; i < ncones; ++i) {
-	iconvex = cone_face[i].e1_convex;
-	iconcave1 = cone_face[i].e2_concave;
-	iconcave2 = cone_face[i].e3_concave;
-	printf ("cone %d \n", i);
-	v1 = convex_edge[iconvex].vert1;
-	v2 = convex_edge[iconvex].vert2;
-	printf ("convex  edge %d v1: %d v2: %d\n", iconvex, v1, v2);
-	v1 = concave_edge[iconcave1].vert1;
-	v2 = concave_edge[iconcave1].vert2;
-	printf ("concave edge %d v1: %d v2: %d\n", iconcave1, v1, v2);
-	v1 = concave_edge[iconcave2].vert1;
-	v2 = concave_edge[iconcave2].vert2;
-	printf ("concave edge %d v1: %d v2: %d\n", iconcave2, v1, v2);
+  printf ("broken face %d\n", iface);
+  printf ("tori: %d %d %d\n", broken_concave_face[iface].itorus[0],
+		  broken_concave_face[iface].itorus[1],
+		  broken_concave_face[iface].itorus[2]);
+  printf ("probe: %d\n", broken_concave_face[iface].probe);
+  printf ("ncycles: %d\n", broken_concave_face[iface].n_cycles);
+  for (i = 0; i < broken_concave_face[iface].n_cycles; ++i) {
+	icycle = broken_concave_face[iface].concave_cycle[i];
+	printf ("  cycle num %d\n", icycle);
+	printf ("  cycle probe: %d\n", concave_cycle[icycle].iprobe);
+	printf ("  cycle nedges: %d\n", concave_cycle[icycle].nedges);
+	for (ie = 0; ie < concave_cycle[icycle].nedges; ++ie) {
+	  printf ("  edge: %d\n", concave_cycle[icycle].edge[ie]);
+	}
   }
-  return;
 }
 
 /*********************************************************************/
@@ -3580,8 +3633,8 @@ static void make_broken_faces (nat, atom, n_torus, torus, n_probes, probe,
   int e1, e2, e3;
   int c1, c2, c3;
   int n, count, icycle;
-  void add_concave_cycle ();
-  void broken_face_info ();
+  //void add_concave_cycle ();
+  //void broken_face_info ();
 
   for (i = 0; i < n_probes; ++i)
 	if (probe[i].low)
@@ -3675,56 +3728,6 @@ static void make_broken_faces (nat, atom, n_torus, torus, n_probes, probe,
   return;
 }
 
-static void add_concave_cycle (i, concave_cycle, e1, e2, e3, iprobe, iface)
-	 int i;
-	 CONCAVE_CYCLE concave_cycle[];
-	 int e1, e2, e3, iprobe, iface;
-{
-  if (i > NUM_CYCLE * natm_sel) {
-	fprintf (stderr, "add_concave_cycle() MAX_CYCLES exceeded\n");
-	exit (ERROR);
-  }
-  concave_cycle[i].nedges = 3;
-  concave_cycle[i].edge[0] = e1;
-  concave_cycle[i].edge_direction[0] = 1;
-  concave_cycle[i].cusp_edge[0] = -1;
-  concave_cycle[i].edge[1] = e2;
-  concave_cycle[i].edge_direction[1] = 1;
-  concave_cycle[i].cusp_edge[1] = -1;
-  concave_cycle[i].edge[2] = e3;
-  concave_cycle[i].edge_direction[2] = 1;
-  concave_cycle[i].cusp_edge[2] = -1;
-  concave_cycle[i].iprobe = iprobe;
-  concave_cycle[i].area = 0.0;
-  concave_cycle[i].iface = iface;
-  return;
-}
-
-static void broken_face_info (iface, broken_concave_face, concave_cycle)
-	 int iface;
-	 BROKEN_CONCAVE_FACE broken_concave_face[];
-	 CONCAVE_CYCLE concave_cycle[];
-{
-  int i, icycle, ie;
-
-
-  printf ("broken face %d\n", iface);
-  printf ("tori: %d %d %d\n", broken_concave_face[iface].itorus[0],
-		  broken_concave_face[iface].itorus[1],
-		  broken_concave_face[iface].itorus[2]);
-  printf ("probe: %d\n", broken_concave_face[iface].probe);
-  printf ("ncycles: %d\n", broken_concave_face[iface].n_cycles);
-  for (i = 0; i < broken_concave_face[iface].n_cycles; ++i) {
-	icycle = broken_concave_face[iface].concave_cycle[i];
-	printf ("  cycle num %d\n", icycle);
-	printf ("  cycle probe: %d\n", concave_cycle[icycle].iprobe);
-	printf ("  cycle nedges: %d\n", concave_cycle[icycle].nedges);
-	for (ie = 0; ie < concave_cycle[icycle].nedges; ++ie) {
-	  printf ("  edge: %d\n", concave_cycle[icycle].edge[ie]);
-	}
-  }
-}
-
 static REAL_T get_cone_area (n_faces, cone_face, convex_edge, concave_edge,
 			   convex_circle, concave_circle,
 			   torus, atom, vertex, probe, probe_rad)
@@ -3811,6 +3814,292 @@ static REAL_T get_cone_area (n_faces, cone_face, convex_edge, concave_edge,
   return total_area;
 }
 
+/********************************************************************/
+static void sort_faces (it, low_torus, face_angle, face_edge,
+			n_concave_edges, concave_edge, vertexlist, itorus, toruslist)
+	 int it;
+	 LOW_TORUS low_torus[];
+	 REAL_T face_angle[];		/* angle from starting probe */
+	 int face_edge[];
+	 int *n_concave_edges;
+	 EDGE concave_edge[];
+	 VERTEX vertexlist[];
+	 int itorus;
+	 TORUS toruslist[];
+{
+  int i, j, n, iv1;
+  REAL_T vtmp;
+  int iface_tmp, iedge_tmp, itmp, iedge, jtmp, ie;
+
+  n = low_torus[it].nfaces;
+  i = n - 1;
+
+  while (i > 0) {
+	j = 0;
+	while (j < i) {
+	  if (face_angle[j] > face_angle[j + 1]) {
+		vtmp = face_angle[j];
+		iface_tmp = low_torus[it].face[j];
+		iedge_tmp = face_edge[j];
+
+		face_angle[j] = face_angle[j + 1];
+		face_edge[j] = face_edge[j + 1];
+		low_torus[it].face[j] = low_torus[it].face[j + 1];
+
+		face_angle[j + 1] = vtmp;
+		face_edge[j + 1] = iedge_tmp;
+		low_torus[it].face[j + 1] = iface_tmp;
+	  }
+	  ++j;
+	}
+	i = i - 1;
+  }
+
+  /* check for off by one error */
+
+  iedge = face_edge[0];
+  iv1 = concave_edge[iedge].vert2;
+  if (vertexlist[iv1].iatom != toruslist[itorus].a1) {	/* we're off by one */
+	if (vertexlist[iv1].iatom != toruslist[itorus].a2) {
+	  fprintf (stderr, "bad vertex\n");
+	  fprintf (stderr, "concave edge %d ( vert %d atom %d ) (vert %d atom %d ) \n", iedge,
+	  concave_edge[iedge].vert1, vertexlist[concave_edge[iedge].vert1].iatom,
+			   concave_edge[iedge].vert2, vertexlist[concave_edge[iedge].vert2].iatom);
+	  fprintf (stderr, "torus atoms %d %d\n", toruslist[itorus].a1, toruslist[itorus].a2);
+	  fprintf (stderr, "here are all the %d edges vertices and atoms:\n", *n_concave_edges);
+	  for (ie = 0; ie < *n_concave_edges; ++ie) {
+		fprintf (stderr, "edge: %10d  ( v1 %10d a1 %10d )  (v2 %10d a2 %d )\n",
+		ie, concave_edge[ie].vert1, vertexlist[concave_edge[ie].vert1].iatom,
+		  concave_edge[ie].vert2, vertexlist[concave_edge[ie].vert2].iatom);
+	  }
+	  exit (ERROR);
+	}
+	itmp = low_torus[it].face[0];
+	jtmp = face_edge[0];
+	vtmp = face_angle[0];
+	n = low_torus[it].nfaces;
+	for (i = 0; i < n - 1; ++i) {
+	  low_torus[it].face[i] = low_torus[it].face[i + 1];
+	  face_angle[i] = face_angle[i + 1];
+	  face_edge[i] = face_edge[i + 1];
+	}
+	low_torus[it].face[n - 1] = itmp;
+	face_angle[n - 1] = vtmp;
+	face_edge[n - 1] = jtmp;
+  }
+  return;
+}
+
+/************************************************************************/
+static void add_circle (probelist, iprobe, jprobe, concave_circle, n_concave_circles, probe_rad)
+	 PROBE probelist[];
+	 int iprobe, jprobe;
+	 CIRCLE concave_circle[];
+	 int *n_concave_circles;
+	 REAL_T probe_rad;
+{
+  REAL_T d_pp;
+  int ii;
+  POINT axis;
+
+  /*  create circle */
+  d_pp = 0.0;
+  for (ii = 0; ii < 3; ++ii) {
+	axis[ii] = probelist[iprobe].pos[ii] - probelist[jprobe].pos[ii];
+	d_pp = d_pp + axis[ii] * axis[ii];
+  }
+  d_pp = sqrt (d_pp);
+  vnorm (axis, 3);
+  concave_circle[*n_concave_circles].torus = -1;
+  concave_circle[*n_concave_circles].atom_or_probe_num = -1;
+  concave_circle[*n_concave_circles].rad =
+	sqrt (probe_rad * probe_rad - (d_pp * d_pp) / 4.0);
+  for (ii = 0; ii < 3; ++ii) {
+	concave_circle[*n_concave_circles].center[ii] =
+	  0.5 * (probelist[iprobe].pos[ii] + probelist[jprobe].pos[ii]);
+	concave_circle[*n_concave_circles].axis[ii] = axis[ii];
+  }
+  ++(*n_concave_circles);
+  if (*n_concave_circles >= NUM_CIRCLE * natm_sel) {
+	fprintf (stderr, "axial_trim(): MAX_CIRCLE exceeded\n");
+	exit (ERROR);
+  }
+}
+
+/************************************************************************/
+/* cone_edge() look over the edges on cone faces associated with a      */
+/*              low torus to find which edge has v1 and v2 for vertices */
+/*              1 and 2, respectively                                   */
+/************************************************************************/
+static int cone_edge (v1, v2, low_torus, it, concave_edge, cone_face, vertexlist, atom)
+	 int v1, v2;
+	 LOW_TORUS low_torus[];
+	 int it;
+	 EDGE concave_edge[];
+	 CONE_FACE cone_face[];
+	 VERTEX vertexlist[];
+	 ATOM atom[];
+{
+  int ic, icone, e2, e3, iv1, iv2;
+
+  for (ic = 0; ic < low_torus[it].ncones; ++ic) {
+	icone = low_torus[it].cone[ic];
+	e2 = cone_face[icone].e2_concave;
+	e3 = cone_face[icone].e3_concave;
+	if (concave_edge[e2].vert1 == v1 &&
+		concave_edge[e2].vert2 == v2)
+	  return e2;
+	if (concave_edge[e3].vert1 == v1 &&
+		concave_edge[e3].vert2 == v2)
+	  return e3;
+  }
+  fprintf (stderr, "cone_edge(): could not fine cone edges\n");
+  fprintf (stderr, "low torus: %d = torus %d\n", it, low_torus[it].itorus);
+  fprintf (stderr, "  looking for edge with verts %d %d\n", v1, v2);
+  fprintf (stderr, "  and found:\n");
+
+  for (ic = 0; ic < low_torus[it].ncones; ++ic) {
+	icone = low_torus[it].cone[ic];
+	e2 = cone_face[icone].e2_concave;
+	e3 = cone_face[icone].e3_concave;
+	iv1 = concave_edge[e2].vert1;
+	iv2 = concave_edge[e2].vert2;
+	fprintf (stderr, "ic %d cone %d edge %d verts %d %d\n", ic, icone, e2, iv1, iv2);
+	fprintf (stderr, "iv1: %8.3f%8.3f%8.3f atom %d\n", vertexlist[iv1].pos[0], vertexlist[iv1].pos[1], vertexlist[iv1].pos[2],
+			 vertexlist[iv1].iatom);
+	fprintf (stderr, "iv2: %8.3f%8.3f%8.3f atom %d\n", vertexlist[iv2].pos[0], vertexlist[iv2].pos[1], vertexlist[iv2].pos[2],
+			 vertexlist[iv2].iatom);
+	iv1 = concave_edge[e3].vert1;
+	iv2 = concave_edge[e3].vert2;
+	fprintf (stderr, "ic %d cone %d edge %d verts %d %d\n", ic, icone, e3, iv1, iv2);
+	fprintf (stderr, "iv1: %8.3f%8.3f%8.3f atom %d\n", vertexlist[iv1].pos[0], vertexlist[iv1].pos[1], vertexlist[iv1].pos[2],
+			 vertexlist[iv1].iatom);
+	fprintf (stderr, "iv2: %8.3f%8.3f%8.3f atom %d\n", vertexlist[iv2].pos[0], vertexlist[iv2].pos[1], vertexlist[iv2].pos[2],
+			 vertexlist[iv2].iatom);
+  }
+
+
+  exit (ERROR);
+  return -1;
+}
+
+/************************************************************************/
+static void add_edges_2_cycle (n_cusps, cusp_edge,
+			  concave_cycle, icycle, iedge, new_edge1, new_edge2, new_edge3,
+				   direction_of_cusp_edge)
+	 int *n_cusps;
+	 CUSP_EDGE cusp_edge[];
+	 CONCAVE_CYCLE concave_cycle[];
+	 int icycle, iedge, new_edge1, new_edge2, new_edge3, direction_of_cusp_edge;
+{
+  int i, j, itmp, n;
+
+  itmp = -1;
+  for (i = 0; i < concave_cycle[icycle].nedges; ++i) {
+	if (concave_cycle[icycle].edge[i] == iedge) {
+	  itmp = i;
+	  continue;
+	}
+  }
+  if (itmp < 0)
+	fprintf (stderr, "add_edges_2_cycle(): could not find edge to replace\n");
+  n = concave_cycle[icycle].nedges + 2;
+  if (n >= NUM_FACE * natm_sel) {
+	fprintf (stderr, "add_edges_2_cycle(): MAX_FACE_EDGE exceeded\n");
+	exit (ERROR);
+  }
+  /* shift edges that are to the right of itmp by 2 places */
+  for (j = 0; j < 2; ++j) {
+	for (i = n - 1; i > itmp + 1; i = i - 1) {
+	  concave_cycle[icycle].edge[i] = concave_cycle[icycle].edge[i - 1];
+	  concave_cycle[icycle].edge_direction[i] = concave_cycle[icycle].edge_direction[i - 1];
+	  concave_cycle[icycle].cusp_edge[i] = concave_cycle[icycle].cusp_edge[i - 1];
+	}
+  }
+  concave_cycle[icycle].edge[itmp] = new_edge1;
+  concave_cycle[icycle].edge_direction[itmp] = 1;
+  concave_cycle[icycle].cusp_edge[itmp] = -1;
+
+  concave_cycle[icycle].edge[itmp + 1] = new_edge2;
+  concave_cycle[icycle].edge_direction[itmp + 1] = direction_of_cusp_edge;
+  if (direction_of_cusp_edge == -1) {
+	cusp_edge[*n_cusps].cycle1 = icycle;
+  } else {
+	cusp_edge[*n_cusps].cycle2 = icycle;
+  }
+  concave_cycle[icycle].cusp_edge[itmp + 1] = *n_cusps;
+
+  concave_cycle[icycle].edge[itmp + 2] = new_edge3;
+  concave_cycle[icycle].edge_direction[itmp + 2] = 1;
+  concave_cycle[icycle].cusp_edge[itmp + 2] = -1;
+  concave_cycle[icycle].nedges = n;
+  /* printf("cycle %d has %d edges:", icycle, concave_cycle[icycle].nedges);
+     for (i = 0; i < concave_cycle[icycle].nedges; ++i)
+     printf(" %d", concave_cycle[icycle].edge[i]);
+     printf("\n"); printf("--------------------------\n"); */
+
+  return;
+}
+
+/************************************************************************/
+static void check_cycle (iface, broken_concave_face, icycle, concave_cycle,
+			 concave_edge, vertexlist)
+	 int iface, icycle;
+	 BROKEN_CONCAVE_FACE broken_concave_face[];
+	 CONCAVE_CYCLE concave_cycle[];
+	 VERTEX vertexlist[];
+	 EDGE concave_edge[];
+{
+  int i, iprobe, iedge, v1, v2;
+
+  printf ("face %d cycle %d\n", iface, icycle);
+
+  iprobe = broken_concave_face[iface].probe;
+  if (iprobe != concave_cycle[icycle].iprobe) {
+	fprintf (stderr, "check_cycle(): face and cycle have different probes\n");
+	exit (ERROR);
+  }
+  printf ("vertices: ");
+  for (i = 0; i < concave_cycle[icycle].nedges; ++i) {
+	iedge = concave_cycle[icycle].edge[i];
+	if (concave_cycle[icycle].edge_direction[i] == 1) {
+	  v1 = concave_edge[iedge].vert1;
+	  v2 = concave_edge[iedge].vert2;
+	} else {
+	  v2 = concave_edge[iedge].vert1;
+	  v1 = concave_edge[iedge].vert2;
+	}
+	printf (" %d %d   ", v1, v2);
+  }
+  printf ("\n");
+}
+
+/********************************************************************/
+/* identify the edge on the cycle associated with torus itorus */
+static int get_cycle_edge (itorus, concave_cycle, icycle,
+				concave_edge, concave_circle)
+	 int itorus;
+	 CONCAVE_CYCLE concave_cycle[];
+	 int icycle;
+	 EDGE concave_edge[];
+	 CIRCLE concave_circle[];
+{
+  int i, iedge, icircle;
+  for (i = 0; i < concave_cycle[icycle].nedges; ++i) {
+	iedge = concave_cycle[icycle].edge[i];
+	icircle = concave_edge[iedge].circle;
+	if (concave_circle[icircle].torus == itorus)
+	  return iedge;
+  }
+  fprintf (stderr, "get_cycle_edge(): could not find edge\n");
+  fprintf (stderr, "face edges: ");
+  for (i = 0; i < concave_cycle[icycle].nedges; ++i)
+	fprintf (stderr, " %d", concave_cycle[icycle].edge[i]);
+  fprintf (stderr, "\n");
+  exit (ERROR);
+  return -1;
+}
+
 /* axial_trim(): creates cusp edges for intersecting
    concave faces associated with low tori.  These
    cusp edges can intersect on broken concave faces that
@@ -3845,7 +4134,6 @@ static REAL_T get_cone_area (n_faces, cone_face, convex_edge, concave_edge,
    way, then probes are pair 1,2  3,4  5,6 etc. for cusp
    trimming between the broken faces.
  */
-
 static void axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probelist,
 			n_concave_faces, concave_face, n_vertex, vertexlist,
 			n_concave_edges, concave_edge,
@@ -3889,13 +4177,13 @@ static void axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probelist,
   void cross ();
   REAL_T get_angle ();
   int j;
-  void sort_faces ();
-  int get_cycle_edge (), cone_edge ();
+  //void sort_faces ();
+  //int get_cycle_edge (), cone_edge ();
   int f1_edge1, f1_edge2, f1_edge3;
   int f2_edge1, f2_edge2, f2_edge3;
   int jprobe;
-  void add_edge (), add_circle (), add_edges_2_cycle (), check_cycle ();
-
+  //void add_edge (), add_circle (), add_edges_2_cycle (), check_cycle ();
+
 #ifdef DEBUG
   printf ("axial trim\n");
   printf ("number of concave_circles %d\n", *n_concave_circles);
@@ -4023,7 +4311,7 @@ static void axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probelist,
 	  add_edge (n_concave_edges, concave_edge,
 		   low_torus[it].vert1, low_torus[it].vert2, *n_concave_circles - 1,
 				vertexlist, concave_circle);
-
+
 	  /* this picture might help here:
 	     /O\ . /0\
 	     /   \ /.  \
@@ -4076,291 +4364,6 @@ static void axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probelist,
 #endif
 
   return;
-}
-
-/********************************************************************/
-/* identify the edge on the cycle associated with torus itorus */
-static int get_cycle_edge (itorus, concave_cycle, icycle,
-				concave_edge, concave_circle)
-	 int itorus;
-	 CONCAVE_CYCLE concave_cycle[];
-	 int icycle;
-	 EDGE concave_edge[];
-	 CIRCLE concave_circle[];
-{
-  int i, iedge, icircle;
-  for (i = 0; i < concave_cycle[icycle].nedges; ++i) {
-	iedge = concave_cycle[icycle].edge[i];
-	icircle = concave_edge[iedge].circle;
-	if (concave_circle[icircle].torus == itorus)
-	  return iedge;
-  }
-  fprintf (stderr, "get_cycle_edge(): could not find edge\n");
-  fprintf (stderr, "face edges: ");
-  for (i = 0; i < concave_cycle[icycle].nedges; ++i)
-	fprintf (stderr, " %d", concave_cycle[icycle].edge[i]);
-  fprintf (stderr, "\n");
-  exit (ERROR);
-  return -1;
-}
-/********************************************************************/
-static void sort_faces (it, low_torus, face_angle, face_edge,
-			n_concave_edges, concave_edge, vertexlist, itorus, toruslist)
-	 int it;
-	 LOW_TORUS low_torus[];
-	 REAL_T face_angle[];		/* angle from starting probe */
-	 int face_edge[];
-	 int *n_concave_edges;
-	 EDGE concave_edge[];
-	 VERTEX vertexlist[];
-	 int itorus;
-	 TORUS toruslist[];
-{
-  int i, j, n, iv1;
-  REAL_T vtmp;
-  int iface_tmp, iedge_tmp, itmp, iedge, jtmp, ie;
-
-  n = low_torus[it].nfaces;
-  i = n - 1;
-
-  while (i > 0) {
-	j = 0;
-	while (j < i) {
-	  if (face_angle[j] > face_angle[j + 1]) {
-		vtmp = face_angle[j];
-		iface_tmp = low_torus[it].face[j];
-		iedge_tmp = face_edge[j];
-
-		face_angle[j] = face_angle[j + 1];
-		face_edge[j] = face_edge[j + 1];
-		low_torus[it].face[j] = low_torus[it].face[j + 1];
-
-		face_angle[j + 1] = vtmp;
-		face_edge[j + 1] = iedge_tmp;
-		low_torus[it].face[j + 1] = iface_tmp;
-	  }
-	  ++j;
-	}
-	i = i - 1;
-  }
-
-  /* check for off by one error */
-
-  iedge = face_edge[0];
-  iv1 = concave_edge[iedge].vert2;
-  if (vertexlist[iv1].iatom != toruslist[itorus].a1) {	/* we're off by one */
-	if (vertexlist[iv1].iatom != toruslist[itorus].a2) {
-	  fprintf (stderr, "bad vertex\n");
-	  fprintf (stderr, "concave edge %d ( vert %d atom %d ) (vert %d atom %d ) \n", iedge,
-	  concave_edge[iedge].vert1, vertexlist[concave_edge[iedge].vert1].iatom,
-			   concave_edge[iedge].vert2, vertexlist[concave_edge[iedge].vert2].iatom);
-	  fprintf (stderr, "torus atoms %d %d\n", toruslist[itorus].a1, toruslist[itorus].a2);
-	  fprintf (stderr, "here are all the %d edges vertices and atoms:\n", *n_concave_edges);
-	  for (ie = 0; ie < *n_concave_edges; ++ie) {
-		fprintf (stderr, "edge: %10d  ( v1 %10d a1 %10d )  (v2 %10d a2 %d )\n",
-		ie, concave_edge[ie].vert1, vertexlist[concave_edge[ie].vert1].iatom,
-		  concave_edge[ie].vert2, vertexlist[concave_edge[ie].vert2].iatom);
-	  }
-	  exit (ERROR);
-	}
-	itmp = low_torus[it].face[0];
-	jtmp = face_edge[0];
-	vtmp = face_angle[0];
-	n = low_torus[it].nfaces;
-	for (i = 0; i < n - 1; ++i) {
-	  low_torus[it].face[i] = low_torus[it].face[i + 1];
-	  face_angle[i] = face_angle[i + 1];
-	  face_edge[i] = face_edge[i + 1];
-	}
-	low_torus[it].face[n - 1] = itmp;
-	face_angle[n - 1] = vtmp;
-	face_edge[n - 1] = jtmp;
-  }
-  return;
-}
-
-/************************************************************************/
-static void add_circle (probelist, iprobe, jprobe, concave_circle, n_concave_circles, probe_rad)
-	 PROBE probelist[];
-	 int iprobe, jprobe;
-	 CIRCLE concave_circle[];
-	 int *n_concave_circles;
-	 REAL_T probe_rad;
-{
-  REAL_T d_pp;
-  int ii;
-  POINT axis;
-
-  /*  create circle */
-  d_pp = 0.0;
-  for (ii = 0; ii < 3; ++ii) {
-	axis[ii] = probelist[iprobe].pos[ii] - probelist[jprobe].pos[ii];
-	d_pp = d_pp + axis[ii] * axis[ii];
-  }
-  d_pp = sqrt (d_pp);
-  vnorm (axis, 3);
-  concave_circle[*n_concave_circles].torus = -1;
-  concave_circle[*n_concave_circles].atom_or_probe_num = -1;
-  concave_circle[*n_concave_circles].rad =
-	sqrt (probe_rad * probe_rad - (d_pp * d_pp) / 4.0);
-  for (ii = 0; ii < 3; ++ii) {
-	concave_circle[*n_concave_circles].center[ii] =
-	  0.5 * (probelist[iprobe].pos[ii] + probelist[jprobe].pos[ii]);
-	concave_circle[*n_concave_circles].axis[ii] = axis[ii];
-  }
-  ++(*n_concave_circles);
-  if (*n_concave_circles >= NUM_CIRCLE * natm_sel) {
-	fprintf (stderr, "axial_trim(): MAX_CIRCLE exceeded\n");
-	exit (ERROR);
-  }
-}
-
-/************************************************************************/
-/* cone_edge() look over the edges on cone faces associated with a      */
-/*              low torus to find which edge has v1 and v2 for vertices */
-/*              1 and 2, respectively                                   */
-/************************************************************************/
-static int cone_edge (v1, v2, low_torus, it, concave_edge, cone_face, vertexlist, atom)
-	 int v1, v2;
-	 LOW_TORUS low_torus[];
-	 int it;
-	 EDGE concave_edge[];
-	 CONE_FACE cone_face[];
-	 VERTEX vertexlist[];
-	 ATOM atom[];
-{
-  int ic, icone, e2, e3, iv1, iv2;
-
-  for (ic = 0; ic < low_torus[it].ncones; ++ic) {
-	icone = low_torus[it].cone[ic];
-	e2 = cone_face[icone].e2_concave;
-	e3 = cone_face[icone].e3_concave;
-	if (concave_edge[e2].vert1 == v1 &&
-		concave_edge[e2].vert2 == v2)
-	  return e2;
-	if (concave_edge[e3].vert1 == v1 &&
-		concave_edge[e3].vert2 == v2)
-	  return e3;
-  }
-  fprintf (stderr, "cone_edge(): could not fine cone edges\n");
-  fprintf (stderr, "low torus: %d = torus %d\n", it, low_torus[it].itorus);
-  fprintf (stderr, "  looking for edge with verts %d %d\n", v1, v2);
-  fprintf (stderr, "  and found:\n");
-
-  for (ic = 0; ic < low_torus[it].ncones; ++ic) {
-	icone = low_torus[it].cone[ic];
-	e2 = cone_face[icone].e2_concave;
-	e3 = cone_face[icone].e3_concave;
-	iv1 = concave_edge[e2].vert1;
-	iv2 = concave_edge[e2].vert2;
-	fprintf (stderr, "ic %d cone %d edge %d verts %d %d\n", ic, icone, e2, iv1, iv2);
-	fprintf (stderr, "iv1: %8.3f%8.3f%8.3f atom %d\n", vertexlist[iv1].pos[0], vertexlist[iv1].pos[1], vertexlist[iv1].pos[2],
-			 vertexlist[iv1].iatom);
-	fprintf (stderr, "iv2: %8.3f%8.3f%8.3f atom %d\n", vertexlist[iv2].pos[0], vertexlist[iv2].pos[1], vertexlist[iv2].pos[2],
-			 vertexlist[iv2].iatom);
-	iv1 = concave_edge[e3].vert1;
-	iv2 = concave_edge[e3].vert2;
-	fprintf (stderr, "ic %d cone %d edge %d verts %d %d\n", ic, icone, e3, iv1, iv2);
-	fprintf (stderr, "iv1: %8.3f%8.3f%8.3f atom %d\n", vertexlist[iv1].pos[0], vertexlist[iv1].pos[1], vertexlist[iv1].pos[2],
-			 vertexlist[iv1].iatom);
-	fprintf (stderr, "iv2: %8.3f%8.3f%8.3f atom %d\n", vertexlist[iv2].pos[0], vertexlist[iv2].pos[1], vertexlist[iv2].pos[2],
-			 vertexlist[iv2].iatom);
-  }
-
-
-  exit (ERROR);
-  return -1;
-}
-
-/************************************************************************/
-static void add_edges_2_cycle (n_cusps, cusp_edge,
-			  concave_cycle, icycle, iedge, new_edge1, new_edge2, new_edge3,
-				   direction_of_cusp_edge)
-	 int *n_cusps;
-	 CUSP_EDGE cusp_edge[];
-	 CONCAVE_CYCLE concave_cycle[];
-	 int icycle, iedge, new_edge1, new_edge2, new_edge3, direction_of_cusp_edge;
-{
-  int i, j, itmp, n;
-
-  itmp = -1;
-  for (i = 0; i < concave_cycle[icycle].nedges; ++i) {
-	if (concave_cycle[icycle].edge[i] == iedge) {
-	  itmp = i;
-	  continue;
-	}
-  }
-  if (itmp < 0)
-	fprintf (stderr, "add_edges_2_cycle(): could not find edge to replace\n");
-  n = concave_cycle[icycle].nedges + 2;
-  if (n >= NUM_FACE * natm_sel) {
-	fprintf (stderr, "add_edges_2_cycle(): MAX_FACE_EDGE exceeded\n");
-	exit (ERROR);
-  }
-  /* shift edges that are to the right of itmp by 2 places */
-  for (j = 0; j < 2; ++j) {
-	for (i = n - 1; i > itmp + 1; i = i - 1) {
-	  concave_cycle[icycle].edge[i] = concave_cycle[icycle].edge[i - 1];
-	  concave_cycle[icycle].edge_direction[i] = concave_cycle[icycle].edge_direction[i - 1];
-	  concave_cycle[icycle].cusp_edge[i] = concave_cycle[icycle].cusp_edge[i - 1];
-	}
-  }
-  concave_cycle[icycle].edge[itmp] = new_edge1;
-  concave_cycle[icycle].edge_direction[itmp] = 1;
-  concave_cycle[icycle].cusp_edge[itmp] = -1;
-
-  concave_cycle[icycle].edge[itmp + 1] = new_edge2;
-  concave_cycle[icycle].edge_direction[itmp + 1] = direction_of_cusp_edge;
-  if (direction_of_cusp_edge == -1) {
-	cusp_edge[*n_cusps].cycle1 = icycle;
-  } else {
-	cusp_edge[*n_cusps].cycle2 = icycle;
-  }
-  concave_cycle[icycle].cusp_edge[itmp + 1] = *n_cusps;
-
-  concave_cycle[icycle].edge[itmp + 2] = new_edge3;
-  concave_cycle[icycle].edge_direction[itmp + 2] = 1;
-  concave_cycle[icycle].cusp_edge[itmp + 2] = -1;
-  concave_cycle[icycle].nedges = n;
-  /* printf("cycle %d has %d edges:", icycle, concave_cycle[icycle].nedges);
-     for (i = 0; i < concave_cycle[icycle].nedges; ++i)
-     printf(" %d", concave_cycle[icycle].edge[i]);
-     printf("\n"); printf("--------------------------\n"); */
-
-  return;
-}
-
-/************************************************************************/
-static void check_cycle (iface, broken_concave_face, icycle, concave_cycle,
-			 concave_edge, vertexlist)
-	 int iface, icycle;
-	 BROKEN_CONCAVE_FACE broken_concave_face[];
-	 CONCAVE_CYCLE concave_cycle[];
-	 VERTEX vertexlist[];
-	 EDGE concave_edge[];
-{
-  int i, iprobe, iedge, v1, v2;
-
-  printf ("face %d cycle %d\n", iface, icycle);
-
-  iprobe = broken_concave_face[iface].probe;
-  if (iprobe != concave_cycle[icycle].iprobe) {
-	fprintf (stderr, "check_cycle(): face and cycle have different probes\n");
-	exit (ERROR);
-  }
-  printf ("vertices: ");
-  for (i = 0; i < concave_cycle[icycle].nedges; ++i) {
-	iedge = concave_cycle[icycle].edge[i];
-	if (concave_cycle[icycle].edge_direction[i] == 1) {
-	  v1 = concave_edge[iedge].vert1;
-	  v2 = concave_edge[iedge].vert2;
-	} else {
-	  v2 = concave_edge[iedge].vert1;
-	  v1 = concave_edge[iedge].vert2;
-	}
-	printf (" %d %d   ", v1, v2);
-  }
-  printf ("\n");
 }
 
 /* concentric_axial_cusps(): at this stage if a face has 2 or 3 
@@ -4416,7 +4419,6 @@ static void concentric_axial_cusps (n_concave_edges, concave_edge,
   }
 }
 /***************************************************************/
-
 static void reroute (icycle, jcycle, cusp1, cusp2,
 		 n_concave_cycles, concave_cycle, cusp_edge, concave_edge,
 		 n_broken_concave_faces, broken_concave_face)
@@ -4489,7 +4491,6 @@ static void reroute (icycle, jcycle, cusp1, cusp2,
   return;
 }
 /*****************************************************************/
-
 static void split_cycle (n_broken_concave_faces, broken_concave_face, n_concave_cycles, concave_cycle,
 			 icycle, concave_edge, cusp_edge)
 	 int *n_broken_concave_faces;
@@ -4552,7 +4553,7 @@ static void split_cycle (n_broken_concave_faces, broken_concave_face, n_concave_
 	++ne;
   }
   concave_cycle[icycle].nedges = ne;
-
+
 /********** create new cycle ************************************/
   ncycle = *n_concave_cycles;
   ne = 0;
@@ -4919,7 +4920,7 @@ static void non_axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probel
   free (group);
   return;
 }
-
+
 /*****************************************************************/
 static int new_cusp_in_group (icusp, igroup, cusp_pair, group)
 	 CUSP_PAIR cusp_pair[];
@@ -5011,7 +5012,7 @@ static void cusp_intersect (cusp_edge, icusp, jcusp, probe, concave_cycle,
   vnorm (zaxis, 3);
   cross (yaxis, zaxis, xaxis);
   vnorm (xaxis, 3);
-
+
   alpha = get_angle (uv1, uv2, zaxis);
 
   if (flag)
@@ -5719,7 +5720,6 @@ static void trim_3_cusps (probe, nverts, vertex, n_concave_edges,
 			probe[concave_cycle[cusp_edge[icusp].cycle2].iprobe].pos[1],
 			probe[concave_cycle[cusp_edge[icusp].cycle2].iprobe].pos[2]);
   }
-
 
   /* kill the intersecting cusps and associated edges */
   for (i = 0; i < 3; ++i) {
@@ -5949,7 +5949,7 @@ static void trim_3_cusps (probe, nverts, vertex, n_concave_edges,
   return;
 }
 #endif
-
+
 /************************************************************/
 /* need separate split_old_cusps routine because the cusps are */
 /* paired, but in the case of a 3 cusp intersection only two verts */
@@ -6066,7 +6066,7 @@ static void trim_4_cusps (probe, nverts, vertex, n_concave_edges,
 
   /* xvertex are paired 0,1 and 2,3:  add cusp edges 
      (and edge and circle, and verts) */
-
+
   cusp_start = *n_cusps;
   add_2_cusps (xvertex, n_cusps, cusp_edge, concave_cycle,
 			   n_concave_edges,
@@ -6131,7 +6131,6 @@ static void get_xvertex (nspan, four_cusp, concave_edge, cusp_edge, vertex,
   int ii, ic;
   int ip0, ip2, ip3;
   POINT v0, v2, v3;
-
 
   for (k = 0; k < nspan; ++k) {
 	icusp = four_cusp[k];		/* 1st 2 cusps in the array span the group */
@@ -6195,7 +6194,7 @@ static void get_xvertex (nspan, four_cusp, concave_edge, cusp_edge, vertex,
   }
   if (nspan == 1)
 	return;
-
+
   ip0 = xvertex[0].cusp_pair;
   ip2 = xvertex[2].cusp_pair;
   ip3 = xvertex[3].cusp_pair;
@@ -6239,7 +6238,7 @@ static void get_xvertex (nspan, four_cusp, concave_edge, cusp_edge, vertex,
 	copy_vert (&xvertex[3], &xvertex[1]);
 	copy_vert (&tmp_vert, &xvertex[3]);
   }
-
+
   /*
      printf("xvertex: cusp_pair %d vert %d\n", xvertex[0].cusp_pair, xvertex[0].vert);
      printf("xvertex: cusp_pair %d vert %d\n", xvertex[1].cusp_pair, xvertex[1].vert);
@@ -6396,7 +6395,6 @@ static void get_3_xvertex (nspan, three_cusp, concave_edge, cusp_edge, vertex,
 	}
 	i = i - 1;
   }
-
 
   printf ("xvertex: cusp_pair %d vert %d\n", xvertex[0].cusp_pair, xvertex[0].vert);
   printf ("xvertex: cusp_pair %d vert %d\n", xvertex[1].cusp_pair, xvertex[1].vert);
@@ -6590,7 +6588,7 @@ static void add_2_cusps (xvertex, n_cusps, cusp_edge, concave_cycle,
   }
   return;
 }
-
+
 /***************************************************************************/
 static void add_2cusp_verts (nverts, vertex, cusp_pair, xvertex, ix, jx,
 				 concave_circle, icircle)
@@ -6672,7 +6670,7 @@ static void split_old_cusps (cusp_list, nlist, cusp_edge, n_cusps, xvertex, nx, 
   POINT va, vb;
   REAL_T get_angle ();
   void make_new_cusp ();
-
+
   for (i = 0; i < nlist; ++i) {
 	icusp = cusp_list[i];
 	iedge = cusp_edge[icusp].edge;
@@ -6725,7 +6723,7 @@ static void split_old_cusps (cusp_list, nlist, cusp_edge, n_cusps, xvertex, nx, 
   }
   return;
 }
-
+
 static void make_new_cusp (nc, cusp_edge, iold, new_edge)
 	 int *nc;
 	 CUSP_EDGE cusp_edge[];
@@ -7454,7 +7452,7 @@ static void cusp_intersect_2 (cusp_edge, icusp, jcusp, probe, iprobe,
   vnorm (zaxis, 3);
   cross (yaxis, zaxis, xaxis);
   vnorm (xaxis, 3);
-
+
   alpha = get_angle (uv1, uv2, zaxis);
 
   if (flag)
@@ -7716,7 +7714,6 @@ static int broken_concave_area (probe_rad,
   }
   return n_surfaced;;
 }
-
 
 
 static REAL_T conc_cycle_piece (ic, concave_cycle,
@@ -7740,7 +7737,7 @@ static REAL_T conc_cycle_piece (ic, concave_cycle,
   int edge1, edge2, direction1, direction2;
   REAL_T int_angle;
   REAL_T cdist;
-
+
   for (i = 0; i < concave_cycle[ic].nedges; ++i) {
 	ie = concave_cycle[ic].edge[i];
 	icircle = concave_edge[ie].circle;
@@ -7816,7 +7813,7 @@ static REAL_T conc_cycle_piece (ic, concave_cycle,
   /* printf("contribution from edge %f\n", sum); */
   return sum;
 }
-
+
 /**********************************************************************/
 static REAL_T interior_angle (e1, dir1, e2, dir2, concave_edge, circle, vertex)
 	 int e1, e2;
