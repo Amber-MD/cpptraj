@@ -26,6 +26,10 @@ clean:
 atclean:
 	cd src && $(MAKE) -f Makefile_at clean
 
+# Clean up lapack, arpack, and blas libraries for standalone
+libclean:
+	cd src && $(MAKE) libclean
+
 # called if cpptraj was disabled in AT's configure
 no:
 	@echo "Skipping cpptraj"
