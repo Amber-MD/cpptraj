@@ -61,30 +61,28 @@ int Molsurf::setup() {
 
   mprintf("    MOLSURF: Calculating surface area for %i atoms.\n",Mask1.Nselected);
   // NOTE: If Mask is * dont include any solvent?
-  // NOTE: Function doesnt use MASK yet!
 
   // The ATOM structure is how molsurf organizes atomic data. Allocate
   // here and fill in parm info. Coords will be filled in during action. 
-  atom = (ATOM*) malloc(currentParm->natom * sizeof(ATOM));
+  atom = (ATOM*) malloc(Mask1.Nselected * sizeof(ATOM));
   if (atom==NULL) {
     mprinterr("Error: Molsurf::Setup Could not allocate memory for ATOMs.\n");
     return 1;
   }
-
-  int nres=0;
+  // Set up parm info for atoms in mask
   double *Radii = currentParm->GB_radii();
-  for (int nat = 0; nat < currentParm->natom; nat++) {
-    // Increment residue if necessary
-    if (nat >= currentParm->resnums[nres+1]) nres++; 
-    atom[nat].anum = nat + 1; // based on readpqr, atoms start from 1
-    strcpy(atom[nat].anam,currentParm->names[nat]);
-    strcpy(atom[nat].rnam,currentParm->resnames[nres]);
-    atom[nat].rnum = nres + 1; // again based on readpqr, residues start from 1
-    atom[nat].pos[0] = 0;
-    atom[nat].pos[1] = 0;
-    atom[nat].pos[2] = 0;
-    atom[nat].q = currentParm->charge[nat];
-    atom[nat].rad = Radii[nat];
+  for (int maskidx = 0; maskidx < Mask1.Nselected; maskidx++) {
+    int parmatom = Mask1.Selected[maskidx];
+    int nres = currentParm->atomToResidue(parmatom);
+    atom[maskidx].anum = parmatom + 1; // anum is for debug output only, atoms start from 1
+    strcpy(atom[maskidx].anam,currentParm->names[parmatom]);
+    atom[maskidx].rnum = nres + 1; // again for debug output only, residues start from 1
+    strcpy(atom[maskidx].rnam,currentParm->resnames[nres]);
+    atom[maskidx].pos[0] = 0;
+    atom[maskidx].pos[1] = 0;
+    atom[maskidx].pos[2] = 0;
+    atom[maskidx].q = currentParm->charge[parmatom];
+    atom[maskidx].rad = Radii[parmatom];
   }
 
   return 0;  
@@ -94,16 +92,16 @@ int Molsurf::setup() {
 int Molsurf::action() {
   double molsurf_sasa;
 
-  // Set up coordinates
+  // Set up coordinates for atoms in mask
   int i3 = 0;
-  for (int nat = 0; nat < currentFrame->natom; nat++) {
-    atom[nat].pos[0] = currentFrame->X[i3++];
-    atom[nat].pos[1] = currentFrame->X[i3++];
-    atom[nat].pos[2] = currentFrame->X[i3++];
+  for (int maskidx = 0; maskidx < Mask1.Nselected; maskidx++) {
+    int i3 = Mask1.Selected[maskidx] * 3;
+    atom[maskidx].pos[0] = currentFrame->X[i3  ];
+    atom[maskidx].pos[1] = currentFrame->X[i3+1];
+    atom[maskidx].pos[2] = currentFrame->X[i3+2];
   }
   
-
-  molsurf_sasa = molsurf( probe_rad, atom, currentFrame->natom); 
+  molsurf_sasa = molsurf( probe_rad, atom, Mask1.Nselected); 
 
   sasa->Add(frameNum, &molsurf_sasa);
 

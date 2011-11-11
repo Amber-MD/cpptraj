@@ -7862,77 +7862,9 @@ static int broken_concave_area (probe_rad,
 
 
 // -----------------------------------------------------------------------------
-
-/*
-void
-main(argc, argv) 
-  int argc;
-  char *argv[];
-{
-  
-  FILE *pqrfile;
-  REAL_T probe_rad;
-  REAL_T molsurf();
-  REAL_T surface_area;
-
-  if (argc != 3) {
-
-    fprintf(stderr,"\nAmber11 Module: molsurf\n");
-    fprintf(stderr, USAGE);
-    exit(ERROR);
-  }
-
-  if ((pqrfile = fopen(argv[1],"r")) == NULL) {
-    fprintf(stderr, "Can't open file : %s\n",argv[1]);
-    exit (ERROR);
-  }
-
-  probe_rad = atof(argv[2]);
-  if (probe_rad < 0) {
-    fprintf(stderr, "Probe radius must be non-negative\n");
-    exit(ERROR);
-  }
-
-  // memory_usage(); 
-
-  // read molecule data 
-
-  nat = readpqr (pqrfile);
-  printf("\n %d atoms read\n\n", nat);
-
-  surface_area = molsurf( probe_rad );
-  printf( "surface area = %10.3f\n", surface_area );
-
-}
-*/
-/*
-static int readpqr(FILE *pqrfile) 
-{
-  int nat;
-  char line[100];
-
-  for (nat=0; fgets(line,sizeof(line),pqrfile);) {
-    if ( (strncmp("ATOM", line, 4) == 0) || (strncmp ( "HETATM",line, 6) == 0) ) {
-      sscanf(&line[6],"%d %s %s %d %lf %lf %lf %lf %lf",
-	    &atom[nat].anum, atom[nat].anam, atom[nat].rnam, &atom[nat].rnum,
-	    &atom[nat].pos[0], &atom[nat].pos[1], &atom[nat].pos[2],
-	    &atom[nat].q, &atom[nat].rad);
-      atom[nat].anum = nat;
-      ++nat;
-      if (nat >= MAXAT) {
-        fprintf(stderr,"MAXAT=%d exceeded\n", MAXAT);
-        exit(ERROR);
-      }
-    }
-  }
-  fclose(pqrfile);
-  return(nat);
-} */
-/*****************************************************************************/
+/******************************************************************************/
 REAL_T molsurf(REAL_T probe_rad, ATOM *atom, int natomIn)
 {
-  // --------------------
-  //ATOM *atom;
   RES res[MAXRES]; 
   int  nat, error_status;
   /* neighbor arrays:  these are big so amount of data stored must be small
