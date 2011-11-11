@@ -2,9 +2,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#define PTRAJ_COMMON_MODULE
-#include "ptraj_common.h"
-#undef PTRAJ_COMMON_MODULE
 
 // ----- Originally from utility.c -----
 // Print functions: error and warning

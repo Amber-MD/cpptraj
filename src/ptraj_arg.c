@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ptraj_arg.h"
+
 // ========== ARGUMENT functions ===============================================
 // Uses argStackType from ptraj_actions.h. To be consistent with original
 // argument stack behavior, copies of strings are returned.

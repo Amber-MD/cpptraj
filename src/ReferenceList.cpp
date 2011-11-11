@@ -10,14 +10,14 @@ ReferenceList::ReferenceList() {
 // DESTRUCTOR
 ReferenceList::~ReferenceList() { }
 
-/* ReferenceList::AddReference()
- * Add trajectory to the trajectory list as a reference trajectory. The list
- * will be converted to a list of reference frames by SetupRefFrames before
- * trajectories are processed. Associate the trajectory with one of the parm 
- * files in the ParmFileList. 
- * reference <filename> [start] [parm <parmfile> | parmindex <#>]
- * NOTE: Do not allocate Frames with new, should be static?
- */
+// ReferenceList::AddReference()
+/** Add trajectory to the trajectory list as a reference trajectory. The list
+  * will be converted to a list of reference frames by SetupRefFrames before
+  * trajectories are processed. Associate the trajectory with one of the parm 
+  * files in the ParmFileList. 
+  * reference <filename> [start] [parm <parmfile> | parmindex <#>]
+  */
+// NOTE: Do not allocate Frames with new, should be static?
 int ReferenceList::AddReference(char *filename, ArgList *A, AmberParm *parmIn) {
   TrajectoryFile *traj;
   bool average = false;
@@ -48,11 +48,11 @@ int ReferenceList::AddReference(char *filename, ArgList *A, AmberParm *parmIn) {
   return 0;
 }
 
-/* ReferenceList::SetupRefFrames()
- * Only called for reference trajectories. Convert each traj in the list
- * to either a single frame of that traj or an average over specified frames
- * of the traj. 
- */
+// ReferenceList::SetupRefFrames()
+/** Only called for reference trajectories. Convert each traj in the list
+  * to either a single frame of that traj or an average over specified frames
+  * of the traj. 
+  */
 int ReferenceList::SetupRefFrames(FrameList *refFrames) {
   std::list<TrajectoryFile*>::iterator traj;
   int trajFrames;

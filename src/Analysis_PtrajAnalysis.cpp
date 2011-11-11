@@ -35,6 +35,8 @@ PtrajAnalysis::~PtrajAnalysis() {
 
 // PtrajAnalysis::Setup()
 int PtrajAnalysis::Setup(DataSetList *datasetlist) {
+  // Set the global ptraj debug level
+  SetPrnlev(debug);
   return 0;
 }
 

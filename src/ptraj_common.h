@@ -5,13 +5,6 @@
 #define BUFFER_SIZE 1024
 #endif
 
-// GLOBAL DEBUG LEVEL
-#ifdef PTRAJ_COMMON_MODULE
-int prnlev = 0;
-#else
-extern int prnlev;
-#endif
-
 void error(char *, char *, ...);
 void warning(char *, char *, ...);
 void *safe_malloc(size_t);

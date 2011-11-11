@@ -3,6 +3,16 @@
 #include <stdio.h> // FILE
 #include "Name.h" // NAME in ptrajState
 
+// GLOBAL PTRAJ DEBUG LEVEL
+// Defined here since both Action_PtrajAction and Action_PtrajAnalysis include
+// this file
+#ifdef PTRAJ_STATE_MODULE
+int prnlev = 0;
+#else
+extern int prnlev;
+#endif
+void SetPrnlev(int);
+
 // ---------- ptrajMode --------------------------------------------------------
 // originally from ptraj_local.h
 typedef enum _ptrajMode {

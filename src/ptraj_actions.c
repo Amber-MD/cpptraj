@@ -253,11 +253,6 @@ void FreeReferenceInfo() {
     safe_free(referenceInfo);
   }
 }
-// SetPrnlev()
-void SetPrnlev(int prnlevIn) {
-  prnlev = prnlevIn;
-  if (prnlev>0) printf("Info: ptraj_actions prnlev set to %i\n",prnlev);
-} 
 
 // ========== COMMON internal functions ========================================
 #ifdef MPI

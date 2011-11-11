@@ -1,8 +1,18 @@
 #include <stdio.h>
 #include <string.h>
+#define PTRAJ_STATE_MODULE
 #include "ptraj_state.h"
+#undef PTRAJ_STATE_MODULE
 #include "ptraj_common.h"
 #include "PtrajMask.h"
+
+// SetPrnlev()
+/// Set the global ptraj debug level defined in ptraj_arg
+// SetPrnlev()
+void SetPrnlev(int prnlevIn) {
+  prnlev = prnlevIn;
+  if (prnlev>0) printf("Info: ptraj prnlev set to %i\n",prnlev);
+}
 
 // ========== PTRAJ STATE functions ============================================
 ptrajState *ptrajCopyState(ptrajState **stateinp) {

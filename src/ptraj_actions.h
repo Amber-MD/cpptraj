@@ -11,7 +11,6 @@ extern "C" {
 // ---------- Routines that access global ptraj_actions vars -------------------
 void SetReferenceInfo(double*,int);
 void FreeReferenceInfo();
-void SetPrnlev(int);
 
 // ---------- Ptraj actions ----------------------------------------------------
 // possible ptraj actions
