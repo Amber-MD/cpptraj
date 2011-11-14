@@ -1,8 +1,9 @@
 // CharBuffer
-#include "CharBuffer.h"
-#include <cstdio> // sprintf
+#include <cstdio>  // sprintf
 #include <cstdlib> // atof
 #include <cstdarg> // va_list
+#include <cstring> // memcpy
+#include "CharBuffer.h"
 
 // CONSTRUCTOR
 CharBuffer::CharBuffer() {
@@ -16,9 +17,8 @@ CharBuffer::~CharBuffer() {
   if (buffer!=NULL) delete[] buffer;
 }
 
-/* CharBuffer::Allocate()
- * Allocate space for a character buffer of size <sizeIn>.
- */
+// CharBuffer::Allocate()
+/// Allocate space for a character buffer of size <sizeIn>.
 void CharBuffer::Allocate(size_t sizeIn) {
   if (buffer!=NULL) delete[] buffer;
   bufferSize = sizeIn;
@@ -26,16 +26,30 @@ void CharBuffer::Allocate(size_t sizeIn) {
   ptr = buffer;
 }
 
-/* CharBuffer::CurrentSize()
- * Return the size of the data that has been currently written to the buffer.
- */
+// CharBuffer::IncreaseSize()
+/** Increase the size of the char buffer by delta, ensuring that the existing
+  * data is kept. Place the ptr at the beginning of the new region.
+  */
+void CharBuffer::IncreaseSize(size_t delta) {
+  size_t newsize = bufferSize + delta;
+  char *newbuffer = new char[ newsize ];
+  if (buffer!=NULL) {
+    memcpy(newbuffer, buffer, bufferSize);
+    delete[] buffer;
+  }
+  buffer = newbuffer;
+  ptr = buffer + bufferSize; 
+  bufferSize = newsize;
+}
+
+// CharBuffer::CurrentSize()
+/// Return the size of the data that has been currently written to the buffer.
 size_t CharBuffer::CurrentSize() {
   return (size_t) (ptr - buffer);
 }
 
-/* CharBuffer::Sprintf()
- * Write data to the buffer with printf-like syntax.
- */
+// CharBuffer::Sprintf()
+/// Write data to the buffer with printf-like syntax.
 void CharBuffer::Sprintf(const char *fmt, ... ) {
   int n_char_written;
   va_list args;
@@ -70,27 +84,24 @@ void CharBuffer::WriteStringBuffer(char *sval) {
   ptr += (len + 1); // +1 for NULL
 }*/
 
-/* CharBuffer::WriteDouble()
- * Write a double to the buffer with given format.
- */
+// CharBuffer::WriteDouble()
+/// Write a double to the buffer with given format.
 void CharBuffer::WriteDouble(const char *format, double dval) {
   int n_char_written;
   n_char_written = sprintf(ptr, format, dval);
   ptr += n_char_written;
 }
 
-/* CharBuffer::WriteInteger()
- * Write an integer to the buffer with given format.
- */
+// CharBuffer::WriteInteger()
+/// Write an integer to the buffer with given format.
 void CharBuffer::WriteInteger(const char *format, int ival) {
   int n_char_written;
   n_char_written = sprintf(ptr, format, ival);
   ptr += n_char_written;
 }
 
-/* CharBuffer::WriteString()
- * Write a string to the buffer with given format.
- */
+// CharBuffer::WriteString()
+/// Write a string to the buffer with given format.
 void CharBuffer::WriteString(const char *format, const char *sval) {
   int n_char_written;
   n_char_written = sprintf(ptr, format, sval);
@@ -105,12 +116,12 @@ void CharBuffer::WriteString(const char *format, const char *sval) {
   ptr += n_char_written;
 }*/
 
-/* CharBuffer::WriteStringN()
- * Write a string to the buffer with given width. If the string is larger
- * than <width>, truncate it. If leftAlign is specified align the string
- * to the left, preceded by '#'. Also write a space, so that the total
- * number of characters written is always <width> + 1.
- */
+// CharBuffer::WriteStringN()
+/** Write a string to the buffer with given width. If the string is larger
+  * than <width>, truncate it. If leftAlign is specified align the string
+  * to the left, preceded by '#'. Also write a space, so that the total
+  * number of characters written is always <width> + 1.
+  */
 void CharBuffer::WriteStringN(char *sval, int width, bool leftAlign) {
   int c, n_char_written, actualWidth;
   actualWidth = width;
@@ -130,15 +141,16 @@ void CharBuffer::WriteStringN(char *sval, int width, bool leftAlign) {
   ptr += n_char_written;
 }
 
-/* CharBuffer::WriteDoubleXYZ()
- * Write the given double array of size 3 to the buffer with given format.
- */
+// CharBuffer::WriteDoubleXYZ()
+/// Write the given double array of size 3 to the buffer with given format.
 void CharBuffer::WriteDoubleXYZ(const char *format, double *XYZ) {
   int n_char_written;
   n_char_written = sprintf(ptr, format, XYZ[0], XYZ[1], XYZ[2]);
   ptr += n_char_written;
 }
 
+// CharBuffer::NewLine()
+/// Add a newline character to buffer.
 void CharBuffer::NewLine() {
   ptr[0]='\n';
   ptr++;

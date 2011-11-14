@@ -1,23 +1,34 @@
-#include "FortranFormat.h"
-#include "CpptrajStdio.h"
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <cctype> // toupper
+#include "FortranFormat.h"
+#include "CpptrajStdio.h"
 
-//  F_POINTERS = 0, F_NAMES,  F_CHARGE,  F_MASS,    F_RESNAMES,             
-//  F_RESNUMS,      F_TYPES,  F_BONDSH,  F_BONDS,   F_SOLVENT_POINTER, 
-//  F_ATOMSPERMOL,  F_PARMBOX,F_ATYPEIDX,F_NUMEX,   F_NB_INDEX,
-//  F_LJ_A,         F_LJ_B,   F_EXCLUDE, F_RADII,   F_SCREEN
+// FFSIZE: Combined size of %FLAG and %FORMAT lines (81 * 2)
+#define FFSIZE 162
+
+//  F_POINTERS = 0, F_NAMES,   F_CHARGE,  F_MASS,    F_RESNAMES,             
+//  F_RESNUMS,      F_TYPES,   F_BONDSH,  F_BONDS,   F_SOLVENT_POINTER, 
+//  F_ATOMSPERMOL,  F_PARMBOX, F_ATYPEIDX,F_NUMEX,   F_NB_INDEX,
+//  F_LJ_A,         F_LJ_B,    F_EXCLUDE, F_RADII,   F_SCREEN,
+//  F_BONDRK,       F_BONDREQ, F_ANGLETK, F_ANGLETEQ,F_DIHPK,
+//  F_DIHPN,        F_DIHPHASE,F_SCEE,    F_SCNB,    F_SOLTY
+//  F_ANGLESH,      F_ANGLES,  F_DIHH,    F_DIH,     F_ASOL
+//  F_BSOL,         F_HBCUT,   F_ITREE,   F_JOIN,    F_IROTAT
 
 // Constant strings for fortran formats corresponding to Amber parm flags
 static const char AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
-"%FORMAT(10I8)",  "%FORMAT(20a4)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)","%FORMAT(20a4)",
-"%FORMAT(10I8)",  "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",  "%FORMAT(3I8)",
-"%FORMAT(10I8)",  "%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(10I8)",  "%FORMAT(10I8)",  
-"%FORMAT(5E16.8)","%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(5E16.8)","%FORMAT(5E16.8)"
+"%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",
+"%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(3I8)",
+"%FORMAT(10I8)",   "%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",  
+"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)",
+"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)",
+"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)",
+"%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(5E16.8)",
+"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)"
 }; 
-static const char AmberParmFlag[NUMAMBERPARMFLAGS][23] = {
+static const char AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
   "POINTERS",
   "ATOM_NAME",
   "CHARGE",
@@ -37,14 +48,34 @@ static const char AmberParmFlag[NUMAMBERPARMFLAGS][23] = {
   "LENNARD_JONES_BCOEF", 
   "EXCLUDED_ATOMS_LIST",
   "RADII",
-  "SCREEN"
+  "SCREEN",
+  "BOND_FORCE_CONSTANT",
+  "BOND_EQUIL_VALUE",
+  "ANGLE_FORCE_CONSTANT",
+  "ANGLE_EQUIL_VALUE",
+  "DIHEDRAL_FORCE_CONSTANT",
+  "DIHEDRAL_PERIODICITY",
+  "DIHEDRAL_PHASE",
+  "SCEE_SCALE_FACTOR",
+  "SCNB_SCALE_FACTOR",
+  "SOLTY",
+  "ANGLES_INC_HYDROGEN",
+  "ANGLES_WITHOUT_HYDROGEN",
+  "DIHEDRALS_INC_HYDROGEN",
+  "DIHEDRALS_WITHOUT_HYDROGEN",
+  "HBOND_ACOEF",
+  "HBOND_BCOEF",
+  "HBCUT",
+  "TREE_CHAIN_CLASSIFICATION",
+  "JOIN_ARRAY",
+  "IROTAT"
 };
 
 // GetFortranBufferSize()
 /** Given number of columns and the width of each column, return the 
   * necessary char buffer size for N data elements.
   */
-int GetFortranBufferSize(int N, int isDos, int width, int ncols) {
+static int GetFortranBufferSize(int N, int isDos, int width, int ncols) {
   int bufferLines=0;
   int BufferSize=0;
 
@@ -339,14 +370,13 @@ void *F_loadFormat(CpptrajFile *File, FortranType fType, int width, int ncols,
 }
 
 // DataToFortranBuffer()
-/** Write N data elements stored in I, D, or C to buffer with given 
+/** Write N data elements stored in I, D, or C to character buffer with given 
   * fortran format.
   */
-char *DataToFortranBuffer(char *bufferIn, AmberParmFlagType fFlag,
+int DataToFortranBuffer(CharBuffer &buffer, AmberParmFlagType fFlag,
                           int *I, double *D, NAME *C, int N) 
 {
   int coord, width, numCols, precision;
-  char *ptr;
   FortranType fType;
   char FormatString[32];
 
@@ -355,11 +385,12 @@ char *DataToFortranBuffer(char *bufferIn, AmberParmFlagType fFlag,
   fType = GetFortranType((char*)AmberParmFmt[fFlag], &numCols, &width, &precision);
   if (fType == UNKNOWN_FTYPE) {
     mprinterr("Error: DataToFortranBuffer: Unknown format string [%s]\n",AmberParmFmt[fFlag]);
-    return NULL;
+    return 1;
   }
-
-  if (bufferIn==NULL) return NULL;
-  ptr = bufferIn;
+  // Increase the buffer by the appropriate amount
+  size_t delta = GetFortranBufferSize(N,0,width,numCols);
+  delta += FFSIZE; // FFSIZE is Combined size of %FLAG and %FORMAT lines (81 * 2)
+  buffer.IncreaseSize( delta );
 
   //fprintf(stdout,"*** Called DataToBuffer: N=%i, width=%i, numCols=%i, format=%s\n",
   //        N, width, numCols, FormatString);
@@ -368,11 +399,9 @@ char *DataToFortranBuffer(char *bufferIn, AmberParmFlagType fFlag,
   // Print FLAG and FORMAT lines
   // '%FLAG '
   //  012345
-  sprintf(ptr,"%%FLAG %-74s\n",AmberParmFlag[fFlag]);
+  buffer.Sprintf("%%FLAG %-74s\n",AmberParmFlag[fFlag]);
   //sprintf(ptr,"%-80s\n",FLAG);
-  ptr += 81;
-  sprintf(ptr,"%-80s\n",AmberParmFmt[fFlag]);
-  ptr += 81;
+  buffer.Sprintf("%-80s\n",AmberParmFmt[fFlag]);
 
   // Write Integer data
   // NOTE: move the coord+1 code?
@@ -380,74 +409,53 @@ char *DataToFortranBuffer(char *bufferIn, AmberParmFlagType fFlag,
   if (fType==FINT) {
     if (I==NULL) {
       mprinterr("Error: DataToFortranBuffer: INT is NULL.\n");
-      return NULL;
+      return 1;
     }
     sprintf(FormatString,"%%%ii",width);
     for (coord=0; coord < N; coord++) {
-      sprintf(ptr,FormatString,I[coord]);
-      ptr+=width;
-      if ( ((coord+1)%numCols)==0 ) {
-        sprintf(ptr,"\n");
-        ptr++;
-      }
+      buffer.WriteInteger(FormatString, I[coord]);
+      if ( ((coord+1)%numCols)==0 ) buffer.NewLine(); 
     }
 
   // Write Double data
   } else if (fType==FDOUBLE) {
     if (D==NULL) {
       mprinterr("Error: DataToFortranBuffer: DOUBLE is NULL.\n");
-      return NULL;
+      return 1;
     }
     sprintf(FormatString,"%%%i.%ilE",width,precision);
     for (coord=0; coord < N; coord++) {
-      sprintf(ptr,FormatString,D[coord]);
-      ptr+=width;
-      if ( ((coord+1)%numCols)==0 ) {
-        sprintf(ptr,"\n");
-        ptr++;
-      }
+      buffer.WriteDouble(FormatString,D[coord]);
+      if ( ((coord+1)%numCols)==0 ) buffer.NewLine(); 
     }
 
   // Write Char data
   } else if (fType==FCHAR) {
     if (C==NULL) {
       mprinterr("Error: DataToFortranBuffer: CHAR is NULL.\n");
-      return NULL;
+      return 1;
     }
     sprintf(FormatString,"%%%is",width);
     for (coord=0; coord < N; coord++) {
-      sprintf(ptr,FormatString,C[coord]);
-      ptr+=width;
-      if ( ((coord+1)%numCols)==0 ) {
-        sprintf(ptr,"\n");
-        ptr++;
-      }
+      buffer.WriteString(FormatString,C[coord]);
+      if ( ((coord+1)%numCols)==0 ) buffer.NewLine(); 
     }
 
   // Write Float data
   } else if (fType==FFLOAT) {
     if (D==NULL) {
       mprinterr("Error: DataToFortranBuffer: FLOAT is NULL.\n");
-      return NULL;
+      return 1;
     }
     sprintf(FormatString,"%%%i.%ilf",width,precision);
     for (coord=0; coord < N; coord++) {
-      sprintf(ptr,FormatString,D[coord]);
-      ptr+=width;
-      if ( ((coord+1)%numCols)==0 ) {
-        sprintf(ptr,"\n");
-        ptr++;
-      }
+      buffer.WriteDouble(FormatString,D[coord]);
+      if ( ((coord+1)%numCols)==0 ) buffer.NewLine(); 
     }
   }
 
   // If the coord record didnt end on a newline, print one
-  if ( (coord%numCols)!=0 ) {
-    sprintf(ptr,"\n");
-    ptr++; // Only needed if more will be written
-  }
-
-  //fprintf(stdout,"*** Ptr ended on %p\n",ptr);
-  return ptr;
+  if ( (coord%numCols)!=0 ) buffer.NewLine();
+  return 0; 
 }
 
