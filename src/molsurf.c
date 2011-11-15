@@ -1630,8 +1630,8 @@ static void check_data (n_torus, toruslist, nat, atom, vertexlist, convex_edge, 
 	for (i = 0; i < atom[ia].n_convex_edges; ++i) {
 	  ntmp = ntmp + 1;
 	  ie = atom[ia].convex_edges[i];
-	  if (vertexlist[convex_edge[ie].vert1].iatom != ia &&
-		  convex_edge[ie].vert1 >= 0) {
+	  if ( convex_edge[ie].vert1 >= 0 ) {
+            if ( vertexlist[convex_edge[ie].vert1].iatom != ia ) {
 		printf ("convex vertex atom mismatch 2 \n");
 		printf ("iatom: %d\n", ia);
 		printf ("number of convex edges %d\n", atom[ia].n_convex_edges);
@@ -1641,9 +1641,10 @@ static void check_data (n_torus, toruslist, nat, atom, vertexlist, convex_edge, 
 		printf ("edge v1.atom %d\n", vertexlist[convex_edge[ie].vert1].iatom);
 		printf ("edge v2.atom %d\n", vertexlist[convex_edge[ie].vert2].iatom);
 		exit (ERROR);
+            }
 	  }
-	  if (vertexlist[convex_edge[ie].vert2].iatom != ia &&
-		  convex_edge[ie].vert1 >= 0) {
+	  if (convex_edge[ie].vert1 >= 0 ) {
+            if (vertexlist[convex_edge[ie].vert2].iatom != ia ) {
 		printf ("convex vertex atom mismatch 3\n");
 		printf ("iatom: %d\n", ia);
 		printf ("number of convex edges %d\n", atom[ia].n_convex_edges);
@@ -1654,6 +1655,7 @@ static void check_data (n_torus, toruslist, nat, atom, vertexlist, convex_edge, 
 		printf ("edge v2.atom %d\n", vertexlist[convex_edge[ie].vert2].iatom);
 		printf ("convex vertex atom mismatch\n");
 		exit (ERROR);
+            }
 	  }
 	}
   }
@@ -8000,8 +8002,10 @@ REAL_T molsurf(REAL_T probe_rad, ATOM *atom, int natomIn)
 	fprintf (stderr, "Unable to allocate space for low_torus\n");
 	error_status++;
   }
-  if ((cusp_edge = (CUSP_EDGE *) malloc (
-		 NUM_EDGE * natm_sel * sizeof (CUSP_EDGE))) == NULL) {
+  // NOTE: Using calloc here as a way to initialize cusp_edge to avoid
+  //       memory errors.
+  if ((cusp_edge = (CUSP_EDGE *) calloc (
+		 NUM_EDGE * natm_sel, sizeof (CUSP_EDGE))) == NULL) {
 	fprintf (stderr, "Unable to allocate space for cusp_edge\n");
 	error_status++;
   }
