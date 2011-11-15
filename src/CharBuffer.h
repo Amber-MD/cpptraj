@@ -15,6 +15,7 @@ class CharBuffer {
 
     void Allocate(size_t);
     void IncreaseSize(size_t);
+    void AddCharString(char *);
     void Sprintf(const char *, ... ); 
     //void WriteStringBuffer(char *); 
     void WriteDouble(const char*,double);

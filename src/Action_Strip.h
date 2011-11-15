@@ -1,9 +1,8 @@
 #ifndef INC_ACTION_STRIP_H
 #define INC_ACTION_STRIP_H
-
-// Should automatically include AmberParm.h from Action.h
 #include "Action.h"
-
+// Class: Strip
+/// Used to remove atoms from the state.
 class Strip: public Action {
     AmberParm *oldParm;
     AmberParm *newParm;
@@ -18,7 +17,8 @@ class Strip: public Action {
     int setup();
     int action();
 };
-
+// Class: Unstrip
+/// Signals to ActionList that the original traj parm should be restored.
 class Unstrip: public Action {
   public:
     Unstrip() {}

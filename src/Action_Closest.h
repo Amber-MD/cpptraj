@@ -1,8 +1,9 @@
 #ifndef INC_ACTION_CLOSEST_H
 #define INC_ACTION_CLOSEST_H
-// Should automatically include AmberParm.h from Action.h
-#include "Action.h"
 #include <vector>
+#include "Action.h"
+// Class: Closest
+/// Modify the state so that only the closest solvent molecules are kept.
 class Closest: public Action {
     DataFile *outFile;
     DataSetList *outList;

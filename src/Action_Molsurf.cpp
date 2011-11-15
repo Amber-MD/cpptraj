@@ -93,7 +93,6 @@ int Molsurf::action() {
   double molsurf_sasa;
 
   // Set up coordinates for atoms in mask
-  int i3 = 0;
   for (int maskidx = 0; maskidx < Mask1.Nselected; maskidx++) {
     int i3 = Mask1.Selected[maskidx] * 3;
     atom[maskidx].pos[0] = currentFrame->X[i3  ];

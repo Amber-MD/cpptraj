@@ -42,6 +42,30 @@ void CharBuffer::IncreaseSize(size_t delta) {
   bufferSize = newsize;
 }
 
+// CharBuffer::AddCharString()
+/// Add NULL terminated char string to buffer, increasing size accordingly.
+void CharBuffer::AddCharString(char *inputString) {
+  // Calculate size necessary to accomodate input string
+  size_t inputStringSize = strlen(inputString);
+  size_t newBufferSize = inputStringSize + CurrentSize() + 1;
+  // Reallocate if the resulting buffer size greater than current allocation
+  if (newBufferSize > bufferSize) {
+    char *tempbuffer = new char[ newBufferSize ];
+    if (buffer!=NULL) {
+      memcpy(tempbuffer, buffer, bufferSize * sizeof(char));
+      delete[] buffer;
+    }
+    buffer = tempbuffer;
+    ptr = buffer + bufferSize;
+    bufferSize = newBufferSize;
+  }
+  // Copy inputstring to buffer.
+  memcpy(ptr, inputString, inputStringSize * sizeof(char));
+  // Add terminating NULL character
+  ptr += inputStringSize;
+  *ptr = '\0';
+}
+
 // CharBuffer::CurrentSize()
 /// Return the size of the data that has been currently written to the buffer.
 size_t CharBuffer::CurrentSize() {

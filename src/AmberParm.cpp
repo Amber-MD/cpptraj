@@ -6,7 +6,6 @@
  *   The natom, boxType and nres variables.
  * NOTES:
  */
-#include <cstdlib>
 #include <cstring>
 #include <cstdio> // For sscanf, sprintf
 #include <ctime> // for writing time/date to amber parmtop
@@ -77,35 +76,35 @@ AmberParm::AmberParm() {
 
 // DESTRUCTOR
 AmberParm::~AmberParm() {
-  if (parmfileName!=NULL) free(parmfileName);
-  if (parmName!=NULL) free(parmName);
+  if (parmfileName!=NULL) delete[] parmfileName;
+  if (parmName!=NULL) delete[] parmName;
 
-  if (bondsh!=NULL) free(bondsh);
-  if (bonds!=NULL) free(bonds);
-  if (names!=NULL) free(names);
-  if (resnames!=NULL) free(resnames);
-  if (types!=NULL) free(types);
-  if (resnums!=NULL) free(resnums);
-  if (atomsPerMol!=NULL) free(atomsPerMol);
-  if (mass!=NULL) free(mass);
-  if (charge!=NULL) free(charge);
+  if (bondsh!=NULL) delete[] bondsh;
+  if (bonds!=NULL) delete[] bonds;
+  if (names!=NULL) delete[] names;
+  if (resnames!=NULL) delete[] resnames;
+  if (types!=NULL) delete[] types;
+  if (resnums!=NULL) delete[] resnums;
+  if (atomsPerMol!=NULL) delete[] atomsPerMol;
+  if (mass!=NULL) delete[] mass;
+  if (charge!=NULL) delete[] charge;
 
-  if (solventMask!=NULL) free(solventMask);
-  if (solventMoleculeStart!=NULL) free(solventMoleculeStart);
-  if (solventMoleculeStop!=NULL) free(solventMoleculeStop);
+  if (solventMask!=NULL) delete[] solventMask;
+  if (solventMoleculeStart!=NULL) delete[] solventMoleculeStart;
+  if (solventMoleculeStop!=NULL) delete[] solventMoleculeStop;
 
-  if (SurfaceInfo!=NULL) free(SurfaceInfo);
-  if (parmCoords!=NULL) free(parmCoords);
+  if (SurfaceInfo!=NULL) delete[] SurfaceInfo;
+  if (parmCoords!=NULL) delete[] parmCoords;
 
-  if (numex!=NULL) free(numex);
-  if (atype_index!=NULL) free(atype_index);
-  if (NB_index!=NULL) free(NB_index);
-  if (LJ_A!=NULL) free(LJ_A);
-  if (LJ_B!=NULL) free(LJ_B);
-  if (excludedAtoms!=NULL) free(excludedAtoms);
+  if (numex!=NULL) delete[] numex;
+  if (atype_index!=NULL) delete[] atype_index;
+  if (NB_index!=NULL) delete[] NB_index;
+  if (LJ_A!=NULL) delete[] LJ_A;
+  if (LJ_B!=NULL) delete[] LJ_B;
+  if (excludedAtoms!=NULL) delete[] excludedAtoms;
   if (radius_set!=NULL) delete[] radius_set; // getFlagFileString uses 'new'
-  if (gb_radii!=NULL) free(gb_radii);
-  if (gb_screen!=NULL) free(gb_screen);
+  if (gb_radii!=NULL) delete[] gb_radii;
+  if (gb_screen!=NULL) delete[] gb_screen;
 }
 
 /* SetDebug()
@@ -212,9 +211,11 @@ int AmberParm::GetLJparam(double *A, double *B, int atom1, int atom2) {
   return 0;
 }
 
+// AmberParm::SetCharges()
+/// Set the atomic charges from the given array.
 int AmberParm::SetCharges(double *chargeIn) {
   if (chargeIn==NULL) return 1;
-  if (charge==NULL) charge = (double*) malloc(natom * sizeof(double));
+  if (charge==NULL) charge = new double[ natom ];
   memcpy(charge, chargeIn, natom * sizeof(double));
   return 0;
 }
@@ -274,7 +275,7 @@ int AmberParm::SetSurfaceInfo() {
   }
  
   // Get the number of bonded neighbors for each atom
-  numBonds = (int*) malloc(natom * sizeof(int));
+  numBonds = new int[ natom ];
   memset(numBonds, 0, natom * sizeof(int));
   for (i = 0; i < NbondsWithoutH*3; i+=3) {
      atom1 = bonds[i  ] / 3;
@@ -298,7 +299,7 @@ int AmberParm::SetSurfaceInfo() {
   mprintf("[%s] Setting surface paramters for %i solute atoms.\n",parmName,numSoluteAtoms);
 
   // Set vdw radii and LCPO parameters
-  SurfaceInfo = (SurfInfo*) malloc(numSoluteAtoms * sizeof(SurfInfo));
+  SurfaceInfo = new SurfInfo[ numSoluteAtoms ];
   for (i=0; i < numSoluteAtoms; i++) {
     atype[0] = types[i][0];
     atype[1] = types[i][1];
@@ -383,7 +384,7 @@ int AmberParm::SetSurfaceInfo() {
             SurfaceInfo[i].P1,SurfaceInfo[i].P2,SurfaceInfo[i].P3,SurfaceInfo[i].P4);
   }
   */
-  free(numBonds);
+  delete[] numBonds;
   return numSoluteAtoms;
 }
 
@@ -416,10 +417,10 @@ int AmberParm::SetSolventInfo() {
   // Allocate memory
   // Since the number of solvent molecules is not yet known allocate
   // natom for solventMoleculeX arrays. Will be resized after.
-  solventMask=(char*) malloc(natom * sizeof(char));
-  for (maskAtom=0; maskAtom<natom; maskAtom++) solventMask[maskAtom]='F';
-  solventMoleculeStart=(int*) malloc(natom * sizeof(int));
-  solventMoleculeStop=(int*) malloc(natom * sizeof(int));
+  solventMask=new char[ natom ];
+  memset(solventMask, 'F', natom * sizeof(char));
+  solventMoleculeStart=new int[ natom ];
+  solventMoleculeStop=new int[ natom ];
   solventMolecules=0;
   solventAtoms=0;
 
@@ -470,7 +471,7 @@ int AmberParm::SetSolventInfo() {
               finalSoluteRes=res; // Starts from 1, Amber convention
               firstSolvMol=2;     // Starts from 1, Amber convention
               molecules=1;
-              atomsPerMol = (int*) malloc( sizeof(int) );
+              atomsPerMol = new int[ 1 ];
               atomsPerMol[0] = resnums[res];
             }
           } else { 
@@ -480,7 +481,12 @@ int AmberParm::SetSolventInfo() {
         } 
         //mprintf(" solvent mol %i, mol %i\n",solventMolecules,molecules); // DEBUG
         // Update atomsPerMol
-        atomsPerMol = (int*) realloc(atomsPerMol, (molecules+1) * sizeof(int));
+        int *tempAtomsPerMol = new int[ molecules + 1];
+        if (atomsPerMol!=NULL) {
+          memcpy(tempAtomsPerMol, atomsPerMol, molecules * sizeof(int));
+          delete[] atomsPerMol;
+        }
+        atomsPerMol = tempAtomsPerMol;
         atomsPerMol[molecules] = molAtom; 
         solventMolecules++;
         molecules++;
@@ -503,17 +509,23 @@ int AmberParm::SetSolventInfo() {
 
   // Deallocate memory if no solvent 
   if (solventMolecules==0) {
-    free(solventMask);
+    delete[] solventMask;
     solventMask=NULL;
-    free(solventMoleculeStart);
+    delete[] solventMoleculeStart;
     solventMoleculeStart=NULL;
-    free(solventMoleculeStop);
+    delete[] solventMoleculeStop;
     solventMoleculeStop=NULL;
 
   // Resize the solventMoleculeX arrays
   } else {
-    solventMoleculeStart = (int*) realloc(solventMoleculeStart, solventMolecules * sizeof(int));
-    solventMoleculeStop  = (int*) realloc(solventMoleculeStop,  solventMolecules * sizeof(int));
+    int *tempSMstart = new int[ solventMolecules ];
+    memcpy(tempSMstart, solventMoleculeStart, solventMolecules * sizeof(int));
+    delete[] solventMoleculeStart;
+    solventMoleculeStart = tempSMstart;
+    int *tempSMstop = new int[ solventMolecules ];
+    memcpy(tempSMstop, solventMoleculeStop, solventMolecules * sizeof(int));
+    delete[] solventMoleculeStop;
+    solventMoleculeStop = tempSMstop;
   }
 
   return 0; 
@@ -531,9 +543,9 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
     return 1;
 
   // Copy parm filename to parmName. Separate from File.filename in case of stripped parm
-  parmName=(char*) malloc( (strlen(parmfile.basefilename)+1) * sizeof(char));
+  parmName=new char[ strlen(parmfile.basefilename)+1 ];
   strcpy(parmName,parmfile.basefilename);
-  parmfileName=(char*) malloc( (strlen(filename)+1) * sizeof(char));
+  parmfileName=new char[ strlen(filename)+1 ]; 
   strcpy(parmfileName,filename);
 
   if ( parmfile.OpenFile() ) return 1;
@@ -561,7 +573,10 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   // atom #s (start from 1). 
   // Do this to be consistent with PtrajMask selection behavior - saves an 
   // if-then statement.
-  resnums=(int*) realloc(resnums,(nres+1)*sizeof(int));
+  int *tempResnums = new int[ nres+1 ];
+  memcpy(tempResnums, resnums, nres * sizeof(int));
+  delete[] resnums;
+  resnums = tempResnums;
   resnums[nres]=natom;
   // DEBUG
   //fprintf(stdout,"==== DEBUG ==== Resnums for %s:\n",parmfile.filename);
@@ -606,7 +621,7 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   }
 
   // Free coords if they were allocated
-  if (parmCoords!=NULL) free(parmCoords);
+  if (parmCoords!=NULL) delete[] parmCoords;
   parmCoords=NULL;
   return 0;
 }
@@ -663,14 +678,14 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   double *dihedral_pn = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
   double *dihedral_phase = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
   double *solty = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NATYP],debug);
-  if (bond_rk!=NULL) free(bond_rk);
-  if (bond_req!=NULL) free(bond_req);
-  if (angle_tk!=NULL) free(angle_tk);
-  if (angle_teq!=NULL) free(angle_teq);
-  if (dihedral_pk!=NULL) free(dihedral_pk);
-  if (dihedral_pn!=NULL) free(dihedral_pn);
-  if (dihedral_phase!=NULL) free(dihedral_phase);
-  if (solty!=NULL) free(solty);
+  if (bond_rk!=NULL) delete[] bond_rk;
+  if (bond_req!=NULL) delete[] bond_req;
+  if (angle_tk!=NULL) delete[] angle_tk;
+  if (angle_teq!=NULL) delete[] angle_teq;
+  if (dihedral_pk!=NULL) delete[] dihedral_pk;
+  if (dihedral_pn!=NULL) delete[] dihedral_pn;
+  if (dihedral_phase!=NULL) delete[] dihedral_phase;
+  if (solty!=NULL) delete[] solty;
   // LJ params
   LJ_A = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
   LJ_B = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
@@ -682,40 +697,40 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   int *angles = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETA]*4,debug); 
   int *dihedralsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIH]*5,debug);
   int *dihedrals = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIA]*5,debug);
-  if (anglesh!=NULL) free(anglesh);
-  if (angles!=NULL) free(angles);
-  if (dihedralsh!=NULL) free(dihedralsh);
-  if (dihedrals!=NULL) free(dihedrals);
+  if (anglesh!=NULL) delete[] anglesh;
+  if (angles!=NULL) delete[] angles;
+  if (dihedralsh!=NULL) delete[] dihedralsh;
+  if (dihedrals!=NULL) delete[] dihedrals;
   // Excluded atoms
   excludedAtoms = (int*) F_loadFormat(parmfile,FINT,6,12,nnb,debug);
   // Not stored
   double *asol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
   double *bsol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
   double *hbcut = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
-  if (asol!=NULL) free(asol);
-  if (bsol!=NULL) free(bsol);
-  if (hbcut!=NULL) free(hbcut);
+  if (asol!=NULL) delete[] asol;
+  if (bsol!=NULL) delete[] bsol;
+  if (hbcut!=NULL) delete[] hbcut;
   // Atom types
   types = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
   // Not stored
   NAME *itree = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
   int *join = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
   int *irotat = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
-  if (itree!=NULL) free(itree);
-  if (join!=NULL) free(join);
-  if (irotat!=NULL) free(irotat);
+  if (itree!=NULL) delete[] itree;
+  if (join!=NULL) delete[] join;
+  if (irotat!=NULL) delete[] irotat;
   // Solvent/Box info
   if (ifbox > 0) {
     int *solvent_pointer=(int*) F_loadFormat(parmfile,FINT,6,12,3,debug);
     if (solvent_pointer==NULL) {
       mprintf("Error in solvent pointers.\n");
-      free(values);
+      delete[] values;
       return 1;
     } else {
       finalSoluteRes=solvent_pointer[0];
       molecules=solvent_pointer[1];
       firstSolvMol=solvent_pointer[2];
-      free(solvent_pointer);
+      delete[] solvent_pointer;
     }
     atomsPerMol=(int*) F_loadFormat(parmfile,FINT,6,12,molecules,debug);
     if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); return 1;}
@@ -723,7 +738,7 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
     double *boxFromParm=(double*)  F_loadFormat(parmfile,FDOUBLE,16,5,4,debug);
     if (boxFromParm==NULL) {mprintf("Error in box info.\n"); return 1;}
     boxType = SetBoxInfo(boxFromParm,Box,debug);
-    free(boxFromParm);
+    delete[] boxFromParm;
     if (debug>0) {
       mprintf("\t%s contains box info: %i mols, first solvent mol is %i\n",
               parmName, molecules, firstSolvMol);
@@ -736,7 +751,7 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
         mprintf("\t     Box will be determined from first associated trajectory.\n");
     } 
   }
-  free(values);
+  delete[] values;
   return 0;
 }
 
@@ -841,13 +856,13 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
     solvent_pointer=(int*) getFlagFileValues(parmfile,F_SOLVENT_POINTER,3,debug);
     if (solvent_pointer==NULL) {
       mprintf("Error in solvent pointers.\n");
-      free(values); 
+      delete[] values; 
       return 1;
     } else {
       finalSoluteRes=solvent_pointer[0];
       molecules=solvent_pointer[1];
       firstSolvMol=solvent_pointer[2];
-      free(solvent_pointer);
+      delete[] solvent_pointer;
     }
     atomsPerMol=(int*) getFlagFileValues(parmfile,F_ATOMSPERMOL,molecules,debug);
     if (atomsPerMol==NULL) {mprintf("Error in atoms per molecule.\n"); return 1;}
@@ -871,7 +886,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
     // Determine box type, set Box angles and lengths from beta (boxFromParm[0])
     } else {
       boxType = SetBoxInfo(boxFromParm,Box,debug);
-      free(boxFromParm);
+      delete[] boxFromParm;
     }
     if (debug>0) {
       mprintf("\t%s contains box info: %i mols, first solvent mol is %i\n",
@@ -886,7 +901,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
     }
   }
 
-  free(values);
+  delete[] values;
 
   return 0;
 }
@@ -908,7 +923,10 @@ int AmberParm::SetAtomsPerMolPDB(int numAtoms) {
   //    finalSoluteRes = nres - 1;    // +1 to be consistent w/ Amber top
   //  }
   //}
-  atomsPerMol = (int*) realloc(atomsPerMol, (molecules+1) * sizeof(int) );
+  int *tempAPM = new int[ molecules+1 ];
+  memcpy(tempAPM, atomsPerMol, molecules * sizeof(int));
+  delete[] atomsPerMol;
+  atomsPerMol = tempAPM;
   atomsPerMol[molecules] = numAtoms;
   molecules++;
   return natom;
@@ -945,25 +963,37 @@ int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
       if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
 
       // Allocate memory for atom name.
-      names=(NAME*) realloc(names, (natom+1) * sizeof(NAME));
+      NAME *tempname = new NAME[ natom+1 ];
+      memcpy(tempname, names, natom * sizeof(NAME));
+      delete[] names;
+      names = tempname;
       // Leading whitespace will automatically be trimmed.
       // Name will be wrapped if it starts with a digit.
       // Asterisks will be replaced with prime char
       pdb_name(buffer, (char*)names[natom]);
 
       // Allocate memory for coords
-      parmCoords = (double*) realloc(parmCoords, (natom+1)*3*sizeof(double));
+      double *tempcoord = new double[ (natom+1)*3 ];
+      memcpy(tempcoord, parmCoords, (natom*3)*sizeof(double) );
+      delete[] parmCoords;
+      parmCoords = tempcoord;
       pdb_xyz(buffer, parmCoords + crdidx);
       crdidx+=3;
 
       // If this residue number is different than the last, allocate mem for new res
       if (currResnum!=pdb_resnum(buffer)) {
-        resnames=(NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
+        NAME *temprname = new NAME[ nres+1 ];
+        memcpy(temprname, resnames, nres * sizeof(NAME));
+        delete[] resnames;
+        resnames = temprname;
         // Leading whitespace will automatically be trimmed.
         // Asterisks will be replaced with prime char
         pdb_resname(buffer, (char*)resnames[nres]);
         if (debug>3) mprintf("        PDBRes %i [%s]\n",nres,resnames[nres]);
-        resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
+        int *temprnum = new int[ nres+1 ];
+        memcpy(temprnum, resnums, nres * sizeof(int));
+        delete[] resnums;
+        resnums = temprnum;
         resnums[nres]=natom; 
         currResnum=pdb_resnum(buffer);
         nres++;
@@ -1046,11 +1076,11 @@ int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
   }
 
   // Allocate memory for atom names, types, and charges.
-  names = (NAME*) malloc( natom * sizeof(NAME));
-  types = (NAME*) malloc( natom * sizeof(NAME));
-  charge = (double*) malloc( natom * sizeof(double));
+  names = new NAME[ natom ];
+  types = new NAME[ natom ];
+  charge = new double[ natom ];
   // Allocate space for coords
-  parmCoords = (double*) malloc( natom * 3 * sizeof(double));
+  parmCoords = new double[ natom * 3 ];
 
   // Get @<TRIPOS>ATOM information
   if (Mol2ScanTo(parmfile, ATOM)) return 1;
@@ -1068,9 +1098,15 @@ int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
     charge[atom]=Mol2Charge(buffer);
     // Check if residue number has changed - if so record it
     if (resnum != currentResnum) {
-      resnames = (NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
+      NAME *temprname = new NAME[ nres+1 ];
+      memcpy(temprname, resnames, nres * sizeof(NAME));
+      delete[] resnames;
+      resnames = temprname;
       strcpy(resnames[nres], resName);
-      resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
+      int *temprnum = new int[ nres+1 ];
+      memcpy(temprnum, resnums, nres * sizeof(int));
+      delete[] resnums;
+      resnums = temprnum;
       resnums[nres]=atom; 
       currentResnum = resnum;
       nres++;
@@ -1140,9 +1176,9 @@ int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
   }
 
   // Allocate memory for atom name, charge, mass.
-  names=(NAME*)    malloc(natom * sizeof(NAME));
-  mass=(double*)   malloc(natom * sizeof(double));
-  charge=(double*) malloc(natom * sizeof(double));
+  names=(NAME*)    new NAME[ natom ];
+  mass=(double*)   new double[ natom ];
+  charge=(double*) new double[ natom ];
 
   // Read the next natom lines
   for (int atom=0; atom < natom; atom++) {
@@ -1160,10 +1196,16 @@ int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
     strcpy(names[atom],psfname);
     // If this residue number is different than the last, allocate mem for new res
     if (currResnum!=psfresnum) {
-        resnames=(NAME*) realloc(resnames, (nres+1) * sizeof(NAME));
+        NAME *temprname = new NAME[ nres+1 ];
+        memcpy(temprname, resnames, nres * sizeof(NAME));
+        delete[] resnames;
+        resnames = temprname;
         strcpy(resnames[nres],tag);
         if (debug>3) mprintf("        PSFRes %i [%s]\n",nres,resnames[nres]);
-        resnums=(int*) realloc(resnums, (nres+1) * sizeof(int));
+        int *temprnum = new int[ nres+1 ];
+        memcpy(temprnum, resnums, nres * sizeof(int));
+        delete[] resnums;
+        resnums = temprnum;
         resnums[nres]=atom; 
         currResnum=psfresnum;
         nres++;
@@ -1363,9 +1405,9 @@ int AmberParm::atomToSolventMolecule(int atom) {
  * Reset the bonds and bondsh arrays, as well as NBONH and MBONA
  */
 void AmberParm::ResetBondInfo() {
-  if (bonds!=NULL) free(bonds);
+  if (bonds!=NULL) delete[] bonds;
   bonds=NULL;
-  if (bondsh!=NULL) free(bondsh);
+  if (bondsh!=NULL) delete[] bondsh;
   bondsh=NULL;
   NbondsWithH=0;
   NbondsWithoutH=0;
@@ -1387,7 +1429,10 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
   if (isH) {
     //NbondsWithH = values[NBONH];
     bondidx = NbondsWithH * 3;
-    bondsh = (int*) realloc(bondsh, (bondidx+3) * sizeof(int));
+    int *tempbondsh = new int[ bondidx+3 ];
+    memcpy(tempbondsh, bondsh, bondidx * sizeof(int));
+    delete[] bondsh;
+    bondsh = tempbondsh;
     bondsh[bondidx  ] = atom1 * 3;
     bondsh[bondidx+1] = atom2 * 3;
     bondsh[bondidx+2] = icb;
@@ -1395,7 +1440,10 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
   } else {
     //NbondsWithoutH = values[MBONA];
     bondidx = NbondsWithoutH * 3;
-    bonds = (int*) realloc(bonds, (bondidx+3) * sizeof(int));
+    int *tempbonds = new int[ bondidx+3 ];
+    memcpy(tempbonds, bonds, bondidx * sizeof(int));
+    delete[] bonds;
+    bonds = tempbonds;
     bonds[bondidx  ] = atom1 * 3;
     bonds[bondidx+1] = atom2 * 3;
     bonds[bondidx+2] = icb;
@@ -1554,7 +1602,10 @@ static int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
     atom2 = atomMap[ oldBonds[i+1]/3 ];
     if ( atom1!=-1 && atom2!=-1 ) {
       // Put new atom 1 and new atom 2 in newParm array
-      bonds=(int*) realloc(bonds, (N3+3) * sizeof(int)); 
+      int *tempbonds = new int[ N3+3 ];
+      memcpy(tempbonds, bonds, N3 * sizeof(int));
+      delete[] bonds;
+      bonds = tempbonds; 
       bonds[N3]   = atom1 * 3;
       bonds[N3+1] = atom2 * 3;
       bonds[N3+2] = oldBonds[i+2];
@@ -1586,17 +1637,17 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   newParm = new AmberParm();
   newParm->SetDebug(debug);
   // Allocate space for arrays and perform initialization
-  newParm->names    = (NAME*)   malloc( this->natom   * sizeof(NAME) );
+  newParm->names    = new NAME[ natom ];
   if (this->types!=NULL)
-    newParm->types    = (NAME*)   malloc( this->natom   * sizeof(NAME) );
+    newParm->types    = new NAME[ natom ];
   if (this->charge!=NULL)
-    newParm->charge   = (double*) malloc( this->natom   * sizeof(double));
+    newParm->charge   = new double[ natom ];
   if (this->mass!=NULL)
-    newParm->mass     = (double*) malloc( this->natom   * sizeof(double));
-  newParm->resnames = (NAME*)   malloc( this->nres    * sizeof(NAME) );
-  newParm->resnums  = (int*)    malloc((this->nres+1) * sizeof(int   ));
+    newParm->mass     = new double[ natom ];
+  newParm->resnames = new NAME[ nres ];
+  newParm->resnums  = new int[ nres+1 ];
   // Need reverse of AMap, Map[tgt atom] = ref atom for setting up bonds
-  ReverseMap = (int*) malloc(this->natom * sizeof(int));
+  ReverseMap = new int[ natom ];
 
   // Loop over all atoms in this parm, map them to new parm
   for (int i=0; i < this->natom; i++) {
@@ -1626,7 +1677,7 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   newParm->bonds  = SetupBondArray(ReverseMap, this->NbondsWithoutH*3, this->bonds,
                                    &(newParm->NbondsWithoutH));
   // Clear reverse map
-  free(ReverseMap); 
+  delete[] ReverseMap; 
 
   // Set up new parm information
   newParm->natom = this->natom;
@@ -1664,28 +1715,28 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm->SetDebug(debug);
 
   // Allocate space for arrays and perform initialization
-  atomMap = (int*) malloc( this->natom * sizeof(int));
+  atomMap = new int[ natom ];
   for (i=0; i<this->natom; i++) atomMap[i]=-1;
-  newParm->names    = (NAME*)   malloc( this->natom   * sizeof(NAME) );
+  newParm->names    = new NAME[ Nselected ];
   if (this->types!=NULL)
-    newParm->types    = (NAME*)   malloc( this->natom   * sizeof(NAME) );
+    newParm->types    = new NAME[ Nselected ];
   if (this->charge!=NULL)
-    newParm->charge   = (double*) malloc( this->natom   * sizeof(double));
+    newParm->charge   = new double[ Nselected ];
   if (this->mass!=NULL)
-    newParm->mass     = (double*) malloc( this->natom   * sizeof(double));
-  newParm->resnames = (NAME*)   malloc( this->nres    * sizeof(NAME) );
-  newParm->resnums  = (int*)    malloc((this->nres+1) * sizeof(int   ));
+    newParm->mass     = new double[ Nselected ];
+  newParm->resnames = new NAME[ nres ];
+  newParm->resnums  = new int[ nres+1 ];
   if (this->gb_radii!=NULL)
-    newParm->gb_radii = (double*) malloc(this->natom * sizeof(double));
+    newParm->gb_radii = new double[ Nselected ];
   if (this->gb_screen!=NULL) 
-    newParm->gb_screen = (double*) malloc(this->natom * sizeof(double));
+    newParm->gb_screen = new double[ Nselected ];
   if (this->radius_set!=NULL) {
     newParm->radius_set = new char[ strlen(this->radius_set)+1 ];
     strcpy(newParm->radius_set, this->radius_set);
   } 
 
   if (this->molecules>0) 
-    newParm->atomsPerMol = (int*) malloc(this->molecules * sizeof(int));
+    newParm->atomsPerMol = new int[ molecules ];
 
   // Set first solvent molecule to -1 for now. If there are no solvent 
   // molecules left in newParm after strip it will be set to 0.
@@ -1747,7 +1798,7 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
                                    &(newParm->NbondsWithH));
   newParm->bonds  = SetupBondArray(atomMap, this->NbondsWithoutH*3, this->bonds, 
                                    &(newParm->NbondsWithoutH));
-  free(atomMap);
+  delete[] atomMap;
 
   // Fix up IPRES
   newParm->resnums[jres+1] = j;
@@ -1763,21 +1814,31 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   newParm->pindex = this->pindex;
   
   // Reallocate memory 
-  if (this->types!=NULL)
-    newParm->types=(NAME*) realloc(newParm->types, newParm->natom * sizeof(NAME));
-  if (this->charge!=NULL)
-    newParm->charge=(double*) realloc(newParm->charge, newParm->natom * sizeof(double));
-  if (this->mass!=NULL)
-    newParm->mass=(double*) realloc(newParm->mass, newParm->natom * sizeof(double));
-  if (this->gb_radii!=NULL)
-    newParm->gb_radii=(double*) realloc(newParm->gb_radii, newParm->natom * sizeof(double));
-  if (this->gb_screen!=NULL)
-    newParm->gb_screen=(double*) realloc(newParm->gb_screen, newParm->natom * sizeof(double));
-  newParm->resnums=(int*) realloc(newParm->resnums, (newParm->nres+1) * sizeof(int));
-  newParm->names=(NAME*) realloc(newParm->names, newParm->natom * sizeof(NAME));
-  newParm->resnames=(NAME*) realloc(newParm->resnames, (newParm->nres+1) * sizeof(NAME));
-  if (newParm->molecules>0)
-    newParm->atomsPerMol=(int*) realloc(newParm->atomsPerMol, newParm->molecules * sizeof(int));
+  //if (this->types!=NULL)
+  //  newParm->types=(NAME*) realloc(newParm->types, newParm->natom * sizeof(NAME));
+  //if (this->charge!=NULL)
+  //  newParm->charge=(double*) realloc(newParm->charge, newParm->natom * sizeof(double));
+  //if (this->mass!=NULL)
+  //  newParm->mass=(double*) realloc(newParm->mass, newParm->natom * sizeof(double));
+  //if (this->gb_radii!=NULL)
+  //  newParm->gb_radii=(double*) realloc(newParm->gb_radii, newParm->natom * sizeof(double));
+  //if (this->gb_screen!=NULL)
+  //  newParm->gb_screen=(double*) realloc(newParm->gb_screen, newParm->natom * sizeof(double));
+  int *tempresnums = new int[ newParm->nres + 1 ];
+  memcpy(tempresnums, newParm->resnums, (newParm->nres + 1) * sizeof(int));
+  delete[] newParm->resnums;
+  newParm->resnums = tempresnums;
+  //newParm->names=(NAME*) realloc(newParm->names, newParm->natom * sizeof(NAME));
+  NAME *tempresnames = new NAME[ newParm->nres ];
+  memcpy(tempresnames, newParm->resnames, newParm->nres * sizeof(NAME));
+  delete[] newParm->resnames;
+  newParm->resnames = tempresnames;
+  if (newParm->molecules>0) {
+    int *tempAPM = new int[ newParm->molecules ];
+    memcpy(tempAPM, newParm->atomsPerMol, newParm->molecules * sizeof(int));
+    delete[] newParm->atomsPerMol;
+    newParm->atomsPerMol = tempAPM;
+  }
 
   // Set up solvent info if necessary
   if (newParm->firstSolvMol < 0) {

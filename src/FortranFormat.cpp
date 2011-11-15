@@ -1,6 +1,6 @@
 #include <cstring>
-#include <cstdio>
-#include <cstdlib>
+#include <cstdio> // sprintf
+#include <cstdlib> // atof, atoi
 #include <cctype> // toupper
 #include "FortranFormat.h"
 #include "CpptrajStdio.h"
@@ -244,20 +244,20 @@ void *getFlagFileValues(CpptrajFile *File, AmberParmFlagType fflag, int maxval, 
   // Allocate memory based on data type
   switch (fType) {
     case UNKNOWN_FTYPE : return NULL;
-    case FINT   : I=(int*)    malloc(maxval*sizeof(int)); break;
-    case FDOUBLE: D=(double*) malloc(maxval*sizeof(double)); break;
-    case FCHAR  : C=(NAME*)   malloc(maxval*sizeof(NAME)); break;
-    case FFLOAT : D=(double*) malloc(maxval*sizeof(double)); break;
+    case FINT   : I = new int[ maxval ];    break;
+    case FDOUBLE: D = new double[ maxval ]; break;
+    case FCHAR  : C = new NAME[ maxval ];   break;
+    case FFLOAT : D = new double[ maxval ]; break;
   }
   // Allocate memory to read in entire section
   BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
-  buffer=(char*) calloc(BufferSize,sizeof(char));
+  buffer = new char[ BufferSize ];
   if ( File->IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
     rprinterr("ERROR in read of prmtop section %s\n",Key);
-    free(buffer);
-    if (I!=NULL) free(I);
-    if (D!=NULL) free(D);
-    if (C!=NULL) free(C);
+    delete[] buffer;
+    if (I!=NULL) delete[] I;
+    if (D!=NULL) delete[] D;
+    if (C!=NULL) delete[] C;
     return NULL; 
   }
   if (debug>3) mprintf("DEBUG: Buffer [%s]\n",buffer);
@@ -277,10 +277,10 @@ void *getFlagFileValues(CpptrajFile *File, AmberParmFlagType fflag, int maxval, 
     // NOTE: Could do addtional type checking too.
     if ( strncmp(ptr,"%FLAG",5)==0 ) {
       rprintf("Error: #values read (%i) < # expected values (%i).\n",i,maxval);
-      if (I!=NULL) free(I);
-      if (D!=NULL) free(D);
-      if (C!=NULL) free(C);
-      free(buffer);
+      if (I!=NULL) delete[] I;
+      if (D!=NULL) delete[] D;
+      if (C!=NULL) delete[] C;
+      delete[] buffer;
       return NULL;
     }
     // Now convert temp to appropriate type
@@ -290,7 +290,7 @@ void *getFlagFileValues(CpptrajFile *File, AmberParmFlagType fflag, int maxval, 
     ptr+=width;
   } // END loop over maxval
   // All done! 
-  free(buffer);
+  delete[] buffer;
   if (I!=NULL) return I;
   if (D!=NULL) return D;
   if (C!=NULL) return C;
@@ -323,21 +323,21 @@ void *F_loadFormat(CpptrajFile *File, FortranType fType, int width, int ncols,
   // Allocate memory based on data type
   switch (fType) { 
     case UNKNOWN_FTYPE : return NULL;
-    case FINT   : I=(int*)    malloc(maxval*sizeof(int)); break;
-    case FDOUBLE: D=(double*) malloc(maxval*sizeof(double)); break;
-    case FCHAR  : C=(NAME*)   malloc(maxval*sizeof(NAME)); break;
-    case FFLOAT : D=(double*) malloc(maxval*sizeof(double)); break;
+    case FINT   : I = new int[ maxval ] ;   break;
+    case FDOUBLE: D = new double[ maxval ]; break;
+    case FCHAR  : C = new NAME[ maxval ];   break;
+    case FFLOAT : D = new double[ maxval ]; break;
   } 
   // Allocate memory to read in entire section
   BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
-  buffer=(char*) calloc(BufferSize,sizeof(char));
+  buffer = new char[ BufferSize ];
   if ( File->IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
     rprinterr("ERROR in read of prmtop section; width=%i ncols=%i maxval=%i\n",
               width,ncols,maxval);
-    free(buffer);
-    if (I!=NULL) free(I);
-    if (D!=NULL) free(D);
-    if (C!=NULL) free(C);
+    delete[] buffer;
+    if (I!=NULL) delete[] I;
+    if (D!=NULL) delete[] D;
+    if (C!=NULL) delete[] C;
     return NULL;
   }
   //mprintf("DEBUG: fType=%i width=%i ncols=%i maxval=%i\n",(int)fType,
@@ -361,7 +361,7 @@ void *F_loadFormat(CpptrajFile *File, FortranType fType, int width, int ncols,
     ptr+=width;
   } // END loop over maxval
   // All done! 
-  free(buffer);
+  delete[] buffer;
   if (I!=NULL) return I;
   if (D!=NULL) return D;
   if (C!=NULL) return C;

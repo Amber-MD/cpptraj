@@ -1,6 +1,5 @@
 // Strip
 #include <cstdio> //sprintf 
-#include <cstdlib>
 #include <cstring>
 #include "Action_Strip.h"
 #include "CpptrajStdio.h"
@@ -77,7 +76,7 @@ int Strip::setup() {
 
   // If prefix given then output stripped parm
   if (prefix!=NULL && newParm->parmName==NULL) {
-    newParm->parmName=(char*)malloc((strlen(oldParm->parmName)+strlen(prefix)+2)*sizeof(char));
+    newParm->parmName=new char[ strlen(oldParm->parmName)+strlen(prefix)+2 ];
     sprintf(newParm->parmName,"%s.%s",prefix,oldParm->parmName);
     mprintf("             Writing out amber topology file %s\n",newParm->parmName);
     if ( newParm->WriteAmberParm(newParm->parmName) ) {
@@ -87,7 +86,7 @@ int Strip::setup() {
 
   // Otherwise Set stripped parm name only, default prefix strip
   } else if ( newParm->parmName==NULL ) {
-    newParm->parmName=(char*)malloc((strlen(oldParm->parmName)+7)*sizeof(char));
+    newParm->parmName=new char[ strlen(oldParm->parmName)+7];
     sprintf(newParm->parmName,"strip.%s",oldParm->parmName);
   }
 

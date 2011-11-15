@@ -235,7 +235,7 @@ int Closest::setup() {
 
   // If prefix given then output stripped parm
   if (prefix!=NULL && newParm->parmName==NULL) {
-    newParm->parmName=(char*)malloc((strlen(oldParm->parmName)+strlen(prefix)+2)*sizeof(char));
+    newParm->parmName=new char[ strlen(oldParm->parmName)+strlen(prefix)+2 ];;
     sprintf(newParm->parmName,"%s.%s",prefix,oldParm->parmName);
     mprintf("             Writing out amber topology file %s\n",newParm->parmName);
     if ( newParm->WriteAmberParm(newParm->parmName) ) {
@@ -244,7 +244,7 @@ int Closest::setup() {
     }
   // Otherwise Set stripped parm name only, default prefix closest 
   } else if ( newParm->parmName==NULL ) {
-    newParm->parmName=(char*)malloc((strlen(oldParm->parmName)+9)*sizeof(char));
+    newParm->parmName=new char[ strlen(oldParm->parmName)+9 ];
     sprintf(newParm->parmName,"closest.%s",oldParm->parmName);
   }
 
