@@ -3653,8 +3653,8 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
   argStackType **argumentStackPointer;
   char *buffer;
 
-  stackType *vectorStackTmp = NULL;
-  transformVectorInfo *vinfo;
+  //stackType *vectorStackTmp = NULL;
+  //transformVectorInfo *vinfo;
   transformVectorInfo *vinfo1;
   transformVectorInfo *vinfo2;
   timecorrResults *timecorr;
@@ -3718,7 +3718,9 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
       return -1;
     }
     else{
-      vinfo1 = NULL;
+      vinfo1 = vectorInfoStackGetName(&vectorStack, buffer);
+      analyze->carg2 = (void*) vinfo1;
+/*      vinfo1 = NULL;
       for(vectorStackTmp = vectorStack;
           vectorStackTmp != NULL;
           vectorStackTmp = vectorStackTmp->next){
@@ -3728,7 +3730,7 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
           analyze->carg2 = (void *) vinfo1;
           break;
         }
-      }
+      }*/
       if(vinfo1 == NULL){
         fprintf(stderr,
                 "WARNING in ptraj(), analyze timecorr: no vector with name %s found, ignoring command\n", buffer);
@@ -3737,8 +3739,11 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
       }
     }
     safe_free(buffer);
+    vinfo2 = NULL;
     if((buffer = argumentStackKeyToString(argumentStackPointer, "vec2", NULL)) != NULL){
-      vinfo2 = NULL;
+      vinfo2 = vectorInfoStackGetName(&vectorStack, buffer);
+      analyze->carg3 = (void *) vinfo2;
+/*      vinfo2 = NULL;
       for(vectorStackTmp = vectorStack;
           vectorStackTmp != NULL;
           vectorStackTmp = vectorStackTmp->next){
@@ -3748,7 +3753,7 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
           analyze->carg3 = (void *) vinfo2;
           break;
         }
-      }
+      }*/
       if(vinfo2 == NULL){
         fprintf(stderr,
                 "WARNING in ptraj(), analyze timecorr: no vector with name %s found, ignoring command\n", buffer);
@@ -4278,14 +4283,18 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
   }
   
   if(type == ATCT_IRED){
-    char *copyfilename;
-    copyfilename = (char *) safe_malloc(strlen(filename));
-    strcpy(copyfilename, filename);
-    strcat(filename, ".cmt");  
-    strcat(copyfilename, ".cjt");
-    fp_cmt = safe_fopen(filename, "w");
-    fp_cjt = safe_fopen(copyfilename, "w");
-    /* Print header */
+    // Temporary filename for .cjt extension
+    char *cjtfilename = (char *) malloc( (strlen(filename)+5) * sizeof(char));
+    strcpy(cjtfilename, filename);
+    strcat(cjtfilename, ".cjt");
+    // Temporary filename for .cmt extension
+    char *cmtfilename = (char*) malloc( (strlen(filename)+5) * sizeof(char));
+    strcpy(cmtfilename, filename);
+    strcat(cmtfilename, ".cmt");
+    // Open output files  
+    fp_cmt = safe_fopen(cmtfilename, "w");
+    fp_cjt = safe_fopen(cjtfilename, "w");
+    // Print header
     fprintf(fp_cmt,"%s-correlation functions Cm(t) for each eigenmode m, IRED type according to eq. A18 Prompers & Brüschweiler, JACS  124, 4522, 2002\n", 
           (tcmode == ATCM_AUTO? "Auto" :
            (tcmode == ATCM_CROSS? "Cross" : "????"
@@ -4364,8 +4373,9 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
     }
     safe_fclose(fp_cmt);
     safe_fclose(fp_cjt);
-    safe_free(copyfilename);
-  }
+    safe_free(cjtfilename);
+    safe_free(cmtfilename);
+  } // END ATCT_IRED
   else if(type == ATCT_NORMAL){
     fp = safe_fopen(filename, "w");
     fprintf(fp,"%s-correlation functions, %s type\n", 
@@ -4433,7 +4443,7 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
       }
     }
     safe_fclose(fp);
-  }
+  } // END ATCT_NORMAL
 
   return 1;
 }

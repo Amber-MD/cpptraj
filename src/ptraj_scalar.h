@@ -80,7 +80,7 @@ typedef struct _scalarInfo {
   _p_->sin      = NULL; \
   _p_->results   = NULL
 //  _p_->action    = NULL; 
-
+// -------------------------------------
 scalarInfo *ptrajCopyScalar(scalarInfo **scalarinp);
 scalarInfo *scalarStackGetName(stackType **, char *);
 
@@ -122,7 +122,7 @@ typedef struct _transformMatrixInfo {
   _p_->mask1tot      = 0;      \
   _p_->mask2tot      = 0;      \
   _p_->snap          = 0;
-
+// -------------------------------------
 int distindex(int, int, int);
 transformMatrixInfo *matrixInfoStackGetName(stackType **, char *);
 
@@ -187,7 +187,7 @@ typedef struct _transformVectorInfo {
   _p_->cftmp       = NULL;                \
   _p_->p2cftmp     = NULL;                \
   _p_->rcftmp      = NULL;
-
+// -------------------------------------
 modesInfo *modesInfoStackGetName(stackType **, char *);
-
+transformVectorInfo *vectorInfoStackGetName(stackType **, char *);
 #endif
