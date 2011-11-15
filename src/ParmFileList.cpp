@@ -63,6 +63,23 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
       mprinterr("\tError: parm %i not loaded.\n",pindex);
     return 0;
   }
+  // parmwrite out <filename> [<parmindex>]: Write parm <parmindex> to <filename>
+  if (argIn->CommandIs("parmwrite")) {
+    char *outfilename = argIn->getKeyString("out",NULL);
+    if (outfilename==NULL) {
+      mprintf("  Error: parmwrite: No output filename specified (use 'out <filename>').\n");
+      return 0;
+    }
+    pindex = argIn->getNextInteger(0);
+    if (pindex < 0 || pindex >= Nparm) {
+      mprintf("  Error: parmwrite: parm index %i out of bounds.\n",pindex);
+      return 0;
+    }
+    mprintf("  Writing parm %i (%s) to Amber parm %s\n",pindex,
+            ParmList[pindex]->parmName,outfilename);
+    ParmList[pindex]->WriteAmberParm(outfilename);
+    return 0;
+  }
   // parmbondinfo [<parmindex>]: Print bond information for parm <parmindex>
   //     (0 by default).
   if (argIn->CommandIs("parmbondinfo")) {
