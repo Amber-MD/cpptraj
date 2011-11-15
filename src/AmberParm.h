@@ -64,6 +64,27 @@ class AmberParm {
     double *gb_radii;   ///< RBORN(NATOM)
     double *gb_screen;  ///< FS(NATOM)
 
+    double *bond_rk;    ///< RK(NUMBND)
+    double *bond_req;   ///< REQ(NUMBND)
+    double *angle_tk;   ///< TK(NUMANG)
+    double *angle_teq;  ///< TEQ(NUMANG)
+    double *dihedral_pk;///< PK(NPTRA)
+    double *dihedral_pn;///< PN(NPTRA)
+    double *dihedral_phase; ///< PHASE(NPTRA)
+    double *scee_scale; ///< ONE_SCEE(NPTRA)
+    double *scnb_scale; ///< ONE_SCNB(NPTRA)
+    double *solty;      ///< SOLTY(NATYP)
+    int *anglesh;       ///< ITH/JTH/KTH/ICTH(NTHETH)
+    int *angles;        ///< IT/JT/KT/ICT(NTHETA)
+    int *dihedralsh;    ///< IPH/JPH/KPH/LPH/ICPH(NPHIH)
+    int *dihedrals;     ///< IP/JP/KP/LP/ICP(NPHIA)
+    double *asol;       ///< ASOL(NPHB)
+    double *bsol;       ///< BSOL(NPHB)
+    double *hbcut;      ///< HBCUT(NPHB)
+    NAME *itree;        ///< ITREE(NATOM)
+    int *join_array;    ///< JOIN(NATOM)
+    int *irotat;        ///< IROTAT(NATOM)
+
   public:
     char *parmfileName;   ///< Parm filename (full path)
     char *parmName;       ///< Parm name, set to base filename on reads 

@@ -72,6 +72,27 @@ AmberParm::AmberParm() {
   gb_screen=NULL;
   ntypes=0;
   nnb=0;
+
+  bond_rk=NULL;
+  bond_req=NULL;
+  angle_tk=NULL;
+  angle_teq=NULL;
+  dihedral_pk=NULL;
+  dihedral_pn=NULL;
+  dihedral_phase=NULL;
+  scee_scale=NULL;
+  scnb_scale=NULL;
+  solty=NULL;
+  anglesh=NULL;
+  angles=NULL;
+  dihedralsh=NULL;
+  dihedrals=NULL;
+  asol=NULL;
+  bsol=NULL;
+  hbcut=NULL;
+  itree=NULL;
+  join_array=NULL;
+  irotat=NULL;
 }
 
 // DESTRUCTOR
@@ -105,6 +126,25 @@ AmberParm::~AmberParm() {
   if (radius_set!=NULL) delete[] radius_set; // getFlagFileString uses 'new'
   if (gb_radii!=NULL) delete[] gb_radii;
   if (gb_screen!=NULL) delete[] gb_screen;
+
+  if (bond_rk!=NULL) delete[] bond_rk;
+  if (bond_req!=NULL) delete[] bond_req;
+  if (angle_tk!=NULL) delete[] angle_tk;
+  if (angle_teq!=NULL) delete[] angle_teq;
+  if (dihedral_pk!=NULL) delete[] dihedral_pk;
+  if (dihedral_pn!=NULL) delete[] dihedral_pn;
+  if (dihedral_phase!=NULL) delete[] dihedral_phase;
+  if (solty!=NULL) delete[] solty;
+  if (anglesh!=NULL) delete[] anglesh;
+  if (angles!=NULL) delete[] angles;
+  if (dihedralsh!=NULL) delete[] dihedralsh;
+  if (dihedrals!=NULL) delete[] dihedrals;
+  if (asol!=NULL) delete[] asol;
+  if (bsol!=NULL) delete[] bsol;
+  if (hbcut!=NULL) delete[] hbcut;
+  if (itree!=NULL) delete[] itree;
+  if (join_array!=NULL) delete[] join_array;
+  if (irotat!=NULL) delete[] irotat;
 }
 
 /* SetDebug()
@@ -669,56 +709,38 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   // with the rest of cpptraj.
   for (int atom=0; atom < nres; atom++)
     resnums[atom] -= 1;
-  // The following are not stored for now
-  double *bond_rk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
-  double *bond_req = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
-  double *angle_tk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMANG],debug);
-  double *angle_teq = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMANG],debug);
-  double *dihedral_pk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
-  double *dihedral_pn = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
-  double *dihedral_phase = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
-  double *solty = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NATYP],debug);
-  if (bond_rk!=NULL) delete[] bond_rk;
-  if (bond_req!=NULL) delete[] bond_req;
-  if (angle_tk!=NULL) delete[] angle_tk;
-  if (angle_teq!=NULL) delete[] angle_teq;
-  if (dihedral_pk!=NULL) delete[] dihedral_pk;
-  if (dihedral_pn!=NULL) delete[] dihedral_pn;
-  if (dihedral_phase!=NULL) delete[] dihedral_phase;
-  if (solty!=NULL) delete[] solty;
+  // The following are not used for now
+  bond_rk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
+  bond_req = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
+  angle_tk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMANG],debug);
+  angle_teq = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMANG],debug);
+  dihedral_pk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
+  dihedral_pn = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
+  dihedral_phase = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPTRA],debug);
+  solty = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NATYP],debug);
   // LJ params
   LJ_A = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
   LJ_B = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
   // Bonds
   bondsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NBONH]*3,debug);
   bonds = (int*) F_loadFormat(parmfile,FINT,6,12,values[NBONA]*3,debug);
-  // Again not stored
-  int *anglesh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETH]*4,debug); 
-  int *angles = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETA]*4,debug); 
-  int *dihedralsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIH]*5,debug);
-  int *dihedrals = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIA]*5,debug);
-  if (anglesh!=NULL) delete[] anglesh;
-  if (angles!=NULL) delete[] angles;
-  if (dihedralsh!=NULL) delete[] dihedralsh;
-  if (dihedrals!=NULL) delete[] dihedrals;
+  // Again not used 
+  anglesh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETH]*4,debug); 
+  angles = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETA]*4,debug); 
+  dihedralsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIH]*5,debug);
+  dihedrals = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIA]*5,debug);
   // Excluded atoms
   excludedAtoms = (int*) F_loadFormat(parmfile,FINT,6,12,nnb,debug);
-  // Not stored
-  double *asol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
-  double *bsol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
-  double *hbcut = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
-  if (asol!=NULL) delete[] asol;
-  if (bsol!=NULL) delete[] bsol;
-  if (hbcut!=NULL) delete[] hbcut;
+  // Not used 
+  asol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
+  bsol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
+  hbcut = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
   // Atom types
   types = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
-  // Not stored
-  NAME *itree = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
-  int *join = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
-  int *irotat = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
-  if (itree!=NULL) delete[] itree;
-  if (join!=NULL) delete[] join;
-  if (irotat!=NULL) delete[] irotat;
+  // Not used 
+  itree = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
+  join_array = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
+  irotat = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
   // Solvent/Box info
   if (ifbox > 0) {
     int *solvent_pointer=(int*) F_loadFormat(parmfile,FINT,6,12,3,debug);
