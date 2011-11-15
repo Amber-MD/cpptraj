@@ -671,17 +671,20 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   */
 int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   char *title;
-  int *values, ifbox;
+  int values[30], ifbox;
+
   if (debug>0) mprintf("Reading Old-style Amber Topology file %s\n",parmName);
   title = F_load20a4(parmfile);
   if (debug>0) mprintf("\tOld AmberParm Title: %s\n",title);
   delete[] title;
   // Pointers - same as new format except only 30 values, no NEXTRA
-  values = (int*) F_loadFormat(parmfile, FINT, 6, 12, 30, debug);
-  if (values==NULL) {
+  int *tempvalues = (int*) F_loadFormat(parmfile, FINT, 6, 12, 30, debug);
+  if (tempvalues==NULL) {
     mprintf("Could not get values from topfile\n");
     return 1;
   }
+  memcpy(values, tempvalues, 30 * sizeof(int));
+  delete[] tempvalues;
   // Set some commonly used values
   natom=values[NATOM];
   nres=values[NRES];
@@ -746,7 +749,6 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
     int *solvent_pointer=(int*) F_loadFormat(parmfile,FINT,6,12,3,debug);
     if (solvent_pointer==NULL) {
       mprintf("Error in solvent pointers.\n");
-      delete[] values;
       return 1;
     } else {
       finalSoluteRes=solvent_pointer[0];
@@ -773,7 +775,6 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
         mprintf("\t     Box will be determined from first associated trajectory.\n");
     } 
   }
-  delete[] values;
   return 0;
 }
 
@@ -781,10 +782,10 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
 /** Read parameters from Amber Topology file
   */
 int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
-  int atom, ifbox;
+  int ifbox;
   int *solvent_pointer;
   double *boxFromParm;
-  int *values;
+  int values[AMBERPOINTERS];
   char *title;
   bool chamber;         // This topology file is a chamber-created topology file
 
@@ -802,11 +803,13 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   if (debug>0) mprintf("\tAmberParm Title: %s\n",title);
   delete[] title;
   // Pointers
-  values=(int*) getFlagFileValues(parmfile,F_POINTERS,AMBERPOINTERS,debug);
-  if (values==NULL) {
+  int *tempvalues=(int*) getFlagFileValues(parmfile,F_POINTERS,AMBERPOINTERS,debug);
+  if (tempvalues==NULL) {
     mprintf("Could not get values from topfile\n");
     return 1;
   }
+  memcpy(values, tempvalues, AMBERPOINTERS * sizeof(int));
+  delete[] tempvalues;
   // Set some commonly used values
   natom=values[NATOM];
   nres=values[NRES];
@@ -820,32 +823,16 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   // Other values
   ntypes = values[NTYPES];
   nnb = values[NNB];
-  // Atom names/types, residue names/nums
+  // Atom names
   names=(NAME*) getFlagFileValues(parmfile,F_NAMES,natom,debug);
   if (names==NULL) {mprintf("Error in atom names.\n"); return 1;}
-  types=(NAME*) getFlagFileValues(parmfile,F_TYPES,natom,debug);
-  if (types==NULL) {mprintf("Error in atom types.\n"); return 1;}
-  resnames=(NAME*) getFlagFileValues(parmfile,F_RESNAMES,nres,debug);
-  if (resnames==NULL) {mprintf("Error in residue names.\n"); return 1;}
-  resnums=(int*) getFlagFileValues(parmfile,F_RESNUMS,nres,debug);
-  if (resnums==NULL) {mprintf("Error in residue numbers.\n"); return 1;}
-  // Atom #s in resnums are currently shifted +1. Shift back to be consistent
-  // with the rest of cpptraj.
-  for (atom=0; atom < nres; atom++)
-    resnums[atom] -= 1;
-  // Mass/charge
-  mass=(double*) getFlagFileValues(parmfile,F_MASS,natom,debug);
-  if (mass==NULL) {mprintf("Error in masses.\n"); return 1;}
+  // Charge; convert to units of electron charge
   charge=(double*) getFlagFileValues(parmfile,F_CHARGE,natom,debug);
   if (charge==NULL) {mprintf("Error in charges.\n"); return 1;}
-  // Convert charges to units of electron charge
-  for (atom=0; atom < natom; atom++)
-    charge[atom] *= (AMBERTOELEC);
-  // Bond information
-  bonds=(int*) getFlagFileValues(parmfile,F_BONDS,NbondsWithoutH*3,debug);
-  if (bonds==NULL) {mprintf("Error in bonds w/o H.\n"); return 1;}
-  bondsh=(int*) getFlagFileValues(parmfile,F_BONDSH,NbondsWithH*3,debug);
-  if (bondsh==NULL) {mprintf("Error in bonds inc H.\n"); return 1;}
+  for (int atom=0; atom < natom; atom++) charge[atom] *= (AMBERTOELEC);
+  // Mass
+  mass=(double*) getFlagFileValues(parmfile,F_MASS,natom,debug);
+  if (mass==NULL) {mprintf("Error in masses.\n"); return 1;}
   // Atom type index
   atype_index = (int*) getFlagFileValues(parmfile,F_ATYPEIDX,natom,debug);
   if (atype_index==NULL) {mprintf("Error in atom type index.\n"); return 1;}
@@ -855,18 +842,63 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   // Nonbonded parm index
   NB_index = (int*) getFlagFileValues(parmfile,F_NB_INDEX,ntypes*ntypes,debug);
   if (NB_index==NULL) {mprintf("Error in nonbonded parameter index.\n"); return 1;}
+  // Residue names
+  resnames=(NAME*) getFlagFileValues(parmfile,F_RESNAMES,nres,debug);
+  if (resnames==NULL) {mprintf("Error in residue names.\n"); return 1;}
+  // Residue atom #s; shift by -1 so that atom #s start from 0
+  resnums=(int*) getFlagFileValues(parmfile,F_RESNUMS,nres,debug);
+  if (resnums==NULL) {mprintf("Error in residue numbers.\n"); return 1;}
+  for (int res=0; res < nres; res++) resnums[res] -= 1;
+  // Bond force constants and equilibrium values
+  bond_rk = (double*) getFlagFileValues(parmfile, F_BONDRK, values[NUMBND], debug);
+  bond_req = (double*) getFlagFileValues(parmfile, F_BONDREQ, values[NUMBND], debug);
+  if (bond_rk==NULL || bond_req==NULL) {mprintf("Error in bond constants.\n"); return 1;}
+  // Angle force constants and equilibrium values
+  angle_tk = (double*) getFlagFileValues(parmfile, F_ANGLETK, values[NUMANG], debug);
+  angle_teq = (double*) getFlagFileValues(parmfile, F_ANGLETEQ, values[NUMANG], debug);
+  if (angle_tk==NULL || angle_teq==NULL) {mprintf("Error in angle constants.\n"); return 1;}
+  // Dihedral force constants, periodicity, and phase values
+  dihedral_pk = (double*) getFlagFileValues(parmfile, F_DIHPK, values[NPTRA], debug);
+  dihedral_pn = (double*) getFlagFileValues(parmfile, F_DIHPN, values[NPTRA], debug);
+  dihedral_phase = (double*) getFlagFileValues(parmfile, F_DIHPHASE, values[NPTRA], debug);
+  if (dihedral_pk==NULL || dihedral_pn==NULL || dihedral_phase==NULL) {
+    mprintf("Error in dihedral constants.\n"); return 1;
+  }
+  // SOLTY: currently unused
+  solty = (double*) getFlagFileValues(parmfile,F_SOLTY,values[NATYP],debug);
   // Lennard-Jones A/B coefficient
   LJ_A = (double*) getFlagFileValues(parmfile,F_LJ_A,ntypes*(ntypes+1)/2,debug);
   LJ_B = (double*) getFlagFileValues(parmfile,F_LJ_B,ntypes*(ntypes+1)/2,debug);
   if (LJ_A==NULL || LJ_B==NULL) {mprintf("Error reading LJ parameters.\n"); return 1;}
-  // List of excluded atoms
+  // Bond information
+  bondsh=(int*) getFlagFileValues(parmfile,F_BONDSH,NbondsWithH*3,debug);
+  bonds=(int*) getFlagFileValues(parmfile,F_BONDS,NbondsWithoutH*3,debug);
+  if (bondsh==NULL || bonds==NULL) {mprintf("Error in bonds.\n"); return 1;}
+  // Angle information
+  anglesh = (int*) getFlagFileValues(parmfile,F_ANGLESH, values[NTHETH]*4, debug);
+  angles  = (int*) getFlagFileValues(parmfile,F_ANGLES , values[NTHETA]*4, debug);
+  if (anglesh==NULL || angles==NULL) {mprintf("Error in angles.\n"); return 1;}
+  // Dihedral information
+  dihedralsh = (int*) getFlagFileValues(parmfile,F_DIHH, values[NPHIH]*5,  debug);
+  dihedrals  = (int*) getFlagFileValues(parmfile,F_DIH , values[NPHIA]*5,  debug);
+  if (dihedralsh==NULL || dihedrals==NULL) {mprintf("Error in dihedrals.\n"); return 1;}
+  // List of excluded atoms; shift by -1 so atom #s start from 0
   excludedAtoms = (int*) getFlagFileValues(parmfile,F_EXCLUDE,nnb,debug);
   if (excludedAtoms==NULL) {mprintf("Error reading list of excluded atoms.\n"); return 1;}
-  // Atom #s in excludedAtoms are currently shifted +1. Shift back to be consistent
-  // with the rest of cpptraj.
-  for (atom=0; atom < nnb; atom++)
-    excludedAtoms[atom] -= 1;
-  // GB parameters
+  for (int atom=0; atom < nnb; atom++) excludedAtoms[atom] -= 1;
+  // Hbond LJ 10-12 potential terms and cutoff
+  asol  = (double*) getFlagFileValues(parmfile,F_ASOL, values[NPHB],debug);
+  bsol  = (double*) getFlagFileValues(parmfile,F_BSOL, values[NPHB],debug);
+  hbcut = (double*) getFlagFileValues(parmfile,F_HBCUT,values[NPHB],debug);
+  // Amber atom types
+  types=(NAME*) getFlagFileValues(parmfile,F_TYPES,natom,debug);
+  if (types==NULL) {mprintf("Error in atom types.\n"); return 1;}
+  // Tree chain classification and joining info 
+  itree = (NAME*) getFlagFileValues(parmfile,F_ITREE,natom,debug);
+  join_array = (int*) getFlagFileValues(parmfile,F_JOIN,natom,debug);
+  // Last atom that would move if atom i was rotated; unused
+  irotat = (int*) getFlagFileValues(parmfile,F_IROTAT,natom,debug);
+  // GB parameters; radius set, radii, and screening parameters
   title = getFlagFileString(parmfile,"RADIUS_SET",debug);
   if (debug>0) mprintf("\tRadius Set: %s\n",title);
   delete[] title;
@@ -878,7 +910,6 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
     solvent_pointer=(int*) getFlagFileValues(parmfile,F_SOLVENT_POINTER,3,debug);
     if (solvent_pointer==NULL) {
       mprintf("Error in solvent pointers.\n");
-      delete[] values; 
       return 1;
     } else {
       finalSoluteRes=solvent_pointer[0];
@@ -922,8 +953,12 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
         mprintf("\t     Box will be determined from first associated trajectory.\n");
     }
   }
-
-  delete[] values;
+  // If parm contains IFCAP or IFPERT info, print a warning since cpptraj
+  // currently does not read these in.
+  if (values[IFCAP] > 0) 
+    mprintf("\tWarning: Parm [%s] contains CAP information, which Cpptraj ignores.\n");
+  if (values[IFPERT] > 0)
+    mprintf("\tWarning: Parm [%s] contains PERT information, which Cpptraj ignores.\n");
 
   return 0;
 }
