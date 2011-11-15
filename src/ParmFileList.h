@@ -1,18 +1,23 @@
 #ifndef INC_PARMFILELIST_H
 #define INC_PARMFILELIST_H
-/// Class: ParmFileList
-/// Holds a list of parameter files. Can either add new parm files
-/// by filename, or add existing files by address. Search for parm
-/// files in a list by index or full/base filename.
 #include "AmberParm.h"
 #include "ArgList.h"
+// Class: ParmFileList
+/// Holds a list of parameter files. 
+/** Can either add new parm files by filename, or add existing files by 
+  * address. Search for parm files in a list by index or full/base filename.
+  * ParmFileList also serves as the command interpreter for parm-related
+  * commands. Currently recognized commands are: parm, parmlist, parminfo,
+  * parmbondinfo, parmmolinfo, bondsearch, nobondsearch, molsearch, 
+  * nomolsearch.
+  */
 class ParmFileList {
     std::vector<AmberParm*> ParmList;
     int Nparm;
     int debug;
-    bool hasCopies;  // true: List contains addresses of parm files, do not delete
-    bool bondsearch; // true: When parm is opened bond info will be filled in
-    bool molsearch;  // true: When parm is opened molecule info will be filled in
+    bool hasCopies;  ///< true: List contains addresses of parm files, do not delete
+    bool bondsearch; ///< true: When parm is opened bond info will be filled in
+    bool molsearch;  ///< true: When parm is opened molecule info will be filled in
 
   public:
 

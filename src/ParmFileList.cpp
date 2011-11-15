@@ -20,24 +20,28 @@ ParmFileList::~ParmFileList() {
     }
 }
 
-/* ParmFileList::SetDebug()
- * Set debug level.
- */
+// ParmFileList::SetDebug()
+/// Set debug level.
 void ParmFileList::SetDebug(int debugIn) {
   if (debugIn>0) mprintf("ParmFileList debug level set to %i\n",debugIn);
   debug=debugIn;
 }
 
-/* ParmFileList::CheckCommand()
- * Check if the command in the arglist pertains to topology files.
- * Return 0 if command was recognized, 1 if not.
- */
+// ParmFileList::CheckCommand()
+/** Check if the command in the arglist pertains to topology files.
+  * \return 0 if command was recognized, 1 if not.
+  */
 int ParmFileList::CheckCommand(ArgList *argIn) {
   AtomMask tempMask;
   int pindex;
   // parm <filename>: Add <filename> to parm list
   if (argIn->CommandIs("parm")) {
     this->AddParmFile(argIn->getNextString());
+    return 0;
+  }
+  // parmlist: Print list of loaded parm files
+  if (argIn->CommandIs("parmlist")) {
+    this->Print();
     return 0;
   }
   // parminfo [<parmindex>] [<mask>]: Print information on parm <parmindex> 
@@ -105,9 +109,8 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
   return 1;
 }
 
-/* ParmFileList::GetParm()
- * Return the parm structure with index num.
- */
+// ParmFileList::GetParm()
+/// Return the parm structure with index num.
 AmberParm *ParmFileList::GetParm(int num) {
   if (num>=Nparm || num<0) return NULL;
   return ParmList[num];
@@ -141,10 +144,10 @@ AmberParm *ParmFileList::GetParm(ArgList &argIn) {
   return P;
 }
 
-/* ParmFileList::GetParmIndex()
- * Return the index in ParmList of the given Parm name. Use either the full
- * path or the base filename.
- */
+// ParmFileList::GetParmIndex()
+/** Return the index in ParmList of the given Parm name. Use either the full
+  * path or the base filename.
+  */
 int ParmFileList::GetParmIndex(char *name) {
   int i;
   int pindex;
@@ -160,9 +163,8 @@ int ParmFileList::GetParmIndex(char *name) {
   return pindex;
 }
 
-/* ParmFileList::AddParmFile()
- * Add a parameter file to the parm file list.
- */
+// ParmFileList::AddParmFile()
+/// Add a parameter file to the parm file list.
 int ParmFileList::AddParmFile(char *filename) {
   AmberParm *P;
 
@@ -197,10 +199,10 @@ int ParmFileList::AddParmFile(char *filename) {
   return 0;
 }
 
-/* ParmFileList::AddParm()
- * Add an existing AmberParm to parm file list. Currently used to keep track
- * of parm files corresponding to frames in the reference frame list.
- */
+// ParmFileList::AddParm()
+/** Add an existing AmberParm to parm file list. Currently used to keep track
+  * of parm files corresponding to frames in the reference frame list.
+  */
 int ParmFileList::AddParm(AmberParm *ParmIn) {
   // Set the hasCopies flag so we know not to try and delete these parms
   hasCopies=true;
@@ -210,10 +212,10 @@ int ParmFileList::AddParm(AmberParm *ParmIn) {
   return 0;
 }
 
-/* ParmFileList::ReplaceParm()
- * Replace parm file at given position with newParm. If this list has only
- * copies do not delete the old parm, just replace.
- */
+// ParmFileList::ReplaceParm()
+/** Replace parm file at given position with newParm. If this list has only
+  * copies do not delete the old parm, just replace.
+  */
 int ParmFileList::ReplaceParm(int num, AmberParm *newParm) {
   if (num>=Nparm || num<0) return 1;
   if (!hasCopies) delete ParmList[num];
@@ -221,9 +223,8 @@ int ParmFileList::ReplaceParm(int num, AmberParm *newParm) {
   return 0;
 }
 
-/* ParmFileList::Print()
- * Print list of loaded parameter files
- */
+// ParmFileList::Print()
+/// Print list of loaded parameter files
 void ParmFileList::Print() {
   mprintf("\nPARAMETER FILES:\n");
   if (Nparm==0) {
