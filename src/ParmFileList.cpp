@@ -60,24 +60,48 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
         ParmList[pindex]->Summary();
       }
     } else
-      mprinterr("\tError: parm %i not loaded.\n",pindex);
+      mprinterr("Error: parminfo: parm %i not loaded.\n",pindex);
     return 0;
   }
   // parmwrite out <filename> [<parmindex>]: Write parm <parmindex> to <filename>
   if (argIn->CommandIs("parmwrite")) {
     char *outfilename = argIn->getKeyString("out",NULL);
     if (outfilename==NULL) {
-      mprintf("  Error: parmwrite: No output filename specified (use 'out <filename>').\n");
+      mprinterr("Error: parmwrite: No output filename specified (use 'out <filename>').\n");
       return 0;
     }
     pindex = argIn->getNextInteger(0);
     if (pindex < 0 || pindex >= Nparm) {
-      mprintf("  Error: parmwrite: parm index %i out of bounds.\n",pindex);
+      mprinterr("Error: parmwrite: parm index %i out of bounds.\n",pindex);
       return 0;
     }
-    mprintf("  Writing parm %i (%s) to Amber parm %s\n",pindex,
+    mprintf("\tWriting parm %i (%s) to Amber parm %s\n",pindex,
             ParmList[pindex]->parmName,outfilename);
     ParmList[pindex]->WriteAmberParm(outfilename);
+    return 0;
+  }
+  // parmstrip <mask> [<parmindex>]: Strip atoms int mask from parm
+  if (argIn->CommandIs("parmstrip")) {
+    char *mask0 = argIn->getNextMask();
+    pindex = argIn->getNextInteger(0);
+    if (pindex < 0 || pindex >= Nparm) {
+      mprinterr("Error: parmstrip: parm index %i out of bounds.\n",pindex);
+      return 0;
+    }
+    tempMask.SetMaskString(mask0);
+    // Since want to keep atoms outside mask, invert selection
+    tempMask.InvertMask();
+    tempMask.SetupMask( ParmList[pindex], NULL, debug);
+    mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.maskString, 
+             ParmList[pindex]->natom - tempMask.Nselected, ParmList[pindex]->parmName);
+    AmberParm *tempParm = ParmList[pindex]->modifyStateByMask(tempMask.Selected, 
+                                                              tempMask.Nselected, NULL);
+    if (tempParm==NULL) 
+      mprinterr("Error: parmstrip: Could not strip parm.\n");
+    else {
+      tempParm->ParmInfo();
+      ReplaceParm(pindex, tempParm);
+    }
     return 0;
   }
   // parmbondinfo [<parmindex>]: Print bond information for parm <parmindex>
@@ -87,7 +111,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     if (pindex>=0 && pindex<Nparm) 
       ParmList[pindex]->PrintBondInfo();
     else
-      mprinterr("\tError: parm %i not loaded.\n",pindex);
+      mprinterr("Error: parm %i not loaded.\n",pindex);
     return 0;
   }
   // parmmolinfo [<parmindex>]: Print molecule information for parm
@@ -97,28 +121,32 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     if (pindex>=0 && pindex<Nparm)
       ParmList[pindex]->PrintMoleculeInfo();
     else
-      mprinterr("\tError: parm %i not loaded.\n",pindex);
+      mprinterr("Error: parm %i not loaded.\n",pindex);
     return 0;
   }
   // bondsearch: Indicate that if bond information not found in topology
   //     it should be determined by distance search.
   if (argIn->CommandIs("bondsearch")) {
+    mprintf("\tInfo: Bond info will be determined from distance search if not present.\n");
     bondsearch=true;
     return 0;
   }
   // molsearch: Indicate that if molecule information not found in 
   //     topology file it should be determined by bonding information.
   if (argIn->CommandIs("molsearch")) {
+    mprintf("\tInfo: Molecule info will be determined from bonds if not present.\n");
     molsearch=true;
     return 0;
   }
   // nobondsearch: Turn off bond search.
   if (argIn->CommandIs("nobondsearch")) {
+    mprintf("\tInfo: Bond search is off.\n");
     bondsearch=false;
     return 0;
   }
   // nomolsearch: Turn off molecule search.
   if (argIn->CommandIs("nomolsearch")) {
+    mprintf("\tInfo: Molecule search is off.\n");
     molsearch=false;
     return 0;
   }
