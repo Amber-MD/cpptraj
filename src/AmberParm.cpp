@@ -263,6 +263,53 @@ int AmberParm::GetLJparam(double *A, double *B, int atom1, int atom2) {
   return 0;
 }
 
+// AmberParm::GetBondParam()
+/// Get bond parameters (if they exist) between atom1 and atom2
+/** \return 1 if parameters were found, 0 if not.
+  */
+int AmberParm::GetBondParam(double *rk, double *req, int atom1, int atom2) {
+  int idx = -2;
+  int atom1_3 = atom1 * 3;
+  int atom2_3 = atom2 * 3;
+
+  if (bonds==NULL || bondsh==NULL) return 0;
+  // Based on name, check bonds or bondsh array, find atom index.
+  if (names[atom1][0]=='H' || names[atom2][0]=='H') {
+    for (int bond = 0; bond < NbondsWithH * 3; bond += 3) {
+      if ( (bondsh[bond] == atom1_3 && bondsh[bond+1] == atom2_3) ||
+           (bondsh[bond] == atom2_3 && bondsh[bond+1] == atom1_3)   )
+      {
+        idx = bondsh[bond+2];
+        break;
+      }
+    }
+  } else {
+    for (int bond = 0; bond < NbondsWithoutH * 3; bond += 3) {
+      if ( (bonds[bond] == atom1_3 && bonds[bond+1] == atom2_3) ||
+           (bonds[bond] == atom2_3 && bonds[bond+1] == atom1_3)   )
+      {
+        idx = bonds[bond+2];
+        break;
+      }
+    }
+  }
+  // If idx is -2 these atoms are not bonded.
+  if (idx==-2) return 0;
+  // If idx is -1 atoms are bonded but no parameters for these atoms. Return 
+  // default cutoff, no constant.
+  if (idx==-1 || bond_rk==NULL || bond_req==NULL) {
+    *req = GetBondedCut(names[atom1], names[atom2]);
+    *rk = 0.0;
+  } else {
+    // indices in Amber parms are shifted +1
+    idx--;
+    *req = bond_req[idx];
+    *rk = bond_rk[idx];
+  }
+  //mprintf("DEBUG:\tAtoms %i and %i are bonded, rk=%lf  req=%lf\n",atom1+1,atom2+1,*rk,*req);
+  return 1;
+}
+
 // AmberParm::SetCharges()
 /// Set the atomic charges from the given array.
 int AmberParm::SetCharges(double *chargeIn) {
