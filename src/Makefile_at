@@ -27,7 +27,7 @@ dependclean:
 
 cpptraj$(SFX): $(NETCDFLIB) $(OBJECTS) $(PTRAJ_OBJECTS) $(EXTERNAL_LIBS) 
 	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) \
-               $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
+               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
 
 $(NETCDFLIB): ../../netcdf_config.log
 	cd ../../netcdf/src && $(MAKE) install
