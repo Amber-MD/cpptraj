@@ -8,16 +8,16 @@
  */
 BoxType CheckBoxType(double *box, int debug) {
   BoxType btype = NOBOX;
-  if (box==NULL) return NOBOX;
-
+  if (box==NULL || box[0]<0 || box[1]<0 || box[2]<0) 
+    btype = NOBOX;
   // Determine orthogonal / non-orthogonal from angles
-  if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0)
+  else if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0)
     btype = NOBOX;
   else if (box[0]==90.0 && box[1]==90.0 && box[2]==90.0)
     btype = ORTHO;
   else
     btype = NONORTHO;
-  if (debug>0) mprintf("    Box type is %i (beta=%lf)\n",btype,box[0]);
+  if (debug>0) mprintf("\tBox type is %i (beta=%lf)\n",btype,box[1]);
   return btype;
 }
 

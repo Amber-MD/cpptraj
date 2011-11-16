@@ -104,6 +104,43 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     }
     return 0;
   }
+  // [parm]box [<parmindex>] [x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]
+  //           [nobox]
+  // Set the given parm box info to what is specified. If nobox, remove box info.
+  if (argIn->CommandIs("box") || argIn->CommandIs("parmbox")) {
+    double parmbox[6];
+    parmbox[0] = argIn->getKeyDouble("x",0);
+    parmbox[1] = argIn->getKeyDouble("y",0);
+    parmbox[2] = argIn->getKeyDouble("z",0);
+    parmbox[3] = argIn->getKeyDouble("alpha",0);
+    parmbox[4] = argIn->getKeyDouble("beta",0);
+    parmbox[5] = argIn->getKeyDouble("gamma",0);
+    if (argIn->hasKey("nobox")) {
+      parmbox[0]=-1; parmbox[1]=-1; parmbox[2]=-1;
+      parmbox[3]=-1; parmbox[4]=-1; parmbox[5]=-1;
+    }
+    pindex = argIn->getNextInteger(0);
+    if (pindex < 0 || pindex >= Nparm) {
+      mprinterr("Error: box: parm index %i out of bounds.\n",pindex);
+      return 0;
+    }
+    // Fill in missing parm box information from specified parm
+    if (parmbox[0]==0) parmbox[0] = ParmList[pindex]->Box[0];
+    if (parmbox[1]==0) parmbox[1] = ParmList[pindex]->Box[1];
+    if (parmbox[2]==0) parmbox[2] = ParmList[pindex]->Box[2];
+    if (parmbox[3]==0) parmbox[3] = ParmList[pindex]->Box[3];
+    if (parmbox[4]==0) parmbox[4] = ParmList[pindex]->Box[4];
+    if (parmbox[5]==0) parmbox[5] = ParmList[pindex]->Box[5];
+    // Determine box type from parmbox angles
+    ParmList[pindex]->boxType = CheckBoxType(parmbox+3, 1);
+    ParmList[pindex]->Box[0] = parmbox[0];
+    ParmList[pindex]->Box[1] = parmbox[1];
+    ParmList[pindex]->Box[2] = parmbox[2];
+    ParmList[pindex]->Box[3] = parmbox[3];
+    ParmList[pindex]->Box[4] = parmbox[4];
+    ParmList[pindex]->Box[5] = parmbox[5];
+    return 0;
+  } 
   // parmbondinfo [<parmindex>]: Print bond information for parm <parmindex>
   //     (0 by default).
   if (argIn->CommandIs("parmbondinfo")) {
