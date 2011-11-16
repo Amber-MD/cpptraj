@@ -273,10 +273,9 @@ int AmberParm::SetCharges(double *chargeIn) {
 }
 
 // -------------------- ROUTINES PERTAINING TO SURFACE AREA --------------------
-/* AssignLCPO()
- * Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
- * NOTE: Member function so it can have access to SurfInfo.
- */
+// AssignLCPO()
+/// Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
+// NOTE: Member function so it can have access to SurfInfo.
 void AmberParm::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2, 
                            double P3, double P4) {
   S->vdwradii = vdwradii + 1.4;
@@ -286,25 +285,24 @@ void AmberParm::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2,
   S->P4 = P4;
 }
 
-/* WarnLCPO()
- * Called when the number of bonds to the atom of type atype is not usual.
- */
+// WarnLCPO()
+/// Called when the number of bonds to the atom of type atype is not usual.
 static void WarnLCPO(char *atype, int atom, int numBonds) {
   mprintf("Warning: Unusual number of bonds for atom %i (%i), type %-2s.\n",
           atom, numBonds, atype);
   mprintf("Using default atom parameters.\n");
 }
 
-/* AmberParm::SetSurfaceInfo()
- * Set up parameters only used in surface area calcs.
- * LCPO method from:
- *   J. Weiser, P.S. Shenkin, and W.C. Still,
- *   "Approximate atomic surfaces from linear combinations of pairwise
- *   overlaps (LCPO)", J. Comp. Chem. 20:217 (1999).
- * Adapted from gbsa=1 method in SANDER, mdread.f
- * Return the number of solute atoms for which paramters were set.
- * Return -1 on error.
- */
+// AmberParm::SetSurfaceInfo()
+/** Set up parameters only used in surface area calcs.
+  * LCPO method from:
+  *   J. Weiser, P.S. Shenkin, and W.C. Still,
+  *   "Approximate atomic surfaces from linear combinations of pairwise
+  *   overlaps (LCPO)", J. Comp. Chem. 20:217 (1999).
+  * Adapted from gbsa=1 method in SANDER, mdread.f
+  * \return the number of solute atoms for which paramters were set. 
+  * \return -1 on error.
+  */
 int AmberParm::SetSurfaceInfo() {
   int *numBonds; // # of bonded neighbors each atom has (LCPO only?)
   int i,atom1,atom2;
@@ -441,9 +439,8 @@ int AmberParm::SetSurfaceInfo() {
 }
 
 // -------------------- ROUTINES PERTAINING TO SOLVENT INFO --------------------
-/* AmberParm::IsSolventResname()
- * Return true if the residue name corresponds to solvent.
- */
+// AmberParm::IsSolventResname()
+/// Return true if the residue name corresponds to solvent.
 bool AmberParm::IsSolventResname(NAME resnameIn) {
   if ( strcmp("WAT ", resnameIn) == 0 ||
        strcmp(" WAT", resnameIn) == 0 ||
@@ -457,12 +454,12 @@ bool AmberParm::IsSolventResname(NAME resnameIn) {
   return false;
 }
 
-/* AmberParm::SetSolventInfo()
- * If atomsPerMol has been read in and firstSolvMol is set, determine solvent 
- * information based on what firstSolvMol is. If firstSolvMol is not set, 
- * determine solvent information by residue name, setting/resetting 
- * atomsPerMol as necessary.
- */
+// AmberParm::SetSolventInfo()
+/** If atomsPerMol has been read in and firstSolvMol is set, determine solvent 
+  * information based on what firstSolvMol is. If firstSolvMol is not set, 
+  * determine solvent information by residue name, setting/resetting 
+  * atomsPerMol as necessary.
+  */
 int AmberParm::SetSolventInfo() {
   int molAtom, maskAtom; 
 
@@ -584,9 +581,8 @@ int AmberParm::SetSolventInfo() {
 }
     
 // --------========= ROUTINES PERTAINING TO READING PARAMETERS =========--------
-/* AmberParm::OpenParm()
- * Attempt to open file and read in parameters.
- */
+// AmberParm::OpenParm()
+/// Attempt to open file and read in parameters.
 int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   CpptrajFile parmfile;
   int err=0;
@@ -827,7 +823,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   double *boxFromParm;
   int values[AMBERPOINTERS];
   char *title;
-  bool chamber;         // This topology file is a chamber-created topology file
+  bool chamber; // true: This topology file is a chamber-created topology file
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
   // Title
@@ -1144,9 +1140,8 @@ int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
   return 0;
 }
 
-/* AmberParm::ReadParmMol2()
- * Read file as a Tripos Mol2 file.
- */
+// AmberParm::ReadParmMol2()
+/// Read file as a Tripos Mol2 file.
 int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
   char buffer[MOL2BUFFERSIZE];
   int mol2bonds;
@@ -1234,10 +1229,10 @@ int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
   return 0;
 }
 
-/* AmberParm::ReadParmPSF()
- * Open the Charmm PSF file specified by filename and set up topology data.
- * Mask selection requires natom, nres, names, resnames, resnums.
- */
+// AmberParm::ReadParmPSF()
+/** Open the Charmm PSF file specified by filename and set up topology data.
+  * Mask selection requires natom, nres, names, resnames, resnums.
+  */
 int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
   char buffer[256],tag[256],psfname[NAMESIZE];
   int bondatoms[8];
@@ -1345,9 +1340,8 @@ int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
 }
 
 // -----------------------------------------------------------------------------
-/* AmberParm::AtomInfo()
- * Print parm information for atom.
- */
+// AmberParm::AtomInfo()
+/// Print parm information for atom.
 void AmberParm::AtomInfo(int atom) {
   int res = atomToResidue(atom);
   mprintf("  Atom %i:",atom+1);
@@ -1364,9 +1358,8 @@ void AmberParm::AtomInfo(int atom) {
   mprintf("\n");
 }
 
-/* AmberParm::Info()
- * Print information about this parm to buffer.
- */
+// AmberParm::Info()
+/// Print information about this parm to buffer.
 void AmberParm::ParmInfo() {
 
   mprintf(" %i: %s, %i atoms, %i res",pindex,parmfileName,natom,nres);
@@ -1385,10 +1378,10 @@ void AmberParm::ParmInfo() {
   mprintf("\n");
 }
 
-/* AmberParm::Summary()
- * Print a summary of atoms, residues, molecules, and solvent molecules
- * in this parm.
- */
+// AmberParm::Summary()
+/** Print a summary of atoms, residues, molecules, and solvent molecules
+  * in this parm.
+  */
 void AmberParm::Summary() {
   mprintf("              Topology contains %i atoms.\n",this->natom);
   mprintf("                                %i residues.\n",this->nres);
@@ -1402,9 +1395,8 @@ void AmberParm::Summary() {
   }
 }
 
-/* AmberParm::PrintBondInfo()
- * Print information contained in bonds and bondsh arrays.
- */
+// AmberParm::PrintBondInfo()
+/// Print information contained in bonds and bondsh arrays.
 void AmberParm::PrintBondInfo() {
   int atom1,atom2,atomi;
   if ((NbondsWithH + NbondsWithoutH) <= 0) {
@@ -1431,9 +1423,8 @@ void AmberParm::PrintBondInfo() {
   }
 }
 
-/* AmberParm::PrintMoleculeInfo()
- * Print information on molecules in PRMTOP
- */
+// AmberParm::PrintMoleculeInfo()
+/// Print information on molecules in PRMTOP
 void AmberParm::PrintMoleculeInfo() {
   int atomcount = 0;
   int resid;
@@ -1452,54 +1443,51 @@ void AmberParm::PrintMoleculeInfo() {
 }
 
 // -----------------------------------------------------------------------------
-// NOTE: The following atomToX functions do not do any memory checks!
-/* AmberParm::atomToResidue()
- * Given an atom number, return corresponding residue number.
- */
+// AmberParm::atomToResidue()
+/// Given an atom number, return corresponding residue number.
 int AmberParm::atomToResidue(int atom) {
   int i;
-
-  for (i = 0; i < nres; i++)
-    if ( atom>=resnums[i] && atom<resnums[i+1] )
-      return i;
-
+  if (atom >= 0 && atom < natom) {
+    for (i = 0; i < nres; i++)
+      if ( atom>=resnums[i] && atom<resnums[i+1] )
+        return i;
+  }
   return -1;
 }
 
-/* AmberParm::atomToMolecule()
- * Given an atom number, return corresponding molecule number.
- */
+// AmberParm::atomToMolecule()
+/// Given an atom number, return corresponding molecule number.
 int AmberParm::atomToMolecule(int atom) {
   int a = 0;
-  for (int i = 0; i < molecules; i++) {
-    a += atomsPerMol[i];
-    if (atom < a) return i;
+  if (atom >= 0 && atom < natom) {
+    for (int i = 0; i < molecules; i++) {
+      a += atomsPerMol[i];
+      if (atom < a) return i;
+    }
   }
   return -1;
 }
 
-/* AmberParm::atomToSolventMolecule()
- * Given an atom number, return corresponding solvent molecule
- * NOTE: Could this be achieved with atomToMolecule and solventMask?
- */
+// AmberParm::atomToSolventMolecule()
+/// Given an atom number, return corresponding solvent molecule
+// NOTE: Could this be achieved with atomToMolecule and solventMask?
 int AmberParm::atomToSolventMolecule(int atom) {
   int i, atom1;
-
-  atom1 = atom + 1; 
-  for (i = 0; i < molecules; i++) {
-    if (atom1 <= solventMoleculeStart[i])
-      return -1;
-    else if (atom1>solventMoleculeStart[i] && atom1<=solventMoleculeStop[i])
-      return i;
+  if (atom >= 0 && atom < natom) {
+    atom1 = atom + 1; 
+    for (i = 0; i < molecules; i++) {
+      if (atom1 <= solventMoleculeStart[i])
+        return -1;
+      else if (atom1>solventMoleculeStart[i] && atom1<=solventMoleculeStop[i])
+        return i;
+    }
   }
-
   return -1;
 }
 
 // -----------------------------------------------------------------------------
-/* AmberParm::ResetBondInfo()
- * Reset the bonds and bondsh arrays, as well as NBONH and NBONA
- */
+// AmberParm::ResetBondInfo()
+/// Reset the bonds and bondsh arrays, as well as NBONH and NBONA
 void AmberParm::ResetBondInfo() {
   if (bonds!=NULL) delete[] bonds;
   bonds=NULL;
@@ -1509,11 +1497,11 @@ void AmberParm::ResetBondInfo() {
   NbondsWithoutH=0;
 }
 
-/* AmberParm::AddBond()
- * Add bond info for the two atoms. Attempt to identify if it is a bond
- * to hydrogen or not based on names. The atom numbers should start from 0.
- * Atom indices in bond arrays are * 3.
- */ 
+// AmberParm::AddBond()
+/** Add bond info for the two atoms. Attempt to identify if it is a bond
+  * to hydrogen or not based on names. The atom numbers should start from 0.
+  * Atom indices in bond arrays are * 3.
+  */ 
 int AmberParm::AddBond(int atom1, int atom2, int icb) {
   bool isH=false;
   int bondidx;
@@ -1548,12 +1536,12 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
   return 0;
 }
 
-/* AmberParm::GetBondsFromCoords()
- * Given an array of coordinates X0Y0Z0X1Y1Z1...XNYNZN determine which
- * atoms are bonded via distance search. First check for bonds within
- * residues, then check for bonds between adjacent residues. Adjacent
- * residues in different molecules are not considered.
- */
+// AmberParm::GetBondsFromCoords()
+/** Given an array of coordinates X0Y0Z0X1Y1Z1...XNYNZN determine which
+  * atoms are bonded via distance search. First check for bonds within
+  * residues, then check for bonds between adjacent residues. Adjacent
+  * residues in different molecules are not considered.
+  */
 void AmberParm::GetBondsFromCoords() {
   int res, startatom, stopatom, midatom,atom1, atom2, idx1, idx2;
   double D, cut;
@@ -1634,14 +1622,13 @@ void AmberParm::GetBondsFromCoords() {
   mprintf("\t%s: %i bonds to hydrogen, %i other bonds.\n",parmName,NbondsWithH,NbondsWithoutH);
 }
 
-/* AmberParm::DetermineMolecules()
- * Given that bonding information for the parm has been set up, attempt
- * to determine how many molecules (i.e. entities that are not covalently
- * bonded) there are.
- */
+// AmberParm::DetermineMolecules()
+/** Given that bonding information for the parm has been set up, attempt
+  * to determine how many molecules (i.e. entities that are not covalently
+  * bonded) there are.
+  */
 int AmberParm::DetermineMolecules() {
   BondInfo mol;
-  int bond3;
 
   if (bonds==NULL && bondsh==NULL) {
     mprinterr("Error: DetermineMolecules: No bond information set up.\n");
@@ -1652,26 +1639,13 @@ int AmberParm::DetermineMolecules() {
   mol.Setup(natom);
 
   // Set max valences
-  for (int atom=0; atom < natom; atom++) 
-    mol.SetValence(atom,names[atom]);
+  mol.SetValences(names);
 
   // Go through the bonds and bondsh arrays
-  if (bondsh!=NULL) {
-    bond3 = NbondsWithH * 3;
-    for (int bond=0; bond < bond3; bond+=3) {
-      int atom1 = bondsh[bond  ] / 3;
-      int atom2 = bondsh[bond+1] / 3;
-      mol.CreateBond(atom1,atom2);
-    }
-  }
-  if (bonds!=NULL) {
-    bond3 = NbondsWithoutH * 3;
-    for (int bond=0; bond < bond3; bond+=3) {
-      int atom1 = bonds[bond  ] / 3;
-      int atom2 = bonds[bond+1] / 3;
-      mol.CreateBond(atom1,atom2);
-    }
-  }
+  mol.SetBondsFromAmberArray(bondsh, NbondsWithH);
+  mol.SetBondsFromAmberArray(bonds,  NbondsWithoutH);
+
+  // Determine molecules
   atomsPerMol = mol.DetermineMolecules(&molecules);
  
   //mol.PrintBonds();
@@ -1679,10 +1653,105 @@ int AmberParm::DetermineMolecules() {
   return 0;
 }
 
-/* SetupBondArray()
- * Given an atom map and new parm, set up bond array
- * NOTE: Set up atom map to be atom*3??
- */
+/// Setup excluded atoms list and numex based on bond info
+int AmberParm::SetupExcludedAtoms() {
+  BondInfo mol;
+  // Determine excluded atoms list
+  mol.Setup(natom);
+  mol.SetValences(names);
+  // If no bond info this wont work
+  if (bondsh==NULL && bonds==NULL) {
+    mprinterr("Error: AmberParm::SetupExcludedAtoms(): No bond info in parm %s.\n",parmName);
+    return 1;
+  }
+  mol.SetBondsFromAmberArray(bondsh, NbondsWithH);
+  mol.SetBondsFromAmberArray(bonds, NbondsWithoutH);
+  if (numex!=NULL) delete[] numex;
+  numex = new int[ natom ];
+  if (excludedAtoms!=NULL) delete[] excludedAtoms;
+  excludedAtoms = mol.DetermineExcludedAtoms(numex, &nnb);
+  return 0;
+}
+
+// SetupSequentialArray()
+/// Given an atom map and old sequential array, set up new sequential array.
+/** Given an array with format [I0J0...X0][I1J1...] where the entries up to
+  * X are atom# * 3 and entry X is an index, and an atom map array
+  * with format Map[oldAtom]=newAtom, create a new array that contains
+  * only entries for which all atoms are present. Can be used for the
+  * bond, angle, and dihedral arrays.
+  */
+// NOTE: Set up atom map to be atom*3??
+static int *SetupSequentialArray(int *atomMap, int oldN, int Nsequence, 
+                                 int *oldArray, int *newN) {
+  int *newArray = NULL;
+  int *newatoms;
+  int oldNX, newNX;
+  int newatm;
+  int Nsequence1;
+  int mapatom;
+  bool atomIsNegative;
+  
+  if (atomMap==NULL || oldArray==NULL) return NULL;
+  // Actual # entries in oldArray
+  oldNX = oldN * Nsequence;
+  Nsequence1 = Nsequence - 1;
+  // Set initial size of new array to that of old array
+  newArray = new int[ oldN * Nsequence ];
+  newNX=0;
+  // NOTE: Make newatoms static?
+  newatoms = new int[ Nsequence ];
+  // Go through old array, use atomMap to determine what goes into newParm
+  for (int oldi=0; oldi < oldNX; oldi += Nsequence) {
+    // Check that atoms 0 to Nsequence exist in newParm. If any of the atoms
+    // do not exist in newParm bail.
+    for (int sequencei = 0; sequencei < Nsequence1; sequencei++) {
+      int arrayAtom = oldArray[oldi+sequencei];
+      // For dihedrals the atom # can be negative. Convert to positive
+      // for use in the atom map.
+      if (arrayAtom < 0) {
+        mapatom = -arrayAtom;
+        atomIsNegative = true;
+      } else {
+        mapatom = arrayAtom;
+        atomIsNegative = false;
+      }
+      newatm = atomMap[ mapatom / 3 ];
+      if (newatm == -1) break;
+      if (atomIsNegative)
+        newatoms[sequencei] = -newatm;
+      else
+        newatoms[sequencei] = newatm;
+    }
+    // If newatm is -1 here that means it didnt exist in newParm for this
+    // sequence. Skip the entire sequence.
+    if (newatm==-1) continue;
+    // Store the final number of the sequence, which is an index
+    newatoms[Nsequence1] = oldArray[oldi+Nsequence1];
+    // Place the atoms in newatoms in newArray
+    for (int sequencei = 0; sequencei < Nsequence1; sequencei++) 
+      newArray[newNX+sequencei] = newatoms[sequencei] * 3;
+    // Place the index in newatoms in newArray
+    newArray[newNX+Nsequence1] = newatoms[Nsequence1];
+    // Increment new counter
+    newNX += Nsequence;
+  }
+  delete[] newatoms;
+  // Resize newArray
+  int *temparray = new int[ newNX ];
+  memcpy(temparray, newArray, newNX * sizeof(int));
+  delete[] newArray;
+  newArray = temparray;
+  
+  *newN = newNX / Nsequence;
+  return newArray;
+}
+
+
+// SetupBondArray()
+/// Given an atom map and new parm, set up bond array
+// NOTE: Set up atom map to be atom*3??
+// NOTE: May be obsolete 
 static int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
   int *bonds;
   int N3, i, atom1, atom2;
@@ -1714,17 +1783,17 @@ static int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
 }
 
 // -----------------------------------------------------------------------------
-/* AmberParm::modifyStateByMap()
- * Currently only intended for use with AtomMap.
- * This routine will create a new amber parm (newParm) base on the
- * current amber parm (this), mapping atoms in newParm to atoms
- * in this based on the given atom map.
- * NOTE: There is no guarantee that atoms that were contiguous in 
- *       this parm will be contiguous in the old parm since this is not
- *       currently enforced by AtomMap; therefore the residue information
- *       will probably be shot unless there is only 1 residue. 
- * NOTE: Molecule, solvent info etc is not copied over.
- */
+// AmberParm::modifyStateByMap()
+/** Currently only intended for use with AtomMap.
+  * This routine will create a new amber parm (newParm) base on the
+  * current amber parm (this), mapping atoms in newParm to atoms
+  * in this based on the given atom map.
+  * NOTE: There is no guarantee that atoms that were contiguous in 
+  *       this parm will be contiguous in the old parm since this is not
+  *       currently enforced by AtomMap; therefore the residue information
+  *       will probably be shot unless there is only 1 residue. 
+  * NOTE: Molecule, solvent info etc is not copied over.
+  */
 AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   AmberParm *newParm;
   int j=0;
@@ -1791,13 +1860,13 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   return newParm;
 }
 
-/* AmberParm::modifyStateByMask()
- * Adapted from ptraj
- *  The goal of this routine is to create a new AmberParm (newParm)
- *  based on the current AmberParm (this), deleting atoms that are
- *  not in the Selected array.
- * NOTE: Make all solvent/box related info dependent on IFBOX only?
- */
+// AmberParm::modifyStateByMask()
+// Adapted from ptraj
+/**  The goal of this routine is to create a new AmberParm (newParm)
+  *  based on the current AmberParm (this), deleting atoms that are
+  *  not in the Selected array.
+  */
+// NOTE: Make all solvent/box related info dependent on IFBOX only?
 AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   AmberParm *newParm;
   int selected;
@@ -1813,24 +1882,27 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   // Allocate space for arrays and perform initialization
   atomMap = new int[ natom ];
   for (i=0; i<this->natom; i++) atomMap[i]=-1;
-  newParm->names    = new NAME[ Nselected ];
+  newParm->names = new NAME[ Nselected ];
   if (this->types!=NULL)
-    newParm->types    = new NAME[ Nselected ];
+    newParm->types = new NAME[ Nselected ];
   if (this->charge!=NULL)
-    newParm->charge   = new double[ Nselected ];
+    newParm->charge = new double[ Nselected ];
   if (this->mass!=NULL)
-    newParm->mass     = new double[ Nselected ];
-  newParm->resnames = new NAME[ nres ];
-  newParm->resnums  = new int[ nres+1 ];
+    newParm->mass = new double[ Nselected ];
+  if (this->atype_index!=NULL)
+    newParm->atype_index = new int[ Nselected ];
   if (this->gb_radii!=NULL)
     newParm->gb_radii = new double[ Nselected ];
   if (this->gb_screen!=NULL) 
     newParm->gb_screen = new double[ Nselected ];
+  // Arrays for which final size will not be known
+  newParm->resnames = new NAME[ nres ];
+  newParm->resnums  = new int[ nres+1 ];
+  // Other arrays
   if (this->radius_set!=NULL) {
     newParm->radius_set = new char[ strlen(this->radius_set)+1 ];
     strcpy(newParm->radius_set, this->radius_set);
   } 
-
   if (this->molecules>0) 
     newParm->atomsPerMol = new int[ molecules ];
 
@@ -1851,11 +1923,12 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     atomMap[i]=j;                    // Store this atom in the atom map
     // Copy over atom information
     strcpy(newParm->names[j], this->names[i]);
-    if (this->types!=NULL)     strcpy(newParm->types[j], this->types[i]);
-    if (this->charge!=NULL)    newParm->charge[j]      = this->charge[i];
-    if (this->mass!=NULL)      newParm->mass[j]        = this->mass[i];
-    if (this->gb_radii!=NULL)  newParm->gb_radii[j]    = this->gb_radii[i];
-    if (this->gb_screen!=NULL) newParm->gb_screen[j]   = this->gb_screen[i];
+    if (this->types!=NULL)       strcpy(newParm->types[j], this->types[i]);
+    if (this->charge!=NULL)      newParm->charge[j]      = this->charge[i];
+    if (this->mass!=NULL)        newParm->mass[j]        = this->mass[i];
+    if (this->atype_index!=NULL) newParm->atype_index[j] = this->atype_index[i];
+    if (this->gb_radii!=NULL)    newParm->gb_radii[j]    = this->gb_radii[i];
+    if (this->gb_screen!=NULL)   newParm->gb_screen[j]   = this->gb_screen[i];
 
     // Check to see if we are in the same residue or not and copy relevant information
     if (ires == -1 || ires != curres) {
@@ -1886,15 +1959,59 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
 
     // Increment the new atom counter
     j++;
-
   } // End loop over oldParm Selected atoms 
 
   // Set up bond arrays
-  newParm->bondsh = SetupBondArray(atomMap, this->NbondsWithH*3, this->bondsh, 
-                                   &(newParm->NbondsWithH));
-  newParm->bonds  = SetupBondArray(atomMap, this->NbondsWithoutH*3, this->bonds, 
-                                   &(newParm->NbondsWithoutH));
+  newParm->bondsh = SetupSequentialArray(atomMap, this->NbondsWithH, 3, 
+                                         this->bondsh, &(newParm->NbondsWithH));
+  newParm->bonds  = SetupSequentialArray(atomMap, this->NbondsWithoutH, 3, 
+                                         this->bonds,  &(newParm->NbondsWithoutH));
+  // Set up angle arrays
+  newParm->anglesh = SetupSequentialArray(atomMap, this->NanglesWithH, 4,
+                                          this->anglesh, &(newParm->NanglesWithH));
+  newParm->angles  = SetupSequentialArray(atomMap, this->NanglesWithoutH, 4,
+                                          this->angles,  &(newParm->NanglesWithoutH));
+  // Set up dihedral arrays
+  newParm->dihedralsh = SetupSequentialArray(atomMap, this->NdihedralsWithH, 5,
+                                             this->dihedralsh, &(newParm->NdihedralsWithH));
+  newParm->dihedrals  = SetupSequentialArray(atomMap, this->NdihedralsWithoutH, 5,
+                                             this->dihedrals,  &(newParm->NdihedralsWithoutH));
   delete[] atomMap;
+
+  // NOTE: Since in the above arrays the indices have survived intact we can 
+  //       just include direct copies of all the constants arrays for now. 
+  //       May want to cull this later.
+  // Bond force constant and eq values
+  newParm->numbnd = this->numbnd;
+  newParm->bond_rk = new double[ numbnd ];
+  memcpy(newParm->bond_rk, this->bond_rk, numbnd * sizeof(double));
+  newParm->bond_req = new double[ numbnd ];
+  memcpy(newParm->bond_req, this->bond_req, numbnd * sizeof(double));
+  // Angle force constant and eq values
+  newParm->numang = this->numang;
+  newParm->angle_tk = new double[ numang ];
+  memcpy(newParm->angle_tk, this->angle_tk, numang * sizeof(double));
+  newParm->angle_teq = new double[ numang ];
+  memcpy(newParm->angle_teq, this->angle_teq, numang * sizeof(double));
+  // Dihedral constant, periodicity, phase
+  newParm->numdih = this->numdih;
+  newParm->dihedral_pk = new double[ numdih ];
+  memcpy(newParm->dihedral_pk, this->dihedral_pk, numdih * sizeof(double));
+  newParm->dihedral_pn = new double[ numdih ];
+  memcpy(newParm->dihedral_pn, this->dihedral_pn, numdih * sizeof(double));
+  newParm->dihedral_phase = new double[ numdih ];
+  memcpy(newParm->dihedral_phase, this->dihedral_phase, numdih * sizeof(double));
+  // SCEE and SCNB scale factors
+  newParm->scee_scale = new double[ numdih ];
+  memcpy(newParm->scee_scale, this->scee_scale, numdih * sizeof(double));
+  newParm->scnb_scale = new double[ numdih ];
+  memcpy(newParm->scnb_scale, this->scnb_scale, numdih * sizeof(double));
+
+  // SOLTY is currently unused, just make a straight up copy for now.
+  newParm->natyp = this->natyp;
+  newParm->solty = new double[ natyp ];
+  memcpy(newParm->solty, this->solty, natyp * sizeof(double));
+
 
   // Fix up IPRES
   newParm->resnums[jres+1] = j;
@@ -1906,25 +2023,17 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   if (this->molecules>0) 
     newParm->molecules = jmol+1;
 
+  // Set up excluded atoms list
+  newParm->SetupExcludedAtoms();
+
   // Give stripped parm the same pindex as original parm
   newParm->pindex = this->pindex;
   
   // Reallocate memory 
-  //if (this->types!=NULL)
-  //  newParm->types=(NAME*) realloc(newParm->types, newParm->natom * sizeof(NAME));
-  //if (this->charge!=NULL)
-  //  newParm->charge=(double*) realloc(newParm->charge, newParm->natom * sizeof(double));
-  //if (this->mass!=NULL)
-  //  newParm->mass=(double*) realloc(newParm->mass, newParm->natom * sizeof(double));
-  //if (this->gb_radii!=NULL)
-  //  newParm->gb_radii=(double*) realloc(newParm->gb_radii, newParm->natom * sizeof(double));
-  //if (this->gb_screen!=NULL)
-  //  newParm->gb_screen=(double*) realloc(newParm->gb_screen, newParm->natom * sizeof(double));
   int *tempresnums = new int[ newParm->nres + 1 ];
   memcpy(tempresnums, newParm->resnums, (newParm->nres + 1) * sizeof(int));
   delete[] newParm->resnums;
   newParm->resnums = tempresnums;
-  //newParm->names=(NAME*) realloc(newParm->names, newParm->natom * sizeof(NAME));
   NAME *tempresnames = new NAME[ newParm->nres ];
   memcpy(tempresnames, newParm->resnames, newParm->nres * sizeof(NAME));
   delete[] newParm->resnames;

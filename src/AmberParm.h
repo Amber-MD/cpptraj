@@ -52,6 +52,7 @@ class AmberParm {
     void GetBondsFromCoords();
     double *parmCoords;
     int DetermineMolecules();
+    int SetupExcludedAtoms();
 
     int *numex;         ///< NUMEX(NATOM)
     int *atype_index;   ///< IAC(NATOM)
