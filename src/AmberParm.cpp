@@ -2116,9 +2116,10 @@ int AmberParm::WriteAmberParm(char *filename) {
   time(&rawtime);
   timeinfo = localtime(&rawtime);
   // VERSION
+  // NOTE: tm_mon ranges from 0
   buffer.Sprintf("%-44s%02i/%02i/%02i  %02i:%02i:%02i                  \n",
                      "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
-                     timeinfo->tm_mon,timeinfo->tm_mday,timeinfo->tm_year%100,
+                     timeinfo->tm_mon+1,timeinfo->tm_mday,timeinfo->tm_year%100,
                      timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
   // TITLE
   buffer.Sprintf("%-80s\n%-80s\n%-80s","%FLAG TITLE","%FORMAT(20a4)","");
