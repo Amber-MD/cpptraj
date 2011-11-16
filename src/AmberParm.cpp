@@ -749,7 +749,7 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   // with the rest of cpptraj.
   for (int atom=0; atom < nres; atom++)
     resnums[atom] -= 1;
-  // The following are not used for now
+  // Bond, angle, dihedral constants and values
   bond_rk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
   bond_req = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
   angle_tk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMANG],debug);
@@ -761,23 +761,24 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   // LJ params
   LJ_A = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
   LJ_B = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
-  // Bonds
+  // Bonds, angles, dihedrals
   bondsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NBONH]*3,debug);
   bonds = (int*) F_loadFormat(parmfile,FINT,6,12,values[NBONA]*3,debug);
-  // Again not used 
   anglesh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETH]*4,debug); 
   angles = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETA]*4,debug); 
   dihedralsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIH]*5,debug);
   dihedrals = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIA]*5,debug);
-  // Excluded atoms
+  // Excluded atoms; shift by -1 so atom #s start from 0
   excludedAtoms = (int*) F_loadFormat(parmfile,FINT,6,12,nnb,debug);
-  // Not used 
+  for (int atom=0; atom < nnb; atom++)
+    excludedAtoms[atom] -= 1;
+  // LJ 10-12 stuff 
   asol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
   bsol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
   hbcut = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
   // Atom types
   types = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
-  // Not used 
+  // Tree, join, irotat 
   itree = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
   join_array = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
   irotat = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
@@ -1361,8 +1362,10 @@ void AmberParm::AtomInfo(int atom) {
 // AmberParm::Info()
 /// Print information about this parm to buffer.
 void AmberParm::ParmInfo() {
-
-  mprintf(" %i: %s, %i atoms, %i res",pindex,parmfileName,natom,nres);
+  if (parmfileName!=NULL)
+    mprintf(" %i: %s, %i atoms, %i res",pindex,parmfileName,natom,nres);
+  else
+    mprintf(" %i: %s, %i atoms, %i res",pindex,parmName,natom,nres);
   if (boxType==NOBOX)
     mprintf(", no box");
   else if (boxType==ORTHO)
@@ -1867,7 +1870,7 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   *  not in the Selected array.
   */
 // NOTE: Make all solvent/box related info dependent on IFBOX only?
-AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
+AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected, char *prefix) {
   AmberParm *newParm;
   int selected;
   int i, ires, imol; 
@@ -1993,6 +1996,31 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   // NOTE: Since in the above arrays the indices have survived intact we can 
   //       just include direct copies of all the constants arrays for now. 
   //       May want to cull this later.
+  // Nonbonded parm index; since this depends on the atom type index and
+  // those entries were not changed this is still valid
+  if (NB_index!=NULL) {
+    newParm->ntypes = this->ntypes;
+    newParm->NB_index = new int[ ntypes * ntypes ];
+    memcpy(newParm->NB_index, this->NB_index, ntypes*ntypes * sizeof(int));
+    // Lennard-jones params
+    int ljmax = ntypes*(ntypes+1)/2;
+    if (this->LJ_A!=NULL && this->LJ_B!=NULL) {
+      newParm->LJ_A = new double[ ljmax ];
+      memcpy(newParm->LJ_A, this->LJ_A, ljmax * sizeof(double));
+      newParm->LJ_B = new double[ ljmax ];
+      memcpy(newParm->LJ_B, this->LJ_B, ljmax * sizeof(double));
+    }
+    // LJ 10-12 params
+    newParm->nphb = this->nphb;
+    if (this->nphb>0) {
+      newParm->asol = new double[ nphb ];
+      memcpy(newParm->asol, this->asol, nphb * sizeof(double));
+      newParm->bsol = new double[ nphb ];
+      memcpy(newParm->bsol, this->bsol, nphb * sizeof(double));
+      newParm->hbcut = new double[ nphb ];
+      memcpy(newParm->hbcut, this->hbcut, nphb * sizeof(double));
+    }
+  }  
   // Bond force constant and eq values
   newParm->numbnd = this->numbnd;
   if (this->numbnd > 0) {
@@ -2084,6 +2112,16 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   for (i=0; i<6; i++)
     newParm->Box[i] = this->Box[i];
   newParm->boxType=this->boxType;
+
+  // Set stripped parm name based on prefix: <prefix>.<oldparmname>
+  // If no prefix given set name as: strip.<oldparmname>
+  if (prefix!=NULL) {
+    newParm->parmName=new char[ strlen(this->parmName)+strlen(prefix)+2 ];
+    sprintf(newParm->parmName,"%s.%s",prefix,this->parmName);
+  } else {
+    newParm->parmName=new char[ strlen(this->parmName)+7];
+    sprintf(newParm->parmName,"strip.%s",this->parmName);
+  }
 
   return newParm;
 }

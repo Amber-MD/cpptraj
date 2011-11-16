@@ -337,7 +337,7 @@ int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharg
   Frame CutFrame;
   TrajectoryFile tout;
   // TEST: Write file containing only cut atoms
-  CutParm = Parm->modifyStateByMask(CutMask->Selected, CutMask->Nselected);
+  CutParm = Parm->modifyStateByMask(CutMask->Selected, CutMask->Nselected,NULL);
   CutParm->SetCharges(CutCharges);
   CutFrame.SetupFrame(CutParm->natom, CutParm->mass);
   CutFrame.SetFrameFromMask(frame, CutMask);
