@@ -11,6 +11,7 @@ Strip::Strip() {
   oldParm=NULL;
   newParm=NULL;
   prefix=NULL;
+  removeBoxInfo=false;
 } 
 
 // DESTRUCTOR
@@ -20,12 +21,13 @@ Strip::~Strip() {
 }
 
 // Strip::init()
-/// Expected call: strip <mask1> [outprefix <name>]
+/// Expected call: strip <mask1> [outprefix <name>] [nobox]
 int Strip::init( ) {
   char *mask1;
 
   // Get output stripped parm filename
   prefix = actionArgs.getKeyString("outprefix",NULL);
+  removeBoxInfo = actionArgs.hasKey("nobox");
 
   // Get mask of atoms to be stripped
   mask1 = actionArgs.getNextMask();
@@ -43,6 +45,8 @@ int Strip::init( ) {
   mprintf("    STRIP: Stripping atoms in mask [%s]\n",M1.maskString);
   if (prefix!=NULL) 
     mprintf("           Stripped topology will be output with prefix %s\n",prefix);
+  if (removeBoxInfo)
+    mprintf("           Any existing box information will be removed.\n");
 
   return 0;
 }
@@ -67,6 +71,16 @@ int Strip::setup() {
   if (newParm==NULL) {
     mprinterr("      Error: Strip::setup: Could not create new parmtop.\n");
     return 1;
+  }
+  // Remove box information if asked
+  if (removeBoxInfo) {
+    newParm->Box[0]=0;
+    newParm->Box[1]=0;
+    newParm->Box[2]=0;
+    newParm->Box[3]=0;
+    newParm->Box[4]=0;
+    newParm->Box[5]=0;
+    newParm->boxType = NOBOX;
   }
   newParm->Summary();
 
