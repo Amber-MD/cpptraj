@@ -2310,8 +2310,12 @@ int AmberParm::WriteAmberParm(char *filename) {
       solvent_pointer[0]=finalSoluteRes;
       solvent_pointer[1]=molecules;
       solvent_pointer[2]=firstSolvMol;
-      DataToFortranBuffer(buffer,F_SOLVENT_POINTER, solvent_pointer, NULL, NULL, 3);
+    } else {
+      solvent_pointer[0]=nres;
+      solvent_pointer[1]=molecules;
+      solvent_pointer[2]=molecules+1;
     }
+    DataToFortranBuffer(buffer,F_SOLVENT_POINTER, solvent_pointer, NULL, NULL, 3);
     // ATOMS PER MOLECULE
     if (atomsPerMol!=NULL) 
       DataToFortranBuffer(buffer,F_ATOMSPERMOL, atomsPerMol, NULL, NULL, molecules);
