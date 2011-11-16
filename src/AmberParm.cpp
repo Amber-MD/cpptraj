@@ -1895,6 +1895,15 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     newParm->gb_radii = new double[ Nselected ];
   if (this->gb_screen!=NULL) 
     newParm->gb_screen = new double[ Nselected ];
+  // The following arrays could eventually be determined somehow, however
+  // at the moment its not worth it since sander doesnt use the info
+  // anymore anyway.
+  if (this->itree!=NULL)
+    newParm->itree = new NAME[ Nselected ];
+  if (this->join_array!=NULL)
+    newParm->join_array = new int[ Nselected ];
+  if (this->irotat!=NULL)
+    newParm->irotat = new int[ Nselected ];
   // Arrays for which final size will not be known
   newParm->resnames = new NAME[ nres ];
   newParm->resnums  = new int[ nres+1 ];
@@ -1929,6 +1938,9 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     if (this->atype_index!=NULL) newParm->atype_index[j] = this->atype_index[i];
     if (this->gb_radii!=NULL)    newParm->gb_radii[j]    = this->gb_radii[i];
     if (this->gb_screen!=NULL)   newParm->gb_screen[j]   = this->gb_screen[i];
+    if (this->itree!=NULL)       strcpy(newParm->itree[j], this->itree[i]);
+    if (this->join_array!=NULL)  newParm->join_array[j]  = this->join_array[i];
+    if (this->irotat!=NULL)      newParm->irotat[j]      = this->irotat[i];
 
     // Check to see if we are in the same residue or not and copy relevant information
     if (ires == -1 || ires != curres) {
@@ -1983,35 +1995,46 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   //       May want to cull this later.
   // Bond force constant and eq values
   newParm->numbnd = this->numbnd;
-  newParm->bond_rk = new double[ numbnd ];
-  memcpy(newParm->bond_rk, this->bond_rk, numbnd * sizeof(double));
-  newParm->bond_req = new double[ numbnd ];
-  memcpy(newParm->bond_req, this->bond_req, numbnd * sizeof(double));
+  if (this->numbnd > 0) {
+    newParm->bond_rk = new double[ numbnd ];
+    memcpy(newParm->bond_rk, this->bond_rk, numbnd * sizeof(double));
+    newParm->bond_req = new double[ numbnd ];
+    memcpy(newParm->bond_req, this->bond_req, numbnd * sizeof(double));
+  }
   // Angle force constant and eq values
   newParm->numang = this->numang;
-  newParm->angle_tk = new double[ numang ];
-  memcpy(newParm->angle_tk, this->angle_tk, numang * sizeof(double));
-  newParm->angle_teq = new double[ numang ];
-  memcpy(newParm->angle_teq, this->angle_teq, numang * sizeof(double));
+  if (this->numang > 0) {
+    newParm->angle_tk = new double[ numang ];
+    memcpy(newParm->angle_tk, this->angle_tk, numang * sizeof(double));
+    newParm->angle_teq = new double[ numang ];
+    memcpy(newParm->angle_teq, this->angle_teq, numang * sizeof(double));
+  }
   // Dihedral constant, periodicity, phase
   newParm->numdih = this->numdih;
-  newParm->dihedral_pk = new double[ numdih ];
-  memcpy(newParm->dihedral_pk, this->dihedral_pk, numdih * sizeof(double));
-  newParm->dihedral_pn = new double[ numdih ];
-  memcpy(newParm->dihedral_pn, this->dihedral_pn, numdih * sizeof(double));
-  newParm->dihedral_phase = new double[ numdih ];
-  memcpy(newParm->dihedral_phase, this->dihedral_phase, numdih * sizeof(double));
+  if (this->numdih>0) {
+    newParm->dihedral_pk = new double[ numdih ];
+    memcpy(newParm->dihedral_pk, this->dihedral_pk, numdih * sizeof(double));
+    newParm->dihedral_pn = new double[ numdih ];
+    memcpy(newParm->dihedral_pn, this->dihedral_pn, numdih * sizeof(double));
+    newParm->dihedral_phase = new double[ numdih ];
+    memcpy(newParm->dihedral_phase, this->dihedral_phase, numdih * sizeof(double));
+  }
   // SCEE and SCNB scale factors
-  newParm->scee_scale = new double[ numdih ];
-  memcpy(newParm->scee_scale, this->scee_scale, numdih * sizeof(double));
-  newParm->scnb_scale = new double[ numdih ];
-  memcpy(newParm->scnb_scale, this->scnb_scale, numdih * sizeof(double));
+  if (this->scee_scale!=NULL) {
+    newParm->scee_scale = new double[ numdih ];
+    memcpy(newParm->scee_scale, this->scee_scale, numdih * sizeof(double));
+  }
+  if (this->scnb_scale!=NULL) {
+    newParm->scnb_scale = new double[ numdih ];
+    memcpy(newParm->scnb_scale, this->scnb_scale, numdih * sizeof(double));
+  }
 
   // SOLTY is currently unused, just make a straight up copy for now.
   newParm->natyp = this->natyp;
-  newParm->solty = new double[ natyp ];
-  memcpy(newParm->solty, this->solty, natyp * sizeof(double));
-
+  if (this->natyp > 0) {
+    newParm->solty = new double[ natyp ];
+    memcpy(newParm->solty, this->solty, natyp * sizeof(double));
+  }
 
   // Fix up IPRES
   newParm->resnums[jres+1] = j;
