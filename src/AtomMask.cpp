@@ -6,13 +6,13 @@
 
 // CONSTRUCTOR
 AtomMask::AtomMask() {
-  invertMask=false;
   maskString=NULL;
   Selected=NULL;
   Nselected=0;
   Nchar=0;
   CharMask=NULL;
   Postfix = NULL;
+  maskChar = 'T';
 }
 
 // DESTRUCTOR
@@ -24,99 +24,35 @@ AtomMask::~AtomMask() {
   if (Postfix!=NULL) delete[] Postfix;
 }
 
-/* AtomMask::Reset()
- */
+// AtomMask::Reset()
 void AtomMask::Reset() {
   if (maskString!=NULL) delete[] maskString;
   if (Selected!=NULL) delete[] Selected;
   //if (CharMask!=NULL) delete[] CharMask;
   if (CharMask!=NULL) free(CharMask);
-  invertMask=false;
   maskString=NULL;
   Selected=NULL;
   Nselected=0;
   Nchar=0;
   CharMask=NULL;
+  maskChar='T';
 }
 
-/* AtomMask::AddAtom()
- * Add atom to Selected array in this mask.
- */
-void AtomMask::AddAtom(int atom) {
-  // Ensure atom is not already in mask
-  for (int maskidx=0; maskidx < Nselected; maskidx++)
-    if (Selected[maskidx]==atom) return;
-  int newN = Nselected + 1;
-  int *newSelected = new int[ newN ];
-  if (Selected!=NULL) {
-    memcpy(newSelected,Selected,Nselected*sizeof(int));
-    delete[] Selected;
-  }
-  newSelected[Nselected] = atom;
-  Selected = newSelected;
-  Nselected = newN;
+// AtomMask::InvertMask()
+/** Currently for integer masks only. Reverse the selected mask char for 
+  * next selection. By default atoms in the Selected array are those marked 
+  * by 'T'. After a call to InvertMask the atoms in the Selected array will
+  * be those marked by 'F'. Subsqeuent calls flip the character back and 
+  * forth.
+  */
+void AtomMask::InvertMask() {
+  if (maskChar == 'T')
+    maskChar = 'F';
+  else
+    maskChar = 'T';
 }
 
-/* AtomMask::AddAtoms()
- * Given an array, add the atom numbers in array to the Selected array.
- * NOTE: Unlike AddAtom the incoming list is not checked for duplicates.
- */
-void AtomMask::AddAtoms(int *atomList, int N_to_add) {
-  if (atomList==NULL || N_to_add < 1) return;
-  // Allocate space for new array
-  int newN = Nselected + N_to_add;
-  int *newSelected = new int[ newN ];
-  // Copy over old selected array
-  if (Selected!=NULL) {
-    memcpy(newSelected, Selected, Nselected * sizeof(int));
-    delete[] Selected;
-  }
-  // Add atoms in atomList
-  for (int atom = 0; atom < N_to_add; atom++) 
-    newSelected[Nselected++] = atomList[atom];
-  Selected = newSelected;
-  Nselected = newN;
-}
-
-/* AtomMask::AddAtomRange()
- * Add atoms in range from minAtom up to but not including maxAtom to 
- * Selected array.
- * NOTE: Does not check for duplicates.
- */
-void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
-  if (minAtom >= maxAtom) return;
-  int newN = Nselected + (maxAtom - minAtom);
-  int *newSelected = new int[ newN ];
-  // Copy over old selected array
-  if (Selected!=NULL) {
-    memcpy(newSelected, Selected, Nselected * sizeof(int));
-    delete[] Selected;
-  }
-  // Add minAtom <= atom < maxAtom to Selected
-  for (int atom = minAtom; atom < maxAtom; atom++) 
-    newSelected[Nselected++] = atom;
-  Selected = newSelected;
-  Nselected = newN;
-}
-
-/* AtomMask::PrintMaskAtoms()
- * Print all atoms in mask to line.
- */
-void AtomMask::PrintMaskAtoms() {
-  if (this->None()) 
-    mprintf("No atoms selected.");
-  else if (Selected!=NULL) {
-    for (int atom=0; atom<Nselected; atom++)
-      mprintf(" %i",Selected[atom]);
-  } else if (CharMask!=NULL) {
-    for (int atom=0; atom<Nchar; atom++)
-      if (CharMask[atom]=='T') mprintf(" %i",atom);
-  } else 
-    mprintf("Warning: Mask [%s] has not been set up yet.\n",maskString);
-}
-
-/* AtomMask::operator=()
- */
+// AtomMask::operator=()
 AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   // Check for self assignment
   if ( this == &rhs ) return *this;
@@ -128,7 +64,7 @@ AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   if (Selected!=NULL) delete[] Selected;
 
   // Allocate and copy
-  invertMask = rhs.invertMask;
+  maskChar = rhs.maskChar;
   Nchar = rhs.Nchar;
   Nselected = rhs.Nselected;
   if (rhs.CharMask!=NULL) {
@@ -149,9 +85,7 @@ AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   return *this;
 }
 
-/* AtomMask::CopyMask()
- * Return a copy of this atom mask.
- */
+// AtomMask::CopyMask()
 AtomMask *AtomMask::CopyMask() {
   AtomMask *newMask;
   
@@ -163,7 +97,7 @@ AtomMask *AtomMask::CopyMask() {
     newMask->Nselected = this->Nselected;
   }
 
-  newMask->invertMask = this->invertMask;
+  newMask->maskChar = this->maskChar;
 
   if (this->maskString!=NULL) {
     newMask->maskString = new char[ strlen(this->maskString)+1 ];
@@ -181,10 +115,82 @@ AtomMask *AtomMask::CopyMask() {
   return newMask;
 }
 
-/* AtomMask::SetMaskString()
- * Set maskString, replacing any existing maskString 
- * If maskStringIn is NULL set to * (all atoms)
- */
+// AtomMask::AddAtom()
+void AtomMask::AddAtom(int atom) {
+  // Ensure atom is not already in mask
+  for (int maskidx=0; maskidx < Nselected; maskidx++)
+    if (Selected[maskidx]==atom) return;
+  int newN = Nselected + 1;
+  int *newSelected = new int[ newN ];
+  if (Selected!=NULL) {
+    memcpy(newSelected,Selected,Nselected*sizeof(int));
+    delete[] Selected;
+  }
+  newSelected[Nselected] = atom;
+  Selected = newSelected;
+  Nselected = newN;
+}
+
+// AtomMask::AddAtoms()
+/** Given an array, add the atom numbers in array to the Selected array.
+  * Unlike AddAtom the incoming list is not checked for duplicates.
+  */
+void AtomMask::AddAtoms(int *atomList, int N_to_add) {
+  if (atomList==NULL || N_to_add < 1) return;
+  // Allocate space for new array
+  int newN = Nselected + N_to_add;
+  int *newSelected = new int[ newN ];
+  // Copy over old selected array
+  if (Selected!=NULL) {
+    memcpy(newSelected, Selected, Nselected * sizeof(int));
+    delete[] Selected;
+  }
+  // Add atoms in atomList
+  for (int atom = 0; atom < N_to_add; atom++) 
+    newSelected[Nselected++] = atomList[atom];
+  Selected = newSelected;
+  Nselected = newN;
+}
+
+// AtomMask::AddAtomRange()
+/** Add atoms in range from minAtom up to but not including maxAtom to 
+  * Selected array.
+  * NOTE: Does not check for duplicates.
+  */
+void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
+  if (minAtom >= maxAtom) return;
+  int newN = Nselected + (maxAtom - minAtom);
+  int *newSelected = new int[ newN ];
+  // Copy over old selected array
+  if (Selected!=NULL) {
+    memcpy(newSelected, Selected, Nselected * sizeof(int));
+    delete[] Selected;
+  }
+  // Add minAtom <= atom < maxAtom to Selected
+  for (int atom = minAtom; atom < maxAtom; atom++) 
+    newSelected[Nselected++] = atom;
+  Selected = newSelected;
+  Nselected = newN;
+}
+
+// AtomMask::PrintMaskAtoms()
+void AtomMask::PrintMaskAtoms() {
+  if (this->None()) 
+    mprintf("No atoms selected.");
+  else if (Selected!=NULL) {
+    for (int atom=0; atom<Nselected; atom++)
+      mprintf(" %i",Selected[atom]);
+  } else if (CharMask!=NULL) {
+    for (int atom=0; atom<Nchar; atom++)
+      if (CharMask[atom]==maskChar) mprintf(" %i",atom);
+  } else 
+    mprintf("Warning: Mask [%s] has not been set up yet.\n",maskString);
+}
+
+// AtomMask::SetMaskString()
+/** Take the given mask expression and preprocess it for subsequent use
+  * with the mask parser. Convert to infix, then postfix notation.
+  */
 int AtomMask::SetMaskString(char *maskStringIn) {
   char infix[MAXSELE], postfix[MAXSELE];
   int debug = 0; // temporary hack
@@ -221,25 +227,22 @@ int AtomMask::SetMaskString(char *maskStringIn) {
   return 0;
 }
 
-/* AtomMask::None()
- * Return true if no atoms are selected.
- */
+// AtomMask::None()
 bool AtomMask::None() {
   if (Nselected==0) return true;
   return false;
 }
 
-/* AtomMask::SetupMask()
- * Set up an atom mask given a parm file. The basic atom mask is allocated
- * using a version of PTRAJs mask parser (PtrajMask::parseMaskString)
- * which returns a char array of size P->natom, where selected atoms are 
- * denoted by T. Based on this create an array of selected atom numbers. 
- * If invertMask is true create an array of atoms that are not selected
- * instead.
- */
+// AtomMask::SetupMask()
+/** Set up an atom mask given a parm file. The basic atom mask is allocated
+  * using a version of PTRAJs mask parser (PtrajMask::parseMaskString)
+  * which returns a char array of size P->natom, where selected atoms are 
+  * denoted by T. Based on this create an array of selected atom numbers. 
+  * maskChar is used to determine whether atoms denoted by 'T' or 'F' will
+  * be selected (the latter is the case e.g. with stripped atoms). 
+  */
 int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
   char *mask;
-  char maskChar = 'T';
 
   if (Pin==NULL) {
     mprinterr("    Error: AtomMask::SetupMask: (%s) Topology is NULL.\n", maskString);
@@ -249,8 +252,6 @@ int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
     mprinterr("    Error: AtomMask::SetupMask: Postfix is NULL.\n");
     return 1;
   }
-
-  if (invertMask) maskChar='F';
 
   if (debug>1) mprintf("\tAtomMask: Parsing postfix [%s]\n",Postfix);
 
@@ -287,7 +288,7 @@ int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
   Selected = newSelected;
 
   if (debug>0) {
-    if (invertMask)
+    if (maskChar=='F')
       mprintf("          Inverse of Mask %s corresponds to %i atoms.\n",
               maskString,Pin->natom - Nselected);
     else
@@ -295,7 +296,7 @@ int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
   }
 
   // Free the character mask, no longer needed.
-  // NOTE: Use free() for now while PtrajMask uses free, needed by
+  // NOTE: Use free() for now since PtrajMask uses free, needed by
   //       ptraj_actions.c
   //delete[] mask;
   free(mask);
@@ -303,39 +304,11 @@ int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
   return 0;
 }
 
-/* AtomMask::SetupCharMask()
- * For cases where we need to know both atoms in and out of mask
- * just use the old school char array. 
- */
-/*int AtomMask::SetupCharMask(AmberParm *Pin, int debug) {
-  if (Pin==NULL) {
-    mprintf("    Error: AtomMask::SetupCharMask: (%s) Topology is NULL.\n", maskString);
-    return 1;
-  }
-
-  // Allocate atom mask - free mask if already allocated
-  Nchar = 0;
-  if (CharMask!=NULL) delete[] CharMask;
-  CharMask = parseMaskString(Postfix, Pin->natom, Pin->nres, Pin->names, Pin->resnames,
-                             Pin->resnums, NULL, Pin->types, debug);
-  if (CharMask==NULL) {
-    mprintf("    Error: Could not set up mask %s for topology %s\n",
-            maskString, Pin->parmName);
-    return 1;
-  }
-  // Determine number of selected atoms
-  Nselected=0;
-  for (int atom=0; atom<Pin->natom; atom++)
-    if (CharMask[atom]=='T') Nselected++;
-  Nchar = Pin->natom;
-  return 0;
-}*/
-
-/* AtomMask::SetupCharMask()
- * For cases where we need to know both atoms in and out of mask use
- * the output of parseMaskString (1 char for each atom, T for selected,
- * F for not.). 
- */
+// AtomMask::SetupCharMask()
+/** For cases where we need to know both atoms in and out of mask use
+  * the output of parseMaskString (1 char for each atom, T for selected,
+  * F for not.). 
+  */
 int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
   if (Pin==NULL) {
     mprinterr("    Error: AtomMask::SetupCharMask: (%s) Topology is NULL.\n", maskString);
@@ -364,18 +337,16 @@ int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
   // Determine number of selected atoms
   Nselected=0;
   for (int atom=0; atom<Pin->natom; atom++)
-    if (CharMask[atom]=='T') Nselected++;
+    if (CharMask[atom]==maskChar) Nselected++;
   Nchar = Pin->natom;
   return 0;
 }
 
-/* AtomMask::AtomInCharMask()
- * If CharMask has been set up check if atom has been selected.
- */
+// AtomMask::AtomInCharMask()
 bool AtomMask::AtomInCharMask(int atom) {
   if (CharMask==NULL) return false;
   if (atom < 0) return false;
   if (atom >= Nchar) return false;
-  if (CharMask[atom]=='T') return true;
+  if (CharMask[atom]==maskChar) return true;
   return false;
 }
