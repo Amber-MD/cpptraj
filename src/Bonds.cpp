@@ -1,6 +1,8 @@
+#include <list>
+#include <vector>
+#include <cstddef> // NULL
 #include "Bonds.h"
 #include "CpptrajStdio.h"
-#include <cstdlib> // NULL, malloc
 
 // CONSTRUCTOR
 BondInfo::BondInfo() {
@@ -13,99 +15,103 @@ BondInfo::~BondInfo() {
   if (Molecule!=NULL) delete[] Molecule;
 }
 
-/* BondInfo::Setup()
- * Set up for the given number of atoms.
- */
+// BondInfo::Setup()
+/// Set up for the given number of atoms.
 int BondInfo::Setup(int natomIn) {
   natom = natomIn;
-  Molecule = new bondinfo[natom];
+  Molecule = new bondinfo[ natom ];
   // Initialize molecule info for all atoms
   for (int atom=0; atom < natom; atom++) {
-    Molecule[atom][0] = -1;
-    Molecule[atom][1] = 0;
-    Molecule[atom][2] = 0;
-    Molecule[atom][3] = -1;
-    Molecule[atom][4] = -1;
-    Molecule[atom][5] = -1;
-    Molecule[atom][6] = -1;
-    Molecule[atom][7] = -1;
-    Molecule[atom][8] = -1;
-    Molecule[atom][9] = -1;
+    Molecule[atom].mol      = -1;
+    Molecule[atom].maxbonds =  0;
+    Molecule[atom].nbonds   =  0;
+    Molecule[atom].bond[0]  = -1;
+    Molecule[atom].bond[1]  = -1;
+    Molecule[atom].bond[2]  = -1;
+    Molecule[atom].bond[3]  = -1;
+    Molecule[atom].bond[4]  = -1;
+    Molecule[atom].bond[5]  = -1;
+    Molecule[atom].bond[6]  = -1;
   }
   return 0;
 }
 
-/* BondInfo::SetValence()
- * Set max valence for the given atom based on the given atom name
- * NOTE: Just set to max (7) for now.
- */
-void BondInfo::SetValence(int atom, char *Name) {
-  //Molecule[atom][1] = MaxValence(Name);
-  Molecule[atom][1] = 7;
+// BondInfo::SetValences()
+/// Set max valence for atoms based on the given atom names
+// NOTE: Just set all to max (7) for now.
+void BondInfo::SetValences(NAME *Name) {
+  for (int atom = 0; atom < natom; atom++) {
+    //Molecule[atom].maxbonds = MaxValence(Name[atom]);
+    Molecule[atom].maxbonds = 7;
+  }
 }
 
-/* BondInfo::BondAtoms()
- * Create a bond from atom2 to atom1.
- */
+// BondInfo::BondAtoms()
+/// Create a bond from atom2 to atom1.
 int BondInfo::BondAtoms(int atom1, int atom2) {
   // Add atom2 to atom1
-  if (Molecule[atom1][2] + 1 > Molecule[atom1][1]) {
+  if (Molecule[atom1].nbonds + 1 > Molecule[atom1].maxbonds) {
     mprintf("Warning: BondAtoms: Valences for atom %i maxed (%i)!\n",atom1+1,
-            Molecule[atom1][1]);
+            Molecule[atom1].maxbonds);
     return 1;
   }
-  int idx = Molecule[atom1][2] + 3;
-  Molecule[atom1][idx] = atom2;
-  Molecule[atom1][2]++;
+  int idx = Molecule[atom1].nbonds;
+  Molecule[atom1].bond[idx] = atom2;
+  Molecule[atom1].nbonds++;
   return 0;
 }
 
-/* BondInfo::CreateBond()
- * Create bond between both atoms.
- */
+// BondInfo::CreateBond()
+/// Create bond between both atoms.
 int BondInfo::CreateBond(int atom1, int atom2) {
-  BondAtoms(atom1,atom2);
-  BondAtoms(atom2,atom1);
-  return 0;
+  int err = 0;
+  //mprinterr("DBG:\tCreating bond between atom %i and %i\n",atom1,atom2);
+  err += BondAtoms(atom1,atom2);
+  err += BondAtoms(atom2,atom1);
+  return err;
 }
 
-/* BondInfo::PrintBonds()
- */
+// BondInfo::SetBondsFromAmberArray
+/// Set up bonding information from Amber-style bond arrays
+void BondInfo::SetBondsFromAmberArray(int *bondsIn, int N) {
+  int N3 = N * 3;
+  if (bondsIn==NULL) return;
+  for (int bond = 0; bond < N3; bond += 3) {
+    int atom1 = bondsIn[bond  ] / 3;
+    int atom2 = bondsIn[bond+1] / 3;
+    CreateBond(atom1,atom2);
+  }
+}
+
+// BondInfo::PrintBonds()
 void BondInfo::PrintBonds() {
-  int idx;
   for (int atom=0; atom < natom; atom++) {
-    mprintf("\t%8i [%8i]:",atom+1,Molecule[atom][0]);
-    idx = 3;
-    for (int bond=0; bond < Molecule[atom][2]; bond++) {
-      mprintf(" %i",Molecule[atom][idx++]+1);
+    mprintf("\t%8i [%8i]:",atom+1,Molecule[atom].mol);
+    for (int bond=0; bond < Molecule[atom].nbonds; bond++) {
+      mprintf(" %i",Molecule[atom].bond[bond]+1);
     }
     mprintf("\n");
   }
 }
 
-/* BondInfo::VisitAtom()
- */
+// BondInfo::VisitAtom()
 void BondInfo::VisitAtom(int atom, int mol) {
   // If this atom has already been visited return
-  if (Molecule[atom][0]!=-1) return;
+  if (Molecule[atom].mol!=-1) return;
   // Mark this atom as visited
-  Molecule[atom][0]=mol;
+  Molecule[atom].mol=mol;
   // Visit each atom bonded to this atom
-  int idx = 3;
-  for (int bond = 0; bond < Molecule[atom][2]; bond++) {
-    VisitAtom(Molecule[atom][idx], mol);
-    idx++;
-  }
+  for (int bond = 0; bond < Molecule[atom].nbonds; bond++) 
+    VisitAtom(Molecule[atom].bond[bond], mol);
 }
 
-/* BondInfo::DetermineMolecules() 
- */
+// BondInfo::DetermineMolecules() 
 int *BondInfo::DetermineMolecules(int *molecules) {
   int mol=0;
   int *atomsPerMol = NULL;
   // First perform recursive search along bonds to determine molecules
   for (int atom = 0; atom < natom; atom++) {
-    if (Molecule[atom][0]==-1) {
+    if (Molecule[atom].mol==-1) {
       //mprintf("\t\tStarting search for molecule %i at atom %i\n",mol,atom+1);
       VisitAtom(atom, mol);
       mol++;
@@ -114,13 +120,11 @@ int *BondInfo::DetermineMolecules(int *molecules) {
   mprintf("\t%i molecules.\n",mol);
 
   // Second count how many atoms are in each molecule
-  //atomsPerMol = new int[mol];
-  // NOTE: cant use 'new' here yet since AmberParm still uses 'free'
-  atomsPerMol = (int*) malloc(mol * sizeof(int));
+  atomsPerMol = new int[mol];
   for (int molecule = 0; molecule < mol; molecule++)
     atomsPerMol[ molecule ] = 0;
   for (int atom=0; atom < natom; atom++) {
-    int molecule = Molecule[atom][0];
+    int molecule = Molecule[atom].mol;
     if (molecule>-1)
       atomsPerMol[ molecule ]++;
   }
@@ -130,6 +134,84 @@ int *BondInfo::DetermineMolecules(int *molecules) {
 
   *molecules = mol;
   return atomsPerMol;
+}
+
+// BondInfo::AtomDistance()
+void BondInfo::AtomDistance(int atom, int dist) {
+  // If this atom is already too far away return
+  if (dist==4) return;
+  // Mark distance for this atom 
+  Molecule[atom].mol=dist;
+  // Visit each atom bonded to this atom
+  for (int bond = 0; bond < Molecule[atom].nbonds; bond++) 
+    AtomDistance(Molecule[atom].bond[bond], dist+1);
+}
+
+// BondInfo::DetermineExcludedAtoms()
+/** For each atom, first perform a truncated recursive search to determine
+  * which atoms are within 4 bonds away. Search bails once it is farther 
+  * than that. Then set up an ordered list of those atoms, which will then
+  * be the excluded atoms list. Also set up numex, the number of excluded
+  * atoms for each atom. Numex MUST already be allocated
+  */
+int *BondInfo::DetermineExcludedAtoms(int *numex, int *nnb) {
+  std::list<int> excluded_i;
+  std::vector<int> excluded;
+
+  if (numex==NULL) {
+    mprinterr("Error: BondInfo::DetermineExcludedAtoms: numex is NULL.\n");
+    return NULL;
+  }
+  // Ensure mol for each atom starts at -1
+  for (int atomi = 0; atomi < natom; atomi++)
+    Molecule[atomi].mol=-1;
+
+  // Determine excluded atoms for each atom
+  for (int atomi = 0; atomi < natom; atomi++) {
+    AtomDistance(atomi, 0);
+    // Now each atom within 4 bonds has mol set to how far away it is. All 
+    // other atoms have -1.
+    // Determine which atoms with atom# > this atom are closest. 
+    for (int atomj = 0; atomj < natom; atomj++) {
+      if (atomj > atomi) {
+        if (Molecule[atomj].mol!=-1) {
+          excluded_i.push_back(atomj);
+        }
+      }
+      // Reset mol for use with next atomi
+      Molecule[atomj].mol = -1;
+    }
+    // Sort
+    excluded_i.sort();
+    // If no excluded atoms for this atom, insert -1 as a placeholder
+    if (excluded_i.empty())
+      excluded_i.push_back(-1);
+    // Update numex
+    numex[atomi] = (int) excluded_i.size();
+
+    // DEBUG
+    //mprintf("DBG: %i: [%u]",atomi+1,excluded_i.size());
+    //for (std::list<int>::iterator it = excluded_i.begin(); it!=excluded_i.end(); it++)
+    //  mprintf(" %i",(*it)+1);
+    //mprintf("\n");
+    // END DEBUG
+    // Append excluded list for i to overall list
+    for (std::list<int>::iterator it = excluded_i.begin(); it!=excluded_i.end(); it++)
+      excluded.push_back(*it);
+    // Clear excluded list for i 
+    excluded_i.clear();
+  }
+  // Convert excluded to int array
+  *nnb = (int) excluded.size();
+  int *excludedAtoms = new int[ *nnb ];
+  int nex = 0;
+  for (std::vector<int>::iterator exatom = excluded.begin();
+                                  exatom != excluded.end();
+                                  exatom++)
+  {
+    excludedAtoms[nex++] = *exatom;
+  }
+  return excludedAtoms;
 }
 
 /* ========================================================================== */
