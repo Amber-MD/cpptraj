@@ -263,11 +263,24 @@ int AmberParm::GetLJparam(double *A, double *B, int atom1, int atom2) {
   return 0;
 }
 
+// AmberParm::GetBondParamIdx()
+/** Get the bond parameters from the bond_req and bond_rk arrays for
+  * the given index.
+  */
+int AmberParm::GetBondParamIdx(int idxIn, double *rk, double *req) {
+  if (bond_rk==NULL || bond_req==NULL) return 1;
+  if (idxIn < 0 || idxIn >= numbnd) return 1;
+  *rk = bond_rk[idxIn];
+  *req = bond_req[idxIn];
+  return 0;
+}
+
+
 // AmberParm::GetBondParam()
 /// Get bond parameters (if they exist) between atom1 and atom2
 /** \return 1 if parameters were found, 0 if not.
   */
-int AmberParm::GetBondParam(double *rk, double *req, int atom1, int atom2) {
+/*int AmberParm::GetBondParam(double *rk, double *req, int atom1, int atom2) {
   int idx = -2;
   int atom1_3 = atom1 * 3;
   int atom2_3 = atom2 * 3;
@@ -308,7 +321,7 @@ int AmberParm::GetBondParam(double *rk, double *req, int atom1, int atom2) {
   }
   //mprintf("DEBUG:\tAtoms %i and %i are bonded, rk=%lf  req=%lf\n",atom1+1,atom2+1,*rk,*req);
   return 1;
-}
+}*/
 
 // AmberParm::SetCharges()
 /// Set the atomic charges from the given array.
@@ -1755,6 +1768,7 @@ static int *SetupSequentialArray(int *atomMap, int oldN, int Nsequence,
   for (int oldi=0; oldi < oldNX; oldi += Nsequence) {
     // Check that atoms 0 to Nsequence exist in newParm. If any of the atoms
     // do not exist in newParm bail.
+    newatm = -1;
     for (int sequencei = 0; sequencei < Nsequence1; sequencei++) {
       int arrayAtom = oldArray[oldi+sequencei];
       // For dihedrals the atom # can be negative. Convert to positive

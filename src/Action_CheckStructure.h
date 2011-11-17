@@ -5,7 +5,26 @@
 // Class: CheckStructure 
 /// Action to check bond lengths and bad overlaps between non-bonded atoms 
 class CheckStructure: public Action {
-    std::vector<double> req_array; ///< Hold req for bonded atom pairs, 0 for non bonded
+    /// Used to cache bond parameters
+    struct bond_list {
+      double req;
+      int atom1;
+      int atom2;
+      int param;
+    };
+    std::vector<bond_list> bondL;
+    // Sort first by atom1, then by atom2
+    struct bond_list_cmp {
+      inline bool operator()(bond_list first, bond_list second) const {
+        if (first.atom1 < second.atom1) {
+          return true;
+        } else if (first.atom1 == second.atom1) {
+          if (first.atom2 < second.atom2) return true;
+        } 
+        return false;
+      }
+    };
+
     bool noimage;
     int imageType; 
     AtomMask Mask1;

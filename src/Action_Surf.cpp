@@ -92,7 +92,7 @@ int Surf::setup() {
  * NOTE: Is all the extra math in index calc worth it? Just have simple
  * square matrix?
  */
-int CalcIndex(int iIn, int jIn, int natom) {
+static int CalcIndex(int iIn, int jIn, int natom) {
   int i, j, i1;
 
   if (iIn > jIn) {
