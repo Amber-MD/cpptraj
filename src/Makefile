@@ -18,7 +18,9 @@ dependclean:
 	-/bin/rm findDepend
 
 cpptraj$(SFX): $(OBJECTS) $(PTRAJ_OBJECTS) $(ARPACK) $(LAPACK) $(BLAS) 
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) $(FLIBS_PTRAJ) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) \
+      -L$(LIBDIR) $(FLIBS_PTRAJ) $(NETCDFLIB) $(ZLIB) $(BZLIB) \
+      $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
 
 
 $(BLAS):
