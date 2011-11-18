@@ -61,11 +61,13 @@ int analyzeTest(analyzeInformation *, stackType *, int);
 int analyzeCorrelationCoefficient(analyzeInformation *, stackType *, int);
 int analyzeCrankshaft(analyzeInformation *, stackType *, int);
 //int analyzeHBond(analyzeInformation *, stackType *, int);
-int analyzeMatrix(analyzeInformation *, stackType *, int);
 int analyzeModes(analyzeInformation *, stackType *, int);
 int analyzeSet(analyzeInformation *, stackType *, int);
 int analyzeStatistics(analyzeInformation *, stackType *, int);
+#ifndef NO_PTRAJ_ANALYZE
+int analyzeMatrix(analyzeInformation *, stackType *, int);
 int analyzeTimecorr(analyzeInformation *, stackType *, int);
+#endif
 int analyzeTest(analyzeInformation *, stackType *, int);
 
   

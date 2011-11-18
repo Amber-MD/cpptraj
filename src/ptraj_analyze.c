@@ -616,6 +616,7 @@ analyzeCrankshaft(analyzeInformation *analyze, stackType *sp, int mode)
 
 }
 
+#ifndef NO_PTRAJ_ANALYZE
 /** ANALYZE ROUTINE *************************************************************
  *
  *  analyzeMatrix() --- diagonalizes matrices
@@ -1261,6 +1262,7 @@ analyzeMatrix(analyzeInformation *analyze, stackType *sp, int mode)
 
   return 1;
 }
+#endif // ifndef NO_PTRAJ_ANALYZE
 
 /** ANALYZE ROUTINE *************************************************************
  *
@@ -3418,6 +3420,7 @@ analyzeStatistics(analyzeInformation *analyze, stackType *sp, int mode)
 
 }
 
+#ifndef NO_PTRAJ_ANALYZE
 /** ANALYZE ROUTINE *************************************************************
  *
  *  analyzeTimecorr() --- auto and cross correlation functions 
@@ -4447,3 +4450,5 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
 
   return 1;
 }
+#endif // ifndef NO_PTRAJ_ANALYZE
+

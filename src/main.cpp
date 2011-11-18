@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <cstdlib> // atoi
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V2.3.3b"
+#define CPPTRAJ_VERSION_STRING "V2.3.4b"
 #endif
 
 // Usage()
@@ -178,7 +178,10 @@ static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
       mprintf(" -DMPI");
 #endif
 #ifdef _OPENMP
-      mprintf(" -openmp");
+      mprintf(" -D_OPENMP");
+#endif
+#ifdef NO_PTRAJ_ANALYZE
+      mprintf(" -DNO_PTRAJ_ANALYZE");
 #endif
       return 2;
 

@@ -19,6 +19,8 @@ Usage() {
   echo "   -nozlib    : Do not use zlib (gzip/zip)"
   echo "   -nonetcdf  : Do not use netcdf"
   echo "   -nolfs     : Do not enable large file support."
+  echo "   -noptrajanalyze: Do not include ptraj analysis functions, which requires"
+  echo "                    ptraj, arpack, lapack, and blas from AmberTools"
   echo "      Static linking options:"
   echo "   --with-netcdf=<DIR>"
   echo "   --with-zlib=<DIR>"
@@ -152,7 +154,7 @@ if [[ -z $1  || $1 = "--help" ]] ; then
   exit 0
 fi
 
-CONFIGURECMD="$*"
+CONFIGURECMD="./configure $*"
 
 KEY=""
 VALUE=""
@@ -178,6 +180,7 @@ NETCDFLIB="-lnetcdf"
 BLAS=$AMBERHOME/lib/blas.a
 LAPACK=$AMBERHOME/lib/lapack.a
 ARPACK=$AMBERHOME/lib/arpack.a
+PTRAJ_ANALYZE=1
 FLIBS=""
 PTRAJ_OBJECTS="thermo.o pubfft.o"
 #HDF5LIB="-lhdf5_hl -lhdf5"
@@ -252,6 +255,10 @@ while [[ ! -z $1 ]] ; do
       echo "Not using netcdf"
       NETCDFLIB=""
       ;;
+    "-noptrajanalyze")
+      echo "Not using 'timecorr' and 'matrix' analysis functions from ptraj."
+      PTRAJ_ANALYZE=0
+      ;;
     "--with-bzlib"  )
       INCLUDE="$INCLUDE -I$VALUE/include"
       BZLIB="-I$VALUE/include $VALUE/lib/libbz2.a"
@@ -317,6 +324,23 @@ if [[ ! -z $NETCDFLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DBINTRAJ"
 fi
 
+# Remove ptraj objects if specified, otherwise make sure AMBERHOME is defined
+if [[ $PTRAJ_ANALYZE -eq 0 ]] ; then
+  PTRAJ_OBJECTS=""
+  BLAS=""
+  ARPACK=""
+  LAPACK=""
+  FLIBS=""
+  DIRECTIVES="$DIRECTIVES -DNO_PTRAJ_ANALYZE"
+else
+  if [[ -z $AMBERHOME ]] ; then
+    echo "Error: AMBERHOME is not defined and '-noptrajanalyze' not specified."
+    echo "       The ptraj analyze routines require ptraj, blas, arpack, and"
+    echo "       lapack from AmberTools. Set AMBERHOME and re-run configure."
+    exit 1
+  fi
+fi
+
 # Change compilers for MPI if specified
 if [[ $USEMPI -eq 1 ]] ; then
   echo "Using MPI"
@@ -359,7 +383,7 @@ TestCompile
 # Write config.h
 cat > config.h <<EOF
 # config.h for cpptraj
-# configured using args: "$CONFIGURECMD"
+# configured using: "$CONFIGURECMD"
 
 CPPTRAJHOME=$CPPTRAJHOME
 CPPTRAJBIN=$CPPTRAJBIN

@@ -61,9 +61,19 @@ int PtrajAnalysis::Analyze() {
   } else if ( analyzeArgs.ArgIs(1,"crank")            ) {
     analyzeinfo->type = ANALYZE_CRANKSHAFT;
     analyzeinfo->fxn  = (analyzeFunction) analyzeCrankshaft;
+#ifndef NO_PTRAJ_ANALYZE
   } else if ( analyzeArgs.ArgIs(1,"matrix")           ) {
     analyzeinfo->type = ANALYZE_MATRIX;
     analyzeinfo->fxn  = (analyzeFunction) analyzeMatrix;
+  } else if ( analyzeArgs.ArgIs(1,"timecorr")         ) {
+    analyzeinfo->type = ANALYZE_TIMECORR;
+    analyzeinfo->fxn  = (analyzeFunction) analyzeTimecorr;
+#else
+  } else if ( analyzeArgs.ArgIs(1,"matrix")           ) {
+    mprinterr("Error: cpptraj compiled with -DNO_PTRAJ_ANALYZE, 'analyze matrix' unsupported.\n");
+  } else if ( analyzeArgs.ArgIs(1,"timecorr")         ) {
+    mprinterr("Error: cpptraj compiled with -DNO_PTRAJ_ANALYZE, 'analyze timecorr' unsupported.\n");
+#endif
   } else if ( analyzeArgs.ArgIs(1,"modes")            ) {
     analyzeinfo->type = ANALYZE_MODES;
     analyzeinfo->fxn  = (analyzeFunction) analyzeModes;
@@ -73,14 +83,17 @@ int PtrajAnalysis::Analyze() {
   } else if ( analyzeArgs.ArgIs(1,"stat")             ) {
     analyzeinfo->type = ANALYZE_STATISTICS;
     analyzeinfo->fxn  = (analyzeFunction) analyzeStatistics;
-  } else if ( analyzeArgs.ArgIs(1,"timecorr")         ) {
-    analyzeinfo->type = ANALYZE_TIMECORR;
-    analyzeinfo->fxn  = (analyzeFunction) analyzeTimecorr;
   } else if ( analyzeArgs.ArgIs(1,"test")             ) {
     analyzeinfo->type = ANALYZE_TEST;
     analyzeinfo->fxn  = (analyzeFunction) analyzeTest;
   } else {
     mprinterr("Error: PtrajAnalysis: Unrecognized command: %s\n",analyzeArgs.ArgAt(1));
+  }
+
+  // If still ANALYZE_NOOP there was a problem, free and return
+  if (analyzeinfo->type == ANALYZE_NOOP) {
+    free( analyzeinfo );
+    analyzeinfo = NULL;
     return 1;
   }
 
