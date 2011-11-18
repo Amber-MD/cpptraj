@@ -123,28 +123,30 @@ TestCompile() {
   /bin/rm -f testp.cpp testp
   echo "  OK"
 
-  # Fortran
-  echo "Testing Fortran compiler:"
-  cat > testp.f <<EOF
+  # Fortran - only needed if ptraj analyze routines being used
+  if [[ $PTRAJ_ANALYZE -eq 1 ]] ; then
+    echo "Testing Fortran compiler:"
+    cat > testp.f <<EOF
       program testf
       write(6,*) 'testing a Fortran program'
       end program testf
 EOF
-  $FC $FFLAGS -o testp testp.f > /dev/null 2>&1
-  ./testp | grep "testing a Fortran program" > /dev/null
-  status=$?
-  if [[ $status -gt 0 ]] ; then
-      echo "  Error: Unable to compile a Fortran program using:"
-      echo "       $FC $FFLAGS" 
-      echo "       Please check your compiler settings or configure flags."
-      echo "       If errors/warnings appear above related to netcdf.h, zlib.h,"
-      echo "       or bzlib.h check that your compiler is able to find the "
-      echo "       correct libraries."
-      echo ""
-      exit 1
+    $FC $FFLAGS -o testp testp.f > /dev/null 2>&1
+    ./testp | grep "testing a Fortran program" > /dev/null
+    status=$?
+    if [[ $status -gt 0 ]] ; then
+        echo "  Error: Unable to compile a Fortran program using:"
+        echo "       $FC $FFLAGS" 
+        echo "       Please check your compiler settings or configure flags."
+        echo "       If errors/warnings appear above related to netcdf.h, zlib.h,"
+        echo "       or bzlib.h check that your compiler is able to find the "
+        echo "       correct libraries."
+        echo ""
+        exit 1
+    fi
+    /bin/rm -f testp.f testp
+    echo "  OK"
   fi
-  /bin/rm -f testp.f testp
-  echo "  OK"
 }
 
 #---------------------------------------------------------------------
@@ -177,9 +179,12 @@ LDFLAGS=""
 BZLIB="-lbz2"
 ZLIB="-lz"
 NETCDFLIB="-lnetcdf"
-BLAS=$AMBERHOME/lib/blas.a
-LAPACK=$AMBERHOME/lib/lapack.a
-ARPACK=$AMBERHOME/lib/arpack.a
+BLAS_HOME=$AMBERHOME/AmberTools/src/blas
+LAPACK_HOME=$AMBERHOME/AmberTools/src/lapack
+ARPACK_HOME=$AMBERHOME/AmberTools/src/arpack
+BLAS=$AMBERHOME/lib/libblas.a
+LAPACK=$AMBERHOME/lib/liblapack.a
+ARPACK=$AMBERHOME/lib/libarpack.a
 PTRAJ_HOME=$AMBERHOME/AmberTools/src/ptraj
 PTRAJ_ANALYZE=1
 FLIBS=""
@@ -280,6 +285,11 @@ while [[ ! -z $1 ]] ; do
       HDF5LIB="-I$VALUE/include $VALUE/lib/libhdf5_hl.a $VALUE/lib/libhdf5.a -lm"
       echo "Using HDF5LIB: $HDF5LIB"
       ;;
+    "--prefix" )
+      CPPTRAJHOME=$VALUE
+      CPPTRAJBIN=$VALUE
+      echo "Installing cpptraj binary to $CPPTRAJBIN"
+      ;;
     * )
       echo "Unrecognized OPTION: $1"
       exit 1
@@ -329,6 +339,9 @@ fi
 if [[ $PTRAJ_ANALYZE -eq 0 ]] ; then
   PTRAJ_OBJECTS=""
   PTRAJ_HOME=""
+  BLAS_HOME=""
+  ARPACK_HOME=""
+  LAPACK_HOME=""
   BLAS=""
   ARPACK=""
   LAPACK=""
@@ -399,16 +412,20 @@ FFLAGS=$FFLAGS
 ZLIB=$ZLIB
 BZLIB=$BZLIB
 NETCDFLIB=$NETCDFLIB
+
+ARPACK_HOME=$ARPACK_HOME
+LAPACK_HOME=$LAPACK_HOME
+BLAS_HOME=$BLAS_HOME
 ARPACK=$ARPACK
 LAPACK=$LAPACK
 BLAS=$BLAS
 FLIBS=$FLIBS
 PTRAJ_HOME=$PTRAJ_HOME
+PTRAJ_OBJECTS=$PTRAJ_OBJECTS
 
 LDFLAGS=$LDFLAGS
 SFX=
 
-PTRAJ_OBJECTS=$PTRAJ_OBJECTS
 
 EOF
 
