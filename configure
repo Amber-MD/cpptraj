@@ -180,6 +180,7 @@ NETCDFLIB="-lnetcdf"
 BLAS=$AMBERHOME/lib/blas.a
 LAPACK=$AMBERHOME/lib/lapack.a
 ARPACK=$AMBERHOME/lib/arpack.a
+PTRAJ_HOME=$AMBERHOME/AmberTools/src/ptraj
 PTRAJ_ANALYZE=1
 FLIBS=""
 PTRAJ_OBJECTS="thermo.o pubfft.o"
@@ -327,6 +328,7 @@ fi
 # Remove ptraj objects if specified, otherwise make sure AMBERHOME is defined
 if [[ $PTRAJ_ANALYZE -eq 0 ]] ; then
   PTRAJ_OBJECTS=""
+  PTRAJ_HOME=""
   BLAS=""
   ARPACK=""
   LAPACK=""
@@ -401,6 +403,7 @@ ARPACK=$ARPACK
 LAPACK=$LAPACK
 BLAS=$BLAS
 FLIBS=$FLIBS
+PTRAJ_HOME=$PTRAJ_HOME
 
 LDFLAGS=$LDFLAGS
 SFX=

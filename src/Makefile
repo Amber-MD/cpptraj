@@ -18,9 +18,7 @@ dependclean:
 	-/bin/rm findDepend
 
 cpptraj$(SFX): $(OBJECTS) $(PTRAJ_OBJECTS) $(ARPACK) $(LAPACK) $(BLAS) 
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) \
-      -L$(LIBDIR) $(FLIBS_PTRAJ) $(NETCDFLIB) $(ZLIB) $(BZLIB) \
-      $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) $(FLIBS_PTRAJ) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
 
 
 $(BLAS):
@@ -32,11 +30,11 @@ $(ARPACK):
 $(LAPACK):
 	cd ../../lapack && $(MAKE) install 
 
-thermo.o:  ../../ptraj/thermo.f
-	$(FC) -c $(FFLAGS) -o $@ ../../ptraj/thermo.f
+thermo.o:  $(PTRAJ_HOME)/thermo.f
+	$(FC) -c $(FFLAGS) -o $@ $(PTRAJ_HOME)/thermo.f
 
-pubfft.o:  ../../ptraj/pubfft.f
-	$(FC) -c $(FFLAGS) -o $@ ../../ptraj/pubfft.f
+pubfft.o:  $(PTRAJ_HOME)/pubfft.f
+	$(FC) -c $(FFLAGS) -o $@ $(PTRAJ_HOME)/pubfft.f
 
 clean:
 	/bin/rm -f $(OBJECTS) $(PTRAJ_OBJECTS) cpptraj$(SFX)
