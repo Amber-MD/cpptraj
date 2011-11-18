@@ -1,8 +1,8 @@
 // TrajectoryFile
-#include "TrajectoryFile.h"
-#include "CpptrajStdio.h"
 #include <cstdlib> //div_t
 #include <cstring> // TrajName
+#include "TrajectoryFile.h"
+#include "CpptrajStdio.h"
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
 #ifdef BINTRAJ

@@ -353,7 +353,7 @@ void atommap::WriteMol2(char *m2filename) {
   // Create mask with all mapped atoms
   for (int atom=0; atom<natom; atom++) {if (M[atom].isMapped) M1.AddAtom(atom);}
   // Strip so only mapped atoms remain
-  tmpParm = mapParm->modifyStateByMask(M1.Selected,M1.Nselected);
+  tmpParm = mapParm->modifyStateByMask(M1.Selected,M1.Nselected,NULL);
   tmpFrame.SetupFrame(M1.Nselected,NULL);
   tmpFrame.SetFrameFromMask(mapFrame, &M1);
 
@@ -1086,7 +1086,7 @@ int AtomMap::init() {
       // Strip reference parm
       mprintf("    Modifying reference %s topology and frame to match mapped atoms.\n",
               FL->FrameName(refIndex));
-      stripParm = RefMap.mapParm->modifyStateByMask(M1->Selected, numMappedAtoms);
+      stripParm = RefMap.mapParm->modifyStateByMask(M1->Selected, numMappedAtoms, NULL);
       // Strip reference frame
       newFrame = new Frame();
       newFrame->SetupFrame(numMappedAtoms,RefMap.mapParm->mass);

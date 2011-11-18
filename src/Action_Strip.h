@@ -9,6 +9,7 @@ class Strip: public Action {
     Frame newFrame;
     char *prefix;
     AtomMask M1;
+    bool removeBoxInfo;
   public:
     Strip();
     ~Strip();

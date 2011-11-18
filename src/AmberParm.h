@@ -41,6 +41,7 @@ class AmberParm {
 
     // Parm format readers
     int ReadParmMol2(CpptrajFile *);
+    void SetParmFromValues(int*,bool);
     int ReadParmOldAmber(CpptrajFile *);
     int ReadParmAmber(CpptrajFile *);
     int SetAtomsPerMolPDB(int);
@@ -51,6 +52,7 @@ class AmberParm {
     void GetBondsFromCoords();
     double *parmCoords;
     int DetermineMolecules();
+    int SetupExcludedAtoms();
 
     int *numex;         ///< NUMEX(NATOM)
     int *atype_index;   ///< IAC(NATOM)
@@ -60,7 +62,7 @@ class AmberParm {
     double *LJ_B;       ///< CN2(NTYPES*(NTYPES+1)/2)
     int nnb;            ///< NNB
     int *excludedAtoms; ///< INB(NNB)
-    char *radius_set;   ///< TYPE
+    char *radius_set;   ///< TYPE 
     double *gb_radii;   ///< RBORN(NATOM)
     double *gb_screen;  ///< FS(NATOM)
 
@@ -84,6 +86,16 @@ class AmberParm {
     NAME *itree;        ///< ITREE(NATOM)
     int *join_array;    ///< JOIN(NATOM)
     int *irotat;        ///< IROTAT(NATOM)
+
+    int numbnd;         ///< NUMBND: number of bond types
+    int numang;         ///< NUMANG: number of angle types
+    int numdih;         ///< NPTRA: number of dihedral types
+    int NanglesWithH;   ///< NTHETH: number of angles containing hydrogen
+    int NanglesWithoutH;///< MTHETA/(NTHETA): number of angles not containing hydrogen
+    int NdihedralsWithH;///< NPHIH: number of dihedrals containing hydrogen
+    int NdihedralsWithoutH; ///< MPHIA/(NPHIA): number of dihedrals not containing hydrogen
+    int natyp;          ///< NATYP: number of atom types in parameter file (SOLTY)
+    int nphb;           ///< NPHB: number of distinct 10-12 hydrogen bond pair types
 
   public:
     char *parmfileName;   ///< Parm filename (full path)
@@ -114,6 +126,8 @@ class AmberParm {
     int NumExcludedAtoms(int);
     int Natex(int);
     int GetLJparam(double *, double *, int, int);
+    int GetBondParamIdx(int, double *, double *);
+    //int GetBondParam(double *, double *, int, int);
     int SetCharges(double*);
 
     double Box[6];      ///< X, Y, Z, alpha, beta, gamma 
@@ -156,7 +170,7 @@ class AmberParm {
     void ResetBondInfo(); 
     int AddBond(int, int, int);
 
-    AmberParm *modifyStateByMask(int *, int);
+    AmberParm *modifyStateByMask(int *, int, char*);
     AmberParm *modifyStateByMap(int *);
 
     int WriteAmberParm(char*); 

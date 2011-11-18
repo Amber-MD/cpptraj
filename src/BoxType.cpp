@@ -3,30 +3,29 @@
 #include <cstddef>
 #include "CpptrajStdio.h"
 
-/* CheckBoxType()
- * Determine box type (none/ortho/nonortho) based on box angles.
- */
+// CheckBoxType()
+/// Determine box type (none/ortho/nonortho) based on box angles.
 BoxType CheckBoxType(double *box, int debug) {
   BoxType btype = NOBOX;
-  if (box==NULL) return NOBOX;
-
+  if (box==NULL || box[0]<0 || box[1]<0 || box[2]<0) 
+    btype = NOBOX;
   // Determine orthogonal / non-orthogonal from angles
-  if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0)
+  else if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0)
     btype = NOBOX;
   else if (box[0]==90.0 && box[1]==90.0 && box[2]==90.0)
     btype = ORTHO;
   else
     btype = NONORTHO;
-  if (debug>0) mprintf("    Box type is %i (beta=%lf)\n",btype,box[0]);
+  if (debug>0) mprintf("\tBox type is %i (beta=%lf)\n",btype,box[1]);
   return btype;
 }
 
-/* AmberIfbox()
- * Based on beta, return Amber IFBOX type:
- *   0: No box
- *   1: Box
- *   2: Truncated octahedral box
- */
+// AmberIfbox()
+/** Based on beta, return Amber IFBOX type:
+  *   0: No box
+  *   1: Box
+  *   2: Truncated octahedral box
+  */
 int AmberIfbox(double beta) {
   if (beta <= 0.0)
     return 0;
@@ -36,15 +35,15 @@ int AmberIfbox(double beta) {
     return 1;
 }
 
-/* SetBoxInfo()
- * Given an angle (beta) and 3 edge lengths, set up a box 
- * (3 lengths + 3 angles) and return box type. 
- * Currently recognized betas:
- *   90.00 - Orthogonal
- *  109.47 - Truncated octahedral
- *   60.00 - Rhombic dodecahedron
- * Any other betas just sets all angles to beta and a warning is printed.
- */
+// SetBoxInfo()
+/** Given an angle (beta) and 3 edge lengths, set up a box 
+  * (3 lengths + 3 angles) and return box type. 
+  * Currently recognized betas:
+  *   90.00 - Orthogonal
+  *  109.47 - Truncated octahedral
+  *   60.00 - Rhombic dodecahedron
+  * Any other betas just sets all angles to beta and a warning is printed.
+  */
 BoxType SetBoxInfo(double *bIn, double *Box, int debug) {
   BoxType btype = NOBOX;
   double beta, bx, by, bz;

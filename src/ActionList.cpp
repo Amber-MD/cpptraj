@@ -28,6 +28,7 @@
 #include "Action_Pairwise.h"
 #include "Action_PtrajAction.h"
 #include "Action_Molsurf.h"
+#include "Action_CheckStructure.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() {
@@ -89,6 +90,8 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("cluster"))  {Act=new Clustering;}
   else if (argIn.CommandIs("pairwise")) {Act=new Pairwise;}
   else if (argIn.CommandIs("molsurf"))  {Act=new Molsurf; }
+  else if (argIn.CommandIs("checkstructure")) {Act=new CheckStructure;}
+  else if (argIn.CommandIs("check"))    {Act=new CheckStructure;}
   // PTRAJ
   else if (argIn.CommandIs("atomicfluct") ||
            argIn.CommandIs("atomicfluct3D") ||

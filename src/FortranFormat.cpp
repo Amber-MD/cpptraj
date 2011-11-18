@@ -192,6 +192,23 @@ static bool PositionFileAtFlag(CpptrajFile *File, const char *Key, char *fformat
   return false;
 }  
 
+// RemoveWhitespace()
+/// Remove terminal whitespace from string (including newline + CR) 
+static void RemoveWhitespace(char *bufferIn) {
+  char *ptr = NULL;
+  char *end;
+  if (bufferIn==NULL) return;
+  // Position ptr at the last char of bufferIn
+  end = bufferIn + strlen(bufferIn) - 1;
+  for (ptr = end; ptr >= bufferIn; ptr--) {
+    // Stop at first non-whitespace non-newline char.
+    if (*ptr!=' ' && *ptr!='\n' && *ptr!='\r') break;
+  }
+  // Put a NULL just after the first non-whitespace char
+  ptr++;
+  *ptr='\0';
+}
+
 // getFlagFileString()
 /** Search for the FLAG specified by Key. Assume the next line is a string 
   * of max length 80 chars and return it.
@@ -204,6 +221,7 @@ char *getFlagFileString(CpptrajFile *File, const char *Key, int debug) {
     // Read next line and return
     lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
     File->IO->Gets(lineBuffer,82);
+    RemoveWhitespace(lineBuffer);
     return lineBuffer;
   }
 
@@ -302,6 +320,7 @@ void *getFlagFileValues(CpptrajFile *File, AmberParmFlagType fflag, int maxval, 
 char *F_load20a4(CpptrajFile *File) {
   char *lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
   File->IO->Gets(lineBuffer,82);
+  RemoveWhitespace(lineBuffer);
   return lineBuffer;
 }
 
@@ -380,13 +399,23 @@ int DataToFortranBuffer(CharBuffer &buffer, AmberParmFlagType fFlag,
   FortranType fType;
   char FormatString[32];
 
-
   // Determine type, cols, width, and precision from format string
   fType = GetFortranType((char*)AmberParmFmt[fFlag], &numCols, &width, &precision);
   if (fType == UNKNOWN_FTYPE) {
     mprinterr("Error: DataToFortranBuffer: Unknown format string [%s]\n",AmberParmFmt[fFlag]);
     return 1;
   }
+
+  // If called with N == 0, or all NULL, want the FLAG and FORMAT lines but 
+  // no data, just a newline.
+  if (N==0 || (I==NULL && D==NULL && C==NULL)) {
+    buffer.IncreaseSize( FFSIZE + 1 ); // FLAG + FORMAT lines, + newline
+    buffer.Sprintf("%%FLAG %-74s\n",AmberParmFlag[fFlag]);
+    buffer.Sprintf("%-80s\n",AmberParmFmt[fFlag]);
+    buffer.NewLine();
+    return 0;
+  }
+
   // Increase the buffer by the appropriate amount
   size_t delta = GetFortranBufferSize(N,0,width,numCols);
   delta += FFSIZE; // FFSIZE is Combined size of %FLAG and %FORMAT lines (81 * 2)

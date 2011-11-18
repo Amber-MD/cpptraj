@@ -1,5 +1,8 @@
 #ifndef INC_TRAJECTORYFILE_H
 #define INC_TRAJECTORYFILE_H
+#include "ProgressBar.h"
+#include "TrajectoryIO.h" // AmberParm BoxType CpptrajFile ArgList 
+#include "Range.h"
 // Class: TrajectoryFile
 /// Allow reading and writing of trajectory files.
 /** Wrapper around the TrajectoryIO base class that allows the rest of cpptraj
@@ -7,9 +10,6 @@
   * the start, stop, and offset values.
   */
 // NOTE: Remove boxType?
-#include "ProgressBar.h"
-#include "TrajectoryIO.h" // AmberParm BoxType CpptrajFile ArgList 
-#include "Range.h"
 class TrajectoryFile {
     /// trajectory debug level
     int debug;

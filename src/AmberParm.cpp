@@ -93,6 +93,16 @@ AmberParm::AmberParm() {
   itree=NULL;
   join_array=NULL;
   irotat=NULL;
+
+  numbnd=0;
+  numang=0;
+  numdih=0;
+  NanglesWithH=0;
+  NanglesWithoutH=0;
+  NdihedralsWithH=0;
+  NdihedralsWithoutH=0;
+  natyp=0;
+  nphb=0;
 }
 
 // DESTRUCTOR
@@ -123,7 +133,7 @@ AmberParm::~AmberParm() {
   if (LJ_A!=NULL) delete[] LJ_A;
   if (LJ_B!=NULL) delete[] LJ_B;
   if (excludedAtoms!=NULL) delete[] excludedAtoms;
-  if (radius_set!=NULL) delete[] radius_set; // getFlagFileString uses 'new'
+  if (radius_set!=NULL) delete[] radius_set;
   if (gb_radii!=NULL) delete[] gb_radii;
   if (gb_screen!=NULL) delete[] gb_screen;
 
@@ -134,6 +144,8 @@ AmberParm::~AmberParm() {
   if (dihedral_pk!=NULL) delete[] dihedral_pk;
   if (dihedral_pn!=NULL) delete[] dihedral_pn;
   if (dihedral_phase!=NULL) delete[] dihedral_phase;
+  if (scee_scale!=NULL) delete[] scee_scale;
+  if (scnb_scale!=NULL) delete[] scnb_scale;
   if (solty!=NULL) delete[] solty;
   if (anglesh!=NULL) delete[] anglesh;
   if (angles!=NULL) delete[] angles;
@@ -251,6 +263,66 @@ int AmberParm::GetLJparam(double *A, double *B, int atom1, int atom2) {
   return 0;
 }
 
+// AmberParm::GetBondParamIdx()
+/** Get the bond parameters from the bond_req and bond_rk arrays for
+  * the given index.
+  */
+int AmberParm::GetBondParamIdx(int idxIn, double *rk, double *req) {
+  if (bond_rk==NULL || bond_req==NULL) return 1;
+  if (idxIn < 0 || idxIn >= numbnd) return 1;
+  *rk = bond_rk[idxIn];
+  *req = bond_req[idxIn];
+  return 0;
+}
+
+
+// AmberParm::GetBondParam()
+/// Get bond parameters (if they exist) between atom1 and atom2
+/** \return 1 if parameters were found, 0 if not.
+  */
+/*int AmberParm::GetBondParam(double *rk, double *req, int atom1, int atom2) {
+  int idx = -2;
+  int atom1_3 = atom1 * 3;
+  int atom2_3 = atom2 * 3;
+
+  if (bonds==NULL || bondsh==NULL) return 0;
+  // Based on name, check bonds or bondsh array, find atom index.
+  if (names[atom1][0]=='H' || names[atom2][0]=='H') {
+    for (int bond = 0; bond < NbondsWithH * 3; bond += 3) {
+      if ( (bondsh[bond] == atom1_3 && bondsh[bond+1] == atom2_3) ||
+           (bondsh[bond] == atom2_3 && bondsh[bond+1] == atom1_3)   )
+      {
+        idx = bondsh[bond+2];
+        break;
+      }
+    }
+  } else {
+    for (int bond = 0; bond < NbondsWithoutH * 3; bond += 3) {
+      if ( (bonds[bond] == atom1_3 && bonds[bond+1] == atom2_3) ||
+           (bonds[bond] == atom2_3 && bonds[bond+1] == atom1_3)   )
+      {
+        idx = bonds[bond+2];
+        break;
+      }
+    }
+  }
+  // If idx is -2 these atoms are not bonded.
+  if (idx==-2) return 0;
+  // If idx is -1 atoms are bonded but no parameters for these atoms. Return 
+  // default cutoff, no constant.
+  if (idx==-1 || bond_rk==NULL || bond_req==NULL) {
+    *req = GetBondedCut(names[atom1], names[atom2]);
+    *rk = 0.0;
+  } else {
+    // indices in Amber parms are shifted +1
+    idx--;
+    *req = bond_req[idx];
+    *rk = bond_rk[idx];
+  }
+  //mprintf("DEBUG:\tAtoms %i and %i are bonded, rk=%lf  req=%lf\n",atom1+1,atom2+1,*rk,*req);
+  return 1;
+}*/
+
 // AmberParm::SetCharges()
 /// Set the atomic charges from the given array.
 int AmberParm::SetCharges(double *chargeIn) {
@@ -261,10 +333,9 @@ int AmberParm::SetCharges(double *chargeIn) {
 }
 
 // -------------------- ROUTINES PERTAINING TO SURFACE AREA --------------------
-/* AssignLCPO()
- * Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
- * NOTE: Member function so it can have access to SurfInfo.
- */
+// AssignLCPO()
+/// Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
+// NOTE: Member function so it can have access to SurfInfo.
 void AmberParm::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2, 
                            double P3, double P4) {
   S->vdwradii = vdwradii + 1.4;
@@ -274,25 +345,24 @@ void AmberParm::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2,
   S->P4 = P4;
 }
 
-/* WarnLCPO()
- * Called when the number of bonds to the atom of type atype is not usual.
- */
+// WarnLCPO()
+/// Called when the number of bonds to the atom of type atype is not usual.
 static void WarnLCPO(char *atype, int atom, int numBonds) {
   mprintf("Warning: Unusual number of bonds for atom %i (%i), type %-2s.\n",
           atom, numBonds, atype);
   mprintf("Using default atom parameters.\n");
 }
 
-/* AmberParm::SetSurfaceInfo()
- * Set up parameters only used in surface area calcs.
- * LCPO method from:
- *   J. Weiser, P.S. Shenkin, and W.C. Still,
- *   "Approximate atomic surfaces from linear combinations of pairwise
- *   overlaps (LCPO)", J. Comp. Chem. 20:217 (1999).
- * Adapted from gbsa=1 method in SANDER, mdread.f
- * Return the number of solute atoms for which paramters were set.
- * Return -1 on error.
- */
+// AmberParm::SetSurfaceInfo()
+/** Set up parameters only used in surface area calcs.
+  * LCPO method from:
+  *   J. Weiser, P.S. Shenkin, and W.C. Still,
+  *   "Approximate atomic surfaces from linear combinations of pairwise
+  *   overlaps (LCPO)", J. Comp. Chem. 20:217 (1999).
+  * Adapted from gbsa=1 method in SANDER, mdread.f
+  * \return the number of solute atoms for which paramters were set. 
+  * \return -1 on error.
+  */
 int AmberParm::SetSurfaceInfo() {
   int *numBonds; // # of bonded neighbors each atom has (LCPO only?)
   int i,atom1,atom2;
@@ -429,9 +499,8 @@ int AmberParm::SetSurfaceInfo() {
 }
 
 // -------------------- ROUTINES PERTAINING TO SOLVENT INFO --------------------
-/* AmberParm::IsSolventResname()
- * Return true if the residue name corresponds to solvent.
- */
+// AmberParm::IsSolventResname()
+/// Return true if the residue name corresponds to solvent.
 bool AmberParm::IsSolventResname(NAME resnameIn) {
   if ( strcmp("WAT ", resnameIn) == 0 ||
        strcmp(" WAT", resnameIn) == 0 ||
@@ -445,12 +514,12 @@ bool AmberParm::IsSolventResname(NAME resnameIn) {
   return false;
 }
 
-/* AmberParm::SetSolventInfo()
- * If atomsPerMol has been read in and firstSolvMol is set, determine solvent 
- * information based on what firstSolvMol is. If firstSolvMol is not set, 
- * determine solvent information by residue name, setting/resetting 
- * atomsPerMol as necessary.
- */
+// AmberParm::SetSolventInfo()
+/** If atomsPerMol has been read in and firstSolvMol is set, determine solvent 
+  * information based on what firstSolvMol is. If firstSolvMol is not set, 
+  * determine solvent information by residue name, setting/resetting 
+  * atomsPerMol as necessary.
+  */
 int AmberParm::SetSolventInfo() {
   int molAtom, maskAtom; 
 
@@ -572,9 +641,8 @@ int AmberParm::SetSolventInfo() {
 }
     
 // --------========= ROUTINES PERTAINING TO READING PARAMETERS =========--------
-/* AmberParm::OpenParm()
- * Attempt to open file and read in parameters.
- */
+// AmberParm::OpenParm()
+/// Attempt to open file and read in parameters.
 int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   CpptrajFile parmfile;
   int err=0;
@@ -666,9 +734,48 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   return 0;
 }
 
-// AmberParmOldAmber()
-/** Read parameters from an old style (Amber < v7) topology file.
+// AmberParm::SetParmFromValues()
+/** Used by ReadParmAmber and ReadParmOldAmber to set AmberParm variables
+  * from the POINTERS section of the parmtop.
   */
+void AmberParm::SetParmFromValues(int *values, bool isOld) {
+  // Set some commonly used values
+  natom=values[NATOM];
+  nres=values[NRES];
+  //ifbox=values[IFBOX];
+  NbondsWithH=values[NBONH];
+  NbondsWithoutH=values[NBONA];
+  if (debug>0) {
+    if (isOld)
+      mprintf("    Old Amber top");
+    else
+      mprintf("    Amber top");
+    mprintf("contains %i atoms, %i residues.\n",natom,nres);
+    mprintf("    %i bonds to hydrogen, %i other bonds.\n",NbondsWithH,NbondsWithoutH);
+  }
+  // Other values
+  ntypes = values[NTYPES];
+  nnb = values[NNB];
+  numbnd = values[NUMBND];
+  numang = values[NUMANG];
+  numdih = values[NPTRA];
+  NanglesWithH=values[NTHETH];
+  NanglesWithoutH=values[NTHETA];
+  NdihedralsWithH=values[NPHIH];
+  NdihedralsWithoutH=values[NPHIA];
+  natyp = values[NATYP];
+  nphb = values[NPHB];
+  // Check that NBONA == MBONA etc. If not print a warning
+  if (values[MBONA] != values[NBONA])
+    mprintf("\tWarning: [%s] Amber parm has constraint bonds, but they will be ignored.\n");
+  if (values[MTHETA] != values[NTHETA])
+    mprintf("\tWarning: [%s] Amber parm has constraint angles, but they will be ignored.\n");
+  if (values[MPHIA] != values[NPHIA])
+    mprintf("\tWarning: [%s] Amber parm has constraint dihedrals, but they will be ignored.\n");
+}
+
+// AmberParm::ReadParmOldAmber()
+/// Read parameters from an old style (Amber < v7) topology file.
 int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   char *title;
   int values[30], ifbox;
@@ -686,18 +793,8 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   memcpy(values, tempvalues, 30 * sizeof(int));
   delete[] tempvalues;
   // Set some commonly used values
-  natom=values[NATOM];
-  nres=values[NRES];
+  SetParmFromValues(values, true);
   ifbox=values[IFBOX];
-  NbondsWithH=values[NBONH];
-  NbondsWithoutH=values[MBONA];
-  if (debug>=0) {
-    mprintf("    Old Amber top contains %i atoms, %i residues.\n",natom,nres);
-    mprintf("    %i bonds to hydrogen, %i other bonds.\n",NbondsWithH,NbondsWithoutH);
-  }
-  // Other values
-  ntypes = values[NTYPES];
-  nnb = values[NNB];
   // Load the rest of the parm
   // NOTE: Add error checking!
   names = (NAME*) F_loadFormat(parmfile, FCHAR, 4, 20, natom, debug);
@@ -712,7 +809,7 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   // with the rest of cpptraj.
   for (int atom=0; atom < nres; atom++)
     resnums[atom] -= 1;
-  // The following are not used for now
+  // Bond, angle, dihedral constants and values
   bond_rk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
   bond_req = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMBND],debug);
   angle_tk = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NUMANG],debug);
@@ -724,23 +821,24 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
   // LJ params
   LJ_A = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
   LJ_B = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,ntypes*(ntypes+1)/2,debug);
-  // Bonds
+  // Bonds, angles, dihedrals
   bondsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NBONH]*3,debug);
   bonds = (int*) F_loadFormat(parmfile,FINT,6,12,values[NBONA]*3,debug);
-  // Again not used 
   anglesh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETH]*4,debug); 
   angles = (int*) F_loadFormat(parmfile,FINT,6,12,values[NTHETA]*4,debug); 
   dihedralsh = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIH]*5,debug);
   dihedrals = (int*) F_loadFormat(parmfile,FINT,6,12,values[NPHIA]*5,debug);
-  // Excluded atoms
+  // Excluded atoms; shift by -1 so atom #s start from 0
   excludedAtoms = (int*) F_loadFormat(parmfile,FINT,6,12,nnb,debug);
-  // Not used 
+  for (int atom=0; atom < nnb; atom++)
+    excludedAtoms[atom] -= 1;
+  // LJ 10-12 stuff 
   asol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
   bsol = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
   hbcut = (double*) F_loadFormat(parmfile,FDOUBLE,16,5,values[NPHB],debug);
   // Atom types
   types = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
-  // Not used 
+  // Tree, join, irotat 
   itree = (NAME*) F_loadFormat(parmfile,FCHAR,4,20,natom,debug);
   join_array = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
   irotat = (int*) F_loadFormat(parmfile,FINT,6,12,natom,debug);
@@ -779,15 +877,14 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
 }
 
 // AmberParm::ReadParmAmber() 
-/** Read parameters from Amber Topology file
-  */
+/// Read parameters from Amber Topology file
 int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   int ifbox;
   int *solvent_pointer;
   double *boxFromParm;
   int values[AMBERPOINTERS];
   char *title;
-  bool chamber;         // This topology file is a chamber-created topology file
+  bool chamber; // true: This topology file is a chamber-created topology file
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
   // Title
@@ -811,18 +908,8 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   memcpy(values, tempvalues, AMBERPOINTERS * sizeof(int));
   delete[] tempvalues;
   // Set some commonly used values
-  natom=values[NATOM];
-  nres=values[NRES];
+  SetParmFromValues(values, false);
   ifbox=values[IFBOX];
-  NbondsWithH=values[NBONH];
-  NbondsWithoutH=values[MBONA];
-  if (debug>0) {
-    mprintf("    Amber top contains %i atoms, %i residues.\n",natom,nres);
-    mprintf("    %i bonds to hydrogen, %i other bonds.\n",NbondsWithH,NbondsWithoutH);
-  }
-  // Other values
-  ntypes = values[NTYPES];
-  nnb = values[NNB];
   // Atom names
   names=(NAME*) getFlagFileValues(parmfile,F_NAMES,natom,debug);
   if (names==NULL) {mprintf("Error in atom names.\n"); return 1;}
@@ -864,6 +951,9 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   if (dihedral_pk==NULL || dihedral_pn==NULL || dihedral_phase==NULL) {
     mprintf("Error in dihedral constants.\n"); return 1;
   }
+  // SCEE and SCNB scale factors
+  scee_scale = (double*) getFlagFileValues(parmfile, F_SCEE, values[NPTRA], debug);
+  scnb_scale = (double*) getFlagFileValues(parmfile, F_SCNB, values[NPTRA], debug);
   // SOLTY: currently unused
   solty = (double*) getFlagFileValues(parmfile,F_SOLTY,values[NATYP],debug);
   // Lennard-Jones A/B coefficient
@@ -898,13 +988,6 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   join_array = (int*) getFlagFileValues(parmfile,F_JOIN,natom,debug);
   // Last atom that would move if atom i was rotated; unused
   irotat = (int*) getFlagFileValues(parmfile,F_IROTAT,natom,debug);
-  // GB parameters; radius set, radii, and screening parameters
-  title = getFlagFileString(parmfile,"RADIUS_SET",debug);
-  if (debug>0) mprintf("\tRadius Set: %s\n",title);
-  delete[] title;
-  gb_radii = (double*) getFlagFileValues(parmfile,F_RADII,natom,debug);
-  gb_screen = (double*) getFlagFileValues(parmfile,F_SCREEN,natom,debug);
-  if (gb_radii==NULL || gb_screen==NULL) {mprintf("Error reading gb parameters.\n"); return 1;}
   // Get solvent info if IFBOX>0
   if (values[IFBOX]>0) {
     solvent_pointer=(int*) getFlagFileValues(parmfile,F_SOLVENT_POINTER,3,debug);
@@ -953,6 +1036,19 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
         mprintf("\t     Box will be determined from first associated trajectory.\n");
     }
   }
+  // GB parameters; radius set, radii, and screening parameters
+  radius_set = getFlagFileString(parmfile,"RADIUS_SET",debug);
+  if (radius_set!=NULL) {
+    /*radius_set.assign(title);
+    delete[] title;
+    // Remove whitespace from GB radius set
+    radius_set.erase(std::remove(radius_set.begin(), radius_set.end(), ' '), radius_set.end());*/
+    if (debug>0) mprintf("\tRadius Set: %s\n",radius_set);
+  }
+  gb_radii = (double*) getFlagFileValues(parmfile,F_RADII,natom,debug);
+  gb_screen = (double*) getFlagFileValues(parmfile,F_SCREEN,natom,debug);
+  if (gb_radii==NULL || gb_screen==NULL) {mprintf("Error reading gb parameters.\n"); return 1;}
+
   // If parm contains IFCAP or IFPERT info, print a warning since cpptraj
   // currently does not read these in.
   if (values[IFCAP] > 0) 
@@ -963,13 +1059,13 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   return 0;
 }
 
-/* AmberParm::SetAtomsPerMolPDB()
- * Use in ReadParmPDB only, when TER is encountered or end of PDB file
- * update the atomsPerMol array. Take number of atoms in the molecule
- * (calcd as current #atoms - #atoms in previous molecule) as input. 
- * Check if the last residue is solvent; if so, set up solvent information.
- * Return the current number of atoms.
- */
+// AmberParm::SetAtomsPerMolPDB()
+/** Use in ReadParmPDB only, when TER is encountered or end of PDB file
+  * update the atomsPerMol array. Take number of atoms in the molecule
+  * (calcd as current #atoms - #atoms in previous molecule) as input. 
+  * Check if the last residue is solvent; if so, set up solvent information.
+  * \return the current number of atoms.
+  */
 int AmberParm::SetAtomsPerMolPDB(int numAtoms) {
   if (numAtoms<1) return 0;
   // Check if the current residue is a solvent molecule
@@ -989,10 +1085,10 @@ int AmberParm::SetAtomsPerMolPDB(int numAtoms) {
   return natom;
 }
 
-/* AmberParm::ReadParmPDB()
- * Open the PDB file specified by filename and set up topology data.
- * Mask selection requires natom, nres, names, resnames, resnums.
- */
+// AmberParm::ReadParmPDB()
+/** Open the PDB file specified by filename and set up topology data.
+  * Mask selection requires natom, nres, names, resnames, resnums.
+  */
 int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
   char buffer[256];
   int bufferLen;  
@@ -1105,9 +1201,8 @@ int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
   return 0;
 }
 
-/* AmberParm::ReadParmMol2()
- * Read file as a Tripos Mol2 file.
- */
+// AmberParm::ReadParmMol2()
+/// Read file as a Tripos Mol2 file.
 int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
   char buffer[MOL2BUFFERSIZE];
   int mol2bonds;
@@ -1195,10 +1290,10 @@ int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
   return 0;
 }
 
-/* AmberParm::ReadParmPSF()
- * Open the Charmm PSF file specified by filename and set up topology data.
- * Mask selection requires natom, nres, names, resnames, resnums.
- */
+// AmberParm::ReadParmPSF()
+/** Open the Charmm PSF file specified by filename and set up topology data.
+  * Mask selection requires natom, nres, names, resnames, resnums.
+  */
 int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
   char buffer[256],tag[256],psfname[NAMESIZE];
   int bondatoms[8];
@@ -1306,9 +1401,8 @@ int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
 }
 
 // -----------------------------------------------------------------------------
-/* AmberParm::AtomInfo()
- * Print parm information for atom.
- */
+// AmberParm::AtomInfo()
+/// Print parm information for atom.
 void AmberParm::AtomInfo(int atom) {
   int res = atomToResidue(atom);
   mprintf("  Atom %i:",atom+1);
@@ -1325,12 +1419,13 @@ void AmberParm::AtomInfo(int atom) {
   mprintf("\n");
 }
 
-/* AmberParm::Info()
- * Print information about this parm to buffer.
- */
+// AmberParm::Info()
+/// Print information about this parm to buffer.
 void AmberParm::ParmInfo() {
-
-  mprintf(" %i: %s, %i atoms, %i res",pindex,parmfileName,natom,nres);
+  if (parmfileName!=NULL)
+    mprintf(" %i: %s, %i atoms, %i res",pindex,parmfileName,natom,nres);
+  else
+    mprintf(" %i: %s, %i atoms, %i res",pindex,parmName,natom,nres);
   if (boxType==NOBOX)
     mprintf(", no box");
   else if (boxType==ORTHO)
@@ -1346,10 +1441,10 @@ void AmberParm::ParmInfo() {
   mprintf("\n");
 }
 
-/* AmberParm::Summary()
- * Print a summary of atoms, residues, molecules, and solvent molecules
- * in this parm.
- */
+// AmberParm::Summary()
+/** Print a summary of atoms, residues, molecules, and solvent molecules
+  * in this parm.
+  */
 void AmberParm::Summary() {
   mprintf("              Topology contains %i atoms.\n",this->natom);
   mprintf("                                %i residues.\n",this->nres);
@@ -1363,9 +1458,8 @@ void AmberParm::Summary() {
   }
 }
 
-/* AmberParm::PrintBondInfo()
- * Print information contained in bonds and bondsh arrays.
- */
+// AmberParm::PrintBondInfo()
+/// Print information contained in bonds and bondsh arrays.
 void AmberParm::PrintBondInfo() {
   int atom1,atom2,atomi;
   if ((NbondsWithH + NbondsWithoutH) <= 0) {
@@ -1392,9 +1486,8 @@ void AmberParm::PrintBondInfo() {
   }
 }
 
-/* AmberParm::PrintMoleculeInfo()
- * Print information on molecules in PRMTOP
- */
+// AmberParm::PrintMoleculeInfo()
+/// Print information on molecules in PRMTOP
 void AmberParm::PrintMoleculeInfo() {
   int atomcount = 0;
   int resid;
@@ -1413,54 +1506,51 @@ void AmberParm::PrintMoleculeInfo() {
 }
 
 // -----------------------------------------------------------------------------
-// NOTE: The following atomToX functions do not do any memory checks!
-/* AmberParm::atomToResidue()
- * Given an atom number, return corresponding residue number.
- */
+// AmberParm::atomToResidue()
+/// Given an atom number, return corresponding residue number.
 int AmberParm::atomToResidue(int atom) {
   int i;
-
-  for (i = 0; i < nres; i++)
-    if ( atom>=resnums[i] && atom<resnums[i+1] )
-      return i;
-
+  if (atom >= 0 && atom < natom) {
+    for (i = 0; i < nres; i++)
+      if ( atom>=resnums[i] && atom<resnums[i+1] )
+        return i;
+  }
   return -1;
 }
 
-/* AmberParm::atomToMolecule()
- * Given an atom number, return corresponding molecule number.
- */
+// AmberParm::atomToMolecule()
+/// Given an atom number, return corresponding molecule number.
 int AmberParm::atomToMolecule(int atom) {
   int a = 0;
-  for (int i = 0; i < molecules; i++) {
-    a += atomsPerMol[i];
-    if (atom < a) return i;
+  if (atom >= 0 && atom < natom) {
+    for (int i = 0; i < molecules; i++) {
+      a += atomsPerMol[i];
+      if (atom < a) return i;
+    }
   }
   return -1;
 }
 
-/* AmberParm::atomToSolventMolecule()
- * Given an atom number, return corresponding solvent molecule
- * NOTE: Could this be achieved with atomToMolecule and solventMask?
- */
+// AmberParm::atomToSolventMolecule()
+/// Given an atom number, return corresponding solvent molecule
+// NOTE: Could this be achieved with atomToMolecule and solventMask?
 int AmberParm::atomToSolventMolecule(int atom) {
   int i, atom1;
-
-  atom1 = atom + 1; 
-  for (i = 0; i < molecules; i++) {
-    if (atom1 <= solventMoleculeStart[i])
-      return -1;
-    else if (atom1>solventMoleculeStart[i] && atom1<=solventMoleculeStop[i])
-      return i;
+  if (atom >= 0 && atom < natom) {
+    atom1 = atom + 1; 
+    for (i = 0; i < molecules; i++) {
+      if (atom1 <= solventMoleculeStart[i])
+        return -1;
+      else if (atom1>solventMoleculeStart[i] && atom1<=solventMoleculeStop[i])
+        return i;
+    }
   }
-
   return -1;
 }
 
 // -----------------------------------------------------------------------------
-/* AmberParm::ResetBondInfo()
- * Reset the bonds and bondsh arrays, as well as NBONH and MBONA
- */
+// AmberParm::ResetBondInfo()
+/// Reset the bonds and bondsh arrays, as well as NBONH and NBONA
 void AmberParm::ResetBondInfo() {
   if (bonds!=NULL) delete[] bonds;
   bonds=NULL;
@@ -1470,11 +1560,11 @@ void AmberParm::ResetBondInfo() {
   NbondsWithoutH=0;
 }
 
-/* AmberParm::AddBond()
- * Add bond info for the two atoms. Attempt to identify if it is a bond
- * to hydrogen or not based on names. The atom numbers should start from 0.
- * Atom indices in bond arrays are * 3.
- */ 
+// AmberParm::AddBond()
+/** Add bond info for the two atoms. Attempt to identify if it is a bond
+  * to hydrogen or not based on names. The atom numbers should start from 0.
+  * Atom indices in bond arrays are * 3.
+  */ 
 int AmberParm::AddBond(int atom1, int atom2, int icb) {
   bool isH=false;
   int bondidx;
@@ -1495,7 +1585,7 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
     bondsh[bondidx+2] = icb;
     NbondsWithH++;
   } else {
-    //NbondsWithoutH = values[MBONA];
+    //NbondsWithoutH = values[NBONA];
     bondidx = NbondsWithoutH * 3;
     int *tempbonds = new int[ bondidx+3 ];
     memcpy(tempbonds, bonds, bondidx * sizeof(int));
@@ -1509,12 +1599,12 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
   return 0;
 }
 
-/* AmberParm::GetBondsFromCoords()
- * Given an array of coordinates X0Y0Z0X1Y1Z1...XNYNZN determine which
- * atoms are bonded via distance search. First check for bonds within
- * residues, then check for bonds between adjacent residues. Adjacent
- * residues in different molecules are not considered.
- */
+// AmberParm::GetBondsFromCoords()
+/** Given an array of coordinates X0Y0Z0X1Y1Z1...XNYNZN determine which
+  * atoms are bonded via distance search. First check for bonds within
+  * residues, then check for bonds between adjacent residues. Adjacent
+  * residues in different molecules are not considered.
+  */
 void AmberParm::GetBondsFromCoords() {
   int res, startatom, stopatom, midatom,atom1, atom2, idx1, idx2;
   double D, cut;
@@ -1595,14 +1685,13 @@ void AmberParm::GetBondsFromCoords() {
   mprintf("\t%s: %i bonds to hydrogen, %i other bonds.\n",parmName,NbondsWithH,NbondsWithoutH);
 }
 
-/* AmberParm::DetermineMolecules()
- * Given that bonding information for the parm has been set up, attempt
- * to determine how many molecules (i.e. entities that are not covalently
- * bonded) there are.
- */
+// AmberParm::DetermineMolecules()
+/** Given that bonding information for the parm has been set up, attempt
+  * to determine how many molecules (i.e. entities that are not covalently
+  * bonded) there are.
+  */
 int AmberParm::DetermineMolecules() {
   BondInfo mol;
-  int bond3;
 
   if (bonds==NULL && bondsh==NULL) {
     mprinterr("Error: DetermineMolecules: No bond information set up.\n");
@@ -1613,26 +1702,13 @@ int AmberParm::DetermineMolecules() {
   mol.Setup(natom);
 
   // Set max valences
-  for (int atom=0; atom < natom; atom++) 
-    mol.SetValence(atom,names[atom]);
+  mol.SetValences(names);
 
   // Go through the bonds and bondsh arrays
-  if (bondsh!=NULL) {
-    bond3 = NbondsWithH * 3;
-    for (int bond=0; bond < bond3; bond+=3) {
-      int atom1 = bondsh[bond  ] / 3;
-      int atom2 = bondsh[bond+1] / 3;
-      mol.CreateBond(atom1,atom2);
-    }
-  }
-  if (bonds!=NULL) {
-    bond3 = NbondsWithoutH * 3;
-    for (int bond=0; bond < bond3; bond+=3) {
-      int atom1 = bonds[bond  ] / 3;
-      int atom2 = bonds[bond+1] / 3;
-      mol.CreateBond(atom1,atom2);
-    }
-  }
+  mol.SetBondsFromAmberArray(bondsh, NbondsWithH);
+  mol.SetBondsFromAmberArray(bonds,  NbondsWithoutH);
+
+  // Determine molecules
   atomsPerMol = mol.DetermineMolecules(&molecules);
  
   //mol.PrintBonds();
@@ -1640,10 +1716,106 @@ int AmberParm::DetermineMolecules() {
   return 0;
 }
 
-/* SetupBondArray()
- * Given an atom map and new parm, set up bond array
- * NOTE: Set up atom map to be atom*3??
- */
+/// Setup excluded atoms list and numex based on bond info
+int AmberParm::SetupExcludedAtoms() {
+  BondInfo mol;
+  // Determine excluded atoms list
+  mol.Setup(natom);
+  mol.SetValences(names);
+  // If no bond info this wont work
+  if (bondsh==NULL && bonds==NULL) {
+    mprinterr("Error: AmberParm::SetupExcludedAtoms(): No bond info in parm %s.\n",parmName);
+    return 1;
+  }
+  mol.SetBondsFromAmberArray(bondsh, NbondsWithH);
+  mol.SetBondsFromAmberArray(bonds, NbondsWithoutH);
+  if (numex!=NULL) delete[] numex;
+  numex = new int[ natom ];
+  if (excludedAtoms!=NULL) delete[] excludedAtoms;
+  excludedAtoms = mol.DetermineExcludedAtoms(numex, &nnb);
+  return 0;
+}
+
+// SetupSequentialArray()
+/// Given an atom map and old sequential array, set up new sequential array.
+/** Given an array with format [I0J0...X0][I1J1...] where the entries up to
+  * X are atom# * 3 and entry X is an index, and an atom map array
+  * with format Map[oldAtom]=newAtom, create a new array that contains
+  * only entries for which all atoms are present. Can be used for the
+  * bond, angle, and dihedral arrays.
+  */
+// NOTE: Set up atom map to be atom*3??
+static int *SetupSequentialArray(int *atomMap, int oldN, int Nsequence, 
+                                 int *oldArray, int *newN) {
+  int *newArray = NULL;
+  int *newatoms;
+  int oldNX, newNX;
+  int newatm;
+  int Nsequence1;
+  int mapatom;
+  bool atomIsNegative;
+  
+  if (atomMap==NULL || oldArray==NULL) return NULL;
+  // Actual # entries in oldArray
+  oldNX = oldN * Nsequence;
+  Nsequence1 = Nsequence - 1;
+  // Set initial size of new array to that of old array
+  newArray = new int[ oldN * Nsequence ];
+  newNX=0;
+  // NOTE: Make newatoms static?
+  newatoms = new int[ Nsequence ];
+  // Go through old array, use atomMap to determine what goes into newParm
+  for (int oldi=0; oldi < oldNX; oldi += Nsequence) {
+    // Check that atoms 0 to Nsequence exist in newParm. If any of the atoms
+    // do not exist in newParm bail.
+    newatm = -1;
+    for (int sequencei = 0; sequencei < Nsequence1; sequencei++) {
+      int arrayAtom = oldArray[oldi+sequencei];
+      // For dihedrals the atom # can be negative. Convert to positive
+      // for use in the atom map.
+      if (arrayAtom < 0) {
+        mapatom = -arrayAtom;
+        atomIsNegative = true;
+      } else {
+        mapatom = arrayAtom;
+        atomIsNegative = false;
+      }
+      newatm = atomMap[ mapatom / 3 ];
+      if (newatm == -1) break;
+      if (atomIsNegative)
+        newatoms[sequencei] = -newatm;
+      else
+        newatoms[sequencei] = newatm;
+    }
+    // If newatm is -1 here that means it didnt exist in newParm for this
+    // sequence. Skip the entire sequence.
+    if (newatm==-1) continue;
+    // Store the final number of the sequence, which is an index
+    newatoms[Nsequence1] = oldArray[oldi+Nsequence1];
+    // Place the atoms in newatoms in newArray
+    for (int sequencei = 0; sequencei < Nsequence1; sequencei++) 
+      newArray[newNX+sequencei] = newatoms[sequencei] * 3;
+    // Place the index in newatoms in newArray
+    newArray[newNX+Nsequence1] = newatoms[Nsequence1];
+    // Increment new counter
+    newNX += Nsequence;
+  }
+  delete[] newatoms;
+  // Resize newArray
+  int *temparray = new int[ newNX ];
+  memcpy(temparray, newArray, newNX * sizeof(int));
+  delete[] newArray;
+  newArray = temparray;
+  
+  *newN = newNX / Nsequence;
+  return newArray;
+}
+
+
+// SetupBondArray()
+/// Given an atom map and new parm, set up bond array
+// NOTE: Set up atom map to be atom*3??
+// NOTE: May be obsolete 
 static int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
   int *bonds;
   int N3, i, atom1, atom2;
@@ -1675,17 +1847,17 @@ static int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
 }
 
 // -----------------------------------------------------------------------------
-/* AmberParm::modifyStateByMap()
- * Currently only intended for use with AtomMap.
- * This routine will create a new amber parm (newParm) base on the
- * current amber parm (this), mapping atoms in newParm to atoms
- * in this based on the given atom map.
- * NOTE: There is no guarantee that atoms that were contiguous in 
- *       this parm will be contiguous in the old parm since this is not
- *       currently enforced by AtomMap; therefore the residue information
- *       will probably be shot unless there is only 1 residue. 
- * NOTE: Molecule, solvent info etc is not copied over.
- */
+// AmberParm::modifyStateByMap()
+/** Currently only intended for use with AtomMap.
+  * This routine will create a new amber parm (newParm) base on the
+  * current amber parm (this), mapping atoms in newParm to atoms
+  * in this based on the given atom map.
+  * NOTE: There is no guarantee that atoms that were contiguous in 
+  *       this parm will be contiguous in the old parm since this is not
+  *       currently enforced by AtomMap; therefore the residue information
+  *       will probably be shot unless there is only 1 residue. 
+  * NOTE: Molecule, solvent info etc is not copied over.
+  */
 AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   AmberParm *newParm;
   int j=0;
@@ -1752,14 +1924,14 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   return newParm;
 }
 
-/* AmberParm::modifyStateByMask()
- * Adapted from ptraj
- *  The goal of this routine is to create a new AmberParm (newParm)
- *  based on the current AmberParm (this), deleting atoms that are
- *  not in the Selected array.
- * NOTE: Make all solvent/box related info dependent on IFBOX only?
- */
-AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
+// AmberParm::modifyStateByMask()
+// Adapted from ptraj
+/**  The goal of this routine is to create a new AmberParm (newParm)
+  *  based on the current AmberParm (this), deleting atoms that are
+  *  not in the Selected array.
+  */
+// NOTE: Make all solvent/box related info dependent on IFBOX only?
+AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected, char *prefix) {
   AmberParm *newParm;
   int selected;
   int i, ires, imol; 
@@ -1774,24 +1946,36 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   // Allocate space for arrays and perform initialization
   atomMap = new int[ natom ];
   for (i=0; i<this->natom; i++) atomMap[i]=-1;
-  newParm->names    = new NAME[ Nselected ];
+  newParm->names = new NAME[ Nselected ];
   if (this->types!=NULL)
-    newParm->types    = new NAME[ Nselected ];
+    newParm->types = new NAME[ Nselected ];
   if (this->charge!=NULL)
-    newParm->charge   = new double[ Nselected ];
+    newParm->charge = new double[ Nselected ];
   if (this->mass!=NULL)
-    newParm->mass     = new double[ Nselected ];
-  newParm->resnames = new NAME[ nres ];
-  newParm->resnums  = new int[ nres+1 ];
+    newParm->mass = new double[ Nselected ];
+  if (this->atype_index!=NULL)
+    newParm->atype_index = new int[ Nselected ];
   if (this->gb_radii!=NULL)
     newParm->gb_radii = new double[ Nselected ];
   if (this->gb_screen!=NULL) 
     newParm->gb_screen = new double[ Nselected ];
+  // The following arrays could eventually be determined somehow, however
+  // at the moment its not worth it since sander doesnt use the info
+  // anymore anyway.
+  if (this->itree!=NULL)
+    newParm->itree = new NAME[ Nselected ];
+  if (this->join_array!=NULL)
+    newParm->join_array = new int[ Nselected ];
+  if (this->irotat!=NULL)
+    newParm->irotat = new int[ Nselected ];
+  // Arrays for which final size will not be known
+  newParm->resnames = new NAME[ nres ];
+  newParm->resnums  = new int[ nres+1 ];
+  // Other arrays
   if (this->radius_set!=NULL) {
     newParm->radius_set = new char[ strlen(this->radius_set)+1 ];
     strcpy(newParm->radius_set, this->radius_set);
   } 
-
   if (this->molecules>0) 
     newParm->atomsPerMol = new int[ molecules ];
 
@@ -1812,11 +1996,15 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     atomMap[i]=j;                    // Store this atom in the atom map
     // Copy over atom information
     strcpy(newParm->names[j], this->names[i]);
-    if (this->types!=NULL)     strcpy(newParm->types[j], this->types[i]);
-    if (this->charge!=NULL)    newParm->charge[j]      = this->charge[i];
-    if (this->mass!=NULL)      newParm->mass[j]        = this->mass[i];
-    if (this->gb_radii!=NULL)  newParm->gb_radii[j]    = this->gb_radii[i];
-    if (this->gb_screen!=NULL) newParm->gb_screen[j]   = this->gb_screen[i];
+    if (this->types!=NULL)       strcpy(newParm->types[j], this->types[i]);
+    if (this->charge!=NULL)      newParm->charge[j]      = this->charge[i];
+    if (this->mass!=NULL)        newParm->mass[j]        = this->mass[i];
+    if (this->atype_index!=NULL) newParm->atype_index[j] = this->atype_index[i];
+    if (this->gb_radii!=NULL)    newParm->gb_radii[j]    = this->gb_radii[i];
+    if (this->gb_screen!=NULL)   newParm->gb_screen[j]   = this->gb_screen[i];
+    if (this->itree!=NULL)       strcpy(newParm->itree[j], this->itree[i]);
+    if (this->join_array!=NULL)  newParm->join_array[j]  = this->join_array[i];
+    if (this->irotat!=NULL)      newParm->irotat[j]      = this->irotat[i];
 
     // Check to see if we are in the same residue or not and copy relevant information
     if (ires == -1 || ires != curres) {
@@ -1847,15 +2035,95 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
 
     // Increment the new atom counter
     j++;
-
   } // End loop over oldParm Selected atoms 
 
   // Set up bond arrays
-  newParm->bondsh = SetupBondArray(atomMap, this->NbondsWithH*3, this->bondsh, 
-                                   &(newParm->NbondsWithH));
-  newParm->bonds  = SetupBondArray(atomMap, this->NbondsWithoutH*3, this->bonds, 
-                                   &(newParm->NbondsWithoutH));
+  newParm->bondsh = SetupSequentialArray(atomMap, this->NbondsWithH, 3, 
+                                         this->bondsh, &(newParm->NbondsWithH));
+  newParm->bonds  = SetupSequentialArray(atomMap, this->NbondsWithoutH, 3, 
+                                         this->bonds,  &(newParm->NbondsWithoutH));
+  // Set up angle arrays
+  newParm->anglesh = SetupSequentialArray(atomMap, this->NanglesWithH, 4,
+                                          this->anglesh, &(newParm->NanglesWithH));
+  newParm->angles  = SetupSequentialArray(atomMap, this->NanglesWithoutH, 4,
+                                          this->angles,  &(newParm->NanglesWithoutH));
+  // Set up dihedral arrays
+  newParm->dihedralsh = SetupSequentialArray(atomMap, this->NdihedralsWithH, 5,
+                                             this->dihedralsh, &(newParm->NdihedralsWithH));
+  newParm->dihedrals  = SetupSequentialArray(atomMap, this->NdihedralsWithoutH, 5,
+                                             this->dihedrals,  &(newParm->NdihedralsWithoutH));
   delete[] atomMap;
+
+  // NOTE: Since in the above arrays the indices have survived intact we can 
+  //       just include direct copies of all the constants arrays for now. 
+  //       May want to cull this later.
+  // Nonbonded parm index; since this depends on the atom type index and
+  // those entries were not changed this is still valid
+  if (NB_index!=NULL) {
+    newParm->ntypes = this->ntypes;
+    newParm->NB_index = new int[ ntypes * ntypes ];
+    memcpy(newParm->NB_index, this->NB_index, ntypes*ntypes * sizeof(int));
+    // Lennard-jones params
+    int ljmax = ntypes*(ntypes+1)/2;
+    if (this->LJ_A!=NULL && this->LJ_B!=NULL) {
+      newParm->LJ_A = new double[ ljmax ];
+      memcpy(newParm->LJ_A, this->LJ_A, ljmax * sizeof(double));
+      newParm->LJ_B = new double[ ljmax ];
+      memcpy(newParm->LJ_B, this->LJ_B, ljmax * sizeof(double));
+    }
+    // LJ 10-12 params
+    newParm->nphb = this->nphb;
+    if (this->nphb>0) {
+      newParm->asol = new double[ nphb ];
+      memcpy(newParm->asol, this->asol, nphb * sizeof(double));
+      newParm->bsol = new double[ nphb ];
+      memcpy(newParm->bsol, this->bsol, nphb * sizeof(double));
+      newParm->hbcut = new double[ nphb ];
+      memcpy(newParm->hbcut, this->hbcut, nphb * sizeof(double));
+    }
+  }  
+  // Bond force constant and eq values
+  newParm->numbnd = this->numbnd;
+  if (this->numbnd > 0) {
+    newParm->bond_rk = new double[ numbnd ];
+    memcpy(newParm->bond_rk, this->bond_rk, numbnd * sizeof(double));
+    newParm->bond_req = new double[ numbnd ];
+    memcpy(newParm->bond_req, this->bond_req, numbnd * sizeof(double));
+  }
+  // Angle force constant and eq values
+  newParm->numang = this->numang;
+  if (this->numang > 0) {
+    newParm->angle_tk = new double[ numang ];
+    memcpy(newParm->angle_tk, this->angle_tk, numang * sizeof(double));
+    newParm->angle_teq = new double[ numang ];
+    memcpy(newParm->angle_teq, this->angle_teq, numang * sizeof(double));
+  }
+  // Dihedral constant, periodicity, phase
+  newParm->numdih = this->numdih;
+  if (this->numdih>0) {
+    newParm->dihedral_pk = new double[ numdih ];
+    memcpy(newParm->dihedral_pk, this->dihedral_pk, numdih * sizeof(double));
+    newParm->dihedral_pn = new double[ numdih ];
+    memcpy(newParm->dihedral_pn, this->dihedral_pn, numdih * sizeof(double));
+    newParm->dihedral_phase = new double[ numdih ];
+    memcpy(newParm->dihedral_phase, this->dihedral_phase, numdih * sizeof(double));
+  }
+  // SCEE and SCNB scale factors
+  if (this->scee_scale!=NULL) {
+    newParm->scee_scale = new double[ numdih ];
+    memcpy(newParm->scee_scale, this->scee_scale, numdih * sizeof(double));
+  }
+  if (this->scnb_scale!=NULL) {
+    newParm->scnb_scale = new double[ numdih ];
+    memcpy(newParm->scnb_scale, this->scnb_scale, numdih * sizeof(double));
+  }
+
+  // SOLTY is currently unused, just make a straight up copy for now.
+  newParm->natyp = this->natyp;
+  if (this->natyp > 0) {
+    newParm->solty = new double[ natyp ];
+    memcpy(newParm->solty, this->solty, natyp * sizeof(double));
+  }
 
   // Fix up IPRES
   newParm->resnums[jres+1] = j;
@@ -1867,25 +2135,17 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
   if (this->molecules>0) 
     newParm->molecules = jmol+1;
 
+  // Set up excluded atoms list
+  newParm->SetupExcludedAtoms();
+
   // Give stripped parm the same pindex as original parm
   newParm->pindex = this->pindex;
   
   // Reallocate memory 
-  //if (this->types!=NULL)
-  //  newParm->types=(NAME*) realloc(newParm->types, newParm->natom * sizeof(NAME));
-  //if (this->charge!=NULL)
-  //  newParm->charge=(double*) realloc(newParm->charge, newParm->natom * sizeof(double));
-  //if (this->mass!=NULL)
-  //  newParm->mass=(double*) realloc(newParm->mass, newParm->natom * sizeof(double));
-  //if (this->gb_radii!=NULL)
-  //  newParm->gb_radii=(double*) realloc(newParm->gb_radii, newParm->natom * sizeof(double));
-  //if (this->gb_screen!=NULL)
-  //  newParm->gb_screen=(double*) realloc(newParm->gb_screen, newParm->natom * sizeof(double));
   int *tempresnums = new int[ newParm->nres + 1 ];
   memcpy(tempresnums, newParm->resnums, (newParm->nres + 1) * sizeof(int));
   delete[] newParm->resnums;
   newParm->resnums = tempresnums;
-  //newParm->names=(NAME*) realloc(newParm->names, newParm->natom * sizeof(NAME));
   NAME *tempresnames = new NAME[ newParm->nres ];
   memcpy(tempresnames, newParm->resnames, newParm->nres * sizeof(NAME));
   delete[] newParm->resnames;
@@ -1914,6 +2174,16 @@ AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected) {
     newParm->Box[i] = this->Box[i];
   newParm->boxType=this->boxType;
 
+  // Set stripped parm name based on prefix: <prefix>.<oldparmname>
+  // If no prefix given set name as: strip.<oldparmname>
+  if (prefix!=NULL) {
+    newParm->parmName=new char[ strlen(this->parmName)+strlen(prefix)+2 ];
+    sprintf(newParm->parmName,"%s.%s",prefix,this->parmName);
+  } else {
+    newParm->parmName=new char[ strlen(this->parmName)+7];
+    sprintf(newParm->parmName,"strip.%s",this->parmName);
+  }
+
   return newParm;
 }
 
@@ -1924,11 +2194,14 @@ int AmberParm::WriteAmberParm(char *filename) {
   CpptrajFile outfile;
   CharBuffer buffer;
   int solvent_pointer[3];
-  int *values;
+  int values[AMBERPOINTERS];
   double parmBox[4];
   // For date and time
   time_t rawtime;
   struct tm *timeinfo;
+  int largestRes=0; // For determining nmxrs
+  int *tempResnums = NULL;
+  double *tempCharge = NULL;
 
   if (parmName==NULL) return 1;
 
@@ -1942,30 +2215,56 @@ int AmberParm::WriteAmberParm(char *filename) {
   time(&rawtime);
   timeinfo = localtime(&rawtime);
   // VERSION
+  // NOTE: tm_mon ranges from 0
   buffer.Sprintf("%-44s%02i/%02i/%02i  %02i:%02i:%02i                  \n",
                      "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
-                     timeinfo->tm_mon,timeinfo->tm_mday,timeinfo->tm_year%100,
+                     timeinfo->tm_mon+1,timeinfo->tm_mday,timeinfo->tm_year%100,
                      timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
   // TITLE
   buffer.Sprintf("%-80s\n%-80s\n%-80s","%FLAG TITLE","%FORMAT(20a4)","");
   buffer.NewLine();
   //outfile.IO->Printf("%-80s\n",parmName);
 
+  // Shift atom #s in resnums by +1 to be consistent with AMBER
+  // Also determine # atoms in largest residue for nmxrs
+  tempResnums = new int[ nres ];
+  memcpy(tempResnums, resnums, nres * sizeof(int));
+  for (int res=0; res < nres; res++) {
+    int diff = resnums[res+1] - resnums[res];
+    if (diff > largestRes) largestRes = diff;
+    tempResnums[res] += 1;
+  }
+
   // POINTERS
-  values = new int[ AMBERPOINTERS ];
   memset(values, 0, AMBERPOINTERS * sizeof(int));
   values[NATOM]=natom;
-  values[NRES]=nres;
+  values[NTYPES]=ntypes;
   values[NBONH]=NbondsWithH;
   values[MBONA]=NbondsWithoutH;
+  values[NTHETH]=NanglesWithH;
+  values[MTHETA]=NanglesWithoutH;
+  values[NPHIH]=NdihedralsWithH;
+  values[MPHIA]=NdihedralsWithoutH;
+  values[NNB]=nnb;
+  values[NRES]=nres;
+  //   NOTE: Assuming NBONA == MBONA etc
+  values[NBONA]=NbondsWithoutH;
+  values[NTHETA]=NanglesWithoutH;
+  values[NPHIA]=NdihedralsWithoutH;
+  values[NUMBND]=numbnd;
+  values[NUMANG]=numang;
+  values[NPTRA]=numdih;
+  values[NATYP]=natyp;
+  values[NPHB]=nphb;
   values[IFBOX]=AmberIfbox(Box[4]);
+  values[NMXRS]=largestRes;
   DataToFortranBuffer(buffer,F_POINTERS, values, NULL, NULL, AMBERPOINTERS);
   // ATOM NAMES
   DataToFortranBuffer(buffer,F_NAMES, NULL, NULL, names, natom);
   // CHARGE - might be null if read from pdb
   if (charge!=NULL) {
     // Convert charges to AMBER charge units
-    double *tempCharge = new double[ natom ];
+    tempCharge = new double[ natom ];
     memcpy(tempCharge, charge, natom * sizeof(double));
     for (int atom=0; atom<natom; atom++)
       tempCharge[atom] *= (ELECTOAMBER);
@@ -1975,33 +2274,109 @@ int AmberParm::WriteAmberParm(char *filename) {
   // MASS - might be null if read from pdb
   if (mass!=NULL)  
     DataToFortranBuffer(buffer,F_MASS, NULL, mass, NULL, natom);
+  // ATOM_TYPE_INDEX
+  if (atype_index!=NULL)
+    DataToFortranBuffer(buffer,F_ATYPEIDX, atype_index, NULL, NULL, natom);
+  // NUMBER_EXCLUDED_ATOMS
+  if (numex!=NULL)
+    DataToFortranBuffer(buffer,F_NUMEX, numex, NULL, NULL, natom);
+  // NONBONDED_PARM_INDEX
+  if (NB_index!=NULL)
+    DataToFortranBuffer(buffer,F_NB_INDEX, NB_index, NULL, NULL, ntypes * ntypes); 
   // RESIDUE LABEL - resnames
   DataToFortranBuffer(buffer,F_RESNAMES, NULL, NULL, resnames, nres);
-  // RESIDUE POINTER - resnums, IPRES
-  // Shift atom #s in resnums by +1 to be consistent with AMBER
-  int *tempResnums = new int[ nres ];
-  memcpy(tempResnums, resnums, nres * sizeof(int));
-  for (int res=0; res < nres; res++)
-    tempResnums[res] += 1;
+  // RESIDUE POINTER - resnums, IPRES; tempResnums is shifted +1, see above
   DataToFortranBuffer(buffer,F_RESNUMS, tempResnums, NULL, NULL, nres);
   delete[] tempResnums;
-  // AMBER ATOM TYPE - might be null if read from pdb
-  if (types!=NULL) 
-    DataToFortranBuffer(buffer,F_TYPES, NULL, NULL, types, natom);
+  // BOND_FORCE_CONSTANT and EQUIL VALUES
+  if (bond_rk!=NULL)
+    DataToFortranBuffer(buffer,F_BONDRK, NULL, bond_rk, NULL, numbnd);
+  if (bond_req!=NULL)
+    DataToFortranBuffer(buffer,F_BONDREQ, NULL, bond_req, NULL, numbnd);
+  // ANGLE FORCE CONSTANT AND EQUIL VALUES
+  if (angle_tk!=NULL)
+    DataToFortranBuffer(buffer,F_ANGLETK, NULL, angle_tk, NULL, numang);
+  if (angle_teq!=NULL)
+    DataToFortranBuffer(buffer,F_ANGLETEQ, NULL, angle_teq, NULL, numang);
+  // DIHEDRAL CONSTANT, PERIODICITY, PHASE
+  if (dihedral_pk!=NULL)
+    DataToFortranBuffer(buffer,F_DIHPK, NULL, dihedral_pk, NULL, numdih);
+  if (dihedral_pn!=NULL)
+    DataToFortranBuffer(buffer,F_DIHPN, NULL, dihedral_pn, NULL, numdih);
+  if (dihedral_phase!=NULL)
+    DataToFortranBuffer(buffer,F_DIHPHASE, NULL, dihedral_phase, NULL, numdih);
+  // SCEE and SCNB scaling factors
+  if (scee_scale!=NULL)
+    DataToFortranBuffer(buffer,F_SCEE, NULL, scee_scale, NULL, numdih);
+  if (scnb_scale!=NULL)
+    DataToFortranBuffer(buffer,F_SCNB, NULL, scnb_scale, NULL, numdih);
+  // SOLTY
+  if (solty!=NULL)
+    DataToFortranBuffer(buffer,F_SOLTY, NULL, solty, NULL, natyp);
+  // Lennard-Jones A/B
+  if (LJ_A!=NULL)
+    DataToFortranBuffer(buffer,F_LJ_A, NULL, LJ_A, NULL, ntypes*(ntypes+1)/2);
+  if (LJ_B!=NULL)
+    DataToFortranBuffer(buffer,F_LJ_B, NULL, LJ_B, NULL, ntypes*(ntypes+1)/2); 
   // BONDS INCLUDING HYDROGEN - might be null if read from pdb
   if (bondsh != NULL) 
     DataToFortranBuffer(buffer,F_BONDSH, bondsh, NULL, NULL, NbondsWithH*3);
   // BONDS WITHOUT HYDROGEN - might be null if read from pdb
   if (bonds!=NULL) 
     DataToFortranBuffer(buffer,F_BONDS, bonds, NULL, NULL, NbondsWithoutH*3);
-  // SOLVENT POINTERS
+  // ANGLES INCLUDING HYDROGEN
+  if (anglesh!=NULL)
+    DataToFortranBuffer(buffer,F_ANGLESH, anglesh, NULL, NULL, NanglesWithH*4);
+  // ANGLES WITHOUT HYDROGEN
+  if (angles!=NULL)
+    DataToFortranBuffer(buffer,F_ANGLES, angles, NULL, NULL, NanglesWithoutH*4);
+  // DIHEDRALS INCLUDING HYDROGEN
+  if (dihedralsh!=NULL)
+    DataToFortranBuffer(buffer,F_DIHH, dihedralsh, NULL, NULL, NdihedralsWithH*5);
+  // DIHEDRALS WITHOUT H
+  if (dihedrals!=NULL)
+    DataToFortranBuffer(buffer,F_DIH, dihedrals, NULL, NULL, NdihedralsWithoutH*5);
+  // EXCLUDED ATOMS LIST
+  // Shift atom #s in excludedAtoms by +1 to be consistent with AMBER
+  if (excludedAtoms!=NULL) {
+    int *tempexclude = new int[ nnb ];
+    memcpy(tempexclude, excludedAtoms, nnb * sizeof(int));
+    for (int atom = 0; atom < nnb; atom++) tempexclude[atom] += 1; 
+    DataToFortranBuffer(buffer,F_EXCLUDE, tempexclude, NULL, NULL, nnb);
+    delete[] tempexclude;
+  }
+  // HBOND ACOEFF, BCOEFF, HBCUT
+  if (asol!=NULL)
+    DataToFortranBuffer(buffer,F_ASOL,NULL,asol,NULL,nphb);
+  if (bsol!=NULL)
+    DataToFortranBuffer(buffer,F_BSOL,NULL,bsol,NULL,nphb);
+  if (hbcut!=NULL)
+    DataToFortranBuffer(buffer,F_HBCUT,NULL,hbcut,NULL,nphb);
+  // AMBER ATOM TYPE - might be null if read from pdb
+  if (types!=NULL) 
+    DataToFortranBuffer(buffer,F_TYPES, NULL, NULL, types, natom);
+  // TREE CHAIN CLASSIFICATION
+  if (itree!=NULL)
+    DataToFortranBuffer(buffer,F_ITREE, NULL, NULL, itree, natom);
+  // JOIN ARRAY
+  if (join_array!=NULL)
+    DataToFortranBuffer(buffer,F_JOIN, join_array, NULL, NULL, natom);
+  // IROTAT
+  if (irotat!=NULL)
+    DataToFortranBuffer(buffer,F_IROTAT, irotat, NULL, NULL, natom);
+  // Write solvent info if IFBOX>0
   if (values[IFBOX]>0) {
+    // SOLVENT POINTERS
     if (firstSolvMol!=-1) {
       solvent_pointer[0]=finalSoluteRes;
       solvent_pointer[1]=molecules;
       solvent_pointer[2]=firstSolvMol;
-      DataToFortranBuffer(buffer,F_SOLVENT_POINTER, solvent_pointer, NULL, NULL, 3);
+    } else {
+      solvent_pointer[0]=nres;
+      solvent_pointer[1]=molecules;
+      solvent_pointer[2]=molecules+1;
     }
+    DataToFortranBuffer(buffer,F_SOLVENT_POINTER, solvent_pointer, NULL, NULL, 3);
     // ATOMS PER MOLECULE
     if (atomsPerMol!=NULL) 
       DataToFortranBuffer(buffer,F_ATOMSPERMOL, atomsPerMol, NULL, NULL, molecules);
@@ -2012,10 +2387,21 @@ int AmberParm::WriteAmberParm(char *filename) {
     parmBox[3] = Box[2]; // boxZ
     DataToFortranBuffer(buffer,F_PARMBOX, NULL, parmBox, NULL, 4);
   }
+  // GB RADIUS SET
+  if (radius_set!=NULL) {
+    buffer.IncreaseSize(243); // 3 * 81
+    buffer.Sprintf("%-80s\n%-80s\n%-80s","%FLAG RADIUS_SET","%FORMAT(1a80)",radius_set);
+    buffer.NewLine();
+  }
+  // GB RADII
+  if (gb_radii!=NULL)
+    DataToFortranBuffer(buffer,F_RADII, NULL, gb_radii, NULL, natom);
+  // GB SCREENING PARAMETERS
+  if (gb_screen!=NULL)
+    DataToFortranBuffer(buffer,F_SCREEN, NULL, gb_screen, NULL, natom);
 
   // Write buffer to file
   outfile.IO->Write(buffer.Buffer(), sizeof(char), buffer.CurrentSize());
-  delete[] values;
   outfile.CloseFile();
 
   return 0;

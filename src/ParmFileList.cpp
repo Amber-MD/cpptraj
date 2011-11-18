@@ -60,9 +60,87 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
         ParmList[pindex]->Summary();
       }
     } else
-      mprinterr("\tError: parm %i not loaded.\n",pindex);
+      mprinterr("Error: parminfo: parm %i not loaded.\n",pindex);
     return 0;
   }
+  // parmwrite out <filename> [<parmindex>]: Write parm <parmindex> to <filename>
+  if (argIn->CommandIs("parmwrite")) {
+    char *outfilename = argIn->getKeyString("out",NULL);
+    if (outfilename==NULL) {
+      mprinterr("Error: parmwrite: No output filename specified (use 'out <filename>').\n");
+      return 0;
+    }
+    pindex = argIn->getNextInteger(0);
+    if (pindex < 0 || pindex >= Nparm) {
+      mprinterr("Error: parmwrite: parm index %i out of bounds.\n",pindex);
+      return 0;
+    }
+    mprintf("\tWriting parm %i (%s) to Amber parm %s\n",pindex,
+            ParmList[pindex]->parmName,outfilename);
+    ParmList[pindex]->WriteAmberParm(outfilename);
+    return 0;
+  }
+  // parmstrip <mask> [<parmindex>]: Strip atoms int mask from parm
+  if (argIn->CommandIs("parmstrip")) {
+    char *mask0 = argIn->getNextMask();
+    pindex = argIn->getNextInteger(0);
+    if (pindex < 0 || pindex >= Nparm) {
+      mprinterr("Error: parmstrip: parm index %i out of bounds.\n",pindex);
+      return 0;
+    }
+    tempMask.SetMaskString(mask0);
+    // Since want to keep atoms outside mask, invert selection
+    tempMask.InvertMask();
+    tempMask.SetupMask( ParmList[pindex], NULL, debug);
+    mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.maskString, 
+             ParmList[pindex]->natom - tempMask.Nselected, ParmList[pindex]->parmName);
+    AmberParm *tempParm = ParmList[pindex]->modifyStateByMask(tempMask.Selected, 
+                                                              tempMask.Nselected, NULL);
+    if (tempParm==NULL) 
+      mprinterr("Error: parmstrip: Could not strip parm.\n");
+    else {
+      tempParm->ParmInfo();
+      ReplaceParm(pindex, tempParm);
+    }
+    return 0;
+  }
+  // [parm]box [<parmindex>] [x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]
+  //           [nobox]
+  // Set the given parm box info to what is specified. If nobox, remove box info.
+  if (argIn->CommandIs("box") || argIn->CommandIs("parmbox")) {
+    double parmbox[6];
+    parmbox[0] = argIn->getKeyDouble("x",0);
+    parmbox[1] = argIn->getKeyDouble("y",0);
+    parmbox[2] = argIn->getKeyDouble("z",0);
+    parmbox[3] = argIn->getKeyDouble("alpha",0);
+    parmbox[4] = argIn->getKeyDouble("beta",0);
+    parmbox[5] = argIn->getKeyDouble("gamma",0);
+    if (argIn->hasKey("nobox")) {
+      parmbox[0]=-1; parmbox[1]=-1; parmbox[2]=-1;
+      parmbox[3]=-1; parmbox[4]=-1; parmbox[5]=-1;
+    }
+    pindex = argIn->getNextInteger(0);
+    if (pindex < 0 || pindex >= Nparm) {
+      mprinterr("Error: box: parm index %i out of bounds.\n",pindex);
+      return 0;
+    }
+    // Fill in missing parm box information from specified parm
+    if (parmbox[0]==0) parmbox[0] = ParmList[pindex]->Box[0];
+    if (parmbox[1]==0) parmbox[1] = ParmList[pindex]->Box[1];
+    if (parmbox[2]==0) parmbox[2] = ParmList[pindex]->Box[2];
+    if (parmbox[3]==0) parmbox[3] = ParmList[pindex]->Box[3];
+    if (parmbox[4]==0) parmbox[4] = ParmList[pindex]->Box[4];
+    if (parmbox[5]==0) parmbox[5] = ParmList[pindex]->Box[5];
+    // Determine box type from parmbox angles
+    ParmList[pindex]->boxType = CheckBoxType(parmbox+3, 1);
+    ParmList[pindex]->Box[0] = parmbox[0];
+    ParmList[pindex]->Box[1] = parmbox[1];
+    ParmList[pindex]->Box[2] = parmbox[2];
+    ParmList[pindex]->Box[3] = parmbox[3];
+    ParmList[pindex]->Box[4] = parmbox[4];
+    ParmList[pindex]->Box[5] = parmbox[5];
+    return 0;
+  } 
   // parmbondinfo [<parmindex>]: Print bond information for parm <parmindex>
   //     (0 by default).
   if (argIn->CommandIs("parmbondinfo")) {
@@ -70,7 +148,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     if (pindex>=0 && pindex<Nparm) 
       ParmList[pindex]->PrintBondInfo();
     else
-      mprinterr("\tError: parm %i not loaded.\n",pindex);
+      mprinterr("Error: parm %i not loaded.\n",pindex);
     return 0;
   }
   // parmmolinfo [<parmindex>]: Print molecule information for parm
@@ -80,28 +158,32 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     if (pindex>=0 && pindex<Nparm)
       ParmList[pindex]->PrintMoleculeInfo();
     else
-      mprinterr("\tError: parm %i not loaded.\n",pindex);
+      mprinterr("Error: parm %i not loaded.\n",pindex);
     return 0;
   }
   // bondsearch: Indicate that if bond information not found in topology
   //     it should be determined by distance search.
   if (argIn->CommandIs("bondsearch")) {
+    mprintf("\tInfo: Bond info will be determined from distance search if not present.\n");
     bondsearch=true;
     return 0;
   }
   // molsearch: Indicate that if molecule information not found in 
   //     topology file it should be determined by bonding information.
   if (argIn->CommandIs("molsearch")) {
+    mprintf("\tInfo: Molecule info will be determined from bonds if not present.\n");
     molsearch=true;
     return 0;
   }
   // nobondsearch: Turn off bond search.
   if (argIn->CommandIs("nobondsearch")) {
+    mprintf("\tInfo: Bond search is off.\n");
     bondsearch=false;
     return 0;
   }
   // nomolsearch: Turn off molecule search.
   if (argIn->CommandIs("nomolsearch")) {
+    mprintf("\tInfo: Molecule search is off.\n");
     molsearch=false;
     return 0;
   }

@@ -94,7 +94,7 @@ int ActionMask::action() {
     for (atom=0; atom < currentParm->natom; atom++) 
       if (Mask1.AtomInCharMask(atom)) Mask2->AddAtom(atom);
     // Create new parm and frame based on atoms in Mask
-    AmberParm *pdbParm = currentParm->modifyStateByMask(Mask2->Selected, Mask2->Nselected);
+    AmberParm *pdbParm = currentParm->modifyStateByMask(Mask2->Selected, Mask2->Nselected,NULL);
     //pdbParm->Summary(); // DEBUG
     Frame *pdbFrame = new Frame();
     pdbFrame->SetupFrame(Mask2->Nselected,NULL);

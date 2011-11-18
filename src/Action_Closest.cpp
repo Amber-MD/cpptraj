@@ -223,7 +223,7 @@ int Closest::setup() {
 
   // Create stripped Parm
   if (newParm!=NULL) delete newParm;
-  newParm = currentParm->modifyStateByMask(tempMask.Selected, tempMask.Nselected);
+  newParm = currentParm->modifyStateByMask(tempMask.Selected, tempMask.Nselected,prefix);
   if (newParm==NULL) {
     mprintf("    Error: Closest::setup: Could not create new parmtop.\n");
     return 1;
@@ -234,18 +234,12 @@ int Closest::setup() {
   newFrame.SetupFrame(newParm->natom, newParm->mass);
 
   // If prefix given then output stripped parm
-  if (prefix!=NULL && newParm->parmName==NULL) {
-    newParm->parmName=new char[ strlen(oldParm->parmName)+strlen(prefix)+2 ];;
-    sprintf(newParm->parmName,"%s.%s",prefix,oldParm->parmName);
+  if (prefix!=NULL) {
     mprintf("             Writing out amber topology file %s\n",newParm->parmName);
     if ( newParm->WriteAmberParm(newParm->parmName) ) {
       mprintf("      Error: CLOSEST: Could not write out stripped parm file %s\n",
               newParm->parmName);
     }
-  // Otherwise Set stripped parm name only, default prefix closest 
-  } else if ( newParm->parmName==NULL ) {
-    newParm->parmName=new char[ strlen(oldParm->parmName)+9 ];
-    sprintf(newParm->parmName,"closest.%s",oldParm->parmName);
   }
 
   // Set parm
