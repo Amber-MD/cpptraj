@@ -3,10 +3,14 @@ include ../../config.h
 CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS)
 # The following are needed for the ptraj_analyze routines
 PTRAJ_OBJECTS=thermo.o pubfft.o
-# These libraries are also in the FLIBS_PTRAJ line, but since the
-# FLIBS_PTRAJ line also contains other linking flags use
-# EXTERNAL_LIBS for dependencies, FLIBS_PTRAJ for linking.
-EXTERNAL_LIBS=$(LIBDIR)/arpack.a $(LIBDIR)/lapack.a $(LIBDIR)/blas.a
+# The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
+# actual locations of the arpack, lapack, blas, and netcdf libraries as 
+# installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just
+# containe -lnetcdf / -larpack etc this avoids triggering an unnecessary build 
+# of these libraries each time 'make' is invoked.
+# NOTE: Since -nobintraj is possible and the dependency for netcdf is not
+#       set correctly by configure there is no way this can work for netcdf 
+EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a
 
 include cpptrajfiles
 
@@ -32,13 +36,13 @@ cpptraj$(SFX): $(NETCDFLIB) $(OBJECTS) $(PTRAJ_OBJECTS) $(EXTERNAL_LIBS)
 $(NETCDFLIB): ../../netcdf_config.log
 	cd ../../netcdf/src && $(MAKE) install
 
-$(LIBDIR)/arpack.a:
+$(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install
 
-$(LIBDIR)/lapack.a:
+$(LIBDIR)/liblapack.a:
 	cd ../../lapack && $(MAKE) $(LAPACK)
 
-$(LIBDIR)/blas.a:
+$(LIBDIR)/libblas.a:
 	cd ../../blas && $(MAKE) $(BLAS)
 
 thermo.o:  ../../ptraj/thermo.f
