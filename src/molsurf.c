@@ -972,17 +972,10 @@ static int get_torus (ATOM atom[], int *nat, NEIGHBOR neighbors[],
   return nt;
 }
 
-
-
-
-
-static int convex_circles (atom, nat, toruslist, n_torus, circlelist, probe_rad)
-	 ATOM atom[];
-	 int nat;
-	 TORUS toruslist[];
-	 int n_torus;
-	 CIRCLE circlelist[];
-	 REAL_T probe_rad;
+/** \return number of convex circles, -1 on error.
+  */
+static int convex_circles (ATOM atom[], int nat, TORUS toruslist[], int n_torus, 
+                           CIRCLE circlelist[], REAL_T probe_rad)
 {
 
 
@@ -1026,17 +1019,13 @@ static int convex_circles (atom, nat, toruslist, n_torus, circlelist, probe_rad)
 
 	if (nc >= NUM_CIRCLE * natm_sel) {
 	  fprintf (stderr, "MAX_CIRCLE exceeded\n");
-	  exit (ERROR);
+	  return -1; //exit (ERROR);
 	}
   }
   return nc;
 }
 
-static int id_torus (ia1, ia2, atom, torus)
-	 int ia1;
-	 int ia2;
-	 ATOM atom[];
-	 TORUS torus[];
+static int id_torus (int ia1, int ia2, ATOM atom[], TORUS torus[])
 {
   int it, itmp;
 
@@ -1046,7 +1035,7 @@ static int id_torus (ia1, ia2, atom, torus)
 	ia1 = itmp;
 	/*
 	   fprintf(stderr, "id_torus(): atom indices reversed\n");
-	   exit(ERROR);
+	   return -1; //exit(ERROR);
 	 */
   }
   for (it = atom[ia1].torus_start; it < atom[ia1].torus_start +
@@ -1056,25 +1045,20 @@ static int id_torus (ia1, ia2, atom, torus)
 
   fprintf (stderr, "id_torus(): Could not find torus for atoms %d and %d\n",
 		   ia1, ia2);
-  exit (ERROR);
+  //exit (ERROR);
   return -1;
 }
 
-/******************************************************************/
-/* this routine assumes that the orientation of the atoms in the  */
-/* probe triplet is counter-clockwise.  This should be assured by */
-/* the add_probe() routine                                        */
-
-static int concave_circles (atom, n_probes, probelist, toruslist,
-				 concave_circle_list, probe_rad)
-	 ATOM atom[];
-	 int n_probes;
-	 PROBE probelist[];
-	 TORUS toruslist[];
-	 CIRCLE concave_circle_list[];
-	 REAL_T probe_rad;
+// -----------------------------------------------------------------
+/** this routine assumes that the orientation of the atoms in the
+  * probe triplet is counter-clockwise.  This should be assured by
+  * the add_probe() routine
+  * \return number of concave circles, -1 on error 
+  */
+static int concave_circles (ATOM atom[], int n_probes, PROBE probelist[], 
+                            TORUS toruslist[], CIRCLE concave_circle_list[], 
+                            REAL_T probe_rad)
 {
-
   //int id_torus ();
   int ic, ip, ii, jj, it;
   POINT r_pt, vec;
@@ -1090,8 +1074,11 @@ static int concave_circles (atom, n_probes, probelist, toruslist,
 	p_atom[2] = probelist[ip].a3;
 
 	p_torus[0] = id_torus (p_atom[0], p_atom[1], atom, toruslist);
+        if (p_torus[0] == -1) return -1; // NOTE: no check prev.
 	p_torus[1] = id_torus (p_atom[1], p_atom[2], atom, toruslist);
+        if (p_torus[1] == -1) return -1; // NOTE: no check prev.
 	p_torus[2] = id_torus (p_atom[0], p_atom[2], atom, toruslist);
+        if (p_torus[2] == -1) return -1; // NOTE: no check prev.
 
 	/* if the first atom in the torus is not the 1st atom in
 	   the concave surface edge, then the orientation of the
@@ -1126,7 +1113,7 @@ static int concave_circles (atom, n_probes, probelist, toruslist,
 	  ++ic;
 	  if (ic >= NUM_CIRCLE * natm_sel) {
 		printf ("concave_circles() MAX_CIRCLE exceeded\n");
-		exit (ERROR);
+		return -1; //exit (ERROR);
 	  }
 	}
   }
@@ -1159,40 +1146,28 @@ static void addvert (probe_rad, ia, atom, ip, probe, nverts, vert)
   return;
 }
 
-/******************************************************************************/
-  /* 1. fill up concave edge list, orient edges                                 */
-  /* 2. add edge pointers to torus array                                        */
-  /* 3. fill up vertex list                                                     */
-  /* 4. create concave face                                                     */
-  /*                                                                            */
-  /* this routine assumes that the atoms associated with the probes are already */
-  /* in counter-clockwise orientation.  This should be taken care of by         */
-  /* add_probe()                                                                */
-/******************************************************************************/
-static void concave_edges (REAL_T probe_rad, ATOM atom[], int nprobes, PROBE probe[], 
-                           int *nverts, VERTEX vert[], int *nedges, EDGE edge[], 
-                           int *nfaces, CONCAVE_FACE face[], int ntorus, TORUS torus[])
-/*	 REAL_T probe_rad;
-	 ATOM atom[];
-	 int nprobes;
-	 PROBE probe[];
-	 int *nverts;
-	 VERTEX vert[];
-	 int *nedges;
-	 EDGE edge[];
-	 int *nfaces;
-	 CONCAVE_FACE face[];
-	 int ntorus;
-	 TORUS torus[];*/
+// -----------------------------------------------------------------------------
+/** 1. fill up concave edge list, orient edges
+  * 2. add edge pointers to torus array
+  * 3. fill up vertex list
+  * 4. create concave face
+  * this routine assumes that the atoms associated with the probes are already
+  * in counter-clockwise orientation.  This should be taken care of by        
+  * add_probe().
+  * \return 0 on success, 1 on error
+  */
+static int concave_edges (REAL_T probe_rad, ATOM atom[], // NOTE: was void
+                          int nprobes, PROBE probe[], 
+                          int *nverts, VERTEX vert[], int *nedges, EDGE edge[], 
+                          int *nfaces, CONCAVE_FACE face[], int ntorus, TORUS torus[])
 {
   int ic1, ic2, ic3;			/* 3 circles on probe */
   int iv1, iv2;			/* vertices for the 3 atoms touching the probe */
   int it1, it2, it3;			/* 3 tori touching the probe */
   int iface = 0, i, ii, it, ie;
   int probe_atom[3];			/* 3 atoms touching probe */
-  int id_torus ();
+  //int id_torus ();
   //void addvert ();
-
 
   *nedges = 0;
   *nfaces = 0;
@@ -1210,8 +1185,11 @@ static void concave_edges (REAL_T probe_rad, ATOM atom[], int nprobes, PROBE pro
 	ic3 = probe[i].c3;
 
 	it1 = id_torus (probe_atom[0], probe_atom[1], atom, torus);
+        if (it1==-1) return 1; // NOTE: no check prev.
 	it2 = id_torus (probe_atom[1], probe_atom[2], atom, torus);
+        if (it2==-1) return 1; // NOTE: no check prev.
 	it3 = id_torus (probe_atom[0], probe_atom[2], atom, torus);
+        if (it3==-1) return 1; // NOTE: no check prev.
 
 	face[iface].probe = i;
 	face[iface].alive = 1;
@@ -1250,11 +1228,11 @@ static void concave_edges (REAL_T probe_rad, ATOM atom[], int nprobes, PROBE pro
 		torus[it2].n_concave_edges >= NUM_EDGE * natm_sel ||
 		torus[it3].n_concave_edges >= NUM_EDGE * natm_sel) {
 	  printf ("MAXTOR_EDGE exceeded\n");
-	  exit (ERROR);
+	  return 1; //exit (ERROR);
 	}
 	if (*nedges >= NUM_EDGE * natm_sel) {
 	  printf ("MAX_EDGE exceeded\n");
-	  exit (ERROR);
+	  return 1; //exit (ERROR);
 	}
 	/* define 3 new vertices */
 
@@ -1263,7 +1241,7 @@ static void concave_edges (REAL_T probe_rad, ATOM atom[], int nprobes, PROBE pro
 	++iface;
 	if (iface >= NUM_FACE * natm_sel) {
 	  printf ("MAX_FACE exceeded\n");
-	  exit (ERROR);
+	  return 1; //exit (ERROR);
 	}
   }
 
@@ -1272,7 +1250,7 @@ static void concave_edges (REAL_T probe_rad, ATOM atom[], int nprobes, PROBE pro
   for (it = 0; it < ntorus; ++it) {
 	if (torus[it].n_concave_edges % 2 != 0) {
 	  fprintf (stderr, "odd number of probe positions on torus!\n");
-	  exit (ERROR);
+	  return 1; //exit (ERROR);
 	}
 	for (i = 0; i < torus[it].n_concave_edges; ++i) {
 	  ie = torus[it].concave_edges[i];
@@ -1286,12 +1264,12 @@ static void concave_edges (REAL_T probe_rad, ATOM atom[], int nprobes, PROBE pro
 		printf ("torus %d atoms %d %d\n", it, torus[it].a1, torus[it].a2);
 		printf ("edge %d vert1.atom %d vert2.atom %d\n", ie,
 				vert[iv1].iatom, vert[iv2].iatom);
-		exit (ERROR);
+		return 1; //exit (ERROR);
 	  }
 	}
   }
 
-  return;
+  return 0;
 }
 
 
@@ -1594,8 +1572,8 @@ static int convex_edges (REAL_T probe_rad, int nat, ATOM atom[], int n_probes, /
 }
 /********************************************************************************/
 
-/************************************************************************/
-/* get_angle() returns the angle between two vectors u and v            */
+/**************************************************
+  * \return returns the angle between two vectors u and v            */
 /* as measured looking down from the +z axis                            */
 /* from -pi to pi  measured clockwise                                   */
 /*                                                                      */
@@ -7581,16 +7559,19 @@ REAL_T molsurf(REAL_T probe_rad, ATOM *atom, int natomIn,
        associated with the atoms */
     n_convex_circles = convex_circles (atom, nat, toruslist, n_torus, 
                                        convex_circle_list, probe_rad);
+    if (n_convex_circles < 0) return ERROR;
     n_concave_circles = concave_circles (atom, n_probes, probelist, toruslist,
                                          concave_circle_list, probe_rad);
+    if (n_concave_circles < 0) return ERROR;
 
     /* 1. fill up concave edge list, orient edges 
        2. add edge pointers to torus array   
        3. fill up vertex list
        4. create concave face                                                       */
-    concave_edges (probe_rad, atom, n_probes, probelist, &n_vertex, vertexlist,
+    // NOTE: previously call had extra arg, 'concave_circles'
+    if (concave_edges (probe_rad, atom, n_probes, probelist, &n_vertex, vertexlist,
                    &n_concave_edges, concave_edge_list, &n_concave_faces, concave_face,
-                   n_torus, toruslist);//, concave_circles);
+                   n_torus, toruslist)) return 1; // NOTE: no check prev.
     sort_edges (n_concave_edges, concave_edge_list, n_torus,
                 toruslist, n_vertex, vertexlist, convex_circle_list);
   /*
