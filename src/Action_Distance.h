@@ -1,8 +1,8 @@
 #ifndef INC_ACTION_DISTANCE_H
 #define INC_ACTION_DISTANCE_H
-/// Class: Distance
-/// Action to calculate a distance between atoms in two masks.
 #include "Action.h"
+// Class: Distance
+/// Action to calculate a distance between atoms in two masks.
 class Distance: public Action {
     DataSet *dist;
     bool noimage;

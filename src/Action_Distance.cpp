@@ -17,13 +17,12 @@ Distance::~Distance() {
   //fprintf(stderr,"Distance Destructor.\n");
 }
 
-/* Distance::init()
- * Expected call: distance <name> <mask1> <mask2> [out filename] [geom] [noimage]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// Distance::init()
+/// Expected call: distance <name> <mask1> <mask2> [out filename] [geom] [noimage]
+// Dataset name will be the last arg checked for. Check order is:
+//    1) Keywords
+//    2) Masks
+//    3) Dataset name
 int Distance::init( ) {
   char *mask1, *mask2;
   char *distanceFile;
@@ -63,10 +62,10 @@ int Distance::init( ) {
   return 0;
 }
 
-/* Distance::setup()
- * Determine what atoms each mask pertains to for the current parm file.
- * Also determine whether imaging should be performed.
- */
+// Distance::setup()
+/** Determine what atoms each mask pertains to for the current parm file.
+  * Also determine whether imaging should be performed.
+  */
 int Distance::setup() {
 
   if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
@@ -98,8 +97,7 @@ int Distance::setup() {
   return 0;  
 }
 
-/* Distance::action()
- */
+// Distance::action()
 int Distance::action() {
   double D, ucell[9], recip[9];
 
