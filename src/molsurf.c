@@ -127,34 +127,23 @@ static int add_free_edge (int *n_edges, EDGE edge[], int icircle) // NOTE: was v
   (*n_edges)++;
   if (*n_edges >= NUM_EDGE * natm_sel) {
 	printf ("MAX_EDGE exceeded\n");
-	return 1;
+	return 1; // exit (ERROR);
   }
   return 0;
 }
 
 /**********************************************************************/
 /* c = a x b */
-static void cross (a, b, c)
-	 POINT a;
-	 POINT b;
-	 POINT c;
+static void cross (POINT a, POINT b, POINT c)
 {
   c[0] = a[1] * b[2] - a[2] * b[1];
   c[1] = a[2] * b[0] - a[0] * b[2];
   c[2] = a[0] * b[1] - a[1] * b[0];
 }
 
-static void add_probe (np, probelist, px, height,
-		   ia, ja, ka, ij, jk, ik,
-		   upper_neighbors, probe_rad, atom)
-	 int *np;
-	 PROBE probelist[];
-	 POINT px;
-	 REAL_T height;
-	 int ia, ja, ka, ij, jk, ik;
-	 NEIGHBOR_TORUS upper_neighbors[];
-	 REAL_T probe_rad;
-	 ATOM atom[];
+static int add_probe (int *np, PROBE probelist[], POINT px, REAL_T height, // NOTE: was void
+                      int ia, int ja, int ka, int ij, int jk, int ik, 
+                      NEIGHBOR_TORUS upper_neighbors[], REAL_T probe_rad, ATOM atom[])
 {
   POINT r_12, r_13, r_1p, r_cross;
   int ii, counter_clockwise;
@@ -193,17 +182,17 @@ static void add_probe (np, probelist, px, height,
   }
   if (*np > NUM_PROBE * natm_sel) {
 	fprintf (stderr, "MAXPROBE exceeded: %d %d %d\n", ia, ja, ka);
-	exit (ERROR);
+	return 1; //exit (ERROR);
   }
   ++upper_neighbors[ij].nprobes;
   ++upper_neighbors[jk].nprobes;
   ++upper_neighbors[ik].nprobes;
   ++(*np);
+  return 0;
 }
-static void add_saddle_face (saddle_face, nface, itorus,
-				 e1_concave, e3_concave, e2_convex, e4_convex)
-	 SADDLE_FACE saddle_face[];
-	 int *nface, itorus, e1_concave, e3_concave, e2_convex, e4_convex;
+
+static int add_saddle_face (SADDLE_FACE saddle_face[], int *nface, int itorus, // NOTE: was void
+                            int e1_concave, int e3_concave, int e2_convex, int e4_convex)
 {
   saddle_face[*nface].torus = itorus;
   saddle_face[*nface].e1_concave = e1_concave;	/* no concave edges */
@@ -213,8 +202,9 @@ static void add_saddle_face (saddle_face, nface, itorus,
   ++(*nface);
   if (*nface >= NUM_FACE * natm_sel) {
 	printf ("convex_edges() MAX_FACE exceeded\n");
-	exit (ERROR);
+	return 1; //exit (ERROR);
   }
+  return 0;
 }
 
 /***********************************************************************/
@@ -274,9 +264,7 @@ void memory_usage ()
   return;
 }
 
-static void vnorm (v, n)
-	 REAL_T v[];
-	 int n;
+static void vnorm ( REAL_T v[], int n)
 {
   int i;
   REAL_T vn;
@@ -290,10 +278,7 @@ static void vnorm (v, n)
   }
 }
 
-static void write_verts (n_vertex, vert, atom)
-	 int n_vertex;
-	 VERTEX vert[];
-	 ATOM atom[];
+static void write_verts ( int n_vertex, VERTEX vert[], ATOM atom[])
 
 {
   int i;
@@ -303,36 +288,32 @@ static void write_verts (n_vertex, vert, atom)
   }
 }
 
-static void atom_vertex_match (vertex, iv, iatom)
-	 VERTEX vertex[];
-	 int iv, iatom;
+static int atom_vertex_match (VERTEX vertex[], int iv, int iatom)
 {
   if (vertex[iv].iatom != iatom) {
 	fprintf (stderr, "vertex atom mismatch\n");
 	fprintf (stderr, "       atom: %d\n", iatom);
 	fprintf (stderr, "vertex atom: %d\n", vertex[iv].iatom);
-	exit (ERROR);
+	return 1;
   }
+  return 0;
 }
 
-
 /***************************************************************/
-static REAL_T dist2 (x, y)
-	 POINT x, y;
+static REAL_T dist2 ( POINT x, POINT y)
 {
   return (x[0] - y[0]) * (x[0] - y[0]) +
 	(x[1] - y[1]) * (x[1] - y[1]) +
 	(x[2] - y[2]) * (x[2] - y[2]);
 }
 
-/* bubble sort, based on example in
-   Software Tools, Kernighan and Plauger */
-
-static void sort_neighbors (n, x, istart, neighbors)
-	 int n;						/* num. of neighbors */
-	 REAL_T x[];				/* distance used for sorting */
-	 int istart;				/* starting index for neighbor array */
-	 NEIGHBOR neighbors[];		/* index array to sort */
+/** bubble sort, based on example in Software Tools, Kernighan and Plauger
+  * \param n num. of neighbors
+  * \param x distance used for sorting
+  * \param istart starting index for neighbor array
+  * \param neighbors index array to sort 
+  */
+static void sort_neighbors (int n, REAL_T x[], int istart, NEIGHBOR neighbors[])
 {
   int i, j, itmp;
   REAL_T xtmp;
@@ -359,22 +340,20 @@ static void sort_neighbors (n, x, istart, neighbors)
   }
   return;
 }
+
 #define MAX_NSORT 500
-static int getneighbors (nat, a, neighbors, upper_neighbors, probe_rad)
-	 int nat;
-	 ATOM a[];
-	 NEIGHBOR neighbors[];
-	 NEIGHBOR_TORUS upper_neighbors[];
-	 REAL_T probe_rad;
+/** \return number of neighbors, -1 on error
+  */
+static int getneighbors (int nat, ATOM a[], NEIGHBOR neighbors[], 
+                         NEIGHBOR_TORUS upper_neighbors[], REAL_T probe_rad)
 {
   REAL_T probe_diam, maxrad = 0.0, d, cutoff, d_ext;
   int n_tot = 0, n_upper_tot = 0;
   int i, j;
-  //REAL_T dist2 ();
   int nsort, istart;
   REAL_T dsort[MAX_NSORT];
+  //REAL_T dist2 ();
   //void sort_neighbors ();
-
 
   probe_diam = 2 * probe_rad;
 
@@ -412,7 +391,7 @@ static int getneighbors (nat, a, neighbors, upper_neighbors, probe_rad)
 	  if (d < (d_ext + a[j].rad)) {
 		if (n_tot >= NUM_NEIGHBOR * natm_sel) {
 		  fprintf (stderr, "MAX_NEIGHBOR exceeded: %d %d %d\n", n_tot, i, j);
-		  exit (ERROR);
+		  return -1; //exit (ERROR);
 		}
 		if (a[i].rad + d < a[j].rad)
 		  a[i].buried = 1;
@@ -434,13 +413,13 @@ static int getneighbors (nat, a, neighbors, upper_neighbors, probe_rad)
 		  ++n_upper_tot;
 		  if (n_upper_tot > NUM_NEIGHBOR * natm_sel) {
 			fprintf (stderr, "MAX_NEIGHBOR exceeded\n");
-			exit (ERROR);
+			return -1; //exit (ERROR);
 		  }
 		}
 		/* set up sort */
 		if (nsort >= MAX_NSORT) {
 		  fprintf (stderr, "MAX_NSORT exceeded: %d %d\n", nsort, MAX_NSORT);
-		  exit (ERROR);
+		  return -1; //exit (ERROR);
 		}
 		dsort[nsort] = d;
 		++nsort;
@@ -615,78 +594,72 @@ static int no_bump (atom, i0, j0, k0, neighbors, px1, px2,
   return 1;
 }
 
-static int get_probes (atom, nat, neighbors, upper_neighbors, probelist, probe_rad)
-	 ATOM atom[];
-	 int *nat;
-	 NEIGHBOR neighbors[];
-	 NEIGHBOR_TORUS upper_neighbors[];
-	 PROBE probelist[];
-	 REAL_T probe_rad;
+/** \return number of probes, -1 on error.
+  */
+static int get_probes (ATOM atom[], int *nat, NEIGHBOR neighbors[], 
+                       NEIGHBOR_TORUS upper_neighbors[], PROBE probelist[], REAL_T probe_rad)
 {
   int ia, ja, ka, ij, jk, ik, k1, bump[2];
   REAL_T probe_diam;
   POINT px1, px2;
   REAL_T height;
   //int probe_pos (), no_bump ();
-  void add_probe ();
+  //void add_probe ();
   int nprobes = 0;
 
   probe_diam = 2 * probe_rad;
 
   for (ia = 0; ia < *nat; ++ia) {
 
-	if (atom[ia].buried)
-	  continue;
+    if (atom[ia].buried) continue;
 
-	for (ij = atom[ia].upper_start;
-		 ij < atom[ia].upper_start + atom[ia].n_upper; ++ij) {
+    for (ij = atom[ia].upper_start; ij < atom[ia].upper_start + atom[ia].n_upper; ++ij) {
+      // buried torus
+      if (upper_neighbors[ij].nprobes == BURIED_TORUS) continue;
 
-	  if (upper_neighbors[ij].nprobes == BURIED_TORUS)
-		continue;				/* buried torus */
-	  ja = upper_neighbors[ij].iatom;
-	  if (atom[ja].buried)
-		continue;
+      ja = upper_neighbors[ij].iatom;
+      if (atom[ja].buried) continue;
 
-	  for (ik = ij + 1;
-		   ik < atom[ia].upper_start + atom[ia].n_upper; ++ik) {
+      for (ik = ij + 1; ik < atom[ia].upper_start + atom[ia].n_upper; ++ik) {
+        // buried torus
+        if (upper_neighbors[ik].nprobes == BURIED_TORUS) continue;
 
-		if (upper_neighbors[ik].nprobes == BURIED_TORUS)
-		  continue;				/* buried torus */
-		ka = upper_neighbors[ik].iatom;
-		if (atom[ka].buried)
-		  continue;
+        ka = upper_neighbors[ik].iatom;
+        if (atom[ka].buried) continue;
 
-		for (jk = atom[ja].upper_start;
-			 jk < atom[ja].upper_start + atom[ja].n_upper; ++jk) {
+        for (jk = atom[ja].upper_start; jk < atom[ja].upper_start + atom[ja].n_upper; ++jk) {
+          // buried torus
+          if (upper_neighbors[jk].nprobes == BURIED_TORUS) continue;
 
-		  if (upper_neighbors[jk].nprobes == BURIED_TORUS)
-			continue;			/* buried torus */
-		  k1 = upper_neighbors[jk].iatom;
+          k1 = upper_neighbors[jk].iatom;
 
-		  if (k1 == ka) {
-			/* 3 intersecting tori */
-
-			/*
-			   printf("intersecting tori atoms : %d %d %d\n",  ia, ja, ka);
-			 */
-			if (probe_pos (&atom[ia], &atom[ja], &atom[ka],
-			&upper_neighbors[ij], &upper_neighbors[jk], &upper_neighbors[ik],
-						   probe_rad, probe_diam, px1, px2, &height)) {
-			  if (no_bump (atom, ia, ja, ka, neighbors,
-						   px1, px2, probe_rad, probe_diam, bump)) {
-				if (!bump[0])
-				  add_probe (&nprobes, probelist, px1, height,
-				  ia, ja, ka, ij, jk, ik, upper_neighbors, probe_rad, atom);
-				if (!bump[1])
-				  add_probe (&nprobes, probelist, px2, height,
-				  ia, ja, ka, ij, jk, ik, upper_neighbors, probe_rad, atom);
-			  }
-			}
-		  }
-		}
-	  }
-	}
-  }
+          if (k1 == ka) {
+            // 3 intersecting tori
+            //printf("intersecting tori atoms : %d %d %d\n",  ia, ja, ka);
+            if (probe_pos (&atom[ia], &atom[ja], &atom[ka],
+                           &upper_neighbors[ij], &upper_neighbors[jk], &upper_neighbors[ik],
+                           probe_rad, probe_diam, px1, px2, &height)) 
+            {
+              if (no_bump (atom, ia, ja, ka, neighbors,
+                           px1, px2, probe_rad, probe_diam, bump)) 
+              {
+                if (!bump[0]) {
+                  if (add_probe (&nprobes, probelist, px1, height,
+                             ia, ja, ka, ij, jk, ik, upper_neighbors, probe_rad, atom))
+                  return -1; // NOTE: no check prev.
+                }
+                if (!bump[1]) {
+                  if (add_probe (&nprobes, probelist, px2, height,
+                             ia, ja, ka, ij, jk, ik, upper_neighbors, probe_rad, atom))
+                  return -1; // NOTE: no check prev.
+                }
+              }
+            }
+          } // END if k1 == ka
+        } // END loop over jk
+      } // END loop over ik
+    } // END loop over ij
+  } // END loop over ia
   return nprobes;
 }
 
@@ -936,16 +909,10 @@ static void torus_data (tor, nt, atom, ia, ja, prad)
 
 }
 
-
-
-
-static int get_torus (atom, nat, neighbors, upper_neighbors, probe_rad, toruslist)
-	 ATOM atom[];
-	 int *nat;
-	 NEIGHBOR neighbors[];
-	 NEIGHBOR_TORUS upper_neighbors[];
-	 REAL_T probe_rad;
-	 TORUS toruslist[];
+/** \return number of accesible tori, -1 on error
+  */
+static int get_torus (ATOM atom[], int *nat, NEIGHBOR neighbors[], 
+                      NEIGHBOR_TORUS upper_neighbors[], REAL_T probe_rad, TORUS toruslist[])
 {
   int ia, ja, in, nt = 0;
   //void torus_data ();
@@ -990,7 +957,7 @@ static int get_torus (atom, nat, neighbors, upper_neighbors, probe_rad, toruslis
 
 		   if (toruslist[nt].n_convex_edges%2 != 0) {
 		   fprintf(stderr,"odd number of probe positions on torus!\n");
-		   exit (ERROR);
+		   return -1; //exit (ERROR);
 		   }
 		 */
 
@@ -998,7 +965,7 @@ static int get_torus (atom, nat, neighbors, upper_neighbors, probe_rad, toruslis
 	  ++nt;
 	  if (nt >= NUM_TORUS * natm_sel) {
 		fprintf (stderr, "MAX_TORUS exceeded\n");
-		exit (ERROR);
+		return -1; //exit (ERROR);
 	  }
 	}
   }
@@ -1559,7 +1526,8 @@ static int convex_edges (REAL_T probe_rad, int nat, ATOM atom[], int n_probes, /
 	  n_free_edges = n_free_edges + 2;
 	  toruslist[it].n_convex_edges = 0;
 
-	  add_saddle_face (saddle_face, &iface, it, -1, -1, ne + 1, ne);
+	  if (add_saddle_face (saddle_face, &iface, it, -1, -1, ne + 1, ne)) 
+            return 1; // NOTE: no check prev.
 
 	  add_convex_edge_to_torus (it, toruslist, 0, ne);
 	  add_convex_edge_to_atom (ia, atom, ne);
@@ -1581,12 +1549,14 @@ static int convex_edges (REAL_T probe_rad, int nat, ATOM atom[], int n_probes, /
 	  cc2_v1 = concave_edge[icc2].vert1;
 	  cc2_v2 = concave_edge[icc2].vert2;
 
-	  atom_vertex_match (vertexlist, cc1_v1, ia);
-	  atom_vertex_match (vertexlist, cc1_v2, ja);
-	  atom_vertex_match (vertexlist, cc2_v1, ja);
-	  atom_vertex_match (vertexlist, cc2_v2, ia);
+          // NOTE: no check prev. for following 4 calls
+	  if (atom_vertex_match (vertexlist, cc1_v1, ia)) return 1;
+	  if (atom_vertex_match (vertexlist, cc1_v2, ja)) return 1;
+	  if (atom_vertex_match (vertexlist, cc2_v1, ja)) return 1;
+	  if (atom_vertex_match (vertexlist, cc2_v2, ia)) return 1;
 
-	  add_saddle_face (saddle_face, &iface, it, icc1, icc2, ne + 1, ne);
+	  if (add_saddle_face (saddle_face, &iface, it, icc1, icc2, ne + 1, ne))
+            return 1; // NOTE: no check prev.
 
 	  add_convex_edge_to_torus (it, toruslist, i, ne);
 	  add_convex_edge_to_atom (ia, atom, ne);
@@ -7593,16 +7563,19 @@ REAL_T molsurf(REAL_T probe_rad, ATOM *atom, int natomIn,
   nat = natomIn;
   natm_sel = nat;
 
-    getneighbors (nat, atom, neighbors, upper_neighbors, probe_rad);
+    if (getneighbors (nat, atom, neighbors, upper_neighbors, probe_rad) < 0)
+      return ERROR;
 
     /* determine valid probe positions */
     n_probes = get_probes (atom, &nat, neighbors, upper_neighbors, probelist, probe_rad);
+    if (n_probes < 0) return ERROR;
 
     /* check if any tori are completely buried by a single atom */
     t_buried (atom, &nat, neighbors, upper_neighbors, probe_rad);
 
     /* identify accessible tori                                                */
     n_torus = get_torus (atom, &nat, neighbors, upper_neighbors, probe_rad, toruslist);
+    if (n_torus < 0) return ERROR;
 
     /* create concave circles associated with probes and convex circles
        associated with the atoms */
@@ -7705,13 +7678,14 @@ REAL_T molsurf(REAL_T probe_rad, ATOM *atom, int natomIn,
 
     check_broken_faces (n_broken_concave_faces, broken_concave_face);
 
-    non_axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probelist,
+    if (non_axial_trim (nat, atom, res, n_torus, toruslist, n_probes, probelist,
                     n_concave_faces, concave_face, n_vertex, vertexlist,
                     &n_concave_edges, concave_edge_list,
                     &n_concave_circles, concave_circle_list, probe_rad,
                     n_low_torus, low_torus, n_broken_concave_faces, broken_concave_face,
                     concave_cycle, n_concave_cycles, cone_face, cusp_edge, &n_cusps,
-                    cusp_pair, &n_cusp_pairs);
+                    cusp_pair, &n_cusp_pairs))
+    return ERROR; // NOTE: no check prev.
 
     check_broken_faces (n_broken_concave_faces, broken_concave_face);
 
