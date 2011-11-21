@@ -406,7 +406,7 @@ int AmberParm::SetSurfaceInfo() {
   } else {
     numSoluteAtoms = natom;
   }
-  mprintf("[%s] Setting surface paramters for %i solute atoms.\n",parmName,numSoluteAtoms);
+  mprintf("[%s] Setting surface parameters for %i solute atoms.\n",parmName,numSoluteAtoms);
 
   // Set vdw radii and LCPO parameters
   SurfaceInfo = new SurfInfo[ numSoluteAtoms ];
