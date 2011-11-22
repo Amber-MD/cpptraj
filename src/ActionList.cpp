@@ -29,6 +29,7 @@
 #include "Action_PtrajAction.h"
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
+#include "Action_DihedralScan.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() {
@@ -61,37 +62,38 @@ int ActionList::AddAction(ArgList &argIn) {
   Action *Act;
 
   // Decide what action this is based on the command.
-  if      (argIn.CommandIs("distance")) {Act=new Distance;}
-  else if (argIn.CommandIs("rms2d"))    {Act=new Rms2d;   }
-  else if (argIn.CommandIs("2drms"))    {Act=new Rms2d;   }
-  else if (argIn.CommandIs("rmsd"))     {Act=new Rmsd;    }
-  else if (argIn.CommandIs("rms"))      {Act=new Rmsd;    }
-  else if (argIn.CommandIs("dihedral")) {Act=new Dihedral;}
-  else if (argIn.CommandIs("atommap"))  {Act=new AtomMap; }
-  else if (argIn.CommandIs("angle"))    {Act=new Angle;   }
-  else if (argIn.CommandIs("strip"))    {Act=new Strip;   }
-  else if (argIn.CommandIs("secstruct")){Act=new DSSP;    }
-  else if (argIn.CommandIs("center"))   {Act=new Center;  }
-  else if (argIn.CommandIs("hbond"))    {Act=new Hbond;   }
-  else if (argIn.CommandIs("image"))    {Act=new Image;   }
-  else if (argIn.CommandIs("surf"))     {Act=new Surf;    }
-  else if (argIn.CommandIs("radgyr"))   {Act=new Radgyr;  }
-  else if (argIn.CommandIs("mask"))     {Act=new ActionMask;}
-  else if (argIn.CommandIs("closest"))  {Act=new Closest; }
-  else if (argIn.CommandIs("nastruct")) {Act=new NAstruct;}
-  else if (argIn.CommandIs("pucker"))   {Act=new Pucker;  }
-  else if (argIn.CommandIs("outtraj"))  {Act=new Outtraj; }
-  else if (argIn.CommandIs("unstrip"))  {Act=new Unstrip; }
-  else if (argIn.CommandIs("average"))  {Act=new Average; }
-  else if (argIn.CommandIs("radial"))   {Act=new Radial;  }
-  else if (argIn.CommandIs("drmsd"))    {Act=new DistRmsd;}
-  else if (argIn.CommandIs("drms"))     {Act=new DistRmsd;}
-  else if (argIn.CommandIs("jcoupling")){Act=new Jcoupling;}
-  else if (argIn.CommandIs("cluster"))  {Act=new Clustering;}
-  else if (argIn.CommandIs("pairwise")) {Act=new Pairwise;}
-  else if (argIn.CommandIs("molsurf"))  {Act=new Molsurf; }
+  if      (argIn.CommandIs("distance"))       {Act=new Distance;}
+  else if (argIn.CommandIs("rms2d"))          {Act=new Rms2d;   }
+  else if (argIn.CommandIs("2drms"))          {Act=new Rms2d;   }
+  else if (argIn.CommandIs("rmsd"))           {Act=new Rmsd;    }
+  else if (argIn.CommandIs("rms"))            {Act=new Rmsd;    }
+  else if (argIn.CommandIs("dihedral"))       {Act=new Dihedral;}
+  else if (argIn.CommandIs("atommap"))        {Act=new AtomMap; }
+  else if (argIn.CommandIs("angle"))          {Act=new Angle;   }
+  else if (argIn.CommandIs("strip"))          {Act=new Strip;   }
+  else if (argIn.CommandIs("secstruct"))      {Act=new DSSP;    }
+  else if (argIn.CommandIs("center"))         {Act=new Center;  }
+  else if (argIn.CommandIs("hbond"))          {Act=new Hbond;   }
+  else if (argIn.CommandIs("image"))          {Act=new Image;   }
+  else if (argIn.CommandIs("surf"))           {Act=new Surf;    }
+  else if (argIn.CommandIs("radgyr"))         {Act=new Radgyr;  }
+  else if (argIn.CommandIs("mask"))           {Act=new ActionMask;}
+  else if (argIn.CommandIs("closest"))        {Act=new Closest; }
+  else if (argIn.CommandIs("nastruct"))       {Act=new NAstruct;}
+  else if (argIn.CommandIs("pucker"))         {Act=new Pucker;  }
+  else if (argIn.CommandIs("outtraj"))        {Act=new Outtraj; }
+  else if (argIn.CommandIs("unstrip"))        {Act=new Unstrip; }
+  else if (argIn.CommandIs("average"))        {Act=new Average; }
+  else if (argIn.CommandIs("radial"))         {Act=new Radial;  }
+  else if (argIn.CommandIs("drmsd"))          {Act=new DistRmsd;}
+  else if (argIn.CommandIs("drms"))           {Act=new DistRmsd;}
+  else if (argIn.CommandIs("jcoupling"))      {Act=new Jcoupling;}
+  else if (argIn.CommandIs("cluster"))        {Act=new Clustering;}
+  else if (argIn.CommandIs("pairwise"))       {Act=new Pairwise;}
+  else if (argIn.CommandIs("molsurf"))        {Act=new Molsurf; }
   else if (argIn.CommandIs("checkstructure")) {Act=new CheckStructure;}
-  else if (argIn.CommandIs("check"))    {Act=new CheckStructure;}
+  else if (argIn.CommandIs("check"))          {Act=new CheckStructure;}
+  else if (argIn.CommandIs("dihedralscan"))   {Act=new DihedralScan;}
   // PTRAJ
   else if (argIn.CommandIs("atomicfluct") ||
            argIn.CommandIs("atomicfluct3D") ||

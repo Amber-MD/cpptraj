@@ -25,7 +25,7 @@ SOURCE=main.cpp AmberParm.cpp \
        DataSet_float.cpp CoordList.cpp ptraj_stack.c ptraj_actions.c Action_PtrajAction.cpp \
        ptraj_analyze.c ptraj_evec.c ptraj_common.c ptraj_arg.c ptraj_state.c ptraj_scalar.c \
        Analysis_PtrajAnalysis.cpp ptraj_convert.cpp molsurf.c Action_Molsurf.cpp \
-       Action_CheckStructure.cpp
+       Action_CheckStructure.cpp Action_DihedralScan.cpp
 
 OBJECTS=main.o AmberParm.o \
         Frame.o CpptrajState.o ArgList.o PtrajMask.o Action_Distance.o \
@@ -54,7 +54,7 @@ OBJECTS=main.o AmberParm.o \
         DataSet_float.o CoordList.o ptraj_stack.o ptraj_actions.o Action_PtrajAction.o \
         ptraj_analyze.o ptraj_evec.o ptraj_common.o ptraj_arg.o ptraj_state.o ptraj_scalar.o \
         Analysis_PtrajAnalysis.o ptraj_convert.o molsurf.o Action_Molsurf.o \
-        Action_CheckStructure.o
+        Action_CheckStructure.o Action_DihedralScan.o
 
 HEADERS=AmberParm.h \
         Frame.h CpptrajState.h ArgList.h PtrajMask.h Action.h Action_Distance.h \
@@ -83,5 +83,5 @@ HEADERS=AmberParm.h \
         DataSet_float.h CoordList.h ptraj_stack.h ptraj_actions.h Action_PtrajAction.h \
         ptraj_analyze.h ptraj_evec.h ptraj_common.h ptraj_arg.h ptraj_state.h ptraj_scalar.h \
         Analysis_PtrajAnalysis.h ptraj_convert.h molsurf.h Action_Molsurf.h \
-        Action_CheckStructure.h
+        Action_CheckStructure.h Action_DihedralScan.h
 
