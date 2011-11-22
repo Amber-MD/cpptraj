@@ -10,7 +10,7 @@
 const size_t Frame::COORDSIZE = 3 * sizeof(double);
 const size_t Frame::BOXSIZE = 6 * sizeof(double);
 
-// CONSTRUCTOR
+/// CONSTRUCTOR
 Frame::Frame() {
   natom=0;
   N=0;
@@ -22,71 +22,39 @@ Frame::Frame() {
   Mass=NULL;
 }
 
-// DESTRUCTOR
+/// DESTRUCTOR
 Frame::~Frame() {
   if (X!=NULL) delete[] X;
   if (V!=NULL) delete[] V;
   if (Mass!=NULL) delete[] Mass;
 }
 
-/* Frame::SetupFrame()
- * Set up frame for given number of atoms. Store mass information
- * if passed in.
- */
-int Frame::SetupFrame(int natomIn, double *massIn) {
-  // Delete any existing info
-  if (X!=NULL) delete[] X;
-  if (V!=NULL) delete[] V;
-  if (Mass!=NULL) delete[] Mass;
+/// COPY CONSTRUCTOR
+Frame::Frame(const Frame &rhs) {
+  natom = rhs.natom;
+  maxnatom = rhs.maxnatom;
+  N = rhs.N;
+  memcpy(box, rhs.box, BOXSIZE);
+  T = rhs.T;
   X=NULL;
   V=NULL;
   Mass=NULL;
-  natom = natomIn;
-  maxnatom = natom;
-  N = natom * 3;
-  X = new double[ N ];
-  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
-  T = 0.0;
-  V = NULL;
-  if (massIn!=NULL) {
-    Mass = new double[ natom ];
-    memcpy(Mass, massIn, natom * sizeof(double));
+  if (rhs.X != NULL) {
+    X = new double[ N ];
+    memcpy(X, rhs.X, N * sizeof(double));
   }
-  return 0;
-}
-
-/* Frame::SetupFrameV()
- * Set up frame for given number of atoms. Store mass information
- * if passed in. Set up space for storing velocity if hasVelocity = true.
- */ 
-int Frame::SetupFrameV(int natomIn, double *massIn, bool hasVelocity) {
-  // Delete any existing info
-  if (X!=NULL) delete[] X;
-  if (V!=NULL) delete[] V; 
-  if (Mass!=NULL) delete[] Mass;
-  X=NULL;
-  V=NULL;
-  Mass=NULL;
-  natom = natomIn;
-  maxnatom = natom;
-  N = natom * 3; 
-  X = new double[ N ];
-  if (hasVelocity) { 
+  if (rhs.V != NULL) {
     V = new double[ N ];
-    // Since V will not necessarily be read in, initialize it
-    memset(V, 0, N * sizeof(double));
+    memcpy(V, rhs.V, N * sizeof(double));
   }
-  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
-  T = 0.0;
-  if (massIn!=NULL) {
+  if (rhs.Mass!=NULL) {
     Mass = new double[ natom ];
-    memcpy(Mass, massIn, natom * sizeof(double));
+    memcpy(Mass, rhs.Mass, natom * sizeof(double));
   }
-  return 0;
 }
 
-/* Frame::operator=()
- */
+// Frame::operator=()
+/// Assignment operator
 Frame &Frame::operator=(const Frame &rhs) {
   // Check for self assignment
   if ( this == &rhs ) return *this;
@@ -105,8 +73,10 @@ Frame &Frame::operator=(const Frame &rhs) {
   N = rhs.N;
   memcpy(box, rhs.box, BOXSIZE);
   T = rhs.T;
-  X = new double[ N ];
-  memcpy(X, rhs.X, N * sizeof(double));
+  if (rhs.X != NULL) {
+    X = new double[ N ];
+    memcpy(X, rhs.X, N * sizeof(double));
+  }
   if (rhs.V != NULL) {
     V = new double[ N ];
     memcpy(V, rhs.V, N * sizeof(double));
@@ -133,11 +103,68 @@ Frame &Frame::operator+=(const Frame &rhs) {
 }
 
 
-/* Frame::SetupFrameFromMask()
- * Create Frame based on the size of the given mask. If mass information
- * is also passed in, use the mask to determine which masses to keep. 
- * Ignores velocity info.
- */ 
+// Frame::SetupFrame()
+/** Set up frame for given number of atoms. Store mass information
+  * if passed in.
+  */
+int Frame::SetupFrame(int natomIn, double *massIn) {
+  // Delete any existing info
+  if (X!=NULL) delete[] X;
+  if (V!=NULL) delete[] V;
+  if (Mass!=NULL) delete[] Mass;
+  X=NULL;
+  V=NULL;
+  Mass=NULL;
+  natom = natomIn;
+  maxnatom = natom;
+  N = natom * 3;
+  X = new double[ N ];
+  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
+  T = 0.0;
+  V = NULL;
+  if (massIn!=NULL) {
+    Mass = new double[ natom ];
+    memcpy(Mass, massIn, natom * sizeof(double));
+  }
+  return 0;
+}
+
+// Frame::SetupFrameV()
+/** Set up frame for given number of atoms. Store mass information
+  * if passed in. Set up space for storing velocity if hasVelocity = true.
+  */ 
+int Frame::SetupFrameV(int natomIn, double *massIn, bool hasVelocity) {
+  // Delete any existing info
+  if (X!=NULL) delete[] X;
+  if (V!=NULL) delete[] V; 
+  if (Mass!=NULL) delete[] Mass;
+  X=NULL;
+  V=NULL;
+  Mass=NULL;
+  natom = natomIn;
+  maxnatom = natom;
+  N = natom * 3; 
+  X = new double[ N ];
+  if (hasVelocity) { 
+    V = new double[ N ];
+    // Since V will not necessarily be read in, initialize it
+    memset(V, 0, N * sizeof(double));
+  }
+  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
+  T = 0.0;
+  if (massIn!=NULL) {
+    Mass = new double[ natom ];
+    memcpy(Mass, massIn, natom * sizeof(double));
+  }
+  return 0;
+}
+
+
+// Frame::SetupFrameFromMask()
+/** Create Frame based on the size of the given mask. If mass information
+  * is also passed in, use the mask to determine which masses to keep. 
+  * Ignores velocity info.
+  */ 
 int Frame::SetupFrameFromMask(AtomMask *Mask, double *massIn) {
   //if (massIn==NULL) {
   //  mprinterr("Error: Frame::SetupFrameFromMask: massIn is NULL.\n");
@@ -163,9 +190,9 @@ int Frame::SetupFrameFromMask(AtomMask *Mask, double *massIn) {
   return 0;
 }
 
-/* Frame::SetupFrameFromCoords()
- * Given an array of floats, assign to coordinates. Reallocate as necessary.
- */
+// Frame::SetupFrameFromCoords()
+/** Given an array of floats, assign to coordinates. Reallocate as necessary.
+  */
 int Frame::SetupFrameFromCoords(float *CoordIn, int ncoord) {
   // If # atoms in mask > current natom, reallocate coords array
   natom = ncoord;
@@ -924,6 +951,25 @@ double Frame::COORDDIST(int i, int j) {
   return D;
 }
 
+/* Frame::COORDDIST2()
+ * Return the distance between atoms i and j, no imaging. i and j
+ * should be actual indices into the coord array (i.e. atom# * 3).
+ */
+double Frame::COORDDIST2(int i, int j) {
+  double x,y,z,D;
+
+  x = X[i  ] - X[j  ];
+  y = X[i+1] - X[j+1];
+  z = X[i+2] - X[j+2];
+
+  x=x*x;
+  y=y*y;
+  z=z*z;
+
+  D = x + y + z;
+  return D;
+}
+
 /* Frame::ANGLE()
  * Return the angle (in radians) between atoms in M1, M2, M3.
  * Adapted from PTRAJ.
@@ -1379,4 +1425,71 @@ double Frame::DISTRMSD( Frame *Ref ) {
   rms_return = sqrt(TgtDist);
 
   return rms_return;
-}  
+}
+
+// Frame::SetAxisOfRotation()
+/** Given the central two atoms of a dihedral, calculate
+  * a vector (U) which will be the axis for rotating the system around that 
+  * dihedral and translate the coordinates (X) to the origin of the new axis.
+  */
+void Frame::SetAxisOfRotation(double *U, int atom1, int atom2) {
+  double A1[3], A2[3];
+  int a1 = atom1 * 3;
+  int a2 = atom2 * 3;
+  
+  A1[0] = X[a1  ];
+  A1[1] = X[a1+1];
+  A1[2] = X[a1+2];
+  A2[0] = X[a2  ];
+  A2[1] = X[a2+1];
+  A2[2] = X[a2+2];
+
+  // Calculate vector of dihedral axis, which will be the new rot. axis
+  U[0] = A2[0] - A1[0];
+  U[1] = A2[1] - A1[1];
+  U[2] = A2[2] - A1[2];
+
+  // Normalize Vector for axis of rotation or scaling will occur!
+  normalize(U);
+
+  // Now the rest of the coordinates need to be translated to match the new 
+  // rotation axis.
+  A1[0] = -A1[0];
+  A1[1] = -A1[1];
+  A1[2] = -A1[2];
+  Translate(A1);
+}
+
+// Frame::RotateAroundAxis()
+/** Given a vector representing an axis and a magnitude, rotate all 
+  * coordinates in the given mask around the axis.
+  */
+void Frame::RotateAroundAxis(double *U, double theta, AtomMask &Rmask) {
+  double x,y,z;
+  double T0,T1,T2,T3,T4,T5,T6,T7,T8;
+  double T[9];
+  // Setup rotation matrix for this axis and given theta
+  calcRotationMatrix(T, U, theta);
+  // Rotate
+  T0=T[0];
+  T1=T[1];
+  T2=T[2];
+  T3=T[3];
+  T4=T[4];
+  T5=T[5];
+  T6=T[6];
+  T7=T[7];
+  T8=T[8];
+  for (int maskidx=0; maskidx<Rmask.Nselected; maskidx++) {
+    int i0 = Rmask.Selected[maskidx] * 3;
+    int i1 = i0 + 1;
+    int i2 = i1 + 1;
+    x=X[i0]; y=X[i1]; z=X[i2];
+
+    X[i0]=(x*T0) + (y*T1) + (z*T2);
+    X[i1]=(x*T3) + (y*T4) + (z*T5);
+    X[i2]=(x*T6) + (y*T7) + (z*T8);
+  }
+
+}
+

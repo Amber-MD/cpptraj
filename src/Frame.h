@@ -28,11 +28,13 @@ class Frame {
 
     Frame();
     virtual ~Frame();             // Destructor is virtual since this class can be inherited
+    Frame & operator=(const Frame&);
+    Frame & operator+=(const Frame&);
+    Frame(const Frame&);
 
     int SetupFrame(int, double*);
     int SetupFrameV(int,double*,bool);
-    Frame & operator=(const Frame&);
-    Frame & operator+=(const Frame&);
+
     int SetupFrameFromMask(AtomMask *, double *);
     int SetupFrameFromCoords(float *, int);
     Frame *FrameCopy();
@@ -69,6 +71,7 @@ class Frame {
     double DIST(int, int);
     double DIST2(int, int);
     double COORDDIST(int, int);
+    double COORDDIST2(int, int);
     double ANGLE(AtomMask*, AtomMask*, AtomMask*,bool);
     double ANGLE(int, int, int);
     double DIHEDRAL(AtomMask *, AtomMask *, AtomMask *, AtomMask *,bool);
@@ -78,5 +81,8 @@ class Frame {
     double RMSD(Frame*, double*, double*,bool);
     double RMSD(Frame*,bool);
     double DISTRMSD( Frame * );
+
+    void SetAxisOfRotation(double *, int, int);
+    void RotateAroundAxis(double *, double, AtomMask &);
 };
 #endif
