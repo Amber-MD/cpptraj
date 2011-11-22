@@ -16,7 +16,6 @@
 #include "CpptrajStdio.h"
 // For searching for bonds by distance (PDB etc)
 #include "DistRoutines.h"
-#include "Bonds.h"
 
 #define AMBERPOINTERS 31
 #define ELECTOAMBER 18.2223
@@ -330,6 +329,14 @@ int AmberParm::SetCharges(double *chargeIn) {
   if (charge==NULL) charge = new double[ natom ];
   memcpy(charge, chargeIn, natom * sizeof(double));
   return 0;
+}
+
+// AmberParm::AtomNameIs()
+/// Return true if given atom # has given atom name
+bool AmberParm::AtomNameIs(int atomIn, const char *nameIn) {
+  if (atomIn<0 || atomIn >= natom) return false;
+  if (strcmp(names[atomIn], nameIn)==0) return true;
+  return false;
 }
 
 // -------------------- ROUTINES PERTAINING TO SURFACE AREA --------------------
@@ -1683,6 +1690,54 @@ void AmberParm::GetBondsFromCoords() {
   delete[] resmols;
 
   mprintf("\t%s: %i bonds to hydrogen, %i other bonds.\n",parmName,NbondsWithH,NbondsWithoutH);
+}
+
+// AmberParm::SetupBondInfo()
+/// Set up the BondInfo structure
+// NOTE: This can eventually be used to replace the bonds and bondsh arrays,
+// which are not optimal for things like determining whether one atom is
+// bonded to another, or getting a list of atoms bonded to a certain atom.
+int AmberParm::SetupBondInfo() {
+  if (bonds==NULL && bondsh==NULL) {
+    mprinterr("Error: SetupBondInfo: No bond information present.\n");
+    return 1;
+  }
+  mprintf("\t%s: Setting up %i bonds.\n",parmName,NbondsWithH+NbondsWithoutH);
+
+  bondInfo.Setup(natom);
+
+  // Set max valences
+  bondInfo.SetValences(names);
+
+  // Go through the bonds and bondsh arrays
+  bondInfo.SetBondsFromAmberArray(bondsh, NbondsWithH);
+  bondInfo.SetBondsFromAmberArray(bonds,  NbondsWithoutH);
+  return 0;
+}
+
+// AmberParm::GetBondedAtomIdx()
+/// If given atom name matches one bonded to given atom#, return its atom# 
+/** This routine assumes the BondInfo structure has been set up from a call
+  * to SetupBondInfo. Use this to determine whether the given atom name
+  * matches one of the atoms bonded to the given atom number.
+  * \return the atom# of bonded atom, -1 if not found.
+  */
+int AmberParm::GetBondedAtomIdx(int atomIn, const char *bondedAtomName) {
+  int bondList[MAXNUMBONDS]; // Defined in Bonds.h
+  int nbonds, bondedAtom;
+
+  bondInfo.GetListOfBondedAtoms(atomIn, bondList, &nbonds);
+  for (int bond = 0; bond < nbonds; bond++) {
+    bondedAtom = bondList[bond];
+    if (strcmp(names[ bondedAtom ], bondedAtomName)==0) return bondedAtom;
+  }
+  return -1;
+}
+
+// AmberParm::MaskOfAtomsAroundBond()
+/// Just a wrapper for the same routine in BondInfo
+int *AmberParm::MaskOfAtomsAroundBond(int atom1, int atom2, int *N) {
+  return bondInfo.MaskOfAtomsAroundBond(atom1,atom2,N);
 }
 
 // AmberParm::DetermineMolecules()

@@ -38,11 +38,11 @@ int BondInfo::Setup(int natomIn) {
 
 // BondInfo::SetValences()
 /// Set max valence for atoms based on the given atom names
-// NOTE: Just set all to max (7) for now.
+// NOTE: Just set all to max for now.
 void BondInfo::SetValences(NAME *Name) {
   for (int atom = 0; atom < natom; atom++) {
     //Molecule[atom].maxbonds = MaxValence(Name[atom]);
-    Molecule[atom].maxbonds = 7;
+    Molecule[atom].maxbonds = MAXNUMBONDS;
   }
 }
 
@@ -214,6 +214,51 @@ int *BondInfo::DetermineExcludedAtoms(int *numex, int *nnb) {
   return excludedAtoms;
 }
 
+// BondInfo::GetListOfBondedAtoms()
+/// Get the list of atoms bonded to the given atom
+void BondInfo::GetListOfBondedAtoms(int atomIn, int *bondList, int *nbonds) {
+  *nbonds = 0;
+  if (atomIn < 0 || atomIn > natom) return;
+  for (int bond = 0; bond < Molecule[atomIn].nbonds; bond++)
+    bondList[bond] = Molecule[atomIn].bond[bond];
+  *nbonds = Molecule[atomIn].nbonds;
+}
+
+// BondInfo::MaskOfAtomsAroundBond()
+/** Given that atom1 and atom2 are bonded, return a mask consisting
+  * of the atom #s of all atoms bonded to atom2, excluding atom1
+  * and all atoms bonded to atom1.
+  */
+int *BondInfo::MaskOfAtomsAroundBond(int atom1, int atom2, int *Nselected) {
+  int *Selected = NULL;
+  int N = 0;
+  *Nselected = 0;
+
+  // Ensure atom1 bonded to atom2?
+  // First select atom2
+  Molecule[atom2].mol = 1;
+  // Mark each atom bonded to atom2 (not including atom1) recursively
+  for (int bond = 0; bond < Molecule[atom2].nbonds; bond++) {
+    if ( Molecule[atom2].bond[bond] != atom1 ) {
+      VisitAtom( Molecule[atom2].bond[bond], 1);
+    }
+  }
+  // Count the number of atoms selected
+  for (int atom = 0; atom < natom; atom++) 
+    if ( Molecule[atom].mol==1 ) N++;
+  //mprintf("DEBUG:\tMaskOfAtomsAroundBond(%i,%i) %i atoms selected.\n",atom1,atom2,N);
+  if (N==0) return NULL;
+  Selected = new int[ N ];
+  // Fill selected array, resetting mol as we go
+  N = 0;
+  for (int atom = 0; atom < natom; atom++) {
+    if ( Molecule[atom].mol==1 ) Selected[N++] = atom;
+    Molecule[atom].mol=-1;
+  }
+  *Nselected = N;
+  return Selected;
+}
+
 /* ========================================================================== */
 /* AtomicNumberFromName()
  */
@@ -302,7 +347,7 @@ static bool compareElement(char a1, char a2, const char b1, const char b2) {
 */
 int MaxValence(char *Name) {
   char element = ElementFromName(Name);
-  int valence = 7; // default
+  int valence = MAXNUMBONDS; // default
   switch (element) {
     case 'H' : valence = 1; break;
     case 'B' : valence = 3; break;

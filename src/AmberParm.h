@@ -4,6 +4,7 @@
 #include "BoxType.h" 
 // Name.h has definition for NAME 
 #include "Name.h"
+#include "Bonds.h"
 // Class: AmberParm 
 /** Hold all data pertaining to a molecular system (# atoms, atom names, 
   * etc). Can be read in from Amber Topology, PDB, or Mol2 files (implemented 
@@ -53,6 +54,7 @@ class AmberParm {
     double *parmCoords;
     int DetermineMolecules();
     int SetupExcludedAtoms();
+    BondInfo bondInfo;  ///< Class that holds bond info in a different format than bond arrays
 
     int *numex;         ///< NUMEX(NATOM)
     int *atype_index;   ///< IAC(NATOM)
@@ -129,6 +131,7 @@ class AmberParm {
     int GetBondParamIdx(int, double *, double *);
     //int GetBondParam(double *, double *, int, int);
     int SetCharges(double*);
+    bool AtomNameIs(int, const char *);
 
     double Box[6];      ///< X, Y, Z, alpha, beta, gamma 
     BoxType boxType;    ///< None, Orthogonal, Non-orthogonal
@@ -166,6 +169,10 @@ class AmberParm {
     int atomToResidue(int);
     int atomToMolecule(int);
     int atomToSolventMolecule(int);
+
+    int SetupBondInfo();
+    int GetBondedAtomIdx(int, const char *);
+    int *MaskOfAtomsAroundBond(int, int, int*);
 
     void ResetBondInfo(); 
     int AddBond(int, int, int);

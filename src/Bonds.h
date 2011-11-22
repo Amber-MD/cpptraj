@@ -1,6 +1,8 @@
 #ifndef INC_BONDS_H
 #define INC_BONDS_H
 #include "Name.h"
+// ---------- DEFINES
+#define MAXNUMBONDS 7
 // Class: BondInfo
 /// Used to determine how many unique non-covalently bonded molecules
 /// exist within a set of atoms.
@@ -11,7 +13,7 @@ class BondInfo {
       int mol;
       int maxbonds;
       int nbonds;
-      int bond[7];
+      int bond[MAXNUMBONDS];
     }; 
     bondinfo *Molecule;
     int natom;
@@ -29,6 +31,8 @@ class BondInfo {
     void PrintBonds();
     int *DetermineMolecules(int*);
     int *DetermineExcludedAtoms(int *, int *);
+    void GetListOfBondedAtoms(int, int*, int*);
+    int *MaskOfAtomsAroundBond(int, int, int*);
 };
 // Other functions
 int AtomicNumberFromName(char *);
