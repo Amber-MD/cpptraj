@@ -62,6 +62,24 @@ int CheckStructure::init( ) {
   return 0;
 }
 
+// CheckStructure::SeparateInit()
+void CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutIn, int debugIn) 
+{
+  double nonbondcut;
+  debug = debugIn;
+  noimage = true;
+  if (bondoffsetIn < 0)
+    bondoffset = 1.0;
+  else
+    bondoffset = bondoffsetIn;
+  if (nonbondcutIn < 0)
+    nonbondcut = 0.8;
+  else 
+    nonbondcut = nonbondcutIn;
+  nonbondcut2 = nonbondcut * nonbondcut;
+  Mask1.SetMaskString(NULL);
+}
+
 // CheckStructure::setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Also determine whether imaging should be performed. Check if parm
@@ -214,5 +232,53 @@ int CheckStructure::action() {
   } // END first loop over mask atoms
 
   return 0;
+}
+
+// CheckStructure::SeparateAction()
+/// Used when you want to check all input coordinates.
+int CheckStructure::SeparateAction(Frame *frameIn) {
+  double D2, bondmax;
+  std::vector<bond_list>::iterator currentBond = bondL.begin();
+  int Nproblems = 0;
+
+  //if (imageType>0) frameIn->BoxToRecip(ucell,recip);
+
+  int lastatom = frameIn->natom - 1;
+  int idx1 = 0;
+  for (int atom1 = 0; atom1 < lastatom; atom1++) {
+    int idx2 = idx1 + 3;
+    for (int atom2 = atom1 + 1; atom2 < frameIn->natom; atom2++) {
+      // Get distance^2
+      D2 = frameIn->COORDDIST2(idx1,idx2);
+      // Are these atoms bonded?
+      if ( (atom1==(*currentBond).atom1) && (atom2==(*currentBond).atom2) ) {
+        // req has been precalced to (req + bondoffset)^2
+        bondmax = (*currentBond).req;
+        // Check for long bond length; distance2 > (req+bondoffset)^2
+        if (D2 > bondmax) {
+          Nproblems++; 
+          if (debug>0)
+            mprintf("\t\tWarning: Unusual bond length %i@%s to %i@%s (%.2lf)\n",
+                    atom1+1, currentParm->names[atom1], atom2+1, currentParm->names[atom2],
+                    sqrt(D2));
+        }
+        // Next bond
+        currentBond++;
+      // Atoms not bonded, check overlap
+      } else {
+        if (D2 < nonbondcut2) {
+          Nproblems++;
+          if (debug>0)
+            mprintf("\t\tWarning: Atoms %i@%s and %i@%s are close (%.2lf)\n",
+                    atom1+1, currentParm->names[atom1], atom2+1, currentParm->names[atom2],
+                    sqrt(D2));
+        }
+      }
+      idx2+=3;
+    } // END second loop over mask atoms
+    idx1+=3;
+  } // END first loop over mask atoms
+
+  return Nproblems;
 }
 

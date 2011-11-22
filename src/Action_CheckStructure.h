@@ -38,5 +38,8 @@ class CheckStructure: public Action {
     int init();
     int setup();
     int action();
+
+    void SeparateInit(double, double, int);
+    int SeparateAction(Frame *);
 };
 #endif  
