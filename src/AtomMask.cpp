@@ -24,12 +24,79 @@ AtomMask::~AtomMask() {
   if (Postfix!=NULL) delete[] Postfix;
 }
 
-// AtomMask::Reset()
-void AtomMask::Reset() {
+// COPY CONSTRUCTOR
+AtomMask::AtomMask(const AtomMask &rhs) {
+  Nselected=rhs.Nselected;
+  Nchar=rhs.Nchar;
+  maskChar=rhs.maskChar;
+  maskString=NULL;
+  if (rhs.maskString!=NULL) {
+    maskString = new char[ strlen(rhs.maskString) + 1 ];
+    strcpy(maskString, rhs.maskString);
+  }
+  Selected=NULL;
+  if (rhs.Selected!=NULL) {
+    Selected = new int[ Nselected ];
+    memcpy(Selected,rhs.Selected,Nselected*sizeof(int));
+  }
+  CharMask=NULL;
+  if (rhs.CharMask!=NULL) {
+    CharMask = (char*) malloc( Nchar * sizeof(char));
+    memcpy(CharMask,rhs.CharMask,Nchar);
+  }
+  Postfix=NULL;
+  if (rhs.Postfix!=NULL) {
+    Postfix = new char[ strlen(rhs.Postfix) + 1 ];
+    strcpy(Postfix, rhs.Postfix);
+  }
+}
+
+// AtomMask::operator=()
+/// AtomMask assignment
+AtomMask &AtomMask::operator=(const AtomMask &rhs) {
+  // Check for self assignment
+  if ( this == &rhs ) return *this;
+
+  // Deallocate
+  //if (CharMask!=NULL) delete[] CharMask;
+  if (CharMask!=NULL) free(CharMask);
+  if (maskString!=NULL) delete[] maskString;
+  if (Selected!=NULL) delete[] Selected;
+  if (Postfix!=NULL) delete[] Postfix;
+
+  // Allocate and copy
+  Nselected = rhs.Nselected;
+  Nchar = rhs.Nchar;
+  maskChar = rhs.maskChar;
+  if (rhs.CharMask!=NULL) {
+    //CharMask = new char[ Nchar ];
+    CharMask = (char*) malloc( Nchar * sizeof(char));
+    memcpy(CharMask, rhs.CharMask, Nchar * sizeof(char));
+  }
+  if (rhs.maskString!=NULL) {
+    maskString = new char[ strlen(rhs.maskString) + 1 ];
+    strcpy(maskString, rhs.maskString);
+  }
+  if (rhs.Selected!=NULL) {
+    Selected = new int[ Nselected ];
+    memcpy(Selected, rhs.Selected, Nselected * sizeof(int));
+  }
+  if (rhs.Postfix!=NULL) {
+    Postfix = new char[ strlen(rhs.Postfix) + 1 ];
+    strcpy(Postfix, rhs.Postfix);
+  }
+
+  // Return *this
+  return *this;
+}
+
+// AtomMask::ResetMask()
+void AtomMask::ResetMask() {
   if (maskString!=NULL) delete[] maskString;
   if (Selected!=NULL) delete[] Selected;
   //if (CharMask!=NULL) delete[] CharMask;
   if (CharMask!=NULL) free(CharMask);
+  if (Postfix!=NULL) delete[] Postfix;
   maskString=NULL;
   Selected=NULL;
   Nselected=0;
@@ -50,39 +117,6 @@ void AtomMask::InvertMask() {
     maskChar = 'F';
   else
     maskChar = 'T';
-}
-
-// AtomMask::operator=()
-AtomMask &AtomMask::operator=(const AtomMask &rhs) {
-  // Check for self assignment
-  if ( this == &rhs ) return *this;
-
-  // Deallocate
-  //if (CharMask!=NULL) delete[] CharMask;
-  if (CharMask!=NULL) free(CharMask);
-  if (maskString!=NULL) delete[] maskString;
-  if (Selected!=NULL) delete[] Selected;
-
-  // Allocate and copy
-  maskChar = rhs.maskChar;
-  Nchar = rhs.Nchar;
-  Nselected = rhs.Nselected;
-  if (rhs.CharMask!=NULL) {
-    //CharMask = new char[ Nchar ];
-    CharMask = (char*) malloc( Nchar * sizeof(char));
-    memcpy(CharMask, rhs.CharMask, Nchar * sizeof(char));
-  }
-  if (rhs.maskString!=NULL) {
-    maskString = new char[ strlen(rhs.maskString) + 1 ];
-    strcpy(maskString, rhs.maskString);
-  }
-  if (rhs.Selected!=NULL) {
-    Selected = new int[ Nselected ];
-    memcpy(Selected, rhs.Selected, Nselected * sizeof(int));
-  }
-
-  // Return *this
-  return *this;
 }
 
 // AtomMask::CopyMask()

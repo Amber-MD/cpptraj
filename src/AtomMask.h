@@ -39,10 +39,11 @@ class AtomMask {
 
     AtomMask();
     ~AtomMask();
-
-    void Reset();                  ///< Reset atom mask
-    void InvertMask();             ///< Switch char used to denote selected atoms (T->F, F->T)
+    AtomMask(const AtomMask &);
     AtomMask & operator=(const AtomMask&);
+
+    void ResetMask();              ///< Reset atom mask
+    void InvertMask();             ///< Switch char used to denote selected atoms (T->F, F->T)
     AtomMask *CopyMask();          ///< Return a copy of this mask
 
     void AddAtom(int);             ///< Add given atom to Selected array 

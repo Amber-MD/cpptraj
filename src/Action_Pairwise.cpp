@@ -499,7 +499,7 @@ int Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
     sprintf(buffer,"%s.evdw.mol2",cutout);
     if (WriteCutFrame(Parm, &CutMask, &CutCharges[0], frame, buffer)) return 1;
   }
-  CutMask.Reset();
+  CutMask.ResetMask();
   CutCharges.clear();
   // EELEC
   if (Eout.IsOpen()) {
