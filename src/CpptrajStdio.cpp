@@ -10,6 +10,7 @@
 #include <cstdarg>
 #include <cstdlib> // tildeExpansion
 #include <cstring> // tildeExpansion
+#include <cmath> // log10
 #ifndef __PGI
 #  include <glob.h> // For tilde expansion
 #endif
@@ -171,5 +172,105 @@ bool fileExists(char *filenameIn) {
  */
 void NumberFilename(char *buffer, char *filenameIn, int number) {
   sprintf(buffer,"%s.%i",filenameIn,number);
+}
+
+// DigitWidth()
+/// Return the number of characters necessary to express the given digit.
+int DigitWidth(int numberIn) {
+  float numf;
+  int numi;
+  int minusSign = 0;
+
+  if (numberIn==0) return 1;
+  if (numberIn<0) {
+    numf = (float) (-numberIn);
+    minusSign = 1;
+  } else
+    numf = (float) numberIn;
+
+  numf = log10( numf );
+  ++numf;
+  // The cast back to int implicitly rounds down
+  numi = (int) numf;
+  return (minusSign + numi);
+}
+
+// SetDoubleFormatString()
+/** Return a printf-style format string for float/double of given width 
+  * and precision
+  */
+char *SetDoubleFormatString(int width, int precision) {
+  size_t stringWidth = 0;
+  int wWidth = 0;
+  int pWidth = 0;
+  char *format;
+    
+  // Calc num of chars necessary to hold width
+  wWidth = (width / 10) + 1;
+  // Calc num of chars necessary to hold precision
+  pWidth = (precision / 10) + 1;
+  // String fmt: " %w.plf\0"
+  stringWidth = pWidth + wWidth + 6;
+  format = new char [ stringWidth ];
+  sprintf(format, " %%%i.%ilf", width, precision);
+  return format;
+}
+
+// SetStringFormatString()
+/** Return a printf-style format string for string of given width.
+  */
+char *SetStringFormatString(int width) {
+  size_t stringWidth = 0;
+  int wWidth = 0;
+  char *format;
+    
+  // Calc num of chars necessary to hold width
+  wWidth = (width / 10) + 1;
+  // String fmt: " %-ws"
+  stringWidth = wWidth + 5;
+  format = new char[ stringWidth ];
+  sprintf(format, " %%-%is", width);
+  return format;
+}
+
+// SetIntegerFormatString()
+/** Return a printf-style format string for integer of given width.
+  */
+char *SetIntegerFormatString(int width) {
+  size_t stringWidth = 0;
+  int wWidth = 0;
+  char *format;
+    
+  // Calc num of chars necessary to hold width
+  wWidth = (width / 10) + 1;
+  // String fmt: " %wi"
+  stringWidth = wWidth + 4;
+  format = new char[ stringWidth ];
+  sprintf(format, " %%%ii", width);
+  return format;
+}
+
+// SetXYZFormatString()
+/** Return a printf-style format string for 3 float/doubles of given width 
+  * and precision
+  */
+char *SetXYZFormatString(int width, int precision) {
+  size_t stringWidth = 0;
+  int wWidth = 0;
+  int pWidth = 0;
+  char *format;
+    
+  // Calc num of chars necessary to hold width
+  wWidth = (width / 10) + 1;
+  // Calc num of chars necessary to hold precision
+  pWidth = (precision / 10) + 1;
+  // String fmt: "%w.plf %w.plf %w.plf\0"
+  stringWidth = pWidth + wWidth + 5;
+  stringWidth *= 3;
+  stringWidth++;
+  format = new char[ stringWidth ];
+  sprintf(format, "%%%i.%ilf %%%i.%ilf %%%i.%ilf",width,precision,width,precision,
+          width,precision);
+  return format;
 }
 

@@ -11,4 +11,9 @@ void printwar(const char *, const char *, ...);
 char *tildeExpansion(char *, int);
 bool fileExists(char *);
 void NumberFilename(char *, char *, int);
+int DigitWidth(int);
+char *SetDoubleFormatString(int, int);
+char *SetStringFormatString(int);
+char *SetIntegerFormatString(int);
+char *SetXYZFormatString(int , int );
 #endif
