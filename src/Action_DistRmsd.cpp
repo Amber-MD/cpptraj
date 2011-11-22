@@ -194,7 +194,14 @@ int DistRmsd::action() {
   //        Should only occur once.
   // NOTE: For MPI this will currently result in different references between threads.
   if (first) {
-    RefFrame = *currentFrame;
+    Frame* tmpframe = FL->GetFirstFrame();
+    if (tmpframe==NULL) {
+      RefFrame = *currentFrame;
+      tmpframe = new Frame(*currentFrame);
+      FL->AddFirstFrame(tmpframe,currentParm);
+    } else {
+      RefFrame = *tmpframe;
+    }
     first = false;
   }
 
