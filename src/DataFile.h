@@ -1,21 +1,23 @@
 #ifndef INC_DATAFILE_H
 #define INC_DATAFILE_H
-/// Class: DataFile
-/// Container for one or more DataSets that will be written out to a file. 
-/// Only the addresses of the data sets are stored in the datafile; the
-/// actual datasets should reside somewhere else in memory. 
 #include "DataSet.h"
 #include "CpptrajFile.h"
+// Class: DataFile
+/// Container for one or more DataSets that will be written out to a file. 
+/** Only the addresses of the data sets are stored in the datafile; the
+  * actual datasets should reside somewhere else in memory. 
+  */
 class DataFile {
     int debug;
-    DataSet **SetList;  // Will point to addresses in DataSetList;
+    DataSet **SetList;  ///< Will point to addresses in a DataSetList;
     int Nsets;
-    bool noEmptyFrames; // If true, frames in which no sets have data will be skipped
-    bool isInverted;    // If true sets will be written in rows instead of columns
-    bool noXcolumn;     // If true the Frame column will not be written.
-    char *xlabel;       // X axis label for grace plots
-    char *ylabel;       // Y axis label for grace plots
-    int maxFrames;      // The largest X value of any sets in SetList
+    bool noEmptyFrames; ///< If true, frames in which no sets have data will be skipped
+    bool isInverted;    ///< If true sets will be written in rows instead of columns
+    bool noXcolumn;     ///< If true the Frame column will not be written.
+    char *xlabel;       ///< X axis label for grace plots
+    int xcol_width;     ///< Width in chars of the X column
+    char *ylabel;       ///< Y axis label for grace plots
+    int maxFrames;      ///< The largest X value of any sets in SetList
 
     double xmin;
     double xstep;
@@ -49,7 +51,7 @@ class DataFile {
     void SetNoLabels();
 
     int AddSet(DataSet *);
-    int NameIs(char *);
+    bool DataFileNameIs(char *);
     void DataSetNames();
     void Write();
 };    

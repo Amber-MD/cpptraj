@@ -34,7 +34,7 @@ DataFile *DataFileList::GetDataFile(char *nameIn) {
   if (nameIn==NULL) return NULL;
   Current=NULL;
   for (it = fileList.begin(); it != fileList.end(); it++) {
-    if ( (*it)->NameIs(nameIn) ) {
+    if ( (*it)->DataFileNameIs(nameIn) ) {
       Current = *it;
       break;
     }

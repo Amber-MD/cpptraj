@@ -5,7 +5,7 @@
 #include "CpptrajStdio.h"
 #include "CharBuffer.h"
 
-// CONSTRUCTOR
+/// CONSTRUCTOR
 DataFile::DataFile() {
   xlabel=NULL;
   ylabel=NULL;
@@ -18,6 +18,7 @@ DataFile::DataFile() {
   debug=0;
   isInverted=false;
   maxFrames = 0;
+  xcol_width = 0;
 
   xmin=1;
   xstep=1;
@@ -27,11 +28,12 @@ DataFile::DataFile() {
   printLabels=true;
 }
 
-// CONSTRUCTOR - Arg is datafile name
+/// CONSTRUCTOR - Arg is datafile name
 DataFile::DataFile(char *nameIn) {
   // Default xlabel value is Frame
   xlabel=(char*) malloc( 6 * sizeof(char));
   strcpy(xlabel,"Frame");
+  xcol_width = 0;
   // Default ylabel value is blank
   ylabel=(char*) malloc( sizeof(char));
   strcpy(ylabel,"");
@@ -53,7 +55,7 @@ DataFile::DataFile(char *nameIn) {
   printLabels=true;
 }
 
-// DESTRUCTOR
+/// DESTRUCTOR
 DataFile::~DataFile() {
   if (filename!=NULL) free(filename);
   // Individual data sets are freed in DataSetList
@@ -62,10 +64,8 @@ DataFile::~DataFile() {
   if (ylabel!=NULL) free(ylabel);
 }
 
-/* DataFile::SetDebug
- * Set DataFile debug level
- * NOTE: Pass in constructor?
- */
+// DataFile::SetDebug
+/// Set DataFile debug level
 void DataFile::SetDebug(int debugIn) {
   if (debug==debugIn) return;
   debug=debugIn;
@@ -73,44 +73,40 @@ void DataFile::SetDebug(int debugIn) {
     mprintf("DataFile %s DEBUG LEVEL SET TO %i\n",filename,debug);
 }
 
-/* DataFile::SetNoXcol
- * Turn printing of frame column off.
- */
+// DataFile::SetNoXcol
+/// Turn printing of frame column off.
 void DataFile::SetNoXcol() {
   noXcolumn=true;
 }
 
-/* DataFile::SetNoEmptyFrames()
- */
+// DataFile::SetNoEmptyFrames()
+/// If called signals that datasets with empty frames should be skipped
 void DataFile::SetNoEmptyFrames() {
   noEmptyFrames=true;
 }
 
-/* DataFile::SetXlabel()
- */
+// DataFile::SetXlabel()
 void DataFile::SetXlabel(char *labelIn) {
   if (labelIn==NULL) return;
   xlabel = (char*) realloc ( xlabel, (strlen(labelIn)+1) * sizeof(char) );
   strcpy(xlabel,labelIn);
 }
 
-/* DataFile::SetYlabel()
- */
+// DataFile::SetYlabel()
 void DataFile::SetYlabel(char *labelIn) {
   if (labelIn==NULL) return;
   ylabel = (char*) realloc ( ylabel, (strlen(labelIn)+1) * sizeof(char) );
   strcpy(ylabel,labelIn);
 }
 
-/* DataFile::SetInverted()
- */
+// DataFile::SetInverted()
+/// If called signals that X and Y values should be flipped (data and grace only)
 void DataFile::SetInverted() {
   isInverted=true;
 }
 
-/* DataFile::SetCoordMinStep()
- * For use with certain types of output.
- */
+// DataFile::SetCoordMinStep()
+/// Set the min and step values for the X and Y coords.
 void DataFile::SetCoordMinStep(double xminIn, double xstepIn, 
                                double yminIn, double ystepIn) {
   xmin = xminIn;
@@ -119,27 +115,26 @@ void DataFile::SetCoordMinStep(double xminIn, double xstepIn,
   ystep = ystepIn;
 }
 
-/* DataFile::SetMap()
- * Gnuplot only currently. Turn off the cornerstocolor option, i.e.
- * gnuplot will be directed to generated a true interpolated contour
- * map.
- */
+// DataFile::SetMap()
+/// (Gnuplot only) Turn off the cornerstocolor option
+/** gnuplot will be directed to generated a true interpolated contour map.
+  */
 void DataFile::SetMap() {
   useMap=true;
 }
 
-/* DataFile::SetNoLabels()
- * Gnuplot only currently. Do not print y axis labels (dataset names). This
- * will automatically be turned off if the # labels > 30.
- */
+// DataFile::SetNoLabels()
+/** Gnuplot only currently. Do not print y axis labels (dataset names). This
+  * will automatically be turned off if the # labels > 30.
+  */
 void DataFile::SetNoLabels() {
   printLabels=false;
 }
 
-/* DataFile::SetPrecision()
- * Set precision of the specified dataset to width.precision. If '*' specified 
- * set for all datasets in file.
- */
+// DataFile::SetPrecision()
+/** Set precision of the specified dataset to width.precision. If '*' specified 
+  * set for all datasets in file.
+  */
 void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
   int precision, dset;
   DataSet *Dset = NULL;
@@ -178,29 +173,27 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
   }
 }
 
-/* DataFile::AddSet()
- * Add given set to this datafile
- */
+// DataFile::AddSet()
+/// Add given set to this datafile
 int DataFile::AddSet(DataSet *D) {
-
+  if (D==NULL) return 1;
   SetList = (DataSet**) realloc( SetList, (Nsets+1) * sizeof(DataSet*));
   SetList[Nsets]=D;
   Nsets++;
   return 0;
 }
 
-/* DataFile::NameIs()
- * Return 1 if datafile name matches nameIn
- */
-int DataFile::NameIs(char *nameIn) {
-  if (strcmp(nameIn, filename)==0) return 1;
-  return 0;
+// DataFile::NameIs()
+/// Return true if datafile name matches nameIn
+bool DataFile::DataFileNameIs(char *nameIn) {
+  if (strcmp(nameIn, filename)==0) return true;
+  return false;
 }
 
-/* DataFile::DataSetNames()
- * Print Dataset names to one line. If the number of datasets is very
- * large just print the number of data sets.
- */
+// DataFile::DataSetNames()
+/** Print Dataset names to one line. If the number of datasets is greater 
+  * than 10 just print the first and last 4 data sets.
+  */
 void DataFile::DataSetNames() {
   int set;
   if (Nsets>10) {
@@ -218,10 +211,10 @@ void DataFile::DataSetNames() {
   }
 }
 
-/* DataFile::Write()
- * Write datasets to file. Check that datasets actually contain data. 
- * Exit if no datasets in this datafile have been used.
- */
+// DataFile::Write()
+/** Write datasets to file. Check that datasets actually contain data. 
+  * Exit if no datasets in this datafile have been used.
+  */
 void DataFile::Write() {
   CpptrajFile outfile;
   int set,nwrite;
@@ -260,6 +253,10 @@ void DataFile::Write() {
   // Since currentMax is the last frame, increment currentMax by 1 for use in for loops
   maxFrames = currentMax + 1;
   //mprintf("DEBUG: Max frames for %s is %i (maxFrames=%i)\n",filename,currentMax,maxFrames);
+  // Determine the width of the x column
+  xcol_width = DigitWidth( maxFrames );
+  // Minimum X column width is 8
+  if (xcol_width < 8) xcol_width = 8;
 
   if (outfile.SetupFile(filename,WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,debug)) return;
   if (outfile.OpenFile()) return;
