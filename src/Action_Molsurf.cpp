@@ -37,11 +37,12 @@ Molsurf::Molsurf() {
 
 // DESTRUCTOR
 Molsurf::~Molsurf() {
+  ClearMemory();
   if (atom!=NULL) free(atom);
 }
 
 // MolSurf::ClearMemory()
-/// Called after molsurf 
+/// Clear mem used by molsurf data structures
 void Molsurf::ClearMemory() {
   if (upper_neighbors!=NULL) free (upper_neighbors);
   if (neighbors!=NULL) free (neighbors);
@@ -65,8 +66,8 @@ void Molsurf::ClearMemory() {
 }
 
 // Molsurf::AllocateMemory()
-/// Called before molsurf
-void Molsurf::AllocateMemory() {
+/// Allocate mem used by molsurf internal data structures
+int Molsurf::AllocateMemory() {
   int error_status = 0;
   int natm_sel = Mask1.Nselected;
   // ---------- Allocate Memory For molsurf routines --------------------
@@ -155,10 +156,9 @@ void Molsurf::AllocateMemory() {
         mprinterr("Unable to allocate space for low_torus\n");
         error_status++;
   }
-  // NOTE: Using calloc here as a way to initialize cusp_edge to avoid
-  //       memory errors.
-  if ((cusp_edge = (CUSP_EDGE *) calloc (
-                 NUM_EDGE * natm_sel, sizeof (CUSP_EDGE))) == NULL) {
+  // NOTE: cusp_edge must be initialized. Handled in action before 1st call 
+  if ((cusp_edge = (CUSP_EDGE *) malloc (
+                 NUM_EDGE * natm_sel * sizeof (CUSP_EDGE))) == NULL) {
         mprinterr("Unable to allocate space for cusp_edge\n");
         error_status++;
   }
@@ -168,6 +168,7 @@ void Molsurf::AllocateMemory() {
         error_status++;
   }
   // ------------------------------------------------------------
+  return error_status;
 }
 
 // Molsurf::init()
@@ -238,6 +239,10 @@ int Molsurf::setup() {
     atom[maskidx].rad = Radii[parmatom];
   }
 
+  // De-allocate memory first since # atoms may have changed
+  ClearMemory();
+  if (AllocateMemory()) return 1;
+
   if (debug>0) memory_usage();
 
   return 0;  
@@ -255,11 +260,8 @@ int Molsurf::action() {
     atom[maskidx].pos[2] = currentFrame->X[i3+2];
   }
 
-  // NOTE: Eventually memory should just be allocd during setup. This
-  //       currently is not done because there is some instantiation
-  //       issues between calls of molsurf that I dont fully understand
-  //       yet. 
-  AllocateMemory(); 
+  // NOTE: cusp_edge is the only data structure that requires initialization 
+  memset( cusp_edge, 0, NUM_EDGE * Mask1.Nselected * sizeof(CUSP_EDGE));
   molsurf_sasa = molsurf( probe_rad, atom, Mask1.Nselected,
                           upper_neighbors, neighbors,
                           toruslist, probelist, concave_face,
@@ -270,7 +272,6 @@ int Molsurf::action() {
                           convex_circle_list, concave_circle_list,
                           cyclelist, low_torus, cusp_edge,
                           cusp_pair); 
-  ClearMemory();
 
   sasa->Add(frameNum, &molsurf_sasa);
 

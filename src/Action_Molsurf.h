@@ -49,7 +49,7 @@ class Molsurf: public Action {
     CUSP_EDGE *cusp_edge;
     CUSP_PAIR *cusp_pair;
     // -----------------------------
-    void AllocateMemory();
+    int AllocateMemory();
     void ClearMemory();
   public:
     Molsurf();
