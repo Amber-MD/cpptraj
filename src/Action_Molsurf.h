@@ -14,6 +14,7 @@ class Molsurf: public Action {
     AtomMask Mask1;
     ATOM *atom;
     double probe_rad;
+    double rad_offset;
     // Molsurf internal data structs
   /* neighbor arrays:  these are big so amount of data stored must be small
    * upper_neighbors is of the NEIGHBOR_TORUS type, which contains 2

@@ -10,6 +10,7 @@ Molsurf::Molsurf() {
   sasa=NULL;
   atom = NULL;
   probe_rad = 1.4;
+  rad_offset = 0;
 
   upper_neighbors=NULL;
   neighbors=NULL;
@@ -173,6 +174,7 @@ int Molsurf::AllocateMemory() {
 
 // Molsurf::init()
 /** Expected call: molsurf [<name>] [<mask1>] [out filename] [probe <probe_rad>]
+                           [offset <rad_offset>]
   * Dataset name will be the last arg checked for. Check order is:
   *    1) Keywords
   *    2) Masks
@@ -185,6 +187,7 @@ int Molsurf::init() {
   // Get keywords
   molsurfFile = actionArgs.getKeyString("out",NULL);
   probe_rad = actionArgs.getKeyDouble("probe",1.4);
+  rad_offset = actionArgs.getKeyDouble("offset",0.0);
 
   // Get Masks
   mask1 = actionArgs.getNextMask();
@@ -196,7 +199,9 @@ int Molsurf::init() {
   // Add dataset to data file list
   DFL->Add(molsurfFile,sasa);
 
-  mprintf("    MOLSURF: [%s] Probe Radius=%-8.3lf\n",Mask1.maskString,probe_rad);
+  mprintf("    MOLSURF: [%s] Probe Radius=%.3lf\n",Mask1.maskString,probe_rad);
+  if (rad_offset>0)
+    mprintf("             Radii will be incremented by %.3lf\n",rad_offset);
 
   return 0;
 }
@@ -236,7 +241,7 @@ int Molsurf::setup() {
     atom[maskidx].pos[1] = 0;
     atom[maskidx].pos[2] = 0;
     atom[maskidx].q = currentParm->charge[parmatom];
-    atom[maskidx].rad = Radii[parmatom];
+    atom[maskidx].rad = Radii[parmatom] + rad_offset;
   }
 
   // De-allocate memory first since # atoms may have changed
