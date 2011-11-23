@@ -25,6 +25,7 @@ class CharBuffer {
     void WriteStringN(char *, int, bool);
     void WriteDoubleXYZ(const char*,double*);
     void NewLine();
+    void Space();
     size_t CurrentSize();
 };
 // =============================================================================

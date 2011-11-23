@@ -69,6 +69,7 @@ void CharBuffer::AddCharString(char *inputString) {
 // CharBuffer::CurrentSize()
 /// Return the size of the data that has been currently written to the buffer.
 size_t CharBuffer::CurrentSize() {
+  printf("DEBUG:\tCurrentSize=%lu, Allocd for %lu\n",(size_t) (ptr - buffer),bufferSize);
   return (size_t) (ptr - buffer);
 }
 
@@ -177,6 +178,13 @@ void CharBuffer::WriteDoubleXYZ(const char *format, double *XYZ) {
 /// Add a newline character to buffer.
 void CharBuffer::NewLine() {
   ptr[0]='\n';
+  ptr++;
+}
+
+// CharBuffer::Space()
+/// Add space to buffer
+void CharBuffer::Space() {
+  ptr[0]=' ';
   ptr++;
 }
 
