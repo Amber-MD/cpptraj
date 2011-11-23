@@ -16,6 +16,7 @@ class DataFile {
     bool noXcolumn;     ///< If true the Frame column will not be written.
     char *xlabel;       ///< X axis label for grace plots
     int xcol_width;     ///< Width in chars of the X column
+    char *x_format;     ///< Format string for printing x coord
     char *ylabel;       ///< Y axis label for grace plots
     int maxFrames;      ///< The largest X value of any sets in SetList
 

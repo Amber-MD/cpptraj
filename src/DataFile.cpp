@@ -19,6 +19,7 @@ DataFile::DataFile() {
   isInverted=false;
   maxFrames = 0;
   xcol_width = 0;
+  x_format = NULL;
 
   xmin=1;
   xstep=1;
@@ -34,6 +35,7 @@ DataFile::DataFile(char *nameIn) {
   xlabel=(char*) malloc( 6 * sizeof(char));
   strcpy(xlabel,"Frame");
   xcol_width = 0;
+  x_format = NULL;
   // Default ylabel value is blank
   ylabel=(char*) malloc( sizeof(char));
   strcpy(ylabel,"");
@@ -62,6 +64,7 @@ DataFile::~DataFile() {
   if (SetList!=NULL) free(SetList);
   if (xlabel!=NULL) free(xlabel);
   if (ylabel!=NULL) free(ylabel);
+  if (x_format!=NULL) delete[] x_format;
 }
 
 // DataFile::SetDebug
@@ -253,10 +256,6 @@ void DataFile::Write() {
   // Since currentMax is the last frame, increment currentMax by 1 for use in for loops
   maxFrames = currentMax + 1;
   //mprintf("DEBUG: Max frames for %s is %i (maxFrames=%i)\n",filename,currentMax,maxFrames);
-  // Determine the width of the x column
-  xcol_width = DigitWidth( maxFrames );
-  // Minimum X column width is 8
-  if (xcol_width < 8) xcol_width = 8;
 
   if (outfile.SetupFile(filename,WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,debug)) return;
   if (outfile.OpenFile()) return;
@@ -289,9 +288,8 @@ void DataFile::Write() {
   outfile.CloseFile();
 }
 
-/* DataFile::WriteData()
- * Write datasets to file. Put each set in its own column. 
- */
+// DataFile::WriteData()
+/// Write datasets to file. Put each set in its own column. 
 void DataFile::WriteData(CpptrajFile *outfile) {
   int set,frame,empty;
   CharBuffer buffer;
@@ -299,15 +297,23 @@ void DataFile::WriteData(CpptrajFile *outfile) {
   bool firstSet = true;
   size_t dataFileSize = 0;
   double xcoord;
-  char x_format[6];
+  int xcol_precision = 0; // Default x column precision is 0
 
-  // Create format string for X column
-  strcpy(x_format, "%8.0f");
-  // If xstep is not 1, set precision to 3
-  if (xstep!=1) strcpy(x_format, "%8.3f"); 
+  // Create format string for X column. If xstep is not 1, set precision to 3
+  xcol_width = DigitWidth( maxFrames );
+  if (xstep!=1) {
+    xcol_precision = 3; 
+    // If the width for the x column plus the characters needed for precision
+    // (3 + decimal point) would be greater than 8, increment the x column
+    // width by 4.
+    if ( xcol_width > 4 ) xcol_width+=4; 
+  } 
+  // Default width for x col is at least 8
+  if (xcol_width < 8) xcol_width = 8;
+  x_format = SetAlignedDoubleFormatString(xcol_width, xcol_precision);
    
   // Calculate overall size of the datafile. 
-  if (!noXcolumn) lineSize = 8;
+  if (!noXcolumn) lineSize = xcol_width;
   for (set=0; set<Nsets; set++)
     lineSize += SetList[set]->Width();
   // Add 1 to lineSize for newline
@@ -328,7 +334,7 @@ void DataFile::WriteData(CpptrajFile *outfile) {
     //       a space along with the label (before or after according to 
     //       leftAlign). Currently total width written with WriteStringN is
     //       width+1. 
-    buffer.WriteStringN(xlabel,7,true); 
+    buffer.WriteStringN(xlabel,xcol_width-1,true); 
   }
   for (set=0; set<Nsets; set++) {
     if (noXcolumn && firstSet) {
@@ -360,20 +366,14 @@ void DataFile::WriteData(CpptrajFile *outfile) {
     buffer.NewLine();
   }
 
-  // If noEmptyFrames the actual size of data written may be less than
-  // the size of the data allocated. Recalculate the actual size.
-  if (noEmptyFrames)
-    dataFileSize = buffer.CurrentSize(); 
-
   // Write buffer to file
-  // NOTE: Should probably just always pass in buffer.CurrentSize
-  outfile->IO->Write(buffer.Buffer(),sizeof(char),dataFileSize);
+  outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
 
-/* DataFile::WriteDataInverted()
- * Alternate method of writing out data where X and Y values are switched. 
- * Each frame is put into a column, with column 1 containing headers.
- */
+// DataFile::WriteDataInverted()
+/** Alternate method of writing out data where X and Y values are switched. 
+  * Each frame is put into a column, with column 1 containing headers.
+  */
 void DataFile::WriteDataInverted(CpptrajFile *outfile) {
   int frame,set,empty;
   CharBuffer buffer;
@@ -405,26 +405,41 @@ void DataFile::WriteDataInverted(CpptrajFile *outfile) {
   outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
  
-/* DataFile::WriteGrace() 
- * Write out sets to file in xmgrace format.
- */
+// DataFile::WriteGrace() 
+/// Write out sets to file in xmgrace format.
 void DataFile::WriteGrace(CpptrajFile *outfile) {
   int set,frame;
   CharBuffer buffer;
   double xcoord;
   size_t dataFileSize;
 
+  // Create format string for X column. Default precision is 3
+  xcol_width = DigitWidth( maxFrames );
+  // If the width for the x column plus the characters needed for precision
+  // (3 + decimal point) would be greater than 8, increment the x column
+  // width by 4.
+  if ( xcol_width > 4 ) xcol_width+=4;
+  // Default width for x col is at least 8
+  if (xcol_width < 8) xcol_width = 8;
+  x_format = SetAlignedDoubleFormatString(xcol_width, 3);
+
   // Calculate file size:
   // 1) Initial Header: 91 + xlabel + ylabel
   dataFileSize = (91 + strlen(xlabel) + strlen(ylabel));
   // 2) Set Headers: 37 + 8 + SetName + 8 (fixing integers at size 8)
+  //    Check that number of sets will not require > 8 chars
+  if (DigitWidth(Nsets) > 8) {
+    mprinterr("Internal Error: WriteGrace: # of sets (%i) is too large!\n",Nsets);
+    return;
+  }
   for (set = 0; set < Nsets; set++) {
     dataFileSize += (53 + strlen( SetList[set]->Name() ));
-  // 3) Set Data: (8 + SetWidth + 1) * maxFrames
-    dataFileSize += ((9 + SetList[set]->Width() ) * maxFrames);
+  // 3) Set Data: (xcol_width + SetWidth + 1) * maxFrames
+    dataFileSize += ((xcol_width + SetList[set]->Width() + 1 ) * maxFrames);
   }
   // Allocate buffer
   buffer.Allocate( dataFileSize );
+
   // Grace header
   buffer.Sprintf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",xlabel,ylabel);
 
@@ -440,7 +455,7 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
         if ( SetList[set]->isEmpty(frame) ) continue; 
       }
       xcoord = (xstep * frame) + xmin;
-      buffer.WriteDouble("%8.3f",xcoord);
+      buffer.WriteDouble(x_format,xcoord);
       SetList[set]->WriteBuffer(buffer,frame);
       buffer.NewLine();
     }
@@ -448,24 +463,40 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
   outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
 
-/* DataFile::WriteGraceInverted() 
- * Write out sets to file in xmgrace format. Write out data from each
- * frame as 1 set.
- */
+// DataFile::WriteGraceInverted() 
+/** Write out sets to file in xmgrace format. Write out data from each
+  * frame as 1 set.
+  */
 void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
   int set,frame,empty;
   size_t dataFileSize;
   CharBuffer buffer;
   double xcoord;
 
+  // Create format string for X column. Default precision is 3
+  xcol_width = DigitWidth( maxFrames );
+  // If the width for the x column plus the characters needed for precision
+  // (3 + decimal point) would be greater than 8, increment the x column
+  // width by 4.
+  if ( xcol_width > 4 ) xcol_width+=4;
+  // Default width for x col is at least 8
+  if (xcol_width < 8) xcol_width = 8;
+  x_format = SetAlignedDoubleFormatString(xcol_width, 3);
+
   // Calculate file size
   // 1) Initial header: 91 + xlabel + ylabel
   dataFileSize = (91 + strlen(xlabel) + strlen(ylabel));
   // 2) Set Headers: (22 + 8) * maxFrames  (fixing integers at size 8)
+  //    Check that number of frames will not require > 8 chars
+  if (DigitWidth(maxFrames) > 8) {
+    mprinterr("Internal Error: WriteGraceInverted: # of frames (%i) is too large!\n",maxFrames);
+    return;
+  }
   dataFileSize += (30 * maxFrames);
-  // 3) Set Data: (8 + SetWidth + 4 + SetName) * maxFrames
+  // 3) Set Data: (xcol_width + SetWidth + 4 + SetName) * maxFrames
   for (set = 0; set < Nsets; set++)
-    dataFileSize += ((12 + SetList[set]->Width() + strlen( SetList[set]->Name() ))*maxFrames);
+    dataFileSize += ((xcol_width + SetList[set]->Width() + 4 + strlen( SetList[set]->Name() ))
+                     * maxFrames);
   // Allocate buffer
   buffer.Allocate(dataFileSize);
 
@@ -488,7 +519,7 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
     // Loop over all Set Data for this frame
     for (set=0; set<Nsets; set++) {
       xcoord = (ystep * set) + ymin;
-      buffer.WriteDouble("%8.3f",xcoord);
+      buffer.WriteDouble(x_format,xcoord);
       SetList[set]->WriteBuffer(buffer,frame);
       buffer.Sprintf(" \"%s\"",SetList[set]->Name());
       buffer.NewLine();
@@ -497,26 +528,36 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
   outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
 
-/* DataFile::WriteGnuplot()
- * Write each frame from all sets in blocks in the following format:
- *   Frame Set   Value
- * Originally there was a -0.5 offset for the Set values in order to center
- * grid lines on the Y values, e.g.
- *   1     0.5   X
- *   1     1.5   X
- *   1     2.5   X
- *
- *   2     0.5   X
- *   2     1.5   X
- *   ...
- * However, in the interest of keeping data consistent, this is no longer
- * done. Could be added back in later as an option.
- */
+// DataFile::WriteGnuplot()
+/** Write each frame from all sets in blocks in the following format:
+  *   Frame Set   Value
+  * Originally there was a -0.5 offset for the Set values in order to center
+  * grid lines on the Y values, e.g.
+  *   1     0.5   X
+  *   1     1.5   X
+  *   1     2.5   X
+  *
+  *   2     0.5   X
+  *   2     1.5   X
+  *   ...
+  * However, in the interest of keeping data consistent, this is no longer
+  * done. Could be added back in later as an option.
+  */
 void DataFile::WriteGnuplot(CpptrajFile *outfile) {
   CharBuffer buffer;
   int set, frame;
   double xcoord, ycoord;
-  size_t dataFileSize;
+  size_t dataFileSize, xycol, Erow, Eset, dataheader, Set_total;
+
+  // Create format string for X and Y columns. Default precision is 3
+  xcol_width = DigitWidth( maxFrames );
+  // If the width for the x/y columns plus the characters needed for precision
+  // (3 + decimal point) would be greater than 8, increment the column
+  // width by 4.
+  if ( xcol_width > 4 ) xcol_width+=4;
+  // Default width for cols is at least 8
+  if (xcol_width < 8) xcol_width = 8;
+  x_format = SetAlignedDoubleFormatString(xcol_width, 3);
 
   // Turn off labels if number of sets is too large since they 
   // become unreadable. Should eventually have some sort of 
@@ -538,23 +579,35 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
     for (set = 0; set < Nsets; set++)
       dataFileSize += ( 12 + strlen( SetList[set]->Name() ) );
   }
-  // NOT useMap
-  //   3) Header and data: (extra row and column) 
-  //      30 + (SUM[Nsets]:(width + 8 + 8 + 3) + (8 + 8 + 8 + 4)) * maxFrames
-  //      + ((Nsets+1) * (8 + 8 + 3)) + 1
+  // 3) Header and data
+  //    If not using map gnuplot requires an extra row and column in the X
+  //    and Y directions to prevent data from being truncated, so print
+  //    an empty row for each set and an empty set after all frames.
+  // xycol: Combined size of x and y coords
+  // dataheader: Size of the data header (Map command)
+  // Erow: size of empty row
+  // Eset size of empty set
+  xycol = xcol_width + xcol_width;
   if (!useMap) {
-    dataFileSize += 30;
-    for (set = 0; set < Nsets; set++)
-      dataFileSize += (( SetList[set]->Width() + 47 ) * maxFrames);
-    dataFileSize += (((Nsets+1) * 19) + 1);
-  // useMap
-  //   3) Header and data:
-  //      13 + (SUM[Nsets]:(width + 8 + 8 + 4)) * maxFrames
+    dataheader = 30;
+    Erow = xycol + 4;                // 4 == data (%1i) + space + space + newline
+    Eset = ((Nsets + 1) * Erow) + 1; // last 1 == newline
   } else {
-    dataFileSize += 13;
-    for (set = 0; set < Nsets; set++)
-      dataFileSize += (( SetList[set]->Width() + 20 ) * maxFrames);
-  } 
+    dataheader = 13;
+    Erow = 0; // No empty row
+    Eset = 0; // No empty sets
+  }
+  //    Compute size of each dataset plus the x and y coords
+  Set_total = 0;
+  for (set = 0; set < Nsets; set++) 
+    Set_total += (xycol + SetList[set]->Width() + 3);
+  //    Total size
+  dataFileSize += ((maxFrames * ( Set_total + Erow + 1 )) + Eset);
+  // Add a little extra in case there is some overflow with setting
+  // the range, labels, etc. This is a bit lazy but probably harmless.
+  // The real bulk of the data is calculated accurately.
+  dataFileSize += 128;
+
   // Allocate buffer
   buffer.Allocate( dataFileSize );
 
@@ -592,16 +645,20 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
     xcoord = (xstep * frame) + xmin;
     for (set=0; set < Nsets; set++) {
       ycoord = (ystep * set) + ymin;
-      buffer.WriteDouble("%8.3f ",xcoord);
-      buffer.WriteDouble("%8.3f ",ycoord);
+      buffer.WriteDouble(x_format,xcoord);
+      buffer.Space();
+      buffer.WriteDouble(x_format,ycoord);
+      buffer.Space();
       SetList[set]->WriteBuffer(buffer,frame);
       buffer.NewLine();
     }
     if (!useMap) {
       // Print one empty row for gnuplot pm3d without map
       ycoord = (ystep * set) + ymin;
-      buffer.WriteDouble("%8.3f ",xcoord);
-      buffer.WriteDouble("%8.3f ",ycoord);
+      buffer.WriteDouble(x_format,xcoord);
+      buffer.Space();
+      buffer.WriteDouble(x_format,ycoord);
+      buffer.Space();
       buffer.WriteInteger("%1i",0);
       buffer.NewLine();
     }
@@ -612,8 +669,10 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
     xcoord = (xstep * frame) + xmin;
     for (set=0; set<=Nsets; set++) {
       ycoord = (ystep * set) + ymin;
-      buffer.WriteDouble("%8.3f ",xcoord);
-      buffer.WriteDouble("%8.3f ",ycoord);
+      buffer.WriteDouble(x_format,xcoord);
+      buffer.Space();
+      buffer.WriteDouble(x_format,ycoord);
+      buffer.Space();
       buffer.WriteInteger("%1i",0);
       buffer.NewLine();
     }
@@ -626,5 +685,4 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
   // Write buffer
   outfile->IO->Write(buffer.Buffer(),sizeof(char),buffer.CurrentSize());
 }
-
 
