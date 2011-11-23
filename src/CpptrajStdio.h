@@ -13,6 +13,7 @@ bool fileExists(char *);
 void NumberFilename(char *, char *, int);
 int DigitWidth(int);
 char *SetDoubleFormatString(int, int);
+char *SetAlignedDoubleFormatString(int, int);
 char *SetStringFormatString(int);
 char *SetIntegerFormatString(int);
 char *SetXYZFormatString(int , int );

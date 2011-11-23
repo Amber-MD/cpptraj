@@ -216,6 +216,27 @@ char *SetDoubleFormatString(int width, int precision) {
   return format;
 }
 
+// SetAlignedDoubleFormatString()
+/** Return a printf-style format string for float/double of given width 
+  * and precision, no leading space.
+  */
+char *SetAlignedDoubleFormatString(int width, int precision) {
+  size_t stringWidth = 0;
+  int wWidth = 0;
+  int pWidth = 0;
+  char *format;
+    
+  // Calc num of chars necessary to hold width
+  wWidth = (width / 10) + 1;
+  // Calc num of chars necessary to hold precision
+  pWidth = (precision / 10) + 1;
+  // String fmt: "%w.plf\0"
+  stringWidth = pWidth + wWidth + 5;
+  format = new char [ stringWidth ];
+  sprintf(format, "%%%i.%ilf", width, precision);
+  return format;
+}
+
 // SetStringFormatString()
 /** Return a printf-style format string for string of given width.
   */
