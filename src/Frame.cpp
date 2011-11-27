@@ -1464,12 +1464,12 @@ void Frame::SetAxisOfRotation(double *U, int atom1, int atom2) {
 /** Given a vector representing an axis and a magnitude, rotate all 
   * coordinates in the given mask around the axis.
   */
-void Frame::RotateAroundAxis(double *U, double theta, AtomMask &Rmask) {
+void Frame::RotateAroundAxis(double *T, double theta, AtomMask &Rmask) {
   double x,y,z;
   double T0,T1,T2,T3,T4,T5,T6,T7,T8;
-  double T[9];
+  //double T[9];
   // Setup rotation matrix for this axis and given theta
-  calcRotationMatrix(T, U, theta);
+  //calcRotationMatrix(T, U, theta);
   // Rotate
   T0=T[0];
   T1=T[1];
