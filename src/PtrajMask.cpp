@@ -235,7 +235,7 @@ static int priority(char op) {
 #undef ROUTINE
 #define ROUTINE "tokenize()"
 int tokenize(char *input, char *infix) {
-  char *p;
+  char *p, *input_end;
   char buffer[MAXSELE];
   int i, j, n, flag;
 
@@ -246,8 +246,10 @@ int tokenize(char *input, char *infix) {
   i = 0; n = 0;  
   // (*p) needs to scan the last '\0' as well so we cannot use
   // usual (*p != '\0') condition; rather we go one char more
-  // beyond the length of the string 
-  for (p = input; p <= input + strlen(input); p++) {
+  // beyond the length of the string
+  input_end = input;
+  input_end += strlen(input);
+  for (p = input; p <= input_end; p++) {
     // isspace gets rid of spaces and also of \n if any 
     if (isspace(*p)) continue;
     // Distance operator.
@@ -557,8 +559,8 @@ static char *selectDistd(char *criteria, char *center, int natom, int nres,
   // Compare to square of distance to avoid multiple sqrt calls
   dist2 = dist * dist;
   
-  //pMask = new char[ natom ];
-  pMask = (char*) malloc(natom * sizeof(char));
+  pMask = new char[ natom ];
+  //pMask = (char*) malloc(natom * sizeof(char));
   memset(pMask,'F',natom);
  
   // For each atomi, calculate distance between atom and each atomj in center
@@ -651,8 +653,8 @@ static char *binop(char op, char *m2, char *m1, int atoms) {
    * by returning the result in m2[] (or m1[]) but creating a new
    * char array for results and freeing up m2[] and m1[] up in 
    * the calling routine is more straightforward and clearer */
-  //pMask = new char[ atoms ];
-  pMask = (char*) malloc( atoms * sizeof(char));
+  pMask = new char[ atoms ];
+  //pMask = (char*) malloc( atoms * sizeof(char));
   memset(pMask, 'F', atoms);
   
   switch (op) {
@@ -668,8 +670,8 @@ static char *binop(char op, char *m2, char *m1, int atoms) {
       break;
     default:
       printf("Error: unknown operator ==%c==\n", op);
-      //delete[] pMask;
-      free(pMask);
+      delete[] pMask;
+      //free(pMask);
       return NULL;
   }
   return(pMask);
@@ -1002,8 +1004,8 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
   int buffer_p;
   char buffer[MAXSELE];
   
-  //pElemMask = new char[atoms];
-  pElemMask = (char*) malloc( atoms * sizeof(char));
+  pElemMask = new char[atoms];
+  //pElemMask = (char*) malloc( atoms * sizeof(char));
   memset(pElemMask, 'F', atoms);
 
   if ( *elmaskstr == ':' ) { // residue mask expression 
@@ -1093,7 +1095,8 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
             // Sanity check in case atom types are not defined
             if (atomType==NULL) {
               fprintf(stderr,"Error: Cannot select by atom type, no atom types in parm.\n");
-              if (pElemMask!=NULL) free(pElemMask);//delete[] pElemMask;
+              //if (pElemMask!=NULL) free(pElemMask);
+              delete[] pElemMask;
               return NULL;
             }
             atom_typelist(buffer+1, pElemMask, atoms, atomType);
@@ -1110,15 +1113,15 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
      * selecting all residues by '*' as opposed to ":*" */
     all_select(pElemMask, atoms);
   } else if ( strchr("<>", *elmaskstr) ) {
-    //delete[] pElemMask;
-    free(pElemMask);
-    //pElemMask = new char[ strlen(elmaskstr)+1 ];
-    pElemMask = (char*) malloc( (strlen(elmaskstr)+1) * sizeof(char));
+    delete[] pElemMask;
+    //free(pElemMask);
+    pElemMask = new char[ strlen(elmaskstr)+1 ];
+    //pElemMask = (char*) malloc( (strlen(elmaskstr)+1) * sizeof(char));
     strcpy(pElemMask, elmaskstr);
   } else {
     fprintf(stderr,"Error: elementary mask ==%s== contains nor : neither @\n",elmaskstr);
-    //delete[] pElemMask;
-    free(pElemMask);
+    delete[] pElemMask;
+    //free(pElemMask);
     return NULL;
   }
   
@@ -1161,8 +1164,8 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
       i = 0;
     else if (*p == ']') { // 'operand' is completed 
       buffer[i] = '\0';
-      //pToken = new char[ strlen(buffer)+1 ];
-      pToken = (char*) malloc( (strlen(buffer)+1) * sizeof(char));
+      pToken = new char[ strlen(buffer)+1 ];
+      //pToken = (char*) malloc( (strlen(buffer)+1) * sizeof(char));
       strcpy(pToken, buffer);
       /* this code should also be ok if this is just a single expression,
        * i.e. first ']' is followed immediately by '\0' (end of string), 
@@ -1170,8 +1173,8 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
       /* selectElemMask allocates char mask array to which pMask points */
       pMask = selectElemMask(pToken, atoms, residues, atomName, residueName, ipres, atomType); 
       Stack.push(pMask);
-      //delete[] pToken;
-      free(pToken);
+      delete[] pToken;
+      //free(pToken);
     }
     else if ( isOperand(*p)||strchr(":@", *p))  // operand is a part inside [...] 
       buffer[i++] = *p;
@@ -1199,10 +1202,10 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
       }
       Stack.push(pMask);
 
-      //delete[] pMask1;
-      free(pMask1);
-      //delete[] pMask2;
-      free(pMask2);
+      delete[] pMask1;
+      //free(pMask1);
+      delete[] pMask2;
+      //free(pMask2);
     } 
     else if ( strchr("<>", *p) ) {
       if(strchr(":@", *(p+1)) && *(p+1) != '\0') {
@@ -1220,10 +1223,10 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
         }
         Stack.push(pMask);
 
-        //delete[] pMask1;
-        free(pMask1);
-        //delete[] pMask2;
-        free(pMask2);
+        delete[] pMask1;
+        //free(pMask1);
+        delete[] pMask2;
+        //free(pMask2);
       }
     } 
     else if (*p == '!') {
@@ -1253,16 +1256,16 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
     // Stack should be empty now
     if (!Stack.empty()) {
       error = 1;
-      //delete[] pMask;
-      free(pMask);
+      delete[] pMask;
+      //free(pMask);
     }
   } 
 
   // If error is set free stack memory and exit
   if (error!=0) {
     while (!Stack.empty()) {
-      //delete[] Stack.top();
-      free( Stack.top() );
+      delete[] Stack.top();
+      //free( Stack.top() );
       Stack.pop();
     }
     return NULL;
@@ -1300,7 +1303,14 @@ extern "C" char* parseMaskC(char *maskstr, int atoms, int residues, NAME *atomNa
     printf("postfix  : ==%s==\n", postfix);
 
   /* 3) evaluate postfix notation */
-  mask = parseMaskString(postfix, atoms, residues, atomName, residueName, ipres, NULL, NULL, debug);
+  char *tempmask = parseMaskString(postfix, atoms, residues, atomName, 
+                                   residueName, ipres, NULL, NULL, debug);
+
+  // Since this will be passed to ptraj_actions.c the memory needs to be
+  // allocated with cstdlib routines.
+  mask = (char*) malloc( atoms * sizeof(char) );
+  memcpy(mask, tempmask, atoms);
+  delete[] tempmask;
 
   return(mask);
 }

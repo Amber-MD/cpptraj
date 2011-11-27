@@ -1,5 +1,7 @@
 #ifndef INC_ATOMMASK_H
 #define INC_ATOMMASK_H
+#include <string>
+#include <vector>
 #include "AmberParm.h"
 // Class: AtomMask
 /// Hold info on selected atoms based on mask expression.
@@ -28,14 +30,15 @@
 // invertMask, AddAtom, AddAtoms, and AddAtomRange currently only apply
 // to the Selected array.
 class AtomMask {
-    char *CharMask;      ///< Char array of atoms, T if selected, F if not.
-    int Nchar;           ///< Number of chars in CharMask array.
-    char *Postfix;       ///< maskString tokenized and converted to RPN
-    char maskChar;       ///< The character used to denote a selected atom (default 'T')
+    std::vector<char> CharMask; ///< Char array of atoms, T if selected, F if not.
+    std::string Postfix;        ///< maskString tokenized and converted to RPN
+    char maskChar;              ///< The character used to denote a selected atom (default 'T')
+    std::string maskString;     ///< String specifying atom selection
   public:
-    char *maskString; ///< String specifying atom selection
-    int Nselected;    ///< Number of selected atoms in mask
-    int *Selected;    ///< Int array of selected atom numbers, 1 for each selected atom
+    int Nselected;              ///< Number of selected atoms in mask
+    std::vector<int> Selected;  ///< Int array of selected atom numbers, 1 for each selected atom
+
+    const char *MaskString() { return maskString.c_str(); }
 
     AtomMask();
     ~AtomMask();
@@ -47,7 +50,7 @@ class AtomMask {
     AtomMask *CopyMask();          ///< Return a copy of this mask
 
     void AddAtom(int);             ///< Add given atom to Selected array 
-    void AddAtoms(int *, int);     ///< Add a list of atoms to mask
+    void AddAtoms(std::vector<int>&); ///< Add a list of atoms to mask
     void AddAtomRange(int,int);    ///< Add minAtom <= atom < maxAtom to mask
     void PrintMaskAtoms();         ///< Print all mask atoms in to a line
     bool None();                   ///< Return true if Nselected==0
@@ -57,6 +60,7 @@ class AtomMask {
     /// Set up CharMask based on maskString and given parm
     int SetupCharMask(AmberParm*,double*,int);
     /// True if given atom is T in CharMask
-    bool AtomInCharMask(int atom); 
+    bool AtomInCharMask(int atom);
+ 
 };
 #endif
