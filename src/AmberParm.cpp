@@ -1736,8 +1736,8 @@ int AmberParm::GetBondedAtomIdx(int atomIn, const char *bondedAtomName) {
 
 // AmberParm::MaskOfAtomsAroundBond()
 /// Just a wrapper for the same routine in BondInfo
-int *AmberParm::MaskOfAtomsAroundBond(int atom1, int atom2, int *N) {
-  return bondInfo.MaskOfAtomsAroundBond(atom1,atom2,N);
+int AmberParm::MaskOfAtomsAroundBond(int atom1, int atom2, std::vector<int> &Selected) {
+  return bondInfo.MaskOfAtomsAroundBond(atom1,atom2,Selected);
 }
 
 // AmberParm::DetermineMolecules()
@@ -1986,13 +1986,14 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   *  not in the Selected array.
   */
 // NOTE: Make all solvent/box related info dependent on IFBOX only?
-AmberParm *AmberParm::modifyStateByMask(int *Selected, int Nselected, char *prefix) {
+AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix) {
   AmberParm *newParm;
   int selected;
   int i, ires, imol; 
   int j, jres, jmol;
   int curres, curmol; 
   int *atomMap; // Convert atom # in oldParm to newParm; -1 if atom is not in newParm
+  int Nselected = (int) Selected.size();
 
   // Allocate space for the new state
   newParm = new AmberParm(); 

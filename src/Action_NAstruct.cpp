@@ -991,9 +991,8 @@ int NAstruct::setup() {
     }
     ExpMasks.push_back( Mask );
     if (debug>1) {
-      mprintf("      NAstruct: Res %i:%s mask atoms: ",residue+1,currentParm->ResidueName(residue));
-      Mask->PrintMaskAtoms();
-      mprintf("\n");
+      mprintf("\tNAstruct: Res %i:%s ",residue+1,currentParm->ResidueName(residue));
+      Mask->PrintMaskAtoms("NAmask");
     }
 
     // Set up empty frame to hold input coords for this residue

@@ -199,7 +199,7 @@ int Molsurf::init() {
   // Add dataset to data file list
   DFL->Add(molsurfFile,sasa);
 
-  mprintf("    MOLSURF: [%s] Probe Radius=%.3lf\n",Mask1.maskString,probe_rad);
+  mprintf("    MOLSURF: [%s] Probe Radius=%.3lf\n",Mask1.MaskString(),probe_rad);
   if (rad_offset>0)
     mprintf("             Radii will be incremented by %.3lf\n",rad_offset);
 

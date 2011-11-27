@@ -56,7 +56,7 @@ int Average::init( ) {
 
   mprintf("    AVERAGE: Averaging over");
   if (mask1!=NULL)
-    mprintf(" coordinates in mask [%s]",Mask1.maskString);
+    mprintf(" coordinates in mask [%s]",Mask1.MaskString());
   else
     mprintf(" all atoms");
   if (stop==-1) 
@@ -101,7 +101,7 @@ int Average::setup() {
     // the parm for output purposes.
     if (Mask1.Nselected<currentParm->natom) {
       mprintf("             Atom selection < natom, stripping parm for averaging only:\n");
-      AvgParm = currentParm->modifyStateByMask(Mask1.Selected, Mask1.Nselected, NULL);
+      AvgParm = currentParm->modifyStateByMask(Mask1.Selected, NULL);
       parmStripped=true;
       AvgParm->Summary();
     } else 

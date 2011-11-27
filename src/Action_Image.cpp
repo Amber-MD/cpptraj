@@ -63,13 +63,13 @@ int Image::init() {
     mprintf(" center of mass");
   else
     mprintf(" first atom position");
-  mprintf(" using atoms in mask %s\n",Mask1.maskString);
+  mprintf(" using atoms in mask %s\n",Mask1.MaskString());
   if (triclinic == FORCE)
     mprintf( "           Triclinic On.\n");
   else if (triclinic == FAMILIAR) {
     mprintf( "           Triclinic On, familiar shape");
     if (ComMask!=NULL) 
-      mprintf( " centering on atoms in mask %s", ComMask->maskString);
+      mprintf( " centering on atoms in mask %s", ComMask->MaskString());
     mprintf(".\n");
   }
 

@@ -27,7 +27,7 @@ class Closest: public Action {
     struct MolDist {
       int mol;        // Original solvent molecule number
       double D;       // Closest distance of solvent molecule to atoms in Mask1
-      AtomMask *mask; // Original solvent molecule atom mask
+      AtomMask mask;  // Original solvent molecule atom mask
     };
     // Return true if the first molecule is closer than the second
     struct moldist_cmp {
@@ -40,7 +40,7 @@ class Closest: public Action {
     };
     std::vector<MolDist> SolventMols;
 
-    void ClearMaskList();    
+    //void ClearMaskList();    
   public:
     Closest();
     ~Closest();

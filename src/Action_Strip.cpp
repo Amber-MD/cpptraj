@@ -42,7 +42,7 @@ int Strip::init( ) {
   // invert the mask selection.
   M1.InvertMask();
 
-  mprintf("    STRIP: Stripping atoms in mask [%s]\n",M1.maskString);
+  mprintf("    STRIP: Stripping atoms in mask [%s]\n",M1.MaskString());
   if (prefix!=NULL) 
     mprintf("           Stripped topology will be output with prefix %s\n",prefix);
   if (removeBoxInfo)
@@ -67,7 +67,7 @@ int Strip::setup() {
 
   // Attempt to create new parmtop based on mask
   if (newParm!=NULL) delete newParm;
-  newParm = currentParm->modifyStateByMask(M1.Selected, M1.Nselected, prefix);
+  newParm = currentParm->modifyStateByMask(M1.Selected, prefix);
   if (newParm==NULL) {
     mprinterr("      Error: Strip::setup: Could not create new parmtop.\n");
     return 1;

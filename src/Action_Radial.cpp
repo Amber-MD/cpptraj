@@ -88,9 +88,9 @@ int Radial::init() {
     return 1;
   }
 
-  mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1.maskString);
+  mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1.MaskString());
   if (mask2!=NULL) 
-    mprintf(" to atoms in mask [%s]",Mask2.maskString);
+    mprintf(" to atoms in mask [%s]",Mask2.MaskString());
   mprintf("\n            Output to %s.\n",outfilename);
   if (center1)
     mprintf("            Using center of atoms in mask1.\n");
@@ -225,7 +225,7 @@ void Radial::print() {
   if (numFrames==0) return;
  
   // Create label from mask strings
-  sprintf(temp,"[%s] => [%s]",Mask1.maskString,Mask2.maskString);
+  sprintf(temp,"[%s] => [%s]",Mask1.MaskString(),Mask2.MaskString());
 
   Dset = rdfdata.Add( DOUBLE, (char*)"RDF", "RDF");
   outfile = DFL->Add(outfilename, Dset);

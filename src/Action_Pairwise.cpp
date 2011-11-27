@@ -119,11 +119,11 @@ int Pairwise::init( ) {
   }
 
   // Action Info
-  mprintf("    PAIRWISE: Atoms in mask [%s].\n",Mask0.maskString);
+  mprintf("    PAIRWISE: Atoms in mask [%s].\n",Mask0.MaskString());
   if (eout!=NULL)
     mprintf("              Energy info for each atom will be written to %s\n",eout);
   if (RefFrame!=NULL) 
-    mprintf("              Reference index %i, mask [%s]\n",refindex, RefMask.maskString);
+    mprintf("              Reference index %i, mask [%s]\n",refindex, RefMask.MaskString());
   mprintf("              Eelec absolute cutoff: %12.4lf\n",cut_eelec);
   mprintf("              Evdw absolute cutoff: %12.4lf\n",cut_evdw);
   if (cutout!=NULL)
@@ -232,7 +232,7 @@ int Pairwise::setup() {
   atom_evdw.clear();
   atom_evdw.resize(currentParm->natom, 0);
   // Print pairwise info for this parm
-  mprintf("    PAIRWISE: Mask %s corresponds to %i atoms.\n",Mask0.maskString, Mask0.Nselected);
+  mprintf("    PAIRWISE: Mask %s corresponds to %i atoms.\n",Mask0.MaskString(), Mask0.Nselected);
         
   return 0;  
 }
@@ -337,7 +337,7 @@ int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharg
   Frame CutFrame;
   TrajectoryFile tout;
   // TEST: Write file containing only cut atoms
-  CutParm = Parm->modifyStateByMask(CutMask->Selected, CutMask->Nselected,NULL);
+  CutParm = Parm->modifyStateByMask(CutMask->Selected, NULL);
   CutParm->SetCharges(CutCharges);
   CutFrame.SetupFrame(CutParm->natom, CutParm->mass);
   CutFrame.SetFrameFromMask(frame, CutMask);

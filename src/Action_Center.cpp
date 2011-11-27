@@ -42,7 +42,7 @@ int Center::init() {
     mprintf(" mass");
   else
     mprintf(" geometry");
-  mprintf(" using atoms in mask %s\n",Mask1.maskString);
+  mprintf(" using atoms in mask %s\n",Mask1.MaskString());
 
   return 0;
 }

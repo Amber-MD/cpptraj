@@ -132,7 +132,7 @@ int DistRmsd::init( ) {
     }
   }
 
-  mprintf("    DISTRMSD: (%s), reference is ",TgtMask.maskString);
+  mprintf("    DISTRMSD: (%s), reference is ",TgtMask.MaskString());
   if (reftraj!=NULL) {
     // Set up reference trajectory and open
     mprintf("trajectory %s with %i frames",RefTraj->TrajName(),RefTraj->Total_Read_Frames());
@@ -146,7 +146,7 @@ int DistRmsd::init( ) {
     mprintf("%s",referenceName);
   else
     mprintf("reference index %i",refindex);
-  mprintf(" (%s).\n",RefMask.maskString);
+  mprintf(" (%s).\n",RefMask.MaskString());
 
   return 0;
 }

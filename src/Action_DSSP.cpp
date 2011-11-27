@@ -64,7 +64,7 @@ int DSSP::init() {
   } else
     SSdata = new DataSetList;
 
-  mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask.maskString);
+  mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask.MaskString());
   if (outfilename!=NULL) 
     mprintf("               Dumping results to %s\n", outfilename);
   if (!sumOut.empty())
@@ -170,7 +170,7 @@ int DSSP::setup() {
   }
 
   // Count number of selected residues
-  mprintf("      DSSP: [%s] corresponds to %i residues.\n",Mask.maskString,selected);
+  mprintf("      DSSP: [%s] corresponds to %i residues.\n",Mask.MaskString(),selected);
 
   // Set up output buffer to hold string
   if (printString) {

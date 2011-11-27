@@ -1,5 +1,6 @@
 #ifndef INC_AMBERPARM_H
 #define INC_AMBERPARM_H
+#include <vector>
 #include "CpptrajFile.h"
 #include "BoxType.h" 
 // Name.h has definition for NAME 
@@ -172,12 +173,12 @@ class AmberParm {
 
     int SetupBondInfo();
     int GetBondedAtomIdx(int, const char *);
-    int *MaskOfAtomsAroundBond(int, int, int*);
+    int MaskOfAtomsAroundBond(int, int, std::vector<int>&);
 
     void ResetBondInfo(); 
     int AddBond(int, int, int);
 
-    AmberParm *modifyStateByMask(int *, int, char*);
+    AmberParm *modifyStateByMask(std::vector<int>&, char*);
     AmberParm *modifyStateByMap(int *);
 
     int WriteAmberParm(char*); 

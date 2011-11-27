@@ -47,7 +47,7 @@ int Radgyr::init() {
     DFL->Add(rogFile,rogmax);
   }
 
-  mprintf("    RADGYR: Calculating for atoms in mask %s",Mask1.maskString);
+  mprintf("    RADGYR: Calculating for atoms in mask %s",Mask1.MaskString());
   if (useMass)
     mprintf(" using mass weighting");
   mprintf(".\n");

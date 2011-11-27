@@ -95,7 +95,7 @@ int Clustering::init() {
   if (targetNclusters==-1 && epsilon==-1.0)
     targetNclusters = 10;
 
-  mprintf("    CLUSTER: (%s) ",Mask0.maskString);
+  mprintf("    CLUSTER: (%s) ",Mask0.MaskString());
   if (useMass)
     mprintf(" (mass-weighted)");
   if (targetNclusters != -1)

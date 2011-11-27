@@ -43,7 +43,7 @@ int Surf::init() {
   // Add dataset to data file list
   DFL->Add(surfFile,surf);
 
-  mprintf("    SURF: Calculating surface area for atoms in mask [%s]\n",Mask1.maskString);
+  mprintf("    SURF: Calculating surface area for atoms in mask [%s]\n",Mask1.MaskString());
 
   return 0;
 }
@@ -74,7 +74,7 @@ int Surf::setup() {
   for (i=0; i < Mask1.Nselected; i++) {
     if (Mask1.Selected[i] >= soluteAtoms) {
       mprintf("Error: Surf::setup(): Atom %i in mask %s does not belong to solute.\n",
-              Mask1.Selected[i], Mask1.maskString);
+              Mask1.Selected[i], Mask1.MaskString());
       return 1;
     }
   }

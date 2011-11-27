@@ -90,12 +90,14 @@ void AtomMask::AddAtom(int atomIn) {
     if ( *atom > atomIn) {
       // Insert at the current position, which is the first atom # > atomIn
       Selected.insert(atom, atomIn);
+      Nselected = (int) Selected.size();
       return;
     }
   }
 
   // Add atom to mask
   Selected.push_back(atomIn);
+  Nselected = (int) Selected.size();
 }
 
 // AtomMask::AddAtoms()
@@ -114,6 +116,7 @@ void AtomMask::AddAtoms(std::vector<int> &atomsIn) {
   // Remove duplicates
   atom = unique( Selected.begin(), Selected.end() );
   Selected.resize( atom - Selected.begin() );
+  Nselected = (int) Selected.size();
 }
 
 // AtomMask::AddAtomRange()
@@ -121,6 +124,7 @@ void AtomMask::AddAtoms(std::vector<int> &atomsIn) {
   * Selected array. The resulting array is sorted and duplicates are removed.
   */
 void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
+  //mprintf("DEBUG:\t\tAdding atoms %i to %i\n",minAtom,maxAtom);
   if (minAtom >= maxAtom) return;
   for (int atom = minAtom; atom < maxAtom; atom++)
     Selected.push_back( atom );
@@ -129,10 +133,16 @@ void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
   // Remove duplicates
   std::vector<int>::iterator atomit = unique( Selected.begin(), Selected.end() );
   Selected.resize( atomit - Selected.begin() );
+  //mprintf("\t\t[");
+  //for (std::vector<int>::iterator da = Selected.begin(); da != Selected.end(); da++)
+  //  mprintf(" %i",*da);
+  //mprintf("]\n");
+  Nselected = (int) Selected.size();
 }
 
 // AtomMask::PrintMaskAtoms()
-void AtomMask::PrintMaskAtoms() {
+void AtomMask::PrintMaskAtoms(const char *header) {
+  mprintf("%s=[",header);
   if (this->None()) 
     mprintf("No atoms selected.");
   else if (!Selected.empty()) {
@@ -146,6 +156,7 @@ void AtomMask::PrintMaskAtoms() {
     }
   } else 
     mprintf("Warning: Mask [%s] has not been set up yet.\n",maskString.c_str());
+  mprintf("]\n");
 }
 
 // AtomMask::SetMaskString()
@@ -273,8 +284,8 @@ int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
   }
   //CharMask.assign( mask );
   CharMask.reserve( Pin->natom );
-  for (char *ptr = mask; *ptr != '\0'; ptr++)
-    CharMask.push_back( *ptr );
+  for (int i = 0; i < Pin->natom; i++)
+    CharMask.push_back( mask[i] );
   delete[] mask;
   // Determine number of selected atoms
   Nselected=0;

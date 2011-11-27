@@ -195,7 +195,7 @@ int Jcoupling::init( ) {
     return 1;
   }
 
-  mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n",Mask1.maskString);
+  mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n",Mask1.MaskString());
   mprintf("                Using Karplus parameters in \"%s\"\n",karpluspath);
   mprintf("                %i parameters found for %i residues.\n",Nconstants,
           KarplusConstants.size());
@@ -286,12 +286,12 @@ int Jcoupling::setup() {
   } // END loop over all residues
 
   // Print info for this parm
-  mprintf("    J-COUPLING: [%s] Will calculate J-coupling for %u dihedrals.\n",Mask1.maskString,
+  mprintf("    J-COUPLING: [%s] Will calculate J-coupling for %u dihedrals.\n",Mask1.MaskString(),
           JcouplingInfo.size());
   if (JcouplingInfo.size()==0) {
     mprintf("    Warning: No dihedrals found for J-coupling calculation!\n");
     mprintf("             Check that all atoms of dihedrals are included in mask [%s]\n",
-            Mask1.maskString);
+            Mask1.MaskString());
     mprintf("             and/or that dihedrals are defined in Karplus parameter file.\n");
     return 1;
   }

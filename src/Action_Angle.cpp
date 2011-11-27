@@ -46,7 +46,7 @@ int Angle::init() {
   // Add dataset to data file list
   DFL->Add(angleFile,ang);
 
-  mprintf("    ANGLE: %s-%s-%s\n",Mask1.maskString,Mask2.maskString,Mask3.maskString);
+  mprintf("    ANGLE: %s-%s-%s\n",Mask1.MaskString(),Mask2.MaskString(),Mask3.MaskString());
   if (useMass)
     mprintf("              Using center of mass of atoms in masks.\n");
 

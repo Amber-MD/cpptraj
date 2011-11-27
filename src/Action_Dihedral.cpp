@@ -49,8 +49,8 @@ int Dihedral::init() {
   // Add dataset to datafile list
   DFL->Add(dihedralFile,dih);
 
-  mprintf("    DIHEDRAL: %s-%s-%s-%s\n", M1.maskString,M2.maskString,
-          M3.maskString, M4.maskString);
+  mprintf("    DIHEDRAL: %s-%s-%s-%s\n", M1.MaskString(),M2.MaskString(),
+          M3.MaskString(), M4.MaskString());
   if (useMass)
     mprintf("              Using center of mass of atoms in masks.\n");
 

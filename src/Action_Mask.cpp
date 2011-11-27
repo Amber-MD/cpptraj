@@ -33,7 +33,7 @@ int ActionMask::init( ) {
   Mask1.SetMaskString(mask1);
 
   mprintf("    ActionMask: Information on atoms in mask %s will be printed",
-          Mask1.maskString);
+          Mask1.MaskString());
   if (maskFilename!=NULL)
     mprintf(" to file %s",maskFilename);
   mprintf(".\n");
@@ -70,7 +70,7 @@ int ActionMask::action() {
 
   // Get atom selection
   if ( Mask1.SetupCharMask(currentParm, currentFrame->X, debug) ) {
-    mprintf("Warning: ActionMask::action: Could not set up atom mask [%s]\n",Mask1.maskString);
+    mprintf("Warning: ActionMask::action: Could not set up atom mask [%s]\n",Mask1.MaskString());
     return 1;
   }
 
@@ -94,7 +94,7 @@ int ActionMask::action() {
     for (atom=0; atom < currentParm->natom; atom++) 
       if (Mask1.AtomInCharMask(atom)) Mask2->AddAtom(atom);
     // Create new parm and frame based on atoms in Mask
-    AmberParm *pdbParm = currentParm->modifyStateByMask(Mask2->Selected, Mask2->Nselected,NULL);
+    AmberParm *pdbParm = currentParm->modifyStateByMask(Mask2->Selected, NULL);
     //pdbParm->Summary(); // DEBUG
     Frame *pdbFrame = new Frame();
     pdbFrame->SetupFrame(Mask2->Nselected,NULL);

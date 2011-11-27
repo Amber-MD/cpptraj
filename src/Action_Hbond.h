@@ -24,6 +24,8 @@ class Hbond : public Action {
     AtomMask Mask;
     AtomMask DonorMask;
     AtomMask AcceptorMask;
+    bool hasDonorMask;
+    bool hasAcceptorMask;
     std::vector<int>::iterator accept;
     std::vector<int>::iterator donor;
     double acut;

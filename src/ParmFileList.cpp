@@ -92,10 +92,9 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     // Since want to keep atoms outside mask, invert selection
     tempMask.InvertMask();
     tempMask.SetupMask( ParmList[pindex], NULL, debug);
-    mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.maskString, 
+    mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(), 
              ParmList[pindex]->natom - tempMask.Nselected, ParmList[pindex]->parmName);
-    AmberParm *tempParm = ParmList[pindex]->modifyStateByMask(tempMask.Selected, 
-                                                              tempMask.Nselected, NULL);
+    AmberParm *tempParm = ParmList[pindex]->modifyStateByMask(tempMask.Selected, NULL);
     if (tempParm==NULL) 
       mprinterr("Error: parmstrip: Could not strip parm.\n");
     else {

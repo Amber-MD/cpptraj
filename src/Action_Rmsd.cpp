@@ -181,7 +181,7 @@ int Rmsd::init( ) {
   }
 
   //rmsd->Info();
-  mprintf("    RMSD: (%s), reference is ",FrameMask.maskString);
+  mprintf("    RMSD: (%s), reference is ",FrameMask.MaskString());
   if (reftraj!=NULL) {
     // Set up reference trajectory and open
     mprintf("trajectory %s with %i frames",RefTraj->TrajName(),RefTraj->Total_Read_Frames());
@@ -195,7 +195,7 @@ int Rmsd::init( ) {
     mprintf("%s",referenceName);
   else
     mprintf("reference index %i",refindex);
-  mprintf(" (%s)",RefMask.maskString);
+  mprintf(" (%s)",RefMask.MaskString());
   if (nofit)
     mprintf(", no fitting");
   else
@@ -471,7 +471,7 @@ int Rmsd::action() {
         ResFrame->ShiftToCenter(ResRefFrame);
       R = ResFrame->RMSD(ResRefFrame,useMass);
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,
-      //        tgtResMask[N]->maskString,refResMask[N]->maskString,R);
+      //        tgtResMask[N]->MaskString(),refResMask[N]->MaskString(),R);
       // NOTE: Should check for error on AddData?
       PerResRMSD->AddData(frameNum, &R, N);
     }

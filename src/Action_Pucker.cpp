@@ -64,8 +64,8 @@ int Pucker::init() {
   DFL->Add(puckerFile,puck);
 
   //dih->Info();
-  mprintf("    PUCKER: %s-%s-%s-%s-%s\n", M1.maskString,M2.maskString,
-          M3.maskString, M4.maskString, M5.maskString);
+  mprintf("    PUCKER: %s-%s-%s-%s-%s\n", M1.MaskString(),M2.MaskString(),
+          M3.MaskString(), M4.MaskString(), M5.MaskString());
   if (puckerMethod==0) 
     mprintf("            Using Altona & Sundaralingam method.\n");
   else if (puckerMethod==1)

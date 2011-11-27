@@ -50,7 +50,7 @@ int Distance::init( ) {
   // Add dataset to data file list
   DFL->Add(distanceFile,dist);
 
-  mprintf("    DISTANCE: %s to %s",Mask1.maskString, Mask2.maskString);
+  mprintf("    DISTANCE: %s to %s",Mask1.MaskString(), Mask2.MaskString());
   if (noimage) 
     mprintf(", non-imaged");
   if (useMass) 
@@ -86,8 +86,8 @@ int Distance::setup() {
   }
 
   // Print imaging info for this parm
-  mprintf("    DISTANCE: %s (%i atoms) to %s (%i atoms)",Mask1.maskString, Mask1.Nselected,
-          Mask2.maskString,Mask2.Nselected);
+  mprintf("    DISTANCE: %s (%i atoms) to %s (%i atoms)",Mask1.MaskString(), Mask1.Nselected,
+          Mask2.MaskString(),Mask2.Nselected);
   if (imageType > 0)
     mprintf(", imaged");
   else

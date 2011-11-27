@@ -43,7 +43,7 @@ int DihedralScan::init( ) {
   rseed_arg = actionArgs.getKeyInt("rseed",-1);
   check_for_clashes = actionArgs.hasKey("check");
 
-  mprintf("    DIHEDRALSCAN: Dihedrals in mask [%s]\n",Mask1.maskString);
+  mprintf("    DIHEDRALSCAN: Dihedrals in mask [%s]\n",Mask1.MaskString());
   if (random_angle) {
     mprintf("                  Dihedrals will be rotated to random values.\n");
     if (rseed_arg==-1)
@@ -82,6 +82,7 @@ int DihedralScan::setup() {
   BondInfo mol;
   int Nres;
   ResidueCheckType rct;
+  std::vector<int> tmpMask;
 
   if ( Mask1.SetupCharMask(currentParm,activeReference,debug) ) return 1;
   if (Mask1.None()) {
@@ -109,11 +110,9 @@ int DihedralScan::setup() {
       // If a second atom was found dihedral is defined and in mask, store it
       if (atom2 != -1 && Mask1.AtomInCharMask(atom2)) {
         // Set up mask of atoms that will move upon rotation of dihedral
-        int tmpNmask = 0;
-        int *tmpMask = currentParm->MaskOfAtomsAroundBond(atom, atom2, &tmpNmask);
+        if (currentParm->MaskOfAtomsAroundBond(atom, atom2, tmpMask)) return 1;
         dst.Rmask.ResetMask();
-        dst.Rmask.AddAtoms(tmpMask,tmpNmask);
-        if (tmpMask!=NULL) delete[] tmpMask;
+        dst.Rmask.AddAtoms(tmpMask);
         dst.atom1 = atom;
         dst.atom2 = atom2;
         dst.currentVal = 0;
@@ -133,9 +132,8 @@ int DihedralScan::setup() {
               currentParm->names[BB_dihedrals[dih].atom1], BB_dihedrals[dih].atom2,
               currentParm->names[BB_dihedrals[dih].atom2]);
       if (debug>1) {
-        mprintf("\tRmask:");
-        BB_dihedrals[dih].Rmask.PrintMaskAtoms();
-        mprintf("\n");
+        mprintf("DEBUG:\t");
+        BB_dihedrals[dih].Rmask.PrintMaskAtoms("Rmask:");
       }
     }
   }

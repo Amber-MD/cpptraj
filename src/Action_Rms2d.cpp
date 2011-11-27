@@ -82,11 +82,11 @@ int Rms2d::init() {
     }
   }
 
-  mprintf("    RMS2D: Mask [%s]",FrameMask.maskString);
+  mprintf("    RMS2D: Mask [%s]",FrameMask.MaskString());
   if (reftraj!=NULL) {
     // Set up reference trajectory and open
     mprintf(", ref traj %s (mask [%s]) %i frames",RefTraj->TrajName(),
-            RefMask.maskString,RefTraj->Total_Read_Frames());
+            RefMask.MaskString(),RefTraj->Total_Read_Frames());
   }
   if (nofit)
     mprintf(" (no fitting)");
@@ -105,12 +105,12 @@ int Rms2d::init() {
 int Rms2d::setup() {
   if (FrameMask.SetupMask(currentParm, activeReference, debug)) {
     mprinterr("Error: Rms2d::setup: Could not set up mask [%s] for parm %s\n",
-              FrameMask.maskString, currentParm->parmName);
+              FrameMask.MaskString(), currentParm->parmName);
     return 1;
   }
   if (FrameMask.None()) {
     mprinterr("Error: Rms2d::setup: No atoms selected for mask [%s], parm %s\n",
-              FrameMask.maskString, currentParm->parmName);
+              FrameMask.MaskString(), currentParm->parmName);
     return 1;
   }
   return 0;  
@@ -212,7 +212,7 @@ void Rms2d::CalcRmsToTraj() {
   // Set up reference mask for reference parm
   if (RefMask.SetupMask(RefParm, activeReference, debug)) {
     mprinterr("Error: Could not set up reference mask [%s] for parm %s\n",
-              RefMask.maskString, RefParm->parmName);
+              RefMask.MaskString(), RefParm->parmName);
     return;
   }
   int natom_ref = RefMask.Nselected;

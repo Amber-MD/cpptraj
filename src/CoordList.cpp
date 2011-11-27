@@ -20,7 +20,7 @@ CoordList::~CoordList() {
  */
 int CoordList::AddCoordsByMask(double *Xin, AtomMask *MaskIn) {
   if (Xin==NULL || MaskIn==NULL) return 1;
-  if (MaskIn->Selected==NULL) return 1;
+  //if (MaskIn->Selected==NULL) return 1;
   if (MaskIn->None()) return 1;
   // Allocate space for coords
   int natom = MaskIn->Nselected;

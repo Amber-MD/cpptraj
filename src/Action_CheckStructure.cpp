@@ -44,7 +44,7 @@ int CheckStructure::init( ) {
   //fprintf(stdout,"    Mask 1: %s\n",mask1);
   Mask1.SetMaskString(mask1);
 
-  mprintf("    CHECKSTRUCTURE: Checking atoms in mask [%s]",Mask1.maskString);
+  mprintf("    CHECKSTRUCTURE: Checking atoms in mask [%s]",Mask1.MaskString());
   if (noimage) 
     mprintf(", imaging off");
   if (reportFile!=NULL)
@@ -177,7 +177,7 @@ int CheckStructure::setup() {
   // Reset to integer mask.
   if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
   // Print imaging info for this parm
-  mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1.maskString, Mask1.Nselected,
+  mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1.MaskString(), Mask1.Nselected,
           totalbonds);
   if (imageType > 0)
     mprintf(", imaging on");

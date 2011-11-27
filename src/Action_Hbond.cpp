@@ -7,7 +7,9 @@
 // CONSTRUCTOR
 Hbond::Hbond() {
   Nframes=0;
-  HBavg=NULL; 
+  HBavg=NULL;
+  hasDonorMask=false;
+  hasAcceptorMask=false; 
 }
 
 // DESTRUCTOR
@@ -43,10 +45,16 @@ int Hbond::init() {
   dcut2 = dcut * dcut;
   // Get donor mask
   mask = actionArgs.getKeyString("donormask",NULL);
-  if (mask!=NULL) DonorMask.SetMaskString(mask);
+  if (mask!=NULL) {
+    DonorMask.SetMaskString(mask);
+    hasDonorMask=true;
+  }
   // Get acceptor mask
   mask = actionArgs.getKeyString("acceptormask",NULL);
-  if (mask!=NULL) AcceptorMask.SetMaskString(mask);
+  if (mask!=NULL) {
+    AcceptorMask.SetMaskString(mask);
+    hasAcceptorMask=true;
+  }
   // Get generic mask
   mask = actionArgs.getNextMask();
   Mask.SetMaskString(mask);
@@ -57,17 +65,17 @@ int Hbond::init() {
   DFL->Add(outfilename,NumHbonds);
 
   mprintf( "  HBOND: ");
-  if (DonorMask.maskString==NULL && AcceptorMask.maskString==NULL)
-    mprintf("Searching for Hbond donors/acceptors in region specified by %s\n",Mask.maskString);
-  else if (DonorMask.maskString!=NULL && AcceptorMask.maskString==NULL)
+  if (!hasDonorMask && !hasAcceptorMask)
+    mprintf("Searching for Hbond donors/acceptors in region specified by %s\n",Mask.MaskString());
+  else if (hasDonorMask && !hasAcceptorMask)
     mprintf("Donor mask is %s, acceptors will be searched for in region specified by %s\n",
-            DonorMask.maskString,Mask.maskString);
-  else if (AcceptorMask.maskString!=NULL && DonorMask.maskString==NULL)
+            DonorMask.MaskString(),Mask.MaskString());
+  else if (hasAcceptorMask && !hasDonorMask)
     mprintf("Acceptor mask is %s, donors will be searched for in a region specified by %s\n",
-            AcceptorMask.maskString,Mask.maskString);
+            AcceptorMask.MaskString(),Mask.MaskString());
   else
     mprintf("Donor mask is %s, Acceptor mask is %s\n",
-            DonorMask.maskString,AcceptorMask.maskString);
+            DonorMask.MaskString(),AcceptorMask.MaskString());
   mprintf( "         Distance cutoff = %8.3lf, Angle Cutoff = %8.3lf\n",dcut,acut*RADDEG);
   if (outfilename!=NULL) 
     mprintf( "         Dumping # Hbond v time results to %s\n", outfilename);
@@ -150,7 +158,7 @@ int Hbond::setup() {
   int atom, a2;
 
   // Set up mask
-  if (DonorMask.maskString==NULL || AcceptorMask.maskString==NULL) {
+  if (!hasDonorMask && !hasAcceptorMask) {
     if ( Mask.SetupMask(currentParm,activeReference,debug) ) return 1;
     if ( Mask.None() ) {
       mprintf("    Error: Hbond::setup: Mask has no atoms.\n");
@@ -158,7 +166,7 @@ int Hbond::setup() {
     }
   }
   // Set up donor mask
-  if (DonorMask.maskString!=NULL) {
+  if (hasDonorMask) {
     if (DonorMask.SetupMask(currentParm,activeReference,debug)) return 1;
     if (DonorMask.None()) {
       mprintf("    Error: Hbond: DonorMask has no atoms.\n");
@@ -166,7 +174,7 @@ int Hbond::setup() {
     }
   }
   // Set up acceptor mask
-  if (AcceptorMask.maskString!=NULL) {
+  if (hasAcceptorMask) {
     if (AcceptorMask.SetupMask(currentParm,activeReference,debug)) return 1;
     if (AcceptorMask.None()) {
       mprintf("    Error: Hbond: AcceptorMask has no atoms.\n");
@@ -176,17 +184,17 @@ int Hbond::setup() {
 
   // Four cases:
   // 1) DonorMask and AcceptorMask NULL: donors and acceptors automatically searched for.
-  if (DonorMask.maskString==NULL && AcceptorMask.maskString==NULL) {
+  if (!hasDonorMask && !hasAcceptorMask) {
     SearchAcceptor(&Mask,true);
     SearchDonor(&Mask,true);
   
   // 2) DonorMask only: acceptors automatically searched for in Mask
-  } else if (DonorMask.maskString!=NULL && AcceptorMask.maskString==NULL) {
+  } else if (hasDonorMask && !hasAcceptorMask) {
     SearchAcceptor(&Mask,true);
     SearchDonor(&DonorMask, false);
 
   // 3) AcceptorMask only: donors automatically searched for in Mask
-  } else if (DonorMask.maskString==NULL && AcceptorMask.maskString!=NULL) {
+  } else if (!hasDonorMask && hasAcceptorMask) {
     SearchAcceptor(&AcceptorMask, false);
     SearchDonor(&Mask,true);
 
