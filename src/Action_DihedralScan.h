@@ -17,12 +17,23 @@ class DihedralScan: public Action {
     };
     std::vector<DihedralScanType> BB_dihedrals;
 
+    struct ResidueCheckType {
+      int checkatom;
+      int start;
+      int stop;
+      int resnum;
+    };
+    std::vector<ResidueCheckType> ResCheck;
+
     AtomMask Mask1;
     bool random_angle;
+    bool check_for_clashes;
     char *outfilename;
     char *outfmt;
     double interval;
     CheckStructure checkStructure;
+
+    int CheckResidues( Frame *, int );
   public:
     DihedralScan();
     ~DihedralScan();
