@@ -37,7 +37,6 @@ class AtomMask {
   public:
     int Nselected;              ///< Number of selected atoms in mask
     std::vector<int> Selected;  ///< Int array of selected atom numbers, 1 for each selected atom
-    std::vector<int> Selected3; ///< Int array of selected atom coordinate indices 
 
     const char *MaskString() { return maskString.c_str(); }
 
