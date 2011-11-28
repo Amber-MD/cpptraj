@@ -17,8 +17,8 @@ class Closest: public Action {
     int closestWaters;
     bool noimage, firstAtom;
     int imageType; 
-    AtomMask Mask1;
-    AtomMask tempMask;
+    AtomMask soluteMask;
+    AtomMask stripMask;
     AmberParm *newParm;
     AmberParm *oldParm;
     Frame newFrame;
@@ -26,7 +26,7 @@ class Closest: public Action {
     // solvent molecule and atom numbers after sorting.
     struct MolDist {
       int mol;        // Original solvent molecule number
-      double D;       // Closest distance of solvent molecule to atoms in Mask1
+      double D;       // Closest distance of solvent molecule to atoms in soluteMask
       AtomMask mask;  // Original solvent molecule atom mask
     };
     // Return true if the first molecule is closer than the second
