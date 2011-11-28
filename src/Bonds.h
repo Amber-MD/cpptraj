@@ -32,7 +32,7 @@ class BondInfo {
     int *DetermineMolecules(int*);
     int *DetermineExcludedAtoms(int *, int *);
     void GetListOfBondedAtoms(int, int*, int*);
-    int MaskOfAtomsAroundBond(int, int, std::vector<int>&);
+    int MaskOfAtomsAroundBond(int, int, std::vector<char>&);
 };
 // Other functions
 int AtomicNumberFromName(char *);

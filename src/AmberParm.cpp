@@ -1736,7 +1736,7 @@ int AmberParm::GetBondedAtomIdx(int atomIn, const char *bondedAtomName) {
 
 // AmberParm::MaskOfAtomsAroundBond()
 /// Just a wrapper for the same routine in BondInfo
-int AmberParm::MaskOfAtomsAroundBond(int atom1, int atom2, std::vector<int> &Selected) {
+int AmberParm::MaskOfAtomsAroundBond(int atom1, int atom2, std::vector<char> &Selected) {
   return bondInfo.MaskOfAtomsAroundBond(atom1,atom2,Selected);
 }
 

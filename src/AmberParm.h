@@ -173,7 +173,7 @@ class AmberParm {
 
     int SetupBondInfo();
     int GetBondedAtomIdx(int, const char *);
-    int MaskOfAtomsAroundBond(int, int, std::vector<int>&);
+    int MaskOfAtomsAroundBond(int, int, std::vector<char>&);
 
     void ResetBondInfo(); 
     int AddBond(int, int, int);

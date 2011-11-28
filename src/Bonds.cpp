@@ -226,13 +226,13 @@ void BondInfo::GetListOfBondedAtoms(int atomIn, int *bondList, int *nbonds) {
 
 // BondInfo::MaskOfAtomsAroundBond()
 /** Given that atom1 and atom2 are bonded, set up a mask consisting
-  * of the atom #s of all atoms bonded to atom2, excluding atom1
-  * and all atoms bonded to atom1.
+  * of T for all atoms bonded to atom2 (excluding atom1 and all atoms 
+  * bonded to atom1), F for everything else.
   * \return 0 on success, 1 on failure.
   */
-int BondInfo::MaskOfAtomsAroundBond(int atom1, int atom2, std::vector<int> &Selected) {
+int BondInfo::MaskOfAtomsAroundBond(int atom1, int atom2, std::vector<char> &Selected) {
   Selected.clear();
-  int N = 0;
+  //int N = 0;
 
   // Ensure atom1 bonded to atom2?
   // First select atom2
@@ -244,15 +244,20 @@ int BondInfo::MaskOfAtomsAroundBond(int atom1, int atom2, std::vector<int> &Sele
     }
   }
   // Count the number of atoms selected
-  for (int atom = 0; atom < natom; atom++) 
-    if ( Molecule[atom].mol==1 ) N++;
+  //for (int atom = 0; atom < natom; atom++) 
+  //  if ( Molecule[atom].mol==1 ) N++;
   //mprintf("DEBUG:\tMaskOfAtomsAroundBond(%i,%i) %i atoms selected.\n",atom1,atom2,N);
-  if (N==0) return 1;
-  Selected.reserve( N );
+  //if (N==0) return 1;
+  //Selected.reserve( N );
+  Selected.reserve( natom );
   // Fill selected array, resetting mol as we go
-  N = 0;
+  //N = 0;
   for (int atom = 0; atom < natom; atom++) {
-    if ( Molecule[atom].mol==1 ) Selected.push_back( atom );
+    if ( Molecule[atom].mol==1 ) 
+      //Selected.push_back( atom );
+      Selected.push_back( 'T' );
+    else
+      Selected.push_back( 'F' );
     Molecule[atom].mol=-1;
   }
   return 0;
