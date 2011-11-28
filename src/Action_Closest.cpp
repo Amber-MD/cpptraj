@@ -336,8 +336,10 @@ int Closest::action() {
   {
     //mprintf("DEBUG:\tmol %i ",(*solvent).mol);
     //(*solvent).mask.PrintMaskAtoms("Mask");
-    for (solventAtom = 0; solventAtom < (*solvent).mask.Nselected; solventAtom++)
-      tempMask.Selected[maskPosition++] = (*solvent).mask.Selected[solventAtom];
+    for (solventAtom = 0; solventAtom < (*solvent).mask.Nselected; solventAtom++) {
+      tempMask.Selected[maskPosition] = (*solvent).mask.Selected[solventAtom];
+      tempMask.Selected3[maskPosition++] = (*solvent).mask.Selected3[solventAtom];
+    }
     // Record which water molecules are closest if requested
     if (outFile!=NULL) {
       framedata->Add(Nclosest, &frameNum);

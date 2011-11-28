@@ -19,6 +19,7 @@ AtomMask::AtomMask(const AtomMask &rhs) {
   maskChar=rhs.maskChar;
   maskString=rhs.maskString;
   Selected=rhs.Selected;
+  Selected3=rhs.Selected3;
   CharMask=rhs.CharMask;
   Postfix=rhs.Postfix;
 }
@@ -34,6 +35,7 @@ AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   maskChar=rhs.maskChar;
   maskString=rhs.maskString;
   Selected=rhs.Selected;
+  Selected3=rhs.Selected3;
   CharMask=rhs.CharMask;
   Postfix=rhs.Postfix;
   // Return *this
@@ -46,6 +48,7 @@ void AtomMask::ResetMask() {
   maskChar = 'T';
   maskString.clear();
   Selected.clear();
+  Selected3.clear();
   CharMask.clear();
   Postfix.clear();
 }
@@ -72,6 +75,7 @@ AtomMask *AtomMask::CopyMask() {
   newMask->maskChar = maskChar;
   newMask->maskString = maskString;
   newMask->Selected = Selected;
+  newMask->Selected3 = Selected3;
   newMask->CharMask = CharMask;
   newMask->Postfix = Postfix;
   return newMask;
@@ -90,6 +94,8 @@ void AtomMask::AddAtom(int atomIn) {
     if ( *atom > atomIn) {
       // Insert at the current position, which is the first atom # > atomIn
       Selected.insert(atom, atomIn);
+      int atom3 = atomIn * 3;
+      Selected3.insert(atom, atom3);
       Nselected = (int) Selected.size();
       return;
     }
@@ -97,6 +103,7 @@ void AtomMask::AddAtom(int atomIn) {
 
   // Add atom to mask
   Selected.push_back(atomIn);
+  Selected3.push_back( (atomIn * 3) );
   Nselected = (int) Selected.size();
 }
 
@@ -106,16 +113,22 @@ void AtomMask::AddAtom(int atomIn) {
   */
 void AtomMask::AddAtoms(std::vector<int> &atomsIn) {
   std::vector<int>::iterator atom;
+  std::vector<int>::iterator atom3;
   // Make room for atomsIn in Selected
   //Selected.reserve( Selected.size() + atomsIn.size() );
   // Put every atom in atomsIn in Selected array
-  for (atom = atomsIn.begin(); atom != atomsIn.end(); atom++) 
+  for (atom = atomsIn.begin(); atom != atomsIn.end(); atom++) { 
     Selected.push_back( *atom ); 
+    Selected.push_back( (*atom) * 3 );
+  }
   // Sort Selected
   sort( Selected.begin(), Selected.end() );
+  sort( Selected3.begin(), Selected3.end() );
   // Remove duplicates
   atom = unique( Selected.begin(), Selected.end() );
+  atom3 = unique( Selected3.begin(), Selected3.end() );
   Selected.resize( atom - Selected.begin() );
+  Selected3.resize( atom - Selected3.begin() );
   Nselected = (int) Selected.size();
 }
 
@@ -126,13 +139,18 @@ void AtomMask::AddAtoms(std::vector<int> &atomsIn) {
 void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
   //mprintf("DEBUG:\t\tAdding atoms %i to %i\n",minAtom,maxAtom);
   if (minAtom >= maxAtom) return;
-  for (int atom = minAtom; atom < maxAtom; atom++)
+  for (int atom = minAtom; atom < maxAtom; atom++) {
     Selected.push_back( atom );
+    Selected3.push_back( atom * 3 );
+  }
   // Sort Selected
   sort( Selected.begin(), Selected.end() );
+  sort( Selected3.begin(), Selected3.end() );
   // Remove duplicates
   std::vector<int>::iterator atomit = unique( Selected.begin(), Selected.end() );
+  std::vector<int>::iterator atomit3 = unique( Selected3.begin(), Selected3.end() );
   Selected.resize( atomit - Selected.begin() );
+  Selected3.resize( atomit3 - Selected3.begin() );
   //mprintf("\t\t[");
   //for (std::vector<int>::iterator da = Selected.begin(); da != Selected.end(); da++)
   //  mprintf(" %i",*da);
@@ -232,9 +250,11 @@ int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
   //       mask. Could check to see which will be bigger.
   Nselected=0;
   Selected.clear();
+  Selected3.clear();
   for (int atom=0; atom<Pin->natom; atom++) {
     if (mask[atom]==maskChar) {
       Selected.push_back( atom );
+      Selected3.push_back( atom * 3 );
       Nselected++;
     }
   }
@@ -272,6 +292,7 @@ int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
 
   // Wipe out previous Selected mask if allocated
   Selected.clear();
+  Selected3.clear();
 
   // Allocate atom mask - free mask if already allocated
   CharMask.clear();

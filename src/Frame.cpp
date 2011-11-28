@@ -537,8 +537,9 @@ void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
   // Copy atoms in Mask to coords array
   newX = X;
   for (int maskidx = 0; maskidx < natom; maskidx++) {
-    oldatom3 = Mask->Selected[maskidx] * 3;
-    memcpy(newX, FrameIn->X + oldatom3, COORDSIZE);
+    //oldatom3 = Mask->Selected[maskidx] * 3;
+    //memcpy(newX, FrameIn->X + oldatom3, COORDSIZE);
+    memcpy(newX, FrameIn->X + Mask->Selected3[maskidx], COORDSIZE);
     newX += 3;
   }
 
@@ -553,8 +554,9 @@ void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
     // Copy velocities in Mask to velocity array
     newX = V;
     for (int maskidx = 0; maskidx < natom; maskidx++) {
-      oldatom3 = Mask->Selected[maskidx] * 3;
-      memcpy(newX, FrameIn->V + oldatom3, COORDSIZE);
+      //oldatom3 = Mask->Selected[maskidx] * 3;
+      //memcpy(newX, FrameIn->V + oldatom3, COORDSIZE);
+      memcpy(newX, FrameIn->V + Mask->Selected3[maskidx], COORDSIZE);
     }
   }
 
@@ -593,8 +595,9 @@ int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
 
   newX = X;
   for (int i=0; i < natom; i++) {
-    oldatom3 = Mask->Selected[i] * 3;
-    memcpy(newX, Xin + oldatom3, COORDSIZE);
+    //oldatom3 = Mask->Selected[i] * 3;
+    //memcpy(newX, Xin + oldatom3, COORDSIZE);
+    memcpy(newX, Xin + Mask->Selected3[i], COORDSIZE);
     newX += 3;
   }
   return 0;
@@ -619,7 +622,8 @@ double Frame::CenterOfMass(AtomMask *Mask, double *Coord) {
 
   for (i=0; i < Mask->Nselected; i++) {
       atom=Mask->Selected[i];
-      natom3=atom*3;
+      //natom3=atom*3;
+      natom3=Mask->Selected3[i];
       mass=Mass[atom];
       sumMass+=mass;
       Coord0+=(X[natom3]   * mass);
@@ -653,8 +657,9 @@ double Frame::GeometricCenter(AtomMask *Mask, double *Coord) {
   Coord2=0.0;
 
   for (i=0; i < Mask->Nselected; i++) {
-      atom=Mask->Selected[i];
-      natom3=atom*3;
+      //atom=Mask->Selected[i];
+      //natom3=atom*3;
+      natom3=Mask->Selected3[i];
       Coord0+=(X[natom3]  );
       Coord1+=(X[natom3+1]);
       Coord2+=(X[natom3+2]);
@@ -1144,7 +1149,8 @@ double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
 
   for (i=0; i < Mask->Nselected; i++) {
       atom=Mask->Selected[i];
-      natom3=atom*3;
+      //natom3=atom*3;
+      natom3 = Mask->Selected3[i];
       if (useMassIn) {
         currentMass=Mass[atom];
         total_mass+=currentMass;
@@ -1481,7 +1487,8 @@ void Frame::RotateAroundAxis(double *T, double theta, AtomMask &Rmask) {
   T7=T[7];
   T8=T[8];
   for (int maskidx=0; maskidx<Rmask.Nselected; maskidx++) {
-    int i0 = Rmask.Selected[maskidx] * 3;
+    //int i0 = Rmask.Selected[maskidx] * 3;
+    int i0 = Rmask.Selected3[maskidx];
     int i1 = i0 + 1;
     int i2 = i1 + 1;
     x=X[i0]; y=X[i1]; z=X[i2];
