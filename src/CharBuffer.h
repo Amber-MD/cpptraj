@@ -1,6 +1,6 @@
 #ifndef INC_CHARBUFFER_H
 #define INC_CHARBUFFER_H
-/// Class: CharBuffer
+// Class: CharBuffer
 /// Used to manipulate character buffers.
 #include <cstddef>
 class CharBuffer {
