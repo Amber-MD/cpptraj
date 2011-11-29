@@ -6,6 +6,8 @@
 class CharmmDcd : public TrajectoryIO {
     int dcdatom;
     int dcdframes;
+    int dcdoutsize;
+    int dcdheadersize;
     bool isBigEndian;
     bool is64bit;
     unsigned int readSize;
@@ -32,7 +34,9 @@ class CharmmDcd : public TrajectoryIO {
       float f[20];
     };
     int ReadBlock(int);
+    int WriteBlock(int);
     int readDcdHeader();
+    int writeDcdHeader();
 
     // Inherited functions
     int setupRead(AmberParm *);

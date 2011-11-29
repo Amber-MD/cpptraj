@@ -589,6 +589,7 @@ FileFormat TrajectoryFile::getFmtFromArg(ArgList *argIn, FileFormat def) {
   else if ( argIn->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
   else if ( argIn->hasKey("restartnc")) writeFormat=AMBERRESTARTNC;
   else if ( argIn->hasKey("mol2")     ) writeFormat=MOL2FILE;
+  else if ( argIn->hasKey("dcd")      ) writeFormat=CHARMMDCD;
   return writeFormat;
 }
 
@@ -793,16 +794,16 @@ int TrajectoryFile::GetNextFrame(double *X, double *V, double *box, double *T) {
   return 1;
 }
 
-/* TrajectoryFile::WriteFrame()
- * Write the given coordinates, box, and Temperature. Only write if the given
- * parm matches the parm that SetupWrite was called with. This allows for
- * things like stripped topologies (a stripped top will have the same pindex
- * as the original top). 
- * The first time this is called with the correct parm the output trajectory 
- * will be set up based on the parm it is called with and the file will be 
- * opened, so there is no need to call BeginTraj for output trajectories.
- * EndTraj() should still be called.
- */
+// TrajectoryFile::WriteFrame()
+/** Write the given coordinates, box, and Temperature. Only write if the given
+  * parm matches the parm that SetupWrite was called with. This allows for
+  * things like stripped topologies (a stripped top will have the same pindex
+  * as the original top). 
+  * The first time this is called with the correct parm the output trajectory 
+  * will be set up based on the parm it is called with and the file will be 
+  * opened, so there is no need to call BeginTraj for output trajectories.
+  * EndTraj() should still be called.
+  */
 int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, double *X,
                                double *V, double *box, double T) {
   // Check that input parm matches setup parm - if not, skip

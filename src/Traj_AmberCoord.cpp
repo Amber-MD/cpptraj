@@ -26,17 +26,16 @@ AmberCoord::~AmberCoord() {
   if (frameBuffer!=NULL) free(frameBuffer);
 }    
 
-/* AmberCoord::closeTraj()
- */ 
+// AmberCoord::closeTraj()
 void AmberCoord::closeTraj() {
   tfile->CloseFile();
 }
 
-/* AmberCoord::openTraj()
- * Open Amber Trajectory, read past title and set titleSize
- * Always read title so file pointer is always correctly positioned
- * to read a frame.
- */
+// AmberCoord::openTraj()
+/** Open Amber Trajectory, read past title and set titleSize
+  * Always read title so file pointer is always correctly positioned
+  * to read a frame.
+  */
 int AmberCoord::openTraj() {
 
   switch (tfile->access) {
@@ -68,7 +67,7 @@ int AmberCoord::openTraj() {
       }
       // Reset the access and open append
       tfile->access=APPEND;
-      tfile->OpenFile();
+      if (tfile->OpenFile()) return 1;
       break;
   }
 

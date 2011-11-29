@@ -399,7 +399,7 @@ int AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, double T
     "Netcdf Writing frame %i",set)) return 1;
 
   // Write box
-  if (hasBox && cellLengthVID!=-1) {
+  if (hasBox) {
     count[1]=3;
     count[2]=0;
     if (checkNCerr(nc_put_vara_double(ncid,cellLengthVID,start,count,box),
