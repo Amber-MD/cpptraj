@@ -1074,6 +1074,7 @@ int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
   * \return the current number of atoms.
   */
 int AmberParm::SetAtomsPerMolPDB(int numAtoms) {
+  //mprintf("DEBUG:\tCalling SetAtomsPerMolPDB with %i\n",numAtoms);
   if (numAtoms<1) return 0;
   // Check if the current residue is a solvent molecule
   //mprintf("DEBUG: Checking if %s is solvent.\n",resnames[nres-1]);
@@ -1157,6 +1158,14 @@ int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
         resnums[nres]=natom; 
         currResnum=pdb_resnum(buffer);
         nres++;
+        
+        // If new residue and HETATM consider it a different molecule as well
+        if (strncmp(buffer,"HETATM",6)==0) {
+          // If HETATM immediately preceded by a TER card atomsPerMol has
+          // just been set, so would be calling with 0. No need to call.
+          if ( (natom - atomInLastMol) != 0)
+            atomInLastMol = SetAtomsPerMolPDB(natom - atomInLastMol);
+        }
   
       // If residue number hasnt changed check for duplicate atom names in res
       // NOTE: At this point nres has been incremented. Want nres-1.
