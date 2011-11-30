@@ -1,8 +1,11 @@
 #ifndef INC_CHARBUFFER_H
 #define INC_CHARBUFFER_H
+#include <cstddef> // for size_t
+/*! \file CharBuffer.h
+    \brief Contains a class and routines used for manipulating character buffers.
+  */
 // Class: CharBuffer
 /// Used to manipulate character buffers.
-#include <cstddef>
 class CharBuffer {
     char *buffer;      // The character buffer
     char *ptr;         // Current position in the buffer

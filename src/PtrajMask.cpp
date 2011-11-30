@@ -1,13 +1,12 @@
-/*  ____________________________________________________________________________
- *  PtrajMask:
+/*! \file PtrajMask.cpp
+    \brief Original ptraj mask parser by V.Hornak with enhancements from D.Roe
  *  This is code for an enhanced atom mask parser developed by Viktor Hornak
  *  at SUNY Stony Brook (Stony Brook University), in March of 2003.  Cheatham
  *  long sat on this very nice code that greatly extends the capabilities (and
  *  removes bugs) of the parser which turns atom masks into arrays representing
  *  whether an atom has been selected.  See the detailed comments below, but
  *  note that this new parser is now fully backward compatible with the 
- *  Midas/Chimera
- *  style syntax previously employed.
+ *  Midas/Chimera  style syntax previously employed.
  *  
  *  The new syntax adds expressions such as "and" (&) and "or" (|).  Note that
  *  this selection mechanism is done logically, such that a selection of
@@ -19,7 +18,6 @@
  *  Dan Roe also parallelized the selectDistd function with OpenMP Jul. 2011.
  *  Updated for C++ by DRR Oct. 2011.
  *
- *                -------- Detailed Description --------
  * This code takes an "atomic expression" loosely using Chimera/Midas syntax
  * and decomposes it into series of elementary actions that need to be done.
  * Parentheses and logical operators (precedence: ! > & > |) are allowed.
@@ -47,12 +45,12 @@
  *   e.g.  [:11-17 <@ 2.4]   all atoms within 2.4 A distance to :11-17
  * 
  * Wild characters:
- * '*' -- zero or more characters.
- * '?' -- one character.
- * '=' -- same as '*'
+ * - '*' -- zero or more characters.
+ * - '?' -- one character.
+ * - '=' -- same as '*'
  * They can also be used in numerical environment.
- * :?0 means :10,20,30,40,50,60,70,80,90
- * :* means all residues and @* means all atoms
+ * - :?0 means :10,20,30,40,50,60,70,80,90
+ * - :* means all residues and @* means all atoms
  *
  * The matching is case sensitive.
  *
@@ -86,21 +84,20 @@
  * prnlev = 0   ... prints almost nothing
  * prnlev = > 5 ... prints original, tokenized, and rpn form of maskstring
  * prnlev = > 7 ... in addition prints mask array after eval() routine
- * 
- * TODO: (in order)
- * - code needs to be cleaned up to free allocated memory on exit
- * - LES copy selection (maybe [%1] [%1-3,7-9], etc.)
- *   '%' is chosen because '.' is taken for decimal point, and '#' may 
- *   eventually be used for model number as in Chimera
- * - Defining selections that could be used in later selections
- *   that would be convenient for backbone, sidechains, etc. but
- *   I don't know how to implement it yet; maybe {selection name}?
- *
- * NOTE: All functions except parseMaskString are declared static and are 
- *       only available to functions inside this file.
- * NOTE: Converting all new / delete[] calls to malloc / free for now since 
- *       the mask parser is called from ptraj_actions.c
- */
+ */ 
+// TODO: (in order)
+// - code needs to be cleaned up to free allocated memory on exit
+// - LES copy selection (maybe [%1] [%1-3,7-9], etc.)
+//   '%' is chosen because '.' is taken for decimal point, and '#' may 
+//   eventually be used for model number as in Chimera
+// - Defining selections that could be used in later selections
+//   that would be convenient for backbone, sidechains, etc. but
+//   I don't know how to implement it yet; maybe {selection name}?
+//
+// NOTE: All functions except parseMaskString are declared static and are 
+//       only available to functions inside this file.
+// NOTE: Converting all new / delete[] calls to malloc / free for now since 
+//       the mask parser is called from ptraj_actions.c
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -115,15 +112,15 @@
 //int prnlev;
 
 // -----------------------------------------------------------------------------
-/* isElemMatch()
- * Determine if the element of s1 is the same as s2. Element type is
- * determined from atom name. 
- * Atom element type in AMBER starts at the first(!) position and may be 
- * at most two characters long (Ca,Mg,Fe), most are just 1 char long (C,O,H) 
- * this would be different for PDB file, where atom type should be at the
- * second position out of 4 chars for atom names.
- * Return 1 if they match, 0 if not. Return -1 on error.
- */
+// isElemMatch()
+/** Determine if the element of s1 is the same as s2. Element type is
+  * determined from atom name. 
+  * Atom element type in AMBER starts at the first(!) position and may be 
+  * at most two characters long (Ca,Mg,Fe), most are just 1 char long (C,O,H) 
+  * this would be different for PDB file, where atom type should be at the
+  * second position out of 4 chars for atom names.
+  * \return 1 if they match, 0 if not, -1 on error.
+  */
 static int isElemMatch(char *s1, char *s2) {
   int typelen;
 
@@ -145,11 +142,12 @@ static int isElemMatch(char *s1, char *s2) {
   return(-1);
 } 
 
-/* isNameMatch()
- * Determine if the name of s1 is the same as s2.
- * s1 is from prmtop (may have spaces), 
- * s2 is from mask (doesn't have spaces)
- */ 
+// isNameMatch()
+/** Determine if the name of s1 is the same as s2.
+  * \param s1 name from prmtop (may have spaces), 
+  * \param s2 name from mask (doesn't have spaces)
+  * \return 1 if match, 0 if not
+  */ 
 static int isNameMatch(char *s1, char *s2) {
   int i;
   char *p;
@@ -179,35 +177,35 @@ static int isNameMatch(char *s1, char *s2) {
   	return(0);
 } 
 
-/* isOperator()
- * Determine whether the given char is an operator. allowed operators are: 
- *   '!', '&', '|', '<', '>'
- *   NOT, AND, OR, WITHIN, WITHOUT
- * Return 1 if true, 0 if false;
- */
+// isOperator()
+/** Determine whether the given char is an operator. allowed operators are: 
+  *   '!', '&', '|', '<', '>'
+  *   NOT, AND, OR, WITHIN, WITHOUT
+  * \return 1 if true, 0 if false;
+  */
 static int isOperator(char c) {
   if ( strchr("!&|<>", c) )
     return 1; 
   return(0);
 }
 
-/* isOperand()
- * this only checks if character 'c' is allowed in operator: 
- * ':' is residue, '@' is atom, '*' is everything,
- * '/' is for atom element, '%' is for atom type, 
- * '-' for range, but also could be used in "Cl-", '+' is for "Na+", 
- * ',' for atom number enumeration, [a-zA-Z0-9] is for names and numbers 
- * Return 1 if true, 0 if false;
- */
+// isOperand()
+/** this only checks if character 'c' is allowed in operator: 
+  * ':' is residue, '@' is atom, '*' is everything,
+  * '/' is for atom element, '%' is for atom type, 
+  * '-' for range, but also could be used in "Cl-", '+' is for "Na+", 
+  * ',' for atom number enumeration, [a-zA-Z0-9] is for names and numbers 
+  * \return 1 if true, 0 if false;
+  */
 static int isOperand(char c) {
   if (strchr("*/%-?,'.=+", c) || isalnum(c))
     return 1;
   return(0);     
 }
 
-/* priority()
- * Define the priority of operators.
- */  
+// priority()
+/** Define the priority of operators.
+  */  
 static int priority(char op) { 
   if (op == '>') return(6);
   if (op == '<') return(6);
@@ -222,18 +220,16 @@ static int priority(char op) {
 }
 
 // -----------------------------------------------------------------------------
-/* tokenize()
- * preprocess the input string:
- *   1. remove spaces 
- *   2. isolate 'operands' into brackets [...]
- *   3. split expressions of the type :1-10@CA,CB into two parts;
- *      the two parts are joined with '&' operator and (for the sake
- *      of preserving precedence of other operators) enclosed into (..)
- *      :1-10@CA,CB    is split into  (:1-10 & @CA,CB)
- *   4. do basic error checking
- */
-#undef ROUTINE
-#define ROUTINE "tokenize()"
+// tokenize()
+/** preprocess the input string:
+  * - remove spaces 
+  * - isolate 'operands' into brackets [...]
+  * - split expressions of the type :1-10@CA,CB into two parts;
+  *   the two parts are joined with '&' operator and (for the sake
+  *   of preserving precedence of other operators) enclosed into (..)
+  *   :1-10@CA,CB    is split into  (:1-10 & @CA,CB)
+  * - do basic error checking
+  */
 int tokenize(char *input, char *infix) {
   char *p, *input_end;
   char buffer[MAXSELE];
@@ -390,11 +386,11 @@ int tokenize(char *input, char *infix) {
   return 0;
 } // end tokenize 
 
-/* torpn()
- * Convert tokenized string (infix) into postfix (RPN) notation 
+// torpn()
+/** Convert tokenized string (infix) into postfix (RPN) notation 
  * 
- * 'infix' points to tokenized infix atom expression
- * 'postfix' should have rpn representation at the end
+ * \param infix points to tokenized infix atom expression
+ * \param postfix should have rpn representation at the end
  *
  * First, a terminal symbol '_' is placed at the end of the string
  * (which was done in a routine tokenize(), i.e. previous step). We 
@@ -409,7 +405,7 @@ int tokenize(char *input, char *infix) {
  * - if the symbol scanned from 'infix' has a higher precedence 
  *   then the symbol at the top of the stack, the symbol being 
  *   scanned is pushed onto the stack
- * - if the precedence of the symbol being scanned is lower than 
+ * -  if the precedence of the symbol being scanned is lower than 
  *   or equal to the precedence of the symbol at the top of the 
  *   stack, the stack is popped to 'postfix' until the condition
  *   holds
@@ -504,16 +500,17 @@ int torpn(char *infix, char *postfix) {
 
 
 // -----------------------------------------------------------------------------
-/* selectDistd()
- * Given a distance <criteria> of format [OP][TYPE][DIST], where OP is < or >,
- * TYPE is : or @, and DIST is a floating point number, return a mask
- * <atoms> long with all atoms/residues that are OP DIST of atoms in
- * <center> set to 'T'.
- * For :1@O <:5 means the residues whose atoms (any)within 5 A to :1@O 
- * For :1@O >:5 means the residues whose atoms (any) greater than 5 A to :1@O 
- * If you want residue which all its atoms greater than 5 A, use !(:1@O <:5)
- * OpenMP parallelization by Dan Roe, Rutgers (Jul. 2011). 
- */
+// selectDistd()
+/** Given a distance criteria of format [OP][TYPE][DIST], where OP is '<' or '>',
+  * TYPE is ':' or '@', and DIST is a floating point number, return a mask
+  * atoms long with all atoms/residues that are OP DIST of atoms in
+  * center set to 'T'.
+  * - :1@O <:5 means the residues whose atoms (any)within 5 A to :1@O.
+  * - :1@O >:5 means the residues whose atoms (any) greater than 5 A to :1@O.
+  * - !(:1@O <:5) means you want residue whose atoms greater than 5 A.
+  * 
+  * OpenMP parallelization by Dan Roe, Rutgers (Jul. 2011). 
+  */
 static char *selectDistd(char *criteria, char *center, int natom, int nres, 
                          int *ipres, double *X) {
   int atomi, atomj, resatom, i3, j3;
@@ -642,9 +639,9 @@ static char *selectDistd(char *criteria, char *center, int natom, int nres,
   return (pMask);
 }
 
-/* binop()
- * Perform logical operation on two masks (AND, OR). Return the resulting mask.
- */
+// binop()
+/** Perform logical operation on two masks (AND, OR). Return the resulting mask.
+  */
 static char *binop(char op, char *m2, char *m1, int atoms) {
   int i;
   char *pMask;
@@ -677,9 +674,9 @@ static char *binop(char op, char *m2, char *m1, int atoms) {
   return(pMask);
 }  
 
-/* neg()
- * Negate mask (logical NOT). Return negated mask.
- */
+// neg()
+/** Negate mask (logical NOT). Return negated mask.
+  */
 static char * neg(char *m1, int atoms) {
   int i;
   
@@ -699,9 +696,9 @@ static char * neg(char *m1, int atoms) {
  * last one of them eval(char *postfix) )
  */
 
-/* resnum_select()
- * Select all atoms from residues res1 to res2.
- */
+// resnum_select()
+/** Select all atoms from residues res1 to res2.
+  */
 static void resnum_select(int res1, int res2, char *mask, int residues, 
                           int *ipres) {
   int i, j;
@@ -718,9 +715,9 @@ static void resnum_select(int res1, int res2, char *mask, int residues,
     }
 }
 
-/* resname_select()
- * Select all atoms of residues named residueName.
- */
+// resname_select()
+/** Select all atoms of residues named residueName.
+  */
 static void resname_select(char *p, char *mask, int residues, NAME *residueName, 
                            int *ipres) {
   char str[20];
@@ -733,9 +730,9 @@ static void resname_select(char *p, char *mask, int residues, NAME *residueName,
   }
 }
 
-/* all_select()
- * Select all atoms.
- */
+// all_select()
+/** Select all atoms.
+  */
 static void all_select(char *mask, int atoms) {
   int j;
   
@@ -743,9 +740,9 @@ static void all_select(char *mask, int atoms) {
     mask[j] = 'T';
 }
 
-/* atnum_select()
- * Select from atoms at1 to at2.
- */ 
+// atnum_select()
+/** Select from atoms at1 to at2.
+  */ 
 static void atnum_select(int at1, int at2, char *mask, int atoms) {
   int j;
 
@@ -754,9 +751,9 @@ static void atnum_select(int at1, int at2, char *mask, int atoms) {
       mask[j] = 'T';
 }
 
-/* atname_select()
- * Select all atoms with given name.
- */
+// atname_select()
+/** Select all atoms with given name.
+  */
 static void atname_select(char *p, char *mask, int atoms, NAME *atomName) {
   char str[20];
 
@@ -767,9 +764,9 @@ static void atname_select(char *p, char *mask, int atoms, NAME *atomName) {
   }
 }
 
-/* attype_select()
- * Select all atoms with given type.
- */
+// attype_select()
+/** Select all atoms with given type.
+  */
 static void attype_select(char *p, char *mask, int atoms, NAME *atomType) {
   int j;
   
@@ -779,9 +776,9 @@ static void attype_select(char *p, char *mask, int atoms, NAME *atomType) {
   }
 }
 
-/* atelem_select()
- * Select all atoms of given element (based on first 1 or 2 chars of atom name).
- */
+// atelem_select()
+/** Select all atoms of given element (based on first 1 or 2 chars of atom name).
+  */
 static void atelem_select(char *p, char *mask, int atoms, NAME *atomName) {
   int j,isMatch;
   
@@ -795,8 +792,7 @@ static void atelem_select(char *p, char *mask, int atoms, NAME *atomName) {
 }
 
 // -----------------------------------------------------------------------------
-/* residue_numlist()
- */
+// residue_numlist()
 static void residue_numlist(char *pp, char *mask, int residues, int *ipres) {
   char buffer[MAXSELE];
   char *p;
@@ -840,8 +836,7 @@ static void residue_numlist(char *pp, char *mask, int residues, int *ipres) {
   }
 } // residue_numlist 
 
-/* residue_namelist()
- */
+// residue_namelist()
 static void residue_namelist(char *pp, char *mask, int residues, 
                              NAME *residueName, int *ipres) 
 {
@@ -917,8 +912,7 @@ static void atom_numlist(char *pp, char *mask, int atoms) {
   }
 } // atom_numlist 
 
-/* atom_namelist()
- */
+// atom_namelist()
 static void atom_namelist(char *pp, char *mask, int atoms, NAME *atomName) {
   char buffer[MAXSELE];
   char *p;
@@ -946,8 +940,7 @@ static void atom_namelist(char *pp, char *mask, int atoms, NAME *atomName) {
   }
 } // atom_namelist 
 
-/* atom_typelist()
- */
+// atom_typelist()
 static void atom_typelist(char *pp, char *mask, int atoms, NAME *atomType) {
   char buffer[MAXSELE];
   char *p;
@@ -968,8 +961,7 @@ static void atom_typelist(char *pp, char *mask, int atoms, NAME *atomType) {
   }
 } // atom_typelist 
 
-/* atom_elemlist()
- */
+// atom_elemlist()
 static void atom_elemlist(char *pp, char *mask, int atoms, NAME *atomName) {
   char buffer[MAXSELE];
   char *p;
@@ -990,11 +982,11 @@ static void atom_elemlist(char *pp, char *mask, int atoms, NAME *atomName) {
   }
 } // atom_elemlist 
 
-/* selectElemMask()
- * Given an elementary mask expression constructed by tokenize and called from
- * eval, call the appropriate elementary selection routine (atoms, residues,
- * types, etc).
- */
+// selectElemMask()
+/** Given an elementary mask expression constructed by tokenize and called from
+  * eval, call the appropriate elementary selection routine (atoms, residues,
+  * types, etc).
+  */
 static char *selectElemMask(char * elmaskstr, int atoms, int residues, 
                             NAME *atomName, NAME *residueName, int *ipres, 
                             NAME *atomType) 
@@ -1129,17 +1121,27 @@ static char *selectElemMask(char * elmaskstr, int atoms, int residues,
 } // End selectElemMask 
 
 // -----------------------------------------------------------------------------
-/* parseMaskString()
- * The main interface to the mask parser. Takes a postfix mask expression 
- * previously converted with tokenize and torpn, along with some information 
- * from a parameter file (# atoms, # residues, atom names, residue names, an 
- * array containing the first atom # of each residue, atomic coords with format
- * [X0Y0Z0X1Y1Z1...], atom types, and a debug value controlling how much debug 
- * information is printed (internally the global int prnlev).
- * Returns a character mask array 
- *   mask[i]='T'|'F', i=0,atoms-1
- * which contains the resulting atom selection.
- */
+// parseMaskString()
+/** The main interface to the mask parser. Takes a postfix mask expression 
+  * previously converted with tokenize() and torpn(), along with some information 
+  * from a parameter file (# atoms, # residues, atom names, residue names, an 
+  * array containing the first atom # of each residue, atomic coords with format
+  * [X0Y0Z0X1Y1Z1...], atom types, and a debug value controlling how much debug 
+  * information is printed (internally the global int prnlev).
+  * Returns a character mask array 
+  *   mask[i]='T'|'F', i=0,atoms-1
+  * which contains the resulting atom selection.
+  * \param postfix postfix expression processed with tokenize and torpn
+  * \param atoms number of atoms
+  * \param residues number of residues
+  * \param atomName array of atom names
+  * \param residueName array of residue names
+  * \param ipres array consisting of first atom # of each residue
+  * \param X coordinate array (X0Y0Z0X1Y1Z1...) for selection by distance
+  * \param atomType array of atom types
+  * \param debug level of debug information to print
+  * \return char array of length atoms with selected atoms 'T', unselected 'F'
+  */
 char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
                       NAME *residueName, int *ipres, double *X, 
                       NAME *atomType, int debug) 
