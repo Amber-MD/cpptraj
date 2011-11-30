@@ -1,5 +1,6 @@
 #ifndef INC_BONDS_H
 #define INC_BONDS_H
+#include <vector>
 #include "Name.h"
 // ---------- DEFINES
 #define MAXNUMBONDS 7
@@ -15,7 +16,7 @@ class BondInfo {
       int nbonds;
       int bond[MAXNUMBONDS];
     }; 
-    bondinfo *Molecule;
+    std::vector<bondinfo> Molecule;
     int natom;
 
     int BondAtoms(int,int);

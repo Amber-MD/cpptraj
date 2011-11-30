@@ -7,32 +7,32 @@
 // CONSTRUCTOR
 BondInfo::BondInfo() {
   natom = 0;
-  Molecule=NULL;
 }
 
 // DESTRUCTOR
 BondInfo::~BondInfo() {
-  if (Molecule!=NULL) delete[] Molecule;
 }
 
 // BondInfo::Setup()
 /// Set up for the given number of atoms.
 int BondInfo::Setup(int natomIn) {
+  bondinfo def;
+
   natom = natomIn;
-  Molecule = new bondinfo[ natom ];
-  // Initialize molecule info for all atoms
-  for (int atom=0; atom < natom; atom++) {
-    Molecule[atom].mol      = -1;
-    Molecule[atom].maxbonds =  0;
-    Molecule[atom].nbonds   =  0;
-    Molecule[atom].bond[0]  = -1;
-    Molecule[atom].bond[1]  = -1;
-    Molecule[atom].bond[2]  = -1;
-    Molecule[atom].bond[3]  = -1;
-    Molecule[atom].bond[4]  = -1;
-    Molecule[atom].bond[5]  = -1;
-    Molecule[atom].bond[6]  = -1;
-  }
+  Molecule.clear();
+  def.mol      = -1;
+  def.maxbonds =  0;
+  def.nbonds   =  0;
+  def.bond[0]  = -1;
+  def.bond[1]  = -1;
+  def.bond[2]  = -1;
+  def.bond[3]  = -1;
+  def.bond[4]  = -1;
+  def.bond[5]  = -1;
+  def.bond[6]  = -1;
+
+  Molecule.resize( natom, def );
+  
   return 0;
 }
 
