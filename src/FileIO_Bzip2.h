@@ -1,10 +1,10 @@
 #ifndef INC_FILEIO_BZIP2_H
 #define INC_FILEIO_BZIP2_H
 #ifdef HASBZ2
-#include "FileIO.h"
 // NOTE: bzlib.h has stdio.h. Does it matter that its not cstdio? 
 #include "bzlib.h"
-/// Class: FileIO_Bzip2
+#include "FileIO.h"
+// Class: FileIO_Bzip2
 /// Bzip2 file IO.
 class FileIO_Bzip2 : public FileIO {
     bool isBzread;

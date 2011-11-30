@@ -1,8 +1,8 @@
 // FileIO_Bzip2: Bzip2 file operations
 #ifdef HASBZ2
-#include "FileIO_Bzip2.h" // FileIO.h, cstdio, bzlib.h
 #include <cstring>
 #include <cstdlib>
+#include "FileIO_Bzip2.h" // FileIO.h, cstdio, bzlib.h
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -25,9 +25,9 @@ FileIO_Bzip2::~FileIO_Bzip2() {
   if (bzmode!=NULL) free(bzmode);
 }
 
-/* FileIO_Bzip2::BZerror()
- * Return a string corresponding to the current error bit.
- */
+// FileIO_Bzip2::BZerror()
+/** Return a string corresponding to the current value of err.
+  */
 const char *FileIO_Bzip2::BZerror() {
   switch (err) {
     case BZ_OK : return "BZ_OK";
@@ -43,36 +43,37 @@ const char *FileIO_Bzip2::BZerror() {
   return "Unknown Bzip2 error";
 }
 
-/* FileIO_Bzip2::Open()
- * Need to store mode and filename in case of Rewind.
- *
- * NOTES from Bzip2 docs:
-   BZFILE *BZ2_bzReadOpen( int *bzerror, FILE *f, int verbosity, int small,
-                           void *unused, int nUnused );
- *   If small is 1, the library will try to decompress using less memory, at 
- *   the expense of speed. BZ2_bzRead will decompress the nUnused bytes starting 
- *   at unused, before starting to read from the file f. At most BZ_MAX_UNUSED 
- *   bytes may be supplied like this. If this facility is not required, you 
- *   should pass NULL and 0 for unused and nUnused respectively.
-   BZFILE *BZ2_bzWriteOpen( int *bzerror, FILE *f, int blockSize100k, 
-                            int verbosity, int workFactor );
- *   Parameter blockSize100k specifies the block size to be used for compression.
- *   It should be a value between 1 and 9 inclusive, and the actual block size 
- *   used is 100000 x this figure. 9 gives the best compression but takes most 
- *   memory. Parameter verbosity should be set to a number between 0 and 4 
- *   inclusive. 0 is silent. Parameter workFactor controls how the compression 
- *   phase behaves when presented with worst case, highly repetitive, input data.
- *   If compression runs into difficulties caused by repetitive data, the library 
- *   switches from the standard sorting algorithm to a fallback algorithm. The 
- *   fallback is slower than the standard algorithm by perhaps a factor of three, 
- *   but always behaves reasonably, no matter how bad the input. Lower values of 
- *   workFactor reduce the amount of effort the standard algorithm will expend 
- *   before resorting to the fallback. You should set this parameter carefully; 
- *   too low, and many inputs will be handled by the fallback algorithm and so 
- *   compress rather slowly, too high, and your average-to-worst case compression
- *   times can become very large. The default value of 30 gives reasonable 
- *   behaviour over a wide range of circumstances.
- */
+// FileIO_Bzip2::Open()
+/** Open the given file as a bzip2 file. The mode and filename are stored
+  * in case rewind is called (Bzip2 routines do not have a rewind so the
+  * file must be closed and reopened).
+  */
+// NOTES from Bzip2 docs:
+// BZFILE *BZ2_bzReadOpen( int *bzerror, FILE *f, int verbosity, int small,
+//                         void *unused, int nUnused );
+//   If small is 1, the library will try to decompress using less memory, at 
+//   the expense of speed. BZ2_bzRead will decompress the nUnused bytes starting 
+//   at unused, before starting to read from the file f. At most BZ_MAX_UNUSED 
+//   bytes may be supplied like this. If this facility is not required, you 
+//   should pass NULL and 0 for unused and nUnused respectively.
+// BZFILE *BZ2_bzWriteOpen( int *bzerror, FILE *f, int blockSize100k, 
+//                          int verbosity, int workFactor );
+//   Parameter blockSize100k specifies the block size to be used for compression.
+//   It should be a value between 1 and 9 inclusive, and the actual block size 
+//   used is 100000 x this figure. 9 gives the best compression but takes most 
+//   memory. Parameter verbosity should be set to a number between 0 and 4 
+//   inclusive. 0 is silent. Parameter workFactor controls how the compression 
+//   phase behaves when presented with worst case, highly repetitive, input data.
+//   If compression runs into difficulties caused by repetitive data, the library 
+//   switches from the standard sorting algorithm to a fallback algorithm. The 
+//   fallback is slower than the standard algorithm by perhaps a factor of three, 
+//   but always behaves reasonably, no matter how bad the input. Lower values of 
+//   workFactor reduce the amount of effort the standard algorithm will expend 
+//   before resorting to the fallback. You should set this parameter carefully; 
+//   too low, and many inputs will be handled by the fallback algorithm and so 
+//   compress rather slowly, too high, and your average-to-worst case compression
+//   times can become very large. The default value of 30 gives reasonable 
+//   behaviour over a wide range of circumstances.
 int FileIO_Bzip2::Open(const char *filename, const char *mode) {
   // Store filename and mode - reallocate in case of reopen
   if (bzfilename!=filename) {
@@ -121,8 +122,7 @@ int FileIO_Bzip2::Open(const char *filename, const char *mode) {
   return 0;
 }
 
-/* FileIO_Bzip2::Close()
- */
+// FileIO_Bzip2::Close()
 int FileIO_Bzip2::Close() {
   if (infile!=NULL) {
     if (isBzread) {
@@ -140,13 +140,13 @@ int FileIO_Bzip2::Close() {
   return 0;
 }
 
-/* FileIO_Bzip2::Size()
- * Since the uncompressed size of Bzip files is not stored anywhere in the file
- * need to read every possible byte in the file :(. 
- * NOTE: The input filename is currently IGNORED.
- * NOTE: This can be ridiculously time consuming for large bzip files, so
- *       just return 0. 
- */
+// FileIO_Bzip2::Size()
+/** Since the uncompressed size of Bzip files is not stored anywhere in the file
+  * need to read every possible byte in the file, which can be VERY slow. 
+  * NOTE: The input filename is currently IGNORED.
+  * NOTE: This can be ridiculously time consuming for large bzip files, so
+  *       just return 0. 
+  */
 #define BUFINSIZE 10240
 off_t FileIO_Bzip2::Size(char *filename) {
   //off_t fileSize, numread;
@@ -191,11 +191,11 @@ off_t FileIO_Bzip2::Size(char *filename) {
 }
 #undef BUFINSIZE
 
-/* FileIO_Bzip2::Read()
- * Read size*count bytes from bzip2file stream. Return number of bytes read.
- * If an error occurs or no more bytes to be read return -1;
- * Dont attempt to read if error bit is set.
- */
+// FileIO_Bzip2::Read()
+/** Read size*count bytes from bzip2file stream. Return number of bytes read.
+  * If an error occurs or no more bytes to be read return -1;
+  * Dont attempt to read if error bit is set.
+  */
 int FileIO_Bzip2::Read(void *buffer, size_t size, size_t count) {
   //size_t numread;
   int numread;
@@ -226,8 +226,7 @@ int FileIO_Bzip2::Read(void *buffer, size_t size, size_t count) {
   return numread;
 }
 
-/* FileIO_Bzip2::Write()
- */
+// FileIO_Bzip2::Write()
 int FileIO_Bzip2::Write(void *buffer, size_t size, size_t count) {
   //size_t numwrite;
   int numwrite;
@@ -250,11 +249,11 @@ int FileIO_Bzip2::Write(void *buffer, size_t size, size_t count) {
   return 0;
 }
 
-/* FileIO_Bzip2::Seek
- * NOTE: Seek not really possible with bzip2. Use Read to get to position?
- * Scan 1 char at a time until desired position achieved.
- * NOTE: Scan in blocks?
- */
+// FileIO_Bzip2::Seek
+/** Since a true seek is not really possible with bzip2, scan 1 char at 
+  * a time until desired position achieved.
+  */
+// NOTE: Scan in blocks?
 int FileIO_Bzip2::Seek(off_t offset) {
   off_t seekTo;
   char Scan;
@@ -284,9 +283,9 @@ int FileIO_Bzip2::Seek(off_t offset) {
   return 0;
 }
 
-/* FileIO_Bzip2::Rewind()
- * Close and reopen.
- */
+// FileIO_Bzip2::Rewind()
+/** Close and reopen.
+  */
 int FileIO_Bzip2::Rewind() {
   if (bzfilename==NULL || bzmode==NULL) return 1;
   this->Close();
@@ -294,22 +293,21 @@ int FileIO_Bzip2::Rewind() {
   return 0;
 }
 
-/* FileIO_Bzip2::Tell()
- * NOTE: Tell not possible with bzip2. Use position.
- */
+// FileIO_Bzip2::Tell()
+// NOTE: Tell not possible with bzip2. Use position.
 off_t FileIO_Bzip2::Tell() {
   return position;
 }
 
-/* FileIO_Bzip2::Gets()
- * Analogous to fgets, reads characters from stream and stores them as a C 
- * string into str until (num-1) characters have been read or either a newline
- * or the End-of-File is reached, whichever comes first.
- * A newline character makes fgets stop reading, but it is considered a valid 
- * character and therefore it is included in the string copied to str.
- * A null character is automatically appended in str after the characters read
- * to signal the end of the C string.
- */
+// FileIO_Bzip2::Gets()
+/** Analogous to fgets, reads characters from stream and stores them as a C 
+  * string into str until (num-1) characters have been read or either a newline
+  * or the End-of-File is reached, whichever comes first.
+  * A newline character makes fgets stop reading, but it is considered a valid 
+  * character and therefore it is included in the string copied to str.
+  * A null character is automatically appended in str after the characters read
+  * to signal the end of the C string.
+  */
 int FileIO_Bzip2::Gets(char *str, int num) {
   int i;
   //mprintf("DEBUG: FileIO_Bzip2::Gets: num=%i\n",num);

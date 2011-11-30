@@ -1,9 +1,9 @@
 #ifndef INC_FILEIO_GZIP_H
 #define INC_FILEIO_GZIP_H
 #ifdef HASGZ
-#include "FileIO.h" 
 #include "zlib.h"
-/// Class: FileIO_Gzip
+#include "FileIO.h" 
+// Class: FileIO_Gzip
 /// Gzip file IO
 class FileIO_Gzip : public FileIO {
     gzFile fp;

@@ -2,7 +2,7 @@
 #define INC_FILEIO_MPI_H
 #include "FileIO.h" 
 #include "MpiRoutines.h"
-/// Class: FileIO_Mpi
+// Class: FileIO_Mpi
 /// MPI file IO, wrappers for the MPI routines in MpiRoutines.h
 class FileIO_Mpi : public FileIO {
     parallelType pfile; 

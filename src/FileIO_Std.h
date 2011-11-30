@@ -1,9 +1,9 @@
 #ifndef INC_FILEIO_STD_H
 #define INC FILEIO_STD_H
-#include "FileIO.h"
 #include <cstdio> // For FILE
-/// Class: FileIO_Std
-/// Standard file IO
+#include "FileIO.h"
+// Class: FileIO_Std
+/// File IO using CSTDLIB routines.
 class FileIO_Std : public FileIO {
     FILE *fp;
     bool isStdout;

@@ -13,8 +13,7 @@ FileIO_Mpi::~FileIO_Mpi() {
   free(pfile);
 }
 
-/* FileIO_Mpi::Open()
- */
+// FileIO_Mpi::Open()
 int FileIO_Mpi::Open(const char *filename, const char *mode) {
   int err=0;
 
@@ -28,15 +27,13 @@ int FileIO_Mpi::Open(const char *filename, const char *mode) {
   return err;
 }
 
-/* FileIO_Mpi::Close()
- */
+// FileIO_Mpi::Close()
 int FileIO_Mpi::Close() {
   parallel_closeFile(pfile);
   return 0;
 }
 
-/* FileIO_Mpi::Read()
- */
+// FileIO_Mpi::Read()
 int FileIO_Mpi::Read(void *buffer, size_t size, size_t count) {
   //size_t numread;
   int numread;
@@ -52,8 +49,7 @@ int FileIO_Mpi::Read(void *buffer, size_t size, size_t count) {
   return numread;
 }
 
-/* FileIO_Mpi::Write()
- */
+// FileIO_Mpi::Write()
 int FileIO_Mpi::Write(void *buffer, size_t size, size_t count) {
   //size_t numwrite;
   // Should never be able to call Write when fp is NULL.
@@ -67,8 +63,7 @@ int FileIO_Mpi::Write(void *buffer, size_t size, size_t count) {
   return 0;
 }
 
-/* FileIO_Mpi::Seek()
- */
+// FileIO_Mpi::Seek()
 int FileIO_Mpi::Seek(off_t offset) {
 
   if ( parallel_fseek(pfile, offset, SEEK_SET) ) return 1;
@@ -76,8 +71,7 @@ int FileIO_Mpi::Seek(off_t offset) {
   return 0;
 }
 
-/* FileIO_Mpi::Rewind()
- */
+// FileIO_Mpi::Rewind()
 int FileIO_Mpi::Rewind() {
   if ( parallel_fseek(pfile, 0L, SEEK_SET) ) return 1;
   return 0;
@@ -90,17 +84,16 @@ int FileIO_Mpi::Rewind() {
   return (long int) zipOffset;
 }*/
 
-/* FileIO_Mpi::Gets()
- */
+// FileIO_Mpi::Gets()
 int FileIO_Mpi::Gets(char *str, int num) {
 
   if ( parallel_fgets(pfile,str,num) == NULL ) return 1;
   return 0;
 }
 
-/* FileIO_Mpi::SetSize()
- * Set size of mpi file, required when splitting up writes.
- */
+// FileIO_Mpi::SetSize()
+/** Set size of mpi file, required when splitting up writes.
+  */
 int FileIO_Mpi::SetSize(long int offset) {
 
   if ( parallel_setSize(pfile, offset) ) return 1;

@@ -14,24 +14,25 @@ FileIO_Gzip::~FileIO_Gzip() {
   if (fp!=NULL) this->Close();
 }
 
-/* FileIO_Gzip::Open()
- */
+// FileIO_Gzip::Open()
 int FileIO_Gzip::Open(const char *filename, const char *mode) {
   fp = gzopen(filename, mode);
   if (fp==NULL) return 1;
   return 0;
 }
 
-/* FileIO_Gzip::Close()
- */
+// FileIO_Gzip::Close()
 int FileIO_Gzip::Close() {
   if (fp!=NULL) gzclose(fp);
   fp=NULL;
   return 0;
 }
 
-/* FileIO_Gzip::Size()
- */
+// FileIO_Gzip::Size()
+/** Gzip files include the uncompressed size % 2^32 in the last 4 bytes 
+  * of the file. Return this value. This is used for example when attempting
+  * to determine the number of frames in a gzip compressed amber traj.
+  */
 off_t FileIO_Gzip::Size(char *filename) {
   FILE *infile;
   unsigned char b1,b2,b3,b4;
@@ -72,9 +73,8 @@ off_t FileIO_Gzip::Size(char *filename) {
   return val;
 }
 
-/* FileIO_Gzip::Read()
- * NOTE: gzread returns 0 on EOF, -1 on error
- */
+// FileIO_Gzip::Read()
+// NOTE: gzread returns 0 on EOF, -1 on error
 int FileIO_Gzip::Read(void *buffer, size_t size, size_t count) {
   //size_t numread;
   int numread;
@@ -95,8 +95,7 @@ int FileIO_Gzip::Read(void *buffer, size_t size, size_t count) {
   return numread;
 }
 
-/* FileIO_Gzip::Write()
- */
+// FileIO_Gzip::Write()
 int FileIO_Gzip::Write(void *buffer, size_t size, size_t count) {
   //size_t numwrite;
   // Should never be able to call Write when fp is NULL.

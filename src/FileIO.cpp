@@ -1,16 +1,15 @@
-#include "FileIO.h"
 #include <cstring>
 #include <cstdio>
 #include <cstdarg>
+#include "FileIO.h"
 
 #ifdef MPI
 #  include "MpiRoutines.h"
 #endif
 
-// FileIO
-/* FileIO::Printf()
- * Take the formatted string and write it to file using Write.
- */
+// FileIO::Printf()
+/** Take the formatted string and write it to file using Write.
+  */
 void FileIO::Printf(const char *format, ...) {
   char buffer[1024];
   va_list args;
@@ -20,10 +19,10 @@ void FileIO::Printf(const char *format, ...) {
   va_end(args);
 }
 
-/* FileIO::Rank_printf()
- * When MPI, printf only for the specified rank. If no MPI, behaves just
- * like above Printf.
- */
+// FileIO::Rank_printf()
+/** When MPI, printf only for the specified rank. If no MPI, behaves just
+  * like above Printf.
+  */
 void FileIO::Rank_printf(int rank, const char *format, ...) {
   char buffer[1024];
   va_list args;

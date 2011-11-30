@@ -12,10 +12,10 @@ FileIO_Std::~FileIO_Std() {
   if (fp!=NULL) this->Close();
 }
 
-/* FileIO_Std::Open()
- * Open file using standard C routines. If mode is WRITE and no
- * filename given default to stdout.
- */
+// FileIO_Std::Open()
+/** Open file using standard C routines. If mode is WRITE and no
+  * filename given default to stdout.
+  */
 int FileIO_Std::Open(const char *filename, const char *mode) {
   if (filename==NULL) {
     if (mode[0]=='w') 
@@ -29,17 +29,16 @@ int FileIO_Std::Open(const char *filename, const char *mode) {
   return 0;
 }
 
-/* FileIO_Std::Close()
- * Close stream if not stdout
- */
+// FileIO_Std::Close()
+/** Close stream if not stdout
+  */
 int FileIO_Std::Close() {
   if (fp!=NULL && !isStdout) fclose(fp);
   fp=NULL;
   return 0;
 }
 
-/* FileIO_Std::Read()
- */
+// FileIO_Std::Read()
 int FileIO_Std::Read(void *buffer, size_t size, size_t count) {
   size_t numread;
   // Should never be able to call Read when fp is NULL.
@@ -58,8 +57,7 @@ int FileIO_Std::Read(void *buffer, size_t size, size_t count) {
   return (int) numread;
 }
 
-/* FileIO_Std::Write()
- */
+// FileIO_Std::Write()
 int FileIO_Std::Write(void *buffer, size_t size, size_t count) {
   size_t numwrite;
   // Should never be able to call Write when fp is NULL.
@@ -78,9 +76,8 @@ int FileIO_Std::Write(void *buffer, size_t size, size_t count) {
   return 0;
 }
 
-/* FileIO_Std::Seek()
- * NOTE: Use fseeko for better compatibility with large files.
- */
+// FileIO_Std::Seek()
+// NOTE: Use fseeko for better compatibility with large files.
 int FileIO_Std::Seek(off_t offset) {
   // DEBUG
   //printf("Calling standard seek(%i): %li\n",origin,offset);
@@ -91,15 +88,13 @@ int FileIO_Std::Seek(off_t offset) {
 #endif
 }
 
-/* FileIO_Std::Rewind()
- */
+// FileIO_Std::Rewind()
 int FileIO_Std::Rewind() {
   rewind(fp);
   return 0;
 }
 
-/* FileIO_Std::Tell()
- */
+// FileIO_Std::Tell()
 off_t FileIO_Std::Tell() {
 #ifdef _MSC_VER
 	return _ftelli64(fp);
@@ -108,8 +103,7 @@ off_t FileIO_Std::Tell() {
 #endif
 }
 
-/* FileIO_Std::Gets()
- */
+// FileIO_Std::Gets()
 int FileIO_Std::Gets(char *str, int num) {
   if ( fgets(str,num,fp) == NULL ) {
     //fprintf(stdout,"DEBUG: FileIO_Std::Gets returned NULL (%s) %i\n",str,num);
