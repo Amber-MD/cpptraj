@@ -43,9 +43,9 @@ NAstruct::~NAstruct() {
   }
 }
 
-/* NAstruct::ClearLists()
- * Clear all parm-dependent lists
- */
+// NAstruct::ClearLists()
+/** Clear all parm-dependent lists
+  */
 void NAstruct::ClearLists() {
   while (!RefCoords.empty()) {
     delete RefCoords.back();
@@ -73,13 +73,13 @@ void NAstruct::ClearLists() {
 
 // ------------------------- PRIVATE FUNCTIONS --------------------------------
 
-/* NAstruct::GCpair()
- * Look for 3 HB based on heavy atom distances:
- * 1. G:O6 -- C:N4  6 -- 6
- * 2. G:N1 -- C:N3  7 -- 4
- * 3. G:N2 -- C:O2  9 -- 3
- * Atom positions are known in standard Ref. Multiply by 3 to get into X.
- */
+// NAstruct::GCpair()
+/** Look for 3 HB based on heavy atom distances:
+  * 1. G:O6 -- C:N4  6 -- 6
+  * 2. G:N1 -- C:N3  7 -- 4
+  * 3. G:N2 -- C:O2  9 -- 3
+  * Atom positions are known in standard Ref. Multiply by 3 to get into X.
+  */
 bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   int Nhbonds = 0;
   double dist2; 
@@ -102,11 +102,11 @@ bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   return false;
 }
 
-/* NAstruct::ATpair()
- * Look for 2 HB based on heavy atom distances
- * 1. A:N6 -- T:O4  6 -- 6
- * 2. A:N1 -- T:N3  7 -- 4
- */
+// NAstruct::ATpair()
+/** Look for 2 HB based on heavy atom distances
+  * 1. A:N6 -- T:O4  6 -- 6
+  * 2. A:N1 -- T:N3  7 -- 4
+  */
 bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   int Nhbonds = 0;
   double dist2;
@@ -124,11 +124,11 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   return false;
 }
 
-/* NAstruct::basesArePaired()
- * Given two base axes for which IDs have been given and reference coords set,
- * determine whether the bases are paired via hydrogen bonding criteria.
- * NOTE: Currently only set up for Antiparallel WC detection
- */
+// NAstruct::basesArePaired()
+/** Given two base axes for which IDs have been given and reference coords set,
+  * determine whether the bases are paired via hydrogen bonding criteria.
+  * NOTE: Currently only set up for Antiparallel WC detection
+  */
 bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   // G C
   if      ( base1->ID==DG && base2->ID==DC ) return GCpair(base1,base2);
@@ -148,9 +148,9 @@ bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   return false;
 }
 
-/* NAstruct::determineBasePairing()
- * Determine which bases are paired from the individual base axes.
- */
+// NAstruct::determineBasePairing()
+/** Determine which bases are paired from the individual base axes.
+  */
 int NAstruct::determineBasePairing() {
   double distance;
   std::vector<bool> isPaired( BaseAxes.size(), false);
@@ -374,11 +374,11 @@ int NAstruct::setupBasePairAxes() {
 }
 */
 
-/* NAstruct::setupBaseAxes()
- * For each residue defined in reference coords, get the corresponding input
- * coords and fit the reference coords (and reference axes) on top of input 
- * coords. This sets up the reference axes for each base.
- */
+// NAstruct::setupBaseAxes()
+/** For each residue defined in reference coords, get the corresponding input
+  * coords and fit the reference coords (and reference axes) on top of input 
+  * coords. This sets up the reference axes for each base.
+  */
 int NAstruct::setupBaseAxes(Frame *InputFrame) {
   double rmsd, RotMatrix[9], TransVec[6];
   int base;
@@ -466,18 +466,19 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
   return 0;
 }
 
-/* FLIP_V
- * Multiply each element of vector V by corresponding element of flip vector.
- */
+// FLIP_V
+/** Multiply each element of vector V by corresponding element of flip vector.
+  */
 #define FLIP_V( V, F ) { \
   V[0]*=F[0]; \
   V[1]*=F[1]; \
   V[2]*=F[2]; } 
-/* NAstruct::determineBaseParameters()
- * For each base in a base pair, get the values of buckle, propeller twist,
- * opening, shear, stretch, and stagger. Also determine the origin and 
- * rotation matrix for each base pair reference frame.
- */
+
+// NAstruct::determineBaseParameters()
+/** For each base in a base pair, get the values of buckle, propeller twist,
+  * opening, shear, stretch, and stagger. Also determine the origin and 
+  * rotation matrix for each base pair reference frame.
+  */
 int NAstruct::determineBaseParameters() {
   int base1, base2, BP, nbasepair;
   AxisType *Base1, *Base2;
@@ -742,10 +743,10 @@ int NAstruct::determineBaseParameters() {
   return 0;
 }
 
-/* NAstruct::determineBasepairParameters() 
- * For each base pair step, determine values of Tilt, Roll, Twist, Shift,
- * Slide, and Rise.
- */
+// NAstruct::determineBasepairParameters() 
+/** For each base pair step, determine values of Tilt, Roll, Twist, Shift,
+  * Slide, and Rise.
+  */
 int NAstruct::determineBasepairParameters() {
   double Xi[3], Yi[3], Zi[3], Xj[3], Yj[3], Zj[3];
   double Vi[3], Vj[3];
@@ -877,14 +878,14 @@ int NAstruct::determineBasepairParameters() {
 }
 // ----------------------------------------------------------------------------
 
-/* NAstruct::init()
- * Expected call: nastruct [resrange <range>] [out <filename>] [naout <nafilename>]
- *                         [noheader]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// NAstruct::init()
+/** Expected call: nastruct [resrange <range>] [out <filename>] [naout <nafilename>]
+  *                         [noheader]
+  */
+// Dataset name will be the last arg checked for. Check order is:
+//    1) Keywords
+//    2) Masks
+//    3) Dataset name
 int NAstruct::init() {
   // Get keywords
   outFilename = actionArgs.getKeyString("out",NULL);
@@ -909,12 +910,10 @@ int NAstruct::init() {
   return 0;
 }
 
-/* NAstruct::setup()
- * Set up for this parmtop. Get masks etc.
- * P is set in Action::Setup
- * Determine the number of NA bases that will be analyzed, along with the masks
- * that correspond to the reference frame atoms.
- */
+// NAstruct::setup()
+/** Determine the number of NA bases that will be analyzed, along with 
+  * the masks that correspond to the reference frame atoms.
+  */
 int NAstruct::setup() {
   int res, refAtom, atom;
   int residue;
@@ -1011,8 +1010,7 @@ int NAstruct::setup() {
   return 0;  
 }
 
-/* NAstruct::action()
- */
+// NAstruct::action()
 int NAstruct::action() {
 
   // Set up base axes
@@ -1035,8 +1033,7 @@ int NAstruct::action() {
   return 0;
 } 
 
-/* NAstruct::print()
- */
+// NAstruct::print()
 void NAstruct::print() {
   CpptrajFile outfile;
   CharBuffer buffer;

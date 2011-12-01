@@ -3,14 +3,14 @@
 #include "AxisType.h"
 #include "CpptrajStdio.h"
 // DEBUG
-#include "PDBfileRoutines.h"
-/*
- * ID_base()
- * Return a number indicating if this is a NA base. If not recognized, 
- * return -1. 
- * NOTE: Currently based only on amber residue names. Will not recognize
- * non-standard bases.
- */
+//#include "PDBfileRoutines.h"
+
+// ID_base()
+/** Return a number indicating if this is a NA base. If not recognized, 
+  * return -1. 
+  * NOTE: Currently based only on amber residue names. Will not recognize
+  * non-standard bases.
+  */
 NAbaseType ID_base(char *resname) {
   char *resID;
   bool isDNA = true; // Assume DNA unless noted otherwise 
@@ -347,8 +347,7 @@ double ox2, oy2, oz2;
 }
 
 /*
- * DEBUG: AxisToPDB
- */
+// DEBUG: AxisToPDB
 void AxisType::WritePDB(CpptrajFile *outfile, int resnum, char *resname, int *atom) {
   char buffer[82];
   int i3=0;
@@ -360,4 +359,4 @@ void AxisType::WritePDB(CpptrajFile *outfile, int resnum, char *resname, int *at
   }
   (*atom) += natom;
 }
-
+*/
