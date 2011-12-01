@@ -236,7 +236,7 @@ void Rms2d::CalcRmsToTraj() {
   for (int nref=0; nref < totalref; nref++) {
     progress->Update(current);
     // Get the current reference frame from trajectory
-    RefTraj->GetNextFrame(RefFrame.X,NULL,RefFrame.box,&(RefFrame.T));
+    RefTraj->GetNextFrame(RefFrame);
   
     // Set up dataset for this reference frame
     sprintf(setname,"Frame_%i",nref+1);

@@ -345,7 +345,7 @@ int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharg
     mprinterr("Error: Pairwise: Could not set up cut mol2 file %s\n",outfilename);
     return 1;
   }
-  tout.WriteFrame(frameNum,CutParm,CutFrame.X, NULL, NULL, 0.0);
+  tout.WriteFrame(frameNum,CutParm,CutFrame);
   tout.EndTraj();
   delete CutParm;
   return 0;

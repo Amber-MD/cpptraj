@@ -109,7 +109,7 @@ int ActionMask::action() {
                 maskpdb,frameNum);
     } else {
       pdbout.PrintInfo(0);
-      pdbout.WriteFrame(frameNum,pdbParm,pdbFrame->X,NULL,pdbFrame->box,pdbFrame->T);
+      pdbout.WriteFrame(frameNum,pdbParm,*pdbFrame);
       pdbout.EndTraj();
     }
     delete pdbParm;

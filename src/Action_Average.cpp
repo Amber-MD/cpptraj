@@ -171,7 +171,7 @@ void Average::print() {
 
   outfile.PrintInfo(0);
 
-  outfile.WriteFrame(0, AvgParm, AvgFrame->X, AvgFrame->V, AvgFrame->box, AvgFrame->T);
+  outfile.WriteFrame(0, AvgParm, *AvgFrame);
 
   outfile.EndTraj();
 }

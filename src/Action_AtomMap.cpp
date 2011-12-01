@@ -362,7 +362,7 @@ void atommap::WriteMol2(char *m2filename) {
   tmpArg.AddArg(m2filename);
   outfile.SetDebug(debug);
   outfile.SetupWrite(m2filename,&tmpArg,tmpParm,MOL2FILE);
-  outfile.WriteFrame(0,tmpParm,tmpFrame.X,NULL,tmpFrame.box,tmpFrame.T);
+  outfile.WriteFrame(0,tmpParm,tmpFrame);
   outfile.EndTraj();
 
   delete tmpParm;

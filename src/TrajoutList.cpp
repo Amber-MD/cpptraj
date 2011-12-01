@@ -62,11 +62,11 @@ int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, AmberParm *parmIn) {
  * matches the parm the trajectory was originally set up with it will
  * be opened, no need to call BeginTraj.
  */ 
-int TrajoutList::Write(int set, AmberParm *CurrentParm, Frame *F) { 
+int TrajoutList::Write(int set, AmberParm *CurrentParm, Frame *CurrentFrame) { 
   std::list<TrajectoryFile*>::iterator traj;
 
   for (traj = trajList.begin(); traj != trajList.end(); traj++) {
-    if ( (*traj)->WriteFrame(set, CurrentParm, F->X, F->V, F->box, F->T) ) {
+    if ( (*traj)->WriteFrame(set, CurrentParm, *CurrentFrame) ) {
       mprinterr("Error writing output trajectory.\n");
       return 1;
     }

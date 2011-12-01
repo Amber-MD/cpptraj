@@ -218,7 +218,7 @@ int CpptrajState::Run() {
     }
 
     // Loop over every Frame in trajectory
-    while ( traj->GetNextFrame(TrajFrame.X, TrajFrame.V, TrajFrame.box, &(TrajFrame.T)) ) {
+    while ( traj->GetNextFrame(TrajFrame) ) {
       // Since Frame can be modified by actions, save original and use CurrentFrame
       CurrentFrame = &TrajFrame;
       // Perform Actions on Frame

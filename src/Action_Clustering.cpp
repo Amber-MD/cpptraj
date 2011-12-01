@@ -374,8 +374,7 @@ void Clustering::WriteClusterTraj( ClusterList *CList ) {
     {
       //mprinterr("%i,",*frame);
       clusterframe = ReferenceFrames.GetFrame( *frame );
-      clusterout->WriteFrame(framenum++, clusterparm, clusterframe->X, NULL, 
-                             clusterframe->box, clusterframe->T);
+      clusterout->WriteFrame(framenum++, clusterparm, *clusterframe);
     }
     // Close traj
     clusterout->EndTraj();
@@ -411,8 +410,7 @@ void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
   // Write first cluster rep frame
   framecounter=0;
   clusterframe = ReferenceFrames.GetFrame( framenum );
-  clusterout.WriteFrame(framecounter++, clusterparm, clusterframe->X, NULL,
-                        clusterframe->box, clusterframe->T);
+  clusterout.WriteFrame(framecounter++, clusterparm, *clusterframe);
 
   CList->NextCluster();
   while (!CList->End()) {
@@ -420,8 +418,7 @@ void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
    framenum = CList->CurrentCentroid();
    //mprinterr("%i\n",framenum);
    clusterframe = ReferenceFrames.GetFrame( framenum );
-   clusterout.WriteFrame(framecounter++, clusterparm, clusterframe->X, NULL, 
-                         clusterframe->box, clusterframe->T);
+   clusterout.WriteFrame(framecounter++, clusterparm, *clusterframe);
     //mprinterr("\n");
     CList->NextCluster();
     //break;
@@ -470,8 +467,7 @@ void Clustering::WriteRepTraj( ClusterList *CList ) {
 
     // Write cluster rep frame
     clusterframe = ReferenceFrames.GetFrame( framenum );
-    clusterout->WriteFrame(framenum, clusterparm, clusterframe->X, NULL,
-                           clusterframe->box, clusterframe->T);
+    clusterout->WriteFrame(framenum, clusterparm, *clusterframe);
     // Close traj
     clusterout->EndTraj();
 

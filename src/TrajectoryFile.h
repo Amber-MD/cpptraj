@@ -3,6 +3,7 @@
 #include "ProgressBar.h"
 #include "TrajectoryIO.h" // AmberParm BoxType CpptrajFile ArgList 
 #include "Range.h"
+#include "Frame.h"
 // Class: TrajectoryFile
 /// Allow reading and writing of trajectory files.
 /** Wrapper around the TrajectoryIO base class that allows the rest of cpptraj
@@ -73,8 +74,8 @@ class TrajectoryFile {
     int SetupWrite(char *, ArgList *, AmberParm *, FileFormat);
     int BeginTraj(bool);
     int EndTraj();
-    int GetNextFrame(double*,double*,double*,double*);
-    int WriteFrame(int, AmberParm *, double*,double*,double*,double);
+    int GetNextFrame(Frame&);
+    int WriteFrame(int, AmberParm *, Frame&);
     // Public functions
     void SetDebug(int);
     void SingleFrame();

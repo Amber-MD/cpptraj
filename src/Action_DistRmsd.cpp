@@ -212,7 +212,7 @@ int DistRmsd::action() {
     //mprintf("DBG: RMSD reftraj: Getting ref traj frame %i\n",RefTraj->front()->CurrentFrame());
     // NOTE: If there are no more frames in the trajectory the frame should
     //       remain on the last read frame. Close and reopen? Change ref?
-    RefTraj->GetNextFrame(RefFrame.X, RefFrame.V, RefFrame.box, (&RefFrame.T)); 
+    RefTraj->GetNextFrame(RefFrame); 
   }
 
   // Set selected reference atoms - always done since RMS fit modifies SelectedRef 

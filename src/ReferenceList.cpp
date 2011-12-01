@@ -99,8 +99,7 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       AvgFrame->SetupFrame(CurrentParm->natom, CurrentParm->mass);
       AvgFrame->ZeroCoords();
       Nframes = 0.0;
-      while ( (*traj)->GetNextFrame(CurrentFrame->X, CurrentFrame->V, 
-                                    CurrentFrame->box, &(CurrentFrame->T)) ) {
+      while ( (*traj)->GetNextFrame(*CurrentFrame) ) {
         //AvgFrame->AddCoord( CurrentFrame );
         *AvgFrame += *CurrentFrame;
         Nframes++;
@@ -116,8 +115,7 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       CurrentFrame = AvgFrame;
     // If no averaging, get and copy the 1 frame from Traj
     } else {
-      (*traj)->GetNextFrame(CurrentFrame->X, CurrentFrame->V, 
-                            CurrentFrame->box, &(CurrentFrame->T));
+      (*traj)->GetNextFrame(*CurrentFrame);
     }
     (*traj)->EndTraj();
     // DEBUG
