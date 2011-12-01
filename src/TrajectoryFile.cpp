@@ -48,31 +48,29 @@ TrajectoryFile::~TrajectoryFile() {
   if (trajName!=NULL) free(trajName);
 }
 
-/* TrajectoryFile::SetDebug()
- * Set debug level.
- */
+// TrajectoryFile::SetDebug()
+/** Set debug level.  */
 void TrajectoryFile::SetDebug(int debugIn) {
   debug = debugIn;
   if (debug>0) mprintf("  TrajectoryFile debug level set to %i\n",debug);
 }
 
-/* TrajectoryFile::SetTrajName()
- * Set trajName to be a copy of input string.
- */
+// TrajectoryFile::SetTrajName()
+/** Set trajName to be a copy of input string.  */
 void TrajectoryFile::SetTrajName(char *nameIn) {
   trajName=(char*) realloc( trajName, (strlen(nameIn)+1) * sizeof(char) );
   strcpy(trajName,nameIn);
 }
 
-/* TrajectoryFile::setupRemdTrajIO()
- * Assuming that trajio has already been set up as the lowest replica (and 
- * checked for temperature information), set this trajectory up as an REMD 
- * trajectory. A special trajio object will be set up that itself contains 
- * a list of trajio objects, each one corresponding to a replica. If a
- * filename is given via <remdout>, the replica trajectories will be converted
- * to temperature trajectories with names <remdout>.<Temperature> and format
- * remdfmt. Returns a RemdTraj trajio class.
- */
+// TrajectoryFile::setupRemdTrajIO()
+/** Assuming that trajio has already been set up as the lowest replica (and 
+  * checked for temperature information), set this trajectory up as an REMD 
+  * trajectory. A special trajio object will be set up that itself contains 
+  * a list of trajio objects, each one corresponding to a replica. If a
+  * filename is given via <remdout>, the replica trajectories will be converted
+  * to temperature trajectories with names <remdout>.<Temperature> and format
+  * remdfmt. Returns a RemdTraj trajio class.
+  */
 TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtrajtemp, 
                                               char *remdout, FileFormat remdfmt) 
 {
@@ -190,11 +188,11 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
   return (TrajectoryIO*) remdio;
 }
 
-/* TrajectoryFile::setupTrajIO()
- * Set up basic trajectory file for given access type. Set the trajectory
- * name to be the base filename. Return the trajectory IO object for 
- * the format.
- */
+// TrajectoryFile::setupTrajIO()
+/** Set up basic trajectory file for given access type. Set the trajectory
+  * name to be the base filename. Return the trajectory IO object for 
+  * the format.
+  */
 TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
                                         FileFormat fmtIn, FileType typeIn) {
   TrajectoryIO *tio = NULL;
@@ -253,16 +251,16 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
   return tio;
 }
 
-/* TrajectoryFile::SetArgs()
- * For reading trajectories only, called after initial trajectory setup. 
- * Set the start, stop, and offset args based on user input. Do some bounds 
- * checking.
- * For compatibility with ptraj, frame args start at 1. Internal frame #s 
- * start at 0. So for a traj with 10 frames:
- * Internal #: 0 1 2 3 4 5 6 7 8 9
- * Frame Arg#: 1 2 3 4 5 6 7 8 9 10
- * Defaults: startArg=1, stopArg=-1, offsetArg=1
- */
+// TrajectoryFile::SetArgs()
+/** For reading trajectories only, called after initial trajectory setup. 
+  * Set the start, stop, and offset args based on user input. Do some bounds 
+  * checking.
+  * For compatibility with ptraj, frame args start at 1. Internal frame #s 
+  * start at 0. So for a traj with 10 frames:
+  * - Internal #: 0 1 2 3 4 5 6 7 8 9
+  * - Frame Arg#: 1 2 3 4 5 6 7 8 9 10
+  * - Defaults: startArg=1, stopArg=-1, offsetArg=1
+  */
 int TrajectoryFile::SetArgs(ArgList *argIn) {
   if (argIn==NULL) return 0;
   int startArg = argIn->getNextInteger(1);
@@ -321,12 +319,12 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
   return 0;
 }
 
-/* TrajectoryFile::SetBoxType()
- * Based on box angles in the given trajectory IO object and information in
- * the associated parmtop, set the box type for this trajectory. Return 0
- * if successful, 1 if an error occurs.
- * NOTE: Move to BoxType?
- */
+// TrajectoryFile::SetBoxType()
+/** Based on box angles in the given trajectory IO object and information in
+  * the associated parmtop, set the box type for this trajectory. Return 0
+  * if successful, 1 if an error occurs.
+  */
+// NOTE: Move to BoxType?
 int TrajectoryFile::SetBoxType(TrajectoryIO *tio) {
   if (tio==NULL) return 1;
   if (trajParm==NULL) return 1;
@@ -382,10 +380,10 @@ int TrajectoryFile::SetBoxType(TrajectoryIO *tio) {
   return 0;
 }
 
-/* TrajectoryFile::SingleFrame()
- * Tell the trajectory to set up stop and offset so that only start frame
- * will be processed.
- */
+// TrajectoryFile::SingleFrame()
+/** Tell the trajectory to set up stop and offset so that only start frame
+  * will be processed.
+  */
 void TrajectoryFile::SingleFrame() {
   stop = start + 1;
   offset = 1;
@@ -398,11 +396,11 @@ void TrajectoryFile::SingleFrame() {
   }
 }
 
-/* TrajectoryFile::SetupRead()
- * Set up trajectory for reading. Input trajectory filename can be specified
- * explicitly, or if not it should be the second argument in the given
- * argument list. Associate this trajectory with the given parm file.
- */
+// TrajectoryFile::SetupRead()
+/** Set up trajectory for reading. Input trajectory filename can be specified
+  * explicitly, or if not it should be the second argument in the given
+  * argument list. Associate this trajectory with the given parm file.
+  */
 int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn) {
   char *tname = NULL;
   // REMD
@@ -522,12 +520,12 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   return 0;
 }
 
-/* TrajectoryFile::setupFrameInfo()
- * Calculate number of frames that will be read based on start, stop, and
- * offset (total_read_frames). 
- * Return the total number of frames that will be read for this traj.
- * If the number of frames could not be determined return -1.
- */
+// TrajectoryFile::setupFrameInfo()
+/** Calculate number of frames that will be read based on start, stop, and
+  * offset (total_read_frames). 
+  * \return the total number of frames that will be read for this traj.
+  * \return -1 if the number of frames could not be determined.
+  */
 int TrajectoryFile::setupFrameInfo() {
   int Nframes;
   int ptraj_start_frame, ptraj_end_frame;
@@ -573,12 +571,12 @@ int TrajectoryFile::setupFrameInfo() {
   return total_read_frames;
 }
 
-/* TrajectoryFile::getFmtFromArg()
- * Given an arglist, search for one of the file format keywords.
- * Default to def. 
- * NOTE: def should probably not be allowed to be UNKNOWN_FORMAT,
- * but this is currently not explicitly checked.
- */
+// TrajectoryFile::getFmtFromArg()
+/** Given an arglist, search for one of the file format keywords.
+  * Default to def. 
+  * NOTE: def should probably not be allowed to be UNKNOWN_FORMAT,
+  * but this is currently not explicitly checked.
+  */
 FileFormat TrajectoryFile::getFmtFromArg(ArgList *argIn, FileFormat def) {
   FileFormat writeFormat = def;
   if (argIn==NULL) return writeFormat;
@@ -593,11 +591,11 @@ FileFormat TrajectoryFile::getFmtFromArg(ArgList *argIn, FileFormat def) {
   return writeFormat;
 }
 
-/* TrajectoryFile::SetupWriteWithArgs()
- * Like SetupWrite, but intended for internal use. Allows a static
- * space-separated string to be passed in, which will be converted
- * to an argument list and passed to SetupWrite.
- */
+// TrajectoryFile::SetupWriteWithArgs()
+/** Like SetupWrite, but intended for internal use. Allows a static
+  * space-separated string to be passed in, which will be converted
+  * to an argument list and passed to SetupWrite.
+  */
 int TrajectoryFile::SetupWriteWithArgs(char *tnameIn, const char *argstring,
                                        AmberParm *tparmIn, FileFormat fmtIn) {
   ArgList tempArg;
@@ -612,14 +610,14 @@ int TrajectoryFile::SetupWriteWithArgs(char *tnameIn, const char *argstring,
   return SetupWrite(tnameIn,&tempArg,tparmIn,fmtIn);
 }
 
-/* TrajectoryFile::SetupWrite()
- * Set up trajectory for writing. Output trajectory filename can be specified
- * explicitly, or if not it should be the second argument in the given
- * argument list. Associate with the given parm file initially, but setup for 
- * the format is performed on the first write call to accomodate state changes
- * like stripped atoms and so on. 
- * NOTE: make remdtraj a generic trigger for hasTemperature?
- */
+// TrajectoryFile::SetupWrite()
+/** Set up trajectory for writing. Output trajectory filename can be specified
+  * explicitly, or if not it should be the second argument in the given
+  * argument list. Associate with the given parm file initially, but setup for 
+  * the format is performed on the first write call to accomodate state changes
+  * like stripped atoms and so on. 
+  * NOTE: make remdtraj a generic trigger for hasTemperature?
+  */
 int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn,
                                FileFormat writeFormatIn) {
   char *tname = NULL;
@@ -701,10 +699,11 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
   return 0;
 }
 
-/* TrajectoryFile::BeginTraj()
- * Prepare trajectory file for reading/writing. For reads, open the traj and 
- * set up a progress bar if requested. For writes, just open the file.
- */
+// TrajectoryFile::BeginTraj()
+/** Prepare trajectory file for reading/writing. For reads, open the traj and 
+  * set up a progress bar if requested. Not needed for writes since opening
+  * occurs when WriteFrame() is called for the first time.
+  */
 int TrajectoryFile::BeginTraj(bool showProgress) {
   // For writes the trajectory is opened on first write in WriteFrame 
   if (fileAccess!=READ) return 0;
@@ -733,10 +732,10 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
   return 0;
 }
 
-/* TrajectoryFile::PrintInfoLine()
- * Print a smaller amount of information than the PrintInfo function to
- * a single line. Give the trajectory name, start, stop, and offset.
- */
+// TrajectoryFile::PrintInfoLine()
+/** Print a smaller amount of information than the PrintInfo function to
+  * a single line. Give the trajectory name, start, stop, and offset.
+  */
 void TrajectoryFile::PrintInfoLine() {
   //rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName,currentFrame+1,stop+1,offset);
   if (stop!=-1)
@@ -745,9 +744,9 @@ void TrajectoryFile::PrintInfoLine() {
     rprintf( "----- [%s] (%i-EOF, %i) -----\n",trajName,start+1,offset);
 }
 
-/* TrajectoryFile::EndTraj()
- * Close the trajectory. 
- */
+// TrajectoryFile::EndTraj()
+/** Close the trajectory. Should be called after all reads / writes completed.
+  */
 int TrajectoryFile::EndTraj() {
   trajio->closeTraj();
   trajectoryIsOpen=false;
@@ -853,17 +852,17 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, Frame &FrameOut) {
   return 0;
 }
 
-/* TrajectoryFile::TrajFilenameIs()
- * Call TrajectoryIO FilenameIs routine to check if input filename matches
- * full path of this trajectory file.
- */
+// TrajectoryFile::TrajFilenameIs()
+/** Call TrajectoryIO FilenameIs routine to check if input filename matches
+  * full path of this trajectory file.
+  */
 bool TrajectoryFile::TrajFilenameIs(char *filenameIn) {
   return ( trajio->FilenameIs(filenameIn) );
 }
 
-/* TrajectoryFile::PrintInfo()
- * Print general trajectory information. Call trajio->Info for specific information.
- */
+// TrajectoryFile::PrintInfo()
+/** Print general trajectory information. Call trajio->Info for specific information.
+  */
 void TrajectoryFile::PrintInfo(int showExtended) {
   mprintf("  [%s] ",trajName);
   trajio->info();
@@ -893,10 +892,10 @@ void TrajectoryFile::PrintInfo(int showExtended) {
   mprintf("\n");
 }
 
-/* HasVelocity()
- * Return true if underlying trajio object indicates trajectory has velocity
- * information.
- */
+// HasVelocity()
+/** Return true if underlying trajio object indicates trajectory has velocity
+  * information.
+  */
 bool TrajectoryFile::HasVelocity() { 
   if (trajio!=NULL) return trajio->hasVelocity; 
   return false;

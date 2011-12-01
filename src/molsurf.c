@@ -1,17 +1,17 @@
-/* molsurf.c
- * This is an adaptation of Paul Beroza's "molsurf" program;
- * Modified by dac to exist as an NAB subroutine;
- * Later re-modified back into a stand-alone program;
- * Further modified by Dan Roe (fix memory errors, subroutine ordering, 
- * anachronistic function definitions, and all the horrible exit calls
- * that would crash out the program rather than let it recover gracefully)
- * for cpptraj, 2011 November.
- * Relevant compiler defines:
- *   Dtrim_3_cusps: Activates code that trims the intersection of 3 cusps,
- *                  otherwise SA is slightly overestimated.
- *   Dtrim_4_cusps: Activates code that trims the intersection of 4 cusps,
- *                  otherwise SA is slightly overestimated.
- *   DDEBUG: Activates lots of debug information 
+/*! \file molsurf.c
+    \brief This is an adaptation of Paul Beroza's "molsurf" program;
+   Modified by dac to exist as an NAB subroutine;
+   Later re-modified back into a stand-alone program;
+   Further modified by Dan Roe (fix memory errors, subroutine ordering, 
+   anachronistic function definitions, and all the horrible exit calls
+   that would crash out the program rather than let it recover gracefully)
+   for cpptraj, 2011 November.
+   Relevant compiler defines:
+   - Dtrim_3_cusps: Activates code that trims the intersection of 3 cusps,
+                    otherwise SA is slightly overestimated.
+   - Dtrim_4_cusps: Activates code that trims the intersection of 4 cusps,
+                    otherwise SA is slightly overestimated.
+   - DDEBUG: Activates lots of debug information 
  */
 // ---------- CSTDBLIB includes ------------------------------------------------
 #include <stdio.h>
