@@ -1,5 +1,6 @@
-/// vectormath.h
-/// Collection of vector and matrix math routines.
+/*! \file vectormath.h
+    \brief Collection of vector and matrix math routines.
+ */
 #define CROSS_PRODUCT(TX,TY,TZ,UX,UY,UZ,VX,VY,VZ) \
   TX = (UY*VZ) - (UZ*VY); \
   TY = (UZ*VX) - (UX*VZ); \

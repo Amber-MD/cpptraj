@@ -1,6 +1,14 @@
-/*! \file molsurf.c
-    \brief This is an adaptation of Paul Beroza's "molsurf" program;
-
+// ---------- CSTDBLIB includes ------------------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <assert.h>
+#include <string.h>
+// ---------- OTHER includes ---------------------------------------------------
+#include "molsurf.h"
+/*!
+   \file molsurf.h 
+   \details
    Modified by dac to exist as an NAB subroutine;
    Later re-modified back into a stand-alone program;
    Further modified by Dan Roe (fix memory errors, subroutine ordering, 
@@ -14,14 +22,6 @@
                     otherwise SA is slightly overestimated.
    - DDEBUG: Activates lots of debug information 
  */
-// ---------- CSTDBLIB includes ------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <assert.h>
-#include <string.h>
-// ---------- OTHER includes ---------------------------------------------------
-#include "molsurf.h"
 
 // ---------- DEFINES ----------------------------------------------------------
 #define ERROR (-1)

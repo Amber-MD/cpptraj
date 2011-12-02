@@ -1,11 +1,3 @@
-/*! \file CpptrajStdio.cpp
-    \brief Interface between Cpptraj and stdio.
-
-  May want to print messages in a parallel environment but dont want
-  to include all the parallel functionality.   
-  Also provide nice wrapping for warnings and error messages.
-  NOTE: Add ifdefs around worldrank stuff?
- */
 #include <cstdio>
 #include <cstdarg>
 #include <cstdlib> // tildeExpansion
@@ -191,7 +183,7 @@ int DigitWidth(int numberIn) {
 /** Return a printf-style format string for float/double of given width 
   * and precision
   */
-char *SetDoubleFormatString(int width, int precision) {
+/*char *SetDoubleFormatString(int width, int precision) {
   size_t stringWidth = 0;
   int wWidth = 0;
   int pWidth = 0;
@@ -206,13 +198,13 @@ char *SetDoubleFormatString(int width, int precision) {
   format = new char [ stringWidth ];
   sprintf(format, " %%%i.%ilf", width, precision);
   return format;
-}
+}*/
 
 // SetAlignedDoubleFormatString()
 /** Return a printf-style format string for float/double of given width 
   * and precision, no leading space.
   */
-char *SetAlignedDoubleFormatString(int width, int precision) {
+/*char *SetAlignedDoubleFormatString(int width, int precision) {
   size_t stringWidth = 0;
   int wWidth = 0;
   int pWidth = 0;
@@ -227,12 +219,12 @@ char *SetAlignedDoubleFormatString(int width, int precision) {
   format = new char [ stringWidth ];
   sprintf(format, "%%%i.%ilf", width, precision);
   return format;
-}
+}*/
 
 // SetStringFormatString()
 /** Return a printf-style format string for string of given width.
   */
-char *SetStringFormatString(int width) {
+/*char *SetStringFormatString(int width) {
   size_t stringWidth = 0;
   int wWidth = 0;
   char *format;
@@ -244,12 +236,12 @@ char *SetStringFormatString(int width) {
   format = new char[ stringWidth ];
   sprintf(format, " %%-%is", width);
   return format;
-}
+}*/
 
 // SetIntegerFormatString()
 /** Return a printf-style format string for integer of given width.
   */
-char *SetIntegerFormatString(int width) {
+/*char *SetIntegerFormatString(int width) {
   size_t stringWidth = 0;
   int wWidth = 0;
   char *format;
@@ -261,13 +253,13 @@ char *SetIntegerFormatString(int width) {
   format = new char[ stringWidth ];
   sprintf(format, " %%%ii", width);
   return format;
-}
+}*/
 
 // SetXYZFormatString()
 /** Return a printf-style format string for 3 float/doubles of given width 
   * and precision
   */
-char *SetXYZFormatString(int width, int precision) {
+/*char *SetXYZFormatString(int width, int precision) {
   size_t stringWidth = 0;
   int wWidth = 0;
   int pWidth = 0;
@@ -285,5 +277,5 @@ char *SetXYZFormatString(int width, int precision) {
   sprintf(format, "%%%i.%ilf %%%i.%ilf %%%i.%ilf",width,precision,width,precision,
           width,precision);
   return format;
-}
+}*/
 

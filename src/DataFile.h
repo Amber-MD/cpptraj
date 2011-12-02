@@ -18,7 +18,8 @@ class DataFile {
     bool noXcolumn;       ///< If true the Frame column will not be written.
     std::string xlabel;   ///< X axis label for grace plots
     int xcol_width;       ///< Width in chars of the X column
-    char *x_format;       ///< Format string for printing x coord
+    int xcol_precision;   ///< Precision of the X column
+    std::string x_format; ///< Format string for printing x coord
     std::string ylabel;   ///< Y axis label for grace plots
     int maxFrames;        ///< The largest X value of any sets in SetList
     std::string filename; ///< DataFile filename
@@ -31,6 +32,7 @@ class DataFile {
     bool useMap;
     bool printLabels;
 
+    void SetupXcolumn();
     void WriteGrace(CpptrajFile *);
     void WriteGraceInverted(CpptrajFile *);
     void WriteData(CpptrajFile *);

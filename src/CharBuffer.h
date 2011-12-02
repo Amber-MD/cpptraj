@@ -18,14 +18,10 @@ class CharBuffer {
 
     void Allocate(size_t);
     void IncreaseSize(size_t);
-    void AddCharString(char *);
     void Sprintf(const char *, ... ); 
-    //void WriteStringBuffer(char *); 
     void WriteDouble(const char*,double);
     void WriteInteger(const char*,int);
     void WriteString(const char*,const char*);
-    //void WriteString(const char*);
-    void WriteStringN(char *, int, bool);
     void WriteDoubleXYZ(const char*,double*);
     void NewLine();
     void Space();

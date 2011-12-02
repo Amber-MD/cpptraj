@@ -8,9 +8,9 @@ using namespace std;
 DataSet_XYZ::DataSet_XYZ() {
   width = 12;
   precision = 4;
-  totalwidth = 39;
+  totalwidth = 38;
   dType=XYZ;
-  setFormatString();
+  SetDataSetFormat(false);
 }
 
 /* DataSet_XYZ::Xmax(()
@@ -81,14 +81,14 @@ void DataSet_XYZ::WriteBuffer(CharBuffer &cbuffer, int frame) {
     darray[1] = yData[frame];
     darray[2] = zData[frame];
   }
-  cbuffer.WriteDoubleXYZ(format, darray);
+  cbuffer.WriteDoubleXYZ(data_format, darray);
 }
 
 
 /* DataSet_XYZ::Width()
  */
 int DataSet_XYZ::Width() {
-  return (totalwidth);
+  return (totalwidth + leadingSpace);
 }
 
 /* DataSet_XYZ::Sync()

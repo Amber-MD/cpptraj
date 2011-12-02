@@ -10,7 +10,7 @@ DataSet_float::DataSet_float() {
   width = 8;
   precision = 3;
   dType=FLOAT;
-  setFormatString();
+  SetDataSetFormat(false);
 }
 
 /* DataSet_float::Xmax(()
@@ -71,13 +71,13 @@ void DataSet_float::WriteBuffer(CharBuffer &cbuffer, int frame) {
     dval = 0.0;
   else
     dval = (double)(*datum).second;
-  cbuffer.WriteDouble(format, dval);
+  cbuffer.WriteDouble(data_format, dval);
 }
 
 /* DataSet_float::Width()
  */
 int DataSet_float::Width() {
-  return (width + 1);
+  return (width + leadingSpace);
 }
 
 /* DataSet_float::Sync()

@@ -1,39 +1,34 @@
 #ifndef INC_DATASET_H
 #define INC_DATASET_H
+#include <string>
 #include "CharBuffer.h"
 /// Type of data stored in DataSet
-enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT, XYZ, FLOAT}; 
+enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT, XYZ, FLOAT};
+/// Set a printf-style format string
+int SetFormatString(std::string&, dataType, int, int, bool);
 // Class: DataSet
 /// Base class that all dataset types will inherit.
-/** All classes inheriting the DataSet class must implement 7 routines:
-  * Allocate, isEmpty, Add, Get, WriteBuffer, Width, and Sync.
+/** All classes inheriting the DataSet class must implement 6 routines:
+  * isEmpty, Add, Get, WriteBuffer, Width, and Sync.
   */
 class DataSet {
   protected:
-    char *name;        ///< Name of the dataset
-    int idx;           ///< Dataset index
-    dataType dType;    ///< The dataset type
-    int N;             ///< Number of data elements
-    int current;       ///< The current data element
-    int width;         ///< The output width of a data element
-    int precision;     ///< The output precision of a data element (if applicable)
-    char *format;      ///< Format of output
-    bool isDynamic;    /**< True : N is not known, reallocate as N increases
-                            False: N is known, allocate for N */
-    /// Used to initialize the dataset. 
-    /** Allocate space for the number of frames to be read (passed in via
-      * Setup()). If the value passed in is <= 0 (i.e. isDynamic) the dataset is
-      * allocated dynamically. Allocate is called by Setup()
-      */
-      // NOTE: Currently all datasets make use of the C STL Map container, so
-      //       no explicit allocation is required.
-    virtual int Allocate( )      { return 0; }
-    /// Used to set the output format string based on dType
-    void setFormatString();
+    std::string name;   ///< Name of the dataset
+    int idx;            ///< Dataset index
+    dataType dType;     ///< The dataset type
+    int N;              ///< Number of data elements
+    int current;        ///< The current data element
+    int width;          ///< The output width of a data element
+    int precision;      ///< The output precision of a data element (if applicable)
+    int leadingSpace;   ///< 0 if leftAligned, 1 otherwise
+    std::string format; ///< Output format of data
+    const char *data_format;  ///< Used to avoid constant calls to c_str
+    std::string header_format;///< Output format of DataSet name
 
   public:
     DataSet();          // Constructor
     virtual ~DataSet(); // Destructor - virtual since this class is inherited
+
     // -----===== Inheritable functions =====-----
     /// Return the largest X/frame value added to set. 
     /** By convention this should be the last value added.
@@ -61,6 +56,7 @@ class DataSet {
     virtual double Max()                      { return 0; }
     /// Return the average/stdev of all values in the set
     virtual double Avg(double*)               { return 0; }
+
     // -----===== Public functions =====-----
     /// Set output precision
     void SetPrecision(int,int);
@@ -69,12 +65,15 @@ class DataSet {
     /// Print dataset information
     void Info();
     /// Write the dataset name to character buffer
-    void WriteNameToBuffer(CharBuffer &, bool);
+    void WriteNameToBuffer(CharBuffer &);
     /// Check if set has been written to, set format string.
     int CheckSet();
+    /// Used to set the data and header format strings 
+    int SetDataSetFormat(bool);
+
     // -----===== Functions that return private vars =====-----
     /// Dataset name
-    char *Name()           { return name;  }
+    char *Name()           { return (char*)name.c_str();  }
     /// Set dataset index
     void SetIdx(int idxIn) { idx = idxIn;  }
     /// Return dataset index

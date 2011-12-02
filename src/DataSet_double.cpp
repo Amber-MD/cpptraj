@@ -10,7 +10,7 @@ DataSet_double::DataSet_double() {
   width = 12;
   precision = 4;
   dType=DOUBLE;
-  setFormatString();
+  SetDataSetFormat(false);
 }
 
 /* DataSet_double::Xmax(()
@@ -125,13 +125,13 @@ void DataSet_double::WriteBuffer(CharBuffer &cbuffer, int frame) {
     dval = 0.0;
   else
     dval = (*it).second;
-  cbuffer.WriteDouble(format, dval);
+  cbuffer.WriteDouble(data_format, dval);
 }
 
 /* DataSet_double::Width()
  */
 int DataSet_double::Width() {
-  return (width + 1);
+  return (width + leadingSpace);
 }
 
 /* DataSet_double::Sync()

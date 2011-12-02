@@ -6,14 +6,14 @@
 
 /// CONSTRUCTOR
 DataFile::DataFile() {
-  noEmptyFrames=false;
-  noXcolumn=false;
-  Nsets=0;
   debug=0;
+  Nsets=0;
+  noEmptyFrames=false;
   isInverted=false;
-  maxFrames = 0;
+  noXcolumn=false;
   xcol_width = 0;
-  x_format = NULL;
+  xcol_precision = 3;
+  maxFrames = 0;
 
   xmin=1;
   xstep=1;
@@ -28,7 +28,7 @@ DataFile::DataFile(char *nameIn) {
   // Default xlabel value is Frame
   xlabel="Frame";
   xcol_width = 0;
-  x_format = NULL;
+  xcol_precision = 3;
   // Default ylabel value is blank
   ylabel="";
   noEmptyFrames=false;
@@ -49,7 +49,6 @@ DataFile::DataFile(char *nameIn) {
 /// DESTRUCTOR
 // Individual data sets are freed in DataSetList
 DataFile::~DataFile() {
-  if (x_format!=NULL) delete[] x_format;
 }
 
 // DataFile::SetDebug
@@ -227,6 +226,8 @@ void DataFile::Write() {
       if (maxSetFrames > currentMax) currentMax = maxSetFrames;
     }
   }
+  // Reset Nsets
+  Nsets = (int) SetList.size();
 
   // If all data sets are empty then no need to write
   if (SetList.empty()) {
@@ -269,32 +270,52 @@ void DataFile::Write() {
   outfile.CloseFile();
 }
 
+// DataFile::SetupXcolumn()
+/** Set up the format string for the x column (dataset indices). Ensure
+  * that the width of the x column is valid for the current X column
+  * precision.
+  */
+void DataFile::SetupXcolumn() {
+  // Determine the character width necessary to hold the largest X value
+  xcol_width = DigitWidth( maxFrames );
+  // If the width for the x column plus the characters needed for precision
+  // (plus 1 for decimal point) would be greater than 8, increment the 
+  // X column width by (precision+1).
+  if (xcol_precision!=0) {
+    int precision_width = xcol_width + xcol_precision + 1;
+    if ( precision_width > 8) xcol_width = precision_width;
+  }
+  // Default width for x col is at least 8
+  if (xcol_width < 8) xcol_width = 8;
+  // Set X column format string
+  SetFormatString(x_format, DOUBLE, xcol_width, xcol_precision, true);
+}
+  
+// DataFile::WriteXcoord()
+//void DataFile::WriteXcoord() {
+
+//}
+
 // DataFile::WriteData()
 /// Write datasets to file. Put each set in its own column. 
 void DataFile::WriteData(CpptrajFile *outfile) {
   int set,frame,empty;
   CharBuffer buffer;
   int lineSize = 0;
-  bool firstSet = true;
   size_t dataFileSize = 0;
   double xcoord;
-  int xcol_precision = 0; // Default x column precision is 0
+  //int xcol_precision = 0; // Default x column precision is 0
+  std::string x_header;
 
-  // Create format string for X column. If xstep is not 1, set precision to 3
-  xcol_width = DigitWidth( maxFrames );
-  if (xstep!=1) {
-    xcol_precision = 3; 
-    // If the width for the x column plus the characters needed for precision
-    // (3 + decimal point) would be greater than 8, increment the x column
-    // width by 4.
-    if ( xcol_width > 4 ) xcol_width+=4; 
-  } 
-  // Default width for x col is at least 8
-  if (xcol_width < 8) xcol_width = 8;
-  x_format = SetAlignedDoubleFormatString(xcol_width, xcol_precision);
-   
-  // Calculate overall size of the datafile. 
-  if (!noXcolumn) lineSize = xcol_width;
+  // Create format string for X column. If xstep is 1 set precision to 0
+  if (xstep == 1) xcol_precision = 0;
+  SetupXcolumn();
+
+  // Calculate overall size of the datafile.
+  if (!noXcolumn) 
+    lineSize = xcol_width;
+  else
+    SetList[0]->SetDataSetFormat(true);
   for (set=0; set<Nsets; set++)
     lineSize += SetList[set]->Width();
   // Add 1 to lineSize for newline
@@ -311,19 +332,16 @@ void DataFile::WriteData(CpptrajFile *outfile) {
 
   // Write header to buffer
   if (!noXcolumn) {
-    // NOTE: Calling WriteStringN with width-1 since it automatically inserts
-    //       a space along with the label (before or after according to 
-    //       leftAlign). Currently total width written with WriteStringN is
-    //       width+1. 
-    buffer.WriteStringN((char*)xlabel.c_str(),xcol_width-1,true); 
+    // For the file header, the first column should have a leading '#'
+    // character. Insert one at the beginning of xlabel and ensure the
+    // result is no greater than xcol_width.
+    xlabel.insert(0,"#");
+    xlabel.resize( xcol_width, ' ');
+    SetFormatString(x_header, STRING, xcol_width, 0, true); 
+    buffer.WriteString(x_header.c_str(),xlabel.c_str());
   }
-  for (set=0; set<Nsets; set++) {
-    if (noXcolumn && firstSet) {
-      SetList[set]->WriteNameToBuffer(buffer,true);
-      firstSet=false;
-    } else
-      SetList[set]->WriteNameToBuffer(buffer,false);
-  }
+  for (set=0; set<Nsets; set++) 
+    SetList[set]->WriteNameToBuffer(buffer);
   buffer.NewLine();
 
   // Write Data to buffer
@@ -339,7 +357,7 @@ void DataFile::WriteData(CpptrajFile *outfile) {
     // Output Frame
     if (!noXcolumn) {
       xcoord = (xstep * frame) + xmin;
-      buffer.WriteDouble(x_format,xcoord);
+      buffer.WriteDouble(x_format.c_str(),xcoord);
     }
     for (set=0; set<Nsets; set++) {
       SetList[set]->WriteBuffer(buffer,frame);
@@ -376,7 +394,7 @@ void DataFile::WriteDataInverted(CpptrajFile *outfile) {
       if (empty!=0) continue;
     }
     // Write dataset name as first column
-    SetList[set]->WriteNameToBuffer(buffer,false);
+    SetList[set]->WriteNameToBuffer( buffer );
     // Write each frame to subsequent columns
     for (frame=0; frame<maxFrames; frame++) {
       SetList[set]->WriteBuffer(buffer,frame);
@@ -395,14 +413,7 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
   size_t dataFileSize;
 
   // Create format string for X column. Default precision is 3
-  xcol_width = DigitWidth( maxFrames );
-  // If the width for the x column plus the characters needed for precision
-  // (3 + decimal point) would be greater than 8, increment the x column
-  // width by 4.
-  if ( xcol_width > 4 ) xcol_width+=4;
-  // Default width for x col is at least 8
-  if (xcol_width < 8) xcol_width = 8;
-  x_format = SetAlignedDoubleFormatString(xcol_width, 3);
+  SetupXcolumn();
 
   // Calculate file size:
   // 1) Initial Header: 91 + xlabel + ylabel
@@ -436,7 +447,7 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
         if ( SetList[set]->isEmpty(frame) ) continue; 
       }
       xcoord = (xstep * frame) + xmin;
-      buffer.WriteDouble(x_format,xcoord);
+      buffer.WriteDouble(x_format.c_str(),xcoord);
       SetList[set]->WriteBuffer(buffer,frame);
       buffer.NewLine();
     }
@@ -455,14 +466,7 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
   double xcoord;
 
   // Create format string for X column. Default precision is 3
-  xcol_width = DigitWidth( maxFrames );
-  // If the width for the x column plus the characters needed for precision
-  // (3 + decimal point) would be greater than 8, increment the x column
-  // width by 4.
-  if ( xcol_width > 4 ) xcol_width+=4;
-  // Default width for x col is at least 8
-  if (xcol_width < 8) xcol_width = 8;
-  x_format = SetAlignedDoubleFormatString(xcol_width, 3);
+  SetupXcolumn();
 
   // Calculate file size
   // 1) Initial header: 91 + xlabel + ylabel
@@ -500,7 +504,7 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
     // Loop over all Set Data for this frame
     for (set=0; set<Nsets; set++) {
       xcoord = (ystep * set) + ymin;
-      buffer.WriteDouble(x_format,xcoord);
+      buffer.WriteDouble(x_format.c_str(),xcoord);
       SetList[set]->WriteBuffer(buffer,frame);
       buffer.Sprintf(" \"%s\"",SetList[set]->Name());
       buffer.NewLine();
@@ -531,14 +535,7 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
   size_t dataFileSize, xycol, Erow, Eset, dataheader, Set_total;
 
   // Create format string for X and Y columns. Default precision is 3
-  xcol_width = DigitWidth( maxFrames );
-  // If the width for the x/y columns plus the characters needed for precision
-  // (3 + decimal point) would be greater than 8, increment the column
-  // width by 4.
-  if ( xcol_width > 4 ) xcol_width+=4;
-  // Default width for cols is at least 8
-  if (xcol_width < 8) xcol_width = 8;
-  x_format = SetAlignedDoubleFormatString(xcol_width, 3);
+  SetupXcolumn();
 
   // Turn off labels if number of sets is too large since they 
   // become unreadable. Should eventually have some sort of 
@@ -628,9 +625,9 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
     xcoord = (xstep * frame) + xmin;
     for (set=0; set < Nsets; set++) {
       ycoord = (ystep * set) + ymin;
-      buffer.WriteDouble(x_format,xcoord);
+      buffer.WriteDouble(x_format.c_str(),xcoord);
       buffer.Space();
-      buffer.WriteDouble(x_format,ycoord);
+      buffer.WriteDouble(x_format.c_str(),ycoord);
       buffer.Space();
       SetList[set]->WriteBuffer(buffer,frame);
       buffer.NewLine();
@@ -638,9 +635,9 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
     if (!useMap) {
       // Print one empty row for gnuplot pm3d without map
       ycoord = (ystep * set) + ymin;
-      buffer.WriteDouble(x_format,xcoord);
+      buffer.WriteDouble(x_format.c_str(),xcoord);
       buffer.Space();
-      buffer.WriteDouble(x_format,ycoord);
+      buffer.WriteDouble(x_format.c_str(),ycoord);
       buffer.Space();
       buffer.WriteInteger("%1i",0);
       buffer.NewLine();
@@ -652,9 +649,9 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
     xcoord = (xstep * frame) + xmin;
     for (set=0; set<=Nsets; set++) {
       ycoord = (ystep * set) + ymin;
-      buffer.WriteDouble(x_format,xcoord);
+      buffer.WriteDouble(x_format.c_str(),xcoord);
       buffer.Space();
-      buffer.WriteDouble(x_format,ycoord);
+      buffer.WriteDouble(x_format.c_str(),ycoord);
       buffer.Space();
       buffer.WriteInteger("%1i",0);
       buffer.NewLine();

@@ -3,10 +3,10 @@
 #include "Name.h"
 #include <cctype>
 
-/* PadWithSpaces()
- * For consistency with Amber names, replace any NULL in the first 4 chars
- * with spaces.
- */
+// PadWithSpaces()
+/** For consistency with Amber names, replace any NULL in the first 4 chars
+  * with spaces.
+  */
 void PadWithSpaces(NAME name) {
   if (name[0]=='\0') {
     name[0]=' ';
@@ -26,9 +26,8 @@ void PadWithSpaces(NAME name) {
   name[4]='\0';
 }
 
-/* TrimName()
- * Remove leading whitespace from NAME
- */
+// TrimName()
+/** Remove leading whitespace from NAME */
 void TrimName(NAME NameIn) {
   if        (NameIn[0]!=' ') { // No leading whitespace
     return; 
@@ -52,10 +51,10 @@ void TrimName(NAME NameIn) {
   return;
 } 
 
-/* WrapName()
- * Move leading characters that are digits to the back of the string until 
- * first char is alphabetic.
- */
+// WrapName()
+/** Move leading characters that are digits to the back of the string until 
+  * first char is alphabetic.
+  */
 void WrapName(NAME NameIn) {
   int i;
   int blank=-1;
@@ -90,11 +89,11 @@ void WrapName(NAME NameIn) {
   //fprintf(stderr,"NameOut= [%s]\n",NameIn);
 }
 
-/* ReplaceAsterisk()
- * Given a string of length 5 (4chars + 1 NULL) change any asterisk (*) to
- * prime ('). In cpptraj asterisks are considered reserved characters for
- * atom masks.
- */
+// ReplaceAsterisk()
+/** Given a string of length 5 (4chars + 1 NULL) change any asterisk (*) to
+  * prime ('). In cpptraj asterisks are considered reserved characters for
+  * atom masks.
+  */
 void ReplaceAsterisk(NAME NameIn) {
   if (NameIn[0]=='*') NameIn[0]='\'';
   if (NameIn[1]=='*') NameIn[1]='\'';

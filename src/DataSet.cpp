@@ -1,61 +1,109 @@
 // DataSet
-#include <cstring>
+#include <cstdio>
 #include "DataSet.h"
 #include "CpptrajStdio.h"
+
+// SetFormatString()
+/** Set up a printf-style format string with a leading space.
+  * \param formatString string to be set
+  * \param dType the dataType of the format string.
+  * \param width the width of the data
+  * \param precision the precision of the data (floating point only)
+  * \param leftAlign if true do not put a leading space in format string.
+  * \return 0 on success, 1 on error.
+  */
+int SetFormatString(std::string &formatString, dataType dType, int width, int precision, 
+                    bool leftAlign) 
+{
+  char *format = NULL;
+  int wWidth;
+  int pWidth;
+  size_t stringWidth;
+  char leftSpace[2];
+  char alignChar[2];
+
+  // If not left-aligned, set leading space
+  if (!leftAlign)
+    leftSpace[0]=' ';
+  else
+    leftSpace[0]='\0';
+  leftSpace[1]='\0';
+
+  // Calc num of chars necessary to hold width
+  wWidth = (width / 10) + 1;
+
+  switch (dType) {
+    case DOUBLE :
+    case FLOAT  :
+      // Calc num of chars necessary to hold precision
+      pWidth = (precision / 10) + 1;
+      // String fmt: " %w.plf\0"
+      stringWidth = pWidth + wWidth + 6;
+      format = new char [ stringWidth ];
+      sprintf(format, "%s%%%i.%ilf", leftSpace, width, precision);
+      break;
+    case STRING :
+      if (!leftAlign)
+        alignChar[0]='\0';
+      else
+        alignChar[0]='-';
+      alignChar[1]='\0';
+      // String fmt: " %-ws"
+      stringWidth = wWidth + 5;
+      format = new char[ stringWidth ];
+      sprintf(format, "%s%%%s%is", leftSpace, alignChar, width);
+      break;
+    case INT    :
+      // String fmt: " %wi"
+      stringWidth = wWidth + 4;
+      format = new char[ stringWidth ];
+      sprintf(format, "%s%%%ii", leftSpace, width);
+      break;
+    case XYZ :
+      // Calc num of chars necessary to hold precision
+      pWidth = (precision / 10) + 1;
+      // String fmt: "%w.plf %w.plf %w.plf\0"
+      stringWidth = pWidth + wWidth + 5;
+      stringWidth *= 3;
+      ++stringWidth;
+      format = new char[ stringWidth ];
+      sprintf(format, "%s%%%i.%ilf %%%i.%ilf %%%i.%ilf",leftSpace, 
+              width,precision,width,precision, width,precision);
+      break;
+    case UNKNOWN_DATA :
+      mprintf("Internal Error: SetFormatString called with unknown data type.\n");
+  }
+
+  if (format==NULL) { 
+    mprintf("Error: SetFormatString: Could not allocate memory for string.\n");
+    return 1;
+  // DEBUG
+  } else {
+    formatString.assign( format );
+    //mprintf("DEBUG: Format string: [%s]\n",format);
+    delete[] format;
+  }
+  return 0;
+} 
+// -----------------------------------------------------------------------------
 
 // CONSTRUCTOR
 DataSet::DataSet() {
   //fprintf(stderr,"DataSet Constructor.\n");
-  name=NULL;
   idx=-1;
   N=0;
-  isDynamic=false;
   current=0;
   width = 0;
   precision = 0;
-  format = NULL;
   dType = UNKNOWN_DATA;
+  data_format=NULL;
+  leadingSpace=1;
 }
 
 // DESTRUCTOR
 DataSet::~DataSet() {
   //fprintf(stderr,"DataSet Destructor\n");
-  if (name!=NULL) delete[] name;
-  if (format!=NULL) delete[] format;
 }
-
-// DataSet::setFormatString()
-/** Set up the output format string for each data element based on the given 
-  * dataType and the current width, and precision.
-  */
-// NOTE: Should this be split up and moved into the individual datasets?
-void DataSet::setFormatString() {
-  if (format!=NULL) {delete[] format; format=NULL;}
-
-  switch (dType) {
-    case DOUBLE :
-    case FLOAT  :
-      format = SetDoubleFormatString(width, precision);
-      break;
-    case STRING :
-      format = SetStringFormatString(width);
-      break;
-    case INT    :
-      format = SetIntegerFormatString(width);
-      break;
-    case XYZ :
-      format = SetXYZFormatString(width,precision);
-      break;
-    case UNKNOWN_DATA :
-      mprintf("Internal Error: setFormatString called with unknown data type.\n");
-  }
-
-  if (format==NULL) 
-    mprintf("Error: setFormatString: Could not allocate memory for string.\n");
-  // DEBUG
-  //else
-  //  mprintf("DEBUG: Format string: [%s]\n",format);
-}    
 
 // DataSet::SetPrecision()
 /** Set dataset width and precision and recalc output format string.
@@ -63,7 +111,7 @@ void DataSet::setFormatString() {
 void DataSet::SetPrecision(int widthIn, int precisionIn) {
   width=widthIn;
   precision=precisionIn;
-  setFormatString();
+  SetDataSetFormat(false);
 }
 
 // DataSet::Setup()
@@ -77,35 +125,26 @@ int DataSet::Setup(char *nameIn, int Nin) {
     mprintf("Dataset has no name.\n");
     return 1;
   }
-  name = new char[ strlen(nameIn)+1 ]; 
-  strcpy(name, nameIn);
+  name.assign( nameIn );
   // Dataset memory
   N=Nin;
-  if (N<=0) {
-    isDynamic=true;
-    N=0;
-  }
-  if ( this->Allocate() ) return 1;
+  if (N<=0) N=0;
+  
   return 0;
 }
 
 // DataSet::Info()
 void DataSet::Info() {
-  mprintf("    Data set %s",name);
-  mprintf(", size is ");
-  if (isDynamic)
-    mprintf("dynamic");
-  else
-    mprintf("%i",N);
-  mprintf(", current is %i",current);
-  mprintf(".\n");
+  mprintf("    Data set %s",name.c_str());
+  mprintf(", size is %i",N);
+  mprintf(", current is %i\n",current);
 }
 
 // DataSet::WriteNameToBuffer()
 /** Write the dataset name to the given character buffer.
   */
-void DataSet::WriteNameToBuffer(CharBuffer &cbuffer, bool leftAlign) {
-  cbuffer.WriteStringN(name,width,leftAlign);
+void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
+  cbuffer.WriteString(header_format.c_str(), name.c_str());
 }
 
 // DataSet::CheckSet()
@@ -117,8 +156,28 @@ void DataSet::WriteNameToBuffer(CharBuffer &cbuffer, bool leftAlign) {
   */
 int DataSet::CheckSet() {
   if (current==0) return 1;
-  setFormatString();
+  if (SetDataSetFormat(false)) return 1;
   //mprinterr("Dataset %s has format [%s]\n",name,format);
+  return 0;
+}
+
+// DataSet::SetDataSetFormat()
+/** Sets the output format strings for DataSet data and name.
+  * \param leftAlign if true the data and header will be left-aligned,
+  *        otherwise they will be preceded by a space.
+  * \return 0 on success, 1 on error.
+  */
+int DataSet::SetDataSetFormat(bool leftAlign) {
+  if (SetFormatString(format, dType, width, precision, leftAlign)) return 1;
+  data_format = format.c_str();
+  // If left aligning, add '#' to name. Ensure that name will not overflow
+  if (leftAlign) { 
+    if (name[0]!='#') name.insert(0, "#");
+    leadingSpace = 0;
+  } else
+    leadingSpace = 1;
+  if ((int)name.size() > width) name.resize( width );
+  if (SetFormatString(header_format, STRING, width, 0, leftAlign)) return 1;
   return 0;
 }
 

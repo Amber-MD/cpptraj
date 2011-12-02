@@ -9,7 +9,7 @@ using namespace std;
 DataSet_integer::DataSet_integer() {
   width=12;
   dType=INT;
-  setFormatString();
+  SetDataSetFormat(false);
 }
 
 /* DataSet_integer::Xmax(()
@@ -99,13 +99,13 @@ void DataSet_integer::WriteBuffer(CharBuffer &cbuffer, int frame) {
     ival = 0;
   else
     ival = (*it).second;
-  cbuffer.WriteInteger(format, ival);
+  cbuffer.WriteInteger(data_format, ival);
 }
 
 /* DataSet_integer::Width()
  */
 int DataSet_integer::Width() {
-  return (width + 1);
+  return (width + leadingSpace);
 }
 
 /* DataSet_integer::Sync()

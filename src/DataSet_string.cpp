@@ -9,7 +9,7 @@ using namespace std;
 DataSet_string::DataSet_string() {
   width=1;
   dType=STRING;
-  setFormatString();
+  SetDataSetFormat(false);
 }
 
 /* DataSet_string::Xmax(()
@@ -58,9 +58,9 @@ int DataSet_string::isEmpty(int frame) {
 void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
   it = Data.find( frame );
   if (it == Data.end())
-    cbuffer.WriteString(format,"NoData");
+    cbuffer.WriteString(data_format,"NoData");
   else
-    cbuffer.WriteString(format, (*it).second.c_str());
+    cbuffer.WriteString(data_format, (*it).second.c_str());
 }
 
 /* DataSet_string::Width()
@@ -69,7 +69,7 @@ void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
  * string.
  */
 int DataSet_string::Width() {
-  return (width + 1);
+  return (width + leadingSpace);
 }
 
 /* DataSet_string::Sync()

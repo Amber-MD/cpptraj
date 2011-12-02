@@ -3,8 +3,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-// This file was adapted from ptraj/actions.h for cpptraj
-// Dan Roe, Rutgers, November 2011
+/*! \file ptraj_actions.h
+    \brief Actions originally from Ptraj
+
+ This file has ptraj actions originally from actions.c that have not yet
+ been incorporated into the cpptraj framework. They have been modified
+ to use Cpptraj mask, distance, and torsion routines and are called from
+ Cpptraj via the PtrajAction class. 
+ Ptraj originally written by Thomas E. Cheatham III et al.
+ Adapted for cpptraj by Dan Roe, Rutgers, November 2001.
+ See $AMBERHOME/AmberTools/src/ptraj/contributors.h for more author info.
+ */
+
 // INCLUDES
 #include "ptraj_state.h" // ptrajState and mask parsing routines, modes
 

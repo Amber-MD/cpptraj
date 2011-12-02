@@ -7,9 +7,8 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG, PI
 
-/* normalize()
- * Normalize vector in a[].
- */
+// normalize()
+/** Normalize vector in a[].  */
 void normalize(double a[3]) {
   double b;
 
@@ -20,10 +19,12 @@ void normalize(double a[3]) {
   a[2] *= b;
 }
 
-/* vector_norm()
- * Normalize vector in V. Return vector length, and set r2 to
- * vector length squared.
- */
+// vector_norm()
+/** Normalize vector in V.
+  * \param V Vector to be normalized
+  * \param r2 will be set to the length^2
+  * \return vector length
+  */
 double vector_norm(double V[3], double *r2) {
   double b, r;
 
@@ -36,27 +37,24 @@ double vector_norm(double V[3], double *r2) {
   return r;
 }
 
-/* vector_sub()
- * V = U - W
- */
+// vector_sub()
+/** V = U - W */
 void vector_sub(double V[3], double U[3], double W[3]) {
   V[0] = U[0] - W[0];
   V[1] = U[1] - W[1];
   V[2] = U[2] - W[2];
 }
 
-/* vector_sum()
- * V = U + W
- */
+// vector_sum()
+/** V = U + W */
 void vector_sum(double V[3], double U[3], double W[3]) {
   V[0] = U[0] + W[0];
   V[1] = U[1] + W[1];
   V[2] = U[2] + W[2];
 }
 
-/* dot_product()
- * total = V . U
- */
+// dot_product()
+/** total = V . U */
 double dot_product(double V[3], double U[3]) {
   double total;
 
@@ -65,10 +63,10 @@ double dot_product(double V[3], double U[3]) {
   return total;
 }
 
-/* dot_product_angle()
- * Return the angle obtained from the dot product between vectors V 
- * and U. Only works correctly if V and U are normalized beforehand.
- */
+// dot_product_angle()
+/** Return the angle obtained from the dot product between vectors V 
+  * and U. Only works correctly if V and U are normalized beforehand.
+  */
 double dot_product_angle(double V[3], double U[3]) {
   double total;
 
@@ -79,10 +77,10 @@ double dot_product_angle(double V[3], double U[3]) {
   return acos(total);
 }
 
-/* matrix_transpose()
- * M = Ut
- * Columns of U become rows of M and vice versa.
- */
+// matrix_transpose()
+/** M = Ut
+  * Columns of U become rows of M and vice versa.
+  */
 void matrix_transpose(double M[9], double U[9]) {
   M[0] = U[0];
   M[1] = U[3];
@@ -95,9 +93,9 @@ void matrix_transpose(double M[9], double U[9]) {
   M[8] = U[8];
 }
 
-/* matrix_times_vector()
- * Multiple matrix R by vector V, store result in M
- */
+// matrix_times_vector()
+/** Multiple matrix R by vector V, store result in M
+  */
 void matrix_times_vector(double M[3], double R[9], double V[3]) {
   double x,y,z;
   // Store V so that M and V may overlap.
@@ -109,9 +107,9 @@ void matrix_times_vector(double M[3], double R[9], double V[3]) {
   M[2] = (R[6]*x) + (R[7]*y) + (R[8]*z);
 }
 
-/* matrix_multiply()
- * Multiple matrix R by vector V, store result in M
- */
+// matrix_multiply()
+/** Multiple matrix R by vector V, store result in M
+  */
 void matrix_multiply(double M[9], double Row[9], double Col[9]) {
   M[0] = (Row[0] * Col[0]) + (Row[1] * Col[3]) + (Row[2] * Col[6]);
   M[1] = (Row[0] * Col[1]) + (Row[1] * Col[4]) + (Row[2] * Col[7]);
@@ -124,13 +122,13 @@ void matrix_multiply(double M[9], double Row[9], double Col[9]) {
   M[8] = (Row[6] * Col[2]) + (Row[7] * Col[5]) + (Row[8] * Col[8]);
 }
 
-/* matrix_to_angle()
- * Return angle of rotation from rotation matrix according to
- * cos(t)=(trace(R)-1)/2
- * Equation taken from :
- *   3D game engine design: a practical approach to real-time Computer Graphics,
- *   Volume 385, By David H. Eberly, 2001, p. 16.
- */
+// matrix_to_angle()
+/** Return angle of rotation from rotation matrix according to
+  * cos(t)=(trace(R)-1)/2
+  * Equation taken from :
+  *   3D game engine design: a practical approach to real-time Computer Graphics,
+  *   Volume 385, By David H. Eberly, 2001, p. 16.
+  */
 double matrix_to_angle(double U[9]) {
   double trace;
 
@@ -141,15 +139,15 @@ double matrix_to_angle(double U[9]) {
   return acos(trace);
 }
 
-/* axis_of_rotation()
- * If theta is between 0 and pi extract axis of rotation from rotation matrix
- * U according to:
- *   R - Rt = (2 * sin(theta)) * S, where S is:
- *     0 -z  y
- *     z  0 -x
- *    -y  x  0
- * Place result in V.
- */
+// axis_of_rotation()
+/** If theta is between 0 and pi extract axis of rotation from rotation matrix
+  * U according to:
+  *   R - Rt = (2 * sin(theta)) * S, where S is:
+  *     0 -z  y
+  *     z  0 -x
+  *    -y  x  0
+  * Place result in V.
+  */
 int axis_of_rotation(double V[3], double U[9], double theta) {
   double dx;
   if (theta>0 && theta<PI) {
@@ -166,10 +164,10 @@ int axis_of_rotation(double V[3], double U[9], double theta) {
   return 1;
 }
 
-/* calcRotationMatrix()
- * Given an axis of rotation V and a magnitude (radians), calculate a 
- * rotation matrix and store it in T
- */
+// calcRotationMatrix()
+/** Given an axis of rotation V and a magnitude (radians), calculate a 
+  * rotation matrix and store it in T
+  */
 void calcRotationMatrix(double T[9], double V[3], double theta) {
   double ux2,uxuy,uxuz,uy2,uyuz,uz2,c,s,c1,uxs,uys,uzs;
 
@@ -201,10 +199,10 @@ void calcRotationMatrix(double T[9], double V[3], double theta) {
   T[8]=uz2 + ((1 - uz2) * c);
 }
 
-/* calcRotationMatrix()
- * Given rotations around the X, Y, and Z axes (radians), calculate a
- * rotation matrix and store it in T.
- */
+// calcRotationMatrix()
+/** Given rotations around the X, Y, and Z axes (radians), calculate a
+  * rotation matrix and store it in T.
+  */
 void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ) {
   double Psi;
   double V[3];
@@ -217,16 +215,14 @@ void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ) {
   calcRotationMatrix(T, V, Psi);
 }
 
-/* ROTATE()
- */
+// ROTATE()
 #define ROTATE(ARR,MAJ1,MIN1,MAJ2,MIN2) { \
   g = ARR[MAJ1 + MIN1]; \
   h = ARR[MAJ2 + MIN2]; \
   ARR[MAJ1 + MIN1] = g - s*(h+g*tau); \
   ARR[MAJ2 + MIN2] = h + s*(g-h*tau); }
 
-/* jacobi3()
- */
+// jacobi3()
 static int jacobi3(double *a, double *d, double *v, int *nrot) { 
 /* n must be 3.  see b[3] and z[3] below */
   int  i, j, ip, iq, p3, j3;
@@ -308,8 +304,7 @@ static int jacobi3(double *a, double *d, double *v, int *nrot) {
   return(0);
 }
 
-/* diagEsort()
- */
+// diagEsort()
 int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
   int njrot;
   int i, j, k, i3;
@@ -344,14 +339,12 @@ int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
   return(1);
 }
 
-/* printVector()
- */
+// printVector()
 void printVector(const char *Name, double V[3]) {
   mprintf("    %s: %8.4lf %8.4lf %8.4lf\n",Name,V[0], V[1], V[2]);
 }
 
-/* printMatrix()
- */
+// printMatrix()
 void printMatrix(const char *Title, double U[9]) {
   mprintf("    %s\n",Title);
   mprintf("     %8.4lf %8.4lf %8.4lf\n", U[0], U[1], U[2]);
@@ -359,8 +352,7 @@ void printMatrix(const char *Title, double U[9]) {
   mprintf("     %8.4lf %8.4lf %8.4lf\n", U[6], U[7], U[8]);
 }
 
-/* printRotTransInfo()
- */
+// printRotTransInfo()
 void printRotTransInfo(double U[9], double trans[6]) {
 
   printMatrix("Rotation matrix follows",U);

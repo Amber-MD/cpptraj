@@ -1,8 +1,8 @@
 // CharBuffer
+#include <cstring> // memcpy
 #include <cstdio>  // sprintf
 #include <cstdlib> // atof
 #include <cstdarg> // va_list
-#include <cstring> // memcpy
 #include "CharBuffer.h"
 
 // CONSTRUCTOR
@@ -42,30 +42,6 @@ void CharBuffer::IncreaseSize(size_t delta) {
   bufferSize = newsize;
 }
 
-// CharBuffer::AddCharString()
-/// Add NULL terminated char string to buffer, increasing size accordingly.
-void CharBuffer::AddCharString(char *inputString) {
-  // Calculate size necessary to accomodate input string
-  size_t inputStringSize = strlen(inputString);
-  size_t newBufferSize = inputStringSize + CurrentSize() + 1;
-  // Reallocate if the resulting buffer size greater than current allocation
-  if (newBufferSize > bufferSize) {
-    char *tempbuffer = new char[ newBufferSize ];
-    if (buffer!=NULL) {
-      memcpy(tempbuffer, buffer, bufferSize * sizeof(char));
-      delete[] buffer;
-    }
-    buffer = tempbuffer;
-    ptr = buffer + bufferSize;
-    bufferSize = newBufferSize;
-  }
-  // Copy inputstring to buffer.
-  memcpy(ptr, inputString, inputStringSize * sizeof(char));
-  // Add terminating NULL character
-  ptr += inputStringSize;
-  *ptr = '\0';
-}
-
 // CharBuffer::CurrentSize()
 /// Return the size of the data that has been currently written to the buffer.
 size_t CharBuffer::CurrentSize() {
@@ -84,35 +60,11 @@ void CharBuffer::Sprintf(const char *fmt, ... ) {
   ptr += n_char_written;
 }
   
-/* CharBuffer::WriteStringBuffer()
- */
-/*
-void CharBuffer::WriteStringBuffer(char *sval) {
-  size_t len = 0;
-  char *s_ptr = sval;
-  while (*s_ptr!='\0') {
-    s_ptr++;
-    len++;
-  }
-  size_t currentSize = CurrentSize();
-  size_t newSize = currentSize + len + 1;
-  // If not enough room to add sval to buffer, reallocate buffer
-  if ( newSize > bufferSize ) {
-    char *newBuffer = new char[ newSize ];
-    memcpy(newBuffer, buffer, currentSize * sizeof(char));
-    delete[] buffer;
-    buffer = newBuffer;
-    // Reposition ptr to same place it was in old buffer
-    ptr = buffer + currentSize;
-  }
-  strcpy(ptr, sval);
-  ptr += (len + 1); // +1 for NULL
-}*/
-
 // CharBuffer::WriteDouble()
 /// Write a double to the buffer with given format.
 void CharBuffer::WriteDouble(const char *format, double dval) {
   int n_char_written;
+  //printf("DEBUG:\tWriteDouble[%s, %lf]\n",format, dval);
   n_char_written = sprintf(ptr, format, dval);
   ptr += n_char_written;
 }
@@ -121,6 +73,7 @@ void CharBuffer::WriteDouble(const char *format, double dval) {
 /// Write an integer to the buffer with given format.
 void CharBuffer::WriteInteger(const char *format, int ival) {
   int n_char_written;
+  //printf("DEBUG:\tWriteInteger[%s, %i]\n",format, ival);
   n_char_written = sprintf(ptr, format, ival);
   ptr += n_char_written;
 }
@@ -129,40 +82,8 @@ void CharBuffer::WriteInteger(const char *format, int ival) {
 /// Write a string to the buffer with given format.
 void CharBuffer::WriteString(const char *format, const char *sval) {
   int n_char_written;
+  //printf("DEBUG:\tWriteString[%s, %s]\n",format, sval);
   n_char_written = sprintf(ptr, format, sval);
-  ptr += n_char_written;
-}
-
-/* CharBuffer::WriteString()
- */
-/*void CharBuffer::WriteString(const char *sval) {
-  int n_char_written;
-  n_char_written = sprintf(ptr, "%s", sval);
-  ptr += n_char_written;
-}*/
-
-// CharBuffer::WriteStringN()
-/** Write a string to the buffer with given width. If the string is larger
-  * than <width>, truncate it. If leftAlign is specified align the string
-  * to the left, preceded by '#'. Also write a space, so that the total
-  * number of characters written is always <width> + 1.
-  */
-void CharBuffer::WriteStringN(char *sval, int width, bool leftAlign) {
-  int c, n_char_written, actualWidth;
-  actualWidth = width;
-  if (leftAlign) actualWidth--;
-  char *temps = new char[ actualWidth + 1];
-  for (c = 0; c < actualWidth; c++) { 
-    temps[c] = sval[c];
-    if (temps[c]=='\0') break;
-  }
-  temps[c]='\0';
-  if (leftAlign)
-    n_char_written = sprintf(ptr, "#%-*s ",actualWidth,temps);
-  else
-    n_char_written = sprintf(ptr, " %*s",actualWidth,temps);
-  //printf("DEBUG:\tWriteStringN(%s) width=%i n_char_written=%i\n",sval,width,n_char_written);
-  delete[] temps;
   ptr += n_char_written;
 }
 

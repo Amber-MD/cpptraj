@@ -1,6 +1,5 @@
-/*! \file PtrajMask.cpp
-    \brief Original ptraj mask parser by V.Hornak with enhancements from D.Roe
-
+/*! \file PtrajMask.h
+    \details
  *  This is code for an enhanced atom mask parser developed by Viktor Hornak
  *  at SUNY Stony Brook (Stony Brook University), in March of 2003.  Cheatham
  *  long sat on this very nice code that greatly extends the capabilities (and
@@ -33,17 +32,18 @@
  * Steps (2) and (3) are done through stack as described in one of the
  * Knuth's papers (as well as many other textbooks).
  *
- * The syntax for elementary selections is the following
- * :{residue numlist}      e.g. [:1-10] [:1,3,5] [:1-3,5,7-9]
- * :{residue namelist}     e.g. [:LYS] [:ARG,ALA,GLY]
- * @{atom numlist}         e.g. [@12,17] [@54-85] [@12,54-85,90]
- * @{atom namelist}        e.g. [@CA] [@CA,C,O,N,H]
- * @%{atom type namelist}  e.g. [@%CT] [@%N*,H] 
- * @/{element namelist}    e.g. [@/H] [@/C,H] (can be achieved as [@C*,H*])
- * Distance selection '<:', '>:', (residue based), and '<@', '>@', (atom based)
- *   You need to provide a reference structure (use "reference" command in ptraj) 
+ * The syntax for elementary selections is the following:
+ * - :{residue numlist}      e.g. [:1-10] [:1,3,5] [:1-3,5,7-9]
+ * - :{residue namelist}     e.g. [:LYS] [:ARG,ALA,GLY]
+ * - @{atom numlist}         e.g. [@12,17] [@54-85] [@12,54-85,90]
+ * - @{atom namelist}        e.g. [@CA] [@CA,C,O,N,H]
+ * - @%{atom type namelist}  e.g. [@%CT] [@%N*,H] 
+ * - @/{element namelist}    e.g. [@/H] [@/C,H] (can be achieved as [@C*,H*])
+ * 
+ * Distance selection '<:', '>:', (residue based), and '<@', '>@', (atom based).
+ *   You need to provide a reference structure (use "reference" command) 
  *   for the coordinates of atoms to use this feature.
- *   e.g.  [:11-17 <@ 2.4]   all atoms within 2.4 A distance to :11-17
+ * - e.g.  [:11-17 <@ 2.4]   all atoms within 2.4 A distance to :11-17
  * 
  * Wild characters:
  * - '*' -- zero or more characters.
@@ -56,22 +56,23 @@
  * The matching is case sensitive.
  *
  * compound expressions of the following type are allowed:
- * :{residue numlist | namelist}@{atom namelist | numlist | typelist}
+ * - :{residue numlist | namelist}@{atom namelist | numlist | typelist}
+ *
  * and are processed as (i.e. replaced by two AND'ed expressions):  
- * :{residue numlist | namelist} & @{atom namelist | numlist | typelist}
- * e.g.  :1-10@CA    is equivalent to   :1-10 & @CA
- *       :LYS@/H     is equivalent to   :LYS & @/H
+ * - :{residue numlist | namelist} & @{atom namelist | numlist | typelist}
+ * -  :1-10@CA    is equivalent to   :1-10 & @CA
+ * -  :LYS@/H     is equivalent to   :LYS & @/H
  *
  * more examples:
- * :ALA,TRP     ... all alanine and tryptophane residues
- * :5,10@CA     ... CA carbon in residues 5 and 10 
- * :* & !@/H    ... all non-hydrogen atoms (equivalent to "!@/H")
- * @CA,C,O,N,H  ... all backbone atoms
- * !@CA,C,O,N,H ... all non-backbone atoms (=sidechains for proteins only)
- * :1-500@O & !(:WAT | :LYS,ARG)
+ * - :ALA,TRP     ... all alanine and tryptophane residues
+ * - :5,10@CA     ... CA carbon in residues 5 and 10 
+ * - :* & !@/H    ... all non-hydrogen atoms (equivalent to "!@/H")
+ * - @CA,C,O,N,H  ... all backbone atoms
+ * - !@CA,C,O,N,H ... all non-backbone atoms (=sidechains for proteins only)
+ * - :1-500@O & !(:WAT | :LYS,ARG)
  *              ... all backbone oxygens in residues 1-500 but not in 
  *                  water, lysine or arginine residues
- * :LIG <: 5.0 & !@H= & !:LIG
+ * - :LIG <: 5.0 & !@H= & !:LIG
  *              ... all heavy atoms in the residues within 5.0 A distance 
  *                  to :LIG but excluding :LIG
  *
@@ -82,9 +83,9 @@
  * - some static buffers during processing of maskString are set up 
  *   and this limits the length of selection string to MAXSELE (as defined in mask.h)
  * 
- * prnlev = 0   ... prints almost nothing
- * prnlev = > 5 ... prints original, tokenized, and rpn form of maskstring
- * prnlev = > 7 ... in addition prints mask array after eval() routine
+ * prnlev = 0   ... prints almost nothing\n
+ * prnlev = > 5 ... prints original, tokenized, and rpn form of maskstring\n
+ * prnlev = > 7 ... in addition prints mask array after eval() routine\n
  */ 
 // TODO: (in order)
 // - code needs to be cleaned up to free allocated memory on exit
