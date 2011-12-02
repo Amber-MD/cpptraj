@@ -27,7 +27,7 @@ static void Usage(char *programName) {
  * Leading and consectuive whitespace is skipped. \n or NULL executes command.
  * 'go' or EOF ends input read. lines ending with \ continue to the next line.
  */
-static int ProcessInputStream(char *inputFilename, CpptrajState *State) {
+static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
   FILE *infile;
   char ptr,lastchar;
   char inputLine[BUFFER_SIZE]; // Careful, could blow this
@@ -77,7 +77,7 @@ static int ProcessInputStream(char *inputFilename, CpptrajState *State) {
       if (isStdin && strncmp(inputLine,"quit",4)==0) return 1;
       mprintf("  [%s]\n",inputLine);
       // Call Dispatch to convert input to arglist and process.
-      State->Dispatch(inputLine); 
+      State.Dispatch(inputLine); 
       // Reset Input line
       memset(inputLine,' ',BUFFER_SIZE);
       i=0;
@@ -127,7 +127,7 @@ static int ProcessInputStream(char *inputFilename, CpptrajState *State) {
  * \return 1 if unrecognized input on command line, 2 if ProcessInputStream indicates 
  *         we should just quit.
  */
-static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
+static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState &State) {
   char *inputFilename = NULL;
   int debug=0; 
 
@@ -145,7 +145,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
     } else if (strcmp(argv[i],"-p")==0 && i+1!=argc) {
       i++;
       if (debug>0) mprintf("Adding topology file from command line: %s\n", argv[i]);
-      State->parmFileList.AddParmFile(argv[i]);
+      State.parmFileList.AddParmFile(argv[i]);
 
     // -i: Input file
     } else if (strcmp(argv[i],"-i")==0 && i+1!=argc) {
@@ -157,7 +157,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
     } else if (strcmp(argv[i],"-debug")==0 && i+1!=argc) {
       i++;
       debug = atoi(argv[i]);
-      State->SetGlobalDebug( debug );
+      State.SetGlobalDebug( debug );
 
     // Print information on compiler defines used and exit
     } else if (strcmp(argv[i],"--defines")==0) {
@@ -188,7 +188,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState *State) {
     // The following 2 are for backwards compatibility with PTRAJ
     // Position 1: TOP file
     } else if (i==1) {
-      State->parmFileList.AddParmFile(argv[i]);
+      State.parmFileList.AddParmFile(argv[i]);
     // Position 2: INPUT file
     } else if (i==2) {
       inputFilename=argv[i];
@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
   mprintf("Running on %i processors\n\n",worldsize);
 #endif
 
-  err = ProcessCmdLineArgs(argc,argv,&State);
+  err = ProcessCmdLineArgs(argc,argv,State);
   switch ( err ) {
     case 0 : State.Run(); break;
     case 1 : Usage(argv[0]); break;
