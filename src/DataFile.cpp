@@ -1,5 +1,4 @@
 //DataFile
-#include <cstdlib>
 #include <cstring>
 #include "DataFile.h"
 #include "CpptrajStdio.h"
@@ -7,13 +6,9 @@
 
 /// CONSTRUCTOR
 DataFile::DataFile() {
-  xlabel=NULL;
-  ylabel=NULL;
   noEmptyFrames=false;
   noXcolumn=false;
-  filename=NULL;
   Nsets=0;
-  filename=NULL;
   debug=0;
   isInverted=false;
   maxFrames = 0;
@@ -31,19 +26,15 @@ DataFile::DataFile() {
 /// CONSTRUCTOR - Arg is datafile name
 DataFile::DataFile(char *nameIn) {
   // Default xlabel value is Frame
-  xlabel=(char*) malloc( 6 * sizeof(char));
-  strcpy(xlabel,"Frame");
+  xlabel="Frame";
   xcol_width = 0;
   x_format = NULL;
   // Default ylabel value is blank
-  ylabel=(char*) malloc( sizeof(char));
-  strcpy(ylabel,"");
+  ylabel="";
   noEmptyFrames=false;
   noXcolumn=false;
-  filename=NULL;
   Nsets=0;
-  filename=(char*) malloc( (strlen(nameIn)+1) * sizeof(char));
-  strcpy(filename,nameIn);
+  filename.assign(nameIn);
   debug=0;
   isInverted=false;
   maxFrames = 0;
@@ -58,9 +49,6 @@ DataFile::DataFile(char *nameIn) {
 /// DESTRUCTOR
 // Individual data sets are freed in DataSetList
 DataFile::~DataFile() {
-  if (filename!=NULL) free(filename);
-  if (xlabel!=NULL) free(xlabel);
-  if (ylabel!=NULL) free(ylabel);
   if (x_format!=NULL) delete[] x_format;
 }
 
@@ -70,7 +58,7 @@ void DataFile::SetDebug(int debugIn) {
   if (debug==debugIn) return;
   debug=debugIn;
   if (debug>0)
-    mprintf("DataFile %s DEBUG LEVEL SET TO %i\n",filename,debug);
+    mprintf("DataFile %s DEBUG LEVEL SET TO %i\n",filename.c_str(),debug);
 }
 
 // DataFile::SetNoXcol
@@ -88,15 +76,13 @@ void DataFile::SetNoEmptyFrames() {
 // DataFile::SetXlabel()
 void DataFile::SetXlabel(char *labelIn) {
   if (labelIn==NULL) return;
-  xlabel = (char*) realloc ( xlabel, (strlen(labelIn)+1) * sizeof(char) );
-  strcpy(xlabel,labelIn);
+  xlabel.assign(labelIn);
 }
 
 // DataFile::SetYlabel()
 void DataFile::SetYlabel(char *labelIn) {
   if (labelIn==NULL) return;
-  ylabel = (char*) realloc ( ylabel, (strlen(labelIn)+1) * sizeof(char) );
-  strcpy(ylabel,labelIn);
+  ylabel.assign(labelIn);
 }
 
 // DataFile::SetInverted()
@@ -144,7 +130,7 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
     return;
   }
   if (widthIn<1) {
-    mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",filename);
+    mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",filename.c_str());
     return;
   }
   precision=precisionIn;
@@ -152,7 +138,7 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
   // If <dsetName>=='*' specified set precision for all data sets
   if (dsetName[0]=='*') {
     mprintf("    Setting width.precision for all sets in %s to %i.%i\n",
-            filename,widthIn,precision);
+            filename.c_str(),widthIn,precision);
     for (dset=0; dset<Nsets; dset++)
       SetList[dset]->SetPrecision(widthIn,precision);
 
@@ -169,7 +155,7 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
     if (Dset!=NULL)
       Dset->SetPrecision(widthIn,precision);
     else
-      mprintf("Error: Dataset %s not found in datafile %s\n",dsetName,filename);
+      mprintf("Error: Dataset %s not found in datafile %s\n",dsetName,filename.c_str());
   }
 }
 
@@ -185,7 +171,7 @@ int DataFile::AddSet(DataSet *Din) {
 // DataFile::NameIs()
 /// Return true if datafile name matches nameIn
 bool DataFile::DataFileNameIs(char *nameIn) {
-  if (strcmp(nameIn, filename)==0) return true;
+  if (filename.compare( nameIn )==0) return true;
   return false;
 }
 
@@ -229,7 +215,7 @@ void DataFile::Write() {
     // If set has no data, remove it
     if ( (*Dset)->CheckSet() ) {
       mprintf("Warning: DataFile %s: Set %s contains no data - skipping.\n",
-              filename, (*Dset)->Name());
+              filename.c_str(), (*Dset)->Name());
       // Remove
       SetList.erase( Dset );
       // Set Dset to new end
@@ -244,15 +230,15 @@ void DataFile::Write() {
 
   // If all data sets are empty then no need to write
   if (SetList.empty()) {
-    mprintf("Warning: DataFile %s has no sets containing data - skipping.\n",filename);
+    mprintf("Warning: DataFile %s has no sets containing data - skipping.\n",filename.c_str());
     return;
   }
 
   // Since currentMax is the last frame, increment currentMax by 1 for use in for loops
   maxFrames = currentMax + 1;
-  //mprintf("DEBUG: Max frames for %s is %i (maxFrames=%i)\n",filename,currentMax,maxFrames);
+  //mprintf("DEBUG: Max frames for %s is %i (maxFrames=%i)\n",filename.c_str(),currentMax,maxFrames);
 
-  if (outfile.SetupFile(filename,WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,debug)) return;
+  if (outfile.SetupFile((char*)filename.c_str(),WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,debug)) return;
   if (outfile.OpenFile()) return;
 
   // If format is unknown default to DATAFILE
@@ -277,7 +263,7 @@ void DataFile::Write() {
         mprintf("Warning: Gnuplot format does not support invert; printing standard.\n");
       this->WriteGnuplot(&outfile);
       break;
-    default       : mprintf("Error: Datafile %s: Unknown type.\n",filename);
+    default       : mprintf("Error: Datafile %s: Unknown type.\n",filename.c_str());
   }
 
   outfile.CloseFile();
@@ -329,7 +315,7 @@ void DataFile::WriteData(CpptrajFile *outfile) {
     //       a space along with the label (before or after according to 
     //       leftAlign). Currently total width written with WriteStringN is
     //       width+1. 
-    buffer.WriteStringN(xlabel,xcol_width-1,true); 
+    buffer.WriteStringN((char*)xlabel.c_str(),xcol_width-1,true); 
   }
   for (set=0; set<Nsets; set++) {
     if (noXcolumn && firstSet) {
@@ -420,7 +406,7 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
 
   // Calculate file size:
   // 1) Initial Header: 91 + xlabel + ylabel
-  dataFileSize = (91 + strlen(xlabel) + strlen(ylabel));
+  dataFileSize = (91 + xlabel.size() + ylabel.size());
   // 2) Set Headers: 37 + 8 + SetName + 8 (fixing integers at size 8)
   //    Check that number of sets will not require > 8 chars
   if (DigitWidth(Nsets) > 8) {
@@ -436,7 +422,7 @@ void DataFile::WriteGrace(CpptrajFile *outfile) {
   buffer.Allocate( dataFileSize );
 
   // Grace header
-  buffer.Sprintf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",xlabel,ylabel);
+  buffer.Sprintf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",xlabel.c_str(),ylabel.c_str());
 
   // Loop over sets in data
   for (set=0; set<Nsets; set++) {
@@ -480,7 +466,7 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
 
   // Calculate file size
   // 1) Initial header: 91 + xlabel + ylabel
-  dataFileSize = (91 + strlen(xlabel) + strlen(ylabel));
+  dataFileSize = (91 + xlabel.size() + ylabel.size());
   // 2) Set Headers: (22 + 8) * maxFrames  (fixing integers at size 8)
   //    Check that number of frames will not require > 8 chars
   if (DigitWidth(maxFrames) > 8) {
@@ -496,7 +482,7 @@ void DataFile::WriteGraceInverted(CpptrajFile *outfile) {
   buffer.Allocate(dataFileSize);
 
   // Grace Header
-  buffer.Sprintf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",ylabel,xlabel);
+  buffer.Sprintf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",ylabel.c_str(),xlabel.c_str());
 
   // Loop over frames
   for (frame=0; frame<maxFrames; frame++) {
@@ -559,14 +545,14 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
   // autotick option.
   if (printLabels && Nsets > 30 ) {
     mprintf("Warning: %s: gnuplot - number of sets %i > 30, turning off Y labels.\n",
-            filename,Nsets);
+            filename.c_str(),Nsets);
     printLabels=false;
   }
 
   // Calculate data file size
   // 1) Label, range, plot, and end commands:
   //    87 + xlabel + ylabel + [4*8] + filename + 13
-  dataFileSize = 132 + strlen(xlabel) + strlen(ylabel) + strlen(filename);
+  dataFileSize = 132 + xlabel.size() + ylabel.size() + filename.size();
   // 2) Data labels:
   //    22 + 8 + 8 + 2 + SUM[Nsets]:(4+8+SetName)
   if (printLabels) {
@@ -633,7 +619,9 @@ void DataFile::WriteGnuplot(CpptrajFile *outfile) {
   // Make Xrange +1 and -1 as well
   xcoord = (xstep * maxFrames) + xmin;
   buffer.Sprintf("set xlabel \"%s\"\nset ylabel \"%s\"\nset yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\nsplot \"-\" with pm3d title \"%s\"\n",
-                 xlabel,ylabel,ymin-ystep,ycoord+ystep,xmin-xstep,xcoord+xstep,filename);
+                 xlabel.c_str(),ylabel.c_str(),
+                 ymin-ystep,ycoord+ystep,
+                 xmin-xstep,xcoord+xstep,filename.c_str());
 
   // Data
   for (frame=0; frame < maxFrames; frame++) {

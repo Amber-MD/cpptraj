@@ -498,7 +498,7 @@ void Rmsd::print() {
     if (perresinvert) 
       outFile->SetInverted();
     mprintf("    RMSD: Per-residue: Writing data for %i residues to %s\n",
-            PerResRMSD->Size(), outFile->filename);
+            PerResRMSD->Size(), outFile->Filename());
   }
 
   // Average

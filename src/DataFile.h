@@ -1,6 +1,7 @@
 #ifndef INC_DATAFILE_H
 #define INC_DATAFILE_H
 #include <vector>
+#include <string>
 #include "DataSet.h"
 #include "CpptrajFile.h"
 // Class: DataFile
@@ -12,14 +13,15 @@ class DataFile {
     int debug;
     std::vector<DataSet*> SetList;  ///< Will point to addresses in a DataSetList;
     int Nsets;
-    bool noEmptyFrames; ///< If true, frames in which no sets have data will be skipped
-    bool isInverted;    ///< If true sets will be written in rows instead of columns
-    bool noXcolumn;     ///< If true the Frame column will not be written.
-    char *xlabel;       ///< X axis label for grace plots
-    int xcol_width;     ///< Width in chars of the X column
-    char *x_format;     ///< Format string for printing x coord
-    char *ylabel;       ///< Y axis label for grace plots
-    int maxFrames;      ///< The largest X value of any sets in SetList
+    bool noEmptyFrames;   ///< If true, frames in which no sets have data will be skipped
+    bool isInverted;      ///< If true sets will be written in rows instead of columns
+    bool noXcolumn;       ///< If true the Frame column will not be written.
+    std::string xlabel;   ///< X axis label for grace plots
+    int xcol_width;       ///< Width in chars of the X column
+    char *x_format;       ///< Format string for printing x coord
+    std::string ylabel;   ///< Y axis label for grace plots
+    int maxFrames;        ///< The largest X value of any sets in SetList
+    std::string filename; ///< DataFile filename
 
     double xmin;
     double xstep;
@@ -35,7 +37,6 @@ class DataFile {
     void WriteDataInverted(CpptrajFile *);
     void WriteGnuplot(CpptrajFile *);
   public:
-    char *filename;
 
     DataFile();
     DataFile(char *);
@@ -56,5 +57,7 @@ class DataFile {
     bool DataFileNameIs(char *);
     void DataSetNames();
     void Write();
+
+    const char *Filename() { return filename.c_str(); }
 };    
 #endif

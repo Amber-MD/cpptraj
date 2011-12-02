@@ -96,7 +96,7 @@ void DataFileList::Info() {
 
   mprintf("DATAFILE OUTPUT:\n");
   for (it = fileList.begin(); it != fileList.end(); it++) {
-    mprintf("  %s: ",(*it)->filename);
+    mprintf("  %s: ",(*it)->Filename());
     (*it)->DataSetNames();
     mprintf("\n");
   }

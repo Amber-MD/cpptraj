@@ -100,7 +100,7 @@ int Closest::init( ) {
   if (firstAtom)
     mprintf("             Only first atom of solvent molecule used for distance calc.\n");
   if (outFile!=NULL)
-    mprintf("             Closest molecules will be saved to %s\n",outFile->filename);
+    mprintf("             Closest molecules will be saved to %s\n",outFile->Filename());
   if (prefix!=NULL)
     mprintf("             Stripped topology file will be written with prefix %s\n",prefix);
 
