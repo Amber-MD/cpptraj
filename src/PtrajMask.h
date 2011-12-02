@@ -2,6 +2,7 @@
 #define INC_PTRAJMASK_H
 /*! \file PtrajMask.h
     \brief The enhanced atom selection mask parser from ptraj.
+
   Originally written by Viktor Hornak, Stony Brook University.
   Adapted as standalone code by Dan Roe, NIST.
   The NAME parameters control how the mask parser expects strings to look.

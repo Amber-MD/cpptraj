@@ -1,10 +1,10 @@
-/*
- * CpptrajStdio
- * Interface between Cpptraj and stdio.
- * May want to print messages in a parallel environment but dont want
- * to include all the parallel functionality.   
- * Also provide nice wrapping for warnings and error messages.
- * NOTE: Add ifdefs around worldrank stuff?
+/*! \file CpptrajStdio.cpp
+    \brief Interface between Cpptraj and stdio.
+
+  May want to print messages in a parallel environment but dont want
+  to include all the parallel functionality.   
+  Also provide nice wrapping for warnings and error messages.
+  NOTE: Add ifdefs around worldrank stuff?
  */
 #include <cstdio>
 #include <cstdarg>
@@ -18,9 +18,8 @@
 #  include "MpiRoutines.h"
 #endif
 
-/* mflush()
- * Call flush on STDOUT only if this is the master thread
- */
+// mflush()
+/** Call flush on STDOUT only if this is the master thread */
 void mflush() {
 #ifdef MPI
   if (worldrank!=0) return;
@@ -28,9 +27,8 @@ void mflush() {
   fflush(stdout);
 }
 
-/* mprintf()
- * Print message to STDOUT only if this is the master thread
- */
+// mprintf()
+/** Print message to STDOUT only if this is the master thread */
 void mprintf(const char *format, ...) {
   va_list args;
 
@@ -42,9 +40,8 @@ void mprintf(const char *format, ...) {
   va_end(args);
 }
 
-/* mprinterr()
- * Print message to STDERR only if this is the master thread
- */
+// mprinterr()
+/** Print message to STDERR only if this is the master thread */
 void mprinterr(const char *format, ...) {
   va_list args;
 
@@ -56,9 +53,8 @@ void mprinterr(const char *format, ...) {
   va_end(args);
 }
 
-/* rprintf()
- * Print message to STDOUT for this worldrank
- */
+// rprintf()
+/** Print message to STDOUT for this worldrank */
 void rprintf(const char *format, ...) {
   va_list args;
 
@@ -71,9 +67,8 @@ void rprintf(const char *format, ...) {
   return;
 }
 
-/* rprinterr()
- * Print message to STDERR for this worldrank
- */
+// rprinterr()
+/** Print message to STDERR for this worldrank */
 void rprinterr(const char *format, ...) {
   va_list args;
 
@@ -86,9 +81,8 @@ void rprinterr(const char *format, ...) {
   return;
 }
 
-/* printerr()
- * Print error message along with calling routine.
- */
+// printerr()
+/** Print error message along with calling routine.  */
 void printerr(const char *ROUTINE, const char *format, ...) {
   va_list args;
 
@@ -102,9 +96,8 @@ void printerr(const char *ROUTINE, const char *format, ...) {
   return;
 }
 
-/* printwar()
- * Print warning message along with calling routine.
- */
+// printwar()
+/** Print warning message along with calling routine.  */
 void printwar(const char *ROUTINE, const char *format, ...) {
   va_list args;
 
@@ -118,11 +111,11 @@ void printwar(const char *ROUTINE, const char *format, ...) {
   return;
 }
 
-/* tildeExpansion()
- * Use glob.h to perform tilde expansion on a filename, returning the 
- * expanded filename. The calling function is responsible for freeing
- * memory allocated with tildeExpansion.
- */
+// tildeExpansion()
+/** Use glob.h to perform tilde expansion on a filename, returning the 
+  * expanded filename. The calling function is responsible for freeing
+  * memory allocated with tildeExpansion.
+  */
 char *tildeExpansion(char *filenameIn, int debug) {
   char *returnFilename;
 #ifdef __PGI
@@ -148,9 +141,8 @@ char *tildeExpansion(char *filenameIn, int debug) {
 #endif
 } 
 
-/* fileExists()
- * Return true if file can be opened "r".
- */
+// fileExists()
+/** Return true if file can be opened "r".  */
 bool fileExists(char *filenameIn) {
   FILE *infile = NULL;
   char *fname;
@@ -165,11 +157,11 @@ bool fileExists(char *filenameIn) {
   return true;
 }
 
-/* NumberFilename()
- * Given a filename and a number, append number to filename, i.e.
- * filename.number.
- * The buffer should have enough space to handle the append.
- */
+// NumberFilename()
+/** Given a filename and a number, append number to filename, i.e.
+  * filename.number.
+  * The buffer should have enough space to handle the append.
+  */
 void NumberFilename(char *buffer, char *filenameIn, int number) {
   sprintf(buffer,"%s.%i",filenameIn,number);
 }

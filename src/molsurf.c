@@ -1,5 +1,6 @@
 /*! \file molsurf.c
     \brief This is an adaptation of Paul Beroza's "molsurf" program;
+
    Modified by dac to exist as an NAB subroutine;
    Later re-modified back into a stand-alone program;
    Further modified by Dan Roe (fix memory errors, subroutine ordering, 

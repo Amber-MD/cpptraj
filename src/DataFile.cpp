@@ -301,7 +301,7 @@ void DataFile::WriteData(CpptrajFile *outfile) {
   lineSize++;
   // Datafile size is line size times maxFrames+1 lines
   dataFileSize = (size_t) maxFrames;
-  dataFileSize++;
+  ++dataFileSize;
   dataFileSize *= (size_t) lineSize;
   // NOTE: Since we are manually writing the newlines to this file there is
   //       no need to allocate space for a NULL char. If something like 

@@ -36,18 +36,18 @@ Clustering::~Clustering() {
 
 const char Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 
-/* Clustering::init()
- * Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>] [fitrms]
- *                        [ linkage | averagelinkage | complete ] [gracecolor] [noload]
- *                        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>] 
- *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ] 
- *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]
- *                        [ repout <repprefix> [repfmt <repfmt>] ]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
+// Clustering::init()
+/** Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n 
+ *                        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [fitrms]\n
+ *                        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n
+ *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n
+ *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n
+ *                        [ repout <repprefix> [repfmt <repfmt>] ]\n
  */
+// Dataset name will be the last arg checked for. Check order is:
+//    1) Keywords
+//    2) Masks
+//    3) Dataset name
 int Clustering::init() {
   char *mask0,*cnumvtimefile,*clusterformat,*singlerepformat,*repformat;
   // Get keywords
@@ -143,9 +143,8 @@ int Clustering::init() {
   return 0;
 }
 
-/* Clustering::action()
- * Store current frame as a reference frame.
- */
+// Clustering::action()
+/** Store current frame as a reference frame.  */
 int Clustering::action() {
   Frame *fCopy;
 
@@ -155,8 +154,7 @@ int Clustering::action() {
   return 0;
 } 
 
-/* Clustering::calcDistFromRmsd()
- */
+// Clustering::calcDistFromRmsd()
 int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   // Reference
   AmberParm *RefParm = NULL;
@@ -249,15 +247,15 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   return 0;
 }
 
-/* Clustering::ClusterHierAgglo()
- * Cluster using a hierarchical agglomerative (bottom-up) approach. All frames
- * start in their own cluster. The closest two clusters are merged, and 
- * distances between the newly merged cluster and all remaining clusters are
- * recalculated according to one of the following metrics:
- *   single-linkage  : The minimum distance between frames in clusters are used.
- *   average-linkage : The average distance between frames in clusters are used.
- *   complete-linkage: The maximum distance between frames in clusters are used.
- */
+// Clustering::ClusterHierAgglo()
+/** Cluster using a hierarchical agglomerative (bottom-up) approach. All frames
+  * start in their own cluster. The closest two clusters are merged, and 
+  * distances between the newly merged cluster and all remaining clusters are
+  * recalculated according to one of the following metrics:
+  * - single-linkage  : The minimum distance between frames in clusters are used.
+  * - average-linkage : The average distance between frames in clusters are used.
+  * - complete-linkage: The maximum distance between frames in clusters are used.
+  */
 int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *CList) {
   std::list<int> frames;
   bool clusteringComplete = false;
@@ -301,9 +299,8 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *C
   return 0;
 }
 
-/* Clustering::CreateCnumvtime()
- * Put cluster number vs frame into dataset.
- */
+// Clustering::CreateCnumvtime()
+/** Put cluster number vs frame into dataset.  */
 void Clustering::CreateCnumvtime( ClusterList *CList ) {
   std::list<int>::iterator E;
   int cnum;
@@ -332,9 +329,8 @@ void Clustering::CreateCnumvtime( ClusterList *CList ) {
   }
 }
 
-/* Clustering::WriteClusterTraj()
- * Write frames in each cluster to a trajectory file.
- */
+// Clustering::WriteClusterTraj()
+/** Write frames in each cluster to a trajectory file.  */
 void Clustering::WriteClusterTraj( ClusterList *CList ) {
   std::list<int>::iterator E;
   std::list<int>::iterator B;
@@ -386,9 +382,8 @@ void Clustering::WriteClusterTraj( ClusterList *CList ) {
   if (clusterout!=NULL) delete clusterout;
 }
 
-/* Clustering::WriteSingleRepTraj()
- * Write representative frame of each cluster to a trajectory file.
- */
+// Clustering::WriteSingleRepTraj()
+/** Write representative frame of each cluster to a trajectory file.  */
 void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
   int framenum, framecounter;
   TrajectoryFile clusterout;
@@ -427,10 +422,10 @@ void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
   clusterout.EndTraj();
 }
 
-/* Clustering::WriteRepTraj()
- * Write representative frame of each cluster to a separate trajectory file,
- * repfile.REPNUM.FMT
- */
+// Clustering::WriteRepTraj()
+/** Write representative frame of each cluster to a separate trajectory file,
+  * repfile.REPNUM.FMT
+  */
 void Clustering::WriteRepTraj( ClusterList *CList ) {
   int framenum, cnum;
   TrajectoryFile *clusterout = NULL;
@@ -475,10 +470,10 @@ void Clustering::WriteRepTraj( ClusterList *CList ) {
   }
 }
 
-/* Clustering::print()
- * This is where the clustering is actually performed. First the distances
- * between each frame are calculated. Then the clustering routine is called.
- */
+// Clustering::print()
+/** This is where the clustering is actually performed. First the distances
+  * between each frame are calculated. Then the clustering routine is called.
+  */
 void Clustering::print() {
   TriangleMatrix Distances;
   ClusterList CList;

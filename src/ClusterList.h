@@ -1,13 +1,14 @@
 #ifndef INC_CLUSTERLIST_H
 #define INC CLUSTERLIST_H
-/// Class: ClusterList
-/// This class holds all the individual clusters, as well as routines that
-/// can be used to perform clustering (metric recalculation, cluster merging,
-/// and so on). The distance calculation routines require that a
-/// triangle matrix with distances between all frames be previously
-/// calculated.
 #include <list>
 #include "TriangleMatrix.h"
+// Class: ClusterList
+/** This class holds all the individual clusters, as well as routines that
+  * can be used to perform clustering (metric recalculation, cluster merging,
+  * and so on). The distance calculation routines require that a
+  * triangle matrix with distances between all frames be previously
+  * calculated.
+  */
 class ClusterList {
   public:
     enum LINKAGETYPE {SINGLELINK, AVERAGELINK, COMPLETELINK};
@@ -16,20 +17,20 @@ class ClusterList {
     int debug;
     // clusterNode: Store individual cluster info; frame numbers, centroid, etc.
     struct clusterNode {
-      double avgclusterdist;    // Avg distance of this cluster to each other cluster
-      double eccentricity;      // Max distance of any pair of frames in cluster
-      int num;                  // Cluster number (index in ClusterDistances)
-      int centroid;             // Frame number of the cluster centroid
-      std::list<int> frameList; // List of frames in the cluster
+      double avgclusterdist;    ///< Avg distance of this cluster to each other cluster
+      double eccentricity;      ///< Max distance of any pair of frames in cluster
+      int num;                  ///< Cluster number (index in ClusterDistances)
+      int centroid;             ///< Frame number of the cluster centroid
+      std::list<int> frameList; ///< List of frames in the cluster
     };
     std::list<clusterNode> clusters;
 
-    int maxframes;                   // Total number of frames being clustered
-    TriangleMatrix *FrameDistances;  // Distances between each frame
-    TriangleMatrix ClusterDistances; // Distances between each cluster
-    LINKAGETYPE Linkage;             // Type of distance calculation for clusters 
+    int maxframes;                   ///< Total number of frames being clustered
+    TriangleMatrix *FrameDistances;  ///< Distances between each frame
+    TriangleMatrix ClusterDistances; ///< Distances between each cluster
+    LINKAGETYPE Linkage;             ///< Type of distance calculation for clusters 
 
-    // cluster_cmp: Used to sort the cluster list
+    /// Used to sort the cluster list
     struct cluster_cmp {
       bool operator()(clusterNode first, clusterNode second) const {
         if (first.frameList.size() > second.frameList.size())

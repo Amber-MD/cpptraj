@@ -1,5 +1,6 @@
 /*! \file ptraj_actions.c
     \brief Actions originally from Ptraj
+
  This file has ptraj actions originally from actions.c that have not yet
  been incorporated into the cpptraj framework. They have been modified
  to use Cpptraj mask, distance, and torsion routines and are called from

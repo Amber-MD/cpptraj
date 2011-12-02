@@ -1,5 +1,6 @@
 /*! \file PtrajMask.cpp
     \brief Original ptraj mask parser by V.Hornak with enhancements from D.Roe
+
  *  This is code for an enhanced atom mask parser developed by Viktor Hornak
  *  at SUNY Stony Brook (Stony Brook University), in March of 2003.  Cheatham
  *  long sat on this very nice code that greatly extends the capabilities (and

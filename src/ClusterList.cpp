@@ -1,11 +1,11 @@
 /* Action: Clustering
  */
-#include "ClusterList.h"
-#include "CpptrajStdio.h"
-#include "CpptrajFile.h"
 #include <cfloat>
 #include <cmath>
 #include <cstring> // memset
+#include "ClusterList.h"
+#include "CpptrajStdio.h"
+#include "CpptrajFile.h"
 
 // XMGRACE colors
 // NOTE: Should this be somewhere else?
@@ -38,19 +38,18 @@ ClusterList::ClusterList() {
 ClusterList::~ClusterList() {
 }
 
-/* ClusterList::SetDebug()
- * Set the debug level
- */
+// ClusterList::SetDebug()
+/** Set the debug level */
 void ClusterList::SetDebug(int debugIn) {
   debug = debugIn;
   if (debug>0) mprintf("ClusterList debug set to %i\n",debug);
 }
 
-/* ClusterList::Renumber()
- * Sort clusters by size and renumber starting from 0, where cluster 0
- * is the largest.
- * NOTE: This destroys indexing into ClusterDistances.
- */
+// ClusterList::Renumber()
+/** Sort clusters by size and renumber starting from 0, where cluster 0
+  * is the largest.
+  * NOTE: This destroys indexing into ClusterDistances.
+  */
 void ClusterList::Renumber() {
   int newNum = 0;
   double numdist;
@@ -91,9 +90,8 @@ void ClusterList::Renumber() {
   }
 }
 
-/* ClusterList::Summary()
- * Print a summary of clusters.
- */
+// ClusterList::Summary()
+/** Print a summary of clusters.  */
 void ClusterList::Summary(char *summaryfile) {
   CpptrajFile outfile;
   int numframes,numdist;
@@ -166,9 +164,9 @@ void ClusterList::Summary(char *summaryfile) {
   outfile.CloseFile();
 }
 
-/* ClusterList::Summary_Half
- * Print a summary of the first half of the data to the second half.
- */
+// ClusterList::Summary_Half
+/** Print a summary of the first half of the data to the second half.
+  */
 void ClusterList::Summary_Half(char *summaryfile) {
   CpptrajFile outfile;
   int numInFirstHalf, numInSecondHalf;
@@ -223,10 +221,10 @@ void ClusterList::Summary_Half(char *summaryfile) {
   outfile.CloseFile();
 }
 
-/* ClusterList::AddCluster()
- * Add a cluster made up of frames specified by the given framelist to 
- * the list.
- */
+// ClusterList::AddCluster()
+/** Add a cluster made up of frames specified by the given framelist to 
+  * the list.
+  */
 int ClusterList::AddCluster( std::list<int> *framelistIn, int numIn  ) {
   clusterNode CN;
 
@@ -242,11 +240,11 @@ int ClusterList::AddCluster( std::list<int> *framelistIn, int numIn  ) {
   return 0;
 }
 
-/* ClusterList::Initialize()
- * Given a triangle matrix containing the distances between all frames,
- * set up the initial distances between clusters.
- * Should be called before any clustering is performed. 
- */
+// ClusterList::Initialize()
+/** Given a triangle matrix containing the distances between all frames,
+  * set up the initial distances between clusters.
+  * Should be called before any clustering is performed. 
+  */
 void ClusterList::Initialize(TriangleMatrix *matrixIn) {
   std::list<clusterNode>::iterator C1_it;
 
@@ -265,9 +263,9 @@ void ClusterList::Initialize(TriangleMatrix *matrixIn) {
   }
 }
     
-/* ClusterList::PrintClusters()
- * Print list of clusters and frame numbers belonging to each cluster.
- */
+// ClusterList::PrintClusters()
+/** Print list of clusters and frame numbers belonging to each cluster.
+  */
 void ClusterList::PrintClusters() {
   mprintf("CLUSTER: %u clusters, %i frames.\n", clusters.size(),maxframes);
   for (std::list<clusterNode>::iterator C = clusters.begin(); C != clusters.end(); C++) {
@@ -282,12 +280,12 @@ void ClusterList::PrintClusters() {
   }
 }
 
-/* ClusterList::PrintClustersToFile()
- * Print list of clusters in a style similar to ptraj; each cluster is
- * given a line maxframes characters long, with X for each frame that is
- * in the clusters and . for all other frames. Also print out the
- * representative frame numbers.
- */
+// ClusterList::PrintClustersToFile()
+/** Print list of clusters in a style similar to ptraj; each cluster is
+  * given a line maxframes characters long, with X for each frame that is
+  * in the clusters and . for all other frames. Also print out the
+  * representative frame numbers.
+  */
 void ClusterList::PrintClustersToFile(char *filename) {
   CpptrajFile outfile;
   char *buffer;
@@ -324,18 +322,18 @@ void ClusterList::PrintClustersToFile(char *filename) {
   delete[] buffer;
 }
 
-/* ClusterList::PrintRepFrames()
- * Print representative frame of each cluster to 1 line.
- */
+// ClusterList::PrintRepFrames()
+/** Print representative frame of each cluster to 1 line.
+  */
 void ClusterList::PrintRepFrames() {
   for (std::list<clusterNode>::iterator C = clusters.begin(); C != clusters.end(); C++) 
     mprintf("%i ",(*C).centroid+1);
   mprintf("\n");
 }
 
-/* ClusterList::GetClusterIt
- * Return an iterator to the specified cluster.
- */
+// ClusterList::GetClusterIt
+/** Return an iterator to the specified cluster.
+  */
 std::list<ClusterList::clusterNode>::iterator ClusterList::GetClusterIt(int C1) {
   std::list<clusterNode>::iterator c1;
   // Find C1
@@ -349,9 +347,9 @@ std::list<ClusterList::clusterNode>::iterator ClusterList::GetClusterIt(int C1) 
   return c1;
 }
 
-/* ClusterList::MergeClosest()
- * Find and merge the two closest clusters.
- */
+// ClusterList::MergeClosest()
+/** Find and merge the two closest clusters.
+  */
 int ClusterList::MergeClosest(double epsilon) { 
   double min;
   int C1, C2;
@@ -421,9 +419,9 @@ int ClusterList::MergeClosest(double epsilon) {
   return 0;
 }
 
-/* ClusterList::Merge()
- * Merge cluster C2 into C1; remove C2. 
- */
+// ClusterList::Merge()
+/** Merge cluster C2 into C1; remove C2. 
+  */
 int ClusterList::Merge(std::list<ClusterList::clusterNode>::iterator c1, 
                        std::list<ClusterList::clusterNode>::iterator c2) 
 {
@@ -436,10 +434,10 @@ int ClusterList::Merge(std::list<ClusterList::clusterNode>::iterator c1,
   return 0;
 }        
 
-/* ClusterList::calcMinDist()
- * Calculate the minimum distance between frames in cluster specified by
- * iterator C1 and frames in all other clusters.
- */
+// ClusterList::calcMinDist()
+/** Calculate the minimum distance between frames in cluster specified by
+  * iterator C1 and frames in all other clusters.
+  */
 void ClusterList::calcMinDist(std::list<ClusterList::clusterNode>::iterator C1_it) 
 {
   double min, Dist;
@@ -469,10 +467,10 @@ void ClusterList::calcMinDist(std::list<ClusterList::clusterNode>::iterator C1_i
   } 
 }
 
-/* ClusterList::calcMaxDist()
- * Calculate the maximum distance between frames in cluster specified by
- * iterator C1 and frames in all other clusters.
- */
+// ClusterList::calcMaxDist()
+/** Calculate the maximum distance between frames in cluster specified by
+  * iterator C1 and frames in all other clusters.
+  */
 void ClusterList::calcMaxDist(std::list<ClusterList::clusterNode>::iterator C1_it) 
 {
   double max, Dist;
@@ -502,10 +500,10 @@ void ClusterList::calcMaxDist(std::list<ClusterList::clusterNode>::iterator C1_i
   } 
 }
 
-/* ClusterList::calcAvgDist()
- * Calculate the average distance between frames in cluster specified by
- * iterator C1 and frames in all other clusters.
- */
+// ClusterList::calcAvgDist()
+/** Calculate the average distance between frames in cluster specified by
+  * iterator C1 and frames in all other clusters.
+  */
 void ClusterList::calcAvgDist(std::list<ClusterList::clusterNode>::iterator C1_it) 
 {
   double N, Dist, sumDist;
@@ -538,10 +536,10 @@ void ClusterList::calcAvgDist(std::list<ClusterList::clusterNode>::iterator C1_i
   } 
 }
 
-/* ClusterList::FindCentroid()
- * Find the frame in the given cluster that is the centroid, i.e. has the
- * lowest cumulative distance to every other point in the cluster.
- */
+// ClusterList::FindCentroid()
+/** Find the frame in the given cluster that is the centroid, i.e. has the
+  * lowest cumulative distance to every other point in the cluster.
+  */
 void ClusterList::FindCentroid(std::list<ClusterList::clusterNode>::iterator C1_it) {
   double mindist = DBL_MAX;
   double cdist;
@@ -571,10 +569,10 @@ void ClusterList::FindCentroid(std::list<ClusterList::clusterNode>::iterator C1_
   (*C1_it).centroid = minframe;
 }
 
-/* ClusterList::CalcEccentricity()
- * Calculate the eccentricity of the given cluster, i.e. the largest distance
- * between any two points in the cluster.
- */
+// ClusterList::CalcEccentricity()
+/** Calculate the eccentricity of the given cluster, i.e. the largest distance
+  * between any two points in the cluster.
+  */
 void ClusterList::CalcEccentricity(std::list<ClusterList::clusterNode>::iterator C1_it) {
   double maxdist = 0;
   double fdist;
@@ -595,11 +593,11 @@ void ClusterList::CalcEccentricity(std::list<ClusterList::clusterNode>::iterator
   (*C1_it).eccentricity = maxdist;
 }
 
-/* ClusterList::CheckEpsilon()
- * Check the eccentricity of every cluster against the given epsilon. If
- * any cluster has an eccentricity less than epsilon return true, 
- * otherwise return false.
- */
+// ClusterList::CheckEpsilon()
+/** Check the eccentricity of every cluster against the given epsilon. If
+  * any cluster has an eccentricity less than epsilon return true, 
+  * otherwise return false.
+  */
 bool ClusterList::CheckEpsilon(double epsilon) {
   for (std::list<clusterNode>::iterator C1_it = clusters.begin();
        C1_it != clusters.end();
@@ -611,54 +609,52 @@ bool ClusterList::CheckEpsilon(double epsilon) {
   return false;
 }
 
-/* ClusterList::Begin()
- * Place current cluster at beginning of list.
- */
+// ClusterList::Begin()
+/** Place current cluster at beginning of list.
+  */
 void ClusterList::Begin() {
   currentCluster = clusters.begin();
 }
 
-/* ClusterList::End()
- * Return true if current cluster is at the end of list.
- */
+// ClusterList::End()
+/** Return true if current cluster is at the end of list.
+  */
 bool ClusterList::End() {
   if (currentCluster == clusters.end()) return true;
   return false;
 }
 
-/* ClusterList::NextCluster()
- * Advance current cluster to the next cluster.
- */
+// ClusterList::NextCluster()
+/** Advance current cluster to the next cluster.
+  */
 void ClusterList::NextCluster() {
   currentCluster++;
 }
 
-/* ClusterList::CurrentNum()
- * Return number of the current cluster.
- */
+// ClusterList::CurrentNum()
+/** Return number of the current cluster.  */
 int ClusterList::CurrentNum() {
   return (*currentCluster).num;
 }
 
-/* ClusterList::CurrentCentroid()
- * Return frame number of centroid of current cluster.
- */
+// ClusterList::CurrentCentroid()
+/** Return frame number of centroid of current cluster.  */
 int ClusterList::CurrentCentroid() {
   // FindCentroid is now called in Renumber
   //FindCentroid(currentCluster);
   return (*currentCluster).centroid;
 }
 
-/* ClusterList::CurrentFrameBegin()
- * Return iterator to the beginning of the current clusters framelist.
- */
+// ClusterList::CurrentFrameBegin()
+/** Return iterator to the beginning of the current clusters framelist.
+  */
 std::list<int>::iterator ClusterList::CurrentFrameBegin() {
   return (*currentCluster).frameList.begin();
 }
 
-/* ClusterList::CurrentFrameEnd()
- * Return iterator to the end of the current clusters framelist.
- */
+// ClusterList::CurrentFrameEnd()
+/** Return iterator to the end of the current clusters framelist.
+  */
 std::list<int>::iterator ClusterList::CurrentFrameEnd() {
   return (*currentCluster).frameList.end();
 }
