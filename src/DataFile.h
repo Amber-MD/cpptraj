@@ -1,5 +1,6 @@
 #ifndef INC_DATAFILE_H
 #define INC_DATAFILE_H
+#include <vector>
 #include "DataSet.h"
 #include "CpptrajFile.h"
 // Class: DataFile
@@ -9,7 +10,7 @@
   */
 class DataFile {
     int debug;
-    DataSet **SetList;  ///< Will point to addresses in a DataSetList;
+    std::vector<DataSet*> SetList;  ///< Will point to addresses in a DataSetList;
     int Nsets;
     bool noEmptyFrames; ///< If true, frames in which no sets have data will be skipped
     bool isInverted;    ///< If true sets will be written in rows instead of columns

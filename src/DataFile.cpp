@@ -12,7 +12,6 @@ DataFile::DataFile() {
   noEmptyFrames=false;
   noXcolumn=false;
   filename=NULL;
-  SetList=NULL;
   Nsets=0;
   filename=NULL;
   debug=0;
@@ -42,7 +41,6 @@ DataFile::DataFile(char *nameIn) {
   noEmptyFrames=false;
   noXcolumn=false;
   filename=NULL;
-  SetList=NULL;
   Nsets=0;
   filename=(char*) malloc( (strlen(nameIn)+1) * sizeof(char));
   strcpy(filename,nameIn);
@@ -58,10 +56,9 @@ DataFile::DataFile(char *nameIn) {
 }
 
 /// DESTRUCTOR
+// Individual data sets are freed in DataSetList
 DataFile::~DataFile() {
   if (filename!=NULL) free(filename);
-  // Individual data sets are freed in DataSetList
-  if (SetList!=NULL) free(SetList);
   if (xlabel!=NULL) free(xlabel);
   if (ylabel!=NULL) free(ylabel);
   if (x_format!=NULL) delete[] x_format;
@@ -178,10 +175,9 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
 
 // DataFile::AddSet()
 /// Add given set to this datafile
-int DataFile::AddSet(DataSet *D) {
-  if (D==NULL) return 1;
-  SetList = (DataSet**) realloc( SetList, (Nsets+1) * sizeof(DataSet*));
-  SetList[Nsets]=D;
+int DataFile::AddSet(DataSet *Din) {
+  if (Din==NULL) return 1;
+  SetList.push_back(Din);
   Nsets++;
   return 0;
 }
@@ -220,39 +216,38 @@ void DataFile::DataSetNames() {
   */
 void DataFile::Write() {
   CpptrajFile outfile;
-  int set,nwrite;
   int maxSetFrames = 0;
   int currentMax = 0;
-  int NnewList = 0;
-  DataSet **newList;
-
+  
+  // Exit if no datasets in file
+  if (SetList.empty()) return;
   // Remove data sets that do not contain data from SetList.
   // NOTE: CheckSet also sets up the format string for the dataset.
-  newList = (DataSet**) malloc( Nsets * sizeof(DataSet*) );
-  nwrite=0;
-  for (set=0; set<Nsets; set++) {
-    if ( SetList[set]->CheckSet() ) {
+  std::vector<DataSet*>::iterator Dset = SetList.end();
+  while (Dset != SetList.begin()) {
+    Dset--;
+    // If set has no data, remove it
+    if ( (*Dset)->CheckSet() ) {
       mprintf("Warning: DataFile %s: Set %s contains no data - skipping.\n",
-              filename, SetList[set]->Name());
-      //return;
+              filename, (*Dset)->Name());
+      // Remove
+      SetList.erase( Dset );
+      // Set Dset to new end
+      Dset = SetList.end();
+    // If set has data, determine what the maximum x value for the
+    // set is. 
     } else {
-      newList[NnewList++] = SetList[set];
-      // Determine what the maxium x value for this set is.
-      // Should be last value added.
-      maxSetFrames = SetList[set]->Xmax();
+      maxSetFrames = (*Dset)->Xmax();
       if (maxSetFrames > currentMax) currentMax = maxSetFrames;
-      nwrite++;
     }
   }
-  // Reset SetList
-  free(SetList);
-  SetList = newList;
-  Nsets = NnewList;
+
   // If all data sets are empty then no need to write
-  if (nwrite==0) {
+  if (SetList.empty()) {
     mprintf("Warning: DataFile %s has no sets containing data - skipping.\n",filename);
     return;
   }
+
   // Since currentMax is the last frame, increment currentMax by 1 for use in for loops
   maxFrames = currentMax + 1;
   //mprintf("DEBUG: Max frames for %s is %i (maxFrames=%i)\n",filename,currentMax,maxFrames);
