@@ -702,10 +702,12 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   // leading whitespace. Wrap atom names if they start with a digit, e.g.
   // 1CA becomes CA1. Replace asterisks with ', * is reserved for the mask
   // parser.
+  // NOTE: It appears the mask parser is OK with names starting with digits,
+  //       so dont worry about that for now.
   for (int atom=0; atom < natom; atom++) { 
     PadWithSpaces(names[atom]);
     TrimName(names[atom]);
-    WrapName(names[atom]);
+    //WrapName(names[atom]);
     ReplaceAsterisk(names[atom]);
   }
   for (int res=0; res < nres; res++) {

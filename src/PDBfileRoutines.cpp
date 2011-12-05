@@ -77,7 +77,7 @@ int pdb_name(char *buffer, char *name) {
   // Trim Leading whitespace
   TrimName(name);
   // Wrap name if it starts with a digit
-  WrapName(name);
+  //WrapName(name);
   // Replace asterisks with prime to prevent atom mask problems
   ReplaceAsterisk(name);
   return 0;
