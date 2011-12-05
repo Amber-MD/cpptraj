@@ -54,13 +54,13 @@ void Frame::ClosestImage(double *A, double *B, int *ixyz) {
 }
 */
 
-/* MinImageNonOrtho2()
- * Given two sets of coordinates and reciprocal space information based on
- * the current non-orthorhombic box, return the shortest imaged distance^2
- * between the coordinates.
- * The integer coefficients describing the closest reflection in reciprocal
- * space will be placed in ixyz.
- */
+// MinImageNonOrtho2()
+/** Given two sets of coordinates and reciprocal space information based on
+  * the current non-orthorhombic box, return the shortest imaged distance^2
+  * between the coordinates.
+  * The integer coefficients describing the closest reflection in reciprocal
+  * space will be placed in ixyz.
+  */
 double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, int origin, int *ixyz,
                          double *ucell, double *recip) {
   double min, f[3], f2[3];
@@ -96,11 +96,11 @@ double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, int origin
   return min;
 }
 
-/* Frame::DIST2_ImageNonOrtho()
- * Given two coordinates and reciprocal space information based on 
- * the current non-orthorhombic box, return the shortest imaged distance^2 
- * between the coordinates.
- */
+// Frame::DIST2_ImageNonOrtho()
+/** Given two coordinates and reciprocal space information based on 
+  * the current non-orthorhombic box, return the shortest imaged distance^2 
+  * between the coordinates.
+  */
 double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip) { 
 // double closest2
   double f[3], f2[3];
@@ -117,13 +117,13 @@ double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip)
   return DIST2_ImageNonOrthoRecip(f, f2, -1.0, ixyz, ucell);
 }
 
-/* DIST2_ImageNonOrtho()
- * Given two coordinate sets in reciprocal space, return the minimum imaged
- * distance^2 between them.
- * If minIn is > 0.0 it is considered a possible minimum distance.
- * The integer coefficients describing the closest reflection in reciprocal
- * space will be placed in ixyz.
- */
+// DIST2_ImageNonOrthoRecip()
+/** Given two coordinate sets in reciprocal space, return the minimum imaged
+  * distance^2 between them.
+  * If minIn is > 0.0 it is considered a possible minimum distance.
+  * The integer coefficients describing the closest reflection in reciprocal
+  * space will be placed in ixyz.
+  */
 double DIST2_ImageNonOrthoRecip(double *f, double *f2, double minIn, int *ixyz, double *ucell) { 
   //double closest2
   double fx, fy, fz, f2x, f2y, f2z, X_factor, Y_factor, Z_factor;
@@ -372,11 +372,10 @@ double DIST2_ImageNonOrthoRecip(double *f, double *f2, double minIn, int *ixyz, 
   return(min);
 }
 
-/*
- * Frame::DIST2_ImageOrtho()
- * Return the minimum orthorhombic imaged distance^2 between coordinates a1 
- * and a2.
- */
+// Frame::DIST2_ImageOrtho()
+/** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
+  * and a2.
+  */
 double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
   double x,y,z,D;
 
@@ -412,10 +411,9 @@ double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
   return D;
 }
 
-/*
- * Frame::DIST2_NoImage()
- * Return distance^2 between coordinates in a1 and a2.
- */
+// Frame::DIST2_NoImage()
+/** Return distance^2 between coordinates in a1 and a2.
+  */
 double DIST2_NoImage(double *a1, double *a2) {
   double x,y,z,D;
 

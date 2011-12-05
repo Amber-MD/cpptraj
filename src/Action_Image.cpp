@@ -20,19 +20,19 @@ Image::~Image() {
   if (ComMask!=NULL) delete ComMask;
 }
 
-/* Image::init()
- * Expected call: image [origin] [center] [triclinic | familiar [com <mask>]] <mask>  
- *   origin: center at 0.0, 0.0, 0.0, otherwise center at box center.
- *   center: Use center of mass for imaging, otherwise use first atom.
- *   triclinic: Force imaging with triclinic code.
- *   familiar: Image with triclinic code and shape into familiar trunc. oct. shape.
- *   com <mask>: If familiar, center based on COM of atoms in mask, otherwise use
- *               origin/box.
- *   <mask>: Only image atoms in <mask>. If no mask given all atoms are imaged.
- * Check order is:
- *    1) Keywords
- *    2) Masks
- */
+// Image::init()
+/** Expected call: image [origin] [center] [triclinic | familiar [com <mask>]] <mask>  
+  * - origin: center at 0.0, 0.0, 0.0, otherwise center at box center.
+  * - center: Use center of mass for imaging, otherwise use first atom.
+  * - triclinic: Force imaging with triclinic code.
+  * - familiar: Image with triclinic code and shape into familiar trunc. oct. shape.
+  * - com <mask>: If familiar, center based on COM of atoms in mask, otherwise use
+  *               origin/box.
+  * - <mask>: Only image atoms in <mask>. If no mask given all atoms are imaged.
+  */
+// Check order is:
+//    1) Keywords
+//    2) Masks
 int Image::init() {
   char *mask1;
 
@@ -76,10 +76,10 @@ int Image::init() {
   return 0;
 }
 
-/* Image::setup()
- * Set Imaging up for this parmtop. Get masks etc.
- * currentParm is set in Action::Setup
- */
+// Image::setup()
+/** Set Imaging up for this parmtop. Get masks etc.
+  * currentParm is set in Action::Setup
+  */
 int Image::setup() {
 
   if ( Mask1.SetupCharMask(currentParm,activeReference,debug) ) return 1;
@@ -117,8 +117,7 @@ int Image::setup() {
   return 0;  
 }
 
-/* Image::action()
- */
+// Image::action()
 int Image::action() {
   // Orthorhombic
   double bp[3];

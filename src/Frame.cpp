@@ -239,7 +239,7 @@ Frame *Frame::FrameCopy() {
  * Otherwise just change N and natom.
  * Only reallocate mass and V if explicitly requested.
  */
-int Frame::Resize(int natomIn, bool allocV, bool allocMass) {
+/*int Frame::Resize(int natomIn, bool allocV, bool allocMass) {
   int newN = natom * 3;;
   // DEBUG
   //mprintf("DEBUG: Resizing frame, old natom=%i, new natom=%i, allocV=%i, allocM=%i\n",
@@ -275,12 +275,11 @@ int Frame::Resize(int natomIn, bool allocV, bool allocMass) {
   N = newN;
   natom = natomIn;
   return 0;
-}
+}*/
 
 /* ------------------- Coordinate Manipulation Routines --------------------- */
-/* Frame::ZeroCoords()
- * Set all coords to 0.0
- */
+// Frame::ZeroCoords()
+/** Set all coords to 0.0 */
 void Frame::ZeroCoords() {
   memset(X, 0, N * sizeof(double));
 }
@@ -289,7 +288,7 @@ void Frame::ZeroCoords() {
  * Add the coord values from the input frame to the coord values of 
  * this frame.
  */
-void Frame::AddCoord(Frame *FrameIn) {
+/*void Frame::AddCoord(Frame *FrameIn) {
   if (FrameIn->N != this->N) {
     mprintf("Error: Frame::AddCoord: Attempting to add %i coords to %i coords.\n",
             FrameIn->N,this->N);
@@ -297,20 +296,19 @@ void Frame::AddCoord(Frame *FrameIn) {
     for (int coord=0; coord < N; coord++)
       this->X[coord] += FrameIn->X[coord];
   }
-}
+}*/
 
-/* Frame::Divide()
- * Divide all coord values by input. Dont do it if the number is too small.
- */
+// Frame::Divide()
+/** Divide all coord values by input. Dont do it if the number is too small.
+  */
 void Frame::Divide(double divisor) {
   if (divisor < SMALL) return;
   for (int coord=0; coord < N; coord++)
     X[coord] /= divisor;
 }
 
-/* Frame::Translate()
- * Translate all coords by Vec. 
- */
+// Frame::Translate()
+/** Translate all coords by Vec.  */
 void Frame::Translate(double * Vec) {
   int i;
   double Vec0, Vec1, Vec2;
@@ -325,10 +323,9 @@ void Frame::Translate(double * Vec) {
   }
 }
 
-/* Frame::Translate()
- * Translate specified atom by Vec.
- * NOTE: SHOULD CHECK BOUNDS! 
- */
+// Frame::Translate()
+/** Translate specified atom by Vec. */
+// NOTE: SHOULD CHECK BOUNDS! 
 void Frame::Translate(double *Vec, int Atom) {
   int atom3;
 
@@ -338,12 +335,12 @@ void Frame::Translate(double *Vec, int Atom) {
   X[atom3+2] += Vec[2];
 }
 
-/* Frame::Trans_Rot_Trans()
- * Given an array Vec of size 6 containing two translations:
- *   T0x T0y T0z T1x T1y T1z
- * and a rotation matrix T, apply the first translation, then
- * the rotation, then the second translation.
- */
+// Frame::Trans_Rot_Trans()
+/** Given an array Vec of size 6 containing two translations:
+  *   T0x T0y T0z T1x T1y T1z
+  * and a rotation matrix T, apply the first translation, then
+  * the rotation, then the second translation.
+  */
 void Frame::Trans_Rot_Trans(double *Vec, double *T) {
   double Vec0, Vec1, Vec2, Vec3, Vec4, Vec5;
   double x, y, z;
@@ -377,10 +374,10 @@ void Frame::Trans_Rot_Trans(double *Vec, double *T) {
   }
 }
 
-/* Frame::Rotate()
- * Multiply natomx3 matrix X by 3x3 matrix T. If T is a rotation matrix
- * this rotates the coords in X. 
- */
+// Frame::Rotate()
+/** Multiply natomx3 matrix X by 3x3 matrix T. If T is a rotation matrix
+  * this rotates the coords in X. 
+  */
 void Frame::Rotate(double *T) {
   int i;
   double x,y,z;
@@ -404,10 +401,10 @@ void Frame::Rotate(double *T) {
   }
 } 
 
-/* Frame::InverseRotate()
- * Multiply natomx3 matrix X by transpose of 3x3 matrix T. If T is a rotation
- * matrix this rotates the coords in X in the opposite direction.
- */
+// Frame::InverseRotate()
+/** Multiply natomx3 matrix X by transpose of 3x3 matrix T. If T is a rotation
+  * matrix this rotates the coords in X in the opposite direction.
+  */
 void Frame::InverseRotate(double *T) {
   int i;
   double x,y,z;
@@ -421,11 +418,11 @@ void Frame::InverseRotate(double *T) {
   }
 }
 
-/* Frame::Center()
- * Center coordinates in Mask to the coordinates in box[0-2]. When called from
- * Action_Center box will be either 0.0 or box center. Use geometric center if 
- * mass is NULL, otherwise center of mass will be used.
- */
+// Frame::Center()
+/** Center coordinates in Mask to the coordinates in box[0-2]. When called from
+  * Action_Center box will be either 0.0 or box center. Use geometric center if 
+  * mass is NULL, otherwise center of mass will be used.
+  */
 void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
   double center[3];
 
@@ -442,9 +439,8 @@ void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
   this->Translate(center);
 }
 
-/* Frame::ShiftToCenter()
- * Shift Frame and Ref to common COM
- */
+// Frame::ShiftToCenter()
+/** Shift Frame and Ref to common COM */
 void Frame::ShiftToCenter( Frame *Ref ) {
   double frameCOM[3], refCOM[3];
 
@@ -463,9 +459,8 @@ void Frame::ShiftToCenter( Frame *Ref ) {
 }
 
 /* -------------- Coordinate Assignment/Extraction Routines ----------------- */
-/* Frame::printAtomCoord()
- * Print XYZ coords of given atom
- */
+// Frame::printAtomCoord()
+/** Print XYZ coords of given atom */
 void Frame::printAtomCoord(int atom) {
   int natom3;
 

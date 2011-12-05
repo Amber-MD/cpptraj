@@ -38,11 +38,11 @@ class Frame {
     int SetupFrameFromMask(AtomMask *, double *);
     int SetupFrameFromCoords(float *, int);
     Frame *FrameCopy();
-    int Resize(int,bool,bool);
+    //int Resize(int,bool,bool);
 
     // Coordinate manipulation
     void ZeroCoords();
-    void AddCoord(Frame*);
+    //void AddCoord(Frame*);
     void Divide(double);
     void Translate(double *);
     void Translate(double *, int);

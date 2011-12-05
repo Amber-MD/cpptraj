@@ -1,6 +1,8 @@
 #ifndef INC_DISTROUTINES_H
 #define INC_DISTROUTINES_H
-// DistRoutines
+/*! \file DistRoutines.h
+    \brief A collection of routines used to calculate distance.
+ */
 double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, int origin, int *ixyz,
                          double *ucell, double *recip);
 double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip);
