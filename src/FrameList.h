@@ -1,13 +1,15 @@
 #ifndef INC_FRAMELIST_H
 #define INC_FRAMELIST_H
-#include "Frame.h"
-#include "ParmFileList.h"
 #include <vector>
 #include <string>
-/// Class: FrameList
-/// Hold a series of frames. Optionally hold a corresponding name and
-/// number (in the case of reference frames, this is the name of the
-/// reference coordinate file and the frame number).
+#include "Frame.h"
+#include "ParmFileList.h"
+// Class: FrameList
+/// Hold a series of Frame classes. 
+/** Optionally hold a corresponding name and number (in the case of 
+  * reference frames, this is the name of the reference coordinate 
+  * file and the frame number). 
+  */
 class FrameList {
     std::vector<Frame*> frameList;
     ParmFileList FrameParm;

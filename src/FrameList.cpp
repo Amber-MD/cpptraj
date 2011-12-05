@@ -15,17 +15,17 @@ FrameList::~FrameList() {
     delete frameList[i];
 }
 
-/* FrameList::ActiveRefCoords()
- * Return the coords of frame pointed to by referenceFrameNum.
- */
+// FrameList::ActiveRefCoords()
+/** Return the coords of frame pointed to by referenceFrameNum.
+  */
 double *FrameList::ActiveReference() {
   if (Nframe<1) return NULL;
   return frameList[referenceFrameNum]->X;
 }
 
-/* FrameList::SetActiveRef()
- * Set the given frame list number as the active reference.
- */
+// FrameList::SetActiveRef()
+/** Set the given frame list number as the active reference.
+  */
 void FrameList::SetActiveRef(int numIn) {
   if (numIn < 0 || numIn >= Nframe) {
     mprintf("Warning: FrameList::SetActiveRef: Ref # %i out of bounds.\n",numIn);
@@ -34,11 +34,11 @@ void FrameList::SetActiveRef(int numIn) {
   referenceFrameNum = numIn;
 }
 
-/* FrameList::AddRefFrame()
- * Add given Frame to the FrameList. Store trajectory name and frame number 
- * that this frame came from in frameNames and frameNums respectively. Store 
- * the associated parm in FrameParm. 
- */
+// FrameList::AddRefFrame()
+/** Add given Frame to the FrameList. Store trajectory name and frame number 
+  * that this frame came from in frameNames and frameNums respectively. Store 
+  * the associated parm in FrameParm. 
+  */
 int FrameList::AddRefFrame(Frame *F, char *name, AmberParm *P, int framenum) {
   std::string nameCopy;
 
@@ -84,9 +84,9 @@ AmberParm *FrameList::GetFirstFrameParm() {
   return NULL;
 }
 
-/* FrameList::AddFrame()
- * Add given Frame to the FrameList. Store the associated parm in FrameParm.
- */
+// FrameList::AddFrame()
+/** Add given Frame to the FrameList. Store the associated parm in FrameParm.
+  */
 int FrameList::AddFrame(Frame *F, AmberParm *P) {
   if (F==NULL || P==NULL) return 1;
   frameList.push_back(F);
@@ -95,9 +95,9 @@ int FrameList::AddFrame(Frame *F, AmberParm *P) {
   return 0;
 }
 
-/* FrameList::GetFrameIndex()
- * Return index of frame in the frame list specified by name.
- */
+// FrameList::GetFrameIndex()
+/** Return index of frame in the frame list specified by name.
+  */
 int FrameList::GetFrameIndex(char *name) {
   int idx = -1;
   int fn_end = (int) frameNames.size();
@@ -108,25 +108,25 @@ int FrameList::GetFrameIndex(char *name) {
   return idx;
 }
 
-/* FrameList::GetFrameParm()
- * Given index of frame, return parm in FrameParm
- */
+// FrameList::GetFrameParm()
+/** Given index of frame, return parm in FrameParm
+  */
 AmberParm *FrameList::GetFrameParm(int idx) {
   return FrameParm.GetParm(idx);
 }
 
-/* FrameList::GetFrame()
- * Return the frame in the frame list specified by index.
- */
+// FrameList::GetFrame()
+/** Return the frame in the frame list specified by index.
+  */
 Frame *FrameList::GetFrame(int idx) {
   if (idx<0 || idx>=Nframe) return NULL;
   return frameList[idx];
 }
 
-/* FrameList::ReplaceFrame()
- * Replace the frame/parm at the given position with the given frame/parm.
- * The old frame is deleted. 
- */
+// FrameList::ReplaceFrame()
+/** Replace the frame/parm at the given position with the given frame/parm.
+  * The old frame is deleted. 
+  */
 int FrameList::ReplaceFrame(int idx, Frame *newFrame, AmberParm *newParm) {
   if (newFrame==NULL || newParm==NULL) return 1;
   if (idx<0 || idx>=Nframe) return 1;
@@ -136,9 +136,9 @@ int FrameList::ReplaceFrame(int idx, Frame *newFrame, AmberParm *newParm) {
   return 0;
 }
 
-/* FrameList::Info()
- * Print a list of trajectory names that frames have been taken from.
- */
+// FrameList::Info()
+/** Print a list of trajectory names that frames have been taken from.
+  */
 void FrameList::Info() {
   if (Nframe==0) {
     mprintf("  No frames defined.\n");
@@ -155,9 +155,9 @@ void FrameList::Info() {
   mprintf("\tActive reference frame for masks is %i\n",referenceFrameNum);
 }
 
-/* FrameList::FrameName()
- * Return name of given frame.
- */
+// FrameList::FrameName()
+/** Return name of given frame.
+  */
 const char *FrameList::FrameName(int idx) {
   if (idx<0 || idx>=(int)frameNames.size()) return NULL;
   return frameNames[idx].c_str();
