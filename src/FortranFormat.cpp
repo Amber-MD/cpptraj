@@ -5,7 +5,7 @@
 #include "FortranFormat.h"
 #include "CpptrajStdio.h"
 
-// FFSIZE: Combined size of %FLAG and %FORMAT lines (81 * 2)
+/// Combined size of %FLAG and %FORMAT lines (81 * 2)
 #define FFSIZE 162
 
 //  F_POINTERS = 0, F_NAMES,   F_CHARGE,  F_MASS,    F_RESNAMES,             
@@ -17,7 +17,7 @@
 //  F_ANGLESH,      F_ANGLES,  F_DIHH,    F_DIH,     F_ASOL
 //  F_BSOL,         F_HBCUT,   F_ITREE,   F_JOIN,    F_IROTAT
 
-// Constant strings for fortran formats corresponding to Amber parm flags
+/// Constant strings for fortran formats corresponding to Amber parm flags
 static const char AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
 "%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",
 "%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(3I8)",
@@ -28,6 +28,7 @@ static const char AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
 "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(5E16.8)",
 "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)"
 }; 
+/// Constant strings for Amber parm flags
 static const char AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
   "POINTERS",
   "ATOM_NAME",
@@ -156,34 +157,50 @@ static FortranType GetFortranType(char *FormatIn, int *ncols, int *width, int *p
 
 // PositionFileAtFlag()
 /// Position the given file at the given flag. Set the corresponding format.
-/** If fformat is NULL just report whether flag was found.
+/** If fformat is NULL just report whether flag was found. This routine will
+  * first attempt to search for the flag from the current File position. If
+  * the flag is not found at first the routine will rewind and attempt to
+  * search from the beginning. This can speed up reading of parm files
+  * when this routine is called for Keys that are in the same order as
+  * in the input file.
   * \return true if flag was found, false if not.
   */
 static bool PositionFileAtFlag(CpptrajFile *File, const char *Key, char *fformat, int debug) {
   char lineBuffer[BUFFER_SIZE]; // Hold flag/format line from parmfile
   char value[83];
+  bool hasLooped = false;
+  bool searchFile = true;
 
   if (debug>0) mprintf("Reading %s\n",Key);
   // First, rewind the input file.
-  File->IO->Rewind();
+  //File->IO->Rewind();
   // Search for %FLAG <Key>
-  while ( File->IO->Gets(lineBuffer,BUFFER_SIZE) == 0) {
-    if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
-      sscanf(lineBuffer,"%*s %s",value);
-      if (strcmp(value,Key)==0) {
-        if (debug>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
-        // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
-        // read past until you get to the FORMAT line
-        File->IO->Gets(lineBuffer,BUFFER_SIZE);
-        while (strncmp(lineBuffer,"%FORMAT",7)!=0)
+  while ( searchFile ) {
+    while ( File->IO->Gets(lineBuffer,BUFFER_SIZE) == 0) {
+      if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
+        sscanf(lineBuffer,"%*s %s",value);
+        if (strcmp(value,Key)==0) {
+          if (debug>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
+          // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
+          // read past until you get to the FORMAT line
           File->IO->Gets(lineBuffer,BUFFER_SIZE);
-        if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
-        // Set format
-        if (fformat!=NULL) strcpy(fformat, lineBuffer);
-        return true;
-      } // END found Key
-    } // END found FLAG line
-  } // END scan through file
+          while (strncmp(lineBuffer,"%FORMAT",7)!=0)
+            File->IO->Gets(lineBuffer,BUFFER_SIZE);
+          if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
+          // Set format
+          if (fformat!=NULL) strcpy(fformat, lineBuffer);
+          return true;
+        } // END found Key
+      } // END found FLAG line
+    } // END scan through file
+    // If we havent yet tried to search from the beginning, try it now.
+    // Otherwise the Key has not been found.
+    if (!hasLooped) {
+      File->IO->Rewind();
+      hasLooped = true;
+    } else
+      searchFile = false;
+  }
 
   // If we reached here Key was not found.
   if (debug>0)

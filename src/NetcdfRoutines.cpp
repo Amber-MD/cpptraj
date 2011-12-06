@@ -7,10 +7,9 @@
 #include "netcdf.h"
 #include "NetcdfRoutines.h"
 
-/*  
- * NetcdfDebug()
- * For use in printing various attributes of a previously opened netcdf file.
- */
+// NetcdfDebug()
+/** For use in printing various attributes of a previously opened netcdf file.
+  */
 void NetcdfDebug(int ncid) {
   int ndimsp, nvarsp, ngattsp,unlimdimidp;
   int err,i;
@@ -50,11 +49,10 @@ void NetcdfDebug(int ncid) {
   return;
 }
 
-/*
- * checkNCerr()
- * Check the given netcdf error status. Print error message and return 1
- * if an error has occurred, otherwise return 0; 
- */
+// checkNCerr()
+/** Check the given netcdf error status. Print error message and return 1
+  * if an error has occurred, otherwise return 0; 
+  */
 int checkNCerr(int err, const char *message, ...) {
   va_list args;
 
@@ -69,11 +67,10 @@ int checkNCerr(int err, const char *message, ...) {
   return 0;
 }
 
-/*
- * GetDimInfo()
- * Return the dimension ID of a given attribute in netcdf file ncid.
- * Also set dimension length.
- */
+// GetDimInfo()
+/** Return the dimension ID of a given attribute in netcdf file ncid.
+  * Also set dimension length.
+  */
 int GetDimInfo(int ncid, const char *attribute, int *length) {
   int dimID;
   size_t slength;
@@ -93,13 +90,12 @@ int GetDimInfo(int ncid, const char *attribute, int *length) {
   return dimID;
 }
 
-/*
- * GetAttrText()
- * Get the information about a netcdf attribute with given vid and 
- * attribute text.
- * Since there is no guarantee that NULL char at the end of retrieved string
- * append one.
- */
+// GetAttrText()
+/** Get the information about a netcdf attribute with given vid and 
+  * attribute text.
+  * Since there is no guarantee that NULL char at the end of retrieved string
+  * append one.
+  */
 char *GetAttrText(int ncid, int vid, const char *attribute) {
   size_t attlen;
   char *attrText;
@@ -121,12 +117,11 @@ char *GetAttrText(int ncid, int vid, const char *attribute) {
 }
 #endif
 
-/*
- * GetNetcdfConventions()
- * This is called from CpptrajFile to determine whether filename is a netcdf
- * trajectory or restart file. Return conventions string.
- * Return NULL if error or netcdf not compiled in.
- */
+// GetNetcdfConventions()
+/** This is called from CpptrajFile to determine whether filename is a netcdf
+  * trajectory or restart file. Return conventions string.
+  * Return NULL if error or netcdf not compiled in.
+  */
 char *GetNetcdfConventions(char *filename) {
 #ifdef BINTRAJ
   int ncid;
@@ -142,22 +137,20 @@ char *GetNetcdfConventions(char *filename) {
 #endif
 }
 
-/* FloatToDouble()
- * Convert float coords to double coords
- * NOTE: N needs to match up with size of Coord!
- */
-void FloatToDouble(double * __restrict X, float * __restrict Coord, int N) {
-  int i;
-  for (i=0; i<N; i++)
+// FloatToDouble()
+/** Convert float coords to double coords
+  * NOTE: N needs to match up with size of Coord!
+  */
+void FloatToDouble(double *X, float *Coord, int N) {
+  for (int i=0; i<N; i++)
     X[i]=(double) Coord[i];
 }
 
-/* DoubleToFloat()
- * Convert double coords to float coords
- */
-void DoubleToFloat(float * __restrict Coord, double * __restrict X, int N) {
-  int i;
-  for (i=0; i<N; i++)
+// DoubleToFloat()
+/** Convert double coords to float coords
+  */
+void DoubleToFloat(float *  Coord, double *  X, int N) {
+  for (int i=0; i<N; i++)
     Coord[i]=(float) X[i];
 }
 

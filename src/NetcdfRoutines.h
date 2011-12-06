@@ -1,8 +1,7 @@
 #ifndef INC_NETCDFROUTINES_H
 #define INC_NETCDFROUTINES_H
-/*
- * NetcdfRoutines
- * Collection of useful subroutines for any code using NetCDF format.
+/*! \file NetcdfRoutines.h
+    \brief Collection of useful subroutines for any code using NetCDF format.
  */
 // Defines
 #ifdef BINTRAJ

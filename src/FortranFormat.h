@@ -1,12 +1,13 @@
 #ifndef INC_FORTRANFORMAT_H
 #define INC_FORTRANFORMAT_H
-// FortranFormat
-// This file contains routines that pertain to reading and writing files with
-// fortran FLAG and FORMAT keywords (currently only Amber Topology files).
+/*! \file FortranFormat.h
+    \brief Routines that pertain to reading and writing files with
+           fortran FLAG and FORMAT keywords (currently only Amber Topology files).
+ */
 #include "CpptrajFile.h"
 #include "Name.h"
 #include "CharBuffer.h"
-// Enumerated type for Amber Parmtop Flags
+/// Enumerated type for Amber Parmtop Flags
 enum AmberParmFlagType {
   F_POINTERS = 0, F_NAMES,   F_CHARGE,  F_MASS,    F_RESNAMES,    
   F_RESNUMS,      F_TYPES,   F_BONDSH,  F_BONDS,   F_SOLVENT_POINTER, 
@@ -18,7 +19,7 @@ enum AmberParmFlagType {
   F_BSOL,         F_HBCUT,   F_ITREE,   F_JOIN,    F_IROTAT
 };
 #define NUMAMBERPARMFLAGS 40 
-// Enumerated type for Fortran data type
+/// Enumerated type for Fortran data type
 enum FortranType {
   UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
 };
