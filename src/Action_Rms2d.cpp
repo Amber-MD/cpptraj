@@ -1,13 +1,7 @@
-/* Action: Rms2d
- * Perform RMS calculation between each input frame and each other input 
- * frame, or each frame read in from a separate reference traj and each 
- * input frame. 
- * The actual calcuation is performed in the print function.
- */
+#include <cstdio> //sprintf
 #include "Action_Rms2d.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
-#include <cstdio> //sprintf
 
 // CONSTRUCTOR
 Rms2d::Rms2d() {
@@ -24,24 +18,24 @@ Rms2d::~Rms2d() {
   if (RefTraj!=NULL) delete RefTraj; 
 }
 
-/* Rms2d::SeparateInit()
- * For use when not part of the action list, i.e. using the Rms2d action
- * to calculate a distance matrix for e.g. clustering.
- */
+// Rms2d::SeparateInit()
+/** For use when not part of the action list, i.e. using the Rms2d action
+  * to calculate a distance matrix for e.g. clustering.
+  */
 int Rms2d::SeparateInit(bool nofitIn, char *maskIn) {
   nofit = nofitIn;
   FrameMask.SetMaskString(maskIn);
   return 0;
 };
 
-/* Rms2d::init()
- * Expected call: rms2d <mask> <refmask> rmsout <filename> [nofit] 
- *                [reftraj <traj> [parm <parmname> | parmindex <#>]] 
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// Rms2d::init()
+/** Expected call: rms2d <mask> <refmask> rmsout <filename> [nofit] 
+  *                [reftraj <traj> [parm <parmname> | parmindex <#>]] 
+  */
+// Dataset name will be the last arg checked for. Check order is:
+//    1) Keywords
+//    2) Masks
+//    3) Dataset name
 int Rms2d::init() {
   char *mask0, *maskRef, *reftraj;
 
@@ -99,9 +93,9 @@ int Rms2d::init() {
   return 0;
 }
 
-/* Rms2d::setup()
- * Set up frame mask so that only selected atoms in frames will be stored.
- */
+// Rms2d::setup()
+/** Set up frame mask so that only selected atoms in frames will be stored.
+  */
 int Rms2d::setup() {
   if (FrameMask.SetupMask(currentParm, activeReference, debug)) {
     mprinterr("Error: Rms2d::setup: Could not set up mask [%s] for parm %s\n",
@@ -116,9 +110,9 @@ int Rms2d::setup() {
   return 0;  
 }
 
-/* Rms2d::action()
- * Store current frame coords according to mask.
- */
+// Rms2d::action()
+/** Store current frame coords according to mask.
+  */
 int Rms2d::action() {
  
   if (ReferenceCoords.AddCoordsByMask(currentFrame->X, &FrameMask)) return 1;
@@ -126,11 +120,11 @@ int Rms2d::action() {
   return 0;
 } 
 
-/* Rms2d::Calc2drms()
- * Calculate the RMSD of each frame in ReferenceCoords to each other frame.
- * Since this results in a symmetric matrix use TriangleMatrix to store
- * results.
- */
+// Rms2d::Calc2drms()
+/** Calculate the RMSD of each frame in ReferenceCoords to each other frame.
+  * Since this results in a symmetric matrix use TriangleMatrix to store
+  * results.
+  */
 void Rms2d::Calc2drms(TriangleMatrix *Distances) {
   Frame RefFrame;
   Frame TgtFrame;
@@ -194,10 +188,10 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
   delete progress;
 }
 
-/* Rms2d::CalcRmsToTraj()
- * Calc RMSD of every frame in reference traj to every frame in 
- * ReferenceCoords.
- */
+// Rms2d::CalcRmsToTraj()
+/** Calc RMSD of every frame in reference traj to every frame in 
+  * ReferenceCoords.
+  */
 void Rms2d::CalcRmsToTraj() {
   Frame RefFrame;
   Frame TgtFrame;
@@ -281,9 +275,9 @@ void Rms2d::CalcRmsToTraj() {
   RefTraj->EndTraj();
 }
 
-/* Rms2d::print()
- * Perform the rms calculation of each frame to each other frame.
- */
+// Rms2d::print()
+/** Perform the rms calculation of each frame to each other frame.
+  */
 void Rms2d::print() {
   TriangleMatrix *Distances;
   char setname[256];
