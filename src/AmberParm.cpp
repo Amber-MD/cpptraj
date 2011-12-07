@@ -666,9 +666,9 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   if ( parmfile.OpenFile() ) return 1;
 
   switch (parmfile.fileFormat) {
-    case OLDAMBERPARM: err = ReadParmOldAmber(&parmfile); break;
-    case AMBERPARM   : err = ReadParmAmber(&parmfile);    break;
-    case PDBFILE     : err = ReadParmPDB(&parmfile)  ;    break;
+    case OLDAMBERPARM: err = ReadParmOldAmber(parmfile); break;
+    case AMBERPARM   : err = ReadParmAmber(parmfile);    break;
+    case PDBFILE     : err = ReadParmPDB(parmfile)  ;    break;
     case MOL2FILE    : err = ReadParmMol2(&parmfile) ;    break;
     case CHARMMPSF   : err = ReadParmPSF(&parmfile)  ;    break;
     default: 
@@ -785,9 +785,13 @@ void AmberParm::SetParmFromValues(int *values, bool isOld) {
 
 // AmberParm::ReadParmOldAmber()
 /// Read parameters from an old style (Amber < v7) topology file.
-int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
+int AmberParm::ReadParmOldAmber(CpptrajFile &parmfile) {
   char *title;
   int values[30], ifbox;
+
+  // TEST: Close and reopen buffered.
+  parmfile.CloseFile();
+  parmfile.OpenFileBuffered();
 
   if (debug>0) mprintf("Reading Old-style Amber Topology file %s\n",parmName);
   title = F_load20a4(parmfile);
@@ -887,13 +891,17 @@ int AmberParm::ReadParmOldAmber(CpptrajFile *parmfile) {
 
 // AmberParm::ReadParmAmber() 
 /// Read parameters from Amber Topology file
-int AmberParm::ReadParmAmber(CpptrajFile *parmfile) {
+int AmberParm::ReadParmAmber(CpptrajFile &parmfile) {
   int ifbox;
   int *solvent_pointer;
   double *boxFromParm;
   int values[AMBERPOINTERS];
   char *title;
   bool chamber; // true: This topology file is a chamber-created topology file
+
+  // TEST: Close and reopen buffered
+  parmfile.CloseFile();
+  parmfile.OpenFileBuffered();
 
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
   // Title
@@ -1099,7 +1107,7 @@ int AmberParm::SetAtomsPerMolPDB(int numAtoms) {
 /** Open the PDB file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
   */
-int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
+int AmberParm::ReadParmPDB(CpptrajFile &parmfile) {
   char buffer[256];
   int bufferLen;  
   int currResnum;
@@ -1107,11 +1115,16 @@ int AmberParm::ReadParmPDB(CpptrajFile *parmfile) {
   int atomInLastMol = 0;
   unsigned int crdidx = 0;
 
+  // TEST: Close and reopen buffered.
+  parmfile.CloseFile();
+  parmfile.OpenFileBuffered();
+
   mprintf("    Reading PDB file %s as topology file.\n",parmName);
   currResnum=-1;
   memset(buffer,' ',256);
 
-  while ( parmfile->IO->Gets(buffer,256)==0 ) {
+  //while ( parmfile->IO->Gets(buffer,256)==0 ) {
+  while ( parmfile.Gets(buffer,256) == 0 ) {
     // If ENDMDL or END is reached stop reading
     if ( strncmp(buffer,"END",3)==0) break;
     // If TER increment number of molecules and continue

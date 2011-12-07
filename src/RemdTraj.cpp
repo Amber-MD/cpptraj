@@ -112,7 +112,7 @@ int RemdTraj::SetReplicaName(char* filenameIn) {
   // Set up a CpptrajFile here to check compression and extension.  
   if (remdfile.SetupFile(filenameIn, READ, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug)) 
     return -1;
-  if (remdfile.compressType!=NONE && remdfile.Ext!=NULL) {
+  if (remdfile.compressType!=NO_COMPRESSION && remdfile.Ext!=NULL) {
     CompressExt = (char*) malloc( (strlen(remdfile.Ext)+1) * sizeof(char));
     strcpy(CompressExt,remdfile.Ext);
     lastChar = strlen(remdfile.filename) - strlen(remdfile.Ext);

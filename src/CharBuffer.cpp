@@ -10,6 +10,7 @@ CharBuffer::CharBuffer() {
   buffer = NULL;
   ptr = NULL;
   bufferSize = 0;
+  end_buffer = NULL;
 }
 
 // DESTRUCTOR
@@ -24,6 +25,7 @@ void CharBuffer::Allocate(size_t sizeIn) {
   bufferSize = sizeIn;
   buffer = new char[ bufferSize ];
   ptr = buffer;
+  end_buffer = buffer + bufferSize;
 }
 
 // CharBuffer::IncreaseSize()
@@ -40,6 +42,7 @@ void CharBuffer::IncreaseSize(size_t delta) {
   buffer = newbuffer;
   ptr = buffer + bufferSize; 
   bufferSize = newsize;
+  end_buffer = buffer + bufferSize;
 }
 
 // CharBuffer::CurrentSize()
@@ -48,6 +51,14 @@ size_t CharBuffer::CurrentSize() {
   //printf("DEBUG:\tCurrentSize=%lu, Allocd for %lu\n",(size_t) (ptr - buffer),bufferSize);
   return (size_t) (ptr - buffer);
 }
+
+// CharBuffer::Rewind()
+/// Set pointer to beginning of buffer.
+void CharBuffer::Rewind() {
+  ptr = buffer;
+}
+
+ 
 
 // CharBuffer::Sprintf()
 /// Write data to the buffer with printf-like syntax.
@@ -107,6 +118,45 @@ void CharBuffer::NewLine() {
 void CharBuffer::Space() {
   ptr[0]=' ';
   ptr++;
+}
+
+int CharBuffer::Read(void *str, size_t numbytes) {
+  size_t bytes_to_read;
+  // Figure out actual size to copy
+  size_t bytes_remaining = end_buffer - ptr;
+  if (bytes_remaining < 1)
+    return -1;
+  else if (numbytes > bytes_remaining)
+    bytes_to_read = bytes_remaining;
+  else
+    bytes_to_read = numbytes;
+
+  // Read from ptr into str
+  memcpy(str, ptr, bytes_to_read);
+  // Advance ptr
+  ptr += bytes_to_read;
+  return (int)bytes_to_read;
+}
+ 
+// CharBuffer::Gets()
+/// Get specified number of bytes from the buffer, up to end or NULL.
+// [D][o][g][\n][\0]
+//  0  1  2  3   4
+// String length: 4, array size: 5
+// [D][o][g][\0]
+//  0  1  2  3
+// String length: 3, array size: 4 
+int CharBuffer::Gets(char *str, int num) {
+  int currentNum = 0;
+  while (ptr < end_buffer && currentNum < num) {
+    str[currentNum++] = *ptr;
+    if (*ptr=='\n' || *ptr=='\0') {++ptr; break;}
+    ++ptr;
+  }
+  if (currentNum==0) return 1;
+  if (currentNum==num) --currentNum;
+  str[currentNum]='\0';
+  return 0;
 }
 
 // =============================================================================

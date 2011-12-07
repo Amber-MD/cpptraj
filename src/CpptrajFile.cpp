@@ -23,9 +23,9 @@
 // CONSTRUCTOR
 CpptrajFile::CpptrajFile() {
   IO=NULL;
-  isOpen=0;
+  isOpen=false;
   uncompressed_size=0UL;
-  compressType=NONE;
+  compressType=NO_COMPRESSION;
   access=READ;
   debug=0;
   fileFormat=UNKNOWN_FORMAT;
@@ -46,9 +46,8 @@ CpptrajFile::~CpptrajFile() {
    if (Ext!=NULL) free(Ext);
 }
 
-/* CpptrajFile::OpenFile()
- * Open the file. If already open, reopen.
- */
+// CpptrajFile::OpenFile()
+/** Open the file. If already open, reopen.  */
 int CpptrajFile::OpenFile() {
   if (isOpen) CloseFile();
 
@@ -76,19 +75,102 @@ int CpptrajFile::OpenFile() {
       break;
   }
       
-  isOpen=1;
+  isOpen=true;
   return 0;
 }
 
-/* CpptrajFile::CloseFile()
- * Close the file.
- */
+// CpptrajFile::CloseFile()
+/** Close the file.  */
 void CpptrajFile::CloseFile() {
   if (isOpen) {
     IO->Close();
     if (debug>0) rprintf("Closed %s.\n",filename);
-    isOpen=0;
+    isOpen=false;
   }
+}
+
+// CpptrajFile::OpenFileBuffered()
+/** Open the file. Buffer with CharBuffer. */
+int CpptrajFile::OpenFileBuffered() {
+  size_t blockSize = BUFFER_SIZE;
+  if (isOpen) CloseFile();
+
+  switch (access) {
+    case READ:
+      if ( IO->Open(filename, "rb")  ) { // NOTE: use rb as mode instead?
+        rprintf("Could not open %s for reading.\n",filename);
+        return 1;
+      }
+      if (debug>0) rprintf("Opened %s for reading.\n",filename);
+      // Allocate char buffer to read in entire file if possible.
+      if (compressType == NO_COMPRESSION || uncompressed_size == 0)
+        blockSize = file_size;
+      else
+        blockSize = uncompressed_size;
+      c_buffer.Allocate( blockSize );
+      // Read in entire file
+      if (IO->Read(c_buffer.BufferPtr(), sizeof(char), blockSize)==-1) return 1;
+      // If compressed file and uncompressed size not known keep reading in
+      // blocks until EOF.
+      if (compressType!=NO_COMPRESSION && uncompressed_size == 0) {
+        bool readMore = true;
+        while (readMore) {
+          c_buffer.IncreaseSize( blockSize );
+          int numread = IO->Read(c_buffer.BufferPtr(), sizeof(char), blockSize);
+          if (numread==-1 || numread < (int)blockSize) readMore=false;
+          // NOTE: Resize buffer here to match actual # chars read in?
+        }
+      }
+      break;
+    case APPEND:
+/*      if ( IO->Open(filename, "ab") ) {
+        rprintf("Could not open %s for appending.\n",filename);
+        return 1;
+      }
+      if (debug>0) rprintf("Opened %s for appending.\n",filename);
+      // Allocate char buffer with default size
+      c_buffer.Allocate( BUFFER_SIZE );*/
+      mprinterr("Internal Error: Buffered writes currently disabled.\n");
+      return 1;
+      break;
+    case WRITE:
+/*      if ( IO->Open(filename, "wb") ) { // NOTE: Use wb as mode?
+        rprintf("Could not open %s for writing.\n",filename);
+        return 1;
+      }
+      if (debug>0) rprintf("Opened %s for writing.\n",filename);
+      // Allocate char buffer with default size
+      c_buffer.Allocate( BUFFER_SIZE );*/
+      mprinterr("Internal Error: Buffered writes currently disabled.\n");
+      return 1;
+      break;
+  }
+
+  isOpen=true;
+  return 0;
+}
+
+// CpptrajFile::ReadBuffered()
+/** Read BufferSize bytes into the CharBuffer. */
+/*int CpptrajFile::ReadBuffered() {
+  char *bufferptr = c_buffer.BufferPtr();
+  if (IO->Read(bufferptr, sizeof(char), c_buffer.BufferSize())==-1) return 1;
+  return 0;
+}*/
+
+// CpptrajFile::Gets()
+int CpptrajFile::Gets(char *str, int num) {
+  return c_buffer.Gets(str,num);
+}
+
+// CpptrajFile::Rewind()
+void CpptrajFile::Rewind() {
+  c_buffer.Rewind();
+}
+
+// CpptrajFile::Read()
+int CpptrajFile::Read(void *str, size_t numbytes) {
+  return c_buffer.Read(str,numbytes);
 }
 
 /* CpptrajFile::SetBaseFilename()
@@ -167,9 +249,9 @@ int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn,
   filename=NULL;
   basefilename=NULL;
   Ext=NULL;
-  isOpen=0;
+  isOpen=false;
   uncompressed_size=0UL;
-  compressType=NONE;
+  compressType=NO_COMPRESSION;
   isDos=0;
   debug=debugIn;
   if (debug>0) {
@@ -329,7 +411,7 @@ int CpptrajFile::SetupRead() {
   }
 
   // Appending and compression not supported.
-  if (access==APPEND && compressType!=NONE) {
+  if (access==APPEND && compressType!=NO_COMPRESSION) {
     mprintf("Error: Appending to compressed files is not supported.\n");
     return 1;
   }
@@ -384,7 +466,7 @@ int CpptrajFile::SetupRead() {
   // NETCDF
   if (magic[0]==0x43 && magic[1]==0x44 && magic[2]==0x46) {
     if (debug>0) mprintf("  NETCDF file\n");
-    if (compressType!=NONE) {
+    if (compressType!=NO_COMPRESSION) {
       mprintf("Error: Compressed NETCDF files are not currently supported.\n");
       return 1;
     }

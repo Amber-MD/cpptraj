@@ -1,5 +1,5 @@
-#include "FileRoutines.h"
 #include <cstring>
+#include "FileRoutines.h"
 // FileRoutines
 
 // When adding to FileFormatList etc be sure to increment the first # of
@@ -17,26 +17,26 @@ const char AccessList[3][2] = {
   "R", "W", "A"
 };
 
-// Return enumerated type for FileFormat
+/// Return enumerated type for FileFormat
 char *File_Format(FileFormat FFin) {
   return (char*)FileFormatList[FFin];
 }
 
-// Return enumerated type for FileType
+/// Return enumerated type for FileType
 char *File_Type(FileType FTin) {
   return (char*)FileTypeList[FTin];
 }
 
-// Return enumerated type for AccessType
+/// Return enumerated type for AccessType
 char *File_Access(AccessType FAin) {
   return (char*)AccessList[FAin];
 }
 
-/* GetFmtFromArg()
- * Return file format given a file format keyword. Default to def. 
- * NOTE: def should probably not be allowed to be UNKNOWN_FORMAT,
- * but this is currently not explicitly checked.
- */
+// GetFmtFromArg()
+/** Return file format given a file format keyword. Default to def. 
+  * NOTE: def should probably not be allowed to be UNKNOWN_FORMAT,
+  * but this is currently not explicitly checked.
+  */
 FileFormat GetFmtFromArg(char *argIn, FileFormat def) {
   FileFormat writeFormat = def;
   if (argIn==NULL) return writeFormat;
@@ -50,10 +50,10 @@ FileFormat GetFmtFromArg(char *argIn, FileFormat def) {
   return writeFormat;
 }
 
-/* SetExtFromFmt()
- * Set buffer with a filename extension corresponding to the given file 
- * format. Currently the longest extension requires buffer size of 7.
- */
+// SetExtFromFmt()
+/** Set buffer with a filename extension corresponding to the given file 
+  * format. Currently the longest extension requires buffer size of 7.
+  */
 void SetExtFromFmt(char *buffer, FileFormat fmtIn) {
   if (buffer==NULL) return;
   switch (fmtIn) {
@@ -74,10 +74,10 @@ void SetExtFromFmt(char *buffer, FileFormat fmtIn) {
   }
 }
 
-/* DetermineType()
- * If the file type is unknown attempt to determine it from filename extension.
- * Default to standard.
- */
+// DetermineType()
+/** If the file type is unknown attempt to determine it from filename extension.
+  * Default to standard.
+  */
 FileType DetermineType(FileType fileType, char *Ext) {
   // If type is not unknown return input type
   if (fileType!=UNKNOWN_TYPE) return fileType;
@@ -90,10 +90,10 @@ FileType DetermineType(FileType fileType, char *Ext) {
   return STANDARD;
 }
 
-/* DetermineFormat()
- * If the file format is unknown attempt to determine from filename extension.
- * Default to datafile.
- */
+// DetermineFormat()
+/** If the file format is unknown attempt to determine from filename extension.
+  * Default to datafile.
+  */
 FileFormat DetermineFormat(FileFormat fileFormat, char *Ext) {
   // If format is not unknown return input format
   if (fileFormat!=UNKNOWN_FORMAT) return fileFormat;

@@ -2,6 +2,7 @@
 #define INC_CPPTRAJFILE_H
 #include "FileIO.h"
 #include "FileRoutines.h"
+#include "CharBuffer.h"
 /// Used in Action_NAstruct.cpp FortranFormat.cpp main.cpp 
 /// CpptrajFile.cpp CpptrajFile.h Traj_AmberCoord.cpp
 #define BUFFER_SIZE 1024 
@@ -9,8 +10,9 @@
 // Class: CpptrajFile
 /// Class to abstract handling of basic file routines.
 class CpptrajFile {
-    int isOpen;
+    bool isOpen;
     int debug;
+    CharBuffer c_buffer;
 
     void SetBaseFilename();
     int SetupRead();
@@ -35,6 +37,11 @@ class CpptrajFile {
     int SetupFile(char*,AccessType,FileFormat,FileType,int);
     int OpenFile();
     void CloseFile();
+    int OpenFileBuffered();
+    //int ReadBuffered();
+    int Gets(char*, int);
+    void Rewind();
+    int Read(void*,size_t);
 
     bool IsOpen() { if (isOpen) return true; else return false; }
 };

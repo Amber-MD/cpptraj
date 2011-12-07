@@ -1,13 +1,15 @@
 #ifndef INC_FILEROUTINES_H
 #define INC_FILEROUTINES_H
-
+/*! \file FileRoutines.h
+    \brief Definitions and routines used for files.
+ */
 // NOTE: When adding to FileFormat etc be sure to update FileFormatList
 // in FileRoutines.c
 
-/* FILE FORMAT:
- * File format specifies how the data in the file is organized. Not used by
- * Ptrajfile itself but by higher-level classes.
- */
+// FILE FORMAT:
+/** File format specifies how the data in the file is organized. Not used by
+  * CpptrajFile itself but by higher-level classes.
+  */
 enum FileFormat {
   UNKNOWN_FORMAT, PDBFILE, AMBERTRAJ, AMBERNETCDF, AMBERPARM,
   DATAFILE, AMBERRESTART, AMBERREMD, XMGRACE, CONFLIB,
@@ -15,19 +17,18 @@ enum FileFormat {
   OLDAMBERPARM
 };
     
-/* FILE TYPE:
- * File type describes how the file is accessed at the lowest level and
- * determines what IO class is associated with the file.
- */ 
+// FILE TYPE:
+/** File type describes how the file is accessed at the lowest level and
+  * determines what IO class is associated with the file.
+  */ 
 enum FileType {
   UNKNOWN_TYPE, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE
 };  
     
-/* COMPRESS TYPE:
- * Type of compression present if any.
- */
+// COMPRESS TYPE:
+/** Type of compression present if any.  */
 enum CompressType {
-  NONE, GZIP, BZIP2, ZIP
+  NO_COMPRESSION, GZIP, BZIP2, ZIP
 };
 
 // ACCESS TYPE

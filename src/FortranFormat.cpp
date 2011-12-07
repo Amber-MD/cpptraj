@@ -76,6 +76,7 @@ static const char AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
 /** Given number of columns and the width of each column, return the 
   * necessary char buffer size for N data elements.
   */
+// NOTE: Convert to size_t?
 static int GetFortranBufferSize(int N, int isDos, int width, int ncols) {
   int bufferLines=0;
   int BufferSize=0;
@@ -165,7 +166,7 @@ static FortranType GetFortranType(char *FormatIn, int *ncols, int *width, int *p
   * in the input file.
   * \return true if flag was found, false if not.
   */
-static bool PositionFileAtFlag(CpptrajFile *File, const char *Key, char *fformat, int debug) {
+static bool PositionFileAtFlag(CpptrajFile &File, const char *Key, char *fformat, int debug) {
   char lineBuffer[BUFFER_SIZE]; // Hold flag/format line from parmfile
   char value[83];
   bool hasLooped = false;
@@ -176,16 +177,16 @@ static bool PositionFileAtFlag(CpptrajFile *File, const char *Key, char *fformat
   //File->IO->Rewind();
   // Search for %FLAG <Key>
   while ( searchFile ) {
-    while ( File->IO->Gets(lineBuffer,BUFFER_SIZE) == 0) {
+    while ( File.Gets(lineBuffer,BUFFER_SIZE) == 0) {
       if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
         sscanf(lineBuffer,"%*s %s",value);
         if (strcmp(value,Key)==0) {
           if (debug>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
           // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
           // read past until you get to the FORMAT line
-          File->IO->Gets(lineBuffer,BUFFER_SIZE);
+          File.Gets(lineBuffer,BUFFER_SIZE);
           while (strncmp(lineBuffer,"%FORMAT",7)!=0)
-            File->IO->Gets(lineBuffer,BUFFER_SIZE);
+            File.Gets(lineBuffer,BUFFER_SIZE);
           if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
           // Set format
           if (fformat!=NULL) strcpy(fformat, lineBuffer);
@@ -196,7 +197,7 @@ static bool PositionFileAtFlag(CpptrajFile *File, const char *Key, char *fformat
     // If we havent yet tried to search from the beginning, try it now.
     // Otherwise the Key has not been found.
     if (!hasLooped) {
-      File->IO->Rewind();
+      File.Rewind();
       hasLooped = true;
     } else
       searchFile = false;
@@ -204,7 +205,7 @@ static bool PositionFileAtFlag(CpptrajFile *File, const char *Key, char *fformat
 
   // If we reached here Key was not found.
   if (debug>0)
-    mprintf("Warning: [%s] Could not find Key %s in file.\n",File->filename,Key);
+    mprintf("Warning: [%s] Could not find Key %s in file.\n",File.filename,Key);
   if (fformat!=NULL) strcpy(fformat,"");
   return false;
 }  
@@ -230,14 +231,14 @@ static void RemoveWhitespace(char *bufferIn) {
 /** Search for the FLAG specified by Key. Assume the next line is a string 
   * of max length 80 chars and return it.
   */
-char *getFlagFileString(CpptrajFile *File, const char *Key, int debug) {
+char *getFlagFileString(CpptrajFile &File, const char *Key, int debug) {
   char *lineBuffer;
 
   // Find flag
   if (PositionFileAtFlag(File,Key,NULL,debug)) {
     // Read next line and return
     lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
-    File->IO->Gets(lineBuffer,82);
+    File.Gets(lineBuffer,82);
     RemoveWhitespace(lineBuffer);
     return lineBuffer;
   }
@@ -251,7 +252,7 @@ char *getFlagFileString(CpptrajFile *File, const char *Key, int debug) {
   * but it is necessary to explictly type the returned array. maxval is used to 
   * allocate memory for the return array - only maxval values will be read.
   */
-void *getFlagFileValues(CpptrajFile *File, AmberParmFlagType fflag, int maxval, int debug){
+void *getFlagFileValues(CpptrajFile &File, AmberParmFlagType fflag, int maxval, int debug){
   int ncols, width, precision; 
   char fformat[83];    // Hold Format from FORMAT line
   char temp[17];       // Hold data element
@@ -285,9 +286,9 @@ void *getFlagFileValues(CpptrajFile *File, AmberParmFlagType fflag, int maxval, 
     case FFLOAT : D = new double[ maxval ]; break;
   }
   // Allocate memory to read in entire section
-  BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
+  BufferSize = GetFortranBufferSize(maxval, File.isDos, width, ncols);
   buffer = new char[ BufferSize ];
-  if ( File->IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
+  if ( File.Read(buffer,BufferSize)==-1 ) {
     rprinterr("ERROR in read of prmtop section %s\n",Key);
     delete[] buffer;
     if (I!=NULL) delete[] I;
@@ -334,15 +335,15 @@ void *getFlagFileValues(CpptrajFile *File, AmberParmFlagType fflag, int maxval, 
 }
 
 // F_load20a4()
-char *F_load20a4(CpptrajFile *File) {
+char *F_load20a4(CpptrajFile &File) {
   char *lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
-  File->IO->Gets(lineBuffer,82);
+  File.Gets(lineBuffer,82);
   RemoveWhitespace(lineBuffer);
   return lineBuffer;
 }
 
 // F_loadFormat()
-void *F_loadFormat(CpptrajFile *File, FortranType fType, int width, int ncols, 
+void *F_loadFormat(CpptrajFile &File, FortranType fType, int width, int ncols, 
                    int maxval, int debug) {
   int *I = NULL;
   double *D = NULL;
@@ -353,7 +354,7 @@ void *F_loadFormat(CpptrajFile *File, FortranType fType, int width, int ncols,
   // If # expected values is 0 there will still be a newline placeholder
   // in the parmtop. Read past that and return NULL 
   if (maxval==0) {
-    File->IO->Gets(temp,16);
+    File.Gets(temp,16);
     return NULL;
   }
   // Allocate memory based on data type
@@ -365,9 +366,9 @@ void *F_loadFormat(CpptrajFile *File, FortranType fType, int width, int ncols,
     case FFLOAT : D = new double[ maxval ]; break;
   } 
   // Allocate memory to read in entire section
-  BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
+  BufferSize = GetFortranBufferSize(maxval, File.isDos, width, ncols);
   buffer = new char[ BufferSize ];
-  if ( File->IO->Read(buffer,sizeof(char),BufferSize)==-1 ) {
+  if ( File.Read(buffer,BufferSize)==-1 ) {
     rprinterr("ERROR in read of prmtop section; width=%i ncols=%i maxval=%i\n",
               width,ncols,maxval);
     delete[] buffer;

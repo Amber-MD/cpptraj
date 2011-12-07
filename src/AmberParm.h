@@ -44,10 +44,10 @@ class AmberParm {
     // Parm format readers
     int ReadParmMol2(CpptrajFile *);
     void SetParmFromValues(int*,bool);
-    int ReadParmOldAmber(CpptrajFile *);
-    int ReadParmAmber(CpptrajFile *);
+    int ReadParmOldAmber(CpptrajFile &);
+    int ReadParmAmber(CpptrajFile &);
     int SetAtomsPerMolPDB(int);
-    int ReadParmPDB(CpptrajFile *);
+    int ReadParmPDB(CpptrajFile &);
     int ReadParmPSF(CpptrajFile *);
 
     // Routines to fill in missing Bond/Molecule info

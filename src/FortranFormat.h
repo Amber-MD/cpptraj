@@ -23,10 +23,9 @@ enum AmberParmFlagType {
 enum FortranType {
   UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
 };
-//int GetFortranBufferSize(int,int,int,int);
-char *getFlagFileString(CpptrajFile *, const char *, int);
-void *getFlagFileValues(CpptrajFile *,AmberParmFlagType,int,int);
-char *F_load20a4(CpptrajFile *);
-void *F_loadFormat(CpptrajFile *, FortranType, int, int, int, int);
+char *getFlagFileString(CpptrajFile &, const char *, int);
+void *getFlagFileValues(CpptrajFile &,AmberParmFlagType,int,int);
+char *F_load20a4(CpptrajFile &);
+void *F_loadFormat(CpptrajFile &, FortranType, int, int, int, int);
 int DataToFortranBuffer(CharBuffer&,AmberParmFlagType,int*,double*,NAME*,int);
 #endif

@@ -275,7 +275,7 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
   title_size = (off_t) titleSize;
   frame_size = (off_t) frameSize;
   // -----==== AMBER TRAJ COMPRESSED ====------
-  if (tfile->compressType!=NONE) {
+  if (tfile->compressType!=NO_COMPRESSION) {
     // If the uncompressed size of compressed file is reported as <= 0,
     // uncompressed size cannot be determined. Read coordinates until
     // EOF.
