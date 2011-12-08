@@ -4,18 +4,14 @@
 #include "Action_Pairwise.h"
 #include "CpptrajStdio.h"
 #include "vectormath.h"
-// TEST
-//#include "Traj_Mol2File.h"
 #include "TrajectoryFile.h"
 
 // CONSTRUCTOR
 Pairwise::Pairwise() {
   //fprintf(stderr,"Pairwise Con\n");
+  nb_calcType = NORMAL;
   RefParm=NULL;
   RefFrame=NULL;
-  skipv = NULL;
-  natexidx = NULL;
-  hasExclusion=true;
   kes = 1.0;
   ELJ=0;
   Eelec=0;
@@ -24,13 +20,12 @@ Pairwise::Pairwise() {
   cut_evdw=1.0;
   cut_evdw1=-1.0;
   cutout=NULL;
+  N_ref_interactions=0;
 } 
 
 // DESTRUCTOR
 Pairwise::~Pairwise() {
   //fprintf(stderr,"Pairwise Destructor.\n");
-  if (skipv!=NULL) delete[] skipv;
-  if (natexidx!=NULL) delete[] natexidx;
   Eout.CloseFile();
 }
 
@@ -67,7 +62,7 @@ int Pairwise::init( ) {
   else
     RefMask.SetMaskString(mask0);
 
-   // Datasets
+  // Datasets
   ds_name = actionArgs.getNextString();
   ds_vdw = DSL->AddMulti(DOUBLE, ds_name, "EVDW");
   ds_elec= DSL->AddMulti(DOUBLE, ds_name, "EELEC");
@@ -94,19 +89,15 @@ int Pairwise::init( ) {
       mprinterr("    Error: Pairwise::init: No atoms selected in reference mask.\n");
       return 1;
     }
-    // Allocate exclusion list for reference
-    AllocateExclusion(RefParm);
-    // Set up comparison array
-    N_ref_interactions = NumInteractions(&RefMask, RefParm);
-    ref_eelec.clear();
-    ref_eelec.resize( N_ref_interactions, 0 );
-    ref_evdw.clear();
-    ref_evdw.resize( N_ref_interactions, 0 );
+    // Set up nonbonded params for reference
+    if ( (N_ref_interactions=SetupNonbondParm( RefMask, RefParm )) == -1 ) return 1;
     // Calculate energy for reference
-    RefEnergy();
+    nb_calcType = SET_REF;
+    NonbondEnergy(RefFrame, RefParm, RefMask);
     mprintf("DEBUG:\tReference ELJ= %12.4lf  Eelec= %12.4lf\n",ELJ,Eelec);
-    mprintf("DEBUG:\tSize of reference eelec array: %u\n",ref_eelec.size());
-    mprintf("DEBUG:\tSize of reference evdw array: %u\n",ref_evdw.size());
+    mprintf("DEBUG:\tSize of reference eelec array: %u\n",ref_nonbondEnergy.size());
+    mprintf("DEBUG:\tSize of reference evdw array: %u\n",ref_nonbondEnergy.size());
+    nb_calcType = COMPARE_REF;
   }
 
   // Output for individual atom energy | dEnergy
@@ -132,73 +123,97 @@ int Pairwise::init( ) {
   return 0;
 }
 
-// Pairwise::AllocateExclusion()
-/** Allocate memory for the exclusion list based on the given parm.
+// Pairwise::SetupNonbondParm()
+/** Set up the exclusion list based on the given mask and parm.
+  * \return the total number of interactions, -1 on error.
   */
-int Pairwise::AllocateExclusion(AmberParm *Parm) {
-  int idx = 0;
-
-  if (skipv!=NULL) delete[] skipv;
-  skipv = new bool[ Parm->natom ];
-  for (int atom=0; atom < Parm->natom; atom++) 
-    skipv[atom]=false;
+int Pairwise::SetupNonbondParm(AtomMask &maskIn, AmberParm *ParmIn) {
+  bool hasExclusion;
+  int N_interactions = 0;
   // Check if exclusion info present
-  if (Parm->NumExcludedAtoms(0)==-1) hasExclusion=false;
-  if (hasExclusion) {
-    // Create an array holding indices for each atom into NATEX
-    if (natexidx!=NULL) delete[] natexidx;
-    natexidx = new int[ Parm->natom ];
-    for (int atom=0; atom < Parm->natom; atom++) {
-      natexidx[atom] = idx;
-      idx += Parm->NumExcludedAtoms(atom);
-    }
-    // DEBUG
-    if (debug>0) {
-      mprintf("DEBUG: EXCLUDED ATOM IDX:\n");
-      for (int atom=0; atom < Parm->natom; atom++) 
-        mprintf("\tAtom %i: Index %i\n",atom,natexidx[atom]);
-    }
+  if (ParmIn->NumExcludedAtoms(0)==-1) 
+    hasExclusion=false;
+  else
+    hasExclusion=true;
+  // Check if charges are present
+  if (ParmIn->charge==NULL) {
+    mprinterr("Error: Pairwise::setup(): Parm does not have charge information.\n");
+    return -1;
   }
+  // Charge is in units of electron charge, distance is in angstroms, so 
+  // the electrostatic prefactor should be 332. However, since the charges
+  // in AmberParm have presumably been converted from Amber charge units
+  // create a new charged array multiplied by 18.2223. This makes calcs with 
+  // Amber-converted charges more accurate at the cost of making non-Amber 
+  // charges less accurate.
+  atom_charge.clear();
+  atom_charge.resize(ParmIn->natom, 18.2223);
+  for (int atom = 0; atom < ParmIn->natom; atom++)
+    atom_charge[atom] *= ParmIn->charge[atom];
   // Check if LJ parameters present - need at least 2 atoms for it to matter.
-  if (Parm->natom>1) {
+  if (ParmIn->natom>1) {
     double Atemp = 0;
     double Btemp = 0;
-    if (Parm->GetLJparam(&Atemp, &Btemp, 0, 1)) {
+    if (ParmIn->GetLJparam(&Atemp, &Btemp, 0, 1)) {
       mprinterr("Error: Pairwise::setup(): Parm does not have LJ information.\n");
-      return 1;
+      return -1;
     }
   }
 
-  return 0;
-}
+  // There should be ((N^2 - N) / 2) - SUM(Numex) interactions, however
+  // since the excluded atoms list can include 0 as a placeholder (thereby
+  // having a Numex of 1) there may be more interactions than expected,
+  // so subtract the actual number of excluded atoms from the total as
+  // the overall exclusion list is built. 
+  N_interactions = (((maskIn.Nselected * maskIn.Nselected) - maskIn.Nselected) / 2);
 
-// Pairwise::NumInteractions()
-/** Based on the given atom mask and parm determine the total number of
-  * pairwise interactions that will be calculated.
-  * There should be ((N^2 - N) / 2) - SUM(Numex) interactions, however
-  * since the excluded atoms list can include 0 (which translates to 
-  * atom -1, nonexistent) there may be more interactions than expected,
-  * so each one must be explicitly counted.
-  */
-int Pairwise::NumInteractions(AtomMask *atommask, AmberParm *Parm) {
-  int Nselected = atommask->Nselected;
-  int N_interactions = 0;
-
-  if (hasExclusion) {
-    for (int maskidx = 0; maskidx < Nselected - 1; maskidx++) {
-      int atom1 = atommask->Selected[maskidx];
-      SetupExclusion(Parm, atom1);
-      for (int maskidx2 = maskidx + 1; maskidx2 < Nselected; maskidx2++) {
-        int atom2 = atommask->Selected[maskidx2];
-        if (!skipv[atom2]) N_interactions++; 
+  // Set up exclusion list for each atom in mask. Ensure that atoms in
+  // the exclusion list are also in the mask, so set up another character
+  // mask for this purpose.
+  AtomMask Mask2 = maskIn;
+  Mask2.SetupCharMask(ParmIn, activeReference, debug);
+  // natex_idx is the index into parm NATEX
+  int natex_idx = 0;
+  // Resize excluded atom list for current number of atoms
+  exclusionList.clear();
+  exclusionList.resize( ParmIn->natom );
+  for ( std::vector<int>::iterator maskatom1 = maskIn.Selected.begin();
+                                   maskatom1 != maskIn.Selected.end();
+                                   maskatom1++)
+  {
+    if (hasExclusion) {
+      for (int e_idx = 0; e_idx < ParmIn->NumExcludedAtoms(*maskatom1); e_idx++)
+      {
+        int excluded_atom = ParmIn->Natex( natex_idx++ );
+        if ( Mask2.AtomInCharMask( excluded_atom ) )
+          exclusionList[ *maskatom1 ].push_back( excluded_atom );
       }
     }
-  } else {
-    N_interactions = (((Nselected * Nselected) - Nselected) / 2);
+    // Push back a final -1. Since no atom will ever have this number
+    // it signals the end of the exclusion list for this atom. If there
+    // are no excluded atoms for this atom that mean the excluded list
+    // will contain only this value.
+    exclusionList[ *maskatom1 ].push_back( -1 );
+    // The total number of excluded atoms for this atom is now the size
+    // of the vector minus one (for the terminal -1).
+    int total_excluded = (int)exclusionList[ *maskatom1 ].size();
+    N_interactions -= (total_excluded - 1);
   }
 
-  // DEBUG
-  mprintf("DEBUG:\t%i total interactions.\n",N_interactions);
+  // DEBUG - Print total number of interactions for this parm
+  mprintf("\t%i interactions for this parm.\n",N_interactions);
+
+  // DEBUG - Print exclusion list for each atom
+  /*for (unsigned int atom = 0; atom < exclusionList.size(); atom++) {
+    mprintf("\t%8u:",atom + 1);
+    for (std::vector<int>::iterator eat = exclusionList[atom].begin();
+                                    eat != exclusionList[atom].end();
+                                    eat++)
+    {
+      mprintf(" %i",*eat + 1);
+    }
+    mprintf("\n");
+  }*/
   return N_interactions;
 }
 
@@ -212,16 +227,17 @@ int Pairwise::setup() {
     mprintf("    Error: Pairwise::setup: Mask has no atoms.\n");
     return 1;
   }
-  // Allocate memory for exclusion list
-  if (AllocateExclusion(currentParm)) return 1;
-  // If a reference frame is defined for atom-by-atom comparison make sure 
+
+  // Set up exclusion list and determine total # interactions.
+  int N_interactions = SetupNonbondParm(Mask0, currentParm);
+
+  // If comparing to a reference frame for atom-by-atom comparison make sure
   // the number of interactions is the same in reference and parm.
-  if (RefFrame!=NULL) {
-    int N_interactions = NumInteractions(&Mask0, currentParm);
+  if (nb_calcType==COMPARE_REF) {
     if (N_interactions != N_ref_interactions) {
       mprinterr(
         "Error: Pairwise: # reference interactions (%i) != # interactions for this parm (%i)\n",
-        N_ref_interactions, N_interactions
+        N_ref_interactions,N_interactions
       );
       return 1;
     }
@@ -237,95 +253,124 @@ int Pairwise::setup() {
   return 0;  
 }
 
-// Pairwise::SetupExclusion()
-/** Sets up the exclusion list, skipv, for the given atom; skipv will be
-  * true for atoms that will be skipped (i.e. excluded) in the non-bonded
-  * calc. skipv should be allocd and natexidx should be set up prior to 
-  * calling this routine.
+// Pairwise::NonbondEnergy()
+/** Calculate non-bonded energy using the nonbondParm array. The total
+  * LJ (vdw) energy is put in ELJ, and the total Coulomb (elec) energy
+  * is put in Eelec. Depending on the value of nb_calcType, each pair
+  * energy is either compared to a reference, distributed over both atoms
+  * evenly in the cumulative array, or reference values are set. If comparing
+  * to a reference structure, pairs for which the energy difference exceeds
+  * the cutoffs are printed.
   */
-int Pairwise::SetupExclusion(AmberParm *Parm, int atom1) {
-  int jexcl, jexcl_last, natex;
-  // Set up exclusion list for atom1
-  for (int atom2=atom1+1; atom2 < Parm->natom; atom2++) 
-    skipv[atom2]=false;
-  // Set start and stop indices into the Excluded atoms list, NATEX
-  jexcl = natexidx[atom1];
-  jexcl_last = jexcl + Parm->NumExcludedAtoms(atom1);
-  for (int idx = jexcl; idx < jexcl_last; idx++) {
-    natex = Parm->Natex(idx);
-    if (debug>0) mprintf("\t\tPair %i - %i will be excluded.\n",atom1,natex);
-    //if (natex >= P->natom) {
-    //  mprinterr("Error: excluded atom index %i for atom %i > # atoms.\n",idx,atom1);
-    //  return 1;
-    //}
-    if (natex>=0) skipv[ natex ] = true;
-  }
-  return 0;
-}
+void Pairwise::NonbondEnergy(Frame *frameIn, AmberParm *parmIn, AtomMask &maskIn) {
+  double rij, rij2, JI[3], delta2, Acoef, Bcoef;
+  std::vector<NonbondEnergyType>::iterator refpair;
+  NonbondEnergyType refE;
 
-// Pairwise::Energy_LJ()
-/** Calculate the Lennard-Jones 6-12 energy and force between two atoms
-  * separated by the given distance squared.
-  */
-double Pairwise::Energy_LJ(AmberParm *Parm, int atom1, int atom2, double rij2, double *force) {
-  double Acoef, Bcoef, r2, r6, r12, f12, f6, energy;
-  // LJ Energy
-  Parm->GetLJparam(&Acoef, &Bcoef,atom1,atom2);
-  r2=1/rij2;
-  r6=r2*r2*r2;
-  r12=r6*r6;
-  f12=Acoef*r12;               // A/r^12
-  f6=Bcoef*r6;                 // B/r^6
-  energy=f12-f6;               // (A/r^12)-(B/r^6)
-  // LJ Force 
-  *force=((12*f12)-(6*f6))*r2; // (12A/r^13)-(6B/r^7)
-  //scalarmult(f,JI,F);
-  //M[i].f[0]+=f[0];
-  //M[i].f[1]+=f[1];
-  //M[i].f[2]+=f[2];
-  //M[j].f[0]-=f[0];
-  //M[j].f[1]-=f[1];
-  //M[j].f[2]-=f[2];
-  if (debug>0) {
-    mprintf("\t\t\tLJ Force:  A= %lf  B= %lf  F= %lf  E= %lf\n",Acoef,Bcoef,force,energy);
-    //mprintf("\t\t\tevdw= %lf\n",ELJ);
-    mprintf("\t\t\t1/r6= %lf f6=%lf 1/r12= %lf f12=%lf\n",r6,f6,r12,f12);
-    //mprintf("\t\t\tAtom %i : Fx= %lf  Fy= %lf  Fz= %lf\n",atom1,f[0],f[1],f[2]);
-    //mprintf("\t\t\tAtom %i : Fx= %lf  Fy= %lf  Fz= %lf\n",atom2,-f[0],-f[1],-f[2]);
-  }
-  return energy;
-}
+  ELJ = 0;
+  Eelec = 0;
+  JI[0]=0; JI[1]=0; JI[2]=0;
+  refpair = ref_nonbondEnergy.begin();
+  // Loop over all atom pairs and set information
+  std::vector<int>::iterator mask_end = maskIn.Selected.end();
+  std::vector<int>::iterator mask_end1 = maskIn.Selected.end();
+  --mask_end1;
+  // Outer loop
+  for (std::vector<int>::iterator maskatom1 = maskIn.Selected.begin();
+                                  maskatom1 != mask_end1; 
+                                  maskatom1++)
+  {
+    // Set up coord index for this atom
+    int coord1 = (*maskatom1) * 3;
+    // Set up exclusion list for this atom
+    std::vector<int>::iterator excluded_atom = exclusionList[*maskatom1].begin();
+    // Inner loop
+    std::vector<int>::iterator maskatom2 = maskatom1;
+    ++maskatom2;
+    for (; maskatom2 != mask_end; maskatom2++) {
+      // If atom is excluded, just increment to next excluded atom;
+      // otherwise perform energy calc.
+      if ( *maskatom2 == *excluded_atom )
+        ++excluded_atom;
+      else {
+        // Set up coord index for this atom
+        int coord2 = (*maskatom2) * 3;
+        // Calculate the vector pointing from atom2 to atom1
+        vector_sub(JI, frameIn->X+coord1, frameIn->X+coord2);
+        // Normalize
+        rij = vector_norm(JI, &rij2);
+        // LJ energy 
+        parmIn->GetLJparam(&Acoef, &Bcoef,*maskatom1,*maskatom2);
+        double r2=1/rij2;
+        double r6=r2*r2*r2;
+        double r12=r6*r6;
+        double f12=Acoef*r12; // A/r^12
+        double f6=Bcoef*r6;   // B/r^6
+        double e_vdw=f12-f6;  // (A/r^12)-(B/r^6)
+        ELJ += e_vdw;
+        // LJ Force 
+        //force=((12*f12)-(6*f6))*r2; // (12A/r^13)-(6B/r^7)
+        //scalarmult(f,JI,F);
+        // Coulomb energy 
+        double qiqj = atom_charge[*maskatom1] * atom_charge[*maskatom2];
+        double e_elec=kes * (qiqj/rij);
+        Eelec += e_elec;
+        // Coulomb Force
+        //force=e_elec/rij; // kes*(qiqj/r)*(1/r)
+        //scalarmult(f,JI,F);
 
-// Pairwise::Energy_Coulomb()
-/** Calculate the Coulomb electrostatic energy and force between two atoms 
-  * separated by the given distance.
-  */
-double Pairwise::Energy_Coulomb(AmberParm *Parm, int atom1, int atom2, double rij, double *force) {
-  double qi, qj, qiqj, energy;
-  // Coulomb Energy 
-  // NOTE: Currently cpptraj converts charge to units of e- when topology
-  // is read in. Need to convert back here. Not really efficient, just a 
-  // hack for now.
-  qi = Parm->charge[atom1] * 18.2223;
-  qj = Parm->charge[atom2] * 18.2223;
-  qiqj = qi * qj;
-  energy=kes * (qiqj/rij);
-  // Coulomb Force
-  *force=energy/rij; // kes*(qiqj/r)*(1/r)
-  //scalarmult(f,JI,F);
-  //M[i].f[0]+=f[0];
-  //M[i].f[1]+=f[1];
-  //M[i].f[2]+=f[2];
-  //M[j].f[0]-=f[0];
-  //M[j].f[1]-=f[1];
-  //M[j].f[2]-=f[2];
-  if (debug>0) {
-    mprintf("\t\t\tCoulomb Force:  q%i= %lf  q%i= %lf  F= %lf  E= %lf\n",
-            atom1,Parm->charge[atom1],atom2,Parm->charge[atom2],force,energy);
-    //mprintf("\t\t\tAtom %i : Fx= %lf  Fy= %lf  Fz= %lf\n",atom1,f[0],f[1],f[2]);
-    //mprintf("\t\t\tAtom %i : Fx= %lf  Fy= %lf  Fz= %lf\n",atom2,-f[0],-f[1],-f[2]);
-  }
-  return energy;
+        // ----------------------------------------
+        int atom1 = *maskatom1;
+        int atom2 = *maskatom2;
+        // 1 - Comparison to reference, cumulative dEnergy on atoms
+        if (nb_calcType == COMPARE_REF) {
+          // dEvdw
+          double delta_vdw = (*refpair).evdw - e_vdw;
+          // dEelec
+          double delta_eelec = (*refpair).eelec - e_elec;
+          // Output
+          if (Eout.IsOpen()) {
+            if (delta_vdw > cut_evdw || delta_vdw < cut_evdw1) {
+              Eout.IO->Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",
+                              atom1+1,currentParm->names[atom1],
+                              atom2+1,currentParm->names[atom2],delta_vdw);
+            }
+            if (delta_eelec > cut_eelec || delta_eelec < cut_eelec1) {
+              Eout.IO->Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",
+                              atom1+1,currentParm->names[atom1],
+                              atom2+1,currentParm->names[atom2],delta_eelec);
+            }
+          }
+          // Divide the total pair dEvdw between both atoms.
+          delta2 = delta_vdw * 0.5;
+          atom_evdw[atom1] += delta2;
+          atom_evdw[atom2] += delta2;
+          // Divide the total pair dEelec between both atoms.
+          delta2 = delta_eelec * 0.5;
+          atom_eelec[atom1] += delta2;
+          atom_eelec[atom2] += delta2;
+        // 2 - No reference, just cumulative Energy on atoms
+        } else if (nb_calcType == NORMAL) {
+          // Cumulative evdw - divide between both atoms
+          delta2 = e_vdw * 0.5;
+          atom_evdw[atom1] += delta2;
+          atom_evdw[atom2] += delta2;
+          // Cumulative eelec - divide between both atoms
+          delta2 = e_elec * 0.5;
+          atom_eelec[atom1] += delta2;
+          atom_eelec[atom2] += delta2;
+        // 3 - Store the reference nonbond energy for this pair
+        } else { // if nb_calcType == SET_REF
+          refE.evdw = e_vdw;
+          refE.eelec = e_elec;
+          ref_nonbondEnergy.push_back( refE );
+        }
+        ++refpair;
+        // ----------------------------------------
+      } // END pair not excluded
+    } // END Inner loop
+  } // END Outer loop
+
 }
 
 // Pairwise::WriteCutFrame()
@@ -350,185 +395,68 @@ int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharg
   return 0;
 }
 
-// Pairwise::RefEnergy()
-/** Calculate pairwise energy for the reference mask, frame, and parm.
-  * Fill the ref_X arrays.
+// Pairwise::PrintCutAtoms()
+/** Print atoms for which the cumulative energy satisfies the given
+  * cutoffs. Also create MOL2 files containing those atoms.
   */
-void Pairwise::RefEnergy() {
-  int atom1, atom2, Ncomparison;
-  double rij, rij2, JI[3], force, e_vdw, e_elec;
-  // Loop over all atom pairs excluding self
-  ELJ = 0;
-  Eelec = 0;
-  JI[0]=0; JI[1]=0; JI[2]=0;
-  Ncomparison = 0; // Pairwise interaction counter
-  // Outer loop
-  for (int maskidx1 = 0; maskidx1 < RefMask.Nselected - 1; maskidx1++) {
-    atom1 = RefMask.Selected[maskidx1];
-    if (hasExclusion)
-      SetupExclusion(RefParm, atom1);
-    // Inner loop
-    for (int maskidx2 = maskidx1 + 1; maskidx2 < RefMask.Nselected; maskidx2++) {
-      atom2 = RefMask.Selected[maskidx2];
-      int coord1 = atom1 * 3;
-      int coord2 = atom2 * 3;
-      // Calculate the vector pointing from atom2 to atom1
-      vector_sub(JI, RefFrame->X+coord1, RefFrame->X+coord2);
-      // Normalize
-      rij = vector_norm(JI, &rij2);
-      // Non-bonded energy
-      if (!skipv[atom2]) {
-        // Lennard Jones 6-12 Energy
-        e_vdw = Energy_LJ(RefParm, atom1, atom2, rij2, &force);
-        ELJ += e_vdw;
-        // Coulomb Energy
-        e_elec = Energy_Coulomb(RefParm, atom1, atom2, rij, &force);
-        Eelec += e_elec;
-        // Store in ref_X arrays
-        ref_evdw[ Ncomparison ] = e_vdw;
-        ref_eelec[ Ncomparison ] = e_elec;
-        Ncomparison++;
-      }
-    } // End inner loop
-  } // End outer loop
-}
-      
-// Pairwise::Energy()
-/** Calculate pairwise energy for the given mask, frame, and parm. Sets
-  * ELJ and Eelec. 
-  */
-int Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
-  int atom1, atom2, Ncomparison;
-  double rij, rij2, JI[3], force, e_vdw, e_elec, delta, delta2;
+void Pairwise::PrintCutAtoms(Frame *frame) {
   char buffer[256]; // NOTE: Temporary
-  // Loop over all atom pairs excluding self
-  ELJ = 0;
-  Eelec = 0;
-  JI[0]=0; JI[1]=0; JI[2]=0;
-  Ncomparison = 0; // Pairwise interaction counter
-  // Data output
-  if (Eout.IsOpen())
-    Eout.IO->Printf("PAIRWISE: Frame %i\n",frameNum);
-  // Outer loop
-  for (int maskidx1 = 0; maskidx1 < atommask->Nselected - 1; maskidx1++) {
-    atom1 = atommask->Selected[maskidx1];
-    if (debug>0) mprintf("\tPAIRWISE: Atom %i\n",atom1+1);
-    // Set up exclusion list if necessary
-    if (hasExclusion) 
-      SetupExclusion(Parm, atom1);    
-    // Inner loop
-    for (int maskidx2 = maskidx1 + 1; maskidx2 < atommask->Nselected; maskidx2++) {
-      atom2 = atommask->Selected[maskidx2];
-      if (debug>0) mprintf("\t\tCalc for Pair %i - %i:\n",atom1,atom2);
-      int coord1 = atom1 * 3;
-      int coord2 = atom2 * 3;
-      // Calculate the vector pointing from atom2 to atom1
-      vector_sub(JI, frame->X+coord1, frame->X+coord2);
-      // Normalize
-      rij = vector_norm(JI, &rij2);
-      // Non-bonded energy
-      if (!skipv[atom2]) {
-        // Lennard Jones 6-12 Energy
-        e_vdw = Energy_LJ(Parm, atom1, atom2, rij2, &force);
-        ELJ += e_vdw;
-        // Coulomb Energy
-        e_elec = Energy_Coulomb(Parm, atom1, atom2, rij, &force);
-        Eelec += e_elec;
-        // 1 - Comparison to reference, cumulative dEnergy on atoms
-        if (RefFrame!=NULL) {
-          // dEvdw
-          delta = ref_evdw[ Ncomparison ] - e_vdw;
-          if (Eout.IsOpen() && (delta > cut_evdw || delta < cut_evdw1)) {
-            Eout.IO->Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",atom1+1,Parm->names[atom1],
-                            atom2+1,Parm->names[atom2],delta);
-          }
-          // Divide the total pair dEvdw between both atoms.
-          delta2 = delta * 0.5;
-          atom_evdw[atom1] += delta2;
-          atom_evdw[atom2] += delta2;
-          // dEelec
-          delta = ref_eelec[ Ncomparison ] - e_elec;
-          if (Eout.IsOpen() && (delta > cut_eelec || delta < cut_eelec1)) {
-            Eout.IO->Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",atom1+1,Parm->names[atom1],
-                            atom2+1,Parm->names[atom2],delta);
-          }
-          // Divide the total pair dEelec between both atoms.
-          delta2 = delta * 0.5;
-          atom_eelec[atom1] += delta2;
-          atom_eelec[atom2] += delta2;
-        // 2 - No reference, just cumulative Energy on atoms
-        } else {
-          // Cumulative evdw - divide between both atoms
-          delta2 = e_vdw * 0.5;
-          atom_evdw[atom1] += delta2;
-          atom_evdw[atom2] += delta2;
-          // Cumulative eelec - divide between both atoms
-          delta2 = e_elec * 0.5;
-          atom_eelec[atom1] += delta2;
-          atom_eelec[atom2] += delta2;
-        }
-        Ncomparison++;
-      } // End if not excluded
-    } // End Inner loop
-  } // End Outer loop
-  //mprintf("\tPAIRWISE: ELJ = %12.4lf  Eelec = %12.4lf\n",ELJ,Eelec);
-  //mprintf("\tPAIRWISE: %i interactions.\n",Ncomparison);
-
-  // Print atoms for which the cumulative energy satisfies the given
-  // cutoffs. Also create MOL2 files containing those atoms.
   AtomMask CutMask; // TEST
   std::vector<double> CutCharges; // TEST
   // EVDW
   if (Eout.IsOpen()) {
-    if (RefFrame!=NULL)
+    if (nb_calcType==COMPARE_REF)
       Eout.IO->Printf("\tPAIRWISE: Cumulative dEvdw:");
     else
       Eout.IO->Printf("\tPAIRWISE: Cumulative Evdw:");
     Eout.IO->Printf(" Evdw < %.4lf, Evdw > %.4lf\n",cut_evdw1,cut_evdw);
   }
-  for (int atom = 0; atom < Parm->natom; atom++) {
+  for (int atom = 0; atom < currentParm->natom; atom++) {
     if (atom_evdw[atom]>cut_evdw || atom_evdw[atom]<cut_evdw1) {
       if (Eout.IsOpen()) 
-        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,Parm->names[atom],atom_evdw[atom]);
+        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,currentParm->names[atom],atom_evdw[atom]);
       CutMask.AddAtom(atom);
       CutCharges.push_back(atom_evdw[atom]);
     }
   }
   if (cutout!=NULL && !CutMask.None()) {
     sprintf(buffer,"%s.evdw.mol2",cutout);
-    if (WriteCutFrame(Parm, &CutMask, &CutCharges[0], frame, buffer)) return 1;
+    if (WriteCutFrame(currentParm, &CutMask, &CutCharges[0], frame, buffer)) return;
   }
   CutMask.ResetMask();
   CutCharges.clear();
   // EELEC
   if (Eout.IsOpen()) {
-    if (RefFrame!=NULL)
+    if (nb_calcType==COMPARE_REF)
       Eout.IO->Printf("\tPAIRWISE: Cumulative dEelec:");
     else
       Eout.IO->Printf("\tPAIRWISE: Cumulative Eelec:");
     Eout.IO->Printf(" Eelec < %.4lf, Eelec > %.4lf\n",cut_eelec1,cut_eelec);
   }
-  for (int atom = 0; atom < Parm->natom; atom++) { 
+  for (int atom = 0; atom < currentParm->natom; atom++) { 
     if (atom_eelec[atom]>cut_eelec || atom_eelec[atom]<cut_eelec1) {
       if (Eout.IsOpen()) 
-        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,Parm->names[atom],atom_eelec[atom]);
+        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,currentParm->names[atom],atom_eelec[atom]);
       CutMask.AddAtom(atom);
       CutCharges.push_back(atom_eelec[atom]);
     }  
   }
   if (cutout!=NULL && !CutMask.None()) {
     sprintf(buffer,"%s.eelec.mol2",cutout);
-    if (WriteCutFrame(Parm, &CutMask, &CutCharges[0], frame,buffer)) return 1;
+    if (WriteCutFrame(currentParm, &CutMask, &CutCharges[0], frame,buffer)) return;
   }
-  // Reset cumulative energy arrays
-  atom_eelec.assign(Parm->natom, 0);
-  atom_evdw.assign(Parm->natom, 0);
-  return 0;
 }
 
 // Pairwise::action()
 int Pairwise::action() {
-  if (Energy(&Mask0, currentFrame, currentParm)) return 1;
+  //if (Energy(&Mask0, currentFrame, currentParm)) return 1;
+  if (Eout.IsOpen()) Eout.IO->Printf("PAIRWISE: Frame %i\n",frameNum);
+  NonbondEnergy( currentFrame, currentParm, Mask0 );
+  PrintCutAtoms( currentFrame );
+  // Reset cumulative energy arrays
+  atom_eelec.assign(currentParm->natom, 0);
+  atom_evdw.assign(currentParm->natom, 0);
+
   ds_vdw->Add(frameNum, &ELJ);
   ds_elec->Add(frameNum, &Eelec);
 
