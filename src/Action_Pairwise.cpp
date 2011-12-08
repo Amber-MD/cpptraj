@@ -34,14 +34,14 @@ Pairwise::~Pairwise() {
   Eout.CloseFile();
 }
 
-/* Pairwise::init()
- * Expected call: pairwise [<name>] [<mask>] [out <filename>] [cuteelec <cute>] [cutevdw <cutv>]
+// Pairwise::init()
+/** Expected call: pairwise [<name>] [<mask>] [out <filename>] [cuteelec <cute>] [cutevdw <cutv>]
                            [ref <reffilename> | refindex <ref#>] [cutout <cutmol2name>]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
  */
+// Dataset name will be the last arg checked for. Check order is:
+//    1) Keywords
+//    2) Masks
+//    3) Dataset name
 int Pairwise::init( ) {
   char *mask0, *dataout, *eout, *refmask, *referenceName, *ds_name;
   int refindex;
@@ -132,9 +132,9 @@ int Pairwise::init( ) {
   return 0;
 }
 
-/* Pairwise::AllocateExclusion()
- * Allocate memory for the exclusion list based on the given parm.
- */
+// Pairwise::AllocateExclusion()
+/** Allocate memory for the exclusion list based on the given parm.
+  */
 int Pairwise::AllocateExclusion(AmberParm *Parm) {
   int idx = 0;
 
@@ -172,14 +172,14 @@ int Pairwise::AllocateExclusion(AmberParm *Parm) {
   return 0;
 }
 
-/* Pairwise::NumInteractions()
- * Based on the given atom mask and parm determine the total number of
- * pairwise interactions that will be calculated.
- * There should be ((N^2 - N) / 2) - SUM(Numex) interactions, however
- * since the excluded atoms list can include 0 (which translates to 
- * atom -1, nonexistent) there may be more interactions than expected,
- * so each one must be explicitly counted.
- */
+// Pairwise::NumInteractions()
+/** Based on the given atom mask and parm determine the total number of
+  * pairwise interactions that will be calculated.
+  * There should be ((N^2 - N) / 2) - SUM(Numex) interactions, however
+  * since the excluded atoms list can include 0 (which translates to 
+  * atom -1, nonexistent) there may be more interactions than expected,
+  * so each one must be explicitly counted.
+  */
 int Pairwise::NumInteractions(AtomMask *atommask, AmberParm *Parm) {
   int Nselected = atommask->Nselected;
   int N_interactions = 0;
@@ -202,9 +202,9 @@ int Pairwise::NumInteractions(AtomMask *atommask, AmberParm *Parm) {
   return N_interactions;
 }
 
-/* Pairwise::setup()
- * Set up mask, allocate memory for exclusion list.
- */
+// Pairwise::setup()
+/** Set up mask, allocate memory for exclusion list.
+  */
 int Pairwise::setup() {
   // Set up mask
   if ( Mask0.SetupMask(currentParm,activeReference,debug) ) return 1;
@@ -237,12 +237,12 @@ int Pairwise::setup() {
   return 0;  
 }
 
-/* Pairwise::SetupExclusion()
- * Sets up the exclusion list, skipv, for the given atom; skipv will be
- * true for atoms that will be skipped (i.e. excluded) in the non-bonded
- * calc. skipv should be allocd and natexidx should be set up prior to 
- * calling this routine.
- */
+// Pairwise::SetupExclusion()
+/** Sets up the exclusion list, skipv, for the given atom; skipv will be
+  * true for atoms that will be skipped (i.e. excluded) in the non-bonded
+  * calc. skipv should be allocd and natexidx should be set up prior to 
+  * calling this routine.
+  */
 int Pairwise::SetupExclusion(AmberParm *Parm, int atom1) {
   int jexcl, jexcl_last, natex;
   // Set up exclusion list for atom1
@@ -263,10 +263,10 @@ int Pairwise::SetupExclusion(AmberParm *Parm, int atom1) {
   return 0;
 }
 
-/* Pairwise::Energy_LJ()
- * Calculate the Lennard-Jones 6-12 energy and force between two atoms
- * separated by the given distance squared.
- */
+// Pairwise::Energy_LJ()
+/** Calculate the Lennard-Jones 6-12 energy and force between two atoms
+  * separated by the given distance squared.
+  */
 double Pairwise::Energy_LJ(AmberParm *Parm, int atom1, int atom2, double rij2, double *force) {
   double Acoef, Bcoef, r2, r6, r12, f12, f6, energy;
   // LJ Energy
@@ -296,10 +296,10 @@ double Pairwise::Energy_LJ(AmberParm *Parm, int atom1, int atom2, double rij2, d
   return energy;
 }
 
-/* Pairwise::Energy_Coulomb()
- * Calculate the Coulomb electrostatic energy and force between two atoms 
- * separated by the given distance.
- */
+// Pairwise::Energy_Coulomb()
+/** Calculate the Coulomb electrostatic energy and force between two atoms 
+  * separated by the given distance.
+  */
 double Pairwise::Energy_Coulomb(AmberParm *Parm, int atom1, int atom2, double rij, double *force) {
   double qi, qj, qiqj, energy;
   // Coulomb Energy 
@@ -328,8 +328,7 @@ double Pairwise::Energy_Coulomb(AmberParm *Parm, int atom1, int atom2, double ri
   return energy;
 }
 
-/* Pairwise::WriteCutFrame()
- */
+// Pairwise::WriteCutFrame()
 int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharges,
                             Frame *frame, char *outfilename) 
 {
@@ -351,10 +350,10 @@ int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharg
   return 0;
 }
 
-/* Pairwise::RefEnergy()
- * Calculate pairwise energy for the reference mask, frame, and parm.
- * Fill the ref_X arrays.
- */
+// Pairwise::RefEnergy()
+/** Calculate pairwise energy for the reference mask, frame, and parm.
+  * Fill the ref_X arrays.
+  */
 void Pairwise::RefEnergy() {
   int atom1, atom2, Ncomparison;
   double rij, rij2, JI[3], force, e_vdw, e_elec;
@@ -394,10 +393,10 @@ void Pairwise::RefEnergy() {
   } // End outer loop
 }
       
-/* Pairwise::Energy()
- * Calculate pairwise energy for the given mask, frame, and parm. Sets
- * ELJ and Eelec. 
- */
+// Pairwise::Energy()
+/** Calculate pairwise energy for the given mask, frame, and parm. Sets
+  * ELJ and Eelec. 
+  */
 int Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
   int atom1, atom2, Ncomparison;
   double rij, rij2, JI[3], force, e_vdw, e_elec, delta, delta2;
@@ -527,8 +526,7 @@ int Pairwise::Energy(AtomMask *atommask, Frame *frame, AmberParm *Parm) {
   return 0;
 }
 
-/* Pairwise::action()
- */
+// Pairwise::action()
 int Pairwise::action() {
   if (Energy(&Mask0, currentFrame, currentParm)) return 1;
   ds_vdw->Add(frameNum, &ELJ);
@@ -537,8 +535,7 @@ int Pairwise::action() {
   return 0;
 } 
 
-/* Pairwise::print()
- */
+// Pairwise::print()
 void Pairwise::print() {
 /*  if (RefFrame!=NULL) {
     mprintf("\tPAIRWISE: Cumulative dEelec:\n");

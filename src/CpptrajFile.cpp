@@ -159,26 +159,29 @@ int CpptrajFile::OpenFileBuffered() {
 }*/
 
 // CpptrajFile::Gets()
+/// Gets from the CharBuffer.
 int CpptrajFile::Gets(char *str, int num) {
   return c_buffer.Gets(str,num);
 }
 
 // CpptrajFile::Rewind()
+/// Rewind the CharBuffer.
 void CpptrajFile::Rewind() {
   c_buffer.Rewind();
 }
 
 // CpptrajFile::Read()
+/// Read from the CharBuffer.
 int CpptrajFile::Read(void *str, size_t numbytes) {
   return c_buffer.Read(str,numbytes);
 }
 
-/* CpptrajFile::SetBaseFilename()
- * Strip leading path from input filename. Use strtok routine to separate 
- * filename by / and use the last string as the base filename. Internal 
- * filename is not used since strtok modifies the char array.
- * Also determine the file extension.
- */
+// CpptrajFile::SetBaseFilename()
+/** Strip leading path from input filename. Use strtok routine to separate 
+  * filename by / and use the last string as the base filename. Internal 
+  * filename is not used since strtok modifies the char array.
+  * Also determine the file extension.
+  */
 void CpptrajFile::SetBaseFilename() {
   char *ptr, *tempFilename;
   int i, nameLen;
@@ -218,23 +221,23 @@ void CpptrajFile::SetBaseFilename() {
     mprintf("\t                 Ext= %s  Len= %lu\n",Ext,strlen(basefilename+i));
 }
 
-/* CpptrajFile::SetupFile()
- * Set up the given file for the specified access, assume DATAFILE format
- * (no autodetection of format). Implicitly requests autodetection of the 
- * file type.
- */
+// CpptrajFile::SetupFile()
+/** Set up the given file for the specified access, assume DATAFILE format
+  * (no autodetection of format). Implicitly requests autodetection of the 
+  * file type.
+  */
 int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn, int debugIn) {
   return SetupFile(filenameIn,accessIn,DATAFILE,UNKNOWN_TYPE,debugIn);
 }
 
-/* CpptrajFile::SetupFile()
- * Sets the file name, access type (R/W/A), file type and file format (for 
- * WRITE), and debug level. If called with READ or append file type and format
- * will be determined by SetupRead. If called with WRITE the given type and 
- * format will be used; if called with UNKNOWN type and format they will
- * try to be determined by the given file extension. 
- * Can be called with NULL for write, this will write to stdout.
- */
+// CpptrajFile::SetupFile()
+/** Sets the file name, access type (R/W/A), file type and file format (for 
+  * WRITE), and debug level. If called with READ or append file type and format
+  * will be determined by SetupRead. If called with WRITE the given type and 
+  * format will be used; if called with UNKNOWN type and format they will
+  * try to be determined by the given file extension. 
+  * Can be called with NULL for write, this will write to stdout.
+  */
 int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn, 
                          FileFormat fileFormatIn, FileType fileTypeIn, 
                          int debugIn) 
@@ -303,10 +306,10 @@ int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn,
   return 0;
 }
 
-/* CpptrajFile::SetupWrite()
- * Set up file with specified type for writing. fileFormat is set by SetupFile.
- * NOTE: Determine if compression is requested, either by arg or from name
- */
+// CpptrajFile::SetupWrite()
+/** Set up file with specified type for writing. fileFormat is set by SetupFile.
+  * NOTE: Determine if compression is requested, either by arg or from name
+  */
 int CpptrajFile::SetupWrite() {
 
   if (debug>1) mprintf("DEBUG: Setting up WRITE for file %s\n",filename);
@@ -350,10 +353,10 @@ int CpptrajFile::SetupWrite() {
   return 0;
 }
 
-/* CpptrajFile::SetupRead() 
- * Open the file specified by filename for READ or APPEND access. Attempt to 
- * identify the file type and format.
- */
+// CpptrajFile::SetupRead() 
+/** Open the file specified by filename for READ or APPEND access. Attempt to 
+  * identify the file type and format.
+  */
 int CpptrajFile::SetupRead() {
   unsigned char magic[3];
   char buffer1[BUFFER_SIZE], buffer2[BUFFER_SIZE];

@@ -11,8 +11,8 @@
   * etc). Can be read in from Amber Topology, PDB, or Mol2 files (implemented 
   * in the ReadParmXXX functions). The following parameters of AmberParm must 
   * always be set:
-  *   1. Variables: natom, nres, boxType 
-  *   2.    Arrays: names, resnames, resnums
+  * - Variables: natom, nres, boxType 
+  * -    Arrays: names, resnames, resnums
   */
 class AmberParm {
   private:

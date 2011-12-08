@@ -1,4 +1,6 @@
-/// Useful Physical constants
+/*! \file Constants.h
+    \brief Useful Physical constants
+ */
 #define PI 3.1415926535897932384626433832795
 #define TWOPI 6.2831853071795864769252867665590
 #define FOURPI 12.566370614359172953850573533118
