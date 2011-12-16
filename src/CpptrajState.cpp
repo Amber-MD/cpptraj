@@ -95,7 +95,7 @@ void CpptrajState::Dispatch(char *inputLine) {
     AtomMask *tempMask = new AtomMask();
     tempMask->SetMaskString( dispatchArg.getNextMask() );
     // NOTE: No coords for now, Frame list not set up.
-    tempMask->SetupMask( tempParm, NULL, debug );
+    tempParm->SetupIntegerMask( *tempMask, NULL );
     tempMask->PrintMaskAtoms("Selected");
     delete tempMask;
     return;

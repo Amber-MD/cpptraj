@@ -2,7 +2,6 @@
 #define INC_ATOMMASK_H
 #include <string>
 #include <vector>
-#include "AmberParm.h"
 // Class: AtomMask
 /// Hold info on selected atoms based on mask expression.
 /** AtomMask is used to hold an array of integers that represent atom numbers
@@ -39,6 +38,7 @@ class AtomMask {
     std::vector<int> Selected;  ///< Int array of selected atom numbers, 1 for each selected atom
 
     const char *MaskString() { return maskString.c_str(); }
+    char *PostfixExpression(){ return (char*)Postfix.c_str(); }
 
     AtomMask();
     ~AtomMask();
@@ -55,10 +55,10 @@ class AtomMask {
     void PrintMaskAtoms(const char*); ///< Print all mask atoms in to a line
     bool None();                   ///< Return true if Nselected==0
     int SetMaskString(char*);      ///< Set the mask string. If NULL, set * (all)
-    /// Set up Selected based on maskString and given parm
-    int SetupMask(AmberParm*,double*,int);
-    /// Set up CharMask based on maskString and given parm
-    int SetupCharMask(AmberParm*,double*,int);
+    /// Set up Selected based on given char mask 
+    void SetupMask(char*,int,int);
+    /// Set up CharMask based on given char mask 
+    void SetupCharMask(char*, int, int);
     /// True if given atom is T in CharMask
     bool AtomInCharMask(int atom);
  

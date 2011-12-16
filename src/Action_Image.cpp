@@ -81,8 +81,9 @@ int Image::init() {
   * currentParm is set in Action::Setup
   */
 int Image::setup() {
+  atomPair apair;
 
-  if ( Mask1.SetupCharMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupCharMask( Mask1, activeReference ) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Image::setup: Mask contains 0 atoms.\n");
     return 1;
@@ -106,13 +107,39 @@ int Image::setup() {
 
   if (triclinic == FAMILIAR) {
     if (ComMask!=NULL) {
-      if ( ComMask->SetupMask(currentParm,activeReference,debug) ) return 1;
+      if ( currentParm->SetupIntegerMask( *ComMask, activeReference) ) return 1;
       if (ComMask->None()) {
         mprintf("    Error: Image::setup: Mask for 'familiar com' contains no atoms.\n");
         return 1;
       }
     }
   }
+
+  // Set up atom range for each entity to be imaged. 
+  // Currently imaging by molecule only, so each pair will be the first and
+  // last atom of each moleucle. Check that all atoms between first and last
+  // are actually in the mask.
+  imageList.clear();
+  mprintf("    IMAGE: # of molecules is %i\n", currentParm->Nmol()); 
+  imageList.reserve( currentParm->Nmol() );
+  apair.firstAtom = 0;
+  apair.lastAtom = 0;
+  for (int mol = 0; mol < currentParm->Nmol(); mol++) {
+    apair.firstAtom = apair.lastAtom;
+    apair.lastAtom = apair.firstAtom + currentParm->AtomsPerMol(mol);
+    // Check that each atom in the range is in Mask1
+    bool rangeIsValid = true;
+    for (int atom = apair.firstAtom; atom < apair.lastAtom; atom++)
+      if (!Mask1.AtomInCharMask(atom)) {rangeIsValid = false; break;}
+    if (rangeIsValid) imageList.push_back( apair );
+  }
+  // DEBUG: Print all pairs
+  //for (std::vector<atomPair>::iterator ap = imageList.begin();
+  //                                     ap != imageList.end();
+  //                                     ap++)
+  //{
+  //  mprintf("\tPair: %i - %i\n",(*ap).firstAtom+1,(*ap).lastAtom);
+  //}
 
   return 0;  
 }
@@ -130,8 +157,6 @@ int Image::action() {
   double fcom[3];
   int ixyz[3];
   // General
-  int begin, end, count;
-  int firstAtom, lastAtom, Atom;
   double boxTrans[3];
   double Coord[3];
 
@@ -180,23 +205,16 @@ int Image::action() {
     } 
   }
 
-  begin = 0;
+  // Loop over Atom pairs
+  for (std::vector<atomPair>::iterator apair = imageList.begin();
+                                       apair != imageList.end();
+                                       apair++)
+  {
+    int firstAtom = (*apair).firstAtom;
+    int lastAtom  = (*apair).lastAtom;
 
-  // Loop over molecules
-  firstAtom = 0;
-  lastAtom = 0;
-  end = currentParm->molecules;
-  if (debug>2) 
-    mprintf("IMAGE: molecules is %i\n", currentParm->molecules); 
-
-  for (count = begin; count < end; count++) {
-
-    // Molecules
-    firstAtom = lastAtom;
-    lastAtom = firstAtom + currentParm->atomsPerMol[count];
-
-    if (debug>2)
-      mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom); 
+    //if (debug>2)
+    //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom); 
 
     // boxTrans will hold calculated translation needed to move atoms back into box
     boxTrans[0] = 0.0;
@@ -257,9 +275,9 @@ int Image::action() {
           boxTrans[1] += (ixyz[0]*ucell[1] + ixyz[1]*ucell[4] + ixyz[2]*ucell[7]);
           boxTrans[2] += (ixyz[0]*ucell[2] + ixyz[1]*ucell[5] + ixyz[2]*ucell[8]);
 
-          if (debug > 2)
-            mprintf( "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
-                    ixyz[0], ixyz[1], ixyz[2]);
+          //if (debug > 2)
+          //  mprintf( "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
+          //          ixyz[0], ixyz[1], ixyz[2]);
         }
       }  
     }    
@@ -267,12 +285,9 @@ int Image::action() {
     //fprintf(stdout,"DEBUG: BoxTrans: %lf %lf %lf\n",boxTrans[0],boxTrans[1],boxTrans[2]);
 
     // Translate atoms back into the box
-    for (Atom = firstAtom; Atom < lastAtom; Atom++) {
-      if (Mask1.AtomInCharMask(Atom))
-        currentFrame->Translate(boxTrans, Atom);
-    }
+    currentFrame->Translate(boxTrans,firstAtom,lastAtom);
 
-  } // END loop over count
+  } // END loop over atom pairs 
 
   return 0;
 } 

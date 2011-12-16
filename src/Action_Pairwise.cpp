@@ -84,7 +84,7 @@ int Pairwise::init( ) {
     // Set reference parm
     RefParm=FL->GetFrameParm(refindex);
     // Set up reference mask
-    if (RefMask.SetupMask(RefParm, activeReference, debug)) return 1;
+    if ( RefParm->SetupIntegerMask(RefMask, activeReference) ) return 1;
     if (RefMask.None()) {
       mprinterr("    Error: Pairwise::init: No atoms selected in reference mask.\n");
       return 1;
@@ -135,21 +135,16 @@ int Pairwise::SetupNonbondParm(AtomMask &maskIn, AmberParm *ParmIn) {
     hasExclusion=false;
   else
     hasExclusion=true;
-  // Check if charges are present
-  if (ParmIn->charge==NULL) {
-    mprinterr("Error: Pairwise::setup(): Parm does not have charge information.\n");
-    return -1;
-  }
   // Charge is in units of electron charge, distance is in angstroms, so 
   // the electrostatic prefactor should be 332. However, since the charges
   // in AmberParm have presumably been converted from Amber charge units
   // create a new charged array multiplied by 18.2223. This makes calcs with 
   // Amber-converted charges more accurate at the cost of making non-Amber 
   // charges less accurate.
-  atom_charge.clear();
-  atom_charge.resize(ParmIn->natom, 18.2223);
-  for (int atom = 0; atom < ParmIn->natom; atom++)
-    atom_charge[atom] *= ParmIn->charge[atom];
+  if ( ParmIn->AmberChargeArray( atom_charge ) ) {
+    mprinterr("Error: Pairwise::setup(): Parm does not have charge information.\n");
+    return -1;
+  }
   // Check if LJ parameters present - need at least 2 atoms for it to matter.
   if (ParmIn->natom>1) {
     double Atemp = 0;
@@ -171,7 +166,7 @@ int Pairwise::SetupNonbondParm(AtomMask &maskIn, AmberParm *ParmIn) {
   // the exclusion list are also in the mask, so set up another character
   // mask for this purpose.
   AtomMask Mask2 = maskIn;
-  Mask2.SetupCharMask(ParmIn, activeReference, debug);
+  if ( ParmIn->SetupCharMask( Mask2, activeReference) ) return -1;
   // natex_idx is the index into parm NATEX
   int natex_idx = 0;
   // Resize excluded atom list for current number of atoms
@@ -222,7 +217,7 @@ int Pairwise::SetupNonbondParm(AtomMask &maskIn, AmberParm *ParmIn) {
   */
 int Pairwise::setup() {
   // Set up mask
-  if ( Mask0.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask0, activeReference) ) return 1;
   if (Mask0.None()) {
     mprintf("    Error: Pairwise::setup: Mask has no atoms.\n");
     return 1;
@@ -332,13 +327,13 @@ void Pairwise::NonbondEnergy(Frame *frameIn, AmberParm *parmIn, AtomMask &maskIn
           if (Eout.IsOpen()) {
             if (delta_vdw > cut_evdw || delta_vdw < cut_evdw1) {
               Eout.IO->Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",
-                              atom1+1,currentParm->names[atom1],
-                              atom2+1,currentParm->names[atom2],delta_vdw);
+                              atom1+1,currentParm->AtomName(atom1),
+                              atom2+1,currentParm->AtomName(atom2),delta_vdw);
             }
             if (delta_eelec > cut_eelec || delta_eelec < cut_eelec1) {
               Eout.IO->Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",
-                              atom1+1,currentParm->names[atom1],
-                              atom2+1,currentParm->names[atom2],delta_eelec);
+                              atom1+1,currentParm->AtomName(atom1),
+                              atom2+1,currentParm->AtomName(atom2),delta_eelec);
             }
           }
           // Divide the total pair dEvdw between both atoms.
@@ -414,7 +409,7 @@ void Pairwise::PrintCutAtoms(Frame *frame) {
   for (int atom = 0; atom < currentParm->natom; atom++) {
     if (atom_evdw[atom]>cut_evdw || atom_evdw[atom]<cut_evdw1) {
       if (Eout.IsOpen()) 
-        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,currentParm->names[atom],atom_evdw[atom]);
+        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,currentParm->AtomName(atom),atom_evdw[atom]);
       CutMask.AddAtom(atom);
       CutCharges.push_back(atom_evdw[atom]);
     }
@@ -436,7 +431,8 @@ void Pairwise::PrintCutAtoms(Frame *frame) {
   for (int atom = 0; atom < currentParm->natom; atom++) { 
     if (atom_eelec[atom]>cut_eelec || atom_eelec[atom]<cut_eelec1) {
       if (Eout.IsOpen()) 
-        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,currentParm->names[atom],atom_eelec[atom]);
+        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,
+                        currentParm->AtomName(atom),atom_eelec[atom]);
       CutMask.AddAtom(atom);
       CutCharges.push_back(atom_eelec[atom]);
     }  

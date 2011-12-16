@@ -13,13 +13,13 @@ Angle::Angle() {
 // DESTRUCTOR
 Angle::~Angle() { }
 
-/* Angle::init()
- * Expected call: angle <name> <mask1> <mask2> <mask3> [out filename] [mass]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// Angle::init()
+/** Expected call: angle <name> <mask1> <mask2> <mask3> [out filename] [mass]
+  */
+// Dataset name will be the last arg checked for. Check order is:
+//    1) Keywords
+//    2) Masks
+//    3) Dataset name
 int Angle::init() {
   char *mask1, *mask2, *mask3;
   char *angleFile;
@@ -53,15 +53,15 @@ int Angle::init() {
   return 0;
 }
 
-/* Angle::setup()
- * Set angle up for this parmtop. Get masks etc.
- * currentParm is set in Action::Setup
- */
+// Angle::setup()
+/** Set angle up for this parmtop. Get masks etc.
+  */
+// currentParm is set in Action::Setup
 int Angle::setup() {
 
-  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
-  if ( Mask2.SetupMask(currentParm,activeReference,debug) ) return 1;
-  if ( Mask3.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if (currentParm->SetupIntegerMask(Mask1, activeReference)) return 1;
+  if (currentParm->SetupIntegerMask(Mask2, activeReference)) return 1;
+  if (currentParm->SetupIntegerMask(Mask3, activeReference)) return 1;
   if (Mask1.None() || Mask2.None() || Mask3.None()) {
     mprintf("    Error: Angle::setup: One or more masks contain 0 atoms.\n");
     return 1;
@@ -70,8 +70,7 @@ int Angle::setup() {
   return 0;  
 }
 
-/* Angle::action()
- */
+// Angle::action()
 int Angle::action() {
   double Ang;
 
@@ -85,5 +84,4 @@ int Angle::action() {
   
   return 0;
 } 
-
 

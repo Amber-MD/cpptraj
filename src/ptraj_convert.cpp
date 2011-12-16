@@ -56,23 +56,26 @@ ptrajState *CreateState(AmberParm *currentParm, int maxFrames) {
   state->box[4] = currentParm->Box[4];
   state->box[5] = currentParm->Box[5];
   state->masses = currentParm->mass;
-  state->charges = currentParm->charge;
+  state->charges = currentParm->Charges_ptr();
   state->atoms = currentParm->natom;
-  state->residues = currentParm->nres;
+  state->residues = currentParm->Nres();
   // IPRES - in Cpptraj the atom #s in IPRES (resnums) is shifted by -1
-  // to be consistent with the rest of cpptraj; however, ptraj expects
-  // standard ipres. Create a copy.
-  state->ipres = (int*) malloc( (currentParm->nres+1) * sizeof(int));
-  for (int res = 0; res <= currentParm->nres; res++)
-    state->ipres[res] = currentParm->resnums[res]+1;
-  //state->ipres[currentParm->nres] = currentParm->natom;
-  state->ipres_mask = currentParm->resnums;
+  // to be consistent with the rest of cpptraj; however, ptraj actions 
+  // expect standard ipres (atom #s start at 1). Create a copy with atom
+  // numbers shifted +1.
+  int *ResNums = currentParm->ResAtomNums_ptr();
+  state->ipres = (int*) malloc( (state->residues+1) * sizeof(int));
+  for (int res = 0; res <= state->residues; res++)
+    state->ipres[res] = ResNums[res]+1;
+  // The Cpptraj version of the mask parser expects Cpptraj-style ipres,
+  // so need that as well
+  state->ipres_mask = ResNums;
   state->IFBOX = AmberIfbox(currentParm->Box[4]);
   //state->boxfixed
-  state->molecules = currentParm->molecules;
-  state->moleculeInfo = currentParm->atomsPerMol;
+  state->molecules = currentParm->Nmol();
+  state->moleculeInfo = currentParm->AtomsPerMol_ptr();
   // Solvent info
-  state->solventMask = (int*) malloc( currentParm->natom * sizeof(int));
+  state->solventMask = (int*) malloc( state->atoms * sizeof(int));
   state->solventMolecules = currentParm->solventMolecules;
   state->solventMoleculeStart = (int*) malloc( currentParm->solventMolecules * sizeof(int));
   state->solventMoleculeStop = (int*) malloc( currentParm->solventMolecules * sizeof(int));
@@ -97,8 +100,8 @@ ptrajState *CreateState(AmberParm *currentParm, int maxFrames) {
     memset(state->solventMoleculeStop,0,currentParm->solventMolecules);
     state->solventAtoms = 0;
   }
-  state->atomName = currentParm->names;
-  state->residueName = currentParm->resnames;
+  state->atomName = currentParm->AtomNames_ptr();
+  state->residueName = currentParm->ResidueNames_ptr();
   state->maxFrames = maxFrames; 
   state->temp0 = 0.0;
 

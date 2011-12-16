@@ -324,15 +324,20 @@ void Frame::Translate(double * Vec) {
 }
 
 // Frame::Translate()
-/** Translate specified atom by Vec. */
+/** Translate atoms in range by Vec. */
 // NOTE: SHOULD CHECK BOUNDS! 
-void Frame::Translate(double *Vec, int Atom) {
-  int atom3;
+void Frame::Translate(double *Vec, int firstAtom, int lastAtom) {
+  int startatom3 = firstAtom * 3;
+  int lastatom3 = lastAtom * 3;
+  double V0 = Vec[0];
+  double V1 = Vec[1];
+  double V2 = Vec[2];
 
-  atom3 = Atom * 3;
-  X[atom3  ] += Vec[0];
-  X[atom3+1] += Vec[1];
-  X[atom3+2] += Vec[2];
+  for (int atom3 = startatom3; atom3 < lastatom3; atom3 += 3) {
+    X[atom3  ] += V0;
+    X[atom3+1] += V1;
+    X[atom3+2] += V2;
+  }
 }
 
 // Frame::Trans_Rot_Trans()

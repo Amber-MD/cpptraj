@@ -53,7 +53,7 @@ int Center::init() {
  */
 int Center::setup() {
 
-  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupIntegerMask(Mask1, activeReference) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Center::setup: Mask contains 0 atoms.\n");
     return 1;

@@ -10,6 +10,7 @@
 #include <cstdio> // For sscanf, sprintf
 #include <ctime> // for writing time/date to amber parmtop
 #include "AmberParm.h" // CpptrajFile.h
+#include "PtrajMask.h" // parseMaskString
 #include "FortranFormat.h" 
 #include "PDBfileRoutines.h"
 #include "Mol2FileRoutines.h"
@@ -158,19 +159,60 @@ AmberParm::~AmberParm() {
   if (irotat!=NULL) delete[] irotat;
 }
 
-/* SetDebug()
- * Set the debug level.
- */
+// SetDebug()
+/** Set the debug level.  */
 void AmberParm::SetDebug(int debugIn) {
   debug = debugIn;
   if (debug>0) mprintf("AmberParm debug set to %i\n",debug);
 }
 
 // -----------------------------------------------------------------------------
-/* AmberParm::ResName()
- * Given a residue number, set buffer with residue name and number with format:
- * <resname[res]><res+1>, e.g. ARG_11. Replace any blanks in resname with '_'.
- */
+// AmberParm::SetupAtomMask()
+int AmberParm::SetupAtomMask(AtomMask &atommaskIn, double *Xin, bool isCharMask) {
+  char *atommask_postfix;
+  char *ptraj_charmask;
+
+  atommask_postfix = atommaskIn.PostfixExpression();
+  if (atommask_postfix == NULL) {
+    mprinterr("Error: AmberParm::SetupAtomMask: AtomMask Postfix expression is NULL.\n");
+    return 1;
+  }
+  if (debug>1) mprintf("\tAmberParm::SetupAtomMask: Parsing postfix [%s]\n",atommask_postfix); 
+ 
+  ptraj_charmask = parseMaskString(atommask_postfix, natom, nres, names, resnames,
+                                   resnums, Xin, types, debug);
+
+  if (ptraj_charmask==NULL) {
+    mprinterr("    Error: AmberParm::SetupAtomMask: charmask is NULL.\n");
+    return 1;
+  }
+
+  if (isCharMask)
+    atommaskIn.SetupCharMask( ptraj_charmask, natom, debug);
+  else
+    atommaskIn.SetupMask( ptraj_charmask, natom, debug );
+
+  // Free the character mask, no longer needed.
+  delete[] ptraj_charmask;
+
+  return 0;
+} 
+
+// AmberParm::SetupIntegerMask()  
+int AmberParm::SetupIntegerMask(AtomMask &atommaskIn, double *Xin) {
+  return SetupAtomMask(atommaskIn, Xin, false);
+}
+
+// AmberParm::SetupCharMask()
+int AmberParm::SetupCharMask(AtomMask &atommaskIn, double *Xin) {
+  return SetupAtomMask(atommaskIn, Xin, true);
+}
+
+// -----------------------------------------------------------------------------
+// AmberParm::ResName()
+/** Given a residue number, set buffer with residue name and number with format:
+  * <resname[res]><res+1>, e.g. ARG_11. Replace any blanks in resname with '_'.
+  */
 void AmberParm::ResName(char *buffer, int res) {
   char rname[NAMESIZE];
   if (res<0 || res>=nres) return;
@@ -185,11 +227,11 @@ void AmberParm::ResName(char *buffer, int res) {
   sprintf(buffer,"%s%i",rname,res+1);
 }
 
-/* AmberParm::ResAtomName()
- * Given an atom number, set buffer with residue name and number along with
- * atom name with format: <resname[res]><res+1>@<atomname>, e.g. ARG_11@CA.
- * Replace any blanks in resname with '_'.
- */
+// AmberParm::ResAtomName()
+/** Given an atom number, set buffer with residue name and number along with
+  * atom name with format: <resname[res]><res+1>@<atomname>, e.g. ARG_11@CA.
+  * Replace any blanks in resname with '_'.
+  */
 void AmberParm::ResAtomName(char *buffer, int atom) {
   int res;
   char rname[NAMESIZE];
@@ -206,9 +248,8 @@ void AmberParm::ResAtomName(char *buffer, int atom) {
   sprintf(buffer,"%s%i@%s",rname,res+1,names[atom]);
 }
 
-/* AmberParm::ResidueName()
- * Return pointer to name of given residue.
- */
+// AmberParm::ResidueName()
+/** Return pointer to name of given residue.  */
 char *AmberParm::ResidueName(int res) {
   if (resnames==NULL) {
     mprintf("Internal Error: AmberParm::ResidueName: Residue names not set!\n");
@@ -219,16 +260,53 @@ char *AmberParm::ResidueName(int res) {
   return NULL;
 }
 
-/* AmberParm::FindAtomInResidue()
- * Given a residue number and an atom name, return the atom number. If
- * the given atom name is not in the given residue, return -1.
- */
+// AmberParm::FindAtomInResidue()
+/** Given a residue number and an atom name, return the atom number. If
+  * the given atom name is not in the given residue, return -1.
+  */
 int AmberParm::FindAtomInResidue(int res, char *atname) {
   if (res < 0 || res >= nres) return -1;
   for (int atnum = resnums[res]; atnum < resnums[res+1]; atnum++) {
     if (strcmp(names[atnum],atname)==0) return atnum;
   }
   return -1;
+}
+
+// AmberParm::ResAtomRange()
+/// Set the first and last+1 atoms for the given residue
+int AmberParm::ResAtomRange(int resIn, int *startatom, int *stopatom) {
+  if (resIn < 0 || resIn >= nres) {
+    *startatom = 0;
+    *stopatom = 0;
+    return 1;
+  }
+  *startatom = resnums[resIn];
+  *stopatom = resnums[resIn+1];
+  return 0;
+}
+
+// AmberParm::AtomName()
+/** Return pointer to name of given atom. */
+char *AmberParm::AtomName(int atom) {
+  if (atom<0 || atom >= natom) return NULL;
+  return (char*)names[atom];
+}
+
+// AmberParm::AtomNameIs()
+/** Return true if atom name matches input */
+bool AmberParm::AtomNameIs(int atom, const char *nameIn) {
+  if (atom<0 || atom >= natom) return false;
+  if (strcmp(names[atom], nameIn)==0) return true;
+  return false;
+}
+
+// AmberParm::AtomElementIs()
+/** Return true if atom element matches input */
+bool AmberParm::AtomElementIs(int atom, AtomicElementType elementIn) {
+  if (atom<0 || atom >= natom) return false;
+  AtomicElementType element = ElementFromName( names[atom] );
+  if (element == elementIn) return true;
+  return false;
 }
 
 // -------------------- ROUTINES FOR ACCESSING INTERNAL DATA -------------------
@@ -274,6 +352,13 @@ int AmberParm::GetBondParamIdx(int idxIn, double *rk, double *req) {
   return 0;
 }
 
+// AmberParm::GetBondedCutoff()
+/// Return bond distance for the two given atoms based on their names.
+double AmberParm::GetBondedCutoff(int atom1, int atom2) {
+  if (atom1 < 0 || atom1 >= natom) return 0;
+  if (atom2 < 0 || atom2 >= natom) return 0;
+  return GetBondedCut(names[atom1], names[atom2]);
+}
 
 // AmberParm::GetBondParam()
 /// Get bond parameters (if they exist) between atom1 and atom2
@@ -331,12 +416,40 @@ int AmberParm::SetCharges(double *chargeIn) {
   return 0;
 }
 
-// AmberParm::AtomNameIs()
-/// Return true if given atom # has given atom name
-bool AmberParm::AtomNameIs(int atomIn, const char *nameIn) {
-  if (atomIn<0 || atomIn >= natom) return false;
-  if (strcmp(names[atomIn], nameIn)==0) return true;
-  return false;
+// AmberParm::AmberChargeArray()
+/// Set the input array with atom charges in Amber format (pre-multiplied by 18.2223)
+/** Charge is in units of electron charge, distance is in angstroms, so 
+  * the electrostatic prefactor should be 332. However, since the charges
+  * in AmberParm have been converted from Amber charge units, create a new 
+  * charged array multiplied by 18.2223. This makes calcs with * Amber-
+  * converted charges more accurate at the cost of making calcs with non-Amber 
+  * charges less accurate.
+  * \param atom_charge Vector to be set with atomic charges * 18.2223
+  * \return 0 on success, 1 if no charge information present in parm.
+  */
+int AmberParm::AmberChargeArray(std::vector<double>& atom_charge) {
+  if (charge==NULL) return 1;
+  atom_charge.clear();
+  atom_charge.resize(natom, 18.2223);
+  for (int atom = 0; atom < natom; atom++)
+    atom_charge[atom] *= charge[atom];
+  return 0;
+}
+
+// AmberParm::AtomCharge()
+/// Return charge on given atom
+double AmberParm::AtomCharge(int atomIn) {
+  if (charge==NULL) return 0;
+  if (atomIn<0 || atomIn >= natom) return 0;
+  return charge[atomIn];
+}
+
+// AmberParm::AtomsPerMol()
+/// Return number of atoms in given molecule.
+int AmberParm::AtomsPerMol(int molIn) {
+  if (atomsPerMol==NULL) return 0;
+  if (molIn < 0 || molIn >= molecules) return 0;
+  return atomsPerMol[molIn];
 }
 
 // -------------------- ROUTINES PERTAINING TO SURFACE AREA --------------------
@@ -611,13 +724,6 @@ int AmberParm::SetSolventInfo() {
     }
   }
 
-  if (debug>0) {
-    mprintf("    %i solvent molecules, %i solvent atoms.\n",
-            solventMolecules, solventAtoms);
-    if (debug>1)
-      mprintf("    FirstSolvMol= %i, FinalSoluteRes= %i\n",firstSolvMol,finalSoluteRes);
-  }
-
   // DEBUG
   //mprintf("MOLECULE INFORMATION:\n");
   //for (int mol = 0; mol < molecules; mol++)
@@ -631,6 +737,7 @@ int AmberParm::SetSolventInfo() {
     solventMoleculeStart=NULL;
     delete[] solventMoleculeStop;
     solventMoleculeStop=NULL;
+    hasSolventInfo = false;
 
   // Resize the solventMoleculeX arrays
   } else {
@@ -642,6 +749,14 @@ int AmberParm::SetSolventInfo() {
     memcpy(tempSMstop, solventMoleculeStop, solventMolecules * sizeof(int));
     delete[] solventMoleculeStop;
     solventMoleculeStop = tempSMstop;
+    hasSolventInfo = true;
+  }
+
+  if (debug>0) {
+    mprintf("    %i solvent molecules, %i solvent atoms.\n",
+            solventMolecules, solventAtoms);
+    if (debug>1)
+      mprintf("    FirstSolvMol= %i, FinalSoluteRes= %i\n",firstSolvMol,finalSoluteRes);
   }
 
   return 0; 
@@ -1536,6 +1651,14 @@ void AmberParm::PrintMoleculeInfo() {
   }
 }
 
+// AmberParm::PrintResidueInfo()
+/// Print information on residues in PRMTOP
+void AmberParm::PrintResidueInfo() {
+  mprintf("RESIDUES:\n");
+  for (int res = 0; res < nres; res++) 
+    mprintf("\tResidue %i, %s, first atom %i\n",res+1,resnames[res],resnums[res]+1);
+}
+
 // -----------------------------------------------------------------------------
 // AmberParm::atomToResidue()
 /// Given an atom number, return corresponding residue number.
@@ -1589,6 +1712,7 @@ void AmberParm::ResetBondInfo() {
   bondsh=NULL;
   NbondsWithH=0;
   NbondsWithoutH=0;
+  bondInfo.Reset();
 }
 
 // AmberParm::AddBond()
@@ -1716,12 +1840,95 @@ void AmberParm::GetBondsFromCoords() {
   mprintf("\t%s: %i bonds to hydrogen, %i other bonds.\n",parmName,NbondsWithH,NbondsWithoutH);
 }
 
+// AmberParm::BondArray()
+/// Set the given array with bond information.
+/** Set the given vector up with information from the bonds and bondsh arrays.
+  * The vector will have format Bond1Atom1, Bond1Atom2, Bond2Atom1, Bond2Atom2
+  * etc. First set bond without H, then bonds with H. Currently only used by
+  * Traj_Mol2file?
+  * \param bondarray vector to be set up with bond information
+  * \return 0 if successfully set up, 1 if error occurs.
+  */
+int AmberParm::BondArray(std::vector<int> &bondarray) {
+  if (bonds==NULL && bondsh==NULL) return 1;
+  bondarray.clear();
+  bondarray.reserve( (NbondsWithoutH*2) + (NbondsWithH*2) );
+  // NOTE: Atom #s in the bonds and bondh arrays are * 3
+  if (bonds!=NULL) {
+    int nb = NbondsWithoutH * 3;
+    for (int bond = 0; bond < nb; bond+=3) {
+      bondarray.push_back(bonds[bond]/3);
+      bondarray.push_back(bonds[bond+1]/3);
+    }
+  }
+  if (bondsh!=NULL) {
+    int nbh = NbondsWithH * 3;
+    for (int bond = 0; bond < nbh; bond+=3) {
+      bondarray.push_back(bondsh[bond]/3);
+      bondarray.push_back(bondsh[bond+1]/3);
+    }
+  }
+  return 0;
+}
+
+// AmberParm::BondArrayWithParmIdx()
+/// Set the given array with bond information including Amber parm bond index.
+/** Set the given vector up with information from the bonds and bondsh arrays.
+  * The vector will have format Bond1Atom1, Bond1Atom2, Bond1Idx, Bond2Atom1, 
+  * Bond2Atom2, Bond2Idx, etc. Ensure that BondXAtom1 is always < BondXAtom2
+  * for easy use in pairwise loops. First set bond without H, then bonds with H.
+  * Currently only used by Action_CheckStructure?
+  * \param bondarray vector to be set up with bond information
+  * \return 0 if successfully set up, 1 if error occurs.
+  */
+int AmberParm::BondArrayWithParmIdx(std::vector<int> &bondarray) {
+  int batom1, batom2, tempatom;
+  if (bonds==NULL && bondsh==NULL) return 1;
+  bondarray.clear();
+  int nb = NbondsWithoutH * 3;
+  int nbh = NbondsWithH * 3;
+  bondarray.reserve( nb + nbh );
+  // NOTE: Atom #s in the bonds and bondh arrays are * 3
+  // NOTE: Indices initially start from 1, so subtract 1
+  if (bonds!=NULL) {
+    for (int bond = 0; bond < nb; bond+=3) {
+      batom1 = bonds[bond]/3;
+      batom2 = bonds[bond+1]/3;
+      if (batom2 < batom1) {
+        tempatom = batom1;
+        batom1 = batom2;
+        batom2 = tempatom;
+      }
+      bondarray.push_back(batom1);
+      bondarray.push_back(batom2);
+      bondarray.push_back(bonds[bond+2]-1);
+    }
+  }
+  if (bondsh!=NULL) {
+    for (int bond = 0; bond < nbh; bond+=3) {
+      batom1 = bondsh[bond]/3;
+      batom2 = bondsh[bond+1]/3;
+      if (batom2 < batom1) {
+        tempatom = batom1;
+        batom1 = batom2;
+        batom2 = tempatom;
+      }
+      bondarray.push_back(batom1);
+      bondarray.push_back(batom2);
+      bondarray.push_back(bondsh[bond+2]-1);
+    }
+  }
+  return 0;
+}
+
 // AmberParm::SetupBondInfo()
-/// Set up the BondInfo structure
+/// Set up the BondInfo structure from the bonds and bondsh arrays.
 // NOTE: This can eventually be used to replace the bonds and bondsh arrays,
 // which are not optimal for things like determining whether one atom is
 // bonded to another, or getting a list of atoms bonded to a certain atom.
 int AmberParm::SetupBondInfo() {
+  // If already set up exit now.
+  if (bondInfo.HasBeenSetup()) return 0;
   if (bonds==NULL && bondsh==NULL) {
     mprinterr("Error: SetupBondInfo: No bond information present.\n");
     return 1;
@@ -1747,19 +1954,46 @@ int AmberParm::SetupBondInfo() {
   * \return the atom# of bonded atom, -1 if not found.
   */
 int AmberParm::GetBondedAtomIdx(int atomIn, const char *bondedAtomName) {
-  int bondList[MAXNUMBONDS]; // Defined in Bonds.h
-  int nbonds, bondedAtom;
+  //int bondList[MAXNUMBONDS]; // Defined in Bonds.h
+  std::vector<int> bondList;
 
-  bondInfo.GetListOfBondedAtoms(atomIn, bondList, &nbonds);
-  for (int bond = 0; bond < nbonds; bond++) {
-    bondedAtom = bondList[bond];
-    if (strcmp(names[ bondedAtom ], bondedAtomName)==0) return bondedAtom;
+  bondInfo.GetListOfBondedAtoms(atomIn, bondList);
+  for (std::vector<int>::iterator bondedAtom = bondList.begin();
+                                  bondedAtom != bondList.end();
+                                  bondedAtom++) {
+    if (strcmp(names[ *bondedAtom ], bondedAtomName)==0) return *bondedAtom;
   }
   return -1;
 }
 
+// AmberParm::GetBondedHatoms()
+/// Set up a vector containing the atom #s of any H atoms bonded to this atom
+/** \return 1 if there are bonded H atoms, 0 if no bonded H atoms.
+  */
+int AmberParm::GetBondedHatoms(int atomIn, std::vector<int>& HatomList) {
+  std::vector<int> bondList;
+
+  HatomList.clear();  
+  bondInfo.GetListOfBondedAtoms(atomIn, bondList);
+  for (std::vector<int>::iterator bondedAtom = bondList.begin();
+                                  bondedAtom != bondList.end();
+                                  bondedAtom++) {
+    // DEBUG
+    //mprintf("\t\tAtom %i@%s bonded to %i@%4s",atomIn+1,names[atomIn],
+    //        *bondedAtom+1,names[*bondedAtom]);
+    if (names[ *bondedAtom ][0] == 'H') {
+      HatomList.push_back( *bondedAtom );
+      //mprintf(" HYDROGEN!");
+    }
+    //mprintf("\n");
+  }
+  if (HatomList.empty()) return 0;
+  return 1; 
+}
+
 // AmberParm::MaskOfAtomsAroundBond()
 /// Just a wrapper for the same routine in BondInfo
+/** Requires the internal BondInfo structure to be set up. */
 int AmberParm::MaskOfAtomsAroundBond(int atom1, int atom2, std::vector<char> &Selected) {
   return bondInfo.MaskOfAtomsAroundBond(atom1,atom2,Selected);
 }
@@ -1770,25 +2004,14 @@ int AmberParm::MaskOfAtomsAroundBond(int atom1, int atom2, std::vector<char> &Se
   * bonded) there are.
   */
 int AmberParm::DetermineMolecules() {
-  BondInfo mol;
-
-  if (bonds==NULL && bondsh==NULL) {
+  if (SetupBondInfo()) {
     mprinterr("Error: DetermineMolecules: No bond information set up.\n");
     return 1;
   }
   mprintf("\t%s: Determining molecule information from bonds.\n",parmName);
 
-  mol.Setup(natom);
-
-  // Set max valences
-  mol.SetValences(names);
-
-  // Go through the bonds and bondsh arrays
-  mol.SetBondsFromAmberArray(bondsh, NbondsWithH);
-  mol.SetBondsFromAmberArray(bonds,  NbondsWithoutH);
-
   // Determine molecules
-  atomsPerMol = mol.DetermineMolecules(&molecules);
+  atomsPerMol = bondInfo.DetermineMolecules(&molecules);
  
   //mol.PrintBonds();
 
@@ -1797,24 +2020,18 @@ int AmberParm::DetermineMolecules() {
 
 /// Setup excluded atoms list and numex based on bond info
 int AmberParm::SetupExcludedAtoms() {
-  BondInfo mol;
-  // Determine excluded atoms list
-  mol.Setup(natom);
-  mol.SetValences(names);
-  // If no bond info this wont work
-  if (bondsh==NULL && bonds==NULL) {
-    mprinterr("Error: AmberParm::SetupExcludedAtoms(): No bond info in parm %s.\n",parmName);
+  if (SetupBondInfo()) {
+    mprinterr("Error: SetupExcludedAtoms: No bond information in parm %s.\n",parmName);
     return 1;
   }
-  mol.SetBondsFromAmberArray(bondsh, NbondsWithH);
-  mol.SetBondsFromAmberArray(bonds, NbondsWithoutH);
   if (numex!=NULL) delete[] numex;
   numex = new int[ natom ];
   if (excludedAtoms!=NULL) delete[] excludedAtoms;
-  excludedAtoms = mol.DetermineExcludedAtoms(numex, &nnb);
+  excludedAtoms = bondInfo.DetermineExcludedAtoms(numex, &nnb);
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // SetupSequentialArray()
 /// Given an atom map and old sequential array, set up new sequential array.
 /** Given an array with format [I0J0...X0][I1J1...] where the entries up to
@@ -1890,7 +2107,6 @@ static int *SetupSequentialArray(int *atomMap, int oldN, int Nsequence,
   return newArray;
 }
 
-
 // SetupBondArray()
 /// Given an atom map and new parm, set up bond array
 // NOTE: Set up atom map to be atom*3??
@@ -1925,7 +2141,6 @@ static int *SetupBondArray(int *atomMap, int oldN3, int *oldBonds, int *newN) {
   return bonds;
 }
 
-// -----------------------------------------------------------------------------
 // AmberParm::modifyStateByMap()
 /** Currently only intended for use with AtomMap.
   * This routine will create a new amber parm (newParm) base on the

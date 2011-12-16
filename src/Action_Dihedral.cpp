@@ -61,10 +61,10 @@ int Dihedral::init() {
  */
 int Dihedral::setup() {
 
-  if ( M1.SetupMask(currentParm,activeReference,debug) ) return 1;
-  if ( M2.SetupMask(currentParm,activeReference,debug) ) return 1;
-  if ( M3.SetupMask(currentParm,activeReference,debug) ) return 1;
-  if ( M4.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if (currentParm->SetupIntegerMask(M1, activeReference)) return 1;
+  if (currentParm->SetupIntegerMask(M2, activeReference)) return 1;
+  if (currentParm->SetupIntegerMask(M3, activeReference)) return 1;
+  if (currentParm->SetupIntegerMask(M4, activeReference)) return 1;
   if ( M1.None() || M2.None() || M3.None() || M4.None() ) {
     mprintf("    Error: Dihedral::setup: One or more masks have no atoms.\n");
     return 1;

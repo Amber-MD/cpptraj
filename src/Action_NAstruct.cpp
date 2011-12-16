@@ -915,7 +915,8 @@ int NAstruct::init() {
   * the masks that correspond to the reference frame atoms.
   */
 int NAstruct::setup() {
-  int res, refAtom, atom;
+  int res;
+  int resstartatom, resstopatom;
   int residue;
   AxisType *axis; 
   AtomMask *Mask;
@@ -926,7 +927,7 @@ int NAstruct::setup() {
 
   // If range is empty (i.e. no resrange arg given) look for all NA residues.
   if (resRange.Empty()) {
-    for (res=0; res < currentParm->nres; res++) {
+    for (res=0; res < currentParm->Nres(); res++) {
       if ( ID_base(currentParm->ResidueName(res))!=UNKNOWN_BASE )
         actualRange.AddToRange(res);
     }
@@ -943,7 +944,7 @@ int NAstruct::setup() {
   }
   // Exit if no NA residues specified
   if (actualRange.Empty()) {
-    mprintf("Error: NAstruct::setup: No NA residues found for %s\n",currentParm->parmName);
+    mprinterr("Error: NAstruct::setup: No NA residues found for %s\n",currentParm->parmName);
     return 1;
   }
 
@@ -956,21 +957,25 @@ int NAstruct::setup() {
   while (actualRange.NextInRange(&residue)) {
     axis = new AxisType();
     if ( axis->SetRefCoord( currentParm->ResidueName(residue) ) ) {
-      mprintf("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
-              residue+1, currentParm->ResidueName(residue));
+      mprinterr("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
+                residue+1, currentParm->ResidueName(residue));
       return 1;
     }
     RefCoords.push_back( axis );
 
     // Set up a mask for this NA residue in this parm. The mask will contain
     // only those atoms which are defined in the reference coords.
+    if (currentParm->ResAtomRange(residue, &resstartatom, &resstopatom)) {
+      mprinterr("Error: NAstruct::setup: Invalid residue number (%i)\n",residue);
+      return 1;
+    }
     Mask = new AtomMask();
-    for (refAtom=0; refAtom < axis->natom; refAtom++) {
+    for (int refAtom=0; refAtom < axis->natom; refAtom++) {
       res = -1; // Target atom
       //mprintf("      Ref atom: [%s]\n",axis->Name[refAtom]);
-      for (atom=currentParm->resnums[residue]; atom < currentParm->resnums[residue+1]; atom++) {
+      for (int atom=resstartatom; atom < resstopatom; atom++) {
         //mprintf("        Scanning %i [%s]\n", atom, currentParm->names[atom]);
-        if ( axis->AtomNameIs(refAtom, currentParm->names[atom]) ) {
+        if ( axis->AtomNameIs(refAtom, currentParm->AtomName(atom)) ) {
           res = atom;  
           break;
         }
@@ -978,6 +983,7 @@ int NAstruct::setup() {
       if (res==-1) {
         mprintf("Error:: NAstruct::setup: Ref atom [%s] not found in residue %i:%s\n",
                  axis->AtomName(refAtom), residue+1, currentParm->ResidueName(residue));
+        delete Mask;
         return 1;
       }
       Mask->AddAtom(res);

@@ -1,6 +1,6 @@
 // PDBfile
-#include "Traj_PDBfile.h"
 #include <cstdlib>
+#include "Traj_PDBfile.h"
 #include "PDBfileRoutines.h"
 #include "CpptrajStdio.h"
 
@@ -95,14 +95,10 @@ int PDBfile::setupRead(AmberParm *trajParm) {
       // associated parm file.
       if (Frames==0) {
         pdb_name(buffer,pdbAtomName);
-        if ( (trajParm->names[atom][0] != pdbAtomName[0]) ||
-             (trajParm->names[atom][1] != pdbAtomName[1]) ||
-             (trajParm->names[atom][2] != pdbAtomName[2]) ||
-             (trajParm->names[atom][3] != pdbAtomName[3])   )
-        {
+        if (!trajParm->AtomNameIs(atom, pdbAtomName)) {
           if (debug>1) 
             mprintf("Warning: %s: Atom %i name [%s] does not match parm atom name [%s]\n",
-                    tfile->filename,atom,pdbAtomName,trajParm->names[atom]);
+                    tfile->filename,atom,pdbAtomName,trajParm->AtomName(atom));
           numMismatch++;
         }
       }
@@ -176,12 +172,12 @@ int PDBfile::processWriteArgs(ArgList *argIn) {
  */ 
 int PDBfile::setupWrite(AmberParm *trajParm) {
   pdbAtom = trajParm->natom;
-  pdbAtomNames = trajParm->names;
-  trajResNames = trajParm->resnames;
-  trajAtomsPerMol = trajParm->atomsPerMol;
-  trajResNums = trajParm->resnums;
-  trajCharges = trajParm->charge;
-  trajRadii = trajParm->GB_radii(); 
+  pdbAtomNames = trajParm->AtomNames_ptr();
+  trajResNames = trajParm->ResidueNames_ptr();
+  trajAtomsPerMol = trajParm->AtomsPerMol_ptr();
+  trajResNums = trajParm->ResAtomNums_ptr();
+  trajCharges = trajParm->Charges_ptr();
+  trajRadii = trajParm->GB_radii_ptr();
 
   // Set a chainID for each atom
   if (chainID!=NULL) delete[] chainID;

@@ -3,7 +3,6 @@
 #include <algorithm> // sort
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
-#include "Bonds.h" // GetBondedCut
 
 // CONSTRUCTOR
 CheckStructure::CheckStructure() {
@@ -91,12 +90,13 @@ int CheckStructure::setup() {
   double req = 0;
   double rk = 0;
   bond_list bnd;
-  int tempatom;
   unsigned int totalbonds;
+  // For setting up bond arrays
+  std::vector<int> bondarray;
 
   // Initially set up character mask to easily determine whether
   // both atoms of a bond are in the mask.
-  if ( Mask1.SetupCharMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupCharMask(Mask1, activeReference) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: CheckStructure::setup: Mask has no atoms.\n");
     return 1;
@@ -113,7 +113,8 @@ int CheckStructure::setup() {
 
   // Check bonds
   bondL.clear();
-  if ( currentParm->NbondsWithH + currentParm->NbondsWithoutH <= 0 ) {
+  if ( currentParm->BondArrayWithParmIdx( bondarray ) ) {
+  //if ( currentParm->NbondsWithH + currentParm->NbondsWithoutH <= 0 ) {
     mprintf("    Warning: No bond info in %s, will not check bonds.\n",currentParm->parmName);
     totalbonds = 0;
   } else {
@@ -121,29 +122,18 @@ int CheckStructure::setup() {
     // over all pairs of atoms. Only use bonds for which both atoms are in
     // the mask.
     // Since in the loop atom1 always < atom2, enforce this with parameters.
-    for (int bond = 0; bond < currentParm->NbondsWithH * 3; bond+=3) {
-      bnd.atom1 = currentParm->bondsh[bond  ] / 3;
-      bnd.atom2 = currentParm->bondsh[bond+1] / 3;
-      if (bnd.atom1 > bnd.atom2) {
-        tempatom = bnd.atom1;
-        bnd.atom1 = bnd.atom2;
-        bnd.atom2 = tempatom;
-      }
-      bnd.param = currentParm->bondsh[bond+2] - 1;
-      if ( Mask1.AtomInCharMask(bnd.atom1) && Mask1.AtomInCharMask(bnd.atom2) ) 
-        bondL.push_back(bnd);
-    }
-    for (int bond = 0; bond < currentParm->NbondsWithoutH * 3; bond+=3) {
-      bnd.atom1 = currentParm->bonds[bond  ] / 3;
-      bnd.atom2 = currentParm->bonds[bond+1] / 3;
-      if (bnd.atom1 > bnd.atom2) {
-        tempatom = bnd.atom1;
-        bnd.atom1 = bnd.atom2;
-        bnd.atom2 = tempatom;
-      }
-      bnd.param = currentParm->bonds[bond+2] - 1;
-      if ( Mask1.AtomInCharMask(bnd.atom1) && Mask1.AtomInCharMask(bnd.atom2) )
-        bondL.push_back(bnd);
+    for (std::vector<int>::iterator bondatom = bondarray.begin();
+                                    bondatom != bondarray.end();
+                                    bondatom++) 
+    {
+      bnd.atom1 = *bondatom;
+      ++bondatom;
+      if ( !Mask1.AtomInCharMask(bnd.atom1) ) { ++bondatom; continue; }
+      bnd.atom2 = *bondatom;
+      ++bondatom;
+      if ( !Mask1.AtomInCharMask(bnd.atom2) ) { continue; }
+      bnd.param = *bondatom;
+      bondL.push_back(bnd);
     }
     // Sort by atom1, then by atom2
     sort( bondL.begin(), bondL.end(), bond_list_cmp() );
@@ -151,8 +141,7 @@ int CheckStructure::setup() {
     for (std::vector<bond_list>::iterator it = bondL.begin(); it!=bondL.end(); it++) {
       if ( currentParm->GetBondParamIdx((*it).param, &rk, &req) ) {
         // If no parameters exist for bond. Get cutoff from atom names.
-        req = GetBondedCut(currentParm->names[(*it).atom1], 
-                           currentParm->names[(*it).atom2] );
+        req = currentParm->GetBondedCutoff( (*it).atom1, (*it).atom2 );
       }
       req = (req + bondoffset);
       req *= req;
@@ -175,7 +164,7 @@ int CheckStructure::setup() {
   bondL.push_back(bnd);
       
   // Reset to integer mask.
-  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask1, activeReference) ) return 1;
   // Print imaging info for this parm
   mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1.MaskString(), Mask1.Nselected,
           totalbonds);
@@ -212,8 +201,8 @@ int CheckStructure::action() {
           outfile.IO->Printf(
                   "%i\t Warning: Unusual bond length %i@%s to %i@%s (%.2lf)\n",
                   frameNum+OUTPUTFRAMESHIFT,
-                  atom1+1, currentParm->names[atom1], atom2+1, currentParm->names[atom2],
-                  D);
+                  atom1+1, currentParm->AtomName(atom1), 
+                  atom2+1, currentParm->AtomName(atom2), D);
         }
         // Next bond
         currentBond++;
@@ -224,8 +213,8 @@ int CheckStructure::action() {
           outfile.IO->Printf(
                   "%i\t Warning: Atoms %i@%s and %i@%s are close (%.2lf)\n",
                   frameNum+OUTPUTFRAMESHIFT,
-                  atom1+1, currentParm->names[atom1], atom2+1, currentParm->names[atom2],
-                  D);
+                  atom1+1, currentParm->AtomName(atom1), 
+                  atom2+1, currentParm->AtomName(atom2), D);
         }
       }
     } // END second loop over mask atoms
@@ -259,8 +248,8 @@ int CheckStructure::SeparateAction(Frame *frameIn) {
           Nproblems++; 
           if (debug>0)
             mprintf("\t\tWarning: Unusual bond length %i@%s to %i@%s (%.2lf)\n",
-                    atom1+1, currentParm->names[atom1], atom2+1, currentParm->names[atom2],
-                    sqrt(D2));
+                    atom1+1, currentParm->AtomName(atom1), 
+                    atom2+1, currentParm->AtomName(atom2), sqrt(D2));
         }
         // Next bond
         currentBond++;
@@ -270,8 +259,8 @@ int CheckStructure::SeparateAction(Frame *frameIn) {
           Nproblems++;
           if (debug>0)
             mprintf("\t\tWarning: Atoms %i@%s and %i@%s are close (%.2lf)\n",
-                    atom1+1, currentParm->names[atom1], atom2+1, currentParm->names[atom2],
-                    sqrt(D2));
+                    atom1+1, currentParm->AtomName(atom1), 
+                    atom2+1, currentParm->AtomName(atom2), sqrt(D2));
         }
       }
       idx2+=3;

@@ -9,8 +9,8 @@ ParmFileList::ParmFileList() {
   Nparm=0;
   debug=0;
   hasCopies=false;
-  bondsearch=false;
-  molsearch=false;
+  bondsearch=true;
+  molsearch=true;
 }
 
 // DESTRUCTOR
@@ -53,7 +53,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
       char *maskarg = argIn->getNextMask();
       if (maskarg!=NULL) {
         tempMask.SetMaskString( maskarg );
-        tempMask.SetupCharMask( ParmList[pindex], NULL, debug);
+        ParmList[pindex]->SetupCharMask( tempMask, NULL );
         for (int atom=0; atom < ParmList[pindex]->natom; atom++) 
           if (tempMask.AtomInCharMask(atom)) ParmList[pindex]->AtomInfo(atom);
       } else {
@@ -91,7 +91,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     tempMask.SetMaskString(mask0);
     // Since want to keep atoms outside mask, invert selection
     tempMask.InvertMask();
-    tempMask.SetupMask( ParmList[pindex], NULL, debug);
+    ParmList[pindex]->SetupIntegerMask( tempMask, NULL );
     mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(), 
              ParmList[pindex]->natom - tempMask.Nselected, ParmList[pindex]->parmName);
     AmberParm *tempParm = ParmList[pindex]->modifyStateByMask(tempMask.Selected, NULL);
@@ -156,6 +156,16 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     pindex = argIn->getNextInteger(0);
     if (pindex>=0 && pindex<Nparm)
       ParmList[pindex]->PrintMoleculeInfo();
+    else
+      mprinterr("Error: parm %i not loaded.\n",pindex);
+    return 0;
+  }
+  // parmresinfo [<parmindex>]: Print residue information for parm
+  //     <parmindex> (0 by default).
+  if (argIn->CommandIs("parmresinfo")) {
+    pindex = argIn->getNextInteger(0);
+    if (pindex>=0 && pindex<Nparm)
+      ParmList[pindex]->PrintResidueInfo();
     else
       mprinterr("Error: parm %i not loaded.\n",pindex);
     return 0;

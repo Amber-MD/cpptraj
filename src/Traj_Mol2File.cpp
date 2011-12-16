@@ -11,23 +11,18 @@ Mol2File::Mol2File() {
   mol2WriteMode=SINGLE;
 
   trajnres = 0;
-  trajnbondsh = 0;
-  trajnbonds = 0;
   trajAtomNames = NULL; 
   trajTypes = NULL;
   trajResNames = NULL; 
   trajResNums = NULL;
   trajCharges = NULL;
-  trajBonds = NULL;
-  trajBondsh = NULL;
 }
 
 // DESTRUCTOR
 Mol2File::~Mol2File() {
 }
 
-/* Mol2File::openTraj()
- */
+// Mol2File::openTraj()
 int Mol2File::openTraj() {
   int err;
 
@@ -50,8 +45,7 @@ int Mol2File::openTraj() {
   return err;
 }
 
-/* Mol2File::closeTraj() {
- */
+// Mol2File::closeTraj() {
 void Mol2File::closeTraj() {
   // On WRITE only close if not writing 1 mol2 per frame
   if (tfile->access==WRITE) {
@@ -62,10 +56,10 @@ void Mol2File::closeTraj() {
   }
 }
 
-/* Mol2File::setupRead()
- * See how many MOLECULE records are in file, make sure num atoms match
- * parm and each frame.
- */
+// Mol2File::setupRead()
+/** See how many MOLECULE records are in file, make sure num atoms match
+  * parm and each frame.
+  */
 int Mol2File::setupRead(AmberParm *trajParm) {
   int frameAtom;
   int Frames=0;
@@ -115,8 +109,7 @@ int Mol2File::setupRead(AmberParm *trajParm) {
   return Frames;
 }
 
-/* Mol2File::readFrame()
- */
+// Mol2File::readFrame()
 int Mol2File::readFrame(int set,double *X, double *V,double *box, double *T) {
   char buffer[MOL2BUFFERSIZE];
   int atom, atom3;
@@ -136,26 +129,24 @@ int Mol2File::readFrame(int set,double *X, double *V,double *box, double *T) {
   return 0;
 }
 
-/* Mol2File::processWriteArgs()
- */
+// Mol2File::processWriteArgs()
 int Mol2File::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("single")) this->SetWriteMode(MOL);
   if (argIn->hasKey("multi"))  this->SetWriteMode(MULTI);
   return 0;
 }
 
-/* Mol2File::SetWriteMode()
- * Set write mode to SINGLE, MOL, or MULTI
- */
+// Mol2File::SetWriteMode()
+/** Set write mode to SINGLE, MOL, or MULTI */
 void Mol2File::SetWriteMode(MOL2WRITEMODE modeIn) {
   mol2WriteMode = modeIn;
   //mprintf("MOL2 WRITE MODE SET TO %i\n",(int)mol2WriteMode);
 }
 
-/* Mol2File::setupWrite()
- * Set parm information required for write, and check write mode against
- * number of frames to be written.
- */
+// Mol2File::setupWrite()
+/** Set parm information required for write, and check write mode against
+  * number of frames to be written.
+  */
 int Mol2File::setupWrite(AmberParm *trajParm) {
   // If writing more than 1 frame and not writing 1 pdb per frame, 
   // use @<TRIPOS>MOLECULE keyword to separate frames.
@@ -170,24 +161,22 @@ int Mol2File::setupWrite(AmberParm *trajParm) {
   }
 
   // Check number of bonds
-  trajnbondsh = trajParm->NbondsWithH;
-  trajnbonds  = trajParm->NbondsWithoutH;
-  mol2bonds = trajnbondsh + trajnbonds;
-  if (mol2bonds < 0) mol2bonds=0;
-  if (mol2bonds == 0)
+  if ( trajParm->BondArray( trajBonds ) ) 
     mprintf("Warning: %s: topology does not contain bond information.\n",tfile->filename);
+  // The BondArray function results in an array consisting of all bonds
+  // with both atoms of the bond, hence the number of bonds is size / 2
+  mol2bonds = (int)trajBonds.size();
+  mol2bonds /= 2;
 
   // Set information from parm
-  trajnres = trajParm->nres;
-  trajAtomNames = trajParm->names;
-  trajTypes = trajParm->types;
+  trajnres = trajParm->Nres();
+  trajAtomNames = trajParm->AtomNames_ptr();
+  trajTypes = trajParm->AtomTypes_ptr();
   // If types are not set just use atom names
   if (trajTypes == NULL) trajTypes = trajAtomNames;
-  trajResNames = trajParm->resnames;
-  trajResNums = trajParm->resnums;
-  trajCharges = trajParm->charge;
-  trajBonds = trajParm->bonds;
-  trajBondsh = trajParm->bondsh;
+  trajResNames = trajParm->ResidueNames_ptr();
+  trajResNums = trajParm->ResAtomNums_ptr();
+  trajCharges = trajParm->Charges_ptr();
 
   // Check that all parm info is indeed present
   if (trajAtomNames==NULL) {
@@ -210,21 +199,14 @@ int Mol2File::setupWrite(AmberParm *trajParm) {
   //  mprinterr("Error: setupWrite [%s]: Charges are NULL.\n",tfile->filename);
   //  return 1;
   //}
-  if (mol2bonds > 0) {
-    if ( trajnbonds>0 && trajBonds==NULL) {
-      mprinterr("Error: setupWrite [%s]: Bonds are NULL.\n",tfile->filename);
-      return 1;
-    }
-    if (trajnbondsh>0 && trajBondsh==NULL) {
-      mprinterr("Error: setupWrite [%s]: BondsH are NULL.\n",tfile->filename);
-      return 1;
-    }
+  if (trajBonds.empty()) {
+    mprintf("Warning: setupWrite [%s]: No bond information present in parm %s\n",
+            tfile->filename,trajParm->parmName);
   }
   return 0;
 }
 
-/* Mol2File::writeFrame()
- */
+// Mol2File::writeFrame()
 int Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
   char buffer[1024];
   int atom, atom3, res;
@@ -268,26 +250,17 @@ int Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
   }
 
   //@<TRIPOS>BOND section
-  if (mol2bonds > 0) {
+  if (!trajBonds.empty()) {
     // Atom #s in the bonds and bondh array are * 3
     tfile->IO->Printf("@<TRIPOS>BOND\n");
-    atom=0;
-    if (trajnbonds>0) {
-      atom3=0;
-      for (atom=0; atom < trajnbonds; atom++) {
-        tfile->IO->Printf("%5d %5d %5d 1\n",atom+1,(trajBonds[atom3]/3)+1,(trajBonds[atom3+1]/3)+1);
-        atom3+=3;
-      }
-    }
-    if (trajnbondsh>0) {
-      atom3=0;
-      res = atom; // Where bonds left off
-      for (atom=0; atom < trajnbondsh; atom++) {
-        tfile->IO->Printf("%5d %5d %5d 1\n",res+1,(trajBondsh[atom3]/3)+1,
-                          (trajBondsh[atom3+1]/3)+1);
-        atom3+=3;
-        res++;
-      }
+    atom=1;
+    for (std::vector<int>::iterator bond = trajBonds.begin();
+                                    bond != trajBonds.end();
+                                    bond++)
+    {
+      int firstBondAtom = *bond;
+      ++bond;
+      tfile->IO->Printf("%5d %5d %5d 1\n",atom++,firstBondAtom + 1,*bond + 1);
     }
   }
 
@@ -305,8 +278,7 @@ int Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
   return 0;
 }
  
-/* Mol2File::info()
- */
+// Mol2File::info()
 void Mol2File::info() {
   mprintf("is a Tripos Mol2 file");
   if (tfile->access==WRITE) {

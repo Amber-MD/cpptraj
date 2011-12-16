@@ -81,7 +81,7 @@ int Average::init( ) {
  */
 int Average::setup() {
 
-  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask1, activeReference) ) return 1;
 
   if (Mask1.None()) {
     mprintf("    Error: Average::setup: No Atoms in mask.\n");

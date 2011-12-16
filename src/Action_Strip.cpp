@@ -54,7 +54,7 @@ int Strip::init( ) {
 // Strip::Setup()
 /// Attempt to create a new stripped down version of the input parmtop
 int Strip::setup() {
-  M1.SetupMask(currentParm,activeReference,debug);
+  if (currentParm->SetupIntegerMask( M1, activeReference )) return 1;
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
   if (M1.None()) {
     mprinterr("      Error: Strip::setup: Mask has no atoms.\n");

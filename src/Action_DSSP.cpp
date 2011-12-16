@@ -1,4 +1,3 @@
-#include <cstring>
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
 // Dssp
@@ -91,7 +90,7 @@ int DSSP::setup() {
   Residue RES;
 
   // Set up mask for this parm
-  if ( Mask.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask, activeReference ) ) return 1;
   if ( Mask.None() ) {
     mprintf("      Error: DSSP::setup: Mask has no atoms.\n");
     return 1;
@@ -108,10 +107,10 @@ int DSSP::setup() {
   }
 
   // Set up SecStruct for each solute residue
-  if (currentParm->finalSoluteRes>0)
-    Nres = currentParm->finalSoluteRes;
+  if (currentParm->HasSolventInfo())
+    Nres = currentParm->FinalSoluteRes();
   else
-    Nres=currentParm->nres;
+    Nres = currentParm->Nres();
   //mprintf("      DSSP: Setting up for %i residues.\n",Nres);
 
   // Set up for each residue of the current Parm if not already set-up.
@@ -144,13 +143,13 @@ int DSSP::setup() {
     if ( res >= Nres ) continue;
     //fprintf(stdout,"DEBUG: Atom %i Res %i [%s]\n",atom,res,P->names[atom]);
     SecStruct[res].isSelected = true;
-    if (      strcmp(currentParm->names[atom], "C   ")==0 )
+    if (      currentParm->AtomNameIs(atom, "C   ") )
       SecStruct[res].C=atom*3;
-    else if ( strcmp(currentParm->names[atom], "O   ")==0 )
+    else if ( currentParm->AtomNameIs(atom, "O   ") )
       SecStruct[res].O=atom*3;
-    else if ( strcmp(currentParm->names[atom], "N   ")==0 )
+    else if ( currentParm->AtomNameIs(atom, "N   ") )
       SecStruct[res].N=atom*3;
-    else if ( strcmp(currentParm->names[atom], "H   ")==0 )
+    else if ( currentParm->AtomNameIs(atom, "H   ") )
       SecStruct[res].H=atom*3;
   }
 

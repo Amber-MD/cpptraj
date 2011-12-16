@@ -97,7 +97,7 @@ int Rms2d::init() {
 /** Set up frame mask so that only selected atoms in frames will be stored.
   */
 int Rms2d::setup() {
-  if (FrameMask.SetupMask(currentParm, activeReference, debug)) {
+  if ( currentParm->SetupIntegerMask(FrameMask, activeReference) ) {
     mprinterr("Error: Rms2d::setup: Could not set up mask [%s] for parm %s\n",
               FrameMask.MaskString(), currentParm->parmName);
     return 1;
@@ -204,7 +204,7 @@ void Rms2d::CalcRmsToTraj() {
   float R;
   int natom_tgt;
   // Set up reference mask for reference parm
-  if (RefMask.SetupMask(RefParm, activeReference, debug)) {
+  if (RefParm->SetupIntegerMask(RefMask, activeReference)) {
     mprinterr("Error: Could not set up reference mask [%s] for parm %s\n",
               RefMask.MaskString(), RefParm->parmName);
     return;

@@ -1,6 +1,7 @@
 #ifndef INC_AXISTYPE_H
 #define INC_AXISTYPE_H
 #include "Frame.h"
+#include "Name.h"
 /*! \file AxisType.h
     \brief Hold classes and functions used for NA structure analysis.
  */

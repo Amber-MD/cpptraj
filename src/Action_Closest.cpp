@@ -151,7 +151,7 @@ int Closest::setup() {
 
   // Setup solute atom mask
   // NOTE: Should ensure that no solvent atoms are selected!
-  if ( soluteMask.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupIntegerMask(soluteMask, activeReference) ) return 1;
   if (soluteMask.None()) {
     mprintf("    Error: Closest::setup: Mask %s contains no atoms.\n",soluteMask.MaskString());
     return 1;
@@ -200,8 +200,9 @@ int Closest::setup() {
   solvent.D=0.0;
   solvent.mol=0;
   SolventMols.resize(oldParm->solventMolecules, solvent);
+  int firstSolventMol = oldParm->FirstSolventMol();
   for (solventMol=0; solventMol < oldParm->solventMolecules; solventMol++) {
-    SolventMols[solventMol].mol = oldParm->firstSolvMol + solventMol;
+    SolventMols[solventMol].mol = firstSolventMol + solventMol;
     // Setup solvent molecule mask
     SolventMols[solventMol].mask.AddAtomRange(oldParm->solventMoleculeStart[solventMol],
                                                oldParm->solventMoleculeStop[solventMol]  );

@@ -69,7 +69,7 @@ int ActionMask::action() {
   TrajectoryFile pdbout;
 
   // Get atom selection
-  if ( Mask1.SetupCharMask(currentParm, currentFrame->X, debug) ) {
+  if ( currentParm->SetupCharMask(Mask1, currentFrame->X) ) {
     mprintf("Warning: ActionMask::action: Could not set up atom mask [%s]\n",Mask1.MaskString());
     return 1;
   }
@@ -79,7 +79,7 @@ int ActionMask::action() {
     if (Mask1.AtomInCharMask(atom)) {
       res = currentParm->atomToResidue(atom);
       outfile.IO->Printf("%8i %8i %4s %8i %4s %8i",
-                         frameNum+OUTPUTFRAMESHIFT,atom+1, currentParm->names[atom], res+1,
+                         frameNum+OUTPUTFRAMESHIFT,atom+1, currentParm->AtomName(atom), res+1,
                          currentParm->ResidueName(res), currentParm->atomToMolecule(atom)+1);
       /*mprintf(" Type=%4s",currentParm->types[atom]);
       mprintf(" Charge=%lf",currentParm->charge[atom]);

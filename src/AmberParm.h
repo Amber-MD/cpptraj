@@ -6,6 +6,7 @@
 // Name.h has definition for NAME 
 #include "Name.h"
 #include "Bonds.h"
+#include "AtomMask.h"
 // Class: AmberParm 
 /** Hold all data pertaining to a molecular system (# atoms, atom names, 
   * etc). Can be read in from Amber Topology, PDB, or Mol2 files (implemented 
@@ -40,6 +41,7 @@ class AmberParm {
     // Set up solvent info
     bool IsSolventResname(NAME);
     int SetSolventInfo();
+    bool hasSolventInfo;       ///< True if solvent information present
 
     // Parm format readers
     int ReadParmMol2(CpptrajFile *);
@@ -56,6 +58,8 @@ class AmberParm {
     int DetermineMolecules();
     int SetupExcludedAtoms();
     BondInfo bondInfo;  ///< Class that holds bond info in a different format than bond arrays
+
+    int SetupAtomMask(AtomMask &, double *, bool);
 
     int *numex;         ///< NUMEX(NATOM)
     int *atype_index;   ///< IAC(NATOM)
@@ -100,12 +104,6 @@ class AmberParm {
     int natyp;          ///< NATYP: number of atom types in parameter file (SOLTY)
     int nphb;           ///< NPHB: number of distinct 10-12 hydrogen bond pair types
 
-  public:
-    char *parmfileName;   ///< Parm filename (full path)
-    char *parmName;       ///< Parm name, set to base filename on reads 
-    int pindex;           ///< The index of this parm in the parmfilelist
-    int parmFrames;       ///< For output, # of frames that will be read with this parm
-
     // Amber Parmtop
     int NbondsWithH;    ///< NBONH
     int NbondsWithoutH; ///< MBONA
@@ -115,34 +113,62 @@ class AmberParm {
     NAME *resnames;     ///< LBRES(NRES)
     NAME *types;        ///< ISYMBL(NATOM)
     int *resnums;       ///< IPRES(NRES) 
-    int natom;          ///< NATOM
     int nres;           ///< NRES
     int finalSoluteRes; ///< IPTRES
     int molecules;      ///< NSPM
     int firstSolvMol;   ///< NSPSOL
     int *atomsPerMol;   ///< NSP(NSPM)
-    double *mass;       ///< AMASS(NATOM)
     double *charge;     ///< CHARGE(NATOM)
 
-    double *GB_radii() { return gb_radii; } ///< RBORN(NATOM)
 
-    int NumExcludedAtoms(int);
-    int Natex(int);
-    int GetLJparam(double *, double *, int, int);
-    int GetBondParamIdx(int, double *, double *);
-    //int GetBondParam(double *, double *, int, int);
-    int SetCharges(double*);
-    bool AtomNameIs(int, const char *);
+  public:
+    char *parmfileName;   ///< Parm filename (full path)
+    char *parmName;       ///< Parm name, set to base filename on reads 
+    int pindex;           ///< The index of this parm in the parmfilelist
+    int parmFrames;       ///< For output, # of frames that will be read with this parm
 
-    double Box[6];      ///< X, Y, Z, alpha, beta, gamma 
-    BoxType boxType;    ///< None, Orthogonal, Non-orthogonal
+    int natom;          ///< NATOM
+    double *mass;       ///< AMASS(NATOM)
 
     // From Ptraj
+    // NOTE: Eventually want to make this private, or eliminate it entirely.
+    //       Kept for now since some actions in ptraj_actions.c require it.
     char *solventMask;         ///< T for atoms in the solvent
     int solventMolecules;      ///< number of solvent molecules
     int *solventMoleculeStart; ///< pointer into solventMask for first atom of each solvent
     int *solventMoleculeStop;  ///< pointer into solventMask for last atom of each solvent
     int solventAtoms;          ///< number of solvent atoms
+
+    int Nres()           { return nres;           }
+    int FinalSoluteRes() { return finalSoluteRes; }
+    int FirstSolventMol(){ return firstSolvMol;   }
+    int Nmol()           { return molecules;      }
+    bool HasSolventInfo(){ return hasSolventInfo; }
+
+    NAME *AtomNames_ptr()    { return names;       } ///< Returns array IGRAPH
+    NAME *ResidueNames_ptr() { return resnames;    } ///< Returns array LBRES
+    NAME *AtomTypes_ptr()    { return types;       } ///< Returns array ISYMBL
+    int *AtomsPerMol_ptr()   { return atomsPerMol; } ///< Returns array NSP
+    int *ResAtomNums_ptr()   { return resnums;     } ///< Returns array IPRES
+    double *Charges_ptr()    { return charge;      } ///< Returns array CHARGE
+    double *GB_radii_ptr()   { return gb_radii;    } ///< Returns array RBORN
+
+    int SetupIntegerMask(AtomMask &, double *);
+    int SetupCharMask(AtomMask &, double *);
+
+    int NumExcludedAtoms(int);
+    int Natex(int);
+    int GetLJparam(double *, double *, int, int);
+    int GetBondParamIdx(int, double *, double *);
+    double GetBondedCutoff(int, int);
+    //int GetBondParam(double *, double *, int, int);
+    int SetCharges(double*);
+    int AmberChargeArray(std::vector<double>&);
+    double AtomCharge(int);
+    int AtomsPerMol(int );
+
+    double Box[6];      ///< X, Y, Z, alpha, beta, gamma 
+    BoxType boxType;    ///< None, Orthogonal, Non-orthogonal
 
     // For SA calc
     SurfInfo *SurfaceInfo;
@@ -156,6 +182,11 @@ class AmberParm {
     void ResAtomName(char*, int);
     char *ResidueName(int);
     int FindAtomInResidue(int, char *);
+    int ResAtomRange(int, int *, int *);
+
+    char *AtomName(int);
+    bool AtomNameIs(int, const char *);
+    bool AtomElementIs(int, AtomicElementType);
 
     int SetSurfaceInfo();
 
@@ -166,13 +197,17 @@ class AmberParm {
     void Summary();
     void PrintBondInfo();
     void PrintMoleculeInfo();
+    void PrintResidueInfo();
 
     int atomToResidue(int);
     int atomToMolecule(int);
     int atomToSolventMolecule(int);
 
+    int BondArray(std::vector<int> &);
+    int BondArrayWithParmIdx(std::vector<int> &);
     int SetupBondInfo();
     int GetBondedAtomIdx(int, const char *);
+    int GetBondedHatoms(int,std::vector<int>&);
     int MaskOfAtomsAroundBond(int, int, std::vector<char>&);
 
     void ResetBondInfo(); 

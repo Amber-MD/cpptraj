@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_RMSD_H
 #define INC_ACTION_RMSD_H
-#include "Action.h"
 #include <vector>
+#include "Action.h"
 #include "Range.h"
 #include "TrajectoryFile.h"
 // Class: Rmsd
@@ -9,10 +9,10 @@
 class Rmsd: public Action {
     DataSet *rmsd;
     // PerResRMSD -------------
-    int nres;                          ///< Total # of residues to calculate per res rmsd for
+    int NumResidues;                   ///< Total # of residues to calculate per res rmsd for
     DataSetList *PerResRMSD;           ///< Hold residue RMSDs
-    std::vector<AtomMask*> tgtResMask; ///< Hold target masks for each res in ResRange
-    std::vector<AtomMask*> refResMask; ///< Hold reference masks for each res in ResRange
+    std::vector<AtomMask> tgtResMask;  ///< Hold target masks for each res in ResRange
+    std::vector<AtomMask> refResMask;  ///< Hold reference masks for each res in ResRange
     std::vector<bool> resIsActive;     ///< True if residue was set up correctly
     Range ResRange;                    ///< Residues to calculate perRes rmsd for
     Range RefRange;                    ///< Residues in reference corresponding to those in ResRange

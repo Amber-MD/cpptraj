@@ -2,6 +2,9 @@
 #define INC_BONDS_H
 #include <vector>
 #include "Name.h"
+/*! \file Bonds.h
+    \brief Classes and routines used for keeping track of and/or defining covalent bonds.
+ */
 // ---------- DEFINES
 #define MAXNUMBONDS 7
 // Class: BondInfo
@@ -13,8 +16,7 @@ class BondInfo {
     struct bondinfo {
       int mol;
       int maxbonds;
-      int nbonds;
-      int bond[MAXNUMBONDS];
+      std::vector<int> bond;
     }; 
     std::vector<bondinfo> Molecule;
     int natom;
@@ -26,19 +28,29 @@ class BondInfo {
     BondInfo();
     ~BondInfo();
     int Setup(int);
+    void Reset();
+    bool HasBeenSetup();
     void SetValences(NAME*);
     int CreateBond(int,int);
     void SetBondsFromAmberArray(int *, int);
     void PrintBonds();
     int *DetermineMolecules(int*);
     int *DetermineExcludedAtoms(int *, int *);
-    void GetListOfBondedAtoms(int, int*, int*);
+    void GetListOfBondedAtoms(int, std::vector<int>&);
     int MaskOfAtomsAroundBond(int, int, std::vector<char>&);
 };
 // Other functions
-int AtomicNumberFromName(char *);
-char ElementFromName(char *);
-int MaxValence(char*);
-double GetBondedCut(char *, char *);
-double GetBondedCut(char, char);
+/// Defined type for elements. Based on entries in $AMBERHOME/dat/parm94.dat and parm10.dat
+enum AtomicElementType { UNKNOWN_ELEMENT,  
+  HYDROGEN,   BORON,     CARBON,   NITROGEN, OXYGEN,    FLUORINE, 
+  PHOSPHORUS, SULFUR,    CHLORINE, BROMINE,  IRON,      CALCIUM,  
+  IODINE,     MAGNESIUM, COPPER,   LITHIUM,  POTASSIUM, RUBIDIUM, 
+  CESIUM,     ZINC,      SODIUM 
+};
+#define NUM_DEFINED_ELEMENTS 22
+AtomicElementType ElementFromName(char *);
+char GetElementFromName(char *);
+double GetBondedCut(NAME, NAME);
+double GetBondedCut(char , char );
+double GetBondedCut(AtomicElementType, AtomicElementType);
 #endif

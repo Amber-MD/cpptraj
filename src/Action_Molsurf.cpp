@@ -211,7 +211,7 @@ int Molsurf::init() {
   * currentParm is set in Action::Setup
   */
 int Molsurf::setup() {
-  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupIntegerMask(Mask1, activeReference) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Molsurf::setup: Mask contains 0 atoms.\n");
     return 1;
@@ -229,18 +229,18 @@ int Molsurf::setup() {
     return 1;
   }
   // Set up parm info for atoms in mask
-  double *Radii = currentParm->GB_radii();
+  double *Radii = currentParm->GB_radii_ptr();
   for (int maskidx = 0; maskidx < Mask1.Nselected; maskidx++) {
     int parmatom = Mask1.Selected[maskidx];
     int nres = currentParm->atomToResidue(parmatom);
     atom[maskidx].anum = parmatom + 1; // anum is for debug output only, atoms start from 1
-    strcpy(atom[maskidx].anam,currentParm->names[parmatom]);
+    strcpy(atom[maskidx].anam,currentParm->AtomName(parmatom));
     atom[maskidx].rnum = nres + 1; // again for debug output only, residues start from 1
-    strcpy(atom[maskidx].rnam,currentParm->resnames[nres]);
+    strcpy(atom[maskidx].rnam,currentParm->ResidueName(nres));
     atom[maskidx].pos[0] = 0;
     atom[maskidx].pos[1] = 0;
     atom[maskidx].pos[2] = 0;
-    atom[maskidx].q = currentParm->charge[parmatom];
+    atom[maskidx].q = currentParm->AtomCharge(parmatom);
     atom[maskidx].rad = Radii[parmatom] + rad_offset;
   }
 

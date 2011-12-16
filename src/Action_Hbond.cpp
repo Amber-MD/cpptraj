@@ -1,8 +1,8 @@
 // Hbond 
+#include <cmath> // sqrt
 #include "Action_Hbond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG, DEGRAD
-#include <cmath> // sqrt
 
 // CONSTRUCTOR
 Hbond::Hbond() {
@@ -17,21 +17,21 @@ Hbond::~Hbond() {
   if (HBavg!=NULL) delete HBavg;
 }
 
-/* Hbond::init()
- * Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [avgout <filename>]
- *                      [donormask <mask>] [acceptormask <mask>]
- * Search for Hbonding atoms in region specified by mask. 
- * Arg. check order is:
- *    1) Keywords
- *    2) Masks
- * If just <mask> is specified donors and acceptors will be automatically
- * searched for.
- * If donormask is specified but not acceptormask, acceptors will be 
- * automatically searched for in <mask>.
- * If acceptormask is specified but not donormask, donors will be automatically
- * searched for in <mask>.
- * If both donormask and acceptor mask are specified no searching will occur.
- */
+// Hbond::init()
+/** Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [avgout <filename>]
+  *                      [donormask <mask>] [acceptormask <mask>]
+  * Search for Hbonding atoms in region specified by mask. 
+  * Arg. check order is:
+  * - Keywords
+  * - Masks
+  * If just <mask> is specified donors and acceptors will be automatically
+  * searched for.
+  * If donormask is specified but not acceptormask, acceptors will be 
+  * automatically searched for in <mask>.
+  * If acceptormask is specified but not donormask, donors will be automatically
+  * searched for in <mask>.
+  * If both donormask and acceptor mask are specified no searching will occur.
+  */
 int Hbond::init() {
   char *mask, *outfilename;
 
@@ -85,11 +85,11 @@ int Hbond::init() {
   return 0;
 }
 
-/* Hbond::SearchAcceptor()
- * Search for hbond acceptors X in the region specified by amask.
- * If Auto is true select acceptors based on the rule that "Hydrogen 
- * bonds are FON"
- */
+// Hbond::SearchAcceptor()
+/** Search for hbond acceptors X in the region specified by amask.
+  * If Auto is true select acceptors based on the rule that "Hydrogen 
+  * bonds are FON"
+  */
 void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
   int atom;
   bool isAcceptor;
@@ -101,9 +101,9 @@ void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
     // If auto searching, only consider acceptor atoms as F, O, N
     if (Auto) {
       isAcceptor=false;
-      if (currentParm->names[atom][0]=='F' ||
-          currentParm->names[atom][0]=='O' ||
-          currentParm->names[atom][0]=='N'   )
+      if (currentParm->AtomElementIs(atom,FLUORINE) ||
+          currentParm->AtomElementIs(atom,OXYGEN)   ||
+          currentParm->AtomElementIs(atom,NITROGEN)   )
         isAcceptor=true;
     }
     if (isAcceptor)
@@ -111,55 +111,58 @@ void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
   }
 }
 
-/* Hbond::SearchDonor()
- * Search for hydrogen bond donors X-H in the region specified by dmask.
- * If Auto is true select donors based on the rule that "Hydrogen bonds 
- * are FON"
- */
+// Hbond::SearchDonor()
+/** Search for hydrogen bond donors X-H in the region specified by dmask.
+  * If Auto is true select donors based on the rule that "Hydrogen bonds 
+  * are FON"
+  */
 void Hbond::SearchDonor(AtomMask *dmask, bool Auto) {
-  int donoratom, atom1, atom2;
+  int donoratom;//, atom1, atom2;
   bool isDonor;
+  std::vector<int> HatomList;
   // Set up donors: F-H, O-H, N-H
   for (int selected=0; selected < dmask->Nselected; selected++) {
     donoratom = dmask->Selected[selected];
     // If this is already an H atom continue
-    if (currentParm->names[donoratom][0]=='H') continue;
+    if (currentParm->AtomElementIs(donoratom,HYDROGEN)) continue;
     isDonor = true;
     // If auto searching, only consider donor atoms as F, O, N
     if (Auto) {
       isDonor=false;
-      if (currentParm->names[donoratom][0]=='F' ||
-          currentParm->names[donoratom][0]=='O' ||
-          currentParm->names[donoratom][0]=='N')
+      if (currentParm->AtomElementIs(donoratom,FLUORINE) ||
+          currentParm->AtomElementIs(donoratom,OXYGEN)   ||
+          currentParm->AtomElementIs(donoratom,NITROGEN)   )
         isDonor=true;
     }
-    if (isDonor) { 
-      // Search the list of bonds to hydrogen for this atom.
-      for (int bh=0; bh < currentParm->NbondsWithH*3; bh+=3) {
-        // Actual atom #s in bondsh array = x / 3
-        atom1 = currentParm->bondsh[bh  ] / 3;
-        atom2 = currentParm->bondsh[bh+1] / 3;
-        if (atom1==donoratom) {
-          Donor.push_back(atom1);
-          Donor.push_back(atom2);
-        } else if (atom2==donoratom) {
-          Donor.push_back(atom2);
-          Donor.push_back(atom1);
+    if (isDonor) {
+      // Get list of hydrogen atoms bonded to this atom
+      if ( currentParm->GetBondedHatoms(donoratom, HatomList) ) {
+        for (std::vector<int>::iterator h_atom = HatomList.begin();
+                                        h_atom != HatomList.end();
+                                        h_atom++)
+        {
+          //mprintf("BOND TO H: %i@%s -- %i@%s\n",donoratom+1,currentParm->AtomName(donoratom),
+          //        *h_atom+1,currentParm->AtomName(*h_atom));
+          Donor.push_back(donoratom);
+          Donor.push_back(*h_atom);
         }
-      } // END loop over bonds to hydrogen
+      }
     } // END atom is potential donor
   } // END loop over selected atoms
 }
 
-/* Hbond::setup()
- * Search for hbond donors and acceptors. 
- */
+// Hbond::setup()
+/** Search for hbond donors and acceptors. 
+  */
 int Hbond::setup() {
   int atom, a2;
 
+  // Set up bond information for parm
+  if (currentParm->SetupBondInfo()) return 1;
+
   // Set up mask
   if (!hasDonorMask && !hasAcceptorMask) {
-    if ( Mask.SetupMask(currentParm,activeReference,debug) ) return 1;
+    if ( currentParm->SetupIntegerMask( Mask, activeReference) ) return 1;
     if ( Mask.None() ) {
       mprintf("    Error: Hbond::setup: Mask has no atoms.\n");
       return 1;
@@ -167,7 +170,7 @@ int Hbond::setup() {
   }
   // Set up donor mask
   if (hasDonorMask) {
-    if (DonorMask.SetupMask(currentParm,activeReference,debug)) return 1;
+    if ( currentParm->SetupIntegerMask( DonorMask, activeReference) ) return 1;
     if (DonorMask.None()) {
       mprintf("    Error: Hbond: DonorMask has no atoms.\n");
       return 1;
@@ -175,7 +178,7 @@ int Hbond::setup() {
   }
   // Set up acceptor mask
   if (hasAcceptorMask) {
-    if (AcceptorMask.SetupMask(currentParm,activeReference,debug)) return 1;
+    if ( currentParm->SetupIntegerMask( AcceptorMask, activeReference) ) return 1;
     if (AcceptorMask.None()) {
       mprintf("    Error: Hbond: AcceptorMask has no atoms.\n");
       return 1;
@@ -208,7 +211,7 @@ int Hbond::setup() {
   mprintf("      HBOND: Set up %i acceptors:\n",(int)Acceptor.size());
   if (debug>0) {
     for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++)
-      mprintf("        %8i: %4s\n",*accept,currentParm->names[*accept]);
+      mprintf("        %8i: %4s\n",*accept+1,currentParm->AtomName(*accept));
   }
   mprintf("      HBOND: Set up %i donors:\n",((int)Donor.size())/2);
   if (debug>0) {
@@ -216,17 +219,17 @@ int Hbond::setup() {
       atom = (*donor);
       donor++;
       a2   = (*donor);
-      mprintf("        %8i:%4s - %8i:%4s\n",atom,
-              currentParm->names[atom],a2,currentParm->names[a2]); 
+      mprintf("        %8i:%4s - %8i:%4s\n",atom+1,currentParm->AtomName(atom),
+              a2+1,currentParm->AtomName(a2)); 
     } 
   }
 
   return 0;
 }
 
-/* Hbond::action()
- * Calculate distance between all donors and acceptors. Store Hbond info.
- */    
+// Hbond::action()
+/** Calculate distance between all donors and acceptors. Store Hbond info.
+  */    
 int Hbond::action() {
   // accept ... H-D
   int D, H, Nhb, numHB;
@@ -276,9 +279,9 @@ int Hbond::action() {
   return 0;
 }
 
-/* Hbond::print()
- * Print average occupancies over all frames for all detected Hbonds
- */
+// Hbond::print()
+/** Print average occupancies over all frames for all detected Hbonds
+  */
 void Hbond::print() {
   std::map<int,HbondType>::iterator it;
   std::list<HbondType> HbondList;

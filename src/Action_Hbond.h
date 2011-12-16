@@ -1,18 +1,18 @@
 #ifndef INC_ACTION_HBOND_H
 #define INC_ACTION_HBOND_H
-/// Class: Hbond
-/// Action to calculate the Hbonds present in each frame.
-#include "Action.h"
 #include <vector>
 #include <map>
+#include "Action.h"
+// Class: Hbond
+/// Action to calculate the Hbonds present in each frame.
 class Hbond : public Action {
     struct HbondType {
-      int A;        // Acceptor atom#
-      int H;        // Hydrogen atom#
-      int D;        // Donor atom#
-      int Frames;   // # frames this hbond has been present
-      double dist;  // Used to calc avg distance of this hbond
-      double angle; // Used to calc avg angle of this hbond
+      int A;        ///< Acceptor atom#
+      int H;        ///< Hydrogen atom#
+      int D;        ///< Donor atom#
+      int Frames;   ///< # frames this hbond has been present
+      double dist;  ///< Used to calc avg distance of this hbond
+      double angle; ///< Used to calc avg angle of this hbond
     };
 
     int Nframes;

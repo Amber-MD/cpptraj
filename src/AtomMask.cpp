@@ -194,36 +194,13 @@ bool AtomMask::None() {
 }
 
 // AtomMask::SetupMask()
-/** Set up an atom mask given a parm file. The basic atom mask is allocated
-  * using a version of PTRAJs mask parser (PtrajMask::parseMaskString)
-  * which returns a char array of size P->natom, where selected atoms are 
-  * denoted by T. Based on this create an array of selected atom numbers. 
+/** Set up an atom mask containing selected atom numbers given a char
+  * array of size natom with T for selected atoms and F for unselected
+  * atoms. The actual mask parser is called from AmberParm. 
   * maskChar is used to determine whether atoms denoted by 'T' or 'F' will
   * be selected (the latter is the case e.g. with stripped atoms). 
   */
-int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
-  char *mask;
-
-  if (Pin==NULL) {
-    mprinterr("    Error: AtomMask::SetupMask: (%s) Topology is NULL.\n", maskString.c_str());
-    return 1;
-  }
-  if (Postfix.empty()) {
-    mprinterr("    Error: AtomMask::SetupMask: Postfix is NULL.\n");
-    return 1;
-  }
-
-  if (debug>1) mprintf("\tAtomMask: Parsing postfix [%s]\n",Postfix.c_str());
-
-  // Allocate character atom mask
-  mask = parseMaskString((char*)Postfix.c_str(), Pin->natom, Pin->nres, Pin->names, Pin->resnames,
-                         Pin->resnums, Xin, Pin->types, debug);
-  if (mask==NULL) {
-    mprinterr("    Error: Could not set up mask %s for topology %s\n",
-              maskString.c_str(), Pin->parmName);
-    return 1;
-  }
-
+void AtomMask::SetupMask(char *charmask,int natom,int debug) {
   // Wipe out previous char mask if allocated
   CharMask.clear();
 
@@ -232,66 +209,41 @@ int AtomMask::SetupMask(AmberParm *Pin, double *Xin, int debug) {
   //       mask. Could check to see which will be bigger.
   Nselected=0;
   Selected.clear();
-  for (int atom=0; atom<Pin->natom; atom++) {
-    if (mask[atom]==maskChar) {
+  for (int atom=0; atom < natom; atom++) {
+    if (charmask[atom]==maskChar) {
       Selected.push_back( atom );
-      Nselected++;
+      ++Nselected;
     }
   }
 
   if (debug>0) {
     if (maskChar=='F')
       mprintf("          Inverse of Mask %s corresponds to %i atoms.\n",
-              maskString.c_str(), Pin->natom - Nselected);
+              maskString.c_str(), natom - Nselected);
     else
       mprintf("          Mask %s corresponds to %i atoms.\n",maskString.c_str(),
               Nselected);
   }
-
-  // Free the character mask, no longer needed.
-  delete[] mask;
-  
-  return 0;
 }
 
 // AtomMask::SetupCharMask()
-/** For cases where we need to know both atoms in and out of mask use
-  * the output of parseMaskString (1 char for each atom, T for selected,
-  * F for not.). 
+/** Given an input char mask of size natom, set up a corresponding char mask.
+  * Useful for cases where we need to know both atoms in and out of mask.
   */
-int AtomMask::SetupCharMask(AmberParm *Pin, double *Xin, int debug) {
-  char *mask;
-  if (Pin==NULL) {
-    mprinterr("    Error: AtomMask::SetupCharMask: (%s) Topology is NULL.\n", maskString.c_str());
-    return 1;
-  }
-  if (Postfix.empty()) {
-    mprinterr("    Error: AtomMask::SetupCharMask: Postfix is NULL.\n");
-    return 1;
-  }
-
+void AtomMask::SetupCharMask(char *charmask, int natom, int debug) {
   // Wipe out previous Selected mask if allocated
   Selected.clear();
 
   // Allocate atom mask - free mask if already allocated
   CharMask.clear();
-  mask = parseMaskString((char*)Postfix.c_str(), Pin->natom, Pin->nres, Pin->names, Pin->resnames,
-                         Pin->resnums, Xin, Pin->types, debug);
-  if (mask==NULL) {
-    mprinterr("    Error: Could not set up mask %s for topology %s\n",
-              maskString.c_str(), Pin->parmName);
-    return 1;
-  }
-  //CharMask.assign( mask );
-  CharMask.reserve( Pin->natom );
-  for (int i = 0; i < Pin->natom; i++)
-    CharMask.push_back( mask[i] );
-  delete[] mask;
-  // Determine number of selected atoms
+
   Nselected=0;
-  for (int atom=0; atom<Pin->natom; atom++)
-    if (CharMask[atom]==maskChar) Nselected++;
-  return 0;
+  CharMask.reserve( natom );
+  for (int i = 0; i < natom; i++) {
+    CharMask.push_back( charmask[i] );
+    // Determine number of selected atoms
+    if (charmask[i] == maskChar) ++Nselected;
+  }
 }
 
 // AtomMask::AtomInCharMask()

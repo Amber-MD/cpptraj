@@ -68,8 +68,8 @@ int Distance::init( ) {
   */
 int Distance::setup() {
 
-  if ( Mask1.SetupMask(currentParm,activeReference,debug) ) return 1;
-  if ( Mask2.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if (currentParm->SetupIntegerMask( Mask1, activeReference)) return 1;
+  if (currentParm->SetupIntegerMask( Mask2, activeReference)) return 1;
 
   if (Mask1.None() || Mask2.None()) {
     mprintf("    Error: Distance::setup: One or both masks have no atoms.\n");

@@ -7,7 +7,7 @@
 Rmsd::Rmsd() {
   rmsd=NULL;
   PerResRMSD=NULL;
-  nres=0;
+  NumResidues=0;
   perresout=NULL;
   nofit=false;
   first=false;
@@ -34,12 +34,6 @@ Rmsd::~Rmsd() {
   if (ResFrame!=NULL) delete ResFrame;
   if (ResRefFrame!=NULL) delete ResRefFrame;
   if (PerResRMSD!=NULL) delete PerResRMSD;
-  // Free up perres masks
-  std::vector<AtomMask*>::iterator mask;
-  for (mask = tgtResMask.begin(); mask != tgtResMask.end(); mask++) 
-    delete (*mask);
-  for (mask = refResMask.begin(); mask != refResMask.end(); mask++) 
-    delete (*mask);
 }
 
 // Rmsd::resizeResMasks()
@@ -48,14 +42,10 @@ Rmsd::~Rmsd() {
   * as needed. 
   */
 void Rmsd::resizeResMasks() {
-  int currentSize = (int)tgtResMask.size();
-  if (nres > currentSize) {
-    tgtResMask.resize(nres, (AtomMask*)NULL);
-    refResMask.resize(nres, (AtomMask*)NULL);
-    for (int res=currentSize; res < nres; res++) {
-      tgtResMask[res]=new AtomMask();
-      refResMask[res]=new AtomMask();
-    }
+  AtomMask Blank;
+  if (NumResidues > (int)tgtResMask.size()) {
+    tgtResMask.resize(NumResidues, Blank);
+    refResMask.resize(NumResidues, Blank);
   }
 } 
     
@@ -65,7 +55,7 @@ void Rmsd::resizeResMasks() {
   * If reference, this is called from init. If first, this is called from setup.
   */
 int Rmsd::SetRefMask() {
-  if ( RefMask.SetupMask(RefParm,activeReference,debug) ) return 1;
+  if (RefParm->SetupIntegerMask( RefMask, activeReference )) return 1;
   if (RefMask.None()) {
     mprintf("    Error: Rmsd::SetRefMask: No atoms in reference mask.\n");
     return 1;
@@ -250,11 +240,11 @@ int Rmsd::perResSetup() {
 
   // If no target range previously specified do all solute residues
   if (ResRange.Empty()) {
-    if (currentParm->finalSoluteRes>0)
-      nres = currentParm->finalSoluteRes;
+    if (currentParm->HasSolventInfo())
+      NumResidues = currentParm->FinalSoluteRes();
     else
-      nres = currentParm->nres; 
-    tgt_range.SetRange(1,nres+1);
+      NumResidues = currentParm->Nres(); 
+    tgt_range.SetRange(1,NumResidues+1);
   } else
     tgt_range.SetRange(&ResRange);
 
@@ -265,9 +255,9 @@ int Rmsd::perResSetup() {
     ref_range.SetRange(&RefRange);
 
   // Check that the number of reference residues matches number of target residues
-  nres = tgt_range.Size();
-  if (nres != ref_range.Size()) {
-    mprinterr("Error: RMSD: PerRes: Number of residues %i does not match\n",nres);
+  NumResidues = tgt_range.Size();
+  if (NumResidues != ref_range.Size()) {
+    mprinterr("Error: RMSD: PerRes: Number of residues %i does not match\n",NumResidues);
     mprinterr("       number of reference residues %i.\n",ref_range.Size());
     return 1;
   }
@@ -278,19 +268,19 @@ int Rmsd::perResSetup() {
   //mprinterr("DEBUG: Setting up %i masks and data for %s\n",nres,currentParm->parmName);
   resizeResMasks();
   if (PerResRMSD==NULL) PerResRMSD=new DataSetList();
-  resIsActive.reserve(nres);
-  resIsActive.assign(nres,false);
+  resIsActive.reserve(NumResidues);
+  resIsActive.assign(NumResidues,false);
   N = -1; // Set to -1 since increment is at top of loop
   tgt_range.Begin();
   ref_range.Begin();
   while (tgt_range.NextInRange(&tgtRes)) {
     ref_range.NextInRange(&refRes);
     // Check if either the residue num or the reference residue num out of range.
-    if ( tgtRes < 1 || tgtRes > currentParm->nres) {
+    if ( tgtRes < 1 || tgtRes > NumResidues) {
       mprintf("    Warning: Rmsd: perres: Specified residue # %i is out of range.\n",tgtRes);
       continue;
     }
-    if ( refRes < 1 || refRes > currentParm->nres ) {
+    if ( refRes < 1 || refRes > NumResidues ) {
       mprintf("    Warning: Rmsd: perres: Specified reference residue # %i is out of range.\n",
               refRes);
       continue;
@@ -305,35 +295,35 @@ int Rmsd::perResSetup() {
 
     // Setup mask strings. Note that masks are based off user residue nums
     sprintf(tgtArg,":%i%s",tgtRes,perresmask);
-    tgtResMask[N]->SetMaskString(tgtArg);
+    tgtResMask[N].SetMaskString(tgtArg);
     sprintf(refArg,":%i%s",refRes,perresmask);
-    refResMask[N]->SetMaskString(refArg);
+    refResMask[N].SetMaskString(refArg);
     //mprintf("DEBUG: RMSD: PerRes: Mask %s RefMask %s\n",tgtArg,refArg);
 
     // Setup the reference mask
-    if (refResMask[N]->SetupMask(RefParm, activeReference,debug)) {
+    if (RefParm->SetupIntegerMask(refResMask[N], activeReference )) {
       mprintf("      perres: Could not setup reference mask for residue %i\n",refRes);
       continue;
     }
-    if (refResMask[N]->None()) {
+    if (refResMask[N].None()) {
       mprintf("      perres: No atoms selected for reference residue %i\n",refRes);
       continue;
     }
 
     // Setup the target mask
-    if (tgtResMask[N]->SetupMask(currentParm, activeReference, debug)) {
+    if (currentParm->SetupIntegerMask(tgtResMask[N], activeReference)) {
       mprintf("      perres: Could not setup target mask for residue %i\n",tgtRes);
       continue;
     }
-    if (tgtResMask[N]->None()) {
+    if (tgtResMask[N].None()) {
       mprintf("      perres: No atoms selected for target residue %i\n",tgtRes);
       continue;
     }
 
     // Check that # atoms in target and reference masks match
-    if (tgtResMask[N]->Nselected != refResMask[N]->Nselected) {
+    if (tgtResMask[N].Nselected != refResMask[N].Nselected) {
       mprintf("      perres: Res %i: # atoms in Tgt [%i] != # atoms in Ref [%i]\n",
-              tgtRes,tgtResMask[N]->Nselected,refResMask[N]->Nselected);
+              tgtRes,tgtResMask[N].Nselected,refResMask[N].Nselected);
       continue;
     }
 
@@ -369,7 +359,7 @@ int Rmsd::perResSetup() {
   */
 int Rmsd::setup() {
 
-  if ( FrameMask.SetupMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupIntegerMask( FrameMask, activeReference ) ) return 1;
   if ( FrameMask.None() ) {
     mprintf("    Error: Rmsd::setup: No atoms in mask.\n");
     return 1;
@@ -460,13 +450,13 @@ int Rmsd::action() {
   // set-up masks in refResMask and tgtResMask. Use SetFrameFromMask instead
   // of SetFrameCoordsFromMask since each residue can be a different size.
   if (perres) {
-    for (int N=0; N < nres; N++) {
+    for (int N=0; N < NumResidues; N++) {
       if (!resIsActive[N]) {
         //mprintf("DEBUG:           [%4i] Not Active.\n",N);
         continue;
       }
-      ResRefFrame->SetFrameFromMask(&RefFrame, refResMask[N]);
-      ResFrame->SetFrameFromMask(currentFrame, tgtResMask[N]);
+      ResRefFrame->SetFrameFromMask(&RefFrame, &(refResMask[N]));
+      ResFrame->SetFrameFromMask(currentFrame, &(tgtResMask[N]));
       if (perrescenter)
         ResFrame->ShiftToCenter(ResRefFrame);
       R = ResFrame->RMSD(ResRefFrame,useMass);

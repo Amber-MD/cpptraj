@@ -144,11 +144,11 @@ int DihedralScan::init( ) {
 int DihedralScan::setup() {
   DihedralScanType dst;
   BondInfo mol;
-  int Nres;
+  int Nres, a1res_start, a1res_stop;
   ResidueCheckType rct;
   std::vector<char> tmpMask;
 
-  if ( Mask1.SetupCharMask(currentParm,activeReference,debug) ) return 1;
+  if ( currentParm->SetupCharMask( Mask1, activeReference ) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: DihedralScan::setup: Mask has no atoms.\n");
     return 1;
@@ -180,12 +180,15 @@ int DihedralScan::setup() {
         dst.Rmask.ResetMask();
         dst.checkAtoms.clear();
         int a1res = currentParm->atomToResidue( atom );
+        currentParm->ResAtomRange(a1res, &a1res_start, &a1res_stop);
         for (int maskatom = 0; maskatom < currentParm->natom; maskatom++) {
           if (tmpMask[maskatom]=='T')
             dst.Rmask.AddAtom(maskatom);
           else {
-            if (maskatom >= currentParm->resnums[ a1res   ] && 
-                maskatom <  currentParm->resnums[ a1res+1 ]   )
+            // If this atom is in the same residue but will not move, it needs
+            // to be checked for clashes since further rotations will not
+            // help it.
+            if (maskatom >= a1res_start && maskatom < a1res_stop   )
               dst.checkAtoms.push_back( maskatom );
           }
         }
@@ -209,10 +212,10 @@ int DihedralScan::setup() {
   if (debug>0) {
     mprintf("DEBUG: Dihedrals (central 2 atoms only):\n");
     for (unsigned int dih = 0; dih < BB_dihedrals.size(); dih++) {
-      mprintf("\t%8i%4s %8i%4s %8i%4s\n",BB_dihedrals[dih].atom1, 
-              currentParm->names[BB_dihedrals[dih].atom1], BB_dihedrals[dih].atom2,
-              currentParm->names[BB_dihedrals[dih].atom2], BB_dihedrals[dih].resnum,
-              currentParm->ResidueName(BB_dihedrals[dih].resnum));
+      mprintf("\t%8i%4s %8i%4s %8i%4s\n",
+              BB_dihedrals[dih].atom1, currentParm->AtomName(BB_dihedrals[dih].atom1), 
+              BB_dihedrals[dih].atom2, currentParm->AtomName(BB_dihedrals[dih].atom2), 
+              BB_dihedrals[dih].resnum, currentParm->ResidueName(BB_dihedrals[dih].resnum));
       if (debug>1) {
         mprintf("\t\tCheckAtoms=");
         for (std::vector<int>::iterator ca = BB_dihedrals[dih].checkAtoms.begin();
@@ -241,15 +244,14 @@ int DihedralScan::setup() {
   // to see if residues are in each others neighborhood. Second step
   // is to check the atoms in each close residue.
   if (check_for_clashes) {
-    if (currentParm->finalSoluteRes>0)
-      Nres = currentParm->finalSoluteRes;
+    if (currentParm->HasSolventInfo())
+      Nres = currentParm->FinalSoluteRes();
     else
-      Nres = currentParm->nres;
+      Nres = currentParm->Nres();
     for (int res = 0; res < Nres; res++) {
       rct.resnum = res;
-      rct.checkatom = currentParm->resnums[res];
-      rct.start = currentParm->resnums[res];
-      rct.stop = currentParm->resnums[res+1];
+      currentParm->ResAtomRange(res, &(rct.start), &(rct.stop));
+      rct.checkatom = rct.start;
       ResCheck.push_back(rct);
     }
   }
@@ -339,8 +341,8 @@ int DihedralScan::CheckResidue( Frame *FrameIn, DihedralScanType &dih, int nextr
       if (atomD2 < cutoff) {
 #ifdef DEBUG_DIHEDRALSCAN 
         mprintf("\t\tRes %i Atoms %i@%s and %i@%s are close (%.3lf)\n", resnumIn+1, 
-                atom1+1, currentParm->names[atom1],
-                atom2+1, currentParm->names[atom2], sqrt(atomD2));
+                atom1+1, currentParm->AtomName(atom1),
+                atom2+1, currentParm->AtomName(atom2), sqrt(atomD2));
 #endif
         *clash = atomD2;
         return 1;
@@ -366,8 +368,8 @@ int DihedralScan::CheckResidue( Frame *FrameIn, DihedralScanType &dih, int nextr
           if (D2 < cutoff) {
 #ifdef DEBUG_DIHEDRALSCAN
             mprintf("\t\tRes %i atom %i@%s and res %i atom %i@%s are close (%.3lf)\n", resnumIn+1,
-                    atom1+1, currentParm->names[atom1], res+1,
-                    atom2+1, currentParm->names[atom2], sqrt(D2));
+                    atom1+1, currentParm->AtomName(atom1), res+1,
+                    atom2+1, currentParm->AtomName(atom2), sqrt(D2));
 #endif
             *clash = D2;
             // If the clash involves any atom that will not be moved by further
@@ -435,8 +437,8 @@ int DihedralScan::action() {
     while (rotate_dihedral) {
       if (debug>0) {
         mprintf("\t%8i %8i%4s %8i%4s, +%.2lf degrees (%i).\n",(*dih).resnum+1,
-                (*dih).atom1+1, currentParm->names[(*dih).atom1],
-                (*dih).atom2+1, currentParm->names[(*dih).atom2],
+                (*dih).atom1+1, currentParm->AtomName((*dih).atom1),
+                (*dih).atom2+1, currentParm->AtomName((*dih).atom2),
                 theta_in_degrees,loop_count);
       }
       // Rotate around axis
