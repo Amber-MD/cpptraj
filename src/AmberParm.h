@@ -59,8 +59,10 @@ class AmberParm {
     int SetupExcludedAtoms();
     BondInfo bondInfo;  ///< Class that holds bond info in a different format than bond arrays
 
+    // Interface to atom mask parser in PtrajMask
     int SetupAtomMask(AtomMask &, double *, bool);
 
+    // Amber Parmtop
     int *numex;         ///< NUMEX(NATOM)
     int *atype_index;   ///< IAC(NATOM)
     int ntypes;         ///< NTYPES
@@ -104,7 +106,6 @@ class AmberParm {
     int natyp;          ///< NATYP: number of atom types in parameter file (SOLTY)
     int nphb;           ///< NPHB: number of distinct 10-12 hydrogen bond pair types
 
-    // Amber Parmtop
     int NbondsWithH;    ///< NBONH
     int NbondsWithoutH; ///< MBONA
     int *bondsh;        ///< IBH/JBH/ICBH(NBONH)
@@ -119,7 +120,6 @@ class AmberParm {
     int firstSolvMol;   ///< NSPSOL
     int *atomsPerMol;   ///< NSP(NSPM)
     double *charge;     ///< CHARGE(NATOM)
-
 
   public:
     char *parmfileName;   ///< Parm filename (full path)
