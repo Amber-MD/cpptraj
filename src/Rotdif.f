@@ -1,0 +1,2279 @@
+!     Rotdif.f: Originally randvec.f -------------------------------------------
+
+      double precision function random(seed)
+      implicit none
+      real*4 mbig,mseed,mz,fac
+      parameter(mbig=4000000.,mseed=1618033.,mz=0,fac=1./mbig)
+      real*4 ma(55),mj,mk
+      integer iff,i,ii,k,inext,seed,inextp
+      save iff,inext,inextp,ma
+      data iff /0/
+      if(seed.lt.0.or.iff.eq.0) then
+        iff=1
+        mj=mseed-iabs(seed)
+        mj=amod(mj,mbig)
+        ma(55)=mj
+        mk=1
+        do i=1,54
+          ii=mod(21*i,55)
+          ma(ii)=mk
+          mk=mj-mk
+          if(mk.lt.mz) mk=mk+mbig
+          mj=ma(ii)
+        enddo
+        do k=1,4
+          do i=1,55
+            ma(i)=ma(i)-ma(1+mod(i+30,55))
+            if(ma(i).lt.mz) ma(i)=ma(i)+mbig
+          enddo
+        enddo
+        inext=0
+        inextp=31
+        seed=iabs(seed)
+      endif
+      inext=inext+1
+      if(inext.eq.56) inext=1
+      inextp=inextp+1
+      if(inextp.eq.56) inextp=1
+      mj=ma(inext)-ma(inextp)
+      if(mj.lt.mz) mj=mj+mbig
+      ma(inext)=mj
+      random=mj*fac
+      return
+      end function random
+
+!     Rotdif.f: Originally rmscorr.f -------------------------------------------
+
+      subroutine compute_corr(x,y,z,ncorr,itotframes,maxdat,p2,p1)
+      implicit none
+
+!     x,y,z: arrays contain coordinates of (unnormalized) vector 
+!     ncorr: maximum length to compute time correlation functions -
+!      units of 'frames'
+!     itotframes:  total number of frames provided
+
+      integer ncorr,itotframes,maxdat
+      real*8 x(maxdat),y(maxdat),z(maxdat)
+      real*8 p2(maxdat),p1(maxdat)
+   
+      integer jmax,j,k
+      real*8 mag,xj,yj,zj,xk,yk,zk,dot
+
+      integer i
+
+      ! DEBUG
+!     write(6,'(a,3(f8.3))') 'xyz0=', x(1), y(1), z(1)
+!     write(6,'(a,i8)') 'ncorr=',ncorr
+!     write(6,'(a,i8)') 'itotframes=',itotframes
+!     write(6,'(a,i8)') 'maxdat=',maxdat
+      ! END DEBUG
+
+      do i=1,ncorr+1
+         p2(i)=0d0
+         p1(i)=0d0
+      end do
+
+!     i loop:  each value of i is a value of delay (correlation
+!     function argument)
+      do i=0,ncorr
+         jmax=itotframes+1-i
+         do j=1,jmax
+            mag=dsqrt(x(j)*x(j)+y(j)*y(j)+z(j)*z(j))
+            xj=x(j)/mag
+            yj=y(j)/mag
+            zj=z(j)/mag
+            k=j+i
+            mag=dsqrt(x(k)*x(k)+y(k)*y(k)+z(k)*z(k))
+            xk=x(k)/mag
+            yk=y(k)/mag
+            zk=z(k)/mag
+            dot=xj*xk+yj*yk+zj*zk
+            p2(i+1)=p2(i+1)+1.5d0*dot*dot-0.5d0
+            p1(i+1)=p1(i+1)+dot
+         end do
+         p2(i+1)=p2(i+1)/dble(jmax)
+         p1(i+1)=p1(i+1)/dble(jmax)
+      end do
+
+      return
+      end
+      subroutine dlocint(ti,tf,itmax,delmin,d0,l,deff)
+      implicit none
+
+!     computes effect diffusion constant for a vector using its
+!     correlation function as input
+!     starting with definition 6*D=integral[0,inf;C(t)] 
+!     integrates C(t) from ti -> tf yielding F(ti,tf)
+!     iteratively solves the equation 
+!     D(i+1)=[exp(6*D(i)*ti)-exp(6*D(i)*tf)]/[6*F(ti,tf)]
+!     (numerator obtained by integrating exp(6*D*t) from ti -> tf)
+
+!     modified so that itsolv now solves
+!     F(ti,tf;C(t)]=integral[ti,tf;C(t)]
+!     D(i+1)={exp[l*(l+1)*D(i)*ti]-exp[l*(l+1)*D(i)*tf)]}/[l*(l+1)*F(ti,tf)]
+
+      real*8 ti,tf,dydx1,dydxn
+      integer ndat,nmax
+      parameter (nmax=100000)
+      integer l
+      real*8 tdat(nmax),ctdat(nmax),deriv2(nmax)
+      real*8 sumct
+      common/ dat/ tdat,ctdat,ndat
+      common/deriv/ deriv2,dydx1,dydxn
+      
+      integer itmax,info
+      real*8 delmin,d0
+      real*8 di,deff
+
+      integer i
+
+
+!     ti,tf: integration limits
+!     dydx1,dydxn:  (estimated) first derivatives of function to be
+!                   interpolated (C(t)) by spline/splint; accurate
+!                   estimate not needed
+!     ndat:  # C(t) data points to be used for interpolation
+!     itmax:  maximum number of iterations in subroutine itsolv
+!     delmin:  convergence criterion used in subroutine itsolv;
+!              maximum accepted fractional change in successive 
+!              iterations
+!     d0: initial guess for diffusion constant; accurate estimate not
+!         needed
+!     info:  =1; write out data on convergence of iterative solver
+!     l: order of Legendre polynomial in the correlation function
+!        <P(l)>
+
+      dydx1 = 0.d0
+      dydxn = 0.d0
+
+      call intct(ti,tf,sumct)
+      di=d0
+      call itsolv(itmax,delmin,l,di,ti,tf,sumct,deff,info)
+
+      return
+      end subroutine dlocint
+
+      subroutine intct(ti,tf,sumct)
+      implicit none
+
+!     Integrates the MD generated C(t) from ti->tf.
+!     Calls subroutine qromb found in 4.3 of Numerical Recipes
+!     Interpolates values of C(t) using modified versions of subroutines
+!     spline and splint found in 3.3 of Numerical Recipes
+!     C(t) from MD simulation provides the table of data needed for 
+!     interpolation (to be read in in main program and placed in 
+!     common block)
+
+      real*8 ti,tf,sumct,ct
+
+      integer nmax,ndat
+      parameter (nmax=100000)
+      real*8 tdat(nmax),ctdat(nmax)
+      real*8 dydx1,dydxn,deriv2(nmax)
+      common/ dat/ tdat,ctdat,ndat
+      common/ deriv/ deriv2,dydx1,dydxn
+
+      external ct
+
+!     subroutine spline computes 2nd derivatives needed by splint
+      call spline(tdat,ctdat,ndat,dydx1,dydxn,deriv2)
+      call qromb(ct,ti,tf,sumct)
+
+      return
+      end subroutine intct
+
+      subroutine qromb(func,a,b,ss)
+      implicit none
+
+!     Romberg integration routine found in 4.3 of Numerical Recipes
+
+      integer jmax,jmaxp,k,km
+      real*8 a,b,func,ss,eps
+      external func
+      parameter (eps=1d-6,jmax=20,jmaxp=jmax+1,k=5,km=k-1)
+
+      integer j
+      real*8 dss,h(jmaxp),s(jmaxp)
+
+!     uses polint,trapzd
+
+      h(1)=1d0
+      do j=1,jmax
+         call trapzd(func,a,b,s(j),j)
+         if(j>=k)then
+           call polint(h(j-km),s(j-km),k,0d0,ss,dss)
+           if(dabs(dss)<=eps*dabs(ss)) return
+         end if
+         s(j+1)=s(j)
+         h(j+1)=0.25d0*h(j)
+      end do
+!      stop 'too many steps in qromb'
+      write(6,*) 'too many steps in qromb'
+      return 
+
+      end subroutine qromb
+
+      subroutine trapzd(func,a,b,s,n)
+      implicit none
+
+!     trapezoid integration routine found in 4.2 of Numerical Recipes
+
+      integer n
+      real*8 a,b,s,func
+      external func
+
+      integer it,j
+      real*8 del,sum,tnm,x
+
+      if(n==1)then
+        s=0.5d0*(b-a)*(func(a)+func(b))
+      else
+        it=2**(n-2)
+        tnm=it
+        del=(b-a)/tnm
+        x=a+0.5d0*del
+        sum=0d0
+        do j=1,it
+           sum=sum+func(x)
+           x=x+del
+        end do
+        s=0.5d0*(s+(b-a)*sum/tnm)
+      end if
+
+      return
+      end subroutine trapzd
+
+      subroutine polint(xa,ya,n,x,y,dy)
+      implicit none
+
+!     polynomial interpolation routine found in 3.1 of Numerical Recipes
+!     modified to redimension data tables xa, ya
+!     previously, only c, d were of dimension nmax
+
+      integer n,nmax
+      parameter (nmax=100000)
+      real*8 dy,x,y,xa(nmax),ya(nmax)
+!     real*8 dy,x,y,xa(n),ya(n)
+!     parameter(nmax=100000)
+
+      integer i,m,ns
+      real*8 den,dif,dift,ho,hp,w,c(nmax),d(nmax)
+
+      ns=1
+      dif=dabs(x-xa(1))
+      do i=1,n
+         dift=dabs(x-xa(1))
+         if(dift<dif)then
+           ns=i
+           dif=dift
+         end if
+         c(i)=ya(i)
+         d(i)=ya(i)
+      end do
+      y=ya(ns)
+      ns=ns-1
+      do m=1,n-1
+         do i=1,n-m
+            ho=xa(i)-x
+            hp=xa(i+m)-x
+            w=c(i+1)-d(i)
+            den=ho-hp
+            if(den==0d0) then
+              !stop 'failure in polint'
+              write(6,*) 'failure in polint'
+              return
+            endif
+            den=w/den
+            d(i)=hp*den
+            c(i)=ho*den
+         end do
+         if(2*ns<n-m)then
+           dy=c(ns+1)
+         else
+           dy=d(ns)
+           ns=ns-1
+         end if
+         y=y+dy
+      end do
+
+      return
+      end subroutine polint
+
+      real*8 function ct(t)
+      implicit none
+
+!     evaluates correlation function C(t) at any value t by 
+!     interpolating between simulated data from MD
+!     using cubic spline interpolation
+      
+      real*8 t
+
+      integer nmax,ndat
+      parameter (nmax=100000)
+      real*8 tdat(nmax),ctdat(nmax)
+      real*8 dydx1,dydxn,deriv2(nmax)
+      common/ dat/ tdat,ctdat,ndat
+      common/ deriv/ deriv2,dydx1,dydxn
+
+      call splint(tdat,ctdat,deriv2,ndat,t,ct)
+
+      return
+      end function ct
+
+      subroutine splint(xa,ya,y2a,n,x,y)
+      implicit none
+
+!     cubic spline interpolation routine found in 3.3 of Numerical
+!     Recipes
+!     uses output y2a from spline
+!     modified to redimension tables xa, y2a, ya
+!     previously, xa, y2a, ya were of dimension n read in as argument
+
+      integer n,nmax
+      parameter (nmax=100000)
+      real*8 x,y,xa(nmax),y2a(nmax),ya(nmax)
+!     integer n
+!     real*8 x,y,xa(n),y2a(n),ya(n)
+
+      integer k,khi,klo
+      real*8 a,b,h
+
+      klo=1
+      khi=n
+1     if(khi-klo>1)then
+        k=(khi+klo)/2
+        if(xa(k)>x)then
+          khi=k
+        else
+          klo=k
+        end if
+        go to 1
+      end if
+      h=xa(khi)-xa(klo)
+      if(h==0d0) then
+        stop 'bad xa input in splint'
+        write(6,*) 'bad xa input in splint'
+        return
+      endif
+      a=(xa(khi)-x)/h
+      b=(x-xa(klo))/h
+      y=a*ya(klo)+b*ya(khi)+  &
+        ((a**3-a)*y2a(klo)+(b**3-b)*y2a(khi))*(h**2)/6d0
+
+      return
+      end subroutine splint
+
+
+      subroutine spline(x,y,n,yp1,ypn,y2)
+      implicit none
+!
+!     given arrays x, y defining function y(x), and first derivatives
+!     at x(1) and x(n) yp1, ypn, returns array containing second
+!     derivatives of interpolating function needed by subroutine splint
+!     which produces a cubic spline interpolation of y
+!     from 3.3 in Numerical Recipes
+!     note:  spline is called only once for a given function y(x);
+!     interpolation routine splint is called for each desired value
+!     of x using output y2
+!     modified to redimension x, y, y2
+!     previously, only u of dimension nmax
+
+      integer n,nmax
+      parameter (nmax=100000)
+      real*8 yp1,ypn,x(nmax),y(nmax),y2(nmax)
+!     real*8 yp1,ypn,x(n),y(n),y2(n)
+!     parameter (nmax=500)
+
+      integer i,k
+      real*8 p,qn,sig,un,u(nmax)
+
+      if(yp1>0.99d30)then
+        y2(1)=0d0
+        u(1)=0d0
+      else
+        y2(1)=-0.5d0
+        u(1)=(3d0/(x(2)-x(1)))*((y(2)-y(1))/(x(2)-x(1))-yp1)
+      end if
+      do i=2,n-1
+         sig=(x(i)-x(i-1))/(x(i+1)-x(i-1))
+         p=sig*y2(i-1)+2d0
+         y2(i)=(sig-1d0)/p
+         u(i)=(6d0*((y(i+1)-y(i))/(x(i+1)-x(i))-(y(i)-y(i-1))/  &
+              (x(i)-x(i-1)))/(x(i+1)-x(i-1))-sig*u(i-1))/p
+      end do
+      if(ypn>0.99d30)then
+        qn=0d0
+        un=0d0
+      else
+        qn=0.5d0
+        un=(3d0/(x(n)-x(n-1)))*(ypn-(y(n)-y(n-1))/(x(n)-x(n-1)))
+      end if
+      y2(n)=(un-qn*u(n-1))/(qn*y2(n-1)+1d0)
+      do k=n-1,1,-1
+         y2(k)=y2(k)*y2(k+1)+u(k)
+      end do
+
+      return
+      end subroutine spline
+
+      subroutine itsolv(itmax,delmin,l,d0,ti,tf,f,d,info)
+      implicit none
+
+!     solves the equation 6*D=[exp(-6*D*ti)-exp(-6*D*tf)]/F(ti,tf) iteratively, 
+!     by putting 6*D(i+1)=[exp(-6*D(i)*ti)-exp(-6*D(i)*tf)]/F(ti,tf)
+!     where F(ti,tf) is input (integral[dt*C(t)] from ti->tf) 
+
+
+      integer itmax,info,l
+      real*8 delmin,d0,ti,tf,f,d
+      real*8 del
+      integer i
+      real*8 fac
+      
+      fac=dble(l*(l+1))
+      i=1
+      del=1d10
+      do while ((i<=itmax).and.(del>delmin))
+         d=(dexp(-fac*d0*ti)-dexp(-fac*d0*tf))
+         d=d/(fac*f)
+         del=dabs((d-d0)/d0)
+!        if(info==1)then
+!          write(3,'(i6,2x,3(e15.8,2x))') i,d0,d,del
+!        end if
+         d0=d
+         i=i+1
+      end do
+      if((i>itmax).and.(del>delmin))then
+         write(6,*) 'warning, itsolv did not converge'
+         write(6,*) '# iterations=',i,'fractional change=',del
+      else
+!        write(6,*) 'converged: # iterations=',i
+      end if
+
+      return
+      end subroutine itsolv
+
+!     Rotdif.f: Originally tensorfit.f -------------------------------------------
+      subroutine tensorfit
+      implicit none
+
+!     Fits the rotational diffusion tensor to ensemble of local diffusion
+!     constants.  Uses SVD fit as starting point for minimization of 
+!     chi-squared using any of a number of options (simplex, Powell's method)
+!     The SVD fit is borrowed from the code rotdif_v5.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!     Comments from rotdif_v5 (tensor fitting using SVD for small
+!     anistropy limit).  
+
+!     use SVD to solve A*Q=Deff for Q
+!     SVD subroutines lifted from sec. 2.6 Numerical Recipes in Fortran
+!     (Press, Vetterling, Teukolsky, Flannery)
+!     m will be the number of local diffusion constants - generated from
+!     fit to ln[C(tau)] v tau; n = 6
+
+!     CHANGES IN VERSION 2:
+!     (1)  histograms absolute deviations in SVD back calculated Deff 
+!          (A*Q=Deff) from MD derived Deff; histograms tau(l=1)/tau(l=2)
+!          when l=1 and l=2 data were were used to construct Deff from MD
+!     (2)  uses fitted diffusion tensors to compute Deff from Woessner
+!          type expressions for <P(l)>, i.e. tau(l)=integral <P(l)> and
+!          histograms deviations from MD derived Deff; histograms ratio
+!          tau(l=1)/tau(l=2) derived from Woessner like model 
+!     (3)  generates A matrix internally from input vectors (subroutine
+!          matgen)
+!     (4)  no longer back calculates local isotropic time constants for
+!          each vector (~ inverse of local isotropic difffusion constant)
+
+!     VERSION 3:
+!     (1) computes Diso, anisotropy, and rhombicity
+!     (2) changed subroutine woessnertimes to asymtop (identical 
+!         routines)
+
+!     VERSION 4:
+!     (1) writes out ratios of 2tau(1)/6tau(2) for each vector
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      character(len=80) vecs,deffs,arg
+      integer nvec,n,mp,np,maxbins,iarg,idummy,ios,last_arg
+      parameter (n=6,mp=2000,np=6,maxbins=200)
+
+      integer lflag,svd_chk,itermax,sim_chk,back_cal,infoflag
+      integer rdatflag
+      real*8 cut_ratio
+
+      integer label(mp)
+      real*8 deff(mp),sig(mp),ycalc(mp),sumc2(mp)
+
+      real*8 mag,x(mp,3),sgn
+
+      real*8 a(mp,np),copy_a(mp,np),u(mp,np),w(np),v(np,np),q(np)
+
+      real*8 d(3,3),copy1_d(3,3),copy2_d(3,3)
+      real*8 dia(3),off(3)
+
+      integer i,j
+
+      real*8 dshape(3)
+
+      integer seed
+      real*8 delqfrac,ftol,delqfrac_save
+      integer nsimp
+
+      external matgen,svdsolv,svdchk,qtod,tred2,tqli,similar_trans
+
+      external convertd,simpmin
+
+      common/ chsq/ deff,sig,ycalc,sumc2,nvec
+
+      common/ difftheo/ x
+     
+!     control variables for calculation:
+!     lflag - lflag=1 => only l=1 diffusion constants used to
+!             generate input Deff
+!             lflag=2 => only l=2 constants are used  (default)
+!             lflag=3 => both l=1 and l=2 used
+!     cut_ratio - threshold ratio for removing small singular
+!                 values in SVD
+!     itermax - max number of iteration in tqli diagonalization
+!               of diffusion tensor
+!     svd_chk - svd_chk=1 => verifies A = U*W*V^T
+!     sim_chk - sim_chk=1 => verifies eigenvectors of diffusion
+!               tensor by similarity transformation of
+!               undiagonalized tensor
+!     infoflag - writes out miscillaneous data concerning SVD,
+!                undiagonalized diffusion tensor
+!     back_cal - writes out all back-calculated local effective
+!                diffusion constants from SVD and Woessner type
+!                diffusion model
+!     deffs  - filename for local diffusion constant vector Deff from
+!              MD (which may contain 1/(2*tau(l=1)), 1/(6*tau(l=2)), or both)
+!     vecs   - filename for Cartesian coordinates of vectors used to
+!              generate Deff from MD (in pdb frame)
+!     nsimp  - number of times simplex minimization is done
+!     seed   - random number seed for getting initial simplexes
+!     delqfrac - how to scale simplexes
+!     ftol   - fractional tolerance to end simplex minimization
+!             
+!     Input defaults:
+
+      lflag = 2
+      cut_ratio = 1.d-6
+      itermax = 789
+      svd_chk = 0
+      sim_chk = 0
+      infoflag = 0
+      back_cal = 1
+      deffs = 'deffs'
+      vecs = 'vecs'
+      nsimp = 1
+      seed = 3001796
+      delqfrac = 0.5d0
+      ftol = 0.0000001
+
+!     Process command-line arguments:
+
+      iarg = 0
+      last_arg = iargc()
+      do while (iarg < last_arg)
+         iarg = iarg + 1
+         call getarg(iarg,arg)
+         if( arg == '-l') then
+            iarg = iarg + 1
+            call getarg(iarg,arg)
+            read(arg,'(i1)') lflag
+            write(6,*) 'setting lflag to ',lflag
+         else if( arg == '-dq') then
+            iarg = iarg + 1
+            call getarg(iarg,arg)
+            read(arg,'(f15.0)') delqfrac
+            write(6,*) 'setting delqfrac to ', delqfrac
+         else if( arg == '-deffs' ) then
+            iarg = iarg + 1
+            call getarg(iarg,deffs)
+            write(6,*) 'taking deffs from ',deffs
+         else if( arg == '-vecs' ) then
+            iarg = iarg + 1
+            call getarg(iarg,vecs)
+            write(6,*) 'taking vectors from ',vecs
+         end if
+      end do
+
+!     deffs:  local diffusion constant vector Deff from MD (which may
+!             contain 1/(2*tau(l=1)), 1/(6*tau(l=2)), or both)
+
+      open(unit=2,file=deffs,status='OLD',iostat=ios)
+      do i=1,999999
+         if( i>mp ) stop 'too many input deffs'
+         read(2,*,end=95) label(i),deff(i)
+         sig(i) =1.d0
+      end do
+   95 nvec=i-1
+
+      delqfrac_save = delqfrac
+
+!     Read in vectors and generate  A in subroutine matgen.
+!     In the event that Deff contains both l=1 and l=2 data, only
+!     m/2 vectors exist, but Deff is of length m; the second half
+!     of x is a copy of the first.
+
+      open(unit=3,file=vecs,status='OLD',iostat=ios)
+      if((lflag==1).or.(lflag==2))then
+        do i=1,nvec
+           mag=0d0
+           read(3,*) idummy, (x(i,j),j=1,3)
+           do j=1,3
+              mag=mag+x(i,j)*x(i,j)
+           end do
+           mag=dsqrt(mag)
+           do j=1,3
+              x(i,j)=x(i,j)/mag
+           end do
+        end do
+      else if(lflag==3)then
+        do i=1,nvec/2
+           mag=0d0
+           read(3,*) idummy, (x(i,j),j=1,3)
+           do j=1,3
+              mag=mag+x(i,j)*x(i,j)
+           end do
+           mag=dsqrt(mag)
+           do j=1,3
+              x(i,j)=x(i,j)/mag
+           end do
+        end do
+        do i=1,nvec/2
+           do j=1,3
+              x(i+nvec/2,j)=x(i,j)
+           end do
+        end do
+      end if
+
+!     generate matrix A(=e*e^T, where e are unit vectors whose 
+!     orientational correlation functions were used to extract
+!     Deff from MD); to be used to solve A*Q=Deff
+      call matgen(nvec,x,a,mp)
+
+!     in svdsolv, a is preserved; a=u*w*v^T
+      call svdsolv(a,deff,nvec,n,mp,np,cut_ratio,u,w,v,q)
+
+!     write out results of svd solution
+      if(infoflag==1)then
+        do i=1,nvec
+           write(4,1) (a(i,j),j=1,n)
+        end do
+1       format(6(e15.8,2x))
+        write(4,1)
+        do i=1,nvec
+           write(4,1) (u(i,j),j=1,n)
+        end do
+        write(4,1)
+        write(4,1) (w(i),i=1,n)
+        write(4,1)
+        do i=1,n
+           write(4,1) (v(i,j),j=1,n)
+        end do
+      end if
+
+!     array q can be used for the jackknife analysis as an initial guess 
+      write(6,*) 'svd q values:'
+      write(6,1) (q(i),i=1,n)
+         
+!     verify svd a=u*w*v^T
+!     WARNING: elements of a are set to 0 inside svdchk prior to final
+!     multiplication
+
+      do i=1,nvec
+         do j=1,n
+            copy_a(i,j)=a(i,j)
+         end do
+      end do
+      if(svd_chk==1)then
+        call svdchk(u,w,v,nvec,n,mp,np,copy_a)
+        do i=1,nvec
+           write(8,1) (copy_a(i,j),j=1,n)
+        end do
+      end if
+
+!     Tr(Q)=Tr(D) so compute D usin D=3*Diso*I-2*Q; Diso=Tr(D)/3=Tr(Q)/3
+!     J. Biomol. NMR 9, 287 (1997) L. K. Lee, M. Rance, W. J. Chazin,
+!     A. G. Palmer
+!     it has been assumed that the Q(l=1) has the same relationship to
+!     D(l=1) as in the l=2 case; we have not yet proved this for the
+!     non-symmetric case, but it is true for the axially symmetric case
+!     also, Deff(l=1) = 1/(2*tau(l=1)) = e^T * Q(l=1) * e yields the 
+!     correct values for tau(l=1) (known from Woessner model type 
+!     correlation functions) along principal axes
+
+      call qtod(q,d)
+      if(infoflag==1)then
+        do i=1,3
+           write(9,2) (d(i,j),j=1,3)
+        end do
+2       format(3(e15.8,2x))
+      end if
+
+!     diagonalize D to find principal values and axes
+!     tred2/tqli lifted from sec. 11.2 11.3 Numerical Recipes in Fortran
+!     d is destroyed by tred2/tqli (columns contain eigenvectors); 
+!     store d if desired
+
+      do i=1,3
+         do j=1,3
+            copy1_d(i,j)=d(i,j)
+            copy2_d(i,j)=d(i,j)
+         end do
+      end do
+      call tred2(d,3,3,dia,off)
+      call tqli(dia,off,3,3,itermax,d)
+
+      call convertd(dia,dshape)
+
+!     principal values of d (eigenvalues) stored in dia
+!     principal axes (eigenvectors) stored in columns of d
+
+      write(6,*) 'Results of small anisotropy (SVD) analysis:'
+      write(6,'(a,3f10.5)') 'Dav, aniostropy, rhombicity:',(dshape(i),i=1,3)
+      write(6,'(a,3f10.5)') 'D tensor eigenvalues       :',(dia(i),i=1,3)
+      do i=1,3
+         write(6,'(a,i5,a,3f10.5)')'D tensor eigenvector  ',i,':',(d(i,j),j=1,3)
+      end do
+
+!     verify eigenvectors by similarity transformation of matrix d
+
+      if(sim_chk==1)then
+        call similar_trans(3,3,copy1_d,d)
+        do i=1,3
+           write(11,2) (copy1_d(i,j),j=1,3)
+        end do
+      end if
+
+!     back calculate local diffusion constants using SVD results
+!     (via A*Q=Deff):
+
+      call locdiff(a,copy2_d,nvec,n,mp,np,ycalc)
+      write(6,'(a)') '     taueff(obs) taueff(calc)'
+      sgn=0.d0
+      do i=1,nvec
+         ! for the following chisq fits, convert deff to taueff:
+         deff(i) = 1.d0/(6.d0*deff(i))
+         ycalc(i) = 1.d0/(6.d0*ycalc(i))
+         write(6,'(i5,2f10.5)') i,deff(i),ycalc(i)
+         sgn = sgn + ((ycalc(i)-deff(i))/sig(i))**2
+      end do
+      write(6,'(a,f15.5)')  '  chisq for above is ',sgn
+      write(6,*)
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!     The chi-squared minimization procedure using
+!     diffusion theory (not in the small anisotropy 
+!     limit) begins here.
+
+!     Search will be conducted in the space Qxx, Qyy, Qzz, Qxy, etc.
+!     The initial guess will be the values found by SVD. 
+
+!#if 0
+!     dac: have initial values just be Diso = Qiso
+
+!     q(1) = (3.d0*dshape(1) - dia(1))/2.d0
+!     q(2) = (3.d0*dshape(1) - dia(2))/2.d0
+!     q(3) = (3.d0*dshape(1) - dia(3))/2.d0
+!     q(4) = 0.d0
+!     q(5) = 0.d0
+!     q(6) = 0.d0
+!#endif
+
+      call simpmin(q,n,seed,delqfrac,nsimp,np,ftol,itermax)
+      call gridsrch(q,n,seed,delqfrac_save,nsimp,np,ftol,itermax)
+      
+      !stop
+      end subroutine tensorfit
+
+      subroutine gridsrch(q,nn,delqfrac,np,tqliitmax)
+      implicit none
+
+      integer nn,np,tqliitmax
+      real*8 q(np),delqfrac
+
+      integer i,j,k,l,m,n,ii
+      real*8 xsmplx(np+1,np),sgn,random
+
+      real*8 xsearch(np),ysearch(np+1),chisq,dia(3),dshape(3),d(3,3)
+      integer tqliitmax2
+      integer SIZE
+      parameter(SIZE=5)
+
+      integer iter
+     
+      external random,chisq,convertd,amoeba
+
+      integer nvmx,nvec
+      parameter(nvmx=2000)
+      real*8 ycalc(nvmx),yobs(nvmx),sig(nvmx),sumc2(nvmx),sgn0
+      common/ chsq/ yobs,sig,ycalc,sumc2,nvec
+      common/ diag/ dia,d,tqliitmax2
+
+      write(6,*)  'grid search:'
+      sgn0 = chisq(q)
+      write(6,'(a,f15.5)')  '  starting chisq is ',sgn0
+!#ifdef TENSORFIT_DEBUG
+!      write(6,'(a)') '     taueff(obs) taueff(calc)'
+!      do i=1,nvec
+!         write(6,'(i5,3f10.5)') i,yobs(i),ycalc(i),sumc2(i)
+!      end do
+!#endif
+
+!#define SIZE 5
+
+      do i=1,nn
+        xsearch(i) = q(i)
+      end do
+
+      do i=-SIZE,SIZE
+        write(6,*) 'i = ', i
+        call flush(6)
+
+        xsearch(1) = q(1) + i*delqfrac/100.
+
+         do j=-SIZE,SIZE
+           xsearch(2) = q(2) + j*delqfrac/100.
+
+         do k=-SIZE,SIZE
+           xsearch(3) = q(3) + k*delqfrac/100.
+
+         do l=-SIZE,SIZE
+           xsearch(4) = q(4) + l*delqfrac/100.
+
+         do m=-SIZE,SIZE
+           xsearch(5) = q(5) + m*delqfrac/100.
+
+         do n=-SIZE,SIZE
+           xsearch(6) = q(6) + n*delqfrac/100.
+
+         sgn=chisq(xsearch)         
+         if( sgn < sgn0 ) write(6,'(f12.5,6f9.5)') sgn, (xsearch(ii),ii=1,6)
+
+!#ifdef TENSORFIT_DEBUG 
+!         call convertd(dia,dshape)
+!         write(6,*) 'input to amoeba - average at cycle',i
+!         write(6,'(a,f15.5)') '   initial chisq = ', sgn
+!         write(6,'(a,3f10.5)') 'Dav, aniostropy, rhombicity:',(dshape(k),k=1,3)
+!         write(6,'(a,3f10.5)') 'D tensor eigenvalues       :',(dia(k),k=1,3)
+!         do k=1,3
+!            write(6,'(a,i5,a,3f10.5)')'D tensor eigenvector  ',k,':',(d(k,j),j=1,3)
+!         end do
+!#endif
+
+        end do
+      end do  
+        end do
+      end do  
+        end do
+      end do  
+
+      return
+      end subroutine gridsrch
+        
+      subroutine simpmin(q,n,seed,delqfrac,nsearch,np,ftol,tqliitmax)
+      implicit none
+
+!     Driver routine that calls the simplex method optimizer, amoeba.
+
+      integer n,seed,nsearch,np,tqliitmax
+      real*8 q(np),delqfrac,ftol
+
+      integer i,j
+      real*8 xsmplx(np+1,np),sgn,random
+
+      integer k,l
+      real*8 xsearch(np),ysearch(np+1),chisq,dia(3),dshape(3),d(3,3)
+      integer tqliitmax2
+
+      integer iter
+     
+      external random,chisq,convertd,amoeba
+
+      integer nvmx,nvec
+      parameter(nvmx=2000)
+      real*8 ycalc(nvmx),yobs(nvmx),sig(nvmx),sumc2(nvmx)
+      common/ chsq/ yobs,sig,ycalc,sumc2,nvec
+      common/ diag/ dia,d,tqliitmax2
+
+      tqliitmax2=tqliitmax
+
+!     first, back-calculate with the SVD tensor, but with the full anisotropy:
+
+      write(6,*)  'same diffusion tensor, but full anisotropy:'
+      sgn = chisq(q)
+      write(6,'(a,f15.5)')  '  chisq for SVD tensor is ',sgn
+      write(6,'(a)') '     taueff(obs) taueff(calc)'
+      do i=1,nvec
+         write(6,'(i5,3f10.5)') i,yobs(i),ycalc(i),sumc2(i)
+      end do
+
+!     In the simplex method, N+1 initial points (where N is the 
+!     dimension of the search space) must be chosen; the SVD
+!     solution provides one of these. 
+!     Initial points are stored in rows of xsmplx.
+!     Components of vector delq should be of the order of the 
+!     characteristic "lengthscales" over which the Q 
+!     tensor varies.  delqfrac determines the size of variation
+!     for each of the components of Q; the sign of the variation
+!     is randomly chosen.
+
+!     Now execute the simplex search method with initial vertices,
+!     xsimplx, and chi-squared values, ysearch.
+!     We restart the minimization a pre-set number of times to avoid
+!     an anomalous result.
+
+      do i=1,n
+        xsearch(i) = q(i)
+      end do
+
+      do i=1,nsearch
+
+         do j=1,n
+            xsmplx(1,j)=xsearch(j)
+         end do
+         do j=1,n
+            do k=1,n
+               if(j==k)then
+                 sgn=dsign(1d0,random(seed)-0.5d0)
+                 xsmplx(j+1,k)=xsmplx(1,k)*(1d0+sgn*delqfrac)
+               else
+                 xsmplx(j+1,k)=xsmplx(1,k)
+               end if
+            end do
+         end do
+
+         ! As  to amoeba, chi-squared must be evaluated for all
+         ! vertices in the initial simplex.
+
+         do j=1,n+1
+            do k=1,n
+               xsearch(k)=xsmplx(j,k)
+            end do
+            ysearch(j)=chisq(xsearch)
+         end do
+
+         !  Average the vertices and compute details of the average.
+
+         do j=1,n
+            xsearch(j)=0d0
+         end do
+         do j=1,n
+            do k=1,n+1 
+               xsearch(j)=xsearch(j)+xsmplx(k,j)
+            end do
+            xsearch(j)=xsearch(j)/dble(n+1)
+         end do
+         sgn=chisq(xsearch)         
+         call convertd(dia,dshape)
+
+         write(6,*) 'input to amoeba - average at cycle',i
+         write(6,'(a,f15.5)') '   initial chisq = ', sgn
+         write(6,'(a,3f10.5)') 'Dav, aniostropy, rhombicity:',(dshape(k),k=1,3)
+         write(6,'(a,3f10.5)') 'D tensor eigenvalues       :',(dia(k),k=1,3)
+         do k=1,3
+            write(6,'(a,i5,a,3f10.5)')'D tensor eigenvector  ',k,':',(d(k,j),j=1,3)
+         end do
+
+         call amoeba(xsmplx,ysearch,np+1,np,n,ftol,chisq,iter)
+
+         do j=1,n+1
+            do k=1,n
+               xsearch(k)=xsmplx(j,k)
+            end do
+            ysearch(j)=chisq(xsearch)
+         end do
+
+         ! Average the vertices and compute details of the average.
+
+         do j=1,n
+            xsearch(j)=0d0
+         end do
+         do j=1,n
+            do k=1,n+1
+               xsearch(j)=xsearch(j)+xsmplx(k,j)
+            end do
+            xsearch(j)=xsearch(j)/dble(n+1)
+         end do
+         sgn=chisq(xsearch)          
+         call convertd(dia,dshape)
+
+         write(6,*) 'output from amoeba - average at cycle',i
+         write(6,'(a,f15.5)') '   final   chisq = ', sgn
+         write(6,'(a,3f10.5)') 'Dav, aniostropy, rhombicity:',(dshape(k),k=1,3)
+         write(6,'(a,3f10.5)') 'D tensor eigenvalues       :',(dia(k),k=1,3)
+         do k=1,3
+            write(6,'(a,i5,a,3f10.5)')'D tensor eigenvector  ',k,':',(d(k,j),j=1,3)
+         end do
+         write(6,'(a)') '     taueff(obs) taueff(calc)'
+         do k=1,nvec
+            write(6,'(i5,3f10.5)')  k,yobs(k),ycalc(k),sumc2(k)
+         end do
+           
+         !  cycle over main loop, but first reduce the size of delqfrac:
+
+         delqfrac = 0.750 * delqfrac
+         write(6,'(a,f15.7)') 'setting delqfrac to ',delqfrac
+
+      end do  
+
+      !  set q vector to the final average result from simpmin:
+
+      q(1:n) = xsearch(1:n)
+
+      return
+      end subroutine simpmin
+        
+!     real*8 function random(seed)
+!     implicit none
+!     real*4 mbig,mseed,mz,fac
+!     parameter(mbig=4000000.,mseed=1618033.,mz=0,fac=1./mbig)
+!     real*4 ma(55),mj,mk
+!     integer iff,i,ii,k,inext,seed,inextp
+!     save iff,inext,inextp,ma
+!     data iff /0/
+!     if(seed.lt.0.or.iff.eq.0) then
+!       iff=1
+!       mj=mseed-iabs(seed)
+!       mj=amod(mj,mbig)
+!       ma(55)=mj
+!       mk=1
+!       do i=1,54
+!         ii=mod(21*i,55)
+!         ma(ii)=mk
+!         mk=mj-mk
+!         if(mk.lt.mz) mk=mk+mbig
+!         mj=ma(ii)
+!       enddo
+!       do k=1,4
+!         do i=1,55
+!           ma(i)=ma(i)-ma(1+mod(i+30,55))
+!           if(ma(i).lt.mz) ma(i)=ma(i)+mbig
+!         enddo
+!       enddo
+!       inext=0
+!       inextp=31
+!       seed=iabs(seed)
+!     endif
+!     inext=inext+1
+!     if(inext.eq.56) inext=1
+!     inextp=inextp+1
+!     if(inextp.eq.56) inextp=1
+!     mj=ma(inext)-ma(inextp)
+!     if(mj.lt.mz) mj=mj+mbig
+!     ma(inext)=mj
+!     random=mj*fac
+!     return
+!     end function random
+
+      subroutine convertd(dxyz,dshape)
+      implicit none
+
+!     compute Dav, anisotropy, rhombicity
+!     definitions found in J. Biomol. NMR, 27, 261 (2003), Hall J B and
+!     Fushman D
+
+      real*8 dxyz(3),dshape(3)     
+
+!     Diso = (Dx + Dy + Dz)/3
+      dshape(1)=(dxyz(1)+dxyz(2)+dxyz(3))/3d0
+
+!     anistropy = (2*Dz)/(Dx + Dy)
+!     rhombicity = 1.5*(Dy - Dx)/[Dz - 0.5*(Dx + Dy)]
+
+      if((dxyz(1)>dxyz(2)).and.(dxyz(1)>dxyz(3)))then
+        dshape(2)=(2d0*dxyz(1))/(dxyz(2)+dxyz(3))
+        dshape(3)=(1.5d0*(dabs(dxyz(2)-dxyz(3))))/  &
+                  (dxyz(1)-0.5d0*(dxyz(2)+dxyz(3)))
+      elseif((dxyz(2)>dxyz(1)).and.(dxyz(2)>dxyz(3)))then
+        dshape(2)=(2d0*dxyz(2))/(dxyz(1)+dxyz(3))
+        dshape(3)=(1.5d0*(dabs(dxyz(1)-dxyz(3))))/  &
+                  (dxyz(2)-0.5d0*(dxyz(1)+dxyz(3)))
+      elseif((dxyz(3)>dxyz(2)).and.(dxyz(3)>dxyz(1)))then
+        dshape(2)=(2d0*dxyz(3))/(dxyz(1)+dxyz(2))
+        dshape(3)=(1.5d0*(dabs(dxyz(1)-dxyz(2))))/  &
+                  (dxyz(3)-0.5d0*(dxyz(1)+dxyz(2)))
+      end if
+
+      return
+      end subroutine convertd
+
+      real*8 function chisq(x)
+      implicit none
+
+      real*8 x(6)
+
+      real*8 d(3,3),dia(3),off(3)
+      integer itermax
+      
+      integer nvmx,nvec
+      parameter(nvmx=2000)
+      real*8 vec(nvmx,3),tau1(nvmx),tau2(nvmx),sumc2(nvmx)
+
+      integer i
+      real*8 ycalc(nvmx),yobs(nvmx),sig(nvmx)
+      common/ chsq/ yobs,sig,ycalc,sumc2,nvec
+
+      common/ diag/ dia,d,itermax
+      common/ difftheo/ vec
+
+      call qtod(x,d)
+      call tred2(d,3,3,dia,off)
+      call tqli(dia,off,3,3,itermax,d)
+      call asymtop(dia,d,vec,nvec,nvmx,tau1,tau2,sumc2)
+      do i=1,nvec
+!     for the "tau-eff fit", don't convert to deff
+!        ycalc(i)=1.d0/(6.d0*tau2(i))
+         ycalc(i) = tau2(i)
+      end do
+      chisq=0d0
+      do i=1,nvec
+         chisq=chisq+((yobs(i)-ycalc(i))/sig(i))**2
+      end do
+
+      return
+      end function chisq
+
+      subroutine amoeba(p,y,mp,np,ndim,ftol,funk,iter)
+      implicit none
+
+      integer iter,mp,ndim,np,nmax,itmax
+      real*8 ftol,p(mp,np),y(mp),funk
+!     parameter (itmax=100000)
+      parameter (itmax=10000)
+!     parameter (nmax=20,itmax=5000)
+      external funk
+!     uses amotry,funk
+
+      integer i,ihi,ilo,inhi,j,m,n
+      real*8 rtol,sum,swap,ysave,ytry,psum(np),amotry
+!     real*8 rtol,sum,swap,ysave,ytry,psum(nmax),amotry
+
+      iter=0
+1     do n=1,ndim
+         sum=0d0
+         do m=1,ndim+1
+            sum=sum+p(m,n)
+         end do
+         psum(n)=sum
+      end do
+2     ilo=1
+      if(y(1)>y(2))then
+        ihi=1
+        inhi=2
+      else
+        ihi=2
+        inhi=1
+      end if
+      do i=1,ndim+1
+         if(y(i)<=y(ilo)) ilo=i
+         if(y(i)>y(ihi))then
+           inhi=ihi
+           ihi=i
+         else if(y(i)>y(inhi))then
+           if(i/=ihi) inhi=i
+         end if
+      end do
+      rtol=2d0*dabs(y(ihi)-y(ilo))/(dabs(y(ihi))+dabs(y(ilo)))
+      if(rtol<ftol)then
+        swap=y(1)
+        y(1)=y(ilo)
+        y(ilo)=swap
+        do n=1,ndim
+           swap=p(1,n)
+           p(1,n)=p(ilo,n)
+           p(ilo,n)=swap
+        end do
+        return
+      end if
+!     write(6,'(a,i7,e15.6)') 'in amoeba, iter, rtol, ftol = ', iter, rtol
+      if(iter>=itmax)then
+        write(6,*) 'itmax exceeded in amoeba:', itmax
+        stop
+      end if
+      iter=iter+2
+      ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,-1d0)
+      if(ytry<=y(ilo))then
+        ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,2d0)
+      else if(ytry>=y(inhi))then
+        ysave=y(ihi)
+        ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,0.5d0)
+        if(ytry>=ysave)then
+          do i=1,ndim+1
+             if(i/=ilo)then
+               do j=1,ndim
+                  psum(j)=0.5d0*(p(i,j)+p(ilo,j))
+                  p(i,j)=psum(j)
+               end do
+               y(i)=funk(psum)
+             end if
+          end do
+          iter=iter+ndim
+          go to 1
+        end if
+      else
+        iter=iter-1
+      end if
+      go to 2
+      
+      end subroutine amoeba
+
+      real*8 function amotry(p,y,psum,mp,np,ndim,funk,ihi,fac)
+      implicit none
+
+      integer ihi,mp,ndim,np,nmax
+      real*8 fac,p(mp,np),psum(np),y(mp),funk
+!     parameter (nmax=20)
+      external funk
+!     uses funk
+
+      integer j
+      real*8 fac1,fac2,ytry,ptry(np)
+!     real*8 fac1,fac2,ytry,ptry(nmax)
+      
+      fac1=(1d0-fac)/ndim
+      fac2=fac1-fac
+      do j=1,ndim
+         ptry(j)=psum(j)*fac1-p(ihi,j)*fac2
+      end do
+      ytry=funk(ptry)
+      if(ytry<y(ihi))then
+        y(ihi)=ytry
+        do j=1,ndim
+           psum(j)=psum(j)-p(ihi,j)+ptry(j)
+           p(ihi,j)=ptry(j)
+        end do
+      end if
+      amotry=ytry
+      
+      return
+      end function amotry
+           
+      subroutine svdsolv(a,b,m,n,mp,np,cut_ratio,u,w,v,x)
+      implicit none
+
+      integer m,n,mp,np
+      real*8 a(mp,np),w(np),v(np,np),b(mp),x(np)
+
+      real*8 u(mp,np)
+      
+      integer i,j
+      real*8 wmax,wmin,cut_ratio
+
+!     solve for the tensor Q as an intermediate step to computing 
+!     the rotational diffusion tensor; see J. Mag. Res. 149, 204 (2001)
+!     R. Ghose, D. Fushman, D. Cowburn and related material in
+!     J. Biomol. NMR 9, 287 (1997) L. K. Lee, M. Rance, W. J. Chazin,
+!     A. G. Palmer
+!     Science 268, 886 (1995) R. Bruschweiler, X. Liao, P. E. Wright
+
+!     uses svbksb and svdcmp to implement the svd/backsubstituion method
+!     for solving linear system as detailed in sec. 2.6 of
+!     Numerical Recipes in Fortran 
+!     uses driver routine from Numerical Recipes to set the 
+!     threshold for keeping singular values
+
+!     problem cast into form A*Q=Deff (or a*x=b)
+
+!     since a is destroyed by svdcmp, save here
+      do i=1,m
+         do j=1,n
+            u(i,j)=a(i,j)
+         end do
+      end do
+      call svdcmp(u,m,n,mp,np,w,v)
+      wmax=0d0
+      do i=1,n
+         if(w(i)>wmax) wmax=w(i)
+      end do
+      wmin=wmax*cut_ratio
+      do i=1,n
+         if(w(i)<wmin) w(i)=0d0
+      end do
+      call svbksb(u,w,v,m,n,mp,np,b,x)
+
+      return
+      end
+
+      subroutine svdcmp(a,m,n,mp,np,w,v)
+
+!     subroutine svdcmp: source code from sec. 2.6 on singular value
+!                        decomposition from Numerical Recipes in Fortran, 
+!                        2nd edition, Press/Vetterling/Flannery/Teukolsky
+!     given matrix a(m,n) (physical dimensions mp,np), computes svd
+!     a=u*w*v^T; u replaces a on output; diagonal matrix of singular 
+!     values w is output as vector w(n); matrix v (not v^T) is output
+!     as v(n,n)
+!     calls pythag
+
+      implicit none
+      integer m,mp,n,np,nmax
+      real*8 a(mp,np),v(np,np),w(np)
+      parameter (nmax=500)
+
+      integer i,its,j,jj,k,l,nm
+      real*8 anorm,c,f,g,h,s,scale,x,y,z,rv1(nmax),pythag
+
+      g=0d0
+      scale=0d0
+      anorm=0d0
+      do i=1,n
+         l=i+1
+         rv1(i)=scale*g
+         g=0d0
+         s=0d0
+         scale=0d0
+         if(i<=m)then
+           do k=i,m
+              scale=scale+dabs(a(k,i))
+           end do
+           if(scale/=0d0)then
+             do k=i,m
+                a(k,i)=a(k,i)/scale
+                s=s+a(k,i)*a(k,i)
+             end do
+             f=a(i,i)
+             g=-dsign(dsqrt(s),f)
+             h=f*g-s
+             a(i,i)=f-g
+             do j=l,n
+                s=0d0
+                do k=i,m
+                   s=s+a(k,i)*a(k,j)
+                end do
+                f=s/h
+                do k=i,m
+                   a(k,j)=a(k,j)+f*a(k,i)
+                end do
+             end do
+             do k=i,m
+                a(k,i)=scale*a(k,i)
+             end do
+           end if
+         end if
+         w(i)=scale*g
+         g=0d0
+         s=0d0
+         scale=0d0
+         if((i<=m).and.(i/=n))then
+           do k=l,n
+              scale=scale+dabs(a(i,k))
+           end do
+           if(scale/=0d0)then
+             do k=l,n
+                a(i,k)=a(i,k)/scale
+                s=s+a(i,k)*a(i,k)
+             end do
+             f=a(i,l)
+             g=-dsign(dsqrt(s),f)
+             h=f*g-s
+             a(i,l)=f-g
+             do k=l,n
+                rv1(k)=a(i,k)/h
+             end do
+             do j=l,m
+                s=0d0
+                do k=l,n
+                   s=s+a(j,k)*a(i,k)
+                end do
+                do k=l,n
+                   a(j,k)=a(j,k)+s*rv1(k)
+                end do
+             end do
+             do k=l,n
+                a(i,k)=scale*a(i,k)
+             end do
+           end if
+         end if
+         anorm=dmax1(anorm,(dabs(w(i))+dabs(rv1(i))))
+      end do
+      do i=n,1,-1
+         if(i<n)then
+           if(g/=0d0)then
+             do j=l,n
+                v(j,i)=(a(i,j)/a(i,l))/g
+             end do
+             do j=l,n
+                s=0d0
+                do k=l,n
+                   s=s+a(i,k)*v(k,j)
+                end do
+                do k=l,n
+                   v(k,j)=v(k,j)+s*v(k,i)
+                end do
+             end do
+           end if
+           do j=l,n
+              v(i,j)=0d0
+              v(j,i)=0d0
+           end do
+         end if
+         v(i,i)=1d0
+         g=rv1(i)
+         l=i
+      end do
+      do i=min0(m,n),1,-1
+         l=i+1
+         g=w(i)
+         do j=l,n
+            a(i,j)=0d0
+         end do
+         if(g/=0d0)then
+           g=1d0/g
+           do j=l,n
+              s=0d0
+              do k=l,m
+                 s=s+a(k,i)*a(k,j)
+              end do
+              f=(s/a(i,i))*g
+              do k=i,m
+                 a(k,j)=a(k,j)+f*a(k,i)
+              end do
+           end do
+           do j=i,m
+              a(j,i)=a(j,i)*g
+           end do
+         else
+           do j=i,m
+              a(j,i)=0d0
+           end do
+         end if
+         a(i,i)=a(i,i)+1d0
+      end do
+      do k=n,1,-1
+         do its=1,30
+            do l=k,1,-1
+               nm=l-1
+               if((dabs(rv1(l))+anorm)==anorm) goto 2
+               if((dabs(w(nm))+anorm)==anorm) goto 1
+            end do
+1           c=0d0
+            s=1d0
+            do i=l,k
+               f=s*rv1(i)
+               rv1(i)=c*rv1(i)
+               if((dabs(f)+anorm)==anorm) goto 2
+               g=w(i)
+               h=pythag(f,g)
+               w(i)=h
+               h=1d0/h
+               c=(g*h)
+               s=-(f*h)
+               do j=1,m
+                  y=a(j,nm)
+                  z=a(j,i)
+                  a(j,nm)=(y*c)+(z*s)
+                  a(j,i)=-(y*s)+(z*c)
+               end do
+            end do
+2           z=w(k)
+            if(l==k)then
+              if(z<0d0)then
+                w(k)=-z
+                do j=1,n
+                   v(j,k)=-v(j,k)
+                end do        
+              end if
+              go to 3
+            end if
+            if(its==30)then
+              write(6,*) 'no convergence in svdcmp'
+              stop
+            end if
+!           if(its==30) pause 'no convergence in svdcmp'
+            x=w(l)
+            nm=k-1
+            y=w(nm)
+            g=rv1(nm)
+            h=rv1(k)
+            f=((y-z)*(y+z)+(g-h)*(g+h))/(2d0*h*y)
+            g=pythag(f,1d0)
+            f=((x-z)*(x+z)+h*((y/(f+dsign(g,f)))-h))/x
+            c=1d0
+            s=1d0
+            do j=l,nm
+               i=j+1
+               g=rv1(i)
+               y=w(i)
+               h=s*g
+               g=c*g
+               z=pythag(f,h)
+               rv1(j)=z
+               c=f/z
+               s=h/z
+               f=(x*c)+(g*s)
+               g=-(x*s)+(g*c)
+               h=y*s
+               y=y*c
+               do jj=1,n
+                  x=v(jj,j)
+                  z=v(jj,i)
+                  v(jj,j)=(x*c)+(z*s)
+                  v(jj,i)=-(x*s)+(z*c)
+               end do
+               z=pythag(f,h)
+               w(j)=z
+               if(z/=0d0)then
+                 z=1d0/z
+                 c=f*z
+                 s=h*z
+               end if
+               f=(c*g)+(s*y)
+               x=-(s*g)+(c*y)
+               do jj=1,m
+                  y=a(jj,j)
+                  z=a(jj,i)
+                  a(jj,j)=(y*c)+(z*s)
+                  a(jj,i)=-(y*s)+(z*c)
+               end do
+            end do
+            rv1(l)=0d0
+            rv1(k)=f
+            w(k)=x
+         end do
+3        continue
+      end do
+     
+      return
+      end subroutine svdcmp
+
+      real*8 function pythag(a,b)
+      implicit none
+
+      real*8 a,b
+
+      real*8 absa,absb
+
+      absa=dabs(a)
+      absb=dabs(b)
+      if(absa>absb)then
+        pythag=absa*dsqrt(1d0+(absb/absa)**2)
+      else
+        if(absb==0d0)then
+          pythag=0d0
+        else
+          pythag=absb*dsqrt(1d0+(absa/absb)**2)
+        end if
+      end if
+
+      return
+      end 
+
+      subroutine svbksb(u,w,v,m,n,mp,np,b,x)
+      
+!     subroutine svdcmp: source code from sec. 2.6 on singular value
+!                        decomposition from Numerical Recipes in Fortran,
+!                        2nd edition, Press/Vetterling/Flannery/Teukolsky
+!     solves a*x=b for vector x; a is specified by arrays u,w,v returned
+!     from svdcmp; m,n are dimensions of a (mp,np physical dimensions); 
+!     b is the RHS of a*x=b; x is the output solution vector; no inputs
+!     are destroyed
+
+      implicit none
+      
+      integer m,mp,n,np,nmax
+      real*8 b(mp),u(mp,np),v(np,np),w(np),x(np)
+      parameter (nmax=500)
+
+      integer i,j,jj
+      real*8 s,tmp(nmax)
+
+      do j=1,n
+         s=0d0
+         if(w(j)/=0d0)then
+           do i=1,m
+              s=s+u(i,j)*b(i)
+           end do
+           s=s/w(j)
+         end if
+         tmp(j)=s
+      end do
+      do j=1,n
+         s=0d0
+         do jj=1,n
+            s=s+v(j,jj)*tmp(jj)
+         end do
+         x(j)=s
+      end do
+
+      return
+      end subroutine svbksb
+
+      subroutine svdchk(u,w,v,m,n,mp,np,a)
+      implicit none
+
+      integer m,n,mp,np
+      real*8 u(mp,np),w(np),v(np,np)
+
+      integer i,j,k
+      real*8 scratch(np,np),a(mp,np)
+
+!     verify svd a=u*w*v^T in two steps
+
+!     compute w*v^T; since w is diagonal, only one term per element
+!     of (w*v^T); row of (w*v^T) determined by w and column determined
+!     by column (row) of v^T (v)
+      do i=1,n
+         do j=1,n
+            scratch(j,i)=w(j)*v(i,j)
+         end do
+      end do
+
+!     compute u*(w*v^T)
+      do i=1,m
+         do j=1,n
+            a(i,j)=0d0
+            do k=1,n
+               a(i,j)=a(i,j)+u(i,k)*scratch(k,j)
+            end do
+         end do
+      end do
+
+      return
+      end
+
+      subroutine qtod(q,d)
+      implicit none
+
+!     given tensor Q from svd solution to A*Q=Deff, compute rotational 
+!     diffusion tensor D from D=3*Diso*I-2*Q, Diso=Tr(D)/3=Tr(Q)/3
+!     J. Biomol. NMR 9, 287 (1997) L. K. Lee, M. Rance, W. J. Chazin,
+!     A. G. Palmer
+!     J. Mag. Res. 149, 204 (2001) R. Ghose, D. Fushman, D. Cowburn
+
+      real*8 q(6),d(3,3)
+ 
+      real*8 trq
+      integer i,j
+
+!     recall that here Q is written as a column vector ordered as
+!     (Qxx Qyy Qzz Qxy Qxz Qyz)^T
+
+!     compute Tr(Q)
+      trq=0d0
+      do i=1,3
+         trq=trq+q(i)
+      end do
+   
+!     tred2/tqli will be used to diagonalize D, so it must be stored
+!     in conventional format (i.e. not as a column vector)
+      do i=1,3
+         d(i,i)=trq-2d0*q(i)
+         do j=i+1,3
+            d(i,j)=-2d0*q(i+j+1)
+            d(j,i)=d(i,j)
+         end do
+      end do
+
+      return
+      end
+
+      subroutine tred2(a,n,np,d,e)
+      implicit none
+      integer n,np
+      real*8 a(np,np),d(np),e(np)
+      integer i,j,k,l
+      real*8 f,g,h,hh,scale
+
+      do i=n,2,-1
+         l=i-1
+         h=0d0
+         scale=0d0
+         if(l>1)then
+           do k=1,l
+              scale=scale+dabs(a(i,k))
+           end do
+           if(scale==0d0)then
+!          if(dabs(scale)<1d-8)then
+             e(i)=a(i,l)
+           else
+             do k=1,l
+                a(i,k)=a(i,k)/scale
+                h=h+a(i,k)**2
+             end do
+             f=a(i,l)
+             g=-dsign(dsqrt(h),f)
+             e(i)=scale*g
+             h=h-f*g
+             a(i,l)=f-g
+             f=0d0
+             do j=1,l
+!    omit following line if finding only eigenvalues
+                a(j,i)=a(i,j)/h
+                g=0d0
+                do k=1,j
+                   g=g+a(j,k)*a(i,k)
+                end do
+                do k=j+1,l
+                   g=g+a(k,j)*a(i,k)
+                end do
+                e(j)=g/h
+                f=f+e(j)*a(i,j)
+             end do
+             hh=f/(h+h)
+             do j=1,l
+                f=a(i,j)
+                g=e(j)-hh*f
+                e(j)=g
+                do k=1,j
+                   a(j,k)=a(j,k)-f*e(k)-g*a(i,k)
+                end do
+             end do
+           end if
+         else
+           e(i)=a(i,l)
+         end if
+         d(i)=h
+      end do
+!     omit following line if finding only eigenvalues
+      d(1)=0d0
+      e(1)=0d0
+      do i=1,n
+!     delete lines from here...
+         l=i-1
+         if(d(i)/=0d0)then
+!        if(dabs(i)>=1d-8)then
+           do j=1,l
+              g=0d0
+              do k=1,l
+                 g=g+a(i,k)*a(k,j)
+              end do
+              do k=1,l
+                 a(k,j)=a(k,j)-g*a(k,i)
+              end do
+           end do
+         end if
+!  ...to here when finding only eigenvalues
+!     this statement remains
+         d(i)=a(i,i)
+!     also delete lines from here...
+         a(i,i)=1d0
+         do j=1,l
+            a(i,j)=0d0
+            a(j,i)=0d0
+         end do
+!  ...to here when finding only eigenvalues
+      end do
+      return
+      end
+
+!     subroutine tqli(d,e,n,np,z)
+      subroutine tqli(d,e,n,np,itermax,z)
+      implicit none
+      integer n,np
+      real*8 d(np),e(np)
+      real*8 z(np,np)
+!     uses pythag
+      integer i,iter,k,l,m
+      real*8  b,c,dd,f,g,p,r,s,pythag
+      integer itermax
+
+      do i=2,n
+         e(i-1)=e(i)
+      end do
+      e(n)=0d0
+      do l=1,n
+         iter=0
+1        do m=l,n-1
+            dd=dabs(d(m))+dabs(d(m+1))
+            if(dabs(e(m))+dd==dd) go to 2
+!           if(dabs(e(m)<1d-8)then go to 2
+         end do
+         m=n
+2        if(m/=l)then
+           if(iter==itermax)then
+             write(6,*) 'too many iterations in tqli'
+             stop
+           end if
+!          if(iter==itermax) pause 'too many iterations in tqli'
+           iter=iter+1
+           g=(d(l+1)-d(l))/(2d0*e(l))
+           r=pythag(g,1d0)
+           g=d(m)-d(l)+e(l)/(g+dsign(r,g))
+           s=1d0
+           c=1d0
+           p=0d0
+           do i=m-1,l,-1
+              f=s*e(i)
+              b=c*e(i)
+              r=pythag(f,g)
+              e(i+1)=r
+              if(r==0d0)then
+!             if(dabs(r)<1d-8)then
+                d(i+1)=d(i+1)-p
+                e(m)=0d0
+                go to 1
+              end if
+              s=f/r
+              c=g/r
+              g=d(i+1)-p
+              r=(d(i)-g)*s+2d0*c*b
+              p=s*r
+              d(i+1)=g+p
+              g=c*r-b
+!     omit lines from here...
+              do k=1,n
+                 f=z(k,i+1)
+                 z(k,i+1)=s*z(k,i)+c*f
+                 z(k,i)=c*z(k,i)-s*f
+              end do
+!  ...to here when finding only eigenvalues
+           end do
+           d(l)=d(l)-p
+           e(l)=g
+           e(m)=0d0
+           go to 1
+         end if
+      end do
+      return
+      end
+
+      subroutine similar_trans(ndiag,nmax,mat,z)
+      implicit none
+
+      integer i,j,k,ndiag,nmax
+      real*8 scratch_mat(nmax,nmax),mat(nmax,nmax),z(nmax,nmax)
+
+      do i=1,ndiag
+         do j=1,ndiag
+            scratch_mat(i,j)=0d0
+         end do
+      end do
+
+!     evaluate product mat*z
+!     the k loop multiplies the ith row of mat by the jth vector
+      do i=1,ndiag
+         do j=1,ndiag
+            do k=1,ndiag
+               scratch_mat(i,j)=scratch_mat(i,j)+mat(i,k)*z(k,j)
+            end do
+         end do
+      end do
+
+      do i=1,ndiag
+         do j=1,ndiag
+            mat(i,j)=0d0
+         end do
+      end do
+
+!     for an orthonormal basis, the inverse is the transpose
+!     evaluate product z^T*(mat*z)
+!     the k loop multiplies the ith row of z^T (ith column of z) by the
+!     jth column of (mat*z)
+      do i=1,ndiag
+         do j=1,ndiag
+            do k=1,ndiag
+               mat(i,j)=mat(i,j)+z(k,i)*scratch_mat(k,j)
+            end do
+         end do
+      end do
+
+      return
+      end subroutine similar_trans
+
+      subroutine locdiff(a,d,m,n,mp,np,deff)
+      implicit none
+
+!     given diffusion tensor D, computes Q from
+!     Q=(3*Diso*I-D)/2, then computes local diffusion constants Deff
+!     using A*Q=Deff
+!     see [21] and [29] in J. Mag. Res. 149, 204 (2001) R. Ghose,
+!     D. Fushman, A. G. Palmer
+
+      integer m,n,mp,np
+      real*8 a(mp,np),d(3,3),deff(mp)
+
+      real*8 q(np)
+
+      integer i,j
+
+!     compute Q
+      call dtoq(d,q)
+
+!     multiply A*Q (=Deff)
+      do i=1,m
+         deff(i)=0d0
+         do j=1,n
+            deff(i)=deff(i)+a(i,j)*q(j)
+         end do
+      end do
+
+      return
+      end
+
+      subroutine dtoq(d,q)
+      implicit none
+
+!     given rotational diffusion tensor D, compute Q from
+!     Q=(3*Diso*I-D)/2; see [21] in J. Mag. Res. 149, 204 (2001)
+!     R. Ghose, D. Fushman, A. G. Palmer
+
+      real*8 q(6),d(3,3)
+
+      real*8 trd
+      integer i,j
+
+!     Diso=Tr(D)/3; compute trace(D)
+      trd=0d0
+      do i=1,3
+         trd=trd+d(i,i)
+      end do
+
+!     compute Q
+      do i=1,3
+         q(i)=0.5d0*(trd-d(i,i))
+         do j=i+1,3
+            q(i+j+1)=-0.5d0*d(i,j)
+         end do
+      end do
+
+      return
+      end
+
+      subroutine matgen(nvec,x,mat,nmax)
+      implicit none
+
+      integer nvec,i,j,k,nmax
+      real*8 x(nmax,3),mat(nmax,6)
+
+      real*8 mag
+
+!     given x,y,z coordinates of a vector, generate elements of 
+!     matrix A (see [29] in J. Mag. Res., 149, 204, (2001) R. Ghose,
+!     D. Fushman, D. Cowburn) from N-H or global vectors used to estimate
+!     local rotational diffusion times used to compute Deff
+!     to be SVD'd in eventual computation rotational diffusion tensor
+!     related material found in J. Biomol. NMR, 9, 287, (1997) L. K. Lee,
+!     M. Rance, W. J. Chazin, A. G. Palmer 
+!     Science, 268, 886 (1995) R. Bruschweiler, X. Liao, P. E. Wright
+
+!     normalize vectors
+      do i=1,nvec
+         mag=0d0
+         do j=1,3
+            mag=mag+x(i,j)*x(i,j)
+         end do
+         mag=dsqrt(mag)
+         do j=1,3
+            x(i,j)=x(i,j)/mag
+         end do
+      end do
+
+      do i=1,nvec
+         do j=1,3
+            mat(i,j)=x(i,j)*x(i,j)
+            do k=j+1,3
+               mat(i,j+k+1)=2d0*x(i,j)*x(i,k)
+            end do
+         end do
+      end do
+
+      return
+      end 
+
+      subroutine asymtop(d,pa,r,nvec,nmax,tau1,tau2,sumc2)
+      implicit none
+
+!     computes tau(l=1) and tau(l=2) given principal components
+!     of rotational diffusion tensor and angular coordinates of
+!     a vector (in the PA frame, n*ez = cos(theta),
+!     n*ey = sin(theta)*sin(phi), n*ex = sin(theta)*cos(phi)
+
+      integer nmax,nvec
+      real*8 d(3),pa(3,3),r(nmax,3)
+
+      real*8 dx,dy,dz,theta,phi,pi,da,ea,epsx,epsy,epsz
+      parameter (pi=3.141592653589793d0)
+
+      real*8 sth,cth,sphi,cphi
+      real*8 sth2,cth2,sphi2,cphi2,tau1(*),tau2(*),sumc2(*)
+
+      real*8 sth4,s2phi2
+      real*8 amp(8),lam(8)
+
+      real*8 s2th2
+
+      real*8 dav,dpr,u,delta,w,n
+
+      real*8 thrcth2m1,thrcth2m12,c2phi,c2phi2
+
+      real*8 x0(3),y0(3),z0(3),x,y,z,mag,dot1,dot2,dot3
+      real*8 copy_d(3),copy_pa(3,3)
+
+      integer i,j
+
+!     since it is assumed that Dx <= Dy <= Dz, 
+!     diffusion tensor arrays must be sorted
+!     leave originals alone to avoid altering downstream results
+      do i=1,3
+         copy_d(i)=d(i)
+         do j=1,3
+            copy_pa(i,j)=pa(i,j)
+         end do
+      end do
+      call sort(3,3,3,copy_d,copy_pa)
+
+      dx=copy_d(1)
+      dy=copy_d(2)
+      dz=copy_d(3)
+      do i=1,3
+         x0(i)=copy_pa(1,i)
+         y0(i)=copy_pa(2,i)
+         z0(i)=copy_pa(3,i)
+      end do
+
+      do i=1,3
+         mag=x0(i)*x0(i)+y0(i)*y0(i)+z0(i)*z0(i)
+      if( mag < 0.d0 ) then
+         write(6,*) 'sqrt 3:', mag
+         stop
+      end if
+         mag=dsqrt(mag)
+         x0(i)=x0(i)/mag
+         y0(i)=y0(i)/mag
+         z0(i)=z0(i)/mag
+      end do
+
+!     tau = sum(m){amp(l,m)/lambda(l,m)}
+!     see Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY;
+!     Prog. Nuc. Mag. Res. Spec., 38, 197 (2001) for details
+!     only weights need to be computed for each vector, 
+!     decay constants can be computed once
+!     first three decay constants correspond to l=1, m=-1,0,+1
+!     next five correspond to l=2, m=-2,-1,0,+1,+2
+
+!     l=1, m=-1 term:
+!     lambda(1,-1) = Dy + Dz
+      lam(1)=dy+dz
+
+!     l=1, m=0 term:
+!     lambda(1,0) = Dx + Dy
+      lam(2)=dx+dy
+
+!     l=1, m=+1 term:
+!     lambda(1,+1) = Dx + Dz
+      lam(3)=dx+dz
+
+!     l=2, m=-2 term:
+!     lambda(2,-2) = Dx + Dy + 4*Dz
+      lam(4)=dx+dy+4d0*dz
+
+!     l=2, m=-1 term:
+!     lambda(2,-1) = Dx + 4*Dy + Dz
+      lam(5)=dx+4d0*dy+dz
+
+!     l=2, m=0 term:
+!     lambda(2,0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+!     Dav = (Dx + Dy + Dz)/3, Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+!     u = sqrt(3)*(Dx - Dy)
+!     delta = 3*sqrt(Dav*Dav - Dpr*Dpr)
+!     w = 2*Dz - Dx - Dy + 2*delta
+!     N = 2*sqrt(delta*w)
+
+      dav=(dx+dy+dz)/3d0
+      if( dx*dy+dy*dz+dx*dz < 0.d0 ) then
+         !  write(6,*) 'sqrt 4:', dx,dy,dz,dx*dy+dy*dz+dx*dz
+         dpr = 0.0
+      else
+         dpr=dsqrt((dx*dy+dy*dz+dx*dz)/3.d0)
+      endif
+      u=(dx-dy)*dsqrt(3d0)
+      if( dav*dav-dpr*dpr < 0.d0 ) then
+         write(6,*) 'sqrt 1:', dav, dpr
+         stop
+      end if
+      delta=3d0*dsqrt(dav*dav-dpr*dpr)
+      w=2.d0*dz-dx-dy+2.d0*delta
+      if( w*delta < 0.d0 ) then
+         write(6,*) 'sqrt 2:', w,delta
+         stop
+      end if
+      n=2d0*dsqrt(delta*w)
+
+      lam(6)=dav-dsqrt(dav*dav-dpr*dpr)
+      lam(6)=6d0*lam(6)
+
+!     l=2, m=+1 term:
+!     lambda(2,+1) = 4*Dx + Dy + Dz
+      lam(7)=4d0*dx+dy+dz
+
+!     l=2, m=+2 term:
+!     lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav = Dpr*Dpr)]
+      lam(8)=dav+dsqrt(dav*dav-dpr*dpr)
+      lam(8)=6d0*lam(8)
+
+      do i=1,nvec
+         x=r(i,1)
+         y=r(i,2)
+         z=r(i,3)
+   
+         mag=x*x+y*y+z*z
+         if( mag < 0.d0 ) then
+            write(6,*) 'sqrt 5:', mag
+            stop
+         end if
+         mag=dsqrt(mag)
+         x=x/mag
+         y=y/mag
+         z=z/mag
+
+         dot1=x*x0(1)+y*y0(1)+z*z0(1)
+         dot2=x*x0(2)+y*y0(2)+z*z0(2)
+         dot3=x*x0(3)+y*y0(3)+z*z0(3)
+
+!     assuming e(3)*n = cos(theta), e(1)*n = sin(theta)*cos(phi),
+!     e(2)*n = sin(theta)*sin(phi), theta >= 0;
+!     sin(theta) = sqrt(1 - cos(theta)^2) and theta = tan^-1[sin(theta)/cos(theta)];
+!     phi = tan^-1[sin(phi)/cos(phi)] = tan^-1[(e(2)*n)/(e(1)*n)]
+
+      if( 1d0-dot3*dot3 < 0.d0 ) then
+         write(6,*) 'sqrt 6:', dot3
+         stop
+      end if
+         theta=datan2(dsqrt(1d0-dot3*dot3),dot3)
+         phi=datan2(dot2,dot1)
+
+!     theta=theta*(pi/180d0)
+!     phi=phi*(pi/180d0)
+         sth=dsin(theta)
+         cth=dcos(theta)
+         sphi=dsin(phi)
+         cphi=dcos(phi)
+
+!     tau(l=1) = [sin(theta)^2*cos(phi)^2]/(Dy+Dz) +
+!                + [sin(theta)^2*sin(phi)^2]/(Dx+Dz) +
+!                + [cos(theta)^2]/(Dx+Dy)
+!     compute correlation time for l=1
+         sth2=sth*sth
+         cth2=cth*cth
+         sphi2=sphi*sphi
+         cphi2=cphi*cphi
+         amp(1)=sth2*cphi2
+         amp(2)=cth2
+         amp(3)=sth2*sphi2
+
+         tau1(i)=0d0
+         do j=1,3
+            tau1(i)=tau1(i)+amp(j)/lam(j)
+         end do
+
+!     m=-2 term:
+!     lambda(2,-2) = Dx + Dy + 4*Dz
+!     amp(2,-2) = 0.75*sin(theta)^4*sin(2*phi)^2 = 3l^2m^2
+!        sth4=sth2*sth2
+!        s2phi2=dsin(2d0*phi)
+!        s2phi2=s2phi2*s2phi2
+!        amp(4)=0.75d0*sth4*s2phi2
+         amp(4) = 3.d0*dot1*dot1*dot2*dot2
+
+!     m=-1 term:
+!     lambda(2,-1) = Dx + 4*Dy + Dz
+!     amp(2,-1) = 0.75*sin(2*theta)^2*cos(phi)^2 = 3l^2n^2
+!        s2th2=dsin(2d0*theta)
+!        s2th2=s2th2*s2th2
+!        amp(5)=0.75d0*s2th2*cphi2
+         amp(5) = 3.d0*dot1*dot1*dot3*dot3
+
+!     m=0 term:
+!     lambda(2,0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+!     Dav = (Dx + Dy + Dz)/3, Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+!     amp(2,0) = (w/N)^2*0.25*[3*cos(theta)^2-1]^2 +
+!     (u/N)^2*0.75*sin(theta)^4*cos(2*phi)^2 -
+!     (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+!     u = sqrt(3)*(Dx - Dy)
+!     delta = 3*sqrt(Dav*Dav - Dpr*Dpr)
+!     w = 2*Dz - Dx - Dy + 2*delta
+!     N = 2*sqrt(delta*w)
+!        thrcth2m1=3d0*cth2-1d0
+!        thrcth2m12=thrcth2m1*thrcth2m1
+!        c2phi=dcos(2d0*phi)
+!        c2phi2=c2phi*c2phi
+!        amp(6)=(w/n)*(w/n)*0.25d0*thrcth2m12
+!        amp(6)=amp(6)+(u/n)*(u/n)*0.75d0*sth4*c2phi2
+!        amp(6)=amp(6)-(u/delta)*0.125d0*dsqrt(3d0)*thrcth2m1*sth2*c2phi
+         da = 0.25*(3.d0*(dot1**4 + dot2**4 + dot3**4) -1.d0)
+         if( delta > 1.d-8) then
+            epsx = 3.d0*(Dx-Dav)/delta
+            epsy = 3.d0*(Dy-Dav)/delta
+            epsz = 3.d0*(Dz-Dav)/delta
+            ea = epsx*(3.d0*dot1**4 + 6.d0*(dot2*dot3)**2 -1.d0) &
+               + epsy*(3.d0*dot2**4 + 6.d0*(dot1*dot3)**2 -1.d0) &
+               + epsz*(3.d0*dot3**4 + 6.d0*(dot1*dot2)**2 -1.d0) 
+            ea = ea/12.d0
+         else
+            ea = 0.d0
+         endif
+         amp(6) = da + ea
+
+!     m=+1 term:
+!     lambda(2,+1) = 4*Dx + Dy + Dz
+!     amp(2,+1) = 0.75*sin(2*theta)^2*sin(phi)^2
+!        amp(7)=0.75d0*s2th2*sphi2
+         amp(7)=3.d0*dot2*dot2*dot3*dot3
+
+!     m=+2 term:
+!     lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav = Dpr*Dpr)]
+!     amp(2,+2) = (u/n)^2*0.25*[3*cos(theta)^2-1]^2 +
+!     (w/n)^2*0.75*sin(theta)^4*cos(2*phi)^2 +
+!     (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+!        amp(8)=(u/n)*(u/n)*0.25d0*thrcth2m12
+!        amp(8)=amp(8)+(w/n)*(w/n)*0.75d0*sth4*c2phi2
+!        amp(8)=amp(8)+(u/delta)*0.125d0*dsqrt(3d0)*thrcth2m1*sth2*c2phi
+         amp(8)=da-ea
+
+         tau2(i)=0d0
+         sumc2(i)=0.d0
+         do j=4,8
+            tau2(i)=tau2(i)+amp(j)/lam(j)
+            sumc2(i)=sumc2(i)+amp(j)
+         end do
+      end do
+
+      return
+      end
+              
+      subroutine sort(n,xdim,ydim,x,y)
+      implicit none
+      integer i,j,k,l,m,n,o,ln2n,fl,xdim,ydim
+      real*8 x(xdim),temp
+      real*8 y(ydim,ydim)
+
+      integer p
+
+      ln2n=int(dlog(dble(n))/0.693147181+1d-5)
+      m=n
+      do o=1,ln2n
+        m=m/2
+        k=n-m
+        do j=1,k
+          i=j
+          fl=1
+          do while(i.ge.1.and.fl.eq.1)
+            l=i+m
+            fl=0
+            if(x(l).lt.x(i)) then
+              temp=x(i)
+              x(i)=x(l)
+              x(l)=temp
+
+!             additional 2-D array to sort in same order as array x
+              do p=1,n
+                 temp=y(p,i)
+                 y(p,i)=y(p,l)
+                 y(p,l)=temp
+              end do
+
+              i=i-m
+              fl=1
+            endif
+          enddo
+        enddo
+      enddo
+      return
+      end subroutine sort
+
