@@ -295,7 +295,7 @@ double *Rotdif::randvec() {
       rvout.OpenFile();
       int idx = 0;
       for (int i = 1; i <= nvecs; i++) {
-        rvout.IO->Printf("%6i  %15.8lf  %15.8lf  %15.8lf  \n",i,XYZ[idx],XYZ[idx+1],XYZ[idx+2]);
+        rvout.IO->Printf("%6i  %15.8lf  %15.8lf  %15.8lf\n",i,XYZ[idx],XYZ[idx+1],XYZ[idx+2]);
         idx += 3;
       }
       rvout.CloseFile();
