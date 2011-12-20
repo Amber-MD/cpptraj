@@ -49,7 +49,10 @@ thermo.o:  ../../ptraj/thermo.f
 	$(FC) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/thermo.f
 
 pubfft.o:  ../../ptraj/pubfft.f
-	$(FC) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/pubfft.f 
+	$(FC) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/pubfft.f
+
+Rotdif.o: Rotdif.f
+	$(FC) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ Rotdif.f 
 
 .c.o:
 	$(CC) -c $(CPPTRAJ_FLAGS) -o $@ $<
