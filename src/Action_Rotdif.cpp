@@ -39,6 +39,10 @@ Rotdif::Rotdif() {
   lflag = 0;
   delqfrac = 0;
 
+  randvecOut = NULL;
+  rmOut = NULL;
+  deffOut = NULL;
+
   RefParm = NULL;
 
   //iff = 0;
@@ -62,7 +66,8 @@ Rotdif::~Rotdif() {
   *                       ref <refname> | refindex <refindex> | reference
   *                       [<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>
   *                       [itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]
-  *                       [lflag <lflag>] [delqfrac <delqfrac>]
+  *                       [lflag <lflag>] [delqfrac <delqfrac>] [rvecout <randvecOut>]
+  *                       [rmout <rmOut>] [deffout <deffOut>]
   */ 
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
@@ -93,6 +98,9 @@ int Rotdif::init( ) {
   olegendre = actionArgs.getKeyInt("order",2);
   lflag = actionArgs.getKeyInt("lflag",2);
   delqfrac = actionArgs.getKeyDouble("delqfrac",0.5);
+  randvecOut = actionArgs.getKeyString("rvecout",NULL);
+  rmOut = actionArgs.getKeyString("rmout",NULL);
+  deffOut = actionArgs.getKeyString("deffout",NULL);
 
   referenceName=actionArgs.getKeyString("ref",NULL);
   refindex=actionArgs.getKeyInt("refindex",-1);
@@ -139,6 +147,12 @@ int Rotdif::init( ) {
           delmin,d0);
   mprintf("            Order of Legendre polynomial = %i\n",olegendre);
   mprintf("            lflag=%i, delqfrac=%.4lf\n",lflag,delqfrac);
+  if (randvecOut!=NULL)
+    mprintf("            Random vectors will be written to %s\n",randvecOut);
+  if (rmOut!=NULL)
+    mprintf("            Rotation matrices will be written out to %s\n",rmOut);
+  if (deffOut!=NULL)
+    mprintf("            Deff will be written out to %s\n",deffOut);
 
   return 0;
 }
@@ -272,12 +286,21 @@ double *Rotdif::randvec() {
     //z=dcos(theta)
     XYZ[i+2] = cos( theta );
   }
-  // DEBUG: Print vectors
-/*  int idx = 0;
-  for (int i = 0; i < nvecs; i++) {
-    mprintf("%6i  %15.8lf  %15.8lf  %15.8lf  \n",i+1,XYZ[idx],XYZ[idx+1],XYZ[idx+2]);
-    idx += 3;
-  }*/
+  // Print vectors
+  if (randvecOut!=NULL) {
+    CpptrajFile rvout;
+    if (rvout.SetupFile(randvecOut,WRITE,debug)) {
+      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",randvecOut);
+    } else {
+      rvout.OpenFile();
+      int idx = 0;
+      for (int i = 1; i <= nvecs; i++) {
+        rvout.IO->Printf("%6i  %15.8lf  %15.8lf  %15.8lf  \n",i,XYZ[idx],XYZ[idx+1],XYZ[idx+2]);
+        idx += 3;
+      }
+      rvout.CloseFile();
+    }
+  }
 
   return XYZ;
 }
@@ -315,19 +338,33 @@ void Rotdif::print() {
     dat_.tdat[i] *= tfac;
   }
 
-  // DEBUG: Print rotation matrices
-  //int dbgframe=1;
+  // HACK: To match results from rmscorr.f (where rotation matrices are
+  //       implicitly transposed), transpose each rotation matrix.
   for (std::vector<double*>::iterator rmatrix = Rmatrices.begin();
                                       rmatrix != Rmatrices.end();
                                       rmatrix++) {
-    // HACK: To match results from rmscorr.f (where rotation matrices are
-    //       implicitly transposed), transpose each rotation matrix.
-    matrix_transpose(*rmatrix); 
-    /*mprintf("RMT: %8i %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f\n",
-            dbgframe++,
+    matrix_transpose(*rmatrix);
+  }
+
+  // Print rotation matrices
+  if (rmOut!=NULL) {
+    CpptrajFile rmout;
+    if (rmout.SetupFile(rmOut,WRITE,debug)) {
+      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",rmOut);
+    } else {
+      rmout.OpenFile();
+      int rmframe=1;
+      for (std::vector<double*>::iterator rmatrix = Rmatrices.begin();
+                                          rmatrix != Rmatrices.end();
+                                          rmatrix++) {
+        rmout.IO->Printf("%13i %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f\n",
+             rmframe++,
             (*rmatrix)[0], (*rmatrix)[1], (*rmatrix)[2],
             (*rmatrix)[3], (*rmatrix)[4], (*rmatrix)[5],
-            (*rmatrix)[6], (*rmatrix)[7], (*rmatrix)[8]);*/
+            (*rmatrix)[6], (*rmatrix)[7], (*rmatrix)[8]);
+      }
+      rmout.CloseFile();
+    }
   }
 
   // For each random vector, rotate by all rotation matrices, storing the
@@ -376,9 +413,18 @@ void Rotdif::print() {
     //break;
   }
 
-  // DEBUG - Print deff
-  for (int vec = 0; vec < nvecs; vec++)
-    mprintf("%6i%15.8lf\n",vec+1,deff[vec]);
+  // Print deff
+  if (deffOut!=NULL) {
+    CpptrajFile dout;
+    if (dout.SetupFile(deffOut,WRITE,debug)) {
+      mprinterr("    Error: Rotdif: Could not set up file %s\n",deffOut);
+    } else {
+      dout.OpenFile();
+      for (int vec = 0; vec < nvecs; vec++)
+        dout.IO->Printf("%6i%15.8lf\n",vec+1,deff[vec]);
+      dout.CloseFile();
+    }
+  }
 
   int infoflag=1;
   tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,infoflag);

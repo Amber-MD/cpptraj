@@ -31,6 +31,10 @@ class Rotdif: public Action {
     int lflag;     ///< control how deff is used in tensorfit
     double delqfrac; ///< how to scale simplexes
 
+    char *randvecOut;
+    char *rmOut;
+    char *deffOut;
+
     Frame RefFrame;
     AmberParm *RefParm;
     Frame SelectedRef;
