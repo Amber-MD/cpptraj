@@ -33,6 +33,7 @@ void ArgList::SetDebug(int debugIn) {
   */
 int ArgList::SetList(char *inputString, const char *separator) {
   string argument;
+  char quotechar;
 
   if (inputString==NULL || separator==NULL) return 1;
   // Copy inputString to temp since it is destroyed by tokenize,
@@ -53,7 +54,10 @@ int ArgList::SetList(char *inputString, const char *separator) {
     while (pch!=NULL) {
       //if (debug>1) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
       // If the argument is not quoted add it to the list
-      if (pch[0]!='"') {
+      if      (pch[0]=='"' ) quotechar='"';
+      else if (pch[0]=='\'') quotechar='\'';
+      else quotechar=' ';
+      if (quotechar==' ') {
         argument.assign(pch);
         arglist.push_back(argument);
 
@@ -63,19 +67,24 @@ int ArgList::SetList(char *inputString, const char *separator) {
         argument.assign(pch);
         // Check if this argument itself ends with a quote
         unsigned int argsize = argument.size();
-        if (argsize == 1 || argument[argsize-1]!='"') {
+        if (argsize == 1 || argument[argsize-1]!=quotechar) {
           while (pch!=NULL) {
             argument.append(" ");
             pch=strtok(NULL," ");
+            // If pch is NULL at this point there was no closing quote.
+            if (pch==NULL) {
+              mprintf("\tWarning: argument missing closing quote [%c]\n",quotechar);
+              break;
+            }
             argument.append(pch);
-            if (strchr(pch,'"')!=NULL) break;
+            if (strchr(pch,quotechar)!=NULL) break;
           }
         }
         // Remove quotes from the argument
         for (string::iterator character = argument.begin();
                               character < argument.end();
                               character++)
-          if (*character == '"') character = argument.erase(character);
+          if (*character == quotechar) character = argument.erase(character);
         arglist.push_back(argument);
       }
       //if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
