@@ -1,5 +1,5 @@
-!     Rotdif.f: Originally randvec.f -------------------------------------------
-
+!     Rotdif.f: Originally randvec.f +++++++++++++++++++++++++++++++++++++++++++
+!     --------------------------------------------------------------------------
       double precision function random(seed)
       implicit none
       real*4 mbig,mseed,mz,fac
@@ -42,8 +42,8 @@
       return
       end function random
 
-!     Rotdif.f: Originally rmscorr.f -------------------------------------------
-
+!     Rotdif.f: Originally rmscorr.f +++++++++++++++++++++++++++++++++++++++++++
+!     --------------------------------------------------------------------------
       subroutine compute_corr(x,y,z,ncorr,itotframes,maxdat,p2,p1)
       implicit none
 
@@ -97,6 +97,8 @@
 
       return
       end
+
+!     --------------------------------------------------------------------------
       subroutine dlocint(ti,tf,itmax,delmin,d0,l,deff)
       implicit none
 
@@ -153,6 +155,7 @@
       return
       end subroutine dlocint
 
+!     --------------------------------------------------------------------------
       subroutine intct(ti,tf,sumct)
       implicit none
 
@@ -182,6 +185,7 @@
       return
       end subroutine intct
 
+!     --------------------------------------------------------------------------
       subroutine qromb(func,a,b,ss)
       implicit none
 
@@ -213,6 +217,7 @@
 
       end subroutine qromb
 
+!     --------------------------------------------------------------------------
       subroutine trapzd(func,a,b,s,n)
       implicit none
 
@@ -243,6 +248,7 @@
       return
       end subroutine trapzd
 
+!     --------------------------------------------------------------------------
       subroutine polint(xa,ya,n,x,y,dy)
       implicit none
 
@@ -299,6 +305,7 @@
       return
       end subroutine polint
 
+!     --------------------------------------------------------------------------
       real*8 function ct(t)
       implicit none
 
@@ -320,6 +327,7 @@
       return
       end function ct
 
+!     --------------------------------------------------------------------------
       subroutine splint(xa,ya,y2a,n,x,y)
       implicit none
 
@@ -363,7 +371,7 @@
       return
       end subroutine splint
 
-
+!     --------------------------------------------------------------------------
       subroutine spline(x,y,n,yp1,ypn,y2)
       implicit none
 !
@@ -416,6 +424,7 @@
       return
       end subroutine spline
 
+!     --------------------------------------------------------------------------
       subroutine itsolv(itmax,delmin,l,d0,ti,tf,f,d,info)
       implicit none
 
@@ -453,7 +462,8 @@
       return
       end subroutine itsolv
 
-!     Rotdif.f: Originally tensorfit.f -------------------------------------------
+!     Rotdif.f: Originally tensorfit.f +++++++++++++++++++++++++++++++++++++++++
+!     --------------------------------------------------------------------------
       subroutine tensorfit(random_vectors, nvecs, deff_in, ndeff, lflag, delqfrac,infoflag)
       implicit none
 
@@ -830,6 +840,7 @@
       !stop
       end subroutine tensorfit
 
+!     --------------------------------------------------------------------------
       subroutine gridsrch(q,nn,delqfrac,np,tqliitmax)
       implicit none
 
@@ -915,6 +926,7 @@
       return
       end subroutine gridsrch
         
+!     --------------------------------------------------------------------------
       subroutine simpmin(q,n,seed,delqfrac,nsearch,np,ftol,tqliitmax)
       implicit none
 
@@ -1067,49 +1079,8 @@
 
       return
       end subroutine simpmin
-        
-!     real*8 function random(seed)
-!     implicit none
-!     real*4 mbig,mseed,mz,fac
-!     parameter(mbig=4000000.,mseed=1618033.,mz=0,fac=1./mbig)
-!     real*4 ma(55),mj,mk
-!     integer iff,i,ii,k,inext,seed,inextp
-!     save iff,inext,inextp,ma
-!     data iff /0/
-!     if(seed.lt.0.or.iff.eq.0) then
-!       iff=1
-!       mj=mseed-iabs(seed)
-!       mj=amod(mj,mbig)
-!       ma(55)=mj
-!       mk=1
-!       do i=1,54
-!         ii=mod(21*i,55)
-!         ma(ii)=mk
-!         mk=mj-mk
-!         if(mk.lt.mz) mk=mk+mbig
-!         mj=ma(ii)
-!       enddo
-!       do k=1,4
-!         do i=1,55
-!           ma(i)=ma(i)-ma(1+mod(i+30,55))
-!           if(ma(i).lt.mz) ma(i)=ma(i)+mbig
-!         enddo
-!       enddo
-!       inext=0
-!       inextp=31
-!       seed=iabs(seed)
-!     endif
-!     inext=inext+1
-!     if(inext.eq.56) inext=1
-!     inextp=inextp+1
-!     if(inextp.eq.56) inextp=1
-!     mj=ma(inext)-ma(inextp)
-!     if(mj.lt.mz) mj=mj+mbig
-!     ma(inext)=mj
-!     random=mj*fac
-!     return
-!     end function random
 
+!     --------------------------------------------------------------------------
       subroutine convertd(dxyz,dshape)
       implicit none
 
@@ -1142,6 +1113,7 @@
       return
       end subroutine convertd
 
+!     --------------------------------------------------------------------------
       real*8 function chisq(x)
       implicit none
 
@@ -1178,6 +1150,7 @@
       return
       end function chisq
 
+!     --------------------------------------------------------------------------
       subroutine amoeba(p,y,mp,np,ndim,ftol,funk,iter)
       implicit none
 
@@ -1262,6 +1235,7 @@
       
       end subroutine amoeba
 
+!     --------------------------------------------------------------------------
       real*8 function amotry(p,y,psum,mp,np,ndim,funk,ihi,fac)
       implicit none
 
@@ -1293,6 +1267,7 @@
       return
       end function amotry
            
+!     --------------------------------------------------------------------------
       subroutine svdsolv(a,b,m,n,mp,np,cut_ratio,u,w,v,x)
       implicit none
 
@@ -1339,6 +1314,7 @@
       return
       end
 
+!     --------------------------------------------------------------------------
       subroutine svdcmp(a,m,n,mp,np,w,v)
 
 !     subroutine svdcmp: source code from sec. 2.6 on singular value
@@ -1581,6 +1557,7 @@
       return
       end subroutine svdcmp
 
+!     --------------------------------------------------------------------------
       real*8 function pythag(a,b)
       implicit none
 
@@ -1603,6 +1580,7 @@
       return
       end 
 
+!     --------------------------------------------------------------------------
       subroutine svbksb(u,w,v,m,n,mp,np,b,x)
       
 !     subroutine svdcmp: source code from sec. 2.6 on singular value
@@ -1643,6 +1621,7 @@
       return
       end subroutine svbksb
 
+!     --------------------------------------------------------------------------
       subroutine svdchk(u,w,v,m,n,mp,np,a)
       implicit none
 
@@ -1676,6 +1655,7 @@
       return
       end
 
+!     --------------------------------------------------------------------------
       subroutine qtod(q,d)
       implicit none
 
@@ -1712,6 +1692,7 @@
       return
       end
 
+!     --------------------------------------------------------------------------
       subroutine tred2(a,n,np,d,e)
       implicit none
       integer n,np
@@ -1801,6 +1782,7 @@
       return
       end
 
+!     --------------------------------------------------------------------------
 !     subroutine tqli(d,e,n,np,z)
       subroutine tqli(d,e,n,np,itermax,z)
       implicit none
@@ -1872,6 +1854,7 @@
       return
       end
 
+!     --------------------------------------------------------------------------
       subroutine similar_trans(ndiag,nmax,mat,z)
       implicit none
 
@@ -1915,6 +1898,7 @@
       return
       end subroutine similar_trans
 
+!     --------------------------------------------------------------------------
       subroutine locdiff(a,d,m,n,mp,np,deff)
       implicit none
 
@@ -1945,6 +1929,7 @@
       return
       end
 
+!     --------------------------------------------------------------------------
       subroutine dtoq(d,q)
       implicit none
 
@@ -1974,6 +1959,7 @@
       return
       end
 
+!     --------------------------------------------------------------------------
       subroutine matgen(nvec,x,mat,nmax)
       implicit none
 
@@ -2015,6 +2001,7 @@
       return
       end 
 
+!     --------------------------------------------------------------------------
       subroutine asymtop(d,pa,r,nvec,nmax,tau1,tau2,sumc2)
       implicit none
 
@@ -2276,6 +2263,7 @@
       return
       end
               
+!     --------------------------------------------------------------------------
       subroutine sort(n,xdim,ydim,x,y)
       implicit none
       integer i,j,k,l,m,n,o,ln2n,fl,xdim,ydim
