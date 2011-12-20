@@ -155,6 +155,11 @@ void GetDependencies(char *filename) {
     tempname[pos+3]='\0';
     strcat(tempname,filename);
   }
+  // Skip f files for now
+  else if ( filename[pos-1] == 'f' &&
+            filename[pos-2] == '.' ) {
+    return;
+  }
   fprintf(stdout,"%s",tempname);
 
   // Print the headers
