@@ -454,7 +454,7 @@
       end subroutine itsolv
 
 !     Rotdif.f: Originally tensorfit.f -------------------------------------------
-      subroutine tensorfit
+      subroutine tensorfit(random_vectors, nvecs, deff_in, ndeff, lflag, delqfrac,infoflag)
       implicit none
 
 !     Fits the rotational diffusion tensor to ensemble of local diffusion
@@ -491,19 +491,24 @@
 !     (2) changed subroutine woessnertimes to asymtop (identical 
 !         routines)
 
+
 !     VERSION 4:
 !     (1) writes out ratios of 2tau(1)/6tau(2) for each vector
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      real*8, dimension(*), intent(in) :: random_vectors, deff_in
+      integer, intent(in) :: nvecs, ndeff, lflag,infoflag
+      real*8, intent(in) :: delqfrac
 
-      character(len=80) vecs,deffs,arg
+      integer vecidx
+      !character(len=80) vecs,deffs,arg
       integer nvec,n,mp,np,maxbins,iarg,idummy,ios,last_arg
       parameter (n=6,mp=2000,np=6,maxbins=200)
 
-      integer lflag,svd_chk,itermax,sim_chk,back_cal,infoflag
+      integer svd_chk,itermax,sim_chk,back_cal
       integer rdatflag
       real*8 cut_ratio
 
-      integer label(mp)
+      !integer label(mp)
       real*8 deff(mp),sig(mp),ycalc(mp),sumc2(mp)
 
       real*8 mag,x(mp,3),sgn
@@ -518,7 +523,7 @@
       real*8 dshape(3)
 
       integer seed
-      real*8 delqfrac,ftol,delqfrac_save
+      real*8 ftol,delqfrac_save
       integer nsimp
 
       external matgen,svdsolv,svdchk,qtod,tred2,tqli,similar_trans
@@ -558,58 +563,68 @@
 !             
 !     Input defaults:
 
-      lflag = 2
+      !lflag = 2
       cut_ratio = 1.d-6
       itermax = 789
       svd_chk = 0
       sim_chk = 0
-      infoflag = 0
+      !infoflag = 0
       back_cal = 1
-      deffs = 'deffs'
-      vecs = 'vecs'
+      !deffs = 'deffs'
+      !vecs = 'vecs'
       nsimp = 1
-      seed = 3001796
-      delqfrac = 0.5d0
+      ! NOTE: Setting the random seed to a negative value implicitly 
+      !       re-initializes the random number generator. This is
+      !       required in order for results to match up with original
+      !       tensorfit program.
+      seed = -3001796
+      !delqfrac = 0.5d0
       ftol = 0.0000001
 
 !     Process command-line arguments:
 
-      iarg = 0
-      last_arg = iargc()
-      do while (iarg < last_arg)
-         iarg = iarg + 1
-         call getarg(iarg,arg)
-         if( arg == '-l') then
-            iarg = iarg + 1
-            call getarg(iarg,arg)
-            read(arg,'(i1)') lflag
-            write(6,*) 'setting lflag to ',lflag
-         else if( arg == '-dq') then
-            iarg = iarg + 1
-            call getarg(iarg,arg)
-            read(arg,'(f15.0)') delqfrac
-            write(6,*) 'setting delqfrac to ', delqfrac
-         else if( arg == '-deffs' ) then
-            iarg = iarg + 1
-            call getarg(iarg,deffs)
-            write(6,*) 'taking deffs from ',deffs
-         else if( arg == '-vecs' ) then
-            iarg = iarg + 1
-            call getarg(iarg,vecs)
-            write(6,*) 'taking vectors from ',vecs
-         end if
-      end do
+!     iarg = 0
+!     last_arg = iargc()
+!     do while (iarg < last_arg)
+!        iarg = iarg + 1
+!        call getarg(iarg,arg)
+!        if( arg == '-l') then
+!           iarg = iarg + 1
+!           call getarg(iarg,arg)
+!           read(arg,'(i1)') lflag
+!           write(6,*) 'setting lflag to ',lflag
+!        else if( arg == '-dq') then
+!           iarg = iarg + 1
+!           call getarg(iarg,arg)
+!           read(arg,'(f15.0)') delqfrac
+!           write(6,*) 'setting delqfrac to ', delqfrac
+!        else if( arg == '-deffs' ) then
+!           iarg = iarg + 1
+!           call getarg(iarg,deffs)
+!           write(6,*) 'taking deffs from ',deffs
+!        else if( arg == '-vecs' ) then
+!           iarg = iarg + 1
+!           call getarg(iarg,vecs)
+!           write(6,*) 'taking vectors from ',vecs
+!        end if
+!     end do
 
 !     deffs:  local diffusion constant vector Deff from MD (which may
 !             contain 1/(2*tau(l=1)), 1/(6*tau(l=2)), or both)
 
-      open(unit=2,file=deffs,status='OLD',iostat=ios)
-      do i=1,999999
-         if( i>mp ) stop 'too many input deffs'
-         read(2,*,end=95) label(i),deff(i)
+      !open(unit=2,file=deffs,status='OLD',iostat=ios)
+      !do i=1,999999
+      if (ndeff > mp) then
+        write(6,*) 'tensorfit(): too many input deffs'
+        return
+      endif
+      do i=1,ndeff
+         deff(i) = deff_in(i)
+         !if( i>mp ) stop 'too many input deffs'
+         !read(2,*,end=95) label(i),deff(i)
          sig(i) =1.d0
       end do
-   95 nvec=i-1
+!   95 nvec=i-1
 
       delqfrac_save = delqfrac
 
@@ -618,37 +633,61 @@
 !     m/2 vectors exist, but Deff is of length m; the second half
 !     of x is a copy of the first.
 
-      open(unit=3,file=vecs,status='OLD',iostat=ios)
-      if((lflag==1).or.(lflag==2))then
-        do i=1,nvec
-           mag=0d0
-           read(3,*) idummy, (x(i,j),j=1,3)
-           do j=1,3
-              mag=mag+x(i,j)*x(i,j)
-           end do
-           mag=dsqrt(mag)
-           do j=1,3
-              x(i,j)=x(i,j)/mag
-           end do
-        end do
-      else if(lflag==3)then
-        do i=1,nvec/2
-           mag=0d0
-           read(3,*) idummy, (x(i,j),j=1,3)
-           do j=1,3
-              mag=mag+x(i,j)*x(i,j)
-           end do
-           mag=dsqrt(mag)
-           do j=1,3
-              x(i,j)=x(i,j)/mag
-           end do
-        end do
-        do i=1,nvec/2
-           do j=1,3
-              x(i+nvec/2,j)=x(i,j)
-           end do
-        end do
-      end if
+      !open(unit=3,file=vecs,status='OLD',iostat=ios)
+      vecidx=1 ! index into the random_vectors array
+      do i=1,nvecs
+        mag=0d0
+        do j=1,3
+          x(i,j) = random_vectors(vecidx)
+          mag = mag + (random_vectors(vecidx) * random_vectors(vecidx))
+          vecidx = vecidx + 1
+        enddo
+        mag = dsqrt(mag);
+        do j=1,3
+          x(i,j) = x(i,j) / mag
+        enddo
+      enddo
+      if (lflag==3) then
+        vecidx=1 ! index into first half of x
+        do i=nvecs+1,ndeff
+          do j=1,3
+            x(i,j) = x(vecidx,j)
+          enddo
+          vecidx = vecidx + 1
+        enddo
+      endif
+      nvec = nvecs
+        
+!     if((lflag==1).or.(lflag==2))then
+!       do i=1,nvec
+!          mag=0d0
+!          read(3,*) idummy, (x(i,j),j=1,3)
+!          do j=1,3
+!             mag=mag+x(i,j)*x(i,j)
+!          end do
+!          mag=dsqrt(mag)
+!          do j=1,3
+!             x(i,j)=x(i,j)/mag
+!          end do
+!       end do
+!     else if(lflag==3)then
+!       do i=1,nvec/2
+!          mag=0d0
+!          read(3,*) idummy, (x(i,j),j=1,3)
+!          do j=1,3
+!             mag=mag+x(i,j)*x(i,j)
+!          end do
+!          mag=dsqrt(mag)
+!          do j=1,3
+!             x(i,j)=x(i,j)/mag
+!          end do
+!       end do
+!       do i=1,nvec/2
+!          do j=1,3
+!             x(i+nvec/2,j)=x(i,j)
+!          end do
+!       end do
+!     end if
 
 !     generate matrix A(=e*e^T, where e are unit vectors whose 
 !     orientational correlation functions were used to extract

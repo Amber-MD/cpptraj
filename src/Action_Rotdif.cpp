@@ -10,6 +10,7 @@ extern "C" {
   void compute_corr_(double*, double*, double*, int&, int&, int&, double*, double*);
   void dlocint_(double&,double&,int&,double&,double&,int&,double&);
   double random_(int&);
+  void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
 }
 
 // Fortran common block used by rmscorr.f functions
@@ -35,6 +36,8 @@ Rotdif::Rotdif() {
   d0 = 0.0;
   olegendre = 0;
   ncorr = 0;
+  lflag = 0;
+  delqfrac = 0;
 
   RefParm = NULL;
 
@@ -59,6 +62,7 @@ Rotdif::~Rotdif() {
   *                       ref <refname> | refindex <refindex> | reference
   *                       [<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>
   *                       [itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]
+  *                       [lflag <lflag>] [delqfrac <delqfrac>]
   */ 
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
@@ -87,6 +91,8 @@ int Rotdif::init( ) {
   delmin = actionArgs.getKeyDouble("tol",0.000001);
   d0 = actionArgs.getKeyDouble("d0",0.03);
   olegendre = actionArgs.getKeyInt("order",2);
+  lflag = actionArgs.getKeyInt("lflag",2);
+  delqfrac = actionArgs.getKeyDouble("delqfrac",0.5);
 
   referenceName=actionArgs.getKeyString("ref",NULL);
   refindex=actionArgs.getKeyInt("refindex",-1);
@@ -116,7 +122,7 @@ int Rotdif::init( ) {
   // Setup reference mask
   if (RefParm->SetupIntegerMask( RefMask, activeReference )) return 1;
   if (RefMask.None()) {
-    mprintf("    Error: Rmsd::SetRefMask: No atoms in reference mask.\n");
+    mprintf("    Error: Rotdif::init: No atoms in reference mask.\n");
     return 1;
   }
   // Allocate frame for selected reference atoms
@@ -132,6 +138,7 @@ int Rotdif::init( ) {
   mprintf("            Max iterations = %i, tol = %lf, initial guess = %lf\n",itmax,
           delmin,d0);
   mprintf("            Order of Legendre polynomial = %i\n",olegendre);
+  mprintf("            lflag=%i, delqfrac=%.4lf\n",lflag,delqfrac);
 
   return 0;
 }
@@ -372,6 +379,9 @@ void Rotdif::print() {
   // DEBUG - Print deff
   for (int vec = 0; vec < nvecs; vec++)
     mprintf("%6i%15.8lf\n",vec+1,deff[vec]);
+
+  int infoflag=1;
+  tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,infoflag);
 
   // Cleanup
   delete[] random_vectors;

@@ -30,6 +30,7 @@
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
 #include "Action_DihedralScan.h"
+#include "Action_Rotdif.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() {
@@ -94,6 +95,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("checkstructure")) {Act=new CheckStructure;}
   else if (argIn.CommandIs("check"))          {Act=new CheckStructure;}
   else if (argIn.CommandIs("dihedralscan"))   {Act=new DihedralScan;}
+  else if (argIn.CommandIs("rotdif"))         {Act=new Rotdif;}
   // PTRAJ
   else if (argIn.CommandIs("atomicfluct") ||
            argIn.CommandIs("atomicfluct3D") ||
