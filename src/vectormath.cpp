@@ -93,6 +93,38 @@ void matrix_transpose(double M[9], double U[9]) {
   M[8] = U[8];
 }
 
+// matrix_transpose()
+/** M = Mt
+  * Columns of M become rows of M and vice versa.
+  */
+void matrix_transpose(double M[9]) {
+  //double U0,U4,U8;
+  double U1,U2,U3,U5,U6,U7;
+  //U0 = M[0];
+  U1 = M[1];
+  U2 = M[2];
+
+  U3 = M[3];
+  //U4 = M[4];
+  U5 = M[5];
+
+  U6 = M[6];
+  U7 = M[7];
+  //U8 = M[8];
+
+  //M[0] = U0;
+  M[1] = U3;
+  M[2] = U6;
+
+  M[3] = U1;
+  //M[4] = U4;
+  M[5] = U7;
+
+  M[6] = U2;
+  M[7] = U5;
+  //M[8] = U8;
+}
+
 // matrix_times_vector()
 /** Multiple matrix R by vector V, store result in M
   */

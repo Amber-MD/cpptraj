@@ -14,6 +14,7 @@ double dot_product(double V[3], double U[3]);
 double dot_product_angle(double V[3], double U[3]);
 
 void matrix_transpose(double M[9], double U[9]);
+void matrix_transpose(double M[9]);
 void matrix_times_vector(double M[3], double R[9], double V[3]);
 void matrix_multiply(double M[9], double Row[9], double Col[9]);
 double matrix_to_angle(double U[9]);
