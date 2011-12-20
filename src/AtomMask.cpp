@@ -40,6 +40,13 @@ AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   return *this;
 }
 
+// AtomMask::PostfixExpression()
+char *AtomMask::PostfixExpression() { 
+  if (Postfix.empty())
+    return NULL;
+  return (char*)Postfix.c_str(); 
+}
+
 // AtomMask::ResetMask()
 void AtomMask::ResetMask() {
   Nselected = 0;

@@ -38,13 +38,13 @@ class AtomMask {
     std::vector<int> Selected;  ///< Int array of selected atom numbers, 1 for each selected atom
 
     const char *MaskString() { return maskString.c_str(); }
-    char *PostfixExpression(){ return (char*)Postfix.c_str(); }
 
     AtomMask();
     ~AtomMask();
     AtomMask(const AtomMask &);
     AtomMask & operator=(const AtomMask&);
 
+    char *PostfixExpression();
     void ResetMask();              ///< Reset atom mask
     void InvertMask();             ///< Switch char used to denote selected atoms (T->F, F->T)
     AtomMask *CopyMask();          ///< Return a copy of this mask
