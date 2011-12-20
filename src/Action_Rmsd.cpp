@@ -387,6 +387,8 @@ int Rmsd::setup() {
     if (this->perResSetup()) return 1;
   }
 
+  mprintf("\t%i atoms selected.\n",FrameMask.Nselected);
+
   return 0;
 }
 
