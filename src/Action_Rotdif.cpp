@@ -426,8 +426,7 @@ void Rotdif::print() {
     }
   }
 
-  int infoflag=1;
-  tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,infoflag);
+  tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
 
   // Cleanup
   delete[] random_vectors;

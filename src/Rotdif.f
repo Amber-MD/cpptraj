@@ -591,47 +591,15 @@
       !delqfrac = 0.5d0
       ftol = 0.0000001
 
-!     Process command-line arguments:
-
-!     iarg = 0
-!     last_arg = iargc()
-!     do while (iarg < last_arg)
-!        iarg = iarg + 1
-!        call getarg(iarg,arg)
-!        if( arg == '-l') then
-!           iarg = iarg + 1
-!           call getarg(iarg,arg)
-!           read(arg,'(i1)') lflag
-!           write(6,*) 'setting lflag to ',lflag
-!        else if( arg == '-dq') then
-!           iarg = iarg + 1
-!           call getarg(iarg,arg)
-!           read(arg,'(f15.0)') delqfrac
-!           write(6,*) 'setting delqfrac to ', delqfrac
-!        else if( arg == '-deffs' ) then
-!           iarg = iarg + 1
-!           call getarg(iarg,deffs)
-!           write(6,*) 'taking deffs from ',deffs
-!        else if( arg == '-vecs' ) then
-!           iarg = iarg + 1
-!           call getarg(iarg,vecs)
-!           write(6,*) 'taking vectors from ',vecs
-!        end if
-!     end do
-
 !     deffs:  local diffusion constant vector Deff from MD (which may
 !             contain 1/(2*tau(l=1)), 1/(6*tau(l=2)), or both)
 
-      !open(unit=2,file=deffs,status='OLD',iostat=ios)
-      !do i=1,999999
       if (ndeff > mp) then
         write(6,*) 'tensorfit(): too many input deffs'
         return
       endif
       do i=1,ndeff
          deff(i) = deff_in(i)
-         !if( i>mp ) stop 'too many input deffs'
-         !read(2,*,end=95) label(i),deff(i)
          sig(i) =1.d0
       end do
 !   95 nvec=i-1
@@ -643,7 +611,6 @@
 !     m/2 vectors exist, but Deff is of length m; the second half
 !     of x is a copy of the first.
 
-      !open(unit=3,file=vecs,status='OLD',iostat=ios)
       vecidx=1 ! index into the random_vectors array
       do i=1,nvecs
         mag=0d0
@@ -668,37 +635,6 @@
       endif
       nvec = nvecs
         
-!     if((lflag==1).or.(lflag==2))then
-!       do i=1,nvec
-!          mag=0d0
-!          read(3,*) idummy, (x(i,j),j=1,3)
-!          do j=1,3
-!             mag=mag+x(i,j)*x(i,j)
-!          end do
-!          mag=dsqrt(mag)
-!          do j=1,3
-!             x(i,j)=x(i,j)/mag
-!          end do
-!       end do
-!     else if(lflag==3)then
-!       do i=1,nvec/2
-!          mag=0d0
-!          read(3,*) idummy, (x(i,j),j=1,3)
-!          do j=1,3
-!             mag=mag+x(i,j)*x(i,j)
-!          end do
-!          mag=dsqrt(mag)
-!          do j=1,3
-!             x(i,j)=x(i,j)/mag
-!          end do
-!       end do
-!       do i=1,nvec/2
-!          do j=1,3
-!             x(i+nvec/2,j)=x(i,j)
-!          end do
-!       end do
-!     end if
-
 !     generate matrix A(=e*e^T, where e are unit vectors whose 
 !     orientational correlation functions were used to extract
 !     Deff from MD); to be used to solve A*Q=Deff
@@ -708,7 +644,7 @@
       call svdsolv(a,deff,nvec,n,mp,np,cut_ratio,u,w,v,q)
 
 !     write out results of svd solution
-      if(infoflag==1)then
+      if(infoflag.gt.0)then
         do i=1,nvec
            write(4,1) (a(i,j),j=1,n)
         end do
@@ -824,18 +760,18 @@
 !     The initial guess will be the values found by SVD. 
 
 !#if 0
-!     dac: have initial values just be Diso = Qiso
-
-!     q(1) = (3.d0*dshape(1) - dia(1))/2.d0
-!     q(2) = (3.d0*dshape(1) - dia(2))/2.d0
-!     q(3) = (3.d0*dshape(1) - dia(3))/2.d0
-!     q(4) = 0.d0
-!     q(5) = 0.d0
-!     q(6) = 0.d0
+!!     dac: have initial values just be Diso = Qiso
+!
+!      q(1) = (3.d0*dshape(1) - dia(1))/2.d0
+!      q(2) = (3.d0*dshape(1) - dia(2))/2.d0
+!      q(3) = (3.d0*dshape(1) - dia(3))/2.d0
+!      q(4) = 0.d0
+!      q(5) = 0.d0
+!      q(6) = 0.d0
 !#endif
 
       call simpmin(q,n,seed,delqfrac,nsimp,np,ftol,itermax)
-      call gridsrch(q,n,seed,delqfrac_save,nsimp,np,ftol,itermax)
+      call gridsrch(q,n,delqfrac_save,np,itermax)
       
       !stop
       end subroutine tensorfit
