@@ -4,16 +4,17 @@
 #include "CpptrajStdio.h"
 // Mol2FileRoutines
 
-// Tripos Tags - must be in same order as enum type TRIPOSTAG
-const char TRIPOSTAGTEXT[4][30]={"@<TRIPOS>MOLECULE\0",
-                                 "@<TRIPOS>ATOM\0",
-                                 "@<TRIPOS>BOND\0",
-                                 "@<TRIPOS>SUBSTRUCTURE\0"
-                                };
+/// Tripos Tags - must be in same order as enum type TRIPOSTAG
+const char TRIPOSTAGTEXT[NUMTRIPOSTAGS][30]={
+  "@<TRIPOS>MOLECULE\0",
+  "@<TRIPOS>ATOM\0",
+  "@<TRIPOS>BOND\0",
+  "@<TRIPOS>SUBSTRUCTURE\0"
+};
 
-/* Mol2ScanTo()
- * Scan to the specified TRIPOS section of file
- */
+// Mol2ScanTo()
+/** Scan to the specified TRIPOS section of file
+  */
 int Mol2ScanTo( CpptrajFile *File, TRIPOSTAG tag ) {
   int tagSize;
   char buffer[MOL2BUFFERSIZE];
@@ -31,11 +32,11 @@ int Mol2ScanTo( CpptrajFile *File, TRIPOSTAG tag ) {
   return 1;
 }
 
-/* Mol2AtomName()
- * Given a Mol2 ATOM line, return atom name. Trim to 4 chars to be consistent 
- * with the rest of Amber. 
- */
-int Mol2AtomName(char *buffer, char *name) {
+// Mol2AtomName()
+/** Given a Mol2 ATOM line, return atom name. Trim to 4 chars to be consistent 
+  * with the rest of Amber. 
+  */
+int Mol2AtomName(char *buffer, NAME name) {
   char tmp[10];
   if (buffer==NULL || name==NULL) return 1;
   sscanf(buffer,"%*i %s",tmp);
@@ -43,28 +44,30 @@ int Mol2AtomName(char *buffer, char *name) {
   name[1]=tmp[1];
   name[2]=tmp[2];
   name[3]=tmp[3];
-  //PadWithSpaces(name); 
+  PadWithSpaces(name); 
   name[4]='\0';
+  // Replace asterisks with prime to prevent atom mask problems
+  ReplaceAsterisk(name);
   //mprintf("DEBUG: MOL2: name [%s]\n",name);
   return 0;
 }
 
-/* Mol2XYZ()
- * Given a Mol2 ATOM line, get the X Y and Z coords.
- */
+// Mol2XYZ()
+/** Given a Mol2 ATOM line, get the X Y and Z coords.
+  */
 int Mol2XYZ(char *buffer, double *X) {
   if (buffer==NULL || X==NULL) return 1;
   sscanf(buffer,"%*i %*s %lf %lf %lf",X, X+1, X+2);
   return 0;
 }
 
-/* Mol2AtomType
- * Given a Mol2 ATOM line, return atom type. Try to convert Sybyl atom type
- * to amber type.
- * Sybyl atom types seem to have at most 5 chars - increasing size of NAME
- * in AmberParm should be ok.
- */
-int Mol2AtomType(char *buffer, char *type) {
+// Mol2AtomType
+/** Given a Mol2 ATOM line, return atom type. Try to convert Sybyl atom type
+  * to amber type.
+  * Sybyl atom types seem to have at most 5 chars - increasing size of NAME
+  * huld be ok.
+  */
+int Mol2AtomType(char *buffer, NAME type) {
   char tmp[10];
   if (buffer==NULL || type==NULL) return 1;
   sscanf(buffer,"%*i %*s %*f %*f %*f %s",tmp);
@@ -101,10 +104,10 @@ int Mol2AtomType(char *buffer, char *type) {
   return 0;
 }
 
-/* Mol2ResNumName()
- * Get residue number and name, trim to 4 chars
- */
-int Mol2ResNumName(char *buffer, int *resnum, char *resname) {
+// Mol2ResNumName()
+/** Get residue number and name, trim to 4 chars
+  */
+int Mol2ResNumName(char *buffer, int *resnum, NAME resname) {
   char tmp[10];
   if (buffer==NULL || resnum==NULL || resname==NULL) return 1;
   sscanf(buffer,"%*i %*s %*f %*f %*f %*s %i %s",resnum,tmp);
@@ -112,14 +115,15 @@ int Mol2ResNumName(char *buffer, int *resnum, char *resname) {
   resname[1]=tmp[1]; 
   resname[2]=tmp[2]; 
   resname[3]=tmp[3];
-  //PadWithSpaces(resname);
+  PadWithSpaces(resname);
   resname[4]='\0';
+  // Replace asterisks with prime to prevent atom mask problems
+  ReplaceAsterisk(resname);
   return 0;
 }
 
-/* Mol2Charge()
- * Get charge
- */
+// Mol2Charge()
+/** Get charge */
 double Mol2Charge(char *buffer) {
   double q;
   sscanf(buffer,"%*i %*s %*f %*f %*f %*s %*i %*s %lf",&q);

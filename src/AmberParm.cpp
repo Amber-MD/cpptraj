@@ -4,7 +4,8 @@
  * parameters of AmberParm must always be set:
  *   The names, resnames, resnums arrays.
  *   The natom, boxType and nres variables.
- * NOTES:
+ * Compiler Defines:
+ * - USE_CHARBUFFER: Use CharBuffer to buffer entire file (PDB, Amber Topology) 
  */
 #include <cstring>
 #include <cstdio> // For sscanf, sprintf
@@ -813,7 +814,7 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   //for (err=0; err<nres; err++) 
   //  fprintf(stdout,"    %i: %i\n",err,resnums[err]);
 
-  // Standardize lengths of atom names and residue names. 4 chars, no
+/*  // Standardize lengths of atom names and residue names. 4 chars, no
   // leading whitespace. Wrap atom names if they start with a digit, e.g.
   // 1CA becomes CA1. Replace asterisks with ', * is reserved for the mask
   // parser.
@@ -829,7 +830,7 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
     PadWithSpaces(resnames[res]); 
     TrimName(resnames[res]);
     ReplaceAsterisk(names[res]);
-  }
+  }*/
 
   // Set up bond information if specified and necessary
   if (bondsearch) {
@@ -1230,16 +1231,21 @@ int AmberParm::ReadParmPDB(CpptrajFile &parmfile) {
   int atomInLastMol = 0;
   unsigned int crdidx = 0;
 
+#ifdef USE_CHARBUFFER
   // TEST: Close and reopen buffered.
   parmfile.CloseFile();
   parmfile.OpenFileBuffered();
+#endif
 
   mprintf("    Reading PDB file %s as topology file.\n",parmName);
   currResnum=-1;
   memset(buffer,' ',256);
-
-  //while ( parmfile->IO->Gets(buffer,256)==0 ) {
-  while ( parmfile.Gets(buffer,256) == 0 ) {
+#ifdef USE_CHARBUFFER
+  while ( parmfile.Gets(buffer,256) == 0 ) 
+#else
+  while ( parmfile.IO->Gets(buffer,256)==0 ) 
+#endif
+  {
     // If ENDMDL or END is reached stop reading
     if ( strncmp(buffer,"END",3)==0) break;
     // If TER increment number of molecules and continue
@@ -1441,7 +1447,8 @@ int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
   * Mask selection requires natom, nres, names, resnames, resnums.
   */
 int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
-  char buffer[256],tag[256],psfname[NAMESIZE];
+  char buffer[256],tag[256];
+  NAME psfname, psfresname;
   int bondatoms[8];
   int currResnum;
   int psfresnum;
@@ -1489,8 +1496,10 @@ int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
     //if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
     // Read line
     // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    sscanf(buffer,"%*8i %*4s %i %4s %4s %4i %14lf %14lf",&psfresnum,tag,psfname,
+    sscanf(buffer,"%*8i %*4s %i %4s %4s %4i %14lf %14lf",&psfresnum,psfresname,psfname,
            &psfattype,charge+atom,mass+atom);
+    // Ensure name has 4 chars
+    PadWithSpaces( psfname );
     strcpy(names[atom],psfname);
     // If this residue number is different than the last, allocate mem for new res
     if (currResnum!=psfresnum) {
@@ -1498,7 +1507,9 @@ int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
         memcpy(temprname, resnames, nres * sizeof(NAME));
         delete[] resnames;
         resnames = temprname;
-        strcpy(resnames[nres],tag);
+        // Ensure resname has 4 chars
+        PadWithSpaces( psfresname );
+        strcpy(resnames[nres],psfresname);
         if (debug>3) mprintf("        PSFRes %i [%s]\n",nres,resnames[nres]);
         int *temprnum = new int[ nres+1 ];
         memcpy(temprnum, resnums, nres * sizeof(int));
@@ -1761,13 +1772,25 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
   * residues in different molecules are not considered.
   */
 void AmberParm::GetBondsFromCoords() {
-  int res, startatom, stopatom, midatom,atom1, atom2, idx1, idx2;
-  double D, cut;
+  int res, startatom, stopatom, midatom,atom1, atom2, idx1, idx2, stopResnum;
+  double D2, cutoff2;
   int *resmols;
+  int firstSolventResidue = -1;
+
+  // NOTE: Can either attempt to be very accurate by determining atomic
+  // element from atom name and getting the cutoff that way, use input radii
+  // to determine an appropriate cutoff (the largest radius scaled by some
+  // factor), or just use a fixed cutoff (which is very fast). Use cutoff^2
+  // to compare to dist^2 and avoid the sqrt op.
+  //cutoff2 = 0.99920016; // (0.833 * 1.2)^2
+
   if (parmCoords==NULL) return;
   mprintf("\t%s: determining bond info from distances.\n",parmName);
   // Determine bonds within residues.
   for (res = 0; res < nres; res++) {
+    // Check if this residue is the first solvent molecule.
+    if (firstSolventResidue==-1 && IsSolventResname(resnames[res]))
+      firstSolventResidue = res;
     startatom = resnums[res];
     stopatom = resnums[res+1];
     //mprintf("\t\tDetermining bonds within residue %i\n",res);
@@ -1775,33 +1798,45 @@ void AmberParm::GetBondsFromCoords() {
       idx1 = atom1 * 3;
       for (atom2 = atom1 + 1; atom2 < stopatom; atom2++) {
         idx2 = atom2 * 3;
-        D = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
+        D2 = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
         //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
-        cut = GetBondedCut(names[atom1],names[atom2]);
-        cut *= cut; // Op '*' less expensive than sqrt
+        cutoff2 = GetBondedCut(names[atom1],names[atom2]);
+        cutoff2 *= cutoff2; // Op '*' less expensive than sqrt
 //        if (debug>0) {
 //          if (debug==1) {
-//            if (D<cut) mprintf("\tBOND: %s %i to %s %i\n",names[atom1],atom1+1,
-//                                names[atom2],atom2+1);
+//            if (D2<cutoff2) mprintf("\tBOND: %s %i to %s %i\n",names[atom1],atom1+1,
+//                                    names[atom2],atom2+1);
 //          } else if (debug > 1) {
-//            mprintf("Distance between %s %i and %s %i is %lf, cut %lf",names[atom1],atom1+1,
-//                    names[atom2],atom2+1,D,cut);
-//            if (D<cut) mprintf(" bonded!");
+//            mprintf("Distance between %s %i and %s %i is %lf, cutoff2 %lf",names[atom1],atom1+1,
+//                    names[atom2],atom2+1,D2,cutoff2);
+//            if (D2<cutoff2) mprintf(" bonded!");
 //            mprintf("\n");
 //          }
 //        }
-        if (D < cut) AddBond(atom1,atom2,-1);
+        if (D2 < cutoff2) {
+          AddBond(atom1,atom2,-1);
+          // Test: Once a bond has been made to hydrogen move on
+          if (names[atom1][0]=='H') break;
+        }
       }
     }
   }
 
+  // Dont want to check for bonds between residues once we are in a 
+  // solvent region, so set the last residue to be searched to the final
+  // solute residue.
+  if (firstSolventResidue!=-1)
+    stopResnum = firstSolventResidue;
+  else
+    stopResnum = nres;
+
   // If atomsPerMol has been set up, create an array that will contain the 
   // molecule number of each residue.
-  resmols = new int[ nres ];
+  resmols = new int[ stopResnum ];
   if (atomsPerMol!=NULL) {
     int molnum = 0;
     int atotal = atomsPerMol[0];
-    for (res = 0; res < nres; res++) {
+    for (res = 0; res < stopResnum; res++) {
       resmols[res] = molnum;
       if (resnums[res+1] >= atotal) {
         molnum++;
@@ -1810,13 +1845,13 @@ void AmberParm::GetBondsFromCoords() {
       }
     }
   } else
-    memset(resmols, 0, nres * sizeof(int));
+    memset(resmols, 0, stopResnum * sizeof(int));
   // DEBUG
-  //for (res = 0; res < nres; res++) 
+  //for (res = 0; res < stopResnum; res++) 
   //  mprintf("DEBUG\tRes %8i %4s Mol %8i\n",res+1,resnames[res],resmols[res]);
 
-  // Determine bonds between adjacent residues.
-  for (res = 1; res < nres; res++) {
+  // Determine bonds between adjacent residues. 
+  for (res = 1; res < stopResnum; res++) {
     // Dont check for bonds between residues that are in different molecules
     if (resmols[res-1] != resmols[res]) continue;
     startatom = resnums[res-1];
@@ -1825,12 +1860,16 @@ void AmberParm::GetBondsFromCoords() {
     //mprintf("\t\tDetermining bonds between residues %i and %i\n",res-1,res);
     for (atom1 = startatom; atom1 < midatom; atom1++) {
       idx1 = atom1 * 3;
+      // Test: Hydrogen should not bond across residues
+      if (names[atom1][0]=='H') continue;
       for (atom2 = midatom; atom2 < stopatom; atom2++) {
         idx2 = atom2 * 3;
-        D = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
-        cut = GetBondedCut(names[atom1],names[atom2]);
-        cut *= cut;
-        if (D < cut) AddBond(atom1,atom2,-1);
+        // Test: Hydrogen should not bond across residues
+        if (names[atom2][0]=='H') continue;
+        D2 = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
+        cutoff2 = GetBondedCut(names[atom1],names[atom2]);
+        cutoff2 *= cutoff2;
+        if (D2 < cutoff2) AddBond(atom1,atom2,-1);
       } 
     }
   }
