@@ -29,11 +29,11 @@ dependclean:
 	-/bin/rm FindDepend.o
 	-/bin/rm findDepend
 
-cpptraj$(SFX): $(NETCDFLIB) $(OBJECTS) $(PTRAJ_OBJECTS) $(EXTERNAL_LIBS) 
+cpptraj$(SFX): $(NETCDF) $(OBJECTS) $(PTRAJ_OBJECTS) $(EXTERNAL_LIBS) 
 	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
 
-$(NETCDFLIB): ../../netcdf_config.log
+$(INCDIR)/netcdf.mod: ../../netcdf_config.log
 	cd ../../netcdf/src && $(MAKE) install
 
 $(LIBDIR)/libarpack.a:
