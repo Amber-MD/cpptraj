@@ -56,7 +56,7 @@ int AmberRestart::openTraj() {
         mprinterr("Error: AmberRestart::open(): Reading restart atoms/time.\n");
         return 1;
       }
-      nread=sscanf(buffer,"%5i%15lE%15lE",&restartAtoms,&restartTime,&restartTemp);
+      nread=sscanf(buffer,"%i %lE %lE",&restartAtoms,&restartTime,&restartTemp);
       if (nread<1) {
         mprinterr("Error: AmberRestart::open(): Getting restart atoms/time.\n");
         return 1;
