@@ -9,11 +9,19 @@
 #include "AtomMask.h"
 // Class: AmberParm 
 /** Hold all data pertaining to a molecular system (# atoms, atom names, 
-  * etc). Can be read in from Amber Topology, PDB, or Mol2 files (implemented 
-  * in the ReadParmXXX functions). The following parameters of AmberParm must 
-  * always be set:
-  * - Variables: natom, nres, boxType 
-  * -    Arrays: names, resnames, resnums
+  * etc). Can be read in from Amber Topology, PDB, Mol2, or Charmm PSF 
+  * files (implemented in the ReadParmXXX functions). The following 
+  * parameters of AmberParm must always be set so the mask parser will 
+  * function correctly:
+  * - Arrays: names, resnames, resnums
+  * - Variables: natom, nres 
+  * Other actions may require additional info, such as bonding or surface area
+  * terms. Note that in accordance with the rest of Amber, cpptraj expects 
+  * atom/residue names etc (type defined in Name.h) to be uniformly 4 characters 
+  * long, left-aligned, and it is up to the ReadParmXXX function to ensure this 
+  * is the case. For example:
+  * - Correct: [CA  ]
+  * - Incorrect: [CA]
   */
 class AmberParm {
   private:
@@ -156,13 +164,13 @@ class AmberParm {
     int SetupIntegerMask(AtomMask &, double *);
     int SetupCharMask(AtomMask &, double *);
 
-    int NumExcludedAtoms(int);
-    int Natex(int);
+    int SetupExcludedAtomsList(AtomMask &, std::vector< std::vector<int> > &);
     int GetLJparam(double *, double *, int, int);
     int GetBondParamIdx(int, double *, double *);
     double GetBondedCutoff(int, int);
     //int GetBondParam(double *, double *, int, int);
     int SetCharges(double*);
+    /// Set the input array with atom charges in Amber format (pre-multiplied by 18.2223)
     int AmberChargeArray(std::vector<double>&);
     double AtomCharge(int);
     int AtomsPerMol(int );

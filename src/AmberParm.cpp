@@ -1,9 +1,4 @@
 /* AmberParm.cpp
- * Class that holds parameter information. Can be read in from Amber Topology,
- * PDB, or Mol2 files (implemented in the ReadParmXXX functions). The following
- * parameters of AmberParm must always be set:
- *   The names, resnames, resnums arrays.
- *   The natom, boxType and nres variables.
  * Compiler Defines:
  * - USE_CHARBUFFER: Use CharBuffer to buffer entire file (PDB, Amber Topology) 
  */
@@ -18,8 +13,9 @@
 #include "CpptrajStdio.h"
 // For searching for bonds by distance (PDB etc)
 #include "DistRoutines.h"
-
+/// Number of variables expected in the POINTERS section of Amber topology
 #define AMBERPOINTERS 31
+/// Convert charges from electron charge to Amber units (w/ prefactor)
 #define ELECTOAMBER 18.2223
 #define AMBERTOELEC 1/ELECTOAMBER
 // =============================================================================
@@ -167,8 +163,17 @@ void AmberParm::SetDebug(int debugIn) {
   if (debug>0) mprintf("AmberParm debug set to %i\n",debug);
 }
 
-// -----------------------------------------------------------------------------
+// ---------- MASK PARSER ROUTINES --------------------------------------------- 
 // AmberParm::SetupAtomMask()
+/** Given an atommask which has a mask expression, set it up for this topology.
+  * Most routines will not call this directly, but will call SetupIntegerMask
+  * or SetupCharMask.
+  * \param atommaskIn The AtomMask to set-up.
+  * \param Xin Optional coordinates for setting up distance-based masks.
+  * \param isCharMask True if atommaskIn should be set up as a character
+  *                   mask, false if it should be set up as an integer mask.
+  * \return 1 on error, 0 on success.
+  */
 int AmberParm::SetupAtomMask(AtomMask &atommaskIn, double *Xin, bool isCharMask) {
   char *atommask_postfix;
   char *ptraj_charmask;
@@ -199,17 +204,19 @@ int AmberParm::SetupAtomMask(AtomMask &atommaskIn, double *Xin, bool isCharMask)
   return 0;
 } 
 
-// AmberParm::SetupIntegerMask()  
+// AmberParm::SetupIntegerMask()
+/** Set up the given AtomMask as an integer mask. */  
 int AmberParm::SetupIntegerMask(AtomMask &atommaskIn, double *Xin) {
   return SetupAtomMask(atommaskIn, Xin, false);
 }
 
 // AmberParm::SetupCharMask()
+/** Set up the given AtomMask as a character mask. */
 int AmberParm::SetupCharMask(AtomMask &atommaskIn, double *Xin) {
   return SetupAtomMask(atommaskIn, Xin, true);
 }
 
-// -----------------------------------------------------------------------------
+// ---------- ROUTINES FOR ACCESSING RESIDUE AND ATOM INFORMATION -------------- 
 // AmberParm::ResName()
 /** Given a residue number, set buffer with residue name and number with format:
   * <resname[res]><res+1>, e.g. ARG_11. Replace any blanks in resname with '_'.
@@ -262,8 +269,11 @@ char *AmberParm::ResidueName(int res) {
 }
 
 // AmberParm::FindAtomInResidue()
-/** Given a residue number and an atom name, return the atom number. If
-  * the given atom name is not in the given residue, return -1.
+/** Find the atom # of the specified atom name in the given residue.
+  * \param res Residue number to search.
+  * \param atname Atom name to find.
+  * \return the atom number of the specified atom if found in the given residue.
+  * \return -1 if atom not found in given residue.
   */
 int AmberParm::FindAtomInResidue(int res, char *atname) {
   if (res < 0 || res >= nres) return -1;
@@ -274,7 +284,7 @@ int AmberParm::FindAtomInResidue(int res, char *atname) {
 }
 
 // AmberParm::ResAtomRange()
-/// Set the first and last+1 atoms for the given residue
+/** Set the first and last+1 atoms for the given residue */
 int AmberParm::ResAtomRange(int resIn, int *startatom, int *stopatom) {
   if (resIn < 0 || resIn >= nres) {
     *startatom = 0;
@@ -310,18 +320,105 @@ bool AmberParm::AtomElementIs(int atom, AtomicElementType elementIn) {
   return false;
 }
 
-// -------------------- ROUTINES FOR ACCESSING INTERNAL DATA -------------------
-int AmberParm::NumExcludedAtoms(int atom) {
-  if (numex==NULL) return -1;
-  if (atom<0 || atom>=natom) return -1;
-  return numex[atom];
+// ---------- ROUTINES FOR ACCESSING INTERNAL PARAMETERS -----------------------
+// AmberParm::SetupExcludedAtomsList()
+/** Set up a vector that contains the exclusion list for each atom in the
+  * given mask. The exclusion list for each atom will be terminated by a
+  * -1 in order to easily check for the end of the excluded atoms list
+  * which is useful e.g. when iterating over atom pairs in Action_Pairwise.
+  * Atoms not in the mask will have a completely empty exclusion list.
+  * There should be ((N^2 - N) / 2) - SUM(Numex) interactions, however
+  * since the excluded atoms list can include 0 as a placeholder (thereby
+  * having a Numex of 1) there may be more interactions than expected,
+  * so subtract the actual number of excluded atoms from the total as
+  * the overall exclusion list is built.
+  * \param maskIn AtomMask (integer) containing atoms that will be calcd.
+  * \param exclusionList Vector of vectors containing exclusion list for
+  *                      each atom.
+  * \return the total number of interactions between atoms in mask.
+  * \return -1 on error.
+  */
+int AmberParm::SetupExcludedAtomsList(AtomMask &maskIn, 
+                                      std::vector< std::vector<int> > &exclusionList) 
+{
+  int N_interactions;
+
+  // Resize excluded atom list for current number of atoms
+  exclusionList.clear();
+  exclusionList.resize( natom );
+
+  // Calculate the initial number of interactions
+  N_interactions = (((maskIn.Nselected * maskIn.Nselected) - maskIn.Nselected) / 2);
+
+  // If no exclusion information, just set -1 for each atom's exclusion list.
+  // Since no atoms are excluded the total number of interactions do not need
+  // to be modified.
+  if (numex==NULL) {
+    for (std::vector<int>::iterator maskatom1 = maskIn.Selected.begin(); 
+                                    maskatom1 != maskIn.Selected.end(); 
+                                    maskatom1++)
+      exclusionList[ *maskatom1 ].push_back( -1 );
+
+  // If there is exclusion information, for each atom in the mask add its 
+  // excludedAtoms (that are also in the mask) and subtract the number excluded 
+  // from the overall number of interactions.
+  } else {
+    // Need to ensure that atoms in the exclusion list are also in the mask, so set 
+    // up a copy of maskIn that is a character mask for this purpose.
+    AtomMask Mask2 = maskIn;
+    if (Mask2.ConvertMaskType()) {
+      mprinterr("Error: AmberParm::SetupExcludedAtomsList: Could not convert mask.\n");
+      return -1;
+    }
+    int natex_idx = 0; // Index into excludedAtoms (NATEX)
+    for (int atom = 0; atom < natom; atom++) {
+      // Check if this atom is in the mask. If so, put all of its excluded
+      // atoms that are also in the mask into the excluded list for this
+      // atom. If not, just increment the index into excludedAtoms.
+      if ( Mask2.AtomInCharMask( atom ) ) {
+        for (int e_idx = 0; e_idx < numex[atom]; e_idx++) {
+          int excluded_atom = excludedAtoms[ natex_idx++ ];
+          if ( Mask2.AtomInCharMask( excluded_atom ) )
+            exclusionList[ atom ].push_back( excluded_atom );
+        }
+        // Push back a final -1. Since no atom will ever have this number
+        // it signals the end of the exclusion list for this atom. 
+        exclusionList[ atom ].push_back( -1 );
+        // The total number of excluded atoms for this atom is now the size
+        // of the vector minus one (for the terminal -1).
+        int total_excluded = (int)exclusionList[ atom ].size();
+        N_interactions -= (total_excluded - 1);
+      } else {
+        natex_idx += numex[atom];
+      }
+    } // END loop over all atoms
+  }
+  // DEBUG - Print total number of interactions for this parm
+  if (debug > 0) {
+    mprintf("\t%i interactions for %s.\n",N_interactions,parmName);
+
+    // DEBUG - Print exclusion list for each atom
+    if (debug > 1) {
+      for (unsigned int atom = 0; atom < exclusionList.size(); atom++) {
+        mprintf("\t%8u:",atom + 1);
+        for (std::vector<int>::iterator eat = exclusionList[atom].begin();
+                                        eat != exclusionList[atom].end();
+                                        eat++)
+        {
+          mprintf(" %i",*eat + 1);
+        }
+        mprintf("\n");
+      }
+    }
+  }
+
+  return N_interactions;
 }
 
-int AmberParm::Natex(int idx) {
-  if (excludedAtoms==NULL) return -1;
-  return excludedAtoms[idx];
-}
-
+// AmberParm::GetLJparam()
+/** Get the LJ 6-12 A and B coefficients (in Amber units) for the given 
+  * pair of atoms.
+  */
 int AmberParm::GetLJparam(double *A, double *B, int atom1, int atom2) {
   int param, index;
   // atype_index = IAC(NATOM)
@@ -354,7 +451,8 @@ int AmberParm::GetBondParamIdx(int idxIn, double *rk, double *req) {
 }
 
 // AmberParm::GetBondedCutoff()
-/// Return bond distance for the two given atoms based on their names.
+/** Return bond distance for the two given atoms based on their names.
+  */
 double AmberParm::GetBondedCutoff(int atom1, int atom2) {
   if (atom1 < 0 || atom1 >= natom) return 0;
   if (atom2 < 0 || atom2 >= natom) return 0;
@@ -409,7 +507,7 @@ double AmberParm::GetBondedCutoff(int atom1, int atom2) {
 }*/
 
 // AmberParm::SetCharges()
-/// Set the atomic charges from the given array.
+/** Set the atomic charges from the given array. */
 int AmberParm::SetCharges(double *chargeIn) {
   if (chargeIn==NULL) return 1;
   if (charge==NULL) charge = new double[ natom ];
@@ -418,7 +516,6 @@ int AmberParm::SetCharges(double *chargeIn) {
 }
 
 // AmberParm::AmberChargeArray()
-/// Set the input array with atom charges in Amber format (pre-multiplied by 18.2223)
 /** Charge is in units of electron charge, distance is in angstroms, so 
   * the electrostatic prefactor should be 332. However, since the charges
   * in AmberParm have been converted from Amber charge units, create a new 
@@ -431,14 +528,14 @@ int AmberParm::SetCharges(double *chargeIn) {
 int AmberParm::AmberChargeArray(std::vector<double>& atom_charge) {
   if (charge==NULL) return 1;
   atom_charge.clear();
-  atom_charge.resize(natom, 18.2223);
+  atom_charge.resize(natom, ELECTOAMBER);
   for (int atom = 0; atom < natom; atom++)
     atom_charge[atom] *= charge[atom];
   return 0;
 }
 
 // AmberParm::AtomCharge()
-/// Return charge on given atom
+/** Return charge on given atom. */
 double AmberParm::AtomCharge(int atomIn) {
   if (charge==NULL) return 0;
   if (atomIn<0 || atomIn >= natom) return 0;
@@ -446,16 +543,17 @@ double AmberParm::AtomCharge(int atomIn) {
 }
 
 // AmberParm::AtomsPerMol()
-/// Return number of atoms in given molecule.
+/** Return number of atoms in given molecule. */
 int AmberParm::AtomsPerMol(int molIn) {
   if (atomsPerMol==NULL) return 0;
   if (molIn < 0 || molIn >= molecules) return 0;
   return atomsPerMol[molIn];
 }
 
-// -------------------- ROUTINES PERTAINING TO SURFACE AREA --------------------
+// ---------- ROUTINES PERTAINING TO SURFACE AREA ------------------------------
 // AssignLCPO()
-/// Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
+/** Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
+  */
 // NOTE: Member function so it can have access to SurfInfo.
 void AmberParm::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2, 
                            double P3, double P4) {
@@ -619,9 +717,9 @@ int AmberParm::SetSurfaceInfo() {
   return numSoluteAtoms;
 }
 
-// -------------------- ROUTINES PERTAINING TO SOLVENT INFO --------------------
+// ---------- ROUTINES PERTAINING TO SOLVENT INFO ------------------------------
 // AmberParm::IsSolventResname()
-/// Return true if the residue name corresponds to solvent.
+/** Return true if the residue name corresponds to solvent. */
 bool AmberParm::IsSolventResname(NAME resnameIn) {
   if ( strcmp("WAT ", resnameIn) == 0 ||
        strcmp(" WAT", resnameIn) == 0 ||
@@ -762,10 +860,15 @@ int AmberParm::SetSolventInfo() {
 
   return 0; 
 }
-    
-// --------========= ROUTINES PERTAINING TO READING PARAMETERS =========--------
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
+// |--------- ROUTINES PERTAINING TO READING PARAMETERS -----------------------|
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
 // AmberParm::OpenParm()
-/// Attempt to open file and read in parameters.
+/** Attempt to open file and read in parameters. Note that it is expected that
+  * any variables associated with NAME (names and resnames in particular) will
+  * be 4 chars long with no leading whitespace.
+  */
 int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   CpptrajFile parmfile;
   int err=0;
@@ -814,24 +917,6 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   //for (err=0; err<nres; err++) 
   //  fprintf(stdout,"    %i: %i\n",err,resnums[err]);
 
-/*  // Standardize lengths of atom names and residue names. 4 chars, no
-  // leading whitespace. Wrap atom names if they start with a digit, e.g.
-  // 1CA becomes CA1. Replace asterisks with ', * is reserved for the mask
-  // parser.
-  // NOTE: It appears the mask parser is OK with names starting with digits,
-  //       so dont worry about that for now.
-  for (int atom=0; atom < natom; atom++) { 
-    PadWithSpaces(names[atom]);
-    TrimName(names[atom]);
-    //WrapName(names[atom]);
-    ReplaceAsterisk(names[atom]);
-  }
-  for (int res=0; res < nres; res++) {
-    PadWithSpaces(resnames[res]); 
-    TrimName(resnames[res]);
-    ReplaceAsterisk(names[res]);
-  }*/
-
   // Set up bond information if specified and necessary
   if (bondsearch) {
     if (bonds==NULL && bondsh==NULL && parmCoords!=NULL)
@@ -859,6 +944,7 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   return 0;
 }
 
+// ---------- ROUTINES FOR AMBER TOPOLOGY --------------------------------------
 // AmberParm::SetParmFromValues()
 /** Used by ReadParmAmber and ReadParmOldAmber to set AmberParm variables
   * from the POINTERS section of the parmtop.
@@ -900,7 +986,7 @@ void AmberParm::SetParmFromValues(int *values, bool isOld) {
 }
 
 // AmberParm::ReadParmOldAmber()
-/// Read parameters from an old style (Amber < v7) topology file.
+/** Read parameters from an old style (Amber < v7) topology file. */
 int AmberParm::ReadParmOldAmber(CpptrajFile &parmfile) {
   char *title;
   int values[30], ifbox;
@@ -1006,7 +1092,7 @@ int AmberParm::ReadParmOldAmber(CpptrajFile &parmfile) {
 }
 
 // AmberParm::ReadParmAmber() 
-/// Read parameters from Amber Topology file
+/** Read parameters from Amber Topology file. */
 int AmberParm::ReadParmAmber(CpptrajFile &parmfile) {
   int ifbox;
   int *solvent_pointer;
@@ -1192,6 +1278,7 @@ int AmberParm::ReadParmAmber(CpptrajFile &parmfile) {
   return 0;
 }
 
+// ---------- ROUTINES FOR PDB TOPOLOGY ----------------------------------------
 // AmberParm::SetAtomsPerMolPDB()
 /** Use in ReadParmPDB only, when TER is encountered or end of PDB file
   * update the atomsPerMol array. Take number of atoms in the molecule
@@ -1353,8 +1440,9 @@ int AmberParm::ReadParmPDB(CpptrajFile &parmfile) {
   return 0;
 }
 
+// ---------- ROUTINES FOR MOL2 TOPOLOGY --------------------------------------
 // AmberParm::ReadParmMol2()
-/// Read file as a Tripos Mol2 file.
+/** Read file as a Tripos Mol2 file. */
 int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
   char buffer[MOL2BUFFERSIZE];
   int mol2bonds;
@@ -1442,6 +1530,7 @@ int AmberParm::ReadParmMol2(CpptrajFile *parmfile) {
   return 0;
 }
 
+// ---------- ROUTINES FOR PSF TOPOLOGY ----------------------------------------
 // AmberParm::ReadParmPSF()
 /** Open the Charmm PSF file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
@@ -1557,9 +1646,9 @@ int AmberParm::ReadParmPSF(CpptrajFile *parmfile) {
   return 0;
 }
 
-// -----------------------------------------------------------------------------
+// ---------- ROUTINES FOR PRINTING PARM INFORMATION ---------------------------
 // AmberParm::AtomInfo()
-/// Print parm information for atom.
+/** Print parm information for atom. */
 void AmberParm::AtomInfo(int atom) {
   int res = atomToResidue(atom);
   mprintf("  Atom %i:",atom+1);
@@ -1577,7 +1666,7 @@ void AmberParm::AtomInfo(int atom) {
 }
 
 // AmberParm::Info()
-/// Print information about this parm to buffer.
+/** Print information about this parm to buffer. */
 void AmberParm::ParmInfo() {
   if (parmfileName!=NULL)
     mprintf(" %i: %s, %i atoms, %i res",pindex,parmfileName,natom,nres);
@@ -1616,7 +1705,7 @@ void AmberParm::Summary() {
 }
 
 // AmberParm::PrintBondInfo()
-/// Print information contained in bonds and bondsh arrays.
+/** Print information contained in bonds and bondsh arrays. */
 void AmberParm::PrintBondInfo() {
   int atom1,atom2,atomi;
   if ((NbondsWithH + NbondsWithoutH) <= 0) {
@@ -1644,7 +1733,7 @@ void AmberParm::PrintBondInfo() {
 }
 
 // AmberParm::PrintMoleculeInfo()
-/// Print information on molecules in PRMTOP
+/** Print information on molecules. */
 void AmberParm::PrintMoleculeInfo() {
   int atomcount = 0;
   int resid;
@@ -1663,16 +1752,16 @@ void AmberParm::PrintMoleculeInfo() {
 }
 
 // AmberParm::PrintResidueInfo()
-/// Print information on residues in PRMTOP
+/** Print information on residues. */
 void AmberParm::PrintResidueInfo() {
   mprintf("RESIDUES:\n");
   for (int res = 0; res < nres; res++) 
     mprintf("\tResidue %i, %s, first atom %i\n",res+1,resnames[res],resnums[res]+1);
 }
 
-// -----------------------------------------------------------------------------
+// ---------- ROUTINES FOR CONVERTING ATOM/RESIDUE/MOLCULE NUMBERS -------------
 // AmberParm::atomToResidue()
-/// Given an atom number, return corresponding residue number.
+/** Given an atom number, return corresponding residue number. */
 int AmberParm::atomToResidue(int atom) {
   int i;
   if (atom >= 0 && atom < natom) {
@@ -1684,7 +1773,7 @@ int AmberParm::atomToResidue(int atom) {
 }
 
 // AmberParm::atomToMolecule()
-/// Given an atom number, return corresponding molecule number.
+/** Given an atom number, return corresponding molecule number. */
 int AmberParm::atomToMolecule(int atom) {
   int a = 0;
   if (atom >= 0 && atom < natom) {
@@ -1697,7 +1786,7 @@ int AmberParm::atomToMolecule(int atom) {
 }
 
 // AmberParm::atomToSolventMolecule()
-/// Given an atom number, return corresponding solvent molecule
+/** Given an atom number, return corresponding solvent molecule. */
 // NOTE: Could this be achieved with atomToMolecule and solventMask?
 int AmberParm::atomToSolventMolecule(int atom) {
   int i, atom1;
@@ -1713,9 +1802,9 @@ int AmberParm::atomToSolventMolecule(int atom) {
   return -1;
 }
 
-// -----------------------------------------------------------------------------
+// ---------- ROUTINES PERTAINING TO BOND INFORMATION --------------------------
 // AmberParm::ResetBondInfo()
-/// Reset the bonds and bondsh arrays, as well as NBONH and NBONA
+/** Reset the bonds and bondsh arrays, as well as NBONH and NBONA */
 void AmberParm::ResetBondInfo() {
   if (bonds!=NULL) delete[] bonds;
   bonds=NULL;
@@ -1960,6 +2049,7 @@ int AmberParm::BondArrayWithParmIdx(std::vector<int> &bondarray) {
   return 0;
 }
 
+// ---------- ROUTINES PERTAINING TO BONDS IN BONDINFO CLASS -------------------
 // AmberParm::SetupBondInfo()
 /// Set up the BondInfo structure from the bonds and bondsh arrays.
 // NOTE: This can eventually be used to replace the bonds and bondsh arrays,
@@ -2057,7 +2147,8 @@ int AmberParm::DetermineMolecules() {
   return 0;
 }
 
-/// Setup excluded atoms list and numex based on bond info
+// AmberParm::SetupExcludedAtoms()
+/** Setup excluded atoms list and numex based on bond info */
 int AmberParm::SetupExcludedAtoms() {
   if (SetupBondInfo()) {
     mprinterr("Error: SetupExcludedAtoms: No bond information in parm %s.\n",parmName);
@@ -2070,7 +2161,7 @@ int AmberParm::SetupExcludedAtoms() {
   return 0;
 }
 
-// -----------------------------------------------------------------------------
+// ---------- ROUTINES PERTAINING TO MODIFYING THE PARM ------------------------
 // SetupSequentialArray()
 /// Given an atom map and old sequential array, set up new sequential array.
 /** Given an array with format [I0J0...X0][I1J1...] where the entries up to
@@ -2258,12 +2349,12 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
 }
 
 // AmberParm::modifyStateByMask()
-// Adapted from ptraj
 /**  The goal of this routine is to create a new AmberParm (newParm)
   *  based on the current AmberParm (this), deleting atoms that are
   *  not in the Selected array.
   */
 // NOTE: Make all solvent/box related info dependent on IFBOX only?
+// NOTE: Eventually convert so atom mask is passed in.
 AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix) {
   AmberParm *newParm;
   int selected;
@@ -2312,6 +2403,16 @@ AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix
   } 
   if (this->molecules>0) 
     newParm->atomsPerMol = new int[ molecules ];
+
+  // Set stripped parm name based on prefix: <prefix>.<oldparmname>
+  // If no prefix given set name as: strip.<oldparmname>
+  if (prefix!=NULL) {
+    newParm->parmName=new char[ strlen(this->parmName)+strlen(prefix)+2 ];
+    sprintf(newParm->parmName,"%s.%s",prefix,this->parmName);
+  } else {
+    newParm->parmName=new char[ strlen(this->parmName)+7];
+    sprintf(newParm->parmName,"strip.%s",this->parmName);
+  }
 
   // Set first solvent molecule to -1 for now. If there are no solvent 
   // molecules left in newParm after strip it will be set to 0.
@@ -2508,20 +2609,11 @@ AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix
     newParm->Box[i] = this->Box[i];
   newParm->boxType=this->boxType;
 
-  // Set stripped parm name based on prefix: <prefix>.<oldparmname>
-  // If no prefix given set name as: strip.<oldparmname>
-  if (prefix!=NULL) {
-    newParm->parmName=new char[ strlen(this->parmName)+strlen(prefix)+2 ];
-    sprintf(newParm->parmName,"%s.%s",prefix,this->parmName);
-  } else {
-    newParm->parmName=new char[ strlen(this->parmName)+7];
-    sprintf(newParm->parmName,"strip.%s",this->parmName);
-  }
 
   return newParm;
 }
 
-// -----------------------------------------------------------------------------
+// ---------- ROUTINES FOR WRITING PARM INFORMATION ----------------------------
 // AmberParm::WriteAmberParm()
 /// Write out information from current AmberParm to an Amber parm file
 int AmberParm::WriteAmberParm(char *filename) {

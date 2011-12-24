@@ -128,13 +128,8 @@ int Pairwise::init( ) {
   * \return the total number of interactions, -1 on error.
   */
 int Pairwise::SetupNonbondParm(AtomMask &maskIn, AmberParm *ParmIn) {
-  bool hasExclusion;
   int N_interactions = 0;
-  // Check if exclusion info present
-  if (ParmIn->NumExcludedAtoms(0)==-1) 
-    hasExclusion=false;
-  else
-    hasExclusion=true;
+
   // Charge is in units of electron charge, distance is in angstroms, so 
   // the electrostatic prefactor should be 332. However, since the charges
   // in AmberParm have presumably been converted from Amber charge units
@@ -155,45 +150,8 @@ int Pairwise::SetupNonbondParm(AtomMask &maskIn, AmberParm *ParmIn) {
     }
   }
 
-  // There should be ((N^2 - N) / 2) - SUM(Numex) interactions, however
-  // since the excluded atoms list can include 0 as a placeholder (thereby
-  // having a Numex of 1) there may be more interactions than expected,
-  // so subtract the actual number of excluded atoms from the total as
-  // the overall exclusion list is built. 
-  N_interactions = (((maskIn.Nselected * maskIn.Nselected) - maskIn.Nselected) / 2);
-
-  // Set up exclusion list for each atom in mask. Ensure that atoms in
-  // the exclusion list are also in the mask, so set up another character
-  // mask for this purpose.
-  AtomMask Mask2 = maskIn;
-  if ( ParmIn->SetupCharMask( Mask2, activeReference) ) return -1;
-  // natex_idx is the index into parm NATEX
-  int natex_idx = 0;
-  // Resize excluded atom list for current number of atoms
-  exclusionList.clear();
-  exclusionList.resize( ParmIn->natom );
-  for ( std::vector<int>::iterator maskatom1 = maskIn.Selected.begin();
-                                   maskatom1 != maskIn.Selected.end();
-                                   maskatom1++)
-  {
-    if (hasExclusion) {
-      for (int e_idx = 0; e_idx < ParmIn->NumExcludedAtoms(*maskatom1); e_idx++)
-      {
-        int excluded_atom = ParmIn->Natex( natex_idx++ );
-        if ( Mask2.AtomInCharMask( excluded_atom ) )
-          exclusionList[ *maskatom1 ].push_back( excluded_atom );
-      }
-    }
-    // Push back a final -1. Since no atom will ever have this number
-    // it signals the end of the exclusion list for this atom. If there
-    // are no excluded atoms for this atom that mean the excluded list
-    // will contain only this value.
-    exclusionList[ *maskatom1 ].push_back( -1 );
-    // The total number of excluded atoms for this atom is now the size
-    // of the vector minus one (for the terminal -1).
-    int total_excluded = (int)exclusionList[ *maskatom1 ].size();
-    N_interactions -= (total_excluded - 1);
-  }
+  // Set up exclusion list for each atom in mask. 
+  N_interactions = ParmIn->SetupExcludedAtomsList(maskIn, exclusionList);
 
   // DEBUG - Print total number of interactions for this parm
   mprintf("\t%i interactions for this parm.\n",N_interactions);
