@@ -35,6 +35,8 @@ class CpptrajState {
     int activeRef;
     /// If true the progress of reading input trajectories will be shown
     bool showProgress;
+    /// If true cpptraj will exit if errors are encountered instead of trying to continue
+    bool exitOnError;
   public:
     /// Set debug level for all components
     void SetGlobalDebug(int);

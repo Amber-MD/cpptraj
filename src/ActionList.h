@@ -30,7 +30,7 @@ class ActionList {
     /// Add an action to the action list.
     int AddAction(ArgList &);
     /// Initialize actions
-    int Init(DataSetList *, FrameList *, DataFileList *, ParmFileList*);
+    int Init(DataSetList *, FrameList *, DataFileList *, ParmFileList*,bool);
     /// Set up actions for the given parm
     int Setup(AmberParm **);
     /// Perform actions on the given frame

@@ -7,6 +7,7 @@ CpptrajState::CpptrajState() {
   debug=0;
   showProgress=true;
   activeRef = -1;
+  exitOnError = true;
 }
 
 // Destructor
@@ -51,6 +52,11 @@ void CpptrajState::Dispatch(char *inputLine) {
   if (dispatchArg.CommandIs("noprogress")) {
     showProgress=false;
     mprintf("    noprogress: Progress bar will not be shown.\n");
+    return;
+  }
+  if (dispatchArg.CommandIs("noexitonerror")) {
+    mprintf("    noexitonerror: cpptraj will attempt to ignore errors if possible.\n");
+    exitOnError=false;
     return;
   }
   // debug: Set global debug level
@@ -183,7 +189,8 @@ int CpptrajState::Run() {
   DSL.SetMax(maxFrames); 
   
   // Initialize actions and set up data set and data file list
-  actionList.Init( &DSL, &refFrames, &DFL, &parmFileList);
+  if (actionList.Init( &DSL, &refFrames, &DFL, &parmFileList, exitOnError)) 
+    return 1;
 
   // Set up analysis - checks that datasets are present etc
   analysisList.Setup(&DSL, &parmFileList);

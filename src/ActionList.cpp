@@ -137,8 +137,9 @@ int ActionList::AddAction(ArgList &argIn) {
 /** Initialize non-parm-specific data for each action (like datasets). If an 
   * action cannot be initialized deactivate it. Also set action debug level.
   */
-int ActionList::Init( DataSetList *DSL, FrameList *FL, 
-                           DataFileList *DFL, ParmFileList *PFL) {
+int ActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL, 
+                      ParmFileList *PFL, bool exitOnError) 
+{
   mprintf("\nACTIONS: Initializing %i actions:\n",Naction);
   for (int act=0; act<Naction; act++) {
     mprintf("  %i: [%s]\n",act,actionlist[act]->CmdLine());
@@ -146,9 +147,14 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL,
       mprintf("Warning: Action %s is not active.\n",actionlist[act]->ActionCommand());
     } else {
       if ( actionlist[act]->Init( DSL, FL, DFL, PFL, debug ) ) {
-        mprintf("Warning: Init failed for [%s]: DEACTIVATING\n",
-                actionlist[act]->CmdLine());
-        actionlist[act]->noInit=true;
+        if (exitOnError) {
+          mprinterr("Error: Init failed for [%s].\n",actionlist[act]->CmdLine());
+          return 1;
+        } else {
+          mprintf("Warning: Init failed for [%s]: DEACTIVATING\n",
+                  actionlist[act]->CmdLine());
+          actionlist[act]->noInit=true;
+        }
       }
     }
     mprintf("\n");
