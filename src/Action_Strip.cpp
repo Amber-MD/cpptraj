@@ -33,7 +33,7 @@ int Strip::init( ) {
   mask1 = actionArgs.getNextMask();
   //mprintf("    Mask 1: %s\n",mask1);
   if (mask1==NULL) {
-    mprinterr("    Error: Strip::init: Requires atom mask.\n");
+    mprinterr("Error: Strip::init: Requires atom mask.\n");
     return 1;
   }
   M1.SetMaskString(mask1);
@@ -57,7 +57,7 @@ int Strip::setup() {
   if (currentParm->SetupIntegerMask( M1, activeReference )) return 1;
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
   if (M1.None()) {
-    mprinterr("Error: Strip::setup: Mask [%s] has no atoms.\n",M1.MaskString());
+    mprintf("Warning: Strip::setup: Mask [%s] has no atoms.\n",M1.MaskString());
     return 1;
   }
   mprintf("\tStripping %i atoms.\n",currentParm->natom - M1.Nselected);
@@ -91,7 +91,7 @@ int Strip::setup() {
   if (prefix!=NULL) {
     mprintf("\tWriting out amber topology file %s\n",newParm->parmName);
     if ( newParm->WriteAmberParm(newParm->parmName) ) {
-      mprinterr("      Error: STRIP: Could not write out stripped parm file %s\n",
+      mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
                 newParm->parmName);
     }
   }

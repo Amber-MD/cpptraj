@@ -55,12 +55,13 @@ int Center::setup() {
 
   if ( currentParm->SetupIntegerMask(Mask1, activeReference) ) return 1;
   if (Mask1.None()) {
-    mprintf("    Error: Center::setup: Mask contains 0 atoms.\n");
+    mprintf("Warning: Center::setup: Mask contains 0 atoms.\n");
     return 1;
   }
+  mprintf("\t%s (%i atoms)\n",Mask1.MaskString(),Mask1.Nselected);
 
   if (!origin && currentParm->boxType==NOBOX) {
-    mprintf("    Error: Center::setup: Box center specified but no box information.\n");
+    mprintf("Warning: Center::setup: Box center specified but no box information.\n");
     //fprintf(stdout,"                            Centering on origin.\n");
     return 1;
   }

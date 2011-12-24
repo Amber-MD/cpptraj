@@ -38,7 +38,7 @@ int Distance::init( ) {
   //fprintf(stdout,"    Mask 1: %s\n",mask1);
   //fprintf(stdout,"    Mask 2: %s\n",mask2);
   if (mask1==NULL || mask2==NULL) {
-    mprintf("    Error: Distance::init: Requires 2 masks\n");
+    mprinterr("Error: Distance::init: Requires 2 masks\n");
     return 1;
   }
   Mask1.SetMaskString(mask1);

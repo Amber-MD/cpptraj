@@ -85,12 +85,12 @@ int Image::setup() {
 
   if ( currentParm->SetupCharMask( Mask1, activeReference ) ) return 1;
   if (Mask1.None()) {
-    mprinterr("Error: Image::setup: Mask contains 0 atoms.\n");
+    mprintf("Warning: Image::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
   if (currentParm->boxType==NOBOX) {
-    mprinterr("Error: Image::setup: Parm %s does not contain box information.\n",
+    mprintf("Warning: Image::setup: Parm %s does not contain box information.\n",
             currentParm->parmName);
     return 1;
   }
@@ -109,7 +109,7 @@ int Image::setup() {
     if (ComMask!=NULL) {
       if ( currentParm->SetupIntegerMask( *ComMask, activeReference) ) return 1;
       if (ComMask->None()) {
-        mprinterr("Error: Image::setup: Mask for 'familiar com' contains no atoms.\n");
+        mprintf("Warning: Image::setup: Mask for 'familiar com' contains no atoms.\n");
         return 1;
       }
       mprintf("\tcom: mask [%s] contains %i atoms.\n",ComMask->MaskString(),ComMask->Nselected);

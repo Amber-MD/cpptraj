@@ -35,7 +35,7 @@ int Dihedral::init() {
   mask3 = actionArgs.getNextMask();
   mask4 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL) {
-    mprintf("    Error: Dihedral::init: Requires 4 masks\n");
+    mprinterr("Error: Dihedral::init: Requires 4 masks\n");
     return 1;
   }
   M1.SetMaskString(mask1);
@@ -49,7 +49,7 @@ int Dihedral::init() {
   // Add dataset to datafile list
   DFL->Add(dihedralFile,dih);
 
-  mprintf("    DIHEDRAL: %s-%s-%s-%s\n", M1.MaskString(),M2.MaskString(),
+  mprintf("    DIHEDRAL: [%s]-[%s]-[%s]-[%s]\n", M1.MaskString(),M2.MaskString(),
           M3.MaskString(), M4.MaskString());
   if (useMass)
     mprintf("              Using center of mass of atoms in masks.\n");

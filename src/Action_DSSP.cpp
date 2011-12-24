@@ -92,7 +92,7 @@ int DSSP::setup() {
   // Set up mask for this parm
   if ( currentParm->SetupIntegerMask( Mask, activeReference ) ) return 1;
   if ( Mask.None() ) {
-    mprintf("      Error: DSSP::setup: Mask has no atoms.\n");
+    mprintf("Warning: DSSP::setup: Mask has no atoms.\n");
     return 1;
   }
 
@@ -169,7 +169,7 @@ int DSSP::setup() {
   }
 
   // Count number of selected residues
-  mprintf("      DSSP: [%s] corresponds to %i residues.\n",Mask.MaskString(),selected);
+  mprintf("\tMask [%s] corresponds to %i residues.\n",Mask.MaskString(),selected);
 
   // Set up output buffer to hold string
   if (printString) {

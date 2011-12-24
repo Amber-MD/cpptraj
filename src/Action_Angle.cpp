@@ -33,7 +33,7 @@ int Angle::init() {
   mask2 = actionArgs.getNextMask();
   mask3 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL) {
-    mprintf("    Error: Angle::init: Requires 3 masks\n");
+    mprinterr("Error: Angle::init: Requires 3 masks\n");
     return 1;
   }
   Mask1.SetMaskString(mask1);
@@ -46,7 +46,7 @@ int Angle::init() {
   // Add dataset to data file list
   DFL->Add(angleFile,ang);
 
-  mprintf("    ANGLE: %s-%s-%s\n",Mask1.MaskString(),Mask2.MaskString(),Mask3.MaskString());
+  mprintf("    ANGLE: [%s]-[%s]-[%s]\n",Mask1.MaskString(),Mask2.MaskString(),Mask3.MaskString());
   if (useMass)
     mprintf("              Using center of mass of atoms in masks.\n");
 
