@@ -49,8 +49,8 @@ int Closest::init( ) {
   // Get Keywords
   closestWaters = actionArgs.getNextInteger(-1);
   if (closestWaters < 0) {
-    mprintf("Error: Closest::init(): Invalid # solvent molecules to keep (%i).\n",
-            closestWaters);
+    mprinterr("Error: Closest::init(): Invalid # solvent molecules to keep (%i).\n",
+              closestWaters);
     return 1;
   }
   if ( actionArgs.hasKey("oxygen") || actionArgs.hasKey("first") )
@@ -68,7 +68,7 @@ int Closest::init( ) {
     distdata  = outList->Add(DOUBLE,(char*)"Dist\0","Dist");
     atomdata  = outList->Add(INT,(char*)"FirstAtm\0","FirstAtm");
     if (framedata==NULL || moldata==NULL || distdata==NULL || atomdata==NULL) {
-      mprintf("Error: Closest::init(): Could not setup data sets for output file %s\n",mask1);
+      mprinterr("Error: Closest::init(): Could not setup data sets for output file %s\n",mask1);
       return 1;
     }
     // Add sets to datafile in list.
@@ -85,7 +85,7 @@ int Closest::init( ) {
   // Get Masks
   mask1 = actionArgs.getNextMask();
   if (mask1==NULL) {
-    mprintf("Error: Closest::init(): No mask specified.\n");
+    mprinterr("Error: Closest::init(): No mask specified.\n");
     return 1;
   }
   soluteMask.SetMaskString(mask1);
@@ -119,12 +119,12 @@ int Closest::setup() {
 
   // If there are no solvent molecules this action is not valid.
   if (currentParm->solventMolecules==0) {
-    mprintf("    Error: Closest::setup: Parm %s does not contain solvent.\n",currentParm->parmName);
+    mprintf("Warning: Closest::setup: Parm %s does not contain solvent.\n",currentParm->parmName);
     return 1;
   }
   // If # solvent to keep >= solvent in this parm the action is not valid.
   if (closestWaters >= currentParm->solventMolecules) {
-    mprintf("    Error: Closest::setup: # solvent to keep (%i) >= # solvent molecules in\n",
+    mprintf("Warning: Closest::setup: # solvent to keep (%i) >= # solvent molecules in\n",
             closestWaters);
     mprintf("                           %s (%i).\n",currentParm->parmName,
             currentParm->solventMolecules);
@@ -139,9 +139,9 @@ int Closest::setup() {
          (currentParm->solventMoleculeStop[solventMol] - 
           currentParm->solventMoleculeStart[solventMol]) ) 
     {
-      mprintf("    Error: Closest::setup: Solvent molecules in %s are not of uniform size.\n",
+      mprintf("Warning: Closest::setup: Solvent molecules in %s are not of uniform size.\n",
               currentParm->parmName);
-      mprintf("           First solvent mol=%i atoms, %i solvent mol=%i atoms.\n",
+      mprintf("         First solvent mol=%i atoms, %i solvent mol=%i atoms.\n",
               NsolventAtoms, solventMol,
               currentParm->solventMoleculeStop[solventMol] - 
               currentParm->solventMoleculeStart[solventMol]);
@@ -153,7 +153,7 @@ int Closest::setup() {
   // NOTE: Should ensure that no solvent atoms are selected!
   if ( currentParm->SetupIntegerMask(soluteMask, activeReference) ) return 1;
   if (soluteMask.None()) {
-    mprintf("    Error: Closest::setup: Mask %s contains no atoms.\n",soluteMask.MaskString());
+    mprintf("Warning: Closest::setup: Mask %s contains no atoms.\n",soluteMask.MaskString());
     return 1;
   }
 
@@ -169,7 +169,7 @@ int Closest::setup() {
   if (!noimage) {
     imageType = (int)currentParm->boxType;
     if (currentParm->boxType==NOBOX) {
-        mprintf("    Warning: Closest::setup: ");
+        mprintf("Warning: Closest::setup: ");
         mprintf(" Imaging specified but no box information in prmtop %s\n",currentParm->parmName);
         mprintf("             No imaging can occur..\n");
     }
@@ -185,7 +185,7 @@ int Closest::setup() {
   //stripMask.PrintMaskAtoms("stripMask");
   NsolventAtoms = currentParm->solventMoleculeStop[closestWaters-1] - 
                   currentParm->solventMoleculeStart[0];
-  mprintf("    CLOSEST: Keeping %i solvent atoms.\n",NsolventAtoms);
+  mprintf("\tKeeping %i solvent atoms.\n",NsolventAtoms);
   // Put solvent atom #s at end of array for creating stripped parm
   stripMask.AddAtomRange(currentParm->solventMoleculeStart[0], 
                          currentParm->solventMoleculeStop[closestWaters-1]);
@@ -213,7 +213,7 @@ int Closest::setup() {
   if (newParm!=NULL) delete newParm;
   newParm = currentParm->modifyStateByMask(stripMask.Selected, prefix);
   if (newParm==NULL) {
-    mprintf("    Error: Closest::setup: Could not create new parmtop.\n");
+    mprinterr("Error: Closest::setup: Could not create new parmtop.\n");
     return 1;
   }
   newParm->Summary();
@@ -223,9 +223,9 @@ int Closest::setup() {
 
   // If prefix given then output stripped parm
   if (prefix!=NULL) {
-    mprintf("             Writing out amber topology file %s\n",newParm->parmName);
+    mprintf("\tWriting out amber topology file %s\n",newParm->parmName);
     if ( newParm->WriteAmberParm(newParm->parmName) ) {
-      mprintf("      Error: CLOSEST: Could not write out stripped parm file %s\n",
+      mprinterr("Error: CLOSEST: Could not write out stripped parm file %s\n",
               newParm->parmName);
     }
   }
