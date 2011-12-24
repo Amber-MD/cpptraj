@@ -353,8 +353,10 @@ int BondInfo::BondAtoms(int atom1, int atom2) {
   // Add atom2 to atom1
   Molecule[atom1].bond.push_back(atom2);
   if ((int)Molecule[atom1].bond.size() > Molecule[atom1].maxbonds) {
-    mprintf("Warning: BondAtoms: Valences for atom %i maxed (%i)!\n",atom1+1,
-            Molecule[atom1].maxbonds);
+    // NOTE: Supress this warning for now. Can be a false positive if the atom
+    // in question is e.g. a TIP3P hydrogen (which gets 2 bonds).
+    //mprintf("Warning: BondAtoms: Valences for atom %i maxed (%i)!\n",atom1+1,
+    //        Molecule[atom1].maxbonds);
     return 1;
   }
 

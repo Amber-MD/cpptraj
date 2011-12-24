@@ -57,10 +57,10 @@ int Strip::setup() {
   if (currentParm->SetupIntegerMask( M1, activeReference )) return 1;
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
   if (M1.None()) {
-    mprinterr("      Error: Strip::setup: Mask has no atoms.\n");
+    mprinterr("Error: Strip::setup: Mask [%s] has no atoms.\n",M1.MaskString());
     return 1;
   }
-  mprintf("      STRIP: Stripping %i atoms.\n",currentParm->natom - M1.Nselected);
+  mprintf("\tStripping %i atoms.\n",currentParm->natom - M1.Nselected);
 
   // Store old parm
   oldParm = currentParm;
@@ -69,7 +69,7 @@ int Strip::setup() {
   if (newParm!=NULL) delete newParm;
   newParm = currentParm->modifyStateByMask(M1.Selected, prefix);
   if (newParm==NULL) {
-    mprinterr("      Error: Strip::setup: Could not create new parmtop.\n");
+    mprinterr("Error: Strip::setup: Could not create new parmtop.\n");
     return 1;
   }
   // Remove box information if asked
@@ -89,7 +89,7 @@ int Strip::setup() {
 
   // If prefix given then output stripped parm
   if (prefix!=NULL) {
-    mprintf("             Writing out amber topology file %s\n",newParm->parmName);
+    mprintf("\tWriting out amber topology file %s\n",newParm->parmName);
     if ( newParm->WriteAmberParm(newParm->parmName) ) {
       mprinterr("      Error: STRIP: Could not write out stripped parm file %s\n",
                 newParm->parmName);
