@@ -6,6 +6,7 @@
 // CONSTRUCTOR
 AtomMask::AtomMask() {
   Nselected=0;
+  Natom = 0;
   maskChar = 'T';
 }
 
@@ -16,6 +17,7 @@ AtomMask::~AtomMask() {
 // COPY CONSTRUCTOR
 AtomMask::AtomMask(const AtomMask &rhs) {
   Nselected=rhs.Nselected;
+  Natom=rhs.Natom;
   maskChar=rhs.maskChar;
   maskString=rhs.maskString;
   Selected=rhs.Selected;
@@ -31,6 +33,7 @@ AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   // Deallocate
   // Allocate and copy
   Nselected=rhs.Nselected;
+  Natom=rhs.Natom;
   maskChar=rhs.maskChar;
   maskString=rhs.maskString;
   Selected=rhs.Selected;
@@ -50,6 +53,7 @@ char *AtomMask::PostfixExpression() {
 // AtomMask::ResetMask()
 void AtomMask::ResetMask() {
   Nselected = 0;
+  Natom=0;
   maskChar = 'T';
   maskString.clear();
   Selected.clear();
@@ -76,6 +80,7 @@ AtomMask *AtomMask::CopyMask() {
   AtomMask *newMask;
   newMask = new AtomMask();
   newMask->Nselected = Nselected;
+  newMask->Natom = Natom;
   newMask->maskChar = maskChar;
   newMask->maskString = maskString;
   newMask->Selected = Selected;
@@ -215,6 +220,7 @@ void AtomMask::SetupMask(char *charmask,int natom,int debug) {
   // NOTE: For large selections this will use 4x the memory of the char atom
   //       mask. Could check to see which will be bigger.
   Nselected=0;
+  Natom = natom;
   Selected.clear();
   for (int atom=0; atom < natom; atom++) {
     if (charmask[atom]==maskChar) {
@@ -245,6 +251,7 @@ void AtomMask::SetupCharMask(char *charmask, int natom, int debug) {
   CharMask.clear();
 
   Nselected=0;
+  Natom = natom;
   CharMask.reserve( natom );
   for (int i = 0; i < natom; i++) {
     CharMask.push_back( charmask[i] );
@@ -261,3 +268,43 @@ bool AtomMask::AtomInCharMask(int atom) {
   if (CharMask[atom]==maskChar) return true;
   return false;
 }
+
+// AtomMask::ConvertMaskType()
+/** If the mask is an integer mask, convert it to a char mask and 
+  * vice versa.
+  */
+int AtomMask::ConvertMaskType() {
+  // Nselected remains the same.
+  // Integer to Char
+  if (!Selected.empty()) {
+    // If Natom is 0 (which can happen if mask was set up with AddAtomX
+    // functions) this cant work.
+    if (Natom==0) {
+      mprinterr("Error: AtomMask::ConvertMaskType(): Natom for integer mask is 0.\n");
+      return 1;
+    }
+    CharMask.assign( Natom, 'F' );
+    for (std::vector<int>::iterator maskatom = Selected.begin();
+                                    maskatom != Selected.end();
+                                    maskatom++)
+    {
+      CharMask[*maskatom]='T';
+    }
+    Selected.clear();
+
+  // Char to Integer
+  } else if (!CharMask.empty()) {
+    Selected.reserve( Nselected );
+    for (int atom = 0; atom < Natom; atom++) {
+      if (CharMask[atom]=='T')
+        Selected.push_back( atom );
+    }
+    CharMask.clear();
+
+  } else {
+    mprinterr("Error: AtomMask::ConvertMaskType(): Mask has not been set up.\n");
+    return 1;
+  }
+  return 0;
+}
+

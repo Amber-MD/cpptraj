@@ -33,6 +33,9 @@ class AtomMask {
     std::string Postfix;        ///< maskString tokenized and converted to RPN
     char maskChar;              ///< The character used to denote a selected atom (default 'T')
     std::string maskString;     ///< String specifying atom selection
+    /** Number of atoms mask was set-up with. Needed when converting from
+      * integer mask to Character mask. */
+    int Natom;
   public:
     int Nselected;              ///< Number of selected atoms in mask
     std::vector<int> Selected;  ///< Int array of selected atom numbers, 1 for each selected atom
@@ -61,6 +64,7 @@ class AtomMask {
     void SetupCharMask(char*, int, int);
     /// True if given atom is T in CharMask
     bool AtomInCharMask(int atom);
- 
+    /// Convert mask type
+    int ConvertMaskType(); 
 };
 #endif
