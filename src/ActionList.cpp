@@ -143,10 +143,10 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL,
   for (int act=0; act<Naction; act++) {
     mprintf("  %i: [%s]\n",act,actionlist[act]->CmdLine());
     if (actionlist[act]->noInit) {
-      mprintf("    WARNING: Action %s is not active.\n",actionlist[act]->ActionCommand());
+      mprintf("Warning: Action %s is not active.\n",actionlist[act]->ActionCommand());
     } else {
       if ( actionlist[act]->Init( DSL, FL, DFL, PFL, debug ) ) {
-        mprintf("    WARNING: Init failed for [%s]: DEACTIVATING\n",
+        mprintf("Warning: Init failed for [%s]: DEACTIVATING\n",
                 actionlist[act]->CmdLine());
         actionlist[act]->noInit=true;
       }
@@ -172,7 +172,7 @@ int ActionList::Setup(AmberParm **ParmAddress) {
       actionlist[act]->noSetup=false;
       err = actionlist[act]->Setup(ParmAddress);
       if (err==1) {
-        mprintf("      WARNING: Setup failed for [%s]: Skipping\n",
+        mprintf("Warning: Setup failed for [%s]: Skipping\n",
                 actionlist[act]->CmdLine());
         actionlist[act]->noSetup=true;
         //return 1;

@@ -71,11 +71,6 @@ int Distance::setup() {
   if (currentParm->SetupIntegerMask( Mask1, activeReference)) return 1;
   if (currentParm->SetupIntegerMask( Mask2, activeReference)) return 1;
 
-  if (Mask1.None() || Mask2.None()) {
-    mprintf("    Error: Distance::setup: One or both masks have no atoms.\n");
-    return 1;
-  }
-
   // Check imaging - check box based on prmtop box
   imageType = 0;
   if (!noimage) {
@@ -86,14 +81,19 @@ int Distance::setup() {
   }
 
   // Print imaging info for this parm
-  mprintf("    DISTANCE: %s (%i atoms) to %s (%i atoms)",Mask1.MaskString(), Mask1.Nselected,
+  mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1.MaskString(), Mask1.Nselected,
           Mask2.MaskString(),Mask2.Nselected);
   if (imageType > 0)
     mprintf(", imaged");
   else
     mprintf(", imaging off");
   mprintf(".\n");
-        
+
+  if (Mask1.None() || Mask2.None()) {
+    mprintf("    Warning: Distance::setup: One or both masks have no atoms.\n");
+    return 1;
+  }
+       
   return 0;  
 }
 

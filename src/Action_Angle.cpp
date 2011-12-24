@@ -62,10 +62,14 @@ int Angle::setup() {
   if (currentParm->SetupIntegerMask(Mask1, activeReference)) return 1;
   if (currentParm->SetupIntegerMask(Mask2, activeReference)) return 1;
   if (currentParm->SetupIntegerMask(Mask3, activeReference)) return 1;
+  mprintf("\t%s (%i atoms)\n",Mask1.MaskString(),Mask1.Nselected);
+  mprintf("\t%s (%i atoms)\n",Mask2.MaskString(),Mask2.Nselected);
+  mprintf("\t%s (%i atoms)\n",Mask3.MaskString(),Mask3.Nselected);
   if (Mask1.None() || Mask2.None() || Mask3.None()) {
     mprintf("    Error: Angle::setup: One or more masks contain 0 atoms.\n");
     return 1;
   }
+
 
   return 0;  
 }

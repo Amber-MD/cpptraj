@@ -377,8 +377,9 @@ int Rmsd::setup() {
 
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( RefMask.Nselected != FrameMask.Nselected ) {
-    mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",FrameMask.Nselected);
-    mprintf( "           equal number of atoms in Ref mask (%i).\n",RefMask.Nselected);
+    mprintf( "    Warning: Number of atoms in RMS mask (%i) does not equal number of\n",
+            FrameMask.Nselected);
+    mprintf( "             atoms in reference mask (%i).\n",RefMask.Nselected);
     return 1;
   }
 
