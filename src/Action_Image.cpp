@@ -85,12 +85,12 @@ int Image::setup() {
 
   if ( currentParm->SetupCharMask( Mask1, activeReference ) ) return 1;
   if (Mask1.None()) {
-    mprintf("    Error: Image::setup: Mask contains 0 atoms.\n");
+    mprinterr("Error: Image::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
   if (currentParm->boxType==NOBOX) {
-    mprintf("    Error: Image::setup: Parm %s does not contain box information.\n",
+    mprinterr("Error: Image::setup: Parm %s does not contain box information.\n",
             currentParm->parmName);
     return 1;
   }
@@ -101,7 +101,7 @@ int Image::setup() {
   // If box is originally truncated oct and not forcing triclinic, 
   // turn familiar on.
   if (AmberIfbox(currentParm->Box[5])==2 && triclinic!=FORCE && triclinic!=FAMILIAR) {
-    mprintf("    IMAGE: Original box is truncated octahedron, turning on 'familiar'.\n");
+    mprintf("\tOriginal box is truncated octahedron, turning on 'familiar'.\n");
     triclinic=FAMILIAR;
   }
 
@@ -109,18 +109,18 @@ int Image::setup() {
     if (ComMask!=NULL) {
       if ( currentParm->SetupIntegerMask( *ComMask, activeReference) ) return 1;
       if (ComMask->None()) {
-        mprintf("    Error: Image::setup: Mask for 'familiar com' contains no atoms.\n");
+        mprinterr("Error: Image::setup: Mask for 'familiar com' contains no atoms.\n");
         return 1;
       }
+      mprintf("\tcom: mask [%s] contains %i atoms.\n",ComMask->MaskString(),ComMask->Nselected);
     }
   }
 
   // Set up atom range for each entity to be imaged. 
   // Currently imaging by molecule only, so each pair will be the first and
-  // last atom of each moleucle. Check that all atoms between first and last
+  // last atom of each molecule. Check that all atoms between first and last
   // are actually in the mask.
   imageList.clear();
-  mprintf("    IMAGE: # of molecules is %i\n", currentParm->Nmol()); 
   imageList.reserve( currentParm->Nmol() );
   apair.firstAtom = 0;
   apair.lastAtom = 0;
@@ -133,6 +133,8 @@ int Image::setup() {
       if (!Mask1.AtomInCharMask(atom)) {rangeIsValid = false; break;}
     if (rangeIsValid) imageList.push_back( apair );
   }
+  mprintf("\tNumber of molecules to be imaged is %u based on mask [%s]\n", imageList.size(),
+           Mask1.MaskString()); 
   // DEBUG: Print all pairs
   //for (std::vector<atomPair>::iterator ap = imageList.begin();
   //                                     ap != imageList.end();
