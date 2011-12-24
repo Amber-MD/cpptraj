@@ -64,8 +64,9 @@ int Radgyr::init() {
 int Radgyr::setup() {
 
   if ( currentParm->SetupIntegerMask(Mask1, activeReference)) return 1;
+  mprintf("\t%s (%i atoms).\n",Mask1.MaskString(),Mask1.Nselected);
   if (Mask1.None()) {
-    mprintf("    Error: Radgyr::setup: Mask contains 0 atoms.\n");
+    mprintf("Warning: Radgyr::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 

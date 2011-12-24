@@ -76,7 +76,7 @@ int Hbond::init() {
   else
     mprintf("Donor mask is %s, Acceptor mask is %s\n",
             DonorMask.MaskString(),AcceptorMask.MaskString());
-  mprintf( "         Distance cutoff = %8.3lf, Angle Cutoff = %8.3lf\n",dcut,acut*RADDEG);
+  mprintf( "         Distance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut*RADDEG);
   if (outfilename!=NULL) 
     mprintf( "         Dumping # Hbond v time results to %s\n", outfilename);
   if (avgout!=NULL)
@@ -164,7 +164,7 @@ int Hbond::setup() {
   if (!hasDonorMask && !hasAcceptorMask) {
     if ( currentParm->SetupIntegerMask( Mask, activeReference) ) return 1;
     if ( Mask.None() ) {
-      mprintf("    Error: Hbond::setup: Mask has no atoms.\n");
+      mprintf("Warning: Hbond::setup: Mask has no atoms.\n");
       return 1;
     }
   }
@@ -172,7 +172,7 @@ int Hbond::setup() {
   if (hasDonorMask) {
     if ( currentParm->SetupIntegerMask( DonorMask, activeReference) ) return 1;
     if (DonorMask.None()) {
-      mprintf("    Error: Hbond: DonorMask has no atoms.\n");
+      mprintf("Warning: Hbond: DonorMask has no atoms.\n");
       return 1;
     }
   }
@@ -180,7 +180,7 @@ int Hbond::setup() {
   if (hasAcceptorMask) {
     if ( currentParm->SetupIntegerMask( AcceptorMask, activeReference) ) return 1;
     if (AcceptorMask.None()) {
-      mprintf("    Error: Hbond: AcceptorMask has no atoms.\n");
+      mprintf("Warning: Hbond: AcceptorMask has no atoms.\n");
       return 1;
     }
   }
@@ -208,12 +208,12 @@ int Hbond::setup() {
   }
 
   // Print acceptor/donor information
-  mprintf("      HBOND: Set up %i acceptors:\n",(int)Acceptor.size());
+  mprintf("\tSet up %i acceptors:\n",(int)Acceptor.size());
   if (debug>0) {
     for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++)
       mprintf("        %8i: %4s\n",*accept+1,currentParm->AtomName(*accept));
   }
-  mprintf("      HBOND: Set up %i donors:\n",((int)Donor.size())/2);
+  mprintf("\tSet up %i donors:\n",((int)Donor.size())/2);
   if (debug>0) {
     for (donor = Donor.begin(); donor!=Donor.end(); donor++) {
       atom = (*donor);

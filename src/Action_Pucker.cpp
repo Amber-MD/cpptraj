@@ -48,7 +48,7 @@ int Pucker::init() {
   mask4 = actionArgs.getNextMask();
   mask5 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL || mask5==NULL) {
-    mprintf("    Error: Pucker::init: Requires 5 masks\n");
+    mprinterr("Error: Pucker::init: Requires 5 masks\n");
     return 1;
   }
   M1.SetMaskString(mask1);
@@ -64,7 +64,7 @@ int Pucker::init() {
   DFL->Add(puckerFile,puck);
 
   //dih->Info();
-  mprintf("    PUCKER: %s-%s-%s-%s-%s\n", M1.MaskString(),M2.MaskString(),
+  mprintf("    PUCKER: [%s]-[%s]-[%s]-[%s]-[%s]\n", M1.MaskString(),M2.MaskString(),
           M3.MaskString(), M4.MaskString(), M5.MaskString());
   if (puckerMethod==0) 
     mprintf("            Using Altona & Sundaralingam method.\n");
@@ -90,9 +90,14 @@ int Pucker::setup() {
   if ( currentParm->SetupIntegerMask( M3, activeReference) ) return 1;
   if ( currentParm->SetupIntegerMask( M4, activeReference) ) return 1;
   if ( currentParm->SetupIntegerMask( M5, activeReference) ) return 1;
+  mprintf("\t%s (%i atoms)\n",M1.MaskString(),M1.Nselected);
+  mprintf("\t%s (%i atoms)\n",M2.MaskString(),M2.Nselected);
+  mprintf("\t%s (%i atoms)\n",M3.MaskString(),M3.Nselected);
+  mprintf("\t%s (%i atoms)\n",M4.MaskString(),M4.Nselected);
+  mprintf("\t%s (%i atoms)\n",M5.MaskString(),M5.Nselected);
 
   if ( M1.None() || M2.None() || M3.None() || M4.None() || M5.None() ) {
-    mprintf("    Error: Pucker::setup: One or more masks have no atoms.\n");
+    mprintf("Warning: Pucker::setup: One or more masks have no atoms.\n");
     return 1;
   }
 
