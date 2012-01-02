@@ -312,12 +312,12 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
     if (checkNCerr(nc_def_var(ncid,NCCELL_LENGTHS,NC_DOUBLE,1,dimensionID,&cellLengthVID),
       "Defining cell length variable.")) return 1;
     if (checkNCerr(nc_put_att_text(ncid,cellLengthVID,"units",8,"angstrom"),
-    "Writing cell length variable units.")) return 1;
+      "Writing cell length variable units.")) return 1;
     dimensionID[0]=cell_angularDID;
     if (checkNCerr(nc_def_var(ncid,NCCELL_ANGLES,NC_DOUBLE,1,dimensionID,&cellAngleVID),
       "Defining cell angle variable.")) return 1;
     if (checkNCerr(nc_put_att_text(ncid,cellAngleVID,"units",6,"degree"),
-    "Writing cell angle variable units.")) return 1;
+      "Writing cell angle variable units.")) return 1;
   }
 
   // Set up title

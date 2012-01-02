@@ -2,7 +2,7 @@
 #define INC_TRAJ_AMBERRESTARTNC_H
 #ifdef BINTRAJ
 #include "TrajectoryIO.h"
-/// Class: AmberRestartNC
+// Class: AmberRestartNC
 /// TrajectoryIO class for reading and writing Amber Netcdf Restarts
 class AmberRestartNC : public TrajectoryIO {
     int ncid;
