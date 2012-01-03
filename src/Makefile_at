@@ -45,14 +45,14 @@ $(LIBDIR)/liblapack.a:
 $(LIBDIR)/libblas.a:
 	cd ../../blas && $(MAKE) $(BLAS)
 
-thermo.o:  ../../ptraj/thermo.f
-	$(FC) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/thermo.f
+thermo.o:  ../../ptraj/thermo.F90
+	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/thermo.F90
 
-pubfft.o:  ../../ptraj/pubfft.f
-	$(FC) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/pubfft.f
+pubfft.o:  ../../ptraj/pubfft.F90
+	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/pubfft.F90
 
 Rotdif.o: Rotdif.f
-	$(FC) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ Rotdif.f 
+	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ Rotdif.f 
 
 .c.o:
 	$(CC) -c $(CPPTRAJ_FLAGS) -o $@ $<

@@ -30,11 +30,11 @@ $(ARPACK): $(ARPACK_HOME)/Makefile
 $(LAPACK): $(LAPACK_HOME)/Makefile
 	cd $(LAPACK_HOME) && $(MAKE) install
 
-thermo.o:  $(PTRAJ_HOME)/thermo.f
-	$(FC) -c $(FFLAGS) -o $@ $(PTRAJ_HOME)/thermo.f
+thermo.o:  $(PTRAJ_HOME)/thermo.F90
+	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ $(PTRAJ_HOME)/thermo.F90
 
-pubfft.o:  $(PTRAJ_HOME)/pubfft.f
-	$(FC) -c $(FFLAGS) -o $@ $(PTRAJ_HOME)/pubfft.f
+pubfft.o:  $(PTRAJ_HOME)/pubfft.F90
+	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ $(PTRAJ_HOME)/pubfft.F90
 
 clean:
 	/bin/rm -f $(OBJECTS) $(PTRAJ_OBJECTS) cpptraj$(SFX)
