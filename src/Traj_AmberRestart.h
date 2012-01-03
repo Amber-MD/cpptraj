@@ -13,6 +13,7 @@ class AmberRestart : public TrajectoryIO {
     double restartTime;   // Time in restart file, read in
     double restartTemp;   // (Optional) replica temperature, read in.
     double time0;         // For writes, restart time offset
+    double dt;            // For writes, restart timestep (scaling)
     bool singleWrite;     // If false, frame # will be appended to output filename
 
     // Inherited functions

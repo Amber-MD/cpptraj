@@ -17,6 +17,7 @@ AmberRestart::AmberRestart() {
   // Set seekable since only 1 frame read (i.e. we know size) 
   seekable=true;
   time0 = OUTPUTFRAMESHIFT;
+  dt = 1.0;
   singleWrite = false;
 }
 
@@ -112,6 +113,7 @@ int AmberRestart::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
   time0 = argIn->getKeyDouble("time0", OUTPUTFRAMESHIFT);
   if (argIn->hasKey("remdtraj")) this->SetTemperature();
+  dt = argIn->getKeyDouble("dt",1.0);
   return 0;
 }
 
@@ -346,6 +348,7 @@ int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double 
   if (time0>=0) {
     restartTime = (double) set;
     restartTime += time0;
+    restartTime *= dt;
     tfile->IO->Printf("%15.7lE",restartTime);
   }
   // Write out temperature
