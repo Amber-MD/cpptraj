@@ -37,6 +37,7 @@ AmberRestartNC::AmberRestartNC() {
   // Netcdf restarts always have 1 frame so always seekable
   seekable=true;
   time0 = OUTPUTFRAMESHIFT;
+  dt = 1.0;
   singleWrite=false;
 } 
 
@@ -211,6 +212,7 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
   time0 = argIn->getKeyDouble("time0", OUTPUTFRAMESHIFT);
   if (argIn->hasKey("remdtraj"))   this->SetTemperature();
+  dt = argIn->getKeyDouble("dt",1.0);
   return 0;
 }
 
@@ -462,6 +464,7 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
   if (time0>=0) {
     restartTime = time0;
     restartTime += (double) set;
+    restartTime *= dt;
     if (checkNCerr(nc_put_var_double(ncid,timeVID,&restartTime),
       "Writing restart time.")) return 1;
   }

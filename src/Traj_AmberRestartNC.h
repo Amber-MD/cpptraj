@@ -28,6 +28,7 @@ class AmberRestartNC : public TrajectoryIO {
 
     bool singleWrite;
     double time0;
+    double dt;
 
     // Inherited functions
     int setupRead(AmberParm*);
