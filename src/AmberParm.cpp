@@ -1396,8 +1396,8 @@ int AmberParm::ReadParmPDB(CpptrajFile &parmfile) {
       } else {
         for (atom=resnums[nres-1]; atom < natom; atom++) {
           if ( strcmp(names[natom], names[atom])==0 ) {
-            mprintf("      Warning: Duplicate atom name in residue %i [%s]:%i\n",
-                    nres+1,names[natom],natom+1);
+            mprintf("      Warning: Duplicate atom name in residue [%s]:%i [%s]:%i\n",
+                    resnames[nres-1],nres,names[natom],natom+1);
           }
         }
       }
