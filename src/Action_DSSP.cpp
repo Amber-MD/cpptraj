@@ -111,7 +111,7 @@ int DSSP::setup() {
     Nres = currentParm->FinalSoluteRes();
   else
     Nres = currentParm->Nres();
-  //mprintf("      DSSP: Setting up for %i residues.\n",Nres);
+  if (debug>0) mprintf("\tDSSP: Setting up for %i residues.\n",Nres);
 
   // Set up for each residue of the current Parm if not already set-up.
   RES.sstype=SECSTRUCT_NULL;

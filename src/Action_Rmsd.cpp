@@ -238,14 +238,15 @@ int Rmsd::perResSetup() {
   Range ref_range;
   int N, tgtRes, refRes;
 
+  if (currentParm->HasSolventInfo())
+    NumResidues = currentParm->FinalSoluteRes();
+  else
+    NumResidues = currentParm->Nres(); 
+
   // If no target range previously specified do all solute residues
-  if (ResRange.Empty()) {
-    if (currentParm->HasSolventInfo())
-      NumResidues = currentParm->FinalSoluteRes();
-    else
-      NumResidues = currentParm->Nres(); 
+  if (ResRange.Empty()) 
     tgt_range.SetRange(1,NumResidues+1);
-  } else
+  else
     tgt_range.SetRange(&ResRange);
 
   // If the reference range is empty, set it to match the target range
@@ -255,9 +256,9 @@ int Rmsd::perResSetup() {
     ref_range.SetRange(&RefRange);
 
   // Check that the number of reference residues matches number of target residues
-  NumResidues = tgt_range.Size();
-  if (NumResidues != ref_range.Size()) {
-    mprinterr("Error: RMSD: PerRes: Number of residues %i does not match\n",NumResidues);
+  //NumResidues = tgt_range.Size();
+  if (tgt_range.Size() != ref_range.Size()) {
+    mprinterr("Error: RMSD: PerRes: Number of residues %i does not match\n",tgt_range.Size());
     mprinterr("       number of reference residues %i.\n",ref_range.Size());
     return 1;
   }

@@ -8,6 +8,7 @@
 class Hist : public Analysis {
     Histogram hist;
     std::vector<DataSet*> histdata;
+    ArgList dimensionArgs;
 
     bool calcFreeE;
     double Temp;
@@ -25,7 +26,8 @@ class Hist : public Analysis {
     int bins;
     DataSetList histout;
 
-    int setupDimension(char *,DataSetList *);
+    int CheckDimension(char *,DataSetList *);
+    int setupDimension(char *,DataSet*);
   public :
     Hist();
     ~Hist();

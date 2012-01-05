@@ -345,7 +345,7 @@ if [[ $PTRAJ_ANALYZE -eq 0 ]] ; then
   BLAS=""
   ARPACK=""
   LAPACK=""
-  FLIBS=""
+  #FLIBS="" # Still need FLIBS for Rotdif
   DIRECTIVES="$DIRECTIVES -DNO_PTRAJ_ANALYZE"
 else
   if [[ -z $AMBERHOME ]] ; then

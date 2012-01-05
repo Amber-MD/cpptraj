@@ -29,31 +29,19 @@ Hist::~Hist() {
 
 }
 
-/* Hist::setupDimension()
- * Given a string with format name:min:max:step:bins:col:N, set up a 
- * coordinate with that name and parameters min, max, step, bins.
- * If '*' or not specified, a default value will be set later.
- * Return 1 if error occurs, 0 otherwise.
- */
-int Hist::setupDimension(char *input, DataSetList *datasetlist) {
+int Hist::CheckDimension(char *input, DataSetList *datasetlist) {
   ArgList arglist;
-  double dmin,dmax,dstep;
-  bool minArg=false;
-  bool maxArg=false;
-  int dbins;
-  DataSet *dset = NULL;
-
   // Separate input string by ':'
   arglist.SetList(input, ":");
   if (arglist.Nargs()<1) {
-    mprintf("Warning: Hist::setupDimension: No arguments found in input: %s\n",input);
+    mprintf("Warning: Hist::CheckDimension: No arguments found in input: %s\n",input);
     return 1;
   }
 
   // First argument should specify dataset name
   if (debug>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
                        arglist.ArgAt(0));
-  dset = datasetlist->Get(arglist.ArgAt(0));
+  DataSet *dset = datasetlist->Get(arglist.ArgAt(0));
   if (dset == NULL) {
     mprintf("\t      Dataset %s not found.\n",arglist.ArgAt(0));
     return 1;
@@ -73,6 +61,56 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
     mprintf("Error: Hist: Cannot histogram dataset %s, type STRING.\n", dset->Name());
     return 1;
   }
+
+  dimensionArgs.AddArg( input );
+  histdata.push_back(dset);
+  return 0;
+}
+
+/* Hist::setupDimension()
+ * Given a string with format name:min:max:step:bins:col:N, set up a 
+ * coordinate with that name and parameters min, max, step, bins.
+ * If '*' or not specified, a default value will be set later.
+ * Return 1 if error occurs, 0 otherwise.
+ */
+int Hist::setupDimension(char *input, DataSet *dset) {
+  ArgList arglist;
+  double dmin,dmax,dstep;
+  bool minArg=false;
+  bool maxArg=false;
+  int dbins;
+  //DataSet *dset = NULL;
+
+  // Separate input string by ':'
+  arglist.SetList(input, ":");
+  if (arglist.Nargs()<1) {
+    mprintf("Warning: Hist::setupDimension: No arguments found in input: %s\n",input);
+    return 1;
+  }
+
+/*  // First argument should specify dataset name
+  if (debug>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
+                       arglist.ArgAt(0));
+  dset = datasetlist->Get(arglist.ArgAt(0));
+  if (dset == NULL) {
+    mprintf("\t      Dataset %s not found.\n",arglist.ArgAt(0));
+    return 1;
+  }*/
+
+  /* 
+  // Get range list from first arg 
+  range1=getRange(arglist[0],&r1,S->Data,S->Ndata);
+  if (range1==NULL) {
+    fprintf(stderr,"Error: setupCoord: Could not set up datasets based on argument: %s\n",arglist[0]);
+    return;
+  }
+  */
+
+/*  // Check that dataset is not string
+  if (dset->Type()==STRING) {
+    mprintf("Error: Hist: Cannot histogram dataset %s, type STRING.\n", dset->Name());
+    return 1;
+  }*/
 
   // Set up dimension defaults. If any arguments are specified then values
   // we be recalculated.
@@ -157,7 +195,7 @@ int Hist::setupDimension(char *input, DataSetList *datasetlist) {
     mprintf("\tHist: Dim %s: %lf->%lf, step %lf, %i bins.\n", dset->Name(),
             dmin,dmax,dstep,dbins);
     hist.AddDimension(dset->Name(),dmin,dmax,dstep,dbins);
-    histdata.push_back(dset);
+    //histdata.push_back(dset);
 
   //}
 
@@ -201,14 +239,17 @@ int Hist::Setup(DataSetList *datasetlist) {
   // Datasets
   // Treat all remaining arguments as dataset names. 
   while ( (datasetstring = analyzeArgs.getNextString())!=NULL )
-    if (setupDimension(datasetstring,datasetlist)) return 1;
+    if (CheckDimension( datasetstring,datasetlist )) return 1;
+    //if (setupDimension(datasetstring,datasetlist)) return 1;
 
   mprintf("\tHist: %s: Set up for %i dimensions using the following datasets:\n", 
-          outfilename, hist.NumDimension());
-  mprintf("\t      [ ");
-  for (std::vector<DataSet*>::iterator ds=histdata.begin(); ds!=histdata.end(); ds++)
-    mprintf("%s ",(*ds)->Name());
-  mprintf("]\n");
+          //outfilename, hist.NumDimension());
+          outfilename, dimensionArgs.Nargs());
+  dimensionArgs.PrintList();
+  //mprintf("\t      [ ");
+  //for (std::vector<DataSet*>::iterator ds=histdata.begin(); ds!=histdata.end(); ds++)
+  //  mprintf("%s ",(*ds)->Name());
+  //mprintf("]\n");
   if (calcFreeE)
     mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp);
   if (circular)
@@ -223,6 +264,13 @@ int Hist::Setup(DataSetList *datasetlist) {
  */
 int Hist::Analyze() {
   double *coord;
+  char *datasetstring;
+ 
+  // Set up dimensions
+  for (int hd = 0; hd < (int)histdata.size(); hd++) {
+    datasetstring = dimensionArgs.ArgAt(hd);
+    if (setupDimension(datasetstring,histdata[hd])) return 1;
+  }
 
   // Check that the number of data points in each dimension are equal
   for (int hd=0; hd < (int)histdata.size(); hd++) {

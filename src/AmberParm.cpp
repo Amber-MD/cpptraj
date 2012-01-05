@@ -2596,6 +2596,7 @@ AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix
   if (newParm->firstSolvMol < 0) {
     // No solvent in stripped parmtop
     newParm->solventMolecules=0;
+    newParm->hasSolventInfo = false;
   } else {
     // Set up new solvent info based on new resnums and firstSolvMol
     if (newParm->SetSolventInfo()) {
