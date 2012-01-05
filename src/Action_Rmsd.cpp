@@ -256,7 +256,6 @@ int Rmsd::perResSetup() {
     ref_range.SetRange(&RefRange);
 
   // Check that the number of reference residues matches number of target residues
-  //NumResidues = tgt_range.Size();
   if (tgt_range.Size() != ref_range.Size()) {
     mprinterr("Error: RMSD: PerRes: Number of residues %i does not match\n",tgt_range.Size());
     mprinterr("       number of reference residues %i.\n",ref_range.Size());

@@ -29,6 +29,11 @@ Hist::~Hist() {
 
 }
 
+// Hist::CheckDimension()
+/** Given an argument with format: DataSet_Name[:min:max:step:bins], check
+  * that DataSet_Name exists and is valid. Add the argument to 
+  * dimensionArgs and the corresponding dataset to histdata.
+  */
 int Hist::CheckDimension(char *input, DataSetList *datasetlist) {
   ArgList arglist;
   // Separate input string by ':'
@@ -79,7 +84,6 @@ int Hist::setupDimension(char *input, DataSet *dset) {
   bool minArg=false;
   bool maxArg=false;
   int dbins;
-  //DataSet *dset = NULL;
 
   // Separate input string by ':'
   arglist.SetList(input, ":");
@@ -87,30 +91,6 @@ int Hist::setupDimension(char *input, DataSet *dset) {
     mprintf("Warning: Hist::setupDimension: No arguments found in input: %s\n",input);
     return 1;
   }
-
-/*  // First argument should specify dataset name
-  if (debug>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
-                       arglist.ArgAt(0));
-  dset = datasetlist->Get(arglist.ArgAt(0));
-  if (dset == NULL) {
-    mprintf("\t      Dataset %s not found.\n",arglist.ArgAt(0));
-    return 1;
-  }*/
-
-  /* 
-  // Get range list from first arg 
-  range1=getRange(arglist[0],&r1,S->Data,S->Ndata);
-  if (range1==NULL) {
-    fprintf(stderr,"Error: setupCoord: Could not set up datasets based on argument: %s\n",arglist[0]);
-    return;
-  }
-  */
-
-/*  // Check that dataset is not string
-  if (dset->Type()==STRING) {
-    mprintf("Error: Hist: Cannot histogram dataset %s, type STRING.\n", dset->Name());
-    return 1;
-  }*/
 
   // Set up dimension defaults. If any arguments are specified then values
   // we be recalculated.
@@ -203,12 +183,12 @@ int Hist::setupDimension(char *input, DataSet *dset) {
   return 0;
 }
 
-/* Hist::Setup()
- * Set up histogram with specified data sets.
- * usage: hist(ogram) <dataset_name>[:min:max:step:bins] ...
- *        [free <temperature>] [norm] [gnu] [circular] out <filename>
- *        min <min> max <max> step <step> bins <bins>
- */
+// Hist::Setup()
+/** Set up histogram with specified data sets.
+  * usage: hist(ogram) <dataset_name>[:min:max:step:bins] ...
+  *        [free <temperature>] [norm] [gnu] [circular] out <filename>
+  *        min <min> max <max> step <step> bins <bins>
+  */
 int Hist::Setup(DataSetList *datasetlist) {
   char *datasetstring;
 
@@ -260,8 +240,7 @@ int Hist::Setup(DataSetList *datasetlist) {
   return 0;
 }
 
-/* Hist::Analyze()
- */
+// Hist::Analyze()
 int Hist::Analyze() {
   double *coord;
   char *datasetstring;
@@ -300,10 +279,10 @@ int Hist::Analyze() {
   return 0;
 }
 
-/* Hist::Print()
- * Convert 1D and 2D histograms to datafiles, otherwise use histogram
- * native output to print.
- */
+// Hist::Print()
+/** Convert 1D and 2D histograms to datafiles, otherwise use histogram
+  * native output to print.
+  */
 void Hist::Print(DataFileList *datafilelist) {
   DataFile *outfile=NULL;
   double *coord;
