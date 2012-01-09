@@ -1267,6 +1267,9 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
 
   // If error is set free stack memory and exit
   if (error!=0) {
+    if (pMask!=NULL) delete[] pMask;
+    if (pMask1!=NULL) delete[] pMask1;
+    if (pMask2!=NULL) delete[] pMask2;
     while (!Stack.empty()) {
       delete[] Stack.top();
       //free( Stack.top() );
