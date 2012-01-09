@@ -9,8 +9,11 @@ Action::Action() {
   DFL=NULL;
   PFL=NULL;
   FL=NULL;
+  activeRefFrame=NULL;
   activeReference=NULL;
+  activeReferenceOriginalValue=NULL;
   useMass=false;
+  useMassOriginalValue=false;
   debug=0;
   frameNum=0; 
   noInit=false; 
@@ -60,13 +63,18 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
 
   DSL=DSLin;
   FL=FLin;
-  activeReference = FL->ActiveReference();
+  // Set the active reference frame and coords
+  activeRefFrame = FL->ActiveReference();
+  if (activeRefFrame!=NULL)
+    activeReferenceOriginalValue = activeRefFrame->X;
   DFL=DFLin;
   PFL=PFLin;
   debug=debugIn;
   err = this->init();
   // Check for unhandled keywords
   actionArgs.CheckForMoreArgs();
+  // Store the value of useMass set by the actions init
+  useMassOriginalValue = useMass;
 
   return ( err );
 }
@@ -87,11 +95,35 @@ int Action::Setup(AmberParm **ParmAddress) {
   
   currentParm = *ParmAddress;
   // If useMass, check that parm actually has masses.
+  useMass = useMassOriginalValue;
   if (currentParm->mass==NULL && useMass) {
     mprintf("    Warning: %s: Mass for this parm is NULL.\n",actionArgs.Command());
     mprintf("             Geometric center will be used instead of center of mass.\n");
     useMass=false;
   }
+  // If an active reference frame has been defined, check that the number of
+  // atoms in the reference frame matches the number of atoms in the 
+  // current parm. If less, distance based mask parsing could cause a segfault,
+  // so dont allow. If more, print a warning that the reference coords may not
+  // match up with current parm.
+  activeReference = activeReferenceOriginalValue;
+  if (activeReference!=NULL) {
+    if (activeRefFrame->natom < currentParm->natom) {
+      mprintf("Warning: # atoms in active reference frame (%i) < # atoms in current\n",
+              activeRefFrame->natom);
+      mprintf("         topology %s (%i). Distance-based mask parsing will not work.\n",
+              currentParm->parmName, currentParm->natom);
+      activeReference = NULL;
+    } else if (activeRefFrame->natom > currentParm->natom) {
+      mprintf("Warning: # atoms in active reference frame (%i) > # atoms in current\n",
+              activeRefFrame->natom);
+      mprintf("         topology %s (%i). Distance-based mask parsing may not work.\n",
+              currentParm->parmName, currentParm->natom);
+      mprintf("         Ensure that there is a 1 to 1 correspondance between active\n");
+      mprintf("         reference frame and topology %s\n",currentParm->parmName);
+    }
+  }
+  // Set up actions for this parm
   err = this->setup();
   if (err) return err;
   // Set the value of parm address in case parm was changed, e.g. in strip

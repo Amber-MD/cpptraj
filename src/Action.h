@@ -31,9 +31,13 @@ class Action {
     DataFileList *DFL;      ///< Pointer to the data file list in CpptrajState (init)
     ParmFileList *PFL;      ///< Pointer to the parm file list in CpptrajState (init)
     FrameList *FL;          ///< Pointer to the reference frame list in CpptrajState (init)
-    double *activeReference; ///< Pointer to coords of active ref frame in frame list
+    Frame *activeRefFrame;  ///< Pointer to active ref frame in frame list
+    double *activeReference; ///< Temp pointer to coords of active ref frame in frame list
+    /// Pointer to coords of active ref frame in frame list
+    double *activeReferenceOriginalValue;
     
     bool useMass;           ///< If set to true, calculations will use mass info
+    bool useMassOriginalValue; ///< Value of useMass set by init
 
     int debug;              ///< action debug level
     int frameNum;           ///< # of current frame being processed, set by ActionList
