@@ -24,7 +24,7 @@ class FrameList {
     FrameList();
     ~FrameList();
 
-    double *ActiveReference();
+    Frame *ActiveReference();
     void SetActiveRef(int);
     int AddRefFrame(Frame *, char *, AmberParm *,int);
     int AddFirstFrame(Frame *, AmberParm *);

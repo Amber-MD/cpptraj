@@ -15,12 +15,12 @@ FrameList::~FrameList() {
     delete frameList[i];
 }
 
-// FrameList::ActiveRefCoords()
-/** Return the coords of frame pointed to by referenceFrameNum.
+// FrameList::ActiveReference()
+/** Return the address of the frame pointed to by referenceFrameNum.
   */
-double *FrameList::ActiveReference() {
+Frame *FrameList::ActiveReference() {
   if (Nframe<1) return NULL;
-  return frameList[referenceFrameNum]->X;
+  return frameList[referenceFrameNum];
 }
 
 // FrameList::SetActiveRef()
