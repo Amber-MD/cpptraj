@@ -373,6 +373,8 @@ AtomMap::AtomMap() {
   newParm=NULL;
   stripParm=NULL;
   maponly=false;
+  rmsfit=false;
+  rmsdata=NULL;
 }
 
 // DESTRUCTOR
@@ -958,11 +960,12 @@ int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
 
 // AtomMap::init()
 /** Expected call: atommap <target> <reference> [mapout <filename>] [maponly]
+  *                        [rmsfit [ rmsout <rmsout> ]]
   * Attempt to create a map from atoms in target to atoms in reference solely
   * based on how they are bonded (not how they are named). 
   */
 int AtomMap::init() {
-  char *refName, *targetName, *outputname;
+  char *refName, *targetName, *outputname, *rmsout;
   CpptrajFile outputfile;
   int refIndex, targetIndex;
   int refatom,targetatom;
@@ -975,6 +978,9 @@ int AtomMap::init() {
   // Get Args
   outputname=actionArgs.getKeyString("mapout",NULL);
   maponly = actionArgs.hasKey("maponly");
+  rmsfit = actionArgs.hasKey("rmsfit");
+  if (rmsfit)
+    rmsout = actionArgs.getKeyString("rmsout",NULL);
 
   targetName=actionArgs.getNextString();
   refName=actionArgs.getNextString();
@@ -1015,6 +1021,14 @@ int AtomMap::init() {
     mprintf("             Map will be written to %s\n",outputname);
   if (maponly)
     mprintf("             maponly: Map will only be written, not used in trajectory read.\n");
+  if (!maponly && rmsfit) {
+    mprintf("             rmsfit: Will rms fit mapped atoms in tgt to reference.\n");
+    if (rmsout!=NULL) {
+      rmsdata = DSL->Add(DOUBLE,actionArgs.getNextString(),"RMSD");
+      if (rmsdata==NULL) return 1;
+      DFL->Add(rmsout,rmsdata);
+    }
+  }
 
   // For each map, set up (get element for each atom, initialize map mem),
   // determine what atoms are bonded to each other via simple distance
@@ -1059,7 +1073,7 @@ int AtomMap::init() {
       //mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
       //                targetatom,TargetMap.P->names[targetatom],
       //                refatom,RefMap.P->names[refatom]);
-      numMappedAtoms++;
+      ++numMappedAtoms;
     } //else {
     //  mprintf("* Could not map any TargetAtom to RefAtom %6i(%4s)\n",
     //                  refatom,RefMap.P->names[refatom]);
@@ -1068,6 +1082,23 @@ int AtomMap::init() {
   outputfile.CloseFile();
   mprintf("      %i total atoms were mapped.\n",numMappedAtoms);
   if (maponly) return 0;
+
+  // If rmsfit is specified, an rms fit of target to reference will be
+  // performed using all atoms that were successfully mapped from 
+  // target to reference.
+  if (rmsfit) {
+    int rmsRefIndex = 0;
+    // Set up a reference frame containing only mapped reference atoms
+    rmsRefFrame.SetupFrame(numMappedAtoms,NULL);
+    for (refatom = 0; refatom < RefMap.natom; refatom++) {
+      targetatom = AMap[refatom];
+      if (targetatom!=-1) rmsRefFrame.SetCoord(rmsRefIndex++, RefMap.mapFrame->Coord(refatom));
+    }
+    // Prepare target frame to hold mapped atoms
+    rmsTgtFrame.SetupFrame(numMappedAtoms,NULL);
+    mprintf("      rmsfit: Will rms fit %i atoms from target to reference.\n",numMappedAtoms);
+    return 0;
+  }
 
   // Check if not all atoms could be mapped
   if (numMappedAtoms!=RefMap.natom) {
@@ -1106,8 +1137,8 @@ int AtomMap::init() {
           AMap[refIndex++]=targetatom;
       }
     } else {
-      mprintf("Error: AtomMap: Not all atoms were mapped.\n");
-      return 1;
+      mprintf("Warning: AtomMap: Not all atoms were mapped. Frames will not be modified.\n");
+      maponly=true;
     }
   }
 
@@ -1141,6 +1172,10 @@ int AtomMap::setup() {
     mprintf("             Not using map for this parm.\n");
     return 1;
   }
+  if (rmsfit) {
+    mprintf("    ATOMMAP: rmsfit specified, %i atoms.\n",rmsRefFrame.natom);
+    return 0;
+  }
   mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.mapParm->parmName,
           RefMap.mapParm->parmName,TargetMap.mapParm->natom);
 
@@ -1153,7 +1188,24 @@ int AtomMap::setup() {
 /** Modify the current frame based on the atom map. 
   */
 int AtomMap::action() {
+  double Rot[9], Trans[6], R;
   if (maponly) return 0;
+
+  // Perform RMS fit on mapped atoms only
+  if (rmsfit) {
+    int rmsTgtIndex = 0;
+    for (int refatom = 0; refatom < RefMap.natom; refatom++) {
+      int targetatom = AMap[refatom];
+      if (targetatom!=-1) rmsTgtFrame.SetCoord(rmsTgtIndex++, currentFrame->Coord(targetatom));
+    }
+    R = rmsTgtFrame.RMSD(&rmsRefFrame, Rot, Trans, false);
+    currentFrame->Trans_Rot_Trans(Trans,Rot);
+    if (rmsdata!=NULL)
+      rmsdata->Add(frameNum, &R);
+    return 0;
+  }
+
+  // Modify the current frame
   for (int atom=0; atom < currentFrame->natom; atom++) 
     newFrame->SetCoord(atom, currentFrame->Coord(AMap[atom]));
   currentFrame = newFrame;

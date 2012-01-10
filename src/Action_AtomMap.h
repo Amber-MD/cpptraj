@@ -63,6 +63,11 @@ class AtomMap : public Action {
     Frame *newFrame;
     AmberParm *newParm;
     AmberParm *stripParm; // For stripping reference
+
+    Frame rmsRefFrame;
+    Frame rmsTgtFrame;
+    bool rmsfit;
+    DataSet *rmsdata;
   public:
     AtomMap(); 
     ~AtomMap();
