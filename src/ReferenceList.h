@@ -1,10 +1,12 @@
 #ifndef INC_REFERENCELIST_H
 #define INC_REFERENCELIST_H
-/// Class: ReferenceList
 #include "CoordFileList.h"
 #include "FrameList.h"
+// Class: ReferenceList
 class ReferenceList : public CoordFileList {
     std::vector<bool> Average;
+    std::vector<std::string> MaskExpressions;
+    std::vector<AmberParm*> StrippedRefParms;
   public:
     
     ReferenceList();

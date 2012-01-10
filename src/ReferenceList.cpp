@@ -8,7 +8,14 @@ ReferenceList::ReferenceList() {
 }
 
 // DESTRUCTOR
-ReferenceList::~ReferenceList() { }
+ReferenceList::~ReferenceList() {
+  // Free any stripped reference parms since they dont exist in the
+  // main parm file list. 
+  for (std::vector<AmberParm*>::iterator prm = StrippedRefParms.begin();
+                                         prm != StrippedRefParms.end();
+                                         prm++)
+    delete *prm;
+}
 
 // ReferenceList::AddReference()
 /** Add trajectory to the trajectory list as a reference trajectory. The list
@@ -21,6 +28,8 @@ ReferenceList::~ReferenceList() { }
 int ReferenceList::AddReference(char *filename, ArgList *A, AmberParm *parmIn) {
   TrajectoryFile *traj;
   bool average = false;
+  char *maskexpr;
+  std::string MaskExpr;
 
   traj = new TrajectoryFile();
   if (traj==NULL) {
@@ -30,6 +39,11 @@ int ReferenceList::AddReference(char *filename, ArgList *A, AmberParm *parmIn) {
   traj->SetDebug(debug);
   // Check if we want to obtain the average structure
   average = A->hasKey("average");
+  // Check for mask expression
+  maskexpr = A->getNextMask();
+  if (maskexpr!=NULL)
+    MaskExpr.assign( maskexpr );
+  
   // Set up trajectory
   if ( traj->SetupRead(filename,A,parmIn) ) {
     mprinterr("Error: reference: Could not set up trajectory.\n");
@@ -41,9 +55,10 @@ int ReferenceList::AddReference(char *filename, ArgList *A, AmberParm *parmIn) {
   if (!average)
     traj->SingleFrame();
 
-  // Add trajectory and average status 
+  // Add trajectory, average status, and mask expression
   trajList.push_back(traj);
   Average.push_back(average); 
+  MaskExpressions.push_back( MaskExpr );
 
   return 0;
 }
@@ -59,7 +74,8 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
   double Nframes;
   Frame *CurrentFrame, *AvgFrame;
   AmberParm *CurrentParm;
-  int refTrajNum = 0;
+  int refTrajNum;
+  AtomMask Mask;
 
   mprintf("\nREFERENCE COORDS:\n");
   if (trajList.empty()) {
@@ -67,7 +83,9 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     return 1;
   }
 
+  refTrajNum = -1; // Set to -1 since increment is at top of loop
   for (traj = trajList.begin(); traj != trajList.end(); traj++) {
+    ++refTrajNum;
     // Setup the reference traj for reading. Should only be 1 frame
     // if not averaged.
     // NOTE: For MPI, calling setupFrameInfo with worldrank 0, worldsize 1 for 
@@ -93,7 +111,7 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     CurrentFrame = new Frame();
     CurrentFrame->SetupFrame(CurrentParm->natom, CurrentParm->mass);
     // If averaging requested, loop over specified frames and avg coords.
-    if (Average[refTrajNum++]) {
+    if (Average[refTrajNum]) {
       mprintf("    Averaging over %i frames.\n",trajFrames);
       AvgFrame = new Frame();
       AvgFrame->SetupFrame(CurrentParm->natom, CurrentParm->mass);
@@ -125,6 +143,36 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       mprinterr("Error getting frame for %s\n",(*traj)->TrajName());
       return 1;
     }
+    // If a mask expression was specified, strip to match the expression,
+    // storing the new parm file here.
+    if (!MaskExpressions[refTrajNum].empty()) {
+      Mask.SetMaskString((char*)MaskExpressions[refTrajNum].c_str());
+      mprintf("    reference: Keeping atoms in mask [%s]\n",Mask.MaskString());
+      if (CurrentParm->SetupIntegerMask(Mask, CurrentFrame->X)) return 1;
+      if (Mask.None()) {
+        mprinterr("Error: No atoms kept for reference.\n");
+        return 1;
+      }
+      // Create new stripped parm
+      AmberParm *strippedRefParm = CurrentParm->modifyStateByMask(Mask.Selected,NULL);
+      if (strippedRefParm==NULL) {
+        mprinterr("Error: could not strip reference.\n");
+        return 1;
+      }
+      strippedRefParm->Summary();
+      // Store the new stripped parm in this class so it can be freed later
+      StrippedRefParms.push_back(strippedRefParm);
+      // Create new stripped frame and set up from current frame
+      Frame *strippedRefFrame = new Frame();
+      strippedRefFrame->SetupFrame(strippedRefParm->natom,strippedRefParm->mass);
+      strippedRefFrame->SetFrameFromMask(CurrentFrame, &Mask);
+      // Set the current frame and parm to be stripped frame and parm
+      // No need to free CurrentParm since it exists in the parm file list.
+      delete CurrentFrame;
+      CurrentFrame = strippedRefFrame;
+      CurrentParm = strippedRefParm;
+    }
+    
     // NOTE: Also use full file path??
     refFrames->AddRefFrame(CurrentFrame,(*traj)->TrajName(),CurrentParm,(*traj)->Start());
   }
