@@ -435,7 +435,7 @@ void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
     this->CenterOfMass(Mask, center);
   else
     this->GeometricCenter(Mask, center);
-  //fprintf(stderr,"  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
+  //mprinterr("  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
 
   // Shift to whatever is in boxcoord (origin or center of box in Action_Center) 
   center[0] = boxcoord[0] - center[0]; 
@@ -453,8 +453,8 @@ void Frame::ShiftToCenter( Frame *Ref ) {
   // NOTE could pass in Mass to make true Center of Mass rotation
   this->GeometricCenter(frameCOM,0,natom);
   this->GeometricCenter(refCOM,0,natom);
-  //fprintf(stderr,"  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
-  //fprintf(stderr,"  REF   COM: %lf %lf %lf\n",refCOM[0],refCOM[1],refCOM[2]); //DEBUG
+  //mprinterr("  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
+  //mprinterr("  REF   COM: %lf %lf %lf\n",refCOM[0],refCOM[1],refCOM[2]); //DEBUG
   
   // Shift to common COM
   frameCOM[0]=-frameCOM[0]; frameCOM[1]=-frameCOM[1]; frameCOM[2]=-frameCOM[2];
@@ -1206,6 +1206,10 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
     total_mass = this->GeometricCenter(frameCOM,0,natom);
     Ref->GeometricCenter(refCOM,0,natom);
   }
+  if (total_mass<SMALL) {
+    mprinterr("Error: Frame::RMSD: Divide by zero.\n");
+    return -1;
+  }
   //fprintf(stderr,"  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
   //fprintf(stderr,"  REF   COM: %lf %lf %lf\n",refCOM[0],refCOM[1],refCOM[2]); //DEBUG
 
@@ -1368,6 +1372,16 @@ double Frame::RMSD( Frame *Ref, bool useMass ) {
     yy = Ref->X[i+1] - X[i+1];
     zz = Ref->X[i+2] - X[i+2];
     rms_return += currentMass * (xx*xx + yy*yy + zz*zz);
+  }
+  if (total_mass<SMALL) {
+    mprinterr("Error: Frame::RMSD: Divide by zero.\n");
+    return -1;
+  }
+  if (rms_return < 0) {
+    //mprinterr("Error: Frame::RMSD: Negative RMS. Coordinates may be corrupted.\n");
+    //return -1;
+    //mprinterr("RMS returned is <0 before sqrt, setting to 0 (%lf)\n",rms_return);
+    return 0;
   }
   rms_return = sqrt(rms_return / total_mass);
 
