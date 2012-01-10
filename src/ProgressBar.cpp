@@ -5,7 +5,7 @@
 // CONSTRUCTOR
 // Takes value needed to be considered complete as input.
 ProgressBar::ProgressBar(int maxIn) {
-  max = maxIn;
+  max = maxIn - 1;
   oneframe=false;
   unknownframes=false;
   C_over_max = 1;
@@ -53,13 +53,16 @@ void ProgressBar::Update(int current) {
   } else {
     currentPercent = current * C_over_max;
     if (currentPercent >= targetPercent) {
-      targetPercent+=10;
-      mprintf("%2.0f%% ",currentPercent);
+      if (current==max) 
+        mprintf("100%% Complete.\n");
+      else {
+        targetPercent+=10;
+        mprintf("%2.0f%% ",currentPercent);
+      }
       //if (first) {
       //  mflush();
       //  first=false;
       //}
-      if (current==max) mprintf("Complete.\n");
       mflush();
     }
   }

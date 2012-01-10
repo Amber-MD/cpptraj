@@ -717,7 +717,7 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
   numFramesProcessed=0;
 
   // Set up a progress bar
-  if (showProgress) progress = new ProgressBar(stop);
+  if (showProgress) progress = new ProgressBar(total_read_frames);
 
   // Determine what frames will be read
   targetSet=start;
@@ -768,7 +768,7 @@ int TrajectoryFile::GetNextFrame(Frame& FrameIn) {
   if (currentFrame>stop && stop!=-1) return 0;
   //if (currentFrame>stop) return 0;
   if (progress!=NULL) 
-    progress->Update(currentFrame);
+    progress->Update(numFramesProcessed);
     //progress->PrintBar(currentFrame);
 
   tgtFrameFound=false;

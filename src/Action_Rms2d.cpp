@@ -143,11 +143,11 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
 
   // Set up progress Bar
   ProgressBar *progress = new ProgressBar(max);
+  int current = 0;
+  progress->Update(current);
 
   // LOOP OVER REFERENCE FRAMES
-  int current = 0;
   for (int nref=0; nref < totalref - 1; nref++) {
-    progress->Update(current);
     // Get the current reference frame
     coord = ReferenceCoords.Coord(nref, &natom_ref);
     RefFrame.SetupFrameFromCoords( coord, natom_ref );
@@ -158,6 +158,7 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
       coord = ReferenceCoords.Coord(nframe, &natom_tgt);
       TgtFrame.SetupFrameFromCoords( coord, natom_tgt );
     
+      ++current;
       // Ensure # ref atoms == # tgt atoms
       if (natom_ref != natom_tgt) {
         mprintf("\tWarning: Rms2d: # atoms in ref %i (%i) != # atoms in tgt %i (%i)\n",
@@ -181,10 +182,10 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
       Distances->AddElement( R );
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
-      current++;
     } // END loop over target frames
+    progress->Update(current-1);
   } // END loop over reference frames
-  progress->Update(max);
+  //progress->Update(max);
   delete progress;
 }
 
@@ -225,10 +226,11 @@ void Rms2d::CalcRmsToTraj() {
   }
   // Set up progress Bar
   ProgressBar *progress = new ProgressBar(max);
-  // LOOP OVER REFERENCE FRAMES
   int current=0;
+  progress->Update(current);
+
+  // LOOP OVER REFERENCE FRAMES
   for (int nref=0; nref < totalref; nref++) {
-    progress->Update(current);
     // Get the current reference frame from trajectory
     RefTraj->GetNextFrame(RefFrame);
   
@@ -243,6 +245,7 @@ void Rms2d::CalcRmsToTraj() {
       coord = ReferenceCoords.Coord(nframe, &natom_tgt);
       TgtFrame.SetupFrameFromCoords( coord, natom_tgt );
 
+      ++current;
       // Ensure # ref atoms == # tgt atoms
       if (natom_ref != natom_tgt) {
         mprintf("\tWarning: Rms2d: # atoms in ref %i (%i) != # atoms in tgt %i (%i)\n",
@@ -267,10 +270,10 @@ void Rms2d::CalcRmsToTraj() {
       RmsData.AddData(nframe, &R, nref);
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
-      current++;
     } // END loop over target frames
+    progress->Update(current-1);
   } // END loop over reference frames
-  progress->Update(max);
+  //progress->Update(max);
   delete progress;
   RefTraj->EndTraj();
 }
