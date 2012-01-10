@@ -1665,10 +1665,12 @@ void AmberParm::AtomInfo(int atom) {
   mprintf("\n");
 }
 
-// AmberParm::Info()
-/** Print information about this parm to buffer. */
-void AmberParm::ParmInfo() {
-  if (parmfileName!=NULL)
+// AmberParm::ParmInfo()
+/** Print information about this parm to 1 line. */
+void AmberParm::ParmInfo(std::string& ParmTag) {
+  if (!ParmTag.empty())
+    mprintf(" %i: %s, %i atoms, %i res",pindex,ParmTag.c_str(),natom,nres);
+  else if (parmfileName!=NULL)
     mprintf(" %i: %s, %i atoms, %i res",pindex,parmfileName,natom,nres);
   else
     mprintf(" %i: %s, %i atoms, %i res",pindex,parmName,natom,nres);

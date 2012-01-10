@@ -13,6 +13,7 @@
   */
 class ParmFileList {
     std::vector<AmberParm*> ParmList;
+    std::vector<std::string> ParmTags;
     int Nparm;
     int debug;
     bool hasCopies;  ///< true: List contains addresses of parm files, do not delete
@@ -27,10 +28,12 @@ class ParmFileList {
     void SetDebug(int);
     int CheckCommand(ArgList *);
     int AddParmFile(char *);
+    int AddParmFile(char *,std::string&);
     int AddParm(AmberParm *);
     AmberParm *GetParm(int);
     AmberParm *GetParm(ArgList &);
     int GetParmIndex(char *);
+    int GetParmIndexByTag(std::string&);
     int ReplaceParm(int, AmberParm *);
     void Print();
 };

@@ -6,6 +6,7 @@
 class ReferenceList : public CoordFileList {
     std::vector<bool> Average;
     std::vector<std::string> MaskExpressions;
+    std::vector<std::string> RefTags;
     std::vector<AmberParm*> StrippedRefParms;
   public:
     

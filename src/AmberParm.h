@@ -201,7 +201,7 @@ class AmberParm {
     int OpenParm(char *,bool,bool);
 
     void AtomInfo(int);
-    void ParmInfo();
+    void ParmInfo(std::string&);
     void Summary();
     void PrintBondInfo();
     void PrintMoleculeInfo();

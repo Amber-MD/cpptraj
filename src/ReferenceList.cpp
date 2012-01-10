@@ -50,6 +50,10 @@ int ReferenceList::AddReference(char *filename, ArgList *A, AmberParm *parmIn) {
     delete traj;
     return 1;
   }
+
+  // Check for tag after set up to allow SetupRead to look for a parm tag
+  std::string reftag = A->getNextTag();
+
   // If not obtaining average structure, tell trajectory to only process the
   // start frame.
   if (!average)
@@ -59,6 +63,7 @@ int ReferenceList::AddReference(char *filename, ArgList *A, AmberParm *parmIn) {
   trajList.push_back(traj);
   Average.push_back(average); 
   MaskExpressions.push_back( MaskExpr );
+  RefTags.push_back( reftag );
 
   return 0;
 }
@@ -174,7 +179,8 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     }
     
     // NOTE: Also use full file path??
-    refFrames->AddRefFrame(CurrentFrame,(*traj)->TrajName(),CurrentParm,(*traj)->Start());
+    refFrames->AddRefFrame(CurrentFrame,(*traj)->TrajName(),CurrentParm,
+                           (*traj)->Start(),RefTags[refTrajNum]);
   }
   return 0;
 }

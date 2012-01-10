@@ -21,7 +21,7 @@ ParmFileList::~ParmFileList() {
 }
 
 // ParmFileList::SetDebug()
-/// Set debug level.
+/** Set debug level. */
 void ParmFileList::SetDebug(int debugIn) {
   if (debugIn>0) mprintf("ParmFileList debug level set to %i\n",debugIn);
   debug=debugIn;
@@ -34,9 +34,10 @@ void ParmFileList::SetDebug(int debugIn) {
 int ParmFileList::CheckCommand(ArgList *argIn) {
   AtomMask tempMask;
   int pindex;
-  // parm <filename>: Add <filename> to parm list
+  // parm <filename> [<tag>]: Add <filename> to parm list
   if (argIn->CommandIs("parm")) {
-    this->AddParmFile(argIn->getNextString());
+    std::string parmtag = argIn->getNextTag();
+    this->AddParmFile(argIn->getNextString(),parmtag);
     return 0;
   }
   // parmlist: Print list of loaded parm files
@@ -98,7 +99,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     if (tempParm==NULL) 
       mprinterr("Error: parmstrip: Could not strip parm.\n");
     else {
-      tempParm->ParmInfo();
+      tempParm->ParmInfo(ParmTags[pindex]);
       ReplaceParm(pindex, tempParm);
     }
     return 0;
@@ -201,7 +202,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
 }
 
 // ParmFileList::GetParm()
-/// Return the parm structure with index num.
+/** Return the parm structure with index num. */
 AmberParm *ParmFileList::GetParm(int num) {
   if (num>=Nparm || num<0) return NULL;
   return ParmList[num];
@@ -237,26 +238,51 @@ AmberParm *ParmFileList::GetParm(ArgList &argIn) {
 
 // ParmFileList::GetParmIndex()
 /** Return the index in ParmList of the given Parm name. Use either the full
-  * path or the base filename.
+  * path, the base filename, or a tag.
   */
 int ParmFileList::GetParmIndex(char *name) {
-  int i;
   int pindex;
+  std::string ParmTag;
 
-  pindex=-1;
-  for (i=0; i<Nparm; i++)
-    if ( strcmp(name,ParmList[i]->parmfileName)==0 ||
-         strcmp(name,ParmList[i]->parmName)==0 ) {
-      pindex=i;
-      break;
-    }
+  // if first char of name is a bracket, assume tag.
+  if (name[0]=='[') {
+    ParmTag.assign( name );
+    pindex = GetParmIndexByTag( ParmTag );
+  
+  // Otherwise assume filename or base filename
+  } else {
+    pindex=-1;
+    for (int i=0; i<Nparm; i++)
+      if ( strcmp(name,ParmList[i]->parmfileName)==0 ||
+           strcmp(name,ParmList[i]->parmName)==0 ) {
+        pindex=i;
+        break;
+      }
+  }
 
   return pindex;
 }
 
+// ParmFileList::GetParmIndexByTag()
+/** Return index of parm that matches tag. */
+int ParmFileList::GetParmIndexByTag(std::string &ParmTag) {
+  int i; 
+  if (ParmTag.empty()) return -1;
+  for (i = 0; i < Nparm; i++)
+    if ( ParmTags[i].compare( ParmTag )==0 ) return i;
+  return -1;
+}
+
 // ParmFileList::AddParmFile()
-/// Add a parameter file to the parm file list.
+/** Add a parameter file to the parm file list. */
 int ParmFileList::AddParmFile(char *filename) {
+  std::string emptystring;
+  return AddParmFile(filename, emptystring);
+}
+
+// ParmFileList::AddParmFile()
+/** Add a parameter file to the parm file list with optional tag. */
+int ParmFileList::AddParmFile(char *filename, std::string &ParmTag) {
   AmberParm *P;
 
   // Dont let a list that has copies add a new file
@@ -273,6 +299,12 @@ int ParmFileList::AddParmFile(char *filename) {
     return 1;
   }
 
+  // If tag specified, check if tag already in use
+  if (GetParmIndexByTag(ParmTag)!=-1) {
+    mprintf("    Warning: Parm tag [%s] already in use.\n",ParmTag.c_str());
+    return 1;
+  }
+
   P = new AmberParm();
   P->SetDebug(debug);
 
@@ -286,7 +318,8 @@ int ParmFileList::AddParmFile(char *filename) {
   // pindex is used for quick identification of the parm file
   P->pindex=Nparm;
   ParmList.push_back(P);
-  Nparm++;
+  ParmTags.push_back( ParmTag );
+  ++Nparm;
   return 0;
 }
 
@@ -324,7 +357,7 @@ void ParmFileList::Print() {
   }
 
   for (int i=0; i<Nparm; i++) {
-    ParmList[i]->ParmInfo();
+    ParmList[i]->ParmInfo(ParmTags[i]);
     //mprintf("  %i: %s, %i atoms (%i trajectory frames associated)\n",
     //        i,ParmList[i]->File.filename, ParmList[i]->natom, ParmList[i]->parmFrames);
   }

@@ -14,6 +14,7 @@ class FrameList {
     std::vector<Frame*> frameList;
     ParmFileList FrameParm;
     std::vector<std::string> frameNames;
+    std::vector<std::string> frameTags;
     std::vector<int> frameNums;
     int Nframe;
     int referenceFrameNum;
@@ -26,13 +27,14 @@ class FrameList {
 
     Frame *ActiveReference();
     void SetActiveRef(int);
-    int AddRefFrame(Frame *, char *, AmberParm *,int);
+    int AddRefFrame(Frame *, char *, AmberParm *,int,std::string&);
     int AddFirstFrame(Frame *, AmberParm *);
     Frame *GetFirstFrame();
     AmberParm *GetFirstFrameParm();
     int AddFrame(Frame *, AmberParm *);
     AmberParm *GetFrameParm(int);
     int GetFrameIndex(char *);
+    int GetFrameIndexByTag(std::string &);
     Frame *GetFrame(int idx);
     int ReplaceFrame(int, Frame *, AmberParm *);
     void Info();
