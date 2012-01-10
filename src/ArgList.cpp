@@ -131,8 +131,8 @@ void ArgList::MarkAll() {
 }
 
 // ArgList::MarkArg()
-void ArgList::MarkArg(unsigned int arg) {
-  if (arg < 0 || arg >= marked.size()) return;
+void ArgList::MarkArg(int arg) {
+  if (arg < 0 || arg >= (int) marked.size()) return;
   marked[arg]=true;
 }
 
@@ -269,8 +269,28 @@ char *ArgList::getNextMask() {
   return NULL;
 }
 
-// Class: BadConversion
-/// Runtime exception for catching bad conversions from the convertToX routines.
+// ArgList::getNextTag()
+/** Return the next unmarked tag. A tag is defined as a character string
+  * bounded by brackets, e.g. [tag].
+  */
+string ArgList::getNextTag() {
+  string emptystring;
+  for (unsigned int arg = 0; arg < arglist.size(); arg++) {
+    if (!marked[arg]) {
+      string::reverse_iterator lastchar  = arglist[arg].rbegin();
+      string::iterator         firstchar = arglist[arg].begin();
+      if (*firstchar=='[' && *lastchar==']') {
+        marked[arg]==true;
+        return arglist[arg];
+      }
+    }
+  }
+  return emptystring;
+}
+
+/*! \class: BadConversion
+    \brief Runtime exception for catching bad conversions from the convertToX routines.
+  */
 class BadConversion : public std::runtime_error {
 public:
   BadConversion(std::string const &s)

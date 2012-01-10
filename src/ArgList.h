@@ -38,7 +38,7 @@ class ArgList {
     /// Mark all arguments
     void MarkAll();
     /// Mark given argument
-    void MarkArg(unsigned int);
+    void MarkArg(int);
     /// Print a warning if not all arguments are marked
     void CheckForMoreArgs();
     /// Print the argument list
@@ -60,6 +60,8 @@ class ArgList {
     char *getNextString();
     /// Return the next unmarked mask
     char *getNextMask();
+    /// Return the next unmarked tag
+    std::string getNextTag();
     /// Return the next unmarked integer
     int getNextInteger(int);
     /// Return the next unmarked double
