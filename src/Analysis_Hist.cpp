@@ -371,9 +371,11 @@ void Hist::Print(DataFileList *datafilelist) {
     }
   }
 
-  outfile->SetNoXcol();
-  outfile->SetMap();
-  outfile->SetNoLabels();
+  if (hist.NumDimension() > 1) {
+    outfile->SetNoXcol();
+    outfile->SetMap();
+    outfile->SetNoLabels();
+  }
   //hist.PrintBins(circular,false);
   free(coord);
 }
