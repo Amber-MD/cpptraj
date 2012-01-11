@@ -105,7 +105,7 @@ int Histogram::BinData(double *Data) {
   // Loop over defined dimensions. 
   // Calculate an index into Bins based on precalcd offsets for dimensions.
   // Populate bin.
-  //if (debug>1) mprintf("\t{");
+  if (debug>1) mprintf("\t{");
   for (int n=0; n<numDimension; n++) {
     // Check if Data is out of bounds for this coordinate
     if (Data[n]>Dimension[n].max || Data[n]<Dimension[n].min) {
@@ -118,7 +118,7 @@ int Histogram::BinData(double *Data) {
     //modf(coord,&intpart);
     idx=(int) coord;
     //idx=(int) intpart;
-    //if (debug>1) mprintf(" [%s:%lf (%i)],",Dimension[n].label,Data[n],idx);
+    if (debug>1) mprintf(" [%s:%lf (%i)],",Dimension[n].label,Data[n],idx);
 
     /* 
     // Check if idx is out of bounds for this dimension 
@@ -133,13 +133,17 @@ int Histogram::BinData(double *Data) {
     index+=(idx*Dimension[n].offset);
   }
 
-  // If index was successfully calculated, populate bin */
-  if (index!=-1) {
-    //if (debug>1) mprintf(" |index=%i",index);
+  // If index was successfully calculated, populate bin 
+  if (index>-1 && index < numBins) {
+    if (debug>1) mprintf(" |index=%i",index);
     Bins[index]++;
+  } else {
+    mprintf("\tWarning: Coordinates out of bounds %i {",index);
+    for (int n=0; n<numDimension; n++) mprintf("%lf",Data[n]);
+    mprintf("}\n");
   }
 
-  //if (debug>1) mprintf("}\n");
+  if (debug>1) mprintf("}\n");
   return 0;
 }
 

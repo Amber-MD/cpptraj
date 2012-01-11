@@ -4,7 +4,7 @@
 /// An N-dimensional histogram, the underlying data rep is 1D.
 class Histogram {
     int debug;
-    // dimensionType holds information about a histogram dimension
+    /// dimensionType holds information about a histogram dimension
     struct dimensionType {
       char label[64];
       double min;
@@ -14,13 +14,13 @@ class Histogram {
       int offset;
     };
     dimensionType *Dimension;
-    int numDimension; // Number of dimensions
+    int numDimension; ///< Number of dimensions
 
-    double *Bins;    // Histogram data - double in case free E calculated
-    int numBins;     // Total number of bins
-    int currentBin;  // The current bin
-    int isCircular;  // 1 if data will wrap
-    int* BinIndices; // Hold the bin indices in each dimension
+    double *Bins;    ///< Histogram data - double in case free E calculated
+    int numBins;     ///< Total number of bins
+    int currentBin;  ///< The current bin
+    int isCircular;  ///< 1 if data will wrap
+    int* BinIndices; ///< Hold the bin indices in each dimension
 
     // Private Functions
     void count2coord(int *);
