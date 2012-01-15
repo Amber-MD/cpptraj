@@ -30,7 +30,9 @@ static void Usage(char *programName) {
 static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
   FILE *infile;
   char ptr,lastchar;
-  char inputLine[BUFFER_SIZE]; // Careful, could blow this
+  //char inputLine[BUFFER_SIZE]; // Careful, could blow this
+  std::vector<std::string> lineBuffer;
+  std::string inputLine;
   int i;
   bool isStdin;
 
@@ -55,7 +57,7 @@ static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
   }
 
   // Read in each line of input. Newline or NULL terminates. \ continues line.
-  memset(inputLine,' ',BUFFER_SIZE);
+  //memset(inputLine,' ',BUFFER_SIZE);
   i=0; // Index in inputLine
   lastchar='0';
   ptr=0;
@@ -68,18 +70,24 @@ static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
       while (ptr!='\n' && ptr!=EOF && ptr!='\0') ptr=(char)fgetc(infile); 
     // newline, NULL, or EOF terminates the line
     if (ptr=='\n' || ptr=='\0' || ptr==EOF) {
-      inputLine[i]='\0';
+      //inputLine[i]='\0';
       // If no chars in string continue
-      if (strlen(inputLine)==0) continue;
+      //if (strlen(inputLine)==0) continue;
+      if (inputLine.empty()) continue;
       // If "go" then done reading input
-      if (strncmp(inputLine,"go",2)==0) break;
+      //if (strncmp(inputLine,"go",2)==0) break;
+      if (inputLine.compare("go")==0) break;
       // If "quit" then abort this - only for stdin
-      if (isStdin && strncmp(inputLine,"quit",4)==0) return 1;
-      mprintf("  [%s]\n",inputLine);
+      //if (isStdin && strncmp(inputLine,"quit",4)==0) return 1;
+      if (inputLine.compare("quit")==0) return 1;
+      mprintf("  [%s]\n",inputLine.c_str());
       // Call Dispatch to convert input to arglist and process.
-      State.Dispatch(inputLine); 
+      State.Dispatch((char*)inputLine.c_str());
+      // Store the input line in the line buffer
+      lineBuffer.push_back( inputLine ); 
       // Reset Input line
-      memset(inputLine,' ',BUFFER_SIZE);
+      //memset(inputLine,' ',BUFFER_SIZE);
+      inputLine.clear();
       i=0;
       if (isStdin) fprintf(stdout,"> ");
       continue;
@@ -106,13 +114,15 @@ static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
       if (isStdin) fprintf(stdout,"> ");
       continue;
     }
-    inputLine[i++]=ptr;
+    //inputLine[i++]=ptr;
+    inputLine+=ptr;
+    ++i;
     // Check to make sure we arent blowing buffer
-    if (i==BUFFER_SIZE) {
-      rprintf("Error: Input line is greater than BUFFER_SIZE (%u)\n",BUFFER_SIZE);
-      if (!isStdin) fclose(infile);
-      return 1;
-    }
+    //if (i==BUFFER_SIZE) {
+    //  rprintf("Error: Input line is greater than BUFFER_SIZE (%u)\n",BUFFER_SIZE);
+    //  if (!isStdin) fclose(infile);
+    //  return 1;
+    //}
   }
 
   if (!isStdin) fclose(infile);
