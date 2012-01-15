@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <cstdlib> // atoi
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V2.3.8b"
+#define CPPTRAJ_VERSION_STRING "V2.3.9b"
 #endif
 
 // Usage()
@@ -21,17 +21,15 @@ static void Usage(char *programName) {
 
 // ProcessInputStream()
 /// Process input from the file specified by filename. 
-/** If filename is NULL
- * process input from STDIN. Set up an input line that will be converted
- * to an argument list and processed by the CpptrajState::Dispatch routine.
- * Leading and consectuive whitespace is skipped. \n or NULL executes command.
- * 'go' or EOF ends input read. lines ending with \ continue to the next line.
- */
+/** If filename is NULL process input from STDIN. Set up an input line that 
+  * will be converted to an argument list and processed by the 
+  * CpptrajState::Dispatch routine.
+  * Leading and consectuive whitespace is skipped. \n or NULL executes command.
+  * 'go' or EOF ends input read. lines ending with \ continue to the next line.
+  */
 static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
   FILE *infile;
   char ptr,lastchar;
-  //char inputLine[BUFFER_SIZE]; // Careful, could blow this
-  std::vector<std::string> lineBuffer;
   std::string inputLine;
   int i;
   bool isStdin;
@@ -57,12 +55,12 @@ static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
   }
 
   // Read in each line of input. Newline or NULL terminates. \ continues line.
-  //memset(inputLine,' ',BUFFER_SIZE);
   i=0; // Index in inputLine
   lastchar='0';
   ptr=0;
   if (isStdin) fprintf(stdout,"> ");
   while ( ptr != EOF ) {
+    //if (prompt) {fprintf(stdout,"> "); prompt=false;}
     ptr = (char)fgetc(infile);
     //fprintf(stdout,"DEBUG: %i %c %i\n",i,ptr,ptr);
     // If '#' is encountered, skip the rest of the line
@@ -70,23 +68,17 @@ static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
       while (ptr!='\n' && ptr!=EOF && ptr!='\0') ptr=(char)fgetc(infile); 
     // newline, NULL, or EOF terminates the line
     if (ptr=='\n' || ptr=='\0' || ptr==EOF) {
-      //inputLine[i]='\0';
       // If no chars in string continue
-      //if (strlen(inputLine)==0) continue;
       if (inputLine.empty()) continue;
       // If "go" then done reading input
-      //if (strncmp(inputLine,"go",2)==0) break;
       if (inputLine.compare("go")==0) break;
-      // If "quit" then abort this - only for stdin
-      //if (isStdin && strncmp(inputLine,"quit",4)==0) return 1;
+      // If "quit" then abort 
       if (inputLine.compare("quit")==0) return 1;
+      // Print the input line that will be sent to dispatch
       mprintf("  [%s]\n",inputLine.c_str());
       // Call Dispatch to convert input to arglist and process.
       State.Dispatch((char*)inputLine.c_str());
-      // Store the input line in the line buffer
-      lineBuffer.push_back( inputLine ); 
       // Reset Input line
-      //memset(inputLine,' ',BUFFER_SIZE);
       inputLine.clear();
       i=0;
       if (isStdin) fprintf(stdout,"> ");
@@ -114,15 +106,9 @@ static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
       if (isStdin) fprintf(stdout,"> ");
       continue;
     }
-    //inputLine[i++]=ptr;
+    // Add character to input line
     inputLine+=ptr;
     ++i;
-    // Check to make sure we arent blowing buffer
-    //if (i==BUFFER_SIZE) {
-    //  rprintf("Error: Input line is greater than BUFFER_SIZE (%u)\n",BUFFER_SIZE);
-    //  if (!isStdin) fclose(infile);
-    //  return 1;
-    //}
   }
 
   if (!isStdin) fclose(infile);
