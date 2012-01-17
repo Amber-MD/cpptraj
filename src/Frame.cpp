@@ -445,6 +445,24 @@ void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
   this->Translate(center);
 }
 
+// Frame::CenterReference()
+/** Center coordinates to origin in preparation for RMSD calculation. Store
+  * the appropriate translation vector in Trans[3-5].
+  */
+void Frame::CenterReference(double *Trans, bool useMassIn) {
+  double center[3];
+  if (useMassIn)
+    this->CenterOfMass(Trans+3,0,natom);
+  else
+    this->GeometricCenter(Trans+3,0,natom);
+  //mprinterr("  REF FRAME CENTER: %lf %lf %lf\n",Trans[3],Trans[4],Trans[5]); //DEBUG
+
+  center[0] = -Trans[3];
+  center[1] = -Trans[4];
+  center[2] = -Trans[5];
+  this->Translate(center);
+}
+
 // Frame::ShiftToGeometricCenter()
 /** Shift geometric center of coordinates in frame to origin. */
 void Frame::ShiftToGeometricCenter( ) {
@@ -1338,6 +1356,179 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   Trans[3] = -refCOM[0];
   Trans[4] = -refCOM[1];
   Trans[5] = -refCOM[2];
+
+  //DEBUG
+  //printRotTransInfo(U,Trans);
+  //fprintf(stdout,"RMS is %lf\n",rms_return);
+
+  return rms_return;
+}
+
+/* Frame::RMSD_CenteredRef()
+ * Get the RMSD of this Frame to given Reference Frame. Ref frame must contain 
+ * the same number of atoms as this Frame and should have already been 
+ * translated to coordinate origin (neither is checked for in the interest
+ * of speed). Put the best-fit rotation matrix in U and the COM translation 
+ * vector for Frame in Trans[0-2]. The translation is composed of two XYZ 
+ * vectors; the first is the shift of the XYZ coords to origin, and the second 
+ * is the shift to Reference origin (should already be set). To reproduce the 
+ * fit perform the first translation (Trans[0...2]), rotate (U), then the second
+ * translation (Trans[3...5]).
+ */
+double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool useMassIn) 
+{
+  double frameCOM[3], rms_return, total_mass, atom_mass;
+  double mwss, rot[9], rtr[9];
+  double xt,yt,zt,xr,yr,zr;
+  double *Evector[3], Eigenvalue[3], Emat[9];
+  double b[9];
+  double cp[3], sig3;
+  int i, m;
+  int i3,k,k3,j;
+
+  U[0]=0.0; U[1]=0.0; U[2]=0.0;
+  U[3]=0.0; U[4]=0.0; U[5]=0.0;
+  U[6]=0.0; U[7]=0.0; U[8]=0.0;
+  // Trans is set at the end
+ 
+  // Rotation will occur around geometric center/center of mass
+  if (useMassIn)
+    total_mass = this->CenterOfMass(frameCOM,0,natom);
+  else
+    total_mass = this->GeometricCenter(frameCOM,0,natom);
+
+  if (total_mass<SMALL) {
+    mprinterr("Error: Frame::RMSD: Divide by zero.\n");
+    return -1;
+  }
+  //fprintf(stderr,"  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
+
+  // Shift to common COM
+  frameCOM[0]=-frameCOM[0]; frameCOM[1]=-frameCOM[1]; frameCOM[2]=-frameCOM[2];
+  this->Translate(frameCOM);
+  //fprintf(stderr,"  SHIFTED FRAME 0: %lf %lf %lf\n",X[0],X[1],X[2]); //DEBUG
+  //fprintf(stderr,"  SHIFTED REF 0  : %lf %lf %lf\n",Ref->X[0],Ref->X[1],Ref->X[2]); //DEBUG
+
+  // Use Kabsch algorithm to calculate optimum rotation matrix.
+  // U = [(RtR)^.5][R^-1]
+  mwss=0.0;
+  rot[0]=0.0; rot[1]=0.0; rot[2]=0.0;
+  rot[3]=0.0; rot[4]=0.0; rot[5]=0.0;
+  rot[6]=0.0; rot[7]=0.0; rot[8]=0.0;
+  // rtr is set below
+  // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
+  m=0;
+  for (i=0; i<N; i+=3) {
+    xt = X[i];
+    yt = X[i+1];
+    zt = X[i+2];
+    xr = Ref.X[i];
+    yr = Ref.X[i+1];
+    zr = Ref.X[i+2];
+
+    // Use atom_mass to hold mass for this atom if specified
+    atom_mass = 1.0;
+    if (useMassIn) 
+      atom_mass = Mass[m++];
+    //total_mass+=atom_mass;
+
+    mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
+
+    // Calculate the Kabsch matrix: R = (rij) = Sum(yni*xnj)
+    rot[0] += atom_mass*xt*xr;
+    rot[1] += atom_mass*xt*yr;
+    rot[2] += atom_mass*xt*zr;
+
+    rot[3] += atom_mass*yt*xr;
+    rot[4] += atom_mass*yt*yr;
+    rot[5] += atom_mass*yt*zr;
+
+    rot[6] += atom_mass*zt*xr;
+    rot[7] += atom_mass*zt*yr;
+    rot[8] += atom_mass*zt*zr;
+  }
+  mwss *= 0.5;    // E0 = 0.5*Sum(xn^2+yn^2) 
+
+  //DEBUG
+  //fprintf(stderr,"ROT:\n%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
+  //        rot[0],rot[1],rot[2],rot[3],rot[4],rot[5],rot[6],rot[7],rot[8]);
+  //fprintf(stderr,"MWSS: %lf\n",mwss);
+
+  // calculate Kabsch matrix multiplied by its transpose: RtR 
+  rtr[0] = rot[0]*rot[0] + rot[1]*rot[1] + rot[2]*rot[2];
+  rtr[1] = rot[0]*rot[3] + rot[1]*rot[4] + rot[2]*rot[5];
+  rtr[2] = rot[0]*rot[6] + rot[1]*rot[7] + rot[2]*rot[8];
+  rtr[3] = rot[3]*rot[0] + rot[4]*rot[1] + rot[5]*rot[2];
+  rtr[4] = rot[3]*rot[3] + rot[4]*rot[4] + rot[5]*rot[5];
+  rtr[5] = rot[3]*rot[6] + rot[4]*rot[7] + rot[5]*rot[8];
+  rtr[6] = rot[6]*rot[0] + rot[7]*rot[1] + rot[8]*rot[2];
+  rtr[7] = rot[6]*rot[3] + rot[7]*rot[4] + rot[8]*rot[5];
+  rtr[8] = rot[6]*rot[6] + rot[7]*rot[7] + rot[8]*rot[8];
+
+  // Diagonalize?
+  if (!diagEsort(rtr, Emat, Evector, Eigenvalue))
+    return(0);
+
+  // a3 = a1 x a2 
+  CROSS_PRODUCT(Evector[2][0], Evector[2][1], Evector[2][2],
+                Evector[0][0], Evector[0][1], Evector[0][2],
+                Evector[1][0], Evector[1][1], Evector[1][2]);
+
+  // Evector dot transpose rot: b = R . ak 
+  b[0] = Evector[0][0]*rot[0] + Evector[0][1]*rot[3] + Evector[0][2]*rot[6];
+  b[1] = Evector[0][0]*rot[1] + Evector[0][1]*rot[4] + Evector[0][2]*rot[7];
+  b[2] = Evector[0][0]*rot[2] + Evector[0][1]*rot[5] + Evector[0][2]*rot[8];
+  normalize(&b[0]);
+  b[3] = Evector[1][0]*rot[0] + Evector[1][1]*rot[3] + Evector[1][2]*rot[6];
+  b[4] = Evector[1][0]*rot[1] + Evector[1][1]*rot[4] + Evector[1][2]*rot[7];
+  b[5] = Evector[1][0]*rot[2] + Evector[1][1]*rot[5] + Evector[1][2]*rot[8];
+  normalize(&b[3]);
+  b[6] = Evector[2][0]*rot[0] + Evector[2][1]*rot[3] + Evector[2][2]*rot[6];
+  b[7] = Evector[2][0]*rot[1] + Evector[2][1]*rot[4] + Evector[2][2]*rot[7];
+  b[8] = Evector[2][0]*rot[2] + Evector[2][1]*rot[5] + Evector[2][2]*rot[8];
+  normalize(&b[6]);
+
+ /* b3 = b1 x b2 */
+  CROSS_PRODUCT(cp[0], cp[1], cp[2],
+                 b[0],  b[1],  b[2],
+                 b[3],  b[4],  b[5]);
+
+  if ( (cp[0]*b[6] + cp[1]*b[7] + cp[2]*b[8]) < 0.0 )
+    sig3 = -1.0;
+  else
+    sig3 = 1.0;
+
+  b[6] = cp[0];
+  b[7] = cp[1];
+  b[8] = cp[2];
+
+  // U has the best rotation 
+  for (k=k3=0; k<3; k++,k3+=3)
+    for (i=i3=0; i<3; i++,i3+=3)
+      for (j=0; j<3; j++)
+        U[i3+j] += Evector[k][j] * b[k3+i]; 
+
+  // E=E0-sqrt(mu1)-sqrt(mu2)-sig3*sqrt(mu3) 
+  rms_return = mwss;
+  rms_return -= sqrt(fabs(Eigenvalue[0]));
+  rms_return -= sqrt(fabs(Eigenvalue[1]));
+  rms_return -= (sig3*sqrt(fabs(Eigenvalue[2])));
+
+  if (rms_return<0) {
+    //fprintf(stderr,"RMS returned is <0 before sqrt, setting to 0 (%lf)\n",rms_return);
+    rms_return=0.0;
+  }
+  else
+    rms_return = sqrt((2.0*rms_return)/total_mass);
+
+  /* Translation matrix - coords are shifted to common CoM first (origin), then
+   * to original reference location.
+   * Remember frameCOM was negated above to facilitate translation to COM.
+   * Reference translation should already be set
+   */
+  Trans[0] = frameCOM[0];
+  Trans[1] = frameCOM[1];
+  Trans[2] = frameCOM[2];
 
   //DEBUG
   //printRotTransInfo(U,Trans);

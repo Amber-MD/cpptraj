@@ -50,6 +50,7 @@ class Frame {
     void Rotate(double *);
     void InverseRotate(double *);
     void Center(AtomMask *, double *,bool);
+    void CenterReference(double *, bool);
     void ShiftToGeometricCenter();
     // Coordinate assignment/extraction
     void printAtomCoord(int);
@@ -79,6 +80,7 @@ class Frame {
     double PUCKER(AtomMask*,AtomMask*,AtomMask*,AtomMask*,AtomMask*,int,bool,bool);
     double RADGYR(AtomMask *, bool, double *);
     double RMSD(Frame*, double*, double*,bool);
+    double RMSD_CenteredRef( Frame &, double[9], double[6], bool);
     double RMSD(Frame*,bool);
     double DISTRMSD( Frame * );
 
