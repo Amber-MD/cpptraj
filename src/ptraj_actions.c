@@ -242,6 +242,7 @@ void FreeReferenceInfo() {
     safe_free(referenceInfo->y);
     safe_free(referenceInfo->z);
     safe_free(referenceInfo);
+    referenceInfo=NULL;
   }
 }
 
