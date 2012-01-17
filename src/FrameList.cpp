@@ -74,8 +74,9 @@ int FrameList::AddRefFrame(Frame *F, char *name, AmberParm *P, int framenum,
   * The frame will be given the name of the parm.
   */
 int FrameList::AddFirstFrame(Frame *frameIn, AmberParm *parmIn) {
-  std::string RefTag("[first]"); 
-  if (AddRefFrame(frameIn, parmIn->parmName, parmIn, 0, RefTag)) return 1;
+  std::string RefTag("[first]");
+  const char ff_name[15] = "__FirstFrame__"; // should this just be first?
+  if (AddRefFrame(frameIn, (char*)ff_name, parmIn, 0, RefTag)) return 1;
   // Since Nframe has now been incremented, actual position in 
   // frameList is Nframe - 1.
   firstFrameNum = Nframe - 1;
