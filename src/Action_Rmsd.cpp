@@ -460,8 +460,10 @@ int Rmsd::action() {
       }
       ResRefFrame->SetFrameFromMask(&RefFrame, &(refResMask[N]));
       ResFrame->SetFrameFromMask(currentFrame, &(tgtResMask[N]));
-      if (perrescenter)
-        ResFrame->ShiftToCenter(ResRefFrame);
+      if (perrescenter) {
+        ResFrame->ShiftToGeometricCenter( );
+        ResRefFrame->ShiftToGeometricCenter( );
+      }
       R = ResFrame->RMSD(ResRefFrame,useMass);
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,
       //        tgtResMask[N]->MaskString(),refResMask[N]->MaskString(),R);

@@ -50,7 +50,7 @@ class Frame {
     void Rotate(double *);
     void InverseRotate(double *);
     void Center(AtomMask *, double *,bool);
-    void ShiftToCenter( Frame * );
+    void ShiftToGeometricCenter();
     // Coordinate assignment/extraction
     void printAtomCoord(int);
     void GetCoord(double *, int);

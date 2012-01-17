@@ -11,7 +11,7 @@ const size_t Frame::COORDSIZE = 3 * sizeof(double);
 const size_t Frame::BOXSIZE = 6 * sizeof(double);
 
 /// CONSTRUCTOR
-Frame::Frame() {
+Frame::Frame( ) {
   natom=0;
   N=0;
   maxnatom=0;
@@ -23,7 +23,7 @@ Frame::Frame() {
 }
 
 /// DESTRUCTOR
-Frame::~Frame() {
+Frame::~Frame( ) {
   if (X!=NULL) delete[] X;
   if (V!=NULL) delete[] V;
   if (Mass!=NULL) delete[] Mass;
@@ -211,10 +211,10 @@ int Frame::SetupFrameFromCoords(float *CoordIn, int ncoord) {
 /* Frame::FrameCopy()
  * Return a copy of the frame
  */
-Frame *Frame::FrameCopy() {
+Frame *Frame::FrameCopy( ) {
   Frame *newFrame;
 
-  newFrame=new Frame();
+  newFrame=new Frame( );
   newFrame->natom = this->natom;
   newFrame->maxnatom = this->maxnatom;
   newFrame->N = this->N;
@@ -280,7 +280,7 @@ Frame *Frame::FrameCopy() {
 /* ------------------- Coordinate Manipulation Routines --------------------- */
 // Frame::ZeroCoords()
 /** Set all coords to 0.0 */
-void Frame::ZeroCoords() {
+void Frame::ZeroCoords( ) {
   memset(X, 0, N * sizeof(double));
 }
 
@@ -424,9 +424,10 @@ void Frame::InverseRotate(double *T) {
 }
 
 // Frame::Center()
-/** Center coordinates in Mask to the coordinates in box[0-2]. When called from
-  * Action_Center box will be either 0.0 or box center. Use geometric center if 
-  * mass is NULL, otherwise center of mass will be used.
+/** Center coordinates to center of coordinates in Mask w.r.t. given XYZ in
+  * boxcoord. When called from Action_Center boxcoord will be either origin 
+  * or box center. Use geometric center if mass is NULL, otherwise center 
+  * of mass will be used.
   */
 void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
   double center[3];
@@ -444,23 +445,17 @@ void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
   this->Translate(center);
 }
 
-// Frame::ShiftToCenter()
-/** Shift Frame and Ref to common COM */
-void Frame::ShiftToCenter( Frame *Ref ) {
-  double frameCOM[3], refCOM[3];
+// Frame::ShiftToGeometricCenter()
+/** Shift geometric center of coordinates in frame to origin. */
+void Frame::ShiftToGeometricCenter( ) {
+  double frameCOM[3];
 
-  // Rotation will occur around geometric center.
-  // NOTE could pass in Mass to make true Center of Mass rotation
   this->GeometricCenter(frameCOM,0,natom);
-  this->GeometricCenter(refCOM,0,natom);
   //mprinterr("  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
-  //mprinterr("  REF   COM: %lf %lf %lf\n",refCOM[0],refCOM[1],refCOM[2]); //DEBUG
   
   // Shift to common COM
   frameCOM[0]=-frameCOM[0]; frameCOM[1]=-frameCOM[1]; frameCOM[2]=-frameCOM[2];
-  refCOM[0]  =-refCOM[0];   refCOM[1]  =-refCOM[1];   refCOM[2]  =-refCOM[2];
   this->Translate(frameCOM);
-  Ref->Translate(refCOM);
 }
 
 /* -------------- Coordinate Assignment/Extraction Routines ----------------- */
