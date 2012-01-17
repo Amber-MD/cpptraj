@@ -6,7 +6,6 @@
 // CONSTRUCTOR
 DistRmsd::DistRmsd() {
   drmsd=NULL;
-  first=false;
   RefTraj=NULL;
   RefParm=NULL;
 }
@@ -20,11 +19,10 @@ DistRmsd::~DistRmsd() {
   }
 }
 
-/* DistRmsd::SetRefMask()
- * Setup reference mask based on maskRef. Requires RefParm to be set. Should 
- * only be called once.
- * If reference, this is called from init. If first, this is called from setup.
- */
+// DistRmsd::SetRefMask()
+/** Setup reference mask based on maskRef. Requires RefParm to be set. Should 
+  * only be called once.
+  */
 int DistRmsd::SetRefMask() {
   if ( RefParm->SetupIntegerMask(RefMask, activeReference) ) return 1;
   if (RefMask.None()) {
@@ -44,21 +42,19 @@ int DistRmsd::SetRefMask() {
   return 0;
 }
 
-/* DistRmsd::init()
- * Called once before traj processing. Set up reference info.
- * Expected call: 
- * drmsd <name> <mask> [<refmask>] [out filename] 
- *       [ first | ref <filename> | refindex <#> | 
- *         reftraj <filename> [parm <parmname> | parmindex <#>] ] 
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// DistRmsd::init()
+/** Called once before traj processing. Set up reference info.
+  * Expected call: 
+  * drmsd <name> <mask> [<refmask>] [out filename] 
+  *       [ first | ref <filename> | refindex <#> | 
+  *         reftraj <filename> [parm <parmname> | parmindex <#>] ] 
+  */
 int DistRmsd::init( ) {
   char *referenceName, *mask0, *maskRef, *reftraj;
   char *rmsdFile;
   int refindex, referenceKeyword;
+  bool first;
+  Frame *TempFrame=NULL;
 
   // Check for keywords
   referenceKeyword=actionArgs.hasKey("reference"); // For compatibility with ptraj
@@ -90,15 +86,23 @@ int DistRmsd::init( ) {
   // Add dataset to data file list
   DFL->Add(rmsdFile,drmsd);
 
+  // Set up reference structure
   if (!first && referenceName==NULL && refindex==-1 && referenceKeyword==0 && reftraj==NULL) {
     mprintf("    Warning: DistRmsd::init: No reference structure given. Defaulting to first.\n");
     first=true;
   }
 
-  if (!first) {
-    // Check if reference will be a series of frames from a trajectory
-    if (reftraj!=NULL) {
-      if ( SetRefMask() ) return 1;
+  // If 'first' specified, reference is first frame (set in CpptrajState).
+  if (first) {
+    TempFrame=FL->GetFirstFrame();
+    if (TempFrame==NULL) {
+      mprinterr("    Error: DistRmsd::init: Could not get first frame as reference.\n");
+      return 1;
+    }
+    RefFrame = *TempFrame; 
+    RefParm=FL->GetFirstFrameParm();
+  // Check if reference will be a series of frames from a trajectory
+  } else if (reftraj!=NULL) {
       // Attempt to set up reference trajectory
       RefTraj = new TrajectoryFile();
       if (RefTraj->SetupRead(reftraj, NULL, RefParm)) {
@@ -108,29 +112,31 @@ int DistRmsd::init( ) {
         return 1;
       } 
       RefFrame.SetupFrameV(RefParm->natom, RefParm->mass, RefTraj->HasVelocity());
-    } else {
-      // Attempt to get reference index by name
-      if (referenceName!=NULL)
-        refindex=FL->GetFrameIndex(referenceName);
+  // Get reference by name/index/tag
+  } else {
+    // Attempt to get reference index by name/tag
+    if (referenceName!=NULL)
+      refindex=FL->GetFrameIndex(referenceName);
 
-      // For compatibility with ptraj, if 'reference' specified use first reference structure
-      if (referenceKeyword) refindex=0;
+    // For compatibility with ptraj, if 'reference' specified use first 
+    // specified reference.
+    if (referenceKeyword) refindex=0;
 
-      // Get reference frame by index
-      Frame *TempFrame=FL->GetFrame(refindex);
-      if (TempFrame==NULL) {
-        mprintf("    Error: DistRmsd::init: Could not get reference index %i\n",refindex);
-        return 1;
-      }
-      RefFrame = *TempFrame;
-      // Set reference parm
-      RefParm=FL->GetFrameParm(refindex);
-      // Setup reference mask here since reference frame/parm are allocated
-      if ( SetRefMask() ) return 1;
-      //RefFrame.printAtomCoord(0);
-      //fprintf(stderr,"  NATOMS IN REF IS %i\n",RefFrame.natom); // DEBUG
+    // Get reference frame by index
+    TempFrame=FL->GetFrame(refindex);
+    if (TempFrame==NULL) {
+      mprintf("    Error: DistRmsd::init: Could not get reference index %i\n",refindex);
+      return 1;
     }
+    RefFrame = *TempFrame;
+    // Set reference parm
+    RefParm=FL->GetFrameParm(refindex);
   }
+
+  // Setup reference mask 
+  if ( SetRefMask() ) return 1;
+  //RefFrame.printAtomCoord(0);
+  //fprintf(stderr,"  NATOMS IN REF IS %i\n",RefFrame.natom); // DEBUG
 
   mprintf("    DISTRMSD: (%s), reference is ",TgtMask.MaskString());
   if (reftraj!=NULL) {
@@ -151,10 +157,10 @@ int DistRmsd::init( ) {
   return 0;
 }
 
-/* DistRmsd::setup()
- * Called every time the trajectory changes. Set up TgtMask for the new 
- * parmtop and allocate space for selected atoms from the Frame.
- */
+// DistRmsd::setup()
+/** Called every time the trajectory changes. Set up TgtMask for the new 
+  * parmtop and allocate space for selected atoms from the Frame.
+  */
 int DistRmsd::setup() {
 
   if ( currentParm->SetupIntegerMask(TgtMask, activeReference) ) return 1;
@@ -166,13 +172,6 @@ int DistRmsd::setup() {
   // correct masses in based on the mask.
   SelectedTgt.SetupFrameFromMask(&TgtMask, currentParm->mass);
   
-  // first: If RefParm not set, set it here and set the reference mask.
-  //        Should only occur once.
-  if (first && RefParm==NULL) {
-    RefParm=currentParm;
-    if ( SetRefMask() ) return 1;
-  } 
-
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( RefMask.Nselected != TgtMask.Nselected ) {
     mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",TgtMask.Nselected);
@@ -183,27 +182,11 @@ int DistRmsd::setup() {
   return 0;
 }
 
-/* DistRmsd::action()
- * Called every time a frame is read in. Calc distance RMSD. If first is true 
- * at this point we want to set the first frame read in as reference.
- */
+// DistRmsd::action()
+/** Called every time a frame is read in. Calc distance RMSD. 
+  */
 int DistRmsd::action() {
   double DR;
-
-  // first: If Ref is NULL, allocate this frame as reference
-  //        Should only occur once.
-  // NOTE: For MPI this will currently result in different references between threads.
-  if (first) {
-    Frame* tmpframe = FL->GetFirstFrame();
-    if (tmpframe==NULL) {
-      RefFrame = *currentFrame;
-      tmpframe = new Frame(*currentFrame);
-      FL->AddFirstFrame(tmpframe,currentParm);
-    } else {
-      RefFrame = *tmpframe;
-    }
-    first = false;
-  }
 
   // reftraj: Get the next frame from the reference trajectory
   //          If no more frames are left, the last frame will be used. This

@@ -9,6 +9,7 @@
 class Rmsd: public Action {
     DataSet *rmsd;
     // PerResRMSD -------------
+    bool perres;                       ///< If true calculate per-residue rmsd
     int NumResidues;                   ///< Total # of residues to calculate per res rmsd for
     DataSetList *PerResRMSD;           ///< Hold residue RMSDs
     std::vector<AtomMask> tgtResMask;  ///< Hold target masks for each res in ResRange
@@ -26,7 +27,7 @@ class Rmsd: public Action {
     // ------------------------ 
     AtomMask RefMask;                  ///< Reference mask
     AtomMask FrameMask;                ///< Frame masks.
-    bool nofit, first, perres;         // Action options
+    bool nofit;                        ///< If true do not calculate best-fit RMSD
     Frame RefFrame;                    ///< Hold reference frame coords
     Frame SelectedRef;                 ///< Hold only ref coods selected by maskRef
     Frame SelectedFrame;               ///< Hold only frame coords selected by mask0

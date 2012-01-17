@@ -181,6 +181,22 @@ int CpptrajState::Run() {
     refFrames.SetActiveRef(activeRef);
   refFrames.Info();
 
+  // Some actions require access to the first processed frame. Set that up now.
+  trajinList.Begin();
+  traj = trajinList.NextTraj();
+  if (traj!=NULL) {
+    traj->BeginTraj(false);
+    CurrentParm=traj->TrajParm();
+    TrajFrame.SetupFrameV(CurrentParm->natom, CurrentParm->mass, traj->HasVelocity());
+    traj->GetNextFrame(TrajFrame);
+    traj->EndTraj();
+    // Since FrameList holds memory addresses create a copy of the first frame
+    // to avoid blowing it away during traj processing.
+    Frame *FirstFrame = TrajFrame.FrameCopy();
+    refFrames.AddFirstFrame( FirstFrame, CurrentParm );
+  }
+  refFrames.Info(); // DEBUG
+
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");
   trajoutList.Info(1,0);

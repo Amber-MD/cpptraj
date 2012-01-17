@@ -10,7 +10,6 @@ Rmsd::Rmsd() {
   NumResidues=0;
   perresout=NULL;
   nofit=false;
-  first=false;
   useMass=false;
   perres=false;
   RefTraj=NULL;
@@ -26,7 +25,7 @@ Rmsd::Rmsd() {
 // DESTRUCTOR
 Rmsd::~Rmsd() {
   //mprinterr("RMSD DESTRUCTOR\n");
-  // If first, ref Frame was allocd (not assigned from reference Frame List)
+  // If RMS to reference traj, close the traj. 
   if (RefTraj!=NULL) {
     RefTraj->EndTraj();
     delete RefTraj;
@@ -52,7 +51,6 @@ void Rmsd::resizeResMasks() {
 // Rmsd::SetRefMask()
 /** Setup reference mask based on maskRef. Requires RefParm to be set. Should 
   * only be called once.
-  * If reference, this is called from init. If first, this is called from setup.
   */
 int Rmsd::SetRefMask() {
   if (RefParm->SetupIntegerMask( RefMask, activeReference )) return 1;
@@ -86,6 +84,8 @@ int Rmsd::init( ) {
   char *referenceName, *mask0, *maskRef, *reftraj;
   char *rmsdFile;
   int refindex, referenceKeyword;
+  Frame *TempFrame = NULL;
+  bool first;
 
   // Check for keywords
   referenceKeyword=actionArgs.hasKey("reference"); // For compatibility with ptraj
@@ -102,18 +102,20 @@ int Rmsd::init( ) {
   nofit = actionArgs.hasKey("nofit");
   first = actionArgs.hasKey("first");
   useMass = actionArgs.hasKey("mass");
-  perres = actionArgs.hasKey("perres");
   rmsdFile = actionArgs.getKeyString("out",NULL);
   // Per-res keywords
-  perresout = actionArgs.getKeyString("perresout",NULL);
-  perresinvert = actionArgs.hasKey("perresinvert");
-  ResRange.SetRange( actionArgs.getKeyString("range",NULL) );
-  RefRange.SetRange( actionArgs.getKeyString("refrange",NULL) );
-  perresmask = actionArgs.getKeyString("perresmask",(char*)"");
-  perrescenter = actionArgs.hasKey("perrescenter");
-  perresavg = actionArgs.getKeyString("perresavg",NULL);
+  perres = actionArgs.hasKey("perres");
+  if (perres) {
+    perresout = actionArgs.getKeyString("perresout",NULL);
+    perresinvert = actionArgs.hasKey("perresinvert");
+    ResRange.SetRange( actionArgs.getKeyString("range",NULL) );
+    RefRange.SetRange( actionArgs.getKeyString("refrange",NULL) );
+    perresmask = actionArgs.getKeyString("perresmask",(char*)"");
+    perrescenter = actionArgs.hasKey("perrescenter");
+    perresavg = actionArgs.getKeyString("perresavg",NULL);
+  }
 
-  // Get the RMS mask string for frames
+  // Get the RMS mask string for target 
   mask0 = actionArgs.getNextMask();
   FrameMask.SetMaskString(mask0);
   // Get RMS mask string for reference
@@ -128,47 +130,57 @@ int Rmsd::init( ) {
   // Add dataset to data file list
   DFL->Add(rmsdFile,rmsd);
 
+  // Set up reference structure
   if (!first && referenceName==NULL && refindex==-1 && referenceKeyword==0 && reftraj==NULL) {
     mprintf("    Warning: Rmsd::init: No reference structure given. Defaulting to first.\n");
     first=true;
   }
 
-  if (!first) {
-    // Check if reference will be a series of frames from a trajectory
-    if (reftraj!=NULL) {
-      if ( SetRefMask() ) return 1;
-      // Attempt to set up reference trajectory
-      RefTraj = new TrajectoryFile();
-      if (RefTraj->SetupRead(reftraj, NULL, RefParm)) {
-        mprinterr("Error: Rmsd: Could not set up reftraj %s.\n",reftraj);
-        delete RefTraj;
-        RefTraj=NULL;
-        return 1;
-      } 
-      RefFrame.SetupFrameV(RefParm->natom, RefParm->mass, RefTraj->HasVelocity());
-    } else {
-      // Attempt to get reference index by name
-      if (referenceName!=NULL)
-        refindex=FL->GetFrameIndex(referenceName);
-
-      // For compatibility with ptraj, if 'reference' specified use first reference structure
-      if (referenceKeyword) refindex=0;
-
-      // Get reference frame by index
-      Frame *TempFrame=FL->GetFrame(refindex);
-      if (TempFrame==NULL) {
-        mprinterr("    Error: Rmsd::init: Could not get reference index %i\n",refindex);
-        return 1;
-      }
-      RefFrame = *TempFrame;
-      // Set reference parm
-      RefParm=FL->GetFrameParm(refindex);
-      // Setup reference mask here since reference frame/parm are allocated
-      if ( SetRefMask() ) return 1;
-      //RefFrame.printAtomCoord(0);
-      //fprintf(stderr,"  NATOMS IN REF IS %i\n",RefFrame.natom); // DEBUG
+  // If 'first' specified, reference is first frame (set in CpptrajState).
+  if (first) {
+    TempFrame=FL->GetFirstFrame();
+    if (TempFrame==NULL) {
+      mprinterr("    Error: Rmsd::init: Could not get first frame as reference.\n");
+      return 1;
     }
+    RefFrame = *TempFrame; 
+    RefParm=FL->GetFirstFrameParm();
+  // Check if reference will be a series of frames from a trajectory
+  } else if (reftraj!=NULL) {
+    // Attempt to set up reference trajectory
+    RefTraj = new TrajectoryFile();
+    if (RefTraj->SetupRead(reftraj, NULL, RefParm)) {
+      mprinterr("Error: Rmsd: Could not set up reftraj %s.\n",reftraj);
+      delete RefTraj;
+      RefTraj=NULL;
+      return 1;
+    } 
+    RefFrame.SetupFrameV(RefParm->natom, RefParm->mass, RefTraj->HasVelocity());
+  // Get reference by name/index/tag
+  } else {
+    // Attempt to get reference index by name/tag
+    if (referenceName!=NULL)
+      refindex=FL->GetFrameIndex(referenceName);
+
+    // For compatibility with ptraj, if 'reference' specified use first 
+    // specified reference.
+    if (referenceKeyword) refindex=0;
+
+    // Get reference frame by index
+    TempFrame=FL->GetFrame(refindex);
+    if (TempFrame==NULL) {
+      mprinterr("    Error: Rmsd::init: Could not get reference index %i\n",refindex);
+      return 1;
+    }
+    RefFrame = *TempFrame;
+    // Set reference parm
+    RefParm=FL->GetFrameParm(refindex);
   }
+
+  // Setup reference mask
+  if ( SetRefMask() ) return 1;
+  //RefFrame.printAtomCoord(0);
+  //fprintf(stderr,"  NATOMS IN REF IS %i\n",RefFrame.natom); // DEBUG
 
   //rmsd->Info();
   mprintf("    RMSD: (%s), reference is ",FrameMask.MaskString());
@@ -368,13 +380,6 @@ int Rmsd::setup() {
   // correct masses in based on the mask.
   SelectedFrame.SetupFrameFromMask(&FrameMask, currentParm->mass);
   
-  // first: If RefParm not set, set it here and set the reference mask.
-  //        Should only occur once.
-  if (first && RefParm==NULL) {
-    RefParm=currentParm;
-    if ( SetRefMask() ) return 1;
-  } 
-
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( RefMask.Nselected != FrameMask.Nselected ) {
     mprintf( "    Warning: Number of atoms in RMS mask (%i) does not equal number of\n",
@@ -394,27 +399,10 @@ int Rmsd::setup() {
 }
 
 // Rmsd::action()
-/** Called every time a frame is read in. Calc RMSD. If first is true
-  * at this point we want to set the current (i.e. first) frame read 
-  * in as reference.
+/** Called every time a frame is read in. Calc RMSD. 
   */
 int Rmsd::action() {
   double R, U[9], Trans[6];
-
-  // first: If Ref is NULL, allocate this frame as reference
-  //        Should only occur once.
-  // NOTE: For MPI this will currently result in different references between threads.
-  if (first) {
-    Frame* tmpframe = FL->GetFirstFrame();
-    if (tmpframe==NULL) {
-      RefFrame = *currentFrame;
-      tmpframe = new Frame(*currentFrame);
-      FL->AddFirstFrame(tmpframe,currentParm);
-    } else {
-      RefFrame = *tmpframe;
-    }
-    first = false;
-  }
 
   // reftraj: Get the next frame from the reference trajectory
   //          If no more frames are left, the last frame will be used. This
