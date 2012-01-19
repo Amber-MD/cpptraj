@@ -325,6 +325,8 @@ int Jcoupling::action() {
   int residue;
   char buffer[53];
 
+  outputfile.IO->Printf("#Frame %i\n",frameNum+OUTPUTFRAMESHIFT);
+
   for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo.begin();
                                             jc !=JcouplingInfo.end();
                                             jc++)
