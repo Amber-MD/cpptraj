@@ -887,10 +887,13 @@ int NAstruct::determineBasepairParameters() {
 //    2) Masks
 //    3) Dataset name
 int NAstruct::init() {
+  char *resrange_arg;
   // Get keywords
   outFilename = actionArgs.getKeyString("out",NULL);
   naoutFilename = actionArgs.getKeyString("naout",NULL);
-  resRange.SetRange( actionArgs.getKeyString("resrange",NULL) );
+  resrange_arg = actionArgs.getKeyString("resrange",NULL);
+  if (resrange_arg != NULL)
+    if (resRange.SetRange( resrange_arg )) return 1;
   noheader = actionArgs.hasKey("noheader");
   // Get Masks
   // Dataset
@@ -1031,7 +1034,7 @@ int NAstruct::action() {
   // Determine base pair parameters
   determineBasepairParameters();
 
-  Nframe++;
+  ++Nframe;
 
   // Get base pair axes
   //setupBasePairAxes();
@@ -1092,7 +1095,7 @@ void NAstruct::print() {
     // Base-pair parameters
     for (nbasepair=0; nbasepair < SHEAR.Size(); nbasepair++) {
       // Frame and base pair #
-      buffer.Sprintf("%8i %8i",frame,nbasepair);
+      buffer.Sprintf("%8i %8i",frame+OUTPUTFRAMESHIFT,nbasepair+1);
       na_dataset = SHEAR.GetDataSetN(nbasepair);
       na_dataset->WriteBuffer(buffer,frame);
       na_dataset = STRETCH.GetDataSetN(nbasepair);
@@ -1140,7 +1143,7 @@ void NAstruct::print() {
     // Base-pair step parameters
     for (nbasepair=0; nbasepair < SHIFT.Size(); nbasepair++) {
       // Frame and base pair #
-      buffer.Sprintf("%8i %8i",frame,nbasepair);
+      buffer.Sprintf("%8i %8i",frame+OUTPUTFRAMESHIFT,nbasepair+1);
       na_dataset = SHIFT.GetDataSetN(nbasepair);
       na_dataset->WriteBuffer(buffer,frame);
       na_dataset = SLIDE.GetDataSetN(nbasepair);
