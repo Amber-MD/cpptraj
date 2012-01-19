@@ -1,11 +1,13 @@
 #ifndef INC_RANGE_H
 #define INC_RANGE_H
-/// Class: Range
-/// The Range class is used to hold an ordered list of numbers. It can
-/// either be set using a range expression, e.g. X-Y,C-D (X to Y and
-/// C to D) etc, or can be set using a beginning and end number.
 #include <list>
 #include <string>
+// Class: Range
+/// The Range class is used to hold an ordered list of numbers. 
+/** Range can either be set using a range expression, e.g. 
+  * X-Y,C-D (X to Y and C to D) etc, or can be set using a beginning 
+  * and end number.
+*/
 class Range {
     std::string rangeArg;
     std::list<int> rangeList;

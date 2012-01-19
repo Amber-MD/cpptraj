@@ -1,6 +1,6 @@
 // Range
-#include "Range.h"
 #include <cstring>
+#include "Range.h"
 #include "ArgList.h"
 #include "CpptrajStdio.h"
 
@@ -10,11 +10,12 @@ Range::Range() { }
 // DESTRUCTOR
 Range::~Range() { }
 
-/* Range::SetRange()
- * Given an argument containing numbers separated by "," (concatentation), and 
- * "-" (number range), construct an ordered list of numbers corresponding to 
- * the argument. Remove any duplicate numbers.
- */
+/** Range::SetRange()
+  * Given an argument containing numbers separated by "," (concatentation), and 
+  * "-" (number range), construct an ordered list of numbers corresponding to 
+  * the argument. Remove any duplicate numbers.
+  * \return 0 on success, 1 on error.
+  */
 int Range::SetRange(char *ArgIn) {
   char *temp, *arg;
   int R[2], upper, err;
@@ -27,7 +28,16 @@ int Range::SetRange(char *ArgIn) {
   rangeList.clear();
 
   // Set rangeArg
-  rangeArg.assign(ArgIn); 
+  rangeArg.assign(ArgIn);
+  // Check if ArgIn is a mask expression
+  if ( strchr( ArgIn, ':')!=NULL ||
+       strchr( ArgIn, '@')!=NULL ||
+       strchr( ArgIn, '*')!=NULL   )
+  {
+    mprinterr("Error: Using a mask expression for range (%s)\n",ArgIn);
+    mprinterr("       Ranges only contain digits, dashes, and commas (e.g. 3-5,8-10)\n");
+    return 1;
+  } 
   // Copy ArgIn to temp location to avoid modifying it with strtok
   temp = new char[ strlen(ArgIn)+1 ];
   strcpy(temp,ArgIn);
