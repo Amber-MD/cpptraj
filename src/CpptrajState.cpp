@@ -195,7 +195,7 @@ int CpptrajState::Run() {
     Frame *FirstFrame = TrajFrame.FrameCopy();
     refFrames.AddFirstFrame( FirstFrame, CurrentParm );
   }
-  refFrames.Info(); // DEBUG
+  //refFrames.Info(); // DEBUG
 
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");

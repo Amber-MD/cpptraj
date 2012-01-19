@@ -302,10 +302,10 @@ public:
 /// Convert the input string to an integer.
 inline int convertToInteger(string const &s) {
   istringstream iss(s);
-  int i;
+  long int i;
   if (!(iss >> i))
     throw BadConversion("convertToInteger(\"" + s + "\")");
-  return i;
+  return (int)i;
 }
 
 // convertToDouble()

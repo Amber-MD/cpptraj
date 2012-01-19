@@ -262,10 +262,24 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, AccessType accIn,
   * - Defaults: startArg=1, stopArg=-1, offsetArg=1
   */
 int TrajectoryFile::SetArgs(ArgList *argIn) {
+  int startArg;
+  int stopArg;
+  int offsetArg;
+
   if (argIn==NULL) return 0;
-  int startArg = argIn->getNextInteger(1);
-  int stopArg = argIn->getNextInteger(-1);
-  int offsetArg = argIn->getNextInteger(1);
+  // lastframe is a special case where only the last frame will be selected
+  if (argIn->hasKey("lastframe")) {
+    startArg = total_frames;
+    stopArg = total_frames;
+    offsetArg = 1;
+  } else {
+    startArg = argIn->getNextInteger(1);
+    if (argIn->hasKey("last"))
+      stopArg = -1;
+    else  
+      stopArg = argIn->getNextInteger(-1);
+    offsetArg = argIn->getNextInteger(1);
+  }
 
 #ifdef DEBUGTRAJ
   mprintf("DEBUG [%s] SetArgs: Original start, stop: %i %i\n",trajName,start,stop);
@@ -283,18 +297,20 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
                 trajName,startArg,total_frames);
         start=total_frames - 1;
       } else {
-        mprintf("    Warning: %s start %i > #Frames (%i), no frames will be processed.\n",
+        mprinterr("Error: [%s] start %i > #Frames (%i), no frames will be processed.\n",
                 trajName,startArg,total_frames);
-        start=startArg - 1;
+        //start=startArg - 1;
+        return 1;
       }
     } else
       start=startArg - 1;
   }
   if (stopArg!=-1) {
     if ((stopArg - 1)<start) { // cpptraj = ptraj - 1
-      mprintf("    Warning: %s stop %i < start, no frames will be processed.\n",
+      mprinterr("Error: [%s] stop %i < start, no frames will be processed.\n",
               trajName,stopArg);
-      stop = start;
+      //stop = start;
+      return 1;
     } else if (total_frames>=0 && stopArg>total_frames) {
       mprintf("    Warning: %s stop %i >= #Frames (%i), setting to max.\n",
               trajName,stopArg,total_frames);

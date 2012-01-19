@@ -1,7 +1,6 @@
 // TrajinList
 #include <cstddef> //NULL
 #include "TrajinList.h"
-//#include "RemdTraj.h"
 #include "CpptrajStdio.h"
 //#include "MpiRoutines.h" // worldrank,worldsize
 
@@ -13,13 +12,13 @@ TrajinList::TrajinList() {
 // DESTRUCTOR
 TrajinList::~TrajinList() { }
 
-/* TrajinList::AddTrajin()
- * Add trajectory to the trajectory list as an input trajectory. 
- * Associate the trajectory with one of the parm files in the 
- * ParmFileList. 
- * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
- *        [remdtraj remdtrajtemp <T>]
- */
+// TrajinList::AddTrajin()
+/** Add trajectory to the trajectory list as an input trajectory. 
+  * Associate the trajectory with one of the parm files in the 
+  * ParmFileList. 
+  * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
+  *        [remdtraj remdtrajtemp <T>]
+  */
 int TrajinList::AddTrajin(char *filename, ArgList *A, AmberParm *parmIn) {
   TrajectoryFile *traj;
 
@@ -41,13 +40,13 @@ int TrajinList::AddTrajin(char *filename, ArgList *A, AmberParm *parmIn) {
   return 0;
 }
 
-/* TrajinList::SetupFrames()
- * Only called for input trajectories.
- * Loop over all trajectories and call their setup frames routine to calc
- * actual start and stop and how many frames total will be processed. Update 
- * the number of frames that will be read for the associated traj parm.
- * Return the total number of frames to be processed across all trajins.
- */
+// TrajinList::SetupFrames()
+/** Only called for input trajectories.
+  * Loop over all trajectories and call their setup frames routine to calc
+  * actual start and stop and how many frames total will be processed. Update 
+  * the number of frames that will be read for the associated traj parm.
+  * Return the total number of frames to be processed across all trajins.
+  */
 int TrajinList::SetupFrames() {
   std::list<TrajectoryFile*>::iterator traj;
   int maxFrames, trajFrames;
