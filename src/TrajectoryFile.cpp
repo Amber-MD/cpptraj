@@ -269,9 +269,15 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
   if (argIn==NULL) return 0;
   // lastframe is a special case where only the last frame will be selected
   if (argIn->hasKey("lastframe")) {
-    startArg = total_frames;
-    stopArg = total_frames;
-    offsetArg = 1;
+    if (total_frames>0) {
+      startArg = total_frames;
+      stopArg = total_frames;
+      offsetArg = 1;
+    } else {
+      mprinterr("Error: [%s] lastframe specified but # frames could not be determined.\n",
+                trajName);
+      return 1;
+    }
   } else {
     startArg = argIn->getNextInteger(1);
     if (argIn->hasKey("last"))
