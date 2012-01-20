@@ -28,6 +28,7 @@ class Rmsd: public Action {
     AtomMask RefMask;                  ///< Reference mask
     AtomMask FrameMask;                ///< Frame masks.
     bool nofit;                        ///< If true do not calculate best-fit RMSD
+    bool first;                        ///< If true use first frame read in as reference
     Frame RefFrame;                    ///< Hold reference frame coords
     Frame SelectedRef;                 ///< Hold only ref coods selected by maskRef
     Frame SelectedFrame;               ///< Hold only frame coords selected by mask0

@@ -182,7 +182,7 @@ int CpptrajState::Run() {
   refFrames.Info();
 
   // Some actions require access to the first processed frame. Set that up now.
-  trajinList.Begin();
+/*  trajinList.Begin();
   traj = trajinList.NextTraj();
   if (traj!=NULL) {
     traj->BeginTraj(false);
@@ -196,6 +196,7 @@ int CpptrajState::Run() {
     refFrames.AddFirstFrame( FirstFrame, CurrentParm );
   }
   //refFrames.Info(); // DEBUG
+*/
 
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");

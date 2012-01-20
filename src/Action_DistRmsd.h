@@ -12,6 +12,7 @@ class DistRmsd: public Action {
     Frame SelectedTgt;            ///< Hold only target coords selected by TgtMask
     TrajectoryFile *RefTraj;      ///< Reference trajectory, each frame used in turn
     AmberParm *RefParm;           ///< Reference frame Parm
+    bool first;                   ///< If true, use first frame read in as reference.
 
     int SetRefMask();
 
