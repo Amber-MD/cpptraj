@@ -1,7 +1,7 @@
 #ifndef INC_AXISTYPE_H
 #define INC_AXISTYPE_H
 #include "Frame.h"
-#include "Name.h"
+#include "AmberParm.h"
 #ifdef NASTRUCTDEBUG
 #  include "CpptrajFile.h"
 #endif
@@ -20,6 +20,30 @@ NAbaseType ID_base(char*);
   *   reference frames themselves.
   */
 class AxisType : public Frame {
+    // The following enumerated types are used to index the standard
+    // NA reference frame coordinates for each base.
+    //enum ADEatoms { C1p, N9, C8, N7, C5, C6, N6, N1, C2, N3, C4 };
+    //enum CYTatoms { C1p, N1, C2, O2, N3, C4, N4, C5, C6 };
+    //enum GUAatoms { C1p, N9, C8, N7, C5, C6, O6, N1, C2, N2, N3, C4 };
+    //enum THYatoms { C1p, N1, C2, O2, N3, C4, O4, C5, C7, C6 };
+    //enum URAatoms { C1p, N1, C2, O2, N3, C4, O4, C5, C6 };
+    // The following arrays contain the corresponding atom names.
+    static const NAME ADEnames[];
+    static const double ADEcoords[][3];
+    static const int ADEhbonds[];
+    static const NAME CYTnames[];
+    static const double CYTcoords[][3];
+    static const int CYThbonds[];
+    static const NAME GUAnames[];
+    static const double GUAcoords[][3];
+    static const int GUAhbonds[];
+    static const NAME THYnames[];
+    static const double THYcoords[][3];
+    static const int THYhbonds[];
+    static const NAME URAnames[];
+    static const double URAcoords[][3];
+    static const int URAhbonds[];
+
     static const char NAbaseName[][5];
     NAME *Name;  ///< Atom/Axis names
     int maxAtom; ///< Actual size of memory. natom may be less than this.
@@ -28,6 +52,7 @@ class AxisType : public Frame {
   public:
     NAbaseType ID;
     double R[9];
+    double *HbondCoord[3];
 
     AxisType();
     AxisType(int);
@@ -40,10 +65,12 @@ class AxisType : public Frame {
     //int AtomIndex(char *);
     bool AtomNameIs(int, char *);
     char *AtomName(int);
+    void PrintAtomNames();
     void SetFromFrame(AxisType *);
     void StoreRotMatrix(double*);
     void SetPrincipalAxes();
-    int SetRefCoord(char *);
+    //int SetRefCoord(char *);
+    int SetRefCoord(AmberParm *, int, AtomMask &);
     void FlipYZ();
     void FlipXY();
 #ifdef NASTRUCTDEBUG

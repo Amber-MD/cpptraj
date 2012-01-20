@@ -69,7 +69,17 @@ void NAstruct::ClearLists() {
   */
 bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   int Nhbonds = 0;
-  double dist2; 
+  double dist2;
+  for (int hb = 0; hb < 3; hb++) {
+    dist2 = DIST2_NoImage(DG->HbondCoord[hb], DC->HbondCoord[hb]);
+    if ( dist2 < HBcut2 ) {
+      ++Nhbonds;
+#     ifdef NASTRUCTDEBUG
+      mprintf("            G:%i -- C:%i = %lf\n",hb,hb,sqrt(dist2));
+#     endif
+    }
+  }
+/*
   dist2 = DIST2_NoImage(DG->X+18, DC->X+18);
   if ( dist2 < HBcut2 ) {
     ++Nhbonds;
@@ -91,14 +101,8 @@ bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
     mprintf("            G:N2 -- C:O2 = %lf\n",sqrt(dist2));
 #   endif
   }
-  if (Nhbonds>0) {
-    // Check G:N4 - G:N1 - C:N3 angle (no hydrogens)
-    double angle = CalcAngle(DG->X+33, DG->X+21, DC->X+12);
-#   ifdef NASTRUCTDEBUG
-    mprintf("            G:N4 - G:N1 - C:N3 angle = %lf\n",angle*RADDEG);
-#   endif
-    return true;
-  }
+*/
+  if (Nhbonds>0) return true;
   return false;
 }
 
@@ -110,6 +114,16 @@ bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
 bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   int Nhbonds = 0;
   double dist2;
+  for (int hb = 0; hb < 2; hb++) {
+    dist2 = DIST2_NoImage(DA->HbondCoord[hb], DT->HbondCoord[hb]);
+    if ( dist2 < HBcut2 ) {
+      ++Nhbonds;
+#     ifdef NASTRUCTDEBUG
+      mprintf("            A:%i -- T:%i = %lf\n",hb,hb,sqrt(dist2));
+#     endif
+    }
+  }
+/*
   dist2 = DIST2_NoImage(DA->X+18, DT->X+18);
   if ( dist2 < HBcut2 ) {
     ++Nhbonds;
@@ -124,6 +138,7 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
     mprintf("            A:N1 -- T:N3 = %lf\n",sqrt(dist2));
 #   endif
   }
+*/
   if (Nhbonds>0) return true;
   return false;
 }
@@ -470,7 +485,7 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
     RefFrame.Rotate( RotMatrix );
     RefFrame.Translate( BaseAxes[base]->Origin() );
     // DEBUG - Write ref coords to file
-    RefCoords[base]->WritePDB(&basesfile, res, RefCoords[base]->BaseName(), &basesatom);
+    RefFrame.WritePDB(&basesfile, res, RefCoords[base]->BaseName(), &basesatom);
     ++res;
 #endif
   }
@@ -936,7 +951,7 @@ int NAstruct::init() {
   */
 int NAstruct::setup() {
   int res;
-  int resstartatom, resstopatom;
+  //int resstartatom, resstopatom;
   int residue;
   AxisType *axis; 
   AtomMask *Mask;
@@ -976,48 +991,30 @@ int NAstruct::setup() {
   actualRange.Begin();
   while (actualRange.NextInRange(&residue)) {
     axis = new AxisType();
-    if ( axis->SetRefCoord( currentParm->ResidueName(residue) ) ) {
+    // Set up ref coords in correct order, along with corresponding 
+    // parm mask for this residue.
+    Mask = new AtomMask();
+    if ( axis->SetRefCoord( currentParm, residue, *Mask ) ) {
       mprinterr("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
                 residue+1, currentParm->ResidueName(residue));
-      return 1;
-    }
-    RefCoords.push_back( axis );
-
-    // Set up a mask for this NA residue in this parm. The mask will contain
-    // only those atoms which are defined in the reference coords.
-    if (currentParm->ResAtomRange(residue, &resstartatom, &resstopatom)) {
-      mprinterr("Error: NAstruct::setup: Invalid residue number (%i)\n",residue);
-      return 1;
-    }
-    Mask = new AtomMask();
-    for (int refAtom=0; refAtom < axis->natom; refAtom++) {
-      res = -1; // Target atom
-      //mprintf("      Ref atom: [%s]\n",axis->Name[refAtom]);
-      for (int atom=resstartatom; atom < resstopatom; atom++) {
-        //mprintf("        Scanning %i [%s]\n", atom, currentParm->names[atom]);
-        if ( axis->AtomNameIs(refAtom, currentParm->AtomName(atom)) ) {
-          res = atom;  
-          break;
-        }
-      }
-      if (res==-1) {
-        mprintf("Error:: NAstruct::setup: Ref atom [%s] not found in residue %i:%s\n",
-                 axis->AtomName(refAtom), residue+1, currentParm->ResidueName(residue));
-        delete Mask;
-        return 1;
-      }
-      Mask->AddAtom(res);
-    } // End Loop over reference atoms
-    if (Mask->None()) {
-      mprintf("Error:: NAstruct::setup: No atoms found for residue %i:%s\n",
-              residue+1, currentParm->ResidueName(residue));
+      delete axis;
       delete Mask;
       return 1;
     }
+    if (Mask->None()) {
+      mprintf("Error:: NAstruct::setup: No atoms found for residue %i:%s\n",
+              residue+1, currentParm->ResidueName(residue));
+      delete axis;
+      delete Mask;
+      return 1;
+    }
+    RefCoords.push_back( axis );
     ExpMasks.push_back( Mask );
     if (debug>1) {
       mprintf("\tNAstruct: Res %i:%s ",residue+1,currentParm->ResidueName(residue));
       Mask->PrintMaskAtoms("NAmask");
+      mprintf("\t          Ref %i:%s ",residue+1,axis->BaseName());
+      axis->PrintAtomNames();
     }
 
     // Set up empty frame to hold input coords for this residue

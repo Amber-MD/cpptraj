@@ -1,4 +1,5 @@
 // AxisType
+#include <map>
 #include <cstring>
 #include "AxisType.h"
 #include "CpptrajStdio.h"
@@ -40,6 +41,104 @@ NAbaseType ID_base(char *resname) {
   return UNKNOWN_BASE;
 }
 
+// ---------- NA REFERENCE BASE ATOM NAMES AND COORDS --------------------------
+#define ADENATOM 11
+const NAME AxisType::ADEnames[ADENATOM] = {
+"C1' ","N9  ","C8  ","N7  ","C5  ","C6  ","N6  ","N1  ","C2  ","N3  ","C4  "
+};
+const int AxisType::ADEhbonds[ADENATOM] = {
+-1,    -1,    -1,    -1,    -1,    -1,    0,     1,     -1,    -1,    -1
+};
+const double AxisType::ADEcoords[ADENATOM][3] = {
+     {-2.479000,  5.346000,  0.000000,},
+     {-1.291000,  4.498000,  0.000000,},
+     { 0.024000,  4.897000,  0.000000,},
+     { 0.877000,  3.902000,  0.000000,},
+     { 0.071000,  2.771000,  0.000000,},
+     { 0.369000,  1.398000,  0.000000,},
+     { 1.611000,  0.909000,  0.000000,},
+     {-0.668000,  0.532000,  0.000000,},
+     {-1.912000,  1.023000,  0.000000,},
+     {-2.320000,  2.290000,  0.000000,},
+     {-1.267000,  3.124000,  0.000000 }
+};
+#define CYTNATOM 9
+const NAME AxisType::CYTnames[CYTNATOM] = {
+"C1' ","N1  ","C2  ","O2  ","N3  ","C4  ","N4  ","C5  ","C6  "
+};
+const int AxisType::CYThbonds[CYTNATOM] = {
+-1,    -1,    -1,    2,     1,     -1,    0,     -1,    -1
+};
+const double AxisType::CYTcoords[CYTNATOM][3] = {
+     {-2.477000,  5.402000,  0.000000,},
+     {-1.285000,  4.542000,  0.000000,},
+     {-1.472000,  3.158000,  0.000000,},
+     {-2.628000,  2.709000,  0.000000,},
+     {-0.391000,  2.344000,  0.000000,},
+     { 0.837000,  2.868000,  0.000000,},
+     { 1.875000,  2.027000,  0.000000,},
+     { 1.056000,  4.275000,  0.000000,},
+     {-0.023000,  5.068000,  0.000000 }
+};
+#define GUANATOM 12
+const NAME AxisType::GUAnames[GUANATOM] = {
+"C1' ","N9  ","C8  ","N7  ","C5  ","C6  ","O6  ","N1  ","C2  ","N2  ","N3  ","C4  "
+};
+const int AxisType::GUAhbonds[GUANATOM] = {
+-1,    -1,    -1,    -1,    -1,    -1,    0,     1,     -1,    2,     -1,    -1
+};
+const double AxisType::GUAcoords[GUANATOM][3] = {
+     {-2.477000,  5.399000,  0.000000,},
+     {-1.289000,  4.551000,  0.000000,},
+     { 0.023000,  4.962000,  0.000000,},
+     { 0.870000,  3.969000,  0.000000,},
+     { 0.071000,  2.833000,  0.000000,},
+     { 0.424000,  1.460000,  0.000000,},
+     { 1.554000,  0.955000,  0.000000,},
+     {-0.700000,  0.641000,  0.000000,},
+     {-1.999000,  1.087000,  0.000000,},
+     {-2.949000,  0.139000, -0.001000,},
+     {-2.342000,  2.364000,  0.001000,},
+     {-1.265000,  3.177000,  0.000000 }
+};
+#define THYNATOM 10
+const NAME AxisType::THYnames[THYNATOM] = {
+"C1' ","N1  ","C2  ","O2  ","N3  ","C4  ","O4  ","C5  ","C7  ","C6  "
+};
+const int AxisType::THYhbonds[THYNATOM] = {
+-1,    -1,    -1,    -1,    1,     -1,    0,     -1,    -1,    -1
+}; 
+const double AxisType::THYcoords[THYNATOM][3] = {
+     {-2.481000,  5.354000,  0.000000,},
+     {-1.284000,  4.500000,  0.000000,},
+     {-1.462000,  3.135000,  0.000000,},
+     {-2.562000,  2.608000,  0.000000,},
+     {-0.298000,  2.407000,  0.000000,},
+     { 0.994000,  2.897000,  0.000000,},
+     { 1.944000,  2.119000,  0.000000,},
+     { 1.106000,  4.338000,  0.000000,},
+     { 2.466000,  4.961000,  0.001000,},
+     {-0.024000,  5.057000,  0.000000 }
+};
+#define URANATOM 9
+const NAME AxisType::URAnames[URANATOM] = {
+"C1' ","N1  ","C2  ","O2  ","N3  ","C4  ","O4  ","C5  ","C6  " 
+};
+const int AxisType::URAhbonds[URANATOM] = {
+-1,    -1,    -1,    -1,    1,     -1,    0,     -1,    -1
+}; 
+const double AxisType::URAcoords[URANATOM][3] = {
+     {-2.481000,  5.354000,  0.000000,},
+     {-1.284000,  4.500000,  0.000000,},
+     {-1.462000,  3.131000,  0.000000,},
+     {-2.563000,  2.608000,  0.000000,},
+     {-0.302000,  2.397000,  0.000000,},
+     { 0.989000,  2.884000,  0.000000,},
+     { 1.935000,  2.094000, -0.001000,},
+     { 1.089000,  4.311000,  0.000000,},
+     {-0.024000,  5.053000,  0.000000 }
+};
+
 // ------------------------- AXISTYPE FUNCTIONS -------------------------------
 // CONSTRUCTOR
 // Mostly empty - Default Frame constructor should init everything
@@ -49,6 +148,9 @@ AxisType::AxisType() {
   R[0]=0.0; R[1]=0.0; R[2]=0.0;
   R[3]=0.0; R[4]=0.0; R[5]=0.0;
   R[6]=0.0; R[7]=0.0; R[8]=0.0;
+  HbondCoord[0]=NULL;
+  HbondCoord[1]=NULL;
+  HbondCoord[2]=NULL;
 }
 
 // CONSTRUCTOR - Only allocate coords
@@ -62,6 +164,9 @@ AxisType::AxisType(int natomIn) {
   R[0]=0.0; R[1]=0.0; R[2]=0.0;
   R[3]=0.0; R[4]=0.0; R[5]=0.0;
   R[6]=0.0; R[7]=0.0; R[8]=0.0;
+  HbondCoord[0]=NULL;
+  HbondCoord[1]=NULL;
+  HbondCoord[2]=NULL;
 }
 
 // DESTRUCTOR
@@ -70,37 +175,29 @@ AxisType::~AxisType() {
 }
 
 // ------------------------- VARIABLE FUNCTIONS -------------------------------
-/*
- * AxisType::RX()
- * Put the X unit vector from rotation matrix into Vin.
- */
+// AxisType::RX()
+/** Put the X unit vector from rotation matrix into Vin.  */
 void AxisType::RX(double Vin[3]) {
   Vin[0] = R[0];
   Vin[1] = R[3];
   Vin[2] = R[6];
 }
-/*
- * AxisType::RY()
- * Put the Y unit vector from rotation matrix into Vin.
- */
+// AxisType::RY()
+/** Put the Y unit vector from rotation matrix into Vin.  */
 void AxisType::RY(double Vin[3]) {
   Vin[0] = R[1];
   Vin[1] = R[4];
   Vin[2] = R[7];
 }
-/*
- * AxisType::RZ()
- * Put the Z unit vector from rotation matrix into Vin.
- */
+// AxisType::RZ()
+/** Put the Z unit vector from rotation matrix into Vin.  */
 void AxisType::RZ(double Vin[3]) {
   Vin[0] = R[2];
   Vin[1] = R[5];
   Vin[2] = R[8];
 }
-/*
- * AxisType::Origin()
- * Return pointer to the origin coords.
- */
+// AxisType::Origin()
+/** Return pointer to the origin coords.  */
 double *AxisType::Origin() {
   return (X+9);
 }
@@ -110,10 +207,9 @@ double *AxisType::Origin() {
 // UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU
 const char AxisType::NAbaseName[9][5]={"UNK","DA","DT","DG","DC","RA","RC","RG","RU" };
 
-/*
- * AxisType::AllocAxis()
- * Allocate mem for coords and names. Replace any existing coords / names.
- */
+// AxisType::AllocAxis()
+/** Allocate mem for coords and names. Replace any existing coords / names.
+  */
 int AxisType::AllocAxis(int natomIn) {
   if (X!=NULL) delete[] X;
   if (Name!=NULL) delete[] Name;
@@ -128,15 +224,12 @@ int AxisType::AllocAxis(int natomIn) {
 }
 
 // ------------------------- PUBLIC FUNCTIONS ---------------------------------
-/*
- * AxisType::BaseName()
- */
+// AxisType::BaseName()
 char *AxisType::BaseName() {
   return (char*)NAbaseName[ID];
 }
 
-/*
- * AxisType::AtomIndex()
+/* AxisType::AtomIndex()
  * Return atom index of given atom name in axis. 
  * Return -1 if name not found.
  */
@@ -145,22 +238,31 @@ char *AxisType::BaseName() {
     if (strcmp(atomname, Name[atom])==0) return atom;
   return -1;
 }*/
+
+// AxisType::AtomNameIs()
 bool AxisType::AtomNameIs(int atom, char *nameIn) {
   if (atom<0 || atom>=natom) return false;
   if (strcmp(Name[atom], nameIn)==0) return true;
   return false;
 }
 
+// AxisType::AtomName()
 char *AxisType::AtomName(int atom) {
   if (atom<0 || atom>=natom) return NULL;
   return (Name[atom]);
 }
 
-/*
- * AxisType::SetFromFrame()
- * Set AxisType coords only from AxisIn. Reallocate memory only if
- * AxisIn->natom > maxatom.
- */
+// AxisType::PrintAtomNames()
+void AxisType::PrintAtomNames() {
+  for (int atom = 0; atom < natom; atom++)
+    mprintf(" %s",Name[atom]);
+  mprintf("\n");
+}
+
+// AxisType::SetFromFrame()
+/** Set AxisType coords only from AxisIn. Reallocate memory only if
+  * AxisIn->natom > maxatom.
+  */
 void AxisType::SetFromFrame(AxisType *AxisIn) {
   natom = AxisIn->natom;
   N     = AxisIn->N;
@@ -168,14 +270,23 @@ void AxisType::SetFromFrame(AxisType *AxisIn) {
     delete[] X;
     X = new double[ N ];
     // Dont care about Name here
+#   ifdef NASTRUCTDEBUG
+    // If debugging we need the names
+    if (AxisIn->Name!=NULL) {
+      delete[] Name;
+      Name = new NAME[ natom ];
+    }
+#   endif
     maxnatom = natom;
   }
   memcpy(X, AxisIn->X, N * sizeof(double));
+# ifdef NASTRUCTDEBUG
+  if (AxisIn->Name!=NULL)
+    memcpy(Name, AxisIn->Name, natom * sizeof(NAME));
+# endif
 }
 
-/*
- * AxisType::StoreRotMatrix()
- */
+// AxisType::StoreRotMatrix()
 void AxisType::StoreRotMatrix(double *RotMatrix) {
   R[0] = RotMatrix[0];
   R[1] = RotMatrix[1];
@@ -188,17 +299,16 @@ void AxisType::StoreRotMatrix(double *RotMatrix) {
   R[8] = RotMatrix[8];
 }
     
-/*
- * AxisType::SetPrincipalAxes()
- * Set this up as principal axes. Allocate memory if necessary.
- * NOTE: Check for mem error?
- */
+// AxisType::SetPrincipalAxes()
+/** Set this up as principal axes. Allocate memory if necessary.
+  */
+// NOTE: Check for mem error?
 void AxisType::SetPrincipalAxes() {
   if (X==NULL) {
     AllocAxis(4);
-    strcpy(Name[0],"X");
-    strcpy(Name[1],"Y");
-    strcpy(Name[2],"Z");
+    strcpy(Name[0],"X   ");
+    strcpy(Name[1],"Y   ");
+    strcpy(Name[2],"Z   ");
     strcpy(Name[3],"Orig");
   }
   X[0]=1.0; X[3]=0.0; X[6]=0.0; X[9 ]=0.0; 
@@ -206,10 +316,10 @@ void AxisType::SetPrincipalAxes() {
   X[2]=0.0; X[5]=0.0; X[8]=1.0; X[11]=0.0;
 }
 
-/*
- * AxisType::SetRefCoord()
+/* AxisType::SetRefCoord()
  * Set NA residue reference coordinates for given NA base name.
  */
+/*
 int AxisType::SetRefCoord(char *resname) {
   // First, identify the base
   ID = ID_base(resname);
@@ -288,14 +398,151 @@ int AxisType::SetRefCoord(char *resname) {
       return 1;
   }
   return 0;
+}*/
+
+// AxisType::SetRefCoord()
+/** Set NA residue reference coordinates for given NA base. Ensure that
+  * the atom ordering in the reference matches that in the given parm.
+  * Set up a mask to select correct atoms in the given parm.
+  * \return 0 on success, 1 on error.
+  */
+int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask) {
+  std::map<int,int> BaseMap;
+  std::map<int,int>::iterator atom;
+  std::vector<double> BaseRefCoords;
+  std::vector<int> BaseHbonds;
+  NAME *BaseRefNames = NULL;
+  int Nbaseatom = 0;
+
+  // First, identify the base
+  ID = ID_base(currentParm->ResidueName(resnum));
+
+  // Set up reference coord and name arrays based on the base
+  switch (ID) {
+    case DA :
+    case RA :
+      if (AllocAxis(ADENATOM)) return 1;
+      Nbaseatom = ADENATOM;
+      BaseRefCoords.reserve(ADENATOM);
+      BaseRefNames = new NAME[ ADENATOM ];
+      BaseHbonds.reserve(ADENATOM);
+      for (int i = 0; i < ADENATOM; i++) {
+        BaseRefCoords.push_back( ADEcoords[i][0] );
+        BaseRefCoords.push_back( ADEcoords[i][1] );
+        BaseRefCoords.push_back( ADEcoords[i][2] );
+        strcpy(BaseRefNames[i], ADEnames[i]);
+        BaseHbonds.push_back( ADEhbonds[i] );
+      }
+      break;
+    case DC :
+    case RC :
+      if (AllocAxis(CYTNATOM)) return 1;
+      Nbaseatom = CYTNATOM;
+      BaseRefCoords.reserve(CYTNATOM);
+      BaseRefNames = new NAME[ CYTNATOM ];
+      BaseHbonds.reserve(CYTNATOM);
+      for (int i = 0; i < CYTNATOM; i++) {
+        BaseRefCoords.push_back( CYTcoords[i][0] );
+        BaseRefCoords.push_back( CYTcoords[i][1] );
+        BaseRefCoords.push_back( CYTcoords[i][2] );
+        strcpy(BaseRefNames[i], CYTnames[i]);
+        BaseHbonds.push_back( CYThbonds[i] );
+      }
+      break;
+    case DG :
+    case RG :
+      if (AllocAxis(GUANATOM)) return 1;
+      Nbaseatom = GUANATOM;
+      BaseRefCoords.reserve(GUANATOM);
+      BaseRefNames = new NAME[ GUANATOM ];
+      BaseHbonds.reserve(GUANATOM);
+      for (int i = 0; i < GUANATOM; i++) {
+        BaseRefCoords.push_back( GUAcoords[i][0] );
+        BaseRefCoords.push_back( GUAcoords[i][1] );
+        BaseRefCoords.push_back( GUAcoords[i][2] );
+        strcpy(BaseRefNames[i], GUAnames[i]);
+        BaseHbonds.push_back( GUAhbonds[i] );
+      }
+      break;
+    case DT :
+      if (AllocAxis(THYNATOM)) return 1;
+      Nbaseatom = THYNATOM;
+      BaseRefCoords.reserve(THYNATOM);
+      BaseRefNames = new NAME[ THYNATOM ];
+      BaseHbonds.reserve(THYNATOM);
+      for (int i = 0; i < THYNATOM; i++) {
+        BaseRefCoords.push_back( THYcoords[i][0] );
+        BaseRefCoords.push_back( THYcoords[i][1] );
+        BaseRefCoords.push_back( THYcoords[i][2] );
+        strcpy(BaseRefNames[i], THYnames[i]);
+        BaseHbonds.push_back( THYhbonds[i] );
+      }
+      break;
+    case RU:
+      if (AllocAxis(URANATOM)) return 1;
+      Nbaseatom = URANATOM;
+      BaseRefCoords.reserve(URANATOM);
+      BaseRefNames = new NAME[ URANATOM ];
+      BaseHbonds.reserve(URANATOM);
+      for (int i = 0; i < URANATOM; i++) {
+        BaseRefCoords.push_back( URAcoords[i][0] );
+        BaseRefCoords.push_back( URAcoords[i][1] );
+        BaseRefCoords.push_back( URAcoords[i][2] );
+        strcpy(BaseRefNames[i], URAnames[i]);
+        BaseHbonds.push_back( URAhbonds[i] );
+      }
+      break;
+    case UNKNOWN_BASE:
+      mprintf("Warning: AxisType::SetRefCoord: Missing parameters for residue %s.\n",
+              currentParm->ResidueName(resnum));
+      return 1;
+  }
+
+  // For each atom defined as a reference atom for this base, find the
+  // corresponding atom in the parm.
+  for (int ref = 0; ref < Nbaseatom; ref++) {
+    int parmAtom = currentParm->FindAtomInResidue(resnum, (char*)BaseRefNames[ref]);
+    if (parmAtom<0) {
+      mprinterr("Error: Ref Atom [%s] not found in NA base [%s].\n",
+                BaseRefNames[ref], currentParm->ResidueName(resnum));
+      return 1;
+    } else {
+      BaseMap.insert( std::pair<int,int>(parmAtom, ref) );
+    }
+  }
+  // Now insert ref coords in same order as parm. Also add the parm
+  // atom to the mask.
+  int coord = 0;
+  int coord3 = 0;
+  for (atom = BaseMap.begin(); atom != BaseMap.end(); atom++) {
+    int refatom = (*atom).second;
+    int refcoord = refatom * 3;
+    // Check if this is an H bonding atom. If so, store the memory address
+    // of the appropriate place in the coordinate array for future Hbond
+    // calculations.
+    int hb_index = BaseHbonds[refatom];
+    if ( hb_index != -1 )
+      HbondCoord[hb_index] = X + coord3;
+    X[coord3++] = BaseRefCoords[refcoord  ]; 
+    X[coord3++] = BaseRefCoords[refcoord+1]; 
+    X[coord3++] = BaseRefCoords[refcoord+2]; 
+    strcpy(Name[coord++],BaseRefNames[refatom]);
+    parmMask.AddAtom( (*atom).first );
+  }
+  if (BaseRefNames!=NULL) delete[] BaseRefNames;
+
+  // Now the order of the ref atoms match the order in the given parm.
+  // Need to also note which atoms are the H-bonding atoms.
+  
+
+  return 0;
 }
 
-/*
- * AxisType::FlipYZ
- * Flip the Z and Y axes.
- * Equiv. to rotation around the X axis.
- * Done for antiparallel stranded DNA
- */
+
+// AxisType::FlipYZ
+/** Flip the Z and Y axes. Equivalent to rotation around the X axis.
+  * Done for antiparallel stranded DNA.
+  */
 void AxisType::FlipYZ() {
   double ox2, oy2, oz2;
     
@@ -319,12 +566,10 @@ void AxisType::FlipYZ() {
   R[8] = -R[8]; // -Zz
 }
 
-/*
- * AxisType::FlipXY
- * Flip the X and Y axes.
- * Equiv. to rotation around the Z axis.
- * Done for parallel stranded DNA.
- */
+// AxisType::FlipXY
+/** Flip the X and Y axes. Equivalent to rotation around the Z axis.
+  * Done for parallel stranded DNA.
+  */
 void AxisType::FlipXY() {
 double ox2, oy2, oz2;
 
