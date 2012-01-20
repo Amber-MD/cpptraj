@@ -2,8 +2,10 @@
 #include <cstring>
 #include "AxisType.h"
 #include "CpptrajStdio.h"
+#ifdef NASTRUCTDEBUG
 // DEBUG
-//#include "PDBfileRoutines.h"
+#  include "PDBfileRoutines.h"
+#endif
 
 // ID_base()
 /** Return a number indicating if this is a NA base. If not recognized, 
@@ -346,7 +348,7 @@ double ox2, oy2, oz2;
   R[7] = -R[7]; // -Yz
 }
 
-/*
+#ifdef NASTRUCTDEBUG
 // DEBUG: AxisToPDB
 void AxisType::WritePDB(CpptrajFile *outfile, int resnum, char *resname, int *atom) {
   char buffer[82];
@@ -359,4 +361,4 @@ void AxisType::WritePDB(CpptrajFile *outfile, int resnum, char *resname, int *at
   }
   (*atom) += natom;
 }
-*/
+#endif

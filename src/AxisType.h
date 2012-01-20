@@ -2,6 +2,9 @@
 #define INC_AXISTYPE_H
 #include "Frame.h"
 #include "Name.h"
+#ifdef NASTRUCTDEBUG
+#  include "CpptrajFile.h"
+#endif
 /*! \file AxisType.h
     \brief Hold classes and functions used for NA structure analysis.
  */
@@ -43,6 +46,8 @@ class AxisType : public Frame {
     int SetRefCoord(char *);
     void FlipYZ();
     void FlipXY();
-    //void WritePDB(CpptrajFile *, int, char *, int *); // DEBUG
+#ifdef NASTRUCTDEBUG
+    void WritePDB(CpptrajFile *, int, char *, int *); // DEBUG
+#endif
 };
 #endif  

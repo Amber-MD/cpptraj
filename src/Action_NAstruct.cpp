@@ -1,33 +1,21 @@
-/* Action_NAstruct
- * Calculate nucleic acid base/base pair structural parameters.
- * Algorithms for calculation of base/base pair structural parameters
- * adapted from:
- *   Babcock MS, Pednault EPD, Olson WK, "Nucleic Acid Structure Analysis: 
- *   Mathematics for Local Cartesian and Helical Structure Parameters That
- *   Are Truly Comparable Between Structures", J. Mol. Biol. (1994) 237,
- *   125-156.
- * NA base reference frame coordinates taken from:
- *   Olson WK, Bansal M, Burley SK, Dickerson RE, Gerstein M, Harvey SC,
- *   Heinemann U, Lu XJ, Neidle S, Shekked Z, Sklenar H, Suzuki M, Tung CS,
- *   Westhof E, Wolberger C, Berman H, "A Standard Reference Frame for the 
- *   Description of Nucleic Acid Base-pair Geometry", J. Mol. Biol. (2001)
- *   313, 229-237.
- */
+#include <cmath>
+#include <cstdio> // sprintf
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "Constants.h" // RADDEG
 #include "vectormath.h"
-#include <cmath>
-#include <cstdio> // sprintf
+// TEST
+#include "TorsionRoutines.h"
 
 // CONSTRUCTOR
 NAstruct::NAstruct() {
   //fprintf(stderr,"NAstruct Con\n");
   Nbp=0;
   Nbases=0;
-  HBcut2=12.25; // 3.5^2
-  Ocut2=6.25;   // 2.5^2
+  HBcut2=12.25;  // Hydrogen Bond cutoff^2: 3.5^2
+//  Ocut2=25.00;   // Origin cutoff^2: 5.0^2
+  Ocut2=6.25;    // Origin cutoff^2: 2.5^2
   Nframe=0;
   outFilename=NULL;
   naoutFilename=NULL;
@@ -85,20 +73,33 @@ bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   double dist2; 
   dist2 = DIST2_NoImage(DG->X+18, DC->X+18);
   if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    //mprintf("            G:O6 -- C:N4 = %lf\n",sqrt(dist2));
+    ++Nhbonds;
+#   ifdef NASTRUCTDEBUG
+    mprintf("            G:O6 -- C:N4 = %lf\n",sqrt(dist2));
+#   endif
   }
   dist2 = DIST2_NoImage(DG->X+21, DC->X+12);
   if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    //mprintf("            G:N1 -- C:N3 = %lf\n",sqrt(dist2));
+    ++Nhbonds;
+#   ifdef NASTRUCTDEBUG
+    mprintf("            G:N1 -- C:N3 = %lf\n",sqrt(dist2));
+#   endif
   }
   dist2 = DIST2_NoImage(DG->X+27, DC->X+9 );
   if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    //mprintf("            G:N2 -- C:O2 = %lf\n",sqrt(dist2));
+    ++Nhbonds;
+#   ifdef NASTRUCTDEBUG
+    mprintf("            G:N2 -- C:O2 = %lf\n",sqrt(dist2));
+#   endif
   }
-  if (Nhbonds>0) return true;
+  if (Nhbonds>0) {
+    // Check G:N4 - G:N1 - C:N3 angle (no hydrogens)
+    double angle = CalcAngle(DG->X+33, DG->X+21, DC->X+12);
+#   ifdef NASTRUCTDEBUG
+    mprintf("            G:N4 - G:N1 - C:N3 angle = %lf\n",angle*RADDEG);
+#   endif
+    return true;
+  }
   return false;
 }
 
@@ -112,13 +113,17 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   double dist2;
   dist2 = DIST2_NoImage(DA->X+18, DT->X+18);
   if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    //mprintf("            A:N6 -- T:O4 = %lf\n",sqrt(dist2));
+    ++Nhbonds;
+#   ifdef NASTRUCTDEBUG
+    mprintf("            A:N6 -- T:O4 = %lf\n",sqrt(dist2));
+#   endif
   }
   dist2 = DIST2_NoImage(DA->X+21, DT->X+12);
   if ( dist2 < HBcut2 ) {
-    Nhbonds++;
-    //mprintf("            A:N1 -- T:N3 = %lf\n",sqrt(dist2));
+    ++Nhbonds;
+#   ifdef NASTRUCTDEBUG
+    mprintf("            A:N1 -- T:N3 = %lf\n",sqrt(dist2));
+#   endif
   }
   if (Nhbonds>0) return true;
   return false;
@@ -172,12 +177,16 @@ int NAstruct::determineBasePairing() {
       if (isPaired[base2]) continue;
       // First determine if origin axes coords are close enough to consider pairing
       distance = DIST2_NoImage(BaseAxes[base1]->Origin(), BaseAxes[base2]->Origin());
-      /*mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
+#     ifdef NASTRUCTDEBUG 
+      mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
               base1,RefCoords[base1]->BaseName(),
-              base2,RefCoords[base2]->BaseName(),sqrt(distance));*/
+              base2,RefCoords[base2]->BaseName(),sqrt(distance));
+#     endif
       if (distance < Ocut2) {
-        //mprintf("    Checking %i:%s -- %i:%s\n",base1,RefCoords[base1]->BaseName(),
-        //        base2,RefCoords[base2]->BaseName());
+#       ifdef NASTRUCTDEBUG
+        mprintf("    Checking %i:%s -- %i:%s\n",base1,RefCoords[base1]->BaseName(),
+                base2,RefCoords[base2]->BaseName());
+#       endif
         // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
         BaseAxes[base1]->RZ(Z1);
         BaseAxes[base2]->RZ(Z2);
@@ -185,10 +194,14 @@ int NAstruct::determineBasePairing() {
         distance = dot_product_angle(Z1, Z2);
         //mprintf("    Dot product of Z vectors: %lf\n",distance);
         if (distance > (PIOVER2)) { // If theta(Z) > 90 deg.
-          //mprintf("      Base2 %i is anti-parallel to Base1 %i\n",base2,base1);
+#         ifdef NASTRUCTDEBUG
+          mprintf("      Base2 %i is anti-parallel to Base1 %i\n",base2,base1);
+#         endif
           AntiParallel = true;
         } else {
-          //mprintf("      Base2 %i is parallel to Base1 %i\n",base2,base1);
+#         ifdef NASTRUCTDEBUG
+          mprintf("      Base2 %i is parallel to Base1 %i\n",base2,base1);
+#         endif
           AntiParallel = false;
         }
         if (basesArePaired(RefCoords[base1], RefCoords[base2])) {
@@ -382,17 +395,19 @@ int NAstruct::setupBasePairAxes() {
 int NAstruct::setupBaseAxes(Frame *InputFrame) {
   double rmsd, RotMatrix[9], TransVec[6];
   int base;
+#ifdef NASTRUCTDEBUG
   // DEBUG
-  //int res = 0;
-  //int baseaxesatom = 0;
-  //int basesatom = 0;
-  //CpptrajFile baseaxesfile;
-  //CpptrajFile basesfile;
-  //baseaxesfile.SetupFile((char*)"baseaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
-  //baseaxesfile.OpenFile();
-  //basesfile.SetupFile((char*)"bases.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
-  //basesfile.OpenFile();
+  int res = 0;
+  int baseaxesatom = 0;
+  int basesatom = 0;
+  CpptrajFile baseaxesfile;
+  CpptrajFile basesfile;
+  baseaxesfile.SetupFile((char*)"baseaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
+  baseaxesfile.OpenFile();
+  basesfile.SetupFile((char*)"bases.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
+  basesfile.OpenFile();
   // END DEBUG
+#endif
 
   // For each axis in RefCoords, use corresponding mask in ExpMasks to set 
   // up an axis for ExpCoords.
@@ -447,21 +462,24 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
               BaseAxes[base]->X[7 ]-BaseAxes[base]->X[10],
               BaseAxes[base]->X[8 ]-BaseAxes[base]->X[11]);
     }
+#   ifdef NASTRUCTDEBUG
     // DEBUG - Write base axis to file
-    //BaseAxes[base]->WritePDB(&baseaxesfile, res, P->ResidueName(res), &baseaxesatom);
+    BaseAxes[base]->WritePDB(&baseaxesfile, res, RefCoords[base]->BaseName(), &baseaxesatom);
 
     // Overlap ref coords onto input coords. Rotate, then translate to baseaxes origin
-    //RefFrame.SetFromFrame( RefCoords[base] );
-    //RefFrame.Rotate( RotMatrix );
-    //RefFrame.Translate( BaseAxes[base]->Origin() );
+    RefFrame.SetFromFrame( RefCoords[base] );
+    RefFrame.Rotate( RotMatrix );
+    RefFrame.Translate( BaseAxes[base]->Origin() );
     // DEBUG - Write ref coords to file
-    //RefCoords[base]->WritePDB(&basesfile, res, P->ResidueName(res), &basesatom);
-    //res++;
+    RefCoords[base]->WritePDB(&basesfile, res, RefCoords[base]->BaseName(), &basesatom);
+    ++res;
+#endif
   }
-
+#ifdef NASTRUCTDEBUG
   // DEBUG
-  //baseaxesfile.CloseFile();
-  //basesfile.CloseFile();
+  baseaxesfile.CloseFile();
+  basesfile.CloseFile();
+#endif
 
   return 0;
 }

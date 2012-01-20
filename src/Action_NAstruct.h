@@ -5,7 +5,21 @@
 #include "Action.h"
 #include "AxisType.h"
 #include "Range.h"
-
+/// Basic Nucleic acid structure analysis. 
+/*** Calculate nucleic acid base/base pair structural parameters.
+  * Algorithms for calculation of base/base pair structural parameters
+  * adapted from:
+  *   Babcock MS, Pednault EPD, Olson WK, "Nucleic Acid Structure Analysis: 
+  *   Mathematics for Local Cartesian and Helical Structure Parameters That
+  *   Are Truly Comparable Between Structures", J. Mol. Biol. (1994) 237,
+  *   125-156.
+  * NA base reference frame coordinates taken from:
+  *   Olson WK, Bansal M, Burley SK, Dickerson RE, Gerstein M, Harvey SC,
+  *   Heinemann U, Lu XJ, Neidle S, Shekked Z, Sklenar H, Suzuki M, Tung CS,
+  *   Westhof E, Wolberger C, Berman H, "A Standard Reference Frame for the 
+  *   Description of Nucleic Acid Base-pair Geometry", J. Mol. Biol. (2001)
+  *   313, 229-237.
+  */
 class NAstruct: public Action {
     // Variables
     std::vector<AxisType*> RefCoords;
