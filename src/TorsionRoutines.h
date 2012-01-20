@@ -9,4 +9,5 @@ double Torsion(double *, double *, double *, double *);
 
 double Pucker_AS(double *, double *, double *, double *, double *, double *);
 double Pucker_CP(double *, double *, double *, double *, double *, double *);
+double CalcAngle(double*, double*, double*);
 #endif

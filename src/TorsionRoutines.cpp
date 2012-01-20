@@ -192,3 +192,32 @@ double Pucker_CP(double *a1, double *a2, double *a3, double *a4, double *a5, dou
 
   return pucker;
 }
+
+// CalcAngle()
+double CalcAngle(double *V1, double *V2, double *V3)
+{
+  double angle;
+  double xij = V1[0] - V2[0];
+  double yij = V1[1] - V2[1];
+  double zij = V1[2] - V2[2];
+  
+  double xkj = V3[0] - V2[0];
+  double ykj = V3[1] - V2[1];
+  double zkj = V3[2] - V2[2];
+  
+  double rij = xij*xij + yij*yij + zij*zij;
+  double rkj = xkj*xkj + ykj*ykj + zkj*zkj;
+
+  if (rij > SMALL && rkj > SMALL) {
+    angle = (xij*xkj + yij*ykj + zij*zkj) / sqrt(rij*rkj);
+    if (angle > 1.0)
+      angle = 1.0;
+    else if (angle < -1.0)
+      angle = -1.0;
+    angle = acos(angle);
+  } else
+    angle = 0.0;
+
+  return angle;
+}
+
