@@ -14,7 +14,6 @@ NAstruct::NAstruct() {
   Nbp=0;
   Nbases=0;
   HBcut2=12.25;  // Hydrogen Bond cutoff^2: 3.5^2
-//  Ocut2=25.00;   // Origin cutoff^2: 5.0^2
   Ocut2=6.25;    // Origin cutoff^2: 2.5^2
   Nframe=0;
   outFilename=NULL;
