@@ -8,39 +8,6 @@
 #  include "PDBfileRoutines.h"
 #endif
 
-// ID_base()
-/** Return a number indicating if this is a NA base. If not recognized, 
-  * return -1. 
-  * NOTE: Currently based only on amber residue names. Will not recognize
-  * non-standard bases.
-  */
-NAbaseType ID_base(char *resname) {
-  char *resID;
-  bool isDNA = true; // Assume DNA unless noted otherwise 
-  //mprintf("        [%s]\n",resname);
-  if (resname==NULL) return UNKNOWN_BASE;
-  resID = resname;
-  // If residue name begins with D, assume AMBER DNA residue
-  if (resID[0]=='D') resID++;
-  if (resID[0]=='R') {resID++; isDNA=false;}
-  if (isDNA) {
-    switch (resID[0]) {
-      case 'A': return DA;
-      case 'C': return DC;
-      case 'G': return DG;
-      case 'T': return DT;
-    }
-  } else {
-    switch (resID[0]) {
-      case 'A': return RA;
-      case 'C': return RC;
-      case 'G': return RG;
-      case 'U': return RU;
-    }
-  }
-  return UNKNOWN_BASE;
-}
-
 // ---------- NA REFERENCE BASE ATOM NAMES AND COORDS --------------------------
 #define ADENATOM 11
 const NAME AxisType::ADEnames[ADENATOM] = {
@@ -141,7 +108,7 @@ const double AxisType::URAcoords[URANATOM][3] = {
 
 // ------------------------- AXISTYPE FUNCTIONS -------------------------------
 // CONSTRUCTOR
-// Mostly empty - Default Frame constructor should init everything
+// Mostly empty - Default Frame constructor should init everything else
 AxisType::AxisType() {
   ID = UNKNOWN_BASE;
   Name = NULL;
@@ -151,10 +118,69 @@ AxisType::AxisType() {
   HbondCoord[0]=NULL;
   HbondCoord[1]=NULL;
   HbondCoord[2]=NULL;
+  HbondAtom[0]=-1;
+  HbondAtom[1]=-1;
+  HbondAtom[2]=-1;
+  residue_number=-1;
 }
 
+// COPY CONSTRUCTOR
+AxisType::AxisType(const AxisType &rhs) :
+  Frame(rhs) 
+{
+  ID = rhs.ID;
+  if (rhs.Name!=NULL) {
+    Name = new NAME[ natom ];
+    memcpy(Name, rhs.Name, natom * sizeof(NAME));
+  } else
+    Name=NULL;
+  memcpy(R, rhs.R, 9 * sizeof(double));
+  HbondAtom[0] = rhs.HbondAtom[0];
+  HbondAtom[1] = rhs.HbondAtom[1];
+  HbondAtom[2] = rhs.HbondAtom[2];
+  // Since HbondCoord contains memory addresses, it must be updated
+  // relative to this instances X
+  HbondCoord[0] = X + (HbondAtom[0]*3);
+  HbondCoord[1] = X + (HbondAtom[1]*3);
+  HbondCoord[2] = X + (HbondAtom[2]*3);
+  residue_number = rhs.residue_number;
+}
+
+// Assignment Operator
+AxisType &AxisType::operator=(const AxisType &rhs) {
+  // Check for self assignment
+  if ( this == &rhs ) return *this;
+
+  // Base class assignment
+  Frame::operator=(rhs);
+
+  // Deallocate
+  if (Name!=NULL) delete[] Name;
+  Name = NULL;
+
+  // Allocate and copy
+  ID = rhs.ID;
+  if (rhs.Name!=NULL) {
+    Name = new NAME[ natom ];
+    memcpy(Name, rhs.Name, natom * sizeof(NAME));
+  }
+  memcpy(R, rhs.R, 9 * sizeof(double));
+  HbondAtom[0] = rhs.HbondAtom[0];
+  HbondAtom[1] = rhs.HbondAtom[1];
+  HbondAtom[2] = rhs.HbondAtom[2];
+  // Since HbondCoord contains memory addresses, it must be updated
+  // relative to this instances X
+  HbondCoord[0] = X + (HbondAtom[0]*3);
+  HbondCoord[1] = X + (HbondAtom[1]*3);
+  HbondCoord[2] = X + (HbondAtom[2]*3);
+  residue_number = rhs.residue_number;
+
+  // Return *this
+  return *this;
+} 
+
 // CONSTRUCTOR - Only allocate coords
-AxisType::AxisType(int natomIn) {
+/*AxisType::AxisType(int natomIn) {
   natom = natomIn;
   maxnatom = natom;
   N = natom * 3;
@@ -167,7 +193,11 @@ AxisType::AxisType(int natomIn) {
   HbondCoord[0]=NULL;
   HbondCoord[1]=NULL;
   HbondCoord[2]=NULL;
-}
+  HbondAtom[0]=-1;
+  HbondAtom[1]=-1;
+  HbondAtom[2]=-1;
+  residue_number=-1;
+}*/
 
 // DESTRUCTOR
 AxisType::~AxisType() {
@@ -206,6 +236,39 @@ double *AxisType::Origin() {
 // Base names corresponding to NAbaseType
 // UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU
 const char AxisType::NAbaseName[9][5]={"UNK","DA","DT","DG","DC","RA","RC","RG","RU" };
+
+// AxisType::ID_base()
+/** Return a number indicating if this is a NA base. If not recognized, 
+  * return -1. 
+  * NOTE: Currently based only on amber residue names. Will not recognize
+  * non-standard bases.
+  */
+AxisType::NAbaseType AxisType::ID_base(char *resname) {
+  char *resID;
+  bool isDNA = true; // Assume DNA unless noted otherwise 
+  //mprintf("        [%s]\n",resname);
+  if (resname==NULL) return UNKNOWN_BASE;
+  resID = resname;
+  // If residue name begins with D, assume AMBER DNA residue
+  if (resID[0]=='D') resID++;
+  if (resID[0]=='R') {resID++; isDNA=false;}
+  if (isDNA) {
+    switch (resID[0]) {
+      case 'A': return DA;
+      case 'C': return DC;
+      case 'G': return DG;
+      case 'T': return DT;
+    }
+  } else {
+    switch (resID[0]) {
+      case 'A': return RA;
+      case 'C': return RC;
+      case 'G': return RG;
+      case 'U': return RU;
+    }
+  }
+  return UNKNOWN_BASE;
+}
 
 // AxisType::AllocAxis()
 /** Allocate mem for coords and names. Replace any existing coords / names.
@@ -261,7 +324,7 @@ void AxisType::PrintAtomNames() {
 
 // AxisType::SetFromFrame()
 /** Set AxisType coords only from AxisIn. Reallocate memory only if
-  * AxisIn->natom > maxatom.
+  * AxisIn->natom > maxnatom.
   */
 void AxisType::SetFromFrame(AxisType *AxisIn) {
   natom = AxisIn->natom;
@@ -406,7 +469,9 @@ int AxisType::SetRefCoord(char *resname) {
   * Set up a mask to select correct atoms in the given parm.
   * \return 0 on success, 1 on error.
   */
-int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask) {
+AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum, 
+                                          AtomMask &parmMask) 
+{
   std::map<int,int> BaseMap;
   std::map<int,int>::iterator atom;
   std::vector<double> BaseRefCoords;
@@ -416,12 +481,14 @@ int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask
 
   // First, identify the base
   ID = ID_base(currentParm->ResidueName(resnum));
+  // If unknown exit now
+  if (ID == UNKNOWN_BASE) return NA_UNKNOWN; 
 
   // Set up reference coord and name arrays based on the base
   switch (ID) {
     case DA :
     case RA :
-      if (AllocAxis(ADENATOM)) return 1;
+      if (AllocAxis(ADENATOM)) return NA_ERROR;
       Nbaseatom = ADENATOM;
       BaseRefCoords.reserve(ADENATOM);
       BaseRefNames = new NAME[ ADENATOM ];
@@ -436,7 +503,7 @@ int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask
       break;
     case DC :
     case RC :
-      if (AllocAxis(CYTNATOM)) return 1;
+      if (AllocAxis(CYTNATOM)) return NA_ERROR;
       Nbaseatom = CYTNATOM;
       BaseRefCoords.reserve(CYTNATOM);
       BaseRefNames = new NAME[ CYTNATOM ];
@@ -451,7 +518,7 @@ int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask
       break;
     case DG :
     case RG :
-      if (AllocAxis(GUANATOM)) return 1;
+      if (AllocAxis(GUANATOM)) return NA_ERROR;
       Nbaseatom = GUANATOM;
       BaseRefCoords.reserve(GUANATOM);
       BaseRefNames = new NAME[ GUANATOM ];
@@ -465,7 +532,7 @@ int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask
       }
       break;
     case DT :
-      if (AllocAxis(THYNATOM)) return 1;
+      if (AllocAxis(THYNATOM)) return NA_ERROR;
       Nbaseatom = THYNATOM;
       BaseRefCoords.reserve(THYNATOM);
       BaseRefNames = new NAME[ THYNATOM ];
@@ -479,7 +546,7 @@ int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask
       }
       break;
     case RU:
-      if (AllocAxis(URANATOM)) return 1;
+      if (AllocAxis(URANATOM)) return NA_ERROR;
       Nbaseatom = URANATOM;
       BaseRefCoords.reserve(URANATOM);
       BaseRefNames = new NAME[ URANATOM ];
@@ -492,10 +559,10 @@ int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask
         BaseHbonds.push_back( URAhbonds[i] );
       }
       break;
-    case UNKNOWN_BASE:
+    case UNKNOWN_BASE: // Shouldnt get here, just for completeness
       mprintf("Warning: AxisType::SetRefCoord: Missing parameters for residue %s.\n",
               currentParm->ResidueName(resnum));
-      return 1;
+      return NA_UNKNOWN;
   }
 
   // For each atom defined as a reference atom for this base, find the
@@ -505,7 +572,7 @@ int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask
     if (parmAtom<0) {
       mprinterr("Error: Ref Atom [%s] not found in NA base [%s].\n",
                 BaseRefNames[ref], currentParm->ResidueName(resnum));
-      return 1;
+      return NA_ERROR;
     } else {
       BaseMap.insert( std::pair<int,int>(parmAtom, ref) );
     }
@@ -521,8 +588,10 @@ int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask
     // of the appropriate place in the coordinate array for future Hbond
     // calculations.
     int hb_index = BaseHbonds[refatom];
-    if ( hb_index != -1 )
+    if ( hb_index != -1 ) {
       HbondCoord[hb_index] = X + coord3;
+      HbondAtom[hb_index] = coord;
+    }
     X[coord3++] = BaseRefCoords[refcoord  ]; 
     X[coord3++] = BaseRefCoords[refcoord+1]; 
     X[coord3++] = BaseRefCoords[refcoord+2]; 
@@ -530,14 +599,10 @@ int AxisType::SetRefCoord(AmberParm *currentParm, int resnum, AtomMask &parmMask
     parmMask.AddAtom( (*atom).first );
   }
   if (BaseRefNames!=NULL) delete[] BaseRefNames;
+  residue_number = resnum;
 
-  // Now the order of the ref atoms match the order in the given parm.
-  // Need to also note which atoms are the H-bonding atoms.
-  
-
-  return 0;
+  return NA_OK;
 }
-
 
 // AxisType::FlipYZ
 /** Flip the Z and Y axes. Equivalent to rotation around the X axis.

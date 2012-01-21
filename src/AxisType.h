@@ -8,9 +8,7 @@
 /*! \file AxisType.h
     \brief Hold classes and functions used for NA structure analysis.
  */
-/// Declared outside class since it is used by AxisType and NAstruct
-enum NAbaseType { UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU };
-NAbaseType ID_base(char*);
+
 // Class: AxisType
 /// Frame for NA bases, intended for use with NAstruct Action.
 /** AxisType is a special kind of Frame. It will be used in 2 cases: 
@@ -43,25 +41,34 @@ class AxisType : public Frame {
     static const NAME URAnames[];
     static const double URAcoords[][3];
     static const int URAhbonds[];
-
+  public:
+    /// Type for each standard NA base.
+    enum NAbaseType { UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU };
+  private:
+    /// Identify NA base from residue name
+    NAbaseType ID_base(char*);
     static const char NAbaseName[][5];
     NAME *Name;  ///< Atom/Axis names
-    int maxAtom; ///< Actual size of memory. natom may be less than this.
+    int residue_number; ///< Original residue number
 
     int AllocAxis(int);
   public:
     NAbaseType ID;
     double R[9];
     double *HbondCoord[3];
+    int HbondAtom[3];
 
     AxisType();
-    AxisType(int);
+    //AxisType(int);
+    AxisType(const AxisType&);
+    AxisType & operator=(const AxisType&);
     ~AxisType();
     void RX(double Vin[3]);
     void RY(double Vin[3]);
     void RZ(double Vin[3]);
     double *Origin();
     char *BaseName();
+    int BaseNum() { return residue_number; }
     //int AtomIndex(char *);
     bool AtomNameIs(int, char *);
     char *AtomName(int);
@@ -70,7 +77,8 @@ class AxisType : public Frame {
     void StoreRotMatrix(double*);
     void SetPrincipalAxes();
     //int SetRefCoord(char *);
-    int SetRefCoord(AmberParm *, int, AtomMask &);
+    enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };
+    RefReturn SetRefCoord(AmberParm *, int, AtomMask &);
     void FlipYZ();
     void FlipXY();
 #ifdef NASTRUCTDEBUG
