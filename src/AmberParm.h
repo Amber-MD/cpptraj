@@ -148,7 +148,6 @@ class AmberParm {
     int solventAtoms;          ///< number of solvent atoms
 
     int Nres()           { return nres;           }
-    int FinalSoluteRes() { return finalSoluteRes; }
     int FirstSolventMol(){ return firstSolvMol;   }
     int Nmol()           { return molecules;      }
     bool HasSolventInfo(){ return hasSolventInfo; }
@@ -191,6 +190,7 @@ class AmberParm {
     char *ResidueName(int);
     int FindAtomInResidue(int, char *);
     int ResAtomRange(int, int *, int *);
+    int FinalSoluteRes();
 
     char *AtomName(int);
     bool AtomNameIs(int, const char *);

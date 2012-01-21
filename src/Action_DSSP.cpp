@@ -107,10 +107,7 @@ int DSSP::setup() {
   }
 
   // Set up SecStruct for each solute residue
-  if (currentParm->HasSolventInfo())
-    Nres = currentParm->FinalSoluteRes();
-  else
-    Nres = currentParm->Nres();
+  Nres = currentParm->FinalSoluteRes();
   if (debug>0) mprintf("\tDSSP: Setting up for %i residues.\n",Nres);
 
   // Set up for each residue of the current Parm if not already set-up.

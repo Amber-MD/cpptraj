@@ -243,10 +243,7 @@ int Rmsd::perResSetup() {
   Range ref_range;
   int N, tgtRes, refRes;
 
-  if (currentParm->HasSolventInfo())
-    NumResidues = currentParm->FinalSoluteRes();
-  else
-    NumResidues = currentParm->Nres(); 
+  NumResidues = currentParm->FinalSoluteRes();
 
   // If no target range previously specified do all solute residues
   if (ResRange.Empty()) 

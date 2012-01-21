@@ -235,8 +235,7 @@ int Jcoupling::setup() {
   // For each residue, set up 1 jcoupling calc for each parameter defined in
   // KarplusConstants for this residue. Only set up the Jcoupling calc if all
   // atoms involved are present in the mask.
-  MaxResidues = currentParm->Nres();
-  if (currentParm->HasSolventInfo()) MaxResidues = currentParm->FinalSoluteRes();
+  MaxResidues = currentParm->FinalSoluteRes();
   for (int residue=0; residue < MaxResidues; residue++) {
     resName.assign(currentParm->ResidueName(residue));
     std::map<std::string,karplusConstantList>::iterator reslist = KarplusConstants.find(resName);

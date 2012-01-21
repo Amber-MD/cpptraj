@@ -296,6 +296,15 @@ int AmberParm::ResAtomRange(int resIn, int *startatom, int *stopatom) {
   return 0;
 }
 
+// AmberParm::FinalSoluteRes()
+/** Return the last residue considered solute. */
+int AmberParm::FinalSoluteRes() {
+  if (hasSolventInfo)
+    return finalSoluteRes;
+  else
+    return nres;
+}
+
 // AmberParm::AtomName()
 /** Return pointer to name of given atom. */
 char *AmberParm::AtomName(int atom) {
@@ -818,9 +827,11 @@ int AmberParm::SetSolventInfo() {
         atomsPerMol[molecules] = molAtom; 
         solventMolecules++;
         molecules++;
-      } // END if residue is solvent
-        //else mprintf(" not solvent.\n"); // DEBUG
-    }
+      } else { 
+        //mprintf(" not solvent.\n"); // DEBUG
+        finalSoluteRes = res + 1; // Starts from 1, Amber convention
+      }
+    } // End loop over residues
   }
 
   // DEBUG
@@ -1703,6 +1714,7 @@ void AmberParm::Summary() {
   if (this->solventMolecules>0) {
     mprintf("                                %i solvent molecules.\n",this->solventMolecules);
     mprintf("                  First solvent molecule is %i\n",this->firstSolvMol);
+    mprintf("                  Final solute residue is %i\n",this->finalSoluteRes);
   }
 }
 

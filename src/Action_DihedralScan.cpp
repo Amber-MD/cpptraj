@@ -244,10 +244,7 @@ int DihedralScan::setup() {
   // to see if residues are in each others neighborhood. Second step
   // is to check the atoms in each close residue.
   if (check_for_clashes) {
-    if (currentParm->HasSolventInfo())
-      Nres = currentParm->FinalSoluteRes();
-    else
-      Nres = currentParm->Nres();
+    Nres = currentParm->FinalSoluteRes();
     for (int res = 0; res < Nres; res++) {
       rct.resnum = res;
       currentParm->ResAtomRange(res, &(rct.start), &(rct.stop));
