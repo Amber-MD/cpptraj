@@ -408,7 +408,8 @@ int NAstruct::setupBasePairAxes() {
   */
 int NAstruct::setupBaseAxes(Frame *InputFrame) {
   double rmsd, RotMatrix[9], TransVec[6];
-  int base;
+  AxisType RefFrame; // Hold copy of base reference coords
+  AxisType ExpFrame; // Hold copy of input base coords
 #ifdef NASTRUCTDEBUG
   // DEBUG
   int res = 0;
@@ -425,7 +426,7 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
 
   // For each axis in RefCoords, use corresponding mask in ExpMasks to set 
   // up an axis for ExpCoords.
-  for (base=0; base < Nbases; base++) {
+  for (int base=0; base < Nbases; base++) {
     // Set exp coords based on previously set-up mask
     ExpFrames[base]->SetFrameCoordsFromMask( InputFrame->X, ExpMasks[base] ); 
     /* Now that we have a set of reference coords and the corresponding input

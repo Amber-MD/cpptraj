@@ -6,7 +6,7 @@
 #include "AxisType.h"
 #include "Range.h"
 /// Basic Nucleic acid structure analysis. 
-/*** Calculate nucleic acid base/base pair structural parameters.
+/** Calculate nucleic acid base/base pair structural parameters.
   * Algorithms for calculation of base/base pair structural parameters
   * adapted from:
   *   Babcock MS, Pednault EPD, Olson WK, "Nucleic Acid Structure Analysis: 
@@ -27,13 +27,11 @@ class NAstruct: public Action {
     std::vector<AxisType*> BasePairAxes;
     std::vector<AxisType*> ExpFrames;
     std::vector<AtomMask*> ExpMasks;
-    std::vector<int> BasePair;           // [Base1-0,Base2-0,IsAnti-0], [Base1-1...
-    int Nbp;
-    int Nbases;
-    double HBcut2;
-    double Ocut2;
-    AxisType ExpFrame;
-    AxisType RefFrame;
+    std::vector<int> BasePair;           //< [Base1-0,Base2-0,IsAnti-0], [Base1-1...
+    int Nbp;                             //< Total number of base pairs
+    int Nbases;                          //< Total number of NA bases
+    double HBcut2;                       //< Cutoff^2 for determining hydrogen bonds
+    double Ocut2;                        //< Cutoff^2 for determining base-pairing vi origins
     // Datasets
     DataSetList SHEAR;
     DataSetList STRETCH;
@@ -47,7 +45,7 @@ class NAstruct: public Action {
     DataSetList TILT;
     DataSetList ROLL;
     DataSetList TWIST;
-    int Nframe;                          // Keep track of # frames for print() function           
+    int Nframe;                          //< Keep track of # frames for print() function           
     // Init Args
     Range resRange;
     char *outFilename;
