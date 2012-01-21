@@ -75,7 +75,13 @@ bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
     if ( dist2 < HBcut2 ) {
       ++Nhbonds;
 #     ifdef NASTRUCTDEBUG
-      mprintf("            G:%i -- C:%i = %lf\n",hb,hb,sqrt(dist2));
+      int dg_hbatom = DG->HbondAtom[hb];
+      int dc_hbatom = DC->HbondAtom[hb];
+      mprintf("            %s:%s -- %s:%s = %lf\n",
+              DG->BaseName(),DG->AtomName(dg_hbatom),
+              DC->BaseName(),DC->AtomName(dc_hbatom),sqrt(dist2));
+//      mprintf("                %8.3lf %8.3lf %8.3lf\n",DG->HbondCoord[hb][0],DG->HbondCoord[hb][1],DG->HbondCoord[hb][2]);
+//      mprintf("                %8.3lf %8.3lf %8.3lf\n",DC->HbondCoord[hb][0],DC->HbondCoord[hb][1],DC->HbondCoord[hb][2]);
 #     endif
     }
   }
@@ -119,7 +125,11 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
     if ( dist2 < HBcut2 ) {
       ++Nhbonds;
 #     ifdef NASTRUCTDEBUG
-      mprintf("            A:%i -- T:%i = %lf\n",hb,hb,sqrt(dist2));
+      int da_hbatom = DA->HbondAtom[hb];
+      int dt_hbatom = DT->HbondAtom[hb];
+      mprintf("            %s:%s -- %s:%s = %lf\n",
+              DA->BaseName(),DA->AtomName(da_hbatom),
+              DT->BaseName(),DT->AtomName(dt_hbatom),sqrt(dist2));
 #     endif
     }
   }
@@ -150,16 +160,16 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   */
 bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   // G C
-  if      ( base1->ID==DG && base2->ID==DC ) return GCpair(base1,base2);
-  else if ( base1->ID==DC && base2->ID==DG ) return GCpair(base2,base1);
-  else if ( base1->ID==RG && base2->ID==RC ) return GCpair(base1,base2);
-  else if ( base1->ID==RC && base2->ID==RG ) return GCpair(base2,base1);
+  if      ( base1->ID==AxisType::DG && base2->ID==AxisType::DC ) return GCpair(base1,base2);
+  else if ( base1->ID==AxisType::DC && base2->ID==AxisType::DG ) return GCpair(base2,base1);
+  else if ( base1->ID==AxisType::RG && base2->ID==AxisType::RC ) return GCpair(base1,base2);
+  else if ( base1->ID==AxisType::RC && base2->ID==AxisType::RG ) return GCpair(base2,base1);
   // A T
-  else if ( base1->ID==DA && base2->ID==DT ) return ATpair(base1,base2);
-  else if ( base1->ID==DT && base2->ID==DA ) return ATpair(base2,base1);
+  else if ( base1->ID==AxisType::DA && base2->ID==AxisType::DT ) return ATpair(base1,base2);
+  else if ( base1->ID==AxisType::DT && base2->ID==AxisType::DA ) return ATpair(base2,base1);
   // A U
-  else if ( base1->ID==RA && base2->ID==RU ) return ATpair(base1,base2);
-  else if ( base1->ID==RU && base2->ID==RA ) return ATpair(base2,base1);
+  else if ( base1->ID==AxisType::RA && base2->ID==AxisType::RU ) return ATpair(base1,base2);
+  else if ( base1->ID==AxisType::RU && base2->ID==AxisType::RA ) return ATpair(base2,base1);
 //  else {
 //    mprintf("Warning: NAstruct: Unrecognized pair: %s - %s\n",NAbaseName[base1->ID],
 //             NAbaseName[base2->ID]);
@@ -179,8 +189,9 @@ int NAstruct::determineBasePairing() {
 
   Nbp = 0;
   BasePair.clear();
-  
-  //mprintf(" ==== Setup Base Pairing ==== \n");
+# ifdef NASTRUCTDEBUG  
+  mprintf(" ==== Setup Base Pairing ==== \n");
+# endif
 
   /* For each unpaired base, determine if it is paired with another base
    * determined by the distance between their axis origins.
@@ -191,15 +202,19 @@ int NAstruct::determineBasePairing() {
       if (isPaired[base2]) continue;
       // First determine if origin axes coords are close enough to consider pairing
       distance = DIST2_NoImage(BaseAxes[base1]->Origin(), BaseAxes[base2]->Origin());
-#     ifdef NASTRUCTDEBUG 
+/*#     ifdef NASTRUCTDEBUG 
       mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
-              base1,RefCoords[base1]->BaseName(),
-              base2,RefCoords[base2]->BaseName(),sqrt(distance));
-#     endif
+              base1,ExpFrames[base1]->BaseName(),
+              base2,ExpFrames[base2]->BaseName(),sqrt(distance));
+#     endif*/
       if (distance < Ocut2) {
 #       ifdef NASTRUCTDEBUG
-        mprintf("    Checking %i:%s -- %i:%s\n",base1,RefCoords[base1]->BaseName(),
-                base2,RefCoords[base2]->BaseName());
+        mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
+                ExpFrames[base1]->BaseNum()+1,ExpFrames[base1]->BaseName(),
+                ExpFrames[base2]->BaseNum()+1,ExpFrames[base2]->BaseName(),sqrt(distance));
+        mprintf("    Checking %i:%s -- %i:%s\n",
+                ExpFrames[base1]->BaseNum()+1,ExpFrames[base1]->BaseName(),
+                ExpFrames[base2]->BaseNum()+1,ExpFrames[base2]->BaseName());
 #       endif
         // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
         BaseAxes[base1]->RZ(Z1);
@@ -209,16 +224,18 @@ int NAstruct::determineBasePairing() {
         //mprintf("    Dot product of Z vectors: %lf\n",distance);
         if (distance > (PIOVER2)) { // If theta(Z) > 90 deg.
 #         ifdef NASTRUCTDEBUG
-          mprintf("      Base2 %i is anti-parallel to Base1 %i\n",base2,base1);
+          mprintf("      Base2 %i is anti-parallel to Base1 %i\n",
+                  ExpFrames[base2]->BaseNum()+1,ExpFrames[base1]->BaseNum()+1);
 #         endif
           AntiParallel = true;
         } else {
 #         ifdef NASTRUCTDEBUG
-          mprintf("      Base2 %i is parallel to Base1 %i\n",base2,base1);
+          mprintf("      Base2 %i is parallel to Base1 %i\n",
+                  ExpFrames[base2]->BaseNum()+1,ExpFrames[base1]->BaseNum()+1);
 #         endif
           AntiParallel = false;
         }
-        if (basesArePaired(RefCoords[base1], RefCoords[base2])) {
+        if (basesArePaired(ExpFrames[base1], ExpFrames[base2])) {
           BasePair.push_back(base1);
           BasePair.push_back(base2);
           if (AntiParallel) 
@@ -393,7 +410,7 @@ int NAstruct::setupBasePairAxes() {
     Base1->WritePDB(&basepairaxesfile, BasePair[basepair], P->ResidueName(BP),&basepairaxesatom);
     BasePairAxes.push_back( Base1 );
     BP++;
-  }
+  e
   // DEBUG
   basepairaxesfile.CloseFile();
 
@@ -408,9 +425,9 @@ int NAstruct::setupBasePairAxes() {
   */
 int NAstruct::setupBaseAxes(Frame *InputFrame) {
   double rmsd, RotMatrix[9], TransVec[6];
-  AxisType RefFrame; // Hold copy of base reference coords
-  AxisType ExpFrame; // Hold copy of input base coords
-#ifdef NASTRUCTDEBUG
+  AxisType refFrame; // Hold copy of base reference coords
+  AxisType expFrame; // Hold copy of input base coords
+# ifdef NASTRUCTDEBUG
   // DEBUG
   int res = 0;
   int baseaxesatom = 0;
@@ -422,22 +439,28 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
   basesfile.SetupFile((char*)"bases.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
   basesfile.OpenFile();
   // END DEBUG
-#endif
+# endif
 
   // For each axis in RefCoords, use corresponding mask in ExpMasks to set 
   // up an axis for ExpCoords.
   for (int base=0; base < Nbases; base++) {
     // Set exp coords based on previously set-up mask
-    ExpFrames[base]->SetFrameCoordsFromMask( InputFrame->X, ExpMasks[base] ); 
+    ExpFrames[base]->SetFrameCoordsFromMask( InputFrame->X, ExpMasks[base] );
+#   ifdef NASTRUCTDEBUG
+    mprintf("Base %i:%s Ref={%8.3lf %8.3lf %8.3lf} Exp={%8.3lf %8.3lf %8.3lf}\n",
+            ExpFrames[base]->BaseNum()+1,ExpFrames[base]->BaseName(),
+            RefCoords[base]->X[0],RefCoords[base]->X[1],RefCoords[base]->X[2],
+            ExpFrames[base]->X[0],ExpFrames[base]->X[1],ExpFrames[base]->X[2]);
+#   endif 
     /* Now that we have a set of reference coords and the corresponding input
      * coords, RMS fit the reference coords to the input coords to obtain the
      * appropriate rotation and translations that will put the reference coords 
      * on top of input (experimental) coords.
      * NOTE: The RMSD routine is destructive to coords. Need copies of frames.
      */
-    RefFrame.SetFromFrame( RefCoords[base] );
-    ExpFrame.SetFromFrame( ExpFrames[base] );
-    rmsd = RefFrame.RMSD( &ExpFrame, RotMatrix, TransVec, false);
+    refFrame.SetFromFrame( RefCoords[base] );
+    expFrame.SetFromFrame( ExpFrames[base] );
+    rmsd = refFrame.RMSD( &expFrame, RotMatrix, TransVec, false);
     if (debug>0) 
       mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
     // BaseAxes start at origin
@@ -482,19 +505,19 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
     BaseAxes[base]->WritePDB(&baseaxesfile, res, RefCoords[base]->BaseName(), &baseaxesatom);
 
     // Overlap ref coords onto input coords. Rotate, then translate to baseaxes origin
-    RefFrame.SetFromFrame( RefCoords[base] );
-    RefFrame.Rotate( RotMatrix );
-    RefFrame.Translate( BaseAxes[base]->Origin() );
+    refFrame.SetFromFrame( RefCoords[base] );
+    refFrame.Rotate( RotMatrix );
+    refFrame.Translate( BaseAxes[base]->Origin() );
     // DEBUG - Write ref coords to file
-    RefFrame.WritePDB(&basesfile, res, RefCoords[base]->BaseName(), &basesatom);
+    refFrame.WritePDB(&basesfile, res, RefCoords[base]->BaseName(), &basesatom);
     ++res;
-#endif
+#   endif
   }
-#ifdef NASTRUCTDEBUG
+# ifdef NASTRUCTDEBUG
   // DEBUG
   baseaxesfile.CloseFile();
   basesfile.CloseFile();
-#endif
+# endif
 
   return 0;
 }
@@ -951,60 +974,64 @@ int NAstruct::init() {
   * the masks that correspond to the reference frame atoms.
   */
 int NAstruct::setup() {
-  int res;
-  //int resstartatom, resstopatom;
-  int residue;
+  int resnum;
   AxisType *axis; 
   AtomMask *Mask;
   Range actualRange;
+  AxisType::RefReturn refreturn;
 
   // Clear all lists
   ClearLists();
 
-  // If range is empty (i.e. no resrange arg given) look for all NA residues.
-  if (resRange.Empty()) {
-    for (res=0; res < currentParm->Nres(); res++) {
-      if ( ID_base(currentParm->ResidueName(res))!=UNKNOWN_BASE )
-        actualRange.AddToRange(res);
-    }
-
-  // Otherwise, for each residue in resRange check if it is a NA
-  } else {
-    resRange.Begin();
-    while (resRange.NextInRange(&res)) {
-      // User residues numbers start from 1
-      res--;
-      if (ID_base(currentParm->ResidueName(res))!=UNKNOWN_BASE) 
-        actualRange.AddToRange(res);
-    }
+  // If range is empty (i.e. no resrange arg given) look through all 
+  // solute residues.
+  if (resRange.Empty()) 
+    actualRange.SetRange(0, currentParm->FinalSoluteRes());
+  // If user range specified, create new range shifted by -1 since internal
+  // resnums start from 0.
+  else {
+    actualRange = resRange;
+    actualRange.ShiftBy(-1);
   }
-  // Exit if no NA residues specified
+
+  // Exit if no residues specified
   if (actualRange.Empty()) {
-    mprinterr("Error: NAstruct::setup: No NA residues found for %s\n",currentParm->parmName);
+    mprinterr("Error: NAstruct::setup: No residues specified for %s\n",currentParm->parmName);
     return 1;
   }
 
   // DEBUG - print all residues
-  if (debug>0)
-    actualRange.PrintRange("    NAstruct: NA res:",1);
+  //if (debug>0)
+  //  actualRange.PrintRange("    NAstruct: NA res:",1);
 
   // Set up frame to hold reference coords for each NA residue
   actualRange.Begin();
-  while (actualRange.NextInRange(&residue)) {
+  while (actualRange.NextInRange(&resnum)) {
     axis = new AxisType();
     // Set up ref coords in correct order, along with corresponding 
     // parm mask for this residue.
     Mask = new AtomMask();
-    if ( axis->SetRefCoord( currentParm, residue, *Mask ) ) {
+    refreturn = axis->SetRefCoord( currentParm, resnum, *Mask );
+    // If not recognized as a NA residue, continue to next.
+    // Print a warning if the user specified this range.
+    if ( refreturn == AxisType::NA_UNKNOWN ) {
+      if (!resRange.Empty()) {
+        mprintf("Warning: Residue %i:%s not recognized as NA residue.\n",
+                resnum+1, currentParm->ResidueName(resnum));
+      }
+      delete axis;
+      delete Mask;
+      continue;
+    } else if ( refreturn == AxisType::NA_ERROR  ) {
       mprinterr("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
-                residue+1, currentParm->ResidueName(residue));
+                resnum+1, currentParm->ResidueName(resnum));
       delete axis;
       delete Mask;
       return 1;
     }
     if (Mask->None()) {
       mprintf("Error:: NAstruct::setup: No atoms found for residue %i:%s\n",
-              residue+1, currentParm->ResidueName(residue));
+              resnum+1, currentParm->ResidueName(resnum));
       delete axis;
       delete Mask;
       return 1;
@@ -1012,14 +1039,17 @@ int NAstruct::setup() {
     RefCoords.push_back( axis );
     ExpMasks.push_back( Mask );
     if (debug>1) {
-      mprintf("\tNAstruct: Res %i:%s ",residue+1,currentParm->ResidueName(residue));
+      mprintf("\tNAstruct: Res %i:%s ",resnum+1,currentParm->ResidueName(resnum));
       Mask->PrintMaskAtoms("NAmask");
-      mprintf("\t          Ref %i:%s ",residue+1,axis->BaseName());
+      mprintf("\t          Ref %i:%s ",resnum+1,axis->BaseName());
       axis->PrintAtomNames();
     }
 
     // Set up empty frame to hold input coords for this residue
-    axis = new AxisType(Mask->Nselected);
+    axis = new AxisType();
+    // Initially set to be a copy of the reference frame. The coordinates
+    // will be overwritten later.
+    *axis = *(RefCoords.back());
     ExpFrames.push_back( axis );
 
     // Set up initial axes for this NA residue.
