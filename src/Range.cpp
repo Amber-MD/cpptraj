@@ -10,6 +10,26 @@ Range::Range() { }
 // DESTRUCTOR
 Range::~Range() { }
 
+// COPY CONSTRUCTOR
+Range::Range(const Range &rhs) {
+  rangeArg = rhs.rangeArg;
+  rangeList = rhs.rangeList;
+  // Dont copy over the iterator, set to beginning
+  rangeNum = rangeList.begin();
+}
+
+// ASSIGNMENT OPERATOR
+Range &Range::operator=(const Range &rhs) {
+  // Check for self assignment
+  if ( this == &rhs ) return *this;
+  rangeArg = rhs.rangeArg;
+  rangeList = rhs.rangeList;
+  // Dont copy over the iterator, set to beginning
+  rangeNum = rangeList.begin();
+  // Return *this
+  return *this;
+}
+
 /** Range::SetRange()
   * Given an argument containing numbers separated by "," (concatentation), and 
   * "-" (number range), construct an ordered list of numbers corresponding to 
@@ -130,6 +150,15 @@ void Range::SetRange(Range *rhs) {
 
   // Set iterator to beginning
   this->Begin();
+}
+
+// Range::ShiftBy()
+/** Shift all numbers in range by specified value. */
+void Range::ShiftBy(int val) {
+  for (rangeNum = rangeList.begin(); rangeNum != rangeList.end(); rangeNum++)
+    *rangeNum += val;
+  // Set iterator to beginning
+  this->Begin();  
 }
 
 /* Range::AddToRange()

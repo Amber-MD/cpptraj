@@ -15,6 +15,8 @@ class Range {
   public:
     Range();
     ~Range();
+    Range(const Range&);
+    Range & operator=(const Range&);
 
     int SetRange(char *);
     int SetRange(int,int);
@@ -23,6 +25,7 @@ class Range {
     char *RangeArg();
     void PrintRange(const char*,int);
 
+    void ShiftBy(int);
     void AddToRange(int);
     void Begin();
     bool NextInRange(int *);
