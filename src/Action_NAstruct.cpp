@@ -13,8 +13,9 @@ NAstruct::NAstruct() {
   //fprintf(stderr,"NAstruct Con\n");
   Nbp=0;
   Nbases=0;
-  HBcut2=12.25;  // Hydrogen Bond cutoff^2: 3.5^2
-  Ocut2=6.25;    // Origin cutoff^2: 2.5^2
+  HBdistCut2=9.61;  // Hydrogen Bond distance cutoff^2: 3.1^2
+  HBangleCut2=2.53; // Hydrogen Bond angle cutoff (in radians, ~145 degs)
+  originCut2=6.25;  // Origin cutoff^2 for base-pairing: 2.5^2
   Nframe=0;
   outFilename=NULL;
   naoutFilename=NULL;
@@ -72,7 +73,7 @@ bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   double dist2;
   for (int hb = 0; hb < 3; hb++) {
     dist2 = DIST2_NoImage(DG->HbondCoord[hb], DC->HbondCoord[hb]);
-    if ( dist2 < HBcut2 ) {
+    if ( dist2 < HBdistCut2 ) {
       ++Nhbonds;
 #     ifdef NASTRUCTDEBUG
       int dg_hbatom = DG->HbondAtom[hb];
@@ -122,7 +123,7 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   double dist2;
   for (int hb = 0; hb < 2; hb++) {
     dist2 = DIST2_NoImage(DA->HbondCoord[hb], DT->HbondCoord[hb]);
-    if ( dist2 < HBcut2 ) {
+    if ( dist2 < HBdistCut2 ) {
       ++Nhbonds;
 #     ifdef NASTRUCTDEBUG
       int da_hbatom = DA->HbondAtom[hb];
@@ -207,7 +208,7 @@ int NAstruct::determineBasePairing() {
               base1,ExpFrames[base1]->BaseName(),
               base2,ExpFrames[base2]->BaseName(),sqrt(distance));
 #     endif*/
-      if (distance < Ocut2) {
+      if (distance < originCut2) {
 #       ifdef NASTRUCTDEBUG
         mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
                 ExpFrames[base1]->BaseNum()+1,ExpFrames[base1]->BaseName(),
@@ -216,37 +217,46 @@ int NAstruct::determineBasePairing() {
                 ExpFrames[base1]->BaseNum()+1,ExpFrames[base1]->BaseName(),
                 ExpFrames[base2]->BaseNum()+1,ExpFrames[base2]->BaseName());
 #       endif
-        // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
-        BaseAxes[base1]->RZ(Z1);
-        BaseAxes[base2]->RZ(Z2);
-        //printVector("Base1Z",Z1); printVector("Base2Z",Z2);
+        // Figure out angle between y vectors
+        BaseAxes[base1]->RY(Z1);
+        BaseAxes[base2]->RY(Z2);
         distance = dot_product_angle(Z1, Z2);
-        //mprintf("    Dot product of Z vectors: %lf\n",distance);
-        if (distance > (PIOVER2)) { // If theta(Z) > 90 deg.
-#         ifdef NASTRUCTDEBUG
-          mprintf("      Base2 %i is anti-parallel to Base1 %i\n",
-                  ExpFrames[base2]->BaseNum()+1,ExpFrames[base1]->BaseNum()+1);
-#         endif
-          AntiParallel = true;
-        } else {
-#         ifdef NASTRUCTDEBUG
-          mprintf("      Base2 %i is parallel to Base1 %i\n",
-                  ExpFrames[base2]->BaseNum()+1,ExpFrames[base1]->BaseNum()+1);
-#         endif
-          AntiParallel = false;
-        }
-        if (basesArePaired(ExpFrames[base1], ExpFrames[base2])) {
-          BasePair.push_back(base1);
-          BasePair.push_back(base2);
-          if (AntiParallel) 
-            BasePair.push_back(1);
-          else
-            BasePair.push_back(0);
-          isPaired[base1]=true;
-          isPaired[base2]=true;
-          Nbp++;
-        }
-      }
+#       ifdef NASTRUCTDEBUG
+        mprintf("      Angle between Y vectors is %lf deg. (%lf)\n",distance * RADDEG,distance);
+#       endif
+        if (distance > HBangleCut2) {
+          // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
+          BaseAxes[base1]->RZ(Z1);
+          BaseAxes[base2]->RZ(Z2);
+          //printVector("Base1Z",Z1); printVector("Base2Z",Z2);
+          distance = dot_product_angle(Z1, Z2);
+          //mprintf("    Dot product of Z vectors: %lf\n",distance);
+          if (distance > (PIOVER2)) { // If theta(Z) > 90 deg.
+#           ifdef NASTRUCTDEBUG
+            mprintf("      Base2 %i is anti-parallel to Base1 %i\n",
+                    ExpFrames[base2]->BaseNum()+1,ExpFrames[base1]->BaseNum()+1);
+#           endif
+            AntiParallel = true;
+          } else {
+#           ifdef NASTRUCTDEBUG
+            mprintf("      Base2 %i is parallel to Base1 %i\n",
+                    ExpFrames[base2]->BaseNum()+1,ExpFrames[base1]->BaseNum()+1);
+#           endif
+            AntiParallel = false;
+          }
+          if (basesArePaired(ExpFrames[base1], ExpFrames[base2])) {
+            BasePair.push_back(base1);
+            BasePair.push_back(base2);
+            if (AntiParallel) 
+              BasePair.push_back(1);
+            else
+              BasePair.push_back(0);
+            isPaired[base1]=true;
+            isPaired[base2]=true;
+            Nbp++;
+          }
+        } // END if distance > HBangleCut2
+      } // END if distance < originCut2
     } // END Loop over base2
   } // END Loop over base1
 
@@ -278,9 +288,11 @@ int NAstruct::determineBasePairing() {
     } 
     // Print base pair info
     if (debug>1) {
+      int bp_1 = BasePair[base1  ];
+      int bp_2 = BasePair[base1+1];
       mprintf("        BP %i: Res %i:%s to %i:%s",base2,
-              BasePair[base1  ]+1, RefCoords[ BasePair[base1  ] ]->BaseName(),
-              BasePair[base1+1]+1, RefCoords[ BasePair[base1+1] ]->BaseName());
+              RefCoords[bp_1]->BaseNum()+1, RefCoords[bp_1]->BaseName(),
+              RefCoords[bp_2]->BaseNum()+1, RefCoords[bp_2]->BaseName());
       if ( BasePair[base1+2] )
         mprintf(" AntiParallel.\n");
       else

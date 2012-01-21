@@ -22,16 +22,17 @@
   */
 class NAstruct: public Action {
     // Variables
-    std::vector<AxisType*> RefCoords;
-    std::vector<AxisType*> BaseAxes;
-    std::vector<AxisType*> BasePairAxes;
-    std::vector<AxisType*> ExpFrames;
-    std::vector<AtomMask*> ExpMasks;
+    std::vector<AxisType*> RefCoords;    //< Hold reference frame coordinates for each base
+    std::vector<AxisType*> BaseAxes;     //< Hold axis coordinates for each base
+    std::vector<AxisType*> BasePairAxes; //< Hold axis coordinates for each base pair
+    std::vector<AxisType*> ExpFrames;    //< Hold input frame coordinates for each base
+    std::vector<AtomMask*> ExpMasks;     //< Hold atom masks of each base for input coordinates
     std::vector<int> BasePair;           //< [Base1-0,Base2-0,IsAnti-0], [Base1-1...
     int Nbp;                             //< Total number of base pairs
     int Nbases;                          //< Total number of NA bases
-    double HBcut2;                       //< Cutoff^2 for determining hydrogen bonds
-    double Ocut2;                        //< Cutoff^2 for determining base-pairing vi origins
+    double HBdistCut2;                   //< distance Cutoff^2 for determining hydrogen bonds
+    double HBangleCut2;                  //< Angle Cutoff^2 for determining if bases can h bond
+    double originCut2;                   //< Cutoff^2 for determining base-pairing vi origins
     // Datasets
     DataSetList SHEAR;
     DataSetList STRETCH;
