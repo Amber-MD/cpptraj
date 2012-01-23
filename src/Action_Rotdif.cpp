@@ -1,5 +1,6 @@
 // Rotdif
 #include <cmath>
+#include <cstdio> //sscanf
 #include "Action_Rotdif.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // TWOPI
@@ -40,6 +41,7 @@ Rotdif::Rotdif() {
   delqfrac = 0;
 
   randvecOut = NULL;
+  randvecIn = NULL;
   rmOut = NULL;
   deffOut = NULL;
 
@@ -68,6 +70,7 @@ Rotdif::~Rotdif() {
   *                       [itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]
   *                       [lflag <lflag>] [delqfrac <delqfrac>] [rvecout <randvecOut>]
   *                       [rmout <rmOut>] [deffout <deffOut>]
+  *                       [rvecin <randvecIn>]
   */ 
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
@@ -99,6 +102,7 @@ int Rotdif::init( ) {
   lflag = actionArgs.getKeyInt("lflag",2);
   delqfrac = actionArgs.getKeyDouble("delqfrac",0.5);
   randvecOut = actionArgs.getKeyString("rvecout",NULL);
+  randvecIn = actionArgs.getKeyString("rvecin",NULL);
   rmOut = actionArgs.getKeyString("rmout",NULL);
   deffOut = actionArgs.getKeyString("deffout",NULL);
 
@@ -147,6 +151,8 @@ int Rotdif::init( ) {
           delmin,d0);
   mprintf("            Order of Legendre polynomial = %i\n",olegendre);
   mprintf("            lflag=%i, delqfrac=%.4lf\n",lflag,delqfrac);
+  if (randvecIn!=NULL)
+    mprintf("            Random vectors will be read from %s\n",randvecIn);
   if (randvecOut!=NULL)
     mprintf("            Random vectors will be written to %s\n",randvecOut);
   if (rmOut!=NULL)
@@ -269,22 +275,49 @@ int Rotdif::action() {
 double *Rotdif::randvec() {
   double *XYZ;
   int xyz_size = nvecs * 3;
+  CpptrajFile vecIn;
+  char buffer[BUFFER_SIZE];
 
   XYZ = new double[ xyz_size ];
-  for (int i = 0; i < xyz_size; i+=3) {
-    //phi=2d0*pi*random(seed)
-    //double phi = TWOPI * random_number();
-    double phi = TWOPI * random_(rseed);
-    //theta=dacos(1d0-random(seed))
-    //double theta = acos( 1 - random_number() );
-    double theta = acos( 1 - random_(rseed) );
-    double sintheta = sin( theta );
-    //x=dsin(theta)*dcos(phi)
-    XYZ[i  ] = sintheta * cos( phi );
-    //y=dsin(theta)*dsin(phi)
-    XYZ[i+1] = sintheta * sin( phi );
-    //z=dcos(theta)
-    XYZ[i+2] = cos( theta );
+
+  // Read nvecs vectors from a file
+  if (randvecIn!=NULL) {
+    if (vecIn.SetupFile(randvecIn, READ, debug)) {
+      mprinterr("Error: Could not setup random vectors input file %s",randvecIn);
+      delete[] XYZ;
+      return NULL;
+    }
+    if (vecIn.OpenFile()) {
+      mprinterr("Error: Could not open random vectors input file %s",randvecIn);
+      delete[] XYZ;
+      return NULL;
+    }
+    for (int i = 0; i < xyz_size; i+=3) {
+      if (vecIn.IO->Gets(buffer, BUFFER_SIZE) ) {
+        mprinterr("Error: Could not read vector %i from file %s\n",(i/3)+1,randvecIn);
+        delete[] XYZ;
+        return NULL;
+      }
+      sscanf(buffer,"%*i %lf %lf %lf",XYZ+i,XYZ+i+1,XYZ+i+2);
+    }
+    vecIn.CloseFile();
+  // Generate nvecs vectors
+  } else {
+    for (int i = 0; i < xyz_size; i+=3) {
+      //phi=2d0*pi*random(seed)
+      //double phi = TWOPI * random_number();
+      double phi = TWOPI * random_(rseed);
+      //theta=dacos(1d0-random(seed))
+      //double theta = acos( 1 - random_number() );
+      double theta = acos( 1 - random_(rseed) );
+      double sintheta = sin( theta );
+      //x=dsin(theta)*dcos(phi)
+      XYZ[i  ] = sintheta * cos( phi );
+      //y=dsin(theta)*dsin(phi)
+      XYZ[i+1] = sintheta * sin( phi );
+      //z=dcos(theta)
+      XYZ[i+2] = cos( theta );
+    }
   }
   // Print vectors
   if (randvecOut!=NULL) {

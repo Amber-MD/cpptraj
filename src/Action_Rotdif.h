@@ -32,6 +32,7 @@ class Rotdif: public Action {
     double delqfrac; ///< how to scale simplexes
 
     char *randvecOut;
+    char *randvecIn;
     char *rmOut;
     char *deffOut;
 
