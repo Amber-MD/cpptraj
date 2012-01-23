@@ -582,28 +582,37 @@ int CpptrajFile::SetupRead() {
     }
   }
 
+  // Check if second line contains REMD/HREMD, Amber Traj with REMD header
+  if ( strncmp(buffer2,"REMD",4)==0 ||
+       strncmp(buffer2,"HREMD",5)==0   ) 
+  {
+    if (debug>0) mprintf("  AMBER TRAJECTORY with (H)REMD header.\n");
+    fileFormat=AMBERTRAJ;
+    return 0;
+  }
+
+  // Check if we can read at least 3 coords of width 8, Amber trajectory
+  if ( sscanf(buffer2, "%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2) == 3 ) {
+    if (debug>0) mprintf("  AMBER TRAJECTORY file\n");
+    fileFormat=AMBERTRAJ;
+    return 0;
+  }
+
+  // OLD STYLE CHECK: Would not recognize 1 atom trajectories, dependent on line size.
   // If the second line is 81 bytes, assume Amber Traj
   // If second line is 42 bytes, check for Amber Traj with REMD
   // NOTE: Check for digit every 8 char?
   // NOTE: This wont work for trajectories with <3 coords.
-  if ((int)strlen(buffer2)==81+isDos) {
+/*  if ((int)strlen(buffer2)==81+isDos) {
     //if ( sscanf(buffer2, "%8f%8f%8f%8f%8f%8f%8f%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2,
     //            TrajCoord+3, TrajCoord+4, TrajCoord+5, TrajCoord+6, TrajCoord+7, TrajCoord+8,
     //            TrajCoord+9) == 10 )
     // Make sure we can read at least 3 coords of width 8
-    if ( sscanf(buffer2, "%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2) == 3 ) {
-      if (debug>0) mprintf("  AMBER TRAJECTORY file\n");
-      fileFormat=AMBERTRAJ;
-      return 0;
-    }
+    
   } else if (strlen(buffer2)==42) {
-    if ( strncmp(buffer2,"REMD",4)==0 ||
-         strncmp(buffer2,"HREMD",5)==0   ) {
-      if (debug>0) mprintf("  AMBER TRAJECTORY with (H)REMD header.\n");
-      fileFormat=AMBERTRAJ;
-      return 0;
-    }
+    
   }
+*/
 
   // ---------- MORE EXPENSIVE CHECKS ----------
   // Reopen and scan for Tripos mol2 molecule section
