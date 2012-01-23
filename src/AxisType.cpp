@@ -106,6 +106,10 @@ const double AxisType::URAcoords[URANATOM][3] = {
      {-0.024000,  5.053000,  0.000000 }
 };
 
+// UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU
+/// Base names corresponding to NAbaseType
+const char AxisType::NAbaseName[9][5]={"UNK","DA","DT","DG","DC","RA","RC","RG","RU" };
+
 // ------------------------- AXISTYPE FUNCTIONS -------------------------------
 // CONSTRUCTOR
 // Mostly empty - Default Frame constructor should init everything else
@@ -233,9 +237,6 @@ double *AxisType::Origin() {
 }
 
 // ------------------------- PRIVATE FUNCTIONS --------------------------------
-// Base names corresponding to NAbaseType
-// UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU
-const char AxisType::NAbaseName[9][5]={"UNK","DA","DT","DG","DC","RA","RC","RG","RU" };
 
 // AxisType::ID_base()
 /** Return a number indicating if this is a NA base. If not recognized, 

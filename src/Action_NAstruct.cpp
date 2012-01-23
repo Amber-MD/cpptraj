@@ -298,7 +298,7 @@ int NAstruct::determineBasePairing() {
       else
         mprintf(" Parallel.\n");
     }
-    base2++;
+    ++base2;
   }
   // Also set up base pair step data. One less than # base pairs
   //mprintf("DEBUG: SHIFT.size() = %i\n",(int)SHIFT.size());
@@ -559,12 +559,14 @@ int NAstruct::determineBaseParameters() {
   double O21[3], R1V1[3], Vec[3], FV2[3];
   double Rhalf[9], R2t[9], Rb[9];
   double Shear, Stretch, Stagger;
+# ifdef NASTRUCTDEBUG
   // DEBUG
-  //int basepairaxesatom=0;
-  //CpptrajFile basepairaxesfile;
-  //basepairaxesfile.SetupFile((char*)"basepairaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
-  //basepairaxesfile.OpenFile();
+  int basepairaxesatom=0;
+  CpptrajFile basepairaxesfile;
+  basepairaxesfile.SetupFile((char*)"basepairaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
+  basepairaxesfile.OpenFile();
   // END DEBUG
+# endif
 
   // Default pivot points
   V1[0]=0.0; V1[1]=1.808; V1[2]=0.0;
@@ -715,7 +717,7 @@ int NAstruct::determineBaseParameters() {
 
     // Shear, stretch, and stagger
     // Half-rotation matrix
-    calcRotationMatrix(Rhalf,-Kappa/2.0,-Omega/2.0,-Sigma/2.0);
+    calcRotationMatrix(Rhalf,-Kappa*0.5,-Omega*0.5,-Sigma*0.5);
     // Calc O21 = R2t(o1 - o2)
     matrix_transpose(R2t, Base2->R);
     vector_sub(O21, Base1->Origin(), Base2->Origin());
@@ -799,14 +801,19 @@ int NAstruct::determineBaseParameters() {
     BasePairAxes[nbasepair]->X[7] = Vec[1] + Rb[5];
     BasePairAxes[nbasepair]->X[8] = Vec[2] + Rb[8];
     BasePairAxes[nbasepair]->StoreRotMatrix(Rb);
+#   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
-    //BPaxes->WritePDB(&basepairaxesfile, base1, P->ResidueName(base1), &basepairaxesatom);
+    BasePairAxes[nbasepair]->WritePDB(&basepairaxesfile, base1, RefCoords[base1]->BaseName(), 
+                                      &basepairaxesatom);
     //BasePairAxes.push_back( BPaxes );
+#   endif
 
-    nbasepair++; // Actual base pair count; BP is nbasepair*3
+    ++nbasepair; // Actual base pair count; BP is nbasepair*3
   }
+# ifdef NASTRUCTDEBUG
   // DEBUG
-  //basepairaxesfile.CloseFile(); 
+  basepairaxesfile.CloseFile(); 
+# endif
 
   return 0;
 }
@@ -905,7 +912,7 @@ int NAstruct::determineBasepairParameters() {
     Omega *= Sign;
 
     // Calculate half rotation matrix
-    calcRotationMatrix(Rhalf, -Tau/2.0, -Rho/2.0, -Omega/2.0);
+    calcRotationMatrix(Rhalf, -Tau*0.5, -Rho*0.5, -Omega*0.5);
     // Calc Oij = Rti(oj - oi)
     matrix_transpose(Rti, BPi->R);
     vector_sub(Oij, BPj->Origin(), BPi->Origin());
