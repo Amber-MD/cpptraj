@@ -237,6 +237,6 @@ void Range::PrintRange(const char* header, int offset) {
     mprintf("%s",header);
   for (std::list<int>::iterator it=rangeList.begin(); it!=rangeList.end(); it++)
     mprintf(" %i",(*it)+offset);
-  mprintf("\n");
+  //mprintf("\n");
 }
  
