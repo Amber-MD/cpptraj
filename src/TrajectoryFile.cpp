@@ -702,6 +702,8 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn
       } else {
         FrameRange->PrintRange("      Saving frames",0);
       }
+      // User frame args start from 1. Start from 0 internally.
+      FrameRange->ShiftBy(-1);
     }
 
     // Check for nobox argument - will override any box info present in parm
@@ -861,8 +863,8 @@ int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, Frame &FrameOut) {
   if (FrameRange!=NULL) {
     // If no more frames in the framerange, skip
     if ( FrameRange->End() ) return 0;
-    // NOTE: For compatibility with ptraj user frame args start at 1
-    if ( FrameRange->Current() - 1 != set ) return 0;
+    // Is this frame the next one in the range? 
+    if ( FrameRange->Current() != set ) return 0;
     FrameRange->Next();
   }
 
@@ -907,7 +909,10 @@ void TrajectoryFile::PrintInfo(int showExtended) {
     else
       mprintf(", unknown #frames, start=%i offset=%i",start,offset);
   } else {
-    mprintf(": Writing %i frames", trajParm->parmFrames);
+    if (FrameRange!=NULL)
+      FrameRange->PrintRange(": Writing frames",OUTPUTFRAMESHIFT);
+    else
+      mprintf(": Writing %i frames", trajParm->parmFrames);
     if (fileAccess==APPEND) mprintf(", appended"); 
   }
   if (debug>0) mprintf(", %i atoms, Box %i, seekable %i",trajParm->natom,boxType,trajio->seekable);
