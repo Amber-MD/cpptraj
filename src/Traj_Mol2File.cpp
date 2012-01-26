@@ -83,18 +83,17 @@ int Mol2File::setupRead(AmberParm *trajParm) {
       mol2atom=frameAtom;
       if (debug>0) mprintf("    Mol2 #atoms: %i\n",mol2atom);
     }
-    if (frameAtom!=trajParm->natom) {
-      mprinterr("Error: Number of atoms in Mol2 file %s (%i) does not\n",
-              tfile->filename,frameAtom);
+    if (Frames==0 && frameAtom!=trajParm->natom) {
+      mprinterr("Error: Number of atoms in Mol2 file %s frame %i (%i) does not\n",
+              tfile->filename,Frames+OUTPUTFRAMESHIFT,frameAtom);
       mprinterr("       match number in associated parmtop (%i)!\n",trajParm->natom);
       return -1;
     }
     if (frameAtom!=mol2atom) {
-      mprintf("Warning: # atoms in Mol2 file (%s) frame %i (%i) not equal\n",
-                tfile->filename,Frames,frameAtom);
+      mprintf("Warning: # atoms in Mol2 file %s frame %i (%i) not equal\n",
+                tfile->filename,Frames+OUTPUTFRAMESHIFT,frameAtom);
       mprintf("         to # atoms int first frame (%i).\n",mol2atom);
-      mprintf("         Only using frame 1.\n");
-      Frames=1;
+      mprintf("         Only using frames 1-%i.\n",Frames);
       break;
     }
     Frames++;
