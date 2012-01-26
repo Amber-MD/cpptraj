@@ -12,10 +12,10 @@ DataSet_string::DataSet_string() {
   SetDataSetFormat(false);
 }
 
-/* DataSet_string::Xmax(()
- * Return the maximum X value added to this set. By convention this is 
- * always the last value added.
- */
+// DataSet_string::Xmax(()
+/** Return the maximum X value added to this set. By convention this is 
+  * always the last value added.
+  */
 int DataSet_string::Xmax() {
   // If no data has been added return 0
   if (current==0) return 0;
@@ -24,11 +24,11 @@ int DataSet_string::Xmax() {
   return ( (*it).first );
 }
 
-/* DataSet_string::Add()
- * Insert data vIn at frame. If the size of the input string is greater
- * than the current width, increase the width.
- * String expects char*
- */
+// DataSet_string::Add()
+/** Insert data vIn at frame. If the size of the input string is greater
+  * than the current width, increase the width.
+  * String expects char*
+  */
 void DataSet_string::Add(int frame, void *vIn) {
   char *value;
   string Temp;
@@ -44,17 +44,16 @@ void DataSet_string::Add(int frame, void *vIn) {
   current++;
 }
 
-/* DataSet_string::isEmpty()
- */
+// DataSet_string::isEmpty()
 int DataSet_string::isEmpty(int frame) {
   it = Data.find( frame );
   if (it == Data.end()) return 1;
   return 0;
 }
 
-/* DataSet_string::WriteBuffer()
- * Write data at frame to CharBuffer. If no data for frame write 0.0.
- */
+// DataSet_string::WriteBuffer()
+/** Write data at frame to CharBuffer. If no data for frame write 0.0.
+  */
 void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
   it = Data.find( frame );
   if (it == Data.end())
@@ -63,24 +62,24 @@ void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
     cbuffer.WriteString(data_format, (*it).second.c_str());
 }
 
-/* DataSet_string::Width()
- * Return the width in characters necessary to print data from this dataset.
- * Width is set whenever data is added and is the size of the largest stored
- * string.
- */
+// DataSet_string::Width()
+/** Return the width in characters necessary to print data from this dataset.
+  * Width is set whenever data is added and is the size of the largest stored
+  * string.
+  */
 int DataSet_string::Width() {
   return (width + leadingSpace);
 }
 
-/* DataSet_string::Sync()
- * Since it seems to be very difficult (or impossible) to define Classes
- * as MPI datatypes, first non-master threads need to convert their maps
- * into 2 arrays, an int array containing frame #s and a char array
- * containing mapped values. An additional array of ints holding the size
- * of each string is also needed since the char array will be sent as
- * 1 big chunk. These arrays are then sent to the master, where they are 
- * converted to pairs and inserted into the master map.
- */
+// DataSet_string::Sync()
+/** Since it seems to be very difficult (or impossible) to define Classes
+  * as MPI datatypes, first non-master threads need to convert their maps
+  * into 2 arrays, an int array containing frame #s and a char array
+  * containing mapped values. An additional array of ints holding the size
+  * of each string is also needed since the char array will be sent as
+  * 1 big chunk. These arrays are then sent to the master, where they are 
+  * converted to pairs and inserted into the master map.
+  */
 int DataSet_string::Sync() {
   int rank, i, dataSize, totalCharSize;
   int *Frames;

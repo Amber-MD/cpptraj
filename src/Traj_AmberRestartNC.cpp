@@ -47,8 +47,7 @@ AmberRestartNC::~AmberRestartNC() {
   // NOTE: Need to close file?
 }
 
-/* AmberRestartNC::closeTraj()
- */
+// AmberRestartNC::closeTraj()
 void AmberRestartNC::closeTraj() {
   if (ncid==-1) return;
   checkNCerr(nc_close(ncid),"Closing netcdf Restart file.");
@@ -57,11 +56,11 @@ void AmberRestartNC::closeTraj() {
   return;
 }
 
-/* AmberRestartNC::openTraj()
- * Open up Netcdf restart file and set ncid. Variable and Dimension IDs are set 
- * up by SetupRead / SetupWrite and will not change for a given file between
- * open and close calls. 
- */
+// AmberRestartNC::openTraj()
+/** Open up Netcdf restart file and set ncid. Variable and Dimension IDs are set 
+  * up by SetupRead / SetupWrite and will not change for a given file between
+  * open and close calls. 
+  */
 int AmberRestartNC::openTraj() {
   //mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",tfile->filename,ncid);
   // If already open, return
@@ -89,11 +88,11 @@ int AmberRestartNC::openTraj() {
   return 0;
 }
 
-/* AmberRestartNC::setupRead()
- * Set up netcdf restart file for reading, get all variable and dimension IDs. 
- * Also check number of atoms against associated parmtop.
- * NOTE: Replace attrText allocs with static buffer? 
- */
+// AmberRestartNC::setupRead()
+/** Set up netcdf restart file for reading, get all variable and dimension IDs. 
+  * Also check number of atoms against associated parmtop.
+  */
+// NOTE: Replace attrText allocs with static buffer? 
 int AmberRestartNC::setupRead(AmberParm *trajParm) {
   char *attrText; // For checking conventions and version 
   int spatial; // For checking spatial dimensions
@@ -198,14 +197,12 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
   return 1;
 }
 
-/* AmberRestartNC::SetNoVelocity()
- */
+// AmberRestartNC::SetNoVelocity()
 void AmberRestartNC::SetNoVelocity() {
   hasVelocity=false;
 }
 
-/* AmberRestartNC::processWriteArgs()
- */
+// AmberRestartNC::processWriteArgs()
 int AmberRestartNC::processWriteArgs(ArgList *argIn) {
   // For write, assume we want velocities unless specified
   hasVelocity=true;
@@ -216,9 +213,8 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-/* AmberRestartNC::setupWrite()
- * Setting up is done for each frame.
- */
+// AmberRestartNC::setupWrite()
+/** Setting up is done for each frame.  */
 int AmberRestartNC::setupWrite(AmberParm *trajParm) {
   ncatom = trajParm->natom;
   ncatom3 = ncatom * 3;
@@ -228,10 +224,10 @@ int AmberRestartNC::setupWrite(AmberParm *trajParm) {
   return 0;
 }
 
-/* AmberRestartNC::setupWriteForSet()
- * Create Netcdf restart file for the given frame and set it up. Only set
- * up velocity info if both hasVelocity and V is not NULL.
- */
+// AmberRestartNC::setupWriteForSet()
+/** Create Netcdf restart file for the given frame and set it up. Only set
+  * up velocity info if both hasVelocity and V is not NULL.
+  */
 int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
   int dimensionID[NC_MAX_VAR_DIMS];
   size_t start[2], count[2];
@@ -386,10 +382,10 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
 }
 
 
-/* AmberRestartNC::readFrame()
- * Get the specified frame from amber netcdf file
- * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
- */
+// AmberRestartNC::readFrame()
+/** Get the specified frame from amber netcdf file
+  * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
+  */
 int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *T) {
   size_t start[2], count[2];
 
@@ -428,8 +424,7 @@ int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *
   return 0;
 }
 
-/* AmberRestartNC::writeFrame() 
- */
+// AmberRestartNC::writeFrame() 
 int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double T) {
   size_t start[2], count[2];
 
@@ -483,8 +478,7 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
   return 0;
 }  
 
-/* AmberRestartNC::info()
- */
+// AmberRestartNC::info()
 void AmberRestartNC::info() {
   mprintf("is a NetCDF AMBER restart file");
 

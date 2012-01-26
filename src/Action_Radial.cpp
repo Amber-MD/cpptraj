@@ -28,14 +28,10 @@ Radial::~Radial() {
   //fprintf(stderr,"Radial Destructor.\n");
 }
 
-/* Radial::init()
- * Expected call: radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]
- *                       [density <density> | volume] [center1] 
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// Radial::init()
+/** Expected call: radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]
+  *                       [density <density> | volume] [center1] 
+  */
 int Radial::init() {
   char *mask1, *mask2;
 
@@ -106,10 +102,10 @@ int Radial::init() {
   return 0;
 }
 
-/* Radial::setup()
- * Determine what atoms each mask pertains to for the current parm file.
- * Also determine whether imaging should be performed.
- */
+// Radial::setup()
+/** Determine what atoms each mask pertains to for the current parm file.
+  * Also determine whether imaging should be performed.
+  */
 int Radial::setup() {
 
   if ( currentParm->SetupIntegerMask( Mask1, activeReference) ) return 1;
@@ -149,10 +145,10 @@ int Radial::setup() {
   return 0;  
 }
 
-/* Radial::action()
- * Calculate distances from atoms in mask1 to atoms in mask 2 and
- * bin them.
- */
+// Radial::action()
+/** Calculate distances from atoms in mask1 to atoms in mask 2 and
+  * bin them.
+  */
 int Radial::action() {
   double D, ucell[9], recip[9], coord_center[3];
   int atom1, atom2;
@@ -210,9 +206,9 @@ int Radial::action() {
   return 0;
 } 
 
-/* Radial::print()
- * Convert the histogram to a dataset, normalize, create datafile.
- */
+// Radial::print()
+/** Convert the histogram to a dataset, normalize, create datafile.
+  */
 void Radial::print() {
   DataFile *outfile;
   DataSet *Dset;

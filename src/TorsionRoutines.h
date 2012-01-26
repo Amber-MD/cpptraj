@@ -1,7 +1,10 @@
 #ifndef INC_TORSIONROUTINES_H
 #define INC_TORSIONROUTINES_H
-/// TorsionRoutines
-/// A collection of routines used to calculate torsions, adapted from Ptraj.
+/*! \file TorsionRoutines.h
+    \brief A collection of routines used to calculate angles and torsions
+
+    Note that the Torsion routine is C-accessible for routines in ptraj_actions.c
+ */
 #ifdef __cplusplus
 extern "C"
 #endif

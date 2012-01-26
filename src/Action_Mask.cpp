@@ -16,7 +16,8 @@ ActionMask::~ActionMask() {
 }
 
 // ActionMask::init()
-/// Expected call: mask <mask1> [maskout <filename>] [maskpdb <filename>] 
+/** Expected call: mask <mask1> [maskout <filename>] [maskpdb <filename>] 
+  */
 // NOTE: Could also split the arglist at maskpdb and make it so any type of 
 //       file can be written out.
 int ActionMask::init( ) {
@@ -121,7 +122,7 @@ int ActionMask::action() {
 } 
 
 // ActionMask::print()
-/// Close the output file.
+/** Close the output file. */
 void ActionMask::print() {
   outfile.CloseFile();
 }

@@ -46,10 +46,10 @@ AmberNetcdf::~AmberNetcdf() {
   // NOTE: Need to close file?
 }
 
-/* AmberNetcdf::close()
- * Close netcdf file. Set ncid to -1 since it can change between open
- * and close calls.
- */
+// AmberNetcdf::close()
+/** Close netcdf file. Set ncid to -1 since it can change between open
+  * and close calls.
+  */
 void AmberNetcdf::closeTraj() {
   if (ncid<0) return;
   //if (tfile->access!=READ) nc_sync(ncid); 
@@ -59,11 +59,11 @@ void AmberNetcdf::closeTraj() {
   return;
 }
 
-/* AmberNetcdf::openTraj()
- * Open up Netcdf file and set ncid. Variable and Dimension IDs are set up
- * by SetupRead / SetupWrite and will not change for a given file between
- * open and close calls.
- */
+// AmberNetcdf::openTraj()
+/** Open up Netcdf file and set ncid. Variable and Dimension IDs are set up
+  * by SetupRead / SetupWrite and will not change for a given file between
+  * open and close calls.
+  */
 int AmberNetcdf::openTraj() {
   //fprintf(stdout,"DEBUG: AmberNetcdf::openTraj() called for %s, ncid=%i\n",tfile->filename,ncid);
   // If already open, return
@@ -87,10 +87,10 @@ int AmberNetcdf::openTraj() {
   return 0;
 }
 
-/* AmberNetcdf::setupRead()
- * Open the netcdf file, read all dimension and variable IDs, close.
- * Return the number of frames in the file. 
- */
+// AmberNetcdf::setupRead()
+/** Open the netcdf file, read all dimension and variable IDs, close.
+  * Return the number of frames in the file. 
+  */
 int AmberNetcdf::setupRead(AmberParm* trajParm) {
   char *attrText;            // For checking conventions and version 
   int spatial;               // For checking spatial dimensions
@@ -189,17 +189,16 @@ int AmberNetcdf::setupRead(AmberParm* trajParm) {
   return ncframe;
 }
 
-/* AmberNetcdf::processWriteArgs()
- */
+// AmberNetcdf::processWriteArgs()
 int AmberNetcdf::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("remdtraj")) this->SetTemperature();
   return 0;
 }
 
-/* AmberNetcdf::setupWrite()
- * Create Netcdf file specified by filename and set up dimension and
- * variable IDs. 
- */
+// AmberNetcdf::setupWrite()
+/** Create Netcdf file specified by filename and set up dimension and
+  * variable IDs. 
+  */
 int AmberNetcdf::setupWrite(AmberParm *trajParm) {
   int dimensionID[NC_MAX_VAR_DIMS];
   size_t start[3], count[3];
@@ -340,10 +339,10 @@ int AmberNetcdf::setupWrite(AmberParm *trajParm) {
   return 0;
 }
 
-/* AmberNetcdf::readFrame()
- * Get the specified frame from amber netcdf file
- * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
- */
+// AmberNetcdf::readFrame()
+/** Get the specified frame from amber netcdf file
+  * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
+  */
 int AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) {
   size_t start[3], count[3];
 
@@ -381,8 +380,7 @@ int AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) 
   return 0;
 }
 
-/* AmberNetcdf::writeFrame() 
- */
+// AmberNetcdf::writeFrame() 
 int AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, double T) {
   size_t start[3], count[3];
 
@@ -421,8 +419,7 @@ int AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, double T
   return 0;
 }  
 
-/* AmberNetcdf::info()
- */
+// AmberNetcdf::info()
 void AmberNetcdf::info() {
   mprintf("is a NetCDF AMBER trajectory"
             //(p->isVelocity ? " and velocities" : "")

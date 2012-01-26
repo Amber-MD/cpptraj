@@ -28,8 +28,7 @@ PDBfile::~PDBfile() {
   if (chainID!=NULL) delete[] chainID;
 }
 //------------------------------------------------------------------------
-/* PDBfile::closeTraj()
- */
+// PDBfile::closeTraj()
 void PDBfile::closeTraj() {
   // On WRITE only close if not writing 1 pdb per frame
   if (tfile->access==WRITE) {
@@ -44,8 +43,7 @@ void PDBfile::closeTraj() {
     tfile->CloseFile();
 }
 
-/* PDBfile::openTraj()
- */
+// PDBfile::openTraj()
 int PDBfile::openTraj() {
   int err;
 
@@ -66,11 +64,11 @@ int PDBfile::openTraj() {
   return err;
 }
 
-/* PDBfile::setupRead()
- * Scan PDB file to determine number of frames (models). The first frame will 
- * also be checked to ensure that the atom names match those in the parm file
- * in TrajectoryFile.
- */
+// PDBfile::setupRead()
+/** Scan PDB file to determine number of frames (models). The first frame will 
+  * also be checked to ensure that the atom names match those in the parm file
+  * in TrajectoryFile.
+  */
 int PDBfile::setupRead(AmberParm *trajParm) {
   int atom, Frames;
   int numMismatch = 0;
@@ -133,9 +131,8 @@ int PDBfile::setupRead(AmberParm *trajParm) {
   return Frames;
 }
 
-/* PDBfile::readFrame()
- * Read frame (model) from PDB file. 
- */
+// PDBfile::readFrame()
+/** Read frame (model) from PDB file. */
 int PDBfile::readFrame(int set,double *X, double *V,double *box, double *T) {
   int atom, atom3;
 
@@ -154,8 +151,7 @@ int PDBfile::readFrame(int set,double *X, double *V,double *box, double *T) {
   return 0;
 }
 
-/* PDBfile::processWriteArgs()
- */
+// PDBfile::processWriteArgs()
 int PDBfile::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("dumpq")) this->SetDumpq();
   if (argIn->hasKey("model")) this->SetWriteMode(MODEL);
@@ -165,11 +161,10 @@ int PDBfile::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-/* PDBfile::setupWrite()
- * Set parm information needed for write, and check write mode against
- * number of frames to be written.
- * NOTE: Set radii eventually.
- */ 
+// PDBfile::setupWrite()
+/** Set parm information needed for write, and check write mode against
+  * number of frames to be written.
+  */ 
 int PDBfile::setupWrite(AmberParm *trajParm) {
   pdbAtom = trajParm->natom;
   pdbAtomNames = trajParm->AtomNames_ptr();
@@ -218,17 +213,15 @@ int PDBfile::setupWrite(AmberParm *trajParm) {
   return 0;
 }
 
-/* PDBfile::SetWriteMode()
- * Set write mode to SINGLE, MODEL, or MULTI
- */
+// PDBfile::SetWriteMode()
+/** Set write mode to SINGLE, MODEL, or MULTI */
 void PDBfile::SetWriteMode(PDBWRITEMODE modeIn) { 
   pdbWriteMode = modeIn; 
   //mprintf("PDB WRITE MODE SET TO %i\n",(int)pdbWriteMode);
 }
 
-/* PDBfile::writeFrame()
- * Write the frame (model) to PDB file.
- */
+// PDBfile::writeFrame()
+/** Write the frame (model) to PDB file. */
 int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   int i,i3,res,atom,mol,lastAtomInMol,bufferSize;
   float Occ, B;
@@ -284,8 +277,7 @@ int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   return 0;
 }
 
-/* PDBfile::info()
- */
+// PDBfile::info()
 void PDBfile::info() {
   mprintf("is a PDB file");
   if (tfile->access==WRITE) {

@@ -1,9 +1,9 @@
 // TriangleMatrix
-#include "TriangleMatrix.h"
 #include <cfloat>
-#include "CpptrajStdio.h"
 #include <cstring> //memcpy
 #include <cstdio> // save and load
+#include "TriangleMatrix.h"
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 TriangleMatrix::TriangleMatrix() {
@@ -20,11 +20,11 @@ TriangleMatrix::~TriangleMatrix() {
   if (ignore!=NULL) delete[] ignore;
 }
 
-/* TriangleMatrix::SaveFile()
- * Save the matrix to a binary file. Format is 
- *   Data: [4*char][int][int][nelements*float]
- *   Vars: ['C''T''M'0][nrows][nelements][elements]
- */
+// TriangleMatrix::SaveFile()
+/** Save the matrix to a binary file. Format is 
+  *   Data: [4*char][int][int][nelements*float]
+  *   Vars: ['C''T''M'0][nrows][nelements][elements]
+  */
 int TriangleMatrix::SaveFile(char *filename) {
   FILE *outfile;
   char magic[4];
@@ -54,8 +54,7 @@ int TriangleMatrix::SaveFile(char *filename) {
   return 0;
 }
 
-/* TriangleMatrix::LoadFile
- */
+// TriangleMatrix::LoadFile
 int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
   FILE *infile;
   char magic[4];
@@ -100,10 +99,10 @@ int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
   return 0;
 }
 
-/* TriangleMatrix::Setup()
- * Set matrix up based on the given size of 1 side of the square matrix.
- * Set the current element to 0.
- */
+// TriangleMatrix::Setup()
+/** Set matrix up based on the given size of 1 side of the square matrix.
+  * Set the current element to 0.
+  */
 int TriangleMatrix::Setup(int sizeIn) {
   nrows = sizeIn;
   // Use half square matrix minus the diagonal
@@ -119,15 +118,13 @@ int TriangleMatrix::Setup(int sizeIn) {
   return 0;
 }
 
-/* TriangleMatrix::Ignore()
- * Indicate given row/col should be ignored.
- */
+// TriangleMatrix::Ignore()
+/** Indicate given row/col should be ignored. */
 void TriangleMatrix::Ignore(int row) {
   ignore[row] = true;
 }
 
-/* TriangleMatrix::operator=()
- */
+// TriangleMatrix::operator=()
 TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
   // Check for self assignment
   if ( this == &rhs ) return *this;
@@ -151,10 +148,10 @@ TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
   return *this;
 }
 
-/* TriangleMatrix::AddElement()
- * Add the input double to the element array and increment currentElement.
- * Return 1 on success, 0 if no more elements can be added.
- */
+// TriangleMatrix::AddElement()
+/** Add the input double to the element array and increment currentElement.
+  * \return 1 on success, 0 if no more elements can be added.
+  */
 int TriangleMatrix::AddElement(double elementIn) {
   if (currentElement>=nelements) return 0;
   elements[currentElement] = (float) elementIn;
@@ -162,10 +159,10 @@ int TriangleMatrix::AddElement(double elementIn) {
   return 1;
 }
 
-/* TriangleMatrix::AddElement()
- * Add the input float to the element array and increment currentElement.
- * Return 1 on success, 0 if no more elements can be added.
- */
+// TriangleMatrix::AddElement()
+/** Add the input float to the element array and increment currentElement.
+  * \return 1 on success, 0 if no more elements can be added.
+  */
 int TriangleMatrix::AddElement(float elementIn) {
   if (currentElement>=nelements) return 0;
   elements[currentElement] = elementIn;
@@ -173,10 +170,10 @@ int TriangleMatrix::AddElement(float elementIn) {
   return 1;
 }
 
-/* TriangleMatrix::calcIndex()
- * Calculate index in elements array for given row and column.
- * SHOULD NEVER BE CALLED WITH iIn == jIn!
- */
+// TriangleMatrix::calcIndex()
+/** Calculate index in elements array for given row and column.
+  * SHOULD NEVER BE CALLED WITH iIn == jIn!
+  */
 int TriangleMatrix::calcIndex(int iIn, int jIn) {
   int i, j, i1;
 
@@ -192,9 +189,8 @@ int TriangleMatrix::calcIndex(int iIn, int jIn) {
   return ( ( (nrows * i) - ((i1 * i) / 2) ) + j - i1 );
 }
 
-/* TriangleMatrix::AddElement()
- * Set element at specified row and column.
- */
+// TriangleMatrix::AddElement()
+/** Set element at specified row and column. */
 void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
   int idx;
 
@@ -205,9 +201,9 @@ void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
   elements[idx] = (float) elementIn;
 }
 
-/* TriangleMatrix::GetElement()
- * Get the element at specified row and column as a double.
- */
+// TriangleMatrix::GetElement()
+/** Get the element at specified row and column as a double.
+  */
 double TriangleMatrix::GetElement(int iIn, int jIn) {
   int idx;
  
@@ -218,9 +214,8 @@ double TriangleMatrix::GetElement(int iIn, int jIn) {
   return (double)elements[idx];
 }
 
-/* TriangleMatrix::GetElementF()
- * Get the element at specified row and column.
- */
+// TriangleMatrix::GetElementF()
+/** Get the element at specified row and column. */
 float TriangleMatrix::GetElementF(int iIn, int jIn) {
   int idx;
   
@@ -231,9 +226,9 @@ float TriangleMatrix::GetElementF(int iIn, int jIn) {
   return elements[idx];
 }
 
-/* TriangleMatrix::FindMin()
- * Find the minimum, set row and column. 
- */
+// TriangleMatrix::FindMin()
+/** Find the minimum, set row and column. 
+  */
 double TriangleMatrix::FindMin(int *iOut, int *jOut) {
   float min;
   int iVal, jVal;
@@ -274,8 +269,7 @@ double TriangleMatrix::FindMin(int *iOut, int *jOut) {
   return (double)min;
 }
 
-/* TriangleMatrix::PrintElements()
- */
+// TriangleMatrix::PrintElements()
 void TriangleMatrix::PrintElements() {
   int iVal = 0;
   int jVal = 1;

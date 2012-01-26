@@ -2630,7 +2630,7 @@ AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix
 
 // ---------- ROUTINES FOR WRITING PARM INFORMATION ----------------------------
 // AmberParm::WriteAmberParm()
-/// Write out information from current AmberParm to an Amber parm file
+/** Write out information from current AmberParm to an Amber parm file */
 int AmberParm::WriteAmberParm(char *filename) {
   CpptrajFile outfile;
   CharBuffer buffer;

@@ -1,9 +1,8 @@
 #ifndef INC_ACTION_AVERAGE_H
 #define INC_ACTION_AVERAGE_H
-/// Class: Average
-/// Action that will sum up all given coordinates and print the averaged coords
-/// for the given format.
 #include "Action.h"
+// Class: Average
+/// Sum up all coordinates and print the averaged coords in given format.
 class Average: public Action {
     AtomMask Mask1;
     Frame *AvgFrame;

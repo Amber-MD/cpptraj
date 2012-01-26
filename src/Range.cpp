@@ -30,8 +30,8 @@ Range &Range::operator=(const Range &rhs) {
   return *this;
 }
 
-/** Range::SetRange()
-  * Given an argument containing numbers separated by "," (concatentation), and 
+// Range::SetRange()
+/** Given an argument containing numbers separated by "," (concatentation), and 
   * "-" (number range), construct an ordered list of numbers corresponding to 
   * the argument. Remove any duplicate numbers.
   * \return 0 on success, 1 on error.
@@ -116,10 +116,10 @@ int Range::SetRange(char *ArgIn) {
   return 0;
 }
 
-/* Range::SetRange()
- * Given a start and end number, set up a range from start to (not 
- * including) end.  
- */
+// Range::SetRange()
+/** Given a start and end number, set up a range from start to (not 
+  * including) end.  
+  */
 int Range::SetRange(int start, int end) {
   int range;
   
@@ -138,9 +138,9 @@ int Range::SetRange(int start, int end) {
   return 0;
 }
 
-/* Range::SetRange()
- * Assign this range from another range.
- */
+// Range::SetRange()
+/** Assign this range from another range. */
+// NOTE: Obsolete?
 void Range::SetRange(Range *rhs) {
   int num;
 
@@ -161,24 +161,24 @@ void Range::ShiftBy(int val) {
   this->Begin();  
 }
 
-/* Range::AddToRange()
- * Add a number to the range. Range is NOT explicitly sorted in this case.
- */
+// Range::AddToRange()
+/** Add a number to the range. Range is NOT explicitly sorted in this case.
+  */
 void Range::AddToRange(int num) {
   rangeList.push_back(num);
 }
 
-/* Range::Begin()
- * Set iterator to the beginning of the list.
- */
+// Range::Begin()
+/** Set iterator to the beginning of the list.
+  */
 void Range::Begin() {
   rangeNum = rangeList.begin();
 }
 
-/* Range::NextInRange()
- * Set num to the current number in the range and increment the iterator. 
- * Return true if number was set, false if no more numbers in range.
- */
+// Range::NextInRange()
+/** Set num to the current number in the range and increment the iterator. 
+  * Return true if number was set, false if no more numbers in range.
+  */
 bool Range::NextInRange(int *num) {
   // NOTE: No check for NULL here.
   if (rangeNum == rangeList.end()) return false;
@@ -187,31 +187,28 @@ bool Range::NextInRange(int *num) {
   return true;
 }
 
-/* Range::End()
- * Return true if at the end of the range.
- */
+// Range::End()
+/** \return true if at the end of the range.
+  */
 bool Range::End() {
   if (rangeNum == rangeList.end()) return true;
   return false;
 }
 
-/* Range::Next()
- * Increment the iterator.
- */
+// Range::Next()
+/** Increment the iterator. */
 void Range::Next() {
   rangeNum++;
 }
 
-/* Range::Current()
- * Return the current number in the range.
- */
+// Range::Current()
+/** Return the current number in the range. */
 int Range::Current() {
   return *rangeNum;
 }
 
-/* Range::RemoveFromRange()
- * Remove all instances of num from the range.
- */
+// Range::RemoveFromRange()
+/** Remove all instances of num from the range. */
 void Range::RemoveFromRange(int num) {
   std::list<int>::iterator it=rangeList.begin();
   while (it!=rangeList.end()) {
@@ -222,16 +219,14 @@ void Range::RemoveFromRange(int num) {
   }
 }
 
-/* Range::RangeArg()
- * Return the range argument
- */
+// Range::RangeArg()
+/** Return the range argument */
 char *Range::RangeArg() {
   return (char*)rangeArg.c_str();
 }
 
-/* Range::PrintRange()
- * Print all numbers in the range to a line. Increment by offset.
- */
+// Range::PrintRange()
+/** Print all numbers in the range to a line. Increment by offset. */
 void Range::PrintRange(const char* header, int offset) {
   if (header!=NULL)
     mprintf("%s",header);

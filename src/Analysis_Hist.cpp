@@ -72,12 +72,12 @@ int Hist::CheckDimension(char *input, DataSetList *datasetlist) {
   return 0;
 }
 
-/* Hist::setupDimension()
- * Given a string with format name:min:max:step:bins:col:N, set up a 
- * coordinate with that name and parameters min, max, step, bins.
- * If '*' or not specified, a default value will be set later.
- * Return 1 if error occurs, 0 otherwise.
- */
+// Hist::setupDimension()
+/** Given a string with format name:min:max:step:bins:col:N, set up a 
+  * coordinate with that name and parameters min, max, step, bins.
+  * If '*' or not specified, a default value will be set later.
+  * \return 1 if error occurs, 0 otherwise.
+  */
 int Hist::setupDimension(char *input, DataSet *dset) {
   ArgList arglist;
   double dmin,dmax,dstep;

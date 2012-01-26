@@ -1,10 +1,12 @@
-// MpiRoutines
+/*! \file MpiRoutines.c
+    \brief Cpptraj interface to MPI C routines.
+ */
 #define MPIROUTINES_MODULE
 /* MPIROUTINES_MODULE is defined here so that worldrank and worldsize are defined
  * as int in the MpiRoutines header file.
  */
 #include "MpiRoutines.h"
-// If DEBUG is defined it will be included in MpiRoutines.h
+// If DEBUG is defined stdio.h will be included in MpiRoutines.h
 #ifndef DEBUG
 #  include <stdio.h>
 #endif
@@ -13,7 +15,7 @@
 #  include "mpi.h"
 #endif
 
-// This allows abstraction of the MPI_File type so no other files need mpi.h
+/// This allows abstraction of the MPI_File type so no other files need mpi.h
 struct parallelStructType {
 #ifdef MPI
   MPI_File* mfp;
@@ -24,10 +26,8 @@ struct parallelStructType {
 
 #ifdef MPI
 /* ========== Routines that require MPI ========== */
-/*
- * printMPIerr()
- * Wrapper for MPI_Error string.
- */
+// printMPIerr()
+/** Wrapper for MPI_Error string.  */
 void printMPIerr(int err, const char *routineName) {
   int len,eclass,i;
   char buffer[1024];
@@ -42,10 +42,8 @@ void printMPIerr(int err, const char *routineName) {
   return;
 }
 
-/*
- * checkMPIerr()
- * Return 1 and print error message if MPI action failed.
- */
+// checkMPIerr()
+/** \return 1 and print error message if MPI action failed. */
 int checkMPIerr(int err, const char *routineName) {
   if (err!=MPI_SUCCESS) {
     printMPIerr(err, routineName);
@@ -54,11 +52,10 @@ int checkMPIerr(int err, const char *routineName) {
   return 0;
 }
 
-/*
- * parallel_check_error()
- * All ranks pass in error value. Compute the sum. return non-zero if error on
- * any nodes.
- */
+// parallel_check_error()
+/** All ranks pass in error value. Compute the sum. return non-zero if error on
+  * any nodes.
+  */
 int parallel_check_error(int err) {
   int errtotal;
 
@@ -70,10 +67,8 @@ int parallel_check_error(int err) {
 
 /* ========== Routines that do not require MPI ========== */
 #ifdef DEBUG
-/*
- * dbgprintf()
- * Print to mpidebugfile
- */
+// dbgprintf()
+/** Print to mpidebugfile */
 void dbgprintf(const char *format, ...) {
   va_list args;
 
@@ -84,13 +79,9 @@ void dbgprintf(const char *format, ...) {
   va_end(args);
   return;
 }
-#endif
 
-#ifdef DEBUG
-/*
- * parallel_debug_init()
- * Open a file named Thread.worldrank for this thread
- */
+// parallel_debug_init()
+/** Open a file named Thread.worldrank for this thread */
 int parallel_debug_init() {
   char outfilename[32];
 
@@ -107,12 +98,19 @@ int parallel_debug_init() {
   }*/
   return 0;
 }
+
+// parallel_debug_end()
+/** Close Thread.worldrank file.  */
+int parallel_debug_end() {
+  if (mpidebugfile!=NULL)
+    fclose(mpidebugfile);
+  return 0;
+}
+
 #endif
 
-/*
- * parallel_init()
- * Initialize MPI
- */
+// parallel_init()
+/** Initialize MPI */
 int parallel_init(int argc, char **argv) {
 #ifdef MPI
   MPI_Init(&argc, &argv);
@@ -128,22 +126,8 @@ int parallel_init(int argc, char **argv) {
   return 0;
 }
 
-#ifdef DEBUG
-/*
- * parallel_debug_end()
- * Close Thread.worldrank file.
- */
-int parallel_debug_end() {
-  if (mpidebugfile!=NULL)
-    fclose(mpidebugfile);
-  return 0;
-}
-#endif
-
-/* 
- * parallel_end()
- * Finalize MPI
- */
+// parallel_end()
+/** Finalize MPI */
 int parallel_end() {
 #ifdef DEBUG
   parallel_debug_end();
@@ -155,21 +139,18 @@ int parallel_end() {
   return 0;
 }
 
-/* 
- * parallel_barrier()
- * Use MPI barrier.
- */
+// parallel_barrier()
+/** Use MPI barrier.  */
 void parallel_barrier() {
 #ifdef MPI
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
 }
 
-/*
- * parallel_sum()
- * Use MPI_REDUCE to sum up the values in sendbuffer and place them in
- * recvbuffer on master.
- */
+// parallel_sum()
+/** Use MPI_REDUCE to sum up the values in sendbuffer and place them in
+  * recvbuffer on master.
+  */
 int parallel_sum(double *recvBuffer, double *sendBuffer, int N) {
 #ifdef MPI
   int err;
@@ -184,10 +165,8 @@ int parallel_sum(double *recvBuffer, double *sendBuffer, int N) {
   return 0;
 }
 
-/*
- * parallel_openFile_read()
- * Use MPI to open a file for reading.
- */
+// parallel_openFile_read()
+/** Use MPI to open a file for reading.  */
 int parallel_openFile_read(parallelType pfile, const char *filename) {
 #ifdef MPI
   int err;
@@ -211,10 +190,8 @@ int parallel_openFile_read(parallelType pfile, const char *filename) {
   return 1;
 }
 
-/*
- * parallel_open_file_write()
- * Use MPI to open a file for writing, delete if present.
- */
+// parallel_open_file_write()
+/** Use MPI to open a file for writing, delete if present. */
 int parallel_open_file_write(parallelType pfile, const char *filename) {
 #ifdef MPI
   int err;
@@ -243,10 +220,8 @@ int parallel_open_file_write(parallelType pfile, const char *filename) {
   return 1;
 }
 
-/*
- * parallel_closeFile()
- * Close MPI file.
- */
+// parallel_closeFile()
+/** Close MPI file.  */
 int parallel_closeFile(parallelType pfile) {
 #ifdef MPI
   int err;
@@ -264,9 +239,8 @@ int parallel_closeFile(parallelType pfile) {
  return 0;
 }
 
-/* parallel_fread()    
- * fread using MPI routines. 
- */
+// parallel_fread()    
+/** fread using MPI routines.  */
 int parallel_fread(parallelType pfile, void *buffer, int count) {
 #ifdef MPI
   int err, actualCount;
@@ -292,10 +266,8 @@ int parallel_fread(parallelType pfile, void *buffer, int count) {
   return -1;
 }
 
-/*
- * parallel_fwrite()
- * fwrite using MPI routines.
- */
+// parallel_fwrite()
+/** fwrite using MPI routines.  */
 int parallel_fwrite(parallelType pfile, void *buffer, int count) {
 #ifdef MPI
   int err;
@@ -319,9 +291,7 @@ int parallel_fwrite(parallelType pfile, void *buffer, int count) {
   return 1;
 }
 
-/*
- * parallel_fseek()
- */
+// parallel_fseek()
 int parallel_fseek(parallelType pfile, off_t offset, int origin) {
 #ifdef MPI
   int err, org;
@@ -347,11 +317,10 @@ int parallel_fseek(parallelType pfile, off_t offset, int origin) {
   return 1;
 }
 
-/*
- * parallel_fgets()
- * Like fgets, use mpi file routines to get all chars up to and including 
- * null or newline. Returns buffer, or NULL on error. 
- */
+// parallel_fgets()
+/** Like fgets, use mpi file routines to get all chars up to and including 
+  * null or newline. Returns buffer, or NULL on error. 
+  */
 char *parallel_fgets(parallelType pfile, char *buffer, int num) {
 #ifdef MPI
   int i,err;
@@ -375,10 +344,8 @@ char *parallel_fgets(parallelType pfile, char *buffer, int num) {
   return NULL;
 } 
 
-/*
- * parallel_setSize()
- * Set the size of mpi file to offset.
- */
+// parallel_setSize()
+/** Set the size of mpi file to offset. */
 int parallel_setSize(parallelType pfile, long int offset) {
 #ifdef MPI
   int err;
@@ -396,13 +363,12 @@ int parallel_setSize(parallelType pfile, long int offset) {
   return 1;
 } 
 
-/*
- * parallel_sendMaster()
- * If master    : receive specified values from rank.
- * If not master: send specified values from rank to master.
- * datatype: 0=MPI_INT
- *           1=MPI_DOUBLE
- */
+// parallel_sendMaster()
+/** If master    : receive specified values from rank.
+  * If not master: send specified values from rank to master.
+  * datatype: 0=MPI_INT
+  *           1=MPI_DOUBLE
+  */
 int parallel_sendMaster(void *Buffer, int Count, int rank, int datatype) {
 #ifdef MPI
   int err;
@@ -435,10 +401,8 @@ int parallel_sendMaster(void *Buffer, int Count, int rank, int datatype) {
   return 1;
 }
 
-/*
- * parallel_allreduce()
- * Perform an mpi allreduce.
- */
+// parallel_allreduce()
+/** Perform an mpi allreduce. */
 int parallel_allreduce(void *Return, void *input, int count, int datatype, int op) {
 #ifdef MPI
   int err;

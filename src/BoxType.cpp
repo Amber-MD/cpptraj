@@ -1,4 +1,6 @@
-// BoxType
+/*! \file BoxType.cpp
+    \brief Functions related to box information.
+ */
 #include "BoxType.h"
 #include <cstddef>
 #include "CpptrajStdio.h"

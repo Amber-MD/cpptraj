@@ -23,17 +23,16 @@ Histogram::~Histogram() {
   if (BinIndices!=NULL) free(BinIndices);
 }
 
-/* Histogram::SetDebug()
- */
+// Histogram::SetDebug()
 void Histogram::SetDebug(int debugIn) {
   debug = debugIn;
   if (debug>0) mprintf("Histogram DEBUG LEVEL SET TO %i\n", debug);
 }
 
-/* Histogram::AddDimension()
- * Add a dimension to the histogram with the given min, max, and step.
- * Number of bins will be calculated.
- */
+// Histogram::AddDimension()
+/** Add a dimension to the histogram with the given min, max, and step.
+  * Number of bins will be calculated.
+  */
 int Histogram::AddDimension(char *labelIn, double minIn, double maxIn, double stepIn) {
   if (debug>0) mprintf("\t\tCalculating bins.\n");
   if (stepIn<=0) {
@@ -46,11 +45,11 @@ int Histogram::AddDimension(char *labelIn, double minIn, double maxIn, double st
   return ( AddDimension(labelIn,minIn,maxIn,stepIn,dbins) );
 }
 
-/* Histogram::AddDimension()
- * Add a dimension to the histogram with the given min, max, step,
- * and number of bins.
- * NOTE: NO ERROR CHECKING IS PERFORMED.
- */
+// Histogram::AddDimension()
+/** Add a dimension to the histogram with the given min, max, step,
+  * and number of bins.
+  * NOTE: NO ERROR CHECKING IS PERFORMED.
+  */
 int Histogram::AddDimension(char *labelIn, double minIn, double maxIn, 
                             double stepIn, int binsIn) {
   int offset;
@@ -90,10 +89,10 @@ int Histogram::AddDimension(char *labelIn, double minIn, double maxIn,
   return 0;
 }
 
-/* Histogram::BinData()
- * Given an array of data with the same dimensionality as the histogram, bin
- * the data.
- */
+// Histogram::BinData()
+/** Given an array of data with the same dimensionality as the histogram, bin
+  * the data.
+  */
 int Histogram::BinData(double *Data) {
   int index=0,idx;
   double coord;
@@ -147,31 +146,31 @@ int Histogram::BinData(double *Data) {
   return 0;
 }
 
-/* count2coord()
- * Given an array of integers corresponding to bin indices, calculate the
- * coordinates of those bins and print them out.
- */
+// count2coord()
+/** Given an array of integers corresponding to bin indices, calculate the
+  * coordinates of those bins and print them out.
+  */
 void Histogram::count2coord(int *count) {
   for (int i=0; i<numDimension; i++)
     mprintf("%lf ", (count[i]*Dimension[i].step)+Dimension[i].min );
 }
 
-/* Histogram::PrintBins()
- * This routine will print out the contents of the Bin array in column-major 
- * order. A counter is used to calculate the appropriate coordinate indices 
- * for the array. The count array works like this:
- *   Dim0index Dim1index ... DimNindex
- * DimNindex is considered the highest order dimension and is always 
- * incremented. When DimNindex reaches the number of bins for that Dim
- * it cycles, and the next highest order dim is checked, down to the lowest
- * order dimension.
- * If circular specified, wrapping will occur so that data from indices -1 
- * and N+1 (corresponding to N and 0) are printed out as well.
- * --- CURRENTLY NOT IMPLEMENTED ---
- * If binType is 0, the Bins array will be printed. If binType is 1, the
- * landscape will be printed.
- * if SD is not NULL, the standard deviation array will also be printed.
- */
+// Histogram::PrintBins()
+/** This routine will print out the contents of the Bin array in column-major 
+  * order. A counter is used to calculate the appropriate coordinate indices 
+  * for the array. The count array works like this:
+  *   Dim0index Dim1index ... DimNindex
+  * DimNindex is considered the highest order dimension and is always 
+  * incremented. When DimNindex reaches the number of bins for that Dim
+  * it cycles, and the next highest order dim is checked, down to the lowest
+  * order dimension.
+  * If circular specified, wrapping will occur so that data from indices -1 
+  * and N+1 (corresponding to N and 0) are printed out as well.
+  * --- CURRENTLY NOT IMPLEMENTED ---
+  * If binType is 0, the Bins array will be printed. If binType is 1, the
+  * landscape will be printed.
+  * if SD is not NULL, the standard deviation array will also be printed.
+  */
 void Histogram::PrintBins(bool circularIn, bool gnuplot) {
   int *count,idx,index,ndim;
   int circular = 0;
@@ -258,10 +257,10 @@ void Histogram::PrintBins(bool circularIn, bool gnuplot) {
   free(count);
 }
 
-/* Histogram::BinStart()
- * Set current bin to 0 and initialize indices. If isCircularIn is true the
- * bin indices will wrap in each dimension.
- */
+// Histogram::BinStart()
+/** Set current bin to 0 and initialize indices. If isCircularIn is true the
+  * bin indices will wrap in each dimension.
+  */
 void Histogram::BinStart(bool isCircularIn) {
   currentBin=0;
   if (isCircularIn) 
@@ -275,9 +274,8 @@ void Histogram::BinStart(bool isCircularIn) {
     for (int dim=0; dim < numDimension; dim++) BinIndices[dim]=0;
 }
 
-/* Histogram::CurrentBinData()
- * Return the data at current bin.
- */
+// Histogram::CurrentBinData()
+/** Return the data at current bin.  */
 double Histogram::CurrentBinData() {
   int index, idx;
 
@@ -299,17 +297,18 @@ double Histogram::CurrentBinData() {
   return Bins[currentBin]; 
 }
 
-/* Histogram::CurrentBinCoord()
- * Set numDimension coordinates corresponding to the current bin indices.
- */
+// Histogram::CurrentBinCoord()
+/** Set numDimension coordinates corresponding to the current bin indices.
+  */
 void Histogram::CurrentBinCoord(double *coord) {
   for (int i=0; i<numDimension; i++)
     coord[i] = (BinIndices[i]*Dimension[i].step)+Dimension[i].min;
 }
 
-/* Histogram::NextBin()
- * Increment bin and indices. Return 1 if final bin reached.
- */
+// Histogram::NextBin()
+/** Increment bin and indices. 
+  * \return 1 if final bin reached.
+  */
 int Histogram::NextBin() {
   int dim;
 
@@ -332,49 +331,43 @@ int Histogram::NextBin() {
   return 0;
 }
 
-/* Histogram::NBins()
- * Return number of bins for the given dimension
- */
+// Histogram::NBins()
+/** Return number of bins for the given dimension */
 int Histogram::NBins(int dim) {
   if (dim < 0 || dim >= numDimension) return -1;
   return Dimension[dim].bins;
 }
 
-/* Histogram::Step() 
- * Return step value for given dimension.
- */
+// Histogram::Step() 
+/** Return step value for given dimension.  */
 double Histogram::Step(int dim) {
   if (dim < 0 || dim >= numDimension) return -1.0;
   return Dimension[dim].step;
 }
 
-/* Histogram::Min()
- * Return min value for given dimension.
- */
+// Histogram::Min()
+/** Return min value for given dimension.  */
 double Histogram::Min(int dim) {
 if (dim < 0 || dim >= numDimension) return -1.0;
   return Dimension[dim].min;
 }
 
-/* Histogram::Max() 
- * Return max value for given dimension.
- */
+// Histogram::Max() 
+/** Return max value for given dimension.  */
 double Histogram::Max(int dim) {
 if (dim < 0 || dim >= numDimension) return -1.0;
   return Dimension[dim].max;
 }
 
-/* Histogram::Label()
- * Return label for given dimension.
- */
+// Histogram::Label()
+/** Return label for given dimension.  */
 char *Histogram::Label(int dim) {
   if (dim < 0 || dim >= numDimension) return NULL;
   return Dimension[dim].label;
 }
 
-/* Histogram::BinTotal()
- * Return sum of all bin values
- */
+// Histogram::BinTotal()
+/** Return sum of all bin values */
 double Histogram::BinTotal() {
   double sumBin = 0;
   for (int bin=0; bin < numBins; bin++)
@@ -383,9 +376,8 @@ double Histogram::BinTotal() {
   return sumBin;
 }
 
-/* Histogram::CalcFreeE()
- * Calculate free energy based on bin populations.
- */
+// Histogram::CalcFreeE()
+/** Calculate free energy based on bin populations.  */
 int Histogram::CalcFreeE(double T, int refbin) {
   double KT, binmax, temp, ceiling;
 
@@ -431,9 +423,8 @@ int Histogram::CalcFreeE(double T, int refbin) {
   return 0;
 }
 
-/* Histogram::Normalize()
- * Normalize bins so that sum over all bins is 1.0
- */
+// Histogram::Normalize()
+/** Normalize bins so that sum over all bins is 1.0 */
 int Histogram::Normalize() {
   double sum = 0.0;
   mprintf("\tHistogram: Normalizing bin populations to 1.0\n");

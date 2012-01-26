@@ -38,10 +38,6 @@ Closest::~Closest() {
 // Closest::init()
 /** Expected call: closest <# to keep> <mask> [noimage] [first/oxygen] 
   *                [closestout <filename> [outprefix <parmprefix>]
-  * Dataset name will be the last arg checked for. Check order is:
-  *    1) Keywords
-  *    2) Masks
-  *    3) Dataset name
   */
 int Closest::init( ) {
   char *mask1;

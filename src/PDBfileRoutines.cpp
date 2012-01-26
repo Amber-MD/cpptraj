@@ -1,4 +1,5 @@
-/* PDBfileRoutines.cpp
+/*! \file PDBfileRoutines.cpp
+ *
  * A collection of functions that will parse a line from a PDB file
  * and return the requested information.
  */
@@ -8,12 +9,11 @@
 #include "PDBfileRoutines.h"
 #include "Name.h"
 
-// PDB record types
+/// PDB record types
 const char PDB_RECNAME[3][7]={"ATOM", "HETATM", "TER"};
 
-/* isPDBkeyword()
- * Return true if the first 6 chars of buffer match a PDB keyword
- */
+// isPDBkeyword()
+/** \return true if the first 6 chars of buffer match a PDB keyword */
 bool isPDBkeyword(char *buffer) {
   if (strncmp(buffer,"HEADER",6)==0) return true;
   if (strncmp(buffer,"TITLE ",6)==0) return true;
@@ -29,16 +29,15 @@ bool isPDBkeyword(char *buffer) {
   return false;
 }
 
-/* isPDBatomKeyword
- * Return true if the first 6 chars match ATOM or HETATM
- */
+// isPDBatomKeyword
+/** \return true if the first 6 chars match ATOM or HETATM */
 bool isPDBatomKeyword(char *buffer) {
   if (strncmp(buffer,"ATOM  ",6)==0) return true;
   if (strncmp(buffer,"HETATM",6)==0) return true;
   return false;
 }
 
-// PDB Record Title
+/// PDB Record Title
 char *pdb_title(char *buffer) {
   char *title;
 
@@ -54,7 +53,7 @@ char *pdb_title(char *buffer) {
   return title;
 }
 
-// PDB Record Atom Number
+/// PDB Record Atom Number
 int pdb_atom(char *buffer) {
   char temp[6];
 
@@ -67,7 +66,7 @@ int pdb_atom(char *buffer) {
   return atoi(temp);
 }
 
-// PDB Record Atom Name
+/// PDB Record Atom Name
 int pdb_name(char *buffer, char *name) {
   name[0]=buffer[12];
   name[1]=buffer[13];
@@ -83,7 +82,7 @@ int pdb_name(char *buffer, char *name) {
   return 0;
 }
 
-// PDB Record Residue Name
+/// PDB Record Residue Name
 int pdb_resname(char *buffer, char *resname) {
   resname[0]=buffer[16]; // Alternate location indicator
   resname[1]=buffer[17];
@@ -97,12 +96,12 @@ int pdb_resname(char *buffer, char *resname) {
   return 0;
 }
 
-// PDB Record Chain ID
+/// PDB Record Chain ID
 char pdb_chain(char *buffer) {
   return buffer[21];
 }
 
-// PDB Record Residue Number
+/// PDB Record Residue Number
 int pdb_resnum(char *buffer) {
   char temp[6];
 
@@ -116,8 +115,8 @@ int pdb_resnum(char *buffer) {
   return atoi(temp);
 } 
 
-// PDB X Y and Z
-// Memory for double array should be allocated
+/// PDB X Y and Z
+/** Memory for double array should already be allocated */
 int pdb_xyz(char *buffer, double *X) {
   char temp[9];
 
@@ -157,7 +156,7 @@ int pdb_xyz(char *buffer, double *X) {
   return 0;
 }
 
-// PDB Record Occupancy 
+/// PDB Record Occupancy 
 double pdb_occ(char *buffer) {
   char temp[7];
 
@@ -171,7 +170,7 @@ double pdb_occ(char *buffer) {
   return atof(temp);
 }
 
-// PDB Record B-factor
+/// PDB Record B-factor
 double pdb_Bfactor(char *buffer) {
   char temp[7];
 
@@ -185,7 +184,7 @@ double pdb_Bfactor(char *buffer) {
   return atof(temp);
 }
 
-// 10 chars between Bfactor and element
+/// 10 chars between Bfactor and element
 char *pdb_lastChar(char *buffer) {
   char *E;
 
@@ -204,8 +203,8 @@ char *pdb_lastChar(char *buffer) {
   return E;
 }
 
-// Element. If blank, try to guess from the name
-// H C N O F Cl Br S P
+/// Element. If blank, try to guess from the name
+/** Currently recognized: H C N O F Cl Br S P */
 char *pdb_elt(char *buffer) {
   char *E,*ptr;
   char name[5];
@@ -236,7 +235,7 @@ char *pdb_elt(char *buffer) {
   return E;
 }
 
-// Charge. 
+/// Charge. 
 char *pdb_charge(char *buffer) {
   char *E;
 
@@ -247,8 +246,8 @@ char *pdb_charge(char *buffer) {
   return E;
 }
 
-// Write out an ATOM or HETATM record
-// Return the number of characters written
+/// Write out an ATOM or HETATM record
+/** \return the number of characters written */
 int pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name, 
                     char *resnameIn, char chain, int resnum, 
                     double X, double Y, double Z, float Occ, float B,

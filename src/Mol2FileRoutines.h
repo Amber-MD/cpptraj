@@ -1,9 +1,11 @@
-// Mol2FileRoutines
+/*! \file Mol2FileRoutines.h
+    \brief Collection of routines used for accessing mol2 files.
+ */
 #include "CpptrajFile.h"
 #include "Name.h"
-// Note: Just yse buffersize in CpptrajFile?
+// NOTE: Just yse buffersize in CpptrajFile?
 #define MOL2BUFFERSIZE 256
-
+/// Recognized TRIPOS tags
 enum TRIPOSTAG { MOLECULE, ATOM, BOND, SUBSTRUCT };
 #define NUMTRIPOSTAGS 4
 

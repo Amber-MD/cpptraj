@@ -1,13 +1,15 @@
-// TorsionRoutines
+/*! \file TorsionRoutines.cpp
+    \brief Routines used to calculate torsions and angles.
+ */
 #include <cmath>
 #include "vectormath.h"
 #include "TorsionRoutines.h"
 #include "Constants.h" // PI, TWOPI
 
-/* Torsion()
- * Given 4 sets of XYZ coords, calculate the torsion (in radians) between the 
- * planes formed by a1-a2-a3 and a2-a3-a4.
- */
+// Torsion()
+/** Given 4 sets of XYZ coords, calculate the torsion (in radians) between the 
+  * planes formed by a1-a2-a3 and a2-a3-a4.
+  */
 extern "C" double Torsion(double *a1, double *a2, double *a3, double *a4) {
   double Lx, Ly, Lz, Lnorm;
   double Rx, Ry, Rz, Rnorm;
@@ -42,10 +44,10 @@ extern "C" double Torsion(double *a1, double *a2, double *a3, double *a4) {
   return angle;
 }
 
-/* Pucker_AS()
- * Return the pucker (in radians) of coords stored in a1-a5 based on 
- * Altona & Sundaralingam method.
- */
+// Pucker_AS()
+/** Return the pucker (in radians) of coords stored in a1-a5 based on 
+  * Altona & Sundaralingam method.
+  */
 double Pucker_AS(double *a1, double *a2, double *a3, double *a4, double *a5, double *amp) {
   double pucker;
   double v1, v2, v3, v4, v5, a, b;
@@ -82,10 +84,10 @@ double Pucker_AS(double *a1, double *a2, double *a3, double *a4, double *a5, dou
   return pucker;
 }
 
-/* Pucker_CP()
- * Return the pucker (in radians) of coords in a1-a5 based on method of
- * Cremer & Pople.
- */
+// Pucker_CP()
+/** Return the pucker (in radians) of coords in a1-a5 based on method of
+  * Cremer & Pople.
+  */
 double Pucker_CP(double *a1, double *a2, double *a3, double *a4, double *a5, double *amplitude) {
   double pucker, norm;
   double x1, y1, z1;
@@ -99,10 +101,12 @@ double Pucker_CP(double *a1, double *a2, double *a3, double *a4, double *a5, dou
   double r2x, r2y, r2z;
   double sum1, sum2;
   double pi_over_5;
+  double one_over_five;
 
   pucker = 0.0;
   *amplitude = 0.0;
-  pi_over_5 = PI / 5.0;
+  one_over_five = 1 / 5.0;
+  pi_over_5 = PI * one_over_five;
 
   x2 = a1[0]; y2 = a1[1]; z2 = a1[2];
   x3 = a2[0]; y3 = a2[1]; z3 = a2[2];
@@ -111,9 +115,9 @@ double Pucker_CP(double *a1, double *a2, double *a3, double *a4, double *a5, dou
   x1 = a5[0]; y1 = a5[1]; z1 = a5[2];
 
   // Calculate geometric center
-  rcx = (x1 + x2 + x3 + x4 + x5)/5.0;
-  rcy = (y1 + y2 + y3 + y4 + y5)/5.0;
-  rcz = (z1 + z2 + z3 + z4 + z5)/5.0;
+  rcx = (x1 + x2 + x3 + x4 + x5)*one_over_five;
+  rcy = (y1 + y2 + y3 + y4 + y5)*one_over_five;
+  rcz = (z1 + z2 + z3 + z4 + z5)*one_over_five;
 
   x1 -= rcx; y1 -= rcy; z1 -=rcz;
   x2 -= rcx; y2 -= rcy; z2 -=rcz;
@@ -183,7 +187,7 @@ double Pucker_CP(double *a1, double *a2, double *a3, double *a4, double *a5, dou
            z5 * sin(16.0*pi_over_5));
 
   norm = sqrt(sum1*sum1 + sum2*sum2);
-  *amplitude = norm * sqrt(2.0/5.0);
+  *amplitude = norm * sqrt(2.0*one_over_five);
   pucker = asin( sum2 / norm );
   if (sum1 < 0.0)
     pucker = PI - pucker;

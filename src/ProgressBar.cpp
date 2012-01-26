@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-// Takes value needed to be considered complete as input.
+/// Takes value needed to be considered complete as input.
 ProgressBar::ProgressBar(int maxIn) {
   max = maxIn - 1;
   oneframe=false;
@@ -26,10 +26,10 @@ ProgressBar::ProgressBar(int maxIn) {
 // DESTRUCTOR
 ProgressBar::~ProgressBar() { }
 
-/* ProgressBar::Update()
- * If current percent is greater than target percent, print current
- * percent complete.
- */
+// ProgressBar::Update()
+/** If current percent is greater than target percent, print current
+  * percent complete.
+  */
 void ProgressBar::Update(int current) {
   float currentPercent;
   int target;
@@ -68,9 +68,8 @@ void ProgressBar::Update(int current) {
   }
 }
 
-/* ProgressBar::PrintBar()
- * Print an actual progress bar based on current frame.
- */
+// ProgressBar::PrintBar()
+/** Print an actual progress bar based on current frame. */
 void ProgressBar::PrintBar(int current) {
   char buffer[128];
   int i,j,percent,numChars;

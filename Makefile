@@ -22,6 +22,9 @@ check:
 clean:
 	cd src && $(MAKE) clean
 
+docs: src/cpptraj.Doxyfile
+	cd src && doxygen cpptraj.Doxyfile
+
 # Clean up for AmberTools
 atclean:
 	cd src && $(MAKE) -f Makefile_at clean

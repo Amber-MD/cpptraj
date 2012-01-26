@@ -14,13 +14,9 @@ Radgyr::Radgyr() {
 // DESTRUCTOR
 Radgyr::~Radgyr() { }
 
-/* Radgyr::init()
- * Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// Radgyr::init()
+/** Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax]
+  */
 int Radgyr::init() {
   char *mask1, *rogname;
   char *rogFile;
@@ -57,10 +53,9 @@ int Radgyr::init() {
   return 0;
 }
 
-/* Radgyr::setup()
- * Set radius of gyration up for this parmtop. Get masks etc.
- * currentParm is set in Action::Setup
- */
+// Radgyr::setup()
+/** Set radius of gyration up for this parmtop. Get masks etc. */
+// currentParm is set in Action::Setup
 int Radgyr::setup() {
 
   if ( currentParm->SetupIntegerMask(Mask1, activeReference)) return 1;
@@ -73,8 +68,7 @@ int Radgyr::setup() {
   return 0;  
 }
 
-/* Radgyr::action()
- */
+// Radgyr::action()
 int Radgyr::action() {
   double Rog, max;
 

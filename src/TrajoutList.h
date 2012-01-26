@@ -1,17 +1,18 @@
 #ifndef INC_TRAJOUTLIST_H
 #define INC_TRAJOUTLIST_H
-/// Class: TrajoutList
 #include "CoordFileList.h"
 #include "Frame.h"
+// Class: TrajoutList
+/// Hold trajectories for output
 class TrajoutList : public CoordFileList {
   public:
     TrajoutList();
     ~TrajoutList();
-    // Add a traj file to the list with given access and associate with a parm
+    /// Add a traj file to the list with given access and associate with a parm
     int AddTrajout(char*,ArgList *A, AmberParm *);
-    // Call write for all trajectories
+    /// Call write for all trajectories
     int Write(int, AmberParm*, Frame*);
-    // Call end for all trajectories
+    /// Call end for all trajectories
     void Close();
 };
 #endif

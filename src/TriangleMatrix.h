@@ -1,16 +1,17 @@
 #ifndef INC_TRIANGLEMATRIX_H
 #define INC_TRIANGLEMATRIX_H
-/// Class: TriangleMatrix
-/// Store the upper half of a symmetric matrix, useful when calculating
-/// e.g. all N^2 distances between all atoms, where the diagonal elements
-/// would be zero and element i,j == element j,i
-/// Accepts doubles, but internal storage is float to reduce memory footprint
+// Class: TriangleMatrix
+/// Store the upper half of a symmetric matrix
+/** Useful when calculating e.g. all N^2 distances between all atoms, 
+  * where the diagonal elements would be zero and element i,j == element j,i.
+  * Accepts doubles, but internal storage is float to reduce memory footprint
+  */
 class TriangleMatrix {
-    float *elements;    // Hold all elements
-    int nrows;          // Number of elements in one row
-    int nelements;      // Total number of elements
-    int currentElement; // Current element, used in AddElement only.
-    bool *ignore;       // If true, ignore the row/col when printing/searching etc
+    float *elements;    ///< Hold all elements
+    int nrows;          ///< Number of elements in one row
+    int nelements;      ///< Total number of elements
+    int currentElement; ///< Current element, used in AddElement only.
+    bool *ignore;       ///< If true, ignore the row/col when printing/searching etc
 
     int calcIndex(int,int);
   public :

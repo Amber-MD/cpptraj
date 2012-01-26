@@ -25,26 +25,24 @@ TrajectoryIO::~TrajectoryIO() {
   if (title!=NULL) free(title);
 }
 
-/* TrajectoryIO::SetDebug()
- * Set debug level.
- */
+// TrajectoryIO::SetDebug()
+/** Set debug level. */
 void TrajectoryIO::SetDebug(int debugIn) {
   debug = debugIn;
   if (debug>0) mprintf("TrajectoryIO debug level set to %i\n",debug);
 }
 
-/* TrajectoryIO::SetFile()
- * Set the internal file pointer.
- */
+// TrajectoryIO::SetFile()
+/** Set the internal file pointer.  */
 void TrajectoryIO::SetFile(CpptrajFile *tfileIn) {
   tfile = tfileIn;
 }
 
-/* TrajectoryIO::NewFile()
- * For use when TrajectoryIO has already been set up to a specific format,
- * set up the IO file. the given format MUST match the type for which
- * this file has been set up, otherwise bad things could happen.
- */
+// TrajectoryIO::NewFile()
+/** For use when TrajectoryIO has already been set up to a specific format,
+  * set up the IO file. the given format MUST match the type for which
+  * this file has been set up, otherwise bad things could happen.
+  */
 int TrajectoryIO::NewFile(char *filenameIn, AccessType accIn, FileFormat fmtIn, 
                           FileType typeIn) 
 {
@@ -57,9 +55,8 @@ int TrajectoryIO::NewFile(char *filenameIn, AccessType accIn, FileFormat fmtIn,
   return 0;
 }
 
-/* TrajectoryIO::FilenameIs()
- * Return true if trajectory full path filename matches input.
- */
+// TrajectoryIO::FilenameIs()
+/** Return true if trajectory full path filename matches input. */
 bool TrajectoryIO::FilenameIs(char *filenameIn) {
   if (filenameIn==NULL) {
     mprinterr("Error: CheckFilename: Called with NULL filename.\n");
@@ -69,17 +66,15 @@ bool TrajectoryIO::FilenameIs(char *filenameIn) {
   return false;
 }
 
-/* TrajectoryIO::FileFormat()
- * Return the format of associated file.
- */
+// TrajectoryIO::FileFormat()
+/** Return the format of associated file. */
 FileFormat TrajectoryIO::TrajFormat() {
   if (tfile==NULL) return UNKNOWN_FORMAT;
   return (tfile->fileFormat);
 }
 
-/* TrajectoryIO::SetTitle()
- * Set title for this trajfile.
- */
+// TrajectoryIO::SetTitle()
+/** Set title for this trajfile. */
 void TrajectoryIO::SetTitle(char *titleIn) {
   size_t titleSize;
 
@@ -101,9 +96,8 @@ void TrajectoryIO::SetTitle(char *titleIn) {
   if (this->title[titleSize-1]=='\n') this->title[titleSize-1]='\0';
 }
 
-/* TrajectoryIO::SetTemperature()
- * Indicate temperature information should be read/written.
- */
+// TrajectoryIO::SetTemperature()
+/** Indicate temperature information should be read/written. */
 void TrajectoryIO::SetTemperature() {
   hasTemperature = true;
 }

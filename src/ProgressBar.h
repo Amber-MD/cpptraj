@@ -1,6 +1,6 @@
 #ifndef INC_PROGRESSBAR_H
 #define INC_PROGRESSBAR_H
-
+/// Used to print progress to screen
 class ProgressBar {
     int max;
     float C_over_max;

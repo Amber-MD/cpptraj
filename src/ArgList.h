@@ -3,7 +3,6 @@
 #include <vector>
 #include <string>
 // Class: ArgList
-// Test of ArgList using vector and string STL classes.
 /// Hold a list of string arguments
 /** Can be set from a delimited list
   * with SetList or arguments can be added individually with AddArg. 

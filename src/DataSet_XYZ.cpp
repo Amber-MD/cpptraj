@@ -13,20 +13,20 @@ DataSet_XYZ::DataSet_XYZ() {
   SetDataSetFormat(false);
 }
 
-/* DataSet_XYZ::Xmax(()
- * Return the maximum X value added to this set. By convention this is 
- * always the last value added.
- */
+// DataSet_XYZ::Xmax(()
+/** Return the maximum X value added to this set. By convention this is 
+  * always the last value added.
+  */
 int DataSet_XYZ::Xmax() {
   // If no data has been added return 0
   if (current==0) return 0;
   return xData.back();
 } 
 
-/* DataSet_XYZ::Add()
- * Insert data vIn. Expect an array of size 3. frame is not used in 
- * this case.
- */
+// DataSet_XYZ::Add()
+/** Insert data vIn. Expect an array of size 3. frame is not used in 
+  * this case.
+  */
 void DataSet_XYZ::Add(int frame, void *vIn) {
   double *value;
 
@@ -40,9 +40,10 @@ void DataSet_XYZ::Add(int frame, void *vIn) {
   current++;
 }
 
-/* DataSet_XYZ::Get()
- * Get data at frame, put into vOut. Return 1 if no data at frame.
- */
+// DataSet_XYZ::Get()
+/** Get data at frame, put into vOut. 
+  * \return 1 if no data at frame.
+  */
 int DataSet_XYZ::Get(void *vOut, int frame) {
   double *value;
   
@@ -57,9 +58,9 @@ int DataSet_XYZ::Get(void *vOut, int frame) {
   return 0;
 }
 
-/* DataSet_XYZ::isEmpty()
- * By definition no part of the map can be empty unless frame is out of bounds.
- */
+// DataSet_XYZ::isEmpty()
+/** By definition no part of the map can be empty unless frame is out of bounds.
+  */
 int DataSet_XYZ::isEmpty(int frame) {
   if (frame < 0 || frame >= (int)xData.size()) return 1;
   //it = Data.find( frame );
@@ -67,9 +68,9 @@ int DataSet_XYZ::isEmpty(int frame) {
   return 0;
 }
 
-/* DataSet_XYZ::WriteBuffer()
- * Write data at frame to CharBuffer. If no data for frame write 0.0.
- */
+// DataSet_XYZ::WriteBuffer()
+/** Write data at frame to CharBuffer. If no data for frame write 0.0.
+  */
 void DataSet_XYZ::WriteBuffer(CharBuffer &cbuffer, int frame) {
   double darray[3];
   if (isEmpty(frame)) {
@@ -85,19 +86,17 @@ void DataSet_XYZ::WriteBuffer(CharBuffer &cbuffer, int frame) {
 }
 
 
-/* DataSet_XYZ::Width()
- */
+// DataSet_XYZ::Width()
 int DataSet_XYZ::Width() {
   return (totalwidth + leadingSpace);
 }
 
-/* DataSet_XYZ::Sync()
- * Since it seems to be very difficult (or impossible) to define Classes
- * as MPI datatypes, first non-master threads need to convert their maps
- * into 2 arrays, an int array containing frame #s and a double array
- * containing mapped values. These arrays are then sent to the master,
- * where they are converted pairs and inserted into the master map.
- */
+// DataSet_XYZ::Sync()
+/** Since it seems to be very difficult (or impossible) to define Classes
+  * as MPI datatypes, first non-master threads combine their arrays into
+  * 1 giant array, which is then sent to master. 
+  * NOTE: Should just be 3 separate sends? 
+  */
 int DataSet_XYZ::Sync() {
   int rank, idx, dataSize;
   double *Values;

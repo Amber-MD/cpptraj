@@ -16,18 +16,16 @@ AnalysisList::~AnalysisList() {
       delete analysisList[i];
 }
 
-/* AnalysisList::SetDebug()
- * Set Analysis list debug level.
- */
+// AnalysisList::SetDebug()
+/** Set Analysis list debug level.  */
 void AnalysisList::SetDebug(int debugIn) {
   debug=debugIn;
   if (debug>0)
     mprintf("AnalysisList DEBUG LEVEL SET TO %i\n",debug);
 }
 
-/* AnalysisList::AddAnalysis()
- * Add specific type of analysis to the list.
- */
+// AnalysisList::AddAnalysis()
+/** Add specific type of analysis to the list.  */
 int AnalysisList::AddAnalysis(ArgList &argIn) {
   Analysis *Ana=NULL;
  
@@ -72,8 +70,7 @@ int AnalysisList::Setup(DataSetList *datasetlist, ParmFileList *parmfilelist) {
   return 0;
 }
 
-/* AnalysisList::Analyze()
- */
+// AnalysisList::Analyze()
 void AnalysisList::Analyze(DataFileList *datafilelist) {
   if (Nanalysis==0) return;
   mprintf("\nANALYSIS:\n");

@@ -1,5 +1,8 @@
 #ifndef INC_PDBFILEROUTINES_H
 #define INC_PDBFILEROUTINES_H
+/*! \file PDBfileRoutines.h
+    \brief Collection of routines used to access PDB files.
+ */
 enum PDB_RECTYPE {PDBATOM=0, PDBHET, PDBTER};
 bool isPDBkeyword(char *);
 bool isPDBatomKeyword(char *);

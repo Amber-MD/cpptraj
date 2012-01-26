@@ -21,7 +21,7 @@ Strip::~Strip() {
 }
 
 // Strip::init()
-/// Expected call: strip <mask1> [outprefix <name>] [nobox]
+/** Expected call: strip <mask1> [outprefix <name>] [nobox] */
 int Strip::init( ) {
   char *mask1;
 
@@ -52,7 +52,8 @@ int Strip::init( ) {
 }
 
 // Strip::Setup()
-/// Attempt to create a new stripped down version of the input parmtop
+/** Attempt to create a new stripped down version of the input parmtop
+  */
 int Strip::setup() {
   if (currentParm->SetupIntegerMask( M1, activeReference )) return 1;
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
@@ -103,7 +104,7 @@ int Strip::setup() {
 }
 
 // Strip::action()
-/// Modify the coordinate frame to reflect stripped parmtop.
+/** Modify the coordinate frame to reflect stripped parmtop. */
 int Strip::action() {
 
   newFrame.SetFrameFromMask(currentFrame, &M1);

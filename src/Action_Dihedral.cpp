@@ -13,14 +13,10 @@ Dihedral::Dihedral() {
 // DESTRUCTOR
 Dihedral::~Dihedral() { }
 
-/* Dihedral::init()
- * Expected call: dihedral <name> <mask1> <mask2> <mask3> <mask4> [out filename]
- *                         [mass]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// Dihedral::init()
+/** Expected call: dihedral <name> <mask1> <mask2> <mask3> <mask4> [out filename]
+  *                         [mass]
+  */
 int Dihedral::init() {
   char *mask1, *mask2, *mask3, *mask4;
   char *dihedralFile;
@@ -57,8 +53,7 @@ int Dihedral::init() {
   return 0;
 }
 
-/* Dihedral::setup
- */
+// Dihedral::setup
 int Dihedral::setup() {
 
   if (currentParm->SetupIntegerMask(M1, activeReference)) return 1;
@@ -77,8 +72,7 @@ int Dihedral::setup() {
   return 0;  
 }
 
-/* Dihedral::action()
- */
+// Dihedral::action()
 int Dihedral::action() {
   double D;
 
@@ -92,5 +86,4 @@ int Dihedral::action() {
   
   return 0;
 } 
-
 

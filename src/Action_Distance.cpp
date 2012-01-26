@@ -18,11 +18,8 @@ Distance::~Distance() {
 }
 
 // Distance::init()
-/// Expected call: distance <name> <mask1> <mask2> [out filename] [geom] [noimage]
-// Dataset name will be the last arg checked for. Check order is:
-//    1) Keywords
-//    2) Masks
-//    3) Dataset name
+/** Expected call: distance <name> <mask1> <mask2> [out filename] [geom] [noimage]
+  */
 int Distance::init( ) {
   char *mask1, *mask2;
   char *distanceFile;

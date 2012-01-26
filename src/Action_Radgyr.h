@@ -1,8 +1,8 @@
 #ifndef INC_ACTION_RADGYR_H
 #define INC_ACTION_RADGYR_H
-/// Class: Radgyr
-/// Action to calculate the radius of gyration of atoms within a mask.
 #include "Action.h"
+// Class: Radgyr
+/// Action to calculate the radius of gyration of atoms within a mask.
 class Radgyr: public Action {
     DataSet *rog;
     DataSet *rogmax;

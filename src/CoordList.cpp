@@ -13,11 +13,11 @@ CoordList::~CoordList() {
     delete[] coordList[crd];
 }
 
-/* CoordList::AddCoordsByMask()
- * Given an array of double coordinates and a corresponding atom mask,
- * store the selected atoms in a float array.
- * Currently only for use with Integer masks.
- */
+// CoordList::AddCoordsByMask()
+/** Given an array of double coordinates and a corresponding atom mask,
+  * store the selected atoms in a float array.
+  * Currently only for use with Integer masks.
+  */
 int CoordList::AddCoordsByMask(double *Xin, AtomMask *MaskIn) {
   if (Xin==NULL || MaskIn==NULL) return 1;
   //if (MaskIn->Selected==NULL) return 1;
@@ -39,10 +39,10 @@ int CoordList::AddCoordsByMask(double *Xin, AtomMask *MaskIn) {
   return 0;
 }
 
-/* CoordList::Coord()
- * Return a pointer to the given coord. Set corresponding number of atoms in
- * natom.
- */
+// CoordList::Coord()
+/** Return a pointer to the given coord. Set corresponding number of atoms in
+  * natom.
+  */
 float *CoordList::Coord(int crd, int *natom) {
   if (crd<0 || crd >= ncoords) return NULL;
   *natom = natomList[crd];

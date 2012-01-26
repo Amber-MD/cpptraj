@@ -27,12 +27,12 @@ Jcoupling::~Jcoupling() {
   outputfile.CloseFile();
 }
 
-/* Jcoupling::loadKarplus()
- * Load Karplus parameters from input file.
- * Expected format:
- *   {type}<+|-| ><a[4]><+|-| ><b[4]><+|-| ><c[4]><+|-| ><d[4]><A[6]><B[6]><C[6]>{<D[6]>}
- *   <reslabel[4]>* 
- */
+// Jcoupling::loadKarplus()
+/** Load Karplus parameters from input file.
+  * Expected format:
+  * - {type}<+|-| ><a[4]><+|-| ><b[4]><+|-| ><c[4]><+|-| ><d[4]><A[6]><B[6]><C[6]>{<D[6]>}
+  *   <reslabel[4]>* 
+  */
 int Jcoupling::loadKarplus(char* filename) {
   char buffer[512],residue[5];
   char *end, *ptr;
@@ -139,13 +139,9 @@ int Jcoupling::loadKarplus(char* filename) {
 }
 
 // -----------------------------------------------------------------------------
-/* Jcoupling::init()
- * Expected call: jcoupling <mask1> [outfile <filename>]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// Jcoupling::init()
+/** Expected call: jcoupling <mask1> [outfile <filename>]
+  */
 int Jcoupling::init( ) {
   char *mask1;
   char *outfilename;
@@ -209,10 +205,10 @@ int Jcoupling::init( ) {
   return 0;
 }
 
-/* Jcoupling::setup()
- * Set up a j-coupling calculation for dihedrals defined by atoms within
- * the mask.
- */
+// Jcoupling::setup()
+/** Set up a j-coupling calculation for dihedrals defined by atoms within
+  * the mask.
+  */
 int Jcoupling::setup() {
   std::string resName;
   std::vector<karplusConstant> *currentResList=NULL;
@@ -314,10 +310,10 @@ int Jcoupling::setup() {
   return 0;  
 }
 
-/* Jcoupling::action()
- * For each dihedral defined in JcouplingInfo, perform the dihedral and
- * Jcoupling calculation.
- */
+// Jcoupling::action()
+/** For each dihedral defined in JcouplingInfo, perform the dihedral and
+  * Jcoupling calculation.
+  */
 int Jcoupling::action() {
   double phi,J;
   double phitemp,C0,C1,C2,C3;

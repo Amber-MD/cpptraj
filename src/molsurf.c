@@ -7,7 +7,7 @@
 // ---------- OTHER includes ---------------------------------------------------
 #include "molsurf.h"
 /*!
-   \file molsurf.h 
+   \file molsurf.c 
    \details
    Modified by dac to exist as an NAB subroutine;
    Later re-modified back into a stand-alone program;

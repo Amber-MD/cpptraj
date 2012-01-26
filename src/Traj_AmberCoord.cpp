@@ -74,11 +74,10 @@ int AmberCoord::openTraj() {
   return 0;
 }
 
-/* AmberCoord::readFrame()
- * Read coordinates from Amber trajectory into Frame. 
- * NOTE: Precalculate the header, coord, and box offsets.
- * NOTE: There are currently NO checks for null for X, box, and T!
- */
+// AmberCoord::readFrame()
+/** Read coordinates from Amber trajectory into Frame. */ 
+// NOTE: Precalculate the header, coord, and box offsets.
+// NOTE: There are currently NO checks for null for X, box, and T!
 int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T) {
   char Temp[9];
   char *bufferPosition;
@@ -127,19 +126,18 @@ int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T)
   return 0;
 }
 
-/* AmberCoord::SetHighPrecision()
- * Change the output format from 8.3 to 8.6
- */
+// AmberCoord::SetHighPrecision()
+/** Change the output format from 8.3 to 8.6 */
 void AmberCoord::SetHighPrecision() {
   outfmt="%8.6lf";
   highPrecision=true;
 }
 
-/* AmberCoord::writeFrame()
- * Write coordinates from Frame to frameBuffer. frameBuffer must be large
- * enough to accomodate all coords in F (handled by SetupWrite).
- * NOTE: The output frame size is calcd here - should it just be precalcd?
- */
+// AmberCoord::writeFrame()
+/** Write coordinates from Frame to frameBuffer. frameBuffer must be large
+  * enough to accomodate all coords in F (handled by SetupWrite).
+  */
+// NOTE: The output frame size is calcd here - should it just be precalcd?
 int AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T) {
   int outFrameSize;
   char *bufferPosition;
@@ -173,12 +171,12 @@ int AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T)
   return 0;
 }
 
-/* AmberCoord::setupRead()
- * Setup opens the given file for read access, sets information.
- * Return the number of frames present in trajectory file.
- * Return -1 if an error occurs, -2 if the number of frames could 
- * not be determined.
- */
+// AmberCoord::setupRead()
+/** Setup opens the given file for read access, sets information.
+  * \return the number of frames present in trajectory file.
+  * \return -1 if an error occurs.
+  * \return -2 if the number of frames could not be determined.
+  */
 int AmberCoord::setupRead(AmberParm *trajParm) {
   char buffer[BUFFER_SIZE];
   int frame_lines, lineSize, maxi;
@@ -351,20 +349,19 @@ int AmberCoord::setupRead(AmberParm *trajParm) {
   return Frames;
 }
 
-/* AmberCoord::processWriteArgs()
- */
+// AmberCoord::processWriteArgs()
 int AmberCoord::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("remdtraj")) this->SetTemperature();
   if (argIn->hasKey("highprecision")) this->SetHighPrecision();
   return 0;
 }
 
-/* AmberCoord::setupWrite()
- * Set up trajectory for write. Calculate the length of each cooordinate
- * frame. Set the title and titleSize. Calculate the full output file
- * size, necessary only for seeking when MPI writing. Allocate memory for
- * the frame buffer. 
- */
+// AmberCoord::setupWrite()
+/** Set up trajectory for write. Calculate the length of each cooordinate
+  * frame. Set the title and titleSize. Calculate the full output file
+  * size, necessary only for seeking when MPI writing. Allocate memory for
+  * the frame buffer. 
+  */
 int AmberCoord::setupWrite(AmberParm *trajParm) {
   int frame_lines;
   //long int outfilesize;
@@ -425,8 +422,7 @@ int AmberCoord::setupWrite(AmberParm *trajParm) {
   return 0;
 }
 
-/* AmberCoord::Info()
- */
+// AmberCoord::Info()
 void AmberCoord::info() {
   if (hasREMD) 
     mprintf("is an AMBER REMD trajectory");

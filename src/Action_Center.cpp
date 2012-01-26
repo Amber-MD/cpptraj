@@ -15,12 +15,9 @@ Center::Center() {
 // DESTRUCTOR
 Center::~Center() { }
 
-/* Center::init()
- * Expected call: center <mask> [origin] [mass] 
- * Check order is:
- *    1) Keywords
- *    2) Masks
- */
+// Center::init()
+/** Expected call: center <mask> [origin] [mass] 
+  */
 int Center::init() {
   char *mask1;
 
@@ -47,10 +44,10 @@ int Center::init() {
   return 0;
 }
 
-/* Center::setup()
- * Set angle up for this parmtop. Get masks etc.
- * currentParm is set in Action::Setup
- */
+// Center::setup()
+/** Set angle up for this parmtop. Get masks etc.
+  */
+// currentParm is set in Action::Setup
 int Center::setup() {
 
   if ( currentParm->SetupIntegerMask(Mask1, activeReference) ) return 1;
@@ -69,9 +66,9 @@ int Center::setup() {
   return 0;  
 }
 
-/* Center::action()
- # Center coordinates in frame to coord origin or box origin (corner).
- */
+// Center::action()
+/** Center coordinates in frame to coord origin or box origin (corner).
+  */
 int Center::action() {
 
   // Set up box

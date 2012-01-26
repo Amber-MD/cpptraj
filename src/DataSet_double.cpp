@@ -13,10 +13,10 @@ DataSet_double::DataSet_double() {
   SetDataSetFormat(false);
 }
 
-/* DataSet_double::Xmax(()
- * Return the maximum X value added to this set. By convention this is 
- * always the last value added.
- */
+// DataSet_double::Xmax(()
+/** Return the maximum X value added to this set. By convention this is 
+  * always the last value added.
+  */
 int DataSet_double::Xmax() {
   // If no data has been added return 0
   if (current==0) return 0;
@@ -53,9 +53,8 @@ double DataSet_double::Avg(double *stdev) {
   return avg;
 }
 
-/* DataSet_double::Max()
- * Return the maximum value in the dataset.
- */
+// DataSet_double::Max()
+/** Return the maximum value in the dataset.  */
 double DataSet_double::Max() {
   double max;
   it = Data.begin();
@@ -65,9 +64,8 @@ double DataSet_double::Max() {
   return max;
 }
 
-/* DataSet_double::Min()
- * Return the minimum value in the dataset.
- */
+// DataSet_double::Min()
+/** Return the minimum value in the dataset.  */
 double DataSet_double::Min() {
   double min;
   it = Data.begin();
@@ -77,9 +75,8 @@ double DataSet_double::Min() {
   return min;
 }
 
-/* DataSet_double::Add()
- * Insert data vIn at frame.
- */
+// DataSet_double::Add()
+/** Insert data vIn at frame.  */
 void DataSet_double::Add(int frame, void *vIn) {
   double *value;
 
@@ -91,9 +88,10 @@ void DataSet_double::Add(int frame, void *vIn) {
   current++;
 }
 
-/* DataSet_double::Get()
- * Get data at frame, put into vOut. Return 1 if no data at frame.
- */
+// DataSet_double::Get()
+/** Get data at frame, put into vOut. 
+  * \return 1 if no data at frame.
+  */
 int DataSet_double::Get(void *vOut, int frame) {
   double *value;
   
@@ -107,17 +105,16 @@ int DataSet_double::Get(void *vOut, int frame) {
   return 0;
 }
 
-/* DataSet_double::isEmpty()
- */
+// DataSet_double::isEmpty()
 int DataSet_double::isEmpty(int frame) {
   it = Data.find( frame );
   if (it == Data.end()) return 1;
   return 0;
 }
 
-/* DataSet_double::WriteBuffer()
- * Write data at frame to CharBuffer. If no data for frame write 0.0.
- */
+// DataSet_double::WriteBuffer()
+/** Write data at frame to CharBuffer. If no data for frame write 0.0.
+  */
 void DataSet_double::WriteBuffer(CharBuffer &cbuffer, int frame) {
   double dval;
   it = Data.find( frame );
@@ -128,19 +125,18 @@ void DataSet_double::WriteBuffer(CharBuffer &cbuffer, int frame) {
   cbuffer.WriteDouble(data_format, dval);
 }
 
-/* DataSet_double::Width()
- */
+// DataSet_double::Width()
 int DataSet_double::Width() {
   return (width + leadingSpace);
 }
 
-/* DataSet_double::Sync()
- * Since it seems to be very difficult (or impossible) to define Classes
- * as MPI datatypes, first non-master threads need to convert their maps
- * into 2 arrays, an int array containing frame #s and a double array
- * containing mapped values. These arrays are then sent to the master,
- * where they are converted pairs and inserted into the master map.
- */
+// DataSet_double::Sync()
+/** Since it seems to be very difficult (or impossible) to define Classes
+  * as MPI datatypes, first non-master threads need to convert their maps
+  * into 2 arrays, an int array containing frame #s and a double array
+  * containing mapped values. These arrays are then sent to the master,
+  * where they are converted pairs and inserted into the master map.
+  */
 int DataSet_double::Sync() {
   int rank, i, dataSize;
   int *Frames;

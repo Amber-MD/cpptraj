@@ -13,12 +13,10 @@ Outtraj::Outtraj() {
 // DESTRUCTOR
 Outtraj::~Outtraj() { }
 
-/*
- * Outtraj::init()
- * Action wrapper for trajout.
- * Expected call: outtraj <filename> [ trajout args ] 
- *                        [maxmin <dataset> min <min> max <max>
- */
+// Outtraj::init()
+/** Expected call: outtraj <filename> [ trajout args ] 
+  *                        [maxmin <dataset> min <min> max <max>
+  */
 int Outtraj::init() {
   char *datasetName;
   AmberParm *tempParm;
@@ -60,17 +58,16 @@ int Outtraj::init() {
   return 0;
 } 
 
-/*
- * Outtraj::setup()
- * Output trajectory setup done right before first write
- */
+// Outtraj::setup()
+// Unneeded, Output trajectory setup done right before first write
 //int Outtraj::setup() {
 //  return 0;  
 //}
 
-/*
- * Outtraj::action()
- */
+// Outtraj::action()
+/** If a dataset was specified for maxmin, check if this structure
+  * satisfies the criteria; if so, write. Otherwise just write.
+  */
 int Outtraj::action() {
   double dVal;
   int iVal;
@@ -93,10 +90,9 @@ int Outtraj::action() {
   return 0;
 } 
 
-/*
- * Outtraj::print()
- * Close trajectory.
- */
+// Outtraj::print()
+/** Close trajectory. Indicate how many frames were actually written.
+  */
 void Outtraj::print() {
   mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",actionArgs.ArgAt(1),outtraj.NumFramesProcessed());
   outtraj.EndTraj();

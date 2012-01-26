@@ -22,10 +22,10 @@ Average::~Average() {
   if (parmStripped && AvgParm!=NULL) delete AvgParm;
 }
 
-/* Average::init()
- * Expected call: average <filename> [mask] [start <start>] [stop <stop>] [offset <offset>]
- *                [TRAJOUT ARGS]  
- */
+// Average::init()
+/** Expected call: average <filename> [mask] [start <start>] [stop <stop>] [offset <offset>]
+  *                [TRAJOUT ARGS]  
+  */
 int Average::init( ) {
   char *mask1;
 
@@ -72,13 +72,13 @@ int Average::init( ) {
   return 0;
 }
 
-/* Average::setup()
- * On first call, set up Frame according to first parmtop. This will be
- * used for coordinate output.
- * On subsequent calls, determine if the number of atoms is greater than or
- * less than the original # atoms. Never calculate more than the original
- * # atoms.
- */
+// Average::setup()
+/** On first call, set up Frame according to first parmtop. This will be
+  * used for coordinate output.
+  * On subsequent calls, determine if the number of atoms is greater than or
+  * less than the original # atoms. Never calculate more than the original
+  * # atoms.
+  */
 int Average::setup() {
 
   if ( currentParm->SetupIntegerMask( Mask1, activeReference) ) return 1;
@@ -129,8 +129,7 @@ int Average::setup() {
   return 0;  
 }
 
-/* Average::action()
- */
+// Average::action()
 int Average::action() {
   int atom3,i3;
 
@@ -152,8 +151,7 @@ int Average::action() {
   return 0;
 } 
 
-/* Average::print()
- */
+// Average::print()
 void Average::print() {
   TrajectoryFile outfile;
   double d_Nframes;

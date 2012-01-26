@@ -2,9 +2,8 @@
 #define INC_TRAJ_AMBERNETCDF_H
 #ifdef BINTRAJ
 #include "TrajectoryIO.h"
-/// Class: AmberNetcdf
-/// TrajectoryIO class for reading and writing Amber Netcdf format 
-/// trajectories. 
+// Class: AmberNetcdf
+/// Reads and writes Amber Netcdf format trajectories. 
 class AmberNetcdf : public TrajectoryIO {
     int ncid;
     int frameDID;

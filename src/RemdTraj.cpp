@@ -49,12 +49,12 @@ RemdTraj::~RemdTraj() {
   if (remdV!=NULL) free(remdV);
 }
 
-/* RemdTraj::SetupTemperatureList()
- * For each REMD input traj get the temperature of the first frame to
- * create a complete list of replica temperatures. This list is used
- * when writing out temperature trajectories from input replica
- * trajectories.
- */
+// RemdTraj::SetupTemperatureList()
+/** For each REMD input traj get the temperature of the first frame to
+  * create a complete list of replica temperatures. This list is used
+  * when writing out temperature trajectories from input replica
+  * trajectories.
+  */
 int RemdTraj::SetupTemperatureList(int natom) {
   std::vector<TrajectoryIO*>::iterator replica;
   int repnum = 0;
@@ -93,13 +93,13 @@ int RemdTraj::SetupTemperatureList(int natom) {
   return err;
 }
 
-/* RemdTraj::SetReplicaName()
- * Given the name of the lowest replica file, set basic replica name 
- * information. Get the file prefix up to the numerical extension, the 
- * width of the numerical extension, and the compression extension if 
- * the file is compressed.
- * Set and return the number of the lowest replica, or -1 on error.
- */
+// RemdTraj::SetReplicaName()
+/** Given the name of the lowest replica file, set basic replica name 
+  * information. Get the file prefix up to the numerical extension, the 
+  * width of the numerical extension, and the compression extension if 
+  * the file is compressed.
+  * Set and return the number of the lowest replica, or -1 on error.
+  */
 int RemdTraj::SetReplicaName(char* filenameIn) {
   CpptrajFile remdfile;
   int lastChar,lastDot,j;
@@ -167,32 +167,32 @@ int RemdTraj::SetReplicaName(char* filenameIn) {
   return lowestRepnum;
 }
 
-/* RemdTraj::GetReplicaName()
- * If name information has already been set by SetRepicaName, return
- * the expected replica filename given a replica number.
- */
+// RemdTraj::GetReplicaName()
+/** If name information has already been set by SetRepicaName, return
+  * the expected replica filename given a replica number.
+  */
 char *RemdTraj::GetReplicaName(int repnum) {
   if (repFilename==NULL) return NULL;
   sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,repnum,CompressExt);
   return repFilename;
 }
 
-/* RemdTraj::GetLowestReplicaName()
- * If name information has already been set by SetRepicaName, return
- * the lowest replica filename.
- */
+// RemdTraj::GetLowestReplicaName()
+/** If name information has already been set by SetRepicaName, return
+  * the lowest replica filename.
+  */
 char *RemdTraj::GetLowestReplicaName() {
   if (repFilename==NULL) return NULL;
   sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,lowestRepnum,CompressExt);
   return repFilename;
 }
 
-/* RemdTraj::GetTemperatureName()
- * If the temperature list has been set up, return a filename with the 
- * specified replica numbers temperature appended to it. Note that the
- * replica numbers in this case start from 0 as opposed to incoming
- * replica filenames, where the lowest replica number can be arbitrary.
- */
+// RemdTraj::GetTemperatureName()
+/** If the temperature list has been set up, return a filename with the 
+  * specified replica numbers temperature appended to it. Note that the
+  * replica numbers in this case start from 0 as opposed to incoming
+  * replica filenames, where the lowest replica number can be arbitrary.
+  */
 char *RemdTraj::GetTemperatureName(char *prefix, int repnum) {
   if (TemperatureList==NULL) {
     mprinterr("Error: RemdTraj::GetTemperatureName: TemperatureList not set.\n");
@@ -205,9 +205,8 @@ char *RemdTraj::GetTemperatureName(char *prefix, int repnum) {
   return repOutname;
 }
 
-/* RemdTraj::openTraj()
- * Open each trajectory in the list. 
- */
+// RemdTraj::openTraj()
+/** Open each trajectory in the list. */
 int RemdTraj::openTraj() {
   std::vector<TrajectoryIO *>::iterator replica;
   // DEBUG
@@ -225,9 +224,8 @@ int RemdTraj::openTraj() {
   return 0;
 }
 
-/* RemdTraj::closeTraj()
- * Close all trajectories in the list.
- */
+// RemdTraj::closeTraj()
+/** Close all trajectories in the list. */
 void RemdTraj::closeTraj() {
   std::vector<TrajectoryIO *>::iterator replica;
   // Close the trajectory
@@ -241,8 +239,10 @@ void RemdTraj::closeTraj() {
   }
 }
 
-/* RemdTraj::readFrame()
- */
+// RemdTraj::readFrame()
+/** Read the next frame from the list of input trajectories. Choose the
+  * one that matches remdtrajtemp. Write trajectories if specified.
+  */
 int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
   std::vector<TrajectoryIO *>::iterator reptrajin;
   std::vector<TrajectoryIO *>::iterator reptrajout;
@@ -306,8 +306,7 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
   return 1;
 }
 
-/* RemdTraj::info()
- */
+// RemdTraj::info()
 void RemdTraj::info() {
   mprintf("REMD trajectories (%i total)\n", (int)REMDtraj.size());
   if (hasTrajout) {

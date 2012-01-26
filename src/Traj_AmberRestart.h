@@ -1,20 +1,19 @@
 #ifndef INC_TRAJ_AMBERRESTART_H
 #define INC_TRAJ_AMBERRESTART_H
 #include "TrajectoryIO.h"
-/// Class: AmberRestart.h
-/// TrajectoryIO class for reading and writing formatted (ASCII text) amber
-/// restart files.
+// Class: AmberRestart.h
+/// Reads and writes formatted (ASCII text) amber
 class AmberRestart : public TrajectoryIO {
-    int restartAtoms;     // Number of atoms in restart file
-    int natom3;           // Number of coords
-    int frameSize;        // Size of 1 coord frame in bytes, inc box & velo if present
-    char *frameBuffer;    // Used to read in restart coord
-    int numBoxCoords;     // Number of box coords (3 or 6)
-    double restartTime;   // Time in restart file, read in
-    double restartTemp;   // (Optional) replica temperature, read in.
-    double time0;         // For writes, restart time offset
-    double dt;            // For writes, restart timestep (scaling)
-    bool singleWrite;     // If false, frame # will be appended to output filename
+    int restartAtoms;     ///< Number of atoms in restart file
+    int natom3;           ///< Number of coords
+    int frameSize;        ///< Size of 1 coord frame in bytes, inc box & velo if present
+    char *frameBuffer;    ///< Used to read in restart coord
+    int numBoxCoords;     ///< Number of box coords (3 or 6)
+    double restartTime;   ///< Time in restart file, read in
+    double restartTemp;   ///< (Optional) replica temperature, read in.
+    double time0;         ///< For writes, restart time offset
+    double dt;            ///< For writes, restart timestep (scaling)
+    bool singleWrite;     ///< If false, frame # will be appended to output filename
 
     // Inherited functions
     int setupRead(AmberParm*);

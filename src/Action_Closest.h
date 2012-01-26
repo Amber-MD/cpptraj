@@ -22,14 +22,14 @@ class Closest: public Action {
     AmberParm *newParm;
     AmberParm *oldParm;
     Frame newFrame;
-    // The moldist structure is used in order to preserve the original
-    // solvent molecule and atom numbers after sorting.
+    /// The moldist structure is used in order to preserve the original
+    /// solvent molecule and atom numbers after sorting.
     struct MolDist {
-      int mol;        // Original solvent molecule number
-      double D;       // Closest distance of solvent molecule to atoms in soluteMask
-      AtomMask mask;  // Original solvent molecule atom mask
+      int mol;        ///< Original solvent molecule number
+      double D;       ///< Closest distance of solvent molecule to atoms in soluteMask
+      AtomMask mask;  ///< Original solvent molecule atom mask
     };
-    // Return true if the first molecule is closer than the second
+    /// Return true if the first molecule is closer than the second
     struct moldist_cmp {
       inline bool operator()(MolDist first, MolDist second) const {
         if (first.D < second.D)

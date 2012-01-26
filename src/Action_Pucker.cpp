@@ -18,14 +18,10 @@ Pucker::Pucker() {
 // DESTRUCTOR
 Pucker::~Pucker() { }
 
-/* Pucker::init()
- * Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>
- *                [range360] [amplitude] [altona | cremer] [offset <offset>]
- * Dataset name will be the last arg checked for. Check order is:
- *    1) Keywords
- *    2) Masks
- *    3) Dataset name
- */
+// Pucker::init()
+/** Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>
+  *                [range360] [amplitude] [altona | cremer] [offset <offset>]
+  */
 int Pucker::init() {
   char *mask1, *mask2, *mask3, *mask4, *mask5;
   char *puckerFile;
@@ -81,8 +77,7 @@ int Pucker::init() {
   return 0;
 }
 
-/* Pucker::setup
- */
+// Pucker::setup
 int Pucker::setup() {
 
   if ( currentParm->SetupIntegerMask( M1, activeReference) ) return 1;
@@ -104,8 +99,7 @@ int Pucker::setup() {
   return 0;  
 }
 
-/* Pucker::action()
- */
+// Pucker::action()
 int Pucker::action() {
   double D;
 

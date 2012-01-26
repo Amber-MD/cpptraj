@@ -12,10 +12,10 @@ DataSet_integer::DataSet_integer() {
   SetDataSetFormat(false);
 }
 
-/* DataSet_integer::Xmax(()
- * Return the maximum X value added to this set. By convention this is 
- * always the last value added.
- */
+// DataSet_integer::Xmax(()
+/** Return the maximum X value added to this set. By convention this is 
+  * always the last value added.
+  */
 int DataSet_integer::Xmax() {
   // If no data has been added return 0
   if (current==0) return 0;
@@ -53,9 +53,8 @@ double DataSet_integer::Avg(double *stdev) {
   return avg;
 }
 
-/* DataSet_integer::Add()
- * Insert data vIn at frame.
- */
+// DataSet_integer::Add()
+/** Insert data vIn at frame.  */
 void DataSet_integer::Add(int frame, void *vIn) {
   int *value;
 
@@ -67,9 +66,10 @@ void DataSet_integer::Add(int frame, void *vIn) {
   current++;
 }
 
-/* DataSet_integer::Get()
- * Get data at frame, put into vOut. Return 1 if no data at frame.
- */
+// DataSet_integer::Get()
+/** Get data at frame, put into vOut. 
+  * \return 1 if no data at frame.
+  */
 int DataSet_integer::Get(void *vOut, int frame) {
   int *value;
 
@@ -81,17 +81,16 @@ int DataSet_integer::Get(void *vOut, int frame) {
   return 0;
 }
 
-/* DataSet_integer::isEmpty()
- */
+// DataSet_integer::isEmpty()
 int DataSet_integer::isEmpty(int frame) {
   it = Data.find( frame );
   if (it == Data.end()) return 1;
   return 0;
 }
 
-/* DataSet_integer::WriteBuffer()
- * Write data at frame to CharBuffer. If no data for frame write 0.
- */
+// DataSet_integer::WriteBuffer()
+/** Write data at frame to CharBuffer. If no data for frame write 0.
+  */
 void DataSet_integer::WriteBuffer(CharBuffer &cbuffer, int frame) {
   int ival;
   it = Data.find( frame );
@@ -102,19 +101,18 @@ void DataSet_integer::WriteBuffer(CharBuffer &cbuffer, int frame) {
   cbuffer.WriteInteger(data_format, ival);
 }
 
-/* DataSet_integer::Width()
- */
+// DataSet_integer::Width()
 int DataSet_integer::Width() {
   return (width + leadingSpace);
 }
 
-/* DataSet_integer::Sync()
- * Since it seems to be very difficult (or impossible) to define Classes
- * as MPI datatypes, first non-master threads need to convert their maps
- * into 2 arrays, an int array containing frame #s and another int array
- * containing mapped values. These arrays are then sent to the master,
- * where they are converted pairs and inserted into the master map.
- */
+// DataSet_integer::Sync()
+/** Since it seems to be very difficult (or impossible) to define Classes
+  * as MPI datatypes, first non-master threads need to convert their maps
+  * into 2 arrays, an int array containing frame #s and another int array
+  * containing mapped values. These arrays are then sent to the master,
+  * where they are converted pairs and inserted into the master map.
+  */
 int DataSet_integer::Sync() {
   int rank, i, dataSize;
   int *Frames;

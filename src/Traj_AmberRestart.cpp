@@ -35,9 +35,9 @@ void AmberRestart::closeTraj() {
   tfile->CloseFile();
 }
 
-/* AmberRestart::openTraj()
- * Open the restart file. Get title, time, restart atoms, temperature
- */
+// AmberRestart::openTraj()
+/** Open the restart file. Get title, time, restart atoms, temperature
+  */
 int AmberRestart::openTraj() {
   int nread,titleSize;
   char buffer[83];
@@ -99,14 +99,12 @@ int AmberRestart::openTraj() {
   return 0; 
 }
 
-/* AmberRestart::SetNoVelocity()
- */
+// AmberRestart::SetNoVelocity()
 void AmberRestart::SetNoVelocity() {
   hasVelocity=false;
 }
 
-/* AmberRestart::processWriteArgs()
- */
+// AmberRestart::processWriteArgs()
 int AmberRestart::processWriteArgs(ArgList *argIn) {
   // For write, assume we want velocities unless specified
   hasVelocity=true;
@@ -117,10 +115,10 @@ int AmberRestart::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-/* AmberRestart::setupWrite()
- * Allocate a character buffer based on number of coords and whether 
- * velocities/box info is present.
- */
+// AmberRestart::setupWrite()
+/** Allocate a character buffer based on number of coords and whether 
+  * velocities/box info is present.
+  */
 int AmberRestart::setupWrite(AmberParm *trajParm) {
   int frame_lines;
 
@@ -153,10 +151,10 @@ int AmberRestart::setupWrite(AmberParm *trajParm) {
   return 0;
 }
 
-/* AmberRestart::getBoxAngles()
- * Based on input buffer, determine num box coords and get box angles.
- * If successful set hasBox to true.
- */
+// AmberRestart::getBoxAngles()
+/** Based on input buffer, determine num box coords and get box angles.
+  * If successful set hasBox to true.
+  */
 int AmberRestart::getBoxAngles(char *boxline, int boxlineSize) {
   double box[6];
 
@@ -194,10 +192,10 @@ int AmberRestart::getBoxAngles(char *boxline, int boxlineSize) {
   return 0;
 }
 
-/* AmberRestart::setupRead()
- * Set up amber restart file for reading. Check that number of atoms matches
- * number of atoms in associated parmtop. Check for box/velocity info.
- */
+// AmberRestart::setupRead()
+/** Set up amber restart file for reading. Check that number of atoms matches
+  * number of atoms in associated parmtop. Check for box/velocity info.
+  */
 int AmberRestart::setupRead(AmberParm *trajParm) {
   char buffer[83];
   int frame_lines,lineSize;
@@ -283,9 +281,9 @@ int AmberRestart::setupRead(AmberParm *trajParm) {
   return 1;
 }
 
-/* AmberRestart::readFrame()
- * Get the restart file frame. If velocities are present, read those too.
- */
+// AmberRestart::readFrame()
+/** Get the restart file frame. If velocities are present, read those too.
+  */
 int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) {
   char *bufferPosition;
   // Read restart coords into frameBuffer
@@ -324,10 +322,10 @@ int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) 
   return 0;
 }
 
-/* AmberRestart::writeFrame()
- * Write coords in Frame to file in amber restart format. Always calculate the 
- * frame size since coords may have been stripped from Frame.
- */
+// AmberRestart::writeFrame()
+/** Write coords in Frame to file in amber restart format. Always calculate the 
+  * frame size since coords may have been stripped from Frame.
+  */
 int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double T) {
   char buffer[1024];
   char *bufferPosition;
@@ -379,8 +377,7 @@ int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double 
   return 0;
 }
 
-/* AmberRestart::info()
- */
+// AmberRestart::info()
 void AmberRestart::info() {
   mprintf("is an AMBER restart file");
   if (tfile!=NULL) {

@@ -12,13 +12,13 @@ TrajoutList::TrajoutList() {
 // DESTRUCTOR
 TrajoutList::~TrajoutList() { }
 
-/* TrajoutList::AddTrajout()
- * Add trajectory to the trajectory list as an output trajectory. 
- * Associate the trajectory with one of the parm files in the 
- * ParmFileList. 
- * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
- *         [<range>]
- */
+// TrajoutList::AddTrajout()
+/** Add trajectory to the trajectory list as an output trajectory. 
+  * Associate the trajectory with one of the parm files in the 
+  * ParmFileList. 
+  * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
+  *         [<range>]
+  */
 int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, AmberParm *parmIn) {
   TrajectoryFile *traj;
   char *filename;
@@ -57,11 +57,11 @@ int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, AmberParm *parmIn) {
   return 0;
 }
 
-/* TrajoutList::Write()
- * Go through each output traj, call write. The first time CurrentParm
- * matches the parm the trajectory was originally set up with it will
- * be opened, no need to call BeginTraj.
- */ 
+// TrajoutList::Write()
+/** Go through each output traj, call write. The first time CurrentParm
+  * matches the parm the trajectory was originally set up with it will
+  * be opened, no need to call BeginTraj.
+  */ 
 int TrajoutList::Write(int set, AmberParm *CurrentParm, Frame *CurrentFrame) { 
   std::list<TrajectoryFile*>::iterator traj;
 
@@ -75,9 +75,9 @@ int TrajoutList::Write(int set, AmberParm *CurrentParm, Frame *CurrentFrame) {
   return 0;
 }
 
-/* TrajoutList::Close()
- * Close output trajectories. Called after input traj processing completed.
- */
+// TrajoutList::Close()
+/** Close output trajectories. Called after input traj processing completed.
+  */
 void TrajoutList::Close() {
   std::list<TrajectoryFile*>::iterator traj;
 

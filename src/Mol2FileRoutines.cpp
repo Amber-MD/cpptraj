@@ -2,7 +2,9 @@
 #include <cstdio>
 #include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
-// Mol2FileRoutines
+/*! \file Mol2FileRoutines.cpp
+    \brief Collection of routines used to access mol2 files.
+ */
 
 /// Tripos Tags - must be in same order as enum type TRIPOSTAG
 const char TRIPOSTAGTEXT[NUMTRIPOSTAGS][30]={

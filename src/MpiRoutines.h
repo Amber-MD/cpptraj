@@ -3,16 +3,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-// MpiRoutines.h
-// If debug is not defined it will be included in MpiRoutines.c
+/*! \file MpiRoutines.h
+    \brief Cpptraj interface to C MPI routines.
+
+    MPIROUTINES_MODULE is defined in MpiRoutines.c. For all other files
+    including MpiRoutines.h worldrank and worldsize should be extern.
+ */
+// If debug is not defined stdio.h will be included in MpiRoutines.c
 #ifdef DEBUG
 #  include <stdio.h>
 #endif
 #include <sys/types.h> // off_t
 
-/* MPIROUTINES_MODULE is defined in MpiRoutines.c. For all other files
- * including MpiRoutines.h worldrank and worldsize should be extern.
- */
 #ifdef MPIROUTINES_MODULE
 int worldrank;
 int worldsize;
@@ -27,7 +29,7 @@ extern FILE *mpidebugfile;
 #  endif
 #endif
 
-// This allows abstraction of the MPI_File type so no other files need mpi.h
+/// This allows abstraction of the MPI_File type so no other files need mpi.h
 typedef struct parallelStructType *parallelType;
 
 #ifdef MPI

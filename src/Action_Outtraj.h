@@ -3,7 +3,7 @@
 // Outtraj
 #include "Action.h"
 #include "TrajectoryFile.h"
-
+/// Write out a trajectory inside the ActionList
 class Outtraj: public Action {
     TrajectoryFile outtraj;
     double max;

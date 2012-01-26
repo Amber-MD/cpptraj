@@ -3,10 +3,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-// ptraj_arg.h
-// This file contains argStackType, the memory-safe replacement
-// for the original argument stack in ptraj_actions and 
-// ptraj_analyze.
+/*! \file ptraj_arg.h
+
+  This file contains argStackType, the memory-safe replacement
+  for the original argument stack in ptraj_actions and 
+  ptraj_analyze.
+ */
 
 // ---------- Argument Stack routines ------------------------------------------
 // argStackType - just used to set up arglist

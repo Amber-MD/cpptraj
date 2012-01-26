@@ -15,21 +15,18 @@ Conflib::~Conflib() {
   //fprintf(stderr,"Conflib Destructor.\n");
 }
 //------------------------------------------------------------------------
-/* Conflib::closeTraj()
- */
+// Conflib::closeTraj()
 void Conflib::closeTraj() {
   tfile->CloseFile();
 }
 
-/* Conflib::openTraj()
- */
+// Conflib::openTraj()
 int Conflib::openTraj() {
   if (tfile->OpenFile()) return 1;
   return 0;
 }
 
-/* Conflib::setupRead()
- */
+// Conflib::setupRead()
 int Conflib::setupRead(AmberParm *trajParm) {
   long unsigned int confFrame;
   int Frames = 0;
@@ -48,8 +45,7 @@ int Conflib::setupRead(AmberParm *trajParm) {
   return Frames;
 }
 
-/* Conflib::readFrame()
- */
+// Conflib::readFrame()
 int Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
 
   if (tfile->IO->Read(&energy,sizeof(double),1) < 0) return 1;
@@ -62,22 +58,19 @@ int Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
   return 0;
 }
 
-/* Conflib::setupWrite()
- */
+// Conflib::setupWrite()
 int Conflib::setupWrite(AmberParm *trajParm) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
-/* Conflib::setupWrite()
- */
+// Conflib::setupWrite()
 int Conflib::writeFrame(int set, double *X, double *V,double *box, double T) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
-/* Conflib::info()
- */
+// Conflib::info()
 void Conflib::info() {
   mprintf("is an LMOD conflib file");
 }

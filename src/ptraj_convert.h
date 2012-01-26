@@ -1,6 +1,9 @@
 #ifndef INC_PTRAJ_CONVERT_H
 #define INC_PTRAJ_CONVERT_H
-
+/*! \file ptraj_convert.h
+    \brief Used to convert cpptraj state info to format recognized
+           by ptraj actions/analysis.
+ */
 #include "ArgList.h"
 #include "ptraj_arg.h"
 #include "ptraj_state.h"

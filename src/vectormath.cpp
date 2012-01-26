@@ -1,4 +1,5 @@
-/* vectormath.cpp
+/*! \file vectormath.cpp
+ *
  * Simple vector/matrix math routines.
  * ROTATE, jacobi3, and diagEsort routines adapted from PTRAJ
  */

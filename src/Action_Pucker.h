@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_PUCKER_H
 #define INC_ACTION_PUCKER_H
-/// Class: Pucker
-/// Action to calculated the ring pucker given 5 atom masks.
+// Class: Pucker
+/// Calculate the ring pucker given 5 atom masks.
 #include "Action.h"
 class Pucker: public Action {
     DataSet *puck;

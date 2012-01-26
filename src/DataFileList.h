@@ -4,11 +4,11 @@
 #include "DataSetList.h"
 #include "ArgList.h"
 #include <list>
-/// Class: DataFileList
+// Class: DataFileList
 /// Holds a list of DataFile classes. 
-/// NOTE: Currently implemented as a STL::list to make it easy to delete 
-///       DataFiles, but this is currently not done. If that ability is
-///       not needed a vector or an array would be more efficient.
+// NOTE: Currently implemented as a STL::list to make it easy to delete 
+//       DataFiles, but this is currently not done. If that ability is
+//       not needed a vector or an array would be more efficient.
 class DataFileList {
     std::list<DataFile*> fileList;
     std::list<DataFile*>::iterator it;

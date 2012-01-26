@@ -1,4 +1,4 @@
-/*! \file PtrajMask.h
+/*! \file PtrajMask.cpp
     \details
  *  This is code for an enhanced atom mask parser developed by Viktor Hornak
  *  at SUNY Stony Brook (Stony Brook University), in March of 2003.  Cheatham

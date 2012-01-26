@@ -1,6 +1,7 @@
 #ifndef INC_ANALYSISLIST_H
 #define INC_ANALYSISLIST_H
 #include "Analysis.h"
+/// Hold all analyses to be performed.
 class AnalysisList {
     std::vector<Analysis*> analysisList;
     int Nanalysis;
