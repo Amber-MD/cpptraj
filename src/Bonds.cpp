@@ -152,7 +152,6 @@ double GetBondedCut(NAME A1, NAME A2) {
 // ---------- AtomMap related routines; eventually obsolete --------------------
 // ConvertNameToChar()
 /** Base on atom name, return 1 character signifying the element.
-  * Convert chlorine to X, bromine to Y. Only used by AtomMap.
   */
 char ConvertNameToChar(NAME Name) {
   AtomicElementType element;
@@ -165,8 +164,6 @@ char ConvertNameToChar(NAME Name) {
   // Return corresponding char
   return AtomicElementChar[ element ];
 }
-
-
 // -----------------------------------------------------------------------------
 
 // GetBondedCut() 
@@ -181,6 +178,7 @@ char ConvertNameToChar(NAME Name) {
   * Can be found on the web at:
   * - http://www.wiredchemist.com/chemistry/data/bond_energies_lengths.html
   */
+// NOTE: Store cutoff^2 instead??
 double GetBondedCut(AtomicElementType atom1, AtomicElementType atom2) {
   // Default cutoff
   double cut=1.60;

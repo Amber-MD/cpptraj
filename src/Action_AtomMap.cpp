@@ -1,22 +1,12 @@
 // AtomMap
-#include <cstdlib>
-#include <cstring>
+#include <algorithm> //sort
 #include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
 #include "Bonds.h"
 // DEBUG
 #include "TrajectoryFile.h"
-#include <cstdio>
-
-//--------- PRIVATE ROUTINES ---------------------------------------
-// compareChar(a,b)
-/** Compare characters a and b, for use with qsort
-  */
-static int compareChar(const void *a, const void *b) {
-  return ( *(char*)a - *(char*)b );
-}
-//------------------------------------------------------------------
+//#include <cstdio>
 
 // atommap CONSTRUCTOR
 atommap::atommap() {
@@ -30,13 +20,11 @@ atommap::atommap() {
 
 // atommap DESTRUCTOR
 atommap::~atommap() {
-  int i;
-  if (M!=NULL) free(M);
-  if (names!=NULL) {
-    for (i=0; i<natom; i++) free(names[i]);
-    free(names);
-  }
+  if (M!=NULL) delete[] M;
+  if (names!=NULL) delete[] names; 
 }
+
+std::string atommap::NO_ID = "NULL";
 
 // atommap::SetDebug()
 /** Set atommap debug */
@@ -46,8 +34,8 @@ void atommap::SetDebug(int debugIn) {
 
 // atommap::atomID()
 /** Return the atomID of the given atom.  */
-const char *atommap::atomID(int atom) {
-  if (atom<0 || atom>=natom) return NULL;
+const std::string &atommap::atomID(int atom) {
+  if (atom<0 || atom>=natom) return NO_ID;
   return (M[atom].atomID);
 }
 
@@ -60,64 +48,68 @@ const char *atommap::Aname(int atom) {
 // atommap::calcDist()
 /** Determine which atoms are bonded to each other in a given set of atoms
   * based on how close they are and their identity.
+  * Use bond info in parm. If no bond info generate it from the ref coord 
+  * frame.
+  * \return 1 on error, 0 on success.
   */
-// NOTE: Eventually use the bond info in parm
 int atommap::calcDist() {
-  int i,j,nbondi,nbondj;
-  double r,cut;
+  std::vector<int> bondArray;
 
-  for (i=0; i<natom-1; i++) {
-    for(j=i+1; j<natom; j++) {
-      if (debug>1) mprintf("%s_%i - %s_%i ",names[i],i,names[j],j);
-      nbondi=M[i].nbond;
-      nbondj=M[j].nbond;
-      r=mapFrame->DIST(i,j);
-      if (debug>1) mprintf("%lf ",r);
-      // Lookup bond distance based on atom names 
-      // NOTE: Atom names should be 1 char at this point
-      //cut=getCut(names[i],names[j]);
-      cut = GetBondedCut(names[i][0],names[j][0]);
-      if (r<cut) {
-        if (debug>1) mprintf("nbondi=%i nbondj=%i ",nbondi,nbondj);
-        if ((nbondi<MAXBONDS)&&(nbondj<MAXBONDS)) {
-          M[i].bond[nbondi++]=j;
-          M[j].bond[nbondj++]=i;
-          M[i].nbond=nbondi;
-          M[j].nbond=nbondj;
-          if (debug>1) mprintf("BONDED!\n");
-        } else {
-          mprintf("Warning: Bonding %s:%i to %s:%i; Valences MAXED (>%i)!\n",
-                  names[i],i,names[j],j,MAXBONDS);
-        }
-      } else
-        if (debug>1) mprintf("NO_BOND!\n");
-    } // END loop over j
-    if (debug>1) mprintf("\n"); 
-  } // END loop over i
+  // First check if bond info already present
+  if ( mapParm->BondArray( bondArray ) ) {
+    // No bond info present; create from frame
+    mapParm->GetBondsFromCoords( mapFrame->X );
+    // Try to get the bond info again.
+    if ( mapParm->BondArray( bondArray ) ) {
+      mprinterr("Error: AtomMap: Could not get bond information for %s\n",mapParm->parmName);
+      return 1;
+    }
+  }
+  // If here the bondArray was set up successfully. Array has format:
+  //   Bond1:Atom1, Bond1:Atom2, Bond2:Atom1, Bond2:Atom2, Bond3:Atom1, ...
+  // Fill in bond info for the map.
+  for (std::vector<int>::iterator bondatom = bondArray.begin();
+                                  bondatom != bondArray.end();
+                                  bondatom++)
+  {
+    int atom1 = *bondatom;
+    // Advance to atom2 in bond
+    ++bondatom;
+    int atom2 = *bondatom;
+    // Bond atoms
+    M[atom1].bond.push_back( atom2 );
+    M[atom1].nbond++;
+    M[atom2].bond.push_back( atom1 );
+    M[atom2].nbond++;
+    if (debug > 1) mprintf("\t%i:%s -- %i:%s\n",atom1+1, mapParm->AtomName(atom1),
+                           atom2+1, mapParm->AtomName(atom2));
+  }
 
   // Search for chiral centers by number of bonds
-  for (i=0; i<natom; i++) {
+  for (int i=0; i<natom; i++) {
+    // Sort the bonded atoms array by atom #
+    sort( M[i].bond.begin(), M[i].bond.end() );
     if (M[i].nbond==4) {
       // If >=3 bonds to single atoms, not chiral (e.g. -CH3)
-      nbondj=0; // Count # bonds to single atoms
-      for (j=0; j<M[i].nbond; j++) {
-        nbondi = M[i].bond[j]; // nbondi is bonded to atom i
-        if (M[nbondi].nbond==1) nbondj++;
+      int N_single_atoms=0; // Count # bonds to single atoms
+      for (int idx=0; idx < M[i].nbond; idx++) {
+        int bondedatom = M[i].bond[idx];
+        if (M[bondedatom].nbond==1) ++N_single_atoms;
       }
-      if (nbondj<3) M[i].isChiral=true;
+      if (N_single_atoms<3) M[i].isChiral=true;
     }
   }
 
   // DEBUG - print bonding information
   if (debug>0) {
     mprintf("atommap: Atom Bond information.\n");
-    for (i=0; i<natom; i++) {
-      mprintf("  Atom %s_%i has %i bonds.",names[i],i,M[i].nbond);
+    for (int i=0; i<natom; i++) {
+      mprintf("  Atom %s(%c)_%i has %i bonds.",mapParm->AtomName(i),names[i],i+1,M[i].nbond);
       if (M[i].isChiral) mprintf(" CHIRAL!");
       mprintf("\n");
-      for (j=0; j<M[i].nbond; j++) {
-        nbondj=M[i].bond[j];
-        mprintf("    to %s_%i\n",names[nbondj],nbondj);
+      for (int j=0; j<M[i].nbond; j++) {
+        int bondedatom=M[i].bond[j];
+        mprintf("    to %s(%c)_%i\n",mapParm->AtomName(bondedatom),names[bondedatom],bondedatom+1);
       }
     }
   }
@@ -146,10 +138,10 @@ void atommap::markAtomComplete(int atom, bool printAtoms) {
     M[atom].complete=true;
   }
   if (printAtoms) {
-    mprintf("  Atom %4i: %s-%1i |",atom,names[atom],(int)M[atom].isMapped);
+    mprintf("  Atom %4i: %c-%1i |",atom,names[atom],(int)M[atom].isMapped);
     for (int bond=0; bond < M[atom].nbond; bond++) {
       bondatom = M[atom].bond[bond];
-      mprintf(" %4i:%s-%1i",bondatom,names[bondatom],(int)M[bondatom].isMapped);
+      mprintf(" %4i:%c-%1i",bondatom,names[bondatom],(int)M[bondatom].isMapped);
     }
     if (M[atom].complete)
       mprintf(" Atom is completely mapped.");
@@ -176,42 +168,41 @@ void atommap::markComplete() {
   * Then determine which identifier strings are unique. 
   */
 void atommap::determineAtomID() {
-  int i,j,atom;
-  char *formula;
   // DEBUG
   //bool isRepeated;
   //int k, atom2;
 
-  formula=(char*) malloc(ATOMIDLENGTH*sizeof(char));
+  // Determine self id
   if (debug>0) mprintf("ATOM IDs:\n");
-  for (i=0; i<natom; i++) {
-    strcpy(formula,"");
-    for (j=0; j<M[i].nbond; j++) {
-      atom=M[i].bond[j];
-      strcat(formula,names[atom]);
+  for (int i=0; i<natom; i++) {
+    M[i].atomID.clear();
+    // Append the 1 char name of each bonded atom
+    for (int j=0; j<M[i].nbond; j++) {
+      int bondedatom=M[i].bond[j];
+      M[i].atomID += names[bondedatom];
     }
-    qsort(formula,strlen(formula),sizeof(char),compareChar);
-    strcpy(M[i].atomID,names[i]);
-    strcat(M[i].atomID,formula);
-    if (debug>0) mprintf("  Atom %i : %s\n",i,M[i].atomID);
+    // Sort the bonded atom 1 char names
+    // NOTE: Is it necessary for the atomID to be sorted, or just the Unique string?
+    sort( M[i].atomID.begin(), M[i].atomID.end() );
+    // Place this atoms 1 char name at the beginning
+    M[i].atomID = names[i] + M[i].atomID;
+    if (debug>0) mprintf("  Atom %i : %s\n",i,M[i].atomID.c_str());
   }
-  free(formula);
 
   // Create a unique ID for each atom based on Atom IDs
-  for (i=0; i<natom; i++) {
-    memset(M[i].unique,' ',UNIQUELENGTH);
-    strcpy(M[i].unique,M[i].atomID);
-    for (j=0; j<M[i].nbond; j++) {
-      atom=M[i].bond[j];
-      strcat(M[i].unique,M[atom].atomID);
+  for (int i=0; i<natom; i++) {
+    M[i].unique = M[i].atomID;
+    for (int j=0; j<M[i].nbond; j++) {
+      int atom=M[i].bond[j];
+      M[i].unique += M[atom].atomID;
     }
-    qsort(M[i].unique,strlen(M[i].unique),sizeof(char),compareChar);
+    sort( M[i].unique.begin(), M[i].unique.end() );
   }
 
   // Determine which unique IDs are duplicated - set isUnique flag
-  for (i=0; i<natom-1; i++) {
-    for (j=i+1; j<natom; j++) {
-      if (strcmp(M[i].unique,M[j].unique)==0) {
+  for (int i=0; i<natom-1; i++) {
+    for (int j=i+1; j<natom; j++) {
+      if ( M[i].unique == M[j].unique ) {
         // This unique string is duplicated, set isUnique flags to false
         M[i].isUnique=false;
         M[j].isUnique=false;
@@ -261,8 +252,8 @@ void atommap::determineAtomID() {
   // Debug Output
   if (debug>0) {
     mprintf("UNIQUE IDs:\n");
-    for (i=0; i<natom; i++) {
-      mprintf("  Atom %6i [%3i]: %s",i,M[i].Nduplicated,M[i].unique);
+    for (int i=0; i<natom; i++) {
+      mprintf("  Atom %6i [%3i]: %s",i,M[i].Nduplicated,M[i].unique.c_str());
       if (M[i].isUnique) mprintf(" UNIQUE!");
       mprintf("\n");
     }
@@ -286,7 +277,7 @@ bool atommap::BondIsRepeated(int atom, int bond) {
     //        bondedAtom2,names[bondedAtom2]);
     // If bondedAtom2 is already mapped dont check it
     if (M[bondedAtom2].isMapped) continue;
-    if (strcmp(atomID(bondedAtom),atomID(bondedAtom2))==0) return true;
+    if ( atomID(bondedAtom) == atomID(bondedAtom2) ) return true;
   }
   return false;
 }
@@ -297,27 +288,24 @@ bool atommap::BondIsRepeated(int atom, int bond) {
   * to X for now, bromine to Y etc.
   */
 int atommap::setup() {
-  int atom,bond;
-
   natom=mapParm->natom;
-  names=(char**) malloc(natom * sizeof(char*));
-  // Set up atom names.
-  for (atom=0; atom<natom; atom++) {
-    names[atom]=(char*) malloc(2*sizeof(char));
-    names[atom][0] = GetElementFromName(mapParm->AtomName(atom));
-    names[atom][1]='\0';
+  names = new char[ natom ];
+  // Set up 1 char atom names.
+  for (int atom=0; atom<natom; atom++) {
+    names[atom]=ConvertNameToChar(mapParm->AtomName(atom));
     // DEBUG
-    if (debug>0) mprintf("  Atom %i element: [%s]\n",atom,names[atom]);
+    if (debug>0) mprintf("  Atom %i:%s 1 char atom name: [%c]\n",
+                         atom+1,mapParm->AtomName(atom),names[atom]);
   }
   // Allocate memory for atoms and initialize each atom
-  M=(mapatom*) malloc( natom * sizeof(mapatom));
-  for (atom=0; atom<natom; atom++) {
-    for (bond=0; bond<MAXBONDS; bond++) M[atom].bond[bond]=-1;
+  M = new mapatom[ natom ];
+  for (int atom=0; atom<natom; atom++) {
+    //for (int bond=0; bond<MAXBONDS; bond++) M[atom].bond[bond]=-1;
     M[atom].nbond=0;
     M[atom].complete=false;
     M[atom].isChiral=false;
-    memset(M[atom].atomID,' ',ATOMIDLENGTH);
-    memset(M[atom].unique,' ',UNIQUELENGTH);
+    M[atom].atomID.clear();
+    M[atom].unique.clear();
     M[atom].isUnique=true; // Assume unique until proven otherwise
     M[atom].Nduplicated=0;
     M[atom].isMapped=false;
@@ -379,7 +367,7 @@ AtomMap::AtomMap() {
 
 // DESTRUCTOR
 AtomMap::~AtomMap() {
-  if (AMap!=NULL) free(AMap);
+  if (AMap!=NULL) delete[] AMap;
   if (newFrame!=NULL) delete newFrame;
   if (newParm!=NULL) delete newParm;
   if (stripParm!=NULL) delete stripParm;
@@ -441,7 +429,7 @@ int AtomMap::mapBondsToUnique(atommap *Ref, atommap *Tgt) {
           if ( Tgt->BondIsRepeated(tatom, tbond) ) continue;
           // At this point t is the only one of its kind bonded to tatom.
           // Check if its atomID matches r. If so, map it.
-          if ( strcmp(Ref->atomID(r), Tgt->atomID(t))==0 ) {
+          if ( Ref->atomID(r) == Tgt->atomID(t) ) {
             if (debug>0) 
               mprintf("    Mapping tgt %i:%s to ref %i:%s based on single bond to unique.\n",
                       t,Tgt->Aname(t),r,Ref->Aname(r));
@@ -544,7 +532,7 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
     if (notunique_r!=notunique_t) 
       mprintf("Warning: Ref and Tgt do not have the same # of nonmapped atoms.\n");
     if (debug>0) { 
-      mprintf("  Potential Chiral center %i_%s/%i_%s: Mapped atoms=%i, non-Mapped=%i/%i\n",
+      mprintf("  Potential Chiral center %i_%c/%i_%c: Mapped atoms=%i, non-Mapped=%i/%i\n",
               atom,Ref->names[atom],tatom,Tgt->names[tatom],
               nunique,notunique_r,notunique_t);
       for (r=0; r<nunique; r++)
@@ -629,7 +617,7 @@ int AtomMap::mapUniqueRefToTgt(atommap *Ref, atommap *Tgt, int atom) {
     }
     if (alreadyMapped) continue;
     // Check name
-    if ( strcmp(Tgt->names[t], Ref->names[atom])==0) {
+    if ( Tgt->names[t] == Ref->names[atom] ) {
       if (debug>1) mprintf("        Attempting match of Tgt %i:%s to Ref %i:%s\n",
               t,Tgt->Aname(t),atom,Ref->Aname(atom));
       // Check that at least 1 bond is in common
@@ -750,10 +738,10 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
         if (Tgt->M[t].isMapped) continue;
         // Atom r bonded to atom, atom t bonded to tatom. r and t are not
         // yet mapped. Check if names match
-        if (strcmp(Ref->names[r],Tgt->names[t])!=0) continue;
+        if ( Ref->names[r] != Tgt->names[t] ) continue;
         // If the uniqueIDs of bonded atom r and bonded atom t match, map them now
         // NOTE: Scan for repeats?
-        if (strcmp(Ref->M[r].unique,Tgt->M[t].unique)==0) {
+        if ( Ref->M[r].unique == Tgt->M[t].unique ) {
           match = t;
           break;
         }
@@ -807,10 +795,10 @@ int AtomMap::MapUniqueAtoms(atommap *Ref, atommap *Tgt) {
       for (targetatom=0; targetatom<Tgt->natom; targetatom++) {
         // If ID of thie target atom is unique, check if it matches reference atom ID
         if (Tgt->M[targetatom].isUnique) {
-          if ( strcmp(Tgt->M[targetatom].unique, Ref->M[refatom].unique)==0 ) {
+          if ( Tgt->M[targetatom].unique == Ref->M[refatom].unique ) {
             // Check that number of bonds is consistent
             if (Ref->M[refatom].nbond!=Tgt->M[targetatom].nbond) {
-              mprintf("      Warning: AtomMap: Atoms R%i and T%i have same ID but different # bonds!\n",
+              mprintf("\tWarning: AtomMap: Atoms R%i and T%i have same ID but different # bonds!\n",
                       refatom,targetatom);
             }
             AMap[refatom]=targetatom;
@@ -863,7 +851,7 @@ int AtomMap::MapUniqueAtoms(atommap *Ref, atommap *Tgt) {
       //mprintf("  Ref %i to ",*r);
       for (std::list<int>::iterator t=tgtGuess.begin(); t!=tgtGuess.end(); t++) {
         //mprintf("Tgt %i:",*t);
-        if (strcmp(Ref->M[*r].unique, Tgt->M[*t].unique)==0) {
+        if ( Ref->M[*r].unique == Tgt->M[*t].unique ) {
           //mprintf(" MATCH!\n");
           AMap[*r] = (*t);
           Ref->M[*r].isMapped=true;
@@ -1053,7 +1041,7 @@ int AtomMap::init() {
 
   // Allocate memory for atom map
   //   AMap[reference]=target
-  AMap=(int*) malloc( RefMap.natom * sizeof(int));
+  AMap=new int[ RefMap.natom ]; 
 
   // Map atoms
   if (MapAtoms(&RefMap,&TargetMap)) return 1;

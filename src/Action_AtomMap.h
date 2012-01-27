@@ -1,40 +1,33 @@
 #ifndef INC_ATOMMAP_H
 #define INC_ATOMMAP_H
 #include "Action.h"
-/// Max number of bonds any given atom can have in atommap
-#define MAXBONDS 6
-/// Hold 1 char for atom and each atom it is bonded to (+null)
-// 1 + maxbonds + 1
-#define ATOMIDLENGTH 8
-/// Hold atomID and each atomID it is bonded to (+null)
-// atomidlength * (1 + maxbonds) + 1
-#define UNIQUELENGTH 57
 // Class: atommap
 /// Used to identify sections of a molecule which can then be mapped to another molecule
 class atommap {
     struct mapatom {
-      int bond[MAXBONDS];        ///< Holds indices of other bonded atoms
-      int nbond;                 ///< Number of bonds
+      std::vector<int> bond;     ///< Holds indices of other bonded atoms
+      int nbond;                 ///< Total number of bonds (eventually obsolete)
       bool complete;             ///< true: This atom an all bonded atoms have been mapped
       bool isChiral;             ///< true: Atom is a chiral center
-      char atomID[ATOMIDLENGTH]; ///< ID created from this atom name, then bonded atom names 
-      char unique[UNIQUELENGTH]; ///< ID created from this atomID, then bonded atomIDs
+      std::string atomID;        ///< ID created from this atom name, then bonded atom names
+      std::string unique;        ///< ID created from this atomID, then bonded atomIDs
       bool isUnique;             ///< true: no other unique ID matches this atom
       int Nduplicated;           ///< If !isUnique, how many times is uniqueID duplicated
       bool isMapped;             ///< true: this atom has been mapped
     };
     int debug;
+    static std::string NO_ID;    ///< Static reference for when atom # out of bounds.
   public:
     mapatom *M;         ///< Array of atoms, contains bond info etc
     int natom;          ///< Number of atoms in the map
-    char **names;       ///< Name of each atom
+    char *names;        ///< 1 char Name of each atom
     Frame *mapFrame;    ///< Hold atom coords
     AmberParm *mapParm; ///< Hold corresponding parm
 
     atommap();
     ~atommap();
     void SetDebug(int);
-    const char *atomID(int);
+    const std::string &atomID(int);
     const char *Aname(int);
     int setup();                    ///< Set up atom map, get atom elmt names, init map
     //double getCut(char *, char *);  // Determine bond length cutoff between two atoms
