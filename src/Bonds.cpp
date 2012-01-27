@@ -166,38 +166,7 @@ char ConvertNameToChar(NAME Name) {
   return AtomicElementChar[ element ];
 }
 
-// CharNameToElement()
-/// Convert 1 char atom name to element. Only used by AtomMap. 
-static AtomicElementType CharNameToElement(char c0) {
-  switch (c0) {
-    case 'H' : return HYDROGEN; break;
-    case 'C' : return CARBON; break;
-    case 'N' : return NITROGEN; break;
-    case 'O' : return OXYGEN; break;
-    case 'F' : return FLUORINE; break;
-    case 'X' : return CHLORINE; break;
-    case 'Y' : return BROMINE; break;
-    case 'I' : return IODINE; break;
-    case 'P' : return PHOSPHORUS; break;
-    case 'S' : return SULFUR; break;
-    case 'B' : return BORON; break;
-    case 'K' : return POTASSIUM; break;
-  }
-  return UNKNOWN_ELEMENT;
-}
 
-// GetBondedCut()
-/** See below. This version is only used by AtomMap, converts 1 char
-  * atom names to elements, then determines the cutoff.
-  */
-double GetBondedCut(char c1, char c2) {
-  AtomicElementType atom1;
-  AtomicElementType atom2;
-
-  atom1 = CharNameToElement(c1);
-  atom2 = CharNameToElement(c2);
-  return GetBondedCut(atom1,atom2);
-}
 // -----------------------------------------------------------------------------
 
 // GetBondedCut() 

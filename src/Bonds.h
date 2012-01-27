@@ -50,7 +50,6 @@ enum AtomicElementType { UNKNOWN_ELEMENT,
 #define NUM_DEFINED_ELEMENTS 22
 AtomicElementType ElementFromName(char *);
 char ConvertNameToChar(NAME); // AtomMap only
-double GetBondedCut(char , char ); // AtomMap only
 double GetBondedCut(NAME, NAME);
 double GetBondedCut(AtomicElementType, AtomicElementType);
 #endif
