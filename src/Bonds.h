@@ -8,17 +8,17 @@
 // ---------- DEFINES
 #define MAXNUMBONDS 7
 // Class: BondInfo
-/// Used to determine how many unique non-covalently bonded molecules
-/// exist within a set of atoms.
+/// Hold information on what atoms each atom is bonded to.
 class BondInfo {
-    // Mol maxbonds #bonds bond1 bond2 bond3 bond4 bond5 bond6 bond7 
-    // 0   1        2      3     4     5     6     7     8     9
+    /// Hold bonding information for an atom
     struct bondinfo {
-      int mol;
-      int maxbonds;
-      std::vector<int> bond;
+      int mol;               ///< Molecule number of this atom
+      int maxbonds;          ///< Maximum number of bonds this atom should have
+      std::vector<int> bond; ///< Array of atom #s that this atom is bonded to
     }; 
+    /// Hold bonding information for each atom in the system
     std::vector<bondinfo> Molecule;
+    /// Total number of atoms.
     int natom;
 
     int BondAtoms(int,int);
@@ -49,8 +49,8 @@ enum AtomicElementType { UNKNOWN_ELEMENT,
 };
 #define NUM_DEFINED_ELEMENTS 22
 AtomicElementType ElementFromName(char *);
-char GetElementFromName(char *);
+char ConvertNameToChar(NAME); // AtomMap only
+double GetBondedCut(char , char ); // AtomMap only
 double GetBondedCut(NAME, NAME);
-double GetBondedCut(char , char );
 double GetBondedCut(AtomicElementType, AtomicElementType);
 #endif

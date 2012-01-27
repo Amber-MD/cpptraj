@@ -8,8 +8,15 @@
 /// Atom names corresponding to AtomicElementType.
 // 2 chars + NULL.
 const char AtomicElementName[NUM_DEFINED_ELEMENTS][3] = { "??",
-  "H", "B", "C", "N", "O", "F", "P", "S", "Cl", "Br", "Fe", "Ca",
+  "H",  "B",  "C",  "N", "O",  "F",  "P",  "S", "Cl", "Br", "Fe", "Ca",
   "I", "Mg", "Cu", "Li", "K", "Rb", "Cs", "Zn", "Na"
+};
+
+/// Unique 1 char atom names corresponding to AtomicElementType
+// For use when atom mapping
+const char AtomicElementChar[NUM_DEFINED_ELEMENTS] = { 0,
+  'H',  'B',  'C',  'N',  'O', 'F',  'P',  'S',  'X',  'Y',  'f',  'c',
+  'I',  'M',  'U',  'L',  'K', 'R',  'E',  'Z',  'n' 
 };
 
 // ElementFromName()
@@ -97,36 +104,6 @@ static int MaxValence(NAME Name) {
   return valence;
 }
 
-// GetElementFromName()
-/** Base on atom name, return 1 character signifying the element.
-  * Convert chlorine to X, bromine to Y. Only used by AtomMap.
-  */
-char GetElementFromName(char *Name) {
-  char *ptr;
-  char element = 0;
-  // position ptr at first non-space character in name
-  ptr=Name;
-  while (*ptr==' ' && *ptr!='\0') ptr++;
-  // if NULL something went wrong, abort
-  if (*ptr=='\0') {
-    return element;
-  }
-  element=ptr[0];
-  // If no more characters return now
-  if (ptr[1]=='\0') return element;
-  // If C, check for L or l for chlorine
-  if (ptr[0]=='C') {
-    if (ptr[1]=='L' || ptr[1]=='l') element='X';
-  }
-  // If B, check for R or r for bromine
-  if (ptr[0]=='B') {
-    if (ptr[1]=='R' || ptr[1]=='r') element='Y';
-  }
-  // DEBUG
-  //mprintf("\t\tAtom %s element: [%c]\n",Name,element);
-  return element;
-}
-
 // compareElement()
 /** Compare a pair of elements a1 and a2 with target values b1 and b2.
   * If either combination of a1 and a2 match b1 and b2 (i.e. a1==b1 and 
@@ -172,6 +149,23 @@ double GetBondedCut(NAME A1, NAME A2) {
   return GetBondedCut(atom1,atom2);
 }
 
+// ---------- AtomMap related routines; eventually obsolete --------------------
+// ConvertNameToChar()
+/** Base on atom name, return 1 character signifying the element.
+  * Convert chlorine to X, bromine to Y. Only used by AtomMap.
+  */
+char ConvertNameToChar(NAME Name) {
+  AtomicElementType element;
+
+  element = ElementFromName(Name);
+  if (element == UNKNOWN_ELEMENT) return 0;
+
+  //mprintf("\t\tAtom %s element: [%c]\n",Name,AtomicElementChar[element]);
+
+  // Return corresponding char
+  return AtomicElementChar[ element ];
+}
+
 // CharNameToElement()
 /// Convert 1 char atom name to element. Only used by AtomMap. 
 static AtomicElementType CharNameToElement(char c0) {
@@ -204,6 +198,7 @@ double GetBondedCut(char c1, char c2) {
   atom2 = CharNameToElement(c2);
   return GetBondedCut(atom1,atom2);
 }
+// -----------------------------------------------------------------------------
 
 // GetBondedCut() 
 /** Return a cutoff based on optimal covalent bond distance based on the 
