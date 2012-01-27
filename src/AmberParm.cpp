@@ -931,7 +931,7 @@ int AmberParm::OpenParm(char *filename, bool bondsearch, bool molsearch) {
   // Set up bond information if specified and necessary
   if (bondsearch) {
     if (bonds==NULL && bondsh==NULL && parmCoords!=NULL)
-      GetBondsFromCoords();
+      GetBondsFromCoords(parmCoords);
   }
 
   // Set up molecule information if specified and necessary
@@ -1874,7 +1874,7 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
   * residues, then check for bonds between adjacent residues. Adjacent
   * residues in different molecules are not considered.
   */
-void AmberParm::GetBondsFromCoords() {
+void AmberParm::GetBondsFromCoords(double *inputCoords) {
   int res, startatom, stopatom, midatom,atom1, atom2, idx1, idx2, stopResnum;
   double D2, cutoff2;
   int *resmols;
@@ -1887,7 +1887,7 @@ void AmberParm::GetBondsFromCoords() {
   // to compare to dist^2 and avoid the sqrt op.
   //cutoff2 = 0.99920016; // (0.833 * 1.2)^2
 
-  if (parmCoords==NULL) return;
+  if (inputCoords==NULL) return;
   mprintf("\t%s: determining bond info from distances.\n",parmName);
   // Determine bonds within residues.
   for (res = 0; res < nres; res++) {
@@ -1901,7 +1901,7 @@ void AmberParm::GetBondsFromCoords() {
       idx1 = atom1 * 3;
       for (atom2 = atom1 + 1; atom2 < stopatom; atom2++) {
         idx2 = atom2 * 3;
-        D2 = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
+        D2 = DIST2_NoImage(inputCoords + idx1, inputCoords + idx2);
         //mprintf("\t\tGetting cutoff for [%s] - [%s]\n",names[atom1],names[atom2]);
         cutoff2 = GetBondedCut(names[atom1],names[atom2]);
         cutoff2 *= cutoff2; // Op '*' less expensive than sqrt
@@ -1969,7 +1969,7 @@ void AmberParm::GetBondsFromCoords() {
         idx2 = atom2 * 3;
         // Test: Hydrogen should not bond across residues
         if (names[atom2][0]=='H') continue;
-        D2 = DIST2_NoImage(parmCoords + idx1, parmCoords + idx2);
+        D2 = DIST2_NoImage(inputCoords + idx1, inputCoords + idx2);
         cutoff2 = GetBondedCut(names[atom1],names[atom2]);
         cutoff2 *= cutoff2;
         if (D2 < cutoff2) AddBond(atom1,atom2,-1);

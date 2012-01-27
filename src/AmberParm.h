@@ -61,7 +61,6 @@ class AmberParm {
     int ReadParmPSF(CpptrajFile *);
 
     // Routines to fill in missing Bond/Molecule info
-    void GetBondsFromCoords();
     double *parmCoords;
     int DetermineMolecules();
     int SetupExcludedAtoms();
@@ -211,6 +210,7 @@ class AmberParm {
     int atomToMolecule(int);
     int atomToSolventMolecule(int);
 
+    void GetBondsFromCoords(double*);
     int BondArray(std::vector<int> &);
     int BondArrayWithParmIdx(std::vector<int> &);
     int SetupBondInfo();
