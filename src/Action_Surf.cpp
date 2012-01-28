@@ -185,9 +185,9 @@ double Surf::CalcLCPO(int atomi, std::vector<int>  ineighbor) {
           (currentParm->SurfaceInfo[atomi].P4 * sumaijajk) );
 }
 
+#define SURF_USEINLINE
 /* Surf::action()
  * Calculate surface area.
- * 
  */
 int Surf::action() {
   double SA; 
@@ -230,20 +230,25 @@ int Surf::action() {
 #endif      
   for (int maskIndex = 0; maskIndex < Mask1.Nselected; maskIndex++) {
     atomi = Mask1.Selected[maskIndex];
+    // Vdw of atom i
+    double vdwi = currentParm->SurfaceInfo[atomi].vdwradii;
     // Set up neighbor list for atom i
+    // Consider all atoms for icosa, only non-H's for LCPO
     ineighbor.clear();
-    for (atomj = 0; atomj < soluteAtoms; atomj++) {
-      if (atomi!=atomj) { 
-        distIndex = CalcIndex(atomi, atomj, soluteAtoms);
-        // DEBUG
-        //mprintf("SURF_NEIG:  %i %i %i %lf\n",atomi,atomj,distIndex,distances[distIndex]);
-        // Count atoms as neighbors if their VDW radii touch
-        if ( (currentParm->SurfaceInfo[atomi].vdwradii + currentParm->SurfaceInfo[atomj].vdwradii) >
-             distances[distIndex] ) {
-          // Consider all atoms for icosa, only non-H's for LCPO
-          if ( currentParm->SurfaceInfo[atomi].vdwradii > 2.5 &&
-               currentParm->SurfaceInfo[atomj].vdwradii > 2.5 ) {
-            ineighbor.push_back(atomj);
+    // Only build list for atom i if vdw > 2.5
+    if (vdwi > 2.5) {
+      for (atomj = 0; atomj < soluteAtoms; atomj++) {
+        if (atomi!=atomj) {
+          // Vdw of atom j
+          double vdwj = currentParm->SurfaceInfo[atomj].vdwradii; 
+          // Only consider atom j for list if vdw > 2.5
+          if (vdwj > 2.5) {
+            distIndex = CalcIndex(atomi, atomj, soluteAtoms);
+            // DEBUG
+            //mprintf("SURF_NEIG:  %i %i %i %lf\n",atomi,atomj,distIndex,distances[distIndex]);
+            // Count atoms as neighbors if their VDW radii touch
+            if ( (vdwi + vdwj) > distances[distIndex] ) 
+              ineighbor.push_back(atomj);
           }
         }
       }
@@ -265,7 +270,6 @@ int Surf::action() {
     //mprintf("\n");
 
     // Calculate surface area of atom i
-    double vdwi = currentParm->SurfaceInfo[atomi].vdwradii;
     double vdwi2 = vdwi * vdwi;
     double Si = vdwi2 * FOURPI;
 
