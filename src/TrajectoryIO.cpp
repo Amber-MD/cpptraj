@@ -102,3 +102,8 @@ void TrajectoryIO::SetTemperature() {
   hasTemperature = true;
 }
 
+// TrajectoryIO::Filename()
+char *TrajectoryIO::Filename() {
+  if (tfile==NULL) return NULL;
+  return tfile->filename;
+}

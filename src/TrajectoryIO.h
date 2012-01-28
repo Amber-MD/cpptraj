@@ -84,5 +84,7 @@ class TrajectoryIO {
     void SetTemperature();
     /// Return the trajectory format
     FileFormat TrajFormat();
+    /// Return the filename
+    char *Filename();
 }; 
 #endif
