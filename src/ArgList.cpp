@@ -449,6 +449,28 @@ double ArgList::getKeyDouble(const char *key, double def) {
   return def;
 }
 
+// ArgList::getKeyArgList()
+/** Search the argument list for key. Return the argument following
+  * key (expected to be comma-separated) as a new argument list.
+  * If key is not found return an empty argument list.
+  */
+ArgList ArgList::getKeyArgList(const char *key) {
+  ArgList return_list;
+  unsigned int nargs = arglist.size() - 1;
+  for (unsigned int arg=0; arg < nargs; arg++)
+    if (!marked[arg]) {
+      if (arglist[arg] == key) {
+        marked[arg]=true;
+        ++arg;
+        // Separate this arg by comma
+        return_list.SetList((char*)arglist[arg].c_str(), ",");
+        marked[arg]=true;
+        return return_list;
+      }
+    }
+  return return_list;
+}
+
 // ArgList::hasKey()
 /** Search the argument list for key, mark and return true if found.
   * \param key string to search for
