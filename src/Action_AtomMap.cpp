@@ -1,5 +1,6 @@
 // AtomMap
 #include <algorithm> //sort
+#include <cstring> //memcpy
 #include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
@@ -302,15 +303,24 @@ int atommap::setup() {
   for (int atom=0; atom<natom; atom++) {
     //for (int bond=0; bond<MAXBONDS; bond++) M[atom].bond[bond]=-1;
     M[atom].nbond=0;
-    M[atom].complete=false;
     M[atom].isChiral=false;
     M[atom].atomID.clear();
     M[atom].unique.clear();
     M[atom].isUnique=true; // Assume unique until proven otherwise
     M[atom].Nduplicated=0;
     M[atom].isMapped=false;
+    M[atom].complete=false;
   }
   return 0;
+}
+
+// atommap::ResetMapping()
+/** Reset all prior mapping-related information. */
+void atommap::ResetMapping() {
+  for (int atom=0; atom<natom; atom++) {
+    M[atom].isMapped=false;
+    M[atom].complete=false;
+  }
 }
 
 // DEBUG
@@ -704,8 +714,10 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
     // The # of bonds might not be equal if the # atoms in ref and tgt
     // not equal.
     if (Ref->M[atom].nbond!=Tgt->M[tatom].nbond) {
-      mprintf("      Warning: mapByIndex: Ref atom %i:%s #bonds (%i) does not match Tgt atom %i:%s (%i)\n",
-              atom,Ref->Aname(atom),Ref->M[atom].nbond,tatom,Tgt->Aname(tatom),Tgt->M[tatom].nbond);
+      mprintf(
+        "\tWarning: mapByIndex: Ref atom %i:%s #bonds (%i) does not match Tgt atom %i:%s (%i)\n",
+        atom,Ref->Aname(atom),Ref->M[atom].nbond,tatom,Tgt->Aname(tatom),Tgt->M[tatom].nbond
+      );
       //return 1;
     }
     // Skip completely mapped atoms - check that both Ref and Tgt are complete
@@ -750,7 +762,7 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
         if (match==-1) {
           match = t;
         } else {
-          mprintf("      Warning: mapByIndex: Atom %i:%s bonded to Ref %i:%s has too many matches.\n",
+          mprintf("\tWarning: mapByIndex: Atom %i:%s bonded to Ref %i:%s has too many matches.\n",
                   r,Ref->Aname(r),atom,Ref->Aname(atom));
           match = -1;
           break;
@@ -774,7 +786,6 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
   return numAtomsMapped;
 }
 
-
 // AtomMap::MapUniqueAtoms()
 /** Map unique atoms in reference to unique atoms in target. If no atoms
   * can be mapped in this way, attempt to guess a starting point based
@@ -783,9 +794,8 @@ int AtomMap::mapByIndex(atommap *Ref, atommap *Tgt) {
   */
 int AtomMap::MapUniqueAtoms(atommap *Ref, atommap *Tgt) {
   int refatom,targetatom;
-  std::list<int> refGuess;
-  std::list<int> tgtGuess;
   int numAtomsMapped=0;
+
   // Atoms have now been assigned IDs. Match up the unique strings in Ref with 
   // unique strings in target.
   for (refatom=0; refatom<Ref->natom; refatom++) {
@@ -816,78 +826,146 @@ int AtomMap::MapUniqueAtoms(atommap *Ref, atommap *Tgt) {
     } // If reference atom is unique
   } // Loop over reference atoms
 
-  // If no unique atoms could be mapped it means the molecule is probably
-  // very symmetric. At this point just try to guess a good starting
-  // point. Map the first atoms that have a uniqueID duplicated only 1
-  // time, preferably a chiral center.
-  if (numAtomsMapped==0) {
-    mprintf("      Warning: No unique atoms found, usually indicates highly symmetric system.\n");
-    mprintf("               Trying to guess starting point.\n");
-    for (refatom=0; refatom < Ref->natom; refatom++) {
-      if (Ref->M[refatom].Nduplicated==1) {
-        if (Ref->M[refatom].isChiral) 
-          refGuess.push_front(refatom);
-        else 
-          refGuess.push_back(refatom);
-      }
-    }
-    for (targetatom=0; targetatom < Tgt->natom; targetatom++) {
-      if (Tgt->M[targetatom].Nduplicated==1) {
-        if (Tgt->M[targetatom].isChiral)
-          tgtGuess.push_front(targetatom);
-        else
-          tgtGuess.push_back(targetatom);
-      }
-    }
-    if (refGuess.empty()) {
-      mprintf("Error: AtomMap: Could not find starting point in reference.\n");
-      return 0;
-    }
-    if (tgtGuess.empty()) {
-      mprintf("Error: AtomMap: Could not find starting point in target.\n");
-      return 0;
-    }
-    for (std::list<int>::iterator r=refGuess.begin(); r!=refGuess.end(); r++) {
-      //mprintf("  Ref %i to ",*r);
-      for (std::list<int>::iterator t=tgtGuess.begin(); t!=tgtGuess.end(); t++) {
-        //mprintf("Tgt %i:",*t);
-        if ( Ref->M[*r].unique == Tgt->M[*t].unique ) {
-          //mprintf(" MATCH!\n");
-          AMap[*r] = (*t);
-          Ref->M[*r].isMapped=true;
-          Tgt->M[*t].isMapped=true;
-          numAtomsMapped++;
-          mprintf("    Mapping Tgt %i:%s to Ref %i:%s based on guess.\n",*t,Tgt->Aname(*t),
-                  *r,Ref->Aname(*r));
-          break;
-        }
-        //mprintf("\n");
-      }
-      if (numAtomsMapped>0) break;
-    }
-    if (numAtomsMapped==0)
-      mprintf("               Could not guess starting point.\n");
-  } // End if numAtomsMapped==0
   return numAtomsMapped;
 }
 
+// AtomMap::MapWithNoUniqueAtoms()
+/** If no unique atoms could be mapped it means the molecule is probably
+  * very symmetric, so try to guess a good starting point. Map the first 
+  * atoms that have a uniqueID duplicated only 1 time, preferably a chiral 
+  * center. Try each pair of atoms and compute the resulting RMSD; use
+  * the map with the lowest overall RMSD.
+  * Note that the current implementation isn't very smart since it will 
+  * try guess pairings that may have already been mapped in a previous
+  * try.
+  */
+// NOTE: Also store the number of atoms mapped?
+int AtomMap::MapWithNoUniqueAtoms( atommap *Ref, atommap *Tgt ) {
+  std::list<int> refGuess;
+  std::list<int> tgtGuess;
+  double lowestRMS = 0;
+  int *bestMap = NULL;
+  int numAtomsMapped;
+  double Rot[9], Trans[6];
+
+  mprintf("      Warning: No unique atoms found, usually indicates highly symmetric system.\n");
+  mprintf("               Trying to guess starting point.\n");
+  //mprintf("DEBUG: Ref has %i atoms, Tgt has %i\n",Ref->natom, Tgt->natom);
+  // Get a list of atoms in ref duplicated only once, preferably chiral
+  for (int refatom=0; refatom < Ref->natom; refatom++) {
+    if (Ref->M[refatom].Nduplicated==1) {
+      if (Ref->M[refatom].isChiral) 
+        refGuess.push_front(refatom);
+      else 
+        refGuess.push_back(refatom);
+    }
+  }
+  if (refGuess.empty()) {
+    mprintf("Error: AtomMap: Could not find starting point in reference.\n");
+    return 1;
+  }
+  mprintf("Ref guess atoms:");
+  for (std::list<int>::iterator r=refGuess.begin(); r!=refGuess.end(); r++)
+    mprintf(" %i",(*r)+1);
+  mprintf("\n");
+  // Get a list of atoms in tgt duplicated only once, preferably chiral
+  for (int targetatom=0; targetatom < Tgt->natom; targetatom++) {
+    if (Tgt->M[targetatom].Nduplicated==1) {
+      if (Tgt->M[targetatom].isChiral)
+        tgtGuess.push_front(targetatom);
+      else
+        tgtGuess.push_back(targetatom);
+    }
+  }
+  if (tgtGuess.empty()) {
+    mprintf("Error: AtomMap: Could not find starting point in target.\n");
+    return 1;
+  }
+  mprintf("Tgt guess atoms:");
+  for (std::list<int>::iterator t=tgtGuess.begin(); t!=tgtGuess.end(); t++)
+    mprintf(" %i",(*t)+1);
+  mprintf("\n");
+  // For each pair of atoms in refGuess and tgtGuess that have the same
+  // ID string, guess that they are mapped and attempt to perform atom
+  // mapping from there.
+  for (std::list<int>::iterator r=refGuess.begin(); r!=refGuess.end(); r++) {
+    for (std::list<int>::iterator t=tgtGuess.begin(); t!=tgtGuess.end(); t++) {
+      if ( Ref->M[*r].unique == Tgt->M[*t].unique ) {
+        // Reset any previous mapping
+        for (int mapi=0; mapi < Ref->natom; mapi++) AMap[mapi]=-1;
+        Ref->ResetMapping();
+        Tgt->ResetMapping();
+        //mprintf("  Ref %i (%i) to Tgt %i (%i) MATCH!\n",*r,Ref->natom,*t,Tgt->natom); // DEBUG
+        // Map this guess
+        AMap[(*r)] = (*t);
+        Ref->M[(*r)].isMapped=true;
+        Tgt->M[(*t)].isMapped=true;
+        mprintf("    Mapping Tgt %i:%s to Ref %i:%s based on guess.\n",
+                (*t)+1,Tgt->Aname(*t),
+                (*r)+1,Ref->Aname(*r));
+        // Attempt to complete mapping based on the guess
+        if ( MapAtoms(Ref,Tgt) ) return 1;
+        // Count number of mapped atoms
+        numAtomsMapped=0;
+        for (int mapi=0; mapi < Ref->natom; mapi++) if (AMap[mapi]!=-1) ++numAtomsMapped;
+        // If < 3 atoms mapped this will cause a problem with RMSD
+        if (numAtomsMapped<3) continue;
+        // Score this mapping with an RMSD ---------------------------------
+        // Set up a reference/target frame containing only mapped atoms
+        int rmsIndex = 0;
+        //mprintf("\tRMS fitting %i atoms from target to reference.\n",numAtomsMapped);
+        rmsRefFrame.SetupFrame(numAtomsMapped,NULL);
+        rmsTgtFrame.SetupFrame(numAtomsMapped,NULL);
+        for (int refatom = 0; refatom < Ref->natom; refatom++) {
+          int targetatom = AMap[refatom];
+          if (targetatom!=-1) {
+            rmsRefFrame.SetCoord(rmsIndex, Ref->mapFrame->Coord(refatom));
+            rmsTgtFrame.SetCoord(rmsIndex, Tgt->mapFrame->Coord(targetatom));
+            ++rmsIndex;
+          }
+        }
+        double RmsVal = rmsTgtFrame.RMSD(&rmsRefFrame, Rot, Trans, false);
+        mprintf("\tRMS fit (%i atoms) based on guess Tgt %i -> Ref %i, %lf\n",
+                numAtomsMapped,(*t)+1, (*r)+1, RmsVal);
+        // -----------------------------------------------------------------
+        // If the current RmsVal is lower than the lowestRMS, store this map.
+        if (bestMap==NULL || RmsVal < lowestRMS) {
+          if (bestMap==NULL) bestMap = new int[ Ref->natom ];
+          memcpy(bestMap, AMap, Ref->natom * sizeof(int));
+          lowestRMS = RmsVal;
+        }
+      }
+    } // End loop over tgt guesses
+  } // End loop over ref guesses
+
+  // If bestMap is NULL something went wrong. Otherwise set AMap to best map.
+  if (bestMap==NULL) {
+    mprinterr("Error: AtomMap::MapWithNoUniqueAtoms: Could not guess starting point.\n");
+    return 1;
+  } else {
+    memcpy(AMap, bestMap, Ref->natom * sizeof(int));
+    delete[] bestMap;
+  }
+  return 0;
+}
+
 // AtomMap::MapAtoms()
-/** Map atoms in tgt to atoms in reference. First map any uniquely identified
-  * atoms. Then map unmapped atoms that are the only one of their kind bonded 
-  * to a unique or already mapped atom (mapBondsToUnique). Then map atoms based 
-  * on chirality; if any atoms are mapped in this way check to see if 
-  * mapBondsToUnique finds new atoms. Last try to guess mapping based on bonds 
-  * (mapByIndex), which will also attempt to map atoms in Ref that are unique 
-  * but not mapped to atoms in Tgt (which can happen e.g. if Tgt is missing 
-  * atoms).
-  * Negative return values from map... routines indicates error.
+/** Map atoms in tgt to atoms in reference. Assumes that any uniquely 
+  * identified atoms have already been mapped. First map unmapped atoms 
+  * that are the only one of their kind bonded to a unique or already 
+  * mapped atom (mapBondsToUnique). Then map atoms based on chirality; 
+  * if any atoms are mapped in this way check to see if mapBondsToUnique 
+  * finds new atoms. Last try to guess mapping based on bonds (mapByIndex), 
+  * which will also attempt to map atoms in Ref that are unique but not 
+  * mapped to atoms in Tgt (which can happen e.g. if Tgt is missing atoms).
+  * Negative return values from mapXXX routines indicates error.
+  * \return 0 on success, 1 on error.
   */
 int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
   bool mapatoms=true;
   int numAtomsMapped;
   int iterations=0;
 
-  numAtomsMapped=MapUniqueAtoms(Ref, Tgt);
   // DEBUG
   //char name[1024];
   //sprintf(name,"Ref.%i.mol2",iterations);
@@ -895,9 +973,6 @@ int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
   //sprintf(name,"Tgt.%i.mol2",iterations);
   //Tgt->WriteMol2(name);
   // END DEBUG
-  if (debug>0)
-    mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",numAtomsMapped);
-  if (numAtomsMapped==0) return 1;
   // Search for completely mapped atoms. If an atom and all atoms
   // it is bonded to are unique, mark the atom as completely mapped.
   RefMap.markComplete();
@@ -905,7 +980,7 @@ int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
 
   // Map remaining non-unique atoms
   while (mapatoms) {
-    iterations++;
+    ++iterations;
     // First assign based on bonds to unique (already mapped) atoms.
     numAtomsMapped=mapBondsToUnique(Ref,Tgt);
     // DEBUG
@@ -957,7 +1032,7 @@ int AtomMap::init() {
   CpptrajFile outputfile;
   int refIndex, targetIndex;
   int refatom,targetatom;
-  int numMappedAtoms=0;
+  int numMappedAtoms;
   AtomMask *M1;
   
   RefMap.SetDebug(debug);
@@ -1042,11 +1117,20 @@ int AtomMap::init() {
   // Allocate memory for atom map
   //   AMap[reference]=target
   AMap=new int[ RefMap.natom ]; 
-
-  // Map atoms
-  if (MapAtoms(&RefMap,&TargetMap)) return 1;
+  // Map unique atoms
+  numMappedAtoms=MapUniqueAtoms(&RefMap, &TargetMap);
+  if (debug>0)
+    mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",numMappedAtoms);
+  // If no unique atoms mapped system is highly symmetric and needs to be
+  // iteratively mapped. Otherwise just map remaining atoms.
+  if (numMappedAtoms==0) { 
+    if (MapWithNoUniqueAtoms(&RefMap,&TargetMap)) return 1;
+  } else {
+    if (MapAtoms(&RefMap,&TargetMap)) return 1;
+  }
 
   // Print atom map and count # mapped atoms
+  numMappedAtoms = 0;
   outputfile.SetupFile(outputname,WRITE,DATAFILE,UNKNOWN_TYPE,debug);
   outputfile.OpenFile();
   outputfile.IO->Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");

@@ -7,13 +7,13 @@ class atommap {
     struct mapatom {
       std::vector<int> bond;     ///< Holds indices of other bonded atoms
       int nbond;                 ///< Total number of bonds (eventually obsolete)
-      bool complete;             ///< true: This atom an all bonded atoms have been mapped
       bool isChiral;             ///< true: Atom is a chiral center
       std::string atomID;        ///< ID created from this atom name, then bonded atom names
       std::string unique;        ///< ID created from this atomID, then bonded atomIDs
       bool isUnique;             ///< true: no other unique ID matches this atom
       int Nduplicated;           ///< If !isUnique, how many times is uniqueID duplicated
       bool isMapped;             ///< true: this atom has been mapped
+      bool complete;             ///< true: This atom an all bonded atoms have been mapped
     };
     int debug;
     static std::string NO_ID;    ///< Static reference for when atom # out of bounds.
@@ -36,6 +36,7 @@ class atommap {
     void markAtomComplete(int,bool);///< Mark complete if atom and all atoms bonded to it are unique
     void markComplete();            ///< Mark unique atoms bonded to all unique atoms as complete
     bool BondIsRepeated(int,int);   ///< True if bonded atom has same name as another bonded atom
+    void ResetMapping();            ///< Reset any existing map information
     // DEBUG
     void WriteMol2(char *);
 };
@@ -50,6 +51,7 @@ class AtomMap : public Action {
     int mapUniqueRefToTgt(atommap *, atommap *, int);
     int MapAtoms(atommap *, atommap *);
     int MapUniqueAtoms(atommap *, atommap *);
+    int MapWithNoUniqueAtoms( atommap *, atommap * );
 
     int *AMap;
     bool maponly;
