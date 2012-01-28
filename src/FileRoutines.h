@@ -7,8 +7,9 @@
 // in FileRoutines.c
 
 // FILE FORMAT:
-/** File format specifies how the data in the file is organized. Not used by
-  * CpptrajFile itself but by higher-level classes.
+/** File format specifies how the data in the file is organized. Returned 
+  * by the file detection routine in CpptrajFile::SetupRead, and by 
+  * higher-level classes such as TrajectoryIO, DataFile, and AmberParm.
   */
 enum FileFormat {
   UNKNOWN_FORMAT, PDBFILE, AMBERTRAJ, AMBERNETCDF, AMBERPARM,
@@ -19,7 +20,7 @@ enum FileFormat {
     
 // FILE TYPE:
 /** File type describes how the file is accessed at the lowest level and
-  * determines what IO class is associated with the file.
+  * determines what FileIO class is associated with the file.
   */ 
 enum FileType {
   UNKNOWN_TYPE, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE

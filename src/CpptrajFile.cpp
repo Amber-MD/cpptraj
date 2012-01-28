@@ -457,6 +457,7 @@ int CpptrajFile::SetupRead() {
   }
 
   // ========== Determine format if UNKNOWN ==========
+  // NOTE: Should this section be moved to FileRoutines?
   // ---------- Read first 3 bytes again to determine format by magic number ----------
   IO->Open(filename,"rb"); // NOTE: Err Check
   memset(magic,0,3*sizeof(unsigned char));
