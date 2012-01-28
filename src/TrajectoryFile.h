@@ -53,7 +53,7 @@ class TrajectoryFile {
     /// If true do not put box information in output traj
     bool nobox;
     /// Set up TrajectoryIO object for reading multiple trajectories at once
-    TrajectoryIO *setupRemdTrajIO(char *, double, char*, FileFormat);
+    TrajectoryIO *setupRemdTrajIO(char *, double, char*, FileFormat, ArgList&);
     /// Set up TrajectoryIO object for the given filename
     TrajectoryIO *setupTrajIO(char *, AccessType, FileFormat, FileType);
     /// Set start/stop/offset args from user input

@@ -72,12 +72,14 @@ void TrajectoryFile::SetTrajName(char *nameIn) {
   * remdfmt. Returns a RemdTraj trajio class.
   */
 TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtrajtemp, 
-                                              char *remdout, FileFormat remdfmt) 
+                                              char *remdout, FileFormat remdfmt,
+                                              ArgList &remdtraj_list) 
 {
   RemdTraj *remdio=NULL;
   TrajectoryIO *replica0=NULL;
   char *repFilename;
   int repnum, repframes;
+  std::vector<std::string> replica_filenames;
 
   // Add lowest replica to the list. Initial set up of remd trajio object
   remdio = new RemdTraj();
@@ -92,29 +94,49 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
   remdio->REMDtraj.push_back( trajio ); 
 
   // ------------------------------------------------------
-  // Scan for additional REMD traj files.
-  // Set base replica name information and get lowest replica number
-  // MUST USE FULL PATH HERE, trajName is only the base filename
-  repnum = remdio->SetReplicaName(lowestRepName);
-  if (repnum < 0) {
-    delete remdio;
-    return NULL;
+  // Automatically scan for additional REMD traj files.
+  if (remdtraj_list.Nargs()==0) {
+    // Set base replica name information and get lowest replica number
+    // MUST USE FULL PATH HERE, trajName is only the base filename
+    repnum = remdio->SetReplicaName(lowestRepName);
+    if (repnum < 0) {
+      delete remdio;
+      return NULL;
+    }
+
+    // Search for a replica number lower than this. Correct functioning
+    // of the replica code requires the file specified by trajin be the
+    // lowest # replica.
+    repFilename = remdio->GetReplicaName(repnum-1);
+    if (fileExists(repFilename)) {
+      mprintf("    Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
+      mprintf("             (Found %s)\n",repFilename);
+      mprintf("             trajin <file> remdtraj requires lowest # replica!\n");
+    }
+
+    // Search for and add all replicas higher than this.
+    repnum++;
+    repFilename = remdio->GetReplicaName(repnum);
+    while ( fileExists(repFilename) ) { 
+      replica_filenames.push_back( repFilename );
+      ++repnum;
+      repFilename = remdio->GetReplicaName(repnum);
+    }
+
+  // Get filenames from args of remdtraj_list
+  } else {
+    while ( (repFilename = remdtraj_list.getNextString()) != NULL ) 
+       replica_filenames.push_back( repFilename );
   }
 
-  // Search for a replica number lower than this. Correct functioning
-  // of the replica code requires the file specified by trajin be the
-  // lowest # replica.
-  repFilename = remdio->GetReplicaName(repnum-1);
-  if (fileExists(repFilename)) {
-    mprintf("    Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
-    mprintf("             (Found %s)\n",repFilename);
-    mprintf("             trajin <file> remdtraj requires lowest # replica!\n");
-  }
-
-  // Search for and add all replicas higher than this.
-  repnum++;
-  repFilename = remdio->GetReplicaName(repnum);
-  while ( fileExists(repFilename) ) {
+  // Loop over all filenames in replica_filenames
+  repnum = 1;
+  for (std::vector<std::string>::iterator repfile = replica_filenames.begin();
+                                          repfile != replica_filenames.end();
+                                          repfile++)
+  {
+    repFilename = (char*) (*repfile).c_str();
+    mprintf("\t[%s]\n",repFilename);
     // Set up replica file repnum trajectory IO
     replica0 = setupTrajIO(repFilename,READ,UNKNOWN_FORMAT,UNKNOWN_TYPE);
     if (replica0==NULL) {
@@ -147,7 +169,6 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
     }
     // Increment
     repnum++;
-    repFilename = remdio->GetReplicaName(repnum);
   }
 
   // If remdout was specified, set up output trajectories
@@ -183,7 +204,8 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(char *lowestRepName, double remdtr
   // Since the repeated calls to setupTrajIO have overwritten trajName, 
   // reset it to the lowest replica name. Note that unlike the non-replica
   // trajName, this will include the full path.
-  SetTrajName( remdio->GetLowestReplicaName() );
+  //SetTrajName( remdio->GetLowestReplicaName() );
+  SetTrajName( lowestRepName );
 
   return (TrajectoryIO*) remdio;
 }
@@ -430,6 +452,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
   char *remdout = NULL;
   bool remdtraj=false;
   FileFormat remdfmt = AMBERTRAJ;
+  ArgList remdtraj_list;
 
   // Check for trajectory filename
   if (tnameIn==NULL && argIn!=NULL)
@@ -470,6 +493,8 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
       mprinterr("       trajectory and amber netcdf files supported for remdout.\n");
       return 1;
     }
+    // Check if replica trajectories are explicitly listed
+    remdtraj_list = argIn->getKeyArgList("trajnames");
   }
 
   // Set this trajectory access to READ
@@ -535,7 +560,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn)
     }
     // Replace this trajio with a special replica traj one that will contain
     // trajio objects for all replicas
-    if ( (trajio = setupRemdTrajIO(tname, remdtrajtemp, remdout, remdfmt))==NULL )
+    if ( (trajio = setupRemdTrajIO(tname, remdtrajtemp, remdout, remdfmt, remdtraj_list))==NULL )
       return 1;
   }
   

@@ -181,6 +181,7 @@ char *RemdTraj::GetReplicaName(int repnum) {
 /** If name information has already been set by SetRepicaName, return
   * the lowest replica filename.
   */
+// NOTE: obsolete?
 char *RemdTraj::GetLowestReplicaName() {
   if (repFilename==NULL) return NULL;
   sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,lowestRepnum,CompressExt);
@@ -265,15 +266,11 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
       if ((*reptrajin)->readFrame(set,remdX,remdV,remdbox,&remdT)) return 1;
       // Check if this is the target temp. If so, set main Frame coords/box/temp
       if (remdT == remdtrajtemp) {
-        //printf("REMDTRAJ: remdout: Set %i TEMP=%lf\n",set,remdframe->T);
-        for (int x=0; x < remdN; x++) 
-          X[x] = remdX[x];
-        if (V!=NULL && hasVelocity) {
-          for (int v=0; v < remdN; v++)
-            V[v] = remdV[v];
-        }
-        for (int b=0; b < 6; b++)
-          box[b] = remdbox[b];
+        //mprintf("REMDTRAJ: remdout: Set %i TEMP=%lf\n",set+1,remdT);
+        memcpy(X, remdX, remdN * sizeof(double));
+        if (V!=NULL && hasVelocity) 
+          memcpy(V, remdV, remdN*sizeof(double));
+        memcpy(box, remdbox, 6 * sizeof(double));
         *T = remdT;
         found=true;
       }
@@ -293,12 +290,14 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
         return 1;
       }
       // Write to output traj
+      //mprintf("REMDTRAJ: Write set %i, T %6.2lf, to %s\n",set+1, remdT, 
+      //        (*reptrajout)->Filename());
       (*reptrajout)->writeFrame(set, remdX,remdV,remdbox,remdT);
     }
   }  // END LOOP over input remd trajectories
   if (found) return 0;
   // If we have made it here this means target was not found
-  mprinterr("\nError: RemdTraj: Final repTemp value read= %lf, set %i\n",*T,set);
+  mprinterr("\nError: RemdTraj: Final repTemp value read= %lf, set %i\n",*T,set+OUTPUTFRAMESHIFT);
   mprinterr("Could not find target %lf in any of the replica trajectories.\n",
             remdtrajtemp);
   mprinterr("Check that all replica trajectory files were found and that\n");
