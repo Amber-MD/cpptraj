@@ -25,6 +25,15 @@ class AmberNetcdf : public TrajectoryIO {
     int cell_spatialVID;
     int cell_angularVID;
     int TempVID;
+    // Multi-D RMED
+    int remd_dimension;
+    int dimensionDID;
+    int groupnumVID;
+    int dimtypeVID;
+    int indicesVID;
+    int *remd_groupnum;
+    int *remd_dimtype;
+    int *remd_indices;
 
     // Inherited functions
     int setupRead(AmberParm*);

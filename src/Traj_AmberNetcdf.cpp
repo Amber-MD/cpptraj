@@ -34,6 +34,15 @@ AmberNetcdf::AmberNetcdf() {
   cell_angularVID=-1;
   TempVID=-1;
 
+  remd_dimension=0;
+  dimensionDID=-1;
+  groupnumVID=-1;
+  dimtypeVID=-1;
+  indicesVID=-1;
+  remd_groupnum=NULL;
+  remd_dimtype=NULL;
+  remd_indices=NULL;
+
   // Netcdf files are always seekable
   seekable=true;
 } 
@@ -43,6 +52,9 @@ AmberNetcdf::~AmberNetcdf() {
   //fprintf(stderr,"Amber Netcdf Destructor\n");
   this->closeTraj();
   if (Coord!=NULL) free(Coord);
+  if (remd_groupnum!=NULL) delete[] remd_groupnum;
+  if (remd_dimtype!=NULL) delete[] remd_dimtype;
+  if (remd_indices!=NULL) delete[] remd_indices;
   // NOTE: Need to close file?
 }
 
@@ -168,6 +180,41 @@ int AmberNetcdf::setupRead(AmberParm* trajParm) {
     hasTemperature=true;
   } else 
     TempVID=-1;
+
+  // Multi-d REMD info
+  if ( nc_inq_dimid(ncid, NCREMD_DIMENSION, &dimensionDID) == NC_NOERR) {
+    // Although this is a second call to dimid, makes for easier code
+    if ( (dimensionDID = GetDimInfo(ncid, NCREMD_DIMENSION, &remd_dimension))==-1 )
+      return -1;
+    mprintf("    Netcdf file has multi-D REMD info, %i dimensions.\n",remd_dimension);
+    // Ensure valid # dimensions
+    if (remd_dimension < 1) {
+      mprinterr("Error: Number of REMD dimensions is less than 1!\n");
+      return -1;
+    }
+    // Start and count for groupnum and dimtype, allocate mem
+    start[0]=0; start[1]=0; start[2]=0;
+    count[0]=remd_dimension; count[1]=0; count[2]=0;
+    remd_groupnum = new int[ remd_dimension ];
+    remd_dimtype = new int[ remd_dimension ];
+    remd_indices = new int[ remd_dimension ];
+    // Get number of groups in each dimension
+    if ( checkNCerr(nc_inq_varid(ncid, NCREMD_GROUPNUM, &groupnumVID),
+                    "Getting group variable ID for each dimension.")!=0 ) return -1; 
+    if ( checkNCerr(nc_get_vara_int(ncid, groupnumVID, start, count, remd_groupnum),
+                    "Getting group numbers in each dimension.")!=0 ) return -1;
+    // Get dimension types
+    if ( checkNCerr(nc_inq_varid(ncid, NCREMD_DIMTYPE, &dimtypeVID),
+                    "Getting dimension type variable ID for each dimension.")!=0 ) return -1;
+    if ( checkNCerr(nc_get_vara_int(ncid, dimtypeVID, start, count, remd_dimtype),
+                    "Getting dimension type in each dimension.")!=0 ) return -1;
+    // Get VID for replica indices
+    if ( checkNCerr(nc_inq_varid(ncid, NCREMD_INDICES, &indicesVID),
+                    "Getting replica indices variable ID.")!=0 ) return -1;
+    // Print info for each dimension
+    for (int dim = 0; dim < remd_dimension; dim++)
+      mprintf("\tDim %i: type %i (%i)\n",dim+1, remd_dimtype[dim], remd_groupnum[dim]);
+  }
 
   // NOTE: TO BE ADDED
   // labelDID;
@@ -353,6 +400,19 @@ int AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) 
     if ( checkNCerr(nc_get_vara_double(ncid, TempVID, start,count,T),
                     "Getting replica temperature.")!=0 ) return 1;
     //fprintf(stderr,"DEBUG: Replica Temperature %lf\n",F->T);
+  }
+
+  // Get replica indices
+  if (indicesVID!=-1) {
+    start[0]=set;
+    start[1]=0;
+    count[0]=1;
+    count[1]=remd_dimension;
+    if ( checkNCerr(nc_get_vara_int(ncid, indicesVID, start, count, remd_indices),
+                    " Getting replica indices.")!=0 ) return 1;
+    mprintf("DEBUG:\tReplica indices:");
+    for (int dim=0; dim < remd_dimension; dim++) mprintf(" %i",remd_indices[dim]);
+    mprintf("\n");
   }
 
   // Read Coords 

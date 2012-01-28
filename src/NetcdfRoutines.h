@@ -18,6 +18,10 @@
 #define NCTIME "time"
 #define NCLABEL "label"
 #define NCLABELLEN 5
+#define NCREMD_DIMENSION "remd_dimension"
+#define NCREMD_GROUPNUM "remd_groupnum"
+#define NCREMD_DIMTYPE "remd_dimtype"
+#define NCREMD_INDICES "remd_indices"
 
 // Routines
 void NetcdfDebug(int);

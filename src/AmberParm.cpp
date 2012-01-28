@@ -1874,6 +1874,7 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
   * residues, then check for bonds between adjacent residues. Adjacent
   * residues in different molecules are not considered.
   */
+// NOTE: Speedup by precalc elements, use grid, get cutoff^2
 void AmberParm::GetBondsFromCoords(double *inputCoords) {
   int res, startatom, stopatom, midatom,atom1, atom2, idx1, idx2, stopResnum;
   double D2, cutoff2;
