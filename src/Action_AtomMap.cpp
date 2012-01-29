@@ -1028,7 +1028,8 @@ int AtomMap::MapAtoms(atommap *Ref, atommap *Tgt) {
   * based on how they are bonded (not how they are named). 
   */
 int AtomMap::init() {
-  char *refName, *targetName, *outputname, *rmsout;
+  char *refName, *targetName, *outputname;
+  char *rmsout = NULL;
   CpptrajFile outputfile;
   int refIndex, targetIndex;
   int refatom,targetatom;

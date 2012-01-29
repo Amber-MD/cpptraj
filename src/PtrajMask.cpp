@@ -1151,7 +1151,10 @@ char *parseMaskString(char *postfix, int atoms, int residues, NAME *atomName,
   char *pToken;
   char buffer[MAXSELE];
   int i;
-  char *p, *pMask1, *pMask2, *pMask;
+  char *p;
+  char *pMask1 = NULL;
+  char *pMask2 = NULL;
+  char *pMask = NULL;
   std::stack<char*> Stack;
   int error = 0;
   /* Elementary atom expressions are converted to mask character
