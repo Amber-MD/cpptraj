@@ -15,10 +15,7 @@ class Surf: public Action {
     AtomMask atomi_neighborMask;
     AtomMask atomi_noNeighborMask;
     AtomMask atomj_neighborMask;
-    double *distances;
-    int soluteAtoms;
 
-    double CalcLCPO(int,std::vector<int> );
   public:
     Surf();
     ~Surf();
