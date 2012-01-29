@@ -1,6 +1,6 @@
 // Surf 
 #include "Action_Surf.h"
-#include "Constants.h" // For FOURPI
+#include "Constants.h" // For FOURPI, TWOPI
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
 #  include "omp.h"
@@ -156,7 +156,7 @@ int Surf::action() {
       double vdwj2 = vdwj * vdwj;
       double dij = *Dij;
       double tmpaij = vdwi - (dij * 0.5) - ( (vdwi2 - vdwj2)/(2.0 * dij) );
-      double aij = 2.0 * PI * vdwi * tmpaij;
+      double aij = TWOPI * vdwi * tmpaij;
       sumaij += aij;
 
       // Find which neighbors of atom i (j and k) are themselves neighbors
