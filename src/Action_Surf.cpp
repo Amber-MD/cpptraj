@@ -49,7 +49,7 @@ int Surf::init() {
   * Get the mask, and check that the atoms in mask belong to solute. 
   */
 int Surf::setup() {
-  int matrixSize, i;
+  int matrixSize;
 
   if (currentParm->SetupIntegerMask( Mask1, activeReference)) return 1;
   if (Mask1.None()) {
@@ -67,13 +67,31 @@ int Surf::setup() {
   mprintf("            LCPO surface area will be calculated for %i atoms.\n",Mask1.Nselected);
 
   // Check that each atom in Mask1 is part of solute
-  for (i=0; i < Mask1.Nselected; i++) {
-    if (Mask1.Selected[i] >= soluteAtoms) {
+  // Create a separate mask for building the atom neighbor list
+  // that only includes atoms with vdw radius > 2.5
+  // Consider all atoms for icosa, only non-H's for LCPO
+  atomi_neighborMask.ResetMask();
+  atomi_noNeighborMask.ResetMask();
+  atomj_neighborMask.ResetMask();
+  for (int i=0; i < Mask1.Nselected; i++) {
+    int atomi = Mask1.Selected[i];
+    if (currentParm->SurfaceInfo[atomi].vdwradii > 2.5)
+      atomi_neighborMask.AddAtom(atomi);
+    else
+      atomi_noNeighborMask.AddAtom(atomi);
+    if (atomi >= soluteAtoms) {
       mprintf("Error: Surf::setup(): Atom %i in mask %s does not belong to solute.\n",
-              Mask1.Selected[i], Mask1.MaskString());
+              atomi+1, Mask1.MaskString());
       return 1;
     }
   }
+  // From all atoms, create a second mask for building atom neighbor list
+  // that only includes atoms with vdw radius > 2.5
+  for (int atomj=0; atomj < soluteAtoms; atomj++) {
+    if (currentParm->SurfaceInfo[atomj].vdwradii > 2.5)
+      atomj_neighborMask.AddAtom(atomj);
+  }
+
   // Allocate distance array
   // Use half square matrix minus the diagonal
   matrixSize = ( (soluteAtoms * soluteAtoms) - soluteAtoms ) / 2;
@@ -228,29 +246,21 @@ int Surf::action() {
 {
 #pragma omp for 
 #endif      
-  for (int maskIndex = 0; maskIndex < Mask1.Nselected; maskIndex++) {
-    atomi = Mask1.Selected[maskIndex];
+  for (int maskIndex = 0; maskIndex < atomi_neighborMask.Nselected; maskIndex++) {
+    atomi = atomi_neighborMask.Selected[maskIndex];
     // Vdw of atom i
     double vdwi = currentParm->SurfaceInfo[atomi].vdwradii;
     // Set up neighbor list for atom i
-    // Consider all atoms for icosa, only non-H's for LCPO
     ineighbor.clear();
-    // Only build list for atom i if vdw > 2.5
-    if (vdwi > 2.5) {
-      for (atomj = 0; atomj < soluteAtoms; atomj++) {
-        if (atomi!=atomj) {
-          // Vdw of atom j
-          double vdwj = currentParm->SurfaceInfo[atomj].vdwradii; 
-          // Only consider atom j for list if vdw > 2.5
-          if (vdwj > 2.5) {
-            distIndex = CalcIndex(atomi, atomj, soluteAtoms);
-            // DEBUG
-            //mprintf("SURF_NEIG:  %i %i %i %lf\n",atomi,atomj,distIndex,distances[distIndex]);
-            // Count atoms as neighbors if their VDW radii touch
-            if ( (vdwi + vdwj) > distances[distIndex] ) 
-              ineighbor.push_back(atomj);
-          }
-        }
+    for (int ajidx = 0; ajidx < atomj_neighborMask.Nselected; ajidx++) {
+      atomj = atomj_neighborMask.Selected[ajidx];
+      if (atomi!=atomj) {
+        distIndex = CalcIndex(atomi, atomj, soluteAtoms);
+        // DEBUG
+        //mprintf("SURF_NEIG:  %i %i %i %lf\n",atomi,atomj,distIndex,distances[distIndex]);
+        // Count atoms as neighbors if their VDW radii touch
+        if ( (vdwi + currentParm->SurfaceInfo[atomj].vdwradii) > distances[distIndex] ) 
+          ineighbor.push_back(atomj);
       }
     }
     // Calculate surface area
@@ -332,6 +342,16 @@ int Surf::action() {
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif
+  // Second loop over atoms with no neighbors (vdw <= 2.5)
+  for (int maskIndex=0; maskIndex < atomi_noNeighborMask.Nselected; maskIndex++) {
+    int atomi = atomi_noNeighborMask.Selected[maskIndex];
+    // Vdw of atom i
+    double vdwi = currentParm->SurfaceInfo[atomi].vdwradii;
+    // Calculate surface area of atom i
+    double vdwi2 = vdwi * vdwi;
+    double Si = vdwi2 * FOURPI; 
+    SA += (currentParm->SurfaceInfo[atomi].P1 * Si);
+  }
 
   surf->Add(frameNum, &SA);
 

@@ -12,6 +12,9 @@
 class Surf: public Action {
     DataSet *surf;
     AtomMask Mask1;
+    AtomMask atomi_neighborMask;
+    AtomMask atomi_noNeighborMask;
+    AtomMask atomj_neighborMask;
     double *distances;
     int soluteAtoms;
 
