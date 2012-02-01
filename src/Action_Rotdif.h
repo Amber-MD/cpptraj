@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_ROTDIF_H
 #define INC_ACTION_ROTDIF_H
 #include "Action.h"
+#include "Random.h"
 // Class: Rotdif
 /// Estimate rotational diffusion tensors from MD simulations
 /** To estimate rotational diffusion tensors from MD simulations along the
@@ -44,6 +45,7 @@ class Rotdif: public Action {
     Frame SelectedTarget;
 
     // Variables used by the random number generator
+    Random_Number RNgen;
     //int iff;
     //int inext;
     //int inextp;
@@ -51,6 +53,8 @@ class Rotdif: public Action {
 
     //double random_number();
     double *randvec();
+    int compute_corr(double *, int, int, double *, double *);
+    double calcEffectiveDiffusionConst(int );
 
     std::vector<double*> Rmatrices; ///< Store rotation matrices
     

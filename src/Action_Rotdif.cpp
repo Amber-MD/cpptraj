@@ -8,9 +8,7 @@
 
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
-  void compute_corr_(double*, double*, double*, int&, int&, int&, double*, double*);
   void dlocint_(double&,double&,int&,double&,double&,int&,double&);
-  double random_(int&);
   void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
 }
 
@@ -118,6 +116,9 @@ int Rotdif::init( ) {
 
   // Dataset
 
+  // Initialize random number generator
+  RNgen.rn_set( rseed );
+
   // Set up reference for RMSD
   // Attempt to get reference index by name
   if (referenceName!=NULL)
@@ -210,68 +211,22 @@ int Rotdif::action() {
   return 0;
 } 
 
-// Rotdif::random_number()
-/** Generate random number based on rseed.
-  */
-/*double Rotdif::random_number() {
-  float mbig = 4000000;
-  float mseed = 1618033;
-  float mz = 0;
-  float fac = 1 / mbig;
-  float mj, mk, random, seed;
-  double random_ret;
- 
-  seed = (float) rseed;
-  if (seed < 0 || iff < 0) {
-    iff = 1;
-    mj = mseed - fabs(seed);
-    mj = fmod(mj, mbig);
-    for (int i=0; i < 55; i++)
-      ma[i] = mj;
-    mk = 1;
-    for (int i=0; i < 54; i++) {
-      int ii = (21*i) % 55;
-      ma[ii] = mk;
-      mk = mj - mk;
-      if ( mk < mz) mk = mk + mbig;
-      mj = ma[ii];
-    } 
-    for (int k = 0; k < 4; k++) { 
-      for (int i = 0; i < 55; i++) {
-        int idx = (i+30) % 55;
-        ma[i] = ma[i] - ma[idx];
-        if (ma[i] < mz) ma[i] = ma[i] + mbig;
-      }
-    }
-    inext = 0;
-    inextp = 31;
-    seed = fabs(seed);
-    rseed = (int) seed;
-  } 
-  ++inext;
-  if (inext==55) inext = 0;
-  ++inextp;
-  if (inextp==55) inextp = 0;
-  mj = ma[inext] - ma[inextp];
-  if (mj < mz) mj = mj + mbig;
-  ma[inext] = mj;
-  random = mj * fac;
-  random_ret = (double) random;
-  return random_ret; 
-}*/
-
+// ---------- ROTATIONAL DIFFUSION CALC ROUTINES -------------------------------
 // Rotdif::randvec()
-/** Generate a set of points uniformly covering surface of unit sphere.
-  *   u,v: uniformly distributed random deviates 0 < u, v < 1
-  *   azimuthal angle phi: rho(phi)=1/2*pi -> phi=2*pi*u 0 < phi < 2*pi
-  *   polar angle theta: rho(theta)=sin(theta) 
-  *                      -> theta=arccos(1-v) 0 < theta < 0.5*pi
-  *   only a single hemisphere is required
-  *   rho(theta)=0.5d0*sin(theta) -> theta=arccos(1-2*v) 0 < theta < pi
-  *   if both hemispheres are required
-  *   see Numerical Recipes sec. 7.2
-  *   http://mathworld.wolfram.com/SpherePoi.html
+/** If no input file is specified by randvecIn, generate nvecs vectors of length 
+  * 1.0 centered at the coordinate origin that are randomly oriented. The x,
+  * y, and z components of each vector are generated from a polar coordinate 
+  * system in which phi is randomly chosen in the range 0 to 2*PI and theta
+  * is randomly chosen in the range 0 to PI/2 (single hemisphere).
+  *   R = 1.0
+  *   x = R * sin(theta) * cos(phi)
+  *   y = R * sin(theta) * sin(phi)
+  *   z = R * cos(theta)
+  * \return Array containing vector XYZ coordinates, X0Y0Z0X1Y1Z1...
+  * \return NULL on error
   */
+// NOTE: Theta could also be generated in the same way as phi. Currently done
+//       to be consistent with the original implementation in randvec.F90
 double *Rotdif::randvec() {
   double *XYZ;
   int xyz_size = nvecs * 3;
@@ -280,7 +235,7 @@ double *Rotdif::randvec() {
 
   XYZ = new double[ xyz_size ];
 
-  // Read nvecs vectors from a file
+  // ----- Read nvecs vectors from a file
   if (randvecIn!=NULL) {
     if (vecIn.SetupFile(randvecIn, READ, debug)) {
       mprinterr("Error: Could not setup random vectors input file %s",randvecIn);
@@ -301,22 +256,16 @@ double *Rotdif::randvec() {
       sscanf(buffer,"%*i %lf %lf %lf",XYZ+i,XYZ+i+1,XYZ+i+2);
     }
     vecIn.CloseFile();
-  // Generate nvecs vectors
+  // ----- Generate nvecs vectors
   } else {
     for (int i = 0; i < xyz_size; i+=3) {
-      //phi=2d0*pi*random(seed)
-      //double phi = TWOPI * random_number();
-      double phi = TWOPI * random_(rseed);
-      //theta=dacos(1d0-random(seed))
-      //double theta = acos( 1 - random_number() );
-      double theta = acos( 1 - random_(rseed) );
+      double phi = TWOPI * RNgen.rn_gen();
+      // XYZ[i+2] is cos(theta)
+      XYZ[i+2] = 1 - RNgen.rn_gen();
+      double theta = acos( XYZ[i+2] );
       double sintheta = sin( theta );
-      //x=dsin(theta)*dcos(phi)
       XYZ[i  ] = sintheta * cos( phi );
-      //y=dsin(theta)*dsin(phi)
       XYZ[i+1] = sintheta * sin( phi );
-      //z=dcos(theta)
-      XYZ[i+2] = cos( theta );
     }
   }
   // Print vectors
@@ -337,21 +286,131 @@ double *Rotdif::randvec() {
 
   return XYZ;
 }
-   
+
+// Rotdif::compute_corr()
+/** Given a vector that has been randomly rotated itotframes times, compute
+  * the time correlation function of the vector.
+  * \param ncorr maximum length to compute time correlation functions - units of 'frames'
+  * \param itotframes total number of frames provided
+  * \param rotated_vectors array of vector coords for each frame, V0x,V0y,V0z,V1x,V1y,V1z 
+  */
+// rotated_vectors, p2 and p1 should be size itotframes+1 
+int Rotdif::compute_corr(double *rotated_vectors, int ncorr, int itotframes, 
+                         double *p2, double *p1)
+{
+  double *VJ, *VK;
+  // Initialize p1 and p2
+  for (int i = 0; i <= ncorr; i++) {
+    p1[i] = 0.0;
+    p2[i] = 0.0;
+  }
+  // Normalize all vectors
+  //VJ = rotated_vectors;
+  //for (int i = 0; i <= itotframes; i++) {
+  //  normalize( VJ );
+  //  VJ += 3;
+  //}
+
+  // i loop:  each value of i is a value of delay (correlation function argument)
+  // NOTE: Eventually optimize kidx and jidx?
+  for (int i = 0; i <= ncorr; i++) {
+    int jmax = itotframes - i + 1;
+    for (int j = 0; j < jmax; j++) {
+      int jidx = j * 3;
+      VJ = rotated_vectors + jidx;
+
+      int k = j + i;
+      int kidx = k * 3;
+      VK = rotated_vectors + kidx;
+
+      //mprintf("DBG i=%6i j=%6i k=%i\n",i,j,k);
+      // Dot vector j with vector k
+      double dot = dot_product( VJ, VK ); 
+      p2[i] = p2[i] + (1.5*dot*dot) - 0.5;
+      p1[i] = p1[i] + dot;
+    }
+    double one_jmax = (double) jmax;
+    one_jmax = 1 / one_jmax;
+    p2[i] = p2[i] * one_jmax;
+    p1[i] = p1[i] * one_jmax;
+  }
+ 
+  return 0; 
+}
+
+// Rotdif::calcEffectiveDiffusionConst()
+/** computes effect diffusion constant for a vector using its
+  * correlation function as input
+  * starting with definition 6*D=integral[0,inf;C(t)] 
+  * integrates C(t) from ti -> tf yielding F(ti,tf)
+  * iteratively solves the equation 
+  * D(i+1)=[exp(6*D(i)*ti)-exp(6*D(i)*tf)]/[6*F(ti,tf)]
+  * (numerator obtained by integrating exp(6*D*t) from ti -> tf)
+
+  * modified so that itsolv now solves
+  * F(ti,tf;C(t)]=integral[ti,tf;C(t)]
+  * D(i+1)={exp[l*(l+1)*D(i)*ti]-exp[l*(l+1)*D(i)*tf)]}/[l*(l+1)*F(ti,tf)]
+  *
+  * ti,tf: integration limits
+  * dydx1,dydxn:  (estimated) first derivatives of function to be
+  *               interpolated (C(t)) by spline/splint; accurate
+  *               estimate not needed
+  * ndat:  # C(t) data points to be used for interpolation
+  * itmax:  maximum number of iterations in subroutine itsolv
+  * delmin:  convergence criterion used in subroutine itsolv;
+  *          maximum accepted fractional change in successive 
+  *          iterations
+  * d0: initial guess for diffusion constant; accurate estimate not
+  *     needed
+  * info:  =1; write out data on convergence of iterative solver
+  * l: order of Legendre polynomial in the correlation function
+  *    <P(l)>
+  * common/ dat/ tdat,ctdat,ndat
+  *   real*8 tdat(nmax),ctdat(nmax)
+  *   integer ndat
+  * common/deriv/ deriv2,dydx1,dydxn
+  *   real*8 deriv2(nmax)
+  *   real*8 dydx1,dydxn
+  */
+// ti,tf,itmax,delmin,d0,l,        deff
+// ti,tf,itmax,delmin,d0,olegendre,deff_val)
+double Rotdif::calcEffectiveDiffusionConst(int maxdat ) {
+  double dydx1, dydxn;
+
+  dydx1 = 0;
+  dydxn = 0;
+  // call intct(ti,tf,sumct)
+  // Integrate the MD generated C(t) from ti->tf.
+  
+  // call       spline(tdat,ctdat,ndat,dydx1,dydxn,deriv2)
+  // subroutine spline(x,   y,    n,   yp1,  ypn,  y2)
+  // subroutine spline computes 2nd derivatives needed by splint
+  /* given arrays x, y defining function y(x), and first derivatives
+   * at x(1) and x(n) yp1, ypn, returns array containing second
+   * derivatives of interpolating function needed by subroutine splint
+   * which produces a cubic spline interpolation of y
+   * note:  spline is called only once for a given function y(x);
+   * interpolation routine splint is called for each desired value
+   * of x using output y2
+   */
+  return 0; 
+}
+
 // Rotdif::print()
 void Rotdif::print() {
   double *random_vectors;
-  double vec_result[3];
   double *deff;
-  double *rotated_x;
-  double *rotated_y;
-  double *rotated_z;
+  double *rotated_vectors;
   double *p1;
   //double *p2;
   double deff_val;
   extern rmscorr_common dat_; // For common block in rmscorr
-  int itotframes = (int) Rmatrices.size();
-  int maxdat = itotframes + 1;
+  int itotframes; 
+  int maxdat;
+  // DEBUG
+  CpptrajFile outfile;
+  char namebuffer[32];
+  // DEBUG
  
   // If no rotation matrices generated, exit
   if (Rmatrices.empty()) return;
@@ -359,17 +418,6 @@ void Rotdif::print() {
   // Generate nvecs random vectors
   random_vectors = randvec();
   if (random_vectors == NULL) return;
-
-  if (ncorr == 0) ncorr = itotframes;
-
-  // Allocate space for rmscorr common block
-  //dat_.tdat = new double[ maxdat ];
-  //dat_.p2 = new double[ maxdat ];
-  dat_.ndat = maxdat;
-  for (int i = 0; i < maxdat; i++) {
-    dat_.tdat[i] = (double) i;
-    dat_.tdat[i] *= tfac;
-  }
 
   // HACK: To match results from rmscorr.f (where rotation matrices are
   //       implicitly transposed), transpose each rotation matrix.
@@ -401,42 +449,59 @@ void Rotdif::print() {
   }
 
   // For each random vector, rotate by all rotation matrices, storing the
-  // resulting vectors. The first entry of rotated_ is the original
+  // resulting vectors. The first entry of rotated_vectors is the original
   // random vector.
-  //double *rotated_vectors = new double[ 3 * itotframes ];
+  itotframes = (int) Rmatrices.size();
+  maxdat = itotframes + 1;
+  if (ncorr == 0) ncorr = itotframes;
+  // Init rmscorr common block
+  //dat_.tdat = new double[ maxdat ];
+  //dat_.p2 = new double[ maxdat ];
+  dat_.ndat = maxdat;
+  for (int i = 0; i < maxdat; i++) {
+    dat_.tdat[i] = (double) i;
+    dat_.tdat[i] *= tfac;
+  }
+  rotated_vectors = new double[ 3 * maxdat ];
   deff = new double[ nvecs ];
-  rotated_x = new double[ maxdat ];
-  rotated_y = new double[ maxdat ];
-  rotated_z = new double[ maxdat ];
   p1 = new double[ maxdat ];
   //p2 = new double[ maxdat ];
   double *rndvec = random_vectors; // Pointer to random vectors
-  //double *vec_result = rotated_vectors; // Pointer to rotated vectors
   for (int vec = 0; vec < nvecs; vec++) {
-    rotated_x[0] = rndvec[0];
-    rotated_y[0] = rndvec[1];
-    rotated_z[0] = rndvec[2];
-    int ridx = 1;
+    double *rotvec = rotated_vectors; // Pointer to rotated vectors
+    // Assign original vector to position 0
+    rotvec[0] = rndvec[0];
+    rotvec[1] = rndvec[1];
+    rotvec[2] = rndvec[2];
+    rotvec += 3;
     for (std::vector<double*>::iterator rmatrix = Rmatrices.begin();
                                         rmatrix != Rmatrices.end();
                                         rmatrix++)
     {
-      matrix_times_vector(vec_result, *rmatrix, rndvec);
-      rotated_x[ridx] = vec_result[0];
-      rotated_y[ridx] = vec_result[1];
-      rotated_z[ridx] = vec_result[2];
-  
+      // Rotate random vector
+      matrix_times_vector(rotvec, *rmatrix, rndvec);
+      // Normalize rotated vector
+      normalize( rotvec );
       // DEBUG
       //mprintf("DBG:%6i%15.8lf%15.8lf%15.8lf\n",ridx,rotated_x[ridx],
       //        rotated_y[ridx],rotated_z[ridx]);
-
-      ++ridx;
-      //vec_result += 3;
+      rotvec += 3;
     }
-    compute_corr_(rotated_x,rotated_y,rotated_z,ncorr,itotframes,maxdat,dat_.p2,p1);
+    //compute_corr_(rotated_x,rotated_y,rotated_z,ncorr,itotframes,maxdat,dat_.p2,p1);
+    compute_corr(rotated_vectors,ncorr,itotframes,dat_.p2,p1);
+    // DEBUG: Write out p1 and p2
+    NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
+    outfile.SetupFile(namebuffer,WRITE,debug);
+    outfile.OpenFile();
+    for (int i = 0; i <= ncorr; i++) 
+      outfile.IO->Printf("%6i %lf %lf\n",i+1,p1[i],dat_.p2[i]);
+    outfile.CloseFile();
+    // END DEBUG
     //for (int i = 0; i < maxdat; i++)
     //  mprintf("%15.8lf%15.8lf\n",dat_.tdat[i],dat_.p2[i]);
     //break;
+    //for (int i = 0; i <= ncorr; i++) 
+    //  mprintf("%6i P1 %8.3lf  P2 %8.3lf\n",i,p1[i],dat_.p2[i]);
 
     dlocint_(ti,tf,itmax,delmin,d0,olegendre,deff_val);
 
@@ -464,9 +529,10 @@ void Rotdif::print() {
   // Cleanup
   delete[] random_vectors;
   delete[] deff;
-  delete[] rotated_x;
-  delete[] rotated_y;
-  delete[] rotated_z;
+  //delete[] rotated_x;
+  //delete[] rotated_y;
+  //delete[] rotated_z;
+  delete[] rotated_vectors;
   delete[] p1;
   //delete[] dat_.tdat;
   //delete[] dat_.p2;

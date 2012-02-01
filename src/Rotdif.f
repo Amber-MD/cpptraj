@@ -42,62 +42,9 @@
       return
       end function random
 
+! ==============================================================================
 !     Rotdif.f: Originally rmscorr.f +++++++++++++++++++++++++++++++++++++++++++
 !     --------------------------------------------------------------------------
-      subroutine compute_corr(x,y,z,ncorr,itotframes,maxdat,p2,p1)
-      implicit none
-
-!     x,y,z: arrays contain coordinates of (unnormalized) vector 
-!     ncorr: maximum length to compute time correlation functions -
-!      units of 'frames'
-!     itotframes:  total number of frames provided
-
-      integer ncorr,itotframes,maxdat
-      real*8 x(maxdat),y(maxdat),z(maxdat)
-      real*8 p2(maxdat),p1(maxdat)
-   
-      integer jmax,j,k
-      real*8 mag,xj,yj,zj,xk,yk,zk,dot
-
-      integer i
-
-      ! DEBUG
-!     write(6,'(a,3(f8.3))') 'xyz0=', x(1), y(1), z(1)
-!     write(6,'(a,i8)') 'ncorr=',ncorr
-!     write(6,'(a,i8)') 'itotframes=',itotframes
-!     write(6,'(a,i8)') 'maxdat=',maxdat
-      ! END DEBUG
-
-      do i=1,ncorr+1
-         p2(i)=0d0
-         p1(i)=0d0
-      end do
-
-!     i loop:  each value of i is a value of delay (correlation
-!     function argument)
-      do i=0,ncorr
-         jmax=itotframes+1-i
-         do j=1,jmax
-            mag=dsqrt(x(j)*x(j)+y(j)*y(j)+z(j)*z(j))
-            xj=x(j)/mag
-            yj=y(j)/mag
-            zj=z(j)/mag
-            k=j+i
-            mag=dsqrt(x(k)*x(k)+y(k)*y(k)+z(k)*z(k))
-            xk=x(k)/mag
-            yk=y(k)/mag
-            zk=z(k)/mag
-            dot=xj*xk+yj*yk+zj*zk
-            p2(i+1)=p2(i+1)+1.5d0*dot*dot-0.5d0
-            p1(i+1)=p1(i+1)+dot
-         end do
-         p2(i+1)=p2(i+1)/dble(jmax)
-         p1(i+1)=p1(i+1)/dble(jmax)
-      end do
-
-      return
-      end
-
 !     --------------------------------------------------------------------------
       subroutine dlocint(ti,tf,itmax,delmin,d0,l,deff)
       implicit none
@@ -462,6 +409,7 @@
       return
       end subroutine itsolv
 
+! ==============================================================================
 !     Rotdif.f: Originally tensorfit.f +++++++++++++++++++++++++++++++++++++++++
 !     --------------------------------------------------------------------------
       subroutine tensorfit(random_vectors, nvecs, deff_in, ndeff, lflag, delqfrac,infoflag)
