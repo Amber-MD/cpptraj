@@ -89,6 +89,37 @@ AtomMask *AtomMask::CopyMask() {
   return newMask;
 }
 
+// AtomMask::NumAtomsInCommon()
+/** Given an atom mask, determine how many selected atoms this mask
+  * has in common with it.
+  */
+int AtomMask::NumAtomsInCommon(AtomMask &maskIn) {
+  std::vector<int> intersect;
+  std::vector<int>::iterator intersect_end;
+
+  if (Selected.empty() || maskIn.Selected.empty()) return 0;
+  // Max size of the intersection is the min size of either array
+  intersect.resize( Selected.size() );
+  // Create copies of arrays so they can be sorted
+  std::vector<int> selected_1 = Selected;
+  std::vector<int> selected_2 = maskIn.Selected;
+  // Sort the arrays
+  sort(selected_1.begin(), selected_1.end());
+  sort(selected_2.begin(), selected_2.end());
+  // Set intersect to the intersection of selected_1 and selectd_2
+  intersect_end = set_intersection(selected_1.begin(), selected_1.end(),
+                                   selected_2.begin(), selected_2.end(),
+                                   intersect.begin());
+  // DEBUG:
+  mprintf("DBG:\tIntersection of [%s] and [%s] is:",maskString.c_str(),maskIn.maskString.c_str());
+  for ( std::vector<int>::iterator atom = intersect.begin();
+                                   atom != intersect_end;
+                                   atom++)
+    mprintf(" %i",*atom);
+  mprintf("\n");
+  return int(intersect_end - intersect.begin());
+}
+
 // AtomMask::AddAtom()
 /** Attempt to enforce some sorting by looking for the atom in the mask;
   * as soon as an atom # is found larger than atomIn, insert it at the

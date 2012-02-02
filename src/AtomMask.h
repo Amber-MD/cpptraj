@@ -52,6 +52,7 @@ class AtomMask {
     void InvertMask();             ///< Switch char used to denote selected atoms (T->F, F->T)
     AtomMask *CopyMask();          ///< Return a copy of this mask
 
+    int NumAtomsInCommon(AtomMask &);
     void AddAtom(int);             ///< Add given atom to Selected array 
     void AddAtoms(std::vector<int>&); ///< Add a list of atoms to mask
     void AddAtomRange(int,int);    ///< Add minAtom <= atom < maxAtom to mask
