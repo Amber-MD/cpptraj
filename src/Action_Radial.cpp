@@ -95,7 +95,7 @@ int Radial::init() {
   if (useVolume)
     mprintf("            Normalizing based on cell volume.\n");
   else
-    mprintf("            Normalizing using particle density of %lf mols/Ang^3.\n",density);
+    mprintf("            Normalizing using particle density of %lf molecules/Ang^3.\n",density);
   if (noimage) 
     mprintf("            Imaging disabled.\n");
 
@@ -214,7 +214,7 @@ void Radial::print() {
   DataSet *Dset;
   bool histloop=true;
   int bin;
-  double R, Rdr, dv, norm;
+  double R, Rdr, dv, norm, numMolecules;
   double N;
   char temp[128];
  
@@ -239,6 +239,14 @@ void Radial::print() {
     mprintf("            Average volume is %lf Ang^3.\n",dv);
     density = (Mask1.Nselected * Mask2.Nselected) / dv;
     mprintf("            Average density is %lf distances / Ang^3.\n",density);
+    // Since the number of distances have already been accounted for,
+    // set the number of molecules to 1.0
+    numMolecules = 1.0;
+  } else {
+    // TEST: Need to determine how many molecules Mask1 corresponds to
+    // Using last parm set, OK???
+    numMolecules = (double) currentParm->NumMoleculesInMask( Mask1 );
+    mprintf("\tMask [%s] corresponds to %.0lf molecules.\n",Mask1.MaskString(), numMolecules);
   }
 
   // Need to normalize each bin, which holds the particle count at that
@@ -270,6 +278,7 @@ void Radial::print() {
     // Divide by # frames, expected # of molecules, and # of RDFs
     norm *= numFrames;
     //norm *= Mask1.Nselected;
+    norm *= numMolecules;
     N /= norm;
 
     Dset->Add(bin,&N);
