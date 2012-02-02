@@ -107,9 +107,11 @@ int PDBfile::setupRead(AmberParm *trajParm) {
     } else {
       // Check that # atoms read in this frame match the first frame
       if (atom>0 && pdbAtom!=atom) {
-        mprinterr("Error: %s: Reading frame %i, got %i atoms, expected %i.\n",tfile->filename,
-                  Frames,atom,pdbAtom);
-        return -1;
+        mprintf("Warning: %s: Reading frame %i, got %i atoms, expected %i.\n",tfile->filename,
+                  Frames+OUTPUTFRAMESHIFT,atom,pdbAtom);
+        mprintf("         Only using frames 1-%i\n",Frames);
+        scanPDB=false;
+        break;
       }
     }  
     if (scanPDB) Frames++;
