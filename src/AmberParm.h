@@ -161,6 +161,7 @@ class AmberParm {
 
     int SetupIntegerMask(AtomMask &, double *);
     int SetupCharMask(AtomMask &, double *);
+    int NumMoleculesInMask(AtomMask &);
 
     int SetupExcludedAtomsList(AtomMask &, std::vector< std::vector<int> > &);
     int GetLJparam(double *, double *, int, int);

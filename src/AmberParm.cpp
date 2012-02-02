@@ -216,6 +216,35 @@ int AmberParm::SetupCharMask(AtomMask &atommaskIn, double *Xin) {
   return SetupAtomMask(atommaskIn, Xin, true);
 }
 
+// AmberParm::NumMoleculesInMask()
+/** Given an atom mask that has already been set up, return the number
+  * of distinct molecules contained by that mask. Assumes the mask
+  * is sorted.
+  */
+int AmberParm::NumMoleculesInMask(AtomMask &atommaskIn) {
+  int numMolecules, lastMolecule;
+
+  if (atomsPerMol == NULL) return 0;
+  numMolecules = 0;
+  lastMolecule = -1;
+  for (std::vector<int>::iterator atom = atommaskIn.Selected.begin();
+                                  atom != atommaskIn.Selected.end();
+                                  atom++)
+  {
+    if (lastMolecule == -1) {
+      lastMolecule = atomToMolecule( *atom );
+      ++numMolecules;
+    } else {
+      int thisMolecule = atomToMolecule( *atom );
+      if (thisMolecule != lastMolecule) {
+        ++numMolecules;
+        lastMolecule = thisMolecule;
+      }
+    }
+  }
+  return numMolecules;
+}
+
 // ---------- ROUTINES FOR ACCESSING RESIDUE AND ATOM INFORMATION -------------- 
 // AmberParm::ResName()
 /** Given a residue number, set buffer with residue name and number with format:
