@@ -1,9 +1,12 @@
 // Radial
-#include "Action_Radial.h"
-#include "CpptrajStdio.h"
 #include <cmath> // sqrt
 #include <cstdio> // sprintf
+#include "Action_Radial.h"
+#include "CpptrajStdio.h"
 #include "Constants.h" // FOURTHIRDSPI
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 
 // CONSTRUCTOR
 Radial::Radial() {
@@ -119,6 +122,18 @@ int Radial::setup() {
     return 1;
   }
 
+  // If not computing a center for mask 1, make the outer loop for distance 
+  // calculation correspond to the mask with the most atoms.
+  if (!center1) {
+    if (Mask1.Nselected > Mask2.Nselected) {
+      OuterMask = Mask1;
+      InnerMask = Mask2;
+    } else {
+      OuterMask = Mask2;
+      InnerMask = Mask1;
+    }
+  }
+
   // Check imaging - check box based on prmtop box
   imageType = 0;
   if (!noimage) {
@@ -135,7 +150,7 @@ int Radial::setup() {
     return 1;
   }
 
-  // Print imaging info for this parm
+  // Print mask and imaging info for this parm
   mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",Mask1.Nselected,Mask2.Nselected);
   if (imageType > 0)
     mprintf("Imaging on.\n");
@@ -171,37 +186,37 @@ int Radial::action() {
       D = sqrt(D);
       //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
       rdf.BinData(&D);
-      numDistances++;
+      ++numDistances;
     } // END loop over 2nd mask
 
   } else {
-//#ifdef _OPENMP
-//#pragma omp parallel private(nmask1,nmask2,atom1,atom2,D)
-//{
-//  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-//#pragma omp for
-//#endif
-  for (nmask1 = 0; nmask1 < Mask1.Nselected; nmask1++) {
-    atom1 = Mask1.Selected[nmask1];
-    for (nmask2 = 0; nmask2 < Mask2.Nselected; nmask2++) {
-      atom2 = Mask2.Selected[nmask2];
-      if (atom1 != atom2) {
-        D = currentFrame->DIST2(atom1,atom2,imageType,ucell,recip);
-        if (D > maximum2) continue;
-        // NOTE: Can we modify the histogram to store D^2?
-        D = sqrt(D);
-        //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
-        rdf.BinData(&D);
-        numDistances++;
-      }
-    } // END loop over 2nd mask
-  } // END loop over 1st mask
-//#ifdef _OPENMP
-//} // END pragma omp parallel
-//#endif
-  }
+#ifdef _OPENMP
+#pragma omp parallel private(nmask1,nmask2,atom1,atom2,D) 
+{
+  mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+#pragma omp for
+#endif
+    for (nmask1 = 0; nmask1 < OuterMask.Nselected; nmask1++) {
+      atom1 = OuterMask.Selected[nmask1];
+      for (nmask2 = 0; nmask2 < InnerMask.Nselected; nmask2++) {
+        atom2 = InnerMask.Selected[nmask2];
+        if (atom1 != atom2) {
+          D = currentFrame->DIST2(atom1,atom2,imageType,ucell,recip);
+          if (D > maximum2) continue;
+          // NOTE: Can we modify the histogram to store D^2?
+          D = sqrt(D);
+          //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
+          rdf.BinData(&D);
+          ++numDistances;
+        }
+      } // END loop over 2nd mask
+    } // END loop over 1st mask
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif 
+  } // END if center1
 
-  numFrames++;
+  ++numFrames;
 
   return 0;
 } 
@@ -214,7 +229,7 @@ void Radial::print() {
   DataSet *Dset;
   bool histloop=true;
   int bin;
-  double R, Rdr, dv, norm, numMolecules;
+  double R, Rdr, dv, norm;//, numMolecules;
   double N;
   char temp[128];
  
@@ -232,21 +247,28 @@ void Radial::print() {
 
   mprintf("    RADIAL: %i frames, %i distances.\n",numFrames,numDistances);
   //mprintf("            Histogram has %.0lf values.\n",rdf.BinTotal());
+
+  // If Mask1 and Mask2 have any atoms in common distances were not calcd
+  // between them (because they are 0.0 of course); need to correct for this.
+  int numSameAtoms = Mask1.NumAtomsInCommon( Mask2 );
   
   // If useVolume, calculate the density from the average volume
   if (useVolume) {
     dv = volume / numFrames;
     mprintf("            Average volume is %lf Ang^3.\n",dv);
-    density = (Mask1.Nselected * Mask2.Nselected) / dv;
+    density = ((double)Mask1.Nselected * (double)Mask2.Nselected - (double)numSameAtoms) / dv;
     mprintf("            Average density is %lf distances / Ang^3.\n",density);
     // Since the number of distances have already been accounted for,
     // set the number of molecules to 1.0
-    numMolecules = 1.0;
+    //numMolecules = 1.0;
   } else {
     // TEST: Need to determine how many molecules Mask1 corresponds to
     // Using last parm set, OK???
-    numMolecules = (double) currentParm->NumMoleculesInMask( Mask1 );
-    mprintf("\tMask [%s] corresponds to %.0lf molecules.\n",Mask1.MaskString(), numMolecules);
+    //numMolecules = (double) currentParm->NumMoleculesInMask( Mask1 );
+    //mprintf("\tMask [%s] corresponds to %.0lf molecules.\n",Mask1.MaskString(), numMolecules);
+    density = density * ((double)Mask1.Nselected * (double)Mask2.Nselected - (double)numSameAtoms) /
+              ((double)Mask1.Nselected);
+    mprintf("            Density is %lf distances / Ang^3.\n",density);
   }
 
   // Need to normalize each bin, which holds the particle count at that
@@ -271,14 +293,10 @@ void Radial::print() {
     // Expected # molecules in this volume slice
     norm = dv * density;
     if (debug>0)
-      mprintf("    \tBin %lf->%lf %lf V %lf, D %lf, expect %lf molecules.\n",
+      mprintf("    \tBin %lf->%lf %lf V %lf, D %lf, norm %lf\n",
               R,Rdr,N/numFrames,dv,density,norm);
-    // DEBUG: Hack for selecting both Hs and O.
-    //norm *= 3;
-    // Divide by # frames, expected # of molecules, and # of RDFs
+    // Divide by # frames
     norm *= numFrames;
-    //norm *= Mask1.Nselected;
-    norm *= numMolecules;
     N /= norm;
 
     Dset->Add(bin,&N);

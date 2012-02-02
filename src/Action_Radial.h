@@ -9,6 +9,7 @@ class Radial: public Action {
     bool noimage;
     int imageType; 
     AtomMask Mask1, Mask2;
+    AtomMask OuterMask, InnerMask;
     bool center1;
     bool useVolume;
     double volume;
