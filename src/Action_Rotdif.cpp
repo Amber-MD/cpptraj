@@ -148,8 +148,8 @@ int Rotdif::init( ) {
   else
     mprintf(" %i\n",ncorr);
   mprintf("            Timestep = %.4lf, T0 = %.4lf, TF = %.4lf\n",tfac,ti,tf);
-  mprintf("            Max iterations = %i, tol = %lf, initial guess = %lf\n",itmax,
-          delmin,d0);
+  mprintf("            Max iterations = %i, tol = %lf, initial guess = %lf\n",
+          itmax, delmin,d0);
   mprintf("            Order of Legendre polynomial = %i\n",olegendre);
   mprintf("            lflag=%i, delqfrac=%.4lf\n",lflag,delqfrac);
   if (randvecIn!=NULL)
@@ -339,39 +339,45 @@ int Rotdif::compute_corr(double *rotated_vectors, int ncorr, int itotframes,
 }
 
 // Rotdif::calcEffectiveDiffusionConst()
-/** computes effect diffusion constant for a vector using its
-  * correlation function as input
-  * starting with definition 6*D=integral[0,inf;C(t)] 
-  * integrates C(t) from ti -> tf yielding F(ti,tf)
-  * iteratively solves the equation 
-  * D(i+1)=[exp(6*D(i)*ti)-exp(6*D(i)*tf)]/[6*F(ti,tf)]
-  * (numerator obtained by integrating exp(6*D*t) from ti -> tf)
-
-  * modified so that itsolv now solves
-  * F(ti,tf;C(t)]=integral[ti,tf;C(t)]
-  * D(i+1)={exp[l*(l+1)*D(i)*ti]-exp[l*(l+1)*D(i)*tf)]}/[l*(l+1)*F(ti,tf)]
+/** computes effect diffusion constant for a vector using its correlation 
+  * function as input. Starting with definition:
   *
-  * ti,tf: integration limits
-  * dydx1,dydxn:  (estimated) first derivatives of function to be
-  *               interpolated (C(t)) by spline/splint; accurate
-  *               estimate not needed
-  * ndat:  # C(t) data points to be used for interpolation
-  * itmax:  maximum number of iterations in subroutine itsolv
-  * delmin:  convergence criterion used in subroutine itsolv;
-  *          maximum accepted fractional change in successive 
-  *          iterations
-  * d0: initial guess for diffusion constant; accurate estimate not
-  *     needed
-  * info:  =1; write out data on convergence of iterative solver
-  * l: order of Legendre polynomial in the correlation function
-  *    <P(l)>
-  * common/ dat/ tdat,ctdat,ndat
-  *   real*8 tdat(nmax),ctdat(nmax)
-  *   integer ndat
-  * common/deriv/ deriv2,dydx1,dydxn
-  *   real*8 deriv2(nmax)
-  *   real*8 dydx1,dydxn
+  *   6*D=integral[0,inf;C(t)] 
+  *
+  * integrate C(t) from ti -> tf yielding F(ti,tf).
+  * Iteratively solves the equation 
+  *
+  *   D(i+1)=[exp(6*D(i)*ti)-exp(6*D(i)*tf)]/[6*F(ti,tf)]
+  *
+  * (numerator obtained by integrating exp(6*D*t) from ti -> tf)
+  *
+  * Modified so that itsolv now solves
+  *
+  * F(ti,tf;C(t)]=integral[ti,tf;C(t)]
+  *
+  * D(i+1)={exp[l*(l+1)*D(i)*ti]-exp[l*(l+1)*D(i)*tf)]}/[l*(l+1)*F(ti,tf)]
   */
+// ti,tf: integration limits
+// dydx1,dydxn:  (estimated) first derivatives of function to be
+//               interpolated (C(t)) by spline/splint; accurate
+//               estimate not needed
+// ndat:  # C(t) data points to be used for interpolation
+// itmax:  maximum number of iterations in subroutine itsolv
+// delmin:  convergence criterion used in subroutine itsolv;
+//          maximum accepted fractional change in successive 
+//          iterations
+// d0: initial guess for diffusion constant; accurate estimate not
+//     needed
+// info:  =1; write out data on convergence of iterative solver
+// l: order of Legendre polynomial in the correlation function
+//    <P(l)>
+// common/ dat/ tdat,ctdat,ndat
+// common/ dat/ tdat,p2,   ndat
+//   real*8 tdat(nmax),ctdat(nmax)
+//   integer ndat
+// common/deriv/ deriv2,dydx1,dydxn
+//   real*8 deriv2(nmax)
+//   real*8 dydx1,dydxn
 // ti,tf,itmax,delmin,d0,l,        deff
 // ti,tf,itmax,delmin,d0,olegendre,deff_val)
 double Rotdif::calcEffectiveDiffusionConst(int maxdat ) {
@@ -405,8 +411,8 @@ void Rotdif::print() {
   //double *p2;
   double deff_val;
   extern rmscorr_common dat_; // For common block in rmscorr
-  int itotframes; 
-  int maxdat;
+  int itotframes; // Total number of frames (rotation matrices) 
+  int maxdat;     // Length of the correlation function, itotframes + 1 (the original vector)
   // DEBUG
   CpptrajFile outfile;
   char namebuffer[32];
@@ -448,53 +454,60 @@ void Rotdif::print() {
     }
   }
 
-  // For each random vector, rotate by all rotation matrices, storing the
-  // resulting vectors. The first entry of rotated_vectors is the original
-  // random vector.
+  // Calculate effective diffusion constant deff for each random vector. 
+  // Vectors will be normalized during this phase. First rotate the vector 
+  // by all rotation matrices, storing the resulting vectors. The first entry 
+  // of rotated_vectors is the original random vector. Then calculate the time 
+  // correlation function of the vector. Finally compute the area under the 
+  // time correlation function curve and estimate the diffusion constant.
   itotframes = (int) Rmatrices.size();
   maxdat = itotframes + 1;
   if (ncorr == 0) ncorr = itotframes;
-  // Init rmscorr common block
+  // ----- Init rmscorr common block
   //dat_.tdat = new double[ maxdat ];
   //dat_.p2 = new double[ maxdat ];
   dat_.ndat = maxdat;
+  // tdat here gets set to X values used in correlation fn
   for (int i = 0; i < maxdat; i++) {
     dat_.tdat[i] = (double) i;
     dat_.tdat[i] *= tfac;
   }
+  // -------------------------------
   rotated_vectors = new double[ 3 * maxdat ];
   deff = new double[ nvecs ];
   p1 = new double[ maxdat ];
   //p2 = new double[ maxdat ];
   double *rndvec = random_vectors; // Pointer to random vectors
+  // LOOP OVER RANDOM VECTORS
   for (int vec = 0; vec < nvecs; vec++) {
-    double *rotvec = rotated_vectors; // Pointer to rotated vectors
-    // Assign original vector to position 0
+    double *rotvec = rotated_vectors; // Pointer to soon-to-be rotated vectors
+    // Normalize vector
+    normalize( rndvec );
+    // Assign normalized vector to rotated_vectors position 0
     rotvec[0] = rndvec[0];
     rotvec[1] = rndvec[1];
     rotvec[2] = rndvec[2];
     rotvec += 3;
+    // Loop over rotation matrices
     for (std::vector<double*>::iterator rmatrix = Rmatrices.begin();
                                         rmatrix != Rmatrices.end();
                                         rmatrix++)
     {
-      // Rotate random vector
+      // Rotate normalized vector
       matrix_times_vector(rotvec, *rmatrix, rndvec);
-      // Normalize rotated vector
-      normalize( rotvec );
       // DEBUG
       //mprintf("DBG:%6i%15.8lf%15.8lf%15.8lf\n",ridx,rotated_x[ridx],
       //        rotated_y[ridx],rotated_z[ridx]);
       rotvec += 3;
     }
-    //compute_corr_(rotated_x,rotated_y,rotated_z,ncorr,itotframes,maxdat,dat_.p2,p1);
+    // Calculate time correlation function for this vector
     compute_corr(rotated_vectors,ncorr,itotframes,dat_.p2,p1);
     // DEBUG: Write out p1 and p2
     NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
     outfile.SetupFile(namebuffer,WRITE,debug);
     outfile.OpenFile();
     for (int i = 0; i <= ncorr; i++) 
-      outfile.IO->Printf("%6i %lf %lf\n",i+1,p1[i],dat_.p2[i]);
+      outfile.IO->Printf("%lf %lf %lf\n",dat_.tdat[i], p1[i], dat_.p2[i]);
     outfile.CloseFile();
     // END DEBUG
     //for (int i = 0; i < maxdat; i++)
