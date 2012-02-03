@@ -111,12 +111,12 @@ int AtomMask::NumAtomsInCommon(AtomMask &maskIn) {
                                    selected_2.begin(), selected_2.end(),
                                    intersect.begin());
   // DEBUG:
-  mprintf("DBG:\tIntersection of [%s] and [%s] is:",maskString.c_str(),maskIn.maskString.c_str());
-  for ( std::vector<int>::iterator atom = intersect.begin();
-                                   atom != intersect_end;
-                                   atom++)
-    mprintf(" %i",*atom);
-  mprintf("\n");
+  //mprintf("DBG:\tIntersection of [%s] and [%s] is:",maskString.c_str(),maskIn.maskString.c_str());
+  //for ( std::vector<int>::iterator atom = intersect.begin();
+  //                                 atom != intersect_end;
+  //                                 atom++)
+  //  mprintf(" %i",*atom);
+  //mprintf("\n");
   return int(intersect_end - intersect.begin());
 }
 
