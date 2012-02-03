@@ -54,7 +54,7 @@ class Rotdif: public Action {
     //double random_number();
     double *randvec();
     int compute_corr(double *, int, int, double *, double *);
-    double calcEffectiveDiffusionConst(int );
+    double calcEffectiveDiffusionConst(double );
 
     std::vector<double*> Rmatrices; ///< Store rotation matrices
     

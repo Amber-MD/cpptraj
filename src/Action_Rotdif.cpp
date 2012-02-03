@@ -5,6 +5,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // TWOPI
 #include "vectormath.h"
+#include "Integrate.h"
 
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
@@ -294,7 +295,8 @@ double *Rotdif::randvec() {
   * \param itotframes total number of frames provided
   * \param rotated_vectors array of vector coords for each frame, V0x,V0y,V0z,V1x,V1y,V1z 
   */
-// rotated_vectors, p2 and p1 should be size itotframes+1 
+// rotated_vectors should be size itotframes+1
+// p2 and p1 should be size ncorr+1
 int Rotdif::compute_corr(double *rotated_vectors, int ncorr, int itotframes, 
                          double *p2, double *p1)
 {
@@ -357,49 +359,48 @@ int Rotdif::compute_corr(double *rotated_vectors, int ncorr, int itotframes,
   *
   * D(i+1)={exp[l*(l+1)*D(i)*ti]-exp[l*(l+1)*D(i)*tf)]}/[l*(l+1)*F(ti,tf)]
   */
-// ti,tf: integration limits
-// dydx1,dydxn:  (estimated) first derivatives of function to be
-//               interpolated (C(t)) by spline/splint; accurate
-//               estimate not needed
-// ndat:  # C(t) data points to be used for interpolation
 // itmax:  maximum number of iterations in subroutine itsolv
 // delmin:  convergence criterion used in subroutine itsolv;
 //          maximum accepted fractional change in successive 
 //          iterations
 // d0: initial guess for diffusion constant; accurate estimate not
 //     needed
-// info:  =1; write out data on convergence of iterative solver
 // l: order of Legendre polynomial in the correlation function
 //    <P(l)>
-// common/ dat/ tdat,ctdat,ndat
-// common/ dat/ tdat,p2,   ndat
-//   real*8 tdat(nmax),ctdat(nmax)
-//   integer ndat
-// common/deriv/ deriv2,dydx1,dydxn
-//   real*8 deriv2(nmax)
-//   real*8 dydx1,dydxn
-// ti,tf,itmax,delmin,d0,l,        deff
-// ti,tf,itmax,delmin,d0,olegendre,deff_val)
-double Rotdif::calcEffectiveDiffusionConst(int maxdat ) {
-  double dydx1, dydxn;
+double Rotdif::calcEffectiveDiffusionConst(double f ) {
+//       ti,tf:  Integration limits.
+//    subroutine itsolv(itmax,delmin,l,d0,ti,tf,f,d,info)
+//    solves the equation 6*D=[exp(-6*D*ti)-exp(-6*D*tf)]/F(ti,tf) iteratively, 
+//    by putting 6*D(i+1)=[exp(-6*D(i)*ti)-exp(-6*D(i)*tf)]/F(ti,tf)
+//    where F(ti,tf) is input (integral[dt*C(t)] from ti->tf)
+  double d; 
+  double del;
+  int i;
+  double fac;
 
-  dydx1 = 0;
-  dydxn = 0;
-  // call intct(ti,tf,sumct)
-  // Integrate the MD generated C(t) from ti->tf.
-  
-  // call       spline(tdat,ctdat,ndat,dydx1,dydxn,deriv2)
-  // subroutine spline(x,   y,    n,   yp1,  ypn,  y2)
-  // subroutine spline computes 2nd derivatives needed by splint
-  /* given arrays x, y defining function y(x), and first derivatives
-   * at x(1) and x(n) yp1, ypn, returns array containing second
-   * derivatives of interpolating function needed by subroutine splint
-   * which produces a cubic spline interpolation of y
-   * note:  spline is called only once for a given function y(x);
-   * interpolation routine splint is called for each desired value
-   * of x using output y2
-   */
-  return 0; 
+  double l = (double) olegendre;
+  fac = (l*(l+1));
+  i=1;
+  del=10000000000;
+  while ( i<=itmax && del>delmin) {
+     d = ( exp(-fac*d0*ti) - exp(-fac*d0*tf) );
+     d = d / (fac*f);
+     del = (d-d0)/d0;
+     if (del < 0) del = -del;
+     //del = abs( (d-d0)/d0 );
+     //if (debug>0)
+       mprintf("ITSOLV: %6i  %15.8e  %15.8e  %15.8e\n", i,d0,d,del);
+     d0 = d;
+     ++i;
+  }
+  if ( i>itmax && del>delmin) {
+     mprintf("\tWarning, itsolv did not converge: # iterations=%i, fractional change=%lf\n",
+             i, del);
+  } else {
+    mprintf("\tConverged: # iterations=%i\n",i);
+  }
+
+  return d; 
 }
 
 // Rotdif::print()
@@ -461,8 +462,8 @@ void Rotdif::print() {
   // correlation function of the vector. Finally compute the area under the 
   // time correlation function curve and estimate the diffusion constant.
   itotframes = (int) Rmatrices.size();
-  maxdat = itotframes + 1;
   if (ncorr == 0) ncorr = itotframes;
+  maxdat = ncorr + 1;
   // ----- Init rmscorr common block
   //dat_.tdat = new double[ maxdat ];
   //dat_.p2 = new double[ maxdat ];
@@ -480,6 +481,9 @@ void Rotdif::print() {
   double *rndvec = random_vectors; // Pointer to random vectors
   // LOOP OVER RANDOM VECTORS
   for (int vec = 0; vec < nvecs; vec++) {
+    // DEBUG - skip to vec 1
+    //if (vec==0) {rndvec += 3; continue;}
+    // END DEBUG
     double *rotvec = rotated_vectors; // Pointer to soon-to-be rotated vectors
     // Normalize vector
     normalize( rndvec );
@@ -502,14 +506,49 @@ void Rotdif::print() {
     }
     // Calculate time correlation function for this vector
     compute_corr(rotated_vectors,ncorr,itotframes,dat_.p2,p1);
-    // DEBUG: Write out p1 and p2
+    // DEBUG: Write out p1 and p2 ------------------------------------
     NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
     outfile.SetupFile(namebuffer,WRITE,debug);
     outfile.OpenFile();
-    for (int i = 0; i <= ncorr; i++) 
-      outfile.IO->Printf("%lf %lf %lf\n",dat_.tdat[i], p1[i], dat_.p2[i]);
+    for (int i = 0; i < maxdat; i++) 
+      outfile.IO->Printf("%lf %lf %lf\n",dat_.tdat[i], dat_.p2[i], p1[i]);
     outfile.CloseFile();
-    // END DEBUG
+    //    Allocate mesh
+    int mesh_size = maxdat * 2;
+    double *mesh_x = new double[ mesh_size ];
+    double *mesh_y = new double[ mesh_size ];
+    double s = (ti + tf)/2;
+    double d = (tf - ti)/2;
+    for (int i = 0; i < mesh_size; i++) 
+      mesh_x[i] = s + d*((double) (2*i + 1 - mesh_size)/(mesh_size - 1));
+    //    Calculate spline coefficients
+    double *spline_b = new double[ maxdat ]; 
+    double *spline_c = new double[ maxdat ]; 
+    double *spline_d = new double[ maxdat ]; 
+    cubicSpline_coeff(dat_.tdat, dat_.p2, maxdat,spline_b,spline_c,spline_d);
+    //    Calculate mesh Y values
+    cubicSpline_eval(mesh_x,mesh_y,mesh_size, dat_.tdat,dat_.p2,
+                            spline_b,spline_c,spline_d,maxdat);
+    //    Write Mesh
+    NumberFilename(namebuffer, (char*)"mesh.dat", vec);
+    outfile.SetupFile(namebuffer, WRITE, debug);
+    outfile.OpenFile();
+    for (int i=0; i < mesh_size; i++)
+      outfile.IO->Printf("%lf %lf\n",mesh_x[i],mesh_y[i]);
+    outfile.CloseFile(); 
+    // Integrate
+    double integral = integrate_trapezoid(mesh_x, mesh_y, mesh_size);
+    mprintf("DBG: Vec %i Spline integral= %12.4lf\n",vec,integral);
+    // Solve for deff
+    deff_val = calcEffectiveDiffusionConst(integral);
+    mprintf("DBG: deff is %lf\n",deff_val);
+    //    Cleanup
+    delete[] mesh_x;
+    delete[] mesh_y;
+    delete[] spline_b;
+    delete[] spline_c;
+    delete[] spline_d;
+    // END DEBUG -----------------------------------------------------
     //for (int i = 0; i < maxdat; i++)
     //  mprintf("%15.8lf%15.8lf\n",dat_.tdat[i],dat_.p2[i]);
     //break;
@@ -537,6 +576,7 @@ void Rotdif::print() {
     }
   }
 
+  return; // DEBUG
   tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
 
   // Cleanup

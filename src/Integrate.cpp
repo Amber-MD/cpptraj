@@ -36,6 +36,7 @@ void cubicSpline_coeff(double *x, double *y, int n,
         b[i] = 2.0 * (d[i - 1] + d[i]);
         c[i+1] = (y[i + 1] - y[i]) / d[i];
         c[i] = c[i+1] - c[i];
+        //mprintf("TRIDBG: %i b=%lf c=%lf d=%lf\n",i,b[i],c[i],d[i]);
     }
     
     // End-conditions
@@ -55,13 +56,14 @@ void cubicSpline_coeff(double *x, double *y, int n,
         double t = d[i - 1] / b[i - 1];
         b[i]     = b[i] - t * d[i - 1];
         c[i]     = c[i] - t * c[i - 1];
+        //mprintf("FWDDBG: %i b=%lf c=%lf t=%lf\n",i,b[i],c[i],t);
     }
 
     // Back substitution
     c[n_minus1] = c[n_minus1] / b[n_minus1];
-    for (int ib = 0; ib < n_minus1; ib++) {
-        int i = n - ib;
+    for (int i = n - 2; i > -1; i--) {
         c[i] = (c[i] - d[i] * c[i + 1]) / b[i];
+        //mprintf("BAKDBG: %i c=%lf\n",i,c[i]);
     }
 
     // c(i) is now the sigma(i) of the text
@@ -71,6 +73,7 @@ void cubicSpline_coeff(double *x, double *y, int n,
         b[i] = (y[i + 1] - y[i]) / d[i] - d[i] * (c[i + 1] + 2.0 * c[i]);
         d[i] = (c[i + 1] - c[i]) / d[i];
         c[i] = 3.0 * c[i];
+        //mprintf("POLYDBG: %i b=%lf c=%lf d=%lf\n",i,b[i],c[i],d[i]);
     }
     c[n_minus1] = 3.0 * c[n_minus1];
     d[n_minus1] = d[n - 2];
@@ -138,4 +141,20 @@ int cubicSpline_eval(double *u, double *v, int ulen, double *x, double *y,
   }
   return 0;
 }
+
+// integrate_trapezoid()
+/** Integrate the set x,y of size n using the trapezoid rule.
+  */
+double integrate_trapezoid(double *x, double *y, int n) {
+  double sum = 0.0;
+
+  if (n < 2) return 0.0;
+  
+  for (int i = 1; i < n; i++) {
+      double b_minus_a = (x[i] - x[i - 1]);
+      sum += (b_minus_a * (y[i - 1] + y[i]) * 0.5);
+  }
+  return sum;
+}
+
 

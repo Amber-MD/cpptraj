@@ -96,6 +96,7 @@
       dydxn = 0.d0
 
       call intct(ti,tf,sumct)
+      write(6,'(a,f12.4)') 'DBG: SUMCT is ', sumct
       di=d0
       call itsolv(itmax,delmin,l,di,ti,tf,sumct,deff,info)
 
@@ -394,7 +395,7 @@
          d=d/(fac*f)
          del=dabs((d-d0)/d0)
 !        if(info==1)then
-!          write(3,'(i6,2x,3(e15.8,2x))') i,d0,d,del
+          write(6,'(i6,2x,3(e15.8,2x))') i,d0,d,del
 !        end if
          d0=d
          i=i+1

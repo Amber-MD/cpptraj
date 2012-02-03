@@ -10,4 +10,5 @@
     void cubicSpline_coeff(double *, double *, int, double*, double*, double*);
     int cubicSpline_eval(double*,double*,int,double*,double*,double*,double*,double*,int);
 //};
+    double integrate_trapezoid(double *, double *, int);
 #endif
