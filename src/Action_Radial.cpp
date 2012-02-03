@@ -1,6 +1,6 @@
 // Radial
 #include <cmath> // sqrt
-#include <cstdio> // sprintf
+#include <cstring> // memset
 #include "Action_Radial.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // FOURTHIRDSPI
@@ -11,6 +11,9 @@
 // CONSTRUCTOR
 Radial::Radial() {
   //fprintf(stderr,"Radial Con\n");
+  rdf=NULL;
+  rdf_thread=NULL;
+  numthreads=1;
   noimage=false;
   imageType=0;
   center1=false;
@@ -20,15 +23,23 @@ Radial::Radial() {
   maximum=0;
   maximum2=0;
   spacing=-1;
+  one_over_spacing=-1;
+  numBins=0;
   numFrames=0;
   numDistances=0;
-  // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
+  // Default particle density (molecules/Ang^3) for water based on 1.0 g/mL
   density = 0.033456;
 } 
 
 // DESTRUCTOR
 Radial::~Radial() {
   //fprintf(stderr,"Radial Destructor.\n");
+  if (rdf!=NULL) delete[] rdf;
+  if (rdf_thread!=NULL) {
+    for (int i=0; i < numthreads; i++)
+      delete[] rdf_thread[i];
+    delete[] rdf_thread;
+  }
 }
 
 // Radial::init()
@@ -81,26 +92,45 @@ int Radial::init() {
     Mask2.SetMaskString(mask1);
 
   // Set up histogram
-  rdf.SetDebug(debug);
-  if (rdf.AddDimension((char*)"RDF", 0.0, maximum, spacing)) {
-    mprinterr("Error: Radial: Could not set up histogram for RDF.\n");
-    return 1;
+  one_over_spacing = 1 / spacing;
+  double temp_numbins = maximum * one_over_spacing;
+  temp_numbins = ceil(temp_numbins);
+  numBins = (int) temp_numbins;
+  rdf = new int[ numBins ];
+  memset(rdf, 0, numBins * sizeof(int));
+# ifdef _OPENMP
+  // Since rdf is shared by all threads and we cant guarantee that a given
+  // bin in rdf wont be accessed at the same time by the same thread,
+  // each thread needs its own bin space.
+#pragma omp parallel
+{
+  numthreads = omp_get_num_threads();
+}
+  rdf_thread = new int*[ numthreads ];
+  for (int i=0; i < numthreads; i++) {
+    rdf_thread[i] = new int[ numBins ];
+    memset(rdf_thread[i], 0, numBins * sizeof(int));
   }
-
+# endif
+  
   mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1.MaskString());
   if (mask2!=NULL) 
     mprintf(" to atoms in mask [%s]",Mask2.MaskString());
   mprintf("\n            Output to %s.\n",outfilename);
   if (center1)
     mprintf("            Using center of atoms in mask1.\n");
-  mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",rdf.Max(0),
-          rdf.Step(0),rdf.NBins(0));
+  //mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",rdf.Max(0),
+  //        rdf.Step(0),rdf.NBins(0));
+  mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",maximum,
+          spacing,numBins);
   if (useVolume)
     mprintf("            Normalizing based on cell volume.\n");
   else
     mprintf("            Normalizing using particle density of %lf molecules/Ang^3.\n",density);
   if (noimage) 
     mprintf("            Imaging disabled.\n");
+  if (numthreads > 1)
+    mprintf("            Parallelizing RDF calculation with %i threads.\n",numthreads);
 
   return 0;
 }
@@ -164,10 +194,15 @@ int Radial::setup() {
 /** Calculate distances from atoms in mask1 to atoms in mask 2 and
   * bin them.
   */
+// NOTE: Because of maximum2 not essential to check idx>numBins?
 int Radial::action() {
   double D, ucell[9], recip[9], coord_center[3];
   int atom1, atom2;
   int nmask1, nmask2;
+  int idx, mydistances;
+# ifdef _OPENMP
+  int mythread;
+# endif
 
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
@@ -176,24 +211,28 @@ int Radial::action() {
     if (useVolume)  volume += D;
   }
 
+  mydistances = 0;
   if (center1) {
     currentFrame->GeometricCenter(&Mask1,coord_center);
     for (nmask2 = 0; nmask2 < Mask2.Nselected; nmask2++) {
       atom2 = Mask2.Selected[nmask2];
       D = currentFrame->DIST2(coord_center,atom2,imageType,ucell,recip);
-      if (D > maximum2) continue;
-      // NOTE: Can we modify the histogram to store D^2?
-      D = sqrt(D);
-      //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
-      rdf.BinData(&D);
-      ++numDistances;
+      if (D <= maximum2) {
+        // NOTE: Can we modify the histogram to store D^2?
+        D = sqrt(D);
+        //mprintf("MASKLOOP: %10i %10i %10.4lf\n",atom1,atom2,D);
+        idx = (int) (D * one_over_spacing);
+        if (idx > -1 && idx < numBins) ++rdf[idx];
+        ++numDistances;
+      }
     } // END loop over 2nd mask
 
   } else {
 #ifdef _OPENMP
-#pragma omp parallel private(nmask1,nmask2,atom1,atom2,D) 
+#pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread) reduction(+:mydistances) 
 {
-  mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+  mythread = omp_get_thread_num();
 #pragma omp for
 #endif
     for (nmask1 = 0; nmask1 < OuterMask.Nselected; nmask1++) {
@@ -202,20 +241,28 @@ int Radial::action() {
         atom2 = InnerMask.Selected[nmask2];
         if (atom1 != atom2) {
           D = currentFrame->DIST2(atom1,atom2,imageType,ucell,recip);
-          if (D > maximum2) continue;
-          // NOTE: Can we modify the histogram to store D^2?
-          D = sqrt(D);
-          //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
-          rdf.BinData(&D);
-          ++numDistances;
+          if (D <= maximum2) {
+            // NOTE: Can we modify the histogram to store D^2?
+            D = sqrt(D);
+            //mprintf("MASKLOOP: %10i %10i %10.4lf\n",atom1,atom2,D);
+            idx = (int) (D * one_over_spacing);
+            if (idx > -1 && idx < numBins)
+#             ifdef _OPENMP
+              ++rdf_thread[mythread][idx];
+#             else
+              ++rdf[idx];
+#             endif
+            ++mydistances;
+          }
         }
       } // END loop over 2nd mask
     } // END loop over 1st mask
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif 
+    numDistances += mydistances;
   } // END if center1
-
+  
   ++numFrames;
 
   return 0;
@@ -224,29 +271,34 @@ int Radial::action() {
 // Radial::print()
 /** Convert the histogram to a dataset, normalize, create datafile.
   */
+// NOTE: Currently the normalization is based on number of atoms in each mask;
+//       if multiple prmtops are loaded and number of atoms changes from 
+//       prmtop to prmtop this will throw off normalization.
 void Radial::print() {
   DataFile *outfile;
   DataSet *Dset;
-  bool histloop=true;
-  int bin;
-  double R, Rdr, dv, norm;//, numMolecules;
-  double N;
-  char temp[128];
+  std::string xlabel;
+  double N, R, Rdr, dv, norm;
  
   if (numFrames==0) return;
- 
-  // Create label from mask strings
-  sprintf(temp,"[%s] => [%s]",Mask1.MaskString(),Mask2.MaskString());
+#  ifdef _OPENMP 
+  // Combine results from each rdf_thread into rdf
+  for (int thread=0; thread < numthreads; thread++) 
+    for (int bin = 0; bin < numBins; bin++) 
+      rdf[bin] += rdf_thread[thread][bin];
+#  endif
 
-  Dset = rdfdata.Add( DOUBLE, (char*)"RDF", "RDF");
+  // Set up output dataset. Create label from mask strings
+  Dset = DSL->Add( DOUBLE, (char*)"g(r)", "RDF");
   outfile = DFL->Add(outfilename, Dset);
   if (outfile==NULL) {
     mprinterr("Error: Radial: Could not setup output file %s\n",outfilename);
     return;
   }
+  // Make default precision a little higher than normal
+  Dset->SetPrecision(12,6);
 
   mprintf("    RADIAL: %i frames, %i distances.\n",numFrames,numDistances);
-  //mprintf("            Histogram has %.0lf values.\n",rdf.BinTotal());
 
   // If Mask1 and Mask2 have any atoms in common distances were not calcd
   // between them (because they are 0.0 of course); need to correct for this.
@@ -258,14 +310,7 @@ void Radial::print() {
     mprintf("            Average volume is %lf Ang^3.\n",dv);
     density = ((double)Mask1.Nselected * (double)Mask2.Nselected - (double)numSameAtoms) / dv;
     mprintf("            Average density is %lf distances / Ang^3.\n",density);
-    // Since the number of distances have already been accounted for,
-    // set the number of molecules to 1.0
-    //numMolecules = 1.0;
   } else {
-    // TEST: Need to determine how many molecules Mask1 corresponds to
-    // Using last parm set, OK???
-    //numMolecules = (double) currentParm->NumMoleculesInMask( Mask1 );
-    //mprintf("\tMask [%s] corresponds to %.0lf molecules.\n",Mask1.MaskString(), numMolecules);
     density = density * ((double)Mask1.Nselected * (double)Mask2.Nselected - (double)numSameAtoms) /
               ((double)Mask1.Nselected);
     mprintf("            Density is %lf distances / Ang^3.\n",density);
@@ -276,36 +321,30 @@ void Radial::print() {
   // volume slice. Expected # of molecules is particle density times volume 
   // of each slice:
   // Density * ( [(4/3)*PI*(R+dr)^3] - [(4/3)*PI*(dr)^3] )
-  // If there is more than 1 atom in the first mask we have essentially
-  // created Mask1.Nselected RDFs and are averaging them, so further divide
-  // by Mask1.Nselected. 
-  rdf.BinStart(false);
-  bin = 0;
-  while (histloop) {
+  for (int bin = 0; bin < numBins; bin++) {
+    //mprintf("DBG:\tNumBins= %i\n",rdf[bin]); 
     // Number of particles in this volume slice over all frames.
-    N = rdf.CurrentBinData();
+    N = (double) rdf[bin];
     // r
-    rdf.CurrentBinCoord(&R);
+    R = spacing * (double)bin;
     // r + dr
-    Rdr = R + rdf.Step(0);
+    Rdr = spacing * (double)(bin+1);
     // Volume of slice: 4/3_pi * [(r+dr)^3 - (dr)^3]
     dv = FOURTHIRDSPI * ( (Rdr * Rdr * Rdr) - (R * R * R) );
-    // Expected # molecules in this volume slice
+    // Expected # distances in this volume slice
     norm = dv * density;
     if (debug>0)
-      mprintf("    \tBin %lf->%lf %lf V %lf, D %lf, norm %lf\n",
+      mprintf("    \tBin %lf->%lf <Pop>=%lf, V=%lf, D=%lf, norm %lf distances.\n",
               R,Rdr,N/numFrames,dv,density,norm);
     // Divide by # frames
     norm *= numFrames;
     N /= norm;
 
     Dset->Add(bin,&N);
-    bin++;
-    if (rdf.NextBin()) histloop=false;
   }
-  outfile->SetCoordMinStep(rdf.Min(0),rdf.Step(0),0,-1);
-  outfile->SetXlabel(temp);
+  xlabel = '[' + Mask1.MaskExpression() + "] => [" + Mask2.MaskExpression() + ']';
+  outfile->SetCoordMinStep(0.0,spacing,0,-1);
+  outfile->SetXlabel((char*)xlabel.c_str());
   outfile->SetYlabel((char*)"g(r)");
 }
 
-  

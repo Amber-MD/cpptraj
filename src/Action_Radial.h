@@ -5,11 +5,13 @@
 // Class: Radial
 /// Calculate the radial distribution (pair correlation) function.
 class Radial: public Action {
-    Histogram rdf;
-    bool noimage;
-    int imageType; 
-    AtomMask Mask1, Mask2;
-    AtomMask OuterMask, InnerMask;
+    int *rdf;    ///< Hold bin counts
+    bool noimage;            ///< If true, do not image distances
+    int imageType;           ///< When imaging, determine if Ortho/non-ortho
+    AtomMask Mask1;
+    AtomMask Mask2;
+    AtomMask OuterMask;
+    AtomMask InnerMask;
     bool center1;
     bool useVolume;
     double volume;
@@ -17,7 +19,11 @@ class Radial: public Action {
     double maximum;
     double maximum2;
     double spacing;
-    DataSetList rdfdata;
+    double one_over_spacing;
+    int numBins;
+    int numthreads;
+    int **rdf_thread;
+    //DataSetList rdfdata;     
     int numFrames;
     int numDistances;
     double density;
