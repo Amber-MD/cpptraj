@@ -41,6 +41,7 @@ class AtomMask {
     std::vector<int> Selected;  ///< Int array of selected atom numbers, 1 for each selected atom
 
     const char *MaskString() { return maskString.c_str(); }
+    std::string MaskExpression() { return maskString; }
 
     AtomMask();
     ~AtomMask();
