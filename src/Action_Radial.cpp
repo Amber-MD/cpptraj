@@ -212,8 +212,15 @@ int Radial::action() {
   }
 
   mydistances = 0;
+  // Calculation of center of Mask1 to all atoms in Mask2
   if (center1) {
     currentFrame->GeometricCenter(&Mask1,coord_center);
+#ifdef _OPENMP
+#pragma omp parallel private(nmask2,atom2,D,idx,mythread) reduction(+:mydistances)
+{
+  mythread = omp_get_thread_num();
+#pragma omp for
+#endif
     for (nmask2 = 0; nmask2 < Mask2.Nselected; nmask2++) {
       atom2 = Mask2.Selected[nmask2];
       D = currentFrame->DIST2(coord_center,atom2,imageType,ucell,recip);
@@ -222,11 +229,19 @@ int Radial::action() {
         D = sqrt(D);
         //mprintf("MASKLOOP: %10i %10i %10.4lf\n",atom1,atom2,D);
         idx = (int) (D * one_over_spacing);
-        if (idx > -1 && idx < numBins) ++rdf[idx];
-        ++numDistances;
+        if (idx > -1 && idx < numBins)
+#         ifdef _OPENMP
+          ++rdf_thread[mythread][idx];
+#         else
+          ++rdf[idx];
+#         endif
+        ++mydistances;
       }
     } // END loop over 2nd mask
-
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif 
+  // Calculation of all atoms in Mask1 to all atoms in Mask2
   } else {
 #ifdef _OPENMP
 #pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread) reduction(+:mydistances) 
@@ -260,9 +275,9 @@ int Radial::action() {
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif 
-    numDistances += mydistances;
   } // END if center1
   
+  numDistances += mydistances;
   ++numFrames;
 
   return 0;
@@ -288,8 +303,8 @@ void Radial::print() {
       rdf[bin] += rdf_thread[thread][bin];
 #  endif
 
-  // Set up output dataset. Create label from mask strings
-  Dset = DSL->Add( DOUBLE, (char*)"g(r)", "RDF");
+  // Set up output dataset. 
+  Dset = DSL->Add( DOUBLE, NULL, "g(r)");
   outfile = DFL->Add(outfilename, Dset);
   if (outfile==NULL) {
     mprinterr("Error: Radial: Could not setup output file %s\n",outfilename);
@@ -342,6 +357,7 @@ void Radial::print() {
 
     Dset->Add(bin,&N);
   }
+  // Setup output datafile. Create label from mask strings
   xlabel = '[' + Mask1.MaskExpression() + "] => [" + Mask2.MaskExpression() + ']';
   outfile->SetCoordMinStep(0.0,spacing,0,-1);
   outfile->SetXlabel((char*)xlabel.c_str());
