@@ -369,9 +369,8 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
      d = ( exp(-fac*d0*ti) - exp(-fac*d0*tf) );
      d = d / (fac*f);
      del = (d-d0)/d0;
-     if (del < 0) del = -del;
-     //del = abs( (d-d0)/d0 );
-     //if (debug>0)
+     if (del < 0) del = -del; // Abs value
+     if (debug>2)
        mprintf("ITSOLV: %6i  %15.8e  %15.8e  %15.8e\n", i,d0,d,del);
      d0 = d;
      ++i;
@@ -380,7 +379,7 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
      mprintf("\tWarning, itsolv did not converge: # iterations=%i, fractional change=%lf\n",
              i, del);
   } else {
-    mprintf("\tConverged: # iterations=%i\n",i);
+    if (debug>1) mprintf("\tITSOLV Converged: # iterations=%i\n",i);
   }
 
   return d; 
@@ -526,7 +525,7 @@ void Rotdif::print() {
     //break;
   }
 
-  // Print deff
+  // Print deffs
   if (deffOut!=NULL) {
     CpptrajFile dout;
     if (dout.SetupFile(deffOut,WRITE,debug)) {
@@ -539,7 +538,7 @@ void Rotdif::print() {
     }
   }
 
-  //tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
+  tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
 
   // Cleanup
   delete[] random_vectors;
