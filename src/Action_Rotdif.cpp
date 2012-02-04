@@ -9,19 +9,8 @@
 
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
-  //void dlocint_(double&,double&,int&,double&,double&,int&,double&);
   void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
 }
-
-// Fortran common block used by rmscorr.f functions
-/*#define MAXDAT 100000
-typedef struct {
-  //double *tdat;
-  //double *p2;
-  double tdat[MAXDAT];
-  double p2[MAXDAT];
-  int ndat;
-} rmscorr_common;*/
 
 // CONSTRUCTOR
 Rotdif::Rotdif() {
@@ -45,12 +34,6 @@ Rotdif::Rotdif() {
   deffOut = NULL;
 
   RefParm = NULL;
-
-  //iff = 0;
-  //inext = 0;
-  //inextp = 0;
-  //for (int i = 0; i < 55; i++)
-  //  ma[i] = 0;
 } 
 
 // DESTRUCTOR
@@ -413,7 +396,6 @@ void Rotdif::print() {
   double *p2;                // Hold Y values of C(t) for p2
   double deff_val;           
   Interpolate spline;        // Used to interpolate C(t)
-  //extern rmscorr_common dat_; // For common block in rmscorr
   int itotframes;            // Total number of frames (rotation matrices) 
   int maxdat;                // Length of C(t), itotframes + 1 (the original vector)
   // DEBUG
@@ -466,14 +448,7 @@ void Rotdif::print() {
   itotframes = (int) Rmatrices.size();
   if (ncorr == 0) ncorr = itotframes;
   maxdat = ncorr + 1;
-  // ----- Init rmscorr common block
-  //dat_.ndat = maxdat;
-  // tdat here gets set to X values used in correlation fn
-  //for (int i = 0; i < maxdat; i++) {
-  //  dat_.tdat[i] = (double) i;
-  //  dat_.tdat[i] *= tfac;
-  //}
-  // -------------------------------
+  // Allocate memory to hold vectors, Deff, and C(t)
   rotated_vectors = new double[ 3 * maxdat ];
   deff = new double[ nvecs ];
   p1 = new double[ maxdat ];
@@ -484,13 +459,17 @@ void Rotdif::print() {
     pX[i] = (double) i;
     pX[i] *= tfac;
   }
-  double *rndvec = random_vectors; // Pointer to random vectors
+  // Allocate mesh to hold interpolated C(t)
+  int mesh_size = maxdat * 2;
+  double *mesh_x = new double[ mesh_size ];
+  double *mesh_y = new double[ mesh_size ];
+  set_xvalues_range(mesh_x, ti, tf, mesh_size); 
+  // Pointer to random vectors
+  double *rndvec = random_vectors; 
   // LOOP OVER RANDOM VECTORS
   for (int vec = 0; vec < nvecs; vec++) {
-    // DEBUG - skip to vec 1
-    //if (vec==0) {rndvec += 3; continue;}
-    // END DEBUG
-    double *rotvec = rotated_vectors; // Pointer to soon-to-be rotated vectors
+    // Pointer to soon-to-be rotated vectors
+    double *rotvec = rotated_vectors; 
     // Normalize vector
     normalize( rndvec );
     // Assign normalized vector to rotated_vectors position 0
@@ -512,6 +491,17 @@ void Rotdif::print() {
     }
     // Calculate time correlation function for this vector
     compute_corr(rotated_vectors,maxdat,itotframes,p2,p1);
+    //dlocint_(ti,tf,itmax,delmin,d0,olegendre,deff_val);
+    // Calculate spline coefficients
+    spline.cubicSpline_coeff(pX, p2, maxdat);
+    // Calculate mesh Y values
+    spline.cubicSpline_eval(mesh_x,mesh_y,mesh_size, pX, p2, maxdat);
+    // Integrate
+    double integral = integrate_trapezoid(mesh_x, mesh_y, mesh_size);
+    // Solve for deff
+    deff_val = calcEffectiveDiffusionConst(integral);
+    deff[vec] = deff_val;
+
     // DEBUG: Write out p1 and p2 ------------------------------------
     NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
     outfile.SetupFile(namebuffer,WRITE,debug);
@@ -519,18 +509,6 @@ void Rotdif::print() {
     for (int i = 0; i < maxdat; i++) 
       outfile.IO->Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
     outfile.CloseFile();
-    //    Allocate mesh
-    int mesh_size = maxdat * 2;
-    double *mesh_x = new double[ mesh_size ];
-    double *mesh_y = new double[ mesh_size ];
-    double s = (ti + tf)/2;
-    double d = (tf - ti)/2;
-    for (int i = 0; i < mesh_size; i++) 
-      mesh_x[i] = s + d*((double) (2*i + 1 - mesh_size)/(mesh_size - 1));
-    //    Calculate spline coefficients
-    spline.cubicSpline_coeff(pX, p2, maxdat);
-    //    Calculate mesh Y values
-    spline.cubicSpline_eval(mesh_x,mesh_y,mesh_size, pX, p2, maxdat);
     //    Write Mesh
     NumberFilename(namebuffer, (char*)"mesh.dat", vec);
     outfile.SetupFile(namebuffer, WRITE, debug);
@@ -538,25 +516,9 @@ void Rotdif::print() {
     for (int i=0; i < mesh_size; i++)
       outfile.IO->Printf("%lf %lf\n",mesh_x[i],mesh_y[i]);
     outfile.CloseFile(); 
-    // Integrate
-    double integral = integrate_trapezoid(mesh_x, mesh_y, mesh_size);
     mprintf("DBG: Vec %i Spline integral= %12.4lf\n",vec,integral);
-    // Solve for deff
-    deff_val = calcEffectiveDiffusionConst(integral);
     mprintf("DBG: deff is %lf\n",deff_val);
-    //    Cleanup
-    delete[] mesh_x;
-    delete[] mesh_y;
     // END DEBUG -----------------------------------------------------
-    //for (int i = 0; i < maxdat; i++)
-    //  mprintf("%15.8lf%15.8lf\n",dat_.tdat[i],dat_.p2[i]);
-    //break;
-    //for (int i = 0; i <= ncorr; i++) 
-    //  mprintf("%6i P1 %8.3lf  P2 %8.3lf\n",i,p1[i],dat_.p2[i]);
-
-    //dlocint_(ti,tf,itmax,delmin,d0,olegendre,deff_val);
-
-    deff[vec] = deff_val;
 
     rndvec += 3;
     //break;
@@ -584,5 +546,7 @@ void Rotdif::print() {
   delete[] p1;
   delete[] p2;
   delete[] pX;
+  delete[] mesh_x;
+  delete[] mesh_y;
 }
   
