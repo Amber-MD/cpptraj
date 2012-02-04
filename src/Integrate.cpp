@@ -159,4 +159,13 @@ double integrate_trapezoid(double *x, double *y, int n) {
   return sum;
 }
 
+// set_xvalues_range()
+/** Given a start, stop, and size, generate x values.
+  */
+void set_xvalues_range(double *x_out, double ti, double tf, int n) {
+  double s = (ti + tf)/2;
+  double d = (tf - ti)/2;
+  for (int i = 0; i < n; i++)
+    x_out[i] = s + d*((double) (2*i + 1 - n)/(n - 1));
+}
 

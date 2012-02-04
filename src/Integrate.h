@@ -11,4 +11,5 @@ class Interpolate {
     int cubicSpline_eval(double*,double*,int,double*,double*,int);
 };
 double integrate_trapezoid(double *, double *, int);
+void set_xvalues_range(double *, double, double, int);
 #endif
