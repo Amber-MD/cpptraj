@@ -18,12 +18,15 @@
   * \param c Output c coefficients
   * \param d Output d coefficients
   */
-void cubicSpline_coeff(double *x, double *y, int n, 
-                       double *b, double *c, double *d)
+void Interpolate::cubicSpline_coeff(double *x, double *y, int n) 
 {
   // NOTE: CHECK FOR NULLS!
   // No point if 1 or less values
   if (n < 2) return;
+
+  b.resize(n,0);
+  c.resize(n,0);
+  d.resize(n,0);
 
   int n_minus1 = n - 1;
 
@@ -103,8 +106,7 @@ void cubicSpline_coeff(double *x, double *y, int n,
   * \param n number of data points in x,y,b,c,d
   * \return 0 on success, 1 on error.
   */
-int cubicSpline_eval(double *u, double *v, int ulen, double *x, double *y,
-                     double *b, double *c, double *d, int n)
+int Interpolate::cubicSpline_eval(double *u, double *v, int ulen, double *x, double *y, int n)
 {
   int xidx;  
 
