@@ -9,19 +9,19 @@
 
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
-  void dlocint_(double&,double&,int&,double&,double&,int&,double&);
+  //void dlocint_(double&,double&,int&,double&,double&,int&,double&);
   void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
 }
 
 // Fortran common block used by rmscorr.f functions
-#define MAXDAT 100000
+/*#define MAXDAT 100000
 typedef struct {
   //double *tdat;
   //double *p2;
   double tdat[MAXDAT];
   double p2[MAXDAT];
   int ndat;
-} rmscorr_common;
+} rmscorr_common;*/
 
 // CONSTRUCTOR
 Rotdif::Rotdif() {
@@ -297,12 +297,12 @@ double *Rotdif::randvec() {
   */
 // rotated_vectors should be size itotframes+1
 // p2 and p1 should be size ncorr+1
-int Rotdif::compute_corr(double *rotated_vectors, int ncorr, int itotframes, 
+int Rotdif::compute_corr(double *rotated_vectors, int maxdat, int itotframes, 
                          double *p2, double *p1)
 {
   double *VJ, *VK;
   // Initialize p1 and p2
-  for (int i = 0; i <= ncorr; i++) {
+  for (int i = 0; i < maxdat; i++) {
     p1[i] = 0.0;
     p2[i] = 0.0;
   }
@@ -315,7 +315,7 @@ int Rotdif::compute_corr(double *rotated_vectors, int ncorr, int itotframes,
 
   // i loop:  each value of i is a value of delay (correlation function argument)
   // NOTE: Eventually optimize kidx and jidx?
-  for (int i = 0; i <= ncorr; i++) {
+  for (int i = 0; i < maxdat; i++) {
     int jmax = itotframes - i + 1;
     for (int j = 0; j < jmax; j++) {
       int jidx = j * 3;
@@ -405,15 +405,17 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
 
 // Rotdif::print()
 void Rotdif::print() {
-  double *random_vectors;
-  double *deff;
-  double *rotated_vectors;
-  double *p1;
-  //double *p2;
-  double deff_val;
-  extern rmscorr_common dat_; // For common block in rmscorr
-  int itotframes; // Total number of frames (rotation matrices) 
-  int maxdat;     // Length of the correlation function, itotframes + 1 (the original vector)
+  double *random_vectors;    // Hold nvecs random vectors
+  double *deff;              // Hold calculated effective D
+  double *rotated_vectors;   // Hold vectors after rotation with Rmatrices
+  double *pX;                // Hold X values of C(t)
+  double *p1;                // Hold Y values of C(t) for p1
+  double *p2;                // Hold Y values of C(t) for p2
+  double deff_val;           
+  Interpolate spline;        // Used to interpolate C(t)
+  //extern rmscorr_common dat_; // For common block in rmscorr
+  int itotframes;            // Total number of frames (rotation matrices) 
+  int maxdat;                // Length of C(t), itotframes + 1 (the original vector)
   // DEBUG
   CpptrajFile outfile;
   char namebuffer[32];
@@ -465,19 +467,23 @@ void Rotdif::print() {
   if (ncorr == 0) ncorr = itotframes;
   maxdat = ncorr + 1;
   // ----- Init rmscorr common block
-  //dat_.tdat = new double[ maxdat ];
-  //dat_.p2 = new double[ maxdat ];
-  dat_.ndat = maxdat;
+  //dat_.ndat = maxdat;
   // tdat here gets set to X values used in correlation fn
-  for (int i = 0; i < maxdat; i++) {
-    dat_.tdat[i] = (double) i;
-    dat_.tdat[i] *= tfac;
-  }
+  //for (int i = 0; i < maxdat; i++) {
+  //  dat_.tdat[i] = (double) i;
+  //  dat_.tdat[i] *= tfac;
+  //}
   // -------------------------------
   rotated_vectors = new double[ 3 * maxdat ];
   deff = new double[ nvecs ];
   p1 = new double[ maxdat ];
-  //p2 = new double[ maxdat ];
+  p2 = new double[ maxdat ];
+  pX = new double[ maxdat ];
+  // Set X values of C(t) based on tfac
+  for (int i = 0; i < maxdat; i++) {
+    pX[i] = (double) i;
+    pX[i] *= tfac;
+  }
   double *rndvec = random_vectors; // Pointer to random vectors
   // LOOP OVER RANDOM VECTORS
   for (int vec = 0; vec < nvecs; vec++) {
@@ -505,13 +511,13 @@ void Rotdif::print() {
       rotvec += 3;
     }
     // Calculate time correlation function for this vector
-    compute_corr(rotated_vectors,ncorr,itotframes,dat_.p2,p1);
+    compute_corr(rotated_vectors,maxdat,itotframes,p2,p1);
     // DEBUG: Write out p1 and p2 ------------------------------------
     NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
     outfile.SetupFile(namebuffer,WRITE,debug);
     outfile.OpenFile();
     for (int i = 0; i < maxdat; i++) 
-      outfile.IO->Printf("%lf %lf %lf\n",dat_.tdat[i], dat_.p2[i], p1[i]);
+      outfile.IO->Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
     outfile.CloseFile();
     //    Allocate mesh
     int mesh_size = maxdat * 2;
@@ -522,13 +528,9 @@ void Rotdif::print() {
     for (int i = 0; i < mesh_size; i++) 
       mesh_x[i] = s + d*((double) (2*i + 1 - mesh_size)/(mesh_size - 1));
     //    Calculate spline coefficients
-    double *spline_b = new double[ maxdat ]; 
-    double *spline_c = new double[ maxdat ]; 
-    double *spline_d = new double[ maxdat ]; 
-    cubicSpline_coeff(dat_.tdat, dat_.p2, maxdat,spline_b,spline_c,spline_d);
+    spline.cubicSpline_coeff(pX, p2, maxdat);
     //    Calculate mesh Y values
-    cubicSpline_eval(mesh_x,mesh_y,mesh_size, dat_.tdat,dat_.p2,
-                            spline_b,spline_c,spline_d,maxdat);
+    spline.cubicSpline_eval(mesh_x,mesh_y,mesh_size, pX, p2, maxdat);
     //    Write Mesh
     NumberFilename(namebuffer, (char*)"mesh.dat", vec);
     outfile.SetupFile(namebuffer, WRITE, debug);
@@ -545,9 +547,6 @@ void Rotdif::print() {
     //    Cleanup
     delete[] mesh_x;
     delete[] mesh_y;
-    delete[] spline_b;
-    delete[] spline_c;
-    delete[] spline_d;
     // END DEBUG -----------------------------------------------------
     //for (int i = 0; i < maxdat; i++)
     //  mprintf("%15.8lf%15.8lf\n",dat_.tdat[i],dat_.p2[i]);
@@ -555,7 +554,7 @@ void Rotdif::print() {
     //for (int i = 0; i <= ncorr; i++) 
     //  mprintf("%6i P1 %8.3lf  P2 %8.3lf\n",i,p1[i],dat_.p2[i]);
 
-    dlocint_(ti,tf,itmax,delmin,d0,olegendre,deff_val);
+    //dlocint_(ti,tf,itmax,delmin,d0,olegendre,deff_val);
 
     deff[vec] = deff_val;
 
@@ -576,18 +575,14 @@ void Rotdif::print() {
     }
   }
 
-  return; // DEBUG
-  tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
+  //tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
 
   // Cleanup
   delete[] random_vectors;
   delete[] deff;
-  //delete[] rotated_x;
-  //delete[] rotated_y;
-  //delete[] rotated_z;
   delete[] rotated_vectors;
   delete[] p1;
-  //delete[] dat_.tdat;
-  //delete[] dat_.p2;
+  delete[] p2;
+  delete[] pX;
 }
   
