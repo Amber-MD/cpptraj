@@ -503,21 +503,23 @@ void Rotdif::print() {
     deff[vec] = deff_val;
 
     // DEBUG: Write out p1 and p2 ------------------------------------
-    NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
-    outfile.SetupFile(namebuffer,WRITE,debug);
-    outfile.OpenFile();
-    for (int i = 0; i < maxdat; i++) 
-      outfile.IO->Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
-    outfile.CloseFile();
-    //    Write Mesh
-    NumberFilename(namebuffer, (char*)"mesh.dat", vec);
-    outfile.SetupFile(namebuffer, WRITE, debug);
-    outfile.OpenFile();
-    for (int i=0; i < mesh_size; i++)
-      outfile.IO->Printf("%lf %lf\n",mesh_x[i],mesh_y[i]);
-    outfile.CloseFile(); 
-    mprintf("DBG: Vec %i Spline integral= %12.4lf\n",vec,integral);
-    mprintf("DBG: deff is %lf\n",deff_val);
+    if (debug > 1) {
+      NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
+      outfile.SetupFile(namebuffer,WRITE,debug);
+      outfile.OpenFile();
+      for (int i = 0; i < maxdat; i++) 
+        outfile.IO->Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
+      outfile.CloseFile();
+      //    Write Mesh
+      NumberFilename(namebuffer, (char*)"mesh.dat", vec);
+      outfile.SetupFile(namebuffer, WRITE, debug);
+      outfile.OpenFile();
+      for (int i=0; i < mesh_size; i++)
+        outfile.IO->Printf("%lf %lf\n",mesh_x[i],mesh_y[i]);
+      outfile.CloseFile(); 
+      mprintf("DBG: Vec %i Spline integral= %12.4lf\n",vec,integral);
+      mprintf("DBG: deff is %lf\n",deff_val);
+    }
     // END DEBUG -----------------------------------------------------
 
     rndvec += 3;
