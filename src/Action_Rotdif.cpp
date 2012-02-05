@@ -10,7 +10,15 @@
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
   void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
+  void dgesvd_(char*, char*, int&, int&, double*,
+               int&, double*, double*, int&, double*, int&,
+               double*, int&, int& );
 }
+
+// DGESVD prototype 
+//extern void dgesvd( char* jobu, char* jobvt, int* m, int* n, double* a,
+//                    int* lda, double* s, double* u, int* ldu, double* vt, int* ldvt,
+//                    double* work, int* lwork, int* info );
 
 // CONSTRUCTOR
 Rotdif::Rotdif() {
@@ -144,7 +152,13 @@ int Rotdif::init( ) {
     mprintf("            Rotation matrices will be written out to %s\n",rmOut);
   if (deffOut!=NULL)
     mprintf("            Deff will be written out to %s\n",deffOut);
-
+#ifdef NO_PTRAJ_ANALYZE
+  mprintf("------------------------------------------------------\n");
+  mprintf("Warning: Cpptraj was compiled with -DNO_PTRAJ_ANALYZE.\n");
+  mprintf("         The final tensor fit cannot be performed.\n");
+  mprintf("         Only Deffs will be calculated.\n");
+  mprintf("------------------------------------------------------\n");
+#endif
   return 0;
 }
 
@@ -324,12 +338,12 @@ int Rotdif::compute_corr(double *rotated_vectors, int maxdat, int itotframes,
 }
 
 // Rotdif::calcEffectiveDiffusionConst()
-/** computes effect diffusion constant for a vector using its correlation 
-  * function as input. Starting with definition:
+/** computes effect diffusion constant for a vector using the integral over
+  * its correlation function as input. Starting with definition:
   *
   *   6*D=integral[0,inf;C(t)] 
   *
-  * integrate C(t) from ti -> tf yielding F(ti,tf).
+  * C(t) has already been integrated from ti -> tf yielding F(ti,tf).
   * Iteratively solves the equation 
   *
   *   D(i+1)=[exp(6*D(i)*ti)-exp(6*D(i)*tf)]/[6*F(ti,tf)]
@@ -341,25 +355,24 @@ int Rotdif::compute_corr(double *rotated_vectors, int maxdat, int itotframes,
   * F(ti,tf;C(t)]=integral[ti,tf;C(t)]
   *
   * D(i+1)={exp[l*(l+1)*D(i)*ti]-exp[l*(l+1)*D(i)*tf)]}/[l*(l+1)*F(ti,tf)]
+  * /param f Integral of Cl(t) from ti to tf
+  * /return Effective value of D
   */
-// itmax:  maximum number of iterations in subroutine itsolv
-// delmin:  convergence criterion used in subroutine itsolv;
-//          maximum accepted fractional change in successive 
-//          iterations
-// d0: initial guess for diffusion constant; accurate estimate not
-//     needed
-// l: order of Legendre polynomial in the correlation function
-//    <P(l)>
 double Rotdif::calcEffectiveDiffusionConst(double f ) {
-//       ti,tf:  Integration limits.
-//    subroutine itsolv(itmax,delmin,l,d0,ti,tf,f,d,info)
-//    solves the equation 6*D=[exp(-6*D*ti)-exp(-6*D*tf)]/F(ti,tf) iteratively, 
-//    by putting 6*D(i+1)=[exp(-6*D(i)*ti)-exp(-6*D(i)*tf)]/F(ti,tf)
-//    where F(ti,tf) is input (integral[dt*C(t)] from ti->tf)
-  double d; 
-  double del;
+// Class variables used:
+//   ti,tf: Integration limits.
+//   itmax: Maximum number of iterations in subroutine itsolv.
+//   delmin: convergence criterion used in subroutine itsolv;
+//           maximum accepted fractional change in successive 
+//           iterations
+//   d0: initial guess for diffusion constant; accurate estimate not needed
+//   olegendre: order of Legendre polynomial in the correlation function <P(l)>
+//
+// Solves the equation 6*D=[exp(-6*D*ti)-exp(-6*D*tf)]/F(ti,tf) iteratively, 
+// by putting 6*D(i+1)=[exp(-6*D(i)*ti)-exp(-6*D(i)*tf)]/F(ti,tf)
+// where F(ti,tf) is input (integral[dt*C(t)] from ti->tf).
+  double d, del, fac; 
   int i;
-  double fac;
 
   double l = (double) olegendre;
   fac = (l*(l+1));
@@ -383,6 +396,73 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
   }
 
   return d; 
+}
+
+// Rotdif::Tensor_Fit()
+int Rotdif::Tensor_Fit(double *random_vecs) {
+#ifdef NO_PTRAJ_ANALYZE
+  return 1;
+#else
+  int info;
+  double wkopt;
+  double *work;
+  // Generate matrix A
+  double *matrix_A = new double[ 6 * nvecs ];
+  double *A = matrix_A;
+  double *rvecs = random_vecs;
+  for (int i = 0; i < nvecs; i++) {
+    A[0] = rvecs[0] * rvecs[0];     // x^2
+    A[1] = rvecs[1] * rvecs[1];     // y^2
+    A[2] = rvecs[2] * rvecs[2];     // z^2
+    A[3] = 2*(rvecs[0] * rvecs[1]); // 2xy
+    A[4] = 2*(rvecs[1] * rvecs[2]); // 2yz
+    A[5] = 2*(rvecs[0] * rvecs[2]); // 2xz
+    A += 6;
+    rvecs += 3;
+  }
+  for (int i = 0; i < nvecs * 6; i+=6) 
+    mprintf("matrix_A[%6i]: %12.6lf%12.6lf%12.6lf%12.6lf%12.6lf%12.6lf\n",(i/6)+1,
+            matrix_A[i  ],matrix_A[i+1],matrix_A[i+2],
+            matrix_A[i+3],matrix_A[i+4],matrix_A[i+5]);
+
+  // Perform SVD on matrix A to generate U, Sigma, and Vt
+  int m = 6;
+  int lda = m;
+  int ldu = m;
+  int n = nvecs;
+  int ldvt = n;
+  double *matrix_U = new double[ m * m ];
+  double *matrix_S = new double[ n ];
+  double *matrix_Vt = new double[ n * n ]; // 6^2
+  int lwork = -1;
+  // Allocate Workspace
+  dgesvd_((char*)"All",(char*)"All",m, n, matrix_A, lda, matrix_S, matrix_U, ldu, matrix_Vt, 
+          ldvt, &wkopt, lwork, info );
+  lwork = (int)wkopt;
+  work = new double[ lwork ];
+  // Compute SVD
+  dgesvd_((char*)"All",(char*)"All", m, n, matrix_A, lda, matrix_S, matrix_U, ldu, matrix_Vt, 
+          ldvt, work, lwork, info );
+  // DEBUG
+  for (int i = 0; i < n; i++) 
+    mprintf("Sigma %6i%12.6lf\n",i+1,matrix_S[i]);
+  // Check for convergence
+  if ( info > 0 ) {
+    mprinterr( "The algorithm computing SVD failed to converge.\n" );
+    delete[] matrix_U;
+    delete[] matrix_S;
+    delete[] matrix_Vt;
+    delete[] work;
+    return 1;
+  }
+
+  // Cleanup
+  delete[] matrix_U;
+  delete[] matrix_S;
+  delete[] matrix_Vt;
+  delete[] work;
+  return 0;
+#endif
 }
 
 // Rotdif::print()
@@ -537,6 +617,8 @@ void Rotdif::print() {
       dout.CloseFile();
     }
   }
+
+  Tensor_Fit( random_vectors );
 
   tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
 

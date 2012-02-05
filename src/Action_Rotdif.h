@@ -55,7 +55,7 @@ class Rotdif: public Action {
     double *randvec();
     int compute_corr(double *, int, int, double *, double *);
     double calcEffectiveDiffusionConst(double );
-
+    int Tensor_Fit(double *);
     std::vector<double*> Rmatrices; ///< Store rotation matrices
     
   public:
