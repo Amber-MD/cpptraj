@@ -274,7 +274,7 @@
 !     correlation functions) along principal axes
 
       call qtod(q,d)
-      if(infoflag==1)then
+      if(infoflag==0)then
         do i=1,3
            write(9,2) (d(i,j),j=1,3)
         end do

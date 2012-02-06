@@ -403,6 +403,36 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
   return d; 
 }
 
+// Q_to_D()
+/** Convert column vector Q with format:
+  *   {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
+  * to diffusion tensor D via the formula:
+  *   D = 3*Diso*I - 2Q
+  * where
+  *   Diso = trace(Q) / 3
+  *
+  * J. Biomol. NMR 9, 287 (1997) L. K. Lee, M. Rance, W. J. Chazin, A. G. Palmer
+  * it has been assumed that the Q(l=1) has the same relationship to
+  * D(l=1) as in the l=2 case; we have not yet proved this for the
+  * non-symmetric case, but it is true for the axially symmetric case
+  * also, Deff(l=1) = 1/(2*tau(l=1)) = e^T * Q(l=1) * e yields the 
+  * correct values for tau(l=1) (known from Woessner model type 
+  * correlation functions) along principal axe
+  */
+static void Q_to_D(double *D, double *Q) {
+  double tq = Q[0] + Q[1] + Q[2];
+  
+  D[0] = tq - (2 * Q[0]); // tq-2Qxx
+  D[1] = -2 * Q[3];       // -2Qxy
+  D[2] = -2 * Q[5];       // -2Qxz
+  D[3] = D[1];            // -2Qyx
+  D[4] = tq - (2 * Q[1]); // tq-2Qyy
+  D[5] = -2 * Q[4];       // -2Qyz
+  D[6] = D[2];            // -2Qzx
+  D[7] = D[5];            // -2Qzy
+  D[8] = tq - (2 * Q[2]); // tq-2Qzz
+}
+
 // Rotdif::Tensor_Fit()
 int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
 #ifdef NO_PTRAJ_ANALYZE
@@ -411,6 +441,8 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   int info;
   double wkopt;
   double *work;
+  double vector_q[6];
+  double matrix_D[9];
   //double cut_ratio = 0.000001; // threshold ratio for removing small singular values in SVD
 
   // Generate matrix At
@@ -418,24 +450,26 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   int m_rows = nvecs;
   int n_cols = 6;
   double *matrix_A = new double[ m_rows * n_cols ];
-  double *A = matrix_A;
+  // Pre-compute array offsets for performing transpose
+  int A1 = m_rows;
+  int A2 = m_rows * 2;
+  int A3 = m_rows * 3;
+  int A4 = m_rows * 4;
+  int A5 = m_rows * 5;
   double *rvecs = random_vecs;
   for (int i = 0; i < nvecs; i++) {
-    A[0] = rvecs[0] * rvecs[0];     // x^2
-    A[1] = rvecs[1] * rvecs[1];     // y^2
-    A[2] = rvecs[2] * rvecs[2];     // z^2
-    A[3] = 2*(rvecs[0] * rvecs[1]); // 2xy
-    A[4] = 2*(rvecs[1] * rvecs[2]); // 2yz
-    A[5] = 2*(rvecs[0] * rvecs[2]); // 2xz
-    A += 6; 
+    double *A = matrix_A + i;
+    A[ 0] = rvecs[0] * rvecs[0];     // x^2
+    A[A1] = rvecs[1] * rvecs[1];     // y^2
+    A[A2] = rvecs[2] * rvecs[2];     // z^2
+    A[A3] = 2*(rvecs[0] * rvecs[1]); // 2xy
+    A[A4] = 2*(rvecs[1] * rvecs[2]); // 2yz
+    A[A5] = 2*(rvecs[0] * rvecs[2]); // 2xz
     rvecs += 3;
   }
-  printMatrix("matrix_A",matrix_A,m_rows,n_cols);
-  // Transpose A
-  double *matrix_At = matrix_transpose( matrix_A, m_rows, n_cols );
-  printMatrix("matrix_At",matrix_At,n_cols,m_rows);
+  printMatrix("matrix_A",matrix_A,n_cols,m_rows);
 
-  // Perform SVD on matrix A to generate U, Sigma, and Vt
+  // Perform SVD on matrix At to generate U, Sigma, and Vt
   int lda = m_rows;
   int ldu = m_rows;
   int ldvt = n_cols;
@@ -447,25 +481,25 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   double *matrix_Vt = new double[ n_cols * n_cols ];
   int lwork = -1;
   // Allocate Workspace
-  dgesvd_((char*)"All",(char*)"All",m_rows, n_cols, matrix_At, lda, 
+  dgesvd_((char*)"All",(char*)"All",m_rows, n_cols, matrix_A, lda, 
           matrix_S, matrix_U, ldu, matrix_Vt, ldvt, &wkopt, lwork, info );
   lwork = (int)wkopt;
   work = new double[ lwork ];
   // Compute SVD
-  dgesvd_((char*)"All",(char*)"All", m_rows, n_cols, matrix_At, lda, 
+  dgesvd_((char*)"All",(char*)"All", m_rows, n_cols, matrix_A, lda, 
           matrix_S, matrix_U, ldu, matrix_Vt, ldvt, work, lwork, info );
-  // DEBUG
+  // matrix_A and work no longer needed
+  delete[] matrix_A;
+  delete[] work;
+  // DEBUG - Print Sigma
   for (int i = 0; i < s_dim; i++) 
     mprintf("Sigma %6i%12.6lf\n",i+1,matrix_S[i]);
   // Check for convergence
   if ( info > 0 ) {
     mprinterr( "The algorithm computing SVD failed to converge.\n" );
-    delete[] matrix_A;
-    delete[] matrix_At;
     delete[] matrix_U;
     delete[] matrix_S;
     delete[] matrix_Vt;
-    delete[] work;
     return 1;
   }
 
@@ -482,12 +516,13 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   double wmin=wmax*cut_ratio;
   for (int i=0; i < n; i++)
     if (matrix_S[i] < wmin) matrix_S[i]=0;*/
-
+  
+  // -------------------------------------------------------
   // Calculate x = V * Sigma^-1 * Ut * b
+  // NOTE: Eventually do this without BLAS routines
   double alpha = 1.0;
   double beta = 0.0;
-  // 1) V * Sigma^-1
-  //    a) Create transposed (for fortran) n x m sigma^-1
+  // First create transposed (for fortran) n x m sigma^-1
   double *matrix_St = new double[ n_cols * m_rows];
   int ndiag = n_cols+1;
   int sidx = 0;
@@ -498,31 +533,40 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
       matrix_St[i] = 0;
   }
   printMatrix("matrix_St",matrix_St,m_rows,n_cols);
-  //    b) Create tranposed V
-  double *matrix_V = matrix_transpose( matrix_Vt, n_cols, n_cols );
+  // 1) V * Sigma^-1
+  //    Call dgemm with first arg "T" to indicate we want matrix_Vt to
+  //    be transposed. 
   double *matrix_VS = new double[ n_cols * m_rows ];
-  dgemm_((char*)"N",(char*)"N",n_cols,m_rows,n_cols,alpha,matrix_V,n_cols,
+  dgemm_((char*)"T",(char*)"N",n_cols,m_rows,n_cols,alpha,matrix_Vt,n_cols,
          matrix_St,n_cols,beta,matrix_VS,n_cols);
+  // matrix_S, matrix_Vt, and matrix_St no longer needed
+  delete[] matrix_S;
+  delete[] matrix_Vt;
+  delete[] matrix_St;
 
   // 2) VSigma^-1 * Ut
-  double *matrix_Ut = matrix_transpose( matrix_U, m_rows, m_rows );
+  //    Call dgemm with second arg "T" to indicate we want matrix_U to
+  //    be transposed.
   double *matrix_VSUt = new double[ n_cols * m_rows ];
-  dgemm_((char*)"N",(char*)"N",n_cols,m_rows,m_rows,alpha,matrix_VS,n_cols,
-         matrix_Ut,m_rows,beta,matrix_VSUt,n_cols);
+  dgemm_((char*)"N",(char*)"T",n_cols,m_rows,m_rows,alpha,matrix_VS,n_cols,
+         matrix_U,m_rows,beta,matrix_VSUt,n_cols);
+  // matrix_VS and matrix_U no longer needed
+  delete[] matrix_VS;
+  delete[] matrix_U;
 
   // 3) VSigma^-1*Ut * b
-  double *vector_x = new double[ n_cols ];
   int incx = 1;
-  dgemv_((char*)"N",n_cols,m_rows,alpha,matrix_VSUt,n_cols,deff,incx,beta,vector_x,incx);
+  dgemv_((char*)"N",n_cols,m_rows,alpha,matrix_VSUt,n_cols,deff,incx,beta,vector_q,incx);
   for (int i = 0; i < n_cols; i++)
-    mprintf("Vector_X[%i]= %12.4lf\n",i,vector_x[i]);
-
-  delete[] matrix_St;
-  delete[] matrix_V;
-  delete[] matrix_VS;
-  delete[] matrix_Ut;
+    mprintf("Vector_X[%i]= %12.4lf\n",i,vector_q[i]);
+  // matrix_VSUt no longer needed
   delete[] matrix_VSUt;
-  delete[] vector_x;
+  // -------------------------------------------------------
+
+  // Convert vector Q to diffusion tensor D
+  Q_to_D(matrix_D, vector_q);
+  printMatrix("matrix_D",matrix_D,3,3); 
+
   // DEBUG -------------------------------------------------
 /* 
   // Sanity check: Ensure U is orthogonal (U * Ut) = I
@@ -573,14 +617,6 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
 */
   // END DEBUG ---------------------------------------------
 
-
-  // Cleanup
-  delete[] matrix_A;
-  delete[] matrix_At;
-  delete[] matrix_U;
-  delete[] matrix_S;
-  delete[] matrix_Vt;
-  delete[] work;
   return 0;
 #endif
 }
