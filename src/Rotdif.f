@@ -245,6 +245,7 @@
 !     array q can be used for the jackknife analysis as an initial guess 
       write(6,*) 'svd q values:'
       write(6,1) (q(i),i=1,n)
+      write(6,'(6(f12.4))') (q(i),i=1,n)
          
 !     verify svd a=u*w*v^T
 !     WARNING: elements of a are set to 0 inside svdchk prior to final
@@ -813,14 +814,15 @@
 
 !     since a is destroyed by svdcmp, save here
       do i=1,m
-         write(6,'(a,i6,a,6(f12.6))') 'A[',i,']: ',a(i,1),a(i,2),a(i,3),a(i,4),a(i,5),a(i,6)
+         !write(6,'(a,i6,a,6(f12.6))') 'A[',i,']: ',a(i,1),a(i,2),a(i,3),a(i,4),a(i,5),a(i,6)
          do j=1,n
+            write(6,'(2(a,i6),a,f12.4)') 'A[',i,',',j,']=',a(i,j)
             u(i,j)=a(i,j)
          end do
       end do
       call svdcmp(u,m,n,mp,np,w,v)
       do i=1,n
-        write(6,'(a,i6,f12.6)') 'svdcmp_w ', i, w(i)
+        write(6,'(a,i6,f12.6)') 'svdcmp_w1 ', i, w(i)
       enddo
       wmax=0d0
       do i=1,n
@@ -830,6 +832,19 @@
       do i=1,n
          if(w(i)<wmin) w(i)=0d0
       end do
+      do i=1,n
+        write(6,'(a,i6,f12.6)') 'svdcmp_w2 ', i, w(i)
+      enddo
+      do i=1,m
+        do j=1,m
+          write(6,'(2(a,i6),a,f12.4)') 'U[',i,',',j,']=',u(i,j)
+        enddo
+      enddo
+      do i=1,n
+        do j=1,n
+          write(6,'(2(a,i6),a,f12.4)') 'Vt[',i,',',j,']=',v(j,i)
+        enddo
+      enddo
       call svbksb(u,w,v,m,n,mp,np,b,x)
 
       return
@@ -1511,12 +1526,22 @@
       end do
 
       do i=1,nvec
-         do j=1,3
-            mat(i,j)=x(i,j)*x(i,j)
-            do k=j+1,3
-               mat(i,j+k+1)=2d0*x(i,j)*x(i,k)
-            end do
-         end do
+         mat(i,1) = x(i,1) * x(i,1) ! x^2
+         mat(i,2) = x(i,2) * x(i,2) ! y^2
+         mat(i,3) = x(i,3) * x(i,3) ! z^2
+         mat(i,4) = 2 * x(i,1) * x(i,2) ! 2xy
+         mat(i,5) = 2 * x(i,2) * x(i,3) ! 2yz
+         mat(i,6) = 2 * x(i,1) * x(i,3) ! 2xz
+          
+!         do j=1,3
+!            mat(i,j)=x(i,j)*x(i,j)
+!            write(6,'(4(a,i6),a)') 'A[',i,',',j,']=x(',i,',',j,')^2'
+!            do k=j+1,3
+!               mat(i,j+k+1)=2d0*x(i,j)*x(i,k)
+!               write(6,'(6(a,i6),a)') 'A[',i,',',j+k+1,']=x(',i,',',j, &
+!                     ')*x(',i,',',k,')'
+!            end do
+!         end do
       end do
 
       return

@@ -13,6 +13,11 @@ extern "C" {
   void dgesvd_(char*, char*, int&, int&, double*,
                int&, double*, double*, int&, double*, int&,
                double*, int&, int& );
+  // DEBUG
+  void dgemm_(char*,char*,int&,int&,int&,double&,
+              double*,int&,double*,int&,double&,double*,int&);
+  // DEBUG
+  void dgemv_(char*,int&,int&,double&,double*,int&,double*,int&,double&,double*,int&);
 }
 
 // DGESVD prototype 
@@ -399,15 +404,20 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
 }
 
 // Rotdif::Tensor_Fit()
-int Rotdif::Tensor_Fit(double *random_vecs) {
+int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
 #ifdef NO_PTRAJ_ANALYZE
   return 1;
 #else
   int info;
   double wkopt;
   double *work;
-  // Generate matrix A
-  double *matrix_A = new double[ 6 * nvecs ];
+  //double cut_ratio = 0.000001; // threshold ratio for removing small singular values in SVD
+
+  // Generate matrix At
+  // NOTE: The LAPACK fortran routines are COLUMN MAJOR, so m and n must be flipped.
+  int m_rows = nvecs;
+  int n_cols = 6;
+  double *matrix_A = new double[ m_rows * n_cols ];
   double *A = matrix_A;
   double *rvecs = random_vecs;
   for (int i = 0; i < nvecs; i++) {
@@ -417,38 +427,41 @@ int Rotdif::Tensor_Fit(double *random_vecs) {
     A[3] = 2*(rvecs[0] * rvecs[1]); // 2xy
     A[4] = 2*(rvecs[1] * rvecs[2]); // 2yz
     A[5] = 2*(rvecs[0] * rvecs[2]); // 2xz
-    A += 6;
+    A += 6; 
     rvecs += 3;
   }
-  for (int i = 0; i < nvecs * 6; i+=6) 
-    mprintf("matrix_A[%6i]: %12.6lf%12.6lf%12.6lf%12.6lf%12.6lf%12.6lf\n",(i/6)+1,
-            matrix_A[i  ],matrix_A[i+1],matrix_A[i+2],
-            matrix_A[i+3],matrix_A[i+4],matrix_A[i+5]);
+  printMatrix("matrix_A",matrix_A,m_rows,n_cols);
+  // Transpose A
+  double *matrix_At = matrix_transpose( matrix_A, m_rows, n_cols );
+  printMatrix("matrix_At",matrix_At,n_cols,m_rows);
 
   // Perform SVD on matrix A to generate U, Sigma, and Vt
-  int m = 6;
-  int lda = m;
-  int ldu = m;
-  int n = nvecs;
-  int ldvt = n;
-  double *matrix_U = new double[ m * m ];
-  double *matrix_S = new double[ n ];
-  double *matrix_Vt = new double[ n * n ]; // 6^2
+  int lda = m_rows;
+  int ldu = m_rows;
+  int ldvt = n_cols;
+  double *matrix_U = new double[ m_rows * m_rows ];
+  // NOTE: Final dimension of matrix_S is min(m,n)
+  int s_dim = m_rows;
+  if (n_cols < m_rows) s_dim = n_cols;
+  double *matrix_S = new double[ s_dim ];
+  double *matrix_Vt = new double[ n_cols * n_cols ];
   int lwork = -1;
   // Allocate Workspace
-  dgesvd_((char*)"All",(char*)"All",m, n, matrix_A, lda, matrix_S, matrix_U, ldu, matrix_Vt, 
-          ldvt, &wkopt, lwork, info );
+  dgesvd_((char*)"All",(char*)"All",m_rows, n_cols, matrix_At, lda, 
+          matrix_S, matrix_U, ldu, matrix_Vt, ldvt, &wkopt, lwork, info );
   lwork = (int)wkopt;
   work = new double[ lwork ];
   // Compute SVD
-  dgesvd_((char*)"All",(char*)"All", m, n, matrix_A, lda, matrix_S, matrix_U, ldu, matrix_Vt, 
-          ldvt, work, lwork, info );
+  dgesvd_((char*)"All",(char*)"All", m_rows, n_cols, matrix_At, lda, 
+          matrix_S, matrix_U, ldu, matrix_Vt, ldvt, work, lwork, info );
   // DEBUG
-  for (int i = 0; i < n; i++) 
+  for (int i = 0; i < s_dim; i++) 
     mprintf("Sigma %6i%12.6lf\n",i+1,matrix_S[i]);
   // Check for convergence
   if ( info > 0 ) {
     mprinterr( "The algorithm computing SVD failed to converge.\n" );
+    delete[] matrix_A;
+    delete[] matrix_At;
     delete[] matrix_U;
     delete[] matrix_S;
     delete[] matrix_Vt;
@@ -456,7 +469,114 @@ int Rotdif::Tensor_Fit(double *random_vecs) {
     return 1;
   }
 
+  // DEBUG: Print U and Vt
+  // NOTE: U and Vt are in column-major order from fortran routine
+  //       so are currently implicitly transposed.
+  printMatrix("matrix_Ut",matrix_U,m_rows,m_rows);
+  printMatrix("matrix_V",matrix_Vt,n_cols,n_cols);
+
+  // Remove small singular values from SVD
+/*  double wmax = 0;
+  for (int i=0; i < n; i++)
+    if (matrix_S[i] > wmax) wmax=matrix_S[i];
+  double wmin=wmax*cut_ratio;
+  for (int i=0; i < n; i++)
+    if (matrix_S[i] < wmin) matrix_S[i]=0;*/
+
+  // Calculate x = V * Sigma^-1 * Ut * b
+  double alpha = 1.0;
+  double beta = 0.0;
+  // 1) V * Sigma^-1
+  //    a) Create transposed (for fortran) n x m sigma^-1
+  double *matrix_St = new double[ n_cols * m_rows];
+  int ndiag = n_cols+1;
+  int sidx = 0;
+  for (int i = 0; i < n_cols*m_rows; i++) {
+    if ( (i%ndiag)==0 && sidx<s_dim) 
+      matrix_St[i] = (1 / matrix_S[sidx++]);
+    else
+      matrix_St[i] = 0;
+  }
+  printMatrix("matrix_St",matrix_St,m_rows,n_cols);
+  //    b) Create tranposed V
+  double *matrix_V = matrix_transpose( matrix_Vt, n_cols, n_cols );
+  double *matrix_VS = new double[ n_cols * m_rows ];
+  dgemm_((char*)"N",(char*)"N",n_cols,m_rows,n_cols,alpha,matrix_V,n_cols,
+         matrix_St,n_cols,beta,matrix_VS,n_cols);
+
+  // 2) VSigma^-1 * Ut
+  double *matrix_Ut = matrix_transpose( matrix_U, m_rows, m_rows );
+  double *matrix_VSUt = new double[ n_cols * m_rows ];
+  dgemm_((char*)"N",(char*)"N",n_cols,m_rows,m_rows,alpha,matrix_VS,n_cols,
+         matrix_Ut,m_rows,beta,matrix_VSUt,n_cols);
+
+  // 3) VSigma^-1*Ut * b
+  double *vector_x = new double[ n_cols ];
+  int incx = 1;
+  dgemv_((char*)"N",n_cols,m_rows,alpha,matrix_VSUt,n_cols,deff,incx,beta,vector_x,incx);
+  for (int i = 0; i < n_cols; i++)
+    mprintf("Vector_X[%i]= %12.4lf\n",i,vector_x[i]);
+
+  delete[] matrix_St;
+  delete[] matrix_V;
+  delete[] matrix_VS;
+  delete[] matrix_Ut;
+  delete[] matrix_VSUt;
+  delete[] vector_x;
+  // DEBUG -------------------------------------------------
+/* 
+  // Sanity check: Ensure U is orthogonal (U * Ut) = I
+  double *Ut = matrix_transpose(matrix_U,m_rows,m_rows);
+  printMatrix("Ut",Ut,m_rows,m_rows);
+  double *UtU = new double[ m_rows * m_rows ];
+  dgemm_((char*)"N",(char*)"N",m_rows,m_rows,m_rows,alpha,Ut,m_rows,
+         matrix_U,m_rows,beta,UtU,m_rows);
+  printMatrix("UtU",UtU,m_rows,m_rows);
+  delete[] UtU;
+  delete[] Ut;
+*/
+/*
+  // Sanity check: Ensure that U * S * Vt = A
+  double *diag_S = new double[ m_rows * n_cols ];
+  int sidx=0;
+  int diag_sidx=0;
+  for (int m=0; m < m_rows; m++) {
+    for (int n=0; n < n_cols; n++) {
+      if (m==n) 
+        diag_S[diag_sidx]=matrix_S[sidx++];
+      else
+        diag_S[diag_sidx]=0.0;
+      ++diag_sidx;
+    }
+  }
+  printMatrix("diag_S",diag_S,m_rows,n_cols);
+  // Transpose diag_S for fortran; U and Vt are already transposed (result from fortran SVD)
+  double *diag_St = matrix_transpose( diag_S, m_rows, n_cols );
+  printMatrix("diag_St",diag_St,n_cols,m_rows);
+  // U * S
+  double *US = new double[ m_rows * n_cols ];
+  dgemm_((char*)"N",(char*)"N",m_rows,n_cols,m_rows,alpha,matrix_U,m_rows,
+         diag_St,m_rows,beta,US,m_rows);
+  // US * Vt
+  double *USVt = new double[ m_rows * n_cols ];
+  dgemm_((char*)"N",(char*)"N",m_rows,n_cols,n_cols,alpha,US,m_rows,
+         matrix_Vt,n_cols,beta,USVt,m_rows);
+  // The result from fortran will actually be (USVt)t
+  //double *USVtt = matrix_transpose( USVt, m_rows, n_cols );
+  printMatrix("matrix_A",matrix_A,m_rows,n_cols);
+  printMatrix("USVt",USVt,n_cols,m_rows);
+  // ----- Cleanup
+  delete[] diag_S;
+  delete[] diag_St;
+  delete[] US;
+  delete[] USVt;
+*/
+  // END DEBUG ---------------------------------------------
+
+
   // Cleanup
+  delete[] matrix_A;
+  delete[] matrix_At;
   delete[] matrix_U;
   delete[] matrix_S;
   delete[] matrix_Vt;
@@ -494,7 +614,7 @@ void Rotdif::print() {
   for (std::vector<double*>::iterator rmatrix = Rmatrices.begin();
                                       rmatrix != Rmatrices.end();
                                       rmatrix++) {
-    matrix_transpose(*rmatrix);
+    matrix_transpose_3x3(*rmatrix);
   }
 
   // Print rotation matrices
@@ -618,7 +738,7 @@ void Rotdif::print() {
     }
   }
 
-  Tensor_Fit( random_vectors );
+  Tensor_Fit( random_vectors, deff );
 
   tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
 
