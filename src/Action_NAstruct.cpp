@@ -375,7 +375,7 @@ int NAstruct::setupBasePairAxes() {
     }
     // Calculate new half-rotation matrix
     calcRotationMatrix(RotMatrix,V,theta/2);
-    printMatrix("Rhalf",RotMatrix);
+    printMatrix_3x3("Rhalf",RotMatrix);
     // Rotate Base2 by half rotation towards Base1.
     // Since the new rotation axis by definition is located at
     // the origin, the coordinates of the base have to be shifted, rotated,
@@ -417,7 +417,7 @@ int NAstruct::setupBasePairAxes() {
             BasePair[basepair+1], Base2->BaseName(),
             Base1->X[9], Base1->X[10], Base1->X[11],
             Base1->R[2], Base1->R[5], Base1->R[8]);
-    printMatrix("BP R",Base1->R);
+    printMatrix_3x3("BP R",Base1->R);
     // Base1 contains absolute coords and rotation matrix of base pair reference axes
     Base1->WritePDB(&basepairaxesfile, BasePair[basepair], P->ResidueName(BP),&basepairaxesatom);
     BasePairAxes.push_back( Base1 );
@@ -748,7 +748,7 @@ int NAstruct::determineBaseParameters() {
     Stagger = Vec[2];
 
     // Base pair rotation matrix, R1Rhalf
-    matrix_multiply(Rb, Base1->R, Rhalf);
+    matrix_multiply_3x3(Rb, Base1->R, Rhalf);
 
     // Base pair origin
     // Calc V1 + FV2

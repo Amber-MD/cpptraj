@@ -98,7 +98,7 @@ void matrix_transpose(double M[9], double U[9]) {
 /** M = Mt
   * Columns of M become rows of M and vice versa.
   */
-void matrix_transpose(double M[9]) {
+void matrix_transpose_3x3(double M[9]) {
   //double U0,U4,U8;
   double U1,U2,U3,U5,U6,U7;
   //U0 = M[0];
@@ -126,6 +126,22 @@ void matrix_transpose(double M[9]) {
   //M[8] = U8;
 }
 
+// matrix_transpose()
+double *matrix_transpose(double *M, int mrows, int ncols) {
+  double *result = new double[ mrows * ncols];
+  int midx = 0;
+  for (int m = 0; m < mrows; m++) {
+    int ridx = m;
+    for (int n = 0; n < ncols; n++) {
+      //mprintf("TRANSPOSE: %6i = %6i\n",ridx,midx);
+      result[ridx] = M[midx];
+      ++midx;
+      ridx += mrows;
+    }
+  }
+  return result;
+}
+  
 // matrix_times_vector()
 /** Multiple matrix R by vector V, store result in M
   */
@@ -140,10 +156,10 @@ void matrix_times_vector(double M[3], double R[9], double V[3]) {
   M[2] = (R[6]*x) + (R[7]*y) + (R[8]*z);
 }
 
-// matrix_multiply()
-/** Multiple matrix R by vector V, store result in M
+// matrix_multiply_3x3()
+/** Multiply 3x3 matrix Row by 3x3 matrix Col, store result in M
   */
-void matrix_multiply(double M[9], double Row[9], double Col[9]) {
+void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]) {
   M[0] = (Row[0] * Col[0]) + (Row[1] * Col[3]) + (Row[2] * Col[6]);
   M[1] = (Row[0] * Col[1]) + (Row[1] * Col[4]) + (Row[2] * Col[7]);
   M[2] = (Row[0] * Col[2]) + (Row[1] * Col[5]) + (Row[2] * Col[8]);
@@ -154,6 +170,22 @@ void matrix_multiply(double M[9], double Row[9], double Col[9]) {
   M[7] = (Row[6] * Col[1]) + (Row[7] * Col[4]) + (Row[8] * Col[7]);
   M[8] = (Row[6] * Col[2]) + (Row[7] * Col[5]) + (Row[8] * Col[8]);
 }
+
+// matrix_multiply()
+/** Multiply matrix M by matrix N.
+  * \return matrix of size mrow*ncol containing MxN
+  */
+/*double *matrix_multiply(double *M, int mrow, int mcol,
+                        double *N, int nrow, int ncol)
+{
+  int result_size = mrow * ncol;
+  double *result = new double[ result_size ];
+
+  for (int ridx = 0; ridx < result_size; ridx++) {
+    double sum = 0;
+    for (int */
+  
+ 
 
 // matrix_to_angle()
 /** Return angle of rotation from rotation matrix according to
@@ -377,7 +409,7 @@ void printVector(const char *Name, double V[3]) {
   mprintf("    %s: %8.4lf %8.4lf %8.4lf\n",Name,V[0], V[1], V[2]);
 }
 
-// printMatrix()
+// printMatrix_3x3()
 void printMatrix(const char *Title, double U[9]) {
   mprintf("    %s\n",Title);
   mprintf("     %8.4lf %8.4lf %8.4lf\n", U[0], U[1], U[2]);
@@ -385,6 +417,17 @@ void printMatrix(const char *Title, double U[9]) {
   mprintf("     %8.4lf %8.4lf %8.4lf\n", U[6], U[7], U[8]);
 }
 
+// printMatrix()
+void printMatrix(const char *Title, double *U, int mrows, int ncols) {
+  mprintf("    %s",Title);
+  int usize = mrows * ncols;
+  for (int i = 0; i < usize; i++) {
+    if ( (i%ncols)==0 ) mprintf("\n");
+    mprintf(" %8.4lf",U[i]);
+  }
+  mprintf("\n");
+}
+    
 // printRotTransInfo()
 void printRotTransInfo(double U[9], double trans[6]) {
 
