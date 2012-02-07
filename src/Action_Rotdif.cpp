@@ -487,9 +487,11 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   //double cut_ratio = 0.000001; // threshold ratio for removing small singular values in SVD
 
   // Generate matrix At
-  // NOTE: The LAPACK fortran routines are COLUMN MAJOR, so m and n must be flipped.
-  // NOTE: LAPACK SVD routine destroys A which is needed later, so create a
-  //       non-flipped version as well
+  // NOTE: The LAPACK fortran routines are COLUMN MAJOR, so m and n must be 
+  //       flipped, i.e. matrix At must be tranposed before passing it in
+  //       so we actually need to construct matrix A for SVD.
+  // NOTE: LAPACK SVD routine destroys matrix A which is needed later, so 
+  //       create a non-flipped version (i.e. matrix At) as well.
   int m_rows = nvecs;
   int n_cols = 6;
   double *matrix_A = new double[ m_rows * n_cols ];
@@ -503,6 +505,7 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   double *rvecs = random_vecs;
   At = matrix_At;
   for (int i = 0; i < nvecs; i++) {
+    // Transpose of matrix A
     double *A = matrix_A + i;
     A[ 0] = rvecs[0] * rvecs[0];     // x^2
     A[A1] = rvecs[1] * rvecs[1];     // y^2
@@ -510,7 +513,7 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
     A[A3] = 2*(rvecs[0] * rvecs[1]); // 2xy
     A[A4] = 2*(rvecs[1] * rvecs[2]); // 2yz
     A[A5] = 2*(rvecs[0] * rvecs[2]); // 2xz
-    
+    // Matrix A
     At[0] = A[ 0];
     At[1] = A[A1];
     At[2] = A[A2];
@@ -527,11 +530,11 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   int lda = m_rows;
   int ldu = m_rows;
   int ldvt = n_cols;
-  double *matrix_U = new double[ m_rows * m_rows ];
   // NOTE: Final dimension of matrix_S is min(m,n)
   int s_dim = m_rows;
   if (n_cols < m_rows) s_dim = n_cols;
   double *matrix_S = new double[ s_dim ];
+  double *matrix_U = new double[ m_rows * m_rows ];
   double *matrix_Vt = new double[ n_cols * n_cols ];
   int lwork = -1;
   // Allocate Workspace
@@ -573,8 +576,9 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
     if (matrix_S[i] < wmin) matrix_S[i]=0;*/
 
   // Calculate x = V * Sigma^-1 * Ut * b
-  // Take advantage of the fact that Vt and U have already
-  // been implicitly transposed in dgesvd
+  // Take advantage of the fact that Vt and U have already been implicitly 
+  // transposed in dgesvd to do everything in one step.
+  // First invert Sigma.
   for (int s = 0; s < s_dim; s++) 
     if (matrix_S[s] > 0) matrix_S[s] = 1 / matrix_S[s];
   int v_idx = 0;
@@ -596,6 +600,7 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   // Print Q vector
   for (int i = 0; i < n_cols; i++)
     mprintf("Vector_X[%i]= %12.4lf\n",i,vector_q[i]);
+  // ---------------------------------------------
 
   // Convert vector Q to diffusion tensor D
   Q_to_D(matrix_D, vector_q);
@@ -636,7 +641,8 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   calculate_D_properties(vector_d, d_props);
   printMatrix("Dav, Daniso, Drhomb",d_props,1,3);
 
-  // Back-calculate the local diffusion constants via A*Q=Deff
+  // Back-calculate the local diffusion constants via At*Q=Deff
+  // First convert original D back to Q
   D_to_Q(vector_q_local, matrix_D_local);
   printMatrix("D_to_Q",vector_q_local,1,6);
   deff_local = new double[ nvecs ];
