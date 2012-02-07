@@ -95,6 +95,13 @@
       integer nvec,n,mp,np,maxbins,iarg,idummy,ios,last_arg
       parameter (n=6,mp=2000,np=6,maxbins=200)
 
+      ! Variables for LAPACK dsyev
+      integer LWMAX
+      parameter (LWMAX = 1000)
+      integer info, lwork
+      real*8 work( LWMAX )
+      external dsyev
+
       integer svd_chk,itermax,sim_chk,back_cal
       integer rdatflag
       real*8 cut_ratio
@@ -292,8 +299,12 @@
             copy2_d(i,j)=d(i,j)
          end do
       end do
-      call tred2(d,3,3,dia,off)
-      call tqli(dia,off,3,3,itermax,d)
+      !call tred2(d,3,3,dia,off)
+      !call tqli(dia,off,3,3,itermax,d)
+      lwork=-1
+      call dsyev('Vectors','Upper',3,d,3,dia,work,lwork,info)
+      lwork = min( LWMAX, int( work( 1 ) ) )
+      call dsyev('Vectors','Upper',3,d,3,dia,work,lwork,info)
 
       call convertd(dia,dshape)
 
