@@ -406,6 +406,72 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
   return d; 
 }
 
+// Rotdif::calc_Asymmetric()
+/** computes tau(l=1) and tau(l=2) given principal components of a rotational 
+  * diffusion tensor and angular coordinates of a vector (in the PA frame, 
+  * n*ez = cos(theta),  n*ey = sin(theta)*sin(phi), n*ex = sin(theta)*cos(phi).
+  * It is expected that the principal components Dxyz and principal axes
+  * D_matrix are in ascending order, i.e. Dx <= Dy <= Dz. It is also expected
+  * that the eigenvectors are orthonormal. This is the default behavior when 
+  * the LAPACK routines are used.
+  */
+int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D) {
+  double lambda[8];
+  double dx = Dxyz[0];
+  double dy = Dxyz[1];
+  double dz = Dxyz[2];
+  double Dav, Dpr, delta;
+
+  // tau = sum(m){amp(l,m)/lambda(l,m)}
+  // see Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY;
+  // Prog. Nuc. Mag. Res. Spec., 38, 197 (2001) for details
+  // only weights need to be computed for each vector, 
+  // decay constants can be computed once
+  // first three decay constants correspond to l=1, m=-1,0,+1
+  // next five correspond to l=2, m=-2,-1,0,+1,+2
+
+  // l=1, m=-1 term: lambda(1,-1) = Dy + Dz
+  lambda[0] = dy + dz;
+  // l=1, m=0 term:  lambda(1, 0) = Dx + Dy
+  lambda[1] = dx + dy;
+  // l=1, m=+1 term: lambda(1,+1) = Dx + Dz
+  lambda[2] = dx + dz;
+  // l=2, m=-2 term: lambda(2,-2) = Dx + Dy + 4*Dz
+  lambda[3] = dx + dy + (4*dz);
+  // l=2, m=-1 term: lambda(2,-1) = Dx + 4*Dy + Dz
+  lambda[4] = dx + (4*dy) + dz;
+  // l=2, m=0 term:  lambda(2, 0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+  //                 Dav = (Dx + Dy + Dz)/3 
+  //                 Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+  // Below terms are obsolete from the fortran code:
+  //     u = sqrt(3)*(Dx - Dy)
+  //     delta = 3*sqrt(Dav*Dav - Dpr*Dpr)
+  //     w = 2*Dz - Dx - Dy + 2*delta
+  //     N = 2*sqrt(delta*w)
+  Dav = (dx + dy + dz) / 3;
+  delta = ((dx*dy) + (dy*dz) + (dx*dz)) / 3;
+  if (delta < 0) {
+    mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate Dpr (delta < 0)\n");
+    // NOTE: Exit here?
+    Dpr = 0;
+  } else {
+    Dpr = sqrt( delta );
+  }
+  delta = (Dav*Dav) - (Dpr*Dpr);
+  if (delta < 0) {
+    mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate lambda l=2, m=0\n");
+    return 1;
+  }
+  lambda[5] = 6 * (Dav - sqrt( delta ));
+  // l=2, m=+1 term: lambda(2,+1) = 4*Dx + Dy + Dz
+  lambda[6] = (4*dx) + dy + dz;
+  // l=2, m=+2 term: lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav - Dpr*Dpr)]
+  //                 delta is still (Dav*Dav) - (Dpr*Dpr) 
+  lambda[7] = 6 * (Dav + sqrt( delta ));
+
+  return 0;
+}
+
 // Q_to_D()
 /** Convert column vector Q with format:
   *   {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
@@ -598,8 +664,7 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   }
 
   // Print Q vector
-  for (int i = 0; i < n_cols; i++)
-    mprintf("Vector_X[%i]= %12.4lf\n",i,vector_q[i]);
+  printMatrix("Qxx Qyy Qzz Qxy Qyz Qxz",vector_q,1,6);
   // ---------------------------------------------
 
   // Convert vector Q to diffusion tensor D
@@ -632,6 +697,8 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   // i.e. Ex = {matrix_D[0], matrix_D[3], matrix_D[6]} etc.
   // Transpose back.
   matrix_transpose_3x3( matrix_D );
+
+  mprintf("Results of small anisotropy (SVD) analysis:\n");
 
   // Print eigenvalues/eigenvectors
   printMatrix("D eigenvalues",vector_d,1,3);
