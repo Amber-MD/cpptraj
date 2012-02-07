@@ -1217,13 +1217,22 @@
    
 !     tred2/tqli will be used to diagonalize D, so it must be stored
 !     in conventional format (i.e. not as a column vector)
-      do i=1,3
-         d(i,i)=trq-2d0*q(i)
-         do j=i+1,3
-            d(i,j)=-2d0*q(i+j+1)
-            d(j,i)=d(i,j)
-         end do
-      end do
+      d(1,1) = trq - (2d0 * q(1))
+      d(1,2) = -2d0 * q(4)
+      d(1,3) = -2d0 * q(6)
+      d(2,1) = d(1,2)
+      d(2,2) = trq - (2d0 * q(2))
+      d(2,3) = -2d0 * q(5)
+      d(3,1) = d(1,3)
+      d(3,2) = d(2,3)
+      d(3,3) = trq - (2d0 * q(3))
+      !do i=1,3
+      !   d(i,i)=trq-2d0*q(i)
+      !   do j=i+1,3
+      !      d(i,j)=-2d0*q(i+j+1)
+      !      d(j,i)=d(i,j)
+      !   end do
+      !end do
 
       return
       end
