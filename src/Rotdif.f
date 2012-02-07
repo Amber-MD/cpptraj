@@ -245,7 +245,7 @@
 !     array q can be used for the jackknife analysis as an initial guess 
       write(6,*) 'svd q values:'
       write(6,1) (q(i),i=1,n)
-      write(6,'(6(f12.4))') (q(i),i=1,n)
+      !write(6,'(6(f12.4))') (q(i),i=1,n)
          
 !     verify svd a=u*w*v^T
 !     WARNING: elements of a are set to 0 inside svdchk prior to final
@@ -816,14 +816,14 @@
       do i=1,m
          !write(6,'(a,i6,a,6(f12.6))') 'A[',i,']: ',a(i,1),a(i,2),a(i,3),a(i,4),a(i,5),a(i,6)
          do j=1,n
-            write(6,'(2(a,i6),a,f12.4)') 'A[',i,',',j,']=',a(i,j)
+            !write(6,'(2(a,i6),a,f12.4)') 'A[',i,',',j,']=',a(i,j)
             u(i,j)=a(i,j)
          end do
       end do
       call svdcmp(u,m,n,mp,np,w,v)
-      do i=1,n
-        write(6,'(a,i6,f12.6)') 'svdcmp_w1 ', i, w(i)
-      enddo
+      !do i=1,n
+      !  write(6,'(a,i6,f12.6)') 'svdcmp_w1 ', i, w(i)
+      !enddo
       wmax=0d0
       do i=1,n
          if(w(i)>wmax) wmax=w(i)
@@ -835,16 +835,16 @@
       do i=1,n
         write(6,'(a,i6,f12.6)') 'svdcmp_w2 ', i, w(i)
       enddo
-      do i=1,m
-        do j=1,m
-          write(6,'(2(a,i6),a,f12.4)') 'U[',i,',',j,']=',u(i,j)
-        enddo
-      enddo
-      do i=1,n
-        do j=1,n
-          write(6,'(2(a,i6),a,f12.4)') 'Vt[',i,',',j,']=',v(j,i)
-        enddo
-      enddo
+      !do i=1,m
+      !  do j=1,m
+      !    write(6,'(2(a,i6),a,f12.4)') 'U[',i,',',j,']=',u(i,j)
+      !  enddo
+      !enddo
+      !do i=1,n
+      !  do j=1,n
+      !    write(6,'(2(a,i6),a,f12.4)') 'Vt[',i,',',j,']=',v(j,i)
+      !  enddo
+      !enddo
       call svbksb(u,w,v,m,n,mp,np,b,x)
 
       return
@@ -1462,6 +1462,9 @@
 
 !     compute Q
       call dtoq(d,q)
+      do i=1,6
+        write(6,'(a,i6,f10.5)') 'dtoq ',i,q(i)
+      enddo
 
 !     multiply A*Q (=Deff)
       do i=1,m
@@ -1494,12 +1497,18 @@
       end do
 
 !     compute Q
-      do i=1,3
-         q(i)=0.5d0*(trd-d(i,i))
-         do j=i+1,3
-            q(i+j+1)=-0.5d0*d(i,j)
-         end do
-      end do
+      q(1) = 0.5d0 * (trd - d(1,1))
+      q(2) = 0.5d0 * (trd - d(2,2))
+      q(3) = 0.5d0 * (trd - d(3,3))
+      q(4) = -0.5d0 * d(1,2)
+      q(5) = -0.5d0 * d(2,3)
+      q(6) = -0.5d0 * d(1,3)
+      !do i=1,3
+      !   q(i)=0.5d0*(trd-d(i,i))
+      !   do j=i+1,3
+      !      q(i+j+1)=-0.5d0*d(i,j)
+      !   end do
+      !end do
 
       return
       end
