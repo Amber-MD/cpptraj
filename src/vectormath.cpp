@@ -94,7 +94,7 @@ void matrix_transpose(double M[9], double U[9]) {
   M[8] = U[8];
 }
 
-// matrix_transpose()
+// matrix_transpose_3x3()
 /** M = Mt
   * Columns of M become rows of M and vice versa.
   */
@@ -410,7 +410,7 @@ void printVector(const char *Name, double V[3]) {
 }
 
 // printMatrix_3x3()
-void printMatrix(const char *Title, double U[9]) {
+void printMatrix_3x3(const char *Title, double U[9]) {
   mprintf("    %s\n",Title);
   mprintf("     %8.4lf %8.4lf %8.4lf\n", U[0], U[1], U[2]);
   mprintf("     %8.4lf %8.4lf %8.4lf\n", U[3], U[4], U[5]);
@@ -423,7 +423,7 @@ void printMatrix(const char *Title, double *U, int mrows, int ncols) {
   int usize = mrows * ncols;
   for (int i = 0; i < usize; i++) {
     if ( (i%ncols)==0 ) mprintf("\n");
-    mprintf(" %8.4lf",U[i]);
+    mprintf(" %10.5lf",U[i]);
   }
   mprintf("\n");
 }
@@ -431,7 +431,7 @@ void printMatrix(const char *Title, double *U, int mrows, int ncols) {
 // printRotTransInfo()
 void printRotTransInfo(double U[9], double trans[6]) {
 
-  printMatrix("Rotation matrix follows",U);
+  printMatrix_3x3("Rotation matrix follows",U);
   printVector("Translation 1",trans);
   printVector("Translation 2",trans+3);
 }
