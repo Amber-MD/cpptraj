@@ -124,13 +124,13 @@
       real*8 ftol,delqfrac_save
       integer nsimp
 
-      external matgen,svdsolv,svdchk,qtod,tred2,tqli,similar_trans
+      external matgen,svdsolv,svdchk,qtod,similar_trans
 
       external convertd,simpmin
 
       common/ chsq/ deff,sig,ycalc,sumc2,nvec
 
-      common/ difftheo/ x
+      common/ difftheo/ x,work,lwork
      
 !     control variables for calculation:
 !     lflag - lflag=1 => only l=1 diffusion constants used to
@@ -299,8 +299,6 @@
             copy2_d(i,j)=d(i,j)
          end do
       end do
-      !call tred2(d,3,3,dia,off)
-      !call tqli(dia,off,3,3,itermax,d)
       lwork=-1
       call dsyev('Vectors','Upper',3,d,3,dia,work,lwork,info)
       lwork = min( LWMAX, int( work( 1 ) ) )
@@ -655,16 +653,22 @@
       parameter(nvmx=2000)
       real*8 vec(nvmx,3),tau1(nvmx),tau2(nvmx),sumc2(nvmx)
 
+      ! Parameters for dsyev
+      integer LWMAX
+      parameter(LWMAX=1000)
+      real*8 work(LWMAX)
+      integer info, lwork
+      external dsyev
+
       integer i
       real*8 ycalc(nvmx),yobs(nvmx),sig(nvmx)
       common/ chsq/ yobs,sig,ycalc,sumc2,nvec
 
       common/ diag/ dia,d,itermax
-      common/ difftheo/ vec
+      common/ difftheo/ vec,work,lwork
 
       call qtod(x,d)
-      call tred2(d,3,3,dia,off)
-      call tqli(dia,off,3,3,itermax,d)
+      call dsyev('Vectors','Upper',3,d,3,dia,work,lwork,info)
       call asymtop(dia,d,vec,nvec,nvmx,tau1,tau2,sumc2)
       do i=1,nvec
 !     for the "tau-eff fit", don't convert to deff
@@ -1245,168 +1249,6 @@
       !   end do
       !end do
 
-      return
-      end
-
-!     --------------------------------------------------------------------------
-      subroutine tred2(a,n,np,d,e)
-      implicit none
-      integer n,np
-      real*8 a(np,np),d(np),e(np)
-      integer i,j,k,l
-      real*8 f,g,h,hh,scale
-
-      do i=n,2,-1
-         l=i-1
-         h=0d0
-         scale=0d0
-         if(l>1)then
-           do k=1,l
-              scale=scale+dabs(a(i,k))
-           end do
-           if(scale==0d0)then
-!          if(dabs(scale)<1d-8)then
-             e(i)=a(i,l)
-           else
-             do k=1,l
-                a(i,k)=a(i,k)/scale
-                h=h+a(i,k)**2
-             end do
-             f=a(i,l)
-             g=-dsign(dsqrt(h),f)
-             e(i)=scale*g
-             h=h-f*g
-             a(i,l)=f-g
-             f=0d0
-             do j=1,l
-!    omit following line if finding only eigenvalues
-                a(j,i)=a(i,j)/h
-                g=0d0
-                do k=1,j
-                   g=g+a(j,k)*a(i,k)
-                end do
-                do k=j+1,l
-                   g=g+a(k,j)*a(i,k)
-                end do
-                e(j)=g/h
-                f=f+e(j)*a(i,j)
-             end do
-             hh=f/(h+h)
-             do j=1,l
-                f=a(i,j)
-                g=e(j)-hh*f
-                e(j)=g
-                do k=1,j
-                   a(j,k)=a(j,k)-f*e(k)-g*a(i,k)
-                end do
-             end do
-           end if
-         else
-           e(i)=a(i,l)
-         end if
-         d(i)=h
-      end do
-!     omit following line if finding only eigenvalues
-      d(1)=0d0
-      e(1)=0d0
-      do i=1,n
-!     delete lines from here...
-         l=i-1
-         if(d(i)/=0d0)then
-!        if(dabs(i)>=1d-8)then
-           do j=1,l
-              g=0d0
-              do k=1,l
-                 g=g+a(i,k)*a(k,j)
-              end do
-              do k=1,l
-                 a(k,j)=a(k,j)-g*a(k,i)
-              end do
-           end do
-         end if
-!  ...to here when finding only eigenvalues
-!     this statement remains
-         d(i)=a(i,i)
-!     also delete lines from here...
-         a(i,i)=1d0
-         do j=1,l
-            a(i,j)=0d0
-            a(j,i)=0d0
-         end do
-!  ...to here when finding only eigenvalues
-      end do
-      return
-      end
-
-!     --------------------------------------------------------------------------
-!     subroutine tqli(d,e,n,np,z)
-      subroutine tqli(d,e,n,np,itermax,z)
-      implicit none
-      integer n,np
-      real*8 d(np),e(np)
-      real*8 z(np,np)
-!     uses pythag
-      integer i,iter,k,l,m
-      real*8  b,c,dd,f,g,p,r,s,pythag
-      integer itermax
-
-      do i=2,n
-         e(i-1)=e(i)
-      end do
-      e(n)=0d0
-      do l=1,n
-         iter=0
-1        do m=l,n-1
-            dd=dabs(d(m))+dabs(d(m+1))
-            if(dabs(e(m))+dd==dd) go to 2
-!           if(dabs(e(m)<1d-8)then go to 2
-         end do
-         m=n
-2        if(m/=l)then
-           if(iter==itermax)then
-             write(6,*) 'too many iterations in tqli'
-             stop
-           end if
-!          if(iter==itermax) pause 'too many iterations in tqli'
-           iter=iter+1
-           g=(d(l+1)-d(l))/(2d0*e(l))
-           r=pythag(g,1d0)
-           g=d(m)-d(l)+e(l)/(g+dsign(r,g))
-           s=1d0
-           c=1d0
-           p=0d0
-           do i=m-1,l,-1
-              f=s*e(i)
-              b=c*e(i)
-              r=pythag(f,g)
-              e(i+1)=r
-              if(r==0d0)then
-!             if(dabs(r)<1d-8)then
-                d(i+1)=d(i+1)-p
-                e(m)=0d0
-                go to 1
-              end if
-              s=f/r
-              c=g/r
-              g=d(i+1)-p
-              r=(d(i)-g)*s+2d0*c*b
-              p=s*r
-              d(i+1)=g+p
-              g=c*r-b
-!     omit lines from here...
-              do k=1,n
-                 f=z(k,i+1)
-                 z(k,i+1)=s*z(k,i)+c*f
-                 z(k,i)=c*z(k,i)-s*f
-              end do
-!  ...to here when finding only eigenvalues
-           end do
-           d(l)=d(l)-p
-           e(l)=g
-           e(m)=0d0
-           go to 1
-         end if
-      end do
       return
       end
 
