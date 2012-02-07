@@ -9,10 +9,13 @@
 
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
+  // Rotdif.f
   void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
+  // LAPACK
   void dgesvd_(char*, char*, int&, int&, double*,
                int&, double*, double*, int&, double*, int&,
                double*, int&, int& );
+  void dsyev_(char*, char*, int&, double*, int&, double*,double*,int&,int&);
   // DEBUG
   void dgemm_(char*,char*,int&,int&,int&,double&,
               double*,int&,double*,int&,double&,double*,int&);
@@ -433,6 +436,38 @@ static void Q_to_D(double *D, double *Q) {
   D[8] = tq - (2 * Q[2]); // tq-2Qzz
 }
 
+// static void D_to_Q()
+/** Given diffusion tensor D[9], calculate Q[6] where Q is:
+  *   Q = {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
+  * from
+  *   Q = (3*Dav*I - D) / 2
+  * where Dav = trace(D). See Q_to_D for more discussion.
+  */
+static void D_to_Q(double *Q, double *D) {
+  double td = D[0] + D[4] + D[8];
+
+  Q[0] = (td - D[0]) / 2; // Qxx
+  Q[1] = (td - D[4]) / 2; // Qyy
+  Q[2] = (td - D[8]) / 2; // Qzz
+  Q[3] = -D[1] / 2; // Qxy
+  Q[4] = -D[5] / 2; // Qyz
+  Q[5] = -D[2] / 2; // Qxz
+}
+
+// calculate_D_properties()
+/** Given the principal components of D, calculate the isotropic diffusion
+  * constant (Dav = (Dx + Dy + Dz) / 3), anisotropy (Dan = 2Dz / (Dx + Dy)),
+  * and rhombicity (Drh = (3/2)(Dy - Dx) / (Dz - 0.5(Dx + Dy)).
+  */
+static void calculate_D_properties(double Dxyz[3], double Dout[3]) {
+  double Dx = Dxyz[0];
+  double Dy = Dxyz[1];
+  double Dz = Dxyz[2];
+  Dout[0] = (Dx + Dy + Dz) / 3;
+  Dout[1] = (2 * Dz) / (Dx + Dy);
+  Dout[2] = (1.5 * (Dy - Dx)) / (Dz - (0.5 * (Dx + Dy)) );
+}
+
 // Rotdif::Tensor_Fit()
 int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
 #ifdef NO_PTRAJ_ANALYZE
@@ -442,21 +477,31 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   double wkopt;
   double *work;
   double vector_q[6];
+  double vector_q_local[6];
+  double vector_d[3];
+  double d_props[3];
   double matrix_D[9];
+  double matrix_D_local[9];
+  double *deff_local;
+  double *At; // Used to index into matrix_At
   //double cut_ratio = 0.000001; // threshold ratio for removing small singular values in SVD
 
   // Generate matrix At
   // NOTE: The LAPACK fortran routines are COLUMN MAJOR, so m and n must be flipped.
+  // NOTE: LAPACK SVD routine destroys A which is needed later, so create a
+  //       non-flipped version as well
   int m_rows = nvecs;
   int n_cols = 6;
   double *matrix_A = new double[ m_rows * n_cols ];
-  // Pre-compute array offsets for performing transpose
+  double *matrix_At = new double[ m_rows * n_cols ];
+  // Pre-compute array offsets of matrix_A for performing transpose
   int A1 = m_rows;
   int A2 = m_rows * 2;
   int A3 = m_rows * 3;
   int A4 = m_rows * 4;
   int A5 = m_rows * 5;
   double *rvecs = random_vecs;
+  At = matrix_At;
   for (int i = 0; i < nvecs; i++) {
     double *A = matrix_A + i;
     A[ 0] = rvecs[0] * rvecs[0];     // x^2
@@ -465,9 +510,18 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
     A[A3] = 2*(rvecs[0] * rvecs[1]); // 2xy
     A[A4] = 2*(rvecs[1] * rvecs[2]); // 2yz
     A[A5] = 2*(rvecs[0] * rvecs[2]); // 2xz
+    
+    At[0] = A[ 0];
+    At[1] = A[A1];
+    At[2] = A[A2];
+    At[3] = A[A3];
+    At[4] = A[A4];
+    At[5] = A[A5];
+    At += 6;
     rvecs += 3;
   }
   printMatrix("matrix_A",matrix_A,n_cols,m_rows);
+  printMatrix("matrix_At",matrix_At,m_rows,n_cols);
 
   // Perform SVD on matrix At to generate U, Sigma, and Vt
   int lda = m_rows;
@@ -496,7 +550,8 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
     mprintf("Sigma %6i%12.6lf\n",i+1,matrix_S[i]);
   // Check for convergence
   if ( info > 0 ) {
-    mprinterr( "The algorithm computing SVD failed to converge.\n" );
+    mprinterr( "The algorithm computing SVD of At failed to converge.\n" );
+    delete[] matrix_At;
     delete[] matrix_U;
     delete[] matrix_S;
     delete[] matrix_Vt;
@@ -544,11 +599,80 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
 
   // Convert vector Q to diffusion tensor D
   Q_to_D(matrix_D, vector_q);
-  printMatrix("matrix_D",matrix_D,3,3); 
+  printMatrix("matrix_D",matrix_D,3,3);
+
+  // Save D for later use in back calculating deff from Q
+  for (int i = 0; i < 9; i++)
+    matrix_D_local[i] = matrix_D[i];
+
+  // Diagonalize D to find eigenvalues and eigenvectors
+  // (principal components and axes)
+  // Determine workspace
+  lwork = -1;
+  n_cols = 3;
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, matrix_D, n_cols, vector_d, &wkopt, lwork, info);
+  lwork = (int) wkopt;
+  work = new double[ lwork ];
+  // Diagonalize matrix_D
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, matrix_D, n_cols, vector_d, work, lwork, info);
+  // Check for convergence
+  if (info > 0) {
+    mprinterr("The algorithm computing the eigenvalues/eigenvectors of D failed to converge.\n");
+    delete[] work;
+    delete[] matrix_At;
+    return 1;
+  }
+  delete[] work;
+  // eigenvectors are stored in columns due to implicit transpose from fortran,
+  // i.e. Ex = {matrix_D[0], matrix_D[3], matrix_D[6]} etc.
+  // Transpose back.
+  matrix_transpose_3x3( matrix_D );
+
+  // Print eigenvalues/eigenvectors
+  printMatrix("D eigenvalues",vector_d,1,3);
+  printMatrix("D eigenvectors",matrix_D,3,3);
+
+  // Calculate Dav, Daniso, Drhomb
+  calculate_D_properties(vector_d, d_props);
+  printMatrix("Dav, Daniso, Drhomb",d_props,1,3);
+
+  // Back-calculate the local diffusion constants via A*Q=Deff
+  D_to_Q(vector_q_local, matrix_D_local);
+  printMatrix("D_to_Q",vector_q_local,1,6);
+  deff_local = new double[ nvecs ];
+  // Create temporary storage for deff since still using it for tensorfit routine.
+  double *deff_temp = new double[ nvecs ];
+  At = matrix_At;
+  for (int i=0; i < nvecs; i++) {
+    deff_local[i]  = (At[0] * vector_q_local[0]);
+    deff_local[i] += (At[1] * vector_q_local[1]);
+    deff_local[i] += (At[2] * vector_q_local[2]);
+    deff_local[i] += (At[3] * vector_q_local[3]);
+    deff_local[i] += (At[4] * vector_q_local[4]);
+    deff_local[i] += (At[5] * vector_q_local[5]);
+    At += 6;
+  }
+  // Convert deff to tau, Output
+  mprintf("     taueff(obs) taueff(calc)\n");
+  double sgn = 0;
+  for (int i = 0; i < nvecs; i++) {
+    // For the following chisq fits, convert deff to taueff
+    deff_temp[i] = 1 / (6 * deff[i]);
+    deff_local[i] = 1 / (6 * deff_local[i]);
+    mprintf("%5i%10.5lf%10.5lf\n",i+1,deff_temp[i],deff_local[i]);
+    // NOTE: in rotdif code, sig is 1.0 for all nvecs 
+    double diff = deff_local[i] - deff_temp[i];
+    sgn += (diff * diff);
+  }
+  mprintf("  chisq for above is %15.5lf\n\n",sgn);
+  
+  // Cleanup
+  delete[] matrix_At;
+  delete[] deff_local; 
 
   // DEBUG -------------------------------------------------
 /* 
-  // Sanity check: Ensure U is orthogonal (U * Ut) = I
+  // CHECK: Ensure U is orthogonal (U * Ut) = I
   double *Ut = matrix_transpose(matrix_U,m_rows,m_rows);
   printMatrix("Ut",Ut,m_rows,m_rows);
   double *UtU = new double[ m_rows * m_rows ];
@@ -559,7 +683,7 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   delete[] Ut;
 */
 /*
-  // Sanity check: Ensure that U * S * Vt = A
+  // CHECK: Ensure that U * S * Vt = A
   double *diag_S = new double[ m_rows * n_cols ];
   int sidx=0;
   int diag_sidx=0;
@@ -620,7 +744,6 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   delete[] matrix_S;
   delete[] matrix_Vt;
   delete[] matrix_St;
-
   // 2) VSigma^-1 * Ut
   //    Call dgemm with second arg "T" to indicate we want matrix_U to
   //    be transposed.
@@ -630,7 +753,6 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   // matrix_VS and matrix_U no longer needed
   delete[] matrix_VS;
   delete[] matrix_U;
-
   // 3) VSigma^-1*Ut * b
   int incx = 1;
   dgemv_((char*)"N",n_cols,m_rows,alpha,matrix_VSUt,n_cols,deff,incx,beta,vector_q,incx);
