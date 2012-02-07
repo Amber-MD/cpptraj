@@ -516,52 +516,31 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   double wmin=wmax*cut_ratio;
   for (int i=0; i < n; i++)
     if (matrix_S[i] < wmin) matrix_S[i]=0;*/
-  
-  // -------------------------------------------------------
+
   // Calculate x = V * Sigma^-1 * Ut * b
-  // NOTE: Eventually do this without BLAS routines
-  double alpha = 1.0;
-  double beta = 0.0;
-  // First create transposed (for fortran) n x m sigma^-1
-  double *matrix_St = new double[ n_cols * m_rows];
-  int ndiag = n_cols+1;
-  int sidx = 0;
-  for (int i = 0; i < n_cols*m_rows; i++) {
-    if ( (i%ndiag)==0 && sidx<s_dim) 
-      matrix_St[i] = (1 / matrix_S[sidx++]);
-    else
-      matrix_St[i] = 0;
+  // Take advantage of the fact that Vt and U have already
+  // been implicitly transposed in dgesvd
+  for (int s = 0; s < s_dim; s++) 
+    if (matrix_S[s] > 0) matrix_S[s] = 1 / matrix_S[s];
+  int v_idx = 0;
+  for (int n = 0; n < 6; n++) {
+    vector_q[n] = 0.0;
+    for (int m = 0; m < m_rows; m++) {
+      double vsu_sum = 0.0;
+      //mprintf("Row %i (",m);
+      for (int vs = 0; vs < s_dim; vs++) {
+        vsu_sum += (matrix_Vt[v_idx+vs] * matrix_S[vs] * matrix_U[(vs*m_rows)+m]);
+        //mprintf(" VSU v=%i s=%i u=%i",v_idx+vs,vs,(vs*m_rows)+m);
+      }
+      //mprintf(") m=%i\n",m);
+      vector_q[n] += (vsu_sum * deff[m]);
+    }
+    v_idx += 6;
   }
-  printMatrix("matrix_St",matrix_St,m_rows,n_cols);
-  // 1) V * Sigma^-1
-  //    Call dgemm with first arg "T" to indicate we want matrix_Vt to
-  //    be transposed. 
-  double *matrix_VS = new double[ n_cols * m_rows ];
-  dgemm_((char*)"T",(char*)"N",n_cols,m_rows,n_cols,alpha,matrix_Vt,n_cols,
-         matrix_St,n_cols,beta,matrix_VS,n_cols);
-  // matrix_S, matrix_Vt, and matrix_St no longer needed
-  delete[] matrix_S;
-  delete[] matrix_Vt;
-  delete[] matrix_St;
 
-  // 2) VSigma^-1 * Ut
-  //    Call dgemm with second arg "T" to indicate we want matrix_U to
-  //    be transposed.
-  double *matrix_VSUt = new double[ n_cols * m_rows ];
-  dgemm_((char*)"N",(char*)"T",n_cols,m_rows,m_rows,alpha,matrix_VS,n_cols,
-         matrix_U,m_rows,beta,matrix_VSUt,n_cols);
-  // matrix_VS and matrix_U no longer needed
-  delete[] matrix_VS;
-  delete[] matrix_U;
-
-  // 3) VSigma^-1*Ut * b
-  int incx = 1;
-  dgemv_((char*)"N",n_cols,m_rows,alpha,matrix_VSUt,n_cols,deff,incx,beta,vector_q,incx);
+  // Print Q vector
   for (int i = 0; i < n_cols; i++)
     mprintf("Vector_X[%i]= %12.4lf\n",i,vector_q[i]);
-  // matrix_VSUt no longer needed
-  delete[] matrix_VSUt;
-  // -------------------------------------------------------
 
   // Convert vector Q to diffusion tensor D
   Q_to_D(matrix_D, vector_q);
@@ -614,6 +593,50 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   delete[] diag_St;
   delete[] US;
   delete[] USVt;
+*/
+/*  
+  // ---------------------------------------------
+  // CHECK: Calculate x = V * Sigma^-1 * Ut * b with BLAS routines
+  double alpha = 1.0;
+  double beta = 0.0;
+  // First create transposed (for fortran) n x m sigma^-1
+  double *matrix_St = new double[ n_cols * m_rows];
+  int ndiag = n_cols+1;
+  int sidx = 0;
+  for (int i = 0; i < n_cols*m_rows; i++) {
+    if ( (i%ndiag)==0 && sidx<s_dim) 
+      matrix_St[i] = (1 / matrix_S[sidx++]);
+    else
+      matrix_St[i] = 0;
+  }
+  printMatrix("matrix_St",matrix_St,m_rows,n_cols);
+  // 1) V * Sigma^-1
+  //    Call dgemm with first arg "T" to indicate we want matrix_Vt to
+  //    be transposed. 
+  double *matrix_VS = new double[ n_cols * m_rows ];
+  dgemm_((char*)"T",(char*)"N",n_cols,m_rows,n_cols,alpha,matrix_Vt,n_cols,
+         matrix_St,n_cols,beta,matrix_VS,n_cols);
+  // matrix_S, matrix_Vt, and matrix_St no longer needed
+  delete[] matrix_S;
+  delete[] matrix_Vt;
+  delete[] matrix_St;
+
+  // 2) VSigma^-1 * Ut
+  //    Call dgemm with second arg "T" to indicate we want matrix_U to
+  //    be transposed.
+  double *matrix_VSUt = new double[ n_cols * m_rows ];
+  dgemm_((char*)"N",(char*)"T",n_cols,m_rows,m_rows,alpha,matrix_VS,n_cols,
+         matrix_U,m_rows,beta,matrix_VSUt,n_cols);
+  // matrix_VS and matrix_U no longer needed
+  delete[] matrix_VS;
+  delete[] matrix_U;
+
+  // 3) VSigma^-1*Ut * b
+  int incx = 1;
+  dgemv_((char*)"N",n_cols,m_rows,alpha,matrix_VSUt,n_cols,deff,incx,beta,vector_q,incx);
+  // matrix_VSUt no longer needed
+  delete[] matrix_VSUt;
+  // ---------------------------------------------
 */
   // END DEBUG ---------------------------------------------
 
