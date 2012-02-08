@@ -32,6 +32,10 @@ class Rotdif: public Action {
     int lflag;     ///< control how deff is used in tensorfit
     double delqfrac; ///< how to scale simplexes
 
+    // Workspace for LAPACK functions
+    double *work;
+    int lwork;
+
     char *randvecOut;
     char *randvecIn;
     char *rmOut;
@@ -46,18 +50,19 @@ class Rotdif: public Action {
 
     // Variables used by the random number generator
     Random_Number RNgen;
-    //int iff;
-    //int inext;
-    //int inextp;
-    //float ma[55];
 
-    //double random_number();
+    std::vector<double*> Rmatrices; ///< Store rotation matrices
+    double *random_vectors;         ///< Hold nvecs random vectors
+    std::vector<double> tau1;
+    std::vector<double> tau2;
+    std::vector<double> sumc2;
+
     double *randvec();
     int compute_corr(double *, int, int, double *, double *);
     double calcEffectiveDiffusionConst(double );
     int calc_Asymmetric(double *, double *);
-    int Tensor_Fit(double *, double*);
-    std::vector<double*> Rmatrices; ///< Store rotation matrices
+    double chi_squared(double *, double*);
+    int Tensor_Fit(double *);
     
   public:
     Rotdif();

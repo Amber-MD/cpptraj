@@ -17,16 +17,11 @@ extern "C" {
                double*, int&, int& );
   void dsyev_(char*, char*, int&, double*, int&, double*,double*,int&,int&);
   // DEBUG
-  void dgemm_(char*,char*,int&,int&,int&,double&,
-              double*,int&,double*,int&,double&,double*,int&);
+  //void dgemm_(char*,char*,int&,int&,int&,double&,
+  //            double*,int&,double*,int&,double&,double*,int&);
   // DEBUG
-  void dgemv_(char*,int&,int&,double&,double*,int&,double*,int&,double&,double*,int&);
+  //void dgemv_(char*,int&,int&,double&,double*,int&,double*,int&,double&,double*,int&);
 }
-
-// DGESVD prototype 
-//extern void dgesvd( char* jobu, char* jobvt, int* m, int* n, double* a,
-//                    int* lda, double* s, double* u, int* ldu, double* vt, int* ldvt,
-//                    double* work, int* lwork, int* info );
 
 // CONSTRUCTOR
 Rotdif::Rotdif() {
@@ -44,12 +39,17 @@ Rotdif::Rotdif() {
   lflag = 0;
   delqfrac = 0;
 
+  work = NULL;
+  lwork = 0;
+
   randvecOut = NULL;
   randvecIn = NULL;
   rmOut = NULL;
   deffOut = NULL;
 
   RefParm = NULL;
+ 
+  random_vectors = NULL;
 } 
 
 // DESTRUCTOR
@@ -59,6 +59,8 @@ Rotdif::~Rotdif() {
                                       Rmatrix != Rmatrices.end();
                                       Rmatrix++)
     delete[] *Rmatrix;
+  if (work!=NULL) delete[] work;
+  if (random_vectors!=NULL) delete[] random_vectors;
 }
 
 // Rotdif::init()
@@ -406,72 +408,6 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
   return d; 
 }
 
-// Rotdif::calc_Asymmetric()
-/** computes tau(l=1) and tau(l=2) given principal components of a rotational 
-  * diffusion tensor and angular coordinates of a vector (in the PA frame, 
-  * n*ez = cos(theta),  n*ey = sin(theta)*sin(phi), n*ex = sin(theta)*cos(phi).
-  * It is expected that the principal components Dxyz and principal axes
-  * D_matrix are in ascending order, i.e. Dx <= Dy <= Dz. It is also expected
-  * that the eigenvectors are orthonormal. This is the default behavior when 
-  * the LAPACK routines are used.
-  */
-int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D) {
-  double lambda[8];
-  double dx = Dxyz[0];
-  double dy = Dxyz[1];
-  double dz = Dxyz[2];
-  double Dav, Dpr, delta;
-
-  // tau = sum(m){amp(l,m)/lambda(l,m)}
-  // see Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY;
-  // Prog. Nuc. Mag. Res. Spec., 38, 197 (2001) for details
-  // only weights need to be computed for each vector, 
-  // decay constants can be computed once
-  // first three decay constants correspond to l=1, m=-1,0,+1
-  // next five correspond to l=2, m=-2,-1,0,+1,+2
-
-  // l=1, m=-1 term: lambda(1,-1) = Dy + Dz
-  lambda[0] = dy + dz;
-  // l=1, m=0 term:  lambda(1, 0) = Dx + Dy
-  lambda[1] = dx + dy;
-  // l=1, m=+1 term: lambda(1,+1) = Dx + Dz
-  lambda[2] = dx + dz;
-  // l=2, m=-2 term: lambda(2,-2) = Dx + Dy + 4*Dz
-  lambda[3] = dx + dy + (4*dz);
-  // l=2, m=-1 term: lambda(2,-1) = Dx + 4*Dy + Dz
-  lambda[4] = dx + (4*dy) + dz;
-  // l=2, m=0 term:  lambda(2, 0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
-  //                 Dav = (Dx + Dy + Dz)/3 
-  //                 Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
-  // Below terms are obsolete from the fortran code:
-  //     u = sqrt(3)*(Dx - Dy)
-  //     delta = 3*sqrt(Dav*Dav - Dpr*Dpr)
-  //     w = 2*Dz - Dx - Dy + 2*delta
-  //     N = 2*sqrt(delta*w)
-  Dav = (dx + dy + dz) / 3;
-  delta = ((dx*dy) + (dy*dz) + (dx*dz)) / 3;
-  if (delta < 0) {
-    mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate Dpr (delta < 0)\n");
-    // NOTE: Exit here?
-    Dpr = 0;
-  } else {
-    Dpr = sqrt( delta );
-  }
-  delta = (Dav*Dav) - (Dpr*Dpr);
-  if (delta < 0) {
-    mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate lambda l=2, m=0\n");
-    return 1;
-  }
-  lambda[5] = 6 * (Dav - sqrt( delta ));
-  // l=2, m=+1 term: lambda(2,+1) = 4*Dx + Dy + Dz
-  lambda[6] = (4*dx) + dy + dz;
-  // l=2, m=+2 term: lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav - Dpr*Dpr)]
-  //                 delta is still (Dav*Dav) - (Dpr*Dpr) 
-  lambda[7] = 6 * (Dav + sqrt( delta ));
-
-  return 0;
-}
-
 // Q_to_D()
 /** Convert column vector Q with format:
   *   {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
@@ -520,6 +456,200 @@ static void D_to_Q(double *Q, double *D) {
   Q[5] = -D[2] / 2; // Qxz
 }
 
+// Rotdif::calc_Asymmetric()
+/** computes tau(l=1) and tau(l=2) given principal components of a rotational 
+  * diffusion tensor and angular coordinates of a vector (in the PA frame, 
+  * n*ez = cos(theta),  n*ey = sin(theta)*sin(phi), n*ex = sin(theta)*cos(phi).
+  * It is expected that the principal components Dxyz and principal axes
+  * D_matrix are in ascending order, i.e. Dx <= Dy <= Dz. It is also expected
+  * that the eigenvectors are orthonormal. This is the default behavior when 
+  * the LAPACK routines are used.
+  * \param Dxyz Vector of size 3 containing principal components
+  * \param matrix_D matrix of size 3x3 containing orthonormal principal vectors
+  */
+int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D) 
+{
+  double lambda[8];
+  double dx = Dxyz[0];
+  double dy = Dxyz[1];
+  double dz = Dxyz[2];
+  double Dav, Dpr2, delta;
+  double rotated_vec[3];
+
+  // tau = sum(m){amp(l,m)/lambda(l,m)}
+  // See Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY; 
+  // Prog. Nuc. Mag. Res. Spec., 38, 197 (2001) for details, Table 3 in 
+  // particular. Only weights need to be computed for each vector, decay 
+  // constants can be computed once. First three decay constants correspond 
+  // to l=1, m=-1,0,+1; next five correspond to l=2, m=-2,-1,0,+1,+2.
+
+  // l=1, m=-1 term: lambda(1,-1) = Dy + Dz
+  lambda[0] = dy + dz;
+  // l=1, m=0 term:  lambda(1, 0) = Dx + Dy
+  lambda[1] = dx + dy;
+  // l=1, m=+1 term: lambda(1,+1) = Dx + Dz
+  lambda[2] = dx + dz;
+  // l=2, m=-2 term: lambda(2,-2) = Dx + Dy + 4*Dz
+  lambda[3] = dx + dy + (4*dz);
+  // l=2, m=-1 term: lambda(2,-1) = Dx + 4*Dy + Dz
+  lambda[4] = dx + (4*dy) + dz;
+  // l=2, m=0 term:  lambda(2, 0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+  //                 Dav = (Dx + Dy + Dz)/3 
+  //                 Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+  //                 Dpr2 = Dpr*Dpr = (Dx*Dy + Dy*Dz + Dx*Dz)/3
+  Dav = (dx + dy + dz) / 3;
+  Dpr2 = ((dx*dy) + (dy*dz) + (dx*dz)) / 3;
+  if (Dpr2 < 0) {
+    mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate Dpr (Dpr^2 < 0)\n");
+    // NOTE: Original code just set Dpr to 0 and continued. 
+    return 1;
+  } 
+  delta = (Dav*Dav) - Dpr2;
+  if (delta < 0) {
+    mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate lambda l=2, m=0\n");
+    return 1;
+  }
+  double sqrt_Dav_Dpr = sqrt( delta );
+  lambda[5] = 6 * (Dav - sqrt_Dav_Dpr);
+  // l=2, m=+1 term: lambda(2,+1) = 4*Dx + Dy + Dz
+  lambda[6] = (4*dx) + dy + dz;
+  // l=2, m=+2 term: lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav - Dpr*Dpr)]
+  lambda[7] = 6 * (Dav + sqrt_Dav_Dpr);
+
+  // Loop over all vectors
+  double *randvec = random_vectors;
+  for (int i=0; i < nvecs; i++) {
+    // Rotate vector i into D frame
+    // This is an inverse rotation.
+    // NOTE: Replace this with 3 separate dot products?
+    matrixT_times_vector(rotated_vec, matrix_D, randvec);
+    double dot1 = rotated_vec[0];
+    double dot2 = rotated_vec[1];
+    double dot3 = rotated_vec[2];
+    mprintf("DBG: dot1-3= %10.5lf%10.5lf%10.5lf\n",dot1,dot2,dot3);
+    
+    // assuming e(3)*n = cos(theta), e(1)*n = sin(theta)*cos(phi),
+    // e(2)*n = sin(theta)*sin(phi), theta >= 0;
+    // sin(theta) = sqrt(1 - cos(theta)^2) and theta = tan^-1[sin(theta)/cos(theta)];
+    // phi = tan^-1[sin(phi)/cos(phi)] = tan^-1[(e(2)*n)/(e(1)*n)]
+    double theta = atan2( sqrt( 1 - (dot3*dot3) ), dot3 );
+    double phi = atan2( dot2, dot1 );
+
+    // Pre-calculate sines and cosines
+    double sintheta = sin(theta);
+    double costheta = cos(theta);
+    double sinphi = sin(phi);
+    double cosphi = cos(phi);
+
+    // Compute correlation time for l=1
+    // tau(l=1) = [sin(theta)^2*cos(phi)^2]/(Dy+Dz) +
+    //            [sin(theta)^2*sin(phi)^2]/(Dx+Dz) +
+    //            [cos(theta)^2           ]/(Dx+Dy)
+    double sintheta2 = sintheta * sintheta;
+    //     cth2=cth*cth
+    //     sphi2=sphi*sphi
+    //     cphi2=cphi*cphi
+    tau1[i] = ((sintheta2 * (cosphi*cosphi)) / lambda[0]) +
+              ((sintheta2 * (sinphi*sinphi)) / lambda[2]) +
+              ((costheta*costheta)           / lambda[1]);
+
+    // Compute correlation time for l=2
+    // pre-calculate squares
+    double dot1_2 = dot1*dot1;
+    double dot2_2 = dot2*dot2;
+    double dot3_2 = dot3*dot3;
+    //     m=-2 term:
+    //     lambda(2,-2) = Dx + Dy + 4*Dz
+    //     amp(2,-2) = 0.75*sin(theta)^4*sin(2*phi)^2 = 3*(l^2)*(m^2)
+    double m_m2 = 3*dot1_2*dot2_2;
+    //     m=-1 term:
+    //     lambda(2,-1) = Dx + 4*Dy + Dz
+    //     amp(2,-1) = 0.75*sin(2*theta)^2*cos(phi)^2 = 3*(l^2)*(n^2)
+    double m_m1 = 3*dot1_2*dot3_2;
+    //     m=0 term:
+    //     lambda(2,0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+    //         Dav = (Dx + Dy + Dz)/3 
+    //         Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+    //     amp(2,0) = (w/N)^2*0.25*[3*cos(theta)^2-1]^2 +
+    //                (u/N)^2*0.75*sin(theta)^4*cos(2*phi)^2 -
+    //                (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+    //         u = sqrt(3)*(Dx - Dy)
+    //         delta = 3*sqrt(Dav*Dav - Dpr*Dpr)
+    //         w = 2*Dz - Dx - Dy + 2*delta
+    //         N = 2*sqrt(delta*w)
+    delta = 3 * sqrt_Dav_Dpr;
+    double dot1_4 = dot1_2 * dot1_2;
+    double dot2_4 = dot2_2 * dot2_2;
+    double dot3_4 = dot3_2 * dot3_2;
+    double da = 0.25 * ( 3*(dot1_4 + dot2_4 + dot3_4) - 1);
+    double ea = 0;
+    if ( delta > SMALL) { 
+      double epsx = 3*(dx-Dav)/delta;
+      double epsy = 3*(dy-Dav)/delta;
+      double epsz = 3*(dz-Dav)/delta;
+      double d2d3 = dot2*dot3;
+      double d1d3 = dot1*dot3;
+      double d1d2 = dot1*dot2;
+      ea = epsx*(3*dot1_4 + 6*(d2d3*d2d3) - 1) + 
+           epsy*(3*dot2_4 + 6*(d1d3*d1d3) - 1) + 
+           epsz*(3*dot3_4 + 6*(d1d2*d1d2) - 1);
+      ea /= 12;
+    }
+    double m_0 = da + ea;
+    //     m=+1 term:
+    //     lambda(2,+1) = 4*Dx + Dy + Dz
+    //     amp(2,+1) = 0.75*sin(2*theta)^2*sin(phi)^2 
+    double m_p1 = 3*dot2_2*dot3_2;
+    //     m=+2 term:
+    //     lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav = Dpr*Dpr)]
+    //     amp(2,+2) = (u/n)^2*0.25*[3*cos(theta)^2-1]^2 +
+    //                 (w/n)^2*0.75*sin(theta)^4*cos(2*phi)^2 +
+    //                 (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+    double m_p2 = da - ea;
+    // Sum decay constants and weights for l=2 m=-2...2
+    tau2[i] = (m_m2 / lambda[3]) + (m_m1 / lambda[4]) + (m_0 / lambda[5]) +
+              (m_p1 / lambda[6]) + (m_p2 / lambda[7]);
+    sumc2[i] = m_m2 + m_m1 + m_0 + m_p1 + m_p2;
+
+    randvec += 3; // Next random vector
+  }
+
+  return 0;
+}
+
+// Rotdif::chi_squared()
+double Rotdif::chi_squared(double *Qin, double *deff) {
+#ifdef NO_PTRAJ_ANALYZE
+  return -1;
+#else
+  double matrix_D[9];
+  double Dxyz[3];
+  int n_cols = 3;
+  int info;
+  double chisq;
+
+  // Convert input Q to Diffusion tensor D
+  Q_to_D(matrix_D, Qin);
+  // Diagonalize D; it is assumed workspace (work, lwork) set up prior 
+  // to this call.
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, matrix_D, n_cols, Dxyz, work, lwork, info);
+  // Check for convergence
+  //if (info > 0) {
+  //  mprinterr("The algorithm computing the eigenvalues/eigenvectors of D failed to converge.\n");
+  //  return -1;
+  //}
+  calc_Asymmetric(Dxyz, matrix_D);
+
+  chisq = 0;
+  for (int i = 0; i < nvecs; i++) {
+    double diff = deff[i] - tau2[i];
+    chisq += (diff * diff); 
+  }
+
+  return chisq;  
+#endif
+}
+
 // calculate_D_properties()
 /** Given the principal components of D, calculate the isotropic diffusion
   * constant (Dav = (Dx + Dy + Dz) / 3), anisotropy (Dan = 2Dz / (Dx + Dy)),
@@ -535,13 +665,12 @@ static void calculate_D_properties(double Dxyz[3], double Dout[3]) {
 }
 
 // Rotdif::Tensor_Fit()
-int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
+int Rotdif::Tensor_Fit(double *deff) {
 #ifdef NO_PTRAJ_ANALYZE
   return 1;
 #else
   int info;
   double wkopt;
-  double *work;
   double vector_q[6];
   double vector_q_local[6];
   double vector_d[3];
@@ -568,7 +697,7 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   int A3 = m_rows * 3;
   int A4 = m_rows * 4;
   int A5 = m_rows * 5;
-  double *rvecs = random_vecs;
+  double *rvecs = random_vectors;
   At = matrix_At;
   for (int i = 0; i < nvecs; i++) {
     // Transpose of matrix A
@@ -602,7 +731,7 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
   double *matrix_S = new double[ s_dim ];
   double *matrix_U = new double[ m_rows * m_rows ];
   double *matrix_Vt = new double[ n_cols * n_cols ];
-  int lwork = -1;
+  lwork = -1;
   // Allocate Workspace
   dgesvd_((char*)"All",(char*)"All",m_rows, n_cols, matrix_A, lda, 
           matrix_S, matrix_U, ldu, matrix_Vt, ldvt, &wkopt, lwork, info );
@@ -677,7 +806,8 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
 
   // Diagonalize D to find eigenvalues and eigenvectors
   // (principal components and axes)
-  // Determine workspace
+  // Determine workspace. Do not delete work after set up since the 
+  // Rotdif::chi_squared routine will use dsyev_ for diagnolization.
   lwork = -1;
   n_cols = 3;
   dsyev_((char*)"Vectors",(char*)"Upper", n_cols, matrix_D, n_cols, vector_d, &wkopt, lwork, info);
@@ -692,7 +822,7 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
     delete[] matrix_At;
     return 1;
   }
-  delete[] work;
+  //delete[] work;
   // eigenvectors are stored in columns due to implicit transpose from fortran,
   // i.e. Ex = {matrix_D[0], matrix_D[3], matrix_D[6]} etc.
   // Transpose back.
@@ -738,6 +868,16 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
     sgn += (diff * diff);
   }
   mprintf("  chisq for above is %15.5lf\n\n",sgn);
+
+  // DEBUG - test chi_squared
+  tau1.resize(nvecs);
+  tau2.resize(nvecs);
+  sumc2.resize(nvecs);
+  mprintf("chi_squared test: %lf\n",chi_squared(vector_q, deff_temp));
+  mprintf("     taueff(obs) taueff(calc)\n");
+  for (int i = 0; i < nvecs; i++) 
+    mprintf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,deff_temp[i],tau2[i],sumc2[i]);
+  mprintf("\n");
   
   // Cleanup
   delete[] matrix_At;
@@ -841,7 +981,6 @@ int Rotdif::Tensor_Fit(double *random_vecs, double *deff) {
 
 // Rotdif::print()
 void Rotdif::print() {
-  double *random_vectors;    // Hold nvecs random vectors
   double *deff;              // Hold calculated effective D
   double *rotated_vectors;   // Hold vectors after rotation with Rmatrices
   double *pX;                // Hold X values of C(t)
@@ -992,12 +1131,11 @@ void Rotdif::print() {
     }
   }
 
-  Tensor_Fit( random_vectors, deff );
+  Tensor_Fit( deff );
 
   tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
 
   // Cleanup
-  delete[] random_vectors;
   delete[] deff;
   delete[] rotated_vectors;
   delete[] p1;

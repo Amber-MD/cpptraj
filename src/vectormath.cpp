@@ -143,17 +143,31 @@ double *matrix_transpose(double *M, int mrows, int ncols) {
 }
   
 // matrix_times_vector()
-/** Multiple matrix R by vector V, store result in M
+/** Multiple matrix R by vector V, store result in U
   */
-void matrix_times_vector(double M[3], double R[9], double V[3]) {
+void matrix_times_vector(double U[3], double R[9], double V[3]) {
   double x,y,z;
-  // Store V so that M and V may overlap.
+  // Store V so that U and V may overlap.
   x = V[0];
   y = V[1];
   z = V[2];
-  M[0] = (R[0]*x) + (R[1]*y) + (R[2]*z);
-  M[1] = (R[3]*x) + (R[4]*y) + (R[5]*z);
-  M[2] = (R[6]*x) + (R[7]*y) + (R[8]*z);
+  U[0] = (R[0]*x) + (R[1]*y) + (R[2]*z);
+  U[1] = (R[3]*x) + (R[4]*y) + (R[5]*z);
+  U[2] = (R[6]*x) + (R[7]*y) + (R[8]*z);
+}
+
+// matrixT_times_vector()
+/** Multiple transpose of matrix R by vector V, store result in U
+  */
+void matrixT_times_vector(double U[3], double R[9], double V[3]) {
+  double x,y,z;
+  // Store V so that U and V may overlap.
+  x = V[0];
+  y = V[1];
+  z = V[2];
+  U[0] = (R[0]*x) + (R[3]*y) + (R[6]*z);
+  U[1] = (R[1]*x) + (R[4]*y) + (R[7]*z);
+  U[2] = (R[2]*x) + (R[5]*y) + (R[8]*z);
 }
 
 // matrix_multiply_3x3()

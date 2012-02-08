@@ -362,7 +362,7 @@
 !#endif
 
       call simpmin(q,n,seed,delqfrac,nsimp,np,ftol,itermax)
-      call gridsrch(q,n,delqfrac_save,np,itermax)
+      !call gridsrch(q,n,delqfrac_save,np,itermax) !DEBUG
       
       !stop
       end subroutine tensorfit
@@ -490,7 +490,7 @@
       do i=1,nvec
          write(6,'(i5,3f10.5)') i,yobs(i),ycalc(i),sumc2(i)
       end do
-
+      return ! DEBUG
 !     In the simplex method, N+1 initial points (where N is the 
 !     dimension of the search space) must be chosen; the SVD
 !     solution provides one of these. 
@@ -1568,6 +1568,7 @@
          dot1=x*x0(1)+y*y0(1)+z*z0(1)
          dot2=x*x0(2)+y*y0(2)+z*z0(2)
          dot3=x*x0(3)+y*y0(3)+z*z0(3)
+      write(6,'(a,3(f10.5))') 'DBG: dot1-3= ',dot1,dot2,dot3
 
 !     assuming e(3)*n = cos(theta), e(1)*n = sin(theta)*cos(phi),
 !     e(2)*n = sin(theta)*sin(phi), theta >= 0;
