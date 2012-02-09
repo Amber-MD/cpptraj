@@ -62,6 +62,7 @@ class Rotdif: public Action {
     double calcEffectiveDiffusionConst(double );
     int calc_Asymmetric(double *, double *);
     double chi_squared(double *, double*);
+    int Simplex_min(double*, double*);
     int Tensor_Fit(double *);
     
   public:

@@ -457,15 +457,22 @@ static void D_to_Q(double *Q, double *D) {
 }
 
 // Rotdif::calc_Asymmetric()
-/** computes tau(l=1) and tau(l=2) given principal components of a rotational 
-  * diffusion tensor and angular coordinates of a vector (in the PA frame, 
-  * n*ez = cos(theta),  n*ey = sin(theta)*sin(phi), n*ex = sin(theta)*cos(phi).
+/** Computes tau(l=1) and tau(l=2) with full anisotropy given principal 
+  * components of a rotational diffusion tensor and angular coordinates 
+  * of a vector (in the PA frame, 
+  * n*ez = cos(theta), n*ey = sin(theta)*sin(phi), n*ex = sin(theta)*cos(phi).
   * It is expected that the principal components Dxyz and principal axes
   * D_matrix are in ascending order, i.e. Dx <= Dy <= Dz. It is also expected
   * that the eigenvectors are orthonormal. This is the default behavior when 
-  * the LAPACK routines are used.
+  * the LAPACK routines are used. Also, since LAPACK routines are being used
+  * from fortran it is expected the matrix of eigenvectors will be in column
+  * major order, i.e.:
+  *   x0 y0 z0
+  *   x1 y1 z1
+  *   x2 y2 z2
   * \param Dxyz Vector of size 3 containing principal components
   * \param matrix_D matrix of size 3x3 containing orthonormal principal vectors
+  *        in COLUMN MAJOR order.
   */
 int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D) 
 {
@@ -475,6 +482,10 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
   double dz = Dxyz[2];
   double Dav, Dpr2, delta;
   double rotated_vec[3];
+
+  // DEBUG
+  //printMatrix("Dxyz",Dxyz,1,3);
+  //printMatrix("Dvec",matrix_D,3,3);
 
   // tau = sum(m){amp(l,m)/lambda(l,m)}
   // See Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY; 
@@ -520,13 +531,14 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
   double *randvec = random_vectors;
   for (int i=0; i < nvecs; i++) {
     // Rotate vector i into D frame
-    // This is an inverse rotation.
+    // This is an inverse rotation. Since matrix_D is in column major order
+    // however, do a normal rotation instead.
     // NOTE: Replace this with 3 separate dot products?
-    matrixT_times_vector(rotated_vec, matrix_D, randvec);
+    matrix_times_vector(rotated_vec, matrix_D, randvec);
     double dot1 = rotated_vec[0];
     double dot2 = rotated_vec[1];
     double dot3 = rotated_vec[2];
-    mprintf("DBG: dot1-3= %10.5lf%10.5lf%10.5lf\n",dot1,dot2,dot3);
+    //mprintf("DBG: dot1-3= %10.5lf%10.5lf%10.5lf\n",dot1,dot2,dot3);
     
     // assuming e(3)*n = cos(theta), e(1)*n = sin(theta)*cos(phi),
     // e(2)*n = sin(theta)*sin(phi), theta >= 0;
@@ -541,7 +553,7 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
     double sinphi = sin(phi);
     double cosphi = cos(phi);
 
-    // Compute correlation time for l=1
+    // ----- Compute correlation time for l=1
     // tau(l=1) = [sin(theta)^2*cos(phi)^2]/(Dy+Dz) +
     //            [sin(theta)^2*sin(phi)^2]/(Dx+Dz) +
     //            [cos(theta)^2           ]/(Dx+Dy)
@@ -553,7 +565,7 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
               ((sintheta2 * (sinphi*sinphi)) / lambda[2]) +
               ((costheta*costheta)           / lambda[1]);
 
-    // Compute correlation time for l=2
+    // ----- Compute correlation time for l=2
     // pre-calculate squares
     double dot1_2 = dot1*dot1;
     double dot2_2 = dot2*dot2;
@@ -618,6 +630,10 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
 }
 
 // Rotdif::chi_squared()
+/** Given Q, calculate effective D values for random_vectors with full 
+  * anisotropy and compare to the given effective D values.
+  * \return Deviation of calculated D values from given D values.
+  */
 double Rotdif::chi_squared(double *Qin, double *deff) {
 #ifdef NO_PTRAJ_ANALYZE
   return -1;
@@ -632,6 +648,8 @@ double Rotdif::chi_squared(double *Qin, double *deff) {
   Q_to_D(matrix_D, Qin);
   // Diagonalize D; it is assumed workspace (work, lwork) set up prior 
   // to this call.
+  // NOTE: Due to the fortran call, the eigenvectors are returned in COLUMN
+  //       MAJOR order.
   dsyev_((char*)"Vectors",(char*)"Upper", n_cols, matrix_D, n_cols, Dxyz, work, lwork, info);
   // Check for convergence
   //if (info > 0) {
@@ -662,6 +680,34 @@ static void calculate_D_properties(double Dxyz[3], double Dout[3]) {
   Dout[0] = (Dx + Dy + Dz) / 3;
   Dout[1] = (2 * Dz) / (Dx + Dy);
   Dout[2] = (1.5 * (Dy - Dx)) / (Dz - (0.5 * (Dx + Dy)) );
+}
+
+// Rotdif::Simplex_min()
+/** Main driver routine for Amoeba (downhill simplex) minimizer. In the 
+  * simplex method, N+1 initial points (where N is the dimension of the 
+  * search space) must be chosen; the SVD solution provides one of these. 
+  * Initial points are stored in rows of xsmplx. Components of vector 
+  * delq should be of the order of the characteristic "lengthscales" over 
+  * which the Q tensor varies. delqfrac determines the size of variation
+  * for each of the components of Q; the sign of the variation is randomly 
+  * chosen.
+  */
+int Rotdif::Simplex_min(double *Q_vector, double *deff) {
+  // Allocate tau1, tau2, and sumc2; used in calc_Asymmetric
+  tau1.resize(nvecs);
+  tau2.resize(nvecs);
+  sumc2.resize(nvecs);
+  // First, back-calculate with the SVD tensor, but with the full anisotropy
+  // chi_squared performs diagonalization. The workspace for dsyev should
+  // already have been set up in Tensor_Fit().
+  mprintf("Same diffusion tensor, but full anisotropy:\n");
+  mprintf("  chi_squared for SVD tensor is %15.5lf\n",chi_squared(Q_vector, deff));
+  mprintf("     taueff(obs) taueff(calc)\n");
+  for (int i = 0; i < nvecs; i++) 
+    mprintf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,deff[i],tau2[i],sumc2[i]);
+  mprintf("\n");
+
+  return 0;
 }
 
 // Rotdif::Tensor_Fit()
@@ -869,15 +915,8 @@ int Rotdif::Tensor_Fit(double *deff) {
   }
   mprintf("  chisq for above is %15.5lf\n\n",sgn);
 
-  // DEBUG - test chi_squared
-  tau1.resize(nvecs);
-  tau2.resize(nvecs);
-  sumc2.resize(nvecs);
-  mprintf("chi_squared test: %lf\n",chi_squared(vector_q, deff_temp));
-  mprintf("     taueff(obs) taueff(calc)\n");
-  for (int i = 0; i < nvecs; i++) 
-    mprintf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,deff_temp[i],tau2[i],sumc2[i]);
-  mprintf("\n");
+  // Full anisotropy
+  Simplex_min( vector_q, deff_temp );
   
   // Cleanup
   delete[] matrix_At;

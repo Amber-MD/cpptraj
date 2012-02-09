@@ -490,7 +490,7 @@
       do i=1,nvec
          write(6,'(i5,3f10.5)') i,yobs(i),ycalc(i),sumc2(i)
       end do
-      return ! DEBUG
+      !return ! DEBUG
 !     In the simplex method, N+1 initial points (where N is the 
 !     dimension of the search space) must be chosen; the SVD
 !     solution provides one of these. 
@@ -1455,6 +1455,8 @@
 !     leave originals alone to avoid altering downstream results
       do i=1,3
          copy_d(i)=d(i)
+         !write(6,'(a,i6,f10.5)') 'D',i,d(i)
+         !write(6,'(a,i6,3(f10.5))') 'Vec ',i,pa(i,1),pa(i,2),pa(i,3)
          do j=1,3
             copy_pa(i,j)=pa(i,j)
          end do
@@ -1568,7 +1570,7 @@
          dot1=x*x0(1)+y*y0(1)+z*z0(1)
          dot2=x*x0(2)+y*y0(2)+z*z0(2)
          dot3=x*x0(3)+y*y0(3)+z*z0(3)
-      write(6,'(a,3(f10.5))') 'DBG: dot1-3= ',dot1,dot2,dot3
+      !write(6,'(a,3(f10.5))') 'DBG: dot1-3= ',dot1,dot2,dot3
 
 !     assuming e(3)*n = cos(theta), e(1)*n = sin(theta)*cos(phi),
 !     e(2)*n = sin(theta)*sin(phi), theta >= 0;
