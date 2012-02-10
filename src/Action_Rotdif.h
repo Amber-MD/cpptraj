@@ -33,6 +33,7 @@ class Rotdif: public Action {
     double delqfrac; ///< how to scale simplexes
     double amoeba_ftol;
     int amoeba_itmax;
+    bool do_gridsearch;
 
     // Workspace for LAPACK functions
     double *work;
@@ -51,6 +52,7 @@ class Rotdif: public Action {
     AtomMask RefMask;
     AtomMask TargetMask;
     Frame SelectedTarget;
+    CpptrajFile outfile;
 
     // Variables used by the random number generator
     Random_Number RNgen;
@@ -72,7 +74,8 @@ class Rotdif: public Action {
     int Amoeba(double[][6], double *);
     int Simplex_min(double*);
     int Grid_search(double *, int);
-    int Tensor_Fit();
+    int Tensor_Fit(double*);
+    int DetermineDeffs();
     
   public:
     Rotdif();
