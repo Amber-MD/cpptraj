@@ -779,7 +779,7 @@ int Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
         }
         return iter;
       }
-      mprintf("\tIn amoeba, iter=%i, rtol=%15.6le\n",iter,rtol); 
+      //mprintf("\tIn amoeba, iter=%i, rtol=%15.6le\n",iter,rtol); 
 
       if (iter >= amoeba_itmax) {
         mprintf("Max iterations (%i) exceeded in amoeba.\n",amoeba_itmax);
@@ -954,7 +954,16 @@ int Rotdif::Simplex_min(double *Q_vector) {
 #undef SM_NP1
 
 // Rotdif::Tensor_Fit()
-// NOTE: Eventually use D_tensor and D_XYZ
+/** Based on random_vectors and effective diffusion constants D_eff previously
+  * calculated, first find the tensor Q (and therefore D) in the small
+  * anisotropic limit by solving:
+  *   D_eff(n) = At(n) * Q
+  * where At(n) is composed of D_eff vector components:
+  *   { x^2, y^2, z^2, 2xy, 2yz, 2xz }
+  * Once Q has been found in the small anisotropic limit, solve for Q' with
+  * full anisotropy using a downhill simplex minimizer and Q as an initial
+  * guess.
+  */
 int Rotdif::Tensor_Fit() {
 #ifdef NO_PTRAJ_ANALYZE
   return 1;
@@ -963,9 +972,7 @@ int Rotdif::Tensor_Fit() {
   double wkopt;
   double vector_q[6];
   double vector_q_local[6];
-  double vector_d[3];
   double d_props[3];
-  double matrix_D[9];
   double matrix_D_local[9];
   double *deff_local;
   double *At; // Used to index into matrix_At
@@ -1008,8 +1015,10 @@ int Rotdif::Tensor_Fit() {
     At += 6;
     rvecs += 3;
   }
-  printMatrix("matrix_A",matrix_A,n_cols,m_rows);
-  printMatrix("matrix_At",matrix_At,m_rows,n_cols);
+  if (debug>1) {
+    printMatrix("matrix_A",matrix_A,n_cols,m_rows);
+    printMatrix("matrix_At",matrix_At,m_rows,n_cols);
+  }
 
   // Perform SVD on matrix At to generate U, Sigma, and Vt
   int lda = m_rows;
@@ -1034,8 +1043,10 @@ int Rotdif::Tensor_Fit() {
   delete[] matrix_A;
   delete[] work;
   // DEBUG - Print Sigma
-  for (int i = 0; i < s_dim; i++) 
-    mprintf("Sigma %6i%12.6lf\n",i+1,matrix_S[i]);
+  if (debug>0) {
+    for (int i = 0; i < s_dim; i++) 
+      mprintf("Sigma %6i%12.6lf\n",i+1,matrix_S[i]);
+  }
   // Check for convergence
   if ( info > 0 ) {
     mprinterr( "The algorithm computing SVD of At failed to converge.\n" );
@@ -1049,8 +1060,10 @@ int Rotdif::Tensor_Fit() {
   // DEBUG: Print U and Vt
   // NOTE: U and Vt are in column-major order from fortran routine
   //       so are currently implicitly transposed.
-  printMatrix("matrix_Ut",matrix_U,m_rows,m_rows);
-  printMatrix("matrix_V",matrix_Vt,n_cols,n_cols);
+  if (debug>1) {
+    printMatrix("matrix_Ut",matrix_U,m_rows,m_rows);
+    printMatrix("matrix_V",matrix_Vt,n_cols,n_cols);
+  }
 
   // Remove small singular values from SVD
 /*  double wmax = 0;
@@ -1087,12 +1100,12 @@ int Rotdif::Tensor_Fit() {
   // ---------------------------------------------
 
   // Convert vector Q to diffusion tensor D
-  Q_to_D(matrix_D, vector_q);
-  printMatrix("matrix_D",matrix_D,3,3);
+  Q_to_D(D_tensor, vector_q);
+  printMatrix("D_tensor",D_tensor,3,3);
 
   // Save D for later use in back calculating deff from Q
   for (int i = 0; i < 9; i++)
-    matrix_D_local[i] = matrix_D[i];
+    matrix_D_local[i] = D_tensor[i];
 
   // Diagonalize D to find eigenvalues and eigenvectors
   // (principal components and axes)
@@ -1100,11 +1113,11 @@ int Rotdif::Tensor_Fit() {
   // Rotdif::chi_squared routine will use dsyev_ for diagnolization.
   lwork = -1;
   n_cols = 3;
-  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, matrix_D, n_cols, vector_d, &wkopt, lwork, info);
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor, n_cols, D_XYZ, &wkopt, lwork, info);
   lwork = (int) wkopt;
   work = new double[ lwork ];
-  // Diagonalize matrix_D
-  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, matrix_D, n_cols, vector_d, work, lwork, info);
+  // Diagonalize D_tensor
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor, n_cols, D_XYZ, work, lwork, info);
   // Check for convergence
   if (info > 0) {
     mprinterr("The algorithm computing the eigenvalues/eigenvectors of D failed to converge.\n");
@@ -1114,18 +1127,18 @@ int Rotdif::Tensor_Fit() {
   }
   //delete[] work;
   // eigenvectors are stored in columns due to implicit transpose from fortran,
-  // i.e. Ex = {matrix_D[0], matrix_D[3], matrix_D[6]} etc.
+  // i.e. Ex = {D_tensor[0], D_tensor[3], D_tensor[6]} etc.
   // Transpose back.
-  matrix_transpose_3x3( matrix_D );
+  matrix_transpose_3x3( D_tensor );
 
   mprintf("Results of small anisotropy (SVD) analysis:\n");
 
   // Print eigenvalues/eigenvectors
-  printMatrix("D eigenvalues",vector_d,1,3);
-  printMatrix("D eigenvectors",matrix_D,3,3);
+  printMatrix("D eigenvalues",D_XYZ,1,3);
+  printMatrix("D eigenvectors",D_tensor,3,3);
 
   // Calculate Dav, Daniso, Drhomb
-  calculate_D_properties(vector_d, d_props);
+  calculate_D_properties(D_XYZ, d_props);
   printMatrix("Dav, Daniso, Drhomb",d_props,1,3);
 
   // Back-calculate the local diffusion constants via At*Q=Deff
@@ -1134,6 +1147,7 @@ int Rotdif::Tensor_Fit() {
   printMatrix("D_to_Q",vector_q_local,1,6);
   deff_local = new double[ nvecs ];
   At = matrix_At;
+  // At*Q
   for (int i=0; i < nvecs; i++) {
     deff_local[i]  = (At[0] * vector_q_local[0]);
     deff_local[i] += (At[1] * vector_q_local[1]);
@@ -1157,7 +1171,8 @@ int Rotdif::Tensor_Fit() {
   }
   mprintf("  chisq for above is %15.5lf\n\n",sgn);
 
-  // Full anisotropy
+  // Using this Q (small anisotropy) as a guess, calculate Q with
+  // full anisotropy
   Simplex_min( vector_q );
   
   // Cleanup

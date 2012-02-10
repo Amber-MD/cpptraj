@@ -414,24 +414,25 @@
 
         xsearch(1) = q(1) + i*delqfrac/100.
 
-         do j=-SIZE,SIZE
-           xsearch(2) = q(2) + j*delqfrac/100.
+        do j=-SIZE,SIZE
+          xsearch(2) = q(2) + j*delqfrac/100.
 
-         do k=-SIZE,SIZE
-           xsearch(3) = q(3) + k*delqfrac/100.
+          do k=-SIZE,SIZE
+            xsearch(3) = q(3) + k*delqfrac/100.
 
-         do l=-SIZE,SIZE
-           xsearch(4) = q(4) + l*delqfrac/100.
+            do l=-SIZE,SIZE
+              xsearch(4) = q(4) + l*delqfrac/100.
 
-         do m=-SIZE,SIZE
-           xsearch(5) = q(5) + m*delqfrac/100.
+              do m=-SIZE,SIZE
+                xsearch(5) = q(5) + m*delqfrac/100.
 
-         do n=-SIZE,SIZE
-           xsearch(6) = q(6) + n*delqfrac/100.
+                do n=-SIZE,SIZE
+                  xsearch(6) = q(6) + n*delqfrac/100.
 
-         sgn=chisq(xsearch)         
-         if( sgn < sgn0 ) write(6,'(f12.5,6f9.5)') sgn, (xsearch(ii),ii=1,6)
+                  sgn=chisq(xsearch)         
+                  if( sgn < sgn0 ) write(6,'(f12.5,6f9.5)') sgn, (xsearch(ii),ii=1,6)
 
+                  write(6,'(a,6i3,2f10.5)') '  Grid ',i,j,k,l,m,n,sgn,sgn0
 !#ifdef TENSORFIT_DEBUG 
 !         call convertd(dia,dshape)
 !         write(6,*) 'input to amoeba - average at cycle',i
@@ -443,12 +444,12 @@
 !         end do
 !#endif
 
-        end do
-      end do  
-        end do
-      end do  
-        end do
-      end do  
+                end do ! over n
+              end do ! over m
+            end do ! over l
+          end do ! over k 
+        end do ! over j
+      end do ! over i 
 
       return
       end subroutine gridsrch
@@ -745,7 +746,7 @@
         end do
         return
       end if
-      write(6,'(8x,a,i7,e15.6)') 'in amoeba, iter, rtol = ', iter, rtol
+      !write(6,'(8x,a,i7,e15.6)') 'in amoeba, iter, rtol = ', iter, rtol
       if(iter>=itmax)then
         write(6,*) 'itmax exceeded in amoeba:', itmax
         stop
