@@ -10,7 +10,14 @@
   *
   *   Si(t) = y[i] + b[i]*dt + c[i]*dt^2 + d[i]*dt^3 
   *
-  * where dt = t - x[i]
+  * where dt = t - x[i]. Si(t), and first and second derivatives Si'(t)
+  * and Si"(t) must be continuous over interval dt, and both derivatives 
+  * for adjacent points must be equal so that adjacent line segments become 
+  * continuous.
+  *
+  *   Si'(t) = b[i] + 2*c[i]*dt + 3*d[i]*dt^2
+  *   Si"(t) = 2*c[i] + 6*d[i]*dt
+  *
   * \param x Input X values
   * \param y Corresponding Y values
   * \param n Total number of X/Y values
@@ -31,18 +38,18 @@ void Interpolate::cubicSpline_coeff(double *x, double *y, int n)
   int n_minus1 = n - 1;
 
   if ( n > 2 ) {
-    // Tri-diagonal
+    // Generate Tri-diagonal matrix
     d[0] = x[1] - x[0];
     c[1] = (y[1] - y[0]) / d[0];
     for (int i = 1; i < n_minus1; i++) {
-        d[i] = x[i + 1] - x[i];
-        b[i] = 2.0 * (d[i - 1] + d[i]);
-        c[i+1] = (y[i + 1] - y[i]) / d[i];
-        c[i] = c[i+1] - c[i];
-        //mprintf("TRIDBG: %i b=%lf c=%lf d=%lf\n",i,b[i],c[i],d[i]);
+      d[i] = x[i + 1] - x[i];
+      b[i] = 2.0 * (d[i - 1] + d[i]);
+      c[i+1] = (y[i + 1] - y[i]) / d[i];
+      c[i] = c[i+1] - c[i];
+      //mprintf("TRIDBG: %i b=%lf c=%lf d=%lf\n",i,b[i],c[i],d[i]);
     }
     
-    // End-conditions
+    // Set up boundary  conditions
     b[0]        = -d[0];
     b[n_minus1] = -d[n - 2];
     c[0]        = 0.0;
@@ -69,8 +76,7 @@ void Interpolate::cubicSpline_coeff(double *x, double *y, int n)
         //mprintf("BAKDBG: %i c=%lf\n",i,c[i]);
     }
 
-    // c(i) is now the sigma(i) of the text
-    // compute polynomial coefficients
+    // Calculate the polynomial coefficients
     b[n_minus1] = (y[n_minus1] - y[n - 2]) / d[n - 2] + d[n - 2] * (c[n - 2] + 2.0 * c[n_minus1]);
     for (int i = 0; i < n_minus1; i++) {
         b[i] = (y[i + 1] - y[i]) / d[i] - d[i] * (c[i + 1] + 2.0 * c[i]);

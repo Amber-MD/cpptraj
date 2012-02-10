@@ -10,6 +10,7 @@
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
   // Rotdif.f
+  double random_(int&);
   void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
   // LAPACK
   void dgesvd_(char*, char*, int&, int&, double*,
@@ -38,6 +39,7 @@ Rotdif::Rotdif() {
   ncorr = 0;
   lflag = 0;
   delqfrac = 0;
+  amoeba_ftol=0.0000001;
 
   work = NULL;
   lwork = 0;
@@ -50,6 +52,7 @@ Rotdif::Rotdif() {
   RefParm = NULL;
  
   random_vectors = NULL;
+  D_eff = NULL;
 } 
 
 // DESTRUCTOR
@@ -61,6 +64,7 @@ Rotdif::~Rotdif() {
     delete[] *Rmatrix;
   if (work!=NULL) delete[] work;
   if (random_vectors!=NULL) delete[] random_vectors;
+  if (D_eff!=NULL) delete[] D_eff;
 }
 
 // Rotdif::init()
@@ -511,10 +515,10 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
   Dav = (dx + dy + dz) / 3;
   Dpr2 = ((dx*dy) + (dy*dz) + (dx*dz)) / 3;
   if (Dpr2 < 0) {
-    mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate Dpr (Dpr^2 < 0)\n");
+    //mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate Dpr (Dpr^2 < 0)\n");
     // NOTE: Original code just set Dpr to 0 and continued. 
-    return 1;
-  } 
+    Dpr2 = 0;
+  }
   delta = (Dav*Dav) - Dpr2;
   if (delta < 0) {
     mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate lambda l=2, m=0\n");
@@ -631,36 +635,36 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
 
 // Rotdif::chi_squared()
 /** Given Q, calculate effective D values for random_vectors with full 
-  * anisotropy and compare to the given effective D values.
+  * anisotropy and compare to the given effective D values. Sets
+  * D_XYZ with principal components and D_tensor with principal vectors
+  * in column major order.
   * \return Deviation of calculated D values from given D values.
   */
-double Rotdif::chi_squared(double *Qin, double *deff) {
+double Rotdif::chi_squared(double *Qin) {
 #ifdef NO_PTRAJ_ANALYZE
   return -1;
 #else
-  double matrix_D[9];
-  double Dxyz[3];
   int n_cols = 3;
   int info;
   double chisq;
 
   // Convert input Q to Diffusion tensor D
-  Q_to_D(matrix_D, Qin);
+  Q_to_D(D_tensor, Qin);
   // Diagonalize D; it is assumed workspace (work, lwork) set up prior 
   // to this call.
   // NOTE: Due to the fortran call, the eigenvectors are returned in COLUMN
   //       MAJOR order.
-  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, matrix_D, n_cols, Dxyz, work, lwork, info);
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor, n_cols, D_XYZ, work, lwork, info);
   // Check for convergence
   //if (info > 0) {
   //  mprinterr("The algorithm computing the eigenvalues/eigenvectors of D failed to converge.\n");
   //  return -1;
   //}
-  calc_Asymmetric(Dxyz, matrix_D);
+  calc_Asymmetric(D_XYZ, D_tensor);
 
   chisq = 0;
   for (int i = 0; i < nvecs; i++) {
-    double diff = deff[i] - tau2[i];
+    double diff = D_eff[i] - tau2[i];
     chisq += (diff * diff); 
   }
 
@@ -682,6 +686,129 @@ static void calculate_D_properties(double Dxyz[3], double Dout[3]) {
   Dout[2] = (1.5 * (Dy - Dx)) / (Dz - (0.5 * (Dx + Dy)) );
 }
 
+#define SM_NP 6
+#define SM_NP1 7
+// Amotry()
+double Rotdif::Amotry(double xsmplx[SM_NP1][SM_NP], double *ysearch,
+                      double *psum, int ihi, double fac)
+{
+  double ytry, fac1, fac2, ptry[SM_NP];
+
+  fac1 = (1-fac)/SM_NP;
+  fac2 = fac1 - fac;
+  for (int j=0; j < SM_NP; j++)
+    ptry[j] = (psum[j] * fac1) - (xsmplx[ihi][j] * fac2);
+  ytry = chi_squared( ptry );
+  if (ytry < ysearch[ihi]) {
+    ysearch[ihi] = ytry;
+    for (int j = 0; j < SM_NP; j++) {
+      psum[j] -= (xsmplx[ihi][j] + ptry[j]);
+      xsmplx[ihi][j] = ptry[j];
+    }
+  }
+  return ytry;
+}
+
+// Amoeba()
+/** Main driver for the simplex method */
+int Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
+  int iter;
+  bool loop1 = true;
+  bool loop2 = true;
+  double psum[SM_NP];
+  int ilo, ihi, inhi;
+  double rtol, swap;
+
+  iter = 0;
+  while (loop1) {
+    for (int n = 0; n < SM_NP; n++) {
+      psum[n] = 0;
+      for (int m = 0; m < SM_NP1; m++) 
+        psum[n] += xsmplx[m][n];
+    }
+    while (loop2) {
+      ilo = 0;
+      if (ysearch[0] > ysearch[1]) {
+        ihi = 0;
+        inhi = 1;
+      } else {
+        ihi = 1;
+        inhi = 0;
+      }
+      for (int i = 0; i < SM_NP1; i++) {
+        if (ysearch[i] <= ysearch[ilo]) ilo = i;
+        if (ysearch[i] > ysearch[ihi]) {
+          inhi = ihi;
+          ihi = i;
+        } else if ( ysearch[i] > ysearch[inhi]) {
+          if (i != ihi) inhi = i;
+        }
+      }  
+      double abs_yhi_ylo = ysearch[ihi] - ysearch[ilo];
+      if (abs_yhi_ylo < 0) abs_yhi_ylo = -abs_yhi_ylo;
+      double abs_yhi = ysearch[ihi];
+      if (abs_yhi < 0) abs_yhi = -abs_yhi;
+      double abs_ylo = ysearch[ilo];
+      if (abs_ylo < 0) abs_ylo = -abs_ylo;
+      rtol = 2 * abs_yhi_ylo / (abs_yhi - abs_ylo);
+      if (rtol < amoeba_ftol) {
+        swap = ysearch[0];
+        ysearch[0] = ysearch[ilo];
+        ysearch[ilo] = swap;
+        for (int n = 0; n < SM_NP; n++) {
+          swap = xsmplx[0][n];
+          xsmplx[0][n] = xsmplx[ilo][n];
+          xsmplx[ilo][n] = swap;
+        }
+        return iter;
+      }
+      mprintf("\tIn amoeba, iter=%i, rtol=%lf\n",iter,rtol); 
+
+      if (iter >= itmax) {
+        mprintf("\tMax iterations (%i) exceeded in amoeba.\n");
+        return iter;
+      }
+      iter += 2;
+
+/*      ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,-1d0)
+      if(ytry<=y(ilo))then
+        ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,2d0)
+      else if(ytry>=y(inhi))then
+        ysave=y(ihi)
+        ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,0.5d0)
+        if(ytry>=ysave)then
+          do i=1,ndim+1
+             if(i/=ilo)then
+               do j=1,ndim
+                  psum(j)=0.5d0*(p(i,j)+p(ilo,j))
+                  p(i,j)=psum(j)
+               end do
+               y(i)=funk(psum)
+             end if
+          end do
+          iter=iter+ndim
+          go to 1
+        end if
+      else
+        iter=iter-1
+      end if
+      go to 2
+*/
+    }
+  }
+  return iter;
+}
+
+// Average_vertices()
+static void Average_vertices(double *xsearch, double xsmplx[SM_NP1][SM_NP]) {
+    for (int j=0; j < SM_NP; j++) {
+      xsearch[j] = 0;
+      for (int k = 0; k < SM_NP1; k++) 
+        xsearch[j] += xsmplx[k][j];
+      xsearch[j] /= SM_NP1;
+    }
+}
+
 // Rotdif::Simplex_min()
 /** Main driver routine for Amoeba (downhill simplex) minimizer. In the 
   * simplex method, N+1 initial points (where N is the dimension of the 
@@ -692,7 +819,15 @@ static void calculate_D_properties(double Dxyz[3], double Dout[3]) {
   * for each of the components of Q; the sign of the variation is randomly 
   * chosen.
   */
-int Rotdif::Simplex_min(double *Q_vector, double *deff) {
+int Rotdif::Simplex_min(double *Q_vector) {
+  double xsearch[SM_NP];
+  double ysearch[SM_NP1];
+  double xsmplx[SM_NP1][SM_NP];
+  const int nsearch = 1;
+  double sgn;
+  double d_props[3];
+  int test_seed = -3001796;
+
   // Allocate tau1, tau2, and sumc2; used in calc_Asymmetric
   tau1.resize(nvecs);
   tau2.resize(nvecs);
@@ -701,17 +836,75 @@ int Rotdif::Simplex_min(double *Q_vector, double *deff) {
   // chi_squared performs diagonalization. The workspace for dsyev should
   // already have been set up in Tensor_Fit().
   mprintf("Same diffusion tensor, but full anisotropy:\n");
-  mprintf("  chi_squared for SVD tensor is %15.5lf\n",chi_squared(Q_vector, deff));
+  mprintf("  chi_squared for SVD tensor is %15.5lf\n",chi_squared(Q_vector));
   mprintf("     taueff(obs) taueff(calc)\n");
   for (int i = 0; i < nvecs; i++) 
-    mprintf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,deff[i],tau2[i],sumc2[i]);
+    mprintf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff[i],tau2[i],sumc2[i]);
   mprintf("\n");
+
+  // Now execute the simplex search method with initial vertices,
+  // xsimplx, and chi-squared values, ysearch.
+  // We restart the minimization a pre-set number of times to avoid
+  // an anomalous result.
+  for (int n = 0; n < SM_NP; n++) xsearch[n] = Q_vector[n];
+
+  // BEGIN SIMPLEX LOOP
+  for (int i = 0; i < nsearch; i++) {
+    for (int j = 0; j < SM_NP; j++) xsmplx[0][j] = xsearch[j];
+
+    for (int j = 0; j < SM_NP; j++) {
+      for (int k = 0; k < SM_NP; k++) {
+        if (j==k) {
+          //sgn = RNgen.rn_gen() - 0.5; // -0.5 <= sgn <= 0.5
+          sgn = random_(test_seed) - 0.5; // For tensorfit_ comparison
+          if (sgn < 0)
+            sgn = -1.0;
+          else
+            sgn = 1.0;
+          xsmplx[j+1][k] = xsmplx[0][k] * (1+(sgn*delqfrac));
+        } else {
+          xsmplx[j+1][k] = xsmplx[0][k];
+        }
+      }
+    }
+
+    // As to amoeba, chi-squared must be evaluated for all
+    // vertices in the initial simplex.
+    for (int j=0; j < SM_NP1; j++) {
+      for (int k=0; k < SM_NP; k++) {
+        xsearch[k] = xsmplx[j][k];
+      }
+      ysearch[j] = chi_squared(xsearch);
+    }
+
+    // Average the vertices and compute details of the average.
+    /*for (int j=0; j < SM_NP; j++) {
+      xsearch[j] = 0;
+      for (int k = 0; k < SM_NP1; k++) 
+        xsearch[j] += xsmplx[k][j];
+      xsearch[j] /= SM_NP1;
+    }*/
+    Average_vertices( xsearch, xsmplx );
+    sgn = chi_squared( xsearch );
+    calculate_D_properties(D_XYZ, d_props);
+
+    mprintf("Input to amoeba - average at cycle %i\n",i+1);
+    mprintf("    Initial chisq = %15.5lf\n",sgn);
+    printMatrix("Dav, aniostropy, rhombicity:",d_props,1,3);
+    printMatrix("D tensor eigenvalues:",D_XYZ,1,3);
+    printMatrix("D tensor eigenvectors (in columns):",D_tensor,3,3);
+    
+
+  }
 
   return 0;
 }
+#undef SM_NP
+#undef SM_NP1
 
 // Rotdif::Tensor_Fit()
-int Rotdif::Tensor_Fit(double *deff) {
+// NOTE: Eventually use D_tensor and D_XYZ
+int Rotdif::Tensor_Fit() {
 #ifdef NO_PTRAJ_ANALYZE
   return 1;
 #else
@@ -833,7 +1026,7 @@ int Rotdif::Tensor_Fit(double *deff) {
         //mprintf(" VSU v=%i s=%i u=%i",v_idx+vs,vs,(vs*m_rows)+m);
       }
       //mprintf(") m=%i\n",m);
-      vector_q[n] += (vsu_sum * deff[m]);
+      vector_q[n] += (vsu_sum * D_eff[m]);
     }
     v_idx += 6;
   }
@@ -889,8 +1082,6 @@ int Rotdif::Tensor_Fit(double *deff) {
   D_to_Q(vector_q_local, matrix_D_local);
   printMatrix("D_to_Q",vector_q_local,1,6);
   deff_local = new double[ nvecs ];
-  // Create temporary storage for deff since still using it for tensorfit routine.
-  double *deff_temp = new double[ nvecs ];
   At = matrix_At;
   for (int i=0; i < nvecs; i++) {
     deff_local[i]  = (At[0] * vector_q_local[0]);
@@ -906,17 +1097,17 @@ int Rotdif::Tensor_Fit(double *deff) {
   double sgn = 0;
   for (int i = 0; i < nvecs; i++) {
     // For the following chisq fits, convert deff to taueff
-    deff_temp[i] = 1 / (6 * deff[i]);
+    D_eff[i] = 1 / (6 * D_eff[i]);
     deff_local[i] = 1 / (6 * deff_local[i]);
-    mprintf("%5i%10.5lf%10.5lf\n",i+1,deff_temp[i],deff_local[i]);
+    mprintf("%5i%10.5lf%10.5lf\n", i+1, D_eff[i], deff_local[i]);
     // NOTE: in rotdif code, sig is 1.0 for all nvecs 
-    double diff = deff_local[i] - deff_temp[i];
+    double diff = deff_local[i] - D_eff[i];
     sgn += (diff * diff);
   }
   mprintf("  chisq for above is %15.5lf\n\n",sgn);
 
   // Full anisotropy
-  Simplex_min( vector_q, deff_temp );
+  Simplex_min( vector_q );
   
   // Cleanup
   delete[] matrix_At;
@@ -1020,7 +1211,6 @@ int Rotdif::Tensor_Fit(double *deff) {
 
 // Rotdif::print()
 void Rotdif::print() {
-  double *deff;              // Hold calculated effective D
   double *rotated_vectors;   // Hold vectors after rotation with Rmatrices
   double *pX;                // Hold X values of C(t)
   double *p1;                // Hold Y values of C(t) for p1
@@ -1070,7 +1260,7 @@ void Rotdif::print() {
     }
   }
 
-  // Calculate effective diffusion constant deff for each random vector. 
+  // Calculate effective diffusion constant for each random vector. 
   // Vectors will be normalized during this phase. First rotate the vector 
   // by all rotation matrices, storing the resulting vectors. The first entry 
   // of rotated_vectors is the original random vector. Then calculate the time 
@@ -1081,7 +1271,7 @@ void Rotdif::print() {
   maxdat = ncorr + 1;
   // Allocate memory to hold vectors, Deff, and C(t)
   rotated_vectors = new double[ 3 * maxdat ];
-  deff = new double[ nvecs ];
+  D_eff = new double[ nvecs ];
   p1 = new double[ maxdat ];
   p2 = new double[ maxdat ];
   pX = new double[ maxdat ];
@@ -1122,7 +1312,6 @@ void Rotdif::print() {
     }
     // Calculate time correlation function for this vector
     compute_corr(rotated_vectors,maxdat,itotframes,p2,p1);
-    //dlocint_(ti,tf,itmax,delmin,d0,olegendre,deff_val);
     // Calculate spline coefficients
     spline.cubicSpline_coeff(pX, p2, maxdat);
     // Calculate mesh Y values
@@ -1131,7 +1320,7 @@ void Rotdif::print() {
     double integral = integrate_trapezoid(mesh_x, mesh_y, mesh_size);
     // Solve for deff
     deff_val = calcEffectiveDiffusionConst(integral);
-    deff[vec] = deff_val;
+    D_eff[vec] = deff_val;
 
     // DEBUG: Write out p1 and p2 ------------------------------------
     if (debug > 1) {
@@ -1165,17 +1354,22 @@ void Rotdif::print() {
     } else {
       dout.OpenFile();
       for (int vec = 0; vec < nvecs; vec++)
-        dout.IO->Printf("%6i%15.8lf\n",vec+1,deff[vec]);
+        dout.IO->Printf("%6i%15.8lf\n",vec+1,D_eff[vec]);
       dout.CloseFile();
     }
   }
 
-  Tensor_Fit( deff );
+  // Create temporary copy of deff for tensorfit_ call
+  double *temp_deff = new double[ nvecs ];
+  for (int i = 0; i < nvecs; i++)
+    temp_deff[i] = D_eff[i];
 
-  tensorfit_(random_vectors,nvecs,deff,nvecs,lflag,delqfrac,debug);
+  Tensor_Fit( );
+
+  tensorfit_(random_vectors,nvecs,temp_deff,nvecs,lflag,delqfrac,debug);
 
   // Cleanup
-  delete[] deff;
+  delete[] temp_deff;
   delete[] rotated_vectors;
   delete[] p1;
   delete[] p2;

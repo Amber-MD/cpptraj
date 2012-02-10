@@ -31,10 +31,13 @@ class Rotdif: public Action {
     int ncorr;     ///< Max length to compute time correlation fns (# frames)
     int lflag;     ///< control how deff is used in tensorfit
     double delqfrac; ///< how to scale simplexes
+    double amoeba_ftol;
 
     // Workspace for LAPACK functions
     double *work;
     int lwork;
+    double D_tensor[9];
+    double D_XYZ[3];
 
     char *randvecOut;
     char *randvecIn;
@@ -53,6 +56,7 @@ class Rotdif: public Action {
 
     std::vector<double*> Rmatrices; ///< Store rotation matrices
     double *random_vectors;         ///< Hold nvecs random vectors
+    double *D_eff;                  ///< Hold calculated effective D values for each vector
     std::vector<double> tau1;
     std::vector<double> tau2;
     std::vector<double> sumc2;
@@ -61,9 +65,12 @@ class Rotdif: public Action {
     int compute_corr(double *, int, int, double *, double *);
     double calcEffectiveDiffusionConst(double );
     int calc_Asymmetric(double *, double *);
-    double chi_squared(double *, double*);
-    int Simplex_min(double*, double*);
-    int Tensor_Fit(double *);
+    double chi_squared(double *);
+   
+    double Amotry(double[][6], double *, double *, int, double); 
+    int Amoeba(double[][6], double *);
+    int Simplex_min(double*);
+    int Tensor_Fit();
     
   public:
     Rotdif();
