@@ -568,6 +568,7 @@ void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
     for (int maskidx = 0; maskidx < natom; maskidx++) {
       oldatom3 = Mask->Selected[maskidx] * 3;
       memcpy(newX, FrameIn->V + oldatom3, COORDSIZE);
+      newX += 3;
     }
   }
 
