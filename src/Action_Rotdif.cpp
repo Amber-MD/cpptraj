@@ -10,8 +10,8 @@
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
   // Rotdif.f
-  double random_(int&);
-  void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
+  //double random_(int&);
+  //void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
   // LAPACK
   void dgesvd_(char*, char*, int&, int&, double*,
                int&, double*, double*, int&, double*, int&,
@@ -847,7 +847,7 @@ int Rotdif::Simplex_min(double *Q_vector) {
   const int nsearch = 1;
   double sgn;
   double d_props[3];
-  int test_seed = -3001796;
+  //int test_seed = -3001796; // For tensorfit_ comparison
 
   // Allocate tau1, tau2, and sumc2; used in calc_Asymmetric
   tau1.resize(nvecs);
@@ -876,8 +876,8 @@ int Rotdif::Simplex_min(double *Q_vector) {
     for (int j = 0; j < SM_NP; j++) {
       for (int k = 0; k < SM_NP; k++) {
         if (j==k) {
-          //sgn = RNgen.rn_gen() - 0.5; // -0.5 <= sgn <= 0.5
-          sgn = random_(test_seed) - 0.5; // For tensorfit_ comparison
+          sgn = RNgen.rn_gen() - 0.5; // -0.5 <= sgn <= 0.5
+          //sgn = random_(test_seed) - 0.5; // For tensorfit_ comparison
           if (sgn < 0)
             sgn = -1.0;
           else
@@ -952,6 +952,70 @@ int Rotdif::Simplex_min(double *Q_vector) {
 }
 #undef SM_NP
 #undef SM_NP1
+
+// Rotdif::Grid_search()
+/** Given a Q tensor, search for a better Q tensor by simple
+  * grid search on all 6 elements. If a better solution is found
+  * store it.
+  * \return 1 if grid search found a better solution.
+  * \return 0 if no better solution was found.
+  */
+int Rotdif::Grid_search(double *Q_vector, int gridsize) {
+  double xsearch[6];
+  double best[6];
+  double sgn, sgn0;
+  bool success = false;
+  if (gridsize < 1) {
+    mprinterr("Error: Rotdif: Grid search: Grid < 1\n");
+    return 0;
+  }
+  int gridmax = gridsize + 1;
+  int gridmin = -gridsize;
+
+  sgn0 = chi_squared(Q_vector);
+  mprintf("Grid search: Starting chisq is %15.5lf\n",sgn0);
+  //mprintf("_Grid q0 %10.5lf\n",Q_vector[0]);
+
+  // Store initial solution
+  for (int b = 0; b < 6; b++) best[b] = Q_vector[b];
+
+  for (int i = gridmin; i < gridmax; i++) {
+    xsearch[0] = Q_vector[0] + (i*delqfrac/100.0);
+    for (int j = gridmin; j < gridmax; j++) {
+      xsearch[1] = Q_vector[1] + (j*delqfrac/100.0);
+      for (int k = gridmin; k < gridmax; k++) {
+        xsearch[2] = Q_vector[2] + (k*delqfrac/100.0);
+        for (int l = gridmin; l < gridmax; l++) {
+          xsearch[3] = Q_vector[3] + (l*delqfrac/100.0);
+          for (int m = gridmin; m < gridmax; m++) {
+            xsearch[4] = Q_vector[4] + (m*delqfrac/100.0);
+            for (int n = gridmin; n < gridmax; n++) {
+              xsearch[5] = Q_vector[5] + (n*delqfrac/100.0);
+
+              sgn = chi_squared( xsearch );
+              //mprintf("_Grid x0 %10.5lf\n",xsearch[0]);
+              //mprintf("_Grid %3i%3i%3i%3i%3i%3i%10.5lf%10.5lf\n",
+              //        i,j,k,l,m,n,sgn,sgn0);
+              if (sgn < sgn0) {
+                for (int b = 0; b < 6; b++) best[b] = xsearch[b];
+                sgn0 = sgn;
+                success = true;
+              }
+            } // n
+          } // m
+        } // l
+      } // k
+    } // j
+  } // i
+      
+  // Set best solution
+  if (success) {
+    mprintf("  Grid search succeeded.\n");
+    for (int b = 0; b < 6; b++) Q_vector[b] = best[b];
+    return 1;
+  }
+  return 0;
+}
 
 // Rotdif::Tensor_Fit()
 /** Based on random_vectors and effective diffusion constants D_eff previously
@@ -1095,6 +1159,7 @@ int Rotdif::Tensor_Fit() {
     v_idx += 6;
   }
 
+  mprintf("Results of small anisotropy (SVD) analysis:\n");
   // Print Q vector
   printMatrix("Qxx Qyy Qzz Qxy Qyz Qxz",vector_q,1,6);
   // ---------------------------------------------
@@ -1129,13 +1194,11 @@ int Rotdif::Tensor_Fit() {
   // eigenvectors are stored in columns due to implicit transpose from fortran,
   // i.e. Ex = {D_tensor[0], D_tensor[3], D_tensor[6]} etc.
   // Transpose back.
-  matrix_transpose_3x3( D_tensor );
-
-  mprintf("Results of small anisotropy (SVD) analysis:\n");
+  //matrix_transpose_3x3( D_tensor );
 
   // Print eigenvalues/eigenvectors
   printMatrix("D eigenvalues",D_XYZ,1,3);
-  printMatrix("D eigenvectors",D_tensor,3,3);
+  printMatrix("D eigenvectors (in columns)",D_tensor,3,3);
 
   // Calculate Dav, Daniso, Drhomb
   calculate_D_properties(D_XYZ, d_props);
@@ -1174,6 +1237,9 @@ int Rotdif::Tensor_Fit() {
   // Using this Q (small anisotropy) as a guess, calculate Q with
   // full anisotropy
   Simplex_min( vector_q );
+
+  // Brute force grid search
+  //Grid_search( vector_q, 5 );
   
   // Cleanup
   delete[] matrix_At;
@@ -1289,6 +1355,8 @@ void Rotdif::print() {
   CpptrajFile outfile;
   char namebuffer[32];
   // DEBUG
+
+  mprintf("    ROTDIF:\n");
  
   // If no rotation matrices generated, exit
   if (Rmatrices.empty()) return;
@@ -1426,18 +1494,18 @@ void Rotdif::print() {
   }
 
   // Create temporary copy of deff for tensorfit_ call
-  double *temp_deff = new double[ nvecs ];
+/*  double *temp_deff = new double[ nvecs ];
   for (int i = 0; i < nvecs; i++)
     temp_deff[i] = D_eff[i];
   // Create temporary value of delqfrac for tensorfit_ call
-  double temp_delqfrac = delqfrac;
+  double temp_delqfrac = delqfrac;*/
 
   Tensor_Fit( );
 
-  tensorfit_(random_vectors,nvecs,temp_deff,nvecs,lflag,temp_delqfrac,debug);
+  //tensorfit_(random_vectors,nvecs,temp_deff,nvecs,lflag,temp_delqfrac,debug);
 
   // Cleanup
-  delete[] temp_deff;
+  //delete[] temp_deff;
   delete[] rotated_vectors;
   delete[] p1;
   delete[] p2;

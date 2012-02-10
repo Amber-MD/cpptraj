@@ -65,12 +65,13 @@ class Rotdif: public Action {
     double *randvec();
     int compute_corr(double *, int, int, double *, double *);
     double calcEffectiveDiffusionConst(double );
+
     int calc_Asymmetric(double *, double *);
     double chi_squared(double *);
-   
     double Amotry(double[][6], double *, double *, int, double); 
     int Amoeba(double[][6], double *);
     int Simplex_min(double*);
+    int Grid_search(double *, int);
     int Tensor_Fit();
     
   public:
