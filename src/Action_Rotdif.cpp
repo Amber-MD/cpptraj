@@ -37,7 +37,6 @@ Rotdif::Rotdif() {
   d0 = 0.0;
   olegendre = 2;
   ncorr = 0;
-  lflag = 0;
   delqfrac = 0;
   amoeba_ftol=0.0000001;
   amoeba_itmax=10000;
@@ -55,6 +54,7 @@ Rotdif::Rotdif() {
  
   random_vectors = NULL;
   D_eff = NULL;
+  Tau=NULL;
 } 
 
 // DESTRUCTOR
@@ -76,7 +76,7 @@ Rotdif::~Rotdif() {
   *                       ref <refname> | refindex <refindex> | reference
   *                       [<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>
   *                       [itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]
-  *                       [lflag <lflag>] [delqfrac <delqfrac>] [rvecout <randvecOut>]
+  *                       [delqfrac <delqfrac>] [rvecout <randvecOut>]
   *                       [rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]
   *                       [rvecin <randvecIn>]
   *                       [gridsearch]
@@ -109,7 +109,6 @@ int Rotdif::init( ) {
   delmin = actionArgs.getKeyDouble("tol",0.000001);
   d0 = actionArgs.getKeyDouble("d0",0.03);
   olegendre = actionArgs.getKeyInt("order",2);
-  lflag = actionArgs.getKeyInt("lflag",2);
   delqfrac = actionArgs.getKeyDouble("delqfrac",0.5);
   randvecOut = actionArgs.getKeyString("rvecout",NULL);
   randvecIn = actionArgs.getKeyString("rvecin",NULL);
@@ -181,7 +180,7 @@ int Rotdif::init( ) {
   mprintf("            Max iterations = %i, tol = %lf, initial guess = %lf\n",
           itmax, delmin,d0);
   mprintf("            Order of Legendre polynomial = %i\n",olegendre);
-  mprintf("            lflag=%i, delqfrac=%.4lf\n",lflag,delqfrac);
+  mprintf("            Simplex scaling factor=%.4lf\n",delqfrac);
   if (do_gridsearch)
     mprintf("            Grid search will be performed for Q with full anisotropy (time consuming)\n");
   if (randvecIn!=NULL)
@@ -702,7 +701,7 @@ double Rotdif::chi_squared(double *Qin) {
 
   chisq = 0;
   for (int i = 0; i < nvecs; i++) {
-    double diff = D_eff[i] - tau2[i];
+    double diff = D_eff[i] - (*Tau)[i];
     chisq += (diff * diff); 
   }
 
@@ -890,6 +889,13 @@ int Rotdif::Simplex_min(double *Q_vector) {
   tau1.resize(nvecs);
   tau2.resize(nvecs);
   sumc2.resize(nvecs);
+  // Set Tau to be used in chi_squared based on olegendre
+  if (olegendre == 1)
+    Tau = &tau1;
+  else if (olegendre == 2)
+    Tau = &tau2;
+  else
+    Tau = NULL; // Should never get here
   // First, back-calculate with the SVD tensor, but with the full anisotropy
   // chi_squared performs diagonalization. The workspace for dsyev should
   // already have been set up in Tensor_Fit.
@@ -897,7 +903,7 @@ int Rotdif::Simplex_min(double *Q_vector) {
   outfile.IO->Printf("  chi_squared for SVD tensor is %15.5lf\n",chi_squared(Q_vector));
   outfile.IO->Printf("     taueff(obs) taueff(calc)\n");
   for (int i = 0; i < nvecs; i++) 
-    outfile.IO->Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff[i],tau2[i],sumc2[i]);
+    outfile.IO->Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff[i],(*Tau)[i],sumc2[i]);
   outfile.IO->Printf("\n");
 
   // Now execute the simplex search method with initial vertices,
@@ -974,12 +980,12 @@ int Rotdif::Simplex_min(double *Q_vector) {
     PrintMatrix(outfile,"D tensor eigenvectors (in columns):",D_tensor,3,3);
     outfile.IO->Printf("     taueff(obs) taueff(calc)\n");
     for (int i = 0; i < nvecs; i++)
-      outfile.IO->Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff[i],tau2[i],sumc2[i]);
+      outfile.IO->Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff[i],(*Tau)[i],sumc2[i]);
     outfile.IO->Printf("\n");
    
     // cycle over main loop, but first reduce the size of delqfrac:
     delqfrac *= 0.750;
-    mprintf("Setting delqfrac to %15.7lf\n",delqfrac);
+    if (debug>0)mprintf("\tAmoeba: Setting delqfrac to %15.7lf\n",delqfrac);
   }
 
   // Set q vector to the final average result from simpmin
@@ -1553,6 +1559,8 @@ void Rotdif::print() {
     }
   }
 
+  mprintf("\t%i vectors, %u rotation matrices.\n",nvecs,Rmatrices.size());
+
   // Determine effective D for each vector
   DetermineDeffs( );
   // Print deffs
@@ -1568,13 +1576,14 @@ void Rotdif::print() {
     }
   }
 
+  // All remaining functions require LAPACK
+# ifndef NO_PTRAJ_ANALYZE
   // Create temporary copy of deff for tensorfit_ call
 /*  double *temp_deff = new double[ nvecs ];
   for (int i = 0; i < nvecs; i++)
     temp_deff[i] = D_eff[i];
   // Create temporary value of delqfrac for tensorfit_ call
   double temp_delqfrac = delqfrac;*/
-
   Tensor_Fit( Q_isotropic );
 
   // Using Q (small anisotropy) as a guess, calculate Q with
@@ -1590,7 +1599,7 @@ void Rotdif::print() {
   // Brute force grid search
   if (do_gridsearch)
     Grid_search( Q_anisotropic, 5 );
-
+# endif
   //tensorfit_(random_vectors,nvecs,temp_deff,nvecs,lflag,temp_delqfrac,debug);
 }
   

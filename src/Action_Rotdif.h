@@ -60,9 +60,10 @@ class Rotdif: public Action {
     std::vector<double*> Rmatrices; ///< Store rotation matrices
     double *random_vectors;         ///< Hold nvecs random vectors
     double *D_eff;                  ///< Hold calculated effective D values for each vector
-    std::vector<double> tau1;
-    std::vector<double> tau2;
-    std::vector<double> sumc2;
+    std::vector<double> tau1;       ///< Hold tau for l=1, full anisotropy
+    std::vector<double> tau2;       ///< Hold tau for l=2, full anisotropy
+    std::vector<double> *Tau;       ///> Hold tau being compared based on olegendre
+    std::vector<double> sumc2;      
 
     double *randvec();
     int compute_corr(double *, int, int, double *, double *);
