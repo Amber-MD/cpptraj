@@ -700,13 +700,20 @@
 !     real*8 rtol,sum,swap,ysave,ytry,psum(nmax),amotry
 
       iter=0
+!1     write (6,'(a,i6)') 'hit loop one ',iter 
 1     do n=1,ndim
          sum=0d0
          do m=1,ndim+1
+            !write (6,'(a,i6,i6,f10.5)') 'xsmplx ',m,n,p(m,n)
+            !write (6,'(a,i6,f10.5)') 'ysearch ',m,y(m)
             sum=sum+p(m,n)
          end do
          psum(n)=sum
       end do
+!2     write (6,'(a,i6)') 'hit loop two ',iter
+      !do n=1,ndim
+      !   write (6,'(8x,a,i6,f10.5)') 'psum ',n,psum(n)
+      !enddo 
 2     ilo=1
       if(y(1)>y(2))then
         ihi=1
@@ -724,6 +731,8 @@
            if(i/=ihi) inhi=i
          end if
       end do
+      !write(6,'(a,2(f10.5))') 'yihi yilo = ',y(ihi),y(ilo)
+      !write(6,'(8x,a,2(i6))') 'yihi yilo = ',ihi,ilo
       rtol=2d0*dabs(y(ihi)-y(ilo))/(dabs(y(ihi))+dabs(y(ilo)))
       if(rtol<ftol)then
         swap=y(1)
@@ -736,18 +745,21 @@
         end do
         return
       end if
-!     write(6,'(a,i7,e15.6)') 'in amoeba, iter, rtol, ftol = ', iter, rtol
+      write(6,'(8x,a,i7,e15.6)') 'in amoeba, iter, rtol = ', iter, rtol
       if(iter>=itmax)then
         write(6,*) 'itmax exceeded in amoeba:', itmax
         stop
       end if
       iter=iter+2
       ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,-1d0)
+      !write (6,'(8x,a,i6,f10.5)') 'ytry ',iter,ytry
       if(ytry<=y(ilo))then
         ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,2d0)
+        !write(6,'(8x,a,f10.5)') 'case 1 ',ytry
       else if(ytry>=y(inhi))then
         ysave=y(ihi)
         ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,0.5d0)
+        !write(6,'(8x,a,f10.5)') 'case 2 ',ytry
         if(ytry>=ysave)then
           do i=1,ndim+1
              if(i/=ilo)then
@@ -762,6 +774,7 @@
           go to 1
         end if
       else
+        !write(6,'(8x,a)') 'case 3 '
         iter=iter-1
       end if
       go to 2
@@ -786,6 +799,7 @@
       fac2=fac1-fac
       do j=1,ndim
          ptry(j)=psum(j)*fac1-p(ihi,j)*fac2
+         !write(6,'(16x,a,i6,f10.5)') 'amotry: ',j,ptry(j)
       end do
       ytry=funk(ptry)
       if(ytry<y(ihi))then
@@ -793,6 +807,7 @@
         do j=1,ndim
            psum(j)=psum(j)-p(ihi,j)+ptry(j)
            p(ihi,j)=ptry(j)
+           !write(6,'(16x,a,i6,i6,f10.5)') 'amotryx: ',ihi,j,p(ihi,j)
         end do
       end if
       amotry=ytry

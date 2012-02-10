@@ -32,6 +32,7 @@ class Rotdif: public Action {
     int lflag;     ///< control how deff is used in tensorfit
     double delqfrac; ///< how to scale simplexes
     double amoeba_ftol;
+    int amoeba_itmax;
 
     // Workspace for LAPACK functions
     double *work;

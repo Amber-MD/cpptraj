@@ -40,6 +40,7 @@ Rotdif::Rotdif() {
   lflag = 0;
   delqfrac = 0;
   amoeba_ftol=0.0000001;
+  amoeba_itmax=10000;
 
   work = NULL;
   lwork = 0;
@@ -635,7 +636,7 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
 
 // Rotdif::chi_squared()
 /** Given Q, calculate effective D values for random_vectors with full 
-  * anisotropy and compare to the given effective D values. Sets
+  * anisotropy and compare to the effective D values in D_eff. Sets
   * D_XYZ with principal components and D_tensor with principal vectors
   * in column major order.
   * \return Deviation of calculated D values from given D values.
@@ -696,14 +697,17 @@ double Rotdif::Amotry(double xsmplx[SM_NP1][SM_NP], double *ysearch,
 
   fac1 = (1-fac)/SM_NP;
   fac2 = fac1 - fac;
-  for (int j=0; j < SM_NP; j++)
+  for (int j=0; j < SM_NP; j++) {
     ptry[j] = (psum[j] * fac1) - (xsmplx[ihi][j] * fac2);
+    //mprintf("\t\tAmotry: %6i%10.5lf\n",j,ptry[j]);
+  }
   ytry = chi_squared( ptry );
   if (ytry < ysearch[ihi]) {
     ysearch[ihi] = ytry;
     for (int j = 0; j < SM_NP; j++) {
-      psum[j] -= (xsmplx[ihi][j] + ptry[j]);
+      psum[j] = psum[j] - xsmplx[ihi][j] + ptry[j];
       xsmplx[ihi][j] = ptry[j];
+      //mprintf("\t\tAmotryX: %6i%6i%10.5lf\n",ihi+1,j+1,xsmplx[ihi][j]);
     }
   }
   return ytry;
@@ -713,20 +717,29 @@ double Rotdif::Amotry(double xsmplx[SM_NP1][SM_NP], double *ysearch,
 /** Main driver for the simplex method */
 int Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
   int iter;
-  bool loop1 = true;
-  bool loop2 = true;
+  bool loop1;
+  bool loop2;
   double psum[SM_NP];
   int ilo, ihi, inhi;
   double rtol, swap;
 
   iter = 0;
+  loop1 = true;
   while (loop1) {
+    //mprintf("Hit loop one %6i\n",iter);
     for (int n = 0; n < SM_NP; n++) {
       psum[n] = 0;
-      for (int m = 0; m < SM_NP1; m++) 
+      for (int m = 0; m < SM_NP1; m++) { 
+        //mprintf("Xsmplx %6i%6i%10.5lf\n",m,n,xsmplx[m][n]);
+        //mprintf("Ysearch %6i%10.5lf\n",m,ysearch[m]);
         psum[n] += xsmplx[m][n];
+      }
     }
+    loop2 = true;
     while (loop2) {
+      //mprintf("Hit loop two %6i\n",iter);
+      //for (int n = 0; n < SM_NP; n++)
+      //  mprintf("\tPsum %6i%10.5lf\n",n,psum[n]);
       ilo = 0;
       if (ysearch[0] > ysearch[1]) {
         ihi = 0;
@@ -744,13 +757,17 @@ int Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
           if (i != ihi) inhi = i;
         }
       }  
+      //mprintf("Yihi Yilo = %10.5lf%10.5lf\n",ysearch[ihi],ysearch[ilo]);
+      //mprintf("\tYihi Yilo = %6i%6i\n",ihi+1,ilo+1);
       double abs_yhi_ylo = ysearch[ihi] - ysearch[ilo];
       if (abs_yhi_ylo < 0) abs_yhi_ylo = -abs_yhi_ylo;
       double abs_yhi = ysearch[ihi];
       if (abs_yhi < 0) abs_yhi = -abs_yhi;
       double abs_ylo = ysearch[ilo];
       if (abs_ylo < 0) abs_ylo = -abs_ylo;
-      rtol = 2 * abs_yhi_ylo / (abs_yhi - abs_ylo);
+      //mprintf("Abs(yihi - yilo)=%lf, Abs(yihi)=%lf, Abs(yilo)=%lf\n",
+      //        abs_yhi_ylo,abs_yhi,abs_ylo);
+      rtol = 2.0 * (abs_yhi_ylo / (abs_yhi + abs_ylo));
       if (rtol < amoeba_ftol) {
         swap = ysearch[0];
         ysearch[0] = ysearch[ilo];
@@ -762,40 +779,44 @@ int Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
         }
         return iter;
       }
-      mprintf("\tIn amoeba, iter=%i, rtol=%lf\n",iter,rtol); 
+      mprintf("\tIn amoeba, iter=%i, rtol=%15.6le\n",iter,rtol); 
 
-      if (iter >= itmax) {
-        mprintf("\tMax iterations (%i) exceeded in amoeba.\n");
+      if (iter >= amoeba_itmax) {
+        mprintf("Max iterations (%i) exceeded in amoeba.\n",amoeba_itmax);
         return iter;
       }
       iter += 2;
 
-/*      ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,-1d0)
-      if(ytry<=y(ilo))then
-        ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,2d0)
-      else if(ytry>=y(inhi))then
-        ysave=y(ihi)
-        ytry=amotry(p,y,psum,mp,np,ndim,funk,ihi,0.5d0)
-        if(ytry>=ysave)then
-          do i=1,ndim+1
-             if(i/=ilo)then
-               do j=1,ndim
-                  psum(j)=0.5d0*(p(i,j)+p(ilo,j))
-                  p(i,j)=psum(j)
-               end do
-               y(i)=funk(psum)
-             end if
-          end do
-          iter=iter+ndim
-          go to 1
-        end if
-      else
-        iter=iter-1
-      end if
-      go to 2
-*/
-    }
-  }
+      double ytry = Amotry(xsmplx, ysearch, psum, ihi, -1.0);
+      //mprintf("\tYtry %6i%10.5f\n",iter,ytry);
+      if (ytry <= ysearch[ilo]) { 
+        ytry = Amotry(xsmplx, ysearch, psum, ihi, 2.0);
+        //mprintf("\tCase 1 %10.5lf\n",ytry);
+      } else if (ytry >= ysearch[inhi]) {
+        double ysave = ysearch[ihi];
+        ytry = Amotry(xsmplx, ysearch, psum, ihi, 0.5);
+        //mprintf("\tCase 2 %10.5lf\n",ytry);
+        if (ytry >= ysave) {
+          for (int i=0; i < SM_NP1; i++) {
+            if (i != ilo) {
+              for (int j = 0; j < SM_NP; j++) {
+                psum[j] = 0.5 * (xsmplx[i][j] + xsmplx[ilo][j]);
+                xsmplx[i][j] = psum[j];
+              }
+              ysearch[i] = chi_squared(psum);
+            }
+          }
+          iter += SM_NP;
+          // GO TO 1
+          loop2 = false;
+        }
+      } else {
+        //mprintf("\tCase 3\n");
+        iter--;
+      }
+      // GO TO 2
+    } // END LOOP 2
+  } // END LOOP 1
   return iter;
 }
 
@@ -893,9 +914,39 @@ int Rotdif::Simplex_min(double *Q_vector) {
     printMatrix("Dav, aniostropy, rhombicity:",d_props,1,3);
     printMatrix("D tensor eigenvalues:",D_XYZ,1,3);
     printMatrix("D tensor eigenvectors (in columns):",D_tensor,3,3);
-    
 
+    Amoeba( xsmplx, ysearch );
+
+    // Put amoeba results into xsearch
+    for (int j=0; j < SM_NP1; j++) {
+      for (int k=0; k < SM_NP; k++) {
+        xsearch[k] = xsmplx[j][k];
+      }
+      ysearch[j] = chi_squared(xsearch);
+    }
+
+    // Average the vertices and compute details of the average.
+    Average_vertices( xsearch, xsmplx );
+    sgn = chi_squared( xsearch );
+    calculate_D_properties(D_XYZ, d_props);
+
+    mprintf("Output from amoeba - average at cycle %i\n",i+1);
+    mprintf("    Final chisq = %15.5lf\n",sgn);
+    printMatrix("Dav, aniostropy, rhombicity:",d_props,1,3);
+    printMatrix("D tensor eigenvalues:",D_XYZ,1,3);
+    printMatrix("D tensor eigenvectors (in columns):",D_tensor,3,3);
+    mprintf("     taueff(obs) taueff(calc)\n");
+    for (int i = 0; i < nvecs; i++)
+      mprintf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff[i],tau2[i],sumc2[i]);
+    mprintf("\n");
+   
+    // cycle over main loop, but first reduce the size of delqfrac:
+    delqfrac *= 0.750;
+    mprintf("Setting delqfrac to %15.7lf\n",delqfrac);
   }
+
+  // Set q vector to the final average result from simpmin
+  for (int n = 0; n < SM_NP; n++) Q_vector[n] = xsearch[n];
 
   return 0;
 }
@@ -1363,10 +1414,12 @@ void Rotdif::print() {
   double *temp_deff = new double[ nvecs ];
   for (int i = 0; i < nvecs; i++)
     temp_deff[i] = D_eff[i];
+  // Create temporary value of delqfrac for tensorfit_ call
+  double temp_delqfrac = delqfrac;
 
   Tensor_Fit( );
 
-  tensorfit_(random_vectors,nvecs,temp_deff,nvecs,lflag,delqfrac,debug);
+  tensorfit_(random_vectors,nvecs,temp_deff,nvecs,lflag,temp_delqfrac,debug);
 
   // Cleanup
   delete[] temp_deff;
