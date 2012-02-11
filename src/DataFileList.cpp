@@ -134,7 +134,7 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
     // Next string will be the argument passed to datafile
     df_cmd = (*dataArg).getNextString();
     mprintf("  [%s]\n",(*dataArg).ArgLine());
-    // Next string is datafile that command pertains to
+    // Next string is datafile that command pertains to.
     name1 = (*dataArg).getNextString();
     if (name1==NULL) {
       mprintf("Error: datafile %s: No filename given.\n",df_cmd);
@@ -190,6 +190,17 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
       }
       mprintf("    Not printing x column for datafile %s\n",name1);
       df->SetNoXcol();
+
+    // datafile noheader
+    // Usage: datafile noheader <filename>
+    } else if ( (*dataArg).ArgIs(1,"noheader") ) {
+      if (df==NULL) {
+        mprintf("Error: datafile noheader: DataFile %s does not exist.\n",name1);
+        continue;
+      }
+      mprintf("    Not printing header for datafile %s\n",name1);
+      df->SetNoHeader();
+
     // datafile precision
     // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
     //        If width/precision not specified default to 12.4

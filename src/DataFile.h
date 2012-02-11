@@ -16,7 +16,7 @@ class DataFile {
     bool noEmptyFrames;   ///< If true, frames in which no sets have data will be skipped
     bool isInverted;      ///< If true sets will be written in rows instead of columns
     bool noXcolumn;       ///< If true the Frame column will not be written.
-    bool writeHeader;     ///<
+    bool writeHeader;     ///< If true write header line for this data file.
     std::string xlabel;   ///< X axis label for grace plots
     int xcol_width;       ///< Width in chars of the X column
     int xcol_precision;   ///< Precision of the X column
@@ -50,6 +50,7 @@ class DataFile {
     void SetYlabel(char*);
     void SetInverted();
     void SetNoXcol();
+    void SetNoHeader();
     void SetPrecision(char *, int, int);
     void SetNoEmptyFrames();
     void SetCoordMinStep(double,double,double,double);

@@ -11,6 +11,7 @@ DataFile::DataFile() {
   noEmptyFrames=false;
   isInverted=false;
   noXcolumn=false;
+  writeHeader=true;
   xcol_width = 0;
   xcol_precision = 3;
   maxFrames = 0;
@@ -33,6 +34,7 @@ DataFile::DataFile(char *nameIn) {
   ylabel="";
   noEmptyFrames=false;
   noXcolumn=false;
+  writeHeader=true;
   Nsets=0;
   filename.assign(nameIn);
   debug=0;
@@ -70,6 +72,12 @@ void DataFile::SetNoXcol() {
 /// If called signals that datasets with empty frames should be skipped
 void DataFile::SetNoEmptyFrames() {
   noEmptyFrames=true;
+}
+
+// DataFile::SetNoHeader()
+/// Turn printing of datafile header off.
+void DataFile::SetNoHeader() {
+  writeHeader=false;
 }
 
 // DataFile::SetXlabel()
@@ -331,18 +339,20 @@ void DataFile::WriteData(CpptrajFile *outfile) {
   buffer.Allocate( dataFileSize );
 
   // Write header to buffer
-  if (!noXcolumn) {
-    // For the file header, the first column should have a leading '#'
-    // character. Insert one at the beginning of xlabel and ensure the
-    // result is no greater than xcol_width.
-    xlabel.insert(0,"#");
-    xlabel.resize( xcol_width, ' ');
-    SetFormatString(x_header, STRING, xcol_width, 0, true); 
-    buffer.WriteString(x_header.c_str(),xlabel.c_str());
+  if (writeHeader) {
+    if (!noXcolumn) {
+      // For the file header, the first column should have a leading '#'
+      // character. Insert one at the beginning of xlabel and ensure the
+      // result is no greater than xcol_width.
+      xlabel.insert(0,"#");
+      xlabel.resize( xcol_width, ' ');
+      SetFormatString(x_header, STRING, xcol_width, 0, true); 
+      buffer.WriteString(x_header.c_str(),xlabel.c_str());
+    }
+    for (set=0; set<Nsets; set++) 
+      SetList[set]->WriteNameToBuffer(buffer);
+    buffer.NewLine();
   }
-  for (set=0; set<Nsets; set++) 
-    SetList[set]->WriteNameToBuffer(buffer);
-  buffer.NewLine();
 
   // Write Data to buffer
   for (frame=0; frame<maxFrames; frame++) {
