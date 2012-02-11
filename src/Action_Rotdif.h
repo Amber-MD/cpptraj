@@ -29,7 +29,6 @@ class Rotdif: public Action {
     double d0;     ///< Initial guess for iso diffusion tensor
     int olegendre; ///< order of Legendre polynomial in the correlation function
     int ncorr;     ///< Max length to compute time correlation fns (# frames)
-    int lflag;     ///< control how deff is used in tensorfit
     double delqfrac; ///< how to scale simplexes
     double amoeba_ftol;
     int amoeba_itmax;

@@ -409,21 +409,23 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
 // Solves the equation 6*D=[exp(-6*D*ti)-exp(-6*D*tf)]/F(ti,tf) iteratively, 
 // by putting 6*D(i+1)=[exp(-6*D(i)*ti)-exp(-6*D(i)*tf)]/F(ti,tf)
 // where F(ti,tf) is input (integral[dt*C(t)] from ti->tf).
-  double d, del, fac; 
+  double l, d, del, fac, di; 
   int i;
 
-  double l = (double) olegendre;
+  // Always use d0 as initial guess
+  di = d0;
+  l = (double) olegendre;
   fac = (l*(l+1));
   i=1;
   del=10000000000;
   while ( i<=itmax && del>delmin) {
-     d = ( exp(-fac*d0*ti) - exp(-fac*d0*tf) );
+     d = ( exp(-fac*di*ti) - exp(-fac*di*tf) );
      d = d / (fac*f);
-     del = (d-d0)/d0;
+     del = (d-di)/di;
      if (del < 0) del = -del; // Abs value
      if (debug>2)
-       mprintf("ITSOLV: %6i  %15.8e  %15.8e  %15.8e\n", i,d0,d,del);
-     d0 = d;
+       mprintf("ITSOLV: %6i  %15.8e  %15.8e  %15.8e\n", i,di,d,del);
+     di = d;
      ++i;
   }
   if ( i>itmax && del>delmin) {
@@ -1578,14 +1580,16 @@ void Rotdif::print() {
     }
   }
 
-  // All remaining functions require LAPACK
-# ifndef NO_PTRAJ_ANALYZE
+/*
   // Create temporary copy of deff for tensorfit_ call
-/*  double *temp_deff = new double[ nvecs ];
+  double *temp_deff = new double[ nvecs ];
   for (int i = 0; i < nvecs; i++)
     temp_deff[i] = D_eff[i];
   // Create temporary value of delqfrac for tensorfit_ call
-  double temp_delqfrac = delqfrac;*/
+  double temp_delqfrac = delqfrac;
+*/
+  // All remaining functions require LAPACK
+# ifndef NO_PTRAJ_ANALYZE
   Tensor_Fit( Q_isotropic );
 
   // Using Q (small anisotropy) as a guess, calculate Q with
@@ -1602,6 +1606,8 @@ void Rotdif::print() {
   if (do_gridsearch)
     Grid_search( Q_anisotropic, 5 );
 # endif
+  //int lflag = olegendre;
   //tensorfit_(random_vectors,nvecs,temp_deff,nvecs,lflag,temp_delqfrac,debug);
+  //delete[] temp_deff;
 }
   
