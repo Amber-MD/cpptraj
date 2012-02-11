@@ -1409,8 +1409,10 @@ int Rotdif::DetermineDeffs() {
   maxdat = ncorr + 1;
   // Allocate memory to hold calcd effective D values
   D_eff = new double[ nvecs ];
-  // Allocate memory to hold rotated vectors and C(t)
-  rotated_vectors = new double[ 3 * maxdat ];
+  // Allocate memory to hold rotated vectors. Need +1 since the original
+  // vector is stored at position 0. 
+  rotated_vectors = new double[ 3 * (itotframes+1) ];
+  // Allocate memory for C(t)
   p1 = new double[ maxdat ];
   p2 = new double[ maxdat ];
   pX = new double[ maxdat ];
