@@ -109,6 +109,11 @@ int Rotdif::init( ) {
   delmin = actionArgs.getKeyDouble("tol",0.000001);
   d0 = actionArgs.getKeyDouble("d0",0.03);
   olegendre = actionArgs.getKeyInt("order",2);
+  if (olegendre!=1 && olegendre!=2) {
+    mprinterr("    Error: Rotdif: Order of legendre polynomial (%i) must be 1 or 2.\n",
+              olegendre);
+    return 1;
+  }
   delqfrac = actionArgs.getKeyDouble("delqfrac",0.5);
   randvecOut = actionArgs.getKeyString("rvecout",NULL);
   randvecIn = actionArgs.getKeyString("rvecin",NULL);
@@ -128,13 +133,7 @@ int Rotdif::init( ) {
   TargetMask.SetMaskString(mask0);
 
   // Dataset
-
-  // Check input
-  if (olegendre!=1 && olegendre!=2) {
-    mprinterr("Error: Rotdif: Order of legendre polynomial (%i) must be 1 or 2.\n",olegendre);
-    return 1;
-  }
-
+  
   // Initialize random number generator
   RNgen.rn_set( rseed );
 
@@ -177,7 +176,7 @@ int Rotdif::init( ) {
   else
     mprintf(" %i\n",ncorr);
   mprintf("            Timestep = %.4lf, T0 = %.4lf, TF = %.4lf\n",tfac,ti,tf);
-  mprintf("            Max iterations = %i, tol = %lf, initial guess = %lf\n",
+  mprintf("            Iterative solver: Max iterations = %i, tol = %lf, initial guess = %lf\n",
           itmax, delmin,d0);
   mprintf("            Order of Legendre polynomial = %i\n",olegendre);
   mprintf("            Simplex scaling factor=%.4lf\n",delqfrac);
@@ -228,7 +227,7 @@ int Rotdif::setup() {
   }
   
   // Print info for this parm
-  mprintf("    ROTDIF:\n");
+  mprintf("    ROTDIF: %i atoms selected for RMS fit.\n",TargetMask.Nselected);
         
   return 0;  
 }
