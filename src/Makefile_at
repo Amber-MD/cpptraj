@@ -51,9 +51,6 @@ thermo.o:  ../../ptraj/thermo.F90
 pubfft.o:  ../../ptraj/pubfft.F90
 	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/pubfft.F90
 
-Rotdif.o: Rotdif.f
-	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ Rotdif.f 
-
 .c.o:
 	$(CC) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
