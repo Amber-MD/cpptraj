@@ -20,6 +20,7 @@ PtrajAction::PtrajAction() {
   ptraj_box[3] = 0;
   ptraj_box[4] = 0;
   ptraj_box[5] = 0;
+  coordinate_update = false;
 } 
 
 // DESTRUCTOR
@@ -99,12 +100,14 @@ int PtrajAction::init( ) {
   } else if ( actionArgs.CommandIs("principal")      ) {
     actioninfo->type = TRANSFORM_PRINCIPAL;
     actioninfo->fxn  = (actionFunction) transformPrincipal;
+    coordinate_update = true;
   } else if ( actionArgs.CommandIs("projection")     ) {
     actioninfo->type = TRANSFORM_PROJECTION;
     actioninfo->fxn  = (actionFunction) transformProjection;
   } else if ( actionArgs.CommandIs("randomizeions")  ) {
     actioninfo->type = TRANSFORM_RANDOMIZEIONS;
     actioninfo->fxn  = (actionFunction) transformRandomizeIons;
+    coordinate_update = true;
   } else if ( actionArgs.CommandIs("runningaverage") ) {
     actioninfo->type = TRANSFORM_RUNNINGAVERAGE;
     actioninfo->fxn  = (actionFunction) transformRunningAverage;
@@ -114,6 +117,7 @@ int PtrajAction::init( ) {
   } else if ( actionArgs.CommandIs("unwrap")         ) {
     actioninfo->type = TRANSFORM_UNWRAP;
     actioninfo->fxn  = (actionFunction) transformUnwrap;
+    coordinate_update = true;
   } else if ( actionArgs.CommandIs("vector")         ) {
     actioninfo->type = TRANSFORM_VECTOR;
     actioninfo->fxn  = (actionFunction) transformVector;
@@ -187,10 +191,11 @@ int PtrajAction::setup() {
 
 // PtrajAction::action()
 int PtrajAction::action() {
+  int i3;
   // NOTE: Not checking for Called Setup here since the noSetup
   // flag should catch it.
   // Convert coordinates array X0Y0Z0X1... into separate X Y Z vectors
-  int i3 = 0;
+  i3 = 0;
   for (int atom = 0; atom < currentFrame->natom; atom++) {
     x_coord[atom] = currentFrame->X[i3++];
     y_coord[atom] = currentFrame->X[i3++];
@@ -207,6 +212,16 @@ int PtrajAction::action() {
   // Ptraj actions return 1 on success, 0 on failure 
   if (actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, ptraj_box, PTRAJ_ACTION)==0)
     return 1;
+
+  // If necessary, translate ptraj X Y Z vectors back to frame
+  if (coordinate_update) {
+    i3 = 0;
+    for (int atom = 0; atom < currentFrame->natom; atom++) {
+      currentFrame->X[i3++] = x_coord[atom];
+      currentFrame->X[i3++] = y_coord[atom];
+      currentFrame->X[i3++] = z_coord[atom];
+    }
+  }
 
   return 0;
 } 

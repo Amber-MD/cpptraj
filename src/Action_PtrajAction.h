@@ -13,6 +13,7 @@ class PtrajAction: public Action {
     double *z_coord;
     double ptraj_box[6];
     bool CalledSetup;
+    bool coordinate_update;
   public:
     PtrajAction();
     ~PtrajAction();
