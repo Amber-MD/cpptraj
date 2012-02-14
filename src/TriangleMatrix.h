@@ -7,11 +7,11 @@
   * Accepts doubles, but internal storage is float to reduce memory footprint
   */
 class TriangleMatrix {
-    float *elements;    ///< Hold all elements
-    int nrows;          ///< Number of elements in one row
-    int nelements;      ///< Total number of elements
-    int currentElement; ///< Current element, used in AddElement only.
-    bool *ignore;       ///< If true, ignore the row/col when printing/searching etc
+    float *elements;       ///< Hold all elements
+    int nrows;             ///< Number of elements in one row
+    size_t nelements;      ///< Total number of elements
+    size_t currentElement; ///< Current element, used in AddElement only.
+    bool *ignore;          ///< If true, ignore the row/col when printing/searching etc
 
     int calcIndex(int,int);
   public :

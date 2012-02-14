@@ -44,7 +44,9 @@ int TriangleMatrix::SaveFile(char *filename) {
   // Write nrows
   fwrite(&nrows, sizeof(int), 1, outfile);
   // Write number of elements
-  fwrite(&nelements, sizeof(int), 1, outfile);
+  // NOTE: Make long int?
+  int Ntemp = (int) nelements;
+  fwrite(&Ntemp, sizeof(int), 1, outfile);
   // Write elements
   fwrite(elements, sizeof(float), nelements, outfile);
   // Write ignore
@@ -84,7 +86,10 @@ int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
     return 1;
   }
   // Read number of elements
-  fread(&nelements, sizeof(int), 1, infile);
+  // NOTE: Read long int?
+  int Ntemp = 0;
+  fread(&Ntemp, sizeof(int), 1, infile);
+  nelements = (size_t) Ntemp;
   if (elements!=NULL) delete[] elements;
   elements = new float[ nelements ];
   // Read elements
@@ -105,9 +110,12 @@ int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
   */
 int TriangleMatrix::Setup(int sizeIn) {
   nrows = sizeIn;
+  size_t ROWS = (size_t) nrows;
   // Use half square matrix minus the diagonal
-  nelements = ( (nrows * nrows) - nrows ) / 2;
+  //nelements = ( (nrows * nrows) - nrows ) / 2;
+  nelements = ( (ROWS * ROWS) - ROWS) / 2; 
   if (elements!=NULL) delete[] elements;
+  mprintf("DEBUG: TriangleMatrix::Setup(%i) nrows=%i nelements=%lu\n",sizeIn,nrows,nelements);
   elements = new float[ nelements ];
   // Setup ignore array
   if (ignore!=NULL) delete[] ignore;
@@ -155,7 +163,7 @@ TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
 int TriangleMatrix::AddElement(double elementIn) {
   if (currentElement>=nelements) return 0;
   elements[currentElement] = (float) elementIn;
-  currentElement++;
+  ++currentElement;
   return 1;
 }
 
@@ -166,7 +174,7 @@ int TriangleMatrix::AddElement(double elementIn) {
 int TriangleMatrix::AddElement(float elementIn) {
   if (currentElement>=nelements) return 0;
   elements[currentElement] = elementIn;
-  currentElement++;
+  ++currentElement;
   return 1;
 }
 
@@ -240,7 +248,7 @@ double TriangleMatrix::FindMin(int *iOut, int *jOut) {
   iVal = 0;
   jVal = 1;
   min = FLT_MAX;
-  for (int idx = 0; idx < nelements; idx++) {
+  for (size_t idx = 0; idx < nelements; idx++) {
     // If we dont care about this row/col, just increment
     if (ignore[iVal] || ignore[jVal]) {
       // DEBUG
@@ -274,13 +282,13 @@ void TriangleMatrix::PrintElements() {
   int iVal = 0;
   int jVal = 1;
 
-  for (int idx = 0; idx < nelements; idx++) {
+  for (size_t idx = 0; idx < nelements; idx++) {
     if (!ignore[iVal] && !ignore[jVal])
       mprintf("\t%i %i %8.3f\n",iVal,jVal,elements[idx]);
     // Increment indices
     jVal++;
     if (jVal == nrows) {
-      iVal++;
+      ++iVal;
       jVal = iVal + 1;
     }
   }
