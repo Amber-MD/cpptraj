@@ -300,6 +300,7 @@ int Rms2d::AutoCorrelate(TriangleMatrix &Distances) {
   int lagmax = ReferenceCoords.Ncoords();
   int N = ReferenceCoords.Ncoords();
 
+  // Set up output dataset and add it to the data file list.
   if (Ct.Setup((char*)"RmsCorr", lagmax)) return 1;
   DFL->Add(corrfilename, &Ct);
 
@@ -312,7 +313,7 @@ int Rms2d::AutoCorrelate(TriangleMatrix &Distances) {
     ct = 0;
     int jmax = N - i;
     for (int j = 0; j < jmax; j++) {
-      // When i == j this is 0.0
+      // When i == j GetElement returns 0.0
       double rmsval = Distances.GetElement(j, j+i);
       ct += exp( -rmsval );
     }
