@@ -70,6 +70,8 @@ class DataSet {
     int CheckSet();
     /// Used to set the data and header format strings 
     int SetDataSetFormat(bool);
+    /// Data set size
+    int Size() { return N; }
 
     // -----===== Functions that return private vars =====-----
     /// Dataset name
