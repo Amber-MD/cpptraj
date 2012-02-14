@@ -26,7 +26,7 @@ SOURCE=main.cpp AmberParm.cpp \
        ptraj_analyze.c ptraj_evec.c ptraj_common.c ptraj_arg.c ptraj_state.c ptraj_scalar.c \
        Analysis_PtrajAnalysis.cpp ptraj_convert.cpp molsurf.c Action_Molsurf.cpp \
        Action_CheckStructure.cpp Action_DihedralScan.cpp Action_Rotdif.cpp Random.cpp \
-       Integrate.cpp 
+       Integrate.cpp Analysis_Corr.cpp 
 
 OBJECTS=main.o AmberParm.o \
         Frame.o CpptrajState.o ArgList.o PtrajMask.o Action_Distance.o \
@@ -56,7 +56,7 @@ OBJECTS=main.o AmberParm.o \
         ptraj_analyze.o ptraj_evec.o ptraj_common.o ptraj_arg.o ptraj_state.o ptraj_scalar.o \
         Analysis_PtrajAnalysis.o ptraj_convert.o molsurf.o Action_Molsurf.o \
         Action_CheckStructure.o Action_DihedralScan.o Action_Rotdif.o Random.o \
-        Integrate.o 
+        Integrate.o Analysis_Corr.o
 
 HEADERS=AmberParm.h \
         Frame.h CpptrajState.h ArgList.h PtrajMask.h Action.h Action_Distance.h \
@@ -86,5 +86,5 @@ HEADERS=AmberParm.h \
         ptraj_analyze.h ptraj_evec.h ptraj_common.h ptraj_arg.h ptraj_state.h ptraj_scalar.h \
         Analysis_PtrajAnalysis.h ptraj_convert.h molsurf.h Action_Molsurf.h \
         Action_CheckStructure.h Action_DihedralScan.h Action_Rotdif.h Random.h \
-        Integrate.h
+        Integrate.h Analysis_Corr.h
 

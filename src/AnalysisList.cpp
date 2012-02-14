@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 // All analysis classes go here
 #include "Analysis_Hist.h"
+#include "Analysis_Corr.h"
 #include "Analysis_PtrajAnalysis.h"
 
 // CONSTRUCTOR
@@ -31,6 +32,7 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
  
   if      (argIn.CommandIs("histogram")) { Ana = new Hist(); }
   else if (argIn.CommandIs("hist"))      { Ana = new Hist(); }
+  else if (argIn.CommandIs("corr"))      { Ana = new Corr(); }
   else if (argIn.CommandIs("analyze")  ) { Ana = new PtrajAnalysis(); }
   else return 1;
 
