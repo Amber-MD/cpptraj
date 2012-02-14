@@ -196,10 +196,14 @@ int ActionList::Setup(AmberParm **ParmAddress) {
 
 // ActionList::DoActions()
 /** Perform actions in the action list on the given Frame. Skip actions not 
-  * initialized or not setup. frameNumIn is the current frame number.
+  * initialized or not setup. 
+  * \param FrameAddress Memory address of the current frame.
+  * \param frameNumIn The current frame number.
+  * \return true if coordinate output should be suppressed.
+  * \return false if coordinate output should be performed.
   */
-void ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
-  int err;
+bool ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
+  Action::ActionReturnType err;
   Frame *OriginalFrame = *FrameAddress;
 
   //fprintf(stdout,"DEBUG: Performing %i actions on frame %i.\n",Naction,frameNumIn);
@@ -207,16 +211,25 @@ void ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
     // Skip deactivated actions
     if (actionlist[act]->noInit || actionlist[act]->noSetup) continue;
     err = actionlist[act]->DoAction(FrameAddress, frameNumIn);
-    if (err==1) {
-      // Treat actions that fail as if they could not be set up
-      mprintf("Warning: Action [%s] failed, frame %i.\n",actionlist[act]->CmdLine(),
+    // Check for action special conditions/errors
+    if (err!=Action::ACTION_OK) {
+      if (err==Action::ACTION_USEORIGINALFRAME) {
+        // Return value of 2 requests return to original frame
+        *FrameAddress = OriginalFrame;
+      } else if (err==Action::ACTION_SUPPRESSCOORDOUTPUT) {
+        // Skip the rest of the actions and suppress output. Necessary when
+        // e.g. performing a running average over coords.
+        return true;
+      } else {
+        // If here return type is ACTION_ERR.
+        // Treat actions that fail as if they could not be set up
+        mprintf("Warning: Action [%s] failed, frame %i.\n",actionlist[act]->CmdLine(),
               frameNumIn);
-      actionlist[act]->noSetup=true;
-    } else if (err==2) {
-      // Return value of 2 requests return to original frame
-      *FrameAddress = OriginalFrame;
-    }
+        actionlist[act]->noSetup=true;
+      }
+    } 
   }
+  return false;
 }
 
 // ActionList::Print()

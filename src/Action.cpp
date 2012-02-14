@@ -139,15 +139,16 @@ int Action::Setup(AmberParm **ParmAddress) {
   *        changed by the action.
   * \param frameNumIn number of the current frame
   */
-int Action::DoAction(Frame **FrameAddress, int frameNumIn) {
-  int err;
+Action::ActionReturnType Action::DoAction(Frame **FrameAddress, int frameNumIn) {
+  ActionReturnType err;
 
   currentFrame = *FrameAddress;
   frameNum = frameNumIn;
-  err = this->action();
-  if (err) return err;
+  err = (ActionReturnType)this->action(); // NOTE: Fix return type eventually
+  // Any state but ok means do not modify the frame. Return now.
+  if (err!=ACTION_OK) return err;
   // Set the value of frame address in case frame was changed, e.g. in strip
   *FrameAddress = currentFrame;
-  return 0;
+  return ACTION_OK;
 }
 

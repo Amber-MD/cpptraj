@@ -59,6 +59,10 @@ class Action {
     virtual int init()   { return 0; }
 
   public:
+    ///< Enumerate potential return states from DoAction.
+    enum ActionReturnType { ACTION_OK=0, ACTION_ERR, ACTION_USEORIGINALFRAME,
+                            ACTION_SUPPRESSCOORDOUTPUT 
+                          };
     bool noInit;             ///< True if action could not be initialized
     bool noSetup;            ///< True if action could not be set up
   
@@ -74,7 +78,7 @@ class Action {
     /// Set up action for parm, call setup()
     int Setup(AmberParm **);
     /// Perform action on frame, call action()
-    int DoAction(Frame **,int);    
+    ActionReturnType DoAction(Frame **,int);    
 
     // --== Inherited by child classes ==--
     /// Print anything besides datasets, called at end of execution

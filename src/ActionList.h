@@ -34,7 +34,7 @@ class ActionList {
     /// Set up actions for the given parm
     int Setup(AmberParm **);
     /// Perform actions on the given frame
-    void DoActions(Frame **, int);
+    bool DoActions(Frame **, int);
     /// Call print for each action
     void Print();
 };

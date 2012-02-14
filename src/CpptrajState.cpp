@@ -246,9 +246,10 @@ int CpptrajState::Run() {
       // Since Frame can be modified by actions, save original and use CurrentFrame
       CurrentFrame = &TrajFrame;
       // Perform Actions on Frame
-      actionList.DoActions(&CurrentFrame, actionSet);
+      bool suppress_output = actionList.DoActions(&CurrentFrame, actionSet);
       // Do Output
-      trajoutList.Write(actionSet, CurrentParm, CurrentFrame);
+      if (!suppress_output)
+        trajoutList.Write(actionSet, CurrentParm, CurrentFrame);
 //#ifdef DEBUG
 //      dbgprintf("\tDEBUG: %30s: %4i\n",CurrentParm->parmName,CurrentParm->outFrame);
 //#endif
