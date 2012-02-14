@@ -115,7 +115,7 @@ int TriangleMatrix::Setup(int sizeIn) {
   //nelements = ( (nrows * nrows) - nrows ) / 2;
   nelements = ( (ROWS * ROWS) - ROWS) / 2; 
   if (elements!=NULL) delete[] elements;
-  mprintf("DEBUG: TriangleMatrix::Setup(%i) nrows=%i nelements=%lu\n",sizeIn,nrows,nelements);
+  //mprintf("DEBUG: TriangleMatrix::Setup(%i) nrows=%i nelements=%lu\n",sizeIn,nrows,nelements);
   elements = new float[ nelements ];
   // Setup ignore array
   if (ignore!=NULL) delete[] ignore;
