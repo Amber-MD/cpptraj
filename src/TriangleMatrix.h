@@ -29,6 +29,7 @@ class TriangleMatrix {
     int AddElement(double);
     int AddElement(float);
     void SetElement(int,int,double);
+    void SetElementF(int,int,float);
     double GetElement(int,int);
     float GetElementF(int,int);
     double FindMin(int *, int *);

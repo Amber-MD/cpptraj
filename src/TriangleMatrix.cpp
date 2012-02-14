@@ -197,7 +197,7 @@ int TriangleMatrix::calcIndex(int iIn, int jIn) {
   return ( ( (nrows * i) - ((i1 * i) / 2) ) + j - i1 );
 }
 
-// TriangleMatrix::AddElement()
+// TriangleMatrix::SetElement()
 /** Set element at specified row and column. */
 void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
   int idx;
@@ -208,6 +208,19 @@ void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
 
   elements[idx] = (float) elementIn;
 }
+
+// TriangleMatrix::SetElementF()
+/** Set element at specified row and column. */
+void TriangleMatrix::SetElementF(int iIn, int jIn, float elementIn) {
+  int idx;
+
+  if (iIn == jIn) return;
+
+  idx = calcIndex(iIn, jIn);
+
+  elements[idx] = elementIn;
+}
+
 
 // TriangleMatrix::GetElement()
 /** Get the element at specified row and column as a double.
