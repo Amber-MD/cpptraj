@@ -416,6 +416,7 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
   l = (double) olegendre;
   fac = (l*(l+1));
   i=1;
+  d = 0;
   del=10000000000;
   while ( i<=itmax && del>delmin) {
      d = ( exp(-fac*di*ti) - exp(-fac*di*tf) );
