@@ -1,4 +1,5 @@
 #include <cstdio> //sprintf
+#include <cmath> // exp
 #include "Action_Rms2d.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
@@ -11,6 +12,7 @@ Rms2d::Rms2d() {
   rmsdFile=NULL;
   RefTraj=NULL;
   RefParm=NULL;
+  corrfilename=NULL;
 } 
 
 // DESTRUCTOR
@@ -30,7 +32,8 @@ int Rms2d::SeparateInit(bool nofitIn, char *maskIn) {
 
 // Rms2d::init()
 /** Expected call: rms2d <mask> <refmask> rmsout <filename> [nofit] 
-  *                [reftraj <traj> [parm <parmname> | parmindex <#>]] 
+  *                [reftraj <traj> [parm <parmname> | parmindex <#>]]
+  *                [corr <corrfilename>] 
   */
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
@@ -50,6 +53,12 @@ int Rms2d::init() {
       mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftraj);
       return 1;
     }
+  }
+  // Check for correlation; if so, reftraj not supported
+  corrfilename = actionArgs.getKeyString("corr",NULL);
+  if (corrfilename!=NULL && reftraj!=NULL) {
+    mprinterr("Error: Rms2d: Keyword 'corr' not supported with 'reftraj'\n");
+    return 1;
   }
   // Require an output filename
   if (rmsdFile==NULL) {
@@ -89,6 +98,9 @@ int Rms2d::init() {
   if (rmsdFile!=NULL) 
     mprintf(" output to %s",rmsdFile);
   mprintf("\n");
+  if (corrfilename!=NULL)
+    mprintf("           RMSD auto-correlation will be calculated and output to %s\n",
+            corrfilename);
 
   return 0;
 }
@@ -278,6 +290,39 @@ void Rms2d::CalcRmsToTraj() {
   RefTraj->EndTraj();
 }
 
+// Rms2d::AutoCorrelate()
+/** Calculate the autocorrelation of the RMSDs. For proper weighting
+  * exp[ -RMSD(framei, framei+lag) ] is used. This takes advantage of
+  * the fact that 0.0 RMSD essentially means perfect correlation (1.0).
+  */
+int Rms2d::AutoCorrelate(TriangleMatrix &Distances) {
+  double ct;
+  int lagmax = ReferenceCoords.Ncoords();
+  int N = ReferenceCoords.Ncoords();
+
+  if (Ct.Setup((char*)"RmsCorr", lagmax)) return 1;
+  DFL->Add(corrfilename, &Ct);
+
+  // By definition for lag == 0 RMS is 0 for all frames,
+  // translates to correlation of 1.
+  ct = 1;
+  Ct.Add(0, &ct); 
+ 
+  for (int i = 1; i < lagmax; i++) {
+    ct = 0;
+    int jmax = N - i;
+    for (int j = 0; j < jmax; j++) {
+      // When i == j this is 0.0
+      double rmsval = Distances.GetElement(j, j+i);
+      ct += exp( -rmsval );
+    }
+    ct /= jmax;
+    Ct.Add(i, &ct);
+  }
+
+  return 0;
+}
+
 // Rms2d::print()
 /** Perform the rms calculation of each frame to each other frame.
   */
@@ -301,6 +346,8 @@ void Rms2d::print() {
         RmsData.AddData(nframe, &R, nref);
       }
     }
+    // Calculate correlation
+    if (corrfilename!=NULL) AutoCorrelate( *Distances );
     delete Distances;
   } else
     CalcRmsToTraj();

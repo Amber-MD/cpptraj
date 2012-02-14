@@ -4,6 +4,7 @@
 #include "TrajectoryFile.h"
 #include "CoordList.h"
 #include "TriangleMatrix.h"
+#include "DataSet_double.h"
 // Class: Rms2d
 /// Action to calculate the RMSD between two sets of frames.
 /** Perform RMS calculation between each input frame and each other input 
@@ -20,8 +21,11 @@ class Rms2d: public Action {
     DataSetList RmsData;       ///< 1 data set for each ref frame to each tgt frame
     TrajectoryFile *RefTraj;   ///< Reference trajectory, each frame used in turn
     AmberParm *RefParm;        ///< Reference trajectory Parm
+    DataSet_double Ct;         ///< Hold auto-correlation
+    char *corrfilename;        ///< Auto-correlation output filename
 
     void CalcRmsToTraj();
+    int AutoCorrelate(TriangleMatrix &);
   public:
     Rms2d();
     ~Rms2d();
