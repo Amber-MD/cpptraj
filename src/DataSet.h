@@ -56,6 +56,8 @@ class DataSet {
     virtual double Max()                      { return 0; }
     /// Return the average/stdev of all values in the set
     virtual double Avg(double*)               { return 0; }
+    /// Return data from data set as double precision
+    virtual double Dval(int)                  { return 0; }
 
     // -----===== Public functions =====-----
     /// Set output precision

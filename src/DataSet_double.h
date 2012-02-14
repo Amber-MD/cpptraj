@@ -22,6 +22,7 @@ class DataSet_double : public DataSet {
     int isEmpty(int);
     void Add( int, void * );
     int Get(void *, int);
+    double Dval(int);
     void WriteBuffer(CharBuffer&, int);
     int Width();
     int Sync();

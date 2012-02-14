@@ -53,6 +53,13 @@ int DataSet_float::Get(void *vOut, int frame) {
   return 0;
 }
 
+// DataSet_float::Dval()
+double DataSet_float::Dval(int idx) {
+  float val;
+  if (Get(&val,idx)) return 0;
+  return (double)val;
+}
+
 /* DataSet_float::isEmpty()
  */
 int DataSet_float::isEmpty(int frame) {

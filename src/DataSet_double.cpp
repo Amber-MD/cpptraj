@@ -105,6 +105,13 @@ int DataSet_double::Get(void *vOut, int frame) {
   return 0;
 }
 
+// DataSet_double::Dval()
+double DataSet_double::Dval(int idx) {
+  double val;
+  if (Get(&val,idx)) return 0;
+  return val;
+}
+
 // DataSet_double::isEmpty()
 int DataSet_double::isEmpty(int frame) {
   it = Data.find( frame );

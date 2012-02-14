@@ -19,6 +19,7 @@ class DataSet_integer : public DataSet {
     double Avg(double*);
     void Add( int, void * );
     int Get(void *, int);
+    double Dval(int);
     void WriteBuffer(CharBuffer&,int);
     int Width();
     int Sync();

@@ -81,6 +81,13 @@ int DataSet_integer::Get(void *vOut, int frame) {
   return 0;
 }
 
+// DataSet_integer::Dval()
+double DataSet_integer::Dval(int idx) {
+  int val;
+  if (Get(&val,idx)) return 0;
+  return (double)val;
+}
+
 // DataSet_integer::isEmpty()
 int DataSet_integer::isEmpty(int frame) {
   it = Data.find( frame );
