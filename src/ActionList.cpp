@@ -32,6 +32,7 @@
 #include "Action_DihedralScan.h"
 #include "Action_Rotdif.h"
 #include "Action_RunningAvg.h"
+#include "Action_RmsAvgCorr.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() {
@@ -99,6 +100,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("rotdif"))         {Act=new Rotdif;}
   else if (argIn.CommandIs("runningaver"))    {Act=new RunningAvg;}
   else if (argIn.CommandIs("runavg"))         {Act=new RunningAvg;}
+  else if (argIn.CommandIs("rmsavgcorr"))     {Act=new RmsAvgCorr;}
   // PTRAJ
   else if (argIn.CommandIs("atomicfluct") ||
            argIn.CommandIs("atomicfluct3D") ||
