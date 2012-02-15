@@ -32,9 +32,10 @@ void DataSet_float::Add(int frame, void *vIn) {
   float *value = (float*) vIn;
 
   // Always insert at the end
-  datum=Data.end();
-  Data.insert( datum, pair<int,float>(frame, *value) );
-  current++;
+  //datum=Data.end();
+  //Data.insert( datum, pair<int,float>(frame, *value) );
+  Data[frame] = (*value);
+  ++current;
 }
 
 /* DataSet_float::Get()

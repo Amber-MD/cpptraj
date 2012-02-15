@@ -83,9 +83,10 @@ void DataSet_double::Add(int frame, void *vIn) {
   value = (double*) vIn;
 
   // Always insert at the end
-  it=Data.end();
-  Data.insert( it, pair<int,double>(frame, *value) );
-  current++;
+  Data[frame] = (*value);
+  //it=Data.end();
+  //Data.insert( it, pair<int,double>(frame, *value) );
+  ++current;
 }
 
 // DataSet_double::Get()

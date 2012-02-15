@@ -39,8 +39,9 @@ void DataSet_string::Add(int frame, void *vIn) {
   strsize = (int) Temp.size();
   if (strsize > width) width = strsize;
   // Always insert at the end
-  it=Data.end();
-  Data.insert( it, pair<int,string>(frame, Temp) );
+  //it=Data.end();
+  //Data.insert( it, pair<int,string>(frame, Temp) );
+  Data[frame]=Temp;
   current++;
 }
 

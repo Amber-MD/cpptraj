@@ -61,9 +61,10 @@ void DataSet_integer::Add(int frame, void *vIn) {
   value = (int*) vIn;
 
   // Always insert at the end
-  it=Data.end();
-  Data.insert( it, pair<int,int>(frame, *value) );
-  current++;
+  //it=Data.end();
+  //Data.insert( it, pair<int,int>(frame, *value) );
+  Data[frame] = (*value);
+  ++current;
 }
 
 // DataSet_integer::Get()
