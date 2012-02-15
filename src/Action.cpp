@@ -1,3 +1,5 @@
+#include <cstdarg> // va_list etc
+#include <cstdio>  // vsprintf
 #include "Action.h"
 #include "CpptrajStdio.h"
 
@@ -30,6 +32,19 @@ Action::~Action() {
   */
 void Action::SetArg( const ArgList &inA) { 
   actionArgs = inA;
+}
+
+// Action::ArgumentList()
+/** Provide arguments to the action with printf syntax.
+  */
+void Action::ArgumentList(const char *format, ...) {
+  char buffer[BUFFER_SIZE];
+  va_list args;
+
+  va_start(args, format);
+  vsprintf(buffer,format,args);
+  actionArgs.SetList(buffer," ");
+  va_end(args);
 }
 
 // Action::ActionCommand()
