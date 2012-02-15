@@ -6,7 +6,7 @@
 FrameList::FrameList() {
   Nframe=0;
   referenceFrameNum = 0;
-  firstFrameNum = -1;
+  //firstFrameNum = -1;
 }
 
 // DESTRUCTOR
@@ -64,39 +64,6 @@ int FrameList::AddRefFrame(Frame *F, char *name, AmberParm *P, int framenum,
   FrameParm.AddParm(P);
   Nframe++;
   return 0;
-}
-
-// FrameList::AddFirstFrame()
-/// Add the input frame as the first frame of the trajectory.
-/** This is a special case of AddRefFrame. Actions like Rmsd may
-  * require the first frame specifically. This will be called by
-  * the first such action, subsequent actions will get this frame.
-  * The frame will be given the name of the parm.
-  */
-int FrameList::AddFirstFrame(Frame *frameIn, AmberParm *parmIn) {
-  std::string RefTag("[first]");
-  const char ff_name[15] = "__FirstFrame__"; // should this just be first?
-  if (AddRefFrame(frameIn, (char*)ff_name, parmIn, 0, RefTag)) return 1;
-  // Since Nframe has now been incremented, actual position in 
-  // frameList is Nframe - 1.
-  firstFrameNum = Nframe - 1;
-  return 0;
-}
-
-// FrameList::GetFirstFrame()
-/// Return the frame indicated as the first frame if previously set up.
-/** If a frame has been added with the AddFirstFrame command return it,
-  * otherwise return NULL.
-  */
-Frame *FrameList::GetFirstFrame() {
-  if (firstFrameNum!=-1) return frameList[firstFrameNum];
-  return NULL;
-}
-
-// FrameList::GetFirstFrameParm()
-AmberParm *FrameList::GetFirstFrameParm() {
-  if (firstFrameNum!=-1) return FrameParm.GetParm(firstFrameNum);
-  return NULL;
 }
 
 // FrameList::AddFrame()

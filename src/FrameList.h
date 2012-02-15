@@ -18,7 +18,6 @@ class FrameList {
     std::vector<int> frameNums;
     int Nframe;
     int referenceFrameNum;
-    int firstFrameNum;
   
   public:
 
@@ -28,9 +27,6 @@ class FrameList {
     Frame *ActiveReference();
     void SetActiveRef(int);
     int AddRefFrame(Frame *, char *, AmberParm *,int,std::string&);
-    int AddFirstFrame(Frame *, AmberParm *);
-    Frame *GetFirstFrame();
-    AmberParm *GetFirstFrameParm();
     int AddFrame(Frame *, AmberParm *);
     AmberParm *GetFrameParm(int);
     int GetFrameIndex(char *);
