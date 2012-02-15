@@ -27,6 +27,8 @@ int RunningAvg::init( ) {
   Window.resize( Nwindow );
   // Frame above which averaging will start
   frameThreshold = Nwindow - 1;
+  currentWindow = 0;
+  windowNatom = 0;
   // Get Masks
   // Dataset: Set up by adding to the main data set list.
 
@@ -66,7 +68,7 @@ int RunningAvg::setup() {
 int RunningAvg::action() {
 
   // Place current coordinates in current window
-  //mprinterr("DBG: Assigning frame %i to window %i (%i = %i)\n",frameNum,currentWindow,
+  //mprintf("\t\tDBG: Assigning frame %i to window %i (%i = %i)\n",frameNum,currentWindow,
   //          Window[currentWindow].natom, currentFrame->natom);
   Window[currentWindow] = *currentFrame;
   ++currentWindow;
@@ -77,9 +79,13 @@ int RunningAvg::action() {
   // Check if there are enough frames to start processing the running
   // average 
   if (frameNum >= frameThreshold) {
+    //mprintf("\t\tAveraging for frame %i:\n",frameNum);
     avgFrame.ZeroCoords();
-    for (int i = 0; i < Nwindow; i++)
+    for (int i = 0; i < Nwindow; i++) {
+      //mprintf("\t\t\t");
+      //Window[i].printAtomCoord(0);
       avgFrame += Window[i];
+    }
     avgFrame.Divide((double)Nwindow);
     // Set frame
     currentFrame = &avgFrame;

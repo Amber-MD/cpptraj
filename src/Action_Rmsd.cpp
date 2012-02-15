@@ -88,6 +88,16 @@ int Rmsd::init( ) {
   int refindex, referenceKeyword;
   Frame *TempFrame = NULL;
 
+  // TEST: In case of re-initialization ----------
+  if (RefTraj!=NULL) {
+    RefTraj->EndTraj();
+    delete RefTraj;
+  }
+  if (ResFrame!=NULL) delete ResFrame;
+  if (ResRefFrame!=NULL) delete ResRefFrame;
+  if (PerResRMSD!=NULL) delete PerResRMSD;
+  // ---------------------------------------------
+
   // Check for keywords
   referenceKeyword=actionArgs.hasKey("reference"); // For compatibility with ptraj
   referenceName=actionArgs.getKeyString("ref",NULL);
@@ -125,11 +135,14 @@ int Rmsd::init( ) {
   if (maskRef==NULL) maskRef=mask0; 
   RefMask.SetMaskString(maskRef);
 
-  // Set up the RMSD data set
-  rmsd = DSL->Add(DOUBLE, actionArgs.getNextString(),"RMSD");
-  if (rmsd==NULL) return 1;
-  // Add dataset to data file list
-  DFL->Add(rmsdFile,rmsd);
+  // Set up the RMSD data set. In case the action is being re-initialized,
+  // only do this if rmsd is NULL.
+  if (rmsd==NULL) {
+    rmsd = DSL->Add(DOUBLE, actionArgs.getNextString(),"RMSD");
+    if (rmsd==NULL) return 1;
+    // Add dataset to data file list
+    DFL->Add(rmsdFile,rmsd);
+  }
 
   // Set up reference structure
   if (!first && referenceName==NULL && refindex==-1 && referenceKeyword==0 && reftraj==NULL) {

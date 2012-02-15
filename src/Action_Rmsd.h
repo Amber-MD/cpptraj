@@ -7,7 +7,9 @@
 // Class: Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
 class Rmsd: public Action {
+  public:
     DataSet *rmsd;
+  private:
     // PerResRMSD -------------
     bool perres;                       ///< If true calculate per-residue rmsd
     int NumResidues;                   ///< Total # of residues to calculate per res rmsd for
