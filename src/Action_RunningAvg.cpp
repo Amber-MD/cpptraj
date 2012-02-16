@@ -38,6 +38,18 @@ int RunningAvg::init( ) {
   return 0;
 }
 
+// RunningAvg::SeparateInit()
+void RunningAvg::SeparateInit(int windowIn, int debugIn) {
+  debug = debugIn;
+  Nwindow = windowIn;
+  // Reserve space for Nwindow frames
+  Window.resize( Nwindow );
+  // Frame above which averaging will start
+  frameThreshold = Nwindow - 1;
+  currentWindow = 0;
+  windowNatom = 0;
+}
+
 // RunningAvg::setup()
 int RunningAvg::setup() {
   // If windowNatom is 0, this is the first setup.

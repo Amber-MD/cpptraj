@@ -15,6 +15,8 @@ class RunningAvg: public Action {
     RunningAvg();
     ~RunningAvg();
 
+    void SeparateInit(int, int);
+
     int init();
     int setup();
     int action();
