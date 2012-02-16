@@ -40,6 +40,7 @@ int RunningAvg::init( ) {
 
 // RunningAvg::SeparateInit()
 void RunningAvg::SeparateInit(int windowIn, int debugIn) {
+  isSeparate = true;
   debug = debugIn;
   Nwindow = windowIn;
   // Reserve space for Nwindow frames
@@ -72,7 +73,8 @@ int RunningAvg::setup() {
   } 
 
   // Print info for this parm
-  mprintf("\tRunning average set up for %i atoms.\n",windowNatom);
+  if (!isSeparate)
+    mprintf("\tRunning average set up for %i atoms.\n",windowNatom);
   return 0;  
 }
 
