@@ -1,11 +1,11 @@
 #include "ArgList.h"
 //ArgList.cpp
 #include <cstring>
-#include "CpptrajStdio.h"
 #include <locale>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include "CpptrajStdio.h"
  
 using namespace std;
 
@@ -28,6 +28,7 @@ ArgList::ArgList(const ArgList &rhs) {
 // ArgList::operator=()
 ArgList &ArgList::operator=(const ArgList &rhs) {
   if (&rhs==this) return *this;
+  // Allocate and copy. Assignment ops should automatically deallocate.
   arglist = rhs.arglist;
   argline = rhs.argline;
   marked = rhs.marked;
