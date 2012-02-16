@@ -224,7 +224,7 @@ while [[ ! -z $1 ]] ; do
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"
       echo "Turning off optimization"
-      DBGFLAGS="-g -Wall"
+      DBGFLAGS="-g -Wall -O0"
       OPT=0
       ;;
     "-debugon"      ) 
