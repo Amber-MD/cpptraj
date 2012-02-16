@@ -1,10 +1,16 @@
 // RmsAvgCorr
 #include "Action_RmsAvgCorr.h"
 #include "CpptrajStdio.h"
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
+// DEBUG
+//#include <cstdio> //sprintf
 
 // CONSTRUCTOR
 RmsAvgCorr::RmsAvgCorr() {
   parmNatom = 0;
+  rmsmask = NULL;
 } 
 
 // DESTRUCTOR
@@ -12,43 +18,13 @@ RmsAvgCorr::~RmsAvgCorr() {
 }
 
 // RmsAvgCorr::init()
-/** Expected call: rmsavgcorr [<mask>] [<refmask>]
-  *                [ref <refname> | refindex <ref#> | reference | first ]
+/** Expected call: rmsavgcorr [<mask>] 
   */
 int RmsAvgCorr::init( ) {
-  std::string refcmd="first";
-  std::string mask1="";
-  std::string mask2="";
-  std::string rmsdargs;
   // Get Keywords
   char *outfilename = actionArgs.getKeyString("out",NULL);
-  // Get keywords that should be passed to RMSD action
-  if (actionArgs.hasKey("reference")) 
-    refcmd="reference";
-  else if (actionArgs.hasKey("first"))
-    refcmd="first";
-  else {
-    char *referenceName=actionArgs.getKeyString("ref",NULL);
-    char *refindex=actionArgs.getKeyString("refindex",NULL);
-    if (referenceName!=NULL) {
-      refcmd.assign(referenceName);
-      refcmd = "ref " + refcmd;
-    } else if (refindex!=NULL) {
-      refcmd.assign(refindex);
-      refcmd = "refindex " + refcmd;
-    }
-  }
-    
-  // Get Masks - will be passed to RMSD action
-  char *m1 = actionArgs.getNextMask();
-  if (m1!=NULL) mask1.assign(m1);
-  char *m2 = actionArgs.getNextMask();
-  if (m2!=NULL) mask2.assign(m2);
-
-  // Set up arg list for RMSD action
-  rmsdargs = mask1 + " " + mask2 + " " + refcmd;
-  rmsdArglist.SetList((char*)rmsdargs.c_str()," ");
-  rmsdaction.SetArg(rmsdArglist);
+  // Get Masks
+  rmsmask = actionArgs.getNextMask();
 
   // Set up dataset to hold correlation 
   Ct = DSL->Add(DOUBLE, actionArgs.getNextString(),"RACorr");
@@ -56,11 +32,8 @@ int RmsAvgCorr::init( ) {
   // Add dataset to data file list
   DFL->Add(outfilename,Ct);
 
-  mprintf("    RMSAVGCORR:");
-  if (outfilename!=NULL) mprintf(" Output to %s",outfilename);
-  mprintf("\n\tRmsd Args: [%s]\n",rmsdArglist.ArgLine());
-  // Initialize RMSD action, first value for Ct is just the avg RMSD 
-  rmsdaction.Init(&localdata, FL, DFL, PFL, debug);
+  mprintf("    RMSAVGCORR: Mask [%s]",rmsmask);
+  if (outfilename!=NULL) mprintf(", Output to %s",outfilename);
 
   return 0;
 }
@@ -77,9 +50,7 @@ int RmsAvgCorr::setup() {
       return 1;
     }
   }
- 
-  // Setup RMSD action 
-  return (rmsdaction.Setup(&currentParm));
+  return 0; 
 }
 
 // RmsAvgCorr::action()
@@ -92,8 +63,6 @@ int RmsAvgCorr::action() {
   // Store frame
   Frame *fCopy = currentFrame->FrameCopy();
   ReferenceFrames.AddFrame(fCopy,currentParm);
-  // Calc initial RMSD
-  rmsdaction.DoAction(&currentFrame, frameNum);
   return 0;
 } 
 
@@ -105,41 +74,106 @@ int RmsAvgCorr::action() {
 void RmsAvgCorr::print() {
   double ZeroData = 0; // Used to blank frames in RMSD data set < window size
   double avg;
+  int window, frame;
+  Frame *referenceFrame;
+  Rmsd rmsdaction;
   RunningAvg runavgaction;
-
-  // First data point (window==1) is just the normal rmsd, 
-  // already calcd in action.
-  avg = rmsdaction.rmsd->Avg(NULL);
-  Ct->Add(0, &avg);
+  // DEBUG
+/*
+  DataFile *debug_data;
+  char debugname[32];
+*/
   // setup enforces one parm, so this is safe. 
   currentParm = ReferenceFrames.GetFrameParm(0);
+# ifdef _OPENMP
+  int numthreads;
+  int mythread;
+  // Currently DataSet is not thread-safe. Use temp storage.
+  double *Ct_openmp = new double[ ReferenceFrames.NumFrames() - 1 ];
+  // Give each thread its own parm and data set list
+  AmberParm **PARM_ADDRESSES;
+#pragma omp parallel
+{
+  numthreads = omp_get_num_threads();
+}
+  // Allocate space on each thread for actions, parm addresses, datasetlist
+  PARM_ADDRESSES = new AmberParm*[ numthreads ];
+  for (int thread = 0; thread < numthreads; thread++) 
+    PARM_ADDRESSES[thread] = currentParm;
+#endif 
+
+  mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n");
+  mprintf("                sizes ranging from 1 to %i\n",ReferenceFrames.NumFrames()-1);
+
+  // Initialize RMSD action, first value for Ct (window==1) is 
+  // just the avg RMSD with no running averaging.
+  rmsdaction.SeparateInit(rmsmask, debug);
+   // Setup RMSD action 
+  rmsdaction.Setup(&currentParm);
+  // Calc initial RMSD
+  Frame *tempFrame = new Frame(); 
+  for (frame = 0; frame < ReferenceFrames.NumFrames(); frame++) {
+    referenceFrame = ReferenceFrames.GetFrame( frame );
+    // Protect referenceFrame from being rotated
+    *tempFrame = *referenceFrame;
+    rmsdaction.DoAction(&tempFrame, frame);
+  }
+  delete tempFrame;
+  // DEBUG
+/*
+  sprintf(debugname,"dbgrmsd.dat");
+  debug_data = new DataFile(debugname);
+  debug_data->AddSet( rmsdaction.rmsd );
+  debug_data->Write();
+  delete debug_data;
+*/
+  avg = rmsdaction.rmsd->Avg(NULL);
+  Ct->Add(0, &avg);
+
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
-  for (int window = 2; window < ReferenceFrames.NumFrames(); window++ ) {
-    // Set up arg list for running average
-    runavgaction.ArgumentList("window %i",window); 
-    // Init running average
-    runavgaction.Init(&localdata, FL, DFL, PFL, debug);
-    // Setup running average 
+# ifdef _OPENMP
+#pragma omp parallel private(window, frame, referenceFrame,avg,runavgaction,rmsdaction,mythread)
+{
+  mythread = omp_get_thread_num();
+#pragma omp for
+#endif
+  for (window = 2; window < ReferenceFrames.NumFrames(); window++ ) {
+    // Initialize running average and rmsd for this window size
+    runavgaction.SeparateInit(window,debug);
+    rmsdaction.SeparateInit(rmsmask, debug);
+    // Setup running average and rmsd for this window size
+#   ifdef _OPENMP
+    runavgaction.Setup(PARM_ADDRESSES+mythread);
+    rmsdaction.Setup(PARM_ADDRESSES+mythread);
+#   else
     runavgaction.Setup(&currentParm);
-    // Re-initialize Rmsd action
-    rmsdaction.SetArg( rmsdArglist );
-    rmsdaction.Init(&localdata, FL, DFL, PFL, debug);
-    // Setup Rmsd action
     rmsdaction.Setup(&currentParm);
+#   endif
     // LOOP OVER FRAMES
-    for (int frame = 0; frame < ReferenceFrames.NumFrames(); frame++) {
-      currentFrame = ReferenceFrames.GetFrame( frame );
+    for (frame = 0; frame < ReferenceFrames.NumFrames(); frame++) {
+      referenceFrame = ReferenceFrames.GetFrame( frame );
       // If running average indicates its good to go, perform RMSD.
       // Otherwise set corresponding point in RMSD dataset to zero.
-      if (runavgaction.DoAction(&currentFrame, frame) == ACTION_OK) {
-        rmsdaction.DoAction(&currentFrame, frame);
-      } else {
+      if (runavgaction.DoAction(&referenceFrame, frame) == ACTION_OK) 
+        rmsdaction.DoAction(&referenceFrame, frame);
+      else 
         rmsdaction.rmsd->Add(frame, &ZeroData);
-      }
     } // END LOOP OVER FRAMES
     // Take average rmsd for this window size
     avg = rmsdaction.rmsd->Avg(NULL);
+#   ifdef _OPENMP
+    Ct_openmp[window-1] = avg;
+#   else 
     Ct->Add(window-1, &avg);
+#   endif
   } // END LOOP OVER WINDOWS
+#ifdef _OPENMP
+} // END pragma omp parallel
+  // Put Ct_openmp into Ct dataset
+  for (window = 1; window < ReferenceFrames.NumFrames()-1; window++)
+    Ct->Add(window, Ct_openmp+window);
+  delete[] Ct_openmp;
+  delete[] PARM_ADDRESSES;
+#endif
 }
 

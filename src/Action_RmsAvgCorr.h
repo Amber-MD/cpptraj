@@ -6,9 +6,7 @@
 // Class: RmsAvgCorr
 /// Calculate rmsd using running avg structures 
 class RmsAvgCorr: public Action {
-    Rmsd rmsdaction;
-    ArgList rmsdArglist;
-    DataSetList localdata;
+    char *rmsmask;
     FrameList ReferenceFrames;
     DataSet *Ct;
     int parmNatom;
