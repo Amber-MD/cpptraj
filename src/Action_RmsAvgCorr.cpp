@@ -76,6 +76,7 @@ void RmsAvgCorr::print() {
   double avg;
   int window, frame;
   Frame *referenceFrame;
+  AmberParm *referenceParm;
   Rmsd rmsdaction;
   RunningAvg runavgaction;
   // DEBUG
@@ -84,32 +85,25 @@ void RmsAvgCorr::print() {
   char debugname[32];
 */
   // setup enforces one parm, so this is safe. 
-  currentParm = ReferenceFrames.GetFrameParm(0);
-# ifdef _OPENMP
-  int numthreads;
-  int mythread;
-  // Currently DataSet is not thread-safe. Use temp storage.
-  double *Ct_openmp = new double[ ReferenceFrames.NumFrames() - 1 ];
-  // Give each thread its own parm and data set list
-  AmberParm **PARM_ADDRESSES;
-#pragma omp parallel
-{
-  numthreads = omp_get_num_threads();
-}
-  // Allocate space on each thread for actions, parm addresses, datasetlist
-  PARM_ADDRESSES = new AmberParm*[ numthreads ];
-  for (int thread = 0; thread < numthreads; thread++) 
-    PARM_ADDRESSES[thread] = currentParm;
-#endif 
+  referenceParm = ReferenceFrames.GetFrameParm(0);
 
   mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n");
   mprintf("                sizes ranging from 1 to %i\n",ReferenceFrames.NumFrames()-1);
+# ifdef _OPENMP
+  // Currently DataSet is not thread-safe. Use temp storage.
+  double *Ct_openmp = new double[ ReferenceFrames.NumFrames() - 1 ];
+#pragma omp parallel
+{
+  if (omp_get_thread_num()==0)
+    mprintf("                Parallelizing calculation with %i threads.\n",omp_get_num_threads());
+}
+#endif
 
   // Initialize RMSD action, first value for Ct (window==1) is 
   // just the avg RMSD with no running averaging.
   rmsdaction.SeparateInit(rmsmask, debug);
    // Setup RMSD action 
-  rmsdaction.Setup(&currentParm);
+  rmsdaction.Setup(&referenceParm);
   // Calc initial RMSD
   Frame *tempFrame = new Frame(); 
   for (frame = 0; frame < ReferenceFrames.NumFrames(); frame++) {
@@ -132,9 +126,9 @@ void RmsAvgCorr::print() {
 
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
 # ifdef _OPENMP
-#pragma omp parallel private(window, frame, referenceFrame,avg,runavgaction,rmsdaction,mythread)
+#pragma omp parallel private(window, frame, referenceFrame,avg,runavgaction,rmsdaction) firstprivate(referenceParm)
 {
-  mythread = omp_get_thread_num();
+  //mythread = omp_get_thread_num();
 #pragma omp for
 #endif
   for (window = 2; window < ReferenceFrames.NumFrames(); window++ ) {
@@ -142,13 +136,8 @@ void RmsAvgCorr::print() {
     runavgaction.SeparateInit(window,debug);
     rmsdaction.SeparateInit(rmsmask, debug);
     // Setup running average and rmsd for this window size
-#   ifdef _OPENMP
-    runavgaction.Setup(PARM_ADDRESSES+mythread);
-    rmsdaction.Setup(PARM_ADDRESSES+mythread);
-#   else
-    runavgaction.Setup(&currentParm);
-    rmsdaction.Setup(&currentParm);
-#   endif
+    runavgaction.Setup(&referenceParm);
+    rmsdaction.Setup(&referenceParm);
     // LOOP OVER FRAMES
     for (frame = 0; frame < ReferenceFrames.NumFrames(); frame++) {
       referenceFrame = ReferenceFrames.GetFrame( frame );
@@ -173,7 +162,6 @@ void RmsAvgCorr::print() {
   for (window = 1; window < ReferenceFrames.NumFrames()-1; window++)
     Ct->Add(window, Ct_openmp+window);
   delete[] Ct_openmp;
-  delete[] PARM_ADDRESSES;
 #endif
 }
 
