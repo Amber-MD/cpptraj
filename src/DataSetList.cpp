@@ -11,6 +11,7 @@
 #include "DataSet_integer.h"
 #include "DataSet_XYZ.h"
 #include "DataSet_float.h"
+#include "DataSet_Matrix.h"
 
 // CONSTRUCTOR
 DataSetList::DataSetList() {
