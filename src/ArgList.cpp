@@ -17,6 +17,24 @@ ArgList::ArgList() {
 // DESTRUCTOR
 ArgList::~ArgList() {}
 
+// COPY CONSTRUCTOR
+ArgList::ArgList(const ArgList &rhs) {
+  arglist = rhs.arglist;
+  argline = rhs.argline;
+  marked = rhs.marked;
+  debug = rhs.debug;
+}
+
+// ArgList::operator=()
+ArgList &ArgList::operator=(const ArgList &rhs) {
+  if (&rhs==this) return *this;
+  arglist = rhs.arglist;
+  argline = rhs.argline;
+  marked = rhs.marked;
+  debug = rhs.debug;
+  return *this;
+}
+
 // ArgList::SetDebug()
 void ArgList::SetDebug(int debugIn) {
   debug = debugIn;
