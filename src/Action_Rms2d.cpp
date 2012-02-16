@@ -61,8 +61,8 @@ int Rms2d::init() {
     mprinterr("Error: Rms2d: Keyword 'corr' not supported with 'reftraj'\n");
     return 1;
   }
-  // Require an output filename
-  if (rmsdFile==NULL) {
+  // Require an output filename if corr not specified
+  if (rmsdFile==NULL && corrfilename==NULL) {
     mprinterr("Error: Rms2d: No output filename specified; use 'rmsout' keyword.\n");
     return 1;
   }
@@ -351,7 +351,13 @@ void Rms2d::print() {
     // Calculate correlation
     if (corrfilename!=NULL) AutoCorrelate( *Distances );
     delete Distances;
-  } else
+  } else {
+    // Sanity check
+    if (rmsdFile==NULL) {
+      mprinterr("Error: Rms2d: 'reftraj' no output file specified with 'rmsout'.\n");
+      return;
+    }
     CalcRmsToTraj();
+  }
 }
 
