@@ -2,6 +2,7 @@
 #include <cstdio> // for sprintf
 #include "Action_Rmsd.h"
 #include "CpptrajStdio.h"
+#include "DataSet_double.h" // for SeparateInit
 
 // CONSTRUCTOR
 Rmsd::Rmsd() {
@@ -34,6 +35,8 @@ Rmsd::~Rmsd() {
   if (ResFrame!=NULL) delete ResFrame;
   if (ResRefFrame!=NULL) delete ResRefFrame;
   if (PerResRMSD!=NULL) delete PerResRMSD;
+  // If separate, clean up the dataset
+  if (isSeparate) delete rmsd;
 }
 
 // Rmsd::resizeResMasks()
@@ -69,7 +72,7 @@ int Rmsd::SetRefMask() {
   }
   // Allocate frame for selected reference atoms
   SelectedRef.SetupFrameFromMask(&RefMask, RefParm->mass);
-
+  //mprintf("DEBUG: RefMask has %i atoms\n",RefMask.Nselected);
   return 0;
 }
 
@@ -87,16 +90,6 @@ int Rmsd::init( ) {
   char *rmsdFile;
   int refindex, referenceKeyword;
   Frame *TempFrame = NULL;
-
-  // TEST: In case of re-initialization ----------
-  if (RefTraj!=NULL) {
-    RefTraj->EndTraj();
-    delete RefTraj;
-  }
-  if (ResFrame!=NULL) delete ResFrame;
-  if (ResRefFrame!=NULL) delete ResRefFrame;
-  if (PerResRMSD!=NULL) delete PerResRMSD;
-  // ---------------------------------------------
 
   // Check for keywords
   referenceKeyword=actionArgs.hasKey("reference"); // For compatibility with ptraj
@@ -135,14 +128,11 @@ int Rmsd::init( ) {
   if (maskRef==NULL) maskRef=mask0; 
   RefMask.SetMaskString(maskRef);
 
-  // Set up the RMSD data set. In case the action is being re-initialized,
-  // only do this if rmsd is NULL.
-  if (rmsd==NULL) {
-    rmsd = DSL->Add(DOUBLE, actionArgs.getNextString(),"RMSD");
-    if (rmsd==NULL) return 1;
-    // Add dataset to data file list
-    DFL->Add(rmsdFile,rmsd);
-  }
+  // Set up the RMSD data set. 
+  rmsd = DSL->Add(DOUBLE, actionArgs.getNextString(),"RMSD");
+  if (rmsd==NULL) return 1;
+  // Add dataset to data file list
+  DFL->Add(rmsdFile,rmsd);
 
   // Set up reference structure
   if (!first && referenceName==NULL && refindex==-1 && referenceKeyword==0 && reftraj==NULL) {
@@ -239,6 +229,32 @@ int Rmsd::init( ) {
       mprintf("          perresinvert: Frames will be written in rows instead of columns.\n");
   }
 
+  return 0;
+}
+
+// Rmsd::SeparateInit()
+/** This routine allows the RMSD action to be initialized outside the main
+  * action list so it can be used e.g. by other actions etc. The dataset
+  * is allocated locally.
+  */
+int Rmsd::SeparateInit(char *mask0, int debugIn) {
+  isSeparate = true;
+  debug = debugIn;
+  // Only first for reference for now
+  first = true;
+  RefParm = NULL;
+
+  // Set the RMS mask string for target and reference
+  FrameMask.SetMaskString(mask0);
+  RefMask.SetMaskString(mask0);
+  //mprintf("DEBUG: Mask [%s] RefMask [%s]\n",FrameMask.MaskString(),RefMask.MaskString());
+
+  // Set up the RMSD data set. In case the action is being re-initialized,
+  // only do this if rmsd is NULL.
+  if (rmsd==NULL) {
+    rmsd = new DataSet_double();
+    if (rmsd->Setup((char*)"RMSD",-1)) return 1;
+  }
   return 0;
 }
 
@@ -402,7 +418,8 @@ int Rmsd::setup() {
     if (this->perResSetup()) return 1;
   }
 
-  mprintf("\t%i atoms selected.\n",FrameMask.Nselected);
+  if (!isSeparate)
+    mprintf("\t%i atoms selected.\n",FrameMask.Nselected);
 
   return 0;
 }

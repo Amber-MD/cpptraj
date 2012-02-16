@@ -47,6 +47,8 @@ class Rmsd: public Action {
     Rmsd();
     ~Rmsd();
 
+    int SeparateInit(char*,int);
+
     int init();
     int setup();
     int action();
