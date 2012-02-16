@@ -32,7 +32,11 @@ int RmsAvgCorr::init( ) {
   // Add dataset to data file list
   DFL->Add(outfilename,Ct);
 
-  mprintf("    RMSAVGCORR: Mask [%s]",rmsmask);
+  mprintf("    RMSAVGCORR:");
+  if (rmsmask!=NULL)
+    mprintf(" Mask [%s]",rmsmask);
+  else
+    mprintf(" All atoms");
   if (outfilename!=NULL) mprintf(", Output to %s",outfilename);
 
   return 0;
