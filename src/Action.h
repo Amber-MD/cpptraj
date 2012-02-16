@@ -24,6 +24,7 @@
 #include "AmberParm.h"
 class Action {
   protected:
+    bool isSeparate;        ///< If true action was initialized outside main action list.
     ArgList actionArgs;     ///< The action arguments (setArg)
     AmberParm *currentParm; ///< The current parmtop (setup)
     Frame *currentFrame;    ///< The current frame (action)

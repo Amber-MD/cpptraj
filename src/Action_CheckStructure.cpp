@@ -65,6 +65,7 @@ int CheckStructure::init( ) {
 void CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutIn, int debugIn) 
 {
   double nonbondcut;
+  isSeparate=true;
   debug = debugIn;
   noimage = true;
   if (bondoffsetIn < 0)
@@ -166,13 +167,15 @@ int CheckStructure::setup() {
   // Reset to integer mask.
   if ( currentParm->SetupIntegerMask( Mask1, activeReference) ) return 1;
   // Print imaging info for this parm
-  mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1.MaskString(), Mask1.Nselected,
-          totalbonds);
-  if (imageType > 0)
-    mprintf(", imaging on");
-  else
-    mprintf(", imaging off");
-  mprintf(".\n");
+  if (!isSeparate) {
+    mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1.MaskString(), Mask1.Nselected,
+            totalbonds);
+    if (imageType > 0)
+      mprintf(", imaging on");
+    else
+      mprintf(", imaging off");
+    mprintf(".\n");
+  }
         
   return 0;  
 }

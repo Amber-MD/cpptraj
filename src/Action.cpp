@@ -3,6 +3,7 @@
 
 // CONSTRUCTOR
 Action::Action() {
+  isSeparate=false;
   currentParm=NULL;
   currentFrame=NULL;
   DSL=NULL;

@@ -25,6 +25,7 @@ Rms2d::~Rms2d() {
   * to calculate a distance matrix for e.g. clustering.
   */
 int Rms2d::SeparateInit(bool nofitIn, char *maskIn) {
+  isSeparate = true;
   nofit = nofitIn;
   FrameMask.SetMaskString(maskIn);
   return 0;
