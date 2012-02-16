@@ -108,9 +108,6 @@ int PtrajAction::init( ) {
     actioninfo->type = TRANSFORM_RANDOMIZEIONS;
     actioninfo->fxn  = (actionFunction) transformRandomizeIons;
     coordinate_update = true;
-  } else if ( actionArgs.CommandIs("runningaverage") ) {
-    actioninfo->type = TRANSFORM_RUNNINGAVERAGE;
-    actioninfo->fxn  = (actionFunction) transformRunningAverage;
   } else if ( actionArgs.CommandIs("scale")          ) {
     actioninfo->type = TRANSFORM_SCALE;
     actioninfo->fxn  = (actionFunction) transformScale;
