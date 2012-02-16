@@ -3,7 +3,7 @@
 #include <string>
 #include "CharBuffer.h"
 /// Type of data stored in DataSet
-enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT, XYZ, FLOAT};
+enum dataType {UNKNOWN_DATA, DOUBLE, STRING, INT, XYZ, FLOAT, MATRIX};
 /// Set a printf-style format string
 int SetFormatString(std::string&, dataType, int, int, bool);
 // Class: DataSet
