@@ -148,6 +148,73 @@ DataSet *DataSetList::AddMulti(dataType inType, char *prefix, const char *suffix
   return this->Add(inType,tempName,suffix);
 }
 
+// DataSetList::checkName()
+/** Given a potential dataset name, check if that name exists in the
+  * DataSetList. If no name is given, generate a name based on
+  * a default name and the dataset number.
+  * \return An acceptable dataset name, or NULL if not acceptable.
+  */
+char *DataSetList::checkName(char *nameIn, const char *defaultName) {
+  char *dsetName;
+  size_t namesize;
+  // Require all calls provide a default name
+  if (defaultName==NULL) {
+    mprinterr("Internal Error: DataSetList called without default name.\n");
+    return NULL;
+  }
+  // If no name given make one up based on the given default 
+  if (nameIn==NULL) {
+    // Determine size of name + extension
+    namesize = strlen( defaultName );
+    size_t extsize = ((size_t)Ndata / 10) + 3; // # digits + underscore + null
+    namesize += extsize;
+    dsetName = new char[ namesize ];
+    sprintf(dsetName,"%s_%05i",defaultName,Ndata);
+  } else {
+    namesize = strlen( nameIn ) + 1; // + null
+    dsetName = new char[ namesize ];
+    strcpy(dsetName, nameIn);
+  }
+  // Check if dataset name is already in use
+  if (Get(dsetName)!=NULL) {
+    mprinterr("Error: Data set %s already defined.\n",dsetName);
+    delete[] dsetName;
+    return NULL;
+  }
+  // Otherwise this dataset name is good to go
+  return dsetName;
+}
+
+// DataSetList::AddMatrix()
+/** Add a matrix dataset to the list. This requires a separate function
+  * since the dimensions of the matrix must be set.
+  */
+DataSet *DataSetList::AddMatrix(char *nameIn, const char *defaultName,
+                                int Nrows, int Mcols)
+{
+  DataSet *Dset=NULL;
+  char *dsetName = checkName(nameIn, defaultName);
+  if (dsetName==NULL) return NULL;
+  Dset = new DataSet_Matrix(Nrows, Mcols);
+  if (Dset==NULL) {
+    delete[] dsetName;
+    return NULL;
+  }
+  // Set up dataset
+  if ( Dset->Setup(dsetName,maxFrames) ) {
+    mprinterr("Error setting up matrix data set %s.\n",dsetName);
+    delete Dset;
+    delete[] dsetName;
+    return NULL;
+  }
+
+  DataList.push_back(Dset);
+  ++Ndata;
+  //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  delete[] dsetName;
+  return Dset;
+}
+
 // DataSetList::Add()
 /** Add a DataSet of specified type, set it up and return pointer to it. 
   * Name the dataset nameIn if specified, otherwise give it a default
@@ -160,25 +227,9 @@ DataSet *DataSetList::AddMulti(dataType inType, char *prefix, const char *suffix
   */ 
 DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName) {
   DataSet *D=NULL;
-  char tempName[32];
+  char *dsetName = checkName(nameIn, defaultName);
+  if (dsetName==NULL) return NULL;
 
-  // Require all calls provide a default name
-  if (defaultName==NULL) {
-    mprinterr("Internal Error: DataSetList::Add() called without default name.\n");
-    return NULL;
-  }
-
-  // If no name given make one up based on the given default 
-  if (nameIn==NULL) {
-    sprintf(tempName,"%s_%05i",defaultName,Ndata);
-    nameIn=tempName;
-  }
-  // Check if dataset name is already in use
-  D=Get(nameIn);
-  if (D!=NULL) {
-    mprinterr("Error: DataSetList::Add: Data set %s already defined.\n",nameIn);
-    return NULL;
-  }
   switch (inType) {
     case DOUBLE       : D = new DataSet_double(); break;
     case FLOAT        : D = new DataSet_float(); break;
@@ -190,17 +241,22 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");
       return NULL;
   }
-  if (D==NULL) return NULL;
+  if (D==NULL) {
+    delete[] dsetName;
+    return NULL;
+  }
   // Set up dataset
-  if ( D->Setup(nameIn,maxFrames) ) {
-    mprinterr("Error setting up data set %s.\n",nameIn);
+  if ( D->Setup(dsetName,maxFrames) ) {
+    mprinterr("Error setting up data set %s.\n",dsetName);
     delete D;
+    delete[] dsetName;
     return NULL;
   }
 
   DataList.push_back(D); 
-  Ndata++;
-  //fprintf(stderr,"ADDED dataset %s\n",nameIn);
+  ++Ndata;
+  //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  delete[] dsetName;
   return D;
 }
 

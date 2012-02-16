@@ -42,6 +42,8 @@ class DataSetList {
     DataSet *AddMulti(dataType, char *, const char *);
     /// Add dataset to the list with name prefix_suffixN; set index.
     DataSet *AddMultiN(dataType, const char *, const char *, int);
+    char *checkName(char*, const char*);
+    DataSet *AddMatrix(char*, const char*, int, int);
     /// Add dataset to the list with given name
     DataSet *Add( dataType, char*, const char*);
     DataSet *AddIdx( dataType, char*, int);
