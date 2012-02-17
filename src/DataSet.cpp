@@ -1,5 +1,6 @@
 // DataSet
 #include <cstdio>
+#include <cmath> // sqrt
 #include "DataSet.h"
 #include "CpptrajStdio.h"
 
@@ -181,3 +182,89 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   return 0;
 }
 
+// DataSet::Avg()
+/** Calculate the average over values in this set if this set
+  * is an atomic type (i.e. int, double, float).
+  */
+double DataSet::Avg(double *stdev) {
+  double sum, numvalues, avg, diff;
+  // Check # values
+  if (current==0) return 0;
+  avg = 0;
+  // Check if this set is a good type
+  if (dType==DOUBLE || 
+      dType==FLOAT ||
+      dType==INT)
+  {
+    sum = 0;
+    numvalues = 0;
+    Begin();
+    do {
+      sum += CurrentValue();
+      ++numvalues;
+    } while (NextValue());
+    // NOTE: Manually calc # values since current is increment
+    //       whenever Add is called even if a value is already present.
+    //numvalues = (double) current;
+    //mprintf("DEBUG: AVG: %.0lf values.\n",numvalues);
+    avg = sum / numvalues;
+    if (stdev==NULL) return avg;
+
+    // Stdev
+    sum = 0;
+    Begin();
+    do {
+      diff = avg - CurrentValue();
+      diff *= diff;
+      sum += diff;
+    } while(NextValue());
+    sum /= numvalues;
+    *stdev = sqrt(sum);
+  }
+  return avg;
+}
+
+// DataSet_double::Max()
+/** Return the maximum value in the dataset.  */
+double DataSet::Max() {
+  double max;
+  // Check # values
+  if (current==0) return 0;
+  max = 0;
+  // Check if this set is a good type
+  if (dType==DOUBLE || 
+      dType==FLOAT ||
+      dType==INT)
+  {
+    Begin();
+    max = CurrentValue();
+    do {
+      double val = CurrentValue();
+      if (val > max) max = val;
+    } while (NextValue());
+  }
+  return max;
+}
+
+// DataSet::Min()
+/** Return the minimum value in the dataset.  */
+double DataSet::Min() {
+  double min;
+  // Check # values
+  if (current==0) return 0;
+  min = 0;
+  // Check if this set is a good type
+  if (dType==DOUBLE ||
+      dType==FLOAT ||
+      dType==INT)
+  { 
+    Begin();
+    min = CurrentValue();
+    do {
+      double val = CurrentValue();
+      if (val < min) min = val;
+    } while (NextValue());
+  }
+  return min;
+}
+ 

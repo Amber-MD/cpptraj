@@ -50,14 +50,21 @@ class DataSet {
     virtual int Width()                       { return 0; }
     /// Consolodate this dataset across all threads (MPI only)
     virtual int Sync()                        { return 0; }
-    /// Return the smallest value added to the set.
-    virtual double Min()                      { return 0; }
-    /// Return the largest value added to the set
-    virtual double Max()                      { return 0; }
-    /// Return the average/stdev of all values in the set
-    virtual double Avg(double*)               { return 0; }
     /// Return data from data set as double precision
     virtual double Dval(int)                  { return 0; }
+
+    // Psuedo-iterator functions
+    virtual void Begin()           { return;       }
+    virtual bool NextValue()       { return false; }
+    virtual double CurrentValue()  { return 0;     }
+
+    // Calculation routines for atomic types (DOUBLE, FLOAT, INT)
+    /// Return the average/stdev of all values in the set
+    double Avg(double *);
+    /// Return the smallest value added to the set.
+    double Min();
+    /// Return the largest value added to the set
+    double Max();
 
     // -----===== Public functions =====-----
     /// Set output precision

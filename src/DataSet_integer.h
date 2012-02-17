@@ -14,9 +14,12 @@ class DataSet_integer : public DataSet {
   public:
     DataSet_integer();
 
+    void Begin();
+    bool NextValue();
+    double CurrentValue();
+
     int Xmax();
     int isEmpty(int);
-    double Avg(double*);
     void Add( int, void * );
     int Get(void *, int);
     double Dval(int);

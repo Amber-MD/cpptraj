@@ -15,10 +15,11 @@ class DataSet_double : public DataSet {
   public:
     DataSet_double();
 
+    void Begin();
+    bool NextValue();
+    double CurrentValue();
+
     int Xmax();
-    double Avg(double*);
-    double Min();
-    double Max();
     int isEmpty(int);
     void Add( int, void * );
     int Get(void *, int);

@@ -2,7 +2,6 @@
 #include "DataSet_integer.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
-#include <cmath>
 using namespace std;
 
 // CONSTRUCTOR
@@ -10,6 +9,23 @@ DataSet_integer::DataSet_integer() {
   width=12;
   dType=INT;
   SetDataSetFormat(false);
+}
+
+// DataSet_integer::Begin()
+void DataSet_integer::Begin() {
+  it = Data.begin();
+}
+
+// DataSet_integer::NextValue();
+bool DataSet_integer::NextValue() {
+  it++;
+  if (it == Data.end()) return false;
+  return true;
+}
+
+// DataSet_integer::CurrentValue()
+double DataSet_integer::CurrentValue() {
+  return (double)(*it).second;
 }
 
 // DataSet_integer::Xmax(()
@@ -22,35 +38,6 @@ int DataSet_integer::Xmax() {
   it=Data.end();
   it--;
   return ( (*it).first );
-}
-
-// DataSet_integer::Avg()
-double DataSet_integer::Avg(double *stdev) {
-  double sum, ival, avg, diff;
-  if (Data.empty()) return 0;
-  sum = 0;
-  for (it = Data.begin(); it != Data.end(); it++) {
-    ival = (double) (*it).second;
-    sum += ival;
-  }
-  ival = (double) Data.size();
-  sum /= ival;
-  if (stdev==NULL) return sum;
-
-  // Stdev
-  avg = sum;
-  sum = 0;
-  for (it = Data.begin(); it != Data.end(); it++) {
-    ival = (double) (*it).second;
-    diff = avg - ival;
-    diff *= diff;
-    sum += diff;
-  }
-  ival = (double) Data.size();
-  sum /= ival;
-  *stdev = sqrt(sum);
-
-  return avg;
 }
 
 // DataSet_integer::Add()

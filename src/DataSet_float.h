@@ -15,6 +15,10 @@ class DataSet_float : public DataSet {
   public:
     DataSet_float();
 
+    void Begin();
+    bool NextValue();
+    double CurrentValue();
+
     int Xmax();
     int isEmpty(int);
     void Add( int, void * );

@@ -76,6 +76,7 @@ int Corr::Analyze() {
   // Calculate averages
   double avg1 = D1->Avg(NULL);
   double avg2 = D2->Avg(NULL);
+  //mprintf("Avg1=%lf  Avg2=%lf\n",avg1,avg2);
   
   // Compute normalization
   double sumdiff1_2 = 0;

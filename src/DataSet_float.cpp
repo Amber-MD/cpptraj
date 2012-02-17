@@ -1,5 +1,4 @@
 // DataSet_float
-#include <cstdio>
 #include "DataSet_float.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
@@ -12,6 +11,24 @@ DataSet_float::DataSet_float() {
   dType=FLOAT;
   SetDataSetFormat(false);
 }
+
+// DataSet_float::Begin()
+void DataSet_float::Begin() {
+  datum = Data.begin();
+}
+
+// DataSet_float::NextValue();
+bool DataSet_float::NextValue() {
+  datum++;
+  if (datum == Data.end()) return false;
+  return true;
+}
+
+// DataSet_float::CurrentValue()
+double DataSet_float::CurrentValue() {
+  return (double)(*datum).second;
+}
+
 
 /* DataSet_float::Xmax(()
  * Return the maximum X value added to this set. By convention this is 

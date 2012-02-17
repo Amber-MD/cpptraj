@@ -2,7 +2,6 @@
 #include "DataSet_double.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
-#include <cmath>
 using namespace std;
 
 // CONSTRUCTOR
@@ -11,6 +10,23 @@ DataSet_double::DataSet_double() {
   precision = 4;
   dType=DOUBLE;
   SetDataSetFormat(false);
+}
+
+// DataSet_double::Begin()
+void DataSet_double::Begin() {
+  it = Data.begin();
+}
+
+// DataSet_double::NextValue();
+bool DataSet_double::NextValue() {
+  it++;
+  if (it == Data.end()) return false;
+  return true;
+}
+
+// DataSet_double::CurrentValue()
+double DataSet_double::CurrentValue() {
+  return (*it).second;
 }
 
 // DataSet_double::Xmax(()
@@ -24,56 +40,6 @@ int DataSet_double::Xmax() {
   it--;
   return ( (*it).first );
 } 
-
-// DataSet_double::Avg()
-double DataSet_double::Avg(double *stdev) {
-  double sum, ival, avg, diff;
-  sum = 0;
-  for (it = Data.begin(); it != Data.end(); it++) {
-    ival = (*it).second;
-    sum += ival;
-  }
-  ival = (double) Data.size();
-  sum /= ival;
-  if (stdev==NULL) return sum;
-
-  // Stdev
-  avg = sum;
-  sum = 0;
-  for (it = Data.begin(); it != Data.end(); it++) {
-    ival = (*it).second;
-    diff = avg - ival;
-    diff *= diff;
-    sum += diff;
-  }
-  ival = (double) Data.size();
-  sum /= ival;
-  *stdev = sqrt(sum);
-
-  return avg;
-}
-
-// DataSet_double::Max()
-/** Return the maximum value in the dataset.  */
-double DataSet_double::Max() {
-  double max;
-  it = Data.begin();
-  max = (*it).second;
-  for (; it != Data.end(); it++)
-    if ( (*it).second > max ) max = (*it).second;
-  return max;
-}
-
-// DataSet_double::Min()
-/** Return the minimum value in the dataset.  */
-double DataSet_double::Min() {
-  double min;
-  it = Data.begin();
-  min = (*it).second;
-  for (; it != Data.end(); it++)
-    if ( (*it).second < min ) min = (*it).second;
-  return min;
-}
 
 // DataSet_double::Add()
 /** Insert data vIn at frame.  */
