@@ -20,6 +20,41 @@ TriangleMatrix::~TriangleMatrix() {
   if (ignore!=NULL) delete[] ignore;
 }
 
+// COPY CONSTRUCTOR
+TriangleMatrix::TriangleMatrix(const TriangleMatrix &rhs) {
+  nelements = rhs.nelements;
+  nrows = rhs.nrows;
+  currentElement = rhs.currentElement;
+  elements = new float[ nelements ];
+  ignore = new bool[ nrows ];
+  memcpy(elements, rhs.elements, nelements * sizeof(float));
+  memcpy(ignore,   rhs.ignore,   nrows * sizeof(bool));
+}
+
+// TriangleMatrix::operator=()
+TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
+  // Check for self assignment
+  if ( this == &rhs ) return *this;
+
+  // Deallocate
+  if (elements!=NULL) delete[] elements;
+  if (ignore!=NULL) delete[] ignore;
+
+  // Allocate
+  nelements = rhs.nelements;
+  nrows = rhs.nrows;
+  currentElement = rhs.currentElement;
+  elements = new float[ nelements ];
+  ignore = new bool[ nrows ];
+
+  // Copy
+  memcpy(elements, rhs.elements, nelements * sizeof(float));
+  memcpy(ignore,   rhs.ignore,   nrows * sizeof(bool));
+
+  // Return *this
+  return *this;
+}
+
 // TriangleMatrix::SaveFile()
 /** Save the matrix to a binary file. Format is 
   *   Data: [4*char][int][int][nelements*float]
@@ -130,30 +165,6 @@ int TriangleMatrix::Setup(int sizeIn) {
 /** Indicate given row/col should be ignored. */
 void TriangleMatrix::Ignore(int row) {
   ignore[row] = true;
-}
-
-// TriangleMatrix::operator=()
-TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
-  // Check for self assignment
-  if ( this == &rhs ) return *this;
-
-  // Deallocate
-  if (elements!=NULL) delete[] elements;
-  if (ignore!=NULL) delete[] ignore;
-
-  // Allocate
-  nelements = rhs.nelements;
-  nrows = rhs.nrows;
-  currentElement = rhs.currentElement;
-  elements = new float[ nelements ];
-  ignore = new bool[ nrows ];
-
-  // Copy
-  memcpy(elements, rhs.elements, nelements * sizeof(float));
-  memcpy(ignore,   rhs.ignore,   nrows * sizeof(bool));
-
-  // Return *this
-  return *this;
 }
 
 // TriangleMatrix::AddElement()
