@@ -1291,7 +1291,7 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   rtr[7] = rot[6]*rot[3] + rot[7]*rot[4] + rot[8]*rot[5];
   rtr[8] = rot[6]*rot[6] + rot[7]*rot[7] + rot[8]*rot[8];
 
-  // Diagonalize?
+  // Diagonalize
   if (!diagEsort(rtr, Emat, Evector, Eigenvalue))
     return(0);
 
@@ -1466,7 +1466,7 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   rtr[7] = rot[6]*rot[3] + rot[7]*rot[4] + rot[8]*rot[5];
   rtr[8] = rot[6]*rot[6] + rot[7]*rot[7] + rot[8]*rot[8];
 
-  // Diagonalize?
+  // Diagonalize
   if (!diagEsort(rtr, Emat, Evector, Eigenvalue))
     return(0);
 

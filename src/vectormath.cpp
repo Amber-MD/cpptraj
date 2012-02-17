@@ -302,6 +302,8 @@ void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ) {
   ARR[MAJ2 + MIN2] = h + s*(g-h*tau); }
 
 // jacobi3()
+/** Diagonalize 3x3 matrix with jacobi method.
+  */
 static int jacobi3(double *a, double *d, double *v, int *nrot) { 
 /* n must be 3.  see b[3] and z[3] below */
   int  i, j, ip, iq, p3, j3;
@@ -384,6 +386,8 @@ static int jacobi3(double *a, double *d, double *v, int *nrot) {
 }
 
 // diagEsort()
+/** Diagonalize 3x3 matrix, sort eigenvalues/eigenvectors.
+  */
 int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
   int njrot;
   int i, j, k, i3;
