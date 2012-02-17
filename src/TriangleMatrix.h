@@ -19,6 +19,7 @@ class TriangleMatrix {
     int Nelements()        { return nelements; }
 
     TriangleMatrix();
+    TriangleMatrix(const TriangleMatrix&);
     ~TriangleMatrix();
 
     TriangleMatrix & operator=(const TriangleMatrix &);
