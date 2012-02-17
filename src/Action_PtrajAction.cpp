@@ -67,9 +67,6 @@ int PtrajAction::init( ) {
   } else if ( actionArgs.CommandIs("atomicfluct3D")  ) {
     actioninfo->type = TRANSFORM_ATOMICFLUCT3D;
     actioninfo->fxn = (actionFunction) transformAtomicFluct3D;
-  } else if ( actionArgs.CommandIs("checkoverlap")   ) {
-    actioninfo->type = TRANSFORM_CHECKOVERLAP;
-    actioninfo->fxn  = (actionFunction) transformCheckOverlap;
   } else if ( actionArgs.CommandIs("contacts")       ) {
     actioninfo->type = TRANSFORM_CONTACTS;
     actioninfo->fxn  = (actionFunction) transformContacts;

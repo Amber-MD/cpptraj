@@ -155,7 +155,6 @@ enum _corrInfo { CORR_BOX, CORR_MASK };
 int actionTest(actionInformation *, double *, double *, double *, double *, int);
 int transformAtomicFluct(actionInformation *, double *, double *, double *, double *, int);
 int transformAtomicFluct3D(actionInformation *, double *, double *, double *, double *, int);
-int transformCheckOverlap(actionInformation *, double *, double *, double *, double *, int);
 //int transformCluster(actionInformation *, double *, double *, double *, double *, int);
 //int transformClusterAttribute(actionInformation*,double*,double*,double*, double *, int);
 int transformContacts(actionInformation *, double *, double *, double *, double *, int);
@@ -171,7 +170,6 @@ int transformMatrix(actionInformation *, double *, double *, double *, double *,
 int transformPrincipal(actionInformation *, double *, double *, double *, double *, int);
 int transformProjection(actionInformation *, double *, double *, double *, double *, int);
 int transformRandomizeIons(actionInformation *, double *, double *, double *, double *, int);
-int transformRunningAverage(actionInformation*,double*,double *, double *, double *, int);
 int transformScale(actionInformation *, double *, double *, double *, double *, int);
 //int transformTruncOct(actionInformation *, double *, double *, double *, double *, int);
 int transformUnwrap(actionInformation *, double *, double *, double *, double *, int);
