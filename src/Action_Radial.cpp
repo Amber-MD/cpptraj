@@ -14,8 +14,7 @@ Radial::Radial() {
   rdf=NULL;
   rdf_thread=NULL;
   numthreads=1;
-  noimage=false;
-  imageType=0;
+  useImage=true;
   center1=false;
   useVolume=false;
   volume=0;
@@ -50,7 +49,7 @@ int Radial::init() {
   char *mask1, *mask2;
 
   // Get Keywords
-  noimage = actionArgs.hasKey("noimage");
+  useImage = !(actionArgs.hasKey("noimage"));
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density = actionArgs.getKeyDouble("density",0.033456);
   center1 = actionArgs.hasKey("center1");
@@ -128,7 +127,7 @@ int Radial::init() {
     mprintf("            Normalizing based on cell volume.\n");
   else
     mprintf("            Normalizing using particle density of %lf molecules/Ang^3.\n",density);
-  if (noimage) 
+  if (!useImage) 
     mprintf("            Imaging disabled.\n");
   if (numthreads > 1)
     mprintf("            Parallelizing RDF calculation with %i threads.\n",numthreads);
@@ -165,15 +164,6 @@ int Radial::setup() {
     }
   }
 
-  // Check imaging - check box based on prmtop box
-  imageType = 0;
-  if (!noimage) {
-    imageType = (int)currentParm->boxType;
-    if (currentParm->boxType==NOBOX && debug>0) {
-      mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->parmName);
-    }
-  }
-
   // Check volume information
   if (useVolume && currentParm->boxType==NOBOX) {
     mprintf("    Warning: Radial: 'volume' specified but no box information for %s, skipping.\n",
@@ -183,7 +173,7 @@ int Radial::setup() {
 
   // Print mask and imaging info for this parm
   mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",Mask1.Nselected,Mask2.Nselected);
-  if (imageType > 0)
+  if (imageType !=NOBOX)
     mprintf("Imaging on.\n");
   else
     mprintf("Imaging off.\n");
@@ -207,7 +197,7 @@ int Radial::action() {
 
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (imageType>0) {
+  if (imageType!=NOBOX) {
     D = currentFrame->BoxToRecip(ucell,recip);
     if (useVolume)  volume += D;
   }

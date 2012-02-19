@@ -7,9 +7,8 @@
 Distance::Distance() {
   //fprintf(stderr,"Distance Con\n");
   dist=NULL;
-  noimage=false;
+  useImage=true;
   useMass=true;
-  imageType=0;
 } 
 
 // DESTRUCTOR
@@ -25,7 +24,7 @@ int Distance::init( ) {
   char *distanceFile;
 
   // Get Keywords
-  noimage = actionArgs.hasKey("noimage");
+  useImage = !(actionArgs.hasKey("noimage"));
   useMass = !(actionArgs.hasKey("geom"));
   distanceFile = actionArgs.getKeyString("out",NULL);
 
@@ -48,7 +47,7 @@ int Distance::init( ) {
   DFL->Add(distanceFile,dist);
 
   mprintf("    DISTANCE: %s to %s",Mask1.MaskString(), Mask2.MaskString());
-  if (noimage) 
+  if (!useImage) 
     mprintf(", non-imaged");
   if (useMass) 
     mprintf(", center of mass");
@@ -61,26 +60,17 @@ int Distance::init( ) {
 
 // Distance::setup()
 /** Determine what atoms each mask pertains to for the current parm file.
-  * Also determine whether imaging should be performed.
+  * Imaging is checked for in Action::Setup. 
   */
 int Distance::setup() {
 
   if (currentParm->SetupIntegerMask( Mask1, activeReference)) return 1;
   if (currentParm->SetupIntegerMask( Mask2, activeReference)) return 1;
 
-  // Check imaging - check box based on prmtop box
-  imageType = 0;
-  if (!noimage) {
-    imageType = (int)currentParm->boxType;
-    if (currentParm->boxType==NOBOX && debug>0) {
-      mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->parmName);
-    }
-  }
-
-  // Print imaging info for this parm
+  // Print mask and imaging info for this parm
   mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1.MaskString(), Mask1.Nselected,
           Mask2.MaskString(),Mask2.Nselected);
-  if (imageType > 0)
+  if (imageType != NOBOX)
     mprintf(", imaged");
   else
     mprintf(", imaging off");
@@ -98,7 +88,7 @@ int Distance::setup() {
 int Distance::action() {
   double D, ucell[9], recip[9];
 
-  if (imageType>0) currentFrame->BoxToRecip(ucell,recip);
+  if (imageType==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
   D = currentFrame->DIST2(&Mask1, &Mask2, useMass, imageType, ucell, recip);
   D = sqrt(D);
 

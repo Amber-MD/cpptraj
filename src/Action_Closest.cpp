@@ -12,9 +12,8 @@
 // CONSTRUCTOR
 Closest::Closest() {
   //fprintf(stderr,"Closest Con\n");
-  noimage=false;
+  useImage=true;
   firstAtom=false;
-  imageType=0;
   oldParm=NULL;
   newParm=NULL;
   outFile=NULL;
@@ -51,7 +50,7 @@ int Closest::init( ) {
   }
   if ( actionArgs.hasKey("oxygen") || actionArgs.hasKey("first") )
     firstAtom=true;
-  noimage = actionArgs.hasKey("noimage");
+  useImage = !(actionArgs.hasKey("noimage"));
   prefix = actionArgs.getKeyString("outprefix",NULL);
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
@@ -91,7 +90,7 @@ int Closest::init( ) {
   //  fprintf(stdout,"             all solute atoms\n");
   //else
     mprintf(" atoms in mask %s\n",soluteMask.MaskString());
-  if (noimage) 
+  if (!useImage) 
     mprintf("             Imaging will be turned off.\n");
   if (firstAtom)
     mprintf("             Only first atom of solvent molecule used for distance calc.\n");
@@ -151,24 +150,6 @@ int Closest::setup() {
   if (soluteMask.None()) {
     mprintf("Warning: Closest::setup: Mask %s contains no atoms.\n",soluteMask.MaskString());
     return 1;
-  }
-
-/*  if (currentParm->mass==NULL && useMass) {
-    fprintf(stdout,"    Warning: Closest::setup: Mass for this parm is NULL.\n");
-    fprintf(stdout,"             Geometric center of mass will be used.\n");
-    useMass=false;
-  }*/
-
-  // Figure out imaging - check box based on prmtop box
-  // NOTE: Should box be figured out from read-in coords?
-  imageType = 0;
-  if (!noimage) {
-    imageType = (int)currentParm->boxType;
-    if (currentParm->boxType==NOBOX) {
-        mprintf("Warning: Closest::setup: ");
-        mprintf(" Imaging specified but no box information in prmtop %s\n",currentParm->parmName);
-        mprintf("             No imaging can occur..\n");
-    }
   }
 
   // Figure out what the the total size of the selected solute atoms plus
@@ -239,7 +220,7 @@ int Closest::action() {
   int solventMol, solventAtom, maskPosition, atom, maxSolventMolecules;
   double Dist, maxD, ucell[9], recip[9];
 
-  if (imageType>0) {
+  if (imageType!=NOBOX) {
     currentFrame->BoxToRecip(ucell, recip);
     // Calculate max possible imaged distance
     maxD = currentFrame->box[0] + currentFrame->box[1] + currentFrame->box[2];

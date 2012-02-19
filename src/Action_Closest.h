@@ -15,8 +15,7 @@ class Closest: public Action {
     int Nclosest;
     char *prefix;
     int closestWaters;
-    bool noimage, firstAtom;
-    int imageType; 
+    bool firstAtom;
     AtomMask soluteMask;
     AtomMask stripMask;
     AmberParm *newParm;

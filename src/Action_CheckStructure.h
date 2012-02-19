@@ -25,8 +25,6 @@ class CheckStructure: public Action {
       }
     };
 
-    bool noimage;
-    int imageType; 
     AtomMask Mask1;
     double bondoffset;
     double nonbondcut2;

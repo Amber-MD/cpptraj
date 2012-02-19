@@ -7,8 +7,7 @@
 // CONSTRUCTOR
 CheckStructure::CheckStructure() {
   //fprintf(stderr,"CheckStructure Con\n");
-  noimage=false;
-  imageType=0;
+  useImage=true;
   bondoffset=1.0;
   nonbondcut2=0.64; // 0.8^2
 } 
@@ -33,7 +32,7 @@ int CheckStructure::init( ) {
   double nonbondcut;
 
   // Get Keywords
-  noimage = actionArgs.hasKey("noimage");
+  useImage = !(actionArgs.hasKey("noimage"));
   reportFile = actionArgs.getKeyString("reportfile",NULL);
   bondoffset = actionArgs.getKeyDouble("offset",1.0);
   nonbondcut = actionArgs.getKeyDouble("cut",0.8);
@@ -44,7 +43,7 @@ int CheckStructure::init( ) {
   Mask1.SetMaskString(mask1);
 
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask [%s]",Mask1.MaskString());
-  if (noimage) 
+  if (!useImage) 
     mprintf(", imaging off");
   if (reportFile!=NULL)
     mprintf(", output to %s",reportFile);
@@ -67,7 +66,7 @@ void CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutIn, int 
   double nonbondcut;
   isSeparate=true;
   debug = debugIn;
-  noimage = true;
+  useImage = false;
   if (bondoffsetIn < 0)
     bondoffset = 1.0;
   else
@@ -101,15 +100,6 @@ int CheckStructure::setup() {
   if (Mask1.None()) {
     mprintf("    Error: CheckStructure::setup: Mask has no atoms.\n");
     return 1;
-  }
-
-  // Check imaging - check box based on prmtop box
-  imageType = 0;
-  if (!noimage) {
-    imageType = (int)currentParm->boxType;
-    if (currentParm->boxType==NOBOX && debug>0) {
-      mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->parmName);
-    }
   }
 
   // Check bonds
@@ -170,7 +160,7 @@ int CheckStructure::setup() {
   if (!isSeparate) {
     mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1.MaskString(), Mask1.Nselected,
             totalbonds);
-    if (imageType > 0)
+    if (imageType != NOBOX)
       mprintf(", imaging on");
     else
       mprintf(", imaging off");
@@ -185,7 +175,7 @@ int CheckStructure::action() {
   double ucell[9], recip[9], D2, D, bondmax;
   std::vector<bond_list>::iterator currentBond = bondL.begin();
 
-  if (imageType>0) currentFrame->BoxToRecip(ucell,recip);
+  if (imageType==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
 
   int lastidx = Mask1.Nselected - 1;
   for (int maskidx1 = 0; maskidx1 < lastidx; maskidx1++) {

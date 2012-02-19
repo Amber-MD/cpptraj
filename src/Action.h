@@ -9,14 +9,21 @@
 /// The base class that all other actions inherit. 
 /** Each action currently holds the memory address of all important state 
   * information: the master dataset list, datafile list, parm file list, 
-  * and reference frame list. By convention actions have 4 main phases: Init, 
-  * Setup, Action, and print (optional).
-  * Mass Common Functionality:
-  * Since several actions have the option to include mass information as
-  * part of the calculation (mostly for calculating center of mass as opposed 
-  * to geometric center) the variable useMass is common to all actions and
-  * mass information is checked in Setup. useMass is set to false if the parm
-  * does not contain mass information.
+  * and reference frame list. By convention actions have 4 main phases: init, 
+  * setup, and action which in the main action list are called from Init,
+  * Setup, and DoAction respectively. A fourth function, print, is optional
+  * and is called after all frames are processed.
+  * useMass Common Functionality:
+  *   Actions that require mass information should set useMass to true in their
+  *   init function. The currentParm is checked for mass information each time
+  *   Setup is called, and if no mass information is present useMass is set
+  *   to false for the parm. 
+  * useImage Common Functionality:
+  *   Actions that require imaging should set useImage to true in their init
+  *   function. Each time Setup is called imageType is set based on the box
+  *   information present in currentParm. If currentParm has no box information
+  *   imaging is disabled for the parm. The action can then use imageType in
+  *   its action function to determine what kind of imaging to perform.
   */
 class Action {
   protected:
@@ -32,9 +39,11 @@ class Action {
     double *activeReference; ///< Temp pointer to coords of active ref frame in frame list
     /// Pointer to coords of active ref frame in frame list
     double *activeReferenceOriginalValue;
-    
-    bool useMass;           ///< If set to true, calculations will use mass info
+    bool useMass;              ///< If set to true, calculations will use mass info
     bool useMassOriginalValue; ///< Value of useMass set by init
+    bool useImage;             ///< If set to true, calculations will use imaging info
+    bool useImageOriginalValue;///< Value of useImage set by init
+    BoxType imageType;         ///< Type of imaging to be performed.
 
     int debug;              ///< action debug level
     int frameNum;           ///< # of current frame being processed, set by ActionList

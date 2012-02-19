@@ -5,8 +5,6 @@
 /// Action to calculate a distance between atoms in two masks.
 class Distance: public Action {
     DataSet *dist;
-    bool noimage;
-    int imageType; 
     AtomMask Mask1, Mask2;
   public:
     Distance();

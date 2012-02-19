@@ -6,8 +6,6 @@
 /// Calculate the radial distribution (pair correlation) function.
 class Radial: public Action {
     int *rdf;    ///< Hold bin counts
-    bool noimage;            ///< If true, do not image distances
-    int imageType;           ///< When imaging, determine if Ortho/non-ortho
     AtomMask Mask1;
     AtomMask Mask2;
     AtomMask OuterMask;

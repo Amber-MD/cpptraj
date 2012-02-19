@@ -15,6 +15,9 @@ Action::Action() {
   activeReferenceOriginalValue=NULL;
   useMass=false;
   useMassOriginalValue=false;
+  useImage=false;
+  useImageOriginalValue=false;
+  imageType = NOBOX;
   debug=0;
   frameNum=0; 
   noInit=false; 
@@ -71,11 +74,14 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   DFL=DFLin;
   PFL=PFLin;
   debug=debugIn;
+  // Initialize action
   err = this->init();
   // Check for unhandled keywords
   actionArgs.CheckForMoreArgs();
   // Store the value of useMass set by the actions init
   useMassOriginalValue = useMass;
+  // Store the value of useImage set by actions init
+  useImageOriginalValue = useImage;
 
   return ( err );
 }
@@ -95,6 +101,15 @@ int Action::Setup(AmberParm **ParmAddress) {
   int err;
   
   currentParm = *ParmAddress;
+  // If useImage, check imaging type based on prmtop box.
+  useImage = useImageOriginalValue;
+  if (!useImage)
+    imageType = NOBOX;
+  else {
+    imageType = currentParm->boxType;
+    if (currentParm->boxType==NOBOX && debug>0) 
+      mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->parmName);
+  }
   // If useMass, check that parm actually has masses.
   useMass = useMassOriginalValue;
   if (currentParm->mass==NULL && useMass) {
