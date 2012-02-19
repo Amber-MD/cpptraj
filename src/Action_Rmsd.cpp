@@ -76,6 +76,20 @@ int Rmsd::SetRefMask() {
   return 0;
 }
 
+// Rmsd::SetRefStructure()
+/** Set coordinates of SelectedRef according to RefMask. If performing 
+  * fitting, pre-translate the reference to the origin and save the
+  * translation from origin to original reference location in
+  * Trans[3-5]. When first, this is called from action once. When
+  * RefTraj, this is called from action each time a reference structure
+  * is read from RefTraj. Otherwise called from init once.
+  */
+void Rmsd::SetRefStructure() {
+  SelectedRef.SetFrameCoordsFromMask(RefFrame.X, &RefMask);
+  if (!nofit) 
+    SelectedRef.CenterReference(Trans+3, useMass);
+}
+
 // Rmsd::init()
 /** Called once before traj processing. Set up reference info.
   * Expected call: 
@@ -134,7 +148,7 @@ int Rmsd::init( ) {
   // Add dataset to data file list
   DFL->Add(rmsdFile,rmsd);
 
-  // Set up reference structure
+  // Check reference structure
   if (!first && referenceName==NULL && refindex==-1 && referenceKeyword==0 && reftraj==NULL) {
     mprintf("    Warning: Rmsd::init: No reference structure given. Defaulting to first.\n");
     first=true;
@@ -153,8 +167,10 @@ int Rmsd::init( ) {
         return 1;
       } 
       RefFrame.SetupFrameV(RefParm->natom, RefParm->mass, RefTraj->HasVelocity());
-    // Attempt to get reference index by name/tag
+      // Set up reference mask. Ref structures will be read in during action
+      if ( SetRefMask() ) return 1; 
     } else {
+      // Attempt to get reference index by name/tag
       if (referenceName!=NULL)
         refindex=FL->GetFrameIndex(referenceName);
 
@@ -171,9 +187,10 @@ int Rmsd::init( ) {
       RefFrame = *TempFrame;
       // Set reference parm
       RefParm=FL->GetFrameParm(refindex);
+      // Set up reference mask and structure
+      if ( SetRefMask() ) return 1;
+      SetRefStructure();
     }
-    // Setup reference mask
-    if ( SetRefMask() ) return 1;
     //RefFrame.printAtomCoord(0);
     //fprintf(stderr,"  NATOMS IN REF IS %i\n",RefFrame.natom); // DEBUG
   }
@@ -203,8 +220,7 @@ int Rmsd::init( ) {
     mprintf("          Center of mass will be used.\n");
   else
     mprintf("          Geometric center will be used.\n");
-
-  // Per-residue RMSD
+  // Per-residue RMSD info.
   if (perres) {
     mprintf("          No-fit RMSD will also be calculated for ");
     if (ResRange.Empty()) 
@@ -425,14 +441,18 @@ int Rmsd::setup() {
 }
 
 // Rmsd::action()
-/** Called every time a frame is read in. Calc RMSD. 
+/** Called every time a frame is read in. Calc RMSD. If not first and not
+  * RefTraj SetRefStructure has already been called. When fitting, 
+  * SetRefStructure pre-centers the reference coordinates at the origin
+  * and puts the translation from origin to reference in Trans[3-5]. 
   */
 int Rmsd::action() {
-  double R, U[9], Trans[6];
+  double R, U[9];
 
   if (first) {
     RefFrame = *currentFrame;
     first = false;
+    SetRefStructure();
   }
 
   // reftraj: Get the next frame from the reference trajectory
@@ -442,11 +462,9 @@ int Rmsd::action() {
     //mprintf("DBG: RMSD reftraj: Getting ref traj frame %i\n",RefTraj->front()->CurrentFrame());
     // NOTE: If there are no more frames in the trajectory the frame should
     //       remain on the last read frame. Close and reopen? Change ref?
-    RefTraj->GetNextFrame(RefFrame); 
+    RefTraj->GetNextFrame(RefFrame);
+    SetRefStructure(); 
   }
-
-  // Set selected reference atoms - always done since RMS fit modifies SelectedRef 
-  SelectedRef.SetFrameCoordsFromMask(RefFrame.X, &RefMask);
 
   // Set selected frame atoms. Masses have already been set.
   SelectedFrame.SetFrameCoordsFromMask(currentFrame->X, &FrameMask);
@@ -461,7 +479,8 @@ int Rmsd::action() {
   if (nofit) {
     R = SelectedFrame.RMSD(&SelectedRef, useMass);
   } else {
-    R = SelectedFrame.RMSD(&SelectedRef, U, Trans, useMass);
+    //R = SelectedFrame.RMSD(&SelectedRef, U, Trans, useMass);
+    R = SelectedFrame.RMSD_CenteredRef(SelectedRef, U, Trans, useMass);
     currentFrame->Trans_Rot_Trans(Trans,U);
   }
 
