@@ -5,6 +5,7 @@
 // CONSTRUCTOR
 RunningAvg::RunningAvg() {
   Nwindow = 0;
+  d_Nwindow = 0;
   frameThreshold = 0;
   currentWindow = 0;
   windowNatom = 0;
@@ -29,6 +30,8 @@ int RunningAvg::init( ) {
   frameThreshold = Nwindow - 1;
   currentWindow = 0;
   windowNatom = 0;
+  // For division of frames, cast Nwindow to double
+  d_Nwindow = (double)Nwindow;
   // Get Masks
   // Dataset: Set up by adding to the main data set list.
 
@@ -49,6 +52,8 @@ void RunningAvg::SeparateInit(int windowIn, int debugIn) {
   frameThreshold = Nwindow - 1;
   currentWindow = 0;
   windowNatom = 0;
+  // For division of frames, cast Nwindow to double
+  d_Nwindow = (double)Nwindow;
 }
 
 // RunningAvg::setup()
@@ -70,6 +75,10 @@ int RunningAvg::setup() {
       Window[i].SetupFrame( windowNatom, NULL );
     // Setup frame to hold average coords
     avgFrame.SetupFrame( windowNatom, NULL );
+    // Zero avgFrame
+    avgFrame.ZeroCoords();
+    // Set up result
+    resultFrame.SetupFrame( windowNatom, NULL );
   } 
 
   // Print info for this parm
@@ -80,35 +89,37 @@ int RunningAvg::setup() {
 
 // RunningAvg::action()
 int RunningAvg::action() {
+  // If frameNum is >= Nwindow, subtract from avgFrame. currentWindow is at
+  // the frame that should be subtracted.
+  if (frameNum > frameThreshold) { 
+    //mprintf("DBG:\tSubtracting Window[%i] from avgFrame.\n",currentWindow);
+    avgFrame -= Window[currentWindow];
+  }
 
-  // Place current coordinates in current window
-  //mprintf("\t\tDBG: Assigning frame %i to window %i (%i = %i)\n",frameNum,currentWindow,
-  //          Window[currentWindow].natom, currentFrame->natom);
+  // Add current coordinates to avgFrame
+  //mprintf("DBG:\tAdding frame %i to avgFrame.\n",frameNum);
+  avgFrame += *currentFrame;
+
+  // Store current coordinates in Window
+  //mprintf("DBG:\tAssigning frame %i to window %i (%i = %i)\n",frameNum,currentWindow,
+  //        Window[currentWindow].natom, currentFrame->natom);
   Window[currentWindow] = *currentFrame;
   ++currentWindow;
-
   // If currentWindow is out of range, reset
   if (currentWindow==Nwindow) currentWindow=0;
 
-  // Check if there are enough frames to start processing the running
-  // average 
-  if (frameNum >= frameThreshold) {
-    //mprintf("\t\tAveraging for frame %i:\n",frameNum);
-    avgFrame.ZeroCoords();
-    for (int i = 0; i < Nwindow; i++) {
-      //mprintf("\t\t\t");
-      //Window[i].printAtomCoord(0);
-      avgFrame += Window[i];
-    }
-    avgFrame.Divide((double)Nwindow);
-    // Set frame
-    currentFrame = &avgFrame;
-  } else {
-    // Not enough frames yet, return 3 to indicate further processing
-    // should be suppressed.
+  // If not enough frames to average yet return 3 to indicate further
+  // processing should be suppressed.
+  if (frameNum < frameThreshold)
     return (int)ACTION_SUPPRESSCOORDOUTPUT;
-  } 
-  
+  // Otherwise there are enough frames to start processing the running average
+  else {
+    //mprintf("DBG:\tCalculating average for frame %i\n",frameNum); 
+    resultFrame.Divide( avgFrame, d_Nwindow );
+    // Set frame
+    currentFrame = &resultFrame;
+  }
+
   return (int)ACTION_OK;
 } 
 
