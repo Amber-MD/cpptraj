@@ -176,7 +176,8 @@ int ActionList::Setup(AmberParm **ParmAddress) {
   int err;
   AmberParm *OriginalParm = *ParmAddress;
 
-  mprintf("  ...... Setting up %i actions for %s ....\n",Naction,(*ParmAddress)->parmName);
+  mprintf(".....................................................\n");
+  mprintf("PARM [%s]: Setting up %i actions.\n",(*ParmAddress)->parmName,Naction);
   for (int act=0; act<Naction; act++) {
     if (!actionlist[act]->noInit) {
       mprintf("  %i: [%s]\n",act,actionlist[act]->CmdLine());
@@ -194,7 +195,7 @@ int ActionList::Setup(AmberParm **ParmAddress) {
       //fprintf(stdout,"DEBUG: After Action %i Setup parmName is %s\n",act,P->parmName);
     }
   }
-  mprintf("  .....................................................\n");
+  //mprintf(".....................................................\n");
 
   return 0;
 }
