@@ -231,9 +231,8 @@ int Frame::SetupFrameFromCoords(float *CoordIn, int ncoord) {
   return 0;
 }
 
-/* Frame::FrameCopy()
- * Return a copy of the frame
- */
+// Frame::FrameCopy()
+/** Return a copy of the frame */
 Frame *Frame::FrameCopy( ) {
   Frame *newFrame;
 
@@ -511,9 +510,9 @@ void Frame::printAtomCoord(int atom) {
           X[natom3],X[natom3+1],X[natom3+2]);
 }
 
-/* Frame::GetCoord()
- * Get coordinates of specified atom and put into Coord.
- */
+// Frame::GetCoord()
+/** Get coordinates of specified atom and put into Coord.
+  */
 void Frame::GetCoord(double *Coord, int atom) {
   int natom3;
   // NOTE: SHOULD CHECK FOR BOUNDARIES
@@ -524,9 +523,9 @@ void Frame::GetCoord(double *Coord, int atom) {
   Coord[2] = X[natom3+2];
 }
 
-/* Frame::SetCoord()
- * Set coordinates of specified atom to those of Coord.
- */
+// Frame::SetCoord()
+/** Set coordinates of specified atom to those of Coord.
+  */
 void Frame::SetCoord(int atom, double *Coord) {
   int natom3;
   // NOTE: SHOULD CHECK FOR BOUNDARIES
@@ -538,24 +537,24 @@ void Frame::SetCoord(int atom, double *Coord) {
   X[natom3+2] = Coord[2];
 }
 
-/* Frame::Coord()
- * Return double pointer to XYZ coord of given atom.
- */
+// Frame::Coord()
+/** Return double pointer to XYZ coord of given atom.
+  */
 double *Frame::Coord(int atom) {
   if (atom<0 || atom>=natom) return NULL;
   return ( X+(atom*3) );
 }
 
-/* Frame::SetFrameFromMask()
- * Given an existing Frame and an AtomMask (with Nselected atoms and atom 
- * numbers corresponding to FrameIn), set this Frame to be a copy of FrameIn
- * according to Mask. 
- * If the number of atoms in the Mask is greater than this frame has been set 
- * up for, reallocate to accomodate. Only reallocate/set this frames Mass and V
- * if the incoming frame has them.
- * For this to work properly AtomMask needs to have been setup based on 
- * FrameIn, although this is not explicitly checked for.
- */
+// Frame::SetFrameFromMask()
+/** Given an existing Frame and an AtomMask (with Nselected atoms and atom 
+  * numbers corresponding to FrameIn), set this Frame to be a copy of FrameIn
+  * according to Mask. 
+  * If the number of atoms in the Mask is greater than this frame has been set 
+  * up for, reallocate to accomodate. Only reallocate/set this frames Mass and V
+  * if the incoming frame has them.
+  * For this to work properly AtomMask needs to have been setup based on 
+  * FrameIn, although this is not explicitly checked for.
+  */
 void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
   bool Reallocate = false;
   int oldatom3;
@@ -613,11 +612,11 @@ void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
   T = FrameIn->T;
 }
 
-/* Frame::SetFrameCoordsFromMask()
- * Like SetFrameFromMask except only copy the coordinates. Unlike
- * SetFrameFromMask the #atoms in this Frame must match the 
- * #selected atoms in Mask.
- */
+// Frame::SetFrameCoordsFromMask()
+/** Like SetFrameFromMask except only copy the coordinates. Unlike
+  * SetFrameFromMask the #atoms in this Frame must match the 
+  * #selected atoms in Mask.
+  */
 int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
   int oldatom3;
   double *newX;
@@ -637,11 +636,11 @@ int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
   return 0;
 }
 
-/* ----------------- Center of Mass Calculation Routines -------------------- */
-/* Frame::CenterOfMass()
- * Given an AtomMask put center of mass of atoms in mask into Coord. Return 
- * sum of masses in Mask.
- */
+// ----------------- Center of Mass Calculation Routines -------------------- 
+// Frame::CenterOfMass()
+/** Given an AtomMask put center of mass of atoms in mask into Coord. Return 
+  * sum of masses in Mask.
+  */
 double Frame::CenterOfMass(AtomMask *Mask, double *Coord) {
   int i,atom,natom3;
   double sumMass,mass,Coord0,Coord1,Coord2;
@@ -674,10 +673,10 @@ double Frame::CenterOfMass(AtomMask *Mask, double *Coord) {
   return sumMass;
 }
 
-/* Frame::GeometricCenter()
- * Given an AtomMask put geometric center of atoms in mask into Coord. Return 
- * #atoms in Mask.
- */
+// Frame::GeometricCenter()
+/** Given an AtomMask put geometric center of atoms in mask into Coord. Return 
+  * #atoms in Mask.
+  */
 double Frame::GeometricCenter(AtomMask *Mask, double *Coord) {
   int i,atom,natom3;
   double sumMass,Coord0,Coord1,Coord2;
@@ -709,10 +708,10 @@ double Frame::GeometricCenter(AtomMask *Mask, double *Coord) {
   return sumMass;
 }
 
-/* Frame::CenterOfMass()
- * Put center of mass of all atoms between start and stop in frame into 
- * Coord. Return sum of masses.
- */
+// Frame::CenterOfMass()
+/** Put center of mass of all atoms between start and stop in frame into 
+  * Coord. Return sum of masses.
+  */
 double Frame::CenterOfMass(double *Coord, int startAtom, int stopAtom) {  
   int i,m;
   int startAtom3, stopAtom3;
@@ -748,10 +747,10 @@ double Frame::CenterOfMass(double *Coord, int startAtom, int stopAtom) {
   return sumMass;
 }
 
-/* Frame::GeometricCenter()
- * Put geometric center of all atoms between start and stop in frame into 
- * Coord. Return #atoms used in calc.
- */
+// Frame::GeometricCenter()
+/** Put geometric center of all atoms between start and stop in frame into 
+  * Coord. Return #atoms used in calc.
+  */
 double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {  
   int i;
   int startAtom3, stopAtom3;
@@ -786,7 +785,7 @@ double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {
   return sumMass;
 }
 
-/* -------------------- Coordinate Calculation Routines --------------------- */
+// -------------------- Coordinate Calculation Routines --------------------- 
 // Frame::BoxToRecip()
 /** Use box coordinates to calculate reciprocal space conversions for use
   * with imaging routines. Return cell volume.
@@ -834,15 +833,15 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
   return volume;
 }
 
-/* Frame::DIST2()
- * Call the appropriate distance calc for atoms in Mask1 and Mask2 based on
- * given box type.
- *   0 = None
- *   1 = Orthorhombic
- *   2 = Non-orthorhombic
- * Based on useMassIn, calculate geometric center (false) or center of mass 
- * (true) of the atoms in each mask.
- */
+// Frame::DIST2()
+/** Call the appropriate distance calc for atoms in Mask1 and Mask2 based on
+  * given box type.
+  *   0 = None
+  *   1 = Orthorhombic
+  *   2 = Non-orthorhombic
+  * Based on useMassIn, calculate geometric center (false) or center of mass 
+  * (true) of the atoms in each mask.
+  */
 double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int boxType,
                     double *ucell, double *recip) {
   double a1[3], a2[3];
@@ -867,12 +866,12 @@ double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int boxTyp
   return (-1.0);
 }
 
-/* Frame::DIST2()
- * Return the distance between atoms A1 and A2 with optional imaging.
- *   0 = None
- *   1 = Orthorhombic
- *   2 = Non-orthorhombic
- */
+// Frame::DIST2()
+/** Return the distance between atoms A1 and A2 with optional imaging.
+  *   0 = None
+  *   1 = Orthorhombic
+  *   2 = Non-orthorhombic
+  */
 double Frame::DIST2(int A1, int A2, int boxType, double *ucell, double *recip) {
   int atom3;
   double a1[3], a2[3];
@@ -898,12 +897,12 @@ double Frame::DIST2(int A1, int A2, int boxType, double *ucell, double *recip) {
   return (-1.0);
 }
 
-/* Frame::DIST2()
- * Return the distance between a point and atom A2 with optional imaging.
- *   0 = None
- *   1 = Orthorhombic
- *   2 = Non-orthorhombic
- */
+// Frame::DIST2()
+/** Return the distance between a point and atom A2 with optional imaging.
+  *   0 = None
+  *   1 = Orthorhombic
+  *   2 = Non-orthorhombic
+  */
 double Frame::DIST2(double *a1, int A2, int boxType, double *ucell, double *recip) {
   int atom3;
   double a2[3];
@@ -925,9 +924,9 @@ double Frame::DIST2(double *a1, int A2, int boxType, double *ucell, double *reci
   return (-1.0);
 }
 
-/* Frame::DIST()
- * Return the distance between atoms A1 and A2, no imaging.
- */
+// Frame::DIST()
+/** Return the distance between atoms A1 and A2, no imaging.
+  */
 double Frame::DIST(int A1, int A2) {
   int i, j; // Actual indices into X
   double x,y,z,D;
@@ -947,9 +946,9 @@ double Frame::DIST(int A1, int A2) {
   return D;
 }
 
-/* Frame::DIST2()
- * Return the distance squared between atoms A1 and A2, no imaging.
- */
+// Frame::DIST2()
+/** Return the distance squared between atoms A1 and A2, no imaging.
+  */
 double Frame::DIST2(int A1, int A2) {
   int i, j; // Actual indices into X
   double x,y,z,D2;
@@ -969,10 +968,10 @@ double Frame::DIST2(int A1, int A2) {
   return D2;
 }
 
-/* Frame::COORDDIST()
- * Return the distance between atoms i and j, no imaging. i and j
- * should be actual indices into the coord array (i.e. atom# * 3).
- */
+// Frame::COORDDIST()
+/** Return the distance between atoms i and j, no imaging. i and j
+  * should be actual indices into the coord array (i.e. atom# * 3).
+  */
 double Frame::COORDDIST(int i, int j) {
   double x,y,z,D;
 
@@ -988,10 +987,10 @@ double Frame::COORDDIST(int i, int j) {
   return D;
 }
 
-/* Frame::COORDDIST2()
- * Return the distance between atoms i and j, no imaging. i and j
- * should be actual indices into the coord array (i.e. atom# * 3).
- */
+// Frame::COORDDIST2()
+/** Return the distance between atoms i and j, no imaging. i and j
+  * should be actual indices into the coord array (i.e. atom# * 3).
+  */
 double Frame::COORDDIST2(int i, int j) {
   double x,y,z,D;
 
@@ -1007,10 +1006,10 @@ double Frame::COORDDIST2(int i, int j) {
   return D;
 }
 
-/* Frame::ANGLE()
- * Return the angle (in radians) between atoms in M1, M2, M3.
- * Adapted from PTRAJ.
- */
+// Frame::ANGLE()
+/** Return the angle (in radians) between atoms in M1, M2, M3.
+  * Adapted from PTRAJ.
+  */
 double Frame::ANGLE(AtomMask *M1, AtomMask *M2, AtomMask *M3,bool useMass) {
   double a1[3],a2[3],a3[3];
   double angle, xij, yij, zij, xkj, ykj, zkj, rij, rkj;
@@ -1049,10 +1048,10 @@ double Frame::ANGLE(AtomMask *M1, AtomMask *M2, AtomMask *M3,bool useMass) {
   return angle;
 }
 
-/* Frame::ANGLE()
- * Return the angle (in radians) between atoms specified by A1, A2, A3.
- * Adapted from PTRAJ.
- */
+// Frame::ANGLE()
+/** Return the angle (in radians) between atoms specified by A1, A2, A3.
+  * Adapted from PTRAJ.
+  */
 double Frame::ANGLE(int A1, int A2, int A3) {
   double angle, xij, yij, zij, xkj, ykj, zkj, rij, rkj;
   int a1, a2, a3;
@@ -1084,12 +1083,13 @@ double Frame::ANGLE(int A1, int A2, int A3) {
   return angle;
 }
 
-/* Frame::DIHEDRAL()
- * Return dihedral angle between COM of atoms in M1-M4.
- * NOTE: Torsion returns angles in radians.
- */
+// Frame::DIHEDRAL()
+/** Return dihedral angle between COM of atoms in M1-M4.
+  * NOTE: Torsion returns angles in radians.
+  */
 double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4,
-                       bool useMass) {
+                       bool useMass) 
+{
   double a1[3],a2[3],a3[3],a4[3];
 
   if (useMass) {
@@ -1107,10 +1107,10 @@ double Frame::DIHEDRAL(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4,
   return Torsion(a1,a2,a3,a4);
 }
 
-/* Frame::DIHEDRAL()
- * Return dihedral angle between atoms A1-A4.
- * NOTE: Torsion returns angles in radians.
- */
+// Frame::DIHEDRAL()
+/** Return dihedral angle between atoms A1-A4.
+  * NOTE: Torsion returns angles in radians.
+  */
 double Frame::DIHEDRAL(int A1, int A2, int A3, int A4) {
   int a1,a2,a3,a4;
   
@@ -1121,16 +1121,17 @@ double Frame::DIHEDRAL(int A1, int A2, int A3, int A4) {
   return Torsion(X+a1,X+a2,X+a3,X+a4);
 }
 
-/* Frame::PUCKER()
- * Return the pseudorotation between atoms in masks M1-M5 for the given
- * puckerMethod:
- *   0: Use Altona & Sundaralingam method/conventions
- *   1: Use Cremer & Pople method
- * If amplitude is true, return amplitude instead of pseudorotation.
- * NOTE: Pucker routines return angles in radians.
- */
+// Frame::PUCKER()
+/** Return the pseudorotation between atoms in masks M1-M5 for the given
+  * puckerMethod:
+  *   0: Use Altona & Sundaralingam method/conventions
+  *   1: Use Cremer & Pople method
+  * If amplitude is true, return amplitude instead of pseudorotation.
+  * NOTE: Pucker routines return angles in radians.
+  */
 double Frame::PUCKER(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4, AtomMask *M5,
-                     int puckerMethod, bool amplitude, bool useMassIn) {
+                     int puckerMethod, bool amplitude, bool useMassIn) 
+{
   double a1[3],a2[3],a3[3],a4[3],a5[3]; 
   double angle, amp;
 
@@ -1159,10 +1160,10 @@ double Frame::PUCKER(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4, Ato
   return angle;
 }
 
-/* Frame::RADGYR()
- * Return the radius of gyration of atoms in mask. Also set the maximum 
- * distance from center. Use center of mass if useMassIn is true.
- */
+// Frame::RADGYR()
+/** Return the radius of gyration of atoms in mask. Also set the maximum 
+  * distance from center. Use center of mass if useMassIn is true.
+  */
 double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
   double mid[3], Coord[3];
   double currentMass, total_mass, maxMass, dist2, sumDist2;
@@ -1210,16 +1211,16 @@ double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
   return currentMass;
 }
 
-/* Frame::RMSD()
- * Get the RMSD of this Frame to Ref Frame. Ref frame must contain the same
- * number of atoms as this Frame - should be checked for before this routine
- * is called. Put the best-fit rotation matrix in U and the COM translation 
- * vectors in T. The translation is composed of two XYZ vectors; the first is 
- * the shift of the XYZ coords to origin, and the second is the shift to Ref 
- * origin. To reproduce the fit perform the first translation (Trans[0...2]), 
- * then rotate (U), then the second translation (Trans[3...5]).
- * Adapted from PTRAJ.
- */
+// Frame::RMSD()
+/** Get the RMSD of this Frame to Ref Frame. Ref frame must contain the same
+  * number of atoms as this Frame - should be checked for before this routine
+  * is called. Put the best-fit rotation matrix in U and the COM translation 
+  * vectors in Trans. The translation is composed of two XYZ vectors; the first
+  * is the shift of the XYZ coords to origin, and the second is the shift to Ref 
+  * origin. To reproduce the fit perform the first translation (Trans[0...2]), 
+  * then rotate (U), then the second translation (Trans[3...5]).
+  * Adapted from PTRAJ.
+  */
 double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   double frameCOM[3], refCOM[3], rms_return, total_mass;
   double mwss, rot[9], rtr[9];
@@ -1388,17 +1389,17 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   return rms_return;
 }
 
-/* Frame::RMSD_CenteredRef()
- * Get the RMSD of this Frame to given Reference Frame. Ref frame must contain 
- * the same number of atoms as this Frame and should have already been 
- * translated to coordinate origin (neither is checked for in the interest
- * of speed). Put the best-fit rotation matrix in U and the COM translation 
- * vector for Frame in Trans[0-2]. The translation is composed of two XYZ 
- * vectors; the first is the shift of the XYZ coords to origin, and the second 
- * is the shift to Reference origin (should already be set). To reproduce the 
- * fit perform the first translation (Trans[0...2]), rotate (U), then the second
- * translation (Trans[3...5]).
- */
+// Frame::RMSD_CenteredRef()
+/** Get the RMSD of this Frame to given Reference Frame. Ref frame must contain 
+  * the same number of atoms as this Frame and should have already been 
+  * translated to coordinate origin (neither is checked for in the interest
+  * of speed). Put the best-fit rotation matrix in U and the COM translation 
+  * vector for Frame in Trans[0-2]. The translation is composed of two XYZ 
+  * vectors; the first is the shift of the XYZ coords to origin, and the second 
+  * is the shift to Reference origin (should already be set). To reproduce the 
+  * fit perform the first translation (Trans[0...2]), rotate (U), then the second
+  * translation (Trans[3...5]).
+  */
 double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool useMassIn) 
 {
   double frameCOM[3], rms_return, total_mass, atom_mass;
@@ -1561,10 +1562,10 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   return rms_return;
 }
 
-/* Frame::RMSD()
- * Calculate RMSD of Frame to Ref with no fitting. Frames must contain
- * same # atoms.
- */
+// Frame::RMSD()
+/** Calculate RMSD of Frame to Ref with no fitting. Frames must contain
+  * same # atoms.
+  */
 double Frame::RMSD( Frame *Ref, bool useMass ) {
   double rms_return, total_mass, xx,yy,zz, currentMass;
   int i, m;
@@ -1598,10 +1599,10 @@ double Frame::RMSD( Frame *Ref, bool useMass ) {
   return rms_return;
 }
 
-/* Frame::DISTRMSD()
- * Calcuate the distance RMSD of Frame to Ref. Frames must contain
- * same # of atoms. Should not be called for 0 atoms.
- */
+// Frame::DISTRMSD()
+/** Calcuate the distance RMSD of Frame to Ref. Frames must contain
+  * same # of atoms. Should not be called for 0 atoms.
+  */
 double Frame::DISTRMSD( Frame *Ref ) {
   double TgtDist, RefDist;
   double diff, rms_return;
