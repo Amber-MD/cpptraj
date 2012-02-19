@@ -172,7 +172,7 @@ char *DataSetList::checkName(char *nameIn, const char *defaultName) {
     namesize += extsize;
     dsetName = new char[ namesize ];
     sprintf(dsetName,"%s_%05i",defaultName,Ndata);
-    mprintf("NAME SIZE [%s] = %lu\n",dsetName,namesize);
+    //mprintf("NAME SIZE [%s] = %lu\n",dsetName,namesize);
   } else {
     namesize = strlen( nameIn ) + 1; // + null
     dsetName = new char[ namesize ];

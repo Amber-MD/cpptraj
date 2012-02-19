@@ -469,19 +469,20 @@ void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
 
 // Frame::CenterReference()
 /** Center coordinates to origin in preparation for RMSD calculation. Store
-  * the appropriate translation vector in Trans[3-5].
+  * translation vector from origin to reference in Trans.
   */
 void Frame::CenterReference(double *Trans, bool useMassIn) {
   double center[3];
   if (useMassIn)
-    this->CenterOfMass(Trans+3,0,natom);
+    this->CenterOfMass(Trans,0,natom);
   else
-    this->GeometricCenter(Trans+3,0,natom);
-  //mprinterr("  REF FRAME CENTER: %lf %lf %lf\n",Trans[3],Trans[4],Trans[5]); //DEBUG
-
-  center[0] = -Trans[3];
-  center[1] = -Trans[4];
-  center[2] = -Trans[5];
+    this->GeometricCenter(Trans,0,natom);
+  //mprinterr("  REF FRAME CENTER: %lf %lf %lf\n",Trans[0],Trans[1],Trans[2]); //DEBUG
+  // Trans now contains translation from origin -> Ref
+  center[0] = -Trans[0];
+  center[1] = -Trans[1];
+  center[2] = -Trans[2];
+  // Center now contains translation from Ref -> origin.
   this->Translate(center);
 }
 
@@ -1256,8 +1257,8 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   refCOM[0]  =-refCOM[0];   refCOM[1]  =-refCOM[1];   refCOM[2]  =-refCOM[2];
   this->Translate(frameCOM);
   Ref->Translate(refCOM);
-  //fprintf(stderr,"  SHIFTED FRAME 0: %lf %lf %lf\n",X[0],X[1],X[2]); //DEBUG
-  //fprintf(stderr,"  SHIFTED REF 0  : %lf %lf %lf\n",Ref->X[0],Ref->X[1],Ref->X[2]); //DEBUG
+  //mprintf("  SHIFTED FRAME 0: %lf %lf %lf\n",X[0],X[1],X[2]); //DEBUG
+  //mprintf("  SHIFTED REF 0  : %lf %lf %lf\n",Ref->X[0],Ref->X[1],Ref->X[2]); //DEBUG
 
   // Use Kabsch algorithm to calculate optimum rotation matrix.
   // U = [(RtR)^.5][R^-1]
@@ -1431,8 +1432,8 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   // Shift to common COM
   frameCOM[0]=-frameCOM[0]; frameCOM[1]=-frameCOM[1]; frameCOM[2]=-frameCOM[2];
   this->Translate(frameCOM);
-  //fprintf(stderr,"  SHIFTED FRAME 0: %lf %lf %lf\n",X[0],X[1],X[2]); //DEBUG
-  //fprintf(stderr,"  SHIFTED REF 0  : %lf %lf %lf\n",Ref->X[0],Ref->X[1],Ref->X[2]); //DEBUG
+  //mprintf("  SHIFTED FRAME 0: %lf %lf %lf\n",X[0],X[1],X[2]); //DEBUG
+  //mprintf("  SHIFTED REF 0  : %lf %lf %lf\n",Ref.X[0],Ref.X[1],Ref.X[2]); //DEBUG
 
   // Use Kabsch algorithm to calculate optimum rotation matrix.
   // U = [(RtR)^.5][R^-1]
