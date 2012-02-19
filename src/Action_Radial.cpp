@@ -104,7 +104,8 @@ int Radial::init() {
   // each thread needs its own bin space.
 #pragma omp parallel
 {
-  numthreads = omp_get_num_threads();
+  if (omp_get_thread_num()==0)
+    numthreads = omp_get_num_threads();
 }
   rdf_thread = new int*[ numthreads ];
   for (int i=0; i < numthreads; i++) {
