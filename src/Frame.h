@@ -30,6 +30,8 @@ class Frame {
     virtual ~Frame();             // Destructor is virtual since this class can be inherited
     Frame & operator=(const Frame&);
     Frame & operator+=(const Frame&);
+    Frame & operator-=(const Frame&);
+    int Divide(Frame&, double); 
     Frame(const Frame&);
 
     int SetupFrame(int, double*);

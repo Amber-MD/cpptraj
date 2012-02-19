@@ -102,6 +102,29 @@ Frame &Frame::operator+=(const Frame &rhs) {
   return *this;
 }
 
+// Frame::operator-=()
+Frame &Frame::operator-=(const Frame &rhs) {
+  // // For now ensure same natom
+  if (natom != rhs.natom) {
+    mprinterr("Error: Frame::operator-=: Attempting to add 2 frames with different natom.\n");
+    return *this;
+  }
+  for (int i = 0; i < N; i++)
+    X[i] -= rhs.X[i];
+  return *this;
+}
+
+// Frame::Divide()
+// NOTE: Should eventually just be an operator
+int Frame::Divide(Frame &dividend, double divisor) {
+  if (divisor < SMALL) {
+    mprinterr("Error: Frame::Divide: Detected divide by 0.\n");
+    return 1;
+  }
+  for (int i=0; i<N; i++)
+    X[i] = dividend.X[i] / divisor;
+  return 0;
+}
 
 // Frame::SetupFrame()
 /** Set up frame for given number of atoms. Store mass information
