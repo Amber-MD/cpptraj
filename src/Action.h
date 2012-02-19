@@ -1,12 +1,16 @@
 #ifndef INC_ACTION_H
 #define INC_ACTION_H
+#include "FrameList.h"
+#include "ArgList.h"
+#include "DataSetList.h"
+#include "DataFileList.h"
+#include "ParmFileList.h"
 // Class: Action 
 /// The base class that all other actions inherit. 
-/** Each action currently
-  * holds the memory address of all important state information: the
-  * master dataset list, datafile list, parm file list, and reference
-  * frame list. By convention actions have 4 main phases: Init, Setup,
-  * Action, and print (optional).
+/** Each action currently holds the memory address of all important state 
+  * information: the master dataset list, datafile list, parm file list, 
+  * and reference frame list. By convention actions have 4 main phases: Init, 
+  * Setup, Action, and print (optional).
   * Mass Common Functionality:
   * Since several actions have the option to include mass information as
   * part of the calculation (mostly for calculating center of mass as opposed 
@@ -14,14 +18,6 @@
   * mass information is checked in Setup. useMass is set to false if the parm
   * does not contain mass information.
   */
-// NOTE: This means that mass disabled for all future invocations of setup,
-//       should probably be changed.
-#include "FrameList.h"
-#include "ArgList.h"
-#include "DataSetList.h"
-#include "DataFileList.h"
-#include "ParmFileList.h"
-#include "AmberParm.h"
 class Action {
   protected:
     bool isSeparate;        ///< If true action was initialized outside main action list.
