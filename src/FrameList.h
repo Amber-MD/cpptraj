@@ -10,6 +10,7 @@
   * reference frames, this is the name of the reference coordinate 
   * file and the frame number). 
   */
+// NOTE: Eventually store a vector of Frames, not Frame*s
 class FrameList {
     std::vector<Frame*> frameList;
     ParmFileList FrameParm;
