@@ -75,20 +75,6 @@ void AtomMask::InvertMask() {
     maskChar = 'T';
 }
 
-// AtomMask::CopyMask()
-AtomMask *AtomMask::CopyMask() {
-  AtomMask *newMask;
-  newMask = new AtomMask();
-  newMask->Nselected = Nselected;
-  newMask->Natom = Natom;
-  newMask->maskChar = maskChar;
-  newMask->maskString = maskString;
-  newMask->Selected = Selected;
-  newMask->CharMask = CharMask;
-  newMask->Postfix = Postfix;
-  return newMask;
-}
-
 // AtomMask::NumAtomsInCommon()
 /** Given an atom mask, determine how many selected atoms this mask
   * has in common with it.

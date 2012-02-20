@@ -51,22 +51,21 @@ class AtomMask {
     char *PostfixExpression();
     void ResetMask();              ///< Reset atom mask
     void InvertMask();             ///< Switch char used to denote selected atoms (T->F, F->T)
-    AtomMask *CopyMask();          ///< Return a copy of this mask
 
     int NumAtomsInCommon(AtomMask &);
-    void AddAtom(int);             ///< Add given atom to Selected array 
+    void AddAtom(int);                ///< Add given atom to Selected array 
     void AddAtoms(std::vector<int>&); ///< Add a list of atoms to mask
-    void AddAtomRange(int,int);    ///< Add minAtom <= atom < maxAtom to mask
+    void AddAtomRange(int,int);       ///< Add minAtom <= atom < maxAtom to mask
     void PrintMaskAtoms(const char*); ///< Print all mask atoms in to a line
-    bool None();                   ///< Return true if Nselected==0
-    int SetMaskString(char*);      ///< Set the mask string. If NULL, set * (all)
+    bool None();                      ///< Return true if Nselected==0
+    int SetMaskString(char*);         ///< Set the mask string. If NULL, set * (all)
     /// Set up Selected based on given char mask 
     void SetupMask(char*,int,int);
     /// Set up CharMask based on given char mask 
     void SetupCharMask(char*, int, int);
     /// True if given atom is T in CharMask
     bool AtomInCharMask(int atom);
-    /// Convert mask type
+    /// Convert mask type (char->int, int->char)
     int ConvertMaskType(); 
 };
 #endif
