@@ -215,11 +215,9 @@ int Rmsd::init( ) {
     mprintf(", no fitting");
   else
     mprintf(", with fitting");
-  mprintf(".\n");
   if (useMass) 
-    mprintf("          Center of mass will be used.\n");
-  else
-    mprintf("          Geometric center will be used.\n");
+    mprintf(", mass-weighted");
+  mprintf(".\n");
   // Per-residue RMSD info.
   if (perres) {
     mprintf("          No-fit RMSD will also be calculated for ");
