@@ -48,7 +48,7 @@ class AxisType : public Frame {
     /// Identify NA base from residue name
     NAbaseType ID_base(char*);
     static const char NAbaseName[][5];
-    NAME *Name;  ///< Atom/Axis names
+    NAME *Name;         ///< Atom/Axis names
     int residue_number; ///< Original residue number
 
     int AllocAxis(int);
@@ -59,7 +59,6 @@ class AxisType : public Frame {
     int HbondAtom[3];
 
     AxisType();
-    //AxisType(int);
     AxisType(const AxisType&);
     AxisType & operator=(const AxisType&);
     ~AxisType();
@@ -69,14 +68,12 @@ class AxisType : public Frame {
     double *Origin();
     char *BaseName();
     int BaseNum() { return residue_number; }
-    //int AtomIndex(char *);
     bool AtomNameIs(int, char *);
     char *AtomName(int);
     void PrintAtomNames();
     void SetFromFrame(AxisType *);
     void StoreRotMatrix(double*);
     void SetPrincipalAxes();
-    //int SetRefCoord(char *);
     enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };
     RefReturn SetRefCoord(AmberParm *, int, AtomMask &);
     void FlipYZ();

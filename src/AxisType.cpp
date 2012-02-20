@@ -129,6 +129,7 @@ AxisType::AxisType() {
 }
 
 // COPY CONSTRUCTOR
+// NOTE: Base class copy is part of the call
 AxisType::AxisType(const AxisType &rhs) :
   Frame(rhs) 
 {
@@ -183,26 +184,6 @@ AxisType &AxisType::operator=(const AxisType &rhs) {
   return *this;
 } 
 
-// CONSTRUCTOR - Only allocate coords
-/*AxisType::AxisType(int natomIn) {
-  natom = natomIn;
-  maxnatom = natom;
-  N = natom * 3;
-  X = new double[ N ];
-  ID = UNKNOWN_BASE;
-  Name = NULL;
-  R[0]=0.0; R[1]=0.0; R[2]=0.0;
-  R[3]=0.0; R[4]=0.0; R[5]=0.0;
-  R[6]=0.0; R[7]=0.0; R[8]=0.0;
-  HbondCoord[0]=NULL;
-  HbondCoord[1]=NULL;
-  HbondCoord[2]=NULL;
-  HbondAtom[0]=-1;
-  HbondAtom[1]=-1;
-  HbondAtom[2]=-1;
-  residue_number=-1;
-}*/
-
 // DESTRUCTOR
 AxisType::~AxisType() {
   if (Name!=NULL) delete[] Name;
@@ -245,29 +226,37 @@ double *AxisType::Origin() {
   * non-standard bases.
   */
 AxisType::NAbaseType AxisType::ID_base(char *resname) {
-  char *resID;
-  bool isDNA = true; // Assume DNA unless noted otherwise 
-  //mprintf("        [%s]\n",resname);
+  //mprintf("DBG:\tNAresname [%s]\n",resname);
   if (resname==NULL) return UNKNOWN_BASE;
-  resID = resname;
   // If residue name begins with D, assume AMBER DNA residue
-  if (resID[0]=='D') resID++;
-  if (resID[0]=='R') {resID++; isDNA=false;}
-  if (isDNA) {
-    switch (resID[0]) {
+  if (resname[0]=='D') {
+    switch (resname[1]) {
       case 'A': return DA;
       case 'C': return DC;
       case 'G': return DG;
       case 'T': return DT;
     }
-  } else {
-    switch (resID[0]) {
+  // If residue name beings with R, assume AMBER RNA residue
+  } else if (resname[0]=='R') {
+    switch (resname[1]) {
       case 'A': return RA;
       case 'C': return RC;
       case 'G': return RG;
       case 'U': return RU;
     }
-  }
+  // Look for standard 3 letter/1 letter NA residue names
+  } else {
+    if (strncmp(resname,"ADE",3)==0) return DA;
+    if (strncmp(resname,"CYT",3)==0) return DC;
+    if (strncmp(resname,"GUA",3)==0) return DG;
+    if (strncmp(resname,"THY",3)==0) return DT;
+    if (strncmp(resname,"URA",3)==0) return RU;
+    if (resname[0]=='A') return DA;
+    if (resname[0]=='C') return DC;
+    if (resname[0]=='G') return DG;
+    if (resname[0]=='T') return DT;
+    if (resname[0]=='U') return RU;
+  } 
   return UNKNOWN_BASE;
 }
 
@@ -282,7 +271,7 @@ int AxisType::AllocAxis(int natomIn) {
   N = natom * 3;
   X = new double[ N ];
   if (X==NULL) return 1;
-  Name = new NAME[ natom ]; // (NAME*) malloc( natom * sizeof(NAME));
+  Name = new NAME[ natom ]; 
   if (Name==NULL) {delete[] X; return 1;}
   return 0;
 }
@@ -292,16 +281,6 @@ int AxisType::AllocAxis(int natomIn) {
 char *AxisType::BaseName() {
   return (char*)NAbaseName[ID];
 }
-
-/* AxisType::AtomIndex()
- * Return atom index of given atom name in axis. 
- * Return -1 if name not found.
- */
-/*int AxisType::AtomIndex(char *atomname) {
-  for (int atom=0; atom < natom; atom++) 
-    if (strcmp(atomname, Name[atom])==0) return atom;
-  return -1;
-}*/
 
 // AxisType::AtomNameIs()
 bool AxisType::AtomNameIs(int atom, char *nameIn) {
@@ -379,90 +358,6 @@ void AxisType::SetPrincipalAxes() {
   X[1]=0.0; X[4]=1.0; X[7]=0.0; X[10]=0.0; 
   X[2]=0.0; X[5]=0.0; X[8]=1.0; X[11]=0.0;
 }
-
-/* AxisType::SetRefCoord()
- * Set NA residue reference coordinates for given NA base name.
- */
-/*
-int AxisType::SetRefCoord(char *resname) {
-  // First, identify the base
-  ID = ID_base(resname);
-  switch (ID) {
-    case DA :
-    case RA :
-      if (AllocAxis(11)) return 1;
-      X[0 ]=-2.479000; X[1 ]= 5.346000; X[2 ]= 0.000000; strcpy(Name[0 ],"C1' ");
-      X[3 ]=-1.291000; X[4 ]= 4.498000; X[5 ]= 0.000000; strcpy(Name[1 ],"N9  ");
-      X[6 ]= 0.024000; X[7 ]= 4.897000; X[8 ]= 0.000000; strcpy(Name[2 ],"C8  ");
-      X[9 ]= 0.877000; X[10]= 3.902000; X[11]= 0.000000; strcpy(Name[3 ],"N7  ");
-      X[12]= 0.071000; X[13]= 2.771000; X[14]= 0.000000; strcpy(Name[4 ],"C5  ");
-      X[15]= 0.369000; X[16]= 1.398000; X[17]= 0.000000; strcpy(Name[5 ],"C6  ");
-      X[18]= 1.611000; X[19]= 0.909000; X[20]= 0.000000; strcpy(Name[6 ],"N6  ");
-      X[21]=-0.668000; X[22]= 0.532000; X[23]= 0.000000; strcpy(Name[7 ],"N1  ");
-      X[24]=-1.912000; X[25]= 1.023000; X[26]= 0.000000; strcpy(Name[8 ],"C2  ");
-      X[27]=-2.320000; X[28]= 2.290000; X[29]= 0.000000; strcpy(Name[9 ],"N3  ");
-      X[30]=-1.267000; X[31]= 3.124000; X[32]= 0.000000; strcpy(Name[10],"C4  ");
-      break;
-    case DC :
-    case RC :
-      if (AllocAxis(9)) return 1;
-      X[0 ]=-2.477000; X[1 ]= 5.402000; X[2 ]= 0.000000; strcpy(Name[0],"C1' ");
-      X[3 ]=-1.285000; X[4 ]= 4.542000; X[5 ]= 0.000000; strcpy(Name[1],"N1  ");
-      X[6 ]=-1.472000; X[7 ]= 3.158000; X[8 ]= 0.000000; strcpy(Name[2],"C2  ");
-      X[9 ]=-2.628000; X[10]= 2.709000; X[11]= 0.000000; strcpy(Name[3],"O2  ");
-      X[12]=-0.391000; X[13]= 2.344000; X[14]= 0.000000; strcpy(Name[4],"N3  ");
-      X[15]= 0.837000; X[16]= 2.868000; X[17]= 0.000000; strcpy(Name[5],"C4  ");
-      X[18]= 1.875000; X[19]= 2.027000; X[20]= 0.000000; strcpy(Name[6],"N4  ");
-      X[21]= 1.056000; X[22]= 4.275000; X[23]= 0.000000; strcpy(Name[7],"C5  ");
-      X[24]=-0.023000; X[25]= 5.068000; X[26]= 0.000000; strcpy(Name[8],"C6  ");
-      break;
-    case DG :
-    case RG :
-      if (AllocAxis(12)) return 1;
-      X[0 ]=-2.477000; X[1 ]= 5.399000; X[2 ]= 0.000000; strcpy(Name[0],"C1' ");
-      X[3 ]=-1.289000; X[4 ]= 4.551000; X[5 ]= 0.000000; strcpy(Name[1],"N9  ");
-      X[6 ]= 0.023000; X[7 ]= 4.962000; X[8 ]= 0.000000; strcpy(Name[2],"C8  ");
-      X[9 ]= 0.870000; X[10]= 3.969000; X[11]= 0.000000; strcpy(Name[3],"N7  ");
-      X[12]= 0.071000; X[13]= 2.833000; X[14]= 0.000000; strcpy(Name[4],"C5  ");
-      X[15]= 0.424000; X[16]= 1.460000; X[17]= 0.000000; strcpy(Name[5],"C6  ");
-      X[18]= 1.554000; X[19]= 0.955000; X[20]= 0.000000; strcpy(Name[6],"O6  ");
-      X[21]=-0.700000; X[22]= 0.641000; X[23]= 0.000000; strcpy(Name[7],"N1  ");
-      X[24]=-1.999000; X[25]= 1.087000; X[26]= 0.000000; strcpy(Name[8],"C2  ");
-      X[27]=-2.949000; X[28]= 0.139000; X[29]=-0.001000; strcpy(Name[9],"N2  ");
-      X[30]=-2.342000; X[31]= 2.364000; X[32]= 0.001000; strcpy(Name[10],"N3  ");
-      X[33]=-1.265000; X[34]= 3.177000; X[35]= 0.000000; strcpy(Name[11],"C4  ");
-      break;
-    case DT :
-      if (AllocAxis(10)) return 1;
-      X[0 ]=-2.481000; X[1 ]= 5.354000; X[2 ]= 0.000000; strcpy(Name[0],"C1' ");
-      X[3 ]=-1.284000; X[4 ]= 4.500000; X[5 ]= 0.000000; strcpy(Name[1],"N1  ");
-      X[6 ]=-1.462000; X[7 ]= 3.135000; X[8 ]= 0.000000; strcpy(Name[2],"C2  ");
-      X[9 ]=-2.562000; X[10]= 2.608000; X[11]= 0.000000; strcpy(Name[3],"O2  ");
-      X[12]=-0.298000; X[13]= 2.407000; X[14]= 0.000000; strcpy(Name[4],"N3  ");
-      X[15]= 0.994000; X[16]= 2.897000; X[17]= 0.000000; strcpy(Name[5],"C4  ");
-      X[18]= 1.944000; X[19]= 2.119000; X[20]= 0.000000; strcpy(Name[6],"O4  ");
-      X[21]= 1.106000; X[22]= 4.338000; X[23]= 0.000000; strcpy(Name[7],"C5  ");
-      X[24]= 2.466000; X[25]= 4.961000; X[26]= 0.001000; strcpy(Name[8],"C7  ");
-      X[27]=-0.024000; X[28]= 5.057000; X[29]= 0.000000; strcpy(Name[9],"C6  ");
-      break;
-    case RU:
-      if (AllocAxis(9)) return 1;
-      X[0 ]=-2.481000; X[1 ]= 5.354000; X[2 ]= 0.000000; strcpy(Name[0],"C1' ");
-      X[3 ]=-1.284000; X[4 ]= 4.500000; X[5 ]= 0.000000; strcpy(Name[1],"N1  ");
-      X[6 ]=-1.462000; X[7 ]= 3.131000; X[8 ]= 0.000000; strcpy(Name[2],"C2  ");
-      X[9 ]=-2.563000; X[10]= 2.608000; X[11]= 0.000000; strcpy(Name[3],"O2  ");
-      X[12]=-0.302000; X[13]= 2.397000; X[14]= 0.000000; strcpy(Name[4],"N3  ");
-      X[15]= 0.989000; X[16]= 2.884000; X[17]= 0.000000; strcpy(Name[5],"C4  ");
-      X[18]= 1.935000; X[19]= 2.094000; X[20]=-0.001000; strcpy(Name[6],"O4  ");
-      X[21]= 1.089000; X[22]= 4.311000; X[23]= 0.000000; strcpy(Name[7],"C5  ");
-      X[24]=-0.024000; X[25]= 5.053000; X[26]= 0.000000; strcpy(Name[8],"C6  ");
-      break;
-    case UNKNOWN_BASE:
-      mprintf("Warning: AxisType::SetRefCoord: Missing parameters for residue %s.\n",resname);
-      return 1;
-  }
-  return 0;
-}*/
 
 // AxisType::SetRefCoord()
 /** Set NA residue reference coordinates for given NA base. Ensure that
