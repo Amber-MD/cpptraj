@@ -25,7 +25,9 @@ class Jcoupling: public Action {
       double C[4];      ///< Constants
       int type;         ///< Calculation type (0=Chou, 1=Perez)
     };
+    /// Hold all Karplus constants for a given residue
     typedef std::vector<karplusConstant> *karplusConstantList;
+    /// Hold Karplus constants for all residues
     std::map<std::string,karplusConstantList> KarplusConstants;
     /// Hold info for single j-coupling calculation
     struct jcouplingInfo {
@@ -34,14 +36,15 @@ class Jcoupling: public Action {
       double *C;   ///< Pointer to C in associated karplusConstant structure
       int type;    ///< Calculation type (0=Chou, 1=Perez)
     };
+    /// Hold info for all j-coupling calcs
     std::vector<jcouplingInfo> JcouplingInfo;
 
     AtomMask Mask1;
     int Nconstants;
     // DEBUG
     CpptrajFile outputfile;
-
-    int loadKarplus(char*);
+    /// Load Karplus parameters from a file
+    int loadKarplus(std::string);
   public:
     Jcoupling();
     ~Jcoupling();

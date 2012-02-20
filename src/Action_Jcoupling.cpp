@@ -1,7 +1,7 @@
 // Jcoupling
 #include "Action_Jcoupling.h"
 #include <cstdlib> //getenv
-#include <cstdio> //sscanf,sprintf
+#include <cstdio> //sscanf
 #include <cstring> //strcpy, strlen
 #include <cmath> //cos
 #include "CpptrajStdio.h"
@@ -32,8 +32,9 @@ Jcoupling::~Jcoupling() {
   * Expected format:
   * - {type}<+|-| ><a[4]><+|-| ><b[4]><+|-| ><c[4]><+|-| ><d[4]><A[6]><B[6]><C[6]>{<D[6]>}
   *   <reslabel[4]>* 
+  * \return 0 on success, 1 on error
   */
-int Jcoupling::loadKarplus(char* filename) {
+int Jcoupling::loadKarplus(std::string filename) {
   char buffer[512],residue[5];
   char *end, *ptr;
   int i;
@@ -43,8 +44,13 @@ int Jcoupling::loadKarplus(char* filename) {
   std::string CurrentRes;
   std::map<std::string,karplusConstantList>::iterator reslist;
 
-  if (KarplusFile.SetupFile(filename,READ,debug)) {
-    mprinterr("Error: jcoupling: Could not read Karplus file %s\n",filename);
+  if (filename.empty()) {
+    mprinterr("Error: jcoupling: Could not find Karplus parameter file.\n");
+    return 1;
+  }
+  if (KarplusFile.SetupFile((char*)filename.c_str(),READ,debug)) {
+    mprinterr("Error: jcoupling: Could not read Karplus parameter file %s\n",
+              filename.c_str());
     return 1;
   }
   // residue is only for reading in 4 chars for residue names
@@ -146,7 +152,7 @@ int Jcoupling::init( ) {
   char *mask1;
   char *outfilename;
   char *env;
-  char *karpluspath;
+  std::string karpluspath;
 
   // Get Keywords
   outfilename = actionArgs.getKeyString("outfile",NULL);
@@ -160,43 +166,38 @@ int Jcoupling::init( ) {
   // Add dataset to data file list
 
   // Get Karplus parameters from file.
-  karpluspath=NULL;
+  karpluspath.clear();
   // First look in $AMBERHOME/dat/Karplus.txt
   env = getenv("AMBERHOME");
   if (env==NULL) {
     mprintf("    Warning: jcoupling: AMBERHOME not set.\n");
   } else {
-    karpluspath = (char*) malloc( (strlen(env) + 17) * sizeof(char));
-    sprintf(karpluspath,"%s/dat/Karplus.txt",env);
-    if (!fileExists(karpluspath)) {
-      mprintf("    Warning: jcoupling: %s not found\n",karpluspath);
-      free(karpluspath);
-      karpluspath=NULL;
+    karpluspath.assign(env);
+    karpluspath += "/dat/Karplus.txt";
+    if (!fileExists((char*)karpluspath.c_str())) {
+      mprintf("    Warning: jcoupling: %s not found\n",karpluspath.c_str());
+      karpluspath.clear(); 
     }
   }
   // Second look for $KARPLUS
-  if (karpluspath==NULL) {
+  if (karpluspath.empty()) {
     env = getenv("KARPLUS");
     if (env==NULL) {
       mprinterr("Error: jcoupling: Karplus parameters $AMBERHOME/dat/Karplus.txt not found\n");
       mprinterr("       and KARPLUS environment variable not set.\n");
       return 1;
     }
-    karpluspath = (char*) malloc( (strlen(env) + 1) * sizeof(char));
-    strcpy(karpluspath, env);
+    karpluspath.assign(env);
   }
   // Load Karplus parameters
-  if (loadKarplus(karpluspath)) {
-    free(karpluspath);
+  if (loadKarplus(karpluspath)) 
     return 1;
-  }
 
   mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n",Mask1.MaskString());
-  mprintf("                Using Karplus parameters in \"%s\"\n",karpluspath);
+  mprintf("                Using Karplus parameters in \"%s\"\n",karpluspath.c_str());
   mprintf("                %i parameters found for %i residues.\n",Nconstants,
           KarplusConstants.size());
   mprintf("                Writing output to %s\n",outfilename);
-  free(karpluspath);
 
   // DEBUG - Open output
   outputfile.SetupFile(outfilename,WRITE,debug);
@@ -318,7 +319,6 @@ int Jcoupling::action() {
   double phi,J;
   double phitemp,C0,C1,C2,C3;
   int residue;
-  char buffer[53];
 
   outputfile.IO->Printf("#Frame %i\n",frameNum+OUTPUTFRAMESHIFT);
 
@@ -343,11 +343,11 @@ int Jcoupling::action() {
 
     residue = (*jc).residue;
     // DEBUG - output
-    sprintf(buffer,"%5i %4s%4s%4s%4s%4s%12lf%12lf\n",residue+1,currentParm->ResidueName(residue),
+    outputfile.IO->Printf("%5i %4s%4s%4s%4s%4s%12lf%12lf\n",
+            residue+1,currentParm->ResidueName(residue),
             currentParm->AtomName((*jc).atom[0]),currentParm->AtomName((*jc).atom[1]),
             currentParm->AtomName((*jc).atom[2]),currentParm->AtomName((*jc).atom[3]),
             phi*RADDEG,J);
-    outputfile.IO->Write(buffer,1,51);
     //mprintf("%5i %4s",residue+1,P->resnames[residue]);
     //mprintf("%4s",P->names[(*jc).atom[0]]);
     //mprintf("%4s",P->names[(*jc).atom[1]]);
