@@ -23,6 +23,8 @@ class Rms2d: public Action {
     AmberParm *RefParm;        ///< Reference trajectory Parm
     DataSet_double Ct;         ///< Hold auto-correlation
     char *corrfilename;        ///< Auto-correlation output filename
+    double *mass_ptr;          ///< If useMass, hold mass info for parm.
+    bool mass_setup;           ///< Used to check if mass already set up.
 
     void CalcRmsToTraj();
     int AutoCorrelate(TriangleMatrix &);
