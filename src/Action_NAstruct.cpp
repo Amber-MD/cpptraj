@@ -25,38 +25,19 @@ NAstruct::NAstruct() {
 // DESTRUCTOR
 NAstruct::~NAstruct() { 
   ClearLists();
-  while (!BasePairAxes.empty()) {
-    delete BasePairAxes.back();
-    BasePairAxes.pop_back();
-  }
+  BasePairAxes.clear();
 }
 
 // NAstruct::ClearLists()
 /** Clear all parm-dependent lists
   */
 void NAstruct::ClearLists() {
-  while (!RefCoords.empty()) {
-    delete RefCoords.back();
-    RefCoords.pop_back();
-  }
-  while (!BaseAxes.empty()) {
-    delete BaseAxes.back();
-    BaseAxes.pop_back();
-  }
+  RefCoords.clear();
+  BaseAxes.clear();
 // NOTE: Since BasePairAxes are set up to correspond with SHEAR etc dont
 // free in this routine - should only be freed at the very end.
-//  while (!BasePairAxes.empty()) {
-//    delete BasePairAxes.back();
-//    BasePairAxes.pop_back();
-//  }
-  while (!ExpMasks.empty()) {
-    delete ExpMasks.back();
-    ExpMasks.pop_back();
-  }
-  while (!ExpFrames.empty()) {
-    delete ExpFrames.back();
-    ExpFrames.pop_back();
-  }
+  ExpFrames.clear();
+  ExpMasks.clear();
 }
 
 // ------------------------- PRIVATE FUNCTIONS --------------------------------
@@ -200,49 +181,50 @@ int NAstruct::determineBasePairing() {
     for (base2=base1+1; base2 < Nbases; base2++) {
       if (isPaired[base2]) continue;
       // First determine if origin axes coords are close enough to consider pairing
-      distance = DIST2_NoImage(BaseAxes[base1]->Origin(), BaseAxes[base2]->Origin());
+      distance = DIST2_NoImage(BaseAxes[base1].Origin(), BaseAxes[base2].Origin());
 /*#     ifdef NASTRUCTDEBUG 
       mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
-              base1,ExpFrames[base1]->BaseName(),
-              base2,ExpFrames[base2]->BaseName(),sqrt(distance));
+              base1,ExpFrames[base1].BaseName(),
+              base2,ExpFrames[base2].BaseName(),sqrt(distance));
 #     endif*/
       if (distance < originCut2) {
 #       ifdef NASTRUCTDEBUG
         mprintf("  Axes distance for %i:%s -- %i:%s is %lf\n",
-                ExpFrames[base1]->BaseNum()+1,ExpFrames[base1]->BaseName(),
-                ExpFrames[base2]->BaseNum()+1,ExpFrames[base2]->BaseName(),sqrt(distance));
+                ExpFrames[base1].BaseNum()+1,ExpFrames[base1].BaseName(),
+                ExpFrames[base2].BaseNum()+1,ExpFrames[base2].BaseName(),sqrt(distance));
         mprintf("    Checking %i:%s -- %i:%s\n",
-                ExpFrames[base1]->BaseNum()+1,ExpFrames[base1]->BaseName(),
-                ExpFrames[base2]->BaseNum()+1,ExpFrames[base2]->BaseName());
+                ExpFrames[base1].BaseNum()+1,ExpFrames[base1].BaseName(),
+                ExpFrames[base2].BaseNum()+1,ExpFrames[base2].BaseName());
 #       endif
-        // Figure out angle between y vectors
-        BaseAxes[base1]->RY(Z1);
-        BaseAxes[base2]->RY(Z2);
+        // Figure out angle between y vectors, determines whether bases
+        // are able to hydrogen bond based on angle cutoff.
+        BaseAxes[base1].RY(Z1);
+        BaseAxes[base2].RY(Z2);
         distance = dot_product_angle(Z1, Z2);
 #       ifdef NASTRUCTDEBUG
         mprintf("      Angle between Y vectors is %lf deg. (%lf)\n",distance * RADDEG,distance);
 #       endif
         if (distance > HBangleCut2) {
           // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
-          BaseAxes[base1]->RZ(Z1);
-          BaseAxes[base2]->RZ(Z2);
+          BaseAxes[base1].RZ(Z1);
+          BaseAxes[base2].RZ(Z2);
           //printVector("Base1Z",Z1); printVector("Base2Z",Z2);
           distance = dot_product_angle(Z1, Z2);
           //mprintf("    Dot product of Z vectors: %lf\n",distance);
           if (distance > (PIOVER2)) { // If theta(Z) > 90 deg.
 #           ifdef NASTRUCTDEBUG
             mprintf("      Base2 %i is anti-parallel to Base1 %i\n",
-                    ExpFrames[base2]->BaseNum()+1,ExpFrames[base1]->BaseNum()+1);
+                    ExpFrames[base2].BaseNum()+1,ExpFrames[base1].BaseNum()+1);
 #           endif
             AntiParallel = true;
           } else {
 #           ifdef NASTRUCTDEBUG
             mprintf("      Base2 %i is parallel to Base1 %i\n",
-                    ExpFrames[base2]->BaseNum()+1,ExpFrames[base1]->BaseNum()+1);
+                    ExpFrames[base2].BaseNum()+1,ExpFrames[base1].BaseNum()+1);
 #           endif
             AntiParallel = false;
           }
-          if (basesArePaired(ExpFrames[base1], ExpFrames[base2])) {
+          if (basesArePaired(&ExpFrames[base1], &ExpFrames[base2])) {
             BasePair.push_back(base1);
             BasePair.push_back(base2);
             if (AntiParallel) 
@@ -263,6 +245,8 @@ int NAstruct::determineBasePairing() {
   //mprintf("DEBUG: BasePair.size = %i\n",(int)BasePair.size());
   //mprintf("DEBUG: SHEAR.size = %i\n",(int)SHEAR.size());
   //mprintf("DEBUG: BasePairAxes.size = %i\n",(int)BasePairAxes.size());
+  AxisType bpaxis;
+  bpaxis.SetPrincipalAxes();
   DataSet *na_dataset = NULL;
   for (base1=0; base1 < (int)BasePair.size(); base1+=3) {
     // For each base pair, set up a dataset for each structural parameter
@@ -281,16 +265,15 @@ int NAstruct::determineBasePairing() {
       na_dataset = OPENING.AddMultiN(DOUBLE, "OPN", "BP", base2);
       DFL->Add(outFilename, na_dataset);
       // Also set up a place to hold the base pair axes
-      BasePairAxes.push_back( new AxisType() );
-      BasePairAxes[base2-1]->SetPrincipalAxes();
+      BasePairAxes.push_back( bpaxis );
     } 
     // Print base pair info
     if (debug>1) {
       int bp_1 = BasePair[base1  ];
       int bp_2 = BasePair[base1+1];
       mprintf("        BP %i: Res %i:%s to %i:%s",base2,
-              RefCoords[bp_1]->BaseNum()+1, RefCoords[bp_1]->BaseName(),
-              RefCoords[bp_2]->BaseNum()+1, RefCoords[bp_2]->BaseName());
+              RefCoords[bp_1].BaseNum()+1, RefCoords[bp_1].BaseName(),
+              RefCoords[bp_2].BaseNum()+1, RefCoords[bp_2].BaseName());
       if ( BasePair[base1+2] )
         mprintf(" AntiParallel.\n");
       else
@@ -455,12 +438,12 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
   // up an axis for ExpCoords.
   for (int base=0; base < Nbases; base++) {
     // Set exp coords based on previously set-up mask
-    ExpFrames[base]->SetFrameCoordsFromMask( InputFrame->X, ExpMasks[base] );
+    ExpFrames[base].SetFrameCoordsFromMask( InputFrame->X, &ExpMasks[base] );
 #   ifdef NASTRUCTDEBUG
     mprintf("Base %i:%s Ref={%8.3lf %8.3lf %8.3lf} Exp={%8.3lf %8.3lf %8.3lf}\n",
-            ExpFrames[base]->BaseNum()+1,ExpFrames[base]->BaseName(),
-            RefCoords[base]->X[0],RefCoords[base]->X[1],RefCoords[base]->X[2],
-            ExpFrames[base]->X[0],ExpFrames[base]->X[1],ExpFrames[base]->X[2]);
+            ExpFrames[base].BaseNum()+1,ExpFrames[base].BaseName(),
+            RefCoords[base].X[0],RefCoords[base].X[1],RefCoords[base].X[2],
+            ExpFrames[base].X[0],ExpFrames[base].X[1],ExpFrames[base].X[2]);
 #   endif 
     /* Now that we have a set of reference coords and the corresponding input
      * coords, RMS fit the reference coords to the input coords to obtain the
@@ -468,15 +451,15 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
      * on top of input (experimental) coords.
      * NOTE: The RMSD routine is destructive to coords. Need copies of frames.
      */
-    refFrame.SetFromFrame( RefCoords[base] );
-    expFrame.SetFromFrame( ExpFrames[base] );
+    refFrame.SetFromFrame( &RefCoords[base] );
+    expFrame.SetFromFrame( &ExpFrames[base] );
     rmsd = refFrame.RMSD( &expFrame, RotMatrix, TransVec, false);
     if (debug>0) 
       mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
     // BaseAxes start at origin
-    BaseAxes[base]->SetPrincipalAxes();
+    BaseAxes[base].SetPrincipalAxes();
     // Store the Rotation matrix.
-    BaseAxes[base]->StoreRotMatrix( RotMatrix );
+    BaseAxes[base].StoreRotMatrix( RotMatrix );
     // DEBUG
     //mprintf("         Rotation matrix/Translation vector:\n");
     //printRotTransInfo(RotMatrix, TransVec);
@@ -490,36 +473,36 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
      */
 
     // Use the translation/rotation to fit principal axes in BaseAxes to experimental coords.
-    BaseAxes[base]->Trans_Rot_Trans(TransVec, RotMatrix);
+    BaseAxes[base].Trans_Rot_Trans(TransVec, RotMatrix);
     // This BaseAxis now contains the absolute coordinates of the base reference axes.
     
     // DEBUG
     if (debug>0) {
       mprintf("         BaseAxes origin: %8.4lf %8.4lf %8.4lf\n",
-              BaseAxes[base]->X[9],BaseAxes[base]->X[10],BaseAxes[base]->X[11]);
+              BaseAxes[base].X[9],BaseAxes[base].X[10],BaseAxes[base].X[11]);
       mprintf("         BaseAxes X vec.: %8.4lf %8.4lf %8.4lf\n",
-              BaseAxes[base]->X[0 ]-BaseAxes[base]->X[9 ],
-              BaseAxes[base]->X[1 ]-BaseAxes[base]->X[10],
-              BaseAxes[base]->X[2 ]-BaseAxes[base]->X[11]);
+              BaseAxes[base].X[0 ]-BaseAxes[base].X[9 ],
+              BaseAxes[base].X[1 ]-BaseAxes[base].X[10],
+              BaseAxes[base].X[2 ]-BaseAxes[base].X[11]);
       mprintf("         BaseAxes Y vec.: %8.4lf %8.4lf %8.4lf\n",
-              BaseAxes[base]->X[3 ]-BaseAxes[base]->X[9 ],
-              BaseAxes[base]->X[4 ]-BaseAxes[base]->X[10],
-              BaseAxes[base]->X[5 ]-BaseAxes[base]->X[11]);
+              BaseAxes[base].X[3 ]-BaseAxes[base].X[9 ],
+              BaseAxes[base].X[4 ]-BaseAxes[base].X[10],
+              BaseAxes[base].X[5 ]-BaseAxes[base].X[11]);
       mprintf("         BaseAxes Z vec.: %8.4lf %8.4lf %8.4lf\n",
-              BaseAxes[base]->X[6 ]-BaseAxes[base]->X[9 ],
-              BaseAxes[base]->X[7 ]-BaseAxes[base]->X[10],
-              BaseAxes[base]->X[8 ]-BaseAxes[base]->X[11]);
+              BaseAxes[base].X[6 ]-BaseAxes[base].X[9 ],
+              BaseAxes[base].X[7 ]-BaseAxes[base].X[10],
+              BaseAxes[base].X[8 ]-BaseAxes[base].X[11]);
     }
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Write base axis to file
-    BaseAxes[base]->WritePDB(&baseaxesfile, res, RefCoords[base]->BaseName(), &baseaxesatom);
+    BaseAxes[base].WritePDB(&baseaxesfile, res, RefCoords[base].BaseName(), &baseaxesatom);
 
     // Overlap ref coords onto input coords. Rotate, then translate to baseaxes origin
-    refFrame.SetFromFrame( RefCoords[base] );
+    refFrame.SetFromFrame( &RefCoords[base] );
     refFrame.Rotate( RotMatrix );
-    refFrame.Translate( BaseAxes[base]->Origin() );
+    refFrame.Translate( BaseAxes[base].Origin() );
     // DEBUG - Write ref coords to file
-    refFrame.WritePDB(&basesfile, res, RefCoords[base]->BaseName(), &basesatom);
+    refFrame.WritePDB(&basesfile, res, RefCoords[base].BaseName(), &basesatom);
     ++res;
 #   endif
   }
@@ -575,8 +558,8 @@ int NAstruct::determineBaseParameters() {
     base1 = BasePair[BP  ];
     base2 = BasePair[BP+1];
     //mprintf("\n*** Determining base parameters for pair %i -- %i\n",base1+1,base2+1);
-    Base1 = BaseAxes[base1];
-    Base2 = BaseAxes[base2];
+    Base1 = &BaseAxes[base1];
+    Base2 = &BaseAxes[base2];
     // Fill X, Y, and Z axis unit vectors from Rotation matrices
     Base1->RX(X1);
     Base1->RY(Y1);
@@ -786,23 +769,23 @@ int NAstruct::determineBaseParameters() {
     OPENING.AddData(frameNum, &Sigma, nbasepair);
 
     // Store BP axes
-    BasePairAxes[nbasepair]->X[9 ] = Vec[0];
-    BasePairAxes[nbasepair]->X[10] = Vec[1];
-    BasePairAxes[nbasepair]->X[11] = Vec[2];
-    BasePairAxes[nbasepair]->X[0] = Vec[0] + Rb[0];
-    BasePairAxes[nbasepair]->X[1] = Vec[1] + Rb[3];
-    BasePairAxes[nbasepair]->X[2] = Vec[2] + Rb[6];
-    BasePairAxes[nbasepair]->X[3] = Vec[0] + Rb[1];
-    BasePairAxes[nbasepair]->X[4] = Vec[1] + Rb[4];
-    BasePairAxes[nbasepair]->X[5] = Vec[2] + Rb[7];
-    BasePairAxes[nbasepair]->X[6] = Vec[0] + Rb[2];
-    BasePairAxes[nbasepair]->X[7] = Vec[1] + Rb[5];
-    BasePairAxes[nbasepair]->X[8] = Vec[2] + Rb[8];
-    BasePairAxes[nbasepair]->StoreRotMatrix(Rb);
+    BasePairAxes[nbasepair].X[9 ] = Vec[0];
+    BasePairAxes[nbasepair].X[10] = Vec[1];
+    BasePairAxes[nbasepair].X[11] = Vec[2];
+    BasePairAxes[nbasepair].X[0] = Vec[0] + Rb[0];
+    BasePairAxes[nbasepair].X[1] = Vec[1] + Rb[3];
+    BasePairAxes[nbasepair].X[2] = Vec[2] + Rb[6];
+    BasePairAxes[nbasepair].X[3] = Vec[0] + Rb[1];
+    BasePairAxes[nbasepair].X[4] = Vec[1] + Rb[4];
+    BasePairAxes[nbasepair].X[5] = Vec[2] + Rb[7];
+    BasePairAxes[nbasepair].X[6] = Vec[0] + Rb[2];
+    BasePairAxes[nbasepair].X[7] = Vec[1] + Rb[5];
+    BasePairAxes[nbasepair].X[8] = Vec[2] + Rb[8];
+    BasePairAxes[nbasepair].StoreRotMatrix(Rb);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
-    BasePairAxes[nbasepair]->WritePDB(&basepairaxesfile, base1, RefCoords[base1]->BaseName(), 
-                                      &basepairaxesatom);
+    BasePairAxes[nbasepair].WritePDB(&basepairaxesfile, base1, RefCoords[base1].BaseName(), 
+                                     &basepairaxesatom);
     //BasePairAxes.push_back( BPaxes );
 #   endif
 
@@ -840,8 +823,8 @@ int NAstruct::determineBasepairParameters() {
   for (bpi = 0; bpi < ((int)BasePairAxes.size()) - 1; bpi++) {
     bpj = bpi+1;
     //mprintf("\n*** Determining BP parameters for step %i to %i\n",bpi+1,bpj+1);
-    BPi = BasePairAxes[bpi];
-    BPj = BasePairAxes[bpj];
+    BPi = &BasePairAxes[bpi];
+    BPj = &BasePairAxes[bpj];
     // Fill X Y and Z unit vectors
     BPi->RX(Xi);
     BPi->RY(Yi);
@@ -992,8 +975,8 @@ int NAstruct::init() {
   */
 int NAstruct::setup() {
   int resnum;
-  AxisType *axis; 
-  AtomMask *Mask;
+  AxisType axis; 
+  AtomMask Mask;
   Range actualRange;
   AxisType::RefReturn refreturn;
 
@@ -1024,11 +1007,10 @@ int NAstruct::setup() {
   // Set up frame to hold reference coords for each NA residue
   actualRange.Begin();
   while (actualRange.NextInRange(&resnum)) {
-    axis = new AxisType();
     // Set up ref coords in correct order, along with corresponding 
-    // parm mask for this residue.
-    Mask = new AtomMask();
-    refreturn = axis->SetRefCoord( currentParm, resnum, *Mask );
+    // parm mask for this residue. SetRefCoord should overwrite all
+    // previously set up information in axis and Mask.
+    refreturn = axis.SetRefCoord( currentParm, resnum, Mask );
     // If not recognized as a NA residue, continue to next.
     // Print a warning if the user specified this range.
     if ( refreturn == AxisType::NA_UNKNOWN ) {
@@ -1036,42 +1018,33 @@ int NAstruct::setup() {
         mprintf("Warning: Residue %i:%s not recognized as NA residue.\n",
                 resnum+1, currentParm->ResidueName(resnum));
       }
-      delete axis;
-      delete Mask;
       continue;
     } else if ( refreturn == AxisType::NA_ERROR  ) {
       mprinterr("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
                 resnum+1, currentParm->ResidueName(resnum));
-      delete axis;
-      delete Mask;
       return 1;
     }
-    if (Mask->None()) {
+    if (Mask.None()) {
       mprintf("Error:: NAstruct::setup: No atoms found for residue %i:%s\n",
               resnum+1, currentParm->ResidueName(resnum));
-      delete axis;
-      delete Mask;
       return 1;
     }
     RefCoords.push_back( axis );
     ExpMasks.push_back( Mask );
     if (debug>1) {
       mprintf("\tNAstruct: Res %i:%s ",resnum+1,currentParm->ResidueName(resnum));
-      Mask->PrintMaskAtoms("NAmask");
-      mprintf("\t          Ref %i:%s ",resnum+1,axis->BaseName());
-      axis->PrintAtomNames();
+      Mask.PrintMaskAtoms("NAmask");
+      mprintf("\t          Ref %i:%s ",resnum+1,axis.BaseName());
+      axis.PrintAtomNames();
     }
 
-    // Set up empty frame to hold input coords for this residue
-    axis = new AxisType();
+    // Set up empty frame to hold input coords for this residue.
     // Initially set to be a copy of the reference frame. The coordinates
     // will be overwritten later.
-    *axis = *(RefCoords.back());
     ExpFrames.push_back( axis );
 
     // Set up initial axes for this NA residue.
-    axis = new AxisType(); 
-    axis->SetPrincipalAxes();
+    axis.SetPrincipalAxes();
     BaseAxes.push_back( axis );
   } // End Loop over NA residues
 

@@ -343,17 +343,14 @@ void AxisType::StoreRotMatrix(double *RotMatrix) {
 }
     
 // AxisType::SetPrincipalAxes()
-/** Set this up as principal axes. Allocate memory if necessary.
+/** Set this up as principal axes. Wipes out all previous info. 
   */
-// NOTE: Check for mem error?
 void AxisType::SetPrincipalAxes() {
-  if (X==NULL) {
-    AllocAxis(4);
-    strcpy(Name[0],"X   ");
-    strcpy(Name[1],"Y   ");
-    strcpy(Name[2],"Z   ");
-    strcpy(Name[3],"Orig");
-  }
+  if (AllocAxis(4)) return;
+  strcpy(Name[0],"X   ");
+  strcpy(Name[1],"Y   ");
+  strcpy(Name[2],"Z   ");
+  strcpy(Name[3],"Orig");
   X[0]=1.0; X[3]=0.0; X[6]=0.0; X[9 ]=0.0; 
   X[1]=0.0; X[4]=1.0; X[7]=0.0; X[10]=0.0; 
   X[2]=0.0; X[5]=0.0; X[8]=1.0; X[11]=0.0;
@@ -472,6 +469,7 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
   }
   // Now insert ref coords in same order as parm. Also add the parm
   // atom to the mask.
+  parmMask.ResetMask();
   int coord = 0;
   int coord3 = 0;
   for (atom = BaseMap.begin(); atom != BaseMap.end(); atom++) {
