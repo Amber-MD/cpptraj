@@ -80,5 +80,9 @@ class ArgList {
     bool hasKey(const char*);
     /// Return true if they key is in the list but do not mark.
     bool Contains(const char*);
+    /// Convert arg at position to double.
+    double ArgToDouble(int);
+    /// Convert arg at position to integer.
+    int ArgToInteger(int);
 };
 #endif

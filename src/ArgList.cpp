@@ -521,4 +521,29 @@ bool ArgList::Contains(const char *key) {
   return false;
 }
 
+// ArgList::ArgToDouble()
+double ArgList::ArgToDouble(int pos) {
+  if (pos < 0 || pos >= (int)arglist.size()) {
+    mprinterr("Internal Error: ArgList::ArgToDouble: position out of range.\n");
+    return 0;
+  }
+  if (!validDouble(arglist[pos])) {
+    mprinterr("Error: Arg %s is not a valid double.\n",arglist[pos].c_str());
+    return 0;
+  }
+  return convertToDouble(arglist[pos]);
+}
+
+// ArgList::ArgToInteger()
+int ArgList::ArgToInteger(int pos) {
+  if (pos < 0 || pos >= (int)arglist.size()) {
+    mprinterr("Internal Error: ArgList::ArgToInteger: position out of range.\n");
+    return 0;
+  }
+  if (!validInteger(arglist[pos])) {
+    mprinterr("Error: Arg %s is not a valid integer.\n",arglist[pos].c_str());
+    return 0;
+  }
+  return convertToInteger(arglist[pos]);
+}
 
