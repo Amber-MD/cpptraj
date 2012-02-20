@@ -1,7 +1,6 @@
 #include "Analysis_Hist.h"
 #include "CpptrajStdio.h"
 #include <cmath> // ceil
-#include <cstdlib> //atof, atoi
 #include <cstdio> // sprintf
 // Analysis_Hist
 
@@ -107,10 +106,10 @@ int Hist::setupDimension(char *input, DataSet *dset) {
     // Default explicitly requested
     if (arglist.ArgIs(i,"*")) continue;
     switch (i) {
-      case 1 : dmin = atof(arglist.ArgAt(i)); minArg=true; break;
-      case 2 : dmax = atof(arglist.ArgAt(i)); maxArg=true; break;
-      case 3 : dstep= atof(arglist.ArgAt(i)); break;
-      case 4 : dbins= atoi(arglist.ArgAt(i)); break;
+      case 1 : dmin = arglist.ArgToDouble(i); minArg=true; break;
+      case 2 : dmax = arglist.ArgToDouble(i); maxArg=true; break;
+      case 3 : dstep= arglist.ArgToDouble(i); break;
+      case 4 : dbins= arglist.ArgToInteger(i); break;
     }
   }
 
@@ -266,14 +265,14 @@ int Hist::Analyze() {
   }
   mprintf("\tHist: %i data points in each dimension.\n",Ndata);
 
-  coord = (double*) malloc( hist.NumDimension() * sizeof(double));
+  coord = new double[ hist.NumDimension() ];
   for (int n=0; n < Ndata; n++) {
     for (int hd=0; hd < (int)histdata.size(); hd++) {
       histdata[hd]->Get((void*)(coord+hd), n);
     }
     hist.BinData(coord);
   }
-  free(coord);
+  delete[] coord;
 
   //hist.PrintBins(false,false);
   return 0;
@@ -298,7 +297,7 @@ void Hist::Print(DataFileList *datafilelist) {
   // Normalize if requested
   if (normalize) hist.Normalize();
 
-  coord = (double*) malloc(hist.NumDimension() * sizeof(double));
+  coord = new double[ hist.NumDimension() ];
   hist.BinStart(circular);
 
   // For 1 dimension just need to hold bin counts
@@ -377,5 +376,5 @@ void Hist::Print(DataFileList *datafilelist) {
     outfile->SetNoLabels();
   }
   //hist.PrintBins(circular,false);
-  free(coord);
+  delete []coord;
 }
