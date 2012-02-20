@@ -106,9 +106,9 @@ const double AxisType::URAcoords[URANATOM][3] = {
      {-0.024000,  5.053000,  0.000000 }
 };
 
-// UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU
+// UNKNOWN_BASE, ADE, CYT, GUA, THY, URA 
 /// Base names corresponding to NAbaseType
-const char AxisType::NAbaseName[9][5]={"UNK","DA","DT","DG","DC","RA","RC","RG","RU" };
+const char AxisType::NAbaseName[6][4] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
 
 // ------------------------- AXISTYPE FUNCTIONS -------------------------------
 // CONSTRUCTOR
@@ -231,31 +231,31 @@ AxisType::NAbaseType AxisType::ID_base(char *resname) {
   // If residue name begins with D, assume AMBER DNA residue
   if (resname[0]=='D') {
     switch (resname[1]) {
-      case 'A': return DA;
-      case 'C': return DC;
-      case 'G': return DG;
-      case 'T': return DT;
+      case 'A': return ADE;
+      case 'C': return CYT;
+      case 'G': return GUA;
+      case 'T': return THY;
     }
   // If residue name beings with R, assume AMBER RNA residue
   } else if (resname[0]=='R') {
     switch (resname[1]) {
-      case 'A': return RA;
-      case 'C': return RC;
-      case 'G': return RG;
-      case 'U': return RU;
+      case 'A': return ADE;
+      case 'C': return CYT;
+      case 'G': return GUA;
+      case 'U': return URA;
     }
   // Look for standard 3 letter/1 letter NA residue names
   } else {
-    if (strncmp(resname,"ADE",3)==0) return DA;
-    if (strncmp(resname,"CYT",3)==0) return DC;
-    if (strncmp(resname,"GUA",3)==0) return DG;
-    if (strncmp(resname,"THY",3)==0) return DT;
-    if (strncmp(resname,"URA",3)==0) return RU;
-    if (resname[0]=='A') return DA;
-    if (resname[0]=='C') return DC;
-    if (resname[0]=='G') return DG;
-    if (resname[0]=='T') return DT;
-    if (resname[0]=='U') return RU;
+    if (strncmp(resname,"ADE",3)==0) return ADE;
+    if (strncmp(resname,"CYT",3)==0) return CYT;
+    if (strncmp(resname,"GUA",3)==0) return GUA;
+    if (strncmp(resname,"THY",3)==0) return THY;
+    if (strncmp(resname,"URA",3)==0) return URA;
+    if (resname[0]=='A') return ADE;
+    if (resname[0]=='C') return CYT;
+    if (resname[0]=='G') return GUA;
+    if (resname[0]=='T') return THY;
+    if (resname[0]=='U') return URA;
   } 
   return UNKNOWN_BASE;
 }
@@ -382,8 +382,7 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
 
   // Set up reference coord and name arrays based on the base
   switch (ID) {
-    case DA :
-    case RA :
+    case ADE :
       if (AllocAxis(ADENATOM)) return NA_ERROR;
       Nbaseatom = ADENATOM;
       BaseRefCoords.reserve(ADENATOM);
@@ -397,8 +396,7 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
         BaseHbonds.push_back( ADEhbonds[i] );
       }
       break;
-    case DC :
-    case RC :
+    case CYT :
       if (AllocAxis(CYTNATOM)) return NA_ERROR;
       Nbaseatom = CYTNATOM;
       BaseRefCoords.reserve(CYTNATOM);
@@ -412,8 +410,7 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
         BaseHbonds.push_back( CYThbonds[i] );
       }
       break;
-    case DG :
-    case RG :
+    case GUA :
       if (AllocAxis(GUANATOM)) return NA_ERROR;
       Nbaseatom = GUANATOM;
       BaseRefCoords.reserve(GUANATOM);
@@ -427,7 +424,7 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
         BaseHbonds.push_back( GUAhbonds[i] );
       }
       break;
-    case DT :
+    case THY :
       if (AllocAxis(THYNATOM)) return NA_ERROR;
       Nbaseatom = THYNATOM;
       BaseRefCoords.reserve(THYNATOM);
@@ -441,7 +438,7 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
         BaseHbonds.push_back( THYhbonds[i] );
       }
       break;
-    case RU:
+    case URA :
       if (AllocAxis(URANATOM)) return NA_ERROR;
       Nbaseatom = URANATOM;
       BaseRefCoords.reserve(URANATOM);

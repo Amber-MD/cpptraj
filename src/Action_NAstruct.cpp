@@ -161,16 +161,14 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   */
 bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   // G C
-  if      ( base1->ID==AxisType::DG && base2->ID==AxisType::DC ) return GCpair(base1,base2);
-  else if ( base1->ID==AxisType::DC && base2->ID==AxisType::DG ) return GCpair(base2,base1);
-  else if ( base1->ID==AxisType::RG && base2->ID==AxisType::RC ) return GCpair(base1,base2);
-  else if ( base1->ID==AxisType::RC && base2->ID==AxisType::RG ) return GCpair(base2,base1);
+  if      ( base1->ID==AxisType::GUA && base2->ID==AxisType::CYT ) return GCpair(base1,base2);
+  else if ( base1->ID==AxisType::CYT && base2->ID==AxisType::GUA ) return GCpair(base2,base1);
   // A T
-  else if ( base1->ID==AxisType::DA && base2->ID==AxisType::DT ) return ATpair(base1,base2);
-  else if ( base1->ID==AxisType::DT && base2->ID==AxisType::DA ) return ATpair(base2,base1);
+  else if ( base1->ID==AxisType::ADE && base2->ID==AxisType::THY ) return ATpair(base1,base2);
+  else if ( base1->ID==AxisType::THY && base2->ID==AxisType::ADE ) return ATpair(base2,base1);
   // A U
-  else if ( base1->ID==AxisType::RA && base2->ID==AxisType::RU ) return ATpair(base1,base2);
-  else if ( base1->ID==AxisType::RU && base2->ID==AxisType::RA ) return ATpair(base2,base1);
+  else if ( base1->ID==AxisType::ADE && base2->ID==AxisType::URA ) return ATpair(base1,base2);
+  else if ( base1->ID==AxisType::URA && base2->ID==AxisType::ADE ) return ATpair(base2,base1);
 //  else {
 //    mprintf("Warning: NAstruct: Unrecognized pair: %s - %s\n",NAbaseName[base1->ID],
 //             NAbaseName[base2->ID]);

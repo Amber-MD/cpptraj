@@ -43,11 +43,11 @@ class AxisType : public Frame {
     static const int URAhbonds[];
   public:
     /// Type for each standard NA base.
-    enum NAbaseType { UNKNOWN_BASE, DA, DT, DG, DC, RA, RC, RG, RU };
+    enum NAbaseType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
   private:
     /// Identify NA base from residue name
     NAbaseType ID_base(char*);
-    static const char NAbaseName[][5];
+    static const char NAbaseName[][4];
     NAME *Name;         ///< Atom/Axis names
     int residue_number; ///< Original residue number
 
