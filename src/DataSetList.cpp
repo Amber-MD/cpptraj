@@ -166,9 +166,9 @@ char *DataSetList::checkName(char *nameIn, const char *defaultName) {
   if (nameIn==NULL) {
     // Determine size of name + extension
     namesize = strlen( defaultName );
-    size_t extsize = ((size_t)Ndata / 10) + 1; // # digits
-    if (extsize < 5) extsize = 5;              // Minimum size is 5 digits
-    extsize += 2;                              // + underscore + null
+    size_t extsize = (size_t) DigitWidth( Ndata ); // # digits
+    if (extsize < 5) extsize = 5;                  // Minimum size is 5 digits
+    extsize += 2;                                  // + underscore + null
     namesize += extsize;
     dsetName = new char[ namesize ];
     sprintf(dsetName,"%s_%05i",defaultName,Ndata);
