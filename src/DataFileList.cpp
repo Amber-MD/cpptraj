@@ -209,9 +209,10 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
         mprintf("Error: datafile precision: DataFile %s does not exist.\n",name1);
         continue;
       }
-      name2 = (*dataArg).getNextString();
+      // This will break if dataset name starts with a digit...
       width = (*dataArg).getNextInteger(12);
       precision = (*dataArg).getNextInteger(4);
+      name2 = (*dataArg).getNextString();
       df->SetPrecision(name2,width,precision);
     }
 

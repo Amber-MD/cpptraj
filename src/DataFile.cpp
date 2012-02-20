@@ -125,25 +125,21 @@ void DataFile::SetNoLabels() {
 }
 
 // DataFile::SetPrecision()
-/** Set precision of the specified dataset to width.precision. If '*' specified 
-  * set for all datasets in file.
+/** Set precision of the specified dataset to width.precision. If no name or
+  * asterisk specified set for all datasets in file.
   */
 void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
   int precision, dset;
   DataSet *Dset = NULL;
 
-  if (dsetName==NULL) {
-    mprintf("Error: SetPrecision must be called with dataset name or '*'.\n");
-    return;
-  }
   if (widthIn<1) {
     mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",filename.c_str());
     return;
   }
   precision=precisionIn;
   if (precisionIn<0) precision=0;
-  // If <dsetName>=='*' specified set precision for all data sets
-  if (dsetName[0]=='*') {
+  // If NULL or <dsetName>=='*' specified set precision for all data sets
+  if (dsetName==NULL || dsetName[0]=='*') {
     mprintf("    Setting width.precision for all sets in %s to %i.%i\n",
             filename.c_str(),widthIn,precision);
     for (dset=0; dset<Nsets; dset++)
