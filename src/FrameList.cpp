@@ -48,12 +48,12 @@ int FrameList::AddRefFrame(Frame *F, char *name, AmberParm *P, int framenum,
 
   // Check that name and RefTag are not currently in use
   if (GetFrameIndex(name)!=-1) {
-    mprintf("Warning: Reference with name %s already exists, skipping.\n",name);
-    return 1;
+    mprintf("Warning: Reference with name %s already exists!\n",name);
+    //return 1;
   }
   if (GetFrameIndexByTag(RefTag)!=-1) {
-    mprintf("Warning: Reference with tag %s already exists, skipping.\n",RefTag.c_str());
-    return 1;
+    mprintf("Warning: Reference with tag %s already exists!\n",RefTag.c_str());
+    //return 1;
   }
 
   frameList.push_back(F);
