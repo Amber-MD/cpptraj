@@ -164,6 +164,10 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
     // Get the current reference frame
     coord = ReferenceCoords.Coord(nref, &natom_ref);
     RefFrame.SetupFrameFromCoords( coord, natom_ref );
+    // Select and pre-center reference atoms (if fitting)
+    SelectedRef = RefFrame;
+    if (!nofit)
+      SelectedRef.CenterReference(Trans+3, false);
   
     // LOOP OVER TARGET FRAMES
     for (int nframe=nref+1; nframe < totalref; nframe++) {
@@ -181,8 +185,6 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
         Distances->AddElement( R );
         continue;
       }
-      // Set selected reference atoms - always done since RMS fit modifies SelectedRef
-      SelectedRef = RefFrame;
       // Set selected target atoms
       SelectedTgt = TgtFrame;
 
@@ -190,7 +192,7 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
       if (nofit) {
         R = (float) SelectedTgt.RMSD(&SelectedRef, false);
       } else {
-        R = (float) SelectedTgt.RMSD(&SelectedRef, U, Trans, false);
+        R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, false);
       }
       Distances->AddElement( R );
       // DEBUG
@@ -251,6 +253,10 @@ void Rms2d::CalcRmsToTraj() {
     sprintf(setname,"Frame_%i",nref+1);
     rmsdata = RmsData.Add(FLOAT, setname, "Rms2d");
     DFL->Add(rmsdFile,rmsdata);
+    // Set reference atoms and pre-center if fitting
+    SelectedRef.SetFrameCoordsFromMask(RefFrame.X, &RefMask);
+    if (!nofit)
+      SelectedRef.CenterReference(Trans+3, false);
 
     // LOOP OVER TARGET FRAMES
     for (int nframe=0; nframe < totaltgt; nframe++) {
@@ -269,8 +275,6 @@ void Rms2d::CalcRmsToTraj() {
         continue;
       }
 
-      // Set selected reference atoms - always done since RMS fit modifies SelectedRef
-      SelectedRef.SetFrameCoordsFromMask(RefFrame.X, &RefMask);
       // Set selected target atoms
       SelectedTgt = TgtFrame;
 
@@ -278,7 +282,7 @@ void Rms2d::CalcRmsToTraj() {
       if (nofit) {
         R = (float) SelectedTgt.RMSD(&SelectedRef, false);
       } else {
-        R = (float) SelectedTgt.RMSD(&SelectedRef, U, Trans, false);
+        R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, false);
       }
       RmsData.AddData(nframe, &R, nref);
       // DEBUG
