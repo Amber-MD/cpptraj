@@ -27,6 +27,7 @@ class NAstruct: public Action {
     std::vector<AxisType> BasePairAxes; ///< Hold axis coordinates for each base pair
     std::vector<AxisType> ExpFrames;    ///< Hold input frame coordinates for each base
     std::vector<AtomMask> ExpMasks;     ///< Hold atom masks of each base for input coordinates
+    std::vector<AtomMask> FitMasks;
     std::vector<int> BasePair;           ///< [Base1-0,Base2-0,IsAnti-0], [Base1-1...
     int Nbp;                             ///< Total number of base pairs
     int Nbases;                          ///< Total number of NA bases
@@ -58,7 +59,7 @@ class NAstruct: public Action {
     bool ATpair(AxisType *, AxisType *);
     bool basesArePaired(AxisType *, AxisType *);
     int determineBasePairing();
-    //int setupBasePairAxes();
+    int setupBasePairAxes(); // DEBUG
     int setupBaseAxes(Frame *);
     int determineBaseParameters();
     int determineBasepairParameters();
