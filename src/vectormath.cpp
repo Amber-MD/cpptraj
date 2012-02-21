@@ -265,17 +265,17 @@ void calcRotationMatrix(double T[9], double V[3], double theta) {
   uzs=V[2]*s;
 
   // Store rotation matrix elements
-  T[0]=ux2 + ((1 - ux2) * c);
-  T[3]=uxuy * c1 + uzs;
-  T[6]=uxuz * c1 - uys;
+  T[0]=c + (ux2 * c1); 
+  T[3]=(uxuy * c1) + uzs;
+  T[6]=(uxuz * c1) - uys;
 
-  T[1]=uxuy * c1 - uzs;
-  T[4]=uy2 + ((1 - uy2) * c);
-  T[7]=uyuz * c1 + uxs;
+  T[1]=(uxuy * c1) - uzs;
+  T[4]=c + (uy2 * c1); 
+  T[7]=(uyuz * c1) + uxs;
 
-  T[2]=uxuz * c1 + uys;
-  T[5]=uyuz * c1 - uxs;
-  T[8]=uz2 + ((1 - uz2) * c);
+  T[2]=(uxuz * c1) + uys;
+  T[5]=(uyuz * c1) - uxs;
+  T[8]=c + (uz2 * c1); 
 }
 
 // calcRotationMatrix()
