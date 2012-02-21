@@ -72,10 +72,11 @@ class AxisType : public Frame {
     char *AtomName(int);
     void PrintAtomNames();
     void SetFromFrame(AxisType *);
+    int SetAxisFromMask(AxisType &, AtomMask &);
     void StoreRotMatrix(double*);
     void SetPrincipalAxes();
     enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };
-    RefReturn SetRefCoord(AmberParm *, int, AtomMask &);
+    RefReturn SetRefCoord(AmberParm *, int, AtomMask &,AtomMask&);
     void FlipYZ();
     void FlipXY();
 #ifdef NASTRUCTDEBUG

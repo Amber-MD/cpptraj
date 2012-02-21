@@ -329,6 +329,35 @@ void AxisType::SetFromFrame(AxisType *AxisIn) {
 # endif
 }
 
+// AxisType::SetAxisFromMask()
+int AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
+  natom = Mask.Nselected;
+  N     = natom * 3;
+  if (natom > maxnatom) {
+    delete[] X;
+    X = new double[ N ];
+#   ifdef NASTRUCTDEBUG
+    // Need names when debugging
+    if (AxisIn.Name!=NULL) {
+      delete[] Name;
+      Name = new NAME[ natom ];
+    }
+#   endif
+    maxnatom = natom;
+  }
+  double *newX = X;
+  for (int i = 0; i < natom; i++) {
+    int oldatom = Mask.Selected[i];
+    int oldatom3 = oldatom * 3;
+    memcpy(newX, AxisIn.X + oldatom3, COORDSIZE);
+    newX += 3;
+#   ifdef NASTRUCTDEBUG
+    strcpy(Name[i], AxisIn.Name[oldatom]);
+#   endif
+  }
+  return 0;
+}
+
 // AxisType::StoreRotMatrix()
 void AxisType::StoreRotMatrix(double *RotMatrix) {
   R[0] = RotMatrix[0];
@@ -363,7 +392,7 @@ void AxisType::SetPrincipalAxes() {
   * \return 0 on success, 1 on error.
   */
 AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum, 
-                                          AtomMask &parmMask) 
+                                          AtomMask &parmMask, AtomMask &fitMask) 
 {
   std::map<int,int> BaseMap;
   std::map<int,int>::iterator atom;
@@ -470,6 +499,7 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
   // Now insert ref coords in same order as parm. Also add the parm
   // atom to the mask.
   parmMask.ResetMask();
+  fitMask.ResetMask();
   int coord = 0;
   int coord3 = 0;
   for (atom = BaseMap.begin(); atom != BaseMap.end(); atom++) {
@@ -486,8 +516,37 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
     X[coord3++] = BaseRefCoords[refcoord  ]; 
     X[coord3++] = BaseRefCoords[refcoord+1]; 
     X[coord3++] = BaseRefCoords[refcoord+2]; 
-    strcpy(Name[coord++],BaseRefNames[refatom]);
+    strcpy(Name[coord],BaseRefNames[refatom]);
     parmMask.AddAtom( (*atom).first );
+    // Will this atom be used for RMS fitting?
+    switch (ID) {
+      case ADE:
+      case GUA:
+        if (strcmp(BaseRefNames[refatom],"N9  ")==0 ||
+            strcmp(BaseRefNames[refatom],"C8  ")==0 ||
+            strcmp(BaseRefNames[refatom],"N7  ")==0 ||
+            strcmp(BaseRefNames[refatom],"C5  ")==0 ||
+            strcmp(BaseRefNames[refatom],"C6  ")==0 ||
+            strcmp(BaseRefNames[refatom],"N1  ")==0 ||
+            strcmp(BaseRefNames[refatom],"C2  ")==0 ||
+            strcmp(BaseRefNames[refatom],"N3  ")==0 ||
+            strcmp(BaseRefNames[refatom],"C4  ")==0   ) 
+          fitMask.AddAtom( coord );
+          break;
+      case CYT:
+      case THY:
+      case URA:
+        if (strcmp(BaseRefNames[refatom],"N1  ")==0 ||
+            strcmp(BaseRefNames[refatom],"C2  ")==0 ||
+            strcmp(BaseRefNames[refatom],"N3  ")==0 ||
+            strcmp(BaseRefNames[refatom],"C4  ")==0 ||
+            strcmp(BaseRefNames[refatom],"C5  ")==0 ||
+            strcmp(BaseRefNames[refatom],"C6  ")==0   )
+          fitMask.AddAtom( coord );
+          break;
+      case UNKNOWN_BASE: return NA_ERROR;
+    }
+    ++coord;
   }
   if (BaseRefNames!=NULL) delete[] BaseRefNames;
   residue_number = resnum;
