@@ -1,6 +1,7 @@
 // AxisType
 #include <map>
 #include <cstring>
+#include <cstdio> //sprintf
 #include "AxisType.h"
 #include "CpptrajStdio.h"
 #ifdef NASTRUCTDEBUG
@@ -10,13 +11,13 @@
 
 // ---------- NA REFERENCE BASE ATOM NAMES AND COORDS --------------------------
 #define ADENATOM 11
-const NAME AxisType::ADEnames[ADENATOM] = {
+static const NAME ADEnames[ADENATOM] = {
 "C1' ","N9  ","C8  ","N7  ","C5  ","C6  ","N6  ","N1  ","C2  ","N3  ","C4  "
 };
-const int AxisType::ADEhbonds[ADENATOM] = {
+static const int ADEhbonds[ADENATOM] = {
 -1,    -1,    -1,    -1,    -1,    -1,    0,     1,     -1,    -1,    -1
 };
-const double AxisType::ADEcoords[ADENATOM][3] = {
+static const double ADEcoords[ADENATOM][3] = {
      {-2.479000,  5.346000,  0.000000,},
      {-1.291000,  4.498000,  0.000000,},
      { 0.024000,  4.897000,  0.000000,},
@@ -30,13 +31,13 @@ const double AxisType::ADEcoords[ADENATOM][3] = {
      {-1.267000,  3.124000,  0.000000 }
 };
 #define CYTNATOM 9
-const NAME AxisType::CYTnames[CYTNATOM] = {
+static const NAME CYTnames[CYTNATOM] = {
 "C1' ","N1  ","C2  ","O2  ","N3  ","C4  ","N4  ","C5  ","C6  "
 };
-const int AxisType::CYThbonds[CYTNATOM] = {
+static const int CYThbonds[CYTNATOM] = {
 -1,    -1,    -1,    2,     1,     -1,    0,     -1,    -1
 };
-const double AxisType::CYTcoords[CYTNATOM][3] = {
+static const double CYTcoords[CYTNATOM][3] = {
      {-2.477000,  5.402000,  0.000000,},
      {-1.285000,  4.542000,  0.000000,},
      {-1.472000,  3.158000,  0.000000,},
@@ -48,13 +49,13 @@ const double AxisType::CYTcoords[CYTNATOM][3] = {
      {-0.023000,  5.068000,  0.000000 }
 };
 #define GUANATOM 12
-const NAME AxisType::GUAnames[GUANATOM] = {
+static const NAME GUAnames[GUANATOM] = {
 "C1' ","N9  ","C8  ","N7  ","C5  ","C6  ","O6  ","N1  ","C2  ","N2  ","N3  ","C4  "
 };
-const int AxisType::GUAhbonds[GUANATOM] = {
+static const int GUAhbonds[GUANATOM] = {
 -1,    -1,    -1,    -1,    -1,    -1,    0,     1,     -1,    2,     -1,    -1
 };
-const double AxisType::GUAcoords[GUANATOM][3] = {
+static const double GUAcoords[GUANATOM][3] = {
      {-2.477000,  5.399000,  0.000000,},
      {-1.289000,  4.551000,  0.000000,},
      { 0.023000,  4.962000,  0.000000,},
@@ -69,13 +70,13 @@ const double AxisType::GUAcoords[GUANATOM][3] = {
      {-1.265000,  3.177000,  0.000000 }
 };
 #define THYNATOM 10
-const NAME AxisType::THYnames[THYNATOM] = {
+static const NAME THYnames[THYNATOM] = {
 "C1' ","N1  ","C2  ","O2  ","N3  ","C4  ","O4  ","C5  ","C7  ","C6  "
 };
-const int AxisType::THYhbonds[THYNATOM] = {
+static const int THYhbonds[THYNATOM] = {
 -1,    -1,    -1,    -1,    1,     -1,    0,     -1,    -1,    -1
 }; 
-const double AxisType::THYcoords[THYNATOM][3] = {
+static const double THYcoords[THYNATOM][3] = {
      {-2.481000,  5.354000,  0.000000,},
      {-1.284000,  4.500000,  0.000000,},
      {-1.462000,  3.135000,  0.000000,},
@@ -88,13 +89,13 @@ const double AxisType::THYcoords[THYNATOM][3] = {
      {-0.024000,  5.057000,  0.000000 }
 };
 #define URANATOM 9
-const NAME AxisType::URAnames[URANATOM] = {
+static const NAME URAnames[URANATOM] = {
 "C1' ","N1  ","C2  ","O2  ","N3  ","C4  ","O4  ","C5  ","C6  " 
 };
-const int AxisType::URAhbonds[URANATOM] = {
+static const int URAhbonds[URANATOM] = {
 -1,    -1,    -1,    -1,    1,     -1,    0,     -1,    -1
 }; 
-const double AxisType::URAcoords[URANATOM][3] = {
+static const double URAcoords[URANATOM][3] = {
      {-2.481000,  5.354000,  0.000000,},
      {-1.284000,  4.500000,  0.000000,},
      {-1.462000,  3.131000,  0.000000,},
@@ -116,6 +117,9 @@ const char AxisType::NAbaseName[6][4] = { "UNK", "ADE", "CYT", "GUA", "THY", "UR
 AxisType::AxisType() {
   ID = UNKNOWN_BASE;
   Name = NULL;
+  origin[0]=0;
+  origin[1]=0;
+  origin[2]=0;
   R[0]=0.0; R[1]=0.0; R[2]=0.0;
   R[3]=0.0; R[4]=0.0; R[5]=0.0;
   R[6]=0.0; R[7]=0.0; R[8]=0.0;
@@ -139,6 +143,9 @@ AxisType::AxisType(const AxisType &rhs) :
     memcpy(Name, rhs.Name, natom * sizeof(NAME));
   } else
     Name=NULL;
+  origin[0] = rhs.origin[0];
+  origin[1] = rhs.origin[1];
+  origin[2] = rhs.origin[2];
   memcpy(R, rhs.R, 9 * sizeof(double));
   HbondAtom[0] = rhs.HbondAtom[0];
   HbondAtom[1] = rhs.HbondAtom[1];
@@ -169,6 +176,9 @@ AxisType &AxisType::operator=(const AxisType &rhs) {
     Name = new NAME[ natom ];
     memcpy(Name, rhs.Name, natom * sizeof(NAME));
   }
+  origin[0] = rhs.origin[0];
+  origin[1] = rhs.origin[1];
+  origin[2] = rhs.origin[2];
   memcpy(R, rhs.R, 9 * sizeof(double));
   HbondAtom[0] = rhs.HbondAtom[0];
   HbondAtom[1] = rhs.HbondAtom[1];
@@ -211,10 +221,16 @@ void AxisType::RZ(double Vin[3]) {
   Vin[1] = R[5];
   Vin[2] = R[8];
 }
+// AxisType::OXYZ()
+void AxisType::OXYZ(double Vin[3]) {
+  Vin[0] = origin[0];
+  Vin[1] = origin[1];
+  Vin[2] = origin[2];
+}
 // AxisType::Origin()
 /** Return pointer to the origin coords.  */
 double *AxisType::Origin() {
-  return (X+9);
+  return origin;
 }
 
 // ------------------------- PRIVATE FUNCTIONS --------------------------------
@@ -279,7 +295,8 @@ int AxisType::AllocAxis(int natomIn) {
 // ------------------------- PUBLIC FUNCTIONS ---------------------------------
 // AxisType::BaseName()
 char *AxisType::BaseName() {
-  return (char*)NAbaseName[ID];
+  sprintf(basename_num,"%i:%s",residue_number+1,NAbaseName[ID]);
+  return basename_num; 
 }
 
 // AxisType::AtomNameIs()
@@ -300,6 +317,14 @@ void AxisType::PrintAtomNames() {
   for (int atom = 0; atom < natom; atom++)
     mprintf(" %s",Name[atom]);
   mprintf("\n");
+}
+
+// AxisType::PrintAxisInfo()
+void AxisType::PrintAxisInfo(const char *title) {
+  mprintf("         %s origin: %8.4lf %8.4lf %8.4lf\n",title,origin[0],origin[1],origin[2]);
+  mprintf("         %s Rx vec: %8.4lf %8.4lf %8.4lf\n",title,R[0],R[3],R[6]);
+  mprintf("         %s Ry vec: %8.4lf %8.4lf %8.4lf\n",title,R[1],R[4],R[7]);
+  mprintf("         %s Rz vec: %8.4lf %8.4lf %8.4lf\n",title,R[2],R[5],R[8]);
 }
 
 // AxisType::SetFromFrame()
@@ -359,7 +384,7 @@ int AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
 }
 
 // AxisType::StoreRotMatrix()
-void AxisType::StoreRotMatrix(double *RotMatrix) {
+void AxisType::StoreRotMatrix(double *RotMatrix, double *TransVec) {
   R[0] = RotMatrix[0];
   R[1] = RotMatrix[1];
   R[2] = RotMatrix[2];
@@ -369,6 +394,9 @@ void AxisType::StoreRotMatrix(double *RotMatrix) {
   R[6] = RotMatrix[6];
   R[7] = RotMatrix[7];
   R[8] = RotMatrix[8];
+  origin[0] = TransVec[0];
+  origin[1] = TransVec[1];
+  origin[2] = TransVec[2];
 }
     
 // AxisType::SetPrincipalAxes()
@@ -559,6 +587,29 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
   * Done for antiparallel stranded DNA.
   */
 void AxisType::FlipYZ() {
+/*  double ox2, oy2, oz2;
+    
+  ox2 = X[9 ] + X[9 ];
+  oy2 = X[10] + X[10];
+  oz2 = X[11] + X[11];
+  // Y axis  
+  X[3 ] = ox2 - X[3 ];
+  X[4 ] = oy2 - X[4 ];
+  X[5 ] = oz2 - X[5 ];
+  // Z axis  
+  X[6 ] = ox2 - X[6 ];
+  X[7 ] = oy2 - X[7 ];
+  X[8 ] = oz2 - X[8 ]; */
+
+  R[1] = -R[1]; // -Yx
+  R[4] = -R[4]; // -Yy
+  R[7] = -R[7]; // -Yz
+  R[2] = -R[2]; // -Zx
+  R[5] = -R[5]; // -Zy
+  R[8] = -R[8]; // -Zz
+}
+
+void AxisType::FLIP_YZ_COORDS() {
   double ox2, oy2, oz2;
     
   ox2 = X[9 ] + X[9 ];
@@ -574,10 +625,10 @@ void AxisType::FlipYZ() {
   X[8 ] = oz2 - X[8 ]; 
 
   R[1] = -R[1]; // -Yx
-  R[2] = -R[2]; // -Zx
   R[4] = -R[4]; // -Yy
-  R[5] = -R[5]; // -Zy
   R[7] = -R[7]; // -Yz
+  R[2] = -R[2]; // -Zx
+  R[5] = -R[5]; // -Zy
   R[8] = -R[8]; // -Zz
 }
 
@@ -586,7 +637,7 @@ void AxisType::FlipYZ() {
   * Done for parallel stranded DNA.
   */
 void AxisType::FlipXY() {
-double ox2, oy2, oz2;
+/*  double ox2, oy2, oz2;
 
   ox2 = X[9 ] + X[9 ];
   oy2 = X[10] + X[10];
@@ -598,13 +649,13 @@ double ox2, oy2, oz2;
   // Y axis  
   X[3 ] = ox2 - X[3 ];
   X[4 ] = oy2 - X[4 ];
-  X[5 ] = oz2 - X[5 ];
+  X[5 ] = oz2 - X[5 ];*/
 
   R[0] = -R[0]; // -Xx
-  R[1] = -R[1]; // -Yx
   R[3] = -R[3]; // -Xy
-  R[4] = -R[4]; // -Yy
   R[6] = -R[6]; // -Xz
+  R[1] = -R[1]; // -Yx
+  R[4] = -R[4]; // -Yy
   R[7] = -R[7]; // -Yz
 }
 

@@ -18,38 +18,22 @@
   *   reference frames themselves.
   */
 class AxisType : public Frame {
-    // The following enumerated types are used to index the standard
-    // NA reference frame coordinates for each base.
-    //enum ADEatoms { C1p, N9, C8, N7, C5, C6, N6, N1, C2, N3, C4 };
-    //enum CYTatoms { C1p, N1, C2, O2, N3, C4, N4, C5, C6 };
-    //enum GUAatoms { C1p, N9, C8, N7, C5, C6, O6, N1, C2, N2, N3, C4 };
-    //enum THYatoms { C1p, N1, C2, O2, N3, C4, O4, C5, C7, C6 };
-    //enum URAatoms { C1p, N1, C2, O2, N3, C4, O4, C5, C6 };
-    // The following arrays contain the corresponding atom names.
-    static const NAME ADEnames[];
-    static const double ADEcoords[][3];
-    static const int ADEhbonds[];
-    static const NAME CYTnames[];
-    static const double CYTcoords[][3];
-    static const int CYThbonds[];
-    static const NAME GUAnames[];
-    static const double GUAcoords[][3];
-    static const int GUAhbonds[];
-    static const NAME THYnames[];
-    static const double THYcoords[][3];
-    static const int THYhbonds[];
-    static const NAME URAnames[];
-    static const double URAcoords[][3];
-    static const int URAhbonds[];
   public:
     /// Type for each standard NA base.
     enum NAbaseType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
   private:
     /// Identify NA base from residue name
     NAbaseType ID_base(char*);
+    /// Strings corresponding to NAbaseType
     static const char NAbaseName[][4];
-    NAME *Name;         ///< Atom/Axis names
-    int residue_number; ///< Original residue number
+    /// Atom Names
+    NAME *Name;
+    /// Original residue number
+    int residue_number;
+    /// Origin coordinates
+    double origin[3];
+    /// DEBUG - Storage for writing out BaseName + residue_number 
+    char basename_num[32];
 
     int AllocAxis(int);
   public:
@@ -62,22 +46,29 @@ class AxisType : public Frame {
     AxisType(const AxisType&);
     AxisType & operator=(const AxisType&);
     ~AxisType();
+
     void RX(double Vin[3]);
     void RY(double Vin[3]);
     void RZ(double Vin[3]);
+    void OXYZ(double Vin[3]);
     double *Origin();
+
     char *BaseName();
     int BaseNum() { return residue_number; }
     bool AtomNameIs(int, char *);
     char *AtomName(int);
     void PrintAtomNames();
+    void PrintAxisInfo(const char *);
+
     void SetFromFrame(AxisType *);
     int SetAxisFromMask(AxisType &, AtomMask &);
-    void StoreRotMatrix(double*);
+    void StoreRotMatrix(double*,double*);
     void SetPrincipalAxes();
+
     enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };
     RefReturn SetRefCoord(AmberParm *, int, AtomMask &,AtomMask&);
     void FlipYZ();
+    void FLIP_YZ_COORDS();
     void FlipXY();
 #ifdef NASTRUCTDEBUG
     void WritePDB(CpptrajFile *, int, char *, int *); // DEBUG

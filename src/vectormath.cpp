@@ -78,6 +78,13 @@ double dot_product_angle(double V[3], double U[3]) {
   return acos(total);
 }
 
+// cross_product()
+void cross_product(double V[3], double U[3], double W[3]) {
+  V[0] = U[1]*W[2] - U[2]*W[1]; // y1z2 - z1y2
+  V[1] = U[2]*W[0] - U[0]*W[2]; // z1x2 - x1z2
+  V[2] = U[0]*W[1] - U[1]*W[0]; // x1y2 - y1x2
+}
+
 // matrix_transpose()
 /** M = Ut
   * Columns of U become rows of M and vice versa.
@@ -143,7 +150,7 @@ double *matrix_transpose(double *M, int mrows, int ncols) {
 }
   
 // matrix_times_vector()
-/** Multiple matrix R by vector V, store result in U
+/** Multiply matrix R by vector V, store result in U
   */
 void matrix_times_vector(double U[3], double R[9], double V[3]) {
   double x,y,z;
@@ -157,7 +164,7 @@ void matrix_times_vector(double U[3], double R[9], double V[3]) {
 }
 
 // matrixT_times_vector()
-/** Multiple transpose of matrix R by vector V, store result in U
+/** Multiply transpose of matrix R by vector V, store result in U
   */
 void matrixT_times_vector(double U[3], double R[9], double V[3]) {
   double x,y,z;
@@ -287,6 +294,8 @@ void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ) {
   double V[3];
 
   Psi = sqrt( (psiX*psiX) + (psiY*psiY) + (psiZ*psiZ) );
+  //mprintf("\t\tcalcRotationMatrix(%.2lf,%.2lf,%.2lf) Psi=%lf\n",
+          psiX*RADDEG,psiY*RADDEG,psiZ*RADDEG,Psi*RADDEG);
   V[0] = psiX / Psi;
   V[1] = psiY / Psi;
   V[2] = psiZ / Psi;
