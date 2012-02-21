@@ -399,8 +399,7 @@ int DihedralScan::action() {
   int debugframenum=0;
   TrajectoryFile DebugTraj;
   DebugTraj.SetupWrite((char*)"debugtraj.nc\0",NULL,currentParm,AMBERNETCDF);
-  DebugTraj.WriteFrame(debugframenum++,currentParm,currentFrame->X,currentFrame->V,
-                          currentFrame->box,currentFrame->T);
+  DebugTraj.WriteFrame(debugframenum++,currentParm,*currentFrame);
 #endif
 
   std::vector<DihedralScanType>::iterator next_dih = BB_dihedrals.begin();
@@ -442,8 +441,7 @@ int DihedralScan::action() {
       currentFrame->RotateAroundAxis(rotationMatrix, theta_in_radians, (*dih).Rmask);
 #ifdef DEBUG_DIHEDRALSCAN
       // DEBUG
-      DebugTraj.WriteFrame(debugframenum++,currentParm,currentFrame->X,currentFrame->V,
-                          currentFrame->box,currentFrame->T);
+      DebugTraj.WriteFrame(debugframenum++,currentParm,*currentFrame);
 #endif
       // If we dont care about sterics exit here
       if (!check_for_clashes) break;
@@ -497,8 +495,7 @@ int DihedralScan::action() {
         // Rotate back to best clash
         currentFrame->RotateAroundAxis(rotationMatrix, theta_in_radians, (*dih).Rmask);
         // DEBUG
-        DebugTraj.WriteFrame(debugframenum++,currentParm,currentFrame->X,currentFrame->V,
-                          currentFrame->box,currentFrame->T);
+        DebugTraj.WriteFrame(debugframenum++,currentParm,*currentFrame);
         // Sanity check
         CheckResidue(currentFrame, *dih, second_atom, &clash);
         rotate_dihedral=false;*/
@@ -509,8 +506,8 @@ int DihedralScan::action() {
     next_dih++;
     // Safety valve - number of defined dihedrals times 2
     if (number_of_rotations > max_rotations) {
-      mprinterr("DihedralScan: Number of rotations (%i) exceeds max rotations (%i), exiting.\n",
-              number_of_rotations, max_rotations);
+      mprinterr("DihedralScan: [%i] # of rotations (%i) exceeds max rotations (%i), exiting.\n",
+                frameNum+OUTPUTFRAMESHIFT,number_of_rotations, max_rotations);
 //#ifdef DEBUG_DIHEDRALSCAN
 //      DebugTraj.EndTraj();
 //#endif
