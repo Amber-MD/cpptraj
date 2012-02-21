@@ -14,6 +14,7 @@
   * calculating RMSD).
   */
 class Frame {
+  protected:
     static const size_t COORDSIZE;
     static const size_t BOXSIZE;
   public:
