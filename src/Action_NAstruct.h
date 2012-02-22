@@ -81,6 +81,8 @@ class NAstruct: public Action {
           axis.WriteAxesPDB(pdbfile, res, resname, &pdbatom);
         }
     };
+    // DEBUG - used to trigger AxisPDBwriter for first call of calculateParameters
+    bool calcparam;
 #   endif
   public:
     NAstruct();
