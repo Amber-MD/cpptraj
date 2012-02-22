@@ -50,7 +50,7 @@ class Rmsd: public Action {
     Rmsd();
     ~Rmsd();
 
-    int SeparateInit(char*,int);
+    int SeparateInit(char*,bool,int);
 
     int init();
     int setup();

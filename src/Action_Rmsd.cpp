@@ -251,9 +251,13 @@ int Rmsd::init( ) {
   * action list so it can be used e.g. by other actions etc. The dataset
   * is allocated locally.
   */
-int Rmsd::SeparateInit(char *mask0, int debugIn) {
+int Rmsd::SeparateInit(char *mask0, bool massIn, int debugIn) {
   isSeparate = true;
   debug = debugIn;
+  useMass = massIn;
+  // Also set useMassOriginalValue since this is NOT called from 
+  // Init.
+  useMassOriginalValue = useMass;
   // Only first for reference for now
   first = true;
   RefParm = NULL;

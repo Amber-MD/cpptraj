@@ -11,6 +11,7 @@
 RmsAvgCorr::RmsAvgCorr() {
   parmNatom = 0;
   rmsmask = NULL;
+  useMass = false;
 } 
 
 // DESTRUCTOR
@@ -23,6 +24,7 @@ RmsAvgCorr::~RmsAvgCorr() {
 int RmsAvgCorr::init( ) {
   // Get Keywords
   char *outfilename = actionArgs.getKeyString("out",NULL);
+  useMass = actionArgs.hasKey("mass");
   // Get Masks
   rmsmask = actionArgs.getNextMask();
 
@@ -34,9 +36,10 @@ int RmsAvgCorr::init( ) {
 
   mprintf("    RMSAVGCORR:");
   if (rmsmask!=NULL)
-    mprintf(" Mask [%s]",rmsmask);
+    mprintf(" RMSD Mask [%s]",rmsmask);
   else
     mprintf(" All atoms");
+  if (useMass) mprintf(" (mass-weighted)");
   if (outfilename!=NULL) mprintf(", Output to %s",outfilename);
 
   return 0;
@@ -92,7 +95,9 @@ void RmsAvgCorr::print() {
   referenceParm = ReferenceFrames.GetFrameParm(0);
 
   mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n");
-  mprintf("                sizes ranging from 1 to %i\n",ReferenceFrames.NumFrames()-1);
+  mprintf("                sizes ranging from 1 to %i",ReferenceFrames.NumFrames()-1);
+  if (useMass) mprintf(", mass-weighted");
+  mprintf(".\n");
 # ifdef _OPENMP
   // Currently DataSet is not thread-safe. Use temp storage.
   double *Ct_openmp = new double[ ReferenceFrames.NumFrames() - 1 ];
@@ -105,7 +110,7 @@ void RmsAvgCorr::print() {
 
   // Initialize RMSD action, first value for Ct (window==1) is 
   // just the avg RMSD with no running averaging.
-  rmsdaction.SeparateInit(rmsmask, debug);
+  rmsdaction.SeparateInit(rmsmask, useMass, debug);
    // Setup RMSD action 
   rmsdaction.Setup(&referenceParm);
   // Calc initial RMSD
@@ -138,7 +143,7 @@ void RmsAvgCorr::print() {
   for (window = 2; window < ReferenceFrames.NumFrames(); window++ ) {
     // Initialize running average and rmsd for this window size
     runavgaction.SeparateInit(window,debug);
-    rmsdaction.SeparateInit(rmsmask, debug);
+    rmsdaction.SeparateInit(rmsmask, useMass, debug);
     // Setup running average and rmsd for this window size
     runavgaction.Setup(&referenceParm);
     rmsdaction.Setup(&referenceParm);
