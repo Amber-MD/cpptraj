@@ -11,9 +11,11 @@
 // normalize()
 /** Normalize vector in a[].  */
 void normalize(double a[3]) {
+  double r2;
   double b;
 
-  b = 1.0/sqrt((double)(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]));
+  r2 = a[0]*a[0] + a[1]*a[1] + a[2]*a[2];
+  b = 1.0 / sqrt(r2);
 
   a[0] *= b;
   a[1] *= b;
@@ -80,9 +82,9 @@ double dot_product_angle(double V[3], double U[3]) {
 
 // cross_product()
 void cross_product(double V[3], double U[3], double W[3]) {
-  V[0] = U[1]*W[2] - U[2]*W[1]; // y1z2 - z1y2
-  V[1] = U[2]*W[0] - U[0]*W[2]; // z1x2 - x1z2
-  V[2] = U[0]*W[1] - U[1]*W[0]; // x1y2 - y1x2
+  V[0] = U[1]*W[2] - U[2]*W[1]; // UyWz - UzWy
+  V[1] = U[2]*W[0] - U[0]*W[2]; // UzWx - UxWz
+  V[2] = U[0]*W[1] - U[1]*W[0]; // UxWy - UyWx
 }
 
 // matrix_transpose()
