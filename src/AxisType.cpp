@@ -384,7 +384,7 @@ int AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
 }
 
 // AxisType::StoreRotMatrix()
-void AxisType::StoreRotMatrix(double *RotMatrix, double *TransVec) {
+void AxisType::StoreRotMatrix(double *RotMatrix, double *originIn) {
   R[0] = RotMatrix[0];
   R[1] = RotMatrix[1];
   R[2] = RotMatrix[2];
@@ -394,9 +394,9 @@ void AxisType::StoreRotMatrix(double *RotMatrix, double *TransVec) {
   R[6] = RotMatrix[6];
   R[7] = RotMatrix[7];
   R[8] = RotMatrix[8];
-  origin[0] = TransVec[0];
-  origin[1] = TransVec[1];
-  origin[2] = TransVec[2];
+  origin[0] = originIn[0];
+  origin[1] = originIn[1];
+  origin[2] = originIn[2];
 }
     
 // AxisType::SetPrincipalAxes()
@@ -587,43 +587,6 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
   * Done for antiparallel stranded DNA.
   */
 void AxisType::FlipYZ() {
-/*  double ox2, oy2, oz2;
-    
-  ox2 = X[9 ] + X[9 ];
-  oy2 = X[10] + X[10];
-  oz2 = X[11] + X[11];
-  // Y axis  
-  X[3 ] = ox2 - X[3 ];
-  X[4 ] = oy2 - X[4 ];
-  X[5 ] = oz2 - X[5 ];
-  // Z axis  
-  X[6 ] = ox2 - X[6 ];
-  X[7 ] = oy2 - X[7 ];
-  X[8 ] = oz2 - X[8 ]; */
-
-  R[1] = -R[1]; // -Yx
-  R[4] = -R[4]; // -Yy
-  R[7] = -R[7]; // -Yz
-  R[2] = -R[2]; // -Zx
-  R[5] = -R[5]; // -Zy
-  R[8] = -R[8]; // -Zz
-}
-
-void AxisType::FLIP_YZ_COORDS() {
-  double ox2, oy2, oz2;
-    
-  ox2 = X[9 ] + X[9 ];
-  oy2 = X[10] + X[10];
-  oz2 = X[11] + X[11];
-  // Y axis  
-  X[3 ] = ox2 - X[3 ];
-  X[4 ] = oy2 - X[4 ];
-  X[5 ] = oz2 - X[5 ];
-  // Z axis  
-  X[6 ] = ox2 - X[6 ];
-  X[7 ] = oy2 - X[7 ];
-  X[8 ] = oz2 - X[8 ]; 
-
   R[1] = -R[1]; // -Yx
   R[4] = -R[4]; // -Yy
   R[7] = -R[7]; // -Yz
@@ -637,20 +600,6 @@ void AxisType::FLIP_YZ_COORDS() {
   * Done for parallel stranded DNA.
   */
 void AxisType::FlipXY() {
-/*  double ox2, oy2, oz2;
-
-  ox2 = X[9 ] + X[9 ];
-  oy2 = X[10] + X[10];
-  oz2 = X[11] + X[11];
-  // X axis
-  X[0 ] = ox2 - X[0 ];
-  X[1 ] = ox2 - X[1 ];
-  X[2 ] = ox2 - X[2 ];
-  // Y axis  
-  X[3 ] = ox2 - X[3 ];
-  X[4 ] = oy2 - X[4 ];
-  X[5 ] = oz2 - X[5 ];*/
-
   R[0] = -R[0]; // -Xx
   R[3] = -R[3]; // -Xy
   R[6] = -R[6]; // -Xz
