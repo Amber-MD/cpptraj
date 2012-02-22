@@ -62,6 +62,26 @@ class NAstruct: public Action {
     int calculateParameters(AxisType &A, AxisType &, AxisType*, double*);
     int determineBaseParameters();
     int determineBasepairParameters();
+#   ifdef NASTRUCTDEBUG
+    // DEBUG - Class to hold PDB output
+    class AxisPDBwriter {
+        int pdbatom;
+        CpptrajFile pdbfile;
+      public:
+        AxisPDBwriter() { pdbatom=0; }
+        ~AxisPDBwriter() { pdbfile.CloseFile(); }
+        void Open(const char *fname) {
+          pdbfile.SetupFile((char*)fname, WRITE, 0);
+          pdbfile.OpenFile();
+        }
+        void Write(AxisType &axis, int res, char *resname) {
+          axis.WritePDB(pdbfile, res, resname, &pdbatom);
+        }
+        void WriteAxes(AxisType &axis, int res, char *resname) {
+          axis.WriteAxesPDB(pdbfile, res, resname, &pdbatom);
+        }
+    };
+#   endif
   public:
     NAstruct();
     ~NAstruct();

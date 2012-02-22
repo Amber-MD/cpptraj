@@ -299,6 +299,11 @@ char *AxisType::BaseName() {
   return basename_num; 
 }
 
+// AxisType::ResName()
+char *AxisType::ResName() {
+  return (char*)NAbaseName[ID];
+}
+
 // AxisType::AtomNameIs()
 bool AxisType::AtomNameIs(int atom, char *nameIn) {
   if (atom<0 || atom>=natom) return false;
@@ -609,16 +614,50 @@ void AxisType::FlipXY() {
 }
 
 #ifdef NASTRUCTDEBUG
-// DEBUG: AxisToPDB
-void AxisType::WritePDB(CpptrajFile *outfile, int resnum, char *resname, int *atom) {
+// DEBUG
+// AxisType::WritePDB()
+// Write coordinates to file in PDB format.
+void AxisType::WritePDB(CpptrajFile &outfile, int resnum, char *resname, int *atom) {
   char buffer[82];
   int i3=0;
   for (int i=0; i<natom; i++) {
-    pdb_write_ATOM(buffer,PDBATOM,(*atom)+i,Name[i],resname,'X',resnum+1,
+    pdb_write_ATOM(buffer,PDBATOM,(*atom)+i+1,Name[i],resname,'X',resnum+1,
                    X[i3],X[i3+1],X[i3+2],1.0,0.0,(char*)"\0",false);
-    outfile->IO->Write(buffer,sizeof(char),strlen(buffer));
+    outfile.IO->Write(buffer,sizeof(char),strlen(buffer));
     i3+=3;
   }
   (*atom) += natom;
+}
+// AxisType::WriteAxesPDB()
+void AxisType::WriteAxesPDB(CpptrajFile &outfile, int resnum, char *resname, int *atom) {
+  char buffer[82];
+  double dx,dy,dz;
+  // Origin
+  pdb_write_ATOM(buffer, PDBATOM, (*atom)+1, (char*)"Orig", resname, 'X', resnum+1,
+                 origin[0],origin[1],origin[2],1.0,0.0,(char*)"\0",false);
+  outfile.IO->Write(buffer,sizeof(char),strlen(buffer));
+  // X vector
+  dx = origin[0] + R[0];
+  dy = origin[1] + R[3];
+  dz = origin[2] + R[6];
+  pdb_write_ATOM(buffer, PDBATOM, (*atom)+2, (char*)"X", resname, 'X', resnum+1,
+                 dx,dy,dz,1.0,0.0,(char*)"\0",false);
+  outfile.IO->Write(buffer,sizeof(char),strlen(buffer));
+  // Y vector
+  dx = origin[0] + R[1];
+  dy = origin[1] + R[4];
+  dz = origin[2] + R[7];
+  pdb_write_ATOM(buffer, PDBATOM, (*atom)+3, (char*)"Y", resname, 'X', resnum+1,
+                 dx,dy,dz,1.0,0.0,(char*)"\0",false);
+  outfile.IO->Write(buffer,sizeof(char),strlen(buffer));
+  // Z vector
+  dx = origin[0] + R[2];
+  dy = origin[1] + R[5];
+  dz = origin[2] + R[8];
+  pdb_write_ATOM(buffer, PDBATOM, (*atom)+4, (char*)"Z", resname, 'X', resnum+1,
+                 dx,dy,dz,1.0,0.0,(char*)"\0",false);
+  outfile.IO->Write(buffer,sizeof(char),strlen(buffer));
+
+  (*atom) = (*atom) + 4;
 }
 #endif

@@ -54,6 +54,7 @@ class AxisType : public Frame {
     double *Origin();
 
     char *BaseName();
+    char *ResName();
     int BaseNum() { return residue_number; }
     bool AtomNameIs(int, char *);
     char *AtomName(int);
@@ -71,7 +72,8 @@ class AxisType : public Frame {
     void FLIP_YZ_COORDS();
     void FlipXY();
 #ifdef NASTRUCTDEBUG
-    void WritePDB(CpptrajFile *, int, char *, int *); // DEBUG
+    void WritePDB(CpptrajFile &, int, char *, int *); // DEBUG
+    void WriteAxesPDB(CpptrajFile &, int, char *, int *);
 #endif
 };
 #endif  

@@ -50,18 +50,11 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
   AxisType refFrame; // Hold copy of base reference coords
   AxisType expFrame; // Hold copy of input base coords
 # ifdef NASTRUCTDEBUG
-  // DEBUG
-  int res = 0;
-  int baseaxesatom = 0;
-  //int basesatom = 0;
-  AxisType tempAxes;
-  CpptrajFile baseaxesfile;
-  CpptrajFile basesfile;
-  baseaxesfile.SetupFile((char*)"baseaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
-  baseaxesfile.OpenFile();
-  basesfile.SetupFile((char*)"bases.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
-  basesfile.OpenFile();
-  // END DEBUG
+  AxisPDBwriter baseaxesfile;
+  baseaxesfile.Open("baseaxes.pdb");
+  AxisPDBwriter basesfile;
+  basesfile.Open("bases.pdb");
+  mprintf("\n=================== Setup Base Axes ===================\n");
 # endif
 
   // For each axis in RefCoords, use corresponding mask in ExpMasks to set 
@@ -123,25 +116,17 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Write base axis to file
     // Use the translation/rotation to fit principal axes to experimental coords.
-    tempAxes.SetPrincipalAxes();
-    tempAxes.Trans_Rot_Trans(TransVec, RotMatrix);
+    //AxisType tempAxes;
+    //tempAxes.SetPrincipalAxes();
+    //tempAxes.Trans_Rot_Trans(TransVec, RotMatrix);
     // This BaseAxis now contains the absolute coordinates of the base reference axes.
-    tempAxes.WritePDB(&baseaxesfile, res, RefCoords[base].BaseName(), &baseaxesatom);
-    /*
+    baseaxesfile.WriteAxes(BaseAxes[base], base, RefCoords[base].ResName());
     // Overlap ref coords onto input coords. Rotate, then translate to baseaxes origin
     refFrame.SetFromFrame( &RefCoords[base] );
-    refFrame.Rotate( RotMatrix );
-    refFrame.Translate( BaseAxes[base].Origin() );
-    // DEBUG - Write ref coords to file
-    refFrame.WritePDB(&basesfile, res, RefCoords[base].BaseName(), &basesatom);*/
-    ++res;
+    refFrame.Trans_Rot_Trans(TransVec,RotMatrix);
+    basesfile.Write(refFrame, base, RefCoords[base].ResName());
 #   endif
   } // END loop over bases
-# ifdef NASTRUCTDEBUG
-  // DEBUG
-  baseaxesfile.CloseFile();
-  basesfile.CloseFile();
-# endif
 
   return 0;
 }
@@ -359,7 +344,7 @@ int NAstruct::determineBasePairing() {
   return 0;
 }
 
-// calculateParameters()
+// NAstruct::calculateParameters()
 /** Given two axes, calculate translational and rotational parameters
   * between them.
   */
@@ -518,12 +503,8 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
 int NAstruct::determineBaseParameters() {
   double Param[6];
 # ifdef NASTRUCTDEBUG
-  // DEBUG
-  int basepairaxesatom=0;
-  CpptrajFile basepairaxesfile;
-  basepairaxesfile.SetupFile((char*)"basepairaxes.pdb",WRITE,UNKNOWN_FORMAT,UNKNOWN_TYPE,0);
-  basepairaxesfile.OpenFile();
-  // END DEBUG
+  AxisPDBwriter basepairaxesfile;
+  basepairaxesfile.Open("basepairaxes.pdb");
   mprintf("\n=================== Determine BP Parameters ===================\n");
 # endif
 
@@ -560,17 +541,11 @@ int NAstruct::determineBaseParameters() {
 
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
-    // NOTE: Fix this!
-    BasePairAxes[nbasepair].WritePDB(&basepairaxesfile, base1, RefCoords[base1].BaseName(), 
-                                     &basepairaxesatom);
+    basepairaxesfile.WriteAxes(BasePairAxes[nbasepair], base1, RefCoords[base1].ResName());
 #   endif
 
     ++nbasepair; // Actual base pair count; BP is nbasepair*3
   }
-# ifdef NASTRUCTDEBUG
-  // DEBUG
-  basepairaxesfile.CloseFile(); 
-# endif
 
   return 0;
 }
@@ -757,7 +732,7 @@ void NAstruct::print() {
   DataSet *na_dataset = NULL;
 
   // Set precision of all datasets
-  int dsw = 12;
+/*  int dsw = 12;
   int dsp = 2;
   SHEAR.SetPrecisionOfDatasets(dsw,dsp);
   STRETCH.SetPrecisionOfDatasets(dsw,dsp);
@@ -770,7 +745,7 @@ void NAstruct::print() {
   RISE.SetPrecisionOfDatasets(dsw,dsp);
   TILT.SetPrecisionOfDatasets(dsw,dsp);
   ROLL.SetPrecisionOfDatasets(dsw,dsp);
-  TWIST.SetPrecisionOfDatasets(dsw,dsp);
+  TWIST.SetPrecisionOfDatasets(dsw,dsp);*/
 
   if (naoutFilename==NULL) return;
 
