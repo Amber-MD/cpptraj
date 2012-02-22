@@ -432,6 +432,19 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   OM[2] = (O1[2] + O2[2]) / 2;
   printVector("Origin Mean",OM);
 
+# ifdef NASTRUCTDEBUG
+  if (calcparam) {
+    // Use Rinv to store hinge axis in Z
+    for (int i=0; i<9; i++) Rinv[i]=0;
+    Rinv[2]=hingeAxis[0]; Rinv[5]=hingeAxis[1]; Rinv[8]=hingeAxis[2];
+    tempAxis.StoreRotMatrix(Rinv, OM);
+    paramfile.WriteAxes(tempAxis,2,(char*)"Hng");
+    // Store middle frame
+    tempAxis.StoreRotMatrix(R,OM);
+    paramfile.WriteAxes(tempAxis,3,(char*)"Rm");
+  }
+# endif
+
   // If BPaxis is not NULL, store Rm and OM as BP axis.
   if (BPaxis!=NULL) 
     BPaxis->StoreRotMatrix(R, OM);
@@ -446,23 +459,25 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   Param[1] = Vec[1];
   Param[2] = Vec[2];
 
-  // Twist / Opening
-  // rotated X1 x rotated X2
-  X1[0] = RotatedR1[0];
-  X1[1] = RotatedR1[3];
-  X1[2] = RotatedR1[6];
-  X2[0] = RotatedR2[0];
-  X2[1] = RotatedR2[3];
-  X2[2] = RotatedR2[6];
-  cross_product(Vec, X1, X2);
-  double twistopen = asin( vector_norm( Vec, &r2 ));
-  mprintf("\tAngle between X1' and X2' is %lf\n",twistopen*RADDEG);
-  // (X1'xX2') dot Z of middle frame
+  // Set Z1 to Z from middle frame
   Z1[0] = R[2];
   Z1[1] = R[5];
   Z1[2] = R[8];
+
+  // Twist / Opening
+  // Angle between rotated Y1 and rotated Y2
+  Y1[0] = RotatedR1[0];
+  Y1[1] = RotatedR1[3];
+  Y1[2] = RotatedR1[6];
+  Y2[0] = RotatedR2[0];
+  Y2[1] = RotatedR2[3];
+  Y2[2] = RotatedR2[6];
+  double twistopen = dot_product_angle(Y1, Y2);
+  mprintf("\tAngle between Y1' and Y2' is %lf\n",twistopen*RADDEG);
+  // Sign of twistopen related to (Y1'xY2') dot Z of middle frame
+  cross_product(Vec,Y1,Y2);
   double sign = dot_product(Vec,Z1);
-  mprintf("\tDot product of X1'xX2' with Zm is %lf radians\n",sign);
+  mprintf("\tDot product of Y1'xY2' with Zm is %lf radians\n",sign);
   if (sign<0) 
     sign=-1.0; 
   else 
@@ -472,18 +487,14 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   Param[3] = twistopen;
 
   // Phase angle
-  // hinge axis x middle frame Y axis
+  // Angle between hinge axis and middle frame Y axis
   Y1[0] = R[1];
   Y1[1] = R[4];
   Y1[2] = R[7];
-  cross_product(Vec, hingeAxis, Y1);
-  double sinphi = vector_norm( Vec, &r2);
-  double phi = asin( sinphi );
+  double phi = dot_product_angle(hingeAxis, Y1);
   mprintf("\tAngle between hinge axis and Ym is %lf\n",phi*RADDEG);
-  //double cosphi = dot_product(Y1, hingeAxis);
-  //double phi = acos( cosphi );
-  //double sinphi = sin( phi );
-  // (hingeAxis x Ym) dot Z of middle frame
+  // Sign of phi related to (hingeAxis x Ym) dot Z of middle frame
+  cross_product(Vec,hingeAxis,Y1);
   sign = dot_product(Vec,Z1);
   mprintf("\tDot product of (hingeAxis x Ym) with Zm is %lf radians\n",sign);
   if (sign<0) 
@@ -491,7 +502,7 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   else 
     sign=1.0;
   phi *= sign;
-  sinphi = sin( phi );
+  double sinphi = sin( phi );
   double cosphi = cos( phi );
   mprintf("\tPhase angle is %lf, sinphi is %lf, cosphi is %lf\n",phi*RADDEG,sinphi,cosphi);
 
