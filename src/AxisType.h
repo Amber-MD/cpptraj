@@ -64,7 +64,7 @@ class AxisType : public Frame {
     void SetFromFrame(AxisType *);
     int SetAxisFromMask(AxisType &, AtomMask &);
     void StoreRotMatrix(double*,double*);
-    void SetPrincipalAxes();
+    //void SetPrincipalAxes();
 
     enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };
     RefReturn SetRefCoord(AmberParm *, int, AtomMask &,AtomMask&);

@@ -403,10 +403,10 @@ void AxisType::StoreRotMatrix(double *RotMatrix, double *originIn) {
   origin[1] = originIn[1];
   origin[2] = originIn[2];
 }
-    
+
+/*    
 // AxisType::SetPrincipalAxes()
-/** Set this up as principal axes. Wipes out all previous info. 
-  */
+// Set this up as principal axes. Wipes out all previous info. 
 void AxisType::SetPrincipalAxes() {
   if (AllocAxis(4)) return;
   strcpy(Name[0],"X   ");
@@ -417,6 +417,7 @@ void AxisType::SetPrincipalAxes() {
   X[1]=0.0; X[4]=1.0; X[7]=0.0; X[10]=0.0; 
   X[2]=0.0; X[5]=0.0; X[8]=1.0; X[11]=0.0;
 }
+*/
 
 // AxisType::SetRefCoord()
 /** Set NA residue reference coordinates for given NA base. Ensure that
