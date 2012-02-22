@@ -295,7 +295,7 @@ void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ) {
 
   Psi = sqrt( (psiX*psiX) + (psiY*psiY) + (psiZ*psiZ) );
   //mprintf("\t\tcalcRotationMatrix(%.2lf,%.2lf,%.2lf) Psi=%lf\n",
-          psiX*RADDEG,psiY*RADDEG,psiZ*RADDEG,Psi*RADDEG);
+  //        psiX*RADDEG,psiY*RADDEG,psiZ*RADDEG,Psi*RADDEG);
   V[0] = psiX / Psi;
   V[1] = psiY / Psi;
   V[2] = psiZ / Psi;
