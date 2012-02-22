@@ -66,10 +66,9 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
     // Set exp coords based on previously set-up mask
     BaseAxes[base].SetFrameCoordsFromMask( InputFrame->X, &ExpMasks[base] );
 #   ifdef NASTRUCTDEBUG
-    int refbasenum = RefCoords[base].BaseNum();
     int expbasenum = BaseAxes[base].BaseNum();
     mprintf("Base REF %i:%4s   EXP %i:%4s\n",
-            refbasenum+1,RefCoords[base].ResName(),
+            RefCoords[base].BaseNum()+1,RefCoords[base].ResName(),
             expbasenum+1,currentParm->ResidueName(expbasenum));
     ExpMasks[base].PrintMaskAtoms("ExpMask");
     FitMasks[base].PrintMaskAtoms("FitMask");
@@ -99,21 +98,18 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
      * The rotation matrix contains the coordinates of the X, Y, and Z unit 
      * vectors of the base axes.
      */
-    if (debug>0) { 
-      mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
-      printMatrix_3x3("Rotation matrix:",RotMatrix);
-      //printRotTransInfo(RotMatrix,TransVec);
-    }
     // Store the Rotation matrix and the rotated and translated origin.
     double Vec[3];
     Vec[0]=(TransVec[0]*RotMatrix[0]+TransVec[1]*RotMatrix[1]+TransVec[2]*RotMatrix[2])+TransVec[3];
     Vec[1]=(TransVec[0]*RotMatrix[3]+TransVec[1]*RotMatrix[4]+TransVec[2]*RotMatrix[5])+TransVec[4];
     Vec[2]=(TransVec[0]*RotMatrix[6]+TransVec[1]*RotMatrix[7]+TransVec[2]*RotMatrix[8])+TransVec[5];
     BaseAxes[base].StoreRotMatrix( RotMatrix, Vec );
-
-    // DEBUG
-    if (debug>0) 
+    if (debug>0) { 
+      mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
+      //printMatrix_3x3("Rotation matrix:",RotMatrix);
+      //printRotTransInfo(RotMatrix,TransVec);
       BaseAxes[base].PrintAxisInfo("BaseAxes");
+    }
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Write base axis to file
     baseaxesfile.WriteAxes(BaseAxes[base], base, RefCoords[base].ResName());
@@ -306,9 +302,8 @@ int NAstruct::determineBasePairing() {
     if (debug>1) {
       int bp_1 = BasePair[base1  ];
       int bp_2 = BasePair[base1+1];
-      mprintf("        BP %i: Res %i:%s to %i:%s",base2,
-              RefCoords[bp_1].BaseNum()+1, RefCoords[bp_1].BaseName(),
-              RefCoords[bp_2].BaseNum()+1, RefCoords[bp_2].BaseName());
+      mprintf("        BP %i: Res %s to %s",base2,
+              RefCoords[bp_1].BaseName(), RefCoords[bp_2].BaseName());
       if ( BasePair[base1+2] )
         mprintf(" AntiParallel.\n");
       else
@@ -365,41 +360,54 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   Axis1.RY(Y1);
   Axis1.RZ(Z1);
   Axis1.OXYZ(O1);
-  printVector("O1",O1);
-  printMatrix_3x3("R1",Axis1.R);
 
   Axis2.RX(X2);
   Axis2.RY(Y2);
   Axis2.RZ(Z2);
   Axis2.OXYZ(O2);
+# ifdef NASTRUCTDEBUG
+  printVector("O1",O1);
+  printMatrix_3x3("R1",Axis1.R);
   printVector("O2",O2);
   printMatrix_3x3("R2",Axis2.R);
+# endif
 
   // Hinge axis is cross product between Z1 and Z2
   cross_product(hingeAxis, Z1, Z2);
+# ifdef NASTRUCTDEBUG
   printVector("hinge",hingeAxis);
-  // Normalize axis, get magnitude
-  double rolltilt = asin( vector_norm( hingeAxis, &r2 ));
+# endif
+  // Normalize hinge axis
+  vector_norm( hingeAxis, &r2 );
+  //double rolltilt = asin( vector_norm( hingeAxis, &r2 ));
+# ifdef NASTRUCTDEBUG
   printVector("norm(hinge)",hingeAxis);
+# endif
 
-  // Angle between Z1 and Z2, Z1xZ2 = |Z1||Z2| sin( theta ) 
-  //double rolltilt = dot_product_angle(Z1, Z2);
+  // Angle between Z1 and Z2, Z1 dot Z2 
+  double rolltilt = dot_product_angle(Z1, Z2);
+# ifdef NASTRUCTDEBUG
   mprintf("\tAngle between Z1 and Z2= %lf\n",rolltilt*RADDEG);
+# endif
 
+  // Calculate forward and backwards half rolltilt rotation around
+  // hinge axis.
   calcRotationMatrix(R, hingeAxis, -0.5*rolltilt);
-  printMatrix_3x3("Rhalf",R);
   //calcRotationMatrix(R, hingeAxis, 0.5*rolltilt);
   matrix_transpose(Rinv, R);
+# ifdef NASTRUCTDEBUG
+  printMatrix_3x3("Rhalf",R);
+# endif
 
   // Rotate R2 by -0.5 * rolltilt degrees around the hinge
   matrix_multiply_3x3(RotatedR2, R,    Axis2.R);
   // Rotate R1 by 0.5 * rolltilt degrees around the hinge (inverse rotation)
   matrix_multiply_3x3(RotatedR1, Rinv, Axis1.R);
 
+# ifdef NASTRUCTDEBUG
+  // Print rotated R1 and R2
   printMatrix_3x3("Rotated R1",RotatedR1);
   printMatrix_3x3("Rotated R2",RotatedR2);
-
-# ifdef NASTRUCTDEBUG
   if (calcparam) {
     tempAxis.StoreRotMatrix(RotatedR1,O1);
     paramfile.WriteAxes(tempAxis,0,(char*)"R1'");
@@ -408,7 +416,7 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   }
 # endif
 
-  // Average R1 and R2
+  // Average R1 and R2 to get the middle frame
   for (int i = 0; i < 9; i++)
     R[i] = (RotatedR1[i] + RotatedR2[i]) / 2;
   // Normalize X, Y and Z vectors
@@ -424,15 +432,16 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   R[2] /= r2;
   R[5] /= r2;
   R[8] /= r2;
-  printMatrix_3x3("Rm",R);
 
   // Take average of origins
   OM[0] = (O1[0] + O2[0]) / 2;
   OM[1] = (O1[1] + O2[1]) / 2;
   OM[2] = (O1[2] + O2[2]) / 2;
-  printVector("Origin Mean",OM);
 
 # ifdef NASTRUCTDEBUG
+  printVector("Origin Mean",OM);
+  // Print Rm and hinge axis
+  printMatrix_3x3("Rm",R);
   if (calcparam) {
     // Use Rinv to store hinge axis in Z
     for (int i=0; i<9; i++) Rinv[i]=0;
@@ -451,10 +460,12 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
 
   // Shift Slide Rise / Shear Stretch Stagger
   vector_sub(O21, O2, O1);
-  printVector("O21",O21);
   // Since this is really vector times matrix, use matrix transpose times vec
   matrixT_times_vector(Vec, R, O21);
+# ifdef NASTRUCTDEBUG
+  printVector("O21",O21);
   printVector("Vec",Vec);
+# endif
   Param[0] = Vec[0];
   Param[1] = Vec[1];
   Param[2] = Vec[2];
@@ -473,17 +484,21 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   Y2[1] = RotatedR2[3];
   Y2[2] = RotatedR2[6];
   double twistopen = dot_product_angle(Y1, Y2);
-  mprintf("\tAngle between Y1' and Y2' is %lf\n",twistopen*RADDEG);
   // Sign of twistopen related to (Y1'xY2') dot Z of middle frame
   cross_product(Vec,Y1,Y2);
   double sign = dot_product(Vec,Z1);
+# ifdef NASTRUCTDEBUG
+  mprintf("\tAngle between Y1' and Y2' is %lf\n",twistopen*RADDEG);
   mprintf("\tDot product of Y1'xY2' with Zm is %lf radians\n",sign);
+# endif
   if (sign<0) 
     sign=-1.0; 
   else 
     sign=1.0;
   twistopen*=sign;
+# ifdef NASTRUCTDEBUG
   mprintf("\tFinal Twist/Opening is %10.4lf\n",twistopen*RADDEG);
+# endif
   Param[3] = twistopen;
 
   // Phase angle
@@ -492,11 +507,13 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   Y1[1] = R[4];
   Y1[2] = R[7];
   double phi = dot_product_angle(hingeAxis, Y1);
-  mprintf("\tAngle between hinge axis and Ym is %lf\n",phi*RADDEG);
   // Sign of phi related to (hingeAxis x Ym) dot Z of middle frame
   cross_product(Vec,hingeAxis,Y1);
   sign = dot_product(Vec,Z1);
+# ifdef NASTRUCTDEBUG
+  mprintf("\tAngle between hinge axis and Ym is %lf\n",phi*RADDEG);
   mprintf("\tDot product of (hingeAxis x Ym) with Zm is %lf radians\n",sign);
+# endif
   if (sign<0) 
     sign=-1.0;
   else 
@@ -504,18 +521,21 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   phi *= sign;
   double sinphi = sin( phi );
   double cosphi = cos( phi );
+# ifdef NASTRUCTDEBUG
   mprintf("\tPhase angle is %lf, sinphi is %lf, cosphi is %lf\n",phi*RADDEG,sinphi,cosphi);
+# endif
 
   // Roll / Propeller
   double rollprop = rolltilt * cosphi;
   Param[4] = rollprop;
-  mprintf("\tRoll/Propeller %10.4lf\n",rollprop*RADDEG);
 
   // Tilt / Buckle
   double tiltbuck = rolltilt * sinphi;
   Param[5] = tiltbuck;
-  mprintf("\tTilt/Buckle %10.4lf\n",tiltbuck*RADDEG);
+
 # ifdef NASTRUCTDEBUG
+  mprintf("\tRoll/Propeller %10.4lf\n",rollprop*RADDEG);
+  mprintf("\tTilt/Buckle %10.4lf\n",tiltbuck*RADDEG);
   if (calcparam) calcparam=false;
 # endif
   return 0;
@@ -588,7 +608,9 @@ int NAstruct::determineBasepairParameters() {
 # endif
   for (int bpi = 0; bpi < (int)BasePairAxes.size() - 1; bpi++) {
     int bpj = bpi+1;
+#   ifdef NASTRUCTDEBUG
     mprintf("BasePair step %i to %i\n",bpi+1,bpj+1);
+#   endif
     // Calc step parameters
     calculateParameters(BasePairAxes[bpi], BasePairAxes[bpj], NULL, Param);
     // Store data
