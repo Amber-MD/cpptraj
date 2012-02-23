@@ -171,6 +171,15 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
       }
       df->SetYlabel((*dataArg).getNextString());
 
+    // datafile time
+    // Usage: datafile time <datafile> <time>
+    } else if ( (*dataArg).ArgIs(1,"time") ) {
+      if (df==NULL) {
+        mprintf("Error: datafile time: DataFile %s does not exist.\n",name1);
+        continue;
+      }
+      df->SetXstep((*dataArg).getNextDouble(1));
+
     // datafile invert
     // Usage: datafile invert <filename>
     } else if ( (*dataArg).ArgIs(1,"invert") ) {

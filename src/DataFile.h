@@ -54,6 +54,7 @@ class DataFile {
     void SetPrecision(char *, int, int);
     void SetNoEmptyFrames();
     void SetCoordMinStep(double,double,double,double);
+    void SetXstep(double);
     void SetMap();
     void SetNoLabels();
 

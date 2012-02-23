@@ -108,6 +108,13 @@ void DataFile::SetCoordMinStep(double xminIn, double xstepIn,
   ystep = ystepIn;
 }
 
+// DataFile::SetXstep()
+/// Set the X step
+void DataFile::SetXstep(double xstepIn) {
+  xstep = xstepIn;
+  xmin = xstep;
+}
+
 // DataFile::SetMap()
 /// (Gnuplot only) Turn off the cornerstocolor option
 /** gnuplot will be directed to generated a true interpolated contour map.
