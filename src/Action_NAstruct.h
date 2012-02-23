@@ -62,7 +62,8 @@ class NAstruct: public Action {
     bool basesArePaired(AxisType *, AxisType *);
     int determineBasePairing();
     int setupBaseAxes(Frame *);
-    int calculateParameters(AxisType &A, AxisType &, AxisType*, double*);
+    int calculateParameters(AxisType &, AxisType &, AxisType*, double*);
+    int helicalParameters(AxisType &, AxisType &, double *);
     int determineBaseParameters();
     int determineBasepairParameters();
 #   ifdef NASTRUCTDEBUG

@@ -359,6 +359,27 @@ int NAstruct::determineBasePairing() {
   return 0;
 }
 
+// AverageMatrices()
+static void AverageMatrices(double *R, double *RotatedR1, double *RotatedR2) {
+  double r2;
+  // Average R1 and R2 to get the middle frame
+  for (int i = 0; i < 9; i++)
+    R[i] = (RotatedR1[i] + RotatedR2[i]) / 2;
+  // Normalize X, Y and Z vectors
+  r2 = sqrt( R[0]*R[0] + R[3]*R[3] + R[6]*R[6] );
+  R[0] /= r2;
+  R[3] /= r2;
+  R[6] /= r2;
+  r2 = sqrt( R[1]*R[1] + R[4]*R[4] + R[7]*R[7] );
+  R[1] /= r2;
+  R[4] /= r2;
+  R[7] /= r2;
+  r2 = sqrt( R[2]*R[2] + R[5]*R[5] + R[8]*R[8] );
+  R[2] /= r2;
+  R[5] /= r2;
+  R[8] /= r2;
+}
+
 // NAstruct::calculateParameters()
 /** Given two axes, calculate translational and rotational parameters
   * between them.
@@ -441,21 +462,7 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
 # endif
 
   // Average R1 and R2 to get the middle frame
-  for (int i = 0; i < 9; i++)
-    R[i] = (RotatedR1[i] + RotatedR2[i]) / 2;
-  // Normalize X, Y and Z vectors
-  r2 = sqrt( R[0]*R[0] + R[3]*R[3] + R[6]*R[6] );
-  R[0] /= r2;
-  R[3] /= r2;
-  R[6] /= r2;
-  r2 = sqrt( R[1]*R[1] + R[4]*R[4] + R[7]*R[7] );
-  R[1] /= r2;
-  R[4] /= r2;
-  R[7] /= r2;
-  r2 = sqrt( R[2]*R[2] + R[5]*R[5] + R[8]*R[8] );
-  R[2] /= r2;
-  R[5] /= r2;
-  R[8] /= r2;
+  AverageMatrices(R, RotatedR1, RotatedR2);
 
   // Take average of origins
   OM[0] = (O1[0] + O2[0]) / 2;
@@ -565,6 +572,79 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   return 0;
 }
 
+// NAstruct::helicalParameters()
+int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param) {
+  double X1[3],X2[3],Y1[3],Y2[3],Z1[3],Z2[3],O1[3],O2[3],helicalAxis[3];
+  double hingeAxis[3], R[9], RotatedR1[9], RotatedR2[9], Vec[3];
+  // NOTE: Just use Vec for hingeAxis?
+  // X2 - X1
+  Axis1.RX(X1);
+  Axis2.RX(X2);
+  vector_sub(O1, X2, X1);
+  printVector("X2 - X1",O1);
+  // Y2 - Y1
+  Axis1.RY(Y1);
+  Axis2.RY(Y2);
+  vector_sub(O2, Y2, Y1);
+  printVector("Y2 - Y1",O2);
+  // Local helical axis: (X2-X1) x (Y2-Y1)
+  cross_product( helicalAxis, O1, O2 );
+  printVector("(X2-X1) x (Y2-Y1)",helicalAxis);
+  normalize( helicalAxis );
+  printVector("NORM[(X2-X1)x(Y2-Y1)]",helicalAxis);
+
+  // Tip/inclination is angle between helical axis and z1
+  Axis1.RZ(Z1);
+  double tipinc = dot_product_angle(helicalAxis, Z1);
+  mprintf("\tTip/Inclination: %lf\n",tipinc*RADDEG);
+  // Hinge axis is normalized cross product of helical axis to z1
+  cross_product(hingeAxis, helicalAxis, Z1);
+  normalize( hingeAxis );
+  printVector("Hinge axis 1",hingeAxis);
+  // Rotate R1 around hinge axis by -tipinc
+  calcRotationMatrix(R, hingeAxis, -tipinc);
+  matrix_multiply_3x3(RotatedR1, R, Axis1.R);
+  printMatrix_3x3("Rotated R1", RotatedR1);
+
+  // Tip/inclination should be same for z2
+  Axis2.RZ(Z2);
+  //mprintf("\tTipCheck= %lf\n",dot_product_angle(helicalAxis, Z2)*RADDEG);
+  // Hinge axis is normalized cross product from h to z2
+  cross_product(hingeAxis, helicalAxis, Z2);
+  normalize( hingeAxis );
+  printVector("Hinge axis 2",hingeAxis);
+  // Rotate R2 around hinge axis by -tipinc
+  calcRotationMatrix(R, hingeAxis, -tipinc); 
+  matrix_multiply_3x3(RotatedR2, R, Axis2.R);
+  printMatrix_3x3("Rotated R2",RotatedR2);
+
+  // Average Rotated R1 and R2 to get middle helical frame
+  AverageMatrices(R, RotatedR1, RotatedR2);
+  printMatrix_3x3("Hm",R);
+
+  // Helical twist is angle from Rotated Y1 to Rotated Y2
+  Y1[0] = RotatedR1[1];
+  Y1[1] = RotatedR1[4];
+  Y1[2] = RotatedR1[7];
+  Y2[0] = RotatedR2[1];
+  Y2[1] = RotatedR2[4];
+  Y2[2] = RotatedR2[7];
+  double twist = dot_product_angle(Y1,Y2);
+  mprintf("\tTwist is %lf\n",twist*RADDEG);
+  // sign is related to (Y1xY2) dot helical axis
+  cross_product(Vec, Y1, Y2);
+  double sign = dot_product_angle(Vec,helicalAxis);
+  mprintf("\t(Y1'xY2') dot helicalAxis is %lf radians",sign);
+  if (sign < 0)
+    sign = -1.0;
+  else
+    sign = 1.0;
+  twist *= sign;
+  mprintf("\tFinal twist is %lf\n",twist*RADDEG);
+
+  return 0;
+}
+
 // NAstruct::determineBaseParameters()
 /** For each base in a base pair, get the values of buckle, propeller twist,
   * opening, shear, stretch, and stagger. Also determine the origin and 
@@ -647,6 +727,8 @@ int NAstruct::determineBasepairParameters() {
     TWIST.AddData(frameNum, Param+3, bpi);
     ROLL.AddData(frameNum, Param+4, bpi);
     TILT.AddData(frameNum, Param+5, bpi);
+    // Calc helical parameters
+    helicalParameters(BasePairAxes[bpi], BasePairAxes[bpj], Param);
   }
 
   return 0;
