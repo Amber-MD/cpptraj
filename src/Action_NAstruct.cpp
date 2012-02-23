@@ -12,7 +12,9 @@ NAstruct::NAstruct() {
   Nbp=0;
   Nbases=0;
   HBdistCut2=9.61;  // Hydrogen Bond distance cutoff^2: 3.1^2
+  // NOTE: Currently not used
   HBangleCut2=2.53; // Hydrogen Bond angle cutoff (in radians, ~145 degs)
+  // NOTE: Is this too big?
   originCut2=6.25;  // Origin cutoff^2 for base-pairing: 2.5^2
   Nframe=0;
   outFilename=NULL;
@@ -206,6 +208,8 @@ int NAstruct::determineBasePairing() {
   int base1,base2;
   double Z1[3], Z2[3];
   bool AntiParallel = false;
+  double minDistance;
+  int minBaseNum;
 
   Nbp = 0;
   BasePair.clear();
@@ -218,15 +222,30 @@ int NAstruct::determineBasePairing() {
    */
   for (base1=0; base1 < Nbases-1; base1++) {
     if (isPaired[base1]) continue;
+    minBaseNum = -1;
+    minDistance = 0;
     for (base2=base1+1; base2 < Nbases; base2++) {
       if (isPaired[base2]) continue;
-      // First determine if origin axes coords are close enough to consider pairing
+      // First determine which origin axes coords are close enough to 
+      // consider pairing.
       distance = DIST2_NoImage(BaseAxes[base1].Origin(), BaseAxes[base2].Origin());
       if (distance < originCut2) {
 #       ifdef NASTRUCTDEBUG
         mprintf("  Axes distance for %s -- %s is %lf\n",
                 BaseAxes[base1].BaseName(),BaseAxes[base2].BaseName(),sqrt(distance));
 #       endif
+        if (minBaseNum==-1) {
+          minDistance = distance;
+          minBaseNum = base2;
+        } else {
+          if (distance < minDistance) {
+            minDistance = distance;
+            minBaseNum = base2;
+          }
+        }
+      }
+    }
+/*
         // Figure out angle between y vectors, determines whether bases
         // are able to hydrogen bond based on angle cutoff.
         BaseAxes[base1].RY(Z1);
@@ -235,7 +254,12 @@ int NAstruct::determineBasePairing() {
 #       ifdef NASTRUCTDEBUG
         mprintf("      Angle between Y vectors is %lf deg. (%lf)\n",distance * RADDEG,distance);
 #       endif
-        if (distance > HBangleCut2) {
+        if (distance > HBangleCut2) {*/
+    if (minBaseNum!=-1) {
+          base2 = minBaseNum;
+#         ifdef NASTRUCTDEBUG
+          mprintf("    Closest base is %i, %lf Ang.\n",base2+1,sqrt(minDistance));
+#         endif
           // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
           BaseAxes[base1].RZ(Z1);
           BaseAxes[base2].RZ(Z2);
@@ -266,9 +290,9 @@ int NAstruct::determineBasePairing() {
             isPaired[base2]=true;
             ++Nbp;
           }
-        } // END if distance > HBangleCut2
-      } // END if distance < originCut2
-    } // END Loop over base2
+//        } // END if distance > HBangleCut2
+//      } // END if distance < originCut2
+    } // END if minBaseNum!=-1
   } // END Loop over base1
 
   if (debug>0) mprintf("    NAstruct: Set up %i base pairs.\n",Nbp);
