@@ -17,8 +17,8 @@ NAstruct::NAstruct() {
   // NOTE: Is this too big?
   originCut2=6.25;  // Origin cutoff^2 for base-pairing: 2.5^2
   Nframe=0;
-  outFilename=NULL;
-  naoutFilename=NULL;
+  //outFilename=NULL;
+  //naoutFilename=NULL;
   noheader = false;
 # ifdef NASTRUCTDEBUG
   calcparam = true;
@@ -31,7 +31,13 @@ NAstruct::~NAstruct() {
   // NOTE: Since BasePairAxes are set up to correspond with SHEAR etc dont
   // free in this routine - should only be freed at the very end.
   BasePairAxes.clear();
+  // Close output files
+  BPOut.CloseFile();
+  BPstepOut.CloseFile();
+  HelixOut.CloseFile();
 }
+
+static const char NA_OUTPUT_FMT[58] = "%8i %8i %12.4lf %12.4lf %12.4lf %12.4lf %12.4lf %12.4lf\n";
 
 // NAstruct::ClearLists()
 /** Clear all parm-dependent lists
@@ -39,7 +45,6 @@ NAstruct::~NAstruct() {
 void NAstruct::ClearLists() {
   RefCoords.clear();
   BaseAxes.clear();
-  //ExpFrames.clear();
   ExpMasks.clear();
   FitMasks.clear();
 }
@@ -180,7 +185,7 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
 // NAstruct::basesArePaired()
 /** Given two base axes for which IDs have been given and reference coords set,
   * determine whether the bases are paired via hydrogen bonding criteria.
-  * NOTE: Currently only set up for Antiparallel WC detection
+  * NOTE: Currently only set up for WC detection
   */
 bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   // G C
@@ -296,13 +301,30 @@ int NAstruct::determineBasePairing() {
   } // END Loop over base1
 
   if (debug>0) mprintf("    NAstruct: Set up %i base pairs.\n",Nbp);
-  base2=1;
+  // Resize BasePairAxes
+  BasePairAxes.resize( Nbp );
+  // Print Base Pair info
+  if (debug>1) {
+    base2=1;
+    for (base1 = 0; base1 < (int)BasePair.size(); base1+= 3) {
+      int bp_1 = BasePair[base1  ];
+      int bp_2 = BasePair[base1+1];
+      mprintf("        BP %i: Res %s to %s",base2,
+              RefCoords[bp_1].BaseName(), RefCoords[bp_2].BaseName());
+      if ( BasePair[base1+2] )
+        mprintf(" AntiParallel.\n");
+      else
+        mprintf(" Parallel.\n");
+    }
+  }
+/*
   //mprintf("DEBUG: BasePair.size = %i\n",(int)BasePair.size());
   //mprintf("DEBUG: SHEAR.size = %i\n",(int)SHEAR.size());
   //mprintf("DEBUG: BasePairAxes.size = %i\n",(int)BasePairAxes.size());
-  AxisType bpaxis;
+  //AxisType bpaxis;
   //bpaxis.SetPrincipalAxes();
-  DataSet *na_dataset = NULL;
+  //DataSet *na_dataset = NULL;
+  base2=1;
   for (base1=0; base1 < (int)BasePair.size(); base1+=3) {
     // For each base pair, set up a dataset for each structural parameter
     // if one is not already set up.
@@ -322,17 +344,6 @@ int NAstruct::determineBasePairing() {
       // Also set up a place to hold the base pair axes
       BasePairAxes.push_back( bpaxis );
     } 
-    // Print base pair info
-    if (debug>1) {
-      int bp_1 = BasePair[base1  ];
-      int bp_2 = BasePair[base1+1];
-      mprintf("        BP %i: Res %s to %s",base2,
-              RefCoords[bp_1].BaseName(), RefCoords[bp_2].BaseName());
-      if ( BasePair[base1+2] )
-        mprintf(" AntiParallel.\n");
-      else
-        mprintf(" Parallel.\n");
-    }
     ++base2;
   }
   // Also set up base pair step data. One less than # base pairs
@@ -354,7 +365,7 @@ int NAstruct::determineBasePairing() {
     }
     // Print base pair step info
     if (debug>1) mprintf("        BP step %i: \n",base1+1);
-  }
+  }*/
 
   return 0;
 }
@@ -550,30 +561,36 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   Axis1.RX(X1);
   Axis2.RX(X2);
   vector_sub(O1, X2, X1);
-  printVector("X2 - X1",O1);
   // Y2 - Y1
   Axis1.RY(Y1);
   Axis2.RY(Y2);
   vector_sub(O2, Y2, Y1);
-  printVector("Y2 - Y1",O2);
   // Local helical axis: (X2-X1) x (Y2-Y1)
   cross_product( helicalAxis, O1, O2 );
+# ifdef NASTRUCTDEBUG
+  printVector("X2 - X1",O1);
+  printVector("Y2 - Y1",O2);
   printVector("(X2-X1) x (Y2-Y1)",helicalAxis);
+# endif
   normalize( helicalAxis );
+# ifdef NASTRUCTDEBUG
   printVector("NORM[(X2-X1)x(Y2-Y1)]",helicalAxis);
+# endif
 
   // Tip/inclination is angle between helical axis and z1
   Axis1.RZ(Z1);
   double tipinc = dot_product_angle(helicalAxis, Z1);
-  mprintf("\tTip/Inclination: %lf\n",tipinc*RADDEG);
   // Hinge axis is normalized cross product of helical axis to z1
   cross_product(hingeAxis, helicalAxis, Z1);
   normalize( hingeAxis );
-  printVector("Hinge axis 1",hingeAxis);
   // Rotate R1 around hinge axis by -tipinc
   calcRotationMatrix(R, hingeAxis, -tipinc);
   matrix_multiply_3x3(RotatedR1, R, Axis1.R);
+# ifdef NASTRUCTDEBUG
+  mprintf("\tTip/Inclination: %lf\n",tipinc*RADDEG);
+  printVector("Hinge axis 1",hingeAxis);
   printMatrix_3x3("Rotated R1", RotatedR1);
+# endif
 
   // Tip/inclination should be same for z2
   Axis2.RZ(Z2);
@@ -581,15 +598,16 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   // Hinge axis is normalized cross product from h to z2
   cross_product(Vec, helicalAxis, Z2);
   normalize( Vec );
-  printVector("Hinge axis 2",Vec);
   // Rotate R2 around hinge axis by -tipinc
   calcRotationMatrix(R, Vec, -tipinc); 
   matrix_multiply_3x3(RotatedR2, R, Axis2.R);
+# ifdef NASTRUCTDEBUG
+  printVector("Hinge axis 2",Vec);
   printMatrix_3x3("Rotated R2",RotatedR2);
+# endif
 
   // Average Rotated R1 and R2 to get middle helical frame
   AverageMatrices(R, RotatedR1, RotatedR2);
-  printMatrix_3x3("Hm",R);
 
   // Helical twist is angle from Rotated Y1 to Rotated Y2
   // Sign is given by (Y1'xY2' dot helicalAxis)
@@ -601,19 +619,21 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   Y2[2] = RotatedR2[7];
   double Twist = dot_product_sign(Y1,Y2,helicalAxis);
   Param[5] = Twist;
-  mprintf("\tTwist is %lf\n",Twist*RADDEG);
 
   // Calc O2 - O1
   vector_sub(Vec, Axis2.Origin(), Axis1.Origin());
   // Project (O2-O1) onto helical axis
   double Rise = dot_product(Vec,helicalAxis);
   Param[2] = Rise;
+# ifdef NASTRUCTDEBUG
+  printMatrix_3x3("Hm",R);
+  mprintf("\tTwist is %lf\n",Twist*RADDEG);
   mprintf("\tRise is %lf\n",Rise);
+# endif
 
   // Phase angle is angle from hinge Axis 1 to RotatedR1 Y
   // Sign is given by (hingeAxis x Y1') dot helicalAxis
   double phase = dot_product_sign(hingeAxis, Y1, helicalAxis);
-  mprintf("\tPhase angle is %lf\n",phase*RADDEG);
 
   // Tip is tipinc * cos( phase )
   double Tip = tipinc * cos( phase );
@@ -621,8 +641,11 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   // Inclination is tipinc * sin( phase )
   double Inc = tipinc * sin( phase );
   Param[3] = Inc;
+# ifdef NASTRUCTDEBUG
+  mprintf("\tPhase angle is %lf\n",phase*RADDEG);
   mprintf("\tTip is %lf\n",Tip*RADDEG);
   mprintf("\tInclination is %lf\n",Inc*RADDEG);
+# endif
 
   // Calc vector AB (store in X1)
   // Vec contains O2-O1
@@ -630,23 +653,24 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   Z1[1] = helicalAxis[1] * Rise; 
   Z1[2] = helicalAxis[2] * Rise;
   vector_sub(X1, Vec, Z1);
-  printVector("AB",X1);
 
   // Calc vector AD (store in X2)
   double AD_angle = PIOVER2 - (0.5 * Twist);
-  mprintf("\tAD_angle is %lf\n",AD_angle*RADDEG);
   // rotation of AD_angle around helicalAxis
   // NOTE: Assuming we dont need RotatedR2 anymore
   calcRotationMatrix(RotatedR2, helicalAxis, AD_angle);
   // rotate AB
   matrix_times_vector(X2,RotatedR2,X1);
   normalize( X2 );
+# ifdef NASTRUCTDEBUG
+  printVector("AB",X1);
+  mprintf("\tAD_angle is %lf\n",AD_angle*RADDEG);
   printVector("AD",X2);
+# endif
 
   // Calc magnitude of AD; 0.5 * |AB| / sin( 0.5 * Twist )
   double AB_mag = vector_norm( X1, &r2 );
   double AD_mag = (0.5 * AB_mag) / sin( 0.5 * Twist );
-  mprintf("\t|AD| = %lf\n",AD_mag);
 
   // Calc origin of local helical frame for BP 1
   // Origin1 + (AD_mag * AD)
@@ -654,20 +678,23 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   X2[1] *= AD_mag;
   X2[2] *= AD_mag;
   vector_sum(O1, Axis1.Origin(), X2);
-  printVector("o1_h",O1);
 
   // Calc origin of local helical frame for BP 2
   // O1 + (Rise * helicalAxis)
   // Z1 contains helicalAxis * Rise
   vector_sum(O2, O1, Z1);
-  printVector("o2_h",O2);
 
   // Calculate origin of middle helical frame
   vector_sum(Z2, O2, O1);
   Z2[0] /= 2; 
   Z2[1] /= 2; 
   Z2[2] /= 2;
+# ifdef NASTRUCTDEBUG
+  mprintf("\t|AD| = %lf\n",AD_mag);
+  printVector("o1_h",O1);
+  printVector("o2_h",O2);
   printVector("Om_h",Z2);
+# endif
 
   // Calc vector from O1 to Origin1
   vector_sub(Vec, Axis1.Origin(), O1);
@@ -679,7 +706,6 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   X1[2] = RotatedR1[6];
   double X_disp = dot_product(Vec, X1);
   Param[0] = X_disp;
-  mprintf("\tX-displacement= %lf\n",X_disp);
 
   // Y-disp is projection of vector from O1 to Origin1 onto 
   // Y axis of RotatedR1.
@@ -688,7 +714,10 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   Y1[2] = RotatedR1[7];
   double Y_disp = dot_product(Vec, Y1);
   Param[1] = Y_disp;
+# ifdef NASTRUCTDEBUG
+  mprintf("\tX-displacement= %lf\n",X_disp);
   mprintf("\tY-displacement= %lf\n",Y_disp);
+# endif
 
   return 0;
 }
@@ -731,12 +760,14 @@ int NAstruct::determineBaseParameters() {
     Param[3] *= RADDEG;
     Param[4] *= RADDEG;
     Param[5] *= RADDEG;
-    SHEAR.AddData(frameNum, Param, nbasepair);
+    BPOut.IO->Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, nbasepair+1,
+                     Param[0],Param[1],Param[2],Param[5],Param[4],Param[3]);
+/*    SHEAR.AddData(frameNum, Param, nbasepair);
     STRETCH.AddData(frameNum, Param+1, nbasepair);
     STAGGER.AddData(frameNum, Param+2, nbasepair);
     OPENING.AddData(frameNum, Param+3, nbasepair);
     PROPELLER.AddData(frameNum, Param+4, nbasepair);
-    BUCKLE.AddData(frameNum, Param+5, nbasepair);
+    BUCKLE.AddData(frameNum, Param+5, nbasepair);*/
 
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
@@ -745,6 +776,7 @@ int NAstruct::determineBaseParameters() {
 
     ++nbasepair; // Actual base pair count; BP is nbasepair*3
   }
+  BPOut.IO->Printf("\n");
 
   return 0;
 }
@@ -769,20 +801,24 @@ int NAstruct::determineBasepairParameters() {
     Param[3] *= RADDEG;
     Param[4] *= RADDEG;
     Param[5] *= RADDEG;
-    SHIFT.AddData(frameNum, Param, bpi);
+    BPstepOut.IO->Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, bpj,
+                         Param[0],Param[1],Param[2],Param[5],Param[4],Param[3]);
+/*    SHIFT.AddData(frameNum, Param, bpi);
     SLIDE.AddData(frameNum, Param+1, bpi);
     RISE.AddData(frameNum, Param+2, bpi);
     TWIST.AddData(frameNum, Param+3, bpi);
     ROLL.AddData(frameNum, Param+4, bpi);
-    TILT.AddData(frameNum, Param+5, bpi);
+    TILT.AddData(frameNum, Param+5, bpi);*/
     // Calc helical parameters
     helicalParameters(BasePairAxes[bpi], BasePairAxes[bpj], Param);
     Param[3] *= RADDEG;
     Param[4] *= RADDEG;
     Param[5] *= RADDEG;
-    mprintf("DBGHEL:\t%10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf\n",
-            Param[0],Param[1],Param[2],Param[3],Param[4],Param[5]);
+    HelixOut.IO->Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, bpj,
+                        Param[0],Param[1],Param[2],Param[3],Param[4],Param[5]);
   }
+  BPstepOut.IO->Printf("\n");
+  HelixOut.IO->Printf("\n");
 
   return 0;
 }
@@ -797,19 +833,25 @@ int NAstruct::determineBasepairParameters() {
 //    2) Masks
 //    3) Dataset name
 int NAstruct::init() {
-  char *resrange_arg, *maparg;
+  char *resrange_arg, *maparg, *outputsuffix;
   ArgList maplist;
   AxisType::NAbaseType mapbase;
   std::string resname;
   NAME mapresname;
   mapresname[4]='\0';
+
   // Get keywords
-  outFilename = actionArgs.getKeyString("out",NULL);
-  naoutFilename = actionArgs.getKeyString("naout",NULL);
+  outputsuffix = actionArgs.getKeyString("naout",NULL);
+  // Require a filename
+  if (outputsuffix==NULL) {
+    mprinterr("Error: nastruct: Requires an output filename, 'naout <filename>'\n");
+    return 1;
+  }
   resrange_arg = actionArgs.getKeyString("resrange",NULL);
   if (resrange_arg != NULL)
     if (resRange.SetRange( resrange_arg )) return 1;
   noheader = actionArgs.hasKey("noheader");
+
   // Get custom residue maps
   while ( (maparg = actionArgs.getKeyString("resmap",NULL))!=NULL ) {
     // Split maparg at ':'
@@ -856,13 +898,47 @@ int NAstruct::init() {
   // Dataset
   // Add dataset to data file list
 
+  // Open BasePair param output file. Use resname as temp filename storage. 
+  resname.assign( outputsuffix );
+  resname = "BP." + resname;
+  if ( BPOut.SetupFile((char*)resname.c_str(), WRITE, debug) ) {
+    mprinterr("Error: Could not set up bpout file %s\n",resname.c_str());
+    return 1;
+  }
+  BPOut.OpenFile();
+  if (!noheader)
+    BPOut.IO->Printf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BasePair",
+                     "Shear","Stretch","Stagger","Buckle","Propeller","Opening");
+  // Open BasePair step param output file.
+  resname.assign( outputsuffix );
+  resname = "BPstep." + resname;
+  if ( BPstepOut.SetupFile((char*)resname.c_str(), WRITE, debug) ) {
+    mprinterr("Error: Could not set up bpstepout file %s\n",resname.c_str());
+    return 1;
+  }
+  BPstepOut.OpenFile();
+  if (!noheader) 
+    BPstepOut.IO->Printf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BPstep",
+                         "Shift","Slide","Rise","Tilt","Roll","Twist");
+  // Open Helix param output file.
+  resname.assign( outputsuffix );
+  resname = "Helix." + resname;
+  if ( HelixOut.SetupFile((char*)resname.c_str(), WRITE, debug) ) {
+    mprinterr("Error: Could not set up helixout file %s\n",resname.c_str());
+    return 1;
+  }
+  HelixOut.OpenFile();
+  if (!noheader)
+    HelixOut.IO->Printf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BPstep",
+                        "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
+
   mprintf("    NAstruct: ");
   if (resRange.Empty())
     mprintf("Scanning all NA residues");
   else
     mprintf("Scanning residues %s",resRange.RangeArg());
-  if (naoutFilename!=NULL) {
-      mprintf(", formatted output to file %s",naoutFilename);
+  if (outputsuffix!=NULL) {
+      mprintf(", formatted output using file suffix %s",outputsuffix);
     if (noheader) mprintf(", no header");
   }
   mprintf(".\n");
@@ -992,12 +1068,12 @@ int NAstruct::action() {
 
 // NAstruct::print()
 void NAstruct::print() {
-  CpptrajFile outfile;
+/*  CpptrajFile outfile;
   CharBuffer buffer;
   int frame, nbasepair;
   char tempName[64]; // NOTE: Replce with string?
   size_t dataFileSize;
-  DataSet *na_dataset = NULL;
+  DataSet *na_dataset = NULL;*/
 
   // Set precision of all datasets
 /*  int dsw = 12;
@@ -1015,7 +1091,7 @@ void NAstruct::print() {
   ROLL.SetPrecisionOfDatasets(dsw,dsp);
   TWIST.SetPrecisionOfDatasets(dsw,dsp);*/
 
-  if (naoutFilename==NULL) return;
+/*  if (naoutFilename==NULL) return;
 
   // ---------- Base pair parameters ----------
   sprintf(tempName,"BP.%s",naoutFilename);
@@ -1111,6 +1187,6 @@ void NAstruct::print() {
     buffer.NewLine();
   }
   outfile.IO->Write(buffer.Buffer(), sizeof(char), buffer.CurrentSize());
-  outfile.CloseFile();
+  outfile.CloseFile();*/
 }
 

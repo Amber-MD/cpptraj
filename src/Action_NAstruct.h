@@ -37,7 +37,10 @@ class NAstruct: public Action {
     int Nframe;                         ///< Keep track of # frames for print() function
     std::map<std::string,AxisType::NAbaseType> CustomMap;
     std::map<std::string,AxisType::NAbaseType>::iterator customRes;
-    // Datasets
+    CpptrajFile BPOut;
+    CpptrajFile BPstepOut;
+    CpptrajFile HelixOut;
+ /*   // Datasets
     DataSetList SHEAR;
     DataSetList STRETCH;
     DataSetList STAGGER;
@@ -49,11 +52,11 @@ class NAstruct: public Action {
     DataSetList RISE;
     DataSetList TILT;
     DataSetList ROLL;
-    DataSetList TWIST;
+    DataSetList TWIST;*/
     // Init Args
     Range resRange;
-    char *outFilename;
-    char *naoutFilename;
+    //char *outFilename;
+    //char *naoutFilename;
     bool noheader;
     // Functions
     void ClearLists();
