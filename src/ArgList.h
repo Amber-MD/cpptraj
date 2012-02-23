@@ -28,6 +28,7 @@ class ArgList {
     ~ArgList();
     ArgList(const ArgList &);
     ArgList&operator=(const ArgList &);
+    std::string& operator[](int);
     /// Set the debug level
     void SetDebug(int);
     /// Set up argument list from string and given separators

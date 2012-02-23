@@ -36,6 +36,13 @@ ArgList &ArgList::operator=(const ArgList &rhs) {
   return *this;
 }
 
+// ArgList::operator[]
+std::string &ArgList::operator[](int idx) {
+  if (idx < 0 || idx >= (int)arglist.size())
+    throw std::out_of_range("ArgList[]");
+  return arglist[idx];
+}
+
 // ArgList::SetDebug()
 void ArgList::SetDebug(int debugIn) {
   debug = debugIn;
