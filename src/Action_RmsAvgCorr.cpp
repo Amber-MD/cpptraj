@@ -12,11 +12,8 @@ RmsAvgCorr::RmsAvgCorr() {
   parmNatom = 0;
   rmsmask = NULL;
   useMass = false;
+  maxframes = -1;
 } 
-
-// DESTRUCTOR
-RmsAvgCorr::~RmsAvgCorr() {
-}
 
 // RmsAvgCorr::init()
 /** Expected call: rmsavgcorr [<mask>] 
@@ -25,6 +22,7 @@ int RmsAvgCorr::init( ) {
   // Get Keywords
   char *outfilename = actionArgs.getKeyString("out",NULL);
   useMass = actionArgs.hasKey("mass");
+  maxframes = actionArgs.getKeyInt("maxframes",-1);
   // Get Masks
   rmsmask = actionArgs.getNextMask();
 
@@ -41,14 +39,17 @@ int RmsAvgCorr::init( ) {
     mprintf(" All atoms");
   if (useMass) mprintf(" (mass-weighted)");
   if (outfilename!=NULL) mprintf(", Output to %s",outfilename);
+  if (maxframes!=-1) mprintf(", max frames %i",maxframes);
+  mprintf(".\n");
 
   return 0;
 }
 
 // RmsAvgCorr::setup()
+/** Check that # atoms never changes. Currently this action will not
+  * work with multiple parms.
+  */
 int RmsAvgCorr::setup() {
-  // Check that # atoms never changes. Currently this action will not
-  // work with multiple parms.
   if (parmNatom==0)
     parmNatom = currentParm->natom;
   else {
@@ -62,9 +63,7 @@ int RmsAvgCorr::setup() {
 
 // RmsAvgCorr::action()
 /** Store input frames for later calculation of RMSDs using running 
-  * averages with different window sizes. Also calculate the initial
-  * RMSD since this is correlation with running average window size
-  * == 1 (i.e. no averaging).
+  * averages with different window sizes. 
   */
 int RmsAvgCorr::action() {
   // Store frame
@@ -81,7 +80,7 @@ int RmsAvgCorr::action() {
 void RmsAvgCorr::print() {
   double ZeroData = 0; // Used to blank frames in RMSD data set < window size
   double avg;
-  int window, frame;
+  int window, frame, FrameMax;
   Frame *referenceFrame;
   AmberParm *referenceParm;
   Rmsd rmsdaction;
@@ -94,13 +93,18 @@ void RmsAvgCorr::print() {
   // setup enforces one parm, so this is safe. 
   referenceParm = ReferenceFrames.GetFrameParm(0);
 
+  if (maxframes==-1)
+    FrameMax = ReferenceFrames.NumFrames();
+  else
+    FrameMax = maxframes;
+
   mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n");
-  mprintf("                sizes ranging from 1 to %i",ReferenceFrames.NumFrames()-1);
+  mprintf("                sizes ranging from 1 to %i",FrameMax-1);
   if (useMass) mprintf(", mass-weighted");
   mprintf(".\n");
 # ifdef _OPENMP
   // Currently DataSet is not thread-safe. Use temp storage.
-  double *Ct_openmp = new double[ ReferenceFrames.NumFrames() - 1 ];
+  double *Ct_openmp = new double[ FrameMax - 1 ];
 #pragma omp parallel
 {
   if (omp_get_thread_num()==0)
@@ -140,7 +144,7 @@ void RmsAvgCorr::print() {
   //mythread = omp_get_thread_num();
 #pragma omp for
 #endif
-  for (window = 2; window < ReferenceFrames.NumFrames(); window++ ) {
+  for (window = 2; window < FrameMax; window++ ) {
     // Initialize running average and rmsd for this window size
     runavgaction.SeparateInit(window,debug);
     rmsdaction.SeparateInit(rmsmask, useMass, debug);
@@ -168,7 +172,7 @@ void RmsAvgCorr::print() {
 #ifdef _OPENMP
 } // END pragma omp parallel
   // Put Ct_openmp into Ct dataset
-  for (window = 1; window < ReferenceFrames.NumFrames()-1; window++)
+  for (window = 1; window < FrameMax-1; window++)
     Ct->Add(window, Ct_openmp+window);
   delete[] Ct_openmp;
 #endif

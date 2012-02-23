@@ -10,9 +10,9 @@ class RmsAvgCorr: public Action {
     FrameList ReferenceFrames;
     DataSet *Ct;
     int parmNatom;
+    int maxframes;
   public:
     RmsAvgCorr();
-    ~RmsAvgCorr();
 
     int init();
     int setup();
