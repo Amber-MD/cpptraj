@@ -22,7 +22,7 @@ int RmsAvgCorr::init( ) {
   // Get Keywords
   char *outfilename = actionArgs.getKeyString("out",NULL);
   useMass = actionArgs.hasKey("mass");
-  maxframes = actionArgs.getKeyInt("maxframes",-1);
+  maxframes = actionArgs.getKeyInt("stop",-1);
   // Get Masks
   rmsmask = actionArgs.getNextMask();
 
@@ -96,7 +96,7 @@ void RmsAvgCorr::print() {
   if (maxframes==-1)
     FrameMax = ReferenceFrames.NumFrames();
   else
-    FrameMax = maxframes;
+    FrameMax = maxframes+1;
 
   mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n");
   mprintf("                sizes ranging from 1 to %i",FrameMax-1);
