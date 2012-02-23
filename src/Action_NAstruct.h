@@ -2,6 +2,7 @@
 #define INC_ACTION_NASTRUCT_H
 // NAstruct
 #include <vector>
+#include <map>
 #include "Action.h"
 #include "AxisType.h"
 #include "Range.h"
@@ -33,7 +34,9 @@ class NAstruct: public Action {
     double HBdistCut2;                  ///< distance Cutoff^2 for determining hydrogen bonds
     double HBangleCut2;                 ///< Angle Cutoff^2 for determining if bases can h bond
     double originCut2;                  ///< Cutoff^2 for determining base-pairing vi origins
-    int Nframe;                         ///< Keep track of # frames for print() function           
+    int Nframe;                         ///< Keep track of # frames for print() function
+    std::map<std::string,AxisType::NAbaseType> CustomMap;
+    std::map<std::string,AxisType::NAbaseType>::iterator customRes;
     // Datasets
     DataSetList SHEAR;
     DataSetList STRETCH;

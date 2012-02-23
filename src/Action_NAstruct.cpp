@@ -638,7 +638,12 @@ int NAstruct::determineBasepairParameters() {
 //    2) Masks
 //    3) Dataset name
 int NAstruct::init() {
-  char *resrange_arg;
+  char *resrange_arg, *maparg;
+  ArgList maplist;
+  AxisType::NAbaseType mapbase;
+  std::string resname;
+  NAME mapresname;
+  mapresname[4]='\0';
   // Get keywords
   outFilename = actionArgs.getKeyString("out",NULL);
   naoutFilename = actionArgs.getKeyString("naout",NULL);
@@ -646,6 +651,48 @@ int NAstruct::init() {
   if (resrange_arg != NULL)
     if (resRange.SetRange( resrange_arg )) return 1;
   noheader = actionArgs.hasKey("noheader");
+  // Get custom residue maps
+  while ( (maparg = actionArgs.getKeyString("resmap",NULL))!=NULL ) {
+    // Split maparg at ':'
+    maplist.SetList(maparg,":");
+    // Expect only 2 args
+    if (maplist.Nargs()!=2) {
+      mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",maparg);
+      return 1;
+    }
+    // Check that second arg is A,C,G,T,or U
+    if (maplist.ArgIs(1,"A")) mapbase=AxisType::ADE;
+    else if (maplist.ArgIs(1,"C")) mapbase=AxisType::CYT;
+    else if (maplist.ArgIs(1,"G")) mapbase=AxisType::GUA;
+    else if (maplist.ArgIs(1,"T")) mapbase=AxisType::THY;
+    else if (maplist.ArgIs(1,"U")) mapbase=AxisType::URA;
+    else {
+      mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",maparg);
+      return 1;
+    }
+    // Check that residue name is <= 4 chars
+    resname = maplist[0]; 
+    if (resname.size() > 4) {
+      mprinterr("Error: nastruct: resmap resname > 4 chars (%s)\n",maparg);
+      return 1;
+    }
+    // Format residue name
+    int i = 0;
+    for (std::string::iterator it = resname.begin(); it != resname.end(); it++)
+      mapresname[i++]=*it;
+    mapresname[i]='\0';
+    PadWithSpaces(mapresname);
+    resname.assign(mapresname);
+    mprintf("\tCustom Map: [%s]\n",resname.c_str());
+    //maplist.PrintList();
+    // Add to CustomMap
+    customRes = CustomMap.find(resname);
+    if (customRes!=CustomMap.end()) {
+      mprintf("Warning: nastruct: resmap: %s already mapped.\n",resname.c_str());
+    } else {
+      CustomMap.insert( std::pair<std::string,AxisType::NAbaseType>(resname,mapbase) );
+    }
+  }
   // Get Masks
   // Dataset
   // Add dataset to data file list
@@ -675,6 +722,8 @@ int NAstruct::setup() {
   AtomMask fitMask;
   Range actualRange;
   AxisType::RefReturn refreturn;
+  std::string resname; // Used to check for custom mapped residues
+  AxisType::NAbaseType customBaseType;
 
   // Clear all lists
   ClearLists();
@@ -703,10 +752,20 @@ int NAstruct::setup() {
   // Set up frame to hold reference coords for each NA residue
   actualRange.Begin();
   while (actualRange.NextInRange(&resnum)) {
+    customBaseType = AxisType::UNKNOWN_BASE;
+    // Check if the residue at resnum matches any of the custom maps
+    if (!CustomMap.empty()) {
+      resname.assign( currentParm->ResidueName(resnum) );
+      customRes = CustomMap.find( resname );
+      if (customRes!=CustomMap.end()) {
+        mprintf("\tCustom map found: %i [%s]\n",resnum+1,(*customRes).first.c_str());
+        customBaseType = (*customRes).second;
+      }
+    }
     // Set up ref coords in correct order, along with corresponding 
     // parm mask for this residue. SetRefCoord should overwrite all
     // previously set up information in axis and Mask.
-    refreturn = axis.SetRefCoord( currentParm, resnum, Mask, fitMask );
+    refreturn = axis.SetRefCoord( currentParm, resnum, Mask, fitMask, customBaseType );
     // If not recognized as a NA residue, continue to next.
     // Print a warning if the user specified this range.
     if ( refreturn == AxisType::NA_UNKNOWN ) {
