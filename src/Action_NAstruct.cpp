@@ -384,52 +384,37 @@ static void AverageMatrices(double *R, double *RotatedR1, double *RotatedR2) {
 /** Given two axes, calculate translational and rotational parameters
   * between them.
   */
-int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2, 
+int NAstruct::calculateParameters(AxisType &Axis1, AxisType &Axis2, 
                                   AxisType *BPaxis, double *Param) 
 {
-  double hingeAxis[3],X1[3],Y1[3],Z1[3],X2[3],Y2[3],Z2[3],O1[3],O2[3];
+  double hingeAxis[3],Y1[3],Z1[3],Y2[3],Z2[3],O1[3],O2[3];
   double R[9], Rinv[9], RotatedR2[9], RotatedR1[9];
   double r2, OM[3], O21[3], Vec[3];
-  AxisType Axis1, Axis2;
 # ifdef NASTRUCTDEBUG
   AxisType tempAxis;
   AxisPDBwriter paramfile;
   if (calcparam)
     paramfile.Open("Param.pdb");
-# endif
-
-  Axis1 = BaseAxis1;
-  Axis2 = BaseAxis2;
-
-  Axis1.RX(X1);
-  Axis1.RY(Y1);
-  Axis1.RZ(Z1);
-  Axis1.OXYZ(O1);
-
-  Axis2.RX(X2);
-  Axis2.RY(Y2);
-  Axis2.RZ(Z2);
-  Axis2.OXYZ(O2);
-# ifdef NASTRUCTDEBUG
-  printVector("O1",O1);
+  printVector("O1",Axis1.Origin());
   printMatrix_3x3("R1",Axis1.R);
-  printVector("O2",O2);
+  printVector("O2",Axis2.Origin());
   printMatrix_3x3("R2",Axis2.R);
 # endif
 
   // Hinge axis is cross product between Z1 and Z2
+  Axis1.RZ(Z1);
+  Axis2.RZ(Z2);
   cross_product(hingeAxis, Z1, Z2);
 # ifdef NASTRUCTDEBUG
   printVector("hinge",hingeAxis);
 # endif
   // Normalize hinge axis
   vector_norm( hingeAxis, &r2 );
-  //double rolltilt = asin( vector_norm( hingeAxis, &r2 ));
 # ifdef NASTRUCTDEBUG
   printVector("norm(hinge)",hingeAxis);
 # endif
 
-  // Angle between Z1 and Z2, Z1 dot Z2 
+  // Roll/Tilt is Angle between Z1 and Z2
   double rolltilt = dot_product_angle(Z1, Z2);
 # ifdef NASTRUCTDEBUG
   mprintf("\tAngle between Z1 and Z2= %lf\n",rolltilt*RADDEG);
@@ -454,9 +439,9 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   printMatrix_3x3("Rotated R1",RotatedR1);
   printMatrix_3x3("Rotated R2",RotatedR2);
   if (calcparam) {
-    tempAxis.StoreRotMatrix(RotatedR1,O1);
+    tempAxis.StoreRotMatrix(RotatedR1,Axis1.Origin());
     paramfile.WriteAxes(tempAxis,0,(char*)"R1'");
-    tempAxis.StoreRotMatrix(RotatedR2,O2);
+    tempAxis.StoreRotMatrix(RotatedR2,Axis2.Origin());
     paramfile.WriteAxes(tempAxis,1,(char*)"R2'");
   }
 # endif
@@ -465,9 +450,15 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
   AverageMatrices(R, RotatedR1, RotatedR2);
 
   // Take average of origins
-  OM[0] = (O1[0] + O2[0]) / 2;
-  OM[1] = (O1[1] + O2[1]) / 2;
-  OM[2] = (O1[2] + O2[2]) / 2;
+  Axis1.OXYZ(O1);
+  Axis2.OXYZ(O2);
+  vector_sum(OM, O1, O2);
+  OM[0] /= 2;
+  OM[1] /= 2;
+  OM[2] /= 2;
+  //OM[0] = (O1[0] + O2[0]) / 2;
+  //OM[1] = (O1[1] + O2[1]) / 2;
+  //OM[2] = (O1[2] + O2[2]) / 2;
 
 # ifdef NASTRUCTDEBUG
   printVector("Origin Mean",OM);
@@ -508,25 +499,14 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
 
   // Twist / Opening
   // Angle between rotated Y1 and rotated Y2
-  Y1[0] = RotatedR1[0];
-  Y1[1] = RotatedR1[3];
-  Y1[2] = RotatedR1[6];
-  Y2[0] = RotatedR2[0];
-  Y2[1] = RotatedR2[3];
-  Y2[2] = RotatedR2[6];
-  double twistopen = dot_product_angle(Y1, Y2);
   // Sign of twistopen related to (Y1'xY2') dot Z of middle frame
-  cross_product(Vec,Y1,Y2);
-  double sign = dot_product(Vec,Z1);
-# ifdef NASTRUCTDEBUG
-  mprintf("\tAngle between Y1' and Y2' is %lf\n",twistopen*RADDEG);
-  mprintf("\tDot product of Y1'xY2' with Zm is %lf radians\n",sign);
-# endif
-  if (sign<0) 
-    sign=-1.0; 
-  else 
-    sign=1.0;
-  twistopen*=sign;
+  Y1[0] = RotatedR1[1];
+  Y1[1] = RotatedR1[4];
+  Y1[2] = RotatedR1[7];
+  Y2[0] = RotatedR2[1];
+  Y2[1] = RotatedR2[4];
+  Y2[2] = RotatedR2[7];
+  double twistopen = dot_product_sign(Y1, Y2, Z1);
 # ifdef NASTRUCTDEBUG
   mprintf("\tFinal Twist/Opening is %10.4lf\n",twistopen*RADDEG);
 # endif
@@ -534,22 +514,11 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
 
   // Phase angle
   // Angle between hinge axis and middle frame Y axis
+  // Sign of phi related to (hingeAxis x Ym) dot Z of middle frame
   Y1[0] = R[1];
   Y1[1] = R[4];
   Y1[2] = R[7];
-  double phi = dot_product_angle(hingeAxis, Y1);
-  // Sign of phi related to (hingeAxis x Ym) dot Z of middle frame
-  cross_product(Vec,hingeAxis,Y1);
-  sign = dot_product(Vec,Z1);
-# ifdef NASTRUCTDEBUG
-  mprintf("\tAngle between hinge axis and Ym is %lf\n",phi*RADDEG);
-  mprintf("\tDot product of (hingeAxis x Ym) with Zm is %lf radians\n",sign);
-# endif
-  if (sign<0) 
-    sign=-1.0;
-  else 
-    sign=1.0;
-  phi *= sign;
+  double phi = dot_product_sign(hingeAxis,Y1,Z1);
   double sinphi = sin( phi );
   double cosphi = cos( phi );
 # ifdef NASTRUCTDEBUG
@@ -575,7 +544,7 @@ int NAstruct::calculateParameters(AxisType &BaseAxis1, AxisType &BaseAxis2,
 // NAstruct::helicalParameters()
 int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param) {
   double X1[3],X2[3],Y1[3],Y2[3],Z1[3],Z2[3],O1[3],O2[3],helicalAxis[3];
-  double hingeAxis[3], R[9], RotatedR1[9], RotatedR2[9], Vec[3];
+  double hingeAxis[3], R[9], RotatedR1[9], RotatedR2[9], Vec[3], r2;
   // NOTE: Just use Vec for hingeAxis?
   // X2 - X1
   Axis1.RX(X1);
@@ -610,11 +579,11 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   Axis2.RZ(Z2);
   //mprintf("\tTipCheck= %lf\n",dot_product_angle(helicalAxis, Z2)*RADDEG);
   // Hinge axis is normalized cross product from h to z2
-  cross_product(hingeAxis, helicalAxis, Z2);
-  normalize( hingeAxis );
-  printVector("Hinge axis 2",hingeAxis);
+  cross_product(Vec, helicalAxis, Z2);
+  normalize( Vec );
+  printVector("Hinge axis 2",Vec);
   // Rotate R2 around hinge axis by -tipinc
-  calcRotationMatrix(R, hingeAxis, -tipinc); 
+  calcRotationMatrix(R, Vec, -tipinc); 
   matrix_multiply_3x3(RotatedR2, R, Axis2.R);
   printMatrix_3x3("Rotated R2",RotatedR2);
 
@@ -623,24 +592,103 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   printMatrix_3x3("Hm",R);
 
   // Helical twist is angle from Rotated Y1 to Rotated Y2
+  // Sign is given by (Y1'xY2' dot helicalAxis)
   Y1[0] = RotatedR1[1];
   Y1[1] = RotatedR1[4];
   Y1[2] = RotatedR1[7];
   Y2[0] = RotatedR2[1];
   Y2[1] = RotatedR2[4];
   Y2[2] = RotatedR2[7];
-  double twist = dot_product_angle(Y1,Y2);
-  mprintf("\tTwist is %lf\n",twist*RADDEG);
-  // sign is related to (Y1xY2) dot helical axis
-  cross_product(Vec, Y1, Y2);
-  double sign = dot_product_angle(Vec,helicalAxis);
-  mprintf("\t(Y1'xY2') dot helicalAxis is %lf radians",sign);
-  if (sign < 0)
-    sign = -1.0;
-  else
-    sign = 1.0;
-  twist *= sign;
-  mprintf("\tFinal twist is %lf\n",twist*RADDEG);
+  double Twist = dot_product_sign(Y1,Y2,helicalAxis);
+  Param[5] = Twist;
+  mprintf("\tTwist is %lf\n",Twist*RADDEG);
+
+  // Calc O2 - O1
+  vector_sub(Vec, Axis2.Origin(), Axis1.Origin());
+  // Project (O2-O1) onto helical axis
+  double Rise = dot_product(Vec,helicalAxis);
+  Param[2] = Rise;
+  mprintf("\tRise is %lf\n",Rise);
+
+  // Phase angle is angle from hinge Axis 1 to RotatedR1 Y
+  // Sign is given by (hingeAxis x Y1') dot helicalAxis
+  double phase = dot_product_sign(hingeAxis, Y1, helicalAxis);
+  mprintf("\tPhase angle is %lf\n",phase*RADDEG);
+
+  // Tip is tipinc * cos( phase )
+  double Tip = tipinc * cos( phase );
+  Param[4] = Tip;
+  // Inclination is tipinc * sin( phase )
+  double Inc = tipinc * sin( phase );
+  Param[3] = Inc;
+  mprintf("\tTip is %lf\n",Tip*RADDEG);
+  mprintf("\tInclination is %lf\n",Inc*RADDEG);
+
+  // Calc vector AB (store in X1)
+  // Vec contains O2-O1
+  Z1[0] = helicalAxis[0] * Rise; 
+  Z1[1] = helicalAxis[1] * Rise; 
+  Z1[2] = helicalAxis[2] * Rise;
+  vector_sub(X1, Vec, Z1);
+  printVector("AB",X1);
+
+  // Calc vector AD (store in X2)
+  double AD_angle = PIOVER2 - (0.5 * Twist);
+  mprintf("\tAD_angle is %lf\n",AD_angle*RADDEG);
+  // rotation of AD_angle around helicalAxis
+  // NOTE: Assuming we dont need RotatedR2 anymore
+  calcRotationMatrix(RotatedR2, helicalAxis, AD_angle);
+  // rotate AB
+  matrix_times_vector(X2,RotatedR2,X1);
+  normalize( X2 );
+  printVector("AD",X2);
+
+  // Calc magnitude of AD; 0.5 * |AB| / sin( 0.5 * Twist )
+  double AB_mag = vector_norm( X1, &r2 );
+  double AD_mag = (0.5 * AB_mag) / sin( 0.5 * Twist );
+  mprintf("\t|AD| = %lf\n",AD_mag);
+
+  // Calc origin of local helical frame for BP 1
+  // Origin1 + (AD_mag * AD)
+  X2[0] *= AD_mag;
+  X2[1] *= AD_mag;
+  X2[2] *= AD_mag;
+  vector_sum(O1, Axis1.Origin(), X2);
+  printVector("o1_h",O1);
+
+  // Calc origin of local helical frame for BP 2
+  // O1 + (Rise * helicalAxis)
+  // Z1 contains helicalAxis * Rise
+  vector_sum(O2, O1, Z1);
+  printVector("o2_h",O2);
+
+  // Calculate origin of middle helical frame
+  vector_sum(Z2, O2, O1);
+  Z2[0] /= 2; 
+  Z2[1] /= 2; 
+  Z2[2] /= 2;
+  printVector("Om_h",Z2);
+
+  // Calc vector from O1 to Origin1
+  vector_sub(Vec, Axis1.Origin(), O1);
+
+  // X-disp is projection of vector from O1 to Origin1 onto 
+  // X axis of RotatedR1.
+  X1[0] = RotatedR1[0];
+  X1[1] = RotatedR1[3];
+  X1[2] = RotatedR1[6];
+  double X_disp = dot_product(Vec, X1);
+  Param[0] = X_disp;
+  mprintf("\tX-displacement= %lf\n",X_disp);
+
+  // Y-disp is projection of vector from O1 to Origin1 onto 
+  // Y axis of RotatedR1.
+  Y1[0] = RotatedR1[1];
+  Y1[1] = RotatedR1[4];
+  Y1[2] = RotatedR1[7];
+  double Y_disp = dot_product(Vec, Y1);
+  Param[1] = Y_disp;
+  mprintf("\tY-displacement= %lf\n",Y_disp);
 
   return 0;
 }
@@ -729,6 +777,11 @@ int NAstruct::determineBasepairParameters() {
     TILT.AddData(frameNum, Param+5, bpi);
     // Calc helical parameters
     helicalParameters(BasePairAxes[bpi], BasePairAxes[bpj], Param);
+    Param[3] *= RADDEG;
+    Param[4] *= RADDEG;
+    Param[5] *= RADDEG;
+    mprintf("DBGHEL:\t%10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf\n",
+            Param[0],Param[1],Param[2],Param[3],Param[4],Param[5]);
   }
 
   return 0;
