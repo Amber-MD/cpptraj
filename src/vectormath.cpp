@@ -87,6 +87,20 @@ void cross_product(double V[3], double U[3], double W[3]) {
   V[2] = U[0]*W[1] - U[1]*W[0]; // UxWy - UyWx
 }
 
+// dot_product_sign()
+/** Return the angle obtained from the dot product between vectors V
+  * and U, with sign determined from (VxU) dot Z. Assumes V and U
+  * are normalized.
+  */
+double dot_product_sign(double *V, double *U, double *Z) {
+  double Vec[3];
+  double dp = dot_product_angle(V, U);
+  cross_product(Vec, V, U);
+  double sign = dot_product(Vec, Z);
+  if (sign < 0) dp = -dp;
+  return dp;
+}
+
 // matrix_transpose()
 /** M = Ut
   * Columns of U become rows of M and vice versa.

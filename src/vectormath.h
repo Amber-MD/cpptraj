@@ -13,6 +13,7 @@ void vector_sum(double V[3], double U[3], double W[3]);
 double dot_product(double V[3], double U[3]);
 double dot_product_angle(double V[3], double U[3]);
 void cross_product(double V[3], double U[3], double W[3]);
+double dot_product_sign(double *, double *, double *);
 
 void matrix_transpose(double M[9], double U[9]);
 void matrix_transpose_3x3(double M[9]);
