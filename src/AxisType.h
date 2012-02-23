@@ -67,7 +67,7 @@ class AxisType : public Frame {
     //void SetPrincipalAxes();
 
     enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };
-    RefReturn SetRefCoord(AmberParm *, int, AtomMask &,AtomMask&);
+    RefReturn SetRefCoord(AmberParm *, int, AtomMask &,AtomMask&,NAbaseType);
     void FlipYZ();
     void FLIP_YZ_COORDS();
     void FlipXY();

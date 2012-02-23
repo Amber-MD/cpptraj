@@ -426,7 +426,8 @@ void AxisType::SetPrincipalAxes() {
   * \return 0 on success, 1 on error.
   */
 AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum, 
-                                          AtomMask &parmMask, AtomMask &fitMask) 
+                                          AtomMask &parmMask, AtomMask &fitMask,
+                                          AxisType::NAbaseType customBaseType) 
 {
   std::map<int,int> BaseMap;
   std::map<int,int>::iterator atom;
@@ -436,7 +437,10 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
   int Nbaseatom = 0;
 
   // First, identify the base
-  ID = ID_base(currentParm->ResidueName(resnum));
+  if (customBaseType==UNKNOWN_BASE) 
+    ID = ID_base(currentParm->ResidueName(resnum));
+  else
+    ID = customBaseType;
   // If unknown exit now
   if (ID == UNKNOWN_BASE) return NA_UNKNOWN; 
 
