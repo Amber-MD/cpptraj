@@ -488,7 +488,9 @@ void Clustering::WriteRepTraj( ClusterList *CList ) {
 // Clustering::calcDistFromDataset()
 void Clustering::calcDistFromDataset( TriangleMatrix &Distances ) {
   int N = cluster_dataset->Xmax();
-
+  // Since Xmax returns the last point added, add 1
+  ++N;
+  //mprintf("DEBUG: xmax is %i\n",N);
   Distances.Setup(N);
 
   int max = Distances.Nelements();
