@@ -130,6 +130,7 @@ AxisType::AxisType() {
   HbondAtom[1]=-1;
   HbondAtom[2]=-1;
   residue_number=-1;
+  second_resnum=-1;
 }
 
 // COPY CONSTRUCTOR
@@ -156,9 +157,11 @@ AxisType::AxisType(const AxisType &rhs) :
   HbondCoord[1] = X + (HbondAtom[1]*3);
   HbondCoord[2] = X + (HbondAtom[2]*3);
   residue_number = rhs.residue_number;
+  second_resnum = rhs.second_resnum;
 }
 
 // Assignment Operator
+// NOTE: Only allocate/deallocate when natom>maxnatom?
 AxisType &AxisType::operator=(const AxisType &rhs) {
   // Check for self assignment
   if ( this == &rhs ) return *this;
@@ -189,6 +192,7 @@ AxisType &AxisType::operator=(const AxisType &rhs) {
   HbondCoord[1] = X + (HbondAtom[1]*3);
   HbondCoord[2] = X + (HbondAtom[2]*3);
   residue_number = rhs.residue_number;
+  second_resnum = rhs.second_resnum;
 
   // Return *this
   return *this;
@@ -325,6 +329,8 @@ void AxisType::PrintAtomNames() {
 }
 
 // AxisType::PrintAxisInfo()
+/** Print origin and rotation matrix for this base.
+  */
 void AxisType::PrintAxisInfo(const char *title) {
   mprintf("         %s origin: %8.4lf %8.4lf %8.4lf\n",title,origin[0],origin[1],origin[2]);
   mprintf("         %s Rx vec: %8.4lf %8.4lf %8.4lf\n",title,R[0],R[3],R[6]);
@@ -332,35 +338,13 @@ void AxisType::PrintAxisInfo(const char *title) {
   mprintf("         %s Rz vec: %8.4lf %8.4lf %8.4lf\n",title,R[2],R[5],R[8]);
 }
 
-// AxisType::SetFromFrame()
-/** Set AxisType coords only from AxisIn. Reallocate memory only if
-  * AxisIn->natom > maxnatom.
-  */
-void AxisType::SetFromFrame(AxisType *AxisIn) {
-  natom = AxisIn->natom;
-  N     = AxisIn->N;
-  if (AxisIn->natom > maxnatom) {
-    delete[] X;
-    X = new double[ N ];
-    // Dont care about Name here
-#   ifdef NASTRUCTDEBUG
-    // If debugging we need the names
-    if (AxisIn->Name!=NULL) {
-      delete[] Name;
-      Name = new NAME[ natom ];
-    }
-#   endif
-    maxnatom = natom;
-  }
-  memcpy(X, AxisIn->X, N * sizeof(double));
-# ifdef NASTRUCTDEBUG
-  if (AxisIn->Name!=NULL)
-    memcpy(Name, AxisIn->Name, natom * sizeof(NAME));
-# endif
-}
-
 // AxisType::SetAxisFromMask()
-int AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
+/** Set coordinates (and names if debugging) of this axis based on the
+  * given axis and atom mask.
+  * \param AxisIn AxisType to set from.
+  * \param Mask AtomMask containing atoms to keep from AxisIn.
+  */
+void AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
   natom = Mask.Nselected;
   N     = natom * 3;
   if (natom > maxnatom) {
@@ -385,10 +369,12 @@ int AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
     strcpy(Name[i], AxisIn.Name[oldatom]);
 #   endif
   }
-  return 0;
 }
 
 // AxisType::StoreRotMatrix()
+/** Store the rotation matrix and origin coordinates associated with
+  * this base.
+  */
 void AxisType::StoreRotMatrix(double *RotMatrix, double *originIn) {
   R[0] = RotMatrix[0];
   R[1] = RotMatrix[1];
@@ -404,20 +390,11 @@ void AxisType::StoreRotMatrix(double *RotMatrix, double *originIn) {
   origin[2] = originIn[2];
 }
 
-/*    
-// AxisType::SetPrincipalAxes()
-// Set this up as principal axes. Wipes out all previous info. 
-void AxisType::SetPrincipalAxes() {
-  if (AllocAxis(4)) return;
-  strcpy(Name[0],"X   ");
-  strcpy(Name[1],"Y   ");
-  strcpy(Name[2],"Z   ");
-  strcpy(Name[3],"Orig");
-  X[0]=1.0; X[3]=0.0; X[6]=0.0; X[9 ]=0.0; 
-  X[1]=0.0; X[4]=1.0; X[7]=0.0; X[10]=0.0; 
-  X[2]=0.0; X[5]=0.0; X[8]=1.0; X[11]=0.0;
+// AxisType::StoreBPresnums()
+void AxisType::StoreBPresnums(int r1, int r2) {
+  residue_number = r1;
+  second_resnum = r2;
 }
-*/
 
 // AxisType::SetRefCoord()
 /** Set NA residue reference coordinates for given NA base. Ensure that

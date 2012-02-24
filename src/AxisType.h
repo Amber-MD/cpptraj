@@ -14,8 +14,8 @@
 /** AxisType is a special kind of Frame. It will be used in 2 cases: 
   * - To hold the coordinates of reference bases for RMS fitting onto input
   *   coordinates in order to obtain reference frames.
-  * - For holding the coordinates of the origin and XYZ axes of the 
-  *   reference frames themselves.
+  * - For holding the coordinates and rotation matrix/ origin of input 
+  *   frames.
   */
 class AxisType : public Frame {
   public:
@@ -30,6 +30,8 @@ class AxisType : public Frame {
     NAME *Name;
     /// Original residue number
     int residue_number;
+    /// Second base number if this is a base pair
+    int second_resnum;
     /// Origin coordinates
     double origin[3];
     /// DEBUG - Storage for writing out BaseName + residue_number 
@@ -55,21 +57,20 @@ class AxisType : public Frame {
 
     char *BaseName();
     char *ResName();
-    int BaseNum() { return residue_number; }
+    int ResNum() { return residue_number; }
+    int ResNum2() { return second_resnum; }
     bool AtomNameIs(int, char *);
     char *AtomName(int);
     void PrintAtomNames();
     void PrintAxisInfo(const char *);
 
-    void SetFromFrame(AxisType *);
-    int SetAxisFromMask(AxisType &, AtomMask &);
+    void SetAxisFromMask(AxisType &, AtomMask &);
     void StoreRotMatrix(double*,double*);
-    //void SetPrincipalAxes();
+    void StoreBPresnums(int,int);
 
     enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };
     RefReturn SetRefCoord(AmberParm *, int, AtomMask &,AtomMask&,NAbaseType);
     void FlipYZ();
-    void FLIP_YZ_COORDS();
     void FlipXY();
 #ifdef NASTRUCTDEBUG
     void WritePDB(CpptrajFile &, int, char *, int *); // DEBUG
