@@ -28,11 +28,8 @@ Clustering::Clustering() {
   nofitrms = false;
   grace_color = false;
   load_pair = true;
+  cluster_dataset=NULL;
 } 
-
-// DESTRUCTOR
-Clustering::~Clustering() { 
-}
 
 const char Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 
@@ -50,6 +47,7 @@ const char Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 //    3) Dataset name
 int Clustering::init() {
   char *mask0,*cnumvtimefile,*clusterformat,*singlerepformat,*repformat;
+  char *dsetname;
   // Get keywords
   useMass = actionArgs.hasKey("mass");
   targetNclusters = actionArgs.getKeyInt("clusters",-1);
@@ -64,6 +62,14 @@ int Clustering::init() {
   if (actionArgs.hasKey("nofit")) nofitrms=true;
   if (actionArgs.hasKey("gracecolor")) grace_color=true;
   if (actionArgs.hasKey("noload")) load_pair=false;
+  if ((dsetname = actionArgs.getKeyString("data",NULL))!=NULL) {
+    // Attempt to get dataset from datasetlist
+    cluster_dataset = DSL->Get( dsetname );
+    if (cluster_dataset == NULL) {
+      mprinterr("Error: cluster: dataset %s not found.\n",dsetname);
+      return 1;
+    }
+  }
   // Output trajectory stuff
   clusterfile = actionArgs.getKeyString("clusterout",NULL);
   clusterformat = actionArgs.getKeyString("clusterfmt",NULL);
@@ -95,9 +101,18 @@ int Clustering::init() {
   if (targetNclusters==-1 && epsilon==-1.0)
     targetNclusters = 10;
 
-  mprintf("    CLUSTER: (%s) ",Mask0.MaskString());
-  if (useMass)
-    mprintf(" (mass-weighted)");
+  mprintf("    CLUSTER:");
+  if (dsetname!=NULL) {
+    mprintf(" On dataset %s",dsetname);
+  } else {
+    mprintf(" Using RMSD (mask [%s])",Mask0.MaskString());
+    if (useMass)
+      mprintf(", mass-weighted");
+    if (nofitrms)
+      mprintf(", no fitting");
+    else
+      mprintf(" best fit");
+  }
   if (targetNclusters != -1)
     mprintf(" looking for %i clusters",targetNclusters);
   if (epsilon != -1.0)
@@ -146,10 +161,10 @@ int Clustering::init() {
 // Clustering::action()
 /** Store current frame as a reference frame.  */
 int Clustering::action() {
-  Frame *fCopy;
-
-  fCopy = currentFrame->FrameCopy();
-  ReferenceFrames.AddFrame(fCopy,currentParm);
+  if (cluster_dataset==NULL) {
+    Frame *fCopy = currentFrame->FrameCopy();
+    ReferenceFrames.AddFrame(fCopy,currentParm);
+  }
   
   return 0;
 } 
@@ -470,6 +485,37 @@ void Clustering::WriteRepTraj( ClusterList *CList ) {
   }
 }
 
+// Clustering::calcDistFromDataset()
+void Clustering::calcDistFromDataset( TriangleMatrix &Distances ) {
+  int N = cluster_dataset->Xmax();
+
+  Distances.Setup(N);
+
+  int max = Distances.Nelements();
+  mprintf("  CLUSTER: Calculating distances using dataset %s (%i total).\n",
+          cluster_dataset->Name(),max);
+
+  ProgressBar *progress = new ProgressBar(max);
+
+  // LOOP 
+  int current = 0;
+  for (int i = 0; i < N-1; i++) {
+    progress->Update(current);
+    double iVal = cluster_dataset->Dval(i);
+    for (int j = i + 1; j < N; j++) {
+      double jVal = cluster_dataset->Dval(j);
+      // Calculate abs( delta )
+      double delta = iVal - jVal;
+      if (delta < 0) delta = -delta;
+      Distances.AddElement( delta );
+      current++;
+    }
+  }
+  progress->Update(max);
+  delete progress;
+
+}
+
 // Clustering::print()
 /** This is where the clustering is actually performed. First the distances
   * between each frame are calculated. Then the clustering routine is called.
@@ -482,11 +528,16 @@ void Clustering::print() {
   if (load_pair && fileExists((char*)PAIRDISTFILE)) {
     mprintf("CLUSTER: %s found, loading pairwise distances.\n",PAIRDISTFILE);
     if (Distances.LoadFile((char*)PAIRDISTFILE,ReferenceFrames.NumFrames())) return;
-  } else {
-    // Get distances between frames
+  } else if (cluster_dataset==NULL) {
+    // Get RMSDs between frames
     calcDistFromRmsd( &Distances );
     // Save distances
     // NOTE: Only if load_pair?
+    Distances.SaveFile((char*)PAIRDISTFILE);
+  } else {
+    // Get distances from dataset
+    calcDistFromDataset( Distances );
+    // NOTE: Need to update save to indicate distance type
     Distances.SaveFile((char*)PAIRDISTFILE);
   }
 

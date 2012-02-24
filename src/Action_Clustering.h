@@ -24,6 +24,7 @@ class Clustering: public Action {
     bool nofitrms;             ///< If true do not best-fit when calc RMSD.
     bool grace_color;          ///< If true print grace colors instead of cluster number
     bool load_pair;            ///< If true, previously calcd pair dist file will be used if found
+    DataSet *cluster_dataset;
     static const char PAIRDISTFILE[];
 
     int calcDistFromRmsd( TriangleMatrix *);
@@ -32,9 +33,9 @@ class Clustering: public Action {
     void WriteClusterTraj( ClusterList * );
     void WriteSingleRepTraj( ClusterList * );
     void WriteRepTraj( ClusterList * );
+    void calcDistFromDataset( TriangleMatrix & );
   public:
     Clustering();
-    ~Clustering();
 
     int init();
     int action();
