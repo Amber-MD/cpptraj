@@ -98,7 +98,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("check"))          {Act=new CheckStructure;}
   else if (argIn.CommandIs("dihedralscan"))   {Act=new DihedralScan;}
   else if (argIn.CommandIs("rotdif"))         {Act=new Rotdif;}
-  else if (argIn.CommandIs("runningaver"))    {Act=new RunningAvg;}
+  else if (argIn.CommandIs("runningaverage")) {Act=new RunningAvg;}
   else if (argIn.CommandIs("runavg"))         {Act=new RunningAvg;}
   else if (argIn.CommandIs("rmsavgcorr"))     {Act=new RmsAvgCorr;}
   // PTRAJ

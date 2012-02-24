@@ -832,8 +832,8 @@ int NAstruct::determineBasepairParameters() {
 // ----------------------------------------------------------------------------
 
 // NAstruct::init()
-/** Expected call: nastruct [resrange <range>] [out <filename>] [naout <nafilename>]
-  *                         [noheader]
+/** Expected call: nastruct [resrange <range>] [naout <nafilename>] 
+  *                         [noheader] [resmap <ResName>:{A,C,G,T,U} ...]
   */
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
