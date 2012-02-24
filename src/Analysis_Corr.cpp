@@ -49,11 +49,11 @@ int Corr::Setup(DataSetList *datasetlist) {
   }
 
   // Check that D1 and D2 have same # data points.
-  // NOTE: Should also check type
-  Nelements = D1->Size(); 
-  if (Nelements != D2->Size()) {
+  // NOTE: Should also check type, this should be performed later!
+  Nelements = D1->Capacity(); 
+  if (Nelements != D2->Capacity()) {
     mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1name,Nelements);
-    mprinterr("             # elements in dataset %i (%i)\n",D2name, D2->Size());
+    mprinterr("             # elements in dataset %i (%i)\n",D2name, D2->Capacity());
     return 1;
   }
   if (lagmax==-1) lagmax = Nelements;
