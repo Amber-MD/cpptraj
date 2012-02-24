@@ -25,7 +25,7 @@ Clustering::Clustering() {
   repfile=NULL;
   repfmt=UNKNOWN_FORMAT;
   clusterinfo=NULL;
-  nofitrms = true;
+  nofitrms = false;
   grace_color = false;
   load_pair = true;
 } 
@@ -38,7 +38,7 @@ const char Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 
 // Clustering::init()
 /** Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n 
- *                        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [fitrms]\n
+ *                        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit]\n
  *                        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n
  *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n
  *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n
@@ -61,7 +61,7 @@ int Clustering::init() {
   clusterinfo = actionArgs.getKeyString("info",NULL);
   summaryfile = actionArgs.getKeyString("summary",NULL);
   halffile = actionArgs.getKeyString("summaryhalf",NULL);
-  if (actionArgs.hasKey("fitrms")) nofitrms=false;
+  if (actionArgs.hasKey("nofit")) nofitrms=true;
   if (actionArgs.hasKey("gracecolor")) grace_color=true;
   if (actionArgs.hasKey("noload")) load_pair=false;
   // Output trajectory stuff
@@ -178,7 +178,7 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
 
   max = Distances->Nelements();
   if (nofitrms)
-    mprintf("  CLUSTER: Calculating RMSDs between each frame (%i total).\n  ",max);
+    mprintf("  CLUSTER: Calculating no-fit RMSDs between each frame (%i total).\n  ",max);
   else
     mprintf("  CLUSTER: Calculating RMSDs with fitting between each frame (%i total).\n",max);
 
