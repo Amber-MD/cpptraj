@@ -159,12 +159,13 @@ int Clustering::init() {
 }
 
 // Clustering::action()
-/** Store current frame as a reference frame.  */
+/** Store current frame as a reference frame. Always do this even if
+  * not calculating RMSD since we may need to print representative
+  * frames etc.
+  */
 int Clustering::action() {
-  if (cluster_dataset==NULL) {
-    Frame *fCopy = currentFrame->FrameCopy();
-    ReferenceFrames.AddFrame(fCopy,currentParm);
-  }
+  Frame *fCopy = currentFrame->FrameCopy();
+  ReferenceFrames.AddFrame(fCopy,currentParm);
   
   return 0;
 } 
