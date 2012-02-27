@@ -1,4 +1,7 @@
-// CpptrajFile 
+// CpptrajFile
+/* Compiler Defines:
+ * - USE_CHARBUFFER: Use CharBuffer to buffer entire file
+ */ 
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
@@ -89,6 +92,8 @@ void CpptrajFile::CloseFile() {
   }
 }
 
+#ifdef USE_CHARBUFFER
+// ---------- BUFFERED FILE ROUTINES -------------------------------------------
 // CpptrajFile::OpenFileBuffered()
 /** Open the file. Buffer with CharBuffer. */
 int CpptrajFile::OpenFileBuffered() {
@@ -175,6 +180,8 @@ void CpptrajFile::Rewind() {
 int CpptrajFile::Read(void *str, size_t numbytes) {
   return c_buffer.Read(str,numbytes);
 }
+// -----------------------------------------------------------------------------
+#endif
 
 // CpptrajFile::SetBaseFilename()
 /** Strip leading path from input filename. Use strtok routine to separate 

@@ -2,18 +2,24 @@
 #define INC_CPPTRAJFILE_H
 #include "FileIO.h"
 #include "FileRoutines.h"
+#ifdef USE_CHARBUFFER
 #include "CharBuffer.h"
+#endif
 /// Used in Action_NAstruct.cpp FortranFormat.cpp main.cpp 
 /// CpptrajFile.cpp CpptrajFile.h Traj_AmberCoord.cpp
 #define BUFFER_SIZE 1024 
-#define OUTPUTFRAMESHIFT 1 ///< Used for output in DataFile and some TrajFiles 
+#define OUTPUTFRAMESHIFT 1 ///< Used for output in DataFile and some TrajFiles
+/* Compiler Defines:
+ * - USE_CHARBUFFER: Use CharBuffer to buffer an entire file.
+ */ 
 // Class: CpptrajFile
 /// Class to abstract handling of basic file routines.
 class CpptrajFile {
     bool isOpen;
     int debug;
+#   ifdef USE_CHARBUFFER
     CharBuffer c_buffer;
-
+#   endif
     void SetBaseFilename();
     int SetupRead();
     int SetupWrite();
@@ -37,12 +43,13 @@ class CpptrajFile {
     int SetupFile(char*,AccessType,FileFormat,FileType,int);
     int OpenFile();
     void CloseFile();
+#   ifdef USE_CHARBUFFER
     int OpenFileBuffered();
     //int ReadBuffered();
     int Gets(char*, int);
     void Rewind();
     int Read(void*,size_t);
-
+#   endif
     bool IsOpen() { if (isOpen) return true; else return false; }
 };
 #endif

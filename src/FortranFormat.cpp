@@ -4,6 +4,9 @@
 #include <cctype> // toupper
 #include "FortranFormat.h"
 #include "CpptrajStdio.h"
+/* Compiler Defines:
+ * - USE_CHARBUFFER: Use CharBuffer to buffer entire file
+ */
 
 /// Combined size of %FLAG and %FORMAT lines (81 * 2)
 #define FFSIZE 162
@@ -177,16 +180,29 @@ static bool PositionFileAtFlag(CpptrajFile &File, const char *Key, char *fformat
   //File->IO->Rewind();
   // Search for %FLAG <Key>
   while ( searchFile ) {
-    while ( File.Gets(lineBuffer,BUFFER_SIZE) == 0) {
+#   ifdef USE_CHARBUFFER
+    while ( File.Gets(lineBuffer,BUFFER_SIZE) == 0) 
+#   else
+    while ( File.IO->Gets(lineBuffer,BUFFER_SIZE) == 0) 
+#   endif
+    {
       if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
         sscanf(lineBuffer,"%*s %s",value);
         if (strcmp(value,Key)==0) {
           if (debug>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
           // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
           // read past until you get to the FORMAT line
+#         ifdef USE_CHARBUFFER
           File.Gets(lineBuffer,BUFFER_SIZE);
+#         else
+          File.IO->Gets(lineBuffer,BUFFER_SIZE);
+#         endif
           while (strncmp(lineBuffer,"%FORMAT",7)!=0)
+#           ifdef USE_CHARBUFFER
             File.Gets(lineBuffer,BUFFER_SIZE);
+#           else
+            File.IO->Gets(lineBuffer,BUFFER_SIZE);
+#           endif
           if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
           // Set format
           if (fformat!=NULL) strcpy(fformat, lineBuffer);
@@ -197,7 +213,11 @@ static bool PositionFileAtFlag(CpptrajFile &File, const char *Key, char *fformat
     // If we havent yet tried to search from the beginning, try it now.
     // Otherwise the Key has not been found.
     if (!hasLooped) {
+#     ifdef USE_CHARBUFFER
       File.Rewind();
+#     else
+      File.IO->Rewind();
+#     endif
       hasLooped = true;
     } else
       searchFile = false;
@@ -238,7 +258,11 @@ char *getFlagFileString(CpptrajFile &File, const char *Key, int debug) {
   if (PositionFileAtFlag(File,Key,NULL,debug)) {
     // Read next line and return
     lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
+#   ifdef USE_CHARBUFFER
     File.Gets(lineBuffer,82);
+#   else
+    File.IO->Gets(lineBuffer,82);
+#   endif
     RemoveWhitespace(lineBuffer);
     return lineBuffer;
   }
@@ -288,7 +312,12 @@ void *getFlagFileValues(CpptrajFile &File, AmberParmFlagType fflag, int maxval, 
   // Allocate memory to read in entire section
   BufferSize = GetFortranBufferSize(maxval, File.isDos, width, ncols);
   buffer = new char[ BufferSize ];
-  if ( File.Read(buffer,BufferSize)==-1 ) {
+# ifdef USE_CHARBUFFER
+  if ( File.Read(buffer,BufferSize)==-1 ) 
+# else
+  if ( File.IO->Read(buffer,sizeof(char),BufferSize)==-1 )
+# endif 
+  {
     rprinterr("ERROR in read of prmtop section %s\n",Key);
     delete[] buffer;
     if (I!=NULL) delete[] I;
@@ -337,7 +366,11 @@ void *getFlagFileValues(CpptrajFile &File, AmberParmFlagType fflag, int maxval, 
 // F_load20a4()
 char *F_load20a4(CpptrajFile &File) {
   char *lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
+# ifdef USE_CHARBUFFER
   File.Gets(lineBuffer,82);
+# else
+  File.IO->Gets(lineBuffer,82);
+# endif
   RemoveWhitespace(lineBuffer);
   return lineBuffer;
 }
@@ -354,7 +387,11 @@ void *F_loadFormat(CpptrajFile &File, FortranType fType, int width, int ncols,
   // If # expected values is 0 there will still be a newline placeholder
   // in the parmtop. Read past that and return NULL 
   if (maxval==0) {
+#   ifdef USE_CHARBUFFER
     File.Gets(temp,16);
+#   else
+    File.IO->Gets(temp,16);
+#   endif 
     return NULL;
   }
   // Allocate memory based on data type
@@ -368,7 +405,12 @@ void *F_loadFormat(CpptrajFile &File, FortranType fType, int width, int ncols,
   // Allocate memory to read in entire section
   BufferSize = GetFortranBufferSize(maxval, File.isDos, width, ncols);
   buffer = new char[ BufferSize ];
-  if ( File.Read(buffer,BufferSize)==-1 ) {
+# ifdef USE_CHARBUFFER
+  if ( File.Read(buffer,BufferSize)==-1 ) 
+# else
+  if ( File.IO->Read(buffer,sizeof(char),BufferSize)==-1 )
+# endif 
+  {
     rprinterr("ERROR in read of prmtop section; width=%i ncols=%i maxval=%i\n",
               width,ncols,maxval);
     delete[] buffer;

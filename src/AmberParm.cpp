@@ -1030,11 +1030,11 @@ void AmberParm::SetParmFromValues(int *values, bool isOld) {
 int AmberParm::ReadParmOldAmber(CpptrajFile &parmfile) {
   char *title;
   int values[30], ifbox;
-
+# ifdef USE_CHARBUFFER
   // TEST: Close and reopen buffered.
   parmfile.CloseFile();
   parmfile.OpenFileBuffered();
-
+# endif
   if (debug>0) mprintf("Reading Old-style Amber Topology file %s\n",parmName);
   title = F_load20a4(parmfile);
   if (debug>0) mprintf("\tOld AmberParm Title: %s\n",title);
@@ -1140,11 +1140,11 @@ int AmberParm::ReadParmAmber(CpptrajFile &parmfile) {
   int values[AMBERPOINTERS];
   char *title;
   bool chamber; // true: This topology file is a chamber-created topology file
-
+# ifdef USE_CHARBUFFER
   // TEST: Close and reopen buffered
   parmfile.CloseFile();
   parmfile.OpenFileBuffered();
-
+# endif
   if (debug>0) mprintf("Reading Amber Topology file %s\n",parmName);
   // Title
   // NOTE: getFlagFileString uses 'new' operator.
@@ -1358,20 +1358,20 @@ int AmberParm::ReadParmPDB(CpptrajFile &parmfile) {
   int atomInLastMol = 0;
   unsigned int crdidx = 0;
 
-#ifdef USE_CHARBUFFER
+# ifdef USE_CHARBUFFER
   // TEST: Close and reopen buffered.
   parmfile.CloseFile();
   parmfile.OpenFileBuffered();
-#endif
+# endif
 
   mprintf("    Reading PDB file %s as topology file.\n",parmName);
   currResnum=-1;
   memset(buffer,' ',256);
-#ifdef USE_CHARBUFFER
+# ifdef USE_CHARBUFFER
   while ( parmfile.Gets(buffer,256) == 0 ) 
-#else
+# else
   while ( parmfile.IO->Gets(buffer,256)==0 ) 
-#endif
+# endif
   {
     // If ENDMDL or END is reached stop reading
     if ( strncmp(buffer,"END",3)==0) break;
