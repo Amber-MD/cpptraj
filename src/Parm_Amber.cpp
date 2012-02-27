@@ -3,8 +3,10 @@
 #include <cstring> // memcpy, strcpy
 #include <cstdlib> // atoi, atof
 #include <cstdio>  // sscanf
+#include <ctime>   // for writing time/date to amber parmtop (necessary?)
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // ELECTOAMBER
 // For file write
 #include "CharBuffer.h"
 
@@ -33,9 +35,6 @@ enum topValues {
   NEXTRA
 };
 #define AMBERPOINTERS 31
-/// Convert charges from electron charge to Amber units (w/ prefactor)
-#define ELECTOAMBER 18.2223
-#define AMBERTOELEC 1/ELECTOAMBER 
 /// Enumerated type for Fortran data type
 enum FortranType {
   UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
@@ -626,6 +625,7 @@ void AmberParmFile::SetParmFromValues(AmberParm &parmOut, int *values, bool isOl
 }
 
 // AmberParmFile::ReadParm()
+/** Read parameters from Amber Topology file. */
 int AmberParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
   if (parmfile.fileFormat == OLDAMBERPARM)
     return ReadParmOldAmber(parmOut,parmfile);
@@ -772,7 +772,7 @@ int AmberParmFile::ReadParmAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
   memcpy(values, tempvalues, AMBERPOINTERS * sizeof(int));
   delete[] tempvalues;
   // Set some commonly used values
-  parmOut.SetParmFromValues(values, false);
+  SetParmFromValues(parmOut,values, false);
   ifbox=values[IFBOX];
   // Atom names
   parmOut.names=(NAME*) getFlagFileValues(parmfile,F_NAMES,parmOut.natom,debug);
@@ -918,8 +918,8 @@ int AmberParmFile::ReadParmAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
 }
 
 // AmberParmFile::WriteParm()
-int AmberParmFile::WriteParm(AmberParm &parmIn, char *filename) {
-  CpptrajFile outfile;
+/** Write out information from current AmberParm to an Amber parm file */
+int AmberParmFile::WriteParm(AmberParm &parmIn, CpptrajFile &outfile) {
   CharBuffer buffer;
   int solvent_pointer[3];
   int values[AMBERPOINTERS];
@@ -933,10 +933,7 @@ int AmberParmFile::WriteParm(AmberParm &parmIn, char *filename) {
 
   if (parmIn.parmName==NULL) return 1;
 
-  if ( outfile.SetupFile(filename, WRITE, AMBERPARM, STANDARD, debug) )
-    return 1;
-
-  if (outfile.OpenFile()) return 1;
+  if (!outfile.IsOpen()) return 1;
 
   // HEADER AND TITLE (4 lines, version, flag, format, title)
   buffer.Allocate( 324 ); // (81 * 4), no space for NULL needed since using NewLine() 

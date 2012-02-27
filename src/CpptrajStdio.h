@@ -20,6 +20,7 @@ char *tildeExpansion(char *, int);
 bool fileExists(char *);
 void NumberFilename(char *, char *, int);
 int DigitWidth(int);
+#define OUTPUTFRAMESHIFT 1 ///< Used for output in DataFile and some TrajFiles
 //char *SetDoubleFormatString(int, int);
 //char *SetAlignedDoubleFormatString(int, int);
 //char *SetStringFormatString(int);

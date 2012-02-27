@@ -11,4 +11,7 @@
 #define RADDEG 57.295779513082320876798154814105
 #define DEGRAD 0.017453292519943295769236907684886
 #define SMALL 0.00000000000001
+/// Convert charges from electron charge to Amber units (w/ prefactor)
+#define ELECTOAMBER 18.2223
+#define AMBERTOELEC 1/ELECTOAMBER
 #endif

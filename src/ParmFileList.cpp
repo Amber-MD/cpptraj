@@ -3,6 +3,7 @@
 #include "ParmFileList.h"
 #include "CpptrajStdio.h"
 #include "AtomMask.h"
+#include "ParmFile.h"
 
 // CONSTRUCTOR 
 ParmFileList::ParmFileList() {
@@ -78,7 +79,10 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     }
     mprintf("\tWriting parm %i (%s) to Amber parm %s\n",pindex,
             ParmList[pindex]->parmName,outfilename);
-    ParmList[pindex]->WriteAmberParm(outfilename);
+    ParmFile pfile;
+    pfile.SetDebug( debug );
+    pfile.Write( *ParmList[pindex], outfilename, AMBERPARM );
+    //ParmList[pindex]->WriteAmberParm(outfilename);
     return 0;
   }
   // parmstrip <mask> [<parmindex>]: Strip atoms int mask from parm
@@ -284,6 +288,7 @@ int ParmFileList::AddParmFile(char *filename) {
 /** Add a parameter file to the parm file list with optional tag. */
 int ParmFileList::AddParmFile(char *filename, std::string &ParmTag) {
   AmberParm *P;
+  ParmFile pfile;
 
   // Dont let a list that has copies add a new file
   if (hasCopies) {
@@ -307,8 +312,10 @@ int ParmFileList::AddParmFile(char *filename, std::string &ParmTag) {
 
   P = new AmberParm();
   P->SetDebug(debug);
-
-  if (P->OpenParm(filename,bondsearch,molsearch)) {
+  pfile.SetDebug( debug );
+  int err = pfile.Read(*P, filename, bondsearch, molsearch);
+  if (err!=0) {
+  //if (P->OpenParm(filename,bondsearch,molsearch)) {
     mprinterr("Error: Could not open parm %s\n",filename);
     delete P;
     return 1;

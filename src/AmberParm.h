@@ -1,7 +1,6 @@
 #ifndef INC_AMBERPARM_H
 #define INC_AMBERPARM_H
 #include <vector>
-#include "CpptrajFile.h"
 #include "BoxType.h" 
 // Name.h has definition for NAME 
 #include "Name.h"
@@ -26,15 +25,6 @@
 class AmberParm {
   private:
     int debug;
-    /// ENUMERATED TYPE for AMBER TOPOLOGY VALUES
-    enum topValues {
-    //0       1       2      3       4       5       6       7      8       9
-      NATOM,  NTYPES, NBONH, MBONA,  NTHETH, MTHETA, NPHIH,  MPHIA, NHPARM, NPARM, 
-      NNB,    NRES,   NBONA, NTHETA, NPHIA,  NUMBND, NUMANG, NPTRA, NATYP,  NPHB, 
-      IFPERT, NBPER,  NGPER, NDPER,  MBPER,  MGPER,  MDPER,  IFBOX, NMXRS, IFCAP,
-      NEXTRA
-    };
-
     /// Contain data for SA LCPO
     struct SurfInfo {
       double vdwradii;
@@ -50,15 +40,6 @@ class AmberParm {
     bool IsSolventResname(NAME);
     int SetSolventInfo();
     bool hasSolventInfo;       ///< True if solvent information present
-
-    // Parm format readers
-    int ReadParmMol2(CpptrajFile *);
-    void SetParmFromValues(int*,bool);
-    int ReadParmOldAmber(CpptrajFile &);
-    int ReadParmAmber(CpptrajFile &);
-    int SetAtomsPerMolPDB(int);
-    int ReadParmPDB(CpptrajFile &);
-    int ReadParmPSF(CpptrajFile *);
 
     // Routines to fill in missing Bond/Molecule info
     double *parmCoords;
@@ -198,7 +179,8 @@ class AmberParm {
 
     int SetSurfaceInfo();
 
-    int OpenParm(char *,bool,bool);
+    int CommonSetup(bool, bool);
+    void SetParmName(char *, char *);
 
     void AtomInfo(int);
     void ParmInfo(std::string&);
@@ -225,6 +207,10 @@ class AmberParm {
     AmberParm *modifyStateByMask(std::vector<int>&, char*);
     AmberParm *modifyStateByMap(int *);
 
-    int WriteAmberParm(char*); 
+    // Friend classes for reading/writing parm info
+    friend class AmberParmFile;
+    friend class PdbParmFile;
+    friend class Mol2ParmFile;
+    friend class CharmmPsfParmFile; 
 };
 #endif

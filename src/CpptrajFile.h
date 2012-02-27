@@ -8,7 +8,6 @@
 /// Used in Action_NAstruct.cpp FortranFormat.cpp main.cpp 
 /// CpptrajFile.cpp CpptrajFile.h Traj_AmberCoord.cpp
 #define BUFFER_SIZE 1024 
-#define OUTPUTFRAMESHIFT 1 ///< Used for output in DataFile and some TrajFiles
 /* Compiler Defines:
  * - USE_CHARBUFFER: Use CharBuffer to buffer an entire file.
  */ 

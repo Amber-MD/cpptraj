@@ -1,6 +1,7 @@
 #ifndef INC_TRAJECTORYIO_H
 #define INC_TRAJECTORYIO_H
-#include "AmberParm.h" // CpptrajFile BoxType
+#include "AmberParm.h" // BoxType
+#include "CpptrajFile.h"
 #include "ArgList.h"
 // Class: TrajectoryIO
 /// Base class for performing trajectory reading and writing.

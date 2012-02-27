@@ -17,7 +17,7 @@ SOURCE=main.cpp AmberParm.cpp \
        TrajectoryFile.cpp BoxType.cpp CharBuffer.cpp Traj_AmberCoord.cpp \
        Traj_AmberNetcdf.cpp Traj_PDBfile.cpp Traj_AmberRestart.cpp \
        Traj_Mol2File.cpp Traj_AmberRestartNC.cpp Traj_Conflib.cpp RemdTraj.cpp \
-       FortranFormat.cpp Name.cpp Action_Average.cpp Histogram.cpp Analysis.cpp \
+       Name.cpp Action_Average.cpp Histogram.cpp Analysis.cpp \
        Action_DistRmsd.cpp \
        AnalysisList.cpp Analysis_Hist.cpp DataSet_XYZ.cpp Action_Radial.cpp \
        Action_Jcoupling.cpp TriangleMatrix.cpp Action_Clustering.cpp ClusterList.cpp \
@@ -27,7 +27,8 @@ SOURCE=main.cpp AmberParm.cpp \
        Analysis_PtrajAnalysis.cpp ptraj_convert.cpp molsurf.c Action_Molsurf.cpp \
        Action_CheckStructure.cpp Action_DihedralScan.cpp Action_Rotdif.cpp Random.cpp \
        Integrate.cpp Analysis_Corr.cpp Action_RunningAvg.cpp Action_RmsAvgCorr.cpp \
-       DataSet_Matrix.cpp 
+       DataSet_Matrix.cpp ParmFile.cpp Parm_Amber.cpp Parm_PDB.cpp Parm_Mol2.cpp \
+       Parm_CharmmPsf.cpp
 
 OBJECTS=main.o AmberParm.o \
         Frame.o CpptrajState.o ArgList.o PtrajMask.o Action_Distance.o \
@@ -48,7 +49,7 @@ OBJECTS=main.o AmberParm.o \
         TrajectoryFile.o BoxType.o CharBuffer.o Traj_AmberCoord.o \
         Traj_AmberNetcdf.o Traj_PDBfile.o Traj_AmberRestart.o \
         Traj_Mol2File.o Traj_AmberRestartNC.o Traj_Conflib.o RemdTraj.o \
-        FortranFormat.o Name.o Action_Average.o Histogram.o Analysis.o \
+        Name.o Action_Average.o Histogram.o Analysis.o \
         Action_DistRmsd.o \
         AnalysisList.o Analysis_Hist.o DataSet_XYZ.o Action_Radial.o \
         Action_Jcoupling.o TriangleMatrix.o Action_Clustering.o ClusterList.o \
@@ -58,7 +59,8 @@ OBJECTS=main.o AmberParm.o \
         Analysis_PtrajAnalysis.o ptraj_convert.o molsurf.o Action_Molsurf.o \
         Action_CheckStructure.o Action_DihedralScan.o Action_Rotdif.o Random.o \
         Integrate.o Analysis_Corr.o Action_RunningAvg.o Action_RmsAvgCorr.o \
-        DataSet_Matrix.o
+        DataSet_Matrix.o ParmFile.o Parm_Amber.o Parm_PDB.o Parm_Mol2.o \
+        Parm_CharmmPsf.o
 
 HEADERS=AmberParm.h \
         Frame.h CpptrajState.h ArgList.h PtrajMask.h Action.h Action_Distance.h \
@@ -79,7 +81,7 @@ HEADERS=AmberParm.h \
         TrajectoryFile.h BoxType.h CharBuffer.h Traj_AmberCoord.h \
         Traj_AmberNetcdf.h Traj_PDBfile.h Traj_AmberRestart.h \
         Traj_Mol2File.h Traj_AmberRestartNC.h Traj_Conflib.h RemdTraj.h \
-        FortranFormat.h Name.h Action_Average.h Histogram.h Analysis.h \
+        Name.h Action_Average.h Histogram.h Analysis.h \
         Action_DistRmsd.h \
         AnalysisList.h Analysis_Hist.h DataSet_XYZ.h Action_Radial.h \
         Action_Jcoupling.h Constants.h TriangleMatrix.h Action_Clustering.h ClusterList.h \
@@ -89,5 +91,6 @@ HEADERS=AmberParm.h \
         Analysis_PtrajAnalysis.h ptraj_convert.h molsurf.h Action_Molsurf.h \
         Action_CheckStructure.h Action_DihedralScan.h Action_Rotdif.h Random.h \
         Integrate.h Analysis_Corr.h Action_RunningAvg.h Action_RmsAvgCorr.h \
-        DataSet_Matrix.h
+        DataSet_Matrix.h ParmFile.h ParmIO.h Parm_Amber.h Parm_PDB.h Parm_Mol2.h \
+        Parm_CharmmPsf.h
 

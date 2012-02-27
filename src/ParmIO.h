@@ -10,8 +10,9 @@ class ParmIO {
     ParmIO() { debug=0; }
     
     void SetDebug(int debugIn) { debug = debugIn; }
+
     virtual int ReadParm(AmberParm &, CpptrajFile &) { return 1; }
-    virtual int WriteParm(AmberParm &, char *) { return 1; }
+    virtual int WriteParm(AmberParm &, CpptrajFile &) { return 1; }
   protected:
     int debug;
 };

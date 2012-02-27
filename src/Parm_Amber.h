@@ -4,7 +4,7 @@
 class AmberParmFile : public ParmIO {
   public :
     int ReadParm(AmberParm&, CpptrajFile&);
-    int WriteParm(AmberParm&, char*);
+    int WriteParm(AmberParm&, CpptrajFile&);
   private :
     void SetParmFromValues(AmberParm &, int *, bool);
     int ReadParmAmber(AmberParm&, CpptrajFile&);

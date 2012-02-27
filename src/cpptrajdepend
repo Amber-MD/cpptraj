@@ -1,11 +1,11 @@
 main.o : main.cpp Action.h ActionList.h AmberParm.h Analysis.h AnalysisList.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CoordFileList.h CpptrajFile.h CpptrajState.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h MpiRoutines.h Name.h ParmFileList.h ProgressBar.h Range.h ReferenceList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h
-AmberParm.o : AmberParm.cpp AmberParm.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DistRoutines.h FileIO.h FileRoutines.h FortranFormat.h Mol2FileRoutines.h Name.h PDBfileRoutines.h PtrajMask.h
+AmberParm.o : AmberParm.cpp AmberParm.h AtomMask.h Bonds.h BoxType.h Constants.h CpptrajStdio.h DistRoutines.h Name.h PtrajMask.h
 Frame.o : Frame.cpp AtomMask.h Constants.h CpptrajStdio.h DistRoutines.h Frame.h TorsionRoutines.h vectormath.h
 CpptrajState.o : CpptrajState.cpp Action.h ActionList.h AmberParm.h Analysis.h AnalysisList.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CoordFileList.h CpptrajFile.h CpptrajState.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h MpiRoutines.h Name.h ParmFileList.h ProgressBar.h Range.h ReferenceList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h
 ArgList.o : ArgList.cpp ArgList.h CpptrajStdio.h
 PtrajMask.o : PtrajMask.cpp Name.h PtrajMask.h
 Action_Distance.o : Action_Distance.cpp Action.h Action_Distance.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
-ParmFileList.o : ParmFileList.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h ParmFileList.h
+ParmFileList.o : ParmFileList.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CpptrajStdio.h FileRoutines.h Name.h ParmFile.h ParmFileList.h
 TrajinList.o : TrajinList.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CoordFileList.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Frame.h Name.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h TrajinList.h
 TrajoutList.o : TrajoutList.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CoordFileList.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Frame.h Name.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h TrajoutList.h
 ReferenceList.o : ReferenceList.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CoordFileList.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h Range.h ReferenceList.h TrajectoryFile.h TrajectoryIO.h
@@ -14,7 +14,7 @@ ActionList.o : ActionList.cpp Action.h ActionList.h Action_Angle.h Action_AtomMa
 DataSet.o : DataSet.cpp CharBuffer.h CpptrajStdio.h DataSet.h
 DataSetList.o : DataSetList.cpp CharBuffer.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_Matrix.h DataSet_XYZ.h DataSet_double.h DataSet_float.h DataSet_integer.h DataSet_string.h
 vectormath.o : vectormath.cpp Constants.h CpptrajStdio.h vectormath.h
-FrameList.o : FrameList.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
+FrameList.o : FrameList.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CpptrajStdio.h Frame.h FrameList.h Name.h ParmFileList.h
 Action_Rmsd.o : Action_Rmsd.cpp Action.h Action_Rmsd.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h DataSet_double.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h
 Action_Dihedral.o : Action_Dihedral.cpp Action.h Action_Dihedral.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h Constants.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
 DataFile.o : DataFile.cpp CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataSet.h FileIO.h FileRoutines.h
@@ -28,7 +28,7 @@ FileIO_Gzip.o : FileIO_Gzip.cpp CpptrajStdio.h FileIO.h FileIO_Gzip.h
 Action_Angle.o : Action_Angle.cpp Action.h Action_Angle.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h Constants.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
 MpiRoutines.o : MpiRoutines.c MpiRoutines.h
 FileIO_Mpi.o : FileIO_Mpi.cpp FileIO.h FileIO_Mpi.h MpiRoutines.h
-Action_Strip.o : Action_Strip.cpp Action.h Action_Strip.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
+Action_Strip.o : Action_Strip.cpp Action.h Action_Strip.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFile.h ParmFileList.h
 Action.o : Action.cpp Action.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
 AtomMask.o : AtomMask.cpp AtomMask.h CpptrajStdio.h Name.h PtrajMask.h
 DataSet_double.o : DataSet_double.cpp CharBuffer.h CpptrajStdio.h DataSet.h DataSet_double.h MpiRoutines.h
@@ -42,7 +42,7 @@ Action_Image.o : Action_Image.cpp Action.h Action_Image.h AmberParm.h ArgList.h 
 Action_Surf.o : Action_Surf.cpp Action.h Action_Surf.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h Constants.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
 Action_Radgyr.o : Action_Radgyr.cpp Action.h Action_Radgyr.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
 Action_Mask.o : Action_Mask.cpp Action.h Action_Mask.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h
-Action_Closest.o : Action_Closest.cpp Action.h Action_Closest.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
+Action_Closest.o : Action_Closest.cpp Action.h Action_Closest.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFile.h ParmFileList.h
 NetcdfRoutines.o : NetcdfRoutines.cpp CpptrajStdio.h NetcdfRoutines.h
 CpptrajStdio.o : CpptrajStdio.cpp MpiRoutines.h
 Mol2FileRoutines.o : Mol2FileRoutines.cpp CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Mol2FileRoutines.h Name.h
@@ -67,7 +67,6 @@ Traj_Mol2File.o : Traj_Mol2File.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h Box
 Traj_AmberRestartNC.o : Traj_AmberRestartNC.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h NetcdfRoutines.h Traj_AmberRestartNC.h TrajectoryIO.h
 Traj_Conflib.o : Traj_Conflib.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h Traj_Conflib.h TrajectoryIO.h
 RemdTraj.o : RemdTraj.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h RemdTraj.h TrajectoryIO.h
-FortranFormat.o : FortranFormat.cpp CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h FortranFormat.h Name.h
 Name.o : Name.cpp Name.h
 Action_Average.o : Action_Average.cpp Action.h Action_Average.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h
 Histogram.o : Histogram.cpp CpptrajStdio.h Histogram.h
@@ -97,7 +96,7 @@ ptraj_arg.o : ptraj_arg.c ptraj_arg.h
 ptraj_state.o : ptraj_state.c Name.h PtrajMask.h ptraj_common.h ptraj_state.h
 ptraj_scalar.o : ptraj_scalar.c Name.h ptraj_common.h ptraj_evec.h ptraj_scalar.h ptraj_stack.h ptraj_state.h
 Analysis_PtrajAnalysis.o : Analysis_PtrajAnalysis.cpp AmberParm.h Analysis.h Analysis_PtrajAnalysis.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Name.h ParmFileList.h ptraj_analyze.h ptraj_arg.h ptraj_convert.h ptraj_stack.h ptraj_state.h
-ptraj_convert.o : ptraj_convert.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h FileIO.h FileRoutines.h Name.h ptraj_arg.h ptraj_convert.h ptraj_state.h
+ptraj_convert.o : ptraj_convert.cpp AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h Name.h ptraj_arg.h ptraj_convert.h ptraj_state.h
 molsurf.o : molsurf.c Name.h molsurf.h
 Action_Molsurf.o : Action_Molsurf.cpp Action.h Action_Molsurf.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h molsurf.h
 Action_CheckStructure.o : Action_CheckStructure.cpp Action.h Action_CheckStructure.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
@@ -109,3 +108,8 @@ Analysis_Corr.o : Analysis_Corr.cpp AmberParm.h Analysis.h Analysis_Corr.h ArgLi
 Action_RunningAvg.o : Action_RunningAvg.cpp Action.h Action_RunningAvg.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
 Action_RmsAvgCorr.o : Action_RmsAvgCorr.cpp Action.h Action_RmsAvgCorr.h Action_Rmsd.h Action_RunningAvg.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h ProgressBar.h Range.h TrajectoryFile.h TrajectoryIO.h
 DataSet_Matrix.o : DataSet_Matrix.cpp CharBuffer.h DataSet.h DataSet_Matrix.h
+ParmFile.o : ParmFile.cpp AmberParm.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h ParmFile.h ParmIO.h Parm_Amber.h Parm_CharmmPsf.h Parm_Mol2.h Parm_PDB.h
+Parm_Amber.o : Parm_Amber.cpp AmberParm.h AtomMask.h Bonds.h BoxType.h CharBuffer.h Constants.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h ParmIO.h Parm_Amber.h
+Parm_PDB.o : Parm_PDB.cpp AmberParm.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h PDBfileRoutines.h ParmIO.h Parm_PDB.h
+Parm_Mol2.o : Parm_Mol2.cpp AmberParm.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Mol2FileRoutines.h Name.h ParmIO.h Parm_Mol2.h
+Parm_CharmmPsf.o : Parm_CharmmPsf.cpp AmberParm.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h ParmIO.h Parm_CharmmPsf.h

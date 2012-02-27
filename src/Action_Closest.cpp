@@ -8,6 +8,7 @@
 #endif
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
+#include "ParmFile.h"
 
 // CONSTRUCTOR
 Closest::Closest() {
@@ -201,7 +202,10 @@ int Closest::setup() {
   // If prefix given then output stripped parm
   if (prefix!=NULL) {
     mprintf("\tWriting out amber topology file %s\n",newParm->parmName);
-    if ( newParm->WriteAmberParm(newParm->parmName) ) {
+    ParmFile pfile;
+    pfile.SetDebug( debug );
+    if ( pfile.Write(*newParm, newParm->parmName, AMBERPARM ) ) {
+    //if ( newParm->WriteAmberParm(newParm->parmName) ) {
       mprinterr("Error: CLOSEST: Could not write out stripped parm file %s\n",
               newParm->parmName);
     }

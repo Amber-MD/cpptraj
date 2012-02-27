@@ -3,6 +3,7 @@
 #include <cstring>
 #include "Action_Strip.h"
 #include "CpptrajStdio.h"
+#include "ParmFile.h"
 
 // CONSTRUCTOR
 Strip::Strip() {
@@ -91,7 +92,10 @@ int Strip::setup() {
   // If prefix given then output stripped parm
   if (prefix!=NULL) {
     mprintf("\tWriting out amber topology file %s\n",newParm->parmName);
-    if ( newParm->WriteAmberParm(newParm->parmName) ) {
+    ParmFile pfile;
+    pfile.SetDebug( debug );
+    if ( pfile.Write( *newParm, newParm->parmName, AMBERPARM ) ) {
+    //if ( newParm->WriteAmberParm(newParm->parmName) ) {
       mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
                 newParm->parmName);
     }
