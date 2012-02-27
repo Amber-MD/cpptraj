@@ -23,11 +23,6 @@ Hist::Hist() {
   bins = -1;
 }
 
-// DESTRUCTOR
-Hist::~Hist() {
-
-}
-
 // Hist::CheckDimension()
 /** Given an argument with format: DataSet_Name[:min:max:step:bins], check
   * that DataSet_Name exists and is valid. Add the argument to 

@@ -9,7 +9,6 @@ class Center: public Action {
     bool origin;
   public:
     Center();
-    ~Center();
 
     int init();
     int setup();

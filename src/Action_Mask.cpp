@@ -10,11 +10,6 @@ ActionMask::ActionMask() {
   maskpdb=NULL;
 } 
 
-// DESTRUCTOR
-ActionMask::~ActionMask() {
-  //fprintf(stderr,"ActionMask Destructor.\n");
-}
-
 // ActionMask::init()
 /** Expected call: mask <mask1> [maskout <filename>] [maskpdb <filename>] 
   */

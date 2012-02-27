@@ -10,7 +10,6 @@ class ProgressBar {
     bool unknownframes;
   public:
     ProgressBar(int);
-    ~ProgressBar();
 
     void Update(int);
     void PrintBar(int);

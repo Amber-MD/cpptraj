@@ -12,7 +12,6 @@ class Pucker: public Action {
     double puckermin, puckermax;
   public:
     Pucker();
-    ~Pucker();
 
     int init();
     int setup();

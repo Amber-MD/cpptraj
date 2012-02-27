@@ -47,7 +47,6 @@ class DihedralScan: public Action {
     int CheckResidue( Frame *, DihedralScanType&,int,double*);
   public:
     DihedralScan();
-    ~DihedralScan();
 
     int init();
     int setup();

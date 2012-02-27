@@ -11,9 +11,6 @@ Corr::Corr() {
   outfilename=NULL;
 }
 
-// DESTRUCTOR
-Corr::~Corr() { }
-
 // Corr::Setup()
 /** Expected call: corr <outfilename> <Dataset1> <Dataset2> [lagmax <lagmax>]
   */

@@ -8,7 +8,6 @@ class Distance: public Action {
     AtomMask Mask1, Mask2;
   public:
     Distance();
-    ~Distance();
 
     int init();
     int setup();

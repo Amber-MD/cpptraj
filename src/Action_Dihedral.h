@@ -7,7 +7,6 @@ class Dihedral: public Action {
     AtomMask M1, M2, M3, M4;
   public:
     Dihedral();
-    ~Dihedral();
 
     int init();
     int setup();

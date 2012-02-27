@@ -42,7 +42,6 @@ class Random_Number {
     random_state RN_generator;
   public:
     Random_Number();
-    ~Random_Number();
     /// Initialize the random number generator
     void rn_set(int);
     void rn_set();

@@ -46,7 +46,6 @@ class CpptrajState {
     void Dispatch(char*);        
 
     CpptrajState();
-    ~CpptrajState();
     /// Controls main flow of the program.
     int Run(); 
 };

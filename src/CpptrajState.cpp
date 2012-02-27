@@ -10,10 +10,6 @@ CpptrajState::CpptrajState() {
   exitOnError = true;
 }
 
-// Destructor
-CpptrajState::~CpptrajState() {
-}
-
 /* CpptrajState::SetGlobalDebug()
  * Set the debug level for all components of CpptrajState.
  */

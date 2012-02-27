@@ -30,7 +30,6 @@ class Hist : public Analysis {
     int setupDimension(char *,DataSet*);
   public :
     Hist();
-    ~Hist();
 
     int Setup(DataSetList*);
     int Analyze();

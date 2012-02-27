@@ -9,9 +9,6 @@ TrajoutList::TrajoutList() {
   fileAccess=WRITE;
 }
 
-// DESTRUCTOR
-TrajoutList::~TrajoutList() { }
-
 // TrajoutList::AddTrajout()
 /** Add trajectory to the trajectory list as an output trajectory. 
   * Associate the trajectory with one of the parm files in the 

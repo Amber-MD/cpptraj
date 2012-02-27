@@ -30,11 +30,6 @@ DihedralScan::DihedralScan() {
   max_factor = 2;
 } 
 
-// DESTRUCTOR
-DihedralScan::~DihedralScan() {
-  //fprintf(stderr,"DihedralScan Destructor.\n");
-}
-
 // DihedralScan::init()
 /** Expected call: dihedralscan <mask> [<interval> | random ] [rseed <rseed>] outtraj <traj>
   *                             [ check [cutoff <cutoff>] [rescutoff <rescutoff>]

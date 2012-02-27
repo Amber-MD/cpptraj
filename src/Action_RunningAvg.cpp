@@ -11,9 +11,6 @@ RunningAvg::RunningAvg() {
   windowNatom = 0;
 } 
 
-// DESTRUCTOR
-RunningAvg::~RunningAvg() { }
-
 // RunningAvg::init()
 /// Expected call: runningaverage [window <value>] 
 int RunningAvg::init( ) {

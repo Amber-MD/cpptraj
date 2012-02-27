@@ -11,9 +11,6 @@ Radgyr::Radgyr() {
   calcRogmax=true;
 } 
 
-// DESTRUCTOR
-Radgyr::~Radgyr() { }
-
 // Radgyr::init()
 /** Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax]
   */

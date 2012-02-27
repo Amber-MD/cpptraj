@@ -15,7 +15,6 @@ class ActionMask: public Action {
     char *maskpdb;
   public:
     ActionMask();
-    ~ActionMask();
 
     int init();
     int setup();

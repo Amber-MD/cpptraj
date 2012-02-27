@@ -11,7 +11,6 @@ class Corr : public Analysis {
 
   public:
     Corr();
-    ~Corr();
 
     int Setup(DataSetList*);
     int Analyze();

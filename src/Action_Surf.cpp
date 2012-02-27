@@ -11,9 +11,6 @@ Surf::Surf() {
   surf=NULL;
 } 
 
-// DESTRUCTOR
-Surf::~Surf() { }
-
 // Surf::init()
 /** Expected call: surf <name> <mask1> [out filename]
   */

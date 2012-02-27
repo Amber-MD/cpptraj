@@ -43,7 +43,6 @@ class DataFile {
 
     DataFile();
     DataFile(char *);
-    ~DataFile();
 
     void SetDebug(int);
     void SetXlabel(char*);

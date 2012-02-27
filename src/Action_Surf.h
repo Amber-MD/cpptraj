@@ -18,7 +18,6 @@ class Surf: public Action {
 
   public:
     Surf();
-    ~Surf();
 
     int init();
     int setup();

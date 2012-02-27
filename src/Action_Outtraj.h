@@ -11,7 +11,6 @@ class Outtraj: public Action {
     DataSet *Dset;
   public:
     Outtraj();
-    ~Outtraj();
 
     int init();
     //int setup();

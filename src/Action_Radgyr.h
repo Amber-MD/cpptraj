@@ -10,7 +10,6 @@ class Radgyr: public Action {
     bool calcRogmax;
   public:
     Radgyr();
-    ~Radgyr();
 
     int init();
     int setup();

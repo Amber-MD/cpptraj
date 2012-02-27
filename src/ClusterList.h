@@ -55,7 +55,6 @@ class ClusterList {
 
   public :
     ClusterList();
-    ~ClusterList();
  
     void SetLinkage(LINKAGETYPE Lin) { Linkage = Lin; }
     int Nclusters() { return (int) clusters.size(); }

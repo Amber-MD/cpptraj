@@ -9,9 +9,6 @@ TrajinList::TrajinList() {
   fileAccess=READ;
 }
 
-// DESTRUCTOR
-TrajinList::~TrajinList() { }
-
 // TrajinList::AddTrajin()
 /** Add trajectory to the trajectory list as an input trajectory. 
   * Associate the trajectory with one of the parm files in the 

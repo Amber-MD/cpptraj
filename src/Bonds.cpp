@@ -265,10 +265,6 @@ BondInfo::BondInfo() {
   natom = 0;
 }
 
-// DESTRUCTOR
-BondInfo::~BondInfo() {
-}
-
 // BondInfo::Setup()
 /** Set up for the given number of atoms. */
 int BondInfo::Setup(int natomIn) {

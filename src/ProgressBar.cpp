@@ -23,9 +23,6 @@ ProgressBar::ProgressBar(int maxIn) {
   first=true;
 }
 
-// DESTRUCTOR
-ProgressBar::~ProgressBar() { }
-
 // ProgressBar::Update()
 /** If current percent is greater than target percent, print current
   * percent complete.

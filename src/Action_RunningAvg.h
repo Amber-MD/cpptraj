@@ -15,7 +15,6 @@ class RunningAvg: public Action {
 
   public:
     RunningAvg();
-    ~RunningAvg();
 
     void SeparateInit(int, int);
 

@@ -34,10 +34,6 @@ ClusterList::ClusterList() {
   Linkage = AVERAGELINK;
 }
 
-// DESTRUCTOR
-ClusterList::~ClusterList() {
-}
-
 // ClusterList::SetDebug()
 /** Set the debug level */
 void ClusterList::SetDebug(int debugIn) {

@@ -26,7 +26,6 @@ class BondInfo {
     void AtomDistance(int, int);
   public:
     BondInfo();
-    ~BondInfo();
     int Setup(int);
     void Reset();
     bool HasBeenSetup();

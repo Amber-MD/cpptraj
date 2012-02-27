@@ -18,10 +18,6 @@ Mol2File::Mol2File() {
   trajCharges = NULL;
 }
 
-// DESTRUCTOR
-Mol2File::~Mol2File() {
-}
-
 // Mol2File::openTraj()
 int Mol2File::openTraj() {
   int err;

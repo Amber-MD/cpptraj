@@ -10,10 +10,6 @@ Conflib::Conflib() {
   conflibAtom=0;
 }
 
-// DESTRUCTOR
-Conflib::~Conflib() { 
-  //fprintf(stderr,"Conflib Destructor.\n");
-}
 //------------------------------------------------------------------------
 // Conflib::closeTraj()
 void Conflib::closeTraj() {

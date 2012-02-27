@@ -8,7 +8,6 @@ class Angle: public Action {
     AtomMask Mask1, Mask2, Mask3;
   public:
     Angle();
-    ~Angle();
 
     int init();
     int setup();

@@ -12,9 +12,6 @@ Center::Center() {
   useMass=false;
 } 
 
-// DESTRUCTOR
-Center::~Center() { }
-
 // Center::init()
 /** Expected call: center <mask> [origin] [mass] 
   */

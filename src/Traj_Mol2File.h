@@ -37,7 +37,6 @@ class Mol2File : public TrajectoryIO {
     int processWriteArgs(ArgList *);
   public :
     Mol2File();
-    ~Mol2File();
     // Mol2-specific functions
     void SetWriteMode(MOL2WRITEMODE);
 };

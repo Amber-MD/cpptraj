@@ -21,6 +21,5 @@ class Conflib: public TrajectoryIO {
   public:
 
     Conflib();
-    ~Conflib();
 };
 #endif

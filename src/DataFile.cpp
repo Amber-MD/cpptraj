@@ -50,8 +50,6 @@ DataFile::DataFile(char *nameIn) {
 
 /// DESTRUCTOR
 // Individual data sets are freed in DataSetList
-DataFile::~DataFile() {
-}
 
 // DataFile::SetDebug
 /// Set DataFile debug level

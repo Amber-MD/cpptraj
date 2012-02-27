@@ -10,9 +10,6 @@ Random_Number::Random_Number() {
   RN_generator.set = false;
 }
 
-// DESTRUCTOR
-Random_Number::~Random_Number() { }
-
 // Random_Number::rn_set()
 /** Initialization routine for Marsaglias random number generator
   * as implemented in Amber 3.0 Rev A by George Seibel. See doc in amrand.

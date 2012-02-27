@@ -15,9 +15,6 @@ Pucker::Pucker() {
   puckermax = 180.0;
 } 
 
-// DESTRUCTOR
-Pucker::~Pucker() { }
-
 // Pucker::init()
 /** Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>
   *                [range360] [amplitude] [altona | cremer] [offset <offset>]

@@ -10,9 +10,6 @@ Dihedral::Dihedral() {
   useMass=false;
 } 
 
-// DESTRUCTOR
-Dihedral::~Dihedral() { }
-
 // Dihedral::init()
 /** Expected call: dihedral <name> <mask1> <mask2> <mask3> <mask4> [out filename]
   *                         [mass]

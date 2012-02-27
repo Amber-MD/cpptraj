@@ -11,11 +11,6 @@ Distance::Distance() {
   useMass=true;
 } 
 
-// DESTRUCTOR
-Distance::~Distance() {
-  //fprintf(stderr,"Distance Destructor.\n");
-}
-
 // Distance::init()
 /** Expected call: distance <name> <mask1> <mask2> [out filename] [geom] [noimage]
   */

@@ -10,9 +10,6 @@ Outtraj::Outtraj() {
   Dset=NULL;
 } 
 
-// DESTRUCTOR
-Outtraj::~Outtraj() { }
-
 // Outtraj::init()
 /** Expected call: outtraj <filename> [ trajout args ] 
   *                        [maxmin <dataset> min <min> max <max>
