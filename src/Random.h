@@ -1,3 +1,5 @@
+#ifndef INC_RANDOM_H
+#define INC_RANDOM_H
 // Class: Random_Number
 /// Marsaglias random number generator as implemented in Amber 3.0 Rev A
 /** \author George Seibel
@@ -49,3 +51,4 @@ class Random_Number {
     double rn_gen();
     //double rn_gauss(double,double);
 };
+#endif

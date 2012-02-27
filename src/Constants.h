@@ -1,3 +1,5 @@
+#ifndef INC_CONSTANTS_H
+#define INC_CONSTANTS_H
 /*! \file Constants.h
     \brief Useful Physical constants
  */
@@ -9,3 +11,4 @@
 #define RADDEG 57.295779513082320876798154814105
 #define DEGRAD 0.017453292519943295769236907684886
 #define SMALL 0.00000000000001
+#endif

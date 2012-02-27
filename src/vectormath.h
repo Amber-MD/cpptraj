@@ -1,3 +1,5 @@
+#ifndef INC_VECTORMATH_H
+#define INC_VECTORMATH_H
 /*! \file vectormath.h
     \brief Collection of vector and matrix math routines.
  */
@@ -32,4 +34,4 @@ void printVector(const char *Name, double V[3]);
 void printMatrix_3x3(const char *Title, double U[9]);
 void printMatrix(const char *Title, double *U, int mrows, int ncols);
 void printRotTransInfo(double U[9], double trans[6]);
-
+#endif
