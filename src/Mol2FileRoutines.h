@@ -1,3 +1,5 @@
+#ifndef INC_MOL2FILEROUTINES_H
+#define INC_MOL2FILEROUTINES_H
 /*! \file Mol2FileRoutines.h
     \brief Collection of routines used for accessing mol2 files.
  */
@@ -15,3 +17,4 @@ int Mol2XYZ(char *, double *);
 int Mol2AtomType(char *, NAME);
 int Mol2ResNumName(char *, int *, NAME);
 double Mol2Charge(char *);
+#endif

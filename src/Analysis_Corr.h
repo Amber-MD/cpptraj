@@ -1,3 +1,5 @@
+#ifndef INC_ANALYSIS_CORR_H
+#define INC_ANALYSIS_CORR_H
 #include "Analysis.h"
 #include "DataSet_double.h"
 // Class: Corr
@@ -16,4 +18,4 @@ class Corr : public Analysis {
     int Analyze();
     void Print(DataFileList*);
 };
-
+#endif
