@@ -9,9 +9,8 @@
 // Class: AmberParm 
 /** Hold all data pertaining to a molecular system (# atoms, atom names, 
   * etc). Can be read in from Amber Topology, PDB, Mol2, or Charmm PSF 
-  * files (implemented in the ReadParmXXX functions). The following 
-  * parameters of AmberParm must always be set so the mask parser will 
-  * function correctly:
+  * files (see ParmFile.cpp). The following parameters of AmberParm must 
+  * always be set for the mask parser to function correctly:
   * - Arrays: names, resnames, resnums
   * - Variables: natom, nres 
   * Other actions may require additional info, such as bonding or surface area
@@ -19,8 +18,9 @@
   * atom/residue names etc (type defined in Name.h) to be uniformly 4 characters 
   * long, left-aligned, and it is up to the ReadParmXXX function to ensure this 
   * is the case. For example:
-  * - Correct: [CA  ]
+  * - Correct:   [CA  ]
   * - Incorrect: [CA]
+  * - Incorrect: [ CA ]
   */
 class AmberParm {
   private:

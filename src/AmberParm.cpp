@@ -902,6 +902,9 @@ void AmberParm::SetParmName(char *parmNameIn, char *parmfileNameIn) {
 }
 
 // AmberParm::CommonSetup()
+/** Perform any additional setup required by AmberParm. Should be called once
+  * after the AmberParm class is read to in ParmFile. 
+  */
 // NOTE: Need to ensure this is called ONCE
 int AmberParm::CommonSetup(bool bondsearch, bool molsearch) {
   // Create a last dummy residue in resnums that holds natom, which would be
