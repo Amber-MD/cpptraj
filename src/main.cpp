@@ -15,8 +15,12 @@
 // Usage()
 /// Print command line usage.
 static void Usage(char *programName) {
-  mprinterr("Usage: %s [-p Top1, -p Top2, ...] [-i Input] [-debug N]\n",programName);
-  mprinterr("       %s Top1 Input\n",programName);
+  mprinterr("Usage: %s [-p <Top1>, -p <Top2>, ...] [-i <Input>] [-debug <N>]\n",programName);
+  mprinterr("       %s <Top1> <Input>\n",programName);
+  mprinterr("       Additional options:\n");
+  mprinterr("         --help, -help: print usage information and exit.\n");
+  mprinterr("         -V, --version: print version information and exit.\n");
+  mprinterr("             --defines: print list of defines used in compilation.\n");
 }
 
 // ProcessInputStream()
