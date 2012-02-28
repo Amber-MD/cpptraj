@@ -4,7 +4,5 @@
 class PdbParmFile : public ParmIO {
   public :
     int ReadParm(AmberParm&, CpptrajFile&);
-  private :
-    int SetAtomsPerMolPDB(AmberParm &, int);
 };
 #endif
