@@ -244,6 +244,7 @@ int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn, int debugIn) {
   * format will be used; if called with UNKNOWN type and format they will
   * try to be determined by the given file extension. 
   * Can be called with NULL for write, this will write to stdout.
+  * \return 0 on success, 1 on error.
   */
 int CpptrajFile::SetupFile(char *filenameIn, AccessType accessIn, 
                          FileFormat fileFormatIn, FileType fileTypeIn, 

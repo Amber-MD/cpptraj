@@ -13,6 +13,7 @@ RmsAvgCorr::RmsAvgCorr() {
   rmsmask = NULL;
   useMass = false;
   maxframes = -1;
+  separateName = NULL;
 } 
 
 // RmsAvgCorr::init()
@@ -21,6 +22,14 @@ RmsAvgCorr::RmsAvgCorr() {
 int RmsAvgCorr::init( ) {
   // Get Keywords
   char *outfilename = actionArgs.getKeyString("out",NULL);
+# ifdef _OPENMP
+  if (actionArgs.hasKey("output")) {
+    mprinterr("Error: 'output' keyword not supported in OpenMP version of rmsavgcorr.\n");
+    return 1;
+  }
+# else
+  separateName = actionArgs.getKeyString("output",NULL);
+# endif
   useMass = actionArgs.hasKey("mass");
   maxframes = actionArgs.getKeyInt("stop",-1);
   // Get Masks
@@ -41,6 +50,8 @@ int RmsAvgCorr::init( ) {
   if (outfilename!=NULL) mprintf(", Output to %s",outfilename);
   if (maxframes!=-1) mprintf(", max frames %i",maxframes);
   mprintf(".\n");
+  if (separateName != NULL)
+    mprintf("\tSeparate datafile will be written to %s\n",separateName);
 
   return 0;
 }
@@ -85,6 +96,19 @@ void RmsAvgCorr::print() {
   AmberParm *referenceParm;
   Rmsd rmsdaction;
   RunningAvg runavgaction;
+  CpptrajFile separateDatafile;
+
+  // If 'output' specified open up separate datafile that will be written
+  // to as correlation is calculated; useful for very long runs.
+  int error = 0;
+  if (separateName!=NULL) {
+    error += separateDatafile.SetupFile(separateName,WRITE,debug);
+    error += separateDatafile.OpenFile();
+    if (error>0) {
+      mprinterr("Error: Could not set up separate data file %s\n",separateName);
+      return;
+    }
+  }
   // DEBUG
 /*
   DataFile *debug_data;
@@ -136,6 +160,8 @@ void RmsAvgCorr::print() {
 */
   avg = rmsdaction.rmsd->Avg(NULL);
   Ct->Add(0, &avg);
+  if (separateName!=NULL)
+    separateDatafile.IO->Printf("%8i %lf\n",1,avg);
 
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
 # ifdef _OPENMP
@@ -167,6 +193,8 @@ void RmsAvgCorr::print() {
     Ct_openmp[window-1] = avg;
 #   else 
     Ct->Add(window-1, &avg);
+    if (separateName!=NULL)
+      separateDatafile.IO->Printf("%8i %lf\n",window, avg);
 #   endif
   } // END LOOP OVER WINDOWS
 #ifdef _OPENMP
@@ -176,5 +204,7 @@ void RmsAvgCorr::print() {
     Ct->Add(window, Ct_openmp+window);
   delete[] Ct_openmp;
 #endif
+  if (separateName!=NULL)
+    separateDatafile.CloseFile();
 }
 
