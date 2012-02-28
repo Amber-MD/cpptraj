@@ -48,6 +48,7 @@ AmberParm::AmberParm() {
 
   numex=NULL;
   atype_index=NULL;
+  at_num=NULL;
   NB_index=NULL;
   LJ_A=NULL;
   LJ_B=NULL;
@@ -114,6 +115,7 @@ AmberParm::~AmberParm() {
 
   if (numex!=NULL) delete[] numex;
   if (atype_index!=NULL) delete[] atype_index;
+  if (at_num!=NULL) delete[] at_num;
   if (NB_index!=NULL) delete[] NB_index;
   if (LJ_A!=NULL) delete[] LJ_A;
   if (LJ_B!=NULL) delete[] LJ_B;
@@ -1688,6 +1690,8 @@ AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix
     newParm->mass = new double[ Nselected ];
   if (this->atype_index!=NULL)
     newParm->atype_index = new int[ Nselected ];
+  if (this->at_num!=NULL)
+    newParm->at_num = new int[ Nselected ];
   if (this->gb_radii!=NULL)
     newParm->gb_radii = new double[ Nselected ];
   if (this->gb_screen!=NULL) 
@@ -1743,6 +1747,7 @@ AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix
     if (this->charge!=NULL)      newParm->charge[j]      = this->charge[i];
     if (this->mass!=NULL)        newParm->mass[j]        = this->mass[i];
     if (this->atype_index!=NULL) newParm->atype_index[j] = this->atype_index[i];
+    if (this->at_num!=NULL)      newParm->at_num[j]      = this->at_num[i];
     if (this->gb_radii!=NULL)    newParm->gb_radii[j]    = this->gb_radii[i];
     if (this->gb_screen!=NULL)   newParm->gb_screen[j]   = this->gb_screen[i];
     if (this->itree!=NULL)       strcpy(newParm->itree[j], this->itree[i]);

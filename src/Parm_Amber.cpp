@@ -9,12 +9,14 @@
 #include "Constants.h" // ELECTOAMBER
 // For file write
 #include "CharBuffer.h"
+// Compiler Defines:
+// - USE_CHARBUFFER: Use CharBuffer to buffer entire file
 
-// ---------- Defines and Enumerated types --------------------------------------
-/* Compiler Defines:
- * - USE_CHARBUFFER: Use CharBuffer to buffer entire file
- */
+// ---------- Constants and Enumerated types -----------------------------------
+/// Combined size of %FLAG and %FORMAT lines (81 * 2)
+const size_t AmberParmFile::FFSIZE=162;
 /// Enumerated type for FLAG_POINTERS section
+const int AmberParmFile::AMBERPOINTERS=31;
 enum topValues {
 //0       1       2      3       4       5       6       7      8       9
   NATOM,  NTYPES, NBONH, MBONA,  NTHETH, MTHETA, NPHIH,  MPHIA, NHPARM, NPARM,
@@ -22,11 +24,10 @@ enum topValues {
   IFPERT, NBPER,  NGPER, NDPER,  MBPER,  MGPER,  MDPER,  IFBOX, NMXRS, IFCAP,
   NEXTRA
 };
-#define AMBERPOINTERS 31
-/// Combined size of %FLAG and %FORMAT lines (81 * 2)
-#define FFSIZE 162
+/// Number of unique amber parm FLAGs
+const int AmberParmFile::NUMAMBERPARMFLAGS=41;
 /// Constant strings for fortran formats corresponding to Amber parm flags
-static const char AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
+const char AmberParmFile::AmberParmFmt[AmberParmFile::NUMAMBERPARMFLAGS][16] = {
 "%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",
 "%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(3I8)",
 "%FORMAT(10I8)",   "%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",
@@ -34,10 +35,11 @@ static const char AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
 "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)",
 "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)",
 "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(5E16.8)",
-"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)"
+"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",
+"%FORMAT(10I8)"
 };
 /// Constant strings for Amber parm flags
-static const char AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
+const char AmberParmFile::AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
   "POINTERS",
   "ATOM_NAME",
   "CHARGE",
@@ -77,7 +79,8 @@ static const char AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
   "HBCUT",
   "TREE_CHAIN_CLASSIFICATION",
   "JOIN_ARRAY",
-  "IROTAT"
+  "IROTAT",
+  "ATOMIC_NUMBER"
 };
 // -----------------------------------------------------------------------------
 
@@ -86,84 +89,19 @@ static const char AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
 /** Given number of columns and the width of each column, return the 
   * necessary char buffer size for N data elements.
   */
-// NOTE: Convert to size_t?
-static int GetFortranBufferSize(int N, int isDos, int width, int ncols) {
-  int bufferLines=0;
-  int BufferSize=0;
+static size_t GetFortranBufferSize(int N, int isDos, int width, int ncols) {
+  size_t bufferLines=0;
+  size_t BufferSize=0;
 
-  BufferSize= N * width;
+  BufferSize = N * width;
   bufferLines = N / ncols;
-  if ((N % ncols)!=0) bufferLines++;
-  // If DOS file there are CR before Newlines
-  if (isDos) bufferLines*=2;
-  BufferSize+=bufferLines;
+  if ((N % ncols)!=0) ++bufferLines;
+  // If DOS file there are CRs before Newlines
+  if (isDos) bufferLines *= 2;
+  BufferSize += bufferLines;
   //if (debug>0) 
   //  fprintf(stdout,"*** Buffer size is %i including %i newlines.\n",BufferSize,bufferLines);
   return BufferSize;
-}
-
-// GetFortranType()
-/** Given a fortran-type format string, return the corresponding fortran
-  * type. Set ncols (if present), width, and precision (if present).
-  */
-// 01234567
-// %FORMAT([<cols>][(]<type><width>[<precision>][)])
-static FortranType GetFortranType(char *FormatIn, int *ncols, int *width, int *precision) {
-  int idx;
-  char temp[32];
-  char Format[32];
-  char *ptr;
-  FortranType ftype;
-  // Make sure characters are upper-case
-  // NOTE: Maybe do some checking for parentheses etc here
-  //       Not expecting format strings to be > 32
-  ptr = FormatIn;
-  idx = 0;
-  while (*ptr!='\0') {
-    Format[idx++] = toupper( *ptr );
-    if (idx==32) break;
-    ptr++;
-  }
-  // Advance past left parentheses
-  ptr = Format + 7;
-  while (*ptr=='(') ptr++;
-  // If digit, have number of data columns
-  *ncols = 0;
-  if (isdigit(*ptr)) {
-    idx = 0;
-    while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
-    temp[idx]='\0';
-    *ncols = atoi(temp);
-  }
-  // Advance past any more left parentheses
-  while (*ptr=='(') ptr++;
-  // Type
-  switch (*ptr) {
-    case 'I' : ftype = FINT;    break;
-    case 'E' : ftype = FDOUBLE; break;
-    case 'A' : ftype = FCHAR;   break;
-    case 'F' : ftype = FFLOAT;  break;
-    default  : ftype = UNKNOWN_FTYPE;
-  }
-  ptr++;
-  // Width
-  idx = 0;
-  while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
-  temp[idx]='\0';
-  *width = atoi(temp);
-  // Precision
-  *precision = 0;
-  if (*ptr == '.') {
-    ptr++;
-    idx = 0;
-    while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
-    temp[idx]='\0';
-    *precision = atoi(temp);
-  }
-  //mprintf("[%s]: cols=%i type=%c width=%i precision=%i\n",Format,
-  //        *ncols,(int)ftype,*width,*precision);
-
-  return ftype;
 }
 
 // PositionFileAtFlag()
@@ -256,12 +194,80 @@ static void RemoveWhitespace(char *bufferIn) {
 
 // ---------------------------------------------------------
 
+// AmberParmFile::GetFortranType()
+/** Given a fortran-type format string, return the corresponding fortran
+  * type. Set ncols (if present), width, and precision (if present).
+  */
+// 01234567
+// %FORMAT([<cols>][(]<type><width>[<precision>][)])
+AmberParmFile::FortranType AmberParmFile::GetFortranType(char *FormatIn, int *ncols, 
+                                                 int *width, int *precision) 
+{
+  int idx;
+  char temp[32];
+  char Format[32];
+  char *ptr;
+  FortranType ftype;
+  // Make sure characters are upper-case
+  // NOTE: Maybe do some checking for parentheses etc here
+  //       Not expecting format strings to be > 32
+  ptr = FormatIn;
+  idx = 0;
+  while (*ptr!='\0') {
+    Format[idx++] = toupper( *ptr );
+    if (idx==32) break;
+    ptr++;
+  }
+  // Advance past left parentheses
+  ptr = Format + 7;
+  while (*ptr=='(') ptr++;
+  // If digit, have number of data columns
+  *ncols = 0;
+  if (isdigit(*ptr)) {
+    idx = 0;
+    while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
+    temp[idx]='\0';
+    *ncols = atoi(temp);
+  }
+  // Advance past any more left parentheses
+  while (*ptr=='(') ptr++;
+  // Type
+  switch (*ptr) {
+    case 'I' : ftype = FINT;    break;
+    case 'E' : ftype = FDOUBLE; break;
+    case 'A' : ftype = FCHAR;   break;
+    case 'F' : ftype = FFLOAT;  break;
+    default  : ftype = UNKNOWN_FTYPE;
+  }
+  ptr++;
+  // Width
+  idx = 0;
+  while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
+  temp[idx]='\0';
+  *width = atoi(temp);
+  // Precision
+  *precision = 0;
+  if (*ptr == '.') {
+    ptr++;
+    idx = 0;
+    while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
+    temp[idx]='\0';
+    *precision = atoi(temp);
+  }
+  //mprintf("[%s]: cols=%i type=%c width=%i precision=%i\n",Format,
+  //        *ncols,(int)ftype,*width,*precision);
+
+  return ftype;
+}
+
+
 // DataToFortranBuffer()
 /** Write N data elements stored in I, D, or C to character buffer with given 
   * fortran format.
   */
-static int DataToFortranBuffer(CharBuffer &buffer, AmberParmFlagType fFlag,
-                               int *I, double *D, NAME *C, int N)
+int AmberParmFile::DataToFortranBuffer(CharBuffer &buffer, 
+                                       AmberParmFile::AmberParmFlagType fFlag,
+                                       int *I, double *D, NAME *C, int N)
 {
   int coord, width, numCols, precision;
   FortranType fType;
@@ -384,8 +390,7 @@ int AmberParmFile::AllocateAndRead(int &width, int &ncols, int &maxval) {
     return 0;
   }
   // Allocate buffer to read in entire section
-  // NOTE: Convert to size_t
-  int BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
+  size_t BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
   if (buffer!=NULL) delete[] buffer;
   buffer = new char[ BufferSize ];
   // Read section from file
@@ -516,8 +521,8 @@ char *AmberParmFile::GetFlagLine(const char* Key) {
 }
 
 // AmberParmFile::SeekToFlag()
-FortranType AmberParmFile::SeekToFlag(AmberParmFlagType fflag, int &ncols, 
-                                      int &width, int &precision)
+AmberParmFile::FortranType AmberParmFile::SeekToFlag(AmberParmFlagType fflag, 
+                                                    int &ncols, int &width, int &precision)
 {
   char fformat[83]; // Hold FORMAT line
   FortranType fType;
@@ -778,6 +783,7 @@ int AmberParmFile::ReadParmAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
   // Get parm variables
   parmOut.names = GetFlagName(F_NAMES, values[NATOM]);
   parmOut.charge = GetFlagDouble(F_CHARGE,values[NATOM]);
+  parmOut.at_num = GetFlagInteger(F_ATOMICNUM,values[NATOM]);
   parmOut.mass = GetFlagDouble(F_MASS,values[NATOM]);
   parmOut.atype_index = GetFlagInteger(F_ATYPEIDX,values[NATOM]);
   parmOut.numex = GetFlagInteger(F_NUMEX,values[NATOM]);
@@ -936,6 +942,9 @@ int AmberParmFile::WriteParm(AmberParm &parmIn, CpptrajFile &outfile) {
     DataToFortranBuffer(buffer,F_CHARGE, NULL, tempCharge, NULL, parmIn.natom);
     delete[] tempCharge;
   }
+  // ATOMIC NUMBER
+  if (parmIn.at_num!=NULL)
+    DataToFortranBuffer(buffer,F_ATOMICNUM, parmIn.at_num, NULL, NULL, parmIn.natom);
   // MASS - might be null if read from pdb
   if (parmIn.mass!=NULL)
     DataToFortranBuffer(buffer,F_MASS, NULL, parmIn.mass, NULL, parmIn.natom);

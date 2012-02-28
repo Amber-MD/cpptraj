@@ -54,6 +54,7 @@ class AmberParm {
     int *numex;         ///< NUMEX(NATOM)
     int *atype_index;   ///< IAC(NATOM)
     int ntypes;         ///< NTYPES
+    int *at_num;
     int *NB_index;      ///< ICO(NTYPES*NTYPES)
     double *LJ_A;       ///< CN1(NTYPES*(NTYPES+1)/2)
     double *LJ_B;       ///< CN2(NTYPES*(NTYPES+1)/2)
