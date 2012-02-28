@@ -171,7 +171,7 @@ void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
 
 // AtomMask::PrintMaskAtoms()
 void AtomMask::PrintMaskAtoms(const char *header) {
-  mprintf("%s=[",header);
+  mprintf("%s=",header);
   if (this->None()) 
     mprintf("No atoms selected.");
   else if (!Selected.empty()) {
@@ -185,7 +185,7 @@ void AtomMask::PrintMaskAtoms(const char *header) {
     }
   } else 
     mprintf("Warning: Mask [%s] has not been set up yet.\n",maskString.c_str());
-  mprintf("]\n");
+  mprintf("\n");
 }
 
 // AtomMask::SetMaskString()

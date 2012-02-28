@@ -17,7 +17,7 @@ RmsAvgCorr::RmsAvgCorr() {
 } 
 
 // RmsAvgCorr::init()
-/** Expected call: rmsavgcorr [<mask>] 
+/** Expected call: rmsavgcorr [<mask>] [out <filename>] [output <separatename>] 
   */
 int RmsAvgCorr::init( ) {
   // Get Keywords
