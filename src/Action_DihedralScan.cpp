@@ -138,7 +138,6 @@ int DihedralScan::init( ) {
   */
 int DihedralScan::setup() {
   DihedralScanType dst;
-  BondInfo mol;
   int Nres, a1res_start, a1res_stop;
   ResidueCheckType rct;
   std::vector<char> tmpMask;
