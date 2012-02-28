@@ -29,9 +29,11 @@ class AmberParmFile : public ParmIO {
     int error_count; 
 
     int AllocateAndRead(int &, int &, int &);
-    double *GetDouble(FortranType, int, int, int);
-    int *GetInteger(FortranType, int, int, int);
-    NAME *GetName(FortranType, int, int, int);
+    double *GetDouble(int, int, int);
+    int *GetInteger(int, int, int);
+    NAME *GetName(int, int, int);
+    char *GetLine();
+    char *GetFlagLine(const char*);
     FortranType SeekToFlag(AmberParmFlagType fflag, int &, int &, int &);
     double *GetFlagDouble(AmberParmFlagType, int);
     int *GetFlagInteger(AmberParmFlagType, int);
