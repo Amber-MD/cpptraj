@@ -14,18 +14,6 @@
 /* Compiler Defines:
  * - USE_CHARBUFFER: Use CharBuffer to buffer entire file
  */
-/// Enumerated type for Amber Parmtop Flags
-enum AmberParmFlagType {
-  F_POINTERS = 0, F_NAMES,   F_CHARGE,  F_MASS,    F_RESNAMES,
-  F_RESNUMS,      F_TYPES,   F_BONDSH,  F_BONDS,   F_SOLVENT_POINTER,
-  F_ATOMSPERMOL,  F_PARMBOX, F_ATYPEIDX,F_NUMEX,   F_NB_INDEX,
-  F_LJ_A,         F_LJ_B,    F_EXCLUDE, F_RADII,   F_SCREEN,
-  F_BONDRK,       F_BONDREQ, F_ANGLETK, F_ANGLETEQ,F_DIHPK,
-  F_DIHPN,        F_DIHPHASE,F_SCEE,    F_SCNB,    F_SOLTY,
-  F_ANGLESH,      F_ANGLES,  F_DIHH,    F_DIH,     F_ASOL,
-  F_BSOL,         F_HBCUT,   F_ITREE,   F_JOIN,    F_IROTAT
-};
-#define NUMAMBERPARMFLAGS 40
 /// Enumerated type for FLAG_POINTERS section
 enum topValues {
 //0       1       2      3       4       5       6       7      8       9
@@ -35,10 +23,6 @@ enum topValues {
   NEXTRA
 };
 #define AMBERPOINTERS 31
-/// Enumerated type for Fortran data type
-enum FortranType {
-  UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
-};
 /// Combined size of %FLAG and %FORMAT lines (81 * 2)
 #define FFSIZE 162
 /// Constant strings for fortran formats corresponding to Amber parm flags
@@ -266,10 +250,11 @@ static void RemoveWhitespace(char *bufferIn) {
     if (*ptr!=' ' && *ptr!='\n' && *ptr!='\r') break;
   }
   // Put a NULL just after the first non-whitespace char
-  ptr++;
+  ++ptr;
   *ptr='\0';
 }
 
+// ---------------------------------------------------------
 // getFlagFileString()
 /** Search for the FLAG specified by Key. Assume the next line is a string 
   * of max length 80 chars and return it.
@@ -470,6 +455,7 @@ static void *F_loadFormat(CpptrajFile &File, FortranType fType, int width, int n
 
   return NULL;
 }
+// ---------------------------------------------------------
 
 // DataToFortranBuffer()
 /** Write N data elements stored in I, D, or C to character buffer with given 
@@ -571,6 +557,208 @@ static int DataToFortranBuffer(CharBuffer &buffer, AmberParmFlagType fFlag,
   return 0;
 }
 
+// ---------- STL functions ---------------------------------------------------- 
+// CONSTRUCTOR
+AmberParmFile::AmberParmFile() {
+  buffer = NULL;
+  File = NULL;
+  error_count = 0;
+}
+
+// DESTRUCTOR
+AmberParmFile::~AmberParmFile() {
+  if (buffer!=NULL) delete[] buffer;
+}
+
+// AmberParmFile::AllocateAndRead()
+int AmberParmFile::AllocateAndRead(int &width, int &ncols, int &maxval) {
+  char temp[3]; // Only for when maxval is 0, space for \n, \r, NULL
+  int err;
+  // If # expected values is 0 there will still be a newline placeholder
+  // in the parmtop. Read past that and return
+  if (maxval==0) {
+#   ifdef USE_CHARBUFFER
+    File->Gets(temp,2);
+#   else
+    File->IO->Gets(temp,2);
+#   endif
+    return 0;
+  }
+  // Allocate buffer to read in entire section
+  // NOTE: Convert to size_t
+  int BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
+  if (buffer!=NULL) delete[] buffer;
+  buffer = new char[ BufferSize ];
+  // Read section from file
+  # ifdef USE_CHARBUFFER
+  err = File->Read(buffer,BufferSize);
+# else
+  err = File->IO->Read(buffer,sizeof(char),BufferSize);
+# endif
+  return err;
+}
+
+// AmberParmFile::GetDouble()
+double *AmberParmFile::GetDouble(FortranType fType, int width, int ncols, int maxval)
+{
+  double *D;
+  int err;
+  // Read prmtop section into buffer
+  err = AllocateAndRead(width,ncols,maxval);
+  if (err == 0)
+    return NULL;
+  else if ( err == -1) {
+    mprinterr("Error in read of double values from %s\n",File->filename);
+    ++error_count;
+    return NULL;
+  }
+  // Reserve variable memory
+  D = new double[ maxval ];
+  // Convert values in buffer to double
+  char *ptrbegin = buffer;
+  char *ptrend = buffer;
+  for (int i = 0; i < maxval; i++) {
+    ptrend += width;
+    // Advance past newlines / CR (dos)
+    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
+    char lastchar = *ptrend;
+    *ptrend = '\0';
+    D[i] = atof(ptrbegin);
+    *ptrend = lastchar;
+    ptrbegin = ptrend;
+  }
+  return D;
+}
+
+// AmberParmFile::GetInteger()
+int *AmberParmFile::GetInteger(FortranType fType, int width, int ncols, int maxval)
+{
+  int *I;
+  int err;
+  // Read prmtop section into buffer
+  err = AllocateAndRead(width,ncols,maxval);
+  if (err == 0)
+    return NULL;
+  else if ( err == -1) {
+    mprinterr("Error in read of integer values from %s\n",File->filename);
+    ++error_count;
+    return NULL;
+  }
+  // Reserve variable memory
+  I = new int[ maxval ]; 
+  // Convert values in buffer to integer 
+  char *ptrbegin = buffer;
+  char *ptrend = buffer;
+  for (int i = 0; i < maxval; i++) {
+    ptrend += width;
+    // Advance past newlines / CR (dos)
+    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
+    char lastchar = *ptrend;
+    *ptrend = '\0';
+    I[i] = atoi(ptrbegin);
+    *ptrend = lastchar;
+    ptrbegin = ptrend;
+  }
+  return I;
+}
+
+// AmberParmFile::GetName()
+NAME *AmberParmFile::GetName(FortranType fType, int width, int ncols, int maxval)
+{
+  NAME *C;
+  int err;
+  // Read prmtop section into buffer
+  err = AllocateAndRead(width,ncols,maxval);
+  if (err == 0)
+    return NULL;
+  else if ( err == -1) {
+    mprinterr("Error in read of string values from %s\n",File->filename);
+    ++error_count;
+    return NULL;
+  }
+  // Reserve variable memory
+  C = new NAME[ maxval ]; 
+  // Convert values in buffer to NAME 
+  char *ptrbegin = buffer;
+  for (int i = 0; i < maxval; i++) {
+    // Advance past newlines / CR (dos)
+    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
+    // Copy width characters
+    for (int j = 0; j < width; j++) {
+      C[i][j] = *ptrbegin;
+      ++ptrbegin;
+    }
+    C[i][width]='\0';
+  }
+  return C;
+}
+
+// AmberParmFile::SeekToFlag()
+FortranType AmberParmFile::SeekToFlag(AmberParmFlagType fflag, int &ncols, 
+                                      int &width, int &precision)
+{
+  char fformat[83]; // Hold FORMAT line
+  FortranType fType;
+  // Get Flag Key
+  char *Key = (char*) AmberParmFlag[fflag];
+  // Find flag, get format
+  if (!PositionFileAtFlag(*File,Key,fformat,debug)) return UNKNOWN_FTYPE;
+  // Determine cols, width etc from format
+  fType = GetFortranType(fformat, &ncols, &width, &precision);
+  if (debug>1) {
+    mprintf("DEBUG: Flag [%s] Type %i Format[%s]\n",Key,(int)fType, fformat);
+  }
+  return fType; 
+}
+
+// AmberParmFile::GetFlagDouble()
+double *AmberParmFile::GetFlagDouble(AmberParmFlagType fflag, int maxval)
+{
+  int ncols, width, precision;
+  FortranType fType;
+  
+  fType = SeekToFlag(fflag, ncols, width, precision);
+  if (fType == UNKNOWN_FTYPE) {
+    mprinterr("Error: Unrecognized fortran format for key [%s]\n",AmberParmFlag[fflag]);
+    ++error_count;
+    return NULL;
+  }
+  // Read double
+  return GetDouble(fType, width, ncols, maxval);
+}
+
+// AmberParmFile::GetFlagInteger()
+int *AmberParmFile::GetFlagInteger(AmberParmFlagType fflag, int maxval)
+{
+  int ncols, width, precision;
+  FortranType fType;
+  
+  fType = SeekToFlag(fflag, ncols, width, precision);
+  if (fType == UNKNOWN_FTYPE) {
+    mprinterr("Error: Unrecognized fortran format for key [%s]\n",AmberParmFlag[fflag]);
+    ++error_count;
+    return NULL;
+  }
+  // Read integer 
+  return GetInteger(fType, width, ncols, maxval);
+}
+
+// AmberParmFile::GetFlagName()
+NAME *AmberParmFile::GetFlagName(AmberParmFlagType fflag, int maxval)
+{
+  int ncols, width, precision;
+  FortranType fType;
+  
+  fType = SeekToFlag(fflag, ncols, width, precision);
+  if (fType == UNKNOWN_FTYPE) {
+    mprinterr("Error: Unrecognized fortran format for key [%s]\n",AmberParmFlag[fflag]);
+    ++error_count;
+    return NULL;
+  }
+  // Read NAME 
+  return GetName(fType, width, ncols, maxval);
+}
+
 // -----------------------------------------------------------------------------
 
 // AmberParmFile::SetParmFromValues()
@@ -627,6 +815,7 @@ void AmberParmFile::SetParmFromValues(AmberParm &parmOut, int *values, bool isOl
 // AmberParmFile::ReadParm()
 /** Read parameters from Amber Topology file. */
 int AmberParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
+  File = &parmfile; // For new STL functions.
   if (parmfile.fileFormat == OLDAMBERPARM)
     return ReadParmOldAmber(parmOut,parmfile);
   return ReadParmAmber(parmOut,parmfile);
@@ -913,6 +1102,13 @@ int AmberParmFile::ReadParmAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
   parmOut.gb_screen = (double*) getFlagFileValues(parmfile,F_SCREEN,parmOut.natom,debug);
   if (parmOut.gb_radii==NULL || parmOut.gb_screen==NULL) {mprintf("Error reading gb parameters.\n"); return 1;}
 
+  // DEBUG
+  double *gbs_test = GetFlagDouble(F_SCREEN, parmOut.natom);
+  mprintf("DEBUG: First 2 gb screen params: %lf %lf\n",gbs_test[0],gbs_test[1]);
+  delete[] gbs_test;
+  NAME *names_test = GetFlagName(F_NAMES, parmOut.natom);
+  mprintf("DEBUG: First 2 atom names: %s %s\n",names_test[0], names_test[1]);
+  delete[] names_test;
 
   return 0;
 }

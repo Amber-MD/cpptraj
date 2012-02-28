@@ -3,6 +3,62 @@
 #include "Name.h"
 #include <cctype>
 
+// =============================================================================
+// NOTE: The following NAME_ routines may eventually replace the NAME
+//       datatype. Not doing this now since ptraj routines are still
+//       being used and it is easier and faster to just send them
+//       a pointer to POD type.
+const int NAME_::NAME_SIZE = 6;
+
+NAME_::NAME_() {
+  c_array[0]=' ';
+  c_array[1]=' ';
+  c_array[2]=' ';
+  c_array[3]=' ';
+  c_array[4]=' ';
+  c_array[5]='\0';
+}
+
+NAME_::NAME_(const NAME_ &rhs) {
+  c_array[0] = rhs.c_array[0];
+  c_array[1] = rhs.c_array[1];
+  c_array[2] = rhs.c_array[2];
+  c_array[3] = rhs.c_array[3];
+  c_array[4] = rhs.c_array[4];
+  // 5 is always NULL
+}
+
+NAME_ &NAME_::operator=(const NAME_ &rhs) {
+  if (&rhs==this) return *this;
+  c_array[0] = rhs.c_array[0];
+  c_array[1] = rhs.c_array[1];
+  c_array[2] = rhs.c_array[2];
+  c_array[3] = rhs.c_array[3];
+  c_array[4] = rhs.c_array[4];
+  // 5 is always NULL
+  return *this;
+}
+
+char *NAME_::Assign(char *bufferIn, int width) {
+  int max;
+  char *ptr = bufferIn;
+  if (width > NAME_SIZE)
+    max = NAME_SIZE;
+  else
+    max = width;
+  for (int j = 0; j < max; j++) {
+    c_array[j] = *ptr;
+    ++ptr;
+  }
+  c_array[max-1]='\0';
+  return ptr;
+}
+
+const char *NAME_::operator*() const {
+  return c_array;
+}
+// =============================================================================
+
 // PadWithSpaces()
 /** For consistency with Amber names, replace any NULL in the first 4 chars
   * with spaces.

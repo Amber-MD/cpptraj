@@ -8,6 +8,7 @@ class ParmIO {
   public:
     // NOTE: Move to file eventually
     ParmIO() { debug=0; }
+    virtual ~ParmIO() { }
     
     void SetDebug(int debugIn) { debug = debugIn; }
 

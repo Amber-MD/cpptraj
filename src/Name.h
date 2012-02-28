@@ -20,4 +20,22 @@ void PadWithSpaces(NAME);
 void TrimName(NAME);
 void WrapName(NAME);
 void ReplaceAsterisk(NAME);
+
+#  ifdef __cplusplus
+// Test class
+class NAME_ {
+  public:
+    NAME_();
+    NAME_(const NAME_&);
+    NAME_& operator=(const NAME_&);
+
+    char *Assign(char*,int);
+
+    const char * operator*() const;
+
+  private:
+    static const int NAME_SIZE;
+    char c_array[6];
+};
+#  endif
 #endif
