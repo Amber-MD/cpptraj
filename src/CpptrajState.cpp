@@ -21,6 +21,7 @@ void CpptrajState::SetGlobalDebug(int debugIn) {
   trajoutList.SetDebug(debug);
   parmFileList.SetDebug(debug);
   actionList.SetDebug(debug);
+  analysisList.SetDebug(debug);
   DFL.SetDebug(debug);
 }
 
@@ -63,6 +64,11 @@ void CpptrajState::Dispatch(char *inputLine) {
   // actiondebug: Set actions debug level
   if (dispatchArg.CommandIs("actiondebug")) {
     actionList.SetDebug( dispatchArg.getNextInteger(0) );
+    return;
+  }
+  // analysisdebug: Set analyses debug level
+  if (dispatchArg.CommandIs("analysisdebug")) {
+    analysisList.SetDebug( dispatchArg.getNextInteger(0) );
     return;
   }
   // trajindebug: Set input trajectory debug level
