@@ -961,7 +961,8 @@ void AmberParm::AtomInfo(int atom) {
   mprintf("[%s]",names[atom]);
   mprintf(" Res %i:",res+1);
   mprintf("[%s]",resnames[res]);
-  mprintf(" Mol %i", atomToMolecule(atom)+1);
+  if (molecules>0)
+    mprintf(" Mol %i", atomToMolecule(atom)+1);
   if (types!=NULL)
     mprintf(" Type=[%s]",types[atom]);
   if (charge!=NULL)
