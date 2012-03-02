@@ -63,6 +63,7 @@ class Frame {
     double *Coord(int);
     void SetFrameFromMask(Frame*, AtomMask *);
     int SetFrameCoordsFromMask(double *, AtomMask *);
+    int SetFrameCoords(double *);
     // Center of mass
     double CenterOfMass(AtomMask*, double *);
     double GeometricCenter(AtomMask*, double *);

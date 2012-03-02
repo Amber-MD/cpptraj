@@ -648,6 +648,18 @@ int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
   return 0;
 }
 
+// Frame::SetFrameCoords()
+/** Like SetFrameCoordsFromMask except copy all coordinates. Number of 
+  * coordinates in Xin must be the same as # of coordinates in this
+  * Frame. 
+  */
+// NOTE: Currently only needed in RmsAvgCorr
+int Frame::SetFrameCoords(double *Xin) {
+  for (int i = 0; i < N; i++)
+    X[i] = Xin[i];
+  return 0;
+}
+
 // ----------------- Center of Mass Calculation Routines -------------------- 
 // Frame::CenterOfMass()
 /** Given an AtomMask put center of mass of atoms in mask into Coord. Return 
