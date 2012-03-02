@@ -251,9 +251,10 @@ void RmsAvgCorr::print() {
         ++subtractWindow;
       }
     } // END LOOP OVER FRAMES
-    // Take average rmsd for this window size
-    // NOTE: Should there be a separate count???
-    avg /= ReferenceCoords.Ncoords(); 
+    // Take average rmsd for this window size. The number of frames for which
+    // RMSD was calculated is (Total#frames) - (window size) + 1
+    d_Nwindow = (double)ReferenceCoords.Ncoords() - (double)window + 1;
+    avg /= d_Nwindow;
 #   ifdef _OPENMP
     Ct_openmp[window-1] = avg;
 #   else 
