@@ -1,7 +1,6 @@
 // RmsAvgCorr
 #include "Action_RmsAvgCorr.h"
 #include "CpptrajStdio.h"
-#include "Action_RunningAvg.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -12,7 +11,7 @@
 RmsAvgCorr::RmsAvgCorr() {
   parmNatom = 0;
   useMass = false;
-  maxframes = -1;
+  maxwindow = -1;
   separateName = NULL;
   ReferenceParm = NULL;
 } 
@@ -32,7 +31,7 @@ int RmsAvgCorr::init( ) {
   separateName = actionArgs.getKeyString("output",NULL);
 # endif
   useMass = actionArgs.hasKey("mass");
-  maxframes = actionArgs.getKeyInt("stop",-1);
+  maxwindow = actionArgs.getKeyInt("stop",-1);
   // Get Masks
   char *rmsmask = actionArgs.getNextMask();
   Mask0.SetMaskString( rmsmask );
@@ -50,7 +49,7 @@ int RmsAvgCorr::init( ) {
     mprintf(" All atoms");
   if (useMass) mprintf(" (mass-weighted)");
   if (outfilename!=NULL) mprintf(", Output to %s",outfilename);
-  if (maxframes!=-1) mprintf(", max frames %i",maxframes);
+  if (maxwindow!=-1) mprintf(", max window %i",maxwindow);
   mprintf(".\n");
   if (separateName != NULL)
     mprintf("\tSeparate datafile will be written to %s\n",separateName);
@@ -99,17 +98,20 @@ int RmsAvgCorr::action() {
   */ 
 void RmsAvgCorr::print() {
   double avg;
-  int window, frame, FrameMax;
+  int window, frame, WindowMax;
   AmberParm *strippedParm;
-  Frame refFrame;
-  Frame tgtFrame;
   float *coord;
   int natom_coord;
   CpptrajFile separateDatafile;
-  RunningAvg runavgaction;
+
   double U[9], Trans[6];
-  Frame *actionFrame;
   bool first;
+  Frame refFrame;
+  Frame tgtFrame;
+
+  Frame sumFrame;
+  int frameThreshold, subtractWindow;
+  double d_Nwindow;
 
   // If 'output' specified open up separate datafile that will be written
   // to as correlation is calculated; useful for very long runs.
@@ -141,27 +143,30 @@ void RmsAvgCorr::print() {
   // stripped parm; this also sets masses in case useMass specified.
   refFrame.SetupFrame(strippedParm->natom, strippedParm->mass);
   tgtFrame.SetupFrame(strippedParm->natom, strippedParm->mass);
+  // Set up frame for holding sum of coordindates over window frames. 
+  // No need for mass. 
+  sumFrame.SetupFrame(strippedParm->natom, NULL);
 
   // Determine max window size to average over
-  if (maxframes==-1)
-    FrameMax = ReferenceCoords.Ncoords();
+  if (maxwindow==-1)
+    WindowMax = ReferenceCoords.Ncoords();
   else {
-    FrameMax = maxframes+1;
-    if (FrameMax > ReferenceCoords.Ncoords()) {
-      FrameMax = ReferenceCoords.Ncoords();
+    WindowMax = maxwindow+1;
+    if (WindowMax > ReferenceCoords.Ncoords()) {
+      WindowMax = ReferenceCoords.Ncoords();
       mprintf("Warning: RmsAvgCorr: stop (%i) > max # frames (%s), using max.\n",
-              maxframes,FrameMax);
+              maxwindow,WindowMax);
     }
   }
 
   // Print calc summary
   mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n");
-  mprintf("                sizes ranging from 1 to %i",FrameMax-1);
+  mprintf("                sizes ranging from 1 to %i",WindowMax-1);
   if (useMass) mprintf(", mass-weighted");
   mprintf(".\n");
 # ifdef _OPENMP
   // Currently DataSet is not thread-safe. Use temp storage.
-  double *Ct_openmp = new double[ FrameMax - 1 ];
+  double *Ct_openmp = new double[ WindowMax - 1 ];
 #pragma omp parallel
 {
   if (omp_get_thread_num()==0)
@@ -207,36 +212,44 @@ void RmsAvgCorr::print() {
 
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
 # ifdef _OPENMP
-#pragma omp parallel private(window, frame, avg,runavgaction,actionFrame,coord,first,U,Trans) firstprivate(strippedParm,refFrame,tgtFrame)
+#pragma omp parallel private(window, frame, avg,sumFrame,frameThreshold,subtractWindow,d_Nwindow, actionFrame,coord,first,U,Trans) firstprivate(strippedParm,refFrame,tgtFrame)
 {
   //mythread = omp_get_thread_num();
 #pragma omp for
 #endif
-  for (window = 2; window < FrameMax; window++ ) {
+  for (window = 2; window < WindowMax; window++ ) {
     // Initialize and set up running average for this window size
-    runavgaction.SeparateInit(window,debug);
-    runavgaction.Setup(&strippedParm);
+    frameThreshold = window - 2;
+    subtractWindow = 0;
+    d_Nwindow = (double) window;
+    sumFrame.ZeroCoords();
     // LOOP OVER FRAMES
     avg = 0;
     first = true;
     for (frame = 0; frame < ReferenceCoords.Ncoords(); frame++) {
       coord = ReferenceCoords[frame];
       tgtFrame.SetupFrameFromCoords( coord );
-      actionFrame = &tgtFrame;
-      // If running average indicates its good to go, perform RMSD.
-      if (runavgaction.DoAction(&actionFrame, frame) == ACTION_OK) {
+      // Add current coordinates to sumFrame
+      sumFrame += tgtFrame;
+      // Do we have enough frames to start calculating a running avg?
+      // If so, start calculating RMSDs
+      if ( frame > frameThreshold ) {
+        tgtFrame.Divide( sumFrame, d_Nwindow );
         // If first, this is the first running-avgd frame, use as reference
         // for RMSD calc for this window size.
         if (first) {
-          // Since running avg doesnt have masses, set coordinates only
-          refFrame.SetFrameCoords( actionFrame->X );
+          // Set corods only for speed (everything else is same anyway)
+          refFrame.SetFrameCoords( tgtFrame.X );
           refFrame.CenterReference(Trans+3, useMass);
           first = false;
         }
-        // Since running avg doesnt have masses, set coordinates only
-        tgtFrame.SetFrameCoords( actionFrame->X );
         avg += tgtFrame.RMSD_CenteredRef(refFrame, U, Trans, useMass);
-     }
+        // Subtract frame at subtractWindow from sumFrame 
+        coord = ReferenceCoords[subtractWindow];
+        tgtFrame.SetupFrameFromCoords( coord );
+        sumFrame -= tgtFrame;
+        ++subtractWindow;
+      }
     } // END LOOP OVER FRAMES
     // Take average rmsd for this window size
     // NOTE: Should there be a separate count???
@@ -252,7 +265,7 @@ void RmsAvgCorr::print() {
 #ifdef _OPENMP
 } // END pragma omp parallel
   // Put Ct_openmp into Ct dataset
-  for (window = 1; window < FrameMax-1; window++)
+  for (window = 1; window < WindowMax-1; window++)
     Ct->Add(window, Ct_openmp+window);
   delete[] Ct_openmp;
 #endif

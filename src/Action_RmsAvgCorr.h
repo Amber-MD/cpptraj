@@ -11,7 +11,7 @@ class RmsAvgCorr: public Action {
     AmberParm *ReferenceParm;
     DataSet *Ct;
     int parmNatom;
-    int maxframes;
+    int maxwindow;
   public:
     RmsAvgCorr();
 

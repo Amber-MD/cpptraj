@@ -106,7 +106,7 @@ Random.o : Random.cpp CpptrajStdio.h Random.h
 Integrate.o : Integrate.cpp CpptrajStdio.h Integrate.h
 Analysis_Corr.o : Analysis_Corr.cpp AmberParm.h Analysis.h Analysis_Corr.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h DataSet_double.h FileIO.h FileRoutines.h Name.h ParmFileList.h
 Action_RunningAvg.o : Action_RunningAvg.cpp Action.h Action_RunningAvg.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
-Action_RmsAvgCorr.o : Action_RmsAvgCorr.cpp Action.h Action_RmsAvgCorr.h Action_RunningAvg.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CoordList.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
+Action_RmsAvgCorr.o : Action_RmsAvgCorr.cpp Action.h Action_RmsAvgCorr.h AmberParm.h ArgList.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CoordList.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataSet.h DataSetList.h FileIO.h FileRoutines.h Frame.h FrameList.h Name.h ParmFileList.h
 DataSet_Matrix.o : DataSet_Matrix.cpp CharBuffer.h DataSet.h DataSet_Matrix.h
 ParmFile.o : ParmFile.cpp AmberParm.h AtomMask.h Bonds.h BoxType.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h ParmFile.h ParmIO.h Parm_Amber.h Parm_CharmmPsf.h Parm_Mol2.h Parm_PDB.h
 Parm_Amber.o : Parm_Amber.cpp AmberParm.h AtomMask.h Bonds.h BoxType.h CharBuffer.h Constants.h CpptrajFile.h CpptrajStdio.h FileIO.h FileRoutines.h Name.h ParmIO.h Parm_Amber.h
