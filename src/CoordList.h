@@ -18,6 +18,7 @@ class CoordList {
 
     int AddCoordsByMask(double *, AtomMask *);
     float *Coord(int, int*);
+    float *operator[](int);
 
     int Ncoords() { return ncoords; }
 };

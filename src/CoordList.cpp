@@ -49,3 +49,11 @@ float *CoordList::Coord(int crd, int *natom) {
   return coordList[crd];
 }
 
+// CoordList::operator[]()
+/** Return a pointer to the given coord. For use when natom is already known.
+  */
+float *CoordList::operator[](int crd) {
+  if (crd<0 || crd >= ncoords) return NULL;
+  return coordList[crd];
+}
+
