@@ -1,14 +1,14 @@
 #ifndef INC_ACTION_RMSAVGCORR_H
 #define INC_ACTION_RMSAVGCORR_H
 #include "Action.h"
-#include "Action_Rmsd.h"
-#include "Action_RunningAvg.h"
+#include "CoordList.h"
 // Class: RmsAvgCorr
 /// Calculate rmsd using running avg structures 
 class RmsAvgCorr: public Action {
-    char *rmsmask;
     char *separateName;
-    FrameList ReferenceFrames;
+    AtomMask Mask0;
+    CoordList ReferenceCoords;
+    AmberParm *ReferenceParm;
     DataSet *Ct;
     int parmNatom;
     int maxframes;

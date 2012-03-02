@@ -1,6 +1,7 @@
 // RmsAvgCorr
 #include "Action_RmsAvgCorr.h"
 #include "CpptrajStdio.h"
+#include "Action_RunningAvg.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -10,10 +11,10 @@
 // CONSTRUCTOR
 RmsAvgCorr::RmsAvgCorr() {
   parmNatom = 0;
-  rmsmask = NULL;
   useMass = false;
   maxframes = -1;
   separateName = NULL;
+  ReferenceParm = NULL;
 } 
 
 // RmsAvgCorr::init()
@@ -33,7 +34,8 @@ int RmsAvgCorr::init( ) {
   useMass = actionArgs.hasKey("mass");
   maxframes = actionArgs.getKeyInt("stop",-1);
   // Get Masks
-  rmsmask = actionArgs.getNextMask();
+  char *rmsmask = actionArgs.getNextMask();
+  Mask0.SetMaskString( rmsmask );
 
   // Set up dataset to hold correlation 
   Ct = DSL->Add(DOUBLE, actionArgs.getNextString(),"RACorr");
@@ -61,13 +63,21 @@ int RmsAvgCorr::init( ) {
   * work with multiple parms.
   */
 int RmsAvgCorr::setup() {
-  if (parmNatom==0)
+  if (parmNatom==0) {
     parmNatom = currentParm->natom;
-  else {
+    ReferenceParm = currentParm;
+  } else {
     if (parmNatom != currentParm->natom) {
       mprinterr("Error: RmsAvgCorr: Currently cannot be used with multiple topologies.\n");
       return 1;
     }
+  }
+
+  // Set up mask
+  if ( currentParm->SetupIntegerMask(Mask0, activeReference) ) {
+    mprinterr("Error: RmsAvgCorr::setup: Could not set up mask [%s] for parm %s\n",
+              Mask0.MaskString(), currentParm->parmName);
+    return 1;
   }
   return 0; 
 }
@@ -77,26 +87,29 @@ int RmsAvgCorr::setup() {
   * averages with different window sizes. 
   */
 int RmsAvgCorr::action() {
-  // Store frame
-  Frame *fCopy = currentFrame->FrameCopy();
-  ReferenceFrames.AddFrame(fCopy,currentParm);
+  // Store coordinates to be used in RMS fit. 
+  if (ReferenceCoords.AddCoordsByMask(currentFrame->X, &Mask0)) return 1; 
   return 0;
 } 
 
 // RmsAvgCorr::print()
-/** Calculate the RMSD using running averages of frames in ReferenceFrames
-  * with different window sizes. The average RMSD for each window size
-  * will be the "correlation" value.
+/** Calculate the RMSD using running averages of coordinates in 
+  * ReferenceCoords with different window sizes. The average RMSD for each 
+  * window size will be the "correlation" value.
   */ 
 void RmsAvgCorr::print() {
-  double ZeroData = 0; // Used to blank frames in RMSD data set < window size
   double avg;
   int window, frame, FrameMax;
-  Frame *referenceFrame;
-  AmberParm *referenceParm;
-  Rmsd rmsdaction;
-  RunningAvg runavgaction;
+  AmberParm *strippedParm;
+  Frame refFrame;
+  Frame tgtFrame;
+  float *coord;
+  int natom_coord;
   CpptrajFile separateDatafile;
+  RunningAvg runavgaction;
+  double U[9], Trans[6];
+  Frame *actionFrame;
+  bool first;
 
   // If 'output' specified open up separate datafile that will be written
   // to as correlation is calculated; useful for very long runs.
@@ -114,14 +127,34 @@ void RmsAvgCorr::print() {
   DataFile *debug_data;
   char debugname[32];
 */
-  // setup enforces one parm, so this is safe. 
-  referenceParm = ReferenceFrames.GetFrameParm(0);
+  // Strip the reference parm to match everything in ReferenceCoords.
+  // NOTE: setup() sets ReferenceParm to the first parm read, also ensures 
+  //       that this routine is always called with the same # atoms. This 
+  //       could cause trouble if very different parms are called that happen 
+  //       to have the same # of atoms.
+  strippedParm = ReferenceParm->modifyStateByMask(Mask0.Selected,NULL);
+  if (strippedParm==NULL) {
+    mprinterr("Error: RmsAvgCorr: Could not create topology to match RMS mask.\n");
+    return;
+  }
+  // Set up frames for reference and target atoms for RMSD calc that match the 
+  // stripped parm; this also sets masses in case useMass specified.
+  refFrame.SetupFrame(strippedParm->natom, strippedParm->mass);
+  tgtFrame.SetupFrame(strippedParm->natom, strippedParm->mass);
 
+  // Determine max window size to average over
   if (maxframes==-1)
-    FrameMax = ReferenceFrames.NumFrames();
-  else
+    FrameMax = ReferenceCoords.Ncoords();
+  else {
     FrameMax = maxframes+1;
+    if (FrameMax > ReferenceCoords.Ncoords()) {
+      FrameMax = ReferenceCoords.Ncoords();
+      mprintf("Warning: RmsAvgCorr: stop (%i) > max # frames (%s), using max.\n",
+              maxframes,FrameMax);
+    }
+  }
 
+  // Print calc summary
   mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n");
   mprintf("                sizes ranging from 1 to %i",FrameMax-1);
   if (useMass) mprintf(", mass-weighted");
@@ -136,20 +169,29 @@ void RmsAvgCorr::print() {
 }
 #endif
 
-  // Initialize RMSD action, first value for Ct (window==1) is 
-  // just the avg RMSD with no running averaging.
-  rmsdaction.SeparateInit(rmsmask, useMass, debug);
-   // Setup RMSD action 
-  rmsdaction.Setup(&referenceParm);
-  // Calc initial RMSD
-  Frame *tempFrame = new Frame(); 
-  for (frame = 0; frame < ReferenceFrames.NumFrames(); frame++) {
-    referenceFrame = ReferenceFrames.GetFrame( frame );
-    // Protect referenceFrame from being rotated
-    *tempFrame = *referenceFrame;
-    rmsdaction.DoAction(&tempFrame, frame);
+  // First value for Ct (window==1) is just the avg RMSD with no running 
+  // averaging. Since all non-rms atoms have been stripped, all atoms in
+  // ReferenceCoords will be used.
+  // Get coords of first frame for use as reference.
+  coord = ReferenceCoords.Coord(0,&natom_coord);
+  // Sanity check - #atoms must match parm!
+  if (natom_coord != strippedParm->natom) {
+    mprinterr("Internal Error: # atoms in coord (%i) does not match # atoms in parm (%i).\n",
+              natom_coord, strippedParm->natom);
+    delete strippedParm;
+    return;
   }
-  delete tempFrame;
+  // Set up first frame as reference
+  refFrame.SetupFrameFromCoords( coord );
+  // Pre-center reference
+  refFrame.CenterReference(Trans+3, useMass);
+  // Calc initial RMSD
+  avg = 0;
+  for (frame = 0; frame < ReferenceCoords.Ncoords(); frame++) {
+    coord = ReferenceCoords[frame];
+    tgtFrame.SetupFrameFromCoords( coord );
+    avg += tgtFrame.RMSD_CenteredRef(refFrame, U, Trans, useMass);
+  }
   // DEBUG
 /*
   sprintf(debugname,"dbgrmsd.dat");
@@ -158,37 +200,47 @@ void RmsAvgCorr::print() {
   debug_data->Write();
   delete debug_data;
 */
-  avg = rmsdaction.rmsd->Avg(NULL);
+  avg /= ReferenceCoords.Ncoords(); 
   Ct->Add(0, &avg);
   if (separateName!=NULL)
     separateDatafile.IO->Printf("%8i %lf\n",1,avg);
 
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
 # ifdef _OPENMP
-#pragma omp parallel private(window, frame, referenceFrame,avg,runavgaction,rmsdaction) firstprivate(referenceParm)
+#pragma omp parallel private(window, frame, avg,runavgaction,actionFrame,coord,first,U,Trans) firstprivate(strippedParm,refFrame,tgtFrame)
 {
   //mythread = omp_get_thread_num();
 #pragma omp for
 #endif
   for (window = 2; window < FrameMax; window++ ) {
-    // Initialize running average and rmsd for this window size
+    // Initialize and set up running average for this window size
     runavgaction.SeparateInit(window,debug);
-    rmsdaction.SeparateInit(rmsmask, useMass, debug);
-    // Setup running average and rmsd for this window size
-    runavgaction.Setup(&referenceParm);
-    rmsdaction.Setup(&referenceParm);
+    runavgaction.Setup(&strippedParm);
     // LOOP OVER FRAMES
-    for (frame = 0; frame < ReferenceFrames.NumFrames(); frame++) {
-      referenceFrame = ReferenceFrames.GetFrame( frame );
+    avg = 0;
+    first = true;
+    for (frame = 0; frame < ReferenceCoords.Ncoords(); frame++) {
+      coord = ReferenceCoords[frame];
+      tgtFrame.SetupFrameFromCoords( coord );
+      actionFrame = &tgtFrame;
       // If running average indicates its good to go, perform RMSD.
-      // Otherwise set corresponding point in RMSD dataset to zero.
-      if (runavgaction.DoAction(&referenceFrame, frame) == ACTION_OK) 
-        rmsdaction.DoAction(&referenceFrame, frame);
-      else 
-        rmsdaction.rmsd->Add(frame, &ZeroData);
+      if (runavgaction.DoAction(&actionFrame, frame) == ACTION_OK) {
+        // If first, this is the first running-avgd frame, use as reference
+        // for RMSD calc for this window size.
+        if (first) {
+          // Since running avg doesnt have masses, set coordinates only
+          refFrame.SetFrameCoords( actionFrame->X );
+          refFrame.CenterReference(Trans+3, useMass);
+          first = false;
+        }
+        // Since running avg doesnt have masses, set coordinates only
+        tgtFrame.SetFrameCoords( actionFrame->X );
+        avg += tgtFrame.RMSD_CenteredRef(refFrame, U, Trans, useMass);
+     }
     } // END LOOP OVER FRAMES
     // Take average rmsd for this window size
-    avg = rmsdaction.rmsd->Avg(NULL);
+    // NOTE: Should there be a separate count???
+    avg /= ReferenceCoords.Ncoords(); 
 #   ifdef _OPENMP
     Ct_openmp[window-1] = avg;
 #   else 
@@ -206,5 +258,6 @@ void RmsAvgCorr::print() {
 #endif
   if (separateName!=NULL)
     separateDatafile.CloseFile();
+  delete strippedParm;
 }
 
