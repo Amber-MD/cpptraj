@@ -40,6 +40,7 @@ class Frame {
 
     int SetupFrameFromMask(AtomMask *, double *);
     int SetupFrameFromCoords(float *, int);
+    int SetupFrameFromCoords(float *);
     Frame *FrameCopy();
     //int Resize(int,bool,bool);
 

@@ -231,6 +231,17 @@ int Frame::SetupFrameFromCoords(float *CoordIn, int ncoord) {
   return 0;
 }
 
+// Frame::SetupFrameFromCoords()
+/** Given an array of floats, assign to coordinates. CoordIn must have the
+  * same # atoms as the frame was set up for! 
+  */
+int Frame::SetupFrameFromCoords(float *CoordIn) {
+  // Copy atoms in CoordIn to coords array
+  for (int crd = 0; crd < N; crd++)
+    X[crd] = (double) CoordIn[crd];
+  return 0;
+}
+
 // Frame::FrameCopy()
 /** Return a copy of the frame */
 Frame *Frame::FrameCopy( ) {
