@@ -212,7 +212,7 @@ void RmsAvgCorr::print() {
 
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
 # ifdef _OPENMP
-#pragma omp parallel private(window, frame, avg,sumFrame,frameThreshold,subtractWindow,d_Nwindow, actionFrame,coord,first,U,Trans) firstprivate(strippedParm,refFrame,tgtFrame)
+#pragma omp parallel private(window, frame, avg, frameThreshold, subtractWindow, d_Nwindow, coord, first, U, Trans) firstprivate(strippedParm,refFrame,tgtFrame,sumFrame)
 {
   //mythread = omp_get_thread_num();
 #pragma omp for
