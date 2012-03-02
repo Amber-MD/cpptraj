@@ -110,7 +110,7 @@ void DataFile::SetCoordMinStep(double xminIn, double xstepIn,
 /// Set the X step
 void DataFile::SetXstep(double xstepIn) {
   xstep = xstepIn;
-  xmin = xstep;
+  xmin = 0;
 }
 
 // DataFile::SetMap()
