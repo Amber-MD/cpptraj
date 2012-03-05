@@ -98,8 +98,8 @@ static int MaxValence(NAME Name) {
     case CHLORINE   : valence = 1; break;
     case BROMINE    : valence = 1; break;
     default:
-      mprintf("\tWarning: Valence not found for for %s, using max valence (%i)\n",
-              AtomicElementName[element], valence);
+      mprintf("\tWarning: Valence not found for for [%s], using max valence (%i)\n",
+              Name, valence);
   }
   return valence;
 }
