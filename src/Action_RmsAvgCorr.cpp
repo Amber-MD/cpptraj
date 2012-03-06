@@ -215,7 +215,7 @@ void RmsAvgCorr::print() {
 #pragma omp parallel private(window, frame, avg, frameThreshold, subtractWindow, d_Nwindow, coord, first, U, Trans) firstprivate(strippedParm,refFrame,tgtFrame,sumFrame)
 {
   //mythread = omp_get_thread_num();
-#pragma omp for
+#pragma omp for schedule(dynamic)
 #endif
   for (window = 2; window < WindowMax; window++ ) {
     // Initialize and set up running average for this window size

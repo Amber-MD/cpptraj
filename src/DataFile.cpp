@@ -286,7 +286,11 @@ void DataFile::Write() {
   */
 void DataFile::SetupXcolumn() {
   // Determine the character width necessary to hold the largest X value
-  xcol_width = DigitWidth( maxFrames );
+  int max_xval = maxFrames;
+  if (xstep>1)
+    max_xval *= (int)xstep;
+  max_xval += (int)xmin;
+  xcol_width = DigitWidth( max_xval );
   // If the width for the x column plus the characters needed for precision
   // (plus 1 for decimal point) would be greater than 8, increment the 
   // X column width by (precision+1).
