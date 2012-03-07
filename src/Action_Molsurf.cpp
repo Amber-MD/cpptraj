@@ -153,6 +153,11 @@ int Molsurf::setup() {
   }
   // Set up parm info for atoms in mask
   double *Radii = currentParm->GB_radii_ptr();
+  if (Radii==NULL) {
+    mprinterr("Error: Molsurf::Setup: Molsurf requires radii, but no radii in %s\n",
+              currentParm->parmName);
+    return 1;
+  }
   for (int maskidx = 0; maskidx < Mask1.Nselected; maskidx++) {
     int parmatom = Mask1.Selected[maskidx];
     int nres = currentParm->atomToResidue(parmatom);
