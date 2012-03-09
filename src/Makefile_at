@@ -1,6 +1,6 @@
 include ../../config.h
 
-CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS)
+CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
 # The following are needed for the ptraj_analyze routines
 PTRAJ_OBJECTS=thermo.o pubfft.o
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
