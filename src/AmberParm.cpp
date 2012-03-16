@@ -613,7 +613,8 @@ static void WarnLCPO(char *atype, int atom, int numBonds) {
 int AmberParm::SetSurfaceInfo() {
   int *numBonds; // # of bonded neighbors each atom has (LCPO only?)
   int i,atom1,atom2;
-  char atype[2];
+  char atype[3];
+  atype[2] = '\0';
  
   // If surface info already set up exit 
   if (SurfaceInfo!=NULL) return numSoluteAtoms;
