@@ -1,5 +1,6 @@
 // Rotdif
 #include <cmath>
+#include <cfloat> // DBL_MAX
 #include <cstdio> //sscanf
 #include "Action_Rotdif.h"
 #include "CpptrajStdio.h"
@@ -417,7 +418,7 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
   fac = (l*(l+1));
   i=1;
   d = 0;
-  del=10000000000;
+  del = DBL_MAX;
   while ( i<=itmax && del>delmin) {
      d = ( exp(-fac*di*ti) - exp(-fac*di*tf) );
      d = d / (fac*f);
