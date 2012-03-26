@@ -1020,12 +1020,10 @@ int AmberParmFile::WriteParm(AmberParm &parmIn, CpptrajFile &outfile) {
     delete[] tempexclude;
   }
   // HBOND ACOEFF, BCOEFF, HBCUT
-  if (parmIn.asol!=NULL)
-    DataToFortranBuffer(buffer,F_ASOL,NULL,parmIn.asol,NULL,parmIn.nphb);
-  if (parmIn.bsol!=NULL)
-    DataToFortranBuffer(buffer,F_BSOL,NULL,parmIn.bsol,NULL,parmIn.nphb);
-  if (parmIn.hbcut!=NULL)
-    DataToFortranBuffer(buffer,F_HBCUT,NULL,parmIn.hbcut,NULL,parmIn.nphb);
+  // NAB requires that these be printed even if no values exist.
+  DataToFortranBuffer(buffer,F_ASOL,NULL,parmIn.asol,NULL,parmIn.nphb);
+  DataToFortranBuffer(buffer,F_BSOL,NULL,parmIn.bsol,NULL,parmIn.nphb);
+  DataToFortranBuffer(buffer,F_HBCUT,NULL,parmIn.hbcut,NULL,parmIn.nphb);
   // AMBER ATOM TYPE - might be null if read from pdb
   if (parmIn.types!=NULL)
     DataToFortranBuffer(buffer,F_TYPES, NULL, NULL, parmIn.types, parmIn.natom);
