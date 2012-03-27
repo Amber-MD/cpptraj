@@ -571,6 +571,12 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
   // l=2, m=+2 term: lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav - Dpr*Dpr)]
   lambda[7] = 6 * (Dav + sqrt_Dav_Dpr);
 
+  // Check all normalization factors for 0.0, which can lead to inf values
+  // propogating throughout the calc. Set to SMALL instead; will get 
+  // very large numbers but should still not overflow.
+  for (int i = 0; i < 8; i++) 
+    if (lambda[i] < SMALL) lambda[i] = SMALL;
+
   // Loop over all vectors
   double *randvec = random_vectors;
   for (int i=0; i < nvecs; i++) {
