@@ -11,6 +11,7 @@
 class Topology {
   public:
     Topology();
+    ~Topology();
 
     void SetDebug(int);
     void SetHasCoordinates();
@@ -26,6 +27,11 @@ class Topology {
     atom_iterator MolStart(int) const;
     atom_iterator MolEnd(int) const;
 
+    const Atom &operator[](int);
+
+    int ResAtomRange(int, int *, int *);
+    double *Mass();
+
     //typedef std::vector<Residue>::const_iterator res_iterator;
     //res_iterator beginRes() const;
     //res_iterator endRes() const;
@@ -37,6 +43,9 @@ class Topology {
 
     inline int Pindex() {
       return pindex_;
+    }
+    inline int Natom() {
+      return (int)atoms_.size();
     }
     inline int Nres() {
       return (int)residues_.size();
@@ -67,7 +76,15 @@ class Topology {
 
     void CommonSetup(bool,bool);
 
-    int ParseMask(AtomMask &,bool);
+    inline bool SetupIntegerMask(AtomMask &mask) {
+      return ParseMask(mask, true);
+    }
+    inline bool SetupCharMask(AtomMask &mask) {
+      return ParseMask(mask, false);
+    }
+
+    Topology *modifyStateByMask(AtomMask &, const char *);
+
   private:
     static const char AtomicElementName[][3];
 
@@ -89,6 +106,7 @@ class Topology {
     int firstSolventMol_;
     int finalSoluteRes_;
     int pindex_;
+    double *massptr_;
 
     double GetBondedCut(Atom::AtomicElementType, Atom::AtomicElementType);
     void GetBondsFromAtomCoords();
@@ -108,6 +126,7 @@ class Topology {
     void MaskSelectResidues(NameType, char *);
     void MaskSelectAtoms(int,int,char*);
     void MaskSelectAtoms(NameType,char*);
+    bool ParseMask(AtomMask &,bool);
 
     //std::vector<size_t> resnums_;
     //std::vector<NameType> resnames_;

@@ -13,8 +13,13 @@ Topology::Topology() :
   topology_error_(0),
   firstSolventMol_(-1),
   finalSoluteRes_(-1),
-  pindex_(0)
+  pindex_(0),
+  massptr_(0)
 { }
+
+Topology::~Topology() {
+  if (massptr_!=0) delete[] massptr_;
+}
 
 /// Atom names corresponding to AtomicElementType.
 // 2 chars + NULL.
@@ -84,6 +89,37 @@ Topology::atom_iterator Topology::MolEnd(int molnum) const {
   if (molnum < 0 || molnum >= (int) molecules_.size()-1)
     return atoms_.end();
   return atoms_.begin() + molecules_[molnum+1].BeginAtom();
+}
+
+// -----------------------------------------------------------------------------
+const Atom& Topology::operator[](int idx) {
+  return atoms_[idx];
+}
+
+// NOTE: Stopgap - need to figure out a better way
+// TODO: Figure out a better way to set up frames
+double *Topology::Mass() {
+  if (atoms_.empty()) return 0;
+  if (massptr_ == 0) {
+    massptr_ = new double[ atoms_.size() ];
+    unsigned int m = 0;
+    for (std::vector<Atom>::iterator atom = atoms_.begin();
+                                     atom != atoms_.end(); atom++) 
+      massptr_[m++] = (*atom).Mass();
+  }
+  return massptr_;
+}
+
+
+int Topology::ResAtomRange(int res, int *resstart, int *resstop) {
+  int nres1 = (int)residues_.size() - 1;
+  if (res < 0 || res > nres1) return 1;
+  *resstart = residues_[res].FirstAtom();
+  if (res == nres1)
+    *resstop = (int)atoms_.size();
+  else
+    *resstop = residues_[res+1].FirstAtom();
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -161,6 +197,8 @@ void Topology::AddAtom(Atom atomIn, Residue resIn) {
   }
   //mprintf("DEBUG: Atom %zu belongs to residue %zu\n",atoms_.size(), residues_.size());
   //mprintf("DEBUG: Atom %zu: %lf %lf %lf\n",atoms_.size(),XYZin[0],XYZin[1],XYZin[2]);
+  // Overwrite atom number
+  atomIn.SetNum( atoms_.size() );
   atomIn.SetResNum( residues_.size()-1 );
   atoms_.push_back(atomIn);
 }
@@ -220,7 +258,7 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
     
   atoms_.reserve( natom );
   for (size_t atom = 0; atom < natom; atom++)
-    atoms_.push_back( Atom( names[atom], charge[atom], at_num[atom],
+    atoms_.push_back( Atom( atom, names[atom], charge[atom], at_num[atom],
                             mass[atom], atype_index[atom],
                             gb_radii[atom], gb_screen[atom])
                     );
@@ -988,7 +1026,7 @@ void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) {
 }
 
 // Topology::ParseMask()
-int Topology::ParseMask(AtomMask &maskIn, bool intMask) {
+bool Topology::ParseMask(AtomMask &maskIn, bool intMask) {
   std::stack<char*> Stack;
   char *pMask = NULL; 
   char *pMask2 = NULL;
@@ -1060,7 +1098,7 @@ int Topology::ParseMask(AtomMask &maskIn, bool intMask) {
       Stack.pop();
     }
     delete[] pMask;
-    return 1;
+    return false;
   }
 
   if (intMask)
@@ -1068,5 +1106,67 @@ int Topology::ParseMask(AtomMask &maskIn, bool intMask) {
   else
     maskIn.SetupCharMask( pMask, atoms_.size(), debug_);
   delete[] pMask;
-  return 0;
+  return true;
 }
+
+// -----------------------------------------------------------------------------
+Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
+  Topology *newParm = new Topology();
+  // Set stripped parm name based on prefix: <prefix>.<oldparmname>
+  // If no prefix given set name as: strip.<oldparmname>
+  if (prefix == NULL)
+    parmName_ = "strip." + parmName_;
+  else
+    parmName_ = std::string(prefix) + parmName_;
+
+  // Atom map
+  std::vector<int> atomMap( atoms_.size() );
+
+  int newatom = 0;
+  int oldres = -1;
+  int oldmol = -1;
+  Residue newResidue;
+  for (AtomMask::const_iterator oldatom = Mask.begin(); oldatom != Mask.end(); oldatom++) 
+  {
+    int curres = atoms_[*oldatom].ResNum();
+    int curmol = atoms_[*oldatom].Mol();
+    atomMap[*oldatom] = newatom;
+    // Check if this old atom is in a different residue than the last. If so,
+    // set new residue information.
+    if ( curres != oldres ) {
+      newResidue.SetName( residues_[curres].Name() );
+      newResidue.SetFirstAtom( newatom );
+      oldres = curres;
+    }
+    // Copy over Atom information
+    newParm->AddAtom( atoms_[*oldatom], newResidue );
+    // Check if this old atom is in a different molecule than the last. If so,
+    // set molecule information.
+    if (curmol != oldmol) {
+      newParm->StartNewMol();
+      oldmol = curmol;
+    }
+    // If the current molecule is the first solvent molecule, set up newParm
+    // finalSoluteRes and firstSolventMol
+    if (newParm->firstSolventMol_ == -1 && curmol == this->firstSolventMol_) {
+      // -1 since molecules has been incremented
+      newParm->firstSolventMol_ = newParm->molecules_.size() - 1;
+      // -2 since final solute res is 1 previous and residues has been incremented
+      newParm->finalSoluteRes_ = newParm->residues_.size() - 2;
+    }
+    ++newatom;
+  }
+
+  // Set up bond / angle / dihedral arrays
+ 
+  // set up parm info
+
+  // Setup excluded atoms list
+  newParm->DetermineExcludedAtoms();
+
+  // Copy box information
+  newParm->box = box;
+
+  return newParm;
+}
+
