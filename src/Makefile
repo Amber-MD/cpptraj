@@ -2,6 +2,8 @@ include ../config.h
 
 include cpptrajfiles
 
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
+
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) 
@@ -11,7 +13,7 @@ findDepend: FindDepend.o
 	$(CXX) -Wall -o findDepend FindDepend.o
 
 depend: findDepend
-	./findDepend $(SOURCE) > cpptrajdepend
+	./findDepend $(SOURCES) > cpptrajdepend
 
 dependclean:
 	-/bin/rm FindDepend.o
