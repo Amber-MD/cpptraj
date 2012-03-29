@@ -1,21 +1,20 @@
 #ifndef INC_PARMFILE_H
 #define INC_PARMFILE_H
 #include "ParmIO.h"
-#include "AmberParm.h"
+#include "Topology.h"
 class ParmFile {
   public :
     enum ParmFormatType {
-      UNKNOWN_PARM=0, PDBFILE, AMBERPARM, MOL2FILE, CHARMMPSF, OLDAMBERPARM
+      UNKNOWN_PARM=0, PDBFILE, AMBERPARM, MOL2FILE, CHARMMPSF, NPARM
     };
 
     ParmFile();
 
     void SetDebug(int);
-    int Read(AmberParm&, char*,bool,bool);
-    int Write(AmberParm&, char*,ParmFormatType);
+    int Read(Topology&, char*,bool,bool);
+    int Write(Topology&, char*,ParmFormatType);
   private :
     int debug_;
-
-    ParmFormatType ID_ParmFormat(ParmIO &);
+    ParmIO *SetupParmIO(ParmFormatType);
 };
 #endif

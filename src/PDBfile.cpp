@@ -1,42 +1,173 @@
-/*! \file PDBfileRoutines.cpp
- *
- * A collection of functions that will parse a line from a PDB file
- * and return the requested information.
- */
-#include <cstdlib>
-#include <cstring>//strncmp, strlen
-#include <cstdio> //sprintf
-#include "PDBfileRoutines.h"
-#include "Name.h"
+#include <cstdlib> // atoi, atof
+#include <cstring> //strncmp, strlen
+#include <cstdio>  //sprintf
+#include "PDBfile.h"
+
+PDBfile::PDBfile() {
+  buffer_[0]='\0';
+  XYZ_[0] = 0;
+  XYZ_[1] = 0;
+  XYZ_[2] = 0;
+}
 
 /// PDB record types
-const char PDB_RECNAME[3][7]={"ATOM", "HETATM", "TER"};
+const char PDBfile::PDB_RECNAME[3][7]={"ATOM", "HETATM", "TER"};
 
-// isPDBkeyword()
+bool PDBfile::PDB_GetNextRecord(FileIO *IO) {
+  return ( IO->Gets(buffer_, BUF_SIZE_) == 0 );
+}
+
+// PDBfile::IsPDBkeyword()
 /** \return true if the first 6 chars of buffer match a PDB keyword */
-bool isPDBkeyword(char *buffer) {
-  if (strncmp(buffer,"HEADER",6)==0) return true;
-  if (strncmp(buffer,"TITLE ",6)==0) return true;
-  if (strncmp(buffer,"COMPND",6)==0) return true;
-  if (strncmp(buffer,"AUTHOR",6)==0) return true;
-  if (strncmp(buffer,"ATOM  ",6)==0) return true;
-  if (strncmp(buffer,"HETATM",6)==0) return true;
-  if (strncmp(buffer,"CRYST1",6)==0) return true;
-  if (strncmp(buffer,"REMARK",6)==0) return true;
-  if (strncmp(buffer,"MODEL ",6)==0) return true;
-  if (strncmp(buffer,"JRNL  ",6)==0) return true;
-  if (strncmp(buffer,"SEQRES",6)==0) return true;
+bool PDBfile::IsPDBkeyword() {
+  if (strncmp(buffer_,"HEADER",6)==0) return true;
+  if (strncmp(buffer_,"TITLE ",6)==0) return true;
+  if (strncmp(buffer_,"COMPND",6)==0) return true;
+  if (strncmp(buffer_,"AUTHOR",6)==0) return true;
+  if (strncmp(buffer_,"ATOM  ",6)==0) return true;
+  if (strncmp(buffer_,"HETATM",6)==0) return true;
+  if (strncmp(buffer_,"CRYST1",6)==0) return true;
+  if (strncmp(buffer_,"REMARK",6)==0) return true;
+  if (strncmp(buffer_,"MODEL ",6)==0) return true;
+  if (strncmp(buffer_,"JRNL  ",6)==0) return true;
+  if (strncmp(buffer_,"SEQRES",6)==0) return true;
   return false;
 }
 
-// isPDBatomKeyword
+// PDBfile::IsPDBatomKeyword
 /** \return true if the first 6 chars match ATOM or HETATM */
-bool isPDBatomKeyword(char *buffer) {
-  if (strncmp(buffer,"ATOM  ",6)==0) return true;
-  if (strncmp(buffer,"HETATM",6)==0) return true;
+bool PDBfile::IsPDBatomKeyword() {
+  if (strncmp(buffer_,"ATOM  ",6)==0) return true;
+  if (strncmp(buffer_,"HETATM",6)==0) return true;
   return false;
 }
 
+bool PDBfile::IsPDB_TER() {
+  if (buffer_[0]=='T' &&
+      buffer_[1]=='E' &&
+      buffer_[2]=='R'   )
+    return true;
+  return false;
+}
+
+bool PDBfile::IsPDB_END() {
+  if (buffer_[0]=='E' &&
+      buffer_[1]=='N' &&
+      buffer_[2]=='D'   )
+    return true;
+  return false;
+}
+
+// PDBfile::pdb_Atom()
+Atom PDBfile::pdb_Atom() {
+  // Atom number (6-11)
+  char savechar = buffer_[11];
+  buffer_[11] = '\0';
+  int anum = atoi(buffer_+6);
+  buffer_[11] = savechar;
+  // Atom name (12-16)
+  savechar = buffer_[16];
+  buffer_[16] = '\0';
+  NameType aname(buffer_+12);
+  buffer_[16] = savechar;
+  // X coord (30-38)
+  savechar = buffer_[38];
+  buffer_[38] = '\0';
+  XYZ_[0] = atof( buffer_+30 );
+  buffer_[38] = savechar;
+  // Y coord (38-46)
+  savechar = buffer_[46];
+  buffer_[46] = '\0';
+  XYZ_[1] = atof( buffer_+38 );
+  buffer_[46] = savechar;
+  // Z coord (46-54)
+  savechar = buffer_[54];
+  buffer_[54] = '\0';
+  XYZ_[2] = atof( buffer_+46 );
+  buffer_[54] = savechar;
+
+  return Atom(anum, aname, XYZ_);
+}
+
+// PDBfile::pdb_Residue()
+Residue PDBfile::pdb_Residue() {
+  // Res name (16-20)
+  char savechar = buffer_[20];
+  buffer_[20] = '\0';
+  NameType resname(buffer_+16);
+  buffer_[20] = savechar;
+  // Res num (22-27)
+  savechar = buffer_[27];
+  buffer_[27] = '\0';
+  int resnum = atoi( buffer_+22 );
+  buffer_[27] = savechar;
+  return Residue(resnum, resname);
+}
+
+// PDBfile::pdb_XYZ()
+// NOTE: Should check for NULL Xout
+void PDBfile::pdb_XYZ(double *Xout) {
+  // X coord (30-38)
+  char savechar = buffer_[38];
+  buffer_[38] = '\0';
+  Xout[0] = atof( buffer_+30 );
+  buffer_[38] = savechar;
+  // Y coord (38-46)
+  savechar = buffer_[46];
+  buffer_[46] = '\0';
+  Xout[1] = atof( buffer_+38 );
+  buffer_[46] = savechar;
+  // Z coord (46-54)
+  savechar = buffer_[54];
+  buffer_[54] = '\0';
+  Xout[2] = atof( buffer_+46 );
+  buffer_[54] = savechar;
+}
+
+/*
+int PDBfile::pdb_atomNumber(char *buffer) {
+  // Atom number (6-11)
+  char savechar = buffer[11];
+  buffer[11] = '\0';
+  int anum = atoi(buffer+6);
+  buffer[11] = savechar;
+  return anum;
+}
+
+NameType PDBfile::pdb_atomName(char *buffer) {
+  // Atom name (12-16)
+  char savechar = buffer[16];
+  buffer[16] = '\0';
+  NameType aname(buffer+12);
+  buffer[16] = savechar;
+  return aname;
+}
+
+NameType PDBfile::pdb_resName(char *buffer) {
+  // Res name (16-20)
+  char savechar = buffer[20];
+  buffer[20] = '\0';
+  NameType resname(buffer+16);
+  buffer[20] = savechar;
+  return resname;
+}
+
+/// PDB Record Chain ID
+char PDBfile::pdb_chainID(char *buffer) {
+  return buffer[21];
+}
+
+int PDBfile::pdb_resNum(char *buffer) {
+  // Res num (22-27)
+  char savechar = buffer[27];
+  buffer[27] = '\0';
+  int resnum = atoi( buffer+22 );
+  buffer[27] = savechar;
+  return resnum;
+}
+*/
+
+/*
 /// PDB Record Title
 char *pdb_title(char *buffer) {
   char *title;
@@ -67,19 +198,20 @@ int pdb_atom(char *buffer) {
 }
 
 /// PDB Record Atom Name
-int pdb_name(char *buffer, char *name) {
+NameType pdb_name(char *buffer) {
+  char name[5];
   name[0]=buffer[12];
   name[1]=buffer[13];
   name[2]=buffer[14];
   name[3]=buffer[15];
   name[4]='\0';
   // Trim Leading whitespace
-  TrimName(name);
+  //TrimName(name);
   // Wrap name if it starts with a digit
   //WrapName(name);
   // Replace asterisks with prime to prevent atom mask problems
-  ReplaceAsterisk(name);
-  return 0;
+  //ReplaceAsterisk(name);
+  return NameType(name);
 }
 
 /// PDB Record Residue Name
@@ -90,16 +222,12 @@ int pdb_resname(char *buffer, char *resname) {
   resname[3]=buffer[19];
   resname[4]='\0';
   // Trim Leading whitespace 
-  TrimName(resname);
+  //TrimName(resname);
   // Replace asterisks with prime to prevent atom mask problems
-  ReplaceAsterisk(resname);
+  //ReplaceAsterisk(resname);
   return 0;
 }
 
-/// PDB Record Chain ID
-char pdb_chain(char *buffer) {
-  return buffer[21];
-}
 
 /// PDB Record Residue Number
 int pdb_resnum(char *buffer) {
@@ -113,11 +241,11 @@ int pdb_resnum(char *buffer) {
   temp[5]='\0';
 
   return atoi(temp);
-} 
+}*/ 
 
 /// PDB X Y and Z
 /** Memory for double array should already be allocated */
-int pdb_xyz(char *buffer, double *X) {
+/*int pdb_xyz(char *buffer, double *X) {
   char temp[9];
 
   temp[0]=buffer[30];
@@ -201,20 +329,20 @@ char *pdb_lastChar(char *buffer) {
   E[9]=buffer[75];
   E[10]='\0';
   return E;
-}
+}*/
 
 /// Element. If blank, try to guess from the name
 /** Currently recognized: H C N O F Cl Br S P */
-char *pdb_elt(char *buffer) {
+/*char *pdb_elt(char *buffer) {
   char *E,*ptr;
   char name[5];
 
   E=(char*) malloc(3*sizeof(char));
   E[0]=buffer[76]; // Element
   E[1]=buffer[77]; // Element
-  E[2]='\0';
+  E[2]='\0';*/
 
-  if (E[0]==' ' && E[1]==' ') {
+/*  if (E[0]==' ' && E[1]==' ') {
     pdb_name(buffer,name);
     // position ptr at first non-space character
     ptr=name;
@@ -230,13 +358,13 @@ char *pdb_elt(char *buffer) {
     if (ptr[0]=='B') {
       if (ptr[1]=='R' || ptr[1]=='r') E[1]='r';
     }
-  }
+  }*/
 
-  return E;
-}
+/*  return E;
+}*/
 
 /// Charge. 
-char *pdb_charge(char *buffer) {
+/*char *pdb_charge(char *buffer) {
   char *E;
 
   E=(char*) malloc(3*sizeof(char));
@@ -244,11 +372,11 @@ char *pdb_charge(char *buffer) {
   E[1]=buffer[79]; // Charge
   E[2]='\0';
   return E;
-}
+}*/
 
 /// Write out an ATOM or HETATM record
 /** \return the number of characters written */
-int pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name, 
+/*int pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name, 
                     char *resnameIn, char chain, int resnum, 
                     double X, double Y, double Z, float Occ, float B,
                     char *End, bool highPrecision) {
@@ -293,5 +421,5 @@ int pdb_write_ATOM(char *buffer, PDB_RECTYPE Record, int atom, char *name,
   else
     sprintf(ptr,"    %8.3lf%8.3lf%8.3lf%6.2f%6.2f%14s\n", X, Y, Z, Occ, B, End);
   return (int) strlen(buffer);
-}
+}*/
                     

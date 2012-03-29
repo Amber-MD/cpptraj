@@ -1,19 +1,13 @@
 #ifndef INC_PARM_AMBER_H
 #define INC_PARM_AMBER_H
 #include "ParmIO.h"
-#include "CharBuffer.h" // NOTE: Get rid of this eventually?
-// Class: AmberParmFile
-/// Read new and old style Amber topology.
-// TODO: Make width, precsion, etc class variables.
-class AmberParmFile : public ParmIO {
+class Parm_Amber : public ParmIO {
   public :
-    AmberParmFile();
-    ~AmberParmFile();
-    int ReadParm(AmberParm&);
-    int WriteParm(AmberParm&);
-
+    Parm_Amber();
+    ~Parm_Amber();
+    int ReadParm(Topology&);
+    bool ID_ParmFormat();
   private :
-    static const size_t BUF_SIZE;
     /// Enumerated type for Fortran data type
     enum FortranType {
       UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
@@ -28,35 +22,40 @@ class AmberParmFile : public ParmIO {
       F_DIHPN,        F_DIHPHASE,F_SCEE,    F_SCNB,    F_SOLTY,
       F_ANGLESH,      F_ANGLES,  F_DIHH,    F_DIH,     F_ASOL,
       F_BSOL,         F_HBCUT,   F_ITREE,   F_JOIN,    F_IROTAT,
-      F_ATOMICNUM
+      F_ATOMICNUM,    F_TITLE,   F_CTITLE,  F_RADSET
     };
     static const int NUMAMBERPARMFLAGS;
     static const int AMBERPOINTERS;
     static const size_t FFSIZE;
-
     static const char AmberParmFmt[][16];
     static const char AmberParmFlag[][27];
 
-    char *buffer;
-    char *lineBuffer;
-    int error_count; 
+    static const size_t BUF_SIZE = 83;
+    char lineBuffer_[BUF_SIZE];
+    bool newParm_;
+    std::string fformat_;
+    FortranType ftype_;
+    int fncols_;
+    int fprecision_;
+    int fwidth_;
+    int error_count_;
+    char *buffer_;
 
-    bool PositionFileAtFlag(const char *, char *);
-    FortranType GetFortranType(char *, int *, int *, int *);
-    int DataToFortranBuffer(CharBuffer &, AmberParmFlagType, int *, double *, NAME *, int);
-    int AllocateAndRead(int , int , int );
-    double *GetDouble(int, int, int);
-    int *GetInteger(int, int, int);
-    NAME *GetName(int, int, int);
-    char *GetLine();
-    char *GetFlagLine(const char*);
-    FortranType SeekToFlag(AmberParmFlagType fflag, int &, int &, int &);
-    double *GetFlagDouble(AmberParmFlagType, int);
-    int *GetFlagInteger(AmberParmFlagType, int);
-    NAME *GetFlagName(AmberParmFlagType, int);
+    int ReadParmOldAmber(Topology&);
+    int ReadParmAmber(Topology&);
 
-    void SetParmFromValues(AmberParm &, int *, bool);
-    int ReadParmAmber(AmberParm&);
-    int ReadParmOldAmber(AmberParm&);
+    std::string GetFlagLine(AmberParmFlagType);
+    std::string GetLine();
+    std::vector<int> GetInteger(int,int,int);
+    std::vector<double> GetDouble(int,int,int);
+    std::vector<NameType> GetName(int,int,int);
+    std::vector<int> GetFlagInteger(AmberParmFlagType,int);
+    std::vector<double> GetFlagDouble(AmberParmFlagType,int);
+    std::vector<NameType> GetFlagName(AmberParmFlagType,int);
+    bool SeekToFlag(AmberParmFlagType);
+    size_t GetFortranBufferSize(int,int,int);
+    int AllocateAndRead(int,int,int);
+    bool PositionFileAtFlag(AmberParmFlagType);
+    bool SetFortranType();
 };
 #endif

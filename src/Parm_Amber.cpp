@@ -1,23 +1,82 @@
-// Parm_Amber.cpp
-// NOTE: Eventually no memcpy!
-#include <cstring> // memcpy, strcpy
+#include <cstdio> // sscanf
+#include <cstring> // strlen, strncmp
+#include <locale> // isspace
 #include <cstdlib> // atoi, atof
-#include <cstdio>  // sscanf
-#include <ctime>   // for writing time/date to amber parmtop (necessary?)
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
-#include "Constants.h" // ELECTOAMBER
-// For file write
-#include "CharBuffer.h"
-// Compiler Defines:
-// - USE_CHARBUFFER: Use CharBuffer to buffer entire file
+#include "Box.h"
+
+// CONSTRUCTOR
+Parm_Amber::Parm_Amber() : 
+  newParm_(false),
+  ftype_(UNKNOWN_FTYPE),
+  fncols_(0),
+  fprecision_(0),
+  fwidth_(0),
+  error_count_(0),
+  buffer_(NULL)
+{ }
+
+// DESTRUCTOR
+Parm_Amber::~Parm_Amber() {
+  if (buffer_!=NULL) delete[] buffer_;
+}
+
+bool Parm_Amber::ID_ParmFormat() {
+  int iamber[12];
+  // Assumes already set up for READ
+  if (OpenFile()) return false;
+  IO->Gets(lineBuffer_, BUF_SIZE);
+  // Check for %VERSION
+  if (strncmp(lineBuffer_,"%VERSION",8)==0) {
+    IO->Gets(lineBuffer_, BUF_SIZE);
+    // Check for %FLAG
+    if (strncmp(lineBuffer_,"%FLAG",5)==0) {
+      if (debug_>0) mprintf("  AMBER TOPOLOGY file\n");
+      newParm_ = true;
+      CloseFile();
+      return true;
+    }
+  } else {
+    // Since %VERSION not present, If first line is 81 bytes and the second 
+    // line has 12 numbers in 12I6 format, assume old-style Amber topology
+    // NOTE: Could also be less than 81? Only look for 12 numbers?
+    int line1size = (int)strlen(lineBuffer_);
+    if (line1size == (81 + isDos_)) {
+      IO->Gets(lineBuffer_, BUF_SIZE);
+      if ( sscanf(lineBuffer_,"%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i", 
+                  iamber,   iamber+1, iamber+2,  iamber+3, 
+                  iamber+4, iamber+5, iamber+6,  iamber+7, 
+                  iamber+8, iamber+9, iamber+10, iamber+11) == 12 )
+      {
+        if (debug_>0) mprintf("  AMBER TOPOLOGY, OLD FORMAT\n");
+        CloseFile();
+        return true;
+      }
+    }
+  }
+  CloseFile();
+  return false;
+}
+
+int Parm_Amber::ReadParm( Topology &TopIn ) {
+  int err;
+  if (OpenFile()) return 1;
+  if (!newParm_)
+    err = ReadParmOldAmber( TopIn );
+  else
+    err = ReadParmAmber( TopIn );
+  CloseFile();
+  if (err != 0) return 1;
+
+  return 0;
+}
 
 // ---------- Constants and Enumerated types -----------------------------------
-const size_t AmberParmFile::BUF_SIZE=83; // 80 + newline + NULL ( + CR if dos)
 /// Combined size of %FLAG and %FORMAT lines (81 * 2)
-const size_t AmberParmFile::FFSIZE=162;
+const size_t Parm_Amber::FFSIZE=162;
 /// Enumerated type for FLAG_POINTERS section
-const int AmberParmFile::AMBERPOINTERS=31;
+const int Parm_Amber::AMBERPOINTERS=31;
 enum topValues {
 //0       1       2      3       4       5       6       7      8       9
   NATOM,  NTYPES, NBONH, MBONA,  NTHETH, MTHETA, NPHIH,  MPHIA, NHPARM, NPARM,
@@ -26,9 +85,9 @@ enum topValues {
   NEXTRA
 };
 /// Number of unique amber parm FLAGs
-const int AmberParmFile::NUMAMBERPARMFLAGS=41;
+const int Parm_Amber::NUMAMBERPARMFLAGS=44;
 /// Constant strings for fortran formats corresponding to Amber parm flags
-const char AmberParmFile::AmberParmFmt[AmberParmFile::NUMAMBERPARMFLAGS][16] = {
+const char Parm_Amber::AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
 "%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",
 "%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(3I8)",
 "%FORMAT(10I8)",   "%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",
@@ -37,10 +96,10 @@ const char AmberParmFile::AmberParmFmt[AmberParmFile::NUMAMBERPARMFLAGS][16] = {
 "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)",
 "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(5E16.8)",
 "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",
-"%FORMAT(10I8)"
+"%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(20a4)",   "%FORMAT(1a80)"
 };
 /// Constant strings for Amber parm flags
-const char AmberParmFile::AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
+const char Parm_Amber::AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
   "POINTERS",
   "ATOM_NAME",
   "CHARGE",
@@ -81,724 +140,64 @@ const char AmberParmFile::AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
   "TREE_CHAIN_CLASSIFICATION",
   "JOIN_ARRAY",
   "IROTAT",
-  "ATOMIC_NUMBER"
+  "ATOMIC_NUMBER",
+  "TITLE",
+  "CTITLE",
+  "RADIUS_SET"
 };
 // -----------------------------------------------------------------------------
-
-// GetFortranBufferSize()
-/** Given number of columns and the width of each column, return the 
-  * necessary char buffer size for N data elements.
-  */
-static size_t GetFortranBufferSize(int N, bool isDos, int width, int ncols) {
-  size_t bufferLines=0;
-  size_t BufferSize=0;
-
-  BufferSize = N * width;
-  bufferLines = N / ncols;
-  if ((N % ncols)!=0) ++bufferLines;
-  // If DOS file there are CRs before Newlines
-  if (isDos) bufferLines *= 2;
-  BufferSize += bufferLines;
-  //if (debug_>0) 
-  //  fprintf(stdout,"*** Buffer size is %i including %i newlines.\n",BufferSize,bufferLines);
-  return BufferSize;
+// Parm_Amber::ReadParmOldAmber()
+int Parm_Amber::ReadParmOldAmber( Topology &TopIn ) {
+  return 1;
 }
 
-// CONSTRUCTOR
-AmberParmFile::AmberParmFile() {
-  buffer = NULL;
-  error_count = 0;
-  lineBuffer = new char[ BUF_SIZE ];
-}
-
-// DESTRUCTOR
-AmberParmFile::~AmberParmFile() {
-  if (buffer!=NULL) delete[] buffer;
-  delete[] lineBuffer;
-}
-
-// AmberParmFile::PositionFileAtFlag()
-/// Position the given file at the given flag. Set the corresponding format.
-/** If fformat is NULL just report whether flag was found. This routine will
-  * first attempt to search for the flag from the current File position. If
-  * the flag is not found at first the routine will rewind and attempt to
-  * search from the beginning. This can speed up reading of parm files
-  * when this routine is called for Keys that are in the same order as
-  * in the input file.
-  * \return true if flag was found, false if not.
-  */
-bool AmberParmFile::PositionFileAtFlag(const char *Key, char *fformat) {
-  char value[BUF_SIZE];
-  bool hasLooped = false;
-  bool searchFile = true;
-
-  if (debug_>0) mprintf("Reading %s\n",Key);
-  // First, rewind the input file.
-  //File->IO->Rewind();
-  // Search for %FLAG <Key>
-  while ( searchFile ) {
-#   ifdef USE_CHARBUFFER
-    while ( Gets(lineBuffer,BUF_SIZE) == 0)
-#   else
-    while ( IO->Gets(lineBuffer,BUF_SIZE) == 0)
-#   endif
-    {
-      if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
-        sscanf(lineBuffer,"%*s %s",value);
-        if (strcmp(value,Key)==0) {
-          if (debug_>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
-          // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
-          // read past until you get to the FORMAT line
-#         ifdef USE_CHARBUFFER
-          Gets(lineBuffer,BUF_SIZE);
-#         else
-          IO->Gets(lineBuffer,BUF_SIZE);
-#         endif
-          while (strncmp(lineBuffer,"%FORMAT",7)!=0)
-#           ifdef USE_CHARBUFFER
-            Gets(lineBuffer,BUF_SIZE);
-#           else
-            IO->Gets(lineBuffer,BUF_SIZE);
-#           endif
-          if (debug_>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
-          // Set format
-          if (fformat!=NULL) strcpy(fformat, lineBuffer);
-          return true;
-        } // END found Key
-      } // END found FLAG line
-    } // END scan through file
-    // If we havent yet tried to search from the beginning, try it now.
-    // Otherwise the Key has not been found.
-    if (!hasLooped) {
-#     ifdef USE_CHARBUFFER
-      Rewind();
-#     else
-      IO->Rewind();
-#     endif
-      hasLooped = true;
-    } else
-      searchFile = false;
-  }
-
-  // If we reached here Key was not found.
-  if (debug_>0)
-    mprintf("Warning: [%s] Could not find Key %s in file.\n",BaseName(),Key);
-  if (fformat!=NULL) strcpy(fformat,"");
-  return false;
-}
-
-// AmberParmFile::GetFortranType()
-/** Given a fortran-type format string, return the corresponding fortran
-  * type. Set ncols (if present), width, and precision (if present).
-  */
-// 01234567
-// %FORMAT([<cols>][(]<type><width>[<precision>][)])
-AmberParmFile::FortranType AmberParmFile::GetFortranType(char *FormatIn, int *ncols, 
-                                                 int *width, int *precision) 
-{
-  int idx;
-  char temp[32];
-  char Format[32];
-  char *ptr;
-  FortranType ftype;
-  // Make sure characters are upper-case
-  // NOTE: Maybe do some checking for parentheses etc here
-  //       Not expecting format strings to be > 32
-  ptr = FormatIn;
-  idx = 0;
-  while (*ptr!='\0') {
-    Format[idx++] = toupper( *ptr );
-    if (idx==32) break;
-    ptr++;
-  }
-  // Advance past left parentheses
-  ptr = Format + 7;
-  while (*ptr=='(') ptr++;
-  // If digit, have number of data columns
-  *ncols = 0;
-  if (isdigit(*ptr)) {
-    idx = 0;
-    while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
-    temp[idx]='\0';
-    *ncols = atoi(temp);
-  }
-  // Advance past any more left parentheses
-  while (*ptr=='(') ptr++;
-  // Type
-  switch (*ptr) {
-    case 'I' : ftype = FINT;    break;
-    case 'E' : ftype = FDOUBLE; break;
-    case 'A' : ftype = FCHAR;   break;
-    case 'F' : ftype = FFLOAT;  break;
-    default  : ftype = UNKNOWN_FTYPE;
-  }
-  ++ptr;
-  // Width
-  idx = 0;
-  while (isdigit(*ptr)) {temp[idx++] = *ptr; ++ptr;}
-  temp[idx]='\0';
-  *width = atoi(temp);
-  // Precision
-  *precision = 0;
-  if (*ptr == '.') {
-    ptr++;
-    idx = 0;
-    while (isdigit(*ptr)) {temp[idx++] = *ptr; ++ptr;}
-    temp[idx]='\0';
-    *precision = atoi(temp);
-  }
-  //mprintf("[%s]: cols=%i type=%c width=%i precision=%i\n",Format,
-  //        *ncols,(int)ftype,*width,*precision);
-
-  return ftype;
-}
-
-// AmberParmFile::DataToFortranBuffer()
-/** Write N data elements stored in I, D, or C to character buffer with given 
-  * fortran format.
-  */
-int AmberParmFile::DataToFortranBuffer(CharBuffer &buffer, 
-                                       AmberParmFile::AmberParmFlagType fFlag,
-                                       int *I, double *D, NAME *C, int N)
-{
-  int coord, width, numCols, precision;
-  FortranType fType;
-  char FormatString[32];
-
-  // Determine type, cols, width, and precision from format string
-  fType = GetFortranType((char*)AmberParmFmt[fFlag], &numCols, &width, &precision);
-  if (fType == UNKNOWN_FTYPE) {
-    mprinterr("Error: DataToFortranBuffer: Unknown format string [%s]\n",AmberParmFmt[fFlag]);
-    return 1;
-  }
-
-  // If called with N == 0, or all NULL, want the FLAG and FORMAT lines but 
-  // no data, just a newline.
-  if (N==0 || (I==NULL && D==NULL && C==NULL)) {
-    buffer.IncreaseSize( FFSIZE + 1 ); // FLAG + FORMAT lines, + newline
-    buffer.Sprintf("%%FLAG %-74s\n",AmberParmFlag[fFlag]);
-    buffer.Sprintf("%-80s\n",AmberParmFmt[fFlag]);
-    buffer.NewLine();
-    return 0;
-  }
-
-  // Increase the buffer by the appropriate amount
-  size_t delta = GetFortranBufferSize(N,false,width,numCols);
-  delta += FFSIZE; // FFSIZE is Combined size of %FLAG and %FORMAT lines (81 * 2)
-  buffer.IncreaseSize( delta );
-
-  //fprintf(stdout,"*** Called DataToBuffer: N=%i, width=%i, numCols=%i, format=%s\n",
-  //        N, width, numCols, FormatString);
-  //fprintf(stdout,"*** Buffer address is %p\n",buffer);
-
-  // Print FLAG and FORMAT lines
-  // '%FLAG '
-  //  012345
-  buffer.Sprintf("%%FLAG %-74s\n",AmberParmFlag[fFlag]);
-  //sprintf(ptr,"%-80s\n",FLAG);
-  buffer.Sprintf("%-80s\n",AmberParmFmt[fFlag]);
-
-  // Write Integer data
-  // NOTE: move the coord+1 code?
-  coord=0;
-  if (fType==FINT) {
-    if (I==NULL) {
-      mprinterr("Error: DataToFortranBuffer: INT is NULL.\n");
-      return 1;
-    }
-    sprintf(FormatString,"%%%ii",width);
-    for (coord=0; coord < N; coord++) {
-      buffer.WriteInteger(FormatString, I[coord]);
-      if ( ((coord+1)%numCols)==0 ) buffer.NewLine();
-    }
-
-  // Write Double data
-  } else if (fType==FDOUBLE) {
-    if (D==NULL) {
-      mprinterr("Error: DataToFortranBuffer: DOUBLE is NULL.\n");
-      return 1;
-    }
-    sprintf(FormatString,"%%%i.%ilE",width,precision);
-    for (coord=0; coord < N; coord++) {
-      buffer.WriteDouble(FormatString,D[coord]);
-      if ( ((coord+1)%numCols)==0 ) buffer.NewLine();
-    }
-
-  // Write Char data
-  } else if (fType==FCHAR) {
-    if (C==NULL) {
-      mprinterr("Error: DataToFortranBuffer: CHAR is NULL.\n");
-      return 1;
-    }
-    sprintf(FormatString,"%%%is",width);
-    for (coord=0; coord < N; coord++) {
-      buffer.WriteString(FormatString,C[coord]);
-      if ( ((coord+1)%numCols)==0 ) buffer.NewLine();
-    }
-
-  // Write Float data
-  } else if (fType==FFLOAT) {
-    if (D==NULL) {
-      mprinterr("Error: DataToFortranBuffer: FLOAT is NULL.\n");
-      return 1;
-    }
-    sprintf(FormatString,"%%%i.%ilf",width,precision);
-    for (coord=0; coord < N; coord++) {
-      buffer.WriteDouble(FormatString,D[coord]);
-      if ( ((coord+1)%numCols)==0 ) buffer.NewLine();
-    }
-  }
-
-  // If the coord record didnt end on a newline, print one
-  if ( (coord%numCols)!=0 ) buffer.NewLine();
-  return 0;
-}
-
-// AmberParmFile::AllocateAndRead()
-int AmberParmFile::AllocateAndRead(int width, int ncols, int maxval) {
-  char temp[3]; // Only for when maxval is 0, space for \n, \r, NULL
-  int err;
-  // If # expected values is 0 there will still be a newline placeholder
-  // in the parmtop. Read past that and return
-  if (maxval==0) {
-#   ifdef USE_CHARBUFFER
-    Gets(temp,2);
-#   else
-    IO->Gets(temp,2);
-#   endif
-    return 0;
-  }
-  // Allocate buffer to read in entire section
-  size_t BufferSize = GetFortranBufferSize(maxval, IsDos(), width, ncols);
-  if (buffer!=NULL) delete[] buffer;
-  buffer = new char[ BufferSize ];
-  // Read section from file
-  # ifdef USE_CHARBUFFER
-  err = >Read(buffer,BufferSize);
-# else
-  err = IO->Read(buffer,BufferSize);
-# endif
-  return err;
-}
-
-// AmberParmFile::GetDouble()
-double *AmberParmFile::GetDouble(int width, int ncols, int maxval)
-{
-  double *D;
-  int err;
-  // Read prmtop section into buffer
-  err = AllocateAndRead(width,ncols,maxval);
-  if (err == 0)
-    return NULL;
-  else if ( err == -1) {
-    mprinterr("Error in read of double values from %s\n",BaseName());
-    ++error_count;
-    return NULL;
-  }
-  // Reserve variable memory
-  D = new double[ maxval ];
-  // Convert values in buffer to double
-  char *ptrbegin = buffer;
-  char *ptrend = buffer;
-  for (int i = 0; i < maxval; i++) {
-    // Advance past newlines / CR (dos)
-    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
-    ptrend = ptrbegin + width;
-    char lastchar = *ptrend;
-    *ptrend = '\0';
-    D[i] = atof(ptrbegin);
-    *ptrend = lastchar;
-    ptrbegin = ptrend;
-  }
-  return D;
-}
-
-// AmberParmFile::GetInteger()
-int *AmberParmFile::GetInteger(int width, int ncols, int maxval)
-{
-  int *I;
-  int err;
-  // Read prmtop section into buffer
-  err = AllocateAndRead(width,ncols,maxval);
-  if (err == 0)
-    return NULL;
-  else if ( err == -1) {
-    mprinterr("Error in read of integer values from %s\n",BaseName());
-    ++error_count;
-    return NULL;
-  }
-  // Reserve variable memory
-  I = new int[ maxval ]; 
-  // Convert values in buffer to integer 
-  char *ptrbegin = buffer;
-  char *ptrend = buffer;
-  for (int i = 0; i < maxval; i++) {
-    // Advance past newlines / CR (dos)
-    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
-    ptrend = ptrbegin + width;
-    char lastchar = *ptrend;
-    *ptrend = '\0';
-    I[i] = atoi(ptrbegin);
-    *ptrend = lastchar;
-    ptrbegin = ptrend;
-  }
-  return I;
-}
-
-// AmberParmFile::GetName()
-NAME *AmberParmFile::GetName(int width, int ncols, int maxval)
-{
-  NAME *C;
-  int err;
-  // Read prmtop section into buffer
-  err = AllocateAndRead(width,ncols,maxval);
-  if (err == 0)
-    return NULL;
-  else if ( err == -1) {
-    mprinterr("Error in read of string values from %s\n",BaseName());
-    ++error_count;
-    return NULL;
-  }
-  // Reserve variable memory
-  C = new NAME[ maxval ]; 
-  // Convert values in buffer to NAME 
-  char *ptrbegin = buffer;
-  for (int i = 0; i < maxval; i++) {
-    // Advance past newlines / CR (dos)
-    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
-    // Copy width characters
-    for (int j = 0; j < width; j++) {
-      C[i][j] = *ptrbegin;
-      ++ptrbegin;
-    }
-    C[i][width]='\0';
-  }
-  return C;
-}
-
-// RemoveWhitespace()
-/// Remove terminal whitespace from string (including newline + CR) 
-static void RemoveWhitespace(char *bufferIn) {
-  char *ptr = NULL;
-  char *end;
-  if (bufferIn==NULL) return;
-  // Position ptr at the last char of bufferIn
-  end = bufferIn + strlen(bufferIn) - 1;
-  for (ptr = end; ptr >= bufferIn; ptr--) {
-    // Stop at first non-whitespace non-newline char.
-    if (*ptr!=' ' && *ptr!='\n' && *ptr!='\r') break;
-  }
-  // Put a NULL just after the first non-whitespace char
-  ++ptr;
-  *ptr='\0';
-}
-
-// AmberParmFile::GetLine()
-char *AmberParmFile::GetLine() {
-  char *tempBuffer = new char[ BUF_SIZE ];
-# ifdef USE_CHARBUFFER
-  Gets(tempBuffer,BUF_SIZE);
-# else
-  IO->Gets(tempBuffer,BUF_SIZE);
-# endif
-  RemoveWhitespace(tempBuffer);
-  return tempBuffer;
-}
-
-// AmberParmFile::GetFlagLine()
-char *AmberParmFile::GetFlagLine(const char* Key) {
-  char fformat[83];
-  // Get Flag Key
-  // Find flag, not concerned with format
-  if (!PositionFileAtFlag(Key,fformat)) return NULL;
-  if (debug_>1) 
-    mprintf("DEBUG: Flag line [%s]\n",Key);
-  return GetLine();
-}
-
-// AmberParmFile::SeekToFlag()
-AmberParmFile::FortranType AmberParmFile::SeekToFlag(AmberParmFlagType fflag, 
-                                                    int &ncols, int &width, int &precision)
-{
-  char fformat[83]; // Hold FORMAT line
-  FortranType fType;
-  // Get Flag Key
-  char *Key = (char*) AmberParmFlag[fflag];
-  // Find flag, get format
-  if (!PositionFileAtFlag(Key,fformat)) return UNKNOWN_FTYPE;
-  // Determine cols, width etc from format
-  fType = GetFortranType(fformat, &ncols, &width, &precision);
-  if (debug_>1) 
-    mprintf("DEBUG: Flag [%s] Type %i Format[%s]\n",Key,(int)fType, fformat);
-  return fType; 
-}
-
-// AmberParmFile::GetFlagDouble()
-double *AmberParmFile::GetFlagDouble(AmberParmFlagType fflag, int maxval)
-{
-  int ncols, width, precision;
-  FortranType fType;
-  
-  fType = SeekToFlag(fflag, ncols, width, precision);
-  if (fType == UNKNOWN_FTYPE) return NULL;
-  // NOTE: Check that type matches?
-  // Read double
-  return GetDouble(width, ncols, maxval);
-}
-
-// AmberParmFile::GetFlagInteger()
-int *AmberParmFile::GetFlagInteger(AmberParmFlagType fflag, int maxval)
-{
-  int ncols, width, precision;
-  FortranType fType;
-  
-  fType = SeekToFlag(fflag, ncols, width, precision);
-  if (fType == UNKNOWN_FTYPE) return NULL;
-  // NOTE: Check that type matches?
-  // Read integer 
-  return GetInteger(width, ncols, maxval);
-}
-
-// AmberParmFile::GetFlagName()
-NAME *AmberParmFile::GetFlagName(AmberParmFlagType fflag, int maxval)
-{
-  int ncols, width, precision;
-  FortranType fType;
-  
-  fType = SeekToFlag(fflag, ncols, width, precision);
-  if (fType == UNKNOWN_FTYPE) return NULL;
-  // NOTE: Check that type matches?
-  // Read NAME 
-  return GetName(width, ncols, maxval);
-}
-
-// -----------------------------------------------------------------------------
-
-// AmberParmFile::SetParmFromValues()
-/** Used by ReadParmAmber and ReadParmOldAmber to set AmberParm variables
-  * from the POINTERS section of the parmtop.
-  */
-void AmberParmFile::SetParmFromValues(AmberParm &parmOut, int *values, bool isOld) {
-  //mprintf("DEBUG: VALUES\n");
-  //for (int i = 0; i < AMBERPOINTERS; i++) mprintf("\t%i\n",values[i]);
-  // Set some commonly used values
-  parmOut.natom = values[NATOM];
-  parmOut.nres = values[NRES];
-  parmOut.NbondsWithH = values[NBONH];
-  parmOut.NbondsWithoutH = values[NBONA];
-  if (debug_>0) {
-    if (isOld)
-      mprintf("\tOld Amber top");
-    else
-      mprintf("\tAmber top");
-    mprintf(", contains %i atoms, %i residues.\n",parmOut.natom,parmOut.nres);
-    mprintf("\t%i bonds to hydrogen, %i other bonds.\n",
-            parmOut.NbondsWithH,parmOut.NbondsWithoutH);
-  }
-  // Other values
-  parmOut.ntypes = values[NTYPES];
-  parmOut.nnb = values[NNB];
-  parmOut.numbnd = values[NUMBND];
-  parmOut.numang = values[NUMANG];
-  parmOut.numdih = values[NPTRA];
-  parmOut.NanglesWithH = values[NTHETH];
-  parmOut.NanglesWithoutH = values[NTHETA];
-  parmOut.NdihedralsWithH = values[NPHIH];
-  parmOut.NdihedralsWithoutH = values[NPHIA];
-  parmOut.natyp = values[NATYP];
-  parmOut.nphb = values[NPHB];
-  // Check that NBONA == MBONA etc. If not print a warning
-  if (values[MBONA] != values[NBONA])
-    mprintf("\tWarning: [%s] Amber parm has constraint bonds, but they will be ignored.\n",
-            parmOut.parmName);
-  if (values[MTHETA] != values[NTHETA])
-    mprintf("\tWarning: [%s] Amber parm has constraint angles, but they will be ignored.\n",
-            parmOut.parmName);
-  if (values[MPHIA] != values[NPHIA])
-    mprintf("\tWarning: [%s] Amber parm has constraint dihedrals, but they will be ignored.\n",
-            parmOut.parmName);
-  // If parm contains IFCAP or IFPERT info, print a warning since cpptraj
-  // currently does not read these in.
-  if (values[IFCAP] > 0)
-    mprintf("\tWarning: Parm [%s] contains CAP information, which Cpptraj ignores.\n",
-            parmOut.parmName);
-  if (values[IFPERT] > 0)
-    mprintf("\tWarning: Parm [%s] contains PERT information, which Cpptraj ignores.\n",
-            parmOut.parmName);
-}
-
-// AmberParmFile::ReadParm()
-/** Read parameters from Amber Topology file. */
-int AmberParmFile::ReadParm(AmberParm &parmOut) {
-  int err;
-  bool newParm = false;
-
-  if (OpenFile()) return 1;
-  //File = &parmfile; // For new STL functions.
-  // Get first line to determine old/new style Amber Parm.
-  // If '%VE' present, assume '%VERSION', indicating new style parm.
-  IO->Gets(lineBuffer, BUF_SIZE);
-  if ( lineBuffer[0]=='%' && lineBuffer[1]=='V' && lineBuffer[2]=='E')
-    newParm = true;
-  // Now that type of Amber parm has been determined, reopen.
-  CloseFile();
-# ifdef USE_CHARBUFFER
-  // TEST: Close and reopen buffered.
-  OpenFileBuffered();
-# else
-  OpenFile();
-# endif 
-  if (!newParm)
-    err = ReadParmOldAmber(parmOut);
-  else 
-    err = ReadParmAmber(parmOut);
-  if (err!=0) return 1;
-  // Common setup
-  // Convert charge to units of electron charge
-  if (parmOut.charge!=NULL) {
-    double convert = AMBERTOELEC;
-    for (int atom = 0; atom < parmOut.natom; atom++)
-      parmOut.charge[atom] *= convert;
-  }
-  // Shift atom #s in resnums by -1 so they start from 0
-  if (parmOut.resnums!=NULL) {
-    for (int res = 0; res < parmOut.nres; res++)
-      --parmOut.resnums[res];
-  }
-  // Shift atom #s in excludedAtoms by -1 so they start from 0
-  if (parmOut.excludedAtoms!=NULL) {
-    for (int atom = 0; atom < parmOut.nnb; atom++)
-      --parmOut.excludedAtoms[atom];
-  }
-  // Print Box info
-  if (debug_>0 && parmOut.firstSolvMol!=-1) {
-    mprintf("\tAmber parm %s contains box info: %i mols, first solvent mol is %i\n",
-            parmOut.parmName, parmOut.molecules, parmOut.firstSolvMol);
-    mprintf("\tBOX: %lf %lf %lf | %lf %lf %lf\n",
-            parmOut.Box[0],parmOut.Box[1],parmOut.Box[2],
-            parmOut.Box[3],parmOut.Box[4],parmOut.Box[5]);
-    if (parmOut.boxType==ORTHO)
-     mprintf("\t     Box is orthogonal.\n");
-    else if (parmOut.boxType==NONORTHO)
-      mprintf("\t     Box is non-orthogonal.\n");
-    else
-      mprintf("\t     Box will be determined from first associated trajectory.\n");
-  }
-  CloseFile();
-  return 0;
-}
-
-// AmberParmFile::ReadParmOldAmber()
-int AmberParmFile::ReadParmOldAmber(AmberParm &parmOut) {
-  int values[30];
-
-  if (debug_>0) mprintf("Reading Old-style Amber Topology file %s\n",parmOut.parmName);
-  char *title = GetLine();
-  if (debug_>0) mprintf("\tOld AmberParm Title: %s\n",title);
-  delete[] title;
-  // Pointers - same as new format except only 30 values, no NEXTRA
-  int *tempvalues = GetInteger(6,12,30);
-  if (tempvalues==NULL) {
-    mprintf("Could not get pointers from old amber topology file %s.\n",parmOut.parmName);
-    return 1;
-  }
-  memcpy(values, tempvalues, 30 * sizeof(int));
-  delete[] tempvalues;
-  // Set some commonly used values
-  SetParmFromValues(parmOut, values, true);
-  // Load the rest of the parm
-  parmOut.names = GetName(4,20,values[NATOM]);
-  parmOut.charge = GetDouble(16,5,values[NATOM]);
-  parmOut.mass = GetDouble(16,5,values[NATOM]);
-  parmOut.atype_index = GetInteger(6,12,values[NATOM]);
-  parmOut.numex = GetInteger(6,12,values[NATOM]);
-  parmOut.NB_index = GetInteger(6,12,values[NTYPES]*values[NTYPES]);
-  parmOut.resnames = GetName(4,20,values[NRES]);
-  parmOut.resnums = GetInteger(6,12,values[NRES]); 
-  parmOut.bond_rk = GetDouble(16,5,values[NUMBND]);
-  parmOut.bond_req = GetDouble(16,5,values[NUMBND]);
-  parmOut.angle_tk = GetDouble(16,5,values[NUMANG]);
-  parmOut.angle_teq = GetDouble(16,5,values[NUMANG]);
-  parmOut.dihedral_pk = GetDouble(16,5,values[NPTRA]);
-  parmOut.dihedral_pn = GetDouble(16,5,values[NPTRA]);
-  parmOut.dihedral_phase = GetDouble(16,5,values[NPTRA]);
-  parmOut.solty = GetDouble(16,5,values[NATYP]);
-  int nlj = values[NTYPES] * (values[NTYPES] + 1) / 2;
-  parmOut.LJ_A = GetDouble(16,5,nlj);
-  parmOut.LJ_B = GetDouble(16,5,nlj);
-  parmOut.bondsh = GetInteger(6,12,values[NBONH]*3);
-  parmOut.bonds = GetInteger(6,12,values[NBONA]*3);
-  parmOut.anglesh = GetInteger(6,12,values[NTHETH]*4);
-  parmOut.angles = GetInteger(6,12,values[NTHETA]*4);
-  parmOut.dihedralsh = GetInteger(6,12,values[NPHIH]*5);
-  parmOut.dihedrals = GetInteger(6,12,values[NPHIA]*5);
-  parmOut.excludedAtoms = GetInteger(6,12,values[NNB]);
-  parmOut.asol = GetDouble(16,5,values[NPHB]);
-  parmOut.bsol = GetDouble(16,5,values[NPHB]);
-  parmOut.hbcut = GetDouble(16,5,values[NPHB]);
-  parmOut.types = GetName(4,20,values[NATOM]);
-  parmOut.itree = GetName(4,20,values[NATOM]);
-  parmOut.join_array = GetInteger(6,12,values[NATOM]);
-  parmOut.irotat = GetInteger(6,12,values[NATOM]);
-  // Solvent/Box info
-  if (values[IFBOX] > 0) {
-    int *solvent_pointer = GetInteger(6,12,3);
-    if (solvent_pointer==NULL) {
-      mprintf("Error in solvent pointers.\n");
-      return 1;
-    } 
-    parmOut.finalSoluteRes = solvent_pointer[0];
-    parmOut.molecules = solvent_pointer[1];
-    parmOut.firstSolvMol = solvent_pointer[2];
-    delete[] solvent_pointer;
-    parmOut.atomsPerMol = GetInteger(6,12,parmOut.molecules);
-    // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
-    double *boxFromParm = GetDouble(16,5,4);
-    if (boxFromParm==NULL) {mprintf("Error in box info.\n"); return 1;}
-    parmOut.boxType = SetBoxInfo(boxFromParm,parmOut.Box,debug_);
-    delete[] boxFromParm;
-  }
-  return 0;
-}
-
-// AmberParmFile::ReadParmAmber()
-int AmberParmFile::ReadParmAmber(AmberParm &parmOut) {
-  int values[AMBERPOINTERS];
-  bool chamber; // Set to true if this top is a chamber-created topology file
-
+// Parm_Amber::ReadParmAmber()
+int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
+  std::vector<int> atomsPerMol;
+  int finalSoluteRes = -1;
+  int firstSolvMol = -1;
+  Box parmbox;
+  bool chamber; // True if this top is a chamber-created top file.
+  std::string title;
   if (debug_>0) mprintf("Reading Amber Topology file %s\n",BaseName());
-  // Title
-  char *title = GetFlagLine("TITLE");
-  // If title is NULL, check for CTITLE (chamber parm)
-  if (title==NULL) {
-    title = GetFlagLine("CTITLE");
-    chamber = true;
+
+  // Title. If not found check for CTITLE (chamber)
+  if (PositionFileAtFlag(F_TITLE)) {
+    title = GetLine();
   } else {
-    chamber = false;
+    if (PositionFileAtFlag(F_CTITLE)) {
+      title = GetLine();
+      chamber = true;
+    } else {
+      // No TITLE or CTITLE, weird, but dont crash out yet.
+      mprintf("Warning: [%s] No TITLE in Amber Parm.\n",BaseName());
+    }
   }
-  if (debug_>0) mprintf("\tAmberParm Title: %s\n",title);
-  delete[] title;
-  // Pointers
-  int *tempvalues = GetFlagInteger(F_POINTERS,AMBERPOINTERS);
-  if (tempvalues==NULL) {
-    mprintf("Could not get %s from Amber Topology file.\n",AmberParmFlag[F_POINTERS]);
+  mprintf("\tAmberParm Title: [%s]\n",title.c_str());
+  if (!title.empty())
+    TopIn.SetParmName( title );
+  else
+    TopIn.SetParmName( BaseName() );
+
+  std::vector<int> values = GetFlagInteger(F_POINTERS, AMBERPOINTERS);
+  if (values.empty()) {
+    mprinterr("Error: [%s] Could not get POINTERS from Amber Topology.\n",BaseName());
     return 1;
   }
-  memcpy(values, tempvalues, AMBERPOINTERS * sizeof(int));
-  delete[] tempvalues;
-  // Set some commonly used values
-  SetParmFromValues(parmOut,values, false);
-  // Get parm variables
-  parmOut.names = GetFlagName(F_NAMES, values[NATOM]);
-  parmOut.charge = GetFlagDouble(F_CHARGE,values[NATOM]);
-  parmOut.at_num = GetFlagInteger(F_ATOMICNUM,values[NATOM]);
-  parmOut.mass = GetFlagDouble(F_MASS,values[NATOM]);
-  parmOut.atype_index = GetFlagInteger(F_ATYPEIDX,values[NATOM]);
-  parmOut.numex = GetFlagInteger(F_NUMEX,values[NATOM]);
-  parmOut.NB_index = GetFlagInteger(F_NB_INDEX,values[NTYPES]*values[NTYPES]);
-  parmOut.resnames = GetFlagName(F_RESNAMES,values[NRES]);
-  parmOut.resnums = GetFlagInteger(F_RESNUMS,values[NRES]);
-  parmOut.bond_rk = GetFlagDouble(F_BONDRK, values[NUMBND]);
+  //for (std::vector<int>::iterator v = values.begin(); v != values.end(); v++)
+  //  mprintf("\t%i\n",*v);
+
+  // Read parm variables
+  std::vector<NameType> names = GetFlagName(F_NAMES, values[NATOM]);
+  std::vector<double> charge = GetFlagDouble(F_CHARGE,values[NATOM]);
+  std::vector<int> at_num = GetFlagInteger(F_ATOMICNUM,values[NATOM]);
+  std::vector<double> mass = GetFlagDouble(F_MASS,values[NATOM]);
+  std::vector<int> atype_index = GetFlagInteger(F_ATYPEIDX,values[NATOM]);
+  //parmOut.numex = GetFlagInteger(F_NUMEX,values[NATOM]);
+  //parmOut.NB_index = GetFlagInteger(F_NB_INDEX,values[NTYPES]*values[NTYPES]);
+  std::vector<NameType> resnames = GetFlagName(F_RESNAMES,values[NRES]);
+  std::vector<int> resnums = GetFlagInteger(F_RESNUMS,values[NRES]);
+  /*parmOut.bond_rk = GetFlagDouble(F_BONDRK, values[NUMBND]);
   parmOut.bond_req = GetFlagDouble(F_BONDREQ, values[NUMBND]);
   parmOut.angle_tk = GetFlagDouble(F_ANGLETK, values[NUMANG]);
   parmOut.angle_teq = GetFlagDouble(F_ANGLETEQ, values[NUMANG]);
@@ -811,10 +210,10 @@ int AmberParmFile::ReadParmAmber(AmberParm &parmOut) {
   parmOut.solty = GetFlagDouble(F_SOLTY, values[NATYP]);
   int nlj = values[NTYPES] * (values[NTYPES]+1) / 2;
   parmOut.LJ_A = GetFlagDouble(F_LJ_A,nlj);
-  parmOut.LJ_B = GetFlagDouble(F_LJ_B,nlj);
-  parmOut.bondsh = GetFlagInteger(F_BONDSH,values[NBONH]*3);
-  parmOut.bonds = GetFlagInteger(F_BONDS,values[NBONA]*3);
-  parmOut.anglesh = GetFlagInteger(F_ANGLESH, values[NTHETH]*4);
+  parmOut.LJ_B = GetFlagDouble(F_LJ_B,nlj);*/
+  std::vector<int> bondsh = GetFlagInteger(F_BONDSH,values[NBONH]*3);
+  std::vector<int> bonds = GetFlagInteger(F_BONDS,values[NBONA]*3);
+  /*parmOut.anglesh = GetFlagInteger(F_ANGLESH, values[NTHETH]*4);
   parmOut.angles = GetFlagInteger(F_ANGLES, values[NTHETA]*4);
   parmOut.dihedralsh = GetFlagInteger(F_DIHH, values[NPHIH]*5);
   parmOut.dihedrals = GetFlagInteger(F_DIH, values[NPHIA]*5);
@@ -825,266 +224,357 @@ int AmberParmFile::ReadParmAmber(AmberParm &parmOut) {
   parmOut.types = GetFlagName(F_TYPES,values[NATOM]);
   parmOut.itree = GetFlagName(F_ITREE,values[NATOM]);
   parmOut.join_array = GetFlagInteger(F_JOIN,values[NATOM]);
-  parmOut.irotat = GetFlagInteger(F_IROTAT,values[NATOM]);
+  parmOut.irotat = GetFlagInteger(F_IROTAT,values[NATOM]);*/
   // Get solvent info if IFBOX>0
   if (values[IFBOX]>0) {
-    int *solvent_pointer = GetFlagInteger(F_SOLVENT_POINTER,3);
-    if (solvent_pointer==NULL) {
+    std::vector<int> solvent_pointer = GetFlagInteger(F_SOLVENT_POINTER,3);
+    if (solvent_pointer.empty()) {
       mprintf("Could not get %s from Amber Topology file.\n",AmberParmFlag[F_SOLVENT_POINTER]);
       return 1;
-    } 
-    parmOut.finalSoluteRes = solvent_pointer[0];
-    parmOut.molecules = solvent_pointer[1];
-    parmOut.firstSolvMol = solvent_pointer[2];
-    delete[] solvent_pointer;
-    parmOut.atomsPerMol = GetFlagInteger(F_ATOMSPERMOL,parmOut.molecules);
+    }
+    finalSoluteRes = solvent_pointer[0] - 1;
+    int molecules = solvent_pointer[1];
+    firstSolvMol = solvent_pointer[2] - 1;
+    atomsPerMol = GetFlagInteger(F_ATOMSPERMOL,molecules);
     // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
-    double *boxFromParm = GetFlagDouble(F_PARMBOX,4);
+    std::vector<double> boxFromParm = GetFlagDouble(F_PARMBOX,4);
     // If no box information present in the parm (such as with Chamber prmtops)
-    // set the box info if ifbox = 2, otherwise set to NOBOX; the box info will 
-    // eventually be set by angles from the first trajectory associated with 
-    // this parm.
-    if (boxFromParm==NULL) {
+    // set the box info if ifbox = 2, otherwise default is NOBOX; the box info 
+    // will eventually be set by angles from the first trajectory associated 
+    // with this parm.
+    if (boxFromParm.empty()) {
       if (not chamber) mprintf("Warning: Prmtop missing Box information.\n");
       // ifbox 2: truncated octahedron for certain
-      if (values[IFBOX] == 2) {
-        parmOut.boxType = NONORTHO;
-        parmOut.Box[0] = 0.0; 
-        parmOut.Box[1] = 0.0; 
-        parmOut.Box[2] = 0.0;
-        parmOut.Box[3] = TRUNCOCTBETA;
-        parmOut.Box[4] = TRUNCOCTBETA;
-        parmOut.Box[5] = TRUNCOCTBETA;
-      } else
-        parmOut.boxType = NOBOX;
+      if (values[IFBOX] == 2) 
+        parmbox.SetTruncOct(); 
     // Determine box type, set Box angles and lengths from beta (boxFromParm[0])
     } else {
-      parmOut.boxType = SetBoxInfo(boxFromParm,parmOut.Box,debug_);
-      delete[] boxFromParm;
+      parmbox.SetBetaLengths( boxFromParm );
     }
   }
   // GB parameters; radius set, radii, and screening parameters
-  parmOut.radius_set = GetFlagLine("RADIUS_SET");
-  if (debug_>0) mprintf("\tRadius Set: %s\n",parmOut.radius_set);
-  parmOut.gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
-  parmOut.gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]);
-  
-  return error_count;
+  if (PositionFileAtFlag(F_RADSET)) {
+    std::string radius_set = GetLine();
+    mprintf("\tRadius Set: %s\n",radius_set.c_str());
+  }
+  std::vector<double> gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
+  std::vector<double> gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]); 
+
+  if (error_count_==0) {
+    error_count_ += TopIn.CreateAtomArray( names, charge, at_num, mass, atype_index, 
+                                          gb_radii, gb_screen,
+                                          resnames, resnums );
+    error_count_ += TopIn.SetBondInfo(bonds, bondsh);
+    if (values[IFBOX]>0)
+      error_count_ += TopIn.CreateMoleculeArray(atomsPerMol, parmbox, 
+                                                finalSoluteRes, firstSolvMol);
+  }
+
+  return error_count_;
 }
 
-// AmberParmFile::WriteParm()
-/** Write out information from current AmberParm to an Amber parm file */
-int AmberParmFile::WriteParm(AmberParm &parmIn) {
-  CharBuffer buffer;
-  int solvent_pointer[3];
-  int values[AMBERPOINTERS];
-  double parmBox[4];
-  // For date and time
-  time_t rawtime;
-  struct tm *timeinfo;
-  int largestRes=0; // For determining nmxrs
-  int *tempResnums = NULL;
-  double *tempCharge = NULL;
+// Parm_Amber::GetFlagLine()
+// NOTE: Useful?
+std::string Parm_Amber::GetFlagLine(AmberParmFlagType flag) {
+  std::string line;
+  if (!PositionFileAtFlag(flag)) return line;
+  return GetLine();
+}
 
-  if (parmIn.parmName==NULL) return 1;
+// Parm_Amber::GetLine()
+std::string Parm_Amber::GetLine() {
+  std::locale loc;
 
-  OpenFile();
+  IO->Gets(lineBuffer_, BUF_SIZE);
+  std::string line( lineBuffer_ );
+  // Remove any trailing whitespace
+  std::string::iterator p = line.end();
+  --p;
+  for (; p != line.begin(); p--) 
+    if (!isspace( *p, loc)) break;
+  size_t lastSpace = (size_t)(p - line.begin()) + 1;
+  //mprintf("lastSpace = %zu\n",lastSpace);
+  if (lastSpace==1)
+    line.clear();
+  else
+    line.resize( lastSpace );
+  return line;
+}
 
-  // HEADER AND TITLE (4 lines, version, flag, format, title)
-  buffer.Allocate( 324 ); // (81 * 4), no space for NULL needed since using NewLine() 
-  time(&rawtime);
-  timeinfo = localtime(&rawtime);
-  // VERSION
-  // NOTE: tm_mon ranges from 0
-  buffer.Sprintf("%-44s%02i/%02i/%02i  %02i:%02i:%02i                  \n",
-                     "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
-                     timeinfo->tm_mon+1,timeinfo->tm_mday,timeinfo->tm_year%100,
-                     timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
-  // TITLE
-  buffer.Sprintf("%-80s\n%-80s\n%-80s","%FLAG TITLE","%FORMAT(20a4)","");
-  buffer.NewLine();
-  //outfile.IO->Printf("%-80s\n",parmName);
-
-  // Shift atom #s in resnums by +1 to be consistent with AMBER
-  // Also determine # atoms in largest residue for nmxrs
-  // TODO: Use FindResidueMaxNatom
-  tempResnums = new int[ parmIn.nres ];
-  memcpy(tempResnums, parmIn.resnums, parmIn.nres * sizeof(int));
-  for (int res=0; res < parmIn.nres; res++) {
-    int diff = parmIn.resnums[res+1] - parmIn.resnums[res];
-    if (diff > largestRes) largestRes = diff;
-    tempResnums[res] += 1;
+// Parm_Amber::GetInteger()
+std::vector<int> Parm_Amber::GetInteger(int width, int ncols, int maxval) {
+  std::vector<int> iarray;
+  // Read prmtop section into buffer
+  int err = AllocateAndRead( width, ncols, maxval );
+  if (err == 0)
+    return iarray;
+  else if (err == -1) {
+    mprinterr("Error in read of integer values from %s\n",BaseName());
+    ++error_count_;
+    return iarray;
   }
-  // POINTERS
-  memset(values, 0, AMBERPOINTERS * sizeof(int));
-  values[NATOM]=parmIn.natom;
-  values[NTYPES]=parmIn.ntypes;
-  values[NBONH]=parmIn.NbondsWithH;
-  values[MBONA]=parmIn.NbondsWithoutH;
-  values[NTHETH]=parmIn.NanglesWithH;
-  values[MTHETA]=parmIn.NanglesWithoutH;
-  values[NPHIH]=parmIn.NdihedralsWithH;
-  values[MPHIA]=parmIn.NdihedralsWithoutH;
-  values[NNB]=parmIn.nnb;
-  values[NRES]=parmIn.nres;
-  //   NOTE: Assuming NBONA == MBONA etc
-  values[NBONA]=parmIn.NbondsWithoutH;
-  values[NTHETA]=parmIn.NanglesWithoutH;
-  values[NPHIA]=parmIn.NdihedralsWithoutH;
-  values[NUMBND]=parmIn.numbnd;
-  values[NUMANG]=parmIn.numang;
-  values[NPTRA]=parmIn.numdih;
-  values[NATYP]=parmIn.natyp;
-  values[NPHB]=parmIn.nphb;
-  values[IFBOX]=AmberIfbox(parmIn.Box[4]);
-  values[NMXRS]=largestRes;
-  DataToFortranBuffer(buffer,F_POINTERS, values, NULL, NULL, AMBERPOINTERS);
-  // ATOM NAMES
-  DataToFortranBuffer(buffer,F_NAMES, NULL, NULL, parmIn.names, parmIn.natom);
-  // CHARGE - might be null if read from pdb
-  if (parmIn.charge!=NULL) {
-    // Convert charges to AMBER charge units
-    tempCharge = new double[ parmIn.natom ];
-    memcpy(tempCharge, parmIn.charge, parmIn.natom * sizeof(double));
-    for (int atom=0; atom<parmIn.natom; atom++)
-      tempCharge[atom] *= (ELECTOAMBER);
-    DataToFortranBuffer(buffer,F_CHARGE, NULL, tempCharge, NULL, parmIn.natom);
-    delete[] tempCharge;
+  // Reserve variable memory
+  iarray.reserve( maxval );
+  // Convert values in buffer to integer 
+  char *ptrbegin = buffer_;
+  char *ptrend = buffer_;
+  for (int i = 0; i < maxval; i++) {
+    // Advance past newlines / CR (dos)
+    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
+    ptrend = ptrbegin + width;
+    char lastchar = *ptrend;
+    *ptrend = '\0';
+    iarray.push_back( atoi(ptrbegin) );
+    *ptrend = lastchar;
+    ptrbegin = ptrend;
   }
-  // ATOMIC NUMBER
-  if (parmIn.at_num!=NULL)
-    DataToFortranBuffer(buffer,F_ATOMICNUM, parmIn.at_num, NULL, NULL, parmIn.natom);
-  // MASS - might be null if read from pdb
-  if (parmIn.mass!=NULL)
-    DataToFortranBuffer(buffer,F_MASS, NULL, parmIn.mass, NULL, parmIn.natom);
-  // ATOM_TYPE_INDEX
-  if (parmIn.atype_index!=NULL)
-    DataToFortranBuffer(buffer,F_ATYPEIDX, parmIn.atype_index, NULL, NULL, parmIn.natom);
-  // NUMBER_EXCLUDED_ATOMS
-  if (parmIn.numex!=NULL)
-    DataToFortranBuffer(buffer,F_NUMEX, parmIn.numex, NULL, NULL, parmIn.natom);
-  // NONBONDED_PARM_INDEX
-  if (parmIn.NB_index!=NULL)
-    DataToFortranBuffer(buffer,F_NB_INDEX, parmIn.NB_index, NULL, NULL, parmIn.ntypes * parmIn.ntypes);
-  // RESIDUE LABEL - resnames
-  DataToFortranBuffer(buffer,F_RESNAMES, NULL, NULL, parmIn.resnames, parmIn.nres);
-  // RESIDUE POINTER - resnums, IPRES; tempResnums is shifted +1, see above
-  DataToFortranBuffer(buffer,F_RESNUMS, tempResnums, NULL, NULL, parmIn.nres);
-  delete[] tempResnums;
-  // BOND_FORCE_CONSTANT and EQUIL VALUES
-  if (parmIn.bond_rk!=NULL)
-    DataToFortranBuffer(buffer,F_BONDRK, NULL, parmIn.bond_rk, NULL, parmIn.numbnd);
-  if (parmIn.bond_req!=NULL)
-    DataToFortranBuffer(buffer,F_BONDREQ, NULL, parmIn.bond_req, NULL, parmIn.numbnd);
-  // ANGLE FORCE CONSTANT AND EQUIL VALUES
-  if (parmIn.angle_tk!=NULL)
-    DataToFortranBuffer(buffer,F_ANGLETK, NULL, parmIn.angle_tk, NULL, parmIn.numang);
-  if (parmIn.angle_teq!=NULL)
-    DataToFortranBuffer(buffer,F_ANGLETEQ, NULL, parmIn.angle_teq, NULL, parmIn.numang);
-  // DIHEDRAL CONSTANT, PERIODICITY, PHASE
-  if (parmIn.dihedral_pk!=NULL)
-    DataToFortranBuffer(buffer,F_DIHPK, NULL, parmIn.dihedral_pk, NULL, parmIn.numdih);
-  if (parmIn.dihedral_pn!=NULL)
-    DataToFortranBuffer(buffer,F_DIHPN, NULL, parmIn.dihedral_pn, NULL, parmIn.numdih);
-  if (parmIn.dihedral_phase!=NULL)
-    DataToFortranBuffer(buffer,F_DIHPHASE, NULL, parmIn.dihedral_phase, NULL, parmIn.numdih);
-  // SCEE and SCNB scaling factors
-  if (parmIn.scee_scale!=NULL)
-    DataToFortranBuffer(buffer,F_SCEE, NULL, parmIn.scee_scale, NULL, parmIn.numdih);
-  if (parmIn.scnb_scale!=NULL)
-    DataToFortranBuffer(buffer,F_SCNB, NULL, parmIn.scnb_scale, NULL, parmIn.numdih);
-  // SOLTY
-  if (parmIn.solty!=NULL)
-    DataToFortranBuffer(buffer,F_SOLTY, NULL, parmIn.solty, NULL, parmIn.natyp);
-  // Lennard-Jones A/B
-  if (parmIn.LJ_A!=NULL)
-    DataToFortranBuffer(buffer,F_LJ_A, NULL, parmIn.LJ_A, NULL, parmIn.ntypes*(parmIn.ntypes+1)/2);
-  if (parmIn.LJ_B!=NULL)
-    DataToFortranBuffer(buffer,F_LJ_B, NULL, parmIn.LJ_B, NULL, parmIn.ntypes*(parmIn.ntypes+1)/2);
-  // BONDS INCLUDING HYDROGEN - might be null if read from pdb
-  if (parmIn.bondsh != NULL)
-    DataToFortranBuffer(buffer,F_BONDSH, parmIn.bondsh, NULL, NULL, parmIn.NbondsWithH*3);
-  // BONDS WITHOUT HYDROGEN - might be null if read from pdb
-  if (parmIn.bonds!=NULL)
-    DataToFortranBuffer(buffer,F_BONDS, parmIn.bonds, NULL, NULL, parmIn.NbondsWithoutH*3);
-  // ANGLES INCLUDING HYDROGEN
-  if (parmIn.anglesh!=NULL)
-    DataToFortranBuffer(buffer,F_ANGLESH, parmIn.anglesh, NULL, NULL, parmIn.NanglesWithH*4);
-  // ANGLES WITHOUT HYDROGEN
-  if (parmIn.angles!=NULL)
-    DataToFortranBuffer(buffer,F_ANGLES, parmIn.angles, NULL, NULL, parmIn.NanglesWithoutH*4);
-  // DIHEDRALS INCLUDING HYDROGEN
-  if (parmIn.dihedralsh!=NULL)
-    DataToFortranBuffer(buffer,F_DIHH, parmIn.dihedralsh, NULL, NULL, parmIn.NdihedralsWithH*5);
-  // DIHEDRALS WITHOUT H
-  if (parmIn.dihedrals!=NULL)
-    DataToFortranBuffer(buffer,F_DIH, parmIn.dihedrals, NULL, NULL, parmIn.NdihedralsWithoutH*5);
-  // EXCLUDED ATOMS LIST
-  // Shift atom #s in excludedAtoms by +1 to be consistent with AMBER
-  if (parmIn.excludedAtoms!=NULL) {
-    int *tempexclude = new int[ parmIn.nnb ];
-    memcpy(tempexclude, parmIn.excludedAtoms, parmIn.nnb * sizeof(int));
-    for (int atom = 0; atom < parmIn.nnb; atom++) tempexclude[atom] += 1;
-    DataToFortranBuffer(buffer,F_EXCLUDE, tempexclude, NULL, NULL, parmIn.nnb);
-    delete[] tempexclude;
+  return iarray;
+}
+
+// Parm_Amber::GetDouble()
+std::vector<double> Parm_Amber::GetDouble(int width, int ncols, int maxval) {
+  std::vector<double> darray;
+  // Read prmtop section into buffer
+  int err = AllocateAndRead( width, ncols, maxval );
+  if (err == 0)
+    return darray;
+  else if (err == -1) {
+    mprinterr("Error in read of double values from %s\n",BaseName());
+    ++error_count_;
+    return darray;
   }
-  // HBOND ACOEFF, BCOEFF, HBCUT
-  // NAB requires that these be printed even if no values exist.
-  DataToFortranBuffer(buffer,F_ASOL,NULL,parmIn.asol,NULL,parmIn.nphb);
-  DataToFortranBuffer(buffer,F_BSOL,NULL,parmIn.bsol,NULL,parmIn.nphb);
-  DataToFortranBuffer(buffer,F_HBCUT,NULL,parmIn.hbcut,NULL,parmIn.nphb);
-  // AMBER ATOM TYPE - might be null if read from pdb
-  if (parmIn.types!=NULL)
-    DataToFortranBuffer(buffer,F_TYPES, NULL, NULL, parmIn.types, parmIn.natom);
-  // TREE CHAIN CLASSIFICATION
-  if (parmIn.itree!=NULL)
-    DataToFortranBuffer(buffer,F_ITREE, NULL, NULL, parmIn.itree, parmIn.natom);
-  // JOIN ARRAY
-  if (parmIn.join_array!=NULL)
-    DataToFortranBuffer(buffer,F_JOIN, parmIn.join_array, NULL, NULL, parmIn.natom);
-  // IROTAT
-  if (parmIn.irotat!=NULL)
-    DataToFortranBuffer(buffer,F_IROTAT, parmIn.irotat, NULL, NULL, parmIn.natom);
-  // Write solvent info if IFBOX>0
-  if (values[IFBOX]>0) {
-    // SOLVENT POINTERS
-    if (parmIn.firstSolvMol!=-1) {
-      solvent_pointer[0]=parmIn.finalSoluteRes;
-      solvent_pointer[1]=parmIn.molecules;
-      solvent_pointer[2]=parmIn.firstSolvMol;
-    } else {
-      solvent_pointer[0]=parmIn.nres;
-      solvent_pointer[1]=parmIn.molecules;
-      solvent_pointer[2]=parmIn.molecules+1;
+  // Reserve variable memory
+  darray.reserve( maxval );
+  // Convert values in buffer to integer 
+  char *ptrbegin = buffer_;
+  char *ptrend = buffer_;
+  for (int i = 0; i < maxval; i++) {
+    // Advance past newlines / CR (dos)
+    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
+    ptrend = ptrbegin + width;
+    char lastchar = *ptrend;
+    *ptrend = '\0';
+    darray.push_back( atof(ptrbegin) );
+    *ptrend = lastchar;
+    ptrbegin = ptrend;
+  }
+  return darray;
+}
+
+// Parm_Amber::GetName()
+std::vector<NameType> Parm_Amber::GetName(int width, int ncols, int maxval) {
+  std::vector<NameType> carray;
+  // Read prmtop section into buffer
+  int err = AllocateAndRead( width, ncols, maxval );
+  if (err == 0)
+    return carray;
+  else if (err == -1) {
+    mprinterr("Error in read of Name values from %s\n",BaseName());
+    ++error_count_;
+    return carray;
+  }
+  // Reserve variable memory
+  carray.reserve( maxval );
+  // Convert values in buffer to integer 
+  char *ptrbegin = buffer_;
+  char *ptrend = buffer_;
+  for (int i = 0; i < maxval; i++) {
+    // Advance past newlines / CR (dos)
+    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
+    ptrend = ptrbegin + width;
+    char lastchar = *ptrend;
+    *ptrend = '\0';
+    carray.push_back( ptrbegin );
+    *ptrend = lastchar;
+    ptrbegin = ptrend;
+  }
+  return carray;
+}
+
+// Parm_Amber::GetFlagInteger()
+std::vector<int> Parm_Amber::GetFlagInteger(AmberParmFlagType fflag, int maxval) {
+  std::vector<int> iarray;
+  // Seek to flag and set up fncols, fwidth
+  if (!SeekToFlag(fflag)) return iarray;
+  // NOTE: Check that type matches?
+  iarray = GetInteger( fwidth_, fncols_, maxval );
+  return iarray;
+}
+
+// Parm_Amber::GetFlagDouble()
+std::vector<double> Parm_Amber::GetFlagDouble(AmberParmFlagType fflag, int maxval) {
+  std::vector<double> darray;
+  // Seek to flag and set up fncols, fwidth
+  if (!SeekToFlag(fflag)) return darray;
+  // NOTE: Check that type matches?
+  darray = GetDouble( fwidth_, fncols_, maxval );
+  return darray;
+}
+
+// Parm_Amber::GetFlagName()
+std::vector<NameType> Parm_Amber::GetFlagName(AmberParmFlagType fflag, int maxval) {
+  std::vector<NameType> carray;
+  // Seek to flag and set up fncols, fwidth
+  if (!SeekToFlag(fflag)) return carray;
+  // NOTE: Check that type matches?
+  carray = GetName( fwidth_, fncols_, maxval );
+  return carray;
+}
+
+bool Parm_Amber::SeekToFlag(AmberParmFlagType fflag) {
+  // Find flag, set format line
+  if (!PositionFileAtFlag(fflag)) return false;
+  // Set up cols, width, etc from format
+  if (!SetFortranType()) return false;
+  return true;
+}  
+
+// Parm_Amber::GetFortranBufferSize()
+/** Given number of columns and the width of each column, return the 
+  * necessary char buffer size for N data elements.
+  */
+size_t Parm_Amber::GetFortranBufferSize(int width, int ncols, int N) {
+  size_t bufferLines=0;
+  size_t BufferSize=0;
+
+  BufferSize = N * width;
+  bufferLines = N / ncols;
+  if ((N % ncols)!=0) ++bufferLines;
+  // If DOS file there are CRs before Newlines
+  if (isDos_) bufferLines *= 2;
+  BufferSize += bufferLines;
+  //if (debug_>0) 
+  //  fprintf(stdout,"*** Buffer size is %i including %i newlines.\n",BufferSize,bufferLines);
+  return BufferSize;
+}
+
+// Parm_Amber::AllocateAndRead()
+int Parm_Amber::AllocateAndRead(int width, int ncols, int maxval) {
+  char temp[3]; // Only for when maxval is 0, space for \n, \r, NULL
+  // If # expected values is 0 there will still be a newline placeholder
+  // in the parmtop. Read past that and return
+  if (maxval==0) {
+    IO->Gets(temp,2);
+    return 0;
+  }
+  // Allocate buffer to read in entire section
+  size_t BufferSize = GetFortranBufferSize(width, ncols, maxval);
+  if (buffer_!=NULL) delete[] buffer_;
+  buffer_ = new char[ BufferSize ];
+  // Read section from file
+  int err = IO->Read(buffer_,BufferSize);
+  return err;
+}
+
+// Parm_Amber::PositionFileAtFlag()
+bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
+  const char *Key = AmberParmFlag[flag];
+  char value[BUF_SIZE];
+  bool searchFile = true;
+  bool hasLooped = false;
+
+  if (debug_ > 0) mprintf("Reading %s\n",Key);
+  // Search for '%FLAG <Key>'
+  while ( searchFile ) {
+    while ( IO->Gets(lineBuffer_, BUF_SIZE) == 0 ) {
+      if ( strncmp(lineBuffer_,"%FLAG",5)==0 ) {
+        // Check flag Key
+        sscanf(lineBuffer_, "%*s %s",value);
+        if (strcmp(value,Key)==0) {
+          if (debug_>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
+          // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
+          // read past until you get to the FORMAT line
+          IO->Gets(lineBuffer_, BUF_SIZE); 
+          while (strncmp(lineBuffer_, "%FORMAT",7)!=0)
+            IO->Gets(lineBuffer_, BUF_SIZE);
+          if (debug_>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer_);
+          // Set format
+          // NOTE: Check against stored formats?
+          fformat_.assign(lineBuffer_);
+          return true;
+        } // END found Key
+      } // END found FLAG line
+    } // END scan through file
+    // If we havent yet tried to search from the beginning, try it now.
+    // Otherwise the Key has not been found.
+    if (!hasLooped) {
+      IO->Rewind();
+      hasLooped = true;
+    } else
+      searchFile = false;
+  }
+
+  // If we reached here Key was not found.
+  if (debug_>0)
+    mprintf("Warning: [%s] Could not find Key %s in file.\n",BaseName(),Key);
+  fformat_.clear();
+  return false;
+}
+
+// Parm_Amber::SetFortranType()
+/** Given a fortran-type format string, set the corresponding fortran
+  * type. Set fncols (if present), fwidth, and fprecision (if present).
+  */
+// 01234567
+// %FORMAT([<cols>][(]<type><width>[<precision>][)])
+bool Parm_Amber::SetFortranType() {
+  std::locale loc;
+  std::string arg;
+
+  if ( fformat_.empty() ) return false;
+  // Make sure characters are upper case.
+  for (std::string::iterator p = fformat_.begin(); p != fformat_.end(); p++)
+    toupper(*p, loc);
+  // Advance past left parentheses
+  std::string::iterator ptr = fformat_.begin() + 7;
+  while (*ptr=='(') ++ptr;
+  // If digit, have number of data columns
+  fncols_ = 0;
+  if (isdigit(*ptr, loc)) {
+    while (ptr!=fformat_.end() && isdigit(*ptr, loc)) {
+      arg += *ptr;
+      ++ptr;
     }
-    DataToFortranBuffer(buffer,F_SOLVENT_POINTER, solvent_pointer, NULL, NULL, 3);
-    // ATOMS PER MOLECULE
-    if (parmIn.atomsPerMol!=NULL)
-      DataToFortranBuffer(buffer,F_ATOMSPERMOL, parmIn.atomsPerMol, NULL, NULL, parmIn.molecules);
-    // BOX DIMENSIONS
-    parmBox[0] = parmIn.Box[4]; // beta
-    parmBox[1] = parmIn.Box[0]; // boxX
-    parmBox[2] = parmIn.Box[1]; // boxY
-    parmBox[3] = parmIn.Box[2]; // boxZ
-    DataToFortranBuffer(buffer,F_PARMBOX, NULL, parmBox, NULL, 4);
+    fncols_ = atoi( arg.c_str() );
   }
-  // GB RADIUS SET
-  if (parmIn.radius_set!=NULL) {
-    buffer.IncreaseSize(243); // 3 * 81
-    buffer.Sprintf("%-80s\n%-80s\n%-80s","%FLAG RADIUS_SET","%FORMAT(1a80)",parmIn.radius_set);
-    buffer.NewLine();
+  // Advance past any more left parentheses
+  while (ptr!=fformat_.end() && *ptr=='(') ++ptr;
+  // Type
+  if (ptr==fformat_.end()) {
+    mprinterr("Error: Malformed fortran format string (%s) in Amber Topology %s\n",
+              fformat_.c_str(), BaseName());
+    return false;
   }
-  // GB RADII
-  if (parmIn.gb_radii!=NULL)
-    DataToFortranBuffer(buffer,F_RADII, NULL, parmIn.gb_radii, NULL, parmIn.natom);
-  // GB SCREENING PARAMETERS
-  if (parmIn.gb_screen!=NULL)
-    DataToFortranBuffer(buffer,F_SCREEN, NULL, parmIn.gb_screen, NULL, parmIn.natom);
+  switch (*ptr) {
+    case 'I' : ftype_ = FINT;    break;
+    case 'E' : ftype_ = FDOUBLE; break;
+    case 'A' : ftype_ = FCHAR;   break;
+    case 'F' : ftype_ = FFLOAT;  break;
+    default  : ftype_ = UNKNOWN_FTYPE;
+  }
+  ++ptr;
+  // Width
+  fwidth_ = 0;
+  arg.clear(); 
+  while (isdigit(*ptr,loc)) {
+    arg += *ptr;
+    ++ptr;
+  }
+  fwidth_ = atoi( arg.c_str() );
+  // Precision
+  fprecision_ = 0;
+  if (*ptr == '.') {
+    ++ptr;
+    arg.clear();
+    while (isdigit(*ptr,loc)) {
+      arg += *ptr;
+      ++ptr;
+    }
+    fprecision_ = atoi( arg.c_str() );
+  }
+  if (debug_ > 2)
+    mprintf("[%s]: cols=%i type=%i width=%i precision=%i\n",fformat_.c_str(),
+            fncols_,(int)ftype_,fwidth_,fprecision_);
 
-  // Write buffer to file
-  IO->Write(buffer.Buffer(), buffer.CurrentSize());
-  CloseFile();
-
-  return 0;
+  return true;
 }
-
