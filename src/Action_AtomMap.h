@@ -22,7 +22,7 @@ class atommap {
     int natom;          ///< Number of atoms in the map
     char *names;        ///< 1 char Name of each atom
     Frame *mapFrame;    ///< Hold atom coords
-    AmberParm *mapParm; ///< Hold corresponding parm
+    Topology *mapParm; ///< Hold corresponding parm
 
     atommap();
     ~atommap();
@@ -56,8 +56,8 @@ class AtomMap : public Action {
     int *AMap;
     bool maponly;
     Frame *newFrame;
-    AmberParm *newParm;
-    AmberParm *stripParm; // For stripping reference
+    Topology *newParm;
+    Topology *stripParm; // For stripping reference
 
     Frame rmsRefFrame;
     Frame rmsTgtFrame;

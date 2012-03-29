@@ -16,7 +16,7 @@ class Pairwise: public Action {
     PairCalcType nb_calcType;       ///< Type of nonbonded calc being performed
     AtomMask Mask0;                 ///< Calculate energy for atoms in mask
     AtomMask RefMask;               ///< Reference mask
-    AmberParm *RefParm;             ///< Reference parm
+    Topology *RefParm;             ///< Reference parm
     Frame *RefFrame;                ///< Reference coordinates
     int N_ref_interactions;         ///< Number of interactions in Ref w/exclusions
     double kes;                     ///< Electrostatic constant, 1.0 when using Amber units
@@ -44,10 +44,10 @@ class Pairwise: public Action {
     //std::vector<NonbondEnergyType> atom_nonbondEnergy;
 
     /// Set up nonbondParm for given Parm and atoms in mask
-    int SetupNonbondParm(AtomMask &, AmberParm *);
+    int SetupNonbondParm(AtomMask &, Topology *);
     /// Calculate nonbond energy using nonbondParm for given frame
-    void NonbondEnergy(Frame *, AmberParm *, AtomMask &);
-    int WriteCutFrame(AmberParm *, AtomMask *, double *, Frame *, char*);
+    void NonbondEnergy(Frame *, Topology *, AtomMask &);
+    int WriteCutFrame(Topology *, AtomMask *, double *, Frame *, char*);
     void PrintCutAtoms(Frame *);
 
   public:

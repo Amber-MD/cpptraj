@@ -6,20 +6,18 @@
 // Class: AtomMask
 /// Hold info on selected atoms based on mask expression.
 /** AtomMask is used to hold an array of integers that represent atom numbers
-  * of atoms selected based on a mask string. This class is actually an 
-  * interface to the ptraj mask parser written by Viktor Hornak (PtrajMask.cpp).
-  * Takes as input a string and an AmberParm class since the basic parser 
-  * requires access to ipres, atom names, etc.
-  * First the mask string is set via SetMaskString. Then the actual mask can
-  * be set up in two ways.
-  * 1) Integer mask
+  * of atoms selected based on a mask string. 
+  * First the mask string is set via SetMaskString, where it is converted into
+  * mask tokens. Then the actual mask can be set up using a Topology in one of
+  * two ways:
+  * - Integer mask
   *    Although an array of ints becomes larger than a simple character mask 
   *    once more than 25% of the system is selected, it tends to be faster 
   *    than the character array up until about 80% of the system is selected, 
   *    at which point the speed is comparable. This is the default way to use
   *    AtomMask and is how most of the routines in the Frame class have been
   *    written to use AtomMask.
-  * 2) Character mask
+  * - Character mask
   *    This is the original way to use the atom mask, useful e.g. when 
   *    you need to know what atoms are not selected as well as what atoms
   *    are selected. Unlike the integer mask, the character mask is not

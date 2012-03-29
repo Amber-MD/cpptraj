@@ -93,7 +93,7 @@ int AmberRestartNC::openTraj() {
   * Also check number of atoms against associated parmtop.
   */
 // NOTE: Replace attrText allocs with static buffer? 
-int AmberRestartNC::setupTrajin(AmberParm *trajParm) {
+int AmberRestartNC::setupTrajin(Topology *trajParm) {
   char *attrText; // For checking conventions and version 
   int spatial; // For checking spatial dimensions
   double box[6];
@@ -219,7 +219,7 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
 
 // AmberRestartNC::setupTrajout()
 /** Setting up is done for each frame.  */
-int AmberRestartNC::setupTrajout(AmberParm *trajParm) {
+int AmberRestartNC::setupTrajout(Topology *trajParm) {
   ncatom = trajParm->natom;
   ncatom3 = ncatom * 3;
   // If number of frames to write == 1 set singleWrite so we dont append

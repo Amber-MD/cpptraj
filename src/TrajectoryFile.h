@@ -1,7 +1,7 @@
 #ifndef INC_TRAJECTORYFILE_H
 #define INC_TRAJECTORYFILE_H
 #include "ProgressBar.h"
-#include "TrajectoryIO.h" // AmberParm BoxType CpptrajFile ArgList 
+#include "TrajectoryIO.h" // Topology BoxType CpptrajFile ArgList 
 #include "Range.h"
 #include "Frame.h"
 // Class: TrajectoryFile
@@ -20,16 +20,16 @@ class TrajectoryFile {
     TrajectoryFile();
     ~TrajectoryFile();
     // Trajectory IO functions
-    int SetupRead(char *, ArgList *, AmberParm *);
-    int SetupWriteWithArgs(char *, const char *, AmberParm *, TrajFormatType);
-    int SetupWrite(char *, AmberParm *, char *);
+    int SetupRead(char *, ArgList *, Topology *);
+    int SetupWriteWithArgs(char *, const char *, Topology *, TrajFormatType);
+    int SetupWrite(char *, Topology *, char *);
     // Next two currently only used for Clustering
-    int SetupWrite(char *, ArgList *, AmberParm *, TrajFormatType);
-    int SetupNumberedWrite(char *, int, AmberParm *, char *);
+    int SetupWrite(char *, ArgList *, Topology *, TrajFormatType);
+    int SetupNumberedWrite(char *, int, Topology *, char *);
     int BeginTraj(bool);
     int EndTraj();
     int GetNextFrame(Frame&);
-    int WriteFrame(int, AmberParm *, Frame&);
+    int WriteFrame(int, Topology *, Frame&);
     // Public functions
     void SetDebug(int);
     void SingleFrame();
@@ -39,12 +39,14 @@ class TrajectoryFile {
     // Functions that return private vars
     int CurrentFrame();
     char *TrajName();
-    AmberParm *TrajParm();
+    Topology *TrajParm();
     int Start();
     int Total_Read_Frames();
     int Total_Frames();
     int NumFramesProcessed();
     bool HasVelocity();
+
+    const char *FileName();
   private:
     /// Denote whether reading, writing, or appending.
     enum TrajAccessType { READTRAJ, WRITETRAJ, APPENDTRAJ };
@@ -57,7 +59,7 @@ class TrajectoryFile {
     /// Trajectory name
     const char *trajName_;
     /// Associated parm
-    AmberParm *trajParm_;
+    Topology *trajParm_;
     /// Trajectory File access (R/W/A)
     TrajAccessType fileAccess_;
     /// Number of frames that have been read/written with this traj

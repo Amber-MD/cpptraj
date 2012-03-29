@@ -4,7 +4,6 @@
 #include <map>
 #include <string>
 #include "Action.h"
-#include "Name.h"
 // Class: Jcoupling
 /// Calculate j-coupling values based on dihedrals using the Karplus equation.
 /*! \author Original Code: J. Maier, Stony Brook 2011.

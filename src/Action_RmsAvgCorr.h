@@ -8,7 +8,7 @@ class RmsAvgCorr: public Action {
     char *separateName;
     AtomMask Mask0;
     CoordList ReferenceCoords;
-    AmberParm *ReferenceParm;
+    Topology *ReferenceParm;
     DataSet *Ct;
     int parmNatom;
     int maxwindow;

@@ -144,7 +144,7 @@ int ActionList::AddAction(ArgList &argIn) {
   * action cannot be initialized deactivate it. Also set action debug level.
   */
 int ActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL, 
-                      ParmFileList *PFL, bool exitOnError) 
+                      TopologyList *PFL, bool exitOnError) 
 {
   mprintf("\nACTIONS: Initializing %i actions:\n",Naction);
   for (int act=0; act<Naction; act++) {
@@ -173,9 +173,9 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL,
 /** Attempt to set up all actions in the action list with the given parm
   * If an action cannot be set up skip it.
   */
-int ActionList::Setup(AmberParm **ParmAddress) {
+int ActionList::Setup(Topology **ParmAddress) {
   int err;
-  AmberParm *OriginalParm = *ParmAddress;
+  Topology *OriginalParm = *ParmAddress;
 
   mprintf(".....................................................\n");
   mprintf("PARM [%s]: Setting up %i actions.\n",(*ParmAddress)->parmName,Naction);

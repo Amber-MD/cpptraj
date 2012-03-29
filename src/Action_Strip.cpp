@@ -95,7 +95,7 @@ int Strip::setup() {
     ParmFile pfile;
     pfile.SetDebug( debug );
     if ( pfile.Write( *newParm, newParm->parmName, ParmFile::AMBERPARM ) ) {
-    //if ( newParm->WriteAmberParm(newParm->parmName) ) {
+    //if ( newParm->WriteTopology(newParm->parmName) ) {
       mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
                 newParm->parmName);
     }

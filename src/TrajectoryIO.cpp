@@ -82,7 +82,7 @@ void TrajectoryIO::SetBox() {
 }
 
 // TrajectoryIO::CheckBoxInfo()
-int TrajectoryIO::CheckBoxInfo(AmberParm *trajParm) {
+int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
   BoxType boxType;
   if (trajParm==NULL) return 1;
   if (!hasBox_) return 0;

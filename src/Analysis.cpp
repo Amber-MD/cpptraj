@@ -29,7 +29,7 @@ void Analysis::SetDebug(int debugIn) {
 }
 
 // Analysis::SetParm()
-void Analysis::SetParm(ParmFileList *parmfilelist) {
+void Analysis::SetParm(TopologyList *parmfilelist) {
   analyzeParm = parmfilelist->GetParm(analyzeArgs);
 }
 

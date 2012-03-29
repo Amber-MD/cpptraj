@@ -13,6 +13,9 @@ class Box {
     void SetBetaLengths(std::vector<double> &);
     int AmberIfbox();
     double ToRecip(double*,double*);
+    inline BoxType Type() {
+      return btype_;
+    }
 
   private:
     static const double TRUNCOCTBETA;

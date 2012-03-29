@@ -1,9 +1,10 @@
 #ifndef INC_TRAJ_MOL2FILE_H
 #define INC_TRAJ_MOL2FILE_H
 #include "TrajectoryIO.h"
+#include "Mol2File.h"
 // Class: Mol2File
 /// TrajecttoryIO class for reading coordinates from Mol2 files.
-class Mol2File : public TrajectoryIO {
+class Mol2File : public TrajectoryIO, Mol2File {
   public:
     /// Indicate how the mol2 file should be written.
     /** - SINGLE: Writing only a single frame
@@ -31,8 +32,8 @@ class Mol2File : public TrajectoryIO {
     std::vector<int> trajBonds_;
 
     // Inherited functions
-    int setupTrajin(AmberParm *);
-    int setupTrajout(AmberParm *);
+    int setupTrajin(Topology *);
+    int setupTrajout(Topology *);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);

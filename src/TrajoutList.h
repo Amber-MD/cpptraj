@@ -7,9 +7,9 @@
 class TrajoutList : public CoordFileList {
   public:
     /// Add a traj file to the list with given access and associate with a parm
-    int AddTrajout(char*,ArgList *A, AmberParm *);
+    int AddTrajout(char*,ArgList *A, Topology *);
     /// Call write for all trajectories
-    int Write(int, AmberParm*, Frame*);
+    int Write(int, Topology*, Frame*);
     /// Call end for all trajectories
     void Close();
 };

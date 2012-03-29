@@ -62,6 +62,9 @@ class Topology {
     inline const char *c_str() {
       return parmName_.c_str();
     }
+    inline Box::BoxType BoxType() {
+      return box_.Type();
+    }
 
     void AddAtom(Atom, Residue);
     void StartNewMol();
@@ -98,7 +101,7 @@ class Topology {
     std::vector<int> excludedAtoms_;
     std::vector<int> numex_;
 
-    Box box;
+    Box box_;
 
     int debug_;
     bool hasCoordinates_;

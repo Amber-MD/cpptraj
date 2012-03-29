@@ -103,7 +103,7 @@ int AmberNetcdf::openTraj() {
 /** Open the netcdf file, read all dimension and variable IDs, close.
   * Return the number of frames in the file. 
   */
-int AmberNetcdf::setupTrajin(AmberParm* trajParm) {
+int AmberNetcdf::setupTrajin(Topology* trajParm) {
   char *attrText;            // For checking conventions and version 
   int spatial;               // For checking spatial dimensions
   double box[6];             // For checking box type
@@ -250,7 +250,7 @@ int AmberNetcdf::processWriteArgs(ArgList *argIn) {
 /** Create Netcdf file specified by filename and set up dimension and
   * variable IDs. 
   */
-int AmberNetcdf::setupTrajout(AmberParm *trajParm) {
+int AmberNetcdf::setupTrajout(Topology *trajParm) {
   int dimensionID[NC_MAX_VAR_DIMS];
   size_t start[3], count[3];
   char xyz[3];

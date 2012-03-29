@@ -597,7 +597,7 @@ bool AtomMask::None() {
 // AtomMask::SetupMask()
 /** Set up an atom mask containing selected atom numbers given a char
   * array of size natom with T for selected atoms and F for unselected
-  * atoms. The actual mask parser is called from AmberParm. 
+  * atoms. The actual mask parser is called from Topology. 
   * maskChar_ is used to determine whether atoms denoted by 'T' or 'F' will
   * be selected (the latter is the case e.g. with stripped atoms). 
   */

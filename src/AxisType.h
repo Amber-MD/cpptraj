@@ -1,9 +1,10 @@
 #ifndef INC_AXISTYPE_H
 #define INC_AXISTYPE_H
 #include "Frame.h"
-#include "AmberParm.h"
+#include "Topology.h"
 #ifdef NASTRUCTDEBUG
 #  include "CpptrajFile.h"
+#  include "PDBfile.h"
 #endif
 /*! \file AxisType.h
     \brief Hold classes and functions used for NA structure analysis.
@@ -17,7 +18,12 @@
   * - For holding the coordinates and rotation matrix/ origin of input 
   *   frames.
   */
-class AxisType : public Frame {
+#ifdef NASTRUCTDEBUG
+class AxisType : public Frame, PDBfile
+#else
+class AxisType : public Frame 
+#endif
+{
   public:
     /// Type for each standard NA base.
     enum NAbaseType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
@@ -52,7 +58,7 @@ class AxisType : public Frame {
     void StoreBPresnums(int,int);
 
     enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };
-    RefReturn SetRefCoord(AmberParm *, int, AtomMask &,AtomMask&,NAbaseType);
+    RefReturn SetRefCoord(Topology *, int, AtomMask &,AtomMask&,NAbaseType);
     void FlipYZ();
     void FlipXY();
 #ifdef NASTRUCTDEBUG

@@ -3,6 +3,6 @@
 #include "ParmIO.h"
 class CharmmPsfParmFile : public ParmIO {
   public :
-    int ReadParm(AmberParm&);
+    int ReadParm(Topology&);
 };
 #endif

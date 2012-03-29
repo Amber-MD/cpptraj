@@ -46,7 +46,7 @@ class Rotdif: public Action {
     char *deffOut;
 
     Frame RefFrame;
-    AmberParm *RefParm;
+    Topology *RefParm;
     Frame SelectedRef;
     AtomMask RefMask;
     AtomMask TargetMask;

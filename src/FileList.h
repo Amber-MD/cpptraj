@@ -11,9 +11,22 @@ class FileList {
       debug_ = dIn;
     }
 
+    void AddNames(char *, const char*, std::string &);
     void AddNames(char *, std::string &, std::string &);
     int FindName(char*); // TODO: Make obsolete
     int FindName(std::string&);
+    // TODO: Place these in definition
+    std::string &Tag(int idx) {
+      return tags_[idx];
+    }
+    std::string &Name(int idx) {
+      return basenames_[idx];
+    }
+    bool HasNames() {
+      if (!tags_.empty() || !fnames_.empty() || !basenames_.empty())
+        return true;
+      return false;
+    }
   protected:
     int debug_;
   private:

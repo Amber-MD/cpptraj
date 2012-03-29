@@ -1,19 +1,18 @@
-#include "CpptrajState.h"
+#include "Cpptraj.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 
 // Constructor
-CpptrajState::CpptrajState() {
+Cpptraj::Cpptraj() {
   debug=0;
   showProgress=true;
   activeRef = -1;
   exitOnError = true;
 }
 
-/* CpptrajState::SetGlobalDebug()
- * Set the debug level for all components of CpptrajState.
- */
-void CpptrajState::SetGlobalDebug(int debugIn) {
+// Cpptraj::SetGlobalDebug()
+/** Set the debug level for all components of Cpptraj. */
+void Cpptraj::SetGlobalDebug(int debugIn) {
   debug = debugIn;
   rprintf("DEBUG LEVEL SET TO %i\n",debug);
   trajinList.SetDebug(debug);
@@ -25,16 +24,16 @@ void CpptrajState::SetGlobalDebug(int debugIn) {
   DFL.SetDebug(debug);
 }
 
-// CpptrajState::Dispatch()
+// Cpptraj::Dispatch()
 /** Send commands to their appropriate classes.
  * The command is tried on each class in turn. If the class rejects command
  * move onto the next one. If command is accepted return.
  * \param inputLine NULL-terminated string consisting of commands and arguments.
  */
 // NOTE: Should differentiate between keyword rejection and outright error.
-void CpptrajState::Dispatch(char *inputLine) {
+void Cpptraj::Dispatch(char *inputLine) {
   ArgList dispatchArg;
-  AmberParm *tempParm; // For coordinate lists
+  Topology *tempParm; // For coordinate lists
 
   dispatchArg.SetList(inputLine," "); // Space delimited only?
   //printf("    *** %s ***\n",dispatchArg.ArgLine());
@@ -149,17 +148,17 @@ void CpptrajState::Dispatch(char *inputLine) {
   mprintf("Warning: Unknown Command %s.\n",dispatchArg.Command());
 }
 
-// CpptrajState::Run()
+// Cpptraj::Run()
 /** Process trajectories in trajinList. Each frame in trajinList is sent
  *  to the actions in actionList for processing.
  */
-int CpptrajState::Run() {
+int Cpptraj::Run() {
   TrajectoryFile* traj;
   int maxFrames=0;        // Total # of frames that will be read
   int actionSet=0;        // Internal data frame
   int readSets=0;         // Number of frames actually read
   int lastPindex=-1;      // Index of the last loaded parm file
-  AmberParm *CurrentParm=NULL; // Parm for actions; can be modified 
+  Topology *CurrentParm=NULL; // Parm for actions; can be modified 
   Frame *CurrentFrame=NULL;    // Frame for actions; can be modified
   Frame TrajFrame;       // Original Frame read in from traj
   FrameList refFrames;         // List of reference frames from referenceList
@@ -222,7 +221,7 @@ int CpptrajState::Run() {
                 CurrentParm->parmName);
         continue;
       }
-      //fprintf(stdout,"DEBUG: After setup of Actions in CpptrajState parm name is %s\n",
+      //fprintf(stdout,"DEBUG: After setup of Actions in Cpptraj parm name is %s\n",
       //        CurrentParm->parmName);
       lastPindex = CurrentParm->pindex;
     }

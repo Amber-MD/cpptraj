@@ -6,7 +6,7 @@
 /// Hold list of data sets.
 /** Main class for handling datasets. All dataset types can be allocated 
   * by DataSetList. Data sets are added to the list by various actions. 
-  * There is a master DataSetList in CpptrajState that will hold data indexed 
+  * There is a master DataSetList in Cpptraj that will hold data indexed 
   * by frame for use in analysis. Certain actions (e.g. NA structure analysis, 
   * closest etc) have datasets that are not indexed by frame; these actons will 
   * have their own separate dataset lists. By convention DataSetLists are the 

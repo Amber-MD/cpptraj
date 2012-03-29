@@ -44,6 +44,6 @@ class Rmsd: public Action, ActionReference {
     /// Resize per-residue RMSD masks
     void resizeResMasks();
     /// Set up per-residue RMSD calc
-    int perResSetup(AmberParm*);
+    int perResSetup(Topology*);
 };
 #endif

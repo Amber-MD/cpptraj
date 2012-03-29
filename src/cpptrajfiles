@@ -1,5 +1,5 @@
-SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
-        Action_Average.cpp Action_Center.cpp Action_CheckStructure.cpp \
+SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
+        Action_Average.cpp Action_Center.cpp  \
         Action_Closest.cpp Action_Clustering.cpp Action.cpp Action_Dihedral.cpp \
         Action_DihedralScan.cpp Action_Distance.cpp Action_DistRmsd.cpp \
         Action_DSSP.cpp Action_Hbond.cpp Action_Image.cpp Action_Jcoupling.cpp \
@@ -12,7 +12,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Analysis_PtrajAnalysis.cpp \
         ArgList.cpp ArgPrintf.cpp Atom.cpp AtomMask.cpp AxisType.cpp Box.cpp \
         CharBuffer.cpp ClusterList.cpp CoordFileList.cpp CoordList.cpp CpptrajFile.cpp \
-        CpptrajState.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
+        Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
         DataSet.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
         DataSetList.cpp DataSet_Matrix.cpp DataSet_string.cpp DataSet_XYZ.cpp \
@@ -20,7 +20,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
         FindDepend.cpp Frame.cpp FrameList.cpp Histogram.cpp Integrate.cpp \
         main.cpp \
-        MaskToken.cpp Mol2FileRoutines.cpp Molecule.cpp NameType.cpp NetcdfRoutines.cpp \
+        MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfRoutines.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \
         PDBfile.cpp ProgressBar.cpp ptraj_convert.cpp \

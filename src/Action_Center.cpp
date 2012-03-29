@@ -51,7 +51,7 @@ int Center::setup() {
   }
   mprintf("\t%s (%i atoms)\n",Mask1.MaskString(),Mask1.Nselected());
 
-  if (!origin && currentParm->boxType==NOBOX) {
+  if (!origin && currentParm->BoxType()==Box::NOBOX) {
     mprintf("Warning: Center::setup: Box center specified but no box information.\n");
     //fprintf(stdout,"                            Centering on origin.\n");
     return 1;

@@ -1,7 +1,7 @@
 #ifndef INC_COORDFILELIST_H
 #define INC_COORDFILELIST_H
 #include <list>
-#include "TrajectoryFile.h" // TrajectoryIO, AmberParm, ArgList, ProgressBar 
+#include "TrajectoryFile.h" // TrajectoryIO, Topology, ArgList, ProgressBar 
 // Class: CoordFileList
 /// Base class for trajectory lists.
 /** Used as base for input trajectories (trajin), output trajectories (trajout),
@@ -33,6 +33,6 @@ class CoordFileList {
 
     // Inherited Functions
     /// Add a trajectory to the list
-    virtual int Add(char *, ArgList *, AmberParm *) { return 1; }
+    virtual int Add(char *, ArgList *, Topology *) { return 1; }
 };
 #endif    

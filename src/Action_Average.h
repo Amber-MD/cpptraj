@@ -6,7 +6,7 @@
 class Average: public Action {
     AtomMask Mask1;
     Frame *AvgFrame;
-    AmberParm *AvgParm;
+    Topology *AvgParm;
     ArgList trajArgs;
     bool parmStripped;
     int Natom;

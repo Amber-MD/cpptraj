@@ -8,6 +8,13 @@ FileList::FileList() :
 // DESTRUCTOR
 FileList::~FileList() {}
 
+// TODO: Make obsolete
+// NOTE: From FrameList::AddRefFrame
+void FileList::AddNames(char *basename, const char *filename, std::string &tag) {
+  std::string bname( basename );
+  return AddNames((char*)filename, bname, tag);
+}
+
 // FileList::AddNames()
 void FileList::AddNames(char *filename, std::string &basename, std::string &tag) {
   fnames_.push_back( std::string(filename) );

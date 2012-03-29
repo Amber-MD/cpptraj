@@ -14,8 +14,8 @@ class Conflib: public TrajectoryIO {
     int conflibAtom_;
 
     // Inherited functions
-    int setupTrajin(AmberParm*);
-    int setupTrajout(AmberParm*);
+    int setupTrajin(Topology*);
+    int setupTrajout(Topology*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);

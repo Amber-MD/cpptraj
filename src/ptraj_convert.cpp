@@ -43,7 +43,7 @@ void FreeArgumentStack(argStackType *argumentStack) {
 }
 
 // CreateState()
-ptrajState *CreateState(AmberParm *currentParm, int maxFrames) {
+ptrajState *CreateState(Topology *currentParm, int maxFrames) {
   ptrajState *state;
 
   state = (ptrajState*) malloc( sizeof(ptrajState) );

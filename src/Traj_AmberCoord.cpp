@@ -166,7 +166,7 @@ static inline bool IsRemdHeader(char* buffer) {
   * \return -1 if an error occurs.
   * \return -2 if the number of frames could not be determined.
   */
-int AmberCoord::setupTrajin(AmberParm *trajParm) {
+int AmberCoord::setupTrajin(Topology *trajParm) {
   char buffer[BUF_SIZE];
   int maxi;
   size_t frame_lines, lineSize;
@@ -355,7 +355,7 @@ int AmberCoord::processWriteArgs(ArgList *argIn) {
   * size, necessary only for seeking when MPI writing. Allocate memory for
   * the frame buffer. 
   */
-int AmberCoord::setupTrajout(AmberParm *trajParm) {
+int AmberCoord::setupTrajout(Topology *trajParm) {
   int frame_lines;
   //long int outfilesize;
 

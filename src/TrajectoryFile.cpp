@@ -5,8 +5,8 @@
 #include <sstream> // for NumberedWrite
 #include "TrajectoryFile.h"
 #include "NetcdfRoutines.h"
-#include "PDBfileRoutines.h"
-#include "Mol2FileRoutines.h"
+//#include "PDBfileRoutines.h"
+//#include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
@@ -513,7 +513,7 @@ void TrajectoryFile::SingleFrame() {
   * explicitly, or if not it should be the second argument in the given
   * argument list. Associate this trajectory with the given parm file.
   */
-int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, AmberParm *tparmIn) {
+int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, Topology *tparmIn) {
   char *tname = NULL;
   // REMD
   double remdtrajtemp = 0.0;
@@ -735,7 +735,7 @@ std::string TrajectoryFile::GetExtensionForType(TrajFormatType typeIn) {
   * to an argument list and passed to SetupWrite.
   */
 int TrajectoryFile::SetupWriteWithArgs(char *tnameIn, const char *argstring,
-                                       AmberParm *tparmIn, TrajFormatType fmtIn) 
+                                       Topology *tparmIn, TrajFormatType fmtIn) 
 {
   ArgList tempArg;
   //char *tempString;
@@ -751,7 +751,7 @@ int TrajectoryFile::SetupWriteWithArgs(char *tnameIn, const char *argstring,
 
 // TrajectoryFile::SetupWrite()
 // Currently only used byt Clustering
-int TrajectoryFile::SetupWrite(char *tnameIn, AmberParm *tparmIn, char *fmtArg) {
+int TrajectoryFile::SetupWrite(char *tnameIn, Topology *tparmIn, char *fmtArg) {
   ArgList tempArg;
   if (fmtArg!=NULL)
     tempArg.AddArg(fmtArg);
@@ -760,7 +760,7 @@ int TrajectoryFile::SetupWrite(char *tnameIn, AmberParm *tparmIn, char *fmtArg) 
 
 // TrajectoryFile::SetupNumberedWrite()
 // CUrrently only used by clustering
-int TrajectoryFile::SetupNumberedWrite(char *prefixIn, int numIn, AmberParm *tparmIn, 
+int TrajectoryFile::SetupNumberedWrite(char *prefixIn, int numIn, Topology *tparmIn, 
                                        char *fmtArg)
 {
   std::string Prefix;
@@ -789,7 +789,7 @@ int TrajectoryFile::SetupNumberedWrite(char *prefixIn, int numIn, AmberParm *tpa
   * like stripped atoms and so on. 
   * NOTE: make remdtraj a generic trigger for hasTemperature?
   */
-int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, AmberParm *tparmIn,
+int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, Topology *tparmIn,
                                TrajFormatType writeFormatIn) 
 {
   char *tname = NULL;
@@ -974,7 +974,7 @@ int TrajectoryFile::GetNextFrame(Frame& FrameIn) {
   * opened, so there is no need to call BeginTraj for output trajectories.
   * EndTraj() should still be called.
   */
-int TrajectoryFile::WriteFrame(int set, AmberParm *tparmIn, Frame &FrameOut) {
+int TrajectoryFile::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
   // Check that input parm matches setup parm - if not, skip
   if (tparmIn->pindex != trajParm_->pindex) return 0;
 
@@ -1071,7 +1071,7 @@ void TrajectoryFile::PrintInfo(int showExtended) {
 // Return private variables
 int TrajectoryFile::CurrentFrame()       { return currentFrame_;       }
 char *TrajectoryFile::TrajName()         { return (char*) trajName_;   }
-AmberParm *TrajectoryFile::TrajParm()    { return trajParm_;           }
+Topology *TrajectoryFile::TrajParm()    { return trajParm_;           }
 int TrajectoryFile::Start()              { return start_;              }
 int TrajectoryFile::Total_Read_Frames()  { return total_read_frames_;  }
 int TrajectoryFile::Total_Frames()       { return total_frames_;       }
@@ -1084,5 +1084,10 @@ int TrajectoryFile::NumFramesProcessed() { return numFramesProcessed_; }
 bool TrajectoryFile::HasVelocity() { 
   if (trajio_!=NULL) return trajio_->HasVelocity(); 
   return false;
+}
+
+const char *TrajectoryFile::FileName() {
+  if (trajio_!=NULL) return trajio_->Name();
+  return 0;
 }
 

@@ -1,20 +1,32 @@
-#ifndef INC_CPPTRAJSTATE_H
-#define INC_CPPTRAJSTATE_H 
+#ifndef INC_CPPTRAJ_H
+#define INC_CPPTRAJ_H 
 #include "TrajinList.h"
 #include "TrajoutList.h"
 #include "ReferenceList.h"
-#include "ParmFileList.h"
+#include "TopologyList.h"
 #include "DataSetList.h"
 #include "DataFileList.h"
 #include "ActionList.h"
 #include "AnalysisList.h"
 #include "ArgList.h"
-// Class: CpptrajState:
+// Class: Cpptraj:
 /// Hold state information.
 /** This is the main class for cpptraj. It holds all data and controls the 
  *  overall flow of the program. It exists in main.cpp.
  */
-class CpptrajState {
+class Cpptraj {
+  public:
+    /// Set debug level for all components
+    void SetGlobalDebug(int);
+    /// Function that decides where to send commands
+    void Dispatch(char*);        
+
+    Cpptraj();
+    /// Controls main flow of the program.
+    int Run();
+  private:
+    /// List of parameter files 
+    TopologyList parmFileList;
     /// List of input trajectory files
     TrajinList trajinList;
     /// List of reference coordinate files
@@ -37,16 +49,5 @@ class CpptrajState {
     bool showProgress;
     /// If true cpptraj will exit if errors are encountered instead of trying to continue
     bool exitOnError;
-  public:
-    /// Set debug level for all components
-    void SetGlobalDebug(int);
-    /// List of parameter files 
-    ParmFileList parmFileList;
-    /// Function that decides where to send commands
-    void Dispatch(char*);        
-
-    CpptrajState();
-    /// Controls main flow of the program.
-    int Run(); 
 };
 #endif

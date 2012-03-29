@@ -25,8 +25,8 @@ class AmberRestart : public TrajectoryIO {
     bool singleWrite_;     ///< If false, frame # will be appended to output filename
 
     // Inherited functions
-    int setupTrajin(AmberParm*);
-    int setupTrajout(AmberParm*);
+    int setupTrajin(Topology*);
+    int setupTrajout(Topology*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);

@@ -4,8 +4,8 @@
 // Class: Strip
 /// Used to remove atoms from the state.
 class Strip: public Action {
-    AmberParm *oldParm;
-    AmberParm *newParm;
+    Topology *oldParm;
+    Topology *newParm;
     Frame newFrame;
     char *prefix;
     AtomMask M1;

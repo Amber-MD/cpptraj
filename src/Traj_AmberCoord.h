@@ -20,8 +20,8 @@ class AmberCoord: public TrajectoryIO {
     static const size_t BUF_SIZE;
 
     // Inherited functions
-    int setupTrajin(AmberParm*);
-    int setupTrajout(AmberParm*);
+    int setupTrajin(Topology*);
+    int setupTrajout(Topology*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);

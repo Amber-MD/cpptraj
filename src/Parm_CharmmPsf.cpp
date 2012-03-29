@@ -8,7 +8,7 @@
 /** Open the Charmm PSF file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
   */
-int CharmmPsfParmFile::ReadParm(AmberParm &parmOut) {
+int CharmmPsfParmFile::ReadParm(Topology &parmOut) {
   char buffer[256],tag[256];
   NAME psfname, psfresname;
   int bondatoms[8];

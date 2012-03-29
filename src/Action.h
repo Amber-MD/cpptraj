@@ -4,7 +4,7 @@
 #include "ArgList.h"
 #include "DataSetList.h"
 #include "DataFileList.h"
-#include "ParmFileList.h"
+#include "TopologyList.h"
 // Class: Action 
 /// The base class that all other actions inherit. 
 /** Each action currently holds the memory address of all important state 
@@ -29,17 +29,17 @@ class Action {
   protected:
     bool isSeparate;        ///< If true action was initialized outside main action list.
     ArgList actionArgs;     ///< The action arguments (setArg)
-    AmberParm *currentParm; ///< The current parmtop (setup)
+    Topology *currentParm; ///< The current parmtop (setup)
     Frame *currentFrame;    ///< The current frame (action)
-    DataSetList *DSL;       ///< Pointer to the data set list in CpptrajState (init)
-    DataFileList *DFL;      ///< Pointer to the data file list in CpptrajState (init)
-    ParmFileList *PFL;      ///< Pointer to the parm file list in CpptrajState (init)
-    FrameList *FL;          ///< Pointer to the reference frame list in CpptrajState (init)
+    DataSetList *DSL;       ///< Pointer to the data set list in Cpptraj (init)
+    DataFileList *DFL;      ///< Pointer to the data file list in Cpptraj (init)
+    TopologyList *PFL;      ///< Pointer to the parm file list in Cpptraj (init)
+    FrameList *FL;          ///< Pointer to the reference frame list in Cpptraj (init)
     bool useMass;              ///< If set to true, calculations will use mass info
     bool useMassOriginalValue; ///< Value of useMass set by init
     bool useImage;             ///< If set to true, calculations will use imaging info
     bool useImageOriginalValue;///< Value of useImage set by init
-    BoxType imageType;         ///< Type of imaging to be performed.
+    Box::BoxType imageType;         ///< Type of imaging to be performed.
 
     int debug;              ///< action debug level
     int frameNum;           ///< # of current frame being processed, set by ActionList
@@ -76,9 +76,9 @@ class Action {
     const char *CmdLine();       ///< Print the entire argument line
 
     /// Initialize action, call init()
-    int Init(DataSetList*, FrameList*, DataFileList*, ParmFileList *,int); 
+    int Init(DataSetList*, FrameList*, DataFileList*, TopologyList *,int); 
     /// Set up action for parm, call setup()
-    int Setup(AmberParm **);
+    int Setup(Topology **);
     /// Perform action on frame, call action()
     ActionReturnType DoAction(Frame **,int);    
 

@@ -162,13 +162,13 @@ int Clustering::action() {
 // Clustering::calcDistFromRmsd()
 int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   // Reference
-  AmberParm *RefParm = NULL;
+  Topology *RefParm = NULL;
   Frame *RefFrame = NULL;
   Frame SelectedRef;
   int lastrefpindex=-1;
   int refatoms = 0;
   // Target
-  AmberParm *TgtParm;
+  Topology *TgtParm;
   Frame *TgtFrame;
   Frame SelectedTgt;
   int lasttgtpindex=-1;
@@ -350,7 +350,7 @@ void Clustering::WriteClusterTraj( ClusterList *CList ) {
   char *cfilename;
   int cnum,framenum;
   TrajectoryFile *clusterout = NULL;
-  AmberParm *clusterparm;
+  Topology *clusterparm;
   Frame *clusterframe;
 
   // Figure out max size of cluster filename
@@ -400,7 +400,7 @@ void Clustering::WriteClusterTraj( ClusterList *CList ) {
 void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
   int framenum, framecounter;
   TrajectoryFile clusterout;
-  AmberParm *clusterparm;
+  Topology *clusterparm;
   Frame *clusterframe;
 
   // Find centroid of first cluster in order to set up parm
@@ -442,7 +442,7 @@ void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
 void Clustering::WriteRepTraj( ClusterList *CList ) {
   int framenum, cnum;
   TrajectoryFile *clusterout = NULL;
-  AmberParm *clusterparm;
+  Topology *clusterparm;
   Frame *clusterframe;
 
   CList->Begin();

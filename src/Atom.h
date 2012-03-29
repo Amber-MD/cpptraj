@@ -15,7 +15,7 @@ class Atom {
 
     Atom();
     Atom(int, NameType, double (&)[3]);
-    Atom( NameType, double, int, double, int, double, double );
+    Atom( int, NameType, double, int, double, int, double, double );
     Atom(const Atom &);
     void swap(Atom &, Atom &);
     Atom &operator=(Atom);
@@ -31,6 +31,9 @@ class Atom {
     void PrintXYZ();
     void Info();
 
+    inline void SetNum(int num) {
+      anum_ = num;
+    }
     void SetName(NameType);
     void SetResNum(int);
     void SetMol(int);
@@ -59,6 +62,9 @@ class Atom {
     }
     inline const double *XYZ() const {
       return coords_;
+    }
+    inline double Mass() const {
+      return mass_;
     }
 
     void AddBond(int);

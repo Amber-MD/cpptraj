@@ -1,9 +1,8 @@
 #ifndef INC_FRAMELIST_H
 #define INC_FRAMELIST_H
-#include <vector>
-#include <string>
 #include "Frame.h"
-#include "ParmFileList.h"
+#include "Topology.h"
+#include "FileList.h"
 // Class: FrameList
 /// Hold a series of Frame classes. 
 /** Optionally hold a corresponding name and number (in the case of 
@@ -11,15 +10,8 @@
   * file and the frame number). 
   */
 // NOTE: Eventually store a vector of Frames, not Frame*s
-class FrameList {
-    std::vector<Frame*> frameList;
-    ParmFileList FrameParm;
-    std::vector<std::string> frameNames;
-    std::vector<std::string> frameTags;
-    std::vector<int> frameNums;
-    int Nframe;
-    int referenceFrameNum;
-  
+class FrameList : public FileList {
+ 
   public:
 
     FrameList();
@@ -27,16 +19,23 @@ class FrameList {
 
     Frame *ActiveReference();
     void SetActiveRef(int);
-    int AddRefFrame(Frame *, char *, AmberParm *,int,std::string&);
-    int AddFrame(Frame *, AmberParm *);
-    AmberParm *GetFrameParm(int);
+    int AddRefFrame(Frame *, char *, const char *,Topology *,int,std::string&);
+    int AddFrame(Frame *, Topology *);
+    Topology *GetFrameParm(int);
     int GetFrameIndex(char *);
     int GetFrameIndexByTag(std::string &);
     Frame *GetFrame(int idx);
-    int ReplaceFrame(int, Frame *, AmberParm *);
+    int ReplaceFrame(int, Frame *, Topology *);
     void Info();
     const char *FrameName(int);
 
-    int NumFrames() { return Nframe; }
+    inline int NumFrames() { 
+      return (int)frames_.size();
+    }
+  private:
+    std::vector<Frame*> frames_;
+    std::vector<Topology*> parms_;
+    std::vector<int> nums_;
+    int refFrameNum_;
 };
 #endif

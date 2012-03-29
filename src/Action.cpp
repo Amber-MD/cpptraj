@@ -55,11 +55,11 @@ const char *Action::CmdLine() {
   * \param DSLin pointer to the master DataSetList
   * \param FLin pointer to the master Reference FrameList
   * \param DFLin pointer to the master DataFileList
-  * \param PFLin pointer to the master ParmFileList
+  * \param PFLin pointer to the master TopologyList
   * \param debugIn Debug level that action should be set to
   */
 int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin, 
-                 ParmFileList *PFLin, int debugIn) 
+                 TopologyList *PFLin, int debugIn) 
 {
   DSL=DSLin;
   FL=FLin;
@@ -84,12 +84,12 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   * current parm memory address is set here but can also be modified
   * by the action, this allows e.g. stripping of the parm. Only copies
   * of the parm should be modified; a reference to the original parm is
-  * always stored in CpptrajState and can be reset there with the 'unstrip'
+  * always stored in Cpptraj and can be reset there with the 'unstrip'
   * command.
   * \param ParmAddress memory address of current parm; may be changed
   *        by the action.
   */
-int Action::Setup(AmberParm **ParmAddress) {
+int Action::Setup(Topology **ParmAddress) {
   currentParm = *ParmAddress;
   // If useImage, check imaging type based on prmtop box.
   useImage = useImageOriginalValue;

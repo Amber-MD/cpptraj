@@ -4,10 +4,6 @@
 #include <cstdio> //sprintf
 #include "AxisType.h"
 #include "CpptrajStdio.h"
-#ifdef NASTRUCTDEBUG
-// DEBUG
-#  include "PDBfileRoutines.h"
-#endif
 
 // ---------- NA REFERENCE BASE ATOM NAMES AND COORDS --------------------------
 #define ADENATOM 11
@@ -404,7 +400,7 @@ void AxisType::StoreBPresnums(int r1, int r2) {
   * Set up a mask to select correct atoms in the given parm.
   * \return 0 on success, 1 on error.
   */
-AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum, 
+AxisType::RefReturn AxisType::SetRefCoord(Topology *currentParm, int resnum, 
                                           AtomMask &parmMask, AtomMask &fitMask,
                                           AxisType::NAbaseType customBaseType) 
 {

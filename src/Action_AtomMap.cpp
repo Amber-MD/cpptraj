@@ -329,7 +329,7 @@ void atommap::WriteMol2(char *m2filename) {
   TrajectoryFile outfile;
   AtomMask M1;
   // Temporary parm to play with
-  AmberParm *tmpParm;
+  Topology *tmpParm;
   //Frame tmpFrame;
   ArgList tmpArg;
 

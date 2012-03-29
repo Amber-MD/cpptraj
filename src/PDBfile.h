@@ -2,7 +2,7 @@
 #define INC_PDBFILE_H
 #include "Topology.h" // Atom, Residue
 #include "FileIO.h"
-// Used to access PDB files
+/// Used to access PDB files
 class PDBfile {
   public:
     PDBfile();

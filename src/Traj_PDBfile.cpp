@@ -1,6 +1,5 @@
 // PDBfile
 #include "Traj_PDBfile.h"
-#include "PDBfileRoutines.h"
 #include "CpptrajStdio.h"
 
 const size_t PDBfile::BUF_SIZE = 83;
@@ -64,7 +63,7 @@ int PDBfile::openTraj() {
   * also be checked to ensure that the atom names match those in the parm file
   * in TrajectoryFile.
   */
-int PDBfile::setupTrajin(AmberParm *trajParm) {
+int PDBfile::setupTrajin(Topology *trajParm) {
   char buffer[BUF_SIZE];
   int atom, Frames;
   int numMismatch = 0;
@@ -164,7 +163,7 @@ int PDBfile::processWriteArgs(ArgList *argIn) {
 /** Set parm information needed for write, and check write mode against
   * number of frames to be written.
   */ 
-int PDBfile::setupTrajout(AmberParm *trajParm) {
+int PDBfile::setupTrajout(Topology *trajParm) {
   pdbAtom_ = trajParm->natom;
   pdbAtomNames_ = trajParm->AtomNames_ptr();
   trajResNames_ = trajParm->ResidueNames_ptr();

@@ -20,7 +20,7 @@ class Rms2d: public Action {
     char *rmsdFile;            ///< Output filename
     DataSetList RmsData;       ///< 1 data set for each ref frame to each tgt frame
     TrajectoryFile *RefTraj;   ///< Reference trajectory, each frame used in turn
-    AmberParm *RefParm;        ///< Reference trajectory Parm
+    Topology *RefParm;        ///< Reference trajectory Parm
     DataSet_double Ct;         ///< Hold auto-correlation
     char *corrfilename;        ///< Auto-correlation output filename
     double *mass_ptr;          ///< If useMass, hold mass info for parm.

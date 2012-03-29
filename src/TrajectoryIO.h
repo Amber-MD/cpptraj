@@ -1,6 +1,6 @@
 #ifndef INC_TRAJECTORYIO_H
 #define INC_TRAJECTORYIO_H
-#include "AmberParm.h" // BoxType
+#include "Topology.h" // BoxType
 #include "CpptrajFile.h"
 #include "ArgList.h"
 // Class: TrajectoryIO
@@ -22,18 +22,18 @@ class TrajectoryIO : public CpptrajFile {
     // -----------===== Inherited functions =====-----------
     /// Set up trajectory IO for READ/APPEND
     /** Called inside TrajectoryFile::SetupRead. Takes as an argument the 
-      * AmberParm class that will be associated with this trajectory. Returns 
+      * Topology class that will be associated with this trajectory. Returns 
       * the number of frames in the underlying trajectory file. Should set all 
       * variables (title, seekable, hasBox, boxAngle (only if hasBox), 
       * hasTemperature, and hasVelocity. If an error occurs should return -1.
       */
-    virtual int setupTrajin(AmberParm *) { return -1; }
+    virtual int setupTrajin(Topology *) { return -1; }
     /// Set up trajectory IO for WRITE 
     /** Called inside TrajectoryFile::WriteFrame on the first write call. Takes
-      * as an argument the AmberParm class that will be associated with this 
+      * as an argument the Topology class that will be associated with this 
       * trajectory. 
       */
-    virtual int setupTrajout(AmberParm *) { return 1; }
+    virtual int setupTrajout(Topology *) { return 1; }
     /// Open traj, prepare for IO.
     virtual int openTraj() { return 1; }
     /// Read a frame from trajectory
@@ -73,7 +73,7 @@ class TrajectoryIO : public CpptrajFile {
     /// For writes, indicate box information should be written
     void SetBox();
     /// Check box info in traj against box info in parm
-    int CheckBoxInfo(AmberParm*);
+    int CheckBoxInfo(Topology*);
 
     /// Return true if the trajectory is seekable.
     bool Seekable();

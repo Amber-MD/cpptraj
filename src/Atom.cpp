@@ -9,7 +9,7 @@ const int Atom::AtomicElementNum[22] = { 0,
 // CONSTRUCTOR
 Atom::Atom() : 
   charge_(0),
-  mass_(0),
+  mass_(1),
   gb_radius_(0),
   gb_screen_(0),
   aname_(""),
@@ -32,7 +32,7 @@ Atom::Atom() :
 /// Take atom name and original atom number. Attempt to determine element.
 Atom::Atom(int anum, NameType aname, double (&XYZ)[3]) :
   charge_(0),
-  mass_(0),
+  mass_(1),
   gb_radius_(0),
   gb_screen_(0),
   aname_(aname),
@@ -53,7 +53,7 @@ Atom::Atom(int anum, NameType aname, double (&XYZ)[3]) :
 }
 
 // CONSTRUCTOR
-Atom::Atom( NameType name, double charge, int atomicnum, double mass, int atidx,
+Atom::Atom( int anum, NameType name, double charge, int atomicnum, double mass, int atidx,
             double rad, double screen ) :
   charge_(charge),
   mass_(mass),
@@ -66,7 +66,7 @@ Atom::Atom( NameType name, double charge, int atomicnum, double mass, int atidx,
   atype_index_(atidx),
   join_(0),
   element_(UNKNOWN_ELEMENT),
-  anum_(0),
+  anum_(anum),
   resnum_(0),
   mol_(0)
 {

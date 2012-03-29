@@ -12,7 +12,7 @@ class AnalysisList {
     
     void SetDebug(int);
     int AddAnalysis(ArgList &);
-    int Setup(DataSetList*,ParmFileList*);
+    int Setup(DataSetList*,TopologyList*);
     void Analyze(DataFileList*); 
 };
 #endif

@@ -16,7 +16,7 @@ Outtraj::Outtraj() {
   */
 int Outtraj::init() {
   char *datasetName;
-  AmberParm *tempParm;
+  Topology *tempParm;
 
 #ifdef MPI
   mprintf("ERROR: OUTTRAJ currently not functional with MPI.\n");

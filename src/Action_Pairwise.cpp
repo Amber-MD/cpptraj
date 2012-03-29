@@ -127,12 +127,12 @@ int Pairwise::init( ) {
 /** Set up the exclusion list based on the given mask and parm.
   * \return the total number of interactions, -1 on error.
   */
-int Pairwise::SetupNonbondParm(AtomMask &maskIn, AmberParm *ParmIn) {
+int Pairwise::SetupNonbondParm(AtomMask &maskIn, Topology *ParmIn) {
   int N_interactions = 0;
 
   // Charge is in units of electron charge, distance is in angstroms, so 
   // the electrostatic prefactor should be 332. However, since the charges
-  // in AmberParm have presumably been converted from Amber charge units
+  // in Topology have presumably been converted from Amber charge units
   // create a new charged array multiplied by 18.2223. This makes calcs with 
   // Amber-converted charges more accurate at the cost of making non-Amber 
   // charges less accurate.
@@ -215,7 +215,7 @@ int Pairwise::setup() {
   * to a reference structure, pairs for which the energy difference exceeds
   * the cutoffs are printed.
   */
-void Pairwise::NonbondEnergy(Frame *frameIn, AmberParm *parmIn, AtomMask &maskIn) {
+void Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &maskIn) {
   double rij, rij2, JI[3], delta2, Acoef, Bcoef;
   std::vector<NonbondEnergyType>::iterator refpair;
   NonbondEnergyType refE;
@@ -327,10 +327,10 @@ void Pairwise::NonbondEnergy(Frame *frameIn, AmberParm *parmIn, AtomMask &maskIn
 }
 
 // Pairwise::WriteCutFrame()
-int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharges,
+int Pairwise::WriteCutFrame(Topology *Parm, AtomMask *CutMask, double *CutCharges,
                             Frame *frame, char *outfilename) 
 {
-  AmberParm *CutParm;
+  Topology *CutParm;
   Frame CutFrame(*frame,*CutMask);
   TrajectoryFile tout;
   // TEST: Write file containing only cut atoms

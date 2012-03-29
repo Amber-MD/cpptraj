@@ -7,11 +7,11 @@
 // TrajoutList::AddTrajout()
 /** Add trajectory to the trajectory list as an output trajectory. 
   * Associate the trajectory with one of the parm files in the 
-  * ParmFileList. 
+  * TopologyList. 
   * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
   *         [<range>]
   */
-int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, AmberParm *parmIn) {
+int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, Topology *parmIn) {
   TrajectoryFile *traj;
   char *filename;
 
@@ -54,7 +54,7 @@ int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, AmberParm *parmIn) {
   * matches the parm the trajectory was originally set up with it will
   * be opened, no need to call BeginTraj.
   */ 
-int TrajoutList::Write(int set, AmberParm *CurrentParm, Frame *CurrentFrame) { 
+int TrajoutList::Write(int set, Topology *CurrentParm, Frame *CurrentFrame) { 
   std::list<TrajectoryFile*>::iterator traj;
 
   for (traj = trajList.begin(); traj != trajList.end(); traj++) {

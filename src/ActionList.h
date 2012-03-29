@@ -30,9 +30,9 @@ class ActionList {
     /// Add an action to the action list.
     int AddAction(ArgList &);
     /// Initialize actions
-    int Init(DataSetList *, FrameList *, DataFileList *, ParmFileList*,bool);
+    int Init(DataSetList *, FrameList *, DataFileList *, TopologyList*,bool);
     /// Set up actions for the given parm
-    int Setup(AmberParm **);
+    int Setup(Topology **);
     /// Perform actions on the given frame
     bool DoActions(Frame **, int);
     /// Call print for each action

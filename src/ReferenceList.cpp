@@ -9,7 +9,7 @@ ReferenceList::ReferenceList() { }
 ReferenceList::~ReferenceList() {
   // Free any stripped reference parms since they dont exist in the
   // main parm file list. 
-  for (std::vector<AmberParm*>::iterator prm = StrippedRefParms.begin();
+  for (std::vector<Topology*>::iterator prm = StrippedRefParms.begin();
                                          prm != StrippedRefParms.end();
                                          prm++)
     delete *prm;
@@ -19,11 +19,11 @@ ReferenceList::~ReferenceList() {
 /** Add trajectory to the trajectory list as a reference trajectory. The list
   * will be converted to a list of reference frames by SetupRefFrames before
   * trajectories are processed. Associate the trajectory with one of the parm 
-  * files in the ParmFileList. 
+  * files in the TopologyList. 
   * reference <filename> [start] [parm <parmfile> | parmindex <#>]
   */
 // NOTE: Do not allocate Frames with new, should be static?
-int ReferenceList::AddReference(char *filename, ArgList *A, AmberParm *parmIn) {
+int ReferenceList::AddReference(char *filename, ArgList *A, Topology *parmIn) {
   TrajectoryFile *traj;
   bool average = false;
   char *maskexpr;
@@ -76,7 +76,7 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
   int trajFrames;
   double Nframes;
   Frame *CurrentFrame, *AvgFrame;
-  AmberParm *CurrentParm;
+  Topology *CurrentParm;
   int refTrajNum;
   AtomMask Mask;
 
@@ -160,7 +160,7 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       Frame* strippedRefFrame = new Frame(*CurrentFrame, Mask);
       mprintf("\tKept %i atoms.\n",strippedRefFrame->Natom());
       // Create new stripped parm
-      AmberParm *strippedRefParm = CurrentParm->modifyStateByMask(Mask,NULL);
+      Topology *strippedRefParm = CurrentParm->modifyStateByMask(Mask,NULL);
       if (strippedRefParm==NULL) {
         mprinterr("Error: could not strip reference.\n");
         return 1;
@@ -180,8 +180,8 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     }
     
     // NOTE: Also use full file path??
-    refFrames->AddRefFrame(CurrentFrame,(*traj)->TrajName(),CurrentParm,
-                           (*traj)->Start(),RefTags[refTrajNum]);
+    refFrames->AddRefFrame(CurrentFrame,(*traj)->TrajName(),(*traj)->FileName(),
+                           CurrentParm, (*traj)->Start(),RefTags[refTrajNum]);
   }
   return 0;
 }

@@ -110,7 +110,7 @@ int AmberRestart::processWriteArgs(ArgList *argIn) {
 /** Allocate a character buffer based on number of coords and whether 
   * velocities/box info is present.
   */
-int AmberRestart::setupTrajout(AmberParm *trajParm) {
+int AmberRestart::setupTrajout(Topology *trajParm) {
   size_t frame_lines;
 
   restartAtoms_ = trajParm->natom;
@@ -187,7 +187,7 @@ int AmberRestart::getBoxAngles(char *boxline) {
 /** Set up amber restart file for reading. Check that number of atoms matches
   * number of atoms in associated parmtop. Check for box/velocity info.
   */
-int AmberRestart::setupTrajin(AmberParm *trajParm) {
+int AmberRestart::setupTrajin(Topology *trajParm) {
   char buffer[BUF_SIZE];
   size_t frame_lines,lineSize;
 

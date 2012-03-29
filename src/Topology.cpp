@@ -137,7 +137,7 @@ void Topology::Summary() {
 // Topology::ParmInfo()
 void Topology::ParmInfo() {
   mprintf(" %i: %s, %zu atoms, %zu res, ",pindex_,parmName_.c_str(),atoms_.size(),residues_.size());
-  box.PrintBoxType();
+  box_.PrintBoxType();
   mprintf(", %zu mol",molecules_.size());
   //if (solventMolecules>0)
   //  mprintf(", %i solvent mol",solventMolecules);
@@ -304,7 +304,7 @@ int Topology::CreateMoleculeArray(std::vector<int> &atomsPerMol, Box parmbox,
     molecules_.push_back( Molecule(firstRes, molbegin, molend) );
     molbegin = molend;
   }
-  box = parmbox;
+  box_ = parmbox;
   finalSoluteRes_ = finalSoluteRes;
   firstSolventMol_ = firstSolvMol;
   return 0;
@@ -1165,7 +1165,7 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
   newParm->DetermineExcludedAtoms();
 
   // Copy box information
-  newParm->box = box;
+  newParm->box_ = box_;
 
   return newParm;
 }

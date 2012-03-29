@@ -1,9 +1,10 @@
 #ifndef INC_TRAJ_PDBFILE_H
 #define INC_TRAJ_PDBFILE_H
 #include "TrajectoryIO.h"
+#include "PDBfile.h"
 // Class: PDBfile
 /// TrajectoryIO class for reading coordinates from PDB files.
-class PDBfile: public TrajectoryIO {
+class PDBfile: public TrajectoryIO, PDBfile {
   public:
     /** PDBWRITEMODE: Indicate how the pdb should be written.
       *  SINGLE: Writing only a single frame.
@@ -37,8 +38,8 @@ class PDBfile: public TrajectoryIO {
     char chainchar_;
 
     // Inherited functions
-    int setupTrajin(AmberParm*);
-    int setupTrajout(AmberParm*);
+    int setupTrajin(Topology*);
+    int setupTrajout(Topology*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);

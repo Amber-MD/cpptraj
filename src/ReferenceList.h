@@ -7,13 +7,13 @@ class ReferenceList : public CoordFileList {
     std::vector<bool> Average;
     std::vector<std::string> MaskExpressions;
     std::vector<std::string> RefTags;
-    std::vector<AmberParm*> StrippedRefParms;
+    std::vector<Topology*> StrippedRefParms;
   public:
     
     ReferenceList();
     ~ReferenceList();
     // Add a traj file to the list with given access and associate with a parm
-    int AddReference(char*,ArgList *A, AmberParm *);
+    int AddReference(char*,ArgList *A, Topology *);
     // REFERENCE: Set up frames to be processed
     int SetupRefFrames(FrameList *);
 };

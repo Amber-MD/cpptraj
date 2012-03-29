@@ -3,7 +3,7 @@
 #include "ArgList.h"
 #include "DataSetList.h"
 #include "DataFileList.h"
-#include "ParmFileList.h"
+#include "TopologyList.h"
 // Class: Analysis
 /// Base class that all analysis routines will inherit.
 /** Analysis occurs after trajectories are read and data sets populated.
@@ -13,7 +13,7 @@ class Analysis {
   protected:
     int debug;
     ArgList analyzeArgs;
-    AmberParm *analyzeParm;
+    Topology *analyzeParm;
   public:
     Analysis();
     virtual ~Analysis();
@@ -22,7 +22,7 @@ class Analysis {
 
     void SetArg(const ArgList &);
     void SetDebug(int);
-    void SetParm(ParmFileList*);
+    void SetParm(TopologyList*);
     const char *AnalysisCommand();   ///< Print the command that calls the analysis
     const char *CmdLine();           ///< Print the entire argument line 
   

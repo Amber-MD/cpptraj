@@ -1,13 +1,12 @@
 // Parm_Mol2.cpp
 #include "Parm_Mol2.h"
-#include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
 #include <cstdio> // sscanf
 #include <cstring> // memcpy, strcpy
 
 // Mol2ParmFile::ReadParm()
 /** Read file as a Tripos Mol2 file. */
-int Mol2ParmFile::ReadParm(AmberParm &parmOut) {
+int Mol2ParmFile::ReadParm(Topology &parmOut) {
   char buffer[MOL2BUFFERSIZE];
   int mol2bonds;
   int resnum, currentResnum;

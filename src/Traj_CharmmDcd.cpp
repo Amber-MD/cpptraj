@@ -200,7 +200,7 @@ int CharmmDcd::WriteBlock(int blocksize) {
 // CharmmDcd::setupTrajin()
 /** Call openTraj, which reads the DCD header and all necessary info.
   */
-int CharmmDcd::setupTrajin(AmberParm *trajParm) {
+int CharmmDcd::setupTrajin(Topology *trajParm) {
   if ( openTraj() ) return -1;
   closeTraj();
   return dcdframes;
@@ -433,7 +433,7 @@ int CharmmDcd::processWriteArgs(ArgList *argIn) {
   * Set is64bit and isBigEndian, although they are not currently used during
   * writes; size and endianness will be OS default.
   */
-int CharmmDcd::setupTrajout(AmberParm *trajParm) {
+int CharmmDcd::setupTrajout(Topology *trajParm) {
   dcdatom = trajParm->natom;
   // dcdframes = trajParm->parmFrames;
   dcdframes = 0;

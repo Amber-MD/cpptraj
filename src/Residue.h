@@ -16,6 +16,9 @@ class Residue {
     inline const char *c_str() const {
       return *resname_;
     }
+    inline void SetName(NameType nameIn) {
+      resname_ = nameIn;
+    }
     inline NameType &Name() {
       return resname_;
     }

@@ -323,7 +323,7 @@ double *Frame::DoubleArray() {
 
 // Frame::CoordPtr()
 // NOTE: Right now only used for interfacing with older ptraj routines:
-//       1) setting up mask in AmberParm, since the mask parser still uses 
+//       1) setting up mask in Topology, since the mask parser still uses 
 //          double* for coordinates in order to remain compatible with ptraj 
 //          routines.
 //       2) Setting coordinates for use with ptraj routines (SetReferenceInfo).

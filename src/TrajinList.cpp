@@ -7,11 +7,11 @@
 // TrajinList::AddTrajin()
 /** Add trajectory to the trajectory list as an input trajectory. 
   * Associate the trajectory with one of the parm files in the 
-  * ParmFileList. 
+  * TopologyList. 
   * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
   *        [remdtraj remdtrajtemp <T>]
   */
-int TrajinList::AddTrajin(char *filename, ArgList *A, AmberParm *parmIn) {
+int TrajinList::AddTrajin(char *filename, ArgList *A, Topology *parmIn) {
   TrajectoryFile *traj;
 
   traj = new TrajectoryFile(); 

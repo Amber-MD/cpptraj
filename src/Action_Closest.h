@@ -18,8 +18,8 @@ class Closest: public Action {
     bool firstAtom;
     AtomMask soluteMask;
     AtomMask stripMask;
-    AmberParm *newParm;
-    AmberParm *oldParm;
+    Topology *newParm;
+    Topology *oldParm;
     Frame newFrame;
     /// The moldist structure is used in order to preserve the original
     /// solvent molecule and atom numbers after sorting.

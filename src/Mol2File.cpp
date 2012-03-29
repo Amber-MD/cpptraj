@@ -1,20 +1,17 @@
 #include <cstring>
 #include <cstdio>
-#include "Mol2FileRoutines.h"
+#include "Mol2File.h"
 #include "CpptrajStdio.h"
-/*! \file Mol2FileRoutines.cpp
-    \brief Collection of routines used to access mol2 files.
- */
 
 /// Tripos Tags - must be in same order as enum type TRIPOSTAG
-const char TRIPOSTAGTEXT[NUMTRIPOSTAGS][30]={
-  "@<TRIPOS>MOLECULE\0",
-  "@<TRIPOS>ATOM\0",
-  "@<TRIPOS>BOND\0",
-  "@<TRIPOS>SUBSTRUCTURE\0"
+const char Mol2File::TRIPOSTAGTEXT[4][22]={
+  "@<TRIPOS>MOLECULE",
+  "@<TRIPOS>ATOM",
+  "@<TRIPOS>BOND",
+  "@<TRIPOS>SUBSTRUCTURE"
 };
 
-bool IsMol2Keyword(char *bufferIn ) {
+bool Mol2File::IsMol2Keyword(char *bufferIn ) {
   if (strncmp(bufferIn,"@<TRIPOS>",9)==0)
     return true;
   return false;
@@ -24,20 +21,15 @@ bool IsMol2Keyword(char *bufferIn ) {
 /** Scan to the specified TRIPOS section of file.
   * \return 0 if the tag was found, 1 if not found.
   */
-int Mol2ScanTo( FileIO *IO, TRIPOSTAG tag ) {
-  int tagSize;
-  char buffer[MOL2BUFFERSIZE];
-
-  tagSize = strlen(TRIPOSTAGTEXT[tag]);
-  while ( IO->Gets(buffer,MOL2BUFFERSIZE)==0 ) {
+int Mol2File::ScanTo( FileIO *IO, TRIPOSTAG tag ) {
+  int tagSize = (int)strlen(TRIPOSTAGTEXT[tag]);
+  while ( IO->Gets(buffer_,BUF_SIZE_)==0 ) {
     //mprintf("DEBUG: Line [%s]\n",buffer);
     //mprintf("DEBUG: Targ [%s]\n",TRIPOSTAGTEXT[tag]); 
-    if (strncmp(buffer,TRIPOSTAGTEXT[tag],tagSize)==0) return 0;
+    if (strncmp(buffer_,TRIPOSTAGTEXT[tag],tagSize)==0) return 0;
   }
-
   // Suppress this warning so routine can be used to scan # frames
   //mprintf("Warning: Mol2File::ScanTo(): Could not find tag %s\n",TRIPOSTAGTEXT[tag]);
-
   return 1;
 }
 
@@ -45,6 +37,7 @@ int Mol2ScanTo( FileIO *IO, TRIPOSTAG tag ) {
 /** Given a Mol2 ATOM line, return atom name. Trim to 4 chars to be consistent 
   * with the rest of Amber. 
   */
+/*
 int Mol2AtomName(char *buffer, NAME name) {
   char tmp[10];
   if (buffer==NULL || name==NULL) return 1;
@@ -59,27 +52,30 @@ int Mol2AtomName(char *buffer, NAME name) {
   ReplaceAsterisk(name);
   //mprintf("DEBUG: MOL2: name [%s]\n",name);
   return 0;
-}
+}*/
 
 // Mol2XYZ()
 /** Given a Mol2 ATOM line, get the X Y and Z coords.
   */
+/*
 int Mol2XYZ(char *buffer, double *X) {
   if (buffer==NULL || X==NULL) return 1;
   sscanf(buffer,"%*i %*s %lf %lf %lf",X, X+1, X+2);
   return 0;
 }
-
+*/
 // Mol2AtomType
 /** Given a Mol2 ATOM line, return atom type. Try to convert Sybyl atom type
   * to amber type.
   * Sybyl atom types seem to have at most 5 chars - increasing size of NAME
   * huld be ok.
   */
+/*
 int Mol2AtomType(char *buffer, NAME type) {
   char tmp[10];
   if (buffer==NULL || type==NULL) return 1;
   sscanf(buffer,"%*i %*s %*f %*f %*f %s",tmp);
+*/
 /*
   if      (strcmp(tmp,"C.3")==0)   strcpy(type,"CT  ");
   else if (strcmp(tmp,"C.2")==0)   strcpy(type,"C   ");
@@ -106,17 +102,18 @@ int Mol2AtomType(char *buffer, NAME type) {
   else if (strcmp(tmp,"H.spc")==0) strcpy(type,"HW  "); 
   else if (strcmp(tmp,"H.t3p")==0) strcpy(type,"HW  ");
   else {*/
+/*
     // Copy over the first 5 chars
     strncpy(type,tmp,5);
     type[5]='\0';
   //}
   return 0;
 }
-
+*/
 // Mol2ResNumName()
 /** Get residue number and name, trim to 4 chars
   */
-int Mol2ResNumName(char *buffer, int *resnum, NAME resname) {
+/*int Mol2ResNumName(char *buffer, int *resnum, NAME resname) {
   char tmp[10];
   if (buffer==NULL || resnum==NULL || resname==NULL) return 1;
   sscanf(buffer,"%*i %*s %*f %*f %*f %*s %i %s",resnum,tmp);
@@ -129,13 +126,13 @@ int Mol2ResNumName(char *buffer, int *resnum, NAME resname) {
   // Replace asterisks with prime to prevent atom mask problems
   ReplaceAsterisk(resname);
   return 0;
-}
+}*/
 
 // Mol2Charge()
 /** Get charge */
-double Mol2Charge(char *buffer) {
+/*double Mol2Charge(char *buffer) {
   double q;
   sscanf(buffer,"%*i %*s %*f %*f %*f %*s %*i %*s %lf",&q);
   return q;
-} 
+} */
 

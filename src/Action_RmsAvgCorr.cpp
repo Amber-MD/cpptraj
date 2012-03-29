@@ -100,7 +100,7 @@ int RmsAvgCorr::action() {
 void RmsAvgCorr::print() {
   double avg;
   int window, frame, WindowMax;
-  AmberParm *strippedParm;
+  Topology *strippedParm;
   CpptrajFile separateDatafile;
 
   double U[9], Trans[6];

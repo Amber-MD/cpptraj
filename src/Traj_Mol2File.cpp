@@ -1,7 +1,6 @@
 // Mol2File
 #include <cstdio> // sscanf
 #include "Traj_Mol2File.h"
-#include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -56,7 +55,7 @@ void Mol2File::closeTraj() {
 /** See how many MOLECULE records are in file, make sure num atoms match
   * parm and each frame.
   */
-int Mol2File::setupTrajin(AmberParm *trajParm) {
+int Mol2File::setupTrajin(Topology *trajParm) {
   int frameAtom;
   int Frames=0;
   char buffer[MOL2BUFFERSIZE];
@@ -142,7 +141,7 @@ void Mol2File::SetWriteMode(MOL2WRITEMODE modeIn) {
 /** Set parm information required for write, and check write mode against
   * number of frames to be written.
   */
-int Mol2File::setupTrajout(AmberParm *trajParm) {
+int Mol2File::setupTrajout(Topology *trajParm) {
   // If writing more than 1 frame and not writing 1 pdb per frame, 
   // use @<TRIPOS>MOLECULE keyword to separate frames.
   if (mol2WriteMode_==SINGLE && trajParm->parmFrames>1) 

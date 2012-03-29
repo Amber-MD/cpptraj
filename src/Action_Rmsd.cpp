@@ -158,7 +158,7 @@ int Rmsd::SeparateInit(char *mask0, bool massIn, int debugIn) {
   * NOTE: Residues in the range arguments from user start at 1, internal
   *       res nums start from 0.
   */
-int Rmsd::perResSetup(AmberParm *RefParm) {
+int Rmsd::perResSetup(Topology *RefParm) {
   char tgtArg[1024];
   char refArg[1024];
   Range tgt_range;
@@ -375,7 +375,7 @@ int Rmsd::action() {
 
 // Rmsd::print()
 /** For per-residue RMSD only. Sync the per-residue RMSD data set since
-  * it is not part of the master DataSetList in CpptrajState. Setup output
+  * it is not part of the master DataSetList in Cpptraj. Setup output
   * file options. Calculate averages if requested.
   */
 void Rmsd::print() {

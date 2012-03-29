@@ -2,7 +2,7 @@
  * CPPTRAJ: Rewrite of PTRAJ in C++
  * 2010 Daniel R. Roe
  */
-#include "CpptrajState.h"
+#include "Cpptraj.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 #include <cstring>
@@ -28,11 +28,11 @@ static void Usage(char *programName) {
 /// Process input from the file specified by filename. 
 /** If filename is NULL process input from STDIN. Set up an input line that 
   * will be converted to an argument list and processed by the 
-  * CpptrajState::Dispatch routine.
+  * Cpptraj::Dispatch routine.
   * Leading and consectuive whitespace is skipped. \n or NULL executes command.
   * 'go' or EOF ends input read. lines ending with \ continue to the next line.
   */
-static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
+static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
   FILE *infile;
   char ptr,lastchar;
   std::string inputLine;
@@ -128,7 +128,7 @@ static int ProcessInputStream(char *inputFilename, CpptrajState &State) {
  * \return 1 if unrecognized input on command line, 2 if ProcessInputStream indicates 
  *         we should just quit.
  */
-static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState &State) {
+static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
   char *inputFilename = NULL;
   int debug=0; 
 
@@ -213,7 +213,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, CpptrajState &State) {
  * 3. Run
  */
 int main(int argc, char **argv) {
-  CpptrajState State;
+  Cpptraj State;
   int err;
 
   // Parallel Init: NOTE Should check for err

@@ -23,7 +23,7 @@ int Conflib::openTraj() {
 }
 
 // Conflib::setupTrajin()
-int Conflib::setupTrajin(AmberParm *trajParm) {
+int Conflib::setupTrajin(Topology *trajParm) {
   long unsigned int confFrame;
   int Frames = 0;
 
@@ -55,7 +55,7 @@ int Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
 }
 
 // Conflib::setupTrajout()
-int Conflib::setupTrajout(AmberParm *trajParm) {
+int Conflib::setupTrajout(Topology *trajParm) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
