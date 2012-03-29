@@ -8,23 +8,34 @@ FileList::FileList() :
 // DESTRUCTOR
 FileList::~FileList() {}
 
-// FileList::FindTag()
-int FileList::FindTag(std::string &tagIn) {
-  if (tags_.empty()) return -1;
-  int idx = 0;
-  for (std::vector<std::string>::iterator tag = tags_.begin();
-                                          tag != tags_.end(); tag++)
-  {
-    if ( *tag == tagIn ) return idx;
-    ++idx;
-  }
-  return -1;
+// FileList::AddNames()
+void FileList::AddNames(char *filename, const char *basename, std::string &tag) {
+  fnames_.push_back( std::string(filename) );
+  basenames_.push_back( std::string(basename) );
+  tags_.push_back( tag );
+}
+
+// FileList::FindName()
+int FileList::FindName(char *nameIn) {
+  std::string name(nameIn);
+  return FindName(name);
 }
 
 // FileList::FindName()
 int FileList::FindName(std::string &nameIn) {
-  // Prefer full filename match
+  if (nameIn.empty()) return -1;
+  // If first char of name is a bracket, assume tag.
   int idx = 0;
+  if ( !tags_.empty() && nameIn[0]=='[' ) {
+    for (std::vector<std::string>::iterator tag = tags_.begin();
+                                          tag != tags_.end(); tag++)
+    {
+      if ( *tag == nameIn ) return idx;
+      ++idx;
+    }
+  }
+  // If not a tag, prefer full filename match over base filename
+  idx = 0;
   if (!fnames_.empty()) {
     for (std::vector<std::string>::iterator name = fnames_.begin();
                                             name != fnames_.end(); name++)
@@ -33,7 +44,8 @@ int FileList::FindName(std::string &nameIn) {
       ++idx;
     }
   }
-  // Base filenames
+  // Last, try Base filenames
+  idx = 0;
   if (!basenames_.empty()) {
     for (std::vector<std::string>::iterator name = basenames_.begin();
                                             name != basenames_.end(); name++)

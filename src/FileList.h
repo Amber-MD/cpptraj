@@ -10,7 +10,9 @@ class FileList {
     inline void SetDebug(int dIn) {
       debug_ = dIn;
     }
-    int FindTag(std::string&);
+
+    void AddNames(char *, const char *, std::string &);
+    int FindName(char*); // TODO: Make obsolete
     int FindName(std::string&);
   protected:
     int debug_;
