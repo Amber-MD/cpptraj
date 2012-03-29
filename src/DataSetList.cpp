@@ -9,13 +9,14 @@
 #include "DataSet_double.h"
 #include "DataSet_string.h"
 #include "DataSet_integer.h"
-#include "DataSet_XYZ.h"
+//#include "DataSet_XYZ.h"
 #include "DataSet_float.h"
-#include "DataSet_Matrix.h"
+//#include "DataSet_Matrix.h"
 
 // CONSTRUCTOR
 DataSetList::DataSetList() {
   //fprintf(stderr,"DSL Constructor\n");
+  hasCopies_ = false;
   Ndata=0;
   maxFrames=0;
   debug=0;
@@ -24,10 +25,35 @@ DataSetList::DataSetList() {
 
 // DESTRUCTOR
 DataSetList::~DataSetList() {
-  //fprintf(stderr,"DSL Destructor\n"); 
+  //fprintf(stderr,"DSL Destructor\n");
+  if (!hasCopies_) { 
     for (int i=0; i<Ndata; i++)
       delete DataList[i];
+  }
 }
+
+// DataSetList::begin()
+DataSetList::const_iterator DataSetList::begin() const {
+  return DataList.begin();
+}
+
+// DataSetList::end()
+DataSetList::const_iterator DataSetList::end() const {
+  return DataList.end();
+}
+
+// DataSetList::DataCharSize() 
+/*size_t DataSetList::DataCharSize() {
+  size_t total_size = 0;
+  for (const_iterator dset = DataList.begin(); dset != DataList.end(); dset++) {
+    size_t max_data = (size_t) (*dset)->Xmax();
+    // Actual # elements is one greater than the max X value.
+    ++max_data;
+    max_data *= (*dset)->Width();
+    total_size += max_data;
+  }
+  return total_size;
+}*/
 
 // DataSetList::SetDebug()
 void DataSetList::SetDebug(int debugIn) {
@@ -98,8 +124,9 @@ DataSet *DataSetList::GetDataSetN(int ndataset) {
   * \return pointer to successfully set up dataset.
   */
 // NOTE: Instead of using Nin to identify, why not use dataset name?
-DataSet *DataSetList::AddMultiN(dataType inType, const char *prefix, 
-                                const char *suffix, int Nin) {
+DataSet *DataSetList::AddMultiN(DataSet::DataType inType, const char *prefix, 
+                                const char *suffix, int Nin) 
+{
   char tempName[64];
   char tempSuffix[32];
   DataSet *tempDS = NULL;
@@ -135,7 +162,8 @@ DataSet *DataSetList::AddMultiN(dataType inType, const char *prefix,
   * \param suffix dataset name suffix
   * \return pointer to successfully set up dataset.
   */
-DataSet *DataSetList::AddMulti(dataType inType, char *prefix, const char *suffix) {
+DataSet *DataSetList::AddMulti(DataSet::DataType inType, char *prefix, const char *suffix) 
+{
   char tempName[32];
   if (prefix==NULL)
     return this->Add(inType,NULL,suffix);
@@ -192,7 +220,7 @@ char *DataSetList::checkName(char *nameIn, const char *defaultName) {
 /** Add a matrix dataset to the list. This requires a separate function
   * since the dimensions of the matrix must be set.
   */
-DataSet *DataSetList::AddMatrix(char *nameIn, const char *defaultName,
+/*DataSet *DataSetList::AddMatrix(char *nameIn, const char *defaultName,
                                 int Nrows, int Mcols)
 {
   DataSet *Dset=NULL;
@@ -216,7 +244,7 @@ DataSet *DataSetList::AddMatrix(char *nameIn, const char *defaultName,
   //fprintf(stderr,"ADDED dataset %s\n",dsetName);
   delete[] dsetName;
   return Dset;
-}
+}*/
 
 // DataSetList::Add()
 /** Add a DataSet of specified type, set it up and return pointer to it. 
@@ -228,18 +256,24 @@ DataSet *DataSetList::AddMatrix(char *nameIn, const char *defaultName,
   * \param defaultName default name prefix for use if nameIn not specified.
   * \return pointer to successfully set-up dataset.
   */ 
-DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName) {
+DataSet *DataSetList::Add(DataSet::DataType inType, char *nameIn, const char *defaultName) 
+{
+  // Dont add to a list with copies
+  if (hasCopies_) {
+    mprinterr("Error: Attempting to add dataset to list with copies.\n");
+    return NULL;
+  }
   DataSet *D=NULL;
   char *dsetName = checkName(nameIn, defaultName);
   if (dsetName==NULL) return NULL;
 
   switch (inType) {
-    case DOUBLE       : D = new DataSet_double(); break;
-    case FLOAT        : D = new DataSet_float(); break;
-    case STRING       : D = new DataSet_string(); break;
-    case INT          : D = new DataSet_integer(); break;
-    case XYZ          : D = new DataSet_XYZ(); break;
-    case UNKNOWN_DATA :
+    case DataSet::DOUBLE       : D = new DataSet_double(); break;
+    case DataSet::FLOAT        : D = new DataSet_float(); break;
+    case DataSet::STRING       : D = new DataSet_string(); break;
+    case DataSet::INT          : D = new DataSet_integer(); break;
+    //case XYZ          : D = new DataSet_XYZ(); break;
+    case DataSet::UNKNOWN_DATA :
     default           :
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");
       return NULL;
@@ -261,6 +295,70 @@ DataSet *DataSetList::Add(dataType inType, char *nameIn, const char *defaultName
   //fprintf(stderr,"ADDED dataset %s\n",dsetName);
   delete[] dsetName;
   return D;
+}
+
+// DataSetList::AddDataSet()
+/** Add a pointer to an existing dataset to the list. Used when
+  * DataSetList is being used as a container in DataFile.
+  */
+int DataSetList::AddDataSet(DataSet *dsetIn) {
+  if (dsetIn==NULL) return 1;
+  if (!hasCopies_ && !DataList.empty()) {
+    mprinterr("Error: Adding dataset copy to list with non-copies!\n");
+    return 1;
+  }
+  hasCopies_ = true;
+  DataList.push_back(dsetIn);
+  ++Ndata;
+  return 0;
+}
+
+// DataSetList::PrepareForWrite()
+/** Prepare data sets in the list for writing. Since this is currently
+  * only used when DataSetList is being used as a container in DataFile,
+  * make this valid only if the DataSetList contains copies.
+  * Remove DataSets that dont contain data.
+  * \return Max X value in all sets, -1 on error.
+  */
+int DataSetList::PrepareForWrite() {
+  int maxSetFrames = 0;
+  int currentMax = 0;
+  // If not copies exit?
+  if (!hasCopies_) {
+    mprintf("Info: DataSetList does not have copies.\n");
+  }
+  // If no data sets, exit.
+  if (DataList.empty()) return -1;
+  // Remove data sets that do not contain data.
+  // NOTE: CheckSet also sets up the format string for the dataset.
+  std::vector<DataSet*>::iterator Dset = DataList.end();
+  while (Dset != DataList.begin()) {
+    Dset--;
+    // If set has no data, remove it
+    if ( (*Dset)->CheckSet() ) {
+      mprintf("Warning: Set %s contains no data - skipping.\n",(*Dset)->Name()); 
+      // Remove
+      if (!hasCopies_) delete *Dset;
+      DataList.erase( Dset );
+      Dset = DataList.end();
+    // If set has data, set its format to right-aligned initially. Also 
+    // determine what the maximum x value for the set is.
+    } else {
+      if ((*Dset)->SetDataSetFormat(false)) return -1;
+      maxSetFrames = (*Dset)->Xmax();
+      if (maxSetFrames > currentMax) currentMax = maxSetFrames;
+    }
+  }
+  // Reset Ndata
+  Ndata = (int)DataList.size();
+
+  // If all data sets are empty no need to write.
+  if (DataList.empty()) return -1;
+
+  // Since currentMax is the last frame, the actual # of frames
+  // is currentMax+1 (for use in loops).
+  ++currentMax;
+  return currentMax;
 }
 
 // DataSetList::AddData()

@@ -3,12 +3,21 @@
 #include <vector>
 #include "Action.h"
 #include "Range.h"
-#include "TrajectoryFile.h"
+#include "ActionReference.h"
 // Class: Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
-class Rmsd: public Action {
+class Rmsd: public Action, ActionReference {
   public:
-    DataSet *rmsd;
+    Rmsd();
+    ~Rmsd();
+
+    int SeparateInit(char*,bool,int);
+
+    int init();
+    int setup();
+    int action();
+    void print();
+
   private:
     // PerResRMSD -------------
     bool perres;                      ///< If true calculate per-residue rmsd
@@ -27,34 +36,14 @@ class Rmsd: public Action {
     Frame *ResFrame;                  ///< Hold residue target coords
     Frame *ResRefFrame;               ///< Hold residue reference coords.
     // ------------------------ 
-    AtomMask RefMask;                 ///< Reference mask
     AtomMask FrameMask;               ///< Frame masks.
     bool nofit;                       ///< If true do not calculate best-fit RMSD
-    bool first;                       ///< If true use first frame read in as reference
     double Trans[6];                  ///< For fit, hold 2 translations: tgt->origin, origin->ref
-    Frame RefFrame;                   ///< Hold reference frame coords
-    Frame SelectedRef;                ///< Hold only ref coods selected by maskRef
     Frame SelectedFrame;              ///< Hold only frame coords selected by mask0
-    TrajectoryFile *RefTraj;          ///< Reference trajectory, each frame used in turn
-    AmberParm *RefParm;               ///< Reference frame Parm
-    /// Set reference mask based on reference parm
-    int SetRefMask();
-    /// Set ref structure from ref mask and pre-center if fitting
-    void SetRefStructure();
+    DataSet *rmsd;
     /// Resize per-residue RMSD masks
     void resizeResMasks();
     /// Set up per-residue RMSD calc
-    int perResSetup();
-
-  public:
-    Rmsd();
-    ~Rmsd();
-
-    int SeparateInit(char*,bool,int);
-
-    int init();
-    int setup();
-    int action();
-    void print();
+    int perResSetup(AmberParm*);
 };
 #endif

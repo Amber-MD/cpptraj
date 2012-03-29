@@ -29,7 +29,8 @@ int Outtraj::init() {
     mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",actionArgs.ArgAt(1));
     return 1;
   }
-  if ( outtraj.SetupWrite(NULL,&actionArgs,tempParm,AMBERTRAJ) ) return 1;
+  if ( outtraj.SetupWrite(NULL,&actionArgs,tempParm,TrajectoryFile::UNKNOWN_TRAJ) ) 
+    return 1;
   mprintf("    OUTTRAJ:");
   outtraj.PrintInfo(1);
   // If maxmin, get the name of the dataset as well as the max and min values.
@@ -41,7 +42,7 @@ int Outtraj::init() {
       return 1;
     } else {
       // Currently dont allow for string datasets
-      if (Dset->Type()==STRING) {
+      if (Dset->Type()==DataSet::STRING) {
         mprintf("Error: Outtraj maxmin: String dataset (%s) not supported.\n",datasetName);
         return 1;
       }
@@ -71,9 +72,9 @@ int Outtraj::action() {
 
   // If dataset defined, check if frame is within max/min
   if (Dset!=NULL) {
-    if (Dset->Type() == DOUBLE) {
+    if (Dset->Type() == DataSet::DOUBLE) {
       if (Dset->Get(&dVal, frameNum)) return 1;
-    } else if (Dset->Type() == INT) {
+    } else if (Dset->Type() == DataSet::INT) {
       if (Dset->Get(&iVal, frameNum)) return 1;
       dVal = (double) iVal;
     } else

@@ -8,7 +8,7 @@
 /** Open the Charmm PSF file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
   */
-int CharmmPsfParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
+int CharmmPsfParmFile::ReadParm(AmberParm &parmOut) {
   char buffer[256],tag[256];
   NAME psfname, psfresname;
   int bondatoms[8];
@@ -17,6 +17,8 @@ int CharmmPsfParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
   int psfattype;
   int nbond,nlines;
 
+  if (OpenFile()) return 1;
+
   mprintf("    Reading Charmm PSF file %s as topology file.\n",parmOut.parmName);
   currResnum=-1;
   memset(buffer,' ',256);
@@ -24,7 +26,7 @@ int CharmmPsfParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
   tag[0]='\0';
 
   // Read the first line, should contain PSF...
-  if (parmfile.IO->Gets(buffer,256)) return 1;
+  if (IO->Gets(buffer,256)) return 1;
   // Sanity check
   if (buffer[0]!='P' || buffer[1]!='S' || buffer[2]!='F') {
     mprinterr("Error: ReadParmPSF(): Could not read Charmm PSF file.\n");
@@ -32,7 +34,7 @@ int CharmmPsfParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
   }
   // Advance to <natom> !NATOM
   while (strncmp(tag,"!NATOM",6)!=0) {
-    if (parmfile.IO->Gets(buffer,256)) return 1;
+    if (IO->Gets(buffer,256)) return 1;
     sscanf(buffer,"%i %s",&parmOut.natom,tag);
   }
   mprintf("\tPSF: !NATOM tag found, natom=%i\n",parmOut.natom);
@@ -49,7 +51,7 @@ int CharmmPsfParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
 
   // Read the next natom lines
   for (int atom=0; atom < parmOut.natom; atom++) {
-    if (parmfile.IO->Gets(buffer,256) ) {
+    if (IO->Gets(buffer,256) ) {
       mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
       return 1;
     }
@@ -72,7 +74,8 @@ int CharmmPsfParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
         // Ensure resname has 4 chars
         PadWithSpaces( psfresname );
         strcpy(parmOut.resnames[parmOut.nres],psfresname);
-        if (debug>3) mprintf("        PSFRes %i [%s]\n",parmOut.nres,parmOut.resnames[parmOut.nres]);
+        if (debug_>3) 
+          mprintf("        PSFRes %i [%s]\n",parmOut.nres,parmOut.resnames[parmOut.nres]);
         int *temprnum = new int[ parmOut.nres+1 ];
         memcpy(temprnum, parmOut.resnums, parmOut.nres * sizeof(int));
         delete[] parmOut.resnums;
@@ -87,13 +90,13 @@ int CharmmPsfParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
 
   // Advance to <nbond> !NBOND
   while (strncmp(tag,"!NBOND",6)!=0) {
-    if (parmfile.IO->Gets(buffer,256)) return 1;
+    if (IO->Gets(buffer,256)) return 1;
     sscanf(buffer,"%i %s",&nbond,tag);
   }
   nlines = nbond / 4;
   if ( (nbond % 4) != 0) nlines++;
   for (int bondline=0; bondline < nlines; bondline++) {
-    if (parmfile.IO->Gets(buffer,256) ) {
+    if (IO->Gets(buffer,256) ) {
       mprinterr("Error: ReadParmPSF(): Reading bond line %i\n",bondline+1);
       return 1;
     }
@@ -111,9 +114,11 @@ int CharmmPsfParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
     
   //boxType = NOBOX;
 
-  //if (debug>0) 
+  //if (debug_>0) 
     mprintf("    PSF contains %i atoms, %i residues, %i molecules.\n",
             parmOut.natom,parmOut.nres,parmOut.molecules);
+
+  CloseFile();
 
   return 0;
 }

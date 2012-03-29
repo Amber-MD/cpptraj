@@ -94,13 +94,13 @@ void ClusterList::Summary(char *summaryfile) {
   float frac;
   double dist,avgdist,sdist,*distances;
 
-  if (outfile.SetupFile(summaryfile, WRITE, 0)) {
+  if (outfile.SetupWrite(summaryfile, debug)) {
     mprinterr("Error: ClusterList::Summary: Could not set up file.\n");
     return;
   }
   outfile.OpenFile();
 
-  outfile.IO->Printf("%-8s %8s %8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac",
+  outfile.Printf("%-8s %8s %8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac",
                      "AvgDist","Stdev","Centroid","AvgCDist");
   for (std::list<clusterNode>::iterator node = clusters.begin();
                                         node != clusters.end();
@@ -152,7 +152,7 @@ void ClusterList::Summary(char *summaryfile) {
       sdist = 0;
     }
     // OUTPUT
-    outfile.IO->Printf("%8i %8i %8.3f %8.3lf %8.3lf %8i %8.3lf\n",(*node).num,numframes,
+    outfile.Printf("%8i %8i %8.3f %8.3lf %8.3lf %8i %8.3lf\n",(*node).num,numframes,
                        frac,avgdist,sdist,(*node).centroid+1,(*node).avgclusterdist);
     delete[] distances;
   }
@@ -169,7 +169,7 @@ void ClusterList::Summary_Half(char *summaryfile) {
   int numframes, half, color;
   float frac, frac1, frac2;
 
-  if (outfile.SetupFile(summaryfile, WRITE, debug)) {
+  if (outfile.SetupWrite(summaryfile, debug)) {
     mprinterr("Error: ClusterList::Summary_Half: Could not set up file.\n");
     return;
   }
@@ -180,7 +180,7 @@ void ClusterList::Summary_Half(char *summaryfile) {
   // xmgrace color
   color=1;
 
-  outfile.IO->Printf("#%-7s %8s %6s %2s %10s %8s %8s %6s %6s\n", "Cluster", "Total",
+  outfile.Printf("#%-7s %8s %6s %2s %10s %8s %8s %6s %6s\n", "Cluster", "Total",
                      "Frac", "C#", "Color", "NumIn1st", "NumIn2nd","Frac1","Frac2");
   for (std::list<clusterNode>::iterator node = clusters.begin();
                                         node != clusters.end();
@@ -209,7 +209,7 @@ void ClusterList::Summary_Half(char *summaryfile) {
     frac1 = ((float) numInFirstHalf) / frac1;
     frac2 = (float) numframes;
     frac2 = ((float) numInSecondHalf) / frac2;
-    outfile.IO->Printf("%-8i %8i %6.2f %2i %10s %8i %8i %6.2f %6.2f\n",(*node).num,numframes,
+    outfile.Printf("%-8i %8i %6.2f %2i %10s %8i %8i %6.2f %6.2f\n",(*node).num,numframes,
                        frac,color,XMGRACE_COLOR[color],numInFirstHalf,numInSecondHalf,
                        frac1,frac2);
     if (color<15) color++;
@@ -289,12 +289,12 @@ void ClusterList::PrintClustersToFile(char *filename) {
   
   buffer = new char[ buffersize ]; 
   buffer[maxframes]='\n';
-  if ( outfile.SetupFile(filename,WRITE,debug) ) {
+  if ( outfile.SetupWrite(filename,debug) ) {
     mprinterr("Error: ClusterList::PrintClustersToFile: Could not set up file %s\n",filename);
     return;
   }
   outfile.OpenFile();
-  outfile.IO->Printf("#Clustering: %u clusters %i frames\n",clusters.size(),maxframes);
+  outfile.Printf("#Clustering: %u clusters %i frames\n",clusters.size(),maxframes);
   for (std::list<clusterNode>::iterator C1_it = clusters.begin(); 
        C1_it != clusters.end();
        C1_it++)
@@ -306,13 +306,13 @@ void ClusterList::PrintClustersToFile(char *filename) {
     {
       buffer[ *frame1 ]='X';
     }
-    outfile.IO->Write(buffer, sizeof(char), buffersize);
+    outfile.IO->Write(buffer, buffersize);
   }
   // Print representative frames
-  outfile.IO->Printf("#Representative frames:");
+  outfile.Printf("#Representative frames:");
   for (std::list<clusterNode>::iterator C = clusters.begin(); C != clusters.end(); C++)
-    outfile.IO->Printf(" %i",(*C).centroid+1);
-  outfile.IO->Printf("\n");
+    outfile.Printf(" %i",(*C).centroid+1);
+  outfile.Printf("\n");
   
   outfile.CloseFile();
   delete[] buffer;

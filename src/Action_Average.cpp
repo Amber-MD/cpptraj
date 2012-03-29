@@ -81,7 +81,7 @@ int Average::init( ) {
   */
 int Average::setup() {
 
-  if ( currentParm->SetupIntegerMask( Mask1, activeReference) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask1 ) ) return 1;
 
   if (Mask1.None()) {
     mprintf("    Error: Average::setup: No Atoms in mask.\n");
@@ -91,17 +91,16 @@ int Average::setup() {
   mprintf("    AVERAGE:");
 
   if (AvgFrame==NULL) {
-    mprintf(" Averaging over %i atoms.\n",Mask1.Nselected);
-    AvgFrame = new Frame();
-    AvgFrame->SetupFrameFromMask(&Mask1,currentParm->mass);
+    mprintf(" Averaging over %i atoms.\n",Mask1.Nselected());
+    AvgFrame = new Frame(Mask1, currentParm->mass);
     AvgFrame->ZeroCoords();
-    Natom = AvgFrame->natom; // Equal to Mask1.Nselected
+    Natom = AvgFrame->Natom(); // Initiially equal to Mask1.Nselected
     // AvgParm will be used for coordinate output
     // If the number of selected atoms is less than the current parm, strip
     // the parm for output purposes.
-    if (Mask1.Nselected<currentParm->natom) {
+    if (Mask1.Nselected()<currentParm->natom) {
       mprintf("             Atom selection < natom, stripping parm for averaging only:\n");
-      AvgParm = currentParm->modifyStateByMask(Mask1.Selected, NULL);
+      AvgParm = currentParm->modifyStateByMask(Mask1, NULL);
       parmStripped=true;
       AvgParm->Summary();
     } else 
@@ -110,18 +109,18 @@ int Average::setup() {
     // If the frame is already set up, check to see if the current number
     // of atoms is bigger or smaller. If bigger, only average Natom coords.
     // If smaller, only average P->natom coords.
-    if (Mask1.Nselected > AvgFrame->natom) {
-      Natom = AvgFrame->natom;
+    if (Mask1.Nselected() > AvgFrame->Natom()) {
+      Natom = AvgFrame->Natom();
       mprintf("Warning: Average [%s]: Parm %s selected# atoms (%i) > original parm %s\n",
-              avgfilename,currentParm->parmName,Mask1.Nselected,AvgParm->parmName);
-      mprintf("         selected# atoms (%i).\n",AvgFrame->natom);
-    } else if (Mask1.Nselected < AvgFrame->natom) {
-      Natom = Mask1.Nselected;
+              avgfilename,currentParm->parmName,Mask1.Nselected(),AvgParm->parmName);
+      mprintf("         selected# atoms (%i).\n",AvgFrame->Natom());
+    } else if (Mask1.Nselected() < AvgFrame->Natom()) {
+      Natom = Mask1.Nselected();
       mprintf("Warning: Average[%s]: Parm %s selected# atoms (%i) < original parm %s\n",
-              avgfilename, currentParm->parmName, Mask1.Nselected,AvgParm->parmName);
-      mprintf("         selected# atoms (%i).\n",AvgFrame->natom);
+              avgfilename, currentParm->parmName, Mask1.Nselected(),AvgParm->parmName);
+      mprintf("         selected# atoms (%i).\n",AvgFrame->Natom());
     } else {
-      Natom = AvgFrame->natom;
+      Natom = AvgFrame->Natom();
     }
     mprintf("    AVERAGE: %i atoms will be averaged for this parm.\n",Natom);
   }
@@ -131,21 +130,12 @@ int Average::setup() {
 
 // Average::action()
 int Average::action() {
-  int atom3,i3;
-
   if (frameNum != targetFrame) return 0;
 
-  i3=0;
-  for (int n = 0; n < Natom; n++) {
-    atom3 = Mask1.Selected[n] * 3;
-    AvgFrame->X[i3  ] += currentFrame->X[atom3  ];
-    AvgFrame->X[i3+1] += currentFrame->X[atom3+1];
-    AvgFrame->X[i3+2] += currentFrame->X[atom3+2];
-    i3 += 3;
-  }
-  Nframes++; 
+  AvgFrame->AddByMask(*currentFrame, Mask1);
+  ++Nframes; 
 
-  targetFrame+=offset;
+  targetFrame += offset;
   // Since frameNum will never be -1 this effectively disables the routine
   if (targetFrame>stop && stop!=-1) targetFrame=-1;
   return 0;
@@ -162,7 +152,7 @@ void Average::print() {
 
   mprintf("    AVERAGE: [%s]\n",this->CmdLine());
 
-  if (outfile.SetupWrite(avgfilename, &trajArgs, AvgParm, AMBERTRAJ)) {
+  if (outfile.SetupWrite(avgfilename, &trajArgs, AvgParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename);
     return;
   }

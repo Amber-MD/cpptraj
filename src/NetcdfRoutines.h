@@ -23,13 +23,16 @@
 #define NCREMD_DIMTYPE "remd_dimtype"
 #define NCREMD_INDICES "remd_indices"
 
+/// For determining netcdf file type
+enum NC_CONVENTION_TYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_AMBERRESTART };
+
 // Routines
 void NetcdfDebug(int);
 int checkNCerr(int, const char *, ...);
 int GetDimInfo(int, const char *, int *);
 char *GetAttrText(int, int, const char *);
 #endif
-char *GetNetcdfConventions(char *);
+NC_CONVENTION_TYPE GetNetcdfConventions(char *);
 void FloatToDouble(double *, float *, int);
 void DoubleToFloat(float *, double *, int);
 #endif

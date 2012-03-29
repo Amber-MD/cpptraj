@@ -9,8 +9,14 @@
 using namespace std;
 
 // CONSTRUCTOR
-ArgList::ArgList() {
-  debug = 0;
+ArgList::ArgList() :
+  debug(0)
+{}
+
+ArgList::ArgList(std::string &expression, const char *separators) :
+  debug(0)
+{
+  SetList((char*)expression.c_str(), separators);
 }
 
 // DESTRUCTOR
@@ -364,7 +370,6 @@ inline bool validDouble(string const &argument) {
   * \return Next unmarked integer argument or def
   */
 int ArgList::getNextInteger(int def) {
-  locale loc;
   for (unsigned int arg=0; arg < arglist.size(); arg++)
     if (!marked[arg]) {
       // Check that first char is indeed an integer or '-', if not then continue
@@ -382,7 +387,6 @@ int ArgList::getNextInteger(int def) {
   * \return Next unmarked double argument or def
   */
 double ArgList::getNextDouble(double def) {
-  locale loc;
   for (unsigned int arg=0; arg < arglist.size(); arg++)
     if (!marked[arg]) {
       // Check that first char is indeed a digit, '.', or '-', if not then continue

@@ -3,8 +3,8 @@
 // netcdf trajectory files used with amber.
 // Dan Roe 10-2008
 // Original implementation of netcdf in Amber by Jon Mongan.
-#include <cstdlib>
-#include <cstring> // For title length
+#include <cstdlib> // malloc, free
+#include <cstring> // strcmp
 #include "netcdf.h"
 #include "Traj_AmberNetcdf.h"
 #include "NetcdfRoutines.h"
@@ -44,7 +44,7 @@ AmberNetcdf::AmberNetcdf() {
   remd_indices=NULL;
 
   // Netcdf files are always seekable
-  seekable=true;
+  seekable_=true;
 } 
 
 // DESTRUCTOR
@@ -64,9 +64,9 @@ AmberNetcdf::~AmberNetcdf() {
   */
 void AmberNetcdf::closeTraj() {
   if (ncid<0) return;
-  //if (tfile->access!=READ) nc_sync(ncid); 
+  //if (access!=READ) nc_sync(ncid); 
   checkNCerr(nc_close(ncid),"Closing netcdf file.");
-  if (debug>0) rprintf("Successfully closed ncid %i\n",ncid);
+  if (debug_>0) rprintf("Successfully closed ncid %i\n",ncid);
   ncid=-1;
   return;
 }
@@ -77,33 +77,33 @@ void AmberNetcdf::closeTraj() {
   * open and close calls.
   */
 int AmberNetcdf::openTraj() {
-  //fprintf(stdout,"DEBUG: AmberNetcdf::openTraj() called for %s, ncid=%i\n",tfile->filename,ncid);
+  //fprintf(stdout,"DEBUG: AmberNetcdf::openTraj() called for %s, ncid=%i\n",BaseName(),ncid);
   // If already open, return
   if (ncid!=-1) return 0;
 
-  switch (tfile->access) {
+  switch (access_) {
     case READ :
-      if (checkNCerr(nc_open(tfile->filename,NC_NOWRITE,&ncid),
-          "Opening Netcdf file %s for reading",tfile->filename)!=0) return 1;
+      if (checkNCerr(nc_open(Name(),NC_NOWRITE,&ncid),
+          "Opening Netcdf file %s for reading",BaseName())!=0) return 1;
       break;
     
     case APPEND: 
     case WRITE:
-      if (checkNCerr(nc_open(tfile->filename,NC_WRITE,&ncid),
-          "Opening Netcdf file %s for Write.\n",tfile->filename)!=0) return 1;
+      if (checkNCerr(nc_open(Name(),NC_WRITE,&ncid),
+          "Opening Netcdf file %s for Write.\n",BaseName())!=0) return 1;
   }
 
-  if (debug>0) rprintf("Successfully opened %s, ncid=%i\n",tfile->filename,ncid);
-  if (debug>1) NetcdfDebug(ncid);
+  if (debug_>0) rprintf("Successfully opened %s, ncid=%i\n",BaseName(),ncid);
+  if (debug_>1) NetcdfDebug(ncid);
 
   return 0;
 }
 
-// AmberNetcdf::setupRead()
+// AmberNetcdf::setupTrajin()
 /** Open the netcdf file, read all dimension and variable IDs, close.
   * Return the number of frames in the file. 
   */
-int AmberNetcdf::setupRead(AmberParm* trajParm) {
+int AmberNetcdf::setupTrajin(AmberParm* trajParm) {
   char *attrText;            // For checking conventions and version 
   int spatial;               // For checking spatial dimensions
   double box[6];             // For checking box type
@@ -112,16 +112,20 @@ int AmberNetcdf::setupRead(AmberParm* trajParm) {
   if (openTraj()) return -1;
 
   // Get global attributes
-  if (title==NULL) title = GetAttrText(ncid,NC_GLOBAL, "title");
+  if (title_.empty()) {
+    attrText = GetAttrText(ncid,NC_GLOBAL, "title");
+    title_.assign(attrText);
+    free( attrText );
+  }
   attrText = GetAttrText(ncid,NC_GLOBAL, "Conventions");
   if (attrText==NULL || strstr(attrText,"AMBER")==NULL) 
     rprintf("WARNING: Netcdf file %s conventions do not include \"AMBER\" (%s)\n",
-            tfile->filename, attrText);
+            BaseName(), attrText);
   if (attrText!=NULL) free(attrText);
   attrText = GetAttrText(ncid,NC_GLOBAL, "ConventionVersion");
   if (attrText==NULL || strcmp(attrText,"1.0")!=0)
     rprintf("WARNING: Netcdf file %s has ConventionVersion that is not 1.0 (%s)\n",
-            tfile->filename, attrText);
+            BaseName(), attrText);
   if (attrText!=NULL) free(attrText);
 
   // Get frame, atoms, coord, and spatial info
@@ -135,13 +139,13 @@ int AmberNetcdf::setupRead(AmberParm* trajParm) {
   attrText = GetAttrText(ncid,coordVID, "units");
   if (attrText==NULL || strcmp(attrText,"angstrom")!=0) 
     rprintf("WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
-            tfile->filename,attrText);
+            BaseName(),attrText);
   if (attrText!=NULL) free(attrText);
   spatialDID=GetDimInfo(ncid,NCSPATIAL,&spatial);
   if (spatialDID==-1) return -1;
   if (spatial!=3) {
     rprintf("Error: ncOpen: Expected 3 spatial dimenions in %s, got %i\n",
-            tfile->filename, spatial);
+            BaseName(), spatial);
     return -1;
   }
   if ( checkNCerr(nc_inq_varid(ncid, NCSPATIAL, &spatialVID),
@@ -153,7 +157,7 @@ int AmberNetcdf::setupRead(AmberParm* trajParm) {
   attrText = GetAttrText(ncid,timeVID, "units");
   if (attrText==NULL || strcmp(attrText,"picosecond")!=0) 
     rprintf("WARNING: Netcdf file %s has time units of %s - expected picosecond.\n",
-            tfile->filename, attrText);
+            BaseName(), attrText);
   if (attrText!=NULL) free(attrText);
 
   // Box info
@@ -162,22 +166,22 @@ int AmberNetcdf::setupRead(AmberParm* trajParm) {
   if ( nc_inq_varid(ncid,NCCELL_LENGTHS,&cellLengthVID)==NC_NOERR ) {
     if (checkNCerr(nc_inq_varid(ncid,NCCELL_ANGLES,&cellAngleVID),
       "Getting cell angles.")!=0) return -1;
-    if (debug>0) mprintf("  Netcdf Box information found.\n");
-    hasBox=true;
+    if (debug_>0) mprintf("  Netcdf Box information found.\n");
+    hasBox_=true;
     // If present, get box angles. These will be used to determine the box 
     // type in TrajectoryFile.
     start[0]=0; start[1]=0; start[2]=0; 
     count[0]=1; count[1]=3; count[2]=0;
     if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
                     "Getting cell lengths.")!=0 ) return -1;
-    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, boxAngle),
+    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, boxAngle_),
                     "Getting cell angles.")!=0 ) return -1;
   } 
 
   // Replica Temperatures
   if ( nc_inq_varid(ncid,NCTEMPERATURE,&TempVID) == NC_NOERR ) {
-    if (debug>0) mprintf("    Netcdf file has replica temperatures.\n");
-    hasTemperature=true;
+    if (debug_>0) mprintf("    Netcdf file has replica temperatures.\n");
+    hasTemperature_=true;
   } else 
     TempVID=-1;
 
@@ -224,7 +228,7 @@ int AmberNetcdf::setupRead(AmberParm* trajParm) {
   // Check that specified number of atoms matches expected number.
   if (ncatom!=trajParm->natom) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n",
-              tfile->filename,ncatom);
+              BaseName(),ncatom);
     mprinterr("       match number in associated parmtop (%i)!\n",trajParm->natom);
     return -1;
   }
@@ -242,11 +246,11 @@ int AmberNetcdf::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-// AmberNetcdf::setupWrite()
+// AmberNetcdf::setupTrajout()
 /** Create Netcdf file specified by filename and set up dimension and
   * variable IDs. 
   */
-int AmberNetcdf::setupWrite(AmberParm *trajParm) {
+int AmberNetcdf::setupTrajout(AmberParm *trajParm) {
   int dimensionID[NC_MAX_VAR_DIMS];
   size_t start[3], count[3];
   char xyz[3];
@@ -255,10 +259,10 @@ int AmberNetcdf::setupWrite(AmberParm *trajParm) {
                    'g', 'a', 'm', 'm', 'a' };
 
   // Create file
-  if (checkNCerr(nc_create(tfile->filename,NC_64BIT_OFFSET,&ncid),
-    "Creating Netcdf file %s",tfile->filename)) return 1;
-  if (debug>0) 
-    mprintf("    Successfully created Netcdf file %s, ncid %i\n",tfile->filename,ncid);
+  if (checkNCerr(nc_create(Name(),NC_64BIT_OFFSET,&ncid),
+    "Creating Netcdf file %s",BaseName())) return 1;
+  if (debug_>0) 
+    mprintf("    Successfully created Netcdf file %s, ncid %i\n",BaseName(),ncid);
 
   // Frame, Time
   ncframe=0;
@@ -311,7 +315,7 @@ int AmberNetcdf::setupWrite(AmberParm *trajParm) {
     "Defining cell angular variable.")) return 1;
 
   // Box Info
-  if (hasBox) {
+  if (hasBox_) {
     dimensionID[0]=frameDID;
     dimensionID[1]=cell_spatialDID;
     if (checkNCerr(nc_def_var(ncid,NCCELL_LENGTHS,NC_DOUBLE,2,dimensionID,&cellLengthVID),
@@ -326,11 +330,11 @@ int AmberNetcdf::setupWrite(AmberParm *trajParm) {
   }
 
   // Set up title
-  if (title==NULL)
-    this->SetTitle((char*)"Cpptraj Generated trajectory\0");
+  if (title_.empty())
+    title_.assign("Cpptraj Generated trajectory");
 
   // Attributes
-  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"title",strlen(title),title),
+  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"title",title_.size(),title_.c_str()),
     "Writing title.")) return 1;
   if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"application",5,"AMBER"),
     "Writing application.")) return 1;
@@ -344,7 +348,7 @@ int AmberNetcdf::setupWrite(AmberParm *trajParm) {
     "Writing conventions version.")) return 1;
 
   // Replica temperature
-  if (hasTemperature) { 
+  if (hasTemperature_) { 
     mprintf("NETCDF: Defining replica temperature in output trajectory.\n");
     dimensionID[0] = frameDID;
     if (checkNCerr(nc_def_var(ncid,NCTEMPERATURE,NC_DOUBLE,1,dimensionID,&TempVID),
@@ -426,7 +430,7 @@ int AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) 
                   "Getting frame %i",set)!=0 ) return 1;
 
   // Read box info 
-  if (hasBox) {
+  if (hasBox_) {
     count [1]=3;
     count [2]=0;
     if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
@@ -457,7 +461,7 @@ int AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, double T
     "Netcdf Writing frame %i",set)) return 1;
 
   // Write box
-  if (hasBox) {
+  if (hasBox_) {
     count[1]=3;
     count[2]=0;
     if (checkNCerr(nc_put_vara_double(ncid,cellLengthVID,start,count,box),
@@ -485,9 +489,9 @@ void AmberNetcdf::info() {
             //(p->isVelocity ? " and velocities" : "")
          );
 
-  if (hasTemperature) mprintf(" with replica temperatures");
+  if (hasTemperature_) mprintf(" with replica temperatures");
 
-  /*if (debug > 2) {
+  /*if (debug_ > 2) {
       if (title != NULL)
         printfone("    title:        \"%s\"\n", p->title);
       if (application != NULL)  

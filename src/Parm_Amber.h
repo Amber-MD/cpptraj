@@ -2,14 +2,18 @@
 #define INC_PARM_AMBER_H
 #include "ParmIO.h"
 #include "CharBuffer.h" // NOTE: Get rid of this eventually?
+// Class: AmberParmFile
+/// Read new and old style Amber topology.
+// TODO: Make width, precsion, etc class variables.
 class AmberParmFile : public ParmIO {
   public :
     AmberParmFile();
     ~AmberParmFile();
-    int ReadParm(AmberParm&, CpptrajFile&);
-    int WriteParm(AmberParm&, CpptrajFile&);
+    int ReadParm(AmberParm&);
+    int WriteParm(AmberParm&);
 
   private :
+    static const size_t BUF_SIZE;
     /// Enumerated type for Fortran data type
     enum FortranType {
       UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
@@ -33,13 +37,14 @@ class AmberParmFile : public ParmIO {
     static const char AmberParmFmt[][16];
     static const char AmberParmFlag[][27];
 
-    CpptrajFile *File;
     char *buffer;
+    char *lineBuffer;
     int error_count; 
 
+    bool PositionFileAtFlag(const char *, char *);
     FortranType GetFortranType(char *, int *, int *, int *);
     int DataToFortranBuffer(CharBuffer &, AmberParmFlagType, int *, double *, NAME *, int);
-    int AllocateAndRead(int &, int &, int &);
+    int AllocateAndRead(int , int , int );
     double *GetDouble(int, int, int);
     int *GetInteger(int, int, int);
     NAME *GetName(int, int, int);
@@ -51,7 +56,7 @@ class AmberParmFile : public ParmIO {
     NAME *GetFlagName(AmberParmFlagType, int);
 
     void SetParmFromValues(AmberParm &, int *, bool);
-    int ReadParmAmber(AmberParm&, CpptrajFile&);
-    int ReadParmOldAmber(AmberParm&, CpptrajFile&);
+    int ReadParmAmber(AmberParm&);
+    int ReadParmOldAmber(AmberParm&);
 };
 #endif

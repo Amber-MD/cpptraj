@@ -12,38 +12,38 @@ class PDBfile: public TrajectoryIO {
       *  MULTI: Each frame written to a different file with name filename.frame
       */
     enum PDBWRITEMODE {SINGLE = 0, MODEL, MULTI};
-  private:
-    char buffer[256];
-    int pdbAtom;
-    PDBWRITEMODE pdbWriteMode;
-    bool dumpq; ///< If true, print charges in Occupancy column
-    bool dumpr; ///< If true, print radii in B-factor column.
-    // The following are only required for writes and are set in setupWrite 
-    NAME *pdbAtomNames; 
-    NAME *trajResNames;
-    int *trajAtomsPerMol;
-    int *trajResNums;
-    double *trajCharges;
-    double *trajRadii;
 
-    char *chainID;
-    char chainchar;
+    PDBfile();
+    // PDBfile-specfic functions
+    void SetWriteMode(PDBWRITEMODE);
+    void SetDumpq();
+
+  private:
+    static const size_t BUF_SIZE;
+
+    int pdbAtom_;
+    PDBWRITEMODE pdbWriteMode_;
+    bool dumpq_; ///< If true, print charges in Occupancy column
+    bool dumpr_; ///< If true, print radii in B-factor column.
+    // The following are only required for writes and are set in setupTrajout 
+    NAME *pdbAtomNames_; 
+    NAME *trajResNames_;
+    int *trajAtomsPerMol_;
+    int *trajResNums_;
+    double *trajCharges_;
+    double *trajRadii_;
+
+    std::vector<char> chainID_;
+    char chainchar_;
 
     // Inherited functions
-    int setupRead(AmberParm*);
-    int setupWrite(AmberParm*);
+    int setupTrajin(AmberParm*);
+    int setupTrajout(AmberParm*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
     void info();
     int processWriteArgs(ArgList*);
-
-  public:
-    PDBfile();
-    ~PDBfile();
-    // PDBfile-specfic functions
-    void SetWriteMode(PDBWRITEMODE);
-    void SetDumpq() { dumpq = true; dumpr=true; }
 };
 #endif

@@ -51,7 +51,7 @@ int Pucker::init() {
   M5.SetMaskString(mask5);
 
   // Setup dataset
-  puck = DSL->Add(DOUBLE, actionArgs.getNextString(),"Pucker");
+  puck = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Pucker");
   if (puck==NULL) return 1;
   // Add dataset to datafile list
   DFL->Add(puckerFile,puck);
@@ -77,16 +77,16 @@ int Pucker::init() {
 // Pucker::setup
 int Pucker::setup() {
 
-  if ( currentParm->SetupIntegerMask( M1, activeReference) ) return 1;
-  if ( currentParm->SetupIntegerMask( M2, activeReference) ) return 1;
-  if ( currentParm->SetupIntegerMask( M3, activeReference) ) return 1;
-  if ( currentParm->SetupIntegerMask( M4, activeReference) ) return 1;
-  if ( currentParm->SetupIntegerMask( M5, activeReference) ) return 1;
-  mprintf("\t%s (%i atoms)\n",M1.MaskString(),M1.Nselected);
-  mprintf("\t%s (%i atoms)\n",M2.MaskString(),M2.Nselected);
-  mprintf("\t%s (%i atoms)\n",M3.MaskString(),M3.Nselected);
-  mprintf("\t%s (%i atoms)\n",M4.MaskString(),M4.Nselected);
-  mprintf("\t%s (%i atoms)\n",M5.MaskString(),M5.Nselected);
+  if ( currentParm->SetupIntegerMask( M1 ) ) return 1;
+  if ( currentParm->SetupIntegerMask( M2 ) ) return 1;
+  if ( currentParm->SetupIntegerMask( M3 ) ) return 1;
+  if ( currentParm->SetupIntegerMask( M4 ) ) return 1;
+  if ( currentParm->SetupIntegerMask( M5 ) ) return 1;
+  mprintf("\t%s (%i atoms)\n",M1.MaskString(),M1.Nselected());
+  mprintf("\t%s (%i atoms)\n",M2.MaskString(),M2.Nselected());
+  mprintf("\t%s (%i atoms)\n",M3.MaskString(),M3.Nselected());
+  mprintf("\t%s (%i atoms)\n",M4.MaskString(),M4.Nselected());
+  mprintf("\t%s (%i atoms)\n",M5.MaskString(),M5.Nselected());
 
   if ( M1.None() || M2.None() || M3.None() || M4.None() || M5.None() ) {
     mprintf("Warning: Pucker::setup: One or more masks have no atoms.\n");

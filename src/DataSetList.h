@@ -14,18 +14,16 @@
   * addresses of DataSets.
   */
 class DataSetList {
-    /// Dataset debug level
-    int debug;
-    /// List of datasets
-    std::vector<DataSet*> DataList;
-    /// Number of datasets
-    int Ndata;
-    /// Expected number of frames to be read in.
-    int maxFrames;
-    //int currentSet;
   public:
     DataSetList();
     ~DataSetList();
+    /// DataSetList default iterator
+    typedef std::vector<DataSet*>::const_iterator const_iterator;
+    /// Iterator to beginning of dataset list
+    const_iterator begin() const;
+    /// Iterator to end of dataset list
+    const_iterator end() const;
+    //size_t DataCharSize();
     /// Set dataset debug level
     void SetDebug(int);
     /// Set the maximum # frames expected to be read in. Used to preallocate DataSet size.
@@ -39,14 +37,16 @@ class DataSetList {
     /// Get the dataset at the given position in the list.
     DataSet *GetDataSetN(int);
     /// Add dataset to the list with name prefix_suffix
-    DataSet *AddMulti(dataType, char *, const char *);
+    DataSet *AddMulti(DataSet::DataType, char *, const char *);
     /// Add dataset to the list with name prefix_suffixN; set index.
-    DataSet *AddMultiN(dataType, const char *, const char *, int);
+    DataSet *AddMultiN(DataSet::DataType, const char *, const char *, int);
     char *checkName(char*, const char*);
-    DataSet *AddMatrix(char*, const char*, int, int);
+    //DataSet *AddMatrix(char*, const char*, int, int);
     /// Add dataset to the list with given name
-    DataSet *Add( dataType, char*, const char*);
-    DataSet *AddIdx( dataType, char*, int);
+    DataSet *Add( DataSet::DataType, char*, const char*);
+    DataSet *AddIdx( DataSet::DataType, char*, int);
+    int AddDataSet(DataSet*);
+    int PrepareForWrite();
     //void Begin();
     /// Add data to the given set in the list
     int AddData(int, void *, int);
@@ -60,5 +60,17 @@ class DataSetList {
     int Size() { return Ndata; }
     /// Return the max # expected frames
     int MaxFrames() { return maxFrames; }
+  private:
+    /// Dataset debug level
+    int debug;
+    /// If true, this data set list only points to data sets
+    bool hasCopies_;
+    /// List of datasets
+    std::vector<DataSet*> DataList;
+    /// Number of datasets
+    int Ndata;
+    /// Expected number of frames to be read in.
+    int maxFrames;
+    //int currentSet;
 };
 #endif

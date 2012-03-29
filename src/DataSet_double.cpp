@@ -6,27 +6,32 @@ using namespace std;
 
 // CONSTRUCTOR
 DataSet_double::DataSet_double() {
-  width = 12;
-  precision = 4;
-  dType=DOUBLE;
+  width_ = 12;
+  precision_ = 4;
+  dType_ = DOUBLE;
   SetDataSetFormat(false);
+}
+
+// DataSet_double::Size()
+int DataSet_double::Size() {
+  return (int)Data_.size();
 }
 
 // DataSet_double::Begin()
 void DataSet_double::Begin() {
-  it = Data.begin();
+  datum_ = Data_.begin();
 }
 
 // DataSet_double::NextValue();
 bool DataSet_double::NextValue() {
-  it++;
-  if (it == Data.end()) return false;
+  ++datum_;
+  if (datum_ == Data_.end()) return false;
   return true;
 }
 
 // DataSet_double::CurrentValue()
 double DataSet_double::CurrentValue() {
-  return (*it).second;
+  return (*datum_).second;
 }
 
 // DataSet_double::Xmax(()
@@ -35,10 +40,10 @@ double DataSet_double::CurrentValue() {
   */
 int DataSet_double::Xmax() {
   // If no data has been added return 0
-  if (current==0) return 0;
-  it=Data.end();
-  it--;
-  return ( (*it).first );
+  if (current_==0) return 0;
+  datum_ = Data_.end();
+  --datum_;
+  return ( (*datum_).first );
 } 
 
 // DataSet_double::Add()
@@ -49,10 +54,10 @@ void DataSet_double::Add(int frame, void *vIn) {
   value = (double*) vIn;
 
   // Always insert at the end
-  Data[frame] = (*value);
+  Data_[frame] = (*value);
   //it=Data.end();
   //Data.insert( it, pair<int,double>(frame, *value) );
-  ++current;
+  current_++;
 }
 
 // DataSet_double::Get()
@@ -65,10 +70,10 @@ int DataSet_double::Get(void *vOut, int frame) {
   if (vOut==NULL) return 1;
   //mprintf("DEBUG: Attempting to get double frame %i\n",frame);
   value = (double*) vOut;
-  it=Data.find( frame );
-  if (it == Data.end()) return 1;
+  datum_ = Data_.find( frame );
+  if (datum_ == Data_.end()) return 1;
   //mprintf("DEBUG: Double frame %i is %lf\n",frame,(*it).second);
-  *value = (*it).second;
+  *value = (*datum_).second;
   return 0;
 }
 
@@ -79,10 +84,10 @@ double DataSet_double::Dval(int idx) {
   return val;
 }
 
-// DataSet_double::isEmpty()
-int DataSet_double::isEmpty(int frame) {
-  it = Data.find( frame );
-  if (it == Data.end()) return 1;
+// DataSet_double::FrameIsEmpty()
+int DataSet_double::FrameIsEmpty(int frame) {
+  datum_ = Data_.find( frame );
+  if (datum_ == Data_.end()) return 1;
   return 0;
 }
 
@@ -91,17 +96,17 @@ int DataSet_double::isEmpty(int frame) {
   */
 void DataSet_double::WriteBuffer(CharBuffer &cbuffer, int frame) {
   double dval;
-  it = Data.find( frame );
-  if (it == Data.end())
+  datum_ = Data_.find( frame );
+  if (datum_ == Data_.end())
     dval = 0.0;
   else
-    dval = (*it).second;
-  cbuffer.WriteDouble(data_format, dval);
+    dval = (*datum_).second;
+  cbuffer.WriteDouble(data_format_, dval);
 }
 
 // DataSet_double::Width()
 int DataSet_double::Width() {
-  return (width + leadingSpace);
+  return (width_ + leadingSpace_);
 }
 
 // DataSet_double::Sync()
@@ -122,13 +127,13 @@ int DataSet_double::Sync() {
     // Get size of map on rank 
     if (worldrank>0) {
       // NOTE: current should be equal to size(). Check for now
-      rprintf("DataSet_double syncing. current=%i, size=%u\n",
-              current, Data.size());
-      if (current != (int) Data.size()) {
+      /*rprintf("DataSet_double syncing. current=%i, size=%u\n",
+              current_, Data_.size());
+      if (current_ != (int) Data_.size()) {
         rprintf("ERROR: current and map size are not equal.\n");
         return 1;
-      }
-      dataSize = current;
+      }*/
+      dataSize = (int)Data_.size();
     }
 
     // Send size of map on rank to master, allocate arrays on rank and master
@@ -140,10 +145,10 @@ int DataSet_double::Sync() {
     // On non-master convert map to int and double arrays.
     if (worldrank > 0) {
       i=0;
-      for ( it = Data.begin(); it != Data.end(); it++ ) {
-        Frames[i]=(*it).first;
-        Values[i]=(*it).second;
-        i++;
+      for ( datum_ = Data_.begin(); datum_ != Data_.end(); datum_++ ) {
+        Frames[i]=(*datum_).first;
+        Values[i]=(*datum_).second;
+        ++i;
       }
     }
 
@@ -154,7 +159,7 @@ int DataSet_double::Sync() {
     // On master convert arrays to pairs and insert to master map
     if (worldrank==0) {
       for (i=0; i < dataSize; i++) 
-        Data.insert( pair<int,double>( Frames[i], Values[i] ) );
+        Data_.insert( pair<int,double>( Frames[i], Values[i] ) );
     }
 
     // Free arrays

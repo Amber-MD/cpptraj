@@ -10,60 +10,73 @@
   * the mass of the atoms involved, and this avoids having to pass a mass 
   * pointer in, which takes the burden of keeping track of mass away from 
   * actions etc. Mass is stored when the frame is initially created, and is 
-  * modified if necessary by SetFrameFromMask (which is the case when e.g. 
-  * calculating RMSD).
+  * modified if necessary by SetFrame (which is the case when e.g. calculating
+  * per-residue RMSD).
   */
 class Frame {
-  protected:
-    static const size_t COORDSIZE;
-    static const size_t BOXSIZE;
+    friend class TrajectoryFile;
   public:
-    double *X;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
-    int natom;     ///< Number of atoms
-    int maxnatom;  ///< Number of atoms for which space has been allocated
-    int N;         ///< Number of coords, natom*3
-    double box[6]; ///< Box coords, 3xlengths, 3xangles
-    double T;      ///< Temperature
-    double *V;     ///< Velocities
-    double *Mass;  ///< Mass
-
+    // Construction/Destruction/Assignment
     Frame();
-    virtual ~Frame();             // Destructor is virtual since this class can be inherited
-    Frame & operator=(const Frame&);
-    Frame & operator+=(const Frame&);
-    Frame & operator-=(const Frame&);
-    int Divide(Frame&, double); 
+    Frame(int);
+    Frame(int, double *);
+    Frame(AtomMask &, double *);
+    Frame(Frame &, AtomMask &);
     Frame(const Frame&);
-
+    void Info(const char*);
+    virtual ~Frame(); // Destructor is virtual since this class can be inherited
+    Frame & operator=(const Frame&);
+    // Convert to/from arrays
+    Frame &operator=(const std::vector<float>&);
+    std::vector<float> ConvertToFloat(AtomMask &);
+    std::vector<double> ConvertToDouble();
+    double *DoubleArray();
+    // Access internal data
+    const double *CoordPtr();
+    void ConvertToPtrajXYZ(double *, double *, double *, double*);
+    void SetFromPtrajXYZ(double *, double *, double *);
+    void GetAtomXYZ(double*, int);
+    int Natom();
+    bool empty();
+    double MaxImagedDistance();
+    // Frame memory allocation/reallocation
+    int SetupFrame(int);
     int SetupFrame(int, double*);
     int SetupFrameV(int,double*,bool);
+    int SetupFrameFromMask(AtomMask&, double *);
+    // Frame setup of coords (mass/velo)
+    void SetCoordinates(Frame&,AtomMask&);
+    void SetCoordinates(Frame &, int *);
+    void SetReferenceByMap(Frame&,int*,int);
+    void SetTargetByMap(Frame&,int*,int);
+    void SetCoordinates(Frame&);
+    void SetFrame(Frame&,AtomMask&);
 
-    int SetupFrameFromMask(AtomMask *, double *);
-    int SetupFrameFromCoords(float *, int);
-    int SetupFrameFromCoords(float *);
     Frame *FrameCopy();
-    //int Resize(int,bool,bool);
 
-    // Coordinate manipulation
+    // Basic Arithmetic
     void ZeroCoords();
-    //void AddCoord(Frame*);
+    Frame & operator+=(const Frame&);
+    Frame & operator-=(const Frame&);
+    Frame & operator*=(const Frame&);
+    const Frame operator*(const Frame&) const;
+    int Divide(Frame&, double); 
     void Divide(double);
+    void AddByMask(Frame &, AtomMask &); 
+    // Coordinate manipulation
     void Translate(double *);
     void Translate(double *, int,int);
     void Trans_Rot_Trans(double *, double *);
     void Rotate(double *);
     void InverseRotate(double *);
-    void Center(AtomMask *, double *,bool);
+    void Center(AtomMask *, bool,bool);
     void CenterReference(double *, bool);
     void ShiftToGeometricCenter();
-    // Coordinate assignment/extraction
+    void ImageNonortho(bool, AtomMask *, bool, bool, bool, std::vector<int> &);
+    void ImageOrtho(bool, bool, bool, std::vector<int> &);
+
     void printAtomCoord(int);
-    void GetCoord(double *, int);
-    void SetCoord(int, double *);
-    double *Coord(int);
-    void SetFrameFromMask(Frame*, AtomMask *);
-    int SetFrameCoordsFromMask(double *, AtomMask *);
-    int SetFrameCoords(double *);
+
     // Center of mass
     double CenterOfMass(AtomMask*, double *);
     double GeometricCenter(AtomMask*, double *);
@@ -78,6 +91,7 @@ class Frame {
     double DIST2(int, int);
     double COORDDIST(int, int);
     double COORDDIST2(int, int);
+    void COORDVECTOR(double*, int, int);
     double ANGLE(AtomMask*, AtomMask*, AtomMask*,bool);
     double ANGLE(int, int, int);
     double DIHEDRAL(AtomMask *, AtomMask *, AtomMask *, AtomMask *,bool);
@@ -91,5 +105,20 @@ class Frame {
 
     void SetAxisOfRotation(double *, int, int);
     void RotateAroundAxis(double *, double, AtomMask &);
+  protected:
+    static const size_t COORDSIZE_;
+    static const size_t BOXSIZE_;
+
+    int natom_;     ///< Number of atoms
+    int maxnatom_;  ///< Number of atoms for which space has been allocated
+    int Ncoord_;    ///< Number of coords, natom*3
+    double *X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
+    double *V_;     ///< Velocities
+    double *Mass_;  ///< Mass
+    double box_[6]; ///< Box coords, 3xlengths, 3xangles
+    double T_;      ///< Temperature
+
+    //void swap(Frame &, Frame &);
+    int ReallocateFrame(int, bool, bool);
 };
 #endif

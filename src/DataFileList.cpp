@@ -68,7 +68,12 @@ DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
 
   // If no DataFile associated with nameIn, create new datafile
   if (Current==NULL) {
-    Current = new DataFile(nameIn); 
+    Current = new DataFile();
+    if (Current->SetupDatafile(nameIn)) {
+      mprinterr("Error setting up DataFile %s\n",nameIn);
+      delete Current;
+      return NULL;
+    } 
     fileList.push_back(Current);
   }
 
@@ -120,7 +125,7 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
   char *df_cmd = NULL;
   char *name1 = NULL;
   char *name2 = NULL;
-  int width,precision;
+  //int width,precision;
   DataFile *df;
 
   if (DF_Args.empty()) return;
@@ -173,12 +178,12 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
 
     // datafile time
     // Usage: datafile time <datafile> <time>
-    } else if ( (*dataArg).ArgIs(1,"time") ) {
+/*    } else if ( (*dataArg).ArgIs(1,"time") ) {
       if (df==NULL) {
         mprintf("Error: datafile time: DataFile %s does not exist.\n",name1);
         continue;
       }
-      df->SetXstep((*dataArg).getNextDouble(1));
+      df->SetXstep((*dataArg).getNextDouble(1));*/
 
     // datafile invert
     // Usage: datafile invert <filename>
@@ -188,7 +193,7 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
         continue;
       }
       mprintf("    Inverting datafile %s\n",name1);
-      df->SetInverted();
+      df->ProcessArgs("invert");
 
     // datafile noxcol
     // Usage: datafile noxcol <filename>
@@ -198,7 +203,7 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
         continue;
       }
       mprintf("    Not printing x column for datafile %s\n",name1);
-      df->SetNoXcol();
+      df->ProcessArgs("noxcol");
 
     // datafile noheader
     // Usage: datafile noheader <filename>
@@ -208,7 +213,7 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
         continue;
       }
       mprintf("    Not printing header for datafile %s\n",name1);
-      df->SetNoHeader();
+      df->ProcessArgs("noheader");
 
     // datafile precision
     // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
@@ -219,8 +224,8 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
         continue;
       }
       // This will break if dataset name starts with a digit...
-      width = (*dataArg).getNextInteger(12);
-      precision = (*dataArg).getNextInteger(4);
+      int width = (*dataArg).getNextInteger(12);
+      int precision = (*dataArg).getNextInteger(4);
       name2 = (*dataArg).getNextString();
       df->SetPrecision(name2,width,precision);
     }

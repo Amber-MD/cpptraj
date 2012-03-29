@@ -69,7 +69,7 @@ void Molsurf::ClearMemory() {
 /// Allocate mem used by molsurf internal data structures
 int Molsurf::AllocateMemory() {
   int error_status = 0;
-  int natm_sel = Mask1.Nselected;
+  int natm_sel = Mask1.Nselected();
   // ---------- Allocate Memory For molsurf routines --------------------
   upper_neighbors = new NEIGHBOR_TORUS[ NUM_NEIGHBOR * natm_sel ];
   neighbors = new NEIGHBOR [ NUM_NEIGHBOR * natm_sel ]; 
@@ -117,7 +117,7 @@ int Molsurf::init() {
   Mask1.SetMaskString(mask1);
 
   // Dataset to store angles
-  sasa = DSL->Add(DOUBLE, actionArgs.getNextString(),"MSURF");
+  sasa = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"MSURF");
   if (sasa==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(molsurfFile,sasa);
@@ -134,19 +134,19 @@ int Molsurf::init() {
   * currentParm is set in Action::Setup
   */
 int Molsurf::setup() {
-  if ( currentParm->SetupIntegerMask(Mask1, activeReference) ) return 1;
+  if ( currentParm->SetupIntegerMask(Mask1) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Molsurf::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
-  mprintf("    MOLSURF: Calculating surface area for %i atoms.\n",Mask1.Nselected);
+  mprintf("    MOLSURF: Calculating surface area for %i atoms.\n",Mask1.Nselected());
   // NOTE: If Mask is * dont include any solvent?
 
   // The ATOM structure is how molsurf organizes atomic data. Allocate
   // here and fill in parm info. Coords will be filled in during action. 
   if (atom!=NULL) delete[] atom;
-  atom = new ATOM[ Mask1.Nselected ];
+  atom = new ATOM[ Mask1.Nselected() ];
   if (atom==NULL) {
     mprinterr("Error: Molsurf::Setup Could not allocate memory for ATOMs.\n");
     return 1;
@@ -158,18 +158,22 @@ int Molsurf::setup() {
               currentParm->parmName);
     return 1;
   }
-  for (int maskidx = 0; maskidx < Mask1.Nselected; maskidx++) {
-    int parmatom = Mask1.Selected[maskidx];
-    int nres = currentParm->atomToResidue(parmatom);
-    atom[maskidx].anum = parmatom + 1; // anum is for debug output only, atoms start from 1
-    strcpy(atom[maskidx].anam,currentParm->AtomName(parmatom));
-    atom[maskidx].rnum = nres + 1; // again for debug output only, residues start from 1
-    strcpy(atom[maskidx].rnam,currentParm->ResidueName(nres));
-    atom[maskidx].pos[0] = 0;
-    atom[maskidx].pos[1] = 0;
-    atom[maskidx].pos[2] = 0;
-    atom[maskidx].q = currentParm->AtomCharge(parmatom);
-    atom[maskidx].rad = Radii[parmatom] + rad_offset;
+  ATOM *atm_ptr = atom;
+  for (AtomMask::const_iterator parmatom = Mask1.begin();
+                                parmatom != Mask1.end();
+                                parmatom++)
+  {
+    int nres = currentParm->atomToResidue(*parmatom);
+    atm_ptr->anum = *parmatom + 1; // anum is for debug output only, atoms start from 1
+    strcpy(atm_ptr->anam,currentParm->AtomName(*parmatom));
+    atm_ptr->rnum = nres + 1; // again for debug output only, residues start from 1
+    strcpy(atm_ptr->rnam,currentParm->ResidueName(nres));
+    atm_ptr->pos[0] = 0;
+    atm_ptr->pos[1] = 0;
+    atm_ptr->pos[2] = 0;
+    atm_ptr->q = currentParm->AtomCharge(*parmatom);
+    atm_ptr->rad = Radii[*parmatom] + rad_offset;
+    ++atm_ptr;
   }
 
   // De-allocate memory first since # atoms may have changed
@@ -186,16 +190,16 @@ int Molsurf::action() {
   double molsurf_sasa;
 
   // Set up coordinates for atoms in mask
-  for (int maskidx = 0; maskidx < Mask1.Nselected; maskidx++) {
-    int i3 = Mask1.Selected[maskidx] * 3;
-    atom[maskidx].pos[0] = currentFrame->X[i3  ];
-    atom[maskidx].pos[1] = currentFrame->X[i3+1];
-    atom[maskidx].pos[2] = currentFrame->X[i3+2];
+  ATOM *atm_ptr = atom;
+  for (AtomMask::const_iterator maskatom = Mask1.begin(); maskatom != Mask1.end(); maskatom++)
+  {
+    currentFrame->GetAtomXYZ(atm_ptr->pos, *maskatom);
+    ++atm_ptr;
   }
 
   // NOTE: cusp_edge is the only data structure that requires initialization 
-  memset( cusp_edge, 0, NUM_EDGE * Mask1.Nselected * sizeof(CUSP_EDGE));
-  molsurf_sasa = molsurf( probe_rad, atom, Mask1.Nselected,
+  memset( cusp_edge, 0, NUM_EDGE * Mask1.Nselected() * sizeof(CUSP_EDGE));
+  molsurf_sasa = molsurf( probe_rad, atom, Mask1.Nselected(),
                           upper_neighbors, neighbors,
                           toruslist, probelist, concave_face,
                           saddle_face, convex_face,

@@ -11,16 +11,18 @@
   * analysis) and puts the memory management burden on STL.
   */
 class DataSet_string : public DataSet {
-    std::map<int,std::string> Data;
-    std::map<int,std::string>::iterator it;
   public:
     DataSet_string();
 
     int Xmax();
-    int isEmpty(int);
+    int Size();
+    int FrameIsEmpty(int);
     void Add( int, void * );
     void WriteBuffer(CharBuffer&, int);
     int Width();
     int Sync();
+  private:
+    std::map<int,std::string> Data_;
+    std::map<int,std::string>::iterator datum_;
 };
 #endif

@@ -33,6 +33,7 @@
 #include "Action_Rotdif.h"
 #include "Action_RunningAvg.h"
 #include "Action_RmsAvgCorr.h"
+#include "Action_AtomicFluct.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() {
@@ -101,9 +102,9 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("runningaverage")) {Act=new RunningAvg;}
   else if (argIn.CommandIs("runavg"))         {Act=new RunningAvg;}
   else if (argIn.CommandIs("rmsavgcorr"))     {Act=new RmsAvgCorr;}
+  else if (argIn.CommandIs("atomicfluct"))    {Act=new AtomicFluct;}
   // PTRAJ
-  else if (argIn.CommandIs("atomicfluct") ||
-           argIn.CommandIs("atomicfluct3D") ||
+  else if (argIn.CommandIs("atomicfluct3D") ||
            argIn.CommandIs("checkoverlap") ||
            argIn.CommandIs("contacts") ||
            argIn.CommandIs("correlation") ||

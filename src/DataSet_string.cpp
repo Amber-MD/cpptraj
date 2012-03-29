@@ -7,8 +7,8 @@ using namespace std;
 
 // CONSTRUCTOR
 DataSet_string::DataSet_string() {
-  width=1;
-  dType=STRING;
+  width_ = 1;
+  dType_ = STRING;
   SetDataSetFormat(false);
 }
 
@@ -18,10 +18,15 @@ DataSet_string::DataSet_string() {
   */
 int DataSet_string::Xmax() {
   // If no data has been added return 0
-  if (current==0) return 0;
-  it=Data.end();
-  it--;
-  return ( (*it).first );
+  if (current_==0) return 0;
+  datum_ = Data_.end();
+  --datum_;
+  return ( (*datum_).first );
+}
+
+// DataSet_string::Size()
+int DataSet_string::Size() {
+  return (int)Data_.size();
 }
 
 // DataSet_string::Add()
@@ -37,18 +42,18 @@ void DataSet_string::Add(int frame, void *vIn) {
   value = (char*) vIn;
   Temp.assign(value);
   strsize = (int) Temp.size();
-  if (strsize > width) width = strsize;
+  if (strsize > width_) width_ = strsize;
   // Always insert at the end
   //it=Data.end();
   //Data.insert( it, pair<int,string>(frame, Temp) );
-  Data[frame]=Temp;
-  current++;
+  Data_[frame]=Temp;
+  ++current_;
 }
 
-// DataSet_string::isEmpty()
-int DataSet_string::isEmpty(int frame) {
-  it = Data.find( frame );
-  if (it == Data.end()) return 1;
+// DataSet_string::FrameIsEmpty()
+int DataSet_string::FrameIsEmpty(int frame) {
+  datum_ = Data_.find( frame );
+  if (datum_ == Data_.end()) return 1;
   return 0;
 }
 
@@ -56,11 +61,11 @@ int DataSet_string::isEmpty(int frame) {
 /** Write data at frame to CharBuffer. If no data for frame write 0.0.
   */
 void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
-  it = Data.find( frame );
-  if (it == Data.end())
-    cbuffer.WriteString(data_format,"NoData");
+  datum_ = Data_.find( frame );
+  if (datum_ == Data_.end())
+    cbuffer.WriteString(data_format_,"NoData");
   else
-    cbuffer.WriteString(data_format, (*it).second.c_str());
+    cbuffer.WriteString(data_format_, (*datum_).second.c_str());
 }
 
 // DataSet_string::Width()
@@ -69,7 +74,7 @@ void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
   * string.
   */
 int DataSet_string::Width() {
-  return (width + leadingSpace);
+  return (width_ + leadingSpace_);
 }
 
 // DataSet_string::Sync()
@@ -96,12 +101,12 @@ int DataSet_string::Sync() {
     if (worldrank>0) {
       // NOTE: current should be equal to size(). Check for now
       rprintf( "DataSet_string syncing. current=%i, size=%u\n",
-              current, Data.size());
-      if (current != (int) Data.size()) {
+              current_, Data_.size());
+      /*if (current != (int) Data.size()) {
         rprintf("ERROR: current and map size are not equal.\n");
         return 1;
-      }
-      dataSize = current;
+      }*/
+      dataSize = (int)Data_.size();
     }
 
     // Send size of map on rank to master, allocate frame and sizes arrays on 
@@ -116,10 +121,10 @@ int DataSet_string::Sync() {
     if (worldrank>0) {
       i=0;
       totalCharSize=0;
-      for (it = Data.begin(); it != Data.end(); it++) {
-        Frames[i]=(*it).first;
-        Sizes[i] = (*it).second.size();
-        totalCharSize += (*it).second.size();
+      for (datum_ = Data_.begin(); datum_ != Data_.end(); datum_++) {
+        Frames[i]=(*datum_).first;
+        Sizes[i] = (*datum_).second.size();
+        totalCharSize += (*datum_).second.size();
         i++;
       }
       // Add 1 to totalCharSize for NULL character
@@ -134,8 +139,8 @@ int DataSet_string::Sync() {
 
     // On non-master put all strings into giant char array
     if (worldrank > 0) {
-      for (it = Data.begin(); it != Data.end(); it++) 
-        strcat(Values, (*it).second.c_str());
+      for (datum_ = Data_.begin(); datum_ != Data_.end(); datum_++) 
+        strcat(Values, (*datum_).second.c_str());
     }
 
     // Send arrays to master
@@ -152,7 +157,7 @@ int DataSet_string::Sync() {
         ptr[ Sizes[i] ] = '\0';
         str.assign(ptr);
         // Insert Frame/string pair
-        Data.insert( pair<int,string>( Frames[i], str ) );
+        Data_.insert( pair<int,string>( Frames[i], str ) );
         // Advance pointer into giant char array
         ptr[ Sizes[i] ] = oldChar;
         ptr += Sizes[i];

@@ -3,15 +3,16 @@
 /*! \file Mol2FileRoutines.h
     \brief Collection of routines used for accessing mol2 files.
  */
-#include "CpptrajFile.h"
+#include "FileIO.h"
 #include "Name.h"
-// NOTE: Just yse buffersize in CpptrajFile?
+// NOTE: Just use buffersize in CpptrajFile?
 #define MOL2BUFFERSIZE 256
 /// Recognized TRIPOS tags
 enum TRIPOSTAG { MOLECULE, ATOM, BOND, SUBSTRUCT };
 #define NUMTRIPOSTAGS 4
 
-int Mol2ScanTo( CpptrajFile *, TRIPOSTAG );
+bool IsMol2Keyword(char *);
+int Mol2ScanTo( FileIO *, TRIPOSTAG );
 int Mol2AtomName(char *, NAME);
 int Mol2XYZ(char *, double *);
 int Mol2AtomType(char *, NAME);

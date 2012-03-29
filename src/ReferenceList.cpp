@@ -3,9 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-ReferenceList::ReferenceList() {
-  fileAccess=READ;
-}
+ReferenceList::ReferenceList() { }
 
 // DESTRUCTOR
 ReferenceList::~ReferenceList() {
@@ -153,13 +151,16 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     if (!MaskExpressions[refTrajNum].empty()) {
       Mask.SetMaskString((char*)MaskExpressions[refTrajNum].c_str());
       mprintf("    reference: Keeping atoms in mask [%s]\n",Mask.MaskString());
-      if (CurrentParm->SetupIntegerMask(Mask, CurrentFrame->X)) return 1;
+      if (CurrentParm->SetupIntegerMask(Mask, *CurrentFrame)) return 1;
       if (Mask.None()) {
         mprinterr("Error: No atoms kept for reference.\n");
         return 1;
       }
+      // Create new stripped frame
+      Frame* strippedRefFrame = new Frame(*CurrentFrame, Mask);
+      mprintf("\tKept %i atoms.\n",strippedRefFrame->Natom());
       // Create new stripped parm
-      AmberParm *strippedRefParm = CurrentParm->modifyStateByMask(Mask.Selected,NULL);
+      AmberParm *strippedRefParm = CurrentParm->modifyStateByMask(Mask,NULL);
       if (strippedRefParm==NULL) {
         mprinterr("Error: could not strip reference.\n");
         return 1;
@@ -168,9 +169,9 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       // Store the new stripped parm in this class so it can be freed later
       StrippedRefParms.push_back(strippedRefParm);
       // Create new stripped frame and set up from current frame
-      Frame *strippedRefFrame = new Frame();
+      /*Frame *strippedRefFrame = new Frame();
       strippedRefFrame->SetupFrame(strippedRefParm->natom,strippedRefParm->mass);
-      strippedRefFrame->SetFrameFromMask(CurrentFrame, &Mask);
+      strippedRefFrame->SetFrameFromMask(CurrentFrame, &Mask);*/
       // Set the current frame and parm to be stripped frame and parm
       // No need to free CurrentParm since it exists in the parm file list.
       delete CurrentFrame;

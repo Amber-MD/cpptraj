@@ -2,6 +2,7 @@
 #define INC_ATOMMASK_H
 #include <string>
 #include <vector>
+#include "MaskToken.h"
 // Class: AtomMask
 /// Hold info on selected atoms based on mask expression.
 /** AtomMask is used to hold an array of integers that represent atom numbers
@@ -29,36 +30,54 @@
 // invertMask, AddAtom, AddAtoms, and AddAtomRange currently only apply
 // to the Selected array.
 class AtomMask {
-    std::vector<char> CharMask; ///< Char array of atoms, T if selected, F if not.
-    std::string Postfix;        ///< maskString tokenized and converted to RPN
-    char maskChar;              ///< The character used to denote a selected atom (default 'T')
-    std::string maskString;     ///< String specifying atom selection
-    /** Number of atoms mask was set-up with. Needed when converting from
-      * integer mask to Character mask. */
-    int Natom;
   public:
-    int Nselected;              ///< Number of selected atoms in mask
-    std::vector<int> Selected;  ///< Int array of selected atom numbers, 1 for each selected atom
-
-    const char *MaskString() { return maskString.c_str(); }
-    std::string MaskExpression() { return maskString; }
-
     AtomMask();
-    ~AtomMask();
     AtomMask(const AtomMask &);
     AtomMask & operator=(const AtomMask&);
 
+    typedef std::string::const_iterator postfix_iterator;
+    inline postfix_iterator postfix_begin() const {
+      return Postfix_.begin();
+    }
+    inline postfix_iterator postfix_end() const {
+      return Postfix_.end();
+    }
+    /// AtomMask default iterator
+    typedef std::vector<int>::const_iterator const_iterator;
+    /// Iterator to the beginning of Selected
+    const_iterator begin() const;
+    /// Iterator at end of Selected
+    const_iterator end() const;
+    /// Return number of selected atoms
+    int Nselected();
+    /// Return selected atom at idx
+    const int &operator[](int);
+    /// Return original mask expression as char*
+    const char *MaskString();
+    /// Return original mask expression as std::string
+    std::string MaskExpression();
+    /// Return mask expression converted to postfix notation
     char *PostfixExpression();
-    void ResetMask();              ///< Reset atom mask
-    void InvertMask();             ///< Switch char used to denote selected atoms (T->F, F->T)
-
+    /// Reset atom mask
+    void ResetMask();
+    /// Switch char used to denote selected atoms (T->F, F->T)
+    void InvertMask();
+    /// Return the number of atoms mask has in common with another mask
     int NumAtomsInCommon(AtomMask &);
-    void AddAtom(int);                ///< Add given atom to Selected array 
-    void AddAtoms(std::vector<int>&); ///< Add a list of atoms to mask
-    void AddAtomRange(int,int);       ///< Add minAtom <= atom < maxAtom to mask
-    void PrintMaskAtoms(const char*); ///< Print all mask atoms in to a line
-    bool None();                      ///< Return true if Nselected==0
-    int SetMaskString(char*);         ///< Set the mask string. If NULL, set * (all)
+    /// Add given atom to Selected array 
+    void AddAtom(int);
+    /// Add a list of atoms to mask
+    void AddAtoms(std::vector<int>&);
+    /// Add minAtom <= atom < maxAtom to mask
+    void AddAtomRange(int,int);
+    /// Add atoms in given mask to this mask at positon, update position
+    void AddMaskAtPosition(AtomMask &, int &);
+    /// Print all mask atoms in to a line
+    void PrintMaskAtoms(const char*);
+    /// Return true if no atoms selected. 
+    bool None();
+    /// Set the mask string. If NULL, set * (all)
+    int SetMaskString(char*);
     /// Set up Selected based on given char mask 
     void SetupMask(char*,int,int);
     /// Set up CharMask based on given char mask 
@@ -66,6 +85,28 @@ class AtomMask {
     /// True if given atom is T in CharMask
     bool AtomInCharMask(int atom);
     /// Convert mask type (char->int, int->char)
-    int ConvertMaskType(); 
+    int ConvertMaskType();
+
+    typedef std::vector<MaskToken>::const_iterator token_iterator;
+    inline token_iterator begintoken() const {
+      return maskTokens_.begin();
+    }
+    inline token_iterator endtoken() const {
+      return maskTokens_.end();
+    }
+  private:
+    int debug_;
+    std::vector<char> CharMask_; ///< Char array of atoms, T if selected, F if not.
+    std::string Postfix_;        ///< maskString tokenized and converted to RPN
+    char maskChar_;              ///< The character used to denote a selected atom (default 'T')
+    std::string maskString_;     ///< String specifying atom selection
+    /** Number of atoms mask was set-up with. Needed when converting from
+      * integer mask to Character mask. */
+    int Natom_;
+    int nselected_;              ///< Number of selected atoms in mask
+    std::vector<int> Selected_;  ///< Int array of selected atom numbers, 1 for each selected atom
+    std::vector<MaskToken> maskTokens_;
+
+    int Tokenize();
 };
 #endif

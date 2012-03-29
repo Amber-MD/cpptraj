@@ -8,28 +8,28 @@
 // CONSTRUCTOR
 FileIO_Bzip2::FileIO_Bzip2() {
   //fprintf(stderr,"FileIO_Bzip2 CONSTRUCTOR\n");
-  fp = NULL;
-  infile = NULL;
-  err = BZ_OK;
-  isBzread=true;
-  bzfilename=NULL;
-  bzmode=NULL;
-  position=0L;
+  fp_ = NULL;
+  infile_ = NULL;
+  err_ = BZ_OK;
+  isBzread_ = true;
+  bzfilename_ = NULL;
+  bzmode_ = NULL;
+  position_ = 0L;
 }
 
 // DESTRUCTOR
 FileIO_Bzip2::~FileIO_Bzip2() {
   //fprintf(stderr,"FileIO_Bzip2 DESTRUCTOR\n");
-  if (fp!=NULL || infile!=NULL) this->Close();
-  if (bzfilename!=NULL) free(bzfilename);
-  if (bzmode!=NULL) free(bzmode);
+  if (fp_!=NULL || infile_!=NULL) this->Close();
+  if (bzfilename_!=NULL) free(bzfilename_);
+  if (bzmode_!=NULL) free(bzmode_);
 }
 
 // FileIO_Bzip2::BZerror()
 /** Return a string corresponding to the current value of err.
   */
 const char *FileIO_Bzip2::BZerror() {
-  switch (err) {
+  switch (err_) {
     case BZ_OK : return "BZ_OK";
     case BZ_PARAM_ERROR : return "BZ_PARAM_ERROR";
     case BZ_SEQUENCE_ERROR : return "BZ_SEQUENCE_ERROR";
@@ -76,20 +76,20 @@ const char *FileIO_Bzip2::BZerror() {
 //   behaviour over a wide range of circumstances.
 int FileIO_Bzip2::Open(const char *filename, const char *mode) {
   // Store filename and mode - reallocate in case of reopen
-  if (bzfilename!=filename) {
-    bzfilename = (char*) realloc(bzfilename, (strlen(filename)+1) * sizeof(char));
-    strcpy(bzfilename, filename);
+  if (bzfilename_!=filename) {
+    bzfilename_ = (char*) realloc(bzfilename_, (strlen(filename)+1) * sizeof(char));
+    strcpy(bzfilename_, filename);
   }
-  if (bzmode!=mode) {
-    bzmode     = (char*) realloc(bzmode,     (strlen(mode)+1    ) * sizeof(char));
-    strcpy(bzmode, mode);
+  if (bzmode_!=mode) {
+    bzmode_     = (char*) realloc(bzmode_,     (strlen(mode)+1    ) * sizeof(char));
+    strcpy(bzmode_, mode);
   }
 
   // DEBUG
   //mprintf("DEBUG: FileIO_Bzip2::Open(%s,%s)\n",filename,mode);
 
-  fp = fopen(filename, mode);
-  if (fp==NULL) {
+  fp_ = fopen(filename, mode);
+  if (fp_==NULL) {
     mprintf("Error: FileIO_Bzip2::Open: Could not open %s with mode %s\n",filename,mode);
     return 1;
   }
@@ -97,13 +97,13 @@ int FileIO_Bzip2::Open(const char *filename, const char *mode) {
   switch ( mode[0] ) {
     case 'r' : 
       //mprintf("DEBUG: Calling bzReadOpen\n");
-      infile = BZ2_bzReadOpen( &err, fp, 1, 0, NULL, 0); 
-      isBzread=true;  
+      infile_ = BZ2_bzReadOpen( &err_, fp_, 1, 0, NULL, 0); 
+      isBzread_ = true;  
       break;
     case 'w' : 
       //mprintf("DEBUG: Calling bzWriteOpen\n");
-      infile = BZ2_bzWriteOpen( &err, fp, 9, 0, 30);
-      isBzread=false; 
+      infile_ = BZ2_bzWriteOpen( &err_, fp_, 9, 0, 30);
+      isBzread_ = false; 
       break;
     case 'a' : 
       mprintf("Error: FileIO_Bzip2::Open: Append not supported for Bzip2.\n");
@@ -111,32 +111,32 @@ int FileIO_Bzip2::Open(const char *filename, const char *mode) {
     default: return 1; 
   }
 
-  if (err != BZ_OK) {
+  if (err_ != BZ_OK) {
     mprintf("Error: FileIO_Bzip2::Open: Could not BZOPEN %s with mode %s\n",filename,mode);
     return 1;
   }
 
-  if (infile==NULL) return 1;
+  if (infile_==NULL) return 1;
   //mprintf("DEBUG: BZIP2 Opened %s with mode %s\n",filename,mode);
-  position=0L;
+  position_ = 0L;
   return 0;
 }
 
 // FileIO_Bzip2::Close()
 int FileIO_Bzip2::Close() {
-  if (infile!=NULL) {
-    if (isBzread) {
+  if (infile_!=NULL) {
+    if (isBzread_) {
       //mprintf("DEBUG: BZ2_bzReadClose\n");
-      BZ2_bzReadClose(&err, infile);
+      BZ2_bzReadClose(&err_, infile_);
     } else {
       //mprintf("DEBUG: BZ2_bzWriteClose\n");
-      BZ2_bzWriteClose(&err, infile, 0, NULL, NULL);
+      BZ2_bzWriteClose(&err_, infile_, 0, NULL, NULL);
     }
-    infile=NULL;
+    infile_ = NULL;
   }
   
-  if (fp!=NULL) fclose(fp);
-  fp=NULL;
+  if (fp_!=NULL) fclose(fp_);
+  fp_ = NULL;
   return 0;
 }
 
@@ -196,52 +196,43 @@ off_t FileIO_Bzip2::Size(char *filename) {
   * If an error occurs or no more bytes to be read return -1;
   * Dont attempt to read if error bit is set.
   */
-int FileIO_Bzip2::Read(void *buffer, size_t size, size_t count) {
-  //size_t numread;
-  int numread;
-  int expectedread;
-  
+int FileIO_Bzip2::Read(void *buffer, size_t num_bytes) {
   //if (err!=BZ_OK) return -1;
   // Should never be able to call Read when fp is NULL.
   //if (fp==NULL) {
   //  mprintf("Error: FileIO_Bzip2::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
-  expectedread = (int) size;
-  expectedread *= (int) count;
-  numread = BZ2_bzRead(&err, infile, buffer, expectedread);
+  size_t numread = (size_t) BZ2_bzRead(&err_, infile_, buffer, num_bytes);
 
   // Update position
-  position = position + ((off_t) numread);
+  position_ += ((off_t) numread);
 
-  if (numread != expectedread) {
-    if (err!=BZ_OK && err!=BZ_STREAM_END) {
+  if (numread != num_bytes) {
+    if (err_!=BZ_OK && err_!=BZ_STREAM_END) {
       mprintf( "Error: FileIO_Bzip2::Read: BZ2_bzRead error: [%s]\n",this->BZerror());
-      mprintf( "                        size=%lu  count=%lu\n",size,count);
+      mprintf( "                        size=%lu expected=%lu\n",numread,num_bytes);
     }
     return -1;
   }
   //mprintf( "DEBUG: After FileIO_Bzip2::Read: [%s] position %li\n",this->BZerror(),position);
 
-  return numread;
+  return (int)numread;
 }
 
 // FileIO_Bzip2::Write()
-int FileIO_Bzip2::Write(void *buffer, size_t size, size_t count) {
-  //size_t numwrite;
-  int numwrite;
+int FileIO_Bzip2::Write(void *buffer, size_t num_bytes) {
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
   //  mprintf("Error: FileIO_Bzip2::Write: Attempted to write to NULL file pointer.\n");
   //  return 1;
   //}
-  numwrite = size * count;
-  BZ2_bzWrite ( &err, infile, buffer, numwrite );
+  BZ2_bzWrite ( &err_, infile_, buffer, num_bytes );
 
   // Update position
-  position = position + ((off_t)numwrite);
+  position_ += ((off_t)num_bytes);
 
-  if (err == BZ_IO_ERROR) { 
+  if (err_ == BZ_IO_ERROR) { 
     mprintf( "Error: FileIO_Bzip2::Write: BZ2_bzWrite error\n");
     return 1;
   }
@@ -270,12 +261,12 @@ int FileIO_Bzip2::Seek(off_t offset) {
   //mprintf("DEBUG: FileIO_Bzip2::Seek: %s %li -> %li, ",bzfilename,position,seekTo);
 
   // If place to seek to is earlier than current position need to reopen
-  if (seekTo<position) 
+  if (seekTo<position_) 
     this->Rewind();
 
   // Read chars until position achieved
-  while (position<seekTo) {
-    if (this->Read(&Scan,1,1)==-1) break;
+  while (position_<seekTo) {
+    if (this->Read(&Scan,1)==-1) break;
   }
 
   //mprintf("%li\n",position);
@@ -287,16 +278,16 @@ int FileIO_Bzip2::Seek(off_t offset) {
 /** Close and reopen.
   */
 int FileIO_Bzip2::Rewind() {
-  if (bzfilename==NULL || bzmode==NULL) return 1;
+  if (bzfilename_==NULL || bzmode_==NULL) return 1;
   this->Close();
-  this->Open(bzfilename,bzmode);
+  this->Open(bzfilename_,bzmode_);
   return 0;
 }
 
 // FileIO_Bzip2::Tell()
 // NOTE: Tell not possible with bzip2. Use position.
 off_t FileIO_Bzip2::Tell() {
-  return position;
+  return position_;
 }
 
 // FileIO_Bzip2::Gets()
@@ -314,7 +305,7 @@ int FileIO_Bzip2::Gets(char *str, int num) {
   // Try to read num chars. If newline encountered exit
   if (num<=1) return 1;
   i=0;
-  while ( this->Read(str+i, 1, 1)!=-1 ) {
+  while ( this->Read(str+i, 1)!=-1 ) {
     i++;
     if (i==num-1) break;
     if (str[i-1]=='\n') break;

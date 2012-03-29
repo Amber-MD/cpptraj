@@ -37,7 +37,7 @@ int Dihedral::init() {
   M4.SetMaskString(mask4);
 
   // Setup dataset
-  dih = DSL->Add(DOUBLE, actionArgs.getNextString(),"Dih");
+  dih = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Dih");
   if (dih==NULL) return 1;
   // Add dataset to datafile list
   DFL->Add(dihedralFile,dih);
@@ -53,14 +53,14 @@ int Dihedral::init() {
 // Dihedral::setup
 int Dihedral::setup() {
 
-  if (currentParm->SetupIntegerMask(M1, activeReference)) return 1;
-  if (currentParm->SetupIntegerMask(M2, activeReference)) return 1;
-  if (currentParm->SetupIntegerMask(M3, activeReference)) return 1;
-  if (currentParm->SetupIntegerMask(M4, activeReference)) return 1;
-  mprintf("\t%s (%i atoms)\n",M1.MaskString(),M1.Nselected);
-  mprintf("\t%s (%i atoms)\n",M2.MaskString(),M2.Nselected);
-  mprintf("\t%s (%i atoms)\n",M3.MaskString(),M3.Nselected);
-  mprintf("\t%s (%i atoms)\n",M4.MaskString(),M4.Nselected);
+  if (currentParm->SetupIntegerMask(M1)) return 1;
+  if (currentParm->SetupIntegerMask(M2)) return 1;
+  if (currentParm->SetupIntegerMask(M3)) return 1;
+  if (currentParm->SetupIntegerMask(M4)) return 1;
+  mprintf("\t%s (%i atoms)\n",M1.MaskString(),M1.Nselected());
+  mprintf("\t%s (%i atoms)\n",M2.MaskString(),M2.Nselected());
+  mprintf("\t%s (%i atoms)\n",M3.MaskString(),M3.Nselected());
+  mprintf("\t%s (%i atoms)\n",M4.MaskString(),M4.Nselected());
   if ( M1.None() || M2.None() || M3.None() || M4.None() ) {
     mprintf("    Error: Dihedral::setup: One or more masks have no atoms.\n");
     return 1;

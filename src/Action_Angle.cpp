@@ -38,7 +38,7 @@ int Angle::init() {
   Mask3.SetMaskString(mask3);
 
   // Dataset to store angles
-  ang = DSL->Add(DOUBLE, actionArgs.getNextString(),"Ang");
+  ang = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Ang");
   if (ang==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(angleFile,ang);
@@ -56,12 +56,12 @@ int Angle::init() {
 // currentParm is set in Action::Setup
 int Angle::setup() {
 
-  if (currentParm->SetupIntegerMask(Mask1, activeReference)) return 1;
-  if (currentParm->SetupIntegerMask(Mask2, activeReference)) return 1;
-  if (currentParm->SetupIntegerMask(Mask3, activeReference)) return 1;
-  mprintf("\t%s (%i atoms)\n",Mask1.MaskString(),Mask1.Nselected);
-  mprintf("\t%s (%i atoms)\n",Mask2.MaskString(),Mask2.Nselected);
-  mprintf("\t%s (%i atoms)\n",Mask3.MaskString(),Mask3.Nselected);
+  if (currentParm->SetupIntegerMask(Mask1)) return 1;
+  if (currentParm->SetupIntegerMask(Mask2)) return 1;
+  if (currentParm->SetupIntegerMask(Mask3)) return 1;
+  mprintf("\t%s (%i atoms)\n",Mask1.MaskString(),Mask1.Nselected());
+  mprintf("\t%s (%i atoms)\n",Mask2.MaskString(),Mask2.Nselected());
+  mprintf("\t%s (%i atoms)\n",Mask3.MaskString(),Mask3.Nselected());
   if (Mask1.None() || Mask2.None() || Mask3.None()) {
     mprintf("    Error: Angle::setup: One or more masks contain 0 atoms.\n");
     return 1;

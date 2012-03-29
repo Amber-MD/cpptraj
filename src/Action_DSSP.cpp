@@ -57,7 +57,7 @@ int DSSP::init() {
 
   // Set up the DSSP data set
   if (printString) {
-    dssp = DSL->Add(STRING, actionArgs.getNextString(),"DSSP");
+    dssp = DSL->Add(DataSet::STRING, actionArgs.getNextString(),"DSSP");
     if (dssp==NULL) return 1;
     DFL->Add(outfilename, dssp);
   } else
@@ -86,11 +86,10 @@ int DSSP::init() {
 // NOTE: Currently relatively memory-intensive. Eventually set up so that SecStruct and
 // CO_HN_Hbond members exist only for selected residues? Use Map?
 int DSSP::setup() {
-  int selected, atom, res;
   Residue RES;
 
   // Set up mask for this parm
-  if ( currentParm->SetupIntegerMask( Mask, activeReference ) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask ) ) return 1;
   if ( Mask.None() ) {
     mprintf("Warning: DSSP::setup: Mask has no atoms.\n");
     return 1;
@@ -98,7 +97,7 @@ int DSSP::setup() {
 
   // Initially mark all residues already set up as not selected and 
   // reset all atom numbers
-  for (res = 0; res < (int)SecStruct.size(); res++) {
+  for (int res = 0; res < (int)SecStruct.size(); res++) {
     SecStruct[res].isSelected = false;
     SecStruct[res].C = -1;
     SecStruct[res].H = -1;
@@ -133,33 +132,33 @@ int DSSP::setup() {
   // Go through all atoms in mask. Determine which residues have their C,
   // O, N, or H atoms selected. Store the actual coordinate index 
   // (i.e. atom# * 3) for use with COORDDIST routine.
-  for (selected=0; selected < Mask.Nselected; selected++) {
-    atom = Mask.Selected[selected];
-    res = currentParm->atomToResidue(atom);
+  for (AtomMask::const_iterator atom = Mask.begin(); atom!=Mask.end(); atom++) {
+    int atom_res = currentParm->atomToResidue(*atom);
     // If residue is out of bounds skip it
-    if ( res >= Nres ) continue;
-    //fprintf(stdout,"DEBUG: Atom %i Res %i [%s]\n",atom,res,P->names[atom]);
-    SecStruct[res].isSelected = true;
-    if (      currentParm->AtomNameIs(atom, "C   ") )
-      SecStruct[res].C=atom*3;
-    else if ( currentParm->AtomNameIs(atom, "O   ") )
-      SecStruct[res].O=atom*3;
-    else if ( currentParm->AtomNameIs(atom, "N   ") )
-      SecStruct[res].N=atom*3;
-    else if ( currentParm->AtomNameIs(atom, "H   ") )
-      SecStruct[res].H=atom*3;
+    if ( atom_res >= Nres ) continue;
+    //fprintf(stdout,"DEBUG: Atom %i Res %i [%s]\n",*atom,atom_res,P->names[*atom]);
+    SecStruct[atom_res].isSelected = true;
+    if (      currentParm->AtomNameIs(*atom, "C   ") )
+      SecStruct[atom_res].C = (*atom) * 3;
+    else if ( currentParm->AtomNameIs(*atom, "O   ") )
+      SecStruct[atom_res].O = (*atom) * 3;
+    else if ( currentParm->AtomNameIs(*atom, "N   ") )
+      SecStruct[atom_res].N = (*atom) * 3;
+    else if ( currentParm->AtomNameIs(*atom, "H   ") )
+      SecStruct[atom_res].H = (*atom) * 3;
   }
 
   // For each residue selected in the mask, check if residue is already 
   // set up in SecStruct. If so update the atom indices, otherwise set it up.
-  selected = 0;
+  int selected = 0;
   for (int res = 0; res < Nres; res++) {
     if (!SecStruct[res].isSelected) continue;
     // Residue needs at least C=O or N-H, Check?
     // Set up dataset if necessary 
     if (!printString && SecStruct[res].resDataSet==NULL) {
       // Setup dataset name for this residue
-      SecStruct[res].resDataSet = SSdata->AddMultiN(INT,"",currentParm->ResidueName(res),res+1);
+      SecStruct[res].resDataSet = SSdata->AddMultiN(DataSet::INT,"",
+                                                    currentParm->ResidueName(res),res+1);
       if (SecStruct[res].resDataSet!=NULL) DFL->Add(outfilename, SecStruct[res].resDataSet);
     }
     selected++;
@@ -375,11 +374,13 @@ void DSSP::print() {
   dsspData = new DataSetList(); 
   // Set up a dataset for each SS type
   for (ss=1; ss<7; ss++) 
-    dsspFile = DFL->Add((char*)sumOut.c_str(), dsspData->Add(DOUBLE, (char*)SSname[ss], "SS") );
+    dsspFile = DFL->Add((char*)sumOut.c_str(), 
+                        dsspData->Add(DataSet::DOUBLE, (char*)SSname[ss], "SS") );
   // Change the X label to Residue
-  dsspFile->SetXlabel((char*)"Residue");
+  dsspFile->ProcessArgs("xlabel Residue");
   // Dont print empty frames
-  dsspFile->SetNoEmptyFrames();
+  // NOTE: Obsolete?
+  dsspFile->ProcessArgs("noemptyframes");
 
   // Calc the avg structure of each type for each selected residue 
   for (resi=0; resi < Nres; resi++) {

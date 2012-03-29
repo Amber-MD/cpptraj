@@ -47,19 +47,18 @@ int Corr::Setup(DataSetList *datasetlist) {
 
   // Check that D1 and D2 have same # data points.
   // NOTE: Should also check type, this should be performed later!
-  Nelements = D1->Capacity(); 
+  /*Nelements = D1->Capacity(); 
   if (Nelements != D2->Capacity()) {
     mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1name,Nelements);
     mprinterr("             # elements in dataset %i (%i)\n",D2name, D2->Capacity());
     return 1;
   }
-  if (lagmax==-1) lagmax = Nelements;
+  if (lagmax==-1) lagmax = Nelements;*/
 
   // Setup output dataset
   if (Ct.Setup((char*)"Corr", lagmax)) return 1;
 
-  mprintf("    CORR: Correlation between set %s and set %s, %i elements, max lag %i\n",
-          D1name, D2name, Nelements, lagmax);
+  mprintf("    CORR: Correlation between set %s and set %s\n",D1name,D2name);
   mprintf("          Output to %s\n",outfilename);
 
   return 0;
@@ -67,9 +66,19 @@ int Corr::Setup(DataSetList *datasetlist) {
 
 // Corr::Analyze()
 int Corr::Analyze() {
-  double d1;
-  double d2;
-  double ct;
+  double d1, d2, ct;
+
+  // Check that D1 and D2 have same # data points.
+  Nelements = D1->Size(); 
+  if (Nelements != D2->Size()) {
+    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1->Name(),Nelements);
+    mprinterr("             # elements in dataset %i (%i)\n",D2->Name(), D2->Size());
+    return 1;
+  }
+  if (lagmax==-1) lagmax = Nelements;
+
+  mprintf("    CORR: %i elements, max lag %i\n",Nelements,lagmax);
+
   // Calculate averages
   double avg1 = D1->Avg(NULL);
   double avg2 = D2->Avg(NULL);

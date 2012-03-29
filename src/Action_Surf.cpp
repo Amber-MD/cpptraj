@@ -26,7 +26,7 @@ int Surf::init() {
   Mask1.SetMaskString(mask1);
 
   // Dataset to store surface area 
-  surf = DSL->Add(DOUBLE, actionArgs.getNextString(),"SA");
+  surf = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"SA");
   if (surf==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(surfFile,surf);
@@ -43,7 +43,7 @@ int Surf::init() {
 int Surf::setup() {
   int soluteAtoms;
 
-  if (currentParm->SetupIntegerMask( Mask1, activeReference)) return 1;
+  if (currentParm->SetupIntegerMask( Mask1 )) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Surf::setup: Mask contains 0 atoms.\n");
     return 1;
@@ -56,7 +56,7 @@ int Surf::setup() {
     return 1;
   }
   mprintf("      SURF: Set up parameters for %i solute atoms.\n",soluteAtoms);
-  mprintf("            LCPO surface area will be calculated for %i atoms.\n",Mask1.Nselected);
+  mprintf("            LCPO surface area will be calculated for %i atoms.\n",Mask1.Nselected());
 
   // Check that each atom in Mask1 is part of solute
   // Create a separate mask for building the atom neighbor list
@@ -65,15 +65,14 @@ int Surf::setup() {
   atomi_neighborMask.ResetMask();
   atomi_noNeighborMask.ResetMask();
   atomj_neighborMask.ResetMask();
-  for (int i=0; i < Mask1.Nselected; i++) {
-    int atomi = Mask1.Selected[i];
-    if (currentParm->SurfaceInfo[atomi].vdwradii > 2.5)
-      atomi_neighborMask.AddAtom(atomi);
+  for (AtomMask::const_iterator atomi = Mask1.begin(); atomi!=Mask1.end(); atomi++) {
+    if (currentParm->SurfaceInfo[*atomi].vdwradii > 2.5)
+      atomi_neighborMask.AddAtom(*atomi);
     else
-      atomi_noNeighborMask.AddAtom(atomi);
-    if (atomi >= soluteAtoms) {
+      atomi_noNeighborMask.AddAtom(*atomi);
+    if (*atomi >= soluteAtoms) {
       mprintf("Error: Surf::setup(): Atom %i in mask %s does not belong to solute.\n",
-              atomi+1, Mask1.MaskString());
+              *atomi+1, Mask1.MaskString());
       return 1;
     }
   }
@@ -90,36 +89,38 @@ int Surf::setup() {
 // Surf::action()
 /** Calculate surface area. */
 int Surf::action() {
-  double SA; 
-  int atomi, atomj;
+  double SA;
+  int atomi, idx;
+  AtomMask::const_iterator atomj; 
   std::vector<int> ineighbor;
   std::vector<double> Distances_i_j;
+  int max_atomi_neighbormask = atomi_neighborMask.Nselected();
 
   // Set up neighbor list for each atom in mask and calc its surface 
   // area contribution. Sum these up to get the total surface area.
   SA = 0.0;
 #ifdef _OPENMP
-#pragma omp parallel private(atomi,atomj,ineighbor,Distances_i_j) reduction(+: SA)
+#pragma omp parallel private(atomi,idx,atomj,ineighbor,Distances_i_j) reduction(+: SA)
 {
 #pragma omp for 
-#endif      
-  for (int maskIndex = 0; maskIndex < atomi_neighborMask.Nselected; maskIndex++) {
-    atomi = atomi_neighborMask.Selected[maskIndex];
+#endif
+  for (idx = 0; idx < max_atomi_neighbormask; idx++) {
+    atomi = atomi_neighborMask[idx];
     // Vdw of atom i
     double vdwi = currentParm->SurfaceInfo[atomi].vdwradii;
     // Set up neighbor list for atom i
     ineighbor.clear();
     Distances_i_j.clear();
-    for (int ajidx = 0; ajidx < atomj_neighborMask.Nselected; ajidx++) {
-      atomj = atomj_neighborMask.Selected[ajidx];
-      if (atomi!=atomj) {
-        double dij = currentFrame->DIST(atomi, atomj);
+    for (atomj = atomj_neighborMask.begin(); atomj != atomj_neighborMask.end(); atomj++)
+    {
+      if (atomi != *atomj) {
+        double dij = currentFrame->DIST(atomi, *atomj);
         // Count atoms as neighbors if their VDW radii touch
-        if ( (vdwi + currentParm->SurfaceInfo[atomj].vdwradii) > dij ) {
-          ineighbor.push_back(atomj);
+        if ( (vdwi + currentParm->SurfaceInfo[*atomj].vdwradii) > dij ) {
+          ineighbor.push_back(*atomj);
           Distances_i_j.push_back(dij);
         }
-        //mprintf("SURF_NEIG:  %i %i %lf\n",atomi,atomj,dij);
+        //mprintf("SURF_NEIG:  %i %i %lf\n",atomi,*atomj,dij);
       }
     }
     // Calculate surface area
@@ -198,14 +199,14 @@ int Surf::action() {
 } // END pragma omp parallel
 #endif
   // Second loop over atoms with no neighbors (vdw <= 2.5)
-  for (int maskIndex=0; maskIndex < atomi_noNeighborMask.Nselected; maskIndex++) {
-    int atomi = atomi_noNeighborMask.Selected[maskIndex];
+  for (atomj = atomi_noNeighborMask.begin(); atomj != atomi_noNeighborMask.end(); atomj++)
+  {
     // Vdw of atom i
-    double vdwi = currentParm->SurfaceInfo[atomi].vdwradii;
+    double vdwi = currentParm->SurfaceInfo[*atomj].vdwradii;
     // Calculate surface area of atom i
     double vdwi2 = vdwi * vdwi;
     double Si = vdwi2 * FOURPI; 
-    SA += (currentParm->SurfaceInfo[atomi].P1 * Si);
+    SA += (currentParm->SurfaceInfo[*atomj].P1 * Si);
   }
 
   surf->Add(frameNum, &SA);

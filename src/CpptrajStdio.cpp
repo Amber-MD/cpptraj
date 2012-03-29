@@ -1,11 +1,11 @@
 #include <cstdio>
 #include <cstdarg>
-#include <cstdlib> // tildeExpansion
 #include <cstring> // tildeExpansion
 #include <cmath> // log10
 #ifndef __PGI
 #  include <glob.h> // For tilde expansion
 #endif
+#include "CpptrajStdio.h"
 #ifdef MPI
 #  include "MpiRoutines.h"
 #endif
@@ -75,7 +75,7 @@ void rprinterr(const char *format, ...) {
 
 // printerr()
 /** Print error message along with calling routine.  */
-void printerr(const char *ROUTINE, const char *format, ...) {
+/*void printerr(const char *ROUTINE, const char *format, ...) {
   va_list args;
 
   va_start(args,format);
@@ -86,11 +86,11 @@ void printerr(const char *ROUTINE, const char *format, ...) {
   va_end(args);
   fprintf(stdout,"\n");
   return;
-}
+}*/
 
 // printwar()
 /** Print warning message along with calling routine.  */
-void printwar(const char *ROUTINE, const char *format, ...) {
+/*void printwar(const char *ROUTINE, const char *format, ...) {
   va_list args;
 
   va_start(args,format);
@@ -101,7 +101,7 @@ void printwar(const char *ROUTINE, const char *format, ...) {
   va_end(args);
   fprintf(stdout,"\n");
   return;
-}
+}*/
 
 // tildeExpansion()
 /** Use glob.h to perform tilde expansion on a filename, returning the 
@@ -114,7 +114,7 @@ char *tildeExpansion(char *filenameIn, int debug) {
   // NOTE: It seems some PGI compilers do not function correctly when glob.h
   //       is included and large file flags are set. Just disable globbing
   //       for PGI and return a copy of filenameIn.
-  returnFilename = (char*) malloc( (strlen(filenameIn)+1) * sizeof(char));
+  returnFilename = new char[ strlen(filenameIn)+1 ];
   strcpy(returnFilename, filenameIn);
   return returnFilename;
 #else
@@ -126,7 +126,7 @@ char *tildeExpansion(char *filenameIn, int debug) {
   globbuf.gl_offs = 1;
   if ( glob(filenameIn, GLOB_TILDE, NULL, &globbuf)!=0 ) return NULL;
   if (debug>1) mprintf("\tGLOB(0): [%s]\n",globbuf.gl_pathv[0]);
-  returnFilename=(char*) malloc( (strlen(globbuf.gl_pathv[0])+1) * sizeof(char));
+  returnFilename = new char[ strlen(globbuf.gl_pathv[0])+1 ];
   strcpy(returnFilename, globbuf.gl_pathv[0]);
   globfree(&globbuf);
   return returnFilename;
@@ -143,7 +143,7 @@ bool fileExists(char *filenameIn) {
   fname = tildeExpansion(filenameIn,0);
   if (fname==NULL) return false;
   infile=fopen(filenameIn,"rb");
-  free(fname);
+  delete[] fname;
   if (infile==NULL) return false;
   fclose(infile);
   return true;
@@ -179,103 +179,83 @@ int DigitWidth(int numberIn) {
   return (minusSign + numi);
 }
 
-// SetDoubleFormatString()
-/** Return a printf-style format string for float/double of given width 
-  * and precision
-  */
-/*char *SetDoubleFormatString(int width, int precision) {
-  size_t stringWidth = 0;
-  int wWidth = 0;
-  int pWidth = 0;
-  char *format;
-    
-  // Calc num of chars necessary to hold width
-  wWidth = (width / 10) + 1;
-  // Calc num of chars necessary to hold precision
-  pWidth = (precision / 10) + 1;
-  // String fmt: " %w.plf\0"
-  stringWidth = pWidth + wWidth + 6;
-  format = new char [ stringWidth ];
-  sprintf(format, " %%%i.%ilf", width, precision);
-  return format;
-}*/
+// ---------- STRING FORMAT ROUTINES -------------------------------------------
+// NOTE: In the following format routines, 2 char arrays are used
+// since a 1 char NULL terminates the format string.
 
-// SetAlignedDoubleFormatString()
-/** Return a printf-style format string for float/double of given width 
-  * and precision, no leading space.
+// SetDoubleFormatString()
+/** Set up a printf-style format string for float/double of given width, 
+  * precision, and alignment.
   */
-/*char *SetAlignedDoubleFormatString(int width, int precision) {
-  size_t stringWidth = 0;
-  int wWidth = 0;
-  int pWidth = 0;
-  char *format;
-    
-  // Calc num of chars necessary to hold width
-  wWidth = (width / 10) + 1;
-  // Calc num of chars necessary to hold precision
-  pWidth = (precision / 10) + 1;
+void SetDoubleFormatString(std::string &formatString, int width, int precision,
+                           bool leftAlign) 
+{
+  char leftSpace[2];
+  // If left-aligned, no leading space.
+  if (leftAlign)
+    leftSpace[0]='\0';
+  else {
+    leftSpace[0]=' ';
+    leftSpace[1]='\0';
+  }
+  // # chars necessary to hold width arg
+  int wWidth = DigitWidth( width );
+  // # chars necessary to hold precision arg
+  int pWidth = DigitWidth( precision );
   // String fmt: "%w.plf\0"
-  stringWidth = pWidth + wWidth + 5;
-  format = new char [ stringWidth ];
-  sprintf(format, "%%%i.%ilf", width, precision);
-  return format;
-}*/
+  char *format = new char[ pWidth + wWidth + 6 ];
+  sprintf(format, "%s%%%i.%ilf", leftSpace, width, precision);
+  formatString.assign( format );
+  //mprintf("DEBUG: Double Format string: [%s]\n",format);
+  delete[] format;
+}
 
 // SetStringFormatString()
-/** Return a printf-style format string for string of given width.
+/** Set up a printf-style format string for string (char*) of given
+  * width and alignment.
   */
-/*char *SetStringFormatString(int width) {
-  size_t stringWidth = 0;
-  int wWidth = 0;
-  char *format;
-    
-  // Calc num of chars necessary to hold width
-  wWidth = (width / 10) + 1;
+void SetStringFormatString(std::string &formatString, int width, bool leftAlign) 
+{
+  char leftSpace[2];
+  char alignChar[2]; 
+  // If left-aligned, no leading space, set alignment char
+  if (leftAlign) {
+    leftSpace[0]='\0';
+    alignChar[0]='-';
+    alignChar[1]='\0';
+  } else {
+    leftSpace[0]=' ';
+    leftSpace[1]='\0';
+    alignChar[0]='\0';
+  }
+  // # chars necessary to hold width arg
+  int wWidth = DigitWidth( width );
   // String fmt: " %-ws"
-  stringWidth = wWidth + 5;
-  format = new char[ stringWidth ];
-  sprintf(format, " %%-%is", width);
-  return format;
-}*/
+  char *format = new char[ wWidth + 5 ];
+  sprintf(format, "%s%%%s%is", leftSpace, alignChar, width);
+  formatString.assign( format );
+  //mprintf("DEBUG: String Format string: [%s]\n",format);
+  delete[] format;
+}
 
 // SetIntegerFormatString()
-/** Return a printf-style format string for integer of given width.
-  */
-/*char *SetIntegerFormatString(int width) {
-  size_t stringWidth = 0;
-  int wWidth = 0;
-  char *format;
-    
-  // Calc num of chars necessary to hold width
-  wWidth = (width / 10) + 1;
+void SetIntegerFormatString(std::string &formatString, int width, bool leftAlign)
+{
+  char leftSpace[2];
+  // If left-aligned, no leading space.
+  if (leftAlign)
+    leftSpace[0]='\0';
+  else {
+    leftSpace[0]=' ';
+    leftSpace[1]='\0';
+  }
+  // # chars necessary to hold width arg
+  int wWidth = DigitWidth( width );
   // String fmt: " %wi"
-  stringWidth = wWidth + 4;
-  format = new char[ stringWidth ];
-  sprintf(format, " %%%ii", width);
-  return format;
-}*/
-
-// SetXYZFormatString()
-/** Return a printf-style format string for 3 float/doubles of given width 
-  * and precision
-  */
-/*char *SetXYZFormatString(int width, int precision) {
-  size_t stringWidth = 0;
-  int wWidth = 0;
-  int pWidth = 0;
-  char *format;
-    
-  // Calc num of chars necessary to hold width
-  wWidth = (width / 10) + 1;
-  // Calc num of chars necessary to hold precision
-  pWidth = (precision / 10) + 1;
-  // String fmt: "%w.plf %w.plf %w.plf\0"
-  stringWidth = pWidth + wWidth + 5;
-  stringWidth *= 3;
-  stringWidth++;
-  format = new char[ stringWidth ];
-  sprintf(format, "%%%i.%ilf %%%i.%ilf %%%i.%ilf",width,precision,width,precision,
-          width,precision);
-  return format;
-}*/
+  char *format = new char[ wWidth + 4 ];
+  sprintf(format, "%s%%%ii", leftSpace, width);
+  formatString.assign( format );
+  //mprintf("DEBUG: Integer Format string: [%s]\n",format);
+  delete[] format;
+}
 

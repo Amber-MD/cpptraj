@@ -140,8 +140,8 @@ AxisType::AxisType(const AxisType &rhs) :
 {
   ID = rhs.ID;
   if (rhs.Name!=NULL) {
-    Name = new NAME[ natom ];
-    memcpy(Name, rhs.Name, natom * sizeof(NAME));
+    Name = new NAME[ natom_ ];
+    memcpy(Name, rhs.Name, natom_ * sizeof(NAME));
   } else
     Name=NULL;
   origin[0] = rhs.origin[0];
@@ -153,9 +153,9 @@ AxisType::AxisType(const AxisType &rhs) :
   HbondAtom[2] = rhs.HbondAtom[2];
   // Since HbondCoord contains memory addresses, it must be updated
   // relative to this instances X
-  HbondCoord[0] = X + (HbondAtom[0]*3);
-  HbondCoord[1] = X + (HbondAtom[1]*3);
-  HbondCoord[2] = X + (HbondAtom[2]*3);
+  HbondCoord[0] = X_ + (HbondAtom[0]*3);
+  HbondCoord[1] = X_ + (HbondAtom[1]*3);
+  HbondCoord[2] = X_ + (HbondAtom[2]*3);
   residue_number = rhs.residue_number;
   second_resnum = rhs.second_resnum;
 }
@@ -176,8 +176,8 @@ AxisType &AxisType::operator=(const AxisType &rhs) {
   // Allocate and copy
   ID = rhs.ID;
   if (rhs.Name!=NULL) {
-    Name = new NAME[ natom ];
-    memcpy(Name, rhs.Name, natom * sizeof(NAME));
+    Name = new NAME[ natom_ ];
+    memcpy(Name, rhs.Name, natom_ * sizeof(NAME));
   }
   origin[0] = rhs.origin[0];
   origin[1] = rhs.origin[1];
@@ -188,9 +188,9 @@ AxisType &AxisType::operator=(const AxisType &rhs) {
   HbondAtom[2] = rhs.HbondAtom[2];
   // Since HbondCoord contains memory addresses, it must be updated
   // relative to this instances X
-  HbondCoord[0] = X + (HbondAtom[0]*3);
-  HbondCoord[1] = X + (HbondAtom[1]*3);
-  HbondCoord[2] = X + (HbondAtom[2]*3);
+  HbondCoord[0] = X_ + (HbondAtom[0]*3);
+  HbondCoord[1] = X_ + (HbondAtom[1]*3);
+  HbondCoord[2] = X_ + (HbondAtom[2]*3);
   residue_number = rhs.residue_number;
   second_resnum = rhs.second_resnum;
 
@@ -284,15 +284,15 @@ AxisType::NAbaseType AxisType::ID_base(char *resname) {
 /** Allocate mem for coords and names. Replace any existing coords / names.
   */
 int AxisType::AllocAxis(int natomIn) {
-  if (X!=NULL) delete[] X;
+  if (X_!=NULL) delete[] X_;
   if (Name!=NULL) delete[] Name;
-  natom = natomIn;
-  maxnatom = natom;
-  N = natom * 3;
-  X = new double[ N ];
-  if (X==NULL) return 1;
-  Name = new NAME[ natom ]; 
-  if (Name==NULL) {delete[] X; return 1;}
+  natom_ = natomIn;
+  maxnatom_ = natom_;
+  Ncoord_ = natom_ * 3;
+  X_ = new double[ Ncoord_ ];
+  if (X_==NULL) return 1;
+  Name = new NAME[ natom_ ]; 
+  if (Name==NULL) {delete[] X_; return 1;}
   return 0;
 }
 
@@ -310,20 +310,20 @@ char *AxisType::ResName() {
 
 // AxisType::AtomNameIs()
 bool AxisType::AtomNameIs(int atom, char *nameIn) {
-  if (atom<0 || atom>=natom) return false;
+  if (atom<0 || atom>=natom_) return false;
   if (strcmp(Name[atom], nameIn)==0) return true;
   return false;
 }
 
 // AxisType::AtomName()
 char *AxisType::AtomName(int atom) {
-  if (atom<0 || atom>=natom) return NULL;
+  if (atom<0 || atom>=natom_) return NULL;
   return (Name[atom]);
 }
 
 // AxisType::PrintAtomNames()
 void AxisType::PrintAtomNames() {
-  for (int atom = 0; atom < natom; atom++)
+  for (int atom = 0; atom < natom_; atom++)
     mprintf(" %s",Name[atom]);
   mprintf("\n");
 }
@@ -345,28 +345,30 @@ void AxisType::PrintAxisInfo(const char *title) {
   * \param Mask AtomMask containing atoms to keep from AxisIn.
   */
 void AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
-  natom = Mask.Nselected;
-  N     = natom * 3;
-  if (natom > maxnatom) {
-    delete[] X;
-    X = new double[ N ];
+  natom_ = Mask.Nselected();
+  Ncoord_ = natom_ * 3;
+  if (natom_ > maxnatom_) {
+    delete[] X_;
+    X_ = new double[ Ncoord_ ];
 #   ifdef NASTRUCTDEBUG
     // Need names when debugging
     if (AxisIn.Name!=NULL) {
       delete[] Name;
-      Name = new NAME[ natom ];
+      Name = new NAME[ natom_ ];
     }
 #   endif
-    maxnatom = natom;
+    maxnatom_ = natom_;
   }
-  double *newX = X;
-  for (int i = 0; i < natom; i++) {
-    int oldatom = Mask.Selected[i];
-    int oldatom3 = oldatom * 3;
-    memcpy(newX, AxisIn.X + oldatom3, COORDSIZE);
+  double *newX = X_;
+  for (AtomMask::const_iterator oldatom = Mask.begin();
+                                oldatom != Mask.end();
+                                oldatom++)
+  {
+    int oldatom3 = (*oldatom) * 3;
+    memcpy(newX, AxisIn.X_ + oldatom3, COORDSIZE_);
     newX += 3;
 #   ifdef NASTRUCTDEBUG
-    strcpy(Name[i], AxisIn.Name[oldatom]);
+    strcpy(Name[i], AxisIn.Name[*oldatom]);
 #   endif
   }
 }
@@ -525,12 +527,12 @@ AxisType::RefReturn AxisType::SetRefCoord(AmberParm *currentParm, int resnum,
     // calculations.
     int hb_index = BaseHbonds[refatom];
     if ( hb_index != -1 ) {
-      HbondCoord[hb_index] = X + coord3;
+      HbondCoord[hb_index] = X_ + coord3;
       HbondAtom[hb_index] = coord;
     }
-    X[coord3++] = BaseRefCoords[refcoord  ]; 
-    X[coord3++] = BaseRefCoords[refcoord+1]; 
-    X[coord3++] = BaseRefCoords[refcoord+2]; 
+    X_[coord3++] = BaseRefCoords[refcoord  ]; 
+    X_[coord3++] = BaseRefCoords[refcoord+1]; 
+    X_[coord3++] = BaseRefCoords[refcoord+2]; 
     strcpy(Name[coord],BaseRefNames[refatom]);
     parmMask.AddAtom( (*atom).first );
     // Will this atom be used for RMS fitting?
@@ -602,13 +604,13 @@ void AxisType::FlipXY() {
 void AxisType::WritePDB(CpptrajFile &outfile, int resnum, char *resname, int *atom) {
   char buffer[82];
   int i3=0;
-  for (int i=0; i<natom; i++) {
+  for (int i=0; i<natom_; i++) {
     pdb_write_ATOM(buffer,PDBATOM,(*atom)+i+1,Name[i],resname,'X',resnum+1,
-                   X[i3],X[i3+1],X[i3+2],1.0,0.0,(char*)"\0",false);
+                   X_[i3],X_[i3+1],X_[i3+2],1.0,0.0,(char*)"\0",false);
     outfile.IO->Write(buffer,sizeof(char),strlen(buffer));
     i3+=3;
   }
-  (*atom) += natom;
+  (*atom) += natom_;
 }
 // AxisType::WriteAxesPDB()
 void AxisType::WriteAxesPDB(CpptrajFile &outfile, int resnum, char *resname, int *atom) {

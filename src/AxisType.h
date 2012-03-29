@@ -21,24 +21,7 @@ class AxisType : public Frame {
   public:
     /// Type for each standard NA base.
     enum NAbaseType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
-  private:
-    /// Identify NA base from residue name
-    NAbaseType ID_base(char*);
-    /// Strings corresponding to NAbaseType
-    static const char NAbaseName[][4];
-    /// Atom Names
-    NAME *Name;
-    /// Original residue number
-    int residue_number;
-    /// Second base number if this is a base pair
-    int second_resnum;
-    /// Origin coordinates
-    double origin[3];
-    /// DEBUG - Storage for writing out BaseName + residue_number 
-    char basename_num[32];
 
-    int AllocAxis(int);
-  public:
     NAbaseType ID;
     double R[9];
     double *HbondCoord[3];
@@ -76,5 +59,22 @@ class AxisType : public Frame {
     void WritePDB(CpptrajFile &, int, char *, int *); // DEBUG
     void WriteAxesPDB(CpptrajFile &, int, char *, int *);
 #endif
+  private:
+    /// Identify NA base from residue name
+    NAbaseType ID_base(char*);
+    /// Strings corresponding to NAbaseType
+    static const char NAbaseName[][4];
+    /// Atom Names
+    NAME *Name;
+    /// Original residue number
+    int residue_number;
+    /// Second base number if this is a base pair
+    int second_resnum;
+    /// Origin coordinates
+    double origin[3];
+    /// DEBUG - Storage for writing out BaseName + residue_number 
+    char basename_num[32];
+
+    int AllocAxis(int);
 };
 #endif  

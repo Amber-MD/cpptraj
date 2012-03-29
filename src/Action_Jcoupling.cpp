@@ -48,7 +48,7 @@ int Jcoupling::loadKarplus(std::string filename) {
     mprinterr("Error: jcoupling: Could not find Karplus parameter file.\n");
     return 1;
   }
-  if (KarplusFile.SetupFile((char*)filename.c_str(),READ,debug)) {
+  if (KarplusFile.SetupRead((char*)filename.c_str(),debug)) {
     mprinterr("Error: jcoupling: Could not read Karplus parameter file %s\n",
               filename.c_str());
     return 1;
@@ -200,7 +200,7 @@ int Jcoupling::init( ) {
   mprintf("                Writing output to %s\n",outfilename);
 
   // DEBUG - Open output
-  outputfile.SetupFile(outfilename,WRITE,debug);
+  outputfile.SetupWrite(outfilename,debug);
   outputfile.OpenFile();
 
   return 0;
@@ -216,7 +216,7 @@ int Jcoupling::setup() {
   int MaxResidues;
   jcouplingInfo JC;
 
-  if ( currentParm->SetupCharMask(Mask1, activeReference) ) return 1;
+  if ( currentParm->SetupCharMask(Mask1) ) return 1;
   if (Mask1.None()) {
     mprinterr("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
     return 1;
@@ -320,7 +320,7 @@ int Jcoupling::action() {
   double phitemp,C0,C1,C2,C3;
   int residue;
 
-  outputfile.IO->Printf("#Frame %i\n",frameNum+OUTPUTFRAMESHIFT);
+  outputfile.Printf("#Frame %i\n",frameNum+OUTPUTFRAMESHIFT);
 
   for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo.begin();
                                             jc !=JcouplingInfo.end();
@@ -343,7 +343,7 @@ int Jcoupling::action() {
 
     residue = (*jc).residue;
     // DEBUG - output
-    outputfile.IO->Printf("%5i %4s%4s%4s%4s%4s%12lf%12lf\n",
+    outputfile.Printf("%5i %4s%4s%4s%4s%4s%12lf%12lf\n",
             residue+1,currentParm->ResidueName(residue),
             currentParm->AtomName((*jc).atom[0]),currentParm->AtomName((*jc).atom[1]),
             currentParm->AtomName((*jc).atom[2]),currentParm->AtomName((*jc).atom[3]),

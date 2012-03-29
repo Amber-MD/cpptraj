@@ -21,11 +21,11 @@ class FileIO {
     /// Read bytes from a file.
     /** \return number of bytes read, -1 on error.
       */
-    virtual int Read(void *, size_t, size_t)     { return 0;  }
+    virtual int Read(void *, size_t)             { return 0;  }
     /// Write bytes to a file.
     /** \return 0 on success, 1 on failure.
       */
-    virtual int Write(void *, size_t, size_t)    { return 0;  }
+    virtual int Write(void *, size_t)            { return 0;  }
     /// Seek to specified position in file.
     virtual int Seek(off_t)                      { return 0;  }
     /// Reset file pointer to beginning.
@@ -38,9 +38,5 @@ class FileIO {
     virtual off_t Size(char *)                   { return 0;  }
     /// Set expected file size, only needed for writes with MPI files.
     virtual int SetSize(long int)                { return 0;  }
-    /// Printf using the files Write routine.
-    void Printf(const char*, ...);
-    /// Printf using the files Write routine for the given rank.
-    void Rank_printf(int, const char *, ...);
 };
 #endif

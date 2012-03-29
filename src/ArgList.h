@@ -25,6 +25,7 @@ class ArgList {
     int debug;
   public:
     ArgList();
+    ArgList(std::string &, const char*);
     ~ArgList();
     ArgList(const ArgList &);
     ArgList&operator=(const ArgList &);

@@ -4,11 +4,6 @@
 #include "CpptrajStdio.h"
 //#include "MpiRoutines.h" //worldsize
 
-// CONSTRUCTOR
-TrajoutList::TrajoutList() {
-  fileAccess=WRITE;
-}
-
 // TrajoutList::AddTrajout()
 /** Add trajectory to the trajectory list as an output trajectory. 
   * Associate the trajectory with one of the parm files in the 
@@ -42,7 +37,7 @@ int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, AmberParm *parmIn) {
   }
   traj->SetDebug(debug);
   // Default to AMBERTRAJ; format can be changed via args in the arg list
-  if (traj->SetupWrite(filename,A,parmIn,AMBERTRAJ)) {
+  if (traj->SetupWrite(filename,A,parmIn,TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: trajout: Could not set up trajectory.\n");
     delete traj;
     return 1;

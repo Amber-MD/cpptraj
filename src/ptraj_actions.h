@@ -19,7 +19,7 @@ extern "C" {
 #include "ptraj_state.h" // ptrajState and mask parsing routines, modes
 
 // ---------- Routines that access global ptraj_actions vars -------------------
-void SetReferenceInfo(double*,int);
+void SetReferenceInfo(const double*,int);
 void FreeReferenceInfo();
 
 // ---------- Ptraj actions ----------------------------------------------------

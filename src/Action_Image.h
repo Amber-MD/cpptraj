@@ -16,12 +16,8 @@ class Image: public Action {
     bool ortho;
     enum TriclinicArg {OFF, FORCE, FAMILIAR};
     TriclinicArg triclinic;
-    struct atomPair {
-      int firstAtom;
-      int lastAtom;
-    };
     /// Vector containing atom ranges to be imaged (first to last)
-    std::vector<atomPair> imageList; 
+    std::vector<int> imageList; 
 
   public:
     Image();

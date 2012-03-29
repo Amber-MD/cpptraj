@@ -12,32 +12,32 @@ class Mol2File : public TrajectoryIO {
       * - MULTI: Each frame written to a different file with name filename.frame
       */
     enum MOL2WRITEMODE { SINGLE = 0, MOL, MULTI };
-  private:
-    int mol2atom;
-    int mol2bonds;
-    MOL2WRITEMODE mol2WriteMode;
 
-    // The following are only required for writes and are set in setupWrite 
-    int trajnres;
-    NAME *trajAtomNames; 
-    NAME *trajTypes;
-    NAME *trajResNames; 
-    int *trajResNums;
-    double *trajCharges;
-    std::vector<int> trajBonds;
+    Mol2File();
+    // Mol2-specific functions
+    void SetWriteMode(MOL2WRITEMODE);
+  private:
+    int mol2atom_;
+    int mol2bonds_;
+    MOL2WRITEMODE mol2WriteMode_;
+
+    // The following are only required for writes and are set in setupTrajout 
+    int trajnres_;
+    NAME *trajAtomNames_;
+    NAME *trajTypes_;
+    NAME *trajResNames_; 
+    int *trajResNums_;
+    double *trajCharges_;
+    std::vector<int> trajBonds_;
 
     // Inherited functions
-    int setupRead(AmberParm *);
-    int setupWrite(AmberParm *);
+    int setupTrajin(AmberParm *);
+    int setupTrajout(AmberParm *);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
     void info();
     int processWriteArgs(ArgList *);
-  public :
-    Mol2File();
-    // Mol2-specific functions
-    void SetWriteMode(MOL2WRITEMODE);
 };
 #endif

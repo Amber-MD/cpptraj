@@ -6,7 +6,6 @@
 /// Hold trajectories for output
 class TrajoutList : public CoordFileList {
   public:
-    TrajoutList();
     /// Add a traj file to the list with given access and associate with a parm
     int AddTrajout(char*,ArgList *A, AmberParm *);
     /// Call write for all trajectories

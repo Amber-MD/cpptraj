@@ -3,13 +3,13 @@
 
 // CONSTRUCTOR
 FileIO_Std::FileIO_Std() {
-  fp = NULL;
-  isStdout=false;
+  fp_ = NULL;
+  isStdout_=false;
 }
 
 // DESTRUCTOR
 FileIO_Std::~FileIO_Std() {
-  if (fp!=NULL) this->Close();
+  if (fp_!=NULL) this->Close();
 }
 
 // FileIO_Std::Open()
@@ -19,13 +19,13 @@ FileIO_Std::~FileIO_Std() {
 int FileIO_Std::Open(const char *filename, const char *mode) {
   if (filename==NULL) {
     if (mode[0]=='w') 
-      fp=stdout;
+      fp_=stdout;
     else
       return 1;
-    isStdout=true;
+    isStdout_=true;
   } else
-    fp = fopen(filename, mode);
-  if (fp==NULL) return 1;
+    fp_ = fopen(filename, mode);
+  if (fp_==NULL) return 1;
   return 0;
 }
 
@@ -33,23 +33,22 @@ int FileIO_Std::Open(const char *filename, const char *mode) {
 /** Close stream if not stdout
   */
 int FileIO_Std::Close() {
-  if (fp!=NULL && !isStdout) fclose(fp);
-  fp=NULL;
+  if (fp_!=NULL && !isStdout_) fclose(fp_);
+  fp_=NULL;
   return 0;
 }
 
 // FileIO_Std::Read()
-int FileIO_Std::Read(void *buffer, size_t size, size_t count) {
-  size_t numread;
+int FileIO_Std::Read(void *buffer, size_t num_bytes) {
   // Should never be able to call Read when fp is NULL.
   //if (fp==NULL) {
   //  fprintf(stdout,"Error: FileIO_Std::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
-  if (feof(fp)) return -1;
-  numread = fread(buffer, size, count, fp);
+  if (feof(fp_)) return -1;
+  size_t numread = fread(buffer, 1, num_bytes, fp_);
   // NOTE: Check for errors here?
-  if (ferror(fp)) {
+  if (ferror(fp_)) {
     perror("Error during FileIO_Std::Read");
     return -1;
   }
@@ -58,8 +57,7 @@ int FileIO_Std::Read(void *buffer, size_t size, size_t count) {
 }
 
 // FileIO_Std::Write()
-int FileIO_Std::Write(void *buffer, size_t size, size_t count) {
-  size_t numwrite;
+int FileIO_Std::Write(void *buffer, size_t num_bytes) {
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
   //  fprintf(stdout,"Error: FileIO_Std::Write: Attempted to write to NULL file pointer.\n");
@@ -70,9 +68,9 @@ int FileIO_Std::Write(void *buffer, size_t size, size_t count) {
   //temp=(char*) buffer;
   //printf("Calling standard write(%i): [%s]\n",size * count,temp);
 
-  numwrite = fwrite(buffer, size, count, fp);
+  size_t numwrite = fwrite(buffer, 1, num_bytes, fp_);
   // NOTE: Check for errors here.
-  if (numwrite!=(size*count)) return 1;
+  if (numwrite != num_bytes) return 1;
   return 0;
 }
 
@@ -82,30 +80,30 @@ int FileIO_Std::Seek(off_t offset) {
   // DEBUG
   //printf("Calling standard seek(%i): %li\n",origin,offset);
 #ifdef _MSC_VER
-	return _fseeki64(fp,offset,SEEK_SET);
+	return _fseeki64(fp_,offset,SEEK_SET);
 #else
-  return fseeko(fp, offset, SEEK_SET);
+  return fseeko(fp_, offset, SEEK_SET);
 #endif
 }
 
 // FileIO_Std::Rewind()
 int FileIO_Std::Rewind() {
-  rewind(fp);
+  rewind(fp_);
   return 0;
 }
 
 // FileIO_Std::Tell()
 off_t FileIO_Std::Tell() {
 #ifdef _MSC_VER
-	return _ftelli64(fp);
+	return _ftelli64(fp_);
 #else
-  return ftello(fp);
+  return ftello(fp_);
 #endif
 }
 
 // FileIO_Std::Gets()
 int FileIO_Std::Gets(char *str, int num) {
-  if ( fgets(str,num,fp) == NULL ) {
+  if ( fgets(str,num,fp_) == NULL ) {
     //fprintf(stdout,"DEBUG: FileIO_Std::Gets returned NULL (%s) %i\n",str,num);
     return 1;
   } else

@@ -14,15 +14,22 @@ const char TRIPOSTAGTEXT[NUMTRIPOSTAGS][30]={
   "@<TRIPOS>SUBSTRUCTURE\0"
 };
 
+bool IsMol2Keyword(char *bufferIn ) {
+  if (strncmp(bufferIn,"@<TRIPOS>",9)==0)
+    return true;
+  return false;
+}
+
 // Mol2ScanTo()
-/** Scan to the specified TRIPOS section of file
+/** Scan to the specified TRIPOS section of file.
+  * \return 0 if the tag was found, 1 if not found.
   */
-int Mol2ScanTo( CpptrajFile *File, TRIPOSTAG tag ) {
+int Mol2ScanTo( FileIO *IO, TRIPOSTAG tag ) {
   int tagSize;
   char buffer[MOL2BUFFERSIZE];
 
   tagSize = strlen(TRIPOSTAGTEXT[tag]);
-  while ( File->IO->Gets(buffer,MOL2BUFFERSIZE)==0 ) {
+  while ( IO->Gets(buffer,MOL2BUFFERSIZE)==0 ) {
     //mprintf("DEBUG: Line [%s]\n",buffer);
     //mprintf("DEBUG: Targ [%s]\n",TRIPOSTAGTEXT[tag]); 
     if (strncmp(buffer,TRIPOSTAGTEXT[tag],tagSize)==0) return 0;

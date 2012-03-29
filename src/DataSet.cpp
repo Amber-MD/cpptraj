@@ -1,104 +1,19 @@
 // DataSet
-#include <cstdio>
 #include <cmath> // sqrt
 #include "DataSet.h"
 #include "CpptrajStdio.h"
 
-// SetFormatString()
-/** Set up a printf-style format string with a leading space.
-  * \param formatString string to be set
-  * \param dType the dataType of the format string.
-  * \param width the width of the data
-  * \param precision the precision of the data (floating point only)
-  * \param leftAlign if true do not put a leading space in format string.
-  * \return 0 on success, 1 on error.
-  */
-int SetFormatString(std::string &formatString, dataType dType, int width, int precision, 
-                    bool leftAlign) 
-{
-  char *format = NULL;
-  int wWidth;
-  int pWidth;
-  size_t stringWidth;
-  char leftSpace[2];
-  char alignChar[2];
-
-  // If not left-aligned, set leading space
-  if (!leftAlign)
-    leftSpace[0]=' ';
-  else
-    leftSpace[0]='\0';
-  leftSpace[1]='\0';
-
-  // Calc num of chars necessary to hold width
-  wWidth = (width / 10) + 1;
-
-  switch (dType) {
-    case DOUBLE :
-    case FLOAT  :
-      // Calc num of chars necessary to hold precision
-      pWidth = (precision / 10) + 1;
-      // String fmt: " %w.plf\0"
-      stringWidth = pWidth + wWidth + 6;
-      format = new char [ stringWidth ];
-      sprintf(format, "%s%%%i.%ilf", leftSpace, width, precision);
-      break;
-    case STRING :
-      if (!leftAlign)
-        alignChar[0]='\0';
-      else
-        alignChar[0]='-';
-      alignChar[1]='\0';
-      // String fmt: " %-ws"
-      stringWidth = wWidth + 5;
-      format = new char[ stringWidth ];
-      sprintf(format, "%s%%%s%is", leftSpace, alignChar, width);
-      break;
-    case INT    :
-      // String fmt: " %wi"
-      stringWidth = wWidth + 4;
-      format = new char[ stringWidth ];
-      sprintf(format, "%s%%%ii", leftSpace, width);
-      break;
-    case XYZ :
-      // Calc num of chars necessary to hold precision
-      pWidth = (precision / 10) + 1;
-      // String fmt: "%w.plf %w.plf %w.plf\0"
-      stringWidth = pWidth + wWidth + 5;
-      stringWidth *= 3;
-      ++stringWidth;
-      format = new char[ stringWidth ];
-      sprintf(format, "%s%%%i.%ilf %%%i.%ilf %%%i.%ilf",leftSpace, 
-              width,precision,width,precision, width,precision);
-      break;
-    case UNKNOWN_DATA :
-      mprintf("Internal Error: SetFormatString called with unknown data type.\n");
-  }
-
-  if (format==NULL) { 
-    mprintf("Error: SetFormatString: Could not allocate memory for string.\n");
-    return 1;
-  // DEBUG
-  } else {
-    formatString.assign( format );
-    //mprintf("DEBUG: Format string: [%s]\n",format);
-    delete[] format;
-  }
-  return 0;
-} 
-// -----------------------------------------------------------------------------
-
 // CONSTRUCTOR
 DataSet::DataSet() {
   //fprintf(stderr,"DataSet Constructor.\n");
-  idx=-1;
-  N=0;
-  current=0;
-  width = 0;
-  precision = 0;
-  dType = UNKNOWN_DATA;
-  data_format=NULL;
-  leadingSpace=1;
+  idx_ = -1;
+  dType_ = UNKNOWN_DATA;
+//  N=0;
+  current_ = 0;
+  width_ = 0;
+  precision_ = 0;
+  leadingSpace_ = 1;
+  data_format_ = NULL;
 }
 
 // DESTRUCTOR
@@ -110,8 +25,8 @@ DataSet::~DataSet() {
 /** Set dataset width and precision and recalc output format string.
   */
 void DataSet::SetPrecision(int widthIn, int precisionIn) {
-  width=widthIn;
-  precision=precisionIn;
+  width_ = widthIn;
+  precision_ = precisionIn;
   SetDataSetFormat(false);
 }
 
@@ -126,39 +41,28 @@ int DataSet::Setup(char *nameIn, int Nin) {
     mprintf("Dataset has no name.\n");
     return 1;
   }
-  name.assign( nameIn );
+  name_.assign( nameIn );
   // Dataset memory
-  N=Nin;
-  if (N<=0) N=0;
+  //N=Nin;
+  //if (N<=0) N=0;
   
   return 0;
 }
 
 // DataSet::Info()
 void DataSet::Info() {
-  mprintf("    Data set %s",name.c_str());
-  mprintf(", size is %i",N);
-  mprintf(", current is %i\n",current);
+  mprintf("    Data set %s",name_.c_str());
+  //mprintf(", size is %i",N);
+  mprintf(", current is %i\n",current_);
 }
 
-// DataSet::WriteNameToBuffer()
-/** Write the dataset name to the given character buffer.
-  */
-void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
-  cbuffer.WriteString(header_format.c_str(), name.c_str());
-}
 
 // DataSet::CheckSet()
 /** Return 1 if current==0, which indicates set has not been written to.
   * Otherwise return 0.
-  * Call setFormatString; mostly just needed for string data sets which
-  * have variable width based on the size of the strings that have been
-  * stored.
   */
 int DataSet::CheckSet() {
-  if (current==0) return 1;
-  if (SetDataSetFormat(false)) return 1;
-  //mprinterr("Dataset %s has format [%s]\n",name,format);
+  if (current_==0) return 1;
   return 0;
 }
 
@@ -169,17 +73,43 @@ int DataSet::CheckSet() {
   * \return 0 on success, 1 on error.
   */
 int DataSet::SetDataSetFormat(bool leftAlign) {
-  if (SetFormatString(format, dType, width, precision, leftAlign)) return 1;
-  data_format = format.c_str();
-  // If left aligning, add '#' to name. Ensure that name will not overflow
-  if (leftAlign) { 
-    if (name[0]!='#') name.insert(0, "#");
-    leadingSpace = 0;
-  } else
-    leadingSpace = 1;
-  if ((int)name.size() > width) name.resize( width );
-  if (SetFormatString(header_format, STRING, width, 0, leftAlign)) return 1;
+  // Set data format string
+  switch (dType_) {
+    case DOUBLE:
+    case FLOAT : SetDoubleFormatString(format_, width_, precision_, leftAlign); break;
+    case INT   : SetIntegerFormatString(format_, width_, leftAlign); break;
+    case STRING: SetStringFormatString(format_, width_, leftAlign); break;
+    default:
+      mprinterr("Error: No format string defined for this data type (%s).\n",Name());
+      return 1;
+  }
+  // Assign format to a constant ptr to avoid continuous calls to c_str
+  data_format_ = format_.c_str();
+  // If left aligning, no leading space. 
+  if (leftAlign)  
+    leadingSpace_ = 0;
+  else
+    leadingSpace_ = 1;
+  // Set header format string
+  SetStringFormatString(header_format_, width_, leftAlign);
   return 0;
+}
+
+// DataSet::WriteNameToBuffer()
+/** Write the dataset name to the given character buffer. Use Sprintf
+  * so that allocation happens automatically.
+  */
+void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
+  std::string temp_name = name_;
+  // If left aligning, add '#' to name; ensure that name will not be
+  // larger than column width.
+  if (leadingSpace_ == 0) {
+    if (temp_name[0]!='#')
+      temp_name.insert(0,"#");
+  }
+  if ((int)temp_name.size() > width_)
+    temp_name.resize( width_ );
+  cbuffer.Sprintf(header_format_.c_str(), temp_name.c_str());
 }
 
 // DataSet::Avg()
@@ -189,12 +119,12 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
 double DataSet::Avg(double *stdev) {
   double sum, numvalues, avg, diff;
   // Check # values
-  if (current==0) return 0;
+  if (current_==0) return 0;
   avg = 0;
   // Check if this set is a good type
-  if (dType==DOUBLE || 
-      dType==FLOAT ||
-      dType==INT)
+  if (dType_==DOUBLE || 
+      dType_==FLOAT ||
+      dType_==INT)
   {
     sum = 0;
     numvalues = 0;
@@ -229,12 +159,12 @@ double DataSet::Avg(double *stdev) {
 double DataSet::Max() {
   double max;
   // Check # values
-  if (current==0) return 0;
+  if (current_==0) return 0;
   max = 0;
   // Check if this set is a good type
-  if (dType==DOUBLE || 
-      dType==FLOAT ||
-      dType==INT)
+  if (dType_==DOUBLE || 
+      dType_==FLOAT ||
+      dType_==INT)
   {
     Begin();
     max = CurrentValue();
@@ -251,12 +181,12 @@ double DataSet::Max() {
 double DataSet::Min() {
   double min;
   // Check # values
-  if (current==0) return 0;
+  if (current_==0) return 0;
   min = 0;
   // Check if this set is a good type
-  if (dType==DOUBLE ||
-      dType==FLOAT ||
-      dType==INT)
+  if (dType_==DOUBLE ||
+      dType_==FLOAT ||
+      dType_==INT)
   { 
     Begin();
     min = CurrentValue();
@@ -267,4 +197,29 @@ double DataSet::Min() {
   }
   return min;
 }
- 
+
+// DataSet::Capacity()
+//int DataSet::Capacity() {
+//  return N;
+//}
+
+// DataSet::Name()
+char *DataSet::Name() { 
+  return (char*)name_.c_str();
+}
+
+// DataSet::SetIdx()
+void DataSet::SetIdx(int idxIn) { 
+  idx_ = idxIn;
+}
+
+// DataSet::Idx()
+int DataSet::Idx() { 
+  return idx_;
+}
+
+// DataSet::Type()
+DataSet::DataType DataSet::Type() { 
+  return dType_; 
+}
+

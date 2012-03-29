@@ -30,11 +30,11 @@ int Radgyr::init() {
   // Datasets to store radius of gyration and max
   // Also add datasets to data file list
   rogname = actionArgs.getNextString();
-  rog = DSL->Add(DOUBLE, rogname, "RoG");
+  rog = DSL->Add(DataSet::DOUBLE, rogname, "RoG");
   if (rog==NULL) return 1;
   DFL->Add(rogFile,rog);
   if (calcRogmax) {
-    rogmax = DSL->AddMulti(DOUBLE, rogname, "Max");
+    rogmax = DSL->AddMulti(DataSet::DOUBLE, rogname, "Max");
     //rogmax = DSL->Add(DOUBLE, NULL, "RoGMax");
     if (rogmax == NULL) return 1; 
     DFL->Add(rogFile,rogmax);
@@ -55,8 +55,8 @@ int Radgyr::init() {
 // currentParm is set in Action::Setup
 int Radgyr::setup() {
 
-  if ( currentParm->SetupIntegerMask(Mask1, activeReference)) return 1;
-  mprintf("\t%s (%i atoms).\n",Mask1.MaskString(),Mask1.Nselected);
+  if ( currentParm->SetupIntegerMask(Mask1)) return 1;
+  mprintf("\t%s (%i atoms).\n",Mask1.MaskString(),Mask1.Nselected());
   if (Mask1.None()) {
     mprintf("Warning: Radgyr::setup: Mask contains 0 atoms.\n");
     return 1;

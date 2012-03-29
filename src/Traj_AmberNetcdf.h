@@ -5,6 +5,21 @@
 // Class: AmberNetcdf
 /// Reads and writes Amber Netcdf format trajectories. 
 class AmberNetcdf : public TrajectoryIO {
+  public:
+    AmberNetcdf();
+    ~AmberNetcdf();
+    // AmberNetcdf-specific functions
+    // Inherited functions
+    int setupTrajin(AmberParm*);
+    int setupTrajout(AmberParm*);
+    int openTraj();
+    void closeTraj();
+    int readFrame(int,double*,double*,double*,double*);
+    int writeFrame(int,double*,double*,double*,double);
+    void info();
+    int processWriteArgs(ArgList *);
+
+  private:
     int ncid;
     int frameDID;
     int ncframe;
@@ -35,20 +50,6 @@ class AmberNetcdf : public TrajectoryIO {
     int *remd_dimtype;
     int *remd_indices;
 
-    // Inherited functions
-    int setupRead(AmberParm*);
-    int setupWrite(AmberParm*);
-    int openTraj();
-    void closeTraj();
-    int readFrame(int,double*,double*,double*,double*);
-    int writeFrame(int,double*,double*,double*,double);
-    void info();
-    int processWriteArgs(ArgList *);
-
-  public:
-    AmberNetcdf();
-    ~AmberNetcdf();
-    // AmberNetcdf-specific functions
 };
 #endif
 #endif

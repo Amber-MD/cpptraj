@@ -36,7 +36,7 @@ int Distance::init( ) {
   Mask2.SetMaskString(mask2);
 
   // Dataset to store distances
-  dist = DSL->Add(DOUBLE, actionArgs.getNextString(),"Dis");
+  dist = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Dis");
   if (dist==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(distanceFile,dist);
@@ -59,12 +59,12 @@ int Distance::init( ) {
   */
 int Distance::setup() {
 
-  if (currentParm->SetupIntegerMask( Mask1, activeReference)) return 1;
-  if (currentParm->SetupIntegerMask( Mask2, activeReference)) return 1;
+  if (currentParm->SetupIntegerMask( Mask1 )) return 1;
+  if (currentParm->SetupIntegerMask( Mask2 )) return 1;
 
   // Print mask and imaging info for this parm
-  mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1.MaskString(), Mask1.Nselected,
-          Mask2.MaskString(),Mask2.Nselected);
+  mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1.MaskString(), Mask1.Nselected(),
+          Mask2.MaskString(),Mask2.Nselected());
   if (imageType != NOBOX)
     mprintf(", imaged");
   else

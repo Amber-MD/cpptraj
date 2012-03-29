@@ -60,7 +60,7 @@ int Hbond::init() {
   Mask.SetMaskString(mask);
 
   // Setup datasets
-  NumHbonds = DSL->Add(INT, actionArgs.getNextString(),"NumHB");
+  NumHbonds = DSL->Add(DataSet::INT, actionArgs.getNextString(),"NumHB");
   if (NumHbonds==NULL) return 1;
   DFL->Add(outfilename,NumHbonds);
 
@@ -91,23 +91,24 @@ int Hbond::init() {
   * bonds are FON"
   */
 void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
-  int atom;
   bool isAcceptor;
   // Set up acceptors: F, O, N
   // NOTE: Attempt to determine electronegative carbons?
-  for (int selected=0; selected < amask->Nselected; selected++) {
-    atom = amask->Selected[selected];
+  for (AtomMask::const_iterator atom = amask->begin();
+                                atom != amask->end();
+                                atom++)
+  {
     isAcceptor=true;
     // If auto searching, only consider acceptor atoms as F, O, N
     if (Auto) {
       isAcceptor=false;
-      if (currentParm->AtomElementIs(atom,FLUORINE) ||
-          currentParm->AtomElementIs(atom,OXYGEN)   ||
-          currentParm->AtomElementIs(atom,NITROGEN)   )
+      if (currentParm->AtomElementIs(*atom,FLUORINE) ||
+          currentParm->AtomElementIs(*atom,OXYGEN)   ||
+          currentParm->AtomElementIs(*atom,NITROGEN)   )
         isAcceptor=true;
     }
     if (isAcceptor)
-      Acceptor.push_back(atom);
+      Acceptor.push_back(*atom);
   }
 }
 
@@ -117,33 +118,34 @@ void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
   * are FON"
   */
 void Hbond::SearchDonor(AtomMask *dmask, bool Auto) {
-  int donoratom;//, atom1, atom2;
   bool isDonor;
   std::vector<int> HatomList;
   // Set up donors: F-H, O-H, N-H
-  for (int selected=0; selected < dmask->Nselected; selected++) {
-    donoratom = dmask->Selected[selected];
+  for (AtomMask::const_iterator donoratom = dmask->begin();
+                                donoratom != dmask->end();
+                                donoratom++)
+  {
     // If this is already an H atom continue
-    if (currentParm->AtomElementIs(donoratom,HYDROGEN)) continue;
+    if (currentParm->AtomElementIs(*donoratom,HYDROGEN)) continue;
     isDonor = true;
     // If auto searching, only consider donor atoms as F, O, N
     if (Auto) {
       isDonor=false;
-      if (currentParm->AtomElementIs(donoratom,FLUORINE) ||
-          currentParm->AtomElementIs(donoratom,OXYGEN)   ||
-          currentParm->AtomElementIs(donoratom,NITROGEN)   )
+      if (currentParm->AtomElementIs(*donoratom,FLUORINE) ||
+          currentParm->AtomElementIs(*donoratom,OXYGEN)   ||
+          currentParm->AtomElementIs(*donoratom,NITROGEN)   )
         isDonor=true;
     }
     if (isDonor) {
       // Get list of hydrogen atoms bonded to this atom
-      if ( currentParm->GetBondedHatoms(donoratom, HatomList) ) {
+      if ( currentParm->GetBondedHatoms(*donoratom, HatomList) ) {
         for (std::vector<int>::iterator h_atom = HatomList.begin();
                                         h_atom != HatomList.end();
                                         h_atom++)
         {
-          //mprintf("BOND TO H: %i@%s -- %i@%s\n",donoratom+1,currentParm->AtomName(donoratom),
+          //mprintf("BOND TO H: %i@%s -- %i@%s\n",*donoratom+1,currentParm->AtomName(*donoratom),
           //        *h_atom+1,currentParm->AtomName(*h_atom));
-          Donor.push_back(donoratom);
+          Donor.push_back(*donoratom);
           Donor.push_back(*h_atom);
         }
       }
@@ -162,7 +164,7 @@ int Hbond::setup() {
 
   // Set up mask
   if (!hasDonorMask && !hasAcceptorMask) {
-    if ( currentParm->SetupIntegerMask( Mask, activeReference) ) return 1;
+    if ( currentParm->SetupIntegerMask( Mask ) ) return 1;
     if ( Mask.None() ) {
       mprintf("Warning: Hbond::setup: Mask has no atoms.\n");
       return 1;
@@ -170,7 +172,7 @@ int Hbond::setup() {
   }
   // Set up donor mask
   if (hasDonorMask) {
-    if ( currentParm->SetupIntegerMask( DonorMask, activeReference) ) return 1;
+    if ( currentParm->SetupIntegerMask( DonorMask ) ) return 1;
     if (DonorMask.None()) {
       mprintf("Warning: Hbond: DonorMask has no atoms.\n");
       return 1;
@@ -178,7 +180,7 @@ int Hbond::setup() {
   }
   // Set up acceptor mask
   if (hasAcceptorMask) {
-    if ( currentParm->SetupIntegerMask( AcceptorMask, activeReference) ) return 1;
+    if ( currentParm->SetupIntegerMask( AcceptorMask ) ) return 1;
     if (AcceptorMask.None()) {
       mprintf("Warning: Hbond: AcceptorMask has no atoms.\n");
       return 1;
@@ -295,13 +297,13 @@ void Hbond::print() {
 
   // Set up data set list for all avg-related data.
   HBavg = new DataSetList(); 
-  DFL->Add(avgout, HBavg->Add(STRING, (char*)"Acceptor", "Acceptor"));
-  DFL->Add(avgout, HBavg->Add(STRING, (char*)"DonorH", "DonorH"));
-  DFL->Add(avgout, HBavg->Add(STRING, (char*)"Donor", "Donor"));
-  DFL->Add(avgout, HBavg->Add(INT, (char*)"Frames", "Frames"));
-  DFL->Add(avgout, HBavg->Add(DOUBLE, (char*)"Frac", "Frac"));
-  DFL->Add(avgout, HBavg->Add(DOUBLE, (char*)"AvgDist", "AvgDist"));
-  hbavgFile = DFL->Add(avgout, HBavg->Add(DOUBLE, (char*)"AvgAng", "AvgAng"));
+  DFL->Add(avgout, HBavg->Add(DataSet::STRING, (char*)"Acceptor", "Acceptor"));
+  DFL->Add(avgout, HBavg->Add(DataSet::STRING, (char*)"DonorH", "DonorH"));
+  DFL->Add(avgout, HBavg->Add(DataSet::STRING, (char*)"Donor", "Donor"));
+  DFL->Add(avgout, HBavg->Add(DataSet::INT, (char*)"Frames", "Frames"));
+  DFL->Add(avgout, HBavg->Add(DataSet::DOUBLE, (char*)"Frac", "Frac"));
+  DFL->Add(avgout, HBavg->Add(DataSet::DOUBLE, (char*)"AvgDist", "AvgDist"));
+  hbavgFile = DFL->Add(avgout, HBavg->Add(DataSet::DOUBLE, (char*)"AvgAng", "AvgAng"));
 
   //if (OutFile.SetupFile(avgout, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug)) return;
   //OutFile.OpenFile();
@@ -345,5 +347,5 @@ void Hbond::print() {
     //                   Aname,Hname,Dname, (*hbond).Frames,avg,dist,angle);
   }
   //OutFile.CloseFile();
-  hbavgFile->SetNoXcol();
+  hbavgFile->ProcessArgs("noxcol");
 }

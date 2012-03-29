@@ -10,9 +10,6 @@ Action::Action() {
   DFL=NULL;
   PFL=NULL;
   FL=NULL;
-  activeRefFrame=NULL;
-  activeReference=NULL;
-  activeReferenceOriginalValue=NULL;
   useMass=false;
   useMassOriginalValue=false;
   useImage=false;
@@ -62,20 +59,15 @@ const char *Action::CmdLine() {
   * \param debugIn Debug level that action should be set to
   */
 int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin, 
-                 ParmFileList *PFLin, int debugIn) {
-  int err;
-
+                 ParmFileList *PFLin, int debugIn) 
+{
   DSL=DSLin;
   FL=FLin;
-  // Set the active reference frame and coords
-  activeRefFrame = FL->ActiveReference();
-  if (activeRefFrame!=NULL)
-    activeReferenceOriginalValue = activeRefFrame->X;
   DFL=DFLin;
   PFL=PFLin;
   debug=debugIn;
   // Initialize action
-  err = this->init();
+  int err = this->init();
   // Check for unhandled keywords
   actionArgs.CheckForMoreArgs();
   // Store the value of useMass set by the actions init
@@ -98,8 +90,6 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   *        by the action.
   */
 int Action::Setup(AmberParm **ParmAddress) {
-  int err;
-  
   currentParm = *ParmAddress;
   // If useImage, check imaging type based on prmtop box.
   useImage = useImageOriginalValue;
@@ -117,30 +107,8 @@ int Action::Setup(AmberParm **ParmAddress) {
     mprintf("             Geometric center will be used instead of center of mass.\n");
     useMass=false;
   }
-  // If an active reference frame has been defined, check that the number of
-  // atoms in the reference frame matches the number of atoms in the 
-  // current parm. If less, distance based mask parsing could cause a segfault,
-  // so dont allow. If more, print a warning that the reference coords may not
-  // match up with current parm.
-  activeReference = activeReferenceOriginalValue;
-  if (activeReference!=NULL) {
-    if (activeRefFrame->natom < currentParm->natom) {
-      mprintf("Warning: # atoms in active reference frame (%i) < # atoms in current\n",
-              activeRefFrame->natom);
-      mprintf("         topology %s (%i). Distance-based mask parsing will not work.\n",
-              currentParm->parmName, currentParm->natom);
-      activeReference = NULL;
-    } else if (activeRefFrame->natom > currentParm->natom) {
-      mprintf("Warning: # atoms in active reference frame (%i) > # atoms in current\n",
-              activeRefFrame->natom);
-      mprintf("         topology %s (%i). Distance-based mask parsing may not work.\n",
-              currentParm->parmName, currentParm->natom);
-      mprintf("         Ensure that there is a 1 to 1 correspondance between active\n");
-      mprintf("         reference frame and topology %s\n",currentParm->parmName);
-    }
-  }
   // Set up actions for this parm
-  err = this->setup();
+  int err = this->setup();
   if (err) return err;
   // Set the value of parm address in case parm was changed, e.g. in strip
   *ParmAddress = currentParm;
@@ -155,12 +123,11 @@ int Action::Setup(AmberParm **ParmAddress) {
   *        changed by the action.
   * \param frameNumIn number of the current frame
   */
-Action::ActionReturnType Action::DoAction(Frame **FrameAddress, int frameNumIn) {
-  ActionReturnType err;
-
+Action::ActionReturnType Action::DoAction(Frame **FrameAddress, int frameNumIn) 
+{
   currentFrame = *FrameAddress;
   frameNum = frameNumIn;
-  err = (ActionReturnType)this->action(); // NOTE: Fix return type eventually
+  ActionReturnType err = (ActionReturnType)this->action(); // NOTE: Fix return type eventually
   // Any state but ok means do not modify the frame. Return now.
   if (err!=ACTION_OK) return err;
   // Set the value of frame address in case frame was changed, e.g. in strip

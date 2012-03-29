@@ -1,9 +1,8 @@
-/* Action: Clustering
- */
+// Action: Clustering
 #include "Action_Clustering.h"
+#include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
-#include "TrajectoryFile.h"
 #include <cfloat>
 #include <cstdio> // sprintf
 #include <cstring> // strlen
@@ -19,11 +18,11 @@ Clustering::Clustering() {
   summaryfile=NULL;
   halffile=NULL;
   clusterfile=NULL;
-  clusterfmt=UNKNOWN_FORMAT;
+  clusterfmt=NULL;
   singlerepfile=NULL;
-  singlerepfmt=UNKNOWN_FORMAT;
+  singlerepfmt=NULL;
   repfile=NULL;
-  repfmt=UNKNOWN_FORMAT;
+  repfmt=NULL;
   clusterinfo=NULL;
   nofitrms = false;
   grace_color = false;
@@ -46,7 +45,7 @@ const char Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 //    2) Masks
 //    3) Dataset name
 int Clustering::init() {
-  char *mask0,*cnumvtimefile,*clusterformat,*singlerepformat,*repformat;
+  char *mask0,*cnumvtimefile;//,*clusterformat,*singlerepformat,*repformat;
   char *dsetname;
   // Get keywords
   useMass = actionArgs.hasKey("mass");
@@ -72,27 +71,17 @@ int Clustering::init() {
   }
   // Output trajectory stuff
   clusterfile = actionArgs.getKeyString("clusterout",NULL);
-  clusterformat = actionArgs.getKeyString("clusterfmt",NULL);
+  clusterfmt = actionArgs.getKeyString("clusterfmt",NULL);
   singlerepfile = actionArgs.getKeyString("singlerepout",NULL);
-  singlerepformat = actionArgs.getKeyString("singlerepfmt",NULL);
+  singlerepfmt = actionArgs.getKeyString("singlerepfmt",NULL);
   repfile = actionArgs.getKeyString("repout",NULL);
-  repformat = actionArgs.getKeyString("repfmt",NULL);
-  // Figure out trajectory formats
-  if (clusterfile!=NULL) {
-    clusterfmt = GetFmtFromArg(clusterformat,AMBERTRAJ);
-  }
-  if (singlerepfile!=NULL) {
-    singlerepfmt = GetFmtFromArg(singlerepformat,AMBERTRAJ);
-  }
-  if (repfile!=NULL) {
-    repfmt = GetFmtFromArg(repformat,AMBERTRAJ);
-  }
+  repfmt = actionArgs.getKeyString("repfmt",NULL);
   // Get the mask string 
   mask0 = actionArgs.getNextMask();
   Mask0.SetMaskString(mask0);
 
   // Dataset to store cluster number v time
-  cnumvtime = DSL->Add(INT,actionArgs.getNextString(),"Cnum");
+  cnumvtime = DSL->Add(DataSet::INT,actionArgs.getNextString(),"Cnum");
   if (cnumvtime==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(cnumvtimefile,cnumvtime);
@@ -141,13 +130,13 @@ int Clustering::init() {
     mprintf("            Summary comparing first/second half of data for clusters will be written to %s\n",halffile);
   if (clusterfile!=NULL)
     mprintf("            Cluster trajectories will be written to %s, format %s\n",
-            clusterfile,File_Format(clusterfmt));
+            clusterfile,clusterfmt);
   if (singlerepfile!=NULL)
     mprintf("            Cluster representatives will be written to 1 traj (%s), format %s\n",
-            singlerepfile,File_Format(singlerepfmt));
+            singlerepfile,singlerepfmt);
   if (repfile!=NULL) {
     mprintf("            Cluster representatives will be written to separate trajectories,\n");
-    mprintf("            prefix (%s), format %s\n",repfile,File_Format(repfmt));
+    mprintf("            prefix (%s), format %s\n",repfile,repfmt);
   }
   // If epsilon not given make it huge
   // NOTE: Currently only valid for Hierarchical Agglomerative 
@@ -207,54 +196,62 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
     RefParm = ReferenceFrames.GetFrameParm( nref );
     // If the current ref parm not same as last ref parm, reset reference mask
     if (RefParm->pindex != lastrefpindex) {
-      if ( RefParm->SetupIntegerMask(Mask0, activeReference)) {
+      if ( RefParm->SetupIntegerMask(Mask0)) {
         mprinterr("Error: Clustering: Could not set up reference mask for %s\n",RefParm->parmName);
         return 1;
       }
-      refatoms = Mask0.Nselected;
-      SelectedRef.SetupFrameFromMask(&Mask0, RefParm->mass);
+      refatoms = Mask0.Nselected();
+      // NOTE: This copies in correct masses according to Mask0
+      SelectedRef.SetupFrameFromMask(Mask0, RefParm->mass);
       lastrefpindex = RefParm->pindex;
     }
     // Get the current reference frame
     RefFrame = ReferenceFrames.GetFrame( nref );
+    // Set the selected atoms from the reference frame
+    SelectedRef.SetCoordinates(*RefFrame, Mask0);
+    // If fitting, pre-center reference frame
+    if (!nofitrms)
+      SelectedRef.CenterReference(Trans+3, useMass);
 
     // LOOP OVER TARGET FRAMES
     for (int nframe=nref+1; nframe < totalref; nframe++) {
       TgtParm = ReferenceFrames.GetFrameParm( nframe );
       // If the current frame parm not same as last frame parm, reset frame mask
       if (TgtParm->pindex != lasttgtpindex) {
-        if ( TgtParm->SetupIntegerMask(Mask0, activeReference) ) {
+        if ( TgtParm->SetupIntegerMask(Mask0) ) {
           mprinterr("Error: Clustering: Could not set up target mask for %s\n",TgtParm->parmName);
           return 1;
         }
         // Check that num atoms in mask are the same
-        if (Mask0.Nselected != refatoms) {
-          mprinterr(
-            "Error: Clustering: Num atoms in target mask (%i) != num atoms in ref mask (%i)\n",
-                    Mask0.Nselected, refatoms);
-          return 1;
+        if (Mask0.Nselected() != refatoms) {
+          mprintf("Warning: Clustering RMS: Num atoms in frame %i (%i) != num atoms \n",
+                    nframe+1, Mask0.Nselected());
+          mprintf("         in frame %i (%i). Assigning an RMS of 10000.\n",
+                   nref+1, refatoms);
+          R = 10000;
+          Distances->AddElement( R );
+          continue;
         }
-        SelectedTgt.SetupFrameFromMask(&Mask0, TgtParm->mass);
+        // NOTE: This copies in correct masses according to Mask0
+        SelectedTgt.SetupFrameFromMask(Mask0, TgtParm->mass);
         lasttgtpindex = TgtParm->pindex;
       }
       // Get the current target frame
       TgtFrame = ReferenceFrames.GetFrame( nframe );
 
-      // Set selected reference atoms - always done since RMS fit modifies SelectedRef
-      SelectedRef.SetFrameCoordsFromMask(RefFrame->X, &Mask0);
-      // Set selected target atoms
-      SelectedTgt.SetFrameCoordsFromMask(TgtFrame->X, &Mask0);
+      // Set the selected atoms from the target frame
+      SelectedTgt.SetCoordinates(*TgtFrame, Mask0);
 
       // Perform RMS calculation
       if (nofitrms)
         R = SelectedTgt.RMSD(&SelectedRef, useMass);
       else 
-        R = SelectedTgt.RMSD(&SelectedRef, U, Trans, useMass);
+        R = SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass);
 
       Distances->AddElement( R );
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
-      current++;
+      ++current;
     } // END loop over target frames
   } // END loop over reference frames
   progress->Update(max);
@@ -371,7 +368,7 @@ void Clustering::WriteClusterTraj( ClusterList *CList ) {
     clusterout = new TrajectoryFile;
     B = CList->CurrentFrameBegin();
     clusterparm = ReferenceFrames.GetFrameParm( *B );
-    if (clusterout->SetupWrite(cfilename,NULL,clusterparm,clusterfmt)) {
+    if (clusterout->SetupWrite(cfilename,clusterparm,clusterfmt)) {
       mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
                 cfilename);
       delete clusterout;
@@ -413,7 +410,7 @@ void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
 
   // Set up trajectory file. Use parm from first frame of cluster (pot. dangerous)
   clusterparm = ReferenceFrames.GetFrameParm( framenum );
-  if (clusterout.SetupWrite(singlerepfile,NULL,clusterparm,singlerepfmt)) {
+  if (clusterout.SetupWrite(singlerepfile,clusterparm,singlerepfmt)) {
     mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
                 singlerepfile);
      return;
@@ -447,11 +444,6 @@ void Clustering::WriteRepTraj( ClusterList *CList ) {
   TrajectoryFile *clusterout = NULL;
   AmberParm *clusterparm;
   Frame *clusterframe;
-  char ext[8];
-  char *cfilename = NULL;
-
-  // Set output extension for this file format
-  SetExtFromFmt(ext,repfmt);
 
   CList->Begin();
   while (!CList->End()) {
@@ -464,15 +456,12 @@ void Clustering::WriteRepTraj( ClusterList *CList ) {
 
     // Set up trajectory filename for this rep frame
     cnum = (framenum / 10) + 8;
-    if (cfilename!=NULL) delete[] cfilename;
-    cfilename = new char[ strlen(repfile)+cnum+1 ];
-    sprintf(cfilename, "%s.%i%s", repfile, framenum+1, ext);
 
     // Set up trajectory file. Use parm from first frame of cluster (pot. dangerous)
     clusterparm = ReferenceFrames.GetFrameParm( framenum );
-    if (clusterout->SetupWrite(cfilename,NULL,clusterparm,repfmt)) {
+    if (clusterout->SetupNumberedWrite(repfile,framenum+1,clusterparm,repfmt)) {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
-                cfilename);
+                repfile);
        return;
     }
 

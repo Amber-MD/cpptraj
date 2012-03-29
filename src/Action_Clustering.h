@@ -15,11 +15,11 @@ class Clustering: public Action {
     char *summaryfile;         ///< Summary file name
     char *halffile;            ///< 1st/2nd half summary file name
     char *clusterfile;         ///< Cluster trajectory base filename.
-    FileFormat clusterfmt;     ///< Cluster trajectory format.
+    char *clusterfmt;     ///< Cluster trajectory format.
     char *singlerepfile;       ///< Cluster all rep single trajectory filename.
-    FileFormat singlerepfmt;   ///< Cluster all rep single trajectory format.
+    char *singlerepfmt;   ///< Cluster all rep single trajectory format.
     char *repfile;             ///< Cluster rep to separate trajectory filename.
-    FileFormat repfmt;         ///< Cluster rep to separate trajectory format.
+    char *repfmt;         ///< Cluster rep to separate trajectory format.
     char *clusterinfo;         ///< Ptraj-like cluster output
     bool nofitrms;             ///< If true do not best-fit when calc RMSD.
     bool grace_color;          ///< If true print grace colors instead of cluster number

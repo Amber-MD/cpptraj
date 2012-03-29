@@ -56,7 +56,7 @@ int Hist::CheckDimension(char *input, DataSetList *datasetlist) {
   */
 
   // Check that dataset is not string
-  if (dset->Type()==STRING) {
+  if (dset->Type()==DataSet::STRING) {
     mprintf("Error: Hist: Cannot histogram dataset %s, type STRING.\n", dset->Name());
     return 1;
   }
@@ -297,7 +297,8 @@ void Hist::Print(DataFileList *datafilelist) {
 
   // For 1 dimension just need to hold bin counts
   if (hist.NumDimension() == 1) {
-    outfile = datafilelist->Add(outfilename, histout.Add( DOUBLE, hist.Label(0), "Hist" ));
+    outfile = datafilelist->Add(outfilename, 
+                                histout.Add( DataSet::DOUBLE, hist.Label(0), "Hist" ));
     bin = 0;
     while (histloop) {
       N = hist.CurrentBinData();
@@ -306,7 +307,7 @@ void Hist::Print(DataFileList *datafilelist) {
       if (hist.NextBin()) histloop=false;
     }
     outfile->SetXlabel(hist.Label(0));
-    outfile->SetYlabel((char*)"Count");
+    outfile->ProcessArgs("ylabel Count");
     outfile->SetCoordMinStep(hist.Min(0),hist.Step(0),hist.Min(1),hist.Step(1));
 
   // The way that datafile understands 2D data currently:
@@ -320,7 +321,8 @@ void Hist::Print(DataFileList *datafilelist) {
     char temp[32];
     for (bin = 0; bin < hist.NBins(1); bin++) {
       sprintf(temp,"%8.3lf",(bin*hist.Step(1))+hist.Min(1));
-      outfile = datafilelist->Add(outfilename, histout.AddMultiN( DOUBLE, "", temp, bin ));
+      outfile = datafilelist->Add(outfilename, 
+                                  histout.AddMultiN( DataSet::DOUBLE, "", temp, bin ));
     }
     bin = 0; // y coord index
     dim = 0; // x coord index
@@ -348,9 +350,9 @@ void Hist::Print(DataFileList *datafilelist) {
   } else {
    for (dim = 0; dim < hist.NumDimension(); dim++) {
       outfile = datafilelist->Add(outfilename, 
-                                  histout.Add( DOUBLE, histdata[dim]->Name(), "Hist" ));
+                                  histout.Add( DataSet::DOUBLE, histdata[dim]->Name(), "Hist" ));
     }
-    outfile = datafilelist->Add(outfilename, histout.Add( DOUBLE, NULL, "Count"));
+    outfile = datafilelist->Add(outfilename, histout.Add( DataSet::DOUBLE, NULL, "Count"));
     bin = 0;
     while (histloop) {
       hist.CurrentBinCoord(coord);
@@ -366,9 +368,9 @@ void Hist::Print(DataFileList *datafilelist) {
   }
 
   if (hist.NumDimension() > 1) {
-    outfile->SetNoXcol();
-    outfile->SetMap();
-    outfile->SetNoLabels();
+    outfile->ProcessArgs("noxcol");
+    outfile->ProcessArgs("usemap");
+    outfile->ProcessArgs("nolabels");
   }
   //hist.PrintBins(circular,false);
   delete []coord;

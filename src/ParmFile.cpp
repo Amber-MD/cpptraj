@@ -1,6 +1,9 @@
+#include <cstdio> // sscanf
+#include <cstring> // strncmp, strlen
 #include "ParmFile.h"
+#include "PDBfileRoutines.h"
+#include "Mol2FileRoutines.h"
 #include "CpptrajStdio.h"
-#include "CpptrajFile.h"
 // All ParmIO classes go here
 #include "Parm_Amber.h"
 #include "Parm_PDB.h"
@@ -9,31 +12,111 @@
 
 // CONSTRUCTOR
 ParmFile::ParmFile() {
-  debug = 0;
+  debug_ = 0;
 }
 
 // ParmFile::SetDebug() 
 void ParmFile::SetDebug(int debugIn) {
-  debug = debugIn;
+  debug_ = debugIn;
+}
+
+// ParmFile::ID_ParmFormat()
+ParmFile::ParmFormatType ParmFile::ID_ParmFormat(ParmIO &parm) {
+  const int BUF_SIZE = 83;
+  char buffer1[BUF_SIZE];
+  char buffer2[BUF_SIZE];
+
+  // Initialize buffer to NULL
+  memset(buffer1,' ',BUF_SIZE);
+  memset(buffer2,' ',BUF_SIZE);
+  buffer1[0]='\0';
+  buffer2[0]='\0';
+  // Open Parm
+  if (parm.OpenFile())
+    return UNKNOWN_PARM;
+  parm.IO->Gets(buffer1, BUF_SIZE);
+  parm.IO->Gets(buffer2, BUF_SIZE);
+  parm.CloseFile();
+
+  // If both lines have PDB keywords, assume PDB
+  if (isPDBkeyword(buffer1) && isPDBkeyword(buffer2))
+  {
+    if (debug_>0) mprintf("  PDB file\n");
+    return PDBFILE;
+  }
+
+  // If either buffer contains a TRIPOS keyword assume Mol2
+  // NOTE: This will fail on tripos files with extensive header comments.
+  //       A more expensive check for mol2 files is below.
+  if ( IsMol2Keyword(buffer1) || IsMol2Keyword(buffer2) )
+  {
+    if (debug_>0) mprintf("  TRIPOS MOL2 file\n");
+    return MOL2FILE;
+  }
+
+  // If the %VERSION and %FLAG identifiers are present, assume amber parm
+  if (strncmp(buffer1,"%VERSION",8)==0 && strncmp(buffer2,"%FLAG",5)==0) {
+    if (debug_>0) mprintf("  AMBER TOPOLOGY file\n");
+    return AMBERPARM;
+  }
+
+  // If the first 3 chars are P S F, assume charmm PSF
+  if (strncmp(buffer1,"PSF",3)==0) {
+    if (debug_>0) mprintf("  CHARMM PSF file\n");
+    return CHARMMPSF;
+  }
+
+  // If first line is 81 bytes and the second line has 12 numbers in
+  // 12I6 format, assume old-style Amber topology
+  // NOTE: Could also be less than 81? Only look for 12 numbers?
+  int iamber[12];
+  if ((int)strlen(buffer1)==81+(int)parm.IsDos()) {
+    if ( sscanf(buffer2,"%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i", iamber, iamber+1,
+                iamber+2, iamber+3, iamber+4, iamber+5, iamber+6, 
+                iamber+7, iamber+8, iamber+9, iamber+10, iamber+11) == 12 )
+    {
+      if (debug_>0) mprintf("  AMBER TOPOLOGY, OLD FORMAT\n");
+      return OLDAMBERPARM;
+    }
+  }
+
+  // ---------- MORE EXPENSIVE CHECKS ----------
+  // Reopen and scan for Tripos mol2 molecule section
+  // 0 indicates section found.
+  if (parm.OpenFile())
+    return UNKNOWN_PARM;
+  if (Mol2ScanTo(parm.IO, MOLECULE)==0) {
+    if (debug_>0) mprintf("  TRIPOS MOL2 file\n");
+    parm.CloseFile();
+    return MOL2FILE;
+  }
+  parm.CloseFile();
+
+  // Unidentified file
+  mprintf("  Warning: %s: Unknown topology format.\n",parm.BaseName());
+  return UNKNOWN_PARM;
 }
 
 // ParmFile::Read()
 int ParmFile::Read(AmberParm &parmOut, char *parm_filename,
                    bool bondsearch, bool molsearch) 
 {
-  CpptrajFile basicParm;
   ParmIO *parmio = NULL;
+  ParmIO basicParm;
 
-  int err = basicParm.SetupFile(parm_filename, READ, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug);
+  int err = basicParm.SetupRead(parm_filename, debug_);
   if (err == 1) {
     mprinterr("Error setting up parm file %s for read.\n",parm_filename);
     return 1;
   }
 
   // Set Parm name
-  parmOut.SetParmName( basicParm.basefilename, basicParm.filename );
+  parmOut.SetParmName( basicParm.BaseName(), basicParm.Name() );
 
-  switch (basicParm.fileFormat) {
+  // Determine parm format
+  ParmFormatType parmFormat = ID_ParmFormat( basicParm );
+
+  switch ( parmFormat ) {
     case OLDAMBERPARM: 
     case AMBERPARM   : parmio = new AmberParmFile(); break;
     case PDBFILE     : parmio = new PdbParmFile(); break;
@@ -46,16 +129,17 @@ int ParmFile::Read(AmberParm &parmOut, char *parm_filename,
 
   if (parmio==NULL) return 1;
 
-  parmio->SetDebug(debug);
+  // Place the basic file in the parm IO class
+  parmio->ParmIO::operator=( basicParm );
 
-  basicParm.OpenFile();
-  err = parmio->ReadParm( parmOut, basicParm );
+  parmio->SetDebug(debug_);
+
+  err = parmio->ReadParm( parmOut );
   if (err != 0) {
     mprinterr("Error reading parm file %s\n",parm_filename);
     delete parmio;
     return 1;
   }
-  basicParm.CloseFile();
 
   // Perform setup common to all parm files.
   parmOut.CommonSetup(bondsearch,molsearch);
@@ -65,12 +149,12 @@ int ParmFile::Read(AmberParm &parmOut, char *parm_filename,
 }
 
 // ParmFile::Write()
-int ParmFile::Write(AmberParm &parmIn, char *parm_filename, FileFormat fmtIn) 
+int ParmFile::Write(AmberParm &parmIn, char *parm_filename, ParmFormatType fmtIn) 
 {
-  CpptrajFile basicParm;
   ParmIO *parmio = NULL;
+  ParmIO basicParm;
 
-  int err = basicParm.SetupFile(parm_filename, WRITE, fmtIn, UNKNOWN_TYPE, debug);
+  int err = basicParm.SetupWrite(parm_filename, debug_);
   if (err == 1) {
     mprinterr("Error setting up parm file %s for write.\n",parm_filename);
     return 1;
@@ -79,7 +163,7 @@ int ParmFile::Write(AmberParm &parmIn, char *parm_filename, FileFormat fmtIn)
   // Set Parm name - NOTE: Make separate function?
   //parmIn.SetParmName( basicParm.basefilename, basicParm.filename );
 
-  switch (basicParm.fileFormat) {
+  switch (fmtIn) {
     //case OLDAMBERPARM: parmio = new OldAmberParmFile(); break;
     case AMBERPARM   : parmio = new AmberParmFile(); break;
     //case PDBFILE     : parmio = new PdbParmFile(); break;
@@ -92,16 +176,17 @@ int ParmFile::Write(AmberParm &parmIn, char *parm_filename, FileFormat fmtIn)
 
   if (parmio==NULL) return 1;
 
-  parmio->SetDebug(debug);
+  // Place the basic file in the parm IO class
+  parmio->ParmIO::operator=( basicParm );
 
-  basicParm.OpenFile();
-  err = parmio->WriteParm( parmIn, basicParm );
+  parmio->SetDebug(debug_);
+
+  err = parmio->WriteParm( parmIn );
   if (err != 0) {
     mprinterr("Error writing parm file %s\n",parm_filename);
     delete parmio;
     return 1;
   }
-  basicParm.CloseFile();
 
   delete parmio;
   return 0;

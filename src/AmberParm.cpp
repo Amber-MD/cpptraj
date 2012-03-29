@@ -153,7 +153,32 @@ void AmberParm::SetDebug(int debugIn) {
   if (debug>0) mprintf("AmberParm debug set to %i\n",debug);
 }
 
-// ---------- MASK PARSER ROUTINES --------------------------------------------- 
+// ---------- MASK PARSER ROUTINES ---------------------------------------------
+// AmberParm::SetReferenceCoords()
+/** Create a copy of the coordinates from the given frame for use with mask
+  * parsing routines. If number of atoms in the given frame is less than the
+  * number of atoms in the parm distance-based mask parsing could cause a 
+  * memory error so don't allow. If # atoms in given frame is greater,
+  * just print a warning.
+  */
+int AmberParm::SetReferenceCoords(Frame *frameIn) {
+  if (frameIn==NULL) return 1;
+  if (parmCoords!=NULL) delete[] parmCoords;
+  if (frameIn->Natom() < natom) {
+    mprintf("Warning: # Reference atoms (%i) less than # atoms (%i) in parm %s\n",
+            frameIn->Natom(), natom, parmName);
+    mprintf("       Distance-based mask parsing will not work.\n");
+    return 1;
+  } else if (frameIn->Natom() > natom) {
+    mprintf("Warning: # Reference atoms (%i) greater than # atoms (%i) in parm %s\n",
+            frameIn->Natom(), natom, parmName);
+    mprintf("         Distance-based mask parsing my not work.\n");
+  }
+  parmCoords = frameIn->DoubleArray();
+  if (parmCoords==NULL) return 1;
+  return 0;
+}
+ 
 // AmberParm::SetupAtomMask()
 /** Given an atommask which has a mask expression, set it up for this topology.
   * Most routines will not call this directly, but will call SetupIntegerMask
@@ -164,7 +189,7 @@ void AmberParm::SetDebug(int debugIn) {
   *                   mask, false if it should be set up as an integer mask.
   * \return 1 on error, 0 on success.
   */
-int AmberParm::SetupAtomMask(AtomMask &atommaskIn, double *Xin, bool isCharMask) {
+int AmberParm::SetupAtomMask(AtomMask &atommaskIn, bool isCharMask) {
   char *atommask_postfix;
   char *ptraj_charmask;
 
@@ -176,7 +201,7 @@ int AmberParm::SetupAtomMask(AtomMask &atommaskIn, double *Xin, bool isCharMask)
   if (debug>1) mprintf("\tAmberParm::SetupAtomMask: Parsing postfix [%s]\n",atommask_postfix); 
  
   ptraj_charmask = parseMaskString(atommask_postfix, natom, nres, names, resnames,
-                                   resnums, Xin, types, debug);
+                                   resnums, parmCoords, types, debug);
 
   if (ptraj_charmask==NULL) {
     mprinterr("    Error: AmberParm::SetupAtomMask: charmask is NULL.\n");
@@ -196,14 +221,38 @@ int AmberParm::SetupAtomMask(AtomMask &atommaskIn, double *Xin, bool isCharMask)
 
 // AmberParm::SetupIntegerMask()
 /** Set up the given AtomMask as an integer mask. */  
-int AmberParm::SetupIntegerMask(AtomMask &atommaskIn, double *Xin) {
-  return SetupAtomMask(atommaskIn, Xin, false);
+int AmberParm::SetupIntegerMask(AtomMask &atommaskIn) {
+  return SetupAtomMask(atommaskIn, false);
 }
 
 // AmberParm::SetupCharMask()
 /** Set up the given AtomMask as a character mask. */
-int AmberParm::SetupCharMask(AtomMask &atommaskIn, double *Xin) {
-  return SetupAtomMask(atommaskIn, Xin, true);
+int AmberParm::SetupCharMask(AtomMask &atommaskIn) {
+  return SetupAtomMask(atommaskIn, true);
+}
+
+// AmberParm::SetupIntegerMask()
+/** This routine sets up an integer mask using the given frame as
+  * coordinates instead of whatever parmCoord is set to.
+  */
+int AmberParm::SetupIntegerMask(AtomMask &atommaskIn, Frame &frameIn) {
+  double *parmCoord_temp = parmCoords;
+  parmCoords = (double*)frameIn.CoordPtr();
+  int err = SetupAtomMask(atommaskIn, false);
+  parmCoords = parmCoord_temp;
+  return err;
+}
+
+// AmberParm::SetupCharMask()
+/** This routine sets up a character mask using the given frame as 
+  * coordinates instead of whatever parmCoord is set to. 
+  */
+int AmberParm::SetupCharMask(AtomMask &atommaskIn, Frame &frameIn) {
+  double *parmCoord_temp = parmCoords;
+  parmCoords = (double*)frameIn.CoordPtr();
+  int err = SetupAtomMask(atommaskIn, true);
+  parmCoords = parmCoord_temp;
+  return err;
 }
 
 // AmberParm::NumMoleculesInMask()
@@ -217,9 +266,9 @@ int AmberParm::NumMoleculesInMask(AtomMask &atommaskIn) {
   if (atomsPerMol == NULL) return 0;
   numMolecules = 0;
   lastMolecule = -1;
-  for (std::vector<int>::iterator atom = atommaskIn.Selected.begin();
-                                  atom != atommaskIn.Selected.end();
-                                  atom++)
+  for (AtomMask::const_iterator atom = atommaskIn.begin();
+                                atom != atommaskIn.end();
+                                atom++)
   {
     if (lastMolecule == -1) {
       lastMolecule = atomToMolecule( *atom );
@@ -315,6 +364,17 @@ int AmberParm::ResAtomRange(int resIn, int *startatom, int *stopatom) {
   return 0;
 }
 
+// AmberParm::FindResidueMaxNatom()
+/** Return the # atoms in the largest residue. */
+int AmberParm::FindResidueMaxNatom() {
+  int largest_natom = 0;
+  for (int res = 0; res < nres; res++) {
+    int diff = resnums[res+1] - resnums[res];
+    if (diff > largest_natom) largest_natom = diff;
+  }
+  return largest_natom;
+}
+
 // AmberParm::FinalSoluteRes()
 /** Return the last residue considered solute. */
 int AmberParm::FinalSoluteRes() {
@@ -376,15 +436,15 @@ int AmberParm::SetupExcludedAtomsList(AtomMask &maskIn,
   exclusionList.resize( natom );
 
   // Calculate the initial number of interactions
-  N_interactions = (((maskIn.Nselected * maskIn.Nselected) - maskIn.Nselected) / 2);
+  N_interactions = (((maskIn.Nselected() * maskIn.Nselected()) - maskIn.Nselected()) / 2);
 
   // If no exclusion information, just set -1 for each atom's exclusion list.
   // Since no atoms are excluded the total number of interactions do not need
   // to be modified.
   if (numex==NULL) {
-    for (std::vector<int>::iterator maskatom1 = maskIn.Selected.begin(); 
-                                    maskatom1 != maskIn.Selected.end(); 
-                                    maskatom1++)
+    for (AtomMask::const_iterator maskatom1 = maskIn.begin();
+                                  maskatom1 != maskIn.end();
+                                  maskatom1++)
       exclusionList[ *maskatom1 ].push_back( -1 );
 
   // If there is exclusion information, for each atom in the mask add its 
@@ -896,7 +956,7 @@ int AmberParm::SetSolventInfo() {
 // |--------- ROUTINES PERTAINING TO READING PARAMETERS -----------------------|
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
 // AmberParm::SetParmName()
-void AmberParm::SetParmName(char *parmNameIn, char *parmfileNameIn) {
+void AmberParm::SetParmName(const char *parmNameIn, const char *parmfileNameIn) {
   // Copy parm filename to parmName. Separate from File.filename in case of stripped parm
   parmName=new char[ strlen(parmNameIn)+1 ];
   strcpy(parmName,parmNameIn);
@@ -1165,11 +1225,19 @@ int AmberParm::AddBond(int atom1, int atom2, int icb) {
   return 0;
 }
 
+// AmberParm::GetBondsFromFrame()
+void AmberParm::GetBondsFromFrame(Frame &frameIn) {
+  double *tempArray = frameIn.DoubleArray();
+  GetBondsFromCoords( tempArray );
+  delete[] tempArray;
+}
+
 // AmberParm::GetBondsFromCoords()
 /** Given an array of coordinates X0Y0Z0X1Y1Z1...XNYNZN determine which
   * atoms are bonded via distance search. First check for bonds within
   * residues, then check for bonds between adjacent residues. Adjacent
   * residues in different molecules are not considered.
+  * TODO: Only have one of these routines using Frame.
   */
 // NOTE: Speedup by precalc elements, use grid, get cutoff^2
 void AmberParm::GetBondsFromCoords(double *inputCoords) {
@@ -1666,15 +1734,13 @@ AmberParm *AmberParm::modifyStateByMap(int *AMap) {
   *  not in the Selected array.
   */
 // NOTE: Make all solvent/box related info dependent on IFBOX only?
-// NOTE: Eventually convert so atom mask is passed in.
-AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix) {
+AmberParm *AmberParm::modifyStateByMask(AtomMask &Mask, char *prefix) {
   AmberParm *newParm;
-  int selected;
   int i, ires, imol; 
   int j, jres, jmol;
   int curres, curmol; 
   int *atomMap; // Convert atom # in oldParm to newParm; -1 if atom is not in newParm
-  int Nselected = (int) Selected.size();
+  int Nselected = Mask.Nselected(); 
 
   // Allocate space for the new state
   newParm = new AmberParm(); 
@@ -1738,11 +1804,11 @@ AmberParm *AmberParm::modifyStateByMask(std::vector<int> &Selected, char *prefix
 
   // Loop over Selected atoms and set up information for the newstate if the atom is 
   // not to be deleted...
-  for (selected=0; selected < Nselected; selected++) {
+  for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); atom++) {
     // i = old atom #, j = new atom number
-    i = Selected[selected];          // Atom to be kept from oldParm
-    curres = this->atomToResidue(i); // Residue number of atom in oldParm
-    atomMap[i]=j;                    // Store this atom in the atom map
+    i = *atom;                         // Atom to be kept from oldParm
+    curres = this->atomToResidue(i);   // Residue number of atom in oldParm
+    atomMap[i] = j;                    // Store this atom in the atom map
     // Copy over atom information
     strcpy(newParm->names[j], this->names[i]);
     if (this->types!=NULL)       strcpy(newParm->types[j], this->types[i]);

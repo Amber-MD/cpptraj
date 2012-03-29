@@ -6,16 +6,16 @@
 
 // CONSTRUCTOR
 Mol2File::Mol2File() {
-  mol2atom=0;
-  mol2bonds=0;
-  mol2WriteMode=SINGLE;
+  mol2atom_=0;
+  mol2bonds_=0;
+  mol2WriteMode_=SINGLE;
 
-  trajnres = 0;
-  trajAtomNames = NULL; 
-  trajTypes = NULL;
-  trajResNames = NULL; 
-  trajResNums = NULL;
-  trajCharges = NULL;
+  trajnres_ = 0;
+  trajAtomNames_ = NULL; 
+  trajTypes_ = NULL;
+  trajResNames_ = NULL; 
+  trajResNums_ = NULL;
+  trajCharges_ = NULL;
 }
 
 // Mol2File::openTraj()
@@ -23,18 +23,18 @@ int Mol2File::openTraj() {
   int err;
 
   err=0;
-  switch (tfile->access) {
-    case READ : err = tfile->OpenFile(); break;
+  switch (access_) {
+    case READ : err = OpenFile(); break;
     case APPEND :
-      mprintf("Error: Append not supported for mol2 files.\n");
+      mprinterr("Error: Append not supported for mol2 files.\n");
       err=1;
       break;
     case WRITE :
       // Set up title
-      if (title==NULL)
-        this->SetTitle((char*)"Cpptraj generated mol2 file.\0");
+      if (title_.empty())
+        title_.assign("Cpptraj generated mol2 file.");
       // If writing 1 mol2 per frame do not open here
-      if (mol2WriteMode!=MULTI) err = tfile->OpenFile();
+      if (mol2WriteMode_!=MULTI) err = OpenFile();
       break;
   }
       
@@ -44,19 +44,19 @@ int Mol2File::openTraj() {
 // Mol2File::closeTraj() {
 void Mol2File::closeTraj() {
   // On WRITE only close if not writing 1 mol2 per frame
-  if (tfile->access==WRITE) {
-    if (mol2WriteMode!=MULTI) tfile->CloseFile();
+  if (access_==WRITE) {
+    if (mol2WriteMode_!=MULTI) CloseFile();
   } else {
   // Otherwise just close the file
-    tfile->CloseFile();
+    CloseFile();
   }
 }
 
-// Mol2File::setupRead()
+// Mol2File::setupTrajin()
 /** See how many MOLECULE records are in file, make sure num atoms match
   * parm and each frame.
   */
-int Mol2File::setupRead(AmberParm *trajParm) {
+int Mol2File::setupTrajin(AmberParm *trajParm) {
   int frameAtom;
   int Frames=0;
   char buffer[MOL2BUFFERSIZE];
@@ -64,31 +64,31 @@ int Mol2File::setupRead(AmberParm *trajParm) {
   if (this->openTraj()) return -1;
 
   // Get @<TRIPOS>MOLECULE information
-  while (Mol2ScanTo(this->tfile, MOLECULE)==0) {
+  while (Mol2ScanTo(IO, MOLECULE)==0) {
     //   Scan title
-    if ( tfile->IO->Gets(buffer,MOL2BUFFERSIZE) ) return -1; 
+    if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return -1; 
     // On first frame set title
     if (Frames==0) {
-      this->SetTitle(buffer);
-      if (debug>0) mprintf("    Mol2 Title: [%s]\n",title);
+      title_.assign(buffer);
+      if (debug_>0) mprintf("    Mol2 Title: [%s]\n",title_.c_str());
     }
     //   Scan # atoms
-    if ( tfile->IO->Gets(buffer,MOL2BUFFERSIZE) ) return -1;
+    if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return -1;
     sscanf(buffer,"%i",&frameAtom);
     if (Frames==0) {
-      mol2atom=frameAtom;
-      if (debug>0) mprintf("    Mol2 #atoms: %i\n",mol2atom);
+      mol2atom_=frameAtom;
+      if (debug_>0) mprintf("    Mol2 #atoms: %i\n",mol2atom_);
     }
     if (Frames==0 && frameAtom!=trajParm->natom) {
       mprinterr("Error: Number of atoms in Mol2 file %s frame %i (%i) does not\n",
-              tfile->filename,Frames+OUTPUTFRAMESHIFT,frameAtom);
+              BaseName(),Frames+OUTPUTFRAMESHIFT,frameAtom);
       mprinterr("       match number in associated parmtop (%i)!\n",trajParm->natom);
       return -1;
     }
-    if (frameAtom!=mol2atom) {
+    if (frameAtom!=mol2atom_) {
       mprintf("Warning: # atoms in Mol2 file %s frame %i (%i) not equal\n",
-                tfile->filename,Frames+OUTPUTFRAMESHIFT,frameAtom);
-      mprintf("         to # atoms int first frame (%i).\n",mol2atom);
+                BaseName(),Frames+OUTPUTFRAMESHIFT,frameAtom);
+      mprintf("         to # atoms int first frame (%i).\n",mol2atom_);
       mprintf("         Only using frames 1-%i.\n",Frames);
       break;
     }
@@ -96,10 +96,10 @@ int Mol2File::setupRead(AmberParm *trajParm) {
   }
 
   this->closeTraj();
-  if (debug>0) mprintf("      Mol2 file %s has %i frames.\n",tfile->filename,Frames);
-  seekable = false;
-  hasTemperature=false;
-  hasBox=false;
+  if (debug_>0) mprintf("      Mol2 file %s has %i frames.\n",BaseName(),Frames);
+  seekable_ = false;
+  hasTemperature_=false;
+  hasBox_=false;
 
   return Frames;
 }
@@ -110,11 +110,11 @@ int Mol2File::readFrame(int set,double *X, double *V,double *box, double *T) {
   int atom, atom3;
 
   // Get @<TRIPOS>ATOM information
-  if (Mol2ScanTo(this->tfile, ATOM)) return 1;
+  if (Mol2ScanTo(IO, ATOM)) return 1;
 
   atom3=0;
-  for (atom = 0; atom < mol2atom; atom++) {
-    if (tfile->IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+  for (atom = 0; atom < mol2atom_; atom++) {
+    if (IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
     // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
     sscanf(buffer,"%*i %*s %lf %lf %lf",X+atom3, X+atom3+1, X+atom3+2);
     //F->printAtomCoord(atom);
@@ -134,69 +134,70 @@ int Mol2File::processWriteArgs(ArgList *argIn) {
 // Mol2File::SetWriteMode()
 /** Set write mode to SINGLE, MOL, or MULTI */
 void Mol2File::SetWriteMode(MOL2WRITEMODE modeIn) {
-  mol2WriteMode = modeIn;
-  //mprintf("MOL2 WRITE MODE SET TO %i\n",(int)mol2WriteMode);
+  mol2WriteMode_ = modeIn;
+  //mprintf("MOL2 WRITE MODE SET TO %i\n",(int)mol2WriteMode_);
 }
 
-// Mol2File::setupWrite()
+// Mol2File::setupTrajout()
 /** Set parm information required for write, and check write mode against
   * number of frames to be written.
   */
-int Mol2File::setupWrite(AmberParm *trajParm) {
+int Mol2File::setupTrajout(AmberParm *trajParm) {
   // If writing more than 1 frame and not writing 1 pdb per frame, 
   // use @<TRIPOS>MOLECULE keyword to separate frames.
-  if (mol2WriteMode==SINGLE && trajParm->parmFrames>1) mol2WriteMode=MOL;
+  if (mol2WriteMode_==SINGLE && trajParm->parmFrames>1) 
+    mol2WriteMode_=MOL;
 
   // Set # atoms; if more than 99999 atoms the file may not write correctly
-  mol2atom = trajParm->natom;
-  if (mol2atom>99999) {
+  mol2atom_ = trajParm->natom;
+  if (mol2atom_>99999) {
     mprintf("Warning: %s: Large # of atoms (%i > 99999) for mol2 format.\n",
-            tfile->filename,mol2atom);
+            BaseName(),mol2atom_);
     mprintf("         File may not write correctly.\n");
   }
 
   // Check number of bonds
-  if ( trajParm->BondArray( trajBonds ) ) 
-    mprintf("Warning: %s: topology does not contain bond information.\n",tfile->filename);
+  if ( trajParm->BondArray( trajBonds_ ) ) 
+    mprintf("Warning: %s: topology does not contain bond information.\n",BaseName());
   // The BondArray function results in an array consisting of all bonds
   // with both atoms of the bond, hence the number of bonds is size / 2
-  mol2bonds = (int)trajBonds.size();
-  mol2bonds /= 2;
+  mol2bonds_ = (int)trajBonds_.size();
+  mol2bonds_ /= 2;
 
   // Set information from parm
-  trajnres = trajParm->Nres();
-  trajAtomNames = trajParm->AtomNames_ptr();
-  trajTypes = trajParm->AtomTypes_ptr();
+  trajnres_ = trajParm->Nres();
+  trajAtomNames_ = trajParm->AtomNames_ptr();
+  trajTypes_ = trajParm->AtomTypes_ptr();
   // If types are not set just use atom names
-  if (trajTypes == NULL) trajTypes = trajAtomNames;
-  trajResNames = trajParm->ResidueNames_ptr();
-  trajResNums = trajParm->ResAtomNums_ptr();
-  trajCharges = trajParm->Charges_ptr();
+  if (trajTypes_ == NULL) trajTypes_ = trajAtomNames_;
+  trajResNames_ = trajParm->ResidueNames_ptr();
+  trajResNums_ = trajParm->ResAtomNums_ptr();
+  trajCharges_ = trajParm->Charges_ptr();
 
   // Check that all parm info is indeed present
-  if (trajAtomNames==NULL) {
-    mprinterr("Error: setupWrite [%s]: Atom names are NULL.\n",tfile->filename);
+  if (trajAtomNames_==NULL) {
+    mprinterr("Error: setupTrajout [%s]: Atom names are NULL.\n",BaseName());
     return 1;
   }
-  if (trajTypes==NULL) {
-    mprinterr("Error: setupWrite [%s]: Atom types are NULL.\n",tfile->filename);
+  if (trajTypes_==NULL) {
+    mprinterr("Error: setupTrajout [%s]: Atom types are NULL.\n",BaseName());
     return 1;
   }
-  if (trajResNames==NULL) {
-    mprinterr("Error: setupWrite [%s]: Residue names are NULL.\n",tfile->filename);
+  if (trajResNames_==NULL) {
+    mprinterr("Error: setupTrajout [%s]: Residue names are NULL.\n",BaseName());
     return 1;
   }
-  if (trajResNums==NULL) {
-    mprinterr("Error: setupWrite [%s]: Residue #s are NULL.\n",tfile->filename);
+  if (trajResNums_==NULL) {
+    mprinterr("Error: setupTrajout [%s]: Residue #s are NULL.\n",BaseName());
     return 1;
   }
-  //if (trajCharges==NULL) {
-  //  mprinterr("Error: setupWrite [%s]: Charges are NULL.\n",tfile->filename);
+  //if (trajCharges_==NULL) {
+  //  mprinterr("Error: setupTrajout [%s]: Charges are NULL.\n",BaseName());
   //  return 1;
   //}
-  if (trajBonds.empty()) {
-    mprintf("Warning: setupWrite [%s]: No bond information present in parm %s\n",
-            tfile->filename,trajParm->parmName);
+  if (trajBonds_.empty()) {
+    mprintf("Warning: setupTrajout [%s]: No bond information present in parm %s\n",
+            BaseName(),trajParm->parmName);
   }
   return 0;
 }
@@ -208,67 +209,67 @@ int Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
   double Charge;
 
   //mprintf("DEBUG: Calling Mol2File::writeFrame for set %i\n",set);
-  if (mol2WriteMode==MULTI) {
-    NumberFilename(buffer,tfile->filename,set+OUTPUTFRAMESHIFT);
-    if (tfile->IO->Open(buffer,"wb")) return 1;
+  if (mol2WriteMode_==MULTI) {
+    NumberFilename(buffer,(char*)Name(),set+OUTPUTFRAMESHIFT);
+    if (IO->Open(buffer,"wb")) return 1;
   }
   //@<TRIPOS>MOLECULE section
-  tfile->IO->Printf("@<TRIPOS>MOLECULE\n");
+  Printf("@<TRIPOS>MOLECULE\n");
   // mol_name
   // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
   // mol_type
   // charge_type
   // [status_bits
   // [mol_comment]]
-  tfile->IO->Printf("%s\n",title);
-  tfile->IO->Printf("%5i %5i %5i %5i %5i\n",mol2atom,mol2bonds,1,0,0);
-  tfile->IO->Printf("SMALL\n"); // May change this later
-  if (trajCharges!=NULL)
-    tfile->IO->Printf("USER_CHARGES\n"); // May change this later
+  Printf("%s\n",title_.c_str());
+  Printf("%5i %5i %5i %5i %5i\n",mol2atom_,mol2bonds_,1,0,0);
+  Printf("SMALL\n"); // May change this later
+  if (trajCharges_!=NULL)
+    Printf("USER_CHARGES\n"); // May change this later
   else
-    tfile->IO->Printf("NO_CHARGES\n");
-  tfile->IO->Printf("\n\n");
+    Printf("NO_CHARGES\n");
+  Printf("\n\n");
 
   //@<TRIPOS>ATOM section
   Charge = 0.0;
-  tfile->IO->Printf("@<TRIPOS>ATOM\n");
+  Printf("@<TRIPOS>ATOM\n");
   atom3=0;
   res = 0;
-  for (atom=0; atom < mol2atom; atom++) {
+  for (atom=0; atom < mol2atom_; atom++) {
     // figure out the residue number
-    if ( atom==trajResNums[res+1] ) res++;
-    if (trajCharges!=NULL) Charge = trajCharges[atom]; 
-    tfile->IO->Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
-                     atom+1, trajAtomNames[atom], X[atom3], X[atom3+1], X[atom3+2],
-                     trajTypes[atom], res+1, trajResNames[res], Charge);
+    if ( atom==trajResNums_[res+1] ) res++;
+    if (trajCharges_!=NULL) Charge = trajCharges_[atom]; 
+    Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
+                     atom+1, trajAtomNames_[atom], X[atom3], X[atom3+1], X[atom3+2],
+                     trajTypes_[atom], res+1, trajResNames_[res], Charge);
     atom3+=3;
   }
 
   //@<TRIPOS>BOND section
-  if (!trajBonds.empty()) {
+  if (!trajBonds_.empty()) {
     // Atom #s in the bonds and bondh array are * 3
-    tfile->IO->Printf("@<TRIPOS>BOND\n");
+    Printf("@<TRIPOS>BOND\n");
     atom=1;
-    for (std::vector<int>::iterator bond = trajBonds.begin();
-                                    bond != trajBonds.end();
+    for (std::vector<int>::iterator bond = trajBonds_.begin();
+                                    bond != trajBonds_.end();
                                     bond++)
     {
       int firstBondAtom = *bond;
       ++bond;
-      tfile->IO->Printf("%5d %5d %5d 1\n",atom++,firstBondAtom + 1,*bond + 1);
+      Printf("%5d %5d %5d 1\n",atom++,firstBondAtom + 1,*bond + 1);
     }
   }
 
   //@<TRIPOS>SUBSTRUCTURE section
-  tfile->IO->Printf("@<TRIPOS>SUBSTRUCTURE\n");
-  for (res = 0; res < trajnres; res++) {
-    tfile->IO->Printf("%7d %4s %14d ****               0 ****  **** \n",
-                      res+1, trajResNames[res],trajResNums[res]+1);
+  Printf("@<TRIPOS>SUBSTRUCTURE\n");
+  for (res = 0; res < trajnres_; res++) {
+    Printf("%7d %4s %14d ****               0 ****  **** \n",
+                      res+1, trajResNames_[res],trajResNums_[res]+1);
   }
 
   // If writing 1 pdb per frame, close output file
-  if (mol2WriteMode==MULTI)
-    tfile->IO->Close();
+  if (mol2WriteMode_==MULTI)
+    IO->Close();
 
   return 0;
 }
@@ -276,10 +277,10 @@ int Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
 // Mol2File::info()
 void Mol2File::info() {
   mprintf("is a Tripos Mol2 file");
-  if (tfile->access==WRITE) {
-    if (mol2WriteMode==MULTI)
+  if (access_==WRITE) {
+    if (mol2WriteMode_==MULTI)
       mprintf(" (1 file per frame)");
-    else if (mol2WriteMode==MOL)
+    else if (mol2WriteMode_==MOL)
       mprintf(" (1 MOLECULE per frame)");
   }
 }

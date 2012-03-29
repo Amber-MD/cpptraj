@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstring>
+//#include <algorithm> // std::copy, std::swap
 #include "Frame.h"
 #include "Constants.h"
 #include "vectormath.h"
@@ -7,239 +8,642 @@
 #include "TorsionRoutines.h"
 #include "CpptrajStdio.h"
 
-const size_t Frame::COORDSIZE = 3 * sizeof(double);
-const size_t Frame::BOXSIZE = 6 * sizeof(double);
+const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
+const size_t Frame::BOXSIZE_ = 6 * sizeof(double);
 
 /// CONSTRUCTOR
 Frame::Frame( ) {
-  natom=0;
-  N=0;
-  maxnatom=0;
-  X=NULL;
-  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
-  T=0.0;
-  V=NULL;
-  Mass=NULL;
+  X_ = NULL;
+  natom_ = 0;
+  maxnatom_ = 0;
+  Ncoord_ = 0;
+  box_[0]=0;
+  box_[1]=0;
+  box_[2]=0;
+  box_[3]=0;
+  box_[4]=0;
+  box_[5]=0;
+  T_ = 0.0;
+  V_ = NULL;
+  Mass_=NULL;
+}
+
+// CONSTRUCTOR
+/// Set up for natom
+Frame::Frame(int natomIn) :
+  natom_(natomIn), maxnatom_(natomIn) 
+{
+  Ncoord_ = natom_ * 3;
+  memset(box_, 0, BOXSIZE_);
+  T_ = 0.0;
+  V_ = NULL;
+  X_ = NULL;
+  Mass_ = NULL;
+  if (Ncoord_ > 0) 
+    X_ = new double[ Ncoord_ ];
+}
+
+// CONSTRUCTOR
+/// Set up for natom, copy massIn
+Frame::Frame(int natomIn, double *massIn) :
+  natom_(natomIn), maxnatom_(natomIn)
+{
+  Ncoord_ = natom_ * 3;
+  memset(box_, 0, BOXSIZE_);
+  T_ = 0.0;
+  V_ = NULL;
+  X_ = NULL;
+  Mass_ = NULL;
+  if (Ncoord_ > 0) {
+    X_ = new double[ Ncoord_ ];
+    if (massIn != NULL) {
+      Mass_ = new double[ natom_ ];
+      memcpy(Mass_, massIn, natom_*sizeof(double));
+    }
+  }
+}
+
+// CONSTRUCTOR
+/// Set up for nselected, copy mass according to maskIn
+Frame::Frame(AtomMask &maskIn, double *massIn) {
+  natom_ = maskIn.Nselected();
+  maxnatom_ = natom_;
+  Ncoord_ = natom_ * 3;
+  memset(box_, 0, BOXSIZE_);
+  T_ = 0;
+  V_ = NULL;
+  X_ = NULL;
+  Mass_ = NULL;
+  if (Ncoord_ > 0) {
+    X_ = new double[ Ncoord_ ];
+    Mass_ = new double[ natom_ ];
+    double *newM = Mass_;
+    for (AtomMask::const_iterator atom = maskIn.begin();
+                                  atom != maskIn.end(); atom++)
+    {
+      *newM = massIn[ *atom ];
+      ++newM;
+    }
+  }
+}
+
+// CONSTRUCTOR
+/// Copy frameIn according to maskIn
+Frame::Frame(Frame &frameIn, AtomMask &maskIn) {
+  natom_ = maskIn.Nselected();
+  Ncoord_ = natom_ * 3;
+  if (frameIn.maxnatom_ > natom_)
+    maxnatom_ = frameIn.maxnatom_;
+  else
+    maxnatom_ = natom_;
+  // maxnatom may be different than natom. Use maxNcoord for allocation
+  int maxNcoord = maxnatom_ * 3;
+  memcpy(box_, frameIn.box_, BOXSIZE_);
+  T_ = frameIn.T_;
+  V_ = NULL;
+  Mass_ = NULL;
+  X_ = NULL;
+  if (frameIn.X_!=NULL) {
+    X_ = new double[ maxNcoord ];
+    double *newX = X_;
+    for (AtomMask::const_iterator atom = maskIn.begin();
+                                  atom != maskIn.end(); atom++)
+    {
+      int oldatom3 = (*atom) * 3;
+      memcpy(newX, frameIn.X_ + oldatom3, COORDSIZE_);
+      newX += 3;
+    }
+  }
+  if (frameIn.V_ != NULL) {
+    V_ = new double[ maxNcoord ];
+    double *newV = V_;
+    for (AtomMask::const_iterator atom = maskIn.begin();
+                                  atom != maskIn.end(); atom++)
+    {
+      int oldatom3 = (*atom) * 3;
+      memcpy(newV, frameIn.V_ + oldatom3, COORDSIZE_);
+      newV += 3;
+    }
+  }
+  if (frameIn.Mass_ != NULL) {
+    Mass_ = new double[ maxnatom_ ];
+    double *newM = Mass_;
+    for (AtomMask::const_iterator atom = maskIn.begin();
+                                  atom != maskIn.end(); atom++)
+    {
+      *newM = frameIn.Mass_[ *atom ];
+      ++newM;
+    }
+  }
 }
 
 /// DESTRUCTOR
 Frame::~Frame( ) {
-  if (X!=NULL) delete[] X;
-  if (V!=NULL) delete[] V;
-  if (Mass!=NULL) delete[] Mass;
+  if (X_!=NULL) delete[] X_;
+  if (V_!=NULL) delete[] V_;
+  if (Mass_!=NULL) delete[] Mass_;
 }
 
 /// COPY CONSTRUCTOR
-Frame::Frame(const Frame &rhs) {
-  natom = rhs.natom;
-  maxnatom = rhs.maxnatom;
-  N = rhs.N;
-  memcpy(box, rhs.box, BOXSIZE);
-  T = rhs.T;
-  X=NULL;
-  V=NULL;
-  Mass=NULL;
-  if (rhs.X != NULL) {
-    X = new double[ N ];
-    memcpy(X, rhs.X, N * sizeof(double));
+// NOTE: The order of variables in the class definition is important
+//       when using initializer lists.
+/*Frame::Frame(const Frame &rhs) :
+  natom_(rhs.natom_),
+  maxnatom_(rhs.maxnatom_),
+  Ncoord_(rhs.Ncoord_),
+  X_(Ncoord_ ? new double[ Ncoord_ ] : NULL),
+  V_(rhs.V_!=NULL ? new double[ Ncoord_ ] : NULL),
+  Mass_(rhs.Mass_!=NULL ? new double[ natom_ ] : NULL),
+  T_(rhs.T_)
+{
+  std::copy(rhs.X_, rhs.X_ + Ncoord_, X_);
+  std::copy(rhs.V_, rhs.V_ + Ncoord_, V_);
+  std::copy(rhs.Mass_, rhs.Mass_ + natom_, Mass_);
+  std::copy(rhs.box_, rhs.box_ + 6, box_);
+}*/
+// COPY CONSTRUCTOR
+Frame::Frame(const Frame &rhs) :
+  natom_(rhs.natom_), 
+  maxnatom_(rhs.maxnatom_), 
+  Ncoord_(rhs.Ncoord_),
+  T_(rhs.T_)
+{
+  if (natom_ > maxnatom_)
+    maxnatom_ = natom_;
+  // rhs.maxnatom may not be equal to natom. Use maxNcoord for alloc.
+  int maxNcoord = maxnatom_ * 3;
+  X_ = NULL;
+  V_ = NULL;
+  Mass_ = NULL;
+  if (rhs.X_!=NULL) {
+    X_ = new double[ maxNcoord ];
+    memcpy(X_, rhs.X_, Ncoord_*sizeof(double));
   }
-  if (rhs.V != NULL) {
-    V = new double[ N ];
-    memcpy(V, rhs.V, N * sizeof(double));
+  if (rhs.V_!=NULL) {
+    V_ = new double[ maxNcoord ];
+    memcpy(V_, rhs.V_, Ncoord_*sizeof(double));
   }
-  if (rhs.Mass!=NULL) {
-    Mass = new double[ natom ];
-    memcpy(Mass, rhs.Mass, natom * sizeof(double));
+  if (rhs.Mass_!=NULL) {
+    Mass_ = new double[ maxnatom_ ];
+    memcpy(Mass_, rhs.Mass_, natom_*sizeof(double));
   }
 }
+
+// Frame::Info()
+// For debugging
+void Frame::Info(const char *msg) {
+  if (msg!=NULL)
+    mprintf("\tFrame [%s]:",msg);
+  else
+    mprintf("\tFrame:");
+  mprintf("%i atoms, %i coords, maxnatom=%i",natom_,Ncoord_,maxnatom_);
+  if (X_!=NULL) mprintf(" X");
+  if (V_!=NULL) mprintf(" V");
+  if (Mass_!=NULL) mprintf(" M");
+  mprintf("\n");
+}
+
+// SWAP
+/*void Frame::swap(Frame &first, Frame &second) {
+  double firstbox[6];
+  // Argument-dependent lookup; bring swap into this scope.
+  using std::swap;
+  swap(first.natom_, second.natom_);
+  swap(first.maxnatom_, second.maxnatom_);
+  swap(first.Ncoord_, second.Ncoord_);
+  swap(first.X_, second.X_);
+  swap(first.V_, second.V_);
+  swap(first.Mass_, second.Mass_);
+  // Swap box
+  std::copy(first.box_, first.box_ + 6, firstbox);
+  std::copy(second.box_, second.box_ + 6, first.box_);
+  std::copy(firstbox, firstbox + 6, second.box_);
+  swap(first.T_, second.T_);
+}*/
 
 // Frame::operator=()
-/// Assignment operator
+/** Assignment operator. Cannot assume that *this has been previously
+  * allocated, so smart reallocation really isnt possible. Need to
+  * use the SetupFrame routines for that.
+  * This is implemented using a copy-and-swap idiom. The copy-constructor
+  * will make a copy of rhs, which is then safely switched with *this. 
+  * The original data in *this ends up in the copy of rhs, which is freed
+  * when the function returns.
+  */
 Frame &Frame::operator=(const Frame &rhs) {
+  //swap(*this, rhs);
+
   // Check for self assignment
   if ( this == &rhs ) return *this;
-  
+
+  // Copy members that require no allocation
+  natom_ = rhs.natom_;
+  if (rhs.maxnatom_ > natom_)
+    maxnatom_ = rhs.maxnatom_;
+  else
+    maxnatom_ = natom_;
+  // rhs.maxnatom may not be equal to natom. Use maxNcoord for alloc.
+  int maxNcoord = maxnatom_ * 3;
+  Ncoord_ = rhs.Ncoord_;
+  memcpy(box_, rhs.box_, BOXSIZE_);
+  T_ = rhs.T_;
+
   // Deallocate
-  if (X!=NULL) delete[] X;
-  if (V!=NULL) delete[] V;
-  if (Mass!=NULL) delete[] Mass;
-  X=NULL;
-  V=NULL;
-  Mass=NULL;
+  if (X_!=NULL) {delete[] X_; X_=NULL;}
+  if (V_!=NULL) {delete[] V_; V_=NULL;}
+  if (Mass_!=NULL) {delete[] Mass_; Mass_=NULL;}
 
-  // Allocate and copy
-  natom = rhs.natom;
-  maxnatom = rhs.maxnatom;
-  N = rhs.N;
-  memcpy(box, rhs.box, BOXSIZE);
-  T = rhs.T;
-  if (rhs.X != NULL) {
-    X = new double[ N ];
-    memcpy(X, rhs.X, N * sizeof(double));
+  // Allocate and copy 
+  // Coordinates
+  if (rhs.X_ != NULL) {
+    X_ = new double[ maxNcoord ];
+    memcpy(X_, rhs.X_, Ncoord_*sizeof(double));
   }
-  if (rhs.V != NULL) {
-    V = new double[ N ];
-    memcpy(V, rhs.V, N * sizeof(double));
+  // Velocity
+  if (rhs.V_ != NULL) {
+    V_ = new double[ maxNcoord ];
+    memcpy(V_, rhs.V_, Ncoord_*sizeof(double));
   }
-  if (rhs.Mass!=NULL) {
-    Mass = new double[ natom ];
-    memcpy(Mass, rhs.Mass, natom * sizeof(double));
+  // Mass
+  if (rhs.Mass_ != NULL) {
+    Mass_ = new double[ maxnatom_ ];
+    memcpy(Mass_, rhs.Mass_, natom_*sizeof(double));
   }
-  // Return *this
+
   return *this;
 }
 
-// Frame::operator+=()
-// NOTE: Replace AddCoord?
-Frame &Frame::operator+=(const Frame &rhs) {
-  // For now ensure same natom
-  if (natom != rhs.natom) {
-    mprinterr("Error: Frame::operator+=: Attempting to add 2 frames with different natom.\n");
+// Float array assignment
+Frame &Frame::operator=(const std::vector<float> &farray) {
+  int f_ncoord = (int) farray.size();
+  if (f_ncoord > maxnatom_*3) {
+    mprinterr("Error: Frame: Float array size %i > max #coords in frame %i\n",
+              f_ncoord, maxnatom_*3);
     return *this;
   }
-  for (int i = 0; i < N; i++)
-    X[i] += rhs.X[i];
+  natom_ = f_ncoord / 3;
+  Ncoord_ = f_ncoord;
+  for (int coord = 0; coord < Ncoord_; coord++)
+    X_[coord] = (double)farray[coord];
   return *this;
 }
 
-// Frame::operator-=()
-Frame &Frame::operator-=(const Frame &rhs) {
-  // // For now ensure same natom
-  if (natom != rhs.natom) {
-    mprinterr("Error: Frame::operator-=: Attempting to add 2 frames with different natom.\n");
-    return *this;
+// Frame::ConvertToFloat()
+std::vector<float> Frame::ConvertToFloat(AtomMask &maskIn) {
+  std::vector<float> farray;
+
+  farray.reserve( maskIn.Nselected() * 3 );
+  for (AtomMask::const_iterator atom = maskIn.begin();
+                                atom != maskIn.end();
+                                atom++)
+  {
+    int atomidx = (*atom) * 3;
+    float fval = (float) X_[atomidx];
+    farray.push_back( fval );
+    fval = (float) X_[atomidx+1];
+    farray.push_back( fval );
+    fval = (float) X_[atomidx+2];
+    farray.push_back( fval );
   }
-  for (int i = 0; i < N; i++)
-    X[i] -= rhs.X[i];
-  return *this;
+  return farray;
 }
 
-// Frame::Divide()
-// NOTE: Should eventually just be an operator
-int Frame::Divide(Frame &dividend, double divisor) {
-  if (divisor < SMALL) {
-    mprinterr("Error: Frame::Divide: Detected divide by 0.\n");
-    return 1;
+// Frame::ConvertToDouble()
+std::vector<double> Frame::ConvertToDouble() {
+  return ( std::vector<double> (X_, X_ + Ncoord_ ) );
+}
+
+// Frame::DoubleArray()
+double *Frame::DoubleArray() {
+  if (natom_ < 1) return NULL;
+  double *darray = new double[ Ncoord_ ];
+  memcpy(darray, X_, Ncoord_*sizeof(double));
+  return darray;
+} 
+
+// Frame::CoordPtr()
+// NOTE: Right now only used for interfacing with older ptraj routines:
+//       1) setting up mask in AmberParm, since the mask parser still uses 
+//          double* for coordinates in order to remain compatible with ptraj 
+//          routines.
+//       2) Setting coordinates for use with ptraj routines (SetReferenceInfo).
+// TODO: Get rid of the need for this routine.  
+const double *Frame::CoordPtr() {
+  return (const double*)X_;
+}
+
+// Frame::ConvertToPtrajXYZ()
+// NOTE: As with CoordPtr() only used to interface with older ptraj routines.
+void Frame::ConvertToPtrajXYZ(double *x_coord, double *y_coord, double *z_coord,
+                              double *ptraj_box)
+{
+  double *Xptr = X_;
+  for (int atom = 0; atom < natom_; atom++) {
+    x_coord[atom] = *Xptr;
+    ++Xptr;
+    y_coord[atom] = *Xptr;
+    ++Xptr;
+    z_coord[atom] = *Xptr;
+    ++Xptr;
   }
-  for (int i=0; i<N; i++)
-    X[i] = dividend.X[i] / divisor;
-  return 0;
+  // Protect state box coords
+  memcpy(ptraj_box, box_, BOXSIZE_);
+}
+
+// Frame::SetFromPtrajXYZ()
+void Frame::SetFromPtrajXYZ(double *x_coord, double *y_coord, double *z_coord) {
+  double *Xptr = X_;
+  for (int atom = 0; atom < natom_; atom++) {
+    *Xptr = x_coord[atom];
+    ++Xptr;
+    *Xptr = y_coord[atom];
+    ++Xptr;
+    *Xptr = z_coord[atom];
+    ++Xptr;
+  }
+}
+
+// Frame::GetAtomXYZ()
+// NOTE: Currently only used by molsurf to interface with ATOM data structure
+void Frame::GetAtomXYZ(double *Coord, int atom) {
+  int i3 = atom * 3;
+  double *Xptr = X_ + i3;
+  Coord[0] = *Xptr;
+  ++Xptr;
+  Coord[1] = *Xptr;
+  ++Xptr;
+  Coord[2] = *Xptr;
+}
+
+// Frame::Natom()
+int Frame::Natom() {
+  return natom_;
+}
+
+// Frame::empty()
+bool Frame::empty() {
+  return (Ncoord_==0);
+}
+
+// Frame::MaxImagedDistance()
+// NOTE: Used only by closest. May not be necessary
+double Frame::MaxImagedDistance() {
+  double maxD = box_[0] + box_[1] + box_[2];
+  maxD *= maxD;
+  return maxD;
+}
+
+// Frame::SetupFrame()
+/** Set up frame for given number of atoms, no mass or velocity information.
+  * Only reallocate memory if natomIn > maxnatom.
+  */
+int Frame::SetupFrame(int natomIn) {
+  return ReallocateFrame(natomIn, NULL, false);
 }
 
 // Frame::SetupFrame()
 /** Set up frame for given number of atoms. Store mass information
-  * if passed in.
+  * if passed in. No velocity info. Only reallocate memory if 
+  * natomIn > maxnatom.
   */
 int Frame::SetupFrame(int natomIn, double *massIn) {
-  // Delete any existing info
-  if (X!=NULL) delete[] X;
-  if (V!=NULL) delete[] V;
-  if (Mass!=NULL) delete[] Mass;
-  X=NULL;
-  V=NULL;
-  Mass=NULL;
-  natom = natomIn;
-  maxnatom = natom;
-  N = natom * 3;
-  X = new double[ N ];
-  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
-  T = 0.0;
-  V = NULL;
-  if (massIn!=NULL) {
-    Mass = new double[ natom ];
-    memcpy(Mass, massIn, natom * sizeof(double));
-  }
+  bool hasMass = (massIn!=NULL);
+  ReallocateFrame(natomIn, hasMass, false);
+  if (hasMass)
+    memcpy(Mass_, massIn, natom_*sizeof(double));
   return 0;
 }
 
 // Frame::SetupFrameV()
 /** Set up frame for given number of atoms. Store mass information
-  * if passed in. Set up space for storing velocity if hasVelocity = true.
-  */ 
+  * if passed in. Set up for velocity info if hasVelocity = true.
+  * Only reallocate memory if natomIn > maxnatom
+  */
 int Frame::SetupFrameV(int natomIn, double *massIn, bool hasVelocity) {
-  // Delete any existing info
-  if (X!=NULL) delete[] X;
-  if (V!=NULL) delete[] V; 
-  if (Mass!=NULL) delete[] Mass;
-  X=NULL;
-  V=NULL;
-  Mass=NULL;
-  natom = natomIn;
-  maxnatom = natom;
-  N = natom * 3; 
-  X = new double[ N ];
-  if (hasVelocity) { 
-    V = new double[ N ];
-    // Since V will not necessarily be read in, initialize it
-    memset(V, 0, N * sizeof(double));
-  }
-  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
-  T = 0.0;
-  if (massIn!=NULL) {
-    Mass = new double[ natom ];
-    memcpy(Mass, massIn, natom * sizeof(double));
-  }
+  bool hasMass = (massIn!=NULL);
+  ReallocateFrame(natomIn, hasMass, hasVelocity);
+  if (hasMass)
+    memcpy(Mass_, massIn, natom_*sizeof(double));
   return 0;
 }
-
 
 // Frame::SetupFrameFromMask()
-/** Create Frame based on the size of the given mask. If mass information
-  * is also passed in, use the mask to determine which masses to keep. 
-  * Ignores velocity info.
+/** Set up frame to hold # selected atoms in given mask. If mass 
+  * information is passed in store the masses corresponding to
+  * selected atoms in the mask. No velocity info. Only reallocate
+  * memory if Nselected > maxnatom.
+  */
+int Frame::SetupFrameFromMask(AtomMask &maskIn, double *massIn) {
+  bool hasMass = (massIn!=NULL);
+  ReallocateFrame(maskIn.Nselected(), hasMass, false);
+  if (hasMass) {
+    double *massptr = Mass_;
+    for (AtomMask::const_iterator atom = maskIn.begin();
+                                  atom != maskIn.end(); atom++)
+    {
+       *massptr = massIn[ *atom ];
+       ++massptr;
+    }
+  }
+  return 0;
+}
+
+// Frame::ReallocateFrame
+/** Set up frame for given number of atoms. Set up space for storing mass 
+  * information if hasMass = true. Set up space for storing velocity if 
+  * hasVelocity = true. Only reallocate memory if natomIn > maxnatom.
   */ 
-int Frame::SetupFrameFromMask(AtomMask *Mask, double *massIn) {
-  //if (massIn==NULL) {
-  //  mprinterr("Error: Frame::SetupFrameFromMask: massIn is NULL.\n");
-  //  return 1;
-  //}
-  // Delete any existing info
-  if (X!=NULL) delete[] X;
-  if (Mass!=NULL) delete[] Mass;
-  X=NULL;
-  Mass=NULL;
-
-  natom = Mask->Nselected;
-  maxnatom = natom;
-  N = natom * 3; 
-  X = new double[ N ]; 
-  box[0]=0; box[1]=0; box[2]=0; box[3]=0; box[4]=0; box[5]=0;
-  T = 0.0;
-  if (massIn!=NULL) {
-    Mass = new double[ natom ];
-    for (int i=0; i < natom; i++)
-      Mass[i] = massIn[ Mask->Selected[i] ];
+int Frame::ReallocateFrame(int natomIn, bool hasMass, bool hasVelocity) {
+  bool Reallocate = false;
+  // Set # atoms and coords
+  natom_ = natomIn;
+  Ncoord_ = natom_ * 3;
+  // Since box/T info will not necessarily be read in, initialize
+  box_[0]=0; box_[1]=0; box_[2]=0; box_[3]=0; box_[4]=0; box_[5]=0;
+  T_ = 0.0;
+  // Check if reallocation must occur, reallocate coords if necessary
+  // ASSUMES COORDS ARE ALWAYS ALLOCD; should be safe
+  if (natomIn > maxnatom_) {
+    Reallocate = true;
+    maxnatom_ = natomIn;
+    if (X_!=NULL) delete[] X_;
+    X_ = new double[ Ncoord_ ];
+  }
+  // Assume coords are always read in, dont initialize.
+  bool m_allocd = (Mass_ != NULL);
+  bool v_allocd = (V_ != NULL);
+  // Mass
+  if (!hasMass) {
+    if (m_allocd) delete[] Mass_;
+    Mass_ = NULL;
+  } else {
+    if (Reallocate || !m_allocd) {
+      if (m_allocd) delete[] Mass_;
+      Mass_ = new double[ natom_ ];
+    }
+    // if hasMass mass should be passed in right after this routine is called.
+  }
+  // Velocity
+  if (!hasVelocity) {
+    if (v_allocd) delete[] V_;
+    V_ = NULL;
+  } else {
+    if (Reallocate || ! v_allocd) {
+      if (v_allocd) delete[] V_;
+      V_ = new double[ Ncoord_ ];
+    }
+    // Since V will not necessarily be read in, initialize it
+    memset(V_, 0, Ncoord_ * sizeof(double));
   }
   return 0;
 }
 
-// Frame::SetupFrameFromCoords()
-/** Given an array of floats, assign to coordinates. Reallocate as necessary.
+// Frame::SetCoordinates()
+/** Copy only coordinates from input frame to this frame based
+  * on selected atoms in mask.
   */
-int Frame::SetupFrameFromCoords(float *CoordIn, int ncoord) {
-  // If # atoms in mask > current natom, reallocate coords array
-  natom = ncoord;
-  N = natom * 3;
-  if (natom>maxnatom) {
-    maxnatom = natom;
-    if (X!=NULL) delete[] X;
-    X = new double[ N ];
+void Frame::SetCoordinates(Frame &frameIn, AtomMask &maskIn) {
+  if (maskIn.Nselected() > maxnatom_) {
+    mprinterr("Error: Frame::SetCoordinates: Mask [%s] selected (%i) > max natom\n",
+              maskIn.MaskString(),maskIn.Nselected());
+    mprinterr("       for this frame (%i)\n",maxnatom_);
+    return;
   }
-  // Copy atoms in CoordIn to coords array
-  for (int crd = 0; crd < N; crd++)
-    X[crd] = (double) CoordIn[crd];
-  return 0;
+  natom_ = maskIn.Nselected();
+  Ncoord_ = natom_ * 3;
+  double *newX = X_;
+  for (AtomMask::const_iterator atom = maskIn.begin();
+                                atom != maskIn.end(); atom++)
+  {
+    int oldatom3 = (*atom) * 3;
+    memcpy(newX, frameIn.X_ + oldatom3, COORDSIZE_);
+    newX += 3;
+  }
 }
 
-// Frame::SetupFrameFromCoords()
-/** Given an array of floats, assign to coordinates. CoordIn must have the
-  * same # atoms as the frame was set up for! 
+//------------------------------------------------------------------------------
+// NOTE: Should these map routines be part of a child class used only by AtomMap?
+// Frame::SetCoordinates()
+/** Reorder atoms in the given target frame so that it matches the given
+  * atom map with format (tgtAtom = Map[refAtom]). End result is that
+  * this frame will be in the same order as the original reference. Assumes
+  * that the map is complete (i.e. no unmapped atoms).
   */
-int Frame::SetupFrameFromCoords(float *CoordIn) {
-  // Copy atoms in CoordIn to coords array
-  for (int crd = 0; crd < N; crd++)
-    X[crd] = (double) CoordIn[crd];
-  return 0;
+// TODO: Error checking. Map should be something besides an int*
+// NOTE: Should this reorder masses as well?
+void Frame::SetCoordinates(Frame &tgtIn, int *mapIn) {
+  if (tgtIn.natom_ > maxnatom_) {
+    mprinterr("Error: Frame::SetCoordinates: Input map frame atoms (%i) > max natom\n",
+              tgtIn.natom_);
+    mprinterr("       for this frame (%i)\n",maxnatom_);
+    return;
+  }
+  double *newX = X_;
+  natom_ = tgtIn.natom_;
+  Ncoord_ = tgtIn.Ncoord_;
+  for (int refatom = 0; refatom < tgtIn.natom_; refatom++) {
+    int tgtatom3 = mapIn[refatom] * 3;
+    memcpy(newX, tgtIn.X_ + tgtatom3, COORDSIZE_);
+    newX += 3;
+  }
+}
+
+// Frame::SetReferenceByMap()
+/** Set this frame to include only atoms from the given reference that are 
+  * mapped.
+  */
+// TODO: Error Checking
+void Frame::SetReferenceByMap(Frame &refIn, int *mapIn, int mapSize) {
+  double *newX = X_;
+  double *refX = refIn.X_;
+  natom_ = 0;
+  for (int refatom = 0; refatom < mapSize; refatom++) {
+    if (mapIn[refatom] != -1) {
+      memcpy(newX, refX, COORDSIZE_);
+      newX += 3;
+      ++natom_;
+    }
+    refX += 3;
+  }
+  Ncoord_ = natom_ * 3;
+}
+
+// Frame::SetTargetByMap()
+/** Set this frame to include only atoms from the given target frame, remapped
+  * according to the given atom map.
+  */
+void Frame::SetTargetByMap(Frame &tgtIn, int *mapIn, int mapSize) {
+  double *newX = X_;
+  natom_ = 0;
+  for (int refatom = 0; refatom < mapSize; refatom++) {
+    int tgtatom = mapIn[refatom];
+    if (tgtatom!=-1) {
+      int tgtatom3 = tgtatom * 3;
+      memcpy(newX, tgtIn.X_ + tgtatom3, COORDSIZE_);
+      newX += 3;
+      ++natom_;
+    }
+  }
+  Ncoord_ = natom_ * 3;
+}
+
+// -----------------------------------------------------------------------------
+// Frame::SetCoordinates()
+/** Copy only coordinates from input frame to this frame.
+  */
+void Frame::SetCoordinates(Frame &frameIn) {
+  if (frameIn.natom_ > maxnatom_) {
+    mprinterr("Error: Frame::SetCoordinates: Input frame atoms (%i) > max natom\n",
+              frameIn.natom_);
+    mprinterr("       for this frame (%i)\n",maxnatom_);
+    return;
+  }
+  natom_ = frameIn.natom_;
+  Ncoord_ = frameIn.Ncoord_;
+  memcpy(X_, frameIn.X_, Ncoord_ * sizeof(double));
+}
+
+// Frame::SetFrame()
+/** Copy entire input frame (including velocity if defined in both) to this 
+  * frame based on selected atoms in mask. Assumes coords and mass exist.
+  * Everything must be already be allocated. Frame can be resized up to 
+  * maxnatom.
+  */
+void Frame::SetFrame(Frame &frameIn, AtomMask &maskIn) {
+  if (maskIn.Nselected() > maxnatom_) {
+    mprinterr("Error: Frame::SetFrame: Mask [%s] selected (%i) > max natom\n",
+              maskIn.MaskString(),maskIn.Nselected());
+    mprinterr("       for this frame (%i)\n",maxnatom_);
+    return;
+  }
+  natom_ = maskIn.Nselected();
+  Ncoord_ = natom_ * 3;
+  // Copy coords and mass
+  double *newX = X_;
+  double *newM = Mass_;
+  for (AtomMask::const_iterator atom = maskIn.begin();
+                                atom != maskIn.end(); atom++)
+  {
+    int oldatom3 = (*atom) * 3;
+    memcpy(newX, frameIn.X_ + oldatom3, COORDSIZE_);
+    *newM = frameIn.Mass_[ *atom ];
+    newX += 3;
+    ++newM;
+  }
+  // Copy box/T
+  memcpy(box_, frameIn.box_, BOXSIZE_);
+  T_ = frameIn.T_;
+  // Copy velocity
+  double *newV = V_;
+  if (frameIn.V_ != NULL && V_ != NULL) {
+    for (AtomMask::const_iterator atom = maskIn.begin();
+                                atom != maskIn.end(); atom++)
+    {
+      int oldatom3 = (*atom) * 3;
+      memcpy(newV, frameIn.V_ + oldatom3, COORDSIZE_);
+      newV += 3;
+    }
+  }
 }
 
 // Frame::FrameCopy()
@@ -248,111 +652,135 @@ Frame *Frame::FrameCopy( ) {
   Frame *newFrame;
 
   newFrame=new Frame( );
-  newFrame->natom = this->natom;
-  newFrame->maxnatom = this->maxnatom;
-  newFrame->N = this->N;
-  newFrame->X = new double[ N ];
-  memcpy(newFrame->X, this->X, N * sizeof(double));
-  memcpy(newFrame->box, this->box, BOXSIZE);
-  newFrame->T = this->T;
-  if (this->V!=NULL) {
-    newFrame->V = new double[ N ];
-    memcpy(newFrame->V, this->V, N * sizeof(double));
+  newFrame->natom_ = this->natom_;
+  newFrame->maxnatom_ = this->maxnatom_;
+  int maxNcoord = maxnatom_ * 3;
+  newFrame->Ncoord_ = this->Ncoord_;
+  newFrame->X_ = new double[ maxNcoord ];
+  memcpy(newFrame->X_, this->X_, Ncoord_ * sizeof(double));
+  memcpy(newFrame->box_, this->box_, BOXSIZE_);
+  newFrame->T_ = this->T_;
+  if (this->V_!=NULL) {
+    newFrame->V_ = new double[ maxNcoord ];
+    memcpy(newFrame->V_, this->V_, Ncoord_ * sizeof(double));
   }
-  if (this->Mass!=NULL) {
-    newFrame->Mass = new double[ natom ];
-    memcpy(newFrame->Mass, this->Mass, natom * sizeof(double));
+  if (this->Mass_!=NULL) {
+    newFrame->Mass_ = new double[ maxnatom_ ];
+    memcpy(newFrame->Mass_, this->Mass_, natom_ * sizeof(double));
   }
 
   return newFrame;
 }
 
-/* Frame::Resize()
- * Given a new number of atoms, allocate more space if necessary.
- * Otherwise just change N and natom.
- * Only reallocate mass and V if explicitly requested.
- */
-/*int Frame::Resize(int natomIn, bool allocV, bool allocMass) {
-  int newN = natom * 3;;
-  // DEBUG
-  //mprintf("DEBUG: Resizing frame, old natom=%i, new natom=%i, allocV=%i, allocM=%i\n",
-  //        natom,natomIn,(int)allocV,(int)allocMass);
-  // DEBUG
-  if (natomIn>maxnatom) {
-    maxnatom = natomIn;
-    double *newX = new double[ newN ];
-    if (X!=NULL) {
-      memcpy(newX, X, N * sizeof(double));
-      delete[] X;
-    }
-    X = newX;
-  }
-  // (Re)Allocate velocities if requested
-  if (allocV) {
-    double *newV = new double[ newN ];
-    if (V!=NULL) {
-      memcpy(newV, V, N * sizeof(double));
-      delete[] V;
-    }
-    V = newV;
-  }
-  // (Re)Allocate mass if requested
-  if (allocMass) {
-    double *newMass = new double[ natomIn ];
-    if (Mass!=NULL) {
-      memcpy(newMass, Mass, natom * sizeof(double));
-      delete[] Mass;
-    }
-    Mass = newMass;
-  }
-  N = newN;
-  natom = natomIn;
-  return 0;
-}*/
-
 /* ------------------- Coordinate Manipulation Routines --------------------- */
 // Frame::ZeroCoords()
 /** Set all coords to 0.0 */
 void Frame::ZeroCoords( ) {
-  memset(X, 0, N * sizeof(double));
+  memset(X_, 0, Ncoord_ * sizeof(double));
 }
 
-/* Frame::AddCoord()
- * Add the coord values from the input frame to the coord values of 
- * this frame.
- */
-/*void Frame::AddCoord(Frame *FrameIn) {
-  if (FrameIn->N != this->N) {
-    mprintf("Error: Frame::AddCoord: Attempting to add %i coords to %i coords.\n",
-            FrameIn->N,this->N);
-  } else {
-    for (int coord=0; coord < N; coord++)
-      this->X[coord] += FrameIn->X[coord];
+// Frame::operator+=()
+Frame &Frame::operator+=(const Frame &rhs) {
+  // For now ensure same natom
+  if (natom_ != rhs.natom_) {
+    mprinterr("Error: Frame::operator+=: Attempting to add 2 frames with different natom.\n");
+    return *this;
   }
-}*/
+  for (int i = 0; i < Ncoord_; i++)
+    X_[i] += rhs.X_[i];
+  return *this;
+}
+
+// Frame::operator-=()
+Frame &Frame::operator-=(const Frame &rhs) {
+  // For now ensure same natom
+  if (natom_ != rhs.natom_) {
+    mprinterr("Error: Frame::operator-=: Attempting to add 2 frames with different natom.\n");
+    return *this;
+  }
+  for (int i = 0; i < Ncoord_; i++)
+    X_[i] -= rhs.X_[i];
+  return *this;
+}
+
+// Frame::operator*=()
+Frame &Frame::operator*=(const Frame &rhs) {
+  // For now ensure same natom
+  if (natom_ != rhs.natom_) {
+    mprinterr("Error: Frame::operator*=: Attempting to add 2 frames with different natom.\n");
+    return *this;
+  }
+  for (int i = 0; i < Ncoord_; i++)
+    X_[i] *= rhs.X_[i];
+  return *this;
+}
+
+// Frame::operator*()
+// NOTE: return const instance and not const reference to disallow
+//       nonsense statements like (a * b) = c
+const Frame Frame::operator*(const Frame &rhs) const {
+  return (Frame(*this) *= rhs);
+}
 
 // Frame::Divide()
-/** Divide all coord values by input. Dont do it if the number is too small.
+/** Divide all coord values of this frame by divisor and store in dividend.
+  */
+int Frame::Divide(Frame &dividend, double divisor) {
+  if (divisor < SMALL) {
+    mprinterr("Error: Frame::Divide(Frame,divisor): Detected divide by 0.\n");
+    return 1;
+  }
+  for (int i=0; i<Ncoord_; i++)
+    X_[i] = dividend.X_[i] / divisor;
+  return 0;
+}
+
+// Frame::Divide()
+/** Divide all coord values of this frame by divisor.
   */
 void Frame::Divide(double divisor) {
-  if (divisor < SMALL) return;
-  for (int coord=0; coord < N; coord++)
-    X[coord] /= divisor;
+  if (divisor < SMALL) {
+    mprinterr("Error: Frame::Divide(divisor): Detected divide by 0.\n");
+    return;
+  }
+  for (int coord=0; coord < Ncoord_; coord++)
+    X_[coord] /= divisor;
+}
+
+// Frame::AddByMask()
+/** Increment atoms in this frame by the selected atoms in given frame.
+  */
+// TODO: Add error checking
+void Frame::AddByMask(Frame &frameIn, AtomMask &maskIn) {
+  // SHOULD CHECK BOUNDS!
+  double *newX = X_;
+  for (AtomMask::const_iterator atom = maskIn.begin();
+                                atom != maskIn.end(); atom++)
+  {
+    double *Xin = frameIn.X_ + ((*atom) * 3);
+    *newX += *Xin; // Xcoord
+    ++newX;
+    ++Xin;
+    *newX += *Xin; // Ycoord
+    ++newX;
+    ++Xin;
+    *newX += *Xin; // Zcoord
+    ++newX;
+  }
 }
 
 // Frame::Translate()
 /** Translate all coords by Vec.  */
 void Frame::Translate(double * Vec) {
-  int i;
   double Vec0, Vec1, Vec2;
 
   Vec0=Vec[0];
   Vec1=Vec[1];
   Vec2=Vec[2];
-  for (i=0; i<N; i+=3) {
-    X[i  ]+=Vec0;
-    X[i+1]+=Vec1;
-    X[i+2]+=Vec2;
+  for (int i=0; i<Ncoord_; i+=3) {
+    X_[i  ]+=Vec0;
+    X_[i+1]+=Vec1;
+    X_[i+2]+=Vec2;
   }
 }
 
@@ -367,9 +795,9 @@ void Frame::Translate(double *Vec, int firstAtom, int lastAtom) {
   double V2 = Vec[2];
 
   for (int atom3 = startatom3; atom3 < lastatom3; atom3 += 3) {
-    X[atom3  ] += V0;
-    X[atom3+1] += V1;
-    X[atom3+2] += V2;
+    X_[atom3  ] += V0;
+    X_[atom3+1] += V1;
+    X_[atom3+2] += V2;
   }
 }
 
@@ -401,14 +829,14 @@ void Frame::Trans_Rot_Trans(double *Vec, double *T) {
   T7=T[7]; 
   T8=T[8]; 
 
-  for (int i=0; i<N; i+=3) {
-    x = X[i  ] + Vec0;
-    y = X[i+1] + Vec1;
-    z = X[i+2] + Vec2;
+  for (int i=0; i<Ncoord_; i+=3) {
+    x = X_[i  ] + Vec0;
+    y = X_[i+1] + Vec1;
+    z = X_[i+2] + Vec2;
 
-    X[i  ]=(x*T0) + (y*T1) + (z*T2) + Vec3;
-    X[i+1]=(x*T3) + (y*T4) + (z*T5) + Vec4;
-    X[i+2]=(x*T6) + (y*T7) + (z*T8) + Vec5;
+    X_[i  ]=(x*T0) + (y*T1) + (z*T2) + Vec3;
+    X_[i+1]=(x*T3) + (y*T4) + (z*T5) + Vec4;
+    X_[i+2]=(x*T6) + (y*T7) + (z*T8) + Vec5;
   }
 }
 
@@ -417,7 +845,6 @@ void Frame::Trans_Rot_Trans(double *Vec, double *T) {
   * this rotates the coords in X. 
   */
 void Frame::Rotate(double *T) {
-  int i;
   double x,y,z;
   double T0,T1,T2,T3,T4,T5,T6,T7,T8;
  
@@ -430,12 +857,12 @@ void Frame::Rotate(double *T) {
   T6=T[6]; 
   T7=T[7]; 
   T8=T[8]; 
-  for (i=0; i<N; i+=3) {
-    x=X[i]; y=X[i+1]; z=X[i+2];
+  for (int i=0; i<Ncoord_; i+=3) {
+    x=X_[i]; y=X_[i+1]; z=X_[i+2];
 
-    X[i  ]=(x*T0) + (y*T1) + (z*T2);
-    X[i+1]=(x*T3) + (y*T4) + (z*T5);
-    X[i+2]=(x*T6) + (y*T7) + (z*T8);
+    X_[i  ]=(x*T0) + (y*T1) + (z*T2);
+    X_[i+1]=(x*T3) + (y*T4) + (z*T5);
+    X_[i+2]=(x*T6) + (y*T7) + (z*T8);
   }
 } 
 
@@ -444,15 +871,14 @@ void Frame::Rotate(double *T) {
   * matrix this rotates the coords in X in the opposite direction.
   */
 void Frame::InverseRotate(double *T) {
-  int i;
   double x,y,z;
 
-  for (i=0; i<N; i+=3) {
-    x=X[i]; y=X[i+1]; z=X[i+2];
+  for (int i=0; i<Ncoord_; i+=3) {
+    x=X_[i]; y=X_[i+1]; z=X_[i+2];
 
-    X[i  ]=(x*T[0]) + (y*T[3]) + (z*T[6]);
-    X[i+1]=(x*T[1]) + (y*T[4]) + (z*T[7]);
-    X[i+2]=(x*T[2]) + (y*T[5]) + (z*T[8]);
+    X_[i  ]=(x*T[0]) + (y*T[3]) + (z*T[6]);
+    X_[i+1]=(x*T[1]) + (y*T[4]) + (z*T[7]);
+    X_[i+2]=(x*T[2]) + (y*T[5]) + (z*T[8]);
   }
 }
 
@@ -462,7 +888,7 @@ void Frame::InverseRotate(double *T) {
   * or box center. Use geometric center if mass is NULL, otherwise center 
   * of mass will be used.
   */
-void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
+void Frame::Center(AtomMask *Mask, bool origin, bool useMassIn) {
   double center[3];
 
   if (useMassIn)
@@ -471,10 +897,18 @@ void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
     this->GeometricCenter(Mask, center);
   //mprinterr("  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
 
-  // Shift to whatever is in boxcoord (origin or center of box in Action_Center) 
-  center[0] = boxcoord[0] - center[0]; 
-  center[1] = boxcoord[1] - center[1]; 
-  center[2] = boxcoord[2] - center[2];
+  if (origin) {
+    // Shift to coordinate origin (0,0,0)
+    center[0] = -center[0];
+    center[1] = -center[1];
+    center[2] = -center[2];
+  } else {
+    // Shift to box center
+    center[0] = (box_[0] / 2) - center[0];
+    center[1] = (box_[1] / 2) - center[1];
+    center[2] = (box_[2] / 2) - center[2];
+  }
+
   this->Translate(center);
 }
 
@@ -485,9 +919,9 @@ void Frame::Center(AtomMask *Mask, double *boxcoord, bool useMassIn) {
 void Frame::CenterReference(double *Trans, bool useMassIn) {
   double center[3];
   if (useMassIn)
-    this->CenterOfMass(Trans,0,natom);
+    this->CenterOfMass(Trans,0,natom_);
   else
-    this->GeometricCenter(Trans,0,natom);
+    this->GeometricCenter(Trans,0,natom_);
   //mprinterr("  REF FRAME CENTER: %lf %lf %lf\n",Trans[0],Trans[1],Trans[2]); //DEBUG
   // Trans now contains translation from origin -> Ref
   center[0] = -Trans[0];
@@ -502,7 +936,7 @@ void Frame::CenterReference(double *Trans, bool useMassIn) {
 void Frame::ShiftToGeometricCenter( ) {
   double frameCOM[3];
 
-  this->GeometricCenter(frameCOM,0,natom);
+  this->GeometricCenter(frameCOM,0,natom_);
   //mprinterr("  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
   
   // Shift to common COM
@@ -510,154 +944,185 @@ void Frame::ShiftToGeometricCenter( ) {
   this->Translate(frameCOM);
 }
 
-/* -------------- Coordinate Assignment/Extraction Routines ----------------- */
+// Frame::ImageNonortho()
+void Frame::ImageNonortho(bool origin, AtomMask *ComMask, bool truncoct, bool center,
+                          bool useMass, std::vector<int> &AtomPairs)
+{
+  double ucell[9], recip[9], boxTrans[3], Coord[3];
+  double fc[3], ffc[3];
+  // fcom and ixyz only needed for truncoct
+  double fcom[3];
+  int ixyz[3];
+
+  BoxToRecip(ucell, recip);
+  // Set up centering if putting nonortho cell into familiar trunc. oct. shape
+  if (truncoct) {
+    if (ComMask!=NULL) {
+      // Use center of atoms in mask
+      if (useMass)
+        CenterOfMass(ComMask, fcom);
+      else
+        GeometricCenter(ComMask, fcom);
+    } else if (origin) {
+      // Use origin
+      fcom[0] = 0;
+      fcom[1] = 0;
+      fcom[2] = 0;
+    } else {
+      // Use box center
+      fcom[0] = box_[0] / 2;
+      fcom[1] = box_[1] / 2;
+      fcom[2] = box_[2] / 2;
+    }
+    //fprintf(stdout,"DEBUG: fcom = %lf %lf %lf\n",fcom[0],fcom[1],fcom[2]);
+  }
+
+  // Loop over atom pairs
+  for (std::vector<int>::iterator atom = AtomPairs.begin();
+                                  atom != AtomPairs.end();
+                                  atom++)
+  {
+    int firstAtom = *atom;
+    ++atom;
+    int lastAtom = *atom;
+    //if (debug>2)
+    //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom);
+    // boxTrans will hold calculated translation needed to move atoms back into box
+    boxTrans[0] = 0;
+    boxTrans[1] = 0;
+    boxTrans[2] = 0;
+    // Set up Coord with position to check for imaging based on first atom or 
+    // center of mass of atoms first to last.
+    if (center) {
+      if (useMass)
+        CenterOfMass(Coord,firstAtom,lastAtom);
+      else
+        GeometricCenter(Coord,firstAtom,lastAtom);
+    } else {
+      int atomidx = firstAtom * 3;
+      Coord[0] = X_[atomidx];
+      ++atomidx;
+      Coord[1] = X_[atomidx];
+      ++atomidx;
+      Coord[2] = X_[atomidx];
+    }
+   
+    fc[0]=(Coord[0]*recip[0]) + (Coord[1]*recip[1]) + (Coord[2]*recip[2]);
+    fc[1]=(Coord[0]*recip[3]) + (Coord[1]*recip[4]) + (Coord[2]*recip[5]);
+    fc[2]=(Coord[0]*recip[6]) + (Coord[1]*recip[7]) + (Coord[2]*recip[8]);
+
+    if ( origin ) {
+      fc[0] += 0.5;
+      fc[1] += 0.5;
+      fc[2] += 0.5;
+    }
+
+    ffc[0] = floor(fc[0]);
+    ffc[1] = floor(fc[1]);
+    ffc[2] = floor(fc[2]);
+
+    boxTrans[0] -= (ffc[0]*ucell[0] + ffc[1]*ucell[3] + ffc[2]*ucell[6]);
+    boxTrans[1] -= (ffc[0]*ucell[1] + ffc[1]*ucell[4] + ffc[2]*ucell[7]);
+    boxTrans[2] -= (ffc[0]*ucell[2] + ffc[1]*ucell[5] + ffc[2]*ucell[8]);
+
+    // Put into familiar trunc. oct. shape
+    if (truncoct) {
+      Coord[0] += boxTrans[0];
+      Coord[1] += boxTrans[1];
+      Coord[2] += boxTrans[2];
+      MinImageNonOrtho2(Coord, fcom, box_, (int)origin, ixyz, ucell, recip);
+      if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
+        boxTrans[0] += (ixyz[0]*ucell[0] + ixyz[1]*ucell[3] + ixyz[2]*ucell[6]);
+        boxTrans[1] += (ixyz[0]*ucell[1] + ixyz[1]*ucell[4] + ixyz[2]*ucell[7]);
+        boxTrans[2] += (ixyz[0]*ucell[2] + ixyz[1]*ucell[5] + ixyz[2]*ucell[8]);
+
+        //if (debug > 2)
+        //  mprintf( "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
+        //          ixyz[0], ixyz[1], ixyz[2]);
+      }
+    }
+
+    Translate(boxTrans, firstAtom, lastAtom);
+
+  } // END loop over atom pairs
+}
+
+// Frame::ImageOrtho()
+void Frame::ImageOrtho(bool origin, bool center, bool useMass, std::vector<int> &AtomPairs) 
+{
+  double bp[3], bm[3], boxTrans[3], Coord[3];
+
+  // Set up boundary information for orthorhombic cell
+  if (origin) {
+    bp[0] = box_[0] / 2;
+    bp[1] = box_[1] / 2;
+    bp[2] = box_[2] / 2;
+    bm[0] = -bp[0];
+    bm[1] = -bp[1];
+    bm[2] = -bp[2];
+  } else {
+    bp[0] = box_[0];
+    bp[1] = box_[1];
+    bp[2] = box_[2];
+    bm[0] = 0;
+    bm[1] = 0;
+    bm[2] = 0;
+  }
+
+  // Loop over atom pairs
+  for (std::vector<int>::iterator atom = AtomPairs.begin();
+                                  atom != AtomPairs.end();
+                                  atom++)
+  {
+    int firstAtom = *atom;
+    ++atom;
+    int lastAtom = *atom;
+    //if (debug>2)
+    //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom);
+    // boxTrans will hold calculated translation needed to move atoms back into box
+    boxTrans[0] = 0;
+    boxTrans[1] = 0;
+    boxTrans[2] = 0;
+    // Set up Coord with position to check for imaging based on first atom or 
+    // center of mass of atoms first to last.
+    if (center) {
+      if (useMass)
+        CenterOfMass(Coord,firstAtom,lastAtom);
+      else
+        GeometricCenter(Coord,firstAtom,lastAtom);
+    } else {
+      int atomidx = firstAtom * 3;
+      Coord[0] = X_[atomidx];
+      ++atomidx;
+      Coord[1] = X_[atomidx];
+      ++atomidx;
+      Coord[2] = X_[atomidx];
+    }
+
+    // Determine how far Coord is out of box
+    for (int i=0; i < 3; i++) {
+      while (Coord[i] < bm[i]) {
+        Coord[i] += box_[i];
+        boxTrans[i] += box_[i];
+      }
+      while (Coord[i] > bp[i]) {
+        Coord[i] -= box_[i];
+        boxTrans[i] -= box_[i];
+      }
+    }
+
+    // Translate atoms according to Coord
+    Translate(boxTrans,firstAtom,lastAtom);
+  } // END loop over atom pairs
+}
+
 // Frame::printAtomCoord()
 /** Print XYZ coords of given atom */
 void Frame::printAtomCoord(int atom) {
-  int natom3;
-
-  natom3=atom*3;
-  if (natom3>=N) return;
+  int atmidx = atom * 3;
+  if (atmidx >= Ncoord_) return;
   mprintf("ATOM %i: %lf %lf %lf\n",atom,
-          X[natom3],X[natom3+1],X[natom3+2]);
-}
-
-// Frame::GetCoord()
-/** Get coordinates of specified atom and put into Coord.
-  */
-void Frame::GetCoord(double *Coord, int atom) {
-  int natom3;
-  // NOTE: SHOULD CHECK FOR BOUNDARIES
-  if (Coord==NULL) return;
-  natom3 = atom * 3;
-  Coord[0] = X[natom3  ];
-  Coord[1] = X[natom3+1];
-  Coord[2] = X[natom3+2];
-}
-
-// Frame::SetCoord()
-/** Set coordinates of specified atom to those of Coord.
-  */
-void Frame::SetCoord(int atom, double *Coord) {
-  int natom3;
-  // NOTE: SHOULD CHECK FOR BOUNDARIES
-  if (Coord==NULL) return;
-  //mprintf("      Setting coord %i/%i: %lf %lf %lf\n",atom,natom,Coord[0],Coord[1],Coord[2]);
-  natom3 = atom * 3;
-  X[natom3  ] = Coord[0];
-  X[natom3+1] = Coord[1];
-  X[natom3+2] = Coord[2];
-}
-
-// Frame::Coord()
-/** Return double pointer to XYZ coord of given atom.
-  */
-double *Frame::Coord(int atom) {
-  if (atom<0 || atom>=natom) return NULL;
-  return ( X+(atom*3) );
-}
-
-// Frame::SetFrameFromMask()
-/** Given an existing Frame and an AtomMask (with Nselected atoms and atom 
-  * numbers corresponding to FrameIn), set this Frame to be a copy of FrameIn
-  * according to Mask. 
-  * If the number of atoms in the Mask is greater than this frame has been set 
-  * up for, reallocate to accomodate. Only reallocate/set this frames Mass and V
-  * if the incoming frame has them.
-  * For this to work properly AtomMask needs to have been setup based on 
-  * FrameIn, although this is not explicitly checked for.
-  */
-void Frame::SetFrameFromMask(Frame *FrameIn, AtomMask *Mask) {
-  bool Reallocate = false;
-  int oldatom3;
-  double *newX;
-
-  // If # atoms in mask > current natom, reallocate coords array
-  natom = Mask->Nselected;
-  N = natom * 3;
-  if (natom>maxnatom) {
-    Reallocate = true;
-    maxnatom = natom;
-    if (X!=NULL) delete[] X;
-    X = new double[ N ];
-  }
-  // Copy atoms in Mask to coords array
-  newX = X;
-  for (int maskidx = 0; maskidx < natom; maskidx++) {
-    oldatom3 = Mask->Selected[maskidx] * 3;
-    memcpy(newX, FrameIn->X + oldatom3, COORDSIZE);
-    newX += 3;
-  }
-
-  // (Re)Allocate velocities if requested
-  if (FrameIn->V!=NULL) {
-    if (V==NULL)
-      V = new double[ N ];
-    else if (Reallocate) {
-      delete[] V;
-      V = new double[N];
-    }
-    // Copy velocities in Mask to velocity array
-    newX = V;
-    for (int maskidx = 0; maskidx < natom; maskidx++) {
-      oldatom3 = Mask->Selected[maskidx] * 3;
-      memcpy(newX, FrameIn->V + oldatom3, COORDSIZE);
-      newX += 3;
-    }
-  }
-
-  // (Re)Allocate mass if requested
-  if (FrameIn->Mass!=NULL) {
-    if (Mass==NULL)
-      Mass = new double[ natom ];
-    else if (Reallocate) {
-      delete[] Mass;
-      Mass = new double[ natom ];
-    }
-    // Copy masses in Mask to mass array
-    for (int maskidx = 0; maskidx < natom; maskidx++)
-      Mass[maskidx] = FrameIn->Mass[ Mask->Selected[maskidx] ];
-  }
-
-  // Copy box/T
-  memcpy(box, FrameIn->box, BOXSIZE);
-  T = FrameIn->T;
-}
-
-// Frame::SetFrameCoordsFromMask()
-/** Like SetFrameFromMask except only copy the coordinates. Unlike
-  * SetFrameFromMask the #atoms in this Frame must match the 
-  * #selected atoms in Mask.
-  */
-int Frame::SetFrameCoordsFromMask(double *Xin, AtomMask *Mask) {
-  int oldatom3;
-  double *newX;
-
-  if (Mask->Nselected != natom) {
-    mprintf("Internal Error: Frame::SetFrameCoordsFromMask: Frame set for %i atoms\n",natom);
-    mprintf("                but attempting to set %i atoms.\n",Mask->Nselected);
-    return 1;
-  }
-
-  newX = X;
-  for (int i=0; i < natom; i++) {
-    oldatom3 = Mask->Selected[i] * 3;
-    memcpy(newX, Xin + oldatom3, COORDSIZE);
-    newX += 3;
-  }
-  return 0;
-}
-
-// Frame::SetFrameCoords()
-/** Like SetFrameCoordsFromMask except copy all coordinates. Number of 
-  * coordinates in Xin must be the same as # of coordinates in this
-  * Frame. 
-  */
-// NOTE: Currently only needed in RmsAvgCorr
-int Frame::SetFrameCoords(double *Xin) {
-  for (int i = 0; i < N; i++)
-    X[i] = Xin[i];
-  return 0;
+          X_[atmidx],X_[atmidx+1],X_[atmidx+2]);
 }
 
 // ----------------- Center of Mass Calculation Routines -------------------- 
@@ -666,25 +1131,23 @@ int Frame::SetFrameCoords(double *Xin) {
   * sum of masses in Mask.
   */
 double Frame::CenterOfMass(AtomMask *Mask, double *Coord) {
-  int i,atom,natom3;
   double sumMass,mass,Coord0,Coord1,Coord2;
  
-  Coord[0]=0.0;
-  Coord[1]=0.0;
-  Coord[2]=0.0; 
   Coord0=0.0;
   Coord1=0.0;
   Coord2=0.0;
   sumMass=0.0;
 
-  for (i=0; i < Mask->Nselected; i++) {
-      atom=Mask->Selected[i];
-      natom3=atom*3;
-      mass=Mass[atom];
-      sumMass+=mass;
-      Coord0+=(X[natom3]   * mass);
-      Coord1+=(X[natom3+1] * mass);
-      Coord2+=(X[natom3+2] * mass);
+  for (AtomMask::const_iterator atom = Mask->begin();
+                                atom != Mask->end();
+                                atom++)
+  {
+      int atmidx = (*atom) * 3;
+      mass = Mass_[*atom];
+      sumMass += mass;
+      Coord0 += (X_[atmidx  ] * mass);
+      Coord1 += (X_[atmidx+1] * mass);
+      Coord2 += (X_[atmidx+2] * mass);
   }
 
   // NOTE: Not using == since it is unreliable for floating point numbers.
@@ -702,25 +1165,23 @@ double Frame::CenterOfMass(AtomMask *Mask, double *Coord) {
   * #atoms in Mask.
   */
 double Frame::GeometricCenter(AtomMask *Mask, double *Coord) {
-  int i,atom,natom3;
   double sumMass,Coord0,Coord1,Coord2;
  
-  Coord[0]=0.0; 
-  Coord[1]=0.0; 
-  Coord[2]=0.0; 
   Coord0=0.0;
   Coord1=0.0;
   Coord2=0.0;
 
-  for (i=0; i < Mask->Nselected; i++) {
-      atom=Mask->Selected[i];
-      natom3=atom*3;
-      Coord0+=(X[natom3]  );
-      Coord1+=(X[natom3+1]);
-      Coord2+=(X[natom3+2]);
+  for (AtomMask::const_iterator atom = Mask->begin(); 
+                                atom != Mask->end();
+                                atom++)
+  {
+      int atmidx = (*atom) * 3;
+      Coord0 += (X_[atmidx  ]);
+      Coord1 += (X_[atmidx+1]);
+      Coord2 += (X_[atmidx+2]);
   }
 
-  sumMass=(double) Mask->Nselected;
+  sumMass=(double) Mask->Nselected();
 
   // NOTE: Not using == since it is unreliable for floating point numbers.
   // Should NEVER have a mass smaller than SMALL (vectormath.h)
@@ -753,11 +1214,11 @@ double Frame::CenterOfMass(double *Coord, int startAtom, int stopAtom) {
   stopAtom3 = stopAtom * 3;
   
   for (i=startAtom3; i<stopAtom3; i+=3) {
-    mass=Mass[m++];
+    mass=Mass_[m++];
     sumMass+=mass;
-    Coord0+=(X[i  ] * mass);
-    Coord1+=(X[i+1] * mass);
-    Coord2+=(X[i+2] * mass);
+    Coord0+=(X_[i  ] * mass);
+    Coord1+=(X_[i+1] * mass);
+    Coord2+=(X_[i+2] * mass);
   }
 
   // NOTE: Not using == since it is unreliable for floating point numbers.
@@ -790,9 +1251,9 @@ double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {
   stopAtom3 = stopAtom * 3;
   
   for (i=startAtom3; i<stopAtom3; i+=3) {
-    Coord0+=(X[i  ]);
-    Coord1+=(X[i+1]);
-    Coord2+=(X[i+2]);
+    Coord0+=(X_[i  ]);
+    Coord1+=(X_[i+1]);
+    Coord2+=(X_[i+2]);
   }
 
   i = stopAtom - startAtom;
@@ -821,15 +1282,15 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
   double u31x,u31y,u31z;
   double volume,onevolume;
 
-  ucell[0] = box[0]; // ucell(1,1)
+  ucell[0] = box_[0]; // ucell(1,1)
   ucell[1] = 0.0;    // ucell(2,1)
   ucell[2] = 0.0;    // ucell(3,1)
-  ucell[3] = box[1]*cos(DEGRAD*box[5]); // ucell(1,2)
-  ucell[4] = box[1]*sin(DEGRAD*box[5]); // ucell(2,2)
+  ucell[3] = box_[1]*cos(DEGRAD*box_[5]); // ucell(1,2)
+  ucell[4] = box_[1]*sin(DEGRAD*box_[5]); // ucell(2,2)
   ucell[5] = 0.0;                       // ucell(3,2)
-  ucell[6] = box[2]*cos(DEGRAD*box[4]);                                         // ucell(1,3)
-  ucell[7] = (box[1]*box[2]*cos(DEGRAD*box[3]) - ucell[6]*ucell[3]) / ucell[4]; // ucell(2,3)
-  ucell[8] = sqrt(box[2]*box[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);       // ucell(3,3)
+  ucell[6] = box_[2]*cos(DEGRAD*box_[4]);                                         // ucell(1,3)
+  ucell[7] = (box_[1]*box_[2]*cos(DEGRAD*box_[3]) - ucell[6]*ucell[3]) / ucell[4]; // ucell(2,3)
+  ucell[8] = sqrt(box_[2]*box_[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);       // ucell(3,3)
 
   // Get reciprocal vectors
   u23x = ucell[4]*ucell[8] - ucell[5]*ucell[7];
@@ -881,7 +1342,7 @@ double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int boxTyp
   if (boxType == 0) 
     return DIST2_NoImage(a1, a2);
   else if (boxType == 1) 
-    return DIST2_ImageOrtho(a1, a2, this->box);
+    return DIST2_ImageOrtho(a1, a2, this->box_);
   else if (boxType == 2) 
     return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
 
@@ -901,18 +1362,18 @@ double Frame::DIST2(int A1, int A2, int boxType, double *ucell, double *recip) {
   double a1[3], a2[3];
 
   atom3 = A1 * 3;
-  a1[0] = X[atom3  ];
-  a1[1] = X[atom3+1];
-  a1[2] = X[atom3+2];
+  a1[0] = X_[atom3  ];
+  a1[1] = X_[atom3+1];
+  a1[2] = X_[atom3+2];
   atom3 = A2 * 3;
-  a2[0] = X[atom3  ];
-  a2[1] = X[atom3+1];
-  a2[2] = X[atom3+2];
+  a2[0] = X_[atom3  ];
+  a2[1] = X_[atom3+1];
+  a2[2] = X_[atom3+2];
 
   if (boxType == 0)
     return DIST2_NoImage(a1, a2);
   else if (boxType == 1)
-    return DIST2_ImageOrtho(a1, a2, this->box);
+    return DIST2_ImageOrtho(a1, a2, this->box_);
   else if (boxType == 2) 
     return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
 
@@ -932,14 +1393,14 @@ double Frame::DIST2(double *a1, int A2, int boxType, double *ucell, double *reci
   double a2[3];
   
   atom3 = A2 * 3;
-  a2[0] = X[atom3  ];
-  a2[1] = X[atom3+1];
-  a2[2] = X[atom3+2];
+  a2[0] = X_[atom3  ];
+  a2[1] = X_[atom3+1];
+  a2[2] = X_[atom3+2];
   
   if (boxType == 0)
     return DIST2_NoImage(a1, a2);
   else if (boxType == 1)
-    return DIST2_ImageOrtho(a1, a2, this->box);
+    return DIST2_ImageOrtho(a1, a2, this->box_);
   else if (boxType == 2) 
     return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
 
@@ -958,9 +1419,9 @@ double Frame::DIST(int A1, int A2) {
   i = A1 * 3;
   j = A2 * 3;
 
-  x = X[i  ] - X[j  ];
-  y = X[i+1] - X[j+1];
-  z = X[i+2] - X[j+2];
+  x = X_[i  ] - X_[j  ];
+  y = X_[i+1] - X_[j+1];
+  z = X_[i+2] - X_[j+2];
 
   x=x*x;
   y=y*y;
@@ -980,9 +1441,9 @@ double Frame::DIST2(int A1, int A2) {
   i = A1 * 3;
   j = A2 * 3;
 
-  x = X[i  ] - X[j  ];
-  y = X[i+1] - X[j+1];
-  z = X[i+2] - X[j+2];
+  x = X_[i  ] - X_[j  ];
+  y = X_[i+1] - X_[j+1];
+  z = X_[i+2] - X_[j+2];
 
   x=x*x;
   y=y*y;
@@ -999,9 +1460,9 @@ double Frame::DIST2(int A1, int A2) {
 double Frame::COORDDIST(int i, int j) {
   double x,y,z,D;
 
-  x = X[i  ] - X[j  ];
-  y = X[i+1] - X[j+1];
-  z = X[i+2] - X[j+2];
+  x = X_[i  ] - X_[j  ];
+  y = X_[i+1] - X_[j+1];
+  z = X_[i+2] - X_[j+2];
 
   x=x*x;
   y=y*y;
@@ -1018,9 +1479,9 @@ double Frame::COORDDIST(int i, int j) {
 double Frame::COORDDIST2(int i, int j) {
   double x,y,z,D;
 
-  x = X[i  ] - X[j  ];
-  y = X[i+1] - X[j+1];
-  z = X[i+2] - X[j+2];
+  x = X_[i  ] - X_[j  ];
+  y = X_[i+1] - X_[j+1];
+  z = X_[i+2] - X_[j+2];
 
   x=x*x;
   y=y*y;
@@ -1028,6 +1489,22 @@ double Frame::COORDDIST2(int i, int j) {
 
   D = x + y + z;
   return D;
+}
+
+// Frame::COORDVECTOR()
+/** Calculate the vector from atom j to atom i. i and j should be
+  * actual indices into the coord array (i.e. atom# * 3).
+  */
+void Frame::COORDVECTOR(double *V, int i, int j) {
+  double *U = X_ + i;
+  double *W = X_ + j;
+  V[0] = *U - *W;
+  ++U;
+  ++W; 
+  V[1] = *U - *W;
+  ++U;
+  ++W;
+  V[2] = *U - *W;
 }
 
 // Frame::ANGLE()
@@ -1083,13 +1560,13 @@ double Frame::ANGLE(int A1, int A2, int A3) {
   a1 = A1 * 3;
   a2 = A2 * 3;
   a3 = A3 * 3;
-  xij = X[a1  ] - X[a2  ];
-  yij = X[a1+1] - X[a2+1];
-  zij = X[a1+2] - X[a2+2];
+  xij = X_[a1  ] - X_[a2  ];
+  yij = X_[a1+1] - X_[a2+1];
+  zij = X_[a1+2] - X_[a2+2];
 
-  xkj = X[a3  ] - X[a2  ];
-  ykj = X[a3+1] - X[a2+1];
-  zkj = X[a3+2] - X[a2+2];
+  xkj = X_[a3  ] - X_[a2  ];
+  ykj = X_[a3+1] - X_[a2+1];
+  zkj = X_[a3+2] - X_[a2+2];
 
   rij = xij*xij + yij*yij + zij*zij;
   rkj = xkj*xkj + ykj*ykj + zkj*zkj;
@@ -1142,7 +1619,7 @@ double Frame::DIHEDRAL(int A1, int A2, int A3, int A4) {
   a2 = A2 * 3;
   a3 = A3 * 3;
   a4 = A4 * 3;
-  return Torsion(X+a1,X+a2,X+a3,X+a4);
+  return Torsion(X_+a1,X_+a2,X_+a3,X_+a4);
 }
 
 // Frame::PUCKER()
@@ -1191,7 +1668,6 @@ double Frame::PUCKER(AtomMask *M1, AtomMask *M2, AtomMask *M3, AtomMask *M4, Ato
 double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
   double mid[3], Coord[3];
   double currentMass, total_mass, maxMass, dist2, sumDist2;
-  int i,atom,natom3;
 
   total_mass=0.0;
   maxMass=1.0;
@@ -1200,20 +1676,20 @@ double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
   *max=0.0;
 
   if (useMassIn)
-    this->CenterOfMass(Mask,mid);
+    total_mass = this->CenterOfMass(Mask,mid);
   else
-    this->GeometricCenter(Mask,mid);
+    total_mass = this->GeometricCenter(Mask,mid);
 
-  for (i=0; i < Mask->Nselected; i++) {
-      atom=Mask->Selected[i];
-      natom3=atom*3;
-      if (useMassIn) {
-        currentMass=Mass[atom];
-        total_mass+=currentMass;
-      }
-      Coord[0] = X[natom3  ] - mid[0];
-      Coord[1] = X[natom3+1] - mid[1];
-      Coord[2] = X[natom3+2] - mid[2];
+  for (AtomMask::const_iterator atom = Mask->begin();
+                                atom != Mask->end();
+                                atom++)
+  {
+      int atmidx = (*atom) * 3;
+      if (useMassIn) 
+        currentMass = Mass_[*atom];
+      Coord[0] = X_[atmidx  ] - mid[0];
+      Coord[1] = X_[atmidx+1] - mid[1];
+      Coord[2] = X_[atmidx+2] - mid[2];
       dist2 = (Coord[0]*Coord[0]) + (Coord[1]*Coord[1]) + (Coord[2]*Coord[2]);
       dist2 *= currentMass;
       if (dist2 > *max) {
@@ -1222,8 +1698,6 @@ double Frame::RADGYR(AtomMask *Mask, bool useMassIn, double *max) {
       }
       sumDist2 += dist2;
   }
-
-  if (!useMassIn) total_mass=(double) Mask->Nselected;
 
   // NOTE: Not using == since it is unreliable for floating point numbers.
   // Should NEVER have a mass smaller than SMALL (vectormath.h)
@@ -1262,11 +1736,11 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
  
   // Rotation will occur around geometric center/center of mass
   if (useMassIn) {
-    total_mass = this->CenterOfMass(frameCOM,0,natom);
-    Ref->CenterOfMass(refCOM,0,natom);
+    total_mass = this->CenterOfMass(frameCOM,0,natom_);
+    Ref->CenterOfMass(refCOM,0,natom_);
   } else {
-    total_mass = this->GeometricCenter(frameCOM,0,natom);
-    Ref->GeometricCenter(refCOM,0,natom);
+    total_mass = this->GeometricCenter(frameCOM,0,natom_);
+    Ref->GeometricCenter(refCOM,0,natom_);
   }
   if (total_mass<SMALL) {
     mprinterr("Error: Frame::RMSD: Divide by zero.\n");
@@ -1292,18 +1766,18 @@ double Frame::RMSD( Frame *Ref, double *U, double *Trans, bool useMassIn) {
   // rtr is set below
   // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
   m=0;
-  for (i=0; i<N; i+=3) {
-    xt = X[i];
-    yt = X[i+1];
-    zt = X[i+2];
-    xr = Ref->X[i];
-    yr = Ref->X[i+1];
-    zr = Ref->X[i+2];
+  for (i=0; i<Ncoord_; i+=3) {
+    xt = X_[i];
+    yt = X_[i+1];
+    zt = X_[i+2];
+    xr = Ref->X_[i];
+    yr = Ref->X_[i+1];
+    zr = Ref->X_[i+2];
 
     // Use rms_return to hold mass for this atom if specified
     rms_return = 1.0;
     if (useMassIn) 
-      rms_return = Mass[m++];
+      rms_return = Mass_[m++];
     //total_mass+=rms_return;
 
     mwss += rms_return * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
@@ -1442,9 +1916,9 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
  
   // Rotation will occur around geometric center/center of mass
   if (useMassIn)
-    total_mass = this->CenterOfMass(frameCOM,0,natom);
+    total_mass = this->CenterOfMass(frameCOM,0,natom_);
   else
-    total_mass = this->GeometricCenter(frameCOM,0,natom);
+    total_mass = this->GeometricCenter(frameCOM,0,natom_);
 
   if (total_mass<SMALL) {
     mprinterr("Error: Frame::RMSD: Divide by zero.\n");
@@ -1467,18 +1941,18 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   // rtr is set below
   // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
   m=0;
-  for (i=0; i<N; i+=3) {
-    xt = X[i];
-    yt = X[i+1];
-    zt = X[i+2];
-    xr = Ref.X[i];
-    yr = Ref.X[i+1];
-    zr = Ref.X[i+2];
+  for (i=0; i<Ncoord_; i+=3) {
+    xt = X_[i];
+    yt = X_[i+1];
+    zt = X_[i+2];
+    xr = Ref.X_[i];
+    yr = Ref.X_[i+1];
+    zr = Ref.X_[i+2];
 
     // Use atom_mass to hold mass for this atom if specified
     atom_mass = 1.0;
     if (useMassIn) 
-      atom_mass = Mass[m++];
+      atom_mass = Mass_[m++];
     //total_mass+=atom_mass;
 
     mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
@@ -1599,13 +2073,13 @@ double Frame::RMSD( Frame *Ref, bool useMass ) {
   currentMass = 1.0;
   m=0;
 
-  for (i=0; i < N; i+=3) {
+  for (i=0; i < Ncoord_; i+=3) {
     if (useMass) 
-      currentMass = Mass[m++];
+      currentMass = Mass_[m++];
     total_mass += currentMass;
-    xx = Ref->X[i]   - X[i];
-    yy = Ref->X[i+1] - X[i+1];
-    zz = Ref->X[i+2] - X[i+2];
+    xx = Ref->X_[i]   - X_[i];
+    yy = Ref->X_[i+1] - X_[i+1];
+    zz = Ref->X_[i+2] - X_[i+2];
     rms_return += currentMass * (xx*xx + yy*yy + zz*zz);
   }
   if (total_mass<SMALL) {
@@ -1633,31 +2107,31 @@ double Frame::DISTRMSD( Frame *Ref ) {
   double x,y,z;
   int a10,a11,a12;
   int a20,a21,a22; 
-  double Ndistances = ((natom * natom) - natom) / 2;
+  double Ndistances = ((natom_ * natom_) - natom_) / 2;
 
   rms_return = 0;
   a10 = 0;
-  for (int atom1 = 0; atom1 < natom-1; atom1++) {
+  for (int atom1 = 0; atom1 < natom_-1; atom1++) {
     a20 = a10 + 3;
-    for (int atom2 = atom1+1; atom2 < natom; atom2++) {
+    for (int atom2 = atom1+1; atom2 < natom_; atom2++) {
       a11 = a10 + 1;
       a12 = a10 + 2;
       a21 = a20 + 1;
       a22 = a20 + 2;
       // Tgt
-      x = X[a10] - X[a20];
+      x = X_[a10] - X_[a20];
       x = x * x;
-      y = X[a11] - X[a21];
+      y = X_[a11] - X_[a21];
       y = y * y;
-      z = X[a12] - X[a22];
+      z = X_[a12] - X_[a22];
       z = z * z;
       TgtDist = sqrt(x + y + z);
       // Ref
-      x = Ref->X[a10] - Ref->X[a20];
+      x = Ref->X_[a10] - Ref->X_[a20];
       x = x * x;
-      y = Ref->X[a11] - Ref->X[a21];
+      y = Ref->X_[a11] - Ref->X_[a21];
       y = y * y;
-      z = Ref->X[a12] - Ref->X[a22];
+      z = Ref->X_[a12] - Ref->X_[a22];
       z = z * z;
       RefDist = sqrt(x + y + z);
       // DRMSD
@@ -1686,12 +2160,12 @@ void Frame::SetAxisOfRotation(double *U, int atom1, int atom2) {
   int a1 = atom1 * 3;
   int a2 = atom2 * 3;
   
-  A1[0] = X[a1  ];
-  A1[1] = X[a1+1];
-  A1[2] = X[a1+2];
-  A2[0] = X[a2  ];
-  A2[1] = X[a2+1];
-  A2[2] = X[a2+2];
+  A1[0] = X_[a1  ];
+  A1[1] = X_[a1+1];
+  A1[2] = X_[a1+2];
+  A2[0] = X_[a2  ];
+  A2[1] = X_[a2+1];
+  A2[2] = X_[a2+2];
 
   // Calculate vector of dihedral axis, which will be the new rot. axis
   U[0] = A2[0] - A1[0];
@@ -1729,15 +2203,18 @@ void Frame::RotateAroundAxis(double *T, double theta, AtomMask &Rmask) {
   T6=T[6];
   T7=T[7];
   T8=T[8];
-  for (int maskidx=0; maskidx<Rmask.Nselected; maskidx++) {
-    int i0 = Rmask.Selected[maskidx] * 3;
+  for (AtomMask::const_iterator atom = Rmask.begin();
+                                atom != Rmask.end();
+                                atom++)
+  {
+    int i0 = (*atom) * 3;
     int i1 = i0 + 1;
     int i2 = i1 + 1;
-    x=X[i0]; y=X[i1]; z=X[i2];
+    x=X_[i0]; y=X_[i1]; z=X_[i2];
 
-    X[i0]=(x*T0) + (y*T1) + (z*T2);
-    X[i1]=(x*T3) + (y*T4) + (z*T5);
-    X[i2]=(x*T6) + (y*T7) + (z*T8);
+    X_[i0]=(x*T0) + (y*T1) + (z*T2);
+    X_[i1]=(x*T3) + (y*T4) + (z*T5);
+    X_[i2]=(x*T6) + (y*T7) + (z*T8);
   }
 
 }

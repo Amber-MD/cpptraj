@@ -141,12 +141,12 @@ int Radial::init() {
   */
 int Radial::setup() {
 
-  if ( currentParm->SetupIntegerMask( Mask1, activeReference) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask1 ) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: Radial::setup: Masks has no atoms.\n");
     return 1;
   }
-  if (currentParm->SetupIntegerMask( Mask2, activeReference) ) return 1;
+  if (currentParm->SetupIntegerMask( Mask2 ) ) return 1;
   if (Mask2.None()) {
     mprintf("    Error: Radial::setup: Second mask has no atoms.\n");
     return 1;
@@ -155,7 +155,7 @@ int Radial::setup() {
   // If not computing a center for mask 1, make the outer loop for distance 
   // calculation correspond to the mask with the most atoms.
   if (!center1) {
-    if (Mask1.Nselected > Mask2.Nselected) {
+    if (Mask1.Nselected() > Mask2.Nselected()) {
       OuterMask = Mask1;
       InnerMask = Mask2;
     } else {
@@ -172,7 +172,7 @@ int Radial::setup() {
   }
 
   // Print mask and imaging info for this parm
-  mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",Mask1.Nselected,Mask2.Nselected);
+  mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",Mask1.Nselected(),Mask2.Nselected());
   if (imageType !=NOBOX)
     mprintf("Imaging on.\n");
   else
@@ -206,14 +206,15 @@ int Radial::action() {
   // Calculation of center of Mask1 to all atoms in Mask2
   if (center1) {
     currentFrame->GeometricCenter(&Mask1,coord_center);
+    int mask2_max = Mask2.Nselected();
 #ifdef _OPENMP
 #pragma omp parallel private(nmask2,atom2,D,idx,mythread) reduction(+:mydistances)
 {
   mythread = omp_get_thread_num();
 #pragma omp for
 #endif
-    for (nmask2 = 0; nmask2 < Mask2.Nselected; nmask2++) {
-      atom2 = Mask2.Selected[nmask2];
+    for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
+      atom2 = Mask2[nmask2];
       D = currentFrame->DIST2(coord_center,atom2,imageType,ucell,recip);
       if (D <= maximum2) {
         // NOTE: Can we modify the histogram to store D^2?
@@ -234,6 +235,8 @@ int Radial::action() {
 #endif 
   // Calculation of all atoms in Mask1 to all atoms in Mask2
   } else {
+    int outer_max = OuterMask.Nselected();
+    int inner_max = InnerMask.Nselected();
 #ifdef _OPENMP
 #pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread) reduction(+:mydistances) 
 {
@@ -241,10 +244,10 @@ int Radial::action() {
   mythread = omp_get_thread_num();
 #pragma omp for
 #endif
-    for (nmask1 = 0; nmask1 < OuterMask.Nselected; nmask1++) {
-      atom1 = OuterMask.Selected[nmask1];
-      for (nmask2 = 0; nmask2 < InnerMask.Nselected; nmask2++) {
-        atom2 = InnerMask.Selected[nmask2];
+    for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
+      atom1 = OuterMask[nmask1];
+      for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
+        atom2 = InnerMask[nmask2];
         if (atom1 != atom2) {
           D = currentFrame->DIST2(atom1,atom2,imageType,ucell,recip);
           if (D <= maximum2) {
@@ -295,7 +298,7 @@ void Radial::print() {
 #  endif
 
   // Set up output dataset. 
-  Dset = DSL->Add( DOUBLE, NULL, "g(r)");
+  Dset = DSL->Add( DataSet::DOUBLE, NULL, "g(r)");
   outfile = DFL->Add(outfilename, Dset);
   if (outfile==NULL) {
     mprinterr("Error: Radial: Could not setup output file %s\n",outfilename);
@@ -314,11 +317,12 @@ void Radial::print() {
   if (useVolume) {
     dv = volume / numFrames;
     mprintf("            Average volume is %lf Ang^3.\n",dv);
-    density = ((double)Mask1.Nselected * (double)Mask2.Nselected - (double)numSameAtoms) / dv;
+    density = ((double)Mask1.Nselected() * (double)Mask2.Nselected() - (double)numSameAtoms) / dv;
     mprintf("            Average density is %lf distances / Ang^3.\n",density);
   } else {
-    density = density * ((double)Mask1.Nselected * (double)Mask2.Nselected - (double)numSameAtoms) /
-              ((double)Mask1.Nselected);
+    density = density * 
+              ((double)Mask1.Nselected() * (double)Mask2.Nselected() - (double)numSameAtoms) /
+              ((double)Mask1.Nselected());
     mprintf("            Density is %lf distances / Ang^3.\n",density);
   }
 
@@ -352,6 +356,6 @@ void Radial::print() {
   xlabel = '[' + Mask1.MaskExpression() + "] => [" + Mask2.MaskExpression() + ']';
   outfile->SetCoordMinStep(0.0,spacing,0,-1);
   outfile->SetXlabel((char*)xlabel.c_str());
-  outfile->SetYlabel((char*)"g(r)");
+  outfile->ProcessArgs("ylabel g(r)");
 }
 

@@ -3,6 +3,6 @@
 #include "ParmIO.h"
 class Mol2ParmFile : public ParmIO {
   public :
-    int ReadParm(AmberParm&, CpptrajFile&);
+    int ReadParm(AmberParm&);
 };
 #endif

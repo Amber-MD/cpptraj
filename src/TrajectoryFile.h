@@ -8,70 +8,24 @@
 /// Allow reading and writing of trajectory files.
 /** Wrapper around the TrajectoryIO base class that allows the rest of cpptraj
   * to interface with trajectories. Holds general trajectory information such
-  * the start, stop, and offset values.
+  * as total # of frames, read start, stop, and offset values, etc.
   */
-// NOTE: Remove boxType?
 class TrajectoryFile {
-    /// trajectory debug level
-    int debug;
-    /// Keep track of trajectory progress
-    ProgressBar *progress;
-    /// Class that performs the actual IO for trajectory format
-    TrajectoryIO *trajio;
-    /// Trajectory name
-    char *trajName;
-    /// Associated parm
-    AmberParm *trajParm;
-    /// Trajectory File access (R/W/A)
-    AccessType fileAccess;
-    /// Number of frames that have been read/written with this traj
-    int numFramesProcessed;
-    /// True when the trajectory is open and ready for read/write 
-    bool trajectoryIsOpen;
-    // -----===== Specific to input traj =====-----
-    /// Frame to begin processing
-    int start;
-    /// Frame to end processing
-    int stop;
-    /// Number of frames to skip between processed frames
-    int offset;
-    /// The total number of frames in the traj
-    int total_frames;
-    /// The number of frames that will actually be read based on start/stop/offset
-    int total_read_frames;
-    /// The box type of this trajectory if box coords present
-    BoxType boxType;
-    /// The current frame number being read
-    int currentFrame;
-    /// The next frame to process
-    int targetSet;
-    /// The number of frames to skip over while reading
-    int frameskip;
-    // -----===== Specific to output traj =====-----
-    /// If defined, list of frame numbers to write
-    Range *FrameRange;
-    /// If true do not put box information in output traj
-    bool nobox;
-    /// Set up TrajectoryIO object for reading multiple trajectories at once
-    TrajectoryIO *setupRemdTrajIO(char *, double, char*, FileFormat, ArgList&);
-    /// Set up TrajectoryIO object for the given filename
-    TrajectoryIO *setupTrajIO(char *, AccessType, FileFormat, FileType);
-    /// Set start/stop/offset args from user input
-    int SetArgs(ArgList *);
-    /// Set the trajectory name
-    void SetTrajName(char *);
-    /// Set the trajectory box type
-    int SetBoxType(TrajectoryIO *);
-    int setupFrameInfo();
-    FileFormat getFmtFromArg(ArgList*,FileFormat);
-
   public:
+    enum TrajFormatType {
+      UNKNOWN_TRAJ=0, PDBFILE, AMBERTRAJ, AMBERNETCDF, AMBERRESTART,
+      CONFLIB, AMBERRESTARTNC, MOL2FILE, CHARMMDCD
+    };
+
     TrajectoryFile();
     ~TrajectoryFile();
     // Trajectory IO functions
     int SetupRead(char *, ArgList *, AmberParm *);
-    int SetupWriteWithArgs(char *, const char *, AmberParm *, FileFormat);
-    int SetupWrite(char *, ArgList *, AmberParm *, FileFormat);
+    int SetupWriteWithArgs(char *, const char *, AmberParm *, TrajFormatType);
+    int SetupWrite(char *, AmberParm *, char *);
+    // Next two currently only used for Clustering
+    int SetupWrite(char *, ArgList *, AmberParm *, TrajFormatType);
+    int SetupNumberedWrite(char *, int, AmberParm *, char *);
     int BeginTraj(bool);
     int EndTraj();
     int GetNextFrame(Frame&);
@@ -83,13 +37,68 @@ class TrajectoryFile {
     void PrintInfoLine();
     void PrintInfo(int);
     // Functions that return private vars
-    int CurrentFrame() { return currentFrame; }
-    char *TrajName() { return trajName;}
-    AmberParm *TrajParm() { return trajParm;}
-    int Start() { return start; }
-    int Total_Read_Frames() { return total_read_frames; }
-    int Total_Frames() { return total_frames; }
-    int NumFramesProcessed() { return numFramesProcessed; }
+    int CurrentFrame();
+    char *TrajName();
+    AmberParm *TrajParm();
+    int Start();
+    int Total_Read_Frames();
+    int Total_Frames();
+    int NumFramesProcessed();
     bool HasVelocity();
+  private:
+    /// Denote whether reading, writing, or appending.
+    enum TrajAccessType { READTRAJ, WRITETRAJ, APPENDTRAJ };
+    /// Trajectory debug level
+    int debug_;
+    /// Keep track of trajectory progress
+    ProgressBar *progress_;
+    /// Class that performs the actual IO for trajectory format
+    TrajectoryIO *trajio_;
+    /// Trajectory name
+    const char *trajName_;
+    /// Associated parm
+    AmberParm *trajParm_;
+    /// Trajectory File access (R/W/A)
+    TrajAccessType fileAccess_;
+    /// Number of frames that have been read/written with this traj
+    int numFramesProcessed_;
+    // -----===== Specific to input traj =====-----
+    /// Frame to begin processing
+    int start_;
+    /// Frame to end processing
+    int stop_;
+    /// Number of frames to skip between processed frames
+    int offset_;
+    /// The total number of frames in the traj
+    int total_frames_;
+    /// The number of frames that will actually be read based on start/stop/offset
+    int total_read_frames_;
+    /// The current frame number being read
+    int currentFrame_;
+    /// The next frame to process
+    int targetSet_;
+    /// The number of frames to skip over while reading
+    int frameskip_;
+    // -----===== Specific to output traj =====-----
+    /// If defined, list of frame numbers to write
+    Range *FrameRange_;
+    /// If true do not put box information in output traj
+    bool nobox_;
+    /// If true trajectory has been opened.
+    bool trajIsOpen_;
+    /// Identify trajectory format
+    TrajFormatType ID_TrajFormat(TrajectoryIO &);
+    /// Set up TrajectoryIO object for reading multiple trajectories at once
+    TrajectoryIO *setupRemdTrajIO(double, char*, TrajFormatType, ArgList&);
+    /// Set up TrajectoryIO object for the given filename
+    TrajectoryIO *setupTrajIO(char *, TrajAccessType, TrajFormatType);
+    /// Set start/stop/offset args from user input
+    int SetArgs(ArgList *);
+    /// Set actual start and stop
+    int setupFrameInfo();
+    /// Get format type from keyword
+    TrajFormatType GetFormatFromArg(ArgList*);
+    /// Get standard file extension for trajectory format
+    std::string GetExtensionForType(TrajFormatType);
 };
 #endif

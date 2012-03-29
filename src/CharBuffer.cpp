@@ -3,127 +3,216 @@
 #include <cstdio>  // sprintf
 #include <cstdlib> // atof
 #include <cstdarg> // va_list
+#include <cctype>  // isdigit
+#include <vector>
 #include "CharBuffer.h"
+// DEBUG
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 CharBuffer::CharBuffer() {
-  buffer = NULL;
-  ptr = NULL;
-  bufferSize = 0;
-  end_buffer = NULL;
+  buffer_ = NULL;
+  ptr_ = NULL;
+  bufferSize_ = 0;
+  end_buffer_ = NULL;
 }
 
 // DESTRUCTOR
 CharBuffer::~CharBuffer() {
-  if (buffer!=NULL) delete[] buffer;
+  if (buffer_!=NULL) 
+    delete[] buffer_;
+}
+
+// Copy Constructor
+CharBuffer::CharBuffer(const CharBuffer& rhs) {
+  bufferSize_ = rhs.bufferSize_;
+  buffer_ = new char[ bufferSize_ ];
+  memcpy(buffer_, rhs.buffer_, bufferSize_*sizeof(char));
+  ptr_ = buffer_ + (rhs.ptr_ - rhs.buffer_);
+  end_buffer_ = buffer_ + bufferSize_;
+}
+
+// Assignment
+CharBuffer &CharBuffer::operator=(const CharBuffer &rhs) {
+  if (this == &rhs) return *this;
+  if (buffer_!=NULL) delete[] buffer_;
+  bufferSize_ = rhs.bufferSize_;
+  buffer_ = new char[ bufferSize_ ];
+  memcpy(buffer_, rhs.buffer_, bufferSize_*sizeof(char));
+  ptr_ = buffer_ + (rhs.ptr_ - rhs.buffer_);
+  end_buffer_ = buffer_ + bufferSize_;
+  return *this;
+}
+
+// CharBuffer::Buffer()
+/** Return a pointer to the beginning of buffer.
+  */
+char *CharBuffer::Buffer() {
+  return buffer_;
+}
+
+// CharBuffer::c_str()
+/** Like Buffer() except ensure a NULL terminated string is returned.
+  */
+const char *CharBuffer::c_str() {
+  *ptr_='\0';
+  return buffer_;
+}
+
+// CharBuffer::BufferSize()
+size_t CharBuffer::BufferSize() { 
+  return bufferSize_; 
+}
+
+// CharBuffer::BufferPtr() 
+char *CharBuffer::BufferPtr() { 
+  return ptr_; 
+}
+
+// CharBuffer::CurrentSize()
+size_t CharBuffer::CurrentSize() {
+  //printf("DEBUG:\tCurrentSize=%lu, Allocd for %lu\n",(size_t) (ptr - buffer),bufferSize);
+  return (size_t) (ptr_ - buffer_);
 }
 
 // CharBuffer::Allocate()
 /// Allocate space for a character buffer of size <sizeIn>.
 void CharBuffer::Allocate(size_t sizeIn) {
-  if (buffer!=NULL) delete[] buffer;
-  bufferSize = sizeIn;
-  buffer = new char[ bufferSize ];
-  ptr = buffer;
-  end_buffer = buffer + bufferSize;
+  if (buffer_!=NULL) delete[] buffer_;
+  bufferSize_ = sizeIn;
+  buffer_ = new char[ bufferSize_ ];
+  ptr_ = buffer_;
+  end_buffer_ = buffer_ + bufferSize_;
 }
 
 // CharBuffer::IncreaseSize()
 /** Increase the size of the char buffer by delta, ensuring that the existing
   * data is kept. Place the ptr at the beginning of the new region.
+  * NOTE: If used after Sprintf this can result in uninitialized bytes.
   */
 void CharBuffer::IncreaseSize(size_t delta) {
-  size_t newsize = bufferSize + delta;
+  size_t newsize = bufferSize_ + delta;
   char *newbuffer = new char[ newsize ];
-  if (buffer!=NULL) {
-    memcpy(newbuffer, buffer, bufferSize);
-    delete[] buffer;
+  if (buffer_!=NULL) {
+    memcpy(newbuffer, buffer_, bufferSize_*sizeof(char));
+    delete[] buffer_;
   }
-  buffer = newbuffer;
-  ptr = buffer + bufferSize; 
-  bufferSize = newsize;
-  end_buffer = buffer + bufferSize;
+  buffer_ = newbuffer;
+  ptr_ = buffer_ + bufferSize_; 
+  bufferSize_ = newsize;
+  end_buffer_ = buffer_ + bufferSize_;
 }
 
-// CharBuffer::CurrentSize()
-/// Return the size of the data that has been currently written to the buffer.
-size_t CharBuffer::CurrentSize() {
-  //printf("DEBUG:\tCurrentSize=%lu, Allocd for %lu\n",(size_t) (ptr - buffer),bufferSize);
-  return (size_t) (ptr - buffer);
+// CharBuffer::Reallocate()
+/** Increase size of the char buffer by delta, ensuring existing data is
+  * kept. Do not alter position of ptr.
+  */
+void CharBuffer::Reallocate(size_t delta) {
+  size_t newsize = bufferSize_ + delta;
+  size_t old_ptr = ptr_ - buffer_; 
+  char *newbuffer = new char[ newsize ];
+  if (buffer_!=NULL) {
+    memcpy(newbuffer, buffer_, bufferSize_*sizeof(char));
+    delete[] buffer_;
+  }
+  buffer_ = newbuffer;
+  ptr_ = buffer_ + old_ptr;
+  bufferSize_ = newsize;
+  end_buffer_ = buffer_ + bufferSize_;
+}
+
+// CharBuffer::DumpBuffer()
+/// For debugging only, write buffer contents to stdout.
+void CharBuffer::DumpBuffer() {
+  mprintf("Allocated size=%lu\n",bufferSize_);
+  mprintf("Current Size=%lu\n",CurrentSize());
+  for (unsigned int i = 0; i < CurrentSize(); i++)
+    mprintf("\t%i [%c]\n",i,buffer_[i]);
 }
 
 // CharBuffer::Rewind()
-/// Set pointer to beginning of buffer.
 void CharBuffer::Rewind() {
-  ptr = buffer;
+  ptr_ = buffer_;
 }
 
- 
-
-// CharBuffer::Sprintf()
-/// Write data to the buffer with printf-like syntax.
-void CharBuffer::Sprintf(const char *fmt, ... ) {
-  int n_char_written;
-  va_list args;
-  va_start(args, fmt);
-  n_char_written = vsprintf(ptr, fmt, args);
-  va_end(args);
-  ptr += n_char_written;
-}
-  
 // CharBuffer::WriteDouble()
 /// Write a double to the buffer with given format.
 void CharBuffer::WriteDouble(const char *format, double dval) {
-  int n_char_written;
   //printf("DEBUG:\tWriteDouble[%s, %lf]\n",format, dval);
-  n_char_written = sprintf(ptr, format, dval);
-  ptr += n_char_written;
+  int n_char_written = sprintf(ptr_, format, dval);
+  ptr_ += n_char_written;
 }
 
 // CharBuffer::WriteInteger()
 /// Write an integer to the buffer with given format.
 void CharBuffer::WriteInteger(const char *format, int ival) {
-  int n_char_written;
   //printf("DEBUG:\tWriteInteger[%s, %i]\n",format, ival);
-  n_char_written = sprintf(ptr, format, ival);
-  ptr += n_char_written;
+  int n_char_written = sprintf(ptr_, format, ival);
+  ptr_ += n_char_written;
 }
 
 // CharBuffer::WriteString()
 /// Write a string to the buffer with given format.
 void CharBuffer::WriteString(const char *format, const char *sval) {
-  int n_char_written;
   //printf("DEBUG:\tWriteString[%s, %s]\n",format, sval);
-  n_char_written = sprintf(ptr, format, sval);
-  ptr += n_char_written;
+  int n_char_written = sprintf(ptr_, format, sval);
+  ptr_ += n_char_written;
+}
+
+// CharBuffer::WriteXY()
+void CharBuffer::WriteXY(const char *format, double X, double Y) {
+  int n_char_written = sprintf(ptr_, format, X, Y);
+  ptr_ += n_char_written;
 }
 
 // CharBuffer::WriteDoubleXYZ()
 /// Write the given double array of size 3 to the buffer with given format.
 void CharBuffer::WriteDoubleXYZ(const char *format, double *XYZ) {
-  int n_char_written;
-  n_char_written = sprintf(ptr, format, XYZ[0], XYZ[1], XYZ[2]);
-  ptr += n_char_written;
+  int n_char_written = sprintf(ptr_, format, XYZ[0], XYZ[1], XYZ[2]);
+  ptr_ += n_char_written;
 }
 
 // CharBuffer::NewLine()
 /// Add a newline character to buffer.
 void CharBuffer::NewLine() {
-  ptr[0]='\n';
-  ptr++;
+  ptr_[0]='\n';
+  ++ptr_;
 }
 
 // CharBuffer::Space()
 /// Add space to buffer
 void CharBuffer::Space() {
-  ptr[0]=' ';
-  ptr++;
+  ptr_[0]=' ';
+  ++ptr_;
 }
 
+// CharBuffer::Sprintf()
+/** Write a string to buffer with printf like syntax. This routine will
+  * dynamically reallocate the buffer as needed.
+  */
+void CharBuffer::Sprintf(const char *fmt, ... ) {
+  va_list vl;
+  size_t n_chars_left = (size_t)(end_buffer_ - ptr_);
+  // Check that buffer wont be blown
+  va_start(vl, fmt);
+  size_t n_char_written = (size_t)vsnprintf(ptr_, n_chars_left, fmt, vl);
+  if (n_char_written<0 || n_char_written >= n_chars_left) {
+    Reallocate( n_char_written+1 );
+    // Try again
+    n_chars_left = (size_t)(end_buffer_ - ptr_);
+    va_end(vl);
+    va_start(vl, fmt);
+    n_char_written = (size_t)vsnprintf(ptr_, n_chars_left, fmt, vl);
+  }
+  va_end(vl);
+  ptr_ += n_char_written;
+}  
+
+// CharBuffer::Read()
 int CharBuffer::Read(void *str, size_t numbytes) {
   size_t bytes_to_read;
   // Figure out actual size to copy
-  size_t bytes_remaining = end_buffer - ptr;
+  size_t bytes_remaining = end_buffer_ - ptr_;
   if (bytes_remaining < 1)
     return -1;
   else if (numbytes > bytes_remaining)
@@ -132,9 +221,9 @@ int CharBuffer::Read(void *str, size_t numbytes) {
     bytes_to_read = numbytes;
 
   // Read from ptr into str
-  memcpy(str, ptr, bytes_to_read);
+  memcpy(str, ptr_, bytes_to_read);
   // Advance ptr
-  ptr += bytes_to_read;
+  ptr_ += bytes_to_read;
   return (int)bytes_to_read;
 }
  
@@ -148,10 +237,10 @@ int CharBuffer::Read(void *str, size_t numbytes) {
 // String length: 3, array size: 4 
 int CharBuffer::Gets(char *str, int num) {
   int currentNum = 0;
-  while (ptr < end_buffer && currentNum < num) {
-    str[currentNum++] = *ptr;
-    if (*ptr=='\n' || *ptr=='\0') {++ptr; break;}
-    ++ptr;
+  while (ptr_ < end_buffer_ && currentNum < num) {
+    str[currentNum++] = *ptr_;
+    if (*ptr_=='\n' || *ptr_=='\0') {++ptr_; break;}
+    ++ptr_;
   }
   if (currentNum==0) return 1;
   if (currentNum==num) --currentNum;
@@ -167,41 +256,33 @@ int CharBuffer::Gets(char *str, int num) {
   * Return position in buffer after read. If '*' encountered this indicates
   * overflow in trajectory, return NULL.
   */
-char *BufferToDouble(char *buffer, double *X, int N, int width) {
-  char *ptr;
-  char number[64]; // Should not have to handle numbers wider than this!
-  int i,atom;
-
-//  number = (char*) malloc( (width+1) * sizeof(char));
-  number[width]='\0';
-  ptr=buffer;
-  for (atom=0; atom<N; atom++) {
-    i=0;
-    while (i<width) {
-      if (*ptr=='\n' || *ptr=='\r') ptr++;
-      if (*ptr=='*') return NULL;//{free(number); return 1;}
-      number[i++]=*ptr;
-      ptr++;
-    }
-    //fprintf(stdout,"DEBUG: %i: %s\n",atom/3,number);
-    X[atom] = atof(number);
+/*char *BufferToDouble(char *buffer, double *X, int N, int width) {
+  char *ptrbegin = buffer;
+  char *ptrend = buffer;
+  for (int atom = 0; atom < N; atom++) {
+    // Advance past newlines / CR (dos)
+    while (*ptrbegin=='\n' || *ptrbegin=='\r') ++ptrbegin;
+    // NOTE: Search for '*'??
+    ptrend = ptrbegin + width;
+    char lastchar = *ptrend;
+    *ptrend = '\0';
+    X[atom] = atof(ptrbegin);
+    *ptrend = lastchar;
+    ptrbegin = ptrend;
   }
-
-//  free(number);
-  return ptr;
-}
+  return ptrbegin;
+}*/
 
 // DoubleToBuffer()
 /** Given an array of double, format, and character width corresponding
   * to format, write coords in array to buffer. 
   * Return the position in the buffer after write. 
   */
-char *DoubleToBuffer(char *buffer, double *X, int N, const char *format, 
-                                 int width, int numCols) {
+/*char *DoubleToBuffer(char *buffer, double *X, int N, const char *format, 
+                                 int width, int numCols) 
+{
   int coord;
-  char *ptr;
-
-  ptr=buffer;
+  char *ptr = buffer;
   for (coord=0; coord<N; coord++) {
     sprintf(ptr,format,X[coord]);
     ptr+=width;
@@ -220,14 +301,14 @@ char *DoubleToBuffer(char *buffer, double *X, int N, const char *format,
   //coord = (int) (ptr - buffer);
   //return coord;
   return ptr;
-}
+}*/
 
 // BoxToBuffer()
 /** Given an array of double[6], format, and character width corresponding
   * to format, write box coords to buffer.
   * Return the position in the buffer after write.
   */
-char *BoxToBuffer(char *buffer, double *box, int numBox, 
+/*char *BoxToBuffer(char *buffer, double *box, int numBox, 
                               const char *format, int width) {
 //  int coord;
   char *ptr;
@@ -250,4 +331,4 @@ char *BoxToBuffer(char *buffer, double *box, int numBox,
   //return coord;
   return ptr;
 }
-
+*/

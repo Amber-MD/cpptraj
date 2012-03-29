@@ -1,52 +1,71 @@
 // RemdTraj
-#include <cstdio> // sprintf
-#include <cstring>
-#include <cstdlib>
-#include <cctype>
+#include <cstring> // memcpy
+#include <locale>
+#include <sstream>
 #include "RemdTraj.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 RemdTraj::RemdTraj() {
-  Prefix=NULL;
-  ExtWidth=0;
-  CompressExt=NULL;
-  repFilename=NULL;
-  repOutname=NULL;
-  lowestRepnum=0;
-
-  hasTrajout=false;
-  remdtrajtemp=0.0;
-  TemperatureList=NULL;
+  remdtrajtemp_=0.0;
+  lowestRepnum_=0;
+  hasTrajout_=false;
   // Used for writing replica trajectories
-  remdX = NULL;
-  remdV = NULL;
-  remdbox[0]=0.0;
-  remdbox[1]=0.0;
-  remdbox[2]=0.0;
-  remdbox[3]=0.0;
-  remdbox[4]=0.0;
-  remdbox[5]=0.0;
-  remdT=0.0;
-  remdN=0;
+  remdX_ = NULL;
+  remdV_ = NULL;
+  remdbox_[0]=0.0;
+  remdbox_[1]=0.0;
+  remdbox_[2]=0.0;
+  remdbox_[3]=0.0;
+  remdbox_[4]=0.0;
+  remdbox_[5]=0.0;
+  remdT_=0.0;
+  remdN_=0;
 }
 
 // DESTRUCTOR
 RemdTraj::~RemdTraj() {
   std::vector<TrajectoryIO*>::iterator replica;
   //fprintf(stderr,"RemdTraj Destructor.\n");
-  for (replica=REMDtraj.begin(); replica!=REMDtraj.end(); replica++)
+  for (replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); replica++)
     delete *replica;
-  for (replica=REMDtrajout.begin(); replica!=REMDtrajout.end(); replica++)
+  for (replica=REMDtrajout_.begin(); replica!=REMDtrajout_.end(); replica++)
     delete *replica;
+  if (remdX_!=NULL) delete[] remdX_;
+  if (remdV_!=NULL) delete[] remdV_;
+}
 
-  if (TemperatureList!=NULL) free(TemperatureList);
-  if (Prefix!=NULL) free(Prefix);
-  if (repFilename!=NULL) free(repFilename);
-  if (repOutname!=NULL) free(repOutname);
-  if (CompressExt!=NULL) free(CompressExt);
-  if (remdX!=NULL) free(remdX);
-  if (remdV!=NULL) free(remdV);
+// RemdTraj::SetTargetTemp()
+void RemdTraj::SetTargetTemp(double tempIn) {
+  remdtrajtemp_ = tempIn;
+}
+
+// RemdTraj::AddReplicaTrajin()
+void RemdTraj::AddReplicaTrajin(TrajectoryIO *trajio) {
+  if (trajio==NULL) {
+    mprinterr("Internal Error: RemdTraj::AddReplicaTrajin: TrajectoryIO is NULL.\n");
+    return;
+  }
+  REMDtraj_.push_back( trajio );
+}
+
+// RemdTraj::AddReplicaTrajout()
+void RemdTraj::AddReplicaTrajout(TrajectoryIO *trajio) {
+  if (trajio==NULL) {
+    mprinterr("Internal Error: RemdTraj::AddReplicaTrajout: TrajectoryIO is NULL.\n");
+    return;
+  }
+  REMDtrajout_.push_back( trajio );
+}
+
+// RemdTraj::LowestReplicaName()
+const char *RemdTraj::LowestReplicaName() {
+  return FileName_.c_str();
+}
+
+// RemdTraj::Nreplicas()
+int RemdTraj::Nreplicas() {
+  return (int)REMDtraj_.size();
 }
 
 // RemdTraj::SetupTemperatureList()
@@ -57,135 +76,159 @@ RemdTraj::~RemdTraj() {
   */
 int RemdTraj::SetupTemperatureList(int natom) {
   std::vector<TrajectoryIO*>::iterator replica;
-  int repnum = 0;
   int err = 0;
+  double tempIn;
 
+  if (remdX_!=NULL) delete[] remdX_;
+  if (remdV_!=NULL) delete[] remdV_;
   // Allocate space for reading in coords and velocities
-  remdN = natom * 3; 
-  remdX = (double*) malloc( remdN * sizeof(double));
-  if (remdX==NULL) return 1;
-  if (hasVelocity) {
-    remdV = (double*) malloc( remdN * sizeof(double));
-    if (remdV==NULL) return 1;
+  remdN_ = natom * 3; 
+  remdX_ = new double[ remdN_ ];
+  if (remdX_==NULL) return 1;
+  if (hasVelocity_) {
+    remdV_ = new double[ remdN_ ];
+    if (remdV_==NULL) return 1;
   }
-  // Allocate space for temperature list
-  repnum = (int) REMDtraj.size();
-  TemperatureList = (double*) malloc(repnum*sizeof(double));
 
   // Get a list of all temperatures present in input REMD trajectories
-  repnum = 0;
-  for (replica=REMDtraj.begin(); replica!=REMDtraj.end(); replica++) {
+  TemperatureList_.clear();
+  int repnum = 0;
+  for (replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); replica++) {
     err=0;
     if ( (*replica)->openTraj() ) {
       err = 1;
     } else {
       // Read 1 frame to get temperature
-      err = ((*replica)->readFrame(0,remdX, remdV, remdbox, TemperatureList+repnum));
-      mprintf("      Rep %i T = %6.2lf\n",repnum,TemperatureList[repnum]);
-      repnum++;
+     
+      err = ((*replica)->readFrame(0,remdX_, remdV_, remdbox_, &tempIn));
+      mprintf("      Rep %i T = %6.2lf\n",repnum++,tempIn);
+      TemperatureList_.push_back(tempIn);
       // Close input traj
       (*replica)->closeTraj();
     }
     // If err!=0 an error occurred, bail out.
     if (err!=0) break;
   }
-  if (err==0) hasTrajout=true;
+  if (err==0) hasTrajout_=true;
   return err;
 }
 
-// RemdTraj::SetReplicaName()
-/** Given the name of the lowest replica file, set basic replica name 
-  * information. Get the file prefix up to the numerical extension, the 
-  * width of the numerical extension, and the compression extension if 
-  * the file is compressed.
-  * Set and return the number of the lowest replica, or -1 on error.
-  */
-int RemdTraj::SetReplicaName(char* filenameIn) {
-  CpptrajFile remdfile;
-  int lastChar,lastDot,j;
-  char *ReplicaExt;
+// RemdTraj::PrintNoExtError()
+void RemdTraj::PrintNoExtError() {
+  mprinterr("Error: Traj %s has no numerical extension, required for automatic\n",BaseName());
+  mprinterr("       detection of replica trajectories. Expected filename format is\n");
+  mprinterr("       <Prefix>.<#> (with optional compression extension, examples:\n");
+  mprinterr("       Rep.traj.nc.000,  remd.x.01.gz etc.\n");
+}
 
-  // STEP 1 - Get filename Prefix
-  // Assume the extension of given trajectory is the number of the lowest 
+// RemdTraj::SearchForReplicas()
+/** Assuming this RemdTraj has been set up as the lowest replica, search for
+  * all other replica names set basic assuming a nameing scheme of 
+  * <PREFIX>.<EXT>[.<CEXT>], where <EXT> is a numerical extension and <CEXT>
+  * is an optional compression extension. 
+  * \return Found replica filenames, or an empty list on error. 
+  */
+std::vector<std::string> RemdTraj::SearchForReplicas() {
+  std::vector<std::string> ReplicaNames;
+  std::string Prefix;
+  std::string CompressExt;
+  std::string ReplicaExt;
+  std::locale loc;
+
+  // STEP 1 - Get filename Prefix, Numerical extension, and optional
+  //          compression extension.
+  // Assume the extension of this trajectory is the number of the lowest 
   // replica, and that the other files are in sequence (e.g. rem.000, rem.001, 
   // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
-  // Set up a CpptrajFile here to check compression and extension.  
-  if (remdfile.SetupFile(filenameIn, READ, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug)) 
-    return -1;
-  if (remdfile.compressType!=NO_COMPRESSION && remdfile.Ext!=NULL) {
-    CompressExt = (char*) malloc( (strlen(remdfile.Ext)+1) * sizeof(char));
-    strcpy(CompressExt,remdfile.Ext);
-    lastChar = strlen(remdfile.filename) - strlen(remdfile.Ext);
+  if (debug_>1)
+    mprintf("\tREMDTRAJ: FileName=[%s]\n",FileName_.c_str());
+  size_t found = FileName_.find_last_of(".");
+  // NOTE: Eventually allow just numbers, no prefix? 000 002 etc
+  if (found == std::string::npos) {
+    PrintNoExtError();
+    return ReplicaNames;
+  }
+  // If file is not compressed, this should be the numeric extension
+  if (compressType_==NO_COMPRESSION) {
+    Prefix = FileName_.substr(0, found);
+    ReplicaExt = FileName_.substr(found+1);
   } else {
-    CompressExt = (char*) malloc( 1 * sizeof(char));
-    strcpy(CompressExt,"");
-    lastChar = strlen(remdfile.filename);
+  // If file is compressed, this should be the compression extension
+  // include the dot.
+    CompressExt = FileName_.substr(found);
+    // Get prefix and numerical extension, without the Compression extension
+    std::string compressPrefix = FileName_.substr(0,found);
+    found = compressPrefix.find_last_of(".");
+    if (found == std::string::npos) {
+      PrintNoExtError();
+      return ReplicaNames;
+    }
+    Prefix = compressPrefix.substr(0,found);
+    ReplicaExt = compressPrefix.substr(found+1);
   }
-  // Find location of last '.' (not including compression extension) and store it in i
-  lastDot=-1;
-  for (j=0; j<lastChar; j++)
-    if (remdfile.filename[j]=='.') lastDot=j;
-  if (lastDot==-1) {
-    mprinterr("    Error: RemdTraj: Could not find numeric extension.\n");
-    mprinterr("           Check that REMD files have naming scheme NAME.X\n");
-    mprinterr("           where X is an integer of arbitrary width.\n");
-    return -1;
+  if (debug_>1) {
+    mprintf("\tREMDTRAJ: Prefix=[%s], #Ext=[%s], CompressExt=[%s]\n",
+            Prefix.c_str(), ReplicaExt.c_str(), CompressExt.c_str());
   }
-  // Store filename up until the numeric extension
-  Prefix=(char*) malloc( (lastDot+1) * sizeof(char));
-  strncpy(Prefix,remdfile.filename,lastDot);
-  Prefix[lastDot]='\0';
-  //mprintf("  REMDDEBUG: Replica filename prefix: %s\n",Prefix);
-
-  // STEP 2 - Get the numerical extension
-  ExtWidth=lastChar - lastDot - 1;
-  //mprintf("  REMDDEBUG: Last . in %s located at %i\n",remdfile.filename,i);
-  //mprintf("  REMDDEBUG: Allocating %i for extension\n",ExtWidth+1);
-  //mprintf("  REMDDEBUG: EXTwidth=%i\n",ExtWidth);
-  ReplicaExt=(char*) malloc( (ExtWidth+1) * sizeof(char));
-  strncpy(ReplicaExt, remdfile.filename + lastDot + 1, ExtWidth);
-  ReplicaExt[ExtWidth]='\0';
-  //mprintf("  REMDDEBUG: Replica extension is %s\n",ReplicaExt);
-  // Check that all digits in extension are numbers
-  for (j=0; j<ExtWidth; j++) {
-    if (isdigit(ReplicaExt[j])==0) {
-      mprinterr("    Error: RemdTraj: Character #%i (%c) in extension %s is not a number!\n",
-              j,ReplicaExt[j],ReplicaExt);
-      free(ReplicaExt);
-      return -1;
+ 
+  // STEP 2 - Check that the numerical extension is valid.
+  for (std::string::iterator schar = ReplicaExt.begin();
+                             schar != ReplicaExt.end();
+                             schar++) 
+  {
+    if (!isdigit(*schar,loc)) {
+      mprinterr("Error: RemdTraj: Char [%c] in extension %s is not a digit!\n",
+                *schar, ReplicaExt.c_str());
+      return ReplicaNames;
     }
   }
-  // Store lowest replica number
-  lowestRepnum=atoi(ReplicaExt);
-  //mprintf("  REMDDEBUG: index of first replica = %i\n",j);
-  free(ReplicaExt);
+  int ExtWidth = (int)ReplicaExt.size();
+  if (debug_>1)
+    mprintf("\tREMDTRAJ: Numerical Extension width=%i\n",ExtWidth);
+ 
+  // STEP 3 - Store lowest replica number
+  std::istringstream iss( ReplicaExt );
+  if ( !(iss >> lowestRepnum_) ) {
+    mprinterr("Error: RemdTraj: Could not convert lowest rep # %s to integer.\n",
+              ReplicaExt.c_str());
+    return ReplicaNames;
+  }
+  if (debug_>1)
+    mprintf("\tREMDTRAJ: index of first replica = %i\n",lowestRepnum_);
 
-  // Assume replica file names all have same length. 
-  // Add some padding just in case
-  repFilename=(char*) malloc( (strlen(remdfile.filename)+32) * sizeof(char));
+  // Search for a replica number lower than this. Correct functioning
+  // of the replica code requires the file specified by trajin be the
+  // lowest # replica.
+  std::ostringstream replica_num;
+  replica_num.fill('0');
+  replica_num.width( ExtWidth );
+  replica_num << std::right << (lowestRepnum_ - 1);
+  std::string replica_filename = Prefix + "." + replica_num.str() + CompressExt;
+  if (fileExists((char*)replica_filename.c_str())) {
+    mprintf("    Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
+    mprintf("             (Found %s)\n",replica_filename.c_str());
+    mprintf("             trajin <file> remdtraj requires lowest # replica!\n");
+  }
 
-  return lowestRepnum;
-}
+  // Search for and add all replicas higher than this.
+  int current_repnum = lowestRepnum_;
+  bool search_for_files = true;
+  while (search_for_files) {
+    ++current_repnum;
+    replica_num.str("");
+    replica_num.fill('0');
+    replica_num.width( ExtWidth );
+    replica_num << std::right << current_repnum;
+    replica_filename = Prefix + "." + replica_num.str() + CompressExt;
+    //mprintf("\t\tChecking for %s\n",replica_filename.c_str());
+    if (fileExists((char*)replica_filename.c_str()))
+      ReplicaNames.push_back( replica_filename );
+    else
+      search_for_files = false;
+  }
+  mprintf("\tFound %u replicas.\n",ReplicaNames.size());
 
-// RemdTraj::GetReplicaName()
-/** If name information has already been set by SetRepicaName, return
-  * the expected replica filename given a replica number.
-  */
-char *RemdTraj::GetReplicaName(int repnum) {
-  if (repFilename==NULL) return NULL;
-  sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,repnum,CompressExt);
-  return repFilename;
-}
-
-// RemdTraj::GetLowestReplicaName()
-/** If name information has already been set by SetRepicaName, return
-  * the lowest replica filename.
-  */
-// NOTE: obsolete?
-char *RemdTraj::GetLowestReplicaName() {
-  if (repFilename==NULL) return NULL;
-  sprintf(repFilename,"%s.%0*i%s",Prefix,ExtWidth,lowestRepnum,CompressExt);
-  return repFilename;
+  return ReplicaNames;
 }
 
 // RemdTraj::GetTemperatureName()
@@ -194,16 +237,23 @@ char *RemdTraj::GetLowestReplicaName() {
   * replica numbers in this case start from 0 as opposed to incoming
   * replica filenames, where the lowest replica number can be arbitrary.
   */
-char *RemdTraj::GetTemperatureName(char *prefix, int repnum) {
-  if (TemperatureList==NULL) {
+int RemdTraj::GetTemperatureName(std::string &tname, char *prefix, int repnum) {
+  if (TemperatureList_.empty()) {
     mprinterr("Error: RemdTraj::GetTemperatureName: TemperatureList not set.\n");
-    return NULL;
+    return 1;
   }
-  if (prefix==NULL) return NULL;
-  if (repnum<0 || repnum > (int) REMDtraj.size()) return NULL;
-  repOutname = (char*) realloc(repOutname, (strlen(prefix)+32) * sizeof(char));
-  sprintf(repOutname,"%s.%6.2lf",prefix,TemperatureList[repnum]);
-  return repOutname;
+  if (prefix==NULL) return 1;
+  if (repnum<0 || repnum >= (int)REMDtraj_.size()) return 1;
+
+  std::string Prefix( prefix );
+  std::ostringstream Temp;
+  //Temp.width(6);
+  Temp.precision(2);
+  Temp << std::left << std::fixed << TemperatureList_[repnum];
+
+  tname = Prefix + "." + Temp.str();
+
+  return 0;
 }
 
 // RemdTraj::openTraj()
@@ -213,12 +263,12 @@ int RemdTraj::openTraj() {
   // DEBUG
   mprintf("REMD: OPENING REMD TRAJECTORIES\n");
   // Open the trajectory
-  for (replica=REMDtraj.begin(); replica!=REMDtraj.end(); replica++)
+  for (replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); replica++)
     if ((*replica)->openTraj()) return 1;
 
   // Open output trajectories for writing
-  if (hasTrajout) {
-    for (replica=REMDtrajout.begin(); replica!=REMDtrajout.end(); replica++) 
+  if (hasTrajout_) {
+    for (replica=REMDtrajout_.begin(); replica!=REMDtrajout_.end(); replica++) 
       if ((*replica)->openTraj()) return 1;
   }
 
@@ -230,12 +280,12 @@ int RemdTraj::openTraj() {
 void RemdTraj::closeTraj() {
   std::vector<TrajectoryIO *>::iterator replica;
   // Close the trajectory
-  for (replica=REMDtraj.begin(); replica!=REMDtraj.end(); replica++)
+  for (replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); replica++)
     (*replica)->closeTraj();
 
   // Close output trajectories
-  if (hasTrajout) {
-    for (replica=REMDtrajout.begin(); replica!=REMDtrajout.end(); replica++)
+  if (hasTrajout_) {
+    for (replica=REMDtrajout_.begin(); replica!=REMDtrajout_.end(); replica++)
       (*replica)->closeTraj();
   }
 }
@@ -250,12 +300,12 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
   int trajout, nrep;
   bool found = false;
   
-  for (reptrajin=REMDtraj.begin(); reptrajin!=REMDtraj.end(); reptrajin++) {
+  for (reptrajin=REMDtraj_.begin(); reptrajin!=REMDtraj_.end(); reptrajin++) {
     // No conversion to replica trajectories: Just find target temp
-    if (!hasTrajout) {
+    if (!hasTrajout_) {
       if ((*reptrajin)->readFrame(set,X,V,box,T)) return 1;
       // Check if this is the target temp
-      if (*T == remdtrajtemp) {
+      if (*T == remdtrajtemp_) {
         //printf("REMDTRAJ: Set %i TEMP=%lf\n",set,F->T);
         return 0;
       }
@@ -263,43 +313,43 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
     // All input REMD trajectories converted to temperature trajectories. 
     } else {
       // remdX, remdV, remdN is allocated in SetupTemperatureList 
-      if ((*reptrajin)->readFrame(set,remdX,remdV,remdbox,&remdT)) return 1;
+      if ((*reptrajin)->readFrame(set,remdX_,remdV_,remdbox_,&remdT_)) return 1;
       // Check if this is the target temp. If so, set main Frame coords/box/temp
-      if (remdT == remdtrajtemp) {
+      if (remdT_ == remdtrajtemp_) {
         //mprintf("REMDTRAJ: remdout: Set %i TEMP=%lf\n",set+1,remdT);
-        memcpy(X, remdX, remdN * sizeof(double));
-        if (V!=NULL && hasVelocity) 
-          memcpy(V, remdV, remdN*sizeof(double));
-        memcpy(box, remdbox, 6 * sizeof(double));
-        *T = remdT;
+        memcpy(X, remdX_, remdN_ * sizeof(double));
+        if (V!=NULL && hasVelocity_) 
+          memcpy(V, remdV_, remdN_*sizeof(double));
+        memcpy(box, remdbox_, 6 * sizeof(double));
+        *T = remdT_;
         found=true;
       }
       // Figure out which output file matches this temperature
       trajout=-1; // Will hold the index of target output traj for T
       nrep=0;
-      for (reptrajout=REMDtrajout.begin(); reptrajout!=REMDtrajout.end(); reptrajout++) {
-        if (TemperatureList[nrep] == remdT) {
+      for (reptrajout=REMDtrajout_.begin(); reptrajout!=REMDtrajout_.end(); reptrajout++) {
+        if (TemperatureList_[nrep] == remdT_) {
           trajout = nrep;
           break;
         }
-        nrep++;
+        ++nrep;
       }
       if (trajout==-1) {
         mprinterr("\nError: RemdTraj: remdout: Temperature %6.2lf not found in Temperature list.\n",
-                  remdT);
+                  remdT_);
         return 1;
       }
       // Write to output traj
       //mprintf("REMDTRAJ: Write set %i, T %6.2lf, to %s\n",set+1, remdT, 
       //        (*reptrajout)->Filename());
-      (*reptrajout)->writeFrame(set, remdX,remdV,remdbox,remdT);
+      (*reptrajout)->writeFrame(set, remdX_,remdV_,remdbox_,remdT_);
     }
   }  // END LOOP over input remd trajectories
   if (found) return 0;
   // If we have made it here this means target was not found
   mprinterr("\nError: RemdTraj: Final repTemp value read= %lf, set %i\n",*T,set+OUTPUTFRAMESHIFT);
   mprinterr("Could not find target %lf in any of the replica trajectories.\n",
-            remdtrajtemp);
+            remdtrajtemp_);
   mprinterr("Check that all replica trajectory files were found and that\n");
   mprinterr("none of the trajectories are corrupted (e.g. missing a temperature).\n");
   return 1;
@@ -307,13 +357,13 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
 
 // RemdTraj::info()
 void RemdTraj::info() {
-  mprintf("REMD trajectories (%i total)\n", (int)REMDtraj.size());
-  if (hasTrajout) {
-    mprintf("  remdout: trajectories will be converted to temperature trajectories (%i total):\n",
-            (int)REMDtrajout.size());
-    for (int repnum=0; repnum < (int)REMDtraj.size(); repnum++)
-      mprintf("\t\t[%6.2lf]\n",TemperatureList[repnum]);
+  mprintf("REMD trajectories (%u total)\n", REMDtraj_.size());
+  if (hasTrajout_) {
+    mprintf("  remdout: trajectories will be converted to temperature trajectories (%u total):\n",
+            REMDtrajout_.size());
+    for (unsigned int repnum=0; repnum < REMDtraj_.size(); repnum++)
+      mprintf("\t\t[%6.2lf]\n",TemperatureList_[repnum]);
   }
-  mprintf("        Looking for frames at %8.2lf K",remdtrajtemp);
+  mprintf("        Looking for frames at %.2lf K",remdtrajtemp_);
 }
  

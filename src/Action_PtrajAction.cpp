@@ -61,10 +61,7 @@ int PtrajAction::init( ) {
   actioninfo->type = TRANSFORM_NOOP;
 
   // Set the action type and function based on the command
-  if      ( actionArgs.CommandIs("atomicfluct")      ) {
-    actioninfo->type = TRANSFORM_ATOMICFLUCT;
-    actioninfo->fxn = (actionFunction) transformAtomicFluct;
-  } else if ( actionArgs.CommandIs("atomicfluct3D")  ) {
+  if ( actionArgs.CommandIs("atomicfluct3D")  ) {
     actioninfo->type = TRANSFORM_ATOMICFLUCT3D;
     actioninfo->fxn = (actionFunction) transformAtomicFluct3D;
   } else if ( actionArgs.CommandIs("contacts")       ) {
@@ -135,7 +132,7 @@ int PtrajAction::init( ) {
   // Set reference structure
   Frame *refframe = FL->GetFrame(0);
   if (refframe!=NULL) 
-    SetReferenceInfo(refframe->X, refframe->natom);
+    SetReferenceInfo(refframe->CoordPtr(), refframe->Natom());
 
   // Dont call setup here since there is no state information yet
   mprintf("    PTRAJ ACTION: [%s]\n",actionArgs.Command());
@@ -185,37 +182,19 @@ int PtrajAction::setup() {
 
 // PtrajAction::action()
 int PtrajAction::action() {
-  int i3;
   // NOTE: Not checking for Called Setup here since the noSetup
   // flag should catch it.
   // Convert coordinates array X0Y0Z0X1... into separate X Y Z vectors
-  i3 = 0;
-  for (int atom = 0; atom < currentFrame->natom; atom++) {
-    x_coord[atom] = currentFrame->X[i3++];
-    y_coord[atom] = currentFrame->X[i3++];
-    z_coord[atom] = currentFrame->X[i3++];
-  }
-  // Protect state box coords
-  ptraj_box[0] = currentFrame->box[0];
-  ptraj_box[1] = currentFrame->box[1];
-  ptraj_box[2] = currentFrame->box[2];
-  ptraj_box[3] = currentFrame->box[3];
-  ptraj_box[4] = currentFrame->box[4];
-  ptraj_box[5] = currentFrame->box[5];
- 
+  // Also protect state box coords
+  currentFrame->ConvertToPtrajXYZ(x_coord, y_coord, z_coord, ptraj_box);
+
   // Ptraj actions return 1 on success, 0 on failure 
   if (actioninfo->fxn(actioninfo, x_coord, y_coord, z_coord, ptraj_box, PTRAJ_ACTION)==0)
     return 1;
 
   // If necessary, translate ptraj X Y Z vectors back to frame
-  if (coordinate_update) {
-    i3 = 0;
-    for (int atom = 0; atom < currentFrame->natom; atom++) {
-      currentFrame->X[i3++] = x_coord[atom];
-      currentFrame->X[i3++] = y_coord[atom];
-      currentFrame->X[i3++] = z_coord[atom];
-    }
-  }
+  if (coordinate_update) 
+    currentFrame->SetFromPtrajXYZ(x_coord, y_coord, z_coord);
 
   return 0;
 } 

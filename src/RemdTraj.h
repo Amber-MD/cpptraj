@@ -9,20 +9,37 @@
   * a temperature matching remdtrajtemp will be used.
   */
 class RemdTraj : public TrajectoryIO {
-    // Private vars
-    char *Prefix;      ///< Complete filename to lowest replica up to the numerical extension
-    int ExtWidth;      ///< Size of the numerical extension in characters
-    char *CompressExt; ///< If replica is compressed, hold the compression extension
-    char *repFilename; ///< Will hold replica filename last set by GetReplicaName
-    int lowestRepnum;  ///< Hold the lowest replica number
-    bool hasTrajout;   ///< True if writing replica trajectories during read
-    double *remdX;     ///< Hold coords of replica traj for writing out
-    double *remdV; 
-    double remdbox[6];
-    double remdT;
-    int remdN;         ///< For output trajectories, number of coords.
-    char *repOutname;  ///< Will hold output temperature trajectory filename
-    double *TemperatureList; ///< List of temperatures found in replicas
+  public:
+    RemdTraj();
+    ~RemdTraj();
+    
+    // RemdTraj-specific functions
+    void SetTargetTemp(double);
+    int SetupTemperatureList(int);
+    std::vector<std::string> SearchForReplicas();
+    int GetTemperatureName(std::string&,char*, int);
+    void AddReplicaTrajin(TrajectoryIO*);
+    void AddReplicaTrajout(TrajectoryIO*);
+    const char *LowestReplicaName();
+
+    int Nreplicas();
+  private:
+    // RemdTraj-specific variables 
+    double remdtrajtemp_;                    ///< Get frames with this temperature on read
+    std::vector<TrajectoryIO*> REMDtraj_;    ///< Input replica trajectories
+    std::vector<TrajectoryIO*> REMDtrajout_; ///< Output replica trajectories
+    int lowestRepnum_;                       ///< Hold the lowest replica number
+
+    // For T-trajectory writes 
+    bool hasTrajout_;         ///< True if writing replica trajectories during read
+    double *remdX_;           ///< Hold coords of replica traj for writing out
+    double *remdV_;           ///< Hold velocities of rep traj for writing out
+    double remdbox_[6];       ///< Hold box coords of rep traj for writing out
+    double remdT_;            ///< Hold replica temp for writing out 
+    int remdN_;               ///< For output trajectories, number of coords.
+    std::vector<double> TemperatureList_; ///< List of temperatures found in replicas
+
+    void PrintNoExtError();
 
     // Inherited functions
     int openTraj();
@@ -30,21 +47,5 @@ class RemdTraj : public TrajectoryIO {
     int readFrame(int,double*,double*,double*,double*);
     //int writeFrame(int,double*,double*,double);
     void info();
-
-  public:
-    RemdTraj();
-    ~RemdTraj();
-    
-    // RemdTraj-specific variables 
-    double remdtrajtemp;                    ///< Get frames with this temperature on read
-    std::vector<TrajectoryIO*> REMDtraj;    ///< Input replica trajectories
-    std::vector<TrajectoryIO*> REMDtrajout; ///< Output replica trajectories
-    
-    // RemdTraj-specific functions
-    int SetupTemperatureList(int);
-    int SetReplicaName(char*);
-    char *GetReplicaName(int);
-    char *GetLowestReplicaName();
-    char *GetTemperatureName(char *, int);
 };
 #endif

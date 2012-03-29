@@ -3,8 +3,6 @@
 #include <cstring> //memcpy
 #include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
-#include "TorsionRoutines.h"
-#include "Bonds.h"
 // DEBUG
 #include "TrajectoryFile.h"
 //#include <cstdio>
@@ -59,7 +57,7 @@ int atommap::calcDist() {
   // First check if bond info already present
   if ( mapParm->BondArray( bondArray ) ) {
     // No bond info present; create from frame
-    mapParm->GetBondsFromCoords( mapFrame->X );
+    mapParm->GetBondsFromFrame( *mapFrame );
     // Try to get the bond info again.
     if ( mapParm->BondArray( bondArray ) ) {
       mprinterr("Error: AtomMap: Could not get bond information for %s\n",mapParm->parmName);
@@ -332,31 +330,22 @@ void atommap::WriteMol2(char *m2filename) {
   AtomMask M1;
   // Temporary parm to play with
   AmberParm *tmpParm;
-  Frame tmpFrame;
+  //Frame tmpFrame;
   ArgList tmpArg;
 
-  // Create mask containing all atoms
-  //for (int atom=0; atom<natom; atom++) Selected[atom]=atom;
-  // Fake strip, just use as crap way to copy
-  //tmpParm = P->modifyStateByMask(Selected,natom);
-  //free(Selected);
-  // Modify the bonds array to include this info
-  //tmpParm->ResetBondInfo();
-  //for (int atom=0; atom<natom; atom++) 
-  //  for (int bond=0; bond < M[atom].nbond; bond++) 
-  //    tmpParm->AddBond(atom, M[atom].bond[bond], 0);
   // Create mask with all mapped atoms
-  for (int atom=0; atom<natom; atom++) {if (M[atom].isMapped) M1.AddAtom(atom);}
+  for (int atom=0; atom<natom; atom++) {
+    if (M[atom].isMapped) M1.AddAtom(atom);
+  }
   // Strip so only mapped atoms remain
-  tmpParm = mapParm->modifyStateByMask(M1.Selected,NULL);
-  tmpFrame.SetupFrame(M1.Nselected,NULL);
-  tmpFrame.SetFrameFromMask(mapFrame, &M1);
+  tmpParm = mapParm->modifyStateByMask(M1,NULL);
+  Frame tmpFrame(*mapFrame, M1);
 
   // Trajectory Setup
   tmpArg.AddArg((char*)"title\0");
   tmpArg.AddArg(m2filename);
   outfile.SetDebug(debug);
-  outfile.SetupWrite(m2filename,&tmpArg,tmpParm,MOL2FILE);
+  outfile.SetupWrite(m2filename,&tmpArg,tmpParm,TrajectoryFile::MOL2FILE);
   outfile.WriteFrame(0,tmpParm,tmpFrame);
   outfile.EndTraj();
 
@@ -563,15 +552,13 @@ int AtomMap::mapChiral(atommap *Ref, atommap *Tgt) {
     }
     // Calculate reference improper dihedrals
     for (r=0; r<notunique_r; r++) {
-      dR[r] = Torsion(Ref->mapFrame->Coord(uR[0]),Ref->mapFrame->Coord(uR[1]),
-                      Ref->mapFrame->Coord(uR[2]),Ref->mapFrame->Coord(nR[r]));
+      dR[r] = Ref->mapFrame->DIHEDRAL(uR[0],uR[1],uR[2],nR[r]);
       if (debug>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %lf\n",r,
                            uR[0],uR[1],uR[2],nR[r],dR[r]);
     }
     // Calculate target improper dihedrals
     for (r=0; r<notunique_t; r++) {
-      dT[r] = Torsion(Tgt->mapFrame->Coord(uT[0]),Tgt->mapFrame->Coord(uT[1]),
-                      Tgt->mapFrame->Coord(uT[2]),Tgt->mapFrame->Coord(nT[r]));
+      dT[r] = Tgt->mapFrame->DIHEDRAL(uT[0],uT[1],uT[2],nT[r]);
       if (debug>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",r,
                            uR[0],uR[1],uR[2],nT[r],dT[r]);
     }
@@ -912,18 +899,20 @@ int AtomMap::MapWithNoUniqueAtoms( atommap *Ref, atommap *Tgt ) {
         if (numAtomsMapped<3) continue;
         // Score this mapping with an RMSD ---------------------------------
         // Set up a reference/target frame containing only mapped atoms
-        int rmsIndex = 0;
+        //int rmsIndex = 0;
         //mprintf("\tRMS fitting %i atoms from target to reference.\n",numAtomsMapped);
-        rmsRefFrame.SetupFrame(numAtomsMapped,NULL);
-        rmsTgtFrame.SetupFrame(numAtomsMapped,NULL);
-        for (int refatom = 0; refatom < Ref->natom; refatom++) {
+        //rmsRefFrame.SetupFrame(numAtomsMapped,NULL);
+        //rmsTgtFrame.SetupFrame(numAtomsMapped,NULL);
+        rmsRefFrame.SetReferenceByMap(*(Ref->mapFrame), AMap, Ref->natom);
+        rmsTgtFrame.SetTargetByMap(*(Tgt->mapFrame), AMap, Ref->natom);
+/*        for (int refatom = 0; refatom < Ref->natom; refatom++) {
           int targetatom = AMap[refatom];
           if (targetatom!=-1) {
             rmsRefFrame.SetCoord(rmsIndex, Ref->mapFrame->Coord(refatom));
             rmsTgtFrame.SetCoord(rmsIndex, Tgt->mapFrame->Coord(targetatom));
             ++rmsIndex;
           }
-        }
+        }*/
         double RmsVal = rmsTgtFrame.RMSD(&rmsRefFrame, Rot, Trans, false);
         mprintf("\tRMS fit (%i atoms) based on guess Tgt %i -> Ref %i, %lf\n",
                 numAtomsMapped,(*t)+1, (*r)+1, RmsVal);
@@ -1088,11 +1077,12 @@ int AtomMap::init() {
   if (!maponly && rmsfit) {
     mprintf("             rmsfit: Will rms fit mapped atoms in tgt to reference.\n");
     if (rmsout!=NULL) {
-      rmsdata = DSL->Add(DOUBLE,actionArgs.getNextString(),"RMSD");
+      rmsdata = DSL->Add(DataSet::DOUBLE,actionArgs.getNextString(),"RMSD");
       if (rmsdata==NULL) return 1;
       DFL->Add(rmsout,rmsdata);
     }
   }
+
 
   // For each map, set up (get element for each atom, initialize map mem),
   // determine what atoms are bonded to each other via simple distance
@@ -1115,6 +1105,10 @@ int AtomMap::init() {
     mprintf("                     to # atoms in target (%i).\n",TargetMap.natom);
   }
 
+  // Set up RMS frames to be able to hold max # of possible frames
+  rmsRefFrame.SetupFrame(RefMap.natom);
+  rmsTgtFrame.SetupFrame(RefMap.natom);
+
   // Allocate memory for atom map
   //   AMap[reference]=target
   AMap=new int[ RefMap.natom ]; 
@@ -1132,15 +1126,15 @@ int AtomMap::init() {
 
   // Print atom map and count # mapped atoms
   numMappedAtoms = 0;
-  outputfile.SetupFile(outputname,WRITE,DATAFILE,UNKNOWN_TYPE,debug);
+  outputfile.SetupWrite(outputname,debug);
   outputfile.OpenFile();
-  outputfile.IO->Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
+  outputfile.Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
   for (refatom=0; refatom<RefMap.natom; refatom++) {
     targetatom=AMap[refatom];
     if (targetatom < 0) 
-      outputfile.IO->Printf("%6s %4s %6i %4s\n","---","---",refatom+1,RefMap.Aname(refatom));
+      outputfile.Printf("%6s %4s %6i %4s\n","---","---",refatom+1,RefMap.Aname(refatom));
     else
-      outputfile.IO->Printf("%6i %4s %6i %4s\n",targetatom+1,TargetMap.Aname(targetatom),
+      outputfile.Printf("%6i %4s %6i %4s\n",targetatom+1,TargetMap.Aname(targetatom),
                             refatom+1,RefMap.Aname(refatom));
     if (targetatom>=0) {
       //mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
@@ -1160,15 +1154,16 @@ int AtomMap::init() {
   // performed using all atoms that were successfully mapped from 
   // target to reference.
   if (rmsfit) {
-    int rmsRefIndex = 0;
+    //int rmsRefIndex = 0;
     // Set up a reference frame containing only mapped reference atoms
-    rmsRefFrame.SetupFrame(numMappedAtoms,NULL);
+    rmsRefFrame.SetReferenceByMap(*(RefMap.mapFrame), AMap, RefMap.natom);
+/*    rmsRefFrame.SetupFrame(numMappedAtoms,NULL);
     for (refatom = 0; refatom < RefMap.natom; refatom++) {
       targetatom = AMap[refatom];
       if (targetatom!=-1) rmsRefFrame.SetCoord(rmsRefIndex++, RefMap.mapFrame->Coord(refatom));
-    }
+    }*/
     // Prepare target frame to hold mapped atoms
-    rmsTgtFrame.SetupFrame(numMappedAtoms,NULL);
+    //rmsTgtFrame.SetupFrame(numMappedAtoms,NULL);
     mprintf("      rmsfit: Will rms fit %i atoms from target to reference.\n",numMappedAtoms);
     return 0;
   }
@@ -1188,11 +1183,9 @@ int AtomMap::init() {
       mprintf("    Modifying reference %s topology and frame to match mapped atoms.\n",
               FL->FrameName(refIndex));
       //stripParm = RefMap.mapParm->modifyStateByMask(M1->Selected, numMappedAtoms, NULL);
-      stripParm = RefMap.mapParm->modifyStateByMask(M1->Selected, NULL);
+      stripParm = RefMap.mapParm->modifyStateByMask(*M1, NULL);
       // Strip reference frame
-      newFrame = new Frame();
-      newFrame->SetupFrame(numMappedAtoms,RefMap.mapParm->mass);
-      newFrame->SetFrameFromMask(RefMap.mapFrame, M1);
+      newFrame = new Frame(*(RefMap.mapFrame), *M1);
       delete M1;
       // Replace reference with stripped versions
       if (FL->ReplaceFrame(refIndex, newFrame, stripParm)) {
@@ -1246,7 +1239,7 @@ int AtomMap::setup() {
     return 1;
   }
   if (rmsfit) {
-    mprintf("    ATOMMAP: rmsfit specified, %i atoms.\n",rmsRefFrame.natom);
+    mprintf("    ATOMMAP: rmsfit specified, %i atoms.\n",rmsRefFrame.Natom());
     return 0;
   }
   mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TargetMap.mapParm->parmName,
@@ -1266,11 +1259,12 @@ int AtomMap::action() {
 
   // Perform RMS fit on mapped atoms only
   if (rmsfit) {
-    int rmsTgtIndex = 0;
+    rmsTgtFrame.SetTargetByMap(*currentFrame, AMap, RefMap.natom);
+/*    int rmsTgtIndex = 0;
     for (int refatom = 0; refatom < RefMap.natom; refatom++) {
       int targetatom = AMap[refatom];
       if (targetatom!=-1) rmsTgtFrame.SetCoord(rmsTgtIndex++, currentFrame->Coord(targetatom));
-    }
+    }*/
     R = rmsTgtFrame.RMSD(&rmsRefFrame, Rot, Trans, false);
     currentFrame->Trans_Rot_Trans(Trans,Rot);
     if (rmsdata!=NULL)
@@ -1279,8 +1273,11 @@ int AtomMap::action() {
   }
 
   // Modify the current frame
-  for (int atom=0; atom < currentFrame->natom; atom++) 
-    newFrame->SetCoord(atom, currentFrame->Coord(AMap[atom]));
+  // TODO: Fix this since its probably busted for unmapped atoms; also
+  //       it doesnt copy velocity/masses
+  newFrame->SetCoordinates(*currentFrame, AMap);
+  //for (int atom=0; atom < currentFrame->natom; atom++) 
+  //  newFrame->SetCoord(atom, currentFrame->Coord(AMap[atom]));
   currentFrame = newFrame;
   return 0;
 }

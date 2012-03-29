@@ -5,11 +5,9 @@
 // Class: CoordFileList
 /// Base class for trajectory lists.
 /** Used as base for input trajectories (trajin), output trajectories (trajout),
-  * and reference coordinates (reference). Each class that inherits this should
-  * set fileAccess, which is the default access for files added to the list 
-  * (e.g. for TrajinList, fileAccess is READ, etc). Each inheriting class will
-  * also provide its own implementation of Add, which will Add files to the
-  * list and set them up if appropriate.
+  * and reference coordinates (reference). Each inheriting class will provide 
+  * its own implementation of Add, which will Add files to the list and set them
+  * up if appropriate.
   */
 class CoordFileList {
   protected:
@@ -17,7 +15,6 @@ class CoordFileList {
     std::list<TrajectoryFile*> trajList;
     /// Iterator pointing to the current trajectory
     std::list<TrajectoryFile*>::iterator currentTraj;
-    AccessType fileAccess;      ///< READ/WRITE/APPEND, set in constructor/Add(write)
     int debug;                  ///< Debug level
 
     bool FilenameInUse(char *); ///< Return true if filename exists in list

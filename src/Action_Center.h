@@ -5,7 +5,6 @@
 #include "Action.h"
 class Center: public Action {
     AtomMask Mask1;
-    double box[3];
     bool origin;
   public:
     Center();

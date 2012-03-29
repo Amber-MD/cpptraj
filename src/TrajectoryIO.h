@@ -5,29 +5,21 @@
 #include "ArgList.h"
 // Class: TrajectoryIO
 /// Base class for performing trajectory reading and writing.
-/** This is the base class that all formats will inherit. If the trajectory format
-  * reads/writes from a file, a CpptrajFile object should be passed in via
-  * the SetFile function. 
+/** This is the base class that all formats will inherit. It inherits from 
+  * CpptrajFile and so will be able to set up a FileIO class (IO) appropriate
+  * to the underlying file type (e.g. standard, gzip, etc).  
   * The following functions can be implemented by the inheriting class:
-  * setupRead, setupWrite, openTraj, closeTraj, readFrame, writeFrame, 
+  * setupTrajin, setupTrajout, openTraj, closeTraj, readFrame, writeFrame, 
   * info, and processWriteArgs (optional).
   */
-class TrajectoryIO {
-  protected:
-    CpptrajFile *tfile; ///< Base file.
-    char *title;        ///< Trajectory title.
-    int debug;          ///< Debug level
+class TrajectoryIO : public CpptrajFile {
   public:
-    bool seekable;      ///< True if can seek to frames in this traj.
-    bool hasBox;        ///< True if the trajectory has box information.
-    double boxAngle[3]; ///< Hold alpha, beta and gamma angles of box if hasBox.
-    bool hasTemperature;///< True if trajectory has temperature information.
-    bool hasVelocity;   ///< True if trajectory has velocity information.
-
     TrajectoryIO();
     virtual ~TrajectoryIO(); // virtual since this class is inherited.
+    TrajectoryIO(const TrajectoryIO&);
+    TrajectoryIO &operator=(const TrajectoryIO&);
 
-    // -----===== Inherited functions =====-----
+    // -----------===== Inherited functions =====-----------
     /// Set up trajectory IO for READ/APPEND
     /** Called inside TrajectoryFile::SetupRead. Takes as an argument the 
       * AmberParm class that will be associated with this trajectory. Returns 
@@ -35,13 +27,13 @@ class TrajectoryIO {
       * variables (title, seekable, hasBox, boxAngle (only if hasBox), 
       * hasTemperature, and hasVelocity. If an error occurs should return -1.
       */
-    virtual int setupRead(AmberParm *) { return -1; }
+    virtual int setupTrajin(AmberParm *) { return -1; }
     /// Set up trajectory IO for WRITE 
     /** Called inside TrajectoryFile::WriteFrame on the first write call. Takes
       * as an argument the AmberParm class that will be associated with this 
       * trajectory. 
       */
-    virtual int setupWrite(AmberParm *) { return 1; }
+    virtual int setupTrajout(AmberParm *) { return 1; }
     /// Open traj, prepare for IO.
     virtual int openTraj() { return 1; }
     /// Read a frame from trajectory
@@ -64,28 +56,39 @@ class TrajectoryIO {
     virtual void info() { return; }
     /// Process arguments relevant to writing trajectory (optional)
     /** Process any arguments from the arg list that have to do with 
-      * setting the trajectory up for writing. Called before setupWrite, so 
+      * setting the trajectory up for writing. Called before setupTrajout, so 
       * none of the arguments should be parm-related. It is desireable that any 
       * changes made to the TrajectoryIO object from within this function are
       * implemented as functions that can be called independently if need be 
       * (e.g. setting the write  mode for PDB files).
       */
     virtual int processWriteArgs(ArgList *) { return 0; }
-    /// Use the given CpptrajFile 
-    void SetFile(CpptrajFile *);
-    /// Set up a CpptrajFile
-    int NewFile(char *, AccessType, FileFormat, FileType);
+    // -----------------------------------------------------
     /// Set the trajectory title
     void SetTitle(char *);
-    /// Return true if trajectory filename is input
-    bool FilenameIs(char *);
-    /// Set debug level
+    /// Set debug level - CpptrajFile has no SetDebug
     void SetDebug(int);
     /// For writes, indicate temperature info should be written if supported
     void SetTemperature();
-    /// Return the trajectory format
-    FileFormat TrajFormat();
-    /// Return the filename
-    char *Filename();
+    /// For writes, indicate box information should be written
+    void SetBox();
+    /// Check box info in traj against box info in parm
+    int CheckBoxInfo(AmberParm*);
+
+    /// Return true if the trajectory is seekable.
+    bool Seekable();
+    /// Return true if the trajectory has box coordinates.
+    bool HasBox();
+    /// Return true if the trajectory has temperature info.
+    bool HasTemperature();
+    /// Return true if the trajectory has velocity info.
+    bool HasVelocity();
+  protected:
+    std::string title_;  ///< Trajectory title.
+    bool seekable_;      ///< True if can seek to frames in this traj.
+    bool hasBox_;        ///< True if the trajectory has box information.
+    double boxAngle_[3]; ///< Hold alpha, beta and gamma angles of box if hasBox.
+    bool hasTemperature_;///< True if trajectory has temperature information.
+    bool hasVelocity_;   ///< True if trajectory has velocity information.
 }; 
 #endif

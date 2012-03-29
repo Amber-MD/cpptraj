@@ -103,7 +103,7 @@ void CpptrajState::Dispatch(char *inputLine) {
     AtomMask *tempMask = new AtomMask();
     tempMask->SetMaskString( dispatchArg.getNextMask() );
     // NOTE: No coords for now, Frame list not set up.
-    tempParm->SetupIntegerMask( *tempMask, NULL );
+    tempParm->SetupIntegerMask( *tempMask );
     tempMask->PrintMaskAtoms("Selected");
     delete tempMask;
     return;
@@ -214,6 +214,8 @@ int CpptrajState::Run() {
     if (lastPindex != CurrentParm->pindex) {
       // Set up the incoming trajectory frame for this parm
       TrajFrame.SetupFrameV(CurrentParm->natom, CurrentParm->mass, traj->HasVelocity());
+      // Set active reference for this parm
+      CurrentParm->SetReferenceCoords( refFrames.ActiveReference() );
       // Set up actions for this parm
       if (actionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",

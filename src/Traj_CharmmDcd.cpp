@@ -39,10 +39,10 @@ int CharmmDcd::openTraj() {
   int err;
 
   err=0;
-  switch (tfile->access) {
+  switch (access_) {
     case READ : 
       // Always read past the DCD header
-      err = tfile->OpenFile();
+      err = OpenFile();
       if (err==0) {
         err = readDcdHeader(); 
       }
@@ -52,7 +52,7 @@ int CharmmDcd::openTraj() {
       err=1;
       break;
     case WRITE :
-      err = tfile->OpenFile();
+      err = OpenFile();
       // Always write DCD header
       if (err==0) {
         err = writeDcdHeader();
@@ -72,15 +72,15 @@ int CharmmDcd::openTraj() {
 void CharmmDcd::closeTraj() {
   doublebyte framecount;
 
-  if (tfile->access!=READ) {
-    tfile->IO->Seek( sizeof(int) + 4 );
+  if (isOpen_ && access_!=READ) {
+    IO->Seek( sizeof(int) + 4 );
     framecount.i[1] = 0;
     framecount.i[0] = dcdframes;
     // NOTE: Here we are ensuring that ONLY 4 bytes are read. This could
     //       overflow for large # of frames.
-    tfile->IO->Write(framecount.c,sizeof(unsigned char), 4); 
+    IO->Write(framecount.c,sizeof(unsigned char)*4); 
   }
-  tfile->CloseFile();
+  CloseFile();
 }
 
 // ---------- Byte Swapping Routines -------------------------------------------
@@ -165,7 +165,7 @@ int CharmmDcd::ReadBlock(int expected) {
   int val;
   // Read size of block
   INbyte.i[1] = 0;
-  if (tfile->IO->Read(INbyte.c, sizeof(unsigned char), readSize) < 1) {
+  if (IO->Read(INbyte.c, sizeof(unsigned char)*readSize) < 1) {
     mprinterr("Error: Could not read block from DCD.\n");
     return -1;
   }
@@ -193,14 +193,14 @@ int CharmmDcd::ReadBlock(int expected) {
   * size and endianness (use OS default).
   */
 int CharmmDcd::WriteBlock(int blocksize) {
-  tfile->IO->Write(&blocksize, sizeof(int), 1);
+  IO->Write(&blocksize, sizeof(int));
   return 0;
 }
 
-// CharmmDcd::setupRead()
+// CharmmDcd::setupTrajin()
 /** Call openTraj, which reads the DCD header and all necessary info.
   */
-int CharmmDcd::setupRead(AmberParm *trajParm) {
+int CharmmDcd::setupTrajin(AmberParm *trajParm) {
   if ( openTraj() ) return -1;
   closeTraj();
   return dcdframes;
@@ -224,7 +224,7 @@ int CharmmDcd::readDcdHeader() {
   // Read first 8 bytes - first number in dcd header should be 84.
   // If 32 bit the number is in the first 4 bytes, 64 bit is first
   // 8 bytes.
-  tfile->IO->Read(LEbyte.c, sizeof(unsigned char), 8);
+  IO->Read(LEbyte.c, sizeof(unsigned char)*8);
   // Key that identifies dcd file, will be 4 bytes after first block
   dcdkey.i[1]=0;
   dcdkey.c[0]='C';
@@ -263,13 +263,13 @@ int CharmmDcd::readDcdHeader() {
       is64bit = false;
     // Otherwise who know what the heck this is
     } else {
-      mprinterr("Error: Unrecognized DCD header [%s].\n",tfile->filename);
+      mprinterr("Error: Unrecognized DCD header [%s].\n",BaseName());
       return 1;
     }
   }
   // If 64 bit check next 4 bytes for the dcd key
   if (is64bit) {
-    tfile->IO->Read(LEbyte.c, sizeof(unsigned char), 4);
+    IO->Read(LEbyte.c, sizeof(unsigned char)*4);
     if ( LEbyte.i[0] != dcdkey.i[0] ) {
       mprinterr("Error: DCD key not found in 64 bit Charmm DCD file.\n");
       return 1;
@@ -282,20 +282,20 @@ int CharmmDcd::readDcdHeader() {
     readSize = 4;
 
 // ********** Step 2 - Read the rest of the first header block
-  if (tfile->IO->Read(buffer.c, sizeof(unsigned char), 80) < 1) {
+  if (IO->Read(buffer.c, sizeof(unsigned char)*80) < 1) {
     mprinterr("Error: Could not buffer DCD header.\n");
     return 1;
   }
   if (isBigEndian) endian_swap(buffer.i, 20);
   // Print ICNTRL variables for debugging
-  if (debug>1) {
+  if (debug_>1) {
     for (int i=0; i < 20; i++) 
       mprintf("\ticntrl[%i]= %i\n",i,buffer.i[i]  );
   }
   // Make sure this is Charmm format; last integer in the header should not
   // be zero.
   if ( buffer.i[19] != 0 ) {
-    if (debug>0) mprintf("\tCharmm DCD\n");
+    if (debug_>0) mprintf("\tCharmm DCD\n");
     // Check for Charmm-specific flags
     //if ( buffer.i[10] != 0 ) dcdExtraBlock = true;
     if ( buffer.i[11] != 0 ) dcd4D = true;
@@ -312,10 +312,10 @@ int CharmmDcd::readDcdHeader() {
   // Number of fixed atoms
   namnf  = buffer.i[8];
   // Box information
-  if (buffer.i[10] != 0) hasBox=true;
+  if (buffer.i[10] != 0) hasBox_=true;
   // Timestep - float
   timestep = buffer.f[9];
-  if (debug>0) mprintf("\tTimestep is %f\n",timestep);
+  if (debug_>0) mprintf("\tTimestep is %f\n",timestep);
   // Read end size of first block, should also be 84
   if (ReadBlock(84)<0) return 1;
 
@@ -324,18 +324,19 @@ int CharmmDcd::readDcdHeader() {
   titleSize = ReadBlock(-1);
   if (titleSize < 0) return 1;
   // Read titles    
-  if (debug>1) mprintf("\tTitle block size %i\n",titleSize);
+  if (debug_>1) mprintf("\tTitle block size %i\n",titleSize);
   if ( ((titleSize - 4) % 80) == 0 ) {
     // Read ntitle
-    if (tfile->IO->Read(&ntitle,sizeof(int),1) < 1) {
+    if (IO->Read(&ntitle,sizeof(int)) < 1) {
       mprintf("Error: DCD Reading ntitle.\n");
       return 1;
     }
     if (isBigEndian) endian_swap(&ntitle,1);
-    if (debug>1) mprintf("\tNtitle %i\n",ntitle);
+    if (debug_>1) mprintf("\tNtitle %i\n",ntitle);
     for (int i=0; i < ntitle; i++) {
-      tfile->IO->Read(dcdtitle,sizeof(char),80);
-      if (debug>0) mprintf("\tTitle%i: [%s]\n",i+1,dcdtitle);
+      IO->Read(dcdtitle,sizeof(char)*80);
+      if (debug_>0) mprintf("\tTitle%i: [%s]\n",i+1,dcdtitle);
+      title_.assign( dcdtitle );
     }
   }
   // Read title end block size
@@ -345,12 +346,12 @@ int CharmmDcd::readDcdHeader() {
   // Read in next block size, should be 4
   if (ReadBlock(4)<0) return 1;
   // Read in number of atoms
-  if (tfile->IO->Read(&dcdatom,sizeof(int),1) < 1) {
+  if (IO->Read(&dcdatom,sizeof(int)) < 1) {
     mprintf("Error: DCD reading natom.\n");
     return 1;
   }
   if (isBigEndian) endian_swap(&dcdatom,1);
-  if (debug>0) mprintf("\tNatom %i\n",dcdatom);
+  if (debug_>0) mprintf("\tNatom %i\n",dcdatom);
   if (xcoord==NULL) xcoord = new float[dcdatom];
   if (ycoord==NULL) ycoord = new float[dcdatom];
   if (zcoord==NULL) zcoord = new float[dcdatom];
@@ -368,7 +369,7 @@ int CharmmDcd::readDcdHeader() {
     // Read index array size
     if (ReadBlock(nfreat * 4) < 0) return 1;
     // Read index array
-    if (tfile->IO->Read( freeat, sizeof(int), nfreat) < 1) {
+    if (IO->Read( freeat, sizeof(int)*nfreat) < 1) {
       mprinterr("Error reading DCD index array.\n");
       return 1;
     }
@@ -383,23 +384,24 @@ int CharmmDcd::readDcdHeader() {
 // CharmmDcd::readFrame()
 int CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *T) {
   // Load box info
-  if (hasBox) {
+  if (hasBox_) {
     if ( ReadBlock(48) < 0) return 1;
-    tfile->IO->Read(box, sizeof(double), 6);
+    IO->Read(box, sizeof(double)*6);
     if (isBigEndian) endian_swap8(box,6);
     if ( ReadBlock(-1) < 0) return 1;
-  } 
+  }
+  size_t coordinate_size = (size_t)dcdatom * sizeof(float); 
   // Read X coordinates
   ReadBlock(-1);
-  tfile->IO->Read(xcoord, sizeof(float), dcdatom);
+  IO->Read(xcoord, coordinate_size);
   ReadBlock(-1);
   // Read Y coordinates
   ReadBlock(-1);
-  tfile->IO->Read(ycoord, sizeof(float), dcdatom);
+  IO->Read(ycoord, coordinate_size);
   ReadBlock(-1);
   // Read Z coordinates
   ReadBlock(-1);
-  tfile->IO->Read(zcoord, sizeof(float), dcdatom);
+  IO->Read(zcoord, coordinate_size);
   ReadBlock(-1);
 
   // Swap little->big endian if necessary
@@ -425,21 +427,21 @@ int CharmmDcd::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-// CharmmDcd::setupWrite()
+// CharmmDcd::setupTrajout()
 /** Set up the charmm dcd trajectory for writing. No writing is done here, the
   * actual write calls are in writeDcdHeader which is called from openTraj.
   * Set is64bit and isBigEndian, although they are not currently used during
   * writes; size and endianness will be OS default.
   */
-int CharmmDcd::setupWrite(AmberParm *trajParm) {
+int CharmmDcd::setupTrajout(AmberParm *trajParm) {
   dcdatom = trajParm->natom;
   // dcdframes = trajParm->parmFrames;
   dcdframes = 0;
   // Output size in bytes (4 bytes per atom)
   dcdoutsize = dcdatom * sizeof(float);
   // Set up title
-  if (title==NULL)
-    this->SetTitle((char*)"Cpptraj generated dcd file.\0");
+  if (title_.empty())
+    title_.assign("Cpptraj generated dcd file.");
   // Allocate space for atom arrays
   if (xcoord==NULL) xcoord = new float[dcdatom];
   if (ycoord==NULL) ycoord = new float[dcdatom];
@@ -478,7 +480,7 @@ int CharmmDcd::writeDcdHeader() {
   dcdkey.c[1]='O';
   dcdkey.c[2]='R';
   dcdkey.c[3]='D';
-  tfile->IO->Write(dcdkey.c, sizeof(unsigned char), 4);
+  IO->Write(dcdkey.c, sizeof(unsigned char)*4);
 
   // Set up header information, 80 bytes
   memset(buffer.i,0,20*sizeof(int));
@@ -496,9 +498,9 @@ int CharmmDcd::writeDcdHeader() {
   // Charmm version - Should this just be set to 0?
   buffer.i[19] = 35;
   // Box information
-  if (hasBox) buffer.i[10] = 1;
+  if (hasBox_) buffer.i[10] = 1;
   // Write the header
-  tfile->IO->Write(buffer.i, sizeof(int), 20);
+  IO->Write(buffer.i, sizeof(int)*20);
   // Write endblock size
   WriteBlock(84);
 
@@ -507,22 +509,22 @@ int CharmmDcd::writeDcdHeader() {
   WriteBlock(84);
   // Write NTITLE
   dcdkey.i[0] = 1; 
-  tfile->IO->Write(dcdkey.i, sizeof(int), 1);
+  IO->Write(dcdkey.i, sizeof(int)*1);
   // Determine the size of the title
-  size_t titleSize = strlen(title);
+  size_t titleSize = title_.size();
   // If title is longer than 80 truncate it for now
   if (titleSize > 80) titleSize = 80;
   // Use strncpy to avoid writing terminal NULL.
-  strncpy(dcdtitle, title, titleSize);
+  strncpy(dcdtitle, title_.c_str(), titleSize);
   // Write title
-  tfile->IO->Write(dcdtitle, sizeof(char), 80);
+  IO->Write(dcdtitle, sizeof(char)*80);
   // Write title end block
   WriteBlock(84);
 
   // Write atom block - 4 bytes
   WriteBlock(4);
   dcdkey.i[0] = dcdatom;
-  tfile->IO->Write(dcdkey.i, sizeof(int), 1);
+  IO->Write(dcdkey.i, sizeof(int));
   WriteBlock(4);
 
   return 0;
@@ -531,9 +533,9 @@ int CharmmDcd::writeDcdHeader() {
 // CharmmDcd::writeFrame()
 int CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double T) {
   // Box coords - 6 doubles, 48 bytes
-  if (hasBox) {
+  if (hasBox_) {
     WriteBlock(48);
-    tfile->IO->Write(box, sizeof(double), 6);
+    IO->Write(box, sizeof(double)*6);
     WriteBlock(48);
   }
 
@@ -545,19 +547,21 @@ int CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double T) {
     zcoord[i] = X[x++];
   }
 
+  size_t coordinate_size = (size_t)dcdatom * sizeof(float);
+
   // Write x coords
   WriteBlock(dcdoutsize);
-  tfile->IO->Write(xcoord, sizeof(float), dcdatom);
+  IO->Write(xcoord, coordinate_size);
   WriteBlock(dcdoutsize);
 
   // Write y coords
   WriteBlock(dcdoutsize);
-  tfile->IO->Write(ycoord, sizeof(float), dcdatom);
+  IO->Write(ycoord, coordinate_size);
   WriteBlock(dcdoutsize);
 
   // Write z coords 
   WriteBlock(dcdoutsize);
-  tfile->IO->Write(zcoord, sizeof(float), dcdatom);
+  IO->Write(zcoord, coordinate_size);
   WriteBlock(dcdoutsize);
 
   // Update frame count

@@ -55,7 +55,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
       char *maskarg = argIn->getNextMask();
       if (maskarg!=NULL) {
         tempMask.SetMaskString( maskarg );
-        ParmList[pindex]->SetupCharMask( tempMask, NULL );
+        ParmList[pindex]->SetupCharMask( tempMask );
         for (int atom=0; atom < ParmList[pindex]->natom; atom++) 
           if (tempMask.AtomInCharMask(atom)) ParmList[pindex]->AtomInfo(atom);
       } else {
@@ -81,7 +81,7 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
             ParmList[pindex]->parmName,outfilename);
     ParmFile pfile;
     pfile.SetDebug( debug );
-    pfile.Write( *ParmList[pindex], outfilename, AMBERPARM );
+    pfile.Write( *ParmList[pindex], outfilename, ParmFile::AMBERPARM );
     //ParmList[pindex]->WriteAmberParm(outfilename);
     return 0;
   }
@@ -96,10 +96,10 @@ int ParmFileList::CheckCommand(ArgList *argIn) {
     tempMask.SetMaskString(mask0);
     // Since want to keep atoms outside mask, invert selection
     tempMask.InvertMask();
-    ParmList[pindex]->SetupIntegerMask( tempMask, NULL );
+    ParmList[pindex]->SetupIntegerMask( tempMask );
     mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(), 
-             ParmList[pindex]->natom - tempMask.Nselected, ParmList[pindex]->parmName);
-    AmberParm *tempParm = ParmList[pindex]->modifyStateByMask(tempMask.Selected, NULL);
+             ParmList[pindex]->natom - tempMask.Nselected(), ParmList[pindex]->parmName);
+    AmberParm *tempParm = ParmList[pindex]->modifyStateByMask(tempMask, NULL);
     if (tempParm==NULL) 
       mprinterr("Error: parmstrip: Could not strip parm.\n");
     else {
@@ -335,11 +335,16 @@ int ParmFileList::AddParmFile(char *filename, std::string &ParmTag) {
   * of parm files corresponding to frames in the reference frame list.
   */
 int ParmFileList::AddParm(AmberParm *ParmIn) {
+  if (ParmIn==NULL) return 1;
+  if (!hasCopies && !ParmList.empty()) {
+    mprinterr("Error: Attempting to add copy of parm to list with non-copies!\n");
+    return 1;
+  }
   // Set the hasCopies flag so we know not to try and delete these parms
   hasCopies=true;
   //P->pindex=Nparm; // pindex should already be set
   ParmList.push_back(ParmIn);
-  Nparm++;
+  ++Nparm;
   return 0;
 }
 

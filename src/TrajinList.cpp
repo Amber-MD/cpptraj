@@ -4,11 +4,6 @@
 #include "CpptrajStdio.h"
 //#include "MpiRoutines.h" // worldrank,worldsize
 
-// CONSTRUCTOR
-TrajinList::TrajinList() {
-  fileAccess=READ;
-}
-
 // TrajinList::AddTrajin()
 /** Add trajectory to the trajectory list as an input trajectory. 
   * Associate the trajectory with one of the parm files in the 

@@ -72,7 +72,7 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
   // up an axis for ExpCoords.
   for (int base=0; base < Nbases; base++) {
     // Set exp coords based on previously set-up mask
-    BaseAxes[base].SetFrameCoordsFromMask( InputFrame->X, &ExpMasks[base] );
+    BaseAxes[base].SetCoordinates( *InputFrame, ExpMasks[base] );
 #   ifdef NASTRUCTDEBUG
     int expbasenum = BaseAxes[base].ResNum();
     mprintf("Base REF %i:%4s   EXP %i:%4s\n",
@@ -762,7 +762,7 @@ int NAstruct::determineBaseParameters() {
     Param[3] *= RADDEG;
     Param[4] *= RADDEG;
     Param[5] *= RADDEG;
-    BPOut.IO->Printf(BP_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, 
+    BPOut.Printf(BP_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, 
                      BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
                      Param[0],Param[1],Param[2],Param[5],Param[4],Param[3]);
 /*    SHEAR.AddData(frameNum, Param, nbasepair);
@@ -779,7 +779,7 @@ int NAstruct::determineBaseParameters() {
 
     ++nbasepair; // Actual base pair count; BP is nbasepair*3
   }
-  BPOut.IO->Printf("\n");
+  BPOut.Printf("\n");
 
   return 0;
 }
@@ -804,7 +804,7 @@ int NAstruct::determineBasepairParameters() {
     Param[3] *= RADDEG;
     Param[4] *= RADDEG;
     Param[5] *= RADDEG;
-    BPstepOut.IO->Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, 
+    BPstepOut.Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, 
                          BasePairAxes[bpi].ResNum()+1,BasePairAxes[bpi].ResNum2()+1,
                          BasePairAxes[bpj].ResNum()+1,BasePairAxes[bpj].ResNum2()+1,
                          Param[0],Param[1],Param[2],Param[5],Param[4],Param[3]);
@@ -819,13 +819,13 @@ int NAstruct::determineBasepairParameters() {
     Param[3] *= RADDEG;
     Param[4] *= RADDEG;
     Param[5] *= RADDEG;
-    HelixOut.IO->Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT,
+    HelixOut.Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT,
                         BasePairAxes[bpi].ResNum()+1,BasePairAxes[bpi].ResNum2()+1,
                         BasePairAxes[bpj].ResNum()+1,BasePairAxes[bpj].ResNum2()+1,
                         Param[0],Param[1],Param[2],Param[3],Param[4],Param[5]);
   }
-  BPstepOut.IO->Printf("\n");
-  HelixOut.IO->Printf("\n");
+  BPstepOut.Printf("\n");
+  HelixOut.Printf("\n");
 
   return 0;
 }
@@ -908,35 +908,35 @@ int NAstruct::init() {
   // Open BasePair param output file. Use resname as temp filename storage. 
   resname.assign( outputsuffix );
   resname = "BP." + resname;
-  if ( BPOut.SetupFile((char*)resname.c_str(), WRITE, debug) ) {
+  if ( BPOut.SetupWrite((char*)resname.c_str(), debug) ) {
     mprinterr("Error: Could not set up bpout file %s\n",resname.c_str());
     return 1;
   }
   BPOut.OpenFile();
   if (!noheader)
-    BPOut.IO->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n","#Frame","Base1","Base2",
+    BPOut.Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n","#Frame","Base1","Base2",
                      "Shear","Stretch","Stagger","Buckle","Propeller","Opening");
   // Open BasePair step param output file.
   resname.assign( outputsuffix );
   resname = "BPstep." + resname;
-  if ( BPstepOut.SetupFile((char*)resname.c_str(), WRITE, debug) ) {
+  if ( BPstepOut.SetupWrite((char*)resname.c_str(), debug) ) {
     mprinterr("Error: Could not set up bpstepout file %s\n",resname.c_str());
     return 1;
   }
   BPstepOut.OpenFile();
   if (!noheader) 
-    BPstepOut.IO->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+    BPstepOut.Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
                          "Shift","Slide","Rise","Tilt","Roll","Twist");
   // Open Helix param output file.
   resname.assign( outputsuffix );
   resname = "Helix." + resname;
-  if ( HelixOut.SetupFile((char*)resname.c_str(), WRITE, debug) ) {
+  if ( HelixOut.SetupWrite((char*)resname.c_str(), debug) ) {
     mprinterr("Error: Could not set up helixout file %s\n",resname.c_str());
     return 1;
   }
   HelixOut.OpenFile();
   if (!noheader)
-    HelixOut.IO->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+    HelixOut.Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
                         "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
 
   mprintf("    NAstruct: ");

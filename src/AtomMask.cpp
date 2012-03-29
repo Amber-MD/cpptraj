@@ -1,28 +1,29 @@
 #include <algorithm> // sort, unique
+#include <locale> // isspace
+#include <stack>
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
 #include "PtrajMask.h"
+#include "ArgList.h"
 
 // CONSTRUCTOR
-AtomMask::AtomMask() {
-  Nselected=0;
-  Natom = 0;
-  maskChar = 'T';
-}
-
-// DESTRUCTOR
-AtomMask::~AtomMask() {
-}
+AtomMask::AtomMask() :
+  debug_(0),
+  maskChar_('T'),
+  Natom_(0),
+  nselected_(0)
+{}
 
 // COPY CONSTRUCTOR
 AtomMask::AtomMask(const AtomMask &rhs) {
-  Nselected=rhs.Nselected;
-  Natom=rhs.Natom;
-  maskChar=rhs.maskChar;
-  maskString=rhs.maskString;
-  Selected=rhs.Selected;
-  CharMask=rhs.CharMask;
-  Postfix=rhs.Postfix;
+  debug_ = rhs.debug_;
+  nselected_=rhs.nselected_;
+  Natom_=rhs.Natom_;
+  maskChar_=rhs.maskChar_;
+  maskString_=rhs.maskString_;
+  Selected_=rhs.Selected_;
+  CharMask_=rhs.CharMask_;
+  Postfix_=rhs.Postfix_;
 }
 
 // AtomMask::operator=()
@@ -32,47 +33,402 @@ AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   if ( this == &rhs ) return *this;
   // Deallocate
   // Allocate and copy
-  Nselected=rhs.Nselected;
-  Natom=rhs.Natom;
-  maskChar=rhs.maskChar;
-  maskString=rhs.maskString;
-  Selected=rhs.Selected;
-  CharMask=rhs.CharMask;
-  Postfix=rhs.Postfix;
+  debug_ = rhs.debug_;
+  nselected_=rhs.nselected_;
+  Natom_=rhs.Natom_;
+  maskChar_=rhs.maskChar_;
+  maskString_=rhs.maskString_;
+  Selected_=rhs.Selected_;
+  CharMask_=rhs.CharMask_;
+  Postfix_=rhs.Postfix_;
   // Return *this
   return *this;
 }
 
+static bool IsOperator(char op) {
+  if (op=='!') return true;
+  if (op=='&') return true;
+  if (op=='|') return true;
+  if (op=='<') return true;
+  if (op=='>') return true;
+  return false;
+}
+
+static bool IsOperand(char op) {
+  std::locale loc;
+  if (op=='*')  return true;
+  if (op=='/')  return true;
+  if (op=='%')  return true;
+  if (op=='-')  return true;
+  if (op=='?')  return true;
+  if (op==',')  return true;
+  if (op=='\'') return true;
+  if (op=='.')  return true;
+  if (op=='=')  return true;
+  if (op=='+')  return true;
+  if (isalnum(op, loc)) return true;
+  return false;
+}
+
+static int OperatorPriority(char op) {
+  if (op == '>') return(6);
+  if (op == '<') return(6);
+  if (op == '!') return(5);
+  if (op == '&') return(4);
+  if (op == '|') return(3);
+  if (op == '(') return(2);
+  if (op == '_') return(1);
+
+  mprinterr("OperatorPriority(): unknown operator ==%c== on stack when processing atom mask",op);
+  return(0);
+}
+
+// AtomMask::Tokenize()
+/** STEP1: preprocess the input string:
+  * - remove spaces 
+  * - isolate 'operands' into brackets [...]
+  * - split expressions of the type :1-10@CA,CB into two parts;
+  *   the two parts are joined with '&' operator and (for the sake
+  *   of preserving precedence of other operators) enclosed into (..)
+  *   :1-10@CA,CB    is split into  (:1-10 & @CA,CB)
+  * - do basic error checking
+  *
+  * STEP2: convert to RPN
+  * - operands (part enclosed in [..]) are copied directly to 'postfix'
+  * - left parentheses are always pushed onto the stack
+  * - when a right parenthesis is encountered the symbol at the top
+  *   of the stack is popped off the stack and copied to 'postfix'
+  *   until the symbol at the top of the stack is a left parenthesis.
+  *   When that occurs both parentheses are discarded
+  * - if the symbol scanned from 'infix' has a higher precedence 
+  *   then the symbol at the top of the stack, the symbol being 
+  *   scanned is pushed onto the stack
+  * -  if the precedence of the symbol being scanned is lower than 
+  *   or equal to the precedence of the symbol at the top of the 
+  *   stack, the stack is popped to 'postfix' until the condition
+  *   holds
+  * - when the terminating symbol '_' is reached on the input scan
+  *   the stack is popped to 'postfix' until the terminating symbol
+  *   is also reached on the stack. Then the algorithm terminates.
+  * - if the top of the stack is '(' and the terminating symbol '_'
+  *   is scanned, or ')' is scanned when '_' is at the top of the
+  *   stack, the parentheses of the atom expression were unbalanced
+  *   and an unrecoverable error has occurred.
+  */
+int AtomMask::Tokenize() {
+  std::string infix;
+  std::string buffer;
+  std::locale loc;
+  //std::string postfix;
+  std::stack<char> Stack;
+
+  // 0 means new operand or operand was just completed, and terminated with ']', 
+  // 1 means operand with ":" read,
+  // 2 means operand with "@" read
+  // 3 means '<' or '>' read, waiting for numbers.
+  int flag = 0;
+
+  for (std::string::iterator p = maskString_.begin(); p != maskString_.end(); p++)
+  {
+    // Skip spaces and newlines
+    if ( isspace(*p, loc) ) continue;
+    
+    if ( IsOperator(*p) || *p == '(' || *p == ')' ) {
+      if (flag > 0) {
+        buffer += "])";
+        flag = 0;
+        infix += buffer;
+      }
+
+      infix += *p;
+
+      if ( *p == '>' || *p == '<' ) {
+        buffer.assign("([");
+        buffer += *p;
+        ++p;
+        buffer += *p;
+        flag = 3;
+        if ( *p != ':' && *p != '@' ) {
+          --p;
+          mprinterr("Error: Tokenize: Wrong syntax for distance mask [%c]\n",*p);
+          return 1;
+        }
+      }
+    } else if ( IsOperand(*p) || isalnum(*p, loc) ) {
+      if (flag==0) {
+        buffer.assign("([");
+        flag = 1;
+        if ( *p != '*') {
+          mprinterr("Error: Tokenize: Wrong syntax [%c]\n",*p);
+          return 1;
+        }
+      }
+      if (*p == '=') { // The AMBER9 definition of wildcard '=' is equivalent to '*'.
+        if (flag > 0)
+          *p = '*';
+        else {
+          mprinterr("Error: Tokenize: '=' not in name list syntax\n");
+          return 1;
+        }
+      }
+      buffer += *p;
+    } else if ( *p == ':' ) {
+      if (flag == 0) {
+        buffer.assign("([:");
+        flag = 1;
+      } else {
+        buffer += "])|([:";
+        flag = 1;
+      }
+    } else if ( *p == '@' ) {
+      if (flag == 0) {
+        buffer.assign("([@");
+        flag = 2;
+      } else if (flag == 1) {
+        buffer += "]&[@";
+        flag = 2;
+      } else if (flag == 2) {
+        buffer += "])|([@";
+        flag = 2;
+      }
+    } else {
+      mprinterr("Error: Tokenize: Unknown symbol (%c) expression when parsing atom mask [%s]\n",
+                *p, maskString_.c_str());
+      return 1;
+    }
+  } // END for loop over maskString
+  // Terminate buffer if necessary
+  if (flag > 0) {
+    buffer += "])";
+    infix += buffer;
+  }
+
+  // NOTE: Check for malformed tokens?
+
+  // Add terminal symbol '_', needed for RPN conversion
+  infix += "_";
+
+  if (debug_ > 0)
+    mprintf("DEBUG: NEW_INFIX ==%s==\n",infix.c_str());
+
+  // -----------------------------------
+  // Convert to RPN
+  Postfix_.clear(); 
+  // push terminal symbol '_' to stack
+  Stack.push('_');
+
+  // 1 when start with "[", 0 when finished.
+  flag = 0;
+  char pp = ' ';
+  for (std::string::iterator p = infix.begin(); p != infix.end(); p++) {
+    if (*p == '[') {
+      Postfix_ += *p;
+      flag = 1;
+    } else if (*p == ']') {
+      Postfix_ += *p;
+      flag = 0;
+    } else if (flag == 1) {
+      Postfix_ += *p;
+    } else if (*p == '(') {
+      Stack.push(*p);
+    } else if (*p == ')') {
+      while ( (pp = Stack.top()) != '(') {
+        Stack.pop();
+        if (pp == '_') {
+          mprinterr("Error: Mask::ToRPN: unbalanced parentheses in expression\n");
+          return 1;
+        }
+        Postfix_ += pp;
+      }
+      Stack.pop(); // Discard '('
+      // At this point both parentheses are discarded
+    } else if (*p == '_') {
+      while ( (pp = Stack.top()) != '_') {
+        Stack.pop();
+        if (pp == '(') {
+          mprinterr("Error: Mask::ToRPN: unbalanced parentheses in expression\n");
+          return 1;
+        }
+        Postfix_ += pp;
+      }
+      Stack.pop(); // Discard '_'
+    } else if ( IsOperator(*p) ) {
+      int P1 = OperatorPriority( *p );
+      int P2 = OperatorPriority( Stack.top() );
+      if ( P1==0 || P2==0 ) return 1; // 0 indicates error in op
+      if (P1 > P2) {
+        Stack.push( *p );
+      } else {
+        while ( P1 <= P2 ) {
+          pp = Stack.top();
+          Stack.pop();
+          Postfix_ += pp;
+          P1 = OperatorPriority( *p );
+          P2 = OperatorPriority( Stack.top() );
+          if ( P1==0 || P2==0 ) return 1; // 0 indicates error in op
+        }
+        Stack.push( *p );
+      }
+    } else {
+      mprinterr("Error: ToRPN: Unknown symbol in atom mask (%c)\n", *p);
+      return 1;
+    } 
+  } // END for loop over infix
+  if (debug_ > 0)
+  mprintf("DEBUG: NEW_POSTFIX ==%s==\n",Postfix_.c_str());
+
+  // Convert to MaskTokens in same order. The postfix expression is composed
+  // of operands enclosed within brackets, and single character operators.
+  // The exception is the distance operator, which is also an operand. An
+  // operand can have multiple entries separated by commas (e.g. [:1,2-7,5] 
+  // has 3). Once an operand is complete the OnStack bit of the token is set
+  // to indicate the mask should go on the stack for processing by operators.
+  // Operators store the result of their operation on the mask on top of
+  // the stack so they dont need to be pushed.
+  std::string tokenString;
+  MaskToken token;
+  for (std::string::iterator p = Postfix_.begin(); p != Postfix_.end(); p++) 
+  {  // Operand begins here
+    if (*p == '[')
+      buffer.clear();
+    // Operand is completed
+    else if (*p == ']') {
+      //mprintf("PROCESSING MASK OPERAND [%s]\n",buffer.c_str());
+      if (buffer[0]=='<' || buffer[0]=='>') {
+        // Distance criterion operand/operator
+        // Since operator, resulting mask doesnt need to go on stack.
+        token.SetDistance( buffer );
+        maskTokens_.push_back( token );
+      } else if (buffer[0]=='*') {
+        // Select all operand - result goes on stack
+        token.SetOperator( MaskToken::SelectAll );
+        maskTokens_.push_back( token );
+        maskTokens_.back().SetOnStack();
+      } else {
+        // Basic Operand list. After last entry in list processed result goes
+        // on stack.
+        // Determine type from first char. Default to Num; MaskToken::SetToken
+        // will convert to Name if appropriate.
+        MaskToken::MaskTokenType tokenType = MaskToken::OP_NONE;
+        if (buffer[0]==':') // Residue
+          tokenType = MaskToken::ResNum; 
+        else if (buffer[0]=='@') { // Atom
+          tokenType = MaskToken::AtomNum; 
+          if      (buffer[1]=='%') tokenType = MaskToken::AtomType;
+          else if (buffer[1]=='/') tokenType = MaskToken::AtomElement;
+        }
+        if (tokenType==MaskToken::OP_NONE) {
+          mprinterr("Error: Unrecognized token type.\n");
+          return 1;
+        }
+        // Create new string without type character(s)
+        if (tokenType==MaskToken::ResNum || tokenType==MaskToken::AtomNum)
+          tokenString.assign( buffer.begin()+1, buffer.end() );
+        else
+          tokenString.assign( buffer.begin()+2, buffer.end() );
+        // DEBUG
+        //mprintf("DEBUG: buffer=[%s]  tokenString=[%s]\n",buffer.c_str(),tokenString.c_str());
+        // Split operand by comma
+        ArgList commaList(tokenString, ",");
+        //commaList.PrintList();
+        // Assign each comma-separated arg to a new token
+        for (int arg = 0; arg < commaList.Nargs(); arg++) {
+          token.SetToken( tokenType, commaList[arg] );
+          maskTokens_.push_back( token );
+        }
+        // Indicate that after last token is processed the resulting mask should 
+        // go on the stack.
+        maskTokens_.back().SetOnStack();
+      }
+    // operand is a part inside [...]
+    } else if ( IsOperand( *p ) || *p == ':' || *p == '@' || *p == '<' || *p == '>' ) {
+      buffer += *p;
+    // Operators
+    } else if (*p == '!' ) {
+      token.SetOperator( MaskToken::OP_NEG );
+      maskTokens_.push_back( token );
+    } else if (*p == '&' ) {
+      token.SetOperator( MaskToken::OP_AND );
+      maskTokens_.push_back( token );
+    } else if (*p == '|' ) {
+      token.SetOperator( MaskToken::OP_OR );
+      maskTokens_.push_back( token );
+    // Distance operator; No longer used, operand is the operator
+    } else if (*p == '<' || *p == '>') {
+      continue;
+    } else {
+      mprinterr("Error: Unknown symbol while evaluating mask (%c)\n",*p);
+      return 1;
+    }
+  } // END loop over postfix    
+
+  for (std::vector<MaskToken>::iterator T = maskTokens_.begin(); T != maskTokens_.end(); T++)
+    (*T).Print();
+
+  return 0;
+}
+
+// AtomMask::begin()
+AtomMask::const_iterator AtomMask::begin() const {
+  return Selected_.begin();
+}
+
+// AtomMask::end()
+AtomMask::const_iterator AtomMask::end() const {
+  return Selected_.end();
+}
+
+// AtomMask::Nselected()
+int AtomMask::Nselected() {
+  return nselected_;
+}
+
+// AtomMask::operator[]()
+// NOTE: NO BOUNDS CHECK
+const int &AtomMask::operator[](int idx) {
+  return Selected_[idx];
+}
+
+// AtomMask::MaskString()
+const char *AtomMask::MaskString() {
+  return maskString_.c_str();
+}
+
+// AtomMask::MaskExpression() {
+std::string AtomMask::MaskExpression() {
+  return maskString_;
+}
+
 // AtomMask::PostfixExpression()
 char *AtomMask::PostfixExpression() { 
-  if (Postfix.empty())
+  if (Postfix_.empty())
     return NULL;
-  return (char*)Postfix.c_str(); 
+  return (char*)Postfix_.c_str(); 
 }
 
 // AtomMask::ResetMask()
 void AtomMask::ResetMask() {
-  Nselected = 0;
-  Natom=0;
-  maskChar = 'T';
-  maskString.clear();
-  Selected.clear();
-  CharMask.clear();
-  Postfix.clear();
+  nselected_ = 0;
+  Natom_=0;
+  maskChar_ = 'T';
+  maskString_.clear();
+  Selected_.clear();
+  CharMask_.clear();
+  Postfix_.clear();
 }
 
 // AtomMask::InvertMask()
 /** Currently for integer masks only. Reverse the selected mask char for 
-  * next selection. By default atoms in the Selected array are those marked 
-  * by 'T'. After a call to InvertMask the atoms in the Selected array will
+  * next selection. By default atoms in the Selected_ array are those marked 
+  * by 'T'. After a call to InvertMask the atoms in the Selected_ array will
   * be those marked by 'F'. Subsqeuent calls flip the character back and 
   * forth.
   */
 void AtomMask::InvertMask() {
-  if (maskChar == 'T')
-    maskChar = 'F';
+  if (maskChar_ == 'T')
+    maskChar_ = 'F';
   else
-    maskChar = 'T';
+    maskChar_ = 'T';
 }
 
 // AtomMask::NumAtomsInCommon()
@@ -83,12 +439,12 @@ int AtomMask::NumAtomsInCommon(AtomMask &maskIn) {
   std::vector<int> intersect;
   std::vector<int>::iterator intersect_end;
 
-  if (Selected.empty() || maskIn.Selected.empty()) return 0;
+  if (Selected_.empty() || maskIn.Selected_.empty()) return 0;
   // Max size of the intersection is the min size of either array
-  intersect.resize( Selected.size() );
+  intersect.resize( Selected_.size() );
   // Create copies of arrays so they can be sorted
-  std::vector<int> selected_1 = Selected;
-  std::vector<int> selected_2 = maskIn.Selected;
+  std::vector<int> selected_1 = Selected_;
+  std::vector<int> selected_2 = maskIn.Selected_;
   // Sort the arrays
   sort(selected_1.begin(), selected_1.end());
   sort(selected_2.begin(), selected_2.end());
@@ -97,7 +453,7 @@ int AtomMask::NumAtomsInCommon(AtomMask &maskIn) {
                                    selected_2.begin(), selected_2.end(),
                                    intersect.begin());
   // DEBUG:
-  //mprintf("DBG:\tIntersection of [%s] and [%s] is:",maskString.c_str(),maskIn.maskString.c_str());
+  //mprintf("DBG:\tIntersection of [%s] and [%s] is:",maskString_.c_str(),maskIn.maskString_.c_str());
   //for ( std::vector<int>::iterator atom = intersect.begin();
   //                                 atom != intersect_end;
   //                                 atom++)
@@ -114,59 +470,72 @@ int AtomMask::NumAtomsInCommon(AtomMask &maskIn) {
 // 32 33 34 48 49 50
 void AtomMask::AddAtom(int atomIn) {
   // Ensure atom is not already in mask
-  for (std::vector<int>::iterator atom = Selected.begin();  atom != Selected.end(); atom++) {
+  for (std::vector<int>::iterator atom = Selected_.begin();  atom != Selected_.end(); atom++) {
     if ( *atom == atomIn) return;
     if ( *atom > atomIn) {
       // Insert at the current position, which is the first atom # > atomIn
-      Selected.insert(atom, atomIn);
-      Nselected = (int) Selected.size();
+      Selected_.insert(atom, atomIn);
+      nselected_ = (int) Selected_.size();
       return;
     }
   }
 
   // Add atom to mask
-  Selected.push_back(atomIn);
-  Nselected = (int) Selected.size();
+  Selected_.push_back(atomIn);
+  nselected_ = (int) Selected_.size();
 }
 
 // AtomMask::AddAtoms()
-/** Given an array, add the atom numbers in array to the Selected array.
+/** Given an array, add the atom numbers in array to the Selected_ array.
   * The resulting array is sorted and any duplicates are removed.
   */
 void AtomMask::AddAtoms(std::vector<int> &atomsIn) {
   std::vector<int>::iterator atom;
-  // Make room for atomsIn in Selected
-  //Selected.reserve( Selected.size() + atomsIn.size() );
-  // Put every atom in atomsIn in Selected array
+  // Make room for atomsIn in Selected_
+  //Selected_.reserve( Selected_.size() + atomsIn.size() );
+  // Put every atom in atomsIn in Selected_ array
   for (atom = atomsIn.begin(); atom != atomsIn.end(); atom++) 
-    Selected.push_back( *atom ); 
-  // Sort Selected
-  sort( Selected.begin(), Selected.end() );
+    Selected_.push_back( *atom ); 
+  // Sort Selected_
+  sort( Selected_.begin(), Selected_.end() );
   // Remove duplicates
-  atom = unique( Selected.begin(), Selected.end() );
-  Selected.resize( atom - Selected.begin() );
-  Nselected = (int) Selected.size();
+  atom = unique( Selected_.begin(), Selected_.end() );
+  Selected_.resize( atom - Selected_.begin() );
+  nselected_ = (int) Selected_.size();
 }
 
 // AtomMask::AddAtomRange()
 /** Add atoms in range from minAtom up to but not including maxAtom to 
-  * Selected array. The resulting array is sorted and duplicates are removed.
+  * Selected_ array. The resulting array is sorted and duplicates are removed.
   */
 void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
   //mprintf("DEBUG:\t\tAdding atoms %i to %i\n",minAtom,maxAtom);
   if (minAtom >= maxAtom) return;
   for (int atom = minAtom; atom < maxAtom; atom++)
-    Selected.push_back( atom );
-  // Sort Selected
-  sort( Selected.begin(), Selected.end() );
+    Selected_.push_back( atom );
+  // Sort Selected_
+  sort( Selected_.begin(), Selected_.end() );
   // Remove duplicates
-  std::vector<int>::iterator atomit = unique( Selected.begin(), Selected.end() );
-  Selected.resize( atomit - Selected.begin() );
+  std::vector<int>::iterator atomit = unique( Selected_.begin(), Selected_.end() );
+  Selected_.resize( atomit - Selected_.begin() );
   //mprintf("\t\t[");
-  //for (std::vector<int>::iterator da = Selected.begin(); da != Selected.end(); da++)
+  //for (std::vector<int>::iterator da = Selected_.begin(); da != Selected_.end(); da++)
   //  mprintf(" %i",*da);
   //mprintf("]\n");
-  Nselected = (int) Selected.size();
+  nselected_ = (int) Selected_.size();
+}
+
+// AtomMask::AddMaskAtPosition()
+/** Add the atoms in Mask to this mask starting at the specified positon.
+  * Currently only used by Closest for modifying the original stripped
+  * mask with the calculated closest waters.
+  */
+void AtomMask::AddMaskAtPosition(AtomMask &maskIn, int &idx) {
+  // NOTE: NO BOUNDS CHECK!
+  for (const_iterator atom = maskIn.begin(); atom != maskIn.end(); atom++) {
+    Selected_[idx] = *atom;
+    ++idx;
+  }
 }
 
 // AtomMask::PrintMaskAtoms()
@@ -174,17 +543,17 @@ void AtomMask::PrintMaskAtoms(const char *header) {
   mprintf("%s=",header);
   if (this->None()) 
     mprintf("No atoms selected.");
-  else if (!Selected.empty()) {
-    for (std::vector<int>::iterator atom = Selected.begin();  atom != Selected.end(); atom++)
-      mprintf(" %i",*atom);
-  } else if (!CharMask.empty()) {
+  else if (!Selected_.empty()) {
+    for (std::vector<int>::iterator atom = Selected_.begin();  atom != Selected_.end(); atom++)
+      mprintf(" %i",*atom + 1);
+  } else if (!CharMask_.empty()) {
     int atomnum = 0;
-    for (std::vector<char>::iterator mc = CharMask.begin();  mc != CharMask.end(); mc++) {
-      if (*mc == maskChar) mprintf(" %i",atomnum);
+    for (std::vector<char>::iterator mc = CharMask_.begin();  mc != CharMask_.end(); mc++) {
+      if (*mc == maskChar_) mprintf(" %i",atomnum);
       ++atomnum;
     }
   } else 
-    mprintf("Warning: Mask [%s] has not been set up yet.\n",maskString.c_str());
+    mprintf("Warning: Mask [%s] has not been set up yet.\n",maskString_.c_str());
   mprintf("\n");
 }
 
@@ -192,17 +561,20 @@ void AtomMask::PrintMaskAtoms(const char *header) {
 /** Take the given mask expression and preprocess it for subsequent use
   * with the mask parser. Convert to infix, then postfix notation.
   */
-int AtomMask::SetMaskString(char *maskStringIn) {
-  char infix[MAXSELE], postfix[MAXSELE];
-  int debug = 0; // temporary hack
+int AtomMask::SetMaskString(char *maskString_In) {
 
-  if (maskStringIn!=NULL) 
-    maskString.assign( maskStringIn );
+  if (maskString_In!=NULL) 
+    maskString_.assign( maskString_In );
   else
-    maskString.assign( "*" );
+    maskString_.assign( "*" );
 
-  // 1) preprocess input expression
-  if (tokenize((char*)maskString.c_str(), infix)!=0) 
+  if (debug_ > 0) mprintf("expression: ==%s==\n", maskString_.c_str());
+
+  // TEST
+  if (Tokenize()) return 1;
+
+/*  // 1) preprocess input expression
+  if (tokenize((char*)maskString_.c_str(), infix)!=0) 
     return 1;
   
   if (debug > 5) mprintf("tokenized: ==%s==\n", infix);
@@ -212,13 +584,13 @@ int AtomMask::SetMaskString(char *maskStringIn) {
     return 1;
   
   if (debug > 5) mprintf("postfix  : ==%s==\n", postfix);
-  Postfix.assign( postfix );
+  Postfix_.assign( postfix );*/
   return 0;
 }
 
 // AtomMask::None()
 bool AtomMask::None() {
-  if (Nselected==0) return true;
+  if (nselected_==0) return true;
   return false;
 }
 
@@ -226,33 +598,33 @@ bool AtomMask::None() {
 /** Set up an atom mask containing selected atom numbers given a char
   * array of size natom with T for selected atoms and F for unselected
   * atoms. The actual mask parser is called from AmberParm. 
-  * maskChar is used to determine whether atoms denoted by 'T' or 'F' will
+  * maskChar_ is used to determine whether atoms denoted by 'T' or 'F' will
   * be selected (the latter is the case e.g. with stripped atoms). 
   */
 void AtomMask::SetupMask(char *charmask,int natom,int debug) {
   // Wipe out previous char mask if allocated
-  CharMask.clear();
+  CharMask_.clear();
 
   // Set up an integer list of the selected atoms. 
   // NOTE: For large selections this will use 4x the memory of the char atom
   //       mask. Could check to see which will be bigger.
-  Nselected=0;
-  Natom = natom;
-  Selected.clear();
+  nselected_=0;
+  Natom_ = natom;
+  Selected_.clear();
   for (int atom=0; atom < natom; atom++) {
-    if (charmask[atom]==maskChar) {
-      Selected.push_back( atom );
-      ++Nselected;
+    if (charmask[atom]==maskChar_) {
+      Selected_.push_back( atom );
+      ++nselected_;
     }
   }
 
   if (debug>0) {
-    if (maskChar=='F')
+    if (maskChar_=='F')
       mprintf("          Inverse of Mask %s corresponds to %i atoms.\n",
-              maskString.c_str(), natom - Nselected);
+              maskString_.c_str(), natom - nselected_);
     else
-      mprintf("          Mask %s corresponds to %i atoms.\n",maskString.c_str(),
-              Nselected);
+      mprintf("          Mask %s corresponds to %i atoms.\n",maskString_.c_str(),
+              nselected_);
   }
 }
 
@@ -261,28 +633,28 @@ void AtomMask::SetupMask(char *charmask,int natom,int debug) {
   * Useful for cases where we need to know both atoms in and out of mask.
   */
 void AtomMask::SetupCharMask(char *charmask, int natom, int debug) {
-  // Wipe out previous Selected mask if allocated
-  Selected.clear();
+  // Wipe out previous Selected_ mask if allocated
+  Selected_.clear();
 
   // Allocate atom mask - free mask if already allocated
-  CharMask.clear();
+  CharMask_.clear();
 
-  Nselected=0;
-  Natom = natom;
-  CharMask.reserve( natom );
+  nselected_=0;
+  Natom_ = natom;
+  CharMask_.reserve( natom );
   for (int i = 0; i < natom; i++) {
-    CharMask.push_back( charmask[i] );
+    CharMask_.push_back( charmask[i] );
     // Determine number of selected atoms
-    if (charmask[i] == maskChar) ++Nselected;
+    if (charmask[i] == maskChar_) ++nselected_;
   }
 }
 
 // AtomMask::AtomInCharMask()
 bool AtomMask::AtomInCharMask(int atom) {
-  if (CharMask.empty()) return false;
+  if (CharMask_.empty()) return false;
   if (atom < 0) return false;
-  if (atom >= (int)CharMask.size()) return false;
-  if (CharMask[atom]==maskChar) return true;
+  if (atom >= (int)CharMask_.size()) return false;
+  if (CharMask_[atom]==maskChar_) return true;
   return false;
 }
 
@@ -291,32 +663,32 @@ bool AtomMask::AtomInCharMask(int atom) {
   * vice versa.
   */
 int AtomMask::ConvertMaskType() {
-  // Nselected remains the same.
+  // nselected_ remains the same.
   // Integer to Char
-  if (!Selected.empty()) {
-    // If Natom is 0 (which can happen if mask was set up with AddAtomX
+  if (!Selected_.empty()) {
+    // If Natom_ is 0 (which can happen if mask was set up with AddAtomX
     // functions) this cant work.
-    if (Natom==0) {
-      mprinterr("Error: AtomMask::ConvertMaskType(): Natom for integer mask is 0.\n");
+    if (Natom_==0) {
+      mprinterr("Error: AtomMask::ConvertMaskType(): Natom_ for integer mask is 0.\n");
       return 1;
     }
-    CharMask.assign( Natom, 'F' );
-    for (std::vector<int>::iterator maskatom = Selected.begin();
-                                    maskatom != Selected.end();
+    CharMask_.assign( Natom_, 'F' );
+    for (std::vector<int>::iterator maskatom = Selected_.begin();
+                                    maskatom != Selected_.end();
                                     maskatom++)
     {
-      CharMask[*maskatom]='T';
+      CharMask_[*maskatom]='T';
     }
-    Selected.clear();
+    Selected_.clear();
 
   // Char to Integer
-  } else if (!CharMask.empty()) {
-    Selected.reserve( Nselected );
-    for (int atom = 0; atom < Natom; atom++) {
-      if (CharMask[atom]=='T')
-        Selected.push_back( atom );
+  } else if (!CharMask_.empty()) {
+    Selected_.reserve( nselected_ );
+    for (int atom = 0; atom < Natom_; atom++) {
+      if (CharMask_[atom]=='T')
+        Selected_.push_back( atom );
     }
-    CharMask.clear();
+    CharMask_.clear();
 
   } else {
     mprinterr("Error: AtomMask::ConvertMaskType(): Mask has not been set up.\n");

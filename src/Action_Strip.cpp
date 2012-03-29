@@ -56,20 +56,20 @@ int Strip::init( ) {
 /** Attempt to create a new stripped down version of the input parmtop
   */
 int Strip::setup() {
-  if (currentParm->SetupIntegerMask( M1, activeReference )) return 1;
+  if (currentParm->SetupIntegerMask( M1 )) return 1;
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
   if (M1.None()) {
     mprintf("Warning: Strip::setup: Mask [%s] has no atoms.\n",M1.MaskString());
     return 1;
   }
-  mprintf("\tStripping %i atoms.\n",currentParm->natom - M1.Nselected);
+  mprintf("\tStripping %i atoms.\n",currentParm->natom - M1.Nselected());
 
   // Store old parm
   oldParm = currentParm;
 
   // Attempt to create new parmtop based on mask
   if (newParm!=NULL) delete newParm;
-  newParm = currentParm->modifyStateByMask(M1.Selected, prefix);
+  newParm = currentParm->modifyStateByMask(M1, prefix);
   if (newParm==NULL) {
     mprinterr("Error: Strip::setup: Could not create new parmtop.\n");
     return 1;
@@ -94,7 +94,7 @@ int Strip::setup() {
     mprintf("\tWriting out amber topology file %s\n",newParm->parmName);
     ParmFile pfile;
     pfile.SetDebug( debug );
-    if ( pfile.Write( *newParm, newParm->parmName, AMBERPARM ) ) {
+    if ( pfile.Write( *newParm, newParm->parmName, ParmFile::AMBERPARM ) ) {
     //if ( newParm->WriteAmberParm(newParm->parmName) ) {
       mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
                 newParm->parmName);
@@ -111,7 +111,7 @@ int Strip::setup() {
 /** Modify the coordinate frame to reflect stripped parmtop. */
 int Strip::action() {
 
-  newFrame.SetFrameFromMask(currentFrame, &M1);
+  newFrame.SetFrame(*currentFrame,M1);
 
   // Set frame
   currentFrame = &newFrame;

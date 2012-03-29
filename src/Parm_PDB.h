@@ -3,6 +3,6 @@
 #include "ParmIO.h"
 class PdbParmFile : public ParmIO {
   public :
-    int ReadParm(AmberParm&, CpptrajFile&);
+    int ReadParm(AmberParm&);
 };
 #endif

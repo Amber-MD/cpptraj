@@ -5,6 +5,12 @@
 // Class: AmberRestartNC
 /// TrajectoryIO class for reading and writing Amber Netcdf Restarts
 class AmberRestartNC : public TrajectoryIO {
+  public:
+    AmberRestartNC();
+    ~AmberRestartNC();
+    // AmberNetcdf-specific functions
+    void SetNoVelocity();
+  private:
     int ncid;
     int atomDID;
     int ncatom;
@@ -31,8 +37,8 @@ class AmberRestartNC : public TrajectoryIO {
     double dt;
 
     // Inherited functions
-    int setupRead(AmberParm*);
-    int setupWrite(AmberParm*);
+    int setupTrajin(AmberParm*);
+    int setupTrajout(AmberParm*);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
@@ -41,12 +47,6 @@ class AmberRestartNC : public TrajectoryIO {
     void info();
 
     int setupWriteForSet(int,double*);
-
-  public:
-    AmberRestartNC();
-    ~AmberRestartNC();
-    // AmberNetcdf-specific functions
-    void SetNoVelocity();
 };
 #endif
 #endif  

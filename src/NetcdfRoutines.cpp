@@ -4,6 +4,7 @@
 #ifdef BINTRAJ
 #include <cstdio>
 #include <cstdarg>
+#include <cstring>
 #include "netcdf.h"
 #include "NetcdfRoutines.h"
 
@@ -119,22 +120,31 @@ char *GetAttrText(int ncid, int vid, const char *attribute) {
 
 // GetNetcdfConventions()
 /** This is called from CpptrajFile to determine whether filename is a netcdf
-  * trajectory or restart file. Return conventions string.
-  * Return NULL if error or netcdf not compiled in.
+  * trajectory or restart file. Return conventions type.
+  * Return NC_UNKNOWN if error or netcdf not compiled in.
   */
-char *GetNetcdfConventions(char *filename) {
+NC_CONVENTION_TYPE GetNetcdfConventions(char *filename) {
+  NC_CONVENTION_TYPE nctype = NC_UNKNOWN;
 #ifdef BINTRAJ
   int ncid;
-  char *attrText;
   if (checkNCerr(nc_open(filename,NC_NOWRITE,&ncid),
-          "Opening Netcdf file %s for reading",filename)!=0) return NULL;  
-  attrText = GetAttrText(ncid,NC_GLOBAL, "Conventions");
+          "Opening Netcdf file %s for reading",filename)!=0) return NC_UNKNOWN;  
+  char *attrText = GetAttrText(ncid,NC_GLOBAL, "Conventions");
   nc_close(ncid);
-  return attrText;
+  if (strcmp(attrText,"AMBER")==0)
+    nctype = NC_AMBERTRAJ;
+  else if (strcmp(attrText,"AMBERRESTART")==0)
+    nctype = NC_AMBERRESTART;
+  else {
+    mprinterr("Error: Netcdf file %s: Unrecognized conventions \"%s\".\n",
+              filename, attrText);
+    mprinterr("       Expected \"AMBER\" or \"AMBERRESTART\".\n");
+  }
+  free(attrText);
 #else
    mprintf("Error: Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
-   return NULL;
 #endif
+   return nctype;
 }
 
 // FloatToDouble()

@@ -64,8 +64,8 @@ int Pairwise::init( ) {
 
   // Datasets
   ds_name = actionArgs.getNextString();
-  ds_vdw = DSL->AddMulti(DOUBLE, ds_name, "EVDW");
-  ds_elec= DSL->AddMulti(DOUBLE, ds_name, "EELEC");
+  ds_vdw = DSL->AddMulti(DataSet::DOUBLE, ds_name, "EVDW");
+  ds_elec= DSL->AddMulti(DataSet::DOUBLE, ds_name, "EELEC");
   // Add datasets to data file list
   DFL->Add(dataout,ds_vdw);
   DFL->Add(dataout,ds_elec);
@@ -84,7 +84,7 @@ int Pairwise::init( ) {
     // Set reference parm
     RefParm=FL->GetFrameParm(refindex);
     // Set up reference mask
-    if ( RefParm->SetupIntegerMask(RefMask, activeReference) ) return 1;
+    if ( RefParm->SetupIntegerMask(RefMask) ) return 1;
     if (RefMask.None()) {
       mprinterr("    Error: Pairwise::init: No atoms selected in reference mask.\n");
       return 1;
@@ -102,7 +102,7 @@ int Pairwise::init( ) {
 
   // Output for individual atom energy | dEnergy
   if (eout!=NULL) {
-    if (Eout.SetupFile(eout,WRITE,debug)) {
+    if (Eout.SetupWrite(eout,debug)) {
       mprinterr("Error: Pairwise: Could not set up file %s for eout.\n",eout);
       return 1;
     }
@@ -175,7 +175,7 @@ int Pairwise::SetupNonbondParm(AtomMask &maskIn, AmberParm *ParmIn) {
   */
 int Pairwise::setup() {
   // Set up mask
-  if ( currentParm->SetupIntegerMask( Mask0, activeReference) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask0 ) ) return 1;
   if (Mask0.None()) {
     mprintf("    Error: Pairwise::setup: Mask has no atoms.\n");
     return 1;
@@ -201,7 +201,7 @@ int Pairwise::setup() {
   atom_evdw.clear();
   atom_evdw.resize(currentParm->natom, 0);
   // Print pairwise info for this parm
-  mprintf("    PAIRWISE: Mask %s corresponds to %i atoms.\n",Mask0.MaskString(), Mask0.Nselected);
+  mprintf("    PAIRWISE: Mask %s corresponds to %i atoms.\n",Mask0.MaskString(), Mask0.Nselected());
         
   return 0;  
 }
@@ -225,11 +225,11 @@ void Pairwise::NonbondEnergy(Frame *frameIn, AmberParm *parmIn, AtomMask &maskIn
   JI[0]=0; JI[1]=0; JI[2]=0;
   refpair = ref_nonbondEnergy.begin();
   // Loop over all atom pairs and set information
-  std::vector<int>::iterator mask_end = maskIn.Selected.end();
-  std::vector<int>::iterator mask_end1 = maskIn.Selected.end();
+  AtomMask::const_iterator mask_end = maskIn.end();
+  AtomMask::const_iterator mask_end1 = maskIn.end();
   --mask_end1;
   // Outer loop
-  for (std::vector<int>::iterator maskatom1 = maskIn.Selected.begin();
+  for (AtomMask::const_iterator maskatom1 = maskIn.begin();
                                   maskatom1 != mask_end1; 
                                   maskatom1++)
   {
@@ -238,7 +238,7 @@ void Pairwise::NonbondEnergy(Frame *frameIn, AmberParm *parmIn, AtomMask &maskIn
     // Set up exclusion list for this atom
     std::vector<int>::iterator excluded_atom = exclusionList[*maskatom1].begin();
     // Inner loop
-    std::vector<int>::iterator maskatom2 = maskatom1;
+    AtomMask::const_iterator maskatom2 = maskatom1;
     ++maskatom2;
     for (; maskatom2 != mask_end; maskatom2++) {
       // If atom is excluded, just increment to next excluded atom;
@@ -249,7 +249,7 @@ void Pairwise::NonbondEnergy(Frame *frameIn, AmberParm *parmIn, AtomMask &maskIn
         // Set up coord index for this atom
         int coord2 = (*maskatom2) * 3;
         // Calculate the vector pointing from atom2 to atom1
-        vector_sub(JI, frameIn->X+coord1, frameIn->X+coord2);
+        frameIn->COORDVECTOR(JI, coord1, coord2);
         // Normalize
         rij = vector_norm(JI, &rij2);
         // LJ energy 
@@ -284,12 +284,12 @@ void Pairwise::NonbondEnergy(Frame *frameIn, AmberParm *parmIn, AtomMask &maskIn
           // Output
           if (Eout.IsOpen()) {
             if (delta_vdw > cut_evdw || delta_vdw < cut_evdw1) {
-              Eout.IO->Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",
+              Eout.Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",
                               atom1+1,currentParm->AtomName(atom1),
                               atom2+1,currentParm->AtomName(atom2),delta_vdw);
             }
             if (delta_eelec > cut_eelec || delta_eelec < cut_eelec1) {
-              Eout.IO->Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",
+              Eout.Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",
                               atom1+1,currentParm->AtomName(atom1),
                               atom2+1,currentParm->AtomName(atom2),delta_eelec);
             }
@@ -331,14 +331,14 @@ int Pairwise::WriteCutFrame(AmberParm *Parm, AtomMask *CutMask, double *CutCharg
                             Frame *frame, char *outfilename) 
 {
   AmberParm *CutParm;
-  Frame CutFrame;
+  Frame CutFrame(*frame,*CutMask);
   TrajectoryFile tout;
   // TEST: Write file containing only cut atoms
-  CutParm = Parm->modifyStateByMask(CutMask->Selected, NULL);
+  CutParm = Parm->modifyStateByMask(*CutMask, NULL);
   CutParm->SetCharges(CutCharges);
-  CutFrame.SetupFrame(CutParm->natom, CutParm->mass);
-  CutFrame.SetFrameFromMask(frame, CutMask);
-  if (tout.SetupWriteWithArgs(outfilename,"multi",CutParm,MOL2FILE)) {
+  //CutFrame.SetupFrame(CutParm->natom, CutParm->mass);
+  //CutFrame.SetFrameFromMask(frame, CutMask);
+  if (tout.SetupWriteWithArgs(outfilename,"multi",CutParm,TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Pairwise: Could not set up cut mol2 file %s\n",outfilename);
     return 1;
   }
@@ -359,15 +359,15 @@ void Pairwise::PrintCutAtoms(Frame *frame) {
   // EVDW
   if (Eout.IsOpen()) {
     if (nb_calcType==COMPARE_REF)
-      Eout.IO->Printf("\tPAIRWISE: Cumulative dEvdw:");
+      Eout.Printf("\tPAIRWISE: Cumulative dEvdw:");
     else
-      Eout.IO->Printf("\tPAIRWISE: Cumulative Evdw:");
-    Eout.IO->Printf(" Evdw < %.4lf, Evdw > %.4lf\n",cut_evdw1,cut_evdw);
+      Eout.Printf("\tPAIRWISE: Cumulative Evdw:");
+    Eout.Printf(" Evdw < %.4lf, Evdw > %.4lf\n",cut_evdw1,cut_evdw);
   }
   for (int atom = 0; atom < currentParm->natom; atom++) {
     if (atom_evdw[atom]>cut_evdw || atom_evdw[atom]<cut_evdw1) {
       if (Eout.IsOpen()) 
-        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,currentParm->AtomName(atom),atom_evdw[atom]);
+        Eout.Printf("\t\t%6i@%s: %12.4lf\n",atom+1,currentParm->AtomName(atom),atom_evdw[atom]);
       CutMask.AddAtom(atom);
       CutCharges.push_back(atom_evdw[atom]);
     }
@@ -381,15 +381,15 @@ void Pairwise::PrintCutAtoms(Frame *frame) {
   // EELEC
   if (Eout.IsOpen()) {
     if (nb_calcType==COMPARE_REF)
-      Eout.IO->Printf("\tPAIRWISE: Cumulative dEelec:");
+      Eout.Printf("\tPAIRWISE: Cumulative dEelec:");
     else
-      Eout.IO->Printf("\tPAIRWISE: Cumulative Eelec:");
-    Eout.IO->Printf(" Eelec < %.4lf, Eelec > %.4lf\n",cut_eelec1,cut_eelec);
+      Eout.Printf("\tPAIRWISE: Cumulative Eelec:");
+    Eout.Printf(" Eelec < %.4lf, Eelec > %.4lf\n",cut_eelec1,cut_eelec);
   }
   for (int atom = 0; atom < currentParm->natom; atom++) { 
     if (atom_eelec[atom]>cut_eelec || atom_eelec[atom]<cut_eelec1) {
       if (Eout.IsOpen()) 
-        Eout.IO->Printf("\t\t%6i@%s: %12.4lf\n",atom+1,
+        Eout.Printf("\t\t%6i@%s: %12.4lf\n",atom+1,
                         currentParm->AtomName(atom),atom_eelec[atom]);
       CutMask.AddAtom(atom);
       CutCharges.push_back(atom_eelec[atom]);
@@ -404,7 +404,7 @@ void Pairwise::PrintCutAtoms(Frame *frame) {
 // Pairwise::action()
 int Pairwise::action() {
   //if (Energy(&Mask0, currentFrame, currentParm)) return 1;
-  if (Eout.IsOpen()) Eout.IO->Printf("PAIRWISE: Frame %i\n",frameNum);
+  if (Eout.IsOpen()) Eout.Printf("PAIRWISE: Frame %i\n",frameNum);
   NonbondEnergy( currentFrame, currentParm, Mask0 );
   PrintCutAtoms( currentFrame );
   // Reset cumulative energy arrays

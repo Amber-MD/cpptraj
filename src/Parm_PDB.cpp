@@ -8,25 +8,27 @@
 /** Open the PDB file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
   */
-int PdbParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
+int PdbParmFile::ReadParm(AmberParm &parmOut) {
   char buffer[256];
   int atomInLastMol = 0;
   int lastResnum = -1;
   int currentResnum;
 
+   
 # ifdef USE_CHARBUFFER
   // TEST: Close and reopen buffered.
-  parmfile.CloseFile();
-  parmfile.OpenFileBuffered();
-# endif
+  OpenFileBuffered();
+# else
+  if (OpenFile()) return 1;
+# endif 
 
   mprintf("    Reading PDB file %s as topology file.\n",parmOut.parmName);
   memset(buffer,' ',256);
   // Initial readthrough to get # atoms, residues, molecules
 # ifdef USE_CHARBUFFER
-  while ( parmfile.Gets(buffer,256) == 0 )
+  while ( Gets(buffer,256) == 0 )
 # else
-  while ( parmfile.IO->Gets(buffer,256)==0 )
+  while ( IO->Gets(buffer,256)==0 )
 # endif
   {
     // If ENDMDL or END is reached stop reading
@@ -68,7 +70,7 @@ int PdbParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
     mprintf("Error: No atoms in PDB file.\n");
     return 1;
   }
-  if (debug>0) 
+  if (debug_>0) 
     mprintf("\tPDB contains %i atoms, %i residues, %i molecules.\n",
             parmOut.natom,parmOut.nres,parmOut.molecules);
 
@@ -90,11 +92,11 @@ int PdbParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
 
   // Second readthrough to read in values
 # ifdef USE_CHARBUFFER
-  parmfile.Rewind();
-  while ( parmfile.Gets(buffer,256) == 0 ) 
+  Rewind();
+  while ( Gets(buffer,256) == 0 ) 
 # else
-  parmfile.IO->Rewind();
-  while ( parmfile.IO->Gets(buffer,256)==0 ) 
+  IO->Rewind();
+  while ( IO->Gets(buffer,256)==0 ) 
 # endif
   {
     // If ENDMDL or END is reached stop reading
@@ -123,7 +125,7 @@ int PdbParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
         // Leading whitespace will automatically be trimmed.
         // Asterisks will be replaced with prime char
         pdb_resname(buffer, (char*)parmOut.resnames[ires]);
-        if (debug>3) mprintf("\tPDBRes %i [%s]\n",ires+1,parmOut.resnames[ires]);
+        if (debug_>3) mprintf("\tPDBRes %i [%s]\n",ires+1,parmOut.resnames[ires]);
         parmOut.resnums[ires] = iatm;
         ++ires;
         lastResnum = currentResnum;
@@ -161,7 +163,7 @@ int PdbParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
     if (iatm - atomInLastMol != 0)
       parmOut.atomsPerMol[imol++] = iatm - atomInLastMol;
     // DEBUG
-    if (debug>1) {
+    if (debug_>1) {
       mprintf("\tPDB: Atoms Per Molecule:\n");
       for (int mol=0; mol < parmOut.molecules; mol++) 
         mprintf("\t     %8i %8i\n",mol+1,parmOut.atomsPerMol[mol]);
@@ -170,6 +172,8 @@ int PdbParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
 
   // No box for PDB - maybe change later to include unit cell info?
   parmOut.boxType = NOBOX;
+
+  CloseFile();
   
   return 0;
 }

@@ -4,63 +4,63 @@
 
 // CONSTRUCTOR
 Conflib::Conflib() { 
-  energy=0.0;
-  radGyr=0.0;
-  timesFound=0;
-  conflibAtom=0;
+  energy_=0.0;
+  radGyr_=0.0;
+  timesFound_=0;
+  conflibAtom_=0;
 }
 
 //------------------------------------------------------------------------
 // Conflib::closeTraj()
 void Conflib::closeTraj() {
-  tfile->CloseFile();
+  CloseFile();
 }
 
 // Conflib::openTraj()
 int Conflib::openTraj() {
-  if (tfile->OpenFile()) return 1;
+  if (OpenFile()) return 1;
   return 0;
 }
 
-// Conflib::setupRead()
-int Conflib::setupRead(AmberParm *trajParm) {
+// Conflib::setupTrajin()
+int Conflib::setupTrajin(AmberParm *trajParm) {
   long unsigned int confFrame;
   int Frames = 0;
 
   // Conflib is double,double,int,natom*3*double
   confFrame = (((trajParm->natom * 3) + 2) * sizeof(double)) + sizeof(int);
-  Frames = (int) (tfile->file_size / confFrame);
+  Frames = (int) (file_size_ / confFrame);
 
-  if ( (tfile->file_size % confFrame) != 0 ) {
+  if ( (file_size_ % confFrame) != 0 ) {
     mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
-            tfile->filename);
+            BaseName());
     mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
             Frames);
   }
-  conflibAtom = trajParm->natom;
+  conflibAtom_ = trajParm->natom;
   return Frames;
 }
 
 // Conflib::readFrame()
 int Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
 
-  if (tfile->IO->Read(&energy,sizeof(double),1) < 0) return 1;
-  tfile->IO->Read(&radGyr,sizeof(double),1);
-  tfile->IO->Read(&timesFound,sizeof(int),1);
-  tfile->IO->Read(X,sizeof(double),conflibAtom*3); 
+  if (IO->Read(&energy_,sizeof(double)) < 0) return 1;
+  IO->Read(&radGyr_,sizeof(double));
+  IO->Read(&timesFound_,sizeof(int));
+  IO->Read(X,sizeof(double)*conflibAtom_*3); 
 
-  if (debug>0) mprinterr("CONFLIB %10i: %10.4lf %10.4lf %6i %10.4lf %10.4lf %10.4lf\n",
-                         set, energy, radGyr, timesFound, X[0], X[1], X[2]);
+  if (debug_>0) mprinterr("CONFLIB %10i: %10.4lf %10.4lf %6i %10.4lf %10.4lf %10.4lf\n",
+                         set, energy_, radGyr_, timesFound_, X[0], X[1], X[2]);
   return 0;
 }
 
-// Conflib::setupWrite()
-int Conflib::setupWrite(AmberParm *trajParm) {
+// Conflib::setupTrajout()
+int Conflib::setupTrajout(AmberParm *trajParm) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
-// Conflib::setupWrite()
+// Conflib::writeFrame()
 int Conflib::writeFrame(int set, double *X, double *V,double *box, double T) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;

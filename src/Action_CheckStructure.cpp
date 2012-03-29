@@ -53,7 +53,7 @@ int CheckStructure::init( ) {
   mprintf("                    and non-bond distance < %.2lf\n",nonbondcut);
   nonbondcut2 = nonbondcut * nonbondcut;
 
-  if (outfile.SetupFile(reportFile, WRITE, DATAFILE, STANDARD, debug))
+  if (outfile.SetupWrite(reportFile, debug))
     return 1;
   outfile.OpenFile();
 
@@ -96,7 +96,7 @@ int CheckStructure::setup() {
 
   // Initially set up character mask to easily determine whether
   // both atoms of a bond are in the mask.
-  if ( currentParm->SetupCharMask(Mask1, activeReference) ) return 1;
+  if ( currentParm->SetupCharMask(Mask1) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: CheckStructure::setup: Mask has no atoms.\n");
     return 1;
@@ -155,10 +155,10 @@ int CheckStructure::setup() {
   bondL.push_back(bnd);
       
   // Reset to integer mask.
-  if ( currentParm->SetupIntegerMask( Mask1, activeReference) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask1 ) ) return 1;
   // Print imaging info for this parm
   if (!isSeparate) {
-    mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1.MaskString(), Mask1.Nselected,
+    mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1.MaskString(), Mask1.Nselected(),
             totalbonds);
     if (imageType != NOBOX)
       mprintf(", imaging on");
@@ -177,11 +177,11 @@ int CheckStructure::action() {
 
   if (imageType==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
 
-  int lastidx = Mask1.Nselected - 1;
+  int lastidx = Mask1.Nselected() - 1;
   for (int maskidx1 = 0; maskidx1 < lastidx; maskidx1++) {
-    int atom1 = Mask1.Selected[maskidx1];
-    for (int maskidx2 = maskidx1 + 1; maskidx2 < Mask1.Nselected; maskidx2++) {
-      int atom2 = Mask1.Selected[maskidx2];
+    int atom1 = Mask1[maskidx1];
+    for (int maskidx2 = maskidx1 + 1; maskidx2 < Mask1.Nselected(); maskidx2++) {
+      int atom2 = Mask1[maskidx2];
       // Get distance^2
       D2 = currentFrame->DIST2(atom1,atom2,imageType,ucell,recip);
       // Are these atoms bonded?
@@ -191,7 +191,7 @@ int CheckStructure::action() {
         // Check for long bond length; distance2 > (req+bondoffset)^2
         if (D2 > bondmax) {
           D = sqrt(D2);
-          outfile.IO->Printf(
+          outfile.Printf(
                   "%i\t Warning: Unusual bond length %i@%s to %i@%s (%.2lf)\n",
                   frameNum+OUTPUTFRAMESHIFT,
                   atom1+1, currentParm->AtomName(atom1), 
@@ -203,7 +203,7 @@ int CheckStructure::action() {
       } else {
         if (D2 < nonbondcut2) {
           D = sqrt(D2);
-          outfile.IO->Printf(
+          outfile.Printf(
                   "%i\t Warning: Atoms %i@%s and %i@%s are close (%.2lf)\n",
                   frameNum+OUTPUTFRAMESHIFT,
                   atom1+1, currentParm->AtomName(atom1), 
@@ -225,11 +225,12 @@ int CheckStructure::SeparateAction(Frame *frameIn) {
 
   //if (imageType>0) frameIn->BoxToRecip(ucell,recip);
 
-  int lastatom = frameIn->natom - 1;
+  int frame_natom = frameIn->Natom();
+  int lastatom = frame_natom - 1;
   int idx1 = 0;
   for (int atom1 = 0; atom1 < lastatom; atom1++) {
     int idx2 = idx1 + 3;
-    for (int atom2 = atom1 + 1; atom2 < frameIn->natom; atom2++) {
+    for (int atom2 = atom1 + 1; atom2 < frame_natom; atom2++) {
       // Get distance^2
       D2 = frameIn->COORDDIST2(idx1,idx2);
       // Are these atoms bonded?

@@ -81,7 +81,7 @@ int DihedralScan::init( ) {
   }
 
   // Dataset to store number of problems
-  number_of_problems = DSL->Add(INT, actionArgs.getNextString(),"Nprob");
+  number_of_problems = DSL->Add(DataSet::INT, actionArgs.getNextString(),"Nprob");
   if (number_of_problems==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(problemFile,number_of_problems);
@@ -142,7 +142,7 @@ int DihedralScan::setup() {
   ResidueCheckType rct;
   std::vector<char> tmpMask;
 
-  if ( currentParm->SetupCharMask( Mask1, activeReference ) ) return 1;
+  if ( currentParm->SetupCharMask( Mask1 ) ) return 1;
   if (Mask1.None()) {
     mprintf("    Error: DihedralScan::setup: Mask has no atoms.\n");
     return 1;

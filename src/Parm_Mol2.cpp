@@ -7,26 +7,28 @@
 
 // Mol2ParmFile::ReadParm()
 /** Read file as a Tripos Mol2 file. */
-int Mol2ParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
+int Mol2ParmFile::ReadParm(AmberParm &parmOut) {
   char buffer[MOL2BUFFERSIZE];
   int mol2bonds;
   int resnum, currentResnum;
   unsigned int crdidx = 0;
   char resName[5];
 
+  if (OpenFile()) return 1;
+
   currentResnum=-1;
   mprintf("    Reading Mol2 file %s as topology file.\n",parmOut.parmName);
   // Get @<TRIPOS>MOLECULE information
-  if (Mol2ScanTo(&parmfile, MOLECULE)) return 1;
+  if (Mol2ScanTo(IO, MOLECULE)) return 1;
   //   Scan title
-  if ( parmfile.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
-  if (debug>0) mprintf("      Mol2 Title: [%s]\n",buffer);
+  if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+  if (debug_>0) mprintf("      Mol2 Title: [%s]\n",buffer);
   //   Scan # atoms and bonds
   // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
-  if ( parmfile.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+  if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
   mol2bonds=0;
   sscanf(buffer,"%i %i",&parmOut.natom, &mol2bonds);
-  if (debug>0) {
+  if (debug_>0) {
     mprintf("      Mol2 #atoms: %i\n",parmOut.natom);
     mprintf("      Mol2 #bonds: %i\n",mol2bonds);
   }
@@ -39,9 +41,9 @@ int Mol2ParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
   parmOut.parmCoords = new double[ parmOut.natom * 3 ];
 
   // Get @<TRIPOS>ATOM information
-  if (Mol2ScanTo(&parmfile, ATOM)) return 1;
+  if (Mol2ScanTo(IO, ATOM)) return 1;
   for (int atom=0; atom < parmOut.natom; atom++) {
-    if ( parmfile.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+    if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
     // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
     //sscanf(buffer,"%*i %s %*f %*f %*f %s %i %s %lf", names[atom], types[atom],
     //       &resnum,resName, charge+atom);
@@ -72,9 +74,9 @@ int Mol2ParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
   // Get @<TRIPOS>BOND information [optional]
   parmOut.NbondsWithoutH=0;
   parmOut.NbondsWithH=0;
-  if (Mol2ScanTo(&parmfile, BOND)==0) {
+  if (Mol2ScanTo(IO, BOND)==0) {
     for (int bond=0; bond < mol2bonds; bond++) {
-      if ( parmfile.IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+      if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
       // bond_id origin_atom_id target_atom_id bond_type [status_bits]
       //         resnum         currentResnum
       sscanf(buffer,"%*i %i %i\n",&resnum,&currentResnum);
@@ -90,6 +92,8 @@ int Mol2ParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
 
   mprintf("    Mol2 contains %i atoms, %i residues,\n", parmOut.natom,parmOut.nres);
   mprintf("    %i bonds to H, %i other bonds.\n", parmOut.NbondsWithH,parmOut.NbondsWithoutH);
+
+  CloseFile();
 
   return 0;
 }

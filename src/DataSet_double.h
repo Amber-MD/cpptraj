@@ -10,8 +10,6 @@
   * read when it is not valid for the current parmtop.
   */
 class DataSet_double : public DataSet {
-    std::map<int,double> Data;
-    std::map<int,double>::iterator it;
   public:
     DataSet_double();
 
@@ -20,12 +18,16 @@ class DataSet_double : public DataSet {
     double CurrentValue();
 
     int Xmax();
-    int isEmpty(int);
+    int Size();
+    int FrameIsEmpty(int);
     void Add( int, void * );
     int Get(void *, int);
     double Dval(int);
     void WriteBuffer(CharBuffer&, int);
     int Width();
     int Sync();
+  private:
+    std::map<int,double> Data_;
+    std::map<int,double>::iterator datum_;
 };
 #endif

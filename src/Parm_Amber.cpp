@@ -13,6 +13,7 @@
 // - USE_CHARBUFFER: Use CharBuffer to buffer entire file
 
 // ---------- Constants and Enumerated types -----------------------------------
+const size_t AmberParmFile::BUF_SIZE=83; // 80 + newline + NULL ( + CR if dos)
 /// Combined size of %FLAG and %FORMAT lines (81 * 2)
 const size_t AmberParmFile::FFSIZE=162;
 /// Enumerated type for FLAG_POINTERS section
@@ -84,12 +85,11 @@ const char AmberParmFile::AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
 };
 // -----------------------------------------------------------------------------
 
-// ---------- INTERNAL FUNCTIONS -----------------------------------------------
 // GetFortranBufferSize()
 /** Given number of columns and the width of each column, return the 
   * necessary char buffer size for N data elements.
   */
-static size_t GetFortranBufferSize(int N, int isDos, int width, int ncols) {
+static size_t GetFortranBufferSize(int N, bool isDos, int width, int ncols) {
   size_t bufferLines=0;
   size_t BufferSize=0;
 
@@ -99,12 +99,25 @@ static size_t GetFortranBufferSize(int N, int isDos, int width, int ncols) {
   // If DOS file there are CRs before Newlines
   if (isDos) bufferLines *= 2;
   BufferSize += bufferLines;
-  //if (debug>0) 
+  //if (debug_>0) 
   //  fprintf(stdout,"*** Buffer size is %i including %i newlines.\n",BufferSize,bufferLines);
   return BufferSize;
 }
 
-// PositionFileAtFlag()
+// CONSTRUCTOR
+AmberParmFile::AmberParmFile() {
+  buffer = NULL;
+  error_count = 0;
+  lineBuffer = new char[ BUF_SIZE ];
+}
+
+// DESTRUCTOR
+AmberParmFile::~AmberParmFile() {
+  if (buffer!=NULL) delete[] buffer;
+  delete[] lineBuffer;
+}
+
+// AmberParmFile::PositionFileAtFlag()
 /// Position the given file at the given flag. Set the corresponding format.
 /** If fformat is NULL just report whether flag was found. This routine will
   * first attempt to search for the flag from the current File position. If
@@ -114,41 +127,40 @@ static size_t GetFortranBufferSize(int N, int isDos, int width, int ncols) {
   * in the input file.
   * \return true if flag was found, false if not.
   */
-static bool PositionFileAtFlag(CpptrajFile &File, const char *Key, char *fformat, int debug) {
-  char lineBuffer[BUFFER_SIZE]; // Hold flag/format line from parmfile
-  char value[83];
+bool AmberParmFile::PositionFileAtFlag(const char *Key, char *fformat) {
+  char value[BUF_SIZE];
   bool hasLooped = false;
   bool searchFile = true;
 
-  if (debug>0) mprintf("Reading %s\n",Key);
+  if (debug_>0) mprintf("Reading %s\n",Key);
   // First, rewind the input file.
   //File->IO->Rewind();
   // Search for %FLAG <Key>
   while ( searchFile ) {
 #   ifdef USE_CHARBUFFER
-    while ( File.Gets(lineBuffer,BUFFER_SIZE) == 0)
+    while ( Gets(lineBuffer,BUF_SIZE) == 0)
 #   else
-    while ( File.IO->Gets(lineBuffer,BUFFER_SIZE) == 0)
+    while ( IO->Gets(lineBuffer,BUF_SIZE) == 0)
 #   endif
     {
       if ( strncmp(lineBuffer,"%FLAG",5)==0 ) {
         sscanf(lineBuffer,"%*s %s",value);
         if (strcmp(value,Key)==0) {
-          if (debug>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
+          if (debug_>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
           // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
           // read past until you get to the FORMAT line
 #         ifdef USE_CHARBUFFER
-          File.Gets(lineBuffer,BUFFER_SIZE);
+          Gets(lineBuffer,BUF_SIZE);
 #         else
-          File.IO->Gets(lineBuffer,BUFFER_SIZE);
+          IO->Gets(lineBuffer,BUF_SIZE);
 #         endif
           while (strncmp(lineBuffer,"%FORMAT",7)!=0)
 #           ifdef USE_CHARBUFFER
-            File.Gets(lineBuffer,BUFFER_SIZE);
+            Gets(lineBuffer,BUF_SIZE);
 #           else
-            File.IO->Gets(lineBuffer,BUFFER_SIZE);
+            IO->Gets(lineBuffer,BUF_SIZE);
 #           endif
-          if (debug>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
+          if (debug_>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer);
           // Set format
           if (fformat!=NULL) strcpy(fformat, lineBuffer);
           return true;
@@ -159,9 +171,9 @@ static bool PositionFileAtFlag(CpptrajFile &File, const char *Key, char *fformat
     // Otherwise the Key has not been found.
     if (!hasLooped) {
 #     ifdef USE_CHARBUFFER
-      File.Rewind();
+      Rewind();
 #     else
-      File.IO->Rewind();
+      IO->Rewind();
 #     endif
       hasLooped = true;
     } else
@@ -169,30 +181,11 @@ static bool PositionFileAtFlag(CpptrajFile &File, const char *Key, char *fformat
   }
 
   // If we reached here Key was not found.
-  if (debug>0)
-    mprintf("Warning: [%s] Could not find Key %s in file.\n",File.filename,Key);
+  if (debug_>0)
+    mprintf("Warning: [%s] Could not find Key %s in file.\n",BaseName(),Key);
   if (fformat!=NULL) strcpy(fformat,"");
   return false;
 }
-
-// RemoveWhitespace()
-/// Remove terminal whitespace from string (including newline + CR) 
-static void RemoveWhitespace(char *bufferIn) {
-  char *ptr = NULL;
-  char *end;
-  if (bufferIn==NULL) return;
-  // Position ptr at the last char of bufferIn
-  end = bufferIn + strlen(bufferIn) - 1;
-  for (ptr = end; ptr >= bufferIn; ptr--) {
-    // Stop at first non-whitespace non-newline char.
-    if (*ptr!=' ' && *ptr!='\n' && *ptr!='\r') break;
-  }
-  // Put a NULL just after the first non-whitespace char
-  ++ptr;
-  *ptr='\0';
-}
-
-// ---------------------------------------------------------
 
 // AmberParmFile::GetFortranType()
 /** Given a fortran-type format string, return the corresponding fortran
@@ -239,10 +232,10 @@ AmberParmFile::FortranType AmberParmFile::GetFortranType(char *FormatIn, int *nc
     case 'F' : ftype = FFLOAT;  break;
     default  : ftype = UNKNOWN_FTYPE;
   }
-  ptr++;
+  ++ptr;
   // Width
   idx = 0;
-  while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
+  while (isdigit(*ptr)) {temp[idx++] = *ptr; ++ptr;}
   temp[idx]='\0';
   *width = atoi(temp);
   // Precision
@@ -250,7 +243,7 @@ AmberParmFile::FortranType AmberParmFile::GetFortranType(char *FormatIn, int *nc
   if (*ptr == '.') {
     ptr++;
     idx = 0;
-    while (isdigit(*ptr)) {temp[idx++] = *ptr; ptr++;}
+    while (isdigit(*ptr)) {temp[idx++] = *ptr; ++ptr;}
     temp[idx]='\0';
     *precision = atoi(temp);
   }
@@ -260,8 +253,7 @@ AmberParmFile::FortranType AmberParmFile::GetFortranType(char *FormatIn, int *nc
   return ftype;
 }
 
-
-// DataToFortranBuffer()
+// AmberParmFile::DataToFortranBuffer()
 /** Write N data elements stored in I, D, or C to character buffer with given 
   * fortran format.
   */
@@ -291,7 +283,7 @@ int AmberParmFile::DataToFortranBuffer(CharBuffer &buffer,
   }
 
   // Increase the buffer by the appropriate amount
-  size_t delta = GetFortranBufferSize(N,0,width,numCols);
+  size_t delta = GetFortranBufferSize(N,false,width,numCols);
   delta += FFSIZE; // FFSIZE is Combined size of %FLAG and %FORMAT lines (81 * 2)
   buffer.IncreaseSize( delta );
 
@@ -362,42 +354,29 @@ int AmberParmFile::DataToFortranBuffer(CharBuffer &buffer,
   return 0;
 }
 
-// ---------- STL functions ---------------------------------------------------- 
-// CONSTRUCTOR
-AmberParmFile::AmberParmFile() {
-  buffer = NULL;
-  File = NULL;
-  error_count = 0;
-}
-
-// DESTRUCTOR
-AmberParmFile::~AmberParmFile() {
-  if (buffer!=NULL) delete[] buffer;
-}
-
 // AmberParmFile::AllocateAndRead()
-int AmberParmFile::AllocateAndRead(int &width, int &ncols, int &maxval) {
+int AmberParmFile::AllocateAndRead(int width, int ncols, int maxval) {
   char temp[3]; // Only for when maxval is 0, space for \n, \r, NULL
   int err;
   // If # expected values is 0 there will still be a newline placeholder
   // in the parmtop. Read past that and return
   if (maxval==0) {
 #   ifdef USE_CHARBUFFER
-    File->Gets(temp,2);
+    Gets(temp,2);
 #   else
-    File->IO->Gets(temp,2);
+    IO->Gets(temp,2);
 #   endif
     return 0;
   }
   // Allocate buffer to read in entire section
-  size_t BufferSize = GetFortranBufferSize(maxval, File->isDos, width, ncols);
+  size_t BufferSize = GetFortranBufferSize(maxval, IsDos(), width, ncols);
   if (buffer!=NULL) delete[] buffer;
   buffer = new char[ BufferSize ];
   // Read section from file
   # ifdef USE_CHARBUFFER
-  err = File->Read(buffer,BufferSize);
+  err = >Read(buffer,BufferSize);
 # else
-  err = File->IO->Read(buffer,sizeof(char),BufferSize);
+  err = IO->Read(buffer,BufferSize);
 # endif
   return err;
 }
@@ -412,7 +391,7 @@ double *AmberParmFile::GetDouble(int width, int ncols, int maxval)
   if (err == 0)
     return NULL;
   else if ( err == -1) {
-    mprinterr("Error in read of double values from %s\n",File->filename);
+    mprinterr("Error in read of double values from %s\n",BaseName());
     ++error_count;
     return NULL;
   }
@@ -444,7 +423,7 @@ int *AmberParmFile::GetInteger(int width, int ncols, int maxval)
   if (err == 0)
     return NULL;
   else if ( err == -1) {
-    mprinterr("Error in read of integer values from %s\n",File->filename);
+    mprinterr("Error in read of integer values from %s\n",BaseName());
     ++error_count;
     return NULL;
   }
@@ -476,7 +455,7 @@ NAME *AmberParmFile::GetName(int width, int ncols, int maxval)
   if (err == 0)
     return NULL;
   else if ( err == -1) {
-    mprinterr("Error in read of string values from %s\n",File->filename);
+    mprinterr("Error in read of string values from %s\n",BaseName());
     ++error_count;
     return NULL;
   }
@@ -497,16 +476,33 @@ NAME *AmberParmFile::GetName(int width, int ncols, int maxval)
   return C;
 }
 
+// RemoveWhitespace()
+/// Remove terminal whitespace from string (including newline + CR) 
+static void RemoveWhitespace(char *bufferIn) {
+  char *ptr = NULL;
+  char *end;
+  if (bufferIn==NULL) return;
+  // Position ptr at the last char of bufferIn
+  end = bufferIn + strlen(bufferIn) - 1;
+  for (ptr = end; ptr >= bufferIn; ptr--) {
+    // Stop at first non-whitespace non-newline char.
+    if (*ptr!=' ' && *ptr!='\n' && *ptr!='\r') break;
+  }
+  // Put a NULL just after the first non-whitespace char
+  ++ptr;
+  *ptr='\0';
+}
+
 // AmberParmFile::GetLine()
 char *AmberParmFile::GetLine() {
-  char *lineBuffer = new char[83]; // 80 + newline + NULL ( + CR if dos)
+  char *tempBuffer = new char[ BUF_SIZE ];
 # ifdef USE_CHARBUFFER
-  File->Gets(lineBuffer,82);
+  Gets(tempBuffer,BUF_SIZE);
 # else
-  File->IO->Gets(lineBuffer,82);
+  IO->Gets(tempBuffer,BUF_SIZE);
 # endif
-  RemoveWhitespace(lineBuffer);
-  return lineBuffer;
+  RemoveWhitespace(tempBuffer);
+  return tempBuffer;
 }
 
 // AmberParmFile::GetFlagLine()
@@ -514,8 +510,8 @@ char *AmberParmFile::GetFlagLine(const char* Key) {
   char fformat[83];
   // Get Flag Key
   // Find flag, not concerned with format
-  if (!PositionFileAtFlag(*File,Key,fformat,debug)) return NULL;
-  if (debug>1) 
+  if (!PositionFileAtFlag(Key,fformat)) return NULL;
+  if (debug_>1) 
     mprintf("DEBUG: Flag line [%s]\n",Key);
   return GetLine();
 }
@@ -529,10 +525,10 @@ AmberParmFile::FortranType AmberParmFile::SeekToFlag(AmberParmFlagType fflag,
   // Get Flag Key
   char *Key = (char*) AmberParmFlag[fflag];
   // Find flag, get format
-  if (!PositionFileAtFlag(*File,Key,fformat,debug)) return UNKNOWN_FTYPE;
+  if (!PositionFileAtFlag(Key,fformat)) return UNKNOWN_FTYPE;
   // Determine cols, width etc from format
   fType = GetFortranType(fformat, &ncols, &width, &precision);
-  if (debug>1) 
+  if (debug_>1) 
     mprintf("DEBUG: Flag [%s] Type %i Format[%s]\n",Key,(int)fType, fformat);
   return fType; 
 }
@@ -590,7 +586,7 @@ void AmberParmFile::SetParmFromValues(AmberParm &parmOut, int *values, bool isOl
   parmOut.nres = values[NRES];
   parmOut.NbondsWithH = values[NBONH];
   parmOut.NbondsWithoutH = values[NBONA];
-  if (debug>0) {
+  if (debug_>0) {
     if (isOld)
       mprintf("\tOld Amber top");
     else
@@ -633,18 +629,29 @@ void AmberParmFile::SetParmFromValues(AmberParm &parmOut, int *values, bool isOl
 
 // AmberParmFile::ReadParm()
 /** Read parameters from Amber Topology file. */
-int AmberParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
+int AmberParmFile::ReadParm(AmberParm &parmOut) {
   int err;
+  bool newParm = false;
+
+  if (OpenFile()) return 1;
+  //File = &parmfile; // For new STL functions.
+  // Get first line to determine old/new style Amber Parm.
+  // If '%VE' present, assume '%VERSION', indicating new style parm.
+  IO->Gets(lineBuffer, BUF_SIZE);
+  if ( lineBuffer[0]=='%' && lineBuffer[1]=='V' && lineBuffer[2]=='E')
+    newParm = true;
+  // Now that type of Amber parm has been determined, reopen.
+  CloseFile();
 # ifdef USE_CHARBUFFER
   // TEST: Close and reopen buffered.
-  parmfile.CloseFile();
-  parmfile.OpenFileBuffered();
-# endif
-  File = &parmfile; // For new STL functions.
-  if (parmfile.fileFormat == OLDAMBERPARM)
-    err = ReadParmOldAmber(parmOut,parmfile);
+  OpenFileBuffered();
+# else
+  OpenFile();
+# endif 
+  if (!newParm)
+    err = ReadParmOldAmber(parmOut);
   else 
-    err = ReadParmAmber(parmOut,parmfile);
+    err = ReadParmAmber(parmOut);
   if (err!=0) return 1;
   // Common setup
   // Convert charge to units of electron charge
@@ -664,7 +671,7 @@ int AmberParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
       --parmOut.excludedAtoms[atom];
   }
   // Print Box info
-  if (debug>0 && parmOut.firstSolvMol!=-1) {
+  if (debug_>0 && parmOut.firstSolvMol!=-1) {
     mprintf("\tAmber parm %s contains box info: %i mols, first solvent mol is %i\n",
             parmOut.parmName, parmOut.molecules, parmOut.firstSolvMol);
     mprintf("\tBOX: %lf %lf %lf | %lf %lf %lf\n",
@@ -677,16 +684,17 @@ int AmberParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
     else
       mprintf("\t     Box will be determined from first associated trajectory.\n");
   }
+  CloseFile();
   return 0;
 }
 
 // AmberParmFile::ReadParmOldAmber()
-int AmberParmFile::ReadParmOldAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
+int AmberParmFile::ReadParmOldAmber(AmberParm &parmOut) {
   int values[30];
 
-  if (debug>0) mprintf("Reading Old-style Amber Topology file %s\n",parmOut.parmName);
+  if (debug_>0) mprintf("Reading Old-style Amber Topology file %s\n",parmOut.parmName);
   char *title = GetLine();
-  if (debug>0) mprintf("\tOld AmberParm Title: %s\n",title);
+  if (debug_>0) mprintf("\tOld AmberParm Title: %s\n",title);
   delete[] title;
   // Pointers - same as new format except only 30 values, no NEXTRA
   int *tempvalues = GetInteger(6,12,30);
@@ -747,18 +755,18 @@ int AmberParmFile::ReadParmOldAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
     // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
     double *boxFromParm = GetDouble(16,5,4);
     if (boxFromParm==NULL) {mprintf("Error in box info.\n"); return 1;}
-    parmOut.boxType = SetBoxInfo(boxFromParm,parmOut.Box,debug);
+    parmOut.boxType = SetBoxInfo(boxFromParm,parmOut.Box,debug_);
     delete[] boxFromParm;
   }
   return 0;
 }
 
 // AmberParmFile::ReadParmAmber()
-int AmberParmFile::ReadParmAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
+int AmberParmFile::ReadParmAmber(AmberParm &parmOut) {
   int values[AMBERPOINTERS];
   bool chamber; // Set to true if this top is a chamber-created topology file
 
-  if (debug>0) mprintf("Reading Amber Topology file %s\n",parmfile.filename);
+  if (debug_>0) mprintf("Reading Amber Topology file %s\n",BaseName());
   // Title
   char *title = GetFlagLine("TITLE");
   // If title is NULL, check for CTITLE (chamber parm)
@@ -768,7 +776,7 @@ int AmberParmFile::ReadParmAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
   } else {
     chamber = false;
   }
-  if (debug>0) mprintf("\tAmberParm Title: %s\n",title);
+  if (debug_>0) mprintf("\tAmberParm Title: %s\n",title);
   delete[] title;
   // Pointers
   int *tempvalues = GetFlagInteger(F_POINTERS,AMBERPOINTERS);
@@ -851,13 +859,13 @@ int AmberParmFile::ReadParmAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
         parmOut.boxType = NOBOX;
     // Determine box type, set Box angles and lengths from beta (boxFromParm[0])
     } else {
-      parmOut.boxType = SetBoxInfo(boxFromParm,parmOut.Box,debug);
+      parmOut.boxType = SetBoxInfo(boxFromParm,parmOut.Box,debug_);
       delete[] boxFromParm;
     }
   }
   // GB parameters; radius set, radii, and screening parameters
   parmOut.radius_set = GetFlagLine("RADIUS_SET");
-  if (debug>0) mprintf("\tRadius Set: %s\n",parmOut.radius_set);
+  if (debug_>0) mprintf("\tRadius Set: %s\n",parmOut.radius_set);
   parmOut.gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
   parmOut.gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]);
   
@@ -866,7 +874,7 @@ int AmberParmFile::ReadParmAmber(AmberParm &parmOut, CpptrajFile &parmfile) {
 
 // AmberParmFile::WriteParm()
 /** Write out information from current AmberParm to an Amber parm file */
-int AmberParmFile::WriteParm(AmberParm &parmIn, CpptrajFile &outfile) {
+int AmberParmFile::WriteParm(AmberParm &parmIn) {
   CharBuffer buffer;
   int solvent_pointer[3];
   int values[AMBERPOINTERS];
@@ -880,7 +888,7 @@ int AmberParmFile::WriteParm(AmberParm &parmIn, CpptrajFile &outfile) {
 
   if (parmIn.parmName==NULL) return 1;
 
-  if (!outfile.IsOpen()) return 1;
+  OpenFile();
 
   // HEADER AND TITLE (4 lines, version, flag, format, title)
   buffer.Allocate( 324 ); // (81 * 4), no space for NULL needed since using NewLine() 
@@ -899,6 +907,7 @@ int AmberParmFile::WriteParm(AmberParm &parmIn, CpptrajFile &outfile) {
 
   // Shift atom #s in resnums by +1 to be consistent with AMBER
   // Also determine # atoms in largest residue for nmxrs
+  // TODO: Use FindResidueMaxNatom
   tempResnums = new int[ parmIn.nres ];
   memcpy(tempResnums, parmIn.resnums, parmIn.nres * sizeof(int));
   for (int res=0; res < parmIn.nres; res++) {
@@ -1073,8 +1082,8 @@ int AmberParmFile::WriteParm(AmberParm &parmIn, CpptrajFile &outfile) {
     DataToFortranBuffer(buffer,F_SCREEN, NULL, parmIn.gb_screen, NULL, parmIn.natom);
 
   // Write buffer to file
-  outfile.IO->Write(buffer.Buffer(), sizeof(char), buffer.CurrentSize());
-  outfile.CloseFile();
+  IO->Write(buffer.Buffer(), buffer.CurrentSize());
+  CloseFile();
 
   return 0;
 }

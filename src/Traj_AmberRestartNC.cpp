@@ -4,7 +4,7 @@
 // (and writing?) netcdf restart files used with amber.
 // Dan Roe 2011-01-07
 #include <cstdlib>
-#include <cstring> // For title length
+#include <cstring> // strcmp 
 #include "netcdf.h"
 #include "Traj_AmberRestartNC.h"
 #include "NetcdfRoutines.h"
@@ -35,7 +35,7 @@ AmberRestartNC::AmberRestartNC() {
   TempVID=-1;
 
   // Netcdf restarts always have 1 frame so always seekable
-  seekable=true;
+  seekable_=true;
   time0 = OUTPUTFRAMESHIFT;
   dt = 1.0;
   singleWrite=false;
@@ -51,7 +51,7 @@ AmberRestartNC::~AmberRestartNC() {
 void AmberRestartNC::closeTraj() {
   if (ncid==-1) return;
   checkNCerr(nc_close(ncid),"Closing netcdf Restart file.");
-  if (debug>0) mprintf("Successfully closed ncid %i\n",ncid);
+  if (debug_>0) mprintf("Successfully closed ncid %i\n",ncid);
   ncid=-1;
   return;
 }
@@ -62,19 +62,19 @@ void AmberRestartNC::closeTraj() {
   * open and close calls. 
   */
 int AmberRestartNC::openTraj() {
-  //mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",tfile->filename,ncid);
+  //mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",BaseName(),ncid);
   // If already open, return
   if (ncid!=-1) return 0;
 
-  switch (tfile->access) {
+  switch (access_) {
 
     case READ :
-      if (checkNCerr(nc_open(tfile->filename,NC_NOWRITE,&ncid),
-          "Opening Netcdf restart file %s for reading",tfile->filename)!=0) return 1;
+      if (checkNCerr(nc_open(Name(),NC_NOWRITE,&ncid),
+          "Opening Netcdf restart file %s for reading",BaseName())!=0) return 1;
       break;
     
     case APPEND: 
-      mprintf("Error: %s - Append is not supported by netcdf restart.\n",tfile->filename);
+      mprintf("Error: %s - Append is not supported by netcdf restart.\n",BaseName());
       return 1;
       break;
     case WRITE:
@@ -82,18 +82,18 @@ int AmberRestartNC::openTraj() {
       return 0;
   }
 
-  if (debug>0) mprintf("Successfully opened restart %s, ncid=%i\n",tfile->filename,ncid);
-  if (debug>1) NetcdfDebug(ncid);
+  if (debug_>0) mprintf("Successfully opened restart %s, ncid=%i\n",BaseName(),ncid);
+  if (debug_>1) NetcdfDebug(ncid);
 
   return 0;
 }
 
-// AmberRestartNC::setupRead()
+// AmberRestartNC::setupTrajin()
 /** Set up netcdf restart file for reading, get all variable and dimension IDs. 
   * Also check number of atoms against associated parmtop.
   */
 // NOTE: Replace attrText allocs with static buffer? 
-int AmberRestartNC::setupRead(AmberParm *trajParm) {
+int AmberRestartNC::setupTrajin(AmberParm *trajParm) {
   char *attrText; // For checking conventions and version 
   int spatial; // For checking spatial dimensions
   double box[6];
@@ -102,16 +102,20 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
   if (openTraj()) return -1;
 
   // Get global attributes
-  if (title==NULL) title = GetAttrText(ncid,NC_GLOBAL, "title");
+  if (title_.empty()) {
+    attrText = GetAttrText(ncid,NC_GLOBAL, "title");
+    title_.assign( attrText );
+    free( attrText );
+  }
   attrText = GetAttrText(ncid,NC_GLOBAL, "Conventions");
   if (attrText==NULL || strstr(attrText,"AMBERRESTART")==NULL) 
     mprintf("WARNING: Netcdf restart file %s conventions do not include \"AMBERRESTART\" (%s)\n",
-            tfile->filename, attrText);
+            BaseName(), attrText);
   if (attrText!=NULL) free(attrText);
   attrText = GetAttrText(ncid,NC_GLOBAL, "ConventionVersion");
   if (attrText==NULL || strcmp(attrText,"1.0")!=0)
     mprintf("WARNING: Netcdf restart file %s has ConventionVersion that is not 1.0 (%s)\n",
-            tfile->filename, attrText);
+            BaseName(), attrText);
   if (attrText!=NULL) free(attrText);
 
   // Get natom info
@@ -124,14 +128,14 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
   attrText = GetAttrText(ncid,coordVID, "units");
   if (attrText==NULL || strcmp(attrText,"angstrom")!=0) 
     mprintf("WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
-            tfile->filename,attrText);
+            BaseName(),attrText);
   if (attrText!=NULL) free(attrText);
   // Get spatial info
   spatialDID=GetDimInfo(ncid,NCSPATIAL,&spatial);
   if (spatialDID==-1) return -1;
   if (spatial!=3) {
     mprintf("Error: ncOpen: Expected 3 spatial dimenions in %s, got %i\n",
-            tfile->filename, spatial);
+            BaseName(), spatial);
     return -1;
   }
   if ( checkNCerr(nc_inq_varid(ncid, NCSPATIAL, &spatialVID),
@@ -139,8 +143,8 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
 
   // Get Velocity info
   if ( nc_inq_varid(ncid,NCVELO,&velocityVID)==NC_NOERR ) {
-    if (debug>0) mprintf("    Netcdf restart file has velocities.\n");
-    hasVelocity=true;
+    if (debug_>0) mprintf("    Netcdf restart file has velocities.\n");
+    hasVelocity_=true;
   } else
     velocityVID=-1;
 
@@ -149,11 +153,11 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
     attrText = GetAttrText(ncid,timeVID, "units");
     if (attrText==NULL || strcmp(attrText,"picosecond")!=0) 
       mprintf("WARNING: Netcdf restart file %s has time units of %s - expected picosecond.\n",
-              tfile->filename, attrText);
+              BaseName(), attrText);
     if (attrText!=NULL) free(attrText);
     if ( checkNCerr(nc_get_var_double(ncid, timeVID, &restartTime),
          "Getting netcdf restart time.")) return -1;
-    if (debug>0) mprintf("    Netcdf restart time= %lf\n",restartTime);
+    if (debug_>0) mprintf("    Netcdf restart time= %lf\n",restartTime);
   } else {
     timeVID = -1;
     time0 = -1;
@@ -163,21 +167,21 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
   if ( nc_inq_varid(ncid,NCCELL_LENGTHS,&cellLengthVID)==NC_NOERR ) {
     if (checkNCerr(nc_inq_varid(ncid,NCCELL_ANGLES,&cellAngleVID),
       "Getting cell angles.")!=0) return -1;
-    if (debug>0) mprintf("  Netcdf restart Box information found.\n");
+    if (debug_>0) mprintf("  Netcdf restart Box information found.\n");
     // Determine box type from angles
     start[0]=0; start[1]=0;
     count[0]=3; count[1]=0; 
     if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
                     "Getting cell lengths.")!=0 ) return -1;
-    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, boxAngle),
+    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, boxAngle_),
                     "Getting cell angles.")!=0 ) return -1;
-    hasBox = true;
+    hasBox_ = true;
   } 
 
   // Replica Temperatures
   if ( nc_inq_varid(ncid,NCTEMPERATURE,&TempVID) == NC_NOERR ) {
-    if (debug>0) mprintf("    Netcdf restart file has replica temperature.\n");
-    hasTemperature=true;
+    if (debug_>0) mprintf("    Netcdf restart file has replica temperature.\n");
+    hasTemperature_=true;
   } else 
     TempVID=-1;
 
@@ -188,7 +192,7 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
 
   if (ncatom!=trajParm->natom) {
     mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
-              tfile->filename,ncatom);
+              BaseName(),ncatom);
     mprinterr("       match those in associated parmtop (%i)!\n",trajParm->natom);
     return -1;
   }
@@ -199,13 +203,13 @@ int AmberRestartNC::setupRead(AmberParm *trajParm) {
 
 // AmberRestartNC::SetNoVelocity()
 void AmberRestartNC::SetNoVelocity() {
-  hasVelocity=false;
+  hasVelocity_=false;
 }
 
 // AmberRestartNC::processWriteArgs()
 int AmberRestartNC::processWriteArgs(ArgList *argIn) {
   // For write, assume we want velocities unless specified
-  hasVelocity=true;
+  hasVelocity_=true;
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
   time0 = argIn->getKeyDouble("time0", OUTPUTFRAMESHIFT);
   if (argIn->hasKey("remdtraj"))   this->SetTemperature();
@@ -213,9 +217,9 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-// AmberRestartNC::setupWrite()
+// AmberRestartNC::setupTrajout()
 /** Setting up is done for each frame.  */
-int AmberRestartNC::setupWrite(AmberParm *trajParm) {
+int AmberRestartNC::setupTrajout(AmberParm *trajParm) {
   ncatom = trajParm->natom;
   ncatom3 = ncatom * 3;
   // If number of frames to write == 1 set singleWrite so we dont append
@@ -240,14 +244,14 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
   // Create filename for this set
   // If just writing 1 frame dont modify output filename
   if (singleWrite)
-    strcpy(buffer,tfile->filename);
+    strcpy(buffer,Name());
   else
-    NumberFilename(buffer,tfile->filename,set+OUTPUTFRAMESHIFT);
+    NumberFilename(buffer,(char*)Name(),set+OUTPUTFRAMESHIFT);
 
   // Create file
   if (checkNCerr(nc_create(buffer,NC_64BIT_OFFSET,&ncid),
     "Creating Netcdf restart file %s",buffer)) return 1;
-  //if (debug>0) 
+  //if (debug_>0) 
     mprintf("    Successfully created Netcdf restart file %s, ncid %i\n",buffer,ncid);
 
   // Time variable
@@ -278,7 +282,7 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
     "Writing coordinates variable units.")) return 1;
 
   // Velocity variable
-  if (hasVelocity && Vin!=NULL) {
+  if (hasVelocity_ && Vin!=NULL) {
     if (checkNCerr(nc_def_var(ncid,NCVELO,NC_DOUBLE,2,dimensionID,&velocityVID),
       "Defining velocities variable.")) return 1;
     if (checkNCerr(nc_put_att_text(ncid,velocityVID,"units",19,"angstrom/picosecond"),
@@ -305,7 +309,7 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
     "Defining cell angular variable.")) return 1;
 
   // Box Info
-  if (hasBox) {
+  if (hasBox_) {
     dimensionID[0]=cell_spatialDID;
     if (checkNCerr(nc_def_var(ncid,NCCELL_LENGTHS,NC_DOUBLE,1,dimensionID,&cellLengthVID),
       "Defining cell length variable.")) return 1;
@@ -319,13 +323,12 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
   }
 
   // Set up title
-  if (title==NULL) {
-    title=(char*) malloc(30*sizeof(char));
-    strcpy(title,"Cpptraj Generated Restart");
+  if (title_.empty()) {
+    title_.assign("Cpptraj Generated Restart");
   }
 
   // Attributes
-  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"title",strlen(title),title),
+  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"title",title_.size(),title_.c_str()),
     "Writing title.")) return 1;
   if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"application",5,"AMBER"),
     "Writing application.")) return 1;
@@ -339,7 +342,7 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
     "Writing conventions version.")) return 1;
 
   // Replica temperature 
-  if (hasTemperature) {
+  if (hasTemperature_) {
     mprintf("NETCDF: Defining replica temperature in output restart.\n");
     if ( checkNCerr(nc_def_var(ncid,NCTEMPERATURE,NC_DOUBLE,0,dimensionID,&TempVID),
          "Defining replica temperature in netcdf restart.") ) return 1;
@@ -393,7 +396,7 @@ int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *
   if (TempVID!=-1) {
     if ( checkNCerr(nc_get_var_double(ncid, TempVID, T),
                     "Getting replica temperature.")!=0 ) return 1;
-    if (debug>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",tfile->filename,T);
+    if (debug_>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",BaseName(),T);
   }
 
   // Read Coords 
@@ -405,14 +408,14 @@ int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *
                   "Getting Coords")!=0 ) return 1;
 
   // Read Velocity
-  if (hasVelocity && V!=NULL) {
+  if (hasVelocity_ && V!=NULL) {
     //if (F->V==NULL) F->V = new Frame(ncatom,NULL);
     if ( checkNCerr(nc_get_vara_double(ncid, velocityVID, start, count, V),
                     "Getting velocities")!=0 ) return 1;
   }
 
   // Read box info 
-  if (hasBox) {
+  if (hasBox_) {
     count[0]=3;
     count[1]=0;
     if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
@@ -440,13 +443,13 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
       "Netcdf restart Writing coordinates %i",set)) return 1;
 
   // write velocity
-  if (hasVelocity && V!=NULL) {
+  if (hasVelocity_ && V!=NULL) {
     if (checkNCerr(nc_put_vara_double(ncid,velocityVID,start,count,V),
         "Netcdf restart writing velocity %i",set)) return 1;
   }
 
   // write box
-  if (hasBox) { // && cellLengthVID!=-1) {
+  if (hasBox_) { // && cellLengthVID!=-1) {
     count[0]=3;
     count[1]=0;
     if (checkNCerr(nc_put_vara_double(ncid,cellLengthVID,start,count,box),
@@ -465,7 +468,7 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
   }
 
   // write temperature
-  if (hasTemperature) {
+  if (hasTemperature_) {
     if (checkNCerr(nc_put_var_double(ncid,TempVID,&T),
       "Writing restart temperature.")) return 1;
   }
@@ -482,13 +485,13 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
 void AmberRestartNC::info() {
   mprintf("is a NetCDF AMBER restart file");
 
-  if (hasVelocity) mprintf(", with velocities");
+  if (hasVelocity_) mprintf(", with velocities");
  
-  if (hasTemperature) mprintf(", with replica temperature");
+  if (hasTemperature_) mprintf(", with replica temperature");
 
-  /*if (debug > 2) {
-      if (title != NULL)
-        printfone("    title:        \"%s\"\n", p->title);
+  /*if (debug_ > 2) {
+      if (!title_.empt() )
+        printfone("    title:        \"%s\"\n", title_.c_str());
       if (application != NULL)  
         printfone("    application:  \"%s\"\n", p->application);
       if (program != NULL) 

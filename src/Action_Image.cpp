@@ -1,7 +1,5 @@
 // Image 
-#include <cmath> //for floor
 #include "Action_Image.h"
-#include "DistRoutines.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -81,9 +79,9 @@ int Image::init() {
   * currentParm is set in Action::Setup
   */
 int Image::setup() {
-  atomPair apair;
+  //atomPair apair;
 
-  if ( currentParm->SetupCharMask( Mask1, activeReference ) ) return 1;
+  if ( currentParm->SetupCharMask( Mask1 ) ) return 1;
   if (Mask1.None()) {
     mprintf("Warning: Image::setup: Mask contains 0 atoms.\n");
     return 1;
@@ -107,12 +105,12 @@ int Image::setup() {
 
   if (triclinic == FAMILIAR) {
     if (ComMask!=NULL) {
-      if ( currentParm->SetupIntegerMask( *ComMask, activeReference) ) return 1;
+      if ( currentParm->SetupIntegerMask( *ComMask ) ) return 1;
       if (ComMask->None()) {
         mprintf("Warning: Image::setup: Mask for 'familiar com' contains no atoms.\n");
         return 1;
       }
-      mprintf("\tcom: mask [%s] contains %i atoms.\n",ComMask->MaskString(),ComMask->Nselected);
+      mprintf("\tcom: mask [%s] contains %i atoms.\n",ComMask->MaskString(),ComMask->Nselected());
     }
   }
 
@@ -122,16 +120,23 @@ int Image::setup() {
   // are actually in the mask.
   imageList.clear();
   imageList.reserve( currentParm->Nmol() );
-  apair.firstAtom = 0;
-  apair.lastAtom = 0;
+  int firstAtom = 0;
+  int lastAtom = 0;
   for (int mol = 0; mol < currentParm->Nmol(); mol++) {
-    apair.firstAtom = apair.lastAtom;
-    apair.lastAtom = apair.firstAtom + currentParm->AtomsPerMol(mol);
+    firstAtom = lastAtom;
+    lastAtom = firstAtom + currentParm->AtomsPerMol(mol);
     // Check that each atom in the range is in Mask1
     bool rangeIsValid = true;
-    for (int atom = apair.firstAtom; atom < apair.lastAtom; atom++)
-      if (!Mask1.AtomInCharMask(atom)) {rangeIsValid = false; break;}
-    if (rangeIsValid) imageList.push_back( apair );
+    for (int atom = firstAtom; atom < lastAtom; atom++) {
+      if (!Mask1.AtomInCharMask(atom)) {
+        rangeIsValid = false; 
+        break;
+      }
+    }
+    if (rangeIsValid) {
+      imageList.push_back( firstAtom );
+      imageList.push_back( lastAtom );
+    }
   }
   mprintf("\tNumber of molecules to be imaged is %u based on mask [%s]\n", imageList.size(),
            Mask1.MaskString()); 
@@ -148,7 +153,7 @@ int Image::setup() {
 
 // Image::action()
 int Image::action() {
-  // Orthorhombic
+/*  // Orthorhombic
   double bp[3];
   double bm[3];
   // Non-orthorhombic
@@ -160,8 +165,14 @@ int Image::action() {
   int ixyz[3];
   // General
   double boxTrans[3];
-  double Coord[3];
+  double Coord[3];*/
 
+  if (ortho)
+    currentFrame->ImageOrtho(origin, center, useMass, imageList);
+  else
+    currentFrame->ImageNonortho(origin, ComMask, (triclinic==FAMILIAR),
+                                center, useMass, imageList);
+/*
   // Set up information for orthorhombic cell
   if (ortho) {
     if ( origin ) {
@@ -289,7 +300,7 @@ int Image::action() {
     // Translate atoms back into the box
     currentFrame->Translate(boxTrans,firstAtom,lastAtom);
 
-  } // END loop over atom pairs 
+  } // END loop over atom pairs */
 
   return 0;
 } 

@@ -6,25 +6,25 @@
 
 // CONSTRUCTOR
 FileIO_Gzip::FileIO_Gzip() {
-  fp = NULL;
+  fp_ = NULL;
 }
 
 // DESTRUCTOR
 FileIO_Gzip::~FileIO_Gzip() {
-  if (fp!=NULL) this->Close();
+  if (fp_!=NULL) this->Close();
 }
 
 // FileIO_Gzip::Open()
 int FileIO_Gzip::Open(const char *filename, const char *mode) {
-  fp = gzopen(filename, mode);
-  if (fp==NULL) return 1;
+  fp_ = gzopen(filename, mode);
+  if (fp_==NULL) return 1;
   return 0;
 }
 
 // FileIO_Gzip::Close()
 int FileIO_Gzip::Close() {
-  if (fp!=NULL) gzclose(fp);
-  fp=NULL;
+  if (fp_!=NULL) gzclose(fp_);
+  fp_=NULL;
   return 0;
 }
 
@@ -75,70 +75,60 @@ off_t FileIO_Gzip::Size(char *filename) {
 
 // FileIO_Gzip::Read()
 // NOTE: gzread returns 0 on EOF, -1 on error
-int FileIO_Gzip::Read(void *buffer, size_t size, size_t count) {
-  //size_t numread;
-  int numread;
-  int expectedread;
-
-  expectedread = (int)size;
-  expectedread *= (int)count;
+int FileIO_Gzip::Read(void *buffer, size_t num_bytes) {
   // Should never be able to call Read when fp is NULL.
-  //if (fp==NULL) {
+  //if (fp_==NULL) {
   //  fprintf(stdout,"Error: FileIO_Gzip::Read: Attempted to read NULL file pointer.\n");
   //  return 1;
   //}
-  numread = gzread(fp, buffer, expectedread);
-  if (numread != expectedread) return -1;
+  size_t numread = (size_t) gzread(fp_, buffer, num_bytes);
+  if (numread != num_bytes) return -1;
   //if (numread < 1 ) return -1;
 
   // NOTE: Check for errors here.
-  return numread;
+  return (int)numread;
 }
 
 // FileIO_Gzip::Write()
-int FileIO_Gzip::Write(void *buffer, size_t size, size_t count) {
+int FileIO_Gzip::Write(void *buffer, size_t num_bytes) {
   //size_t numwrite;
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
   //  fprintf(stdout,"Error: FileIO_Gzip::Write: Attempted to write to NULL file pointer.\n");
   //  return 1;
   //}
-  if ( gzwrite(fp, buffer, size * count)==0 ) return 1;
+  if ( gzwrite(fp_, buffer, num_bytes)==0 ) return 1;
   // NOTE: Check for errors here.
   return 0;
 }
 
-/* FileIO_Gzip::Seek()
- */
+// FileIO_Gzip::Seek()
 int FileIO_Gzip::Seek(off_t offset) {
   z_off_t zipOffset;
  
   //if (origin == SEEK_END) return 1; 
   zipOffset=(z_off_t) offset;
-  if ( gzseek(fp, zipOffset, SEEK_SET) < 0) return 1;
+  if ( gzseek(fp_, zipOffset, SEEK_SET) < 0) return 1;
   return 0;
 }
 
-/* FileIO_Gzip::Rewind()
- */
+// FileIO_Gzip::Rewind()
 int FileIO_Gzip::Rewind() {
-  gzrewind(fp);
+  gzrewind(fp_);
   return 0;
 }
 
-/* FileIO_Gzip::Tell()
- */
+// FileIO_Gzip::Tell()
 off_t FileIO_Gzip::Tell() {
   z_off_t zipOffset;
   
-  zipOffset = gztell(fp);
+  zipOffset = gztell(fp_);
   return (off_t) zipOffset;
 }
 
-/* FileIO_Gzip::Gets()
- */
+// FileIO_Gzip::Gets()
 int FileIO_Gzip::Gets(char *str, int num) {
-  if ( gzgets(fp,str,num) == NULL )
+  if ( gzgets(fp_,str,num) == NULL )
     return 1;
   else
     return 0;

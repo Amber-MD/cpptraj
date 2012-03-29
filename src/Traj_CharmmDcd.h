@@ -4,6 +4,11 @@
 // Class: CharmmDcd
 /// TrajectoryIO class for reading coordinates from charmm dcd files.
 class CharmmDcd : public TrajectoryIO {
+  public :
+    CharmmDcd();
+    ~CharmmDcd();
+    // charmm dcd-specific functions
+  private:
     int dcdatom;
     int dcdframes;
     int dcdoutsize;
@@ -39,8 +44,8 @@ class CharmmDcd : public TrajectoryIO {
     int writeDcdHeader();
 
     // Inherited functions
-    int setupRead(AmberParm *);
-    int setupWrite(AmberParm *);
+    int setupTrajin(AmberParm *);
+    int setupTrajout(AmberParm *);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
@@ -48,9 +53,5 @@ class CharmmDcd : public TrajectoryIO {
     void info();
     int processWriteArgs(ArgList *);
 
-  public :
-    CharmmDcd();
-    ~CharmmDcd();
-    // charmm dcd-specific functions
 };
 #endif

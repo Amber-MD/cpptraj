@@ -9,8 +9,6 @@
   * case e.g. when an action is not active for a certain part of the analysis.
   */
 class DataSet_integer : public DataSet {
-    std::map<int,int> Data;
-    std::map<int,int>::iterator it;
   public:
     DataSet_integer();
 
@@ -19,12 +17,16 @@ class DataSet_integer : public DataSet {
     double CurrentValue();
 
     int Xmax();
-    int isEmpty(int);
+    int Size();
+    int FrameIsEmpty(int);
     void Add( int, void * );
     int Get(void *, int);
     double Dval(int);
     void WriteBuffer(CharBuffer&,int);
     int Width();
     int Sync();
+  private:
+    std::map<int,int> Data_;
+    std::map<int,int>::iterator datum_;
 };
 #endif

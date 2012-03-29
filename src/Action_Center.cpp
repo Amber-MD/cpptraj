@@ -5,9 +5,6 @@
 // CONSTRUCTOR
 Center::Center() {
   //fprintf(stderr,"Center Con\n");
-  box[0]=0.0;
-  box[1]=0.0;
-  box[2]=0.0;
   origin=false;
   useMass=false;
 } 
@@ -47,12 +44,12 @@ int Center::init() {
 // currentParm is set in Action::Setup
 int Center::setup() {
 
-  if ( currentParm->SetupIntegerMask(Mask1, activeReference) ) return 1;
+  if ( currentParm->SetupIntegerMask(Mask1) ) return 1;
   if (Mask1.None()) {
     mprintf("Warning: Center::setup: Mask contains 0 atoms.\n");
     return 1;
   }
-  mprintf("\t%s (%i atoms)\n",Mask1.MaskString(),Mask1.Nselected);
+  mprintf("\t%s (%i atoms)\n",Mask1.MaskString(),Mask1.Nselected());
 
   if (!origin && currentParm->boxType==NOBOX) {
     mprintf("Warning: Center::setup: Box center specified but no box information.\n");
@@ -68,14 +65,7 @@ int Center::setup() {
   */
 int Center::action() {
 
-  // Set up box
-  if (!origin) {
-    box[0] = currentFrame->box[0] / 2.0;
-    box[1] = currentFrame->box[1] / 2.0;
-    box[2] = currentFrame->box[2] / 2.0;
-  }
-  
-  currentFrame->Center(&Mask1, box, useMass);
+  currentFrame->Center(&Mask1, origin, useMass);
 
   return 0;
 } 

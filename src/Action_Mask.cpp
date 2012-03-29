@@ -1,5 +1,4 @@
 // ActionMask
-#include <cstdlib>
 #include "Action_Mask.h"
 #include "CpptrajStdio.h"
 #include "TrajectoryFile.h"
@@ -40,13 +39,13 @@ int ActionMask::init( ) {
 
   // Open output file
   // NOTE: Should this be a buffer? Output at end?
-  if ( outfile.SetupFile(maskFilename, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) )
+  if ( outfile.SetupWrite(maskFilename, debug) )
     return 1;
   if ( outfile.OpenFile() ) return 1;
   // Header
-  outfile.IO->Printf("%-8s %8s %4s %8s %4s %8s","#Frame","AtomNum","Atom","ResNum","Res",
+  outfile.Printf("%-8s %8s %4s %8s %4s %8s","#Frame","AtomNum","Atom","ResNum","Res",
                      "MolNum");
-  outfile.IO->Printf("\n");
+  outfile.Printf("\n");
 
   return 0;
 }
@@ -65,7 +64,7 @@ int ActionMask::action() {
   TrajectoryFile pdbout;
 
   // Get atom selection
-  if ( currentParm->SetupCharMask(Mask1, currentFrame->X) ) {
+  if ( currentParm->SetupCharMask(Mask1, *currentFrame) ) {
     mprintf("Warning: ActionMask::action: Could not set up atom mask [%s]\n",Mask1.MaskString());
     return 1;
   }
@@ -74,43 +73,39 @@ int ActionMask::action() {
   for (atom=0; atom < currentParm->natom; atom++) {
     if (Mask1.AtomInCharMask(atom)) {
       res = currentParm->atomToResidue(atom);
-      outfile.IO->Printf("%8i %8i %4s %8i %4s %8i",
+      outfile.Printf("%8i %8i %4s %8i %4s %8i",
                          frameNum+OUTPUTFRAMESHIFT,atom+1, currentParm->AtomName(atom), res+1,
                          currentParm->ResidueName(res), currentParm->atomToMolecule(atom)+1);
       /*mprintf(" Type=%4s",currentParm->types[atom]);
       mprintf(" Charge=%lf",currentParm->charge[atom]);
       mprintf(" Mass=%lf",currentParm->mass[atom]);*/
-      outfile.IO->Printf("\n");
+      outfile.Printf("\n");
     }
   }
 
   // Optional PDB write out of selected atoms for the frame.
   if (maskpdb!=NULL) {
-    AtomMask *Mask2 = new AtomMask();
-    for (atom=0; atom < currentParm->natom; atom++) 
-      if (Mask1.AtomInCharMask(atom)) Mask2->AddAtom(atom);
+    // Convert Mask1 to an integer mask for use in parm/frame functions
+    AtomMask Mask2 = Mask1;
+    Mask2.ConvertMaskType();
     // Create new parm and frame based on atoms in Mask
-    AmberParm *pdbParm = currentParm->modifyStateByMask(Mask2->Selected, NULL);
+    AmberParm *pdbParm = currentParm->modifyStateByMask(Mask2, NULL);
     //pdbParm->Summary(); // DEBUG
-    Frame *pdbFrame = new Frame();
-    pdbFrame->SetupFrame(Mask2->Nselected,NULL);
-    // Set only coords
-    pdbFrame->SetFrameCoordsFromMask(currentFrame->X, Mask2);
+    Frame pdbFrame(*currentFrame, Mask2);
     // Set up output file. 
     pdbout.SetDebug(debug);
     // Set pdb output options: multi so that 1 file per frame is written; dumpq
     // so that charges are written out. 
-    if (pdbout.SetupWriteWithArgs(maskpdb,"multi dumpq",pdbParm,PDBFILE)) {
+    if (pdbout.SetupWriteWithArgs(maskpdb,"multi dumpq",pdbParm,TrajectoryFile::PDBFILE)) 
+    {
       mprinterr("Error: Action_Mask: maskpdb %s: Could not set up for write of frame %i.\n",
                 maskpdb,frameNum);
     } else {
       pdbout.PrintInfo(0);
-      pdbout.WriteFrame(frameNum,pdbParm,*pdbFrame);
+      pdbout.WriteFrame(frameNum,pdbParm,pdbFrame);
       pdbout.EndTraj();
     }
     delete pdbParm;
-    delete pdbFrame;
-    delete Mask2;
   }
 
   return 0;

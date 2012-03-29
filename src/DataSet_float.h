@@ -10,8 +10,6 @@
   * read when it is not valid for the current parmtop.
   */
 class DataSet_float : public DataSet {
-    std::map<int,float> Data;
-    std::map<int,float>::iterator datum;
   public:
     DataSet_float();
 
@@ -20,12 +18,16 @@ class DataSet_float : public DataSet {
     double CurrentValue();
 
     int Xmax();
-    int isEmpty(int);
+    int Size();
+    int FrameIsEmpty(int);
     void Add( int, void * );
     int Get(void *, int);
     double Dval(int);
     void WriteBuffer(CharBuffer&,int);
     int Width();
     int Sync();
+  private:
+    std::map<int,float> Data_;
+    std::map<int,float>::iterator datum_;
 };
 #endif
