@@ -11,7 +11,7 @@ class FileList {
       debug_ = dIn;
     }
 
-    void AddNames(char *, const char *, std::string &);
+    void AddNames(char *, std::string &, std::string &);
     int FindName(char*); // TODO: Make obsolete
     int FindName(std::string&);
   protected:

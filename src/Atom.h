@@ -29,6 +29,7 @@ class Atom {
     }
 
     void PrintXYZ();
+    void Info();
 
     void SetName(NameType);
     void SetResNum(int);

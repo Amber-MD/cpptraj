@@ -12,7 +12,8 @@ Topology::Topology() :
   hasCoordinates_(false),
   topology_error_(0),
   firstSolventMol_(-1),
-  finalSoluteRes_(-1)
+  finalSoluteRes_(-1),
+  pindex_(0)
 { }
 
 /// Atom names corresponding to AtomicElementType.
@@ -22,6 +23,10 @@ const char Topology::AtomicElementName[NUM_DEFINED_ELEMENTS][3] = { "??",
   "H",  "B",  "C",  "N", "O",  "F",  "P",  "S", "Cl", "Br", "Fe", "Ca",
   "I", "Mg", "Cu", "Li", "K", "Rb", "Cs", "Zn", "Na"
 };
+
+void Topology::SetDebug(int debugIn) {
+  debug_ = debugIn;
+}
 
 // Topology::SetHasCoordinates()
 void Topology::SetHasCoordinates() {
@@ -38,6 +43,11 @@ void Topology::SetParmName(std::string &nameIn) {
   parmName_ = nameIn;
 }
 
+void Topology::SetPindex(int pindexIn) {
+  pindex_ = pindexIn;
+}
+
+// -----------------------------------------------------------------------------
 // Topology::begin()
 Topology::atom_iterator Topology::begin() const {
   return atoms_.begin();
@@ -76,6 +86,7 @@ Topology::atom_iterator Topology::MolEnd(int molnum) const {
   return atoms_.begin() + molecules_[molnum+1].BeginAtom();
 }
 
+// -----------------------------------------------------------------------------
 // Topology::Summary()
 void Topology::Summary() {
   mprintf("Topology has %zu atoms, %zu residues, %zu mols.\n",
@@ -86,6 +97,27 @@ void Topology::Summary() {
   mprintf("  First solvent mol = %i, final solute residue = %i\n",
           firstSolventMol_+1, finalSoluteRes_+1);
 }
+
+// Topology::ParmInfo()
+void Topology::ParmInfo() {
+  mprintf(" %i: %s, %zu atoms, %zu res, ",pindex_,parmName_.c_str(),atoms_.size(),residues_.size());
+  box.PrintBoxType();
+  mprintf(", %zu mol",molecules_.size());
+  //if (solventMolecules>0)
+  //  mprintf(", %i solvent mol",solventMolecules);
+  //if (parmFrames>0)
+  //  mprintf(", %i frames",parmFrames);
+  mprintf("\n");
+}
+
+// Topology::PrintAtomInfo()
+void Topology::PrintAtomInfo(const char *maskString) {
+  AtomMask mask;
+  mask.SetMaskString( (char*)maskString ); // TODO: Use only strings
+  ParseMask(mask, false);
+  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
+    (*atom).Info();
+} 
 
 // Topology::PrintBondInfo()
 void Topology::PrintBondInfo() {
@@ -115,6 +147,7 @@ void Topology::PrintBondInfo() {
   }
 }
 
+// -----------------------------------------------------------------------------
 // Topology::AddAtom()
 void Topology::AddAtom(Atom atomIn, Residue resIn) {
   // DEBUG
@@ -955,7 +988,7 @@ void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) {
 }
 
 // Topology::ParseMask()
-int Topology::ParseMask(AtomMask &maskIn) {
+int Topology::ParseMask(AtomMask &maskIn, bool intMask) {
   std::stack<char*> Stack;
   char *pMask = NULL; 
   char *pMask2 = NULL;
@@ -1030,7 +1063,10 @@ int Topology::ParseMask(AtomMask &maskIn) {
     return 1;
   }
 
-  maskIn.SetupMask( pMask, atoms_.size(), debug_ );
+  if (intMask)
+    maskIn.SetupMask( pMask, atoms_.size(), debug_ );
+  else
+    maskIn.SetupCharMask( pMask, atoms_.size(), debug_);
   delete[] pMask;
   return 0;
 }

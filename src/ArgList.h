@@ -71,6 +71,7 @@ class ArgList {
     double getNextDouble(double);
     /// Return the string following the given key
     char *getKeyString(const char *, char*);
+    std::string GetStringKey(const char *);
     //int getKeyIndex(char*);
     /// Return the integer following the given key 
     int getKeyInt(const char *, int);

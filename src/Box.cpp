@@ -45,6 +45,14 @@ Box &Box::operator=(const Box& rhs) {
 
 const double Box::TRUNCOCTBETA = 109.4712206344906917365733534097672;
 
+void Box::PrintBoxType() {
+  switch (btype_) {
+    case NOBOX : mprintf("No Box"); break;
+    case ORTHO : mprintf("Ortho. Box"); break;
+    case NONORTHO: mprintf("Non-ortho. Box"); break;
+  }
+}
+
 // Box::SetBetaLengths()
 /** Expected array format: {OLDBETA, BOX(1), BOX(2), BOX(3)}
   */

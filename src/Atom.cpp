@@ -148,6 +148,22 @@ void Atom::PrintXYZ() {
   mprintf("%10.4lf %10.4lf %10.4lf",coords_[0],coords_[1],coords_[2]);
 }
 
+void Atom::Info() {
+  mprintf("  Atom %i:",anum_);
+  mprintf("[%s]",*aname_);
+  mprintf(" Res %i:",resnum_+1);
+  //mprintf("[%s]",resnames[res]);
+  //if (molecules>0)
+    mprintf(" Mol %i", mol_+1);
+  /*if (types!=NULL)
+    mprintf(" Type=[%s]",types[atom]);
+  if (charge!=NULL)*/
+    mprintf(" Charge=%lf",charge_);
+  //if (mass!=NULL)
+    mprintf(" Mass=%lf",mass_);
+  mprintf("\n");
+}
+
 // Atom::SetName()
 void Atom::SetName(NameType nameIn) {
   aname_ = nameIn;

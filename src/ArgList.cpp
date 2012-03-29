@@ -419,6 +419,21 @@ char *ArgList::getKeyString(const char *key, char *def) {
   return def;
 }
 
+std::string ArgList::GetStringKey(const char *key) {
+  std::string empty;
+  unsigned int nargs = arglist.size() - 1;
+  for (unsigned int arg=0; arg < nargs; arg++)
+    if (!marked[arg]) {
+      if (arglist[arg].compare(key)==0) {
+        marked[arg]=true;
+        arg++;
+        marked[arg]=true;
+        return arglist[arg];
+      }
+    }
+  return empty;
+}
+
 /* ArgList::getKeyIndex()
  * Search for unmarked key in arglist, return its position in the ArgList
  * if found, otherwise return -1

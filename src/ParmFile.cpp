@@ -7,9 +7,9 @@
 //#include "Parm_CharmmPsf.h"
 
 // CONSTRUCTOR
-ParmFile::ParmFile() {
-  debug_ = 0;
-}
+ParmFile::ParmFile() :
+  debug_(0)
+{}
 
 // ParmFile::SetDebug() 
 void ParmFile::SetDebug(int debugIn) {
@@ -58,6 +58,8 @@ int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) 
         }
         // Perform setup common to all parm files.
         Top.CommonSetup(bondsearch,molsearch);
+        // Set base filename for later retrieval
+        basename_.assign( parmio->BaseName() );
         delete parmio;
         return 0;
       }

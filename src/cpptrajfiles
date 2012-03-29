@@ -17,11 +17,11 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         DataSet.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
         DataSetList.cpp DataSet_Matrix.cpp DataSet_string.cpp DataSet_XYZ.cpp \
         DistRoutines.cpp \
-        FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp \
+        FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
         FindDepend.cpp Frame.cpp FrameList.cpp Histogram.cpp Integrate.cpp \
         main.cpp \
         MaskToken.cpp Mol2FileRoutines.cpp Molecule.cpp NameType.cpp NetcdfRoutines.cpp \
-        Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp ParmFileList.cpp ParmIO.cpp \
+        Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \
         PDBfile.cpp ProgressBar.cpp ptraj_convert.cpp \
         Random.cpp Range.cpp ReferenceList.cpp RemdTraj.cpp Residue.cpp Topology.cpp \

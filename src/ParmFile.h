@@ -10,11 +10,16 @@ class ParmFile {
 
     ParmFile();
 
+    inline std::string &BaseName() {
+      return basename_;
+    }
+
     void SetDebug(int);
     int Read(Topology&, char*,bool,bool);
     int Write(Topology&, char*,ParmFormatType);
   private :
     int debug_;
+    std::string basename_;
     ParmIO *SetupParmIO(ParmFormatType);
 };
 #endif

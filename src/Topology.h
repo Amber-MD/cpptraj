@@ -12,9 +12,11 @@ class Topology {
   public:
     Topology();
 
+    void SetDebug(int);
     void SetHasCoordinates();
     void SetParmName(const char*);
     void SetParmName(std::string&);
+    void SetPindex(int);
 
     typedef std::vector<Atom>::const_iterator atom_iterator;
     atom_iterator begin() const;
@@ -29,8 +31,13 @@ class Topology {
     //res_iterator endRes() const;
 
     void Summary();
+    void ParmInfo();
+    void PrintAtomInfo(const char*);
     void PrintBondInfo();
 
+    inline int Pindex() {
+      return pindex_;
+    }
     inline int Nres() {
       return (int)residues_.size();
     }
@@ -42,6 +49,9 @@ class Topology {
     }
     inline int Mol_FirstRes(int mol) {
       return molecules_[mol].FirstRes();
+    }
+    inline const char *c_str() {
+      return parmName_.c_str();
     }
 
     void AddAtom(Atom, Residue);
@@ -57,7 +67,7 @@ class Topology {
 
     void CommonSetup(bool,bool);
 
-    int ParseMask(AtomMask &);
+    int ParseMask(AtomMask &,bool);
   private:
     static const char AtomicElementName[][3];
 
@@ -78,6 +88,7 @@ class Topology {
     int topology_error_;
     int firstSolventMol_;
     int finalSoluteRes_;
+    int pindex_;
 
     double GetBondedCut(Atom::AtomicElementType, Atom::AtomicElementType);
     void GetBondsFromAtomCoords();

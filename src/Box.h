@@ -8,6 +8,7 @@ class Box {
     Box();
     Box(const Box&);
     Box &operator=(const Box&);
+    void PrintBoxType();
     void SetTruncOct();
     void SetBetaLengths(std::vector<double> &);
     int AmberIfbox();

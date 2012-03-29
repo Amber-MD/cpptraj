@@ -9,9 +9,9 @@ FileList::FileList() :
 FileList::~FileList() {}
 
 // FileList::AddNames()
-void FileList::AddNames(char *filename, const char *basename, std::string &tag) {
+void FileList::AddNames(char *filename, std::string &basename, std::string &tag) {
   fnames_.push_back( std::string(filename) );
-  basenames_.push_back( std::string(basename) );
+  basenames_.push_back( basename );
   tags_.push_back( tag );
 }
 
