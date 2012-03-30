@@ -117,6 +117,8 @@ class Topology {
 
     void CommonSetup(bool,bool);
 
+    void AddBond(int,int);
+
     inline bool SetupIntegerMask(AtomMask &mask) {
       return ParseMask(refCoords_, mask, true);
     }
@@ -153,7 +155,6 @@ class Topology {
 
     double GetBondedCut(Atom::AtomicElementType, Atom::AtomicElementType);
     void GetBondsFromAtomCoords();
-    void AddBond(int,int);
     void VisitAtom(int, int);
     void DetermineMolecules();
     void AtomDistance(int, int);

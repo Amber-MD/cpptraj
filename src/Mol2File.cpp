@@ -11,13 +11,17 @@ const char Mol2File::TRIPOSTAGTEXT[4][22]={
   "@<TRIPOS>SUBSTRUCTURE"
 };
 
-bool Mol2File::IsMol2Keyword(char *bufferIn ) {
-  if (strncmp(bufferIn,"@<TRIPOS>",9)==0)
+bool Mol2File::IsMol2Keyword() {
+  if (strncmp(buffer_,"@<TRIPOS>",9)==0)
     return true;
   return false;
 }
 
-// Mol2ScanTo()
+/*bool Mol2File::NextLine(FileIO *IO) {
+  return ( IO->Gets(buffer_, BUF_SIZE_) == 0 );
+}*/
+
+// Mol2File::ScanTo()
 /** Scan to the specified TRIPOS section of file.
   * \return 0 if the tag was found, 1 if not found.
   */
@@ -31,6 +35,23 @@ int Mol2File::ScanTo( FileIO *IO, TRIPOSTAG tag ) {
   // Suppress this warning so routine can be used to scan # frames
   //mprintf("Warning: Mol2File::ScanTo(): Could not find tag %s\n",TRIPOSTAGTEXT[tag]);
   return 1;
+}
+
+// atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
+Atom Mol2File::Mol2Atom() {
+  char mol2name[10], mol2type[10];
+  double mol2q;
+  double XYZ_[3];
+  sscanf(buffer_, "%*i %s %lf %lf %lf %s %*i %*s %lf", mol2name,XYZ_, XYZ_+1, XYZ_+2, 
+         mol2type, &mol2q);
+  return Atom( mol2name, XYZ_, mol2type, mol2q );
+}
+
+Residue Mol2File::Mol2Residue() {
+  char resname[10];
+  int resnum;
+  sscanf(buffer_,"%*i %*s %*f %*f %*f %*s %i %s",&resnum,resname);
+  return Residue(resnum, resname);
 }
 
 // Mol2AtomName()

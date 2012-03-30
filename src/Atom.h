@@ -16,6 +16,7 @@ class Atom {
     // Constructors and assignment
     Atom();
     Atom(int, NameType, double (&)[3]);
+    Atom( NameType, double (&)[3], NameType, double );
     Atom( int, NameType, double, int, double, int, double, double );
     Atom(const Atom &);
     void swap(Atom &, Atom &);

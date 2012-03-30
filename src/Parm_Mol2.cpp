@@ -4,93 +4,80 @@
 #include <cstdio> // sscanf
 #include <cstring> // memcpy, strcpy
 
-// Mol2ParmFile::ReadParm()
-/** Read file as a Tripos Mol2 file. */
-int Mol2ParmFile::ReadParm(Topology &parmOut) {
-  char buffer[MOL2BUFFERSIZE];
-  int mol2bonds;
-  int resnum, currentResnum;
-  unsigned int crdidx = 0;
-  char resName[5];
+// Parm_Mol2::ID_ParmFormat() 
+bool Parm_Mol2::ID_ParmFormat() {
+  // Read the first 10 lines
+  if (OpenFile()) return false;
+  for (int line = 0; line < 10; line++) {
+    if ( IO->Gets(buffer_,BUF_SIZE_) ) return false;
+    if ( IsMol2Keyword() ) {
+      CloseFile();
+      return true;
+    }
+  }
+  CloseFile();
+  return false;
+}
+    
 
+// Parm_Mol2::ReadParm()
+/** Read file as a Tripos Mol2 file. */
+int Parm_Mol2::ReadParm(Topology &parmOut) {
   if (OpenFile()) return 1;
 
-  currentResnum=-1;
-  mprintf("    Reading Mol2 file %s as topology file.\n",parmOut.parmName);
+  mprintf("    Reading Mol2 file %s as topology file.\n",parmOut.c_str());
   // Get @<TRIPOS>MOLECULE information
-  if (Mol2ScanTo(IO, MOLECULE)) return 1;
+  if (ScanTo(IO, MOLECULE)) return 1;
   //   Scan title
-  if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
-  if (debug_>0) mprintf("      Mol2 Title: [%s]\n",buffer);
+  if ( IO->Gets(buffer_,BUF_SIZE_) ) return 1;
+  if (debug_>0) mprintf("      Mol2 Title: [%s]\n",buffer_);
+  // TODO: Set parm title
   //   Scan # atoms and bonds
   // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
-  if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
-  mol2bonds=0;
-  sscanf(buffer,"%i %i",&parmOut.natom, &mol2bonds);
+  if ( IO->Gets(buffer_,BUF_SIZE_) ) return 1;
+  int natom = 0;
+  int mol2bonds = 0;
+  sscanf(buffer_,"%i %i",&natom, &mol2bonds);
   if (debug_>0) {
-    mprintf("      Mol2 #atoms: %i\n",parmOut.natom);
+    mprintf("      Mol2 #atoms: %i\n",natom);
     mprintf("      Mol2 #bonds: %i\n",mol2bonds);
   }
 
   // Allocate memory for atom names, types, and charges.
-  parmOut.names = new NAME[ parmOut.natom ];
-  parmOut.types = new NAME[ parmOut.natom ];
-  parmOut.charge = new double[ parmOut.natom ];
+  //parmOut.names = new NAME[ parmOut.natom ];
+  //parmOut.types = new NAME[ parmOut.natom ];
+  //parmOut.charge = new double[ parmOut.natom ];
   // Allocate space for coords
-  parmOut.parmCoords = new double[ parmOut.natom * 3 ];
+  //parmOut.parmCoords = new double[ parmOut.natom * 3 ];
 
   // Get @<TRIPOS>ATOM information
-  if (Mol2ScanTo(IO, ATOM)) return 1;
-  for (int atom=0; atom < parmOut.natom; atom++) {
-    if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
-    // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
-    //sscanf(buffer,"%*i %s %*f %*f %*f %s %i %s %lf", names[atom], types[atom],
-    //       &resnum,resName, charge+atom);
-    //mprintf("      %i %s %s %i %s %lf\n",atom,names[atom],types[atom],resnum,resName,charge[atom]);
-    Mol2AtomName(buffer,parmOut.names[atom]);
-    Mol2AtomType(buffer,parmOut.types[atom]);
-    Mol2XYZ(buffer,parmOut.parmCoords + crdidx);
-    crdidx += 3;
-    Mol2ResNumName(buffer,&resnum,resName);
-    parmOut.charge[atom]=Mol2Charge(buffer);
-    // Check if residue number has changed - if so record it
-    if (resnum != currentResnum) {
-      NAME *temprname = new NAME[ parmOut.nres+1 ];
-      memcpy(temprname, parmOut.resnames, parmOut.nres * sizeof(NAME));
-      delete[] parmOut.resnames;
-      parmOut.resnames = temprname;
-      strcpy(parmOut.resnames[parmOut.nres], resName);
-      int *temprnum = new int[ parmOut.nres+1 ];
-      memcpy(temprnum, parmOut.resnums, parmOut.nres * sizeof(int));
-      delete[] parmOut.resnums;
-      parmOut.resnums = temprnum;
-      parmOut.resnums[parmOut.nres]=atom; 
-      currentResnum = resnum;
-      parmOut.nres++;
-    }
+  if (ScanTo(IO, ATOM)) return 1;
+  for (int atom=0; atom < natom; atom++) {
+    if ( IO->Gets(buffer_,BUF_SIZE_) ) return 1;
+    parmOut.AddAtom( Mol2Atom(), Mol2Residue() );
   }
 
   // Get @<TRIPOS>BOND information [optional]
-  parmOut.NbondsWithoutH=0;
-  parmOut.NbondsWithH=0;
-  if (Mol2ScanTo(IO, BOND)==0) {
+  int at1 = 0;
+  int at2 = 0;
+  if (ScanTo(IO, BOND)==0) {
     for (int bond=0; bond < mol2bonds; bond++) {
-      if ( IO->Gets(buffer,MOL2BUFFERSIZE) ) return 1;
+      if ( IO->Gets(buffer_,BUF_SIZE_) ) return 1;
       // bond_id origin_atom_id target_atom_id bond_type [status_bits]
       //         resnum         currentResnum
-      sscanf(buffer,"%*i %i %i\n",&resnum,&currentResnum);
+      sscanf(buffer_,"%*i %i %i\n", &at1, &at2);
       // mol2 atom #s start from 1
-      parmOut.AddBond(resnum-1, currentResnum-1,0);
+      parmOut.AddBond(at1-1, at2-1);
     }
   } else {
     mprintf("      Mol2 file does not contain bond information.\n");
   }
 
   // No box
-  parmOut.boxType = NOBOX;
+  parmOut.SetNoBox();
 
-  mprintf("    Mol2 contains %i atoms, %i residues,\n", parmOut.natom,parmOut.nres);
-  mprintf("    %i bonds to H, %i other bonds.\n", parmOut.NbondsWithH,parmOut.NbondsWithoutH);
+  mprintf("    Mol2 contains %i atoms, %i residues,\n", parmOut.Natom(),parmOut.Nres());
+  //mprintf("    %i bonds to H, %i other bonds.\n", parmOut.NbondsWithH,parmOut.NbondsWithoutH);
 
   CloseFile();
 

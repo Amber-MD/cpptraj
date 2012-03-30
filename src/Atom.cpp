@@ -60,6 +60,29 @@ Atom::Atom(int anum, NameType aname, double (&XYZ)[3]) :
 }
 
 // CONSTRUCTOR
+Atom::Atom( NameType aname, double (&XYZ)[3], NameType atype, double q ) :
+  charge_(q),
+  mass_(1),
+  gb_radius_(0),
+  gb_screen_(0),
+  aname_(aname),
+  atype_(atype),
+  itree_(""),
+  irotat_(0),
+  atype_index_(0),
+  join_(0),
+  element_(UNKNOWN_ELEMENT),
+  anum_(0),
+  resnum_(0),
+  mol_(0)
+{
+  coords_[0] = XYZ[0];
+  coords_[1] = XYZ[1];
+  coords_[2] = XYZ[2];
+  SetElementFromName();
+}
+
+// CONSTRUCTOR
 Atom::Atom( int anum, NameType name, double charge, int atomicnum, double mass, int atidx,
             double rad, double screen ) :
   charge_(charge),

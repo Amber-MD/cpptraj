@@ -9,10 +9,14 @@ class Mol2File {
 
     enum TRIPOSTAG { MOLECULE=0, ATOM, BOND, SUBSTRUCT };
 
-    bool IsMol2Keyword(char*);
+    bool IsMol2Keyword();
+    //bool NextLine(FileIO*);
     int ScanTo( FileIO *, TRIPOSTAG );
+    Atom Mol2Atom();
+    Residue Mol2Residue();
   private:
     static const char TRIPOSTAGTEXT[][22];
+  protected: // TODO: Should be private
     static const size_t BUF_SIZE_ = 256;
     char buffer_[BUF_SIZE_];
 };
