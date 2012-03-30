@@ -112,12 +112,12 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
     CurrentParm = (*traj)->TrajParm();
     // NOTE: If ever need ref velocity change this alloc
     CurrentFrame = new Frame();
-    CurrentFrame->SetupFrame(CurrentParm->natom, CurrentParm->mass);
+    CurrentFrame->SetupFrame(CurrentParm->Natom(), CurrentParm->Mass());
     // If averaging requested, loop over specified frames and avg coords.
     if (Average[refTrajNum]) {
       mprintf("    Averaging over %i frames.\n",trajFrames);
       AvgFrame = new Frame();
-      AvgFrame->SetupFrame(CurrentParm->natom, CurrentParm->mass);
+      AvgFrame->SetupFrame(CurrentParm->Natom(), CurrentParm->Mass());
       AvgFrame->ZeroCoords();
       Nframes = 0.0;
       while ( (*traj)->GetNextFrame(*CurrentFrame) ) {

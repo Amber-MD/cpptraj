@@ -4,7 +4,7 @@
 #include "PDBfile.h"
 // Class: PDBfile
 /// TrajectoryIO class for reading coordinates from PDB files.
-class PDBfile: public TrajectoryIO, PDBfile {
+class Traj_PDBfile: public TrajectoryIO, PDBfile {
   public:
     /** PDBWRITEMODE: Indicate how the pdb should be written.
       *  SINGLE: Writing only a single frame.
@@ -14,25 +14,17 @@ class PDBfile: public TrajectoryIO, PDBfile {
       */
     enum PDBWRITEMODE {SINGLE = 0, MODEL, MULTI};
 
-    PDBfile();
-    // PDBfile-specfic functions
+    Traj_PDBfile();
+    // Traj_PDBfile-specfic functions
     void SetWriteMode(PDBWRITEMODE);
     void SetDumpq();
 
   private:
-    static const size_t BUF_SIZE;
-
     int pdbAtom_;
     PDBWRITEMODE pdbWriteMode_;
     bool dumpq_; ///< If true, print charges in Occupancy column
     bool dumpr_; ///< If true, print radii in B-factor column.
-    // The following are only required for writes and are set in setupTrajout 
-    NAME *pdbAtomNames_; 
-    NAME *trajResNames_;
-    int *trajAtomsPerMol_;
-    int *trajResNums_;
-    double *trajCharges_;
-    double *trajRadii_;
+    Topology *pdbTop_;
 
     std::vector<char> chainID_;
     char chainchar_;

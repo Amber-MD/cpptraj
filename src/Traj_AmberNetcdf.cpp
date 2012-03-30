@@ -226,10 +226,10 @@ int AmberNetcdf::setupTrajin(Topology* trajParm) {
   //int spatialVID, cell_spatialVID, cell_angularVID;
 
   // Check that specified number of atoms matches expected number.
-  if (ncatom!=trajParm->natom) {
+  if (ncatom!=trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n",
               BaseName(),ncatom);
-    mprinterr("       match number in associated parmtop (%i)!\n",trajParm->natom);
+    mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
     return -1;
   }
 
@@ -282,9 +282,9 @@ int AmberNetcdf::setupTrajout(Topology *trajParm) {
     "Defining spatial variable.")) return 1;
 
   // Atoms
-  if (checkNCerr(nc_def_dim(ncid,NCATOM,trajParm->natom,&atomDID),
+  if (checkNCerr(nc_def_dim(ncid,NCATOM,trajParm->Natom(),&atomDID),
     "Defining atom dimension.")) return 1;
-  ncatom=trajParm->natom;
+  ncatom = trajParm->Natom();
   ncatom3 = ncatom * 3;
 
   // Coords

@@ -49,61 +49,77 @@ ptrajState *CreateState(Topology *currentParm, int maxFrames) {
   state = (ptrajState*) malloc( sizeof(ptrajState) );
   INITIALIZE_ptrajState( state );
 
-  state->box[0] = currentParm->Box[0];
-  state->box[1] = currentParm->Box[1];
-  state->box[2] = currentParm->Box[2];
-  state->box[3] = currentParm->Box[3];
-  state->box[4] = currentParm->Box[4];
-  state->box[5] = currentParm->Box[5];
-  state->masses = currentParm->mass;
-  state->charges = currentParm->Charges_ptr();
-  state->atoms = currentParm->natom;
+  // General info
+  state->maxFrames = maxFrames; 
+  state->temp0 = 0.0;
+  currentParm->BoxCoords( state->box );
+  if (currentParm->BoxType() == Box::NOBOX)
+    state->IFBOX = 0;
+  else if (currentParm->BoxIsTruncOct())
+    state->IFBOX = 2;
+  else
+    state->IFBOX = 1;
+  //state->boxfixed
+  // Atom Info
+  state->atoms = currentParm->Natom();
+  state->masses = (double*) malloc(state->atoms * sizeof(double)); // ack! malloc!
+  state->charges = (double*) malloc(state->atoms * sizeof(double));
+  state->atomName = (NAME*) malloc(state->atoms * sizeof(NAME));
+  for (int atom = 0; atom < state->atoms; atom++) {
+    state->masses[atom] = (*currentParm)[atom].Mass();
+    state->charges[atom] = (*currentParm)[atom].Charge();
+    (*currentParm)[atom].Name().ToBuffer( state->atomName[atom] );
+  }
+  // Residue info
   state->residues = currentParm->Nres();
   // IPRES - in Cpptraj the atom #s in IPRES (resnums) is shifted by -1
   // to be consistent with the rest of cpptraj; however, ptraj actions 
   // expect standard ipres (atom #s start at 1). Create a copy with atom
   // numbers shifted +1.
-  int *ResNums = currentParm->ResAtomNums_ptr();
   state->ipres = (int*) malloc( (state->residues+1) * sizeof(int));
-  for (int res = 0; res <= state->residues; res++)
-    state->ipres[res] = ResNums[res]+1;
   // The Cpptraj version of the mask parser expects Cpptraj-style ipres,
   // so need that as well
-  state->ipres_mask = ResNums;
-  state->IFBOX = AmberIfbox(currentParm->Box[4]);
-  //state->boxfixed
+  // TODO: Not really needed now, cpptraj has new mask parser
+  state->ipres_mask = (int*) malloc( (state->residues+1) * sizeof(int));
+  state->residueName = (NAME*) malloc ( state->residues * sizeof(NAME));
+  for (int res = 0; res < state->residues; res++) {
+    state->ipres_mask[res] = currentParm->Res(res).FirstAtom();
+    state->ipres[res] = state->ipres_mask[res] + 1;
+    currentParm->Res(res).Name().ToBuffer( state->residueName[res] );
+  }
+  // Molecule info
   state->molecules = currentParm->Nmol();
-  state->moleculeInfo = currentParm->AtomsPerMol_ptr();
+  state->moleculeInfo = (int*) malloc( state->molecules * sizeof(int));
+  int* apm = state->moleculeInfo;
+  for (Topology::mol_iterator mol = currentParm->MolStart();
+                              mol != currentParm->MolEnd(); mol++)
+  {
+    *apm = (*mol).NumAtoms();
+    ++apm;
+  }
   // Solvent info
   state->solventMask = (int*) malloc( state->atoms * sizeof(int));
-  state->solventMolecules = currentParm->solventMolecules;
-  state->solventMoleculeStart = (int*) malloc( currentParm->solventMolecules * sizeof(int));
-  state->solventMoleculeStop = (int*) malloc( currentParm->solventMolecules * sizeof(int));
-  // Convert solvent mask
-  // Assume if no solvent mask, no solvent present
-  if (currentParm->solventMask!=NULL) {
-    for (int atom = 0; atom < currentParm->natom; atom++) {
-      if (currentParm->solventMask[atom]=='T')
-        state->solventMask[atom] = 1;
-      else
-        state->solventMask[atom] = 0;
+  for (int atom = 0; atom < state->atoms; atom++)
+    state->solventMask = 0;
+  state->solventMolecules = currentParm->Nsolvent();
+  state->solventAtoms = 0;
+  if (state->solventMolecules > 0) {
+    state->solventMoleculeStart = (int*) malloc( state->solventMolecules * sizeof(int));
+    state->solventMoleculeStop = (int*) malloc( state->solventMolecules * sizeof(int));
+    int smol = 0;
+    for (Topology::mol_iterator mol = currentParm->SolventStart();
+                                mol != currentParm->SolventEnd(); mol++)
+    {
+      state->solventMoleculeStart[smol] = (*mol).BeginAtom();
+      state->solventMoleculeStop[smol] = (*mol).EndAtom();
+      for (int i = state->solventMoleculeStart[smol]; i < state->solventMoleculeStop[smol]; i++) {
+        ++state->solventAtoms;
+        state->solventMask[i] = 1;
+      }
+      ++smol;
     }
-    for (int mol = 0; mol < currentParm->solventMolecules; mol++) {
-      state->solventMoleculeStart[mol] = currentParm->solventMoleculeStart[mol];
-      state->solventMoleculeStop[mol] = currentParm->solventMoleculeStop[mol];
-    }
-    state->solventAtoms = state->solventMoleculeStop[currentParm->solventMolecules-1] -
-                          state->solventMoleculeStart[0];
-  } else {
-    memset(state->solventMask,0,currentParm->natom);
-    memset(state->solventMoleculeStart,0,currentParm->solventMolecules);
-    memset(state->solventMoleculeStop,0,currentParm->solventMolecules);
-    state->solventAtoms = 0;
   }
-  state->atomName = currentParm->AtomNames_ptr();
-  state->residueName = currentParm->ResidueNames_ptr();
-  state->maxFrames = maxFrames; 
-  state->temp0 = 0.0;
+
 
   return state;
 }
@@ -111,7 +127,13 @@ ptrajState *CreateState(Topology *currentParm, int maxFrames) {
 // FreeState()
 void FreeState(ptrajState *state) {
   if (state!=NULL) {
+    if (state->masses!=NULL) free(state->masses);
+    if (state->charges!=NULL) free(state->charges);
+    if (state->atomName!=NULL) free(state->atomName);
     if (state->ipres!=NULL) free(state->ipres);
+    if (state->ipres_mask!=NULL) free(state->ipres_mask);
+    if (state->residueName!=NULL) free(state->residueName);
+    if (state->moleculeInfo!=NULL) free(state->moleculeInfo);
     if (state->solventMask!=NULL) free(state->solventMask);
     if (state->solventMoleculeStart!=NULL) free(state->solventMoleculeStart);
     if (state->solventMoleculeStop!=NULL) free(state->solventMoleculeStop);

@@ -1,29 +1,19 @@
-// PDBfile
+// Traj_PDBfile
 #include "Traj_PDBfile.h"
 #include "CpptrajStdio.h"
 
-const size_t PDBfile::BUF_SIZE = 83;
-
 // CONSTRUCTOR
-PDBfile::PDBfile() {
+Traj_PDBfile::Traj_PDBfile() {
   pdbAtom_=0;
   pdbWriteMode_=SINGLE;
   dumpq_=false;
   dumpr_=false;
-
-  pdbAtomNames_=NULL;
-  trajResNames_=NULL;
-  trajAtomsPerMol_=NULL;
-  trajResNums_=NULL;
-  trajCharges_=NULL;
-  trajRadii_=NULL;
-
   chainchar_=' ';
 }
 
 //------------------------------------------------------------------------
-// PDBfile::closeTraj()
-void PDBfile::closeTraj() {
+// Traj_PDBfile::closeTraj()
+void Traj_PDBfile::closeTraj() {
   // On WRITE only close if not writing 1 pdb per frame
   if (access_==WRITE) {
     if ( pdbWriteMode_!=MULTI) {
@@ -37,8 +27,8 @@ void PDBfile::closeTraj() {
     CloseFile();
 }
 
-// PDBfile::openTraj()
-int PDBfile::openTraj() {
+// Traj_PDBfile::openTraj()
+int Traj_PDBfile::openTraj() {
   int err;
 
   err = 0; 
@@ -58,13 +48,13 @@ int PDBfile::openTraj() {
   return err;
 }
 
-// PDBfile::setupTrajin()
+// Traj_PDBfile::setupTrajin()
 /** Scan PDB file to determine number of frames (models). The first frame will 
   * also be checked to ensure that the atom names match those in the parm file
   * in TrajectoryFile.
   */
-int PDBfile::setupTrajin(Topology *trajParm) {
-  char buffer[BUF_SIZE];
+int Traj_PDBfile::setupTrajin(Topology *trajParm) {
+  char buffer[BUF_SIZE_];
   int atom, Frames;
   int numMismatch = 0;
   bool scanPDB;
@@ -118,7 +108,7 @@ int PDBfile::setupTrajin(Topology *trajParm) {
             atom,trajParm->natom);
     return -1;
   }
-  if (debug_>0) mprintf("PDBfile: %s has %i atoms, %i frames.\n",BaseName(),
+  if (debug_>0) mprintf("Traj_PDBfile: %s has %i atoms, %i frames.\n",BaseName(),
                        pdbAtom_,Frames);
   // Report mismatches of pdb atom names against parm names
   if (numMismatch > 0)
@@ -128,9 +118,9 @@ int PDBfile::setupTrajin(Topology *trajParm) {
   return Frames;
 }
 
-// PDBfile::readFrame()
+// Traj_PDBfile::readFrame()
 /** Read frame (model) from PDB file. */
-int PDBfile::readFrame(int set,double *X, double *V,double *box, double *T) {
+int Traj_PDBfile::readFrame(int set,double *X, double *V,double *box, double *T) {
   char buffer[BUF_SIZE];
   int atom, atom3;
 
@@ -149,8 +139,8 @@ int PDBfile::readFrame(int set,double *X, double *V,double *box, double *T) {
   return 0;
 }
 
-// PDBfile::processWriteArgs()
-int PDBfile::processWriteArgs(ArgList *argIn) {
+// Traj_PDBfile::processWriteArgs()
+int Traj_PDBfile::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("dumpq")) this->SetDumpq();
   if (argIn->hasKey("model")) this->SetWriteMode(MODEL);
   if (argIn->hasKey("multi")) this->SetWriteMode(MULTI);
@@ -159,18 +149,14 @@ int PDBfile::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-// PDBfile::setupTrajout()
+// Traj_PDBfile::setupTrajout()
 /** Set parm information needed for write, and check write mode against
   * number of frames to be written.
   */ 
-int PDBfile::setupTrajout(Topology *trajParm) {
-  pdbAtom_ = trajParm->natom;
-  pdbAtomNames_ = trajParm->AtomNames_ptr();
-  trajResNames_ = trajParm->ResidueNames_ptr();
-  trajAtomsPerMol_ = trajParm->AtomsPerMol_ptr();
-  trajResNums_ = trajParm->ResAtomNums_ptr();
-  trajCharges_ = trajParm->Charges_ptr();
-  trajRadii_ = trajParm->GB_radii_ptr();
+int Traj_PDBfile::setupTrajout(Topology *trajParm) {
+  pdbTop = trajParm;
+
+  pdbAtom_ = pdbTop->Natom();
 
   // Set a chainID for each atom
   chainID_.clear();
@@ -178,62 +164,33 @@ int PDBfile::setupTrajout(Topology *trajParm) {
 
   // If number of frames to write > 1 and not doing 1 pdb file per frame,
   // set write mode to MODEL
-  if (pdbWriteMode_==SINGLE && trajParm->parmFrames>1) 
+  if (pdbWriteMode_==SINGLE && trajParm->Nframes()>1) 
     pdbWriteMode_=MODEL;
-  // Check that all parm info needed is present
-  if (pdbAtomNames_==NULL) {
-    mprinterr("Error: setupTrajout [%s]: Atom names are NULL.\n",BaseName()); 
-    return 1;
-  }
-  if (trajResNames_==NULL) {
-    mprinterr("Error: setupTrajout [%s]: Residue names are NULL.\n",BaseName()); 
-    return 1;
-  }
-  if (trajAtomsPerMol_==NULL) {
-    if (debug_>0) {
-      mprintf("Warning: setupTrajout [%s]: Atoms per molecule is NULL.\n",BaseName()); 
-      mprintf("         TER cards will not be written to PDB.\n");
-    }
-  }
-  if (trajResNums_==NULL) {
-    mprinterr("Error: setupTrajout [%s]: Residue #s are NULL.\n",BaseName()); 
-    return 1;
-  }
-  if (dumpq_ && trajCharges_==NULL) {
-    mprinterr("Error: setupTrajout [%s]: Charges are NULL.\n",BaseName()); 
-    return 1;
-  }
-  if (dumpr_ && trajRadii_==NULL) {
-    mprintf("Warning: setupTrajout[%s]: Radii are NULL and will not be printed.\n",
-            BaseName());
-    dumpr_=false;
-  }
   return 0;
 }
 
-// PDBfile::SetWriteMode()
+// Traj_PDBfile::SetWriteMode()
 /** Set write mode to SINGLE, MODEL, or MULTI */
-void PDBfile::SetWriteMode(PDBWRITEMODE modeIn) { 
+void Traj_PDBfile::SetWriteMode(PDBWRITEMODE modeIn) { 
   pdbWriteMode_ = modeIn; 
   //mprintf("PDB WRITE MODE SET TO %i\n",(int)pdbWriteMode_);
 }
 
-// PDBfile::SetDumpq()
-void PDBfile::SetDumpq() {
+// Traj_PDBfile::SetDumpq()
+void Traj_PDBfile::SetDumpq() {
   dumpq_ = true; 
   dumpr_ = true;
 }
 
-// PDBfile::writeFrame()
+// Traj_PDBfile::writeFrame()
 /** Write the frame (model) to PDB file. */
-int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
-  char buffer[BUF_SIZE];
-  int i,i3,res,atom,mol,lastAtomInMol,bufferSize;
+int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
+  char fname[BUF_SIZE_]; // TODO: rewrite with string or sstream
   float Occ, B;
 
   // If writing 1 pdb per frame set up output filename and open
   if (pdbWriteMode_==MULTI) {
-    NumberFilename(buffer,(char*)Name(),set + OUTPUTFRAMESHIFT);
+    NumberFilename(fname,(char*)Name(),set + OUTPUTFRAMESHIFT);
     if (IO->Open(buffer,"wb")) return 1;
   // If specified, write MODEL keyword
   } else if (pdbWriteMode_==MODEL) {
@@ -242,33 +199,29 @@ int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     Printf("MODEL     %i\n",set + OUTPUTFRAMESHIFT);
   }
 
-  res=0; Occ=0.0; B=0.0;
-  i3=0;
-  atom=1; // Actual PDB atom number
-  mol=0;
-  lastAtomInMol=-1;
-  if (trajAtomsPerMol_!=NULL)
-    lastAtomInMol=trajAtomsPerMol_[0];
-  for (i=0; i<pdbAtom_; i++) {
+  Occ = 0.0; 
+  B = 0.0;
+  int anum = 1; // Actual PDB atom number
+  Topology::mol_iterator mol = pdbParm->MolStart();
+  int lastAtomInMol = (*mol).EndAtom();
+  double *Xptr = X;
+  for (int i = 0; i < pdbAtom_; i++) {
+    const Atom atom = (*pdbParm_)[i];
+    int res = atom.ResNum();
     // If this atom belongs to a new molecule print a TER card
     if (i == lastAtomInMol) {
-      bufferSize=pdb_write_ATOM(buffer,PDBTER,atom,(char*)"",trajResNames_[res],
-                                chainID_[i],res+1,0,0,0,0,0,(char*)"\0",dumpq_);
-      IO->Write(buffer,bufferSize);
-      atom++;
-      mol++;
-      lastAtomInMol += trajAtomsPerMol_[mol];
+      pdb_write_ATOM(IO, PDBTER, anum, "", pdbTop->Res(res).Name(),
+                     chainID_[i], res+1, 0, 0, 0, 0, 0, (char*)"\0", dumpq_);
+      ++anum;
+      ++mol;
+      lastAtomInMol = (*mol).EndAtom();
     }
-    // figure out the residue number
-    if ( i==trajResNums_[res+1] ) res++;
-    if (dumpq_) Occ = (float) trajCharges_[i];
-    if (dumpr_) B = (float) trajRadii_[i]; 
-    bufferSize=pdb_write_ATOM(buffer,PDBATOM,atom,pdbAtomNames_[i],trajResNames_[res],
-                              chainID_[i],res+1,X[i3],X[i3+1],X[i3+2],Occ,B,
-                              (char*)"\0",dumpq_);
-    IO->Write(buffer,bufferSize); 
-    i3+=3;
-    atom++;
+    if (dumpq_) Occ = (float) atom.Charge();
+    if (dumpr_) B = (float) atom.Radius();
+    pdb_write_ATOM(IO, PDBATOM, atom, atom.Name(), pdbTop->Res(res).Name(),
+                   chainID_[i], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, (char*)"\0", dumpq_);
+    Xptr += 3;
+    ++atom;
   }
 
   // If writing 1 pdb per frame, close output file
@@ -283,8 +236,8 @@ int PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   return 0;
 }
 
-// PDBfile::info()
-void PDBfile::info() {
+// Traj_PDBfile::info()
+void Traj_PDBfile::info() {
   mprintf("is a PDB file");
   if (access_==WRITE) {
     if (pdbWriteMode_==MULTI)

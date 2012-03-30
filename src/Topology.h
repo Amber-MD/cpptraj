@@ -35,6 +35,8 @@ class Topology {
     atom_iterator MolAtomEnd(int) const;
     const Atom &operator[](int); // NOTE: Inline?
 
+    const Residue &Res(int);
+
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const {
       return molecules_.begin();
@@ -100,6 +102,9 @@ class Topology {
     inline void SetNoBox() {
       box_.SetNoBox();
     }
+    inline void BoxCoords(double *boxOut) {
+      box_.ToDouble(boxOut);
+    }
     inline std::string &ParmName() {
       return parmName_;
     }
@@ -125,6 +130,7 @@ class Topology {
     inline bool SetupCharMask(AtomMask &mask) {
       return ParseMask(refCoords_, mask, false);
     }
+    bool SetupIntegerMask(AtomMask &, Frame &);
     bool SetupCharMask(AtomMask &, Frame &);
 
     Topology *modifyStateByMask(AtomMask &, const char *);

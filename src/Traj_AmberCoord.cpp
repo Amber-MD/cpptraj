@@ -192,7 +192,7 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
   if (openTraj()) return -1;
   
   // Calculate the length of each coordinate frame in bytes
-  natom3_ = trajParm->natom * 3;
+  natom3_ = trajParm->Natom() * 3;
   frame_lines = (size_t)(natom3_ / 10);
   if ((natom3_ % 10) > 0)
     ++frame_lines;
@@ -335,7 +335,7 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
 
   if (debug_>0)
     rprintf("Atoms: %i FrameSize: %lu TitleSize: %lu NumBox: %i Seekable: %i Frames: %i\n\n", 
-            trajParm->natom, frameSize_, titleSize_, numBoxCoords_, (int)seekable_, Frames);
+            trajParm->Natom(), frameSize_, titleSize_, numBoxCoords_, (int)seekable_, Frames);
   // Close the file
   closeTraj();
 
@@ -360,7 +360,7 @@ int AmberCoord::setupTrajout(Topology *trajParm) {
   //long int outfilesize;
 
   // Calculate the length of each coordinate frame in bytes
-  natom3_ = trajParm->natom * 3;
+  natom3_ = trajParm->Natom() * 3;
   frame_lines = natom3_ / 10;
   if ((natom3_ % 10) > 0)
     ++frame_lines;

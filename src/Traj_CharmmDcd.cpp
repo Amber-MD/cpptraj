@@ -434,7 +434,7 @@ int CharmmDcd::processWriteArgs(ArgList *argIn) {
   * writes; size and endianness will be OS default.
   */
 int CharmmDcd::setupTrajout(Topology *trajParm) {
-  dcdatom = trajParm->natom;
+  dcdatom = trajParm->Natom();
   // dcdframes = trajParm->parmFrames;
   dcdframes = 0;
   // Output size in bytes (4 bytes per atom)

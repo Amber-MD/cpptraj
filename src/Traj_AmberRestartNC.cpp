@@ -121,7 +121,7 @@ int AmberRestartNC::setupTrajin(Topology *trajParm) {
   // Get natom info
   atomDID=GetDimInfo(ncid,NCATOM,&ncatom);
   if (atomDID==-1) return -1;
-  ncatom3 = trajParm->natom * 3;
+  ncatom3 = trajParm->Natom() * 3;
   // Get coord info
   if (checkNCerr(nc_inq_varid(ncid,NCCOORDS,&coordVID),
       "Getting coordinate ID")!=0) return -1;
@@ -190,10 +190,10 @@ int AmberRestartNC::setupTrajin(Topology *trajParm) {
   //int cell_spatialDID, cell_angularDID;
   //int spatialVID, cell_spatialVID, cell_angularVID;
 
-  if (ncatom!=trajParm->natom) {
+  if (ncatom!=trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
               BaseName(),ncatom);
-    mprinterr("       match those in associated parmtop (%i)!\n",trajParm->natom);
+    mprinterr("       match those in associated parmtop (%i)!\n",trajParm->Natom());
     return -1;
   }
 
@@ -220,11 +220,11 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
 // AmberRestartNC::setupTrajout()
 /** Setting up is done for each frame.  */
 int AmberRestartNC::setupTrajout(Topology *trajParm) {
-  ncatom = trajParm->natom;
+  ncatom = trajParm->Natom();
   ncatom3 = ncatom * 3;
   // If number of frames to write == 1 set singleWrite so we dont append
   // frame # to filename.
-  if (trajParm->parmFrames==1) singleWrite=true;
+  if (trajParm->Nframes()==1) singleWrite=true;
   return 0;
 }
 

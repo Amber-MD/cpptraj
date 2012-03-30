@@ -28,7 +28,7 @@ int Conflib::setupTrajin(Topology *trajParm) {
   int Frames = 0;
 
   // Conflib is double,double,int,natom*3*double
-  confFrame = (((trajParm->natom * 3) + 2) * sizeof(double)) + sizeof(int);
+  confFrame = (((trajParm->Natom() * 3) + 2) * sizeof(double)) + sizeof(int);
   Frames = (int) (file_size_ / confFrame);
 
   if ( (file_size_ % confFrame) != 0 ) {
@@ -37,7 +37,7 @@ int Conflib::setupTrajin(Topology *trajParm) {
     mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
             Frames);
   }
-  conflibAtom_ = trajParm->natom;
+  conflibAtom_ = trajParm->Natom();
   return Frames;
 }
 

@@ -113,8 +113,8 @@ int AmberRestart::processWriteArgs(ArgList *argIn) {
 int AmberRestart::setupTrajout(Topology *trajParm) {
   size_t frame_lines;
 
-  restartAtoms_ = trajParm->natom;
-  natom3_ = trajParm->natom * 3;
+  restartAtoms_ = trajParm->Natom();
+  natom3_ = restartAtoms_ * 3;
   // Calculate the length of coordinate frame in bytes
   frame_lines = ((size_t)natom3_) / 6;
   if ((natom3_ % 6) > 0)
@@ -137,7 +137,7 @@ int AmberRestart::setupTrajout(Topology *trajParm) {
 
   // If number of frames to write == 1 set singleWrite so we dont append
   // frame # to filename.
-  if (trajParm->parmFrames==1) singleWrite_=true;
+  if (trajParm->Nframes()==1) singleWrite_=true;
 
   return 0;
 }
@@ -194,10 +194,10 @@ int AmberRestart::setupTrajin(Topology *trajParm) {
   if (openTraj()) return -1; // Gets title, time, natoms, and temp if present
 
   // Check that natoms matches parm natoms
-  if (restartAtoms_!=trajParm->natom) {
+  if (restartAtoms_!=trajParm->Natom()) {
     mprinterr("Error: Number of atoms in Amber Restart %s (%i) does not\n",
               BaseName(), restartAtoms_);
-    mprinterr("       match number in associated parmtop (%i)\n",trajParm->natom);
+    mprinterr("       match number in associated parmtop (%i)\n",trajParm->Natom());
     return -1;
   }
   natom3_ = restartAtoms_ * 3;

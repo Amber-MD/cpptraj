@@ -84,6 +84,10 @@ const Atom& Topology::operator[](int idx) {
   return atoms_[idx];
 }
 
+const Residue& Topology::Res(int idx) {
+  return residues_[idx];
+}
+
 // -----------------------------------------------------------------------------
 Topology::mol_iterator Topology::SolventStart() const {
   if (NsolventMolecules_==0)
@@ -859,9 +863,14 @@ void Topology::SetSolventInfo() {
 }
 
 // -----------------------------------------------------------------------------
+bool Topology::SetupIntegerMask(AtomMask &mask, Frame &frame) {
+  CoordFrame tmp(frame.Natom(), frame.CoordPtr());
+  return ParseMask( tmp, mask, true );
+}
+
 bool Topology::SetupCharMask(AtomMask &mask, Frame &frame) {
   CoordFrame tmp(frame.Natom(), frame.CoordPtr());
-  return ParseMask( tmp, mask, false);
+  return ParseMask( tmp, mask, false );
 }
 /** Determine if the targetName is the same as the given mask name. 
   * targetName can either be from the parm, in which case it may have

@@ -17,6 +17,14 @@ class Box {
     inline BoxType Type() {
       return btype_;
     }
+    inline void ToDouble(double *boxOut) {
+      boxOut[0] = box_[0];
+      boxOut[1] = box_[1];
+      boxOut[2] = box_[2];
+      boxOut[3] = box_[3];
+      boxOut[4] = box_[4];
+      boxOut[5] = box_[5];
+    }
 
   private:
     static const double TRUNCOCTBETA;

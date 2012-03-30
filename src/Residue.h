@@ -19,7 +19,7 @@ class Residue {
     inline void SetName(NameType nameIn) {
       resname_ = nameIn;
     }
-    inline NameType &Name() {
+    inline NameType Name() const {
       return resname_;
     }
     int OriginalNum();
