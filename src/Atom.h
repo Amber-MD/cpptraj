@@ -12,14 +12,15 @@ class Atom {
       IODINE,     MAGNESIUM, COPPER,   LITHIUM,  POTASSIUM, RUBIDIUM,
       CESIUM,     ZINC,      SODIUM
     };
-
+    static const char AtomicElementName[][3];
+    // Constructors and assignment
     Atom();
     Atom(int, NameType, double (&)[3]);
     Atom( int, NameType, double, int, double, int, double, double );
     Atom(const Atom &);
     void swap(Atom &, Atom &);
     Atom &operator=(Atom);
-
+    // Iterator over bonded atom #s
     typedef std::vector<int>::const_iterator bond_iterator;
     inline bond_iterator bondbegin() const {
        return bonds_.begin();
@@ -27,10 +28,10 @@ class Atom {
     inline bond_iterator bondend() const {
       return bonds_.end();
     }
-
+    // Info functions
     void PrintXYZ();
     void Info();
-
+    // Functions that set internal vars
     inline void SetNum(int num) {
       anum_ = num;
     }
@@ -38,7 +39,7 @@ class Atom {
     void SetResNum(int);
     void SetMol(int);
     bool NoMol();
-
+    // Inline functions returning internal vars
     inline const char *c_str() const {
       return *aname_;
     }
@@ -51,7 +52,7 @@ class Atom {
     inline AtomicElementType Element() const {
       return element_;
     }
-    inline NameType Name() {
+    inline NameType Name() const { // NOTE: return reference?
       return aname_;
     }
     inline int Mol() const {
@@ -66,10 +67,9 @@ class Atom {
     inline double Mass() const {
       return mass_;
     }
-
+    /// Add atom # to this atoms list of bonded atoms.
     void AddBond(int);
 
-    void SetElementFromName();
   private:
     static const int AtomicElementNum[];
 
@@ -90,5 +90,7 @@ class Atom {
     int mol_;
     std::vector<int> bonds_;
     // Store bond indices?
+
+    void SetElementFromName();
 };
 #endif

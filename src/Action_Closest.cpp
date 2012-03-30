@@ -110,37 +110,34 @@ int Closest::init( ) {
   * parm file. Atom masks for each solvent molecule will be set up.
   */
 int Closest::setup() {
-  int solventMol, NsolventAtoms;
   MolDist solvent;
 
   // If there are no solvent molecules this action is not valid.
-  if (currentParm->solventMolecules==0) {
-    mprintf("Warning: Closest::setup: Parm %s does not contain solvent.\n",currentParm->parmName);
+  if (currentParm->Nsolvent()==0) {
+    mprintf("Warning: Closest::setup: Parm %s does not contain solvent.\n",currentParm->c_str());
     return 1;
   }
   // If # solvent to keep >= solvent in this parm the action is not valid.
-  if (closestWaters >= currentParm->solventMolecules) {
+  // TODO: Just use max # waters?
+  if (closestWaters >= currentParm->Nsolvent()) {
     mprintf("Warning: Closest::setup: # solvent to keep (%i) >= # solvent molecules in\n",
             closestWaters);
-    mprintf("                           %s (%i).\n",currentParm->parmName,
-            currentParm->solventMolecules);
+    mprintf("                           %s (%i).\n",currentParm->c_str(),
+            currentParm->Nsolvent());
     return 1;
   } 
   // Check that all solvent molecules contain same # atoms. Solvent 
   // molecules must be identical for the command to work properly; 
   // the prmtop strip occurs only once so the solvent params become fixed.
-  NsolventAtoms = currentParm->solventMoleculeStop[0] - currentParm->solventMoleculeStart[0];
-  for (solventMol = 1; solventMol < currentParm->solventMolecules; solventMol++) {
-    if ( NsolventAtoms != 
-         (currentParm->solventMoleculeStop[solventMol] - 
-          currentParm->solventMoleculeStart[solventMol]) ) 
-    {
-      mprintf("Warning: Closest::setup: Solvent molecules in %s are not of uniform size.\n",
-              currentParm->parmName);
-      mprintf("         First solvent mol=%i atoms, %i solvent mol=%i atoms.\n",
-              NsolventAtoms, solventMol,
-              currentParm->solventMoleculeStop[solventMol] - 
-              currentParm->solventMoleculeStart[solventMol]);
+  Topology::mol_iterator solvmol = currentParm->SolventStart();
+  int NsolventAtoms = (*solvmol).NumAtoms();
+  ++solvmol;
+  for (; solvmol != currentParm->SolventEnd(); solvmol++) {
+    if ( NsolventAtoms != (*solvmol).NumAtoms() ) {
+      mprinterr("Error: Closest::setup: Solvent molecules in %s are not of uniform size.\n",
+                currentParm->c_str());
+      mprinterr("       First solvent mol = %i atoms, this solvent mol = %i atoms.\n",
+                NsolventAtoms, (*solvmol).NumAtoms());
       return 1;
     }
   }
@@ -161,12 +158,14 @@ int Closest::setup() {
   stripMask = soluteMask;
   //mprintf("DEBUG:\t");
   //stripMask.PrintMaskAtoms("stripMask");
-  NsolventAtoms = currentParm->solventMoleculeStop[closestWaters-1] - 
-                  currentParm->solventMoleculeStart[0];
+  // Since we have ensured all solvent atoms are of uniform size this is just
+  // the desired number of kept waters * number solvent atoms in each mol.
+  NsolventAtoms *= closestWaters;
   mprintf("\tKeeping %i solvent atoms.\n",NsolventAtoms);
-  // Put solvent atom #s at end of array for creating stripped parm
-  stripMask.AddAtomRange(currentParm->solventMoleculeStart[0], 
-                         currentParm->solventMoleculeStop[closestWaters-1]);
+  // Add space for kept solvent atom #s at end of mask.
+  stripMask.AddAtomRange( stripMask.Nselected(), stripMask.Nselected() + NsolventAtoms );
+  //stripMask.AddAtomRange(currentParm->solventMoleculeStart[0], 
+  //                       currentParm->solventMoleculeStop[closestWaters-1]);
   //mprintf("DEBUG:\t");
   //stripMask.PrintMaskAtoms("stripMaskWsolvent");
 
@@ -177,14 +176,17 @@ int Closest::setup() {
   SolventMols.clear();
   solvent.D=0.0;
   solvent.mol=0;
-  SolventMols.resize(oldParm->solventMolecules, solvent);
-  int firstSolventMol = oldParm->FirstSolventMol();
-  for (solventMol=0; solventMol < oldParm->solventMolecules; solventMol++) {
-    SolventMols[solventMol].mol = firstSolventMol + solventMol;
-    // Setup solvent molecule mask
-    SolventMols[solventMol].mask.AddAtomRange(oldParm->solventMoleculeStart[solventMol],
-                                               oldParm->solventMoleculeStop[solventMol]  );
+  SolventMols.resize(oldParm->Nsolvent(), solvent);
+  int solventMolNum = oldParm->FirstSolventMol();
+  std::vector<MolDist>::iterator mdist = SolventMols.begin();
+  for (Topology::mol_iterator solvmol = oldParm->SolventStart(); 
+                              solvmol!= oldParm->SolventEnd(); solvmol++) 
+  {
+    (*mdist).mol = solventMolNum++;
+    // NOTE: EndAtom - 1?
+    (*mdist).mask.AddAtomRange( (*solvmol).BeginAtom(), (*solvmol).EndAtom() );
     //SolventMols[solventMol].mask.PrintMaskAtoms("solvent");
+    ++mdist;
   }
 
   // Create stripped Parm
@@ -197,17 +199,17 @@ int Closest::setup() {
   newParm->Summary();
 
   // Allocate space for new frame
-  newFrame.SetupFrame(newParm->natom, newParm->mass);
+  newFrame.SetupFrame(newParm->Natom(), newParm->Mass());
 
   // If prefix given then output stripped parm
   if (prefix!=NULL) {
-    mprintf("\tWriting out amber topology file %s\n",newParm->parmName);
+    mprintf("\tWriting out amber topology file %s\n",newParm->c_str());
     ParmFile pfile;
     pfile.SetDebug( debug );
-    if ( pfile.Write(*newParm, newParm->parmName, ParmFile::AMBERPARM ) ) {
+    if ( pfile.Write(*newParm, newParm->ParmName(), ParmFile::AMBERPARM ) ) {
     //if ( newParm->WriteTopology(newParm->parmName) ) {
       mprinterr("Error: CLOSEST: Could not write out stripped parm file %s\n",
-              newParm->parmName);
+              newParm->c_str());
     }
   }
 
@@ -225,7 +227,7 @@ int Closest::action() {
   double Dist, maxD, ucell[9], recip[9];
   AtomMask::const_iterator solute_atom, solvent_atom;
 
-  if (imageType!=NOBOX) {
+  if (imageType!=Box::NOBOX) {
     currentFrame->BoxToRecip(ucell, recip);
     // Calculate max possible imaged distance
     maxD = currentFrame->MaxImagedDistance();
@@ -235,7 +237,7 @@ int Closest::action() {
   }
 
   // Loop over all solvent molecules in original frame
-  maxSolventMolecules = oldParm->solventMolecules;
+  maxSolventMolecules = oldParm->Nsolvent();
   // DEBUG
   //mprintf("Closest: Begin parallel loop for %i\n",frameNum);
   // DEBUG

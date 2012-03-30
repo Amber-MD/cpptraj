@@ -105,6 +105,53 @@ class Frame {
 
     void SetAxisOfRotation(double *, int, int);
     void RotateAroundAxis(double *, double, AtomMask &);
+
+    // TEST: Iterator to coordinates
+    class Iterator : public std::iterator<std::forward_iterator_tag, double*> {
+      public:
+        Iterator() : xptr_(0) {}
+        Iterator(double *p) : xptr_(p) {}
+        ~Iterator() {}
+        // Assignment
+        Iterator &operator=(const Iterator &rhs) {
+          xptr_ = rhs.xptr_;
+          return *this;
+        }
+        // Relations
+        bool operator==(const Iterator &rhs) {
+          return (xptr_ == rhs.xptr_);
+        }
+        bool operator!=(const Iterator &rhs) {
+          return (xptr_ != rhs.xptr_);
+        }
+        // Pre-increment
+        Iterator &operator++() {
+          xptr_ += 3;
+          return *this;
+        }
+        // Post-increment
+        Iterator operator++(int) { // Return copy, not reference
+          Iterator tmp(*this);
+          ++(*this);
+          return tmp;
+        }
+        // Value - Make const?
+        double* operator*() {
+          return xptr_;
+        }
+        double* operator->() {
+          return xptr_;
+        }
+      private:
+        double *xptr_;
+    }; // END class Iterator
+    Iterator begin() {
+      return( Iterator(X_) );
+    }
+    Iterator end() {
+      return( Iterator(X_ + Ncoord_) );
+    }
+    
   protected:
     static const size_t COORDSIZE_;
     static const size_t BOXSIZE_;

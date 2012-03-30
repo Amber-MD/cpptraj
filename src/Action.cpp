@@ -2,24 +2,24 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Action::Action() {
-  isSeparate=false;
-  currentParm=NULL;
-  currentFrame=NULL;
-  DSL=NULL;
-  DFL=NULL;
-  PFL=NULL;
-  FL=NULL;
-  useMass=false;
-  useMassOriginalValue=false;
-  useImage=false;
-  useImageOriginalValue=false;
-  imageType = NOBOX;
-  debug=0;
-  frameNum=0; 
-  noInit=false; 
-  noSetup=false; 
-}
+Action::Action() : 
+  isSeparate(false),
+  currentParm(NULL),
+  currentFrame(NULL),
+  DSL(NULL),
+  DFL(NULL),
+  PFL(NULL),
+  FL(NULL),
+  useMass(false),
+  useMassOriginalValue(false),
+  useImage(false),
+  useImageOriginalValue(false),
+  imageType (Box::NOBOX),
+  debug(0),
+  frameNum(0), 
+  noInit(false), 
+  noSetup(false) 
+{}
 
 // DESTRUCTOR
 Action::~Action() {
@@ -94,19 +94,21 @@ int Action::Setup(Topology **ParmAddress) {
   // If useImage, check imaging type based on prmtop box.
   useImage = useImageOriginalValue;
   if (!useImage)
-    imageType = NOBOX;
+    imageType = Box::NOBOX;
   else {
-    imageType = currentParm->boxType;
-    if (currentParm->boxType==NOBOX && debug>0) 
-      mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->parmName);
+    imageType = currentParm->BoxType();
+    if (imageType == Box::NOBOX && debug>0) 
+      mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->c_str());
   }
   // If useMass, check that parm actually has masses.
+  // NOTE: Mass is now always set to 1 if not read in so this only depends
+  //       on what the action set useMass to.
   useMass = useMassOriginalValue;
-  if (currentParm->mass==NULL && useMass) {
+/*  if (currentParm->mass==NULL && useMass) {
     mprintf("    Warning: %s: Mass for this parm is NULL.\n",actionArgs.Command());
     mprintf("             Geometric center will be used instead of center of mass.\n");
     useMass=false;
-  }
+  }*/
   // Set up actions for this parm
   int err = this->setup();
   if (err) return err;

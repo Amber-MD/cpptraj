@@ -133,18 +133,18 @@ int DSSP::setup() {
   // O, N, or H atoms selected. Store the actual coordinate index 
   // (i.e. atom# * 3) for use with COORDDIST routine.
   for (AtomMask::const_iterator atom = Mask.begin(); atom!=Mask.end(); atom++) {
-    int atom_res = currentParm->atomToResidue(*atom);
+    int atom_res = (*currentParm)[*atom].ResNum();
     // If residue is out of bounds skip it
     if ( atom_res >= Nres ) continue;
     //fprintf(stdout,"DEBUG: Atom %i Res %i [%s]\n",*atom,atom_res,P->names[*atom]);
     SecStruct[atom_res].isSelected = true;
-    if (      currentParm->AtomNameIs(*atom, "C   ") )
+    if (      (*currentParm)[*atom].Name() == "C   ")
       SecStruct[atom_res].C = (*atom) * 3;
-    else if ( currentParm->AtomNameIs(*atom, "O   ") )
+    else if ( (*currentParm)[*atom].Name() == "O   ")
       SecStruct[atom_res].O = (*atom) * 3;
-    else if ( currentParm->AtomNameIs(*atom, "N   ") )
+    else if ( (*currentParm)[*atom].Name() == "N   ")
       SecStruct[atom_res].N = (*atom) * 3;
-    else if ( currentParm->AtomNameIs(*atom, "H   ") )
+    else if ( (*currentParm)[*atom].Name() == "H   ")
       SecStruct[atom_res].H = (*atom) * 3;
   }
 

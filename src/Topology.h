@@ -20,21 +20,33 @@ class Topology {
     void SetPindex(int);
 
     typedef std::vector<Atom>::const_iterator atom_iterator;
-    atom_iterator begin() const;
-    atom_iterator end() const;
-    atom_iterator ResStart(int) const;
-    atom_iterator ResEnd(int) const;
-    atom_iterator MolStart(int) const;
-    atom_iterator MolEnd(int) const;
+    inline atom_iterator begin() const {
+      return atoms_.begin();
+    }
+    inline atom_iterator end() const {
+      return atoms_.end();
+    }
+    atom_iterator ResAtomStart(int) const;
+    atom_iterator ResAtomEnd(int) const;
+    atom_iterator MolAtomStart(int) const;
+    atom_iterator MolAtomEnd(int) const;
+    const Atom &operator[](int); // NOTE: Inline?
 
-    const Atom &operator[](int);
+    typedef std::vector<Molecule>::const_iterator mol_iterator;
+    inline mol_iterator MolStart() const {
+      return molecules_.begin();
+    }
+    inline mol_iterator MolEnd() const {
+      return molecules_.end();
+    }
+    mol_iterator SolventStart() const;
+    mol_iterator SolventEnd() const;
 
     int ResAtomRange(int, int *, int *);
+    char *ResidueName(int); // TODO: Make obsolete
+    std::string ResAtomName(int);
+    int FindAtomInResidue(int, NameType);
     double *Mass();
-
-    //typedef std::vector<Residue>::const_iterator res_iterator;
-    //res_iterator beginRes() const;
-    //res_iterator endRes() const;
 
     void Summary();
     void ParmInfo();
@@ -53,6 +65,15 @@ class Topology {
     inline int Nmol() {
       return (int)molecules_.size();
     }
+    inline int FirstSolventMol() {
+      return firstSolventMol_;
+    }
+    inline int Nsolvent() {
+      return NsolventMolecules_;
+    }
+    inline int FinalSoluteRes() {
+      return finalSoluteRes_;
+    }
     inline const char *ResName(int resnum) {
       return residues_[resnum].c_str();
     }
@@ -64,6 +85,12 @@ class Topology {
     }
     inline Box::BoxType BoxType() {
       return box_.Type();
+    }
+    inline bool BoxIsTruncOct() { // NOTE: Should this not be inlined?
+      return (box_.AmberIfbox() == 2);
+    }
+    inline std::string &ParmName() {
+      return parmName_;
     }
 
     void AddAtom(Atom, Residue);
@@ -89,8 +116,6 @@ class Topology {
     Topology *modifyStateByMask(AtomMask &, const char *);
 
   private:
-    static const char AtomicElementName[][3];
-
     std::vector<Atom> atoms_;
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
@@ -107,6 +132,7 @@ class Topology {
     bool hasCoordinates_;
     int topology_error_;
     int firstSolventMol_;
+    int NsolventMolecules_;
     int finalSoluteRes_;
     int pindex_;
     double *massptr_;

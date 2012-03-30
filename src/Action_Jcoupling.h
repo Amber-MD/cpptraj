@@ -19,7 +19,7 @@
 class Jcoupling: public Action {
     /// Hold Karplus parameters for a dihedral
     struct karplusConstant {
-      NAME atomName[4]; ///< Name of each atom involved in dihedral
+      NameType atomName[4]; ///< Name of each atom involved in dihedral
       int offset[4];    ///< Offsets
       double C[4];      ///< Constants
       int type;         ///< Calculation type (0=Chou, 1=Perez)

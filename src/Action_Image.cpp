@@ -87,18 +87,18 @@ int Image::setup() {
     return 1;
   }
 
-  if (currentParm->boxType==NOBOX) {
+  if (currentParm->BoxType()==Box::NOBOX) {
     mprintf("Warning: Image::setup: Parm %s does not contain box information.\n",
-            currentParm->parmName);
+            currentParm->c_str());
     return 1;
   }
 
   ortho = false;  
-  if (currentParm->boxType==ORTHO && triclinic==OFF) ortho=true;
+  if (currentParm->BoxType()==Box::ORTHO && triclinic==OFF) ortho=true;
 
   // If box is originally truncated oct and not forcing triclinic, 
   // turn familiar on.
-  if (AmberIfbox(currentParm->Box[5])==2 && triclinic!=FORCE && triclinic!=FAMILIAR) {
+  if (currentParm->BoxIsTruncOct() && triclinic!=FORCE && triclinic!=FAMILIAR) {
     mprintf("\tOriginal box is truncated octahedron, turning on 'familiar'.\n");
     triclinic=FAMILIAR;
   }
@@ -120,11 +120,11 @@ int Image::setup() {
   // are actually in the mask.
   imageList.clear();
   imageList.reserve( currentParm->Nmol() );
-  int firstAtom = 0;
-  int lastAtom = 0;
-  for (int mol = 0; mol < currentParm->Nmol(); mol++) {
-    firstAtom = lastAtom;
-    lastAtom = firstAtom + currentParm->AtomsPerMol(mol);
+  for (Topology::mol_iterator mol = currentParm->MolStart();
+                              mol != currentParm->MolEnd(); mol++)
+  {
+    int firstAtom = (*mol).BeginAtom();
+    int lastAtom = (*mol).EndAtom();
     // Check that each atom in the range is in Mask1
     bool rangeIsValid = true;
     for (int atom = firstAtom; atom < lastAtom; atom++) {

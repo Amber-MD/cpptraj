@@ -52,7 +52,7 @@ int DistRmsd::setup() {
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  SelectedTgt.SetupFrameFromMask(TgtMask, currentParm->mass);
+  SelectedTgt.SetupFrameFromMask(TgtMask, currentParm->Mass());
 
   // Reference setup
   if (RefSetup( currentParm )) return 1;

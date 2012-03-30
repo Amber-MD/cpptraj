@@ -6,6 +6,13 @@ const int Atom::AtomicElementNum[22] = { 0,
  53, 12, 29, 3, 19, 37, 55, 30, 11
 };
 
+/// Atom names corresponding to AtomicElementType.
+// 2 chars + NULL.
+const char Atom::AtomicElementName[22][3] = { "??",
+  "H",  "B",  "C",  "N", "O",  "F",  "P",  "S", "Cl", "Br", "Fe", "Ca",
+  "I", "Mg", "Cu", "Li", "K", "Rb", "Cs", "Zn", "Na"
+};
+
 // CONSTRUCTOR
 Atom::Atom() : 
   charge_(0),

@@ -1,5 +1,6 @@
 #include <stack> // For ParseMask
 #include <algorithm> // sort
+#include <sstream> // ostringstream
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // DIST2_NoImage
@@ -12,6 +13,7 @@ Topology::Topology() :
   hasCoordinates_(false),
   topology_error_(0),
   firstSolventMol_(-1),
+  NsolventMolecules_(0),
   finalSoluteRes_(-1),
   pindex_(0),
   massptr_(0)
@@ -20,14 +22,6 @@ Topology::Topology() :
 Topology::~Topology() {
   if (massptr_!=0) delete[] massptr_;
 }
-
-/// Atom names corresponding to AtomicElementType.
-// 2 chars + NULL.
-#define NUM_DEFINED_ELEMENTS 22
-const char Topology::AtomicElementName[NUM_DEFINED_ELEMENTS][3] = { "??",
-  "H",  "B",  "C",  "N", "O",  "F",  "P",  "S", "Cl", "Br", "Fe", "Ca",
-  "I", "Mg", "Cu", "Li", "K", "Rb", "Cs", "Zn", "Na"
-};
 
 void Topology::SetDebug(int debugIn) {
   debug_ = debugIn;
@@ -53,47 +47,103 @@ void Topology::SetPindex(int pindexIn) {
 }
 
 // -----------------------------------------------------------------------------
-// Topology::begin()
-Topology::atom_iterator Topology::begin() const {
-  return atoms_.begin();
-}
-
-// Topology::end()
-Topology::atom_iterator Topology::end() const {
-  return atoms_.end();
-}
-
-// Topology::ResStart()
-Topology::atom_iterator Topology::ResStart(int resnum) const {
+// Topology::ResAtomStart()
+Topology::atom_iterator Topology::ResAtomStart(int resnum) const {
   if (resnum < 0 || resnum >= (int)residues_.size())
     return atoms_.end();
   return atoms_.begin() + residues_[resnum].FirstAtom();
 }
 
-// Topology::ResEnd()
-Topology::atom_iterator Topology::ResEnd(int resnum) const {
+// Topology::ResAtomEnd()
+Topology::atom_iterator Topology::ResAtomEnd(int resnum) const {
   if (resnum < 0 || resnum >= (int)residues_.size()-1)
     return atoms_.end();
   return atoms_.begin() + residues_[resnum+1].FirstAtom();
 }
 
-// Topology::MolStart()
-Topology::atom_iterator Topology::MolStart(int molnum) const {
+// Topology::MolAtomStart()
+Topology::atom_iterator Topology::MolAtomStart(int molnum) const {
   if (molnum < 0 || molnum >= (int)molecules_.size())
     return atoms_.end();
   return atoms_.begin() + molecules_[molnum].BeginAtom();
 }
 
-// Topology::MolEnd()
-Topology::atom_iterator Topology::MolEnd(int molnum) const {
+// Topology::MolAtomEnd()
+Topology::atom_iterator Topology::MolAtomEnd(int molnum) const {
   if (molnum < 0 || molnum >= (int) molecules_.size()-1)
     return atoms_.end();
   return atoms_.begin() + molecules_[molnum+1].BeginAtom();
 }
 
-// -----------------------------------------------------------------------------
 const Atom& Topology::operator[](int idx) {
   return atoms_[idx];
+}
+
+// -----------------------------------------------------------------------------
+Topology::mol_iterator Topology::SolventStart() const {
+  if (NsolventMolecules_==0)
+    return molecules_.end();
+  return molecules_.begin() + firstSolventMol_;
+}
+
+Topology::mol_iterator Topology::SolventEnd() const {
+  if (NsolventMolecules_==0)
+    return molecules_.end();
+  return molecules_.begin() + firstSolventMol_ + NsolventMolecules_;
+}
+
+// -----------------------------------------------------------------------------
+
+int Topology::ResAtomRange(int res, int *resstart, int *resstop) {
+  int nres1 = (int)residues_.size() - 1;
+  if (res < 0 || res > nres1) return 1;
+  *resstart = residues_[res].FirstAtom();
+  if (res == nres1)
+    *resstop = (int)atoms_.size();
+  else
+    *resstop = residues_[res+1].FirstAtom();
+  return 0;
+}
+
+char *Topology::ResidueName(int res) {
+  if (res < 0 || res >= (int) residues_.size())
+    return NULL;
+  return (char*)residues_[res].c_str();
+}
+
+// Topology::ResAtomName()
+/** Given an atom number, set buffer with residue name and number along with
+  * atom name with format: <resname[res]><res+1>@<atomname>, e.g. ARG_11@CA.
+  * Replace any blanks in resname with '_'.
+  */
+std::string Topology::ResAtomName(int atom) {
+  std::string res_name;
+  if (atom < 0 || atom >= (int)atoms_.size()) return res_name;
+  std::string atom_name( atoms_[atom].c_str() );
+  int res = atoms_[atom].ResNum();
+  res_name.assign( residues_[res].c_str() );
+  // NOTE: ensure a residue size of 4?
+  if (res_name[3]==' ')
+    res_name[3]='_';
+  ++res; // want output as res+1
+  std::ostringstream oss;
+  oss << res_name << res << "@" << atom_name;
+  return oss.str();
+}
+
+// Topology::FindAtomInResidue()
+/** Find the atom # of the specified atom name in the given residue.
+  * \param res Residue number to search.
+  * \param atname Atom name to find.
+  * \return the atom number of the specified atom if found in the given residue.
+  * \return -1 if atom not found in given residue.
+  */
+int Topology::FindAtomInResidue(int res, NameType atname) {
+  if (res < 0 || res >= (int)residues_.size()) return -1;
+  for (atom_iterator atom = ResAtomStart(res); atom != ResAtomEnd(res); atom++)
+    if ( (*atom).Name() == atname )
+      return ( atom - atoms_.begin() );
+  return -1;
 }
 
 // NOTE: Stopgap - need to figure out a better way
@@ -109,19 +159,6 @@ double *Topology::Mass() {
   }
   return massptr_;
 }
-
-
-int Topology::ResAtomRange(int res, int *resstart, int *resstop) {
-  int nres1 = (int)residues_.size() - 1;
-  if (res < 0 || res > nres1) return 1;
-  *resstart = residues_[res].FirstAtom();
-  if (res == nres1)
-    *resstop = (int)atoms_.size();
-  else
-    *resstop = residues_[res+1].FirstAtom();
-  return 0;
-}
-
 // -----------------------------------------------------------------------------
 // Topology::Summary()
 void Topology::Summary() {
@@ -464,7 +501,7 @@ double Topology::GetBondedCut(Atom::AtomicElementType atom1, Atom::AtomicElement
   // No cutoff, use default
   else {
     mprintf("Warning: GetBondedCut: Cut not found for %s - %s\n",
-            AtomicElementName[atom1],AtomicElementName[atom2]);
+            Atom::AtomicElementName[atom1],Atom::AtomicElementName[atom2]);
     mprintf("                       Using default cutoff of %lf\n",cut);
   }
 
@@ -740,14 +777,18 @@ void Topology::DetermineExcludedAtoms() {
 // -----------------------------------------------------------------------------
 // Topology::SetSolventInfo()
 /** Determine which molecules are solvent. Set finalSoluteRes and 
-  * firstSolventMol.
+  * firstSolventMol if not already set.
   */
 void Topology::SetSolventInfo() {
   // Require molecule information
   if (molecules_.empty()) {
+    mprinterr("Error: SetSolventInfo: No molecule information.\n");
     topology_error_ = 1;
     return;
   }
+  NsolventMolecules_ = 0;
+  int numSolvAtoms = 0;
+
   if (firstSolventMol_ == -1 || finalSoluteRes_ == -1) {
     // Loop over each molecule. Check if first residue of molecule
     // is solvent.
@@ -758,31 +799,34 @@ void Topology::SetSolventInfo() {
     {
       int firstRes = (*mol).FirstRes();
       if ( residues_[firstRes].NameIsSolvent() ) {
-        // Final solute residue is the one prior to this
-        //finalSoluteRes = residues_.begin() + firstRes - 1;
-        finalSoluteRes_ = firstRes - 1;
-        // This is the first solvent molecule
-        firstSolventMol_ = (int)(mol - molecules_.begin());
-        break;
+        (*mol).SetSolvent();
+        ++NsolventMolecules_;
+        numSolvAtoms += (*mol).NumAtoms();
+        if (firstSolventMol_==-1) {
+          // Final solute residue is the one prior to this
+          //finalSoluteRes = residues_.begin() + firstRes - 1;
+          finalSoluteRes_ = firstRes - 1;
+          // This is the first solvent molecule
+          firstSolventMol_ = (int)(mol - molecules_.begin());
+        }
       }
+    }
+  } else {
+    // Every molecule from firstSolventMol on is solvent.
+    for (std::vector<Molecule>::iterator mol = molecules_.begin() + firstSolventMol_;
+                                         mol != molecules_.end(); mol++)
+    {
+      (*mol).SetSolvent();
+      ++NsolventMolecules_;
+      numSolvAtoms += (*mol).NumAtoms();
     }
   }
   if (finalSoluteRes_ == -1)
     finalSoluteRes_ = (int)residues_.size() - 1;
-  if (firstSolventMol_ == -1) {
+  if (NsolventMolecules_ == 0) 
     mprintf("    No solvent.\n");
-  } else {
-    // Count number of solvent molecules and solvent atoms
-    int numSolvMols = 0;
-    int numSolvAtoms = 0;
-    for (std::vector<Molecule>::iterator mol = molecules_.begin() + firstSolventMol_;
-                                         mol != molecules_.end(); mol++)
-    {
-      ++numSolvMols;
-      numSolvAtoms += (*mol).NumAtoms();
-    }
-    mprintf("    %i solvent molecules, %i solvent atoms\n",numSolvMols,numSolvAtoms);
-  }
+  else
+    mprintf("    %i solvent molecules, %i solvent atoms\n",NsolventMolecules_,numSolvAtoms);
 }
 
 // -----------------------------------------------------------------------------
@@ -1110,6 +1154,11 @@ bool Topology::ParseMask(AtomMask &maskIn, bool intMask) {
 }
 
 // -----------------------------------------------------------------------------
+// Topology::modifyStateByMask()
+/**  The goal of this routine is to create a new AmberParm (newParm)
+  *  based on the current AmberParm (this), deleting atoms that are
+  *  not in the Selected array.
+  */
 Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
   Topology *newParm = new Topology();
   // Set stripped parm name based on prefix: <prefix>.<oldparmname>

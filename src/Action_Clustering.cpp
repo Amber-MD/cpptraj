@@ -195,15 +195,15 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
     progress->Update(current);
     RefParm = ReferenceFrames.GetFrameParm( nref );
     // If the current ref parm not same as last ref parm, reset reference mask
-    if (RefParm->pindex != lastrefpindex) {
+    if (RefParm->Pindex() != lastrefpindex) {
       if ( RefParm->SetupIntegerMask(Mask0)) {
-        mprinterr("Error: Clustering: Could not set up reference mask for %s\n",RefParm->parmName);
+        mprinterr("Error: Clustering: Could not set up reference mask for %s\n",RefParm->c_str());
         return 1;
       }
       refatoms = Mask0.Nselected();
       // NOTE: This copies in correct masses according to Mask0
-      SelectedRef.SetupFrameFromMask(Mask0, RefParm->mass);
-      lastrefpindex = RefParm->pindex;
+      SelectedRef.SetupFrameFromMask(Mask0, RefParm->Mass());
+      lastrefpindex = RefParm->Pindex();
     }
     // Get the current reference frame
     RefFrame = ReferenceFrames.GetFrame( nref );
@@ -217,9 +217,9 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
     for (int nframe=nref+1; nframe < totalref; nframe++) {
       TgtParm = ReferenceFrames.GetFrameParm( nframe );
       // If the current frame parm not same as last frame parm, reset frame mask
-      if (TgtParm->pindex != lasttgtpindex) {
+      if (TgtParm->Pindex() != lasttgtpindex) {
         if ( TgtParm->SetupIntegerMask(Mask0) ) {
-          mprinterr("Error: Clustering: Could not set up target mask for %s\n",TgtParm->parmName);
+          mprinterr("Error: Clustering: Could not set up target mask for %s\n",TgtParm->c_str());
           return 1;
         }
         // Check that num atoms in mask are the same
@@ -233,8 +233,8 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
           continue;
         }
         // NOTE: This copies in correct masses according to Mask0
-        SelectedTgt.SetupFrameFromMask(Mask0, TgtParm->mass);
-        lasttgtpindex = TgtParm->pindex;
+        SelectedTgt.SetupFrameFromMask(Mask0, TgtParm->Mass());
+        lasttgtpindex = TgtParm->Pindex();
       }
       // Get the current target frame
       TgtFrame = ReferenceFrames.GetFrame( nframe );

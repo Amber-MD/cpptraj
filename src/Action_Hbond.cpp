@@ -102,10 +102,10 @@ void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
     // If auto searching, only consider acceptor atoms as F, O, N
     if (Auto) {
       isAcceptor=false;
-      if (currentParm->AtomElementIs(*atom,FLUORINE) ||
-          currentParm->AtomElementIs(*atom,OXYGEN)   ||
-          currentParm->AtomElementIs(*atom,NITROGEN)   )
-        isAcceptor=true;
+      if ( (*currentParm)[*atom].Element() == Atom::FLUORINE ||
+           (*currentParm)[*atom].Element() == Atom::OXYGEN ||
+           (*currentParm)[*atom].Element() == Atom::NITROGEN    )
+       isAcceptor=true;
     }
     if (isAcceptor)
       Acceptor.push_back(*atom);
@@ -126,27 +126,27 @@ void Hbond::SearchDonor(AtomMask *dmask, bool Auto) {
                                 donoratom++)
   {
     // If this is already an H atom continue
-    if (currentParm->AtomElementIs(*donoratom,HYDROGEN)) continue;
+    if ( (*currentParm)[*donoratom].Element() == Atom::HYDROGEN ) continue;
     isDonor = true;
     // If auto searching, only consider donor atoms as F, O, N
     if (Auto) {
       isDonor=false;
-      if (currentParm->AtomElementIs(*donoratom,FLUORINE) ||
-          currentParm->AtomElementIs(*donoratom,OXYGEN)   ||
-          currentParm->AtomElementIs(*donoratom,NITROGEN)   )
+      if ( (*currentParm)[*donoratom].Element() == Atom::FLUORINE ||
+           (*currentParm)[*donoratom].Element() == Atom::OXYGEN ||
+           (*currentParm)[*donoratom].Element() == Atom::NITROGEN   )
         isDonor=true;
     }
     if (isDonor) {
       // Get list of hydrogen atoms bonded to this atom
-      if ( currentParm->GetBondedHatoms(*donoratom, HatomList) ) {
-        for (std::vector<int>::iterator h_atom = HatomList.begin();
-                                        h_atom != HatomList.end();
-                                        h_atom++)
-        {
-          //mprintf("BOND TO H: %i@%s -- %i@%s\n",*donoratom+1,currentParm->AtomName(*donoratom),
-          //        *h_atom+1,currentParm->AtomName(*h_atom));
+      for (Atom::bond_iterator batom = (*currentParm)[*donoratom].bondbegin();
+                               batom != (*currentParm)[*donoratom].bondend();
+                               batom++)
+      {
+        if ( (*currentParm)[*batom].Element() == Atom::HYDROGEN ) {
+          //mprintf("BOND TO H: %i@%s -- %i@%s\n",*donoratom+1,(*currentParm)[*donoratom].c_str(),
+          //        *batom+1,(*currentParm)[*batom].c_str());
           Donor.push_back(*donoratom);
-          Donor.push_back(*h_atom);
+          Donor.push_back(*batom);
         }
       }
     } // END atom is potential donor
@@ -160,7 +160,8 @@ int Hbond::setup() {
   int atom, a2;
 
   // Set up bond information for parm
-  if (currentParm->SetupBondInfo()) return 1;
+  // NOTE: Should already be done
+  //if (currentParm->SetupBondInfo()) return 1;
 
   // Set up mask
   if (!hasDonorMask && !hasAcceptorMask) {
@@ -213,7 +214,7 @@ int Hbond::setup() {
   mprintf("\tSet up %i acceptors:\n",(int)Acceptor.size());
   if (debug>0) {
     for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++)
-      mprintf("        %8i: %4s\n",*accept+1,currentParm->AtomName(*accept));
+      mprintf("        %8i: %4s\n",*accept+1,(*currentParm)[*accept].c_str());
   }
   mprintf("\tSet up %i donors:\n",((int)Donor.size())/2);
   if (debug>0) {
@@ -221,8 +222,8 @@ int Hbond::setup() {
       atom = (*donor);
       donor++;
       a2   = (*donor);
-      mprintf("        %8i:%4s - %8i:%4s\n",atom+1,currentParm->AtomName(atom),
-              a2+1,currentParm->AtomName(a2)); 
+      mprintf("        %8i:%4s - %8i:%4s\n",atom+1,(*currentParm)[atom].c_str(),
+              a2+1,(*currentParm)[a2].c_str()); 
     } 
   }
 
@@ -289,7 +290,7 @@ void Hbond::print() {
   std::list<HbondType> HbondList;
   std::list<HbondType>::iterator hbond;
   double avg, dist, angle;
-  char Aname[32], Hname[32], Dname[32];
+  std::string Aname, Hname, Dname;
   DataFile *hbavgFile;
 
   // If avgout is NULL no averaging.
@@ -331,13 +332,13 @@ void Hbond::print() {
     angle = angle / ((double) (*hbond).Frames);
     angle *= RADDEG;
 
-    currentParm->ResAtomName(Aname, (*hbond).A);
-    currentParm->ResAtomName(Hname, (*hbond).H);
-    currentParm->ResAtomName(Dname, (*hbond).D);
-
-    HBavg->AddData(hbondnum, Aname, 0);
-    HBavg->AddData(hbondnum, Hname, 1);
-    HBavg->AddData(hbondnum, Dname, 2);
+    Aname = currentParm->ResAtomName((*hbond).A);
+    Hname = currentParm->ResAtomName((*hbond).H);
+    Dname = currentParm->ResAtomName((*hbond).D);
+    // TODO: DataSetList should accept string
+    HBavg->AddData(hbondnum, (char*)Aname.c_str(), 0);
+    HBavg->AddData(hbondnum, (char*)Hname.c_str(), 1);
+    HBavg->AddData(hbondnum, (char*)Dname.c_str(), 2);
     HBavg->AddData(hbondnum, &((*hbond).Frames), 3);
     HBavg->AddData(hbondnum, &avg, 4);
     HBavg->AddData(hbondnum, &dist, 5);

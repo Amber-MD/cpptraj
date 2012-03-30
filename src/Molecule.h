@@ -6,10 +6,10 @@ class Molecule {
   public:
     Molecule();
     Molecule(int, int, int);
-    //Molecule(int, int);
 
     void SetFirst(int,int);
     void SetLast(int);
+    void SetSolvent();
 
     inline int BeginAtom() const {
       return beginAtom_;
@@ -20,7 +20,10 @@ class Molecule {
     inline int FirstRes() {
       return firstResNum_;
     }
-    inline int NumAtoms() {
+    inline bool IsSolvent() {
+      return isSolvent_;
+    }
+    inline int NumAtoms() const {
       return (endAtom_ - beginAtom_);
     }
 
@@ -28,5 +31,6 @@ class Molecule {
     int firstResNum_;
     int beginAtom_;
     int endAtom_;
+    bool isSolvent_;
 };
 #endif

@@ -75,12 +75,13 @@ int Jcoupling::loadKarplus(std::string filename) {
       if      (*ptr=='+') KC.offset[i]=1;
       else if (*ptr=='-') KC.offset[i]=-1;
       else                     KC.offset[i]=0;
-      ptr++;
-      KC.atomName[i][0]=*ptr; ptr++;
-      KC.atomName[i][1]=*ptr; ptr++;
-      KC.atomName[i][2]=*ptr; ptr++;
-      KC.atomName[i][3]=*ptr; ptr++;
-      KC.atomName[i][4]='\0';
+      ++ptr;
+      char *endchar = ptr + 4;
+      char savechar = *endchar;
+      *endchar = '\0';
+      KC.atomName[i] = ptr;
+      *endchar = savechar;
+      ptr += 4;
       //mprintf("DEBUG:\tAtomName %i [%s]\n",i,KC.atomName[i]);
     }
     // Read parameters
@@ -132,10 +133,10 @@ int Jcoupling::loadKarplus(std::string filename) {
                                                     kc!=currentResList->end();
                                                     kc++) {
           mprintf("\t\t%1i",(*kc).type);
-          mprintf(" %4s",(*kc).atomName[0]);
-          mprintf(" %4s",(*kc).atomName[1]);
-          mprintf(" %4s",(*kc).atomName[2]);
-          mprintf(" %4s",(*kc).atomName[3]);
+          mprintf(" %4s",*((*kc).atomName[0]));
+          mprintf(" %4s",*((*kc).atomName[1]));
+          mprintf(" %4s",*((*kc).atomName[2]));
+          mprintf(" %4s",*((*kc).atomName[3]));
           mprintf(" %i %i %i %i",(*kc).offset[0],(*kc).offset[1],(*kc).offset[2],(*kc).offset[3]);
           mprintf(" %6.2lf %6.2lf %6.2lf %6.2lf\n",(*kc).C[0],(*kc).C[1],(*kc).C[2],(*kc).C[3]);
         }
@@ -225,7 +226,7 @@ int Jcoupling::setup() {
   // new parm.
   if (JcouplingInfo.size() > 0) {
     mprintf("    Warning: Jcoupling has been set up for another parm.\n");
-    mprintf("             Resetting jcoupling info for new parm %s\n",currentParm->parmName);
+    mprintf("             Resetting jcoupling info for new parm %s\n",currentParm->c_str());
     JcouplingInfo.clear();
   }
 
@@ -266,7 +267,7 @@ int Jcoupling::setup() {
       for (int idx=0; idx < 4; idx++) {
         if (JC.atom[idx]==-1) {
           mprinterr("Error: jcoupling::setup: Atom %4s:%i not found for residue %i\n",
-                    (*kc).atomName[idx], idx, residue+(*kc).offset[idx]);
+                    *((*kc).atomName[idx]), idx, residue+(*kc).offset[idx]);
           return 1;
         }
       }
@@ -299,10 +300,10 @@ int Jcoupling::setup() {
                                               jc++) 
     {
       mprintf("%8i [%i:%4s]",MaxResidues+1,(*jc).residue,currentParm->ResidueName((*jc).residue));
-      mprintf(" %6i:%-4s",(*jc).atom[0],currentParm->AtomName((*jc).atom[0]));
-      mprintf(" %6i:%-4s",(*jc).atom[1],currentParm->AtomName((*jc).atom[1]));
-      mprintf(" %6i:%-4s",(*jc).atom[2],currentParm->AtomName((*jc).atom[2]));
-      mprintf(" %6i:%-4s",(*jc).atom[3],currentParm->AtomName((*jc).atom[3]));
+      mprintf(" %6i:%-4s",(*jc).atom[0],(*currentParm)[(*jc).atom[0]].c_str());
+      mprintf(" %6i:%-4s",(*jc).atom[1],(*currentParm)[(*jc).atom[1]].c_str());
+      mprintf(" %6i:%-4s",(*jc).atom[2],(*currentParm)[(*jc).atom[2]].c_str());
+      mprintf(" %6i:%-4s",(*jc).atom[3],(*currentParm)[(*jc).atom[3]].c_str());
       mprintf(" %6.2lf%6.2lf%6.2lf%6.2lf %i\n",(*jc).C[0],(*jc).C[1],(*jc).C[2],(*jc).C[3],
               (*jc).type);
       MaxResidues++;
@@ -345,8 +346,8 @@ int Jcoupling::action() {
     // DEBUG - output
     outputfile.Printf("%5i %4s%4s%4s%4s%4s%12lf%12lf\n",
             residue+1,currentParm->ResidueName(residue),
-            currentParm->AtomName((*jc).atom[0]),currentParm->AtomName((*jc).atom[1]),
-            currentParm->AtomName((*jc).atom[2]),currentParm->AtomName((*jc).atom[3]),
+            (*currentParm)[(*jc).atom[0]].c_str(),(*currentParm)[(*jc).atom[1]].c_str(),
+            (*currentParm)[(*jc).atom[2]].c_str(),(*currentParm)[(*jc).atom[3]].c_str(),
             phi*RADDEG,J);
     //mprintf("%5i %4s",residue+1,P->resnames[residue]);
     //mprintf("%4s",P->names[(*jc).atom[0]]);

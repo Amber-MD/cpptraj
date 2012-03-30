@@ -69,4 +69,14 @@ int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) 
     
   return 1;
 }
- 
+
+// ParmFile::Write()
+int ParmFile::Write( Topology &Top, std::string &name, ParmFormatType fmt) {
+  return 1;
+}
+
+int ParmFile::Write( Topology &Top, char *nameIn, ParmFormatType fmt) {
+  std::string name( nameIn );
+  return Write(Top, name, fmt);
+}
+

@@ -66,12 +66,32 @@ class AxisType : public Frame
     void WriteAxesPDB(CpptrajFile &, int, char *, int *);
 #endif
   private:
+    static const int ADENATOM;
+    static const char ADEnames[][5];
+    static const int ADEhbonds[];
+    static const double ADEcoords[][3];
+    static const int CYTNATOM;
+    static const char CYTnames[][5];
+    static const int CYThbonds[];
+    static const double CYTcoords[][3];
+    static const int GUANATOM;
+    static const char GUAnames[][5];
+    static const int GUAhbonds[];
+    static const double GUAcoords[][3];
+    static const int THYNATOM;
+    static const char THYnames[][5];
+    static const int THYhbonds[];
+    static const double THYcoords[][3];
+    static const int URANATOM;
+    static const char URAnames[][5];
+    static const int URAhbonds[];
+    static const double URAcoords[][3];
     /// Identify NA base from residue name
     NAbaseType ID_base(char*);
     /// Strings corresponding to NAbaseType
     static const char NAbaseName[][4];
     /// Atom Names
-    NAME *Name;
+    std::vector<NameType> Name;
     /// Original residue number
     int residue_number;
     /// Second base number if this is a base pair
