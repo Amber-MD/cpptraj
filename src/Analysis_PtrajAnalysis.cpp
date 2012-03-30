@@ -106,7 +106,7 @@ int PtrajAnalysis::Analyze() {
 
   // Initialize state memory - only for ANALYZE_MODES
   if (analyzeinfo->type == ANALYZE_MODES) {
-    analyzeinfo->state = CreateState( analyzeParm, analyzeParm->parmFrames ); // NOTE: maxFrames?
+    analyzeinfo->state = CreateState( analyzeParm, analyzeParm->Nframes() ); // NOTE: maxFrames?
   }
 
   mprintf("    PTRAJ ANALYZE: [%s %s]\n",analyzeArgs.Command(),analyzeArgs.ArgAt(1));

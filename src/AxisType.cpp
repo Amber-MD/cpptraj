@@ -1,6 +1,6 @@
 // AxisType
 #include <map>
-#include <cstring>
+#include <cstring> // memcpy,strncmp
 #include <cstdio> //sprintf
 #include "AxisType.h"
 #include "CpptrajStdio.h"

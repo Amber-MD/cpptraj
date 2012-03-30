@@ -18,6 +18,7 @@ class Cpptraj {
   public:
     /// Set debug level for all components
     void SetGlobalDebug(int);
+    void AddParm(char *);
     /// Function that decides where to send commands
     void Dispatch(char*);        
 

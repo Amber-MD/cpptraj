@@ -82,6 +82,16 @@ void Box::SetTruncOct() {
   btype_ = NONORTHO;
 }
 
+void Box::SetNoBox() {
+  box_[0] = 0;
+  box_[1] = 0;
+  box_[2] = 0;
+  box_[3] = 0;
+  box_[4] = 0;
+  box_[5] = 0;
+  btype_ = NOBOX;
+}
+
 // Box::SetBoxType()
 /// Determine box type (none/ortho/nonortho) based on box angles.
 void Box::SetBoxType() {

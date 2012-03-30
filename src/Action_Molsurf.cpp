@@ -152,10 +152,9 @@ int Molsurf::setup() {
     return 1;
   }
   // Set up parm info for atoms in mask
-  double *Radii = currentParm->GB_radii_ptr();
-  if (Radii==NULL) {
+  if ( (*currentParm)[0].Radius() == 0 ) {
     mprinterr("Error: Molsurf::Setup: Molsurf requires radii, but no radii in %s\n",
-              currentParm->parmName);
+              currentParm->c_str());
     return 1;
   }
   ATOM *atm_ptr = atom;
@@ -163,16 +162,17 @@ int Molsurf::setup() {
                                 parmatom != Mask1.end();
                                 parmatom++)
   {
-    int nres = currentParm->atomToResidue(*parmatom);
     atm_ptr->anum = *parmatom + 1; // anum is for debug output only, atoms start from 1
-    strcpy(atm_ptr->anam,currentParm->AtomName(*parmatom));
-    atm_ptr->rnum = nres + 1; // again for debug output only, residues start from 1
+    const Atom patom = (*currentParm)[*parmatom];
+    int nres = patom.ResNum();
+    atm_ptr->rnum = nres+1; // for debug output only, residues start from 1
+    patom.Name().ToBuffer( atm_ptr->anam );
     strcpy(atm_ptr->rnam,currentParm->ResidueName(nres));
     atm_ptr->pos[0] = 0;
     atm_ptr->pos[1] = 0;
     atm_ptr->pos[2] = 0;
-    atm_ptr->q = currentParm->AtomCharge(*parmatom);
-    atm_ptr->rad = Radii[*parmatom] + rad_offset;
+    atm_ptr->q = patom.Charge();
+    atm_ptr->rad = patom.Radius();
     ++atm_ptr;
   }
 

@@ -4,7 +4,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
         Action_Distance.cpp Action_DistRmsd.cpp \
         Action_DSSP.cpp Action_Hbond.cpp Action_Image.cpp Action_Jcoupling.cpp \
         ActionList.cpp Action_Mask.cpp Action_Molsurf.cpp Action_NAstruct.cpp \
-        Action_Outtraj.cpp Action_Pairwise.cpp Action_PtrajAction.cpp \
+        Action_Outtraj.cpp Action_PtrajAction.cpp \
         Action_Pucker.cpp Action_Radgyr.cpp Action_Radial.cpp ActionReference.cpp \
         Action_Rms2d.cpp Action_RmsAvgCorr.cpp Action_Rmsd.cpp Action_Rotdif.cpp \
         Action_RunningAvg.cpp Action_Strip.cpp Action_Surf.cpp \
@@ -15,7 +15,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
         DataSet.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
-        DataSetList.cpp DataSet_Matrix.cpp DataSet_string.cpp DataSet_XYZ.cpp \
+        DataSetList.cpp DataSet_string.cpp \
         DistRoutines.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
         FindDepend.cpp Frame.cpp FrameList.cpp Histogram.cpp Integrate.cpp \

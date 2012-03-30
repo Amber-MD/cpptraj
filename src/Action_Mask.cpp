@@ -70,12 +70,12 @@ int ActionMask::action() {
   }
 
   // Print out information for every atom in the mask
-  for (atom=0; atom < currentParm->natom; atom++) {
+  for (atom=0; atom < currentParm->Natom(); atom++) {
     if (Mask1.AtomInCharMask(atom)) {
-      res = currentParm->atomToResidue(atom);
+      res = (*currentParm)[atom].ResNum();
       outfile.Printf("%8i %8i %4s %8i %4s %8i",
-                         frameNum+OUTPUTFRAMESHIFT,atom+1, currentParm->AtomName(atom), res+1,
-                         currentParm->ResidueName(res), currentParm->atomToMolecule(atom)+1);
+                         frameNum+OUTPUTFRAMESHIFT,atom+1, (*currentParm)[atom].c_str(), res+1,
+                         currentParm->ResidueName(res), (*currentParm)[atom].Mol()+1);
       /*mprintf(" Type=%4s",currentParm->types[atom]);
       mprintf(" Charge=%lf",currentParm->charge[atom]);
       mprintf(" Mass=%lf",currentParm->mass[atom]);*/

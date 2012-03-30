@@ -173,9 +173,9 @@ int PtrajAction::setup() {
   if (x_coord!=NULL) free(x_coord);
   if (y_coord!=NULL) free(y_coord);
   if (z_coord!=NULL) free(z_coord);
-  x_coord = (double*) malloc( currentParm->natom * sizeof(double));
-  y_coord = (double*) malloc( currentParm->natom * sizeof(double));
-  z_coord = (double*) malloc( currentParm->natom * sizeof(double));
+  x_coord = (double*) malloc( currentParm->Natom() * sizeof(double));
+  y_coord = (double*) malloc( currentParm->Natom() * sizeof(double));
+  z_coord = (double*) malloc( currentParm->Natom() * sizeof(double));
         
   return 0;  
 }

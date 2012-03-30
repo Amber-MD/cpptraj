@@ -165,15 +165,15 @@ int Radial::setup() {
   }
 
   // Check volume information
-  if (useVolume && currentParm->boxType==NOBOX) {
+  if (useVolume && currentParm->BoxType()==Box::NOBOX) {
     mprintf("    Warning: Radial: 'volume' specified but no box information for %s, skipping.\n",
-            currentParm->parmName);
+            currentParm->c_str());
     return 1;
   }
 
   // Print mask and imaging info for this parm
   mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",Mask1.Nselected(),Mask2.Nselected());
-  if (imageType !=NOBOX)
+  if (imageType !=Box::NOBOX)
     mprintf("Imaging on.\n");
   else
     mprintf("Imaging off.\n");
@@ -197,7 +197,7 @@ int Radial::action() {
 
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (imageType!=NOBOX) {
+  if (imageType!=Box::NOBOX) {
     D = currentFrame->BoxToRecip(ucell,recip);
     if (useVolume)  volume += D;
   }

@@ -210,8 +210,6 @@ int Rmsd::perResSetup(Topology *RefParm) {
       continue;
     }
     N++;
-    // Setup dataset name for this residue
-    currentParm->ResName(tgtArg,tgtRes-1);
     // Create dataset for res - if already present this returns NULL
     DataSet *prDataSet = PerResRMSD->AddMultiN(DataSet::DOUBLE, "", 
                                                currentParm->ResidueName(tgtRes-1),
@@ -269,10 +267,10 @@ int Rmsd::perResSetup(Topology *RefParm) {
   // Although initial masses are wrong this is ok since the number of atoms 
   // and masses will change when residue RMSD is actually being calcd.
   if (ResRefFrame!=NULL) delete ResRefFrame;
-  ResRefFrame = new Frame( RefParm->FindResidueMaxNatom(), RefParm->mass );
+  ResRefFrame = new Frame( RefParm->FindResidueMaxNatom(), RefParm->Mass() );
   //ResRefFrame->Info("ResRefFrame");
   if (ResFrame!=NULL) delete ResFrame;
-  ResFrame = new Frame( currentParm->FindResidueMaxNatom(), currentParm->mass );
+  ResFrame = new Frame( currentParm->FindResidueMaxNatom(), currentParm->Mass() );
   //ResFrame->Info("ResFrame");
 
   return 0;
@@ -291,7 +289,7 @@ int Rmsd::setup() {
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  SelectedFrame.SetupFrameFromMask(FrameMask, currentParm->mass);
+  SelectedFrame.SetupFrameFromMask(FrameMask, currentParm->Mass());
 
   // Reference setup
   if (RefSetup( currentParm )) return 1;

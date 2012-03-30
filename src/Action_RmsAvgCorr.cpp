@@ -63,10 +63,10 @@ int RmsAvgCorr::init( ) {
   */
 int RmsAvgCorr::setup() {
   if (parmNatom==0) {
-    parmNatom = currentParm->natom;
+    parmNatom = currentParm->Natom();
     ReferenceParm = currentParm;
   } else {
-    if (parmNatom != currentParm->natom) {
+    if (parmNatom != currentParm->Natom()) {
       mprinterr("Error: RmsAvgCorr: Currently cannot be used with multiple topologies.\n");
       return 1;
     }
@@ -75,7 +75,7 @@ int RmsAvgCorr::setup() {
   // Set up mask
   if ( currentParm->SetupIntegerMask(Mask0) ) {
     mprinterr("Error: RmsAvgCorr::setup: Could not set up mask [%s] for parm %s\n",
-              Mask0.MaskString(), currentParm->parmName);
+              Mask0.MaskString(), currentParm->c_str());
     return 1;
   }
   return 0; 
@@ -138,20 +138,20 @@ void RmsAvgCorr::print() {
   // Ensure that the max # atoms in ReferenceCoords does not exceed # atoms
   // in stripped topology. Sanity check only; setup() ensures this should
   // not happen.
-  if (ReferenceCoords.MaxNatom() > strippedParm->natom) {
+  if (ReferenceCoords.MaxNatom() > strippedParm->Natom()) {
     mprinterr("Internal Error: Max # atoms in ref coords (%i) != stripped # atoms (%i).\n",
-              ReferenceCoords.MaxNatom(), strippedParm->natom);
+              ReferenceCoords.MaxNatom(), strippedParm->Natom());
     delete strippedParm;
     return;
   }
 
   // Set up frames for reference and target atoms for RMSD calc that match the 
   // stripped parm; this also sets masses in case useMass specified.
-  Frame refFrame(strippedParm->natom, strippedParm->mass);
-  Frame tgtFrame(strippedParm->natom, strippedParm->mass);
+  Frame refFrame(strippedParm->Natom(), strippedParm->Mass());
+  Frame tgtFrame(strippedParm->Natom(), strippedParm->Mass());
   // Set up frame for holding sum of coordindates over window frames. 
   // No need for mass. 
-  Frame sumFrame(strippedParm->natom);
+  Frame sumFrame(strippedParm->Natom());
 
   // Determine max window size to average over
   if (maxwindow==-1)

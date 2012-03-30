@@ -62,7 +62,7 @@ int Strip::setup() {
     mprintf("Warning: Strip::setup: Mask [%s] has no atoms.\n",M1.MaskString());
     return 1;
   }
-  mprintf("\tStripping %i atoms.\n",currentParm->natom - M1.Nselected());
+  mprintf("\tStripping %i atoms.\n",currentParm->Natom() - M1.Nselected());
 
   // Store old parm
   oldParm = currentParm;
@@ -75,29 +75,23 @@ int Strip::setup() {
     return 1;
   }
   // Remove box information if asked
-  if (removeBoxInfo) {
-    newParm->Box[0]=0;
-    newParm->Box[1]=0;
-    newParm->Box[2]=0;
-    newParm->Box[3]=0;
-    newParm->Box[4]=0;
-    newParm->Box[5]=0;
-    newParm->boxType = NOBOX;
-  }
+  if (removeBoxInfo)
+    newParm->SetNoBox(); 
+
   newParm->Summary();
 
   // Allocate space for new frame
-  newFrame.SetupFrame(newParm->natom, newParm->mass);
+  newFrame.SetupFrame(newParm->Natom(), newParm->Mass());
 
   // If prefix given then output stripped parm
   if (prefix!=NULL) {
-    mprintf("\tWriting out amber topology file %s\n",newParm->parmName);
+    mprintf("\tWriting out amber topology file %s\n",newParm->c_str());
     ParmFile pfile;
     pfile.SetDebug( debug );
-    if ( pfile.Write( *newParm, newParm->parmName, ParmFile::AMBERPARM ) ) {
+    if ( pfile.Write( *newParm, newParm->ParmName(), ParmFile::AMBERPARM ) ) {
     //if ( newParm->WriteTopology(newParm->parmName) ) {
       mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
-                newParm->parmName);
+                newParm->c_str());
     }
   }
 

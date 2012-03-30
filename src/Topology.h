@@ -6,6 +6,8 @@
 #include "Molecule.h"
 #include "AtomMask.h"
 #include "Box.h"
+#include "CoordFrame.h"
+#include "Frame.h"
 // Class: Topology
 /// Hold information for all atoms
 class Topology {
@@ -18,6 +20,7 @@ class Topology {
     void SetParmName(const char*);
     void SetParmName(std::string&);
     void SetPindex(int);
+    void SetReferenceCoords( Frame& );
 
     typedef std::vector<Atom>::const_iterator atom_iterator;
     inline atom_iterator begin() const {
@@ -46,6 +49,8 @@ class Topology {
     char *ResidueName(int); // TODO: Make obsolete
     std::string ResAtomName(int);
     int FindAtomInResidue(int, NameType);
+    int FindResidueMaxNatom();
+    int SoluteAtoms();
     double *Mass();
 
     void Summary();
@@ -74,6 +79,9 @@ class Topology {
     inline int FinalSoluteRes() {
       return finalSoluteRes_;
     }
+    inline int Nframes() {
+      return nframes_;
+    }
     inline const char *ResName(int resnum) {
       return residues_[resnum].c_str();
     }
@@ -88,6 +96,9 @@ class Topology {
     }
     inline bool BoxIsTruncOct() { // NOTE: Should this not be inlined?
       return (box_.AmberIfbox() == 2);
+    }
+    inline void SetNoBox() {
+      box_.SetNoBox();
     }
     inline std::string &ParmName() {
       return parmName_;
@@ -107,11 +118,12 @@ class Topology {
     void CommonSetup(bool,bool);
 
     inline bool SetupIntegerMask(AtomMask &mask) {
-      return ParseMask(mask, true);
+      return ParseMask(refCoords_, mask, true);
     }
     inline bool SetupCharMask(AtomMask &mask) {
-      return ParseMask(mask, false);
+      return ParseMask(refCoords_, mask, false);
     }
+    bool SetupCharMask(AtomMask &, Frame &);
 
     Topology *modifyStateByMask(AtomMask &, const char *);
 
@@ -127,6 +139,7 @@ class Topology {
     std::vector<int> numex_;
 
     Box box_;
+    CoordFrame refCoords_;
 
     int debug_;
     bool hasCoordinates_;
@@ -135,6 +148,7 @@ class Topology {
     int NsolventMolecules_;
     int finalSoluteRes_;
     int pindex_;
+    int nframes_;
     double *massptr_;
 
     double GetBondedCut(Atom::AtomicElementType, Atom::AtomicElementType);
@@ -146,7 +160,7 @@ class Topology {
     void DetermineExcludedAtoms();
     void SetSolventInfo();
 
-    void Mask_SelectDistance( char*, bool, bool, double );
+    void Mask_SelectDistance( CoordFrame &, char*, bool, bool, double );
     void Mask_AND(char*,char*);
     void Mask_OR(char*,char*);
     void Mask_NEG(char*);
@@ -155,7 +169,7 @@ class Topology {
     void MaskSelectResidues(NameType, char *);
     void MaskSelectAtoms(int,int,char*);
     void MaskSelectAtoms(NameType,char*);
-    bool ParseMask(AtomMask &,bool);
+    bool ParseMask(CoordFrame &, AtomMask &,bool);
 
     //std::vector<size_t> resnums_;
     //std::vector<NameType> resnames_;

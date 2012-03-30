@@ -10,6 +10,7 @@ class Box {
     Box &operator=(const Box&);
     void PrintBoxType();
     void SetTruncOct();
+    void SetNoBox();
     void SetBetaLengths(std::vector<double> &);
     int AmberIfbox();
     double ToRecip(double*,double*);

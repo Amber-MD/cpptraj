@@ -115,12 +115,12 @@ int Rms2d::init() {
 int Rms2d::setup() {
   if ( currentParm->SetupIntegerMask(FrameMask) ) {
     mprinterr("Error: Rms2d::setup: Could not set up mask [%s] for parm %s\n",
-              FrameMask.MaskString(), currentParm->parmName);
+              FrameMask.MaskString(), currentParm->c_str());
     return 1;
   }
   if (FrameMask.None()) {
     mprinterr("Error: Rms2d::setup: No atoms selected for mask [%s], parm %s\n",
-              FrameMask.MaskString(), currentParm->parmName);
+              FrameMask.MaskString(), currentParm->c_str());
     return 1;
   }
   // If useMass, store mass information here. If mass information changes
@@ -130,7 +130,7 @@ int Rms2d::setup() {
   // one parm.
   if (useMass) {
     if (!mass_setup) {
-      mass_ptr = currentParm->mass;
+      mass_ptr = currentParm->Mass();
       mass_setup = true;
     } else {
       mprintf("Warning: Rms2d::Setup: 'mass' only allowed with one parm. Disabling 'mass'.\n");
@@ -240,12 +240,12 @@ void Rms2d::CalcRmsToTraj() {
   // Set up reference mask for reference parm
   if (RefParm->SetupIntegerMask(RefMask)) {
     mprinterr("Error: Could not set up reference mask [%s] for parm %s\n",
-              RefMask.MaskString(), RefParm->parmName);
+              RefMask.MaskString(), RefParm->c_str());
     return;
   }
   // Setup frame for selected reference atoms
-  SelectedRef.SetupFrameFromMask(RefMask, RefParm->mass); 
-  RefFrame.SetupFrame(RefParm->natom,RefParm->mass);
+  SelectedRef.SetupFrameFromMask(RefMask, RefParm->Mass()); 
+  RefFrame.SetupFrame(RefParm->Natom(),RefParm->Mass());
   int totalref = RefTraj->Total_Read_Frames();
 
   int totaltgt = ReferenceCoords.Ncoords();

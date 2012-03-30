@@ -843,9 +843,6 @@ int NAstruct::init() {
   char *resrange_arg, *maparg, *outputsuffix;
   ArgList maplist;
   AxisType::NAbaseType mapbase;
-  std::string resname;
-  NAME mapresname;
-  mapresname[4]='\0';
 
   // Get keywords
   outputsuffix = actionArgs.getKeyString("naout",NULL);
@@ -879,18 +876,15 @@ int NAstruct::init() {
       return 1;
     }
     // Check that residue name is <= 4 chars
-    resname = maplist[0]; 
+    std::string resname = maplist[0]; 
     if (resname.size() > 4) {
       mprinterr("Error: nastruct: resmap resname > 4 chars (%s)\n",maparg);
       return 1;
     }
     // Format residue name
-    int i = 0;
-    for (std::string::iterator it = resname.begin(); it != resname.end(); it++)
-      mapresname[i++]=*it;
-    mapresname[i]='\0';
-    PadWithSpaces(mapresname);
-    resname.assign(mapresname);
+    // TODO: Use NameType in map
+    NameType mapresname = resname;
+    resname.assign( *mapresname );
     mprintf("\tCustom Map: [%s]\n",resname.c_str());
     //maplist.PrintList();
     // Add to CustomMap
@@ -905,11 +899,11 @@ int NAstruct::init() {
   // Dataset
   // Add dataset to data file list
 
-  // Open BasePair param output file. Use resname as temp filename storage. 
-  resname.assign( outputsuffix );
-  resname = "BP." + resname;
-  if ( BPOut.SetupWrite((char*)resname.c_str(), debug) ) {
-    mprinterr("Error: Could not set up bpout file %s\n",resname.c_str());
+  // Open BasePair param output file. 
+  std::string fnameout( outputsuffix );
+  fnameout = "BP." + fnameout;
+  if ( BPOut.SetupWrite((char*)fnameout.c_str(), debug) ) {
+    mprinterr("Error: Could not set up bpout file %s\n",fnameout.c_str());
     return 1;
   }
   BPOut.OpenFile();
@@ -917,10 +911,10 @@ int NAstruct::init() {
     BPOut.Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n","#Frame","Base1","Base2",
                      "Shear","Stretch","Stagger","Buckle","Propeller","Opening");
   // Open BasePair step param output file.
-  resname.assign( outputsuffix );
-  resname = "BPstep." + resname;
-  if ( BPstepOut.SetupWrite((char*)resname.c_str(), debug) ) {
-    mprinterr("Error: Could not set up bpstepout file %s\n",resname.c_str());
+  fnameout.assign( outputsuffix );
+  fnameout = "BPstep." + fnameout;
+  if ( BPstepOut.SetupWrite((char*)fnameout.c_str(), debug) ) {
+    mprinterr("Error: Could not set up bpstepout file %s\n",fnameout.c_str());
     return 1;
   }
   BPstepOut.OpenFile();
@@ -928,10 +922,10 @@ int NAstruct::init() {
     BPstepOut.Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
                          "Shift","Slide","Rise","Tilt","Roll","Twist");
   // Open Helix param output file.
-  resname.assign( outputsuffix );
-  resname = "Helix." + resname;
-  if ( HelixOut.SetupWrite((char*)resname.c_str(), debug) ) {
-    mprinterr("Error: Could not set up helixout file %s\n",resname.c_str());
+  fnameout.assign( outputsuffix );
+  fnameout = "Helix." + fnameout;
+  if ( HelixOut.SetupWrite((char*)fnameout.c_str(), debug) ) {
+    mprinterr("Error: Could not set up helixout file %s\n",fnameout.c_str());
     return 1;
   }
   HelixOut.OpenFile();
@@ -983,7 +977,7 @@ int NAstruct::setup() {
 
   // Exit if no residues specified
   if (actualRange.Empty()) {
-    mprinterr("Error: NAstruct::setup: No residues specified for %s\n",currentParm->parmName);
+    mprinterr("Error: NAstruct::setup: No residues specified for %s\n",currentParm->c_str());
     return 1;
   }
 

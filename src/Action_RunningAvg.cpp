@@ -59,14 +59,14 @@ int RunningAvg::setup() {
   // If windowNatom is not 0, setup has been called for another parm.
   // Check if the number of atoms has changed. If so the running average
   // will break.
-  if ( currentParm->natom != windowNatom ) {
+  if ( currentParm->Natom() != windowNatom ) {
     if (windowNatom!=0) {
       mprintf("Warning: # atoms in parm %s different than previous parm.\n",
-              currentParm->parmName);
+              currentParm->c_str());
       mprintf("         Running average will NOT be carried over between parms!\n");
       return 1;
     }
-    windowNatom = currentParm->natom;
+    windowNatom = currentParm->Natom();
     // Set up a frame for each window, no masses
     for (int i = 0; i < Nwindow; i++)
       Window[i].SetupFrame( windowNatom, NULL );

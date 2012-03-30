@@ -16,6 +16,7 @@ Topology::Topology() :
   NsolventMolecules_(0),
   finalSoluteRes_(-1),
   pindex_(0),
+  nframes_(0),
   massptr_(0)
 { }
 
@@ -44,6 +45,10 @@ void Topology::SetParmName(std::string &nameIn) {
 
 void Topology::SetPindex(int pindexIn) {
   pindex_ = pindexIn;
+}
+
+void Topology::SetReferenceCoords( Frame &frame ) {
+  refCoords_ = CoordFrame(frame.Natom(), frame.CoordPtr());
 }
 
 // -----------------------------------------------------------------------------
@@ -146,6 +151,30 @@ int Topology::FindAtomInResidue(int res, NameType atname) {
   return -1;
 }
 
+// Topology::FindResidueMaxNatom
+/** Return the # atoms in the largest residue. */
+int Topology::FindResidueMaxNatom() {
+  if (residues_.size() <= 1)
+    return (int)atoms_.size();
+  int largest_natom = 0;
+  int lastatom = (int)atoms_.size();
+  for (std::vector<Residue>::iterator res = residues_.end() - 1;
+                                      res != residues_.begin(); res++)
+  {
+    int firstatom = (*res).FirstAtom();
+    int diff = lastatom - firstatom;
+    if (diff > largest_natom) largest_natom = diff;
+    lastatom = firstatom;
+  }
+  return largest_natom;
+}
+
+int Topology::SoluteAtoms() {
+  if (NsolventMolecules_ == 0)
+    return (int)atoms_.size();
+  return molecules_[firstSolventMol_].BeginAtom();
+}
+  
 // NOTE: Stopgap - need to figure out a better way
 // TODO: Figure out a better way to set up frames
 double *Topology::Mass() {
@@ -187,7 +216,7 @@ void Topology::ParmInfo() {
 void Topology::PrintAtomInfo(const char *maskString) {
   AtomMask mask;
   mask.SetMaskString( (char*)maskString ); // TODO: Use only strings
-  ParseMask(mask, false);
+  ParseMask(refCoords_, mask, false);
   for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
     (*atom).Info();
 } 
@@ -830,7 +859,10 @@ void Topology::SetSolventInfo() {
 }
 
 // -----------------------------------------------------------------------------
-
+bool Topology::SetupCharMask(AtomMask &mask, Frame &frame) {
+  CoordFrame tmp(frame.Natom(), frame.CoordPtr());
+  return ParseMask( tmp, mask, false);
+}
 /** Determine if the targetName is the same as the given mask name. 
   * targetName can either be from the parm, in which case it may have
   * trailing spaces which are not considered for matching, or it
@@ -876,9 +908,14 @@ void Topology::SetSolventInfo() {
 }*/
 
 // Topology::Mask_SelectDistance()
-void Topology::Mask_SelectDistance( char *mask, bool within, bool byAtom, double distance ) 
+void Topology::Mask_SelectDistance( CoordFrame &REF, char *mask, bool within, 
+                                    bool byAtom, double distance ) 
 {
   int endatom;
+  if (REF.empty()) {
+    mprinterr("Error: No reference set for [%s], cannot select by distance.\n",parmName_.c_str());
+    return;
+  }
   mprintf("\t\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
           (int)within, (int)byAtom, distance);
   // Distance has been pre-squared.
@@ -909,8 +946,9 @@ void Topology::Mask_SelectDistance( char *mask, bool within, bool byAtom, double
       // Loop over initially selected atoms
       for (int idx = 0; idx < (int)selected.size(); idx++) {
         int atomj = selected[idx];
-        double d2 = DIST2_NoImage( (double*)atoms_[atomi].XYZ(), 
-                                   (double*)atoms_[atomj].XYZ() );
+        double d2 = REF.DIST2_NoImage(atomi, atomj);
+        /*double d2 = DIST2_NoImage( (double*)atoms_[atomi].XYZ(), 
+                                   (double*)atoms_[atomj].XYZ() );*/
         if (within) {
           if (d2 < distance) {
             mask[atomi] = 'T';
@@ -934,8 +972,9 @@ void Topology::Mask_SelectDistance( char *mask, bool within, bool byAtom, double
       for (int idx = 0; idx < (int)selected.size(); idx++) {
         int atomj = selected[idx];
         //mprintf("\t\t\tAtom %i to atom %i\n",atomi+1,atomj+1);
-        double d2 = DIST2_NoImage( (double*)atoms_[atomi].XYZ(), 
-                                   (double*)atoms_[atomj].XYZ() );
+        double d2 = REF.DIST2_NoImage(atomi, atomj);
+        /*double d2 = DIST2_NoImage( (double*)atoms_[atomi].XYZ(), 
+                                   (double*)atoms_[atomj].XYZ() );*/
         if (within) {
           if (d2 < distance) selectresidue = true;
         } else {
@@ -1070,7 +1109,7 @@ void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) {
 }
 
 // Topology::ParseMask()
-bool Topology::ParseMask(AtomMask &maskIn, bool intMask) {
+bool Topology::ParseMask(CoordFrame &REF, AtomMask &maskIn, bool intMask) {
   std::stack<char*> Stack;
   char *pMask = NULL; 
   char *pMask2 = NULL;
@@ -1115,7 +1154,7 @@ bool Topology::ParseMask(AtomMask &maskIn, bool intMask) {
         Mask_NEG( Stack.top() );
         break;
       case MaskToken::OP_DIST :
-        Mask_SelectDistance( Stack.top(), (*token).Within(), (*token).ByAtom(), 
+        Mask_SelectDistance( REF, Stack.top(), (*token).Within(), (*token).ByAtom(), 
                              (*token).Distance() );
         break;
       default:

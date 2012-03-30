@@ -24,6 +24,12 @@ void Cpptraj::SetGlobalDebug(int debugIn) {
   DFL.SetDebug(debug);
 }
 
+/// Used to add parm files from the command line.
+void Cpptraj::AddParm(char *parmfile) {
+  if (parmfile==NULL) return;
+  parmFileList.AddParmFile( parmfile );
+}
+
 // Cpptraj::Dispatch()
 /** Send commands to their appropriate classes.
  * The command is tried on each class in turn. If the class rejects command
@@ -131,7 +137,7 @@ void Cpptraj::Dispatch(char *inputLine) {
   }
 
   // Check if command pertains to a parm file
-  if (parmFileList.CheckCommand(&dispatchArg)==0) return;
+  if (parmFileList.CheckCommand(dispatchArg)==0) return;
 
   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {
@@ -210,20 +216,20 @@ int Cpptraj::Run() {
     CurrentParm = traj->TrajParm();
 
     // If Parm has changed, reset Frame and actions for new topology.
-    if (lastPindex != CurrentParm->pindex) {
+    if (lastPindex != CurrentParm->Pindex()) {
       // Set up the incoming trajectory frame for this parm
-      TrajFrame.SetupFrameV(CurrentParm->natom, CurrentParm->mass, traj->HasVelocity());
+      TrajFrame.SetupFrameV(CurrentParm->Natom(), CurrentParm->Mass(), traj->HasVelocity());
       // Set active reference for this parm
-      CurrentParm->SetReferenceCoords( refFrames.ActiveReference() );
+      CurrentParm->SetReferenceCoords( *refFrames.ActiveReference() );
       // Set up actions for this parm
       if (actionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
-                CurrentParm->parmName);
+                CurrentParm->c_str());
         continue;
       }
       //fprintf(stdout,"DEBUG: After setup of Actions in Cpptraj parm name is %s\n",
       //        CurrentParm->parmName);
-      lastPindex = CurrentParm->pindex;
+      lastPindex = CurrentParm->Pindex();
     }
 
     // Loop over every Frame in trajectory
