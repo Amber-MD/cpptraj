@@ -145,6 +145,11 @@ const char *CpptrajFile::Name() {
   return FileName_.c_str();
 }
 
+// CpptrajFile::FullPathName()
+std::string CpptrajFile::FullPathName() {
+  return FileName_;
+}
+
 // CpptrajFile::BaseName()
 const char *CpptrajFile::BaseName() {
   return basefilename_.c_str();

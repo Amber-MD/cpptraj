@@ -54,6 +54,7 @@ class CpptrajFile {
     bool IsOpen();
     /// Return the file name
     const char *Name();
+    std::string FullPathName();
     /// Return the file name without the path
     const char *BaseName();
     /// Return the file extension
