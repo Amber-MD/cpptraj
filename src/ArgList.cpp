@@ -2,8 +2,7 @@
 //ArgList.cpp
 #include <cstring>
 #include <locale>
-#include <sstream>
-#include <stdexcept>
+#include <stdexcept> // ArgList[]
 #include "CpptrajStdio.h"
  
 using namespace std;
@@ -317,36 +316,6 @@ string ArgList::getNextTag() {
     }
   }
   return emptystring;
-}
-
-/*! \class: BadConversion
-    \brief Runtime exception for catching bad conversions from the convertToX routines.
-  */
-class BadConversion : public std::runtime_error {
-public:
-  BadConversion(std::string const &s)
-    : std::runtime_error(s)
-    { }
-};
-
-// convertToInteger()
-/// Convert the input string to an integer.
-inline int convertToInteger(string const &s) {
-  istringstream iss(s);
-  long int i;
-  if (!(iss >> i))
-    throw BadConversion("convertToInteger(\"" + s + "\")");
-  return (int)i;
-}
-
-// convertToDouble()
-/// Convert the input string to a double.
-inline double convertToDouble(string const &s) {
-  istringstream iss(s);
-  double d;
-  if (!(iss >> d))
-    throw BadConversion("convertToDouble(\"" + s + "\")");
-  return d;
 }
 
 // validInteger()

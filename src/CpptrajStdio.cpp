@@ -2,6 +2,8 @@
 #include <cstdarg>
 #include <cstring> // tildeExpansion
 #include <cmath> // log10
+#include <sstream> // istringstream
+#include <stdexcept> // BadConversion
 #ifndef __PGI
 #  include <glob.h> // For tilde expansion
 #endif
@@ -158,6 +160,12 @@ void NumberFilename(char *buffer, char *filenameIn, int number) {
   sprintf(buffer,"%s.%i",filenameIn,number);
 }
 
+std::string NumberFilename(std::string const &fname, int number) {
+  std::ostringstream oss;
+  oss << "." << number;
+  return oss.str();
+}
+
 // DigitWidth()
 /// Return the number of characters necessary to express the given digit.
 int DigitWidth(int numberIn) {
@@ -257,5 +265,36 @@ void SetIntegerFormatString(std::string &formatString, int width, bool leftAlign
   formatString.assign( format );
   //mprintf("DEBUG: Integer Format string: [%s]\n",format);
   delete[] format;
+}
+
+// ---------- STRING CONVERSION ROUTINES --------------------------------------- 
+/*! \class: BadConversion
+    \brief Runtime exception for catching bad conversions from the convertToX routines.
+  */
+class BadConversion : public std::runtime_error {
+public:
+  BadConversion(std::string const &s)
+    : std::runtime_error(s)
+    { }
+};
+
+// convertToInteger()
+/// Convert the input string to an integer.
+int convertToInteger(std::string const &s) {
+  std::istringstream iss(s);
+  long int i;
+  if (!(iss >> i))
+    throw BadConversion("convertToInteger(\"" + s + "\")");
+  return (int)i;
+}
+
+// convertToDouble()
+/// Convert the input string to a double.
+double convertToDouble(std::string const &s) {
+  std::istringstream iss(s);
+  double d;
+  if (!(iss >> d))
+    throw BadConversion("convertToDouble(\"" + s + "\")");
+  return d;
 }
 
