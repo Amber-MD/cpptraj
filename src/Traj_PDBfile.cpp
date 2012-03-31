@@ -54,40 +54,41 @@ int Traj_PDBfile::openTraj() {
   * in TrajectoryFile.
   */
 int Traj_PDBfile::setupTrajin(Topology *trajParm) {
-  char buffer[BUF_SIZE_];
-  int atom, Frames;
-  int numMismatch = 0;
-  bool scanPDB;
-  char pdbAtomName[5];
-
+  int atom;
   if ( this->openTraj() ) return -1;
 
-  // Two strats - check for MODEL keywords or see how many times natom ATOMs can be read
+  // Two strats - check for MODEL keywords or see how many times natom ATOM
+  // records can be read.
   // Currently employing the latter.
-  Frames=0;
-  scanPDB=true;
+  int Frames = 0;
+  int numMismatch = 0;
+  bool scanPDB = true;
   while (scanPDB) {
-    atom=0;
-    while ( atom < trajParm->natom ) {
+    atom = 0;
+    while ( atom < trajParm->Natom() ) {
       //fprintf(stdout,"DEBUG: PDB Read atom %i\n",atom);
-      if ( IO->Gets(buffer,BUF_SIZE) ) { scanPDB=false; break; }
+      if ( PDB_GetNextRecord( IO ) ) {
+        scanPDB = false;
+        break;
+      }
       //fprintf(stdout,"DEBUG: PDB buffer %i [%s]\n",atom,buffer);
       // Skip non-ATOM records
-      if (!isPDBatomKeyword(buffer)) continue;
+      if (!IsPDBatomKeyword()) continue;
       // If still on first frame, check pdb atom name against the name in the 
       // associated parm file.
       if (Frames==0) {
-        pdb_name(buffer,pdbAtomName);
-        if (!trajParm->AtomNameIs(atom, pdbAtomName)) {
+        Atom pdbatom = pdb_Atom();
+        if ( pdbatom.Name() != (*trajParm)[atom].Name() ) {
           if (debug_>1) 
             mprintf("Warning: %s: Atom %i name [%s] does not match parm atom name [%s]\n",
-                    BaseName(),atom,pdbAtomName,trajParm->AtomName(atom));
-          numMismatch++;
+                    BaseName(),atom+1,*(pdbatom.Name()),*((*trajParm)[atom].Name()));
+          ++numMismatch;
         }
       }
-      atom++;
+      ++atom;
     }
-    if (Frames==0) { 
+    if (Frames==0) {
+      // First frame #atoms 
       pdbAtom_ = atom;
     } else {
       // Check that # atoms read in this frame match the first frame
@@ -95,17 +96,17 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
         mprintf("Warning: %s: Reading frame %i, got %i atoms, expected %i.\n",BaseName(),
                   Frames+OUTPUTFRAMESHIFT,atom,pdbAtom_);
         mprintf("         Only using frames 1-%i\n",Frames);
-        scanPDB=false;
+        scanPDB = false;
         break;
       }
     }  
-    if (scanPDB) Frames++;
+    if (scanPDB) ++Frames;
   }
   this->closeTraj();
 
   if (Frames<1) {
     mprinterr("Error: %s: No frames read. atom=%i expected %i.\n",BaseName(),
-            atom,trajParm->natom);
+            atom,trajParm->Natom());
     return -1;
   }
   if (debug_>0) mprintf("Traj_PDBfile: %s has %i atoms, %i frames.\n",BaseName(),
@@ -113,7 +114,7 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
   // Report mismatches of pdb atom names against parm names
   if (numMismatch > 0)
     mprintf("Warning: In PDB file %s: %i name mismatches with parm %s.\n",BaseName(),
-            numMismatch,trajParm->parmName);
+            numMismatch,trajParm->c_str());
 
   return Frames;
 }
@@ -121,19 +122,16 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
 // Traj_PDBfile::readFrame()
 /** Read frame (model) from PDB file. */
 int Traj_PDBfile::readFrame(int set,double *X, double *V,double *box, double *T) {
-  char buffer[BUF_SIZE];
-  int atom, atom3;
-
-  atom=0;
-  atom3=0;
+  int atom = 0;
+  double *Xptr = X; 
   while (atom < pdbAtom_) {
-    if ( IO->Gets(buffer,BUF_SIZE) ) return 1;
+    if ( PDB_GetNextRecord( IO ) ) return 1;
     // Skip non-ATOM records
-    if (!isPDBatomKeyword(buffer)) continue;
+    if (!IsPDBatomKeyword()) continue;
     // Read current PDB record XYZ into Frame
-    pdb_xyz(buffer,X+atom3);
-    atom++; 
-    atom3+=3;
+    pdb_XYZ( Xptr );
+    ++atom; 
+    Xptr += 3;
   }
 
   return 0;
@@ -154,9 +152,9 @@ int Traj_PDBfile::processWriteArgs(ArgList *argIn) {
   * number of frames to be written.
   */ 
 int Traj_PDBfile::setupTrajout(Topology *trajParm) {
-  pdbTop = trajParm;
+  pdbTop_ = trajParm;
 
-  pdbAtom_ = pdbTop->Natom();
+  pdbAtom_ = pdbTop_->Natom();
 
   // Set a chainID for each atom
   chainID_.clear();
@@ -185,13 +183,10 @@ void Traj_PDBfile::SetDumpq() {
 // Traj_PDBfile::writeFrame()
 /** Write the frame (model) to PDB file. */
 int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
-  char fname[BUF_SIZE_]; // TODO: rewrite with string or sstream
-  float Occ, B;
-
   // If writing 1 pdb per frame set up output filename and open
   if (pdbWriteMode_==MULTI) {
-    NumberFilename(fname,(char*)Name(),set + OUTPUTFRAMESHIFT);
-    if (IO->Open(buffer,"wb")) return 1;
+    std::string fname = NumberFilename(FullPathName(), set + OUTPUTFRAMESHIFT);
+    if (IO->Open((char*)fname.c_str(), "wb")) return 1;
   // If specified, write MODEL keyword
   } else if (pdbWriteMode_==MODEL) {
     // 1-6 MODEL, 11-14 model serial #
@@ -199,18 +194,18 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     Printf("MODEL     %i\n",set + OUTPUTFRAMESHIFT);
   }
 
-  Occ = 0.0; 
-  B = 0.0;
+  float Occ = 0.0; 
+  float B = 0.0;
   int anum = 1; // Actual PDB atom number
-  Topology::mol_iterator mol = pdbParm->MolStart();
+  Topology::mol_iterator mol = pdbTop_->MolStart();
   int lastAtomInMol = (*mol).EndAtom();
   double *Xptr = X;
   for (int i = 0; i < pdbAtom_; i++) {
-    const Atom atom = (*pdbParm_)[i];
+    const Atom atom = (*pdbTop_)[i];
     int res = atom.ResNum();
     // If this atom belongs to a new molecule print a TER card
     if (i == lastAtomInMol) {
-      pdb_write_ATOM(IO, PDBTER, anum, "", pdbTop->Res(res).Name(),
+      pdb_write_ATOM(IO, PDBTER, anum, "", pdbTop_->Res(res).Name(),
                      chainID_[i], res+1, 0, 0, 0, 0, 0, (char*)"\0", dumpq_);
       ++anum;
       ++mol;
@@ -218,10 +213,10 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     }
     if (dumpq_) Occ = (float) atom.Charge();
     if (dumpr_) B = (float) atom.Radius();
-    pdb_write_ATOM(IO, PDBATOM, atom, atom.Name(), pdbTop->Res(res).Name(),
+    pdb_write_ATOM(IO, PDBATOM, anum, atom.Name(), pdbTop_->Res(res).Name(),
                    chainID_[i], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, (char*)"\0", dumpq_);
     Xptr += 3;
-    ++atom;
+    ++anum;
   }
 
   // If writing 1 pdb per frame, close output file
