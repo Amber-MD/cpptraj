@@ -1486,44 +1486,45 @@ int AmberParm::SetupExcludedAtoms() {
 static int *SetupSequentialArray(int *atomMap, int oldN, int Nsequence, 
                                  int *oldArray, int *newN) {
   int *newArray = NULL;
-  int *newatoms;
-  int oldNX, newNX;
-  int newatm;
-  int Nsequence1;
-  int mapatom;
-  bool atomIsNegative;
+  std::vector<int> newatoms;
+  std::vector<int> newsign;
   
   if (atomMap==NULL || oldArray==NULL) return NULL;
   // Actual # entries in oldArray
-  oldNX = oldN * Nsequence;
-  Nsequence1 = Nsequence - 1;
+  int oldNX = oldN * Nsequence;
+  // # of coord indices in each entry; last entry is a parameter index
+  int Nsequence1 = Nsequence - 1;
   // Set initial size of new array to that of old array
   newArray = new int[ oldN * Nsequence ];
-  newNX=0;
+  int newNX = 0;
   // NOTE: Make newatoms static?
-  newatoms = new int[ Nsequence ];
+  newatoms.resize(Nsequence, 0);
+  newsign.resize(Nsequence1, 1);
   // Go through old array, use atomMap to determine what goes into newParm
   for (int oldi=0; oldi < oldNX; oldi += Nsequence) {
     // Check that atoms 0 to Nsequence exist in newParm. If any of the atoms
     // do not exist in newParm bail.
-    newatm = -1;
+    int newatm = -1;
+    bool reverseOrder = false;
     for (int sequencei = 0; sequencei < Nsequence1; sequencei++) {
       int arrayAtom = oldArray[oldi+sequencei];
       // For dihedrals the atom # can be negative. Convert to positive
       // for use in the atom map.
       if (arrayAtom < 0) {
-        mapatom = -arrayAtom;
-        atomIsNegative = true;
+        newatm = atomMap[ -arrayAtom / 3 ];
+        newsign[sequencei] = -1;
+        // For improper/multi-term dihedrals atom index 0 cannot be the 3rd
+        // or 4th position since there is no such thing as -0.
+        if (newatm == 0 && (sequencei == 2 || sequencei == 3))
+          reverseOrder = true;
       } else {
-        mapatom = arrayAtom;
-        atomIsNegative = false;
+        newatm = atomMap[  arrayAtom / 3 ];
+        newsign[sequencei] = 1;
       }
-      newatm = atomMap[ mapatom / 3 ];
+      // New atom # of -1 means atom was removed - exit loop now.
       if (newatm == -1) break;
-      if (atomIsNegative)
-        newatoms[sequencei] = -newatm;
-      else
-        newatoms[sequencei] = newatm;
+      // Atom exists - store.
+      newatoms[sequencei] = newatm;
     }
     // If newatm is -1 here that means it didnt exist in newParm for this
     // sequence. Skip the entire sequence.
@@ -1531,14 +1532,19 @@ static int *SetupSequentialArray(int *atomMap, int oldN, int Nsequence,
     // Store the final number of the sequence, which is an index
     newatoms[Nsequence1] = oldArray[oldi+Nsequence1];
     // Place the atoms in newatoms in newArray
-    for (int sequencei = 0; sequencei < Nsequence1; sequencei++) 
-      newArray[newNX+sequencei] = newatoms[sequencei] * 3;
+    if (!reverseOrder) {
+      for (int sequencei = 0; sequencei < Nsequence1; sequencei++) 
+        newArray[newNX+sequencei] = newatoms[sequencei] * 3 * newsign[sequencei];
+    } else {
+      int ridx = Nsequence1 - 1;
+      for (int sequencei = 0; sequencei < Nsequence1; sequencei++)
+        newArray[newNX+sequencei] = newatoms[ridx--] * 3 * newsign[sequencei];
+    }
     // Place the index in newatoms in newArray
     newArray[newNX+Nsequence1] = newatoms[Nsequence1];
     // Increment new counter
     newNX += Nsequence;
   }
-  delete[] newatoms;
   // Resize newArray
   int *temparray = new int[ newNX ];
   memcpy(temparray, newArray, newNX * sizeof(int));
