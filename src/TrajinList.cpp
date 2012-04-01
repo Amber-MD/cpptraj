@@ -49,7 +49,7 @@ int TrajinList::SetupFrames() {
     trajFrames = (*traj)->Total_Read_Frames();
     // If < 0 frames this indicates the number of frames could not be determined. 
     if (trajFrames < 0) return -1;
-    (*traj)->TrajParm()->parmFrames += trajFrames;
+    (*traj)->TrajParm()->IncreaseFrames( trajFrames );
     maxFrames+=trajFrames;
   }
 

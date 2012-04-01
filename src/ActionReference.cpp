@@ -106,7 +106,7 @@ int ActionReference::RefInit(bool nofit, bool useMassIn, char *defaultMask,
   if (refMode_ == REF) {
     // Attempt to get the reference index by name/tag
     if (referenceName != NULL)
-      refindex = RefFrameList->GetFrameIndex(referenceName);
+      refindex = RefFrameList->FindName(referenceName);
     // Get reference frame by index
     // TODO: Convert FrameList to return frame reference?
     Frame *TempFrame = RefFrameList->GetFrame(refindex);

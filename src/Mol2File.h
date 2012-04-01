@@ -11,6 +11,7 @@ class Mol2File {
 
     bool IsMol2Keyword();
     bool GetLine(FileIO*);
+    bool ID(FileIO *IO);
     int ScanTo( FileIO *, TRIPOSTAG );
     bool ReadMolecule( FileIO*);
     int NextMolecule( FileIO * );

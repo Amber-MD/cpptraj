@@ -12,6 +12,7 @@ class Box {
     void SetTruncOct();
     void SetNoBox();
     void SetBetaLengths(std::vector<double> &);
+    void SetAngles(double*);
     int AmberIfbox();
     double ToRecip(double*,double*);
     inline BoxType Type() {

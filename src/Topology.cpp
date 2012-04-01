@@ -47,8 +47,9 @@ void Topology::SetPindex(int pindexIn) {
   pindex_ = pindexIn;
 }
 
-void Topology::SetReferenceCoords( Frame &frame ) {
-  refCoords_ = CoordFrame(frame.Natom(), frame.CoordPtr());
+void Topology::SetReferenceCoords( Frame *frameptr ) {
+    if (frameptr==NULL) return;
+    refCoords_ = CoordFrame(frameptr->Natom(), frameptr->CoordPtr());
 }
 
 // -----------------------------------------------------------------------------

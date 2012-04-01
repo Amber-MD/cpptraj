@@ -4,20 +4,12 @@
 
 // Parm_Mol2::ID_ParmFormat() 
 bool Parm_Mol2::ID_ParmFormat() {
-  // Read the first 10 lines
   if (OpenFile()) return false;
-  for (int line = 0; line < 10; line++) {
-    if ( GetLine( IO ) ) return false;
-    if ( IsMol2Keyword() ) {
-      CloseFile();
-      return true;
-    }
-  }
+  bool ismol2file = ID( IO );
   CloseFile();
-  return false;
+  return ismol2file;
 }
     
-
 // Parm_Mol2::ReadParm()
 /** Read file as a Tripos Mol2 file. */
 int Parm_Mol2::ReadParm(Topology &parmOut) {

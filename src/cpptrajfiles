@@ -19,7 +19,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
         DataSetList.cpp DataSet_string.cpp \
         DistRoutines.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
-        FindDepend.cpp Frame.cpp FrameList.cpp Histogram.cpp Integrate.cpp \
+        Frame.cpp FrameList.cpp Histogram.cpp Integrate.cpp \
         main.cpp \
         MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfRoutines.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \

@@ -70,6 +70,17 @@ void Box::SetBetaLengths(std::vector<double> &betaXYZ) {
   SetBoxType();
 }
 
+void Box::SetAngles(double *abg) {
+  if (abg==0) {
+    mprinterr("Error: SetAngles: Input array is NULL.\n");
+    return;
+  }
+  box_[3] = abg[0];
+  box_[4] = abg[1];
+  box_[5] = abg[2];
+  SetBoxType();
+}
+
 // Box::SetTruncOct()
 /** Set as truncated octahedron with no lengths. */
 void Box::SetTruncOct() {

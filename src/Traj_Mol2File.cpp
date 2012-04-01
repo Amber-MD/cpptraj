@@ -1,5 +1,4 @@
 // Traj_Mol2File
-#include <cstdio> // sscanf
 #include "Traj_Mol2File.h"
 #include "CpptrajStdio.h"
 

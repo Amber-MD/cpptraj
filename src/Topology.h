@@ -20,7 +20,7 @@ class Topology {
     void SetParmName(const char*);
     void SetParmName(std::string&);
     void SetPindex(int);
-    void SetReferenceCoords( Frame& );
+    void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
     // ---- Atom-specific routines -----
     typedef std::vector<Atom>::const_iterator atom_iterator;
     inline atom_iterator begin() const {
@@ -105,6 +105,9 @@ class Topology {
     inline int Nframes() {
       return nframes_;
     }
+    inline void IncreaseFrames(int frames) {
+      nframes_ += frames;
+    }
     inline const char *ResName(int resnum) {
       return residues_[resnum].c_str();
     }
@@ -122,6 +125,9 @@ class Topology {
     }
     inline void SetNoBox() {
       box_.SetNoBox();
+    }
+    inline void SetBoxAngles(double *abgIn) {
+      box_.SetAngles( abgIn );
     }
     inline void BoxCoords(double *boxOut) {
       box_.ToDouble(boxOut);

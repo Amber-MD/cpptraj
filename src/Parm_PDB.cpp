@@ -27,12 +27,9 @@ int Parm_PDB::ReadParm(Topology &TopIn) {
 bool Parm_PDB::ID_ParmFormat() {
   // Assumes already set up
   if (OpenFile()) return false;
-  if (!PDB_GetNextRecord(IO)) return false;
-  if (IsPDBkeyword()) return true;
-  if (!PDB_GetNextRecord(IO)) return false;
-  if (IsPDBkeyword()) return true;
+  bool ispdbfile = ID( IO );
   CloseFile();
-  return false;
+  return ispdbfile;
 }
 
 

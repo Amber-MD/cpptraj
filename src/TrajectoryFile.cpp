@@ -5,8 +5,8 @@
 #include <sstream> // for NumberedWrite
 #include "TrajectoryFile.h"
 #include "NetcdfRoutines.h"
-//#include "PDBfileRoutines.h"
-//#include "Mol2FileRoutines.h"
+#include "PDBfile.h" // TODO: Remove when ID_traj introduced
+#include "Mol2File.h" // ditto
 #include "CpptrajStdio.h"
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
@@ -69,6 +69,9 @@ TrajectoryFile::TrajFormatType TrajectoryFile::ID_TrajFormat(TrajectoryIO &traje
   const int BUF_SIZE = 83;
   char buffer1[BUF_SIZE];
   char buffer2[BUF_SIZE];
+  // TODO: Remove the next 2, ID should be in individual TrajectoryIO classes
+  PDBfile pdbfile;
+  Mol2File mol2file;
 
   // Open trajectory
   if (trajectory.IsOpen())
@@ -115,22 +118,27 @@ TrajectoryFile::TrajFormatType TrajectoryFile::ID_TrajFormat(TrajectoryIO &traje
   trajectory.IO->Gets(buffer1, BUF_SIZE);
   trajectory.IO->Gets(buffer2, BUF_SIZE);
   trajectory.CloseFile();
-
+  
   // If both lines have PDB keywords, assume PDB
-  if (isPDBkeyword(buffer1) && isPDBkeyword(buffer2)) 
+  trajectory.OpenFile();
+  if ( pdbfile.ID( trajectory.IO ) )
   {
     if (debug_>0) mprintf("  PDB file\n");
+    trajectory.CloseFile();
     return PDBFILE;
   }
 
   // If either buffer contains a TRIPOS keyword assume Mol2
   // NOTE: This will fail on tripos files with extensive header comments.
   //       A more expensive check for mol2 files is below.
-  if ( IsMol2Keyword(buffer1) || IsMol2Keyword(buffer2) )
+  trajectory.OpenFile();
+  if ( mol2file.ID( trajectory.IO ) )
   {
     if (debug_>0) mprintf("  TRIPOS MOL2 file\n");
+    trajectory.CloseFile();
     return MOL2FILE;
   }
+  trajectory.CloseFile();
 
   // If the second 5 chars are C O R D, assume charmm DCD
   if (strncmp(buffer1+4,"CORD",4)==0) {
@@ -172,7 +180,7 @@ TrajectoryFile::TrajFormatType TrajectoryFile::ID_TrajFormat(TrajectoryIO &traje
     return AMBERTRAJ;
   }
   
-  // ---------- MORE EXPENSIVE CHECKS ----------
+/*  // ---------- MORE EXPENSIVE CHECKS ----------
   // Reopen and scan for Tripos mol2 molecule section
   // 0 indicates section found.
   if (trajectory.OpenFile())
@@ -182,7 +190,7 @@ TrajectoryFile::TrajFormatType TrajectoryFile::ID_TrajFormat(TrajectoryIO &traje
     trajectory.CloseFile();
     return MOL2FILE;
   }
-  trajectory.CloseFile();
+  trajectory.CloseFile();*/
 
   // ---------- EXPERIMENTAL ----------
   // If the file format is still undetermined and the file name is conflib.dat,
@@ -284,7 +292,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
   // If remdout was specified, set up output trajectories
   if (remdout!=NULL) {
     // Set up temperature list
-    if ( remdio->SetupTemperatureList(trajParm_->natom) ) {
+    if ( remdio->SetupTemperatureList(trajParm_->Natom()) ) {
       mprinterr("Error: RemdTraj: remdout: could not get temperature list.\n");
       delete remdio;
       return NULL;
@@ -378,9 +386,9 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, TrajAccessType accIn,
       mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
 #endif
       break;
-    case PDBFILE     : tio = new PDBfile();      break;
+    case PDBFILE     : tio = new Traj_PDBfile();      break;
     case CONFLIB     : tio = new Conflib();      break;
-    case MOL2FILE    : tio = new Mol2File();     break;
+    case MOL2FILE    : tio = new Traj_Mol2File();     break;
     case CHARMMDCD   : tio = new CharmmDcd();    break;
     default:
       mprinterr("    Error: Could not determine trajectory file %s type, skipping.\n",tname);
@@ -976,20 +984,20 @@ int TrajectoryFile::GetNextFrame(Frame& FrameIn) {
   */
 int TrajectoryFile::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
   // Check that input parm matches setup parm - if not, skip
-  if (tparmIn->pindex != trajParm_->pindex) return 0;
+  if (tparmIn->Pindex() != trajParm_->Pindex()) return 0;
 
   // First frame setup - set up for the input parm, not necessarily the setup
   // parm; this allows things like atom strippping, etc. A stripped parm will
   // have the same pindex as the original parm.
   if (!trajIsOpen_) {
     if (debug_>0) rprintf("    Setting up %s for WRITE, %i atoms, originally %i atoms.\n",
-                          trajName_,tparmIn->natom,trajParm_->natom);
+                          trajName_,tparmIn->Natom(),trajParm_->Natom());
     trajParm_ = tparmIn;
     // Use parm to set up box info for the traj unless nobox was specified.
     // If box angles are present in traj they will be used instead.
     // NOTE: Probably not necessary to set box angles here, they are passed in
     if (!nobox_) {
-      if (trajParm_->boxType!=NOBOX) {
+      if (trajParm_->BoxType()!=Box::NOBOX) {
         trajio_->SetBox();
         //trajio->boxAngle[0]=trajParm->Box[3];
         //trajio->boxAngle[1]=trajParm->Box[4];
@@ -1038,7 +1046,7 @@ void TrajectoryFile::PrintInfo(int showExtended) {
   mprintf("  [%s] ",trajName_);
   trajio_->info();
 
-  mprintf(", Parm %i",trajParm_->pindex);
+  mprintf(", Parm %i",trajParm_->Pindex());
 
   if (trajio_->HasBox()) mprintf(" (with box info)");
 
@@ -1059,11 +1067,11 @@ void TrajectoryFile::PrintInfo(int showExtended) {
     if (FrameRange_!=NULL)
       FrameRange_->PrintRange(": Writing frames",OUTPUTFRAMESHIFT);
     else
-      mprintf(": Writing %i frames", trajParm_->parmFrames);
+      mprintf(": Writing %i frames", trajParm_->Nframes());
     if (fileAccess_==APPENDTRAJ) mprintf(", appended"); 
   }
   if (debug_>0) 
-    mprintf(", %i atoms, Box %i, seekable %i",trajParm_->natom,(int)trajio_->HasBox(),
+    mprintf(", %i atoms, Box %i, seekable %i",trajParm_->Natom(),(int)trajio_->HasBox(),
             (int)trajio_->Seekable());
   mprintf("\n");
 }

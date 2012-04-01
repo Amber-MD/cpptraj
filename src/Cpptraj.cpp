@@ -220,7 +220,7 @@ int Cpptraj::Run() {
       // Set up the incoming trajectory frame for this parm
       TrajFrame.SetupFrameV(CurrentParm->Natom(), CurrentParm->Mass(), traj->HasVelocity());
       // Set active reference for this parm
-      CurrentParm->SetReferenceCoords( *refFrames.ActiveReference() );
+      CurrentParm->SetReferenceCoords( refFrames.ActiveReference() );
       // Set up actions for this parm
       if (actionList.Setup( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",

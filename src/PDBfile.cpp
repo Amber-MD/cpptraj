@@ -34,6 +34,14 @@ bool PDBfile::IsPDBkeyword() {
   return false;
 }
 
+bool PDBfile::ID(FileIO *IO) {
+  if (!PDB_GetNextRecord(IO)) return false;
+  if (IsPDBkeyword()) return true;
+  if (!PDB_GetNextRecord(IO)) return false;
+  if (IsPDBkeyword()) return true;
+  return false;
+}
+
 // PDBfile::IsPDBatomKeyword
 /** \return true if the first 6 chars match ATOM or HETATM */
 bool PDBfile::IsPDBatomKeyword() {

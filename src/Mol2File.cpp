@@ -27,6 +27,17 @@ bool Mol2File::GetLine(FileIO *IO) {
   return ( IO->Gets(buffer_, BUF_SIZE_) == 0 );
 }
 
+bool Mol2File::ID( FileIO *IO ) {
+  for (int line = 0; line < 10; line++) {
+    if ( GetLine( IO ) ) return false;
+    if ( IsMol2Keyword() ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 // Mol2File::ScanTo()
 /** Scan to the specified TRIPOS section of file.
   * \return 0 if the tag was found, 1 if not found.

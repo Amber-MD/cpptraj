@@ -12,6 +12,7 @@ class PDBfile {
     bool PDB_GetNextRecord(FileIO *);
 
     bool IsPDBkeyword();
+    bool ID(FileIO *);
     bool IsPDBatomKeyword();
     bool IsPDB_TER();
     bool IsPDB_END();

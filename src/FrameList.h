@@ -11,7 +11,6 @@
   */
 // NOTE: Eventually store a vector of Frames, not Frame*s
 class FrameList : public FileList {
- 
   public:
 
     FrameList();
@@ -21,9 +20,9 @@ class FrameList : public FileList {
     void SetActiveRef(int);
     int AddRefFrame(Frame *, char *, const char *,Topology *,int,std::string&);
     int AddFrame(Frame *, Topology *);
+    //int GetFrameIndex(char *);
+    //int GetFrameIndexByTag(std::string &);
     Topology *GetFrameParm(int);
-    int GetFrameIndex(char *);
-    int GetFrameIndexByTag(std::string &);
     Frame *GetFrame(int idx);
     int ReplaceFrame(int, Frame *, Topology *);
     void Info();

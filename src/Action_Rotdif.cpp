@@ -141,7 +141,7 @@ int Rotdif::init( ) {
   // Set up reference for RMSD
   // Attempt to get reference index by name
   if (referenceName!=NULL)
-    refindex=FL->GetFrameIndex(referenceName);
+    refindex=FL->FindName(referenceName);
   // Get reference frame by index
   Frame *TempFrame=FL->GetFrame(refindex);
   if (TempFrame==NULL) {

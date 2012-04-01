@@ -2,11 +2,12 @@
 #include "ActionList.h"
 #include "CpptrajStdio.h"
 // All action classes go here
+// TODO: Re-enable actions
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
 #include "Action_Angle.h"
-#include "Action_AtomMap.h"
+//#include "Action_AtomMap.h"
 #include "Action_Strip.h"
 #include "Action_DSSP.h"
 #include "Action_Center.h"
@@ -25,11 +26,11 @@
 #include "Action_DistRmsd.h"
 #include "Action_Jcoupling.h"
 #include "Action_Clustering.h"
-#include "Action_Pairwise.h"
+//#include "Action_Pairwise.h"
 #include "Action_PtrajAction.h"
 #include "Action_Molsurf.h"
-#include "Action_CheckStructure.h"
-#include "Action_DihedralScan.h"
+//#include "Action_CheckStructure.h"
+//#include "Action_DihedralScan.h"
 #include "Action_Rotdif.h"
 #include "Action_RunningAvg.h"
 #include "Action_RmsAvgCorr.h"
@@ -72,7 +73,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("rmsd"))           {Act=new Rmsd;    }
   else if (argIn.CommandIs("rms"))            {Act=new Rmsd;    }
   else if (argIn.CommandIs("dihedral"))       {Act=new Dihedral;}
-  else if (argIn.CommandIs("atommap"))        {Act=new AtomMap; }
+  //else if (argIn.CommandIs("atommap"))        {Act=new AtomMap; }
   else if (argIn.CommandIs("angle"))          {Act=new Angle;   }
   else if (argIn.CommandIs("strip"))          {Act=new Strip;   }
   else if (argIn.CommandIs("secstruct"))      {Act=new DSSP;    }
@@ -93,11 +94,11 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("drms"))           {Act=new DistRmsd;}
   else if (argIn.CommandIs("jcoupling"))      {Act=new Jcoupling;}
   else if (argIn.CommandIs("cluster"))        {Act=new Clustering;}
-  else if (argIn.CommandIs("pairwise"))       {Act=new Pairwise;}
+  //else if (argIn.CommandIs("pairwise"))       {Act=new Pairwise;}
   else if (argIn.CommandIs("molsurf"))        {Act=new Molsurf; }
-  else if (argIn.CommandIs("checkstructure")) {Act=new CheckStructure;}
-  else if (argIn.CommandIs("check"))          {Act=new CheckStructure;}
-  else if (argIn.CommandIs("dihedralscan"))   {Act=new DihedralScan;}
+  //else if (argIn.CommandIs("checkstructure")) {Act=new CheckStructure;}
+  //else if (argIn.CommandIs("check"))          {Act=new CheckStructure;}
+  //else if (argIn.CommandIs("dihedralscan"))   {Act=new DihedralScan;}
   else if (argIn.CommandIs("rotdif"))         {Act=new Rotdif;}
   else if (argIn.CommandIs("runningaverage")) {Act=new RunningAvg;}
   else if (argIn.CommandIs("runavg"))         {Act=new RunningAvg;}
