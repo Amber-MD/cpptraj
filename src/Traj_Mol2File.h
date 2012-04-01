@@ -2,9 +2,9 @@
 #define INC_TRAJ_MOL2FILE_H
 #include "TrajectoryIO.h"
 #include "Mol2File.h"
-// Class: Mol2File
+// Class: Traj_Mol2File
 /// TrajecttoryIO class for reading coordinates from Mol2 files.
-class Mol2File : public TrajectoryIO, Mol2File {
+class Traj_Mol2File : public TrajectoryIO, Mol2File {
   public:
     /// Indicate how the mol2 file should be written.
     /** - SINGLE: Writing only a single frame
@@ -14,22 +14,13 @@ class Mol2File : public TrajectoryIO, Mol2File {
       */
     enum MOL2WRITEMODE { SINGLE = 0, MOL, MULTI };
 
-    Mol2File();
+    Traj_Mol2File();
     // Mol2-specific functions
     void SetWriteMode(MOL2WRITEMODE);
   private:
-    int mol2atom_;
-    int mol2bonds_;
     MOL2WRITEMODE mol2WriteMode_;
-
-    // The following are only required for writes and are set in setupTrajout 
-    int trajnres_;
-    NAME *trajAtomNames_;
-    NAME *trajTypes_;
-    NAME *trajResNames_; 
-    int *trajResNums_;
-    double *trajCharges_;
-    std::vector<int> trajBonds_;
+    Topology *mol2Top_;
+    std::vector<int> trajBonds_; 
 
     // Inherited functions
     int setupTrajin(Topology *);

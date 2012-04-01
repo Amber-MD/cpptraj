@@ -3,6 +3,12 @@
 #include "Mol2File.h"
 #include "CpptrajStdio.h"
 
+Mol2File::Mol2File() : 
+  mol2debug_(0),
+  mol2atoms_(0),
+  mol2bonds_(0)
+{}
+
 /// Tripos Tags - must be in same order as enum type TRIPOSTAG
 const char Mol2File::TRIPOSTAGTEXT[4][22]={
   "@<TRIPOS>MOLECULE",
@@ -17,9 +23,9 @@ bool Mol2File::IsMol2Keyword() {
   return false;
 }
 
-/*bool Mol2File::NextLine(FileIO *IO) {
+bool Mol2File::GetLine(FileIO *IO) {
   return ( IO->Gets(buffer_, BUF_SIZE_) == 0 );
-}*/
+}
 
 // Mol2File::ScanTo()
 /** Scan to the specified TRIPOS section of file.
@@ -37,6 +43,45 @@ int Mol2File::ScanTo( FileIO *IO, TRIPOSTAG tag ) {
   return 1;
 }
 
+bool Mol2File::ReadMolecule( FileIO *IO ) {
+  // Scan to the section
+  if ( ScanTo( IO, MOLECULE ) == 1 ) return true;
+  //   Scan title
+  if ( IO->Gets(buffer_,BUF_SIZE_) ) return true;
+  mol2title_.assign( buffer_ );
+  if (mol2debug_>0) mprintf("      Mol2 Title: [%s]\n",mol2title_.c_str());
+  //   Scan # atoms and bonds
+  // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
+  if ( IO->Gets(buffer_,BUF_SIZE_) ) return true;
+  mol2atoms_ = 0;
+  mol2bonds_ = 0;
+  sscanf(buffer_,"%i %i",&mol2atoms_, &mol2bonds_);
+  if (mol2debug_>0) {
+    mprintf("      Mol2 #atoms: %i\n",mol2atoms_);
+    mprintf("      Mol2 #bonds: %i\n",mol2bonds_);
+  }
+  return false;
+}
+
+/** Used to only read # atoms in next MOLECULE record. 
+  * \return # atoms in next MOLECULE, -1 on error or end of file.
+  */
+int Mol2File::NextMolecule( FileIO *IO ) {
+  int natom;
+  // Scan to the section
+  if ( ScanTo( IO, MOLECULE ) == 1 ) return -1;
+  // Scan past the title
+  if ( IO->Gets(buffer_,BUF_SIZE_) ) return -1;
+  // Scan # atoms
+  if ( IO->Gets(buffer_,BUF_SIZE_) ) return -1;
+  sscanf(buffer_, "%i", &natom);
+  return natom;
+}
+
+void Mol2File::Mol2Bond(int &at1, int &at2) {
+  sscanf(buffer_,"%*i %i %i\n", &at1, &at2);
+}
+
 // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
 Atom Mol2File::Mol2Atom() {
   char mol2name[10], mol2type[10];
@@ -52,6 +97,32 @@ Residue Mol2File::Mol2Residue() {
   int resnum;
   sscanf(buffer_,"%*i %*s %*f %*f %*f %*s %i %s",&resnum,resname);
   return Residue(resnum, resname);
+}
+
+// Mol2XYZ()
+/** Given a Mol2 ATOM line, get the X Y and Z coords. */
+void Mol2File::Mol2XYZ(double *X) {
+  sscanf(buffer_,"%*i %*s %lf %lf %lf",X, X+1, X+2);
+}
+
+void Mol2File::SetMol2Natoms(int natomIn) {
+  mol2atoms_ = natomIn;
+}
+
+void Mol2File::SetMol2Nbonds(int nbondIn) {
+  mol2bonds_ = nbondIn;
+}
+
+int Mol2File::Mol2Natoms() {
+  return mol2atoms_;
+}
+
+int Mol2File::Mol2Nbonds() {
+  return mol2bonds_;
+}
+
+std::string& Mol2File::Mol2Title() {
+  return mol2title_;
 }
 
 // Mol2AtomName()
@@ -75,16 +146,6 @@ int Mol2AtomName(char *buffer, NAME name) {
   return 0;
 }*/
 
-// Mol2XYZ()
-/** Given a Mol2 ATOM line, get the X Y and Z coords.
-  */
-/*
-int Mol2XYZ(char *buffer, double *X) {
-  if (buffer==NULL || X==NULL) return 1;
-  sscanf(buffer,"%*i %*s %lf %lf %lf",X, X+1, X+2);
-  return 0;
-}
-*/
 // Mol2AtomType
 /** Given a Mol2 ATOM line, return atom type. Try to convert Sybyl atom type
   * to amber type.

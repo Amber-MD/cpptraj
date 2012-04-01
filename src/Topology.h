@@ -14,14 +14,14 @@ class Topology {
   public:
     Topology();
     ~Topology();
-
+    // ----- Set internal variables -----
     void SetDebug(int);
     void SetHasCoordinates();
     void SetParmName(const char*);
     void SetParmName(std::string&);
     void SetPindex(int);
     void SetReferenceCoords( Frame& );
-
+    // ---- Atom-specific routines -----
     typedef std::vector<Atom>::const_iterator atom_iterator;
     inline atom_iterator begin() const {
       return atoms_.begin();
@@ -34,9 +34,16 @@ class Topology {
     atom_iterator MolAtomStart(int) const;
     atom_iterator MolAtomEnd(int) const;
     const Atom &operator[](int); // NOTE: Inline?
-
-    const Residue &Res(int);
-
+    // ----- Residue-specific routines -----
+    typedef std::vector<Residue>::const_iterator res_iterator;
+    inline res_iterator ResStart() const {
+      return residues_.begin();
+    }
+    inline res_iterator ResEnd() const {
+      return residues_.end();
+    }
+    const Residue &Res(int); 
+    // ----- Molecule-specific routines -----
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const {
       return molecules_.begin();
@@ -46,7 +53,21 @@ class Topology {
     }
     mol_iterator SolventStart() const;
     mol_iterator SolventEnd() const;
-
+    // ----- Bond-specific routines -----
+    typedef std::vector<int>::const_iterator bond_iterator;
+    inline bond_iterator BondsStart() const {
+      return bonds_.begin();
+    }
+    inline bond_iterator BondsEnd() const {
+      return bonds_.end();
+    }
+    inline bond_iterator BondsH_Start() const {
+      return bondsh_.begin();
+    }
+    inline bond_iterator BondsH_End() const {
+      return bondsh_.end();
+    }
+    // ----- Misc routines -----
     int ResAtomRange(int, int *, int *);
     char *ResidueName(int); // TODO: Make obsolete
     std::string ResAtomName(int);
@@ -54,12 +75,12 @@ class Topology {
     int FindResidueMaxNatom();
     int SoluteAtoms();
     double *Mass();
-
+    // ----- Print topology info -----
     void Summary();
     void ParmInfo();
     void PrintAtomInfo(const char*);
     void PrintBondInfo();
-
+    // ----- Return Internal Variables -----
     inline int Pindex() {
       return pindex_;
     }
@@ -108,13 +129,13 @@ class Topology {
     inline std::string &ParmName() {
       return parmName_;
     }
-
+    // ----- PDB/Mol2 etc setup routines -----
     void AddAtom(Atom, Residue);
     void StartNewMol();
-
+    // ----- Amber setup routines -----
     int CreateAtomArray(std::vector<NameType>&, std::vector<double>&,
                         std::vector<int>&, std::vector<double>&,
-                        std::vector<int>&,
+                        std::vector<int>&, std::vector<NameType>&,
                         std::vector<double>&,std::vector<double>&, 
                         std::vector<NameType>&, std::vector<int>&);
     int CreateMoleculeArray(std::vector<int> &,Box,int,int);
@@ -123,7 +144,7 @@ class Topology {
     void CommonSetup(bool,bool);
 
     void AddBond(int,int);
-
+    // ----- Mask Routines -----
     inline bool SetupIntegerMask(AtomMask &mask) {
       return ParseMask(refCoords_, mask, true);
     }

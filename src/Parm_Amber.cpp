@@ -5,6 +5,7 @@
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
 #include "Box.h"
+#include "Constants.h" // ELECTOAMBER, AMBERTOELEC
 
 // CONSTRUCTOR
 Parm_Amber::Parm_Amber() : 
@@ -220,9 +221,9 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   parmOut.excludedAtoms = GetFlagInteger(F_EXCLUDE, values[NNB]);
   parmOut.asol = GetFlagDouble(F_ASOL,values[NPHB]);
   parmOut.bsol = GetFlagDouble(F_BSOL,values[NPHB]);
-  parmOut.hbcut = GetFlagDouble(F_HBCUT,values[NPHB]);
-  parmOut.types = GetFlagName(F_TYPES,values[NATOM]);
-  parmOut.itree = GetFlagName(F_ITREE,values[NATOM]);
+  parmOut.hbcut = GetFlagDouble(F_HBCUT,values[NPHB]);*/
+  std::vector<NameType> types = GetFlagName(F_TYPES,values[NATOM]);
+  /*parmOut.itree = GetFlagName(F_ITREE,values[NATOM]);
   parmOut.join_array = GetFlagInteger(F_JOIN,values[NATOM]);
   parmOut.irotat = GetFlagInteger(F_IROTAT,values[NATOM]);*/
   // Get solvent info if IFBOX>0
@@ -261,9 +262,16 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<double> gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]); 
 
   if (error_count_==0) {
+    // Convert Amber Charge to elec
+    for (std::vector<double>::iterator q = charge.begin(); q != charge.end(); q++)
+      *q *= (AMBERTOELEC);
+    // Shift atom #s in resnums by -1 so they start from 0
+    for (std::vector<int>::iterator r = resnums.begin(); r != resnums.end(); r++)
+      --(*r);
+    // Shift atom #s in excludedAtoms by -1 so they start from 0 
     error_count_ += TopIn.CreateAtomArray( names, charge, at_num, mass, atype_index, 
-                                          gb_radii, gb_screen,
-                                          resnames, resnums );
+                                           types, gb_radii, gb_screen,
+                                           resnames, resnums );
     error_count_ += TopIn.SetBondInfo(bonds, bondsh);
     if (values[IFBOX]>0)
       error_count_ += TopIn.CreateMoleculeArray(atomsPerMol, parmbox, 

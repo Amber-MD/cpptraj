@@ -298,7 +298,7 @@ void Topology::StartNewMol() {
 // Topology::CreateAtomArray()
 int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>& charge,
                         std::vector<int>& at_num, std::vector<double>& mass,
-                        std::vector<int>& atype_index,
+                        std::vector<int>& atype_index, std::vector<NameType>& types,
                         std::vector<double>& gb_radii, std::vector<double>& gb_screen, 
                         std::vector<NameType>& resnames, std::vector<int>& resnums)
 {
@@ -307,6 +307,7 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
        //natom != at_num.size() ||
        natom != mass.size() ||
        natom != atype_index.size() ||
+       natom != types.size() ||
        natom != gb_radii.size() ||
        natom != gb_screen.size() 
      )
@@ -317,6 +318,7 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
     //mprinterr("\tAtomicNum = %zu\n",at_num.size());
     mprinterr("\tMass = %zu\n",mass.size());
     mprinterr("\tAtomType Index = %zu\n",atype_index.size());
+    mprinterr("\tTypes = %zu\n",types.size());
     mprinterr("\tGB Radii = %zu\n",gb_radii.size());
     mprinterr("\tGB Screening Parameters = %zu\n",gb_screen.size());
     return 1;
@@ -329,7 +331,7 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
   atoms_.reserve( natom );
   for (size_t atom = 0; atom < natom; atom++)
     atoms_.push_back( Atom( atom, names[atom], charge[atom], at_num[atom],
-                            mass[atom], atype_index[atom],
+                            mass[atom], atype_index[atom], types[atom],
                             gb_radii[atom], gb_screen[atom])
                     );
 

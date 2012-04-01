@@ -84,13 +84,13 @@ Atom::Atom( NameType aname, double (&XYZ)[3], NameType atype, double q ) :
 
 // CONSTRUCTOR
 Atom::Atom( int anum, NameType name, double charge, int atomicnum, double mass, int atidx,
-            double rad, double screen ) :
+            NameType type, double rad, double screen ) :
   charge_(charge),
   mass_(mass),
   gb_radius_(rad),
   gb_screen_(screen),
   aname_(name),
-  atype_(""),
+  atype_(type),
   itree_(""),
   irotat_(0),
   atype_index_(atidx),

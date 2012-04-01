@@ -3,13 +3,14 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Traj_PDBfile::Traj_PDBfile() {
-  pdbAtom_=0;
-  pdbWriteMode_=SINGLE;
-  dumpq_=false;
-  dumpr_=false;
-  chainchar_=' ';
-}
+Traj_PDBfile::Traj_PDBfile() :
+  pdbAtom_(0),
+  pdbWriteMode_(SINGLE),
+  dumpq_(false),
+  dumpr_(false),
+  pdbTop_(0),
+  chainchar_(' ')
+{}
 
 //------------------------------------------------------------------------
 // Traj_PDBfile::closeTraj()
