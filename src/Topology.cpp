@@ -1193,7 +1193,7 @@ bool Topology::ParseMask(CoordFrame &REF, AtomMask &maskIn, bool intMask) {
       Stack.pop();
     }
     delete[] pMask;
-    return false;
+    return true;
   }
 
   if (intMask)
@@ -1201,7 +1201,7 @@ bool Topology::ParseMask(CoordFrame &REF, AtomMask &maskIn, bool intMask) {
   else
     maskIn.SetupCharMask( pMask, atoms_.size(), debug_);
   delete[] pMask;
-  return true;
+  return false;
 }
 
 // -----------------------------------------------------------------------------
