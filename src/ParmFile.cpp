@@ -3,8 +3,8 @@
 // All ParmIO classes go here
 #include "Parm_Amber.h"
 #include "Parm_PDB.h"
-//#include "Parm_Mol2.h"
-//#include "Parm_CharmmPsf.h"
+#include "Parm_Mol2.h"
+#include "Parm_CharmmPsf.h"
 
 // CONSTRUCTOR
 ParmFile::ParmFile() :
@@ -22,8 +22,8 @@ ParmIO *ParmFile::SetupParmIO(ParmFormatType parmFormat) {
   switch ( parmFormat ) {
     case AMBERPARM   : parmio = new Parm_Amber(); break;
     case PDBFILE     : parmio = new Parm_PDB(); break;
-    //case MOL2FILE    : parmio = new Mol2ParmFile(); break;
-    //case CHARMMPSF   : parmio = new CharmmPsfParmFile(); break;
+    case MOL2FILE    : parmio = new Parm_Mol2(); break;
+    case CHARMMPSF   : parmio = new Parm_CharmmPsf(); break;
     default :
       mprinterr("Error: Parm file format not recognized (%i).\n",(int)parmFormat);
       return NULL;
@@ -41,6 +41,7 @@ int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) 
   
   // Loop over all parm formats 
   for (int fmtidx = (int)UNKNOWN_PARM + 1; fmtidx != (int)NPARM; fmtidx++) {
+    //mprintf("DEBUG: Checking Format %i\n",fmtidx);
     // Set up parmio for this format
     parmio = SetupParmIO( (ParmFormatType)fmtidx );
     if (parmio!=NULL) {
@@ -66,6 +67,7 @@ int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) 
       delete parmio;
     }
   }
+  mprinterr("Error: Format of parm [%s] not recognized.\n",fname);
     
   return 1;
 }

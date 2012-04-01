@@ -5,6 +5,7 @@
 // Parm_Mol2::ID_ParmFormat() 
 bool Parm_Mol2::ID_ParmFormat() {
   if (OpenFile()) return false;
+  //mprintf("DEBUG: Checking Mol2 parm format.\n");
   bool ismol2file = ID( IO );
   CloseFile();
   return ismol2file;
@@ -19,7 +20,7 @@ int Parm_Mol2::ReadParm(Topology &parmOut) {
   mprintf("    Reading Mol2 file %s as topology file.\n",parmOut.c_str());
   // Get @<TRIPOS>MOLECULE information
   if (ReadMolecule(IO)) return 1;
-  // TODO: Set parm title
+  parmOut.SetParmName( Mol2Title() ); 
 
   // Allocate memory for atom names, types, and charges.
   //parmOut.names = new NAME[ parmOut.natom ];

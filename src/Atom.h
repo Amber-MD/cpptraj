@@ -17,7 +17,7 @@ class Atom {
     Atom();
     Atom(int, NameType, double (&)[3]);
     Atom( NameType, double (&)[3], NameType, double );
-    Atom( int, NameType, double, int, double, int, NameType, double, double );
+    Atom( int, NameType, double, int, double, int, NameType, double, double,int );
     Atom(const Atom &);
     void swap(Atom &, Atom &);
     Atom &operator=(Atom);

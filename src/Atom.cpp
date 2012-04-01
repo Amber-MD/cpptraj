@@ -84,7 +84,7 @@ Atom::Atom( NameType aname, double (&XYZ)[3], NameType atype, double q ) :
 
 // CONSTRUCTOR
 Atom::Atom( int anum, NameType name, double charge, int atomicnum, double mass, int atidx,
-            NameType type, double rad, double screen ) :
+            NameType type, double rad, double screen, int resnum ) :
   charge_(charge),
   mass_(mass),
   gb_radius_(rad),
@@ -97,7 +97,7 @@ Atom::Atom( int anum, NameType name, double charge, int atomicnum, double mass, 
   join_(0),
   element_(UNKNOWN_ELEMENT),
   anum_(anum),
-  resnum_(0),
+  resnum_(resnum),
   mol_(0)
 {
   coords_[0] = 0;

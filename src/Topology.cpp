@@ -303,6 +303,10 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
                         std::vector<double>& gb_radii, std::vector<double>& gb_screen, 
                         std::vector<NameType>& resnames, std::vector<int>& resnums)
 {
+  if (names.empty() || resnames.empty()) {
+    mprinterr("Error: Topology: Cannot create Atom/Residue arrays from empty input arrays.\n");
+    return 1;
+  }
   size_t natom = names.size();
   if ( natom != charge.size() ||
        //natom != at_num.size() ||
@@ -328,20 +332,27 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
     mprintf("Warning: [%s] ATOMIC_NUMBER not present in topology.\n",parmName_.c_str());
     at_num.resize(natom, 0);
   }
-    
-  atoms_.reserve( natom );
-  for (size_t atom = 0; atom < natom; atom++)
-    atoms_.push_back( Atom( atom, names[atom], charge[atom], at_num[atom],
-                            mass[atom], atype_index[atom], types[atom],
-                            gb_radii[atom], gb_screen[atom])
-                    );
-
   if (resnames.size() != resnums.size()) {
     mprinterr("Error: Topology: Array sizes for #residues from input parm do not match.\n");
     mprinterr("\tResNames = %zu\n",resnames.size());
     mprinterr("\tResNums = %zu\n",resnums.size());
     return 1;
   }
+  // Create atom information
+  atoms_.reserve( natom );
+  int resnum = 0;
+  std::vector<int>::iterator Res = resnums.begin() + 1;
+  for (size_t atom = 0; atom < natom; atom++) {
+    if (Res!=resnums.end() && atom >= (size_t)*Res) {
+      ++resnum;
+      ++Res;
+    }
+    atoms_.push_back( Atom( atom, names[atom], charge[atom], at_num[atom],
+                            mass[atom], atype_index[atom], types[atom],
+                            gb_radii[atom], gb_screen[atom], resnum)
+                    );
+  }
+  // Create residue information
   size_t nres = resnames.size();
   residues_.reserve( nres );
   for (size_t res = 0; res < nres; res++)

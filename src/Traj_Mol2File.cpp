@@ -122,6 +122,7 @@ void Traj_Mol2File::SetWriteMode(MOL2WRITEMODE modeIn) {
   * number of frames to be written.
   */
 int Traj_Mol2File::setupTrajout(Topology *trajParm) {
+  if (trajParm==NULL) return 1;
   mol2Top_ = trajParm;
   // If writing more than 1 frame and not writing 1 pdb per frame, 
   // use @<TRIPOS>MOLECULE keyword to separate frames.
@@ -193,24 +194,20 @@ int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double 
   Printf("\n\n");
 
   //@<TRIPOS>ATOM section
-  //Charge = 0.0;
   Printf("@<TRIPOS>ATOM\n");
-  //atom3=0;
-  //res = 0;
   double *Xptr = X;
   for (int i=0; i < Mol2Natoms(); i++) {
     const Atom atom = (*mol2Top_)[i];
     // figure out the residue number
     int res = atom.ResNum();
     Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
-                     i+1, *atom.c_str(), Xptr[0], Xptr[1], Xptr[2],
+                     i+1, atom.c_str(), Xptr[0], Xptr[1], Xptr[2],
                      *atom.Type(), res+1, mol2Top_->Res(res).c_str(), atom.Charge());
     Xptr += 3;
   }
 
   //@<TRIPOS>BOND section
   if (!trajBonds_.empty()) {
-    // Atom #s in the bonds and bondh array are * 3
     Printf("@<TRIPOS>BOND\n");
     int bondnum = 1;
     for (std::vector<int>::iterator bond = trajBonds_.begin();
@@ -219,7 +216,7 @@ int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double 
     {
       int firstBondAtom = *bond;
       ++bond;
-      Printf("%5d %5d %5d 1\n",bondnum++,firstBondAtom + 1,*bond + 1);
+      Printf("%5d %5d %5d 1\n",bondnum++,firstBondAtom, *bond);
     }
   }
 

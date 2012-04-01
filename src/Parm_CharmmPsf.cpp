@@ -71,7 +71,7 @@ int Parm_CharmmPsf::ReadParm(Topology &parmOut) {
     // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
     sscanf(buffer_,"%*8i %*4s %i %4s %4s %4s %14lf %14lf",&psfresnum, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
-    parmOut.AddAtom( Atom(0, psfname, psfcharge, 0, psfmass, 0, psftype, 0, 0),
+    parmOut.AddAtom( Atom(0, psfname, psfcharge, 0, psfmass, 0, psftype, 0, 0, psfresnum),
                      Residue(psfresnum, psfresname) );
     // Clear the buffer
     //memset(buffer,' ',256);

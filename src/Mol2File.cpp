@@ -24,12 +24,13 @@ bool Mol2File::IsMol2Keyword() {
 }
 
 bool Mol2File::GetLine(FileIO *IO) {
-  return ( IO->Gets(buffer_, BUF_SIZE_) == 0 );
+  return ( IO->Gets(buffer_, BUF_SIZE_) != 0 );
 }
 
 bool Mol2File::ID( FileIO *IO ) {
   for (int line = 0; line < 10; line++) {
     if ( GetLine( IO ) ) return false;
+    //mprintf("DEBUG: MOL2LINE %i: [%s]\n",line,buffer_);
     if ( IsMol2Keyword() ) {
       return true;
     }
