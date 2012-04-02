@@ -163,7 +163,7 @@ void NumberFilename(char *buffer, char *filenameIn, int number) {
 
 std::string NumberFilename(std::string const &fname, int number) {
   std::ostringstream oss;
-  oss << "." << number;
+  oss << fname << "." << number;
   return oss.str();
 }
 
