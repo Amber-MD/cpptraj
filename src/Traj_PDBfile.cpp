@@ -68,7 +68,7 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
     atom = 0;
     while ( atom < trajParm->Natom() ) {
       //fprintf(stdout,"DEBUG: PDB Read atom %i\n",atom);
-      if ( PDB_GetNextRecord( IO ) ) {
+      if ( !PDB_GetNextRecord( IO ) ) {
         scanPDB = false;
         break;
       }
@@ -126,7 +126,7 @@ int Traj_PDBfile::readFrame(int set,double *X, double *V,double *box, double *T)
   int atom = 0;
   double *Xptr = X; 
   while (atom < pdbAtom_) {
-    if ( PDB_GetNextRecord( IO ) ) return 1;
+    if ( !PDB_GetNextRecord( IO ) ) return 1;
     // Skip non-ATOM records
     if (!IsPDBatomKeyword()) continue;
     // Read current PDB record XYZ into Frame
