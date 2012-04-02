@@ -31,7 +31,8 @@ NameType::NameType(const char *rhs) :
     if (*ptr=='\0') break;
     ++ptr;
   }
-  FormatName(true);
+  //FormatName(true);
+  FormatName();
 }
 
 NameType::NameType(std::string &str) :
@@ -44,7 +45,8 @@ NameType::NameType(std::string &str) :
   for (unsigned int j = 0; j < strend; j++) 
     c_array_[j] = str[j];
   c_array_[ns1] = '\0';
-  FormatName(true);
+  //FormatName(true);
+  FormatName();
 }
  
 
@@ -71,7 +73,7 @@ NameType &NameType::operator=(const NameType &rhs) {
   return *this;
 }
 
-void NameType::AssignNoFormat(const char *rhs) {
+/*void NameType::AssignNoFormat(const char *rhs) {
   const char *ptr = rhs;
   for (unsigned int j = 0; j < NameSize_-1; j++) {
     c_array_[j] = *ptr;
@@ -79,7 +81,7 @@ void NameType::AssignNoFormat(const char *rhs) {
     ++ptr;
   }
   FormatName(false);
-}
+}*/
 
 // NameType::ToBuffer()
 /// For interfacing with old C stuff. Only set 1st 4 chars.
@@ -91,14 +93,23 @@ void NameType::ToBuffer(char *buffer) {
   buffer[4] = '\0';
 }
 
-bool NameType::Match(NameType &maskName) {
-
-  for (int i = 0; i < 5; i++) {
-    if (maskName.c_array_[i] == '*') // Mask wildcard: instant match
+bool NameType::Match(NameType &maskName) { 
+  int c = 0;
+  for (int m = 0; m < 5; m++) {
+    if (maskName.c_array_[m] == '\\') { 
+      // Backslash: match literal next char in mask
+      ++m;
+      if (maskName.c_array_[m] != c_array_[c])
+        return false;
+    } else if (maskName.c_array_[m] == '*') { 
+      // Mask wildcard: instant match
       return true;
-    else if (maskName.c_array_[i] != '?' && 
-             maskName.c_array_[i] != c_array_[i]) // Not mask single wildcard and mismatch
+    } else if (maskName.c_array_[m] != '?' && 
+               maskName.c_array_[m] != c_array_[c]) { 
+      // Not mask single wildcard and mismatch
       return false;
+    }
+    ++c;
   }
   return true;
 }
@@ -171,7 +182,9 @@ const char *NameType::operator*() const {
   * prime ('). In cpptraj asterisks are considered reserved characters for
   * atom masks.
   */
-void NameType::FormatName(bool replaceAsterisk) {
+//void NameType::FormatName(bool replaceAsterisk) 
+void NameType::FormatName() 
+{
   // Ensure at least 4 chars long.
   if (c_array_[0]=='\0') {
     c_array_[0]=' ';
@@ -208,7 +221,7 @@ void NameType::FormatName(bool replaceAsterisk) {
       c_array_[3]=' ';
     }
   }
-  if (!replaceAsterisk) return;
+  //if (!replaceAsterisk) return;
   // Replace asterisks with a single quote
 /*  if (c_array_[0]=='*') c_array_[0]='\'';
   if (c_array_[1]=='*') c_array_[1]='\'';

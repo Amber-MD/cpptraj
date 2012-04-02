@@ -11,7 +11,7 @@ class NameType {
     //NameType( char*);
     NameType& operator=(const NameType&);
 
-    void AssignNoFormat(const char*);
+//    void AssignNoFormat(const char*);
     void ToBuffer(char*);
     bool Match(NameType &);
 
@@ -30,6 +30,7 @@ class NameType {
     const size_t NameSize_;
     char c_array_[6];
 
-    void FormatName(bool);
+//    void FormatName(bool);
+    void FormatName();
 };  
 #endif

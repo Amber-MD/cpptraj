@@ -105,7 +105,8 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string &tokenString ) {
   } else {
     // This is a string arg.
     // Use AssignNoFormat so that * not converte to '
-    name_.AssignNoFormat( tokenString.c_str() ); // TODO: Convert directly from string
+    //name_.AssignNoFormat( tokenString.c_str() ); // TODO: Convert directly from string
+    name_ = tokenString;
   }
   return 0;
 }

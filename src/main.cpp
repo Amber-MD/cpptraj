@@ -97,12 +97,17 @@ static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
       while ( (ptr = (char)fgetc(infile))!=EOF )
         if ( !isspace(ptr) ) break;
     } 
-    // Forward slash continues to next line. Anything after slash is ignored
+    // Backslash followed by newline continues to next line. Otherwise backslash
+    // followed by next char will be inserted. 
     if (ptr=='\\') {
-      while ( (ptr = (char)fgetc(infile))!='\n' ) 
+      ptr = (char)fgetc(infile);
+      if ( ptr == EOF ) break;
+      if (ptr == '\n') continue;
+      inputLine += "\\";
+      /*while ( (ptr = (char)fgetc(infile))!='\n' ) 
         if ( ptr == EOF ) break;
       // NOTE: Insert a space into InputLine?
-      continue;
+      continue;*/
     }
     // Skip any line beginning with # character
     if (i==0 && ptr=='#') {
@@ -112,7 +117,7 @@ static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
       continue;
     }
     // Add character to input line
-    inputLine+=ptr;
+    inputLine += ptr;
     ++i;
   }
 
