@@ -164,7 +164,7 @@ int Topology::FindResidueMaxNatom() {
   int largest_natom = 0;
   int lastatom = (int)atoms_.size();
   for (std::vector<Residue>::iterator res = residues_.end() - 1;
-                                      res != residues_.begin(); res++)
+                                      res != residues_.begin(); res--)
   {
     int firstatom = (*res).FirstAtom();
     int diff = lastatom - firstatom;
