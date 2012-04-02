@@ -409,8 +409,17 @@ int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh) {
     mprinterr("Error: Topology: Cannot set up bonds, no atoms present.\n");
     return 1;
   }
+  // NOTE: Clear any previous bond info here?
   bonds_ = bonds;
   bondsh_ = bondsh;
+  SetAtomBondInfo();
+  return 0;
+}
+
+// Topology::SetAtomBondInfo()
+/** Set up bond information in the atoms array based on bonds and bondsh.
+  */
+void Topology::SetAtomBondInfo() {
   for (std::vector<int>::iterator bond = bonds_.begin(); bond != bonds_.end(); bond++) {
     int atom1 = *bond / 3;
     ++bond;
@@ -428,7 +437,6 @@ int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh) {
     atoms_[atom1].AddBond( atom2 );
     atoms_[atom2].AddBond( atom1 );
   }
-  return 0;
 }
 
 // Topology::CommonSetup()
@@ -664,6 +672,14 @@ void Topology::GetBondsFromAtomCoords() {
 
   mprintf("\t%s: %zu bonds to hydrogen, %zu other bonds.\n",parmName_.c_str(),
           bondsh_.size()/3, bonds_.size()/3);
+}
+
+// Topology::ClearBondInfo()
+void Topology::ClearBondInfo() {
+  bonds_.clear();
+  bondsh_.clear();
+  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
+    (*atom).ClearBonds();
 }
 
 // Topology::AddBond()
@@ -1246,7 +1262,8 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
     parmName_ = std::string(prefix) + parmName_;
 
   // Atom map
-  std::vector<int> atomMap( atoms_.size() );
+  // TODO: Use std::map instead
+  std::vector<int> atomMap( atoms_.size(),-1 );
 
   int newatom = 0;
   int oldres = -1;
@@ -1266,6 +1283,8 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
     }
     // Copy over Atom information
     newParm->AddAtom( atoms_[*oldatom], newResidue );
+    // Clear bond information from new atom
+    newParm->atoms_.back().ClearBonds();
     // Check if this old atom is in a different molecule than the last. If so,
     // set molecule information.
     if (curmol != oldmol) {
@@ -1283,9 +1302,14 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
     ++newatom;
   }
 
-  // Set up bond / angle / dihedral arrays
+  // Set up new bond information
+  newParm->bonds_ = SetupSequentialArray(atomMap, 3, bonds_);
+  newParm->bondsh_ = SetupSequentialArray(atomMap, 3, bondsh_);
+  newParm->SetAtomBondInfo();
+
+  // Set up angle / dihedral index arrays
  
-  // set up parm info
+  // Set up parm info
 
   // Setup excluded atoms list
   newParm->DetermineExcludedAtoms();
@@ -1294,5 +1318,62 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
   newParm->box_ = box_;
 
   return newParm;
+}
+
+std::vector<int> Topology::SetupSequentialArray(std::vector<int> &atomMap, int Nsequence,
+                                                std::vector<int> &oldArray)
+{
+  std::vector<int> newArray;
+  int Nsequence1 = Nsequence - 1;
+  std::vector<int> newatoms(Nsequence, 0);
+  std::vector<int> newsign(Nsequence1, 1);
+  // Go through old array. Use atomMap to determine what goes into newArray.
+  for (std::vector<int>::iterator oldi = oldArray.begin(); oldi != oldArray.end();
+                                                           oldi += Nsequence)
+  {
+    // Using atomMap, check that atoms 0 to Nsequence exist in newParm. If
+    // any of the atoms do not exist, bail.
+    int newatm = -1;
+    bool reverseOrder = false;
+    std::vector<int>::iterator endidx = oldi + Nsequence1;
+    unsigned int sequencei = 0;
+    for (std::vector<int>::iterator oidx = oldi; oidx != endidx; oidx++) {
+      int arrayIdx = *oidx;
+      // For dihedrals the atom # can be negative. Convert to positive
+      // for use in the atom map.
+      if (arrayIdx < 0) {
+        newatm = atomMap[ -arrayIdx / 3 ];
+        newsign[sequencei] = -1;
+        // For improper/multi-term dihedrals atom index 0 cannot be the 3rd
+        // or 4th position since there is no such thing as -0.
+        if (newatm == 0 && (sequencei == 2 || sequencei == 3))
+          reverseOrder = true;
+      } else {
+        newatm = atomMap[ arrayIdx / 3 ];
+        newsign[sequencei] = 1;
+      }
+      // New atom # of -1 means atom was removed - exit loop now.
+      if (newatm == -1) break;
+      // Atom exists - store.
+      newatoms[sequencei++] = newatm;
+    }
+    // If newatm is -1 here that means it didnt exist in newParm for this
+    // sequence. Skip the entire sequence.
+    if (newatm==-1) continue;
+    // Store the final number of the sequence, which is an index
+    newatoms[Nsequence1] = *endidx;
+    // Place the atoms in newatoms in newArray
+    if (!reverseOrder) {
+      for (int sequencei = 0; sequencei < Nsequence1; sequencei++)
+        newArray.push_back( newatoms[sequencei] * 3 * newsign[sequencei] );
+    } else {
+      int ridx = Nsequence1 - 1;
+      for (int sequencei = 0; sequencei < Nsequence1; sequencei++)
+        newArray.push_back( newatoms[ridx--] * 3 * newsign[sequencei] );
+    }
+    // Place the index in newatoms in newArray
+    newArray.push_back( newatoms[Nsequence1] );
+  }
+  return newArray;
 }
 

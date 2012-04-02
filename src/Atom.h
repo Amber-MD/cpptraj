@@ -79,6 +79,7 @@ class Atom {
     }
     /// Add atom # to this atoms list of bonded atoms.
     void AddBond(int);
+    void ClearBonds();
 
   private:
     static const int AtomicElementNum[];

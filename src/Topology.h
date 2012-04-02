@@ -148,6 +148,7 @@ class Topology {
 
     void CommonSetup(bool,bool);
 
+    void ClearBondInfo();
     void AddBond(int,int);
     // ----- Mask Routines -----
     inline bool SetupIntegerMask(AtomMask &mask) {
@@ -185,6 +186,7 @@ class Topology {
     int nframes_;
     double *massptr_;
 
+    void SetAtomBondInfo();
     double GetBondedCut(Atom::AtomicElementType, Atom::AtomicElementType);
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);
@@ -203,6 +205,8 @@ class Topology {
     void MaskSelectAtoms(int,int,char*);
     void MaskSelectAtoms(NameType,char*);
     bool ParseMask(CoordFrame &, AtomMask &,bool);
+
+    std::vector<int> SetupSequentialArray(std::vector<int>&, int, std::vector<int>&);
 
     //std::vector<size_t> resnums_;
     //std::vector<NameType> resnames_;

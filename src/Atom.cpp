@@ -219,6 +219,11 @@ void Atom::AddBond(int idxIn) {
   bonds_.push_back( idxIn );
 }
 
+// Atom::ClearBonds()
+void Atom::ClearBonds() {
+  bonds_.clear();
+}
+
 // Atom::SetElementFromName()
 /** If not already known, try to determine atomic element from atom name. 
   * Based on Amber standard atom names.
