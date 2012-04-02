@@ -81,12 +81,14 @@ ptrajState *CreateState(Topology *currentParm, int maxFrames) {
   // so need that as well
   // TODO: Not really needed now, cpptraj has new mask parser
   state->ipres_mask = (int*) malloc( (state->residues+1) * sizeof(int));
-  state->residueName = (NAME*) malloc ( state->residues * sizeof(NAME));
+  state->residueName = (NAME*) malloc ( (state->residues+1) * sizeof(NAME));
   for (int res = 0; res < state->residues; res++) {
     state->ipres_mask[res] = currentParm->Res(res).FirstAtom();
     state->ipres[res] = state->ipres_mask[res] + 1;
     currentParm->Res(res).Name().ToBuffer( state->residueName[res] );
   }
+  state->ipres_mask[state->residues] = state->atoms;
+  state->ipres[state->residues] = state->atoms;
   // Molecule info
   state->molecules = currentParm->Nmol();
   state->moleculeInfo = (int*) malloc( state->molecules * sizeof(int));
@@ -100,7 +102,7 @@ ptrajState *CreateState(Topology *currentParm, int maxFrames) {
   // Solvent info
   state->solventMask = (int*) malloc( state->atoms * sizeof(int));
   for (int atom = 0; atom < state->atoms; atom++)
-    state->solventMask = 0;
+    state->solventMask[atom] = 0;
   state->solventMolecules = currentParm->Nsolvent();
   state->solventAtoms = 0;
   if (state->solventMolecules > 0) {
