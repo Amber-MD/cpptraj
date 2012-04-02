@@ -227,12 +227,15 @@ void NameType::FormatName()
       c_array_[3]=' ';
     }
   }
+}
+
+void NameType::ReplaceAsterisk() {
   //if (!replaceAsterisk) return;
   // Replace asterisks with a single quote
-/*  if (c_array_[0]=='*') c_array_[0]='\'';
+  if (c_array_[0]=='*') c_array_[0]='\'';
   if (c_array_[1]=='*') c_array_[1]='\'';
   if (c_array_[2]=='*') c_array_[2]='\'';
-  if (c_array_[3]=='*') c_array_[3]='\'';*/
+  if (c_array_[3]=='*') c_array_[3]='\'';
 }
 
 char NameType::operator[](int idx) {

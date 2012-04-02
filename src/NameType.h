@@ -25,6 +25,7 @@ class NameType {
     const char * operator*() const;
 
     char operator[](int);
+    void ReplaceAsterisk();
 
   private:
     const size_t NameSize_;

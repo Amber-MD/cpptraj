@@ -56,6 +56,9 @@ class Atom {
     inline NameType Name() const { // NOTE: return reference?
       return aname_;
     }
+    inline void ReplaceAsterisk() {
+      aname_.ReplaceAsterisk();
+    }
     inline NameType Type() const {
       return atype_;
     }

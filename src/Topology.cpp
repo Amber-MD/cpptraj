@@ -446,6 +446,9 @@ void Topology::SetAtomBondInfo() {
 
 // Topology::CommonSetup()
 void Topology::CommonSetup(bool bondsearch, bool molsearch) {
+  // Replace asterisks in atom names with single quote
+  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
+    (*atom).ReplaceAsterisk();
   // Add placeholder to residues to indicate last residue
   //residues_.push_back( Residue( atoms_.size() ) );
   // Set up bond information if specified and necessary
