@@ -385,13 +385,18 @@ int Topology::CreateMoleculeArray(std::vector<int> &atomsPerMol, Box parmbox,
   molecules_.reserve( atomsPerMol.size() );
   int molbegin = 0;
   int molend = 0;
+  int molnum = 0;
   for (std::vector<int>::iterator molsize = atomsPerMol.begin(); 
                                   molsize != atomsPerMol.end(); molsize++)
   {
     int firstRes = atoms_[molbegin].ResNum();
     molend += *molsize;
+    // Update atoms molecule numbers
+    for (int at = molbegin; at < molend; at++)
+      atoms_[at].SetMol( molnum );
     molecules_.push_back( Molecule(firstRes, molbegin, molend) );
     molbegin = molend;
+    ++molnum;
   }
   box_ = parmbox;
   finalSoluteRes_ = finalSoluteRes;
@@ -857,10 +862,9 @@ void Topology::SetSolventInfo() {
   NsolventMolecules_ = 0;
   int numSolvAtoms = 0;
 
-  if (firstSolventMol_ == -1 || finalSoluteRes_ == -1) {
+  if (firstSolventMol_ == -1 ) { // NOTE: Not checking firstSoluteRes
     // Loop over each molecule. Check if first residue of molecule
     // is solvent.
-    firstSolventMol_ = -1;
     finalSoluteRes_ = -1;
     for (std::vector<Molecule>::iterator mol = molecules_.begin();
                                          mol != molecules_.end(); mol++)
@@ -889,7 +893,7 @@ void Topology::SetSolventInfo() {
       numSolvAtoms += (*mol).NumAtoms();
     }
   }
-  if (finalSoluteRes_ == -1)
+  if (firstSolventMol_==-1 && finalSoluteRes_ == -1)
     finalSoluteRes_ = (int)residues_.size() - 1;
   if (NsolventMolecules_ == 0) 
     mprintf("    No solvent.\n");
@@ -1265,40 +1269,54 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
   // TODO: Use std::map instead
   std::vector<int> atomMap( atoms_.size(),-1 );
 
+  // Copy atoms from this parm that are in Mask to newParm.
   int newatom = 0;
   int oldres = -1;
   int oldmol = -1;
-  Residue newResidue;
+  newParm->firstSolventMol_ = -1;
   for (AtomMask::const_iterator oldatom = Mask.begin(); oldatom != Mask.end(); oldatom++) 
   {
-    int curres = atoms_[*oldatom].ResNum();
-    int curmol = atoms_[*oldatom].Mol();
+    // Store map of oldatom to newatom
     atomMap[*oldatom] = newatom;
+    // Copy oldatom 
+    Atom newparmAtom = atoms_[*oldatom];
+    // Save oldatom residue number
+    int curres = newparmAtom.ResNum();
     // Check if this old atom is in a different residue than the last. If so,
     // set new residue information.
     if ( curres != oldres ) {
-      newResidue.SetName( residues_[curres].Name() );
-      newResidue.SetFirstAtom( newatom );
+      newParm->residues_.push_back( Residue( residues_[curres].Name(), newatom ) );
       oldres = curres;
     }
-    // Copy over Atom information
-    newParm->AddAtom( atoms_[*oldatom], newResidue );
     // Clear bond information from new atom
-    newParm->atoms_.back().ClearBonds();
+    newparmAtom.ClearBonds();
+    // Set new atom num and residue num
+    newparmAtom.SetNum( newatom );
+    newparmAtom.SetResNum( newParm->residues_.size() - 1 );
+    // Place new atom in newParm
+    newParm->atoms_.push_back( newparmAtom );
     // Check if this old atom is in a different molecule than the last. If so,
     // set molecule information.
+    int curmol = atoms_[*oldatom].Mol();
     if (curmol != oldmol) {
+      // Check if this is the first solvent mol of new parm
+      if (newParm->firstSolventMol_==-1 && molecules_[curmol].IsSolvent()) {
+        newParm->firstSolventMol_ = (int)newParm->molecules_.size();
+        // Minus 2 since final solute residue is previous one and residues
+        // has already been incremented. 
+        newParm->finalSoluteRes_ = (int)newParm->residues_.size() - 2;
+      }
       newParm->StartNewMol();
       oldmol = curmol;
     }
     // If the current molecule is the first solvent molecule, set up newParm
     // finalSoluteRes and firstSolventMol
-    if (newParm->firstSolventMol_ == -1 && curmol == this->firstSolventMol_) {
+/*    if (newParm->firstSolventMol_ == -1 && curmol == this->firstSolventMol_) {
       // -1 since molecules has been incremented
       newParm->firstSolventMol_ = newParm->molecules_.size() - 1;
       // -2 since final solute res is 1 previous and residues has been incremented
       newParm->finalSoluteRes_ = newParm->residues_.size() - 2;
-    }
+    }*/
     ++newatom;
   }
 
@@ -1307,12 +1325,21 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
   newParm->bondsh_ = SetupSequentialArray(atomMap, 3, bondsh_);
   newParm->SetAtomBondInfo();
 
+  // Set new molecule information based on new bonds
+  newParm->DetermineMolecules();
+
+  // Set new solvent information based on new molecules
+  newParm->SetSolventInfo(); 
+
   // Set up angle / dihedral index arrays
  
   // Set up parm info
 
-  // Setup excluded atoms list
+  // Setup excluded atoms list - Necessary?
   newParm->DetermineExcludedAtoms();
+
+  // Give stripped parm the same pindex as original
+  newParm->pindex_ = pindex_;
 
   // Copy box information
   newParm->box_ = box_;
@@ -1320,6 +1347,13 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
   return newParm;
 }
 
+// Topology::SetupSequentialArray()
+/** Given an array with format [I0J0...X0][I1J1...] where the entries up to
+  * X are atom# * 3 and entry X is an index, and an atom map array
+  * with format Map[oldAtom]=newAtom, create a new array that contains
+  * only entries for which all atoms are present. Can be used for the
+  * bond, angle, and dihedral index arrays.
+  */
 std::vector<int> Topology::SetupSequentialArray(std::vector<int> &atomMap, int Nsequence,
                                                 std::vector<int> &oldArray)
 {
