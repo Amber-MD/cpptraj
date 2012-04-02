@@ -24,7 +24,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
         MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfRoutines.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \
-        PDBfile.cpp ProgressBar.cpp ptraj_convert.cpp \
+        PDBfile.cpp ProgressBar.cpp PtrajMask.cpp ptraj_convert.cpp \
         Random.cpp Range.cpp ReferenceList.cpp RemdTraj.cpp Residue.cpp Topology.cpp \
         TorsionRoutines.cpp \
         Traj_AmberCoord.cpp Traj_AmberNetcdf.cpp Traj_AmberRestart.cpp \
@@ -33,5 +33,5 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
         TriangleMatrix.cpp vectormath.cpp
 
 CSOURCES=molsurf.c MpiRoutines.c ptraj_actions.c ptraj_analyze.c ptraj_arg.c ptraj_common.c \
-         ptraj_evec.c PtrajMask.cpp ptraj_scalar.c ptraj_stack.c ptraj_state.c
+         ptraj_evec.c ptraj_scalar.c ptraj_stack.c ptraj_state.c
 
