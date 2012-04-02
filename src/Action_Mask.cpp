@@ -4,9 +4,10 @@
 #include "TrajectoryFile.h"
 
 // CONSTRUCTOR
-ActionMask::ActionMask() {
+ActionMask::ActionMask() :
+  maskpdb(NULL)
+{ 
   //fprintf(stderr,"ActionMask Con\n");
-  maskpdb=NULL;
 } 
 
 // ActionMask::init()
@@ -15,15 +16,12 @@ ActionMask::ActionMask() {
 // NOTE: Could also split the arglist at maskpdb and make it so any type of 
 //       file can be written out.
 int ActionMask::init( ) {
-  char *mask1;
-  char *maskFilename;
-
   // Get Keywords
-  maskFilename = actionArgs.getKeyString("maskout",NULL);
+  char *maskFilename = actionArgs.getKeyString("maskout",NULL);
   maskpdb = actionArgs.getKeyString("maskpdb",NULL);
 
   // Get Mask
-  mask1 = actionArgs.getNextMask();
+  char *mask1 = actionArgs.getNextMask();
   //mprintf("    Mask 1: %s\n",mask1);
   Mask1.SetMaskString(mask1);
 
@@ -34,8 +32,7 @@ int ActionMask::init( ) {
   mprintf(".\n");
   if (maskpdb!=NULL) {
     mprintf("                PDBs of atoms in mask will be written to %s.X\n",maskpdb);
-
-    }
+  }
 
   // Open output file
   // NOTE: Should this be a buffer? Output at end?
