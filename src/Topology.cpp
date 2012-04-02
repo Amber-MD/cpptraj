@@ -1026,10 +1026,12 @@ void Topology::Mask_SelectDistance( CoordFrame &REF, char *mask, bool within,
 void Topology::Mask_AND(char *mask1, char *mask2) {
   mprintf("\t\t\tPerforming AND on masks.\n");
   for (unsigned int i = 0; i < atoms_.size(); i++) {
+    //mprintf(" [%c|%c]",mask1[i],mask2[i]);
     if (mask1[i]=='F' || mask2[i]=='F')
       mask1[i] = 'F';
     // Otherwise mask1 should already be T
   }
+  //mprintf("\n");
 }
 
 // Topology::Mask_OR()
@@ -1059,7 +1061,7 @@ void Topology::MaskSelectResidues(NameType name, char *mask) {
   int endatom;
   std::vector<Residue>::iterator res1 = residues_.begin() + 1;
 
-  mprintf("\t\t\tSelecting residues named %s\n",*name);
+  mprintf("\t\t\tSelecting residues named [%s]\n",*name);
   for (std::vector<Residue>::iterator res = residues_.begin();
                                       res != residues_.end(); res++)
   {
@@ -1101,13 +1103,15 @@ void Topology::MaskSelectResidues(int res1, int res2, char *mask) {
 
 // Topology::MaskSelectAtoms()
 void Topology::MaskSelectAtoms( NameType name, char *mask) {
-  mprintf("\t\t\tSelecting atoms named %s\n",*name);
+  mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
   unsigned int m = 0;
   for (std::vector<Atom>::iterator atom = atoms_.begin();
                                    atom != atoms_.end(); atom++)
   {
+    //mprintf("\t\t\t%u PARM[%s]  NAME[%s]",m,(*atom).c_str(),*name);
     if ( (*atom).Name().Match( name ) )
       mask[m] = 'T';
+    //mprintf(" %c\n",mask[m]);
     ++m;
   } 
 }
@@ -1192,6 +1196,12 @@ bool Topology::ParseMask(CoordFrame &REF, AtomMask &maskIn, bool intMask) {
   }
   // If pMask is not NULL it is probably a blank leftover
   if (pMask!=NULL) delete[] pMask;
+
+  // If stack is empty here there was an error.
+  if (Stack.empty()) {
+    mprinterr("Error: Could not parse mask [%s].\n",maskIn.MaskString());
+    return true;
+  }
 
   // Top of the stack should point to the final mask
   pMask = Stack.top();

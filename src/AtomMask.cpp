@@ -58,6 +58,7 @@ static bool IsOperand(char op) {
   std::locale loc;
   if (op=='*')  return true;
   if (op=='/')  return true;
+  if (op=='\\')  return true;
   if (op=='%')  return true;
   if (op=='-')  return true;
   if (op=='?')  return true;
@@ -287,6 +288,7 @@ int AtomMask::Tokenize() {
   // the stack so they dont need to be pushed.
   std::string tokenString;
   MaskToken token;
+  maskTokens_.clear();
   for (std::string::iterator p = Postfix_.begin(); p != Postfix_.end(); p++) 
   {  // Operand begins here
     if (*p == '[')
@@ -319,6 +321,7 @@ int AtomMask::Tokenize() {
         }
         if (tokenType==MaskToken::OP_NONE) {
           mprinterr("Error: Unrecognized token type.\n");
+          maskTokens_.clear();
           return 1;
         }
         // Create new string without type character(s)
@@ -358,6 +361,7 @@ int AtomMask::Tokenize() {
       continue;
     } else {
       mprinterr("Error: Unknown symbol while evaluating mask (%c)\n",*p);
+      maskTokens_.clear();
       return 1;
     }
   } // END loop over postfix    

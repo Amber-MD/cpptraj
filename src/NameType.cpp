@@ -1,4 +1,6 @@
 #include "NameType.h"
+// DEBUG
+//#include "CpptrajStdio.h"
 
 NameType::NameType() :
   NameSize_(6)
@@ -96,6 +98,9 @@ void NameType::ToBuffer(char *buffer) {
 bool NameType::Match(NameType &maskName) { 
   int c = 0;
   for (int m = 0; m < 5; m++) {
+    if (maskName.c_array_[m] == '\0' && c_array_[c] == ' ')
+      // At end of mask and whitespace in name: OK
+      break;
     if (maskName.c_array_[m] == '\\') { 
       // Backslash: match literal next char in mask
       ++m;
@@ -109,6 +114,7 @@ bool NameType::Match(NameType &maskName) {
       // Not mask single wildcard and mismatch
       return false;
     }
+    //mprintf("(%c,%c)",maskName.c_array_[m],c_array_[c]);
     ++c;
   }
   return true;
