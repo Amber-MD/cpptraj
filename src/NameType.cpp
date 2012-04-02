@@ -44,7 +44,7 @@ NameType::NameType(std::string &str) :
     strend = ns1;
   for (unsigned int j = 0; j < strend; j++) 
     c_array_[j] = str[j];
-  c_array_[ns1] = '\0';
+  c_array_[strend] = '\0';
   //FormatName(true);
   FormatName();
 }
