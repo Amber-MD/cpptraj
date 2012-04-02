@@ -187,6 +187,7 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   // If writing 1 pdb per frame set up output filename and open
   if (pdbWriteMode_==MULTI) {
     std::string fname = NumberFilename(FullPathName(), set + OUTPUTFRAMESHIFT);
+    //mprintf("DEBUG: Traj_PDBfile::writeFrame: set %i, MULTI [%s]\n",set,fname.c_str());
     if (IO->Open((char*)fname.c_str(), "wb")) return 1;
   // If specified, write MODEL keyword
   } else if (pdbWriteMode_==MODEL) {
@@ -205,9 +206,10 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     const Atom atom = (*pdbTop_)[i];
     int res = atom.ResNum();
     // If this atom belongs to a new molecule print a TER card
+    // Use res instead of res+1 since this TER belongs to last mol/res
     if (i == lastAtomInMol) {
       pdb_write_ATOM(IO, PDBTER, anum, "", pdbTop_->Res(res).Name(),
-                     chainID_[i], res+1, 0, 0, 0, 0, 0, (char*)"\0", dumpq_);
+                     chainID_[i], res, 0, 0, 0, 0, 0, (char*)"\0", dumpq_);
       ++anum;
       ++mol;
       lastAtomInMol = (*mol).EndAtom();
