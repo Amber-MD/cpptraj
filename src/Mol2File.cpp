@@ -55,12 +55,17 @@ int Mol2File::ScanTo( FileIO *IO, TRIPOSTAG tag ) {
   return 1;
 }
 
+// Mol2File::ReadMolecule()
+/** Read in MOLECULE section of mol2file. Set title, number of atoms,
+  * and number of bonds.
+  */
 bool Mol2File::ReadMolecule( FileIO *IO ) {
   // Scan to the section
   if ( ScanTo( IO, MOLECULE ) == 1 ) return true;
   //   Scan title
   if ( IO->Gets(buffer_,BUF_SIZE_) ) return true;
   mol2title_.assign( buffer_ );
+  RemoveTrailingWhitespace( mol2title_ );
   if (mol2debug_>0) mprintf("      Mol2 Title: [%s]\n",mol2title_.c_str());
   //   Scan # atoms and bonds
   // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]

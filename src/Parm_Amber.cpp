@@ -291,21 +291,10 @@ std::string Parm_Amber::GetFlagLine(AmberParmFlagType flag) {
 
 // Parm_Amber::GetLine()
 std::string Parm_Amber::GetLine() {
-  std::locale loc;
-
   IO->Gets(lineBuffer_, BUF_SIZE);
   std::string line( lineBuffer_ );
   // Remove any trailing whitespace
-  std::string::iterator p = line.end();
-  --p;
-  for (; p != line.begin(); p--) 
-    if (!isspace( *p, loc)) break;
-  size_t lastSpace = (size_t)(p - line.begin()) + 1;
-  //mprintf("lastSpace = %zu\n",lastSpace);
-  if (lastSpace==1)
-    line.clear();
-  else
-    line.resize( lastSpace );
+  RemoveTrailingWhitespace( line );
   return line;
 }
 

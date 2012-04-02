@@ -3,6 +3,7 @@
 #include <cstring> // tildeExpansion
 #include <cmath> // log10
 #include <sstream> // istringstream
+#include <locale> // isspace
 #include <stdexcept> // BadConversion
 #ifndef __PGI
 #  include <glob.h> // For tilde expansion
@@ -296,5 +297,22 @@ double convertToDouble(std::string const &s) {
   if (!(iss >> d))
     throw BadConversion("convertToDouble(\"" + s + "\")");
   return d;
+}
+
+// RemoveTrailingWhitespace()
+/// Remove any trailing whitespace from string.
+void RemoveTrailingWhitespace(std::string &line) {
+  std::locale loc;
+
+  std::string::iterator p = line.end();
+  --p;
+  for (; p != line.begin(); p--)
+    if (!isspace( *p, loc)) break;
+  size_t lastSpace = (size_t)(p - line.begin()) + 1;
+  //mprintf("lastSpace = %zu\n",lastSpace);
+  if (lastSpace==1)
+    line.clear();
+  else
+    line.resize( lastSpace );
 }
 

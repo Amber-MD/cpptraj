@@ -17,10 +17,13 @@ int Parm_Mol2::ReadParm(Topology &parmOut) {
   if (OpenFile()) return 1;
   // Indicate parm has coordinates
   parmOut.SetHasCoordinates();
-  mprintf("    Reading Mol2 file %s as topology file.\n",parmOut.c_str());
+  mprintf("    Reading Mol2 file %s as topology file.\n",BaseName());
   // Get @<TRIPOS>MOLECULE information
   if (ReadMolecule(IO)) return 1;
-  parmOut.SetParmName( Mol2Title() ); 
+  if ( Mol2Title().empty() )
+    parmOut.SetParmName( BaseName() );
+  else
+    parmOut.SetParmName( Mol2Title() ); 
 
   // Allocate memory for atom names, types, and charges.
   //parmOut.names = new NAME[ parmOut.natom ];
