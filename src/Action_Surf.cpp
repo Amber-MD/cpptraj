@@ -259,8 +259,11 @@ static void WarnLCPO(NameType &atype, int atom, int numBonds) {
   * \return -1 on error.
   */
 void Surf::SetAtomLCPO(const Atom &atom, SurfInfo *SIptr) {
-  // Get the number of bonded neighbors to this atom
-  int numBonds = atom.Nbonds();
+  // Get the number of non-H bonded neighbors to this atom
+  int numBonds = 0;
+  for (Atom::bond_iterator batom = atom.bondbegin(); batom != atom.bondend(); batom++)
+    if ( (*currentParm)[ *batom ].Element() != Atom::HYDROGEN )
+      ++numBonds;
   NameType atype = atom.Type();
   int i = atom.Num();
 
