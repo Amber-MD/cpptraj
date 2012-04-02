@@ -5,7 +5,8 @@
 // CONSTRUCTOR
 Traj_Mol2File::Traj_Mol2File() : 
   mol2WriteMode_(SINGLE),
-  mol2Top_(0)
+  mol2Top_(0),
+  hasCharges_(false)
 {}
 
 // Traj_Mol2File::openTraj()
@@ -137,6 +138,17 @@ int Traj_Mol2File::setupTrajout(Topology *trajParm) {
     mprintf("         File may not write correctly.\n");
   }
 
+  // TODO: Change this, right now for backwards compat. only!
+  // If all charges == 0 set noCharges.
+  hasCharges_ = false;
+  for (Topology::atom_iterator atom = mol2Top_->begin(); atom != mol2Top_->end(); atom++)
+  {
+    if ( (*atom).Charge() != 0 ) {
+      hasCharges_ = true;
+      break;
+    }
+  }
+
   // Setup output array for bonds. Bonds in parm are stored as:
   //   0_idx1 0_idx2 0_pidx 1_idx1 1_idx2 1_pidx ...
   // where idx is the atom index, i.e. atom# * 3, and pidx is the index
@@ -187,10 +199,10 @@ int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double 
   Printf("%s\n",title_.c_str());
   Printf("%5i %5i %5i %5i %5i\n",Mol2Natoms(), Mol2Nbonds(), 1, 0, 0);
   Printf("SMALL\n"); // May change this later
-  //if (trajCharges_!=NULL)
+  if ( hasCharges_ )
     Printf("USER_CHARGES\n"); // May change this later
-  //else
-  //  Printf("NO_CHARGES\n");
+  else
+    Printf("NO_CHARGES\n");
   Printf("\n\n");
 
   //@<TRIPOS>ATOM section
@@ -200,9 +212,13 @@ int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double 
     const Atom atom = (*mol2Top_)[i];
     // figure out the residue number
     int res = atom.ResNum();
+    // If atom type is blank, set to atom name.
+    NameType atype = atom.Type();
+    if ( atype == "" )
+      atype = atom.Name();
     Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
                      i+1, atom.c_str(), Xptr[0], Xptr[1], Xptr[2],
-                     *atom.Type(), res+1, mol2Top_->Res(res).c_str(), atom.Charge());
+                     *atype, res+1, mol2Top_->Res(res).c_str(), atom.Charge());
     Xptr += 3;
   }
 

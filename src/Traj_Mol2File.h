@@ -20,6 +20,7 @@ class Traj_Mol2File : public TrajectoryIO, Mol2File {
   private:
     MOL2WRITEMODE mol2WriteMode_;
     Topology *mol2Top_;
+    bool hasCharges_;
     std::vector<int> trajBonds_; 
 
     // Inherited functions
