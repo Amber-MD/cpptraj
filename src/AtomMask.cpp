@@ -17,13 +17,13 @@ AtomMask::AtomMask() :
 // COPY CONSTRUCTOR
 AtomMask::AtomMask(const AtomMask &rhs) {
   debug_ = rhs.debug_;
-  nselected_=rhs.nselected_;
-  Natom_=rhs.Natom_;
-  maskChar_=rhs.maskChar_;
-  maskString_=rhs.maskString_;
-  Selected_=rhs.Selected_;
-  CharMask_=rhs.CharMask_;
-  Postfix_=rhs.Postfix_;
+  CharMask_ = rhs.CharMask_;
+  maskChar_ = rhs.maskChar_;
+  maskString_ = rhs.maskString_;
+  Natom_ = rhs.Natom_;
+  nselected_ = rhs.nselected_;
+  Selected_ = rhs.Selected_;
+  maskTokens_ = rhs.maskTokens_;
 }
 
 // AtomMask::operator=()
@@ -34,13 +34,13 @@ AtomMask &AtomMask::operator=(const AtomMask &rhs) {
   // Deallocate
   // Allocate and copy
   debug_ = rhs.debug_;
-  nselected_=rhs.nselected_;
-  Natom_=rhs.Natom_;
-  maskChar_=rhs.maskChar_;
-  maskString_=rhs.maskString_;
-  Selected_=rhs.Selected_;
-  CharMask_=rhs.CharMask_;
-  Postfix_=rhs.Postfix_;
+  nselected_ = rhs.nselected_;
+  Natom_ = rhs.Natom_;
+  maskChar_ = rhs.maskChar_;
+  maskString_ = rhs.maskString_;
+  Selected_ = rhs.Selected_;
+  CharMask_ = rhs.CharMask_;
+  maskTokens_ = rhs.maskTokens_;
   // Return *this
   return *this;
 }
@@ -120,7 +120,7 @@ int AtomMask::Tokenize() {
   std::string infix;
   std::string buffer;
   std::locale loc;
-  //std::string postfix;
+  std::string postfix;
   std::stack<char> Stack;
 
   // 0 means new operand or operand was just completed, and terminated with ']', 
@@ -214,7 +214,7 @@ int AtomMask::Tokenize() {
 
   // -----------------------------------
   // Convert to RPN
-  Postfix_.clear(); 
+  //postfix.clear(); 
   // push terminal symbol '_' to stack
   Stack.push('_');
 
@@ -223,13 +223,13 @@ int AtomMask::Tokenize() {
   char pp = ' ';
   for (std::string::iterator p = infix.begin(); p != infix.end(); p++) {
     if (*p == '[') {
-      Postfix_ += *p;
+      postfix += *p;
       flag = 1;
     } else if (*p == ']') {
-      Postfix_ += *p;
+      postfix += *p;
       flag = 0;
     } else if (flag == 1) {
-      Postfix_ += *p;
+      postfix += *p;
     } else if (*p == '(') {
       Stack.push(*p);
     } else if (*p == ')') {
@@ -239,7 +239,7 @@ int AtomMask::Tokenize() {
           mprinterr("Error: Mask::ToRPN: unbalanced parentheses in expression\n");
           return 1;
         }
-        Postfix_ += pp;
+        postfix += pp;
       }
       Stack.pop(); // Discard '('
       // At this point both parentheses are discarded
@@ -250,7 +250,7 @@ int AtomMask::Tokenize() {
           mprinterr("Error: Mask::ToRPN: unbalanced parentheses in expression\n");
           return 1;
         }
-        Postfix_ += pp;
+        postfix += pp;
       }
       Stack.pop(); // Discard '_'
     } else if ( IsOperator(*p) ) {
@@ -263,7 +263,7 @@ int AtomMask::Tokenize() {
         while ( P1 <= P2 ) {
           pp = Stack.top();
           Stack.pop();
-          Postfix_ += pp;
+          postfix += pp;
           P1 = OperatorPriority( *p );
           P2 = OperatorPriority( Stack.top() );
           if ( P1==0 || P2==0 ) return 1; // 0 indicates error in op
@@ -276,7 +276,7 @@ int AtomMask::Tokenize() {
     } 
   } // END for loop over infix
   if (debug_ > 0)
-  mprintf("DEBUG: NEW_POSTFIX ==%s==\n",Postfix_.c_str());
+  mprintf("DEBUG: NEW_POSTFIX ==%s==\n",postfix.c_str());
 
   // Convert to MaskTokens in same order. The postfix expression is composed
   // of operands enclosed within brackets, and single character operators.
@@ -289,7 +289,7 @@ int AtomMask::Tokenize() {
   std::string tokenString;
   MaskToken token;
   maskTokens_.clear();
-  for (std::string::iterator p = Postfix_.begin(); p != Postfix_.end(); p++) 
+  for (std::string::iterator p = postfix.begin(); p != postfix.end(); p++) 
   {  // Operand begins here
     if (*p == '[')
       buffer.clear();
@@ -403,13 +403,6 @@ std::string AtomMask::MaskExpression() {
   return maskString_;
 }
 
-// AtomMask::PostfixExpression()
-char *AtomMask::PostfixExpression() { 
-  if (Postfix_.empty())
-    return NULL;
-  return (char*)Postfix_.c_str(); 
-}
-
 // AtomMask::ResetMask()
 void AtomMask::ResetMask() {
   nselected_ = 0;
@@ -418,7 +411,7 @@ void AtomMask::ResetMask() {
   maskString_.clear();
   Selected_.clear();
   CharMask_.clear();
-  Postfix_.clear();
+  maskTokens_.clear();
 }
 
 // AtomMask::InvertMask()
@@ -566,7 +559,6 @@ void AtomMask::PrintMaskAtoms(const char *header) {
   * with the mask parser. Convert to infix, then postfix notation.
   */
 int AtomMask::SetMaskString(char *maskString_In) {
-
   if (maskString_In!=NULL) 
     maskString_.assign( maskString_In );
   else
@@ -574,21 +566,9 @@ int AtomMask::SetMaskString(char *maskString_In) {
 
   if (debug_ > 0) mprintf("expression: ==%s==\n", maskString_.c_str());
 
-  // TEST
+  // Convert mask expression to maskTokens 
   if (Tokenize()) return 1;
 
-/*  // 1) preprocess input expression
-  if (tokenize((char*)maskString_.c_str(), infix)!=0) 
-    return 1;
-  
-  if (debug > 5) mprintf("tokenized: ==%s==\n", infix);
-
-  // 2) construct postfix (RPN) notation 
-  if (torpn(infix, postfix)!=0) 
-    return 1;
-  
-  if (debug > 5) mprintf("postfix  : ==%s==\n", postfix);
-  Postfix_.assign( postfix );*/
   return 0;
 }
 

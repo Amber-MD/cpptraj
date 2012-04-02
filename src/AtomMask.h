@@ -33,13 +33,6 @@ class AtomMask {
     AtomMask(const AtomMask &);
     AtomMask & operator=(const AtomMask&);
 
-    typedef std::string::const_iterator postfix_iterator;
-    inline postfix_iterator postfix_begin() const {
-      return Postfix_.begin();
-    }
-    inline postfix_iterator postfix_end() const {
-      return Postfix_.end();
-    }
     /// AtomMask default iterator
     typedef std::vector<int>::const_iterator const_iterator;
     /// Iterator to the beginning of Selected
@@ -54,8 +47,6 @@ class AtomMask {
     const char *MaskString();
     /// Return original mask expression as std::string
     std::string MaskExpression();
-    /// Return mask expression converted to postfix notation
-    char *PostfixExpression();
     /// Reset atom mask
     void ResetMask();
     /// Switch char used to denote selected atoms (T->F, F->T)
@@ -95,7 +86,6 @@ class AtomMask {
   private:
     int debug_;
     std::vector<char> CharMask_; ///< Char array of atoms, T if selected, F if not.
-    std::string Postfix_;        ///< maskString tokenized and converted to RPN
     char maskChar_;              ///< The character used to denote a selected atom (default 'T')
     std::string maskString_;     ///< String specifying atom selection
     /** Number of atoms mask was set-up with. Needed when converting from
