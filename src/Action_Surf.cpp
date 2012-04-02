@@ -69,7 +69,7 @@ int Surf::setup() {
   SurfaceInfo_neighbor.clear();
   SurfaceInfo_noNeighbor.clear();
   for (AtomMask::const_iterator atomi = Mask1.begin(); atomi!=Mask1.end(); atomi++) {
-    SetAtomLCPO( (*currentParm)[*atomi], &SI ); 
+    SetAtomLCPO( *atomi, (*currentParm)[*atomi], &SI ); 
     if (SI.vdwradii > 2.5) {
       atomi_neighborMask.AddAtom(*atomi);
       SurfaceInfo_neighbor.push_back( SI );
@@ -88,7 +88,7 @@ int Surf::setup() {
   VDW.clear();
   VDW.reserve( soluteAtoms );
   for (int atomj=0; atomj < soluteAtoms; atomj++) {
-    SetAtomLCPO( (*currentParm)[atomj], &SI );
+    SetAtomLCPO( atomj, (*currentParm)[atomj], &SI );
     VDW.push_back( SI.vdwradii );
     if (SI.vdwradii > 2.5)
       atomj_neighborMask.AddAtom(atomj);
@@ -258,14 +258,13 @@ static void WarnLCPO(NameType &atype, int atom, int numBonds) {
   * \return the number of solute atoms for which paramters were set. 
   * \return -1 on error.
   */
-void Surf::SetAtomLCPO(const Atom &atom, SurfInfo *SIptr) {
+void Surf::SetAtomLCPO(int i, const Atom &atom, SurfInfo *SIptr) {
   // Get the number of non-H bonded neighbors to this atom
   int numBonds = 0;
   for (Atom::bond_iterator batom = atom.bondbegin(); batom != atom.bondend(); batom++)
     if ( (*currentParm)[ *batom ].Element() != Atom::HYDROGEN )
       ++numBonds;
   NameType atype = atom.Type();
-  int i = atom.Num();
 
   // Check: Only set parameters for solute atoms?
   // Set vdw radii and LCPO parameters for this atom

@@ -274,7 +274,7 @@ void Topology::AddAtom(Atom atomIn, Residue resIn) {
   //mprintf("DEBUG: Atom %zu belongs to residue %zu\n",atoms_.size(), residues_.size());
   //mprintf("DEBUG: Atom %zu: %lf %lf %lf\n",atoms_.size(),XYZin[0],XYZin[1],XYZin[2]);
   // Overwrite atom number
-  atomIn.SetNum( atoms_.size() );
+  //atomIn.SetNum( atoms_.size() );
   atomIn.SetResNum( residues_.size()-1 );
   atoms_.push_back(atomIn);
 }
@@ -352,7 +352,7 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
       ++resnum;
       ++Res;
     }
-    atoms_.push_back( Atom( atom, names[atom], charge[atom], at_num[atom],
+    atoms_.push_back( Atom( names[atom], charge[atom], at_num[atom],
                             mass[atom], atype_index[atom], types[atom],
                             gb_radii[atom], gb_screen[atom], resnum)
                     );
@@ -1112,7 +1112,8 @@ void Topology::MaskSelectResidues(int res1, int res2, char *mask) {
   mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
   // Get start atom
   if (res1 > nres) {
-    mprinterr("Error: Select residues: res 1 out of range (%i)\n",res1);
+    if (debug_>0)
+      mprintf("Warning: Select residues: res 1 out of range (%i)\n",res1);
     return;
   }
   startatom = residues_[res1-1].FirstAtom();
@@ -1150,7 +1151,8 @@ void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) {
   int startatom, endatom;
   mprintf("\t\t\tSelecting atoms %i to %i\n",atom1,atom2);
   if (atom1 > (int)atoms_.size()) {
-    mprinterr("Error: Select atoms: atom 1 out of range (%i)\n",atom1);
+    if (debug_>0) 
+      mprintf("Warning: Select atoms: atom 1 out of range (%i)\n",atom1);
     return;
   }
   startatom = atom1 - 1;
@@ -1213,7 +1215,7 @@ bool Topology::ParseMask(CoordFrame &REF, AtomMask &maskIn, bool intMask) {
                              (*token).Distance() );
         break;
       default:
-        mprinterr("Error: Invalid mask token.\n");
+        mprinterr("Error: Invalid mask token (Mask [%s]).\n",maskIn.MaskString());
     }
     // Check if this mask should now go on the stack
     if ( (*token).OnStack() ) {
@@ -1294,7 +1296,7 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
     // Clear bond information from new atom
     newparmAtom.ClearBonds();
     // Set new atom num and residue num
-    newparmAtom.SetNum( newatom );
+    //newparmAtom.SetNum( newatom );
     newparmAtom.SetResNum( newParm->residues_.size() - 1 );
     // Place new atom in newParm
     newParm->atoms_.push_back( newparmAtom );

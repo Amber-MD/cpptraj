@@ -69,12 +69,12 @@ bool PDBfile::IsPDB_END() {
 // PDBfile::pdb_Atom()
 Atom PDBfile::pdb_Atom() {
   // Atom number (6-11)
-  char savechar = buffer_[11];
+/*  char savechar = buffer_[11];
   buffer_[11] = '\0';
   int anum = atoi(buffer_+6);
-  buffer_[11] = savechar;
+  buffer_[11] = savechar;*/
   // Atom name (12-16)
-  savechar = buffer_[16];
+  char savechar = buffer_[16];
   buffer_[16] = '\0';
   NameType aname(buffer_+12);
   buffer_[16] = savechar;
@@ -94,7 +94,7 @@ Atom PDBfile::pdb_Atom() {
   XYZ_[2] = atof( buffer_+46 );
   buffer_[54] = savechar;
 
-  return Atom(anum, aname, XYZ_);
+  return Atom(aname, XYZ_);
 }
 
 // PDBfile::pdb_Residue()

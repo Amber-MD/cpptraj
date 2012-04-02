@@ -15,9 +15,9 @@ class Atom {
     static const char AtomicElementName[][3];
     // Constructors and assignment
     Atom();
-    Atom(int, NameType, double (&)[3]);
+    Atom(NameType, double (&)[3]);
     Atom( NameType, double (&)[3], NameType, double );
-    Atom( int, NameType, double, int, double, int, NameType, double, double,int );
+    Atom( NameType, double, int, double, int, NameType, double, double,int );
     Atom(const Atom &);
     void swap(Atom &, Atom &);
     Atom &operator=(Atom);
@@ -33,9 +33,9 @@ class Atom {
     void PrintXYZ();
     void Info();
     // Functions that set internal vars
-    inline void SetNum(int num) {
-      anum_ = num;
-    }
+    //inline void SetNum(int num) {
+    //  anum_ = num;
+    //}
     void SetName(NameType);
     void SetResNum(int);
     void SetMol(int);
@@ -44,9 +44,9 @@ class Atom {
     inline const char *c_str() const {
       return *aname_;
     }
-    inline int Num() const {
-      return anum_;
-    }
+    //inline int Num() const {
+    //  return anum_;
+    //}
     inline int ResNum() const {
       return resnum_;
     }
@@ -94,12 +94,12 @@ class Atom {
     double gb_screen_;
     NameType aname_;
     NameType atype_;
-    NameType itree_;
-    int irotat_;
+    //NameType itree_;
+    //int irotat_;
     int atype_index_;
-    int join_;
+    //int join_;
     AtomicElementType element_;
-    int anum_;
+    //int anum_;
     int resnum_;
     int mol_;
     std::vector<int> bonds_;

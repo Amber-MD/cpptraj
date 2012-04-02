@@ -39,6 +39,6 @@ class Surf: public Action {
     std::vector<double> VDW;
 
     void AssignLCPO(SurfInfo *, double, double, double, double , double );
-    void SetAtomLCPO(const Atom &, SurfInfo*);
+    void SetAtomLCPO(int,const Atom &, SurfInfo*);
 };
 #endif
