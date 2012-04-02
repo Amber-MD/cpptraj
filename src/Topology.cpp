@@ -53,6 +53,11 @@ void Topology::SetReferenceCoords( Frame *frameptr ) {
 }
 
 // -----------------------------------------------------------------------------
+int Topology::FinalSoluteRes() {
+  return finalSoluteRes_ + 1;
+}
+
+// -----------------------------------------------------------------------------
 // Topology::ResAtomStart()
 Topology::atom_iterator Topology::ResAtomStart(int resnum) const {
   if (resnum < 0 || resnum >= (int)residues_.size())

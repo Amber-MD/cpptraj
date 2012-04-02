@@ -21,6 +21,8 @@ class Topology {
     void SetParmName(std::string&);
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
+    // ----- Return internal variables -----
+    int FinalSoluteRes();
     // ---- Atom-specific routines -----
     typedef std::vector<Atom>::const_iterator atom_iterator;
     inline atom_iterator begin() const {
@@ -98,9 +100,6 @@ class Topology {
     }
     inline int Nsolvent() {
       return NsolventMolecules_;
-    }
-    inline int FinalSoluteRes() {
-      return finalSoluteRes_;
     }
     inline int Nframes() {
       return nframes_;
