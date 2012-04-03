@@ -174,8 +174,8 @@ class Topology {
     std::vector<int> bonds_;
     std::vector<int> bondsh_;
     std::vector<ParmBondType> BondParm;
-    std::vector<int> excludedAtoms_;
-    std::vector<int> numex_;
+    //std::vector<int> excludedAtoms_;
+    //std::vector<int> numex_;
 
     Box box_;
     CoordFrame refCoords_;

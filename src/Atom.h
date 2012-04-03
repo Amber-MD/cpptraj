@@ -1,6 +1,7 @@
 #ifndef INC_ATOM_H
 #define INC_ATOM_H
 #include <vector>
+#include <set> // For excluded 
 #include "NameType.h"
 // Class: AtomType
 /// Hold information for an atom
@@ -28,6 +29,14 @@ class Atom {
     }
     inline bond_iterator bondend() const {
       return bonds_.end();
+    }
+    // Iterator over excluded atoms
+    typedef std::set<int>::const_iterator excluded_iterator;
+    inline excluded_iterator excludedbegin() const {
+      return excluded_.begin();
+    }
+    inline excluded_iterator excludedend() const {
+      return excluded_.end();
     }
     // Info functions
     void PrintXYZ();
@@ -74,6 +83,9 @@ class Atom {
     inline int Nbonds() const {
       return (int)bonds_.size();
     }
+    inline int Nexcluded() const {
+      return (int)excluded_.size();
+    }
     inline const double *XYZ() const {
       return coords_;
     }
@@ -92,6 +104,9 @@ class Atom {
     /// Add atom # to this atoms list of bonded atoms.
     void AddBond(int);
     void ClearBonds();
+    /// Add atom # to this atoms exclusion list
+    void AddExcluded(int);
+    void ClearExcluded();
 
   private:
     static const int AtomicElementNum[];
@@ -112,6 +127,7 @@ class Atom {
     int resnum_;
     int mol_;
     std::vector<int> bonds_;
+    std::set<int> excluded_;
     // Store bond indices?
 
     void SetElementFromName();

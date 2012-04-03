@@ -479,7 +479,10 @@ void Topology::CommonSetup(bool bondsearch, bool molsearch) {
     DetermineMolecules();
 
   // Set up solvent information
-  SetSolventInfo(); 
+  SetSolventInfo();
+
+  // Determine excluded atoms
+  DetermineExcludedAtoms(); 
 
 }
 
@@ -801,12 +804,12 @@ void Topology::AtomDistance(int atom, int dist) {
 
 // Topology::DetermineExcludedAtoms()
 void Topology::DetermineExcludedAtoms() {
-  std::vector<int> excluded_i;
+  //std::vector<int> excluded_i;
   std::vector<int> original_mol;
 
   // Resize numex
-  numex_.resize( atoms_.size() );
-  excludedAtoms_.clear();
+  //numex_.resize( atoms_.size() );
+  //excludedAtoms_.clear();
 
   // Save original molecule numbers, set mol to -1
   // NOTE: Necessary?
@@ -819,6 +822,9 @@ void Topology::DetermineExcludedAtoms() {
   // Determine excluded atoms for each atom
   int natom = (int)atoms_.size();
   for (int atomi = 0; atomi < natom; atomi++) {
+    // Clear atomi exclusion list
+    atoms_[atomi].ClearExcluded();
+    // AtomDistance recursively sets each atom bond distance from atomi
     AtomDistance(atomi, 0);
     // Now each atom within 4 bonds has mol set to how far away it is. All 
     // other atoms have -1.
@@ -826,7 +832,8 @@ void Topology::DetermineExcludedAtoms() {
     for (int atomj = 0; atomj < natom; atomj++) {
       if (atomj > atomi) {
         if (!atoms_[atomj].NoMol()) {
-          excluded_i.push_back(atomj);
+          //excluded_i.push_back(atomj);
+          atoms_[atomi].AddExcluded( atomj );
         }
       }
       // Reset mol for use with next atomi
@@ -840,10 +847,10 @@ void Topology::DetermineExcludedAtoms() {
     // END DEBUG
 
     // Update numex
-    numex_[atomi] = (int) excluded_i.size();
+    //numex_[atomi] = (int) excluded_i.size();
 
     // If no excluded atoms for this atom, insert -1 as a placeholder
-    if (excluded_i.empty()) { 
+    /*if (excluded_i.empty()) { 
       excluded_i.push_back(-1);
     } else {
       // Sort
@@ -853,9 +860,8 @@ void Topology::DetermineExcludedAtoms() {
         excludedAtoms_.push_back(*it);
       // Clear excluded list for i 
       excluded_i.clear();
-    }
-
-  }
+    }*/
+  } // END loop over atomi
 
   // Restore original molecule numbers
   std::vector<int>::iterator omol = original_mol.begin();

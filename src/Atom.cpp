@@ -223,6 +223,16 @@ void Atom::ClearBonds() {
   bonds_.clear();
 }
 
+// Atom::AddExcluded()
+void Atom::AddExcluded(int idxIn) {
+  excluded_.insert( idxIn );
+}
+
+// Atom::ClearExcluded()
+void Atom::ClearExcluded() {
+  excluded_.clear();
+}
+
 // Atom::SetElementFromName()
 /** If not already known, try to determine atomic element from atom name. 
   * Based on Amber standard atom names.

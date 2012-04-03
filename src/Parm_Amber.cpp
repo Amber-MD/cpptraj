@@ -168,6 +168,7 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   std::vector<NameType> types;
   std::vector<double> gb_radii;
   std::vector<double> gb_screen;
+  std::vector<int> numex;
   for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++) 
   {
     names.push_back( (*atom).Name() );
@@ -178,6 +179,11 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
     types.push_back( (*atom).Type() );
     gb_radii.push_back( (*atom).Radius() );
     gb_screen.push_back( (*atom).Screen() );
+    // Amber atom exclusion list prints a -1 placeholder for atoms with
+    // no exclusions, so never print 0
+    int nex = (*atom).Nexcluded();
+    if (nex == 0) nex = 1;
+    numex.push_back( nex );
   }
 
   // Create pointer array
@@ -230,6 +236,8 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   WriteDouble(F_MASS, mass);
   // ATOM_TYPE_INDEX
   WriteInteger(F_ATYPEIDX, atype_index);
+  // NUMBER_EXCLUDED_ATOMS
+  WriteInteger(F_NUMEX, numex);
   
   
   CloseFile();
