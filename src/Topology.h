@@ -19,6 +19,7 @@ class Topology {
     void SetHasCoordinates(); // TODO: Replace with pass-in of CoordFrame
     void SetParmName(const char*);
     void SetParmName(std::string&);
+    void SetGBradiiSet(std::string&);
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
     // ----- Return internal variables -----
@@ -36,6 +37,7 @@ class Topology {
     int Mol_FirstRes(int);
     const char *c_str();
     std::string &ParmName();
+    std::string GBradiiSet();
     // ---- Atom-specific routines -----
     typedef std::vector<Atom>::const_iterator atom_iterator;
     inline atom_iterator begin() const { return atoms_.begin(); }
@@ -105,7 +107,7 @@ class Topology {
     bool SetupCharMask(AtomMask &);
     bool SetupIntegerMask(AtomMask &, Frame &);
     bool SetupCharMask(AtomMask &, Frame &);
-
+    // ----- Topolgy modification routines -----
     Topology *modifyStateByMask(AtomMask &, const char *);
 
   private:
@@ -113,18 +115,16 @@ class Topology {
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
     std::string parmName_;
+    std::string radius_set;
 
     std::vector<int> bonds_;
     std::vector<int> bondsh_;
     std::vector<double> bondrk_;
     std::vector<double> bondreq_;
-    //std::vector<ParmBondType> bondParm_;
 
     std::vector<int> nbindex_;
     std::vector<double> lja_;
     std::vector<double> ljb_;
-    //std::vector<int> excludedAtoms_;
-    //std::vector<int> numex_;
 
     Box box_;
     CoordFrame refCoords_;
@@ -141,6 +141,8 @@ class Topology {
     double *massptr_; // TODO: remove
 
     void SetAtomBondInfo();
+    bool compareElement(Atom::AtomicElementType, Atom::AtomicElementType,
+                        Atom::AtomicElementType, Atom::AtomicElementType);
     double GetBondedCut(Atom::AtomicElementType, Atom::AtomicElementType);
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);

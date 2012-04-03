@@ -160,6 +160,15 @@ int Box::AmberIfbox() {
   return 1;
 }
 
+std::vector<double> Box::BetaLengths() {
+  std::vector<double> bxyz(4);
+  bxyz[0] = box_[4];
+  bxyz[1] = box_[0];
+  bxyz[2] = box_[1];
+  bxyz[3] = box_[2];
+  return bxyz;
+}
+
 // Box::ToRecip()
 /** Use box coordinates to calculate reciprocal space conversions for use
   * with imaging routines. Return cell volume.

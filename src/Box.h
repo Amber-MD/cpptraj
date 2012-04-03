@@ -17,6 +17,7 @@ class Box {
     void SetNoBox();
 
     int AmberIfbox();
+    std::vector<double> BetaLengths();
 
     double ToRecip(double*,double*);
 

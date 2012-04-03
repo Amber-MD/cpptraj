@@ -225,8 +225,8 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   /*values[NUMANG]=parmIn.numang;
   values[NPTRA]=parmIn.numdih;
   values[NATYP]=parmIn.natyp; // Only for SOLTY
-  values[NPHB]=parmIn.nphb;
-  values[IFBOX]=AmberIfbox(parmIn.Box[4]);*/
+  values[NPHB]=parmIn.nphb;*/
+  values[IFBOX] = parmIn.ParmBox().AmberIfbox();
   values[NMXRS] = parmIn.FindResidueMaxNatom();
     
   // Write parm
@@ -282,6 +282,33 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   // AMBER ATOM TYPE
   WriteName(F_TYPES, types);
 
+  // Write solvent info if IFBOX>0
+  if (values[IFBOX] > 0) {
+    // Solvent Pointers
+    std::vector<int> solvent_pointer(3);
+    solvent_pointer[0] = parmIn.FinalSoluteRes(); // Already +1
+    solvent_pointer[1] = parmIn.Nmol();
+    solvent_pointer[2] = parmIn.FirstSolventMol() + 1;
+    if (solvent_pointer[2] == 0)
+      solvent_pointer[2] = solvent_pointer[1] + 1;
+    WriteInteger(F_SOLVENT_POINTER, solvent_pointer);
+    // ATOMS PER MOLECULE
+    std::vector<int> APM;
+    APM.reserve( solvent_pointer[1] );
+    for (Topology::mol_iterator mol = parmIn.MolStart(); mol != parmIn.MolEnd(); mol++)
+      APM.push_back( (*mol).NumAtoms() );
+    WriteInteger(F_ATOMSPERMOL, APM);
+    // BOX DIMENSIONS
+    WriteDouble(F_PARMBOX, parmIn.ParmBox().BetaLengths());
+  }
+  // GB RADIUS SET
+  std::string radius_set = parmIn.GBradiiSet();
+  if (!radius_set.empty()) {
+    WriteSetup(F_RADSET, 1);
+    if (radius_set.size()>80)
+      radius_set.resize(80);
+    Printf("%-80s\n",radius_set.c_str());
+  }
   // GB RADII
   WriteDouble(F_RADII, gb_radii);
   // GB SCREENING PARAMETERS
@@ -403,6 +430,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   if (PositionFileAtFlag(F_RADSET)) {
     std::string radius_set = GetLine();
     mprintf("\tRadius Set: %s\n",radius_set.c_str());
+    TopIn.SetGBradiiSet( radius_set );
   }
   std::vector<double> gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
   std::vector<double> gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]); 

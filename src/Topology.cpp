@@ -47,6 +47,10 @@ void Topology::SetParmName(std::string &nameIn) {
   parmName_ = nameIn;
 }
 
+void Topology::SetGBradiiSet(std::string &gbset) {
+  radius_set = gbset;
+}  
+
 // Topology::SetPindex()
 void Topology::SetPindex(int pindexIn) {
   pindex_ = pindexIn;
@@ -101,8 +105,11 @@ int Topology::Mol_FirstRes(int mol) {
 const char *Topology::c_str() {
   return parmName_.c_str();
 }
-std::string &Topology::ParmName() {
+std::string &Topology::ParmName() { //NOTE: remove reference?
   return parmName_;
+}
+std::string Topology::GBradiiSet() {
+  return radius_set;
 }
 
 // -----------------------------------------------------------------------------
@@ -134,21 +141,26 @@ Topology::atom_iterator Topology::MolAtomEnd(int molnum) const {
   return atoms_.begin() + molecules_[molnum+1].BeginAtom();
 }
 
+// Topology::operator[]
 const Atom& Topology::operator[](int idx) {
   return atoms_[idx];
 }
 
+// -----------------------------------------------------------------------------
+// Topology::Res()
 const Residue& Topology::Res(int idx) {
   return residues_[idx];
 }
 
 // -----------------------------------------------------------------------------
+// Topology::SolventStart()
 Topology::mol_iterator Topology::SolventStart() const {
   if (NsolventMolecules_==0)
     return molecules_.end();
   return molecules_.begin() + firstSolventMol_;
 }
 
+// Topology::SolventEnd()
 Topology::mol_iterator Topology::SolventEnd() const {
   if (NsolventMolecules_==0)
     return molecules_.end();
@@ -156,7 +168,7 @@ Topology::mol_iterator Topology::SolventEnd() const {
 }
 
 // -----------------------------------------------------------------------------
-
+// Topology::ResAtomRange()
 int Topology::ResAtomRange(int res, int *resstart, int *resstop) {
   int nres1 = (int)residues_.size() - 1;
   if (res < 0 || res > nres1) return 1;
@@ -168,6 +180,7 @@ int Topology::ResAtomRange(int res, int *resstart, int *resstop) {
   return 0;
 }
 
+// Topology::ResidueName()
 char *Topology::ResidueName(int res) {
   if (res < 0 || res >= (int) residues_.size())
     return NULL;
@@ -209,7 +222,7 @@ int Topology::FindAtomInResidue(int res, NameType atname) {
   return -1;
 }
 
-// Topology::FindResidueMaxNatom
+// Topology::FindResidueMaxNatom()
 /** Return the # atoms in the largest residue. */
 int Topology::FindResidueMaxNatom() {
   if (residues_.size() <= 1)
@@ -227,12 +240,14 @@ int Topology::FindResidueMaxNatom() {
   return largest_natom;
 }
 
+// Topology::SoluteAtoms()
 int Topology::SoluteAtoms() {
   if (NsolventMolecules_ == 0)
     return (int)atoms_.size();
   return molecules_[firstSolventMol_].BeginAtom();
 }
-  
+
+// Topology::Mass() 
 // NOTE: Stopgap - need to figure out a better way
 // TODO: Figure out a better way to set up frames
 double *Topology::Mass() {
@@ -568,13 +583,13 @@ void Topology::CommonSetup(bool bondsearch, bool molsearch) {
 }
 
 // -----------------------------------------------------------------------------
-// compareElement()
+// Topology::compareElement()
 /** Compare a pair of elements a1 and a2 with target values b1 and b2.
   * If either combination of a1 and a2 match b1 and b2 (i.e. a1==b1 and 
   * a2==b2, or a1==b2 and a2==b1) return true, otherwise return false.
   */
-static bool compareElement(Atom::AtomicElementType a1, Atom::AtomicElementType a2,
-                           Atom::AtomicElementType b1, Atom::AtomicElementType b2)
+bool Topology::compareElement(Atom::AtomicElementType a1, Atom::AtomicElementType a2,
+                              Atom::AtomicElementType b1, Atom::AtomicElementType b2)
 {
   if      (a1==b1 && a2==b2)
     return true;
@@ -885,15 +900,9 @@ void Topology::AtomDistance(int atom, int dist) {
 
 // Topology::DetermineExcludedAtoms()
 void Topology::DetermineExcludedAtoms() {
-  //std::vector<int> excluded_i;
-  std::vector<int> original_mol;
-
-  // Resize numex
-  //numex_.resize( atoms_.size() );
-  //excludedAtoms_.clear();
-
-  // Save original molecule numbers, set mol to -1
+  // Save original molecule numbers. Set all atom mol to -1.
   // NOTE: Necessary?
+  std::vector<int> original_mol;
   original_mol.reserve( atoms_.size() );
   for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++) {
     original_mol.push_back( (*atom).Mol() );
@@ -912,36 +921,12 @@ void Topology::DetermineExcludedAtoms() {
     // Determine which atoms with atom# > this atom are closest. 
     for (int atomj = 0; atomj < natom; atomj++) {
       if (atomj > atomi) {
-        if (!atoms_[atomj].NoMol()) {
-          //excluded_i.push_back(atomj);
+        if (!atoms_[atomj].NoMol()) 
           atoms_[atomi].AddExcluded( atomj );
-        }
       }
       // Reset mol for use with next atomi
       atoms_[atomj].SetMol( -1 );
     }
-    // DEBUG
-    //mprintf("DBG: %i: [%u]",atomi+1,excluded_i.size());
-    //for (std::list<int>::iterator it = excluded_i.begin(); it!=excluded_i.end(); it++)
-    //  mprintf(" %i",(*it)+1);
-    //mprintf("\n");
-    // END DEBUG
-
-    // Update numex
-    //numex_[atomi] = (int) excluded_i.size();
-
-    // If no excluded atoms for this atom, insert -1 as a placeholder
-    /*if (excluded_i.empty()) { 
-      excluded_i.push_back(-1);
-    } else {
-      // Sort
-      sort(excluded_i.begin(), excluded_i.end());
-      // Append excluded list for i to overall list
-      for (std::vector<int>::iterator it = excluded_i.begin(); it!=excluded_i.end(); it++)
-        excludedAtoms_.push_back(*it);
-      // Clear excluded list for i 
-      excluded_i.clear();
-    }*/
   } // END loop over atomi
 
   // Restore original molecule numbers
@@ -1385,14 +1370,6 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
       newParm->StartNewMol();
       oldmol = curmol;
     }
-    // If the current molecule is the first solvent molecule, set up newParm
-    // finalSoluteRes and firstSolventMol
-/*    if (newParm->firstSolventMol_ == -1 && curmol == this->firstSolventMol_) {
-      // -1 since molecules has been incremented
-      newParm->firstSolventMol_ = newParm->molecules_.size() - 1;
-      // -2 since final solute res is 1 previous and residues has been incremented
-      newParm->finalSoluteRes_ = newParm->residues_.size() - 2;
-    }*/
     ++newatom;
   }
 
@@ -1400,6 +1377,8 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
   newParm->bonds_ = SetupSequentialArray(atomMap, 3, bonds_);
   newParm->bondsh_ = SetupSequentialArray(atomMap, 3, bondsh_);
   newParm->SetAtomBondInfo();
+  newParm->bondrk_ = bondrk_;
+  newParm->bondreq_ = bondreq_;
 
   // Set new molecule information based on new bonds
   newParm->DetermineMolecules();
