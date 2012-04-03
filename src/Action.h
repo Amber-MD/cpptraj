@@ -26,45 +26,13 @@
   *   its action function to determine what kind of imaging to perform.
   */
 class Action {
-  protected:
-    bool isSeparate;        ///< If true action was initialized outside main action list.
-    ArgList actionArgs;     ///< The action arguments (setArg)
-    Topology *currentParm; ///< The current parmtop (setup)
-    Frame *currentFrame;    ///< The current frame (action)
-    DataSetList *DSL;       ///< Pointer to the data set list in Cpptraj (init)
-    DataFileList *DFL;      ///< Pointer to the data file list in Cpptraj (init)
-    TopologyList *PFL;      ///< Pointer to the parm file list in Cpptraj (init)
-    FrameList *FL;          ///< Pointer to the reference frame list in Cpptraj (init)
-    bool useMass;              ///< If set to true, calculations will use mass info
-    bool useMassOriginalValue; ///< Value of useMass set by init
-    bool useImage;             ///< If set to true, calculations will use imaging info
-    bool useImageOriginalValue;///< Value of useImage set by init
-    Box::BoxType imageType;         ///< Type of imaging to be performed.
-
-    int debug;              ///< action debug level
-    int frameNum;           ///< # of current frame being processed, set by ActionList
-    // --== Inherited by child classes ==--
-    /// actions internal setup routine, called by Setup
-    /** Setup action. Process any parm-dependent things like masks.
-      */
-    virtual int setup()  { return 0; }
-    /// actions internal action routine, called by DoAction
-    /** Perform action. Only parts of the action which depend on input
-      * coordinates should be implemented here.
-      */
-    virtual int action() { return 0; }
-    /// actions internal init routine, called by Init
-    /** Initialize action. Parse arguments from actionArgs. Called prior to reading
-      * input trajectories. Expected order of checking args is: 1) Keywords, 2) 
-      * Masks, 3) dataset names.
-      */
-    virtual int init()   { return 0; }
-
   public:
-    ///< Enumerate potential return states from DoAction.
+    /// Enumerate potential return states from DoAction.
     enum ActionReturnType { ACTION_OK=0, ACTION_ERR, ACTION_USEORIGINALFRAME,
                             ACTION_SUPPRESSCOORDOUTPUT 
                           };
+    /// Potential imaging types 
+    enum ImageType { NOIMAGE=0, ORTHO, NONORTHO };
     bool noInit;             ///< True if action could not be initialized
     bool noSetup;            ///< True if action could not be set up
   
@@ -89,6 +57,41 @@ class Action {
       * several passes must be made over the input frames, which are stored
       * by that action.
       */
-    virtual void print() { } 
+    virtual void print() { }
+  protected:
+    bool isSeparate;        ///< If true action was initialized outside main action list.
+    ArgList actionArgs;     ///< The action arguments (setArg)
+    Topology *currentParm; ///< The current parmtop (setup)
+    Frame *currentFrame;    ///< The current frame (action)
+    DataSetList *DSL;       ///< Pointer to the data set list in Cpptraj (init)
+    DataFileList *DFL;      ///< Pointer to the data file list in Cpptraj (init)
+    TopologyList *PFL;      ///< Pointer to the parm file list in Cpptraj (init)
+    FrameList *FL;          ///< Pointer to the reference frame list in Cpptraj (init)
+    bool useMass;              ///< If set to true, calculations will use mass info
+    bool useMassOriginalValue; ///< Value of useMass set by init
+    bool useImage;             ///< If set to true, calculations will use imaging info
+    bool useImageOriginalValue;///< Value of useImage set by init
+    ImageType imageType;         ///< Type of imaging to be performed.
+
+    int debug;              ///< action debug level
+    int frameNum;           ///< # of current frame being processed, set by ActionList
+    // --== Inherited by child classes ==--
+    /// actions internal setup routine, called by Setup
+    /** Setup action. Process any parm-dependent things like masks.
+      */
+    virtual int setup()  { return 0; }
+    /// actions internal action routine, called by DoAction
+    /** Perform action. Only parts of the action which depend on input
+      * coordinates should be implemented here.
+      */
+    virtual int action() { return 0; }
+    /// actions internal init routine, called by Init
+    /** Initialize action. Parse arguments from actionArgs. Called prior to reading
+      * input trajectories. Expected order of checking args is: 1) Keywords, 2) 
+      * Masks, 3) dataset names.
+      */
+    virtual int init()   { return 0; }
+
+
 };
 #endif  

@@ -45,12 +45,13 @@ Box &Box::operator=(const Box& rhs) {
 
 const double Box::TRUNCOCTBETA = 109.4712206344906917365733534097672;
 
-void Box::PrintBoxType() {
-  switch (btype_) {
-    case NOBOX : mprintf("No Box"); break;
-    case ORTHO : mprintf("Ortho. Box"); break;
-    case NONORTHO: mprintf("Non-ortho. Box"); break;
-  }
+const char Box::BoxNames[5][15] = {
+  "None", "Orthogonal", "Trunc. Oct.", "Rhombic Dodec.", "Non-orthogonal"
+};
+
+// Box::TypeName()
+const char* Box::TypeName() {
+  return BoxNames[btype_];
 }
 
 // Box::SetBetaLengths()
@@ -70,6 +71,7 @@ void Box::SetBetaLengths(std::vector<double> &betaXYZ) {
   SetBoxType();
 }
 
+// Box::SetAngles()
 void Box::SetAngles(double *abg) {
   if (abg==0) {
     mprinterr("Error: SetAngles: Input array is NULL.\n");
@@ -90,9 +92,10 @@ void Box::SetTruncOct() {
   box_[3] = TRUNCOCTBETA;
   box_[4] = TRUNCOCTBETA;
   box_[5] = TRUNCOCTBETA;
-  btype_ = NONORTHO;
+  btype_ = TRUNCOCT;
 }
 
+// Box::SetNoBox()
 void Box::SetNoBox() {
   box_[0] = 0;
   box_[1] = 0;
@@ -119,41 +122,42 @@ void Box::SetBoxType() {
       btype_ = ORTHO;
       box_[3] = 90.0;
       box_[5] = 90.0;
-      if (debug_>0)
-        mprintf("    Setting box to be orthogonal\n");
+      //if (debug_>0)
+      //  mprintf("    Setting box to be orthogonal\n");
     } else if (box_[4] > 109.47 && box_[4] < 109.48) {
-      btype_ = NONORTHO;
+      btype_ = TRUNCOCT;
       //Box[3] = TRUNCOCTBETA;
       box_[3] = box_[4];
       box_[5] = box_[4];
-      if (debug_>0) 
-        mprintf("    Setting box to be a truncated octahedron, angle is %lf\n",box_[3]);
+      //if (debug_>0) 
+      //  mprintf("    Setting box to be a truncated octahedron, angle is %lf\n",box_[3]);
     } else if (box_[4] == 60.0) {
-      btype_ = NONORTHO;
+      btype_ = RHOMBIC;
       box_[3]=60.0; 
       box_[4]=90.0; 
       box_[5]=60.0;
-      if (debug_>0)
-        mprintf("    Setting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
+      //if (debug_>0)
+      //  mprintf("    Setting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
+    } else {
+      mprintf("Warning: Box: Unrecognized beta (%lf); setting all angles to beta.\n",box_[4]);
+      box_[3] = box_[4];
+      box_[5] = box_[4];
     }
   } 
   //if (debug_>0) 
-    mprintf("\tBox type is %i (beta=%lf)\n",(int)btype_, box_[4]);
+    mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
 }
 
 // Box::AmberIfbox()
-/** Based on beta, return Amber IFBOX type:
+/** Return Amber IFBOX type:
   *   0: No box
   *   1: Box
   *   2: Truncated octahedral box
   */
 int Box::AmberIfbox() {
-  if (box_[4] <= 0.0)
-    return 0;
-  else if (box_[4] > 109.47 && box_[4] < 109.48)
-    return 2;
-  else
-    return 1;
+  if (btype_ == NOBOX) return 0;
+  else if (btype_ == TRUNCOCT) return 2;
+  return 1;
 }
 
 // Box::ToRecip()

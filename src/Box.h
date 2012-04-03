@@ -3,18 +3,23 @@
 #include <vector>
 class Box {
   public:
-    enum BoxType { NOBOX=0, ORTHO, NONORTHO }; 
+    enum BoxType { NOBOX=0, ORTHO, TRUNCOCT, RHOMBIC, NONORTHO }; 
 
     Box();
     Box(const Box&);
     Box &operator=(const Box&);
-    void PrintBoxType();
-    void SetTruncOct();
-    void SetNoBox();
+
+    const char *TypeName(); 
+
     void SetBetaLengths(std::vector<double> &);
     void SetAngles(double*);
+    void SetTruncOct();
+    void SetNoBox();
+
     int AmberIfbox();
+
     double ToRecip(double*,double*);
+
     inline BoxType Type() {
       return btype_;
     }
@@ -29,6 +34,7 @@ class Box {
 
   private:
     static const double TRUNCOCTBETA;
+    static const char BoxNames[][15];
 
     int debug_;
     double box_[6];

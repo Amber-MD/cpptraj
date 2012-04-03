@@ -227,7 +227,7 @@ int Closest::action() {
   double Dist, maxD, ucell[9], recip[9];
   AtomMask::const_iterator solute_atom, solvent_atom;
 
-  if (imageType!=Box::NOBOX) {
+  if (imageType != NOIMAGE) {
     currentFrame->BoxToRecip(ucell, recip);
     // Calculate max possible imaged distance
     maxD = currentFrame->MaxImagedDistance();

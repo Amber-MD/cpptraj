@@ -52,13 +52,8 @@ ptrajState *CreateState(Topology *currentParm, int maxFrames) {
   // General info
   state->maxFrames = maxFrames; 
   state->temp0 = 0.0;
-  currentParm->BoxCoords( state->box );
-  if (currentParm->BoxType() == Box::NOBOX)
-    state->IFBOX = 0;
-  else if (currentParm->BoxIsTruncOct())
-    state->IFBOX = 2;
-  else
-    state->IFBOX = 1;
+  currentParm->ParmBox().ToDouble( state->box );
+  state->IFBOX = currentParm->ParmBox().AmberIfbox();
   //state->boxfixed
   // Atom Info
   state->atoms = currentParm->Natom();

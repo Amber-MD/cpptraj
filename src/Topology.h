@@ -149,10 +149,14 @@ class Topology {
       return parmName_;
     }
     // ----- Routines to Access/Modify Box info -----
+    inline Box& ParmBox() {
+      return box_;
+    }
+    
     inline Box::BoxType BoxType() {
       return box_.Type();
     }
-    inline bool BoxIsTruncOct() { // NOTE: Should this not be inlined?
+    /*inline bool BoxIsTruncOct() { // NOTE: Should this not be inlined?
       return (box_.AmberIfbox() == 2);
     }
     inline void SetNoBox() {
@@ -163,7 +167,7 @@ class Topology {
     }
     inline void BoxCoords(double *boxOut) {
       box_.ToDouble(boxOut);
-    }
+    }*/
     // ----- PDB/Mol2 etc setup routines -----
     void AddAtom(Atom, Residue);
     void StartNewMol();

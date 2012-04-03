@@ -643,7 +643,7 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
 int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
   // Assign format string
   fformat_.assign( AmberParmFmt[fflag] );
-  mprintf("DEBUG: FlagFormat[%s], Nelements=%zu\n",fformat_.c_str(),Nelements);
+  //mprintf("DEBUG: FlagFormat[%s], Nelements=%zu\n",fformat_.c_str(),Nelements);
   // Set type, cols, width, and precision from format string
   if (!SetFortranType()) return 1;
   // Write FLAG and FORMAT lines
@@ -684,7 +684,7 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>const& iar
       col = 0;
     }
   }
-  mprintf("INT: Last col written = %i\n",col);
+  //mprintf("INT: Last col written = %i\n",col);
   if (col != fncols_) sprintf(ptr,"\n");
   IO->Write(buffer_, buffer_size_);
 
@@ -711,7 +711,7 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& d
       col = 0;
     }
   }
-  mprintf("DOUBLE: Last col written = %i\n",col);
+  //mprintf("DOUBLE: Last col written = %i\n",col);
   if (col != fncols_) sprintf(ptr,"\n");
   IO->Write(buffer_, buffer_size_);
 
@@ -738,7 +738,7 @@ int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>const& c
       col = 0;
     }
   }
-  mprintf("NAME: Last col written = %i\n",col);
+  //mprintf("NAME: Last col written = %i\n",col);
   if (col != fncols_) sprintf(ptr,"\n");
   IO->Write(buffer_, buffer_size_);
 

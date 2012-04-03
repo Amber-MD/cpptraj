@@ -2,7 +2,9 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Action::Action() : 
+Action::Action() :
+  noInit(false), 
+  noSetup(false), 
   isSeparate(false),
   currentParm(NULL),
   currentFrame(NULL),
@@ -14,11 +16,9 @@ Action::Action() :
   useMassOriginalValue(false),
   useImage(false),
   useImageOriginalValue(false),
-  imageType (Box::NOBOX),
+  imageType (NOIMAGE),
   debug(0),
-  frameNum(0), 
-  noInit(false), 
-  noSetup(false) 
+  frameNum(0) 
 {}
 
 // DESTRUCTOR
@@ -91,14 +91,22 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   */
 int Action::Setup(Topology **ParmAddress) {
   currentParm = *ParmAddress;
-  // If useImage, check imaging type based on prmtop box.
+  // Set imaging to value set by init() 
   useImage = useImageOriginalValue;
   if (!useImage)
-    imageType = Box::NOBOX;
+    // Imaging disabled
+    imageType = NOIMAGE;
   else {
-    imageType = currentParm->BoxType();
-    if (imageType == Box::NOBOX && debug>0) 
-      mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->c_str());
+    // Set imaging based on parm box.
+    Box::BoxType parmboxtype = currentParm->BoxType();
+    if (parmboxtype == Box::NOBOX) {
+      imageType = NOIMAGE;
+      if (debug>0)
+        mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->c_str());
+    } else if (parmboxtype == Box::ORTHO)
+      imageType = ORTHO;
+    else 
+      imageType = NONORTHO;
   }
   // If useMass, check that parm actually has masses.
   // NOTE: Mass is now always set to 1 if not read in so this only depends

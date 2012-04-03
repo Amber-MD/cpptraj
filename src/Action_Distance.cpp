@@ -65,7 +65,7 @@ int Distance::setup() {
   // Print mask and imaging info for this parm
   mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1.MaskString(), Mask1.Nselected(),
           Mask2.MaskString(),Mask2.Nselected());
-  if (imageType != Box::NOBOX)
+  if (imageType != NOIMAGE)
     mprintf(", imaged");
   else
     mprintf(", imaging off");
@@ -83,7 +83,7 @@ int Distance::setup() {
 int Distance::action() {
   double D, ucell[9], recip[9];
 
-  if (imageType==Box::NONORTHO) currentFrame->BoxToRecip(ucell,recip);
+  if (imageType==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
   D = currentFrame->DIST2(&Mask1, &Mask2, useMass, imageType, ucell, recip);
   D = sqrt(D);
 

@@ -76,7 +76,7 @@ int Strip::setup() {
   }
   // Remove box information if asked
   if (removeBoxInfo)
-    newParm->SetNoBox(); 
+    newParm->ParmBox().SetNoBox(); 
 
   newParm->Summary();
 

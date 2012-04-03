@@ -173,7 +173,7 @@ int Radial::setup() {
 
   // Print mask and imaging info for this parm
   mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",Mask1.Nselected(),Mask2.Nselected());
-  if (imageType !=Box::NOBOX)
+  if (imageType != NOIMAGE)
     mprintf("Imaging on.\n");
   else
     mprintf("Imaging off.\n");
@@ -197,7 +197,7 @@ int Radial::action() {
 
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (imageType!=Box::NOBOX) {
+  if (imageType != NOIMAGE) {
     D = currentFrame->BoxToRecip(ucell,recip);
     if (useVolume)  volume += D;
   }

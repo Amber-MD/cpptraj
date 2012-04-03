@@ -98,7 +98,7 @@ int Image::setup() {
 
   // If box is originally truncated oct and not forcing triclinic, 
   // turn familiar on.
-  if (currentParm->BoxIsTruncOct() && triclinic!=FORCE && triclinic!=FAMILIAR) {
+  if (currentParm->BoxType()==Box::TRUNCOCT && triclinic!=FORCE && triclinic!=FAMILIAR) {
     mprintf("\tOriginal box is truncated octahedron, turning on 'familiar'.\n");
     triclinic=FAMILIAR;
   }

@@ -56,7 +56,7 @@ int Parm_Mol2::ReadParm(Topology &parmOut) {
   }
 
   // No box
-  parmOut.SetNoBox();
+  parmOut.ParmBox().SetNoBox();
 
   mprintf("    Mol2 contains %i atoms, %i residues,\n", parmOut.Natom(),parmOut.Nres());
   //mprintf("    %i bonds to H, %i other bonds.\n", parmOut.NbondsWithH,parmOut.NbondsWithoutH);
