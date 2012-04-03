@@ -21,10 +21,12 @@ Topology::Topology() :
   massptr_(0)
 { }
 
+// DESTRUCTOR
 Topology::~Topology() {
   if (massptr_!=0) delete[] massptr_;
 }
 
+// Topology::SetDebug()
 void Topology::SetDebug(int debugIn) {
   debug_ = debugIn;
 }
@@ -40,22 +42,67 @@ void Topology::SetParmName(const char *nameIn) {
   parmName_.assign( nameIn );
 }
 
+// Topology::SetParmName()
 void Topology::SetParmName(std::string &nameIn) {
   parmName_ = nameIn;
 }
 
+// Topology::SetPindex()
 void Topology::SetPindex(int pindexIn) {
   pindex_ = pindexIn;
 }
 
+// Topology::SetReferenceCoords()
 void Topology::SetReferenceCoords( Frame *frameptr ) {
     if (frameptr==NULL) return;
     refCoords_ = CoordFrame(frameptr->Natom(), frameptr->CoordPtr());
 }
 
 // -----------------------------------------------------------------------------
+// Topology::FinalSoluteRes()
+/** Return 1 past the last solute residue. */
 int Topology::FinalSoluteRes() {
   return finalSoluteRes_ + 1;
+}
+
+int Topology::Pindex() {
+  return pindex_;
+}
+int Topology::Natom() {
+  return (int)atoms_.size();
+}
+int Topology::Nres() {
+  return (int)residues_.size();
+}
+int Topology::Nmol() {
+  return (int)molecules_.size();
+}
+int Topology::FirstSolventMol() {
+  return firstSolventMol_;
+}
+int Topology::Nsolvent() {
+  return NsolventMolecules_;
+}
+int Topology::Nframes() {
+  return nframes_;
+}
+int Topology::Ntypes() {
+  return ntypes_;
+}
+void Topology::IncreaseFrames(int frames) {
+  nframes_ += frames;
+}
+const char *Topology::ResName(int resnum) {
+  return residues_[resnum].c_str();
+}
+int Topology::Mol_FirstRes(int mol) {
+  return molecules_[mol].FirstRes();
+}
+const char *Topology::c_str() {
+  return parmName_.c_str();
+}
+std::string &Topology::ParmName() {
+  return parmName_;
 }
 
 // -----------------------------------------------------------------------------
@@ -960,58 +1007,27 @@ void Topology::SetSolventInfo() {
 }
 
 // -----------------------------------------------------------------------------
+// Topology::SetupIntegerMask()
+bool Topology::SetupIntegerMask(AtomMask &mask) { 
+  return ParseMask(refCoords_, mask, true);
+}
+
+// Topology::SetupCharMask()
+bool Topology::SetupCharMask(AtomMask &mask) {
+  return ParseMask(refCoords_, mask, false);
+}
+
+// Topology::SetupIntegerMask()
 bool Topology::SetupIntegerMask(AtomMask &mask, Frame &frame) {
   CoordFrame tmp(frame.Natom(), frame.CoordPtr());
   return ParseMask( tmp, mask, true );
 }
 
+// Topology::SetupCharMask()
 bool Topology::SetupCharMask(AtomMask &mask, Frame &frame) {
   CoordFrame tmp(frame.Natom(), frame.CoordPtr());
   return ParseMask( tmp, mask, false );
 }
-/** Determine if the targetName is the same as the given mask name. 
-  * targetName can either be from the parm, in which case it may have
-  * trailing spaces which are not considered for matching, or it
-  * can be converted from e.g. a residue number.
-  */
-/*bool IsNameMatch(std::string &targetName, std::string &maskName) {
-  std::string::iterator t = targetName.begin();
-
-  if (maskName.empty()) return false;
-  for (std::string::iterator p = maskName.begin(); p != maskName.end(); p++) {
-    if (t == targetName.end()) // Target out of bounds: mismatch
-      return false; 
-    else if (*p == '*') // Mask Wildcard: instant match
-      return true;
-    else if (*p != '?' && *p != *t) // Not mask single wildcard and mismatch
-      return false;
-    ++t;
-  }
-  // If here, maskName is at end; if targetname has space or is at the end
-  // then no mismatches.
-  if ( t == targetName.end() || *t == ' ')
-    return true;
-  return false;
-}*/
-
-/*void Topology::MaskSelectResidues(std::string &name, char *mask) {
-  int endatom;
-  int size1 = (int)residues_.size() - 1;
-  
-  mprintf("\t\t\tSelecting residues named %s\n",name.c_str());
-  for (int res = 0; res < (int)residues_.size(); res++) {
-    std::string str = convertToString( res+1 );
-    // TODO: modify NameType so it can handle any size name?
-    std::string resname( residues_[res].c_str() );
-    if ( IsNameMatch(resname, name) || IsNameMatch(str, name) ) {
-      if (res == size1)
-        endatom = atoms_.size();
-      else
-        endatom = residues_[res+1].FirstAtom();
-      std::fill(mask + residues_[res].FirstAtom(), mask + endatom, 'T');
-    }
-  }
-}*/
 
 // Topology::Mask_SelectDistance()
 void Topology::Mask_SelectDistance( CoordFrame &REF, char *mask, bool within, 

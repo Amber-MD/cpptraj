@@ -23,78 +23,48 @@ class Topology {
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
     // ----- Return internal variables -----
     int FinalSoluteRes();
+    int Pindex();
+    int Natom();
+    int Nres();
+    int Nmol();
+    int FirstSolventMol();
+    int Nsolvent();
+    int Nframes();
+    int Ntypes();
+    void IncreaseFrames(int);
+    const char *ResName(int);
+    int Mol_FirstRes(int);
+    const char *c_str();
+    std::string &ParmName();
     // ---- Atom-specific routines -----
     typedef std::vector<Atom>::const_iterator atom_iterator;
-    inline atom_iterator begin() const {
-      return atoms_.begin();
-    }
-    inline atom_iterator end() const {
-      return atoms_.end();
-    }
+    inline atom_iterator begin() const { return atoms_.begin(); }
+    inline atom_iterator end() const   { return atoms_.end();   }
     atom_iterator ResAtomStart(int) const;
     atom_iterator ResAtomEnd(int) const;
     atom_iterator MolAtomStart(int) const;
     atom_iterator MolAtomEnd(int) const;
-    const Atom &operator[](int); // NOTE: Inline?
+    const Atom &operator[](int);
     // ----- Residue-specific routines -----
     typedef std::vector<Residue>::const_iterator res_iterator;
-    inline res_iterator ResStart() const {
-      return residues_.begin();
-    }
-    inline res_iterator ResEnd() const {
-      return residues_.end();
-    }
+    inline res_iterator ResStart() const { return residues_.begin(); }
+    inline res_iterator ResEnd() const   { return residues_.end();   }
     const Residue &Res(int); 
     // ----- Molecule-specific routines -----
     typedef std::vector<Molecule>::const_iterator mol_iterator;
-    inline mol_iterator MolStart() const {
-      return molecules_.begin();
-    }
-    inline mol_iterator MolEnd() const {
-      return molecules_.end();
-    }
+    inline mol_iterator MolStart() const { return molecules_.begin(); }
+    inline mol_iterator MolEnd() const   { return molecules_.end();   }
     mol_iterator SolventStart() const;
     mol_iterator SolventEnd() const;
     // ----- Bond-specific routines -----
-    // TODO: Get rid of these, only return const ref??
-/*    typedef std::vector<int>::const_iterator bond_iterator;
-    inline bond_iterator BondsStart() const {
-      return bonds_.begin();
-    }
-    inline bond_iterator BondsEnd() const {
-      return bonds_.end();
-    }
-    inline bond_iterator BondsH_Start() const {
-      return bondsh_.begin();
-    }
-    inline bond_iterator BondsH_End() const {
-      return bondsh_.end();
-    }*/
-    /*inline const std::vector<ParmBondType>& BondParm() const {
-      return bondParm_;
-    } */
-    inline const std::vector<int>& Bonds() const {
-      return bonds_;
-    }
-    inline const std::vector<int>& BondsH() const {
-      return bondsh_;
-    }
-    inline const std::vector<double>& BondRk() const {
-      return bondrk_;
-    }
-    inline const std::vector<double>& BondReq() const {
-      return bondreq_;
-    }
+    inline const std::vector<int>& Bonds() const { return bonds_; }
+    inline const std::vector<int>& BondsH() const { return bondsh_; }
+    inline const std::vector<double>& BondRk() const { return bondrk_; }
+    inline const std::vector<double>& BondReq() const { return bondreq_; }
     // ----- Non-bond routines -----
-    inline const std::vector<int>& NB_index() const {
-      return nbindex_;
-    }
-    inline const std::vector<double>& LJA() const {
-      return lja_;
-    }
-    inline const std::vector<double>& LJB() const {
-      return ljb_;
-    }
+    inline const std::vector<int>& NB_index() const { return nbindex_; }
+    inline const std::vector<double>& LJA() const { return lja_; }
+    inline const std::vector<double>& LJB() const { return ljb_; }
     // ----- Misc routines -----
     int ResAtomRange(int, int *, int *);
     char *ResidueName(int); // TODO: Make obsolete
@@ -109,65 +79,9 @@ class Topology {
     void PrintAtomInfo(const char*);
     void PrintBondInfo();
     // ----- Return Internal Variables -----
-    inline int Pindex() {
-      return pindex_;
-    }
-    inline int Natom() {
-      return (int)atoms_.size();
-    }
-    inline int Nres() {
-      return (int)residues_.size();
-    }
-    inline int Nmol() {
-      return (int)molecules_.size();
-    }
-    inline int FirstSolventMol() {
-      return firstSolventMol_;
-    }
-    inline int Nsolvent() {
-      return NsolventMolecules_;
-    }
-    inline int Nframes() {
-      return nframes_;
-    }
-    inline int Ntypes() {
-      return ntypes_;
-    }
-    inline void IncreaseFrames(int frames) {
-      nframes_ += frames;
-    }
-    inline const char *ResName(int resnum) {
-      return residues_[resnum].c_str();
-    }
-    inline int Mol_FirstRes(int mol) {
-      return molecules_[mol].FirstRes();
-    }
-    inline const char *c_str() {
-      return parmName_.c_str();
-    }
-    inline std::string &ParmName() {
-      return parmName_;
-    }
     // ----- Routines to Access/Modify Box info -----
-    inline Box& ParmBox() {
-      return box_;
-    }
-    
-    inline Box::BoxType BoxType() {
-      return box_.Type();
-    }
-    /*inline bool BoxIsTruncOct() { // NOTE: Should this not be inlined?
-      return (box_.AmberIfbox() == 2);
-    }
-    inline void SetNoBox() {
-      box_.SetNoBox();
-    }
-    inline void SetBoxAngles(double *abgIn) {
-      box_.SetAngles( abgIn );
-    }
-    inline void BoxCoords(double *boxOut) {
-      box_.ToDouble(boxOut);
-    }*/
+    inline Box& ParmBox() { return box_; }
+    inline Box::BoxType BoxType() { return box_.Type(); }
     // ----- PDB/Mol2 etc setup routines -----
     void AddAtom(Atom, Residue);
     void StartNewMol();
@@ -187,12 +101,8 @@ class Topology {
     void ClearBondInfo();
     void AddBond(int,int);
     // ----- Mask Routines -----
-    inline bool SetupIntegerMask(AtomMask &mask) {
-      return ParseMask(refCoords_, mask, true);
-    }
-    inline bool SetupCharMask(AtomMask &mask) {
-      return ParseMask(refCoords_, mask, false);
-    }
+    bool SetupIntegerMask(AtomMask &);
+    bool SetupCharMask(AtomMask &);
     bool SetupIntegerMask(AtomMask &, Frame &);
     bool SetupCharMask(AtomMask &, Frame &);
 
