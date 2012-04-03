@@ -701,10 +701,12 @@ int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
   }
   // Allocate character buffer space for memory, +1 for NULL
   size_t bufsize = GetFortranBufferSize(fwidth_, fncols_, Nelements);
-  if (bufsize > buffer_max_size_) {
+  //mprinterr("DEBUG: Current max=%zu  Current size=%zu  Requested size=%zu\n",
+  //          buffer_max_size_, buffer_size_, bufsize);
+  if (bufsize+1 > buffer_max_size_) {
     if (buffer_!=0) delete[] buffer_;
     buffer_ = new char[ bufsize+1 ];
-    buffer_max_size_ = bufsize;
+    buffer_max_size_ = bufsize+1;
   }
   buffer_size_ = bufsize;
   return 0;
@@ -730,8 +732,8 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>const& iar
       col = 0;
     }
   }
-  //mprintf("INT: Last col written = %i\n",col);
-  if (col != fncols_) sprintf(ptr,"\n");
+  //mprinterr("INT: Last col written = %i (%i)\n",col,fncols_);
+  if (col != 0) sprintf(ptr,"\n");
   IO->Write(buffer_, buffer_size_);
 
   return 0;
@@ -757,8 +759,8 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& d
       col = 0;
     }
   }
-  //mprintf("DOUBLE: Last col written = %i\n",col);
-  if (col != fncols_) sprintf(ptr,"\n");
+  //mprinterr("DOUBLE: Last col written = %i (%i)\n",col,fncols_);
+  if (col != 0) sprintf(ptr,"\n");
   IO->Write(buffer_, buffer_size_);
 
   return 0;
@@ -784,8 +786,8 @@ int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>const& c
       col = 0;
     }
   }
-  //mprintf("NAME: Last col written = %i\n",col);
-  if (col != fncols_) sprintf(ptr,"\n");
+  //mprinterr("NAME: Last col written = %i (%i)\n",col,fncols_);
+  if (col != 0) sprintf(ptr,"\n");
   IO->Write(buffer_, buffer_size_);
 
   return 0;

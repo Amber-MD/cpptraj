@@ -100,7 +100,7 @@ int Average::setup() {
     // the parm for output purposes.
     if (Mask1.Nselected()<currentParm->Natom()) {
       mprintf("             Atom selection < natom, stripping parm for averaging only:\n");
-      AvgParm = currentParm->modifyStateByMask(Mask1, NULL);
+      AvgParm = currentParm->modifyStateByMask(Mask1);
       parmStripped=true;
       AvgParm->Summary();
     } else 

@@ -177,7 +177,7 @@ int Closest::setup() {
   solvent.D=0.0;
   solvent.mol=0;
   SolventMols.resize(oldParm->Nsolvent(), solvent);
-  int solventMolNum = oldParm->FirstSolventMol();
+  int solventMolNum = oldParm->FirstSolventMol() + 1;
   std::vector<MolDist>::iterator mdist = SolventMols.begin();
   for (Topology::mol_iterator solvmol = oldParm->SolventStart(); 
                               solvmol!= oldParm->SolventEnd(); solvmol++) 
@@ -191,7 +191,7 @@ int Closest::setup() {
 
   // Create stripped Parm
   if (newParm!=NULL) delete newParm;
-  newParm = currentParm->modifyStateByMask(stripMask, prefix);
+  newParm = currentParm->modifyStateByMask(stripMask);
   if (newParm==NULL) {
     mprinterr("Error: Closest::setup: Could not create new parmtop.\n");
     return 1;
@@ -203,10 +203,13 @@ int Closest::setup() {
 
   // If prefix given then output stripped parm
   if (prefix!=NULL) {
-    mprintf("\tWriting out amber topology file %s\n",newParm->c_str());
+    std::string newfilename(prefix);
+    newfilename += ".";
+    newfilename += oldParm->OriginalFilename();
+    mprintf("\tWriting out amber topology file %s to %s\n",newParm->c_str(),newfilename.c_str());
     ParmFile pfile;
     pfile.SetDebug( debug );
-    if ( pfile.Write(*newParm, newParm->ParmName(), ParmFile::AMBERPARM ) ) {
+    if ( pfile.Write(*newParm, newfilename, ParmFile::AMBERPARM ) ) {
     //if ( newParm->WriteTopology(newParm->parmName) ) {
       mprinterr("Error: CLOSEST: Could not write out stripped parm file %s\n",
               newParm->c_str());

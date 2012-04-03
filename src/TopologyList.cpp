@@ -85,7 +85,7 @@ int TopologyList::CheckCommand(ArgList &argIn) {
     TopList_[pindex]->SetupIntegerMask( tempMask );
     mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(), 
              TopList_[pindex]->Natom() - tempMask.Nselected(), TopList_[pindex]->c_str());
-    Topology *tempParm = TopList_[pindex]->modifyStateByMask(tempMask, NULL);
+    Topology *tempParm = TopList_[pindex]->modifyStateByMask(tempMask);
     if (tempParm==NULL) 
       mprinterr("Error: parmstrip: Could not strip parm.\n");
     else {

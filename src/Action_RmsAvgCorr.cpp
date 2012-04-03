@@ -130,7 +130,7 @@ void RmsAvgCorr::print() {
   //       that this routine is always called with the same # atoms. This 
   //       could cause trouble if very different parms are called that happen 
   //       to have the same # of atoms.
-  strippedParm = ReferenceParm->modifyStateByMask(Mask0,NULL);
+  strippedParm = ReferenceParm->modifyStateByMask(Mask0);
   if (strippedParm==NULL) {
     mprinterr("Error: RmsAvgCorr: Could not create topology to match RMS mask.\n");
     return;

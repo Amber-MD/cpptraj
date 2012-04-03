@@ -208,7 +208,7 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     // If this atom belongs to a new molecule print a TER card
     // Use res instead of res+1 since this TER belongs to last mol/res
     if (i == lastAtomInMol) {
-      pdb_write_ATOM(IO, PDBTER, anum, "", pdbTop_->Res(res).Name(),
+      pdb_write_ATOM(IO, PDBTER, anum, "", pdbTop_->Res(res-1).Name(),
                      chainID_[i], res, 0, 0, 0, 0, 0, (char*)"\0", dumpq_);
       ++anum;
       ++mol;

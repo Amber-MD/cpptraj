@@ -69,7 +69,7 @@ int Strip::setup() {
 
   // Attempt to create new parmtop based on mask
   if (newParm!=NULL) delete newParm;
-  newParm = currentParm->modifyStateByMask(M1, prefix);
+  newParm = currentParm->modifyStateByMask(M1);
   if (newParm==NULL) {
     mprinterr("Error: Strip::setup: Could not create new parmtop.\n");
     return 1;
@@ -85,10 +85,13 @@ int Strip::setup() {
 
   // If prefix given then output stripped parm
   if (prefix!=NULL) {
-    mprintf("\tWriting out amber topology file %s\n",newParm->c_str());
+    std::string newfilename(prefix);
+    newfilename += ".";
+    newfilename += oldParm->OriginalFilename();
+    mprintf("\tWriting out amber topology file %s to %s\n",newParm->c_str(),newfilename.c_str());
     ParmFile pfile;
     pfile.SetDebug( debug );
-    if ( pfile.Write( *newParm, newParm->ParmName(), ParmFile::AMBERPARM ) ) {
+    if ( pfile.Write( *newParm, newfilename, ParmFile::AMBERPARM ) ) {
     //if ( newParm->WriteTopology(newParm->parmName) ) {
       mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
                 newParm->c_str());

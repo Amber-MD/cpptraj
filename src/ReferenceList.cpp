@@ -160,7 +160,7 @@ int ReferenceList::SetupRefFrames(FrameList *refFrames) {
       Frame* strippedRefFrame = new Frame(*CurrentFrame, Mask);
       mprintf("\tKept %i atoms.\n",strippedRefFrame->Natom());
       // Create new stripped parm
-      Topology *strippedRefParm = CurrentParm->modifyStateByMask(Mask,NULL);
+      Topology *strippedRefParm = CurrentParm->modifyStateByMask(Mask);
       if (strippedRefParm==NULL) {
         mprinterr("Error: could not strip reference.\n");
         return 1;

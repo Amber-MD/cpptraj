@@ -49,7 +49,7 @@ void Topology::SetParmName(std::string& title, const char* filename) {
 }*/
 
 void Topology::SetGBradiiSet(std::string &gbset) {
-  radius_set = gbset;
+  radius_set_ = gbset;
 }  
 
 // Topology::SetPindex()
@@ -108,11 +108,14 @@ const char *Topology::c_str() {
     return parmName_.c_str();
   return fileName_.c_str();
 }
-std::string Topology::ParmName() { //NOTE: remove reference?
+std::string Topology::ParmName() { 
   return parmName_;
 }
+std::string Topology::OriginalFilename() {
+  return fileName_;
+}
 std::string Topology::GBradiiSet() {
-  return radius_set;
+  return radius_set_;
 }
 
 // -----------------------------------------------------------------------------
@@ -1369,14 +1372,17 @@ bool Topology::ParseMask(CoordFrame &REF, AtomMask &maskIn, bool intMask) {
   *  based on the current AmberParm (this), deleting atoms that are
   *  not in the Selected array.
   */
-Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
+Topology *Topology::modifyStateByMask(AtomMask &Mask) {
   Topology *newParm = new Topology();
-  // Set stripped parm name based on prefix: <prefix>.<oldparmname>
+/*  // Set stripped parm name based on prefix: <prefix>.<oldparmname>
   // If no prefix given set name as: strip.<oldparmname>
   if (prefix == NULL)
     parmName_ = "strip." + parmName_;
   else
-    parmName_ = std::string(prefix) + parmName_;
+    parmName_ = std::string(prefix) + parmName_;*/
+  newParm->parmName_ = parmName_;
+  newParm->fileName_ = fileName_;
+  newParm->radius_set_ = radius_set_;
 
   // Atom map
   // TODO: Use std::map instead
@@ -1422,8 +1428,16 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
       newParm->StartNewMol();
       oldmol = curmol;
     }
+    // Copy extra amber info
+    if (!itree_.empty()) newParm->itree_.push_back( itree_[*oldatom] );
+    if (!join_.empty()) newParm->join_.push_back( join_[*oldatom] );
+    if (!irotat_.empty()) newParm->irotat_.push_back( irotat_[*oldatom] );
     ++newatom;
   }
+
+  // NOTE: Since in the bond/angle/dihedral atom arrays the parm indices have 
+  //       survived intact we can just include direct copies of all the 
+  //       parameter arrays for now. May want to cull unused params later.
 
   // Set up new bond information
   newParm->bonds_ = SetupSequentialArray(atomMap, 3, bonds_);
@@ -1431,22 +1445,44 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask, const char *prefix) {
   newParm->SetAtomBondInfo();
   newParm->bondrk_ = bondrk_;
   newParm->bondreq_ = bondreq_;
-
   // Set new molecule information based on new bonds
   newParm->DetermineMolecules();
-
   // Set new solvent information based on new molecules
   newParm->SetSolventInfo(); 
-
-  // Set up angle / dihedral index arrays
- 
-  // Set up parm info
-
+  // Set up new angle info
+  newParm->angles_ = SetupSequentialArray(atomMap, 4, angles_);
+  newParm->anglesh_ = SetupSequentialArray(atomMap, 4, anglesh_);
+  newParm->angletk_ = angletk_;
+  newParm->angleteq_ = angleteq_;
+  // Set up new dihedral info
+  newParm->dihedrals_ = SetupSequentialArray(atomMap, 5, dihedrals_);
+  newParm->dihedralsh_ = SetupSequentialArray(atomMap, 5, dihedralsh_);
+  newParm->dihedralpk_ = dihedralpk_;
+  newParm->dihedralpn_ = dihedralpn_;
+  newParm->dihedralphase_ = dihedralphase_;
+  newParm->scee_ = scee_;
+  newParm->scnb_ = scnb_;
+  // Set up nonbond info
+  // Since nbindex depends on the atom type index and those entries were 
+  // not changed this is still valid. May want to cull unused parms later.
+  newParm->ntypes_ = ntypes_;
+  newParm->nbindex_ = nbindex_;
+  newParm->lja_ = lja_;
+  newParm->ljb_ = ljb_;
+  // Hbond info
+  newParm->asol_ = asol_;
+  newParm->bsol_ = bsol_;
+  newParm->hbcut_ = hbcut_;
+  // TODO: itree, join, irotat
+  newParm->solty_ = solty_;
+  
   // Setup excluded atoms list - Necessary?
   newParm->DetermineExcludedAtoms();
 
   // Give stripped parm the same pindex as original
   newParm->pindex_ = pindex_;
+
+  newParm->nframes_ = nframes_;
 
   // Copy box information
   newParm->box_ = box_;

@@ -86,7 +86,7 @@ int ActionMask::action() {
     AtomMask Mask2 = Mask1;
     Mask2.ConvertMaskType();
     // Create new parm and frame based on atoms in Mask
-    Topology *pdbParm = currentParm->modifyStateByMask(Mask2, NULL);
+    Topology *pdbParm = currentParm->modifyStateByMask(Mask2);
     //pdbParm->Summary(); // DEBUG
     Frame pdbFrame(*currentFrame, Mask2);
     // Set up output file. 

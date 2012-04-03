@@ -37,6 +37,7 @@ class Topology {
     int Mol_FirstRes(int);
     const char *c_str();
     std::string ParmName();
+    std::string OriginalFilename();
     std::string GBradiiSet();
     // ---- Atom-specific routines -----
     typedef std::vector<Atom>::const_iterator atom_iterator;
@@ -138,7 +139,7 @@ class Topology {
     bool SetupIntegerMask(AtomMask &, Frame &);
     bool SetupCharMask(AtomMask &, Frame &);
     // ----- Topolgy modification routines -----
-    Topology *modifyStateByMask(AtomMask &, const char *);
+    Topology *modifyStateByMask(AtomMask &);
 
   private:
     std::vector<Atom> atoms_;
@@ -146,7 +147,7 @@ class Topology {
     std::vector<Molecule> molecules_;
     std::string fileName_;
     std::string parmName_;
-    std::string radius_set;
+    std::string radius_set_;
 
     std::vector<int> bonds_;
     std::vector<int> bondsh_;
