@@ -425,14 +425,38 @@ int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh,
     mprinterr("Error: Topology: Bond parameters have different lengths (%zu != %zu)\n",
               bond_rk.size(), bond_req.size());
     return 1;
-  } else {
+  }
+  bondrk_ = bond_rk;
+  bondreq_ = bond_req;
+
+  /*else {
     std::vector<double>::iterator req = bond_req.begin();
     for (std::vector<double>::iterator rk = bond_rk.begin(); rk != bond_rk.end(); rk++)
     {
-      BondParm.push_back( ParmBondType( *rk, *req) );
+      bondParm_.push_back( ParmBondType( *rk, *req) );
       ++req;
     }
+  }*/
+  return 0;
+}
+
+// Topology::SetNonbondInfo()
+int Topology::SetNonbondInfo(std::vector<int>& nbindex, std::vector<double>& lja,
+                                                        std::vector<double>& ljb)
+{
+  if (lja.size() != ljb.size()) {
+    mprinterr("Error: Topology: LJ parameters have different lengths (%zu != %zu)\n",
+    lja.size(), ljb.size());
+    return 1;
   }
+  nbindex_ = nbindex;
+  lja_ = lja;
+  ljb_ = ljb;
+/*  std::vector<double>::iterator A = lja.begin();
+  for (std::vector<double>::iterator B = ljb.begin(); B != ljb.end(); ljb++) {
+    nonbondParm_.push_back( ParmNonbondType( *A, *B ) );
+    ++A;
+  }*/
   return 0;
 }
 

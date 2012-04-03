@@ -155,16 +155,20 @@ int Traj_Mol2File::setupTrajout(Topology *trajParm) {
   // into the bond parm array. Create an array with atom #s only starting
   // from 1.
   trajBonds_.clear();
-  for (Topology::bond_iterator bidx = mol2Top_->BondsStart();
-                               bidx != mol2Top_->BondsEnd(); bidx++)
+  for (std::vector<int>::const_iterator bidx = mol2Top_->Bonds().begin();
+                                        bidx != mol2Top_->Bonds().end(); bidx++)
+  //for (Topology::bond_iterator bidx = mol2Top_->BondsStart();
+  //                             bidx != mol2Top_->BondsEnd(); bidx++)
   {
     trajBonds_.push_back( ((*bidx)/3) + 1 );
     ++bidx;
     trajBonds_.push_back( ((*bidx)/3) + 1 );
     ++bidx;
   }
-  for (Topology::bond_iterator bidx = mol2Top_->BondsH_Start(); 
-                               bidx != mol2Top_->BondsH_End(); bidx++)
+  for (std::vector<int>::const_iterator bidx = mol2Top_->BondsH().begin();
+                                        bidx != mol2Top_->BondsH().end(); bidx++)
+  //or (Topology::bond_iterator bidx = mol2Top_->BondsH_Start(); 
+  //                             bidx != mol2Top_->BondsH_End(); bidx++)
   {
     trajBonds_.push_back( ((*bidx)/3) + 1 );
     ++bidx;

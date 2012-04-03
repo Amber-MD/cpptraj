@@ -169,6 +169,7 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   std::vector<double> gb_radii;
   std::vector<double> gb_screen;
   std::vector<int> numex;
+  std::vector<int> excluded;
   for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++) 
   {
     names.push_back( (*atom).Name() );
@@ -179,11 +180,19 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
     types.push_back( (*atom).Type() );
     gb_radii.push_back( (*atom).Radius() );
     gb_screen.push_back( (*atom).Screen() );
-    // Amber atom exclusion list prints a -1 placeholder for atoms with
-    // no exclusions, so never print 0
+    // Amber atom exclusion list prints a 0 placeholder for atoms with
+    // no exclusions, so always print at least 1 for numex
     int nex = (*atom).Nexcluded();
-    if (nex == 0) nex = 1;
-    numex.push_back( nex );
+    if (nex == 0) {
+      numex.push_back( 1 );
+      excluded.push_back( 0 );
+    } else {
+      numex.push_back( nex );
+      for (Atom::excluded_iterator ex = (*atom).excludedbegin();
+                                   ex != (*atom).excludedend(); ex++)
+        // Amber atom #s start from 1
+        excluded.push_back( (*ex) + 1 );
+    }
   }
 
   // Create arrays of residue info
@@ -249,12 +258,44 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   // NUMBER_EXCLUDED_ATOMS
   WriteInteger(F_NUMEX, numex);
   // NONBONDED_PARM_INDEX
+  WriteInteger(F_NB_INDEX, parmIn.NB_index());
   // RESIDUE LABEL
   WriteName(F_RESNAMES, resnames);
   // RESIDUE POINTER 
   WriteInteger(F_RESNUMS, resnums);
-  
-  
+
+  // BOND_FORCE_CONSTANT and EQUIL VALUES
+  /*std::vector<double> XK;
+  std::vector<double> XEQ;
+  for (std::vector<ParmBondType>::const_iterator it = parmIn.BondParm().begin();
+                                                 it != parmIn.BondParm().end(); it++)
+  {
+    XK.push_back( (*it).Rk() );
+    XEQ.push_back( (*it).Req() );
+  }*/
+  WriteDouble(F_BONDRK, parmIn.BondRk());
+  WriteDouble(F_BONDREQ, parmIn.BondReq());
+
+  // LJ params
+  WriteDouble(F_LJ_A, parmIn.LJA());
+  WriteDouble(F_LJ_B, parmIn.LJB());
+ 
+  // BONDS INCLUDING HYDROGEN
+  WriteInteger(F_BONDSH, parmIn.BondsH()); 
+  // BONDS WITHOUT HYDROGEN
+  WriteInteger(F_BONDS, parmIn.Bonds());
+
+  // EXCLUDED ATOMS LIST
+  WriteInteger(F_EXCLUDE, excluded);
+
+  // AMBER ATOM TYPE
+  WriteName(F_TYPES, types);
+
+  // GB RADII
+  WriteDouble(F_RADII, gb_radii);
+  // GB SCREENING PARAMETERS
+  WriteDouble(F_SCREEN, gb_screen);
+ 
   CloseFile();
 
   return 0;
@@ -309,7 +350,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<double> mass = GetFlagDouble(F_MASS,values[NATOM]);
   std::vector<int> atype_index = GetFlagInteger(F_ATYPEIDX,values[NATOM]);
   //parmOut.numex = GetFlagInteger(F_NUMEX,values[NATOM]);
-  //parmOut.NB_index = GetFlagInteger(F_NB_INDEX,values[NTYPES]*values[NTYPES]);
+  std::vector<int> NB_index = GetFlagInteger(F_NB_INDEX,values[NTYPES]*values[NTYPES]);
   std::vector<NameType> resnames = GetFlagName(F_RESNAMES,values[NRES]);
   std::vector<int> resnums = GetFlagInteger(F_RESNUMS,values[NRES]);
   std::vector<double> bond_rk = GetFlagDouble(F_BONDRK, values[NUMBND]);
@@ -322,10 +363,10 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   parmOut.scee_scale = GetFlagDouble(F_SCEE,values[NPTRA]);
   parmOut.scnb_scale = GetFlagDouble(F_SCNB,values[NPTRA]);
   // SOLTY: currently unused
-  parmOut.solty = GetFlagDouble(F_SOLTY, values[NATYP]);
+  parmOut.solty = GetFlagDouble(F_SOLTY, values[NATYP]);*/
   int nlj = values[NTYPES] * (values[NTYPES]+1) / 2;
-  parmOut.LJ_A = GetFlagDouble(F_LJ_A,nlj);
-  parmOut.LJ_B = GetFlagDouble(F_LJ_B,nlj);*/
+  std::vector<double> LJ_A = GetFlagDouble(F_LJ_A,nlj);
+  std::vector<double> LJ_B = GetFlagDouble(F_LJ_B,nlj);
   std::vector<int> bondsh = GetFlagInteger(F_BONDSH,values[NBONH]*3);
   std::vector<int> bonds = GetFlagInteger(F_BONDS,values[NBONA]*3);
   /*parmOut.anglesh = GetFlagInteger(F_ANGLESH, values[NTHETH]*4);
@@ -387,6 +428,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
                                            types, gb_radii, gb_screen,
                                            resnames, resnums );
     error_count_ += TopIn.SetBondInfo(bonds, bondsh, bond_rk, bond_req);
+    error_count_ += TopIn.SetNonbondInfo(NB_index, LJ_A, LJ_B);
     if (values[IFBOX]>0)
       error_count_ += TopIn.CreateMoleculeArray(atomsPerMol, parmbox, 
                                                 finalSoluteRes, firstSolvMol);
@@ -632,7 +674,7 @@ int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
 }
 
 // Parm_Amber::WriteInteger()
-int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>& iarray)
+int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>const& iarray)
 {
   std::string FS;
   if (WriteSetup(fflag, iarray.size())) return 0;
@@ -641,7 +683,7 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>& iarray)
   const char *FORMAT = FS.c_str();
   char *ptr = buffer_;
   int col = 0;
-  for (std::vector<int>::iterator it = iarray.begin(); it != iarray.end(); it++) {
+  for (std::vector<int>::const_iterator it = iarray.begin(); it != iarray.end(); it++) {
     int ncharwritten = sprintf(ptr, FORMAT, *it);
     ptr += ncharwritten;
     ++col;
@@ -658,7 +700,8 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>& iarray)
   return 0;
 }
 
-int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>& darray)
+// Parm_Amber::WriteDouble()
+int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& darray)
 {
   std::string FS;
   if (WriteSetup(fflag, darray.size())) return 0;
@@ -667,7 +710,7 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>& darray
   const char *FORMAT = FS.c_str();
   char *ptr = buffer_;
   int col = 0;
-  for (std::vector<double>::iterator it = darray.begin(); it != darray.end(); it++) {
+  for (std::vector<double>::const_iterator it = darray.begin(); it != darray.end(); it++) {
     int ncharwritten = sprintf(ptr, FORMAT, *it);
     ptr += ncharwritten;
     ++col;
@@ -684,7 +727,8 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>& darray
   return 0;
 }
 
-int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>& carray)
+// Parm_Amber::WriteName()
+int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>const& carray)
 {
   std::string FS;
   if (WriteSetup(fflag, carray.size())) return 0;
@@ -693,7 +737,7 @@ int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>& carray
   const char *FORMAT = FS.c_str();
   char *ptr = buffer_;
   int col = 0;
-  for (std::vector<NameType>::iterator it = carray.begin(); it != carray.end(); it++) {
+  for (std::vector<NameType>::const_iterator it = carray.begin(); it != carray.end(); it++) {
     int ncharwritten = sprintf(ptr, FORMAT, *(*it));
     ptr += ncharwritten;
     ++col;

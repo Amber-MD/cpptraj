@@ -8,7 +8,6 @@
 #include "Box.h"
 #include "CoordFrame.h"
 #include "Frame.h"
-#include "ParameterTypes.h"
 // Class: Topology
 /// Hold information for all atoms
 class Topology {
@@ -57,7 +56,8 @@ class Topology {
     mol_iterator SolventStart() const;
     mol_iterator SolventEnd() const;
     // ----- Bond-specific routines -----
-    typedef std::vector<int>::const_iterator bond_iterator;
+    // TODO: Get rid of these, only return const ref??
+/*    typedef std::vector<int>::const_iterator bond_iterator;
     inline bond_iterator BondsStart() const {
       return bonds_.begin();
     }
@@ -69,6 +69,31 @@ class Topology {
     }
     inline bond_iterator BondsH_End() const {
       return bondsh_.end();
+    }*/
+    /*inline const std::vector<ParmBondType>& BondParm() const {
+      return bondParm_;
+    } */
+    inline const std::vector<int>& Bonds() const {
+      return bonds_;
+    }
+    inline const std::vector<int>& BondsH() const {
+      return bondsh_;
+    }
+    inline const std::vector<double>& BondRk() const {
+      return bondrk_;
+    }
+    inline const std::vector<double>& BondReq() const {
+      return bondreq_;
+    }
+    // ----- Non-bond routines -----
+    inline const std::vector<int>& NB_index() const {
+      return nbindex_;
+    }
+    inline const std::vector<double>& LJA() const {
+      return lja_;
+    }
+    inline const std::vector<double>& LJB() const {
+      return ljb_;
     }
     // ----- Misc routines -----
     int ResAtomRange(int, int *, int *);
@@ -148,9 +173,10 @@ class Topology {
     int CreateMoleculeArray(std::vector<int> &,Box,int,int);
     int SetBondInfo(std::vector<int> &, std::vector<int> &,
                     std::vector<double>&,std::vector<double>&);
-
+    int SetNonbondInfo(std::vector<int>& nbindex, std::vector<double>&,
+                       std::vector<double>&);
+    // ----- Common Setup Routines -----
     void CommonSetup(bool,bool);
-
     void ClearBondInfo();
     void AddBond(int,int);
     // ----- Mask Routines -----
@@ -173,7 +199,13 @@ class Topology {
 
     std::vector<int> bonds_;
     std::vector<int> bondsh_;
-    std::vector<ParmBondType> BondParm;
+    std::vector<double> bondrk_;
+    std::vector<double> bondreq_;
+    //std::vector<ParmBondType> bondParm_;
+
+    std::vector<int> nbindex_;
+    std::vector<double> lja_;
+    std::vector<double> ljb_;
     //std::vector<int> excludedAtoms_;
     //std::vector<int> numex_;
 
@@ -188,7 +220,7 @@ class Topology {
     int finalSoluteRes_;
     int pindex_;
     int nframes_;
-    double *massptr_;
+    double *massptr_; // TODO: remove
 
     void SetAtomBondInfo();
     double GetBondedCut(Atom::AtomicElementType, Atom::AtomicElementType);

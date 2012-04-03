@@ -60,9 +60,9 @@ class Parm_Amber : public ParmIO {
     bool PositionFileAtFlag(AmberParmFlagType);
 
     int WriteSetup(AmberParmFlagType,size_t);
-    int WriteInteger(AmberParmFlagType,std::vector<int>&);
-    int WriteDouble(AmberParmFlagType,std::vector<double>&);
-    int WriteName(AmberParmFlagType,std::vector<NameType>&);
+    int WriteInteger(AmberParmFlagType,std::vector<int>const&);
+    int WriteDouble(AmberParmFlagType,std::vector<double>const&);
+    int WriteName(AmberParmFlagType,std::vector<NameType>const&);
 
     size_t GetFortranBufferSize(int,int,int);
     bool SetFortranType();
