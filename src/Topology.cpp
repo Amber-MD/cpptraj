@@ -502,6 +502,55 @@ int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh,
   return 0;
 }
 
+int Topology::SetAngleInfo(std::vector<int>& angles, std::vector<int>& anglesh,
+                           std::vector<double>& tk, std::vector<double>& teq)
+{
+  angles_ = angles;
+  anglesh_ = anglesh;
+  angletk_ = tk;
+  angleteq_ = teq;
+  return 0;
+}
+
+int Topology::SetDihedralInfo(std::vector<int>& dihedrals, std::vector<int>& dihedralsh,
+                              std::vector<double>& pk, std::vector<double>& pn,
+                              std::vector<double>& phase,
+                              std::vector<double>& scee, std::vector<double>& scnb)
+{
+  dihedrals_ = dihedrals;
+  dihedralsh_ = dihedralsh;
+  dihedralpk_ = pk;
+  dihedralpn_ = pn;
+  dihedralphase_ = phase;
+  scee_ = scee;
+  scnb_ = scnb;
+  if (scee_.empty())
+    scee_.resize( dihedralpk_.size(), 1.2);
+  if (scnb.empty())
+    scnb_.resize( dihedralpk_.size(), 2.0);
+  return 0;
+}
+
+int Topology::SetAmberHbond(std::vector<double>& asol, std::vector<double>& bsol,
+                            std::vector<double>& hbcut)
+{
+  asol_ = asol;
+  bsol_ = bsol;
+  hbcut_ = hbcut;
+  return 0;
+}
+
+// TODO: Auto generate
+int Topology::SetAmberExtra(std::vector<double>& solty, std::vector<NameType>& itree, 
+                            std::vector<int>& join, std::vector<int>& irotat)
+{
+  solty_ = solty;
+  itree_ = itree;
+  join_ = join;
+  irotat_ = irotat;
+  return 0;
+}
+
 // Topology::SetNonbondInfo()
 int Topology::SetNonbondInfo(int ntypesIn, std::vector<int>& nbindex, 
                              std::vector<double>& lja, std::vector<double>& ljb)

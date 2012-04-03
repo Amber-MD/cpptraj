@@ -63,6 +63,28 @@ class Topology {
     inline const std::vector<int>& BondsH() const { return bondsh_; }
     inline const std::vector<double>& BondRk() const { return bondrk_; }
     inline const std::vector<double>& BondReq() const { return bondreq_; }
+    // ----- Angle-specific routines -----
+    inline const std::vector<int>& Angles() const { return angles_; }
+    inline const std::vector<int>& AnglesH() const { return anglesh_; }
+    inline const std::vector<double>& AngleTk() const { return angletk_; }
+    inline const std::vector<double>& AngleTeq() const { return angleteq_; }
+    // ----- Dihedral-specific routines -----
+    inline const std::vector<int>& Dihedrals() const { return dihedrals_; }
+    inline const std::vector<int>& DihedralsH() const { return dihedralsh_; }
+    inline const std::vector<double>& DihedralPk() const { return dihedralpk_; }
+    inline const std::vector<double>& DihedralPn() const { return dihedralpn_; }
+    inline const std::vector<double>& DihedralPhase() const { return dihedralphase_; }
+    inline const std::vector<double>& SCEE() const { return scee_; }
+    inline const std::vector<double>& SCNB() const { return scnb_; }
+    // ----- Amber Hbond info -----
+    inline const std::vector<double>& Asol() const { return asol_; }
+    inline const std::vector<double>& Bsol() const { return bsol_; }
+    inline const std::vector<double>& HBcut() const { return hbcut_; }
+    // ----- Amber extra info ----- TODO: Generate automatically
+    inline const std::vector<double>& Solty() const { return solty_; }
+    inline const std::vector<NameType>& Itree() const { return itree_; }
+    inline const std::vector<int>& Join() const { return join_; }
+    inline const std::vector<int>& Irotat() const { return irotat_; }
     // ----- Non-bond routines -----
     inline const std::vector<int>& NB_index() const { return nbindex_; }
     inline const std::vector<double>& LJA() const { return lja_; }
@@ -80,7 +102,6 @@ class Topology {
     void ParmInfo();
     void PrintAtomInfo(const char*);
     void PrintBondInfo();
-    // ----- Return Internal Variables -----
     // ----- Routines to Access/Modify Box info -----
     inline Box& ParmBox() { return box_; }
     inline Box::BoxType BoxType() { return box_.Type(); }
@@ -96,6 +117,15 @@ class Topology {
     int CreateMoleculeArray(std::vector<int> &,Box,int,int);
     int SetBondInfo(std::vector<int> &, std::vector<int> &,
                     std::vector<double>&,std::vector<double>&);
+    int SetAngleInfo(std::vector<int> &, std::vector<int> &,
+                    std::vector<double>&,std::vector<double>&);
+    int SetDihedralInfo(std::vector<int> &, std::vector<int> &,
+                    std::vector<double>&,std::vector<double>&,
+                    std::vector<double>&,
+                    std::vector<double>&,std::vector<double>&);
+    int SetAmberHbond(std::vector<double>&,std::vector<double>&,std::vector<double>&);
+    int SetAmberExtra(std::vector<double>&,std::vector<NameType> &,
+                      std::vector<int> &,std::vector<int> &);
     int SetNonbondInfo(int, std::vector<int>& nbindex, 
                        std::vector<double>&, std::vector<double>&);
     // ----- Common Setup Routines -----
@@ -121,6 +151,28 @@ class Topology {
     std::vector<int> bondsh_;
     std::vector<double> bondrk_;
     std::vector<double> bondreq_;
+
+    std::vector<int> angles_;
+    std::vector<int> anglesh_;
+    std::vector<double> angletk_;
+    std::vector<double> angleteq_;
+
+    std::vector<int> dihedrals_;
+    std::vector<int> dihedralsh_;
+    std::vector<double> dihedralpk_;
+    std::vector<double> dihedralpn_;
+    std::vector<double> dihedralphase_;
+    std::vector<double> scee_;
+    std::vector<double> scnb_;
+
+    std::vector<double> asol_;
+    std::vector<double> bsol_;
+    std::vector<double> hbcut_;
+
+    std::vector<double> solty_;
+    std::vector<NameType> itree_;
+    std::vector<int> join_;
+    std::vector<int> irotat_;
 
     std::vector<int> nbindex_;
     std::vector<double> lja_;

@@ -211,21 +211,21 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   values[NTYPES] = parmIn.Ntypes();
   values[NBONH] = (int)parmIn.BondsH().size() / 3; // NOTE: Check divisible by 3?
   values[MBONA] = (int)parmIn.Bonds().size() / 3; // NOTE: Check divisible by 3?
-  /*values[NTHETH]=parmIn.NanglesWithH;
-  values[MTHETA]=parmIn.NanglesWithoutH;
-  values[NPHIH]=parmIn.NdihedralsWithH;
-  values[MPHIA]=parmIn.NdihedralsWithoutH;*/
+  values[NTHETH] = (int)parmIn.AnglesH().size() / 4;
+  values[MTHETA] = (int)parmIn.Angles().size() / 4;
+  values[NPHIH] = (int)parmIn.DihedralsH().size() / 5; 
+  values[MPHIA] = (int)parmIn.Dihedrals().size() / 5;
   values[NNB] = (int)excluded.size();
   values[NRES] = parmIn.Nres();
   //   NOTE: Assuming NBONA == MBONA etc
-  /*values[NBONA]=parmIn.NbondsWithoutH;
-  values[NTHETA]=parmIn.NanglesWithoutH;
-  values[NPHIA]=parmIn.NdihedralsWithoutH;*/
+  values[NBONA] = values[MBONA];
+  values[NTHETA] = values[MTHETA];
+  values[NPHIA] = values[MPHIA];
   values[NUMBND] = (int)parmIn.BondRk().size();
-  /*values[NUMANG]=parmIn.numang;
-  values[NPTRA]=parmIn.numdih;
-  values[NATYP]=parmIn.natyp; // Only for SOLTY
-  values[NPHB]=parmIn.nphb;*/
+  values[NUMANG] = (int)parmIn.AngleTk().size();
+  values[NPTRA] = (int)parmIn.DihedralPk().size();
+  values[NATYP] = (int)parmIn.Solty().size(); // Only for SOLTY
+  values[NPHB] = (int)parmIn.Asol().size();
   values[IFBOX] = parmIn.ParmBox().AmberIfbox();
   values[NMXRS] = parmIn.FindResidueMaxNatom();
     
@@ -263,25 +263,40 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   WriteName(F_RESNAMES, resnames);
   // RESIDUE POINTER 
   WriteInteger(F_RESNUMS, resnums);
-  // BOND_FORCE_CONSTANT and EQUIL VALUES
+  // BOND, ANGLE, and DIHEDRAL FORCE CONSTANT and EQUIL VALUES
   WriteDouble(F_BONDRK, parmIn.BondRk());
   WriteDouble(F_BONDREQ, parmIn.BondReq());
-
+  WriteDouble(F_ANGLETK, parmIn.AngleTk());
+  WriteDouble(F_ANGLETEQ, parmIn.AngleTeq());
+  WriteDouble(F_DIHPK, parmIn.DihedralPk());
+  WriteDouble(F_DIHPN, parmIn.DihedralPn());
+  WriteDouble(F_DIHPHASE, parmIn.DihedralPhase());
+  WriteDouble(F_SCEE, parmIn.SCEE());
+  WriteDouble(F_SCNB, parmIn.SCNB());
+  // SOLTY - Currently unused
+  WriteDouble(F_SOLTY, parmIn.Solty());
   // LJ params
   WriteDouble(F_LJ_A, parmIn.LJA());
   WriteDouble(F_LJ_B, parmIn.LJB());
- 
-  // BONDS INCLUDING HYDROGEN
+  // BONDS/ANGLES/DIHEDRAL INDICES WITH AND WITHOUT HYDROGEN
   WriteInteger(F_BONDSH, parmIn.BondsH()); 
-  // BONDS WITHOUT HYDROGEN
   WriteInteger(F_BONDS, parmIn.Bonds());
-
+  WriteInteger(F_ANGLESH, parmIn.AnglesH());
+  WriteInteger(F_ANGLES, parmIn.Angles());
+  WriteInteger(F_DIHH, parmIn.DihedralsH());
+  WriteInteger(F_DIH, parmIn.Dihedrals());
   // EXCLUDED ATOMS LIST
   WriteInteger(F_EXCLUDE, excluded);
-
+  // HBOND
+  WriteDouble(F_ASOL, parmIn.Asol());
+  WriteDouble(F_BSOL, parmIn.Asol());
+  WriteDouble(F_HBCUT, parmIn.HBcut());
   // AMBER ATOM TYPE
   WriteName(F_TYPES, types);
-
+  // TREE CHAIN CLASSIFICATION
+  WriteName(F_ITREE, parmIn.Itree());
+  WriteInteger(F_JOIN, parmIn.Join());
+  WriteInteger(F_IROTAT, parmIn.Irotat());
   // Write solvent info if IFBOX>0
   if (values[IFBOX] > 0) {
     // Solvent Pointers
@@ -373,32 +388,32 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<int> resnums = GetFlagInteger(F_RESNUMS,values[NRES]);
   std::vector<double> bond_rk = GetFlagDouble(F_BONDRK, values[NUMBND]);
   std::vector<double> bond_req = GetFlagDouble(F_BONDREQ, values[NUMBND]);
-  /*parmOut.angle_tk = GetFlagDouble(F_ANGLETK, values[NUMANG]);
-  parmOut.angle_teq = GetFlagDouble(F_ANGLETEQ, values[NUMANG]);
-  parmOut.dihedral_pk = GetFlagDouble(F_DIHPK, values[NPTRA]);
-  parmOut.dihedral_pn = GetFlagDouble(F_DIHPN, values[NPTRA]);
-  parmOut.dihedral_phase = GetFlagDouble(F_DIHPHASE, values[NPTRA]);
-  parmOut.scee_scale = GetFlagDouble(F_SCEE,values[NPTRA]);
-  parmOut.scnb_scale = GetFlagDouble(F_SCNB,values[NPTRA]);
+  std::vector<double> angle_tk = GetFlagDouble(F_ANGLETK, values[NUMANG]);
+  std::vector<double> angle_teq = GetFlagDouble(F_ANGLETEQ, values[NUMANG]);
+  std::vector<double> dihedral_pk = GetFlagDouble(F_DIHPK, values[NPTRA]);
+  std::vector<double> dihedral_pn = GetFlagDouble(F_DIHPN, values[NPTRA]);
+  std::vector<double> dihedral_phase = GetFlagDouble(F_DIHPHASE, values[NPTRA]);
+  std::vector<double> scee_scale = GetFlagDouble(F_SCEE,values[NPTRA]);
+  std::vector<double> scnb_scale = GetFlagDouble(F_SCNB,values[NPTRA]);
   // SOLTY: currently unused
-  parmOut.solty = GetFlagDouble(F_SOLTY, values[NATYP]);*/
+  std::vector<double> solty = GetFlagDouble(F_SOLTY, values[NATYP]);
   int nlj = values[NTYPES] * (values[NTYPES]+1) / 2;
   std::vector<double> LJ_A = GetFlagDouble(F_LJ_A,nlj);
   std::vector<double> LJ_B = GetFlagDouble(F_LJ_B,nlj);
   std::vector<int> bondsh = GetFlagInteger(F_BONDSH,values[NBONH]*3);
   std::vector<int> bonds = GetFlagInteger(F_BONDS,values[NBONA]*3);
-  /*parmOut.anglesh = GetFlagInteger(F_ANGLESH, values[NTHETH]*4);
-  parmOut.angles = GetFlagInteger(F_ANGLES, values[NTHETA]*4);
-  parmOut.dihedralsh = GetFlagInteger(F_DIHH, values[NPHIH]*5);
-  parmOut.dihedrals = GetFlagInteger(F_DIH, values[NPHIA]*5);
-  parmOut.excludedAtoms = GetFlagInteger(F_EXCLUDE, values[NNB]);
-  parmOut.asol = GetFlagDouble(F_ASOL,values[NPHB]);
-  parmOut.bsol = GetFlagDouble(F_BSOL,values[NPHB]);
-  parmOut.hbcut = GetFlagDouble(F_HBCUT,values[NPHB]);*/
+  std::vector<int> anglesh = GetFlagInteger(F_ANGLESH, values[NTHETH]*4);
+  std::vector<int> angles = GetFlagInteger(F_ANGLES, values[NTHETA]*4);
+  std::vector<int> dihedralsh = GetFlagInteger(F_DIHH, values[NPHIH]*5);
+  std::vector<int> dihedrals = GetFlagInteger(F_DIH, values[NPHIA]*5);
+  //parmOut.excludedAtoms = GetFlagInteger(F_EXCLUDE, values[NNB]);
+  std::vector<double> asol = GetFlagDouble(F_ASOL,values[NPHB]);
+  std::vector<double> bsol = GetFlagDouble(F_BSOL,values[NPHB]);
+  std::vector<double> hbcut = GetFlagDouble(F_HBCUT,values[NPHB]);
   std::vector<NameType> types = GetFlagName(F_TYPES,values[NATOM]);
-  /*parmOut.itree = GetFlagName(F_ITREE,values[NATOM]);
-  parmOut.join_array = GetFlagInteger(F_JOIN,values[NATOM]);
-  parmOut.irotat = GetFlagInteger(F_IROTAT,values[NATOM]);*/
+  std::vector<NameType> itree = GetFlagName(F_ITREE,values[NATOM]);
+  std::vector<int> join_array = GetFlagInteger(F_JOIN,values[NATOM]);
+  std::vector<int> irotat = GetFlagInteger(F_IROTAT,values[NATOM]);
   // Get solvent info if IFBOX>0
   if (values[IFBOX]>0) {
     std::vector<int> solvent_pointer = GetFlagInteger(F_SOLVENT_POINTER,3);
@@ -447,6 +462,12 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
                                            types, gb_radii, gb_screen,
                                            resnames, resnums );
     error_count_ += TopIn.SetBondInfo(bonds, bondsh, bond_rk, bond_req);
+    error_count_ += TopIn.SetAngleInfo(angles, anglesh, angle_tk, angle_teq);
+    error_count_ += TopIn.SetDihedralInfo(dihedrals, dihedralsh, dihedral_pk,
+                                          dihedral_pn, dihedral_phase,
+                                          scee_scale, scnb_scale);
+    error_count_ += TopIn.SetAmberHbond(asol, bsol, hbcut);
+    error_count_ += TopIn.SetAmberExtra(solty, itree, join_array, irotat);
     error_count_ += TopIn.SetNonbondInfo(values[NTYPES], NB_index, LJ_A, LJ_B);
     if (values[IFBOX]>0)
       error_count_ += TopIn.CreateMoleculeArray(atomsPerMol, parmbox, 

@@ -150,6 +150,7 @@ bool fileExists(char *filenameIn) {
   * filename.number.
   * The buffer should have enough space to handle the append.
   */
+// TODO: Remove this version
 void NumberFilename(char *buffer, char *filenameIn, int number) {
   sprintf(buffer,"%s.%i",filenameIn,number);
 }
