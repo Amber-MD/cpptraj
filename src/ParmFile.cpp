@@ -74,9 +74,35 @@ int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) 
 
 // ParmFile::Write()
 int ParmFile::Write( Topology &Top, std::string &name, ParmFormatType fmt) {
-  return 1;
+  ParmIO *parmio = NULL;
+  ParmIO basicParm;
+  // Set up basic parm file for write
+  // TODO: SetupWrite needs to take string
+  int err = basicParm.SetupWrite((char*)name.c_str(), debug_);
+  if (err == 1) {
+    mprinterr("Error setting up parm file %s for write.\n",name.c_str());
+    return 1;
+  }
+  // Setup ParmIO for this format
+  parmio = SetupParmIO( fmt );
+  if (parmio == NULL) return 1;
+  // Place the basic file in the ParmIO class
+  // NOTE: Should also set debug level.
+  parmio->ParmIO::operator=( basicParm );
+
+  err = parmio->WriteParm( Top );
+  if (err != 0) {
+    mprinterr("Error writing parm file %s\n",name.c_str());
+    delete parmio;
+    return 1;
+  }
+
+  delete parmio;
+
+  return 0;
 }
 
+// ParmFile::Write()
 int ParmFile::Write( Topology &Top, char *nameIn, ParmFormatType fmt) {
   std::string name( nameIn );
   return Write(Top, name, fmt);

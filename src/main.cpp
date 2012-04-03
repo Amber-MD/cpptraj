@@ -78,7 +78,10 @@ static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
       // If "go" then done reading input
       if (inputLine.compare("go")==0) break;
       // If "quit" then abort 
-      if (inputLine.compare("quit")==0) return 1;
+      if (inputLine.compare("quit")==0) {
+        if (!isStdin) fclose(infile);
+        return 1;
+      }
       // Print the input line that will be sent to dispatch
       mprintf("  [%s]\n",inputLine.c_str());
       // Call Dispatch to convert input to arglist and process.

@@ -30,6 +30,7 @@
 class AtomMask {
   public:
     AtomMask();
+    AtomMask(char*);
     AtomMask(const AtomMask &);
     AtomMask & operator=(const AtomMask&);
 

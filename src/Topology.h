@@ -8,6 +8,7 @@
 #include "Box.h"
 #include "CoordFrame.h"
 #include "Frame.h"
+#include "ParameterTypes.h"
 // Class: Topology
 /// Hold information for all atoms
 class Topology {
@@ -16,7 +17,7 @@ class Topology {
     ~Topology();
     // ----- Set internal variables -----
     void SetDebug(int);
-    void SetHasCoordinates();
+    void SetHasCoordinates(); // TODO: Replace with pass-in of CoordFrame
     void SetParmName(const char*);
     void SetParmName(std::string&);
     void SetPindex(int);
@@ -116,6 +117,10 @@ class Topology {
     inline const char *c_str() {
       return parmName_.c_str();
     }
+    inline std::string &ParmName() {
+      return parmName_;
+    }
+    // ----- Routines to Access/Modify Box info -----
     inline Box::BoxType BoxType() {
       return box_.Type();
     }
@@ -131,9 +136,6 @@ class Topology {
     inline void BoxCoords(double *boxOut) {
       box_.ToDouble(boxOut);
     }
-    inline std::string &ParmName() {
-      return parmName_;
-    }
     // ----- PDB/Mol2 etc setup routines -----
     void AddAtom(Atom, Residue);
     void StartNewMol();
@@ -144,7 +146,8 @@ class Topology {
                         std::vector<double>&,std::vector<double>&, 
                         std::vector<NameType>&, std::vector<int>&);
     int CreateMoleculeArray(std::vector<int> &,Box,int,int);
-    int SetBondInfo(std::vector<int> &, std::vector<int> &);
+    int SetBondInfo(std::vector<int> &, std::vector<int> &,
+                    std::vector<double>&,std::vector<double>&);
 
     void CommonSetup(bool,bool);
 
@@ -170,6 +173,7 @@ class Topology {
 
     std::vector<int> bonds_;
     std::vector<int> bondsh_;
+    std::vector<ParmBondType> BondParm;
     std::vector<int> excludedAtoms_;
     std::vector<int> numex_;
 
@@ -208,60 +212,6 @@ class Topology {
 
     std::vector<int> SetupSequentialArray(std::vector<int>&, int, std::vector<int>&);
 
-    //std::vector<size_t> resnums_;
-    //std::vector<NameType> resnames_;
-    //int nres_; ///< Actual # of residues, 1 less than size of resnums
-/*    /// Hold information for a bond
-    struct BondType {
-      double rk;
-      double req;
-      //double scale; In ptraj - necessary?
-      int at1;
-      int at2;
-      int bidx;
-    };
-    /// NBOND: Hold information for bonds without hydrogen
-    std::vector<BondType> Bond;
-    /// NBONDH: Hold information for bonds with hydrogen
-    std::vector<BondType> BondH;
-
-    /// Hold information for an angle
-    struct AngleType {
-      double tk;
-      double teq;
-      int at1;
-      int at2;
-      int at3;
-      int aidx;
-    };
-    /// NTHETA: Hold information for angles without hydrogen
-    std::vector<AngleType> Angle;
-    /// NTHETH: Hold information for angles with hydrogen
-    std::vector<AngleType> AngleH;
-
-    /// Hold information for a dihedral
-    struct DihedralType {
-      double pk;
-      double pn;
-      double phase;
-      int at1;
-      int at2;
-      int at3;
-      int at4;
-      int didx;
-    };
-
-    /// Hold information for LCPO Surface Area calc
-    struct LcpoType {
-      double vdwradii;
-      double P1;
-      double P2;
-      double P3;
-      double P4;
-    };
-    /// NATOM: Hold LCPO info for all atoms
-    std::vector<LcpoType> Lcpo;
-*/
 
 };
 #endif

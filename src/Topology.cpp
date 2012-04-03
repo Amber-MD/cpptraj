@@ -405,7 +405,9 @@ int Topology::CreateMoleculeArray(std::vector<int> &atomsPerMol, Box parmbox,
 }
 
 // Topology::SetBondInfo()
-int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh) {
+int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh,
+                          std::vector<double> &bond_rk, std::vector<double> &bond_req) 
+{
   if (bonds.empty() && bondsh.empty()) {
     mprinterr("Error: Topology: Input bonds and bondsh are empty.\n");
     return 1;
@@ -418,6 +420,19 @@ int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh) {
   bonds_ = bonds;
   bondsh_ = bondsh;
   SetAtomBondInfo();
+  // Create bond parameter arrays
+  if (bond_rk.size() != bond_req.size()) {
+    mprinterr("Error: Topology: Bond parameters have different lengths (%zu != %zu)\n",
+              bond_rk.size(), bond_req.size());
+    return 1;
+  } else {
+    std::vector<double>::iterator req = bond_req.begin();
+    for (std::vector<double>::iterator rk = bond_rk.begin(); rk != bond_rk.end(); rk++)
+    {
+      BondParm.push_back( ParmBondType( *rk, *req) );
+      ++req;
+    }
+  }
   return 0;
 }
 

@@ -1,5 +1,6 @@
 #include <cstdio> // sscanf
 #include <cstring> // strlen, strncmp
+#include <ctime> // time for parm write
 #include <locale> // isspace
 #include <cstdlib> // atoi, atof
 #include "Parm_Amber.h"
@@ -7,75 +8,9 @@
 #include "Box.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
 
-// CONSTRUCTOR
-Parm_Amber::Parm_Amber() : 
-  newParm_(false),
-  ftype_(UNKNOWN_FTYPE),
-  fncols_(0),
-  fprecision_(0),
-  fwidth_(0),
-  error_count_(0),
-  buffer_(NULL)
-{ }
-
-// DESTRUCTOR
-Parm_Amber::~Parm_Amber() {
-  if (buffer_!=NULL) delete[] buffer_;
-}
-
-bool Parm_Amber::ID_ParmFormat() {
-  int iamber[12];
-  // Assumes already set up for READ
-  if (OpenFile()) return false;
-  IO->Gets(lineBuffer_, BUF_SIZE);
-  // Check for %VERSION
-  if (strncmp(lineBuffer_,"%VERSION",8)==0) {
-    IO->Gets(lineBuffer_, BUF_SIZE);
-    // Check for %FLAG
-    if (strncmp(lineBuffer_,"%FLAG",5)==0) {
-      if (debug_>0) mprintf("  AMBER TOPOLOGY file\n");
-      newParm_ = true;
-      CloseFile();
-      return true;
-    }
-  } else {
-    // Since %VERSION not present, If first line is 81 bytes and the second 
-    // line has 12 numbers in 12I6 format, assume old-style Amber topology
-    // NOTE: Could also be less than 81? Only look for 12 numbers?
-    int line1size = (int)strlen(lineBuffer_);
-    if (line1size == (81 + isDos_)) {
-      IO->Gets(lineBuffer_, BUF_SIZE);
-      if ( sscanf(lineBuffer_,"%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i", 
-                  iamber,   iamber+1, iamber+2,  iamber+3, 
-                  iamber+4, iamber+5, iamber+6,  iamber+7, 
-                  iamber+8, iamber+9, iamber+10, iamber+11) == 12 )
-      {
-        if (debug_>0) mprintf("  AMBER TOPOLOGY, OLD FORMAT\n");
-        CloseFile();
-        return true;
-      }
-    }
-  }
-  CloseFile();
-  return false;
-}
-
-int Parm_Amber::ReadParm( Topology &TopIn ) {
-  int err;
-  if (OpenFile()) return 1;
-  if (!newParm_)
-    err = ReadParmOldAmber( TopIn );
-  else
-    err = ReadParmAmber( TopIn );
-  CloseFile();
-  if (err != 0) return 1;
-
-  return 0;
-}
-
 // ---------- Constants and Enumerated types -----------------------------------
 /// Combined size of %FLAG and %FORMAT lines (81 * 2)
-const size_t Parm_Amber::FFSIZE=162;
+//const size_t Parm_Amber::FFSIZE=162;
 /// Enumerated type for FLAG_POINTERS section
 const int Parm_Amber::AMBERPOINTERS=31;
 enum topValues {
@@ -146,6 +81,151 @@ const char Parm_Amber::AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
   "CTITLE",
   "RADIUS_SET"
 };
+
+// -----------------------------------------------------------------------------
+// CONSTRUCTOR
+Parm_Amber::Parm_Amber() : 
+  newParm_(false),
+  ftype_(UNKNOWN_FTYPE),
+  fncols_(0),
+  fprecision_(0),
+  fwidth_(0),
+  error_count_(0),
+  buffer_(0),
+  buffer_size_(0),
+  buffer_max_size_(0)
+{ }
+
+// DESTRUCTOR
+Parm_Amber::~Parm_Amber() {
+  if (buffer_!=0) delete[] buffer_;
+}
+
+// Parm_Amber::ID_ParmFormat()
+bool Parm_Amber::ID_ParmFormat() {
+  int iamber[12];
+  // Assumes already set up for READ
+  if (OpenFile()) return false;
+  IO->Gets(lineBuffer_, BUF_SIZE);
+  // Check for %VERSION
+  if (strncmp(lineBuffer_,"%VERSION",8)==0) {
+    IO->Gets(lineBuffer_, BUF_SIZE);
+    // Check for %FLAG
+    if (strncmp(lineBuffer_,"%FLAG",5)==0) {
+      if (debug_>0) mprintf("  AMBER TOPOLOGY file\n");
+      newParm_ = true;
+      CloseFile();
+      return true;
+    }
+  } else {
+    // Since %VERSION not present, If first line is 81 bytes and the second 
+    // line has 12 numbers in 12I6 format, assume old-style Amber topology
+    // NOTE: Could also be less than 81? Only look for 12 numbers?
+    int line1size = (int)strlen(lineBuffer_);
+    if (line1size == (81 + isDos_)) {
+      IO->Gets(lineBuffer_, BUF_SIZE);
+      if ( sscanf(lineBuffer_,"%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i", 
+                  iamber,   iamber+1, iamber+2,  iamber+3, 
+                  iamber+4, iamber+5, iamber+6,  iamber+7, 
+                  iamber+8, iamber+9, iamber+10, iamber+11) == 12 )
+      {
+        if (debug_>0) mprintf("  AMBER TOPOLOGY, OLD FORMAT\n");
+        CloseFile();
+        return true;
+      }
+    }
+  }
+  CloseFile();
+  return false;
+}
+
+// Parm_Amber::ReadParm()
+int Parm_Amber::ReadParm( Topology &TopIn ) {
+  int err;
+  if (OpenFile()) return 1;
+  if (!newParm_)
+    err = ReadParmOldAmber( TopIn );
+  else
+    err = ReadParmAmber( TopIn );
+  CloseFile();
+  if (err != 0) return 1;
+
+  return 0;
+}
+
+// Parm_Amber::WriteParm()
+int Parm_Amber::WriteParm( Topology &parmIn) {
+  // For date and time
+  time_t rawtime;
+  struct tm *timeinfo;
+
+  // Create arrays of atom info
+  std::vector<NameType> names;
+  std::vector<double> charge;
+  std::vector<int> at_num;
+  std::vector<double> mass;
+  std::vector<int> atype_index;
+  std::vector<NameType> types;
+  std::vector<double> gb_radii;
+  std::vector<double> gb_screen;
+  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++) 
+  {
+    names.push_back( (*atom).Name() );
+    charge.push_back( (*atom).Charge() * ELECTOAMBER );
+    at_num.push_back( (*atom).AtomicNumber() );
+    mass.push_back( (*atom).Mass() );
+    atype_index.push_back( (*atom).TypeIndex() );
+    types.push_back( (*atom).Type() );
+    gb_radii.push_back( (*atom).Radius() );
+    gb_screen.push_back( (*atom).Screen() );
+  }
+
+  // Create pointer array
+  std::vector<int> values(AMBERPOINTERS, 0);
+  values[NATOM] = parmIn.Natom();
+  /*values[NTYPES]=parmIn.ntypes;
+  values[NBONH]=parmIn.NbondsWithH;
+  values[MBONA]=parmIn.NbondsWithoutH;
+  values[NTHETH]=parmIn.NanglesWithH;
+  values[MTHETA]=parmIn.NanglesWithoutH;
+  values[NPHIH]=parmIn.NdihedralsWithH;
+  values[MPHIA]=parmIn.NdihedralsWithoutH;
+  values[NNB]=parmIn.nnb;*/
+  values[NRES] = parmIn.Nres();
+  //   NOTE: Assuming NBONA == MBONA etc
+  /*values[NBONA]=parmIn.NbondsWithoutH;
+  values[NTHETA]=parmIn.NanglesWithoutH;
+  values[NPHIA]=parmIn.NdihedralsWithoutH;
+  values[NUMBND]=parmIn.numbnd;
+  values[NUMANG]=parmIn.numang;
+  values[NPTRA]=parmIn.numdih;
+  values[NATYP]=parmIn.natyp;
+  values[NPHB]=parmIn.nphb;
+  values[IFBOX]=AmberIfbox(parmIn.Box[4]);
+  values[NMXRS]=largestRes;*/
+    
+  // Write parm
+  if (OpenFile()) return 1;
+  // HEADER AND TITLE (4 lines, version, flag, format, title)
+  time( &rawtime );
+  timeinfo = localtime(&rawtime);
+  Printf("%-44s%02i/%02i/%02i  %02i:%02i:%02i                  \n",
+         "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
+                     timeinfo->tm_mon+1,timeinfo->tm_mday,timeinfo->tm_year%100,
+                     timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
+  std::string title = parmIn.ParmName();
+  // Resize title to max 80 char
+  if (title.size() > 80)
+    title.resize(80);
+  Printf("%-80s\n%-80s\n%-80s\n","%FLAG TITLE","%FORMAT(20a4)",title.c_str());
+  // POINTERS
+  WriteInteger(F_POINTERS, values);
+  
+  CloseFile();
+
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // Parm_Amber::ReadParmOldAmber()
 int Parm_Amber::ReadParmOldAmber( Topology &TopIn ) {
@@ -198,9 +278,9 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   //parmOut.NB_index = GetFlagInteger(F_NB_INDEX,values[NTYPES]*values[NTYPES]);
   std::vector<NameType> resnames = GetFlagName(F_RESNAMES,values[NRES]);
   std::vector<int> resnums = GetFlagInteger(F_RESNUMS,values[NRES]);
-  /*parmOut.bond_rk = GetFlagDouble(F_BONDRK, values[NUMBND]);
-  parmOut.bond_req = GetFlagDouble(F_BONDREQ, values[NUMBND]);
-  parmOut.angle_tk = GetFlagDouble(F_ANGLETK, values[NUMANG]);
+  std::vector<double> bond_rk = GetFlagDouble(F_BONDRK, values[NUMBND]);
+  std::vector<double> bond_req = GetFlagDouble(F_BONDREQ, values[NUMBND]);
+  /*parmOut.angle_tk = GetFlagDouble(F_ANGLETK, values[NUMANG]);
   parmOut.angle_teq = GetFlagDouble(F_ANGLETEQ, values[NUMANG]);
   parmOut.dihedral_pk = GetFlagDouble(F_DIHPK, values[NPTRA]);
   parmOut.dihedral_pn = GetFlagDouble(F_DIHPN, values[NPTRA]);
@@ -272,7 +352,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     error_count_ += TopIn.CreateAtomArray( names, charge, at_num, mass, atype_index, 
                                            types, gb_radii, gb_screen,
                                            resnames, resnums );
-    error_count_ += TopIn.SetBondInfo(bonds, bondsh);
+    error_count_ += TopIn.SetBondInfo(bonds, bondsh, bond_rk, bond_req);
     if (values[IFBOX]>0)
       error_count_ += TopIn.CreateMoleculeArray(atomsPerMol, parmbox, 
                                                 finalSoluteRes, firstSolvMol);
@@ -281,13 +361,14 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   return error_count_;
 }
 
+// -----------------------------------------------------------------------------
 // Parm_Amber::GetFlagLine()
 // NOTE: Useful?
-std::string Parm_Amber::GetFlagLine(AmberParmFlagType flag) {
+/*std::string Parm_Amber::GetFlagLine(AmberParmFlagType flag) {
   std::string line;
   if (!PositionFileAtFlag(flag)) return line;
   return GetLine();
-}
+}*/
 
 // Parm_Amber::GetLine()
 std::string Parm_Amber::GetLine() {
@@ -418,6 +499,7 @@ std::vector<NameType> Parm_Amber::GetFlagName(AmberParmFlagType fflag, int maxva
   return carray;
 }
 
+// Parm_Amber::SeekToFlag()
 bool Parm_Amber::SeekToFlag(AmberParmFlagType fflag) {
   // Find flag, set format line
   if (!PositionFileAtFlag(fflag)) return false;
@@ -425,25 +507,6 @@ bool Parm_Amber::SeekToFlag(AmberParmFlagType fflag) {
   if (!SetFortranType()) return false;
   return true;
 }  
-
-// Parm_Amber::GetFortranBufferSize()
-/** Given number of columns and the width of each column, return the 
-  * necessary char buffer size for N data elements.
-  */
-size_t Parm_Amber::GetFortranBufferSize(int width, int ncols, int N) {
-  size_t bufferLines=0;
-  size_t BufferSize=0;
-
-  BufferSize = N * width;
-  bufferLines = N / ncols;
-  if ((N % ncols)!=0) ++bufferLines;
-  // If DOS file there are CRs before Newlines
-  if (isDos_) bufferLines *= 2;
-  BufferSize += bufferLines;
-  //if (debug_>0) 
-  //  fprintf(stdout,"*** Buffer size is %i including %i newlines.\n",BufferSize,bufferLines);
-  return BufferSize;
-}
 
 // Parm_Amber::AllocateAndRead()
 int Parm_Amber::AllocateAndRead(int width, int ncols, int maxval) {
@@ -456,7 +519,7 @@ int Parm_Amber::AllocateAndRead(int width, int ncols, int maxval) {
   }
   // Allocate buffer to read in entire section
   size_t BufferSize = GetFortranBufferSize(width, ncols, maxval);
-  if (buffer_!=NULL) delete[] buffer_;
+  if (buffer_!=0) delete[] buffer_;
   buffer_ = new char[ BufferSize ];
   // Read section from file
   int err = IO->Read(buffer_,BufferSize);
@@ -506,6 +569,79 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
     mprintf("Warning: [%s] Could not find Key %s in file.\n",BaseName(),Key);
   fformat_.clear();
   return false;
+}
+
+// -----------------------------------------------------------------------------
+// Parm_Amber::WriteSetup()
+int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
+  // Assign format string
+  fformat_.assign( AmberParmFmt[fflag] );
+  mprintf("DEBUG: FlagFormat[%s], Nelements=%zu\n",fformat_.c_str(),Nelements);
+  // Set type, cols, width, and precision from format string
+  if (!SetFortranType()) return 1;
+  // Write FLAG and FORMAT lines
+  Printf("%%FLAG %-74s\n%-80s\n",AmberParmFlag[fflag],AmberParmFmt[fflag]);
+  // If Nelements is 0 just print newline and exit
+  if (Nelements == 0) {
+    Printf("\n");
+    return 1;
+  }
+  // Allocate character buffer space for memory, +1 for NULL
+  size_t bufsize = GetFortranBufferSize(fwidth_, fncols_, Nelements);
+  if (bufsize > buffer_max_size_) {
+    if (buffer_!=0) delete[] buffer_;
+    buffer_ = new char[ bufsize+1 ];
+    buffer_max_size_ = bufsize;
+  }
+  buffer_size_ = bufsize;
+  return 0;
+}
+
+// Parm_Amber::WriteInteger()
+int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>& iarray)
+{
+  std::string FS;
+  if (WriteSetup(fflag, iarray.size())) return 0;
+  // Set up printf format string; true == no leading space
+  SetIntegerFormatString(FS, fwidth_, true);
+  const char *FORMAT = FS.c_str();
+  char *ptr = buffer_;
+  int col = 0;
+  for (std::vector<int>::iterator it = iarray.begin(); it != iarray.end(); it++) {
+    int ncharwritten = sprintf(ptr, FORMAT, *it);
+    ptr += ncharwritten;
+    ++col;
+    if (col == fncols_) {
+      sprintf(ptr,"\n");
+      ++ptr;
+      col = 0;
+    }
+  }
+  mprintf("INT: Last col written = %i\n",col);
+  if (col != fncols_) sprintf(ptr,"\n");
+  IO->Write(buffer_, buffer_size_);
+
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+// Parm_Amber::GetFortranBufferSize()
+/** Given number of columns and the width of each column, return the 
+  * necessary char buffer size for N data elements.
+  */
+size_t Parm_Amber::GetFortranBufferSize(int width, int ncols, int N) {
+  size_t bufferLines=0;
+  size_t BufferSize=0;
+
+  BufferSize = N * width;
+  bufferLines = N / ncols;
+  if ((N % ncols)!=0) ++bufferLines;
+  // If DOS file there are CRs before Newlines
+  if (isDos_) bufferLines *= 2;
+  BufferSize += bufferLines;
+  //if (debug_>0) 
+  //  fprintf(stdout,"*** Buffer size is %i including %i newlines.\n",BufferSize,bufferLines);
+  return BufferSize;
 }
 
 // Parm_Amber::SetFortranType()

@@ -53,6 +53,9 @@ class Atom {
     inline AtomicElementType Element() const {
       return element_;
     }
+    inline int AtomicNumber() const {
+      return AtomicElementNum[element_];
+    }
     inline NameType Name() const { // NOTE: return reference?
       return aname_;
     }
@@ -61,6 +64,9 @@ class Atom {
     }
     inline NameType Type() const {
       return atype_;
+    }
+    inline int TypeIndex() const {
+      return atype_index_;
     }
     inline int Mol() const {
       return mol_;
@@ -79,6 +85,9 @@ class Atom {
     }
     inline double Radius() const {
       return gb_radius_;
+    }
+    inline double Screen() const {
+      return gb_screen_;
     }
     /// Add atom # to this atoms list of bonded atoms.
     void AddBond(int);

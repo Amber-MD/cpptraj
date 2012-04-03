@@ -5,8 +5,9 @@ class Parm_Amber : public ParmIO {
   public :
     Parm_Amber();
     ~Parm_Amber();
-    int ReadParm(Topology&);
     bool ID_ParmFormat();
+    int ReadParm(Topology&);
+    int WriteParm(Topology&);
   private :
     /// Enumerated type for Fortran data type
     enum FortranType {
@@ -40,11 +41,13 @@ class Parm_Amber : public ParmIO {
     int fwidth_;
     int error_count_;
     char *buffer_;
+    size_t buffer_size_;
+    size_t buffer_max_size_;
 
     int ReadParmOldAmber(Topology&);
     int ReadParmAmber(Topology&);
 
-    std::string GetFlagLine(AmberParmFlagType);
+    //std::string GetFlagLine(AmberParmFlagType);
     std::string GetLine();
     std::vector<int> GetInteger(int,int,int);
     std::vector<double> GetDouble(int,int,int);
@@ -53,9 +56,13 @@ class Parm_Amber : public ParmIO {
     std::vector<double> GetFlagDouble(AmberParmFlagType,int);
     std::vector<NameType> GetFlagName(AmberParmFlagType,int);
     bool SeekToFlag(AmberParmFlagType);
-    size_t GetFortranBufferSize(int,int,int);
     int AllocateAndRead(int,int,int);
     bool PositionFileAtFlag(AmberParmFlagType);
+
+    int WriteSetup(AmberParmFlagType,size_t);
+    int WriteInteger(AmberParmFlagType,std::vector<int>&);
+
+    size_t GetFortranBufferSize(int,int,int);
     bool SetFortranType();
 };
 #endif

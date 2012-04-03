@@ -14,6 +14,16 @@ AtomMask::AtomMask() :
   nselected_(0)
 {}
 
+// CONSTRUCTOR
+AtomMask::AtomMask(char *maskstring) :
+  debug_(0),
+  maskChar_('T'),
+  Natom_(0),
+  nselected_(0)
+{
+  SetMaskString(maskstring);
+}
+
 // COPY CONSTRUCTOR
 AtomMask::AtomMask(const AtomMask &rhs) {
   debug_ = rhs.debug_;

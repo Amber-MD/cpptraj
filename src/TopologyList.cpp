@@ -71,33 +71,35 @@ int TopologyList::CheckCommand(ArgList &argIn) {
     pfile.Write( *TopList_[pindex], outfilename, ParmFile::AMBERPARM );
     return 0;
   }
-/*  // parmstrip <mask> [<parmindex>]: Strip atoms int mask from parm
-  if (argIn->CommandIs("parmstrip")) {
-    char *mask0 = argIn->getNextMask();
-    pindex = argIn->getNextInteger(0);
-    if (pindex < 0 || pindex >= Nparm) {
+  // parmstrip <mask> [<parmindex>]: Strip atoms int mask from parm
+  if (argIn.CommandIs("parmstrip")) {
+    char *mask0 = argIn.getNextMask();
+    pindex = argIn.getNextInteger(0);
+    if (pindex < 0 || pindex >= (int)TopList_.size()) {
       mprinterr("Error: parmstrip: parm index %i out of bounds.\n",pindex);
       return 0;
     }
-    tempMask.SetMaskString(mask0);
+    AtomMask tempMask(mask0);
     // Since want to keep atoms outside mask, invert selection
     tempMask.InvertMask();
-    ParmList[pindex]->SetupIntegerMask( tempMask );
+    TopList_[pindex]->SetupIntegerMask( tempMask );
     mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(), 
-             ParmList[pindex]->natom - tempMask.Nselected(), ParmList[pindex]->parmName);
-    AmberParm *tempParm = ParmList[pindex]->modifyStateByMask(tempMask, NULL);
+             TopList_[pindex]->Natom() - tempMask.Nselected(), TopList_[pindex]->c_str());
+    Topology *tempParm = TopList_[pindex]->modifyStateByMask(tempMask, NULL);
     if (tempParm==NULL) 
       mprinterr("Error: parmstrip: Could not strip parm.\n");
     else {
-      tempParm->ParmInfo(ParmTags[pindex]);
-      ReplaceParm(pindex, tempParm);
+      // Replace parm with stripped version
+      tempParm->ParmInfo();
+      if (!hasCopies_) delete TopList_[pindex];
+      TopList_[pindex] = tempParm;
     }
     return 0;
   }
   // [parm]box [<parmindex>] [x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]
   //           [nobox]
   // Set the given parm box info to what is specified. If nobox, remove box info.
-  if (argIn->CommandIs("box") || argIn->CommandIs("parmbox")) {
+/*  if (argIn->CommandIs("box") || argIn->CommandIs("parmbox")) {
     double parmbox[6];
     parmbox[0] = argIn->getKeyDouble("x",0);
     parmbox[1] = argIn->getKeyDouble("y",0);
