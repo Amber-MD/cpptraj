@@ -220,6 +220,17 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   Printf("%-80s\n%-80s\n%-80s\n","%FLAG TITLE","%FORMAT(20a4)",title.c_str());
   // POINTERS
   WriteInteger(F_POINTERS, values);
+  // ATOM NAMES
+  WriteName(F_NAMES, names);
+  // CHARGE
+  WriteDouble(F_CHARGE, charge);
+  // ATOMIC NUMBER
+  WriteInteger(F_ATOMICNUM, at_num);
+  // MASS
+  WriteDouble(F_MASS, mass);
+  // ATOM_TYPE_INDEX
+  WriteInteger(F_ATYPEIDX, atype_index);
+  
   
   CloseFile();
 
@@ -623,6 +634,59 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>& iarray)
 
   return 0;
 }
+
+int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>& darray)
+{
+  std::string FS;
+  if (WriteSetup(fflag, darray.size())) return 0;
+  // Set up printf format string; true == no leading space
+  SetDoubleFormatString(FS, fwidth_, fprecision_, 2, true);
+  const char *FORMAT = FS.c_str();
+  char *ptr = buffer_;
+  int col = 0;
+  for (std::vector<double>::iterator it = darray.begin(); it != darray.end(); it++) {
+    int ncharwritten = sprintf(ptr, FORMAT, *it);
+    ptr += ncharwritten;
+    ++col;
+    if (col == fncols_) {
+      sprintf(ptr,"\n");
+      ++ptr;
+      col = 0;
+    }
+  }
+  mprintf("DOUBLE: Last col written = %i\n",col);
+  if (col != fncols_) sprintf(ptr,"\n");
+  IO->Write(buffer_, buffer_size_);
+
+  return 0;
+}
+
+int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>& carray)
+{
+  std::string FS;
+  if (WriteSetup(fflag, carray.size())) return 0;
+  // Set up printf format string; true == no leading space
+  SetStringFormatString(FS, fwidth_, true);
+  const char *FORMAT = FS.c_str();
+  char *ptr = buffer_;
+  int col = 0;
+  for (std::vector<NameType>::iterator it = carray.begin(); it != carray.end(); it++) {
+    int ncharwritten = sprintf(ptr, FORMAT, *(*it));
+    ptr += ncharwritten;
+    ++col;
+    if (col == fncols_) {
+      sprintf(ptr,"\n");
+      ++ptr;
+      col = 0;
+    }
+  }
+  mprintf("NAME: Last col written = %i\n",col);
+  if (col != fncols_) sprintf(ptr,"\n");
+  IO->Write(buffer_, buffer_size_);
+
+  return 0;
+}
+
 
 // -----------------------------------------------------------------------------
 // Parm_Amber::GetFortranBufferSize()

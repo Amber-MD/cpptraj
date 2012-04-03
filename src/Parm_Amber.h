@@ -27,7 +27,7 @@ class Parm_Amber : public ParmIO {
     };
     static const int NUMAMBERPARMFLAGS;
     static const int AMBERPOINTERS;
-    static const size_t FFSIZE;
+    //static const size_t FFSIZE;
     static const char AmberParmFmt[][16];
     static const char AmberParmFlag[][27];
 
@@ -61,6 +61,8 @@ class Parm_Amber : public ParmIO {
 
     int WriteSetup(AmberParmFlagType,size_t);
     int WriteInteger(AmberParmFlagType,std::vector<int>&);
+    int WriteDouble(AmberParmFlagType,std::vector<double>&);
+    int WriteName(AmberParmFlagType,std::vector<NameType>&);
 
     size_t GetFortranBufferSize(int,int,int);
     bool SetFortranType();
