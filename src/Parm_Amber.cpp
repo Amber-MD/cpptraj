@@ -186,6 +186,16 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
     numex.push_back( nex );
   }
 
+  // Create arrays of residue info
+  std::vector<int> resnums;
+  std::vector<NameType> resnames;
+  for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); res++)
+  {
+    resnames.push_back( (*res).Name() );
+    // Amber atom #s start from 1
+    resnums.push_back( (*res).FirstAtom()+1 );
+  }
+
   // Create pointer array
   std::vector<int> values(AMBERPOINTERS, 0);
   values[NATOM] = parmIn.Natom();
@@ -238,6 +248,11 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   WriteInteger(F_ATYPEIDX, atype_index);
   // NUMBER_EXCLUDED_ATOMS
   WriteInteger(F_NUMEX, numex);
+  // NONBONDED_PARM_INDEX
+  // RESIDUE LABEL
+  WriteName(F_RESNAMES, resnames);
+  // RESIDUE POINTER 
+  WriteInteger(F_RESNUMS, resnums);
   
   
   CloseFile();
