@@ -363,10 +363,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     }
   }
   mprintf("\tAmberParm Title: [%s]\n",title.c_str());
-  if (!title.empty())
-    TopIn.SetParmName( title );
-  else
-    TopIn.SetParmName( BaseName() );
+  TopIn.SetParmName( title, BaseName() );
 
   std::vector<int> values = GetFlagInteger(F_POINTERS, AMBERPOINTERS);
   if (values.empty()) {

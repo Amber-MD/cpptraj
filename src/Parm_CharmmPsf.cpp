@@ -34,6 +34,10 @@ int Parm_CharmmPsf::ReadParm(Topology &parmOut) {
   // Read the first line, should contain PSF...
   if (IO->Gets(buffer_,BUF_SIZE_)) return 1;
 
+  // TODO: Assign title
+  std::string psftitle;
+  parmOut.SetParmName( psftitle, BaseName() );
+
   // Advance to <natom> !NATOM
   int natom = 0;
   while (strncmp(tag,"!NATOM",6)!=0) {

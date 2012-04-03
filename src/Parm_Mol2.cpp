@@ -20,10 +20,7 @@ int Parm_Mol2::ReadParm(Topology &parmOut) {
   mprintf("    Reading Mol2 file %s as topology file.\n",BaseName());
   // Get @<TRIPOS>MOLECULE information
   if (ReadMolecule(IO)) return 1;
-  if ( Mol2Title().empty() )
-    parmOut.SetParmName( BaseName() );
-  else
-    parmOut.SetParmName( Mol2Title() ); 
+  parmOut.SetParmName( Mol2Title(), BaseName() );
 
   // Allocate memory for atom names, types, and charges.
   //parmOut.names = new NAME[ parmOut.natom ];

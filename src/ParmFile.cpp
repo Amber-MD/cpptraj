@@ -77,7 +77,7 @@ int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) 
 }
 
 // ParmFile::Write()
-int ParmFile::Write( Topology &Top, std::string &name, ParmFormatType fmt) {
+int ParmFile::Write( Topology &Top, std::string name, ParmFormatType fmt) {
   ParmIO *parmio = NULL;
   ParmIO basicParm;
   // Set up basic parm file for write
@@ -108,7 +108,6 @@ int ParmFile::Write( Topology &Top, std::string &name, ParmFormatType fmt) {
 
 // ParmFile::Write()
 int ParmFile::Write( Topology &Top, char *nameIn, ParmFormatType fmt) {
-  std::string name( nameIn );
-  return Write(Top, name, fmt);
+  return Write(Top, std::string(nameIn), fmt);
 }
 

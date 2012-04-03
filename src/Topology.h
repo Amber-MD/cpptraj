@@ -17,8 +17,8 @@ class Topology {
     // ----- Set internal variables -----
     void SetDebug(int);
     void SetHasCoordinates(); // TODO: Replace with pass-in of CoordFrame
-    void SetParmName(const char*);
-    void SetParmName(std::string&);
+    //void SetParmName(const char*);
+    void SetParmName(std::string&, const char*);
     void SetGBradiiSet(std::string&);
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
@@ -33,10 +33,10 @@ class Topology {
     int Nframes();
     int Ntypes();
     void IncreaseFrames(int);
-    const char *ResName(int);
+    const char *ResName(int); // TODO: Obsolete
     int Mol_FirstRes(int);
     const char *c_str();
-    std::string &ParmName();
+    std::string ParmName();
     std::string GBradiiSet();
     // ---- Atom-specific routines -----
     typedef std::vector<Atom>::const_iterator atom_iterator;
@@ -144,6 +144,7 @@ class Topology {
     std::vector<Atom> atoms_;
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
+    std::string fileName_;
     std::string parmName_;
     std::string radius_set;
 

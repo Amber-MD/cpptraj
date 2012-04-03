@@ -17,7 +17,7 @@ class ParmFile {
     void SetDebug(int);
     int Read(Topology&, char*,bool,bool);
     int Write(Topology&, char*,ParmFormatType);
-    int Write(Topology&, std::string&, ParmFormatType);
+    int Write(Topology&, std::string, ParmFormatType);
   private :
     int debug_;
     std::string basename_;

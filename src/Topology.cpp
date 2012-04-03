@@ -37,15 +37,16 @@ void Topology::SetHasCoordinates() {
 }
 
 // Topology::SetParmName()
-void Topology::SetParmName(const char *nameIn) {
+void Topology::SetParmName(std::string& title, const char* filename) {
   // NOTE: Check for NULL?
-  parmName_.assign( nameIn );
+  parmName_ = title;
+  fileName_.assign( filename );
 }
 
 // Topology::SetParmName()
-void Topology::SetParmName(std::string &nameIn) {
+/*void Topology::SetParmName(std::string &nameIn) {
   parmName_ = nameIn;
-}
+}*/
 
 void Topology::SetGBradiiSet(std::string &gbset) {
   radius_set = gbset;
@@ -103,9 +104,11 @@ int Topology::Mol_FirstRes(int mol) {
   return molecules_[mol].FirstRes();
 }
 const char *Topology::c_str() {
-  return parmName_.c_str();
+  if (!parmName_.empty())
+    return parmName_.c_str();
+  return fileName_.c_str();
 }
-std::string &Topology::ParmName() { //NOTE: remove reference?
+std::string Topology::ParmName() { //NOTE: remove reference?
   return parmName_;
 }
 std::string Topology::GBradiiSet() {
