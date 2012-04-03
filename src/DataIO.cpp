@@ -93,5 +93,5 @@ void DataIO::SetupXcolumn() {
   // Default width for x col is at least 8
   if (xcol_width_ < 8) xcol_width_ = 8;
   // Set X column data format string, left-aligned (no leading space)
-  SetDoubleFormatString(x_format_, xcol_width_, xcol_precision_, true);
+  SetDoubleFormatString(x_format_, xcol_width_, xcol_precision_, 0, true);
 }

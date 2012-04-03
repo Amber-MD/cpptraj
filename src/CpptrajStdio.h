@@ -23,7 +23,7 @@ bool fileExists(char *);
 void NumberFilename(char *, char *, int);
 std::string NumberFilename(std::string const &, int);
 int DigitWidth(int);
-void SetDoubleFormatString(std::string &, int, int, bool);
+void SetDoubleFormatString(std::string &, int, int, int, bool);
 void SetStringFormatString(std::string &, int, bool);
 void SetIntegerFormatString(std::string &, int, bool);
 

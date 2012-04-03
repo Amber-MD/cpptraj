@@ -197,9 +197,10 @@ int DigitWidth(int numberIn) {
   * precision, and alignment.
   */
 void SetDoubleFormatString(std::string &formatString, int width, int precision,
-                           bool leftAlign) 
+                           int type, bool leftAlign) 
 {
   char leftSpace[2];
+  char typestring[3];
   // If left-aligned, no leading space.
   if (leftAlign)
     leftSpace[0]='\0';
@@ -207,13 +208,26 @@ void SetDoubleFormatString(std::string &formatString, int width, int precision,
     leftSpace[0]=' ';
     leftSpace[1]='\0';
   }
+  // Type: 1 = float, 2 = scientific (E), otherwise double
+  if (type == 1) {
+    typestring[0]='f';
+    typestring[1]='\0';
+  } else if (type == 2) {
+    typestring[0] = 'l';
+    typestring[1] = 'E';
+    typestring[2] = '\0';
+  } else {
+    typestring[0] = 'l';
+    typestring[1] = 'f';
+    typestring[2] = '\0';
+  }
   // # chars necessary to hold width arg
   int wWidth = DigitWidth( width );
   // # chars necessary to hold precision arg
   int pWidth = DigitWidth( precision );
   // String fmt: "%w.plf\0"
   char *format = new char[ pWidth + wWidth + 6 ];
-  sprintf(format, "%s%%%i.%ilf", leftSpace, width, precision);
+  sprintf(format, "%s%%%i.%i%s", leftSpace, width, precision, typestring);
   formatString.assign( format );
   //mprintf("DEBUG: Double Format string: [%s]\n",format);
   delete[] format;
