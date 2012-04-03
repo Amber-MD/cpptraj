@@ -38,6 +38,10 @@ int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) 
 
   // Set up parm for reading
   int err = basicParm.SetupRead(fname, debug_);
+  if (err!=0) {
+    mprinterr("Error: Could not set up parm file %s for reading.\n",fname);
+    return 1;
+  }
   
   // Loop over all parm formats 
   for (int fmtidx = (int)UNKNOWN_PARM + 1; fmtidx != (int)NPARM; fmtidx++) {

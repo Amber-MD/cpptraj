@@ -18,7 +18,7 @@ void rprintf(const char *, ...);
 void rprinterr(const char *, ...);
 //void printerr(const char *, const char *, ...);
 //void printwar(const char *, const char *, ...);
-char *tildeExpansion(char *, int);
+std::string tildeExpansion(char *);
 bool fileExists(char *);
 void NumberFilename(char *, char *, int);
 std::string NumberFilename(std::string const &, int);

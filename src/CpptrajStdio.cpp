@@ -111,42 +111,35 @@ void rprinterr(const char *format, ...) {
   * expanded filename. The calling function is responsible for freeing
   * memory allocated with tildeExpansion.
   */
-char *tildeExpansion(char *filenameIn, int debug) {
-  char *returnFilename;
+std::string tildeExpansion(char *filenameIn) {
+  if (filenameIn==NULL) {
+    mprinterr("Error: tildeExpansion: NULL filename specified.\n");
+    return std::string("");
+  }
 #ifdef __PGI
   // NOTE: It seems some PGI compilers do not function correctly when glob.h
   //       is included and large file flags are set. Just disable globbing
   //       for PGI and return a copy of filenameIn.
-  returnFilename = new char[ strlen(filenameIn)+1 ];
-  strcpy(returnFilename, filenameIn);
-  return returnFilename;
+  std::string returnFilename(filenameIn);
 #else
   glob_t globbuf;
-  if (filenameIn==NULL) {
-    mprinterr("Error: tildeExpansion: NULL filename specified.\n");
-    return NULL;
-  }
   globbuf.gl_offs = 1;
-  if ( glob(filenameIn, GLOB_TILDE, NULL, &globbuf)!=0 ) return NULL;
-  if (debug>1) mprintf("\tGLOB(0): [%s]\n",globbuf.gl_pathv[0]);
-  returnFilename = new char[ strlen(globbuf.gl_pathv[0])+1 ];
-  strcpy(returnFilename, globbuf.gl_pathv[0]);
+  if ( glob(filenameIn, GLOB_TILDE, NULL, &globbuf)!=0 ) 
+    return std::string("");
+  mprintf("DEBUG\tGLOB(0): [%s]\n", globbuf.gl_pathv[0]);
+  std::string returnFilename( globbuf.gl_pathv[0] );
   globfree(&globbuf);
-  return returnFilename;
 #endif
+  return returnFilename;
 } 
 
 // fileExists()
 /** Return true if file can be opened "r".  */
 bool fileExists(char *filenameIn) {
-  FILE *infile = NULL;
-  char *fname;
-
   // Perform tilde expansion
-  fname = tildeExpansion(filenameIn,0);
-  if (fname==NULL) return false;
-  infile=fopen(filenameIn,"rb");
-  delete[] fname;
+  std::string fname = tildeExpansion(filenameIn);
+  if (fname.empty()) return false;
+  FILE *infile = fopen(fname.c_str(), "rb");
   if (infile==NULL) return false;
   fclose(infile);
   return true;

@@ -442,6 +442,7 @@ int CpptrajFile::Read(void *str, size_t numbytes) {
   * determine the base filename. Also determine the file extension.
   */
 void CpptrajFile::SetBaseFilename(char *filenameIn) {
+  mprintf("DEBUG: Called SetBaseFilename with [%s]\n",filenameIn);
   // NULL filename allowed for WRITE (indicates STDOUT)
   if (filenameIn==NULL) {
     filename_ = NULL;
@@ -512,10 +513,15 @@ int CpptrajFile::SetupRead(char *filenameIn, int debugIn) {
   if (debug_>0)
     mprintf("CpptrajFile: Setting up %s for READ.\n",filenameIn);
   // Perform tilde-expansion
-  char *expandedName = tildeExpansion( filenameIn, debug_ );
+  std::string expandedName = tildeExpansion( filenameIn );
+  if (expandedName.empty()) {
+    // Failure of tilde-expansion probably means file does not exist.
+    //mprinterr("Interal Error: CpptrajFile: Tilde-expansion failed.\n");
+    return 1;
+  }
   // Set up filename; sets base filename and extension
-  SetBaseFilename(expandedName);
-  delete[] expandedName;
+  // TODO: Pass in string
+  SetBaseFilename((char*)expandedName.c_str());
   // Determine file type. This sets up IO. 
   if (ID_Type()) return 1;
   if (debug_>0)
@@ -616,16 +622,16 @@ int CpptrajFile::SetupFileIO() {
   return 0;
 }
 
-// CpptrajFile::ID_Type_Format() 
+// CpptrajFile::ID_Type() 
 /** Open the file specified by filename for READ or APPEND access. Attempt to 
-  * identify the file type and format.
+  * identify the file type.
   */
 int CpptrajFile::ID_Type() {
   unsigned char magic[3];
   char buffer1[BUF_SIZE];
   struct stat frame_stat;
 
-  //mprintf("DEBUG: Setting up read file %s\n",filename);
+  mprintf("DEBUG: ID_Type( %s )\n",filename_);
   // Get basic file information
   // An error here means file probably doesnt exist. Dont print an error at 
   // basic debug level since this could also be used to test if file exists.

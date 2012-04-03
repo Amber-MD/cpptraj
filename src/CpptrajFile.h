@@ -96,6 +96,7 @@ class CpptrajFile {
 
     FileType fileType_;         ///< File type (determines IO)
     std::string basefilename_;  ///< Filename minus any path
+    // TODO: Make this a string
     char *filename_;            ///< Avoids constant calls to FileName_.c_str()
     std::string Ext_;           ///< Filename extension
     char printf_buffer_[1024];  ///< Used in Printf functions
