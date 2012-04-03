@@ -130,6 +130,9 @@ class Topology {
     inline int Nframes() {
       return nframes_;
     }
+    inline int Ntypes() {
+      return ntypes_;
+    }
     inline void IncreaseFrames(int frames) {
       nframes_ += frames;
     }
@@ -173,8 +176,8 @@ class Topology {
     int CreateMoleculeArray(std::vector<int> &,Box,int,int);
     int SetBondInfo(std::vector<int> &, std::vector<int> &,
                     std::vector<double>&,std::vector<double>&);
-    int SetNonbondInfo(std::vector<int>& nbindex, std::vector<double>&,
-                       std::vector<double>&);
+    int SetNonbondInfo(int, std::vector<int>& nbindex, 
+                       std::vector<double>&, std::vector<double>&);
     // ----- Common Setup Routines -----
     void CommonSetup(bool,bool);
     void ClearBondInfo();
@@ -220,6 +223,7 @@ class Topology {
     int finalSoluteRes_;
     int pindex_;
     int nframes_;
+    int ntypes_; // This is stored for the purpose of checking array sizes
     double *massptr_; // TODO: remove
 
     void SetAtomBondInfo();

@@ -208,26 +208,26 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   // Create pointer array
   std::vector<int> values(AMBERPOINTERS, 0);
   values[NATOM] = parmIn.Natom();
-  /*values[NTYPES]=parmIn.ntypes;
-  values[NBONH]=parmIn.NbondsWithH;
-  values[MBONA]=parmIn.NbondsWithoutH;
-  values[NTHETH]=parmIn.NanglesWithH;
+  values[NTYPES] = parmIn.Ntypes();
+  values[NBONH] = (int)parmIn.BondsH().size() / 3; // NOTE: Check divisible by 3?
+  values[MBONA] = (int)parmIn.Bonds().size() / 3; // NOTE: Check divisible by 3?
+  /*values[NTHETH]=parmIn.NanglesWithH;
   values[MTHETA]=parmIn.NanglesWithoutH;
   values[NPHIH]=parmIn.NdihedralsWithH;
-  values[MPHIA]=parmIn.NdihedralsWithoutH;
-  values[NNB]=parmIn.nnb;*/
+  values[MPHIA]=parmIn.NdihedralsWithoutH;*/
+  values[NNB] = (int)excluded.size();
   values[NRES] = parmIn.Nres();
   //   NOTE: Assuming NBONA == MBONA etc
   /*values[NBONA]=parmIn.NbondsWithoutH;
   values[NTHETA]=parmIn.NanglesWithoutH;
-  values[NPHIA]=parmIn.NdihedralsWithoutH;
-  values[NUMBND]=parmIn.numbnd;
-  values[NUMANG]=parmIn.numang;
+  values[NPHIA]=parmIn.NdihedralsWithoutH;*/
+  values[NUMBND] = (int)parmIn.BondRk().size();
+  /*values[NUMANG]=parmIn.numang;
   values[NPTRA]=parmIn.numdih;
-  values[NATYP]=parmIn.natyp;
+  values[NATYP]=parmIn.natyp; // Only for SOLTY
   values[NPHB]=parmIn.nphb;
-  values[IFBOX]=AmberIfbox(parmIn.Box[4]);
-  values[NMXRS]=largestRes;*/
+  values[IFBOX]=AmberIfbox(parmIn.Box[4]);*/
+  values[NMXRS] = parmIn.FindResidueMaxNatom();
     
   // Write parm
   if (OpenFile()) return 1;
@@ -263,16 +263,7 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   WriteName(F_RESNAMES, resnames);
   // RESIDUE POINTER 
   WriteInteger(F_RESNUMS, resnums);
-
   // BOND_FORCE_CONSTANT and EQUIL VALUES
-  /*std::vector<double> XK;
-  std::vector<double> XEQ;
-  for (std::vector<ParmBondType>::const_iterator it = parmIn.BondParm().begin();
-                                                 it != parmIn.BondParm().end(); it++)
-  {
-    XK.push_back( (*it).Rk() );
-    XEQ.push_back( (*it).Req() );
-  }*/
   WriteDouble(F_BONDRK, parmIn.BondRk());
   WriteDouble(F_BONDREQ, parmIn.BondReq());
 
@@ -428,7 +419,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
                                            types, gb_radii, gb_screen,
                                            resnames, resnums );
     error_count_ += TopIn.SetBondInfo(bonds, bondsh, bond_rk, bond_req);
-    error_count_ += TopIn.SetNonbondInfo(NB_index, LJ_A, LJ_B);
+    error_count_ += TopIn.SetNonbondInfo(values[NTYPES], NB_index, LJ_A, LJ_B);
     if (values[IFBOX]>0)
       error_count_ += TopIn.CreateMoleculeArray(atomsPerMol, parmbox, 
                                                 finalSoluteRes, firstSolvMol);

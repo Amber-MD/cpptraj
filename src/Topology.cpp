@@ -17,6 +17,7 @@ Topology::Topology() :
   finalSoluteRes_(-1),
   pindex_(0),
   nframes_(0),
+  ntypes_(0),
   massptr_(0)
 { }
 
@@ -441,12 +442,22 @@ int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh,
 }
 
 // Topology::SetNonbondInfo()
-int Topology::SetNonbondInfo(std::vector<int>& nbindex, std::vector<double>& lja,
-                                                        std::vector<double>& ljb)
+int Topology::SetNonbondInfo(int ntypesIn, std::vector<int>& nbindex, 
+                             std::vector<double>& lja, std::vector<double>& ljb)
 {
-  if (lja.size() != ljb.size()) {
-    mprinterr("Error: Topology: LJ parameters have different lengths (%zu != %zu)\n",
-    lja.size(), ljb.size());
+  ntypes_ = ntypesIn;
+  int nbsize = ntypes_ * ntypes_;
+  if ((int)nbindex.size() != nbsize) {
+    mprinterr("Error: Topology: Size of NB_index (%zu) does not match ntypes*ntypes (%i)\n",
+              nbindex.size(), nbsize);
+    return 1;
+  }
+  int ljsize = (ntypes_ * (ntypes_+1)) / 2;
+  if (ljsize != (int)lja.size() ||
+      ljsize != (int)ljb.size()) 
+  {
+    mprinterr("Error: Topology: LJ parameters have wrong size, %i != (%zu | %zu)\n",
+              ljsize, lja.size(), ljb.size());
     return 1;
   }
   nbindex_ = nbindex;
