@@ -172,7 +172,18 @@ Topology::mol_iterator Topology::SolventEnd() const {
     return molecules_.end();
   return molecules_.begin() + firstSolventMol_ + NsolventMolecules_;
 }
-
+// -----------------------------------------------------------------------------
+int Topology::GetBondParamIdx( int idx, double &Rk, double &Req) {
+  if (idx < 0 || idx > (int)bondrk_.size()) return 1;
+  Rk = bondrk_[idx];
+  Req = bondreq_[idx];
+  return 0;
+}
+double Topology::GetBondedCutoff(int atom1, int atom2) {
+  if (atom1 < 0 || atom2 < 0) return -1;
+  if (atom1 >= Natom() || atom2 >= Natom()) return -1;
+  return GetBondedCut( atoms_[atom1].Element(), atoms_[atom2].Element() );
+}
 // -----------------------------------------------------------------------------
 // Topology::ResAtomRange()
 int Topology::ResAtomRange(int res, int *resstart, int *resstop) {
@@ -1315,7 +1326,7 @@ bool Topology::ParseMask(CoordFrame &REF, AtomMask &maskIn, bool intMask) {
     }
     // Check if this mask should now go on the stack
     if ( (*token).OnStack() ) {
-      mprintf("Pushing Mask on stack, last Token [%s]\n",(*token).TypeName());
+      //mprintf("Pushing Mask on stack, last Token [%s]\n",(*token).TypeName());
       Stack.push( pMask );
       pMask = NULL;
     }

@@ -1,5 +1,5 @@
 SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
-        Action_Average.cpp Action_Center.cpp  \
+        Action_Average.cpp Action_Center.cpp Action_CheckStructure.cpp \
         Action_Closest.cpp Action_Clustering.cpp Action.cpp Action_Dihedral.cpp \
         Action_Distance.cpp Action_DistRmsd.cpp \
         Action_DSSP.cpp Action_Hbond.cpp Action_Image.cpp Action_Jcoupling.cpp \

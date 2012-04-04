@@ -64,6 +64,8 @@ class Topology {
     inline const std::vector<int>& BondsH() const { return bondsh_; }
     inline const std::vector<double>& BondRk() const { return bondrk_; }
     inline const std::vector<double>& BondReq() const { return bondreq_; }
+    int GetBondParamIdx( int, double &, double &);
+    double GetBondedCutoff(int, int);
     // ----- Angle-specific routines -----
     inline const std::vector<int>& Angles() const { return angles_; }
     inline const std::vector<int>& AnglesH() const { return anglesh_; }

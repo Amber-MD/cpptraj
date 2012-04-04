@@ -376,8 +376,9 @@ int AtomMask::Tokenize() {
     }
   } // END loop over postfix    
 
-  for (std::vector<MaskToken>::iterator T = maskTokens_.begin(); T != maskTokens_.end(); T++)
-    (*T).Print();
+  if (debug_ > 0)
+    for (std::vector<MaskToken>::iterator T = maskTokens_.begin(); T != maskTokens_.end(); T++)
+      (*T).Print();
 
   return 0;
 }

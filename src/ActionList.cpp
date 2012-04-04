@@ -29,7 +29,7 @@
 //#include "Action_Pairwise.h"
 #include "Action_PtrajAction.h"
 #include "Action_Molsurf.h"
-//#include "Action_CheckStructure.h"
+#include "Action_CheckStructure.h"
 //#include "Action_DihedralScan.h"
 #include "Action_Rotdif.h"
 #include "Action_RunningAvg.h"
@@ -96,8 +96,8 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("cluster"))        {Act=new Clustering;}
   //else if (argIn.CommandIs("pairwise"))       {Act=new Pairwise;}
   else if (argIn.CommandIs("molsurf"))        {Act=new Molsurf; }
-  //else if (argIn.CommandIs("checkstructure")) {Act=new CheckStructure;}
-  //else if (argIn.CommandIs("check"))          {Act=new CheckStructure;}
+  else if (argIn.CommandIs("checkstructure")) {Act=new CheckStructure;}
+  else if (argIn.CommandIs("check"))          {Act=new CheckStructure;}
   //else if (argIn.CommandIs("dihedralscan"))   {Act=new DihedralScan;}
   else if (argIn.CommandIs("rotdif"))         {Act=new Rotdif;}
   else if (argIn.CommandIs("runningaverage")) {Act=new RunningAvg;}
