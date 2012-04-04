@@ -126,7 +126,7 @@ std::string tildeExpansion(char *filenameIn) {
   globbuf.gl_offs = 1;
   if ( glob(filenameIn, GLOB_TILDE, NULL, &globbuf)!=0 ) 
     return std::string("");
-  mprintf("DEBUG\tGLOB(0): [%s]\n", globbuf.gl_pathv[0]);
+  //mprintf("DEBUG\tGLOB(0): [%s]\n", globbuf.gl_pathv[0]);
   std::string returnFilename( globbuf.gl_pathv[0] );
   globfree(&globbuf);
 #endif

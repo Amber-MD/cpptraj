@@ -442,7 +442,7 @@ int CpptrajFile::Read(void *str, size_t numbytes) {
   * determine the base filename. Also determine the file extension.
   */
 void CpptrajFile::SetBaseFilename(char *filenameIn) {
-  mprintf("DEBUG: Called SetBaseFilename with [%s]\n",filenameIn);
+  //mprintf("DEBUG: Called SetBaseFilename with [%s]\n",filenameIn);
   // NULL filename allowed for WRITE (indicates STDOUT)
   if (filenameIn==NULL) {
     filename_ = NULL;
@@ -631,7 +631,7 @@ int CpptrajFile::ID_Type() {
   char buffer1[BUF_SIZE];
   struct stat frame_stat;
 
-  mprintf("DEBUG: ID_Type( %s )\n",filename_);
+  //mprintf("DEBUG: ID_Type( %s )\n",filename_);
   // Get basic file information
   // An error here means file probably doesnt exist. Dont print an error at 
   // basic debug level since this could also be used to test if file exists.
