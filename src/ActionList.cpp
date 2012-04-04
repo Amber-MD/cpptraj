@@ -102,11 +102,11 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("rotdif"))         {Act=new Rotdif;}
   else if (argIn.CommandIs("runningaverage")) {Act=new RunningAvg;}
   else if (argIn.CommandIs("runavg"))         {Act=new RunningAvg;}
+  else if (argIn.CommandIs("runningaverage")) {Act=new RunningAvg;}
   else if (argIn.CommandIs("rmsavgcorr"))     {Act=new RmsAvgCorr;}
   else if (argIn.CommandIs("atomicfluct"))    {Act=new AtomicFluct;}
   // PTRAJ
   else if (argIn.CommandIs("atomicfluct3D") ||
-           argIn.CommandIs("checkoverlap") ||
            argIn.CommandIs("contacts") ||
            argIn.CommandIs("correlation") ||
            argIn.CommandIs("clusterdihedral") ||
@@ -119,7 +119,6 @@ int ActionList::AddAction(ArgList &argIn) {
            argIn.CommandIs("principal") ||
            argIn.CommandIs("projection") ||
            argIn.CommandIs("randomizeions") ||
-           argIn.CommandIs("runningaverage") ||
            argIn.CommandIs("scale") ||
            argIn.CommandIs("unwrap") ||
            argIn.CommandIs("vector") ||
