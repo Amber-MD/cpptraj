@@ -201,7 +201,7 @@ class Topology {
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);
     void DetermineMolecules();
-    void AtomDistance(int, int);
+    void AtomDistance(int, int, int, std::set<int>&);
     void DetermineExcludedAtoms();
     void SetSolventInfo();
 

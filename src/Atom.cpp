@@ -224,14 +224,19 @@ void Atom::ClearBonds() {
 }
 
 // Atom::AddExcluded()
-void Atom::AddExcluded(int idxIn) {
+/*void Atom::AddExcluded(int idxIn) {
   excluded_.insert( idxIn );
+}*/
+void Atom::AddExclusionList(std::set<int>& elist) {
+  excluded_.clear();
+  for (std::set<int>::iterator ei = elist.begin(); ei != elist.end(); ei++)
+    excluded_.push_back( *ei );
 }
 
 // Atom::ClearExcluded()
-void Atom::ClearExcluded() {
+/*void Atom::ClearExcluded() {
   excluded_.clear();
-}
+}*/
 
 // Atom::SetElementFromName()
 /** If not already known, try to determine atomic element from atom name. 

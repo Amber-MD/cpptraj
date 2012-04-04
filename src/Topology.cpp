@@ -941,55 +941,40 @@ void Topology::DetermineMolecules() {
 }
 
 // Topology::AtomDistance()
-void Topology::AtomDistance(int atom, int dist) {
+void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> &excluded) 
+{
   // If this atom is already too far away return
   if (dist==4) return;
-  // Mark distance for this atom 
-  atoms_[atom].SetMol( dist );
+  // dist is less than 4 and this atom greater than original, add exclusion
+  if (atom > originalAtom)
+    excluded.insert( atom ); 
   // Visit each atom bonded to this atom
   for (Atom::bond_iterator bondedatom = atoms_[atom].bondbegin();
                            bondedatom != atoms_[atom].bondend();
                            bondedatom++)
-    AtomDistance(*bondedatom, dist+1);
+    AtomDistance(originalAtom, *bondedatom, dist+1, excluded);
 }
 
 // Topology::DetermineExcludedAtoms()
+/** For each atom, determine which atoms with greater atom# are within
+  * 4 bonds (and therefore should be excluded from a non-bonded calc).
+  */
 void Topology::DetermineExcludedAtoms() {
-  // Save original molecule numbers. Set all atom mol to -1.
-  // NOTE: Necessary?
-  std::vector<int> original_mol;
-  original_mol.reserve( atoms_.size() );
-  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++) {
-    original_mol.push_back( (*atom).Mol() );
-    (*atom).SetMol( -1 );
-  }
-
-  // Determine excluded atoms for each atom
+  // A set is used since it automatically sorts itself and rejects duplicates.
+  std::set<int> excluded_i;
   int natom = (int)atoms_.size();
   for (int atomi = 0; atomi < natom; atomi++) {
-    // Clear atomi exclusion list
-    atoms_[atomi].ClearExcluded();
+    excluded_i.clear();
+    //mprintf("\tDetermining excluded atoms for atom %i\n",atomi+1);
     // AtomDistance recursively sets each atom bond distance from atomi
-    AtomDistance(atomi, 0);
-    // Now each atom within 4 bonds has mol set to how far away it is. All 
-    // other atoms have -1.
-    // Determine which atoms with atom# > this atom are closest. 
-    for (int atomj = 0; atomj < natom; atomj++) {
-      if (atomj > atomi) {
-        if (!atoms_[atomj].NoMol()) 
-          atoms_[atomi].AddExcluded( atomj );
-      }
-      // Reset mol for use with next atomi
-      atoms_[atomj].SetMol( -1 );
-    }
+    AtomDistance(atomi, atomi, 0, excluded_i);
+    atoms_[atomi].AddExclusionList( excluded_i );
+    // DEBUG
+    //mprintf("Atom %i Excluded:");
+    //for (std::set<int>::iterator ei = excluded_i.begin(); ei != excluded_i.end(); ei++)
+    //  mprintf(" %i",*ei + 1);
+    //mprintf("\n");
   } // END loop over atomi
-
-  // Restore original molecule numbers
-  std::vector<int>::iterator omol = original_mol.begin();
-  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++) {
-    (*atom).SetMol( *omol );
-    ++omol;
-  }
 }
 
 // -----------------------------------------------------------------------------

@@ -31,7 +31,7 @@ class Atom {
       return bonds_.end();
     }
     // Iterator over excluded atoms
-    typedef std::set<int>::const_iterator excluded_iterator;
+    typedef std::vector<int>::const_iterator excluded_iterator;
     inline excluded_iterator excludedbegin() const {
       return excluded_.begin();
     }
@@ -105,8 +105,9 @@ class Atom {
     void AddBond(int);
     void ClearBonds();
     /// Add atom # to this atoms exclusion list
-    void AddExcluded(int);
-    void ClearExcluded();
+    //void AddExcluded(int);
+    void AddExclusionList(std::set<int>&);
+    //void ClearExcluded();
 
   private:
     static const int AtomicElementNum[];
@@ -127,7 +128,7 @@ class Atom {
     int resnum_;
     int mol_;
     std::vector<int> bonds_;
-    std::set<int> excluded_;
+    std::vector<int> excluded_;
     // Store bond indices?
 
     void SetElementFromName();
