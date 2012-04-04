@@ -876,7 +876,7 @@ int Action_AtomMap::init() {
     newFrame->SetupFrame(TgtMap.Natom(),TgtParm->Mass());
 
     // Set up new Parm
-    newParm = TgtParm->modifyStateByMap(AMap);
+    newParm = TgtParm->ModifyByMap(AMap);
   }
 
   return 0;

@@ -7,7 +7,7 @@
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
 #include "Action_Angle.h"
-//#include "Action_AtomMap.h"
+#include "Action_AtomMap.h"
 #include "Action_Strip.h"
 #include "Action_DSSP.h"
 #include "Action_Center.h"
@@ -73,7 +73,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("rmsd"))           {Act=new Rmsd;    }
   else if (argIn.CommandIs("rms"))            {Act=new Rmsd;    }
   else if (argIn.CommandIs("dihedral"))       {Act=new Dihedral;}
-  //else if (argIn.CommandIs("atommap"))        {Act=new AtomMap; }
+  else if (argIn.CommandIs("atommap"))        {Act=new Action_AtomMap; }
   else if (argIn.CommandIs("angle"))          {Act=new Angle;   }
   else if (argIn.CommandIs("strip"))          {Act=new Strip;   }
   else if (argIn.CommandIs("secstruct"))      {Act=new DSSP;    }

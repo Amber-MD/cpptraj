@@ -7,6 +7,8 @@ AtomMap::AtomMap() :
   debug_(0)
 {}
 
+MapAtom AtomMap::EMPTYMAPATOM = MapAtom();
+
 MapAtom& AtomMap::operator[](int idx) {
   if (idx < 0 || idx >= (int)mapatoms_.size()) {
     mprinterr("Error: AtomMap::operator[]: Index %i out of range.\n",idx);
