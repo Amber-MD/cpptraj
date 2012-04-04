@@ -13,10 +13,10 @@ class AtomMap {
     void ResetMapping();
     bool BondIsRepeated(int,int);
     void DetermineAtomIDs();
-    void MarkAtomComplete(int);
+    void MarkAtomComplete(int,bool);
     void CheckForCompleteAtoms();
     int CheckBonds();
-    
+
   private:
     static MapAtom EMPTYMAPATOM;
     std::vector<MapAtom> mapatoms_;

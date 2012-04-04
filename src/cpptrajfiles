@@ -1,4 +1,4 @@
-SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
+SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_Average.cpp Action_Center.cpp Action_CheckStructure.cpp \
         Action_Closest.cpp Action_Clustering.cpp Action.cpp Action_Dihedral.cpp \
         Action_Distance.cpp Action_DistRmsd.cpp \
@@ -10,7 +10,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
         Action_RunningAvg.cpp Action_Strip.cpp Action_Surf.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
         Analysis_PtrajAnalysis.cpp \
-        ArgList.cpp Atom.cpp AtomMask.cpp AxisType.cpp Box.cpp \
+        ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
         CharBuffer.cpp ClusterList.cpp CoordFileList.cpp CoordFrame.cpp CoordList.cpp \
         CpptrajFile.cpp \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
@@ -20,7 +20,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp  \
         DistRoutines.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
         Frame.cpp FrameList.cpp Histogram.cpp Integrate.cpp \
-        main.cpp \
+        main.cpp MapAtom.cpp \
         MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfRoutines.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \

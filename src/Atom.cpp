@@ -1,14 +1,15 @@
+#include <algorithm>
 #include "Atom.h"
 #include "CpptrajStdio.h"
 
-const int Atom::AtomicElementNum[22] = { 0,
+const int Atom::AtomicElementNum[NUMELEMENTS] = { 0,
  1,  3,  6,  7, 8,  9,  15, 16, 17, 35, 26, 20, 
  53, 12, 29, 3, 19, 37, 55, 30, 11
 };
 
 /// Atom names corresponding to AtomicElementType.
 // 2 chars + NULL.
-const char Atom::AtomicElementName[22][3] = { "??",
+const char Atom::AtomicElementName[NUMELEMENTS][3] = { "??",
   "H",  "B",  "C",  "N", "O",  "F",  "P",  "S", "Cl", "Br", "Fe", "Ca",
   "I", "Mg", "Cu", "Li", "K", "Rb", "Cs", "Zn", "Na"
 };
@@ -221,6 +222,10 @@ void Atom::AddBond(int idxIn) {
 // Atom::ClearBonds()
 void Atom::ClearBonds() {
   bonds_.clear();
+}
+
+void Atom::SortBonds() {
+  sort( bonds_.begin(), bonds_.end() );
 }
 
 // Atom::AddExcluded()

@@ -119,10 +119,10 @@ void AtomMap::DetermineAtomIDs() {
   }
 }
 
-void AtomMap::MarkAtomComplete(int atom) {
+void AtomMap::MarkAtomComplete(int atom, bool printAtoms) {
   if (atom<0 || atom >= (int)mapatoms_.size()) return;
-  if (!mapatoms_[atom].IsMapped() && debug_==0) return;
-  if ( mapatoms_[atom].Complete() && debug_==0) return;
+  if (!mapatoms_[atom].IsMapped() && !printAtoms) return;
+  if ( mapatoms_[atom].Complete() && !printAtoms) return;
   int nunique = 0;
   for (Atom::bond_iterator bondedAtom = mapatoms_[atom].bondbegin();
                            bondedAtom != mapatoms_[atom].bondend(); bondedAtom++)
@@ -130,7 +130,7 @@ void AtomMap::MarkAtomComplete(int atom) {
       ++nunique;
   if (mapatoms_[atom].IsUnique() && nunique==mapatoms_[atom].Nbonds())
     mapatoms_[atom].SetComplete();
-  if (debug_>0) {
+  if (printAtoms) {
     mprintf("  Atom %4i: %c-%1i |",atom+1,mapatoms_[atom].c_str(),
             (int)mapatoms_[atom].IsMapped());
     for (Atom::bond_iterator bondedAtom = mapatoms_[atom].bondbegin();
@@ -146,8 +146,9 @@ void AtomMap::MarkAtomComplete(int atom) {
 }
 
 void AtomMap::CheckForCompleteAtoms() {
+  bool printAtoms = (debug_ > 0);
   for (int atom = 0; atom < (int)mapatoms_.size(); atom++)
-    MarkAtomComplete(atom);
+    MarkAtomComplete(atom,printAtoms);
 }
 
 int AtomMap::CheckBonds() {

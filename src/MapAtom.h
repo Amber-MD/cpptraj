@@ -27,6 +27,7 @@ class MapAtom : public Atom {
     
     void SetNotMapped() { isMapped_ = false; }
     void SetNotComplete() { complete_ = false; }
+    void SetNotChiral() { isChiral_ = false; }
   private:
     static const char AtomicElementChar[];
     bool isChiral_;

@@ -16,6 +16,7 @@ class Atom {
     static const char AtomicElementName[][3];
     // Constructors and assignment
     Atom();
+    virtual ~Atom() {}
     Atom(NameType, double (&)[3]);
     Atom( NameType, double (&)[3], NameType, double );
     Atom( NameType, double, int, double, int, NameType, double, double,int );
@@ -104,12 +105,15 @@ class Atom {
     /// Add atom # to this atoms list of bonded atoms.
     void AddBond(int);
     void ClearBonds();
+    void SortBonds();
     /// Add atom # to this atoms exclusion list
     //void AddExcluded(int);
     void AddExclusionList(std::set<int>&);
     //void ClearExcluded();
-
+  protected:
+    static const size_t NUMELEMENTS = 22;
   private:
+
     static const int AtomicElementNum[];
 
     double coords_[3];

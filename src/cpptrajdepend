@@ -1,5 +1,6 @@
 Action_Angle.o : Action_Angle.cpp Action.h Action_Angle.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h Constants.h CoordFrame.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h Vec3.h
 Action_AtomicFluct.o : Action_AtomicFluct.cpp Action.h Action_AtomicFluct.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h Constants.h CoordFrame.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h Vec3.h
+Action_AtomMap.o : Action_AtomMap.cpp Action.h Action_AtomMap.h ArgList.h Atom.h AtomMap.h AtomMask.h Box.h CharBuffer.h CoordFrame.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MapAtom.h MaskToken.h Molecule.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Vec3.h
 Action_Average.o : Action_Average.cpp Action.h Action_Average.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CoordFrame.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Vec3.h
 Action_Center.o : Action_Center.cpp Action.h Action_Center.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CoordFrame.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h Vec3.h
 Action_CheckStructure.o : Action_CheckStructure.cpp Action.h Action_CheckStructure.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CoordFrame.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h Vec3.h
@@ -37,6 +38,7 @@ AnalysisList.o : AnalysisList.cpp Analysis.h AnalysisList.h Analysis_Corr.h Anal
 Analysis_PtrajAnalysis.o : Analysis_PtrajAnalysis.cpp Analysis.h Analysis_PtrajAnalysis.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CoordFrame.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h MaskToken.h Molecule.h Name.h NameType.h Residue.h Topology.h TopologyList.h Vec3.h ptraj_analyze.h ptraj_arg.h ptraj_convert.h ptraj_stack.h ptraj_state.h
 ArgList.o : ArgList.cpp ArgList.h CpptrajStdio.h
 Atom.o : Atom.cpp Atom.h CpptrajStdio.h NameType.h
+AtomMap.o : AtomMap.cpp Atom.h AtomMap.h AtomMask.h Box.h CoordFrame.h CpptrajStdio.h Frame.h MapAtom.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h Vec3.h
 AtomMask.o : AtomMask.cpp ArgList.h AtomMask.h CpptrajStdio.h MaskToken.h Name.h NameType.h PtrajMask.h
 AxisType.o : AxisType.cpp Atom.h AtomMask.h AxisType.h Box.h CharBuffer.h CoordFrame.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h PDBfile.h Residue.h Topology.h Vec3.h
 Box.o : Box.cpp Box.h Constants.h CpptrajStdio.h
@@ -71,6 +73,7 @@ FrameList.o : FrameList.cpp Atom.h AtomMask.h Box.h CoordFrame.h CpptrajStdio.h 
 Histogram.o : Histogram.cpp CpptrajStdio.h Histogram.h
 Integrate.o : Integrate.cpp CpptrajStdio.h Integrate.h
 main.o : main.cpp Action.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CoordFileList.h CoordFrame.h Cpptraj.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h ReferenceList.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h Vec3.h
+MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h
 MaskToken.o : MaskToken.cpp CpptrajStdio.h MaskToken.h NameType.h
 Mol2File.o : Mol2File.cpp Atom.h AtomMask.h Box.h CoordFrame.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Mol2File.h Molecule.h NameType.h Residue.h Topology.h Vec3.h
 Molecule.o : Molecule.cpp Molecule.h
