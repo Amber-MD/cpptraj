@@ -1,6 +1,6 @@
 // AtomMap
 //#include <algorithm> //sort
-#include <cstring> //memcpy
+//#include <cstring> //memcpy
 #include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
 // DEBUG
@@ -13,7 +13,6 @@ Action_AtomMap::Action_AtomMap() :
   RefParm(NULL),
   TgtFrame(NULL),
   TgtParm(NULL), 
-  AMap(NULL),
   maponly(false),
   newFrame(NULL),
   newParm(NULL),
@@ -24,7 +23,6 @@ Action_AtomMap::Action_AtomMap() :
 
 // DESTRUCTOR
 Action_AtomMap::~Action_AtomMap() {
-  if (AMap!=NULL) delete[] AMap;
   if (newFrame!=NULL) delete newFrame;
   if (newParm!=NULL) delete newParm;
   if (stripParm!=NULL) delete stripParm;
@@ -497,7 +495,7 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
   std::list<int> refGuess;
   std::list<int> tgtGuess;
   double lowestRMS = 0;
-  int *bestMap = NULL;
+  std::vector<int> bestMap;
   int numAtomsMapped;
   double Rot[9], Trans[6];
 
@@ -570,8 +568,8 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
         //mprintf("\tRMS fitting %i atoms from target to reference.\n",numAtomsMapped);
         //rmsRefFrame.SetupFrame(numAtomsMapped,NULL);
         //rmsTgtFrame.SetupFrame(numAtomsMapped,NULL);
-        rmsRefFrame.SetReferenceByMap(*RefFrame, AMap, Ref.Natom());
-        rmsTgtFrame.SetTargetByMap(*TgtFrame, AMap, Ref.Natom());
+        rmsRefFrame.SetReferenceByMap(*RefFrame, AMap);
+        rmsTgtFrame.SetTargetByMap(*TgtFrame, AMap);
 /*        for (int refatom = 0; refatom < Ref->natom; refatom++) {
           int targetatom = AMap[refatom];
           if (targetatom!=-1) {
@@ -585,9 +583,8 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
                 numAtomsMapped,(*t)+1, (*r)+1, RmsVal);
         // -----------------------------------------------------------------
         // If the current RmsVal is lower than the lowestRMS, store this map.
-        if (bestMap==NULL || RmsVal < lowestRMS) {
-          if (bestMap==NULL) bestMap = new int[ Ref.Natom() ];
-          memcpy(bestMap, AMap, Ref.Natom() * sizeof(int));
+        if (bestMap.empty() || RmsVal < lowestRMS) {
+          bestMap = AMap;
           lowestRMS = RmsVal;
         }
       }
@@ -595,12 +592,11 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
   } // End loop over ref guesses
 
   // If bestMap is NULL something went wrong. Otherwise set AMap to best map.
-  if (bestMap==NULL) {
+  if (bestMap.empty()) {
     mprinterr("Error: AtomMap::MapWithNoUniqueAtoms: Could not guess starting point.\n");
     return 1;
   } else {
-    memcpy(AMap, bestMap, Ref.Natom() * sizeof(int));
-    delete[] bestMap;
+    AMap = bestMap;
   }
   return 0;
 }
@@ -777,7 +773,7 @@ int Action_AtomMap::init() {
 
   // Allocate memory for atom map
   //   AMap[reference]=target
-  AMap = new int[ RefMap.Natom() ]; 
+  AMap.resize( RefMap.Natom(), -1); 
   // Map unique atoms
   numMappedAtoms = MapUniqueAtoms(RefMap, TgtMap);
   if (debug>0)
@@ -822,7 +818,7 @@ int Action_AtomMap::init() {
   if (rmsfit) {
     //int rmsRefIndex = 0;
     // Set up a reference frame containing only mapped reference atoms
-    rmsRefFrame.SetReferenceByMap(*RefFrame, AMap, RefMap.Natom());
+    rmsRefFrame.SetReferenceByMap(*RefFrame, AMap);
 /*    rmsRefFrame.SetupFrame(numMappedAtoms,NULL);
     for (refatom = 0; refatom < RefMap.natom; refatom++) {
       targetatom = AMap[refatom];
@@ -926,7 +922,7 @@ int Action_AtomMap::action() {
 
   // Perform RMS fit on mapped atoms only
   if (rmsfit) {
-    rmsTgtFrame.SetTargetByMap(*currentFrame, AMap, RefMap.Natom());
+    rmsTgtFrame.SetTargetByMap(*currentFrame, AMap);
 /*    int rmsTgtIndex = 0;
     for (int refatom = 0; refatom < RefMap.natom; refatom++) {
       int targetatom = AMap[refatom];

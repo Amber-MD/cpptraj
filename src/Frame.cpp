@@ -531,7 +531,7 @@ void Frame::SetCoordinates(Frame &frameIn, AtomMask &maskIn) {
   */
 // TODO: Error checking. Map should be something besides an int*
 // NOTE: Should this reorder masses as well?
-void Frame::SetCoordinates(Frame &tgtIn, int *mapIn) {
+void Frame::SetCoordinates(Frame &tgtIn, std::vector<int>& mapIn) {
   if (tgtIn.natom_ > maxnatom_) {
     mprinterr("Error: Frame::SetCoordinates: Input map frame atoms (%i) > max natom\n",
               tgtIn.natom_);
@@ -553,11 +553,11 @@ void Frame::SetCoordinates(Frame &tgtIn, int *mapIn) {
   * mapped.
   */
 // TODO: Error Checking
-void Frame::SetReferenceByMap(Frame &refIn, int *mapIn, int mapSize) {
+void Frame::SetReferenceByMap(Frame &refIn, std::vector<int>& mapIn) {
   double *newX = X_;
   double *refX = refIn.X_;
   natom_ = 0;
-  for (int refatom = 0; refatom < mapSize; refatom++) {
+  for (int refatom = 0; refatom < (int)mapIn.size(); refatom++) {
     if (mapIn[refatom] != -1) {
       memcpy(newX, refX, COORDSIZE_);
       newX += 3;
@@ -572,10 +572,10 @@ void Frame::SetReferenceByMap(Frame &refIn, int *mapIn, int mapSize) {
 /** Set this frame to include only atoms from the given target frame, remapped
   * according to the given atom map.
   */
-void Frame::SetTargetByMap(Frame &tgtIn, int *mapIn, int mapSize) {
+void Frame::SetTargetByMap(Frame &tgtIn, std::vector<int>& mapIn) {
   double *newX = X_;
   natom_ = 0;
-  for (int refatom = 0; refatom < mapSize; refatom++) {
+  for (int refatom = 0; refatom < (int)mapIn.size(); refatom++) {
     int tgtatom = mapIn[refatom];
     if (tgtatom!=-1) {
       int tgtatom3 = tgtatom * 3;

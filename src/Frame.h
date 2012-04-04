@@ -46,9 +46,9 @@ class Frame {
     int SetupFrameFromMask(AtomMask&, double *);
     // Frame setup of coords (mass/velo)
     void SetCoordinates(Frame&,AtomMask&);
-    void SetCoordinates(Frame &, int *);
-    void SetReferenceByMap(Frame&,int*,int);
-    void SetTargetByMap(Frame&,int*,int);
+    void SetCoordinates(Frame &, std::vector<int>&);
+    void SetReferenceByMap(Frame&,std::vector<int>&);
+    void SetTargetByMap(Frame&,std::vector<int>&);
     void SetCoordinates(Frame&);
     void SetFrame(Frame&,AtomMask&);
 

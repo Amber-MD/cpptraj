@@ -26,7 +26,7 @@ class Action_AtomMap : public Action {
     int MapUniqueAtoms(AtomMap&, AtomMap&);
     int MapWithNoUniqueAtoms( AtomMap&, AtomMap& );
 
-    int *AMap;
+    std::vector<int> AMap;
     bool maponly;
     Frame *newFrame;
     Topology *newParm;
