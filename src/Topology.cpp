@@ -1369,32 +1369,43 @@ bool Topology::ParseMask(CoordFrame &REF, AtomMask &maskIn, bool intMask) {
   *  not in the Selected array.
   */
 Topology *Topology::modifyStateByMask(AtomMask &Mask) {
+  std::vector<int> Map;
+
+  //int newatom = 0;
+  Map.reserve( Mask.Nselected() );
+  for (AtomMask::const_iterator oldatom = Mask.begin(); oldatom != Mask.end(); oldatom++) 
+    Map.push_back( *oldatom ); // Map[newatom] = oldatom
+
+  return ModifyByMap(Map);
+}
+
+// Topology::ModifyByMap()
+Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
   Topology *newParm = new Topology();
-/*  // Set stripped parm name based on prefix: <prefix>.<oldparmname>
-  // If no prefix given set name as: strip.<oldparmname>
-  if (prefix == NULL)
-    parmName_ = "strip." + parmName_;
-  else
-    parmName_ = std::string(prefix) + parmName_;*/
+
   newParm->parmName_ = parmName_;
   newParm->fileName_ = fileName_;
   newParm->radius_set_ = radius_set_;
 
-  // Atom map
+  // Reverse Atom map
   // TODO: Use std::map instead
   std::vector<int> atomMap( atoms_.size(),-1 );
 
   // Copy atoms from this parm that are in Mask to newParm.
-  int newatom = 0;
+  //int newatom = 0;
   int oldres = -1;
   int oldmol = -1;
   newParm->firstSolventMol_ = -1;
-  for (AtomMask::const_iterator oldatom = Mask.begin(); oldatom != Mask.end(); oldatom++) 
-  {
+  // TODO: Check the map size
+  for (int newatom = 0; newatom < (int)MapIn.size(); newatom++) {
+    int oldatom = MapIn[ newatom ];
+    if (oldatom < 0) continue;
+  //for (AtomMask::const_iterator oldatom = Mask.begin(); oldatom != Mask.end(); oldatom++) 
+  //{
     // Store map of oldatom to newatom
-    atomMap[*oldatom] = newatom;
+    atomMap[oldatom] = newatom;
     // Copy oldatom 
-    Atom newparmAtom = atoms_[*oldatom];
+    Atom newparmAtom = atoms_[oldatom];
     // Save oldatom residue number
     int curres = newparmAtom.ResNum();
     // Check if this old atom is in a different residue than the last. If so,
@@ -1412,7 +1423,7 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask) {
     newParm->atoms_.push_back( newparmAtom );
     // Check if this old atom is in a different molecule than the last. If so,
     // set molecule information.
-    int curmol = atoms_[*oldatom].Mol();
+    int curmol = atoms_[oldatom].Mol();
     if (curmol != oldmol) {
       // Check if this is the first solvent mol of new parm
       if (newParm->firstSolventMol_==-1 && molecules_[curmol].IsSolvent()) {
@@ -1425,10 +1436,10 @@ Topology *Topology::modifyStateByMask(AtomMask &Mask) {
       oldmol = curmol;
     }
     // Copy extra amber info
-    if (!itree_.empty()) newParm->itree_.push_back( itree_[*oldatom] );
-    if (!join_.empty()) newParm->join_.push_back( join_[*oldatom] );
-    if (!irotat_.empty()) newParm->irotat_.push_back( irotat_[*oldatom] );
-    ++newatom;
+    if (!itree_.empty()) newParm->itree_.push_back( itree_[oldatom] );
+    if (!join_.empty()) newParm->join_.push_back( join_[oldatom] );
+    if (!irotat_.empty()) newParm->irotat_.push_back( irotat_[oldatom] );
+    //++newatom;
   }
 
   // NOTE: Since in the bond/angle/dihedral atom arrays the parm indices have 

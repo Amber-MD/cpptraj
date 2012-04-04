@@ -142,6 +142,7 @@ class Topology {
     bool SetupCharMask(AtomMask &, Frame &);
     // ----- Topolgy modification routines -----
     Topology *modifyStateByMask(AtomMask &);
+    Topology *ModifyByMap(std::vector<int>&);
 
   private:
     std::vector<Atom> atoms_;
