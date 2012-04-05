@@ -4,9 +4,9 @@
 #include <cctype> // isdigit, isspace
 #include <sstream> // for NumberedWrite
 #include "TrajectoryFile.h"
-#include "NetcdfRoutines.h"
 #include "PDBfile.h" // TODO: Remove when ID_traj introduced
 #include "Mol2File.h" // ditto
+#include "NetcdfFile.h" // ditto
 #include "CpptrajStdio.h"
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
@@ -69,9 +69,10 @@ TrajectoryFile::TrajFormatType TrajectoryFile::ID_TrajFormat(TrajectoryIO &traje
   const int BUF_SIZE = 83;
   char buffer1[BUF_SIZE];
   char buffer2[BUF_SIZE];
-  // TODO: Remove the next 2, ID should be in individual TrajectoryIO classes
+  // TODO: Remove the next 3, ID should be in individual TrajectoryIO classes
   PDBfile pdbfile;
   Mol2File mol2file;
+  NetcdfFile ncfile;
 
   // Open trajectory
   if (trajectory.IsOpen())
@@ -96,11 +97,11 @@ TrajectoryFile::TrajFormatType TrajectoryFile::ID_TrajFormat(TrajectoryIO &traje
       return UNKNOWN_TRAJ;
     }
     // Determine whether this is a trajectory or restart Netcdf from the Conventions
-    NC_CONVENTION_TYPE nctype = GetNetcdfConventions((char*)trajectory.Name());
+    NetcdfFile::NCTYPE nctype = ncfile.GetNetcdfConventions( trajectory.Name() );
     switch (nctype) {
-      case NC_AMBERTRAJ   : return AMBERNETCDF; break;
-      case NC_AMBERRESTART: return AMBERRESTARTNC; break;
-      case NC_UNKNOWN:
+      case NetcdfFile::NC_AMBERTRAJ   : return AMBERNETCDF; break;
+      case NetcdfFile::NC_AMBERRESTART: return AMBERRESTARTNC; break;
+      case NetcdfFile::NC_UNKNOWN:
       default: return UNKNOWN_TRAJ;
     }
     // Shouldnt get here, just for safetys sake

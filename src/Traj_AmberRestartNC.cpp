@@ -3,43 +3,21 @@
 // This file contains a collection of routines designed for reading
 // (and writing?) netcdf restart files used with amber.
 // Dan Roe 2011-01-07
-#include <cstdlib>
-#include <cstring> // strcmp 
-#include "netcdf.h"
 #include "Traj_AmberRestartNC.h"
-#include "NetcdfRoutines.h"
 #include "CpptrajStdio.h"
+#include "netcdf.h"
 
 // CONSTRUCTOR
-AmberRestartNC::AmberRestartNC() {
+AmberRestartNC::AmberRestartNC() :
+  restartTime_(0),
+  singleWrite_(false),
+  time0_(OUTPUTFRAMESHIFT),
+  dt_(1.0)
+{
   //fprintf(stderr,"Amber Netcdf Restart Constructor\n");
-  ncid=-1;
-  atomDID=-1;
-  ncatom=-1;
-  ncatom3=-1;
-  coordVID=-1;
-  velocityVID=-1;
-  velocityScale=20.455; // Will be overwritten when read in but should be the same 
-  cellAngleVID=-1;
-  cellLengthVID=-1;
-
-  spatialDID=-1;
-  labelDID=-1;
-  cell_spatialDID=-1;
-  cell_angularDID=-1;
-  spatialVID=-1;
-  timeVID=-1;
-  restartTime=0.0;
-  cell_spatialVID=-1;
-  cell_angularVID=-1;
-  TempVID=-1;
-
   // Netcdf restarts always have 1 frame so always seekable
   seekable_=true;
-  time0 = OUTPUTFRAMESHIFT;
-  dt = 1.0;
-  singleWrite=false;
-} 
+}
 
 // DESTRUCTOR
 AmberRestartNC::~AmberRestartNC() {
@@ -49,11 +27,7 @@ AmberRestartNC::~AmberRestartNC() {
 
 // AmberRestartNC::closeTraj()
 void AmberRestartNC::closeTraj() {
-  if (ncid==-1) return;
-  checkNCerr(nc_close(ncid),"Closing netcdf Restart file.");
-  if (debug_>0) mprintf("Successfully closed ncid %i\n",ncid);
-  ncid=-1;
-  return;
+  NC_close();
 }
 
 // AmberRestartNC::openTraj()
@@ -64,13 +38,15 @@ void AmberRestartNC::closeTraj() {
 int AmberRestartNC::openTraj() {
   //mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",BaseName(),ncid);
   // If already open, return
-  if (ncid!=-1) return 0;
+  if (Ncid()!=-1) return 0;
 
   switch (access_) {
 
     case READ :
-      if (checkNCerr(nc_open(Name(),NC_NOWRITE,&ncid),
-          "Opening Netcdf restart file %s for reading",BaseName())!=0) return 1;
+      if ( NC_openRead( Name() ) != 0 ) {
+        mprinterr("Error: Opening Netcdf restart file %s for reading.\n",BaseName());
+        return 1;
+      }
       break;
     
     case APPEND: 
@@ -82,8 +58,8 @@ int AmberRestartNC::openTraj() {
       return 0;
   }
 
-  if (debug_>0) mprintf("Successfully opened restart %s, ncid=%i\n",BaseName(),ncid);
-  if (debug_>1) NetcdfDebug(ncid);
+  if (debug_>0) mprintf("Successfully opened restart %s, ncid=%i\n",BaseName(),Ncid());
+  if (debug_>1) NetcdfDebug();
 
   return 0;
 }
@@ -94,108 +70,59 @@ int AmberRestartNC::openTraj() {
   */
 // NOTE: Replace attrText allocs with static buffer? 
 int AmberRestartNC::setupTrajin(Topology *trajParm) {
-  char *attrText; // For checking conventions and version 
-  int spatial; // For checking spatial dimensions
-  double box[6];
-  size_t start[2], count[2];
-
   if (openTraj()) return -1;
 
-  // Get global attributes
-  if (title_.empty()) {
-    attrText = GetAttrText(ncid,NC_GLOBAL, "title");
-    title_.assign( attrText );
-    free( attrText );
-  }
-  attrText = GetAttrText(ncid,NC_GLOBAL, "Conventions");
-  if (attrText==NULL || strstr(attrText,"AMBERRESTART")==NULL) 
-    mprintf("WARNING: Netcdf restart file %s conventions do not include \"AMBERRESTART\" (%s)\n",
-            BaseName(), attrText);
-  if (attrText!=NULL) free(attrText);
-  attrText = GetAttrText(ncid,NC_GLOBAL, "ConventionVersion");
-  if (attrText==NULL || strcmp(attrText,"1.0")!=0)
-    mprintf("WARNING: Netcdf restart file %s has ConventionVersion that is not 1.0 (%s)\n",
-            BaseName(), attrText);
-  if (attrText!=NULL) free(attrText);
-
-  // Get natom info
-  atomDID=GetDimInfo(ncid,NCATOM,&ncatom);
-  if (atomDID==-1) return -1;
-  ncatom3 = trajParm->Natom() * 3;
-  // Get coord info
-  if (checkNCerr(nc_inq_varid(ncid,NCCOORDS,&coordVID),
-      "Getting coordinate ID")!=0) return -1;
-  attrText = GetAttrText(ncid,coordVID, "units");
-  if (attrText==NULL || strcmp(attrText,"angstrom")!=0) 
-    mprintf("WARNING: Netcdf file %s has length units of %s - expected angstrom.\n",
-            BaseName(),attrText);
-  if (attrText!=NULL) free(attrText);
-  // Get spatial info
-  spatialDID=GetDimInfo(ncid,NCSPATIAL,&spatial);
-  if (spatialDID==-1) return -1;
-  if (spatial!=3) {
-    mprintf("Error: ncOpen: Expected 3 spatial dimenions in %s, got %i\n",
-            BaseName(), spatial);
+  // Sanity check - Make sure this is a Netcdf restart
+  if ( GetNetcdfConventions() != NC_AMBERRESTART ) {
+    mprinterr("Error: Netcdf restart file %s conventions do not include \"AMBERRESTART\"\n",
+            BaseName());
     return -1;
   }
-  if ( checkNCerr(nc_inq_varid(ncid, NCSPATIAL, &spatialVID),
-       "Getting spatial VID\n")) return -1;
 
-  // Get Velocity info
-  if ( nc_inq_varid(ncid,NCVELO,&velocityVID)==NC_NOERR ) {
-    if (debug_>0) mprintf("    Netcdf restart file has velocities.\n");
-    hasVelocity_=true;
-  } else
-    velocityVID=-1;
+  // Get global attributes
+  std::string attrText = GetAttrText("ConventionVersion");
+  if (attrText!="1.0")
+    mprintf("Warning: Netcdf restart file %s has ConventionVersion that is not 1.0 (%s)\n",
+            BaseName(), attrText.c_str());
 
-  // Get Time info
-  if ( nc_inq_varid(ncid, NCTIME, &timeVID) == NC_NOERR) {
-    attrText = GetAttrText(ncid,timeVID, "units");
-    if (attrText==NULL || strcmp(attrText,"picosecond")!=0) 
-      mprintf("WARNING: Netcdf restart file %s has time units of %s - expected picosecond.\n",
-              BaseName(), attrText);
-    if (attrText!=NULL) free(attrText);
-    if ( checkNCerr(nc_get_var_double(ncid, timeVID, &restartTime),
-         "Getting netcdf restart time.")) return -1;
-    if (debug_>0) mprintf("    Netcdf restart time= %lf\n",restartTime);
-  } else {
-    timeVID = -1;
-    time0 = -1;
+  // Get title
+  if (title_.empty())
+    title_ = GetAttrText("title");
+
+  // Setup Coordinates
+  if ( SetupCoordinates()!=0 ) return -1;
+  // Check that specified number of atoms matches expected number.
+  if (Ncatom() != trajParm->Natom()) {
+    mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
+              BaseName(),Ncatom());
+    mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
+    return -1;
   }
-
+  
+  // Setup Velocity - allowed to fail gracefully
+  if (SetupVelocity() == 0)
+    hasVelocity_ = true;
+  
+  // Setup Time
+  if ( SetupTime()!=0 ) return -1;
+  
   // Box info
-  if ( nc_inq_varid(ncid,NCCELL_LENGTHS,&cellLengthVID)==NC_NOERR ) {
-    if (checkNCerr(nc_inq_varid(ncid,NCCELL_ANGLES,&cellAngleVID),
-      "Getting cell angles.")!=0) return -1;
-    if (debug_>0) mprintf("  Netcdf restart Box information found.\n");
-    // Determine box type from angles
-    start[0]=0; start[1]=0;
-    count[0]=3; count[1]=0; 
-    if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
-                    "Getting cell lengths.")!=0 ) return -1;
-    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, boxAngle_),
-                    "Getting cell angles.")!=0 ) return -1;
+  int boxerr = SetupBox(boxAngle_);
+  if (boxerr == 1)
+    return 1;
+  else if (boxerr == 0)
     hasBox_ = true;
-  } 
+  else
+    hasBox_ = false;
 
-  // Replica Temperatures
-  if ( nc_inq_varid(ncid,NCTEMPERATURE,&TempVID) == NC_NOERR ) {
-    if (debug_>0) mprintf("    Netcdf restart file has replica temperature.\n");
-    hasTemperature_=true;
-  } else 
-    TempVID=-1;
+  // Replica Temperatures - allowed to fail gracefully
+  if ( SetupTemperature() == 0 )
+    hasTemperature_ = true;
 
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;
   //int spatialVID, cell_spatialVID, cell_angularVID;
-
-  if (ncatom!=trajParm->Natom()) {
-    mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
-              BaseName(),ncatom);
-    mprinterr("       match those in associated parmtop (%i)!\n",trajParm->Natom());
-    return -1;
-  }
 
   closeTraj();
   return 1;
@@ -211,20 +138,20 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
   // For write, assume we want velocities unless specified
   hasVelocity_=true;
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
-  time0 = argIn->getKeyDouble("time0", OUTPUTFRAMESHIFT);
+  time0_ = argIn->getKeyDouble("time0", OUTPUTFRAMESHIFT);
   if (argIn->hasKey("remdtraj"))   this->SetTemperature();
-  dt = argIn->getKeyDouble("dt",1.0);
+  dt_ = argIn->getKeyDouble("dt",1.0);
   return 0;
 }
 
 // AmberRestartNC::setupTrajout()
 /** Setting up is done for each frame.  */
 int AmberRestartNC::setupTrajout(Topology *trajParm) {
-  ncatom = trajParm->Natom();
-  ncatom3 = ncatom * 3;
+  SetNcatom( trajParm->Natom() );
+  //ncatom3 = ncatom * 3;
   // If number of frames to write == 1 set singleWrite so we dont append
   // frame # to filename.
-  if (trajParm->Nframes()==1) singleWrite=true;
+  if (trajParm->Nframes()==1) singleWrite_=true;
   return 0;
 }
 
@@ -233,153 +160,24 @@ int AmberRestartNC::setupTrajout(Topology *trajParm) {
   * up velocity info if both hasVelocity and V is not NULL.
   */
 int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
-  int dimensionID[NC_MAX_VAR_DIMS];
-  size_t start[2], count[2];
-  char buffer[1024];
-  char xyz[3];
-  char abc[15] = { 'a', 'l', 'p', 'h', 'a', 
-                   'b', 'e', 't', 'a', ' ',
-                   'g', 'a', 'm', 'm', 'a' };
-
+  std::string fname;
   // Create filename for this set
   // If just writing 1 frame dont modify output filename
-  if (singleWrite)
-    strcpy(buffer,Name());
+  if (singleWrite_)
+    fname = FullPathName();
   else
-    NumberFilename(buffer,(char*)Name(),set+OUTPUTFRAMESHIFT);
-
-  // Create file
-  if (checkNCerr(nc_create(buffer,NC_64BIT_OFFSET,&ncid),
-    "Creating Netcdf restart file %s",buffer)) return 1;
-  //if (debug_>0) 
-    mprintf("    Successfully created Netcdf restart file %s, ncid %i\n",buffer,ncid);
-
-  // Time variable
-  if (time0>=0) {
-    if (checkNCerr(nc_def_var(ncid,NCTIME,NC_DOUBLE,0,dimensionID,&timeVID),
-      "Defining time variable.")) return 1;
-    if (checkNCerr(nc_put_att_text(ncid,timeVID,"units",10,"picosecond"),
-      "Writing time VID units.")) return 1;
-  }
-
-  // Spatial dimension and variable
-  if (checkNCerr(nc_def_dim(ncid,NCSPATIAL,3,&spatialDID),
-    "Defining spatial dimension.")) return 1;
-  dimensionID[0] = spatialDID;
-  if (checkNCerr(nc_def_var(ncid,NCSPATIAL,NC_CHAR,1,dimensionID,&spatialVID),
-    "Defining spatial variable.")) return 1;
-
-  // Atom dimension
-  if (checkNCerr(nc_def_dim(ncid,NCATOM,ncatom,&atomDID),
-    "Defining atom dimension.")) return 1;
-
-  // Coord variable
-  dimensionID[0] = atomDID;
-  dimensionID[1] = spatialDID;
-  if (checkNCerr(nc_def_var(ncid,NCCOORDS,NC_DOUBLE,2,dimensionID,&coordVID),
-    "Defining coordinates variable.")) return 1;
-  if (checkNCerr(nc_put_att_text(ncid,coordVID,"units",8,"angstrom"),
-    "Writing coordinates variable units.")) return 1;
-
-  // Velocity variable
-  if (hasVelocity_ && Vin!=NULL) {
-    if (checkNCerr(nc_def_var(ncid,NCVELO,NC_DOUBLE,2,dimensionID,&velocityVID),
-      "Defining velocities variable.")) return 1;
-    if (checkNCerr(nc_put_att_text(ncid,velocityVID,"units",19,"angstrom/picosecond"),
-      "Writing velocities variable units.")) return 1;
-    if (checkNCerr(nc_put_att_double(ncid,velocityVID,"scale_factor",NC_DOUBLE,1, &velocityScale),
-      "Writing velocities scale factor.")) return 1;
-  }
-
-  // Cell Spatial
-  if (checkNCerr(nc_def_dim(ncid,NCCELL_SPATIAL,3,&cell_spatialDID),
-    "Defining cell spatial dimension.")) return 1;
-  dimensionID[0]=cell_spatialDID;
-  if (checkNCerr(nc_def_var(ncid,NCCELL_SPATIAL,NC_CHAR,1,dimensionID,&cell_spatialVID),
-    "Defining cell spatial variable.")) return 1;
-
-  // Cell angular
-  if (checkNCerr(nc_def_dim(ncid,NCLABEL,NCLABELLEN,&labelDID),
-    "Defining label dimension.")) return 1;
-  if (checkNCerr(nc_def_dim(ncid,NCCELL_ANGULAR,3,&cell_angularDID),
-    "Defining cell angular dimension.")) return 1;
-  dimensionID[0] = cell_angularDID;
-  dimensionID[1] = labelDID;
-  if (checkNCerr(nc_def_var(ncid,NCCELL_ANGULAR,NC_CHAR,2,dimensionID,&cell_angularVID),
-    "Defining cell angular variable.")) return 1;
-
-  // Box Info
-  if (hasBox_) {
-    dimensionID[0]=cell_spatialDID;
-    if (checkNCerr(nc_def_var(ncid,NCCELL_LENGTHS,NC_DOUBLE,1,dimensionID,&cellLengthVID),
-      "Defining cell length variable.")) return 1;
-    if (checkNCerr(nc_put_att_text(ncid,cellLengthVID,"units",8,"angstrom"),
-      "Writing cell length variable units.")) return 1;
-    dimensionID[0]=cell_angularDID;
-    if (checkNCerr(nc_def_var(ncid,NCCELL_ANGLES,NC_DOUBLE,1,dimensionID,&cellAngleVID),
-      "Defining cell angle variable.")) return 1;
-    if (checkNCerr(nc_put_att_text(ncid,cellAngleVID,"units",6,"degree"),
-      "Writing cell angle variable units.")) return 1;
-  }
+    fname = NumberFilename(FullPathName(), set+OUTPUTFRAMESHIFT);
 
   // Set up title
-  if (title_.empty()) {
+  if (title_.empty()) 
     title_.assign("Cpptraj Generated Restart");
-  }
 
-  // Attributes
-  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"title",title_.size(),title_.c_str()),
-    "Writing title.")) return 1;
-  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"application",5,"AMBER"),
-    "Writing application.")) return 1;
-  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"program",7,"cpptraj"),
-    "Writing program.")) return 1;
-  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"programVersion",3,"1.0"),
-    "Writing program version.")) return 1;
-  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"Conventions",12,"AMBERRESTART"),
-    "Writing conventions.")) return 1;
-  if (checkNCerr(nc_put_att_text(ncid,NC_GLOBAL,"ConventionVersion",3,"1.0"),
-    "Writing conventions version.")) return 1;
-
-  // Replica temperature 
-  if (hasTemperature_) {
-    mprintf("NETCDF: Defining replica temperature in output restart.\n");
-    if ( checkNCerr(nc_def_var(ncid,NCTEMPERATURE,NC_DOUBLE,0,dimensionID,&TempVID),
-         "Defining replica temperature in netcdf restart.") ) return 1;
-    if ( checkNCerr(nc_put_att_text(ncid,TempVID,"units",6,"kelvin"),
-         "Defining replica temperature units in netcdf restart.") ) return 1;
-  }
-
-  // Set fill mode
-  if (checkNCerr(nc_set_fill(ncid, NC_NOFILL, dimensionID),
-    "NetCDF setting fill value.")) return 1;
-
-  // End netcdf definitions
-  if (checkNCerr(nc_enddef(ncid),"NetCDF error on ending definitions."))
+  if ( NC_create( fname.c_str(), NC_AMBERRESTART, Ncatom(), (hasVelocity_ && Vin!=NULL),
+                  hasBox_, hasTemperature_, (time0_>=0), title_ ) )
     return 1;
 
-  // Specify spatial dimension labels
-  start[0] = 0;
-  count[0] = 3;
-
-  xyz[0] = 'x'; xyz[1] = 'y'; xyz[2] = 'z';
-  if (checkNCerr(nc_put_vara_text(ncid, spatialVID, start, count, xyz),
-    "Error on NetCDF output of spatial VID 'x', 'y' and 'z'")) return 1;
-
-  xyz[0] = 'a'; xyz[1] = 'b'; xyz[2] = 'c';
-  if (checkNCerr(nc_put_vara_text(ncid, cell_spatialVID, start, count, xyz),
-    "Error on NetCDF output of cell spatial VID 'a', 'b' and 'c'")) return 1;
-
-  start[0] = 0; start[1] = 0;
-  count[0] = 3; count[1] = 5;
-  if (checkNCerr(nc_put_vara_text(ncid, cell_angularVID, start, count, abc),
-    "Error on NetCDF output of cell angular VID 'alpha', 'beta ' and 'gamma'")) 
-    return 1;
-
-  // Close the file. It will be reopened write
   // NOTE: Do not close here. Since this is called for every frame a write immediately
   //       follows. Close in writeFrame.
-  //close();
   
   return 0;
 }
@@ -390,38 +188,46 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
   * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
   */
 int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *T) {
-  size_t start[2], count[2];
-
   // Get temperature
-  if (TempVID!=-1) {
-    if ( checkNCerr(nc_get_var_double(ncid, TempVID, T),
-                    "Getting replica temperature.")!=0 ) return 1;
+  if (TempVID_!=-1) {
+    if ( checkNCerr(nc_get_var_double(ncid_, TempVID_, T)) ) {
+      mprinterr("Error: Getting replica temperature.\n");
+      return 1;
+    }
     if (debug_>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",BaseName(),T);
   }
 
   // Read Coords 
-  start[0]=0;
-  start[1]=0;
-  count[0]=ncatom;
-  count[1]=3;
-  if ( checkNCerr(nc_get_vara_double(ncid, coordVID, start, count, X),
-                  "Getting Coords")!=0 ) return 1;
+  start_[0] = 0;
+  start_[1] = 0;
+  count_[0] = Ncatom();
+  count_[1] = 3;
+  if ( checkNCerr(nc_get_vara_double(ncid_, coordVID_, start_, count_, X)) ) {
+    mprinterr("Error: Getting Coords\n");
+    return 1;
+  }
 
   // Read Velocity
   if (hasVelocity_ && V!=NULL) {
     //if (F->V==NULL) F->V = new Frame(ncatom,NULL);
-    if ( checkNCerr(nc_get_vara_double(ncid, velocityVID, start, count, V),
-                    "Getting velocities")!=0 ) return 1;
+    if ( checkNCerr(nc_get_vara_double(ncid_, velocityVID_, start_, count_, V)) ) {
+      mprinterr("Error: Getting velocities\n"); 
+      return 1;
+    }
   }
 
   // Read box info 
   if (hasBox_) {
-    count[0]=3;
-    count[1]=0;
-    if ( checkNCerr(nc_get_vara_double(ncid, cellLengthVID, start, count, box),
-                    "Getting cell lengths.")!=0 ) return 1;
-    if ( checkNCerr(nc_get_vara_double(ncid, cellAngleVID, start, count, box+3),
-                    "Getting cell angles.")!=0 ) return 1;
+    count_[0] = 3;
+    count_[1] = 0;
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, box)) ) {
+      mprinterr("Error: Getting cell lengths.\n"); 
+      return 1;
+    }
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, box+3)) ) {
+      mprinterr("Error: Getting cell angles.\n");
+      return 1;
+    }
   }
 
   return 0;
@@ -429,51 +235,62 @@ int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *
 
 // AmberRestartNC::writeFrame() 
 int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double T) {
-  size_t start[2], count[2];
-
   // Set up file for this set
   if ( this->setupWriteForSet(set,V) ) return 1;
 
   // write coords
-  start[0]=0;
-  start[1]=0;
-  count[0]=ncatom; 
-  count[1]=3;
-  if (checkNCerr(nc_put_vara_double(ncid,coordVID,start,count,X),
-      "Netcdf restart Writing coordinates %i",set)) return 1;
+  start_[0] = 0;
+  start_[1] = 0;
+  count_[0] = Ncatom(); 
+  count_[1] = 3;
+  if (checkNCerr(nc_put_vara_double(ncid_,coordVID_,start_,count_,X)) ) {
+    mprinterr("Error: Netcdf restart Writing coordinates %i\n",set);
+    return 1;
+  }
 
   // write velocity
   if (hasVelocity_ && V!=NULL) {
-    if (checkNCerr(nc_put_vara_double(ncid,velocityVID,start,count,V),
-        "Netcdf restart writing velocity %i",set)) return 1;
+    mprintf("DEBUG: Writing V, VID=%i\n",velocityVID_);
+    if (checkNCerr(nc_put_vara_double(ncid_,velocityVID_,start_,count_,V)) ) {
+      mprinterr("Error: Netcdf restart writing velocity %i\n",set);
+      return 1;
+    }
   }
 
   // write box
   if (hasBox_) { // && cellLengthVID!=-1) {
-    count[0]=3;
-    count[1]=0;
-    if (checkNCerr(nc_put_vara_double(ncid,cellLengthVID,start,count,box),
-      "Writing cell lengths.")) return 1;
-    if (checkNCerr(nc_put_vara_double(ncid,cellAngleVID,start,count, box+3),
-      "Writing cell angles.")) return 1;
+    count_[0] = 3;
+    count_[1] = 0;
+    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,box)) ) {
+      mprinterr("Error: Writing cell lengths.\n");
+      return 1;
+    }
+    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, box+3)) ) {
+      mprinterr("Error: Writing cell angles.\n");
+      return 1;
+    }
   }
 
   // write time
-  if (time0>=0) {
-    restartTime = time0;
-    restartTime += (double) set;
-    restartTime *= dt;
-    if (checkNCerr(nc_put_var_double(ncid,timeVID,&restartTime),
-      "Writing restart time.")) return 1;
+  if (time0_>=0) {
+    restartTime_ = time0_;
+    restartTime_ += (double) set;
+    restartTime_ *= dt_;
+    if (checkNCerr(nc_put_var_double(ncid_,timeVID_,&restartTime_)) ) {
+      mprinterr("Error: Writing restart time.\n");
+      return 1;
+    }
   }
 
   // write temperature
   if (hasTemperature_) {
-    if (checkNCerr(nc_put_var_double(ncid,TempVID,&T),
-      "Writing restart temperature.")) return 1;
+    if (checkNCerr(nc_put_var_double(ncid_,TempVID_,&T)) ) {
+      mprinterr("Error: Writing restart temperature.\n"); 
+      return 1;
+    }
   }
   
-  nc_sync(ncid); // Necessary? File about to close anyway... 
+  nc_sync(ncid_); // Necessary? File about to close anyway... 
 
   // Close file for this set
   closeTraj();

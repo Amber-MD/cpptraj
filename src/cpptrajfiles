@@ -21,7 +21,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
         Frame.cpp FrameList.cpp Histogram.cpp Integrate.cpp \
         main.cpp MapAtom.cpp \
-        MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfRoutines.cpp \
+        MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfFile.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \
         PDBfile.cpp ProgressBar.cpp PtrajMask.cpp ptraj_convert.cpp \

@@ -2,9 +2,10 @@
 #define INC_TRAJ_AMBERNETCDF_H
 #ifdef BINTRAJ
 #include "TrajectoryIO.h"
+#include "NetcdfFile.h"
 // Class: AmberNetcdf
 /// Reads and writes Amber Netcdf format trajectories. 
-class AmberNetcdf : public TrajectoryIO {
+class AmberNetcdf : public TrajectoryIO, NetcdfFile {
   public:
     AmberNetcdf();
     ~AmberNetcdf();
@@ -20,36 +21,17 @@ class AmberNetcdf : public TrajectoryIO {
     int processWriteArgs(ArgList *);
 
   private:
-    int ncid;
-    int frameDID;
-    int ncframe;
-    int atomDID;
-    int ncatom; 
-    int ncatom3; 
-    float *Coord;
-    int coordVID;
-    int cellAngleVID;
-    int cellLengthVID;
+    float *Coord_;
 
-    int spatialDID;
-    int labelDID;
-    int cell_spatialDID;
-    int cell_angularDID;
-    int spatialVID;
-    int timeVID;
-    int cell_spatialVID;
-    int cell_angularVID;
-    int TempVID;
     // Multi-D RMED
-    int remd_dimension;
-    int dimensionDID;
-    int groupnumVID;
-    int dimtypeVID;
-    int indicesVID;
-    int *remd_groupnum;
-    int *remd_dimtype;
-    int *remd_indices;
-
+    int remd_dimension_;
+    int dimensionDID_;
+    int groupnumVID_;
+    int dimtypeVID_;
+    int indicesVID_;
+    int *remd_groupnum_;
+    int *remd_dimtype_;
+    int *remd_indices_;
 };
 #endif
 #endif

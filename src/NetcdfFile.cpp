@@ -4,8 +4,22 @@
 #include "NetcdfFile.h"
 #include "CpptrajStdio.h"
 
-// DEFINES
+// NetcdfFile::GetNetcdfConventions()
+NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
+  NCTYPE nctype = NC_UNKNOWN;
 #ifdef BINTRAJ
+  if ( NC_openRead( fname )!= 0 )
+    return NC_UNKNOWN;
+  nctype = GetNetcdfConventions();
+  NC_close();
+#else
+  mprintf("Error: Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
+#endif
+  return nctype;
+}
+
+#ifdef BINTRAJ
+// DEFINES
 #define NCFRAME "frame"
 #define NCSPATIAL "spatial"
 #define NCATOM "atom"
@@ -19,32 +33,30 @@
 #define NCTIME "time"
 #define NCLABEL "label"
 #define NCLABELLEN 5
-#define NCREMD_DIMENSION "remd_dimension"
-#define NCREMD_GROUPNUM "remd_groupnum"
-#define NCREMD_DIMTYPE "remd_dimtype"
-#define NCREMD_INDICES "remd_indices"
-#endif
 
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
-  ncdebug_(0),
   ncid_(-1),
-  atomDID_(-1),
-  ncatom_(-1),
-  ncatom3_(-1),
+  ncframe_(-1),
+  TempVID_(-1),
   coordVID_(-1),
   velocityVID_(-1),
   cellAngleVID_(-1),
   cellLengthVID_(-1),
+  timeVID_(-1),
+  ncdebug_(1),
+  frameDID_(-1),
+  atomDID_(-1),
+  ncatom_(-1),
+  ncatom3_(-1),
   spatialDID_(-1),
   labelDID_(-1),
   cell_spatialDID_(-1),
   cell_angularDID_(-1),
   spatialVID_(-1),
-  timeVID_(-1),
   cell_spatialVID_(-1),
   cell_angularVID_(-1),
-  TempVID_(-1)
+  velocityScale_(20.455) 
 {
   start_[0] = 0;
   start_[1] = 0;
@@ -54,29 +66,6 @@ NetcdfFile::NetcdfFile() :
   count_[2] = 0;
 }
 
-// NetcdfFile::GetNetcdfConventions()
-NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
-  NCTYPE nctype = NC_UNKNOWN;
-#ifdef BINTRAJ
-  std::string attrText = GetAttrText(NC_GLOBAL, "Conventions");
-  if (attrText == "AMBER")
-    nctype = NC_AMBERTRAJ;
-  else if (attrText == "AMBERRESTART")
-    nctype = NC_AMBERRESTART;
-  else if (attrText.empty()) 
-    mprinterr("Error: Could not get conventions from Netcdf file.\n");
-  else {
-    mprinterr("Error: Netcdf file: Unrecognized conventions \"%s\".\n",
-              attrText.c_str());
-    mprinterr("       Expected \"AMBER\" or \"AMBERRESTART\".\n");
-  }
-#else
-   mprintf("Error: Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
-#endif
-   return nctype;
-}
-
-#ifdef BINTRAJ
 // NetcdfFile::GetAttrText()
 /** Get the information about a netcdf attribute with given vid and 
   * attribute text.
@@ -106,6 +95,29 @@ std::string NetcdfFile::GetAttrText(int vid, const char *attribute) {
   return attrOut;
 }
 
+// NetcdfFile::GetAttrText()
+std::string NetcdfFile::GetAttrText(const char *attribute) {
+  return GetAttrText(NC_GLOBAL, attribute);
+}
+
+// NetcdfFile::GetNetcdfConventions()
+NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
+  NCTYPE nctype = NC_UNKNOWN;
+  std::string attrText = GetAttrText(NC_GLOBAL, "Conventions");
+  if (attrText == "AMBER")
+    nctype = NC_AMBERTRAJ;
+  else if (attrText == "AMBERRESTART")
+    nctype = NC_AMBERRESTART;
+  else if (attrText.empty()) 
+    mprinterr("Error: Could not get conventions from Netcdf file.\n");
+  else {
+    mprinterr("Error: Netcdf file: Unrecognized conventions \"%s\".\n",
+              attrText.c_str());
+    mprinterr("       Expected \"AMBER\" or \"AMBERRESTART\".\n");
+  }
+  return nctype;
+}
+
 // NetcdfFile::GetDimInfo()
 /** Return the dimension ID of a given attribute in netcdf file ncid.
   * Also set dimension length.
@@ -127,6 +139,12 @@ int NetcdfFile::GetDimInfo(const char *attribute, int *length) {
   }
   *length = (int) slength;
   return dimID;
+}
+
+int NetcdfFile::SetupFrame() {
+  frameDID_ = GetDimInfo( NCFRAME, &ncframe_ );
+  if (frameDID_==-1) return 1;
+  return 0;
 }
 
 // NetcdfFile::SetupCoordinates()
@@ -165,7 +183,8 @@ int NetcdfFile::SetupVelocity() {
   if ( nc_inq_varid(ncid_,NCVELO,&velocityVID_)==NC_NOERR ) {
     if (ncdebug_>0) mprintf("    Netcdf file has velocities.\n");
     return 0;
-  } 
+  }
+  // TODO: Check velocity scaling factor. 
   velocityVID_=-1;
   return 1;
 }
@@ -266,18 +285,310 @@ void NetcdfFile::NetcdfDebug() {
   mprintf("==========  END NETCDF DEBUG ==========\n");
 }
 
-// NetcdfFile::NC_open()
-int NetcdfFile::NC_open(const char* Name) {
+// NetcdfFile::NC_openRead()
+int NetcdfFile::NC_openRead(const char* Name) {
   if ( checkNCerr( nc_open( Name, NC_NOWRITE, &ncid_ ) ) )
     return 1;
   return 0;
 }
 
-// NetcdfFile::NC_create()
-int NetcdfFile::NC_create(const char* Name) {
-  if ( checkNCerr( nc_create( Name, NC_64BIT_OFFSET, &ncid_) ) )
+// NetcdfFile::NC_close()
+void NetcdfFile::NC_close() {
+  if (ncid_ == -1) return;
+  bool err = checkNCerr( nc_close(ncid_) );
+  if (ncdebug_ > 0 && !err)
+    mprintf("Successfully closed ncid %i\n",ncid_);
+  ncid_ = -1;
+}
+
+
+// NetcdfFile::NC_openWrite()
+int NetcdfFile::NC_openWrite(const char* Name) {
+  if ( checkNCerr( nc_open( Name, NC_WRITE, &ncid_ ) ) )
     return 1;
   return 0;
+}
+
+// NetcdfFile::NC_create()
+int NetcdfFile::NC_create(const char* Name, NCTYPE type, int natomIn, bool hasVelocity,
+                          bool hasBox, bool hasTemperature, bool hasTime, 
+                          std::string const& title) 
+{
+  int dimensionID[NC_MAX_VAR_DIMS];
+  int NDIM;
+  nc_type dataType;
+
+  mprintf("DEBUG: NC_create: %s  natom=%i V=%i  box=%i  temp=%i  time=%i\n",
+          Name, natomIn, (int)hasVelocity, (int)hasBox, (int)hasTemperature, (int)hasTime);
+
+  if ( checkNCerr( nc_create( Name, NC_64BIT_OFFSET, &ncid_) ) )
+    return 1;
+
+  ncatom_ = natomIn;
+  ncatom3_ = ncatom_ * 3;
+  
+  // Set number of dimensions based on file type
+  switch (type) {
+    case NC_AMBERTRAJ: 
+      NDIM = 3;
+      dataType = NC_FLOAT;
+      break;
+    case NC_AMBERRESTART: 
+      NDIM = 2; 
+      dataType = NC_DOUBLE;
+      break;
+    default:
+      mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n",Name,(int)type);
+      return 1;
+  }
+
+  ncframe_ = 0;
+  if (type == NC_AMBERTRAJ) {
+    // Frame dimension and Time variable for traj
+    if ( checkNCerr( nc_def_dim( ncid_, NCFRAME, NC_UNLIMITED, &frameDID_)) ) {
+      mprinterr("Error: Defining frame dimension.\n");
+      return 1;
+    }
+    dimensionID[0] = frameDID_;
+  }
+  // Time variable and units
+  if (hasTime) {
+    if ( checkNCerr( nc_def_var(ncid_, NCTIME, dataType, NDIM-2, dimensionID, &timeVID_)) ) {
+      mprinterr("Error: Defining time variable.\n");
+      return 1;
+    }
+    if ( checkNCerr( nc_put_att_text(ncid_, timeVID_, "units", 10, "picosecond")) ) {
+      mprinterr("Error: Writing time VID units.\n");
+      return 1;
+    }
+  }
+  // Spatial dimension and variable
+  if ( checkNCerr( nc_def_dim( ncid_, NCSPATIAL, 3, &spatialDID_)) ) {
+    mprinterr("Error: Defining spatial dimension.\n");
+    return 1;
+  }
+  dimensionID[0] = spatialDID_;
+  if ( checkNCerr( nc_def_var( ncid_, NCSPATIAL, NC_CHAR, 1, dimensionID, &spatialVID_)) ) {
+    mprinterr("Error: Defining spatial variable.\n"); 
+    return 1;
+  }
+  // Atom dimension
+  if ( checkNCerr( nc_def_dim( ncid_, NCATOM, ncatom_, &atomDID_)) ) {
+    mprinterr("Error: Defining atom dimension.\n");
+    return 1;
+  }
+  // Setup dimensions for Coords/Velocity
+  // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
+  if (type == NC_AMBERTRAJ) {
+    dimensionID[0] = frameDID_;
+    dimensionID[1] = atomDID_;
+    dimensionID[2] = spatialDID_;
+  } else {
+    dimensionID[0] = atomDID_;
+    dimensionID[1] = spatialDID_;
+  }
+  // Coord variable
+  if ( checkNCerr( nc_def_var( ncid_, NCCOORDS, dataType, NDIM, dimensionID, &coordVID_)) ) {
+    mprinterr("Error: Defining coordinates variable.\n");
+    return 1;
+  }
+  if ( checkNCerr( nc_put_att_text( ncid_, coordVID_, "units", 8, "angstrom")) ) {
+    mprinterr("Error: Writing coordinates variable units.\n");
+    return 1;
+  }
+  // Velocity variable
+  if (hasVelocity) {
+    if ( checkNCerr( nc_def_var( ncid_, NCVELO, dataType, NDIM, dimensionID, &velocityVID_)) ) {
+      mprinterr("Error: Defining velocities variable.\n");
+      return 1;
+    }
+    if ( checkNCerr( nc_put_att_text( ncid_, velocityVID_, "units", 19, "angstrom/picosecond")) )
+    {
+      mprinterr("Error: Writing velocities variable units.\n");
+      return 1;
+    }
+    if ( checkNCerr( nc_put_att_double( ncid_, velocityVID_, "scale_factor", NC_DOUBLE, 1, 
+                                        &velocityScale_)) )
+    {
+      mprinterr("Error: Writing velocities scale factor.\n");
+      return 1;
+    }
+  }
+  // Cell Spatial
+  if ( checkNCerr( nc_def_dim( ncid_, NCCELL_SPATIAL, 3, &cell_spatialDID_)) ) {
+    mprinterr("Error: Defining cell spatial dimension.\n");
+    return 1;
+  }
+  dimensionID[0] = cell_spatialDID_;
+  if ( checkNCerr( nc_def_var(ncid_, NCCELL_SPATIAL, NC_CHAR, 1, dimensionID, &cell_spatialVID_)))
+  {
+    mprinterr("Error: Defining cell spatial variable.\n");
+    return 1;
+  }
+  // Cell angular
+  if ( checkNCerr( nc_def_dim( ncid_, NCLABEL, NCLABELLEN, &labelDID_)) ) {
+    mprinterr("Error: Defining label dimension.\n");
+    return 1;
+  }
+  if ( checkNCerr( nc_def_dim( ncid_, NCCELL_ANGULAR, 3, &cell_angularDID_)) ) {
+    mprinterr("Error: Defining cell angular dimension.\n"); 
+    return 1;
+  }
+  dimensionID[0] = cell_angularDID_;
+  dimensionID[1] = labelDID_;
+  if ( checkNCerr( nc_def_var( ncid_, NCCELL_ANGULAR, NC_CHAR, 2, dimensionID, 
+                               &cell_angularVID_)) )
+  {
+    mprinterr("Error: Defining cell angular variable.\n");
+    return 1;
+  }
+  // Box Info
+  if (hasBox) {
+    // Setup dimensions for Box
+    // NOTE: This must be modified if more types added
+    int boxdim;
+    if (type == NC_AMBERTRAJ) {
+      dimensionID[0] = frameDID_;
+      boxdim = 1;
+    } else {
+      boxdim = 0;
+    }
+    dimensionID[boxdim] = cell_spatialDID_;
+    if ( checkNCerr( nc_def_var( ncid_, NCCELL_LENGTHS, NC_DOUBLE, NDIM-1, dimensionID,
+                                 &cellLengthVID_)) )
+    {
+      mprinterr("Error: Defining cell length variable.\n"); 
+      return 1;
+    }
+    if ( checkNCerr( nc_put_att_text( ncid_, cellLengthVID_, "units", 8, "angstrom")) ) {
+      mprinterr("Error: Writing cell length variable units.\n");
+      return 1;
+    }
+    dimensionID[boxdim] = cell_angularDID_;
+    if ( checkNCerr( nc_def_var( ncid_, NCCELL_ANGLES, NC_DOUBLE, NDIM-1, dimensionID,
+                                 &cellAngleVID_)) )
+    {
+      mprinterr("Error: Defining cell angle variable.\n");
+      return 1;
+    }
+    if ( checkNCerr( nc_put_att_text( ncid_, cellAngleVID_, "units", 6, "degree")) ) {
+      mprinterr("Error: Writing cell angle variable units.\n");
+      return 1;
+    }
+  }
+
+  // Attributes
+  if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"title",title.size(),title.c_str())) ) {
+    mprinterr("Error: Writing title.\n");
+    return 1;
+  }
+  if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"application",5,"AMBER")) ) {
+    mprinterr("Error: Writing application.\n");
+    return 1;
+  }
+  if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"program",7,"cpptraj")) ) {
+    mprinterr("Error: Writing program.\n");
+    return 1;
+  }
+  // TODO: Put actual version
+  if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"programVersion",3,"1.0")) ) {
+    mprinterr("Error: Writing program version.\n");
+    return 1;
+  }
+  // TODO: Make conventions a static string
+  if ( type == NC_AMBERTRAJ ) {
+    if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",5,"AMBER")) ) {
+      mprinterr("Error: Writing conventions.\n");
+      return 1;
+    }
+  } else {
+    if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",12,"AMBERRESTART")) ) {
+      mprinterr("Error: Writing conventions.\n");
+      return 1;
+    }
+  }
+  if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"ConventionVersion",3,"1.0")) ) {
+    mprinterr("Error: Writing conventions version.\n");
+    return 1;
+  }
+  
+  // Replica Temperature
+  if (hasTemperature) {
+    // NOTE: Setting dimensionID should be OK for Restart, will not be used.
+    dimensionID[0] = frameDID_;
+    if (checkNCerr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM-2,dimensionID,&TempVID_))) {
+      mprinterr("NetCDF error on defining temperature.\n");
+      return 1;
+    }
+    if (checkNCerr(nc_put_att_text(ncid_,TempVID_,"units",6,"kelvin"))) {
+      mprinterr("NetCDF error on defining temperature units.\n"); 
+      return 1;
+    }
+  }
+
+  // Set fill mode
+  if (checkNCerr(nc_set_fill(ncid_, NC_NOFILL, dimensionID))) {
+    mprinterr("Error: NetCDF setting fill value.\n");
+    return 1;
+  }
+
+  // End netcdf definitions
+  if (checkNCerr(nc_enddef(ncid_))) {
+    mprinterr("NetCDF error on ending definitions.");
+    return 1;
+  }
+
+  // Specify spatial dimension labels
+  char xyz[3];
+  char abc[15] = { 'a', 'l', 'p', 'h', 'a',
+                   'b', 'e', 't', 'a', ' ',
+                   'g', 'a', 'm', 'm', 'a' };
+  start_[0] = 0;
+  count_[0] = 3;
+
+  xyz[0] = 'x'; 
+  xyz[1] = 'y'; 
+  xyz[2] = 'z';
+  if (checkNCerr(nc_put_vara_text(ncid_, spatialVID_, start_, count_, xyz))) {
+    mprinterr("Error on NetCDF output of spatial VID 'x', 'y' and 'z'");
+    return 1;
+  }
+
+  xyz[0] = 'a'; 
+  xyz[1] = 'b'; 
+  xyz[2] = 'c';
+  if (checkNCerr(nc_put_vara_text(ncid_, cell_spatialVID_, start_, count_, xyz))) {
+    mprinterr("Error on NetCDF output of cell spatial VID 'a', 'b' and 'c'");
+    return 1;
+  }
+
+  start_[0] = 0; 
+  start_[1] = 0;
+  count_[0] = 3; 
+  count_[1] = NCLABELLEN;
+  if (checkNCerr(nc_put_vara_text(ncid_, cell_angularVID_, start_, count_, abc))) {
+    mprinterr("Error on NetCDF output of cell angular VID 'alpha', 'beta ' and 'gamma'");
+    return 1;
+  }
+
+  return 0;
+}
+
+// FloatToDouble()
+/** Convert float coords to double coords
+  * NOTE: natom3 needs to match up with size of Coord!
+  */
+void NetcdfFile::FloatToDouble(double *X, float *Coord) {
+  for (int i=0; i<ncatom3_; i++)
+    X[i]=(double) Coord[i];
+}
+
+// DoubleToFloat()
+/** Convert double coords to float coords
+  */
+void NetcdfFile::DoubleToFloat(float *Coord, double *X) {
+  for (int i=0; i<ncatom3_; i++)
+    Coord[i]=(float) X[i];
 }
 
 #endif
