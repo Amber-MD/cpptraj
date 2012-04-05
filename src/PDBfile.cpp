@@ -181,167 +181,12 @@ void PDBfile::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType 
   IO->Write(buffer_, strlen(buffer_));
 }
  
-/*
-int PDBfile::pdb_atomNumber(char *buffer) {
-  // Atom number (6-11)
-  char savechar = buffer[11];
-  buffer[11] = '\0';
-  int anum = atoi(buffer+6);
-  buffer[11] = savechar;
-  return anum;
-}
-
-NameType PDBfile::pdb_atomName(char *buffer) {
-  // Atom name (12-16)
-  char savechar = buffer[16];
-  buffer[16] = '\0';
-  NameType aname(buffer+12);
-  buffer[16] = savechar;
-  return aname;
-}
-
-NameType PDBfile::pdb_resName(char *buffer) {
-  // Res name (16-20)
-  char savechar = buffer[20];
-  buffer[20] = '\0';
-  NameType resname(buffer+16);
-  buffer[20] = savechar;
-  return resname;
-}
-
-/// PDB Record Chain ID
+/*/// PDB Record Chain ID
 char PDBfile::pdb_chainID(char *buffer) {
   return buffer[21];
-}
+}*/
 
-int PDBfile::pdb_resNum(char *buffer) {
-  // Res num (22-27)
-  char savechar = buffer[27];
-  buffer[27] = '\0';
-  int resnum = atoi( buffer+22 );
-  buffer[27] = savechar;
-  return resnum;
-}
-*/
-
-/*
-/// PDB Record Title
-char *pdb_title(char *buffer) {
-  char *title;
-
-  title=(char*) malloc(7*sizeof(char));
-  title[0]=buffer[0];
-  title[1]=buffer[1];
-  title[2]=buffer[2];
-  title[3]=buffer[3];
-  title[4]=buffer[4];
-  title[5]=buffer[5];
-  title[6]='\0';
-
-  return title;
-}
-
-/// PDB Record Atom Number
-int pdb_atom(char *buffer) {
-  char temp[6];
-
-  temp[0]=buffer[6];
-  temp[1]=buffer[7];
-  temp[2]=buffer[8];
-  temp[3]=buffer[9];
-  temp[4]=buffer[10];
-  temp[5]='\0';
-  return atoi(temp);
-}
-
-/// PDB Record Atom Name
-NameType pdb_name(char *buffer) {
-  char name[5];
-  name[0]=buffer[12];
-  name[1]=buffer[13];
-  name[2]=buffer[14];
-  name[3]=buffer[15];
-  name[4]='\0';
-  // Trim Leading whitespace
-  //TrimName(name);
-  // Wrap name if it starts with a digit
-  //WrapName(name);
-  // Replace asterisks with prime to prevent atom mask problems
-  //ReplaceAsterisk(name);
-  return NameType(name);
-}
-
-/// PDB Record Residue Name
-int pdb_resname(char *buffer, char *resname) {
-  resname[0]=buffer[16]; // Alternate location indicator
-  resname[1]=buffer[17];
-  resname[2]=buffer[18];
-  resname[3]=buffer[19];
-  resname[4]='\0';
-  // Trim Leading whitespace 
-  //TrimName(resname);
-  // Replace asterisks with prime to prevent atom mask problems
-  //ReplaceAsterisk(resname);
-  return 0;
-}
-
-
-/// PDB Record Residue Number
-int pdb_resnum(char *buffer) {
-  char temp[6];
-
-  temp[0]=buffer[22];
-  temp[1]=buffer[23];
-  temp[2]=buffer[24];
-  temp[3]=buffer[25];
-  temp[4]=buffer[26]; // Code for insertion of residues
-  temp[5]='\0';
-
-  return atoi(temp);
-}*/ 
-
-/// PDB X Y and Z
-/** Memory for double array should already be allocated */
-/*int pdb_xyz(char *buffer, double *X) {
-  char temp[9];
-
-  temp[0]=buffer[30];
-  temp[1]=buffer[31];
-  temp[2]=buffer[32];
-  temp[3]=buffer[33];
-  temp[4]=buffer[34];
-  temp[5]=buffer[35];
-  temp[6]=buffer[36];
-  temp[7]=buffer[37];
-  temp[8]='\0';
-  X[0]=atof(temp);
-
-  temp[0]=buffer[38];
-  temp[1]=buffer[39];
-  temp[2]=buffer[40];
-  temp[3]=buffer[41];
-  temp[4]=buffer[42];
-  temp[5]=buffer[43];
-  temp[6]=buffer[44];
-  temp[7]=buffer[45];
-  temp[8]='\0';
-  X[1]=atof(temp);
-
-  temp[0]=buffer[46];
-  temp[1]=buffer[47];
-  temp[2]=buffer[48];
-  temp[3]=buffer[49];
-  temp[4]=buffer[50];
-  temp[5]=buffer[51];
-  temp[6]=buffer[52];
-  temp[7]=buffer[53];
-  temp[8]='\0';
-  X[2]=atof(temp);
-
-  return 0;
-}
-
-/// PDB Record Occupancy 
+/*/// PDB Record Occupancy 
 double pdb_occ(char *buffer) {
   char temp[7];
 
@@ -353,10 +198,10 @@ double pdb_occ(char *buffer) {
   temp[5]=buffer[59];
   temp[6]='\0';
   return atof(temp);
-}
+}*/
 
 /// PDB Record B-factor
-double pdb_Bfactor(char *buffer) {
+/*double pdb_Bfactor(char *buffer) {
   char temp[7];
 
   temp[0]=buffer[60];
@@ -367,10 +212,10 @@ double pdb_Bfactor(char *buffer) {
   temp[5]=buffer[65];
   temp[6]='\0';
   return atof(temp);
-}
+}*/
 
 /// 10 chars between Bfactor and element
-char *pdb_lastChar(char *buffer) {
+/*char *pdb_lastChar(char *buffer) {
   char *E;
 
   E=(char*) malloc(11*sizeof(char));
@@ -431,4 +276,3 @@ char *pdb_lastChar(char *buffer) {
   return E;
 }*/
 
-                   

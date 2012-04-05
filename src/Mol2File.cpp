@@ -3,6 +3,7 @@
 #include "Mol2File.h"
 #include "CpptrajStdio.h"
 
+// CONSTRUCTOR
 Mol2File::Mol2File() : 
   mol2debug_(0),
   mol2atoms_(0),
@@ -17,16 +18,19 @@ const char Mol2File::TRIPOSTAGTEXT[4][22]={
   "@<TRIPOS>SUBSTRUCTURE"
 };
 
+// Mol2File::IsMol2Keyword()
 bool Mol2File::IsMol2Keyword() {
   if (strncmp(buffer_,"@<TRIPOS>",9)==0)
     return true;
   return false;
 }
 
+// Mol2File::GetLine()
 bool Mol2File::GetLine(FileIO *IO) {
   return ( IO->Gets(buffer_, BUF_SIZE_) != 0 );
 }
 
+// Mol2File::ID()
 bool Mol2File::ID( FileIO *IO ) {
   for (int line = 0; line < 10; line++) {
     if ( GetLine( IO ) ) return false;
@@ -37,7 +41,6 @@ bool Mol2File::ID( FileIO *IO ) {
   }
   return false;
 }
-
 
 // Mol2File::ScanTo()
 /** Scan to the specified TRIPOS section of file.
@@ -95,6 +98,7 @@ int Mol2File::NextMolecule( FileIO *IO ) {
   return natom;
 }
 
+// Mol2File::Mol2Bond()
 void Mol2File::Mol2Bond(int &at1, int &at2) {
   sscanf(buffer_,"%*i %i %i\n", &at1, &at2);
 }
@@ -109,6 +113,7 @@ Atom Mol2File::Mol2Atom() {
   return Atom( mol2name, XYZ_, mol2type, mol2q );
 }
 
+// Mol2File::Mol2Residue()
 Residue Mol2File::Mol2Residue() {
   char resname[10];
   int resnum;
@@ -141,97 +146,4 @@ int Mol2File::Mol2Nbonds() {
 std::string& Mol2File::Mol2Title() {
   return mol2title_;
 }
-
-// Mol2AtomName()
-/** Given a Mol2 ATOM line, return atom name. Trim to 4 chars to be consistent 
-  * with the rest of Amber. 
-  */
-/*
-int Mol2AtomName(char *buffer, NAME name) {
-  char tmp[10];
-  if (buffer==NULL || name==NULL) return 1;
-  sscanf(buffer,"%*i %s",tmp);
-  name[0]=tmp[0];
-  name[1]=tmp[1];
-  name[2]=tmp[2];
-  name[3]=tmp[3];
-  PadWithSpaces(name); 
-  name[4]='\0';
-  // Replace asterisks with prime to prevent atom mask problems
-  ReplaceAsterisk(name);
-  //mprintf("DEBUG: MOL2: name [%s]\n",name);
-  return 0;
-}*/
-
-// Mol2AtomType
-/** Given a Mol2 ATOM line, return atom type. Try to convert Sybyl atom type
-  * to amber type.
-  * Sybyl atom types seem to have at most 5 chars - increasing size of NAME
-  * huld be ok.
-  */
-/*
-int Mol2AtomType(char *buffer, NAME type) {
-  char tmp[10];
-  if (buffer==NULL || type==NULL) return 1;
-  sscanf(buffer,"%*i %*s %*f %*f %*f %s",tmp);
-*/
-/*
-  if      (strcmp(tmp,"C.3")==0)   strcpy(type,"CT  ");
-  else if (strcmp(tmp,"C.2")==0)   strcpy(type,"C   ");
-  else if (strcmp(tmp,"C.1")==0)   strcpy(type,"CZ  ");
-  else if (strcmp(tmp,"C.ar")==0)  strcpy(type,"CA  ");
-  else if (strcmp(tmp,"C.cat")==0) strcpy(type,"C+  ");
-  else if (strcmp(tmp,"N.3")==0)   strcpy(type,"NT  ");
-  else if (strcmp(tmp,"N.2")==0)   strcpy(type,"N2  ");
-  else if (strcmp(tmp,"N.1")==0)   strcpy(type,"NY  ");
-  else if (strcmp(tmp,"N.ar")==0)  strcpy(type,"NC  ");
-  else if (strcmp(tmp,"N.am")==0)  strcpy(type,"N   ");
-  else if (strcmp(tmp,"N.pl3")==0) strcpy(type,"N   "); // NOTE: Nitro, not in ff99
-  else if (strcmp(tmp,"N.4")==0)   strcpy(type,"N3  ");
-  else if (strcmp(tmp,"O.3")==0)   strcpy(type,"OS  "); // ??
-  else if (strcmp(tmp,"O.2")==0)   strcpy(type,"O   "); 
-  else if (strcmp(tmp,"O.co2")==0) strcpy(type,"O2  "); 
-  else if (strcmp(tmp,"O.spc")==0) strcpy(type,"OW  "); 
-  else if (strcmp(tmp,"O.t3p")==0) strcpy(type,"OW  "); 
-  else if (strcmp(tmp,"S.3")==0)   strcpy(type,"SH  "); 
-  else if (strcmp(tmp,"S.2")==0)   strcpy(type,"S   "); 
-  else if (strcmp(tmp,"S.O")==0)   strcpy(type,"S   "); 
-  else if (strcmp(tmp,"S.O2")==0)  strcpy(type,"S   "); 
-  else if (strcmp(tmp,"P.3")==0)   strcpy(type,"P   "); 
-  else if (strcmp(tmp,"H.spc")==0) strcpy(type,"HW  "); 
-  else if (strcmp(tmp,"H.t3p")==0) strcpy(type,"HW  ");
-  else {*/
-/*
-    // Copy over the first 5 chars
-    strncpy(type,tmp,5);
-    type[5]='\0';
-  //}
-  return 0;
-}
-*/
-// Mol2ResNumName()
-/** Get residue number and name, trim to 4 chars
-  */
-/*int Mol2ResNumName(char *buffer, int *resnum, NAME resname) {
-  char tmp[10];
-  if (buffer==NULL || resnum==NULL || resname==NULL) return 1;
-  sscanf(buffer,"%*i %*s %*f %*f %*f %*s %i %s",resnum,tmp);
-  resname[0]=tmp[0]; 
-  resname[1]=tmp[1]; 
-  resname[2]=tmp[2]; 
-  resname[3]=tmp[3];
-  PadWithSpaces(resname);
-  resname[4]='\0';
-  // Replace asterisks with prime to prevent atom mask problems
-  ReplaceAsterisk(resname);
-  return 0;
-}*/
-
-// Mol2Charge()
-/** Get charge */
-/*double Mol2Charge(char *buffer) {
-  double q;
-  sscanf(buffer,"%*i %*s %*f %*f %*f %*s %*i %*s %lf",&q);
-  return q;
-} */
 
