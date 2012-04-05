@@ -31,16 +31,33 @@ Frame::Frame( ) {
 // CONSTRUCTOR
 /// Set up for natom
 Frame::Frame(int natomIn) :
-  natom_(natomIn), maxnatom_(natomIn) 
+  natom_(natomIn), 
+  maxnatom_(natomIn),
+  Ncoord_(natomIn*3),
+  X_(NULL),
+  V_(NULL),
+  Mass_(NULL),
+  T_(0)
 {
-  Ncoord_ = natom_ * 3;
   memset(box_, 0, BOXSIZE_);
-  T_ = 0.0;
-  V_ = NULL;
-  X_ = NULL;
-  Mass_ = NULL;
   if (Ncoord_ > 0) 
     X_ = new double[ Ncoord_ ];
+}
+
+Frame::Frame(double *Xin, int natomIn) :
+  natom_(natomIn), 
+  maxnatom_(natomIn),
+  Ncoord_(natomIn*3),
+  X_(NULL),
+  V_(NULL),
+  Mass_(NULL),
+  T_(0) 
+{
+  memset(box_, 0, BOXSIZE_);
+  if (Ncoord_ > 0) {
+    X_ = new double[ Ncoord_ ];
+    memcpy(X_, Xin, Ncoord_*sizeof(double));
+  }
 }
 
 // CONSTRUCTOR

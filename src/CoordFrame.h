@@ -2,6 +2,7 @@
 #define INC_COORDFRAME_H
 #include <vector>
 #include "Vec3.h"
+#include "AtomMask.h"
 /// Test Frame replacement
 class CoordFrame {
   public:
@@ -11,6 +12,8 @@ class CoordFrame {
     CoordFrame &operator=(const CoordFrame&);
 
     double DIST2_NoImage(int, int);
+    void Translate( Vec3 & );
+    Vec3 GeometricCenter(AtomMask &Mask);
 
     inline bool empty() {
       return (coords_.empty());

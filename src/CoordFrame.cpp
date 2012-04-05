@@ -1,4 +1,5 @@
 #include "CoordFrame.h"
+#include "Constants.h"
 
 // CONSTRUCTOR
 CoordFrame::CoordFrame() {
@@ -34,3 +35,26 @@ double CoordFrame::DIST2_NoImage(int a1, int a2) {
   return delta.LengthSquared();
 }
 
+void CoordFrame::Translate( Vec3 &Vec ) {
+  for (std::vector<Vec3>::iterator coord = coords_.begin();
+                                   coord != coords_.end(); coord++)
+  {
+    *coord += Vec;
+  }
+}
+
+Vec3 CoordFrame::GeometricCenter(AtomMask &Mask) {
+  Vec3 vecOut;
+
+  for (AtomMask::const_iterator atom = Mask.begin();
+                                atom != Mask.end();
+                                atom++)
+  {
+    vecOut += coords_[*atom];
+  }
+  double total = (double) Mask.Nselected();
+  if (total < SMALL) return vecOut;
+
+  vecOut /= total;
+  return vecOut;
+}
