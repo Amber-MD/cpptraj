@@ -6,7 +6,6 @@
 #include "Molecule.h"
 #include "AtomMask.h"
 #include "Box.h"
-#include "CoordFrame.h"
 #include "Frame.h"
 // Class: Topology
 /// Hold information for all atoms
@@ -184,7 +183,7 @@ class Topology {
     std::vector<double> ljb_;
 
     Box box_;
-    CoordFrame refCoords_;
+    Frame refCoords_;
 
     int debug_;
     bool hasCoordinates_;
@@ -208,7 +207,7 @@ class Topology {
     void DetermineExcludedAtoms();
     void SetSolventInfo();
 
-    void Mask_SelectDistance( CoordFrame &, char*, bool, bool, double );
+    void Mask_SelectDistance( Frame &, char*, bool, bool, double );
     void Mask_AND(char*,char*);
     void Mask_OR(char*,char*);
     void Mask_NEG(char*);
@@ -217,7 +216,7 @@ class Topology {
     void MaskSelectResidues(NameType, char *);
     void MaskSelectAtoms(int,int,char*);
     void MaskSelectAtoms(NameType,char*);
-    bool ParseMask(CoordFrame &, AtomMask &,bool);
+    bool ParseMask(Frame &, AtomMask &,bool);
 
     std::vector<int> SetupSequentialArray(std::vector<int>&, int, std::vector<int>&);
 

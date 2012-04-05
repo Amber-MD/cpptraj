@@ -60,7 +60,7 @@ void Topology::SetPindex(int pindexIn) {
 // Topology::SetReferenceCoords()
 void Topology::SetReferenceCoords( Frame *frameptr ) {
     if (frameptr==NULL) return;
-    refCoords_ = CoordFrame(frameptr->Natom(), frameptr->CoordPtr());
+    refCoords_ = *frameptr;
 }
 
 // -----------------------------------------------------------------------------
@@ -1059,18 +1059,16 @@ bool Topology::SetupCharMask(AtomMask &mask) {
 
 // Topology::SetupIntegerMask()
 bool Topology::SetupIntegerMask(AtomMask &mask, Frame &frame) {
-  CoordFrame tmp(frame.Natom(), frame.CoordPtr());
-  return ParseMask( tmp, mask, true );
+  return ParseMask( frame, mask, true );
 }
 
 // Topology::SetupCharMask()
 bool Topology::SetupCharMask(AtomMask &mask, Frame &frame) {
-  CoordFrame tmp(frame.Natom(), frame.CoordPtr());
-  return ParseMask( tmp, mask, false );
+  return ParseMask( frame, mask, false );
 }
 
 // Topology::Mask_SelectDistance()
-void Topology::Mask_SelectDistance( CoordFrame &REF, char *mask, bool within, 
+void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within, 
                                     bool byAtom, double distance ) 
 {
   int endatom;
@@ -1108,7 +1106,8 @@ void Topology::Mask_SelectDistance( CoordFrame &REF, char *mask, bool within,
       // Loop over initially selected atoms
       for (int idx = 0; idx < (int)selected.size(); idx++) {
         int atomj = selected[idx];
-        double d2 = REF.DIST2_NoImage(atomi, atomj);
+        //double d2 = REF.DIST2_NoImage(atomi, atomj);
+        double d2 = REF.DIST2(atomi, atomj);
         /*double d2 = DIST2_NoImage( (double*)atoms_[atomi].XYZ(), 
                                    (double*)atoms_[atomj].XYZ() );*/
         if (within) {
@@ -1134,7 +1133,8 @@ void Topology::Mask_SelectDistance( CoordFrame &REF, char *mask, bool within,
       for (int idx = 0; idx < (int)selected.size(); idx++) {
         int atomj = selected[idx];
         //mprintf("\t\t\tAtom %i to atom %i\n",atomi+1,atomj+1);
-        double d2 = REF.DIST2_NoImage(atomi, atomj);
+        //double d2 = REF.DIST2_NoImage(atomi, atomj);
+        double d2 = REF.DIST2(atomi, atomj);
         /*double d2 = DIST2_NoImage( (double*)atoms_[atomi].XYZ(), 
                                    (double*)atoms_[atomj].XYZ() );*/
         if (within) {
@@ -1277,7 +1277,7 @@ void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) {
 }
 
 // Topology::ParseMask()
-bool Topology::ParseMask(CoordFrame &REF, AtomMask &maskIn, bool intMask) {
+bool Topology::ParseMask(Frame &REF, AtomMask &maskIn, bool intMask) {
   std::stack<char*> Stack;
   char *pMask = NULL; 
   char *pMask2 = NULL;
