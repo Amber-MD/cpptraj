@@ -9,15 +9,13 @@
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
 
 // ---------- Constants and Enumerated types -----------------------------------
-/// Combined size of %FLAG and %FORMAT lines (81 * 2)
-//const size_t Parm_Amber::FFSIZE=162;
 /// Enumerated type for FLAG_POINTERS section
 const int Parm_Amber::AMBERPOINTERS=31;
 enum topValues {
 //0       1       2      3       4       5       6       7      8       9
   NATOM,  NTYPES, NBONH, MBONA,  NTHETH, MTHETA, NPHIH,  MPHIA, NHPARM, NPARM,
   NNB,    NRES,   NBONA, NTHETA, NPHIA,  NUMBND, NUMANG, NPTRA, NATYP,  NPHB,
-  IFPERT, NBPER,  NGPER, NDPER,  MBPER,  MGPER,  MDPER,  IFBOX, NMXRS, IFCAP,
+  IFPERT, NBPER,  NGPER, NDPER,  MBPER,  MGPER,  MDPER,  IFBOX, NMXRS,  IFCAP,
   NEXTRA
 };
 /// Number of unique amber parm FLAGs
@@ -141,12 +139,8 @@ bool Parm_Amber::ID_ParmFormat() {
 
 // Parm_Amber::ReadParm()
 int Parm_Amber::ReadParm( Topology &TopIn ) {
-  int err;
   if (OpenFile()) return 1;
-  if (!newParm_)
-    err = ReadParmOldAmber( TopIn );
-  else
-    err = ReadParmAmber( TopIn );
+  int err = ReadParmAmber( TopIn );
   CloseFile();
   if (err != 0) return 1;
 
@@ -245,23 +239,16 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   Printf("%-80s\n%-80s\n%-80s\n","%FLAG TITLE","%FORMAT(20a4)",title.c_str());
   // POINTERS
   WriteInteger(F_POINTERS, values);
-  // ATOM NAMES
+  // NAMES, CHARGE, ATOMIC NUMBER, MASS, TYPE INDEX, EXCLUDED, NB INDEX
   WriteName(F_NAMES, names);
-  // CHARGE
   WriteDouble(F_CHARGE, charge);
-  // ATOMIC NUMBER
   WriteInteger(F_ATOMICNUM, at_num);
-  // MASS
   WriteDouble(F_MASS, mass);
-  // ATOM_TYPE_INDEX
   WriteInteger(F_ATYPEIDX, atype_index);
-  // NUMBER_EXCLUDED_ATOMS
   WriteInteger(F_NUMEX, numex);
-  // NONBONDED_PARM_INDEX
   WriteInteger(F_NB_INDEX, parmIn.NB_index());
-  // RESIDUE LABEL
+  // RESIDUE NAME, POINTER
   WriteName(F_RESNAMES, resnames);
-  // RESIDUE POINTER 
   WriteInteger(F_RESNUMS, resnums);
   // BOND, ANGLE, and DIHEDRAL FORCE CONSTANT and EQUIL VALUES
   WriteDouble(F_BONDRK, parmIn.BondRk());
@@ -293,7 +280,8 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   WriteDouble(F_HBCUT, parmIn.HBcut());
   // AMBER ATOM TYPE
   WriteName(F_TYPES, types);
-  // TREE CHAIN CLASSIFICATION
+  // TREE CHAIN CLASSIFICATION, JOIN, IROTAT
+  // TODO: Generate automatically
   WriteName(F_ITREE, parmIn.Itree());
   WriteInteger(F_JOIN, parmIn.Join());
   WriteInteger(F_IROTAT, parmIn.Irotat());
@@ -316,7 +304,7 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
     // BOX DIMENSIONS
     WriteDouble(F_PARMBOX, parmIn.ParmBox().BetaLengths());
   }
-  // GB RADIUS SET
+  // GB RADIUS SET, RADII, SCREENING PARAMETERS
   std::string radius_set = parmIn.GBradiiSet();
   if (!radius_set.empty()) {
     WriteSetup(F_RADSET, 1);
@@ -324,9 +312,7 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
       radius_set.resize(80);
     Printf("%-80s\n",radius_set.c_str());
   }
-  // GB RADII
   WriteDouble(F_RADII, gb_radii);
-  // GB SCREENING PARAMETERS
   WriteDouble(F_SCREEN, gb_screen);
  
   CloseFile();
@@ -335,51 +321,58 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
 }
 
 // -----------------------------------------------------------------------------
-// Parm_Amber::ReadParmOldAmber()
-int Parm_Amber::ReadParmOldAmber( Topology &TopIn ) {
-  return 1;
-}
-
 // Parm_Amber::ReadParmAmber()
 int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<int> atomsPerMol;
   int finalSoluteRes = -1;
   int firstSolvMol = -1;
   Box parmbox;
-  bool chamber; // True if this top is a chamber-created top file.
+  bool chamber = false; // True if this top is a chamber-created top file.
   std::string title;
-  if (debug_>0) mprintf("Reading Amber Topology file %s\n",BaseName());
+  int Npointers = AMBERPOINTERS; 
 
-  // Title. If not found check for CTITLE (chamber)
-  if (PositionFileAtFlag(F_TITLE)) {
-    title = GetLine();
-  } else {
-    if (PositionFileAtFlag(F_CTITLE)) {
+  if (newParm_) {
+    if (debug_>0) 
+      mprintf("\tReading Amber Topology file %s\n",BaseName());
+    // Title. If not found check for CTITLE (chamber)
+    if (PositionFileAtFlag(F_TITLE)) {
       title = GetLine();
-      chamber = true;
     } else {
-      // No TITLE or CTITLE, weird, but dont crash out yet.
-      mprintf("Warning: [%s] No TITLE in Amber Parm.\n",BaseName());
+      if (PositionFileAtFlag(F_CTITLE)) {
+        title = GetLine();
+        chamber = true;
+      } else {
+        // No TITLE or CTITLE, weird, but dont crash out yet.
+        mprintf("Warning: [%s] No TITLE in Amber Parm.\n",BaseName());
+      }
     }
+  } else {
+    mprintf("\tReading old (<v7) Amber Topology file.\n");
+    title = GetLine();
+    // One less POINTERS (no NEXTRA)
+    Npointers = 30;
   }
   mprintf("\tAmberParm Title: [%s]\n",title.c_str());
   TopIn.SetParmName( title, BaseName() );
-
-  std::vector<int> values = GetFlagInteger(F_POINTERS, AMBERPOINTERS);
+  // POINTERS
+  std::vector<int> values = GetFlagInteger(F_POINTERS, Npointers);
   if (values.empty()) {
     mprinterr("Error: [%s] Could not get POINTERS from Amber Topology.\n",BaseName());
     return 1;
   }
-  //for (std::vector<int>::iterator v = values.begin(); v != values.end(); v++)
-  //  mprintf("\t%i\n",*v);
 
   // Read parm variables
   std::vector<NameType> names = GetFlagName(F_NAMES, values[NATOM]);
   std::vector<double> charge = GetFlagDouble(F_CHARGE,values[NATOM]);
-  std::vector<int> at_num = GetFlagInteger(F_ATOMICNUM,values[NATOM]);
+  // New parm only: ATOMICNUM
+  std::vector<int> at_num;
+  if (newParm_)
+    at_num = GetFlagInteger(F_ATOMICNUM,values[NATOM]);
   std::vector<double> mass = GetFlagDouble(F_MASS,values[NATOM]);
   std::vector<int> atype_index = GetFlagInteger(F_ATYPEIDX,values[NATOM]);
-  //parmOut.numex = GetFlagInteger(F_NUMEX,values[NATOM]);
+  // For old parm need to read past NUMEX
+  if (!newParm_)
+    GetFlagInteger(F_NUMEX,values[NATOM]);
   std::vector<int> NB_index = GetFlagInteger(F_NB_INDEX,values[NTYPES]*values[NTYPES]);
   std::vector<NameType> resnames = GetFlagName(F_RESNAMES,values[NRES]);
   std::vector<int> resnums = GetFlagInteger(F_RESNUMS,values[NRES]);
@@ -390,8 +383,13 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<double> dihedral_pk = GetFlagDouble(F_DIHPK, values[NPTRA]);
   std::vector<double> dihedral_pn = GetFlagDouble(F_DIHPN, values[NPTRA]);
   std::vector<double> dihedral_phase = GetFlagDouble(F_DIHPHASE, values[NPTRA]);
-  std::vector<double> scee_scale = GetFlagDouble(F_SCEE,values[NPTRA]);
-  std::vector<double> scnb_scale = GetFlagDouble(F_SCNB,values[NPTRA]);
+  // New parm only: SCEE and SCNB
+  std::vector<double> scee_scale;
+  std::vector<double> scnb_scale;
+  if (newParm_) {
+    scee_scale = GetFlagDouble(F_SCEE,values[NPTRA]);
+    scnb_scale = GetFlagDouble(F_SCNB,values[NPTRA]);
+  }
   // SOLTY: currently unused
   std::vector<double> solty = GetFlagDouble(F_SOLTY, values[NATYP]);
   int nlj = values[NTYPES] * (values[NTYPES]+1) / 2;
@@ -403,7 +401,9 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<int> angles = GetFlagInteger(F_ANGLES, values[NTHETA]*4);
   std::vector<int> dihedralsh = GetFlagInteger(F_DIHH, values[NPHIH]*5);
   std::vector<int> dihedrals = GetFlagInteger(F_DIH, values[NPHIA]*5);
-  //parmOut.excludedAtoms = GetFlagInteger(F_EXCLUDE, values[NNB]);
+  // For old parm need to read past EXCLUDE
+  if (!newParm_)
+    GetFlagInteger(F_EXCLUDE, values[NNB]);
   std::vector<double> asol = GetFlagDouble(F_ASOL,values[NPHB]);
   std::vector<double> bsol = GetFlagDouble(F_BSOL,values[NPHB]);
   std::vector<double> hbcut = GetFlagDouble(F_HBCUT,values[NPHB]);
@@ -438,15 +438,19 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
       parmbox.SetBetaLengths( boxFromParm );
     }
   }
-  // GB parameters; radius set, radii, and screening parameters
-  if (PositionFileAtFlag(F_RADSET)) {
-    std::string radius_set = GetLine();
-    mprintf("\tRadius Set: %s\n",radius_set.c_str());
-    TopIn.SetGBradiiSet( radius_set );
+  // New Parm only: GB parameters; radius set, radii, and screening parameters
+  std::vector<double> gb_radii;
+  std::vector<double> gb_screen;
+  if (newParm_) {
+    if (PositionFileAtFlag(F_RADSET)) {
+      std::string radius_set = GetLine();
+      mprintf("\tRadius Set: %s\n",radius_set.c_str());
+      TopIn.SetGBradiiSet( radius_set );
+    }
+    gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
+    gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]); 
   }
-  std::vector<double> gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
-  std::vector<double> gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]); 
-
+ 
   if (error_count_==0) {
     // Convert Amber Charge to elec
     for (std::vector<double>::iterator q = charge.begin(); q != charge.end(); q++)
@@ -454,10 +458,11 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     // Shift atom #s in resnums by -1 so they start from 0
     for (std::vector<int>::iterator r = resnums.begin(); r != resnums.end(); r++)
       --(*r);
-    // Shift atom #s in excludedAtoms by -1 so they start from 0 
+    // If ever used, shift atom #s in excludedAtoms by -1 so they start from 0 
     error_count_ += TopIn.CreateAtomArray( names, charge, at_num, mass, atype_index, 
                                            types, gb_radii, gb_screen,
                                            resnames, resnums );
+    // Shift indices in parm arrays?
     error_count_ += TopIn.SetBondInfo(bonds, bondsh, bond_rk, bond_req);
     error_count_ += TopIn.SetAngleInfo(angles, anglesh, angle_tk, angle_teq);
     error_count_ += TopIn.SetDihedralInfo(dihedrals, dihedralsh, dihedral_pk,
@@ -475,14 +480,6 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
 }
 
 // -----------------------------------------------------------------------------
-// Parm_Amber::GetFlagLine()
-// NOTE: Useful?
-/*std::string Parm_Amber::GetFlagLine(AmberParmFlagType flag) {
-  std::string line;
-  if (!PositionFileAtFlag(flag)) return line;
-  return GetLine();
-}*/
-
 // Parm_Amber::GetLine()
 std::string Parm_Amber::GetLine() {
   IO->Gets(lineBuffer_, BUF_SIZE);
@@ -585,30 +582,42 @@ std::vector<NameType> Parm_Amber::GetName(int width, int ncols, int maxval) {
 // Parm_Amber::GetFlagInteger()
 std::vector<int> Parm_Amber::GetFlagInteger(AmberParmFlagType fflag, int maxval) {
   std::vector<int> iarray;
-  // Seek to flag and set up fncols, fwidth
-  if (!SeekToFlag(fflag)) return iarray;
-  // NOTE: Check that type matches?
-  iarray = GetInteger( fwidth_, fncols_, maxval );
+  if (newParm_) {
+    // Seek to flag and set up fncols, fwidth
+    if (!SeekToFlag(fflag)) return iarray;
+    // NOTE: Check that type matches?
+    iarray = GetInteger( fwidth_, fncols_, maxval );
+  } else {
+    iarray = GetInteger( 6, 12, maxval );
+  }
   return iarray;
 }
 
 // Parm_Amber::GetFlagDouble()
 std::vector<double> Parm_Amber::GetFlagDouble(AmberParmFlagType fflag, int maxval) {
   std::vector<double> darray;
-  // Seek to flag and set up fncols, fwidth
-  if (!SeekToFlag(fflag)) return darray;
-  // NOTE: Check that type matches?
-  darray = GetDouble( fwidth_, fncols_, maxval );
+  if (newParm_) {
+    // Seek to flag and set up fncols, fwidth
+    if (!SeekToFlag(fflag)) return darray;
+    // NOTE: Check that type matches?
+    darray = GetDouble( fwidth_, fncols_, maxval );
+  } else {
+    darray = GetDouble( 16, 5, maxval );
+  }
   return darray;
 }
 
 // Parm_Amber::GetFlagName()
 std::vector<NameType> Parm_Amber::GetFlagName(AmberParmFlagType fflag, int maxval) {
   std::vector<NameType> carray;
-  // Seek to flag and set up fncols, fwidth
-  if (!SeekToFlag(fflag)) return carray;
-  // NOTE: Check that type matches?
-  carray = GetName( fwidth_, fncols_, maxval );
+  if (newParm_) {
+    // Seek to flag and set up fncols, fwidth
+    if (!SeekToFlag(fflag)) return carray;
+    // NOTE: Check that type matches?
+    carray = GetName( fwidth_, fncols_, maxval );
+  } else {
+    carray = GetName( 4, 20, maxval );
+  }
   return carray;
 }
 
@@ -792,7 +801,6 @@ int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>const& c
 
   return 0;
 }
-
 
 // -----------------------------------------------------------------------------
 // Parm_Amber::GetFortranBufferSize()

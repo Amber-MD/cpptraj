@@ -292,7 +292,7 @@ void Topology::Summary() {
 
 // Topology::ParmInfo()
 void Topology::ParmInfo() {
-  mprintf(" %i: %s, %zu atoms, %zu res, %s box, %zu mol",pindex_,parmName_.c_str(),
+  mprintf(" %i: %s, %zu atoms, %zu res, %s box, %zu mol",pindex_,c_str(),
           atoms_.size(),residues_.size(),box_.TypeName(),molecules_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent mol",NsolventMolecules_);
@@ -393,34 +393,38 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
   }
   size_t natom = names.size();
   if ( natom != charge.size() ||
-       //natom != at_num.size() ||
        natom != mass.size() ||
        natom != atype_index.size() ||
-       natom != types.size() ||
-       natom != gb_radii.size() ||
-       natom != gb_screen.size() 
+       natom != types.size()
      )
   {
     mprinterr("Error: Topology: Array sizes for #atoms from input parm do not match.\n");
     mprinterr("\tNames = %zu\n",names.size());
     mprinterr("\tCharges = %zu\n",charge.size());
-    //mprinterr("\tAtomicNum = %zu\n",at_num.size());
     mprinterr("\tMass = %zu\n",mass.size());
     mprinterr("\tAtomType Index = %zu\n",atype_index.size());
     mprinterr("\tTypes = %zu\n",types.size());
-    mprinterr("\tGB Radii = %zu\n",gb_radii.size());
-    mprinterr("\tGB Screening Parameters = %zu\n",gb_screen.size());
     return 1;
-  }
-  if (at_num.empty()) {
-    mprintf("Warning: [%s] ATOMIC_NUMBER not present in topology.\n",parmName_.c_str());
-    at_num.resize(natom, 0);
   }
   if (resnames.size() != resnums.size()) {
     mprinterr("Error: Topology: Array sizes for #residues from input parm do not match.\n");
     mprinterr("\tResNames = %zu\n",resnames.size());
     mprinterr("\tResNums = %zu\n",resnums.size());
     return 1;
+  }
+  // ATOMIC_NUMBER may not be present
+  if (at_num.empty()) {
+    mprintf("Warning: [%s] ATOMIC_NUMBER not present in topology.\n", c_str());
+    at_num.resize(natom, 0);
+  }
+  // GB params may be empty in old amber parm
+  if (gb_radii.empty()) {
+    mprintf("Warning: [%s] GB RADII not present in topology.\n", c_str());
+    gb_radii.resize(natom, 0);
+  }
+  if (gb_screen.empty()) {
+    mprintf("Warning: [%s] GB SCREEN not present in topology.\n", c_str());
+    gb_screen.resize(natom, 0);
   }
   // Create atom information
   atoms_.reserve( natom );
@@ -769,7 +773,7 @@ void Topology::GetBondsFromAtomCoords() {
   // solute residue.
   std::vector<Residue>::iterator firstSolventResidue = residues_.end();
 
-  mprintf("\t%s: determining bond info from distances.\n",parmName_.c_str());
+  mprintf("\t%s: determining bond info from distances.\n",c_str());
   // ----- STEP 1: Determine bonds within residues
   //int resnum = 0; // DEBUG 
   for (std::vector<Residue>::iterator res = residues_.begin(); 
@@ -858,7 +862,7 @@ void Topology::GetBondsFromAtomCoords() {
     }
   }
 
-  mprintf("\t%s: %zu bonds to hydrogen, %zu other bonds.\n",parmName_.c_str(),
+  mprintf("\t%s: %zu bonds to hydrogen, %zu other bonds.\n",c_str(),
           bondsh_.size()/3, bonds_.size()/3);
 }
 
@@ -911,7 +915,7 @@ void Topology::VisitAtom(int atomnum, int mol) {
 void Topology::DetermineMolecules() {
   std::vector<Atom>::iterator atom;
 
-  mprintf("\t%s: determining molecule info from bonds.\n",parmName_.c_str());
+  mprintf("\t%s: determining molecule info from bonds.\n",c_str());
   // Reset molecule info for each atom
   for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
     (*atom).SetMol( -1 );
@@ -1071,7 +1075,7 @@ void Topology::Mask_SelectDistance( CoordFrame &REF, char *mask, bool within,
 {
   int endatom;
   if (REF.empty()) {
-    mprinterr("Error: No reference set for [%s], cannot select by distance.\n",parmName_.c_str());
+    mprinterr("Error: No reference set for [%s], cannot select by distance.\n",c_str());
     return;
   }
   mprintf("\t\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",

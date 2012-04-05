@@ -27,7 +27,6 @@ class Parm_Amber : public ParmIO {
     };
     static const int NUMAMBERPARMFLAGS;
     static const int AMBERPOINTERS;
-    //static const size_t FFSIZE;
     static const char AmberParmFmt[][16];
     static const char AmberParmFlag[][27];
 
@@ -44,10 +43,8 @@ class Parm_Amber : public ParmIO {
     size_t buffer_size_;
     size_t buffer_max_size_;
 
-    int ReadParmOldAmber(Topology&);
     int ReadParmAmber(Topology&);
 
-    //std::string GetFlagLine(AmberParmFlagType);
     std::string GetLine();
     std::vector<int> GetInteger(int,int,int);
     std::vector<double> GetDouble(int,int,int);
