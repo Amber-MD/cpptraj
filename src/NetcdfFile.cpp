@@ -91,6 +91,7 @@ std::string NetcdfFile::GetAttrText(int vid, const char *attribute) {
   // Append NULL char - NECESSARY?
   attrText[attlen]='\0';
   attrOut.assign( attrText );
+  delete[] attrText;
 
   return attrOut;
 }
