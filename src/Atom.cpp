@@ -22,64 +22,44 @@ Atom::Atom() :
   gb_screen_(0),
   aname_(""),
   atype_(""),
-//  itree_(""),
-//  irotat_(0),
   atype_index_(0),
-//  join_(0),
   element_(UNKNOWN_ELEMENT),
-//  anum_(0),
   resnum_(0),
   mol_(0)
-{
-  coords_[0] = 0;
-  coords_[1] = 0;
-  coords_[2] = 0;
-}
+{ }
 
 // CONSTRUCTOR
 /// Take atom name and coordinates. Attempt to determine element from name.
-Atom::Atom(NameType aname, double (&XYZ)[3]) :
+//Atom::Atom(NameType aname, double (&XYZ)[3]) :
+Atom::Atom(NameType aname) :
   charge_(0),
   mass_(1),
   gb_radius_(0),
   gb_screen_(0),
   aname_(aname),
   atype_(""),
-//  itree_(""),
-//  irotat_(0),
   atype_index_(0),
-//  join_(0),
   element_(UNKNOWN_ELEMENT),
-//  anum_(anum),
   resnum_(0),
   mol_(0)
 {
-  coords_[0] = XYZ[0];
-  coords_[1] = XYZ[1];
-  coords_[2] = XYZ[2];
   SetElementFromName();
 }
 
 // CONSTRUCTOR
-Atom::Atom( NameType aname, double (&XYZ)[3], NameType atype, double q ) :
+//Atom::Atom( NameType aname, double (&XYZ)[3], NameType atype, double q ) :
+Atom::Atom( NameType aname, NameType atype, double q ) :
   charge_(q),
   mass_(1),
   gb_radius_(0),
   gb_screen_(0),
   aname_(aname),
   atype_(atype),
-//  itree_(""),
-//  irotat_(0),
   atype_index_(0),
-//  join_(0),
   element_(UNKNOWN_ELEMENT),
-//  anum_(0),
   resnum_(0),
   mol_(0)
 {
-  coords_[0] = XYZ[0];
-  coords_[1] = XYZ[1];
-  coords_[2] = XYZ[2];
   SetElementFromName();
 }
 
@@ -92,29 +72,21 @@ Atom::Atom( NameType name, double charge, int atomicnum, double mass, int atidx,
   gb_screen_(screen),
   aname_(name),
   atype_(type),
-//  itree_(""),
-//  irotat_(0),
   atype_index_(atidx),
-//  join_(0),
   element_(UNKNOWN_ELEMENT),
-//  anum_(anum),
   resnum_(resnum),
   mol_(0)
 {
-  coords_[0] = 0;
-  coords_[1] = 0;
-  coords_[2] = 0;
-  // Attempt to determine element from atomic number
+  // Determine element from atomic number
   if (atomicnum>0) {
     for (int i = 1; i < 22; i++)
       if (AtomicElementNum[i] == atomicnum)
         element_ = (AtomicElementType) i;
   }
-  // Determine from name
+  // If element still unknown attempt to determine from name
   if (element_ == UNKNOWN_ELEMENT)
     SetElementFromName();
 }
-
 
 // COPY CONSTRUCTOR
 Atom::Atom(const Atom &rhs) :
@@ -124,20 +96,12 @@ Atom::Atom(const Atom &rhs) :
   gb_screen_(rhs.gb_screen_),
   aname_(rhs.aname_),
   atype_(rhs.atype_),
-//  itree_(rhs.itree_),
-//  irotat_(rhs.irotat_),
   atype_index_(rhs.atype_index_),
-//  join_(rhs.join_),
   element_(rhs.element_),
-//  anum_(rhs.anum_),
   resnum_(rhs.resnum_),
   mol_(rhs.mol_),
   bonds_(rhs.bonds_)
-{ 
-  coords_[0] = rhs.coords_[0];
-  coords_[1] = rhs.coords_[1];
-  coords_[2] = rhs.coords_[2];
-}
+{ }
 
 // SWAP
 void Atom::swap(Atom &first, Atom &second) {
@@ -148,24 +112,11 @@ void Atom::swap(Atom &first, Atom &second) {
   swap(first.gb_screen_, second.gb_screen_);
   swap(first.aname_, second.aname_);
   swap(first.atype_, second.atype_);
-//  swap(first.itree_, second.itree_);
-//  swap(first.irotat_, second.irotat_);
   swap(first.atype_index_, second.atype_index_);
-//  swap(first.join_, second.join_);
   swap(first.element_, second.element_);
-//  swap(first.anum_, second.anum_);
   swap(first.resnum_, second.resnum_);
   swap(first.mol_, second.mol_);
   swap(first.bonds_, second.bonds_);
-  double x = first.coords_[0];
-  double y = first.coords_[1];
-  double z = first.coords_[2];
-  first.coords_[0] = second.coords_[0];
-  first.coords_[1] = second.coords_[1];
-  first.coords_[2] = second.coords_[2];
-  second.coords_[0] = x;
-  second.coords_[1] = y;
-  second.coords_[2] = z;
 }
 
 // ASSIGNMENT via copy/swap idiom
@@ -174,23 +125,13 @@ Atom &Atom::operator=(Atom other) {
   return *this;
 }
 
-// Atom::PrintXYZ()
-void Atom::PrintXYZ() {
-  mprintf("%10.4lf %10.4lf %10.4lf",coords_[0],coords_[1],coords_[2]);
-}
-
 void Atom::Info() {
   mprintf("  Atom [%s]",*aname_);
   mprintf(" Res %i:",resnum_+1);
-  //mprintf("[%s]",resnames[res]);
-  //if (molecules>0)
-    mprintf(" Mol %i", mol_+1);
-  /*if (types!=NULL)
-    mprintf(" Type=[%s]",types[atom]);
-  if (charge!=NULL)*/
-    mprintf(" Charge=%lf",charge_);
-  //if (mass!=NULL)
-    mprintf(" Mass=%lf",mass_);
+  mprintf(" Mol %i", mol_+1);
+  mprintf(" Type=[%s]",*atype_);
+  mprintf(" Charge=%lf",charge_);
+  mprintf(" Mass=%lf",mass_);
   mprintf("\n");
 }
 

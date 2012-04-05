@@ -17,8 +17,10 @@ class Atom {
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
-    Atom(NameType, double (&)[3]);
-    Atom( NameType, double (&)[3], NameType, double );
+    //Atom(NameType, double (&)[3]);
+    Atom(NameType);
+    //Atom( NameType, double (&)[3], NameType, double );
+    Atom( NameType, NameType, double );
     Atom( NameType, double, int, double, int, NameType, double, double,int );
     Atom(const Atom &);
     void swap(Atom &, Atom &);
@@ -43,9 +45,6 @@ class Atom {
     void PrintXYZ();
     void Info();
     // Functions that set internal vars
-    //inline void SetNum(int num) {
-    //  anum_ = num;
-    //}
     void SetName(NameType);
     void SetResNum(int);
     void SetMol(int);
@@ -54,9 +53,6 @@ class Atom {
     inline const char *c_str() const {
       return *aname_;
     }
-    //inline int Num() const {
-    //  return anum_;
-    //}
     inline int ResNum() const {
       return resnum_;
     }
@@ -87,9 +83,6 @@ class Atom {
     inline int Nexcluded() const {
       return (int)excluded_.size();
     }
-    inline const double *XYZ() const {
-      return coords_;
-    }
     inline double Mass() const {
       return mass_;
     }
@@ -116,24 +109,18 @@ class Atom {
 
     static const int AtomicElementNum[];
 
-    double coords_[3];
     double charge_;
     double mass_;
     double gb_radius_;
     double gb_screen_;
     NameType aname_;
     NameType atype_;
-    //NameType itree_;
-    //int irotat_;
     int atype_index_;
-    //int join_;
     AtomicElementType element_;
-    //int anum_;
     int resnum_;
     int mol_;
     std::vector<int> bonds_;
     std::vector<int> excluded_;
-    // Store bond indices?
 
     void SetElementFromName();
 };
