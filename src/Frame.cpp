@@ -12,20 +12,16 @@ const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 const size_t Frame::BOXSIZE_ = 6 * sizeof(double);
 
 /// CONSTRUCTOR
-Frame::Frame( ) {
-  X_ = NULL;
-  natom_ = 0;
-  maxnatom_ = 0;
-  Ncoord_ = 0;
-  box_[0]=0;
-  box_[1]=0;
-  box_[2]=0;
-  box_[3]=0;
-  box_[4]=0;
-  box_[5]=0;
-  T_ = 0.0;
-  V_ = NULL;
-  Mass_=NULL;
+Frame::Frame( ) : 
+  natom_(0),
+  maxnatom_(0),
+  Ncoord_(0),
+  X_(NULL),
+  V_(NULL),
+  Mass_(NULL),
+  T_(0.0)
+{
+  memset(box_, 0, BOXSIZE_);
 }
 
 // CONSTRUCTOR
@@ -44,6 +40,8 @@ Frame::Frame(int natomIn) :
     X_ = new double[ Ncoord_ ];
 }
 
+// CONSTRUCTOR
+/// Copy given coords
 Frame::Frame(double *Xin, int natomIn) :
   natom_(natomIn), 
   maxnatom_(natomIn),
@@ -63,14 +61,15 @@ Frame::Frame(double *Xin, int natomIn) :
 // CONSTRUCTOR
 /// Set up for natom, copy massIn
 Frame::Frame(int natomIn, double *massIn) :
-  natom_(natomIn), maxnatom_(natomIn)
+  natom_(natomIn), 
+  maxnatom_(natomIn),
+  Ncoord_(natomIn*3),
+  X_(NULL),
+  V_(NULL),
+  Mass_(NULL),
+  T_(0)
 {
-  Ncoord_ = natom_ * 3;
   memset(box_, 0, BOXSIZE_);
-  T_ = 0.0;
-  V_ = NULL;
-  X_ = NULL;
-  Mass_ = NULL;
   if (Ncoord_ > 0) {
     X_ = new double[ Ncoord_ ];
     if (massIn != NULL) {
@@ -82,15 +81,16 @@ Frame::Frame(int natomIn, double *massIn) :
 
 // CONSTRUCTOR
 /// Set up for nselected, copy mass according to maskIn
-Frame::Frame(AtomMask &maskIn, double *massIn) {
-  natom_ = maskIn.Nselected();
-  maxnatom_ = natom_;
-  Ncoord_ = natom_ * 3;
+Frame::Frame(AtomMask &maskIn, double *massIn) :
+  natom_(maskIn.Nselected()),
+  maxnatom_(natom_),
+  Ncoord_(natom_*3),
+  X_(NULL),
+  V_(NULL),
+  Mass_(NULL),
+  T_(0)
+{
   memset(box_, 0, BOXSIZE_);
-  T_ = 0;
-  V_ = NULL;
-  X_ = NULL;
-  Mass_ = NULL;
   if (Ncoord_ > 0) {
     X_ = new double[ Ncoord_ ];
     Mass_ = new double[ natom_ ];
@@ -390,6 +390,25 @@ void Frame::GetAtomXYZ(double *Coord, int atom) {
   Coord[1] = *Xptr;
   ++Xptr;
   Coord[2] = *Xptr;
+}
+
+// Frame::AddXYZ()
+/** Append the given XYZ coord to this frame. */
+void Frame::AddXYZ(const double *XYZin) {
+  if (XYZin == NULL) return;
+  if (natom_ >= maxnatom_) {
+    // Reallocate
+    maxnatom_ += 500;
+    double *newX = new double[ maxnatom_ * 3 ];
+    if (X_!=NULL) {
+      memcpy(newX, X_, natom_ * COORDSIZE_);
+      delete[] X_;
+    }
+    X_ = newX;
+  }
+  memcpy(X_ + Ncoord_, XYZin, COORDSIZE_);
+  ++natom_;
+  Ncoord_ += 3;
 }
 
 // Frame::Natom()

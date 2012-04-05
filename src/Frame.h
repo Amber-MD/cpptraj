@@ -37,6 +37,7 @@ class Frame {
     void ConvertToPtrajXYZ(double *, double *, double *, double*);
     void SetFromPtrajXYZ(double *, double *, double *);
     void GetAtomXYZ(double*, int);
+    void AddXYZ(const double *);
     int Natom();
     bool empty();
     double MaxImagedDistance();
