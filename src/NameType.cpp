@@ -22,6 +22,7 @@ NameType::NameType(const NameType &rhs) :
   c_array_[3] = rhs.c_array_[3];
   c_array_[4] = rhs.c_array_[4];
   // 5 is always NULL
+  c_array_[5]='\0';
 }
 
 NameType::NameType(const char *rhs) :
@@ -192,22 +193,25 @@ const char *NameType::operator*() const {
 void NameType::FormatName() 
 {
   // Ensure at least 4 chars long.
-  if (c_array_[0]=='\0') {
+  if (c_array_[0]=='\0') { // 0 chars
     c_array_[0]=' ';
     c_array_[1]=' ';
     c_array_[2]=' ';
     c_array_[3]=' ';
-  } else if (c_array_[1]=='\0') {
+    c_array_[4]='\0';
+  } else if (c_array_[1]=='\0') { // 1 char
     c_array_[1]=' ';
     c_array_[2]=' ';
     c_array_[3]=' ';
-  } else if (c_array_[2]=='\0') {
+    c_array_[4]='\0';
+  } else if (c_array_[2]=='\0') { // 2 chars
     c_array_[2]=' ';
     c_array_[3]=' ';
-  } else if (c_array_[3]=='\0') {
+    c_array_[4]='\0';
+  } else if (c_array_[3]=='\0') { // 3 chars
     c_array_[3]=' ';
+    c_array_[4]='\0';
   }
-  c_array_[4]='\0';
   // Remove leading whitespace.
   if        (c_array_[0]==' ') { // Some leading whitespace
     if (c_array_[1]!=' ') { // [_XXX]
