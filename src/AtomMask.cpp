@@ -3,7 +3,6 @@
 #include <stack>
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
-#include "PtrajMask.h"
 #include "ArgList.h"
 
 // CONSTRUCTOR
