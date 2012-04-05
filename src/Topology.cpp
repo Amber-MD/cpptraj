@@ -10,7 +10,6 @@
 // CONSTRUCTOR
 Topology::Topology() :
   debug_(0),
-  hasCoordinates_(false),
   topology_error_(0),
   firstSolventMol_(-1),
   NsolventMolecules_(0),
@@ -29,11 +28,6 @@ Topology::~Topology() {
 // Topology::SetDebug()
 void Topology::SetDebug(int debugIn) {
   debug_ = debugIn;
-}
-
-// Topology::SetHasCoordinates()
-void Topology::SetHasCoordinates() {
-  hasCoordinates_ = true;
 }
 
 // Topology::SetParmName()
@@ -340,7 +334,7 @@ void Topology::PrintBondInfo() {
 
 // -----------------------------------------------------------------------------
 // Topology::AddAtom()
-void Topology::AddAtom(Atom atomIn, Residue resIn) {
+void Topology::AddAtom(Atom atomIn, Residue resIn, const double* XYZin) {
   // DEBUG
   //mprintf("Adding atom %i [%s] of residue %i [%s]\n",
   //       atomIn.Num(), atomIn.Name(), resIn.Num(), resIn.Name());
@@ -356,6 +350,8 @@ void Topology::AddAtom(Atom atomIn, Residue resIn) {
   //atomIn.SetNum( atoms_.size() );
   atomIn.SetResNum( residues_.size()-1 );
   atoms_.push_back(atomIn);
+  // Add coordinate if given
+  refCoords_.AddXYZ( XYZin );
 }
 
 // Topology::StartNewMol()
@@ -634,7 +630,7 @@ void Topology::CommonSetup(bool bondsearch, bool molsearch) {
   //residues_.push_back( Residue( atoms_.size() ) );
   // Set up bond information if specified and necessary
   //if (bondsearch) {
-    if (bonds_.empty() && bondsh_.empty() && hasCoordinates_) {
+    if (bonds_.empty() && bondsh_.empty() && !refCoords_.empty()) {
       GetBondsFromAtomCoords();
       DetermineMolecules();
     }
@@ -801,8 +797,9 @@ void Topology::GetBondsFromAtomCoords() {
           atoms_[atom1].Nbonds() > 0 )
         continue;
       for (int atom2 = atom1 + 1; atom2 < stopatom; atom2++) {
-        double D2 = DIST2_NoImage( (double*)atoms_[atom1].XYZ(), 
-                                   (double*)atoms_[atom2].XYZ() );
+        double D2 = refCoords_.DIST2( atom1, atom2 );
+        //double D2 = DIST2_NoImage( (double*)atoms_[atom1].XYZ(), 
+        //                           (double*)atoms_[atom2].XYZ() );
         double cutoff2 = GetBondedCut(atoms_[atom1].Element(), atoms_[atom2].Element());
         //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
         //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);
@@ -850,8 +847,9 @@ void Topology::GetBondsFromAtomCoords() {
       if (atoms_[atom1].Element()==Atom::HYDROGEN) continue;
       for (int atom2 = midatom; atom2 < stopatom; atom2++) {
         if (atoms_[atom2].Element()==Atom::HYDROGEN) continue;
-        double D2 = DIST2_NoImage( (double*)atoms_[atom1].XYZ(),
-                                   (double*)atoms_[atom2].XYZ() );
+        double D2 = refCoords_.DIST2( atom1, atom2 );
+        //double D2 = DIST2_NoImage( (double*)atoms_[atom1].XYZ(),
+        //                           (double*)atoms_[atom2].XYZ() );
         double cutoff2 = GetBondedCut(atoms_[atom1].Element(), atoms_[atom2].Element());
         //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
         //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);

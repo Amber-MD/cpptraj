@@ -78,7 +78,7 @@ Atom PDBfile::pdb_Atom() {
   buffer_[16] = '\0';
   NameType aname(buffer_+12);
   buffer_[16] = savechar;
-  // X coord (30-38)
+/*  // X coord (30-38)
   savechar = buffer_[38];
   buffer_[38] = '\0';
   XYZ_[0] = atof( buffer_+30 );
@@ -92,9 +92,10 @@ Atom PDBfile::pdb_Atom() {
   savechar = buffer_[54];
   buffer_[54] = '\0';
   XYZ_[2] = atof( buffer_+46 );
-  buffer_[54] = savechar;
+  buffer_[54] = savechar;*/
 
-  return Atom(aname, XYZ_);
+  //return Atom(aname, XYZ_);
+  return Atom(aname);
 }
 
 // PDBfile::pdb_Residue()
@@ -130,6 +131,26 @@ void PDBfile::pdb_XYZ(double *Xout) {
   buffer_[54] = '\0';
   Xout[2] = atof( buffer_+46 );
   buffer_[54] = savechar;
+}
+
+// PDBfile::XYZ()
+const double *PDBfile::XYZ() {
+  // X coord (30-38)
+  char savechar = buffer_[38];
+  buffer_[38] = '\0';
+  XYZ_[0] = atof( buffer_+30 );
+  buffer_[38] = savechar;
+  // Y coord (38-46)
+  savechar = buffer_[46];
+  buffer_[46] = '\0';
+  XYZ_[1] = atof( buffer_+38 );
+  buffer_[46] = savechar;
+  // Z coord (46-54)
+  savechar = buffer_[54];
+  buffer_[54] = '\0';
+  XYZ_[2] = atof( buffer_+46 );
+  buffer_[54] = savechar;
+  return XYZ_;
 }
 
 /// Write out an ATOM or HETATM record

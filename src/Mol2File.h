@@ -19,6 +19,7 @@ class Mol2File {
     Atom Mol2Atom();
     Residue Mol2Residue();
     void Mol2XYZ(double *);
+    const double* XYZ();
 
     void SetMol2Natoms(int);
     void SetMol2Nbonds(int);
@@ -33,5 +34,6 @@ class Mol2File {
     int mol2atoms_;
     int mol2bonds_;
     std::string mol2title_;
+    double XYZ_[3];
 };
 #endif  

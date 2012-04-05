@@ -2,13 +2,11 @@
 
 int Parm_PDB::ReadParm(Topology &TopIn) {
   if (OpenFile()) return 1;
-  // Indicate parm has coordinates
-  TopIn.SetHasCoordinates();
   // Loop over PDB records 
   while ( PDB_GetNextRecord( IO ) ) {
     if (IsPDBatomKeyword()) {
       // If this is an ATOM / HETATM keyword, add to topology
-      TopIn.AddAtom(pdb_Atom(), pdb_Residue());
+      TopIn.AddAtom(pdb_Atom(), pdb_Residue(), XYZ());
     } else if (IsPDB_TER() || IsPDB_END()) {
       // Indicate end of molecule for TER/END. Finish if END.
       TopIn.StartNewMol();

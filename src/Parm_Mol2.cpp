@@ -15,8 +15,6 @@ bool Parm_Mol2::ID_ParmFormat() {
 /** Read file as a Tripos Mol2 file. */
 int Parm_Mol2::ReadParm(Topology &parmOut) {
   if (OpenFile()) return 1;
-  // Indicate parm has coordinates
-  parmOut.SetHasCoordinates();
   mprintf("    Reading Mol2 file %s as topology file.\n",BaseName());
   // Get @<TRIPOS>MOLECULE information
   if (ReadMolecule(IO)) return 1;
@@ -33,7 +31,7 @@ int Parm_Mol2::ReadParm(Topology &parmOut) {
   if (ScanTo(IO, ATOM)) return 1;
   for (int atom=0; atom < Mol2Natoms(); atom++) {
     if ( GetLine( IO ) ) return 1;
-    parmOut.AddAtom( Mol2Atom(), Mol2Residue() );
+    parmOut.AddAtom( Mol2Atom(), Mol2Residue(), XYZ() );
   }
 
   // Get @<TRIPOS>BOND information [optional]

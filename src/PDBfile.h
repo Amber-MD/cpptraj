@@ -19,6 +19,7 @@ class PDBfile {
     Atom pdb_Atom();
     Residue pdb_Residue();
     void pdb_XYZ(double*);
+    const double* XYZ();
     void pdb_write_ATOM(FileIO*,PDB_RECTYPE,int,NameType,NameType,char,int,
                         double,double,double,float,float,char *,bool);
 /*    int pdb_atomNumber(char*);

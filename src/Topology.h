@@ -15,7 +15,6 @@ class Topology {
     ~Topology();
     // ----- Set internal variables -----
     void SetDebug(int);
-    void SetHasCoordinates(); // TODO: Replace with pass-in of CoordFrame
     //void SetParmName(const char*);
     void SetParmName(std::string&, const char*);
     void SetGBradiiSet(std::string&);
@@ -108,7 +107,7 @@ class Topology {
     inline Box& ParmBox() { return box_; }
     inline Box::BoxType BoxType() { return box_.Type(); }
     // ----- PDB/Mol2 etc setup routines -----
-    void AddAtom(Atom, Residue);
+    void AddAtom(Atom, Residue, const double*);
     void StartNewMol();
     // ----- Amber setup routines -----
     int CreateAtomArray(std::vector<NameType>&, std::vector<double>&,
@@ -186,7 +185,6 @@ class Topology {
     Frame refCoords_;
 
     int debug_;
-    bool hasCoordinates_;
     int topology_error_;
     int firstSolventMol_;
     int NsolventMolecules_;

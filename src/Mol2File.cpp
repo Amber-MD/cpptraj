@@ -8,7 +8,11 @@ Mol2File::Mol2File() :
   mol2debug_(0),
   mol2atoms_(0),
   mol2bonds_(0)
-{}
+{
+  XYZ_[0] = 0;
+  XYZ_[1] = 0;
+  XYZ_[2] = 0;
+}
 
 /// Tripos Tags - must be in same order as enum type TRIPOSTAG
 const char Mol2File::TRIPOSTAGTEXT[4][22]={
@@ -107,10 +111,11 @@ void Mol2File::Mol2Bond(int &at1, int &at2) {
 Atom Mol2File::Mol2Atom() {
   char mol2name[10], mol2type[10];
   double mol2q;
-  double XYZ_[3];
-  sscanf(buffer_, "%*i %s %lf %lf %lf %s %*i %*s %lf", mol2name,XYZ_, XYZ_+1, XYZ_+2, 
-         mol2type, &mol2q);
-  return Atom( mol2name, XYZ_, mol2type, mol2q );
+  //double XYZ_[3];
+  //sscanf(buffer_, "%*i %s %lf %lf %lf %s %*i %*s %lf", mol2name,XYZ_, XYZ_+1, XYZ_+2, 
+  sscanf(buffer_, "%*i %s %*f %*f %*f %s %*i %*s %lf", mol2name, mol2type, &mol2q);
+  //return Atom( mol2name, XYZ_, mol2type, mol2q );
+  return Atom( mol2name, mol2type, mol2q );
 }
 
 // Mol2File::Mol2Residue()
@@ -125,6 +130,11 @@ Residue Mol2File::Mol2Residue() {
 /** Given a Mol2 ATOM line, get the X Y and Z coords. */
 void Mol2File::Mol2XYZ(double *X) {
   sscanf(buffer_,"%*i %*s %lf %lf %lf",X, X+1, X+2);
+}
+
+const double* Mol2File::XYZ() {
+  sscanf(buffer_,"%*i %*s %lf %lf %lf",XYZ_, XYZ_+1, XYZ_+2);
+  return XYZ_;
 }
 
 void Mol2File::SetMol2Natoms(int natomIn) {
