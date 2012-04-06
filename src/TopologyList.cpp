@@ -214,43 +214,6 @@ Topology *TopologyList::GetParm(ArgList &argIn) {
   return ParmOut;
 }
 
-// ParmFileList::GetParmIndex()
-/** Return the index in ParmList of the given Parm name. Use either the full
-  * path, the base filename, or a tag.
-  */
-/*int ParmFileList::GetParmIndex(char *name) {
-  int pindex;
-  std::string ParmTag;
-
-  // if first char of name is a bracket, assume tag.
-  if (name[0]=='[') {
-    ParmTag.assign( name );
-    pindex = GetParmIndexByTag( ParmTag );
-  
-  // Otherwise assume filename or base filename
-  } else {
-    pindex=-1;
-    for (int i=0; i<Nparm; i++)
-      if ( strcmp(name,ParmList[i]->parmfileName)==0 ||
-           strcmp(name,ParmList[i]->parmName)==0 ) {
-        pindex=i;
-        break;
-      }
-  }
-
-  return pindex;
-}*/
-
-// ParmFileList::GetParmIndexByTag()
-/** Return index of parm that matches tag. */
-/*int ParmFileList::GetParmIndexByTag(std::string &ParmTag) {
-  int i; 
-  if (ParmTag.empty()) return -1;
-  for (i = 0; i < Nparm; i++)
-    if ( ParmTags[i].compare( ParmTag )==0 ) return i;
-  return -1;
-}*/
-
 // TopologyList::AddParmFile()
 /** Add a parameter file to the parm file list. */
 int TopologyList::AddParmFile(char *filename) {
@@ -317,17 +280,6 @@ int TopologyList::AddParm(Topology *ParmIn) {
   TopList_.push_back(ParmIn);
   return 0;
 }
-
-// ParmFileList::ReplaceParm()
-/** Replace parm file at given position with newParm. If this list has only
-  * copies do not delete the old parm, just replace.
-  */
-/*int ParmFileList::ReplaceParm(int num, AmberParm *newParm) {
-  if (num>=Nparm || num<0) return 1;
-  if (!hasCopies) delete ParmList[num];
-  ParmList[num]=newParm;
-  return 0;
-}*/
 
 // TopologyList::Print()
 /// Print list of loaded parameter files

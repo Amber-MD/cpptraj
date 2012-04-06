@@ -10,8 +10,8 @@
   * or tag.
   * TopologyList also serves as the command interpreter for parm-related
   * commands. Currently recognized commands are: parm, parmlist, parminfo,
-  * parmbondinfo, parmmolinfo, bondsearch, nobondsearch, molsearch, 
-  * nomolsearch.
+  * parmbondinfo, parmmolinfo, parmresinfo, bondsearch, nobondsearch, 
+  * molsearch, nomolsearch.
   */
 class TopologyList : public FileList {
   public:
@@ -27,11 +27,6 @@ class TopologyList : public FileList {
     int AddParm(Topology*);
     void Print();
 
-/*   
-    int GetParmIndex(char *);
-    int GetParmIndexByTag(std::string&);
-    int ReplaceParm(int, AmberParm *);
-*/
   private:
     std::vector<Topology*> TopList_;
     bool hasCopies_;  ///< true: List contains addresses of topologies, do not delete
