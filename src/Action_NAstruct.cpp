@@ -81,13 +81,13 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
     ExpMasks[base].PrintMaskAtoms("ExpMask");
     FitMasks[base].PrintMaskAtoms("FitMask");
     mprintf("#  %4s %8s %8s %8s   %4s %8s %8s %8s\n","Ref","Rx","Ry","Rz","Exp","Ex","Ey","Ez");
-    for (int i = 0; i < RefCoords[base].natom; i++) {
+    for (int i = 0; i < RefCoords[base].Natom(); i++) {
       int j = i * 3;
       mprintf("%-2i %4s %8.3lf %8.3lf %8.3lf   %4s %8.3lf %8.3lf %8.3lf\n",i,
               RefCoords[base].AtomName(i),
-              RefCoords[base].X[j],RefCoords[base].X[j+1],RefCoords[base].X[j+2],
+              RefCoords[base][j],RefCoords[base][j+1],RefCoords[base][j+2],
               BaseAxes[base].AtomName(i),
-              BaseAxes[base].X[j],BaseAxes[base].X[j+1],BaseAxes[base].X[j+2]);
+              BaseAxes[base][j],BaseAxes[base][j+1],BaseAxes[base][j+2]);
     }
 #   endif 
     /* Now that we have a set of reference coords and the corresponding input

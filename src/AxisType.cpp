@@ -338,7 +338,7 @@ void AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
     X_ = new double[ Ncoord_ ];
 #   ifdef NASTRUCTDEBUG
     // Need names when debugging
-    Name.resize(natom_);
+    Name.clear();
 #   endif
     maxnatom_ = natom_;
   }
@@ -351,7 +351,7 @@ void AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
     memcpy(newX, AxisIn.X_ + oldatom3, COORDSIZE_);
     newX += 3;
 #   ifdef NASTRUCTDEBUG
-    Name[i] = AxisIn.Name[*oldatom];
+    Name.push_back( AxisIn.Name[*oldatom] );
 #   endif
   }
 }

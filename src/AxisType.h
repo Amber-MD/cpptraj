@@ -64,6 +64,9 @@ class AxisType : public Frame
 #ifdef NASTRUCTDEBUG
     void WritePDB(CpptrajFile &, int, char *, int *); // DEBUG
     void WriteAxesPDB(CpptrajFile &, int, char *, int *);
+    const double operator[](int idx) {
+      return X_[idx];
+    }
 #endif
   private:
     static const int ADENATOM;

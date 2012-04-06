@@ -78,7 +78,7 @@ class NAstruct: public Action {
         AxisPDBwriter() { pdbatom=0; }
         ~AxisPDBwriter() { pdbfile.CloseFile(); }
         void Open(const char *fname) {
-          pdbfile.SetupFile((char*)fname, WRITE, 0);
+          pdbfile.SetupWrite((char*)fname, 0);
           pdbfile.OpenFile();
         }
         void Write(AxisType &axis, int res, char *resname) {
