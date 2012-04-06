@@ -15,6 +15,7 @@ class Box {
     void SetAngles(double*);
     void SetTruncOct();
     void SetNoBox();
+    void SetMissingInfo(const Box&);
 
     int AmberIfbox();
     std::vector<double> BetaLengths();
@@ -32,6 +33,12 @@ class Box {
       boxOut[4] = box_[4];
       boxOut[5] = box_[5];
     }
+    void SetX(double);
+    void SetY(double);
+    void SetZ(double);
+    void SetAlpha(double);
+    void SetBeta(double);
+    void SetGamma(double);
 
   private:
     static const double TRUNCOCTBETA;

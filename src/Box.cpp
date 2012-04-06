@@ -106,6 +106,18 @@ void Box::SetNoBox() {
   btype_ = NOBOX;
 }
 
+// Box::SetMissingInfo()
+/** Set this box info from rhs if <= 0. */
+void Box::SetMissingInfo(const Box& rhs) {
+  if (box_[0] <= 0) box_[0] = rhs.box_[0];
+  if (box_[1] <= 0) box_[1] = rhs.box_[1];
+  if (box_[2] <= 0) box_[2] = rhs.box_[2];
+  if (box_[3] <= 0) box_[3] = rhs.box_[3];
+  if (box_[4] <= 0) box_[4] = rhs.box_[4];
+  if (box_[5] <= 0) box_[5] = rhs.box_[5];
+  SetBoxType();
+}
+
 // Box::SetBoxType()
 /// Determine box type (none/ortho/nonortho) based on box angles.
 void Box::SetBoxType() {
@@ -215,4 +227,29 @@ double Box::ToRecip(double *ucell, double *recip) {
 
   return volume;
 }
+
+void Box::SetX(double Xin) {
+  box_[0] = Xin;
+}
+
+void Box::SetY(double Yin) {
+  box_[1] = Yin;
+}
+
+void Box::SetZ(double Zin) {
+  box_[2] = Zin;
+}
+
+void Box::SetAlpha(double Ain) {
+  box_[3] = Ain;
+}
+
+void Box::SetBeta(double Bin) {
+  box_[4] = Bin;
+}
+
+void Box::SetGamma(double Gin) {
+  box_[5] = Gin;
+}
+
 
