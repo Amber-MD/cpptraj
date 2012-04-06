@@ -103,6 +103,8 @@ class Topology {
     void ParmInfo();
     void PrintAtomInfo(const char*);
     void PrintBondInfo();
+    void PrintMoleculeInfo();
+    void PrintResidueInfo();
     // ----- Routines to Access/Modify Box info -----
     inline Box& ParmBox() { return box_; }
     inline Box::BoxType BoxType() { return box_.Type(); }
@@ -194,6 +196,7 @@ class Topology {
     int ntypes_; // This is stored for the purpose of checking array sizes
     double *massptr_; // TODO: remove
 
+    void PrintBonds(std::vector<int>&);
     void SetAtomBondInfo();
     bool compareElement(Atom::AtomicElementType, Atom::AtomicElementType,
                         Atom::AtomicElementType, Atom::AtomicElementType);

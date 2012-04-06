@@ -275,22 +275,28 @@ double *Topology::Mass() {
 // -----------------------------------------------------------------------------
 // Topology::Summary()
 void Topology::Summary() {
-  mprintf("Topology has %zu atoms, %zu residues, %zu mols.\n",
-          atoms_.size(),residues_.size(),molecules_.size());
-  if (!bondsh_.empty() || !bonds_.empty())
+  mprintf("\t\tTopology contains %zu atoms.\n", atoms_.size());
+  mprintf("\t\t                  %zu residues.\n", residues_.size());
+  mprintf("\t\t                  %zu bonds.\n", (bonds_.size()+bondsh_.size()) / 3 );
+  mprintf("\t\t                  %zu molecules.\n", molecules_.size());
+  mprintf("\t\t                  Box: %s\n",box_.TypeName());
+  if (NsolventMolecules_>0) {
+    mprintf("\t\t                  %i solvent molecules.\n", NsolventMolecules_);
+    mprintf("\t\t                  First solvent mol is %i\n", firstSolventMol_+1);
+    mprintf("\t\t                  Final solute residue is %i\n", finalSoluteRes_+1);
+  }
+  /*if (!bondsh_.empty() || !bonds_.empty())
     mprintf("  %zu bonds to hydrogen, %zu other bonds.\n",bondsh_.size()/3,
-            bonds_.size()/3);
-  mprintf("  First solvent mol = %i, final solute residue = %i\n",
-          firstSolventMol_+1, finalSoluteRes_+1);
+            bonds_.size()/3);*/
 }
 
 // Topology::ParmInfo()
 void Topology::ParmInfo() {
-  mprintf(" %i: %s, %zu atoms, %zu res, %s box, %zu mol",pindex_,c_str(),
+  mprintf(" %i: %s, %zu atoms, %zu res, box: %s, %zu mol",pindex_,c_str(),
           atoms_.size(),residues_.size(),box_.TypeName(),molecules_.size());
   if (NsolventMolecules_>0)
-    mprintf(", %i solvent mol",NsolventMolecules_);
-  if (nframes_>0)
+    mprintf(", %i solvent",NsolventMolecules_);
+  if (nframes_>0) 
     mprintf(", %i frames",nframes_);
   mprintf("\n");
 }
@@ -299,36 +305,77 @@ void Topology::ParmInfo() {
 void Topology::PrintAtomInfo(const char *maskString) {
   AtomMask mask;
   mask.SetMaskString( (char*)maskString ); // TODO: Use only strings
-  ParseMask(refCoords_, mask, false);
-  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
-    (*atom).Info();
+  ParseMask(refCoords_, mask, true);
+  if ( mask.None() )
+    mprintf("\tSelection is empty.\n");
+  else
+    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); atom++) {
+      mprintf("\tAtom %i", *atom+1);
+      atoms_[ (*atom) ].Info();
+    }
 } 
+
+// Topology::PrintBonds()
+void Topology::PrintBonds(std::vector<int>& barray) {
+  for (std::vector<int>::iterator batom = barray.begin();
+                                  batom != barray.end(); batom++)
+  {
+    int atom1 = ((*batom) / 3);
+    ++batom;
+    int atom2 = ((*batom) / 3);
+    mprintf("\tAtom %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
+                                     atom2+1, atoms_[atom2].c_str());
+    ++batom;
+    if (*batom==-1) {
+      double req = GetBondedCut(atoms_[atom1].Element(),atoms_[atom2].Element());
+      mprintf("  EQ=%lf\n", req);
+    } else {
+      // TODO: Bond index should be -1
+      double req = bondreq_[*batom - 1];
+      double rk = bondrk_[*batom - 1];
+      mprintf("  EQ=%lf K=%lf\n", req, rk);
+    }
+  }
+}
 
 // Topology::PrintBondInfo()
 void Topology::PrintBondInfo() {
   if (!bondsh_.empty()) {
     mprintf("%zu BONDS TO HYDROGEN:\n",bondsh_.size()/3);
-    for (std::vector<int>::iterator batom = bondsh_.begin();
-                                    batom != bondsh_.end(); batom++)
-    {
-      int atom1 = ((*batom) / 3) + 1;
-      ++batom;
-      int atom2 = ((*batom) / 3) + 1;
-      ++batom;
-      mprintf("\tAtom %i to %i, %i\n",atom1,atom2,*batom);
-    }
+    PrintBonds( bondsh_ );
   }
   if (!bonds_.empty()) {
     mprintf("%zu BONDS TO NON-HYDROGEN:\n",bonds_.size()/3);
-    for (std::vector<int>::iterator batom = bonds_.begin();
-                                    batom != bonds_.end(); batom++)
+    PrintBonds( bonds_ );
+  }
+}
+
+// Topology::PrintMoleculeInfo()
+void Topology::PrintMoleculeInfo() {
+  if (molecules_.empty())
+    mprintf("\t[%s] No molecule info.\n",c_str());
+  else {
+    mprintf("MOLECULES:\n");
+    unsigned int mnum = 1;
+    for (std::vector<Molecule>::iterator mol = molecules_.begin(); 
+                                         mol != molecules_.end(); mol++)
     {
-      int atom1 = ((*batom) / 3) + 1;
-      ++batom;
-      int atom2 = ((*batom) / 3) + 1;
-      ++batom;
-      mprintf("\tAtom %i to %i, %i\n",atom1,atom2,*batom);
+      int firstres = (*mol).FirstRes();
+      mprintf("\tMolecule %u, %i atoms, first residue %i:%s\n",mnum,(*mol).NumAtoms(),
+              firstres+1,residues_[firstres].c_str());
+      ++mnum;
     }
+  }
+}
+
+// Topology::PrintResidueInfo()
+void Topology::PrintResidueInfo() {
+  unsigned int rnum = 1;
+  for (std::vector<Residue>::iterator res = residues_.begin();
+                                      res != residues_.end(); res++)
+  {
+    mprintf("\tResidue %u, %s, first atom %i\n",rnum,(*res).c_str(),(*res).FirstAtom()+1);
+    ++rnum;
   }
 }
 
@@ -629,14 +676,13 @@ void Topology::CommonSetup(bool bondsearch, bool molsearch) {
   // Add placeholder to residues to indicate last residue
   //residues_.push_back( Residue( atoms_.size() ) );
   // Set up bond information if specified and necessary
-  //if (bondsearch) {
+  if (bondsearch) {
     if (bonds_.empty() && bondsh_.empty() && !refCoords_.empty()) {
       GetBondsFromAtomCoords();
       DetermineMolecules();
     }
-    // TODO: Handle cases where atoms already contains bond info but
-    //       bonds/bondsh are empty. 
-  //}
+  }
+  
   if (molecules_.empty()) 
     DetermineMolecules();
 
@@ -873,17 +919,25 @@ void Topology::ClearBondInfo() {
 }
 
 // Topology::AddBond()
+/** Create a bond between atom1 and atom2, update the atoms array.
+  * For bonds to H always insert the H second.
+  */
 void Topology::AddBond(int atom1, int atom2) {
-  bool isH = (atoms_[atom1].Element()==Atom::HYDROGEN ||
-              atoms_[atom2].Element()==Atom::HYDROGEN );
-  //mprintf("\t\t\tAdding bond %i to %i (isH=%i)\n",atom1+1,atom2+1,(int)isH); 
+  bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
+  bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
+  //mprintf("\t\t\tAdding bond %i to %i (isH=%i)\n",atom1+1,atom2+1,(int)isH);
   // Update bonds arrays
   // TODO: Check for duplicates
-  if (isH) {
-    bondsh_.push_back(atom1*3);
-    bondsh_.push_back(atom2*3);
+  if (a1H || a2H) {
+    if (a1H) {
+      bondsh_.push_back(atom2*3);
+      bondsh_.push_back(atom1*3);
+    } else {
+      bondsh_.push_back(atom1*3);
+      bondsh_.push_back(atom2*3);
+    }
     bondsh_.push_back(-1);
-  } else {
+  } else  {
     bonds_.push_back(atom1*3);
     bonds_.push_back(atom2*3);
     bonds_.push_back(-1);
@@ -928,7 +982,8 @@ void Topology::DetermineMolecules() {
     }
     ++atomnum;
   }
-  mprintf("\t%i molecules.\n",mol);
+  if (debug_>0)
+    mprintf("\t%i molecules.\n",mol);
 
   // Update molecule information
   molecules_.resize( mol );
@@ -1038,10 +1093,12 @@ void Topology::SetSolventInfo() {
   }
   if (firstSolventMol_==-1 && finalSoluteRes_ == -1)
     finalSoluteRes_ = (int)residues_.size() - 1;
-  if (NsolventMolecules_ == 0) 
-    mprintf("    No solvent.\n");
-  else
-    mprintf("    %i solvent molecules, %i solvent atoms\n",NsolventMolecules_,numSolvAtoms);
+  if (debug_>0) {
+    if (NsolventMolecules_ == 0) 
+      mprintf("    No solvent.\n");
+    else
+      mprintf("    %i solvent molecules, %i solvent atoms\n",NsolventMolecules_,numSolvAtoms);
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -1074,8 +1131,6 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
     mprinterr("Error: No reference set for [%s], cannot select by distance.\n",c_str());
     return;
   }
-  mprintf("\t\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
-          (int)within, (int)byAtom, distance);
   // Distance has been pre-squared.
   // Create temporary array of atom #s currently selected in mask. Also
   // reset mask, it will be the output mask.
@@ -1090,10 +1145,14 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
     mprinterr("Error: SelectAtomsWithin(%lf): No atoms in prior selection.\n",distance);
     return;
   }
-  mprintf("\t\t\tInitial Mask=[");
-  for (std::vector<unsigned int>::iterator at = selected.begin(); at != selected.end(); at++)
-    mprintf(" %u",*at + 1);
-  mprintf(" ]\n");
+/*  if (debug_ > 1) {
+    mprintf("\t\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
+            (int)within, (int)byAtom, distance);
+    mprintf("\t\t\tInitial Mask=[");
+    for (std::vector<unsigned int>::iterator at = selected.begin(); at != selected.end(); at++)
+      mprintf(" %u",*at + 1);
+    mprintf(" ]\n");
+  }*/
 
   if (byAtom) { // Select by atom
     // Loop over all atoms
@@ -1146,8 +1205,8 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
             endatom = atoms_.size();
           else
             endatom = residues_[currentres+1].FirstAtom();
-          mprintf("\t\t\t\tSelecting residue %i (%i-%i)\n",currentres+1,
-                  residues_[currentres].FirstAtom()+1,endatom);
+          //mprintf("\t\t\t\tSelecting residue %i (%i-%i)\n",currentres+1,
+          //        residues_[currentres].FirstAtom()+1,endatom);
           for (int resatom = residues_[currentres].FirstAtom(); resatom < endatom; resatom++)
             mask[resatom] = 'T';
           selectresidue = false;
@@ -1161,7 +1220,7 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
 
 // Topology::Mask_AND()
 void Topology::Mask_AND(char *mask1, char *mask2) {
-  mprintf("\t\t\tPerforming AND on masks.\n");
+  //mprintf("\t\t\tPerforming AND on masks.\n");
   for (unsigned int i = 0; i < atoms_.size(); i++) {
     //mprintf(" [%c|%c]",mask1[i],mask2[i]);
     if (mask1[i]=='F' || mask2[i]=='F')
@@ -1173,7 +1232,7 @@ void Topology::Mask_AND(char *mask1, char *mask2) {
 
 // Topology::Mask_OR()
 void Topology::Mask_OR(char *mask1, char *mask2) {
-  mprintf("\t\t\tPerforming OR on masks.\n");
+  //mprintf("\t\t\tPerforming OR on masks.\n");
   for (unsigned int i = 0; i < atoms_.size(); i++) {
     if (mask1[i]=='T' || mask2[i]=='T')
       mask1[i] = 'T';
@@ -1184,7 +1243,7 @@ void Topology::Mask_OR(char *mask1, char *mask2) {
 
 // Topology::Mask_NEG()
 void Topology::Mask_NEG(char *mask1) {
-  mprintf("\t\t\tNegating mask.\n");
+  //mprintf("\t\t\tNegating mask.\n");
   for (unsigned int i = 0; i < atoms_.size(); i++) {
     if (mask1[i]=='T')
       mask1[i] = 'F';
@@ -1198,7 +1257,7 @@ void Topology::MaskSelectResidues(NameType name, char *mask) {
   int endatom;
   std::vector<Residue>::iterator res1 = residues_.begin() + 1;
 
-  mprintf("\t\t\tSelecting residues named [%s]\n",*name);
+  //mprintf("\t\t\tSelecting residues named [%s]\n",*name);
   for (std::vector<Residue>::iterator res = residues_.begin();
                                       res != residues_.end(); res++)
   {
@@ -1218,7 +1277,7 @@ void Topology::MaskSelectResidues(NameType name, char *mask) {
 void Topology::MaskSelectResidues(int res1, int res2, char *mask) {
   int startatom, endatom;
   int nres = (int) residues_.size();
-  mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
+  //mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
   // Get start atom
   if (res1 > nres) {
     if (debug_>0)
@@ -1241,7 +1300,7 @@ void Topology::MaskSelectResidues(int res1, int res2, char *mask) {
 
 // Topology::MaskSelectAtoms()
 void Topology::MaskSelectAtoms( NameType name, char *mask) {
-  mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
+  //mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
   unsigned int m = 0;
   for (std::vector<Atom>::iterator atom = atoms_.begin();
                                    atom != atoms_.end(); atom++)
@@ -1258,7 +1317,7 @@ void Topology::MaskSelectAtoms( NameType name, char *mask) {
 // Mask args expected to start from 1
 void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) {
   int startatom, endatom;
-  mprintf("\t\t\tSelecting atoms %i to %i\n",atom1,atom2);
+  //mprintf("\t\t\tSelecting atoms %i to %i\n",atom1,atom2);
   if (atom1 > (int)atoms_.size()) {
     if (debug_>0) 
       mprintf("Warning: Select atoms: atom 1 out of range (%i)\n",atom1);

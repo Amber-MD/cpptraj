@@ -125,8 +125,9 @@ Atom &Atom::operator=(Atom other) {
   return *this;
 }
 
+// Atom::Info()
 void Atom::Info() {
-  mprintf("  Atom [%s]",*aname_);
+  mprintf(" [%s]",*aname_);
   mprintf(" Res %i:",resnum_+1);
   mprintf(" Mol %i", mol_+1);
   mprintf(" Type=[%s]",*atype_);

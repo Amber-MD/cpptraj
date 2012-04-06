@@ -72,7 +72,7 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string &tokenString ) {
   if (type_ == ResNum || type_ == AtomNum) {
     for (std::string::iterator p = tokenString.begin(); p != tokenString.end(); p++) {
       if (*p != '-' && isalpha(*p, loc)) {
-        mprintf("DEBUG: making name type because of %c\n",*p);
+        //mprintf("DEBUG: making name type because of %c\n",*p);
         MakeNameType();
         break;
       } 
