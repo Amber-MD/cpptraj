@@ -58,7 +58,7 @@ int CharmmPsfParmFile::ReadParm(AmberParm &parmOut, CpptrajFile &parmfile) {
     //if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
     // Read line
     // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    sscanf(buffer,"%*8i %*4s %i %4s %4s %4i %14lf %14lf",&psfresnum,psfresname,psfname,
+    sscanf(buffer,"%*i %*s %i %s %s %i %lf %lf",&psfresnum,psfresname,psfname,
            &psfattype,parmOut.charge+atom,parmOut.mass+atom);
     // Ensure name has 4 chars
     PadWithSpaces( psfname );
