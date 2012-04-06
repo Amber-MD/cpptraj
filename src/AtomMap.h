@@ -2,6 +2,7 @@
 #define INC_ATOMMAP_H
 #include "MapAtom.h"
 #include "Topology.h"
+/// Used to set up mapping information for each atom.
 class AtomMap {
   public:
     AtomMap();

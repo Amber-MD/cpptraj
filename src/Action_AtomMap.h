@@ -3,7 +3,7 @@
 #include "Action.h"
 #include "AtomMap.h"
 // Class: Action_AtomMap
-/// Action used to map one moleucle to another using atommap
+/// Action used to map one molecule to another using AtomMaps
 class Action_AtomMap : public Action {
   public:
     Action_AtomMap(); 

@@ -1,6 +1,7 @@
 #ifndef INC_MAPATOM_H
 #define INC_MAPATOM_H
 #include "Atom.h"
+/// Atom with extra information that can be used for mapping.
 class MapAtom : public Atom {
   public :
     MapAtom();
@@ -30,12 +31,12 @@ class MapAtom : public Atom {
     void SetNotChiral() { isChiral_ = false; }
   private:
     static const char AtomicElementChar[];
-    bool isChiral_;
-    bool isMapped_;
-    bool complete_;
-    std::string atomID_;
-    std::string unique_;
-    int Nduplicated_;
-    char name_;
+    bool isChiral_;      ///< true: Atom is a chiral center
+    bool isMapped_;      ///< true: this atom has been mapped
+    bool complete_;      ///< true: This atom an all bonded atoms have been mapped
+    std::string atomID_; ///< ID created from this atom name, then bonded atom names
+    std::string unique_; ///< ID created from this atomID, then bonded atomIDs
+    int Nduplicated_;    ///< How many times is uniqueID duplicated, 0 = IsUnique
+    char name_;          ///< 1 char name used to construct atomID/unique strings
 };
 #endif

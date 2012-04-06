@@ -7,8 +7,10 @@ AtomMap::AtomMap() :
   debug_(0)
 {}
 
+/// Blank AtomMap for empty return of bracket operator
 MapAtom AtomMap::EMPTYMAPATOM = MapAtom();
 
+/** Return a reference to the specifed MapAtom */
 MapAtom& AtomMap::operator[](int idx) {
   if (idx < 0 || idx >= (int)mapatoms_.size()) {
     mprinterr("Error: AtomMap::operator[]: Index %i out of range.\n",idx);
@@ -17,14 +19,17 @@ MapAtom& AtomMap::operator[](int idx) {
   return mapatoms_[idx];
 }
 
+/// Return the number of atoms in the AtomMap.
 int AtomMap::Natom() {
   return (int)mapatoms_.size();
 }
 
+/// Set the debug level of the AtomMap.
 void AtomMap::SetDebug(int debugIn) {
   debug_ = debugIn;
 }
 
+/** Copy all atoms from input topology to this AtomMap. */
 int AtomMap::Setup(Topology *TopIn) {
   // Copy atoms
   mapatoms_.clear();
@@ -35,6 +40,7 @@ int AtomMap::Setup(Topology *TopIn) {
   return 0;
 }
 
+/** Reset any previously set mapping information. */
 void AtomMap::ResetMapping() {
   for (std::vector<MapAtom>::iterator matom = mapatoms_.begin();
                                       matom != mapatoms_.end(); matom++)
@@ -44,6 +50,9 @@ void AtomMap::ResetMapping() {
   }
 }
 
+/** Check if the atomID of the specified atom (bondedAtom) bonded to <atom> 
+  * is the same as the atomID of any other non-mapped atom bonded to <atom>.
+  */
 bool AtomMap::BondIsRepeated(int atom, int bondedAtom) {
   // If 1 or no bonds, atom cant possibly be repeated
   if (mapatoms_[atom].Nbonds() > 1) {
@@ -58,6 +67,14 @@ bool AtomMap::BondIsRepeated(int atom, int bondedAtom) {
   return false;
 }
 
+/** Give each atom an identifier (atomID) based on what atoms are bonded to 
+  * it. The first part of the atomID is the atom itself, followed by an 
+  * alphabetized list of bonded atoms. So C in O=C-H2 would be CHHO.
+  * Then create a 'unique string' comprised of this atomID and the 
+  * atomIDs of all bonded atoms (sorted). Once that is done determine
+  * which unique strings are actually unique (i.e. they are not repeated
+  * in this map). 
+  */
 void AtomMap::DetermineAtomIDs() {
   // Determine self IDs
   if (debug_>0) mprintf("ATOM IDs:\n");
@@ -121,6 +138,11 @@ void AtomMap::DetermineAtomIDs() {
   }
 }
 
+/** If atom is mapped and all bonded atoms are mapped mark atom as completely 
+  * mapped.
+  * If printAtoms is true print isMapped value for this atom and all atoms
+  * bonded to it.
+  */
 void AtomMap::MarkAtomComplete(int atom, bool printAtoms) {
   if (atom<0 || atom >= (int)mapatoms_.size()) return;
   if (!mapatoms_[atom].IsMapped() && !printAtoms) return;
@@ -147,12 +169,18 @@ void AtomMap::MarkAtomComplete(int atom, bool printAtoms) {
   }
 }
 
+/** Go through each atom in the map. If the atom is unique and all bonded
+  * atoms are unique mark the atom as completely mapped.
+  */
 void AtomMap::CheckForCompleteAtoms() {
   bool printAtoms = (debug_ > 0);
   for (int atom = 0; atom < (int)mapatoms_.size(); atom++)
     MarkAtomComplete(atom,printAtoms);
 }
 
+/** Checks that bonding information is present. Also checks for potential
+  * chiral centers.
+  */
 int AtomMap::CheckBonds() {
   int total_bonds = 0;
   // Search for chiral centers by number of bonds
