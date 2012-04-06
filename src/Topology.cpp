@@ -3,7 +3,6 @@
 #include <sstream> // ostringstream
 #include "Topology.h"
 #include "CpptrajStdio.h"
-#include "DistRoutines.h" // DIST2_NoImage
 // DEBUG
 //#include <cmath> // sqrt
 
@@ -844,8 +843,6 @@ void Topology::GetBondsFromAtomCoords() {
         continue;
       for (int atom2 = atom1 + 1; atom2 < stopatom; atom2++) {
         double D2 = refCoords_.DIST2( atom1, atom2 );
-        //double D2 = DIST2_NoImage( (double*)atoms_[atom1].XYZ(), 
-        //                           (double*)atoms_[atom2].XYZ() );
         double cutoff2 = GetBondedCut(atoms_[atom1].Element(), atoms_[atom2].Element());
         //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
         //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);
@@ -894,8 +891,6 @@ void Topology::GetBondsFromAtomCoords() {
       for (int atom2 = midatom; atom2 < stopatom; atom2++) {
         if (atoms_[atom2].Element()==Atom::HYDROGEN) continue;
         double D2 = refCoords_.DIST2( atom1, atom2 );
-        //double D2 = DIST2_NoImage( (double*)atoms_[atom1].XYZ(),
-        //                           (double*)atoms_[atom2].XYZ() );
         double cutoff2 = GetBondedCut(atoms_[atom1].Element(), atoms_[atom2].Element());
         //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
         //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);
@@ -1163,10 +1158,7 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
       // Loop over initially selected atoms
       for (int idx = 0; idx < (int)selected.size(); idx++) {
         int atomj = selected[idx];
-        //double d2 = REF.DIST2_NoImage(atomi, atomj);
         double d2 = REF.DIST2(atomi, atomj);
-        /*double d2 = DIST2_NoImage( (double*)atoms_[atomi].XYZ(), 
-                                   (double*)atoms_[atomj].XYZ() );*/
         if (within) {
           if (d2 < distance) {
             mask[atomi] = 'T';
@@ -1190,10 +1182,7 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
       for (int idx = 0; idx < (int)selected.size(); idx++) {
         int atomj = selected[idx];
         //mprintf("\t\t\tAtom %i to atom %i\n",atomi+1,atomj+1);
-        //double d2 = REF.DIST2_NoImage(atomi, atomj);
         double d2 = REF.DIST2(atomi, atomj);
-        /*double d2 = DIST2_NoImage( (double*)atoms_[atomi].XYZ(), 
-                                   (double*)atoms_[atomj].XYZ() );*/
         if (within) {
           if (d2 < distance) selectresidue = true;
         } else {

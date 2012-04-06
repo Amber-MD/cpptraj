@@ -94,7 +94,7 @@ Range.o : Range.cpp ArgList.h CpptrajStdio.h Range.h
 ReferenceList.o : ReferenceList.cpp ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CoordFileList.h CpptrajFile.h CpptrajStdio.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h ProgressBar.h Range.h ReferenceList.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h
 RemdTraj.o : RemdTraj.cpp ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h RemdTraj.h Residue.h Topology.h TrajectoryIO.h
 Residue.o : Residue.cpp NameType.h Residue.h
-Topology.o : Topology.cpp Atom.h AtomMask.h Box.h CpptrajStdio.h DistRoutines.h Frame.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h
+Topology.o : Topology.cpp Atom.h AtomMask.h Box.h CpptrajStdio.h Frame.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h
 TorsionRoutines.o : TorsionRoutines.cpp Constants.h TorsionRoutines.h vectormath.h
 Traj_AmberCoord.o : Traj_AmberCoord.cpp ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h Traj_AmberCoord.h TrajectoryIO.h
 Traj_AmberNetcdf.o : Traj_AmberNetcdf.cpp ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h NetcdfFile.h Residue.h Topology.h Traj_AmberNetcdf.h TrajectoryIO.h
