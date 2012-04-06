@@ -10,6 +10,7 @@ class CpptrajFile {
       * order to speed up operations that are frequently called, like
       * Reads/Writes.
       */
+    // TODO: Make at least protected
     FileIO *IO; 
 
     CpptrajFile();
