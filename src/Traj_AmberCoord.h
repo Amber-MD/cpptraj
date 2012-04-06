@@ -1,9 +1,10 @@
 #ifndef INC_TRAJ_AMBERCOORD_H
 #define INC_TRAJ_AMBERCOORD_H
 #include "TrajectoryIO.h"
+#include "FrameBuffer.h"
 // Class: AmberCoord
 /// Reads and writes formatted (ASCII text) amber trajectories. 
-class AmberCoord: public TrajectoryIO {
+class AmberCoord: public TrajectoryIO, FrameBuffer {
   public:
     AmberCoord();
     // AmberCoord-specific functions

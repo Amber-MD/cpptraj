@@ -2,7 +2,6 @@
 #include <cstdio> // sscanf
 #include "Traj_AmberRestart.h"
 #include "CpptrajStdio.h"
-#include "CharBuffer.h"
 
 const size_t AmberRestart::BUF_SIZE = 83;
 

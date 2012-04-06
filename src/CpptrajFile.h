@@ -2,12 +2,6 @@
 #define INC_CPPTRAJFILE_H
 #include <string>
 #include "FileIO.h"
-#ifdef USE_CHARBUFFER
-#include "CharBuffer.h"
-#endif
-/* Experimental Compiler Defines:
- * -USE_CHARBUFFER: Use CharBuffer to buffer an entire file.
- */ 
 // Class: CpptrajFile
 /// Class to abstract handling of basic file routines.
 class CpptrajFile {
@@ -37,19 +31,6 @@ class CpptrajFile {
     void Printf(const char*, ...);
     /// Printf using the files Write routine for the given rank.
     void Rank_printf(int, const char *, ...);
-    // frameBuffer routines
-    void BufferBegin(size_t);
-    void BufferBegin();
-    void BufferToDouble(double *, int, int);
-    void DoubleToBuffer(double *, int, const char*, int, int);
-    void BoxToBuffer(double *, int, const char*, int);
-#   ifdef USE_CHARBUFFER
-    int OpenFileBuffered();
-    //int ReadBuffered();
-    int Gets(char*, int);
-    void Rewind();
-    int Read(void*,size_t);
-#   endif
     /// Return true if the file is open
     bool IsOpen();
     /// Return the file name
@@ -73,6 +54,7 @@ class CpptrajFile {
     enum AccessType {
       READ, WRITE, APPEND
     };
+
     AccessType access_;         ///< Access (Read, write, append)
     int isDos_;                 ///< 1 if CR present, need to count them as newlines
     off_t uncompressed_size_;   ///< If compressed, uncompressed file size
@@ -81,11 +63,7 @@ class CpptrajFile {
     std::string FileName_;      ///< Passed in filename
     int debug_;                 ///< Debug level
     bool isOpen_;               ///< If true, file is open and ready for IO.
-    // frameBuffer vars
-    // TODO: Make private
-    char *frameBuffer_;         ///< Used to buffer frames for Amber traj/restart
-    char *bufferPosition_;      ///< Position in frameBuffer
-    size_t frameSize_;          ///< Size of frameBuffer
+
   private:
     enum FileType {
       UNKNOWN_TYPE, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE
@@ -100,10 +78,6 @@ class CpptrajFile {
     char *filename_;            ///< Avoids constant calls to FileName_.c_str()
     std::string Ext_;           ///< Filename extension
     char printf_buffer_[1024];  ///< Used in Printf functions
-
-#   ifdef USE_CHARBUFFER
-    CharBuffer c_buffer_;
-#   endif
 
     void Reset();
     void SetBaseFilename(char*);

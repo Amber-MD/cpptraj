@@ -4,7 +4,6 @@
 #include <cstring> // strlen
 #include "Traj_AmberCoord.h"
 #include "CpptrajStdio.h"
-#include "CharBuffer.h"
 // Size of REMD header
 const size_t AmberCoord::REMD_HEADER_SIZE = 42;
 // Max Size of 1 line of amber coords, 80 + newline [+CR] + NULL
@@ -71,7 +70,7 @@ int AmberCoord::openTraj() {
 // NOTE: Precalculate the header, coord, and box offsets.
 // NOTE: There are currently NO checks for null for X, box, and T!
 int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T) {
-  char Temp[9];
+//  char Temp[9];
   off_t offset;
 
 #ifdef TRAJDEBUG
@@ -91,7 +90,11 @@ int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T)
 
   // Get REMD Temperature if present
   if (hasREMD_>0) {
-    Temp[0] = frameBuffer_[33];
+    char savechar = frameBuffer_[41];
+    frameBuffer_[41] = '\0';
+    *T = atof(frameBuffer_ + 33);
+    frameBuffer_[41] = savechar;
+/*    Temp[0] = frameBuffer_[33];
     Temp[1] = frameBuffer_[34];
     Temp[2] = frameBuffer_[35];
     Temp[3] = frameBuffer_[36];
@@ -100,7 +103,7 @@ int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T)
     Temp[6] = frameBuffer_[39];
     Temp[7] = frameBuffer_[40];
     Temp[8]='\0';
-    *T = atof(Temp);
+    *T = atof(Temp);*/
     //if (debug>0) fprintf(stderr,"DEBUG: Replica T is %lf (%s)\n",F->T,Temp);
   }
   // Get Coordinates - hasREMD is size in bytes of REMD header

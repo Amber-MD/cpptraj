@@ -1,7 +1,4 @@
 // CpptrajFile
-/* Compiler Defines:
- * - USE_CHARBUFFER: Use CharBuffer to buffer entire file
- */
 // TODO: Replace sprintf/atof with sstream functs?
 #include <cstring> // strlen 
 #include <sys/stat.h> // stat
@@ -34,21 +31,18 @@ const char CpptrajFile::AccessTypeName[3][2] = {
 const size_t CpptrajFile::BUF_SIZE = 83;
 
 // CONSTRUCTOR
-CpptrajFile::CpptrajFile() {
-  IO = NULL;
-  isOpen_ = false;
-  uncompressed_size_ = 0UL;
-  file_size_ = 0UL;
-  compressType_ = NO_COMPRESSION;
-  access_ = READ;
-  debug_ = 0;
-  fileType_ = STANDARD;
-  filename_ = NULL;
-  isDos_ = 0;
-  frameBuffer_ = NULL;
-  bufferPosition_ = NULL;
-  frameSize_ = 0;
-}
+CpptrajFile::CpptrajFile() :
+  IO(NULL),
+  access_(READ),
+  isDos_(0),
+  uncompressed_size_(0UL),
+  file_size_(0UL),
+  compressType_(NO_COMPRESSION),
+  debug_(0),
+  isOpen_(false),
+  fileType_(STANDARD),
+  filename_(NULL)
+{}
 
 // Copy Constructor
 CpptrajFile::CpptrajFile(const CpptrajFile &rhs) {
@@ -75,14 +69,6 @@ CpptrajFile::CpptrajFile(const CpptrajFile &rhs) {
     SetupFileIO();
   else
     IO = NULL;
-  frameBuffer_ = NULL;
-  bufferPosition_ = NULL;
-  frameSize_ = rhs.frameSize_;
-  if (frameSize_ > 0) {
-    frameBuffer_ = new char[ frameSize_ ];
-    memcpy(frameBuffer_, rhs.frameBuffer_, frameSize_);
-    bufferPosition_ = frameBuffer_ + (rhs.bufferPosition_ - rhs.frameBuffer_);
-  }
 }
 
 // Assignment
@@ -92,7 +78,6 @@ CpptrajFile &CpptrajFile::operator=(const CpptrajFile &rhs) {
   // Deallocate
   CloseFile();
   if (IO!=NULL) delete IO;
-  if (frameBuffer_!=NULL) delete[] frameBuffer_;
   // Allocate and copy
   debug_ = rhs.debug_;
   access_ = rhs.access_;
@@ -115,14 +100,6 @@ CpptrajFile &CpptrajFile::operator=(const CpptrajFile &rhs) {
     SetupFileIO();
   else
     IO = NULL;
-  frameBuffer_ = NULL;
-  bufferPosition_ = NULL;
-  frameSize_ = rhs.frameSize_;
-  if (frameSize_ > 0) {
-    frameBuffer_ = new char[ frameSize_ ];
-    memcpy(frameBuffer_, rhs.frameBuffer_, frameSize_);
-    bufferPosition_ = frameBuffer_ + (rhs.bufferPosition_ - rhs.frameBuffer_);
-  }
   return *this;
 }
 
@@ -131,7 +108,6 @@ CpptrajFile::~CpptrajFile() {
    //fprintf(stderr,"CPPTRAJFILE DESTRUCTOR\n");
    CloseFile();
    if (IO!=NULL) delete IO;
-   if (frameBuffer_!=NULL) delete[] frameBuffer_;
 }
 
 // CpptrajFile::IsOpen()
@@ -232,6 +208,7 @@ void CpptrajFile::CloseFile() {
   }
 }
 
+// -----------------------------------------------------------------------------
 // CpptrajFile::Printf()
 /** Take the formatted string and write it to file using Write.
   */
@@ -258,185 +235,7 @@ void CpptrajFile::Rank_printf(int rank, const char *format, ...) {
   va_end(args);
 }
 
-// ---------- FRAMEBUFFER ROUTINES ---------------------------------------------
-// CpptrajFile::BufferBegin()
-void CpptrajFile::BufferBegin(size_t offset) {
-  bufferPosition_ = frameBuffer_ + offset;
-}
-
-void CpptrajFile::BufferBegin() {
-  bufferPosition_ = frameBuffer_;
-}
-
-// CpptrajFile::BufferToDouble()
-/** Store frameBuffer containing XYZ coords with format 
-  * X0Y0Z0X1Y1Z1...XNYNZN to the given double array. Each coord has given width,
-  * newlines are skipped. buffer should be as big as N x width chars. Update
-  * bufferPosition after read.
-  */
-// TODO: If '*' encountered indicate error?.
-void CpptrajFile::BufferToDouble(double *X, int N, int width) {
-  for (int atom = 0; atom < N; atom++) {
-    // Advance past newlines / CR (dos)
-    while (*bufferPosition_=='\n' || *bufferPosition_=='\r') 
-      ++bufferPosition_;
-    // NOTE: Search for '*'??
-    char *ptrend = bufferPosition_ + width;
-    char lastchar = *ptrend;
-    *ptrend = '\0';
-    X[atom] = atof(bufferPosition_);
-    *ptrend = lastchar;
-    bufferPosition_ = ptrend;
-  }
-}
-
-// CpptrajFile::DoubleToBuffer()
-/** Given an array of double, format, and character width corresponding
-  * to format, write coords in array to frameBuffer. 
-  */
-void CpptrajFile::DoubleToBuffer(double *X, int N, const char *format,
-                                 int width, int numCols)
-{
-  int coord = 0;
-  for (; coord<N; coord++) {
-    sprintf(bufferPosition_,format,X[coord]);
-    bufferPosition_ += width;
-    if ( ((coord+1)%numCols)==0 ) {
-      sprintf(bufferPosition_,"\n");
-      ++bufferPosition_;
-    }
-  }
-  // If the coord record didnt end on a newline, print one
-  if ( (coord%numCols)!=0 ) {
-    sprintf(bufferPosition_,"\n");
-    ++bufferPosition_;
-  }
-
-  // Calculate frame size
-  //coord = (int) (bufferPosition_ - frameBuffer);
-  //return coord;
-}
-
-// CpptrajFile::BoxToBuffer()
-/** Given an array of double[6], format, and character width corresponding
-  * to format, write box coords to frameBuffer.
-  */
-void CpptrajFile::BoxToBuffer(double *box, int numBox,
-                              const char *format, int width) {
-  // Box
-  sprintf(bufferPosition_,format,box[0]); 
-  bufferPosition_+=width;
-  sprintf(bufferPosition_,format,box[1]); 
-  bufferPosition_+=width;
-  sprintf(bufferPosition_,format,box[2]); 
-  bufferPosition_+=width;
-  if (numBox>3) {
-    sprintf(bufferPosition_,format,box[3]); 
-    bufferPosition_+=width;
-    sprintf(bufferPosition_,format,box[4]); 
-    bufferPosition_+=width;
-    sprintf(bufferPosition_,format,box[5]); 
-    bufferPosition_+=width;
-  }
-  sprintf(bufferPosition_,"\n");
-  ++bufferPosition_;
-
-  // Calculate frame size
-  //coord = (int) (bufferPosition_ - frameBuffer);
-  //return coord;
-}
-
-#ifdef USE_CHARBUFFER
-// ---------- BUFFERED FILE ROUTINES -------------------------------------------
-// CpptrajFile::OpenFileBuffered()
-/** Open the file. Buffer with CharBuffer. */
-int CpptrajFile::OpenFileBuffered() {
-  size_t blockSize = BUF_SIZE;
-  if (isOpen_) CloseFile();
-
-  switch (access) {
-    case READ:
-      if ( IO->Open(filename_, "rb")  ) { // NOTE: use rb as mode instead?
-        rprintf("Could not open %s for reading.\n",filename_);
-        return 1;
-      }
-      if (debug_>0) rprintf("Opened %s for reading.\n",filename_);
-      // Allocate char buffer to read in entire file if possible.
-      if (compressType == NO_COMPRESSION || uncompressed_size == 0)
-        blockSize = file_size;
-      else
-        blockSize = uncompressed_size;
-      c_buffer_.Allocate( blockSize );
-      // Read in entire file
-      if (IO->Read(c_buffer_.BufferPtr(), blockSize)==-1) return 1;
-      // If compressed file and uncompressed size not known keep reading in
-      // blocks until EOF.
-      if (compressType!=NO_COMPRESSION && uncompressed_size == 0) {
-        bool readMore = true;
-        while (readMore) {
-          c_buffer_.IncreaseSize( blockSize );
-          int numread = IO->Read(c_buffer_.BufferPtr(), blockSize);
-          if (numread==-1 || numread < (int)blockSize) readMore=false;
-          // NOTE: Resize buffer here to match actual # chars read in?
-        }
-      }
-      break;
-    case APPEND:
-/*      if ( IO->Open(filename_, "ab") ) {
-        rprintf("Could not open %s for appending.\n",filename_);
-        return 1;
-      }
-      if (debug_>0) rprintf("Opened %s for appending.\n",filename_);
-      // Allocate char buffer with default size
-      c_buffer_.Allocate( BUFFER_SIZE );*/
-      mprinterr("Internal Error: Buffered writes currently disabled.\n");
-      return 1;
-      break;
-    case WRITE:
-/*      if ( IO->Open(filename_, "wb") ) { // NOTE: Use wb as mode?
-        rprintf("Could not open %s for writing.\n",filename_);
-        return 1;
-      }
-      if (debug_>0) rprintf("Opened %s for writing.\n",filename_);
-      // Allocate char buffer with default size
-      c_buffer_.Allocate( BUFFER_SIZE );*/
-      mprinterr("Internal Error: Buffered writes currently disabled.\n");
-      return 1;
-      break;
-  }
-
-  isOpen_=true;
-  return 0;
-}
-
-// CpptrajFile::ReadBuffered()
-/** Read BufferSize bytes into the CharBuffer. */
-/*int CpptrajFile::ReadBuffered() {
-  char *bufferptr = c_buffer_.BufferPtr();
-  if (IO->Read(bufferptr, sizeof(char), c_buffer_.BufferSize())==-1) return 1;
-  return 0;
-}*/
-
-// CpptrajFile::Gets()
-/// Gets from the CharBuffer.
-int CpptrajFile::Gets(char *str, int num) {
-  return c_buffer_.Gets(str,num);
-}
-
-// CpptrajFile::Rewind()
-/// Rewind the CharBuffer.
-void CpptrajFile::Rewind() {
-  c_buffer_.Rewind();
-}
-
-// CpptrajFile::Read()
-/// Read from the CharBuffer.
-int CpptrajFile::Read(void *str, size_t numbytes) {
-  return c_buffer_.Read(str,numbytes);
-}
 // -----------------------------------------------------------------------------
-#endif
-
 // CpptrajFile::SetBaseFilename()
 /** Set filename with full path. Strip leading path from input filename to 
   * determine the base filename. Also determine the file extension.

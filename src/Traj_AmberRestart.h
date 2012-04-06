@@ -1,9 +1,10 @@
 #ifndef INC_TRAJ_AMBERRESTART_H
 #define INC_TRAJ_AMBERRESTART_H
 #include "TrajectoryIO.h"
+#include "FrameBuffer.h"
 // Class: AmberRestart.h
 /// Reads and writes formatted (ASCII text) amber
-class AmberRestart : public TrajectoryIO {
+class AmberRestart : public TrajectoryIO, FrameBuffer {
   public:
 
     AmberRestart();
