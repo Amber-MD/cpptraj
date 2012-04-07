@@ -11,7 +11,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
         Analysis_PtrajAnalysis.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
-        CharBuffer.cpp ClusterList.cpp CoordFileList.cpp CoordList.cpp \
+        CharBuffer.cpp ClusterList.cpp ClusterNode.cpp CoordFileList.cpp CoordList.cpp \
         CpptrajFile.cpp \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
