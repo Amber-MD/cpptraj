@@ -159,8 +159,86 @@ int Clustering::action() {
   return 0;
 } 
 
+// Clustering::print()
+/** This is where the clustering is actually performed. First the distances
+  * between each frame are calculated. Then the clustering routine is called.
+  */
+void Clustering::print() {
+  TriangleMatrix Distances;
+  ClusterList CList;
+
+  // If PAIRDISTFILE exists load pair distances from there
+  if (load_pair && fileExists((char*)PAIRDISTFILE)) {
+    mprintf("CLUSTER: %s found, loading pairwise distances.\n",PAIRDISTFILE);
+    if (Distances.LoadFile((char*)PAIRDISTFILE,ReferenceFrames.NumFrames())) 
+      return;
+  } else if (cluster_dataset==NULL) {
+    // Get RMSDs between frames
+    calcDistFromRmsd( Distances );
+    // Save distances
+    // NOTE: Only if load_pair?
+    Distances.SaveFile((char*)PAIRDISTFILE);
+  } else {
+    // Get distances from dataset
+    calcDistFromDataset( Distances );
+    // NOTE: Need to update save to indicate distance type
+    Distances.SaveFile((char*)PAIRDISTFILE);
+  }
+
+  // DEBUG
+  if (debug>1) {
+    mprintf("INTIAL FRAME DISTANCES:\n");
+    Distances.PrintElements();
+  }
+
+  // Cluster
+  CList.SetDebug(debug);
+  CList.SetLinkage(Linkage);
+  ClusterHierAgglo( Distances, CList);
+
+  // Sort clusters and renumber; also finds centroids for printing
+  // representative frames.
+  CList.Renumber();
+
+  // DEBUG
+  if (debug>0) {
+    mprintf("\nFINAL CLUSTERS:\n");
+    CList.PrintClusters();
+    mprintf("\nREPRESENTATIVE FRAMES:\n");
+    CList.PrintRepFrames();
+  }
+
+  // Print ptraj-like cluster info
+  if (clusterinfo!=NULL)
+    CList.PrintClustersToFile(clusterinfo);
+
+  // Print a summary of clusters
+  if (summaryfile!=NULL)
+    CList.Summary(summaryfile);
+
+  // Print a summary comparing first half to second half of data for clusters
+  if (halffile!=NULL)
+    CList.Summary_Half(halffile);
+
+  // Create cluster v time data from clusters.
+  CreateCnumvtime( CList );
+
+  // Write clusters to trajectories
+  if (clusterfile!=NULL)
+    WriteClusterTraj( CList ); 
+
+  // Write all representative frames to a single traj
+  if (singlerepfile!=NULL)
+    WriteSingleRepTraj( CList );
+
+  // Write all representative frames to separate trajs
+  if (repfile!=NULL)
+    WriteRepTraj( CList );
+}
+
+// -----------------------------------------------------------------------------
 // Clustering::calcDistFromRmsd()
-int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
+int Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
   // Reference
   Topology *RefParm = NULL;
   Frame *RefFrame = NULL;
@@ -179,9 +257,9 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   int totalref=0;
 
   totalref = ReferenceFrames.NumFrames();
-  Distances->Setup(totalref);
+  Distances.Setup(totalref);
 
-  max = Distances->Nelements();
+  max = Distances.Nelements();
   if (nofitrms)
     mprintf("  CLUSTER: Calculating no-fit RMSDs between each frame (%i total).\n  ",max);
   else
@@ -229,7 +307,7 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
           mprintf("         in frame %i (%i). Assigning an RMS of 10000.\n",
                    nref+1, refatoms);
           R = 10000;
-          Distances->AddElement( R );
+          Distances.AddElement( R );
           continue;
         }
         // NOTE: This copies in correct masses according to Mask0
@@ -248,7 +326,7 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
       else 
         R = SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass);
 
-      Distances->AddElement( R );
+      Distances.AddElement( R );
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
       ++current;
@@ -269,7 +347,9 @@ int Clustering::calcDistFromRmsd( TriangleMatrix *Distances) {
   * - average-linkage : The average distance between frames in clusters are used.
   * - complete-linkage: The maximum distance between frames in clusters are used.
   */
-int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *CList) {
+int Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances, 
+                                  ClusterList& CList) 
+{
   std::list<int> frames;
   bool clusteringComplete = false;
   int iterations = 0;
@@ -278,36 +358,36 @@ int Clustering::ClusterHierAgglo( TriangleMatrix *FrameDistances, ClusterList *C
   ProgressBar cluster_progress(-1);
 
   // Build initial clusters.
-  for (int cluster = 0; cluster < FrameDistances->Nrows(); cluster++) {
+  for (int cluster = 0; cluster < FrameDistances.Nrows(); cluster++) {
     frames.assign(1,cluster);
-    CList->AddCluster(&frames,cluster);
+    CList.AddCluster(frames, cluster);
   }
   // Build initial cluster distance matrix.
-  CList->Initialize( FrameDistances );
+  CList.Initialize( &FrameDistances );
 
   // DEBUG
-  if (debug>1) CList->PrintClusters();
+  if (debug>1) CList.PrintClusters();
 
   // Initial check to see if epsilon is satisfied.
   //clusteringComplete = CList->CheckEpsilon(epsilon);
 
   while (!clusteringComplete) {
     // Merge 2 closest clusters
-    if (CList->MergeClosest(epsilon)) break; 
+    if (CList.MergeClosest(epsilon)) break; 
 
     // Check if clustering is complete.
     // If the target number of clusters is reached we are done
-    if (CList->Nclusters() <= targetNclusters) {
+    if (CList.Nclusters() <= targetNclusters) {
       mprintf("\tTarget # of clusters (%i) met (%u), clustering complete.\n",targetNclusters,
-              CList->Nclusters());
+              CList.Nclusters());
       break;
     } 
-    if (CList->Nclusters() == 1) clusteringComplete = true; // Sanity check
+    if (CList.Nclusters() == 1) clusteringComplete = true; // Sanity check
     cluster_progress.Update( iterations );
-    iterations++;
+    ++iterations;
   }
   mprintf("\tCLUSTER: Completed after %i iterations, %u clusters.\n",iterations,
-          CList->Nclusters());
+          CList.Nclusters());
 
   return 0;
 }
@@ -508,78 +588,4 @@ void Clustering::calcDistFromDataset( TriangleMatrix &Distances ) {
 
 }
 
-// Clustering::print()
-/** This is where the clustering is actually performed. First the distances
-  * between each frame are calculated. Then the clustering routine is called.
-  */
-void Clustering::print() {
-  TriangleMatrix Distances;
-  ClusterList CList;
 
-  // If PAIRDISTFILE exists load pair distances from there
-  if (load_pair && fileExists((char*)PAIRDISTFILE)) {
-    mprintf("CLUSTER: %s found, loading pairwise distances.\n",PAIRDISTFILE);
-    if (Distances.LoadFile((char*)PAIRDISTFILE,ReferenceFrames.NumFrames())) return;
-  } else if (cluster_dataset==NULL) {
-    // Get RMSDs between frames
-    calcDistFromRmsd( &Distances );
-    // Save distances
-    // NOTE: Only if load_pair?
-    Distances.SaveFile((char*)PAIRDISTFILE);
-  } else {
-    // Get distances from dataset
-    calcDistFromDataset( Distances );
-    // NOTE: Need to update save to indicate distance type
-    Distances.SaveFile((char*)PAIRDISTFILE);
-  }
-
-  // DEBUG
-  if (debug>1) {
-    mprintf("INTIAL FRAME DISTANCES:\n");
-    Distances.PrintElements();
-  }
-
-  // Cluster
-  CList.SetDebug(debug);
-  CList.SetLinkage(Linkage);
-  ClusterHierAgglo( &Distances, &CList);
-
-  // Sort clusters and renumber; also finds centroids for printing
-  // representative frames.
-  CList.Renumber();
-
-  // DEBUG
-  if (debug>0) {
-    mprintf("\nFINAL CLUSTERS:\n");
-    CList.PrintClusters();
-    mprintf("\nREPRESENTATIVE FRAMES:\n");
-    CList.PrintRepFrames();
-  }
-
-  // Print ptraj-like cluster info
-  if (clusterinfo!=NULL)
-    CList.PrintClustersToFile(clusterinfo);
-
-  // Print a summary of clusters
-  if (summaryfile!=NULL)
-    CList.Summary(summaryfile);
-
-  // Print a summary comparing first half to second half of data for clusters
-  if (halffile!=NULL)
-    CList.Summary_Half(halffile);
-
-  // Create cluster v time data from clusters.
-  CreateCnumvtime( &CList );
-
-  // Write clusters to trajectories
-  if (clusterfile!=NULL)
-    WriteClusterTraj( &CList ); 
-
-  // Write all representative frames to a single traj
-  if (singlerepfile!=NULL)
-    WriteSingleRepTraj( &CList );
-
-  // Write all representative frames to separate trajs
-  if (repfile!=NULL)
-    WriteRepTraj( &CList );
-}

@@ -6,6 +6,13 @@
 // Class: Clustering
 /// Used to perform clustering of frames, currently by RMSD only.
 class Clustering: public Action {
+  public:
+    Clustering();
+
+    int init();
+    int action();
+    void print();
+  private:
     ClusterList::LINKAGETYPE Linkage;
     FrameList ReferenceFrames; ///< Hold frames from all trajin stmts
     AtomMask Mask0;            ///< Target atom mask
@@ -27,18 +34,12 @@ class Clustering: public Action {
     DataSet *cluster_dataset;
     static const char PAIRDISTFILE[];
 
-    int calcDistFromRmsd( TriangleMatrix *);
-    int ClusterHierAgglo( TriangleMatrix *, ClusterList*);
-    void CreateCnumvtime( ClusterList * );
-    void WriteClusterTraj( ClusterList * );
-    void WriteSingleRepTraj( ClusterList * );
-    void WriteRepTraj( ClusterList * );
+    int calcDistFromRmsd( TriangleMatrix &);
+    int ClusterHierAgglo( TriangleMatrix &, ClusterList&);
+    void CreateCnumvtime( ClusterList & );
+    void WriteClusterTraj( ClusterList & );
+    void WriteSingleRepTraj( ClusterList & );
+    void WriteRepTraj( ClusterList & );
     void calcDistFromDataset( TriangleMatrix & );
-  public:
-    Clustering();
-
-    int init();
-    int action();
-    void print();
 };
 #endif
