@@ -2,7 +2,6 @@
  */
 #include <cfloat>
 #include <cmath>
-#include <cstring> // memset
 #include <vector>
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
@@ -220,6 +219,8 @@ void ClusterList::Summary_Half(char *summaryfile) {
   * the list.
   */
 int ClusterList::AddCluster( std::list<int>& framelistIn, int numIn ) {
+  // Update number of frames
+  maxframes_ += framelistIn.size();
   clusters_.push_back( ClusterNode( framelistIn, numIn ) );
   return 0;
 }
