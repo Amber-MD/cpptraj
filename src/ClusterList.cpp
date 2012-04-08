@@ -314,6 +314,7 @@ void ClusterList::PrintRepFrames() {
   mprintf("\n");
 }
 
+// -----------------------------------------------------------------------------
 // ClusterList::GetClusterIt
 /** Return an iterator to the specified cluster.
   */

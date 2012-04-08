@@ -3,9 +3,9 @@
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
-#include <cfloat>
-#include <cstdio> // sprintf
-#include <cstring> // strlen
+#include <cfloat> // DBL_MAX
+//#include <cstdio> // sprintf
+//#include <cstring> // strlen
 
 // CONSTRUCTOR
 Clustering::Clustering() {
@@ -394,121 +394,104 @@ int Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
 
 // Clustering::CreateCnumvtime()
 /** Put cluster number vs frame into dataset.  */
-void Clustering::CreateCnumvtime( ClusterList *CList ) {
-  std::list<int>::iterator E;
-  int cnum;
-
-  CList->Begin();
-  while (!CList->End()) {
+void Clustering::CreateCnumvtime( ClusterList &CList ) {
+  for (ClusterList::cluster_iterator C = CList.begincluster();
+                                     C != CList.endcluster(); C++)
+  {
     //mprinterr("Cluster %i:\n",CList->CurrentNum());
-    cnum = CList->CurrentNum();
+    int cnum = (*C).Num();
     // If grace colors, return integer in range from 1 to 15 (1 most populated)
     if (grace_color) {
       cnum = cnum + 1;
       if (cnum > 15) cnum = 15;
     } 
     // Loop over all frames in the cluster
-    E = CList->CurrentFrameEnd();
-    for (std::list<int>::iterator frame = CList->CurrentFrameBegin();
-                                  frame != E;
-                                  frame++)
+    for (ClusterNode::frame_iterator frame = (*C).beginframe();
+                                     frame != (*C).endframe(); frame++)
     {
       //mprinterr("%i,",*frame);
       cnumvtime->Add( *frame, &cnum );
     }
     //mprinterr("\n");
-    CList->NextCluster();
     //break;
   }
 }
 
 // Clustering::WriteClusterTraj()
 /** Write frames in each cluster to a trajectory file.  */
-void Clustering::WriteClusterTraj( ClusterList *CList ) {
-  std::list<int>::iterator E;
-  std::list<int>::iterator B;
-  char *cfilename;
-  int cnum,framenum;
-  TrajectoryFile *clusterout = NULL;
-  Topology *clusterparm;
-  Frame *clusterframe;
-
-  // Figure out max size of cluster filename
-  cnum = CList->Nclusters();
-  cnum = (cnum / 10) + 3;
-  cfilename = new char[ strlen(clusterfile)+cnum+1 ];
-
-  CList->Begin();
-  while (!CList->End()) {
+void Clustering::WriteClusterTraj( ClusterList &CList ) {
+  ArgList tmpArg( clusterfmt );
+  // Loop over all clusters
+  for (ClusterList::cluster_iterator C = CList.begincluster();
+                                     C != CList.endcluster(); C++)
+  {
     // Create filename based on cluster number.
-    cnum = CList->CurrentNum();
-    sprintf(cfilename,"%s.c%i",clusterfile,cnum);
-    // Set up trajectory file - use parm from first frame of cluster (pot. dangerous)
-    if (clusterout!=NULL) delete clusterout;
-    clusterout = new TrajectoryFile;
-    B = CList->CurrentFrameBegin();
-    clusterparm = ReferenceFrames.GetFrameParm( *B );
-    if (clusterout->SetupWrite(cfilename,clusterparm,clusterfmt)) {
+    int cnum = (*C).Num();
+    std::string cfilename( clusterfile );
+    cfilename += ".c";
+    cfilename += integerToString( cnum );
+    // Set up trajectory file 
+    // Use parm from first frame of cluster (pot. dangerous)
+    TrajectoryFile *clusterout = new TrajectoryFile;
+    ClusterNode::frame_iterator frame = (*C).beginframe();
+    Topology *clusterparm = ReferenceFrames.GetFrameParm( *frame );
+    if (clusterout->SetupWrite((char*)cfilename.c_str(), &tmpArg,
+                               clusterparm, TrajectoryFile::UNKNOWN_TRAJ)) 
+    {
       mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
-                cfilename);
+                cfilename.c_str());
       delete clusterout;
-      delete[] cfilename;
       return;
     }
     //mprinterr("Cluster %i:\n",CList->CurrentNum());
-    
-    E = CList->CurrentFrameEnd();
-    framenum = 0;
-    for (std::list<int>::iterator frame = B; frame != E; frame++)
-    {
+    // Loop over all frames in cluster
+    int framenum = 0;
+    for (; frame != (*C).endframe(); frame++) {
       //mprinterr("%i,",*frame);
-      clusterframe = ReferenceFrames.GetFrame( *frame );
+      Frame *clusterframe = ReferenceFrames.GetFrame( *frame );
       clusterout->WriteFrame(framenum++, clusterparm, *clusterframe);
     }
     // Close traj
     clusterout->EndTraj();
     //mprinterr("\n");
-    CList->NextCluster();
     //break;
+    delete clusterout;
   }
-  delete[] cfilename;
-  if (clusterout!=NULL) delete clusterout;
 }
 
 // Clustering::WriteSingleRepTraj()
 /** Write representative frame of each cluster to a trajectory file.  */
-void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
-  int framenum, framecounter;
+void Clustering::WriteSingleRepTraj( ClusterList &CList ) {
   TrajectoryFile clusterout;
-  Topology *clusterparm;
-  Frame *clusterframe;
+  ArgList tmpArg( singlerepfmt );
 
   // Find centroid of first cluster in order to set up parm
   // NOTE: This is redundant if the Summary routine has already been called.
-  CList->Begin();
-  framenum = CList->CurrentCentroid();
+  ClusterList::cluster_iterator cluster = CList.begincluster();
+  int framenum = (*cluster).Centroid();
 
   // Set up trajectory file. Use parm from first frame of cluster (pot. dangerous)
-  clusterparm = ReferenceFrames.GetFrameParm( framenum );
-  if (clusterout.SetupWrite(singlerepfile,clusterparm,singlerepfmt)) {
+  Topology *clusterparm = ReferenceFrames.GetFrameParm( framenum );
+  if (clusterout.SetupWrite(singlerepfile, &tmpArg, clusterparm,
+                            TrajectoryFile::UNKNOWN_TRAJ)) 
+  {
     mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
                 singlerepfile);
      return;
   }
   // Write first cluster rep frame
-  framecounter=0;
-  clusterframe = ReferenceFrames.GetFrame( framenum );
+  int framecounter = 0;
+  Frame *clusterframe = ReferenceFrames.GetFrame( framenum );
   clusterout.WriteFrame(framecounter++, clusterparm, *clusterframe);
 
-  CList->NextCluster();
-  while (!CList->End()) {
+  ++cluster;
+  for (; cluster != CList.endcluster(); cluster++) {
     //mprinterr("Cluster %i: ",CList->CurrentNum());
-   framenum = CList->CurrentCentroid();
+   framenum = (*cluster).Centroid();
    //mprinterr("%i\n",framenum);
    clusterframe = ReferenceFrames.GetFrame( framenum );
    clusterout.WriteFrame(framecounter++, clusterparm, *clusterframe);
     //mprinterr("\n");
-    CList->NextCluster();
     //break;
   }
   // Close traj
@@ -519,39 +502,38 @@ void Clustering::WriteSingleRepTraj( ClusterList *CList ) {
 /** Write representative frame of each cluster to a separate trajectory file,
   * repfile.REPNUM.FMT
   */
-void Clustering::WriteRepTraj( ClusterList *CList ) {
-  int framenum, cnum;
-  TrajectoryFile *clusterout = NULL;
-  Topology *clusterparm;
-  Frame *clusterframe;
+void Clustering::WriteRepTraj( ClusterList &CList ) {
+  // Create trajectory file object
+  TrajectoryFile *clusterout = new TrajectoryFile();
+  ArgList tmpArg( repfmt );
+  TrajectoryFile::TrajFormatType tmpFmt=clusterout->GetFormatFromArg(&tmpArg);
+  std::string tmpExt = clusterout->GetExtensionForType(tmpFmt);
 
-  CList->Begin();
-  while (!CList->End()) {
-    // Create trajectory file object
-    if (clusterout!=NULL) delete clusterout;
-    clusterout = new TrajectoryFile();
-
+  for (ClusterList::cluster_iterator C = CList.begincluster();
+                                     C != CList.endcluster(); C++)
+  {
     // Find centroid of first cluster in order to set up parm
-    framenum = CList->CurrentCentroid();
-
-    // Set up trajectory filename for this rep frame
-    cnum = (framenum / 10) + 8;
-
-    // Set up trajectory file. Use parm from first frame of cluster (pot. dangerous)
-    clusterparm = ReferenceFrames.GetFrameParm( framenum );
-    if (clusterout->SetupNumberedWrite(repfile,framenum+1,clusterparm,repfmt)) {
+    int framenum = (*C).Centroid();
+    // Create filename
+    std::string cfilename( repfile );
+    cfilename = cfilename + "." + integerToString(framenum+1) + tmpExt;
+    // Set up trajectory file. 
+    // Use parm from first frame of cluster (pot. dangerous)
+    Topology *clusterparm = ReferenceFrames.GetFrameParm( framenum );
+    if (clusterout->SetupWrite((char*)cfilename.c_str(), NULL,
+                               clusterparm, tmpFmt)) 
+    {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
                 repfile);
+       delete clusterout;
        return;
     }
-
     // Write cluster rep frame
-    clusterframe = ReferenceFrames.GetFrame( framenum );
+    Frame *clusterframe = ReferenceFrames.GetFrame( framenum );
     clusterout->WriteFrame(framenum, clusterparm, *clusterframe);
     // Close traj
     clusterout->EndTraj();
-
-    CList->NextCluster();
+    delete clusterout;
   }
 }
 

@@ -15,16 +15,9 @@
   * argument over and over.
   */
 class ArgList {
-    /// List of arguments
-    std::vector<std::string> arglist;
-    /// The original argument string (complete list)
-    std::string argline;
-    /// Mark which arguments have been used
-    std::vector<bool> marked;
-    /// debug level
-    int debug;
   public:
     ArgList();
+    ArgList(const char*);
     ArgList(std::string &, const char*);
     ~ArgList();
     ArgList(const ArgList &);
@@ -87,5 +80,14 @@ class ArgList {
     double ArgToDouble(int);
     /// Convert arg at position to integer.
     int ArgToInteger(int);
+  private:
+    /// List of arguments
+    std::vector<std::string> arglist;
+    /// The original argument string (complete list)
+    std::string argline;
+    /// Mark which arguments have been used
+    std::vector<bool> marked;
+    /// debug level
+    int debug;
 };
 #endif

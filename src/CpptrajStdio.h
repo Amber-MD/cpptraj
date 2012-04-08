@@ -30,4 +30,5 @@ void SetIntegerFormatString(std::string &, int, bool);
 int convertToInteger(std::string const &);
 double convertToDouble(std::string const &);
 void RemoveTrailingWhitespace(std::string &);
+std::string integerToString(int);
 #endif

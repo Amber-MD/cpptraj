@@ -22,10 +22,11 @@ class TrajectoryFile {
     // Trajectory IO functions
     int SetupRead(char *, ArgList *, Topology *);
     int SetupWriteWithArgs(char *, const char *, Topology *, TrajFormatType);
-    int SetupWrite(char *, Topology *, char *);
-    // Next two currently only used for Clustering
+    // TODO: Accept string instead of char*
     int SetupWrite(char *, ArgList *, Topology *, TrajFormatType);
-    int SetupNumberedWrite(char *, int, Topology *, char *);
+    // Next two currently only used for Clustering
+    //int SetupWrite(char *, Topology *, char *);
+    //int SetupNumberedWrite(char *, int, Topology *, char *);
     int BeginTraj(bool);
     int EndTraj();
     int GetNextFrame(Frame&);
@@ -36,6 +37,10 @@ class TrajectoryFile {
     bool TrajFilenameIs(char *);
     void PrintInfoLine();
     void PrintInfo(int);
+    /// Get format type from keyword
+    TrajFormatType GetFormatFromArg(ArgList*);
+    /// Get standard file extension for trajectory format
+    std::string GetExtensionForType(TrajFormatType);
     // Functions that return private vars
     int CurrentFrame();
     char *TrajName();
@@ -98,9 +103,5 @@ class TrajectoryFile {
     int SetArgs(ArgList *);
     /// Set actual start and stop
     int setupFrameInfo();
-    /// Get format type from keyword
-    TrajFormatType GetFormatFromArg(ArgList*);
-    /// Get standard file extension for trajectory format
-    std::string GetExtensionForType(TrajFormatType);
 };
 #endif

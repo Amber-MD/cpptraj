@@ -760,16 +760,16 @@ int TrajectoryFile::SetupWriteWithArgs(char *tnameIn, const char *argstring,
 
 // TrajectoryFile::SetupWrite()
 // Currently only used byt Clustering
-int TrajectoryFile::SetupWrite(char *tnameIn, Topology *tparmIn, char *fmtArg) {
+/*int TrajectoryFile::SetupWrite(char *tnameIn, Topology *tparmIn, char *fmtArg) {
   ArgList tempArg;
   if (fmtArg!=NULL)
     tempArg.AddArg(fmtArg);
   return SetupWrite(tnameIn, &tempArg, tparmIn, UNKNOWN_TRAJ);
-}
+}*/
 
 // TrajectoryFile::SetupNumberedWrite()
 // CUrrently only used by clustering
-int TrajectoryFile::SetupNumberedWrite(char *prefixIn, int numIn, Topology *tparmIn, 
+/*int TrajectoryFile::SetupNumberedWrite(char *prefixIn, int numIn, Topology *tparmIn, 
                                        char *fmtArg)
 {
   std::string Prefix;
@@ -788,7 +788,7 @@ int TrajectoryFile::SetupNumberedWrite(char *prefixIn, int numIn, Topology *tpar
   Ext = GetExtensionForType(trajFmt);
   Prefix += Ext;
   return SetupWrite((char*)Prefix.c_str(), NULL, tparmIn, trajFmt);
-}
+}*/
 
 // TrajectoryFile::SetupWrite()
 /** Set up trajectory for writing. Output trajectory filename can be specified

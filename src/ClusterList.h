@@ -30,6 +30,9 @@ class ClusterList {
     void Summary_Half(char *);
     bool CheckEpsilon(double);
 
+    typedef std::list<ClusterNode>::const_iterator cluster_iterator;
+    cluster_iterator begincluster() { return clusters_.begin(); }
+    cluster_iterator endcluster()   { return clusters_.end();   }
 /*    void Begin();
     bool End();
     void NextCluster();

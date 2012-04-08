@@ -12,6 +12,12 @@ ArgList::ArgList() :
   debug(0)
 {}
 
+ArgList::ArgList(const char* argIn) :
+  debug(0)
+{
+  SetList((char*)argIn, " ");
+}
+
 ArgList::ArgList(std::string &expression, const char *separators) :
   debug(0)
 {

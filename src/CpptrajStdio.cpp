@@ -324,3 +324,9 @@ void RemoveTrailingWhitespace(std::string &line) {
     line.resize( lastSpace );
 }
 
+std::string integerToString(int i) {
+  std::ostringstream oss;
+  oss << i;
+  return oss.str();
+}
+
