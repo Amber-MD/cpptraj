@@ -747,48 +747,9 @@ int TrajectoryFile::SetupWriteWithArgs(char *tnameIn, const char *argstring,
                                        Topology *tparmIn, TrajFormatType fmtIn) 
 {
   ArgList tempArg;
-  //char *tempString;
-  //tempArg.SetDebug(2);
-  // Since ArgList uses strtok cannot pass it a const string, copy to 
-  // temporary string.
-  //tempString = new char[ strlen(argstring) + 1];
-  //strcpy(tempString,argstring);
   tempArg.SetList((char*)argstring, " ");
-  //delete[] tempString;
   return SetupWrite(tnameIn,&tempArg,tparmIn,fmtIn);
 }
-
-// TrajectoryFile::SetupWrite()
-// Currently only used byt Clustering
-/*int TrajectoryFile::SetupWrite(char *tnameIn, Topology *tparmIn, char *fmtArg) {
-  ArgList tempArg;
-  if (fmtArg!=NULL)
-    tempArg.AddArg(fmtArg);
-  return SetupWrite(tnameIn, &tempArg, tparmIn, UNKNOWN_TRAJ);
-}*/
-
-// TrajectoryFile::SetupNumberedWrite()
-// CUrrently only used by clustering
-/*int TrajectoryFile::SetupNumberedWrite(char *prefixIn, int numIn, Topology *tparmIn, 
-                                       char *fmtArg)
-{
-  std::string Prefix;
-  std::string Ext;
-  std::ostringstream Num;
-  ArgList trajFormatArg;
-
-  if (prefixIn==NULL) return 1;
-  Prefix.assign(prefixIn);
-  if (!(Num << numIn)) return 1;
-  Prefix += ".";
-  Prefix += Num.str();
-  if (fmtArg!=NULL)
-    trajFormatArg.AddArg(fmtArg);
-  TrajFormatType trajFmt = GetFormatFromArg(&trajFormatArg);
-  Ext = GetExtensionForType(trajFmt);
-  Prefix += Ext;
-  return SetupWrite((char*)Prefix.c_str(), NULL, tparmIn, trajFmt);
-}*/
 
 // TrajectoryFile::SetupWrite()
 /** Set up trajectory for writing. Output trajectory filename can be specified

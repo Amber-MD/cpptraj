@@ -4,8 +4,6 @@
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 #include <cfloat> // DBL_MAX
-//#include <cstdio> // sprintf
-//#include <cstring> // strlen
 
 // CONSTRUCTOR
 Clustering::Clustering() {

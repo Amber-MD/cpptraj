@@ -1,31 +1,17 @@
 /* Action: Clustering
  */
-#include <cfloat>
-#include <cmath>
+#include <cfloat> // DBL_MAX
+#include <cmath> // sqrt
 #include <vector>
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
 
 // XMGRACE colors
-// NOTE: Should this be somewhere else?
 const char ClusterList::XMGRACE_COLOR[16][12] = {
-"white",
-"black",
-"red",
-"green",
-"blue",
-"yellow",
-"brown",
-"grey",
-"violet",
-"cyan",
-"magenta",
-"orange",
-"indigo",
-"maroon",
-"turquoise",
-"darkgreen" };
+  "white", "black", "red", "green", "blue", "yellow", "brown", "grey", "violet",
+  "cyan", "magenta", "orange", "indigo", "maroon", "turquoise", "darkgreen"
+};
 
 // CONSTRUCTOR
 ClusterList::ClusterList() :
@@ -287,6 +273,7 @@ void ClusterList::PrintClustersToFile(char *filename) {
   for (cluster_it C1_it = clusters_.begin(); 
                   C1_it != clusters_.end(); C1_it++)
   {
+    buffer.clear();
     buffer.resize(maxframes_, '.');
     for (ClusterNode::frame_iterator frame1 = (*C1_it).beginframe();
                                      frame1 != (*C1_it).endframe();
@@ -316,22 +303,6 @@ void ClusterList::PrintRepFrames() {
 }
 
 // -----------------------------------------------------------------------------
-// ClusterList::GetClusterIt
-/** Return an iterator to the specified cluster.
-  */
-/*std::list<ClusterList::clusterNode>::iterator ClusterList::GetClusterIt(int C1) {
-  std::list<clusterNode>::iterator c1;
-  // Find C1
-  for (c1 = clusters.begin(); c1 != clusters.end(); c1++) {
-    if ( (*c1).num == C1 ) break;
-  }
-  if (c1 == clusters.end()) {
-    mprinterr("Error: ClusterList::Merge: C1 (%i) not found.\n",C1);
-    //return 1;
-  }
-  return c1;
-}*/
-
 // ClusterList::MergeClosest()
 /** Find and merge the two closest clusters.
   */
@@ -541,7 +512,8 @@ void ClusterList::FindCentroid(cluster_it& C1_it) {
     }
   }
   if (minframe==-1) {
-    mprinterr("Error: FindCentroid: Cluster %i could not determine centroid frame.\n", (*C1_it).Num());
+    mprinterr("Error: FindCentroid: Cluster %i could not determine centroid frame.\n", 
+              (*C1_it).Num());
     return;
   }
   (*C1_it).SetCentroid( minframe );
@@ -584,54 +556,4 @@ bool ClusterList::CheckEpsilon(double epsilon) {
   }
   return false;
 }
-
-// ClusterList::Begin()
-/** Place current cluster at beginning of list.
-  */
-/*void ClusterList::Begin() {
-  currentCluster = clusters.begin();
-}*/
-
-// ClusterList::End()
-/** Return true if current cluster is at the end of list.
-  */
-/*bool ClusterList::End() {
-  if (currentCluster == clusters.end()) return true;
-  return false;
-}*/
-
-// ClusterList::NextCluster()
-/** Advance current cluster to the next cluster.
-  */
-/*void ClusterList::NextCluster() {
-  currentCluster++;
-}*/
-
-// ClusterList::CurrentNum()
-/** Return number of the current cluster.  */
-/*int ClusterList::CurrentNum() {
-  return (*currentCluster).num;
-}*/
-
-// ClusterList::CurrentCentroid()
-/** Return frame number of centroid of current cluster.  */
-/*int ClusterList::CurrentCentroid() {
-  // FindCentroid is now called in Renumber
-  //FindCentroid(currentCluster);
-  return (*currentCluster).centroid;
-}*/
-
-// ClusterList::CurrentFrameBegin()
-/** Return iterator to the beginning of the current clusters framelist.
-  */
-/*std::list<int>::iterator ClusterList::CurrentFrameBegin() {
-  return (*currentCluster).frameList.begin();
-}*/
-
-// ClusterList::CurrentFrameEnd()
-/** Return iterator to the end of the current clusters framelist.
-  */
-/*std::list<int>::iterator ClusterList::CurrentFrameEnd() {
-  return (*currentCluster).frameList.end();
-}*/
 

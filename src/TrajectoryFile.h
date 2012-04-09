@@ -24,9 +24,6 @@ class TrajectoryFile {
     int SetupWriteWithArgs(char *, const char *, Topology *, TrajFormatType);
     // TODO: Accept string instead of char*
     int SetupWrite(char *, ArgList *, Topology *, TrajFormatType);
-    // Next two currently only used for Clustering
-    //int SetupWrite(char *, Topology *, char *);
-    //int SetupNumberedWrite(char *, int, Topology *, char *);
     int BeginTraj(bool);
     int EndTraj();
     int GetNextFrame(Frame&);

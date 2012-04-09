@@ -29,22 +29,15 @@ class ClusterList {
     void Summary(char *);
     void Summary_Half(char *);
     bool CheckEpsilon(double);
-
+    // Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     cluster_iterator begincluster() { return clusters_.begin(); }
     cluster_iterator endcluster()   { return clusters_.end();   }
-/*    void Begin();
-    bool End();
-    void NextCluster();
-    int CurrentNum();
-    int CurrentCentroid();
-    std::list<int>::iterator CurrentFrameBegin();
-    std::list<int>::iterator CurrentFrameEnd();*/
   private:
     static const char XMGRACE_COLOR[][12];
 
     int debug_;
-    // clusterNode: Store individual cluster info; frame numbers, centroid, etc.
+    /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
     /// Total number of frames being clustered
     int maxframes_;
@@ -54,12 +47,11 @@ class ClusterList {
     TriangleMatrix ClusterDistances_;
     /// Type of distance calculation for clusters 
     LINKAGETYPE Linkage_;
-
+    /// Internal iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
 
     int Merge(cluster_it&, cluster_it&);
     void FindCentroid(cluster_it&);
-    //std::list<clusterNode>::iterator GetClusterIt(int);
 
     // Distance calculation routines
     void calcMinDist(cluster_it&);
