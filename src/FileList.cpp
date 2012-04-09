@@ -22,14 +22,23 @@ void FileList::AddNames(char *filename, std::string &basename, std::string &tag)
   tags_.push_back( tag );
 }
 
+// FileList::AddFilename()
+void FileList::AddFilename(char *filename) {
+  fnames_.push_back( std::string(filename) );
+}
+
 // FileList::FindName()
 int FileList::FindName(char *nameIn) {
+  if ( nameIn == NULL) {
+    //mprinterr("Error: FileList::FindName called with NULL.\n");
+    return -1;
+  }
   std::string name(nameIn);
   return FindName(name);
 }
 
 // FileList::FindName()
-int FileList::FindName(std::string &nameIn) {
+int FileList::FindName(std::string nameIn) {
   if (nameIn.empty()) return -1;
   // If first char of name is a bracket, assume tag.
   int idx = 0;

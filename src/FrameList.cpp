@@ -1,5 +1,6 @@
 // FrameList
 #include "FrameList.h"
+#include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -12,6 +13,9 @@ FrameList::~FrameList() {
   for (std::vector<Frame*>::iterator frame = frames_.begin();
                                      frame != frames_.end(); frame++)
     delete *frame;
+  for (std::vector<Topology*>::iterator parm = StrippedRefParms_.begin();
+                                        parm != StrippedRefParms_.end(); parm++)
+    delete *parm;
 }
 
 // FrameList::ActiveReference()
@@ -33,30 +37,111 @@ void FrameList::SetActiveRef(int numIn) {
   refFrameNum_ = numIn;
 }
 
-// FrameList::AddRefFrame()
-/** Add given Frame to the FrameList. Store trajectory name and frame number 
-  * that this frame came from in frameNames and frameNums respectively. Store 
-  * the associated parm in FrameParm. 
+// -----------------------------------------------------------------------------
+/** Add Frame from the given trajectory file to the FrameList. Store trajectory 
+  * name and frame number that this frame came from in frameNames and frameNums 
+  * respectively. Store the associated parm in FrameParm. 
   */
-int FrameList::AddRefFrame(Frame *F, char *name, const char *filename, Topology *P, 
-                           int framenum, std::string &RefTag) 
-{
-  if (F==NULL || name==NULL) return 1;
+int FrameList::AddReference(char *filename, ArgList *argIn, Topology *parmIn) {
+  TrajectoryFile traj;
 
-  // Check that name and RefTag are not currently in use
-  if (FindName(name)!=-1) {
-    mprintf("Warning: Reference with name %s already exists!\n",name);
+  traj.SetDebug(debug_);
+  // Check if we want to obtain the average structure
+  bool average = argIn->hasKey("average");
+  // Check for mask expression
+  char *maskexpr = argIn->getNextMask();
+
+  // Set up trajectory
+  if ( traj.SetupRead( filename, argIn, parmIn ) ) {
+    mprinterr("Error: reference: Could not set up trajectory.\n");
+    return 1;
+  }
+  // Check for tag - done after SetupRead so traj can process args
+  std::string reftag = argIn->getNextTag();
+
+  // Check and warn if filename/reftag currently in use
+  if (FindName( traj.FileName() )!=-1) {
+    mprintf("Warning: Reference with name %s already exists!\n",traj.c_str());
     //return 1;
   }
-  if (FindName(RefTag)!=-1) {
-    mprintf("Warning: Reference with tag %s already exists!\n",RefTag.c_str());
+  if (FindName(reftag)!=-1) {
+    mprintf("Warning: Reference with tag %s already exists!\n",reftag.c_str());
     //return 1;
   }
 
-  frames_.push_back(F);
-  AddNames(name, filename, RefTag);
-  nums_.push_back(framenum);
-  parms_.push_back(P);
+  // If not obtaining average structure, tell trajectory to only process
+  // the start frame.
+  if (!average)
+    traj.SingleFrame();
+
+  // Check number of frames to be read
+  int trajFrames = traj.Total_Read_Frames();
+  if (trajFrames < 1) {
+    mprinterr("Error: No frames could be read for reference %s\n", traj.c_str());
+    return 1;
+  }
+  // Start trajectory read
+  if ( traj.BeginTraj(false) ) {
+    mprinterr("Error: Could not open reference %s\n.", traj.c_str());
+    return 1;
+  }
+  traj.PrintInfo(1);
+  // Set up input frame
+  // NOTE: If ever need ref velocity change this alloc
+  Frame *CurrentFrame = new Frame( parmIn->Natom(), parmIn->Mass() );
+  // If averaging requested, loop over specified frames and avg coords.
+  if (average) {
+    mprintf("    Averaging over %i frames.\n",trajFrames);
+    Frame *AvgFrame = new Frame( parmIn->Natom(), parmIn->Mass() );
+    AvgFrame->ZeroCoords();
+    while ( traj.GetNextFrame( *CurrentFrame ) ) {
+      *AvgFrame += *CurrentFrame;
+    }
+    AvgFrame->Divide( (double)trajFrames );
+    delete CurrentFrame;
+    CurrentFrame = AvgFrame;
+  } else {
+    // Not averaging, get the one frame from traj
+    traj.GetNextFrame( *CurrentFrame );
+  }
+  traj.EndTraj();
+
+  // If a mask expression was specified, strip to match the expression.
+  Topology *CurrentParm = parmIn;
+  if (maskexpr != NULL) {
+    AtomMask stripMask( maskexpr );
+    mprintf("    reference: Keeping atoms in mask [%s]\n",stripMask.MaskString());
+    if (parmIn->SetupIntegerMask(stripMask, *CurrentFrame)) {
+      delete CurrentFrame;
+      return 1;
+    }
+    if (stripMask.None()) {
+      mprinterr("Error: No atoms kept for reference.\n");
+      delete CurrentFrame;
+      return 1;
+    }
+    // Create new stripped frame
+    Frame *strippedRefFrame = new Frame( *CurrentFrame, stripMask );
+    mprintf("\tKept %i atoms.\n", strippedRefFrame->Natom());
+    // Create new stripped parm
+    Topology *strippedRefParm = CurrentParm->modifyStateByMask( stripMask );
+    if (strippedRefParm==NULL) {
+      mprinterr("Error: could not strip reference.\n");
+      return 1;
+    }
+    strippedRefParm->Summary();
+    // Store the new stripped parm in this class so it can be freed later
+    StrippedRefParms_.push_back( strippedRefParm );
+    delete CurrentFrame;
+    CurrentFrame = strippedRefFrame;
+    // No need to free CurrentParm since it exists in the parm file list.
+    CurrentParm = strippedRefParm;
+  }
+
+  frames_.push_back( CurrentFrame );
+  AddNames( traj.TrajName(), traj.c_str(), reftag );
+  nums_.push_back( traj.Start() );
+  parms_.push_back( CurrentParm );
   return 0;
 }
 

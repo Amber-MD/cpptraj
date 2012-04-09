@@ -6,7 +6,6 @@
 Cpptraj::Cpptraj() {
   debug=0;
   showProgress=true;
-  activeRef = -1;
   exitOnError = true;
 }
 
@@ -16,7 +15,7 @@ void Cpptraj::SetGlobalDebug(int debugIn) {
   debug = debugIn;
   rprintf("DEBUG LEVEL SET TO %i\n",debug);
   trajinList.SetDebug(debug);
-  referenceList.SetDebug(debug);
+  refFrames.SetDebug(debug);
   trajoutList.SetDebug(debug);
   parmFileList.SetDebug(debug);
   actionList.SetDebug(debug);
@@ -88,7 +87,7 @@ void Cpptraj::Dispatch(char *inputLine) {
   }
   // referencedebug: Set reference trajectory debug level
   if (dispatchArg.CommandIs("referencedebug")) {
-    referenceList.SetDebug( dispatchArg.getNextInteger(0) );
+    refFrames.SetDebug( dispatchArg.getNextInteger(0) );
     return;
   }
   // parmdebug: Set parm debug level
@@ -123,11 +122,11 @@ void Cpptraj::Dispatch(char *inputLine) {
   }
   if (dispatchArg.CommandIs("reference")) {
     tempParm = parmFileList.GetParm(dispatchArg);
-    referenceList.AddReference(NULL, &dispatchArg, tempParm);
+    refFrames.AddReference(NULL, &dispatchArg, tempParm);
     return;
   }
   if (dispatchArg.CommandIs("activeref")) {
-    activeRef = dispatchArg.getNextInteger(0);
+    refFrames.SetActiveRef( dispatchArg.getNextInteger(0) );
     return;
   }
   if (dispatchArg.CommandIs("trajout")) {
@@ -167,13 +166,11 @@ int Cpptraj::Run() {
   Topology *CurrentParm=NULL; // Parm for actions; can be modified 
   Frame *CurrentFrame=NULL;    // Frame for actions; can be modified
   Frame TrajFrame;       // Original Frame read in from traj
-  FrameList refFrames;         // List of reference frames from referenceList
 
   // ========== S E T U P   P H A S E ========== 
   // Calculate frame division among trajectories
   mprintf("\nINPUT TRAJECTORIES:\n");
-  maxFrames=trajinList.SetupFrames();
-  trajinList.Info(1,0);
+  maxFrames = trajinList.SetupFrames();
   if (maxFrames<0)  
     mprintf("  Coordinate processing will occur on an unknown number of frames.\n");
   else
@@ -182,15 +179,13 @@ int Cpptraj::Run() {
   // Parameter file information
   parmFileList.Print();
 
-  // Setup reference frames if reference files were specified 
-  referenceList.SetupRefFrames(&refFrames);
-  if (activeRef!=-1)
-    refFrames.SetActiveRef(activeRef);
+  // Print reference information 
+  mprintf("\nREFERENCE COORDS:\n");
   refFrames.Info();
 
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");
-  trajoutList.Info(1,0);
+  trajoutList.Info();
  
   // Set max frames in the data set list
   DSL.SetMax(maxFrames); 
@@ -242,19 +237,17 @@ int Cpptraj::Run() {
       // Do Output
       if (!suppress_output)
         trajoutList.Write(actionSet, CurrentParm, CurrentFrame);
-//#ifdef DEBUG
+//#     ifdef DEBUG
 //      dbgprintf("\tDEBUG: %30s: %4i\n",CurrentParm->parmName,CurrentParm->outFrame);
-//#endif
-      // Increment frame counters
-      actionSet++; 
+//#     endif
+      // Increment frame counter
+      ++actionSet; 
     }
 
     // Close the trajectory file
     traj->EndTraj();
-    // Update how many frames across all threads have been written for parm
-    // Do this for the original parm since it may have been modified.
-    //traj->TrajParm()->outFrame += traj->Total_Read_Frames();
-    readSets+=traj->NumFramesProcessed();
+    // Update how many frames have been processed.
+    readSets += traj->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
   rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
@@ -268,6 +261,10 @@ int Cpptraj::Run() {
   // Print Dataset information
   DSL.Info();
 
+  // Do dataset output - first sync datasets
+  // TODO - Also have datafilelist call a sync??
+  DSL.Sync();
+
   // DataSet Analysis
   analysisList.Analyze(&DFL);
 
@@ -275,9 +272,6 @@ int Cpptraj::Run() {
   DFL.ProcessDataFileArgs(&DSL);
   // Print Datafile information
   DFL.Info();
-
-  // Do dataset output - first sync datasets
-  DSL.Sync();
   // Only Master does DataFile output
   if (worldrank==0)
     DFL.Write();

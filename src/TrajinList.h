@@ -1,14 +1,24 @@
 #ifndef INC_TRAJINLIST_H
 #define INC_TRAJINLIST_H
-#include "CoordFileList.h"
+#include "TrajectoryFile.h"
 // Class: TrajinList
 /// Hold input trajectories
-class TrajinList : public CoordFileList {
+class TrajinList {
   public:
+    TrajinList();
+    ~TrajinList();
+    void SetDebug(int dIn) { debug_ = dIn; }
     /// Add a traj file to the list based on input from arg list
-    int AddTrajin(char*, ArgList *, Topology *);
+    int AddTrajin(char*, ArgList*, Topology*);
     /// Set up frames to be processed 
     int SetupFrames();
+
+    void Begin();
+    TrajectoryFile *NextTraj();
+  private:
+    std::vector<TrajectoryFile*> trajin_;
+    int debug_;
+    std::vector<TrajectoryFile*>::iterator currentTraj_;
 };
 #endif
 

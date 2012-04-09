@@ -1,5 +1,6 @@
 #ifndef INC_FRAMELIST_H
 #define INC_FRAMELIST_H
+#include "ArgList.h"
 #include "Frame.h"
 #include "Topology.h"
 #include "FileList.h"
@@ -18,7 +19,8 @@ class FrameList : public FileList {
 
     Frame *ActiveReference();
     void SetActiveRef(int);
-    int AddRefFrame(Frame *, char *, const char *,Topology *,int,std::string&);
+    int AddReference(char *, ArgList *, Topology *);
+    //int AddRefFrame(Frame *, char *, const char *,Topology *,int,std::string&);
     int AddFrame(Frame *, Topology *);
     Topology *GetFrameParm(int);
     Frame *GetFrame(int idx);
@@ -33,6 +35,7 @@ class FrameList : public FileList {
     std::vector<Frame*> frames_;
     std::vector<Topology*> parms_;
     std::vector<int> nums_;
+    std::vector<Topology*> StrippedRefParms_;
     int refFrameNum_;
 };
 #endif

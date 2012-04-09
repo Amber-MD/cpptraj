@@ -376,7 +376,7 @@ void TrajectoryFile::SingleFrame() {
   }
 }
 
-// TrajectoryFile::SetupRead()
+// TrajectoryFile::ReadTraj()
 /** Set up trajectory for reading. Input trajectory filename can be specified
   * explicitly, or if not it should be the second argument in the given
   * argument list. Associate this trajectory with the given parm file.
@@ -914,7 +914,12 @@ bool TrajectoryFile::HasVelocity() {
   return false;
 }
 
-const char *TrajectoryFile::FileName() {
+std::string TrajectoryFile::FileName() {
+  if (trajio_!=NULL) return trajio_->FullPathName();
+  return std::string();
+}
+
+const char *TrajectoryFile::c_str() {
   if (trajio_!=NULL) return trajio_->Name();
   return 0;
 }

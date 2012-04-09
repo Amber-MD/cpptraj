@@ -4,6 +4,14 @@
 #include "CpptrajStdio.h"
 //#include "MpiRoutines.h" //worldsize
 
+TrajoutList::TrajoutList() { }
+
+TrajoutList::~TrajoutList() {
+  for (std::vector<TrajectoryFile*>::iterator traj = trajout_.begin(); 
+                                              traj != trajout_.end(); traj++) 
+    delete *traj;
+}
+
 // TrajoutList::AddTrajout()
 /** Add trajectory to the trajectory list as an output trajectory. 
   * Associate the trajectory with one of the parm files in the 
@@ -25,7 +33,8 @@ int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, Topology *parmIn) {
     mprinterr("Error: TrajoutList::Add: Called with NULL filename.\n");
     return 1;
   }
-  if (FilenameInUse(filename)) {
+  // Check if filename is in use
+  if (FindName(filename) != -1) {
     mprinterr("Error: trajout: Filename %s already in use.\n",filename);
     return 1;
   }
@@ -35,7 +44,7 @@ int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, Topology *parmIn) {
     mprinterr("Error: TrajoutList::Add: Could not allocate memory for traj.\n");
     return 1;
   }
-  traj->SetDebug(debug);
+  traj->SetDebug(debug_);
   // Default to AMBERTRAJ; format can be changed via args in the arg list
   if (traj->SetupWrite(filename,A,parmIn,TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: trajout: Could not set up trajectory.\n");
@@ -44,7 +53,9 @@ int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, Topology *parmIn) {
   }
 
   // Add to trajectory file list
-  trajList.push_back(traj); 
+  trajout_.push_back(traj);
+  // Add filename to filename list
+  AddFilename( filename ); 
 
   return 0;
 }
@@ -55,9 +66,9 @@ int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, Topology *parmIn) {
   * be opened, no need to call BeginTraj.
   */ 
 int TrajoutList::Write(int set, Topology *CurrentParm, Frame *CurrentFrame) { 
-  std::list<TrajectoryFile*>::iterator traj;
-
-  for (traj = trajList.begin(); traj != trajList.end(); traj++) {
+  for (std::vector<TrajectoryFile*>::iterator traj = trajout_.begin(); 
+                                              traj != trajout_.end(); traj++) 
+  {
     if ( (*traj)->WriteFrame(set, CurrentParm, *CurrentFrame) ) {
       mprinterr("Error writing output trajectory.\n");
       return 1;
@@ -71,9 +82,18 @@ int TrajoutList::Write(int set, Topology *CurrentParm, Frame *CurrentFrame) {
 /** Close output trajectories. Called after input traj processing completed.
   */
 void TrajoutList::Close() {
-  std::list<TrajectoryFile*>::iterator traj;
-
-  for (traj = trajList.begin(); traj != trajList.end(); traj++)
+  for (std::vector<TrajectoryFile*>::iterator traj = trajout_.begin(); 
+                                              traj != trajout_.end(); traj++) 
     (*traj)->EndTraj();
+}
+
+void TrajoutList::Info() {
+  if (trajout_.empty()) {
+    mprintf("  No files.\n");
+  } else {
+    for (std::vector<TrajectoryFile*>::iterator traj = trajout_.begin();
+                                                traj != trajout_.end(); traj++)
+      (*traj)->PrintInfo( 1 );
+  }
 }
 

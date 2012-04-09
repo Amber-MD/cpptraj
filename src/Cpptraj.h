@@ -2,7 +2,7 @@
 #define INC_CPPTRAJ_H 
 #include "TrajinList.h"
 #include "TrajoutList.h"
-#include "ReferenceList.h"
+#include "FrameList.h"
 #include "TopologyList.h"
 #include "DataSetList.h"
 #include "DataFileList.h"
@@ -31,7 +31,7 @@ class Cpptraj {
     /// List of input trajectory files
     TrajinList trajinList;
     /// List of reference coordinate files
-    ReferenceList referenceList; 
+    FrameList refFrames; 
     /// List of output trajectory files 
     TrajoutList trajoutList;
     /// List of actions to be performed each frame
@@ -44,8 +44,6 @@ class Cpptraj {
     DataFileList DFL;
     /// The debug level
     int debug;
-    /// The number of the active reference structure in ReferenceList
-    int activeRef;
     /// If true the progress of reading input trajectories will be shown
     bool showProgress;
     /// If true cpptraj will exit if errors are encountered instead of trying to continue

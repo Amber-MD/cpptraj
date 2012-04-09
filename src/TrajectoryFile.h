@@ -48,7 +48,8 @@ class TrajectoryFile {
     int NumFramesProcessed();
     bool HasVelocity();
 
-    const char *FileName();
+    std::string FileName();
+    const char* c_str();
   private:
     /// Denote whether reading, writing, or appending.
     enum TrajAccessType { READTRAJ, WRITETRAJ, APPENDTRAJ };

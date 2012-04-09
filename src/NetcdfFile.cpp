@@ -46,7 +46,7 @@ NetcdfFile::NetcdfFile() :
   cellAngleVID_(-1),
   cellLengthVID_(-1),
   timeVID_(-1),
-  ncdebug_(1),
+  ncdebug_(0),
   frameDID_(-1),
   atomDID_(-1),
   ncatom_(-1),

@@ -11,7 +11,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
         Analysis_PtrajAnalysis.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
-        CharBuffer.cpp ClusterList.cpp ClusterNode.cpp CoordFileList.cpp CoordList.cpp \
+        CharBuffer.cpp ClusterList.cpp ClusterNode.cpp CoordList.cpp \
         CpptrajFile.cpp \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
@@ -25,7 +25,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \
         PDBfile.cpp ProgressBar.cpp PtrajMask.cpp ptraj_convert.cpp \
-        Random.cpp Range.cpp ReferenceList.cpp RemdTraj.cpp Residue.cpp Topology.cpp \
+        Random.cpp Range.cpp RemdTraj.cpp Residue.cpp Topology.cpp \
         TorsionRoutines.cpp \
         Traj_AmberCoord.cpp Traj_AmberNetcdf.cpp Traj_AmberRestart.cpp \
         Traj_AmberRestartNC.cpp Traj_CharmmDcd.cpp Traj_Conflib.cpp TrajectoryFile.cpp \
