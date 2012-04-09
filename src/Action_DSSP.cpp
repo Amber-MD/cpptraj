@@ -1,9 +1,8 @@
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
-// Dssp
-// Hbond energy calc prefactor
+/// Hbond energy calc prefactor
 // From ptraj actions.c:transformSecStruct 0.42*0.20*332
-#define DSSP_fac 27.888
+const double DSSP::DSSP_fac = 27.888;
 
 // CONSTRUCTOR
 DSSP::DSSP() {
@@ -32,7 +31,7 @@ const char DSSP::SSname[7][6]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "T
 /** Expected call: secstruct [out <filename>] [<mask>] [sumout <filename>]
   *                          [ptrajformat]
   * If sumout is not specified the filename specified by out is used with .sum suffix. 
-*/
+  */
 // For now dont allow NULL(stdout) filename for output
 int DSSP::init() {
   char *mask, *temp;

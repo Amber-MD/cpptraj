@@ -147,7 +147,7 @@ int FileIO_Bzip2::Close() {
   * NOTE: This can be ridiculously time consuming for large bzip files, so
   *       just return 0. 
   */
-#define BUFINSIZE 10240
+//#define BUFINSIZE 10240
 off_t FileIO_Bzip2::Size(char *filename) {
   //off_t fileSize, numread;
   //char bufIn[BUFINSIZE];
@@ -189,7 +189,7 @@ off_t FileIO_Bzip2::Size(char *filename) {
   return fileSize;
 */
 }
-#undef BUFINSIZE
+//#undef BUFINSIZE
 
 // FileIO_Bzip2::Read()
 /** Read size*count bytes from bzip2file stream. Return number of bytes read.

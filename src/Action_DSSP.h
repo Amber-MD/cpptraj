@@ -4,6 +4,16 @@
 // Class: DSSP
 /// Calculate protein secondary structure using DSSP algorithm.
 class DSSP : public Action {
+  public:
+    DSSP();
+    ~DSSP();
+
+    int init();
+    int setup();
+    int action();
+    void print();
+  private:
+    static const double DSSP_fac;
     enum SStype { SECSTRUCT_NULL, SECSTRUCT_PARA, SECSTRUCT_ANTI, 
                   SECSTRUCT_3_10, SECSTRUCT_ALPHA, SECSTRUCT_PI, 
                   SECSTRUCT_TURN 
@@ -39,14 +49,5 @@ class DSSP : public Action {
 
     int isBonded(int, int);
     void SSassign(int, int, SStype);
-  public:
-    DSSP();
-    ~DSSP();
-
-    int init();
-    int setup();
-    int action();
-    void print();
 };
-
 #endif

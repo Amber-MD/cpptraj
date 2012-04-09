@@ -12,8 +12,8 @@ Usage() {
   echo "   OPTIONS:"
   echo "   --help     : Display this message."
   echo "   -d, -debug : Turn on compiler debugging info"
+  echo "   -openmp    : Use openmp for parallelization of certain routines."
   echo "   -debugon   : Add -DDEBUG flag to activate internal debugging"
-  echo "   -profile   : Add profiling flag to compile command"
   echo "   -noopt     : Do not use optimized compiler flags (default when -d specified)"
   echo "   -nobzlib   : Do not use Bzip2"
   echo "   -nozlib    : Do not use zlib (gzip/zip)"
@@ -30,7 +30,6 @@ Usage() {
   echo "   -profile   : Use Gnu compiler profiling (>= V4.5)"
   echo "   -gprofile  : Use Gnu compiler GLIBC profiling (>= V4.5)"
   echo "   -mpi       : Use mpicc/mpicxx to compile."
-  echo "   -openmp    : Use openmp for parallelization of certain routines."
   echo "   NOTE: -openmp and -mpi are mutually exclusive, as are -profile and -gprofile."
   echo "   --with-hdf5=<DIR>"
 }
