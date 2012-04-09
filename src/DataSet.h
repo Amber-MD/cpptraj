@@ -22,9 +22,9 @@ class DataSet {
     /** By convention this should be the last value added.
       */
     virtual int Xmax()              { return 0; }
-    /// Used to check if a frame in dataset has data.
     virtual int Size()              { return 0; }
-    virtual int FrameIsEmpty(int)   { return 0; }
+    /// Used to check if a frame in dataset has data.
+    virtual int FrameIsEmpty(int)   { return 1; }
     /// Add data to the dataset.
     /** A pointer to the data is passed in  as void - it is up to the 
       * inheriting class to cast it. The X value for the data is passed 
