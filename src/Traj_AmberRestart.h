@@ -26,6 +26,7 @@ class AmberRestart : public TrajectoryIO, FrameBuffer {
     bool singleWrite_;     ///< If false, frame # will be appended to output filename
 
     // Inherited functions
+    bool ID_TrajFormat();
     int setupTrajin(Topology*);
     int setupTrajout(Topology*);
     int openTraj();

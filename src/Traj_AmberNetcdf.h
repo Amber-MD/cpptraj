@@ -11,6 +11,7 @@ class AmberNetcdf : public TrajectoryIO, NetcdfFile {
     ~AmberNetcdf();
     // AmberNetcdf-specific functions
     // Inherited functions
+    bool ID_TrajFormat();
     int setupTrajin(Topology*);
     int setupTrajout(Topology*);
     int openTraj();

@@ -8,7 +8,9 @@
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
   NCTYPE nctype = NC_UNKNOWN;
 #ifdef BINTRAJ
-  if ( NC_openRead( fname )!= 0 )
+  // NOTE: Do not use checkNCerr so this fails silently. Allows routine to
+  //       be used in file autodetection.
+  if ( nc_open( fname, NC_NOWRITE, &ncid_ )!=NC_NOERR )
     return NC_UNKNOWN;
   nctype = GetNetcdfConventions();
   NC_close();

@@ -41,6 +41,11 @@ AmberNetcdf::~AmberNetcdf() {
   // NOTE: Need to close file?
 }
 
+bool AmberNetcdf::ID_TrajFormat() {
+  if ( GetNetcdfConventions( Name() ) == NC_AMBERTRAJ ) return true;
+  return false;
+} 
+
 // AmberNetcdf::close()
 /** Close netcdf file. Set ncid to -1 since it can change between open
   * and close calls.

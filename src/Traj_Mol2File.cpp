@@ -9,6 +9,14 @@ Traj_Mol2File::Traj_Mol2File() :
   hasCharges_(false)
 {}
 
+bool Traj_Mol2File::ID_TrajFormat() {
+  if (OpenFile()) return false;
+  //mprintf("DEBUG: Checking Mol2 parm format.\n");
+  bool ismol2file = ID( IO );
+  CloseFile();
+  return ismol2file;
+}
+
 // Traj_Mol2File::openTraj()
 int Traj_Mol2File::openTraj() {
   int err;

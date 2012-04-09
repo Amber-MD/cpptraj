@@ -1,5 +1,7 @@
 // AmberRestart
 #include <cstdio> // sscanf
+#include <cstring> // strlen: file detection
+#include <cctype> // isdigit, isspace: file detection
 #include "Traj_AmberRestart.h"
 #include "CpptrajStdio.h"
 
@@ -19,6 +21,33 @@ AmberRestart::AmberRestart() {
   dt_ = 1.0;
   singleWrite_ = false;
 }
+
+bool AmberRestart::ID_TrajFormat() {
+  char buffer2[BUF_SIZE];
+  // Assume file set up for read
+  if (OpenFile()) return false;
+  IO->Gets(buffer2, BUF_SIZE); // Title
+  IO->Gets(buffer2, BUF_SIZE); // natom, [time, temp]
+  CloseFile();
+  // Check for an integer (I5) followed by 0-2 scientific floats (E15.7)
+  if (strlen(buffer2)<=36) {
+    //mprintf("DEBUG: Checking restart.\n");
+    //mprintf("DEBUG: buffer2=[%s]\n",buffer2);
+    int i=0;
+    for (; i<5; i++) {
+      if (!isspace(buffer2[i]) && !isdigit(buffer2[i])) break;
+      //mprintf("DEBUG:    %c is a digit/space.\n",buffer2[i]);
+    }
+    //mprintf("DEBUG: i=%i\n");
+    //if ( i==5 && strchr(buffer2,'E')!=NULL ) {
+    if ( i==5 ) {
+      if (debug_>0) mprintf("  AMBER RESTART file\n");
+      return true;
+    }
+  }
+  return false;
+}
+  
 
 // AmberRestart::closeTraj()
 void AmberRestart::closeTraj() {

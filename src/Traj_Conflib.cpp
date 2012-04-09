@@ -3,14 +3,26 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Conflib::Conflib() { 
-  energy_=0.0;
-  radGyr_=0.0;
-  timesFound_=0;
-  conflibAtom_=0;
-}
+Conflib::Conflib() : 
+  energy_(0),
+  radGyr_(0),
+  timesFound_(0),
+  conflibAtom_(0)
+{}
 
 //------------------------------------------------------------------------
+bool Conflib::ID_TrajFormat() {
+  // If the file name is conflib.dat, assume this is a conflib.dat file 
+  // from LMOD. Cant think of a better way to detect this since there is no 
+  // magic number but the file is binary.
+  if ( FileName_ == "conflib.dat" )
+  {
+    mprintf("  LMOD CONFLIB file\n");
+    return true;
+  }
+  return false;
+}
+
 // Conflib::closeTraj()
 void Conflib::closeTraj() {
   CloseFile();

@@ -21,6 +21,38 @@ AmberCoord::AmberCoord() {
   highPrecision_ = false;
 }
 
+// IsRemdHeader()
+static inline bool IsRemdHeader(char* buffer) {
+  if ( (buffer[0]=='R' && buffer[1]=='E' && buffer[2]=='M' && buffer[3]=='D') ||
+       (buffer[0]=='H' && buffer[1]=='R' && buffer[2]=='E' && buffer[3]=='M'))
+    return true;
+  return false;
+}
+
+bool AmberCoord::ID_TrajFormat() {
+  char buffer2[BUF_SIZE];
+  // File must already be set up for read
+  if (OpenFile()) return false;
+  IO->Gets(buffer2, BUF_SIZE); // Title
+  IO->Gets(buffer2, BUF_SIZE); // REMD header/coords
+  CloseFile();
+  // Check if second line contains REMD/HREMD, Amber Traj with REMD header
+  if ( IsRemdHeader( buffer2 ) ) {
+    if (debug_>0) mprintf("  AMBER TRAJECTORY with (H)REMD header.\n");
+    hasREMD_ = REMD_HEADER_SIZE;
+    hasTemperature_ = true;
+    return true;
+  }
+  // Check if we can read at least 3 coords of width 8, Amber trajectory
+  float TrajCoord[3];
+  if ( sscanf(buffer2, "%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2) == 3 )
+  {
+    if (debug_>0) mprintf("  AMBER TRAJECTORY file\n");
+    return true;
+  }
+  return false;
+}
+
 // AmberCoord::closeTraj()
 void AmberCoord::closeTraj() {
   CloseFile();
@@ -70,7 +102,6 @@ int AmberCoord::openTraj() {
 // NOTE: Precalculate the header, coord, and box offsets.
 // NOTE: There are currently NO checks for null for X, box, and T!
 int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T) {
-//  char Temp[9];
   off_t offset;
 
 #ifdef TRAJDEBUG
@@ -94,16 +125,6 @@ int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T)
     frameBuffer_[41] = '\0';
     *T = atof(frameBuffer_ + 33);
     frameBuffer_[41] = savechar;
-/*    Temp[0] = frameBuffer_[33];
-    Temp[1] = frameBuffer_[34];
-    Temp[2] = frameBuffer_[35];
-    Temp[3] = frameBuffer_[36];
-    Temp[4] = frameBuffer_[37];
-    Temp[5] = frameBuffer_[38];
-    Temp[6] = frameBuffer_[39];
-    Temp[7] = frameBuffer_[40];
-    Temp[8]='\0';
-    *T = atof(Temp);*/
     //if (debug>0) fprintf(stderr,"DEBUG: Replica T is %lf (%s)\n",F->T,Temp);
   }
   // Get Coordinates - hasREMD is size in bytes of REMD header
@@ -155,14 +176,6 @@ int AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T)
   return 0;
 }
 
-// IsRemdHeader()
-static inline bool IsRemdHeader(char* buffer) {
-  if ( (buffer[0]=='R' && buffer[1]=='E' && buffer[2]=='M' && buffer[3]=='D') ||
-       (buffer[0]=='H' && buffer[1]=='R' && buffer[2]=='E' && buffer[3]=='M'))
-    return true;
-  return false;
-}
-
 // AmberCoord::setupTrajin()
 /** Setup opens the given file for read access, sets information.
   * \return the number of frames present in trajectory file.
@@ -181,19 +194,6 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
   // Attempt to open the file. open() sets the title and titleSize
   if (openTraj()) return -1;
 
-  // Read 1 line to check for REMD header
-  if ( IO->Gets(buffer, BUF_SIZE) ) {
-    mprinterr("Error: Could not reading second line of trajectory %s.\n",BaseName());
-    return -1;
-  }
-  if ( IsRemdHeader(buffer) ) {
-    hasREMD_ = REMD_HEADER_SIZE;
-    hasTemperature_ = true;
-  }
-  // Reopen the file
-  closeTraj();
-  if (openTraj()) return -1;
-  
   // Calculate the length of each coordinate frame in bytes
   natom3_ = trajParm->Natom() * 3;
   frame_lines = (size_t)(natom3_ / 10);

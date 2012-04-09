@@ -25,6 +25,11 @@ AmberRestartNC::~AmberRestartNC() {
   // NOTE: Need to close file?
 }
 
+bool AmberRestartNC::ID_TrajFormat() {
+  if ( GetNetcdfConventions( Name() ) == NC_AMBERRESTART ) return true;
+  return false;
+}
+
 // AmberRestartNC::closeTraj()
 void AmberRestartNC::closeTraj() {
   NC_close();

@@ -24,6 +24,7 @@ class Traj_Mol2File : public TrajectoryIO, Mol2File {
     std::vector<int> trajBonds_; 
 
     // Inherited functions
+    bool ID_TrajFormat();
     int setupTrajin(Topology *);
     int setupTrajout(Topology *);
     int openTraj();

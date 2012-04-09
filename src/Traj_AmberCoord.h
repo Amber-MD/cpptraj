@@ -21,6 +21,7 @@ class AmberCoord: public TrajectoryIO, FrameBuffer {
     static const size_t BUF_SIZE;
 
     // Inherited functions
+    bool ID_TrajFormat();
     int setupTrajin(Topology*);
     int setupTrajout(Topology*);
     int openTraj();

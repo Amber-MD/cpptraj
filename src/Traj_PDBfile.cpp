@@ -13,6 +13,14 @@ Traj_PDBfile::Traj_PDBfile() :
 {}
 
 //------------------------------------------------------------------------
+bool Traj_PDBfile::ID_TrajFormat() {
+  // Assumes already set up
+  if (OpenFile()) return false;
+  bool ispdbfile = ID( IO );
+  CloseFile();
+  return ispdbfile;
+}
+
 // Traj_PDBfile::closeTraj()
 void Traj_PDBfile::closeTraj() {
   // On WRITE only close if not writing 1 pdb per frame

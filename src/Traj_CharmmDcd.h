@@ -44,6 +44,7 @@ class CharmmDcd : public TrajectoryIO {
     int writeDcdHeader();
 
     // Inherited functions
+    bool ID_TrajFormat();
     int setupTrajin(Topology *);
     int setupTrajout(Topology *);
     int openTraj();

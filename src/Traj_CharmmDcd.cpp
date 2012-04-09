@@ -34,6 +34,20 @@ CharmmDcd::~CharmmDcd() {
   if (zcoord!=NULL) delete[] zcoord;
 }
 
+bool CharmmDcd::ID_TrajFormat() {
+  char buffer[8];
+  if (OpenFile()) return false;
+  IO->Gets(buffer, 9);
+  CloseFile();
+  // If the second 4 chars are C O R D, charmm DCD
+  if (buffer[4] == 'C' &&
+      buffer[5] == 'O' &&
+      buffer[6] == 'R' &&
+      buffer[7] == 'D')
+    return true;
+  return false;
+}
+
 // CharmmDcd::openTraj()
 int CharmmDcd::openTraj() {
   int err;

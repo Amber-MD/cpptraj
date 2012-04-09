@@ -13,8 +13,8 @@
 class TrajectoryFile {
   public:
     enum TrajFormatType {
-      UNKNOWN_TRAJ=0, PDBFILE, AMBERTRAJ, AMBERNETCDF, AMBERRESTART,
-      CONFLIB, AMBERRESTARTNC, MOL2FILE, CHARMMDCD
+      UNKNOWN_TRAJ=0, AMBERNETCDF, AMBERRESTARTNC, PDBFILE, MOL2FILE, CHARMMDCD,
+      AMBERRESTART, AMBERTRAJ, CONFLIB, NTRAJ 
     };
 
     TrajectoryFile();
@@ -91,9 +91,10 @@ class TrajectoryFile {
     /// If true trajectory has been opened.
     bool trajIsOpen_;
     /// Identify trajectory format
-    TrajFormatType ID_TrajFormat(TrajectoryIO &);
+    //TrajFormatType ID_TrajFormat(TrajectoryIO &);
     /// Set up TrajectoryIO object for reading multiple trajectories at once
     TrajectoryIO *setupRemdTrajIO(double, char*, TrajFormatType, ArgList&);
+    TrajectoryIO *SetupTrajectoryIO(TrajFormatType);
     /// Set up TrajectoryIO object for the given filename
     TrajectoryIO *setupTrajIO(char *, TrajAccessType, TrajFormatType);
     /// Set start/stop/offset args from user input

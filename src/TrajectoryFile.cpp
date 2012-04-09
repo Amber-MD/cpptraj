@@ -1,12 +1,5 @@
 // TrajectoryFile
-#include <cstdio> // sscanf
-#include <cstring> // strncmp, strlen
-#include <cctype> // isdigit, isspace
-#include <sstream> // for NumberedWrite
 #include "TrajectoryFile.h"
-#include "PDBfile.h" // TODO: Remove when ID_traj introduced
-#include "Mol2File.h" // ditto
-#include "NetcdfFile.h" // ditto
 #include "CpptrajStdio.h"
 // All TrajectoryIO classes go here
 #include "Traj_AmberCoord.h"
@@ -60,152 +53,6 @@ TrajectoryFile::~TrajectoryFile() {
 void TrajectoryFile::SetDebug(int debugIn) {
   debug_ = debugIn;
   if (debug_>0) mprintf("  TrajectoryFile debug level set to %i\n",debug_);
-}
-
-// TrajectoryFile::ID_TrajFormat()
-TrajectoryFile::TrajFormatType TrajectoryFile::ID_TrajFormat(TrajectoryIO &trajectory) 
-{
-  unsigned char magic[3];
-  const int BUF_SIZE = 83;
-  char buffer1[BUF_SIZE];
-  char buffer2[BUF_SIZE];
-  // TODO: Remove the next 3, ID should be in individual TrajectoryIO classes
-  PDBfile pdbfile;
-  Mol2File mol2file;
-  NetcdfFile ncfile;
-
-  // Open trajectory
-  if (trajectory.IsOpen())
-    trajectory.CloseFile();
-  if (trajectory.OpenFile())
-    return UNKNOWN_TRAJ;
-  // Get magic number
-  magic[0] = 0; magic[1] = 0; magic[2] = 0;
-  // NOTE: Replace with 1 read
-  trajectory.IO->Read(magic  ,1);
-  trajectory.IO->Read(magic+1,1);
-  trajectory.IO->Read(magic+2,1);
-  trajectory.CloseFile();
-  if (debug_>0) 
-    mprintf("\tTrajectory Hex sig: %x %x %x", magic[0],magic[1],magic[2]);
-
-  // NETCDF
-  if (magic[0]==0x43 && magic[1]==0x44 && magic[2]==0x46) {
-    if (debug_>0) mprintf("  NETCDF file\n");
-    if (trajectory.IsCompressed()) {
-      mprinterr("Error: Compressed NETCDF files are not currently supported.\n");
-      return UNKNOWN_TRAJ;
-    }
-    // Determine whether this is a trajectory or restart Netcdf from the Conventions
-    NetcdfFile::NCTYPE nctype = ncfile.GetNetcdfConventions( trajectory.Name() );
-    switch (nctype) {
-      case NetcdfFile::NC_AMBERTRAJ   : return AMBERNETCDF; break;
-      case NetcdfFile::NC_AMBERRESTART: return AMBERRESTARTNC; break;
-      case NetcdfFile::NC_UNKNOWN:
-      default: return UNKNOWN_TRAJ;
-    }
-    // Shouldnt get here, just for safetys sake
-    return UNKNOWN_TRAJ;
-  }
-
-  // ---------- ID by file characteristics; read the first two lines ----------
-  // Initialize buffers to NULL
-  memset(buffer1,' ',BUF_SIZE);
-  memset(buffer2,' ',BUF_SIZE);
-  buffer1[0]='\0';
-  buffer2[0]='\0';
-  if (trajectory.OpenFile())
-    return UNKNOWN_TRAJ;
-  trajectory.IO->Gets(buffer1, BUF_SIZE);
-  trajectory.IO->Gets(buffer2, BUF_SIZE);
-  trajectory.CloseFile();
-  
-  // If both lines have PDB keywords, assume PDB
-  trajectory.OpenFile();
-  if ( pdbfile.ID( trajectory.IO ) )
-  {
-    if (debug_>0) mprintf("  PDB file\n");
-    trajectory.CloseFile();
-    return PDBFILE;
-  }
-
-  // If either buffer contains a TRIPOS keyword assume Mol2
-  // NOTE: This will fail on tripos files with extensive header comments.
-  //       A more expensive check for mol2 files is below.
-  trajectory.OpenFile();
-  if ( mol2file.ID( trajectory.IO ) )
-  {
-    if (debug_>0) mprintf("  TRIPOS MOL2 file\n");
-    trajectory.CloseFile();
-    return MOL2FILE;
-  }
-  trajectory.CloseFile();
-
-  // If the second 5 chars are C O R D, assume charmm DCD
-  if (strncmp(buffer1+4,"CORD",4)==0) {
-    if (debug_>0) mprintf("  CHARMM DCD file\n");
-    return CHARMMDCD;
-  }
-
-  // Amber Restart
-  // Check for an integer (I5) followed by 0-2 scientific floats (E15.7)
-  if (strlen(buffer2)<=36) {
-    //mprintf("DEBUG: Checking restart.\n");
-    //mprintf("DEBUG: buffer2=[%s]\n",buffer2);
-    int i=0;
-    for (; i<5; i++) {
-      if (!isspace(buffer2[i]) && !isdigit(buffer2[i])) break;
-      //mprintf("DEBUG:    %c is a digit/space.\n",buffer2[i]);
-    }
-    //mprintf("DEBUG: i=%i\n");
-    //if ( i==5 && strchr(buffer2,'E')!=NULL ) {
-    if ( i==5 ) {
-      if (debug_>0) mprintf("  AMBER RESTART file\n");
-      return AMBERRESTART;
-    }
-  }
-
-  // Check if second line contains REMD/HREMD, Amber Traj with REMD header
-  if ( strncmp(buffer2,"REMD",4)==0 ||
-       strncmp(buffer2,"HREMD",5)==0   ) 
-  {
-    if (debug_>0) mprintf("  AMBER TRAJECTORY with (H)REMD header.\n");
-    return AMBERTRAJ;
-  }
-
-  // Check if we can read at least 3 coords of width 8, Amber trajectory
-  float TrajCoord[3];
-  if ( sscanf(buffer2, "%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2) == 3 ) 
-  {
-    if (debug_>0) mprintf("  AMBER TRAJECTORY file\n");
-    return AMBERTRAJ;
-  }
-  
-/*  // ---------- MORE EXPENSIVE CHECKS ----------
-  // Reopen and scan for Tripos mol2 molecule section
-  // 0 indicates section found.
-  if (trajectory.OpenFile())
-    return UNKNOWN_TRAJ;
-  if (Mol2ScanTo(trajectory.IO, MOLECULE)==0) {
-    if (debug_>0) mprintf("  TRIPOS MOL2 file\n");
-    trajectory.CloseFile();
-    return MOL2FILE;
-  }
-  trajectory.CloseFile();*/
-
-  // ---------- EXPERIMENTAL ----------
-  // If the file format is still undetermined and the file name is conflib.dat,
-  // assume this is a conflib.dat file from LMOD. Cant think of a better way to
-  // detect this since there is no magic number but the file is binary.
-  if ( trajectory.FilenameIs((char*)"conflib.dat") ) 
-  {
-    mprintf("  LMOD CONFLIB file\n");
-    return CONFLIB;
-  }
-
-  // Unidentified file
-  mprintf("  Warning: %s: Unknown trajectory format.\n",trajName_);
-  return UNKNOWN_TRAJ;
 }
 
 // TrajectoryFile::setupRemdTrajIO()
@@ -328,11 +175,41 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
 
   // Since the repeated calls to setupTrajIO have overwritten trajName, 
   // reset it to the lowest replica name. 
-  //SetTrajName( remdio->GetLowestReplicaName() );
-  //SetTrajName( (char*)remdio->LowestReplicaName() );
   trajName_ = remdio->BaseName();
 
   return (TrajectoryIO*) remdio;
+}
+
+// TrajectoryFile::SetupTrajectoryIO()
+TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
+  TrajectoryIO *tio = NULL;
+  switch ( tformat ) {
+    case AMBERRESTART: tio = new AmberRestart(); break;
+    case AMBERTRAJ   : tio = new AmberCoord();    break;
+    case AMBERNETCDF :
+#     ifdef BINTRAJ
+      tio = new AmberNetcdf();
+#     else
+      mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
+      mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
+#     endif
+      break;
+    case AMBERRESTARTNC :
+#     ifdef BINTRAJ
+      tio = new AmberRestartNC();
+#     else
+      mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
+      mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
+#     endif
+      break;
+    case PDBFILE     : tio = new Traj_PDBfile();      break;
+    case CONFLIB     : tio = new Conflib();      break;
+    case MOL2FILE    : tio = new Traj_Mol2File();     break;
+    case CHARMMDCD   : tio = new CharmmDcd();    break;
+    default:
+      return NULL;
+  }
+  return tio;
 }
 
 // TrajectoryFile::setupTrajIO()
@@ -342,16 +219,12 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
   */
 TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, TrajAccessType accIn, 
                                           TrajFormatType fmtIn) 
-//, FileType typeIn) 
 {
-  TrajectoryIO *tio = NULL;
   TrajectoryIO basicTraj;
   int err = 1;
-  TrajFormatType trajFormat = fmtIn;
 
   switch (accIn) {
     case READTRAJ  : err = basicTraj.SetupRead(tname,debug_); break;
-    //case WRITE : err = basicTraj.SetupWrite(tname,fmtIn,typeIn,debug_); break;
     case WRITETRAJ : err = basicTraj.SetupWrite(tname,debug_); break;
     case APPENDTRAJ: err = basicTraj.SetupAppend(tname,debug_); break;
   }
@@ -359,52 +232,38 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, TrajAccessType accIn,
     //mprinterr("    Error: Could not set up file %s.\n",tname);
     return NULL;
   }
-  // Set trajectory name to the base filename
-  // NOTE: Case back to char* ok?
-  //SetTrajName( (char*)basicTraj.BaseName() );
 
+  TrajectoryIO *tio = NULL;
   // If not writing, determine the file format
-  if (accIn != WRITETRAJ)
-    trajFormat = ID_TrajFormat( basicTraj );
-
-  // Allocate trajectory IO type based on format
-  switch ( trajFormat ) {
-    case AMBERRESTART: tio = new AmberRestart(); break;
-    case AMBERTRAJ   : tio = new AmberCoord();    break;
-    case AMBERNETCDF :
-#ifdef BINTRAJ
-      tio = new AmberNetcdf();
-#else
-      mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
-      mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
-#endif
-      break;
-    case AMBERRESTARTNC :
-#ifdef BINTRAJ
-      tio = new AmberRestartNC();
-#else
-      mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
-      mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
-#endif
-      break;
-    case PDBFILE     : tio = new Traj_PDBfile();      break;
-    case CONFLIB     : tio = new Conflib();      break;
-    case MOL2FILE    : tio = new Traj_Mol2File();     break;
-    case CHARMMDCD   : tio = new CharmmDcd();    break;
-    default:
-      mprinterr("    Error: Could not determine trajectory file %s type, skipping.\n",tname);
-      return NULL;
+  if (accIn != WRITETRAJ) {
+    //trajFormat = ID_TrajFormat( basicTraj );
+    for (int fmtidx = (int)UNKNOWN_TRAJ + 1; fmtidx != (int)NTRAJ; fmtidx++) {
+      tio = SetupTrajectoryIO( (TrajFormatType)fmtidx );
+      if (tio != NULL) {
+        // Set TrajectoryIO file information from basicTraj
+        tio->TrajectoryIO::operator=( basicTraj ); // NOTE: Should also set debug
+        // Check if this file matches current TrajectoryIO format
+        if (tio->ID_TrajFormat())
+          break;
+        // Not the right format; delete TrajectoryIO to try next format.
+        delete tio;
+        tio = NULL;
+      }
+    }
+  } else {
+    // For write format must be specified.
+    tio = SetupTrajectoryIO( fmtIn );
+    if (tio!=NULL) {
+      // Set TrajectoryIO file information from basicTraj
+      tio->TrajectoryIO::operator=( basicTraj ); // NOTE: Should also set debug
+    }
   }
-
-  // Happens when memory cannot be allocd, or not compiled for netcdf
-  if (tio==NULL) return NULL;
- 
-  // Place the basic file in the trajectory IO class
-  tio->TrajectoryIO::operator=( basicTraj );
-
-   // Set debug level
-  tio->SetDebug(debug_);
-
+  // If tio is NULL here format was not recognized.
+  if (tio == NULL) {
+    mprinterr("Error: Could not determine trajectory %s type.\n",tname);
+    return NULL;
+  }
+   
   // Set filename
   trajName_ = tio->BaseName();
 
@@ -737,7 +596,6 @@ std::string TrajectoryFile::GetExtensionForType(TrajFormatType typeIn) {
   return ext;
 }
   
-
 // TrajectoryFile::SetupWriteWithArgs()
 /** Like SetupWrite, but intended for internal use. Allows a static
   * space-separated string to be passed in, which will be converted

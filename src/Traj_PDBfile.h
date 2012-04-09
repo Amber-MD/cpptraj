@@ -30,6 +30,7 @@ class Traj_PDBfile: public TrajectoryIO, PDBfile {
     char chainchar_;
 
     // Inherited functions
+    bool ID_TrajFormat();
     int setupTrajin(Topology*);
     int setupTrajout(Topology*);
     int openTraj();

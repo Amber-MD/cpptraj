@@ -20,6 +20,8 @@ class TrajectoryIO : public CpptrajFile {
     TrajectoryIO &operator=(const TrajectoryIO&);
 
     // -----------===== Inherited functions =====-----------
+    /// Return true if file format matches trajectory type.
+    virtual bool ID_TrajFormat() { return false; }
     /// Set up trajectory IO for READ/APPEND
     /** Called inside TrajectoryFile::SetupRead. Takes as an argument the 
       * Topology class that will be associated with this trajectory. Returns 
