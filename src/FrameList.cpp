@@ -70,42 +70,6 @@ int FrameList::AddFrame(Frame *F, Topology *P) {
   return 0;
 }
 
-// FrameList::GetFrameIndex()
-/** Return index of frame in the frame list specified by name.
-  */
-/*int FrameList::GetFrameIndex(char *name) {
-  int idx;
-  std::string RefTag;
-
-  // if first char of name is a bracket, assume tag.
-  if (name[0]=='[') {
-    RefTag.assign( name );
-    idx = GetFrameIndexByTag( RefTag );
-  
-  // Otherwise assume filename or base filename
-  } else {
-    idx = -1;
-    int fn_end = (int) frameNames.size();
-    for (int fn=0; fn < fn_end; fn++) {
-      if ( frameNames[fn].compare(name)==0 ) { idx=fn; break; }
-    }
-  }
-  
-  return idx;
-}*/
-
-// FrameList::GetFrameIndexByTag()
-/** Return the index of frame in frame list specified by tag.
-  */
-/*int FrameList::GetFrameIndexByTag(std::string &RefTag) {
-  int fn;
-  if (RefTag.empty()) return -1;
-  int fn_end = (int) frameTags.size();
-  for (fn=0; fn < fn_end; fn++) 
-    if (frameTags[fn].compare( RefTag )==0) return fn;
-  return -1;
-}*/
-
 // FrameList::GetFrameParm()
 /** Given index of frame, return parm in FrameParm
   */

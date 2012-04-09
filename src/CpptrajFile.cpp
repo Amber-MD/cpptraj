@@ -172,6 +172,10 @@ int CpptrajFile::OpenFile() {
 
   switch (access_) {
     case READ:
+      if (filename_ == NULL) {
+        mprinterr("Error: CpptrajFile: Filename is NULL.\n");
+        return 1;
+      }
       if ( IO->Open(filename_, "rb")  ) { 
         rprintf("Could not open %s for reading.\n",filename_);
         return 1;
@@ -179,6 +183,10 @@ int CpptrajFile::OpenFile() {
       if (debug_>0) rprintf("Opened %s for reading.\n",filename_);
       break;
     case APPEND:
+      if (filename_ == NULL) {
+        mprinterr("Error: CpptrajFile: Filename is NULL.\n");
+        return 1;
+      }
       if ( IO->Open(filename_, "ab") ) {
         rprintf("Could not open %s for appending.\n",filename_);
         return 1;

@@ -20,8 +20,6 @@ class FrameList : public FileList {
     void SetActiveRef(int);
     int AddRefFrame(Frame *, char *, const char *,Topology *,int,std::string&);
     int AddFrame(Frame *, Topology *);
-    //int GetFrameIndex(char *);
-    //int GetFrameIndexByTag(std::string &);
     Topology *GetFrameParm(int);
     Frame *GetFrame(int idx);
     int ReplaceFrame(int, Frame *, Topology *);
