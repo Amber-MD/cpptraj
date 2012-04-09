@@ -42,7 +42,7 @@ void FrameList::SetActiveRef(int numIn) {
   * name and frame number that this frame came from in frameNames and frameNums 
   * respectively. Store the associated parm in FrameParm. 
   */
-int FrameList::AddReference(char *filename, ArgList *argIn, Topology *parmIn) {
+int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
   TrajectoryFile traj;
 
   traj.SetDebug(debug_);
@@ -52,7 +52,7 @@ int FrameList::AddReference(char *filename, ArgList *argIn, Topology *parmIn) {
   char *maskexpr = argIn->getNextMask();
 
   // Set up trajectory
-  if ( traj.SetupRead( filename, argIn, parmIn ) ) {
+  if ( traj.SetupRead( NULL, argIn, parmIn ) ) {
     mprinterr("Error: reference: Could not set up trajectory.\n");
     return 1;
   }

@@ -10,7 +10,7 @@ class TrajoutList : public FileList {
     TrajoutList();
     ~TrajoutList();
     /// Add a traj file to the list with given access and associate with a parm
-    int AddTrajout(char*,ArgList *A, Topology *);
+    int AddTrajout(ArgList *, Topology *);
     /// Call write for all trajectories
     int Write(int, Topology*, Frame*);
     /// Call end for all trajectories

@@ -22,16 +22,14 @@ TrajinList::~TrajinList() {
   * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
   *        [remdtraj remdtrajtemp <T>]
   */
-int TrajinList::AddTrajin(char *filename, ArgList *A, Topology *parmIn) {
-  TrajectoryFile *traj;
-
-  traj = new TrajectoryFile(); 
+int TrajinList::AddTrajin(ArgList *argIn, Topology *parmIn) {
+  TrajectoryFile *traj = new TrajectoryFile(); 
   if (traj==NULL) {
     mprinterr("Error: TrajinList::Add: Could not allocate memory for traj.\n");
     return 1;
   }
   traj->SetDebug(debug_);
-  if ( traj->SetupRead(filename,A,parmIn) ) {
+  if ( traj->SetupRead(NULL,argIn,parmIn) ) {
     mprinterr("Error: trajin: Could not set up trajectory.\n");
     delete traj;
     return 1;

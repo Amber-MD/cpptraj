@@ -9,7 +9,7 @@ class TrajinList {
     ~TrajinList();
     void SetDebug(int dIn) { debug_ = dIn; }
     /// Add a traj file to the list based on input from arg list
-    int AddTrajin(char*, ArgList*, Topology*);
+    int AddTrajin(ArgList*, Topology*);
     /// Set up frames to be processed 
     int SetupFrames();
 

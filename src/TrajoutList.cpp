@@ -19,16 +19,10 @@ TrajoutList::~TrajoutList() {
   * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
   *         [<range>]
   */
-int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, Topology *parmIn) {
-  TrajectoryFile *traj;
-  char *filename;
-
+int TrajoutList::AddTrajout(ArgList *argIn, Topology *parmIn) {
   // Since we need to check if this filename is in use in order to prevent
   // overwrites, determine the filename here.
-  if (filenameIn==NULL)
-    filename = A->getNextString();
-  else
-    filename = filenameIn;
+  char *filename = argIn->getNextString();
   if (filename==NULL) {
     mprinterr("Error: TrajoutList::Add: Called with NULL filename.\n");
     return 1;
@@ -39,14 +33,14 @@ int TrajoutList::AddTrajout(char *filenameIn, ArgList *A, Topology *parmIn) {
     return 1;
   }
 
-  traj = new TrajectoryFile();
+  TrajectoryFile *traj = new TrajectoryFile();
   if (traj==NULL) {
     mprinterr("Error: TrajoutList::Add: Could not allocate memory for traj.\n");
     return 1;
   }
   traj->SetDebug(debug_);
   // Default to AMBERTRAJ; format can be changed via args in the arg list
-  if (traj->SetupWrite(filename,A,parmIn,TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (traj->SetupWrite(filename,argIn,parmIn,TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: trajout: Could not set up trajectory.\n");
     delete traj;
     return 1;

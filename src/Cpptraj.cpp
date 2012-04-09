@@ -117,12 +117,12 @@ void Cpptraj::Dispatch(char *inputLine) {
   // If it does, get a parm based on parm/parmindex keywords in arg list
   if (dispatchArg.CommandIs("trajin")) {
     tempParm = parmFileList.GetParm(dispatchArg);
-    trajinList.AddTrajin(NULL, &dispatchArg, tempParm);
+    trajinList.AddTrajin(&dispatchArg, tempParm);
     return;
   }
   if (dispatchArg.CommandIs("reference")) {
     tempParm = parmFileList.GetParm(dispatchArg);
-    refFrames.AddReference(NULL, &dispatchArg, tempParm);
+    refFrames.AddReference(&dispatchArg, tempParm);
     return;
   }
   if (dispatchArg.CommandIs("activeref")) {
@@ -131,7 +131,7 @@ void Cpptraj::Dispatch(char *inputLine) {
   }
   if (dispatchArg.CommandIs("trajout")) {
     tempParm = parmFileList.GetParm(dispatchArg);
-    trajoutList.AddTrajout(NULL, &dispatchArg, tempParm);
+    trajoutList.AddTrajout(&dispatchArg, tempParm);
     return;
   }
 

@@ -19,7 +19,7 @@ class FrameList : public FileList {
 
     Frame *ActiveReference();
     void SetActiveRef(int);
-    int AddReference(char *, ArgList *, Topology *);
+    int AddReference(ArgList *, Topology *);
     //int AddRefFrame(Frame *, char *, const char *,Topology *,int,std::string&);
     int AddFrame(Frame *, Topology *);
     Topology *GetFrameParm(int);
