@@ -815,14 +815,9 @@ int TrajectoryFile::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
     trajParm_ = tparmIn;
     // Use parm to set up box info for the traj unless nobox was specified.
     // If box angles are present in traj they will be used instead.
-    // NOTE: Probably not necessary to set box angles here, they are passed in
     if (!nobox_) {
-      if (trajParm_->BoxType()!=Box::NOBOX) {
+      if (trajParm_->BoxType()!=Box::NOBOX) 
         trajio_->SetBox();
-        //trajio->boxAngle[0]=trajParm->Box[3];
-        //trajio->boxAngle[1]=trajParm->Box[4];
-        //trajio->boxAngle[2]=trajParm->Box[5];
-      }
     }
     // Set up write for the current parm file 
     if (trajio_->setupTrajout(trajParm_)) return 1;
@@ -891,7 +886,7 @@ void TrajectoryFile::PrintInfo(int showExtended) {
 // Return private variables
 int TrajectoryFile::CurrentFrame()       { return currentFrame_;       }
 char *TrajectoryFile::TrajName()         { return (char*) trajName_;   }
-Topology *TrajectoryFile::TrajParm()    { return trajParm_;           }
+Topology *TrajectoryFile::TrajParm()     { return trajParm_;           }
 int TrajectoryFile::Start()              { return start_;              }
 int TrajectoryFile::Total_Read_Frames()  { return total_read_frames_;  }
 int TrajectoryFile::Total_Frames()       { return total_frames_;       }
@@ -906,11 +901,15 @@ bool TrajectoryFile::HasVelocity() {
   return false;
 }
 
+// TrajectoryFile::FileName()
+/** Return full path filename as a string. */
 std::string TrajectoryFile::FileName() {
   if (trajio_!=NULL) return trajio_->FullPathName();
   return std::string();
 }
 
+// TrajectoryFile::c_str()
+/** Return full path filename as a const char*. */
 const char *TrajectoryFile::c_str() {
   if (trajio_!=NULL) return trajio_->Name();
   return 0;

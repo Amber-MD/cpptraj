@@ -7,13 +7,6 @@
   * Accepts doubles, but internal storage is float to reduce memory footprint
   */
 class TriangleMatrix {
-    float *elements;       ///< Hold all elements
-    int nrows;             ///< Number of elements in one row
-    size_t nelements;      ///< Total number of elements
-    size_t currentElement; ///< Current element, used in AddElement only.
-    bool *ignore;          ///< If true, ignore the row/col when printing/searching etc
-
-    int calcIndex(int,int);
   public :
     int Nrows()            { return nrows;     }
     int Nelements()        { return nelements; }
@@ -21,8 +14,8 @@ class TriangleMatrix {
     TriangleMatrix();
     TriangleMatrix(const TriangleMatrix&);
     ~TriangleMatrix();
-
     TriangleMatrix & operator=(const TriangleMatrix &);
+
     int SaveFile(char*);
     int LoadFile(char*,int);
     int Setup(int);
@@ -35,5 +28,13 @@ class TriangleMatrix {
     float GetElementF(int,int);
     double FindMin(int *, int *);
     void PrintElements();
+  private:
+    float *elements;       ///< Hold all elements
+    int nrows;             ///< Number of elements in one row
+    size_t nelements;      ///< Total number of elements
+    size_t currentElement; ///< Current element, used in AddElement only.
+    bool *ignore;          ///< If true, ignore the row/col when printing/searching etc
+
+    int calcIndex(int,int);
 };
 #endif

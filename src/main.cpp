@@ -34,12 +34,9 @@ static void Usage(char *programName) {
   */
 static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
   FILE *infile;
-  char ptr,lastchar;
   std::string inputLine;
-  int i;
-  bool isStdin;
 
-  isStdin=false;
+  bool isStdin = false;
   // Open input file or STDIN
   if (inputFilename==NULL) {
     // Do not allow read from STDIN when > 1 process
@@ -60,9 +57,9 @@ static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
   }
 
   // Read in each line of input. Newline or NULL terminates. \ continues line.
-  i=0; // Index in inputLine
-  lastchar='0';
-  ptr=0;
+  int i = 0; // Index in inputLine
+  char lastchar = '0';
+  char ptr = 0;
   if (isStdin) fprintf(stdout,"> ");
   while ( ptr != EOF ) {
     //if (prompt) {fprintf(stdout,"> "); prompt=false;}

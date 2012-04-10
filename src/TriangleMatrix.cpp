@@ -1,5 +1,5 @@
 // TriangleMatrix
-#include <cfloat>
+#include <cfloat> // FLT_MAX
 #include <cstring> //memcpy
 #include <cstdio> // save and load
 #include "TriangleMatrix.h"
