@@ -1,7 +1,6 @@
 // DataSetList
 #include <cstdio> // sprintf
 #include <cstring>
-//#include <stdexcept>
 // This also includes basic DataSet class and dataType
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
@@ -9,9 +8,7 @@
 #include "DataSet_double.h"
 #include "DataSet_string.h"
 #include "DataSet_integer.h"
-//#include "DataSet_XYZ.h"
 #include "DataSet_float.h"
-//#include "DataSet_Matrix.h"
 
 // CONSTRUCTOR
 DataSetList::DataSetList() {

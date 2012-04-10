@@ -1,6 +1,5 @@
 #ifndef INC_DATAFILE_H
 #define INC_DATAFILE_H
-#include "CpptrajFile.h"
 #include "DataIO.h"
 // Class: DataFile
 // New datafile class for use with DataIO
