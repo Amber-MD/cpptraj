@@ -31,7 +31,6 @@ class TrajectoryFile {
     // Public functions
     void SetDebug(int);
     void SingleFrame();
-    bool TrajFilenameIs(char *);
     void PrintInfoLine();
     void PrintInfo(int);
     /// Get format type from keyword

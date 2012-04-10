@@ -50,7 +50,7 @@ CpptrajFile.o : CpptrajFile.cpp CpptrajFile.h CpptrajStdio.h FileIO.h FileIO_Bzi
 Cpptraj.o : Cpptraj.cpp Action.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h Cpptraj.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h
 CpptrajStdio.o : CpptrajStdio.cpp CpptrajStdio.h MpiRoutines.h
 DataFile.o : DataFile.cpp ArgList.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataIO.h DataIO_Gnuplot.h DataIO_Grace.h DataIO_Std.h DataSet.h DataSetList.h FileIO.h
-DataFileList.o : DataFileList.cpp ArgList.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h
+DataFileList.o : DataFileList.cpp ArgList.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h
 DataIO.o : DataIO.cpp ArgList.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataIO.h DataSet.h DataSetList.h FileIO.h
 DataIO_Gnuplot.o : DataIO_Gnuplot.cpp ArgList.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Gnuplot.h DataSet.h DataSetList.h FileIO.h
 DataIO_Grace.o : DataIO_Grace.cpp ArgList.h CharBuffer.h CpptrajFile.h DataIO.h DataIO_Grace.h DataSet.h DataSetList.h FileIO.h

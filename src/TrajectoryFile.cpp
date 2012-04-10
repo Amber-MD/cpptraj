@@ -851,14 +851,6 @@ int TrajectoryFile::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
   return 0;
 }
 
-// TrajectoryFile::TrajFilenameIs()
-/** Call TrajectoryIO FilenameIs routine to check if input filename matches
-  * full path of this trajectory file.
-  */
-bool TrajectoryFile::TrajFilenameIs(char *filenameIn) {
-  return ( trajio_->FilenameIs(filenameIn) );
-}
-
 // TrajectoryFile::PrintInfo()
 /** Print general trajectory information. Call trajio->Info for specific information.
   */

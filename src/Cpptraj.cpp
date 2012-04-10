@@ -140,7 +140,7 @@ void Cpptraj::Dispatch(char *inputLine) {
 
   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {
-    DFL.DF_Args.push_back(dispatchArg);
+    DFL.AddDatafileArg(dispatchArg);
     return;
   }
 

@@ -25,7 +25,6 @@ class DataFile {
     void Write();
 
     void SetPrecision(char *, int, int);
-    bool DataFileNameIs(char*);
     const char *Filename();
     void DataSetNames();
   private:

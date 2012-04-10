@@ -136,23 +136,6 @@ std::string CpptrajFile::Extension() {
   return Ext_;
 }
 
-// CpptrajFile::FilenameIs()
-/** Return true if given name matches filename or basefilename.
-  */
-bool CpptrajFile::FilenameIs(const std::string &fnameIn) {
-  if (FileName_ == fnameIn) return true;
-  if (basefilename_ == fnameIn) return true;
-  return false;
-}
-
-// CpptrajFile::FilenameIs()
-bool CpptrajFile::FilenameIs(char *fnameIn) {
-  std::string fname;
-  if (fnameIn==NULL) return false;
-  fname.assign(fnameIn);
-  return FilenameIs(fname);
-}
-
 // CpptrajFile::IsDos()
 bool CpptrajFile::IsDos() {
   if (isDos_==1) return true;

@@ -163,15 +163,6 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
   }
 }
 
-// DataFile::DataFileNameIs()
-bool DataFile::DataFileNameIs(char *nameIn) {
-  std::string nameIn_string;
-  if (nameIn==NULL) return false;
-  nameIn_string.assign( nameIn );
-  if ( dataio_->FilenameIs(nameIn_string) ) return true;
-  return false;
-}
-
 // DataFile::Filename()
 const char *DataFile::Filename() {
   return dataio_->BaseName();

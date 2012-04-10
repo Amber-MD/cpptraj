@@ -4,24 +4,25 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataFileList::DataFileList() {
+DataFileList::DataFileList() :
+  debug_(0)
+{
 //  fprintf(stderr,"DataFileList CONSTRUCTOR\n");
-  debug=0;
 }
 
 // DESTRUCTOR
 DataFileList::~DataFileList() {
 //  fprintf(stderr,"DataFileList DESTRUCTOR\n");
-  for (it = fileList.begin(); it != fileList.end(); it++)
+  for (df_iterator it = fileList_.begin(); it != fileList_.end(); it++)
     delete *it;
 }
 
 // DataFileList::SetDebug()
 /** Set debug level for DataFileList and all datafiles in it. */
 void DataFileList::SetDebug(int debugIn) {
-  debug=debugIn;
-  if (debug>0)
-    mprintf("DataFileList DEBUG LEVEL SET TO %i\n",debug);
+  debug_ = debugIn;
+  if (debug_>0)
+    mprintf("DataFileList DEBUG LEVEL SET TO %i\n",debug_);
 }
 
 // DataFileList::GetDataFile()
@@ -29,18 +30,10 @@ void DataFileList::SetDebug(int debugIn) {
   * otherwise return null.
   */
 DataFile *DataFileList::GetDataFile(char *nameIn) {
-  DataFile *Current;
-
   if (nameIn==NULL) return NULL;
-  Current=NULL;
-  for (it = fileList.begin(); it != fileList.end(); it++) {
-    if ( (*it)->DataFileNameIs(nameIn) ) {
-      Current = *it;
-      break;
-    }
-  }
-  
-  return Current;
+  int idx = FindName( nameIn );
+  if (idx == -1) return NULL;
+  return fileList_[idx];
 }
 
 // DataFileList::Add()
@@ -48,23 +41,17 @@ DataFile *DataFileList::GetDataFile(char *nameIn) {
   * not yet exist in the list create it. Return a pointer to the datafile
   * in the list.
   */
-DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
-  DataFile *Current;
-  //char tempName[1024]; // DEBUG
-
+DataFile *DataFileList::Add(char *nameIn, DataSet *dsetIn) {
   // If no filename, no output desired
   if (nameIn==NULL) return NULL;
   // If DataSet is NULL, dont add
-  if (D==NULL) {
+  if (dsetIn==NULL) {
     mprintf("Error: Attempting to add non-existent dataset to file %s\n",nameIn);
     return NULL;
   }
 
-  // Append thread prefix to filename
-  //sprintf(tempName,"%s.%03i",nameIn,worldrank); // DEBUG
-
   // Check if this filename already in use
-  Current = this->GetDataFile(nameIn);
+  DataFile *Current = GetDataFile(nameIn);
 
   // If no DataFile associated with nameIn, create new datafile
   if (Current==NULL) {
@@ -74,14 +61,15 @@ DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
       delete Current;
       return NULL;
     } 
-    fileList.push_back(Current);
+    fileList_.push_back(Current);
+    AddFilename( nameIn );
   }
 
   // Add the dataset to the current DataFile
-  Current->AddSet(D);
+  Current->AddSet(dsetIn);
 
   // Set debug level
-  Current->SetDebug(debug);
+  Current->SetDebug(debug_);
 
   // DEBUG
   //mprintf("** ADDED DATASET %s TO FILE %s\n",D->Name(),Current->filename);
@@ -92,14 +80,13 @@ DataFile *DataFileList::Add(char *nameIn, DataSet *D) {
 // DataFileList::Info()
 /** Print information on what datasets are going to what datafiles */
 void DataFileList::Info() {
-
-  if (fileList.empty()) {
+  if (fileList_.empty()) {
     //mprintf("NO DATASETS WILL BE OUTPUT\n");
     return;
   }
 
   mprintf("DATAFILE OUTPUT:\n");
-  for (it = fileList.begin(); it != fileList.end(); it++) {
+  for (df_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
     mprintf("  %s: ",(*it)->Filename());
     (*it)->DataSetNames();
     mprintf("\n");
@@ -110,10 +97,8 @@ void DataFileList::Info() {
 /** Call write for all datafiles in list. Only master should call this.
   */
 void DataFileList::Write() {
-
   //if (worldrank!=0) return; 
-
-  for (it = fileList.begin(); it != fileList.end(); it++)
+  for (df_iterator it = fileList_.begin(); it != fileList_.end(); it++)
     (*it)->Write();
 }
 
@@ -125,16 +110,15 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
   char *df_cmd = NULL;
   char *name1 = NULL;
   char *name2 = NULL;
-  //int width,precision;
   DataFile *df;
 
-  if (DF_Args.empty()) return;
+  if (DF_Args_.empty()) return;
   mprintf("DATAFILE SETUP:\n");
 
   // Loop through all "datafile" arguments
-  for (std::list<ArgList>::iterator dataArg=DF_Args.begin();
-                                    dataArg!=DF_Args.end();
-                                    dataArg++)
+  for (std::vector<ArgList>::iterator dataArg = DF_Args_.begin();
+                                      dataArg != DF_Args_.end();
+                                      dataArg++)
   {
     // Next string will be the argument passed to datafile
     df_cmd = (*dataArg).getNextString();
@@ -231,5 +215,10 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
     }
 
   } // END loop over datafile args
+}
+
+// DataFileList::AddDatafileArg()
+void DataFileList::AddDatafileArg(ArgList &argIn) {
+  DF_Args_.push_back( argIn );
 }
 

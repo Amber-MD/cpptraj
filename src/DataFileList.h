@@ -1,23 +1,15 @@
 #ifndef INC_DATAFILELIST_H
 #define INC_DATAFILELIST_H
+#include "FileList.h"
 #include "DataFile.h"
 #include "DataSetList.h"
 #include "ArgList.h"
-#include <list>
 // Class: DataFileList
 /// Holds a list of DataFile classes. 
-// NOTE: Currently implemented as a STL::list to make it easy to delete 
-//       DataFiles, but this is currently not done. If that ability is
-//       not needed a vector or an array would be more efficient.
-class DataFileList {
-    std::list<DataFile*> fileList;
-    std::list<DataFile*>::iterator it;
-    int debug;
+class DataFileList : public FileList {
   public:
     DataFileList();
     ~DataFileList();
-
-    std::list<ArgList> DF_Args;
 
     void SetDebug(int);
     DataFile *GetDataFile(char *);
@@ -25,5 +17,11 @@ class DataFileList {
     void Info();
     void Write();
     void ProcessDataFileArgs(DataSetList *);
+    void AddDatafileArg(ArgList&);
+  private:
+    typedef std::vector<DataFile*>::iterator df_iterator;
+    std::vector<DataFile*> fileList_;
+    std::vector<ArgList> DF_Args_;
+    int debug_;
 };
 #endif
