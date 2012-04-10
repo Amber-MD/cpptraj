@@ -1,11 +1,7 @@
 // AtomMap
-//#include <algorithm> //sort
-//#include <cstring> //memcpy
+#include <list>
 #include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
-// DEBUG
-#include "TrajectoryFile.h"
-//#include <cstdio>
 
 // CONSTRUCTOR
 Action_AtomMap::Action_AtomMap() :
