@@ -35,6 +35,7 @@
 #include "Action_RunningAvg.h"
 #include "Action_RmsAvgCorr.h"
 #include "Action_AtomicFluct.h"
+#include "Action_Watershell.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() {
@@ -105,6 +106,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("runningaverage")) {Act=new RunningAvg;}
   else if (argIn.CommandIs("rmsavgcorr"))     {Act=new RmsAvgCorr;}
   else if (argIn.CommandIs("atomicfluct"))    {Act=new AtomicFluct;}
+  else if (argIn.CommandIs("watershell"))     {Act=new Watershell;}
   // PTRAJ
   else if (argIn.CommandIs("atomicfluct3D") ||
            argIn.CommandIs("contacts") ||
@@ -121,8 +123,9 @@ int ActionList::AddAction(ArgList &argIn) {
            argIn.CommandIs("randomizeions") ||
            argIn.CommandIs("scale") ||
            argIn.CommandIs("unwrap") ||
-           argIn.CommandIs("vector") ||
-           argIn.CommandIs("watershell") )
+           argIn.CommandIs("vector") //||
+           //argIn.CommandIs("watershell") 
+          )
   {
     Act = new PtrajAction;
   } else return 1; 

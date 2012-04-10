@@ -13,13 +13,6 @@
   * any new actions that are implemented.
   */
 class ActionList {
-    /// List of actions
-    std::vector<Action*> actionlist;
-    /// Total number of actions
-    int Naction;
-    /// debug level for actions
-    int debug;
-
   public:
 
     ActionList();
@@ -37,5 +30,12 @@ class ActionList {
     bool DoActions(Frame **, int);
     /// Call print for each action
     void Print();
+  private:
+    /// List of actions
+    std::vector<Action*> actionlist;
+    /// Total number of actions
+    int Naction;
+    /// debug level for actions
+    int debug;
 };
 #endif

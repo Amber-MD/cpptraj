@@ -1,6 +1,7 @@
 #include "Action_Watershell.h"
 #include "CpptrajStdio.h"
 
+// CONSTRUCTOR
 Watershell::Watershell() :
   solventmaskexpr_(0),
   //visits_(0),
@@ -9,6 +10,7 @@ Watershell::Watershell() :
   filename_(0)
 { }
 
+// Watershell::init()
 /** Expected call: 
   * watershell <solutemask> <filename> [lower <lower cut>] [upper <upper cut>] 
   *            [noimage] [<solventmask>]
@@ -56,6 +58,10 @@ int Watershell::init() {
   return 0;
 }
 
+// Watershell::setup()
+/** Set up solute and solvent masks. If no solvent mask was specified use 
+  * solvent information in the current topology.
+  */
 int Watershell::setup() {
   // Set up solute mask
   if (currentParm->SetupIntegerMask( soluteMask_ )) return 1;
@@ -86,6 +92,7 @@ int Watershell::setup() {
   return 0;    
 }
 
+// Watershell::action()
 int Watershell::action() {
   double ucell[9], recip[9];
 
@@ -129,11 +136,14 @@ int Watershell::action() {
         ++(lower_.back());
       }
     }
+    // Reset for next pass
+    *shell = 0;
   }
 
   return 0;
 }
 
+// Watershell::print()
 void Watershell::print() {
   CpptrajFile outfile;
   if (outfile.SetupWrite( filename_, debug )) return;
@@ -141,8 +151,10 @@ void Watershell::print() {
 
   unsigned int frame = 1;
   std::vector<int>::iterator L = lower_.begin();
-  for (std::vector<int>::iterator U = upper_.begin(); U != upper_.end(); ++U) 
+  for (std::vector<int>::iterator U = upper_.begin(); U != upper_.end(); ++U) { 
     outfile.Printf("%i %i %i\n", frame++, *L, *U);
+    ++L;
+  }
   
   outfile.CloseFile();
 }
