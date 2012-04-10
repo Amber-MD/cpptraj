@@ -112,9 +112,6 @@ int PtrajAction::init( ) {
   } else if ( actionArgs.CommandIs("vector")         ) {
     actioninfo->type = TRANSFORM_VECTOR;
     actioninfo->fxn  = (actionFunction) transformVector;
-  } else if ( actionArgs.CommandIs("watershell")     ) {
-    actioninfo->type = TRANSFORM_WATERSHELL;
-    actioninfo->fxn  = (actionFunction) transformWatershell;
   } else {
     mprinterr("Error: PtrajAction: Unrecognized Ptraj command: %s\n",actionArgs.Command());
     return 1;
