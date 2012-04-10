@@ -7886,26 +7886,6 @@ int transformUnwrap( actionInformation *action,
   return 0;
 }
 
-/*
-int nint(double x){
-    int i;
-    i = (x >= 0) ? (int) (x+.5) : (int) (x-.5);
-    return (i);
-}
-*/
-    
-void cross(double *x, double *y, double *z){
-  z[0]=x[1]*y[2]-x[2]*y[1];
-  z[1]=-x[0]*y[2]+x[2]*y[0];
-  z[2]=x[0]*y[1]-x[1]*y[0];
-  return;
-}
-double dot(double *x, double *y){
-  return(x[0]*y[0]+x[1]*y[1]+x[2]*y[2]);
-}
-
-
-
 /** ACTION ROUTINE *************************************************************
  *
  *  transformVector()   --- compute/store various vector quantities
