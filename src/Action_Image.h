@@ -4,6 +4,10 @@
 /// Action to wrap coordinates back into primary box
 #include "Action.h"
 class Image: public Action {
+  public:
+    Image();
+    ~Image();
+  private:
     /// Only atoms in Mask1 will be imaged
     AtomMask Mask1;
     /// If defined, image w.r.t. the center of atoms in ComMask.
@@ -19,9 +23,6 @@ class Image: public Action {
     /// Vector containing atom ranges to be imaged (first to last)
     std::vector<int> imageList; 
 
-  public:
-    Image();
-    ~Image();
 
     int init();
     int setup();
