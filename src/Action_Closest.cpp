@@ -304,12 +304,13 @@ int Closest::action() {
 
     // Record which water molecules are closest if requested
     if (outFile_!=NULL) {
-      framedata_->Add(Nclosest_, &frameNum);
+      int fnum = frameNum + 1;
+      framedata_->Add(Nclosest_, &fnum);
       moldata_->Add(Nclosest_, &((*solvent).mol));
       Dist = sqrt( (*solvent).D );
       distdata_->Add(Nclosest_, &Dist);
       solvent_atom = (*solvent).mask.begin();
-      int solvent_first_atom = *solvent_atom; 
+      int solvent_first_atom = *solvent_atom + 1; 
       atomdata_->Add(Nclosest_, &solvent_first_atom);
       ++Nclosest_;
     }
