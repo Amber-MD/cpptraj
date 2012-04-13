@@ -7,7 +7,7 @@ Radgyr::Radgyr() {
   //fprintf(stderr,"Radgyr Con\n");
   rog=NULL;
   rogmax=NULL;
-  useMass = false;
+  useMass_ = false;
   calcRogmax=true;
 } 
 
@@ -20,7 +20,7 @@ int Radgyr::init() {
 
   // Get keywords
   rogFile = actionArgs.getKeyString("out",NULL);
-  useMass = actionArgs.hasKey("mass");
+  useMass_ = actionArgs.hasKey("mass");
   if (actionArgs.hasKey("nomax")) calcRogmax=false;
 
   // Get Masks
@@ -41,7 +41,7 @@ int Radgyr::init() {
   }
 
   mprintf("    RADGYR: Calculating for atoms in mask %s",Mask1.MaskString());
-  if (useMass)
+  if (useMass_)
     mprintf(" using mass weighting");
   mprintf(".\n");
   if (!calcRogmax)
@@ -69,7 +69,7 @@ int Radgyr::setup() {
 int Radgyr::action() {
   double Rog, max;
 
-  Rog = currentFrame->RADGYR(&Mask1, useMass, &max);
+  Rog = currentFrame->RADGYR(&Mask1, useMass_, &max);
 
   rog->Add(frameNum, &Rog);
   if (calcRogmax)

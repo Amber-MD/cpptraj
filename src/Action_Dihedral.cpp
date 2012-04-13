@@ -7,7 +7,7 @@
 Dihedral::Dihedral() {
   //fprintf(stderr,"Dihedral Con\n");
   dih=NULL;
-  useMass=false;
+  useMass_=false;
 } 
 
 // Dihedral::init()
@@ -20,7 +20,7 @@ int Dihedral::init() {
 
   // Get keywords
   dihedralFile = actionArgs.getKeyString("out",NULL);
-  useMass = actionArgs.hasKey("mass");
+  useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
   mask1 = actionArgs.getNextMask();
@@ -44,7 +44,7 @@ int Dihedral::init() {
 
   mprintf("    DIHEDRAL: [%s]-[%s]-[%s]-[%s]\n", M1.MaskString(),M2.MaskString(),
           M3.MaskString(), M4.MaskString());
-  if (useMass)
+  if (useMass_)
     mprintf("              Using center of mass of atoms in masks.\n");
 
   return 0;
@@ -73,7 +73,7 @@ int Dihedral::setup() {
 int Dihedral::action() {
   double D;
 
-  D=currentFrame->DIHEDRAL(&M1,&M2,&M3,&M4,useMass);
+  D=currentFrame->DIHEDRAL(&M1,&M2,&M3,&M4,useMass_);
 
   D *= RADDEG;
 

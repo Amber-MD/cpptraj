@@ -7,8 +7,8 @@
 Distance::Distance() {
   //fprintf(stderr,"Distance Con\n");
   dist=NULL;
-  useImage=true;
-  useMass=true;
+  useImage_=true;
+  useMass_=true;
 } 
 
 // Distance::init()
@@ -19,8 +19,8 @@ int Distance::init( ) {
   char *distanceFile;
 
   // Get Keywords
-  useImage = !(actionArgs.hasKey("noimage"));
-  useMass = !(actionArgs.hasKey("geom"));
+  useImage_ = !(actionArgs.hasKey("noimage"));
+  useMass_ = !(actionArgs.hasKey("geom"));
   distanceFile = actionArgs.getKeyString("out",NULL);
 
   // Get Masks
@@ -42,9 +42,9 @@ int Distance::init( ) {
   DFL->Add(distanceFile,dist);
 
   mprintf("    DISTANCE: %s to %s",Mask1.MaskString(), Mask2.MaskString());
-  if (!useImage) 
+  if (!useImage_) 
     mprintf(", non-imaged");
-  if (useMass) 
+  if (useMass_) 
     mprintf(", center of mass");
   else
     mprintf(", geometric center");
@@ -65,7 +65,7 @@ int Distance::setup() {
   // Print mask and imaging info for this parm
   mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1.MaskString(), Mask1.Nselected(),
           Mask2.MaskString(),Mask2.Nselected());
-  if (imageType != NOIMAGE)
+  if (imageType_ != Frame::NOIMAGE)
     mprintf(", imaged");
   else
     mprintf(", imaging off");
@@ -83,8 +83,8 @@ int Distance::setup() {
 int Distance::action() {
   double D, ucell[9], recip[9];
 
-  if (imageType==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
-  D = currentFrame->DIST2(&Mask1, &Mask2, useMass, imageType, ucell, recip);
+  if (imageType_==Frame::NONORTHO) currentFrame->BoxToRecip(ucell,recip);
+  D = currentFrame->DIST2(&Mask1, &Mask2, useMass_, imageType_, ucell, recip);
   D = sqrt(D);
 
   dist->Add(frameNum, &D);

@@ -10,7 +10,7 @@
 // CONSTRUCTOR
 RmsAvgCorr::RmsAvgCorr() {
   parmNatom = 0;
-  useMass = false;
+  useMass_ = false;
   maxwindow = -1;
   separateName = NULL;
   ReferenceParm = NULL;
@@ -30,7 +30,7 @@ int RmsAvgCorr::init( ) {
 # else
   separateName = actionArgs.getKeyString("output",NULL);
 # endif
-  useMass = actionArgs.hasKey("mass");
+  useMass_ = actionArgs.hasKey("mass");
   maxwindow = actionArgs.getKeyInt("stop",-1);
   // Get Masks
   char *rmsmask = actionArgs.getNextMask();
@@ -47,7 +47,7 @@ int RmsAvgCorr::init( ) {
     mprintf(" RMSD Mask [%s]",rmsmask);
   else
     mprintf(" All atoms");
-  if (useMass) mprintf(" (mass-weighted)");
+  if (useMass_) mprintf(" (mass-weighted)");
   if (outfilename!=NULL) mprintf(", Output to %s",outfilename);
   if (maxwindow!=-1) mprintf(", max window %i",maxwindow);
   mprintf(".\n");
@@ -168,7 +168,7 @@ void RmsAvgCorr::print() {
   // Print calc summary
   mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n");
   mprintf("                sizes ranging from 1 to %i",WindowMax-1);
-  if (useMass) mprintf(", mass-weighted");
+  if (useMass_) mprintf(", mass-weighted");
   mprintf(".\n");
 # ifdef _OPENMP
   // Currently DataSet is not thread-safe. Use temp storage.
@@ -186,12 +186,12 @@ void RmsAvgCorr::print() {
   // Get coords of first frame for use as reference.
   refFrame = ReferenceCoords[0];
   // Pre-center reference
-  refFrame.CenterReference(Trans+3, useMass);
+  refFrame.CenterReference(Trans+3, useMass_);
   // Calc initial RMSD
   avg = 0;
   for (frame = 0; frame < ReferenceCoords.Ncoords(); frame++) {
     tgtFrame = ReferenceCoords[frame];
-    avg += tgtFrame.RMSD_CenteredRef(refFrame, U, Trans, useMass);
+    avg += tgtFrame.RMSD_CenteredRef(refFrame, U, Trans, useMass_);
   }
   // DEBUG
 /*
@@ -237,10 +237,10 @@ void RmsAvgCorr::print() {
           // Set coords only for speed (everything else is same anyway)
           refFrame.SetCoordinates( tgtFrame );
           // Pre-center reference
-          refFrame.CenterReference(Trans+3, useMass);
+          refFrame.CenterReference(Trans+3, useMass_);
           first = false;
         }
-        avg += tgtFrame.RMSD_CenteredRef(refFrame, U, Trans, useMass);
+        avg += tgtFrame.RMSD_CenteredRef(refFrame, U, Trans, useMass_);
         // Subtract frame at subtractWindow from sumFrame 
         tgtFrame = ReferenceCoords[subtractWindow];
         sumFrame -= tgtFrame;

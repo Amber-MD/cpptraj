@@ -4,10 +4,11 @@
 // Class: Distance
 /// Action to calculate a distance between atoms in two masks.
 class Distance: public Action {
-    DataSet *dist;
-    AtomMask Mask1, Mask2;
   public:
     Distance();
+  private:
+    DataSet *dist;
+    AtomMask Mask1, Mask2;
 
     int init();
     int setup();

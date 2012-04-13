@@ -38,23 +38,22 @@
 #include "Action_Watershell.h"
 
 // CONSTRUCTOR
-ActionList::ActionList() {
-  Naction=0;
-  debug=0;
-}
+ActionList::ActionList() :
+  debug_(0)
+{}
 
 // DESTRUCTOR
 ActionList::~ActionList() {
     // No need to cast back to whatever action was allocd since Action destructor is virtual
-    for (int i=0; i<Naction; i++) 
-      delete actionlist[i];
+    for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
+      delete *act; 
 }
 
 // ActionList::SetDebug()
 void ActionList::SetDebug(int debugIn) {
-  debug=debugIn;
-  if (debug>0)
-    mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug);
+  debug_ = debugIn;
+  if (debug_>0)
+    mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug_);
 }
 
 // ActionList::AddAction()
@@ -123,8 +122,7 @@ int ActionList::AddAction(ArgList &argIn) {
            argIn.CommandIs("randomizeions") ||
            argIn.CommandIs("scale") ||
            argIn.CommandIs("unwrap") ||
-           argIn.CommandIs("vector") //||
-           //argIn.CommandIs("watershell") 
+           argIn.CommandIs("vector") 
           )
   {
     Act = new PtrajAction;
@@ -133,11 +131,10 @@ int ActionList::AddAction(ArgList &argIn) {
   // Pass in the argument list
   Act->SetArg(argIn);
   // Debug
-  if (debug>0) mprintf("    Added action %s\n", Act->ActionCommand());
+  if (debug_>0) mprintf("    Added action %s\n", Act->ActionCommand());
 
   // Store action in list
-  actionlist.push_back(Act);
-  Naction++;
+  actionlist_.push_back(Act);
 
   return 0;  
 }
@@ -149,20 +146,22 @@ int ActionList::AddAction(ArgList &argIn) {
 int ActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL, 
                       TopologyList *PFL, bool exitOnError) 
 {
-  mprintf("\nACTIONS: Initializing %i actions:\n",Naction);
-  for (int act=0; act<Naction; act++) {
-    mprintf("  %i: [%s]\n",act,actionlist[act]->CmdLine());
-    if (actionlist[act]->noInit) {
-      mprintf("Warning: Action %s is not active.\n",actionlist[act]->ActionCommand());
+  mprintf("\nACTIONS: Initializing %zu actions:\n",actionlist_.size());
+  unsigned int actnum = 0;
+  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
+  {
+    mprintf("  %u: [%s]\n", actnum++, (*act)->CmdLine());
+    if ((*act)->NoInit()) {
+      mprintf("Warning: Action %s is not active.\n", (*act)->ActionCommand());
     } else {
-      if ( actionlist[act]->Init( DSL, FL, DFL, PFL, debug ) ) {
+      if ( (*act)->Init( DSL, FL, DFL, PFL, debug_ ) ) {
         if (exitOnError) {
-          mprinterr("Error: Init failed for [%s].\n",actionlist[act]->CmdLine());
+          mprinterr("Error: Init failed for [%s].\n", (*act)->CmdLine());
           return 1;
         } else {
           mprintf("Warning: Init failed for [%s]: DEACTIVATING\n",
-                  actionlist[act]->CmdLine());
-          actionlist[act]->noInit=true;
+                  (*act)->CmdLine());
+          (*act)->SetNoInit();
         }
       }
     }
@@ -177,20 +176,25 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL,
   * If an action cannot be set up skip it.
   */
 int ActionList::Setup(Topology **ParmAddress) {
-  int err;
   Topology *OriginalParm = *ParmAddress;
 
   mprintf(".....................................................\n");
-  mprintf("PARM [%s]: Setting up %i actions.\n",(*ParmAddress)->c_str(),Naction);
-  for (int act=0; act<Naction; act++) {
-    if (!actionlist[act]->noInit) {
-      mprintf("  %i: [%s]\n",act,actionlist[act]->CmdLine());
-      actionlist[act]->noSetup=false;
-      err = actionlist[act]->Setup(ParmAddress);
+  mprintf("PARM [%s]: Setting up %zu actions.\n",(*ParmAddress)->c_str(),actionlist_.size());
+  unsigned int actnum = 0;
+  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
+  {
+    if ((*act)->NoInit()) {
+      // If action was not initialized, it cannot be setup.
+      (*act)->SetNoSetup();
+    } else {
+      // Attempt to set up action.
+      mprintf("  %u: [%s]\n", actnum++, (*act)->CmdLine());
+      (*act)->ResetSetup();
+      int err = (*act)->Setup(ParmAddress);
       if (err==1) {
         mprintf("Warning: Setup failed for [%s]: Skipping\n",
-                actionlist[act]->CmdLine());
-        actionlist[act]->noSetup=true;
+                (*act)->CmdLine());
+        (*act)->SetNoSetup();
         //return 1;
       } else if (err==2) {
         // Return value of 2 requests return to original parm
@@ -213,29 +217,30 @@ int ActionList::Setup(Topology **ParmAddress) {
   * \return false if coordinate output should be performed.
   */
 bool ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
-  Action::ActionReturnType err;
   Frame *OriginalFrame = *FrameAddress;
 
   //fprintf(stdout,"DEBUG: Performing %i actions on frame %i.\n",Naction,frameNumIn);
-  for (int act=0; act<Naction; act++) {
+  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act) 
+  {
     // Skip deactivated actions
-    if (actionlist[act]->noInit || actionlist[act]->noSetup) continue;
-    err = actionlist[act]->DoAction(FrameAddress, frameNumIn);
+    if ((*act)->NoSetup()) continue;
+    // Perform action on frame
+    Action::ActionReturnType err = (*act)->DoAction(FrameAddress, frameNumIn);
     // Check for action special conditions/errors
-    if (err!=Action::ACTION_OK) {
-      if (err==Action::ACTION_USEORIGINALFRAME) {
+    if (err != Action::ACTION_OK) {
+      if (err == Action::ACTION_USEORIGINALFRAME) {
         // Return value of 2 requests return to original frame
         *FrameAddress = OriginalFrame;
-      } else if (err==Action::ACTION_SUPPRESSCOORDOUTPUT) {
+      } else if (err == Action::ACTION_SUPPRESSCOORDOUTPUT) {
         // Skip the rest of the actions and suppress output. Necessary when
         // e.g. performing a running average over coords.
         return true;
       } else {
         // If here return type is ACTION_ERR.
         // Treat actions that fail as if they could not be set up
-        mprintf("Warning: Action [%s] failed, frame %i.\n",actionlist[act]->CmdLine(),
+        mprintf("Warning: Action [%s] failed, frame %i.\n", (*act)->CmdLine(),
               frameNumIn);
-        actionlist[act]->noSetup=true;
+        (*act)->SetNoSetup();
       }
     } 
   }
@@ -245,9 +250,10 @@ bool ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
 // ActionList::Print()
 void ActionList::Print() {
   mprintf("\nACTION OUTPUT:\n");
-  for (int act=0; act<Naction; act++) {
+  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
+  {
     // Skip deactivated actions
-    if (actionlist[act]->noInit) continue;
-    actionlist[act]->print();
+    if ((*act)->NoInit()) continue;
+    (*act)->print();
   }
 }

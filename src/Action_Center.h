@@ -4,13 +4,14 @@
 /// Action to center coordinates to coord origin or box origin.
 #include "Action.h"
 class Center: public Action {
-    AtomMask Mask1;
-    bool origin;
   public:
     Center();
-
+  private:
     int init();
     int setup();
     int action();
+
+    AtomMask Mask_;
+    bool origin_;
 };
 #endif

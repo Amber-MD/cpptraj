@@ -924,13 +924,13 @@ void Frame::InverseRotate(double *T) {
   * or box center. Use geometric center if mass is NULL, otherwise center 
   * of mass will be used.
   */
-void Frame::Center(AtomMask *Mask, bool origin, bool useMassIn) {
+void Frame::Center(AtomMask &Mask, bool origin, bool useMassIn) {
   double center[3];
 
   if (useMassIn)
-    this->CenterOfMass(Mask, center);
+    this->CenterOfMass(&Mask, center);
   else
-    this->GeometricCenter(Mask, center);
+    this->GeometricCenter(&Mask, center);
   //mprinterr("  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
 
   if (origin) {
@@ -1363,7 +1363,7 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
   * Based on useMassIn, calculate geometric center (false) or center of mass 
   * (true) of the atoms in each mask.
   */
-double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int boxType,
+double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, ImageType image,
                     double *ucell, double *recip) {
   double a1[3], a2[3];
 
@@ -1375,14 +1375,14 @@ double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int boxTyp
     GeometricCenter(Mask2, a2);
   }
 
-  if (boxType == 0) 
+  if (image == NOIMAGE) 
     return DIST2_NoImage(a1, a2);
-  else if (boxType == 1) 
+  else if (image == ORTHO) 
     return DIST2_ImageOrtho(a1, a2, this->box_);
-  else if (boxType == 2) 
+  else if (image == NONORTHO) 
     return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
 
-  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", boxType);
+  mprintf("    Error: Frame::DIST: Unrecognized image type (%i)\n.", (int)image);
 
   return (-1.0);
 }
@@ -1393,7 +1393,7 @@ double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, int boxTyp
   *   1 = Orthorhombic
   *   2 = Non-orthorhombic
   */
-double Frame::DIST2(int A1, int A2, int boxType, double *ucell, double *recip) {
+double Frame::DIST2(int A1, int A2, ImageType image, double *ucell, double *recip) {
   int atom3;
   double a1[3], a2[3];
 
@@ -1406,14 +1406,14 @@ double Frame::DIST2(int A1, int A2, int boxType, double *ucell, double *recip) {
   a2[1] = X_[atom3+1];
   a2[2] = X_[atom3+2];
 
-  if (boxType == 0)
+  if (image == NOIMAGE)
     return DIST2_NoImage(a1, a2);
-  else if (boxType == 1)
+  else if (image == ORTHO)
     return DIST2_ImageOrtho(a1, a2, this->box_);
-  else if (boxType == 2) 
+  else if (image == NONORTHO) 
     return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
 
-  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", boxType);
+  mprintf("    Error: Frame::DIST: Unrecognized image type (%i)\n.", (int)image);
 
   return (-1.0);
 }
@@ -1424,7 +1424,7 @@ double Frame::DIST2(int A1, int A2, int boxType, double *ucell, double *recip) {
   *   1 = Orthorhombic
   *   2 = Non-orthorhombic
   */
-double Frame::DIST2(double *a1, int A2, int boxType, double *ucell, double *recip) {
+double Frame::DIST2(double *a1, int A2, ImageType image, double *ucell, double *recip) {
   int atom3;
   double a2[3];
   
@@ -1433,14 +1433,14 @@ double Frame::DIST2(double *a1, int A2, int boxType, double *ucell, double *reci
   a2[1] = X_[atom3+1];
   a2[2] = X_[atom3+2];
   
-  if (boxType == 0)
+  if (image == NOIMAGE)
     return DIST2_NoImage(a1, a2);
-  else if (boxType == 1)
+  else if (image == ORTHO)
     return DIST2_ImageOrtho(a1, a2, this->box_);
-  else if (boxType == 2) 
+  else if (image == NONORTHO) 
     return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
 
-  mprintf("    Error: Frame::DIST: Unrecognized box type (%i)\n.", boxType);
+  mprintf("    Error: Frame::DIST: Unrecognized image type (%i)\n.", (int)image);
 
   return (-1.0);
 }
@@ -1547,18 +1547,18 @@ void Frame::COORDVECTOR(double *V, int i, int j) {
 /** Return the angle (in radians) between atoms in M1, M2, M3.
   * Adapted from PTRAJ.
   */
-double Frame::ANGLE(AtomMask *M1, AtomMask *M2, AtomMask *M3,bool useMass) {
+double Frame::ANGLE(AtomMask &M1, AtomMask &M2, AtomMask &M3,bool useMass) {
   double a1[3],a2[3],a3[3];
   double angle, xij, yij, zij, xkj, ykj, zkj, rij, rkj;
   
   if (useMass) {
-    CenterOfMass(M1,a1);
-    CenterOfMass(M2,a2);
-    CenterOfMass(M3,a3);
+    CenterOfMass(&M1,a1);
+    CenterOfMass(&M2,a2);
+    CenterOfMass(&M3,a3);
   } else {
-    GeometricCenter(M1,a1);
-    GeometricCenter(M2,a2);
-    GeometricCenter(M3,a3);
+    GeometricCenter(&M1,a1);
+    GeometricCenter(&M2,a2);
+    GeometricCenter(&M3,a3);
   }
 
   xij = a1[0] - a2[0];

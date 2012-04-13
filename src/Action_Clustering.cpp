@@ -8,7 +8,7 @@
 // CONSTRUCTOR
 Clustering::Clustering() {
   //fprintf(stderr,"Clustering Con\n");
-  useMass=false;
+  useMass_=false;
   Linkage = ClusterList::AVERAGELINK;
   epsilon=-1.0;
   targetNclusters=-1;
@@ -46,7 +46,7 @@ int Clustering::init() {
   char *mask0,*cnumvtimefile;//,*clusterformat,*singlerepformat,*repformat;
   char *dsetname;
   // Get keywords
-  useMass = actionArgs.hasKey("mass");
+  useMass_ = actionArgs.hasKey("mass");
   targetNclusters = actionArgs.getKeyInt("clusters",-1);
   epsilon = actionArgs.getKeyDouble("epsilon",-1.0);
   if (actionArgs.hasKey("linkage")) Linkage=ClusterList::SINGLELINK;
@@ -93,7 +93,7 @@ int Clustering::init() {
     mprintf(" On dataset %s",dsetname);
   } else {
     mprintf(" Using RMSD (mask [%s])",Mask0.MaskString());
-    if (useMass)
+    if (useMass_)
       mprintf(", mass-weighted");
     if (nofitrms)
       mprintf(", no fitting");
@@ -287,7 +287,7 @@ int Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
     SelectedRef.SetCoordinates(*RefFrame, Mask0);
     // If fitting, pre-center reference frame
     if (!nofitrms)
-      SelectedRef.CenterReference(Trans+3, useMass);
+      SelectedRef.CenterReference(Trans+3, useMass_);
 
     // LOOP OVER TARGET FRAMES
     for (int nframe=nref+1; nframe < totalref; nframe++) {
@@ -320,9 +320,9 @@ int Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
 
       // Perform RMS calculation
       if (nofitrms)
-        R = SelectedTgt.RMSD(&SelectedRef, useMass);
+        R = SelectedTgt.RMSD(&SelectedRef, useMass_);
       else 
-        R = SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass);
+        R = SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass_);
 
       Distances.AddElement( R );
       // DEBUG

@@ -9,10 +9,11 @@ class Clustering: public Action {
   public:
     Clustering();
 
-    int init();
-    int action();
     void print();
   private:
+    int init();
+    int action();
+
     ClusterList::LINKAGETYPE Linkage;
     FrameList ReferenceFrames; ///< Hold frames from all trajin stmts
     AtomMask Mask0;            ///< Target atom mask

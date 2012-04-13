@@ -162,7 +162,7 @@ int Rotdif::init( ) {
   // Set reference frame coordinates
   SelectedRef.SetCoordinates(RefFrame, RefMask);
   // Always fitting; Pre-center reference frame
-  SelectedRef.CenterReference(Trans, useMass); 
+  SelectedRef.CenterReference(Trans, useMass_); 
 
   // Open output file. Defaults to stdout if no name specified
   if (outfile.SetupWrite(outfilename,debug)) {
@@ -247,7 +247,7 @@ int Rotdif::action() {
   SelectedTarget.SetCoordinates(*currentFrame, TargetMask);
 
   U = new double[ 9 ];
-  SelectedTarget.RMSD_CenteredRef(SelectedRef, U, Trans, useMass);
+  SelectedTarget.RMSD_CenteredRef(SelectedRef, U, Trans, useMass_);
 
   Rmatrices.push_back( U );
 

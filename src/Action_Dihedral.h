@@ -3,10 +3,11 @@
 #include "Action.h"
 /// Calculate dihedral in a Frame
 class Dihedral: public Action {
-    DataSet *dih;
-    AtomMask M1, M2, M3, M4;
   public:
     Dihedral();
+  private:
+    DataSet *dih;
+    AtomMask M1, M2, M3, M4;
 
     int init();
     int setup();

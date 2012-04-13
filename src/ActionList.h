@@ -32,10 +32,9 @@ class ActionList {
     void Print();
   private:
     /// List of actions
-    std::vector<Action*> actionlist;
-    /// Total number of actions
-    int Naction;
+    std::vector<Action*> actionlist_;
+    typedef std::vector<Action*>::iterator action_it;
     /// debug level for actions
-    int debug;
+    int debug_;
 };
 #endif

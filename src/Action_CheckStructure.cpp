@@ -10,7 +10,7 @@ CheckStructure::CheckStructure() :
   nonbondcut2_(0.64) // 0.8^2
 { 
   //fprintf(stderr,"CheckStructure Con\n");
-  useImage=true;
+  useImage_ = true;
 }
 
 // DESTRUCTOR
@@ -29,7 +29,7 @@ CheckStructure::~CheckStructure() {
 //    3) Dataset name
 int CheckStructure::init( ) {
   // Get Keywords
-  useImage = !(actionArgs.hasKey("noimage"));
+  useImage_ = !(actionArgs.hasKey("noimage"));
   char *reportFile = actionArgs.getKeyString("reportfile",NULL);
   bondoffset_ = actionArgs.getKeyDouble("offset",1.0);
   double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
@@ -40,7 +40,7 @@ int CheckStructure::init( ) {
   Mask1_.SetMaskString(mask1);
 
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask [%s]",Mask1_.MaskString());
-  if (!useImage) 
+  if (!useImage_) 
     mprintf(", imaging off");
   if (reportFile!=NULL)
     mprintf(", output to %s",reportFile);
@@ -61,9 +61,9 @@ int CheckStructure::init( ) {
 void CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutIn, int debugIn) 
 {
   double nonbondcut;
-  isSeparate=true;
+  isSeparate_ = true;
   debug = debugIn;
-  useImage = false;
+  useImage_ = false;
   if (bondoffsetIn < 0)
     bondoffset_ = 1.0;
   else
@@ -159,10 +159,10 @@ int CheckStructure::setup() {
   // Reset to integer mask.
   if ( currentParm->SetupIntegerMask( Mask1_ ) ) return 1;
   // Print imaging info for this parm
-  if (!isSeparate) {
+  if (!isSeparate_) {
     mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1_.MaskString(), Mask1_.Nselected(),
             totalbonds);
-    if (imageType != NOIMAGE)
+    if (imageType_ != Frame::NOIMAGE)
       mprintf(", imaging on");
     else
       mprintf(", imaging off");
@@ -177,7 +177,7 @@ int CheckStructure::action() {
   double ucell[9], recip[9], D2, D, bondmax;
   std::vector<bond_list>::iterator currentBond = bondL_.begin();
 
-  if (imageType==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
+  if (imageType_==Frame::NONORTHO) currentFrame->BoxToRecip(ucell,recip);
 
   int lastidx = Mask1_.Nselected() - 1;
   for (int maskidx1 = 0; maskidx1 < lastidx; maskidx1++) {
@@ -185,7 +185,7 @@ int CheckStructure::action() {
     for (int maskidx2 = maskidx1 + 1; maskidx2 < Mask1_.Nselected(); maskidx2++) {
       int atom2 = Mask1_[maskidx2];
       // Get distance^2
-      D2 = currentFrame->DIST2(atom1,atom2,imageType,ucell,recip);
+      D2 = currentFrame->DIST2(atom1,atom2,imageType_,ucell,recip);
       // Are these atoms bonded?
       if ( (atom1==(*currentBond).atom1) && (atom2==(*currentBond).atom2) ) {
         // req has been precalced to (req + bondoffset)^2

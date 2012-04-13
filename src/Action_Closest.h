@@ -5,24 +5,35 @@
 // Class: Closest
 /// Modify the state so that only the closest solvent molecules are kept.
 class Closest: public Action {
-    DataFile *outFile;
-    DataSetList *outList;
-    DataSet *framedata;
-    DataSet *moldata;
-    DataSet *distdata;
-    DataSet *atomdata;
+  public:
+    Closest();
+    ~Closest();
 
-    int Nclosest;
-    char *prefix;
-    int closestWaters;
-    bool firstAtom;
-    AtomMask soluteMask;
-    AtomMask stripMask;
-    Topology *newParm;
-    Topology *oldParm;
-    Frame newFrame;
-    /// The moldist structure is used in order to preserve the original
-    /// solvent molecule and atom numbers after sorting.
+    void print();
+  private:
+    int init();
+    int setup();
+    int action();
+
+    DataSetList outList_;
+    DataFile *outFile_;
+    DataSet *framedata_;
+    DataSet *moldata_;
+    DataSet *distdata_;
+    DataSet *atomdata_;
+
+    int Nclosest_;        ///< Index into Closest datasets
+    char *prefix_;
+    int closestWaters_;
+    bool firstAtom_;
+    AtomMask soluteMask_;
+    AtomMask stripMask_;
+    Topology *newParm_;
+    Topology *oldParm_;
+    Frame newFrame_;
+
+    /** The moldist structure is used in order to preserve the original
+      * solvent molecule and atom numbers after sorting. */
     struct MolDist {
       int mol;        ///< Original solvent molecule number
       double D;       ///< Closest distance of solvent molecule to atoms in soluteMask
@@ -37,16 +48,6 @@ class Closest: public Action {
           return false;
       }
     };
-    std::vector<MolDist> SolventMols;
-
-    //void ClearMaskList();    
-  public:
-    Closest();
-    ~Closest();
-
-    int init();
-    int setup();
-    int action();
-    void print();
+    std::vector<MolDist> SolventMols_;
 };
 #endif  

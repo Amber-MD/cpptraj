@@ -8,7 +8,7 @@
 Rms2d::Rms2d() {
   //fprintf(stderr,"Rms2d Con\n");
   nofit=false;
-  useMass=false;
+  useMass_=false;
   mass_setup=false;
   rmsdFile=NULL;
   RefTraj=NULL;
@@ -27,8 +27,8 @@ Rms2d::~Rms2d() {
   * to calculate a distance matrix for e.g. clustering.
   */
 int Rms2d::SeparateInit(bool nofitIn, char *maskIn) {
-  isSeparate = true;
-  useMass=false;
+  isSeparate_ = true;
+  useMass_=false;
   nofit = nofitIn;
   FrameMask.SetMaskString(maskIn);
   return 0;
@@ -48,7 +48,7 @@ int Rms2d::init() {
 
   // Get keywords
   nofit = actionArgs.hasKey("nofit");
-  useMass = actionArgs.hasKey("mass"); 
+  useMass_ = actionArgs.hasKey("mass"); 
   rmsdFile = actionArgs.getKeyString("rmsout",NULL);
   reftraj = actionArgs.getKeyString("reftraj",NULL);
   if (reftraj!=NULL) {
@@ -97,7 +97,7 @@ int Rms2d::init() {
   }
   if (nofit)
     mprintf(" (no fitting)");
-  if (useMass)
+  if (useMass_)
     mprintf(" (mass-weighted)");
   if (rmsdFile!=NULL) 
     mprintf(" output to %s",rmsdFile);
@@ -128,7 +128,7 @@ int Rms2d::setup() {
   // the 2drms much more complicated since each frame could have a different
   // set of masses. To simplify things, only allow mass-weighting when reading
   // one parm.
-  if (useMass) {
+  if (useMass_) {
     if (!mass_setup) {
       mass_ptr = currentParm->Mass();
       mass_setup = true;
@@ -176,13 +176,13 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
     // Set up mass info. If mass info present this means only 1 parm used,
     // so tgt and ref will always have same # of atoms. Use first frame
     // in ref coords to set up target and reference frames.
-    useMass=true;
+    useMass_=true;
     RefFrame.SetupFrameFromMask(FrameMask,mass_ptr);
     TgtFrame.SetupFrameFromMask(FrameMask,mass_ptr);
     // If no mass info ensure that RefFrame and TgtFrame are large enough to
     // hold the largest set of coords in ReferenceCoords. No mass.
   } else {
-    useMass=false;
+    useMass_=false;
     int maxrefnatom = ReferenceCoords.MaxNatom();
     RefFrame.SetupFrame( maxrefnatom );
     TgtFrame.SetupFrame( maxrefnatom );
@@ -194,7 +194,7 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
     RefFrame = ReferenceCoords[nref];
     // Select and pre-center reference atoms (if fitting)
     if (!nofit)
-      RefFrame.CenterReference(Trans+3, useMass);
+      RefFrame.CenterReference(Trans+3, useMass_);
   
     // LOOP OVER TARGET FRAMES
     for (int nframe=nref+1; nframe < totalref; nframe++) {
@@ -209,10 +209,10 @@ void Rms2d::Calc2drms(TriangleMatrix *Distances) {
         R = -1.0;
       } else if (nofit) {
         // Perform no fit RMS calculation
-        R = (float) TgtFrame.RMSD(&RefFrame, useMass);
+        R = (float) TgtFrame.RMSD(&RefFrame, useMass_);
       } else {
         // Perform fit RMS calculation
-        R = (float) TgtFrame.RMSD_CenteredRef(RefFrame, U, Trans, useMass);
+        R = (float) TgtFrame.RMSD_CenteredRef(RefFrame, U, Trans, useMass_);
       }
       Distances->AddElement( R );
       // DEBUG
@@ -265,10 +265,10 @@ void Rms2d::CalcRmsToTraj() {
   if (mass_ptr!=NULL) {
     // Set up selected target mass info
     SelectedTgt.SetupFrameFromMask(FrameMask,mass_ptr);
-    useMass=true;
+    useMass_=true;
   } else {
     // If no mass, ensure SelectedTgt can hold max #atoms in ReferenceCoords
-    useMass=false;
+    useMass_=false;
     int maxtgtnatom = ReferenceCoords.MaxNatom();
     SelectedTgt.SetupFrame( maxtgtnatom );
   }
@@ -284,7 +284,7 @@ void Rms2d::CalcRmsToTraj() {
     // Set reference atoms and pre-center if fitting
     SelectedRef.SetCoordinates(RefFrame, RefMask);
     if (!nofit)
-      SelectedRef.CenterReference(Trans+3, useMass);
+      SelectedRef.CenterReference(Trans+3, useMass_);
 
     // LOOP OVER TARGET FRAMES
     for (int nframe=0; nframe < totaltgt; nframe++) {
@@ -300,10 +300,10 @@ void Rms2d::CalcRmsToTraj() {
         R = -1.0;
       } else if (nofit) {
         // Perform no fit RMS calculation
-        R = (float) SelectedTgt.RMSD(&SelectedRef, useMass);
+        R = (float) SelectedTgt.RMSD(&SelectedRef, useMass_);
       } else {
         // Perform fit RMS calculation
-        R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass);
+        R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass_);
       }
       RmsData.AddData(nframe, &R, nref);
       // DEBUG

@@ -14,7 +14,7 @@ Radial::Radial() {
   rdf=NULL;
   rdf_thread=NULL;
   numthreads=1;
-  useImage=true;
+  useImage_=true;
   center1=false;
   useVolume=false;
   volume=0;
@@ -49,7 +49,7 @@ int Radial::init() {
   char *mask1, *mask2;
 
   // Get Keywords
-  useImage = !(actionArgs.hasKey("noimage"));
+  useImage_ = !(actionArgs.hasKey("noimage"));
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density = actionArgs.getKeyDouble("density",0.033456);
   center1 = actionArgs.hasKey("center1");
@@ -127,7 +127,7 @@ int Radial::init() {
     mprintf("            Normalizing based on cell volume.\n");
   else
     mprintf("            Normalizing using particle density of %lf molecules/Ang^3.\n",density);
-  if (!useImage) 
+  if (!useImage_) 
     mprintf("            Imaging disabled.\n");
   if (numthreads > 1)
     mprintf("            Parallelizing RDF calculation with %i threads.\n",numthreads);
@@ -173,7 +173,7 @@ int Radial::setup() {
 
   // Print mask and imaging info for this parm
   mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",Mask1.Nselected(),Mask2.Nselected());
-  if (imageType != NOIMAGE)
+  if (imageType_ != Frame::NOIMAGE)
     mprintf("Imaging on.\n");
   else
     mprintf("Imaging off.\n");
@@ -197,7 +197,7 @@ int Radial::action() {
 
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (imageType != NOIMAGE) {
+  if (imageType_ != Frame::NOIMAGE) {
     D = currentFrame->BoxToRecip(ucell,recip);
     if (useVolume)  volume += D;
   }
@@ -215,7 +215,7 @@ int Radial::action() {
 #endif
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = Mask2[nmask2];
-      D = currentFrame->DIST2(coord_center,atom2,imageType,ucell,recip);
+      D = currentFrame->DIST2(coord_center,atom2,imageType_,ucell,recip);
       if (D <= maximum2) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
@@ -249,7 +249,7 @@ int Radial::action() {
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask[nmask2];
         if (atom1 != atom2) {
-          D = currentFrame->DIST2(atom1,atom2,imageType,ucell,recip);
+          D = currentFrame->DIST2(atom1,atom2,imageType_,ucell,recip);
           if (D <= maximum2) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);

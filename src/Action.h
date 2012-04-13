@@ -31,10 +31,12 @@ class Action {
     enum ActionReturnType { ACTION_OK=0, ACTION_ERR, ACTION_USEORIGINALFRAME,
                             ACTION_SUPPRESSCOORDOUTPUT 
                           };
-    /// Potential imaging types 
-    enum ImageType { NOIMAGE=0, ORTHO, NONORTHO };
-    bool noInit;             ///< True if action could not be initialized
-    bool noSetup;            ///< True if action could not be set up
+    // Action initialization and setup status variables.
+    bool NoInit() { return noInit_; }
+    bool NoSetup() { return noSetup_; }
+    void SetNoInit() { noInit_ = true; }
+    void SetNoSetup() { noSetup_ = true; }
+    void ResetSetup() { noSetup_ = false; }
   
     Action();               // Constructor
     virtual ~Action();      // Destructor - virtual since this class is inherited
@@ -59,22 +61,19 @@ class Action {
       */
     virtual void print() { }
   protected:
-    bool isSeparate;        ///< If true action was initialized outside main action list.
-    ArgList actionArgs;     ///< The action arguments (setArg)
-    Topology *currentParm; ///< The current parmtop (setup)
-    Frame *currentFrame;    ///< The current frame (action)
-    DataSetList *DSL;       ///< Pointer to the data set list in Cpptraj (init)
-    DataFileList *DFL;      ///< Pointer to the data file list in Cpptraj (init)
-    TopologyList *PFL;      ///< Pointer to the parm file list in Cpptraj (init)
-    FrameList *FL;          ///< Pointer to the reference frame list in Cpptraj (init)
-    bool useMass;              ///< If set to true, calculations will use mass info
-    bool useMassOriginalValue; ///< Value of useMass set by init
-    bool useImage;             ///< If set to true, calculations will use imaging info
-    bool useImageOriginalValue;///< Value of useImage set by init
-    ImageType imageType;         ///< Type of imaging to be performed.
-
-    int debug;              ///< action debug level
-    int frameNum;           ///< # of current frame being processed, set by ActionList
+    int debug;                   ///< action debug level
+    ArgList actionArgs;          ///< The action arguments (setArg)
+    Topology *currentParm;       ///< The current parmtop (setup)
+    Frame *currentFrame;         ///< The current frame (action)
+    DataSetList *DSL;            ///< Pointer to the data set list in Cpptraj (init)
+    DataFileList *DFL;           ///< Pointer to the data file list in Cpptraj (init)
+    TopologyList *PFL;           ///< Pointer to the parm file list in Cpptraj (init)
+    FrameList *FL;               ///< Pointer to the reference frame list in Cpptraj (init)
+    bool useMass_;               ///< If set to true, calculations will use mass info
+    bool useImage_;              ///< If set to true, calculations will use imaging info
+    Frame::ImageType imageType_; ///< Type of imaging to be performed.
+    bool isSeparate_;            ///< If true action was initialized outside main action list.
+    int frameNum;                ///< # of current frame being processed, set by ActionList
     // --== Inherited by child classes ==--
     /// actions internal setup routine, called by Setup
     /** Setup action. Process any parm-dependent things like masks.
@@ -91,7 +90,10 @@ class Action {
       * Masks, 3) dataset names.
       */
     virtual int init()   { return 0; }
-
-
+    bool useMassOriginalValue_;  ///< Value of useMass set by init
+    bool useImageOriginalValue_; ///< Value of useImage set by init
+  private:
+    bool noInit_;                ///< True if action could not be initialized
+    bool noSetup_;               ///< True if action could not be set up
 };
 #endif  

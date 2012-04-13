@@ -9,13 +9,13 @@ class CheckStructure: public Action {
     CheckStructure();
     ~CheckStructure();
 
+    void SeparateInit(double, double, int);
+    int SeparateAction(Frame *);
+  private:
     int init();
     int setup();
     int action();
 
-    void SeparateInit(double, double, int);
-    int SeparateAction(Frame *);
-  private:
     /// Used to cache bond parameters
     struct bond_list {
       double req;

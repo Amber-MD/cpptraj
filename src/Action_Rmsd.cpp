@@ -13,7 +13,7 @@ Rmsd::Rmsd() {
   NumResidues=0;
   perresout=NULL;
   nofit=false;
-  useMass=false;
+  useMass_=false;
   perres=false;
   ResFrame=NULL;
   ResRefFrame=NULL;
@@ -30,7 +30,7 @@ Rmsd::~Rmsd() {
   if (ResRefFrame!=NULL) delete ResRefFrame;
   if (PerResRMSD!=NULL) delete PerResRMSD;
   // If separate, clean up the dataset
-  if (isSeparate) delete rmsd;
+  if (isSeparate_) delete rmsd;
 }
 
 // Rmsd::resizeResMasks()
@@ -59,7 +59,7 @@ int Rmsd::init( ) {
 
   // Check for other keywords
   nofit = actionArgs.hasKey("nofit");
-  useMass = actionArgs.hasKey("mass");
+  useMass_ = actionArgs.hasKey("mass");
   char *rmsdFile = actionArgs.getKeyString("out",NULL);
   // Per-res keywords
   perres = actionArgs.hasKey("perres");
@@ -77,7 +77,7 @@ int Rmsd::init( ) {
   FrameMask.SetMaskString(mask0);
 
   // Initialize reference. If no reference mask is given mask0 will be used.
-  if (RefInit(nofit, useMass, mask0, actionArgs, FL, PFL, Trans+3))
+  if (RefInit(nofit, useMass_, mask0, actionArgs, FL, PFL, Trans+3))
     return 1;
 
   // Set up the RMSD data set. 
@@ -93,7 +93,7 @@ int Rmsd::init( ) {
     mprintf(", no fitting");
   else
     mprintf(", with fitting");
-  if (useMass) 
+  if (useMass_) 
     mprintf(", mass-weighted");
   mprintf(".\n");
   // Per-residue RMSD info.
@@ -130,14 +130,14 @@ int Rmsd::init( ) {
   * is allocated locally.
   */
 int Rmsd::SeparateInit(char *mask0, bool massIn, int debugIn) {
-  isSeparate = true;
+  isSeparate_ = true;
   debug = debugIn;
-  useMass = massIn;
+  useMass_ = massIn;
   // Also set useMassOriginalValue since this is NOT called from 
   // Init.
-  useMassOriginalValue = useMass;
+  useMassOriginalValue_ = useMass_;
   // Only first for reference for now
-  SetFirst(nofit, mask0, useMass); 
+  SetFirst(nofit, mask0, useMass_); 
 
   // Set the RMS mask string for target and reference
   FrameMask.SetMaskString(mask0);
@@ -307,7 +307,7 @@ int Rmsd::setup() {
     if (this->perResSetup(GetRefParm())) return 1;
   }
 
-  if (!isSeparate)
+  if (!isSeparate_)
     mprintf("\t%i atoms selected.\n",FrameMask.Nselected());
 
   return 0;
@@ -336,9 +336,9 @@ int Rmsd::action() {
 */
 
   if (nofit) {
-    R = SelectedFrame.RMSD(&SelectedRef_, useMass);
+    R = SelectedFrame.RMSD(&SelectedRef_, useMass_);
   } else {
-    R = SelectedFrame.RMSD_CenteredRef(SelectedRef_, U, Trans, useMass);
+    R = SelectedFrame.RMSD_CenteredRef(SelectedRef_, U, Trans, useMass_);
     currentFrame->Trans_Rot_Trans(Trans,U);
   }
 
@@ -360,7 +360,7 @@ int Rmsd::action() {
         ResFrame->ShiftToGeometricCenter( );
         ResRefFrame->ShiftToGeometricCenter( );
       }
-      R = ResFrame->RMSD(ResRefFrame,useMass);
+      R = ResFrame->RMSD(ResRefFrame,useMass_);
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,
       //        tgtResMask[N]->MaskString(),refResMask[N]->MaskString(),R);
       // NOTE: Should check for error on AddData?

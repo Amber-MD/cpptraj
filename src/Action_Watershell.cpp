@@ -17,7 +17,7 @@ Watershell::Watershell() :
   *      
   */
 int Watershell::init() {
-  useImage = !actionArgs.hasKey("noimage");
+  useImage_ = !actionArgs.hasKey("noimage");
 
   char *maskexpr = actionArgs.getNextMask();
   if (maskexpr == NULL) {
@@ -39,7 +39,7 @@ int Watershell::init() {
   solventmaskexpr_ = actionArgs.getNextMask();
 
   mprintf("    WATERSHELL: Output to %s\n",filename_);
-  if (!useImage)
+  if (!useImage_)
     mprintf("                Imaging is disabled.\n");
   mprintf("                The first shell will contain water < %.3lf angstroms from\n",
           lowerCutoff_);
@@ -96,7 +96,7 @@ int Watershell::setup() {
 int Watershell::action() {
   double ucell[9], recip[9];
 
-  if (imageType==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
+  if (imageType_==Frame::NONORTHO) currentFrame->BoxToRecip(ucell,recip);
 
   // Loop over solute atoms
   for (AtomMask::const_iterator solute_at = soluteMask_.begin();
@@ -110,7 +110,7 @@ int Watershell::action() {
       int currentRes = (*currentParm)[ *solvent_at].ResNum();
       // If residue is not yet marked as 1st shell, calc distance
       if ( activeResidues_[currentRes] < 2 ) {
-        double dist = currentFrame->DIST2( *solute_at, *solvent_at, imageType,
+        double dist = currentFrame->DIST2( *solute_at, *solvent_at, imageType_,
                                            ucell, recip );
         // Less than upper, 2nd shell
         if (dist < upperCutoff_) {

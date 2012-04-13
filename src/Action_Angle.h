@@ -4,13 +4,17 @@
 // Class: Angle
 /// Calculate angle between atom(s) in 3 masks
 class Angle: public Action {
-    DataSet *ang;
-    AtomMask Mask1, Mask2, Mask3;
   public:
     Angle();
 
+  private:
     int init();
     int setup();
     int action();
+
+    DataSet *ang_;
+    AtomMask Mask1_;
+    AtomMask Mask2_;
+    AtomMask Mask3_;
 };
 #endif

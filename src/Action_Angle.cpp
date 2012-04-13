@@ -4,10 +4,11 @@
 #include "Constants.h" // RADDEG
 
 // CONSTRUCTOR
-Angle::Angle() {
+Angle::Angle() :
+  ang_(NULL)
+{
   //fprintf(stderr,"Angle Con\n");
-  ang=NULL;
-  useMass=false;
+  useMass_ = false;
 } 
 
 // Angle::init()
@@ -18,33 +19,31 @@ Angle::Angle() {
 //    2) Masks
 //    3) Dataset name
 int Angle::init() {
-  char *mask1, *mask2, *mask3;
-  char *angleFile;
-
   // Get keywords
-  angleFile = actionArgs.getKeyString("out",NULL);
-  useMass = actionArgs.hasKey("mass");
+  char *angleFile = actionArgs.getKeyString("out",NULL);
+  useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
-  mask1 = actionArgs.getNextMask();
-  mask2 = actionArgs.getNextMask();
-  mask3 = actionArgs.getNextMask();
+  char *mask1 = actionArgs.getNextMask();
+  char *mask2 = actionArgs.getNextMask();
+  char *mask3 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL) {
     mprinterr("Error: Angle::init: Requires 3 masks\n");
     return 1;
   }
-  Mask1.SetMaskString(mask1);
-  Mask2.SetMaskString(mask2);
-  Mask3.SetMaskString(mask3);
+  Mask1_.SetMaskString(mask1);
+  Mask2_.SetMaskString(mask2);
+  Mask3_.SetMaskString(mask3);
 
   // Dataset to store angles
-  ang = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Ang");
-  if (ang==NULL) return 1;
+  ang_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Ang");
+  if (ang_==NULL) return 1;
   // Add dataset to data file list
-  DFL->Add(angleFile,ang);
+  DFL->Add(angleFile, ang_);
 
-  mprintf("    ANGLE: [%s]-[%s]-[%s]\n",Mask1.MaskString(),Mask2.MaskString(),Mask3.MaskString());
-  if (useMass)
+  mprintf("    ANGLE: [%s]-[%s]-[%s]\n",Mask1_.MaskString(), Mask2_.MaskString(), 
+          Mask3_.MaskString());
+  if (useMass_)
     mprintf("              Using center of mass of atoms in masks.\n");
 
   return 0;
@@ -56,13 +55,13 @@ int Angle::init() {
 // currentParm is set in Action::Setup
 int Angle::setup() {
 
-  if (currentParm->SetupIntegerMask(Mask1)) return 1;
-  if (currentParm->SetupIntegerMask(Mask2)) return 1;
-  if (currentParm->SetupIntegerMask(Mask3)) return 1;
-  mprintf("\t%s (%i atoms)\n",Mask1.MaskString(),Mask1.Nselected());
-  mprintf("\t%s (%i atoms)\n",Mask2.MaskString(),Mask2.Nselected());
-  mprintf("\t%s (%i atoms)\n",Mask3.MaskString(),Mask3.Nselected());
-  if (Mask1.None() || Mask2.None() || Mask3.None()) {
+  if (currentParm->SetupIntegerMask(Mask1_)) return 1;
+  if (currentParm->SetupIntegerMask(Mask2_)) return 1;
+  if (currentParm->SetupIntegerMask(Mask3_)) return 1;
+  mprintf("\t%s (%i atoms)\n",Mask1_.MaskString(), Mask1_.Nselected());
+  mprintf("\t%s (%i atoms)\n",Mask2_.MaskString(), Mask2_.Nselected());
+  mprintf("\t%s (%i atoms)\n",Mask3_.MaskString(), Mask3_.Nselected());
+  if (Mask1_.None() || Mask2_.None() || Mask3_.None()) {
     mprintf("    Error: Angle::setup: One or more masks contain 0 atoms.\n");
     return 1;
   }
@@ -73,16 +72,12 @@ int Angle::setup() {
 
 // Angle::action()
 int Angle::action() {
-  double Ang;
+  double aval = currentFrame->ANGLE(Mask1_, Mask2_, Mask3_, useMass_);
 
-  Ang=currentFrame->ANGLE(&Mask1,&Mask2,&Mask3,useMass);
+  aval *= RADDEG;
 
-  Ang *= RADDEG;
+  ang_->Add(frameNum, &aval);
 
-  ang->Add(frameNum, &Ang);
-
-  //fprintf(outfile,"%10i %10.4lf\n",frameNum,Ang);
-  
   return 0;
-} 
+}
 

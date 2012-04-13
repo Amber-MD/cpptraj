@@ -16,6 +16,8 @@
 class Frame {
     friend class TrajectoryFile;
   public:
+    /// Potential imaging types 
+    enum ImageType { NOIMAGE=0, ORTHO, NONORTHO };
     // Construction/Destruction/Assignment
     Frame();
     Frame(int);
@@ -71,7 +73,7 @@ class Frame {
     void Trans_Rot_Trans(double *, double *);
     void Rotate(double *);
     void InverseRotate(double *);
-    void Center(AtomMask *, bool,bool);
+    void Center(AtomMask &, bool,bool);
     void CenterReference(double *, bool);
     void ShiftToGeometricCenter();
     void ImageNonortho(bool, AtomMask *, bool, bool, bool, std::vector<int> &);
@@ -86,15 +88,15 @@ class Frame {
     double GeometricCenter(double*,int,int);
     // Coordinate calculation
     double BoxToRecip(double *, double *);
-    double DIST2(AtomMask*, AtomMask*, bool, int, double *, double *);
-    double DIST2(int, int, int, double *, double *);
-    double DIST2(double*, int, int, double *, double *);
+    double DIST2(AtomMask*, AtomMask*, bool, ImageType, double *, double *);
+    double DIST2(int, int, ImageType, double *, double *);
+    double DIST2(double*, int, ImageType, double *, double *);
     double DIST(int, int);
     double DIST2(int, int);
     double COORDDIST(int, int);
     double COORDDIST2(int, int);
     void COORDVECTOR(double*, int, int);
-    double ANGLE(AtomMask*, AtomMask*, AtomMask*,bool);
+    double ANGLE(AtomMask&, AtomMask&, AtomMask&,bool);
     double ANGLE(int, int, int);
     double DIHEDRAL(AtomMask *, AtomMask *, AtomMask *, AtomMask *,bool);
     double DIHEDRAL(int,int,int,int);

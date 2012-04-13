@@ -9,7 +9,7 @@ Pucker::Pucker() {
   puck=NULL;
   puckerMethod=0;
   amplitude=false;
-  useMass=true;
+  useMass_=true;
   offset=0;
   puckermin = -180.0;
   puckermax = 180.0;
@@ -100,7 +100,7 @@ int Pucker::setup() {
 int Pucker::action() {
   double D;
 
-  D=currentFrame->PUCKER(&M1,&M2,&M3,&M4,&M5,puckerMethod,amplitude,useMass);
+  D=currentFrame->PUCKER(&M1,&M2,&M3,&M4,&M5,puckerMethod,amplitude,useMass_);
   D *= RADDEG;
 
   // Deal with offset

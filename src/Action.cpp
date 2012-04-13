@@ -3,22 +3,22 @@
 
 // CONSTRUCTOR
 Action::Action() :
-  noInit(false), 
-  noSetup(false), 
-  isSeparate(false),
-  currentParm(NULL),
-  currentFrame(NULL),
-  DSL(NULL),
-  DFL(NULL),
-  PFL(NULL),
-  FL(NULL),
-  useMass(false),
-  useMassOriginalValue(false),
-  useImage(false),
-  useImageOriginalValue(false),
-  imageType (NOIMAGE),
   debug(0),
-  frameNum(0) 
+  currentParm(0),
+  currentFrame(0),
+  DSL(0),
+  DFL(0),
+  PFL(0),
+  FL(0),
+  useMass_(false),
+  useImage_(false),
+  imageType_(Frame::NOIMAGE),
+  isSeparate_(false),
+  frameNum(0),
+  useMassOriginalValue_(false),
+  useImageOriginalValue_(false),
+  noInit_(false), 
+  noSetup_(false) 
 {}
 
 // DESTRUCTOR
@@ -61,19 +61,19 @@ const char *Action::CmdLine() {
 int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin, 
                  TopologyList *PFLin, int debugIn) 
 {
-  DSL=DSLin;
-  FL=FLin;
-  DFL=DFLin;
-  PFL=PFLin;
-  debug=debugIn;
+  DSL = DSLin;
+  FL = FLin;
+  DFL = DFLin;
+  PFL = PFLin;
+  debug = debugIn;
   // Initialize action
   int err = this->init();
   // Check for unhandled keywords
   actionArgs.CheckForMoreArgs();
   // Store the value of useMass set by the actions init
-  useMassOriginalValue = useMass;
+  useMassOriginalValue_ = useMass_;
   // Store the value of useImage set by actions init
-  useImageOriginalValue = useImage;
+  useImageOriginalValue_ = useImage_;
 
   return ( err );
 }
@@ -92,26 +92,26 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
 int Action::Setup(Topology **ParmAddress) {
   currentParm = *ParmAddress;
   // Set imaging to value set by init() 
-  useImage = useImageOriginalValue;
-  if (!useImage)
+  useImage_ = useImageOriginalValue_;
+  if (!useImage_)
     // Imaging disabled
-    imageType = NOIMAGE;
+    imageType_ = Frame::NOIMAGE;
   else {
     // Set imaging based on parm box.
     Box::BoxType parmboxtype = currentParm->BoxType();
     if (parmboxtype == Box::NOBOX) {
-      imageType = NOIMAGE;
+      imageType_ = Frame::NOIMAGE;
       if (debug>0)
         mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->c_str());
     } else if (parmboxtype == Box::ORTHO)
-      imageType = ORTHO;
+      imageType_ = Frame::ORTHO;
     else 
-      imageType = NONORTHO;
+      imageType_ = Frame::NONORTHO;
   }
   // If useMass, check that parm actually has masses.
   // NOTE: Mass is now always set to 1 if not read in so this only depends
   //       on what the action set useMass to.
-  useMass = useMassOriginalValue;
+  useMass_ = useMassOriginalValue_;
 /*  if (currentParm->mass==NULL && useMass) {
     mprintf("    Warning: %s: Mass for this parm is NULL.\n",actionArgs.Command());
     mprintf("             Geometric center will be used instead of center of mass.\n");
