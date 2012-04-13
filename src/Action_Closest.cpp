@@ -304,12 +304,14 @@ int Closest::action() {
       stripMask.Selected[maskPosition++] = (*solvent).mask.Selected[solventAtom];
     // Record which water molecules are closest if requested
     if (outFile!=NULL) {
-      framedata->Add(Nclosest, &frameNum);
+      int fnum = frameNum + 1;
+      framedata->Add(Nclosest, &fnum);
       moldata->Add(Nclosest, &((*solvent).mol));
       Dist = sqrt( (*solvent).D );
       distdata->Add(Nclosest, &Dist);
-      atomdata->Add(Nclosest, &((*solvent).mask.Selected[0]));
-      Nclosest++;
+      int anum = (*solvent).mask.Selected[0] + 1;
+      atomdata->Add(Nclosest, &anum);
+      ++Nclosest;
     }
     // DEBUG - print first closestWaters distances
     //mprintf("DEBUG: Mol %i   D2= %lf   Atom0= %i\n",(*it).mol, (*it).D, (*it).mask->Selected[0]);
