@@ -71,7 +71,10 @@ static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
     // newline, NULL, or EOF terminates the line
     if (ptr=='\n' || ptr=='\0' || ptr==EOF) {
       // If no chars in string continue
-      if (inputLine.empty()) continue;
+      if (inputLine.empty()) {
+        if (isStdin) fprintf(stdout,"> ");
+        continue;
+      }
       // If "go" then done reading input
       if (inputLine.compare("go")==0) break;
       // If "quit" then abort 
