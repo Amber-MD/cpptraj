@@ -36,6 +36,7 @@
 #include "Action_RmsAvgCorr.h"
 #include "Action_AtomicFluct.h"
 #include "Action_Watershell.h"
+#include "Action_AvgCoord.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -106,6 +107,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("rmsavgcorr"))     {Act=new RmsAvgCorr;}
   else if (argIn.CommandIs("atomicfluct"))    {Act=new AtomicFluct;}
   else if (argIn.CommandIs("watershell"))     {Act=new Watershell;}
+  else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
   // PTRAJ
   else if (argIn.CommandIs("atomicfluct3D") ||
            argIn.CommandIs("contacts") ||
