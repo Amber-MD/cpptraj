@@ -81,10 +81,10 @@ int Closest::init( ) {
     mprinterr("Error: Closest::init(): No mask specified.\n");
     return 1;
   }
-  soluteMask_.SetMaskString(mask1);
+  distanceMask_.SetMaskString(mask1);
 
   mprintf("    CLOSEST: Finding closest %i solvent molecules to atoms in mask %s\n",
-          closestWaters_, soluteMask_.MaskString());
+          closestWaters_, distanceMask_.MaskString());
   if (!useImage_) 
     mprintf("             Imaging will be turned off.\n");
   if (firstAtom_)
@@ -125,6 +125,7 @@ int Closest::setup() {
   // the prmtop strip occurs only once so the solvent params become fixed.
   Topology::mol_iterator solvmol = currentParm->SolventStart();
   int NsolventAtoms = (*solvmol).NumAtoms();
+  int firstSolventAtom = (*solvmol).BeginAtom(); // Needed below
   ++solvmol;
   for (; solvmol != currentParm->SolventEnd(); solvmol++) {
     if ( NsolventAtoms != (*solvmol).NumAtoms() ) {
@@ -136,14 +137,18 @@ int Closest::setup() {
     }
   }
 
-  // Setup solute atom mask
+  // Setup distance atom mask
   // NOTE: Should ensure that no solvent atoms are selected!
-  if ( currentParm->SetupIntegerMask(soluteMask_) ) return 1;
-  if (soluteMask_.None()) {
+  if ( currentParm->SetupIntegerMask(distanceMask_) ) return 1;
+  if (distanceMask_.None()) {
     mprintf("Warning: Closest::setup: Mask %s contains no atoms.\n",
-            soluteMask_.MaskString());
+            distanceMask_.MaskString());
     return 1;
   }
+
+  // Setup solute atom mask, up to the first solvent atom (set above).
+  soluteMask_.ResetMask();
+  soluteMask_.AddAtomRange(0, firstSolventAtom);
 
   // Figure out what the the total size of the selected solute atoms plus
   // the number of kept solvent atoms is in order to set up the stripped
@@ -218,7 +223,8 @@ int Closest::setup() {
 }
 
 // Closest::action()
-/** Find the minimum distance between atoms in soluteMask and each solvent Mask.
+/** Find the minimum distance between atoms in distanceMask and each 
+  * solvent Mask.
   */
 int Closest::action() {
   int solventMol, maskPosition, maxSolventMolecules;
@@ -254,15 +260,14 @@ int Closest::action() {
     //fprintf(stdout,"      Solvent %i %i %i\n", MaskList[solventMol]->Selected[0]+1,
     //        MaskList[solventMol]->Selected[1]+1,MaskList[solventMol]->Selected[2]+1);
 
-    // Calculate distance between each atom in soluteMask and atoms in solvent Mask
+    // Calculate distance between each atom in distanceMask and atoms in solvent Mask
     solvent_atom = SolventMols_[solventMol].mask.begin();
-    for (solute_atom = soluteMask_.begin(); solute_atom != soluteMask_.end(); solute_atom++)
+    for (solute_atom = distanceMask_.begin(); solute_atom != distanceMask_.end(); solute_atom++)
     {
       Dist = currentFrame->DIST2(*solute_atom, *solvent_atom, imageType_, ucell, recip);
       if (Dist < SolventMols_[solventMol].D) 
         SolventMols_[solventMol].D = Dist;
-      //fprintf(stdout,"D atom %i %i = %lf image %i\n",soluteMask.Selected[atom],
-      //        MaskList[solventMol]->Selected[0],minD,imageType);
+      //fprintf(stdout,"D atom %i %i = %lf image %i\n",*solute_atom,*solvent_atom,minD,imageType);
       // Check the rest of the solvent atoms if specified
       if (!firstAtom_) {
         ++solvent_atom;

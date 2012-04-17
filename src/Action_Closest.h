@@ -28,6 +28,7 @@ class Closest: public Action {
     bool firstAtom_;
     AtomMask soluteMask_;
     AtomMask stripMask_;
+    AtomMask distanceMask_;
     Topology *newParm_;
     Topology *oldParm_;
     Frame newFrame_;
