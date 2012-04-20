@@ -330,3 +330,8 @@ std::string integerToString(int i) {
   return oss.str();
 }
 
+std::string doubleToString(double d) {
+  std::ostringstream oss;
+  oss << d;
+  return oss.str();
+}

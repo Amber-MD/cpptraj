@@ -1,27 +1,19 @@
 #include "Analysis_Hist.h"
 #include "CpptrajStdio.h"
-#include <cmath> // ceil
 #include <cstdio> // sprintf
 // Analysis_Hist
 
 // CONSTRUCTOR
-Hist::Hist() { 
-  calcFreeE = false;
-  Temp = -1.0;
-  normalize = false;
-  gnuplot = false;
-  circular = false;
-  Ndata = -1;
-  outfilename=NULL;
-
-  defaultMinSet = false;
-  defaultMaxSet = false;
-  
-  min = 0.0;
-  max = 0.0;
-  step = -1.0;
-  bins = -1;
-}
+Hist::Hist() :  
+  calcFreeE_(false),
+  Temp_(-1.0),
+  normalize_(false),
+  gnuplot_(false),
+  circular_(false),
+  outfilename_(NULL),
+  minArgSet_(false),
+  maxArgSet_(false)
+{}
 
 // Hist::CheckDimension()
 /** Given an argument with format: DataSet_Name[:min:max:step:bins], check
@@ -40,20 +32,11 @@ int Hist::CheckDimension(char *input, DataSetList *datasetlist) {
   // First argument should specify dataset name
   if (debug>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
                        arglist.ArgAt(0));
-  DataSet *dset = datasetlist->Get(arglist.ArgAt(0));
+  DataSet *dset = datasetlist->Get( arglist.ArgAt(0) );
   if (dset == NULL) {
     mprintf("\t      Dataset %s not found.\n",arglist.ArgAt(0));
     return 1;
   }
-
-  /* 
-  // Get range list from first arg 
-  range1=getRange(arglist[0],&r1,S->Data,S->Ndata);
-  if (range1==NULL) {
-    fprintf(stderr,"Error: setupCoord: Could not set up datasets based on argument: %s\n",arglist[0]);
-    return;
-  }
-  */
 
   // Check that dataset is not string
   if (dset->Type()==DataSet::STRING) {
@@ -61,38 +44,28 @@ int Hist::CheckDimension(char *input, DataSetList *datasetlist) {
     return 1;
   }
 
-  dimensionArgs.AddArg( input );
-  histdata.push_back(dset);
+  dimensionArgs_.push_back( arglist );
+  histdata_.push_back( dset );
   return 0;
 }
 
 // Hist::setupDimension()
-/** Given a string with format name:min:max:step:bins:col:N, set up a 
+/** Given an ArgList containing name,[min,max,step,bins,col,N], set up a 
   * coordinate with that name and parameters min, max, step, bins.
   * If '*' or not specified, a default value will be set later.
   * \return 1 if error occurs, 0 otherwise.
   */
-int Hist::setupDimension(char *input, DataSet *dset) {
-  ArgList arglist;
-  double dmin,dmax,dstep;
-  bool minArg=false;
-  bool maxArg=false;
-  int dbins;
+int Hist::setupDimension(ArgList &arglist, DataSet *dset) {
+  Dimension dim;
+  bool minArg = false;
+  bool maxArg = false;
 
-  // Separate input string by ':'
-  arglist.SetList(input, ":");
-  if (arglist.Nargs()<1) {
-    mprintf("Warning: Hist::setupDimension: No arguments found in input: %s\n",input);
-    return 1;
-  }
+  if (debug>1)
+    arglist.PrintList();
 
-  // Set up dimension defaults. If any arguments are specified then values
-  // we be recalculated.
-  if (arglist.Nargs() > 1) {
-    dmin=0.0; dmax=0.0; dstep=-1.0; dbins=-1;
-  } else {
-    dmin = min; dmax = max; dstep = step; dbins = bins;
-  }
+  // Set up dimension name
+  // NOTE: arglist[0] should be same as dset name from CheckDimension 
+  dim.SetLabel( arglist[0] );
 
   // Cycle through coordinate arguments. Any argument left blank will be 
   // assigned a default value later.
@@ -101,79 +74,46 @@ int Hist::setupDimension(char *input, DataSet *dset) {
     // Default explicitly requested
     if (arglist.ArgIs(i,"*")) continue;
     switch (i) {
-      case 1 : dmin = arglist.ArgToDouble(i); minArg=true; break;
-      case 2 : dmax = arglist.ArgToDouble(i); maxArg=true; break;
-      case 3 : dstep= arglist.ArgToDouble(i); break;
-      case 4 : dbins= arglist.ArgToInteger(i); break;
+      case 1 : dim.SetMin( arglist.ArgToDouble(i) ); minArg=true; break;
+      case 2 : dim.SetMax( arglist.ArgToDouble(i) ); maxArg=true; break;
+      case 3 : dim.SetStep( arglist.ArgToDouble(i) ); break;
+      case 4 : dim.SetBins( arglist.ArgToInteger(i) ); break;
     }
   }
 
-  // For each dataset index in range1, set up a dimension 
-  //for (i=0; i<r1; i++) {
-    //if (debug>0) {
-    //  fprintf(stderr,"    Coord %i: ",n);
-    //  if (min!=NULL) fprintf(stderr,"%lf->",*min); else fprintf(stderr,"*->");
-    //  if (max!=NULL) fprintf(stderr,"%lf,",*max); else fprintf(stderr,"*,");
-    //  if (step!=-1) fprintf(stderr," step %lf,",step); else fprintf(stderr," step *,");
-    //  if (bins!=-1) fprintf(stderr," %i bins.",bins); else fprintf(stderr," * bins.");
-    //  fprintf(stderr," Using dataset %s\n",S->Data[column].label);
-    //}
+  // If no min arg and no default min arg, get min from dataset
+  if (!minArg) {
+    if (!minArgSet_) 
+      dim.SetMin( dset->Min() );
+    else
+      dim.SetMin( default_dim_.Min() );
+  }
+  // If no max arg and no default max arg, get max from dataset
+  if (!maxArg) {
+    if (!maxArgSet_)
+      dim.SetMax( dset->Max() );
+    else
+      dim.SetMax( default_dim_.Max() );
+  }
+  // Check that min < max
+  if (dim.Min() >= dim.Max()) {
+    mprinterr("Error: Hist: Dimension %s: min (%lf) must be less than max (%lf).\n",
+              dim.c_str(), dim.Min(), dim.Max());
+    return 1;
+  }
 
-    // If no min arg and no default min arg, get min from dataset
-    if (!minArg && dmin == 0) 
-      dmin = dset->Min();
-    // If no max arg and no default max arg, get max from dataset
-    if (!maxArg && dmax == 0)
-      dmax = dset->Max();
+  // If bins/step not specified, use default
+  if (dim.Bins()==-1)
+    dim.SetBins( default_dim_.Bins() );
+  if (dim.Step()==-1)
+    dim.SetStep( default_dim_.Step() );
 
-    // Check that min < max
-    if (dmin >= dmax) {
-      mprinterr("Error: Hist: Dimension %s: min (%lf) must be less than max (%lf).\n",dset->Name(),
-                dmin,dmax);
-      return 1;
-    }
+  // Attempt to set up bins or step.
+  if (dim.CalcBinsOrStep()!=0) return 1;
+ 
+  dim.PrintDim();
+  hist_.AddDimension( dim );
 
-    // Attempt to set up bins or step. If both have been defined, use the
-    // specified bins and calculate a new step. If neither have been defined,
-    // use default bins and calculate step.
-    // When calculating bins from a stepsize, round up.
-    if (dbins!=-1 && dstep!=-1) {
-      mprintf("\tHist: Bins and step have been specified. Recalculating step.\n");
-      dstep=-1;
-    }
-
-    if (dbins==-1 && dstep==-1) {
-      mprintf("\tHist: Bins and step undefined.\n");
-      return 1;
-    }
-
-    if (dstep==-1) {
-      if (debug>0) mprintf("\t\tCalculating step.\n");
-      if (dbins<=0) {
-        mprinterr("Error: Hist: Dimension %s: bins <=0!\n",dset->Name());
-        return 1;
-      }
-      dstep = dmax - dmin;
-      dstep = dstep / dbins;
-    } else if (dbins==-1) {
-      if (debug>0) mprintf("\t\tCalculating bins.\n");
-      if (dstep<=0) {
-        mprinterr("Error: Hist: Dimension %s: step <=0!\n",dset->Name());
-        return 1;
-      }
-      double temp = ((dmax - dmin) / dstep);
-      temp = ceil(temp);
-      dbins = (int) temp;
-    }
-
-    mprintf("\tHist: Dim %s: %lf->%lf, step %lf, %i bins.\n", dset->Name(),
-            dmin,dmax,dstep,dbins);
-    hist.AddDimension(dset->Name(),dmin,dmax,dstep,dbins);
-    //histdata.push_back(dset);
-
-  //}
-
-  //safe_free(range1);
   return 0;
 }
 
@@ -186,29 +126,28 @@ int Hist::setupDimension(char *input, DataSet *dset) {
 int Hist::Setup(DataSetList *datasetlist) {
   char *datasetstring;
 
-  hist.SetDebug(debug);
+  hist_.SetDebug(debug);
   // Keywords
-  outfilename = analyzeArgs.getKeyString("out",NULL);
-  if (outfilename==NULL) {
+  outfilename_ = analyzeArgs.getKeyString("out",NULL);
+  if (outfilename_==NULL) {
     mprintf("Error: Hist: No output filename specified.\n");
     return 1;
   }
-  Temp = analyzeArgs.getKeyDouble("free",-1.0);
-  if (Temp!=-1.0) calcFreeE = true;
-  if (analyzeArgs.hasKey("gnu")) gnuplot = true;
-  if (analyzeArgs.hasKey("norm")) normalize = true;
-  //if (analyzeArgs.hasKey("circular")) circular = true;
-  // NOTE: The following may only need to be local
-  if (analyzeArgs.Contains("min")) {
-    min = analyzeArgs.getKeyDouble("min",0.0);
-    defaultMinSet = true;
+  Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
+  if (Temp_!=-1.0) calcFreeE_ = true;
+  gnuplot_ = analyzeArgs.hasKey("gnu");
+  normalize_ = analyzeArgs.hasKey("norm");
+  circular_ = analyzeArgs.hasKey("circular");
+  if ( analyzeArgs.Contains("min") ) {
+    default_dim_.SetMin( analyzeArgs.getKeyDouble("min",0.0) );
+    minArgSet_ = true;
   }
-  if (analyzeArgs.Contains("max")) {
-    max = analyzeArgs.getKeyDouble("max",0.0);
-    defaultMaxSet = true;
+  if ( analyzeArgs.Contains("max") ) {
+    default_dim_.SetMax( analyzeArgs.getKeyDouble("max",0.0) );
+    maxArgSet_ = true;
   }
-  step = analyzeArgs.getKeyDouble("step",-1.0);
-  bins = analyzeArgs.getKeyInt("bins",-1);
+  default_dim_.SetStep( analyzeArgs.getKeyDouble("step",-1.0) );
+  default_dim_.SetBins( analyzeArgs.getKeyInt("bins",-1) );
 
   // Datasets
   // Treat all remaining arguments as dataset names. 
@@ -216,19 +155,24 @@ int Hist::Setup(DataSetList *datasetlist) {
     if (CheckDimension( datasetstring,datasetlist )) return 1;
     //if (setupDimension(datasetstring,datasetlist)) return 1;
 
-  mprintf("\tHist: %s: Set up for %i dimensions using the following datasets:\n", 
+  mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 
           //outfilename, hist.NumDimension());
-          outfilename, dimensionArgs.Nargs());
-  dimensionArgs.PrintList();
-  //mprintf("\t      [ ");
-  //for (std::vector<DataSet*>::iterator ds=histdata.begin(); ds!=histdata.end(); ds++)
-  //  mprintf("%s ",(*ds)->Name());
-  //mprintf("]\n");
-  if (calcFreeE)
-    mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp);
-  if (circular)
-    mprintf("\t      circular: Output coordinates will be wrapped.\n");
-  if (normalize)
+          outfilename_, dimensionArgs_.size());
+  mprintf("\t      [ ");
+  for (std::vector<DataSet*>::iterator ds=histdata_.begin(); ds!=histdata_.end(); ++ds)
+    mprintf("%s ",(*ds)->Name());
+  mprintf("]\n");
+  if (calcFreeE_)
+    mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp_);
+  if (circular_ || gnuplot_) {
+    mprintf("\tWarning: gnuplot and/or circular specified; advanced grace/gnuplot\n");
+    mprintf("\t         formatting disabled.\n");
+    if (circular_)
+      mprintf("\t      circular: Output coordinates will be wrapped.\n");
+    if (gnuplot_)
+      mprintf("\t      gnuplot: Output will be in gnuplot-readable format.\n");
+  }
+  if (normalize_)
     mprintf("\t      norm: Bins will be normalized to 1.0.\n");
 
   return 0;
@@ -236,38 +180,39 @@ int Hist::Setup(DataSetList *datasetlist) {
 
 // Hist::Analyze()
 int Hist::Analyze() {
-  double *coord;
-  char *datasetstring;
- 
   // Set up dimensions
-  for (int hd = 0; hd < (int)histdata.size(); hd++) {
-    datasetstring = dimensionArgs.ArgAt(hd);
-    if (setupDimension(datasetstring,histdata[hd])) return 1;
+  // Size of histdata and dimensionArgs should be the same
+  for (unsigned int hd = 0; hd < histdata_.size(); hd++) {
+    if ( setupDimension(dimensionArgs_[hd], histdata_[hd]) ) 
+      return 1;
   }
 
   // Check that the number of data points in each dimension are equal
-  for (int hd=0; hd < (int)histdata.size(); hd++) {
+  int Ndata = -1;
+  for (std::vector<DataSet*>::iterator ds = histdata_.begin(); ds != histdata_.end(); ++ds)
+  {
     //mprintf("DEBUG: DS %s size %i\n",histdata[hd]->Name(),histdata[hd]->Xmax()+1);
     if (Ndata==-1)
-      Ndata = histdata[hd]->Xmax()+1;
+      Ndata = (*ds)->Size();
     else {
-      if (Ndata != histdata[hd]->Xmax()+1) {
+      if (Ndata != (*ds)->Size()) {
         mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%i), expected %i.\n",
-                  histdata[hd]->Name(),histdata[hd]->Xmax()+1,Ndata);
+                  (*ds)->Name(), (*ds)->Size(), Ndata);
         return 1;
       }
     }
   }
-  mprintf("\tHist: %i data points in each dimension.\n",Ndata);
+  mprintf("\tHist: %i data points in each dimension.\n", Ndata);
 
-  coord = new double[ hist.NumDimension() ];
+  std::vector<double> coord( hist_.NumDimension() );
   for (int n=0; n < Ndata; n++) {
-    for (int hd=0; hd < (int)histdata.size(); hd++) {
-      histdata[hd]->Get((void*)(coord+hd), n);
+    std::vector<double>::iterator coord_it = coord.begin();
+    for (std::vector<DataSet*>::iterator ds = histdata_.begin(); ds != histdata_.end(); ++ds) {
+      *coord_it = (*ds)->Dval( n );
+      ++coord_it;
     }
-    hist.BinData(coord);
+    hist_.BinData( coord );
   }
-  delete[] coord;
 
   //hist.PrintBins(false,false);
   return 0;
@@ -279,99 +224,48 @@ int Hist::Analyze() {
   */
 void Hist::Print(DataFileList *datafilelist) {
   DataFile *outfile=NULL;
-  double *coord;
-  int dim, bin;
-  double N;
-  bool histloop = true;
-
-  //hist.Info();
 
   // Calc free energy if requested
-  if (calcFreeE) hist.CalcFreeE(Temp,-1);
+  if (calcFreeE_) hist_.CalcFreeE(Temp_, -1);
 
   // Normalize if requested
-  if (normalize) hist.Normalize();
+  if (normalize_) hist_.Normalize();
 
-  coord = new double[ hist.NumDimension() ];
-  hist.BinStart(circular);
-
-  // For 1 dimension just need to hold bin counts
-  if (hist.NumDimension() == 1) {
-    outfile = datafilelist->Add(outfilename, 
-                                histout.Add( DataSet::DOUBLE, hist.Label(0), "Hist" ));
-    bin = 0;
-    while (histloop) {
-      N = hist.CurrentBinData();
-      histout.AddData( bin, &N, 0 );
-      bin++;
-      if (hist.NextBin()) histloop=false;
+  if (hist_.NumDimension() == 1 && !gnuplot_ && !circular_) {
+    // For 1 dimension just need to hold bin counts
+    hist_.Print_1D( histout_ );
+    outfile = datafilelist->Add( outfilename_, histout_.GetDataSetN(0) );
+    if (outfile==NULL) {
+      mprinterr("Error creating 1D histogram output for file %s\n",outfilename_);
+      return;
     }
-    outfile->SetXlabel(hist.Label(0));
+    outfile->SetXlabel( (char*)hist_[0].c_str() );
     outfile->ProcessArgs("ylabel Count");
-    outfile->SetCoordMinStep(hist.Min(0),hist.Step(0),hist.Min(1),hist.Step(1));
+    outfile->SetCoordMinStep(hist_[0].Min(), hist_[0].Step(), -1, -1);
 
-  // The way that datafile understands 2D data currently:
-  //   frame0 set0
-  //   frame0 set1
-  //   frame0 set2
-  //   frame1 set0
-  //   ...
-  // So need a set for each Y value (dimension 1).
-  } else if (hist.NumDimension() == 2) {
-    char temp[32];
-    for (bin = 0; bin < hist.NBins(1); bin++) {
-      sprintf(temp,"%8.3lf",(bin*hist.Step(1))+hist.Min(1));
-      outfile = datafilelist->Add(outfilename, 
-                                  histout.AddMultiN( DataSet::DOUBLE, "", temp, bin ));
+  } else if (hist_.NumDimension() == 2 && !gnuplot_ && !circular_) {
+    // A DataSet is created for each Y value (dimension 1).
+    hist_.Print_2D( histout_ );
+    for (DataSetList::const_iterator dset = histout_.begin();
+                                     dset != histout_.end(); ++dset)
+    {
+      outfile = datafilelist->Add( outfilename_, *dset);
     }
-    bin = 0; // y coord index
-    dim = 0; // x coord index
-    hist.CurrentBinCoord(coord);
-    double highestcoord = coord[0];
-    while (histloop) {
-      hist.CurrentBinCoord(coord);
-      if (coord[0]!=highestcoord) {
-        dim++;
-        highestcoord = coord[0];
-        bin = 0;
-      }
-      N = hist.CurrentBinData();
-      //mprintf("%lf %lf %lf [dim=%i bin=%i]\n",coord[0],coord[1],N,dim,bin);
-      histout.AddData( dim, &N, bin);
-      bin++;
-      if (hist.NextBin()) histloop=false;
+    if (outfile==NULL) {
+      mprinterr("Error creating %iD histogram output for file %s\n",
+                hist_.NumDimension(), outfilename_);
+      return;
     }
-    outfile->SetXlabel(hist.Label(0));
-    outfile->SetYlabel(hist.Label(1));
-    outfile->SetCoordMinStep(hist.Min(0),hist.Step(0),hist.Min(1),hist.Step(1));
-
-  // If > two dimensions, create 1 coord dataset for each dimension plus
-  // 1 dataset to hold bin counts.
-  } else {
-   for (dim = 0; dim < hist.NumDimension(); dim++) {
-      outfile = datafilelist->Add(outfilename, 
-                                  histout.Add( DataSet::DOUBLE, histdata[dim]->Name(), "Hist" ));
-    }
-    outfile = datafilelist->Add(outfilename, histout.Add( DataSet::DOUBLE, NULL, "Count"));
-    bin = 0;
-    while (histloop) {
-      hist.CurrentBinCoord(coord);
-      N = hist.CurrentBinData();
-      for (dim=0; dim<hist.NumDimension(); dim++)
-        histout.AddData( bin, coord + dim, dim ); 
-        //mprintf("%12.4lf ",coord[dim]);
-      histout.AddData( bin, &N, dim );
-      bin++;
-      //mprintf("%8i\n",N);
-      if (hist.NextBin()) histloop=false;
-    }
-  }
-
-  if (hist.NumDimension() > 1) {
+    outfile->SetXlabel( (char*)hist_[0].c_str() );
+    outfile->SetYlabel( (char*)hist_[1].c_str() );
+    outfile->SetCoordMinStep(hist_[0].Min(), hist_[0].Step(), hist_[1].Min(), hist_[1].Step());
     outfile->ProcessArgs("noxcol");
     outfile->ProcessArgs("usemap");
     outfile->ProcessArgs("nolabels");
+  } else {
+    // If > two dimensions, create 1 coord dataset for each dimension plus
+    // 1 dataset to hold bin counts.
+    //hist_.Print_ND( histout_, circular_ );
+    hist_.PrintBins(outfilename_, circular_, gnuplot_);
   }
-  //hist.PrintBins(circular,false);
-  delete []coord;
 }

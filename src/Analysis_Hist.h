@@ -2,37 +2,34 @@
 #define INC_ANALYSIS_HIST_H
 #include "Analysis.h"
 #include "Histogram.h"
-#include <vector>
 // Class: Hist
 /// Create an N-dimensional histogram from N input datasets
 class Hist : public Analysis {
-    Histogram hist;
-    std::vector<DataSet*> histdata;
-    ArgList dimensionArgs;
-
-    bool calcFreeE;
-    double Temp;
-    bool normalize;
-    bool gnuplot;
-    bool circular;
-    int Ndata;
-    char *outfilename;
-
-    double min;
-    bool defaultMinSet;
-    double max;
-    bool defaultMaxSet;
-    double step;
-    int bins;
-    DataSetList histout;
-
-    int CheckDimension(char *,DataSetList *);
-    int setupDimension(char *,DataSet*);
   public :
     Hist();
 
     int Setup(DataSetList*);
     int Analyze();
     void Print(DataFileList*);
+  private:
+    Histogram hist_;
+    std::vector<DataSet*> histdata_;
+    std::vector<ArgList> dimensionArgs_;
+
+    bool calcFreeE_;
+    double Temp_;
+    bool normalize_;
+    bool gnuplot_;
+    bool circular_;
+    char *outfilename_;
+
+    Dimension default_dim_;
+    bool minArgSet_;
+    bool maxArgSet_;
+
+    DataSetList histout_;
+
+    int CheckDimension(char *, DataSetList *);
+    int setupDimension(ArgList&, DataSet*);
 };
 #endif

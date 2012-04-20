@@ -148,6 +148,20 @@ DataSet *DataSetList::AddMultiN(DataSet::DataType inType, const char *prefix,
   return tempDS;
 }
 
+DataSet *DataSetList::AddMultiN(DataSet::DataType inType, std::string& nameIn, int Nin)
+{
+  // Determine if a dataset with idx Nin exists.
+  DataSet *tempDS = GetDataSetIdx( Nin );
+  if (tempDS != NULL) {
+    mprinterr("Internal Error: DataSet with index %i already exists.\n",Nin);
+    return NULL;
+  }
+  // Set up new dataset
+  tempDS = this->Add(inType, (char*)nameIn.c_str(), nameIn.c_str());
+  if (tempDS!=NULL) tempDS->SetIdx( Nin );
+  return tempDS;
+}
+
 // DataSetList::AddMulti()
 /** Works like Add, except the dataset will be named 
   *   <prefix>_<suffix>

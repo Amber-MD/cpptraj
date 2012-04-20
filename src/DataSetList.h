@@ -40,6 +40,7 @@ class DataSetList {
     DataSet *AddMulti(DataSet::DataType, char *, const char *);
     /// Add dataset to the list with name prefix_suffixN; set index.
     DataSet *AddMultiN(DataSet::DataType, const char *, const char *, int);
+    DataSet *AddMultiN(DataSet::DataType, std::string&, int);
     char *checkName(char*, const char*);
     //DataSet *AddMatrix(char*, const char*, int, int);
     /// Add dataset to the list with given name
