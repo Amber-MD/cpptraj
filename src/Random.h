@@ -6,12 +6,12 @@
   * 
   * Adapted from fortran code in $AMBERHOME/src/pmemd/src/random.F90
   *
-  * This random number generator originally appeared in *Toward a Universal
-  * Random Number Generator* by George Marsaglia and Arif Zaman.  Florida
+  * This random number generator originally appeared in "Toward a Universal
+  * Random Number Generator" by George Marsaglia and Arif Zaman.  Florida
   * State University Report: FSU-SCRI-87-50 (1987)
   *
-  * It was later modified by F. James and published in *A Review of Pseudo-
-  * random Number Generators*
+  * It was later modified by F. James and published in "A Review of Pseudo-
+  * random Number Generators"
   *
   * This is claimed to be the best known random number generator available.
   * It passes ALL of the tests for random number generators and has a
@@ -24,6 +24,16 @@
   * "arithmetic sequence" (using subtraction).
   */
 class Random_Number {
+  public:
+    Random_Number();
+    /// Initialize the random number generator with the given seed
+    void rn_set(int);
+    /// Initialize RN generator with 71277 (Amber default)
+    void rn_set();
+    /// Generate a random number between 0.0 and 1.0
+    double rn_gen();
+    //double rn_gauss(double,double);
+  private:
     /// Variables necessary for Marsaglia random number stream.
     /** This is placed in a struct in case the state of the random number
       * generator ever needs to be stored.
@@ -42,13 +52,5 @@ class Random_Number {
     };
     /// Hold the state of the random number generator
     random_state RN_generator;
-  public:
-    Random_Number();
-    /// Initialize the random number generator
-    void rn_set(int);
-    void rn_set();
-    /// Generate a random number between 0.0 and 1.0
-    double rn_gen();
-    //double rn_gauss(double,double);
 };
 #endif
