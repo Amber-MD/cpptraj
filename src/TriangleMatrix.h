@@ -1,5 +1,6 @@
 #ifndef INC_TRIANGLEMATRIX_H
 #define INC_TRIANGLEMATRIX_H
+#include <cstddef> // size_t
 // Class: TriangleMatrix
 /// Store the upper half of a symmetric matrix
 /** Useful when calculating e.g. all N^2 distances between all atoms, 
