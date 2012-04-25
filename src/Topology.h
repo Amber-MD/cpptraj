@@ -137,7 +137,7 @@ class Topology {
     bool SetupCharMask(AtomMask &);
     bool SetupIntegerMask(AtomMask &, Frame &);
     bool SetupCharMask(AtomMask &, Frame &);
-    // ----- Topolgy modification routines -----
+    // ----- Topology modification routines -----
     Topology *modifyStateByMask(AtomMask &);
     Topology *ModifyByMap(std::vector<int>&);
 
@@ -217,7 +217,5 @@ class Topology {
     bool ParseMask(Frame &, AtomMask &,bool);
 
     std::vector<int> SetupSequentialArray(std::vector<int>&, int, std::vector<int>&);
-
-
 };
 #endif
