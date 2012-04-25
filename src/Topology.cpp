@@ -36,11 +36,7 @@ void Topology::SetParmName(std::string& title, const char* filename) {
   fileName_.assign( filename );
 }
 
-// Topology::SetParmName()
-/*void Topology::SetParmName(std::string &nameIn) {
-  parmName_ = nameIn;
-}*/
-
+// Topology::SetGBradiiSet()
 void Topology::SetGBradiiSet(std::string &gbset) {
   radius_set_ = gbset;
 }  
@@ -63,50 +59,72 @@ int Topology::FinalSoluteRes() {
   return finalSoluteRes_ + 1;
 }
 
+// Topology::Pindex()
 int Topology::Pindex() {
   return pindex_;
 }
+
+// Topology::Natom()
 int Topology::Natom() {
   return (int)atoms_.size();
 }
+
+// Topology::Nres()
 int Topology::Nres() {
   return (int)residues_.size();
 }
+
+// Topology::Nmol()
 int Topology::Nmol() {
   return (int)molecules_.size();
 }
+
+// Topology::FirstSolventMol()
 int Topology::FirstSolventMol() {
   return firstSolventMol_;
 }
+
+// Topology::Nsolvent()
 int Topology::Nsolvent() {
   return NsolventMolecules_;
 }
+
+// Topology::Nframes()
 int Topology::Nframes() {
   return nframes_;
 }
+
+// Topology::Ntypes()
 int Topology::Ntypes() {
   return ntypes_;
 }
+
+// Topology::IncreaseFrames()
 void Topology::IncreaseFrames(int frames) {
   nframes_ += frames;
 }
-const char *Topology::ResName(int resnum) {
-  return residues_[resnum].c_str();
-}
-int Topology::Mol_FirstRes(int mol) {
-  return molecules_[mol].FirstRes();
-}
+
+// Topology::c_str()
+/** Return a printf-compatible char* of the parm name, or the full parm
+  * filename if the parm name is empty.
+  */
 const char *Topology::c_str() {
   if (!parmName_.empty())
     return parmName_.c_str();
   return fileName_.c_str();
 }
+
+// Topology::ParmName()
 std::string Topology::ParmName() { 
   return parmName_;
 }
+
+// Topology::OriginalFilename()
 std::string Topology::OriginalFilename() {
   return fileName_;
 }
+
+// Topology::GBradiiSet()
 std::string Topology::GBradiiSet() {
   return radius_set_;
 }
@@ -565,6 +583,7 @@ int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh,
   return 0;
 }
 
+// Topology::SetAngleInfo()
 int Topology::SetAngleInfo(std::vector<int>& angles, std::vector<int>& anglesh,
                            std::vector<double>& tk, std::vector<double>& teq)
 {
@@ -575,6 +594,7 @@ int Topology::SetAngleInfo(std::vector<int>& angles, std::vector<int>& anglesh,
   return 0;
 }
 
+// Topology::SetDihedralInfo()
 int Topology::SetDihedralInfo(std::vector<int>& dihedrals, std::vector<int>& dihedralsh,
                               std::vector<double>& pk, std::vector<double>& pn,
                               std::vector<double>& phase,
@@ -594,6 +614,7 @@ int Topology::SetDihedralInfo(std::vector<int>& dihedrals, std::vector<int>& dih
   return 0;
 }
 
+// Topology::SetAmberHbond()
 int Topology::SetAmberHbond(std::vector<double>& asol, std::vector<double>& bsol,
                             std::vector<double>& hbcut)
 {
@@ -603,6 +624,7 @@ int Topology::SetAmberHbond(std::vector<double>& asol, std::vector<double>& bsol
   return 0;
 }
 
+// Topology::SetAmberExtra()
 // TODO: Auto generate
 int Topology::SetAmberExtra(std::vector<double>& solty, std::vector<NameType>& itree, 
                             std::vector<int>& join, std::vector<int>& irotat)

@@ -15,7 +15,6 @@ class Topology {
     ~Topology();
     // ----- Set internal variables -----
     void SetDebug(int);
-    //void SetParmName(const char*);
     void SetParmName(std::string&, const char*);
     void SetGBradiiSet(std::string&);
     void SetPindex(int);
@@ -31,8 +30,6 @@ class Topology {
     int Nframes();
     int Ntypes();
     void IncreaseFrames(int);
-    const char *ResName(int); // TODO: Obsolete
-    int Mol_FirstRes(int);
     const char *c_str();
     std::string ParmName();
     std::string OriginalFilename();
