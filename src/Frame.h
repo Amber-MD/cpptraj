@@ -21,7 +21,7 @@ class Frame {
     // Construction/Destruction/Assignment
     Frame();
     Frame(int);
-    Frame(double*, int);
+    Frame(double*, int, double*);
     Frame(int, double *);
     Frame(AtomMask &, double *);
     Frame(Frame &, AtomMask &);

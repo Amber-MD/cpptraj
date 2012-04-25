@@ -42,7 +42,7 @@ Frame::Frame(int natomIn) :
 
 // CONSTRUCTOR
 /// Copy given coords
-Frame::Frame(double *Xin, int natomIn) :
+Frame::Frame(double *Xin, int natomIn, double *massIn) :
   natom_(natomIn), 
   maxnatom_(natomIn),
   Ncoord_(natomIn*3),
@@ -55,6 +55,8 @@ Frame::Frame(double *Xin, int natomIn) :
   if (Ncoord_ > 0) {
     X_ = new double[ Ncoord_ ];
     memcpy(X_, Xin, Ncoord_*sizeof(double));
+    Mass_ = new double[ natom_ ];
+    memcpy(Mass_, massIn, natom_*sizeof(double));
   }
 }
 
