@@ -1,10 +1,7 @@
 #include "Integrate.h"
 #include "CpptrajStdio.h"
-/*! \file Integrate.cpp
-    \brief Routines for interpolation and integration.
- */
 
-// cubicSpline_coeff
+// Interpolate::cubicSpline_coeff()
 /** Given a set of x and y values of size n, compute the b, c, and d
   * coefficients for n interpolating cubic splines of form:
   *
@@ -21,9 +18,6 @@
   * \param x Input X values
   * \param y Corresponding Y values
   * \param n Total number of X/Y values
-  * \param b Output b coefficients
-  * \param c Output c coefficients
-  * \param d Output d coefficients
   */
 void Interpolate::cubicSpline_coeff(double *x, double *y, int n) 
 {
@@ -98,21 +92,15 @@ void Interpolate::cubicSpline_coeff(double *x, double *y, int n)
   }
 }
 
-// cubicSpline_eval()
+// Interpolate::cubicSpline_eval() 
 /** Evaluate cubic spline function with pre-calcd coefficients in b, c, and
-  * d from coordinates x/y for all points in u.
-  * \param u Points at which spline function will be evaluated.
-  * \param v Evaluated points.
-  * \param ulen Number of points to be evaluated
+  * d from coordinates x/y for all points in mesh.
   * \param x Input X coordinates
   * \param y Input Y coordinates
-  * \param b Precalcd b coefficients
-  * \param c Precalcd c coefficients
-  * \param d Precalcd d coefficients
   * \param n number of data points in x,y,b,c,d
   * \return 0 on success, 1 on error.
   */
-int Interpolate::cubicSpline_eval(double *u, double *v, int ulen, double *x, double *y, int n)
+int Interpolate::cubicSpline_eval(double *x, double *y, int n)
 {
   int xidx;  
 
@@ -121,8 +109,8 @@ int Interpolate::cubicSpline_eval(double *u, double *v, int ulen, double *x, dou
     return 1;
   }
 
-  for (int uidx = 0; uidx < ulen; uidx++) {
-    double U = u[uidx];
+  for (int uidx = 0; uidx < mesh_size_; uidx++) {
+    double U = mesh_x_[uidx];
 
     // Search for U in x
     if (U < x[0])
@@ -145,33 +133,37 @@ int Interpolate::cubicSpline_eval(double *u, double *v, int ulen, double *x, dou
     
     // Evaluate v for this u
     double dx = U - x[xidx];
-    v[uidx] = y[xidx] + dx*(b[xidx] + dx*(c[xidx] + dx*d[xidx])); 
+    mesh_y_[uidx] = y[xidx] + dx*(b[xidx] + dx*(c[xidx] + dx*d[xidx])); 
   }
   return 0;
 }
 
-// integrate_trapezoid()
-/** Integrate the set x,y of size n using the trapezoid rule.
+// Interpolate::Integrate_Trapezoid() 
+/** Integrate the mesh using the trapezoid rule.
   */
-double integrate_trapezoid(double *x, double *y, int n) {
+double Interpolate::Integrate_Trapezoid() {
   double sum = 0.0;
 
-  if (n < 2) return 0.0;
+  if (mesh_size_ < 2) return 0.0;
   
-  for (int i = 1; i < n; i++) {
-      double b_minus_a = (x[i] - x[i - 1]);
-      sum += (b_minus_a * (y[i - 1] + y[i]) * 0.5);
+  for (int i = 1; i < mesh_size_; i++) {
+      double b_minus_a = (mesh_x_[i] - mesh_x_[i - 1]);
+      sum += (b_minus_a * (mesh_y_[i - 1] + mesh_y_[i]) * 0.5);
   }
   return sum;
 }
 
-// set_xvalues_range()
-/** Given a start, stop, and size, generate x values.
+// Interpolate::Set_meshX() 
+/** Given a start, stop, and size, set up mesh x values.
   */
-void set_xvalues_range(double *x_out, double ti, double tf, int n) {
+void Interpolate::Set_meshX(double ti, double tf, int n) {
+  mesh_size_ = n;
+  mesh_x_.resize( mesh_size_ );
+  mesh_y_.resize( mesh_size_ );
+
   double s = (ti + tf)/2;
   double d = (tf - ti)/2;
-  for (int i = 0; i < n; i++)
-    x_out[i] = s + d*((double) (2*i + 1 - n)/(n - 1));
+  for (int i = 0; i < mesh_size_; i++)
+    mesh_x_[i] = s + d*((double) (2*i + 1 - n)/(n - 1));
 }
 

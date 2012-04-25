@@ -1406,9 +1406,6 @@ int Rotdif::DetermineDeffs() {
   double *p1;              // Hold Y values of C(t) for p1
   double *p2;              // Hold Y values of C(t) for p2
   double *pY;              // Point to p1 or p2 depending on olegendre
-  double *mesh_x;          // Hold interpolated X values for C(t)
-  double *mesh_y;          // Hold interpolated Y values for C(t)
-  int mesh_size;           // Size of interpolated mesh, currently 2 x maxdat
   Interpolate spline;      // Used to interpolate C(t)
   // DEBUG
   CpptrajFile outfile;
@@ -1433,10 +1430,7 @@ int Rotdif::DetermineDeffs() {
     pX[i] *= tfac;
   }
   // Allocate mesh to hold interpolated C(t)
-  mesh_size = maxdat * 2;
-  mesh_x = new double[ mesh_size ];
-  mesh_y = new double[ mesh_size ];
-  set_xvalues_range(mesh_x, ti, tf, mesh_size); 
+  spline.Set_meshX( ti, tf, maxdat * 2 );
   // Pointer to random vectors
   double *rndvec = random_vectors;
   // Check order of legendre polynomial to determine whether we use p1 or p2
@@ -1474,9 +1468,9 @@ int Rotdif::DetermineDeffs() {
     // Calculate spline coefficients
     spline.cubicSpline_coeff(pX, pY, maxdat);
     // Calculate mesh Y values
-    spline.cubicSpline_eval(mesh_x,mesh_y,mesh_size, pX, pY, maxdat);
+    spline.cubicSpline_eval( pX, pY, maxdat );
     // Integrate
-    double integral = integrate_trapezoid(mesh_x, mesh_y, mesh_size);
+    double integral = spline.Integrate_Trapezoid();
     // Solve for deff
     D_eff[vec] = calcEffectiveDiffusionConst(integral);
 
@@ -1493,8 +1487,8 @@ int Rotdif::DetermineDeffs() {
         NumberFilename(namebuffer, (char*)"mesh.dat", vec);
         outfile.SetupWrite(namebuffer, debug);
         outfile.OpenFile();
-        for (int i=0; i < mesh_size; i++)
-          outfile.Printf("%lf %lf\n",mesh_x[i],mesh_y[i]);
+        for (int i=0; i < spline.Mesh_Size(); i++)
+          outfile.Printf("%lf %lf\n", spline.X(i), spline.Y(i));
         outfile.CloseFile(); 
       }
       mprintf("DBG: Vec %i Spline integral= %12.4lf\n",vec,integral);
@@ -1511,8 +1505,6 @@ int Rotdif::DetermineDeffs() {
   delete[] p1;
   delete[] p2;
   delete[] pX;
-  delete[] mesh_x;
-  delete[] mesh_y;
   return 0;
 }
 
