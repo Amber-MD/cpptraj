@@ -321,8 +321,9 @@ int NetcdfFile::NC_create(const char* Name, NCTYPE type, int natomIn, bool hasVe
   int NDIM;
   nc_type dataType;
 
-  mprintf("DEBUG: NC_create: %s  natom=%i V=%i  box=%i  temp=%i  time=%i\n",
-          Name, natomIn, (int)hasVelocity, (int)hasBox, (int)hasTemperature, (int)hasTime);
+  if (ncdebug_>1)
+    mprintf("DEBUG: NC_create: %s  natom=%i V=%i  box=%i  temp=%i  time=%i\n",
+            Name, natomIn, (int)hasVelocity, (int)hasBox, (int)hasTemperature, (int)hasTime);
 
   if ( checkNCerr( nc_create( Name, NC_64BIT_OFFSET, &ncid_) ) )
     return 1;
