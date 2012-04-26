@@ -50,7 +50,7 @@ void ProgressBar::Update(int current) {
   } else {
     currentPercent = current * C_over_max;
     if (currentPercent >= targetPercent) {
-      if (current==max) 
+      if (current>=max) 
         mprintf("100%% Complete.\n");
       else {
         targetPercent+=10;
