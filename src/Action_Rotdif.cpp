@@ -10,9 +10,6 @@
 
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
-  // Rotdif.f
-  //double random_(int&);
-  //void tensorfit_(double*,int&,double*,int&,int&,double&,int&);
   // LAPACK
   void dgesvd_(char*, char*, int&, int&, double*,
                int&, double*, double*, int&, double*, int&,
@@ -26,50 +23,46 @@ extern "C" {
 }
 
 // CONSTRUCTOR
-Rotdif::Rotdif() {
-  //fprintf(stderr,"Rotdif Con\n");
-  rseed = 1;
-  nvecs = 0;
-  tfac = 0.0;
-  ti = 0.0;
-  tf = 0.0;
-  itmax = 0;
-  delmin = 0.0;
-  d0 = 0.0;
-  olegendre = 2;
-  ncorr = 0;
-  delqfrac = 0;
-  amoeba_ftol=0.0000001;
-  amoeba_itmax=10000;
-  do_gridsearch = false;
-
-  work = NULL;
-  lwork = 0;
-
-  randvecOut = NULL;
-  randvecIn = NULL;
-  rmOut = NULL;
-  deffOut = NULL;
-
-  RefParm = NULL;
- 
-  random_vectors = NULL;
-  D_eff = NULL;
-  Tau=NULL;
+Rotdif::Rotdif() :
+  rseed_( 1 ),
+  nvecs_( 0 ),
+  tfac_( 0.0 ),
+  ti_( 0.0 ),
+  tf_( 0.0 ),
+  itmax_( 0 ),
+  delmin_( 0.0 ),
+  d0_( 0.0 ),
+  olegendre_( 2 ),
+  ncorr_( 0 ),
+  delqfrac_( 0 ),
+  amoeba_ftol_(0.0000001 ),
+  amoeba_itmax_(10000 ),
+  do_gridsearch_( false ),
+  work_( NULL ),
+  lwork_( 0 ),
+  randvecOut_( NULL ),
+  randvecIn_( NULL ),
+  rmOut_( NULL ),
+  deffOut_( NULL ),
+  random_vectors_( NULL ),
+  D_eff_( NULL ),
+  Tau_( NULL )
+{
+  //fprintf(stderr,"Rotdif Con\n") ),
 } 
 
 // DESTRUCTOR
 Rotdif::~Rotdif() {
   //fprintf(stderr,"Rotdif Destructor.\n");
-  for (std::vector<double*>::iterator Rmatrix = Rmatrices.begin();
-                                      Rmatrix != Rmatrices.end();
+  for (std::vector<double*>::iterator Rmatrix = Rmatrices_.begin();
+                                      Rmatrix != Rmatrices_.end();
                                       Rmatrix++)
     delete[] *Rmatrix;
-  if (work!=NULL) delete[] work;
-  if (random_vectors!=NULL) delete[] random_vectors;
-  if (D_eff!=NULL) delete[] D_eff;
+  if (work_!=NULL) delete[] work_;
+  if (random_vectors_!=NULL) delete[] random_vectors_;
+  if (D_eff_!=NULL) delete[] D_eff_;
   // Close output file
-  outfile.CloseFile();
+  outfile_.CloseFile();
 }
 
 // Rotdif::init()
@@ -91,37 +84,37 @@ int Rotdif::init( ) {
   char *referenceName, *mask0, *outfilename;
   double Trans[3]; // Dummy variable for CenteredRef routine
   // Get Keywords
-  nvecs = actionArgs.getKeyInt("nvecs",1000);
-  rseed = actionArgs.getKeyInt("rseed",80531);
-  ncorr = actionArgs.getKeyInt("ncorr",0);
-  tfac = actionArgs.getKeyDouble("dt",0);
-  if (tfac<=0) {
+  nvecs_ = actionArgs.getKeyInt("nvecs",1000);
+  rseed_ = actionArgs.getKeyInt("rseed",80531);
+  ncorr_ = actionArgs.getKeyInt("ncorr",0);
+  tfac_ = actionArgs.getKeyDouble("dt",0);
+  if (tfac_<=0) {
     mprinterr("    Error: Rotdif: dt (timestep) must be specified and > 0.\n");
     return 1;
   }
-  ti = actionArgs.getKeyDouble("ti",0);
-  tf = actionArgs.getKeyDouble("tf",0);
-  if (tf <= ti) {
+  ti_ = actionArgs.getKeyDouble("ti",0);
+  tf_ = actionArgs.getKeyDouble("tf",0);
+  if (tf_ <= ti_) {
     mprinterr("    Error: Rotdif: Initial time ti (%lf) must be < final time tf (%lf).\n",
-              ti, tf);
+              ti_, tf_);
     return 1;
   }
-  itmax = actionArgs.getKeyInt("itmax",500);
-  delmin = actionArgs.getKeyDouble("tol",0.000001);
-  d0 = actionArgs.getKeyDouble("d0",0.03);
-  olegendre = actionArgs.getKeyInt("order",2);
-  if (olegendre!=1 && olegendre!=2) {
+  itmax_ = actionArgs.getKeyInt("itmax",500);
+  delmin_ = actionArgs.getKeyDouble("tol",0.000001);
+  d0_ = actionArgs.getKeyDouble("d0",0.03);
+  olegendre_ = actionArgs.getKeyInt("order",2);
+  if (olegendre_!=1 && olegendre_!=2) {
     mprinterr("    Error: Rotdif: Order of legendre polynomial (%i) must be 1 or 2.\n",
-              olegendre);
+              olegendre_);
     return 1;
   }
-  delqfrac = actionArgs.getKeyDouble("delqfrac",0.5);
-  randvecOut = actionArgs.getKeyString("rvecout",NULL);
-  randvecIn = actionArgs.getKeyString("rvecin",NULL);
-  rmOut = actionArgs.getKeyString("rmout",NULL);
-  deffOut = actionArgs.getKeyString("deffout",NULL);
+  delqfrac_ = actionArgs.getKeyDouble("delqfrac",0.5);
+  randvecOut_ = actionArgs.getKeyString("rvecout",NULL);
+  randvecIn_ = actionArgs.getKeyString("rvecin",NULL);
+  rmOut_ = actionArgs.getKeyString("rmout",NULL);
+  deffOut_ = actionArgs.getKeyString("deffout",NULL);
   outfilename = actionArgs.getKeyString("outfile",NULL);
-  do_gridsearch = actionArgs.hasKey("gridsearch");
+  do_gridsearch_ = actionArgs.hasKey("gridsearch");
 
   referenceName=actionArgs.getKeyString("ref",NULL);
   refindex=actionArgs.getKeyInt("refindex",-1);
@@ -130,27 +123,27 @@ int Rotdif::init( ) {
 
   // Get Masks
   mask0 = actionArgs.getNextMask();
-  RefMask.SetMaskString(mask0);
-  TargetMask.SetMaskString(mask0);
+  AtomMask RefMask(mask0);
+  TargetMask_.SetMaskString(mask0);
 
   // Dataset
   
   // Initialize random number generator
-  RNgen.rn_set( rseed );
+  RNgen_.rn_set( rseed_ );
 
   // Set up reference for RMSD
   // Attempt to get reference index by name
   if (referenceName!=NULL)
     refindex=FL->FindName(referenceName);
   // Get reference frame by index
-  Frame *TempFrame=FL->GetFrame(refindex);
+  Frame* TempFrame=FL->GetFrame(refindex);
   if (TempFrame==NULL) {
     mprinterr("    Error: Rotdif::init: Could not get reference index %i\n",refindex);
     return 1;
   }
-  RefFrame = *TempFrame;
+  //RefFrame = *TempFrame;
   // Set reference parm
-  RefParm = FL->GetFrameParm(refindex);
+  Topology* RefParm = FL->GetFrameParm(refindex);
   // Setup reference mask
   if (RefParm->SetupIntegerMask( RefMask )) return 1;
   if (RefMask.None()) {
@@ -158,43 +151,43 @@ int Rotdif::init( ) {
     return 1;
   }
   // Allocate frame for selected reference atoms
-  SelectedRef.SetupFrameFromMask(RefMask, RefParm->Mass());
+  SelectedRef_.SetupFrameFromMask(RefMask, RefParm->Mass());
   // Set reference frame coordinates
-  SelectedRef.SetCoordinates(RefFrame, RefMask);
+  SelectedRef_.SetCoordinates(*TempFrame, RefMask);
   // Always fitting; Pre-center reference frame
-  SelectedRef.CenterReference(Trans, useMass_); 
+  SelectedRef_.CenterReference(Trans, useMass_); 
 
   // Open output file. Defaults to stdout if no name specified
-  if (outfile.SetupWrite(outfilename,debug)) {
+  if (outfile_.SetupWrite(outfilename,debug)) {
     mprinterr("Error setting up Rotdif output file.\n");
     return 1;
   }
-  if (outfile.OpenFile()) {
+  if (outfile_.OpenFile()) {
     mprinterr("Error opening Rotdif output file.\n");
     return 1;
   }
 
-  mprintf("    ROTDIF: Random seed %i, # of random vectors to generate: %i\n",rseed,nvecs);
+  mprintf("    ROTDIF: Random seed %i, # of random vectors to generate: %i\n",rseed_,nvecs_);
   mprintf("            Max length to compute time correlation functions:");
-  if (ncorr == 0)
+  if (ncorr_ == 0)
     mprintf(" Total # of frames\n");
   else
-    mprintf(" %i\n",ncorr);
-  mprintf("            Timestep = %.4lf, T0 = %.4lf, TF = %.4lf\n",tfac,ti,tf);
+    mprintf(" %i\n",ncorr_);
+  mprintf("            Timestep = %.4lf, T0 = %.4lf, TF = %.4lf\n",tfac_,ti_,tf_);
   mprintf("            Iterative solver: Max iterations = %i, tol = %lf, initial guess = %lf\n",
-          itmax, delmin,d0);
-  mprintf("            Order of Legendre polynomial = %i\n",olegendre);
-  mprintf("            Simplex scaling factor=%.4lf\n",delqfrac);
-  if (do_gridsearch)
+          itmax_, delmin_, d0_);
+  mprintf("            Order of Legendre polynomial = %i\n",olegendre_);
+  mprintf("            Simplex scaling factor=%.4lf\n",delqfrac_);
+  if (do_gridsearch_)
     mprintf("            Grid search will be performed for Q with full anisotropy (time consuming)\n");
-  if (randvecIn!=NULL)
-    mprintf("            Random vectors will be read from %s\n",randvecIn);
-  if (randvecOut!=NULL)
-    mprintf("            Random vectors will be written to %s\n",randvecOut);
-  if (rmOut!=NULL)
-    mprintf("            Rotation matrices will be written out to %s\n",rmOut);
-  if (deffOut!=NULL)
-    mprintf("            Deff will be written out to %s\n",deffOut);
+  if (randvecIn_!=NULL)
+    mprintf("            Random vectors will be read from %s\n",randvecIn_);
+  if (randvecOut_!=NULL)
+    mprintf("            Random vectors will be written to %s\n",randvecOut_);
+  if (rmOut_!=NULL)
+    mprintf("            Rotation matrices will be written out to %s\n",rmOut_);
+  if (deffOut_!=NULL)
+    mprintf("            Deff will be written out to %s\n",deffOut_);
 #ifdef NO_PTRAJ_ANALYZE
   mprintf("------------------------------------------------------\n");
   mprintf("Warning: Cpptraj was compiled with -DNO_PTRAJ_ANALYZE.\n");
@@ -216,23 +209,23 @@ int Rotdif::init( ) {
   */
 int Rotdif::setup() {
 
-  if ( currentParm->SetupIntegerMask( TargetMask ) ) return 1;
-  if ( TargetMask.None() ) {
+  if ( currentParm->SetupIntegerMask( TargetMask_ ) ) return 1;
+  if ( TargetMask_.None() ) {
     mprintf("    Error: Rotdif::setup: No atoms in mask.\n");
     return 1;
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  SelectedTarget.SetupFrameFromMask(TargetMask, currentParm->Mass());
+  SelectedTgt_.SetupFrameFromMask(TargetMask_, currentParm->Mass());
   // Check that num atoms in frame mask from this parm match ref parm mask
-  if ( RefMask.Nselected() != TargetMask.Nselected() ) {
-    mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",TargetMask.Nselected());
-    mprintf( "           equal number of atoms in Ref mask (%i).\n",RefMask.Nselected());
+  if ( SelectedRef_.Natom() != TargetMask_.Nselected() ) {
+    mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",TargetMask_.Nselected());
+    mprintf( "           equal number of atoms in Ref mask (%i).\n",SelectedRef_.Natom());
     return 1;
   }
   
   // Print info for this parm
-  mprintf("    ROTDIF: %i atoms selected for RMS fit.\n",TargetMask.Nselected());
+  mprintf("    ROTDIF: %i atoms selected for RMS fit.\n",TargetMask_.Nselected());
         
   return 0;  
 }
@@ -244,12 +237,12 @@ int Rotdif::action() {
   double *U, Trans[6];
 
   // Set selected frame atoms. Masses have already been set.
-  SelectedTarget.SetCoordinates(*currentFrame, TargetMask);
+  SelectedTgt_.SetCoordinates(*currentFrame, TargetMask_);
 
   U = new double[ 9 ];
-  SelectedTarget.RMSD_CenteredRef(SelectedRef, U, Trans, useMass_);
+  SelectedTgt_.RMSD_CenteredRef(SelectedRef_, U, Trans, useMass_);
 
-  Rmatrices.push_back( U );
+  Rmatrices_.push_back( U );
 
   return 0;
 } 
@@ -273,27 +266,27 @@ int Rotdif::action() {
 double *Rotdif::randvec() {
   const size_t BUF_SIZE = 83;
   double *XYZ;
-  int xyz_size = nvecs * 3;
+  int xyz_size = nvecs_ * 3;
   CpptrajFile vecIn;
   char buffer[BUF_SIZE];
 
   XYZ = new double[ xyz_size ];
 
   // ----- Read nvecs vectors from a file
-  if (randvecIn!=NULL) {
-    if (vecIn.SetupRead(randvecIn, debug)) {
-      mprinterr("Error: Could not setup random vectors input file %s",randvecIn);
+  if (randvecIn_!=NULL) {
+    if (vecIn.SetupRead(randvecIn_, debug)) {
+      mprinterr("Error: Could not setup random vectors input file %s",randvecIn_);
       delete[] XYZ;
       return NULL;
     }
     if (vecIn.OpenFile()) {
-      mprinterr("Error: Could not open random vectors input file %s",randvecIn);
+      mprinterr("Error: Could not open random vectors input file %s",randvecIn_);
       delete[] XYZ;
       return NULL;
     }
     for (int i = 0; i < xyz_size; i+=3) {
       if (vecIn.IO->Gets(buffer, BUF_SIZE) ) {
-        mprinterr("Error: Could not read vector %i from file %s\n",(i/3)+1,randvecIn);
+        mprinterr("Error: Could not read vector %i from file %s\n",(i/3)+1,randvecIn_);
         delete[] XYZ;
         return NULL;
       }
@@ -303,9 +296,9 @@ double *Rotdif::randvec() {
   // ----- Generate nvecs vectors
   } else {
     for (int i = 0; i < xyz_size; i+=3) {
-      double phi = TWOPI * RNgen.rn_gen();
+      double phi = TWOPI * RNgen_.rn_gen();
       // XYZ[i+2] is cos(theta)
-      XYZ[i+2] = 1 - RNgen.rn_gen();
+      XYZ[i+2] = 1 - RNgen_.rn_gen();
       double theta = acos( XYZ[i+2] );
       double sintheta = sin( theta );
       XYZ[i  ] = sintheta * cos( phi );
@@ -313,14 +306,14 @@ double *Rotdif::randvec() {
     }
   }
   // Print vectors
-  if (randvecOut!=NULL) {
+  if (randvecOut_!=NULL) {
     CpptrajFile rvout;
-    if (rvout.SetupWrite(randvecOut,debug)) {
-      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",randvecOut);
+    if (rvout.SetupWrite(randvecOut_,debug)) {
+      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",randvecOut_);
     } else {
       rvout.OpenFile();
       int idx = 0;
-      for (int i = 1; i <= nvecs; i++) {
+      for (int i = 1; i <= nvecs_; i++) {
         rvout.Printf("%6i  %15.8lf  %15.8lf  %15.8lf\n",i,XYZ[idx],XYZ[idx+1],XYZ[idx+2]);
         idx += 3;
       }
@@ -415,14 +408,14 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
   int i;
 
   // Always use d0 as initial guess
-  di = d0;
-  l = (double) olegendre;
+  di = d0_;
+  l = (double) olegendre_;
   fac = (l*(l+1));
   i=1;
   d = 0;
   del = DBL_MAX;
-  while ( i<=itmax && del>delmin) {
-     d = ( exp(-fac*di*ti) - exp(-fac*di*tf) );
+  while ( i<=itmax_ && del>delmin_) {
+     d = ( exp(-fac*di*ti_) - exp(-fac*di*tf_) );
      d = d / (fac*f);
      del = (d-di)/di;
      if (del < 0) del = -del; // Abs value
@@ -431,7 +424,7 @@ double Rotdif::calcEffectiveDiffusionConst(double f ) {
      di = d;
      ++i;
   }
-  if ( i>itmax && del>delmin) {
+  if ( i>itmax_ && del>delmin_) {
      mprintf("\tWarning, itsolv did not converge: # iterations=%i, fractional change=%lf\n",
              i, del);
   } else {
@@ -580,8 +573,8 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
     if (lambda[i] < SMALL) lambda[i] = SMALL;
 
   // Loop over all vectors
-  double *randvec = random_vectors;
-  for (int i=0; i < nvecs; i++) {
+  double *randvec = random_vectors_;
+  for (int i=0; i < nvecs_; i++) {
     // Rotate vector i into D frame
     // This is an inverse rotation. Since matrix_D is in column major order
     // however, do a normal rotation instead.
@@ -613,9 +606,9 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
     //     cth2=cth*cth
     //     sphi2=sphi*sphi
     //     cphi2=cphi*cphi
-    tau1[i] = ((sintheta2 * (cosphi*cosphi)) / lambda[0]) +
-              ((sintheta2 * (sinphi*sinphi)) / lambda[2]) +
-              ((costheta*costheta)           / lambda[1]);
+    tau1_[i] = ((sintheta2 * (cosphi*cosphi)) / lambda[0]) +
+               ((sintheta2 * (sinphi*sinphi)) / lambda[2]) +
+               ((costheta*costheta)           / lambda[1]);
 
     // ----- Compute correlation time for l=2
     // pre-calculate squares
@@ -671,9 +664,9 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
     //                 (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
     double m_p2 = da - ea;
     // Sum decay constants and weights for l=2 m=-2...2
-    tau2[i] = (m_m2 / lambda[3]) + (m_m1 / lambda[4]) + (m_0 / lambda[5]) +
-              (m_p1 / lambda[6]) + (m_p2 / lambda[7]);
-    sumc2[i] = m_m2 + m_m1 + m_0 + m_p1 + m_p2;
+    tau2_[i] = (m_m2 / lambda[3]) + (m_m1 / lambda[4]) + (m_0 / lambda[5]) +
+               (m_p1 / lambda[6]) + (m_p2 / lambda[7]);
+    sumc2_[i] = m_m2 + m_m1 + m_0 + m_p1 + m_p2;
 
     randvec += 3; // Next random vector
   }
@@ -697,22 +690,22 @@ double Rotdif::chi_squared(double *Qin) {
   double chisq;
 
   // Convert input Q to Diffusion tensor D
-  Q_to_D(D_tensor, Qin);
+  Q_to_D(D_tensor_, Qin);
   // Diagonalize D; it is assumed workspace (work, lwork) set up prior 
   // to this call.
   // NOTE: Due to the fortran call, the eigenvectors are returned in COLUMN
   //       MAJOR order.
-  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor, n_cols, D_XYZ, work, lwork, info);
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor_, n_cols, D_XYZ_, work_, lwork_, info);
   // Check for convergence
   //if (info > 0) {
   //  mprinterr("The algorithm computing the eigenvalues/eigenvectors of D failed to converge.\n");
   //  return -1;
   //}
-  calc_Asymmetric(D_XYZ, D_tensor);
+  calc_Asymmetric(D_XYZ_, D_tensor_);
 
   chisq = 0;
-  for (int i = 0; i < nvecs; i++) {
-    double diff = D_eff[i] - (*Tau)[i];
+  for (int i = 0; i < nvecs_; i++) {
+    double diff = D_eff_[i] - (*Tau_)[i];
     chisq += (diff * diff); 
   }
 
@@ -815,7 +808,7 @@ int Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
       //mprintf("Abs(yihi - yilo)=%lf, Abs(yihi)=%lf, Abs(yilo)=%lf\n",
       //        abs_yhi_ylo,abs_yhi,abs_ylo);
       rtol = 2.0 * (abs_yhi_ylo / (abs_yhi + abs_ylo));
-      if (rtol < amoeba_ftol) {
+      if (rtol < amoeba_ftol_) {
         swap = ysearch[0];
         ysearch[0] = ysearch[ilo];
         ysearch[ilo] = swap;
@@ -828,8 +821,8 @@ int Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
       }
       //mprintf("\tIn amoeba, iter=%i, rtol=%15.6le\n",iter,rtol); 
 
-      if (iter >= amoeba_itmax) {
-        mprintf("Max iterations (%i) exceeded in amoeba.\n",amoeba_itmax);
+      if (iter >= amoeba_itmax_) {
+        mprintf("Max iterations (%i) exceeded in amoeba.\n",amoeba_itmax_);
         return iter;
       }
       iter += 2;
@@ -897,25 +890,25 @@ int Rotdif::Simplex_min(double *Q_vector) {
   //int test_seed = -3001796; // For tensorfit_ comparison
 
   // Allocate tau1, tau2, and sumc2; used in calc_Asymmetric
-  tau1.resize(nvecs);
-  tau2.resize(nvecs);
-  sumc2.resize(nvecs);
+  tau1_.resize(nvecs_);
+  tau2_.resize(nvecs_);
+  sumc2_.resize(nvecs_);
   // Set Tau to be used in chi_squared based on olegendre
-  if (olegendre == 1)
-    Tau = &tau1;
-  else if (olegendre == 2)
-    Tau = &tau2;
+  if (olegendre_ == 1)
+    Tau_ = &tau1_;
+  else if (olegendre_ == 2)
+    Tau_ = &tau2_;
   else
-    Tau = NULL; // Should never get here
+    Tau_ = NULL; // Should never get here
   // First, back-calculate with the SVD tensor, but with the full anisotropy
   // chi_squared performs diagonalization. The workspace for dsyev should
   // already have been set up in Tensor_Fit.
-  outfile.Printf("Same diffusion tensor, but full anisotropy:\n");
-  outfile.Printf("  chi_squared for SVD tensor is %15.5lf\n",chi_squared(Q_vector));
-  outfile.Printf("     taueff(obs) taueff(calc)\n");
-  for (int i = 0; i < nvecs; i++) 
-    outfile.Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff[i],(*Tau)[i],sumc2[i]);
-  outfile.Printf("\n");
+  outfile_.Printf("Same diffusion tensor, but full anisotropy:\n");
+  outfile_.Printf("  chi_squared for SVD tensor is %15.5lf\n",chi_squared(Q_vector));
+  outfile_.Printf("     taueff(obs) taueff(calc)\n");
+  for (int i = 0; i < nvecs_; i++) 
+    outfile_.Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff_[i],(*Tau_)[i],sumc2_[i]);
+  outfile_.Printf("\n");
 
   // Now execute the simplex search method with initial vertices,
   // xsimplx, and chi-squared values, ysearch.
@@ -930,13 +923,13 @@ int Rotdif::Simplex_min(double *Q_vector) {
     for (int j = 0; j < SM_NP; j++) {
       for (int k = 0; k < SM_NP; k++) {
         if (j==k) {
-          sgn = RNgen.rn_gen() - 0.5; // -0.5 <= sgn <= 0.5
+          sgn = RNgen_.rn_gen() - 0.5; // -0.5 <= sgn <= 0.5
           //sgn = random_(test_seed) - 0.5; // For tensorfit_ comparison
           if (sgn < 0)
             sgn = -1.0;
           else
             sgn = 1.0;
-          xsmplx[j+1][k] = xsmplx[0][k] * (1+(sgn*delqfrac));
+          xsmplx[j+1][k] = xsmplx[0][k] * (1+(sgn*delqfrac_));
         } else {
           xsmplx[j+1][k] = xsmplx[0][k];
         }
@@ -961,13 +954,13 @@ int Rotdif::Simplex_min(double *Q_vector) {
     }*/
     Average_vertices( xsearch, xsmplx );
     sgn = chi_squared( xsearch );
-    calculate_D_properties(D_XYZ, d_props);
+    calculate_D_properties(D_XYZ_, d_props);
 
-    outfile.Printf("Input to amoeba - average at cycle %i\n",i+1);
-    outfile.Printf("    Initial chisq = %15.5lf\n",sgn);
-    PrintMatrix(outfile,"Dav, aniostropy, rhombicity:",d_props,1,3);
-    PrintMatrix(outfile,"D tensor eigenvalues:",D_XYZ,1,3);
-    PrintMatrix(outfile,"D tensor eigenvectors (in columns):",D_tensor,3,3);
+    outfile_.Printf("Input to amoeba - average at cycle %i\n",i+1);
+    outfile_.Printf("    Initial chisq = %15.5lf\n",sgn);
+    PrintMatrix(outfile_,"Dav, aniostropy, rhombicity:",d_props,1,3);
+    PrintMatrix(outfile_,"D tensor eigenvalues:",D_XYZ_,1,3);
+    PrintMatrix(outfile_,"D tensor eigenvectors (in columns):",D_tensor_,3,3);
 
     Amoeba( xsmplx, ysearch );
 
@@ -982,21 +975,21 @@ int Rotdif::Simplex_min(double *Q_vector) {
     // Average the vertices and compute details of the average.
     Average_vertices( xsearch, xsmplx );
     sgn = chi_squared( xsearch );
-    calculate_D_properties(D_XYZ, d_props);
+    calculate_D_properties(D_XYZ_, d_props);
 
-    outfile.Printf("Output from amoeba - average at cycle %i\n",i+1);
-    outfile.Printf("    Final chisq = %15.5lf\n",sgn);
-    PrintMatrix(outfile,"Dav, aniostropy, rhombicity:",d_props,1,3);
-    PrintMatrix(outfile,"D tensor eigenvalues:",D_XYZ,1,3);
-    PrintMatrix(outfile,"D tensor eigenvectors (in columns):",D_tensor,3,3);
-    outfile.Printf("     taueff(obs) taueff(calc)\n");
-    for (int i = 0; i < nvecs; i++)
-      outfile.Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff[i],(*Tau)[i],sumc2[i]);
-    outfile.Printf("\n");
+    outfile_.Printf("Output from amoeba - average at cycle %i\n",i+1);
+    outfile_.Printf("    Final chisq = %15.5lf\n",sgn);
+    PrintMatrix(outfile_,"Dav, aniostropy, rhombicity:",d_props,1,3);
+    PrintMatrix(outfile_,"D tensor eigenvalues:",D_XYZ_,1,3);
+    PrintMatrix(outfile_,"D tensor eigenvectors (in columns):",D_tensor_,3,3);
+    outfile_.Printf("     taueff(obs) taueff(calc)\n");
+    for (int i = 0; i < nvecs_; i++)
+      outfile_.Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff_[i],(*Tau_)[i],sumc2_[i]);
+    outfile_.Printf("\n");
    
     // cycle over main loop, but first reduce the size of delqfrac:
-    delqfrac *= 0.750;
-    if (debug>0)mprintf("\tAmoeba: Setting delqfrac to %15.7lf\n",delqfrac);
+    delqfrac_ *= 0.750;
+    if (debug>0)mprintf("\tAmoeba: Setting delqfrac to %15.7lf\n",delqfrac_);
   }
 
   // Set q vector to the final average result from simpmin
@@ -1034,17 +1027,17 @@ int Rotdif::Grid_search(double *Q_vector, int gridsize) {
   for (int b = 0; b < 6; b++) best[b] = Q_vector[b];
 
   for (int i = gridmin; i < gridmax; i++) {
-    xsearch[0] = Q_vector[0] + (i*delqfrac/100.0);
+    xsearch[0] = Q_vector[0] + (i*delqfrac_/100.0);
     for (int j = gridmin; j < gridmax; j++) {
-      xsearch[1] = Q_vector[1] + (j*delqfrac/100.0);
+      xsearch[1] = Q_vector[1] + (j*delqfrac_/100.0);
       for (int k = gridmin; k < gridmax; k++) {
-        xsearch[2] = Q_vector[2] + (k*delqfrac/100.0);
+        xsearch[2] = Q_vector[2] + (k*delqfrac_/100.0);
         for (int l = gridmin; l < gridmax; l++) {
-          xsearch[3] = Q_vector[3] + (l*delqfrac/100.0);
+          xsearch[3] = Q_vector[3] + (l*delqfrac_/100.0);
           for (int m = gridmin; m < gridmax; m++) {
-            xsearch[4] = Q_vector[4] + (m*delqfrac/100.0);
+            xsearch[4] = Q_vector[4] + (m*delqfrac_/100.0);
             for (int n = gridmin; n < gridmax; n++) {
-              xsearch[5] = Q_vector[5] + (n*delqfrac/100.0);
+              xsearch[5] = Q_vector[5] + (n*delqfrac_/100.0);
 
               sgn = chi_squared( xsearch );
               //mprintf("_Grid x0 %10.5lf\n",xsearch[0]);
@@ -1099,7 +1092,7 @@ int Rotdif::Tensor_Fit(double *vector_q) {
   //       so we actually need to construct matrix A for SVD.
   // NOTE: LAPACK SVD routine destroys matrix A which is needed later, so 
   //       create a non-flipped version (i.e. matrix At) as well.
-  int m_rows = nvecs;
+  int m_rows = nvecs_;
   int n_cols = 6;
   double *matrix_A = new double[ m_rows * n_cols ];
   double *matrix_At = new double[ m_rows * n_cols ];
@@ -1109,9 +1102,9 @@ int Rotdif::Tensor_Fit(double *vector_q) {
   int A3 = m_rows * 3;
   int A4 = m_rows * 4;
   int A5 = m_rows * 5;
-  double *rvecs = random_vectors;
+  double *rvecs = random_vectors_;
   At = matrix_At;
-  for (int i = 0; i < nvecs; i++) {
+  for (int i = 0; i < nvecs_; i++) {
     // Transpose of matrix A
     double *A = matrix_A + i;
     A[ 0] = rvecs[0] * rvecs[0];     // x^2
@@ -1145,18 +1138,18 @@ int Rotdif::Tensor_Fit(double *vector_q) {
   double *matrix_S = new double[ s_dim ];
   double *matrix_U = new double[ m_rows * m_rows ];
   double *matrix_Vt = new double[ n_cols * n_cols ];
-  lwork = -1;
+  lwork_ = -1;
   // Allocate Workspace
   dgesvd_((char*)"All",(char*)"All",m_rows, n_cols, matrix_A, lda, 
-          matrix_S, matrix_U, ldu, matrix_Vt, ldvt, &wkopt, lwork, info );
-  lwork = (int)wkopt;
-  work = new double[ lwork ];
+          matrix_S, matrix_U, ldu, matrix_Vt, ldvt, &wkopt, lwork_, info );
+  lwork_ = (int)wkopt;
+  work_ = new double[ lwork_ ];
   // Compute SVD
   dgesvd_((char*)"All",(char*)"All", m_rows, n_cols, matrix_A, lda, 
-          matrix_S, matrix_U, ldu, matrix_Vt, ldvt, work, lwork, info );
+          matrix_S, matrix_U, ldu, matrix_Vt, ldvt, work_, lwork_, info );
   // matrix_A and work no longer needed
   delete[] matrix_A;
-  delete[] work;
+  delete[] work_;
   // DEBUG - Print Sigma
   if (debug>0) {
     for (int i = 0; i < s_dim; i++) 
@@ -1205,7 +1198,7 @@ int Rotdif::Tensor_Fit(double *vector_q) {
         //mprintf(" VSU v=%i s=%i u=%i",v_idx+vs,vs,(vs*m_rows)+m);
       }
       //mprintf(") m=%i\n",m);
-      vector_q[n] += (vsu_sum * D_eff[m]);
+      vector_q[n] += (vsu_sum * D_eff_[m]);
     }
     v_idx += 6;
   }
@@ -1214,34 +1207,34 @@ int Rotdif::Tensor_Fit(double *vector_q) {
   delete[] matrix_Vt;
   delete[] matrix_U;
 
-  outfile.Printf("Results of small anisotropy (SVD) analysis:\n");
+  outfile_.Printf("Results of small anisotropy (SVD) analysis:\n");
   // Print Q vector
-  PrintMatrix(outfile,"Qxx Qyy Qzz Qxy Qyz Qxz",vector_q,1,6);
+  PrintMatrix(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz",vector_q,1,6);
   // ---------------------------------------------
 
   // Convert vector Q to diffusion tensor D
-  Q_to_D(D_tensor, vector_q);
-  PrintMatrix(outfile,"D_tensor",D_tensor,3,3);
+  Q_to_D(D_tensor_, vector_q);
+  PrintMatrix(outfile_,"D_tensor",D_tensor_,3,3);
 
   // Save D for later use in back calculating deff from Q
   for (int i = 0; i < 9; i++)
-    matrix_D_local[i] = D_tensor[i];
+    matrix_D_local[i] = D_tensor_[i];
 
   // Diagonalize D to find eigenvalues and eigenvectors
   // (principal components and axes)
   // Determine workspace. Do not delete work after set up since the 
   // Rotdif::chi_squared routine will use dsyev_ for diagnolization.
-  lwork = -1;
+  lwork_ = -1;
   n_cols = 3;
-  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor, n_cols, D_XYZ, &wkopt, lwork, info);
-  lwork = (int) wkopt;
-  work = new double[ lwork ];
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor_, n_cols, D_XYZ_, &wkopt, lwork_, info);
+  lwork_ = (int) wkopt;
+  work_ = new double[ lwork_ ];
   // Diagonalize D_tensor
-  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor, n_cols, D_XYZ, work, lwork, info);
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor_, n_cols, D_XYZ_, work_, lwork_, info);
   // Check for convergence
   if (info > 0) {
     mprinterr("The algorithm computing the eigenvalues/eigenvectors of D failed to converge.\n");
-    delete[] work;
+    delete[] work_;
     delete[] matrix_At;
     return 1;
   }
@@ -1252,21 +1245,21 @@ int Rotdif::Tensor_Fit(double *vector_q) {
   //matrix_transpose_3x3( D_tensor );
 
   // Print eigenvalues/eigenvectors
-  PrintMatrix(outfile,"D eigenvalues",D_XYZ,1,3);
-  PrintMatrix(outfile,"D eigenvectors (in columns)",D_tensor,3,3);
+  PrintMatrix(outfile_,"D eigenvalues",D_XYZ_,1,3);
+  PrintMatrix(outfile_,"D eigenvectors (in columns)",D_tensor_,3,3);
 
   // Calculate Dav, Daniso, Drhomb
-  calculate_D_properties(D_XYZ, d_props);
-  PrintMatrix(outfile,"Dav, Daniso, Drhomb",d_props,1,3);
+  calculate_D_properties(D_XYZ_, d_props);
+  PrintMatrix(outfile_,"Dav, Daniso, Drhomb",d_props,1,3);
 
   // Back-calculate the local diffusion constants via At*Q=Deff
   // First convert original D back to Q
   D_to_Q(vector_q_local, matrix_D_local);
   if (debug>0) printMatrix("D_to_Q",vector_q_local,1,6);
-  deff_local = new double[ nvecs ];
+  deff_local = new double[ nvecs_ ];
   At = matrix_At;
   // At*Q
-  for (int i=0; i < nvecs; i++) {
+  for (int i=0; i < nvecs_; i++) {
     deff_local[i]  = (At[0] * vector_q_local[0]);
     deff_local[i] += (At[1] * vector_q_local[1]);
     deff_local[i] += (At[2] * vector_q_local[2]);
@@ -1276,18 +1269,18 @@ int Rotdif::Tensor_Fit(double *vector_q) {
     At += 6;
   }
   // Convert deff to tau, Output
-  outfile.Printf("     taueff(obs) taueff(calc)\n");
+  outfile_.Printf("     taueff(obs) taueff(calc)\n");
   double sgn = 0;
-  for (int i = 0; i < nvecs; i++) {
+  for (int i = 0; i < nvecs_; i++) {
     // For the following chisq fits, convert deff to taueff
-    D_eff[i] = 1 / (6 * D_eff[i]);
+    D_eff_[i] = 1 / (6 * D_eff_[i]);
     deff_local[i] = 1 / (6 * deff_local[i]);
-    outfile.Printf("%5i%10.5lf%10.5lf\n", i+1, D_eff[i], deff_local[i]);
+    outfile_.Printf("%5i%10.5lf%10.5lf\n", i+1, D_eff_[i], deff_local[i]);
     // NOTE: in rotdif code, sig is 1.0 for all nvecs 
-    double diff = deff_local[i] - D_eff[i];
+    double diff = deff_local[i] - D_eff_[i];
     sgn += (diff * diff);
   }
-  outfile.Printf("  chisq for above is %15.5lf\n\n",sgn);
+  outfile_.Printf("  chisq for above is %15.5lf\n\n",sgn);
 
   // Cleanup
   delete[] matrix_At;
@@ -1412,11 +1405,11 @@ int Rotdif::DetermineDeffs() {
   char namebuffer[32];
   // DEBUG
 
-  itotframes = (int) Rmatrices.size();
-  if (ncorr == 0) ncorr = itotframes;
-  maxdat = ncorr + 1;
+  itotframes = (int) Rmatrices_.size();
+  if (ncorr_ == 0) ncorr_ = itotframes;
+  maxdat = ncorr_ + 1;
   // Allocate memory to hold calcd effective D values
-  D_eff = new double[ nvecs ];
+  D_eff_ = new double[ nvecs_ ];
   // Allocate memory to hold rotated vectors. Need +1 since the original
   // vector is stored at position 0. 
   rotated_vectors = new double[ 3 * (itotframes+1) ];
@@ -1427,21 +1420,21 @@ int Rotdif::DetermineDeffs() {
   // Set X values of C(t) based on tfac
   for (int i = 0; i < maxdat; i++) {
     pX[i] = (double) i;
-    pX[i] *= tfac;
+    pX[i] *= tfac_;
   }
   // Allocate mesh to hold interpolated C(t)
-  spline.Set_meshX( ti, tf, maxdat * 2 );
+  spline.Set_meshX( ti_, tf_, maxdat * 2 );
   // Pointer to random vectors
-  double *rndvec = random_vectors;
+  double *rndvec = random_vectors_;
   // Check order of legendre polynomial to determine whether we use p1 or p2
-  if (olegendre==1)
+  if (olegendre_==1)
     pY = p1;
-  else if (olegendre==2)
+  else if (olegendre_==2)
     pY = p2;
   else
     return 1; // Should never get here, olegendre is checked in init
   // LOOP OVER RANDOM VECTORS
-  for (int vec = 0; vec < nvecs; vec++) {
+  for (int vec = 0; vec < nvecs_; vec++) {
     // Pointer to soon-to-be rotated vectors
     double *rotvec = rotated_vectors; 
     // Normalize vector
@@ -1452,8 +1445,8 @@ int Rotdif::DetermineDeffs() {
     rotvec[2] = rndvec[2];
     rotvec += 3;
     // Loop over rotation matrices
-    for (std::vector<double*>::iterator rmatrix = Rmatrices.begin();
-                                        rmatrix != Rmatrices.end();
+    for (std::vector<double*>::iterator rmatrix = Rmatrices_.begin();
+                                        rmatrix != Rmatrices_.end();
                                         rmatrix++)
     {
       // Rotate normalized vector
@@ -1472,7 +1465,7 @@ int Rotdif::DetermineDeffs() {
     // Integrate
     double integral = spline.Integrate_Trapezoid();
     // Solve for deff
-    D_eff[vec] = calcEffectiveDiffusionConst(integral);
+    D_eff_[vec] = calcEffectiveDiffusionConst(integral);
 
     // DEBUG: Write out p1 and p2 ------------------------------------
     if (debug > 0) {
@@ -1492,7 +1485,7 @@ int Rotdif::DetermineDeffs() {
         outfile.CloseFile(); 
       }
       mprintf("DBG: Vec %i Spline integral= %12.4lf\n",vec,integral);
-      mprintf("DBG: deff is %lf\n",D_eff[vec]);
+      mprintf("DBG: deff is %lf\n",D_eff_[vec]);
     }
     // END DEBUG -----------------------------------------------------
 
@@ -1530,29 +1523,29 @@ void Rotdif::print() {
   mprintf("    ROTDIF:\n");
  
   // Read/Generate nvecs random vectors
-  random_vectors = randvec();
-  if (random_vectors == NULL) return;
+  random_vectors_ = randvec();
+  if (random_vectors_ == NULL) return;
 
   // If no rotation matrices generated, exit
-  if (Rmatrices.empty()) return;
+  if (Rmatrices_.empty()) return;
   // HACK: To match results from rmscorr.f (where rotation matrices are
   //       implicitly transposed), transpose each rotation matrix.
   // NOTE: Is this actually correct? Want inverse rotation?
-  for (std::vector<double*>::iterator rmatrix = Rmatrices.begin();
-                                      rmatrix != Rmatrices.end();
+  for (std::vector<double*>::iterator rmatrix = Rmatrices_.begin();
+                                      rmatrix != Rmatrices_.end();
                                       rmatrix++) {
     matrix_transpose_3x3(*rmatrix);
   }
   // Print rotation matrices
-  if (rmOut!=NULL) {
+  if (rmOut_!=NULL) {
     CpptrajFile rmout;
-    if (rmout.SetupWrite(rmOut,debug)) {
-      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",rmOut);
+    if (rmout.SetupWrite(rmOut_,debug)) {
+      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",rmOut_);
     } else {
       rmout.OpenFile();
       int rmframe=1;
-      for (std::vector<double*>::iterator rmatrix = Rmatrices.begin();
-                                          rmatrix != Rmatrices.end();
+      for (std::vector<double*>::iterator rmatrix = Rmatrices_.begin();
+                                          rmatrix != Rmatrices_.end();
                                           rmatrix++) {
         rmout.Printf("%13i %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f\n",
              rmframe++,
@@ -1564,27 +1557,27 @@ void Rotdif::print() {
     }
   }
 
-  mprintf("\t%i vectors, %u rotation matrices.\n",nvecs,Rmatrices.size());
+  mprintf("\t%i vectors, %u rotation matrices.\n",nvecs_,Rmatrices_.size());
 
   // Determine effective D for each vector
   DetermineDeffs( );
   // Print deffs
-  if (deffOut!=NULL) {
+  if (deffOut_!=NULL) {
     CpptrajFile dout;
-    if (dout.SetupWrite(deffOut,debug)) {
-      mprinterr("    Error: Rotdif: Could not set up file %s\n",deffOut);
+    if (dout.SetupWrite(deffOut_,debug)) {
+      mprinterr("    Error: Rotdif: Could not set up file %s\n",deffOut_);
     } else {
       dout.OpenFile();
-      for (int vec = 0; vec < nvecs; vec++)
-        dout.Printf("%6i%15.8lf\n",vec+1,D_eff[vec]);
+      for (int vec = 0; vec < nvecs_; vec++)
+        dout.Printf("%6i%15.8lf\n",vec+1,D_eff_[vec]);
       dout.CloseFile();
     }
   }
 
 /*
   // Create temporary copy of deff for tensorfit_ call
-  double *temp_deff = new double[ nvecs ];
-  for (int i = 0; i < nvecs; i++)
+  double *temp_deff = new double[ nvecs_ ];
+  for (int i = 0; i < nvecs_; i++)
     temp_deff[i] = D_eff[i];
   // Create temporary value of delqfrac for tensorfit_ call
   double temp_delqfrac = delqfrac;
@@ -1604,11 +1597,11 @@ void Rotdif::print() {
   Simplex_min( Q_anisotropic );
 
   // Brute force grid search
-  if (do_gridsearch)
+  if (do_gridsearch_)
     Grid_search( Q_anisotropic, 5 );
 # endif
   //int lflag = olegendre;
-  //tensorfit_(random_vectors,nvecs,temp_deff,nvecs,lflag,temp_delqfrac,debug);
+  //tensorfit_(random_vectors_,nvecs_,temp_deff,nvecs_,lflag,temp_delqfrac_,debug);
   //delete[] temp_deff;
 }
   
