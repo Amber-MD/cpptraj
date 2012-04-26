@@ -138,15 +138,14 @@ int Image::setup() {
       imageList.push_back( lastAtom );
     }
   }
-  mprintf("\tNumber of molecules to be imaged is %u based on mask [%s]\n", imageList.size(),
+  mprintf("\tNumber of molecules to be imaged is %u based on mask [%s]\n", imageList.size()/2,
            Mask1.MaskString()); 
   // DEBUG: Print all pairs
-  //for (std::vector<atomPair>::iterator ap = imageList.begin();
-  //                                     ap != imageList.end();
-  //                                     ap++)
-  //{
-  //  mprintf("\tPair: %i - %i\n",(*ap).firstAtom+1,(*ap).lastAtom);
-  //}
+  if (debug>0) {
+    for (std::vector<int>::iterator ap = imageList.begin();
+                                    ap != imageList.end(); ap+=2)
+      mprintf("\t\tMol First-Last atom#: %i - %i\n", (*ap)+1, *(ap+1) );
+  }
 
   return 0;  
 }
