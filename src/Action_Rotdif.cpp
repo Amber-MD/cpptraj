@@ -7,6 +7,7 @@
 #include "Constants.h" // TWOPI
 #include "vectormath.h"
 #include "Integrate.h"
+#include "ProgressBar.h"
 
 // Definition of Fortran subroutines in Rotdif.f called from this class
 extern "C" {
@@ -894,6 +895,7 @@ int Rotdif::Simplex_min(double *Q_vector) {
   double d_props[3];
   //int test_seed = -3001796; // For tensorfit_ comparison
 
+  mprintf("\tDetermining diffusion tensor with full anisotropy.\n");
   // Allocate tau1, tau2, and sumc2; used in calc_Asymmetric
   tau1_.resize(nvecs_);
   tau2_.resize(nvecs_);
@@ -1091,6 +1093,7 @@ int Rotdif::Tensor_Fit(double *vector_q) {
   double *At; // Used to index into matrix_At
   //double cut_ratio = 0.000001; // threshold ratio for removing small singular values in SVD
 
+  mprintf("\tDetermining diffusion tensor with small anisotropy.\n");
   // Generate matrix At
   // NOTE: The LAPACK fortran routines are COLUMN MAJOR, so m and n must be 
   //       flipped, i.e. matrix At must be tranposed before passing it in
@@ -1396,6 +1399,7 @@ int Rotdif::Tensor_Fit(double *vector_q) {
   * time correlation function curve and estimate the diffusion constant.
   * Sets D_Eff, normalizes random_vectors.
   */
+// TODO: OpenMP Parallelize
 int Rotdif::DetermineDeffs() {
   int itotframes;          // Total number of frames (rotation matrices) 
   double *rotated_vectors; // Hold vectors after rotation with Rmatrices
@@ -1408,6 +1412,9 @@ int Rotdif::DetermineDeffs() {
   // DEBUG
   CpptrajFile outfile;
   // DEBUG
+
+  mprintf("\tDetermining local diffusion constants for each vector.\n");
+  ProgressBar progress( nvecs_ );
 
   itotframes = (int) Rmatrices_.size();
   if (ncorr_ == 0) ncorr_ = itotframes;
@@ -1439,6 +1446,7 @@ int Rotdif::DetermineDeffs() {
     return 1; // Should never get here, olegendre is checked in init
   // LOOP OVER RANDOM VECTORS
   for (int vec = 0; vec < nvecs_; vec++) {
+    progress.Update( vec );
     // Pointer to soon-to-be rotated vectors
     double *rotvec = rotated_vectors; 
     // Normalize vector
@@ -1507,6 +1515,7 @@ int Rotdif::DetermineDeffs() {
     rndvec += 3;
     //break;
   }
+  progress.Update( nvecs_ );
 
   // Cleanup
   delete[] rotated_vectors;
