@@ -437,6 +437,12 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     } else {
       parmbox.SetBetaLengths( boxFromParm );
     }
+    // Check for IFBOX/BoxType mismatch
+    if (values[IFBOX]==2 && parmbox.Type() != Box::TRUNCOCT) {
+      mprintf("Warning: Amber Parm Box should be Truncated Octahedron (ifbox==2)\n");
+      mprintf("         but BOX_DIMENSIONS indicate %s - may cause imaging problems.\n",
+              parmbox.TypeName());
+    }
   }
   // New Parm only: GB parameters; radius set, radii, and screening parameters
   std::vector<double> gb_radii;
