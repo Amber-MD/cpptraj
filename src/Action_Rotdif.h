@@ -54,6 +54,7 @@ class Rotdif: public Action {
     char *randvecIn_;
     char *rmOut_;
     char *deffOut_;
+    std::string corrOut_;
 
     Frame SelectedRef_;
     AtomMask TargetMask_;

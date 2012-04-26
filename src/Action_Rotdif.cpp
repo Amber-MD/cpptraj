@@ -72,6 +72,7 @@ Rotdif::~Rotdif() {
   *                       [itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]
   *                       [delqfrac <delqfrac>] [rvecout <randvecOut>]
   *                       [rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]
+  *                       [corrout <corrOut>]
   *                       [rvecin <randvecIn>]
   *                       [gridsearch]
   */ 
@@ -114,6 +115,7 @@ int Rotdif::init( ) {
   rmOut_ = actionArgs.getKeyString("rmout",NULL);
   deffOut_ = actionArgs.getKeyString("deffout",NULL);
   outfilename = actionArgs.getKeyString("outfile",NULL);
+  corrOut_ = actionArgs.GetStringKey("corrout");
   do_gridsearch_ = actionArgs.hasKey("gridsearch");
 
   referenceName=actionArgs.getKeyString("ref",NULL);
@@ -188,6 +190,9 @@ int Rotdif::init( ) {
     mprintf("            Rotation matrices will be written out to %s\n",rmOut_);
   if (deffOut_!=NULL)
     mprintf("            Deff will be written out to %s\n",deffOut_);
+  if (!corrOut_.empty())
+    mprintf("            Time correlation for l=1 and l=2 for vector 0 will be written to %s\n",
+            corrOut_.c_str());
 #ifdef NO_PTRAJ_ANALYZE
   mprintf("------------------------------------------------------\n");
   mprintf("Warning: Cpptraj was compiled with -DNO_PTRAJ_ANALYZE.\n");
@@ -1402,7 +1407,6 @@ int Rotdif::DetermineDeffs() {
   Interpolate spline;      // Used to interpolate C(t)
   // DEBUG
   CpptrajFile outfile;
-  char namebuffer[32];
   // DEBUG
 
   itotframes = (int) Rmatrices_.size();
@@ -1468,22 +1472,33 @@ int Rotdif::DetermineDeffs() {
     D_eff_[vec] = calcEffectiveDiffusionConst(integral);
 
     // DEBUG: Write out p1 and p2 ------------------------------------
-    if (debug > 0) {
-      if (debug > 3) {
-        NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
-        outfile.SetupWrite(namebuffer,debug);
+    if (!corrOut_.empty() || debug > 3) {
+        std::string namebuffer("p1p2.dat");
+        if (!corrOut_.empty())
+          namebuffer = NumberFilename( corrOut_, vec );
+        else
+          namebuffer = NumberFilename( namebuffer, vec );
+        //NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
+        outfile.SetupWrite((char*)namebuffer.c_str(), debug);
         outfile.OpenFile();
         for (int i = 0; i < maxdat; i++) 
           outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
         outfile.CloseFile();
         //    Write Mesh
-        NumberFilename(namebuffer, (char*)"mesh.dat", vec);
-        outfile.SetupWrite(namebuffer, debug);
-        outfile.OpenFile();
-        for (int i=0; i < spline.Mesh_Size(); i++)
-          outfile.Printf("%lf %lf\n", spline.X(i), spline.Y(i));
-        outfile.CloseFile(); 
-      }
+        if (debug>3) {
+          namebuffer.assign("mesh.dat");
+          namebuffer = NumberFilename( namebuffer, vec );
+          //NumberFilename(namebuffer, (char*)"mesh.dat", vec);
+          outfile.SetupWrite((char*)namebuffer.c_str(), debug);
+          outfile.OpenFile();
+          for (int i=0; i < spline.Mesh_Size(); i++)
+            outfile.Printf("%lf %lf\n", spline.X(i), spline.Y(i));
+          outfile.CloseFile();
+        }
+        if (!corrOut_.empty()) 
+          corrOut_.clear();
+    }
+    if (debug > 0) {
       mprintf("DBG: Vec %i Spline integral= %12.4lf\n",vec,integral);
       mprintf("DBG: deff is %lf\n",D_eff_[vec]);
     }
