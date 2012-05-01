@@ -8,10 +8,18 @@
 class Atom {
   public:
     enum AtomicElementType { UNKNOWN_ELEMENT = 0,
-      HYDROGEN,   BORON,     CARBON,   NITROGEN, OXYGEN,    FLUORINE,
-      PHOSPHORUS, SULFUR,    CHLORINE, BROMINE,  IRON,      CALCIUM,
-      IODINE,     MAGNESIUM, COPPER,   LITHIUM,  POTASSIUM, RUBIDIUM,
-      CESIUM,     ZINC,      SODIUM
+      HYDROGEN,   BORON,      CARBON,   NITROGEN,  OXYGEN,     FLUORINE,
+      PHOSPHORUS, SULFUR,     CHLORINE, BROMINE,   IRON,       CALCIUM,
+      IODINE,     MAGNESIUM,  COPPER,   LITHIUM,   POTASSIUM,  RUBIDIUM,
+      CESIUM,     ZINC,       SODIUM,   ALUMINUM,  ARGON,      ARSENIC,
+      SILVER,     GOLD,       ASTATINE, BERYLLIUM, BARIUM,     BISMUTH,
+      CHROMIUM,   COBALT,     CADMIUM,  FRANCIUM,  GALLIUM,    GERMANIUM,
+      HELIUM,     HAFNIUM,    MERCURY,  INDIUM,    IRIDIUM,    KRYPTON,
+      MANGANESE,  MOLYBDENUM, NEON,     NICKEL,    NIOBIUM,    OSMIUM,
+      PALLADIUM,  PLATINUM,   LEAD,     POLONIUM,  RUTHENIUM,  RHODIUM,
+      RHENIUM,    RADON,      RADIUM,   SILICON,   SCANDIUM,   SELENIUM,
+      STRONTIUM,  TIN,        ANTIMONY, TITANIUM,  TECHNETIUM, TELLURIUM,
+      TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM 
     };
     static const char AtomicElementName[][3];
     // Constructors and assignment
@@ -104,7 +112,7 @@ class Atom {
     void AddExclusionList(std::set<int>&);
     //void ClearExcluded();
   protected:
-    static const size_t NUMELEMENTS = 22;
+    static const size_t NUMELEMENTS = 73;
   private:
 
     static const int AtomicElementNum[];
@@ -123,5 +131,6 @@ class Atom {
     std::vector<int> excluded_;
 
     void SetElementFromName();
+    void SetElementFromMass();
 };
 #endif

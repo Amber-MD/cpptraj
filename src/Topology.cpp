@@ -1552,7 +1552,7 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
   newParm->asol_ = asol_;
   newParm->bsol_ = bsol_;
   newParm->hbcut_ = hbcut_;
-  // TODO: itree, join, irotat
+  // NOTE: SOLTY is currently unused 
   newParm->solty_ = solty_;
   
   // Setup excluded atoms list - Necessary?
