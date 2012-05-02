@@ -1,6 +1,9 @@
 #include <stack> // For ParseMask
 #include <algorithm> // sort
 #include <sstream> // ostringstream
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 #include "Topology.h"
 #include "CpptrajStdio.h"
 // DEBUG
@@ -1143,7 +1146,11 @@ bool Topology::SetupCharMask(AtomMask &mask, Frame &frame) {
 void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within, 
                                     bool byAtom, double distance ) 
 {
-  int endatom;
+  int endatom, resi;
+  bool selectresidue;
+  int atomi, idx, atomj;
+  double d2;
+
   if (REF.empty()) {
     mprinterr("Error: No reference set for [%s], cannot select by distance.\n",c_str());
     return;
@@ -1173,14 +1180,18 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
 
   if (byAtom) { // Select by atom
     // Loop over all atoms
-    // TODO: OpenMP parallelize
-    for (int atomi = 0; atomi < (int)atoms_.size(); atomi++) {
+#ifdef _OPENMP
+#pragma omp parallel private(atomi, idx, atomj, d2)
+{
+#pragma omp for
+#endif
+    for (atomi = 0; atomi < (int)atoms_.size(); atomi++) {
       // No need to calculate if atomi already selected
       if (mask[atomi] == 'T') continue;
       // Loop over initially selected atoms
-      for (int idx = 0; idx < (int)selected.size(); idx++) {
-        int atomj = selected[idx];
-        double d2 = REF.DIST2(atomi, atomj);
+      for (idx = 0; idx < (int)selected.size(); idx++) {
+        atomj = selected[idx];
+        d2 = REF.DIST2(atomi, atomj);
         if (within) {
           if (d2 < distance) {
             mask[atomi] = 'T';
@@ -1194,39 +1205,47 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
         }
       }
     }
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif
   } else { // Select by residue
-    // TODO: OpenMP parallelize
-    bool selectresidue = false;
-    for (int atomi = 0; atomi < (int)atoms_.size(); atomi++) {
-      // No need to calculate if atomi already selected
-      if (mask[atomi] == 'T') continue;
-      // Loop over initially selected atoms
-      for (int idx = 0; idx < (int)selected.size(); idx++) {
-        int atomj = selected[idx];
-        //mprintf("\t\t\tAtom %i to atom %i\n",atomi+1,atomj+1);
-        double d2 = REF.DIST2(atomi, atomj);
-        if (within) {
-          if (d2 < distance) selectresidue = true;
-        } else {
-          if (d2 > distance) selectresidue = true;
+#ifdef _OPENMP
+#pragma omp parallel private(atomi, idx, atomj, d2, resi, selectresidue, endatom)
+{
+#pragma omp for
+#endif
+    for (resi = 0; resi < (int)residues_.size(); resi++) {
+      selectresidue = false;
+      // Determine end atom for this residue
+      if (resi+1 == (int)residues_.size())
+        endatom = atoms_.size();
+      else
+        endatom = residues_[resi+1].FirstAtom();
+      // Loop over mask atoms
+      for (idx = 0; idx < (int)selected.size(); idx++) {
+        atomj = selected[idx];
+        // Loop over residue atoms
+        for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++) {
+          d2 = REF.DIST2(atomi, atomj);
+          if (within) {
+            if (d2 < distance) selectresidue = true;
+          } else {
+            if (d2 > distance) selectresidue = true;
+          }
+          if (selectresidue) break; 
         }
-        if (selectresidue) {
-          int currentres = atoms_[atomi].ResNum();
-          if (currentres+1 == (int)residues_.size())
-            endatom = atoms_.size();
-          else
-            endatom = residues_[currentres+1].FirstAtom();
-          //mprintf("\t\t\t\tSelecting residue %i (%i-%i)\n",currentres+1,
-          //        residues_[currentres].FirstAtom()+1,endatom);
-          for (int resatom = residues_[currentres].FirstAtom(); resatom < endatom; resatom++)
-            mask[resatom] = 'T';
-          selectresidue = false;
-          break;
-        }
+        if (selectresidue) break;
+      }
+      if (selectresidue) {
+        for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++)
+          mask[atomi] = 'T';
+        continue;
       }
     }
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif
   }
-
 }
 
 // Topology::Mask_AND()
