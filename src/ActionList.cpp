@@ -109,10 +109,9 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("atomicfluct"))    {Act=new AtomicFluct;}
   else if (argIn.CommandIs("watershell"))     {Act=new Watershell;}
   else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
-  else if (argIn.CommandIs("contactstest"))   {Act=new Action_Contacts;}
+  else if (argIn.CommandIs("contacts"))   {Act=new Action_Contacts;}
   // PTRAJ
-  else if (argIn.CommandIs("atomicfluct3D") ||
-           argIn.CommandIs("contacts") ||
+  else if (
            argIn.CommandIs("correlation") ||
            argIn.CommandIs("clusterdihedral") ||
            argIn.CommandIs("diffusion") ||

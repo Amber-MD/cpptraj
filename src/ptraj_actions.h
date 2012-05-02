@@ -152,10 +152,10 @@ enum _corrInfo { CORR_BOX, CORR_MASK };
   _p_->tmax        = 0
 
 // ---------- Functions --------------------------------------------------------
-int transformAtomicFluct3D(actionInformation *, double *, double *, double *, double *, int);
+//int transformAtomicFluct3D(actionInformation *, double *, double *, double *, double *, int);
 //int transformCluster(actionInformation *, double *, double *, double *, double *, int);
 //int transformClusterAttribute(actionInformation*,double*,double*,double*, double *, int);
-int transformContacts(actionInformation *, double *, double *, double *, double *, int);
+//int transformContacts(actionInformation *, double *, double *, double *, double *, int);
 int transformCorr(actionInformation *, double *, double *, double *, double *, int);
 int transformDiffusion(actionInformation *, double *, double *, double *, double *, int);
 int transformDihedralCluster(actionInformation*,double*,double *, double *, double *, int);

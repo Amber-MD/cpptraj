@@ -61,13 +61,7 @@ int PtrajAction::init( ) {
   actioninfo->type = TRANSFORM_NOOP;
 
   // Set the action type and function based on the command
-  if ( actionArgs.CommandIs("atomicfluct3D")  ) {
-    actioninfo->type = TRANSFORM_ATOMICFLUCT3D;
-    actioninfo->fxn = (actionFunction) transformAtomicFluct3D;
-  } else if ( actionArgs.CommandIs("contacts")       ) {
-    actioninfo->type = TRANSFORM_CONTACTS;
-    actioninfo->fxn  = (actionFunction) transformContacts;
-  } else if ( actionArgs.CommandIs("correlation")    ) {
+  if ( actionArgs.CommandIs("correlation")    ) {
     actioninfo->type = TRANSFORM_CORRELATION;
     actioninfo->fxn  = (actionFunction) transformCorr;
   } else if ( actionArgs.CommandIs("clusterdihedral")) {
