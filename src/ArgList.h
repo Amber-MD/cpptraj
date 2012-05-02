@@ -43,6 +43,8 @@ class ArgList {
     const char *ArgLine();
     /// Return the argument at given position
     char *ArgAt(int);
+    /// Return index of key if found but do not mark, -1 if not found.
+    int KeyPosition(const char*);
     /// Return true if the argument at given position matches key
     bool ArgIs(int,const char*);
     /// Return the first argument

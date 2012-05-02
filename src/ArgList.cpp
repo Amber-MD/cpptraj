@@ -218,6 +218,18 @@ char *ArgList::ArgAt(int pos) {
   return (char*)arglist[pos].c_str();
 }
 
+// ArgList::KeyPosition()
+int ArgList::KeyPosition(const char* key) {
+  int pos = -1;
+  for (unsigned int i = 0; i < arglist.size(); ++i) {
+    if ( arglist[i].compare( key )==0 ) {
+      pos = (int)i;
+      break;
+    }
+  }
+  return pos;
+}
+
 // ArgList::ArgIs()
 /** \param pos argument position
   * \param input Key to check arguments against.
