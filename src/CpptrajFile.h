@@ -19,11 +19,11 @@ class CpptrajFile {
     CpptrajFile &operator=(const CpptrajFile &);
 
     /// Prepare file for reading. 
-    int SetupRead(char*, int);
+    int SetupRead(const char*, int);
     /// Prepare file for writing.
-    int SetupWrite(char*, int);
+    int SetupWrite(const char*, int);
     /// Prepare file for appending. 
-    int SetupAppend(char*, int);
+    int SetupAppend(const char*, int);
     /// Open file.
     int OpenFile();
     /// Close file.
@@ -78,7 +78,7 @@ class CpptrajFile {
     char printf_buffer_[1024];  ///< Used in Printf functions
 
     void Reset();
-    void SetBaseFilename(char*);
+    void SetBaseFilename(const char*);
     int SetupFileIO();
     int ID_Type();
 };

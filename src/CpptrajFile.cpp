@@ -231,7 +231,7 @@ void CpptrajFile::Rank_printf(int rank, const char *format, ...) {
 /** Set filename with full path. Strip leading path from input filename to 
   * determine the base filename. Also determine the file extension.
   */
-void CpptrajFile::SetBaseFilename(char *filenameIn) {
+void CpptrajFile::SetBaseFilename(const char *filenameIn) {
   //mprintf("DEBUG: Called SetBaseFilename with [%s]\n",filenameIn);
   // NULL filename allowed for WRITE (indicates STDOUT)
   if (filenameIn==NULL) {
@@ -287,7 +287,7 @@ void CpptrajFile::Reset() {
 /** Set up file for reading. Will autodetect the type and format.
   * \return 0 on success, 1 on error.
   */
-int CpptrajFile::SetupRead(char *filenameIn, int debugIn) {
+int CpptrajFile::SetupRead(const char *filenameIn, int debugIn) {
   // NULL filename not allowed
   if (filenameIn==NULL) {
     mprinterr("Internal Error: NULL filename specified for READ.\n");
@@ -326,7 +326,7 @@ int CpptrajFile::SetupRead(char *filenameIn, int debugIn) {
   * the type and format.
   * \return 0 on success, 1 on error.
   */
-int CpptrajFile::SetupAppend(char *filenameIn, int debugIn) {
+int CpptrajFile::SetupAppend(const char *filenameIn, int debugIn) {
   // First set up for read to determine type and format.
   if (SetupRead(filenameIn,debugIn)!=0) return 1;
   access_ = APPEND;
@@ -341,7 +341,7 @@ int CpptrajFile::SetupAppend(char *filenameIn, int debugIn) {
   * \return 0 on success, 1 on error.
   */
 //int CpptrajFile::SetupWrite(char *filenameIn, FileFormat fmtIn, FileType typeIn, int debugIn)
-int CpptrajFile::SetupWrite(char *filenameIn, int debugIn) 
+int CpptrajFile::SetupWrite(const char *filenameIn, int debugIn) 
 {
   // Clear file, set debug level
   Reset();

@@ -111,7 +111,7 @@ void rprinterr(const char *format, ...) {
   * expanded filename. The calling function is responsible for freeing
   * memory allocated with tildeExpansion.
   */
-std::string tildeExpansion(char *filenameIn) {
+std::string tildeExpansion(const char *filenameIn) {
   if (filenameIn==NULL) {
     mprinterr("Error: tildeExpansion: NULL filename specified.\n");
     return std::string("");
@@ -135,7 +135,7 @@ std::string tildeExpansion(char *filenameIn) {
 
 // fileExists()
 /** Return true if file can be opened "r".  */
-bool fileExists(char *filenameIn) {
+bool fileExists(const char *filenameIn) {
   // Perform tilde expansion
   std::string fname = tildeExpansion(filenameIn);
   if (fname.empty()) return false;
