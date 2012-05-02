@@ -67,7 +67,7 @@ class AtomMask {
     /// Return true if no atoms selected. 
     bool None();
     /// Set the mask string. If NULL, set * (all)
-    int SetMaskString(char*);
+    int SetMaskString(const char*);
     /// Set up Selected based on given char mask 
     void SetupMask(char*,int,int);
     /// Set up CharMask based on given char mask 

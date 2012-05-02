@@ -568,7 +568,7 @@ void AtomMask::PrintMaskAtoms(const char *header) {
 /** Take the given mask expression and preprocess it for subsequent use
   * with the mask parser. Convert to infix, then postfix notation.
   */
-int AtomMask::SetMaskString(char *maskString_In) {
+int AtomMask::SetMaskString(const char* maskString_In) {
   if (maskString_In!=NULL) 
     maskString_.assign( maskString_In );
   else
