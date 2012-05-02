@@ -49,8 +49,7 @@ Atom::Atom() :
 { }
 
 // CONSTRUCTOR
-/// Take atom name and coordinates. Attempt to determine element from name.
-//Atom::Atom(NameType aname, double (&XYZ)[3]) :
+/// Take atom name. Attempt to determine element from name.
 Atom::Atom(NameType aname) :
   charge_(0),
   mass_(1),
@@ -67,7 +66,7 @@ Atom::Atom(NameType aname) :
 }
 
 // CONSTRUCTOR
-//Atom::Atom( NameType aname, double (&XYZ)[3], NameType atype, double q ) :
+/// Take atom name and charge. Attempt to determine element from name.
 Atom::Atom( NameType aname, NameType atype, double q ) :
   charge_(q),
   mass_(1),
@@ -84,6 +83,11 @@ Atom::Atom( NameType aname, NameType atype, double q ) :
 }
 
 // CONSTRUCTOR
+/** Take name, charge, atomic#, mass, atom type index (AMBER), type (AMBER), 
+  * GB radius, GB screen param, and residue number. Determine element from
+  * atomic number if set, otherwise determine from mass. Determine element 
+  * from name if all else fails.
+  */
 Atom::Atom( NameType name, double charge, int atomicnum, double mass, int atidx,
             NameType type, double rad, double screen, int resnum ) :
   charge_(charge),
@@ -500,7 +504,8 @@ void Atom::SetElementFromMass() {
        break;
 
     default:
-      mprintf("Warning: Unrecognized atom name [%s]\n", *aname_);
+      mprintf("Warning: Could not determine atomic number from mass (%lf) [%s]\n", 
+              mass_, *aname_);
   }
 }
 

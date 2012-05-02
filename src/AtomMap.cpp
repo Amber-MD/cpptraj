@@ -10,6 +10,7 @@ AtomMap::AtomMap() :
 /// Blank AtomMap for empty return of bracket operator
 MapAtom AtomMap::EMPTYMAPATOM = MapAtom();
 
+// AtomMap::operator[]()
 /** Return a reference to the specifed MapAtom */
 MapAtom& AtomMap::operator[](int idx) {
   if (idx < 0 || idx >= (int)mapatoms_.size()) {
@@ -19,16 +20,19 @@ MapAtom& AtomMap::operator[](int idx) {
   return mapatoms_[idx];
 }
 
+// AtomMap::Natom()
 /// Return the number of atoms in the AtomMap.
 int AtomMap::Natom() {
   return (int)mapatoms_.size();
 }
 
+// AtomMap::SetDebug()
 /// Set the debug level of the AtomMap.
 void AtomMap::SetDebug(int debugIn) {
   debug_ = debugIn;
 }
 
+// AtomMap::Setup()
 /** Copy all atoms from input topology to this AtomMap. */
 int AtomMap::Setup(Topology *TopIn) {
   // Copy atoms
@@ -36,10 +40,17 @@ int AtomMap::Setup(Topology *TopIn) {
   for (Topology::atom_iterator atom = TopIn->begin(); atom != TopIn->end(); atom++) {
     // This sets up 1 char atom name based on atom element
     mapatoms_.push_back( *atom );
+    // Check if 1 char name set to 0, means unidentified element.
+    if (mapatoms_.back().CharName() == 0) {
+      mprinterr("Error: AtomMap::Setup: Mapping currently not supported for element %s\n",
+                Atom::AtomicElementName[ mapatoms_.back().Element() ]);
+      return 1;
+    }
   }
   return 0;
 }
 
+// AtomMap::ResetMapping()
 /** Reset any previously set mapping information. */
 void AtomMap::ResetMapping() {
   for (std::vector<MapAtom>::iterator matom = mapatoms_.begin();
@@ -50,6 +61,7 @@ void AtomMap::ResetMapping() {
   }
 }
 
+// AtomMap::BondIsRepeated()
 /** Check if the atomID of the specified atom (bondedAtom) bonded to <atom> 
   * is the same as the atomID of any other non-mapped atom bonded to <atom>.
   */
@@ -67,6 +79,7 @@ bool AtomMap::BondIsRepeated(int atom, int bondedAtom) {
   return false;
 }
 
+// AtomMap::DetermineAtomIDs()
 /** Give each atom an identifier (atomID) based on what atoms are bonded to 
   * it. The first part of the atomID is the atom itself, followed by an 
   * alphabetized list of bonded atoms. So C in O=C-H2 would be CHHO.
@@ -138,6 +151,7 @@ void AtomMap::DetermineAtomIDs() {
   }
 }
 
+// AtomMap::MarkAtomComplete()
 /** If atom is mapped and all bonded atoms are mapped mark atom as completely 
   * mapped.
   * If printAtoms is true print isMapped value for this atom and all atoms
@@ -169,6 +183,7 @@ void AtomMap::MarkAtomComplete(int atom, bool printAtoms) {
   }
 }
 
+// AtomMap::CheckForCompleteAtoms()
 /** Go through each atom in the map. If the atom is unique and all bonded
   * atoms are unique mark the atom as completely mapped.
   */
@@ -178,6 +193,7 @@ void AtomMap::CheckForCompleteAtoms() {
     MarkAtomComplete(atom,printAtoms);
 }
 
+// AtomMap::CheckBonds()
 /** Checks that bonding information is present. Also checks for potential
   * chiral centers.
   */

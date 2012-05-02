@@ -747,13 +747,13 @@ int Action_AtomMap::init() {
   // cutoffs, the give each atom an ID based on what atoms are bonded to
   // it, noting which IDs are unique for that map. 
 
-  RefMap.Setup(RefParm);
-  RefMap.CheckBonds();
+  if (RefMap.Setup(RefParm)!=0) return 1;
+  if (RefMap.CheckBonds()!=0) return 1;
   //RefMap.WriteMol2((char*)"RefMap.mol2\0"); // DEBUG
   RefMap.DetermineAtomIDs();
 
-  TgtMap.Setup(TgtParm);
-  TgtMap.CheckBonds();
+  if (TgtMap.Setup(TgtParm)!=0) return 1;
+  if (TgtMap.CheckBonds()!=0) return 1;
   //TgtMap.WriteMol2((char*)"TgtMap.mol2\0"); // DEBUG
   TgtMap.DetermineAtomIDs();
 
