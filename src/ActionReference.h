@@ -13,6 +13,9 @@ class ActionReference {
 
     ActionReference();
 
+    RefModeType RefMode() { return refMode_; }
+
+    void ForbidRefMode( RefModeType );
     void SetFirst(bool,char*,bool);
     void RefInfo();
     int RefNselected();

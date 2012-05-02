@@ -11,6 +11,11 @@ ActionReference::ActionReference() {
   refParmSetup_ = false;
 }
 
+// ActionReference::ForbidRefMode()
+void ActionReference::ForbidRefMode( RefModeType modeIn ) {
+  allowed_[ (int)modeIn ] = false;
+}
+
 // ActionReference::SetFirst()
 /** Set Reference Mode to FIRST, which requires no additional setup.
   */
