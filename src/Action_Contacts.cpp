@@ -1,5 +1,6 @@
 #include "Action_Contacts.h"
 #include "CpptrajStdio.h"
+// TODO: Separate byResidue stuff
 
 // CONSTRUCTOR
 Action_Contacts::Action_Contacts() :
@@ -124,7 +125,7 @@ int Action_Contacts::init() {
     SetupContacts(RefFrame, RefParm);
   }
 
-  // Output file header
+  // Output file header - only if not byresidue
   if (!byResidue_) {
     outfile_.Printf("#time\tContacts\tnative Contacts ");
     if (!first_)
@@ -156,9 +157,7 @@ int Action_Contacts::setup() {
   // Set up atom mask 
   if (currentParm->SetupIntegerMask(Mask_)) return 1;
 
-  residueContacts_.reserve( currentParm->Nres() );
-  residueNative_.reserve( currentParm->Nres() );
-
+  // Determine which residues are active based on the mask
   activeResidues_.clear();
   for (AtomMask::const_iterator atom = Mask_.begin();
                                 atom != Mask_.end(); ++atom)
@@ -166,6 +165,25 @@ int Action_Contacts::setup() {
     int resnum = (*currentParm)[*atom].ResNum();
     activeResidues_.insert( resnum );
   }
+
+  // byresidue header - only on first time through
+  if (residueContacts_.empty() && byResidue_) {
+    outfile_.Printf("#time");
+    outfile2_.Printf("#time");
+    for (std::set<int>::iterator res = activeResidues_.begin();
+                                 res != activeResidues_.end(); ++res)
+    {
+      outfile_.Printf("\tresidue %i", *res);
+      outfile2_.Printf("\tresidue %i", *res);
+    }
+    outfile_.Printf("\tTotal\n");
+    outfile2_.Printf("\tTotal\n");
+  }
+
+  // Reserve space for residue contact counts
+  residueContacts_.reserve( currentParm->Nres() );
+  residueNative_.reserve( currentParm->Nres() );
+
 
   return 0;
 }
