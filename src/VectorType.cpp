@@ -37,6 +37,9 @@ VectorType::VectorType() :
   avgcrd_[0] = 0;
   avgcrd_[1] = 0;
   avgcrd_[2] = 0;
+  // DEBUG
+  debugpdb.SetupWrite("PRINCIPAL.PDB",0);
+  debugpdb.OpenFile();
 }
 
 // DESTRUCTOR
@@ -58,6 +61,8 @@ VectorType::~VectorType() {
     if (vy_!=0) delete[] vy_;
     if (vz_!=0) delete[] vz_;
   }
+  // DEBUG
+  debugpdb.CloseFile();
 }
 
 // VectorType::operator==()
@@ -141,6 +146,18 @@ int VectorType::Init(ArgList& argIn) {
     mode_ = VECTOR_IRED;
   else
     mode_ = VECTOR_MASK;
+
+# ifdef NO_PTRAJ_ANALYZE
+  // VECTOR PRINCIPAL requires LAPACK routines for diagonalization
+  if (mode_ == VECTOR_PRINCIPAL_X ||
+      mode_ == VECTOR_PRINCIPAL_Y ||
+      mode_ == VECTOR_PRINCIPAL_Z)
+  {
+    mprinterr("Error: Vector PRINCIPAL requires LAPACK. Recompile with LAPACK enabled.\n");
+    return 1;
+  }
+# endif 
+
 
   // VECTOR_CORRIRED
   if (mode_ == VECTOR_CORRIRED) {
@@ -568,6 +585,18 @@ int VectorType::Action_PRINCIPAL( Frame *currentFrame ) {
   cx_[frame_] = CXYZ[0];
   cy_[frame_] = CXYZ[1];
   cz_[frame_] = CXYZ[2];
+
+  // DEBUG - Write PDB of axes
+  debugpdb.Printf("MODEL %i\n",frame_+1);
+  PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 1, (char*)"Orig", (char*)"Vec", ' ', 1, 
+                    CXYZ[0], CXYZ[1], CXYZ[2]);
+  PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 2, (char*)"X", (char*)"Vec", ' ', 1,    
+                    Inertia[6]+CXYZ[0], Inertia[7]+CXYZ[1], Inertia[8]+CXYZ[2]);
+  PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 3, (char*)"Y", (char*)"Vec", ' ', 1,   
+                    Inertia[3]+CXYZ[0], Inertia[4]+CXYZ[1], Inertia[5]+CXYZ[2]);
+  PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 4, (char*)"Z", (char*)"Vec", ' ', 1,   
+                    Inertia[0]+CXYZ[0], Inertia[1]+CXYZ[1], Inertia[2]+CXYZ[2]);
+  debugpdb.Printf("ENDMDL\n");
 
   ++frame_;
 

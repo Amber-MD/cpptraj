@@ -153,6 +153,13 @@ const double *PDBfile::XYZ() {
   return XYZ_;
 }
 
+void PDBfile::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType name,
+                             NameType resnameIn, char chain, int resnum,
+                             double X, double Y, double Z)
+{
+  pdb_write_ATOM(IO, Record, anum, name, resnameIn, chain, resnum, X, Y, Z, 0, 0, (char*)"", false);
+}
+
 /// Write out an ATOM or HETATM record
 /** \return the number of characters written */
 void PDBfile::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType name,

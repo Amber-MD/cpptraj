@@ -10,6 +10,7 @@
 
 // ---------- Defines ----------------------------------------------------------
 #define ACTION_MODULE
+FILE* GLOBALDBG;
        /* Multiply the transpose of the 3x3 matrix times the 
         * coordinates specified in x, y and z.  xx, yy and zz 
         * are temporary variables. 
@@ -5334,6 +5335,9 @@ calculatePrincipalAxis(ptrajState *state, int *mask,
      *  order according to the absolute value of the 
      *  eigenvalues; the maximal one comes first...
      */
+    printf("PTRAJ VEC X: %8.4lf %8.4lf %8.4lf\n",evector[i1][0],evector[i1][1],evector[i1][2]);
+    printf("PTRAJ VEC Y: %8.4lf %8.4lf %8.4lf\n",evector[i2][0],evector[i2][1],evector[i2][2]);
+    printf("PTRAJ VEC Z: %8.4lf %8.4lf %8.4lf\n",evector[i3][0],evector[i3][1],evector[i3][2]);
     returnValue[0] = evector[i1][0];
     returnValue[1] = evector[i1][1];
     returnValue[2] = evector[i1][2];
@@ -7205,6 +7209,8 @@ transformVector(actionInformation *action,
 
 
   if (mode == PTRAJ_SETUP) {
+// DEBUG
+    GLOBALDBG = fopen("PTRAJ.PDB","w");
 
     /*
      *  ACTION: PTRAJ_SETUP
@@ -7557,7 +7563,8 @@ transformVector(actionInformation *action,
     safe_fclose(outFile);
 
   } else if (mode == PTRAJ_CLEANUP) {
-
+// DEBUG
+  fclose(GLOBALDBG);
     /*
      *  ACTION: PTRAJ_CLEANUP
      */
@@ -7905,6 +7912,26 @@ transformVector(actionInformation *action,
     vectorInfo->cx[vectorInfo->frame] = principal[9];
     vectorInfo->cy[vectorInfo->frame] = principal[10];
     vectorInfo->cz[vectorInfo->frame] = principal[11];
+
+    // DEBUG - print axes
+    fprintf(GLOBALDBG,"MODEL %i\n",vectorInfo->frame+1);
+    fprintf(GLOBALDBG,"%-6s%5i %-4s%4s %c%4i    %8.3lf%8.3lf%8.3lf%8.4f%8.4f%10s\n",
+          "ATOM", 1, "Orig", "Pvc", ' ', 1, 
+          principal[9],              principal[10],              principal[11],
+          0.0,0.0,"");
+    fprintf(GLOBALDBG,"%-6s%5i %-4s%4s %c%4i    %8.3lf%8.3lf%8.3lf%8.4f%8.4f%10s\n",
+          "ATOM", 2, "X", "Pvc", ' ', 1, 
+          principal[9]+principal[0], principal[10]+principal[1], principal[11]+principal[2],
+          0.0,0.0,"");
+    fprintf(GLOBALDBG,"%-6s%5i %-4s%4s %c%4i    %8.3lf%8.3lf%8.3lf%8.4f%8.4f%10s\n",
+          "ATOM", 3, "Y", "Pvc", ' ', 1,    
+          principal[9]+principal[3], principal[10]+principal[4], principal[11]+principal[5],
+          0.0,0.0,"");
+    fprintf(GLOBALDBG,"%-6s%5i %-4s%4s %c%4i    %8.3lf%8.3lf%8.3lf%8.4f%8.4f%10s\n",
+          "ATOM", 4, "Z", "Pvc", ' ', 1, 
+          principal[9]+principal[6], principal[10]+principal[7], principal[11]+principal[8],
+          0.0,0.0,"");
+    fprintf(GLOBALDBG,"ENDMDL\n");
 
     if (prnlev > 2) {
       fprintf(stdout, "\ntransformVector PRINCIPAL AXIS:\n");

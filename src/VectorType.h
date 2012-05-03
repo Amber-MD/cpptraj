@@ -8,6 +8,9 @@
 #include "Topology.h"
 #include "Frame.h"
 #include "Lapack_Diag.h"
+// DEBUG
+#include "CpptrajFile.h"
+#include "PDBfile.h"
 /// Hold coordinate vector information
 //NOTE: Adapted from PTRAJ transformVectorInfo
 class VectorType : public DataSet {
@@ -75,6 +78,9 @@ class VectorType : public DataSet {
     double *cftmp_;
     double *p2cftmp_;
     double *rcftmp_;
+    // DEBUG
+    PDBfile PDB;
+    CpptrajFile debugpdb;
 
     void leastSquaresPlane(int, double *, double *, double *, double *);
     void sphericalHarmonics(int, int, double*, double, double[2]);
