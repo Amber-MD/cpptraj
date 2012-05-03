@@ -5,9 +5,12 @@
 class Action_Vector : public Action {
   public:
     Action_Vector();
+
+    void print();
   private:
     VectorType *Vector_;
 
     int init();
+    int setup();
 };
 #endif

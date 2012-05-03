@@ -38,6 +38,7 @@
 #include "Action_Watershell.h"
 #include "Action_AvgCoord.h"
 #include "Action_Contacts.h"
+#include "Action_Vector.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -109,7 +110,8 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("atomicfluct"))    {Act=new AtomicFluct;}
   else if (argIn.CommandIs("watershell"))     {Act=new Watershell;}
   else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
-  else if (argIn.CommandIs("contacts"))   {Act=new Action_Contacts;}
+  else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
+  else if (argIn.CommandIs("vectortest"))     {Act=new Action_Vector;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||

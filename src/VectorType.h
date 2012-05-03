@@ -5,6 +5,8 @@
 #include "ModesInfo.h"
 #include "ArgList.h"
 #include "DataSet.h"
+#include "Topology.h"
+#include "Frame.h"
 /// Hold coordinate vector information
 //NOTE: Adapted from PTRAJ transformVectorInfo
 class VectorType : public DataSet {
@@ -16,11 +18,24 @@ class VectorType : public DataSet {
     };
 
     VectorType();
+    ~VectorType();
+
+    bool operator==(const VectorType&);
+    int AssignMaster(VectorType*);
+    int ReadModesFromFile();
     int Init(ArgList&);
+    int Allocate(int);
+    void Info();
+    void Print();
+    int Setup(Topology*);
+    int Action(Frame*);
+
+    vectorMode Mode() { return mode_; }
+    bool NoModeInfo() { return modinfo_==0; }
   private:
     std::string filename_;
     int totalFrames_;
-    int frame_;
+    int frame_; // OBSOLETE?
     vectorMode mode_;
     AtomMask mask_;
     AtomMask mask2_;
@@ -31,8 +46,9 @@ class VectorType : public DataSet {
     double *vy_;
     double *vz_;
 
-    bool master_;           ///< If true 
-    ModesInfo modinfo_;
+    VectorType* master_;    ///< If 0 this vector has master ModesInfo 
+    ModesInfo* modinfo_;    ///< Eigenmode info for CORRIRED
+    std::string modesfile_;
     int ibeg_;
     int iend_;
     int order_;
@@ -44,5 +60,7 @@ class VectorType : public DataSet {
     double *cftmp_;
     double *p2cftmp_;
     double *rcftmp_;
+
+    void lsqplane(int, double *, double *, double *, double *);
 };
 #endif

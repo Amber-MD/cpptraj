@@ -1,7 +1,6 @@
 #ifndef INC_MODESINFO_H
 #define INC_MODESINFO_H
 #include <string>
-#include "CpptrajFile.h"
 /** information relating to modes
  *
  *  eigenvectors are stored in evec as:
@@ -21,10 +20,12 @@ class ModesInfo {
 
     ModesInfo();
     ~ModesInfo();
-    int ReadEvecFile(CpptrajFile&, int, int);
+    int ReadEvecFile(std::string&, int, int);
+
+    int Nvect() { return nvect_; }
   private:
     static const size_t BUFSIZE_;
-    std::string name_;
+    //std::string name_;
     modesType type_;
     modesSource source_;
     int navgelem_;

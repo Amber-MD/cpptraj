@@ -2,6 +2,7 @@
 #include <cstring> //strncmp
 #include "ModesInfo.h"
 #include "CpptrajStdio.h"
+#include "CpptrajFile.h"
 
 const size_t ModesInfo::BUFSIZE_ = 1024;
 
@@ -24,15 +25,18 @@ ModesInfo::~ModesInfo() {
   if (evec_!=0) delete[] evec_;
 }
 
-int ModesInfo::ReadEvecFile(CpptrajFile& infile, int ibeg, int iend) {
+int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
+  CpptrajFile infile;
   char buffer[BUFSIZE_];
 
+  if (infile.SetupRead( modesfile.c_str(), 0 )) return 1;
   if (infile.OpenFile()) return 1;
   // Read title line
   if (infile.IO->Gets(buffer, BUFSIZE_)!=0) {
     mprinterr("Error: ReadEvecFile(): error while reading title (%s)\n",infile.Name());
     return 1;
   }
+  source_ = MS_FILE;
 
   std::string title(buffer);
   if (title.find("DISTCOVAR")!=std::string::npos)
@@ -140,7 +144,13 @@ int ModesInfo::ReadEvecFile(CpptrajFile& infile, int ibeg, int iend) {
     }
     ++nvect_;
   }
-  
+
+  if (nvect_ != (iend - ibeg + 1)) {
+    mprintf("Warning: Number of read evecs is %i, number of requested evecs is %i\n",
+            nvect_, iend - ibeg + 1);
+  }
+ 
+  infile.CloseFile(); 
   return 0;
 }
 

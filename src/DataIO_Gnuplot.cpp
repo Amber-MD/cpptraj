@@ -73,7 +73,7 @@ int GnuplotDataFile::WriteData(DataSetList &SetList) {
     for (set=SetList.begin(); set!=SetList.end(); set++) {
       if (setnum>0) Printf(",");
       ycoord = (ystep_ * setnum) + ymin_;
-      Printf("\"%s\" %8.3f",(*set)->Name(),ycoord);
+      Printf("\"%s\" %8.3f",(*set)->c_str(),ycoord);
       ++setnum;
     }
     Printf(")\n");

@@ -11,7 +11,7 @@ class DataSet {
   public:
     /// Type of data stored in DataSet
     enum DataType {
-      UNKNOWN_DATA, DOUBLE, STRING, INT, FLOAT
+      UNKNOWN_DATA, DOUBLE, STRING, INT, FLOAT, VECTOR
     };
 
     DataSet();          // Constructor
@@ -73,13 +73,15 @@ class DataSet {
     /// Data set capacity
     //int Capacity();
     /// Dataset name
-    char *Name();
+    std::string Name()     { return name_; }
+    /// Printf-compatible name
+    const char* c_str()    { return name_.c_str(); }
     /// Set dataset index
-    void SetIdx(int);
+    void SetIdx(int idxIn) { idx_ = idxIn; }
     /// Return dataset index
-    int Idx();
+    int Idx()              { return idx_; }
     /// Return dataset type
-    DataType Type();
+    DataType Type()        { return dType_; }
   protected:
     std::string name_;   ///< Name of the dataset
     int idx_;            ///< Dataset index

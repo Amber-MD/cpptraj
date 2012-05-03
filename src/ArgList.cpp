@@ -288,6 +288,16 @@ char *ArgList::getNextString() {
   return NULL;
 }
 
+std::string ArgList::GetStringNext() {
+  std::string emptystring;
+  for (unsigned int arg = 0; arg < arglist.size(); ++arg)
+    if (!marked[arg]) {
+      marked[arg]=true;
+      return arglist[arg];
+    }
+  return emptystring;
+}
+
 // ArgList::getNextMask()
 /** Return next unmarked Mask. A mask MUST include one of the following: 
   *   ':' residue

@@ -1,7 +1,8 @@
 #ifndef INC_DATASETLIST_H
 #define INC_DATASETLIST_H
-#include "DataSet.h"
 #include <vector>
+#include "DataSet.h"
+#include "VectorType.h"
 // Class: DataSetList
 /// Hold list of data sets.
 /** Main class for handling datasets. All dataset types can be allocated 
@@ -31,7 +32,7 @@ class DataSetList {
     /// Set width.precision of all datasets in the list.
     void SetPrecisionOfDatasets(int, int);
     //DataSet & operator[](int);
-    DataSet *Get(char *);
+    DataSet *Get(const char *);
     /// Get dataset with given index (added with AddMultiN)
     DataSet *GetDataSetIdx(int);
     /// Get the dataset at the given position in the list.
@@ -46,6 +47,7 @@ class DataSetList {
     /// Add dataset to the list with given name
     DataSet *Add( DataSet::DataType, char*, const char*);
     DataSet *AddIdx( DataSet::DataType, char*, int);
+    int AddDataSetCopy(DataSet*);
     int AddDataSet(DataSet*);
     int PrepareForWrite();
     //void Begin();
@@ -58,20 +60,25 @@ class DataSetList {
     /// Call sync for datasets in the list (MPI only)
     void Sync();
     /// Return number of datasets in the list 
-    int Size() { return Ndata; }
+    int Size() { return (int)DataList_.size(); }
     /// Return the max # expected frames
-    int MaxFrames() { return maxFrames; }
+    int MaxFrames() { return maxFrames_; }
+    
+    void VectorBegin();
+    VectorType* NextVector();
   private:
     /// Dataset debug level
-    int debug;
+    int debug_;
     /// If true, this data set list only points to data sets
     bool hasCopies_;
+    typedef std::vector<DataSet*> DataListType;
     /// List of datasets
-    std::vector<DataSet*> DataList;
+    DataListType DataList_;
     /// Number of datasets
-    int Ndata;
+    //int Ndata_;
     /// Expected number of frames to be read in.
-    int maxFrames;
-    //int currentSet;
+    int maxFrames_;
+    /// Used to iterate over vector datasets
+    int vecidx_;
 };
 #endif

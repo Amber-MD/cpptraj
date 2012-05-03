@@ -32,7 +32,7 @@ int GraceDataFile::WriteData(DataSetList &SetList) {
   for (set=SetList.begin(); set != SetList.end(); set++) {
     // Set information
     buffer.Sprintf("@  s%-8i legend \"%s\"\n@target G0.S%-8i\n@type xy\n",
-                   setnum,(*set)->Name(),setnum);
+                   setnum,(*set)->c_str(),setnum);
 
     // Write Data - Reallocate for maxFrames of xwidth + width + newline
     buffer.Reallocate( maxFrames_ * (xcol_width_ + (*set)->Width() + 1) );
@@ -95,7 +95,7 @@ int GraceDataFile::WriteDataInverted(DataSetList &SetList) {
       double xcoord = (ystep_ * setnum) + ymin_;
       Printf(x_format_.c_str(), xcoord);
       (*set)->WriteBuffer(buffer, frame);
-      Printf("%s \"%s\"\n",buffer.c_str(),(*set)->Name());
+      Printf("%s \"%s\"\n",buffer.c_str(),(*set)->c_str());
       buffer.Rewind();
     }
   }

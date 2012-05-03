@@ -71,8 +71,8 @@ int Corr::Analyze() {
   // Check that D1 and D2 have same # data points.
   Nelements = D1->Size(); 
   if (Nelements != D2->Size()) {
-    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1->Name(),Nelements);
-    mprinterr("             # elements in dataset %i (%i)\n",D2->Name(), D2->Size());
+    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1->c_str(),Nelements);
+    mprinterr("             # elements in dataset %i (%i)\n",D2->c_str(), D2->Size());
     return 1;
   }
   if (lagmax==-1) lagmax = Nelements;

@@ -545,7 +545,7 @@ void Clustering::calcDistFromDataset( TriangleMatrix &Distances ) {
 
   int max = Distances.Nelements();
   mprintf("  CLUSTER: Calculating distances using dataset %s (%i total).\n",
-          cluster_dataset->Name(),max);
+          cluster_dataset->c_str(),max);
 
   ProgressBar *progress = new ProgressBar(max);
 

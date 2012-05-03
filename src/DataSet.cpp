@@ -80,7 +80,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case INT   : SetIntegerFormatString(format_, width_, leftAlign); break;
     case STRING: SetStringFormatString(format_, width_, leftAlign); break;
     default:
-      mprinterr("Error: No format string defined for this data type (%s).\n",Name());
+      mprinterr("Error: No format string defined for this data type (%s).\n", c_str());
       return 1;
   }
   // Assign format to a constant ptr to avoid continuous calls to c_str
@@ -202,24 +202,4 @@ double DataSet::Min() {
 //int DataSet::Capacity() {
 //  return N;
 //}
-
-// DataSet::Name()
-char *DataSet::Name() { 
-  return (char*)name_.c_str();
-}
-
-// DataSet::SetIdx()
-void DataSet::SetIdx(int idxIn) { 
-  idx_ = idxIn;
-}
-
-// DataSet::Idx()
-int DataSet::Idx() { 
-  return idx_;
-}
-
-// DataSet::Type()
-DataSet::DataType DataSet::Type() { 
-  return dType_; 
-}
 

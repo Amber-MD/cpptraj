@@ -61,7 +61,7 @@ int DataFile::SetupDatafile(char* fnameIn) {
 
 // DataFile::AddSet()
 int DataFile::AddSet(DataSet *dataIn) {
-  return (SetList_.AddDataSet(dataIn));
+  return (SetList_.AddDataSetCopy(dataIn));
 }
 
 // DataFile::ProcessArgs()
@@ -177,7 +177,7 @@ void DataFile::DataSetNames() {
   if (SetList_.Size() > 10) {
     int setnum = 0;
     while (setnum < 4) {
-      mprintf(" %s",(*set)->Name());
+      mprintf(" %s",(*set)->c_str());
       ++setnum;
       ++set;
     }
@@ -186,12 +186,12 @@ void DataFile::DataSetNames() {
     setnum=0;
     while (setnum < 4) {
       --set;
-      mprintf(" %s",(*set)->Name());
+      mprintf(" %s",(*set)->c_str());
       ++setnum;
     }
   } else {
     for (; set != SetList_.end(); set++)
-      mprintf(" %s",(*set)->Name());
+      mprintf(" %s",(*set)->c_str());
   }
 }
 

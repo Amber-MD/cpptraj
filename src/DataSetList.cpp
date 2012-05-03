@@ -11,32 +11,32 @@
 #include "DataSet_float.h"
 
 // CONSTRUCTOR
-DataSetList::DataSetList() {
+DataSetList::DataSetList() :
+  debug_(0), 
+  hasCopies_(false),
+  maxFrames_(0),
+  vecidx_(0) 
+{
   //fprintf(stderr,"DSL Constructor\n");
-  hasCopies_ = false;
-  Ndata=0;
-  maxFrames=0;
-  debug=0;
-  //currentSet=0;
 }
 
 // DESTRUCTOR
 DataSetList::~DataSetList() {
   //fprintf(stderr,"DSL Destructor\n");
-  if (!hasCopies_) { 
-    for (int i=0; i<Ndata; i++)
-      delete DataList[i];
+  if (!hasCopies_) {
+    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
+      delete *ds; 
   }
 }
 
 // DataSetList::begin()
 DataSetList::const_iterator DataSetList::begin() const {
-  return DataList.begin();
+  return DataList_.begin();
 }
 
 // DataSetList::end()
 DataSetList::const_iterator DataSetList::end() const {
-  return DataList.end();
+  return DataList_.end();
 }
 
 // DataSetList::DataCharSize() 
@@ -54,8 +54,9 @@ DataSetList::const_iterator DataSetList::end() const {
 
 // DataSetList::SetDebug()
 void DataSetList::SetDebug(int debugIn) {
-  debug = debugIn;
-  if (debug>0) mprintf("DataSetList Debug Level set to %i\n",debug);
+  debug_ = debugIn;
+  if (debug_>0) 
+    mprintf("DataSetList Debug Level set to %i\n",debug_);
 }
 
 // DataSetList::SetMax()
@@ -63,16 +64,16 @@ void DataSetList::SetDebug(int debugIn) {
   * data set sizes in the list.
   */
 void DataSetList::SetMax(int expectedMax) {
-  maxFrames = expectedMax;
-  if (maxFrames<0) maxFrames=0;
+  maxFrames_ = expectedMax;
+  if (maxFrames_<0) maxFrames_=0;
 }
 
 /* DataSetList::SetPrecisionOfDatasets()
  * Set the width and precision for all datasets in the list.
  */
 void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
-  for (int ds = 0; ds < Ndata; ds++) 
-    DataList[ds]->SetPrecision(widthIn,precisionIn);
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
+    (*ds)->SetPrecision(widthIn,precisionIn);
 }
 
 // DataSetList::operator[]()
@@ -83,23 +84,26 @@ void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
 }*/
 
 // DataSetList::Get()
-DataSet *DataSetList::Get(char *nameIn) {
-  for (int i=0; i<Ndata; i++)
-    if ( strcmp(DataList[i]->Name(),nameIn)==0 ) return DataList[i];
+DataSet *DataSetList::Get(const char *nameIn) {
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ( (*ds)->Name().compare( nameIn )==0 )
+      return *ds;
   return NULL;
 }
 
 // DataSetList::GetDataSetIdx()
 DataSet *DataSetList::GetDataSetIdx(int idxIn) {
-  for (int i=0; i<Ndata; i++)
-    if (DataList[i]->Idx() == idxIn) return DataList[i];
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ((*ds)->Idx() == idxIn) 
+      return *ds;
   return NULL;
 }
 
 // DataSetList::GetDataSetN()
 DataSet *DataSetList::GetDataSetN(int ndataset) {
-  if (ndataset < 0 || ndataset >= Ndata) return NULL;
-  return DataList[ndataset];
+  if (ndataset < 0 || ndataset >= (int)DataList_.size()) 
+    return NULL;
+  return DataList_[ndataset];
 }
 
 // DataSetList::AddMultiN()
@@ -205,12 +209,12 @@ char *DataSetList::checkName(char *nameIn, const char *defaultName) {
   if (nameIn==NULL) {
     // Determine size of name + extension
     namesize = strlen( defaultName );
-    size_t extsize = (size_t) DigitWidth( Ndata ); // # digits
+    size_t extsize = (size_t) DigitWidth( Size() ); // # digits
     if (extsize < 5) extsize = 5;                  // Minimum size is 5 digits
     extsize += 2;                                  // + underscore + null
     namesize += extsize;
     dsetName = new char[ namesize ];
-    sprintf(dsetName,"%s_%05i",defaultName,Ndata);
+    sprintf(dsetName,"%s_%05i", defaultName, Size());
     //mprintf("NAME SIZE [%s] = %lu\n",dsetName,namesize);
   } else {
     namesize = strlen( nameIn ) + 1; // + null
@@ -294,33 +298,37 @@ DataSet *DataSetList::Add(DataSet::DataType inType, char *nameIn, const char *de
     return NULL;
   }
   // Set up dataset
-  if ( D->Setup(dsetName,maxFrames) ) {
+  if ( D->Setup(dsetName,maxFrames_) ) {
     mprinterr("Error setting up data set %s.\n",dsetName);
     delete D;
     delete[] dsetName;
     return NULL;
   }
 
-  DataList.push_back(D); 
-  ++Ndata;
+  DataList_.push_back(D); 
   //fprintf(stderr,"ADDED dataset %s\n",dsetName);
   delete[] dsetName;
   return D;
 }
 
-// DataSetList::AddDataSet()
+// DataSetList::AddDataSetCopy()
 /** Add a pointer to an existing dataset to the list. Used when
   * DataSetList is being used as a container in DataFile.
   */
-int DataSetList::AddDataSet(DataSet *dsetIn) {
+int DataSetList::AddDataSetCopy(DataSet *dsetIn) {
   if (dsetIn==NULL) return 1;
-  if (!hasCopies_ && !DataList.empty()) {
+  if (!hasCopies_ && !DataList_.empty()) {
     mprinterr("Error: Adding dataset copy to list with non-copies!\n");
     return 1;
   }
   hasCopies_ = true;
-  DataList.push_back(dsetIn);
-  ++Ndata;
+  DataList_.push_back(dsetIn);
+  return 0;
+}
+
+int DataSetList::AddDataSet(DataSet* dsetIn) {
+  if (dsetIn==NULL) return 1;
+  DataList_.push_back(dsetIn);
   return 0;
 }
 
@@ -339,19 +347,19 @@ int DataSetList::PrepareForWrite() {
     mprintf("Info: DataSetList does not have copies.\n");
   }
   // If no data sets, exit.
-  if (DataList.empty()) return -1;
+  if (DataList_.empty()) return -1;
   // Remove data sets that do not contain data.
   // NOTE: CheckSet also sets up the format string for the dataset.
-  std::vector<DataSet*>::iterator Dset = DataList.end();
-  while (Dset != DataList.begin()) {
+  DataListType::iterator Dset = DataList_.end();
+  while (Dset != DataList_.begin()) {
     Dset--;
     // If set has no data, remove it
     if ( (*Dset)->CheckSet() ) {
-      mprintf("Warning: Set %s contains no data - skipping.\n",(*Dset)->Name()); 
+      mprintf("Warning: Set %s contains no data - skipping.\n",(*Dset)->c_str()); 
       // Remove
       if (!hasCopies_) delete *Dset;
-      DataList.erase( Dset );
-      Dset = DataList.end();
+      DataList_.erase( Dset );
+      Dset = DataList_.end();
     // If set has data, set its format to right-aligned initially. Also 
     // determine what the maximum x value for the set is.
     } else {
@@ -361,10 +369,10 @@ int DataSetList::PrepareForWrite() {
     }
   }
   // Reset Ndata
-  Ndata = (int)DataList.size();
+  //Ndata = (int)DataList_.size();
 
   // If all data sets are empty no need to write.
-  if (DataList.empty()) return -1;
+  if (DataList_.empty()) return -1;
 
   // Since currentMax is the last frame, the actual # of frames
   // is currentMax+1 (for use in loops).
@@ -380,8 +388,9 @@ int DataSetList::PrepareForWrite() {
   * \return 0 on success, 1 on error.
   */
 int DataSetList::AddData(int frame, void *dataIn, int SetNumber) {
-  if (SetNumber<0 || SetNumber>=Ndata) return 1;
-  DataList[SetNumber]->Add(frame, dataIn);
+  if (SetNumber<0 || SetNumber>=(int)DataList_.size()) 
+    return 1;
+  DataList_[SetNumber]->Add(frame, dataIn);
   return 0;
 }
 
@@ -390,19 +399,17 @@ int DataSetList::AddData(int frame, void *dataIn, int SetNumber) {
   * that will be written to.
   */
 void DataSetList::Info() {
-  int ds;
-
   mprintf("\nDATASETS:\n");
-  if (Ndata==0)
+  if (DataList_.empty())
     mprintf("  There are no data sets set up for analysis.");
-  else if (Ndata==1)
+  else if (DataList_.size()==1)
     mprintf("  There is 1 data set: ");
   else
-    mprintf("  There are %i data sets: ",Ndata);
+    mprintf("  There are %zu data sets: ", DataList_.size());
 
-  for (ds=0; ds<Ndata; ds++) {
+  for (unsigned int ds=0; ds<DataList_.size(); ds++) {
     if (ds>0) mprintf(",");
-    mprintf("%s",DataList[ds]->Name());
+    mprintf("%s",DataList_[ds]->c_str());
     //DataList[ds]->Info();
   }
   mprintf("\n");
@@ -413,14 +420,27 @@ void DataSetList::Info() {
 
 // DataSetList::Sync()
 void DataSetList::Sync() {
-  int ds;
-
   // Sync datasets - does nothing if worldsize is 1
-  for (ds=0; ds<Ndata; ds++) {
-    if ( DataList[ds]->Sync() ) {
-      rprintf( "Error syncing dataset %i\n",ds);
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+    if ( (*ds)->Sync() ) {
+      rprintf( "Error syncing dataset %s\n",(*ds)->c_str());
       //return;
     }
   }
 }
 
+// ---------- VECTOR ROUTINES
+void DataSetList::VectorBegin() {
+  vecidx_ = 0;
+}
+
+VectorType* DataSetList::NextVector() {
+  for (int idx = vecidx_; idx < (int)DataList_.size(); ++idx) {
+    if (DataList_[idx]->Type() == DataSet::VECTOR) {
+      // Position vecidx at the next dataset
+      vecidx_ = idx + 1;
+      return (VectorType*)DataList_[idx];
+    }
+  }
+  return 0;
+}

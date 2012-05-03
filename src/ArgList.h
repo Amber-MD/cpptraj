@@ -56,6 +56,7 @@ class ArgList {
     int Nargs() { return (int)arglist.size(); }
     /// Return the next unmarked string
     char *getNextString();
+    std::string GetStringNext();
     /// Return the next unmarked mask
     char *getNextMask();
     /// Return the next unmarked tag
