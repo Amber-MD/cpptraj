@@ -25,7 +25,7 @@ void DataFile::SetDebug(int debugIn) {
 }
 
 // DataFile::SetupDatafile()
-int DataFile::SetupDatafile(char* fnameIn) {
+int DataFile::SetupDatafile(const char* fnameIn) {
   DataIO basicData;
 
   if (fnameIn==NULL) return 1;

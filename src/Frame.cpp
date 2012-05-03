@@ -431,6 +431,32 @@ double Frame::MaxImagedDistance() {
   return maxD;
 }
 
+// -----------------------------------------------------------------------------
+/*Vec3 Frame::CenterOfMass( AtomMask& Mask ) {
+  double Coord0=0.0;
+  double Coord1=0.0;
+  double Coord2=0.0;
+  double sumMass=0.0;
+
+  for (AtomMask::const_iterator atom = Mask.begin();
+                                atom != Mask.end(); ++atom)
+  {
+      int atmidx = (*atom) * 3;
+      double mass = Mass_[*atom];
+      sumMass += mass;
+      Coord0 += (X_[atmidx  ] * mass);
+      Coord1 += (X_[atmidx+1] * mass);
+      Coord2 += (X_[atmidx+2] * mass);
+  }
+
+  // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL (vectormath.h)
+  if (sumMass < SMALL) return Vec3();
+
+  return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
+}*/
+// -----------------------------------------------------------------------------
+
 // Frame::SetupFrame()
 /** Set up frame for given number of atoms, no mass or velocity information.
   * Only reallocate memory if natomIn > maxnatom.
@@ -2255,5 +2281,45 @@ void Frame::RotateAroundAxis(double *T, double theta, AtomMask &Rmask) {
     X_[i2]=(x*T6) + (y*T7) + (z*T8);
   }
 
+}
+
+void Frame::CalculateInertia(AtomMask &Mask, double *Inertia, double *CXYZ) {
+  double Ivec[6]; // Ivec = xx, yy, zz, xy, xz, yz
+  //if (useMass)
+    CenterOfMass(&Mask, CXYZ);
+  //else
+  //  GeometricCenter(&Mask, CXYZ);
+
+  // Calculate moments of inertia and products of inertia
+  Ivec[0] = 0; // xx
+  Ivec[1] = 0; // yy
+  Ivec[2] = 0; // zz
+  Ivec[3] = 0; // xy
+  Ivec[4] = 0; // xz
+  Ivec[5] = 0; // yz
+  double *crd = X_;
+  for (int atom = 0; atom < natom_; ++atom) {
+    double cx = crd[0] - CXYZ[0];
+    double cy = crd[1] - CXYZ[1];
+    double cz = crd[2] - CXYZ[2];
+
+    Ivec[0] += Mass_[atom] * ( cy * cy + cz * cz );
+    Ivec[1] += Mass_[atom] * ( cx * cx + cz * cz );
+    Ivec[2] += Mass_[atom] * ( cx * cx + cy * cy );
+    Ivec[3] -= Mass_[atom] * cx * cy;
+    Ivec[5] -= Mass_[atom] * cy * cz;
+    Ivec[4] -= Mass_[atom] * cx * cz;
+
+    crd += 3;
+  }
+  Inertia[0] = Ivec[0];
+  Inertia[1] = Ivec[3];
+  Inertia[2] = Ivec[4];
+  Inertia[3] = Ivec[3];
+  Inertia[4] = Ivec[1];
+  Inertia[5] = Ivec[5];
+  Inertia[6] = Ivec[4];
+  Inertia[7] = Ivec[5];
+  Inertia[8] = Ivec[2];
 }
 

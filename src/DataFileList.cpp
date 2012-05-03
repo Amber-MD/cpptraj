@@ -29,9 +29,9 @@ void DataFileList::SetDebug(int debugIn) {
 /** Return DataFile specified by given file name if it exists in the list,
   * otherwise return null.
   */
-DataFile *DataFileList::GetDataFile(char *nameIn) {
+DataFile *DataFileList::GetDataFile(const char *nameIn) {
   if (nameIn==NULL) return NULL;
-  int idx = FindName( nameIn );
+  int idx = FindName( (char*)nameIn );
   if (idx == -1) return NULL;
   return fileList_[idx];
 }
@@ -41,7 +41,7 @@ DataFile *DataFileList::GetDataFile(char *nameIn) {
   * not yet exist in the list create it. Return a pointer to the datafile
   * in the list.
   */
-DataFile *DataFileList::Add(char *nameIn, DataSet *dsetIn) {
+DataFile *DataFileList::Add(const char *nameIn, DataSet *dsetIn) {
   // If no filename, no output desired
   if (nameIn==NULL) return NULL;
   // If DataSet is NULL, dont add
@@ -62,7 +62,7 @@ DataFile *DataFileList::Add(char *nameIn, DataSet *dsetIn) {
       return NULL;
     } 
     fileList_.push_back(Current);
-    AddFilename( nameIn );
+    AddFilename( (char*)nameIn );
   }
 
   // Add the dataset to the current DataFile

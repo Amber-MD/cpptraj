@@ -5157,9 +5157,12 @@ calculatePrincipalAxis(ptrajState *state, int *mask,
   inertia[2][0] = Ixz;
   inertia[2][1] = Iyz;
   inertia[2][2] = Izz;
-  
-  jacobi(inertia, 3, evalue, evector);
 
+  fprintf(stdout,"PTRAJ inertia: %8.4lf %8.4lf %8.4lf\n",inertia[0][0],inertia[0][1],inertia[0][2]);
+  fprintf(stdout,"               %8.4lf %8.4lf %8.4lf\n",inertia[1][0],inertia[1][1],inertia[1][2]);
+  fprintf(stdout,"               %8.4lf %8.4lf %8.4lf\n",inertia[2][0],inertia[2][1],inertia[2][2]);
+
+  jacobi(inertia, 3, evalue, evector);
 
   /*
    *  reorder according to the absolute value of the 

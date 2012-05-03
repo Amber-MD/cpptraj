@@ -12,8 +12,8 @@ class DataFileList : public FileList {
     ~DataFileList();
 
     void SetDebug(int);
-    DataFile *GetDataFile(char *);
-    DataFile *Add(char *, DataSet *);
+    DataFile *GetDataFile(const char *);
+    DataFile *Add(const char *, DataSet *);
     void Info();
     void Write();
     void ProcessDataFileArgs(DataSetList *);

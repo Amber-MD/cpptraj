@@ -40,7 +40,8 @@ double DataSet_double::CurrentValue() {
   */
 int DataSet_double::Xmax() {
   // If no data has been added return 0
-  if (current_==0) return 0;
+  //if (current_==0) return 0;
+  if (Data_.empty()) return 0;
   datum_ = Data_.end();
   --datum_;
   return ( (*datum_).first );
@@ -57,7 +58,7 @@ void DataSet_double::Add(int frame, void *vIn) {
   Data_[frame] = (*value);
   //it=Data.end();
   //Data.insert( it, pair<int,double>(frame, *value) );
-  current_++;
+  //current_++;
 }
 
 // DataSet_double::Get()

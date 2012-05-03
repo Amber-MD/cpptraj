@@ -43,6 +43,10 @@ class Frame {
     int Natom();
     bool empty();
     double MaxImagedDistance();
+    void BoxXYZ(double* XYZ) { XYZ[0]=box_[0]; XYZ[1]=box_[1]; XYZ[2]=box_[2]; }
+    // Vec3 functions
+    //Vec3 GetAtomVec3(int atom) { return Vec3(X_+(atom*3)); }
+    //Vec3 CenterOfMass(AtomMask &);
     // Frame memory allocation/reallocation
     int SetupFrame(int);
     int SetupFrame(int, double*);
@@ -109,9 +113,10 @@ class Frame {
 
     void SetAxisOfRotation(double *, int, int);
     void RotateAroundAxis(double *, double, AtomMask &);
+    void CalculateInertia(AtomMask &, double *, double *);
 
     // TEST: Iterator to coordinates
-    class Iterator : public std::iterator<std::forward_iterator_tag, double*> {
+/*    class Iterator : public std::iterator<std::forward_iterator_tag, double*> {
       public:
         Iterator() : xptr_(0) {}
         Iterator(double *p) : xptr_(p) {}
@@ -154,7 +159,7 @@ class Frame {
     }
     Iterator end() {
       return( Iterator(X_ + Ncoord_) );
-    }
+    }*/
     
   protected:
     static const size_t COORDSIZE_;

@@ -7,6 +7,7 @@
 #include "DataSet.h"
 #include "Topology.h"
 #include "Frame.h"
+#include "Lapack_Diag.h"
 /// Hold coordinate vector information
 //NOTE: Adapted from PTRAJ transformVectorInfo
 class VectorType : public DataSet {
@@ -26,25 +27,39 @@ class VectorType : public DataSet {
     int Init(ArgList&);
     int Allocate(int);
     void Info();
-    void Print();
+    //void Print();
     int Setup(Topology*);
-    int Action(Frame*);
+
+    int Size();
+    int Xmax();
+    void WriteBuffer(CharBuffer&, int);
+    int Width();
+
+    int Action_CORR(Frame*);
+    int Action_DIPOLE(Frame*, Topology*);
+    int Action_PRINCIPAL(Frame*);
+    int Action_MASK( Frame* );
+    int Action_IRED( Frame* );
+    int Action_BOX( Frame* );
 
     vectorMode Mode() { return mode_; }
     bool NoModeInfo() { return modinfo_==0; }
   private:
-    std::string filename_;
+    //std::string filename_;
     int totalFrames_;
-    int frame_; // OBSOLETE?
+    int frame_;
     vectorMode mode_;
     AtomMask mask_;
     AtomMask mask2_;
+    //std::vector<Vec3> C_;
+    //std::vector<Vec3> V_;
     double *cx_; 
     double *cy_;
     double *cz_;
     double *vx_; 
     double *vy_;
     double *vz_;
+    Lapack_Diag Principal_;
 
     VectorType* master_;    ///< If 0 this vector has master ModesInfo 
     ModesInfo* modinfo_;    ///< Eigenmode info for CORRIRED
@@ -53,7 +68,7 @@ class VectorType : public DataSet {
     int iend_;
     int order_;
     int npair_;
-    double *avgcrd_;
+    double avgcrd_[3];
     double rave_;
     double r3iave_;
     double r6iave_;
@@ -61,6 +76,7 @@ class VectorType : public DataSet {
     double *p2cftmp_;
     double *rcftmp_;
 
-    void lsqplane(int, double *, double *, double *, double *);
+    void leastSquaresPlane(int, double *, double *, double *, double *);
+    void sphericalHarmonics(int, int, double*, double, double[2]);
 };
 #endif

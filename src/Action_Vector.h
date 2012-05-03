@@ -9,8 +9,15 @@ class Action_Vector : public Action {
     void print();
   private:
     VectorType *Vector_;
+    std::string filename_;
+    /*std::vector<Vec3> C_;
+    std::vector<Vec3> V_;
+    int frame_;
+    AtomMask mask_;
+    AtomMask mask2_;*/
 
     int init();
     int setup();
+    int action();
 };
 #endif

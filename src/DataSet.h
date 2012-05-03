@@ -87,7 +87,7 @@ class DataSet {
     int idx_;            ///< Dataset index
     DataType dType_;     ///< The dataset type
     //int N_;              ///< Number of data elements
-    int current_;        ///< The current data element
+    //int current_;        ///< The current data element
     int width_;          ///< The output width of a data element
     int precision_;      ///< The output precision of a data element (if applicable)
     int leadingSpace_;   ///< 0 if leftAligned, 1 otherwise

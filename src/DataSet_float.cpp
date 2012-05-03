@@ -41,7 +41,8 @@ double DataSet_float::CurrentValue() {
   */
 int DataSet_float::Xmax() {
   // If no data has been added return 0
-  if (current_==0) return 0;
+  //if (current_==0) return 0;
+  if (Data_.empty()) return 0;
   datum_ = Data_.end();
   --datum_;
   return ( (*datum_).first );
@@ -56,7 +57,7 @@ void DataSet_float::Add(int frame, void *vIn) {
   //datum=Data.end();
   //Data.insert( datum, pair<int,float>(frame, *value) );
   Data_[frame] = (*value);
-  ++current_;
+  //++current_;
 }
 
 // DataSet_float::Get()
@@ -125,8 +126,8 @@ int DataSet_float::Sync() {
     // Get size of map on rank 
     if (worldrank>0) {
       // NOTE: current should be equal to size(). Check for now
-      rprintf("DataSet_float syncing. current=%i, size=%u\n",
-              current_, Data_.size());
+      //rprintf("DataSet_float syncing. current=%i, size=%u\n",
+      //        current_, Data_.size());
       /*if (current != (int) Data.size()) {
         rprintf("ERROR: current and map size are not equal.\n");
         return 1;

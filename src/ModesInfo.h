@@ -23,6 +23,11 @@ class ModesInfo {
     int ReadEvecFile(std::string&, int, int);
 
     int Nvect() { return nvect_; }
+
+    double Evec(int veci, int npair) { 
+      return evec_[veci * nvectelem_ + npair]; 
+    }
+
   private:
     static const size_t BUFSIZE_;
     //std::string name_;

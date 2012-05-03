@@ -9,7 +9,7 @@ DataSet::DataSet() {
   idx_ = -1;
   dType_ = UNKNOWN_DATA;
 //  N=0;
-  current_ = 0;
+//  current_ = 0;
   width_ = 0;
   precision_ = 0;
   leadingSpace_ = 1;
@@ -52,17 +52,18 @@ int DataSet::Setup(char *nameIn, int Nin) {
 // DataSet::Info()
 void DataSet::Info() {
   mprintf("    Data set %s",name_.c_str());
-  //mprintf(", size is %i",N);
-  mprintf(", current is %i\n",current_);
+  mprintf(", size is %i\n", Size());
+  //mprintf(", current is %i\n",current_);
 }
 
 
 // DataSet::CheckSet()
-/** Return 1 if current==0, which indicates set has not been written to.
+/** Return 1 if size==0, which indicates set has not been written to.
   * Otherwise return 0.
   */
 int DataSet::CheckSet() {
-  if (current_==0) return 1;
+  //if (current_==0) return 1;
+  if (Size()==0) return 1;
   return 0;
 }
 
@@ -79,6 +80,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case FLOAT : SetDoubleFormatString(format_, width_, precision_, 1, leftAlign); break;
     case INT   : SetIntegerFormatString(format_, width_, leftAlign); break;
     case STRING: SetStringFormatString(format_, width_, leftAlign); break;
+    case VECTOR: SetDoubleFormatString(format_, width_, precision_, 0, false); break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", c_str());
       return 1;
@@ -119,7 +121,8 @@ void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
 double DataSet::Avg(double *stdev) {
   double sum, numvalues, avg, diff;
   // Check # values
-  if (current_==0) return 0;
+  //if (current_==0) return 0;
+  if (Size()==0) return 0;
   avg = 0;
   // Check if this set is a good type
   if (dType_==DOUBLE || 
@@ -159,7 +162,8 @@ double DataSet::Avg(double *stdev) {
 double DataSet::Max() {
   double max;
   // Check # values
-  if (current_==0) return 0;
+  //if (current_==0) return 0;
+  if (Size()==0) return 0;
   max = 0;
   // Check if this set is a good type
   if (dType_==DOUBLE || 
@@ -181,7 +185,8 @@ double DataSet::Max() {
 double DataSet::Min() {
   double min;
   // Check # values
-  if (current_==0) return 0;
+  //if (current_==0) return 0;
+  if (Size()==0) return 0;
   min = 0;
   // Check if this set is a good type
   if (dType_==DOUBLE ||

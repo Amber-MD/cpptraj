@@ -25,6 +25,7 @@ ModesInfo::~ModesInfo() {
   if (evec_!=0) delete[] evec_;
 }
 
+// ModesInfo::ReadEvecFile()
 int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   CpptrajFile infile;
   char buffer[BUFSIZE_];
@@ -153,5 +154,4 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   infile.CloseFile(); 
   return 0;
 }
-
 

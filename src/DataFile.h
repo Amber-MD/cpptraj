@@ -14,7 +14,7 @@ class DataFile {
     ~DataFile();
 
     void SetDebug(int);
-    int SetupDatafile(char*);
+    int SetupDatafile(const char*);
     int AddSet(DataSet*);
     int ProcessArgs(ArgList&);
     int ProcessArgs(const char*);

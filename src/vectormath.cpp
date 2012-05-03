@@ -56,6 +56,13 @@ void vector_sum(double V[3], double U[3], double W[3]) {
   V[2] = U[2] + W[2];
 }
 
+// vector_mult_scalar()
+void vector_mult_scalar(double V[3], double U[3], double x) {
+  V[0] = U[0] * x;
+  V[1] = U[1] * x;
+  V[2] = U[2] * x;
+}
+
 // dot_product()
 /** total = V . U */
 double dot_product(double V[3], double U[3]) {

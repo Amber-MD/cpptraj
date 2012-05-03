@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
 #include "Constants.h" // PI
+#include "vectormath.h"
 
 // CONSTRUCTOR
 VectorType::VectorType() :
@@ -22,7 +23,6 @@ VectorType::VectorType() :
   iend_(50),
   order_(2),
   npair_(-1),
-  avgcrd_(0),
   rave_(0),
   r3iave_(0),
   r6iave_(0),
@@ -30,7 +30,13 @@ VectorType::VectorType() :
   p2cftmp_(0),
   rcftmp_(0)
 {
+  width_ = 8;
+  precision_ = 4;
   dType_ = VECTOR;
+  SetDataSetFormat(false);
+  avgcrd_[0] = 0;
+  avgcrd_[1] = 0;
+  avgcrd_[2] = 0;
 }
 
 // DESTRUCTOR
@@ -39,19 +45,18 @@ VectorType::~VectorType() {
   if (mode_==VECTOR_CORRIRED) {
     if (master_==0) { 
       if (modinfo_!=0) delete modinfo_;
-      if (cftmp_!=0) delete cftmp_;
+      if (cftmp_!=0) delete[] cftmp_;
     }
   } else {
-    if (cftmp_!=0) delete cftmp_;
-    if (avgcrd_!=0) delete avgcrd_;
-    if (p2cftmp_!=0) delete p2cftmp_;
-    if (rcftmp_!=0) delete rcftmp_;
-    if (cx_!=0) delete cx_;
-    if (cy_!=0) delete cy_;
-    if (cz_!=0) delete cz_;
-    if (vx_!=0) delete vx_;
-    if (vy_!=0) delete vy_;
-    if (vz_!=0) delete vz_;
+    if (cftmp_!=0) delete[] cftmp_;
+    if (p2cftmp_!=0) delete[] p2cftmp_;
+    if (rcftmp_!=0) delete[] rcftmp_;
+    if (cx_!=0) delete[] cx_;
+    if (cy_!=0) delete[] cy_;
+    if (cz_!=0) delete[] cz_;
+    if (vx_!=0) delete[] vx_;
+    if (vy_!=0) delete[] vy_;
+    if (vz_!=0) delete[] vz_;
   }
 }
 
@@ -88,7 +93,7 @@ int VectorType::ReadModesFromFile() {
 
 // VectorType::Init()
 int VectorType::Init(ArgList& argIn) {
-  filename_ = argIn.GetStringKey("out");
+  //filename_ = argIn.GetStringKey("out");
 
   // Require a vector name - this behavior is consistent with ptraj
   name_ = argIn.GetStringNext();
@@ -145,6 +150,8 @@ int VectorType::Init(ArgList& argIn) {
       mprinterr("Error: VectorType::Init(): No 'npair <#>' arg given, needed for 'corrired'.\n");
       return 1;
     }
+    // Actual pair number needs to start from 0
+    --npair_;
     modesfile_ = argIn.GetStringKey("modes");
     if (modesfile_.empty()) {
       mprinterr("Error: VectorType::Init(): No 'modes' <file> arg given, needed for 'corrired'.\n");
@@ -175,6 +182,7 @@ int VectorType::Init(ArgList& argIn) {
   return 0;
 }
 
+// VectorType::Allocate()
 int VectorType::Allocate(int maxFrames) {
   // Allocate data
   if (maxFrames <=0) {
@@ -209,10 +217,7 @@ int VectorType::Allocate(int maxFrames) {
 
   // CORRPLANE / CORR Allocation -------
   } else if (mode_ == VECTOR_CORRPLANE || mode_ == VECTOR_CORR) {
-    avgcrd_ = new double[ 3 ];
-    avgcrd_[0] = 0;
-    avgcrd_[1] = 0;
-    avgcrd_[2] = 0;
+    // avgcrd is now static size [3]
     int ntotal = 2 * totalFrames_ * (2 * order_ + 1);
     cftmp_ = new double[ ntotal ];
     p2cftmp_ = new double[ ntotal ];
@@ -228,6 +233,8 @@ int VectorType::Allocate(int maxFrames) {
 
   // Everything Else -------------------
   } else {
+    //C_.resize( totalFrames_ );
+    //V_.resize( totalFrames_ );
     cx_ = new double[ totalFrames_ ];
     cy_ = new double[ totalFrames_ ];
     cz_ = new double[ totalFrames_ ];
@@ -255,8 +262,8 @@ void VectorType::Info() {
       if (mode_==VECTOR_PRINCIPAL_X) mprintf(" (X)");
       else if (mode_==VECTOR_PRINCIPAL_Y) mprintf(" (Y)");
       else if (mode_==VECTOR_PRINCIPAL_Z) mprintf(" (Z)");
-      mprintf(" will be calcd with respect to the center of mass of atoms in\n");
-      mprintf("\tmask expression [%s]\n", mask_.MaskString());
+      mprintf(" will be calcd with respect to the\n");
+      mprintf("\tcenter of mass of atoms in mask expression [%s]\n", mask_.MaskString());
       break;
 
     case VECTOR_MASK:
@@ -288,10 +295,10 @@ void VectorType::Info() {
 
   if (mode_ == VECTOR_CORRIRED) {
     mprintf("\tIRED modes are read from %s,\n", modesfile_.c_str());
-    mprintf("\tand the pair %i is considered\n", npair_);
+    mprintf("\tand the pair %i is considered\n", npair_+1);
   }
 
-  if (mode_ == VECTOR_CORRPLANE ||
+  /*if (mode_ == VECTOR_CORRPLANE ||
       mode_ == VECTOR_CORR ||
       mode_ == VECTOR_CORRIRED ||
       mode_ == VECTOR_IRED) 
@@ -304,11 +311,11 @@ void VectorType::Info() {
 
   if (!filename_.empty()) {
     mprintf("\tOutput will be dumped to a file, %s\n", filename_.c_str());
-  }
+  }*/
 }
 
 // VectorType::Print()
-void VectorType::Print() {
+/*void VectorType::Print() {
   if (filename_.empty()) return;
 
   CpptrajFile outfile;
@@ -320,85 +327,297 @@ void VectorType::Print() {
   outfile.Printf("# FORMAT where v? is vector, c? is center of mass...\n");
   for (int i=0; i < totalFrames_; ++i) {
     outfile.Printf("%i %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n",
-            i+1,
+            i+1, 
+            //V_[i][0], V_[i][1], V_[i][2], C_[i][0], C_[i][1], C_[i][2],
+            //V_[i][0]+C_[i][0], V_[i][1]+C_[i][1], V_[i][2]+C_[i][2]
             vx_[i], vy_[i], vz_[i],
             cx_[i], cy_[i], cz_[i],
             cx_[i]+vx_[i], cy_[i]+vy_[i], cz_[i]+vz_[i]);
   }
   outfile.CloseFile();
+}*/
+
+// -----------------------------------------------------------------------------
+int VectorType::Size() {
+  return totalFrames_;
 }
 
+int VectorType::Xmax() {
+  return totalFrames_ - 1;
+}
+
+void VectorType::WriteBuffer(CharBuffer &cbuffer, int frameIn) {
+  if (frameIn < 0 || frameIn >= frame_) {
+    mprinterr("ERROR: VECTOR: Frame %i is out of range.\n",frameIn);
+    return;
+  }
+  cbuffer.WriteDouble(data_format_, vx_[frameIn]);
+  cbuffer.WriteDouble(data_format_, vy_[frameIn]);
+  cbuffer.WriteDouble(data_format_, vz_[frameIn]);
+  cbuffer.WriteDouble(data_format_, cx_[frameIn]);
+  cbuffer.WriteDouble(data_format_, cy_[frameIn]);
+  cbuffer.WriteDouble(data_format_, cz_[frameIn]);
+  cbuffer.WriteDouble(data_format_, vx_[frameIn]+cx_[frameIn]);
+  cbuffer.WriteDouble(data_format_, vy_[frameIn]+cy_[frameIn]);
+  cbuffer.WriteDouble(data_format_, vz_[frameIn]+cz_[frameIn]);
+}
+
+int VectorType::Width() {
+  return ( ((width_+1)*9) );
+}
+
+// -----------------------------------------------------------------------------
+
+// VectorType::Setup()
 int VectorType::Setup(Topology* currentParm) {
   // Setup mask 1
   if (currentParm->SetupIntegerMask(mask_)) return 1;
+  mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
+          mask_.MaskString(), mask_.Nselected());
 
   // Allocate space for CORRPLANE
   if (mode_==VECTOR_CORRPLANE) {
-    if (cx_!=0 || cy_!=0 || cz_!=0) {
+    if (cx_!=0 || cy_!=0 || cz_!=0) 
+    //if (!C_.empty())
+    {
       mprinterr("Error: VECTOR_CORRPLANE not yet supported for multiple topology files.\n");
       return 1;
     }
+    if (mask_.Nselected() < 3) {
+      mprinterr("Error: < 3 atoms specified for VECTOR_CORRPLANE\n");
+      return 1;
+    }
+    //C_.resize( mask_.Nselected() );
     cx_ = new double[ mask_.Nselected() ];
     cy_ = new double[ mask_.Nselected() ];
     cz_ = new double[ mask_.Nselected() ];
   }
 
   // Setup mask 2
-  if (!mask2_.NoMaskString())
+  if (!mask2_.NoMaskString()) {
     if (currentParm->SetupIntegerMask(mask2_)) return 1;
+    mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
+            mask2_.MaskString(), mask2_.Nselected());
+  }
   return 0;
 } 
 
-int VectorType::Action(Frame* currentFrame) {
-  double CXYZ[3], VXYZ[3], len, r3, r3i;
-  int indsnap, idx;
+int VectorType::Action_CORR(Frame* currentFrame) {
+  double CXYZ[3], VXYZ[3];
+  double Dplus[2], Dminus[2]; // 0=real, 1=imaginary
+  double r3i;
+  int indtot;
+  //Vec3 CXYZ, VXYZ;
 
-  switch (mode_) {
-    case VECTOR_CORRIRED:
-    case VECTOR_CORR:
-    case VECTOR_CORRPLANE:
-      indsnap = (2*order_ + 1) * frame_;
-      // Calc COM of masks and vector v
-      currentFrame->CenterOfMass(&mask_, CXYZ);
-      if (mode_==VECTOR_CORR || mode_==VECTOR_CORRIRED)
-        currentFrame->CenterOfMass(&mask2_, VXYZ);
-      else if (mode_==VECTOR_CORRPLANE) {
-        idx = 0;
-        for (AtomMask::const_iterator atom = mask_.begin();
-                                      atom != mask_.end(); ++atom) 
-        {
-          currentFrame->GetAtomXYZ( VXYZ, *atom );
-          cx_[idx] = VXYZ[0] - CXYZ[0];
-          cy_[idx] = VXYZ[1] - CXYZ[1];
-          cz_[idx] = VXYZ[2] - CXYZ[2];
-          ++idx;
-        }
-        lsqplane(idx, cx_, cy_, cz_, VXYZ); 
-      }
-      // Calc vector length
-      len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
-      // Update avgcrd, rave, r3iave, r6iave for VECTOR_CORR, VECTOR_CORRPLANE
-      if (mode_== VECTOR_CORR || mode_ == VECTOR_CORRPLANE) {
-        avgcrd_[0] += VXYZ[0];
-        avgcrd_[1] += VXYZ[1];
-        avgcrd_[2] += VXYZ[2];
-        rave_ += len;
-        r3 = len*len*len;
-        r3i = 1.0 / r3;
-        r3iave_ += r3i;
-        r6iave_ += r3i*r3i;
-      }
-
-      break;
-
-    default:
-      mprinterr("Error: Unhandled vector operation.\n");
-      return 1;
+  // Calc snapshot index
+  int indsnap = (2*order_ + 1) * frame_;
+  if (mode_==VECTOR_CORRIRED)
+    indsnap *= modinfo_->Nvect();
+  // Calc COM of masks and vector v
+  //CXYZ = currentFrame->CenterOfMass(mask_);
+  currentFrame->CenterOfMass( &mask_, CXYZ );
+  if (mode_==VECTOR_CORR || mode_==VECTOR_CORRIRED) {
+    //VXYZ = currentFrame->CenterOfMass(&mask2_);
+    currentFrame->CenterOfMass( &mask2_, VXYZ );
+    //VXYZ -= CXYZ;
+    vector_sub( VXYZ, VXYZ, CXYZ );
+  } else if (mode_==VECTOR_CORRPLANE) {
+    int idx = 0;
+    for (AtomMask::const_iterator atom = mask_.begin();
+                                  atom != mask_.end(); ++atom) 
+    {
+      //VXYZ = currentFrame->GetAtomVec3( *atom );
+      currentFrame->GetAtomXYZ( VXYZ, *atom );
+      //C_[idx] = currentFrame->GetAtomVec3( *atom );
+      //C_[idx] -= CXYZ;
+      cx_[idx] = VXYZ[0] - CXYZ[0];
+      cy_[idx] = VXYZ[1] - CXYZ[1];
+      cz_[idx] = VXYZ[2] - CXYZ[2];
+      ++idx;
+    }
+    leastSquaresPlane(idx, cx_, cy_, cz_, VXYZ); 
   }
+  // Calc vector length
+  double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
+  // Update avgcrd, rave, r3iave, r6iave for VECTOR_CORR, VECTOR_CORRPLANE
+  if (mode_== VECTOR_CORR || mode_ == VECTOR_CORRPLANE) {
+    avgcrd_[0] += VXYZ[0];
+    avgcrd_[1] += VXYZ[1];
+    avgcrd_[2] += VXYZ[2];
+    rave_ += len;
+    double r3 = len*len*len;
+    r3i = 1.0 / r3;
+    r3iave_ += r3i;
+    r6iave_ += r3i*r3i;
+  }
+
+  // Loop over m=0, ..., +L
+  int indminus = 0;
+  for (int idx = 0; idx <= order_; ++idx) {
+    // Calc Spherical Harmonics
+    sphericalHarmonics(order_, idx, VXYZ, len, Dplus);
+    int indplus = order_ + idx; 
+    if (idx > 0) {
+      sphericalHarmonics(order_, -idx, VXYZ, len, Dminus);
+      indminus = order_ - idx;
+    }
+    // CORRIRED
+    // NOTE: For CORRIRED, indsnap (above), indplus, and indminus are 
+    //       multiplied by nvect.
+    if (mode_ == VECTOR_CORRIRED) {
+      indplus *= modinfo_->Nvect();
+      indminus *= modinfo_->Nvect();
+      // Loop over all eigenvectors
+      for (int veci = 0; veci < modinfo_->Nvect(); ++veci) {
+        double Qvec = modinfo_->Evec(veci, npair_);
+        indtot = 2 * (indsnap + indplus + veci);
+        cftmp_[indtot  ] += (Qvec * Dplus[0]);
+        cftmp_[indtot+1] += (Qvec * Dplus[1]);
+        if (idx > 0) {
+          indtot = 2 * (indsnap + indminus + veci);
+          cftmp_[indtot  ] += Qvec * Dminus[0];
+          cftmp_[indtot+1] += Qvec * Dminus[1];
+        }
+      } 
+
+      // CORR / CORRPLANE
+    } else if (mode_ == VECTOR_CORR || mode_ == VECTOR_CORRPLANE ) {
+      indtot = 2 * (indsnap + indplus);
+      cftmp_[indtot  ] += r3i * Dplus[0];
+      cftmp_[indtot+1] += r3i * Dplus[1];
+      p2cftmp_[indtot  ] += Dplus[0];
+      p2cftmp_[indtot+1] += Dplus[1];
+      if(idx > 0){
+        indtot = 2 * (indsnap + indminus);
+        cftmp_[indtot  ] += r3i * Dminus[0];
+        cftmp_[indtot+1] += r3i * Dminus[1];
+        p2cftmp_[indtot  ] += Dminus[0];
+        p2cftmp_[indtot+1] += Dminus[1];
+      }
+      else if(idx == 0){
+        indtot = 2 * frame_;
+        rcftmp_[indtot  ] += r3i;
+        rcftmp_[indtot+1]  = 0.0;
+      }
+    }
+  } // END loop over m=0 ... +L
+  ++frame_;
+  return 0;
+}
+
+int VectorType::Action_DIPOLE( Frame* currentFrame, Topology* currentParm)
+{
+  double Vec[3], CXYZ[3], VXYZ[3], XYZ[3];
+  CXYZ[0] = 0;
+  CXYZ[1] = 0;
+  CXYZ[2] = 0;
+  VXYZ[0] = 0;
+  VXYZ[1] = 0;
+  VXYZ[2] = 0;
+  double total_mass = 0;
+  for (AtomMask::const_iterator atom = mask_.begin(); 
+                                atom != mask_.end(); ++atom)
+  {
+    currentFrame->GetAtomXYZ( XYZ, *atom );
+    double mass = (*currentParm)[*atom].Mass();
+    total_mass += mass;
+    vector_mult_scalar( Vec, XYZ, mass );
+    vector_sum( CXYZ, CXYZ, Vec );
+
+    vector_mult_scalar( Vec, XYZ, (*currentParm)[*atom].Charge() );
+    vector_sum( VXYZ, VXYZ, Vec );
+  }
+  ++frame_;
 
   return 0;
 }
 
+int VectorType::Action_PRINCIPAL( Frame *currentFrame ) {
+  double Inertia[9], CXYZ[3], Eval[3];
+
+  currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
+  printMatrix_3x3("PRINCIPAL Inertia", Inertia);
+
+  Principal_.Diagonalize( Inertia, Eval );
+
+  // The LAPACK routine returns eigenvectors in columns, however
+  // since FORTRAN has different ordering matrix is actually returned
+  // as:
+  // V0x V0y V0z
+  // V1x V1y V1z
+  // V2x V2y V2z
+  // so vectors are 0,1,2 etc. In addition, eigenvectors
+  // are sorted in ascending order, so V2 is associated with the
+  // largest eigenvalue, i.e. X vector.
+  printMatrix_3x3("PRINCIPAL Eigenvectors", Inertia);
+  printVector("PRINCIPAL Eigenvalues", Eval);
+
+  if (mode_==VECTOR_PRINCIPAL_X) {
+    vx_[frame_] = Inertia[6];
+    vy_[frame_] = Inertia[7];
+    vz_[frame_] = Inertia[8];
+  } else if (mode_==VECTOR_PRINCIPAL_Y) {
+    vx_[frame_] = Inertia[3];
+    vy_[frame_] = Inertia[4];
+    vz_[frame_] = Inertia[5];
+  } else if (mode_==VECTOR_PRINCIPAL_Z) {
+    vx_[frame_] = Inertia[0];
+    vy_[frame_] = Inertia[1];
+    vz_[frame_] = Inertia[2];
+  }
+  cx_[frame_] = CXYZ[0];
+  cy_[frame_] = CXYZ[1];
+  cz_[frame_] = CXYZ[2];
+
+  ++frame_;
+
+  return 0;
+}
+
+int VectorType::Action_MASK( Frame *currentFrame ) {
+  double CXYZ[3], VXYZ[3];
+
+  currentFrame->CenterOfMass( &mask_, CXYZ);
+  currentFrame->CenterOfMass( &mask2_, VXYZ);
+  vx_[frame_] = VXYZ[0] - CXYZ[0];
+  vy_[frame_] = VXYZ[1] - CXYZ[1];
+  vz_[frame_] = VXYZ[2] - CXYZ[2];
+  cx_[frame_] = CXYZ[0];
+  cy_[frame_] = CXYZ[1];
+  cz_[frame_] = CXYZ[2];
+  ++frame_;
+  return 0;
+}
+
+int VectorType::Action_IRED( Frame *currentFrame ) {
+  double CXYZ[3], VXYZ[3];
+
+  currentFrame->CenterOfMass( &mask_, CXYZ);
+  currentFrame->CenterOfMass( &mask2_, VXYZ);
+  vx_[frame_] = VXYZ[0] - CXYZ[0];
+  vy_[frame_] = VXYZ[1] - CXYZ[1];
+  vz_[frame_] = VXYZ[2] - CXYZ[2];
+  cx_[frame_] = CXYZ[0];
+  cy_[frame_] = CXYZ[1];
+  cz_[frame_] = CXYZ[2];
+  // IRED only ever has 1 frame, dont increment counter
+  return 0;
+}
+
+int VectorType::Action_BOX( Frame *currentFrame ) {
+  double XYZ[3];
+  currentFrame->BoxXYZ( XYZ );
+  vx_[frame_] = XYZ[0];
+  vy_[frame_] = XYZ[1];
+  vz_[frame_] = XYZ[2];
+  cx_[frame_] = 0;
+  cy_[frame_] = 0;
+  cz_[frame_] = 0;
+  ++frame_;
+  return 0;
+}
+      
+// -----------------------------------------------------------------------------
 /** Solves a cubic equation
   * ax^3 + bx^2 + cx + d = 0
   * using "Cardan's formula"
@@ -458,7 +677,9 @@ static double solve_cubic_eq(double a, double b, double c, double d)
   * following: Crystal Structure Analysis for Chem. and Biol.,
   * Glusker, Lewis, Rossi, S. 460ff
   */
-void VectorType::lsqplane(int n, double *cx, double *cy, double *cz, double *XYZ) {
+void VectorType::leastSquaresPlane(int n, double* cx, double* cy, double* cz, double* XYZ) 
+//void VectorType::leastSquaresPlane(std::vector<Vec3>& Cvec, Vec3& XYZ) 
+{
   int i;
   double dSumXX, dSumYY, dSumZZ, dSumXY, dSumXZ, dSumYZ;
   double o, p, q, root;
@@ -467,7 +688,13 @@ void VectorType::lsqplane(int n, double *cx, double *cy, double *cz, double *XYZ
 
   root = 0;
 
-  if(n == 3){
+  if (n == 3) {
+    /*Vec3 V1 = Cvec[1];
+    V1 -= Cvec[0];
+    Vec3 V2 = Cvec[2];
+    V2 -= Cvec[1];
+    XYZ.CROSS( V1, V2 );*/
+
     x1 = cx[1] - cx[0];
     y1 = cy[1] - cy[0];
     z1 = cz[1] - cz[0];
@@ -519,6 +746,55 @@ void VectorType::lsqplane(int n, double *cx, double *cy, double *cz, double *XYZ
   XYZ[0] *= dnorm;
   XYZ[1] *= dnorm;
   XYZ[2] *= dnorm;
+}
+
+/** Calc spherical harmonics of order l=0,1,2
+  * and -l<=m<=l with cartesian coordinates as input
+  * (see e.g. Merzbacher, Quantum Mechanics, p. 186)
+  */
+void VectorType::sphericalHarmonics(int l, int m, double* XYZ, double r, double D[2])
+{
+  const double SH00=0.28209479;
+  const double SH10=0.48860251;
+  const double SH11=0.34549415;
+  const double SH20=0.31539157;
+  const double SH21=0.77254840;
+  const double SH22=0.38627420;
+
+  double ri;
+  double x = XYZ[0];
+  double y = XYZ[1];
+  double z = XYZ[2];
+
+  D[0] = 0.0;
+  D[1] = 0.0;
+  ri = 1.0 / r;
+
+  if(l == 0 && m == 0){
+    D[0] = SH00;
+  }
+  else if(l == 1){
+    if(m == 0){
+      D[0] = SH10 * z * ri;
+    }
+    else{
+      D[0] = -m * SH11 * x * ri;
+      D[1]  = -    SH11 * y * ri;
+    }
+  }
+  else if(l == 2){
+    if(m == 0){
+      D[0] = SH20 * (2.0*z*z - x*x - y*y) * ri * ri;
+    }
+    else if(fabs(m) == 1){
+      D[0] = -m * SH21 * x * z * ri * ri;
+      D[1]  = -    SH21 * y * z * ri * ri;
+    }
+    else{
+      D[0] = SH22 * (x*x - y*y) * ri * ri;
+      D[1]  = m * SH22 * x * y * ri * ri;
+    }
+  }
 }
 
 
