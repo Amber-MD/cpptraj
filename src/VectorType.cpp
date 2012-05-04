@@ -40,6 +40,8 @@ VectorType::VectorType() :
   // DEBUG
   debugpdb.SetupWrite("PRINCIPAL.PDB",0);
   debugpdb.OpenFile();
+  debuginert.SetupWrite("INERT.PDB",0);
+  debuginert.OpenFile();
 }
 
 // DESTRUCTOR
@@ -63,6 +65,7 @@ VectorType::~VectorType() {
   }
   // DEBUG
   debugpdb.CloseFile();
+  debuginert.CloseFile();
 }
 
 // VectorType::operator==()
@@ -625,6 +628,26 @@ int VectorType::Action_PRINCIPAL( ) {
 
   currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
   printMatrix_3x3("PRINCIPAL Inertia", Inertia);
+  // DEBUG - Write PDB of inertia
+  double Temp[9];
+  for (int i = 0; i < 9; ++i)
+    Temp[i] = 0;//Inertia[i];
+  Temp[0] = 1;
+  Temp[4] = 1;
+  Temp[8] = 1;
+  //normalize(Temp);
+  //normalize(Temp+3);
+  //normalize(Temp+6);
+  debuginert.Printf("MODEL %i\n",frame_+1);
+  PDB.pdb_write_ATOM(debuginert.IO, PDBfile::PDBATOM, 1, (char*)"Orig", (char*)"Vec", ' ', 1,
+                    CXYZ[0], CXYZ[1], CXYZ[2]);
+  PDB.pdb_write_ATOM(debuginert.IO, PDBfile::PDBATOM, 2, (char*)"X", (char*)"Vec", ' ', 1,
+                    Temp[0]+CXYZ[0], Temp[1]+CXYZ[1], Temp[2]+CXYZ[2]);
+  PDB.pdb_write_ATOM(debuginert.IO, PDBfile::PDBATOM, 3, (char*)"Y", (char*)"Vec", ' ', 1,
+                    Temp[3]+CXYZ[0], Temp[4]+CXYZ[1], Temp[5]+CXYZ[2]);
+  PDB.pdb_write_ATOM(debuginert.IO, PDBfile::PDBATOM, 4, (char*)"Z", (char*)"Vec", ' ', 1,
+                    Temp[6]+CXYZ[0], Temp[7]+CXYZ[1], Temp[8]+CXYZ[2]);
+  debuginert.Printf("ENDMDL\n");
 
   Principal_.Diagonalize( Inertia, Eval );
 

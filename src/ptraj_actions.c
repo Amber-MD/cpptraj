@@ -4865,6 +4865,17 @@ transformMatrix(actionInformation *action,
  *
  ******************************************************************************/
 
+static void printMatrix_3x3(const char*title, double v[3][3]) {
+  printf("[%s]\n",title);
+  printf("\t%8.4lf %8.4lf %8.4lf\n",v[0][0], v[0][1], v[0][2]);
+  printf("\t%8.4lf %8.4lf %8.4lf\n",v[1][0], v[1][1], v[1][2]);
+  printf("\t%8.4lf %8.4lf %8.4lf\n",v[2][0], v[2][1], v[2][2]);
+}
+
+static void printVector(const char*title, double *v) {
+  printf("[%s] %8.4lf %8.4lf %8.4lf\n",title, v[0],v[1],v[2]);
+}
+
 #define MAX_ITERATIONS 50
 #define ROTATE(a,i,j,k,l) g=a[i][j];h=a[k][l];a[i][j]=g-s*(h+g*tau);\
           a[k][l]=h+s*(g-h*tau);
@@ -4892,7 +4903,6 @@ void jacobi(double a[3][3],int n,double d[3], double v[3][3])
       for (iq=ip+1;iq<=n;iq++)
 	sm += fabs(a[ip-1][iq-1]);
     }
-
     if (sm == 0.0) {
       safe_free(b);
       safe_free(z);

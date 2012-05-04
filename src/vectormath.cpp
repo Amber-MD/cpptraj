@@ -430,6 +430,9 @@ int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
     return(0);
   }
 
+  printMatrix_3x3("Jacobi3 Output", eigenvector);
+  printVector("Jacobi3 Evals",Eigenvalue);
+
   for (i=i3=0; i<3; i++, i3+=3)
     for (j=0; j<3; j++)
       Emat[i3+j] = eigenvector[j*3+i];
@@ -451,6 +454,9 @@ int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
       Evec[k] = eA;
     }
   }
+  printVector("Jacobi3 Vec0",Evec[0]);
+  printVector("Jacobi3 Vec1",Evec[1]);
+  printVector("Jacobi3 Vec2",Evec[2]);
   return(1);
 }
 

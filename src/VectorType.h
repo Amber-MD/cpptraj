@@ -69,6 +69,7 @@ class VectorType : public DataSet, public Action {
     // DEBUG
     PDBfile PDB;
     CpptrajFile debugpdb;
+    CpptrajFile debuginert;
 
     bool operator==(const VectorType&);
     int AssignMaster(VectorType*);

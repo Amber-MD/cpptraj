@@ -7,6 +7,8 @@
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 #include "CpptrajStdio.h"
+// DEBUG
+#include "Matrix_3x3.h"
 
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 const size_t Frame::BOXSIZE_ = 6 * sizeof(double);
@@ -1967,7 +1969,8 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   double frameCOM[3], rms_return, total_mass, atom_mass;
   double mwss, rot[9], rtr[9];
   double xt,yt,zt,xr,yr,zr;
-  double *Evector[3], Eigenvalue[3], Emat[9];
+  //double *Evector[3], Eigenvalue[3], Emat[9];
+  double Evector[3][3], Eigenvalue[3];
   double b[9];
   double cp[3], sig3;
   int i, m;
@@ -2053,8 +2056,11 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   rtr[8] = rot[6]*rot[6] + rot[7]*rot[7] + rot[8]*rot[8];
 
   // Diagonalize
-  if (!diagEsort(rtr, Emat, Evector, Eigenvalue))
-    return(0);
+  //if (!diagEsort(rtr, Emat, Evector, Eigenvalue))
+  //  return(0);
+  Matrix_3x3 TEMP(rtr);
+  if (!TEMP.Diagonalize_Sort( Evector, Eigenvalue))
+    return 0;
 
   // a3 = a1 x a2 
   CROSS_PRODUCT(Evector[2][0], Evector[2][1], Evector[2][2],
