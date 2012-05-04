@@ -25,7 +25,7 @@ findDepend: FindDepend.o
 	$(CXX) -Wall -o findDepend FindDepend.o
 
 depend: findDepend
-	./findDepend $(SOURCES) > cpptrajdepend
+	./findDepend $(SOURCES) $(CSOURCES) > cpptrajdepend
 
 dependclean:
 	-/bin/rm FindDepend.o

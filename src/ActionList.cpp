@@ -39,6 +39,7 @@
 #include "Action_AvgCoord.h"
 #include "Action_Contacts.h"
 #include "VectorType.h"
+#include "Action_Principal.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -112,6 +113,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
   else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
   else if (argIn.CommandIs("vectortest"))     {Act=new VectorType;}
+  else if (argIn.CommandIs("principaltest"))  {Act=new Action_Principal;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||

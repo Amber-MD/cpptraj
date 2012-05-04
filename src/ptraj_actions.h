@@ -174,6 +174,8 @@ int transformUnwrap(actionInformation *, double *, double *, double *, double *,
 int transformVector(actionInformation *, double *, double *, double *, double *, int);
 actionInformation* ptrajCopyAction(actionInformation**);
 
+int jacobiCheckChirality(double[3], double[3][3]);
+
 #ifdef __cplusplus
 }
 #endif
