@@ -2,7 +2,6 @@
 #define INC_DATASETLIST_H
 #include <vector>
 #include "DataSet.h"
-#include "VectorType.h"
 // Class: DataSetList
 /// Hold list of data sets.
 /** Main class for handling datasets. All dataset types can be allocated 
@@ -65,7 +64,7 @@ class DataSetList {
     int MaxFrames() { return maxFrames_; }
     
     void VectorBegin();
-    VectorType* NextVector();
+    DataSet* NextVector();
   private:
     /// Dataset debug level
     int debug_;

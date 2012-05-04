@@ -1,19 +1,20 @@
 #ifndef INC_VECTORTYPE_H
 #define INC_VECTORTYPE_H
 #include <string>
-#include "AtomMask.h"
+#include "Action.h"
+//#inc lude "AtomMask.h"
 #include "ModesInfo.h"
-#include "ArgList.h"
-#include "DataSet.h"
-#include "Topology.h"
-#include "Frame.h"
+//#inc lude "ArgList.h"
+//#inc lude "DataSet.h"
+//#inc lude "Topology.h"
+//#inc lude "Frame.h"
 #include "Lapack_Diag.h"
 // DEBUG
 #include "CpptrajFile.h"
 #include "PDBfile.h"
 /// Hold coordinate vector information
 //NOTE: Adapted from PTRAJ transformVectorInfo
-class VectorType : public DataSet {
+class VectorType : public DataSet, public Action {
   public:
     enum vectorMode {
       VECTOR_NOOP=0,    VECTOR_PRINCIPAL_X, VECTOR_PRINCIPAL_Y, VECTOR_PRINCIPAL_Z,
@@ -24,29 +25,16 @@ class VectorType : public DataSet {
     VectorType();
     ~VectorType();
 
-    bool operator==(const VectorType&);
-    int AssignMaster(VectorType*);
-    int ReadModesFromFile();
-    int Init(ArgList&);
-    int Allocate(int);
-    void Info();
     //void Print();
-    int Setup(Topology*);
 
+    // DataSet functions
     int Size();
     int Xmax();
     void WriteBuffer(CharBuffer&, int);
     int Width();
 
-    int Action_CORR(Frame*);
-    int Action_DIPOLE(Frame*, Topology*);
-    int Action_PRINCIPAL(Frame*);
-    int Action_MASK( Frame* );
-    int Action_IRED( Frame* );
-    int Action_BOX( Frame* );
-
-    vectorMode Mode() { return mode_; }
-    bool NoModeInfo() { return modinfo_==0; }
+    //vectorMode Mode() { return mode_; }
+    //bool NoModeInfo() { return modinfo_==0; }
   private:
     //std::string filename_;
     int totalFrames_;
@@ -81,6 +69,24 @@ class VectorType : public DataSet {
     // DEBUG
     PDBfile PDB;
     CpptrajFile debugpdb;
+
+    bool operator==(const VectorType&);
+    int AssignMaster(VectorType*);
+    int ReadModesFromFile();
+    int Allocate(int);
+    void Info();
+
+    // Action functions
+    int init();
+    int setup();
+    int action();
+
+    int Action_CORR();
+    int Action_DIPOLE();
+    int Action_PRINCIPAL();
+    int Action_MASK(  );
+    int Action_IRED(  );
+    int Action_BOX(  );
 
     void leastSquaresPlane(int, double *, double *, double *, double *);
     void sphericalHarmonics(int, int, double*, double, double[2]);

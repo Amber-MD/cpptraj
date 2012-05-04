@@ -18,7 +18,8 @@ Action::Action() :
   useMassOriginalValue_(false),
   useImageOriginalValue_(false),
   noInit_(false), 
-  noSetup_(false) 
+  noSetup_(false),
+  noDelete_(false) 
 {}
 
 // DESTRUCTOR

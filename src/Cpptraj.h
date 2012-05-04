@@ -34,12 +34,17 @@ class Cpptraj {
     FrameList refFrames; 
     /// List of output trajectory files 
     TrajoutList trajoutList;
-    /// List of actions to be performed each frame
-    ActionList actionList;    
     /// List of analyses to be performed on datasets
     AnalysisList analysisList;
     /// List of generated data sets
     DataSetList DSL;
+    /// List of actions to be performed each frame
+    // NOTE: This is placed after DataSetList so that its
+    //       destructor is called first, since things like
+    //       VectorType which can be both actions and datasets
+    //       will by convention be freed in the DataSetList. This
+    //       way they can stick around for analysis.
+    ActionList actionList;    
     /// List of datafiles that data sets will be written to
     DataFileList DFL;
     /// The debug level

@@ -96,15 +96,15 @@ int VectorType::ReadModesFromFile() {
   return (modinfo_->ReadEvecFile( modesfile_, ibeg_, iend_ ));
 }
 
-// VectorType::Init()
-int VectorType::Init(ArgList& argIn) {
-  //filename_ = argIn.GetStringKey("out");
+// VectorType::init()
+int VectorType::init() {
+  std::string filename_ = actionArgs.GetStringKey("out");
 
   // Require a vector name - this behavior is consistent with ptraj
-  name_ = argIn.GetStringNext();
+  name_ = actionArgs.GetStringNext();
 
   // Get order for Legendre polynomial
-  order_ = argIn.getKeyInt("order",2);
+  order_ = actionArgs.getKeyInt("order",2);
   if (order_ < 0 || order_ > 2) {
     mprintf("Warning: vector order out of bounds (<0 or >2), resetting to 2.\n");
     order_ = 2;
@@ -113,39 +113,44 @@ int VectorType::Init(ArgList& argIn) {
   // Determine vector mode.
   // Acceptable args: principal, principal x, principal y, principal z,
   //                  dipole, box, corrplane, corrired, corr, ired
-  int pos = argIn.KeyPosition("principal");
-  if (pos == argIn.Nargs() - 1) {
-    argIn.MarkArg(pos);
+  int pos = actionArgs.KeyPosition("principal");
+  if (pos == actionArgs.Nargs() - 1) {
+    actionArgs.MarkArg(pos);
     mode_ = VECTOR_PRINCIPAL_X;
   } else if (pos!=-1) {
-    argIn.MarkArg(pos);
+    actionArgs.MarkArg(pos);
     mode_ = VECTOR_PRINCIPAL_X;
-    char vecchar = argIn[pos+1][0];
+    char vecchar = actionArgs[pos+1][0];
     if (vecchar == 'x' ||
         vecchar == 'y' ||
         vecchar == 'z')
     {
-      argIn.MarkArg(pos+1);
+      actionArgs.MarkArg(pos+1);
       switch (vecchar) {
         case 'x': mode_ = VECTOR_PRINCIPAL_X; break;
         case 'y': mode_ = VECTOR_PRINCIPAL_Y; break;
         case 'z': mode_ = VECTOR_PRINCIPAL_Z; break;
       }
     }
-  } else if (argIn.hasKey("dipole"))
+  } else if (actionArgs.hasKey("dipole"))
     mode_ = VECTOR_DIPOLE;
-  else if (argIn.hasKey("box"))
+  else if (actionArgs.hasKey("box"))
     mode_ = VECTOR_BOX;
-  else if (argIn.hasKey("corrplane"))
+  else if (actionArgs.hasKey("corrplane"))
     mode_ = VECTOR_CORRPLANE;
-  else if (argIn.hasKey("corrired"))
+  else if (actionArgs.hasKey("corrired"))
     mode_ = VECTOR_CORRIRED;
-  else if (argIn.hasKey("corr"))
+  else if (actionArgs.hasKey("corr"))
     mode_ = VECTOR_CORR;
-  else if (argIn.hasKey("ired"))
+  else if (actionArgs.hasKey("ired"))
     mode_ = VECTOR_IRED;
   else
     mode_ = VECTOR_MASK;
+
+  if (mode_ == VectorType::VECTOR_NOOP) {
+    mprinterr("Error: No vector mode specified.\n");
+    return 1;
+  }
 
 # ifdef NO_PTRAJ_ANALYZE
   // VECTOR PRINCIPAL requires LAPACK routines for diagonalization
@@ -158,28 +163,44 @@ int VectorType::Init(ArgList& argIn) {
   }
 # endif 
 
-
   // VECTOR_CORRIRED
   if (mode_ == VECTOR_CORRIRED) {
     // Get Pair number
-    npair_ = argIn.getKeyInt("npair",0);
+    npair_ = actionArgs.getKeyInt("npair",0);
     if (npair_ == 0) {
       mprinterr("Error: VectorType::Init(): No 'npair <#>' arg given, needed for 'corrired'.\n");
       return 1;
     }
     // Actual pair number needs to start from 0
     --npair_;
-    modesfile_ = argIn.GetStringKey("modes");
+    modesfile_ = actionArgs.GetStringKey("modes");
     if (modesfile_.empty()) {
       mprinterr("Error: VectorType::Init(): No 'modes' <file> arg given, needed for 'corrired'.\n");
       return 1;
     }
-    ibeg_ = argIn.getKeyInt("beg",1);
-    iend_ = argIn.getKeyInt("end", 50);
+    ibeg_ = actionArgs.getKeyInt("beg",1);
+    iend_ = actionArgs.getKeyInt("end", 50);
+    // check if modes need to be read or have been
+    // previously read in by another VectorType.
+    VectorType *Vtmp;
+    DSL->VectorBegin();
+    while ( (Vtmp = (VectorType*)DSL->NextVector()) != 0 ) {
+      if ( *this == *Vtmp ) {
+        if (AssignMaster( Vtmp )) {
+          mprinterr("Error: Could not assign vector master for CORRIRED.\n");
+          return 1;
+        }
+      }
+    }
+    // Load modes from file. modesfile name should be set by VectorType::Init.
+    if (modinfo_==0)
+      if (ReadModesFromFile()) {
+        return 1;
+      }
   }
 
   // Vector Mask
-  char *maskexpr = argIn.getNextMask();
+  char *maskexpr = actionArgs.getNextMask();
   mask_.SetMaskString( maskexpr );
 
   // Get second mask if necessary
@@ -188,12 +209,43 @@ int VectorType::Init(ArgList& argIn) {
       mode_ == VECTOR_CORRIRED ||
       mode_ == VECTOR_MASK)
   {
-    maskexpr = argIn.getNextMask();
+    maskexpr = actionArgs.getNextMask();
     if (maskexpr==NULL) {
       mprinterr("Error: vector: Specified vector mode requires a second mask.\n");
       return 1;
     }
     mask2_.SetMaskString( maskexpr );
+  }
+
+  // Allocate vector
+  if (Allocate(DSL->MaxFrames())) return 1;
+
+  // Add vector to datasetlist
+  // TODO: Check for name conflicts
+  DSL->AddDataSet( (DataSet*)this );
+  // Since this now exists in the DataSetList and ActionList,
+  // set the noDelete flag.
+  SetNoDelete();
+
+  Info();
+
+  // Check if output is supported for the current vector mode
+  if (mode_ == VECTOR_CORRPLANE ||
+      mode_ == VECTOR_CORR ||
+      mode_ == VECTOR_CORRIRED ||
+      mode_ == VECTOR_IRED)
+  {
+    if (!filename_.empty()) {
+      mprintf(
+        "\tWarning: Output of corr, ired, corrired or corrplane vectors is not yet supported!\n");
+        filename_.clear();
+    }
+  }
+
+  // Add to output datafilelist
+  if (!filename_.empty()) {
+    mprintf("\tOutput will be dumped to a file, %s\n", filename_.c_str());
+    DFL->Add( filename_.c_str(), (DataSet*)this );
   }
 
   return 0;
@@ -315,20 +367,6 @@ void VectorType::Info() {
     mprintf("\tand the pair %i is considered\n", npair_+1);
   }
 
-  /*if (mode_ == VECTOR_CORRPLANE ||
-      mode_ == VECTOR_CORR ||
-      mode_ == VECTOR_CORRIRED ||
-      mode_ == VECTOR_IRED) 
-  {
-    if (!filename_.empty()) {
-      mprintf("\tWarning: Output of corr, ired, corrired or corrplane vectors is not yet supported!\n");
-      filename_.clear(); 
-    }
-  }
-
-  if (!filename_.empty()) {
-    mprintf("\tOutput will be dumped to a file, %s\n", filename_.c_str());
-  }*/
 }
 
 // VectorType::Print()
@@ -385,8 +423,8 @@ int VectorType::Width() {
 
 // -----------------------------------------------------------------------------
 
-// VectorType::Setup()
-int VectorType::Setup(Topology* currentParm) {
+// VectorType::setup()
+int VectorType::setup() {
   // Setup mask 1
   if (currentParm->SetupIntegerMask(mask_)) return 1;
   mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
@@ -419,7 +457,40 @@ int VectorType::Setup(Topology* currentParm) {
   return 0;
 } 
 
-int VectorType::Action_CORR(Frame* currentFrame) {
+int VectorType::action() {
+  int err;
+
+  switch (mode_) {
+    case VECTOR_CORRIRED:
+    case VECTOR_CORR:
+    case VECTOR_CORRPLANE:
+      err = Action_CORR(  );
+      break;
+    case VECTOR_DIPOLE:
+      err = Action_DIPOLE(  );
+      break;
+    case VECTOR_PRINCIPAL_X:
+    case VECTOR_PRINCIPAL_Y:
+    case VECTOR_PRINCIPAL_Z:
+      err = Action_PRINCIPAL(  );
+      break;
+    case VECTOR_MASK:
+      err = Action_MASK(  );
+      break;
+    case VECTOR_IRED:
+      err = Action_IRED(  );
+      break;
+    case VECTOR_BOX:
+      err = Action_BOX(  );
+      break;
+    default:
+      mprinterr("Error: Unhandled vector operation.\n");
+      return 1;
+  }
+  return err;
+}
+
+int VectorType::Action_CORR() {
   double CXYZ[3], VXYZ[3];
   double Dplus[2], Dminus[2]; // 0=real, 1=imaginary
   double r3i;
@@ -522,7 +593,7 @@ int VectorType::Action_CORR(Frame* currentFrame) {
   return 0;
 }
 
-int VectorType::Action_DIPOLE( Frame* currentFrame, Topology* currentParm)
+int VectorType::Action_DIPOLE()
 {
   double Vec[3], CXYZ[3], VXYZ[3], XYZ[3];
   CXYZ[0] = 0;
@@ -549,7 +620,7 @@ int VectorType::Action_DIPOLE( Frame* currentFrame, Topology* currentParm)
   return 0;
 }
 
-int VectorType::Action_PRINCIPAL( Frame *currentFrame ) {
+int VectorType::Action_PRINCIPAL( ) {
   double Inertia[9], CXYZ[3], Eval[3];
 
   currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
@@ -603,7 +674,7 @@ int VectorType::Action_PRINCIPAL( Frame *currentFrame ) {
   return 0;
 }
 
-int VectorType::Action_MASK( Frame *currentFrame ) {
+int VectorType::Action_MASK( ) {
   double CXYZ[3], VXYZ[3];
 
   currentFrame->CenterOfMass( &mask_, CXYZ);
@@ -618,7 +689,7 @@ int VectorType::Action_MASK( Frame *currentFrame ) {
   return 0;
 }
 
-int VectorType::Action_IRED( Frame *currentFrame ) {
+int VectorType::Action_IRED(  ) {
   double CXYZ[3], VXYZ[3];
 
   currentFrame->CenterOfMass( &mask_, CXYZ);
@@ -633,7 +704,7 @@ int VectorType::Action_IRED( Frame *currentFrame ) {
   return 0;
 }
 
-int VectorType::Action_BOX( Frame *currentFrame ) {
+int VectorType::Action_BOX(  ) {
   double XYZ[3];
   currentFrame->BoxXYZ( XYZ );
   vx_[frame_] = XYZ[0];

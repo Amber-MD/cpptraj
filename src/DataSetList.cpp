@@ -434,12 +434,12 @@ void DataSetList::VectorBegin() {
   vecidx_ = 0;
 }
 
-VectorType* DataSetList::NextVector() {
+DataSet* DataSetList::NextVector() {
   for (int idx = vecidx_; idx < (int)DataList_.size(); ++idx) {
     if (DataList_[idx]->Type() == DataSet::VECTOR) {
       // Position vecidx at the next dataset
       vecidx_ = idx + 1;
-      return (VectorType*)DataList_[idx];
+      return DataList_[idx];
     }
   }
   return 0;
