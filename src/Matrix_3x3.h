@@ -6,7 +6,8 @@ class Matrix_3x3 {
     Matrix_3x3(double*);
 
     int Diagonalize( double*, double* );
-    int Diagonalize_Sort(double (&)[3][3], double *);
+    //int Diagonalize_Sort(double (&)[3][3], double *);
+    int Diagonalize_Sort(double *, double *);
     void Print(const char*);
   private:
     static const int MAX_ITERATIONS;

@@ -203,7 +203,7 @@ void matrixT_times_vector(double U[3], double R[9], double V[3]) {
 // matrix_multiply_3x3()
 /** Multiply 3x3 matrix Row by 3x3 matrix Col, store result in M
   */
-void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]) {
+/*void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]) {
   M[0] = (Row[0] * Col[0]) + (Row[1] * Col[3]) + (Row[2] * Col[6]);
   M[1] = (Row[0] * Col[1]) + (Row[1] * Col[4]) + (Row[2] * Col[7]);
   M[2] = (Row[0] * Col[2]) + (Row[1] * Col[5]) + (Row[2] * Col[8]);
@@ -213,7 +213,7 @@ void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]) {
   M[6] = (Row[6] * Col[0]) + (Row[7] * Col[3]) + (Row[8] * Col[6]);
   M[7] = (Row[6] * Col[1]) + (Row[7] * Col[4]) + (Row[8] * Col[7]);
   M[8] = (Row[6] * Col[2]) + (Row[7] * Col[5]) + (Row[8] * Col[8]);
-}
+}*/
 
 // matrix_multiply()
 /** Multiply matrix M by matrix N.

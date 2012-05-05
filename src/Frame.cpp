@@ -1970,7 +1970,8 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   double mwss, rot[9], rtr[9];
   double xt,yt,zt,xr,yr,zr;
   //double *Evector[3], Eigenvalue[3], Emat[9];
-  double Evector[3][3], Eigenvalue[3];
+  //double Evector[3][3], Eigenvalue[3];
+  double Evector[9], Eigenvalue[3];
   double b[9];
   double cp[3], sig3;
   int i, m;
@@ -2062,13 +2063,16 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   if (!TEMP.Diagonalize_Sort( Evector, Eigenvalue))
     return 0;
 
-  // a3 = a1 x a2 
-  CROSS_PRODUCT(Evector[2][0], Evector[2][1], Evector[2][2],
+  // a3 = a1 x a2
+  CROSS_PRODUCT(Evector[6], Evector[7], Evector[8],
+                Evector[0], Evector[1], Evector[2],
+                Evector[3], Evector[4], Evector[5]);
+  /*CROSS_PRODUCT(Evector[2][0], Evector[2][1], Evector[2][2],
                 Evector[0][0], Evector[0][1], Evector[0][2],
-                Evector[1][0], Evector[1][1], Evector[1][2]);
+                Evector[1][0], Evector[1][1], Evector[1][2]);*/
 
   // Evector dot transpose rot: b = R . ak 
-  b[0] = Evector[0][0]*rot[0] + Evector[0][1]*rot[3] + Evector[0][2]*rot[6];
+/*  b[0] = Evector[0][0]*rot[0] + Evector[0][1]*rot[3] + Evector[0][2]*rot[6];
   b[1] = Evector[0][0]*rot[1] + Evector[0][1]*rot[4] + Evector[0][2]*rot[7];
   b[2] = Evector[0][0]*rot[2] + Evector[0][1]*rot[5] + Evector[0][2]*rot[8];
   normalize(&b[0]);
@@ -2079,7 +2083,11 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   b[6] = Evector[2][0]*rot[0] + Evector[2][1]*rot[3] + Evector[2][2]*rot[6];
   b[7] = Evector[2][0]*rot[1] + Evector[2][1]*rot[4] + Evector[2][2]*rot[7];
   b[8] = Evector[2][0]*rot[2] + Evector[2][1]*rot[5] + Evector[2][2]*rot[8];
-  normalize(&b[6]);
+  normalize(&b[6]);*/
+  matrix_multiply_3x3(b, Evector, rot);
+  normalize(b);
+  normalize(b+3);
+  normalize(b+6);
 
  /* b3 = b1 x b2 */
   CROSS_PRODUCT(cp[0], cp[1], cp[2],
@@ -2096,10 +2104,21 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   b[8] = cp[2];
 
   // U has the best rotation 
-  for (k=k3=0; k<3; k++,k3+=3)
+  /*for (k=k3=0; k<3; k++,k3+=3)
     for (i=i3=0; i<3; i++,i3+=3)
       for (j=0; j<3; j++)
-        U[i3+j] += Evector[k][j] * b[k3+i]; 
+        U[i3+j] += Evector[k][j] * b[k3+i];*/
+  U[0] = (Evector[0]*b[0]) + (Evector[3]*b[3]) + (Evector[6]*b[6]);  
+  U[1] = (Evector[1]*b[0]) + (Evector[4]*b[3]) + (Evector[7]*b[6]);
+  U[2] = (Evector[2]*b[0]) + (Evector[5]*b[3]) + (Evector[8]*b[6]);
+
+  U[3] = (Evector[0]*b[1]) + (Evector[3]*b[4]) + (Evector[6]*b[7]);
+  U[4] = (Evector[1]*b[1]) + (Evector[4]*b[4]) + (Evector[7]*b[7]);
+  U[5] = (Evector[2]*b[1]) + (Evector[5]*b[4]) + (Evector[8]*b[7]);
+
+  U[6] = (Evector[0]*b[2]) + (Evector[3]*b[5]) + (Evector[6]*b[8]);
+  U[7] = (Evector[1]*b[2]) + (Evector[4]*b[5]) + (Evector[7]*b[8]);
+  U[8] = (Evector[2]*b[2]) + (Evector[5]*b[5]) + (Evector[8]*b[8]);
 
   // E=E0-sqrt(mu1)-sqrt(mu2)-sig3*sqrt(mu3) 
   rms_return = mwss;

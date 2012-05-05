@@ -127,7 +127,9 @@ int Matrix_3x3::Diagonalize( double *vecD, double* matrixV ) {
   return 1;
 };
 
-int Matrix_3x3::Diagonalize_Sort(double (&EvecOut)[3][3], double *EvalOut) {
+//int Matrix_3x3::Diagonalize_Sort(double (&EvecOut)[3][3], double *EvalOut) 
+int Matrix_3x3::Diagonalize_Sort(double *EvecOut, double *EvalOut) 
+{
   double Evec[9], Eval[3];
 
   if ( Diagonalize( Eval, Evec ) ) {
@@ -157,18 +159,18 @@ int Matrix_3x3::Diagonalize_Sort(double (&EvecOut)[3][3], double *EvalOut) {
   }
   //mprintf("EIGENVALUE ORDER (0=high, 3=med, 6=low): %i %i %i\n",i1,i2,i3);
 
-  // Swap Eigenvectors
-  EvecOut[0][0] = Evec[i1];
-  EvecOut[0][1] = Evec[i1+3];
-  EvecOut[0][2] = Evec[i1+6];
+  // Swap Eigenvectors - place them in rows
+  EvecOut[0] = Evec[i1];
+  EvecOut[1] = Evec[i1+3];
+  EvecOut[2] = Evec[i1+6];
 
-  EvecOut[1][0] = Evec[i2];
-  EvecOut[1][1] = Evec[i2+3];
-  EvecOut[1][2] = Evec[i2+6];
+  EvecOut[3] = Evec[i2];
+  EvecOut[4] = Evec[i2+3];
+  EvecOut[5] = Evec[i2+6];
 
-  EvecOut[2][0] = Evec[i3];
-  EvecOut[2][1] = Evec[i3+3];
-  EvecOut[2][2] = Evec[i3+6];
+  EvecOut[6] = Evec[i3];
+  EvecOut[7] = Evec[i3+3];
+  EvecOut[8] = Evec[i3+6];
 
   // Swap eigenvalues
   EvalOut[0] = Eval[i1];
