@@ -81,6 +81,7 @@ main.o : main.cpp Action.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom
 MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h
 ModesInfo.o : ModesInfo.cpp CpptrajFile.h CpptrajStdio.h FileIO.h ModesInfo.h
 Matrix_3x3.o : Matrix_3x3.cpp CpptrajStdio.h Matrix_3x3.h
+MatrixType.o : MatrixType.cpp Action.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h MatrixType.h ModesInfo.h Molecule.h NameType.h PDBfile.h Residue.h Topology.h TopologyList.h VectorType.h
 MaskToken.o : MaskToken.cpp CpptrajStdio.h MaskToken.h NameType.h
 Mol2File.o : Mol2File.cpp Atom.h AtomMask.h Box.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Mol2File.h Molecule.h NameType.h Residue.h Topology.h
 Molecule.o : Molecule.cpp Molecule.h

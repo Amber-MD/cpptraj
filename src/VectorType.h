@@ -33,7 +33,7 @@ class VectorType : public DataSet, public Action {
     void WriteBuffer(CharBuffer&, int);
     int Width();
 
-    //vectorMode Mode() { return mode_; }
+    vectorMode Mode() { return mode_; }
     //bool NoModeInfo() { return modinfo_==0; }
   private:
     //std::string filename_;
