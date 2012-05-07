@@ -10,6 +10,7 @@ MatrixType::MatrixType() :
   mat_(0),
   vectsize_(0),
   matsize_(0),
+  mask2expr_(NULL),
   mask1tot_(0),
   mask2tot_(0),
   snap_(0),
@@ -75,7 +76,7 @@ int MatrixType::init(  ) {
   if (stop_ == -1)
     stop_ = actionArgs.getKeyInt("end", -1);
   offset_ = actionArgs.getKeyInt("offset", 1);
-  // Actual start arg should be from 0
+  // Actual start frame arg should be from 0
   --start_;
 
   order_ = actionArgs.getKeyInt("order",1);
@@ -138,9 +139,7 @@ int MatrixType::init(  ) {
     }
   } else {
     mask1_.SetMaskString( maskexpr );
-    maskexpr = actionArgs.getNextMask();
-    if (maskexpr!=NULL)
-      mask2_.SetMaskString( maskexpr );
+    mask2expr_ = actionArgs.getNextMask();
   } 
 
   // Get matrix name
@@ -149,7 +148,7 @@ int MatrixType::init(  ) {
   name_ = actionArgs.GetStringNext();
 
   // Check arguments
-  if ( !name_.empty() && mask2_.MaskStringSet() ) {
+  if ( !name_.empty() && mask2expr_!=NULL ) {
     mprintf("Error: matrix: matrix only stored if no mask2\n");
     return 1;
   }
@@ -163,7 +162,7 @@ int MatrixType::init(  ) {
   }
 
   if ( (type_ == MATRIX_DISTCOVAR || type_ == MATRIX_IDEA) &&
-       (mask2_.MaskStringSet() || outtype_ != BYATOM) )
+       (mask2expr_!=NULL || outtype_ != BYATOM) )
   {
     mprinterr(
       "Error: matrix: DISTCOVAR or IDEA matrix only generated if no mask2 and byatom output\n");
@@ -212,8 +211,8 @@ void MatrixType::Info() {
   }
   if (type_!=MATRIX_IRED) {
     mprintf("            Mask1: %s\n",mask1_.MaskString());
-    if (mask2_.MaskStringSet())
-    mprintf("            Mask2: %s\n",mask2_.MaskString());
+    if (mask2expr_!=NULL)
+      mprintf("            Mask2: %s\n",mask2expr_);
   }
 }
 
@@ -235,7 +234,8 @@ int MatrixType::setup() {
     }
     mask1tot_ = mask1_.Nselected();
 
-    if (mask2_.MaskStringSet()) {
+    if (mask2expr_!=NULL) {
+      mask2_.SetMaskString(mask2expr_);
       if (currentParm->SetupIntegerMask(mask2_)) return 1;
       mprintf("\tMask2[%s]= %i atoms.\n",mask2_.MaskString(), mask2_.Nselected());
       if (mask2_.None()) {
@@ -247,6 +247,8 @@ int MatrixType::setup() {
         mprinterr("       supported.\n");
         return 1;
       }
+    } else {
+      mask2_ = mask1_;
     }
     mask2tot_ = mask2_.Nselected();
 
@@ -299,3 +301,76 @@ int MatrixType::setup() {
   
   return 0;
 }
+
+int MatrixType::action() {
+  // If the current frame is less than start exit
+  if (frameNum < start_) return 0;
+  // If the current frame is greater than stop exit
+  if (stop_!=-1 && frameNum >= stop_) return 0;
+  // Increment number of snapshots, update next target frame
+  ++snap_;
+  start_ += offset_;
+
+  // ---------- Calc Distance Matrix -------------
+  if (type_ == MATRIX_DIST) {
+    int idx = 0;
+    if (mask2expr_==NULL) {
+      // Upper triangle
+      for (AtomMask::const_iterator atom2 = mask1_.begin();
+                                    atom2 != mask1_.end(); ++atom2)
+      { 
+        for (AtomMask::const_iterator atom1 = atom2; 
+                                      atom1 != mask1_.end(); ++atom1)
+        {
+          mat_[idx] += currentFrame->DIST(*atom2, *atom1);
+          ++idx;
+        }
+      }
+    } else {
+      // Full matrix
+      for (AtomMask::const_iterator atom2 = mask2_.begin();
+                                    atom2 != mask2_.end(); ++atom2)
+      {
+        for (AtomMask::const_iterator atom1 = mask1_.begin();
+                                      atom1 != mask1_.end(); ++atom1)
+        {
+          mat_[idx] += currentFrame->DIST(*atom2, *atom1);
+          ++idx;
+        }
+      }
+    }
+  }
+
+  ++snap_;
+  return 0;
+}
+
+int MatrixType::print() {
+  int err = 0;
+  CpptrajFile outfile;
+  // Calculate average over number of sets
+  double dsnap = (double)snap_;
+  if (vect_!=0) {
+    for (int i = 0; i < vectsize_*3; ++i) {
+      vect_[i] /= dsnap;
+      vect2_[i] /= dsnap;
+    }
+  }
+  for (int i = 0; i < matsize_; ++i)
+    mat_[i] /= dsnap;
+
+  // Open file
+  if (filename_.empty())
+    err = outfile.SetupWrite(NULL, debug);
+  else
+    err = outfile.SetupWrite(filename_.c_str(), debug);
+  if (err!=0) return;
+  if (outfile.OpenFile()) return;
+
+  // Print out by atom
+  if (outtype_==BYATOM) {
+    if (type_ == MATRIX_DIST) {
+      // DISTANCE
+      int idx = 0;
+      int crow = 0;
+      int lend 
