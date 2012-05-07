@@ -5005,6 +5005,7 @@ jacobiCheckChirality(double evalue[3], double ev[3][3])
 				 points[0][2], points[1][2], points[2][2],
 				 xtemp, ytemp, ztemp);
 
+  //printMatrix_3x3("PTRAJ POINTS", points);
   /* rotate vector three into XZ plane */
   r = sqrt( points[0][2] * points[0][2] + points[1][2] * points[1][2] );
   transform[0][0] = points[0][2] / r;
@@ -5017,6 +5018,7 @@ jacobiCheckChirality(double evalue[3], double ev[3][3])
   transform[2][0] = 0.0;
   transform[2][1] = 0.0;
   VOP_3x3_TIMES_3x3(result, transform, points);
+  //printMatrix_3x3("PTRAJ POINTS1", result);
 
   /* rotate vector three into Z axis */
   r = sqrt( result[0][2] * result[0][2] + result[2][2] * result[2][2] );
@@ -5030,6 +5032,7 @@ jacobiCheckChirality(double evalue[3], double ev[3][3])
   transform[1][2] = 0.0;
   transform[2][1] = 0.0;
   VOP_3x3_TIMES_3x3(points, transform, result);
+  //printMatrix_3x3("PTRAJ POINTS2", points);
 
   /* rotate vector one into XZ */
   r = sqrt( points[0][0] * points[0][0] + points[1][0] * points[1][0] );
@@ -5043,6 +5046,7 @@ jacobiCheckChirality(double evalue[3], double ev[3][3])
   transform[2][0] = 0.0;
   transform[2][1] = 0.0;
   VOP_3x3_TIMES_3x3(result, transform, points);
+  //printMatrix_3x3("PTRAJ POINTS3", result);
 
   /* rotate vector one into X */
   r = sqrt( result[0][0] * result[0][0] + result[0][2] * result[0][2] );
@@ -5056,6 +5060,7 @@ jacobiCheckChirality(double evalue[3], double ev[3][3])
   transform[1][2] = 0.0;
   transform[2][1] = 0.0;
   VOP_3x3_TIMES_3x3(points, transform, result);
+  //printMatrix_3x3("PTRAJ POINTS4", points);
 
   /* has Y changed sign? */
   if ( points[1][1] < 0 ) {

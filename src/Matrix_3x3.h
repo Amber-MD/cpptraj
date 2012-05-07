@@ -5,11 +5,19 @@ class Matrix_3x3 {
     Matrix_3x3();
     Matrix_3x3(double*);
     Matrix_3x3(double,double,double);
+    Matrix_3x3& operator=(const Matrix_3x3&);
+ 
+    // NOTE: No bounds check!
+    double operator[](int idx) { return M_[idx]; }
 
     int Diagonalize( double*, double* );
     int Diagonalize_Sort(double *, double *);
     int Diagonalize_Sort_Chirality(double*, double*);
     void Print(const char*);
+
+    Matrix_3x3& operator*=(const Matrix_3x3&);
+    void RotationAroundZ(double, double);
+    void RotationAroundY(double, double);
 
   private:
     double M_[9];

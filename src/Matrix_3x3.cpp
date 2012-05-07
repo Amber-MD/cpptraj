@@ -42,6 +42,21 @@ Matrix_3x3::Matrix_3x3(double d1, double d2, double d3) {
   M_[8] = d3;
 }
 
+// Assignment
+Matrix_3x3& Matrix_3x3::operator=(const Matrix_3x3& rhs) {
+  if (this==&rhs) return *this;
+  M_[0] = rhs.M_[0];
+  M_[1] = rhs.M_[1];
+  M_[2] = rhs.M_[2];
+  M_[3] = rhs.M_[3];
+  M_[4] = rhs.M_[4];
+  M_[5] = rhs.M_[5];
+  M_[6] = rhs.M_[6];
+  M_[7] = rhs.M_[7];
+  M_[8] = rhs.M_[8];
+  return *this;
+}
+
 /// Max number of iterations to execute Jacobi algorithm
 const int Matrix_3x3::MAX_ITERATIONS = 50;
 
@@ -207,6 +222,55 @@ int Matrix_3x3::Diagonalize_Sort(double *EvecOut, double *EvalOut)
   return 0;
 }
 
+/**  The jacobi diagonalization procedure can sometimes result
+  *  in eigenvectors which when applied to transform the coordinates
+  *  result in a a chiral inversion about the Y axis.  This code catches
+  *  this case, reversing the offending eigenvectors.
+  *  
+  *  NOTE: the idea of rotating the coordinate basis vectors came from 
+  *  some code posted to the computational chemistry mailing list 
+  *  (chemistry@osc) in a summary of methods to perform principal axis 
+  *  alignment...
+  *
+  * It is expected that the eigenvector matrix has eigenvectors in rows.
+  */
+static void jacobiCheckChirality(double* ev)
+{
+  Matrix_3x3 points(ev);
+  Matrix_3x3 result;
+  //points.Print("POINTS"); 
+
+  // rotate vector three into XZ plane
+  result.RotationAroundZ( points[2], points[5] ); // Ev0z, Ev1z
+  result *= points;
+  //result.Print("POINTS1");
+
+  // rotate vector three into Z axis
+  points.RotationAroundY( result[2], result[8] ); 
+  points *= result;
+  //points.Print("POINTS2");
+
+  // rotate vector one into XZ
+  result.RotationAroundZ( points[0], points[3] );
+  result *= points;
+  //result.Print("POINTS3");
+
+  // rotate vector one into X 
+  points.RotationAroundY( result[2], result[0] );
+  points *= result;
+  //points.Print("POINTS4");
+
+  // has Y changed sign? If so, flip Y eigenvector (row 1) 
+  if ( points[4] < 0 ) {
+    ev[3] = -ev[3];
+    ev[4] = -ev[4];
+    ev[5] = -ev[5];
+    mprintf("Warning: PRINCIPAL: CHECK CHIRALITY: Y eigenvector sign swapped!\n");
+    return;
+  }
+  return;
+}
+
 // Matrix_3x3::Diagonalize_Sort_Chirality()
 int Matrix_3x3::Diagonalize_Sort_Chirality(double* EvecOut, double* EvalOut)
 {
@@ -230,10 +294,9 @@ int Matrix_3x3::Diagonalize_Sort_Chirality(double* EvecOut, double* EvalOut)
     EvecOut[8] = -EvecOut[8];
   }
 
-    // TODO: Re-enable this check - 
-  /*if ( jacobiCheckChirality( Eval, Evec ) !=0 ) {
-    mprintf("PRINCIPAL: WARNING!!! CHECK CHIRALITY: vectors swapped!\n");
-  } */
+  // Flip Y-vector if necessary 
+  jacobiCheckChirality( EvecOut );
+   
   return 0;
 }
 
@@ -246,101 +309,55 @@ void Matrix_3x3::Print(const char* Title)
   mprintf("     %8.4lf %8.4lf %8.4lf\n", M_[6], M_[7], M_[8]);
 }
 
-//Matrix_3x3& Matrix_3x3::operator*=(const Matrix_3x3& rhs) {
-  
+// Matrix_3x3::operator*=()
+Matrix_3x3& Matrix_3x3::operator*=(const Matrix_3x3& rhs) {
+  double Row[9];
+  Row[0] = M_[0];
+  Row[1] = M_[1];
+  Row[2] = M_[2];
+  Row[3] = M_[3];
+  Row[4] = M_[4];
+  Row[5] = M_[5];
+  Row[6] = M_[6];
+  Row[7] = M_[7];
+  Row[8] = M_[8];
+  M_[0] = (Row[0] * rhs.M_[0]) + (Row[1] * rhs.M_[3]) + (Row[2] * rhs.M_[6]);
+  M_[1] = (Row[0] * rhs.M_[1]) + (Row[1] * rhs.M_[4]) + (Row[2] * rhs.M_[7]);
+  M_[2] = (Row[0] * rhs.M_[2]) + (Row[1] * rhs.M_[5]) + (Row[2] * rhs.M_[8]);
+  M_[3] = (Row[3] * rhs.M_[0]) + (Row[4] * rhs.M_[3]) + (Row[5] * rhs.M_[6]);
+  M_[4] = (Row[3] * rhs.M_[1]) + (Row[4] * rhs.M_[4]) + (Row[5] * rhs.M_[7]);
+  M_[5] = (Row[3] * rhs.M_[2]) + (Row[4] * rhs.M_[5]) + (Row[5] * rhs.M_[8]);
+  M_[6] = (Row[6] * rhs.M_[0]) + (Row[7] * rhs.M_[3]) + (Row[8] * rhs.M_[6]);
+  M_[7] = (Row[6] * rhs.M_[1]) + (Row[7] * rhs.M_[4]) + (Row[8] * rhs.M_[7]);
+  M_[8] = (Row[6] * rhs.M_[2]) + (Row[7] * rhs.M_[5]) + (Row[8] * rhs.M_[8]);
+  return *this;
+}
+ 
+// Matrix_3x3::RotationAroundZ()
+void Matrix_3x3::RotationAroundZ(double a1, double a2) {
+  double r = sqrt( a1*a1 + a2*a2 );
+  M_[0] = a1 / r; //  cos t
+  M_[1] = a2 / r; // -sin t
+  M_[2] = 0;
+  M_[3] = -M_[1]; //  sin t
+  M_[4] = M_[0];  //  cos t
+  M_[5] = 0;
+  M_[6] = 0;
+  M_[7] = 0;
+  M_[8] = 1;
+}
 
-/*  The jacobi diagonalization procedure can sometimes result
- *  in eigenvectors which when applied to transform the coordinates
- *  result in a a chiral inversion about the Y axis.  This code catches
- *  this case, reversing the offending eigenvectors.
- *  
- *  NOTE: the idea of rotating the coordinate basis vectors came from 
- *  some code posted to the computational chemistry mailing list 
- *  (chemistry@osc) in a summary of methods to perform principal axis 
- *  alignment...
- */
-//int jacobiCheckChirality(double evalue[3], double ev[3][3])
-/*
-int jacobiCheckChirality(double* evalue, double* ev)
-{
-  Matrix_3x3 points(1, 1, 1); // Identity matrix
-  //double points[3][3], result[3][3];
-  //double transform[3][3];
-  double xtemp, ytemp, ztemp;
-  double r;
-
-  // transform the coordinate basis vectors (identity matrix) 
-  // to check for chiral inversion...
-  //points[0][0] = 1.0; points[0][1] = 0.0; points[0][2] = 0.0;
-  //points[1][0] = 0.0; points[1][1] = 1.0; points[1][2] = 0.0;
-  //points[2][0] = 0.0; points[2][1] = 0.0; points[2][2] = 1.0;
-
-  VOP_3x3_TRANSPOSE_TIMES_COORDS(ev,
-                                 points[0][0], points[1][0], points[2][0],
-                                 xtemp, ytemp, ztemp);
-  VOP_3x3_TRANSPOSE_TIMES_COORDS(ev,
-                                 points[0][1], points[1][1], points[2][1],
-                                 xtemp, ytemp, ztemp);
-  VOP_3x3_TRANSPOSE_TIMES_COORDS(ev,
-                                 points[0][2], points[1][2], points[2][2],
-                                 xtemp, ytemp, ztemp);
-
-  // rotate vector three into XZ plane 
-  r = sqrt( points[0][2] * points[0][2] + points[1][2] * points[1][2] );
-  transform[0][0] = points[0][2] / r;
-  transform[1][1] = points[0][2] / r;
-  transform[0][1] = points[1][2] / r;
-  transform[1][0] = -points[1][2] / r;
-  transform[2][2] = 1.0;
-  transform[0][2] = 0.0;
-  transform[1][2] = 0.0;
-  transform[2][0] = 0.0;
-  transform[2][1] = 0.0;
-  VOP_3x3_TIMES_3x3(result, transform, points);
-  // rotate vector three into Z axis 
-  r = sqrt( result[0][2] * result[0][2] + result[2][2] * result[2][2] );
-  transform[0][0] = result[2][2] / r;
-  transform[2][2] = result[2][2] / r;
-  transform[0][2] = -result[0][2] / r;
-  transform[2][0] = result[0][2] / r;
-  transform[1][1] = 1.0;
-  transform[0][1] = 0.0;
-  transform[1][0] = 0.0;
-  transform[1][2] = 0.0;
-  transform[2][1] = 0.0;
-  VOP_3x3_TIMES_3x3(points, transform, result);
-  // rotate vector one into XZ 
-  r = sqrt( points[0][0] * points[0][0] + points[1][0] * points[1][0] );
-  transform[0][0] = points[0][0] / r;
-  transform[1][1] = points[0][0] / r;
-  transform[0][1] = points[1][0] / r;
-  transform[1][0] = -points[1][0] / r;
-  transform[2][2] = 1.0;
-  transform[0][2] = 0.0;
-  transform[1][2] = 0.0;
-  transform[2][0] = 0.0;
-  transform[2][1] = 0.0;
-  VOP_3x3_TIMES_3x3(result, transform, points);
-
-  // rotate vector one into X 
-  r = sqrt( result[0][0] * result[0][0] + result[0][2] * result[0][2] );
-  transform[0][0] = result[0][0] / r;
-  transform[2][2] = result[0][0] / r;
-  transform[2][0] = result[0][2] / r;
-  transform[0][2] = -result[0][2] / r;
-  transform[1][1] = 1.0;
-  transform[0][1] = 0.0;
-  transform[1][0] = 0.0;
-  transform[1][2] = 0.0;
-  transform[2][1] = 0.0;
-  VOP_3x3_TIMES_3x3(points, transform, result);
-
-  // has Y changed sign? 
-  if ( points[1][1] < 0 ) {
-    ev[0][1] = -ev[0][1];
-    ev[1][1] = -ev[1][1];
-    ev[2][1] = -ev[2][1];
-    return 1;
-  }
-  return 0;
-}*/
+// Matrix_3x3::RotationAroundY()
+void Matrix_3x3::RotationAroundY(double a1, double a2) {
+  double r = sqrt( a1*a1 + a2*a2 );
+  M_[0] = a2 / r;  //  cos t
+  M_[1] = 0;
+  M_[2] = -a1 / r; //  sin t
+  M_[3] = 0;
+  M_[4] = 1;
+  M_[5] = 0;
+  M_[6] = -M_[2];  // -sin t
+  M_[7] = 0;
+  M_[8] = M_[0];   //  cos t
+}
+ 
