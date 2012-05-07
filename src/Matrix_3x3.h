@@ -30,6 +30,4 @@ class Matrix_3x3 {
     int i3_; 
     static const int MAX_ITERATIONS;
 };
-//    int Diagonalize( double*, double*, double* );
-//    int Diagonalize_Sort(double*, double *, double *);
 #endif
