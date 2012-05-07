@@ -40,6 +40,7 @@
 #include "Action_Contacts.h"
 #include "VectorType.h"
 #include "Action_Principal.h"
+#include "MatrixType.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -114,6 +115,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
   else if (argIn.CommandIs("vectortest"))     {Act=new VectorType;}
   else if (argIn.CommandIs("principaltest"))  {Act=new Action_Principal;}
+  else if (argIn.CommandIs("matrixtest"))     {Act=new MatrixType;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||

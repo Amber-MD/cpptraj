@@ -156,17 +156,6 @@ int VectorType::init() {
     return 1;
   }
 
-# ifdef NO_PTRAJ_ANALYZE
-  // VECTOR PRINCIPAL requires LAPACK routines for diagonalization
-  if (mode_ == VECTOR_PRINCIPAL_X ||
-      mode_ == VECTOR_PRINCIPAL_Y ||
-      mode_ == VECTOR_PRINCIPAL_Z)
-  {
-    mprinterr("Error: Vector PRINCIPAL requires LAPACK. Recompile with LAPACK enabled.\n");
-    return 1;
-  }
-# endif 
-
   // VECTOR_CORRIRED
   if (mode_ == VECTOR_CORRIRED) {
     // Get Pair number
@@ -453,7 +442,7 @@ int VectorType::setup() {
   }
 
   // Setup mask 2
-  if (!mask2_.NoMaskString()) {
+  if (mask2_.MaskStringSet()) {
     if (currentParm->SetupIntegerMask(mask2_)) return 1;
     mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
             mask2_.MaskString(), mask2_.Nselected());

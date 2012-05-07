@@ -10,8 +10,8 @@ class MatrixType : public DataSet, public Action {
     };
 
     MatrixType();
+    ~MatrixType();
 
-    int Init(ArgList&);
   private:
     matrixMode type_;
     double* vect_;
@@ -26,6 +26,8 @@ class MatrixType : public DataSet, public Action {
     int snap_;
 
     // Only needed by action
+    static const char MatrixModeString[][27];
+    std::string filename_;
     int start_;
     int stop_;
     int offset_;
@@ -34,5 +36,8 @@ class MatrixType : public DataSet, public Action {
     OutputType outtype_;
 
     int init();
+    int setup();
+
+    void Info();
 };
 #endif
