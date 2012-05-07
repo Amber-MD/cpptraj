@@ -5,6 +5,7 @@
 #include "CpptrajFile.h"
 #include "Constants.h" // PI
 #include "vectormath.h"
+#include "Matrix_3x3.h"
 
 // CONSTRUCTOR
 VectorType::VectorType() :
@@ -40,8 +41,8 @@ VectorType::VectorType() :
   // DEBUG
   debugpdb.SetupWrite("PRINCIPAL.PDB",0);
   debugpdb.OpenFile();
-  debuginert.SetupWrite("INERT.PDB",0);
-  debuginert.OpenFile();
+  //debuginert.SetupWrite("INERT.PDB",0);
+  //debuginert.OpenFile();
 }
 
 // DESTRUCTOR
@@ -65,7 +66,7 @@ VectorType::~VectorType() {
   }
   // DEBUG
   debugpdb.CloseFile();
-  debuginert.CloseFile();
+  //debuginert.CloseFile();
 }
 
 // VectorType::operator==()
@@ -496,7 +497,7 @@ int VectorType::action() {
 int VectorType::Action_CORR() {
   double CXYZ[3], VXYZ[3];
   double Dplus[2], Dminus[2]; // 0=real, 1=imaginary
-  double r3i;
+  double r3i = 0;
   int indtot;
   //Vec3 CXYZ, VXYZ;
 
@@ -624,12 +625,12 @@ int VectorType::Action_DIPOLE()
 }
 
 int VectorType::Action_PRINCIPAL( ) {
-  double Inertia[9], CXYZ[3], Eval[3];
+  double Inertia[9], CXYZ[3], Evec[9], Eval[3];
 
   currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
   printMatrix_3x3("PRINCIPAL Inertia", Inertia);
   // DEBUG - Write PDB of inertia
-  double Temp[9];
+/*  double Temp[9];
   for (int i = 0; i < 9; ++i)
     Temp[i] = 0;//Inertia[i];
   Temp[0] = 1;
@@ -647,34 +648,33 @@ int VectorType::Action_PRINCIPAL( ) {
                     Temp[3]+CXYZ[0], Temp[4]+CXYZ[1], Temp[5]+CXYZ[2]);
   PDB.pdb_write_ATOM(debuginert.IO, PDBfile::PDBATOM, 4, (char*)"Z", (char*)"Vec", ' ', 1,
                     Temp[6]+CXYZ[0], Temp[7]+CXYZ[1], Temp[8]+CXYZ[2]);
-  debuginert.Printf("ENDMDL\n");
+  debuginert.Printf("ENDMDL\n");*/
 
-  Principal_.Diagonalize( Inertia, Eval );
+  Matrix_3x3 TEMP( Inertia );
+  // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
+  TEMP.Diagonalize_Sort_Chirality( Evec, Eval );
+  printVector("PRINCIPAL EIGENVALUES", Eval );
+  //TEMP.Print("GENERAL");
+  printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
 
-  // The LAPACK routine returns eigenvectors in columns, however
-  // since FORTRAN has different ordering matrix is actually returned
-  // as:
+  //Principal_.Diagonalize( Inertia, Eval );
+
   // V0x V0y V0z
   // V1x V1y V1z
   // V2x V2y V2z
-  // so vectors are 0,1,2 etc. In addition, eigenvectors
-  // are sorted in ascending order, so V2 is associated with the
-  // largest eigenvalue, i.e. X vector.
-  printMatrix_3x3("PRINCIPAL Eigenvectors", Inertia);
-  printVector("PRINCIPAL Eigenvalues", Eval);
 
   if (mode_==VECTOR_PRINCIPAL_X) {
-    vx_[frame_] = Inertia[6];
-    vy_[frame_] = Inertia[7];
-    vz_[frame_] = Inertia[8];
+    vx_[frame_] = Evec[0];
+    vy_[frame_] = Evec[1];
+    vz_[frame_] = Evec[2];
   } else if (mode_==VECTOR_PRINCIPAL_Y) {
-    vx_[frame_] = Inertia[3];
-    vy_[frame_] = Inertia[4];
-    vz_[frame_] = Inertia[5];
+    vx_[frame_] = Evec[3];
+    vy_[frame_] = Evec[4];
+    vz_[frame_] = Evec[5];
   } else if (mode_==VECTOR_PRINCIPAL_Z) {
-    vx_[frame_] = Inertia[0];
-    vy_[frame_] = Inertia[1];
-    vz_[frame_] = Inertia[2];
+    vx_[frame_] = Evec[6];
+    vy_[frame_] = Evec[7];
+    vz_[frame_] = Evec[8];
   }
   cx_[frame_] = CXYZ[0];
   cy_[frame_] = CXYZ[1];
@@ -685,11 +685,11 @@ int VectorType::Action_PRINCIPAL( ) {
   PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 1, (char*)"Orig", (char*)"Vec", ' ', 1, 
                     CXYZ[0], CXYZ[1], CXYZ[2]);
   PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 2, (char*)"X", (char*)"Vec", ' ', 1,    
-                    Inertia[6]+CXYZ[0], Inertia[7]+CXYZ[1], Inertia[8]+CXYZ[2]);
+                    Evec[6]+CXYZ[0], Evec[7]+CXYZ[1], Evec[8]+CXYZ[2]);
   PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 3, (char*)"Y", (char*)"Vec", ' ', 1,   
-                    Inertia[3]+CXYZ[0], Inertia[4]+CXYZ[1], Inertia[5]+CXYZ[2]);
+                    Evec[3]+CXYZ[0], Evec[4]+CXYZ[1], Evec[5]+CXYZ[2]);
   PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 4, (char*)"Z", (char*)"Vec", ' ', 1,   
-                    Inertia[0]+CXYZ[0], Inertia[1]+CXYZ[1], Inertia[2]+CXYZ[2]);
+                    Evec[0]+CXYZ[0], Evec[1]+CXYZ[1], Evec[2]+CXYZ[2]);
   debugpdb.Printf("ENDMDL\n");
 
   ++frame_;

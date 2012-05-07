@@ -1,8 +1,9 @@
 #include <cmath>
 #include "Matrix_3x3.h"
 #include "CpptrajStdio.h"
-#include "vectormath.h"
+//#incl ude "vectormath.h"
 
+// CONSTRUCTOR
 Matrix_3x3::Matrix_3x3() {
   M_[0] = 0;
   M_[1] = 0;
@@ -15,6 +16,7 @@ Matrix_3x3::Matrix_3x3() {
   M_[8] = 0;
 };
 
+// CONSTRUCTOR - Takes array of 9, row-major
 Matrix_3x3::Matrix_3x3(double *Min) {
   M_[0] = Min[0]; 
   M_[1] = Min[1]; 
@@ -27,6 +29,20 @@ Matrix_3x3::Matrix_3x3(double *Min) {
   M_[8] = Min[8]; 
 }
 
+// CONSTRUCTOR - Set diagonal
+Matrix_3x3::Matrix_3x3(double d1, double d2, double d3) {
+  M_[0] = d1;
+  M_[1] = 0;
+  M_[2] = 0;
+  M_[3] = 0;
+  M_[4] = d2;
+  M_[5] = 0;
+  M_[6] = 0;
+  M_[7] = 0;
+  M_[8] = d3;
+}
+
+/// Max number of iterations to execute Jacobi algorithm
 const int Matrix_3x3::MAX_ITERATIONS = 50;
 
 #define ROTATE(ARR,MAJ1,MIN1,MAJ2,MIN2) { \
@@ -35,7 +51,14 @@ const int Matrix_3x3::MAX_ITERATIONS = 50;
   ARR[MAJ1 + MIN1] = dg - ds*(dh+dg*tau); \
   ARR[MAJ2 + MIN2] = dh + ds*(dg-dh*tau); }
 
-int Matrix_3x3::Diagonalize( double *vecD, double* matrixV ) {
+// Matrix_3x3::Diagonalize()
+/** Diagonalize the matrix using Jacobi method. The eigenvalues and
+  * eigenvectors are produced as output.
+  * \param vecD Output eigenvalues.
+  * \param matrixV Output eigenvectors in columns (V0x V1x, V2x, V0y, ... V2z).
+  */
+int Matrix_3x3::Diagonalize( double *vecD, double* matrixV ) 
+{
   // Create identity matrix
   //double matrixV[9];
   matrixV[0] = 1;
@@ -127,62 +150,197 @@ int Matrix_3x3::Diagonalize( double *vecD, double* matrixV ) {
   return 1;
 };
 
-//int Matrix_3x3::Diagonalize_Sort(double (&EvecOut)[3][3], double *EvalOut) 
+// Matrix_3x3::Diagonalize_Sort()
+/** Diagonalize the matrix and sort eigenvalues/eigenvectors in 
+  * descending order.
+  * \param EvecOut Output eigenvectors in rows (V0x, V0y, V0z, V1x, ... V2z).
+  * \param EvalOut Output eigenvalues.
+  */
 int Matrix_3x3::Diagonalize_Sort(double *EvecOut, double *EvalOut) 
 {
   double Evec[9], Eval[3];
 
-  if ( Diagonalize( Eval, Evec ) ) {
+  if ( Diagonalize( Eval, Evec ) ) 
+  {
     mprintf("Convergence failed.\n");
-    return 0; // 0 to be consistent with old diagEsort behavior
+    return 1; 
   }
   //printMatrix_3x3("Eigenvector Matrix", Evec);
 
-  int i1,i2,i3;
-
   if (Eval[0] > Eval[1] && Eval[0] > Eval[2]) { // 0 is max
     if (Eval[1] > Eval[2]) {
-      i1 = 0; i2 = 1; i3 = 2;
+      i1_ = 0; i2_ = 1; i3_ = 2;
     } else {
-      i1 = 0; i2 = 2; i3 = 1;
+      i1_ = 0; i2_ = 2; i3_ = 1;
     }
   } else if (Eval[1] > Eval[0] && Eval[1] > Eval[2]) { // 1 is max
     if (Eval[0] > Eval[2]) {
-      i1 = 1; i2 = 0; i3 = 2;
+      i1_ = 1; i2_ = 0; i3_ = 2;
     } else {
-      i1 = 1; i2 = 2; i3 = 0;
+      i1_ = 1; i2_ = 2; i3_ = 0;
     }
   } else if (Eval[0] > Eval[1]) { // 2 is max
-    i1 = 2; i2 = 0; i3 = 1;
+    i1_ = 2; i2_ = 0; i3_ = 1;
   } else {
-    i1 = 2; i2 = 1; i3 = 0;
+    i1_ = 2; i2_ = 1; i3_ = 0;
   }
-  //mprintf("EIGENVALUE ORDER (0=high, 3=med, 6=low): %i %i %i\n",i1,i2,i3);
+  //mprintf("EIGENVALUE ORDER (0=high, 3=med, 6=low): %i %i %i\n",i1_,i2_,i3_);
 
   // Swap Eigenvectors - place them in rows
-  EvecOut[0] = Evec[i1];
-  EvecOut[1] = Evec[i1+3];
-  EvecOut[2] = Evec[i1+6];
+  EvecOut[0] = Evec[i1_];
+  EvecOut[1] = Evec[i1_+3];
+  EvecOut[2] = Evec[i1_+6];
 
-  EvecOut[3] = Evec[i2];
-  EvecOut[4] = Evec[i2+3];
-  EvecOut[5] = Evec[i2+6];
+  EvecOut[3] = Evec[i2_];
+  EvecOut[4] = Evec[i2_+3];
+  EvecOut[5] = Evec[i2_+6];
 
-  EvecOut[6] = Evec[i3];
-  EvecOut[7] = Evec[i3+3];
-  EvecOut[8] = Evec[i3+6];
+  EvecOut[6] = Evec[i3_];
+  EvecOut[7] = Evec[i3_+3];
+  EvecOut[8] = Evec[i3_+6];
 
   // Swap eigenvalues
-  EvalOut[0] = Eval[i1];
-  EvalOut[1] = Eval[i2];
-  EvalOut[2] = Eval[i3];
+  EvalOut[0] = Eval[i1_];
+  EvalOut[1] = Eval[i2_];
+  EvalOut[2] = Eval[i3_];
 
-  return 1;
+  return 0;
 }
- 
-void Matrix_3x3::Print(const char* Title) {
+
+// Matrix_3x3::Diagonalize_Sort_Chirality()
+int Matrix_3x3::Diagonalize_Sort_Chirality(double* EvecOut, double* EvalOut)
+{
+  if ( Diagonalize_Sort( EvecOut, EvalOut ) )
+    return 1;
+
+  // Invert eigenvector signs based on ordering to avoid reflections
+  if (i1_ == 0 && i2_ == 2 && i3_ == 1) {
+    EvecOut[3] = -EvecOut[3];
+    EvecOut[4] = -EvecOut[4];
+    EvecOut[5] = -EvecOut[5];
+  } else if (i1_ == 2 && i2_ == 0 && i3_ == 1) {
+    EvecOut[0] = -EvecOut[0];
+    EvecOut[1] = -EvecOut[1];
+    EvecOut[2] = -EvecOut[2];
+    EvecOut[3] = -EvecOut[3];
+    EvecOut[4] = -EvecOut[4];
+    EvecOut[5] = -EvecOut[5];
+    EvecOut[6] = -EvecOut[6];
+    EvecOut[7] = -EvecOut[7];
+    EvecOut[8] = -EvecOut[8];
+  }
+
+    // TODO: Re-enable this check - 
+  /*if ( jacobiCheckChirality( Eval, Evec ) !=0 ) {
+    mprintf("PRINCIPAL: WARNING!!! CHECK CHIRALITY: vectors swapped!\n");
+  } */
+  return 0;
+}
+
+// Matrix_3x3::Print()
+void Matrix_3x3::Print(const char* Title) 
+{
   mprintf("    %s\n",Title);
   mprintf("     %8.4lf %8.4lf %8.4lf\n", M_[0], M_[1], M_[2]);
   mprintf("     %8.4lf %8.4lf %8.4lf\n", M_[3], M_[4], M_[5]);
   mprintf("     %8.4lf %8.4lf %8.4lf\n", M_[6], M_[7], M_[8]);
-} 
+}
+
+//Matrix_3x3& Matrix_3x3::operator*=(const Matrix_3x3& rhs) {
+  
+
+/*  The jacobi diagonalization procedure can sometimes result
+ *  in eigenvectors which when applied to transform the coordinates
+ *  result in a a chiral inversion about the Y axis.  This code catches
+ *  this case, reversing the offending eigenvectors.
+ *  
+ *  NOTE: the idea of rotating the coordinate basis vectors came from 
+ *  some code posted to the computational chemistry mailing list 
+ *  (chemistry@osc) in a summary of methods to perform principal axis 
+ *  alignment...
+ */
+//int jacobiCheckChirality(double evalue[3], double ev[3][3])
+/*
+int jacobiCheckChirality(double* evalue, double* ev)
+{
+  Matrix_3x3 points(1, 1, 1); // Identity matrix
+  //double points[3][3], result[3][3];
+  //double transform[3][3];
+  double xtemp, ytemp, ztemp;
+  double r;
+
+  // transform the coordinate basis vectors (identity matrix) 
+  // to check for chiral inversion...
+  //points[0][0] = 1.0; points[0][1] = 0.0; points[0][2] = 0.0;
+  //points[1][0] = 0.0; points[1][1] = 1.0; points[1][2] = 0.0;
+  //points[2][0] = 0.0; points[2][1] = 0.0; points[2][2] = 1.0;
+
+  VOP_3x3_TRANSPOSE_TIMES_COORDS(ev,
+                                 points[0][0], points[1][0], points[2][0],
+                                 xtemp, ytemp, ztemp);
+  VOP_3x3_TRANSPOSE_TIMES_COORDS(ev,
+                                 points[0][1], points[1][1], points[2][1],
+                                 xtemp, ytemp, ztemp);
+  VOP_3x3_TRANSPOSE_TIMES_COORDS(ev,
+                                 points[0][2], points[1][2], points[2][2],
+                                 xtemp, ytemp, ztemp);
+
+  // rotate vector three into XZ plane 
+  r = sqrt( points[0][2] * points[0][2] + points[1][2] * points[1][2] );
+  transform[0][0] = points[0][2] / r;
+  transform[1][1] = points[0][2] / r;
+  transform[0][1] = points[1][2] / r;
+  transform[1][0] = -points[1][2] / r;
+  transform[2][2] = 1.0;
+  transform[0][2] = 0.0;
+  transform[1][2] = 0.0;
+  transform[2][0] = 0.0;
+  transform[2][1] = 0.0;
+  VOP_3x3_TIMES_3x3(result, transform, points);
+  // rotate vector three into Z axis 
+  r = sqrt( result[0][2] * result[0][2] + result[2][2] * result[2][2] );
+  transform[0][0] = result[2][2] / r;
+  transform[2][2] = result[2][2] / r;
+  transform[0][2] = -result[0][2] / r;
+  transform[2][0] = result[0][2] / r;
+  transform[1][1] = 1.0;
+  transform[0][1] = 0.0;
+  transform[1][0] = 0.0;
+  transform[1][2] = 0.0;
+  transform[2][1] = 0.0;
+  VOP_3x3_TIMES_3x3(points, transform, result);
+  // rotate vector one into XZ 
+  r = sqrt( points[0][0] * points[0][0] + points[1][0] * points[1][0] );
+  transform[0][0] = points[0][0] / r;
+  transform[1][1] = points[0][0] / r;
+  transform[0][1] = points[1][0] / r;
+  transform[1][0] = -points[1][0] / r;
+  transform[2][2] = 1.0;
+  transform[0][2] = 0.0;
+  transform[1][2] = 0.0;
+  transform[2][0] = 0.0;
+  transform[2][1] = 0.0;
+  VOP_3x3_TIMES_3x3(result, transform, points);
+
+  // rotate vector one into X 
+  r = sqrt( result[0][0] * result[0][0] + result[0][2] * result[0][2] );
+  transform[0][0] = result[0][0] / r;
+  transform[2][2] = result[0][0] / r;
+  transform[2][0] = result[0][2] / r;
+  transform[0][2] = -result[0][2] / r;
+  transform[1][1] = 1.0;
+  transform[0][1] = 0.0;
+  transform[1][0] = 0.0;
+  transform[1][2] = 0.0;
+  transform[2][1] = 0.0;
+  VOP_3x3_TIMES_3x3(points, transform, result);
+
+  // has Y changed sign? 
+  if ( points[1][1] < 0 ) {
+    ev[0][1] = -ev[0][1];
+    ev[1][1] = -ev[1][1];
+    ev[2][1] = -ev[2][1];
+    return 1;
+  }
+  return 0;
+}*/

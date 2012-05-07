@@ -8,7 +8,7 @@
 //#inc lude "DataSet.h"
 //#inc lude "Topology.h"
 //#inc lude "Frame.h"
-#include "Lapack_Diag.h"
+//#inc lude "Lapack_Diag.h"
 // DEBUG
 #include "CpptrajFile.h"
 #include "PDBfile.h"
@@ -50,7 +50,7 @@ class VectorType : public DataSet, public Action {
     double *vx_; 
     double *vy_;
     double *vz_;
-    Lapack_Diag Principal_;
+    //Lapack_Diag Principal_;
 
     VectorType* master_;    ///< If 0 this vector has master ModesInfo 
     ModesInfo* modinfo_;    ///< Eigenmode info for CORRIRED
@@ -69,7 +69,7 @@ class VectorType : public DataSet, public Action {
     // DEBUG
     PDBfile PDB;
     CpptrajFile debugpdb;
-    CpptrajFile debuginert;
+    //CpptrajFile debuginert;
 
     bool operator==(const VectorType&);
     int AssignMaster(VectorType*);

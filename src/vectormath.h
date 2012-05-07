@@ -23,6 +23,7 @@ void matrix_transpose_3x3(double M[9]);
 double *matrix_transpose(double *M, int mrows, int ncols);
 void matrix_times_vector(double U[3], double R[9], double V[3]);
 void matrixT_times_vector(double U[3], double R[9], double V[3]);
+//void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]); 
 inline void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]) {
   M[0] = (Row[0] * Col[0]) + (Row[1] * Col[3]) + (Row[2] * Col[6]);
   M[1] = (Row[0] * Col[1]) + (Row[1] * Col[4]) + (Row[2] * Col[7]);

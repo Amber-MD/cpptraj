@@ -1974,8 +1974,8 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   double Evector[9], Eigenvalue[3];
   double b[9];
   double cp[3], sig3;
-  int i, m;
-  int i3,k,k3,j;
+  //int i, m;
+  //int i3,k,k3,j;
 
   U[0]=0.0; U[1]=0.0; U[2]=0.0;
   U[3]=0.0; U[4]=0.0; U[5]=0.0;
@@ -2008,8 +2008,8 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   rot[6]=0.0; rot[7]=0.0; rot[8]=0.0;
   // rtr is set below
   // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
-  m=0;
-  for (i=0; i<Ncoord_; i+=3) {
+  int m = 0;
+  for (int i=0; i<Ncoord_; i+=3) {
     xt = X_[i];
     yt = X_[i+1];
     zt = X_[i+2];
@@ -2060,8 +2060,9 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   //if (!diagEsort(rtr, Emat, Evector, Eigenvalue))
   //  return(0);
   Matrix_3x3 TEMP(rtr);
-  if (!TEMP.Diagonalize_Sort( Evector, Eigenvalue))
+  if (TEMP.Diagonalize_Sort( Evector, Eigenvalue))
     return 0;
+  //if (!Diagonalize_Sort( rtr, Evector, Eigenvalue)) return 0;
 
   // a3 = a1 x a2
   CROSS_PRODUCT(Evector[6], Evector[7], Evector[8],
@@ -2071,7 +2072,19 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
                 Evector[0][0], Evector[0][1], Evector[0][2],
                 Evector[1][0], Evector[1][1], Evector[1][2]);*/
 
-  // Evector dot transpose rot: b = R . ak 
+  // Evector dot transpose rot: b = R . ak
+  b[0] = Evector[0]*rot[0] + Evector[1]*rot[3] + Evector[2]*rot[6];
+  b[1] = Evector[0]*rot[1] + Evector[1]*rot[4] + Evector[2]*rot[7];
+  b[2] = Evector[0]*rot[2] + Evector[1]*rot[5] + Evector[2]*rot[8];
+  normalize(b);
+  b[3] = Evector[3]*rot[0] + Evector[4]*rot[3] + Evector[5]*rot[6];
+  b[4] = Evector[3]*rot[1] + Evector[4]*rot[4] + Evector[5]*rot[7];
+  b[5] = Evector[3]*rot[2] + Evector[4]*rot[5] + Evector[5]*rot[8];
+  normalize(b+3);
+  b[6] = Evector[6]*rot[0] + Evector[7]*rot[3] + Evector[8]*rot[6];
+  b[7] = Evector[6]*rot[1] + Evector[7]*rot[4] + Evector[8]*rot[7];
+  b[8] = Evector[6]*rot[2] + Evector[7]*rot[5] + Evector[8]*rot[8];
+  normalize(b+6);
 /*  b[0] = Evector[0][0]*rot[0] + Evector[0][1]*rot[3] + Evector[0][2]*rot[6];
   b[1] = Evector[0][0]*rot[1] + Evector[0][1]*rot[4] + Evector[0][2]*rot[7];
   b[2] = Evector[0][0]*rot[2] + Evector[0][1]*rot[5] + Evector[0][2]*rot[8];
@@ -2084,10 +2097,10 @@ double Frame::RMSD_CenteredRef( Frame &Ref, double U[9], double Trans[6], bool u
   b[7] = Evector[2][0]*rot[1] + Evector[2][1]*rot[4] + Evector[2][2]*rot[7];
   b[8] = Evector[2][0]*rot[2] + Evector[2][1]*rot[5] + Evector[2][2]*rot[8];
   normalize(&b[6]);*/
-  matrix_multiply_3x3(b, Evector, rot);
+  /*matrix_multiply_3x3(b, Evector, rot);
   normalize(b);
   normalize(b+3);
-  normalize(b+6);
+  normalize(b+6);*/
 
  /* b3 = b1 x b2 */
   CROSS_PRODUCT(cp[0], cp[1], cp[2],
