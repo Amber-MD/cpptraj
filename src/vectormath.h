@@ -23,24 +23,11 @@ void matrix_transpose_3x3(double M[9]);
 double *matrix_transpose(double *M, int mrows, int ncols);
 void matrix_times_vector(double U[3], double R[9], double V[3]);
 void matrixT_times_vector(double U[3], double R[9], double V[3]);
-//void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]); 
-inline void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]) {
-  M[0] = (Row[0] * Col[0]) + (Row[1] * Col[3]) + (Row[2] * Col[6]);
-  M[1] = (Row[0] * Col[1]) + (Row[1] * Col[4]) + (Row[2] * Col[7]);
-  M[2] = (Row[0] * Col[2]) + (Row[1] * Col[5]) + (Row[2] * Col[8]);
-  M[3] = (Row[3] * Col[0]) + (Row[4] * Col[3]) + (Row[5] * Col[6]);
-  M[4] = (Row[3] * Col[1]) + (Row[4] * Col[4]) + (Row[5] * Col[7]);
-  M[5] = (Row[3] * Col[2]) + (Row[4] * Col[5]) + (Row[5] * Col[8]);
-  M[6] = (Row[6] * Col[0]) + (Row[7] * Col[3]) + (Row[8] * Col[6]);
-  M[7] = (Row[6] * Col[1]) + (Row[7] * Col[4]) + (Row[8] * Col[7]);
-  M[8] = (Row[6] * Col[2]) + (Row[7] * Col[5]) + (Row[8] * Col[8]);
-}
+void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]); 
 double matrix_to_angle(double U[9]);
 int axis_of_rotation(double V[3], double U[9], double theta);
 void calcRotationMatrix(double T[9], double V[3], double theta);
 void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ);
-
-int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue);
 
 void printVector(const char *Name, double V[3]);
 void printMatrix_3x3(const char *Title, double U[9]);

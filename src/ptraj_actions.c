@@ -10,8 +10,10 @@
 
 // ---------- Defines ----------------------------------------------------------
 #define ACTION_MODULE
+#ifdef PTRAJ_VECTOR_DEBUG
 // DEBUG
 FILE* GLOBALDBG;
+#endif
        /* Multiply the transpose of the 3x3 matrix times the 
         * coordinates specified in x, y and z.  xx, yy and zz 
         * are temporary variables. 
@@ -7244,8 +7246,10 @@ transformVector(actionInformation *action,
 
 
   if (mode == PTRAJ_SETUP) {
-// DEBUG
+#   ifdef PTRAJ_VECTOR_DEBUG
+    // DEBUG
     GLOBALDBG = fopen("PTRAJ.PDB","w");
+#   endif
 
     /*
      *  ACTION: PTRAJ_SETUP
@@ -7598,8 +7602,10 @@ transformVector(actionInformation *action,
     safe_fclose(outFile);
 
   } else if (mode == PTRAJ_CLEANUP) {
-// DEBUG
-  fclose(GLOBALDBG);
+#   ifdef PTRAJ_VECTOR_DEBUG
+    // DEBUG
+    fclose(GLOBALDBG);
+#   endif
     /*
      *  ACTION: PTRAJ_CLEANUP
      */
@@ -7947,7 +7953,7 @@ transformVector(actionInformation *action,
     vectorInfo->cx[vectorInfo->frame] = principal[9];
     vectorInfo->cy[vectorInfo->frame] = principal[10];
     vectorInfo->cz[vectorInfo->frame] = principal[11];
-
+#   ifdef PTRAJ_VECTOR_DEBUG
     // DEBUG - print axes
     fprintf(GLOBALDBG,"MODEL %i\n",vectorInfo->frame+1);
     fprintf(GLOBALDBG,"%-6s%5i %-4s%4s %c%4i    %8.3lf%8.3lf%8.3lf%8.4f%8.4f%10s\n",
@@ -7967,6 +7973,7 @@ transformVector(actionInformation *action,
           principal[9]+principal[6], principal[10]+principal[7], principal[11]+principal[8],
           0.0,0.0,"");
     fprintf(GLOBALDBG,"ENDMDL\n");
+#   endif
 
     if (prnlev > 2) {
       fprintf(stdout, "\ntransformVector PRINCIPAL AXIS:\n");

@@ -1,7 +1,6 @@
 /*! \file vectormath.cpp
  *
  * Simple vector/matrix math routines.
- * ROTATE, jacobi3, and diagEsort routines adapted from PTRAJ
  */
 #include <cmath>
 #include "vectormath.h"
@@ -203,7 +202,7 @@ void matrixT_times_vector(double U[3], double R[9], double V[3]) {
 // matrix_multiply_3x3()
 /** Multiply 3x3 matrix Row by 3x3 matrix Col, store result in M
   */
-/*void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]) {
+void matrix_multiply_3x3(double M[9], double Row[9], double Col[9]) {
   M[0] = (Row[0] * Col[0]) + (Row[1] * Col[3]) + (Row[2] * Col[6]);
   M[1] = (Row[0] * Col[1]) + (Row[1] * Col[4]) + (Row[2] * Col[7]);
   M[2] = (Row[0] * Col[2]) + (Row[1] * Col[5]) + (Row[2] * Col[8]);
@@ -213,7 +212,7 @@ void matrixT_times_vector(double U[3], double R[9], double V[3]) {
   M[6] = (Row[6] * Col[0]) + (Row[7] * Col[3]) + (Row[8] * Col[6]);
   M[7] = (Row[6] * Col[1]) + (Row[7] * Col[4]) + (Row[8] * Col[7]);
   M[8] = (Row[6] * Col[2]) + (Row[7] * Col[5]) + (Row[8] * Col[8]);
-}*/
+}
 
 // matrix_multiply()
 /** Multiply matrix M by matrix N.
@@ -324,140 +323,6 @@ void calcRotationMatrix(double T[9], double psiX, double psiY, double psiZ) {
   V[2] = psiZ / Psi;
 
   calcRotationMatrix(T, V, Psi);
-}
-
-// ROTATE()
-#define ROTATE(ARR,MAJ1,MIN1,MAJ2,MIN2) { \
-  g = ARR[MAJ1 + MIN1]; \
-  h = ARR[MAJ2 + MIN2]; \
-  ARR[MAJ1 + MIN1] = g - s*(h+g*tau); \
-  ARR[MAJ2 + MIN2] = h + s*(g-h*tau); }
-
-// jacobi3()
-/** Diagonalize 3x3 matrix with jacobi method.
-  */
-static int jacobi3(double *a, double *d, double *v, int *nrot) { 
-/* n must be 3.  see b[3] and z[3] below */
-  int  i, j, ip, iq, p3, j3;
-  double  tresh, theta, tau, t, sm, s, h, g, c, b[3], z[3];
-
-  for (ip=p3=0; ip<3; ip++,p3+=3) {
-    /* initialize the identity matrix */
-    for (iq=0; iq<3; iq++)
-      v[p3 + iq] = 0.0;
-    v[p3 + ip] = 1.0;
-    /* initialize b and d to diagonal of a */
-    b[ip] = d[ip] = a[p3 + ip];
-    z[ip] = 0.0;
-  }
-  *nrot = 0;
-  for (i=0; i<50; i++) {    /* 50 tries */
-
-    sm = 0.0;
-    for (ip=p3=0; ip<2; ip++,p3+=3) {
-      for (iq=ip+1; iq<3; iq++)
-        sm += fabs(a[p3 + iq]);
-    }
-
-    if (sm == 0.0) {
-      return(1);
-    }
-    if (i < 3)
-      tresh = sm * 0.2 / 9.0;   /* on 1st three sweeps... */
-    else
-      tresh = 0.0;      /* thereafter... */
-    for (ip=p3=0; ip<2; ip++,p3+=3) {
-      for (iq=ip+1; iq<3; iq++) {
-        g = 100.0 * fabs(a[p3 + iq]);
-
-        if ( i > 3  &&  fabs(d[ip])+g == fabs(d[ip])
-        && fabs(d[iq])+g == fabs(d[iq])) {
-          a[p3 + iq] = 0.0;
-        } else if (fabs(a[p3 + iq]) > tresh) {
-          h = d[iq]-d[ip];
-          if (fabs(h)+g==fabs(h))
-            t = a[p3 + iq] / h;
-          else {
-            theta = 0.5 * h / a[p3 + iq];
-            t = 1.0 / (fabs(theta)+
-            (double)sqrt(1.0+theta*theta));
-            if (theta < 0.0)
-              t = -t;
-          }
-          c = 1.0 / (double)sqrt(1+t*t);
-          s = t * c;
-          tau = s / (1.0+c);
-          h = t * a[p3 + iq];
-          z[ip] -= h;
-          z[iq] += h;
-          d[ip] -= h;
-          d[iq] += h;
-          a[p3 + iq] = 0.0;
-          for (j=j3=0; j<=ip-1; j++,j3+=3)
-            ROTATE(a,j3,ip,j3,iq)
-          for (j=ip+1; j<=iq-1; j++)
-            ROTATE(a,p3,j,j*3,iq)
-          for (j=iq+1; j<3; j++)
-            ROTATE(a,p3,j,iq*3,j)
-
-          for (j3=0; j3<9; j3+=3)
-            ROTATE(v,j3,ip,j3,iq)
-
-          ++(*nrot);
-        }
-      }
-    }
-    for (ip=0; ip<3; ip++) {
-      b[ip] += z[ip];
-      d[ip] = b[ip];
-      z[ip] = 0.0;
-    }
-  }
-  mprintf("Too many iterations in routine JACOBI\n");
-  return(0);
-}
-
-// diagEsort()
-/** Diagonalize 3x3 matrix, sort eigenvalues/eigenvectors.
-  */
-int diagEsort(double *mat, double *Emat, double *Evec[], double *Eigenvalue) {
-  int njrot;
-  int i, j, k, i3;
-  double eigenvector[9], *eA, v;
-
-  if (!jacobi3(mat, Eigenvalue, eigenvector, &njrot)) {
-    mprintf("convergence failed\n");
-    return(0);
-  }
-
-  printMatrix_3x3("Jacobi3 Output", eigenvector);
-  printVector("Jacobi3 Evals",Eigenvalue);
-
-  for (i=i3=0; i<3; i++, i3+=3)
-    for (j=0; j<3; j++)
-      Emat[i3+j] = eigenvector[j*3+i];
-
-  for (i=0; i<3; i++)
-    Evec[i] = (double *) &Emat[i*3];
-
-  for (i=0; i<2; i++) {
-    v = Eigenvalue[k=i];
-    for (j=i+1; j<3; j++)
-      if (Eigenvalue[j] > v)
-        v = Eigenvalue[k=j];
-    if (k != i) {
-
-      Eigenvalue[k] = Eigenvalue[i];
-      Eigenvalue[i] = v;
-      eA = Evec[i];
-      Evec[i] = Evec[k];
-      Evec[k] = eA;
-    }
-  }
-  printVector("Jacobi3 Vec0",Evec[0]);
-  printVector("Jacobi3 Vec1",Evec[1]);
-  printVector("Jacobi3 Vec2",Evec[2]);
-  return(1);
 }
 
 // printVector()
