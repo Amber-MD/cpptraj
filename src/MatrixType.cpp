@@ -2,6 +2,7 @@
 #include "MatrixType.h"
 #include "VectorType.h"
 #include "CpptrajStdio.h"
+#include "vectormath.h" // vector_sub, dot_product
 
 // CONSTRUCTOR
 MatrixType::MatrixType() : 
@@ -430,7 +431,40 @@ int MatrixType::action() {
         kidx = 0;
       } // END LOOP OVER l
     } // END OUTER LOOP
-  } // END COVAR / CORREL
+
+  // ---------- Calc Isotropically distributed ---
+  //            ensemble matrix.
+  // See Proteins 2002, 46, 177; eq. 7
+  } else if (type_ == MATRIX_IDEA) {
+    // Get COM
+    double COM[3];
+    currentFrame->CenterOfMass( &mask1_, COM );
+    // Get ri, rj, and calc ri*rj
+    int midx = 0;
+    int vidx = 0;
+    double ri[3];
+    double rj[3];
+    // Matrix IDEA only uses 1 mask.
+    for (AtomMask::const_iterator atomi = mask1_.begin();
+                                  atomi != mask1_.end(); ++atomi)
+    {
+      currentFrame->GetAtomXYZ(ri, *atomi);
+      vector_sub(ri, ri, COM);
+      for (AtomMask::const_iterator atomj = atomi; 
+                                    atomj != mask1_.end(); ++atomj)
+      {
+        currentFrame->GetAtomXYZ(rj, *atomj);
+        vector_sub(rj, rj, COM);
+        double val = dot_product(ri, rj);
+        mat_[midx++] += val; 
+        if (*atomj == *atomi) {
+          vect_[vidx] += val;
+          vect2_[vidx] += (val * val);
+          ++vidx;
+        }
+      }
+    }
+  } 
 
   return 0;
 }
@@ -465,8 +499,17 @@ void MatrixType::print() {
   for (int i = 0; i < matsize_; ++i)
     mat_[i] /= dsnap;
 
+  // ---------- Isotropically distributed ensmble matrix
+  if (type_ == MATRIX_IDEA) {
+    for (int i = 0; i < vectsize_*3; ++i) {
+      vect_[i] /= 3;
+      vect2_[i] /= 3;
+    }
+    for (int i = 0; i < matsize_; ++i)
+      mat_[i] /= 3.0;
+
   // ---------- Calc covariance or correlation matrix
-  if (type_==MATRIX_COVAR || type_==MATRIX_MWCOVAR || type_==MATRIX_CORREL) {
+  } else if (type_==MATRIX_COVAR || type_==MATRIX_MWCOVAR || type_==MATRIX_CORREL) {
     // Calc <riri> - <ri><ri>
     for (int i = 0; i < vectsize_*3; ++i)
       vect2_[i] -= (vect_[i]*vect_[i]);
@@ -586,7 +629,7 @@ void MatrixType::print() {
   if (outtype_==BYATOM) {
     int idx = 0;
     if (type_ == MATRIX_DIST || type_== MATRIX_CORREL || type_ == MATRIX_IDEA) {
-      // ----- DISTANCE ------
+      // ----- DISTANCE, CORREL, IDEA ------
       if (mask2expr_==NULL) { // Half-matrix
         for (int row = 0; row < mask1tot_; ++row) {
           for (int col = 0; col < mask1tot_; ++col) {
