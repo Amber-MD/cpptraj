@@ -3558,6 +3558,8 @@ halfmatindex(int mask1tot, int i, int j){
    * Returns index for "upper right half" matrix,
    *   including main diagonal.
    */
+  //printf("PDBG:\ti=%i j=%i N=%i idx=%i\n",i,j,mask1tot,
+  //       (i * mask1tot - (i * (i-1) / 2) + (j - i)));
 
   return (i * mask1tot - (i * (i-1) / 2) + (j - i));
 }

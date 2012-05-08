@@ -13,6 +13,7 @@ MatrixType::MatrixType() :
   mask2expr_(NULL),
   mask1tot_(0),
   mask2tot_(0),
+  Nelt_(0),
   snap_(0),
   start_(0),
   stop_(0),
@@ -277,15 +278,20 @@ int MatrixType::setup() {
 
   // Allocate matrix memory
   if (mat_==0) {
-    if (mask2tot_ == 0) {
-      // "upper right half" matrix, including main diagonal
-      if (type_ == MATRIX_DISTCOVAR)
+    if (mask2expr_ == NULL) {
+      // "upper right half" matrix, including main diagonal.
+      // Nelt is set for use in indexing half matrix with HalfMatrixIndex.
+      if (type_ == MATRIX_DISTCOVAR) {
         matsize_ = mask1tot_ * (mask1tot_ - 1) * (mask1tot_ * (mask1tot_ - 1) / 2 + 1) / 4;
-      else if (type_ == MATRIX_COVAR || 
-               type_ == MATRIX_MWCOVAR)
+        Nelt_ = mask1tot_ * (mask1tot_ - 1) / 2;
+      } else if (type_ == MATRIX_COVAR || 
+                 type_ == MATRIX_MWCOVAR) {
         matsize_ = 9 * mask1tot_ * (mask1tot_ + 1) / 2;
-      else // MATRIX_DIST || MATRIX_CORREL || MATRIX_IDEA || MATRIX_IRED
+        Nelt_ = mask1tot_ * 3;
+      } else { // MATRIX_DIST || MATRIX_CORREL || MATRIX_IDEA || MATRIX_IRED
         matsize_ = mask1tot_ * (mask1tot_ + 1) / 2;
+        Nelt_ = mask1tot_; 
+      }
     } else {
       // full matrix -> no MATRIX_DISTCOVAR, MATRIX_IDEA, or MATRIX_IRED possible 
       if (type_ == MATRIX_COVAR || 
@@ -341,11 +347,24 @@ int MatrixType::action() {
     }
   }
 
-  ++snap_;
   return 0;
 }
 
-int MatrixType::print() {
+int MatrixType::HalfMatrixIndex(int row, int col) {
+  int i, j;
+  if (row<=col) {
+    i = row;
+    j = col;
+  } else {
+    i = col;
+    j = row;
+  }
+  //mprintf("CDBG:\ti=%i j=%i N=%i idx=%i\n",i,j,Nelt_,
+  //        (i * Nelt_ - (i * (i-1) / 2) + (j - i)));
+  return (i * Nelt_ - (i * (i-1) / 2) + (j - i));
+}
+
+void MatrixType::print() {
   int err = 0;
   CpptrajFile outfile;
   // Calculate average over number of sets
@@ -367,10 +386,33 @@ int MatrixType::print() {
   if (err!=0) return;
   if (outfile.OpenFile()) return;
 
-  // Print out by atom
+  // ----- Print out BYATOM 
   if (outtype_==BYATOM) {
     if (type_ == MATRIX_DIST) {
       // DISTANCE
       int idx = 0;
-      int crow = 0;
-      int lend 
+      if (mask2expr_==NULL) { // Half-matrix
+        for (int row = 0; row < mask1tot_; ++row) {
+          for (int col = 0; col < mask1tot_; ++col) {
+            idx = HalfMatrixIndex( row, col );
+            //mprintf("DBG:\tRow=%i Col=%i Idx=%i\n", row, col, idx);
+            outfile.Printf("%6.3f ", mat_[idx]);
+          }
+          outfile.Printf("\n");
+        }
+      } else { // Full matrix
+        for (int row = 0; row < mask2tot_; ++row) {
+          for (int col = 0; col < mask1tot_; ++col) {
+            outfile.Printf("%6.3f ", mat_[idx++]);
+          }
+          outfile.Printf("\n");
+        }
+      }
+    } // END MATRIX_DIST
+  } // END BYATOM
+
+  // Close file
+  outfile.Printf("\n");
+  outfile.CloseFile();
+}
+

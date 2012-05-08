@@ -12,6 +12,8 @@ class MatrixType : public DataSet, public Action {
     MatrixType();
     ~MatrixType();
 
+    void print();
+
   private:
     matrixMode type_;
     double* vect_;
@@ -24,6 +26,7 @@ class MatrixType : public DataSet, public Action {
     AtomMask mask2_;
     int mask1tot_;
     int mask2tot_;
+    int Nelt_;
     int snap_;
 
     // Only needed by action
@@ -41,5 +44,6 @@ class MatrixType : public DataSet, public Action {
     int action();
 
     void Info();
+    int HalfMatrixIndex(int, int);
 };
 #endif
