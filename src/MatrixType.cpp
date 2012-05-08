@@ -1,3 +1,4 @@
+#include <cmath> // sqrt
 #include "MatrixType.h"
 #include "VectorType.h"
 #include "CpptrajStdio.h"
@@ -40,8 +41,8 @@ const char MatrixType::MatrixModeString[8][27] = {
   "ired matrix"
 };
 
-/** 
-  *  matrix dist|covar|mwcovar|distcovar|correl|idea|ired
+// MatrixType::init()
+/** matrix dist|covar|mwcovar|distcovar|correl|idea|ired
   *                                             [name <name>] [order <order>]
   *                                             [<mask1>] [<mask2>] [out <filename>] 
   *                                             [start <start>] [stop <stop>] [offset <offset>]
@@ -69,7 +70,7 @@ const char MatrixType::MatrixModeString[8][27] = {
   *  - Since "distcovar, idea, ired" is mainly intended for subsequent analysis with 
   *    "analyze matrix", only input of mask1 (or none) is possible.
   */
-int MatrixType::init(  ) {
+int MatrixType::init() {
   filename_ = actionArgs.GetStringKey("out");
 
   start_ = actionArgs.getKeyInt("start", 1);
@@ -184,6 +185,7 @@ int MatrixType::init(  ) {
   return 0;
 }
 
+// MatrixType::Info()
 void MatrixType::Info() {
   mprintf("    MATRIX: Calculating %s ", MatrixModeString[type_]);
   switch (outtype_) {
@@ -217,6 +219,7 @@ void MatrixType::Info() {
   }
 }
 
+// MatrixType::setup()
 int MatrixType::setup() {
   // For now, only allow 1 prmtop
   
@@ -308,6 +311,7 @@ int MatrixType::setup() {
   return 0;
 }
 
+// MatrixType::action()
 int MatrixType::action() {
   // If the current frame is less than start exit
   if (frameNum < start_) return 0;
@@ -345,11 +349,93 @@ int MatrixType::action() {
         }
       }
     }
-  }
+
+  // ---------- Calc covariance or correlation ---
+  } else if ( type_ == MATRIX_COVAR ||
+              type_ == MATRIX_MWCOVAR ||
+              type_ == MATRIX_CORREL )
+  {
+    int midx = 0;
+    int vidx1 = 0;  // Index into vector arrays
+    int vidx2 = 0;
+    double XYZi[3]; // For retrieving atom coordinates
+    double XYZj[3];
+    int lend;
+    bool iscovariance;
+    if ( type_ == MATRIX_CORREL ) {
+      lend = 1;
+      iscovariance = false;
+    } else {
+      lend = 3;
+      iscovariance = true;
+    }
+    int kidx = 1;
+    // BEGIN OUTER LOOP 
+    for (AtomMask::const_iterator atom2 = mask2_.begin();
+                                  atom2 != mask2_.end(); ++atom2)
+    {
+      currentFrame->GetAtomXYZ(XYZi, *atom2);
+      if (mask2expr_!=NULL) {
+        for (int ixyz = 0; ixyz < 3; ++ixyz) {
+          vect_[vidx1] += XYZi[ixyz];
+          vect2_[vidx1++] += (XYZi[ixyz]*XYZi[ixyz]);
+        }
+      }
+      for (int l = 0; l < lend; ++l) {
+        // BEGIN INNER LOOP
+        for (AtomMask::const_iterator atom1 = mask1_.begin();
+                                      atom1 != mask1_.end(); ++atom1)
+        {
+          currentFrame->GetAtomXYZ(XYZj, *atom1);
+          if (kidx==1) {
+            for (int ixyz = 0; ixyz < 3; ++ixyz) {
+              vect_[vidx2] += XYZj[ixyz];
+              vect2_[vidx2++] += (XYZj[ixyz]*XYZj[ixyz]);
+            }
+          }
+          if ( (mask2expr_==NULL && *atom1 >= *atom2) || mask2expr_!=NULL ) {
+            if ( iscovariance ) {
+              if (mask2expr_==NULL && *atom2 == *atom1) {
+                // Half matrix or diagonal
+                if (l==0) {
+                  mat_[midx++] += XYZi[0]*XYZj[0];
+                  mat_[midx++] += XYZi[0]*XYZj[1];
+                  mat_[midx++] += XYZi[0]*XYZj[2];
+                } else if (l==1) {
+                  mat_[midx++] += XYZi[1]*XYZj[1];
+                  mat_[midx++] += XYZi[1]*XYZj[2];
+                } else  // l==2
+                  mat_[midx++] += XYZi[2]*XYZj[2];
+              } else if ((mask2expr_==NULL && *atom2 < *atom1) || mask2expr_!=NULL) {
+                // Half matrix and atom2 < atom1, or Full matrix
+                if (l==0) {
+                  mat_[midx++] += XYZi[0]*XYZj[0];
+                  mat_[midx++] += XYZi[0]*XYZj[1];
+                  mat_[midx++] += XYZi[0]*XYZj[2];
+                } else if (l==1) {
+                  mat_[midx++] += XYZi[1]*XYZj[0];
+                  mat_[midx++] += XYZi[1]*XYZj[1];
+                  mat_[midx++] += XYZi[1]*XYZj[2];
+                } else { // l==2
+                  mat_[midx++] += XYZi[2]*XYZj[0];
+                  mat_[midx++] += XYZi[2]*XYZj[1];
+                  mat_[midx++] += XYZi[2]*XYZj[2];
+                }
+              }
+            } else {
+              mat_[midx++] += XYZi[0]*XYZj[0] + XYZi[1]*XYZj[1] + XYZi[2]*XYZj[2];
+            }
+          }
+        } // END INNER LOOP
+        kidx = 0;
+      } // END LOOP OVER l
+    } // END OUTER LOOP
+  } // END COVAR / CORREL
 
   return 0;
 }
 
+// MatrixType::HalfMatrixIndex()
 int MatrixType::HalfMatrixIndex(int row, int col) {
   int i, j;
   if (row<=col) {
@@ -364,10 +450,11 @@ int MatrixType::HalfMatrixIndex(int row, int col) {
   return (i * Nelt_ - (i * (i-1) / 2) + (j - i));
 }
 
+// MatrixType::print()
 void MatrixType::print() {
   int err = 0;
   CpptrajFile outfile;
-  // Calculate average over number of sets
+  // ---------- Calculate average over number of sets
   double dsnap = (double)snap_;
   if (vect_!=0) {
     for (int i = 0; i < vectsize_*3; ++i) {
@@ -378,6 +465,115 @@ void MatrixType::print() {
   for (int i = 0; i < matsize_; ++i)
     mat_[i] /= dsnap;
 
+  // ---------- Calc covariance or correlation matrix
+  if (type_==MATRIX_COVAR || type_==MATRIX_MWCOVAR || type_==MATRIX_CORREL) {
+    // Calc <riri> - <ri><ri>
+    for (int i = 0; i < vectsize_*3; ++i)
+      vect2_[i] -= (vect_[i]*vect_[i]);
+    // Calc <rirj> - <ri><rj>
+    int idx = 0;
+    int vidx; 
+    if (mask2expr_==NULL)
+      vidx = 0;
+    else
+      vidx = mask1tot_;
+    if (type_==MATRIX_COVAR || type_==MATRIX_MWCOVAR) {
+      for (int i = 0; i < mask2tot_; ++i) {
+        for (int l = 0; l < 3; ++l) {
+          for (int j = 0; j < mask1tot_; ++j) {
+            if ( (mask2expr_==NULL && j>=i) || mask2expr_!=NULL ) {
+              if (mask2expr_==NULL && i==j) { 
+                if (l==0) {
+                  mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3  ];
+                  mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3+1];
+                  mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3+2];
+                } else if (l==1) {
+                  mat_[idx++] -= vect_[(vidx + i)*3+1] * vect_[j*3+1];
+                  mat_[idx++] -= vect_[(vidx + i)*3+1] * vect_[j*3+2];
+                } else // l==2
+                  mat_[idx++] -= vect_[(vidx + i)*3+2] * vect_[j*3+2];
+              } else if ((mask2expr_==NULL && i<j) || mask2expr_!=NULL) {
+                if (l==0) {
+                  mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3  ];
+                  mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3+1];
+                  mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3+2];
+                } else if (l==1) {
+                  mat_[idx++] -= vect_[(vidx + i)*3+1] * vect_[j*3  ];
+                  mat_[idx++] -= vect_[(vidx + i)*3+1] * vect_[j*3+1];
+                  mat_[idx++] -= vect_[(vidx + i)*3+1] * vect_[j*3+2];
+                } else { // l==2
+                  mat_[idx++] -= vect_[(vidx + i)*3+2] * vect_[j*3  ];
+                  mat_[idx++] -= vect_[(vidx + i)*3+2] * vect_[j*3+1];
+                  mat_[idx++] -= vect_[(vidx + i)*3+2] * vect_[j*3+2];
+                } 
+              }
+            }
+          }
+        }
+      }
+      // Add in mass information for MWCOVAR
+      if (type_ == MATRIX_MWCOVAR) {
+        idx = 0;
+        int row3 = 0;
+        double mass;
+        for (AtomMask::const_iterator atomi = mask2_.begin();
+                                      atomi != mask2_.end(); ++atomi)
+        {
+          for (int k = 0; k < 3; ++k) {
+            int col3 = 0;
+            for (AtomMask::const_iterator atomj = mask1_.begin();
+                                          atomj != mask1_.end(); ++atomj)
+            {
+              if (*atomi == *atomj) {
+                vect2_[col3  ] *= mass;
+                vect2_[col3+1] *= mass;
+                vect2_[col3+2] *= mass;
+              }
+              if (mask2expr_==NULL && *atomj >= *atomi) { // half-matrix
+                mass = sqrt( (*currentParm)[*atomi].Mass() * (*currentParm)[*atomj].Mass() );
+                if (row3+k <= col3) {
+                  idx = HalfMatrixIndex( row3+k, col3  );
+                  mat_[idx] *= mass;
+                }
+                if (row3+k <= col3+1) {
+                  idx = HalfMatrixIndex( row3+k, col3+1);
+                  mat_[idx] *= mass;
+                }
+                if (row3+k <= col3+2) {
+                  idx = HalfMatrixIndex( row3+k, col3+2);
+                  mat_[idx] *= mass;
+                }
+              } else if (mask2expr_!=NULL) { // full matrix
+                mass = sqrt( (*currentParm)[*atomi].Mass() * (*currentParm)[*atomj].Mass() );
+                mat_[idx++] *= mass;
+                mat_[idx++] *= mass;
+                mat_[idx++] *= mass;
+              }
+              col3 += 3;
+            } // END LOOP OVER MASK1
+          }
+          row3 += 3;
+        } // END LOOP OVER MASK2
+      }
+    } else { // MATRIX_CORREL
+      for (int i = 0; i < mask2tot_; ++i) {
+        for (int j = 0; j < mask1tot_; ++j) {
+          if ( (mask2expr_==NULL && j>=i) || mask2expr_!=NULL ) {
+            mat_[idx] -= (vect_[j*3  ] * vect_[(vidx + i)*3  ] +
+                          vect_[j*3+1] * vect_[(vidx + i)*3+1] +
+                          vect_[j*3+2] * vect_[(vidx + i)*3+2]);
+            // Normalize
+            mat_[idx] /= sqrt((vect2_[j*3] + vect2_[j*3+1] + vect2_[j*3+2]) *
+                              (vect2_[(vidx + i)*3  ] + 
+                               vect2_[(vidx + i)*3+1] +
+                               vect2_[(vidx + i)*3+2]));
+            ++idx;
+          }
+        }
+      }
+    } 
+  }
+
   // Open file
   if (filename_.empty())
     err = outfile.SetupWrite(NULL, debug);
@@ -386,11 +582,11 @@ void MatrixType::print() {
   if (err!=0) return;
   if (outfile.OpenFile()) return;
 
-  // ----- Print out BYATOM 
+  // ---------- Print out BYATOM 
   if (outtype_==BYATOM) {
-    if (type_ == MATRIX_DIST) {
-      // DISTANCE
-      int idx = 0;
+    int idx = 0;
+    if (type_ == MATRIX_DIST || type_== MATRIX_CORREL || type_ == MATRIX_IDEA) {
+      // ----- DISTANCE ------
       if (mask2expr_==NULL) { // Half-matrix
         for (int row = 0; row < mask1tot_; ++row) {
           for (int col = 0; col < mask1tot_; ++col) {
@@ -408,7 +604,35 @@ void MatrixType::print() {
           outfile.Printf("\n");
         }
       }
-    } // END MATRIX_DIST
+    } else if (type_ == MATRIX_COVAR || type_ == MATRIX_MWCOVAR) {
+      // ----- COVAR ---------
+      if (mask2expr_==NULL) { // Half-matrix
+        // NOTE: Use Nelt instead of mask1tot*3?
+        for (int row = 0; row < mask1tot_*3; row+=3) {
+          for (int l = 0; l < 3; ++l) {
+            for (int col = 0; col < mask1tot_*3; col+=3) {
+              for (int ixyz = 0; ixyz < 3; ++ixyz) {
+                idx = HalfMatrixIndex( row+l, col+ixyz);
+                outfile.Printf("%6.3f ", mat_[idx]);
+              }
+            }
+            outfile.Printf("\n");
+          }
+        }
+      } else { // Full matrix
+        // NOTE: Use Nelt instead of mask1tot*3?
+        for (int row = 0; row < mask2tot_*3; row+=3) {
+          for (int l = 0; l < 3; ++l) {
+            for (int col = 0; col < mask1tot_*3; col+=3) {
+              for (int ixyz = 0; ixyz < 3; ++ixyz) {
+                outfile.Printf("%6.3f ", mat_[idx++]);
+              }
+            }
+            outfile.Printf("\n");
+          }
+        }
+      } 
+    }
   } // END BYATOM
 
   // Close file
