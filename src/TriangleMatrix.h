@@ -9,10 +9,11 @@
   */
 class TriangleMatrix {
   public :
-    int Nrows()            { return nrows;     }
-    int Nelements()        { return nelements; }
+    int Nrows()            { return nrows_;     }
+    int Nelements()        { return (int)nelements_; }
 
     TriangleMatrix();
+    TriangleMatrix(int);
     TriangleMatrix(const TriangleMatrix&);
     ~TriangleMatrix();
     TriangleMatrix & operator=(const TriangleMatrix &);
@@ -29,12 +30,14 @@ class TriangleMatrix {
     float GetElementF(int,int);
     double FindMin(int *, int *);
     void PrintElements();
+
+    double operator[](int idx) { return (double)elements_[idx]; } 
   private:
-    float *elements;       ///< Hold all elements
-    int nrows;             ///< Number of elements in one row
-    size_t nelements;      ///< Total number of elements
-    size_t currentElement; ///< Current element, used in AddElement only.
-    bool *ignore;          ///< If true, ignore the row/col when printing/searching etc
+    float *elements_;       ///< Hold all elements
+    int nrows_;             ///< Number of elements in one row
+    size_t nelements_;      ///< Total number of elements
+    size_t currentElement_; ///< Current element, used in AddElement only.
+    bool *ignore_;          ///< If true, ignore the row/col when printing/searching etc
 
     int calcIndex(int,int);
 };

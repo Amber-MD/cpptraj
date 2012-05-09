@@ -6,29 +6,43 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-TriangleMatrix::TriangleMatrix() {
-  elements=NULL;
-  nrows=0;
-  nelements=0;
-  currentElement=0;
-  ignore=NULL;
+TriangleMatrix::TriangleMatrix() : 
+  elements_(0),
+  nrows_(0),
+  nelements_(0),
+  currentElement_(0),
+  ignore_(0)
+{}
+
+// CONSTRUCTOR
+TriangleMatrix::TriangleMatrix(int sizeIn) :
+  elements_(0),
+  nrows_(sizeIn),
+  nelements_( (size_t)( (nrows_*(nrows_ - 1)) / 2) ),
+  currentElement_(0),
+  ignore_(0)
+{
+  elements_ = new float[ nelements_ ];
+  ignore_ = new bool[ nrows_ ];
+  for (int n=0; n<nrows_; n++) 
+    ignore_[n]=false;
 }
 
 // DESTRUCTOR
 TriangleMatrix::~TriangleMatrix() {
-  if (elements!=NULL) delete[] elements;
-  if (ignore!=NULL) delete[] ignore;
+  if (elements_!=0) delete[] elements_;
+  if (ignore_!=0) delete[] ignore_;
 }
 
 // COPY CONSTRUCTOR
 TriangleMatrix::TriangleMatrix(const TriangleMatrix &rhs) {
-  nelements = rhs.nelements;
-  nrows = rhs.nrows;
-  currentElement = rhs.currentElement;
-  elements = new float[ nelements ];
-  ignore = new bool[ nrows ];
-  memcpy(elements, rhs.elements, nelements * sizeof(float));
-  memcpy(ignore,   rhs.ignore,   nrows * sizeof(bool));
+  nelements_ = rhs.nelements_;
+  nrows_ = rhs.nrows_;
+  currentElement_ = rhs.currentElement_;
+  elements_ = new float[ nelements_ ];
+  ignore_ = new bool[ nrows_ ];
+  memcpy(elements_, rhs.elements_, nelements_ * sizeof(float));
+  memcpy(ignore_,   rhs.ignore_,   nrows_ * sizeof(bool));
 }
 
 // TriangleMatrix::operator=()
@@ -37,19 +51,19 @@ TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
   if ( this == &rhs ) return *this;
 
   // Deallocate
-  if (elements!=NULL) delete[] elements;
-  if (ignore!=NULL) delete[] ignore;
+  if (elements_!=0) delete[] elements_;
+  if (ignore_!=0) delete[] ignore_;
 
   // Allocate
-  nelements = rhs.nelements;
-  nrows = rhs.nrows;
-  currentElement = rhs.currentElement;
-  elements = new float[ nelements ];
-  ignore = new bool[ nrows ];
+  nelements_ = rhs.nelements_;
+  nrows_ = rhs.nrows_;
+  currentElement_ = rhs.currentElement_;
+  elements_ = new float[ nelements_ ];
+  ignore_ = new bool[ nrows_ ];
 
   // Copy
-  memcpy(elements, rhs.elements, nelements * sizeof(float));
-  memcpy(ignore,   rhs.ignore,   nrows * sizeof(bool));
+  memcpy(elements_, rhs.elements_, nelements_ * sizeof(float));
+  memcpy(ignore_,   rhs.ignore_,   nrows_ * sizeof(bool));
 
   // Return *this
   return *this;
@@ -77,15 +91,15 @@ int TriangleMatrix::SaveFile(char *filename) {
   // Write magic byte
   fwrite(magic, sizeof(char), 4, outfile);
   // Write nrows
-  fwrite(&nrows, sizeof(int), 1, outfile);
+  fwrite(&nrows_, sizeof(int), 1, outfile);
   // Write number of elements
   // NOTE: Make long int?
-  int Ntemp = (int) nelements;
+  int Ntemp = (int) nelements_;
   fwrite(&Ntemp, sizeof(int), 1, outfile);
   // Write elements
-  fwrite(elements, sizeof(float), nelements, outfile);
+  fwrite(elements_, sizeof(float), nelements_, outfile);
   // Write ignore
-  //fwrite(ignore, sizeof(bool), nrows, outfile);
+  //fwrite(ignore_, sizeof(bool), nrows_, outfile);
 
   fclose(outfile);
   return 0;
@@ -113,10 +127,11 @@ int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
     return 1;
   }
   // Read nrows
-  fread(&nrows, sizeof(int), 1, infile);
+  fread(&nrows_, sizeof(int), 1, infile);
   // If number of rows is not what was expected, abort
-  if (nrows != sizeIn) {
-    mprintf("Warning: TriangleMatrix::LoadFile: File %s has %i rows, expected %i.\n",nrows,sizeIn);
+  if (nrows_ != sizeIn) {
+    mprintf("Warning: TriangleMatrix::LoadFile: File %s has %i rows, expected %i.\n",
+            nrows_,sizeIn);
     fclose(infile);
     return 1;
   }
@@ -124,16 +139,16 @@ int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
   // NOTE: Read long int?
   int Ntemp = 0;
   fread(&Ntemp, sizeof(int), 1, infile);
-  nelements = (size_t) Ntemp;
-  if (elements!=NULL) delete[] elements;
-  elements = new float[ nelements ];
+  nelements_ = (size_t) Ntemp;
+  if (elements_!=0) delete[] elements_;
+  elements_ = new float[ nelements_ ];
   // Read elements
-  fread(elements,sizeof(float), nelements, infile);
+  fread(elements_,sizeof(float), nelements_, infile);
   // Setup ignore array
-  if (ignore!=NULL) delete[] ignore;
-  ignore = new bool[ nrows ];
-  for (int n=0; n<nrows; n++) ignore[n]=false;
-  currentElement=0;
+  if (ignore_!=0) delete[] ignore_;
+  ignore_ = new bool[ nrows_ ];
+  for (int n=0; n<nrows_; n++) ignore_[n]=false;
+  currentElement_=0;
 
   fclose(infile);
   return 0;
@@ -144,27 +159,27 @@ int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
   * Set the current element to 0.
   */
 int TriangleMatrix::Setup(int sizeIn) {
-  nrows = sizeIn;
-  size_t ROWS = (size_t) nrows;
+  nrows_ = sizeIn;
+  size_t ROWS = (size_t) nrows_;
   // Use half square matrix minus the diagonal
   //nelements = ( (nrows * nrows) - nrows ) / 2;
-  nelements = ( (ROWS * ROWS) - ROWS) / 2; 
-  if (elements!=NULL) delete[] elements;
+  nelements_ = ( ROWS * (ROWS - 1) ) / 2; 
+  if (elements_!=0) delete[] elements_;
   //mprintf("DEBUG: TriangleMatrix::Setup(%i) nrows=%i nelements=%lu\n",sizeIn,nrows,nelements);
-  elements = new float[ nelements ];
+  elements_ = new float[ nelements_ ];
   // Setup ignore array
-  if (ignore!=NULL) delete[] ignore;
-  ignore = new bool[ nrows ];
-  for (int n=0; n<nrows; n++) ignore[n]=false;
-  currentElement=0;
-  if (elements==NULL) return 1;
+  if (ignore_!=0) delete[] ignore_;
+  ignore_ = new bool[ nrows_ ];
+  for (int n=0; n<nrows_; n++) ignore_[n]=false;
+  currentElement_=0;
+  if (elements_==0) return 1;
   return 0;
 }
 
 // TriangleMatrix::Ignore()
 /** Indicate given row/col should be ignored. */
 void TriangleMatrix::Ignore(int row) {
-  ignore[row] = true;
+  ignore_[row] = true;
 }
 
 // TriangleMatrix::AddElement()
@@ -172,9 +187,9 @@ void TriangleMatrix::Ignore(int row) {
   * \return 1 on success, 0 if no more elements can be added.
   */
 int TriangleMatrix::AddElement(double elementIn) {
-  if (currentElement>=nelements) return 0;
-  elements[currentElement] = (float) elementIn;
-  ++currentElement;
+  if (currentElement_>=nelements_) return 0;
+  elements_[currentElement_] = (float) elementIn;
+  ++currentElement_;
   return 1;
 }
 
@@ -183,9 +198,9 @@ int TriangleMatrix::AddElement(double elementIn) {
   * \return 1 on success, 0 if no more elements can be added.
   */
 int TriangleMatrix::AddElement(float elementIn) {
-  if (currentElement>=nelements) return 0;
-  elements[currentElement] = elementIn;
-  ++currentElement;
+  if (currentElement_>=nelements_) return 0;
+  elements_[currentElement_] = elementIn;
+  ++currentElement_;
   return 1;
 }
 
@@ -205,7 +220,7 @@ int TriangleMatrix::calcIndex(int iIn, int jIn) {
   } 
  
   i1 = i + 1;
-  return ( ( (nrows * i) - ((i1 * i) / 2) ) + j - i1 );
+  return ( ( (nrows_ * i) - ((i1 * i) / 2) ) + j - i1 );
 }
 
 // TriangleMatrix::SetElement()
@@ -217,7 +232,7 @@ void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
 
   idx = calcIndex(iIn, jIn);
 
-  elements[idx] = (float) elementIn;
+  elements_[idx] = (float) elementIn;
 }
 
 // TriangleMatrix::SetElementF()
@@ -229,7 +244,7 @@ void TriangleMatrix::SetElementF(int iIn, int jIn, float elementIn) {
 
   idx = calcIndex(iIn, jIn);
 
-  elements[idx] = elementIn;
+  elements_[idx] = elementIn;
 }
 
 
@@ -243,7 +258,7 @@ double TriangleMatrix::GetElement(int iIn, int jIn) {
  
   idx = calcIndex(iIn, jIn);
 
-  return (double)elements[idx];
+  return (double)elements_[idx];
 }
 
 // TriangleMatrix::GetElementF()
@@ -255,7 +270,7 @@ float TriangleMatrix::GetElementF(int iIn, int jIn) {
  
   idx = calcIndex(iIn, jIn);
 
-  return elements[idx];
+  return elements_[idx];
 }
 
 // TriangleMatrix::FindMin()
@@ -267,32 +282,32 @@ double TriangleMatrix::FindMin(int *iOut, int *jOut) {
 
   *iOut = -1;
   *jOut = -1;
-  if (elements==NULL || nelements < 1) return 0.0;
+  if (elements_==0 || nelements_ < 1) return 0.0;
 
   iVal = 0;
   jVal = 1;
   min = FLT_MAX;
-  for (size_t idx = 0; idx < nelements; idx++) {
+  for (size_t idx = 0; idx < nelements_; idx++) {
     // If we dont care about this row/col, just increment
-    if (ignore[iVal] || ignore[jVal]) {
+    if (ignore_[iVal] || ignore_[jVal]) {
       // DEBUG
       //mprintf("\t\tIgnoring %i %i\n",iVal,jVal);
       // Increment indices
       jVal++;
-      if (jVal == nrows) {
+      if (jVal == nrows_) {
         iVal++;
         jVal = iVal + 1;
       }
     // Otherwise search for minimum
     } else {
-      if ( elements[idx] < min ) {
-        min = elements[idx];
+      if ( elements_[idx] < min ) {
+        min = elements_[idx];
         *iOut = iVal;
         *jOut = jVal;
       }
       // Increment indices
       jVal++;
-      if (jVal == nrows) {
+      if (jVal == nrows_) {
         iVal++;
         jVal = iVal + 1;
       }
@@ -306,12 +321,12 @@ void TriangleMatrix::PrintElements() {
   int iVal = 0;
   int jVal = 1;
 
-  for (size_t idx = 0; idx < nelements; idx++) {
-    if (!ignore[iVal] && !ignore[jVal])
-      mprintf("\t%i %i %8.3f\n",iVal,jVal,elements[idx]);
+  for (size_t idx = 0; idx < nelements_; idx++) {
+    if (!ignore_[iVal] && !ignore_[jVal])
+      mprintf("\t%i %i %8.3f\n",iVal,jVal,elements_[idx]);
     // Increment indices
     jVal++;
-    if (jVal == nrows) {
+    if (jVal == nrows_) {
       ++iVal;
       jVal = iVal + 1;
     }
