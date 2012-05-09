@@ -172,6 +172,18 @@ const Residue& Topology::Res(int idx) {
   return residues_[idx];
 }
 
+int Topology::ResFirstAtom(int resnum) {
+  if (resnum < 0 || resnum >= (int)residues_.size())
+    return (int)atoms_.size();
+  return residues_[resnum].FirstAtom();
+}
+
+int Topology::ResLastAtom(int resnum) {
+  if (resnum < 0 || resnum >= (int)residues_.size()-1)
+    return (int)atoms_.size();
+  return residues_[resnum+1].FirstAtom();
+}
+
 // -----------------------------------------------------------------------------
 // Topology::SolventStart()
 Topology::mol_iterator Topology::SolventStart() const {

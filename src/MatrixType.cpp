@@ -590,7 +590,7 @@ void MatrixType::print() {
   //const char* OUTFMT = OUTFMT3; // Default output precision
   int err = 0;
   CpptrajFile outfile;
-  // ---------- Calculate average over number of sets
+  // ---------- Calculate average over number of sets ------
   double dsnap = (double)snap_;
   if (vect_!=0) {
     for (int i = 0; i < vectsize_*3; ++i) {
@@ -601,7 +601,7 @@ void MatrixType::print() {
   for (int i = 0; i < matsize_; ++i)
     mat_[i] /= dsnap;
 
-  // ---------- Isotropically distributed ensmble matrix
+  // ---------- Isotropically distributed ensmble matrix ---
   if (type_ == MATRIX_IDEA) {
     for (int i = 0; i < vectsize_*3; ++i) {
       vect_[i] /= 3;
@@ -610,7 +610,7 @@ void MatrixType::print() {
     for (int i = 0; i < matsize_; ++i)
       mat_[i] /= 3.0;
 
-  // ---------- Calc distance covariance matrix
+  // ---------- Calc distance covariance matrix ------------
   } else if (type_ == MATRIX_DISTCOVAR) {
     // Different output precision to be consistent with ptraj.
     // OUTFMT = OUTFMT2;
@@ -625,7 +625,7 @@ void MatrixType::print() {
         mat_[idx++] -= vect_[pair_i] * vect_[pair_j];
       }
 
-  // ---------- Calc covariance or correlation matrix
+  // ---------- Calc covariance or correlation matrix ------
   } else if (type_==MATRIX_COVAR || type_==MATRIX_MWCOVAR || type_==MATRIX_CORREL) {
     // Calc <riri> - <ri><ri>
     for (int i = 0; i < vectsize_*3; ++i) {
@@ -737,6 +737,7 @@ void MatrixType::print() {
     } 
   }
 
+  // -------------------- DATA OUTPUT ---------------------------
   // Open file
   if (filename_.empty())
     err = outfile.SetupWrite(NULL, debug);
@@ -748,7 +749,7 @@ void MatrixType::print() {
   // ---------- Print out BYATOM 
   if (outtype_==BYATOM) {
     int idx = 0;
-    // ----- DISTANCE, CORREL, IDEA, IRED, DISTCOVAR --------
+    // ----- DISTANCE, CORREL, IDEA, IRED, DISTCOVAR -------
     if (type_ == MATRIX_DIST || type_ == MATRIX_CORREL || 
         type_ == MATRIX_IDEA || type_ == MATRIX_IRED ||
         type_ == MATRIX_DISTCOVAR) 
@@ -773,7 +774,7 @@ void MatrixType::print() {
         }
       }
 
-    // ----- COVAR -------------------------------
+    // ----- COVAR, MWCOVAR --------------------------------
     } else if (type_ == MATRIX_COVAR || type_ == MATRIX_MWCOVAR) {
       if (mask2expr_==NULL) { // Half-matrix
         // NOTE: Use Nelt instead of mask1tot*3?
@@ -802,10 +803,110 @@ void MatrixType::print() {
         }
       } 
     }
-  } // END BYATOM
+
+  // ---------- Print out BYRESIDUE
+  } else if ( outtype_ == BYRESIDUE ) {
+    // Convert masks to char masks in order to check whether an atom
+    // is selected.
+    mask1_.ConvertMaskType();
+    mask2_.ConvertMaskType();
+    // Loop over residue pairs
+    int crow = 0;
+    double mass = 1.0;
+    for (int resi = 0; resi < currentParm->Nres(); ++resi) { // Row
+      bool printnewline = false;
+      int crowold = crow;
+      int ccol = 0;
+      for (int resj = 0; resj < currentParm->Nres(); ++resj) { // Column
+        bool printval = false;
+        double val = 0;
+        double valnorm = 0;
+        crow = crowold;
+        int ccolold = ccol;
+        for (int atomi = currentParm->ResFirstAtom(resi);
+                 atomi < currentParm->ResLastAtom(resi); ++atomi)
+        {
+          if ( mask2_.AtomInCharMask(atomi) ) {
+            ccol = ccolold;
+            for (int atomj = currentParm->ResFirstAtom(resj);
+                     atomj < currentParm->ResLastAtom(resj); ++atomj)
+            {
+              if ( mask1_.AtomInCharMask(atomj) ) {
+                if (useMass_)
+                  mass = (*currentParm)[atomi].Mass() * (*currentParm)[atomj].Mass();
+                valnorm += mass;
+                printval = printnewline = true;
+                //mprintf("Res %i-%i row=%i col=%i\n",resi+1,resj+1,crow,ccol);
+                if (mask2expr_==NULL) {
+                  int idx = HalfMatrixIndex( crow, ccol );
+                  val += mat_[idx] * mass;
+                } else {
+                  val += mat_[crow * mask1tot_ + ccol] * mass;
+                }
+                ++ccol;
+              }  
+            }
+            ++crow;
+          }
+        }
+        if (printval) outfile.Printf("%6.2f ",val / valnorm);
+      }
+      if (printnewline) outfile.Printf("\n");
+    }
+
+  // ---------- Print out BYMASK
+  } else if ( outtype_ == BYMASK ) {
+    // If only 1 mask, internal average over mask1, otherwise
+    //   i==0: mask1/mask1 
+    //   i==1: mask1/mask2 
+    //   i==2: mask2/mask2
+    int iend;
+    if (mask2expr_ == NULL)
+      iend = 1;
+    else
+      iend = 3;
+    AtomMask::const_iterator maskAbegin = mask1_.begin();
+    AtomMask::const_iterator maskAend = mask1_.end();
+    AtomMask::const_iterator maskBbegin = mask1_.begin();
+    AtomMask::const_iterator maskBend = mask1_.end();
+    double mass = 1.0;
+    for (int i = 0; i < iend; ++i) {
+      if (i > 0) {
+        maskAbegin = maskBbegin;
+        maskAend = maskBend;
+        maskBbegin = mask2_.begin();
+        maskBend = mask2_.end();
+      }
+      double val = 0;
+      double valnorm = 0;
+      int crow = 0;
+      for (AtomMask::const_iterator atomj = maskBbegin; atomj != maskBend; ++atomj)
+      {
+        int ccol = 0;
+        for (AtomMask::const_iterator atomi = maskAbegin; atomi != maskAend; ++atomi)
+        {
+          if (useMass_)
+            mass = (*currentParm)[*atomj].Mass() * (*currentParm[*atomi].Mass());
+          valnorm += mass;
+          if (mask2expr_==NULL) {
+            int idx = HalfMatrixIndex( crow, ccol );
+            val += mat_[idx] * mass;
+          } else {
+            val += mat_[crow * mask1tot_ + ccol] * mass;
+          }
+          ++ccol;
+        }
+        ++crow;
+      }
+      outfile.Printf("%6.2f ", val / valnorm);
+    }
+    outfile.Printf("\n");
+  } 
 
   // Close file
-  outfile.Printf("\n");
+  // For consistency with PTRAJ output, do not print terminal newline
+  // when printing BYMASK
+  if (outtype_!=BYMASK) outfile.Printf("\n");
   outfile.CloseFile();
 }
 
