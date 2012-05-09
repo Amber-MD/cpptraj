@@ -4110,7 +4110,7 @@ transformMatrix(actionInformation *action,
                              ind3);
                       */
                       //printf("\tmat[%i] -= vect[%i] * vect[%i]\n",ind3,ind,ind2);
-                      printf("\t%lf -= %lf * %lf\n",mat[ind3],vect[ind],vect[ind2]);
+                      //printf("\t%lf -= %lf * %lf\n",mat[ind3],vect[ind],vect[ind2]);
                       mat[ind3] -= vect[ind] * vect[ind2];
                       atcnt4++;
                     }
@@ -4132,9 +4132,15 @@ transformMatrix(actionInformation *action,
 
       /* Calc <riri> - <ri><ri> */
       for(i = 0; i < vectsize; i++){
+        //printf("PDBG\tvect2[%i] = %lf\n",i*3,vect2[i*3]);
+        //printf("PDBG\tvect2[%i] = %lf\n",i*3+1,vect2[i*3+1]);
+        //printf("PDBG\tvect2[%i] = %lf\n",i*3+2,vect2[i*3+2]);
         vect2[i*3  ] -= vect[i*3  ] * vect[i*3  ];
         vect2[i*3+1] -= vect[i*3+1] * vect[i*3+1];
         vect2[i*3+2] -= vect[i*3+2] * vect[i*3+2];
+        //printf("PDBG\tvect2[%i] = %lf\n",i*3,vect2[i*3]);
+        //printf("PDBG\tvect2[%i] = %lf\n",i*3+1,vect2[i*3+1]);
+        //printf("PDBG\tvect2[%i] = %lf\n",i*3+2,vect2[i*3+2]);
       }
 
       /* Calc <rirj> - <ri><rj> */

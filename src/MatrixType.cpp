@@ -385,7 +385,7 @@ int MatrixType::action() {
               type_ == MATRIX_CORREL )
   {
     int midx = 0;
-    int vidx1 = 0;  // Index into vector arrays
+    int vidx1 = mask1tot_*3;  // Index into vector arrays
     int vidx2 = 0;
     double XYZi[3]; // For retrieving atom coordinates
     double XYZj[3];
@@ -620,7 +620,7 @@ void MatrixType::print() {
     int idx = 0;
     for (int pair_i = 0; pair_i < mask1tot_; ++pair_i)
       for (int pair_j = pair_i; pair_j < mask1tot_; ++pair_j) {
-        mprintf("\t%lf -= %lf * %lf\n",mat_[idx],vect_[pair_i],vect_[pair_j]);
+        //mprintf("\t%lf -= %lf * %lf\n",mat_[idx],vect_[pair_i],vect_[pair_j]);
         //mprintf("\tmat[%i] -= vect[%i] * vect[%i]\n",idx,pair_i,pair_j);
         mat_[idx++] -= vect_[pair_i] * vect_[pair_j];
       }
@@ -628,8 +628,11 @@ void MatrixType::print() {
   // ---------- Calc covariance or correlation matrix
   } else if (type_==MATRIX_COVAR || type_==MATRIX_MWCOVAR || type_==MATRIX_CORREL) {
     // Calc <riri> - <ri><ri>
-    for (int i = 0; i < vectsize_*3; ++i)
+    for (int i = 0; i < vectsize_*3; ++i) {
+      //mprintf("CDBG:\tvect2[%i] = %lf\n",i,vect2_[i]);
       vect2_[i] -= (vect_[i]*vect_[i]);
+      //mprintf("CDBG:\tvect2[%i] = %lf\n",i,vect2_[i]);
+    }
     // Calc <rirj> - <ri><rj>
     int idx = 0;
     int vidx; 
