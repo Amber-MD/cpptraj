@@ -4109,6 +4109,8 @@ transformMatrix(actionInformation *action,
                              atcnt3, k, atcnt4, l, ind2,
                              ind3);
                       */
+                      //printf("\tmat[%i] -= vect[%i] * vect[%i]\n",ind3,ind,ind2);
+                      printf("\t%lf -= %lf * %lf\n",mat[ind3],vect[ind],vect[ind2]);
                       mat[ind3] -= vect[ind] * vect[ind2];
                       atcnt4++;
                     }
@@ -4283,7 +4285,9 @@ transformMatrix(actionInformation *action,
                                ind3);
                         */
                         if(cinfo->file != NULL)
-                          fprintf(cinfo->file,"%6.2f ",mat[ind3]);
+                          //fprintf(cinfo->file,"%lf ",mat[ind3]);
+                          fprintf(cinfo->file,"%6.3f ",mat[ind3]);
+                          //fprintf(cinfo->file,"%6.2f ",mat[ind3]);
                         atcnt4++;
                       }
                     } /* end for l */
@@ -4826,6 +4830,9 @@ transformMatrix(actionInformation *action,
                       }
 
                       ind3 = halfmatindex(mask1tot * (mask1tot - 1) / 2, ind, ind2);
+                      printf("PDBG:\tijkl: %i-%i %i-%i | r,c,idx %i %i %i | %i %i %i %i\n",
+                             i,j,k,l,ind,ind2,ind3,atcnt1,atcnt2,atcnt3,atcnt4);
+                      //printf("PDBG:\tmidx=%i  Pairs= [%lf] [%lf]\n",ind3,dist1,dist2);
 
                       /*
                       printf("%i(%i) %i(%i) -> %i: %f ||| %i(%i) %i(%i) -> %i: %f ||| %i\n", 
@@ -4835,6 +4842,8 @@ transformMatrix(actionInformation *action,
                       */
                       
                       mat[ind3] += dist1 * dist2;
+                      printf("PDBG:\tmat[%i]= %lf Pair %i-%i\n",ind3, mat[ind3],
+                             ind,ind2);
                       if(ind == ind2)
                         vect[ind] += dist1;
 

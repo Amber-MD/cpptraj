@@ -535,6 +535,34 @@ int MatrixType::action() {
         } 
       }
     }
+
+  // ---------------------------------------------
+  // ** Calculate distance covariance matrix **
+  } else if (type_ == MATRIX_DISTCOVAR) {
+    // All distance pairs for mask1
+    int vidx = 0;
+    AtomMask::const_iterator mask1end = mask1_.end() - 1;
+    for (AtomMask::const_iterator atom1 = mask1_.begin();
+                                  atom1 != mask1end; ++atom1)
+    {
+      for (AtomMask::const_iterator atom2 = atom1 + 1;
+                                    atom2 != mask1_.end(); ++atom2)
+      {
+        vect2_[vidx++] = currentFrame->DIST( *atom1, *atom2 );
+      }
+    }
+    // Create matrix from all pairs of mask1 distance pairs
+    int midx = 0;
+    for (int pair_i = 0; pair_i < vidx; ++pair_i) {
+      for (int pair_j = pair_i; pair_j < vidx; ++pair_j) {
+        //mprintf("CDBG:\tmidx=%i  Pairs= [%lf] [%lf]\n",midx,vect2_[pair_i],vect2_[pair_j]);
+        mat_[midx++] += (vect2_[pair_i] * vect2_[pair_j]);
+        mprintf("CDBG:\tmat[%i]= %lf Pair %i-%i\n",midx-1, mat_[midx-1],
+                pair_i,pair_j);
+        if (pair_i == pair_j)
+          vect_[pair_i] += vect2_[pair_i];
+      }
+    }
   } 
 
   return 0;
@@ -557,6 +585,9 @@ int MatrixType::HalfMatrixIndex(int row, int col) {
 
 // MatrixType::print()
 void MatrixType::print() {
+  //const char OUTFMT3[7] = "%6.3f ";
+  //const char OUTFMT2[7] = "%6.2f ";
+  //const char* OUTFMT = OUTFMT3; // Default output precision
   int err = 0;
   CpptrajFile outfile;
   // ---------- Calculate average over number of sets
@@ -578,6 +609,21 @@ void MatrixType::print() {
     }
     for (int i = 0; i < matsize_; ++i)
       mat_[i] /= 3.0;
+
+  // ---------- Calc distance covariance matrix
+  } else if (type_ == MATRIX_DISTCOVAR) {
+    // Different output precision to be consistent with ptraj.
+    // OUTFMT = OUTFMT2;
+    // Set mask1tot equal to vectsize which is the actual number of
+    // rows in the distance covariance matrix.
+    mask1tot_ = vectsize_; 
+    int idx = 0;
+    for (int pair_i = 0; pair_i < mask1tot_; ++pair_i)
+      for (int pair_j = pair_i; pair_j < mask1tot_; ++pair_j) {
+        mprintf("\t%lf -= %lf * %lf\n",mat_[idx],vect_[pair_i],vect_[pair_j]);
+        //mprintf("\tmat[%i] -= vect[%i] * vect[%i]\n",idx,pair_i,pair_j);
+        mat_[idx++] -= vect_[pair_i] * vect_[pair_j];
+      }
 
   // ---------- Calc covariance or correlation matrix
   } else if (type_==MATRIX_COVAR || type_==MATRIX_MWCOVAR || type_==MATRIX_CORREL) {
@@ -699,9 +745,10 @@ void MatrixType::print() {
   // ---------- Print out BYATOM 
   if (outtype_==BYATOM) {
     int idx = 0;
-    // ----- DISTANCE, CORREL, IDEA, IRED --------
+    // ----- DISTANCE, CORREL, IDEA, IRED, DISTCOVAR --------
     if (type_ == MATRIX_DIST || type_ == MATRIX_CORREL || 
-        type_ == MATRIX_IDEA || type_ == MATRIX_IRED) 
+        type_ == MATRIX_IDEA || type_ == MATRIX_IRED ||
+        type_ == MATRIX_DISTCOVAR) 
     { // NOTE: For IRED, should always be Half-matrix and mask1tot
       //       should be equal to the # of IRED vectors.
       if (mask2expr_==NULL) { // Half-matrix
@@ -710,6 +757,7 @@ void MatrixType::print() {
             idx = HalfMatrixIndex( row, col );
             //mprintf("DBG:\tRow=%i Col=%i Idx=%i\n", row, col, idx);
             outfile.Printf("%6.3f ", mat_[idx]);
+            //outfile.Printf("%lf ", mat_[idx]);
           }
           outfile.Printf("\n");
         }
