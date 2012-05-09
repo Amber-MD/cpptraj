@@ -2,13 +2,7 @@
 #define INC_VECTORTYPE_H
 #include <string>
 #include "Action.h"
-//#inc lude "AtomMask.h"
 #include "ModesInfo.h"
-//#inc lude "ArgList.h"
-//#inc lude "DataSet.h"
-//#inc lude "Topology.h"
-//#inc lude "Frame.h"
-//#inc lude "Lapack_Diag.h"
 // DEBUG
 #include "CpptrajFile.h"
 #include "PDBfile.h"
@@ -35,6 +29,11 @@ class VectorType : public DataSet, public Action {
 
     vectorMode Mode() { return mode_; }
     //bool NoModeInfo() { return modinfo_==0; }
+
+    // Currently only used for matrix IRED
+    double Dot(const VectorType& rhs) {
+      return (vx_[0]*rhs.vx_[0] + vy_[0]*rhs.vy_[0] + vz_[0]*rhs.vz_[0]);
+    }
   private:
     //std::string filename_;
     int totalFrames_;
@@ -42,15 +41,12 @@ class VectorType : public DataSet, public Action {
     vectorMode mode_;
     AtomMask mask_;
     AtomMask mask2_;
-    //std::vector<Vec3> C_;
-    //std::vector<Vec3> V_;
     double *cx_; 
     double *cy_;
     double *cz_;
     double *vx_; 
     double *vy_;
     double *vz_;
-    //Lapack_Diag Principal_;
 
     VectorType* master_;    ///< If 0 this vector has master ModesInfo 
     ModesInfo* modinfo_;    ///< Eigenmode info for CORRIRED

@@ -1,6 +1,5 @@
 #include <cmath> // sqrt
 #include "MatrixType.h"
-#include "VectorType.h"
 #include "CpptrajStdio.h"
 #include "vectormath.h" // vector_sub, dot_product
 
@@ -99,6 +98,10 @@ int MatrixType::init() {
 
   useMass_ = actionArgs.hasKey("mass");
 
+  // Get matrix name
+  name_ = actionArgs.GetStringKey("name");
+
+
   // Determine matrix type
   if (actionArgs.hasKey("distcovar"))
     type_ = MATRIX_DISTCOVAR;
@@ -129,12 +132,15 @@ int MatrixType::init() {
       mprinterr("Error: matrix: mask input does not work with ired\n");
       return 1;
     }
-    // Count the number of previously defined IRED vectors.
+    // Count and store the number of previously defined IRED vectors.
+    // mask1tot is used in memory allocation.
     VectorType *Vtmp;
     DSL->VectorBegin();
     while ( (Vtmp = (VectorType*)DSL->NextVector()) != 0 ) {
-      if (Vtmp->Mode() == VectorType::VECTOR_IRED)
+      if (Vtmp->Mode() == VectorType::VECTOR_IRED) {
+        IredVectors_.push_back( Vtmp );
         ++mask1tot_;
+      }
     }
     if (mask1tot_==0) {
       mprinterr("Error: matrix: no vector defined for IRED\n");
@@ -145,10 +151,6 @@ int MatrixType::init() {
     mask2expr_ = actionArgs.getNextMask();
   } 
 
-  // Get matrix name
-  // NOTE: Unlike ptraj where this was done after the 'mass' keyword check,
-  //       here it is done after all other keywords are processed. 
-  name_ = actionArgs.GetStringNext();
 
   // Check arguments
   if ( !name_.empty() && mask2expr_!=NULL ) {
@@ -312,6 +314,30 @@ int MatrixType::setup() {
   return 0;
 }
 
+// LegendrePoly()
+/** Calculate Legendre Polynomial. Used only by IRED. */
+static double LegendrePoly(int order, double val) {
+  if (order == 0)
+    return 1.0;
+  else if (order == 1)
+    return val;
+  
+  double pNminus1 = 1.0;
+  double pN = val;
+  double twox = 2.0 * val;
+  double f2 = val;
+  double d = 1.0;
+
+  for(int i=2; i<=order; i++){
+    double f1 = d++;
+    f2 += twox;
+    double pNplus1 = (f2 * pN - f1 * pNminus1) / d;
+    pNminus1 = pN;
+    pN = pNplus1;
+  }
+  return pN;
+}
+
 // MatrixType::action()
 int MatrixType::action() {
   // If the current frame is less than start exit
@@ -322,7 +348,8 @@ int MatrixType::action() {
   ++snap_;
   start_ += offset_;
 
-  // ---------- Calc Distance Matrix -------------
+  // ---------------------------------------------
+  // ** Calc Distance Matrix **
   if (type_ == MATRIX_DIST) {
     int idx = 0;
     if (mask2expr_==NULL) {
@@ -351,7 +378,8 @@ int MatrixType::action() {
       }
     }
 
-  // ---------- Calc covariance or correlation ---
+  // ---------------------------------------------
+  // ** Calc covariance or correlation ** 
   } else if ( type_ == MATRIX_COVAR ||
               type_ == MATRIX_MWCOVAR ||
               type_ == MATRIX_CORREL )
@@ -432,9 +460,9 @@ int MatrixType::action() {
       } // END LOOP OVER l
     } // END OUTER LOOP
 
-  // ---------- Calc Isotropically distributed ---
-  //            ensemble matrix.
-  // See Proteins 2002, 46, 177; eq. 7
+  // ---------------------------------------------
+  // ** Calc Isotropically distributed ensemble matrix. **
+  // ** See Proteins 2002, 46, 177; eq. 7 **
   } else if (type_ == MATRIX_IDEA) {
     // Get COM
     double COM[3];
@@ -462,6 +490,49 @@ int MatrixType::action() {
           vect2_[vidx] += (val * val);
           ++vidx;
         }
+      }
+    }
+
+  // ---------------------------------------------
+  // ** Calc isotropic reorientational eigenmode dynamics. **
+  // ** See JACS 2002, 124, 4522, eq. A14 **
+  // CAVEAT: omegaK-omegaL is not "just" the intra
+  //         molecular angle there.
+  } else if (type_ == MATRIX_IRED) {
+    // Store length of vectors in vect2
+    int vidx = 0;
+    for (std::vector<VectorType*>::iterator Vtmp = IredVectors_.begin();
+                                            Vtmp != IredVectors_.end(); ++Vtmp)
+    {
+      if ((*Vtmp)->Mode()==VectorType::VECTOR_IRED) {
+        if (vidx >= mask1tot_) {
+          // This can happen if IRED vectors are defined after IRED matrix
+          mprinterr("Error: matrix: IRED vectors defined after IRED matrix command.\n");
+          return 1;
+        }
+        vect2_[vidx++] = sqrt( (*Vtmp)->Dot( *(*Vtmp) ) ); 
+      }
+    }
+   
+    // Loop over all pairs of IRED vectors 
+    vidx = 0;     // ind2
+    int vidx2 =0; // ind3
+    int midx = 0; // ind
+    for (std::vector<VectorType*>::iterator Vtmp = IredVectors_.begin();
+                                            Vtmp != IredVectors_.end(); ++Vtmp)
+    {
+      if ((*Vtmp)->Mode()==VectorType::VECTOR_IRED) {
+        double val1 = vect2_[vidx];
+        vidx2 = vidx;
+        for (std::vector<VectorType*>::iterator Vtmp2 = Vtmp;
+                                                Vtmp2 != IredVectors_.end(); ++Vtmp2)
+        {
+          double val2 = vect2_[vidx2++];
+          double val3 = LegendrePoly(order_, (*Vtmp)->Dot( *(*Vtmp2) ) / (val1 * val2) );
+          mat_[midx++] += val3;
+          if (Vtmp == Vtmp2)
+            vect_[vidx++] += val3;
+        } 
       }
     }
   } 
@@ -628,8 +699,11 @@ void MatrixType::print() {
   // ---------- Print out BYATOM 
   if (outtype_==BYATOM) {
     int idx = 0;
-    if (type_ == MATRIX_DIST || type_== MATRIX_CORREL || type_ == MATRIX_IDEA) {
-      // ----- DISTANCE, CORREL, IDEA ------
+    // ----- DISTANCE, CORREL, IDEA, IRED --------
+    if (type_ == MATRIX_DIST || type_ == MATRIX_CORREL || 
+        type_ == MATRIX_IDEA || type_ == MATRIX_IRED) 
+    { // NOTE: For IRED, should always be Half-matrix and mask1tot
+      //       should be equal to the # of IRED vectors.
       if (mask2expr_==NULL) { // Half-matrix
         for (int row = 0; row < mask1tot_; ++row) {
           for (int col = 0; col < mask1tot_; ++col) {
@@ -647,8 +721,9 @@ void MatrixType::print() {
           outfile.Printf("\n");
         }
       }
+
+    // ----- COVAR -------------------------------
     } else if (type_ == MATRIX_COVAR || type_ == MATRIX_MWCOVAR) {
-      // ----- COVAR ---------
       if (mask2expr_==NULL) { // Half-matrix
         // NOTE: Use Nelt instead of mask1tot*3?
         for (int row = 0; row < mask1tot_*3; row+=3) {

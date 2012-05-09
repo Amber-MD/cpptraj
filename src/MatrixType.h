@@ -1,7 +1,7 @@
 #ifndef INC_MATRIXTYPE_H
 #define INC_MATRIXTYPE_H
-#include "DataSet.h"
 #include "Action.h"
+#include "VectorType.h"
 class MatrixType : public DataSet, public Action {
   public:
     enum matrixMode {
@@ -28,6 +28,8 @@ class MatrixType : public DataSet, public Action {
     int mask2tot_;
     int Nelt_;
     int snap_;
+    // IRED only
+    std::vector<VectorType*> IredVectors_;
 
     // Only needed by action
     static const char MatrixModeString[][27];
