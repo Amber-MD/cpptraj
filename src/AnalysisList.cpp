@@ -6,23 +6,22 @@
 #include "Analysis_PtrajAnalysis.h"
 
 // CONSTRUCTOR
-AnalysisList::AnalysisList() {
-  Nanalysis=0;
-  debug=0;
-}
+AnalysisList::AnalysisList() :
+  debug_(0)
+{}
 
 // DESTRUCTOR
 AnalysisList::~AnalysisList() {
-    for (int i=0; i<Nanalysis; i++)
-      delete analysisList[i];
+  for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
+    delete *ana;
 }
 
 // AnalysisList::SetDebug()
-/** Set Analysis list debug level.  */
+/** Set Analysis list debug level. */
 void AnalysisList::SetDebug(int debugIn) {
-  debug=debugIn;
-  if (debug>0)
-    mprintf("AnalysisList DEBUG LEVEL SET TO %i\n",debug);
+  debug_ = debugIn;
+  if (debug_>0)
+    mprintf("AnalysisList DEBUG LEVEL SET TO %i\n",debug_);
 }
 
 // AnalysisList::AddAnalysis()
@@ -40,11 +39,10 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
   Ana->SetArg(argIn);
 
   // Set the debug level
-  if (debug>0) Ana->SetDebug(debug);
+  if (debug_>0) Ana->SetDebug(debug_);
 
   // Store in analysis list
-  analysisList.push_back(Ana);
-  Nanalysis++;
+  analysisList_.push_back(Ana);
 
   return 0;
 }
@@ -54,18 +52,19 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
   * (first parm will be set if parm/parmindex keywords not specified).
   */
 int AnalysisList::Setup(DataSetList *datasetlist, TopologyList *parmfilelist) {
-  if (Nanalysis==0) return 0;
+  if (analysisList_.empty()) return 0;
   mprintf("\nANALYSIS:\n");
-  mprintf("    .... Setting up %i analyses ....\n",Nanalysis);
-  for (int ana=0; ana < Nanalysis; ana++) {
-    mprintf("    %i: [%s]\n",ana,analysisList[ana]->CmdLine());
-    analysisList[ana]->noSetup=false;
-    if (analysisList[ana]->Setup(datasetlist)) {
-      mprintf("    Error setting up analysis %i [%s] - skipping.\n",ana,
-              analysisList[ana]->AnalysisCommand());
-      analysisList[ana]->noSetup=true;
+  mprintf("    .... Setting up %zu analyses ....\n",analysisList_.size());
+  int iana = 0;
+  for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana) {
+    mprintf("    %i: [%s]\n",iana++, (*ana)->CmdLine());
+    (*ana)->SetSetup(false);
+    if ((*ana)->Setup(datasetlist)) {
+      mprintf("    Error setting up analysis %i [%s] - skipping.\n",iana,
+              (*ana)->AnalysisCommand());
     }
-    analysisList[ana]->SetParm(parmfilelist);
+    (*ana)->SetSetup(true);
+    (*ana)->SetParm(parmfilelist);
   }
      
   mprintf("    ...................................................\n\n");
@@ -74,15 +73,18 @@ int AnalysisList::Setup(DataSetList *datasetlist, TopologyList *parmfilelist) {
 
 // AnalysisList::Analyze()
 void AnalysisList::Analyze(DataFileList *datafilelist) {
-  if (Nanalysis==0) return;
+  if (analysisList_.empty()) return;
   mprintf("\nANALYSIS:\n");
-  mprintf("    .... Performing %i analyses ....\n",Nanalysis);
-  for (int ana=0; ana < Nanalysis; ana++) {
-    if (!analysisList[ana]->noSetup) {
-      mprintf("    %i: [%s]\n",ana,analysisList[ana]->CmdLine());
-      if (analysisList[ana]->Analyze()==0) analysisList[ana]->Print(datafilelist); 
+  mprintf("    .... Performing %zu analyses ....\n",analysisList_.size());
+  int iana = 0;
+  for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana) {
+    if ((*ana)->IsSetup()) {
+      mprintf("    %i: [%s]\n",iana, (*ana)->CmdLine());
+      if ((*ana)->Analyze()==0) 
+        (*ana)->Print(datafilelist); 
       // NOTE: Move print function ??
     }
+    ++iana;
   }
   mprintf("    ...................................................\n\n");
 }

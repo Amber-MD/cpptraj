@@ -3,9 +3,6 @@
 #include "Analysis.h"
 /// Hold all analyses to be performed.
 class AnalysisList {
-    std::vector<Analysis*> analysisList;
-    int Nanalysis;
-    int debug;
   public: 
     AnalysisList();
     ~AnalysisList();
@@ -13,6 +10,11 @@ class AnalysisList {
     void SetDebug(int);
     int AddAnalysis(ArgList &);
     int Setup(DataSetList*,TopologyList*);
-    void Analyze(DataFileList*); 
+    void Analyze(DataFileList*);
+  private:
+    typedef std::vector<Analysis*> aListType;
+    typedef std::vector<Analysis*>::iterator aListIt;
+    std::vector<Analysis*> analysisList_;
+    int debug_;
 };
 #endif

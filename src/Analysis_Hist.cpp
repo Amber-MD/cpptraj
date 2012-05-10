@@ -30,7 +30,7 @@ int Hist::CheckDimension(char *input, DataSetList *datasetlist) {
   }
 
   // First argument should specify dataset name
-  if (debug>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
+  if (debug_>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
                        arglist.ArgAt(0));
   DataSet *dset = datasetlist->Get( arglist.ArgAt(0) );
   if (dset == NULL) {
@@ -60,7 +60,7 @@ int Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   bool minArg = false;
   bool maxArg = false;
 
-  if (debug>1)
+  if (debug_>1)
     arglist.PrintList();
 
   // Set up dimension name
@@ -70,7 +70,7 @@ int Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   // Cycle through coordinate arguments. Any argument left blank will be 
   // assigned a default value later.
   for (int i=1; i<arglist.Nargs(); i++) {
-    if (debug>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist.ArgAt(i));
+    if (debug_>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist.ArgAt(i));
     // Default explicitly requested
     if (arglist.ArgIs(i,"*")) continue;
     switch (i) {
@@ -126,32 +126,32 @@ int Hist::setupDimension(ArgList &arglist, DataSet *dset) {
 int Hist::Setup(DataSetList *datasetlist) {
   char *datasetstring;
 
-  hist_.SetDebug(debug);
+  hist_.SetDebug(debug_);
   // Keywords
-  outfilename_ = analyzeArgs.getKeyString("out",NULL);
+  outfilename_ = analyzeArgs_.getKeyString("out",NULL);
   if (outfilename_==NULL) {
     mprintf("Error: Hist: No output filename specified.\n");
     return 1;
   }
-  Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
+  Temp_ = analyzeArgs_.getKeyDouble("free",-1.0);
   if (Temp_!=-1.0) calcFreeE_ = true;
-  gnuplot_ = analyzeArgs.hasKey("gnu");
-  normalize_ = analyzeArgs.hasKey("norm");
-  circular_ = analyzeArgs.hasKey("circular");
-  if ( analyzeArgs.Contains("min") ) {
-    default_dim_.SetMin( analyzeArgs.getKeyDouble("min",0.0) );
+  gnuplot_ = analyzeArgs_.hasKey("gnu");
+  normalize_ = analyzeArgs_.hasKey("norm");
+  circular_ = analyzeArgs_.hasKey("circular");
+  if ( analyzeArgs_.Contains("min") ) {
+    default_dim_.SetMin( analyzeArgs_.getKeyDouble("min",0.0) );
     minArgSet_ = true;
   }
-  if ( analyzeArgs.Contains("max") ) {
-    default_dim_.SetMax( analyzeArgs.getKeyDouble("max",0.0) );
+  if ( analyzeArgs_.Contains("max") ) {
+    default_dim_.SetMax( analyzeArgs_.getKeyDouble("max",0.0) );
     maxArgSet_ = true;
   }
-  default_dim_.SetStep( analyzeArgs.getKeyDouble("step",-1.0) );
-  default_dim_.SetBins( analyzeArgs.getKeyInt("bins",-1) );
+  default_dim_.SetStep( analyzeArgs_.getKeyDouble("step",-1.0) );
+  default_dim_.SetBins( analyzeArgs_.getKeyInt("bins",-1) );
 
   // Datasets
   // Treat all remaining arguments as dataset names. 
-  while ( (datasetstring = analyzeArgs.getNextString())!=NULL )
+  while ( (datasetstring = analyzeArgs_.getNextString())!=NULL )
     if (CheckDimension( datasetstring,datasetlist )) return 1;
     //if (setupDimension(datasetstring,datasetlist)) return 1;
 
