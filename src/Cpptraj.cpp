@@ -195,7 +195,8 @@ int Cpptraj::Run() {
     return 1;
 
   // Set up analysis - checks that datasets are present etc
-  analysisList.Setup(&DSL, &parmFileList);
+  if (analysisList.Setup(&DSL, &parmFileList) > 0 && exitOnError)
+    return 1;
 
   // ========== R U N  P H A S E ==========
   // Loop over every trajectory in trajFileList

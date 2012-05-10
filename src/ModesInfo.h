@@ -23,12 +23,22 @@ class ModesInfo : public DataSet {
     };
 
     ModesInfo();
-    ModesInfo(modesType,int,modesSource,std::string&);
+    ModesInfo(modesType,modesSource,std::string&);
     ~ModesInfo();
 
     int ReadEvecFile(std::string&, int, int);
 
-    int Nvect() { return nvect_; }
+    // NOTE: Replace all these with a constructor eventually?
+    int SetNavgElem(int);
+    void SetAvg( double* avgIn ) { avg_ = avgIn; }
+    void SetNvect( int nvIn )    { nvect_ = nvIn; }
+    void SetNvectElem( int nveIn ) { nvectelem_ = nveIn; }
+    void SetFreq( double* fIn )  { freq_ = fIn; }
+    void SetEvec( double* eIn )  { evec_ = eIn; }
+
+    int Nvect()    { return nvect_; }
+    int Navgelem() { return navgelem_; }
+    modesSource Source() { return source_; }
 
     double Evec(int veci, int npair) { 
       return evec_[veci * nvectelem_ + npair]; 

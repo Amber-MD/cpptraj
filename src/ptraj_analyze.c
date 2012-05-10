@@ -1183,6 +1183,7 @@ analyzeMatrix(analyzeInformation *analyze, stackType *sp, int mode)
                               )
                              ));
     fprintf(outfile, " %4i %4i\n", nelem, n);
+    printf("PDBG: neval = %i  nevec = %i  nout = %i\n", neval, nevec, n);
     if(type != MATRIX_DIST){
       for(i = 0; i < nelem; i ++){
         fprintf(outfile, " %10.5f", vect[i]);

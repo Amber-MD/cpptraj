@@ -336,6 +336,13 @@ int CpptrajFile::SetupAppend(const char *filenameIn, int debugIn) {
 }
 
 // SetupWrite()
+int CpptrajFile::SetupWrite(std::string& nameIn, int debugIn) {
+  if (nameIn.empty())
+    return SetupWrite(NULL, debugIn);
+  return SetupWrite(nameIn.c_str(), debugIn);
+}
+
+// SetupWrite()
 /** Set up file for writing with the given format and type. If a NULL filename
   * is given this indicates STDOUT.
   * \return 0 on success, 1 on error.

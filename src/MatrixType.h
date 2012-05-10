@@ -8,14 +8,22 @@ class MatrixType : public DataSet, public Action {
       MATRIX_NULL=0, MATRIX_DIST,      MATRIX_COVAR, MATRIX_MWCOVAR,
       MATRIX_CORREL, MATRIX_DISTCOVAR, MATRIX_IDEA,  MATRIX_IRED
     };
+    static const char MatrixOutput[][10];
 
     MatrixType();
     ~MatrixType();
 
     void print();
 
-    matrixMode Type() { return type_; }
-    int Mask1Tot()    { return mask1tot_; }
+    matrixMode Type()   { return type_; }
+    int Mask1Tot()      { return mask1tot_; }
+    int Snap()          { return snap_; }
+    /// For interfacing with fortran routines
+    // NOTE: Should MatrixPtr and VectPtr return copies?
+    double* MatrixPtr() { return mat_; }
+    double* VectPtr();
+    const AtomMask& Mask1() { return mask1_; }
+    Topology* Parm()    { return matrixParm_;}
 
   private:
     matrixMode type_;
@@ -29,6 +37,7 @@ class MatrixType : public DataSet, public Action {
     AtomMask mask2_;
     int mask1tot_;
     int mask2tot_;
+    Topology* matrixParm_;
     int Nelt_;
     int snap_;
     // IRED only

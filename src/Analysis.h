@@ -28,6 +28,7 @@ class Analysis {
   protected:
     int debug_;
     ArgList analyzeArgs_;
+    // NOTE: Only used for ptraj analysis
     Topology *analyzeParm_;
   private:
     bool isSetup_; ///< True if analysis could be setup

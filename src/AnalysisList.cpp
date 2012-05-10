@@ -59,22 +59,24 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
   * (first parm will be set if parm/parmindex keywords not specified).
   */
 int AnalysisList::Setup(DataSetList *datasetlist, TopologyList *parmfilelist) {
+  int nfail = 0;
   if (analysisList_.empty()) return 0;
   mprintf("ANALYSIS: Setting up %zu analyses:\n",analysisList_.size());
   int iana = 0;
   for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana) {
     mprintf("  %i: [%s]\n",iana++, (*ana)->CmdLine());
-    (*ana)->SetSetup(false);
+    (*ana)->SetSetup(true);
     if ((*ana)->Setup(datasetlist)) {
       mprinterr("Error setting up analysis %i [%s] - skipping.\n",iana,
                 (*ana)->AnalysisCommand());
+      (*ana)->SetSetup(false);
+      ++nfail;
     }
-    (*ana)->SetSetup(true);
     (*ana)->SetParm(parmfilelist);
   }
   mprintf("\n");   
   //mprintf("    ...................................................\n\n");
-  return 0;
+  return nfail;
 }
 
 // AnalysisList::Analyze()

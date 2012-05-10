@@ -14,6 +14,7 @@ MatrixType::MatrixType() :
   mask2expr_(NULL),
   mask1tot_(0),
   mask2tot_(0),
+  matrixParm_(0),
   Nelt_(0),
   snap_(0),
   start_(0),
@@ -45,6 +46,30 @@ const char MatrixType::MatrixModeString[8][27] = {
   "idea matrix",
   "ired matrix"
 };
+
+const char MatrixType::MatrixOutput[8][10] = {
+  "UNKNOWN",
+  "DIST",
+  "COVAR",
+  "MWCOVAR",
+  "CORREL",
+  "DISTCOVAR",
+  "IDEA",
+  "IRED"
+};
+
+/** Return a one-time copy of vect. Vect is freed after 1 call to here,
+  * typically made from Analysis_Matrix.
+  */
+double* MatrixType::VectPtr() {
+  if (vect_==0) return 0;
+  size_t vsize3 = (size_t)vectsize_ * 3;
+  double *vcopy = new double[ vsize3 ];
+  std::copy( vect_, vect_+vsize3, vcopy);
+  delete[] vect_;
+  vect_ = 0;
+  return vcopy;
+}
 
 // MatrixType::init()
 /** matrix dist|covar|mwcovar|distcovar|correl|idea|ired
@@ -228,8 +253,23 @@ void MatrixType::Info() {
 }
 
 // MatrixType::setup()
+/** Setup up masks based on currentParm and allocate matrix memory if this
+  * is the first parm read. The matrix dimensions must not change, so for 
+  * every parm after the first, set up masks based on the current parm. If
+  * the number of atoms in the masks change then return an error. Note that
+  * all parm information used in later calcs/printout (masses, residues etc)
+  * will only use the first parm read in.
+  */
 int MatrixType::setup() {
   // For now, only allow 1 prmtop
+  if (matrixParm_ == 0) 
+    matrixParm_ = currentParm;
+  else {
+    mprintf("Warning: matrix: setting up for new parm %s, original parm is %s\n",
+            currentParm->c_str(), matrixParm_->c_str());
+    mprintf("         Info from %s will be used for calculations/printout.\n",
+            matrixParm_->c_str());
+  }
   
   // Set up masks
   if (type_ != MATRIX_IRED) {
@@ -562,8 +602,8 @@ int MatrixType::action() {
       for (int pair_j = pair_i; pair_j < vidx; ++pair_j) {
         //mprintf("CDBG:\tmidx=%i  Pairs= [%lf] [%lf]\n",midx,vect2_[pair_i],vect2_[pair_j]);
         mat_[midx++] += (vect2_[pair_i] * vect2_[pair_j]);
-        mprintf("CDBG:\tmat[%i]= %lf Pair %i-%i\n",midx-1, mat_[midx-1],
-                pair_i,pair_j);
+        //mprintf("CDBG:\tmat[%i]= %lf Pair %i-%i\n",midx-1, mat_[midx-1],
+        //        pair_i,pair_j);
         if (pair_i == pair_j)
           vect_[pair_i] += vect2_[pair_i];
       }
@@ -698,7 +738,7 @@ void MatrixType::print() {
                 vect2_[col3+2] *= mass;
               }
               if (mask2expr_==NULL && *atomj >= *atomi) { // half-matrix
-                mass = sqrt( (*currentParm)[*atomi].Mass() * (*currentParm)[*atomj].Mass() );
+                mass = sqrt( (*matrixParm_)[*atomi].Mass() * (*matrixParm_)[*atomj].Mass() );
                 if (row3+k <= col3) {
                   idx = HalfMatrixIndex( row3+k, col3  );
                   mat_[idx] *= mass;
@@ -712,7 +752,7 @@ void MatrixType::print() {
                   mat_[idx] *= mass;
                 }
               } else if (mask2expr_!=NULL) { // full matrix
-                mass = sqrt( (*currentParm)[*atomi].Mass() * (*currentParm)[*atomj].Mass() );
+                mass = sqrt( (*matrixParm_)[*atomi].Mass() * (*matrixParm_)[*atomj].Mass() );
                 mat_[idx++] *= mass;
                 mat_[idx++] *= mass;
                 mat_[idx++] *= mass;
@@ -818,27 +858,27 @@ void MatrixType::print() {
     // Loop over residue pairs
     int crow = 0;
     double mass = 1.0;
-    for (int resi = 0; resi < currentParm->Nres(); ++resi) { // Row
+    for (int resi = 0; resi < matrixParm_->Nres(); ++resi) { // Row
       bool printnewline = false;
       int crowold = crow;
       int ccol = 0;
-      for (int resj = 0; resj < currentParm->Nres(); ++resj) { // Column
+      for (int resj = 0; resj < matrixParm_->Nres(); ++resj) { // Column
         bool printval = false;
         double val = 0;
         double valnorm = 0;
         crow = crowold;
         int ccolold = ccol;
-        for (int atomi = currentParm->ResFirstAtom(resi);
-                 atomi < currentParm->ResLastAtom(resi); ++atomi)
+        for (int atomi = matrixParm_->ResFirstAtom(resi);
+                 atomi < matrixParm_->ResLastAtom(resi); ++atomi)
         {
           if ( mask2_.AtomInCharMask(atomi) ) {
             ccol = ccolold;
-            for (int atomj = currentParm->ResFirstAtom(resj);
-                     atomj < currentParm->ResLastAtom(resj); ++atomj)
+            for (int atomj = matrixParm_->ResFirstAtom(resj);
+                     atomj < matrixParm_->ResLastAtom(resj); ++atomj)
             {
               if ( mask1_.AtomInCharMask(atomj) ) {
                 if (useMass_)
-                  mass = (*currentParm)[atomi].Mass() * (*currentParm)[atomj].Mass();
+                  mass = (*matrixParm_)[atomi].Mass() * (*matrixParm_)[atomj].Mass();
                 valnorm += mass;
                 printval = printnewline = true;
                 //mprintf("Res %i-%i row=%i col=%i\n",resi+1,resj+1,crow,ccol);
@@ -891,7 +931,7 @@ void MatrixType::print() {
         for (AtomMask::const_iterator atomi = maskAbegin; atomi != maskAend; ++atomi)
         {
           if (useMass_)
-            mass = (*currentParm)[*atomj].Mass() * (*currentParm[*atomi].Mass());
+            mass = (*matrixParm_)[*atomj].Mass() * (*matrixParm_[*atomi].Mass());
           valnorm += mass;
           if (mask2expr_==NULL) {
             int idx = HalfMatrixIndex( crow, ccol );

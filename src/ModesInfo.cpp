@@ -21,8 +21,7 @@ ModesInfo::ModesInfo() :
 }
 
 // CONSTRUCTOR
-ModesInfo::ModesInfo(modesType tIn, int mask1tot, modesSource sIn, 
-                     std::string& nameIn) :
+ModesInfo::ModesInfo(modesType tIn, modesSource sIn, std::string& nameIn) :
   type_(tIn),
   source_(sIn),
   navgelem_(0),
@@ -35,16 +34,19 @@ ModesInfo::ModesInfo(modesType tIn, int mask1tot, modesSource sIn,
   // DataSet
   name_ = nameIn;
   dType_ = MODES;
-  // ModesInfo
-  // TODO: This is calcd in MatrixType Nelt.
+}
+
+int ModesInfo::SetNavgElem(int mask1tot) {
+  // TODO: This is already calcd in MatrixType Nelt.
   if (type_ == MT_DIST || type_ == MT_IDEA || type_ == MT_IRED)
     navgelem_ = mask1tot;
   else if (type_ == MT_DISTCOVAR)
     navgelem_ = mask1tot * (mask1tot - 1) / 2;
   else // CORREL, COVAR, MWCOVAR
     navgelem_ = 3 * mask1tot;
+  //mprintf("DEBUG: ModesInfo::navgelem = %i\n",navgelem_);
+  return navgelem_;
 }
-
 
 // DESTRUCTOR
 ModesInfo::~ModesInfo() {
