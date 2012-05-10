@@ -1,14 +1,16 @@
 #ifndef INC_MODESINFO_H
 #define INC_MODESINFO_H
-#include <string>
-/** information relating to modes
- *
- *  eigenvectors are stored in evec as:
- *  [evec(1,1,x),evec(1,1,y),evec(1,1,z), ..., evec(1,n,x),
- *   ...,
- *   evec(n,1,x), ...,                         evec(n,n,x)]
- */
-class ModesInfo {
+#include "DataSet.h" 
+/** Information relating to modes. This is a DataSet so that it can be
+  * added to the master DataSetList by matrix analysis for referencing 
+  * by other analyses.
+  *
+  *  eigenvectors are stored in evec as:
+  *  [evec(1,1,x),evec(1,1,y),evec(1,1,z), ..., evec(1,n,x),
+  *   ...,
+  *   evec(n,1,x), ...,                         evec(n,n,x)]
+  */
+class ModesInfo : public DataSet {
   public:
     enum modesType {
       MT_UNKNOWN=0,   MT_DIST,   MT_COVAR, MT_MWCOVAR,
@@ -30,7 +32,6 @@ class ModesInfo {
 
   private:
     static const size_t BUFSIZE_;
-    //std::string name_;
     modesType type_;
     modesSource source_;
     int navgelem_;

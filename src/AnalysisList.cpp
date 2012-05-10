@@ -4,6 +4,7 @@
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
 #include "Analysis_PtrajAnalysis.h"
+#include "Analysis_Matrix.h"
 
 // CONSTRUCTOR
 AnalysisList::AnalysisList() :
@@ -32,7 +33,13 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
   if      (argIn.CommandIs("histogram")) { Ana = new Hist(); }
   else if (argIn.CommandIs("hist"))      { Ana = new Hist(); }
   else if (argIn.CommandIs("corr"))      { Ana = new Corr(); }
-  else if (argIn.CommandIs("analyze")  ) { Ana = new PtrajAnalysis(); }
+  else if (argIn.CommandIs("analyze")  ) { 
+    if (argIn.ArgAt(1) == NULL) return 1;
+    if (argIn[1] == "matrixtest")
+      Ana = new Analysis_Matrix;
+    else
+      Ana = new PtrajAnalysis(); 
+  }
   else return 1;
 
   // Pass in the argument list

@@ -16,7 +16,9 @@ ModesInfo::ModesInfo() :
   nvectelem_(0),
   freq_(0),
   evec_(0)
-{}
+{
+  dType_ = MODES;
+}
 
 // DESTRUCTOR
 ModesInfo::~ModesInfo() {

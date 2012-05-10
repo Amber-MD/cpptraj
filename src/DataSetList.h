@@ -65,6 +65,7 @@ class DataSetList {
     
     void VectorBegin();
     DataSet* NextVector();
+    DataSet* NextMatrix();
   private:
     /// Dataset debug level
     int debug_;

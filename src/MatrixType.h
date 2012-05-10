@@ -14,6 +14,8 @@ class MatrixType : public DataSet, public Action {
 
     void print();
 
+    matrixMode Type() { return type_; }
+
   private:
     matrixMode type_;
     double* vect_;

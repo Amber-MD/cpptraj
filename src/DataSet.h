@@ -11,7 +11,7 @@ class DataSet {
   public:
     /// Type of data stored in DataSet
     enum DataType {
-      UNKNOWN_DATA, DOUBLE, STRING, INT, FLOAT, VECTOR
+      UNKNOWN_DATA, DOUBLE, STRING, INT, FLOAT, VECTOR, MATRIX, MODES
     };
 
     DataSet();          // Constructor

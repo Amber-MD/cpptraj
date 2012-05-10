@@ -21,7 +21,12 @@ MatrixType::MatrixType() :
   offset_(0),
   order_(0),
   outtype_(BYATOM)
-{}
+{
+  width_ = 6;
+  precision_ = 3;
+  dType_ = MATRIX;
+  //SetDataSetFormat(false);
+}
 
 // DESTRUCTOR
 MatrixType::~MatrixType() {
