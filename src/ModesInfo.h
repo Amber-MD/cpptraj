@@ -12,16 +12,20 @@
   */
 class ModesInfo : public DataSet {
   public:
+    // NOTE: THIS MUST BE IN SAME ORDER AS MatrixType::matrixMode. 
+    //       Is it even necessary?
     enum modesType {
-      MT_UNKNOWN=0,   MT_DIST,   MT_COVAR, MT_MWCOVAR,
-      MT_DISTCOVAR, MT_CORREL, MT_IDEA,  MT_IRED
+      MT_UNKNOWN=0, MT_DIST,      MT_COVAR, MT_MWCOVAR,
+      MT_CORREL,    MT_DISTCOVAR, MT_IDEA,  MT_IRED
     };
     enum modesSource {
       MS_UNKNOWN=0, MS_STACK, MS_FILE
     };
 
     ModesInfo();
+    ModesInfo(modesType,int,modesSource,std::string&);
     ~ModesInfo();
+
     int ReadEvecFile(std::string&, int, int);
 
     int Nvect() { return nvect_; }

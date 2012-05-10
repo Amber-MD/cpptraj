@@ -20,6 +20,32 @@ ModesInfo::ModesInfo() :
   dType_ = MODES;
 }
 
+// CONSTRUCTOR
+ModesInfo::ModesInfo(modesType tIn, int mask1tot, modesSource sIn, 
+                     std::string& nameIn) :
+  type_(tIn),
+  source_(sIn),
+  navgelem_(0),
+  avg_(0),
+  nvect_(0),
+  nvectelem_(0),
+  freq_(0),
+  evec_(0)
+{
+  // DataSet
+  name_ = nameIn;
+  dType_ = MODES;
+  // ModesInfo
+  // TODO: This is calcd in MatrixType Nelt.
+  if (type_ == MT_DIST || type_ == MT_IDEA || type_ == MT_IRED)
+    navgelem_ = mask1tot;
+  else if (type_ == MT_DISTCOVAR)
+    navgelem_ = mask1tot * (mask1tot - 1) / 2;
+  else // CORREL, COVAR, MWCOVAR
+    navgelem_ = 3 * mask1tot;
+}
+
+
 // DESTRUCTOR
 ModesInfo::~ModesInfo() {
   if (avg_!=0) delete[] avg_;

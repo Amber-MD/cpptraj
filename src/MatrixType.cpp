@@ -201,8 +201,6 @@ void MatrixType::Info() {
     case BYRESIDUE: mprintf("by residue"); break;
     case BYMASK:    mprintf("by mask"); break;
   }
-  if (!filename_.empty())
-    mprintf(", dumping to file %s",filename_.c_str());
   if (useMass_)
     mprintf(", using mass weighting\n");
   else
@@ -210,6 +208,8 @@ void MatrixType::Info() {
 
   if (type_==MATRIX_IRED)
     mprintf("            Order of Legendre polynomials: %i\n",order_);
+  if (!filename_.empty())
+    mprintf("            Printing to file %s\n",filename_.c_str());
   if (!name_.empty())
     mprintf("            Storing matrix on internal stack with name: %s\n", name_.c_str());
   if (start_!=0 || stop_!=-1 || offset_!=1) {

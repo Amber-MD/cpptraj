@@ -16,6 +16,6 @@ class Analysis_Matrix : public Analysis {
     ThermoFlag thermo_; // iarg1
     int nevec_; // iarg2
     bool reduce_; // iarg3
-    ModesInfo* modinfo; // carg3
+    ModesInfo* modinfo_; // carg3
 };
 #endif

@@ -15,6 +15,7 @@ class MatrixType : public DataSet, public Action {
     void print();
 
     matrixMode Type() { return type_; }
+    int Mask1Tot()    { return mask1tot_; }
 
   private:
     matrixMode type_;
