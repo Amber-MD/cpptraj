@@ -659,12 +659,13 @@ void MatrixType::print() {
   } else if (type_ == MATRIX_DISTCOVAR) {
     // Different output precision to be consistent with ptraj.
     // OUTFMT = OUTFMT2;
-    // Set mask1tot equal to vectsize which is the actual number of
-    // rows in the distance covariance matrix.
-    mask1tot_ = vectsize_; 
+    // Use vectsize which is the actual number of rows in the distance 
+    // covariance matrix. 
+    // DO NOT CHANGE mask1tot_ since this will screw up analysis.
+    //mask1tot_ = vectsize_; 
     int idx = 0;
-    for (int pair_i = 0; pair_i < mask1tot_; ++pair_i)
-      for (int pair_j = pair_i; pair_j < mask1tot_; ++pair_j) {
+    for (int pair_i = 0; pair_i < vectsize_; ++pair_i)
+      for (int pair_j = pair_i; pair_j < vectsize_; ++pair_j) {
         //mprintf("\t%lf -= %lf * %lf\n",mat_[idx],vect_[pair_i],vect_[pair_j]);
         //mprintf("\tmat[%i] -= vect[%i] * vect[%i]\n",idx,pair_i,pair_j);
         mat_[idx++] -= vect_[pair_i] * vect_[pair_j];
@@ -784,9 +785,9 @@ void MatrixType::print() {
 
   // -------------------- DATA OUTPUT ---------------------------
   // Open file
-  if (filename_.empty())
-    err = outfile.SetupWrite(NULL, debug);
-  else
+  if (filename_.empty()) return;
+  /*  err = outfile.SetupWrite(NULL, debug);
+  else*/
     err = outfile.SetupWrite(filename_.c_str(), debug);
   if (err!=0) return;
   if (outfile.OpenFile()) return;
@@ -800,9 +801,14 @@ void MatrixType::print() {
         type_ == MATRIX_DISTCOVAR) 
     { // NOTE: For IRED, should always be Half-matrix and mask1tot
       //       should be equal to the # of IRED vectors.
+      // NOTE: For DISTCOVAR, should always be Half-matrix and
+      //       vectsize_ is the number of rows.
+      int nrows = mask1tot_;
+      if (type_==MATRIX_DISTCOVAR)
+        nrows = vectsize_;
       if (mask2expr_==NULL) { // Half-matrix
-        for (int row = 0; row < mask1tot_; ++row) {
-          for (int col = 0; col < mask1tot_; ++col) {
+        for (int row = 0; row < nrows; ++row) {
+          for (int col = 0; col < nrows; ++col) {
             idx = HalfMatrixIndex( row, col );
             //mprintf("DBG:\tRow=%i Col=%i Idx=%i\n", row, col, idx);
             outfile.Printf("%6.3f ", mat_[idx]);
