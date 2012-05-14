@@ -279,6 +279,7 @@ int Analysis_Matrix::Analyze() {
     which[1] = 'A';
     bool loop = false;
 
+    mprintf("CDBG: At do loop, nelem=%i\n", nelem);
     do {
       if (loop)
         dotprod(nelem, minfo_->MatrixPtr(), workd + (ipntr[0] - 1), workd + (ipntr[1] - 1));
