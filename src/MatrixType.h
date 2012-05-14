@@ -16,7 +16,7 @@ class MatrixType : public DataSet, public Action {
     void print();
 
     matrixMode Type()   { return type_; }
-    int Mask1Tot()      { return mask1tot_; }
+    int Mask1Tot()      { return mask1_.Nselected(); }
     int Snap()          { return snap_; }
     /// For interfacing with fortran routines
     // NOTE: Should MatrixPtr and VectPtr return copies?
