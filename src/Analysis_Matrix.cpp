@@ -59,6 +59,10 @@ void Analysis_Matrix::WorkspaceStored() {
   *                [vecs <vecs>] [reduce]
   */
 int Analysis_Matrix::Setup(DataSetList* DSLin) {
+#ifdef NO_PTRAJ_ANALYZE
+  mprinterr("Error: Compiled without LAPACK routines.\n");
+  return 1;
+#else
   // Ensure first 2 args (should be 'analyze' 'matrix') are marked.
   analyzeArgs_.MarkArg(0);
   analyzeArgs_.MarkArg(1);
@@ -147,8 +151,10 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
   if (!orderparamfile_.empty())
     mprintf("      Order parameters will be written to %s\n",orderparamfile_.c_str());
   return 0;
+#endif
 }
 
+#ifndef NO_PTRAJ_ANALYZE
 // dotprod()
 // NOTE: Only needed when using dsaupd
 static void dotprod(int nelem, double *mat, double *vec, double *target){
@@ -187,9 +193,14 @@ static int calcIndex(int nrows, int iIn, int jIn) {
   i1 = i + 1;
   return ( ( (nrows * i) - ((i1 * i) / 2) ) + j - i1 );
 }
+#endif
 
 // Analysis_Matrix::Analyze()
 int Analysis_Matrix::Analyze() {
+#ifdef NO_PTRAJ_ANALYZE
+  mprinterr("Error: Compiled without LAPACK routines.\n");
+  return 1;
+#else
   // Find eigenvalues and eigenvectors
   int neval = 0;
   int info = 0;
@@ -515,5 +526,6 @@ int Analysis_Matrix::Analyze() {
   WorkspaceStored();
 
   return 0;
+#endif
 }
 

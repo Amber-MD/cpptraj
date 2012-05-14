@@ -5,6 +5,7 @@
 #include "Analysis_Corr.h"
 #include "Analysis_PtrajAnalysis.h"
 #include "Analysis_Matrix.h"
+#include "Analysis_Timecorr.h"
 
 // CONSTRUCTOR
 AnalysisList::AnalysisList() :
@@ -37,6 +38,8 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
     if (argIn.ArgAt(1) == NULL) return 1;
     if (argIn[1] == "matrixtest")
       Ana = new Analysis_Matrix;
+    else if (argIn[1] == "timecorrtest")
+      Ana = new Analysis_Timecorr;
     else
       Ana = new PtrajAnalysis(); 
   }

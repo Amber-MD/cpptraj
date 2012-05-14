@@ -185,3 +185,12 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   return 0;
 }
 
+/** Calc spectral density (JACS 2002, 124, 4522; eq. A24) */
+double ModesInfo::calc_spectral_density(double *taum, int i, double omega) {
+  double J = 0.0;
+  for(int j = 0 ; j < nvect_; j++){
+    J += (freq_[j] * (evec_[j * nvectelem_ + i] * evec_[j * nvectelem_ + i])) * 2.0 * taum[j] /
+         ( 1.0 + omega*omega * taum[j]*taum[j] ); //check order XXXX
+  }                                                                                                  
+  return J;
+}

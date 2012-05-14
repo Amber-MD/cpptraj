@@ -10,7 +10,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_RunningAvg.cpp Action_Strip.cpp Action_Surf.cpp Action_Watershell.cpp \
         Action_Principal.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
-        Analysis_PtrajAnalysis.cpp Analysis_Matrix.cpp \
+        Analysis_PtrajAnalysis.cpp Analysis_Matrix.cpp Analysis_Timecorr.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
         CharBuffer.cpp ClusterList.cpp ClusterNode.cpp CoordList.cpp \
         CpptrajFile.cpp \

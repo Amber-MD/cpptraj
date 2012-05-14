@@ -27,6 +27,7 @@ class ModesInfo : public DataSet {
     ~ModesInfo();
 
     int ReadEvecFile(std::string&, int, int);
+    double calc_spectral_density(double *, int, double);
 
     // NOTE: Replace all these with a constructor eventually?
     int SetNavgElem(int);
@@ -37,7 +38,10 @@ class ModesInfo : public DataSet {
     void SetEvec( double* eIn )  { evec_ = eIn; }
 
     int Nvect()    { return nvect_; }
+    int NvectElem() { return nvectelem_; }
     int Navgelem() { return navgelem_; }
+    double* Freq() { return freq_; }
+    double* Evec() { return evec_; }
     modesSource Source() { return source_; }
 
     double Evec(int veci, int npair) { 

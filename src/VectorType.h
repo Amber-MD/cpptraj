@@ -28,6 +28,11 @@ class VectorType : public DataSet, public Action {
     int Width();
 
     vectorMode Mode() { return mode_; }
+    int Frame()       { return frame_; }
+    int Order()       { return order_; }
+    ModesInfo* ModeInfo() { return modinfo_; }
+    // NOTE: Should calcs involving Cftmp be done internally?
+    double* Cftmp() { return cftmp_; }
     //bool NoModeInfo() { return modinfo_==0; }
 
     // Currently only used for matrix IRED
@@ -55,6 +60,7 @@ class VectorType : public DataSet, public Action {
     int iend_;
     int order_;
     int npair_;
+    // Below only used in analyze timecorr
     double avgcrd_[3];
     double rave_;
     double r3iave_;
