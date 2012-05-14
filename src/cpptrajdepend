@@ -80,7 +80,7 @@ Histogram.o : Histogram.cpp CharBuffer.h CpptrajFile.h CpptrajStdio.h DataSet.h 
 Integrate.o : Integrate.cpp CpptrajStdio.h Integrate.h
 main.o : main.cpp Action.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h Cpptraj.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h
 MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h
-ModesInfo.o : ModesInfo.cpp CpptrajFile.h CpptrajStdio.h FileIO.h ModesInfo.h
+ModesInfo.o : ModesInfo.cpp CharBuffer.h CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h ModesInfo.h
 Matrix_3x3.o : Matrix_3x3.cpp CpptrajStdio.h Matrix_3x3.h
 MatrixType.o : MatrixType.cpp Action.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h MatrixType.h ModesInfo.h Molecule.h NameType.h PDBfile.h Residue.h Topology.h TopologyList.h VectorType.h vectormath.h
 MaskToken.o : MaskToken.cpp CpptrajStdio.h MaskToken.h NameType.h
