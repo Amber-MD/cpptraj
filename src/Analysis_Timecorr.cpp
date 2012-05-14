@@ -529,7 +529,78 @@ int Analysis_Timecorr::Analyze() {
         rcf_[i] = 0;
       }
     }
+    // Loop over all three correlation functions
+    double* dpt1 = 0;
+    double* dpt2 = 0;
+    for (int i = 0; i < 3; ++i) {
+      if (i==0 && dplr_) {
+        dpt1 = vinfo1_->Cftmp();
+        dpt2 = vinfo2_->Cftmp();
+      } else if (i==1) {
+        dpt1 = vinfo1_->P2cftmp();
+        dpt2 = vinfo2_->P2cftmp();
+      } else if (i==2 && dplr_) {
+        dpt1 = vinfo1_->Rcftmp();
+        dpt2 = vinfo2_->Rcftmp();
+      } else
+        continue;
 
+      // Loop over all m=-L, ..., L
+      for (int j = 0; j < mtot; ++j) {
+        // Loop over all snapshots
+        for (int k = 0; k < frame; ++k) {
+          if (i < 2) {
+            int idx1 = 2 * (mtot * k + j);
+            int idx2 = 2 * k;
+            data1_[idx2  ] = dpt1[idx1  ];
+            data1_[idx2+1] = dpt1[idx1+1];
+            if(vinfo2_ != 0){
+              data2_[idx2  ] = dpt2[idx1  ];
+              data2_[idx2+1] = dpt2[idx1+1];
+            }
+          } else if (i == 2 && j == 0) {
+            int idx1 = 2 * k;
+            data1_[idx1  ] = dpt1[idx1  ];
+            data1_[idx1+1] = dpt1[idx1+1];
+            if(vinfo2_ != 0){
+              data2_[idx1  ] = dpt2[idx1  ];
+              data2_[idx1+1] = dpt2[idx1+1];
+            }
+          }
+        }
+
+        if (drct_) {
+          // Calc correlation function using direct approach
+          if (vinfo2_ == 0)
+            corfdir(ndata, data1_, NULL, nsteps, table_);
+          else
+            corfdir(ndata, data1_, data2_, nsteps, table_);
+        } else {
+          // Pad with zero's at the end
+          for (int k = 2 * frame; k < ndata; ++k) {
+            data1_[k] = 0;
+            if (vinfo2_ != 0)
+              data2_[k] = 0;
+          }
+          // Calc correlation function using FFT
+          if(vinfo2_ == 0)
+            corffft(ndata, data1_, NULL, table_);
+          else
+            corffft(ndata, data1_, data2_, table_);
+        }
+        // Sum into cf
+        for (int k = 0; k < nsteps; ++k){
+          if(i == 0 && dplr_)
+            cf_[k] += data1_[2 * k];
+          else if(i == 1)
+            p2cf_[k] += data1_[2 * k];
+          else if(i == 2 && j == 0 && dplr_)
+            rcf_[k] += data1_[2 * k];
+          else
+            break;
+        }
+      } // END j loop over m 
+    } // END i loop over correlation fns
   }
 
   return 0;

@@ -31,8 +31,10 @@ class VectorType : public DataSet, public Action {
     int Frame()       { return frame_; }
     int Order()       { return order_; }
     ModesInfo* ModeInfo() { return modinfo_; }
-    // NOTE: Should calcs involving Cftmp be done internally?
+    // NOTE: Should calcs involving Cftmp etc be done internally?
     double* Cftmp() { return cftmp_; }
+    double* P2cftmp() { return p2cftmp_; }
+    double* Rcftmp() { return rcftmp_; }
     //bool NoModeInfo() { return modinfo_==0; }
 
     // Currently only used for matrix IRED
