@@ -44,7 +44,7 @@ int ModesInfo::SetNavgElem(int mask1tot) {
     navgelem_ = mask1tot * (mask1tot - 1) / 2;
   else // CORREL, COVAR, MWCOVAR
     navgelem_ = 3 * mask1tot;
-  //mprintf("DEBUG: ModesInfo::navgelem = %i\n",navgelem_);
+  mprintf("CDBG: mask1tot=%i ModesInfo::navgelem = %i\n",mask1tot, navgelem_);
   return navgelem_;
 }
 

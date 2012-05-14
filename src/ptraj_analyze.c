@@ -914,6 +914,7 @@ analyzeMatrix(analyzeInformation *analyze, stackType *sp, int mode)
   /*
    *  Find eigenvalues and eigenvectors
    */
+  printf("PDBG: nevec=%i  nelem=%i\n",nevec, nelem);
 
   if(nevec > nelem){
     nevec = nelem;
