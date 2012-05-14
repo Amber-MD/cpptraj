@@ -33,6 +33,7 @@ Analysis_Matrix::Analysis_Matrix() :
   vout_(0)
 {}
 
+// DESTRUCTOR
 Analysis_Matrix::~Analysis_Matrix() {
   if (freeWork_) {
     // NOTE: Vect not freed here since it exists in a MatrixType structure.
@@ -43,6 +44,7 @@ Analysis_Matrix::~Analysis_Matrix() {
   }
 }
 
+// Analysis_Matrix::WorkspaceStored()
 /** This is called if no errors in analysis and workspace information is 
   * successfully stored in the modinfo structure. The modinfo structure
   * is always placed inside the master DataSetList so it becomes responsible
@@ -52,7 +54,10 @@ void Analysis_Matrix::WorkspaceStored() {
   freeWork_ = false;
 }
 
-// Command: analyze matrix
+// Analysis_Matrix::Setup()
+/** analyze matrix <matrixname> [out <filename>] [name <name>] [thermo | order] 
+  *                [vecs <vecs>] [reduce]
+  */
 int Analysis_Matrix::Setup(DataSetList* DSLin) {
   // Ensure first 2 args (should be 'analyze' 'matrix') are marked.
   analyzeArgs_.MarkArg(0);
