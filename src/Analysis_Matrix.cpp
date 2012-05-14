@@ -183,6 +183,7 @@ static int calcIndex(int nrows, int iIn, int jIn) {
   return ( ( (nrows * i) - ((i1 * i) / 2) ) + j - i1 );
 }
 
+// Analysis_Matrix::Analyze()
 int Analysis_Matrix::Analyze() {
   // Find eigenvalues and eigenvectors
   int neval = 0;
@@ -192,6 +193,7 @@ int Analysis_Matrix::Analyze() {
   vect_ = minfo_->VectPtr();
   // TODO: Just pass in matrix Nelt?
   int nelem = modinfo_->SetNavgElem(minfo_->Mask1Tot());
+  mprintf("CDBG: nevec=%i  nelem=%i\n",nevec_, nelem);
   if (nevec_ > nelem) {
     nevec_ = nelem;
     mprintf("Warning: NEVEC > NELEM: Number of calculated evecs were reduced to %i\n",nevec_);
@@ -376,7 +378,7 @@ int Analysis_Matrix::Analyze() {
     }
     orderout.OpenFile();
     orderout.Printf("\n\t************************************\n");
-    orderout.Printf("t- Calculated iRed order parameters -\n");
+    orderout.Printf("\t- Calculated iRed order parameters -\n");
     orderout.Printf("\t************************************\n\n");
     orderout.Printf("vector    S2\n----------------------\n");
     // Loop over all vector elements
