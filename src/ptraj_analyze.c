@@ -998,6 +998,7 @@ analyzeMatrix(analyzeInformation *analyze, stackType *sp, int mode)
     which[0] = 'L';
     which[1] = 'A';
 
+    //printf("PDBG: At do loop, nelem=%i\n", nelem);
     do{
       if(ido == -1 || ido == 1){
         dotprod(nelem, mat, workd + (ipntr[0] - 1), workd + (ipntr[1] - 1));
