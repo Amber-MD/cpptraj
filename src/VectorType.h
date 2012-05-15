@@ -32,15 +32,17 @@ class VectorType : public DataSet, public Action {
     int Order()       { return order_; }
     ModesInfo* ModeInfo() { return modinfo_; }
     // NOTE: Should calcs involving Cftmp etc be done internally?
+    // Next 3 only used for 'analyze timecorr'
     double* Cftmp() { return cftmp_; }
     double* P2cftmp() { return p2cftmp_; }
     double* Rcftmp() { return rcftmp_; }
-    //bool NoModeInfo() { return modinfo_==0; }
 
     // Currently only used for matrix IRED
     double Dot(const VectorType& rhs) {
       return (vx_[0]*rhs.vx_[0] + vy_[0]*rhs.vy_[0] + vz_[0]*rhs.vz_[0]);
     }
+    // Currently only used for 'analyze timecorr'
+    void PrintAvgcrd(CpptrajFile&);
   private:
     //std::string filename_;
     int totalFrames_;

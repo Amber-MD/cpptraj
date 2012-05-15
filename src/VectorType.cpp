@@ -70,6 +70,10 @@ VectorType::~VectorType() {
 }
 
 // VectorType::operator==()
+/** If vector modesfile names are the same, and the beginning and ending
+  * vector number is the same, then consider these two vectors the same.
+  * Currently only used for CORRIRED. 
+  */
 bool VectorType::operator==(const VectorType& rhs) {
   if (mode_ == rhs.mode_ &&
       modesfile_ == rhs.modesfile_ &&
@@ -80,9 +84,14 @@ bool VectorType::operator==(const VectorType& rhs) {
 }
 
 // VectorType::AssignMaster()
+/** Assign this vectors ModesInfo to vecIn. vecIn is considered the
+  * 'master' vector as far as ModesInfo is concerned. This means
+  * among other things that this vector will not try to free
+  * modinfo during destruction.
+  */
 int VectorType::AssignMaster( VectorType* vecIn ) {
   if (vecIn==0) return 1;
-  if (vecIn->modinfo_==NULL) return 1;
+  if (vecIn->modinfo_==0) return 1;
   modinfo_ = vecIn->modinfo_;
   master_ = vecIn;
   return 0;
@@ -95,7 +104,10 @@ int VectorType::ReadModesFromFile() {
     return 1;
   }
   // NOTE: Warn here? If any other vecs linked this will mess them up.
-  if (master_==0 && modinfo_!=0) delete modinfo_;
+  if (master_==0 && modinfo_!=0) {
+    mprintf("Warning: Vector CORRIRED: Replacing ModesInfo.\n");
+    delete modinfo_;
+  }
   modinfo_ = new ModesInfo();
   return (modinfo_->ReadEvecFile( modesfile_, ibeg_, iend_ ));
 }
@@ -185,7 +197,7 @@ int VectorType::init() {
         }
       }
     }
-    // Load modes from file. modesfile name should be set by VectorType::Init.
+    // Load modes from file specified by modesfile. 
     if (modinfo_==0)
       if (ReadModesFromFile()) {
         return 1;
@@ -265,7 +277,7 @@ int VectorType::Allocate(int maxFrames) {
       int ntotal = 2 * totalFrames_ * (2 * order_ + 1) * modinfo_->Nvect();
       cftmp_ = new double[ ntotal ];
       for (int i = 0; i < ntotal; ++i)
-        cftmp_[i] = 0;
+        cftmp_[i] = 0; 
     } else {
       // This is a child with link to master modeinfo. Also link to cftmp, which 
       // should already be allocated on master.
@@ -284,7 +296,7 @@ int VectorType::Allocate(int maxFrames) {
     cftmp_ = new double[ ntotal ];
     p2cftmp_ = new double[ ntotal ];
     for (int i = 0; i < ntotal; ++i) {
-      cftmp_[i] = 0;
+      cftmp_[i] = 0; 
       p2cftmp_[i] = 0;
     }
     ntotal = 2 * totalFrames_;
@@ -534,6 +546,8 @@ int VectorType::Action_CORR() {
 
   // Loop over m=0, ..., +L
   int indminus = 0;
+  Dminus[0] = 0; // DBG
+  Dminus[1] = 0; // DBG
   for (int idx = 0; idx <= order_; ++idx) {
     // Calc Spherical Harmonics
     sphericalHarmonics(order_, idx, VXYZ, len, Dplus);
@@ -551,14 +565,18 @@ int VectorType::Action_CORR() {
       // Loop over all eigenvectors
       for (int veci = 0; veci < modinfo_->Nvect(); ++veci) {
         double Qvec = modinfo_->Evec(veci, npair_);
+        //mprintf("CDBG: Q=%.10lE\n",Qvec);
+        //mprintf("CDBG: Dplus=%lE,%lE\n",Dplus[0],Dplus[1]);
+        //mprintf("CDBG: Dminus=%lE,%lE\n",Dminus[0],Dminus[1]);
         indtot = 2 * (indsnap + indplus + veci);
         cftmp_[indtot  ] += (Qvec * Dplus[0]);
         cftmp_[indtot+1] += (Qvec * Dplus[1]);
         if (idx > 0) {
           indtot = 2 * (indsnap + indminus + veci);
-          cftmp_[indtot  ] += Qvec * Dminus[0];
-          cftmp_[indtot+1] += Qvec * Dminus[1];
+          cftmp_[indtot  ] += (Qvec * Dminus[0]);
+          cftmp_[indtot+1] += (Qvec * Dminus[1]);
         }
+        //mprintf("CDBG: cftmp[%i]=%lf cftmp[%i]=%lf\n",indtot,cftmp_[indtot],indtot+1,cftmp_[indtot+1]);
       } 
 
       // CORR / CORRPLANE
@@ -863,6 +881,7 @@ void VectorType::leastSquaresPlane(int n, double* cx, double* cy, double* cz, do
 /** Calc spherical harmonics of order l=0,1,2
   * and -l<=m<=l with cartesian coordinates as input
   * (see e.g. Merzbacher, Quantum Mechanics, p. 186)
+  * D[0] is the real part, D[1] is the imaginary part.
   */
 void VectorType::sphericalHarmonics(int l, int m, double* XYZ, double r, double D[2])
 {
@@ -877,6 +896,7 @@ void VectorType::sphericalHarmonics(int l, int m, double* XYZ, double r, double 
   double x = XYZ[0];
   double y = XYZ[1];
   double z = XYZ[2];
+  //mprintf("CDBG: x=%.10lE y=%.10lE z=%.10lE\n",x,y,z);
 
   D[0] = 0.0;
   D[1] = 0.0;
@@ -900,13 +920,23 @@ void VectorType::sphericalHarmonics(int l, int m, double* XYZ, double r, double 
     }
     else if(fabs(m) == 1){
       D[0] = -m * SH21 * x * z * ri * ri;
-      D[1]  = -    SH21 * y * z * ri * ri;
+      D[1] = -    SH21 * y * z * ri * ri;
     }
     else{
       D[0] = SH22 * (x*x - y*y) * ri * ri;
-      D[1]  = m * SH22 * x * y * ri * ri;
+      D[1] = m * SH22 * x * y * ri * ri;
     }
   }
+  //mprintf("CDBG: dreal=%.10lE dimg=%.10lE\n",D[0],D[1]);
 }
 
+// NOTE: Only used in 'analyze timecorr'
+void VectorType::PrintAvgcrd(CpptrajFile& outfile) {
+  double dnorm = 1.0 / (double)frame_;
+  outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
+          rave_ * dnorm,
+          sqrt(avgcrd_[0]*avgcrd_[0] + avgcrd_[1]*avgcrd_[1] + avgcrd_[2]*avgcrd_[2]) * dnorm,
+          r3iave_ * dnorm,
+          r6iave_ * dnorm);
+}
 
