@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 
 // Definition of Fortran subroutines called from this class
+#ifndef NO_PTRAJ_ANALYZE
 extern "C" {
   // LAPACK
   void dspev_(char&, char&, int&, double*, double*, double*, int&, double*, int&);
@@ -19,6 +20,7 @@ extern "C" {
                double*, double*, double*, double*,
                double&, double&);
 }
+#endif
 
 // CONSTRUCTOR
 Analysis_Matrix::Analysis_Matrix() :
@@ -60,7 +62,7 @@ void Analysis_Matrix::WorkspaceStored() {
   */
 int Analysis_Matrix::Setup(DataSetList* DSLin) {
 #ifdef NO_PTRAJ_ANALYZE
-  mprinterr("Error: Compiled without LAPACK routines.\n");
+  mprinterr("Error: analyze matrix: Compiled without LAPACK routines.\n");
   return 1;
 #else
   // Ensure first 2 args (should be 'analyze' 'matrix') are marked.
@@ -209,7 +211,7 @@ int Analysis_Matrix::Analyze() {
   vect_ = minfo_->VectPtr();
   // TODO: Just pass in matrix Nelt?
   int nelem = modinfo_->SetNavgElem(minfo_->Mask1Tot());
-  mprintf("CDBG: nevec=%i  nelem=%i\n",nevec_, nelem);
+  //mprintf("CDBG: nevec=%i  nelem=%i\n",nevec_, nelem);
   if (nevec_ > nelem) {
     nevec_ = nelem;
     mprintf("Warning: NEVEC > NELEM: Number of calculated evecs were reduced to %i\n",nevec_);
@@ -297,7 +299,7 @@ int Analysis_Matrix::Analyze() {
     which[1] = 'A';
     bool loop = false;
 
-    mprintf("CDBG: At do loop, nelem=%i\n", nelem);
+    //mprintf("CDBG: At do loop, nelem=%i\n", nelem);
     do {
       if (loop)
         dotprod(nelem, minfo_->MatrixPtr(), workd + (ipntr[0] - 1), workd + (ipntr[1] - 1));
@@ -462,7 +464,7 @@ int Analysis_Matrix::Analyze() {
       outfile.Printf(" Eigenvector file: ");
     outfile.Printf("%s\n", MatrixType::MatrixOutput[minfo_->Type()]);
     outfile.Printf(" %4i %4i\n", nelem, nout);
-    mprintf("CDBG: neval = %i  nevec = %i  nout = %i\n", neval,nevec_, nout);
+    //mprintf("CDBG: neval = %i  nevec = %i  nout = %i\n", neval,nevec_, nout);
     if (minfo_->Type()!=MatrixType::MATRIX_DIST) {
       for (int i = 0; i < nelem; ++i) {
         outfile.Printf(" %10.5f", vect_[i]);
