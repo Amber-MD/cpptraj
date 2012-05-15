@@ -114,7 +114,8 @@ int VectorType::ReadModesFromFile() {
 
 // VectorType::init()
 int VectorType::init() {
-  std::string filename_ = actionArgs.GetStringKey("out");
+  //std::string filename_ = actionArgs.GetStringKey("out");
+  filename_ = actionArgs.GetStringKey("out");
 
   // Require a vector name - this behavior is consistent with ptraj
   name_ = actionArgs.GetStringNext();
@@ -248,10 +249,10 @@ int VectorType::init() {
   }
 
   // Add to output datafilelist
-  if (!filename_.empty()) {
-    mprintf("\tOutput will be dumped to a file, %s\n", filename_.c_str());
-    DFL->Add( filename_.c_str(), (DataSet*)this );
-  }
+  //if (!filename_.empty()) {
+  //  mprintf("\tOutput will be dumped to a file, %s\n", filename_.c_str());
+  //  DFL->Add( filename_.c_str(), (DataSet*)this );
+  //}
 
   return 0;
 }
@@ -374,13 +375,12 @@ void VectorType::Info() {
 
 }
 
-// VectorType::Print()
-/*void VectorType::Print() {
+// VectorType::print()
+void VectorType::print() {
   if (filename_.empty()) return;
 
   CpptrajFile outfile;
-  if (outfile.SetupWrite(filename_.c_str(), 0)) return;
-  if (outfile.OpenFile()) return;
+  if (outfile.OpenWrite(filename_.c_str())) return;
 
   mprintf("CPPTRAJ VECTOR: dumping vector information %s\n", c_str());
   outfile.Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n");
@@ -395,7 +395,7 @@ void VectorType::Info() {
             cx_[i]+vx_[i], cy_[i]+vy_[i], cz_[i]+vz_[i]);
   }
   outfile.CloseFile();
-}*/
+}
 
 // -----------------------------------------------------------------------------
 int VectorType::Size() {
@@ -462,6 +462,7 @@ int VectorType::setup() {
   return 0;
 } 
 
+// VectorType::action()
 int VectorType::action() {
   int err;
 
@@ -495,6 +496,7 @@ int VectorType::action() {
   return err;
 }
 
+// VectorType::Action_CORR()
 int VectorType::Action_CORR() {
   double CXYZ[3], VXYZ[3];
   double Dplus[2], Dminus[2]; // 0=real, 1=imaginary
@@ -604,6 +606,7 @@ int VectorType::Action_CORR() {
   return 0;
 }
 
+// VectorType::Action_DIPOLE()
 int VectorType::Action_DIPOLE()
 {
   double Vec[3], CXYZ[3], VXYZ[3], XYZ[3];
@@ -626,6 +629,12 @@ int VectorType::Action_DIPOLE()
     vector_mult_scalar( Vec, XYZ, (*currentParm)[*atom].Charge() );
     vector_sum( VXYZ, VXYZ, Vec );
   }
+  vx_[frame_] = VXYZ[0];
+  vy_[frame_] = VXYZ[1];
+  vz_[frame_] = VXYZ[2];
+  cx_[frame_] = CXYZ[0] / total_mass;
+  cy_[frame_] = CXYZ[1] / total_mass;
+  cz_[frame_] = CXYZ[2] / total_mass;
   ++frame_;
 
   return 0;

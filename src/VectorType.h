@@ -19,7 +19,7 @@ class VectorType : public DataSet, public Action {
     VectorType();
     ~VectorType();
 
-    //void Print();
+    void print();
 
     // DataSet functions
     int Size();
@@ -44,7 +44,7 @@ class VectorType : public DataSet, public Action {
     // Currently only used for 'analyze timecorr'
     void PrintAvgcrd(CpptrajFile&);
   private:
-    //std::string filename_;
+    std::string filename_;
     int totalFrames_;
     int frame_;
     vectorMode mode_;
