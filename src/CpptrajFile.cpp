@@ -335,8 +335,21 @@ int CpptrajFile::SetupAppend(const char *filenameIn, int debugIn) {
   return 0;
 }
 
+// CpptrajFile::OpenWrite()
+int CpptrajFile::OpenWrite(std::string const& nameIn) {
+  int err = SetupWrite(nameIn, 0);
+  err += OpenFile();
+  if (err != 0) {
+    if (nameIn.empty())
+      mprinterr("Error: Could not set up STDOUT write.\n");
+    else
+      mprinterr("Error: Could not open %s for writing.\n", nameIn.c_str());
+  }
+  return err;
+}
+
 // SetupWrite()
-int CpptrajFile::SetupWrite(std::string& nameIn, int debugIn) {
+int CpptrajFile::SetupWrite(std::string const& nameIn, int debugIn) {
   if (nameIn.empty())
     return SetupWrite(NULL, debugIn);
   return SetupWrite(nameIn.c_str(), debugIn);
