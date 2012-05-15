@@ -36,9 +36,9 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
   else if (argIn.CommandIs("corr"))      { Ana = new Corr(); }
   else if (argIn.CommandIs("analyze")  ) { 
     if (argIn.ArgAt(1) == NULL) return 1;
-    if (argIn[1] == "matrixtest")
+    if (argIn[1] == "matrix")
       Ana = new Analysis_Matrix;
-    else if (argIn[1] == "timecorrtest")
+    else if (argIn[1] == "timecorr")
       Ana = new Analysis_Timecorr;
     else
       Ana = new PtrajAnalysis(); 

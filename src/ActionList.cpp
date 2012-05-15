@@ -113,9 +113,9 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("watershell"))     {Act=new Watershell;}
   else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
   else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
-  else if (argIn.CommandIs("vectortest"))     {Act=new VectorType;}
+  else if (argIn.CommandIs("vector"))     {Act=new VectorType;}
   else if (argIn.CommandIs("principaltest"))  {Act=new Action_Principal;}
-  else if (argIn.CommandIs("matrixtest"))     {Act=new MatrixType;}
+  else if (argIn.CommandIs("matrix"))     {Act=new MatrixType;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||
@@ -125,13 +125,13 @@ int ActionList::AddAction(ArgList &argIn) {
            argIn.CommandIs("dnaiontracker") ||
            argIn.CommandIs("echo") ||
            argIn.CommandIs("grid") ||
-           argIn.CommandIs("matrix") ||
+           //argIn.CommandIs("matrix") ||
            argIn.CommandIs("principal") ||
            argIn.CommandIs("projection") ||
            argIn.CommandIs("randomizeions") ||
            argIn.CommandIs("scale") ||
-           argIn.CommandIs("unwrap") ||
-           argIn.CommandIs("vector") 
+           argIn.CommandIs("unwrap") //||
+           //argIn.CommandIs("vector") 
           )
   {
     Act = new PtrajAction;
