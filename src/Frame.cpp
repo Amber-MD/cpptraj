@@ -2167,20 +2167,22 @@ void Frame::CalculateInertia(AtomMask &Mask, double *Inertia, double *CXYZ) {
   Ivec[3] = 0; // xy
   Ivec[4] = 0; // xz
   Ivec[5] = 0; // yz
-  double *crd = X_;
-  for (int atom = 0; atom < natom_; ++atom) {
-    double cx = crd[0] - CXYZ[0];
-    double cy = crd[1] - CXYZ[1];
-    double cz = crd[2] - CXYZ[2];
+  //double *crd = X_;
+  for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom) {
+  //for (int atom = 0; atom < natom_; ++atom) {
+    int idx3 = *atom * 3;
+    double cx = X_[idx3  ] - CXYZ[0];
+    double cy = X_[idx3+1] - CXYZ[1];
+    double cz = X_[idx3+2] - CXYZ[2];
 
-    Ivec[0] += Mass_[atom] * ( cy * cy + cz * cz );
-    Ivec[1] += Mass_[atom] * ( cx * cx + cz * cz );
-    Ivec[2] += Mass_[atom] * ( cx * cx + cy * cy );
-    Ivec[3] -= Mass_[atom] * cx * cy;
-    Ivec[5] -= Mass_[atom] * cy * cz;
-    Ivec[4] -= Mass_[atom] * cx * cz;
+    Ivec[0] += Mass_[*atom] * ( cy * cy + cz * cz );
+    Ivec[1] += Mass_[*atom] * ( cx * cx + cz * cz );
+    Ivec[2] += Mass_[*atom] * ( cx * cx + cy * cy );
+    Ivec[3] -= Mass_[*atom] * cx * cy;
+    Ivec[5] -= Mass_[*atom] * cy * cz;
+    Ivec[4] -= Mass_[*atom] * cx * cz;
 
-    crd += 3;
+    //crd += 3;
   }
   Inertia[0] = Ivec[0];
   Inertia[1] = Ivec[3];
