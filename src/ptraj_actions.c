@@ -5242,8 +5242,8 @@ calculatePrincipalAxis(ptrajState *state, int *mask,
     i1 = 2; i2 = 1; i3 = 0;
   }
 
-  fprintf(stdout,"PTRAJ Eigenvalues %10.3f %10.3f %10.3f\n",evalue[0], evalue[1], evalue[2]);
-  fprintf(stdout,"      ORDER      %10i %10i %10i\n",i1,i2,i3);
+  //fprintf(stdout,"PTRAJ Eigenvalues %10.3f %10.3f %10.3f\n",evalue[0], evalue[1], evalue[2]);
+  //fprintf(stdout,"      ORDER      %10i %10i %10i\n",i1,i2,i3);
   // swap around eigenvectors
   // NOTE: Eigenvectors are in COLUMNS
 
@@ -7301,12 +7301,6 @@ transformVector(actionInformation *action,
      */
     vectorInfo->name = getArgumentString(argumentStackPointer, NULL);
 
-    /*
-     *  get atom mask for this vector
-     */
-    buffer = getArgumentString(argumentStackPointer, NULL);
-    vectorInfo->mask = processAtomMask(buffer, action->state);
-    safe_free(buffer);
 
     /*
      *  check to see if there are any files to be output
@@ -7354,6 +7348,15 @@ transformVector(actionInformation *action,
       vectorInfo->mode = VECTOR_IRED;
     else
       vectorInfo->mode = VECTOR_MASK;
+
+    /*
+     *  get atom mask for this vector
+     */
+    if (vectorInfo->mode != VECTOR_BOX) {
+      buffer = getArgumentString(argumentStackPointer, NULL);
+      vectorInfo->mask = processAtomMask(buffer, action->state);
+      safe_free(buffer);
+    }
 
     /*
      *  for VECTOR_CORRIRED
