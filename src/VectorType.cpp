@@ -45,6 +45,12 @@ VectorType::VectorType() :
   //debuginert.OpenFile();
 }
 
+const char VectorType::ModeString[11][12] = {
+  "NO_OP", "Principal X", "Principal Y", "Principal Z",
+  "Dipole", "Box", "Mask", "Ired", 
+  "CorrPlane", "Corr", "CorrIred"
+};
+
 // DESTRUCTOR
 VectorType::~VectorType() {
   // Free shared CORRIRED mem on master
@@ -324,6 +330,7 @@ int VectorType::Allocate(int maxFrames) {
 // VectorType::Info()
 void VectorType::Info() {
   mprintf("    VECTOR: Storage to array named %s\n", c_str() );
+  mprintf("            Vector Mode: %s\n", ModeString[mode_]);
   switch (mode_) {
     case VECTOR_DIPOLE:
       mprintf("\tThe dipole moment vector with respect to the center of mass\n");

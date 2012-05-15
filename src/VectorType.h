@@ -44,6 +44,8 @@ class VectorType : public DataSet, public Action {
     // Currently only used for 'analyze timecorr'
     void PrintAvgcrd(CpptrajFile&);
   private:
+    static const char ModeString[][12];
+
     std::string filename_;
     int totalFrames_;
     int frame_;
