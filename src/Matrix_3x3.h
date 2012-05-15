@@ -12,7 +12,7 @@ class Matrix_3x3 {
 
     int Diagonalize( double*, double* );
     int Diagonalize_Sort(double *, double *);
-    int Diagonalize_Sort_Chirality(double*, double*);
+    int Diagonalize_Sort_Chirality(double*, double*,int);
     void Print(const char*);
 
     Matrix_3x3& operator*=(const Matrix_3x3&);
@@ -27,7 +27,7 @@ class Matrix_3x3 {
     // coordinates along principal axes (see e.g. Action_Principal).
     int i1_;
     int i2_;
-    int i3_; 
+    int i3_;
     static const int MAX_ITERATIONS;
 };
 #endif

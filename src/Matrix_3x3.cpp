@@ -234,7 +234,7 @@ int Matrix_3x3::Diagonalize_Sort(double *EvecOut, double *EvalOut)
   *
   * It is expected that the eigenvector matrix has eigenvectors in rows.
   */
-static void jacobiCheckChirality(double* ev)
+static int jacobiCheckChirality(double* ev)
 {
   Matrix_3x3 points(ev);
   Matrix_3x3 result;
@@ -265,14 +265,13 @@ static void jacobiCheckChirality(double* ev)
     ev[3] = -ev[3];
     ev[4] = -ev[4];
     ev[5] = -ev[5];
-    mprintf("Warning: PRINCIPAL: CHECK CHIRALITY: Y eigenvector sign swapped!\n");
-    return;
+    return 1;
   }
-  return;
+  return 0;
 }
 
 // Matrix_3x3::Diagonalize_Sort_Chirality()
-int Matrix_3x3::Diagonalize_Sort_Chirality(double* EvecOut, double* EvalOut)
+int Matrix_3x3::Diagonalize_Sort_Chirality(double* EvecOut, double* EvalOut, int debug)
 {
   if ( Diagonalize_Sort( EvecOut, EvalOut ) )
     return 1;
@@ -295,7 +294,8 @@ int Matrix_3x3::Diagonalize_Sort_Chirality(double* EvecOut, double* EvalOut)
   }
 
   // Flip Y-vector if necessary 
-  jacobiCheckChirality( EvecOut );
+  if (jacobiCheckChirality( EvecOut ) && debug>0)
+    mprintf("Warning: PRINCIPAL: CHECK CHIRALITY: Y eigenvector sign swapped!\n");
    
   return 0;
 }

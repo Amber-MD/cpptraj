@@ -430,10 +430,19 @@ int VectorType::Width() {
 
 // VectorType::setup()
 int VectorType::setup() {
-  // Setup mask 1
-  if (currentParm->SetupIntegerMask(mask_)) return 1;
-  mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
-          mask_.MaskString(), mask_.Nselected());
+  if (mode_==VECTOR_BOX) {
+    // Check for box info
+    if (currentParm->BoxType() == Box::NOBOX) {
+      mprinterr("Error: vector box: Parm %s does not have box information.\n", 
+                currentParm->c_str());
+      return 1;
+    }
+  } else {
+    // Setup mask 1
+    if (currentParm->SetupIntegerMask(mask_)) return 1;
+    mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
+            mask_.MaskString(), mask_.Nselected());
+  }
 
   // Allocate space for CORRPLANE
   if (mode_==VECTOR_CORRPLANE) {
@@ -640,11 +649,12 @@ int VectorType::Action_DIPOLE()
   return 0;
 }
 
+// VectorType::Action_PRINCIPAL()
 int VectorType::Action_PRINCIPAL( ) {
   double Inertia[9], CXYZ[3], Evec[9], Eval[3];
 
   currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
-  printMatrix_3x3("PRINCIPAL Inertia", Inertia);
+  //printMatrix_3x3("PRINCIPAL Inertia", Inertia);
   // DEBUG - Write PDB of inertia
 /*  double Temp[9];
   for (int i = 0; i < 9; ++i)
@@ -668,10 +678,12 @@ int VectorType::Action_PRINCIPAL( ) {
 
   Matrix_3x3 TEMP( Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
-  TEMP.Diagonalize_Sort_Chirality( Evec, Eval );
-  printVector("PRINCIPAL EIGENVALUES", Eval );
-  //TEMP.Print("GENERAL");
-  printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
+  TEMP.Diagonalize_Sort_Chirality( Evec, Eval, debug );
+  if (debug > 2) {
+    printVector("PRINCIPAL EIGENVALUES", Eval );
+    //TEMP.Print("GENERAL");
+    printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
+  }
 
   //Principal_.Diagonalize( Inertia, Eval );
 
@@ -713,6 +725,7 @@ int VectorType::Action_PRINCIPAL( ) {
   return 0;
 }
 
+// VectorType::Action_MASK()
 int VectorType::Action_MASK( ) {
   double CXYZ[3], VXYZ[3];
 
@@ -728,6 +741,7 @@ int VectorType::Action_MASK( ) {
   return 0;
 }
 
+// VectorType::Action_IRED()
 int VectorType::Action_IRED(  ) {
   double CXYZ[3], VXYZ[3];
 
@@ -743,6 +757,7 @@ int VectorType::Action_IRED(  ) {
   return 0;
 }
 
+// VectorType::Action_BOX()
 int VectorType::Action_BOX(  ) {
   double XYZ[3];
   currentFrame->BoxXYZ( XYZ );

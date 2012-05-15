@@ -77,7 +77,7 @@ int Action_Principal::action() {
 
   Matrix_3x3 TEMP( Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
-  TEMP.Diagonalize_Sort_Chirality( Evec, Eval );
+  TEMP.Diagonalize_Sort_Chirality( Evec, Eval, debug );
   printVector("PRINCIPAL EIGENVALUES", Eval );
   //TEMP.Print("GENERAL");
   printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
