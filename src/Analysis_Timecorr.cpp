@@ -645,13 +645,16 @@ int Analysis_Timecorr::Analyze() {
     for (int i = 0; i < 3; ++i) {
       if (i==0 && dplr_) {
         dpt1 = vinfo1_->Cftmp();
-        dpt2 = vinfo2_->Cftmp();
+        if (vinfo2_!=0)
+          dpt2 = vinfo2_->Cftmp();
       } else if (i==1) {
         dpt1 = vinfo1_->P2cftmp();
-        dpt2 = vinfo2_->P2cftmp();
+        if (vinfo2_!=0)
+          dpt2 = vinfo2_->P2cftmp();
       } else if (i==2 && dplr_) {
         dpt1 = vinfo1_->Rcftmp();
-        dpt2 = vinfo2_->Rcftmp();
+        if (vinfo2_!=0)
+          dpt2 = vinfo2_->Rcftmp();
       } else
         continue;
 
