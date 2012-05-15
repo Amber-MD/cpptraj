@@ -4,12 +4,19 @@
 #include "Constants.h" // PI
 
 // Definition of Fortran subroutines called from this class
+#ifndef NO_PTRAJ_ANALYZE
 extern "C" {
   // pubfft.F90
   void cffti_(int&, double*);
   void cfftf_(int&, double*, double*);
   void cfftb_(int&, double*, double*);
 }
+#endif
+
+/// Strings corresponding to modes, used in output.
+const char Analysis_Timecorr::ModeString[3][6] = {
+  "????", "Auto", "Cross"
+};
 
 // CONSTRUCTOR
 Analysis_Timecorr::Analysis_Timecorr() :
@@ -37,6 +44,7 @@ Analysis_Timecorr::Analysis_Timecorr() :
   vinfo2_(0)
 {}
 
+// DESTRUCTOR
 Analysis_Timecorr::~Analysis_Timecorr() {
   if (cf_!=0) delete[] cf_;
   if (cfinf_!=0) delete[] cfinf_;
@@ -137,6 +145,15 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
   norm_ = analyzeArgs_.hasKey("norm");
   drct_ = analyzeArgs_.hasKey("drct");
   relax_ = analyzeArgs_.hasKey("relax");
+
+# ifdef NO_PTRAJ_ANALYZE
+  if (!drct_) {
+    mprinterr("Error: analyze timecorr: Cpptraj was not compiled with FFT routines,\n");
+    mprinterr("       but these are needed when not using direct calculation. Either\n");
+    mprinterr("       specify 'drct' or recompile with FFT routines.\n");
+    return 1;
+  }
+# endif
 
   // Relax parameters
   if (relax_) {
@@ -257,13 +274,16 @@ static void corfdir(int ndata, double *data1, double *data2, int nsteps, double 
   */
 static void corffft(int ndata, double* data1, double* data2, double* table)
 {
+#ifdef NO_PTRAJ_ANALYZE
+  mprinterr("Error: Cpptraj compiled without FFT routines.\n");
+#else
   int i, ndata2;
   double dtmp;
 
   ndata2 = ndata / 2; // TODO: pass in
 
   // FFT data
-  //ftf_(&ndata2, data1, table);
+  cfftf_(ndata2, data1, table);
   if(data2 != NULL)
     cfftf_(ndata2, data2, table);
 
@@ -289,9 +309,11 @@ static void corffft(int ndata, double* data1, double* data2, double* table)
   dtmp = 1.0 / ((double) (ndata2));
   for(i = 0; i < ndata; i++)
     data1[i] *= dtmp;
+#endif
 }
 
-/** Calc spectral density (JACS 2002, 124, 4522; eq. A24) */
+// NOTE: This is now in ModesInfo
+// Calc spectral density (JACS 2002, 124, 4522; eq. A24) 
 /*static double calc_spectral_density(int nevec, int nelem, double *eigval, 
                                     double *vout, double *taum, int i, 
                                     double omega)
@@ -332,6 +354,7 @@ int Analysis_Timecorr::Analyze() {
     ndata = ldexp( 1.0, (int)(log((double)(4 * frame - 1)) / log(2.0)) + 1);
   int ndata2 = ndata / 2;
   int mtot = 2 * vinfo1_->Order() + 1;
+  mprintf("CDBG: frame=%i time=%i nsteps=%i ndata=%i mtot=%i\n",frame,time,nsteps,ndata,mtot);
 
   // Allocate common memory and initialize arrays
   data1_ = new double[ ndata ];
@@ -344,17 +367,25 @@ int Analysis_Timecorr::Analyze() {
 
   // Initialize FFT
   if (!drct_)
+# ifdef NO_PTRAJ_ANALYZE
+  {  // Sanity check - should not make it here
+    mprinterr("Error: Cpptraj compiled without FFT routines.\n");
+    return 1;
+  }
+# else
     cffti_(ndata2, table_);
+# endif
 
-  // ---------- IRED CALCULATION -----------------
+  // -------------------- IRED CALCULATION ---------------------------
   if (type_ == IRED) {
     double* cftmp1 = vinfo1_->Cftmp();
-    // Initialize memory
+    // Store ModesInfo
     ModesInfo* modinfo = vinfo1_->ModeInfo();
     int nvect = modinfo->Nvect();
     int nvectelem = modinfo->NvectElem();
     double* eigval = modinfo->Freq();
     double* vout = modinfo->Evec();
+    // Initialize memory
     cf_ = new double[ nvect * nsteps ];
     cf_cjt_ = new double[ nvect * nsteps ];
     for (int i = 0; i < nvect*nsteps; ++i) {
@@ -385,9 +416,12 @@ int Analysis_Timecorr::Analyze() {
           cfinfavgreal += cftmp1[idx3  ];
           data1_[2*k+1] = cftmp1[idx3+1];
           cfinfavgimg  += cftmp1[idx3+1];
+          //mprintf("CDBG:\tVec=%i Frame=%i data1[%i]=%lf data1_[%i]=%lf\n",i,k,
+          //        2*k, data1_[2*k], 2*k+1, data1_[2*k+1]);
         }
         cfinfavgreal /= frame;
         cfinfavgimg  /= frame;
+        //mprintf("CDBG:\tVect[%i] cfinfavgreal=%lf cfinfavgimg=%lf\n",i,cfinfavgreal,cfinfavgimg);
         // Calc plateau value of correlation function (= C(m,t->T) in Bruschweiler paper (A20))
         cfinf_[i] += (cfinfavgreal * cfinfavgreal) + (cfinfavgimg * cfinfavgimg);
         if (drct_) {
@@ -401,8 +435,10 @@ int Analysis_Timecorr::Analyze() {
           corffft(ndata, data1_, NULL, table_);
         }
         // Sum into cf (= C(m,t) in Bruschweiler paper)
-        for (int k = 0; k < nsteps; ++k)
+        for (int k = 0; k < nsteps; ++k) {
+          //mprintf("CDBG: cf[%i] += data1[%i] (%lf)\n",idx1+k, 2*k, data1_[2 * k]);
           cf_[idx1 + k] += data1_[2 * k];
+        }
       }
     }
     // Calculate correlation function for each vector:
@@ -412,9 +448,14 @@ int Analysis_Timecorr::Analyze() {
       for (int k = 0; k < nsteps; ++k) {
         double sum = 0;
         for (int j = 0; j < nvect; ++j) {
+          //mprintf("CDBG: eigval[%i]=%lf vout[%i]=%lf cf[%i]=%lf frame-k=%i\n",
+          //        j, eigval[j],
+          //        j * nvectelem + i, vout[j * nvectelem + i],
+          //        nsteps * j + k, cf_[nsteps * j + k], frame - k);
           sum += (eigval[j] * (vout[j * nvectelem + i] * vout[j * nvectelem + i])) *
                  (cf_[nsteps * j + k] / (frame - k));
         }
+        //mprintf("CDBG:\tVec=%i Step=%i sum=%lf\n",i,k,sum);
         cf_cjt_[nsteps * i + k] = sum;
       }
     }
@@ -431,19 +472,25 @@ int Analysis_Timecorr::Analyze() {
         return 1;
       }
       // consider only first third of the correlation curve to avoid fitting errors
-      double new_nsteps = nsteps / 3;
+      // NOTE: Done this way to be consistent with PTRAJ behavior. This really should
+      //       be cast back to an integer.
+      double new_nsteps = nsteps / 3.0;
+      //mprintf("CDBG: new_nsteps= %lf\n",new_nsteps);
       for (int i = 0; i < nvect; ++i) {
         double integral = 0;
         double cfinfval = cfinf_[i] / cf_[nsteps * i] * frame;
+        //mprintf("CDBG: cfinfval= %.10lE\n",cfinfval);
         for ( int j = 0 ; j < new_nsteps; ++j ) {
             double cfk = cf_[nsteps * i + j] * frame / (cf_[nsteps * i] * (frame - j));
             double cfk1 = cf_[nsteps * i + j + 1 ] * frame / (cf_[nsteps * i] * (frame - (j+1)));
             double fa = cfk - cfinfval;
             double fb = cfk1 - cfinfval;
             integral += deltat * ( fa + fb ) * 0.5;
+            //mprintf("CDBG:\tintegral[%i]= %.10lE\n",j,integral);
         }
         double taum_val = integral / ( 1.0 - cfinfval );
         taum_[i] = taum_val;
+        //mprintf("CDBG: taum[%i]= %.10lE\n", i, taum_[i]);
       }
 
       // Relaxation calculation. Added by Alrun N. Koller & H. Gohlke
@@ -515,7 +562,70 @@ int Analysis_Timecorr::Analyze() {
       noefile.CloseFile();
     } // END if (relax_)
 
-  // ---------- NORMAL CALCULATION ---------------
+    // ----- PRINT IRED -----
+    // Setup and open files with .cjt/.cmt extensions.
+    std::string cmtname = filename_ + ".cmt";
+    CpptrajFile cmtfile;
+    if (cmtfile.OpenWrite( cmtname )) return 1;
+    std::string cjtname = filename_ + ".cjt";
+    CpptrajFile cjtfile;
+    if (cjtfile.OpenWrite( cjtname )) return 1;  
+    // Print headers
+    cmtfile.Printf("%s-correlation functions Cm(t) for each eigenmode m, IRED type according to eq. A18 Prompers & Brüschweiler, JACS  124, 4522, 2002\n", ModeString[mode_]);
+    cjtfile.Printf("%s-correlation functions Cj(t) for each ired vector j, IRED type according to eq. A23 Prompers & Brüschweiler, JACS  124, 4522, 2002\n", ModeString[mode_]);
+    cmtfile.Printf("%12s","XXX");
+    cjtfile.Printf("%12s","XXX");
+    int colwidth = 11;
+    int tgti = 10;
+    for (int i = 1; i <= nvect; ++i) {
+      if (i == tgti) {
+        --colwidth;
+        if (colwidth < 7) colwidth = 7;
+        tgti *= 10;
+      }
+      cmtfile.Printf("%*s%i", colwidth, "Mode",   i);
+      cjtfile.Printf("%*s%i", colwidth, "Vector", i);
+    }
+    cmtfile.Printf("\n");
+    cjtfile.Printf("\n");
+    // Print cfinf
+    cmtfile.Printf("%12s", "C(m,t->T)");
+    for (int i = 0; i < nvect; ++i) {
+      if (norm_)
+        cmtfile.Printf("%12.8f", cfinf_[i] / cf_[nsteps * i] * frame);
+      else
+        cmtfile.Printf("%12.8f", cfinf_[i]);
+    }
+    cmtfile.Printf("\n");
+    // Print Relaxation
+    if (relax_) {
+      // Print Taum in ps
+      cmtfile.Printf("%12s", "Tau_m [ps]");
+      for (int i = 0; i < nvect; ++i)
+        cmtfile.Printf("%12.6f", taum_[i]* 1.0E12);
+      cmtfile.Printf("\n");
+    }
+    // Print cf
+    for (int i = 0; i < nsteps; ++i) {
+      cmtfile.Printf("%12.8f", (double)i * tstep_);
+      cjtfile.Printf("%12.8f", (double)i * tstep_);
+      for (int j = 0; j < nvect; ++j) {
+        if (norm_) {
+          cmtfile.Printf("%12.8f", cf_[nsteps*j + i] * frame / (cf_[nsteps * j] * (frame - i)));
+          cjtfile.Printf("%12.8f", cf_cjt_[nsteps*j + i] / cf_cjt_[nsteps*j]);
+        } else {
+          // 4/5*PI due to spherical harmonics addition theorem
+          cmtfile.Printf("%12.8f", FOURFIFTHSPI * cf_[nsteps*j + i] / (frame - i));
+          cjtfile.Printf("%12.8f", FOURFIFTHSPI * cf_cjt_[nsteps*j + i]);
+        }
+      }
+      cmtfile.Printf("\n");
+      cjtfile.Printf("\n");
+    }
+    cmtfile.CloseFile();
+    cjtfile.CloseFile();
+
+  // -------------------- NORMAL CALCULATION -------------------------
   } else if (type_ == NORMAL) {
     // Initialize memory
     p2cf_ = new double[ nsteps ];
@@ -601,6 +711,53 @@ int Analysis_Timecorr::Analyze() {
         }
       } // END j loop over m 
     } // END i loop over correlation fns
+
+    // ----- PRINT NORMAL -----
+    CpptrajFile outfile;
+    if (outfile.OpenWrite(filename_)) return 1;
+    outfile.Printf("%s-correlation functions, %s type\n",ModeString[mode_],"normal");
+    if (dplr_) {
+      outfile.Printf("***** Vector length *****\n");
+      outfile.Printf("%10s %10s %10s %10s\n", "<r>", "<rrig>", "<1/r^3>", "<1/r^6>");
+      vinfo1_->PrintAvgcrd( outfile );
+      if (vinfo2_ != 0)
+        vinfo2_->PrintAvgcrd( outfile );
+    }
+    outfile.Printf("\n***** Correlation functions *****\n");
+    if (dplr_) {
+      outfile.Printf("%10s %10s %10s %10s\n", "Time", "<C>", "<P2>", "<1/(r^3*r^3)>");
+      if (norm_) {
+        for (int i = 0; i < nsteps; ++i)
+          outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n",
+                         (double)i * tstep_,
+                         cf_[i]   * frame / (cf_[0]   * (frame - i)),
+                         p2cf_[i] * frame / (p2cf_[0] * (frame - i)),
+                         rcf_[i]  * frame / (rcf_[0]  * (frame - i)));  
+      } else {
+        // 4/5*PI due to spherical harmonics addition theorem
+        for (int i = 0; i < nsteps; ++i)
+          outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n",
+                         (double)i * tstep_,
+                         FOURFIFTHSPI * cf_[i]   / (frame - i),
+                         FOURFIFTHSPI * p2cf_[i] / (frame - i),
+                         rcf_[i]  / (frame - i));
+      }
+    } else {
+      outfile.Printf("%10s %10s\n", "Time", "<P2>");
+      if (norm_) {
+        for (int i = 0; i < nsteps; ++i)
+          outfile.Printf("%10.3f %10.4f\n",
+                         (double)i * tstep_,
+                         p2cf_[i] * frame / (p2cf_[0] * (frame - i)));
+      } else {
+        // 4/5*PI due to spherical harmonics addition theorem
+        for (int i = 0; i < nsteps; ++i)
+          outfile.Printf("%10.3f %10.4f\n",
+                         (double)i * tstep_,
+                         FOURFIFTHSPI * p2cf_[i] / (frame - i));
+      }
+    }
+    outfile.CloseFile();
   }
 
   return 0;

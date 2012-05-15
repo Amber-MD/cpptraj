@@ -12,6 +12,7 @@ class Analysis_Timecorr : public Analysis {
 
     int Setup(DataSetList*);
     int Analyze();
+    //void Print(DataFileList*);
   private:
     enum timecorrMode { M_UNKNOWN, AUTO, CROSS };
     enum timecorrType { T_UNKNOWN, IRED, NORMAL };
@@ -19,6 +20,7 @@ class Analysis_Timecorr : public Analysis {
     // 4/5*PI due to spherical harmonics addition theorem
     // FOURFIFTHSPI in Constants.h
 
+    static const char ModeString[][6];
     timecorrMode mode_;
     timecorrType type_;
     bool dplr_;
