@@ -44,7 +44,7 @@ int ModesInfo::SetNavgElem(int mask1tot) {
     navgelem_ = mask1tot * (mask1tot - 1) / 2;
   else // CORREL, COVAR, MWCOVAR
     navgelem_ = 3 * mask1tot;
-  mprintf("CDBG: mask1tot=%i ModesInfo::navgelem = %i\n",mask1tot, navgelem_);
+  //mprintf("CDBG: mask1tot=%i ModesInfo::navgelem = %i\n",mask1tot, navgelem_);
   return navgelem_;
 }
 
@@ -132,6 +132,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
     for (int j = 0; j < nvals; j++)
       avg_[nent++] = tmpval[j];
   }
+  //mprintf("CDBG: ReadEvecFile(): nent=%i\n", nent);
 
   // Read eigenvectors
   ncoords = nvectelem_;
@@ -140,7 +141,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
     ++nlines;
   nvect_ = 0;
   int nno = 0;
-  while ( infile.IO->Gets(buffer, BUFSIZE_)!=0 ) { // This should read in ' ****'
+  while ( infile.IO->Gets(buffer, BUFSIZE_)==0 ) { // This should read in ' ****'
     if (strncmp(buffer," ****", 5)!=0) {
       mprinterr("Error: ReadEvecFile(): When reading eigenvectors, expected ' ****',\n");
       mprinterr("       got %s [%s]\n", buffer, infile.Name());
@@ -155,6 +156,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
       mprinterr("Error: ReadEvecFile(): error while scanning number and freq (%s)\n",infile.Name());
       return 1;
     }
+    //mprintf("CDBG:\tVec[%i]: #%i frequency=%lf\n", nvect_, nno, tmpval[0]);
     if (nno >= ibeg && nno <= iend)
       freq_[nvect_] = tmpval[0];
     else if (nno > iend)
@@ -181,7 +183,10 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
             nvect_, iend - ibeg + 1);
   }
  
-  infile.CloseFile(); 
+  infile.CloseFile();
+  // DEBUG
+  //mprintf("CDBG: ModesInfo read from %s:",modesfile.c_str());
+  //mprintf("navgelem=%i nvect=%i nvectelem=%i\n", navgelem_, nvect_, nvectelem_);
   return 0;
 }
 
