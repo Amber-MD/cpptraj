@@ -116,7 +116,7 @@ typedef struct _actionInformation {
 
 // -----------------------------------------------------------------------------
 // ACTION: TRANSFORM_CORRELATION
-typedef struct _transformCorrInfo {
+/*typedef struct _transformCorrInfo {
   char *name;
   char *filename;
   int totalFrames;
@@ -150,13 +150,13 @@ enum _corrInfo { CORR_BOX, CORR_MASK };
   _p_->tmin        = 0;                   \
   _p_->tcorr       = 0;                   \
   _p_->tmax        = 0
-
+*/
 // ---------- Functions --------------------------------------------------------
 //int transformAtomicFluct3D(actionInformation *, double *, double *, double *, double *, int);
 //int transformCluster(actionInformation *, double *, double *, double *, double *, int);
 //int transformClusterAttribute(actionInformation*,double*,double*,double*, double *, int);
 //int transformContacts(actionInformation *, double *, double *, double *, double *, int);
-int transformCorr(actionInformation *, double *, double *, double *, double *, int);
+//int transformCorr(actionInformation *, double *, double *, double *, double *, int);
 int transformDiffusion(actionInformation *, double *, double *, double *, double *, int);
 int transformDihedralCluster(actionInformation*,double*,double *, double *, double *, int);
 int transformDipole(actionInformation *, double *, double *, double *, double *, int);
@@ -164,14 +164,14 @@ int transformDNAiontracker(actionInformation *, double *, double *, double *, do
 int transformEcho(actionInformation *, double *, double *, double *, double *, int);
 //int transformEnergy(actionInformation *, double *, double *, double *, double *, int);
 int transformGrid(actionInformation *, double *, double *, double *, double *, int);
-int transformMatrix(actionInformation *, double *, double *, double *, double *, int);
+//int transformMatrix(actionInformation *, double *, double *, double *, double *, int);
 int transformPrincipal(actionInformation *, double *, double *, double *, double *, int);
 int transformProjection(actionInformation *, double *, double *, double *, double *, int);
 int transformRandomizeIons(actionInformation *, double *, double *, double *, double *, int);
 int transformScale(actionInformation *, double *, double *, double *, double *, int);
 //int transformTruncOct(actionInformation *, double *, double *, double *, double *, int);
 int transformUnwrap(actionInformation *, double *, double *, double *, double *, int);
-int transformVector(actionInformation *, double *, double *, double *, double *, int);
+//int transformVector(actionInformation *, double *, double *, double *, double *, int);
 actionInformation* ptrajCopyAction(actionInformation**);
 
 int jacobiCheckChirality(double[3], double[3][3]);

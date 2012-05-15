@@ -53,37 +53,6 @@ scalarInfo *scalarStackGetName(stackType **scalarStackP, char *name)
   return (match);
 }
 
-// matrixInfoStackGetName()
-transformMatrixInfo *matrixInfoStackGetName(stackType **matrixStackP, char *name)
-{
-  stackType *s;
-  transformMatrixInfo *info, *match;
-
-  match = NULL;
-  for (s = *matrixStackP; s != NULL; s = s->next) {
-    info = (transformMatrixInfo *) s->entry;
-    if ( strcmp(info->name, name) == 0 )
-      match = info;
-  }
-  return (match);
-}
-
-// vectorInfoStackGetName()
-transformVectorInfo *vectorInfoStackGetName(stackType **vectorStackP, char *name) {
-  stackType *vStack;
-  transformVectorInfo *vinfo, *match;
-
-  match = NULL;
-  for (vStack = *vectorStackP; vStack != NULL; vStack = vStack->next) {
-    vinfo = (transformVectorInfo *) vStack->entry;
-    if ( strcmp(vinfo->name, name) == 0 ) {
-      match = vinfo;
-      break;
-    }
-  }
-  return match;
-}
-
 // modesInfoStackGetName()
 modesInfo *modesInfoStackGetName(stackType **modesStackP, char *name)
 {

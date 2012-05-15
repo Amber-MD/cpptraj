@@ -61,10 +61,10 @@ int PtrajAction::init( ) {
   actioninfo->type = TRANSFORM_NOOP;
 
   // Set the action type and function based on the command
-  if ( actionArgs.CommandIs("correlation")    ) {
+  /*if ( actionArgs.CommandIs("correlation")    ) {
     actioninfo->type = TRANSFORM_CORRELATION;
     actioninfo->fxn  = (actionFunction) transformCorr;
-  } else if ( actionArgs.CommandIs("clusterdihedral")) {
+  } else*/ if ( actionArgs.CommandIs("clusterdihedral")) {
     actioninfo->type = TRANSFORM_DIHEDRALCLUSTER;
     actioninfo->fxn  = (actionFunction) transformDihedralCluster;
   } else if ( actionArgs.CommandIs("diffusion")      ) {
@@ -82,9 +82,6 @@ int PtrajAction::init( ) {
   } else if ( actionArgs.CommandIs("grid")           ) {
     actioninfo->type = TRANSFORM_GRID;
     actioninfo->fxn  = (actionFunction) transformGrid;
-  } else if ( actionArgs.CommandIs("matrix")         ) {
-    actioninfo->type = TRANSFORM_MATRIX;
-    actioninfo->fxn  = (actionFunction) transformMatrix;
   } else if ( actionArgs.CommandIs("principal")      ) {
     actioninfo->type = TRANSFORM_PRINCIPAL;
     actioninfo->fxn  = (actionFunction) transformPrincipal;
@@ -103,9 +100,6 @@ int PtrajAction::init( ) {
     actioninfo->type = TRANSFORM_UNWRAP;
     actioninfo->fxn  = (actionFunction) transformUnwrap;
     coordinate_update = true;
-  } else if ( actionArgs.CommandIs("vector")         ) {
-    actioninfo->type = TRANSFORM_VECTOR;
-    actioninfo->fxn  = (actionFunction) transformVector;
   } else {
     mprinterr("Error: PtrajAction: Unrecognized Ptraj command: %s\n",actionArgs.Command());
     return 1;
