@@ -10,6 +10,7 @@
 #include "ProgressBar.h"
 
 // Definition of Fortran subroutines in Rotdif.f called from this class
+#ifndef NO_PTRAJ_ANALYZE
 extern "C" {
   // LAPACK
   void dgesvd_(char*, char*, int&, int&, double*,
@@ -22,6 +23,7 @@ extern "C" {
   // DEBUG
   //void dgemv_(char*,int&,int&,double&,double*,int&,double*,int&,double&,double*,int&);
 }
+#endif
 
 // CONSTRUCTOR
 Rotdif::Rotdif() :
