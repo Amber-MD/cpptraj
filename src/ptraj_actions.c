@@ -7119,6 +7119,7 @@ spherharm(int l, int m, double x, double y, double z, double r,
   const double SH22=0.38627420;
 
   double ri;
+  //printf("PDBG: x=%.10lE y=%.10lE z=%.10lE\n",x,y,z);
 
   *dreal = 0.0;
   *dimg = 0.0;
@@ -7149,6 +7150,7 @@ spherharm(int l, int m, double x, double y, double z, double r,
       *dimg  = m * SH22 * x * y * ri * ri;
     }
   }
+  //printf("PDBG: dreal=%.10lE dimg=%.10lE\n",*dreal,*dimg);
 }
 
    void
@@ -7875,6 +7877,9 @@ transformVector(actionInformation *action,
          */
         for(j = 0; j < nvect; j++){
           q = evec[j * nvectelem + npair];
+          //printf("PDBG: Q=%.10lE\n",q);
+          //printf("PDBG: Dplus=%lE,%lE\n",dplusreal,dplusimg);
+          //printf("PDBG:  Dminus=%lE,%lE\n",dminusreal,dminusimg);
           indtot = 2 * (indsnap + indplus + j);
           cftmp[indtot  ] += (q * dplusreal);
           cftmp[indtot+1] += (q * dplusimg);
@@ -7883,6 +7888,7 @@ transformVector(actionInformation *action,
             cftmp[indtot  ] += q * dminusreal;
             cftmp[indtot+1] += q * dminusimg;
           }
+          //printf("PDBG: cftmp[%i]=%lf cftmp[%i]=%lf\n",indtot,cftmp[indtot],indtot+1,cftmp[indtot+1]);
         }
       }
       else if(vmode == VECTOR_CORR || 

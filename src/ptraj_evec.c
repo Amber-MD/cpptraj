@@ -61,7 +61,7 @@ readEvecFile(FILE *fp, int ibeg, int iend, modesInfo *modinfo){
   char buffer[BUFFER_SIZE];
   int i, j, nlines, nent, nrest;
   int nno, nvec, ncoords;
-  float tmpval;
+  double tmpval; // NOTE: was float previously
   double *avg, *freq, *evec;
   char *tmpbuf;
 
@@ -154,7 +154,7 @@ readEvecFile(FILE *fp, int ibeg, int iend, modesInfo *modinfo){
     tmpbuf = buffer;
     nrest = i < nlines - 1 ? 7 : ncoords - nent;
     for(j = 0; j < nrest; j++){
-      if(sscanf(tmpbuf, "%f", &tmpval) != 1){
+      if(sscanf(tmpbuf, "%lf", &tmpval) != 1){
         fprintf(stderr,
                 "WARNING in ptraj(), readEvecFile: error while scanning avg coords\n");
         return 1;
@@ -191,7 +191,7 @@ readEvecFile(FILE *fp, int ibeg, int iend, modesInfo *modinfo){
               "WARNING in ptraj(), readEvecFile: error while reading number and freq\n");
       return 1;
     }
-    if(sscanf(buffer, "%i%f", &nno, &tmpval) != 2){
+    if(sscanf(buffer, "%i%lf", &nno, &tmpval) != 2){
       fprintf(stderr,
               "WARNING in ptraj(), readEvecFile: error while scanning number and freq\n");
       return 1;
@@ -222,14 +222,15 @@ readEvecFile(FILE *fp, int ibeg, int iend, modesInfo *modinfo){
         tmpbuf = buffer;
         nrest = i < nlines - 1 ? 7 : ncoords - nent;
         for(j = 0; j < nrest; j++){
-          if(sscanf(tmpbuf, "%f", &tmpval) != 1){
+          // NOTE: Previously this was read in as float
+          if(sscanf(tmpbuf, "%lf", &tmpval) != 1){
             fprintf(stderr,
                     "WARNING in ptraj(), readEvecFile: error while scanning evec coords\n");
             return 1;
           }
           else{
             tmpbuf += 11;
-            evec[ncoords * nvec + nent] = tmpval;
+            evec[ncoords * nvec + nent] = tmpval; 
             nent++;
           }
         }

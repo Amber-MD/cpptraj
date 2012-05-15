@@ -3952,6 +3952,7 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
   }
   ndata2 = ndata / 2;
   mtot     = 2 * vinfo1->order + 1;
+  printf("PDBG: frame=%i time=%i nsteps=%i ndata=%i mtot=%i\n",frame,(int) (tcorr / tstep) + 1,nsteps,ndata,mtot);
 
   /*
    *  Allocate memory and initialize arrays
@@ -4029,10 +4030,12 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
           cfinfavgreal += cftmp1[ind3  ];
           data1[2*k+1] =  cftmp1[ind3+1];
           cfinfavgimg  += cftmp1[ind3+1];
+          //printf("PDBG:\tVec=%i Frame=%i data1[%i]=%lf data1_[%i]=%lf\n",i,k,
+          //        2*k, data1[2*k], 2*k+1, data1[2*k+1]);
         }
         cfinfavgreal /= frame;
         cfinfavgimg  /= frame;
-
+        //printf("PDBG:\tVect[%i] cfinfavgreal=%lf cfinfavgimg=%lf\n",i,cfinfavgreal,cfinfavgimg);
 	/*
 	 * Calc plateau value of correlation function (= C(m,t->T) in Bruschweiler paper (A20))
 	 */
@@ -4062,6 +4065,7 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
          * Sum into cf (= C(m,t) in Bruschweiler paper)
          */
         for(k = 0; k < nsteps; k++){
+          //printf("PDBG: cf[%i] += data1[%i] (%lf)\n",ind1+k, 2*k, data1[2 * k]);
           cf[ind1 + k] += data1[2 * k];
         }
       }
@@ -4074,8 +4078,13 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
        for(k = 0; k < nsteps; k++){
        double sum = 0.0;
        for(j = 0; j < nvect; j++){ 
+          //printf("PDBG: eigval[%i]=%lf vout[%i]=%lf cf[%i]=%lf frame-k=%i\n",
+          //        j, eigval[j],
+          //        j * nvectelem + i, vout[j * nvectelem + i],
+          //        nsteps * j + k, cf[nsteps * j + k], frame - k);
           sum+=(eigval[j] * (vout[j * nvectelem + i] * vout[j * nvectelem + i]))*(cf[nsteps * j + k] / (frame - k));
         }
+        //printf("PDBG:\tVec=%i Step=%i sum=%lf\n",i,k,sum);
         cf_cjt[nsteps * i + k]=sum;
       } 
     }
@@ -4093,19 +4102,23 @@ analyzeTimecorr(analyzeInformation *analyze, stackType *sp, int mode)
      }                                                      
      
      double new_nsteps = nsteps / 3.0; /* consider only first third of the correlation curve to avoid fitting errors */
+     //printf("PDBG: new_nsteps= %lf\n",new_nsteps);
            
      for(i = 0 ; i < nvect; i++){
         double integral = 0.0;
         double cfinfval = cfinf[i] / cf[nsteps * i] * frame;
+        //printf("PDBG: cfinfval= %.10lE\n",cfinfval);
 	for ( j = 0 ; j < new_nsteps; j++ ) {
             double cfk=cf[nsteps * i + j] * frame / (cf[nsteps * i] * (frame - j));
             double cfk1=cf[nsteps * i + j + 1 ] * frame / (cf[nsteps * i] * (frame - (j+1)));
 	    double fa = cfk - cfinfval;
 	    double fb = cfk1 - cfinfval;
 	    integral += tstep * 1.0E-12 * ( fa + fb ) * 0.5;
+            //printf("PDBG:\tintegral[%i]= %.10lE\n",j,integral);
 	}
         double taum_val = integral / ( 1.0 - cfinfval );
 	taum[i]=taum_val;
+        //printf("PDBG: taum[%i]= %.10lE\n", i, taum[i]);
      }	 
     
     /*
