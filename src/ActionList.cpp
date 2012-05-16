@@ -124,6 +124,7 @@ int ActionList::AddAction(ArgList &argIn) {
            argIn.CommandIs("dipole") ||
            argIn.CommandIs("dnaiontracker") ||
            argIn.CommandIs("echo") ||
+           argIn.CommandIs("FEoH") ||
            argIn.CommandIs("grid") ||
            //argIn.CommandIs("matrix") ||
            argIn.CommandIs("principal") ||

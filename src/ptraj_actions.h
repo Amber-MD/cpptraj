@@ -32,7 +32,7 @@ typedef enum _actionType {
   TRANSFORM_CLUSTERATTRIBUTE, TRANSFORM_CONTACTS, TRANSFORM_DIFFUSION,
   TRANSFORM_DIHEDRAL, TRANSFORM_DIHEDRALCLUSTER, TRANSFORM_DIPOLE,
   TRANSFORM_DISTANCE, TRANSFORM_DONOR, TRANSFORM_DNAIONTRACKER, TRANSFORM_ECHO,
-  TRANSFORM_ENERGY, TRANSFORM_GRID, TRANSFORM_HBOND, TRANSFORM_IMAGE,
+  TRANSFORM_ENERGY, TRANSFORM_GRID, TRANSFORM_FEOH, TRANSFORM_HBOND, TRANSFORM_IMAGE,
   TRANSFORM_MATRIX, TRANSFORM_PRINCIPAL, TRANSFORM_PRNLEV, TRANSFORM_PROJECTION,
   TRANSFORM_PUCKER, TRANSFORM_RADIAL, TRANSFORM_RADIUSOFGYRATION,
   TRANSFORM_RANDOMIZEIONS, TRANSFORM_REFERENCE, TRANSFORM_RMS,
@@ -164,6 +164,7 @@ int transformDNAiontracker(actionInformation *, double *, double *, double *, do
 int transformEcho(actionInformation *, double *, double *, double *, double *, int);
 //int transformEnergy(actionInformation *, double *, double *, double *, double *, int);
 int transformGrid(actionInformation *, double *, double *, double *, double *, int);
+int transformGibbsEnergyOfHydration(actionInformation *, double *, double *, double *, double *, int);
 //int transformMatrix(actionInformation *, double *, double *, double *, double *, int);
 int transformPrincipal(actionInformation *, double *, double *, double *, double *, int);
 int transformProjection(actionInformation *, double *, double *, double *, double *, int);

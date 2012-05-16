@@ -82,6 +82,9 @@ int PtrajAction::init( ) {
   } else if ( actionArgs.CommandIs("grid")           ) {
     actioninfo->type = TRANSFORM_GRID;
     actioninfo->fxn  = (actionFunction) transformGrid;
+  } else if ( actionArgs.CommandIs("FEoH")           ) {
+    actioninfo->type = TRANSFORM_FEOH;
+    actioninfo->fxn  = (actionFunction) transformGibbsEnergyOfHydration;
   } else if ( actionArgs.CommandIs("principal")      ) {
     actioninfo->type = TRANSFORM_PRINCIPAL;
     actioninfo->fxn  = (actionFunction) transformPrincipal;

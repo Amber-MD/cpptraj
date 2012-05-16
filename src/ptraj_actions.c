@@ -3114,6 +3114,439 @@ transformEnergy(actionInformation *action,
 
 
 
+/** ACTION ROUTINE *************************************************************
+ *
+ *  transformGibbsEnergyOfHydration()   --- 
+ *
+ ******************************************************************************/
+  /*
+   * The transformGibbsEnergyOfHydration command forms a set of voxels (grid[]) over the Cartesian space of the frame:
+   * 
+   *   gridInfo->grid[]
+   *
+   * If a specific atommask is found with a voxel, the counter for that specific voxel (index):
+   *
+   *   gridInfo->grid[index]  
+   *
+   * is incremented by one. This is the voxel's occupancy count.
+   * This process is repeated for all the frames in a trajectory.
+   *
+   */
+
+   int
+transformGibbsEnergyOfHydration(actionInformation *action,
+              double *x, double *y, double *z,
+              double *box, int mode)
+{
+  argStackType **argumentStackPointer;
+  char *buffer;
+  ptrajState *state;
+  transformGridInfo *gridInfo;
+  int n, i, j, k, c;
+  int isbox, negative;
+  int *mask;
+  double xx, yy, zz;
+  double sx, sy, sz, gridMax;
+  int nx, ny, nz, index;
+  FILE *outFile;
+
+  // What is the maximum expected voxel occupancy count
+  // TODO Work out a smart way of calculating this since it will be a function of the trajectory
+  // Maybe an upper limit of this is:
+  //       numberOfVoxels * numberOfFrames?
+  int maxVoxelOccupancyCount = 600;
+
+  /* How times does this occupancy count value arise?
+   *    i.e. if  
+   *                 voxelOccupancyCount[50] = 10 
+   * 
+   *         then there are 10 voxels with an occupancy count 50
+   */
+  int voxelOccupancyCount[maxVoxelOccupancyCount];
+
+  // Largest occupancy count
+  int currentLargestVoxelOccupancyCount;
+
+  /* Value of most frequent voxel occupancy count
+   *
+   * i.e. if 
+   *                 voxelOccupancyCount[50] = 10 
+   *                 voxelOccupancyCount[51] = 100
+   *                 voxelOccupancyCount[52] = 5
+   *      then
+   *                 mostFrequentVoxelOccupancy would be 51
+   */
+  int mostFrequentVoxelOccupancy;
+
+  if (mode == PTRAJ_SETUP) {
+
+    /*
+     *  ACTION: PTRAJ_SETUP
+     */
+
+#ifdef MPI
+    printParallelError(name);
+    return -1;
+#endif
+
+    argumentStackPointer = (argStackType **) action->carg1;
+    action->carg1 = NULL;
+
+    gridInfo = (transformGridInfo *)
+      safe_malloc(sizeof(transformGridInfo));
+    INITIALIZE_transformGridInfo(gridInfo);
+
+    gridInfo->filename = getArgumentString(argumentStackPointer, NULL);
+    if (gridInfo->filename == NULL) {
+      error("ptraj()", "No file was specified for grid/dipole output\n");
+    }
+    gridInfo->nx = getArgumentInteger(argumentStackPointer, -1);
+    gridInfo->dx = getArgumentDouble( argumentStackPointer, -1);
+    gridInfo->ny = getArgumentInteger(argumentStackPointer, -1);
+    gridInfo->dy = getArgumentDouble( argumentStackPointer, -1);
+    gridInfo->nz = getArgumentInteger(argumentStackPointer, -1);
+    gridInfo->dz = getArgumentDouble( argumentStackPointer, -1);
+    if (gridInfo->nx < 0 || gridInfo->ny < 0 || gridInfo->nz < 0 ||
+        gridInfo->dx < 0 || gridInfo->dy < 0 || gridInfo->dz < 0) {
+      error("ptraj()", "Specification of grid/dipole size or spacing\n");
+    }
+
+    if (gridInfo->nx % 2 == 1) {
+      fprintf(stdout, "WARNING in ptraj(): grid -- number of grid points must be even!\n");
+      gridInfo->nx++;
+      fprintf(stdout, "Incrementing NX by 1 to %i\n", gridInfo->nx);
+    }
+
+    if (gridInfo->ny % 2 == 1) {
+      fprintf(stdout, "WARNING in ptraj(): grid -- number of grid points must be even!\n");
+      gridInfo->ny++;
+      fprintf(stdout, "Incrementing NY by 1 to %i\n", gridInfo->ny);
+    }
+
+    if (gridInfo->nz % 2 == 1) {
+      fprintf(stdout, "WARNING in ptraj(): grid -- number of grid points must be even!\n");
+      gridInfo->nz++;
+      fprintf(stdout, "Incrementing NZ by 1 to %i\n", gridInfo->nz);
+    }
+
+    buffer = getArgumentString(argumentStackPointer, NULL);
+    if (buffer == NULL) {
+      error("ptraj()", "No mask was specified for grid\n");
+    }
+    action->mask = processAtomMask(buffer, action->state);
+    safe_free(buffer);
+
+    if (argumentStackContains(argumentStackPointer, "box"))
+      action->iarg1 = 1;
+    else if (argumentStackContains(argumentStackPointer, "origin"))
+      action->iarg1 = 0;
+
+    if (action->iarg1 == 1 &&
+        (action->state->box[3] != 90.0 || box[3] != 90.0 ||
+         action->state->box[4] != 90.0 || box[4] != 90.0 ||
+         action->state->box[5] != 90.0 || box[5] != 90.0)) {
+      fprintf(stdout, "WARNING in ptraj() dipole: Code to shift to the box center\n");
+      fprintf(stdout, "is not implemented yet in transformDipole for non-orthorhomibic\n");
+      fprintf(stdout, "unit cells.  Shifting to the origin instead!!!\n");
+      action->iarg1 = 0;
+    }
+
+    action->iarg2 = 0;
+    if (argumentStackContains(argumentStackPointer, "negative"))
+      action->iarg2 = 1;
+
+    action->darg1 = argumentStackKeyToDouble(argumentStackPointer, "max", 0.80);
+
+    if (argumentStackContains(argumentStackPointer, "invert"))
+      action->iarg3 = 1;
+
+    gridInfo->frames = 0;
+    gridInfo->grid = (float *)
+      safe_malloc(sizeof(float) * gridInfo->nx*gridInfo->ny*gridInfo->nz);
+    memset(gridInfo->grid, 0,
+          sizeof(float) * gridInfo->nx*gridInfo->ny*gridInfo->nz);
+
+    action->carg1 = (void *) gridInfo;
+    return 0;
+  }
+
+
+  gridInfo = (transformGridInfo *) action->carg1;
+
+
+
+
+
+
+  if (mode == PTRAJ_STATUS) {
+
+    /*
+     *  ACTION: PTRAJ_STATUS
+     */
+
+    fprintf(stdout, "  GRID at %s will be dumped to filename %s as %s density\n",
+            (action->iarg1 == 0 ? "origin" : "box center"),
+            gridInfo->filename,
+            (action->iarg2 == 0 ? "positive" : "negative"));
+    fprintf(stdout, "      Atom selection is ");
+    printAtomMask(stdout, action->mask, action->state);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "      grid points : %5i %5i %5i\n",
+            gridInfo->nx, gridInfo->ny, gridInfo->nz);
+    fprintf(stdout, "      grid spacing: %5.3f %5.3f %5.3f\n",
+            gridInfo->dx, gridInfo->dy, gridInfo->dz);
+    return 0;
+
+
+
+
+  } else if (mode == PTRAJ_PRINT) {
+
+    /*
+     *  ACTION: PTRAJ_PRINT
+     */
+
+
+    /* Zero the voxelOccupancyCount array */
+    for (i = 0; i < (maxVoxelOccupancyCount-1); i++){
+      voxelOccupancyCount[i] = 0;
+    }
+
+
+    if ( gridInfo->filename == NULL ) {
+      fprintf(stdout, "WARNING in ptraj(), grid: filename is NULL, not dumping grid data\n");
+      return 0;
+    }
+
+    fprintf(stdout, "PTRAJ GRID dumping atomic density\n");
+    if ( ( outFile = fopen(gridInfo->filename, "w") ) == NULL ) {
+      fprintf(stdout, "WARNING in ptraj(), grid: couldn't open file %s\n",
+              gridInfo->filename);
+      return 0;
+    }
+
+    fprintf(outFile, "This line is ignored\n");
+    fprintf(outFile, "%8i\n", 1);
+    fprintf(outFile, "rdparm generated grid density\n");
+    fprintf(outFile, "%8i%8i%8i",
+            gridInfo->nx, -gridInfo->nx/2+1, gridInfo->nx/2);
+    fprintf(outFile, "%8i%8i%8i",
+            gridInfo->ny, -gridInfo->ny/2+1, gridInfo->ny/2);
+    fprintf(outFile, "%8i%8i%8i\n",
+            gridInfo->nz, -gridInfo->nz/2+1, gridInfo->nz/2);
+    fprintf(outFile, "%12.3f%12.3f%12.3f%12.3f%12.3f%12.3f\n",
+            (double) gridInfo->nx * gridInfo->dx,
+            (double) gridInfo->ny * gridInfo->dy,
+            (double) gridInfo->nz * gridInfo->dz,
+            90.0, 90.0, 90.0);
+    fprintf(outFile, "ZYX\n");
+
+    gridMax = 0.0;
+    currentLargestVoxelOccupancyCount = 0;
+
+    for (k = 0; k < gridInfo->nz; k++) {
+      fprintf(outFile, "%8i\n", k - gridInfo->nz/2+1);
+      for (j = 0; j < gridInfo->ny; j++) {
+        c = 1;
+        for (i = 0; i < gridInfo->nx; i++) {
+
+          index = i * gridInfo->ny * gridInfo->nz +
+            j * gridInfo->nz + k;
+
+          fprintf(outFile, "%12.5f", gridInfo->grid[index]);
+
+          if (c && c%6 == 0)
+            fprintf(outFile, "\n");
+          c++;
+
+          if ( gridInfo->grid[index] > gridMax )
+            gridMax = gridInfo->grid[index];
+
+          // Add one to the counter for the fequency of this bin population
+          voxelOccupancyCount[ (int) gridInfo->grid[index] ] += 1;
+
+        }
+        if ( (c-1) % 6 != 0 )   /* unless a newline was just written.. */
+          fprintf(outFile, "\n");
+      }
+    }
+
+    safe_fclose(outFile);
+
+    /*
+     * Walk the voxelOccupancyCount[] array and determine which
+     * occupancy is the most frequent.
+     */
+    for (i = 1; i < maxVoxelOccupancyCount; i++){
+      /* Debug output */
+      //printf("voxelOccupancyCount[%i] %i\n", i, voxelOccupancyCount[i]);
+
+      /* Determine which voxel has the higest occupancy count
+       * i.e. which is the most frequent value.
+       */
+      if ( voxelOccupancyCount[i] > currentLargestVoxelOccupancyCount ){
+        // What is the voxel Occupancy Count
+        currentLargestVoxelOccupancyCount = voxelOccupancyCount[i];
+        mostFrequentVoxelOccupancy = i;
+      }
+    }
+
+
+    fprintf(stdout, "PTRAJ GRID dumping atomic density\n");
+    if ( ( outFile = fopen(gridInfo->filename, "w") ) == NULL ) {
+      fprintf(stdout, "WARNING in ptraj(), grid: couldn't open file %s\n",
+              gridInfo->filename);
+      return 0;
+    }
+
+    // The assumption here is that mostFrequentVoxelOccupancy corresponds to the
+    // the occupancy count of bulk solvent 
+    int normalisationFactor = mostFrequentVoxelOccupancy;
+
+    //      2 !NTITLE
+    //REMARKS FILENAME=""
+    //REMARKS scitbx.flex.double to Xplor map format
+
+    fprintf(outFile, "\n");
+    fprintf(outFile, "%8i\n", 1); // How many remakrs lines
+    fprintf(outFile, "REMARKS Change in Gibbs energy from bulk solvent with bin normalisation of %i\n", normalisationFactor);
+    fprintf(outFile, "%8i%8i%8i",
+            gridInfo->nx, -gridInfo->nx/2+1, gridInfo->nx/2);
+    fprintf(outFile, "%8i%8i%8i",
+            gridInfo->ny, -gridInfo->ny/2+1, gridInfo->ny/2);
+    fprintf(outFile, "%8i%8i%8i\n",
+            gridInfo->nz, -gridInfo->nz/2+1, gridInfo->nz/2);
+    fprintf(outFile, "%12.3f%12.3f%12.3f%12.3f%12.3f%12.3f\n",
+            (double) gridInfo->nx * gridInfo->dx,
+            (double) gridInfo->ny * gridInfo->dy,
+            (double) gridInfo->nz * gridInfo->dz,
+            90.0, 90.0, 90.0);
+    fprintf(outFile, "ZYX\n");
+
+
+    for (k = 0; k < gridInfo->nz; k++) {
+      fprintf(outFile, "%8i\n", k - gridInfo->nz/2+1);
+      for (j = 0; j < gridInfo->ny; j++) {
+        c = 1;
+        for (i = 0; i < gridInfo->nx; i++) {
+          index = i * gridInfo->ny * gridInfo->nz + j * gridInfo->nz + k;
+          // Will return Delta G in terms of KbT
+          fprintf(outFile, "%12.5f",  (-1.0 * log( (gridInfo->grid[index]/ normalisationFactor) + 0.00000001)) );
+
+          if (c && c%6 == 0)
+            fprintf(outFile, "\n");
+          c++;
+
+        }
+        if ( (c-1) % 6 != 0 )   /* unless a newline was just written.. */
+          fprintf(outFile, "\n");
+      }
+    }
+
+    safe_fclose(outFile);
+
+
+
+
+
+  } else if (mode == PTRAJ_CLEANUP) {
+
+    /*
+     *  ACTION: PTRAJ_CLEANUP
+     */
+    safe_free(action->mask);
+    safe_free(gridInfo->filename);
+    safe_free(gridInfo->grid);
+    INITIALIZE_transformGridInfo(gridInfo);
+    safe_free(gridInfo);
+  }
+
+
+
+  if (mode != PTRAJ_ACTION) return 0;
+
+
+  /*
+   *  ACTION: PTRAJ_ACTION
+   */
+
+  state = (ptrajState *) action->state;
+
+  /*
+   *  update local state information
+   */
+  for (i=0; i<6; i++)
+    state->box[i] = box[i];
+
+  nx = gridInfo->nx;
+  ny = gridInfo->ny;
+  nz = gridInfo->nz;
+
+  sx = (double) nx * gridInfo->dx/2.0;
+  sy = (double) ny * gridInfo->dy/2.0;
+  sz = (double) nz * gridInfo->dz/2.0;
+
+  isbox = action->iarg1;
+  negative = action->iarg2;
+  if (state->IFBOX == 0)
+    isbox = 0;
+
+  mask = action->mask;
+
+  if (prnlev > 2) {
+    printf("GRID DEBUGGING\n");
+    printf("NX, NY, NZ (%i %i %i)\n", nx, ny, nz);
+    printf("DX, DY, DZ (%5.3f %5.3f %5.3f)\n", gridInfo->dx, gridInfo->dy, gridInfo->dz);
+    printf("Half grid is %5.3f %5.3f %5.3f\n", sx, sy, sz);
+  }
+
+  for (n=0; n < state->atoms; n++) {
+    /*
+     *  get coordinates and shift to origin then to half the grid,
+     *  later we need to shift back to an origin reference
+     */
+    if (mask[n]) {
+      if ( isbox ) {
+        xx = x[n] - state->box[0]/2.0 + sx;
+        yy = y[n] - state->box[1]/2.0 + sy;
+        zz = z[n] - state->box[2]/2.0 + sz;
+      } else {
+        xx = x[n] + sx;
+        yy = y[n] + sy;
+        zz = z[n] + sz;
+      }
+
+      /*
+       *  determine indices into grid
+       */
+
+      i = (int) (xx / gridInfo->dx ) - 1;
+      j = (int) (yy / gridInfo->dy ) - 1;
+      k = (int) (zz / gridInfo->dz ) - 1;
+
+      /*
+       *  check bounds and increment grid if appropriate
+       */
+      if (prnlev > 2)
+        printf("Coords are (%5.2f %5.2f %5.2f), indices are (%i %i %i), atom %i\n",
+               xx, yy, zz, i, j, k, n+1);
+
+      if (i >= 0 && i < nx && j >= 0 && j < ny && k >= 0 && k < nz) {
+        if (negative)
+          gridInfo->grid[ i*ny*nz + j*nz + k ] -= 1.0;
+        else
+          gridInfo->grid[ i*ny*nz + j*nz + k ] += 1.0;
+      }
+    }
+  }
+
+  return 1;
+
+}
+
+
+
+
 
 /** ACTION ROUTINE *************************************************************
  *
