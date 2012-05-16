@@ -131,9 +131,9 @@ void Action_GibbsEofHydration::print() {
   // occupancy is the most frequent (excluding 0).
   currentLargestVoxelOccupancyCount = voxelOccupancyCount[1];
   mostFrequentVoxelOccupancy = 1;
-  mprintf("CDBG: voxelOccupancyCount[1] = %i\n", voxelOccupancyCount[1]);
+  //mprintf("CDBG: voxelOccupancyCount[1] = %i\n", voxelOccupancyCount[1]);
   for (int i = 2; i < (int)voxelOccupancyCount.size(); ++i) {
-    mprintf("CDBG: voxelOccupancyCount[%i] = %i\n", i, voxelOccupancyCount[i]);
+    //mprintf("CDBG: voxelOccupancyCount[%i] = %i\n", i, voxelOccupancyCount[i]);
     // Determine which voxel has the higest occupancy count
     // i.e. which is the most frequent value.
     if (voxelOccupancyCount[i] > currentLargestVoxelOccupancyCount) {

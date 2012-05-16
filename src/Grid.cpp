@@ -88,9 +88,9 @@ void Grid::GridInfo() {
     mprintf(" origin");
   mprintf(" will be calculated as");
   if (increment_==1)
-    mprintf("positive density\n");
+    mprintf(" positive density\n");
   else
-    mprintf("negative density\n");
+    mprintf(" negative density\n");
   mprintf("\tGrid points : %5i %5i %5i\n", nx_, ny_, nz_);
   mprintf("\tGrid spacing: %5.3lf %5.3lf %5.3lf\n", dx_, dy_, dz_);
 }
