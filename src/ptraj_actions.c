@@ -3663,9 +3663,9 @@ transformGrid(actionInformation *action,
       action->iarg1 = 0;
 
     if (action->iarg1 == 1 &&
-	(action->state->box[3] != 90.0 || box[3] != 90.0 ||
-	 action->state->box[4] != 90.0 || box[4] != 90.0 ||
-	 action->state->box[5] != 90.0 || box[5] != 90.0)) {
+	(action->state->box[3] != 90.0 || //box[3] != 90.0 ||
+	 action->state->box[4] != 90.0 || //box[4] != 90.0 ||
+	 action->state->box[5] != 90.0 )) {//|| box[5] != 90.0)) {
       fprintf(stdout, "WARNING in ptraj() dipole: Code to shift to the box center\n");
       fprintf(stdout, "is not implemented yet in transformDipole for non-orthorhomibic\n");
       fprintf(stdout, "unit cells.  Shifting to the origin instead!!!\n");
@@ -3723,6 +3723,11 @@ transformGrid(actionInformation *action,
     /*
      *  ACTION: PTRAJ_PRINT
      */
+// DEBUG
+//  printf("PDBG: Printing grid.\n");
+//  for (i = 0; i < gridInfo->nx * gridInfo->ny * gridInfo->nz; ++i)
+//    printf("\t%lf\n",gridInfo->grid[i]);
+// END DEBUG
 
     if ( gridInfo->filename == NULL ) {
       fprintf(stdout, "WARNING in ptraj(), grid: filename is NULL, not dumping grid data\n");
@@ -3946,6 +3951,7 @@ transformGrid(actionInformation *action,
 	       xx, yy, zz, i, j, k, n+1);
 
       if (i >= 0 && i < nx && j >= 0 && j < ny && k >= 0 && k < nz) {
+        //printf("PDBG: Bin %i\n", i*ny*nz + j*nz + k);
 	if (negative)
 	  gridInfo->grid[ i*ny*nz + j*nz + k ] -= 1.0;
 	else
