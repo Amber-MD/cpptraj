@@ -39,8 +39,8 @@ VectorType::VectorType() :
   avgcrd_[1] = 0;
   avgcrd_[2] = 0;
   // DEBUG
-  debugpdb.SetupWrite("PRINCIPAL.PDB",0);
-  debugpdb.OpenFile();
+  //debugpdb.SetupWrite("PRINCIPAL.PDB",0);
+  //debugpdb.OpenFile();
   //debuginert.SetupWrite("INERT.PDB",0);
   //debuginert.OpenFile();
 }
@@ -71,7 +71,7 @@ VectorType::~VectorType() {
     if (vz_!=0) delete[] vz_;
   }
   // DEBUG
-  debugpdb.CloseFile();
+  //debugpdb.CloseFile();
   //debuginert.CloseFile();
 }
 
@@ -716,7 +716,7 @@ int VectorType::Action_PRINCIPAL( ) {
   cz_[frame_] = CXYZ[2];
 
   // DEBUG - Write PDB of axes
-  debugpdb.Printf("MODEL %i\n",frame_+1);
+  /*debugpdb.Printf("MODEL %i\n",frame_+1);
   PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 1, (char*)"Orig", (char*)"Vec", ' ', 1, 
                     CXYZ[0], CXYZ[1], CXYZ[2]);
   PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 2, (char*)"X", (char*)"Vec", ' ', 1,    
@@ -725,7 +725,7 @@ int VectorType::Action_PRINCIPAL( ) {
                     Evec[3]+CXYZ[0], Evec[4]+CXYZ[1], Evec[5]+CXYZ[2]);
   PDB.pdb_write_ATOM(debugpdb.IO, PDBfile::PDBATOM, 4, (char*)"Z", (char*)"Vec", ' ', 1,   
                     Evec[0]+CXYZ[0], Evec[1]+CXYZ[1], Evec[2]+CXYZ[2]);
-  debugpdb.Printf("ENDMDL\n");
+  debugpdb.Printf("ENDMDL\n");*/
 
   ++frame_;
 

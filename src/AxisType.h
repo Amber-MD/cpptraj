@@ -4,7 +4,7 @@
 #include "Topology.h"
 #ifdef NASTRUCTDEBUG
 #  include "CpptrajFile.h"
-#  include "PDBfile.h"
+#  include "PDBtype.h"
 #endif
 /*! \file AxisType.h
     \brief Hold classes and functions used for NA structure analysis.
@@ -19,7 +19,7 @@
   *   frames.
   */
 #ifdef NASTRUCTDEBUG
-class AxisType : public Frame, PDBfile
+class AxisType : public Frame, PDBtype
 #else
 class AxisType : public Frame 
 #endif

@@ -1,10 +1,10 @@
 #ifndef INC_TRAJ_PDBFILE_H
 #define INC_TRAJ_PDBFILE_H
 #include "TrajectoryIO.h"
-#include "PDBfile.h"
-// Class: PDBfile
+#include "PDBtype.h"
+// Class: Traj_PDBfile
 /// TrajectoryIO class for reading coordinates from PDB files.
-class Traj_PDBfile: public TrajectoryIO, PDBfile {
+class Traj_PDBfile: public TrajectoryIO, PDBtype {
   public:
     /** PDBWRITEMODE: Indicate how the pdb should be written.
       *  SINGLE: Writing only a single frame.

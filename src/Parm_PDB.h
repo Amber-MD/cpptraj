@@ -1,8 +1,8 @@
 #ifndef INC_PARM_PDB_H
 #define INC_PARM_PDB_H
 #include "ParmIO.h"
-#include "PDBfile.h"
-class Parm_PDB : public ParmIO, PDBfile {
+#include "PDBtype.h"
+class Parm_PDB : public ParmIO, PDBtype {
   public :
     Parm_PDB() { }
     int ReadParm(Topology&);

@@ -1,9 +1,9 @@
 #include <cstdlib> // atoi, atof
 #include <cstring> //strncmp, strlen
 #include <cstdio>  //sprintf
-#include "PDBfile.h"
+#include "PDBtype.h"
 
-PDBfile::PDBfile() {
+PDBtype::PDBtype() {
   buffer_[0]='\0';
   XYZ_[0] = 0;
   XYZ_[1] = 0;
@@ -11,15 +11,15 @@ PDBfile::PDBfile() {
 }
 
 /// PDB record types
-const char PDBfile::PDB_RECNAME[3][7]={"ATOM", "HETATM", "TER"};
+const char PDBtype::PDB_RECNAME[3][7]={"ATOM", "HETATM", "TER"};
 
-bool PDBfile::PDB_GetNextRecord(FileIO *IO) {
+bool PDBtype::PDB_GetNextRecord(FileIO *IO) {
   return ( IO->Gets(buffer_, BUF_SIZE_) == 0 );
 }
 
-// PDBfile::IsPDBkeyword()
+// PDBtype::IsPDBkeyword()
 /** \return true if the first 6 chars of buffer match a PDB keyword */
-bool PDBfile::IsPDBkeyword() {
+bool PDBtype::IsPDBkeyword() {
   if (strncmp(buffer_,"HEADER",6)==0) return true;
   if (strncmp(buffer_,"TITLE ",6)==0) return true;
   if (strncmp(buffer_,"COMPND",6)==0) return true;
@@ -34,7 +34,7 @@ bool PDBfile::IsPDBkeyword() {
   return false;
 }
 
-bool PDBfile::ID(FileIO *IO) {
+bool PDBtype::ID(FileIO *IO) {
   if (!PDB_GetNextRecord(IO)) return false;
   if (IsPDBkeyword()) return true;
   if (!PDB_GetNextRecord(IO)) return false;
@@ -42,15 +42,15 @@ bool PDBfile::ID(FileIO *IO) {
   return false;
 }
 
-// PDBfile::IsPDBatomKeyword
+// PDBtype::IsPDBatomKeyword
 /** \return true if the first 6 chars match ATOM or HETATM */
-bool PDBfile::IsPDBatomKeyword() {
+bool PDBtype::IsPDBatomKeyword() {
   if (strncmp(buffer_,"ATOM  ",6)==0) return true;
   if (strncmp(buffer_,"HETATM",6)==0) return true;
   return false;
 }
 
-bool PDBfile::IsPDB_TER() {
+bool PDBtype::IsPDB_TER() {
   if (buffer_[0]=='T' &&
       buffer_[1]=='E' &&
       buffer_[2]=='R'   )
@@ -58,7 +58,7 @@ bool PDBfile::IsPDB_TER() {
   return false;
 }
 
-bool PDBfile::IsPDB_END() {
+bool PDBtype::IsPDB_END() {
   if (buffer_[0]=='E' &&
       buffer_[1]=='N' &&
       buffer_[2]=='D'   )
@@ -66,8 +66,8 @@ bool PDBfile::IsPDB_END() {
   return false;
 }
 
-// PDBfile::pdb_Atom()
-Atom PDBfile::pdb_Atom() {
+// PDBtype::pdb_Atom()
+Atom PDBtype::pdb_Atom() {
   // Atom number (6-11)
 /*  char savechar = buffer_[11];
   buffer_[11] = '\0';
@@ -98,8 +98,8 @@ Atom PDBfile::pdb_Atom() {
   return Atom(aname);
 }
 
-// PDBfile::pdb_Residue()
-Residue PDBfile::pdb_Residue() {
+// PDBtype::pdb_Residue()
+Residue PDBtype::pdb_Residue() {
   // Res name (16-20)
   char savechar = buffer_[20];
   buffer_[20] = '\0';
@@ -113,9 +113,9 @@ Residue PDBfile::pdb_Residue() {
   return Residue(resnum, resname);
 }
 
-// PDBfile::pdb_XYZ()
+// PDBtype::pdb_XYZ()
 // NOTE: Should check for NULL Xout
-void PDBfile::pdb_XYZ(double *Xout) {
+void PDBtype::pdb_XYZ(double *Xout) {
   // X coord (30-38)
   char savechar = buffer_[38];
   buffer_[38] = '\0';
@@ -133,8 +133,8 @@ void PDBfile::pdb_XYZ(double *Xout) {
   buffer_[54] = savechar;
 }
 
-// PDBfile::XYZ()
-const double *PDBfile::XYZ() {
+// PDBtype::XYZ()
+const double *PDBtype::XYZ() {
   // X coord (30-38)
   char savechar = buffer_[38];
   buffer_[38] = '\0';
@@ -153,7 +153,7 @@ const double *PDBfile::XYZ() {
   return XYZ_;
 }
 
-void PDBfile::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType name,
+void PDBtype::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType name,
                              NameType resnameIn, char chain, int resnum,
                              double X, double Y, double Z)
 {
@@ -162,7 +162,7 @@ void PDBfile::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType 
 
 /// Write out an ATOM or HETATM record
 /** \return the number of characters written */
-void PDBfile::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType name,
+void PDBtype::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType name,
                              NameType resnameIn, char chain, int resnum,
                              double X, double Y, double Z,
                              float Occ, float B, char *End, bool highPrecision) 
@@ -210,7 +210,7 @@ void PDBfile::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType 
 }
  
 /*/// PDB Record Chain ID
-char PDBfile::pdb_chainID(char *buffer) {
+char PDB::pdb_chainID(char *buffer) {
   return buffer[21];
 }*/
 

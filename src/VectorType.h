@@ -4,8 +4,8 @@
 #include "Action.h"
 #include "ModesInfo.h"
 // DEBUG
-#include "CpptrajFile.h"
-#include "PDBfile.h"
+//#incl ude "CpptrajFile.h"
+//#incl ude "PDBfile.h"
 /// Hold coordinate vector information
 //NOTE: Adapted from PTRAJ transformVectorInfo
 class VectorType : public DataSet, public Action {
@@ -75,8 +75,8 @@ class VectorType : public DataSet, public Action {
     double *p2cftmp_;
     double *rcftmp_;
     // DEBUG
-    PDBfile PDB;
-    CpptrajFile debugpdb;
+    //PDBfile PDB;
+    //CpptrajFile debugpdb;
     //CpptrajFile debuginert;
 
     bool operator==(const VectorType&);

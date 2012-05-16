@@ -1,11 +1,11 @@
-#ifndef INC_PDBFILE_H
-#define INC_PDBFILE_H
+#ifndef INC_PDBTYPE_H
+#define INC_PDBTYPE_H
 #include "Topology.h" // Atom, Residue
 #include "FileIO.h"
 /// Used to access PDB files
-class PDBfile {
+class PDBtype {
   public:
-    PDBfile();
+    PDBtype();
 
     enum PDB_RECTYPE {PDBATOM=0, PDBHET, PDBTER};
   
