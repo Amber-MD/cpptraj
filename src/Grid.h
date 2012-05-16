@@ -2,7 +2,6 @@
 #define INC_GRID_H
 #include <string>
 #include "ArgList.h"
-//#include "AtomMask.h"
 #include "Topology.h"
 #include "CpptrajFile.h"
 class Grid {
@@ -14,12 +13,10 @@ class Grid {
     void GridInfo();
     int GridAllocate();
     int GridSetup(Topology*);
-    //void GridPrint(bool, double, double);
     void GridPrintHeader(CpptrajFile&);
+    // DEBUG
+    void PrintEntireGrid();
 
-    int SX() { return sx_; }
-    int SY() { return sy_; }
-    int SZ() { return sz_; }
     int NX() { return nx_; }
     int NY() { return ny_; }
     int NZ() { return nz_; }
@@ -31,20 +28,26 @@ class Grid {
 
     /** Main grid routine. */
     // NOTE: Placed in header for speed - does it actually inline though?
-    void GridPoint( double xx, double yy, double zz) {
+    void GridPoint( double xIn, double yIn, double zIn) {
+      double xx = xIn + sx_;
       int i = (int) (xx / dx_) - 1;
-      int j = (int) (xx / dx_) - 1;
-      int k = (int) (xx / dx_) - 1;
-      // TODO: Benchmark this against multiple comparisons to individual bounds
-      int idx = i*ny_*nz_ + j*nz_ + k;
-      if (idx >= 0 && idx < gridsize_)
-        grid_[idx] += increment_;
+      if (i >= 0 && i < nx_) {
+        double yy = yIn + sy_;
+        int j = (int) (yy / dy_) - 1;
+        if (j >= 0 && j < ny_) {
+          double zz = zIn + sz_;
+          int k = (int) (zz / dz_) - 1;
+          if (k >= 0 && k < nz_) {
+            int idx = i*ny_*nz_ + j*nz_ + k;
+
+            grid_[idx] += increment_;
+          }
+        }
+      }
     }
   private:
-    //double max_;
     int increment_; ///< Set to -1 if negative, 1 if not.
     bool box_;
-    //bool invert_;
     double dx_;
     double dy_;
     double dz_;
@@ -55,13 +58,7 @@ class Grid {
     int nx_;
     int ny_;
     int nz_;
-    //int frames_;
     float* grid_;
-    //float* dipolex_;
-    //float* dipoley_;
-    //float* dipolez_;
-    //std::string filename_;
     std::string callingRoutine_;
-    //AtomMask gridmask_;
 };
 #endif

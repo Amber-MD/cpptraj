@@ -10,6 +10,7 @@ Action_Grid::Action_Grid() :
   invert_(false)
 {}
 
+// Action_Grid::init()
 int Action_Grid::init() {
   // Get output filename
   filename_ = actionArgs.GetStringNext();
@@ -47,6 +48,7 @@ int Action_Grid::init() {
   return 0;
 }
 
+// Action_Grid::setup()
 int Action_Grid::setup() {
   if (GridSetup( currentParm )) return 1;
 
@@ -62,33 +64,51 @@ int Action_Grid::setup() {
   return 0;
 }
 
+// Action_Grid::action()
 int Action_Grid::action() {
   double XYZ[3], boxcrd[3];
   if (GridBox()) {
     currentFrame->BoxXYZ( boxcrd );
+    boxcrd[0] /= 2.0;
+    boxcrd[1] /= 2.0;
+    boxcrd[2] /= 2.0;
     for (AtomMask::const_iterator atom = mask_.begin();
                                   atom != mask_.end(); ++atom)
     {
       currentFrame->GetAtomXYZ( XYZ, *atom );
-      double xx = XYZ[0] - boxcrd[0]/2.0 + SX();
-      double yy = XYZ[1] - boxcrd[1]/2.0 + SY();
-      double zz = XYZ[2] - boxcrd[2]/2.0 + SZ();
+      double xx = XYZ[0] - boxcrd[0];
+      double yy = XYZ[1] - boxcrd[1];
+      double zz = XYZ[2] - boxcrd[2];
+      //mprintf("BATM %6i ", *atom + 1);
       GridPoint( xx, yy, zz );
+    }
+  } else {
+    for (AtomMask::const_iterator atom = mask_.begin();
+                                  atom != mask_.end(); ++atom)
+    {
+      currentFrame->GetAtomXYZ( XYZ, *atom );
+      //mprintf("ATOM %6i ", *atom + 1);
+      GridPoint( XYZ[0], XYZ[1], XYZ[2] );
     }
   }
 
   return 0;
 }
 
+// Action_Grid::print()
 void Action_Grid::print() {
+  // DEBUG
+  //mprintf("CDBG: Printing grid.\n");
+  //PrintEntireGrid();
+  // END DEBUG
   CpptrajFile outfile;
   if (outfile.OpenWrite( filename_ )) return;
   GridPrintHeader(outfile);
 
   double gridMax = 0;
-  int NZ21 = NZ()/2 + 1;
+  int NZ2 = NZ()/2;
   for (int k = 0; k < NZ(); ++k) {
-    outfile.Printf("%8i\n", k - NZ21);
+    outfile.Printf("%8i\n", k - NZ2 + 1);
     for (int j = 0; j < NY(); ++j) {
       int col = 1;
       for (int i = 0; i < NX(); ++i) {
