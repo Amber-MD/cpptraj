@@ -1,6 +1,7 @@
 #include <cmath>
 #include "Action_Grid.h"
 #include "CpptrajStdio.h"
+#include "PDBfile.h"
 
 // CONSTRUCTOR
 Action_Grid::Action_Grid() :
@@ -27,6 +28,7 @@ int Action_Grid::init() {
   madura_ = actionArgs.getKeyDouble("madura", 0);
   invert_ = actionArgs.getKeyDouble("smoothdensity", 0);
   invert_ = actionArgs.hasKey("invert");
+  pdbname_ = actionArgs.GetStringKey("pdb"); 
 
   // Get mask
   char* maskexpr = actionArgs.getNextMask();
@@ -40,6 +42,10 @@ int Action_Grid::init() {
   GridInfo();
   mprintf("\tGrid will be printed to file %s\n",filename_.c_str());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
+  if (pdbname_.empty())
+    mprintf("\tPseudo-PDB will be printed to STDOUT.\n");
+  else
+    mprintf("\tPseudo-PDB will be printed to %s\n", pdbname_.c_str());
   // TODO: print extra options
 
   // Allocate grid
@@ -157,5 +163,29 @@ void Action_Grid::print() {
         outfile.Printf("\n");
     } // END j loop over y
   } // END k loop over z
+
+  // PDBfile output
+  // TODO: Grid pop in Bfactor/occ column
+  PDBfile pdbout;
+  if (pdbout.OpenPDB(pdbname_)) {
+    mprinterr("Error: GRID: Cannot open PDB output.\n");
+    return;
+  }
+  mprintf("    GRID: grid max is %.3lf\n", gridMax);
+  mprintf("          dumping a pseudo-pdb representing all points > %.3f\n",
+           0.80 * gridMax);
+  int res = 1;
+  for (int k = 0; k < NZ(); ++k) {
+    for (int j = 0; j < NY(); ++j) {
+      for (int i = 0; i < NX(); ++i) {
+        double gridval = GridVal(i, j, k);
+        if (gridval > (max_ * gridMax)) {
+          pdbout.WriteHET(res, Xcrd(i), Ycrd(j), Zcrd(k));
+          ++res;
+        }
+      }
+    }
+  }
+
 }
 

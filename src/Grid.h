@@ -22,9 +22,18 @@ class Grid {
     int NZ() { return nz_; }
     bool GridBox() { return box_; }
 
+    /// Return population of bin at i, j, k 
     double GridVal(int i, int j, int k) {
-      return grid_[i*ny_*nz_ + j*nz_ + k];
+      return (double)grid_[i*ny_*nz_ + j*nz_ + k];
     }
+
+    /// Return X coordinate of bin
+    double Xcrd(int i) { return (double)i*dx_ - nx_*dx_/2.0 + 0.5 * dx_; }
+    /// Return Y coordinate of bin
+    double Ycrd(int j) { return (double)j*dy_ - ny_*dy_/2.0 + 0.5 * dy_; }
+    /// Return Z coordinate of bin
+    double Zcrd(int k) { return (double)k*dz_ - nz_*dz_/2.0 + 0.5 * dz_; }
+    
 
     /** Main grid routine. */
     // NOTE: Placed in header for speed - does it actually inline though?
@@ -39,8 +48,7 @@ class Grid {
           int k = (int) (zz / dz_) - 1;
           if (k >= 0 && k < nz_) {
             int idx = i*ny_*nz_ + j*nz_ + k;
-
-            grid_[idx] += increment_;
+            grid_[idx] += increment_; // NOTE: Cast to float?
           }
         }
       }

@@ -14,6 +14,7 @@ class Action_Grid : public Action, Grid {
     bool invert_;
     AtomMask mask_;
     std::string filename_;
+    std::string pdbname_;
 
     int init();
     int setup();
