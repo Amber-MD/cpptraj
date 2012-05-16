@@ -4,38 +4,45 @@
 #include "ArgList.h"
 #include "Topology.h"
 #include "CpptrajFile.h"
+/// Hold a 3-dimensional grid.
 class Grid {
   public:
     Grid();
     ~Grid();
 
+    /// Initialize grid from argument list.
     int GridInit(const char*, ArgList&);
+    /// Print information about the grid.
     void GridInfo();
+    /// Allocate grid memory.
     int GridAllocate();
+    /// Setup grid based on given topology.
     int GridSetup(Topology*);
+    /// Print common grid header to output file.
     void GridPrintHeader(CpptrajFile&);
     // DEBUG
     void PrintEntireGrid();
-
+    /// \return number of bins in the X dimension. 
     int NX() { return nx_; }
+    /// \return number of bins in the Y dimension.
     int NY() { return ny_; }
+    /// \return number of bins in the Z dimension.
     int NZ() { return nz_; }
+    /// \return true if grid is set up for box. Informational only.
     bool GridBox() { return box_; }
-
     /// Return population of bin at i, j, k 
     double GridVal(int i, int j, int k) {
       return (double)grid_[i*ny_*nz_ + j*nz_ + k];
     }
-
     /// Return X coordinate of bin
     double Xcrd(int i) { return (double)i*dx_ - nx_*dx_/2.0 + 0.5 * dx_; }
     /// Return Y coordinate of bin
     double Ycrd(int j) { return (double)j*dy_ - ny_*dy_/2.0 + 0.5 * dy_; }
     /// Return Z coordinate of bin
     double Zcrd(int k) { return (double)k*dz_ - nz_*dz_/2.0 + 0.5 * dz_; }
-    
-
-    /** Main grid routine. */
+    /** Main grid routine. Check if position specified by coordinates
+      * corresponds to a valid bin and if so increment the bin.
+      */
     // NOTE: Placed in header for speed - does it actually inline though?
     void GridPoint( double xIn, double yIn, double zIn) {
       double xx = xIn + sx_;
