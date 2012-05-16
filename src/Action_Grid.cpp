@@ -56,6 +56,7 @@ int Action_Grid::init() {
 
 // Action_Grid::setup()
 int Action_Grid::setup() {
+  // Setup grid, checks box info.
   if (GridSetup( currentParm )) return 1;
 
   // Setup mask
@@ -109,6 +110,7 @@ void Action_Grid::print() {
   // END DEBUG
   CpptrajFile outfile;
   if (outfile.OpenWrite( filename_ )) return;
+  outfile.Printf("This line is ignored\n%8i\nrdparm generated grid density\n", 1);
   GridPrintHeader(outfile);
 
   double gridMax = 0;
@@ -163,6 +165,7 @@ void Action_Grid::print() {
         outfile.Printf("\n");
     } // END j loop over y
   } // END k loop over z
+  outfile.CloseFile();
 
   // PDBfile output
   // TODO: Grid pop in Bfactor/occ column

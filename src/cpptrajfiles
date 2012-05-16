@@ -8,7 +8,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_Pucker.cpp Action_Radgyr.cpp Action_Radial.cpp ActionReference.cpp \
         Action_Rms2d.cpp Action_RmsAvgCorr.cpp Action_Rmsd.cpp Action_Rotdif.cpp \
         Action_RunningAvg.cpp Action_Strip.cpp Action_Surf.cpp Action_Watershell.cpp \
-        Action_Principal.cpp Action_Grid.cpp \
+        Action_Principal.cpp Action_Grid.cpp Action_GibbsEofHydration.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
         Analysis_PtrajAnalysis.cpp Analysis_Matrix.cpp Analysis_Timecorr.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \

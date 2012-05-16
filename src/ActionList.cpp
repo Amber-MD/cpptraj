@@ -42,6 +42,7 @@
 #include "Action_Principal.h"
 #include "MatrixType.h"
 #include "Action_Grid.h"
+#include "Action_GibbsEofHydration.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -117,7 +118,8 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("vector"))         {Act=new VectorType;}
   else if (argIn.CommandIs("principaltest"))  {Act=new Action_Principal;}
   else if (argIn.CommandIs("matrix"))         {Act=new MatrixType;}
-  else if (argIn.CommandIs("gridtest"))       {Act=new Action_Grid;}
+  else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}
+  else if (argIn.CommandIs("FEoHtest"))       {Act=new Action_GibbsEofHydration;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||
@@ -127,7 +129,7 @@ int ActionList::AddAction(ArgList &argIn) {
            argIn.CommandIs("dnaiontracker") ||
            argIn.CommandIs("echo") ||
            argIn.CommandIs("FEoH") ||
-           argIn.CommandIs("grid") ||
+           //argIn.CommandIs("grid") ||
            //argIn.CommandIs("matrix") ||
            argIn.CommandIs("principal") ||
            argIn.CommandIs("projection") ||

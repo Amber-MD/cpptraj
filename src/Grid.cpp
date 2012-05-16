@@ -126,7 +126,6 @@ int Grid::GridSetup(Topology* currentParm) {
 // Grid::GridPrint()
 void Grid::GridPrintHeader(CpptrajFile& outfile)
 {
-  outfile.Printf("This line is ignored\n%8i\nrdparm generated grid density\n", 1);
   outfile.Printf("%8i%8i%8i",   nx_, -nx_/2 + 1, nx_/2 );
   outfile.Printf("%8i%8i%8i",   ny_, -ny_/2 + 1, ny_/2 );
   outfile.Printf("%8i%8i%8i\n", nz_, -nz_/2 + 1, nz_/2 );
