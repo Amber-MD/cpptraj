@@ -41,6 +41,7 @@
 #include "VectorType.h"
 #include "Action_Principal.h"
 #include "MatrixType.h"
+#include "Action_Grid.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -113,9 +114,10 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("watershell"))     {Act=new Watershell;}
   else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
   else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
-  else if (argIn.CommandIs("vector"))     {Act=new VectorType;}
+  else if (argIn.CommandIs("vector"))         {Act=new VectorType;}
   else if (argIn.CommandIs("principaltest"))  {Act=new Action_Principal;}
-  else if (argIn.CommandIs("matrix"))     {Act=new MatrixType;}
+  else if (argIn.CommandIs("matrix"))         {Act=new MatrixType;}
+  else if (argIn.CommandIs("gridtest"))       {Act=new Action_Grid;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||
