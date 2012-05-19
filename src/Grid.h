@@ -8,13 +8,13 @@ class Grid {
   public:
     Grid();
     ~Grid();
+    Grid(const Grid&);
+    Grid& operator=(const Grid&);
 
     /// Initialize grid from argument list.
     int GridInit(const char*, ArgList&);
-    /// Print information about the grid.
+    /// Print information about the grid, allocate memory.
     void GridInfo();
-    /// Allocate grid memory.
-    int GridAllocate();
     /// Setup grid based on given topology.
     int GridSetup(Topology*);
     /// Print Xplor format grid density

@@ -20,7 +20,7 @@ int Action_Grid::init() {
     return 1;
   }
   // Get grid options
-  if (GridInit( "GRID", actionArgs ))
+  if (grid_.GridInit( "GRID", actionArgs ))
     return 1;
 
   // Get extra options
@@ -39,7 +39,7 @@ int Action_Grid::init() {
   mask_.SetMaskString(maskexpr);
 
   // Info
-  GridInfo();
+  grid_.GridInfo();
   mprintf("\tGrid will be printed to file %s\n",filename_.c_str());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   if (pdbname_.empty())
@@ -49,7 +49,7 @@ int Action_Grid::init() {
   // TODO: print extra options
 
   // Allocate grid
-  if (GridAllocate()) return 1;
+  //if (GridAllocate()) return 1;
 
   return 0;
 }
@@ -57,7 +57,7 @@ int Action_Grid::init() {
 // Action_Grid::setup()
 int Action_Grid::setup() {
   // Setup grid, checks box info.
-  if (GridSetup( currentParm )) return 1;
+  if (grid_.GridSetup( currentParm )) return 1;
 
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))
@@ -74,7 +74,7 @@ int Action_Grid::setup() {
 // Action_Grid::action()
 int Action_Grid::action() {
   double XYZ[3], boxcrd[3];
-  if (GridBox()) {
+  if (grid_.GridBox()) {
     currentFrame->BoxXYZ( boxcrd );
     boxcrd[0] /= 2.0;
     boxcrd[1] /= 2.0;
@@ -87,7 +87,7 @@ int Action_Grid::action() {
       double yy = XYZ[1] - boxcrd[1];
       double zz = XYZ[2] - boxcrd[2];
       //mprintf("BATM %6i ", *atom + 1);
-      GridPoint( xx, yy, zz );
+      grid_.GridPoint( xx, yy, zz );
     }
   } else {
     for (AtomMask::const_iterator atom = mask_.begin();
@@ -95,7 +95,7 @@ int Action_Grid::action() {
     {
       currentFrame->GetAtomXYZ( XYZ, *atom );
       //mprintf("ATOM %6i ", *atom + 1);
-      GridPoint( XYZ[0], XYZ[1], XYZ[2] );
+      grid_.GridPoint( XYZ[0], XYZ[1], XYZ[2] );
     }
   }
 
@@ -111,7 +111,7 @@ void Action_Grid::print() {
 
   // Perform normalization and find max
   double gridMax = 0;
-  for (Grid::iterator gval = begin(); gval != end(); ++gval) {
+  for (Grid::iterator gval = grid_.begin(); gval != grid_.end(); ++gval) {
     double gridval = (double)(*gval);
     // ----- SMOOTHING -----
     if (smooth_ > 0.0) {
@@ -151,8 +151,8 @@ void Action_Grid::print() {
   } 
 
   // Write Xplor file
-  PrintXplor( filename_, "This line is ignored", 
-              "rdparm generated grid density" );
+  grid_.PrintXplor( filename_, "This line is ignored", 
+                    "rdparm generated grid density" );
 
   // PDBfile output
   // TODO: Grid pop in Bfactor/occ column
@@ -165,12 +165,12 @@ void Action_Grid::print() {
   mprintf("          dumping a pseudo-pdb representing all points > %.3f\n",
            0.80 * gridMax);
   int res = 1;
-  for (int k = 0; k < NZ(); ++k) {
-    for (int j = 0; j < NY(); ++j) {
-      for (int i = 0; i < NX(); ++i) {
-        double gridval = GridVal(i, j, k);
+  for (int k = 0; k < grid_.NZ(); ++k) {
+    for (int j = 0; j < grid_.NY(); ++j) {
+      for (int i = 0; i < grid_.NX(); ++i) {
+        double gridval = grid_.GridVal(i, j, k);
         if (gridval > (max_ * gridMax)) {
-          pdbout.WriteHET(res, Xcrd(i), Ycrd(j), Zcrd(k));
+          pdbout.WriteHET(res, grid_.Xcrd(i), grid_.Ycrd(j), grid_.Zcrd(k));
           ++res;
         }
       }

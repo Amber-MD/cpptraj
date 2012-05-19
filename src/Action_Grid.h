@@ -2,7 +2,7 @@
 #define INC_ACTION_GRID_H
 #include "Action.h"
 #include "Grid.h"
-class Action_Grid : public Action, Grid {
+class Action_Grid : public Action {
   public:
     Action_Grid();
 
@@ -15,6 +15,7 @@ class Action_Grid : public Action, Grid {
     AtomMask mask_;
     std::string filename_;
     std::string pdbname_;
+    Grid grid_;
 
     int init();
     int setup();

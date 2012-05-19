@@ -16,7 +16,7 @@ int Action_GibbsEofHydration::init() {
     return 1;
   }
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
-  if (GridInit( "GibbsEofHydration", actionArgs ))
+  if (grid_.GridInit( "GibbsEofHydration", actionArgs ))
     return 1;
 
   // Get mask
@@ -28,12 +28,12 @@ int Action_GibbsEofHydration::init() {
   mask_.SetMaskString(maskexpr);
 
   // Info
-  GridInfo();
+  grid_.GridInfo();
   mprintf("\tGrid will be printed to file %s\n",filename_.c_str());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
 
   // Allocate grid
-  if (GridAllocate()) return 1;
+  //if (GridAllocate()) return 1;
 
   return 0;
 }
@@ -41,7 +41,7 @@ int Action_GibbsEofHydration::init() {
 // Action_GibbsEofHydration::setup()
 int Action_GibbsEofHydration::setup() {
   // Setup grid, checks box info.
-  if (GridSetup( currentParm )) return 1;
+  if (grid_.GridSetup( currentParm )) return 1;
 
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))
@@ -59,7 +59,7 @@ int Action_GibbsEofHydration::setup() {
 int Action_GibbsEofHydration::action() {
   double XYZ[3], boxcrd[3];
   
-  if (GridBox()) {
+  if (grid_.GridBox()) {
     // Grid based on box dimensions - get box center.
     currentFrame->BoxXYZ( boxcrd );
     boxcrd[0] /= 2.0;
@@ -73,7 +73,7 @@ int Action_GibbsEofHydration::action() {
       double yy = XYZ[1] - boxcrd[1];
       double zz = XYZ[2] - boxcrd[2];
       //mprintf("BATM %6i ", *atom + 1);
-      GridPoint( xx, yy, zz );
+      grid_.GridPoint( xx, yy, zz );
     }
   } else {
     // Normal grid
@@ -82,7 +82,7 @@ int Action_GibbsEofHydration::action() {
     {
       currentFrame->GetAtomXYZ( XYZ, *atom );
       //mprintf("ATOM %6i ", *atom + 1);
-      GridPoint( XYZ[0], XYZ[1], XYZ[2] );
+      grid_.GridPoint( XYZ[0], XYZ[1], XYZ[2] );
     }
   }
 
@@ -115,7 +115,7 @@ void Action_GibbsEofHydration::print() {
   // Zero the voxelOccupancyCount array
   voxelOccupancyCount.assign(maxVoxelOccupancyCount_, 0);
   // Determine frequency for bin populations
-  for (Grid::iterator gval = begin(); gval != end(); ++gval) {
+  for (Grid::iterator gval = grid_.begin(); gval != grid_.end(); ++gval) {
         int bincount = (int) *gval;
         // Sanity check: if bin count >= size of voxelOccupancyCount, 
         //               increase size.
@@ -144,12 +144,12 @@ void Action_GibbsEofHydration::print() {
   // the occupancy count of bulk solvent
   int normalisationFactor = mostFrequentVoxelOccupancy;
 
-  for (Grid::iterator gval = begin(); gval != end(); ++gval) {
+  for (Grid::iterator gval = grid_.begin(); gval != grid_.end(); ++gval) {
     double gridval = (double)(*gval);
     gridval = -1.0 * log( (gridval / normalisationFactor) + 0.00000001 );
     *gval = (float)gridval;
   }
 
-  PrintXplor( filename_, "", "REMARKS Change in Gibbs energy from bulk solvent with bin normalisation of " + integerToString(normalisationFactor) );
+  grid_.PrintXplor( filename_, "", "REMARKS Change in Gibbs energy from bulk solvent with bin normalisation of " + integerToString(normalisationFactor) );
 }
 

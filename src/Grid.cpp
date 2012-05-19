@@ -26,6 +26,53 @@ Grid::~Grid() {
   if (grid_!=0) delete[] grid_;
 }
 
+// Copy Constructor
+Grid::Grid(const Grid& rhs) :
+  increment_(rhs.increment_),
+  box_(rhs.box_),
+  dx_(rhs.dx_),
+  dy_(rhs.dy_),
+  dz_(rhs.dz_),
+  sx_(rhs.sx_),
+  sy_(rhs.sy_),
+  sz_(rhs.sz_),
+  gridsize_(rhs.gridsize_),
+  nx_(rhs.nx_),
+  ny_(rhs.ny_),
+  nz_(rhs.nz_),
+  grid_(0),
+  callingRoutine_(rhs.callingRoutine_)
+{
+  if (gridsize_ > 0)
+    grid_ = new float[ gridsize_ ];
+  memset(grid_, 0, gridsize_ * sizeof(float));
+}
+
+Grid& Grid::operator=(const Grid& rhs) {
+  if (this == &rhs) return *this;
+  // Deallocate
+  if (grid_!=0) delete[] grid_;
+  grid_ = 0;
+  increment_ = rhs.increment_;
+  box_ = rhs.box_;
+  dx_ = rhs.dx_;
+  dy_ = rhs.dy_;
+  dz_ = rhs.dz_;
+  sx_ = rhs.sx_;
+  sy_ = rhs.sy_;
+  sz_ = rhs.sz_;
+  gridsize_ = rhs.gridsize_;
+  nx_ = rhs.nx_;
+  ny_ = rhs.ny_;
+  nz_ = rhs.nz_;
+  callingRoutine_ = rhs.callingRoutine_;
+  if (gridsize_ > 0) {
+    grid_ = new float[ gridsize_ ];
+    memcpy( grid_, rhs.grid_, gridsize_ * sizeof(float) );
+  }
+  return *this;
+}
+ 
 // Grid::GridInit()
 /** Initialize grid from argument list. Expected call:
   * <nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative]  
@@ -77,6 +124,16 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
   if (argIn.hasKey("negative"))
     increment_ = -1;
 
+  // Allocate memory
+  gridsize_ = nx_ * ny_ * nz_;
+  if (gridsize_ <= 0) {
+    mprinterr("Error: %s: Grid size <= 0 (%i)\n",gridsize_, callingRoutine_.c_str());
+    return 1;
+  }
+  if (grid_!=0) delete[] grid_;
+  grid_ = new float[ gridsize_ ];
+  memset(grid_, 0, gridsize_ * sizeof(float));
+
   return 0;
 }
 
@@ -94,19 +151,6 @@ void Grid::GridInfo() {
     mprintf(" negative density\n");
   mprintf("\tGrid points : %5i %5i %5i\n", nx_, ny_, nz_);
   mprintf("\tGrid spacing: %5.3lf %5.3lf %5.3lf\n", dx_, dy_, dz_);
-}
-
-// Grid::GridAllocate()
-int Grid::GridAllocate() {
-  gridsize_ = nx_ * ny_ * nz_;
-  if (gridsize_ <= 0) {
-    mprinterr("Error: %s: Grid size <= 0 (%i)\n",gridsize_, callingRoutine_.c_str());
-    return 1;
-  }
-  if (grid_!=0) delete[] grid_;
-  grid_ = new float[ gridsize_ ];
-  memset(grid_, 0, gridsize_ * sizeof(float));
-  return 0;
 }
 
 // Grid::GridSetup()

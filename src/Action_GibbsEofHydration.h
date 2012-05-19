@@ -5,7 +5,7 @@
 /** \author Mark J. Williamson
   * \author C++ adaptation by DRR
   */
-class Action_GibbsEofHydration : public Action, Grid {
+class Action_GibbsEofHydration : public Action {
   public:
     Action_GibbsEofHydration();
 
@@ -26,5 +26,6 @@ class Action_GibbsEofHydration : public Action, Grid {
     std::string filename_;
     /// Atom mask
     AtomMask mask_;
+    Grid grid_;
 };
 #endif
