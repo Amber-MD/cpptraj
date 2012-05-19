@@ -35,11 +35,11 @@ class Grid {
       return (double)grid_[i*ny_*nz_ + j*nz_ + k];
     }
     /// Return X coordinate of bin
-    double Xcrd(int i) { return (double)i*dx_ - nx_*dx_/2.0 + 0.5 * dx_; }
+    double Xcrd(int i) { return (double)i*dx_ - sx_ + 0.5*dx_; }
     /// Return Y coordinate of bin
-    double Ycrd(int j) { return (double)j*dy_ - ny_*dy_/2.0 + 0.5 * dy_; }
+    double Ycrd(int j) { return (double)j*dy_ - sy_ + 0.5*dy_; }
     /// Return Z coordinate of bin
-    double Zcrd(int k) { return (double)k*dz_ - nz_*dz_/2.0 + 0.5 * dz_; }
+    double Zcrd(int k) { return (double)k*dz_ - sz_ + 0.5*dz_; }
     /** Main grid routine. Check if position specified by coordinates
       * corresponds to a valid bin and if so increment the bin.
       */
