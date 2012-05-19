@@ -115,17 +115,14 @@ void Action_GibbsEofHydration::print() {
   // Zero the voxelOccupancyCount array
   voxelOccupancyCount.assign(maxVoxelOccupancyCount_, 0);
   // Determine frequency for bin populations
-  for (int k = 0; k < NZ(); ++k) {
-    for (int j = 0; j < NY(); ++j) {
-      for (int i = 0; i < NZ(); ++i) {
-        int bincount = (int) GridVal(i, j, k);
-        // Sanity check: if bin count >= size of voxelOccupancyCount, increase size.
+  for (Grid::iterator gval = begin(); gval != end(); ++gval) {
+        int bincount = (int) *gval;
+        // Sanity check: if bin count >= size of voxelOccupancyCount, 
+        //               increase size.
         if (bincount >= (int)voxelOccupancyCount.size())
           voxelOccupancyCount.resize( bincount+1, 0 );
         // Add one to the counter for the fequency of this bin population
         ++voxelOccupancyCount[ bincount ];
-      }
-    }
   }
   // Walk the voxelOccupancyCount[] array and determine which
   // occupancy is the most frequent (excluding 0).
@@ -147,35 +144,12 @@ void Action_GibbsEofHydration::print() {
   // the occupancy count of bulk solvent
   int normalisationFactor = mostFrequentVoxelOccupancy;
 
-  // Open the output file.
-  if (outfile.OpenWrite( filename_ )) return;
-  // Print Remarks
-  outfile.Printf("\n");
-  outfile.Printf("%8i\n", 1); // How many remarks lines
-  outfile.Printf("REMARKS Change in Gibbs energy from bulk solvent with bin normalisation of %i\n",
-                 normalisationFactor);
-  // Print the grid header.
-  GridPrintHeader(outfile);
-  // Print grid bins
-  int NZ2 = NZ()/2;
-  for (int k = 0; k < NZ(); ++k) {
-    outfile.Printf("%8i\n", k - NZ2 + 1);
-    for (int j = 0; j < NY(); ++j) {
-      int col = 1;
-      for (int i = 0; i < NX(); ++i) {
-        double gridval = GridVal(i, j, k);
-        // Will return Delta G in terms of KbT
-        outfile.Printf("%12.5f", 
-                       (-1.0 * log( (gridval / normalisationFactor) + 0.00000001)) );
+  for (Grid::iterator gval = begin(); gval != end(); ++gval) {
+    double gridval = (double)(*gval);
+    gridval = -1.0 * log( (gridval / normalisationFactor) + 0.00000001 );
+    *gval = (float)gridval;
+  }
 
-        if (col && (col%6 == 0))
-          outfile.Printf("\n");
-        ++col;
-      } // END i loop over x
-      if ( (col-1) % 6 != 0 ) // Unless a newline was just written...
-        outfile.Printf("\n");
-    } // END j loop over y
-  } // END k loop over z
-  outfile.CloseFile();
+  PrintXplor( filename_, "", "REMARKS Change in Gibbs energy from bulk solvent with bin normalisation of " + integerToString(normalisationFactor) );
 }
 

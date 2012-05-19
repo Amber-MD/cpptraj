@@ -3,7 +3,6 @@
 #include <string>
 #include "ArgList.h"
 #include "Topology.h"
-#include "CpptrajFile.h"
 /// Hold a 3-dimensional grid.
 class Grid {
   public:
@@ -18,10 +17,11 @@ class Grid {
     int GridAllocate();
     /// Setup grid based on given topology.
     int GridSetup(Topology*);
-    /// Print common grid header to output file.
-    void GridPrintHeader(CpptrajFile&);
+    /// Print Xplor format grid density
+    void PrintXplor(std::string const&, const char*, std::string);
     // DEBUG
     void PrintEntireGrid();
+
     /// \return number of bins in the X dimension. 
     int NX() { return nx_; }
     /// \return number of bins in the Y dimension.
@@ -60,6 +60,41 @@ class Grid {
         }
       }
     }
+
+    // Iterator over grid
+    class iterator : public std::iterator<std::forward_iterator_tag, float> 
+    {
+      public:
+        iterator() : ptr_(0) {}
+        iterator(const iterator& rhs) : ptr_(rhs.ptr_) {}
+        iterator(float* pin) : ptr_(pin) {}
+        iterator& operator=(const iterator& rhs) {
+          if (this == &rhs) return *this;
+          ptr_ = rhs.ptr_;
+          return *this;
+        }
+        // Relations
+        bool operator==(const iterator& rhs) { return (ptr_==rhs.ptr_);}
+        bool operator!=(const iterator& rhs) { return (ptr_!=rhs.ptr_);}
+        // Increment
+        iterator& operator++() { 
+          ++ptr_; 
+          return *this;
+        }
+        iterator operator++(int) {
+          iterator tmp(*this);
+          ++(*this);
+          return tmp;
+        }
+        // Value
+        float& operator*() { return *ptr_; }
+        // Address
+        float* operator->() { return ptr_; }
+      private:
+        float* ptr_;
+    };
+    iterator begin() { return grid_; }
+    iterator end() { return (grid_ + gridsize_); }
   private:
     int increment_; ///< Set to -1 if negative, 1 if not.
     bool box_;

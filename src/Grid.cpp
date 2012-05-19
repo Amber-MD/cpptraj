@@ -1,6 +1,7 @@
 #include <cstring> // memset
 #include "Grid.h"
 #include "CpptrajStdio.h"
+#include "CpptrajFile.h"
 
 // CONSTRUCTOR
 Grid::Grid() :
@@ -123,9 +124,19 @@ int Grid::GridSetup(Topology* currentParm) {
   return 0;
 }
 
-// Grid::GridPrint()
-void Grid::GridPrintHeader(CpptrajFile& outfile)
+void Grid::PrintXplor(std::string const& name, const char* title, 
+                      std::string remark)
 {
+  CpptrajFile outfile;
+  if (outfile.OpenWrite( name )) {
+    mprinterr("Error: Could not open Xplor output file.\n");
+    return;
+  }
+  // Title
+  outfile.Printf("%s\n", title);
+  // Remarks - only 1
+  outfile.Printf("%8i\n%s\n",1,remark.c_str());
+  // Header
   outfile.Printf("%8i%8i%8i",   nx_, -nx_/2 + 1, nx_/2 );
   outfile.Printf("%8i%8i%8i",   ny_, -ny_/2 + 1, ny_/2 );
   outfile.Printf("%8i%8i%8i\n", nz_, -nz_/2 + 1, nz_/2 );
@@ -133,7 +144,25 @@ void Grid::GridPrintHeader(CpptrajFile& outfile)
                  (double)nx_ * dx_, (double)ny_ * dy_, (double)nz_ * dz_,
                  90.0, 90.0, 90.0);
   outfile.Printf("ZYX\n");
+  // Print grid bins
+  int NZ2 = nz_ / 2;
+  for (int k = 0; k < nz_; ++k) {
+    outfile.Printf("%8i\n", k - NZ2 + 1);
+    for (int j = 0; j < ny_; ++j) {
+      int col = 1;
+      for (int i = 0; i < nx_; ++i) {
+        outfile.Printf("%12.5f", GridVal(i, j, k));
+        if ( (col % 6)==0 )
+          outfile.Printf("\n");
+        ++col;
+      }
+      if ( (col-1) % 6 != 0 )
+        outfile.Printf("\n");
+    }
+  }
+  outfile.CloseFile();
 }
+
 
 // Grid::GridPrint()
 void Grid::PrintEntireGrid() {

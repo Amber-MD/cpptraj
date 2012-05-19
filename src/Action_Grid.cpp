@@ -108,64 +108,51 @@ void Action_Grid::print() {
   //mprintf("CDBG: Printing grid.\n");
   //PrintEntireGrid();
   // END DEBUG
-  CpptrajFile outfile;
-  if (outfile.OpenWrite( filename_ )) return;
-  outfile.Printf("This line is ignored\n%8i\nrdparm generated grid density\n", 1);
-  GridPrintHeader(outfile);
 
+  // Perform normalization and find max
   double gridMax = 0;
-  int NZ2 = NZ()/2;
-  for (int k = 0; k < NZ(); ++k) {
-    outfile.Printf("%8i\n", k - NZ2 + 1);
-    for (int j = 0; j < NY(); ++j) {
-      int col = 1;
-      for (int i = 0; i < NX(); ++i) {
-        double gridval = GridVal(i, j, k);
-        // ----- SMOOTHING -----
-        if (smooth_ > 0.0) {
-          double yy = gridval - smooth_;
-          double xx = yy*yy / (0.2 * smooth_ * smooth_);
-          xx = exp( -xx );
-          if (invert_) {
-            if (gridval > smooth_) // NOTE: Comparison OK? Needs cast?
-              gridval = -5.0;
-            else
-              gridval -= gridval * xx;
-            /* COMMENTED OUT IN ORIGINAL PTRAJ CODE
-            if (gridInfo->grid[index] < action->darg3) {
-              gridInfo->grid[index] = 0.0;
-            }
-            */
-            if (gridval >= 0)
-              gridval = smooth_ - gridval;
-          } else {
-            if (gridval < smooth_)
-              gridval = 0;
-            else
-              gridval -= gridval * xx;
-            if (gridval < smooth_)
-              gridval = 0;
-          }
-        }
-
-        // do the madura negative option to expose low density
-        if ( madura_ > 0.0 && gridval > 0.0 && gridval < madura_ )
-          outfile.Printf("%12.5f", -gridval);
+  for (Grid::iterator gval = begin(); gval != end(); ++gval) {
+    double gridval = (double)(*gval);
+    // ----- SMOOTHING -----
+    if (smooth_ > 0.0) {
+      double yy = gridval - smooth_;
+      double xx = yy*yy / (0.2 * smooth_ * smooth_);
+      xx = exp( -xx );
+      if (invert_) {
+        if (gridval > smooth_) // NOTE: Comparison OK? Needs cast?
+          gridval = -5.0;
         else
-          outfile.Printf("%12.5f", gridval);
+          gridval -= gridval * xx;
+        /* COMMENTED OUT IN ORIGINAL PTRAJ CODE
+        if (gridInfo->grid[index] < action->darg3) {
+          gridInfo->grid[index] = 0.0;
+        }
+        */
+        if (gridval >= 0)
+          gridval = smooth_ - gridval;
+      } else {
+        if (gridval < smooth_)
+          gridval = 0;
+        else
+          gridval -= gridval * xx;
+        if (gridval < smooth_)
+          gridval = 0;
+      }
+    }
 
-        if (col && (col%6 == 0))
-          outfile.Printf("\n");
-        ++col;
+    // do the madura negative option to expose low density
+    if ( madura_ > 0.0 && gridval > 0.0 && gridval < madura_ )
+      *gval = (float)-gridval;
+    else
+      *gval = (float) gridval;
 
-        if ( gridval > gridMax )
-          gridMax = gridval;
-      } // END i loop over x
-      if ( (col-1) % 6 != 0 ) // Unless a newline was just written...
-        outfile.Printf("\n");
-    } // END j loop over y
-  } // END k loop over z
-  outfile.CloseFile();
+    if ( gridval > gridMax )
+      gridMax = gridval;
+  } 
+
+  // Write Xplor file
+  PrintXplor( filename_, "This line is ignored", 
+              "rdparm generated grid density" );
 
   // PDBfile output
   // TODO: Grid pop in Bfactor/occ column
@@ -189,6 +176,5 @@ void Action_Grid::print() {
       }
     }
   }
-
 }
 
