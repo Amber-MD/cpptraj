@@ -73,14 +73,16 @@ int Action_Principal::action() {
   double Inertia[9], CXYZ[3], Evec[9], Eval[3];
 
   currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
-  printMatrix_3x3("PRINCIPAL INERTIA", Inertia);
+  //printMatrix_3x3("PRINCIPAL INERTIA", Inertia);
 
   Matrix_3x3 TEMP( Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
   TEMP.Diagonalize_Sort_Chirality( Evec, Eval, debug );
-  printVector("PRINCIPAL EIGENVALUES", Eval );
-  //TEMP.Print("GENERAL");
-  printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
+  if (debug > 2) {
+    printVector("PRINCIPAL EIGENVALUES", Eval );
+    //TEMP.Print("GENERAL");
+    printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
+  }
   
   // Rotate - since Evec is already transposed (eigenvectors
   // are returned in rows) just do plain rotation to affect an

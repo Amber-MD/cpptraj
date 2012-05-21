@@ -117,23 +117,23 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
   else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
   else if (argIn.CommandIs("vector"))         {Act=new VectorType;}
-  else if (argIn.CommandIs("principaltest"))  {Act=new Action_Principal;}
+  else if (argIn.CommandIs("principal"))      {Act=new Action_Principal;}
   else if (argIn.CommandIs("matrix"))         {Act=new MatrixType;}
   else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}
-  else if (argIn.CommandIs("FEoHtest"))       {Act=new Action_GibbsEofHydration;}
-  else if (argIn.CommandIs("dipoletest"))     {Act=new Action_Dipole;}
+  else if (argIn.CommandIs("FEoH"))           {Act=new Action_GibbsEofHydration;}
+  else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||
            argIn.CommandIs("clusterdihedral") ||
            argIn.CommandIs("diffusion") ||
-           argIn.CommandIs("dipole") ||
+           //argIn.CommandIs("dipole") ||
            argIn.CommandIs("dnaiontracker") ||
            argIn.CommandIs("echo") ||
-           argIn.CommandIs("FEoH") ||
+           //argIn.CommandIs("FEoH") ||
            //argIn.CommandIs("grid") ||
            //argIn.CommandIs("matrix") ||
-           argIn.CommandIs("principal") ||
+           //argIn.CommandIs("principal") ||
            argIn.CommandIs("projection") ||
            argIn.CommandIs("randomizeions") ||
            argIn.CommandIs("scale") ||
