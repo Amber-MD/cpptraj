@@ -456,3 +456,14 @@ DataSet* DataSetList::NextMatrix() {
   return 0;
 }
 
+DataSet* DataSetList::NextModes() {
+  for (int idx = vecidx_; idx < (int)DataList_.size(); ++idx) {
+    if (DataList_[idx]->Type() == DataSet::MODES) {
+      // Position vecidx at the next dataset
+      vecidx_ = idx + 1;
+      return DataList_[idx];
+    }
+  }
+  return 0;
+}
+

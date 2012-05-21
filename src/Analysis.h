@@ -17,8 +17,9 @@ class Analysis {
     void SetArg(const ArgList &);
     void SetDebug(int);
     void SetParm(TopologyList*);
-    const char *AnalysisCommand();   ///< Print the command that calls the analysis
-    const char *CmdLine();           ///< Print the entire argument line
+    const char* AnalysisCommand();   ///< Print the command that calls the analysis
+    const char* CmdLine();           ///< Print the entire argument line
+    const char* ParmName();
     void SetSetup(bool sIn) { isSetup_ = sIn; }
     bool IsSetup() { return isSetup_; }
   

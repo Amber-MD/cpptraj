@@ -33,12 +33,18 @@ void Analysis::SetParm(TopologyList *parmfilelist) {
 }
 
 // Analysis::AnalysisCommand()
-const char *Analysis::AnalysisCommand() {
+const char* Analysis::AnalysisCommand() {
   return analyzeArgs_.Command();
 }
 
 // Analysis::CmdLine()
 /** Print the command and all args */
-const char *Analysis::CmdLine() {
+const char* Analysis::CmdLine() {
   return analyzeArgs_.ArgLine();
+}
+
+// Analysis::ParmName()
+const char* Analysis::ParmName() {
+  if (analyzeParm_==NULL) return NULL;
+  return analyzeParm_->c_str();
 }

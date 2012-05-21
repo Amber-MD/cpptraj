@@ -28,6 +28,7 @@ class ModesInfo : public DataSet {
 
     int ReadEvecFile(std::string&, int, int);
     double calc_spectral_density(double *, int, double);
+    double* CalcRMSfluct(int, int, bool);
 
     // NOTE: Replace all these with a constructor eventually?
     int SetNavgElem(int);
@@ -43,6 +44,7 @@ class ModesInfo : public DataSet {
     double* Freq() { return freq_; }
     double* Evec() { return evec_; }
     modesSource Source() { return source_; }
+    modesType Mtype() { return type_; }
 
     double Evec(int veci, int npair) { 
       return evec_[veci * nvectelem_ + npair]; 
@@ -50,6 +52,15 @@ class ModesInfo : public DataSet {
 
   private:
     static const size_t BUFSIZE_;
+    /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
+    static const double CONSQ;
+    static const double TKBC2;
+    static const double AVO;
+    static const double CNST;
+    static const double CMTOA;
+    static const double TWOPI;
+    static const double CONT; 
+
     modesType type_;
     modesSource source_;
     int navgelem_;

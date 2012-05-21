@@ -6,6 +6,7 @@
 #include "Analysis_PtrajAnalysis.h"
 #include "Analysis_Matrix.h"
 #include "Analysis_Timecorr.h"
+#include "Analysis_Modes.h"
 
 // CONSTRUCTOR
 AnalysisList::AnalysisList() :
@@ -40,6 +41,8 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
       Ana = new Analysis_Matrix;
     else if (argIn[1] == "timecorr")
       Ana = new Analysis_Timecorr;
+    else if (argIn[1] == "modestest")
+      Ana = new Analysis_Modes;
     else
       Ana = new PtrajAnalysis(); 
   }
@@ -67,7 +70,9 @@ int AnalysisList::Setup(DataSetList *datasetlist, TopologyList *parmfilelist) {
   mprintf("ANALYSIS: Setting up %zu analyses:\n",analysisList_.size());
   int iana = 0;
   for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana) {
-    mprintf("  %i: [%s]\n",iana++, (*ana)->CmdLine());
+    // Set parm for analysis.
+    (*ana)->SetParm(parmfilelist);
+    mprintf("  %i: [%s] (Parm: %s)\n", iana++, (*ana)->CmdLine(), (*ana)->ParmName());
     (*ana)->SetSetup(true);
     if ((*ana)->Setup(datasetlist)) {
       mprinterr("Error setting up analysis %i [%s] - skipping.\n",iana,
@@ -75,7 +80,6 @@ int AnalysisList::Setup(DataSetList *datasetlist, TopologyList *parmfilelist) {
       (*ana)->SetSetup(false);
       ++nfail;
     }
-    (*ana)->SetParm(parmfilelist);
   }
   mprintf("\n");   
   //mprintf("    ...................................................\n\n");

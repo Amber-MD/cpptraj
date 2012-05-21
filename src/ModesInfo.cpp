@@ -1,5 +1,6 @@
 #include <cstdio> //sscanf
 #include <cstring> //strncmp
+#include <cmath> // sqrt, tanh
 #include "ModesInfo.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
@@ -35,6 +36,14 @@ ModesInfo::ModesInfo(modesType tIn, modesSource sIn, std::string& nameIn) :
   name_ = nameIn;
   dType_ = MODES;
 }
+
+const double ModesInfo::CONSQ = 2.39805E-3;
+const double ModesInfo::TKBC2 = 0.46105E-34;
+const double ModesInfo::AVO   = 6.023E23;
+const double ModesInfo::CNST  = TKBC2 * AVO;
+const double ModesInfo::CMTOA = 1.000E8;
+const double ModesInfo::TWOPI = 6.2832;
+const double ModesInfo::CONT  = CMTOA / TWOPI;
 
 int ModesInfo::SetNavgElem(int mask1tot) {
   // TODO: This is already calcd in MatrixType Nelt.
@@ -143,7 +152,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   int nno = 0;
   while ( infile.IO->Gets(buffer, BUFSIZE_)==0 ) { // This should read in ' ****'
     if (strncmp(buffer," ****", 5)!=0) {
-      mprinterr("Error: ReadEvecFile(): When reading eigenvectors, expected ' ****',\n");
+      mprinterr("Error: ReadEvecFile(): When reading eigenvector %i, expected ' ****',\n",nvect_);
       mprinterr("       got %s [%s]\n", buffer, infile.Name());
       return 1;
     }
@@ -198,4 +207,47 @@ double ModesInfo::calc_spectral_density(double *taum, int i, double omega) {
          ( 1.0 + omega*omega * taum[j]*taum[j] ); //check order XXXX
   }                                                                                                  
   return J;
+}
+
+/** Calc rms atomic fluctuations */
+double* ModesInfo::CalcRMSfluct(int ibeg, int iend, bool ibose) {
+  int natoms = navgelem_ / 3;
+  double* results = new double[ natoms * 4 ];
+  for (int i = 0; i < natoms; ++i) {
+    double sumx = 0;
+    double sumy = 0;
+    double sumz = 0;
+    for (int j = 0; j < nvect_; ++j) {
+      if (j+1 >= ibeg && j+1 <= iend) { // Pre calc the shift?
+        double frq = freq_[j];
+        if (frq >= 0.5) {
+          // Don't use eigenvectors associated with zero or negative eigenvalues
+          int idx = nvectelem_*j + 3*i;
+          double distx = evec_[idx  ] * evec_[idx  ];
+          double disty = evec_[idx+1] * evec_[idx+1];
+          double distz = evec_[idx+2] * evec_[idx+2];
+          double fi = 1.0 / (frq*frq);
+          if (ibose) {
+            double argq = CONSQ * frq;
+            fi *= (argq / tanh(argq));
+          }
+          sumx += distx * fi;
+          sumy += disty * fi;
+          sumz += distz * fi;
+        }
+      }
+    }
+
+    sumx *= CNST;
+    sumy *= CNST;
+    sumz *= CNST;
+
+    int ind = 4*i;
+    results[ind  ] = sqrt(sumx) * CONT;
+    results[ind+1] = sqrt(sumy) * CONT;
+    results[ind+2] = sqrt(sumz) * CONT;
+    results[ind+3] = sqrt(sumx + sumy + sumz) * CONT;
+  }
+
+  return results;
 }
