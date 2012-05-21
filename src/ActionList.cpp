@@ -43,6 +43,7 @@
 #include "MatrixType.h"
 #include "Action_Grid.h"
 #include "Action_GibbsEofHydration.h"
+#include "Action_Dipole.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -120,6 +121,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("matrix"))         {Act=new MatrixType;}
   else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}
   else if (argIn.CommandIs("FEoHtest"))       {Act=new Action_GibbsEofHydration;}
+  else if (argIn.CommandIs("dipoletest"))     {Act=new Action_Dipole;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||

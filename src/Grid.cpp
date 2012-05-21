@@ -168,6 +168,51 @@ int Grid::GridSetup(Topology* currentParm) {
   return 0;
 }
 
+// Grid::GridPoint()
+/** Main grid routine. Check if position specified by coordinates
+  * corresponds to a valid bin and if so increment the bin.
+  * \return Bin index if binned, -1 if out of bounds.
+  */
+int Grid::GridPoint(double xIn, double yIn, double zIn) {
+  double xx = xIn + sx_;
+  int i = (int) (xx / dx_) - 1;
+  if (i >= 0 && i < nx_) {
+    double yy = yIn + sy_;
+    int j = (int) (yy / dy_) - 1;
+    if (j >= 0 && j < ny_) {
+      double zz = zIn + sz_;
+      int k = (int) (zz / dz_) - 1;
+      if (k >= 0 && k < nz_) {
+        int idx = i*ny_*nz_ + j*nz_ + k;
+        grid_[idx] += increment_; // NOTE: Cast to float?
+        return idx;
+      }
+    }
+  }
+  return -1;
+}
+
+// Grid::BinPoint
+/** Grid routine used for backwards compatibility with ptraj Dipole
+  * routine (Action_Dipole).
+  */
+int Grid::BinPoint(double xx, double yy, double zz) {
+  int i = (int) (xx / dx_);
+  if (i > 0 && i < nx_) {
+    int j = (int) (yy / dy_);
+    if (j > 0 && j < ny_) {
+      int k = (int) (zz / dz_);
+      if (k > 0 && k < nz_) {
+        int idx = i*ny_*nz_ + j*nz_ + k;
+        grid_[idx] += increment_; // NOTE: Cast to float?
+        return idx;
+      }
+    }
+  }
+  return -1;
+}
+
+// Grid::PrintXplor()
 void Grid::PrintXplor(std::string const& name, const char* title, 
                       std::string remark)
 {

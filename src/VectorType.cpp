@@ -4,8 +4,8 @@
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
 #include "Constants.h" // PI
-#include "vectormath.h"
 #include "Matrix_3x3.h"
+#include "vectormath.h" // printVector, printMatrix
 
 // CONSTRUCTOR
 VectorType::VectorType() :
@@ -531,7 +531,9 @@ int VectorType::Action_CORR() {
     //VXYZ = currentFrame->CenterOfMass(&mask2_);
     currentFrame->CenterOfMass( &mask2_, VXYZ );
     //VXYZ -= CXYZ;
-    vector_sub( VXYZ, VXYZ, CXYZ );
+    VXYZ[0] -= CXYZ[0];
+    VXYZ[1] -= CXYZ[1];
+    VXYZ[2] -= CXYZ[2];
   } else if (mode_==VECTOR_CORRPLANE) {
     int idx = 0;
     for (AtomMask::const_iterator atom = mask_.begin();
@@ -625,7 +627,7 @@ int VectorType::Action_CORR() {
 // VectorType::Action_DIPOLE()
 int VectorType::Action_DIPOLE()
 {
-  double Vec[3], CXYZ[3], VXYZ[3], XYZ[3];
+  double CXYZ[3], VXYZ[3], XYZ[3];
   CXYZ[0] = 0;
   CXYZ[1] = 0;
   CXYZ[2] = 0;
@@ -639,11 +641,14 @@ int VectorType::Action_DIPOLE()
     currentFrame->GetAtomXYZ( XYZ, *atom );
     double mass = (*currentParm)[*atom].Mass();
     total_mass += mass;
-    vector_mult_scalar( Vec, XYZ, mass );
-    vector_sum( CXYZ, CXYZ, Vec );
+    CXYZ[0] += (mass * XYZ[0]);
+    CXYZ[1] += (mass * XYZ[1]);
+    CXYZ[2] += (mass * XYZ[2]);
 
-    vector_mult_scalar( Vec, XYZ, (*currentParm)[*atom].Charge() );
-    vector_sum( VXYZ, VXYZ, Vec );
+    double charge = (*currentParm)[*atom].Charge();
+    VXYZ[0] += (charge * XYZ[0]);
+    VXYZ[1] += (charge * XYZ[1]);
+    VXYZ[2] += (charge * XYZ[2]);
   }
   vx_[frame_] = VXYZ[0];
   vy_[frame_] = VXYZ[1];

@@ -2143,7 +2143,7 @@ transformDipole(actionInformation *action,
 	    j * dipoleInfo->nz + i;
 
 	  density = (int) dipoleInfo->grid[index];
-
+          //printf("PDBG: %5i %5i %5i %f\n",i,j,k,dipoleInfo->grid[index]);
 	  if ( density >= max_density ) {
 
 	    /*
@@ -2247,7 +2247,7 @@ transformDipole(actionInformation *action,
   /*
    *      traverse over solvent molecules
    */
-  for (i_solvent=1; i_solvent < state->solventMolecules; i_solvent++) {
+  for (i_solvent=0; i_solvent < state->solventMolecules; i_solvent++) {
 
     /*
      *  get coordinates and shift to origin and then to appropriate spacing
@@ -2264,6 +2264,7 @@ transformDipole(actionInformation *action,
 	i++;
       }
     }
+    //printf("PDBG:\tAfter getting coords i = %i\n", i);
     
     /*
      *  calculate dipolar vector.  NOTE: the total charge on the solvent
@@ -2291,6 +2292,7 @@ transformDipole(actionInformation *action,
       mass += state->masses[j];
       i++;
     }
+    //printf("PDBG:\tAfter vector calc i = %i\n", i);
     xcm /= mass;
     ycm /= mass;
     zcm /= mass;
@@ -2301,6 +2303,7 @@ transformDipole(actionInformation *action,
     i = (int) (xcm / dipoleInfo->dx);
     j = (int) (ycm / dipoleInfo->dy);
     k = (int) (zcm / dipoleInfo->dz);
+    //printf("PDBG: Solvent %i XYZ %8.3lf %8.3lf %8.3lf\n",i_solvent,xcm,ycm,zcm);
 
     /*
      *  check bounds and increment grid, dipole if appropriate
@@ -2315,7 +2318,9 @@ transformDipole(actionInformation *action,
       dipoleInfo->dipolex[ k*ny*nz + j*nz + i] += dipolar_vector[0];
       dipoleInfo->dipoley[ k*ny*nz + j*nz + i] += dipolar_vector[1];
       dipoleInfo->dipolez[ k*ny*nz + j*nz + i] += dipolar_vector[2];
-    }
+      //printf("PDBG: Bin = %i\n", k*ny*nz + j*nz + i);
+    } //else
+      //printf("PDBG: Bin = %i\n", -1);
   }
 
   if (prnlev > 2)
