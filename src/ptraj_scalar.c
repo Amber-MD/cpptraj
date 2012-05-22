@@ -53,21 +53,6 @@ scalarInfo *scalarStackGetName(stackType **scalarStackP, char *name)
   return (match);
 }
 
-// modesInfoStackGetName()
-modesInfo *modesInfoStackGetName(stackType **modesStackP, char *name)
-{
-  stackType *s;
-  modesInfo *info, *match;
-
-  match = NULL;
-  for (s = *modesStackP; s != NULL; s = s->next) {
-    info = (modesInfo *) s->entry;
-    if ( strcmp(info->name, name) == 0 )
-      match = info;
-  }
-  return (match);
-}
-
 // distindex()
 int distindex(int mask1tot, int i, int j) {
 

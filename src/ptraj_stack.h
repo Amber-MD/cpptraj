@@ -9,12 +9,6 @@ typedef struct _stackType {
 } stackType;
 
 
-// GLOBAL STACK VARIABLES
-#ifdef PTRAJ_STACK_MODULE
-stackType *modesStack = NULL;
-#else
-extern stackType *modesStack;
-#endif
 //typedef void (*fxnPrintStackEntry)(void *);
 
 void pushBottomStack( stackType **, void * );

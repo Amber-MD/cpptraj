@@ -61,37 +61,15 @@ int PtrajAction::init( ) {
   actioninfo->type = TRANSFORM_NOOP;
 
   // Set the action type and function based on the command
-  /*if ( actionArgs.CommandIs("correlation")    ) {
-    actioninfo->type = TRANSFORM_CORRELATION;
-    actioninfo->fxn  = (actionFunction) transformCorr;
-  } else*/ if ( actionArgs.CommandIs("clusterdihedral")) {
+  if ( actionArgs.CommandIs("clusterdihedral")) {
     actioninfo->type = TRANSFORM_DIHEDRALCLUSTER;
     actioninfo->fxn  = (actionFunction) transformDihedralCluster;
   } else if ( actionArgs.CommandIs("diffusion")      ) {
     actioninfo->type = TRANSFORM_DIFFUSION;
     actioninfo->fxn  = (actionFunction) transformDiffusion;
-  /*} else if ( actionArgs.CommandIs("dipole")         ) {
-    actioninfo->type = TRANSFORM_DIPOLE;
-    actioninfo->fxn  = (actionFunction) transformDipole;*/
   } else if ( actionArgs.CommandIs("dnaiontracker")  ) {
     actioninfo->type = TRANSFORM_DNAIONTRACKER;
     actioninfo->fxn  = (actionFunction) transformDNAiontracker;
-  } else if ( actionArgs.CommandIs("echo")           ) {
-    actioninfo->type = TRANSFORM_ECHO;
-    actioninfo->fxn = (actionFunction) transformEcho;
-  /*} else if ( actionArgs.CommandIs("grid")           ) {
-    actioninfo->type = TRANSFORM_GRID;
-    actioninfo->fxn  = (actionFunction) transformGrid;*/
-  /*} else if ( actionArgs.CommandIs("FEoH")           ) {
-    actioninfo->type = TRANSFORM_FEOH;
-    actioninfo->fxn  = (actionFunction) transformGibbsEnergyOfHydration;*/
-  /*} else if ( actionArgs.CommandIs("principal")      ) {
-    actioninfo->type = TRANSFORM_PRINCIPAL;
-    actioninfo->fxn  = (actionFunction) transformPrincipal;
-    coordinate_update = true;*/
-  /*} else if ( actionArgs.CommandIs("projection")     ) {
-    actioninfo->type = TRANSFORM_PROJECTION;
-    actioninfo->fxn  = (actionFunction) transformProjection;*/
   } else if ( actionArgs.CommandIs("randomizeions")  ) {
     actioninfo->type = TRANSFORM_RANDOMIZEIONS;
     actioninfo->fxn  = (actionFunction) transformRandomizeIons;

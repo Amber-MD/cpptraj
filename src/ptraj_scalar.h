@@ -2,7 +2,6 @@
 #define INC_PTRAJ_SCALAR_H
 
 #include "ptraj_state.h" // ptrajState: scalarInfo, transformMatrixInfo
-#include "ptraj_evec.h"  // modesInfo: transformVectorInfo
 #include "ptraj_stack.h" // stackType
   /*
    *  Information for the stackStack, i.e. saving various 

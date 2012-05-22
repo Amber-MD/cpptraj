@@ -36,5 +36,5 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         TriangleMatrix.cpp vectormath.cpp VectorType.cpp
 
 CSOURCES=molsurf.c MpiRoutines.c ptraj_actions.c ptraj_analyze.c ptraj_arg.c ptraj_common.c \
-         ptraj_evec.c ptraj_scalar.c ptraj_stack.c ptraj_state.c
+         ptraj_scalar.c ptraj_stack.c ptraj_state.c
 

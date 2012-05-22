@@ -23,14 +23,6 @@ PtrajAnalysis::~PtrajAnalysis() {
       FreeState(analyzeinfo->state); 
     free(analyzeinfo);
   }
-  // Clear the stacks. Set to NULL since the stacks are global. This 
-  // prevents another PtrajAnalysis from trying to free them again.
-  //if (vectorStack!=NULL) clearStack( &vectorStack );
-  //if (matrixStack!=NULL) clearStack( &matrixStack );
-  //if (modesStack!=NULL) clearStack( &modesStack );
-  //vectorStack = NULL;
-  //matrixStack = NULL;
-  //modesStack = NULL;
 }
 
 // PtrajAnalysis::Setup()
@@ -61,9 +53,6 @@ int PtrajAnalysis::Analyze() {
   } else if ( analyzeArgs_.ArgIs(1,"crank")            ) {
     analyzeinfo->type = ANALYZE_CRANKSHAFT;
     analyzeinfo->fxn  = (analyzeFunction) analyzeCrankshaft;
-  } else if ( analyzeArgs_.ArgIs(1,"modes")            ) {
-    analyzeinfo->type = ANALYZE_MODES;
-    analyzeinfo->fxn  = (analyzeFunction) analyzeModes;
   } else if ( analyzeArgs_.ArgIs(1,"set")              ) {
     analyzeinfo->type = ANALYZE_SET;
     analyzeinfo->fxn  = (analyzeFunction) analyzeSet;

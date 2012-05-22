@@ -130,11 +130,10 @@ vectormath.o : vectormath.cpp Constants.h CpptrajStdio.h vectormath.h
 VectorType.o : VectorType.cpp Action.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h Constants.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h ModesInfo.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h VectorType.h vectormath.h
 molsurf.o : molsurf.c Name.h molsurf.h
 MpiRoutines.o : MpiRoutines.c MpiRoutines.h
-ptraj_actions.o : ptraj_actions.c Constants.h DistRoutines.h MpiRoutines.h Name.h TorsionRoutines.h ptraj_actions.h ptraj_arg.h ptraj_common.h ptraj_evec.h ptraj_scalar.h ptraj_stack.h ptraj_state.h
-ptraj_analyze.o : ptraj_analyze.c Name.h ptraj_analyze.h ptraj_arg.h ptraj_common.h ptraj_evec.h ptraj_scalar.h ptraj_stack.h ptraj_state.h
+ptraj_actions.o : ptraj_actions.c Constants.h DistRoutines.h MpiRoutines.h Name.h TorsionRoutines.h ptraj_actions.h ptraj_arg.h ptraj_common.h ptraj_scalar.h ptraj_stack.h ptraj_state.h
+ptraj_analyze.o : ptraj_analyze.c Name.h ptraj_analyze.h ptraj_arg.h ptraj_common.h ptraj_scalar.h ptraj_stack.h ptraj_state.h
 ptraj_arg.o : ptraj_arg.c ptraj_arg.h
 ptraj_common.o : ptraj_common.c
-ptraj_evec.o : ptraj_evec.c ptraj_common.h ptraj_evec.h
-ptraj_scalar.o : ptraj_scalar.c Name.h ptraj_common.h ptraj_evec.h ptraj_scalar.h ptraj_stack.h ptraj_state.h
+ptraj_scalar.o : ptraj_scalar.c Name.h ptraj_common.h ptraj_scalar.h ptraj_stack.h ptraj_state.h
 ptraj_stack.o : ptraj_stack.c ptraj_stack.h
 ptraj_state.o : ptraj_state.c Name.h PtrajMask.h ptraj_common.h ptraj_state.h
