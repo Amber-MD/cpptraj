@@ -213,12 +213,14 @@ double ModesInfo::calc_spectral_density(double *taum, int i, double omega) {
 double* ModesInfo::CalcRMSfluct(int ibeg, int iend, bool ibose) {
   int natoms = navgelem_ / 3;
   double* results = new double[ natoms * 4 ];
+  memset(results, 0, natoms*4*sizeof(double));
+
   for (int i = 0; i < natoms; ++i) {
     double sumx = 0;
     double sumy = 0;
     double sumz = 0;
     for (int j = 0; j < nvect_; ++j) {
-      if (j+1 >= ibeg && j+1 <= iend) { // Pre calc the shift?
+      if (j+1 >= ibeg && j+1 <= iend) { // TODO: Pre calc the shift
         double frq = freq_[j];
         if (frq >= 0.5) {
           // Don't use eigenvectors associated with zero or negative eigenvalues
@@ -248,6 +250,122 @@ double* ModesInfo::CalcRMSfluct(int ibeg, int iend, bool ibose) {
     results[ind+2] = sqrt(sumz) * CONT;
     results[ind+3] = sqrt(sumx + sumy + sumz) * CONT;
   }
+
+  return results;
+}
+
+/** Calc displacement of coordinates along normal mode directions */
+double* ModesInfo::CalcDisplacement(int ibeg, int iend, bool ibose, double factor) {
+  int natoms = navgelem_ / 3;
+  double* results = new double[ navgelem_ ];
+  memset(results, 0, navgelem_*sizeof(double));
+  double sqrtcnst = sqrt(CNST) * CONT * factor;
+
+  for (int i = 0; i < nvect_; ++i) {
+    if (i+1 >= ibeg && i+1 <= iend) { // TODO: Pre calc the shift
+      double frq = freq_[i];
+      if (frq >= 0.5) {
+        // Don't use eigenvectors associated with zero or negative eigenvalues
+        double fi = 1.0 / frq;
+        if (ibose) {
+          double argq = CONSQ * frq;
+          fi *= (fi * argq / tanh(argq));
+          fi = sqrt(fi);
+        }
+        fi *= sqrtcnst; // * CONT * factor
+    
+        int nvi = nvectelem_ * i;
+        for (int j = 0; j < natoms; ++j) {
+          int ind = j * 3;
+          results[ind  ] += evec_[nvi + ind  ] * fi;
+          results[ind+1] += evec_[nvi + ind+1] * fi;
+          results[ind+2] += evec_[nvi + ind+2] * fi;
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+/** Calc dipole-dipole correlation functions */
+double* ModesInfo::CalcDipoleCorr(int ibeg, int iend, bool ibose, 
+                                  modestackType const& Apairs)
+{
+  double vec[3], del[3][3];
+  double qcorr = 1.0; // For when ibose is false.
+  int rsize = Apairs.size() * (iend - ibeg + 1);
+  double* results = new double[ rsize ];
+  memset(results, 0, rsize * sizeof(double));
+
+  int ncnt = 0; // Index into results
+  for (modestack_it apair = Apairs.begin(); apair != Apairs.end(); ++apair)
+  {
+    // Convert atom #s to coordinate #s
+    int at1 = (*apair).first * 3;
+    int at2 = (*apair).second * 3;
+    // Calc unit vector along at2->at1 bond
+    double dnorm = 0.0;
+    for (int i = 0; i < 3; ++i) {
+      vec[i] = avg_[at1+i] - avg_[at2+i];
+      dnorm += (vec[i] * vec[i]);
+    }
+    dnorm = sqrt(dnorm);
+    vec[0] /= dnorm;
+    vec[1] /= dnorm;
+    vec[2] /= dnorm;
+    // Loop over desired modes
+    for (int i = 0; i < nvect_; ++i) {
+      if (i+1 >= ibeg && i+1 <= iend) { // TODO: Pre calc the shift
+        if (freq_[i] >= 0.5) {
+          // Don't use eigenvectors associated with zero or negative eigenvalues
+          // NOTE: Where is 11791.79 from? Should it be a const?
+          double frq = freq_[i] * freq_[i] / 11791.79;
+          if (ibose) {
+            double argq = CONSQ * freq_[i];
+            qcorr = argq / tanh(argq);
+          }
+          /*
+           *  Calc the correlation matrix for delta
+           *    as in eq. 7.16 of lamm and szabo, J Chem Phys 1986, 85, 7334.
+           *  Note that the rhs of this eq. should be multiplied by kT
+           */
+          double qcorrf = qcorr / frq;
+          int nvi = nvectelem_ * i;
+          for (int j = 0; j < 3; ++j) {
+            int idxi1 = at1 + j;
+            int idxi2 = at2 + j;
+            for (int k = 0; k < 3; ++k) {
+              int idxj1 = at1 + k;
+              int idxj2 = at2 + k;
+              del[j][k] = 0.6 * qcorrf * (evec_[nvi + idxi1] - evec_[nvi + idxi2])
+                                       * (evec_[nvi + idxj1] - evec_[nvi + idxj2]);
+            }
+          }
+          // Correlation in length, eq. 10.2 of lamm and szabo
+          // NOTE: Commented out in PTRAJ
+          /*****
+          rtr0 = 0.0;
+          for(j = 0; j < 3; j++)
+            for(k = 0; k < 3; k++)
+              rtr0 += e[j] * e[k] * del[j][k];
+          *****/
+          // Librational correlation function, using eq. 7.12 of lamm and szabo
+          // (w/o beta on the lhs).
+          double val = 0.0;
+          for (int j = 0; j < 3; ++j) {
+            val -= del[j][j];
+            for (int k = 0; k < 3; ++k) 
+              val += vec[j] * vec[k] * del[j][k];
+          }
+          val *= (3.0 / (dnorm * dnorm));
+
+          results[ncnt] = val;
+          ncnt++;
+        } // END if positive definite eigenvalue
+      } // END if in between ibeg and iend
+    } // END loop over nvect
+  } // END loop over atom pairs
 
   return results;
 }

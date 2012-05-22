@@ -1,5 +1,6 @@
 #ifndef INC_MODESINFO_H
 #define INC_MODESINFO_H
+#include <list>
 #include "DataSet.h" 
 /** Information relating to modes. This is a DataSet so that it can be
   * added to the master DataSetList by matrix analysis for referencing 
@@ -21,6 +22,9 @@ class ModesInfo : public DataSet {
     enum modesSource {
       MS_UNKNOWN=0, MS_STACK, MS_FILE
     };
+    /// Used to communicate atom pairs for correlation calc
+    typedef std::list< std::pair<int,int> > modestackType;
+    typedef std::list< std::pair<int,int> >::const_iterator modestack_it;
 
     ModesInfo();
     ModesInfo(modesType,modesSource,std::string&);
@@ -29,26 +33,26 @@ class ModesInfo : public DataSet {
     int ReadEvecFile(std::string&, int, int);
     double calc_spectral_density(double *, int, double);
     double* CalcRMSfluct(int, int, bool);
+    double* CalcDisplacement(int, int, bool, double);
+    double* CalcDipoleCorr(int, int, bool, modestackType const& );
 
     // NOTE: Replace all these with a constructor eventually?
     int SetNavgElem(int);
-    void SetAvg( double* avgIn ) { avg_ = avgIn; }
-    void SetNvect( int nvIn )    { nvect_ = nvIn; }
+    void SetAvg( double* avgIn )   { avg_ = avgIn;       }
+    void SetNvect( int nvIn )      { nvect_ = nvIn;      }
     void SetNvectElem( int nveIn ) { nvectelem_ = nveIn; }
-    void SetFreq( double* fIn )  { freq_ = fIn; }
-    void SetEvec( double* eIn )  { evec_ = eIn; }
+    void SetFreq( double* fIn )    { freq_ = fIn;        }
+    void SetEvec( double* eIn )    { evec_ = eIn;        }
 
-    int Nvect()    { return nvect_; }
-    int NvectElem() { return nvectelem_; }
-    int Navgelem() { return navgelem_; }
-    double* Freq() { return freq_; }
-    double* Evec() { return evec_; }
-    modesSource Source() { return source_; }
-    modesType Mtype() { return type_; }
-
-    double Evec(int veci, int npair) { 
-      return evec_[veci * nvectelem_ + npair]; 
-    }
+    int Nvect()          { return nvect_;     }
+    int NvectElem()      { return nvectelem_; }
+    int Navgelem()       { return navgelem_;  }
+    double* Freq()       { return freq_;      } // TODO: Replace this
+    double Freq(int idx) { return freq_[idx]; }
+    double* Evec()       { return evec_;      } // TODO: Replace this
+    modesSource Source() { return source_;    }
+    modesType Mtype()    { return type_;      }
+    double Evec(int veci, int npair) { return evec_[veci * nvectelem_ + npair]; }
 
   private:
     static const size_t BUFSIZE_;

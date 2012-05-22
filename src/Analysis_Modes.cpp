@@ -1,6 +1,7 @@
 #include "Analysis_Modes.h"
 #include "CpptrajStdio.h"
 
+// CONSTRUCTOR
 Analysis_Modes::Analysis_Modes() :
   type_(FLUCT),
   beg_(0),
@@ -12,12 +13,14 @@ Analysis_Modes::Analysis_Modes() :
   results_(0)
 {}
 
+/// Strings describing modes calculation types.
 const char Analysis_Modes::analysisTypeString[3][22] = {
   "rms fluctuations",
   "displacements",
   "correlation functions"
 };
 
+// DESTRUCTOR
 Analysis_Modes::~Analysis_Modes() {
   // Only delete ModesInfo if it was read in from a file.
   if (modinfo_ != 0 && source_==ModesInfo::MS_FILE)
@@ -26,6 +29,7 @@ Analysis_Modes::~Analysis_Modes() {
     delete[] results_;
 }
 
+// Analysis_Modes::Setup()
 int Analysis_Modes::Setup(DataSetList* DSLin) {
   // Analysis type
   if (analyzeArgs_.hasKey("fluct"))
@@ -114,12 +118,7 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
     }
   }
 
-  // Allocate memory for results vector
-  switch (type_) {
-    case FLUCT:    results_ = 0; break; //new double[ modinfo_->Navgelem() * 4 / 3 ]; break;
-    case DISPLACE: results_ = new double[ modinfo_->Navgelem() ]; break;
-    case CORR:     results_ = new double[ atompairStack_.size() * (end_ - beg_ + 1) ];
-  }
+  // Memory allocation for results vector is done in ModesInfo.
 
   // Status
   mprintf("    ANALYZE MODES: Calculating %s using modes %i to %i from %s\n",
@@ -137,17 +136,19 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
     mprintf("\tFactor for displacement: %lf\n", factor_);
   if (type_ == CORR) {
     mprintf("\tUsing the following atom pairs:");
-    for (modestackType::iterator apair = atompairStack_.begin();
+    for (ModesInfo::modestack_it apair = atompairStack_.begin();
                                  apair != atompairStack_.end(); ++apair)
-      mprintf(" (%i,%i)", (*apair).first, (*apair).second );
+      mprintf(" (%i,%i)", (*apair).first+1, (*apair).second+1 );
     mprintf("\n");
   }
 
   return 0;
 }
 
+// Analysis_Modes::Analyze()
 int Analysis_Modes::Analyze() {
   CpptrajFile outfile;
+  // ----- FLUCT PRINT -----
   if (type_ == FLUCT) {
     // Calc rms atomic fluctuations
     results_ = modinfo_->CalcRMSfluct(beg_, end_, bose_);
@@ -159,8 +160,48 @@ int Analysis_Modes::Analyze() {
     for (int i4 = 0; i4 < modinfo_->Navgelem()*4/3; i4+=4) 
       outfile.Printf("%10i %10.3f %10.3f %10.3f %10.3f\n", anum++, results_[i4], 
                      results_[i4+1], results_[i4+2], results_[i4+3]); 
-    outfile.CloseFile(); 
-  }
+  // ----- DISPLACE PRINT -----
+  } else if (type_ == DISPLACE) {
+    // Calc displacement of coordinates along normal mode directions
+    results_ = modinfo_->CalcDisplacement(beg_, end_, bose_, factor_);
+    if (results_ == 0) return 1;
+    outfile.OpenWrite( filename_ );
+    outfile.Printf("Analysis of modes: DISPLACEMENT\n");
+    outfile.Printf("%10s %10s %10s %10s\n", "Atom no.", "displX", "displY", "displZ");
+    int anum = 1;
+    for (int i3 = 0; i3 < modinfo_->Navgelem(); i3 += 3)
+      outfile.Printf("%10i %10.3f %10.3f %10.3f\n", anum++, results_[i3], 
+                     results_[i3+1], results_[i3+2]);
+  // ----- CORR PRINT -----
+  } else if (type_ == CORR) {
+    // Calc dipole-dipole correlation functions
+    results_ = modinfo_->CalcDipoleCorr( beg_, end_, bose_, atompairStack_);
+    if (results_==0) return 1;
+    outfile.OpenWrite( filename_ );
+    outfile.Printf("Analysis of modes: CORRELATION FUNCTIONS\n");
+    outfile.Printf("%10s %10s %10s %10s %10s %10s\n", "Atom1", "Atom2", "Mode", 
+                   "Freq", "1-S^2", "P2(cum)");
+    int ncnt = 0;
+    for (ModesInfo::modestack_it apair = atompairStack_.begin();
+                                 apair != atompairStack_.end(); ++apair)
+    {
+      outfile.Printf("%10i %10i\n", (*apair).first+1, (*apair).second+1);
+      double val = 1.0;
+      for (int i = 0; i < modinfo_->Nvect(); ++i) {
+        if (i+1 >= beg_ && i+1 <= end_) { // TODO: Pre-calc the shift
+          double frq = modinfo_->Freq(i);
+          if (frq >= 0.5) {
+            val += results_[ncnt];
+            outfile.Printf("%10s %10s %10i %10.5f %10.5f %10.5f\n",
+                           "", "", i, frq, results_[ncnt], val);
+            ++ncnt;
+          }
+        }
+      }
+    } // END loop over CORR atom pairs
+  } else // SANITY CHECK
+    return 1;
+  outfile.CloseFile();
 
   return 0;
 } 

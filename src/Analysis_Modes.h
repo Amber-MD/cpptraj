@@ -1,6 +1,5 @@
 #ifndef INC_ANALYSIS_MODES_H
 #define INC_ANALYSIS_MODES_H
-#include <list> 
 #include "Analysis.h"
 #include "ModesInfo.h"
 class Analysis_Modes : public Analysis {
@@ -22,9 +21,7 @@ class Analysis_Modes : public Analysis {
     ModesInfo* modinfo_;
     ModesInfo::modesSource source_;
     std::string filename_;
-    // Can this just be a vector?
-    typedef std::list< std::pair<int,int> > modestackType;
-    modestackType atompairStack_;
+    ModesInfo::modestackType atompairStack_;
     double* results_;
 };
 #endif
