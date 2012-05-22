@@ -12,10 +12,10 @@
 /// Enumerated type for FLAG_POINTERS section
 const int Parm_Amber::AMBERPOINTERS=31;
 enum topValues {
-//0       1       2      3       4       5       6       7      8       9
-  NATOM,  NTYPES, NBONH, MBONA,  NTHETH, MTHETA, NPHIH,  MPHIA, NHPARM, NPARM,
-  NNB,    NRES,   NBONA, NTHETA, NPHIA,  NUMBND, NUMANG, NPTRA, NATYP,  NPHB,
-  IFPERT, NBPER,  NGPER, NDPER,  MBPER,  MGPER,  MDPER,  IFBOX, NMXRS,  IFCAP,
+//0         1       2      3       4       5       6       7      8       9
+  NATOM=0,  NTYPES, NBONH, MBONA,  NTHETH, MTHETA, NPHIH,  MPHIA, NHPARM, NPARM,
+  NNB,      NRES,   NBONA, NTHETA, NPHIA,  NUMBND, NUMANG, NPTRA, NATYP,  NPHB,
+  IFPERT,   NBPER,  NGPER, NDPER,  MBPER,  MGPER,  MDPER,  IFBOX, NMXRS,  IFCAP,
   NEXTRA
 };
 /// Number of unique amber parm FLAGs
@@ -360,6 +360,9 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     mprinterr("Error: [%s] Could not get POINTERS from Amber Topology.\n",BaseName());
     return 1;
   }
+  // DEBUG
+  //for (std::vector<int>::iterator val = values.begin(); val != values.end(); ++val)
+  //  mprintf("\t%i\n", *val);
 
   // Read parm variables
   std::vector<NameType> names = GetFlagName(F_NAMES, values[NATOM]);
@@ -596,6 +599,8 @@ std::vector<int> Parm_Amber::GetFlagInteger(AmberParmFlagType fflag, int maxval)
   } else {
     iarray = GetInteger( 6, 12, maxval );
   }
+  if ((int)iarray.size() != maxval)
+    mprinterr("Error: Reading INTEGER section %s\n",AmberParmFlag[fflag]);
   return iarray;
 }
 
@@ -610,6 +615,8 @@ std::vector<double> Parm_Amber::GetFlagDouble(AmberParmFlagType fflag, int maxva
   } else {
     darray = GetDouble( 16, 5, maxval );
   }
+  if ((int)darray.size() != maxval)
+    mprinterr("Error: Reading DOUBLE section %s\n",AmberParmFlag[fflag]); 
   return darray;
 }
 
@@ -624,6 +631,8 @@ std::vector<NameType> Parm_Amber::GetFlagName(AmberParmFlagType fflag, int maxva
   } else {
     carray = GetName( 4, 20, maxval );
   }
+  if ((int)carray.size() != maxval)
+    mprinterr("Error: Reading CHAR section %s\n",AmberParmFlag[fflag]);
   return carray;
 }
 
@@ -639,6 +648,11 @@ bool Parm_Amber::SeekToFlag(AmberParmFlagType fflag) {
 // Parm_Amber::AllocateAndRead()
 int Parm_Amber::AllocateAndRead(int width, int ncols, int maxval) {
   char temp[3]; // Only for when maxval is 0, space for \n, \r, NULL
+  // Sanity Check
+  if (maxval < 0) {
+    mprinterr("Internal Error: AllocateAndRead called with maxval < 0 (%i)\n",maxval);
+    return -1;
+  }
   // If # expected values is 0 there will still be a newline placeholder
   // in the parmtop. Read past that and return
   if (maxval==0) {

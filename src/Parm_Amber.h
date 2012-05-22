@@ -30,7 +30,10 @@ class Parm_Amber : public ParmIO {
     static const char AmberParmFmt[][16];
     static const char AmberParmFlag[][27];
 
-    static const size_t BUF_SIZE = 83;
+    // NOTE: Although amber topology files should only ever require 83 chars
+    //       to read each line (80 chars + newline + CR (if dos) + NULL)
+    //       increase the size to handle non-standard files.
+    static const size_t BUF_SIZE = 256;
     char lineBuffer_[BUF_SIZE];
     bool newParm_;
     std::string fformat_;

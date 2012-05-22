@@ -5,7 +5,7 @@
 #include "Traj_AmberRestart.h"
 #include "CpptrajStdio.h"
 
-const size_t AmberRestart::BUF_SIZE = 83;
+const size_t AmberRestart::BUF_SIZE = 128;
 
 // CONSTRUCTOR
 AmberRestart::AmberRestart() {

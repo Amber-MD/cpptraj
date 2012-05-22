@@ -272,7 +272,7 @@ int Rotdif::action() {
 // NOTE: Theta could also be generated in the same way as phi. Currently done
 //       to be consistent with the original implementation in randvec.F90
 double *Rotdif::randvec() {
-  const size_t BUF_SIZE = 83;
+  const size_t BUF_SIZE = 128;
   double *XYZ;
   int xyz_size = nvecs_ * 3;
   CpptrajFile vecIn;

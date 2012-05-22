@@ -7,7 +7,7 @@
 // Size of REMD header
 const size_t AmberCoord::REMD_HEADER_SIZE = 42;
 // Max Size of 1 line of amber coords, 80 + newline [+CR] + NULL
-const size_t AmberCoord::BUF_SIZE = 83;
+const size_t AmberCoord::BUF_SIZE = 128;
 
 // CONSTRUCTOR
 AmberCoord::AmberCoord() {

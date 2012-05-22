@@ -31,7 +31,7 @@ class PDBtype {
     int pdb_resNum(char*);*/
   private: 
     static const char PDB_RECNAME[][7];
-    static const size_t BUF_SIZE_ = 83;
+    static const size_t BUF_SIZE_ = 128;
     char buffer_[BUF_SIZE_];
     double XYZ_[3];
 };

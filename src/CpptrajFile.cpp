@@ -28,7 +28,7 @@ const char CpptrajFile::AccessTypeName[3][2] = {
   "R", "W", "A"
 };
 
-const size_t CpptrajFile::BUF_SIZE = 83;
+const size_t CpptrajFile::BUF_SIZE = 128;
 
 // CONSTRUCTOR
 CpptrajFile::CpptrajFile() :
