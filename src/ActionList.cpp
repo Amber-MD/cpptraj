@@ -129,18 +129,10 @@ int ActionList::AddAction(ArgList &argIn) {
            argIn.CommandIs("correlation") ||
            argIn.CommandIs("clusterdihedral") ||
            argIn.CommandIs("diffusion") ||
-           //argIn.CommandIs("dipole") ||
            argIn.CommandIs("dnaiontracker") ||
-           argIn.CommandIs("echo") ||
-           //argIn.CommandIs("FEoH") ||
-           //argIn.CommandIs("grid") ||
-           //argIn.CommandIs("matrix") ||
-           //argIn.CommandIs("principal") ||
-           //argIn.CommandIs("projection") ||
            argIn.CommandIs("randomizeions") ||
            argIn.CommandIs("scale") ||
            argIn.CommandIs("unwrap") //||
-           //argIn.CommandIs("vector") 
           )
   {
     Act = new PtrajAction;

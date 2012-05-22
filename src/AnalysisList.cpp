@@ -41,7 +41,7 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
       Ana = new Analysis_Matrix;
     else if (argIn[1] == "timecorr")
       Ana = new Analysis_Timecorr;
-    else if (argIn[1] == "modestest")
+    else if (argIn[1] == "modes")
       Ana = new Analysis_Modes;
     else
       Ana = new PtrajAnalysis(); 

@@ -37,6 +37,7 @@ ModesInfo::ModesInfo(modesType tIn, modesSource sIn, std::string& nameIn) :
   dType_ = MODES;
 }
 
+// Constants used in the CalcXXX routines.
 const double ModesInfo::CONSQ = 2.39805E-3;
 const double ModesInfo::TKBC2 = 0.46105E-34;
 const double ModesInfo::AVO   = 6.023E23;
@@ -45,6 +46,7 @@ const double ModesInfo::CMTOA = 1.000E8;
 const double ModesInfo::TWOPI = 6.2832;
 const double ModesInfo::CONT  = CMTOA / TWOPI;
 
+// ModesInfo::SetNavgElem()
 int ModesInfo::SetNavgElem(int mask1tot) {
   // TODO: This is already calcd in MatrixType Nelt.
   if (type_ == MT_DIST || type_ == MT_IDEA || type_ == MT_IRED)
@@ -110,8 +112,8 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
     mprinterr("Error: ReadEvecFile(): sscanf on coords failed (%s)\n",infile.Name());
     return 1;
   } else if (nvals == 1) {
-    mprintf("Warning: ReadEvecFile(): No value for nvectelem found in %s, assuming it is navgelem\n",
-            infile.Name());
+    mprintf("Warning: ReadEvecFile(): No value for nvectelem found in %s,\n", infile.Name());
+    mprintf("         assuming it is navgelem (%i)\n",navgelem_);
     nvectelem_ = navgelem_;
   }
 
@@ -371,6 +373,7 @@ double* ModesInfo::CalcDipoleCorr(int ibeg, int iend, bool ibose,
   return results;
 }
 
+// ModesInfo::ProjectCovar()
 void ModesInfo::ProjectCovar(CpptrajFile& outfile, Frame& currentFrame, 
                              AtomMask& mask, std::vector<double> const& sqrtMasses)
 {
@@ -397,6 +400,7 @@ void ModesInfo::ProjectCovar(CpptrajFile& outfile, Frame& currentFrame,
   outfile.Printf("\n");
 }
 
+// ModesInfo::ProjectIDEA()
 void ModesInfo::ProjectIDEA(CpptrajFile& outfile, Frame& currentFrame,
                              AtomMask& mask)
 {
