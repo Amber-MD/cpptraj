@@ -112,7 +112,7 @@ int AmberRestartNC::setupTrajin(Topology *trajParm) {
   if ( SetupTime()!=0 ) return -1;
   
   // Box info
-  int boxerr = SetupBox(boxAngle_);
+  int boxerr = SetupBox(boxAngle_, boxLength_);
   if (boxerr == 1)
     return 1;
   else if (boxerr == 0)

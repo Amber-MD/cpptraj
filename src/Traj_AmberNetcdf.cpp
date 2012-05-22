@@ -126,7 +126,7 @@ int AmberNetcdf::setupTrajin(Topology* trajParm) {
   // Box info
   // NOTE: If no box info found in parm should really try to determine correct
   //       box type from angles.
-  int boxerr = SetupBox(boxAngle_);
+  int boxerr = SetupBox(boxAngle_, boxLength_);
   if (boxerr == 1)
     return 1;
   else if (boxerr == 0)

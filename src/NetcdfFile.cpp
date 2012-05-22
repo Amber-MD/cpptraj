@@ -214,7 +214,7 @@ int NetcdfFile::SetupTemperature() {
 }
 
 /** \return 0 on success, 1 on error, -1 for no box coords. */
-int NetcdfFile::SetupBox(double *boxAngle) {
+int NetcdfFile::SetupBox(double *boxAngle, double *boxLength) {
   if ( nc_inq_varid(ncid_,NCCELL_LENGTHS,&cellLengthVID_)==NC_NOERR ) {
     if (checkNCerr(nc_inq_varid(ncid_,NCCELL_ANGLES,&cellAngleVID_)) ) {
       mprinterr("Error: Getting cell angles.\n");
@@ -229,7 +229,7 @@ int NetcdfFile::SetupBox(double *boxAngle) {
     count_[0]=1; 
     count_[1]=3; 
     count_[2]=0;
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, boxAngle)) ) {
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, boxLength)) ) {
       mprinterr("Error: Getting cell lengths.\n");
       return 1;
     }

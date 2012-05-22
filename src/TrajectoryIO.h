@@ -90,6 +90,7 @@ class TrajectoryIO : public CpptrajFile {
     bool seekable_;      ///< True if can seek to frames in this traj.
     bool hasBox_;        ///< True if the trajectory has box information.
     double boxAngle_[3]; ///< Hold alpha, beta and gamma angles of box if hasBox.
+    double boxLength_[3];///< Hold x, y and z lengths of box if hasBox.
     bool hasTemperature_;///< True if trajectory has temperature information.
     bool hasVelocity_;   ///< True if trajectory has velocity information.
 }; 

@@ -215,7 +215,21 @@ int CharmmDcd::WriteBlock(int blocksize) {
 /** Call openTraj, which reads the DCD header and all necessary info.
   */
 int CharmmDcd::setupTrajin(Topology *trajParm) {
+  double box[6];
   if ( openTraj() ) return -1;
+  // Load box info so that it can be checked.
+  if (hasBox_) {
+    if ( ReadBlock(48) < 0) return 1;
+    IO->Read(box, sizeof(double)*6);
+    if (isBigEndian) endian_swap8(box,6);
+    if ( ReadBlock(-1) < 0) return 1;
+    boxLength_[0] = box[0];
+    boxLength_[1] = box[1];
+    boxLength_[2] = box[2];
+    boxAngle_[0] = box[3];
+    boxAngle_[1] = box[4];
+    boxAngle_[2] = box[5];
+  }
   closeTraj();
   return dcdframes;
 }

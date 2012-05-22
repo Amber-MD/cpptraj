@@ -194,14 +194,20 @@ int AmberRestart::getBoxAngles(char *boxline) {
   } else if (numBoxCoords_==3) {
     // Lengths read but no angles. Set angles to 0.0, which indicates
     // the prmtop angle should be used in TrajectoryFile
-    boxAngle_[0]=0.0;
-    boxAngle_[1]=0.0;
-    boxAngle_[2]=0.0;
+    boxLength_[0] = box[0];
+    boxLength_[1] = box[1];
+    boxLength_[2] = box[2];
+    boxAngle_[0] = 0.0;
+    boxAngle_[1] = 0.0;
+    boxAngle_[2] = 0.0;
     hasBox_ = true;
   } else if (numBoxCoords_==6) {
-    boxAngle_[0]=box[3];
-    boxAngle_[1]=box[4];
-    boxAngle_[2]=box[5];
+    boxLength_[0] = box[0];
+    boxLength_[1] = box[1];
+    boxLength_[2] = box[2];
+    boxAngle_[0] = box[3];
+    boxAngle_[1] = box[4];
+    boxAngle_[2] = box[5];
     hasBox_ = true;
   } else {
     mprintf("Warning: AmberRestart::getBoxAngles():\n");
@@ -289,11 +295,15 @@ int AmberRestart::setupTrajin(Topology *trajParm) {
   frameBuffer_ = new char[ frameSize_ ];
 
   if (debug_ > 0) {
-    mprintf("    Amber Restart hasBox=%i hasVelocity=%i numBoxCoords=%i\n",
+    mprintf("\tAmber Restart hasBox=%i hasVelocity=%i numBoxCoords=%i\n",
             (int)hasBox_,(int)hasVelocity_,numBoxCoords_);
-    mprintf("    Amber Restart frameSize= %lu\n",frameSize_);
-    if (hasBox_) 
-      mprintf("    Amber Restart box: %lf %lf %lf\n", boxAngle_[0],boxAngle_[1],boxAngle_[2]);
+    mprintf("\tAmber Restart frameSize= %lu\n",frameSize_);
+    if (hasBox_) { 
+      mprintf("\tAmber Restart box lengths: %lf %lf %lf\n",
+              boxLength_[0],boxLength_[1],boxLength_[2]);
+      mprintf("\tAmber Restart box angles: %lf %lf %lf\n", 
+              boxAngle_[0],boxAngle_[1],boxAngle_[2]);
+    }
   }
  
   closeTraj();

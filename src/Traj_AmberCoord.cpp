@@ -188,7 +188,6 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
   size_t frame_lines, lineSize;
   off_t file_size, frame_size, tmpfsize, title_size;
   int Frames;
-  double box[6]; // For checking box coordinates
   bool sizeFound;
 
   // Attempt to open the file. open() sets the title and titleSize
@@ -251,8 +250,9 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
       // to be safe. These will be used to determine the box type in TrajectoryFile.
       // NOTE: lengths could be an empty read.
       if (numBoxCoords_>3) 
-        sscanf(buffer, "%8lf%8lf%8lf%8lf%8lf%8lf",box,box+1,box+2,
-               boxAngle_,boxAngle_+1,boxAngle_+2);
+        sscanf(buffer, "%8lf%8lf%8lf%8lf%8lf%8lf",
+               boxLength_,boxLength_+1,boxLength_+2,
+               boxAngle_, boxAngle_+1, boxAngle_+2);
       // Reallocate frame buffer accordingly
       frameSize_ += lineSize;
       delete[] frameBuffer_;

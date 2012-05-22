@@ -1,16 +1,21 @@
 // TrajectoryIO
 #include "TrajectoryIO.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // SMALL
 
 // CONSTRUCTOR
-TrajectoryIO::TrajectoryIO() {
-  seekable_ = false;
-  hasBox_ = false;
+TrajectoryIO::TrajectoryIO() :
+  seekable_(false),
+  hasBox_(false),
+  hasTemperature_(false),
+  hasVelocity_(false)
+{
   boxAngle_[0] = 0.0;
   boxAngle_[1] = 0.0;
   boxAngle_[2] = 0.0;
-  hasTemperature_ = false;
-  hasVelocity_ = false;
+  boxLength_[0] = 0.0;
+  boxLength_[1] = 0.0;
+  boxLength_[2] = 0.0;
 }
 
 // COPY CONSTRUCTOR
@@ -23,6 +28,9 @@ TrajectoryIO::TrajectoryIO(const TrajectoryIO &rhs) :
   boxAngle_[0] = rhs.boxAngle_[0];
   boxAngle_[1] = rhs.boxAngle_[1];
   boxAngle_[2] = rhs.boxAngle_[2];
+  boxLength_[0] = rhs.boxAngle_[0];
+  boxLength_[1] = rhs.boxAngle_[1];
+  boxLength_[2] = rhs.boxAngle_[2];
   hasTemperature_ = rhs.hasTemperature_;
   hasVelocity_ = rhs.hasVelocity_;
 }
@@ -41,6 +49,9 @@ TrajectoryIO &TrajectoryIO::operator=(const TrajectoryIO &rhs) {
   boxAngle_[0] = rhs.boxAngle_[0];
   boxAngle_[1] = rhs.boxAngle_[1];
   boxAngle_[2] = rhs.boxAngle_[2];
+  boxLength_[0] = rhs.boxAngle_[0];
+  boxLength_[1] = rhs.boxAngle_[1];
+  boxLength_[2] = rhs.boxAngle_[2];
   hasTemperature_ = rhs.hasTemperature_;
   hasVelocity_ = rhs.hasVelocity_;
   return *this;
@@ -86,6 +97,11 @@ int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
   Box trajbox;
   if (trajParm==NULL) return 1;
   if (!hasBox_) return 0;
+  // Check for zero box lengths
+  if (boxLength_[0] < SMALL || boxLength_[1] < SMALL || boxLength_[2] < SMALL) {
+    mprintf("Warning: Box information present in trajectory but lengths are zero.\n");
+    mprintf("         This will cause imaging to fail unless box information is set.\n");
+  }
   // If box coords present but no box info in associated parm, print
   // a warning.
   if (trajParm->BoxType() == Box::NOBOX) {
