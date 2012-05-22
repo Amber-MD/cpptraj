@@ -30,7 +30,26 @@ Analysis_Modes::~Analysis_Modes() {
 }
 
 // Analysis_Modes::Setup()
+/** analyze modes fluct|displ|corr
+  *                            stack <stackname> | file <filename> 
+  *                            [beg <beg>] [end <end>] 
+  *                            [bose] [factor <factor>]
+  *                            [out <outfile>] [maskp <mask1> <mask2> [...]]
+  *  - fluct: rms fluctations from normal modes
+  *  - displ: displacement of cartesian coordinates along normal mode directions
+  *
+  * results vector usage:
+  *  - fluct:
+  *      [rmsx(atom1), rmsy(atom1), rmsz(atom1), rms(atom1), ..., rmsx(atomN), ..., rms(atomN)]
+  *  - displ:
+  *      [displx(atom1), disply(atom1), displz(atom1), ..., displx(atomN), ..., displz(atomN)]
+  *  - corr:
+  *      [corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)
+  */
 int Analysis_Modes::Setup(DataSetList* DSLin) {
+  // Ensure first 2 args (should be 'analyze' 'modes') are marked.
+  analyzeArgs_.MarkArg(0);
+  analyzeArgs_.MarkArg(1);
   // Analysis type
   if (analyzeArgs_.hasKey("fluct"))
     type_ = FLUCT;

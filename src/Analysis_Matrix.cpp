@@ -216,7 +216,7 @@ int Analysis_Matrix::Analyze() {
     nevec_ = nelem;
     mprintf("Warning: NEVEC > NELEM: Number of calculated evecs were reduced to %i\n",nevec_);
   }
-  if (nevec_ >= minfo_->Snap()) {
+  if (nevec_ > minfo_->Snap()) {
     nevec_ = minfo_->Snap();
     mprintf("Warning: NEVEC > #Snapshots: Number of calculated evecs were reduced to %i\n",nevec_);
   }

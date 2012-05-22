@@ -1,7 +1,10 @@
 #ifndef INC_MODESINFO_H
 #define INC_MODESINFO_H
 #include <list>
+#include <vector>
 #include "DataSet.h" 
+#include "CpptrajFile.h"
+#include "Frame.h"
 /** Information relating to modes. This is a DataSet so that it can be
   * added to the master DataSetList by matrix analysis for referencing 
   * by other analyses.
@@ -35,6 +38,8 @@ class ModesInfo : public DataSet {
     double* CalcRMSfluct(int, int, bool);
     double* CalcDisplacement(int, int, bool, double);
     double* CalcDipoleCorr(int, int, bool, modestackType const& );
+    void ProjectCovar(CpptrajFile&, Frame&, AtomMask&, std::vector<double> const&);
+    void ProjectIDEA(CpptrajFile&, Frame&, AtomMask&);
 
     // NOTE: Replace all these with a constructor eventually?
     int SetNavgElem(int);

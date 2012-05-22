@@ -89,9 +89,9 @@ int PtrajAction::init( ) {
     actioninfo->type = TRANSFORM_PRINCIPAL;
     actioninfo->fxn  = (actionFunction) transformPrincipal;
     coordinate_update = true;*/
-  } else if ( actionArgs.CommandIs("projection")     ) {
+  /*} else if ( actionArgs.CommandIs("projection")     ) {
     actioninfo->type = TRANSFORM_PROJECTION;
-    actioninfo->fxn  = (actionFunction) transformProjection;
+    actioninfo->fxn  = (actionFunction) transformProjection;*/
   } else if ( actionArgs.CommandIs("randomizeions")  ) {
     actioninfo->type = TRANSFORM_RANDOMIZEIONS;
     actioninfo->fxn  = (actionFunction) transformRandomizeIons;

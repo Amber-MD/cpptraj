@@ -44,6 +44,7 @@
 #include "Action_Grid.h"
 #include "Action_GibbsEofHydration.h"
 #include "Action_Dipole.h"
+#include "Action_Projection.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -122,6 +123,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}
   else if (argIn.CommandIs("FEoH"))           {Act=new Action_GibbsEofHydration;}
   else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}
+  else if (argIn.CommandIs("projection"))     {Act=new Action_Projection;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||
@@ -134,7 +136,7 @@ int ActionList::AddAction(ArgList &argIn) {
            //argIn.CommandIs("grid") ||
            //argIn.CommandIs("matrix") ||
            //argIn.CommandIs("principal") ||
-           argIn.CommandIs("projection") ||
+           //argIn.CommandIs("projection") ||
            argIn.CommandIs("randomizeions") ||
            argIn.CommandIs("scale") ||
            argIn.CommandIs("unwrap") //||

@@ -184,7 +184,8 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
         ++nent;
       }
     }
-    ++nvect_;
+    if (nno >= ibeg && nno <= iend)
+      ++nvect_;
   }
 
   if (nvect_ != (iend - ibeg + 1)) {
@@ -369,3 +370,53 @@ double* ModesInfo::CalcDipoleCorr(int ibeg, int iend, bool ibose,
 
   return results;
 }
+
+void ModesInfo::ProjectCovar(CpptrajFile& outfile, Frame& currentFrame, 
+                             AtomMask& mask, std::vector<double> const& sqrtMasses)
+{
+  double XYZ[3];
+  int idx1 = 0;
+  for (int i = 0; i < nvect_; ++i) {
+    double proj = 0;
+    int idx2 = 0;
+    std::vector<double>::const_iterator sqrtmass = sqrtMasses.begin();
+    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
+    {
+      currentFrame.GetAtomXYZ( XYZ, *atom );
+      double mass = *sqrtmass;
+      proj += (XYZ[0] - avg_[idx2  ]) * mass * evec_[idx1  ];
+      proj += (XYZ[1] - avg_[idx2+1]) * mass * evec_[idx1+1];
+      proj += (XYZ[2] - avg_[idx2+2]) * mass * evec_[idx1+2];
+      idx1 += 3;
+      idx2 += 3;
+      ++sqrtmass;
+    }
+    // Output projection
+    outfile.Printf(" %9.3f", proj);
+  }
+  outfile.Printf("\n");
+}
+
+void ModesInfo::ProjectIDEA(CpptrajFile& outfile, Frame& currentFrame,
+                             AtomMask& mask)
+{
+  double XYZ[3];
+  int idx1 = 0;
+  for (int i = 0; i < nvect_; ++i) {
+    double proj1 = 0;
+    double proj2 = 0;
+    double proj3 = 0;
+    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
+    {
+      proj1 += XYZ[0] * evec_[idx1];
+      proj2 += XYZ[1] * evec_[idx1];
+      proj3 += XYZ[2] * evec_[idx1];
+      ++idx1;
+    }
+    // Output projection
+    outfile.Printf(" %9.3f %9.3f %9.3f %9.3f", proj1, proj2, proj3,
+                   sqrt(proj1*proj1 + proj2*proj2 + proj3*proj3) );
+  }
+  outfile.Printf("\n");
+}
+
