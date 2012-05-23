@@ -17,8 +17,9 @@ class DCnode {
     }
     void Increment()        { ++count_;                 }
     void AddFrame(int fIn)  { frames_.push_back( fIn ); }
-    bool operator<(const DCnode& rhs) const  { return (count_ < rhs.count_);  }
-    bool operator>(const DCnode& rhs) const  { return (count_ > rhs.count_);  }
+    // Want sort in descending order, so reverse '>'
+    bool operator<(const DCnode& rhs) const  { return (count_ > rhs.count_);  }
+    bool operator>(const DCnode& rhs) const  { return (count_ < rhs.count_);  }
     bool operator==(const DCnode& rhs) const { return (count_ == rhs.count_); }
     bool BinMatch(std::vector<int>& binIn) {
       return (std::equal(BinIDs_.begin(), BinIDs_.end(), binIn.begin()));
