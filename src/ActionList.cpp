@@ -125,11 +125,10 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("FEoH"))           {Act=new Action_GibbsEofHydration;}
   else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}
   else if (argIn.CommandIs("projection"))     {Act=new Action_Projection;}
-  else if (argIn.CommandIs("cdtest"))         {Act=new Action_ClusterDihedral;}
+  else if (argIn.CommandIs("clusterdihedral")){Act=new Action_ClusterDihedral;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||
-           argIn.CommandIs("clusterdihedral") ||
            argIn.CommandIs("diffusion") ||
            argIn.CommandIs("dnaiontracker") ||
            argIn.CommandIs("randomizeions") ||

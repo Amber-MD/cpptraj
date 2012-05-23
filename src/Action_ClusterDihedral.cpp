@@ -13,6 +13,7 @@ Action_ClusterDihedral::Action_ClusterDihedral() :
   dcparm_(0)
 {}
 
+// Action_ClusterDihedral::ReadDihedrals()
 int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
   CpptrajFile infile;
   char buffer[256];
@@ -37,6 +38,7 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
   return 0;
 }
 
+// Action_ClusterDihedral::init()
 int Action_ClusterDihedral::init() {
   // # of phi and psi bins
   phibins_ = actionArgs.getKeyInt("phibins", 10);
@@ -81,6 +83,7 @@ int Action_ClusterDihedral::init() {
   return 0;
 }
 
+// Action_ClusterDihedral::setup()
 int Action_ClusterDihedral::setup() {
   // Currently setup can only be performed based on first prmtop
   if (dcparm_!=0) {
@@ -109,8 +112,9 @@ int Action_ClusterDihedral::setup() {
         if ( (*currentParm)[*atom].Name() == "N   " ) {
           DCmasks_.push_back( DCmask(C1, N2, CA, C2,    phibins_) ); // PHI
           DCmasks_.push_back( DCmask(N2, CA, C2, *atom, psibins_) ); // PSI
-          mprintf("DIHEDRAL PAIR FOUND: C1= %i, N2= %i, CA= %i, C2= %i, N3= %li\n",
-                  C1, N2, CA, C2, *atom);
+          if (debug > 0)
+            mprintf("DIHEDRAL PAIR FOUND: C1= %i, N2= %i, CA= %i, C2= %i, N3= %li\n",
+                    C1, N2, CA, C2, *atom);
           // Since the carbonyl C/amide N probably starts a new dihedral,
           // reset to those.
           C1 = C2;
@@ -126,7 +130,7 @@ int Action_ClusterDihedral::setup() {
         if ( (*currentParm)[*atom].Name() == "C   " ) C2 = *atom;
       } else if ( (*currentParm)[*atom].Name() == "C   " ) C1 = *atom; // 1st carbon
     } // End loop over selected atoms
-    mprintf("\tFOUND %zu DIHEDRAL ANGLES.\n", DCmasks_.size());
+    mprintf("\tFound %zu dihedral angles.\n", DCmasks_.size());
   }
 
   if (DCmasks_.empty()) {
@@ -141,6 +145,7 @@ int Action_ClusterDihedral::setup() {
   return 0;
 }
 
+// Action_ClusterDihedral::action()
 int Action_ClusterDihedral::action() {
   // For each dihedral, calculate which bin it should go into and store bin#
   int bidx = 0;
@@ -157,10 +162,10 @@ int Action_ClusterDihedral::action() {
     Bins_[bidx++] = phibin;
   }
   // DEBUG - print bins
-  mprintf("[");
-  for (std::vector<int>::iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
-    mprintf("%3i,",*bin);
-  mprintf("]\n");
+  //mprintf("[");
+  //for (std::vector<int>::iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
+  //  mprintf("%3i,",*bin);
+  //mprintf("]\n");
   // Now search for this bin combo in the DCarray
   std::vector<DCnode>::iterator DC = dcarray_.begin();
   for (; DC != dcarray_.end(); ++DC)
@@ -182,6 +187,7 @@ int Action_ClusterDihedral::action() {
   return 0;
 }
 
+// Action_ClusterDihedral::print()
 void Action_ClusterDihedral::print() {
   // Setup output file
   CpptrajFile output;

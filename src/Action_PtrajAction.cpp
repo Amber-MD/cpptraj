@@ -61,10 +61,7 @@ int PtrajAction::init( ) {
   actioninfo->type = TRANSFORM_NOOP;
 
   // Set the action type and function based on the command
-  if ( actionArgs.CommandIs("clusterdihedral")) {
-    actioninfo->type = TRANSFORM_DIHEDRALCLUSTER;
-    actioninfo->fxn  = (actionFunction) transformDihedralCluster;
-  } else if ( actionArgs.CommandIs("diffusion")      ) {
+  if ( actionArgs.CommandIs("diffusion")      ) {
     actioninfo->type = TRANSFORM_DIFFUSION;
     actioninfo->fxn  = (actionFunction) transformDiffusion;
   } else if ( actionArgs.CommandIs("dnaiontracker")  ) {

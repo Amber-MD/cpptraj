@@ -26,7 +26,7 @@ void FreeReferenceInfo();
 // possible ptraj actions
 typedef enum _actionType {
   TRANSFORM_NOOP, TRANSFORM_ANALYZE, TRANSFORM_DIFFUSION,
-  TRANSFORM_DIHEDRALCLUSTER, TRANSFORM_DNAIONTRACKER,
+  TRANSFORM_DNAIONTRACKER,
   TRANSFORM_RANDOMIZEIONS, TRANSFORM_SCALE, TRANSFORM_TRUNCOCT, 
   TRANSFORM_UNWRAP
 } actionType;
@@ -104,7 +104,6 @@ typedef struct _actionInformation {
 
 // ---------- Functions --------------------------------------------------------
 int transformDiffusion(actionInformation *, double *, double *, double *, double *, int);
-int transformDihedralCluster(actionInformation*,double*,double *, double *, double *, int);
 int transformDNAiontracker(actionInformation *, double *, double *, double *, double *, int);
 int transformRandomizeIons(actionInformation *, double *, double *, double *, double *, int);
 int transformScale(actionInformation *, double *, double *, double *, double *, int);
