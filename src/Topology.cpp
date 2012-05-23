@@ -108,13 +108,13 @@ void Topology::IncreaseFrames(int frames) {
 }
 
 // Topology::c_str()
-/** Return a printf-compatible char* of the parm name, or the full parm
-  * filename if the parm name is empty.
+/** Return a printf-compatible char* of the parm filename, or the parm
+  * name (title) if the parm filename is empty.
   */
 const char *Topology::c_str() {
-  if (!parmName_.empty())
-    return parmName_.c_str();
-  return fileName_.c_str();
+  if (!fileName_.empty()) 
+    return fileName_.c_str();
+  return parmName_.c_str();
 }
 
 // Topology::ParmName()
