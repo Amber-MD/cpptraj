@@ -100,7 +100,10 @@ int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
   // Check for zero box lengths
   if (boxLength_[0] < SMALL || boxLength_[1] < SMALL || boxLength_[2] < SMALL) {
     mprintf("Warning: Box information present in trajectory but lengths are zero.\n");
-    mprintf("         This will cause imaging to fail unless box information is set.\n");
+    //mprintf("         This will cause imaging to fail unless box information is set.\n");
+    mprintf("Warning: DISABLING BOX in parm [%s]!\n",trajParm->c_str());
+    trajParm->ParmBox().SetNoBox();
+    return 0;
   }
   // If box coords present but no box info in associated parm, print
   // a warning.
