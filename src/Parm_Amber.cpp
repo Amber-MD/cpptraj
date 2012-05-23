@@ -480,9 +480,17 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     error_count_ += TopIn.SetAmberHbond(asol, bsol, hbcut);
     error_count_ += TopIn.SetAmberExtra(solty, itree, join_array, irotat);
     error_count_ += TopIn.SetNonbondInfo(values[NTYPES], NB_index, LJ_A, LJ_B);
-    if (values[IFBOX]>0)
-      error_count_ += TopIn.CreateMoleculeArray(atomsPerMol, parmbox, 
-                                                finalSoluteRes, firstSolvMol);
+    if (values[IFBOX]>0) {
+      // If there is a problem with molecules, print a warning but dont fail;
+      // molecule information can still be set by DetermineMolecules in
+      // Topology.
+      if ( TopIn.CreateMoleculeArray(atomsPerMol, parmbox, 
+                                     finalSoluteRes, firstSolvMol) != 0 )
+      {
+        mprintf("Warning: Problem with molecule information in Amber topology.\n");
+        mprintf("Warning: Molecule information will be determine from bonds.\n");
+      }
+    }
   }
 
   return error_count_;
