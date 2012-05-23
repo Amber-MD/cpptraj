@@ -283,6 +283,25 @@ void CpptrajFile::Reset() {
   isDos_ = 0;
 }
 
+// CpptrajFile::OpenRead()
+int CpptrajFile::OpenRead(std::string const& nameIn) {
+  int err = SetupRead( nameIn, 0 );
+  err += OpenFile();
+  if (err != 0) {
+    if (nameIn.empty())
+      mprinterr("Error: No filename specified for read.\n");
+    else
+      mprinterr("Error: Could not open %s for reading.\n", nameIn.c_str());
+  }
+  return err;
+}
+
+// CpptrajFile::SetupRead()
+int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
+  if (nameIn.empty()) return 1;
+  return SetupRead(nameIn.c_str(), debugIn);
+}
+
 // CpptrajFile::SetupRead()
 /** Set up file for reading. Will autodetect the type and format.
   * \return 0 on success, 1 on error.
@@ -348,14 +367,14 @@ int CpptrajFile::OpenWrite(std::string const& nameIn) {
   return err;
 }
 
-// SetupWrite()
+// CpptrajFile::SetupWrite()
 int CpptrajFile::SetupWrite(std::string const& nameIn, int debugIn) {
   if (nameIn.empty())
     return SetupWrite(NULL, debugIn);
   return SetupWrite(nameIn.c_str(), debugIn);
 }
 
-// SetupWrite()
+// CpptrajFile::SetupWrite()
 /** Set up file for writing with the given format and type. If a NULL filename
   * is given this indicates STDOUT.
   * \return 0 on success, 1 on error.

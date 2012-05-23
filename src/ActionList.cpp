@@ -45,6 +45,7 @@
 #include "Action_GibbsEofHydration.h"
 #include "Action_Dipole.h"
 #include "Action_Projection.h"
+#include "Action_ClusterDihedral.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -124,6 +125,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("FEoH"))           {Act=new Action_GibbsEofHydration;}
   else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}
   else if (argIn.CommandIs("projection"))     {Act=new Action_Projection;}
+  else if (argIn.CommandIs("cdtest"))         {Act=new Action_ClusterDihedral;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||

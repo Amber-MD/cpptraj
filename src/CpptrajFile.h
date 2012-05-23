@@ -20,6 +20,8 @@ class CpptrajFile {
 
     /// Prepare file for reading. 
     int SetupRead(const char*, int);
+    int SetupRead(std::string const&, int);
+    int OpenRead(std::string const&);
     /// Prepare file for writing.
     int SetupWrite(const char*, int);
     int SetupWrite(std::string const&, int);
