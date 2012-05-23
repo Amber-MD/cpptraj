@@ -46,6 +46,7 @@
 #include "Action_Dipole.h"
 #include "Action_Projection.h"
 #include "Action_ClusterDihedral.h"
+#include "Action_Unwrap.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -126,6 +127,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}
   else if (argIn.CommandIs("projection"))     {Act=new Action_Projection;}
   else if (argIn.CommandIs("clusterdihedral")){Act=new Action_ClusterDihedral;}
+  else if (argIn.CommandIs("unwraptest"))     {Act=new Action_Unwrap;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||

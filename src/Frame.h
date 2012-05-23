@@ -82,6 +82,8 @@ class Frame {
     void ShiftToGeometricCenter();
     void ImageNonortho(bool, AtomMask *, bool, bool, bool, std::vector<int> &);
     void ImageOrtho(bool, bool, bool, std::vector<int> &);
+    void UnwrapNonortho( Frame&, AtomMask& );
+    void UnwrapOrtho( Frame&, AtomMask& );
 
     void printAtomCoord(int);
 
