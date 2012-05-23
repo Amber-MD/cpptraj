@@ -284,7 +284,7 @@ int Rmsd::setup() {
 
   if ( currentParm->SetupIntegerMask( FrameMask ) ) return 1;
   if ( FrameMask.None() ) {
-    mprintf("    Error: Rmsd::setup: No atoms in mask.\n");
+    mprinterr("Error: Rmsd::setup: No atoms in mask.\n");
     return 1;
   }
   // Allocate space for selected atoms in the frame. This will also put the
@@ -296,9 +296,9 @@ int Rmsd::setup() {
   
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( RefNselected() != FrameMask.Nselected() ) {
-    mprintf( "    Warning: Number of atoms in RMS mask (%i) does not equal number of\n",
-            FrameMask.Nselected());
-    mprintf( "             atoms in reference mask (%i).\n",RefNselected());
+    mprinterr("Error: Number of atoms in RMS mask (%i) does not equal number of\n",
+              FrameMask.Nselected());
+    mprinterr("Error: atoms in reference mask (%i).\n",RefNselected());
     return 1;
   }
 
