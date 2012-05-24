@@ -181,8 +181,8 @@ int Rmsd::perResSetup(Topology *RefParm) {
 
   // Check that the number of reference residues matches number of target residues
   if (tgt_range.Size() != ref_range.Size()) {
-    mprinterr("Error: RMSD: PerRes: Number of residues %i does not match\n",tgt_range.Size());
-    mprinterr("       number of reference residues %i.\n",ref_range.Size());
+    mprintf("Warning: RMSD: PerRes: Number of residues %i does not match\n",tgt_range.Size());
+    mprintf("         number of reference residues %i.\n",ref_range.Size());
     return 1;
   }
 
@@ -284,7 +284,7 @@ int Rmsd::setup() {
 
   if ( currentParm->SetupIntegerMask( FrameMask ) ) return 1;
   if ( FrameMask.None() ) {
-    mprinterr("Error: Rmsd::setup: No atoms in mask.\n");
+    mprintf("Warning: Rmsd::setup: No atoms in mask.\n");
     return 1;
   }
   // Allocate space for selected atoms in the frame. This will also put the
@@ -296,9 +296,9 @@ int Rmsd::setup() {
   
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( RefNselected() != FrameMask.Nselected() ) {
-    mprinterr("Error: Number of atoms in RMS mask (%i) does not equal number of\n",
+    mprintf("Warning: Number of atoms in RMS mask (%i) does not equal number of\n",
               FrameMask.Nselected());
-    mprinterr("Error: atoms in reference mask (%i).\n",RefNselected());
+    mprintf("Warning: atoms in reference mask (%i).\n",RefNselected());
     return 1;
   }
 
