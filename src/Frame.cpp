@@ -1488,6 +1488,24 @@ double Frame::DIST2(AtomMask *Mask1, AtomMask *Mask2, bool useMassIn, ImageType 
 }
 
 // Frame::DIST2()
+/** Call the appropriate distance calc for points in a1 and a2 based on
+  * given box type.
+  */
+double Frame::DIST2(double *a1, double *a2, ImageType image, double *ucell, double *recip) 
+{
+  if (image == NOIMAGE)
+    return DIST2_NoImage(a1, a2);
+  else if (image == ORTHO)
+    return DIST2_ImageOrtho(a1, a2, this->box_);
+  else if (image == NONORTHO)
+    return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
+
+  mprintf("    Error: Frame::DIST: Unrecognized image type (%i)\n.", (int)image);
+
+  return (-1.0);
+}
+
+// Frame::DIST2()
 /** Return the distance between atoms A1 and A2 with optional imaging.
   *   0 = None
   *   1 = Orthorhombic
@@ -1523,6 +1541,7 @@ double Frame::DIST2(int A1, int A2, ImageType image, double *ucell, double *reci
   *   0 = None
   *   1 = Orthorhombic
   *   2 = Non-orthorhombic
+  * NOTE: Is this routine necessary or can it be covered by 2xdouble* version
   */
 double Frame::DIST2(double *a1, int A2, ImageType image, double *ucell, double *recip) {
   int atom3;

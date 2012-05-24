@@ -48,6 +48,7 @@
 #include "Action_ClusterDihedral.h"
 #include "Action_Unwrap.h"
 #include "Action_Diffusion.h"
+#include "Action_DNAionTracker.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -130,9 +131,9 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("clusterdihedral")){Act=new Action_ClusterDihedral;}
   else if (argIn.CommandIs("unwrap"))         {Act=new Action_Unwrap;}
   else if (argIn.CommandIs("diffusion"))      {Act=new Action_Diffusion;}
+  else if (argIn.CommandIs("dnaiontracker"))  {Act=new Action_DNAionTracker;}
   // PTRAJ
   else if (
-           argIn.CommandIs("dnaiontracker") ||
            argIn.CommandIs("randomizeions") ||
            argIn.CommandIs("scale") 
           )

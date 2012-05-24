@@ -95,6 +95,7 @@ class Frame {
     // Coordinate calculation
     double BoxToRecip(double *, double *);
     double DIST2(AtomMask*, AtomMask*, bool, ImageType, double *, double *);
+    double DIST2(double *, double *, ImageType, double *, double *);
     double DIST2(int, int, ImageType, double *, double *);
     double DIST2(double*, int, ImageType, double *, double *);
     double DIST(int, int);

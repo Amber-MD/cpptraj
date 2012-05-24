@@ -724,7 +724,7 @@ void MatrixType::print() {
       if (type_ == MATRIX_MWCOVAR) {
         idx = 0;
         int row3 = 0;
-        double mass;
+        double mass = 1;
         for (AtomMask::const_iterator atomi = mask2_.begin();
                                       atomi != mask2_.end(); ++atomi)
         {
@@ -733,11 +733,6 @@ void MatrixType::print() {
             for (AtomMask::const_iterator atomj = mask1_.begin();
                                           atomj != mask1_.end(); ++atomj)
             {
-              if (*atomi == *atomj) {
-                vect2_[col3  ] *= mass;
-                vect2_[col3+1] *= mass;
-                vect2_[col3+2] *= mass;
-              }
               if (mask2expr_==NULL && *atomj >= *atomi) { // half-matrix
                 mass = sqrt( (*matrixParm_)[*atomi].Mass() * (*matrixParm_)[*atomj].Mass() );
                 if (row3+k <= col3) {
@@ -757,6 +752,13 @@ void MatrixType::print() {
                 mat_[idx++] *= mass;
                 mat_[idx++] *= mass;
                 mat_[idx++] *= mass;
+              }
+              // NOTE: This is put here so that mass can be properly initialize.
+              // NOTE: Is col3 the correct index to use or should it be a separate one?
+              if (*atomi == *atomj) {
+                vect2_[col3  ] *= mass;
+                vect2_[col3+1] *= mass;
+                vect2_[col3+2] *= mass;
               }
               col3 += 3;
             } // END LOOP OVER MASK1

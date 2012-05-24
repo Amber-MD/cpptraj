@@ -59,10 +59,7 @@ int PtrajAction::init( ) {
   actioninfo->type = TRANSFORM_NOOP;
 
   // Set the action type and function based on the command
-  if ( actionArgs.CommandIs("dnaiontracker")  ) {
-    actioninfo->type = TRANSFORM_DNAIONTRACKER;
-    actioninfo->fxn  = (actionFunction) transformDNAiontracker;
-  } else if ( actionArgs.CommandIs("randomizeions")  ) {
+  if ( actionArgs.CommandIs("randomizeions")  ) {
     actioninfo->type = TRANSFORM_RANDOMIZEIONS;
     actioninfo->fxn  = (actionFunction) transformRandomizeIons;
     coordinate_update = true;

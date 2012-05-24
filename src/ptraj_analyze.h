@@ -66,40 +66,6 @@ int analyzeSet(analyzeInformation *, stackType *, int);
 int analyzeStatistics(analyzeInformation *, stackType *, int);
 int analyzeTest(analyzeInformation *, stackType *, int);
 
-  
-// ---------- LOCALLY VISIBLE FUNCTION PROTOTYPES ------------------------------
-
-#ifdef HPUX
-  void dsaupd(int *, char *, int *, char *, int *, double *, double*, 
-#elif defined UNICOS
-  void DSAUPD(int *, char *, int *, char *, int *, double *, double*, 
-#else
-  void dsaupd_(int *, char *, int *, char *, int *, double *, double*, 
-#endif
-               int *, double *, int *, int *, int *, double *, double *,
-               int *, int *);
-
-#ifdef HPUX
-  void dseupd(int *, char *, int *, double *, double *, int *, double *,
-#elif defined UNICOS
-  void DSEUPD(int *, char *, int *, double *, double *, int *, double *,
-#else
-  void dseupd_(int *, char *, int *, double *, double *, int *, double *,
-#endif
-               char *, int *, char *, int*, double *, double *,
-               int *, double *, int *, int *, int *, double *, double *,
-               int *, int *);
-
-#ifdef HPUX
-  void thermo(int *, int *, int *, double *, double *, double *, 
-#elif defined UNICOS
-  void THERMO(int *, int *, int *, double *, double *, double *, 
-#else
-  void thermo_(int *, int *, int *, double *, double *, double *, 
-#endif
-               double *, double *, double *, double *,
-               double *, double *);
-
 #ifdef __cplusplus
 }
 #endif

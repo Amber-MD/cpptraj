@@ -22,7 +22,6 @@ extern "C" {
 // possible ptraj actions
 typedef enum _actionType {
   TRANSFORM_NOOP, TRANSFORM_ANALYZE, 
-  TRANSFORM_DNAIONTRACKER,
   TRANSFORM_RANDOMIZEIONS, TRANSFORM_SCALE, TRANSFORM_TRUNCOCT 
 } actionType;
 
@@ -98,11 +97,9 @@ typedef struct _actionInformation {
   _p_->carg8 = NULL
 
 // ---------- Functions --------------------------------------------------------
-int transformDNAiontracker(actionInformation *, double *, double *, double *, double *, int);
 int transformRandomizeIons(actionInformation *, double *, double *, double *, double *, int);
 int transformScale(actionInformation *, double *, double *, double *, double *, int);
 //int transformTruncOct(actionInformation *, double *, double *, double *, double *, int);
-actionInformation* ptrajCopyAction(actionInformation**);
 
 #ifdef __cplusplus
 }
