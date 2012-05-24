@@ -49,7 +49,8 @@ class Topology {
     inline res_iterator ResEnd() const   { return residues_.end();   }
     const Residue &Res(int);
     int ResFirstAtom(int);
-    int ResLastAtom(int); 
+    int ResLastAtom(int);
+    int ResSize(int); 
     // ----- Molecule-specific routines -----
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const { return molecules_.begin(); }
