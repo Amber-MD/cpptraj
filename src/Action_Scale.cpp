@@ -1,12 +1,15 @@
 #include "Action_Scale.h"
 #include "CpptrajStdio.h"
 
+// CONSTRUCTOR
 Action_Scale::Action_Scale() :
   sx_(1),
   sy_(1),
   sz_(1)
 {}
 
+// Action_Scale::init()
+/** Usage: scale x <sx> y <sy> z <sz> <mask> */
 int Action_Scale::init() {
   sx_ = actionArgs.getKeyDouble("x", 1);
   sy_ = actionArgs.getKeyDouble("y", 1);
@@ -19,6 +22,7 @@ int Action_Scale::init() {
   return 0;
 }
 
+// Action_Scale::setup()
 int Action_Scale::setup() {
   if ( currentParm->SetupIntegerMask( mask_ ) ) return 1;
   if ( mask_.None() ) {
@@ -28,10 +32,8 @@ int Action_Scale::setup() {
   return 0;
 }
 
+// Action_Scale::action()
 int Action_Scale::action() {
-  
   currentFrame->SCALE(mask_, sx_, sy_, sz_);
-
   return 0;
 }
-
