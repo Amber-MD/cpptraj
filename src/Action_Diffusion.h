@@ -9,12 +9,7 @@ class Action_Diffusion : public Action {
     int setup();
     int action();
 
-    //DataSet* avgx_;
-    //DataSet* avgy_;
-    //DataSet* avgz_;
-    //DataSet* average_;
     Frame initial_;
-    //std::vector<double> initial_;
     std::vector<double> previousx_;
     std::vector<double> previousy_;
     std::vector<double> previousz_;
@@ -34,5 +29,7 @@ class Action_Diffusion : public Action {
     CpptrajFile outputz_;
     CpptrajFile outputr_;
     CpptrajFile outputa_;
+    double boxcrd_[3];    ///< Hold box coordinates each frame
+    double boxcenter_[3]; ///< Hold center of box each frame
 };
 #endif

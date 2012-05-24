@@ -7,7 +7,14 @@ Action_Diffusion::Action_Diffusion() :
   printIndividual_(false),
   time_(1),
   hasBox_(false)
-{}
+{
+  boxcrd_[0] = 0;
+  boxcrd_[1] = 0;
+  boxcrd_[2] = 0;
+  boxcenter_[0] = 0;
+  boxcenter_[1] = 0;
+  boxcenter_[2] = 0;
+}
 
 /** diffusion mask [average] [time <time per frame>] */
 int Action_Diffusion::init() {
@@ -92,7 +99,7 @@ int Action_Diffusion::setup() {
 }
 
 int Action_Diffusion::action() {
-  double XYZ[3], boxcenter[3], boxcrd[3], iXYZ[3];
+  double XYZ[3], iXYZ[3];
   // Load initial frame if necessary
   if (initial_.empty()) {
     initial_ = *currentFrame;
@@ -108,10 +115,10 @@ int Action_Diffusion::action() {
     }
   } else {
     if (hasBox_) {
-      currentFrame->BoxXYZ(boxcrd);
-      boxcenter[0] = boxcrd[0] / 2;
-      boxcenter[1] = boxcrd[1] / 2;
-      boxcenter[2] = boxcrd[2] / 2;
+      currentFrame->BoxXYZ(boxcrd_);
+      boxcenter_[0] = boxcrd_[0] / 2;
+      boxcenter_[1] = boxcrd_[1] / 2;
+      boxcenter_[2] = boxcrd_[2] / 2;
     }
     // Set iterators
     std::vector<double>::iterator px = previousx_.begin();
@@ -141,12 +148,12 @@ int Action_Diffusion::action() {
       // it was imaged and adjust the distance of the total
       // movement with respect to the original frame.
       if (hasBox_) {
-        if      (delx >  boxcenter[0]) *dx -= boxcrd[0];
-        else if (delx < -boxcenter[0]) *dx += boxcrd[0];
-        else if (dely >  boxcenter[1]) *dy -= boxcrd[1];
-        else if (dely < -boxcenter[1]) *dy += boxcrd[1];
-        else if (delz >  boxcenter[2]) *dz -= boxcrd[2];
-        else if (delz < -boxcenter[2]) *dz += boxcrd[2];
+        if      (delx >  boxcenter_[0]) *dx -= boxcrd_[0];
+        else if (delx < -boxcenter_[0]) *dx += boxcrd_[0];
+        else if (dely >  boxcenter_[1]) *dy -= boxcrd_[1];
+        else if (dely < -boxcenter_[1]) *dy += boxcrd_[1];
+        else if (delz >  boxcenter_[2]) *dz -= boxcrd_[2];
+        else if (delz < -boxcenter_[2]) *dz += boxcrd_[2];
       }
       // DEBUG
       if (debug > 2)
