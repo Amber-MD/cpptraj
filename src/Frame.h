@@ -72,6 +72,7 @@ class Frame {
     void Divide(double);
     void AddByMask(Frame &, AtomMask &); 
     // Coordinate manipulation
+    void SCALE(AtomMask&, double, double, double);
     void Translate(double *);
     void Translate(double *, int,int);
     void Trans_Rot_Trans(double *, double *);

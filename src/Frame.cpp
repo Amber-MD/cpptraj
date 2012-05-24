@@ -835,6 +835,18 @@ void Frame::AddByMask(Frame &frameIn, AtomMask &maskIn) {
   }
 }
 
+// Frame::SCALE()
+void Frame::SCALE(AtomMask& maskIn, double sx, double sy, double sz) {
+  for (AtomMask::const_iterator atom = maskIn.begin();
+                                atom != maskIn.end(); atom++)
+  {
+    int idx = *atom * 3;
+    X_[idx  ] *= sx;
+    X_[idx+1] *= sy;
+    X_[idx+2] *= sz;
+  }
+}
+
 // Frame::Translate()
 /** Translate all coords by Vec.  */
 void Frame::Translate(double * Vec) {

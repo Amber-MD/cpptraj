@@ -22,7 +22,7 @@ extern "C" {
 // possible ptraj actions
 typedef enum _actionType {
   TRANSFORM_NOOP, TRANSFORM_ANALYZE, 
-  TRANSFORM_RANDOMIZEIONS, TRANSFORM_SCALE, TRANSFORM_TRUNCOCT 
+  TRANSFORM_RANDOMIZEIONS, TRANSFORM_TRUNCOCT 
 } actionType;
 
 // ACTION FUNCTION TYPE DEFINITION
@@ -98,7 +98,6 @@ typedef struct _actionInformation {
 
 // ---------- Functions --------------------------------------------------------
 int transformRandomizeIons(actionInformation *, double *, double *, double *, double *, int);
-int transformScale(actionInformation *, double *, double *, double *, double *, int);
 //int transformTruncOct(actionInformation *, double *, double *, double *, double *, int);
 
 #ifdef __cplusplus

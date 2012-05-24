@@ -63,9 +63,6 @@ int PtrajAction::init( ) {
     actioninfo->type = TRANSFORM_RANDOMIZEIONS;
     actioninfo->fxn  = (actionFunction) transformRandomizeIons;
     coordinate_update = true;
-  } else if ( actionArgs.CommandIs("scale")          ) {
-    actioninfo->type = TRANSFORM_SCALE;
-    actioninfo->fxn  = (actionFunction) transformScale;
   } else {
     mprinterr("Error: PtrajAction: Unrecognized Ptraj command: %s\n",actionArgs.Command());
     return 1;

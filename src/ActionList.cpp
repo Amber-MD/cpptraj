@@ -49,6 +49,7 @@
 #include "Action_Unwrap.h"
 #include "Action_Diffusion.h"
 #include "Action_DNAionTracker.h"
+#include "Action_Scale.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -132,10 +133,10 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("unwrap"))         {Act=new Action_Unwrap;}
   else if (argIn.CommandIs("diffusion"))      {Act=new Action_Diffusion;}
   else if (argIn.CommandIs("dnaiontracker"))  {Act=new Action_DNAionTracker;}
+  else if (argIn.CommandIs("scale"))          {Act=new Action_Scale;}
   // PTRAJ
   else if (
-           argIn.CommandIs("randomizeions") ||
-           argIn.CommandIs("scale") 
+           argIn.CommandIs("randomizeions") 
           )
   {
     Act = new PtrajAction;
