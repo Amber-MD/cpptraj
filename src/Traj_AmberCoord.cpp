@@ -248,11 +248,12 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
       // If present, get box angles. Angles are usually not printed 
       // for orthogonal and truncated octahedral boxes, but check here just
       // to be safe. These will be used to determine the box type in TrajectoryFile.
-      // NOTE: lengths could be an empty read.
       if (numBoxCoords_>3) 
         sscanf(buffer, "%8lf%8lf%8lf%8lf%8lf%8lf",
                boxLength_,boxLength_+1,boxLength_+2,
                boxAngle_, boxAngle_+1, boxAngle_+2);
+      else // Only lengths present
+        sscanf(buffer, "%8lf%8lf%8lf", boxLength_,boxLength_+1,boxLength_+2);
       // Reallocate frame buffer accordingly
       frameSize_ += lineSize;
       delete[] frameBuffer_;
