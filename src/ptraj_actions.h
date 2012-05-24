@@ -18,17 +18,12 @@ extern "C" {
 // INCLUDES
 #include "ptraj_state.h" // ptrajState and mask parsing routines, modes
 
-// ---------- Routines that access global ptraj_actions vars -------------------
-void SetReferenceInfo(const double*,int);
-void FreeReferenceInfo();
-
 // ---------- Ptraj actions ----------------------------------------------------
 // possible ptraj actions
 typedef enum _actionType {
   TRANSFORM_NOOP, TRANSFORM_ANALYZE, TRANSFORM_DIFFUSION,
   TRANSFORM_DNAIONTRACKER,
-  TRANSFORM_RANDOMIZEIONS, TRANSFORM_SCALE, TRANSFORM_TRUNCOCT, 
-  TRANSFORM_UNWRAP
+  TRANSFORM_RANDOMIZEIONS, TRANSFORM_SCALE, TRANSFORM_TRUNCOCT 
 } actionType;
 
 // ACTION FUNCTION TYPE DEFINITION
@@ -108,7 +103,6 @@ int transformDNAiontracker(actionInformation *, double *, double *, double *, do
 int transformRandomizeIons(actionInformation *, double *, double *, double *, double *, int);
 int transformScale(actionInformation *, double *, double *, double *, double *, int);
 //int transformTruncOct(actionInformation *, double *, double *, double *, double *, int);
-int transformUnwrap(actionInformation *, double *, double *, double *, double *, int);
 actionInformation* ptrajCopyAction(actionInformation**);
 
 #ifdef __cplusplus

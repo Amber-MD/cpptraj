@@ -26,8 +26,6 @@ PtrajAction::PtrajAction() {
 // DESTRUCTOR
 PtrajAction::~PtrajAction() {
   //fprintf(stderr,"PtrajAction Destructor.\n");
-  // Free reference information
-  FreeReferenceInfo();
   // Free arguments
   FreeArgumentStack(argumentStack);
   // Free actionInfo
@@ -74,10 +72,6 @@ int PtrajAction::init( ) {
   } else if ( actionArgs.CommandIs("scale")          ) {
     actioninfo->type = TRANSFORM_SCALE;
     actioninfo->fxn  = (actionFunction) transformScale;
-  } else if ( actionArgs.CommandIs("unwrap")         ) {
-    actioninfo->type = TRANSFORM_UNWRAP;
-    actioninfo->fxn  = (actionFunction) transformUnwrap;
-    coordinate_update = true;
   } else {
     mprinterr("Error: PtrajAction: Unrecognized Ptraj command: %s\n",actionArgs.Command());
     return 1;
@@ -91,11 +85,6 @@ int PtrajAction::init( ) {
   // DEBUG
   //argStackType **argumentStackPointer = (argStackType **) actioninfo->carg1;
   //mprintf("DEBUG:\targumentStack address (init 2): %x\n",*argumentStackPointer);
-
-  // Set reference structure
-  Frame *refframe = FL->GetFrame(0);
-  if (refframe!=NULL) 
-    SetReferenceInfo(refframe->CoordPtr(), refframe->Natom());
 
   // Dont call setup here since there is no state information yet
   mprintf("    PTRAJ ACTION: [%s]\n",actionArgs.Command());

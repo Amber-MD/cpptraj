@@ -127,15 +127,14 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}
   else if (argIn.CommandIs("projection"))     {Act=new Action_Projection;}
   else if (argIn.CommandIs("clusterdihedral")){Act=new Action_ClusterDihedral;}
-  else if (argIn.CommandIs("unwraptest"))     {Act=new Action_Unwrap;}
+  else if (argIn.CommandIs("unwrap"))         {Act=new Action_Unwrap;}
   // PTRAJ
   else if (
            argIn.CommandIs("correlation") ||
            argIn.CommandIs("diffusion") ||
            argIn.CommandIs("dnaiontracker") ||
            argIn.CommandIs("randomizeions") ||
-           argIn.CommandIs("scale") ||
-           argIn.CommandIs("unwrap") //||
+           argIn.CommandIs("scale") 
           )
   {
     Act = new PtrajAction;
