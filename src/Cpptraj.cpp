@@ -61,7 +61,7 @@ void Cpptraj::Dispatch(char *inputLine) {
     return;
   }
   // debug: Set global debug level
-  if (dispatchArg.CommandIs("debug")) {
+  if (dispatchArg.CommandIs("debug") || dispatchArg.CommandIs("prnlev")) {
     SetGlobalDebug( dispatchArg.getNextInteger(0) );
     return ;
   }

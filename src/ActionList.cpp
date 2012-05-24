@@ -47,6 +47,7 @@
 #include "Action_Projection.h"
 #include "Action_ClusterDihedral.h"
 #include "Action_Unwrap.h"
+#include "Action_Diffusion.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -128,10 +129,9 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("projection"))     {Act=new Action_Projection;}
   else if (argIn.CommandIs("clusterdihedral")){Act=new Action_ClusterDihedral;}
   else if (argIn.CommandIs("unwrap"))         {Act=new Action_Unwrap;}
+  else if (argIn.CommandIs("diffusion"))      {Act=new Action_Diffusion;}
   // PTRAJ
   else if (
-           argIn.CommandIs("correlation") ||
-           argIn.CommandIs("diffusion") ||
            argIn.CommandIs("dnaiontracker") ||
            argIn.CommandIs("randomizeions") ||
            argIn.CommandIs("scale") 

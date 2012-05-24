@@ -59,10 +59,7 @@ int PtrajAction::init( ) {
   actioninfo->type = TRANSFORM_NOOP;
 
   // Set the action type and function based on the command
-  if ( actionArgs.CommandIs("diffusion")      ) {
-    actioninfo->type = TRANSFORM_DIFFUSION;
-    actioninfo->fxn  = (actionFunction) transformDiffusion;
-  } else if ( actionArgs.CommandIs("dnaiontracker")  ) {
+  if ( actionArgs.CommandIs("dnaiontracker")  ) {
     actioninfo->type = TRANSFORM_DNAIONTRACKER;
     actioninfo->fxn  = (actionFunction) transformDNAiontracker;
   } else if ( actionArgs.CommandIs("randomizeions")  ) {
