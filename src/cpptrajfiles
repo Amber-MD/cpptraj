@@ -11,7 +11,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_Principal.cpp Action_Grid.cpp Action_GibbsEofHydration.cpp \
         Action_Dipole.cpp Action_Projection.cpp Action_ClusterDihedral.cpp \
         Action_Unwrap.cpp Action_Diffusion.cpp Action_DNAionTracker.cpp \
-        Action_Scale.cpp \
+        Action_Scale.cpp Action_RandomizeIons.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
         Analysis_PtrajAnalysis.cpp Analysis_Matrix.cpp Analysis_Timecorr.cpp \
         Analysis_Modes.cpp \

@@ -50,6 +50,7 @@
 #include "Action_Diffusion.h"
 #include "Action_DNAionTracker.h"
 #include "Action_Scale.h"
+#include "Action_RandomizeIons.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -134,6 +135,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("diffusion"))      {Act=new Action_Diffusion;}
   else if (argIn.CommandIs("dnaiontracker"))  {Act=new Action_DNAionTracker;}
   else if (argIn.CommandIs("scale"))          {Act=new Action_Scale;}
+  else if (argIn.CommandIs("randomizeionstest")){Act=new Action_RandomizeIons;}
   // PTRAJ
   else if (
            argIn.CommandIs("randomizeions") 
