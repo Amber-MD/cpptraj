@@ -57,14 +57,10 @@ typedef struct _analyzeInformation {
   _p_->carg4 = NULL
 
 // ---------- Functions --------------------------------------------------------
-int analyzeTest(analyzeInformation *, stackType *, int);
 int analyzeCorrelationCoefficient(analyzeInformation *, stackType *, int);
 int analyzeCrankshaft(analyzeInformation *, stackType *, int);
 //int analyzeHBond(analyzeInformation *, stackType *, int);
-int analyzeModes(analyzeInformation *, stackType *, int);
-int analyzeSet(analyzeInformation *, stackType *, int);
 int analyzeStatistics(analyzeInformation *, stackType *, int);
-int analyzeTest(analyzeInformation *, stackType *, int);
 
 #ifdef __cplusplus
 }

@@ -53,15 +53,9 @@ int PtrajAnalysis::Analyze() {
   } else if ( analyzeArgs_.ArgIs(1,"crank")            ) {
     analyzeinfo->type = ANALYZE_CRANKSHAFT;
     analyzeinfo->fxn  = (analyzeFunction) analyzeCrankshaft;
-  } else if ( analyzeArgs_.ArgIs(1,"set")              ) {
-    analyzeinfo->type = ANALYZE_SET;
-    analyzeinfo->fxn  = (analyzeFunction) analyzeSet;
   } else if ( analyzeArgs_.ArgIs(1,"stat")             ) {
     analyzeinfo->type = ANALYZE_STATISTICS;
     analyzeinfo->fxn  = (analyzeFunction) analyzeStatistics;
-  } else if ( analyzeArgs_.ArgIs(1,"test")             ) {
-    analyzeinfo->type = ANALYZE_TEST;
-    analyzeinfo->fxn  = (analyzeFunction) analyzeTest;
   } else {
     mprinterr("Error: PtrajAnalysis: Unrecognized command: %s\n",analyzeArgs_.ArgAt(1));
   }
