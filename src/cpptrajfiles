@@ -14,7 +14,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_Scale.cpp Action_RandomizeIons.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
         Analysis_PtrajAnalysis.cpp Analysis_Matrix.cpp Analysis_Timecorr.cpp \
-        Analysis_Modes.cpp \
+        Analysis_Modes.cpp Analysis_CrankShaft.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
         CharBuffer.cpp ClusterList.cpp ClusterNode.cpp CoordList.cpp \
         CpptrajFile.cpp \

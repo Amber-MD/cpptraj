@@ -7,6 +7,7 @@
 #include "Analysis_Matrix.h"
 #include "Analysis_Timecorr.h"
 #include "Analysis_Modes.h"
+#include "Analysis_CrankShaft.h"
 
 // CONSTRUCTOR
 AnalysisList::AnalysisList() :
@@ -43,6 +44,8 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
       Ana = new Analysis_Timecorr;
     else if (argIn[1] == "modes")
       Ana = new Analysis_Modes;
+    else if (argIn[1] == "crank")
+      Ana = new Analysis_CrankShaft;
     else
       Ana = new PtrajAnalysis(); 
   }

@@ -50,9 +50,9 @@ int PtrajAnalysis::Analyze() {
   if        ( analyzeArgs_.ArgIs(1,"correlationcoe")   ) {
     analyzeinfo->type = ANALYZE_CORRELATIONCOEFFICIENT;
     analyzeinfo->fxn  = (analyzeFunction) analyzeCorrelationCoefficient;
-  } else if ( analyzeArgs_.ArgIs(1,"crank")            ) {
+  /*} else if ( analyzeArgs_.ArgIs(1,"crank")            ) {
     analyzeinfo->type = ANALYZE_CRANKSHAFT;
-    analyzeinfo->fxn  = (analyzeFunction) analyzeCrankshaft;
+    analyzeinfo->fxn  = (analyzeFunction) analyzeCrankshaft;*/
   } else if ( analyzeArgs_.ArgIs(1,"stat")             ) {
     analyzeinfo->type = ANALYZE_STATISTICS;
     analyzeinfo->fxn  = (analyzeFunction) analyzeStatistics;
