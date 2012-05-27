@@ -72,7 +72,7 @@ int Corr::Analyze() {
   Nelements_ = D1_->Size(); 
   if (Nelements_ != D2_->Size()) {
     mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1_->c_str(),Nelements_);
-    mprinterr("             # elements in dataset %i (%i)\n",D2_->c_str(), D2_->Size());
+    mprinterr("             # elements in dataset %s (%i)\n",D2_->c_str(), D2_->Size());
     return 1;
   }
   if (lagmax_==-1) lagmax_ = Nelements_;
