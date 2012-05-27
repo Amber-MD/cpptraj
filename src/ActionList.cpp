@@ -27,7 +27,6 @@
 #include "Action_Jcoupling.h"
 #include "Action_Clustering.h"
 //#include "Action_Pairwise.h"
-#include "Action_PtrajAction.h"
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
 //#include "Action_DihedralScan.h"
@@ -135,14 +134,8 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("diffusion"))      {Act=new Action_Diffusion;}
   else if (argIn.CommandIs("dnaiontracker"))  {Act=new Action_DNAionTracker;}
   else if (argIn.CommandIs("scale"))          {Act=new Action_Scale;}
-  else if (argIn.CommandIs("randomizeionstest")){Act=new Action_RandomizeIons;}
-  // PTRAJ
-  else if (
-           argIn.CommandIs("randomizeions") 
-          )
-  {
-    Act = new PtrajAction;
-  } else return 1; 
+  else if (argIn.CommandIs("randomizeions"))  {Act=new Action_RandomizeIons;}
+  else return 1; 
 
   // Pass in the argument list
   Act->SetArg(argIn);

@@ -43,11 +43,11 @@ int Action_RandomizeIons::init() {
   // INFO
   mprintf("    RANDOMIZEIONS: swapping the postions of the ions in mask [%s]\n", 
           ions_.MaskString());
-  mprintf("                   with the solvent. No ions can get closer than %5.2f angstroms\n",
+  mprintf("                   with the solvent. No ions can get closer than %.2f angstroms\n",
           sqrt( overlap_ ));
   mprintf("                   to another ion.\n");
   if (aroundmask_!=0) {
-    mprintf("                   No ion can get closer than %5.2f angstroms to mask [%s]\n",
+    mprintf("                   No ion can get closer than %.2f angstroms to mask [%s]\n",
             sqrt( min_ ), around_.MaskString());
   }
   if (!useImage_)
@@ -77,11 +77,26 @@ int Action_RandomizeIons::setup() {
   }
   mprintf("\tIon mask is [%s] (%i atoms)\n", ions_.MaskString(), ions_.Nselected());
 
+  // Set up the around mask if necessary
+  if (aroundmask_ != 0) {
+    if (currentParm->SetupIntegerMask( around_ )) return 1;
+    if ( around_.None() ) {
+      mprintf("Warning: randomizeions: Around mask [%s] has no atoms.\n",
+              around_.MaskString());
+    } else {
+      mprintf("\tAround mask is [%s] (%i atoms)\n", around_.MaskString(),
+              around_.Nselected());
+    }
+  }
+
   // Check that each ion is only a single atom residue.
   // NOTE: Should this be a molecule check instead? If so can then get rid of ResSize 
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
     int res = (*currentParm)[*ion].ResNum();
+    if (debug > 0)
+      mprintf("\tAtom %i is in residue %i which is %i atoms\n",
+              *ion+1, res+1, currentParm->ResSize( res ) );
     if ( currentParm->ResSize( res ) > 1 ) {
       mprintf("Warning: randomizeions: Ion atom %i belongs to residue %i which\n",
               *ion + 1, res + 1);
@@ -119,6 +134,7 @@ int Action_RandomizeIons::action() {
     currentFrame->BoxToRecip(ucell, recip);
   // loop over all solvent molecules and mark those that are too close to the solute
   std::vector<bool>::iterator smask = solvent_.begin();
+  int smolnum = 1;
   for (Topology::mol_iterator solvmol = currentParm->SolventStart();
                               solvmol != currentParm->SolventEnd(); solvmol++)
   {
@@ -129,23 +145,43 @@ int Action_RandomizeIons::action() {
       {
         double dist = currentFrame->DIST2( (*solvmol).BeginAtom(), *atom, imageType_, 
                                            ucell, recip);
+        //mprintf("CDBG: @%i to @%i = %lf\n", (*solvmol).BeginAtom()+1,
+        //        *atom+1, sqrt(dist));
         if (dist < min_) {
           *smask = false;
-          mprintf("RANDOMIZEIONS: water @%i only %.2f ang from around @%i\n",
-                  (*solvmol).BeginAtom()+1, sqrt(dist), *atom+1);
+          //mprintf("RANDOMIZEIONS: water %i only %.2f ang from around @%i\n",
+          //        smolnum, sqrt(dist), *atom+1);
           break;
         }
       }
     }
     ++smask;
+    ++smolnum;
   }
+
+  // DEBUG - print solvent molecule mask
+  //mprintf("RANDOMIZEIONS: The following waters are ACTIVE so far:\n");
+  smolnum = 1;
+  int smoltot = 0;
+  for (smask = solvent_.begin(); smask != solvent_.end(); ++smask) {
+    if (*smask) {
+      //mprintf(" %5i ", smolnum);
+      ++smoltot;
+      //if (smoltot%10 == 0) mprintf("\n");
+    }
+    ++smolnum;
+  }
+  if (debug > 2)
+    mprintf("RANDOMIZEIONS: A total of %i waters (out of %zu) are active\n",
+            smoltot, solvent_.size());
 
   // Outer loop over all ions
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
-    mprintf("RANDOMIZEIONS: Processing ion atom %i\n", *ion+1);
+    //mprintf("RANDOMIZEIONS: Processing ion atom %i\n", *ion+1);
     // is a potential solvent molecule close to any of the ions (except this one)?
     smask = solvent_.begin();
+    smolnum = 1;
     for (Topology::mol_iterator solvmol = currentParm->SolventStart();
                                 solvmol != currentParm->SolventEnd(); solvmol++)
     {
@@ -158,14 +194,15 @@ int Action_RandomizeIons::action() {
                                                ucell, recip);
             if (dist < overlap_) {
               *smask = false;
-              mprintf("RANDOMIZEIONS: water @%i only %.2f ang from ion @%i\n",
-                      (*solvmol).BeginAtom()+1, sqrt(dist), *ion2+1);
+              //mprintf("RANDOMIZEIONS: water %i only %.2f ang from ion @%i\n",
+              //        smolnum, sqrt(dist), *ion2+1);
               break;
             }
           }
         } // END inner loop over ions
       }
       ++smask;
+      ++smolnum;
     } // END loop over solvent molecules
 
     // solvent should now be true for all solvent molecules eligible to
@@ -187,7 +224,8 @@ int Action_RandomizeIons::action() {
       mprintf("Warning: randomizeions: Tried to swap ion @%i with %i random waters\n",*ion+1,loop);
       mprintf("Warning:                and couldn't meet criteria; skipping.\n");
     } else {
-      mprintf("RANDOMIZEIONS: Swapping solvent mol %i for ion @%i\n", swapMol+1, *ion+1);
+      if (debug > 2)
+        mprintf("RANDOMIZEIONS: Swapping solvent mol %i for ion @%i\n", swapMol+1, *ion+1);
       currentFrame->GetAtomXYZ( ionXYZ, *ion );
       Topology::mol_iterator solvmol = currentParm->SolventStart() + swapMol;
       currentFrame->GetAtomXYZ( watXYZ, (*solvmol).BeginAtom() );
@@ -198,7 +236,7 @@ int Action_RandomizeIons::action() {
       trans[0] = -trans[0];
       trans[1] = -trans[1];
       trans[2] = -trans[2];
-      currentFrame->Translate( trans, *ion, *ion );
+      currentFrame->Translate( trans, *ion );
     }
 
   } // END outer loop over all ions
