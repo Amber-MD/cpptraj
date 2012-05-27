@@ -879,6 +879,15 @@ void Frame::Translate(double *Vec, int firstAtom, int lastAtom) {
   }
 }
 
+// Frame::Translate()
+/** Translate atom by Vec */
+void Frame::Translate(double* Vec, int atom) {
+  int atom3 = atom * 3;
+  X_[atom3  ] += Vec[0];
+  X_[atom3+1] += Vec[1];
+  X_[atom3+2] += Vec[2];
+}
+
 // Frame::Trans_Rot_Trans()
 /** Given an array Vec of size 6 containing two translations:
   *   T0x T0y T0z T1x T1y T1z
