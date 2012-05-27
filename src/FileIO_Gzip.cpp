@@ -15,14 +15,14 @@ FileIO_Gzip::~FileIO_Gzip() {
 }
 
 //const unsigned int FileIO_Gzip::GZ_BUF_SIZE = 65536;
-const unsigned int FileIO_Gzip::GZ_BUF_SIZE = 131072;
+//const unsigned int FileIO_Gzip::GZ_BUF_SIZE = 131072;
 
 // FileIO_Gzip::Open()
 int FileIO_Gzip::Open(const char *filename, const char *mode) {
   fp_ = gzopen(filename, mode);
   if (fp_==NULL) return 1;
   // Set gzip buffer size
-  if ( gzbuffer(fp_, GZ_BUF_SIZE)!=0 ) return 1;
+  //if ( gzbuffer(fp_, GZ_BUF_SIZE)!=0 ) return 1;
   return 0;
 }
 

@@ -19,7 +19,7 @@ class FileIO_Gzip : public FileIO {
     off_t Tell();  // NOTE: Tell may be unnecessary if only for size reporting.
     int Gets(char *, int );
   private:
-    static const unsigned int GZ_BUF_SIZE;
+    //static const unsigned int GZ_BUF_SIZE;
     gzFile fp_;
 };
 #endif
