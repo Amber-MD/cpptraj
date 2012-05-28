@@ -4,10 +4,11 @@
 #include "Grid.h"
 /** \author Mark J. Williamson
   * \author C++ adaptation by DRR
+  *  For more on the theory, please see eq. 1 in http://dx.doi.org/10.1021/ci100462t 
   */
-class Action_GibbsEofHydration : public Action {
+class Action_GridFreeEnergy : public Action {
   public:
-    Action_GibbsEofHydration();
+    Action_GridFreeEnergy();
 
     // Action member
     void print();

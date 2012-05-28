@@ -1,22 +1,22 @@
 #include <cmath> // log
-#include "Action_GibbsEofHydration.h"
+#include "Action_GridFreeEnergy.h"
 #include "CpptrajStdio.h" // mprintf, mprinterr
 
 // CONSTRUCTOR
-Action_GibbsEofHydration::Action_GibbsEofHydration() :
+Action_GridFreeEnergy::Action_GridFreeEnergy() :
   maxVoxelOccupancyCount_(600) // NOTE: See header for comments.
 {}
 
-// Action_GibbsEofHydration::init()
-int Action_GibbsEofHydration::init() {
+// Action_GridFreeEnergy::init()
+int Action_GridFreeEnergy::init() {
   // Get output filename
   filename_ = actionArgs.GetStringNext();
   if (filename_.empty()) {
-    mprinterr("Error: GibbsEofHydration: no filename specified.\n");
+    mprinterr("Error: GridFreeEnergy: no filename specified.\n");
     return 1;
   }
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
-  if (grid_.GridInit( "GibbsEofHydration", actionArgs ))
+  if (grid_.GridInit( "GridFreeEnergy", actionArgs ))
     return 1;
 
   // Get mask
@@ -38,8 +38,8 @@ int Action_GibbsEofHydration::init() {
   return 0;
 }
 
-// Action_GibbsEofHydration::setup()
-int Action_GibbsEofHydration::setup() {
+// Action_GridFreeEnergy::setup()
+int Action_GridFreeEnergy::setup() {
   // Setup grid, checks box info.
   if (grid_.GridSetup( currentParm )) return 1;
 
@@ -48,15 +48,15 @@ int Action_GibbsEofHydration::setup() {
     return 1;
   mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
   if (mask_.None()) {
-    mprinterr("Error: GibbsEofHydration: No atoms selected for parm %s\n", currentParm->c_str());
+    mprinterr("Error: GridFreeEnergy: No atoms selected for parm %s\n", currentParm->c_str());
     return 1;
   }
 
   return 0;
 }
 
-// Action_GibbsEofHydration::action()
-int Action_GibbsEofHydration::action() {
+// Action_GridFreeEnergy::action()
+int Action_GridFreeEnergy::action() {
   double XYZ[3], boxcrd[3];
   
   if (grid_.GridBox()) {
@@ -89,8 +89,8 @@ int Action_GibbsEofHydration::action() {
   return 0;
 }
 
-// Action_GibbsEofHydration::print()
-void Action_GibbsEofHydration::print() {
+// Action_GridFreeEnergy::print()
+void Action_GridFreeEnergy::print() {
   CpptrajFile outfile;
   /* How times does this occupancy count value arise?
    *    i.e. if  
@@ -150,6 +150,6 @@ void Action_GibbsEofHydration::print() {
     *gval = (float)gridval;
   }
 
-  grid_.PrintXplor( filename_, "", "REMARKS Change in Gibbs energy from bulk solvent with bin normalisation of " + integerToString(normalisationFactor) );
+  grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(normalisationFactor) );
 }
 
