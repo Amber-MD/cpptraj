@@ -2,6 +2,8 @@
 #include "Analysis_Statistics.h"
 #include "CpptrajStdio.h"
 
+// TODO: Define bound and boundh for DISTANCE NOE
+
 // CONSTRUCTOR
 Analysis_Statistics::Analysis_Statistics() :
   shift_(0)
@@ -115,6 +117,10 @@ int Analysis_Statistics::Analyze() {
     // More specific analysis based on MODE
     if ( mode == DataSet::M_PUCKER) 
       PuckerAnalysis( *ds, totalFrames ); 
+    else if ( mode == DataSet::M_TORSION)
+      TorsionAnalysis( *ds, totalFrames );
+    else if ( mode == DataSet::M_DISTANCE)
+      DistanceAnalysis( *ds, totalFrames, 0, 0);
 
   } // END loop over DataSets
 
@@ -240,8 +246,8 @@ const double Analysis_Statistics::torsion_offset[6] = {
 void Analysis_Statistics::TorsionAnalysis(DataSet* ds, int totalFrames) {
   int torsion_visits[6];
   int torsion_transitions[6][6];
-  double torsion_avg[10];
-  double torsion_sd[10];
+  double torsion_avg[10]; // NOTE: Should this be dim 6?
+  double torsion_sd[10];  // NOTE: Should this be dim 6?
   int prevbin, curbin;
 
   for (int j=0;j<6;j++) {
@@ -429,3 +435,160 @@ void Analysis_Statistics::TorsionAnalysis(DataSet* ds, int totalFrames) {
     outfile_.Printf("-------------------------------------\n\n");
   }
 };
+
+const char Analysis_Statistics::distance_ss[6][8] = {
+  " < 2.5 ", "2.5-3.5", "3.5-4.5", "4.5-5.5", "5.5-6.5", " > 6.5 "
+};
+
+static inline int distbin(double val) {
+  int bin = val - 1.5;
+  if (bin < 0)
+    bin = 0;
+  else if (bin > 5)
+    bin = 5;
+  return bin;
+}
+
+void Analysis_Statistics::DistanceAnalysis( DataSet* ds, int totalFrames,
+                                            double bound, double boundh ) 
+{
+  int distance_visits[6];
+  int distance_transitions[6][6];
+  double distance_avg[6];
+  double distance_sd[6];
+  double average;
+  int prevbin, curbin, Nb, Nh;
+
+  for (int j=0;j<6;j++) {
+    distance_visits[j] = 0;
+    distance_avg[j] = 0.0;
+    distance_sd[j] = 0.0;
+    for (int k=0;k<6;k++) 
+      distance_transitions[j][k] = 0;
+  }
+
+  // Init for NOE
+  bool isNOE = (ds->ScalarType() == DataSet::NOE);
+  if (isNOE) {
+    outfile_.Printf("   NOE SERIES: S < 2.9, M < 3.5, w < 5.0, blank otherwise.\n    |");
+    average = 0;
+    Nb = 0;
+    Nh = 0;
+  }
+
+  // Get bin for first value
+  prevbin = distbin( ds->Dval(0) );
+  // Loop over all frames
+  for (int i = 0; i < totalFrames; ++i) {
+    double value = ds->Dval( i );
+    curbin = distbin( value );
+    ++distance_visits[curbin];
+    distance_avg[curbin] += value;
+    distance_sd[curbin]  += (value*value);
+    if (curbin != prevbin) 
+      ++distance_transitions[prevbin][curbin];
+    prevbin = curbin;
+
+    // NOE calc
+    if (isNOE) {
+      int j = totalFrames / 50.0;
+      if (j < 1) j = 1;
+
+      if (value < bound) ++Nb;
+      if (value < boundh) ++Nh;
+      average += value;
+      if (j == 1 || i % j == 1) {
+        average /= j;
+        if (average < 2.9) {
+          outfile_.Printf("S");
+        } else if (average < 3.5) {
+          outfile_.Printf("M");
+        } else if (average < 5.0) {
+          outfile_.Printf("W");
+        } else {
+          outfile_.Printf(" ");
+        }
+        average = 0.0;
+      }
+    }
+  }
+
+  // NOE printout
+  if (isNOE) {
+    outfile_.Printf("|\n");
+    if (bound > 0.0) {
+      outfile_.Printf("   NOE < %.2f for %.2f%% of the time\n",
+              bound, (double) Nb / totalFrames * 100.0);
+    }
+    if (boundh > 0.0) {
+      outfile_.Printf("   NOE < %.2f for %.2f%% of the time\n",
+              boundh, (double) Nh / totalFrames * 100.0);
+    }
+  }
+
+  // OUTPUT
+  outfile_.Printf("\n              %s  %s  %s  %s  %s  %s\n",
+                  distance_ss[0], distance_ss[1], distance_ss[2],
+                  distance_ss[3], distance_ss[4], distance_ss[5]);
+  outfile_.Printf("           ---------------");
+  outfile_.Printf("----------------------------------------\n");
+
+  for (int j=0; j < 6; j++) {
+    if (distance_visits[j] > 0) {
+      distance_avg[j] /= distance_visits[j];
+      distance_sd[j]  /= distance_visits[j];
+      distance_sd[j] = sqrt(distance_sd[j] - distance_avg[j]*distance_avg[j]);
+    }
+  }
+
+  outfile_.Printf(" %%occupied |");
+  for (int j=0; j < 6; j++) {
+    if (distance_visits[j] > 0) {
+      double value = distance_visits[j]*100.0/totalFrames;
+      outfile_.Printf(" %6.1f |", value);
+    } else
+      outfile_.Printf("        |");
+  }
+  outfile_.Printf("\n");
+
+  outfile_.Printf(" average   |");
+  for (int j=0; j < 6; j++) {
+    if (distance_visits[j] > 0) {
+      outfile_.Printf(" %6.3f |", distance_avg[j]);
+    } else
+      outfile_.Printf("        |");
+  }
+  outfile_.Printf("\n");
+
+  outfile_.Printf(" stddev    |");
+  for (int j=0; j < 6; j++) {
+    if (distance_visits[j] > 1) {
+      outfile_.Printf(" %6.3f |", distance_sd[j]);
+    } else
+      outfile_.Printf("        |");
+  }
+  outfile_.Printf("\n           --------------------------");
+  outfile_.Printf("-----------------------------\n");
+
+  if (debug_ > 0) {
+    outfile_.Printf("\nTRANSITIONS TABLE: (from/vertical to/horizontal)\n\n");
+    outfile_.Printf("            %s  %s  %s  %s  %s  %s\n",
+                    distance_ss[0], distance_ss[1], distance_ss[2],
+                    distance_ss[3], distance_ss[4], distance_ss[5]);
+    outfile_.Printf("           -----------------------");
+    outfile_.Printf("--------------------------------\n");
+    for (int j=0; j<6; j++) {
+      outfile_.Printf("   %s |", distance_ss[j]);
+      for (int k=0; k<6; k++) {
+        if (distance_transitions[j][k] > 0)
+          outfile_.Printf(" %6i |", distance_transitions[j][k]);
+        else
+          outfile_.Printf("        |");
+      }
+      outfile_.Printf("\n");
+    }
+    outfile_.Printf("           ------------------");
+    outfile_.Printf("-------------------------------------\n\n");
+  }
+
+}

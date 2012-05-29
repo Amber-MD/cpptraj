@@ -20,5 +20,7 @@ class Analysis_Statistics : public Analysis {
     static const char pucker_ss[][9];
     void PuckerAnalysis( DataSet*, int );
     void TorsionAnalysis( DataSet*, int );
+    static const char distance_ss[][8];
+    void DistanceAnalysis( DataSet*, int, double, double );
 };
 #endif
