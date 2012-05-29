@@ -18,9 +18,6 @@ PtrajAnalysis::~PtrajAnalysis() {
   // Free analyzeinfo
   if (analyzeinfo!=NULL) {
     analyzeinfo->fxn(analyzeinfo, NULL, PTRAJ_CLEANUP);
-    // NOTE: Clean state only for ANALYZE_MODES
-    if (analyzeinfo->type==ANALYZE_MODES) 
-      FreeState(analyzeinfo->state); 
     free(analyzeinfo);
   }
 }
@@ -50,9 +47,6 @@ int PtrajAnalysis::Analyze() {
   if        ( analyzeArgs_.ArgIs(1,"correlationcoe")   ) {
     analyzeinfo->type = ANALYZE_CORRELATIONCOEFFICIENT;
     analyzeinfo->fxn  = (analyzeFunction) analyzeCorrelationCoefficient;
-  /*} else if ( analyzeArgs_.ArgIs(1,"crank")            ) {
-    analyzeinfo->type = ANALYZE_CRANKSHAFT;
-    analyzeinfo->fxn  = (analyzeFunction) analyzeCrankshaft;*/
   } else if ( analyzeArgs_.ArgIs(1,"stat")             ) {
     analyzeinfo->type = ANALYZE_STATISTICS;
     analyzeinfo->fxn  = (analyzeFunction) analyzeStatistics;
@@ -73,11 +67,6 @@ int PtrajAnalysis::Analyze() {
   // functions in ptraj_analyze.c
   argumentStack = CreateArgumentStack(analyzeArgs_, debug_);
   analyzeinfo->carg1 = (void *) &argumentStack;
-
-  // Initialize state memory - only for ANALYZE_MODES
-  if (analyzeinfo->type == ANALYZE_MODES) {
-    analyzeinfo->state = CreateState( analyzeParm_, analyzeParm_->Nframes() ); // NOTE: maxFrames?
-  }
 
   mprintf("    PTRAJ ANALYZE: [%s %s]\n",analyzeArgs_.Command(),analyzeArgs_.ArgAt(1));
 

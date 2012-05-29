@@ -11,8 +11,8 @@ class Analysis_CrankShaft : public Analysis {
     enum CSangleType { NOTYPE = 0, EPSILON_ZETA, ALPHA_GAMMA };
     enum CStype { ANGLE=0, DISTANCE };
     static const char CSstring[][9];
-    static const double torsion_offset[];
-    static const char torsion_ss[][8];
+    static const double torsion_offset[]; // NOTE: needed elsewhere
+    static const char torsion_ss[][8];    // NOTE: needed elsewhere
     static const char distance_ss_2D[][6][9];
     static const char torsion_ss_2D[][6][6];
 

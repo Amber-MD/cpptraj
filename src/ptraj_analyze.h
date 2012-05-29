@@ -12,9 +12,7 @@ extern "C" {
 // ---------- ptraj analyze routines -------------------------------------------
 // Possible analysis types - HBOND disabled
 typedef enum _analyzeType { 
-  ANALYZE_NOOP, ANALYZE_CORRELATIONCOEFFICIENT, ANALYZE_CRANKSHAFT,
-  ANALYZE_HBOND, ANALYZE_MATRIX, ANALYZE_MODES, ANALYZE_SET,
-  ANALYZE_STATISTICS, ANALYZE_TIMECORR, ANALYZE_TEST
+  ANALYZE_NOOP, ANALYZE_CORRELATIONCOEFFICIENT, ANALYZE_STATISTICS
 } analyzeType;
 
 // ANALYZE FUNCTION TYPE DEFINITION
@@ -58,8 +56,6 @@ typedef struct _analyzeInformation {
 
 // ---------- Functions --------------------------------------------------------
 int analyzeCorrelationCoefficient(analyzeInformation *, stackType *, int);
-int analyzeCrankshaft(analyzeInformation *, stackType *, int);
-//int analyzeHBond(analyzeInformation *, stackType *, int);
 int analyzeStatistics(analyzeInformation *, stackType *, int);
 
 #ifdef __cplusplus
