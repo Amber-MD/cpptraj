@@ -157,7 +157,7 @@ int Analysis_CrankShaft::Analyze() {
   double final_v2 = 0;
   for (int frame = start_; frame < stop_; frame += offset_) {
     double v1 = scalar1_->Dval( frame );
-    double v2 = scalar1_->Dval( frame );
+    double v2 = scalar2_->Dval( frame );
 
     if ( type_ == DISTANCE ) {
       // This is a DISTANCE
@@ -196,8 +196,8 @@ int Analysis_CrankShaft::Analyze() {
 
     // DEBUG
     if (debug_ > 1) {
-      mprintf("Binning %s values %6.2f %6.2f into %i x %i\n",
-              CSstring[type_], final_v1, final_v2, i1, i2); 
+      mprintf("Binning %s values %6.2f %6.2f into %i x %i (v1v2= %6.2f %6.2f)\n",
+              CSstring[type_], final_v1, final_v2, i1, i2, v1, v2); 
     }
 
     // update bin counter and averages/standard deviations
