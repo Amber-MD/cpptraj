@@ -2,6 +2,7 @@
 #include <cmath> // sqrt
 #include "Analysis_CrankShaft.h"
 #include "CpptrajStdio.h"
+#include "Analysis_Statistics.h" // torsion_ss, torsion_offset
 
 Analysis_CrankShaft::Analysis_CrankShaft() :
   start_(0),
@@ -77,12 +78,6 @@ int Analysis_CrankShaft::Setup(DataSetList *DSLin) {
 
   return 0;
 }
-
-const double Analysis_CrankShaft::torsion_offset[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 180.0 };
-
-const char  Analysis_CrankShaft::torsion_ss[6][8] = {
-  "g+     ", "a+     ", "t      ", "a-     ", "g-     ", "c      "
-};
 
 const char  Analysis_CrankShaft::distance_ss_2D[6][6][9] = {
   {"< 2, < 2", "< 2, 2-3", "< 2, 3-4", "< 2, 4-5", "< 2, 5-6", "< 2, > 6" },
@@ -205,8 +200,8 @@ int Analysis_CrankShaft::Analyze() {
 
     v1 = final_v1;
     v2 = final_v2;
-    v1 += torsion_offset[i1];
-    v2 += torsion_offset[i2];
+    v1 += Analysis_Statistics::torsion_offset[i1];
+    v2 += Analysis_Statistics::torsion_offset[i2];
     v1_avg[i1][i2] += v1;
     v2_avg[i1][i2] += v2;
 
@@ -285,8 +280,8 @@ int Analysis_CrankShaft::Analyze() {
         v2_sd[j][k] = 0.0;
       }
       if (visits[j][k]) {
-        v1_avg[j][k] -= torsion_offset[j];
-        v2_avg[j][k] -= torsion_offset[k];
+        v1_avg[j][k] -= Analysis_Statistics::torsion_offset[j];
+        v2_avg[j][k] -= Analysis_Statistics::torsion_offset[k];
       }
     }
   }
@@ -348,8 +343,9 @@ int Analysis_CrankShaft::Analyze() {
   }
 
   outfile.Printf("                %s         %s         %s         %s         %s          %s\n",
-          torsion_ss[0],torsion_ss[1],torsion_ss[2],
-          torsion_ss[3],torsion_ss[4],torsion_ss[5]);
+          Analysis_Statistics::torsion_ss[0], Analysis_Statistics::torsion_ss[1],
+          Analysis_Statistics::torsion_ss[2], Analysis_Statistics::torsion_ss[3],
+          Analysis_Statistics::torsion_ss[4], Analysis_Statistics::torsion_ss[5]);
   outfile.Printf("        -------------------------------------------------------------------------------------------------\n");
   for (int i=0; i < 6; i++) {
     outfile.Printf("        |");
@@ -361,7 +357,7 @@ int Analysis_CrankShaft::Analyze() {
     }
     outfile.Printf("\n");
 
-    outfile.Printf(" %s|", torsion_ss[i]);
+    outfile.Printf(" %s|", Analysis_Statistics::torsion_ss[i]);
     for (int j=0; j < 6; j++) {
       if (visits[i][j] == 0)
         outfile.Printf("               |");
