@@ -47,8 +47,7 @@ Action_RandomizeIons.o : Action_RandomizeIons.cpp Action.h Action_RandomizeIons.
 Analysis_Corr.o : Analysis_Corr.cpp Analysis.h Analysis_Corr.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h DataSet_double.h FileIO.h FileList.h Frame.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h
 Analysis.o : Analysis.cpp Analysis.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h
 Analysis_Hist.o : Analysis_Hist.cpp Analysis.h Analysis_Hist.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h Dimension.h FileIO.h FileList.h Frame.h Histogram.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h
-AnalysisList.o : AnalysisList.cpp Action.h Analysis.h AnalysisList.h Analysis_Corr.h Analysis_CrankShaft.h Analysis_Hist.h Analysis_Matrix.h Analysis_Modes.h Analysis_PtrajAnalysis.h Analysis_Timecorr.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h DataSet_double.h Dimension.h FileIO.h FileList.h Frame.h FrameList.h Histogram.h MaskToken.h MatrixType.h ModesInfo.h Molecule.h Name.h NameType.h Residue.h Topology.h TopologyList.h VectorType.h ptraj_analyze.h ptraj_arg.h ptraj_stack.h ptraj_state.h
-Analysis_PtrajAnalysis.o : Analysis_PtrajAnalysis.cpp Analysis.h Analysis_PtrajAnalysis.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h MaskToken.h Molecule.h Name.h NameType.h Residue.h Topology.h TopologyList.h ptraj_analyze.h ptraj_arg.h ptraj_convert.h ptraj_stack.h ptraj_state.h
+AnalysisList.o : AnalysisList.cpp Action.h Analysis.h AnalysisList.h Analysis_Corr.h Analysis_CrankShaft.h Analysis_Hist.h Analysis_Matrix.h Analysis_Modes.h Analysis_Statistics.h Analysis_Timecorr.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h DataSet_double.h Dimension.h FileIO.h FileList.h Frame.h FrameList.h Histogram.h MaskToken.h MatrixType.h ModesInfo.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h VectorType.h
 Analysis_Matrix.o : Analysis_Matrix.cpp Action.h Analysis.h Analysis_Matrix.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h MatrixType.h ModesInfo.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h VectorType.h
 Analysis_Timecorr.o : Analysis_Timecorr.cpp Action.h Analysis.h Analysis_Timecorr.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h Constants.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h ModesInfo.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h VectorType.h
 Analysis_Modes.o : Analysis_Modes.cpp Analysis.h Analysis_Modes.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h MaskToken.h ModesInfo.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h
@@ -112,8 +111,6 @@ Parm_PDB.o : Parm_PDB.cpp Atom.h AtomMask.h Box.h CpptrajFile.h FileIO.h Frame.h
 PDBfile.o : PDBfile.cpp Atom.h AtomMask.h Box.h CpptrajFile.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h PDBfile.h PDBtype.h Residue.h Topology.h
 PDBtype.o : PDBtype.cpp Atom.h AtomMask.h Box.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h PDBtype.h Residue.h Topology.h
 ProgressBar.o : ProgressBar.cpp CpptrajStdio.h ProgressBar.h
-PtrajMask.o : PtrajMask.cpp Name.h PtrajMask.h
-ptraj_convert.o : ptraj_convert.cpp ArgList.h Atom.h AtomMask.h Box.h Frame.h MaskToken.h Molecule.h Name.h NameType.h Residue.h Topology.h ptraj_arg.h ptraj_convert.h ptraj_state.h
 Random.o : Random.cpp CpptrajStdio.h Random.h
 Range.o : Range.cpp ArgList.h CpptrajStdio.h Range.h
 RemdTraj.o : RemdTraj.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h RemdTraj.h Residue.h Topology.h TrajectoryIO.h
@@ -137,9 +134,3 @@ vectormath.o : vectormath.cpp Constants.h CpptrajStdio.h vectormath.h
 VectorType.o : VectorType.cpp Action.h ArgList.h Atom.h AtomMask.h Box.h CharBuffer.h Constants.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h ModesInfo.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h VectorType.h vectormath.h
 molsurf.o : molsurf.c Name.h molsurf.h
 MpiRoutines.o : MpiRoutines.c MpiRoutines.h
-ptraj_analyze.o : ptraj_analyze.c Name.h ptraj_analyze.h ptraj_arg.h ptraj_common.h ptraj_scalar.h ptraj_stack.h ptraj_state.h
-ptraj_arg.o : ptraj_arg.c ptraj_arg.h
-ptraj_common.o : ptraj_common.c
-ptraj_scalar.o : ptraj_scalar.c Name.h ptraj_common.h ptraj_scalar.h ptraj_stack.h ptraj_state.h
-ptraj_stack.o : ptraj_stack.c ptraj_stack.h
-ptraj_state.o : ptraj_state.c Name.h PtrajMask.h ptraj_common.h ptraj_state.h

@@ -3,11 +3,11 @@
 // All analysis classes go here
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
-#include "Analysis_PtrajAnalysis.h"
 #include "Analysis_Matrix.h"
 #include "Analysis_Timecorr.h"
 #include "Analysis_Modes.h"
 #include "Analysis_CrankShaft.h"
+#include "Analysis_Statistics.h"
 
 // CONSTRUCTOR
 AnalysisList::AnalysisList() :
@@ -48,8 +48,10 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
       Ana = new Analysis_CrankShaft;
     else if (argIn[1] == "correlationcoe")
       Ana = new Corr; // For backwards compatibility with PTRAJ
+    else if (argIn[1] == "stat")
+      Ana = new Analysis_Statistics;
     else
-      Ana = new PtrajAnalysis(); 
+      return 1; 
   }
   else return 1;
 

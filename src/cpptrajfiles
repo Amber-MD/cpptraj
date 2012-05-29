@@ -13,7 +13,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_Unwrap.cpp Action_Diffusion.cpp Action_DNAionTracker.cpp \
         Action_Scale.cpp Action_RandomizeIons.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
-        Analysis_PtrajAnalysis.cpp Analysis_Matrix.cpp Analysis_Timecorr.cpp \
+        Analysis_Matrix.cpp Analysis_Timecorr.cpp \
         Analysis_Modes.cpp Analysis_CrankShaft.cpp Analysis_Statistics.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
         CharBuffer.cpp ClusterList.cpp ClusterNode.cpp CoordList.cpp \
@@ -29,7 +29,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfFile.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \
-        PDBfile.cpp PDBtype.cpp ProgressBar.cpp PtrajMask.cpp ptraj_convert.cpp \
+        PDBfile.cpp PDBtype.cpp ProgressBar.cpp \
         Random.cpp Range.cpp RemdTraj.cpp Residue.cpp Topology.cpp \
         TorsionRoutines.cpp \
         Traj_AmberCoord.cpp Traj_AmberNetcdf.cpp Traj_AmberRestart.cpp \
@@ -37,6 +37,5 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         TrajectoryIO.cpp TrajinList.cpp Traj_Mol2File.cpp TrajoutList.cpp Traj_PDBfile.cpp \
         TriangleMatrix.cpp vectormath.cpp VectorType.cpp
 
-CSOURCES=molsurf.c MpiRoutines.c ptraj_analyze.c ptraj_arg.c ptraj_common.c \
-         ptraj_scalar.c ptraj_stack.c ptraj_state.c
+CSOURCES=molsurf.c MpiRoutines.c 
 
