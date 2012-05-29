@@ -39,7 +39,7 @@ int Corr::Setup(DataSetList *datasetlist) {
     mprinterr("Error: Corr: Could not get dataset named %s\n",D1name);
     return 1;
   }
-  D2_ = datasetlist->Get(D1name);
+  D2_ = datasetlist->Get(D2name);
   if (D2_==NULL) {
     mprinterr("Error: Corr: Could not get dataset named %s\n",D2name);
     return 1;
@@ -87,6 +87,7 @@ int Corr::Analyze() {
   // Compute normalization
   double sumdiff1_2 = 0;
   double sumdiff2_2 = 0;
+  double corr_coeff = 0;
   for (int i = 0; i < Nelements_; i++) {
     d1 = D1_->Dval(i);
     d2 = D2_->Dval(i);
@@ -94,6 +95,7 @@ int Corr::Analyze() {
     double diff2 = d2 - avg2;
     sumdiff1_2 += (diff1 * diff1);
     sumdiff2_2 += (diff2 * diff2);
+    corr_coeff += (diff1 * diff2);
   }
   double norm = sumdiff1_2 * sumdiff2_2;
   if (norm <= 0) {
@@ -101,6 +103,10 @@ int Corr::Analyze() {
     return 1;
   }
   norm = sqrt( norm );
+  // Correlation coefficient
+  corr_coeff /= ( sqrt( sumdiff1_2 ) * sqrt( sumdiff2_2 ) );
+  mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
+          D1_->c_str(), D2_->c_str(), corr_coeff );
 
   // Calculate correlation
   for (int lag = 0; lag < lagmax_; lag++) {
