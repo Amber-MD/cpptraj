@@ -9,9 +9,18 @@
   */
 class DataSet {
   public:
-    /// Type of data stored in DataSet
+    /// Base type of data stored in DataSet
     enum DataType {
-      UNKNOWN_DATA, DOUBLE, STRING, INT, FLOAT, VECTOR, MATRIX, MODES
+      UNKNOWN_DATA=0, DOUBLE, STRING, INT, FLOAT, VECTOR, MATRIX, MODES
+    };
+    /// Source of data stored in DataSet
+    enum ScalarMode {
+      UNKNOWN_MODE=0, M_DISTANCE, M_ANGLE, M_TORSION, M_PUCKER, M_RMS
+    };
+    /// Type of DataSet
+    enum ScalarType {
+      UNDEFINED=0, ALPHA, BETA, GAMMA, DELTA, EPSILON, ZETA, PUCKER, CHI, 
+      H1P, C2P, PHI, PSI, PCHI, HBOND, NOE
     };
 
     DataSet();          // Constructor
@@ -22,6 +31,7 @@ class DataSet {
     /** By convention this should be the last value added.
       */
     virtual int Xmax()              { return 0; }
+    /// Return the number of data elements stored in the set.
     virtual int Size()              { return 0; }
     /// Used to check if a frame in dataset has data.
     virtual int FrameIsEmpty(int)   { return 1; }
@@ -59,7 +69,7 @@ class DataSet {
     /// Set output precision
     void SetPrecision(int,int);
     /// Set up dataset with given name and size
-    int Setup(char*,int);
+    int Setup(const char*,int);
     /// Print dataset information
     void Info();
     /// Check if set has been written to.
@@ -70,8 +80,6 @@ class DataSet {
     void WriteNameToBuffer(CharBuffer &);
 
     // -----===== Functions that return private vars =====-----
-    /// Data set capacity
-    //int Capacity();
     /// Dataset name
     std::string Name()     { return name_; }
     /// Printf-compatible name
@@ -83,16 +91,16 @@ class DataSet {
     /// Return dataset type
     DataType Type()        { return dType_; }
   protected:
-    std::string name_;   ///< Name of the dataset
-    int idx_;            ///< Dataset index
-    DataType dType_;     ///< The dataset type
-    //int N_;              ///< Number of data elements
-    //int current_;        ///< The current data element
-    int width_;          ///< The output width of a data element
-    int precision_;      ///< The output precision of a data element (if applicable)
-    int leadingSpace_;   ///< 0 if leftAligned, 1 otherwise
-    std::string format_; ///< Output format of data
+    std::string name_;         ///< Name of the dataset
+    int idx_;                  ///< Dataset index
+    DataType dType_;           ///< The dataset type
+    int width_;                ///< The output width of a data element
+    int precision_;            ///< The output precision of a data element (if applicable)
+    int leadingSpace_;         ///< 0 if leftAligned, 1 otherwise
+    std::string format_;       ///< Output format of data
     const char *data_format_;  ///< Used to avoid constant calls to c_str
     std::string header_format_;///< Output format of DataSet name
+    ScalarMode scalarmode_;    ///< Source of data in dataset.
+    ScalarType scalartype_;    ///< Specific type of data in dataset (if any).
 };
 #endif 

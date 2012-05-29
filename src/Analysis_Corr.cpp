@@ -51,15 +51,7 @@ int Corr::Setup(DataSetList *datasetlist) {
     return 1;
   }
 
-  // Check that D1 and D2 have same # data points.
-  // NOTE: Should also check type, this should be performed later!
-  /*Nelements = D1->Capacity(); 
-  if (Nelements != D2->Capacity()) {
-    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1name,Nelements);
-    mprinterr("             # elements in dataset %i (%i)\n",D2name, D2->Capacity());
-    return 1;
-  }
-  if (lagmax==-1) lagmax = Nelements;*/
+  // TODO: Check DataSet type
 
   // Setup output dataset
   if (Ct_.Setup((char*)"Corr", lagmax_)) return 1;

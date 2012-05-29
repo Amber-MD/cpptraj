@@ -4,16 +4,17 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataSet::DataSet() {
+DataSet::DataSet() :
+  idx_(-1),
+  dType_(UNKNOWN_DATA),
+  width_(0),
+  precision_(0),
+  leadingSpace_(1),
+  data_format_(NULL),
+  scalarmode_(UNKNOWN_MODE),
+  scalartype_(UNDEFINED)
+{
   //fprintf(stderr,"DataSet Constructor.\n");
-  idx_ = -1;
-  dType_ = UNKNOWN_DATA;
-//  N=0;
-//  current_ = 0;
-  width_ = 0;
-  precision_ = 0;
-  leadingSpace_ = 1;
-  data_format_ = NULL;
 }
 
 // DESTRUCTOR
@@ -35,16 +36,13 @@ void DataSet::SetPrecision(int widthIn, int precisionIn) {
   * checked for in DataSetList prior to this call. Nin is the expected size 
   * of the dataset. If Nin<=0 the dataset will be allocated dynamically.
   */
-int DataSet::Setup(char *nameIn, int Nin) {
+int DataSet::Setup(const char* nameIn, int Nin) {
   // Dataset name
   if (nameIn==NULL) {
     mprintf("Dataset has no name.\n");
     return 1;
   }
   name_.assign( nameIn );
-  // Dataset memory
-  //N=Nin;
-  //if (N<=0) N=0;
   
   return 0;
 }
@@ -202,9 +200,4 @@ double DataSet::Min() {
   }
   return min;
 }
-
-// DataSet::Capacity()
-//int DataSet::Capacity() {
-//  return N;
-//}
 
