@@ -14,14 +14,16 @@ class DataSet {
       UNKNOWN_DATA=0, DOUBLE, STRING, INT, FLOAT, VECTOR, MATRIX, MODES
     };
     /// Source of data stored in DataSet
-    enum ScalarMode {
+    enum scalarMode {
       UNKNOWN_MODE=0, M_DISTANCE, M_ANGLE, M_TORSION, M_PUCKER, M_RMS
     };
     /// Type of DataSet
-    enum ScalarType {
+    enum scalarType {
       UNDEFINED=0, ALPHA, BETA, GAMMA, DELTA, EPSILON, ZETA, PUCKER, CHI, 
-      H1P, C2P, PHI, PSI, PCHI, HBOND, NOE
+      H1P,         C2P,   PHI,  PSI,   PCHI,  HBOND,   NOE
     };
+    // 0           DIH    DIH   DIH    DIH    DIH      DIH   PUCK    DIH
+    // DIH         DIH    DIH   DIH    DIH    DIST     DIST
 
     DataSet();          // Constructor
     virtual ~DataSet(); // Destructor - virtual since this class is inherited
@@ -90,6 +92,10 @@ class DataSet {
     int Idx()              { return idx_; }
     /// Return dataset type
     DataType Type()        { return dType_; }
+    /// Return scalar mode
+    scalarMode ScalarMode() { return scalarmode_; }
+    /// Return scalar type
+    scalarType ScalarType() { return scalartype_; } 
   protected:
     std::string name_;         ///< Name of the dataset
     int idx_;                  ///< Dataset index
@@ -100,7 +106,7 @@ class DataSet {
     std::string format_;       ///< Output format of data
     const char *data_format_;  ///< Used to avoid constant calls to c_str
     std::string header_format_;///< Output format of DataSet name
-    ScalarMode scalarmode_;    ///< Source of data in dataset.
-    ScalarType scalartype_;    ///< Specific type of data in dataset (if any).
+    scalarMode scalarmode_;    ///< Source of data in dataset.
+    scalarType scalartype_;    ///< Specific type of data in dataset (if any).
 };
 #endif 
