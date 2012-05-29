@@ -46,6 +46,8 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
       Ana = new Analysis_Modes;
     else if (argIn[1] == "crank")
       Ana = new Analysis_CrankShaft;
+    else if (argIn[1] == "correlationcoe")
+      Ana = new Corr; // For backwards compatibility with PTRAJ
     else
       Ana = new PtrajAnalysis(); 
   }

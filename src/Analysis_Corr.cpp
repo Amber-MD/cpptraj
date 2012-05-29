@@ -15,6 +15,12 @@ Corr::Corr() :
 /** Expected call: corr <outfilename> <Dataset1> <Dataset2> [lagmax <lagmax>]
   */
 int Corr::Setup(DataSetList *datasetlist) {
+  // If command was 'analyze correlationcoe' instead of 'corr' make sure
+  // first two args are marked.
+  if (analyzeArgs_[0] == "analyze") {
+    analyzeArgs_.MarkArg(0);
+    analyzeArgs_.MarkArg(1);
+  }
   // Keywords
   lagmax_ = analyzeArgs_.getKeyInt("lagmax",-1);
   outfilename_ = analyzeArgs_.getKeyString("out",NULL);

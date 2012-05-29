@@ -44,10 +44,7 @@ int PtrajAnalysis::Analyze() {
 
   // Set the analyze type and function based on arg after command
   // (analyze <arg>)
-  if        ( analyzeArgs_.ArgIs(1,"correlationcoe")   ) {
-    analyzeinfo->type = ANALYZE_CORRELATIONCOEFFICIENT;
-    analyzeinfo->fxn  = (analyzeFunction) analyzeCorrelationCoefficient;
-  } else if ( analyzeArgs_.ArgIs(1,"stat")             ) {
+  if ( analyzeArgs_.ArgIs(1,"stat")             ) {
     analyzeinfo->type = ANALYZE_STATISTICS;
     analyzeinfo->fxn  = (analyzeFunction) analyzeStatistics;
   } else {
