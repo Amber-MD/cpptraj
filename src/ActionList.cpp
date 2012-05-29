@@ -41,7 +41,7 @@
 #include "Action_Principal.h"
 #include "MatrixType.h"
 #include "Action_Grid.h"
-#include "Action_GibbsEofHydration.h"
+#include "Action_GridFreeEnergy.h"
 #include "Action_Dipole.h"
 #include "Action_Projection.h"
 #include "Action_ClusterDihedral.h"
@@ -126,7 +126,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("principal"))      {Act=new Action_Principal;}
   else if (argIn.CommandIs("matrix"))         {Act=new MatrixType;}
   else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}
-  else if (argIn.CommandIs("FEoH"))           {Act=new Action_GibbsEofHydration;}
+  else if (argIn.CommandIs("gfe"))            {Act=new Action_GridFreeEnergy;}
   else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}
   else if (argIn.CommandIs("projection"))     {Act=new Action_Projection;}
   else if (argIn.CommandIs("clusterdihedral")){Act=new Action_ClusterDihedral;}
