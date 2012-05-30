@@ -1,5 +1,4 @@
 // RMSD
-//#include <cstdio> // for sprintf
 #include "Action_Rmsd.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h" // for SeparateInit
