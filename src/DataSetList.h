@@ -37,23 +37,17 @@ class DataSetList {
     /// Get the dataset at the given position in the list.
     DataSet *GetDataSetN(int);
     /// Add dataset to the list with name prefix_suffix
-    DataSet *AddMulti(DataSet::DataType, char *, const char *);
+    DataSet *AddMulti(DataSet::DataType, const char *, const char *);
     /// Add dataset to the list with name prefix_suffixN; set index.
     DataSet *AddMultiN(DataSet::DataType, const char *, const char *, int);
     DataSet *AddMultiN(DataSet::DataType, std::string&, int);
-    char *checkName(char*, const char*);
-    //DataSet *AddMatrix(char*, const char*, int, int);
     /// Add dataset to the list with given name
-    DataSet *Add( DataSet::DataType, char*, const char*);
-    DataSet *AddIdx( DataSet::DataType, char*, int);
+    DataSet *Add( DataSet::DataType, const char*, const char*);
     int AddDataSetCopy(DataSet*);
     int AddDataSet(DataSet*);
     int PrepareForWrite();
-    //void Begin();
     /// Add data to the given set in the list
     int AddData(int, void *, int);
-    //int AddData(int, void *);
-    //int AddDataToIdx(int, void *, int );
     /// Print info on datasets in the list
     void Info();
     /// Call sync for datasets in the list (MPI only)
@@ -81,5 +75,8 @@ class DataSetList {
     int maxFrames_;
     /// Used to iterate over vector datasets
     int vecidx_;
+
+    /// Check if dataset name exists or create default name
+    char *checkName(const char*, const char*);
 };
 #endif

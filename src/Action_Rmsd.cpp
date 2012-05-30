@@ -1,7 +1,6 @@
 // RMSD
 #include "Action_Rmsd.h"
 #include "CpptrajStdio.h"
-#include "DataSet_double.h" // for SeparateInit
 
 // TODO: Make all Frames non-pointers
 
@@ -28,8 +27,6 @@ Action_Rmsd::~Action_Rmsd() {
   if (ResFrame_!=NULL) delete ResFrame_;
   if (ResRefFrame_!=NULL) delete ResRefFrame_;
   if (PerResRMSD_!=NULL) delete PerResRMSD_;
-  // If separate, clean up the dataset
-  if (isSeparate_) delete rmsd_;
 }
 
 // Action_Rmsd::resizeResMasks()
@@ -123,33 +120,6 @@ int Action_Rmsd::init( ) {
 
   return 0;
 }
-
-// Action_Rmsd::SeparateInit()
-/** This routine allows the RMSD action to be initialized outside the main
-  * action list so it can be used e.g. by other actions etc. The dataset
-  * is allocated locally.
-  */
-/*int Action_Rmsd::SeparateInit(char *mask0, bool massIn, int debugIn) {
-  isSeparate_ = true;
-  debug = debugIn;
-  useMass_ = massIn;
-  // Also set useMassOriginalValue since this is NOT called from 
-  // Init.
-  useMassOriginalValue_ = useMass_;
-  // Only first for reference for now
-  SetFirst(nofit, mask0, useMass_); 
-
-  // Set the RMS mask string for target and reference
-  FrameMask.SetMaskString(mask0);
-
-  // Set up the RMSD data set. In case the action is being re-initialized,
-  // only do this if rmsd is NULL.
-  if (rmsd==NULL) {
-    rmsd = new DataSet_double();
-    if (rmsd->Setup((char*)"RMSD",-1)) return 1;
-  }
-  return 0;
-}*/
 
 // Action_Rmsd::perResSetup()
 /** Perform setup required for per residue rmsd calculation.
@@ -307,8 +277,7 @@ int Action_Rmsd::setup() {
     if (this->perResSetup(GetRefParm())) return 1;
   }
 
-  if (!isSeparate_)
-    mprintf("\t%i atoms selected.\n",FrameMask_.Nselected());
+  mprintf("\t%i atoms selected.\n",FrameMask_.Nselected());
 
   return 0;
 }

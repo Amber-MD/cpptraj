@@ -40,6 +40,7 @@ class CheckStructure: public Action {
     double bondoffset_;
     double nonbondcut2_;
     CpptrajFile outfile_;
+    bool isSeparate_; ///< True if set up outside main Action List
 
     void SetupBondlist(std::vector<int> const&);
 };

@@ -5,39 +5,39 @@
 #include "CoordList.h"
 #include "TriangleMatrix.h"
 #include "DataSet_double.h"
-// Class: Rms2d
+// Class: Action_Rms2d
 /// Action to calculate the RMSD between two sets of frames.
 /** Perform RMS calculation between each input frame and each other input 
   * frame, or each frame read in from a separate reference traj and each 
   * input frame. 
   * The actual calcuation is performed in the print function.
   */
-class Rms2d: public Action {
-    CoordList ReferenceCoords; ///< Hold coords from input frames.
-    bool nofit;                ///< Do not perform rms fitting
-    AtomMask RefMask;          ///< Reference atom mask
-    AtomMask FrameMask;        ///< Target atom mask
-    char *rmsdFile;            ///< Output filename
-    DataSetList RmsData;       ///< 1 data set for each ref frame to each tgt frame
-    TrajectoryFile *RefTraj;   ///< Reference trajectory, each frame used in turn
-    Topology *RefParm;        ///< Reference trajectory Parm
-    DataSet_double Ct;         ///< Hold auto-correlation
-    char *corrfilename;        ///< Auto-correlation output filename
-    double *mass_ptr;          ///< If useMass, hold mass info for parm.
-    bool mass_setup;           ///< Used to check if mass already set up.
-
-    void CalcRmsToTraj();
-    int AutoCorrelate(TriangleMatrix &);
+class Action_Rms2d: public Action {
   public:
-    Rms2d();
-    ~Rms2d();
+    Action_Rms2d();
+    ~Action_Rms2d();
 
-    int SeparateInit(bool, char *);
-    void Calc2drms(TriangleMatrix*);
+    void print();
+  private:
+    CoordList ReferenceCoords_; ///< Hold coords from input frames.
+    bool nofit_;                ///< Do not perform rms fitting
+    AtomMask RefMask_;          ///< Reference atom mask
+    AtomMask FrameMask_;        ///< Target atom mask
+    char* rmsdFile_;            ///< Output filename
+    DataSetList RmsData_;       ///< 1 data set for each ref frame to each tgt frame
+    TrajectoryFile* RefTraj_;   ///< Reference trajectory, each frame used in turn
+    Topology* RefParm_;         ///< Reference trajectory Parm
+    DataSet_double Ct_;         ///< Hold auto-correlation
+    char* corrfilename_;        ///< Auto-correlation output filename
+    double* mass_ptr_;          ///< If useMass, hold mass info for parm.
+    bool mass_setup_;           ///< Used to check if mass already set up.
+
+    int AutoCorrelate(TriangleMatrix&);
+    void CalcRmsToTraj();
+    void Calc2drms(TriangleMatrix&);
 
     int init();
     int setup();
     int action();
-    void print();
 };
 #endif

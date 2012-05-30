@@ -74,7 +74,6 @@ class Action {
     bool useMass_;               ///< If set to true, calculations will use mass info
     bool useImage_;              ///< If set to true, calculations will use imaging info
     Frame::ImageType imageType_; ///< Type of imaging to be performed.
-    bool isSeparate_;            ///< If true action was initialized outside main action list.
     int frameNum;                ///< # of current frame being processed, set by ActionList
     // --== Inherited by child classes ==--
     /// actions internal setup routine, called by Setup

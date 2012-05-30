@@ -13,7 +13,6 @@ Action::Action() :
   useMass_(false),
   useImage_(false),
   imageType_(Frame::NOIMAGE),
-  isSeparate_(false),
   frameNum(0),
   useMassOriginalValue_(false),
   useImageOriginalValue_(false),

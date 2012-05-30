@@ -39,19 +39,6 @@ DataSetList::const_iterator DataSetList::end() const {
   return DataList_.end();
 }
 
-// DataSetList::DataCharSize() 
-/*size_t DataSetList::DataCharSize() {
-  size_t total_size = 0;
-  for (const_iterator dset = DataList.begin(); dset != DataList.end(); dset++) {
-    size_t max_data = (size_t) (*dset)->Xmax();
-    // Actual # elements is one greater than the max X value.
-    ++max_data;
-    max_data *= (*dset)->Width();
-    total_size += max_data;
-  }
-  return total_size;
-}*/
-
 // DataSetList::SetDebug()
 void DataSetList::SetDebug(int debugIn) {
   debug_ = debugIn;
@@ -75,13 +62,6 @@ void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
     (*ds)->SetPrecision(widthIn,precisionIn);
 }
-
-// DataSetList::operator[]()
-/*DataSet &DataSetList::operator[](int ndataset) {
-  if (ndataset < 0 || ndataset >= Ndata)
-    throw std::out_of_range("DataSetList[]");
-  return *(DataList[ndataset]);
-}*/
 
 // DataSetList::Get()
 DataSet *DataSetList::Get(const char *nameIn) {
@@ -152,7 +132,8 @@ DataSet *DataSetList::AddMultiN(DataSet::DataType inType, const char *prefix,
   return tempDS;
 }
 
-DataSet *DataSetList::AddMultiN(DataSet::DataType inType, std::string& nameIn, int Nin)
+// DataSetList::AddMultiN()
+DataSet* DataSetList::AddMultiN(DataSet::DataType inType, std::string& nameIn, int Nin)
 {
   // Determine if a dataset with idx Nin exists.
   DataSet *tempDS = GetDataSetIdx( Nin );
@@ -161,7 +142,7 @@ DataSet *DataSetList::AddMultiN(DataSet::DataType inType, std::string& nameIn, i
     return NULL;
   }
   // Set up new dataset
-  tempDS = this->Add(inType, (char*)nameIn.c_str(), nameIn.c_str());
+  tempDS = this->Add(inType, nameIn.c_str(), nameIn.c_str());
   if (tempDS!=NULL) tempDS->SetIdx( Nin );
   return tempDS;
 }
@@ -177,7 +158,7 @@ DataSet *DataSetList::AddMultiN(DataSet::DataType inType, std::string& nameIn, i
   * \param suffix dataset name suffix
   * \return pointer to successfully set up dataset.
   */
-DataSet *DataSetList::AddMulti(DataSet::DataType inType, char *prefix, const char *suffix) 
+DataSet* DataSetList::AddMulti(DataSet::DataType inType, const char *prefix, const char *suffix) 
 {
   char tempName[32];
   if (prefix==NULL)
@@ -197,7 +178,7 @@ DataSet *DataSetList::AddMulti(DataSet::DataType inType, char *prefix, const cha
   * a default name and the dataset number.
   * \return An acceptable dataset name, or NULL if not acceptable.
   */
-char *DataSetList::checkName(char *nameIn, const char *defaultName) {
+char *DataSetList::checkName(const char *nameIn, const char *defaultName) {
   char *dsetName;
   size_t namesize;
   // Require all calls provide a default name
@@ -231,36 +212,6 @@ char *DataSetList::checkName(char *nameIn, const char *defaultName) {
   return dsetName;
 }
 
-// DataSetList::AddMatrix()
-/** Add a matrix dataset to the list. This requires a separate function
-  * since the dimensions of the matrix must be set.
-  */
-/*DataSet *DataSetList::AddMatrix(char *nameIn, const char *defaultName,
-                                int Nrows, int Mcols)
-{
-  DataSet *Dset=NULL;
-  char *dsetName = checkName(nameIn, defaultName);
-  if (dsetName==NULL) return NULL;
-  Dset = new DataSet_Matrix(Nrows, Mcols);
-  if (Dset==NULL) {
-    delete[] dsetName;
-    return NULL;
-  }
-  // Set up dataset
-  if ( Dset->Setup(dsetName,maxFrames) ) {
-    mprinterr("Error setting up matrix data set %s.\n",dsetName);
-    delete Dset;
-    delete[] dsetName;
-    return NULL;
-  }
-
-  DataList.push_back(Dset);
-  ++Ndata;
-  //fprintf(stderr,"ADDED dataset %s\n",dsetName);
-  delete[] dsetName;
-  return Dset;
-}*/
-
 // DataSetList::Add()
 /** Add a DataSet of specified type, set it up and return pointer to it. 
   * Name the dataset nameIn if specified, otherwise give it a default
@@ -271,7 +222,7 @@ char *DataSetList::checkName(char *nameIn, const char *defaultName) {
   * \param defaultName default name prefix for use if nameIn not specified.
   * \return pointer to successfully set-up dataset.
   */ 
-DataSet *DataSetList::Add(DataSet::DataType inType, char *nameIn, const char *defaultName) 
+DataSet *DataSetList::Add(DataSet::DataType inType, const char *nameIn, const char *defaultName) 
 {
   // Dont add to a list with copies
   if (hasCopies_) {
@@ -326,6 +277,7 @@ int DataSetList::AddDataSetCopy(DataSet *dsetIn) {
   return 0;
 }
 
+// DataSetList::AddDataSet()
 int DataSetList::AddDataSet(DataSet* dsetIn) {
   if (dsetIn==NULL) return 1;
   DataList_.push_back(dsetIn);

@@ -11,10 +11,7 @@ class Action_Rmsd: public Action, ActionReference {
     Action_Rmsd();
     ~Action_Rmsd();
 
-    //int SeparateInit(char*,bool,int);
-
     void print();
-
   private:
     int init();
     int setup();

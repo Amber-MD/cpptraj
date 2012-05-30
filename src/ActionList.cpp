@@ -82,8 +82,8 @@ int ActionList::AddAction(ArgList &argIn) {
 
   // Decide what action this is based on the command.
   if      (argIn.CommandIs("distance"))       {Act=new Action_Distance;}
-  else if (argIn.CommandIs("rms2d"))          {Act=new Rms2d;   }
-  else if (argIn.CommandIs("2drms"))          {Act=new Rms2d;   }
+  else if (argIn.CommandIs("rms2d"))          {Act=new Action_Rms2d;   }
+  else if (argIn.CommandIs("2drms"))          {Act=new Action_Rms2d;   }
   else if (argIn.CommandIs("rmsd"))           {Act=new Action_Rmsd;    }
   else if (argIn.CommandIs("rms"))            {Act=new Action_Rmsd;    }
   else if (argIn.CommandIs("dihedral"))       {Act=new Action_Dihedral;}
@@ -114,9 +114,8 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("check"))          {Act=new CheckStructure;}
   //else if (argIn.CommandIs("dihedralscan"))   {Act=new DihedralScan;}
   else if (argIn.CommandIs("rotdif"))         {Act=new Rotdif;}
-  else if (argIn.CommandIs("runningaverage")) {Act=new RunningAvg;}
-  else if (argIn.CommandIs("runavg"))         {Act=new RunningAvg;}
-  else if (argIn.CommandIs("runningaverage")) {Act=new RunningAvg;}
+  else if (argIn.CommandIs("runningaverage")) {Act=new Action_RunningAvg;}
+  else if (argIn.CommandIs("runavg"))         {Act=new Action_RunningAvg;}
   else if (argIn.CommandIs("rmsavgcorr"))     {Act=new RmsAvgCorr;}
   else if (argIn.CommandIs("atomicfluct"))    {Act=new AtomicFluct;}
   else if (argIn.CommandIs("watershell"))     {Act=new Watershell;}
