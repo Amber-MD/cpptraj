@@ -3,8 +3,6 @@
 #include <map>
 #include <set>
 #include "Action.h"
-//#include "ActionReference.h"
-// TODO: Use with ActionReference?
 class Action_Contacts : public Action {
   public:
     Action_Contacts();

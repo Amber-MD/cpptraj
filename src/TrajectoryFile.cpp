@@ -217,7 +217,7 @@ TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
   * name to be the base filename. Return the trajectory IO object for 
   * the format.
   */
-TrajectoryIO *TrajectoryFile::setupTrajIO(char *tname, TrajAccessType accIn, 
+TrajectoryIO *TrajectoryFile::setupTrajIO(const char *tname, TrajAccessType accIn, 
                                           TrajFormatType fmtIn) 
 {
   TrajectoryIO basicTraj;
@@ -381,7 +381,7 @@ void TrajectoryFile::SingleFrame() {
   * explicitly, or if not it should be the second argument in the given
   * argument list. Associate this trajectory with the given parm file.
   */
-int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, Topology *tparmIn) {
+int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tparmIn) {
   char *tname = NULL;
   // REMD
   double remdtrajtemp = 0.0;
@@ -397,7 +397,7 @@ int TrajectoryFile::SetupRead(char *tnameIn, ArgList *argIn, Topology *tparmIn) 
   if (tnameIn==NULL && argIn!=NULL)
     tname = argIn->getNextString();
   else
-    tname = tnameIn;
+    tname = (char*)tnameIn;
   if (tname==NULL) {
     mprinterr("Error: TrajectoryFile::SetupRead: Filename is NULL.\n");
     return 1;
@@ -601,7 +601,7 @@ std::string TrajectoryFile::GetExtensionForType(TrajFormatType typeIn) {
   * space-separated string to be passed in, which will be converted
   * to an argument list and passed to SetupWrite.
   */
-int TrajectoryFile::SetupWriteWithArgs(char *tnameIn, const char *argstring,
+int TrajectoryFile::SetupWriteWithArgs(const char *tnameIn, const char *argstring,
                                        Topology *tparmIn, TrajFormatType fmtIn) 
 {
   ArgList tempArg;
@@ -617,7 +617,7 @@ int TrajectoryFile::SetupWriteWithArgs(char *tnameIn, const char *argstring,
   * like stripped atoms and so on. 
   * NOTE: make remdtraj a generic trigger for hasTemperature?
   */
-int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, Topology *tparmIn,
+int TrajectoryFile::SetupWrite(const char *tnameIn, ArgList *argIn, Topology *tparmIn,
                                TrajFormatType writeFormatIn) 
 {
   char *tname = NULL;
@@ -631,7 +631,7 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, Topology *tparmIn,
   if (tnameIn==NULL && argIn!=NULL)
     tname = argIn->getNextString();
   else
-    tname = tnameIn;
+    tname = (char*)tnameIn;
   if (tname==NULL) {
     mprinterr("Error: TrajectoryFile::SetupWrite: Filename is NULL.\n");
     return 1;

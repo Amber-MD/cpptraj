@@ -3,10 +3,10 @@
 #include <vector>
 #include "Action.h"
 #include "Range.h"
-#include "ActionReference.h"
+#include "TrajectoryFile.h"
 // Class: Action_Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
-class Action_Rmsd: public Action, ActionReference {
+class Action_Rmsd: public Action {
   public:
     Action_Rmsd();
     ~Action_Rmsd();
@@ -39,6 +39,16 @@ class Action_Rmsd: public Action, ActionReference {
     double Trans_[6];                  ///< For fit, hold 2 translations: tgt->origin, origin->ref
     Frame SelectedFrame_;              ///< Hold only selected target frame coords.
     DataSet *rmsd_;
+    // Reference variables and functions
+    enum RefModeType { UNKNOWN_REF=0, FIRST, REF, REFTRAJ };
+    RefModeType refmode_;
+    Frame RefFrame_;
+    Topology* RefParm_; // Needed for PerResSetup
+    Frame SelectedRef_;
+    AtomMask RefMask_;
+    TrajectoryFile RefTraj_;
+    int SetRefMask( Topology* );
+    void SetRefStructure( Frame& );
 
     /// Resize per-residue RMSD masks
     void resizeResMasks();

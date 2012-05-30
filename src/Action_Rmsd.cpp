@@ -16,7 +16,9 @@ Action_Rmsd::Action_Rmsd() :
   ResFrame_(NULL),
   ResRefFrame_(NULL),
   nofit_(false),
-  rmsd_(NULL)
+  rmsd_(NULL),
+  refmode_(UNKNOWN_REF),
+  RefParm_(NULL)
 {
   useMass_=false;
 }
@@ -41,7 +43,38 @@ void Action_Rmsd::resizeResMasks() {
     refResMask_.resize(NumResidues_, Blank);
   }
 } 
-    
+
+/** Setup RefMask based on given Topology. Allocate space for selected
+  * reference atoms. Save the reference parm as RefParm for use with
+  * PerResSetup.
+  */
+int Action_Rmsd::SetRefMask( Topology* RefParmIn ) {
+  // If a reference parm is already set, exit.
+  if (RefParm_!=NULL) return 0;
+  if (RefParmIn == NULL) return 1;
+  RefParm_ = RefParmIn;
+  if (RefParm_->SetupIntegerMask( RefMask_ )) return 1;
+  if (RefMask_.None()) {
+    mprinterr("Error: rmsd: No reference atoms selected for parm %s, [%s]\n",
+              RefParm_->c_str(), RefMask_.MaskString());
+    return 1;
+  }
+  SelectedRef_.SetupFrameFromMask( RefMask_, RefParm_->Mass() );
+  return 0;
+}
+
+/** Setup selected reference coordinates based on given frame
+  * and RefMask. If fitting, the reference is pre-centered
+  * and the translation back to the original reference point
+  * is stored.
+  */
+void Action_Rmsd::SetRefStructure( Frame& frameIn ) {
+  RefFrame_ = frameIn;
+  SelectedRef_.SetCoordinates( RefFrame_, RefMask_ );
+  if (!nofit_)
+    SelectedRef_.CenterReference( Trans_+3, useMass_ );
+}
+
 // Action_Rmsd::init()
 /** Called once before traj processing. Set up reference info.
   * Expected call: 
@@ -52,10 +85,31 @@ void Action_Rmsd::resizeResMasks() {
   *        [perresmask <addtl mask>] [perresinvert] [perrescenter] perresavg <pravg> ]
   */
 int Action_Rmsd::init( ) {
+  std::string refname, reftrajname;
+  int refindex = -1;
+  Topology* refparm = NULL;
+
   // Check for other keywords
   nofit_ = actionArgs.hasKey("nofit");
   useMass_ = actionArgs.hasKey("mass");
   char *rmsdFile = actionArgs.getKeyString("out",NULL);
+  // Reference keywords
+  refmode_ = UNKNOWN_REF;
+  if ( actionArgs.hasKey("first") ) {
+    refmode_ = FIRST;
+  } else {
+    refindex = actionArgs.getKeyInt("refindex", -1);
+    if (actionArgs.hasKey("reference")) refindex = 0;
+    refname = actionArgs.GetStringKey("ref");
+    if (refindex==-1 && refname.empty()) {
+      reftrajname = actionArgs.GetStringKey("reftraj");
+      if (!reftrajname.empty()) {
+        refparm = PFL->GetParm( actionArgs );
+        refmode_ = REFTRAJ;
+      }
+    } else
+      refmode_ = REF;
+  }
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
@@ -69,12 +123,54 @@ int Action_Rmsd::init( ) {
     perresavg_ = actionArgs.getKeyString("perresavg",NULL);
   }
   // Get the RMS mask string for target 
-  char *mask0 = actionArgs.getNextMask();
+  char* mask0 = actionArgs.getNextMask();
   FrameMask_.SetMaskString(mask0);
+  // Get the RMS mask string for reference
+  char* mask1 = actionArgs.getNextMask();
+  if (mask1==NULL)
+    mask1 = mask0;
+  RefMask_.SetMaskString( mask1 );
 
-  // Initialize reference. If no reference mask is given mask0 will be used.
-  if (RefInit(nofit_, useMass_, mask0, actionArgs, FL, PFL, Trans_+3))
-    return 1;
+  // Check that a reference keyword was specified. If not, default to first.
+  if (refmode_==UNKNOWN_REF) {
+    mprintf("Warning: rmsd: No reference structure given. Defaulting to first.\n");
+    refmode_ = FIRST;
+  }
+  // Initialize reference if not 'first'.
+  if (refmode_ != FIRST) {
+    if ( !reftrajname.empty() ) {
+      // Reference trajectory
+      if (refparm == NULL) {
+        mprinterr("Error: rmsd: Could not get parm for reftraj %s\n", reftrajname.c_str());
+        return 1;
+      }
+      if (SetRefMask( refparm )!=0) return 1;
+      // Attempt to open reference traj.
+      if (RefTraj_.SetupRead( reftrajname.c_str(), NULL, refparm)) {
+        mprinterr("Error: rmsd: Could not set up reftraj %s\n", reftrajname.c_str());
+        return 1;
+      }
+      RefFrame_.SetupFrameV(refparm->Natom(), refparm->Mass(), RefTraj_.HasVelocity());
+      if (RefTraj_.BeginTraj(false)) {
+        mprinterr("Error: rmsd: Could not open reftraj %s\n", reftrajname.c_str());
+        return 1;
+      }
+    } else {
+      // Reference by name/tag
+      if (!refname.empty())
+        refindex = FL->FindName( refname );
+      // Get reference by index
+      Frame* TempFrame = FL->GetFrame( refindex );
+      // Get parm for reference
+      refparm = FL->GetFrameParm( refindex );
+      if (refparm == NULL) {
+        mprinterr("Error: rmsd: Could not get parm for frame %s\n", FL->FrameName(refindex));
+        return 1;
+      }
+      if (SetRefMask( refparm )!=0) return 1;
+      SetRefStructure( *TempFrame );
+    } 
+  }
 
   // Set up the RMSD data set. 
   rmsd_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"RMSD");
@@ -85,7 +181,19 @@ int Action_Rmsd::init( ) {
 
   //rmsd->Info();
   mprintf("    RMSD: (%s), reference is",FrameMask_.MaskString());
-  RefInfo();
+  if (refmode_ == FIRST)
+    mprintf(" first frame");
+  else if (refmode_==REFTRAJ)
+    mprintf(" trajectory %s",RefTraj_.TrajName());
+  else {
+    mprintf(" reference frame");
+    if (!refname.empty())
+      mprintf(" %s",refname.c_str());
+    else
+      mprintf(" index %i", refindex);
+  }
+  mprintf(" (%s)",RefMask_.MaskString());
+
   if (nofit_)
     mprintf(", no fitting");
   else
@@ -261,20 +369,22 @@ int Action_Rmsd::setup() {
   // correct masses in based on the mask.
   SelectedFrame_.SetupFrameFromMask(FrameMask_, currentParm->Mass());
 
-  // Reference setup
-  if (RefSetup( currentParm )) return 1;
+  // Reference setup if 'first'
+  if (refmode_ == FIRST) {
+    if ( SetRefMask( currentParm )!=0 ) return 1;
+  }
   
   // Check that num atoms in frame mask from this parm match ref parm mask
-  if ( RefNselected() != FrameMask_.Nselected() ) {
+  if ( RefMask_.Nselected() != FrameMask_.Nselected() ) {
     mprintf("Warning: Number of atoms in RMS mask (%i) does not equal number of\n",
               FrameMask_.Nselected());
-    mprintf("Warning: atoms in reference mask (%i).\n",RefNselected());
+    mprintf("Warning: atoms in reference mask (%i).\n",RefMask_.Nselected());
     return 1;
   }
 
   // Per residue rmsd setup
   if (perres_) { 
-    if (this->perResSetup(GetRefParm())) return 1;
+    if (perResSetup(RefParm_)) return 1;
   }
 
   mprintf("\t%i atoms selected.\n",FrameMask_.Nselected());
@@ -292,7 +402,15 @@ int Action_Rmsd::action() {
   double R, U[9];
 
   // Perform any needed reference actions
-  RefAction(currentFrame, Trans_+3);
+  if (refmode_ == FIRST) {
+    SetRefStructure( *currentFrame );
+    refmode_ = REF;
+  } else if (refmode_ == REFTRAJ) {
+    RefTraj_.GetNextFrame( RefFrame_ );
+    SelectedRef_.SetCoordinates(RefFrame_, RefMask_);
+    if (!nofit_)
+      SelectedRef_.CenterReference(Trans_+3, useMass_);
+  }
 
   // Set selected frame atoms. Masses have already been set.
   SelectedFrame_.SetCoordinates(*currentFrame, FrameMask_);

@@ -20,10 +20,10 @@ class TrajectoryFile {
     TrajectoryFile();
     ~TrajectoryFile();
     // Trajectory IO functions
-    int SetupRead(char *, ArgList *, Topology *);
-    int SetupWriteWithArgs(char *, const char *, Topology *, TrajFormatType);
+    int SetupRead(const char *, ArgList *, Topology *);
+    int SetupWriteWithArgs(const char *, const char *, Topology *, TrajFormatType);
     // TODO: Accept string instead of char*
-    int SetupWrite(char *, ArgList *, Topology *, TrajFormatType);
+    int SetupWrite(const char *, ArgList *, Topology *, TrajFormatType);
     int BeginTraj(bool);
     int EndTraj();
     int GetNextFrame(Frame&);
@@ -99,7 +99,7 @@ class TrajectoryFile {
     /// Set up Trajectory IO object
     TrajectoryIO *SetupTrajectoryIO(TrajFormatType);
     /// Set up TrajectoryIO object for the given filename
-    TrajectoryIO *setupTrajIO(char *, TrajAccessType, TrajFormatType);
+    TrajectoryIO *setupTrajIO(const char *, TrajAccessType, TrajFormatType);
     /// Set start/stop/offset args from user input
     int SetArgs(ArgList *);
     /// Set actual start and stop
