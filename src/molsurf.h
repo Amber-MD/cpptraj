@@ -6,9 +6,6 @@ extern "C" {
 /*! \file molsurf.h
     \brief This is an adaptation of Paul Beroza's "molsurf" program;
  */
-// ---------- CPPTRAJ includes -------------------------------------------------
-#include "Name.h" // NAME
-
 // ---------- DEFINES ----------------------------------------------------------
 #define REAL_T double
 #define MAXAT_EDGE 30
