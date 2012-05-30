@@ -952,7 +952,6 @@ int NAstruct::init() {
   * the masks that correspond to the reference frame atoms.
   */
 int NAstruct::setup() {
-  int resnum;
   AxisType axis; 
   AtomMask Mask;
   AtomMask fitMask;
@@ -986,52 +985,53 @@ int NAstruct::setup() {
   //  actualRange.PrintRange("    NAstruct: NA res:",1);
 
   // Set up frame to hold reference coords for each NA residue
-  actualRange.Begin();
-  while (actualRange.NextInRange(&resnum)) {
+  for (Range::const_iterator resnum = actualRange.begin();
+                             resnum != actualRange.end(); ++resnum)
+  {
     customBaseType = AxisType::UNKNOWN_BASE;
     // Check if the residue at resnum matches any of the custom maps
     if (!CustomMap.empty()) {
-      resname.assign( currentParm->ResidueName(resnum) );
+      resname.assign( currentParm->ResidueName(*resnum) );
       customRes = CustomMap.find( resname );
       if (customRes!=CustomMap.end()) {
-        mprintf("\tCustom map found: %i [%s]\n",resnum+1,(*customRes).first.c_str());
+        mprintf("\tCustom map found: %i [%s]\n",*resnum+1,(*customRes).first.c_str());
         customBaseType = (*customRes).second;
       }
     }
     // Set up ref coords in correct order, along with corresponding 
     // parm mask for this residue. SetRefCoord should overwrite all
     // previously set up information in axis and Mask.
-    refreturn = axis.SetRefCoord( currentParm, resnum, Mask, fitMask, customBaseType );
+    refreturn = axis.SetRefCoord( currentParm, *resnum, Mask, fitMask, customBaseType );
     // If not recognized as a NA residue, continue to next.
     // Print a warning if the user specified this range.
     if ( refreturn == AxisType::NA_UNKNOWN ) {
       if (!resRange.Empty()) {
         mprintf("Warning: Residue %i:%s not recognized as NA residue.\n",
-                resnum+1, currentParm->ResidueName(resnum));
+                *resnum+1, currentParm->ResidueName(*resnum));
       }
       continue;
     } else if ( refreturn == AxisType::NA_ERROR  ) {
       mprinterr("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
-                resnum+1, currentParm->ResidueName(resnum));
+                *resnum+1, currentParm->ResidueName(*resnum));
       return 1;
     }
     if (Mask.None()) {
       mprintf("Error:: NAstruct::setup: No atoms found for residue %i:%s\n",
-              resnum+1, currentParm->ResidueName(resnum));
+              *resnum+1, currentParm->ResidueName(*resnum));
       return 1;
     }
     if (fitMask.None()) {
       mprintf("Error:: NAstruct::setup: No fit atoms found for residue %i:%s\n",
-              resnum+1, currentParm->ResidueName(resnum));
+              *resnum+1, currentParm->ResidueName(*resnum));
       return 1;
     }
     RefCoords.push_back( axis );
     ExpMasks.push_back( Mask );
     FitMasks.push_back( fitMask );
     if (debug>1) {
-      mprintf("\tNAstruct: Res %i:%s ",resnum+1,currentParm->ResidueName(resnum));
+      mprintf("\tNAstruct: Res %i:%s ",*resnum+1,currentParm->ResidueName(*resnum));
       Mask.PrintMaskAtoms("NAmask");
-      mprintf("\t          Ref %i:%s ",resnum+1,axis.BaseName());
+      mprintf("\t          Ref %i:%s ",*resnum+1,axis.BaseName());
       axis.PrintAtomNames();
     }
 

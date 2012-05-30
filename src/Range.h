@@ -11,31 +11,27 @@
 class Range {
   public:
     Range();
-    ~Range();
     Range(const Range&);
-    Range & operator=(const Range&);
+    Range& operator=(const Range&);
 
-    int SetRange(char *);
+    typedef std::list<int>::const_iterator const_iterator;
+    const_iterator begin() { return rangeList_.begin();      }
+    const_iterator end()   { return rangeList_.end();        }
+    bool Empty()           { return rangeList_.empty();      }
+    int Size()             { return (int) rangeList_.size(); }
+
+    int SetRange(const char *);
     int SetRange(int,int);
-    //void SetRange(Range*);
 
-    char *RangeArg();
+    const char *RangeArg();
     void PrintRange(const char*,int);
 
     void ShiftBy(int);
     void AddToRange(int);
-    void Begin();
-    bool NextInRange(int *);
-    bool End();
-    void Next();
-    int Current();
     void RemoveFromRange(int);
 
-    bool Empty() { return rangeList.empty();      }
-    int Size()   { return (int) rangeList.size(); }
   private:
-    std::string rangeArg;
-    std::list<int> rangeList;
-    std::list<int>::iterator rangeNum;
+    std::string rangeArg_;
+    std::list<int> rangeList_;
 };
 #endif

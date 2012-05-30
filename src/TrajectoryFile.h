@@ -84,16 +84,19 @@ class TrajectoryFile {
     /// The number of frames to skip over while reading
     int frameskip_;
     // -----===== Specific to output traj =====-----
-    /// If defined, list of frame numbers to write
-    Range *FrameRange_;
+    /// If defined, list of frame numbers to write.
+    Range FrameRange_;
+    /// If frame range define, this is next frame in range.
+    Range::const_iterator rangeframe_;
+    /// If true a frame range is defined.
+    bool hasRange_;
     /// If true do not put box information in output traj
     bool nobox_;
     /// If true trajectory has been opened.
     bool trajIsOpen_;
-    /// Identify trajectory format
-    //TrajFormatType ID_TrajFormat(TrajectoryIO &);
     /// Set up TrajectoryIO object for reading multiple trajectories at once
     TrajectoryIO *setupRemdTrajIO(double, char*, TrajFormatType, ArgList&);
+    /// Set up Trajectory IO object
     TrajectoryIO *SetupTrajectoryIO(TrajFormatType);
     /// Set up TrajectoryIO object for the given filename
     TrajectoryIO *setupTrajIO(char *, TrajAccessType, TrajFormatType);

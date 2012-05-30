@@ -161,7 +161,6 @@ int Action_Rmsd::init( ) {
 int Action_Rmsd::perResSetup(Topology *RefParm) {
   Range tgt_range;
   Range ref_range;
-  int tgtRes, refRes;
 
   NumResidues_ = currentParm->FinalSoluteRes();
 
@@ -193,10 +192,13 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
   resIsActive_.reserve(NumResidues_);
   resIsActive_.assign(NumResidues_, false);
   int N = -1; // Set to -1 since increment is at top of loop
-  tgt_range.Begin();
-  ref_range.Begin();
-  while (tgt_range.NextInRange(&tgtRes)) {
-    ref_range.NextInRange(&refRes);
+  Range::const_iterator ref_it = ref_range.begin();
+  for (Range::const_iterator tgt_it = tgt_range.begin();
+                             tgt_it != tgt_range.end(); ++tgt_it)
+  {
+    int tgtRes = *tgt_it;
+    int refRes = *ref_it;
+    ++ref_it;
     // Check if either the residue num or the reference residue num out of range.
     if ( tgtRes < 1 || tgtRes > NumResidues_) {
       mprintf("Warning: Rmsd: perres: Specified residue # %i is out of range.\n",
@@ -217,10 +219,8 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
 
     // Setup mask strings. Note that masks are based off user residue nums
     std::string tgtArg = ":" + integerToString(tgtRes) + perresmask_;
-    //sprintf(tgtArg,":%i%s",tgtRes,perresmask);
     tgtResMask_[N].SetMaskString(tgtArg.c_str());
     std::string refArg = ":" + integerToString(refRes) + perresmask_;
-    //sprintf(refArg,":%i%s",refRes,perresmask);
     refResMask_[N].SetMaskString(refArg.c_str());
     //mprintf("DEBUG: RMSD: PerRes: Mask %s RefMask %s\n",tgtArg,refArg);
 

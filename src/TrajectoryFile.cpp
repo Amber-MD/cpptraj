@@ -15,28 +15,29 @@
 #include "RemdTraj.h"
 
 // CONSTRUCTOR
-TrajectoryFile::TrajectoryFile() {
-  debug_ = 0;
-  progress_ = NULL;
-  trajio_ = NULL;
-  trajName_ = NULL;
-  trajParm_ = NULL;
-  fileAccess_ = READTRAJ;
-  numFramesProcessed_ = 0;
-  start_ = 0;
-  stop_ = -1;
-  offset_ = 1;
-  total_frames_ = 0;
-  total_read_frames_ = -1;
-  currentFrame_ = 0;
-  targetSet_ = 0;
-  frameskip_ = 1;
-  FrameRange_ = NULL;
-  nobox_ = false;
+TrajectoryFile::TrajectoryFile() :
+  debug_(0),
+  progress_(NULL),
+  trajio_(NULL),
+  trajName_(NULL),
+  trajParm_(NULL),
+  fileAccess_(READTRAJ),
+  numFramesProcessed_(0),
+  start_(0),
+  stop_(-1),
+  offset_(1),
+  total_frames_(0),
+  total_read_frames_(-1),
+  currentFrame_(0),
+  targetSet_(0),
+  frameskip_(1),
+  rangeframe_(FrameRange_.end()),
+  hasRange_(false),
+  nobox_(false),
   // NOTE: Using this instead of trajio->IsOpen since trajio doesnt always
   //       use the FileIO routines (e.g. netcdf files).
-  trajIsOpen_ = false;
-}
+  trajIsOpen_(false)
+{}
 
 // DESTRUCTOR
 TrajectoryFile::~TrajectoryFile() {
@@ -44,7 +45,6 @@ TrajectoryFile::~TrajectoryFile() {
     if (trajIsOpen_) EndTraj();
     delete trajio_;
   }
-  if (FrameRange_!=NULL) delete FrameRange_;
   if (progress_!=NULL) delete progress_;
 }
 
@@ -623,7 +623,6 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, Topology *tparmIn,
   char *tname = NULL;
   fileAccess_ = WRITETRAJ;
   TrajFormatType writeFormat = writeFormatIn;;
-  char *onlyframes=NULL;
 
   // Mark as not yet open 
   trajIsOpen_ = false;
@@ -665,17 +664,15 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, Topology *tparmIn,
     trajio_->SetTitle( argIn->getKeyString("title", NULL) );
 
     // Get a frame range for trajout
-    onlyframes = argIn->getKeyString("onlyframes",NULL);
+    char* onlyframes = argIn->getKeyString("onlyframes",NULL);
     if (onlyframes!=NULL) {
-      FrameRange_ = new Range();
-      if ( FrameRange_->SetRange(onlyframes) ) {
+      if ( FrameRange_.SetRange(onlyframes) ) 
         mprintf("Warning: trajout %s: onlyframes: %s is not a valid range.\n",tname,onlyframes);
-        delete FrameRange_;
-      } else {
-        FrameRange_->PrintRange("      Saving frames",0);
-      }
+      else 
+        FrameRange_.PrintRange("      Saving frames",0);
       // User frame args start from 1. Start from 0 internally.
-      FrameRange_->ShiftBy(-1);
+      FrameRange_.ShiftBy(-1);
+      hasRange_ = true;
     }
 
     // Check for nobox argument - will override any box info present in parm
@@ -700,6 +697,7 @@ int TrajectoryFile::SetupWrite(char *tnameIn, ArgList *argIn, Topology *tparmIn,
   * set up a progress bar if requested. Not needed for writes since opening
   * occurs when WriteFrame() is called for the first time.
   */
+// NOTE: If Range ever implemented for reads need to set rangeframe here.
 int TrajectoryFile::BeginTraj(bool showProgress) {
   // For writes the trajectory is opened on first write in WriteFrame 
   if (fileAccess_ != READTRAJ) return 0;
@@ -825,17 +823,19 @@ int TrajectoryFile::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
     if (trajio_->openTraj()) return 1;
     trajIsOpen_ = true;
     // If a framerange is defined set it to the begining of the range
-    if (FrameRange_!=NULL) FrameRange_->Begin();
+    if (hasRange_)
+      rangeframe_ = FrameRange_.begin();
   }
 
   // If there is a framerange defined, check if this frame matches. If so,
   // write this frame and increment to the next frame in the range.
-  if (FrameRange_!=NULL) {
-    // If no more frames in the framerange, skip
-    if ( FrameRange_->End() ) return 0;
-    // Is this frame the next one in the range? 
-    if ( FrameRange_->Current() != set ) return 0;
-    FrameRange_->Next();
+  if (hasRange_) {
+    // If no more frames in the framerange, skip.
+    if (rangeframe_ == FrameRange_.end()) return 0;
+    // If this frame is not the next in the range, skip.
+    if ( *rangeframe_ != set ) return 0;
+    // This frame is next in the range. Advance FrameRange iterator.
+    ++rangeframe_;
   }
 
   // Write
@@ -871,8 +871,8 @@ void TrajectoryFile::PrintInfo(int showExtended) {
     else
       mprintf(", unknown #frames, start=%i offset=%i",start_,offset_);
   } else {
-    if (FrameRange_!=NULL)
-      FrameRange_->PrintRange(": Writing frames",OUTPUTFRAMESHIFT);
+    if (hasRange_)
+      FrameRange_.PrintRange(": Writing frames",OUTPUTFRAMESHIFT);
     else
       mprintf(": Writing %i frames", trajParm_->Nframes());
     if (fileAccess_==APPENDTRAJ) mprintf(", appended"); 
