@@ -9,9 +9,6 @@
   * and end number.
 */
 class Range {
-    std::string rangeArg;
-    std::list<int> rangeList;
-    std::list<int>::iterator rangeNum;
   public:
     Range();
     ~Range();
@@ -20,7 +17,7 @@ class Range {
 
     int SetRange(char *);
     int SetRange(int,int);
-    void SetRange(Range*);
+    //void SetRange(Range*);
 
     char *RangeArg();
     void PrintRange(const char*,int);
@@ -36,5 +33,9 @@ class Range {
 
     bool Empty() { return rangeList.empty();      }
     int Size()   { return (int) rangeList.size(); }
+  private:
+    std::string rangeArg;
+    std::list<int> rangeList;
+    std::list<int>::iterator rangeNum;
 };
 #endif

@@ -1,17 +1,24 @@
 #ifndef INC_ACTION_PUCKER_H
 #define INC_ACTION_PUCKER_H
-// Class: Pucker
+// Class: Action_Pucker
 /// Calculate the ring pucker given 5 atom masks.
 #include "Action.h"
-class Pucker: public Action {
-    DataSet *puck;
-    AtomMask M1, M2, M3, M4, M5;
-    int puckerMethod;
-    bool amplitude;
-    double offset;
-    double puckermin, puckermax;
+class Action_Pucker: public Action {
   public:
-    Pucker();
+    Action_Pucker();
+  private:
+    DataSet *puck_;
+    AtomMask M1_;
+    AtomMask M2_;
+    AtomMask M3_;
+    AtomMask M4_;
+    AtomMask M5_;
+    enum PmethodType { ALTONA=0, CREMER };
+    PmethodType puckerMethod_;
+    bool amplitude_;
+    double offset_;
+    double puckermin_;
+    double puckermax_;
 
     int init();
     int setup();

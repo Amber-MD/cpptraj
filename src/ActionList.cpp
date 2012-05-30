@@ -81,14 +81,14 @@ int ActionList::AddAction(ArgList &argIn) {
   Action *Act;
 
   // Decide what action this is based on the command.
-  if      (argIn.CommandIs("distance"))       {Act=new Distance;}
+  if      (argIn.CommandIs("distance"))       {Act=new Action_Distance;}
   else if (argIn.CommandIs("rms2d"))          {Act=new Rms2d;   }
   else if (argIn.CommandIs("2drms"))          {Act=new Rms2d;   }
-  else if (argIn.CommandIs("rmsd"))           {Act=new Rmsd;    }
-  else if (argIn.CommandIs("rms"))            {Act=new Rmsd;    }
-  else if (argIn.CommandIs("dihedral"))       {Act=new Dihedral;}
+  else if (argIn.CommandIs("rmsd"))           {Act=new Action_Rmsd;    }
+  else if (argIn.CommandIs("rms"))            {Act=new Action_Rmsd;    }
+  else if (argIn.CommandIs("dihedral"))       {Act=new Action_Dihedral;}
   else if (argIn.CommandIs("atommap"))        {Act=new Action_AtomMap; }
-  else if (argIn.CommandIs("angle"))          {Act=new Angle;   }
+  else if (argIn.CommandIs("angle"))          {Act=new Action_Angle;   }
   else if (argIn.CommandIs("strip"))          {Act=new Strip;   }
   else if (argIn.CommandIs("secstruct"))      {Act=new DSSP;    }
   else if (argIn.CommandIs("center"))         {Act=new Center;  }
@@ -99,7 +99,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("mask"))           {Act=new ActionMask;}
   else if (argIn.CommandIs("closest"))        {Act=new Closest; }
   else if (argIn.CommandIs("nastruct"))       {Act=new NAstruct;}
-  else if (argIn.CommandIs("pucker"))         {Act=new Pucker;  }
+  else if (argIn.CommandIs("pucker"))         {Act=new Action_Pucker;  }
   else if (argIn.CommandIs("outtraj"))        {Act=new Outtraj; }
   else if (argIn.CommandIs("unstrip"))        {Act=new Unstrip; }
   else if (argIn.CommandIs("average"))        {Act=new Average; }

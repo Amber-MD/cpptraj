@@ -112,6 +112,11 @@ void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
   cbuffer.Sprintf(header_format_.c_str(), temp_name.c_str());
 }
 
+void DataSet::SetScalar( scalarMode modeIn, scalarType typeIn ) {
+  scalarmode_ = modeIn;
+  scalartype_ = typeIn;
+}
+
 // DataSet::Avg()
 /** Calculate the average over values in this set if this set
   * is an atomic type (i.e. int, double, float).

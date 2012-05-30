@@ -2,12 +2,15 @@
 #define INC_ACTION_DIHEDRAL_H
 #include "Action.h"
 /// Calculate dihedral in a Frame
-class Dihedral: public Action {
+class Action_Dihedral: public Action {
   public:
-    Dihedral();
+    Action_Dihedral();
   private:
-    DataSet *dih;
-    AtomMask M1, M2, M3, M4;
+    DataSet* dih_;
+    AtomMask M1_;
+    AtomMask M2_;
+    AtomMask M3_;
+    AtomMask M4_;
 
     int init();
     int setup();

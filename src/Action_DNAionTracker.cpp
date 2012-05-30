@@ -58,6 +58,8 @@ int Action_DNAionTracker::init() {
 
   // Add dataset to dataset list (and datafile list if filename specified)
   distance_ = DSL->Add(DataSet::DOUBLE, dsetname, "DNAion");
+  // NOTE: Set to mode distance in PTRAJ
+  distance_->SetScalar( DataSet::M_DISTANCE );
   if (distance_==NULL) return 1;
   if (!filename_.empty())
     DFL->Add( filename_.c_str(), distance_ );

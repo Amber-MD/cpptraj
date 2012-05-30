@@ -1,118 +1,117 @@
-// Pucker
+// Action_Pucker
 #include "Action_Pucker.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG
 
 // CONSTRUCTOR
-Pucker::Pucker() {
+Action_Pucker::Action_Pucker() :
+  puck_(NULL),
+  puckerMethod_(ALTONA),
+  amplitude_(false),
+  offset_(0),
+  puckermin_( -180.0),
+  puckermax_( 180.0)
+{
   //fprintf(stderr,"Pucker Con\n");
-  puck=NULL;
-  puckerMethod=0;
-  amplitude=false;
-  useMass_=true;
-  offset=0;
-  puckermin = -180.0;
-  puckermax = 180.0;
+  useMass_ = true;
 } 
 
-// Pucker::init()
+// Action_Pucker::init()
 /** Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>
   *                [range360] [amplitude] [altona | cremer] [offset <offset>]
   */
-int Pucker::init() {
-  char *mask1, *mask2, *mask3, *mask4, *mask5;
-  char *puckerFile;
-
+int Action_Pucker::init() {
   // Get keywords
-  puckerFile = actionArgs.getKeyString("out",NULL);
-  if (actionArgs.hasKey("altona")) puckerMethod=0;
-  else if (actionArgs.hasKey("cremer")) puckerMethod=1;
-  if (actionArgs.hasKey("amplitude")) amplitude=true;
-  offset = actionArgs.getKeyDouble("offset",0.0);
+  char* puckerFile = actionArgs.getKeyString("out",NULL);
+  if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
+  else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
+  amplitude_ = actionArgs.hasKey("amplitude");
+  offset_ = actionArgs.getKeyDouble("offset",0.0);
   if (actionArgs.hasKey("range360")) {
-    puckermax=360.0;
-    puckermin=0.0;
+    puckermax_=360.0;
+    puckermin_=0.0;
   }
+  DataSet::scalarType stype = DataSet::UNDEFINED;
+  std::string stypename = actionArgs.GetStringKey("type");
+  if ( stypename == "pucker" ) stype = DataSet::PUCKER;
 
   // Get Masks
-  mask1 = actionArgs.getNextMask();
-  mask2 = actionArgs.getNextMask();
-  mask3 = actionArgs.getNextMask();
-  mask4 = actionArgs.getNextMask();
-  mask5 = actionArgs.getNextMask();
+  char* mask1 = actionArgs.getNextMask();
+  char* mask2 = actionArgs.getNextMask();
+  char* mask3 = actionArgs.getNextMask();
+  char* mask4 = actionArgs.getNextMask();
+  char* mask5 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL || mask5==NULL) {
-    mprinterr("Error: Pucker::init: Requires 5 masks\n");
+    mprinterr("Error: pucker: Requires 5 masks\n");
     return 1;
   }
-  M1.SetMaskString(mask1);
-  M2.SetMaskString(mask2);
-  M3.SetMaskString(mask3);
-  M4.SetMaskString(mask4);
-  M5.SetMaskString(mask5);
+  M1_.SetMaskString(mask1);
+  M2_.SetMaskString(mask2);
+  M3_.SetMaskString(mask3);
+  M4_.SetMaskString(mask4);
+  M5_.SetMaskString(mask5);
 
   // Setup dataset
-  puck = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Pucker");
-  if (puck==NULL) return 1;
+  puck_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Pucker");
+  if (puck_==NULL) return 1;
+  puck_->SetScalar( DataSet::M_PUCKER, stype );
   // Add dataset to datafile list
-  DFL->Add(puckerFile,puck);
+  DFL->Add(puckerFile, puck_);
 
   //dih->Info();
-  mprintf("    PUCKER: [%s]-[%s]-[%s]-[%s]-[%s]\n", M1.MaskString(),M2.MaskString(),
-          M3.MaskString(), M4.MaskString(), M5.MaskString());
-  if (puckerMethod==0) 
+  mprintf("    PUCKER: [%s]-[%s]-[%s]-[%s]-[%s]\n", M1_.MaskString(),M2_.MaskString(),
+          M3_.MaskString(), M4_.MaskString(), M5_.MaskString());
+  if (puckerMethod_==ALTONA) 
     mprintf("            Using Altona & Sundaralingam method.\n");
-  else if (puckerMethod==1)
+  else if (puckerMethod_==CREMER)
     mprintf("            Using Cremer & Pople method.\n");
   if (puckerFile!=NULL) 
     mprintf("            Data will be written to %s\n",puckerFile);
-  if (amplitude)
+  if (amplitude_)
     mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
-  if (offset!=0)
+  if (offset_!=0)
     mprintf("            Offset: %lf will be added to values.\n");
-  mprintf  ("            Values will range from %.1lf to %.1lf\n",puckermin,puckermax);
+  mprintf  ("            Values will range from %.1lf to %.1lf\n",puckermin_,puckermax_);
 
   return 0;
 }
 
-// Pucker::setup
-int Pucker::setup() {
+// Action_Pucker::setup
+int Action_Pucker::setup() {
+  if ( currentParm->SetupIntegerMask( M1_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( M2_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( M3_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( M4_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( M5_ ) ) return 1;
+  mprintf("\t%s (%i atoms)\n",M1_.MaskString(),M1_.Nselected());
+  mprintf("\t%s (%i atoms)\n",M2_.MaskString(),M2_.Nselected());
+  mprintf("\t%s (%i atoms)\n",M3_.MaskString(),M3_.Nselected());
+  mprintf("\t%s (%i atoms)\n",M4_.MaskString(),M4_.Nselected());
+  mprintf("\t%s (%i atoms)\n",M5_.MaskString(),M5_.Nselected());
 
-  if ( currentParm->SetupIntegerMask( M1 ) ) return 1;
-  if ( currentParm->SetupIntegerMask( M2 ) ) return 1;
-  if ( currentParm->SetupIntegerMask( M3 ) ) return 1;
-  if ( currentParm->SetupIntegerMask( M4 ) ) return 1;
-  if ( currentParm->SetupIntegerMask( M5 ) ) return 1;
-  mprintf("\t%s (%i atoms)\n",M1.MaskString(),M1.Nselected());
-  mprintf("\t%s (%i atoms)\n",M2.MaskString(),M2.Nselected());
-  mprintf("\t%s (%i atoms)\n",M3.MaskString(),M3.Nselected());
-  mprintf("\t%s (%i atoms)\n",M4.MaskString(),M4.Nselected());
-  mprintf("\t%s (%i atoms)\n",M5.MaskString(),M5.Nselected());
-
-  if ( M1.None() || M2.None() || M3.None() || M4.None() || M5.None() ) {
-    mprintf("Warning: Pucker::setup: One or more masks have no atoms.\n");
+  if ( M1_.None() || M2_.None() || M3_.None() || M4_.None() || M5_.None() ) {
+    mprintf("Warning: pucker: One or more masks have no atoms.\n");
     return 1;
   }
 
   return 0;  
 }
 
-// Pucker::action()
-int Pucker::action() {
-  double D;
-
-  D=currentFrame->PUCKER(&M1,&M2,&M3,&M4,&M5,puckerMethod,amplitude,useMass_);
-  D *= RADDEG;
+// Action_Pucker::action()
+int Action_Pucker::action() {
+  double pval = currentFrame->PUCKER(&M1_,&M2_,&M3_,&M4_,&M5_,puckerMethod_,amplitude_,useMass_);
+  pval *= RADDEG;
 
   // Deal with offset
-  D += offset;
+  pval += offset_;
 
   // Wrap values > puckermax or < puckermin
-  if      (D > puckermax) D -= 360.0;
-  else if (D < puckermin) D += 360.0;
+  if      (pval > puckermax_) pval -= 360.0;
+  else if (pval < puckermin_) pval += 360.0;
 
-  puck->Add(frameNum, &D);
+  puck_->Add(frameNum, &pval);
 
-  //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
+  //fprintf(outfile,"%10i %10.4lf\n",frameNum,pval);
   
   return 0;
 } 

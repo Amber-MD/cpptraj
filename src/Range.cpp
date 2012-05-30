@@ -141,7 +141,7 @@ int Range::SetRange(int start, int end) {
 // Range::SetRange()
 /** Assign this range from another range. */
 // NOTE: Obsolete?
-void Range::SetRange(Range *rhs) {
+/*void Range::SetRange(Range *rhs) {
   int num;
 
   rhs->Begin();
@@ -150,7 +150,7 @@ void Range::SetRange(Range *rhs) {
 
   // Set iterator to beginning
   this->Begin();
-}
+}*/
 
 // Range::ShiftBy()
 /** Shift all numbers in range by specified value. */

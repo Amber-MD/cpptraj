@@ -52,11 +52,11 @@ class DataSet {
     /// Consolodate this dataset across all threads (MPI only)
     virtual int Sync()              { return 0; }
     /// Return data from data set as double precision
-    virtual double Dval(int)       { return 0; }
+    virtual double Dval(int)        { return 0; }
     // Psuedo-iterator functions
-    virtual void Begin()           { return;       }
-    virtual bool NextValue()       { return false; }
-    virtual double CurrentValue()  { return 0;     }
+    virtual void Begin()            { return;       }
+    virtual bool NextValue()        { return false; }
+    virtual double CurrentValue()   { return 0;     }
     // -------------------------------------------
 
     // Calculation routines for atomic types (DOUBLE, FLOAT, INT)
@@ -80,6 +80,10 @@ class DataSet {
     int SetDataSetFormat(bool);
     /// Write the dataset name to character buffer
     void WriteNameToBuffer(CharBuffer &);
+    /// Set scalar mode
+    void SetScalar( scalarMode mIn ) { scalarmode_ = mIn; }
+    /// Set scalar mode and type
+    void SetScalar( scalarMode, scalarType );
 
     // -----===== Functions that return private vars =====-----
     /// Dataset name

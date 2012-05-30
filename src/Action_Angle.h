@@ -1,11 +1,11 @@
 #ifndef INC_ACTION_ANGLE_H
 #define INC_ACTION_ANGLE_H
 #include "Action.h"
-// Class: Angle
+// Class: Action_Angle
 /// Calculate angle between atom(s) in 3 masks
-class Angle: public Action {
+class Action_Angle: public Action {
   public:
-    Angle();
+    Action_Angle();
 
   private:
     int init();
