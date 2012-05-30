@@ -15,13 +15,13 @@ ArgList::ArgList() :
 ArgList::ArgList(const char* argIn) :
   debug(0)
 {
-  SetList((char*)argIn, " ");
+  SetList(argIn, " ");
 }
 
 ArgList::ArgList(std::string &expression, const char *separators) :
   debug(0)
 {
-  SetList((char*)expression.c_str(), separators);
+  SetList(expression.c_str(), separators);
 }
 
 // DESTRUCTOR
@@ -60,6 +60,11 @@ void ArgList::SetDebug(int debugIn) {
     mprintf("ArgList debug level set to %i\n",debug);
 }
 
+int ArgList::SetList(std::string const& inputString, const char* separator) {
+  if (inputString.empty()) return 1;
+  return (SetList(inputString.c_str(), separator));
+}
+
 // ArgList::SetList()
 /** Separate input by the characters in separator and store as separate args.
   * This overwrites any existing args and completely resets the list.
@@ -67,7 +72,7 @@ void ArgList::SetDebug(int debugIn) {
   * \param separator string containing characters used to separate arguments
   * \return 0 if arglist successfully set up, 1 if not.
   */
-int ArgList::SetList(char *inputString, const char *separator) {
+int ArgList::SetList(const char *inputString, const char *separator) {
   string argument;
   char quotechar;
 
@@ -213,9 +218,9 @@ const char *ArgList::ArgLine() {
 /** \param pos argument position
   * \return pointer to the argument at pos or NULL if pos is out of bounds.
   */
-char *ArgList::ArgAt(int pos) {
+const char *ArgList::ArgAt(int pos) {
   if (pos < 0 || pos >= (int) arglist.size()) return NULL;
-  return (char*)arglist[pos].c_str();
+  return arglist[pos].c_str();
 }
 
 // ArgList::KeyPosition()
@@ -504,7 +509,7 @@ ArgList ArgList::getKeyArgList(const char *key) {
         marked[arg]=true;
         ++arg;
         // Separate this arg by comma
-        return_list.SetList((char*)arglist[arg].c_str(), ",");
+        return_list.SetList(arglist[arg].c_str(), ",");
         marked[arg]=true;
         return return_list;
       }
