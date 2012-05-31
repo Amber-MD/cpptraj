@@ -1,11 +1,11 @@
 #ifndef INC_ACTION_CENTER_H
 #define INC_ACTION_CENTER_H
-/// Class: Center
+/// Class: Action_Center
 /// Action to center coordinates to coord origin or box origin.
 #include "Action.h"
-class Center: public Action {
+class Action_Center: public Action {
   public:
-    Center();
+    Action_Center();
   private:
     int init();
     int setup();

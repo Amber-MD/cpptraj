@@ -1,24 +1,28 @@
-// Hbond 
+// Action_Hbond 
 #include <cmath> // sqrt
-#include <list> // TODO: Change to vector
+#include <algorithm> // sort 
 #include "Action_Hbond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG, DEGRAD
 
 // CONSTRUCTOR
-Hbond::Hbond() {
-  Nframes=0;
-  HBavg=NULL;
-  hasDonorMask=false;
-  hasAcceptorMask=false; 
+Action_Hbond::Action_Hbond() {
+  Nframes_=0;
+  avgout_=NULL;
+  hasDonorMask_=false;
+  hasAcceptorMask_=false;
+  acut_=0;
+  dcut2_=0;
+  NumHbonds_=NULL;
+  HBavg_=NULL;
 }
 
 // DESTRUCTOR
-Hbond::~Hbond() {
-  if (HBavg!=NULL) delete HBavg;
+Action_Hbond::~Action_Hbond() {
+  if (HBavg_!=NULL) delete HBavg_;
 }
 
-// Hbond::init()
+// Action_Hbond::init()
 /** Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [avgout <filename>]
   *                      [donormask <mask>] [acceptormask <mask>]
   * Search for Hbonding atoms in region specified by mask. 
@@ -33,71 +37,68 @@ Hbond::~Hbond() {
   * searched for in <mask>.
   * If both donormask and acceptor mask are specified no searching will occur.
   */
-int Hbond::init() {
-  char *mask, *outfilename;
-
+int Action_Hbond::init() {
   // Get keywords
-  outfilename = actionArgs.getKeyString("out",NULL);
-  avgout = actionArgs.getKeyString("avgout",NULL);
-  acut = actionArgs.getKeyDouble("angle",135.0);
+  char* outfilename = actionArgs.getKeyString("out",NULL);
+  avgout_ = actionArgs.getKeyString("avgout",NULL);
+  acut_ = actionArgs.getKeyDouble("angle",135.0);
   // Convert angle cutoff to radians
-  acut *= DEGRAD;
-  dcut = actionArgs.getKeyDouble("dist",3.0);
-  dcut2 = dcut * dcut;
+  acut_ *= DEGRAD;
+  double dcut = actionArgs.getKeyDouble("dist",3.0);
+  dcut2_ = dcut * dcut;
   // Get donor mask
-  mask = actionArgs.getKeyString("donormask",NULL);
+  char* mask = actionArgs.getKeyString("donormask",NULL);
   if (mask!=NULL) {
-    DonorMask.SetMaskString(mask);
-    hasDonorMask=true;
+    DonorMask_.SetMaskString(mask);
+    hasDonorMask_=true;
   }
   // Get acceptor mask
   mask = actionArgs.getKeyString("acceptormask",NULL);
   if (mask!=NULL) {
-    AcceptorMask.SetMaskString(mask);
-    hasAcceptorMask=true;
+    AcceptorMask_.SetMaskString(mask);
+    hasAcceptorMask_=true;
   }
   // Get generic mask
   mask = actionArgs.getNextMask();
-  Mask.SetMaskString(mask);
+  Mask_.SetMaskString(mask);
 
   // Setup datasets
-  NumHbonds = DSL->Add(DataSet::INT, actionArgs.getNextString(),"NumHB");
-  if (NumHbonds==NULL) return 1;
-  DFL->Add(outfilename,NumHbonds);
+  NumHbonds_ = DSL->Add(DataSet::INT, actionArgs.getNextString(),"NumHB");
+  if (NumHbonds_==NULL) return 1;
+  DFL->Add(outfilename,NumHbonds_);
 
   mprintf( "  HBOND: ");
-  if (!hasDonorMask && !hasAcceptorMask)
-    mprintf("Searching for Hbond donors/acceptors in region specified by %s\n",Mask.MaskString());
-  else if (hasDonorMask && !hasAcceptorMask)
+  if (!hasDonorMask_ && !hasAcceptorMask_)
+    mprintf("Searching for Hbond donors/acceptors in region specified by %s\n",Mask_.MaskString());
+  else if (hasDonorMask_ && !hasAcceptorMask_)
     mprintf("Donor mask is %s, acceptors will be searched for in region specified by %s\n",
-            DonorMask.MaskString(),Mask.MaskString());
-  else if (hasAcceptorMask && !hasDonorMask)
+            DonorMask_.MaskString(), Mask_.MaskString());
+  else if (hasAcceptorMask_ && !hasDonorMask_)
     mprintf("Acceptor mask is %s, donors will be searched for in a region specified by %s\n",
-            AcceptorMask.MaskString(),Mask.MaskString());
+            AcceptorMask_.MaskString(), Mask_.MaskString());
   else
     mprintf("Donor mask is %s, Acceptor mask is %s\n",
-            DonorMask.MaskString(),AcceptorMask.MaskString());
-  mprintf( "         Distance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut*RADDEG);
+            DonorMask_.MaskString(), AcceptorMask_.MaskString());
+  mprintf( "         Distance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*RADDEG);
   if (outfilename!=NULL) 
     mprintf( "         Dumping # Hbond v time results to %s\n", outfilename);
-  if (avgout!=NULL)
-    mprintf( "         Dumping Hbond avgs to %s\n",avgout);
+  if (avgout_!=NULL)
+    mprintf( "         Dumping Hbond avgs to %s\n",avgout_);
 
   return 0;
 }
 
-// Hbond::SearchAcceptor()
+// Action_Hbond::SearchAcceptor()
 /** Search for hbond acceptors X in the region specified by amask.
   * If Auto is true select acceptors based on the rule that "Hydrogen 
   * bonds are FON"
   */
-void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
+void Action_Hbond::SearchAcceptor(AtomMask& amask, bool Auto) {
   bool isAcceptor;
   // Set up acceptors: F, O, N
   // NOTE: Attempt to determine electronegative carbons?
-  for (AtomMask::const_iterator atom = amask->begin();
-                                atom != amask->end();
-                                atom++)
+  for (AtomMask::const_iterator atom = amask.begin();
+                                atom != amask.end(); ++atom)
   {
     isAcceptor=true;
     // If auto searching, only consider acceptor atoms as F, O, N
@@ -109,22 +110,20 @@ void Hbond::SearchAcceptor(AtomMask *amask, bool Auto) {
        isAcceptor=true;
     }
     if (isAcceptor)
-      Acceptor.push_back(*atom);
+      Acceptor_.push_back(*atom);
   }
 }
 
-// Hbond::SearchDonor()
+// Action_Hbond::SearchDonor()
 /** Search for hydrogen bond donors X-H in the region specified by dmask.
   * If Auto is true select donors based on the rule that "Hydrogen bonds 
   * are FON"
   */
-void Hbond::SearchDonor(AtomMask *dmask, bool Auto) {
+void Action_Hbond::SearchDonor(AtomMask& dmask, bool Auto) {
   bool isDonor;
-  std::vector<int> HatomList;
   // Set up donors: F-H, O-H, N-H
-  for (AtomMask::const_iterator donoratom = dmask->begin();
-                                donoratom != dmask->end();
-                                donoratom++)
+  for (AtomMask::const_iterator donoratom = dmask.begin();
+                                donoratom != dmask.end(); ++donoratom)
   {
     // If this is already an H atom continue
     if ( (*currentParm)[*donoratom].Element() == Atom::HYDROGEN ) continue;
@@ -146,44 +145,37 @@ void Hbond::SearchDonor(AtomMask *dmask, bool Auto) {
         if ( (*currentParm)[*batom].Element() == Atom::HYDROGEN ) {
           //mprintf("BOND TO H: %i@%s -- %i@%s\n",*donoratom+1,(*currentParm)[*donoratom].c_str(),
           //        *batom+1,(*currentParm)[*batom].c_str());
-          Donor.push_back(*donoratom);
-          Donor.push_back(*batom);
+          Donor_.push_back(*donoratom);
+          Donor_.push_back(*batom);
         }
       }
     } // END atom is potential donor
   } // END loop over selected atoms
 }
 
-// Hbond::setup()
-/** Search for hbond donors and acceptors. 
-  */
-int Hbond::setup() {
-  int atom, a2;
-
-  // Set up bond information for parm
-  // NOTE: Should already be done
-  //if (currentParm->SetupBondInfo()) return 1;
-
+// Action_Hbond::setup()
+/** Search for hbond donors and acceptors. */
+int Action_Hbond::setup() {
   // Set up mask
-  if (!hasDonorMask && !hasAcceptorMask) {
-    if ( currentParm->SetupIntegerMask( Mask ) ) return 1;
-    if ( Mask.None() ) {
+  if (!hasDonorMask_ || !hasAcceptorMask_) {
+    if ( currentParm->SetupIntegerMask( Mask_ ) ) return 1;
+    if ( Mask_.None() ) {
       mprintf("Warning: Hbond::setup: Mask has no atoms.\n");
       return 1;
     }
   }
   // Set up donor mask
-  if (hasDonorMask) {
-    if ( currentParm->SetupIntegerMask( DonorMask ) ) return 1;
-    if (DonorMask.None()) {
+  if (hasDonorMask_) {
+    if ( currentParm->SetupIntegerMask( DonorMask_ ) ) return 1;
+    if (DonorMask_.None()) {
       mprintf("Warning: Hbond: DonorMask has no atoms.\n");
       return 1;
     }
   }
   // Set up acceptor mask
-  if (hasAcceptorMask) {
-    if ( currentParm->SetupIntegerMask( AcceptorMask ) ) return 1;
-    if (AcceptorMask.None()) {
+  if (hasAcceptorMask_) {
+    if ( currentParm->SetupIntegerMask( AcceptorMask_ ) ) return 1;
+    if (AcceptorMask_.None()) {
       mprintf("Warning: Hbond: AcceptorMask has no atoms.\n");
       return 1;
     }
@@ -191,38 +183,38 @@ int Hbond::setup() {
 
   // Four cases:
   // 1) DonorMask and AcceptorMask NULL: donors and acceptors automatically searched for.
-  if (!hasDonorMask && !hasAcceptorMask) {
-    SearchAcceptor(&Mask,true);
-    SearchDonor(&Mask,true);
+  if (!hasDonorMask_ && !hasAcceptorMask_) {
+    SearchAcceptor(Mask_,true);
+    SearchDonor(Mask_,true);
   
   // 2) DonorMask only: acceptors automatically searched for in Mask
-  } else if (hasDonorMask && !hasAcceptorMask) {
-    SearchAcceptor(&Mask,true);
-    SearchDonor(&DonorMask, false);
+  } else if (hasDonorMask_ && !hasAcceptorMask_) {
+    SearchAcceptor(Mask_,true);
+    SearchDonor(DonorMask_, false);
 
   // 3) AcceptorMask only: donors automatically searched for in Mask
-  } else if (!hasDonorMask && hasAcceptorMask) {
-    SearchAcceptor(&AcceptorMask, false);
-    SearchDonor(&Mask,true);
+  } else if (!hasDonorMask_ && hasAcceptorMask_) {
+    SearchAcceptor(AcceptorMask_, false);
+    SearchDonor(Mask_,true);
 
   // 4) Both DonorMask and AcceptorMask: No automatic search.
   } else {
-    SearchAcceptor(&AcceptorMask, false);
-    SearchDonor(&DonorMask, false);
+    SearchAcceptor(AcceptorMask_, false);
+    SearchDonor(DonorMask_, false);
   }
 
   // Print acceptor/donor information
-  mprintf("\tSet up %i acceptors:\n",(int)Acceptor.size());
+  mprintf("\tSet up %i acceptors:\n",(int)Acceptor_.size());
   if (debug>0) {
-    for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++)
+    for (HBlistType::iterator accept = Acceptor_.begin(); accept!=Acceptor_.end(); accept++)
       mprintf("        %8i: %4s\n",*accept+1,(*currentParm)[*accept].c_str());
   }
-  mprintf("\tSet up %i donors:\n",((int)Donor.size())/2);
+  mprintf("\tSet up %i donors:\n",((int)Donor_.size())/2);
   if (debug>0) {
-    for (donor = Donor.begin(); donor!=Donor.end(); donor++) {
-      atom = (*donor);
-      donor++;
-      a2   = (*donor);
+    for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); donor++) {
+      int atom = (*donor);
+      ++donor;
+      int a2   = (*donor);
       mprintf("        %8i:%4s - %8i:%4s\n",atom+1,(*currentParm)[atom].c_str(),
               a2+1,(*currentParm)[a2].c_str()); 
     } 
@@ -231,36 +223,38 @@ int Hbond::setup() {
   return 0;
 }
 
-// Hbond::action()
+// Action_Hbond::action()
 /** Calculate distance between all donors and acceptors. Store Hbond info.
   */    
-int Hbond::action() {
+int Action_Hbond::action() {
   // accept ... H-D
-  int D, H, Nhb, numHB;
+  int D, H;
   double dist, dist2, angle;//, ucell[9], recip[9];
   std::map<int,HbondType>::iterator it;
   HbondType HB;
 
-  Nhb = 0; numHB=0;
-  for (donor = Donor.begin(); donor!=Donor.end(); donor++) {
+  int Nhb = 0; 
+  int numHB=0;
+  for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
     D = (*donor);
-    donor++;
+    ++donor;
     H = (*donor);
-    for (accept = Acceptor.begin(); accept!=Acceptor.end(); accept++, Nhb++) {
+    for (HBlistType::iterator accept = Acceptor_.begin(); accept!=Acceptor_.end(); ++accept, ++Nhb) 
+    {
       if (*accept == D) continue;
       dist2 = currentFrame->DIST2(*accept, D);
       //dist2 = currentFrame->DIST2(*accept, D, (int)P->boxType, ucell, recip);
-      if (dist2 > dcut2) continue;
+      if (dist2 > dcut2_) continue;
       angle = currentFrame->ANGLE(*accept, H, D);
-      if (angle < acut) continue;
+      if (angle < acut_) continue;
 //      mprintf( "HBOND[%i]: %i:%s ... %i:%s-%i:%s Dist=%lf Angle=%lf\n", 
 //              Nhb, *accept, P->names[*accept],
 //              H, P->names[H], D, P->names[D], dist, angle);
-      numHB++;
+      ++numHB;
       dist = sqrt(dist2);
       // Find hbond in map
-      it = HbondMap.find( Nhb );
-      if (it == HbondMap.end() ) {
+      it = HbondMap_.find( Nhb );
+      if (it == HbondMap_.end() ) {
         // New Hbond
         HB.A=*accept;
         HB.D=D;
@@ -268,7 +262,7 @@ int Hbond::action() {
         HB.Frames = 1;
         HB.dist=dist;
         HB.angle=angle;
-        HbondMap.insert( it, std::pair<int,HbondType>(Nhb, HB) );
+        HbondMap_.insert( it, std::pair<int,HbondType>(Nhb, HB) );
       } else {
         (*it).second.Frames++;
         (*it).second.dist+=dist;
@@ -276,78 +270,62 @@ int Hbond::action() {
       }
     }
   }
-  NumHbonds->Add(frameNum, &numHB);
+  NumHbonds_->Add(frameNum, &numHB);
 //  mprintf("HBOND: Scanned %i hbonds.\n",Nhb);
-  Nframes++;
+  ++Nframes_;
 
   return 0;
 }
 
-// Hbond::print()
+// Action_Hbond::print()
 /** Print average occupancies over all frames for all detected Hbonds
   */
-void Hbond::print() {
-  std::map<int,HbondType>::iterator it;
-  std::list<HbondType> HbondList;
-  std::list<HbondType>::iterator hbond;
-  double avg, dist, angle;
-  std::string Aname, Hname, Dname;
+void Action_Hbond::print() {
+  std::vector<HbondType> HbondList;
   DataFile *hbavgFile;
 
   // If avgout is NULL no averaging.
-  if (avgout==NULL) return;
+  if (avgout_==NULL) return;
 
   // Set up data set list for all avg-related data.
-  HBavg = new DataSetList(); 
-  DFL->Add(avgout, HBavg->Add(DataSet::STRING, (char*)"Acceptor", "Acceptor"));
-  DFL->Add(avgout, HBavg->Add(DataSet::STRING, (char*)"DonorH", "DonorH"));
-  DFL->Add(avgout, HBavg->Add(DataSet::STRING, (char*)"Donor", "Donor"));
-  DFL->Add(avgout, HBavg->Add(DataSet::INT, (char*)"Frames", "Frames"));
-  DFL->Add(avgout, HBavg->Add(DataSet::DOUBLE, (char*)"Frac", "Frac"));
-  DFL->Add(avgout, HBavg->Add(DataSet::DOUBLE, (char*)"AvgDist", "AvgDist"));
-  hbavgFile = DFL->Add(avgout, HBavg->Add(DataSet::DOUBLE, (char*)"AvgAng", "AvgAng"));
+  HBavg_ = new DataSetList(); 
+  DFL->Add(avgout_, HBavg_->Add(DataSet::STRING, (char*)"Acceptor", "Acceptor"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::STRING, (char*)"DonorH", "DonorH"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::STRING, (char*)"Donor", "Donor"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::INT, (char*)"Frames", "Frames"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, (char*)"Frac", "Frac"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, (char*)"AvgDist", "AvgDist"));
+  hbavgFile = DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, (char*)"AvgAng", "AvgAng"));
 
-  //if (OutFile.SetupFile(avgout, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug)) return;
-  //OutFile.OpenFile();
-
-  //OutFile.IO->Printf("HBONDS:\n");
-  //OutFile.IO->Printf("  %-15s %-15s %-15s %6s %6s %8s %8s\n",
-  //               "Acceptor","DonorH","Donor","Frames","Frac","AvgDist","AvgAng");
-  for (it = HbondMap.begin(); it!=HbondMap.end(); it++) {
-//    mprintf( "      %8i:%s ... %8i:%s-%8i:%s %8i Frames.\n",
-//              (*it).second.A, P->names[(*it).second.A],
-//              (*it).second.H, P->names[(*it).second.H],
-//              (*it).second.D, P->names[(*it).second.D],
-//              (*it).second.Frames);
+  // Place all detected Hbonds in a list and sort 
+  for (std::map<int,HbondType>::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) 
     HbondList.push_back( (*it).second );
-  }
-
-  HbondList.sort( hbond_cmp() );
+  sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
+  // Calculate averages
   int hbondnum=0;
-  for ( hbond = HbondList.begin(); hbond!=HbondList.end(); hbond++ ) {
-    avg = (double) (*hbond).Frames;
-    avg = avg / ((double) Nframes);
-    dist = (double) (*hbond).dist;
+  for (std::vector<HbondType>::iterator hbond = HbondList.begin(); 
+                                        hbond!=HbondList.end(); ++hbond ) 
+  {
+    double avg = (double) (*hbond).Frames;
+    avg = avg / ((double) Nframes_);
+    double dist = (double) (*hbond).dist;
     dist = dist / ((double) (*hbond).Frames);
-    angle = (double) (*hbond).angle;
+    double angle = (double) (*hbond).angle;
     angle = angle / ((double) (*hbond).Frames);
     angle *= RADDEG;
 
-    Aname = currentParm->ResAtomName((*hbond).A);
-    Hname = currentParm->ResAtomName((*hbond).H);
-    Dname = currentParm->ResAtomName((*hbond).D);
+    std::string Aname = currentParm->ResAtomName((*hbond).A);
+    std::string Hname = currentParm->ResAtomName((*hbond).H);
+    std::string Dname = currentParm->ResAtomName((*hbond).D);
     // TODO: DataSetList should accept string
-    HBavg->AddData(hbondnum, (char*)Aname.c_str(), 0);
-    HBavg->AddData(hbondnum, (char*)Hname.c_str(), 1);
-    HBavg->AddData(hbondnum, (char*)Dname.c_str(), 2);
-    HBavg->AddData(hbondnum, &((*hbond).Frames), 3);
-    HBavg->AddData(hbondnum, &avg, 4);
-    HBavg->AddData(hbondnum, &dist, 5);
-    HBavg->AddData(hbondnum, &angle, 6);
-    hbondnum++;
-    //OutFile.IO->Printf("%-15s %-15s %-15s %6i %6.2lf %8.3lf %8.3lf\n",
-    //                   Aname,Hname,Dname, (*hbond).Frames,avg,dist,angle);
+    HBavg_->AddData(hbondnum, (char*)Aname.c_str(), 0);
+    HBavg_->AddData(hbondnum, (char*)Hname.c_str(), 1);
+    HBavg_->AddData(hbondnum, (char*)Dname.c_str(), 2);
+    HBavg_->AddData(hbondnum, &((*hbond).Frames), 3);
+    HBavg_->AddData(hbondnum, &avg, 4);
+    HBavg_->AddData(hbondnum, &dist, 5);
+    HBavg_->AddData(hbondnum, &angle, 6);
+    ++hbondnum;
   }
-  //OutFile.CloseFile();
   hbavgFile->ProcessArgs("noxcol");
 }

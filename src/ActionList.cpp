@@ -91,8 +91,8 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("angle"))          {Act=new Action_Angle;   }
   else if (argIn.CommandIs("strip"))          {Act=new Action_Strip;   }
   else if (argIn.CommandIs("secstruct"))      {Act=new Action_DSSP;    }
-  else if (argIn.CommandIs("center"))         {Act=new Center;  }
-  else if (argIn.CommandIs("hbond"))          {Act=new Hbond;   }
+  else if (argIn.CommandIs("center"))         {Act=new Action_Center;  }
+  else if (argIn.CommandIs("hbond"))          {Act=new Action_Hbond;   }
   else if (argIn.CommandIs("image"))          {Act=new Image;   }
   else if (argIn.CommandIs("surf"))           {Act=new Surf;    }
   else if (argIn.CommandIs("radgyr"))         {Act=new Radgyr;  }
