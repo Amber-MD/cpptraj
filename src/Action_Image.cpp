@@ -1,24 +1,25 @@
-// Image 
+// Action_Image 
 #include "Action_Image.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Image::Image() {
+Action_Image::Action_Image() :
+  ComMask_(NULL),
+  origin_(false),
+  center_(false),
+  ortho_(false),
+  triclinic_(OFF)
+{
   //fprintf(stderr,"Image Con\n");
-  ComMask=NULL;
-  origin = false;
-  center = false;
-  ortho = false;
   useMass_ = true;
-  triclinic = OFF;
 } 
 
 // DESTRUCTOR
-Image::~Image() {
-  if (ComMask!=NULL) delete ComMask;
+Action_Image::~Action_Image() {
+  if (ComMask_!=NULL) delete ComMask_;
 }
 
-// Image::init()
+// Action_Image::init()
 /** Expected call: image [origin] [center] [triclinic | familiar [com <mask>]] <mask>  
   * - origin: center at 0.0, 0.0, 0.0, otherwise center at box center.
   * - center: Use center of mass for imaging, otherwise use first atom.
@@ -31,58 +32,58 @@ Image::~Image() {
 // Check order is:
 //    1) Keywords
 //    2) Masks
-int Image::init() {
+int Action_Image::init() {
   char *mask1;
 
   // Get keywords
-  origin = actionArgs.hasKey("origin");
-  center = actionArgs.hasKey("center");
-  if (actionArgs.hasKey("familiar")) triclinic = FAMILIAR;
-  if (actionArgs.hasKey("triclinic")) triclinic = FORCE;
+  origin_ = actionArgs.hasKey("origin");
+  center_ = actionArgs.hasKey("center");
+  if (actionArgs.hasKey("familiar")) triclinic_ = FAMILIAR;
+  if (actionArgs.hasKey("triclinic")) triclinic_ = FORCE;
 
   // Get Masks
-  if (triclinic == FAMILIAR) {
+  if (triclinic_ == FAMILIAR) {
     mask1 = actionArgs.getKeyString("com",NULL);
     if (mask1!=NULL) {
-      ComMask = new AtomMask();
-      ComMask->SetMaskString(mask1);
+      ComMask_ = new AtomMask();
+      ComMask_->SetMaskString(mask1);
     }
   }
   mask1 = actionArgs.getNextMask();
-  Mask1.SetMaskString(mask1);
+  Mask1_.SetMaskString(mask1);
   
   mprintf("    IMAGE: To");
-  if (origin)
+  if (origin_)
     mprintf(" origin");
   else
     mprintf(" box center");
   mprintf(" based on");
-  if (center)
+  if (center_)
     mprintf(" center of mass");
   else
     mprintf(" first atom position");
-  mprintf(" using atoms in mask %s\n",Mask1.MaskString());
-  if (triclinic == FORCE)
+  mprintf(" using atoms in mask %s\n",Mask1_.MaskString());
+  if (triclinic_ == FORCE)
     mprintf( "           Triclinic On.\n");
-  else if (triclinic == FAMILIAR) {
+  else if (triclinic_ == FAMILIAR) {
     mprintf( "           Triclinic On, familiar shape");
-    if (ComMask!=NULL) 
-      mprintf( " centering on atoms in mask %s", ComMask->MaskString());
+    if (ComMask_!=NULL) 
+      mprintf( " centering on atoms in mask %s", ComMask_->MaskString());
     mprintf(".\n");
   }
 
   return 0;
 }
 
-// Image::setup()
+// Action_Image::setup()
 /** Set Imaging up for this parmtop. Get masks etc.
   * currentParm is set in Action::Setup
   */
-int Image::setup() {
+int Action_Image::setup() {
   //atomPair apair;
 
-  if ( currentParm->SetupCharMask( Mask1 ) ) return 1;
-  if (Mask1.None()) {
+  if ( currentParm->SetupCharMask( Mask1_ ) ) return 1;
+  if (Mask1_.None()) {
     mprintf("Warning: Image::setup: Mask contains 0 atoms.\n");
     return 1;
   }
@@ -93,24 +94,24 @@ int Image::setup() {
     return 1;
   }
 
-  ortho = false;  
-  if (currentParm->BoxType()==Box::ORTHO && triclinic==OFF) ortho=true;
+  ortho_ = false;  
+  if (currentParm->BoxType()==Box::ORTHO && triclinic_==OFF) ortho_=true;
 
   // If box is originally truncated oct and not forcing triclinic, 
   // turn familiar on.
-  if (currentParm->BoxType()==Box::TRUNCOCT && triclinic!=FORCE && triclinic!=FAMILIAR) {
+  if (currentParm->BoxType()==Box::TRUNCOCT && triclinic_!=FORCE && triclinic_!=FAMILIAR) {
     mprintf("\tOriginal box is truncated octahedron, turning on 'familiar'.\n");
-    triclinic=FAMILIAR;
+    triclinic_=FAMILIAR;
   }
 
-  if (triclinic == FAMILIAR) {
-    if (ComMask!=NULL) {
-      if ( currentParm->SetupIntegerMask( *ComMask ) ) return 1;
-      if (ComMask->None()) {
+  if (triclinic_ == FAMILIAR) {
+    if (ComMask_!=NULL) {
+      if ( currentParm->SetupIntegerMask( *ComMask_ ) ) return 1;
+      if (ComMask_->None()) {
         mprintf("Warning: Image::setup: Mask for 'familiar com' contains no atoms.\n");
         return 1;
       }
-      mprintf("\tcom: mask [%s] contains %i atoms.\n",ComMask->MaskString(),ComMask->Nselected());
+      mprintf("\tcom: mask [%s] contains %i atoms.\n",ComMask_->MaskString(),ComMask_->Nselected());
     }
   }
 
@@ -118,8 +119,8 @@ int Image::setup() {
   // Currently imaging by molecule only, so each pair will be the first and
   // last atom of each molecule. Check that all atoms between first and last
   // are actually in the mask.
-  imageList.clear();
-  imageList.reserve( currentParm->Nmol() );
+  imageList_.clear();
+  imageList_.reserve( currentParm->Nmol() );
   for (Topology::mol_iterator mol = currentParm->MolStart();
                               mol != currentParm->MolEnd(); mol++)
   {
@@ -128,38 +129,35 @@ int Image::setup() {
     // Check that each atom in the range is in Mask1
     bool rangeIsValid = true;
     for (int atom = firstAtom; atom < lastAtom; atom++) {
-      if (!Mask1.AtomInCharMask(atom)) {
+      if (!Mask1_.AtomInCharMask(atom)) {
         rangeIsValid = false; 
         break;
       }
     }
     if (rangeIsValid) {
-      imageList.push_back( firstAtom );
-      imageList.push_back( lastAtom );
+      imageList_.push_back( firstAtom );
+      imageList_.push_back( lastAtom );
     }
   }
-  mprintf("\tNumber of molecules to be imaged is %u based on mask [%s]\n", imageList.size()/2,
-           Mask1.MaskString()); 
+  mprintf("\tNumber of molecules to be imaged is %u based on mask [%s]\n", imageList_.size()/2,
+           Mask1_.MaskString()); 
   // DEBUG: Print all pairs
   if (debug>0) {
-    for (std::vector<int>::iterator ap = imageList.begin();
-                                    ap != imageList.end(); ap+=2)
+    for (std::vector<int>::iterator ap = imageList_.begin();
+                                    ap != imageList_.end(); ap+=2)
       mprintf("\t\tMol First-Last atom#: %i - %i\n", (*ap)+1, *(ap+1) );
   }
 
   return 0;  
 }
 
-// Image::action()
-int Image::action() {
+// Action_Image::action()
+int Action_Image::action() {
 
-  if (ortho)
-    currentFrame->ImageOrtho(origin, center, useMass_, imageList);
+  if (ortho_)
+    currentFrame->ImageOrtho(origin_, center_, useMass_, imageList_);
   else
-    currentFrame->ImageNonortho(origin, ComMask, (triclinic==FAMILIAR),
-                                center, useMass_, imageList);
-
+    currentFrame->ImageNonortho(origin_, ComMask_, (triclinic_==FAMILIAR),
+                                center_, useMass_, imageList_);
   return 0;
 } 
-
-

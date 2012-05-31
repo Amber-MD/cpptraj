@@ -1,28 +1,27 @@
 #ifndef INC_ACTION_IMAGE_H
 #define INC_ACTION_IMAGE_H
-// Class: Image
+// Class: Action_Image
 /// Action to wrap coordinates back into primary box
 #include "Action.h"
-class Image: public Action {
+class Action_Image: public Action {
   public:
-    Image();
-    ~Image();
+    Action_Image();
+    ~Action_Image();
   private:
     /// Only atoms in Mask1 will be imaged
-    AtomMask Mask1;
+    AtomMask Mask1_;
     /// If defined, image w.r.t. the center of atoms in ComMask.
-    AtomMask *ComMask;
+    AtomMask *ComMask_;
     /// If true image w.r.t. coordinate origin, otherwise box center
-    bool origin;
+    bool origin_;
     /// If true molecules will be imaged w.r.t. their center, otherwise first atom will be used
-    bool center;
+    bool center_;
     /// True if orthorhombic cell, false otherwise.
-    bool ortho;
+    bool ortho_;
     enum TriclinicArg {OFF, FORCE, FAMILIAR};
-    TriclinicArg triclinic;
+    TriclinicArg triclinic_;
     /// Vector containing atom ranges to be imaged (first to last)
-    std::vector<int> imageList; 
-
+    std::vector<int> imageList_; 
 
     int init();
     int setup();

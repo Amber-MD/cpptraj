@@ -93,7 +93,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("secstruct"))      {Act=new Action_DSSP;    }
   else if (argIn.CommandIs("center"))         {Act=new Action_Center;  }
   else if (argIn.CommandIs("hbond"))          {Act=new Action_Hbond;   }
-  else if (argIn.CommandIs("image"))          {Act=new Image;   }
+  else if (argIn.CommandIs("image"))          {Act=new Action_Image;   }
   else if (argIn.CommandIs("surf"))           {Act=new Surf;    }
   else if (argIn.CommandIs("radgyr"))         {Act=new Radgyr;  }
   else if (argIn.CommandIs("mask"))           {Act=new ActionMask;}
