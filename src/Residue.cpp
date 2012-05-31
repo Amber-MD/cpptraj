@@ -28,10 +28,6 @@ bool Residue::operator!=(const Residue &rhs) {
   return (original_resnum_ != rhs.original_resnum_);
 }
 
-int Residue::OriginalNum() {
-  return original_resnum_;
-}
-
 void Residue::SetFirstAtom(int firstAtomIn) {
   firstAtom_ = firstAtomIn;
 }

@@ -195,6 +195,7 @@ void Atom::ClearBonds() {
   bonds_.clear();
 }
 
+// Atom::SortBonds()
 void Atom::SortBonds() {
   sort( bonds_.begin(), bonds_.end() );
 }

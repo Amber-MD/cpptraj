@@ -11,18 +11,10 @@ class Molecule {
     void SetLast(int);
     void SetSolvent();
 
-    inline int BeginAtom() const {
-      return beginAtom_;
-    }
-    inline int EndAtom() const {
-      return endAtom_;
-    } 
-    inline int FirstRes() {
-      return firstResNum_;
-    }
-    inline bool IsSolvent() {
-      return isSolvent_;
-    }
+    inline int BeginAtom() const { return beginAtom_;   }
+    inline int EndAtom() const   { return endAtom_;     } 
+    inline int FirstRes()        { return firstResNum_; }
+    inline bool IsSolvent()      { return isSolvent_;   }
     inline int NumAtoms() const {
       return (endAtom_ - beginAtom_);
     }

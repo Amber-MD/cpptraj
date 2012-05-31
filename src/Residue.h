@@ -13,21 +13,13 @@ class Residue {
     bool operator==(const Residue &);
     bool operator!=(const Residue &);
 
-    inline const char *c_str() const {
-      return *resname_;
-    }
-    inline void SetName(NameType nameIn) {
-      resname_ = nameIn;
-    }
-    inline NameType Name() const {
-      return resname_;
-    }
-    int OriginalNum();
+    inline int OriginalNum()         { return original_resnum_; }
+    inline int FirstAtom() const     { return firstAtom_;       }
+    inline const char *c_str() const { return *resname_;        }
+    inline NameType Name() const     { return resname_;         }
 
     void SetFirstAtom(int);
-    inline int FirstAtom() const {
-      return firstAtom_;
-    }
+    inline void SetName(NameType nameIn) { resname_ = nameIn; }
 
     bool NameIsSolvent();
   private:
