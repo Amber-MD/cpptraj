@@ -6,16 +6,16 @@
 #include "Constants.h" // RADDEG, DEGRAD
 
 // CONSTRUCTOR
-Action_Hbond::Action_Hbond() {
-  Nframes_=0;
-  avgout_=NULL;
-  hasDonorMask_=false;
-  hasAcceptorMask_=false;
-  acut_=0;
-  dcut2_=0;
-  NumHbonds_=NULL;
-  HBavg_=NULL;
-}
+Action_Hbond::Action_Hbond() :
+  Nframes_(0),
+  avgout_(NULL),
+  hasDonorMask_(false),
+  hasAcceptorMask_(false),
+  acut_(0),
+  dcut2_(0),
+  NumHbonds_(NULL),
+  HBavg_(NULL)
+{}
 
 // DESTRUCTOR
 Action_Hbond::~Action_Hbond() {
