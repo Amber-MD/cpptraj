@@ -27,19 +27,29 @@ class Action_Hbond : public Action {
 
     int Nframes_;
     char *avgout_;
-    std::map<int,HbondType> HbondMap_; ///< Track all hbonds found
+    typedef std::map<int,HbondType> HBmapType;
+    HBmapType HbondMap_;   ///< Track all solute-solute hbonds found
+    HBmapType SolventMap_; ///< Track all solute-solvent hbonds found
     typedef std::vector<int> HBlistType;
     HBlistType Donor_;                 ///< Array of hbond donor atoms (D0, H0, D1, H1, ...)
     HBlistType Acceptor_;              ///< Array of hbond acceptor atoms (A0, A1, ...)
+    HBlistType SolventDonor_;
+    HBlistType SolventAcceptor_;
     AtomMask Mask_;
     AtomMask DonorMask_;
     AtomMask AcceptorMask_;
+    AtomMask SolventDonorMask_;
+    AtomMask SolventAcceptorMask_;
     bool hasDonorMask_;
     bool hasAcceptorMask_;
+    bool hasSolventDonor_;
+    bool hasSolventAcceptor_;
+    bool calcSolvent_;
     double acut_;
     double dcut2_;
 
     DataSet *NumHbonds_;
+    DataSet *NumSolvent_;
     DataSetList *HBavg_;
     /// Return true if the first hbond has more frames than the second.
     struct hbond_cmp {
@@ -51,8 +61,8 @@ class Action_Hbond : public Action {
       }
     };
 
-    void SearchAcceptor(AtomMask&,bool);
-    void SearchDonor(AtomMask&,bool);
-    
+    void SearchAcceptor(HBlistType&,AtomMask&,bool);
+    void SearchDonor(HBlistType&,AtomMask&,bool);
+    inline int AtomsAreHbonded(int, int, int, int,bool);
 };
 #endif

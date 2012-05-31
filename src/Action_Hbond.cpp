@@ -11,9 +11,13 @@ Action_Hbond::Action_Hbond() :
   avgout_(NULL),
   hasDonorMask_(false),
   hasAcceptorMask_(false),
+  hasSolventDonor_(false),
+  hasSolventAcceptor_(false),
+  calcSolvent_(false),
   acut_(0),
   dcut2_(0),
   NumHbonds_(NULL),
+  NumSolvent_(NULL),
   HBavg_(NULL)
 {}
 
@@ -58,6 +62,20 @@ int Action_Hbond::init() {
     AcceptorMask_.SetMaskString(mask);
     hasAcceptorMask_=true;
   }
+  // Get solvent donor mask
+  mask = actionArgs.getKeyString("solventdonor", NULL);
+  if (mask!=NULL) {
+    SolventDonorMask_.SetMaskString(mask);
+    hasSolventDonor_ = true;
+    calcSolvent_ = true;
+  }
+  // Get solvent acceptor mask
+  mask = actionArgs.getKeyString("solventacceptor", NULL);
+  if (mask!=NULL) {
+    SolventAcceptorMask_.SetMaskString(mask);
+    hasSolventAcceptor_ = true;
+    calcSolvent_ = true;
+  }
   // Get generic mask
   mask = actionArgs.getNextMask();
   Mask_.SetMaskString(mask);
@@ -66,10 +84,16 @@ int Action_Hbond::init() {
   NumHbonds_ = DSL->Add(DataSet::INT, actionArgs.getNextString(),"NumHB");
   if (NumHbonds_==NULL) return 1;
   DFL->Add(outfilename,NumHbonds_);
+  if (calcSolvent_) {
+    NumSolvent_ = DSL->Add(DataSet::INT, NULL, "UVHB");
+    if (NumSolvent_ == NULL) return 1;
+    DFL->Add(outfilename, NumSolvent_);
+  } 
 
   mprintf( "  HBOND: ");
   if (!hasDonorMask_ && !hasAcceptorMask_)
-    mprintf("Searching for Hbond donors/acceptors in region specified by %s\n",Mask_.MaskString());
+    mprintf("Searching for Hbond donors/acceptors in region specified by %s\n",
+            Mask_.MaskString());
   else if (hasDonorMask_ && !hasAcceptorMask_)
     mprintf("Donor mask is %s, acceptors will be searched for in region specified by %s\n",
             DonorMask_.MaskString(), Mask_.MaskString());
@@ -79,6 +103,12 @@ int Action_Hbond::init() {
   else
     mprintf("Donor mask is %s, Acceptor mask is %s\n",
             DonorMask_.MaskString(), AcceptorMask_.MaskString());
+  if (hasSolventDonor_)
+    mprintf("         Will search for hbonds between solute and solvent donors in [%s]\n",
+            SolventDonorMask_.MaskString());
+  if (hasSolventAcceptor_)
+    mprintf("         Will search for hbonds between solute and solvent acceptors in [%s]\n",
+            SolventAcceptorMask_.MaskString());
   mprintf( "         Distance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*RADDEG);
   if (outfilename!=NULL) 
     mprintf( "         Dumping # Hbond v time results to %s\n", outfilename);
@@ -93,7 +123,7 @@ int Action_Hbond::init() {
   * If Auto is true select acceptors based on the rule that "Hydrogen 
   * bonds are FON"
   */
-void Action_Hbond::SearchAcceptor(AtomMask& amask, bool Auto) {
+void Action_Hbond::SearchAcceptor(HBlistType& alist, AtomMask& amask, bool Auto) {
   bool isAcceptor;
   // Set up acceptors: F, O, N
   // NOTE: Attempt to determine electronegative carbons?
@@ -110,7 +140,7 @@ void Action_Hbond::SearchAcceptor(AtomMask& amask, bool Auto) {
        isAcceptor=true;
     }
     if (isAcceptor)
-      Acceptor_.push_back(*atom);
+      alist.push_back(*atom);
   }
 }
 
@@ -119,7 +149,7 @@ void Action_Hbond::SearchAcceptor(AtomMask& amask, bool Auto) {
   * If Auto is true select donors based on the rule that "Hydrogen bonds 
   * are FON"
   */
-void Action_Hbond::SearchDonor(AtomMask& dmask, bool Auto) {
+void Action_Hbond::SearchDonor(HBlistType& dlist, AtomMask& dmask, bool Auto) {
   bool isDonor;
   // Set up donors: F-H, O-H, N-H
   for (AtomMask::const_iterator donoratom = dmask.begin();
@@ -145,8 +175,8 @@ void Action_Hbond::SearchDonor(AtomMask& dmask, bool Auto) {
         if ( (*currentParm)[*batom].Element() == Atom::HYDROGEN ) {
           //mprintf("BOND TO H: %i@%s -- %i@%s\n",*donoratom+1,(*currentParm)[*donoratom].c_str(),
           //        *batom+1,(*currentParm)[*batom].c_str());
-          Donor_.push_back(*donoratom);
-          Donor_.push_back(*batom);
+          dlist.push_back(*donoratom);
+          dlist.push_back(*batom);
         }
       }
     } // END atom is potential donor
@@ -180,36 +210,54 @@ int Action_Hbond::setup() {
       return 1;
     }
   }
+  // Set up solvent donor/acceptor
+  if (hasSolventDonor_) {
+    if (currentParm->SetupIntegerMask( SolventDonorMask_ )) return 1;
+    if (SolventDonorMask_.None()) {
+      mprintf("Warning: Hbond: SolventDonorMask has no atoms.\n");
+      return 1;
+    }
+  }
+  if (hasSolventAcceptor_) {
+    if (currentParm->SetupIntegerMask( SolventAcceptorMask_ )) return 1;
+    if (SolventAcceptorMask_.None()) {
+      mprintf("Warning: Hbond: SolventAcceptorMask has no atoms.\n");
+      return 1;
+    }
+  }
 
-  // Four cases:
+  // OK TO CLEAR?
+  Acceptor_.clear();
+  Donor_.clear();
+  // SOLUTE: Four cases:
   // 1) DonorMask and AcceptorMask NULL: donors and acceptors automatically searched for.
   if (!hasDonorMask_ && !hasAcceptorMask_) {
-    SearchAcceptor(Mask_,true);
-    SearchDonor(Mask_,true);
+    SearchAcceptor(Acceptor_, Mask_,true);
+    SearchDonor(Donor_, Mask_,true);
   
   // 2) DonorMask only: acceptors automatically searched for in Mask
   } else if (hasDonorMask_ && !hasAcceptorMask_) {
-    SearchAcceptor(Mask_,true);
-    SearchDonor(DonorMask_, false);
+    SearchAcceptor(Acceptor_, Mask_,true);
+    SearchDonor(Donor_, DonorMask_, false);
 
   // 3) AcceptorMask only: donors automatically searched for in Mask
   } else if (!hasDonorMask_ && hasAcceptorMask_) {
-    SearchAcceptor(AcceptorMask_, false);
-    SearchDonor(Mask_,true);
+    SearchAcceptor(Acceptor_, AcceptorMask_, false);
+    SearchDonor(Donor_, Mask_,true);
 
   // 4) Both DonorMask and AcceptorMask: No automatic search.
   } else {
-    SearchAcceptor(AcceptorMask_, false);
-    SearchDonor(DonorMask_, false);
+    SearchAcceptor(Acceptor_, AcceptorMask_, false);
+    SearchDonor(Donor_, DonorMask_, false);
   }
 
   // Print acceptor/donor information
-  mprintf("\tSet up %i acceptors:\n",(int)Acceptor_.size());
+  mprintf("\tSet up %zu acceptors:\n", Acceptor_.size() );
   if (debug>0) {
     for (HBlistType::iterator accept = Acceptor_.begin(); accept!=Acceptor_.end(); accept++)
       mprintf("        %8i: %4s\n",*accept+1,(*currentParm)[*accept].c_str());
   }
-  mprintf("\tSet up %i donors:\n",((int)Donor_.size())/2);
+  mprintf("\tSet up %zu donors:\n", Donor_.size()/2 );
   if (debug>0) {
     for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); donor++) {
       int atom = (*donor);
@@ -220,7 +268,59 @@ int Action_Hbond::setup() {
     } 
   }
 
+  // SOLVENT:
+  if (hasSolventAcceptor_) {
+    SolventAcceptor_.clear();
+    SearchAcceptor(SolventAcceptor_, SolventAcceptorMask_, false);
+    mprintf("\tSet up %zu solvent acceptors\n", SolventAcceptor_.size() );
+  }
+  if (hasSolventDonor_) {
+    SolventDonor_.clear();
+    SearchDonor(SolventDonor_, SolventDonorMask_, false);
+    mprintf("\tSet up %zu solvent donors\n", SolventDonor_.size()/2 );
+  }
+
+
   return 0;
+}
+
+int Action_Hbond::AtomsAreHbonded(int a_atom, int d_atom, int h_atom, int hbidx, bool solutedonor) 
+{
+  HbondType HB;
+  if (a_atom == d_atom) return 0;
+  double dist2 = currentFrame->DIST2(a_atom, d_atom);
+  //mprintf("DEBUG: Donor @%i -- acceptor @%i = %lf\n",D, a_atom, sqrt(dist2));
+  if (dist2 > dcut2_) return 0;
+  double angle = currentFrame->ANGLE(a_atom, h_atom, d_atom);
+  if (angle < acut_) return 0;
+  double dist = sqrt(dist2);
+  mprintf( "A-D HBOND[%6i]: %6i@%-4s ... %6i@%-4s-%6i@%-4s Dst=%6.2lf Ang=%6.2lf\n", hbidx, 
+          a_atom, (*currentParm)[a_atom].c_str(),
+          h_atom, (*currentParm)[h_atom].c_str(), 
+          d_atom, (*currentParm)[d_atom].c_str(), dist, angle*RADDEG);
+  // Find hbond in map
+  HBmapType::iterator entry = SolventMap_.find( hbidx );
+  if (entry == SolventMap_.end() ) {
+    // New Hbond
+    if (solutedonor) {
+      HB.A = -1; // Do not care about which solvent acceptor
+      HB.D = d_atom;
+      HB.H = h_atom;
+    } else {
+      HB.A = a_atom;
+      HB.D = -1; // Do not care about solvent donor heavy atom
+      HB.H = -1; // Do not care about solvent donor H atom
+    }
+    HB.Frames = 1;
+    HB.dist = dist;
+    HB.angle = angle;
+    SolventMap_.insert( entry, std::pair<int,HbondType>(hbidx, HB) );
+  } else {
+    (*entry).second.Frames++;
+    (*entry).second.dist += dist;
+    (*entry).second.angle += angle;
+  }     
+  return 1;
 }
 
 // Action_Hbond::action()
@@ -230,16 +330,18 @@ int Action_Hbond::action() {
   // accept ... H-D
   int D, H;
   double dist, dist2, angle;//, ucell[9], recip[9];
-  std::map<int,HbondType>::iterator it;
+  HBmapType::iterator it;
   HbondType HB;
 
-  int Nhb = 0; 
+  // SOLUTE-SOLUTE HBONDS
+  int hbidx = 0; 
   int numHB=0;
   for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
     D = (*donor);
     ++donor;
     H = (*donor);
-    for (HBlistType::iterator accept = Acceptor_.begin(); accept!=Acceptor_.end(); ++accept, ++Nhb) 
+    for (HBlistType::iterator accept = Acceptor_.begin(); 
+                              accept != Acceptor_.end(); ++accept, ++hbidx) 
     {
       if (*accept == D) continue;
       dist2 = currentFrame->DIST2(*accept, D);
@@ -248,30 +350,72 @@ int Action_Hbond::action() {
       angle = currentFrame->ANGLE(*accept, H, D);
       if (angle < acut_) continue;
 //      mprintf( "HBOND[%i]: %i:%s ... %i:%s-%i:%s Dist=%lf Angle=%lf\n", 
-//              Nhb, *accept, P->names[*accept],
+//              hbidx, *accept, P->names[*accept],
 //              H, P->names[H], D, P->names[D], dist, angle);
       ++numHB;
       dist = sqrt(dist2);
       // Find hbond in map
-      it = HbondMap_.find( Nhb );
+      it = HbondMap_.find( hbidx );
       if (it == HbondMap_.end() ) {
         // New Hbond
-        HB.A=*accept;
-        HB.D=D;
-        HB.H=H;
+        HB.A = *accept;
+        HB.D = D;
+        HB.H = H;
         HB.Frames = 1;
-        HB.dist=dist;
-        HB.angle=angle;
-        HbondMap_.insert( it, std::pair<int,HbondType>(Nhb, HB) );
+        HB.dist = dist;
+        HB.angle = angle;
+        HbondMap_.insert( it, std::pair<int,HbondType>(hbidx, HB) );
       } else {
         (*it).second.Frames++;
-        (*it).second.dist+=dist;
-        (*it).second.angle+=angle;
+        (*it).second.dist += dist;
+        (*it).second.angle += angle;
       }
     }
   }
   NumHbonds_->Add(frameNum, &numHB);
-//  mprintf("HBOND: Scanned %i hbonds.\n",Nhb);
+  //mprintf("HBOND: Scanned %i hbonds.\n",hbidx);
+  
+  if (calcSolvent_) { 
+    int solventHbonds = 0;
+    // SOLUTE DONOR-SOLVENT ACCEPTOR
+    // Index by solute H atom. 
+    if (hasSolventAcceptor_) {
+      numHB = 0;
+      for (HBlistType::iterator donor = Donor_.begin(); 
+                                donor != Donor_.end(); ++donor) 
+      {
+        D = (*donor);
+        ++donor;
+        H = (*donor);
+        for (HBlistType::iterator accept = SolventAcceptor_.begin(); 
+                                  accept != SolventAcceptor_.end(); ++accept)
+          numHB += AtomsAreHbonded( *accept, D, H, H, true );
+      }
+      //numHB = SoluteSolventHbond( Donor_, SolventAcceptor_, 1, 0 );
+      mprintf("DEBUG: # Solvent Acceptor to Solute Donor Hbonds is %i\n", numHB);
+      solventHbonds += numHB;
+    }
+    // SOLVENT DONOR-SOLUTE ACCEPTOR
+    // Index by solute acceptor atom
+    if (hasSolventDonor_) {
+      numHB = 0;
+      for (HBlistType::iterator donor = SolventDonor_.begin();
+                                donor != SolventDonor_.end(); ++donor)
+      {
+        D = (*donor);
+        ++donor;
+        H = (*donor);
+        for (HBlistType::iterator accept = Acceptor_.begin();
+                                  accept != Acceptor_.end(); ++accept)
+          numHB += AtomsAreHbonded( *accept, D, H, *accept, false );
+      }
+      //numHB = SoluteSolventHbond( SolventDonor_, Acceptor_, 0, 1 );
+      mprintf("DEBUG: # Solvent Donor to Solute Acceptor Hbonds is %i\n", numHB);
+      solventHbonds += numHB;
+    }
+    NumSolvent_->Add(frameNum, &solventHbonds);
+  }
+
   ++Nframes_;
 
   return 0;
@@ -283,6 +427,7 @@ int Action_Hbond::action() {
 void Action_Hbond::print() {
   std::vector<HbondType> HbondList;
   DataFile *hbavgFile;
+  std::string Aname, Hname, Dname;
 
   // If avgout is NULL no averaging.
   if (avgout_==NULL) return;
@@ -298,7 +443,7 @@ void Action_Hbond::print() {
   hbavgFile = DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, (char*)"AvgAng", "AvgAng"));
 
   // Place all detected Hbonds in a list and sort 
-  for (std::map<int,HbondType>::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) 
+  for (HBmapType::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) 
     HbondList.push_back( (*it).second );
   sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
   // Calculate averages
@@ -314,9 +459,9 @@ void Action_Hbond::print() {
     angle = angle / ((double) (*hbond).Frames);
     angle *= RADDEG;
 
-    std::string Aname = currentParm->ResAtomName((*hbond).A);
-    std::string Hname = currentParm->ResAtomName((*hbond).H);
-    std::string Dname = currentParm->ResAtomName((*hbond).D);
+    Aname = currentParm->ResAtomName((*hbond).A);
+    Hname = currentParm->ResAtomName((*hbond).H);
+    Dname = currentParm->ResAtomName((*hbond).D);
     // TODO: DataSetList should accept string
     HBavg_->AddData(hbondnum, (char*)Aname.c_str(), 0);
     HBavg_->AddData(hbondnum, (char*)Hname.c_str(), 1);
@@ -328,4 +473,44 @@ void Action_Hbond::print() {
     ++hbondnum;
   }
   hbavgFile->ProcessArgs("noxcol");
+
+  // SOLVENT Info
+  if (calcSolvent_) {
+    HbondList.clear();
+    for (HBmapType::iterator it = SolventMap_.begin(); it != SolventMap_.end(); ++it)
+      HbondList.push_back( (*it).second );
+    sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
+    // Calc averages and print
+    mprintf("Solute-Solvent Hbonds:\n");
+    for (std::vector<HbondType>::iterator hbond = HbondList.begin();
+                                        hbond!=HbondList.end(); ++hbond )
+    {
+      // Average wont make any sense since for any given frame multiple
+      // solvent can bond to the same solute.
+      double avg = (double) (*hbond).Frames;
+      avg = avg / ((double) Nframes_);
+      double dist = (double) (*hbond).dist;
+      dist = dist / ((double) (*hbond).Frames);
+      double angle = (double) (*hbond).angle;
+      angle = angle / ((double) (*hbond).Frames);
+      angle *= RADDEG;
+
+      if ((*hbond).A==-1) // Solvent acceptor
+        Aname = "SolventAcc";
+      else
+        Aname = currentParm->ResAtomName((*hbond).A);
+      if ((*hbond).D==-1) { // Solvent donor
+        Dname = "SolventDnr";
+        Hname = "SolventH  ";
+      } else {
+        Dname = currentParm->ResAtomName((*hbond).D);
+        Hname = currentParm->ResAtomName((*hbond).H);
+      }
+
+      mprintf("%-14s %-14s %-14s %8i %12.4lf %12.4lf %12.4lf\n",
+              Aname.c_str(), Hname.c_str(), Dname.c_str(),
+              (*hbond).Frames, avg, dist, angle);
+    }
+  }
 }
+
