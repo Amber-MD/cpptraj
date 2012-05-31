@@ -5,16 +5,16 @@
 const double Action_DSSP::DSSP_fac = 27.888;
 
 // CONSTRUCTOR
-Action_DSSP::Action_DSSP() {
-  outfilename_=NULL;
-  dssp_=NULL; 
-  Nres_=0;
-  Nframe_=0;
-  SSline_=0;
-  printString_=false;
-  SSdata_=0;
-  dsspData_=0;
-}
+Action_DSSP::Action_DSSP() :
+  outfilename_(NULL),
+  dssp_(NULL), 
+  Nres_(0),
+  Nframe_(0),
+  SSline_(0),
+  printString_(false),
+  SSdata_(0),
+  dsspData_(0)
+{}
 
 // DESTRUCTOR
 Action_DSSP::~Action_DSSP() {
