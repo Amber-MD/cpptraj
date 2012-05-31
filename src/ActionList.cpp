@@ -89,7 +89,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("dihedral"))       {Act=new Action_Dihedral;}
   else if (argIn.CommandIs("atommap"))        {Act=new Action_AtomMap; }
   else if (argIn.CommandIs("angle"))          {Act=new Action_Angle;   }
-  else if (argIn.CommandIs("strip"))          {Act=new Strip;   }
+  else if (argIn.CommandIs("strip"))          {Act=new Action_Strip;   }
   else if (argIn.CommandIs("secstruct"))      {Act=new DSSP;    }
   else if (argIn.CommandIs("center"))         {Act=new Center;  }
   else if (argIn.CommandIs("hbond"))          {Act=new Hbond;   }
@@ -101,7 +101,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("nastruct"))       {Act=new NAstruct;}
   else if (argIn.CommandIs("pucker"))         {Act=new Action_Pucker;  }
   else if (argIn.CommandIs("outtraj"))        {Act=new Outtraj; }
-  else if (argIn.CommandIs("unstrip"))        {Act=new Unstrip; }
+  else if (argIn.CommandIs("unstrip"))        {Act=new Action_Unstrip; }
   else if (argIn.CommandIs("average"))        {Act=new Average; }
   else if (argIn.CommandIs("radial"))         {Act=new Radial;  }
   else if (argIn.CommandIs("drmsd"))          {Act=new DistRmsd;}

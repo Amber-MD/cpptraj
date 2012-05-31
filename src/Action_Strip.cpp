@@ -1,117 +1,114 @@
-// Strip
-#include <cstdio> //sprintf 
-#include <cstring>
+// Action_Strip
 #include "Action_Strip.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
 
 // CONSTRUCTOR
-Strip::Strip() {
+Action_Strip::Action_Strip() :
+  oldParm_(NULL),
+  newParm_(NULL),
+  removeBoxInfo_(false)
+{
   //fprintf(stderr,"Strip Con\n");
-  // oldParm does not need dealloc because it is passed in
-  oldParm=NULL;
-  newParm=NULL;
-  prefix=NULL;
-  removeBoxInfo=false;
 } 
 
 // DESTRUCTOR
-Strip::~Strip() {
+Action_Strip::~Action_Strip() {
   //fprintf(stderr,"Strip Des\n");
-  if (newParm!=NULL) delete newParm;
+  // oldParm does not need dealloc because it is passed in
+  if (newParm_!=NULL) delete newParm_;
 }
 
-// Strip::init()
+// Action_Strip::init()
 /** Expected call: strip <mask1> [outprefix <name>] [nobox] */
-int Strip::init( ) {
+int Action_Strip::init( ) {
   char *mask1;
 
   // Get output stripped parm filename
-  prefix = actionArgs.getKeyString("outprefix",NULL);
-  removeBoxInfo = actionArgs.hasKey("nobox");
+  prefix_ = actionArgs.GetStringKey("outprefix");
+  removeBoxInfo_ = actionArgs.hasKey("nobox");
 
   // Get mask of atoms to be stripped
   mask1 = actionArgs.getNextMask();
   //mprintf("    Mask 1: %s\n",mask1);
   if (mask1==NULL) {
-    mprinterr("Error: Strip::init: Requires atom mask.\n");
+    mprinterr("Error: strip: Requires atom mask.\n");
     return 1;
   }
-  M1.SetMaskString(mask1);
+  M1_.SetMaskString(mask1);
   // We want to strip the atoms inside the mask and keep those outside
   // the mask. Since modifyStateByMask needs to know the kept atoms,
   // invert the mask selection.
-  M1.InvertMask();
+  M1_.InvertMask();
 
-  mprintf("    STRIP: Stripping atoms in mask [%s]\n",M1.MaskString());
-  if (prefix!=NULL) 
-    mprintf("           Stripped topology will be output with prefix %s\n",prefix);
-  if (removeBoxInfo)
+  mprintf("    STRIP: Stripping atoms in mask [%s]\n",M1_.MaskString());
+  if (!prefix_.empty()) 
+    mprintf("           Stripped topology will be output with prefix %s\n",prefix_.c_str());
+  if (removeBoxInfo_)
     mprintf("           Any existing box information will be removed.\n");
 
   return 0;
 }
 
-// Strip::Setup()
+// Action_Strip::Setup()
 /** Attempt to create a new stripped down version of the input parmtop
   */
-int Strip::setup() {
-  if (currentParm->SetupIntegerMask( M1 )) return 1;
+int Action_Strip::setup() {
+  if (currentParm->SetupIntegerMask( M1_ )) return 1;
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
-  if (M1.None()) {
-    mprintf("Warning: Strip::setup: Mask [%s] has no atoms.\n",M1.MaskString());
+  if (M1_.None()) {
+    mprintf("Warning: strip: Mask [%s] has no atoms.\n",M1_.MaskString());
     return 1;
   }
-  mprintf("\tStripping %i atoms.\n",currentParm->Natom() - M1.Nselected());
+  mprintf("\tStripping %i atoms.\n",currentParm->Natom() - M1_.Nselected());
 
   // Store old parm
-  oldParm = currentParm;
+  oldParm_ = currentParm;
 
   // Attempt to create new parmtop based on mask
-  if (newParm!=NULL) delete newParm;
-  newParm = currentParm->modifyStateByMask(M1);
-  if (newParm==NULL) {
-    mprinterr("Error: Strip::setup: Could not create new parmtop.\n");
+  if (newParm_!=NULL) delete newParm_;
+  newParm_ = currentParm->modifyStateByMask(M1_);
+  if (newParm_==NULL) {
+    mprinterr("Error: strip: Could not create new parmtop.\n");
     return 1;
   }
   // Remove box information if asked
-  if (removeBoxInfo)
-    newParm->ParmBox().SetNoBox(); 
+  if (removeBoxInfo_)
+    newParm_->ParmBox().SetNoBox(); 
 
-  newParm->Summary();
+  newParm_->Summary();
 
   // Allocate space for new frame
-  newFrame.SetupFrame(newParm->Natom(), newParm->Mass());
+  newFrame_.SetupFrame(newParm_->Natom(), newParm_->Mass());
 
   // If prefix given then output stripped parm
-  if (prefix!=NULL) {
-    std::string newfilename(prefix);
+  if (!prefix_.empty()) {
+    std::string newfilename(prefix_);
     newfilename += ".";
-    newfilename += oldParm->OriginalFilename();
-    mprintf("\tWriting out amber topology file %s to %s\n",newParm->c_str(),newfilename.c_str());
+    newfilename += oldParm_->OriginalFilename();
+    mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),newfilename.c_str());
     ParmFile pfile;
     pfile.SetDebug( debug );
-    if ( pfile.Write( *newParm, newfilename, ParmFile::AMBERPARM ) ) {
-    //if ( newParm->WriteTopology(newParm->parmName) ) {
+    if ( pfile.Write( *newParm_, newfilename, ParmFile::AMBERPARM ) ) {
       mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
-                newParm->c_str());
+                newParm_->c_str());
     }
   }
 
   // Set parm
-  currentParm = newParm;
+  currentParm = newParm_;
 
   return 0;  
 }
 
-// Strip::action()
+// Action_Strip::action()
 /** Modify the coordinate frame to reflect stripped parmtop. */
-int Strip::action() {
+int Action_Strip::action() {
 
-  newFrame.SetFrame(*currentFrame,M1);
+  newFrame_.SetFrame(*currentFrame, M1_);
 
   // Set frame
-  currentFrame = &newFrame;
+  currentFrame = &newFrame_;
 
   return 0;
 } 
