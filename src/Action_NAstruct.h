@@ -1,6 +1,6 @@
 #ifndef INC_ACTION_NASTRUCT_H
 #define INC_ACTION_NASTRUCT_H
-// NAstruct
+// Action_NAstruct
 #include <vector>
 #include <map>
 #include "Action.h"
@@ -21,7 +21,16 @@
   *   Description of Nucleic Acid Base-pair Geometry", J. Mol. Biol. (2001)
   *   313, 229-237.
   */
-class NAstruct: public Action {
+class Action_NAstruct: public Action {
+  public:
+    Action_NAstruct();
+    ~Action_NAstruct();
+
+    void print();
+  private:
+    int init();
+    int setup();
+    int action();
     // Variables
     std::vector<AxisType> RefCoords;    ///< Hold reference frame coordinates for each base
     std::vector<AxisType> BaseAxes;     ///< Hold axis coordinates for each base
@@ -35,6 +44,7 @@ class NAstruct: public Action {
     double HBangleCut2;                 ///< Angle Cutoff^2 for determining if bases can h bond
     double originCut2;                  ///< Cutoff^2 for determining base-pairing vi origins
     int Nframe;                         ///< Keep track of # frames for print() function
+    bool useReference_;
     std::map<std::string,AxisType::NAbaseType> CustomMap;
     std::map<std::string,AxisType::NAbaseType>::iterator customRes;
     CpptrajFile BPOut;
@@ -91,13 +101,5 @@ class NAstruct: public Action {
     // DEBUG - used to trigger AxisPDBwriter for first call of calculateParameters
     bool calcparam;
 #   endif
-  public:
-    NAstruct();
-    ~NAstruct();
-
-    int init();
-    int setup();
-    int action();
-    void print();
 };
 #endif

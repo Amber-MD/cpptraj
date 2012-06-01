@@ -7,7 +7,7 @@
 #include "vectormath.h"
 
 // CONSTRUCTOR
-NAstruct::NAstruct() {
+Action_NAstruct::Action_NAstruct() {
   //fprintf(stderr,"NAstruct Con\n");
   Nbp=0;
   Nbases=0;
@@ -17,6 +17,7 @@ NAstruct::NAstruct() {
   // NOTE: Is this too big?
   originCut2=6.25;  // Origin cutoff^2 for base-pairing: 2.5^2
   Nframe=0;
+  useReference_=false;
   //outFilename=NULL;
   //naoutFilename=NULL;
   noheader = false;
@@ -26,7 +27,7 @@ NAstruct::NAstruct() {
 } 
 
 // DESTRUCTOR
-NAstruct::~NAstruct() { 
+Action_NAstruct::~Action_NAstruct() { 
   ClearLists();
   // NOTE: Since BasePairAxes are set up to correspond with SHEAR etc dont
   // free in this routine - should only be freed at the very end.
@@ -40,10 +41,10 @@ NAstruct::~NAstruct() {
 static const char BP_OUTPUT_FMT[62] = "%8i %8i %8i %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf\n";
 static const char NA_OUTPUT_FMT[73] = "%8i %4i-%-4i %4i-%-4i %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf\n";
 
-// NAstruct::ClearLists()
+// Action_NAstruct::ClearLists()
 /** Clear all parm-dependent lists
   */
-void NAstruct::ClearLists() {
+void Action_NAstruct::ClearLists() {
   RefCoords.clear();
   BaseAxes.clear();
   ExpMasks.clear();
@@ -51,12 +52,12 @@ void NAstruct::ClearLists() {
 }
 
 // ------------------------- PRIVATE FUNCTIONS --------------------------------
-// NAstruct::setupBaseAxes()
+// Action_NAstruct::setupBaseAxes()
 /** For each residue defined in reference coords, get the corresponding input
   * coords and fit the reference coords (and reference axes) on top of input 
   * coords. This sets up the reference axes for each base.
   */
-int NAstruct::setupBaseAxes(Frame *InputFrame) {
+int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
   double rmsd, RotMatrix[9], TransVec[6];
   AxisType refFrame; // Hold copy of base reference coords
   AxisType expFrame; // Hold copy of input base coords
@@ -131,14 +132,14 @@ int NAstruct::setupBaseAxes(Frame *InputFrame) {
   return 0;
 }
 
-// NAstruct::GCpair()
+// Action_NAstruct::GCpair()
 /** Look for 3 HB based on heavy atom distances:
   * 1. G:O6 -- C:N4  6 -- 6
   * 2. G:N1 -- C:N3  7 -- 4
   * 3. G:N2 -- C:O2  9 -- 3
   * Atom positions are known in standard Ref. Multiply by 3 to get into X.
   */
-bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
+bool Action_NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   int Nhbonds = 0;
   double dist2;
   for (int hb = 0; hb < 3; hb++) {
@@ -158,12 +159,12 @@ bool NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   return false;
 }
 
-// NAstruct::ATpair()
+// Action_NAstruct::ATpair()
 /** Look for 2 HB based on heavy atom distances
   * 1. A:N6 -- T:O4  6 -- 6
   * 2. A:N1 -- T:N3  7 -- 4
   */
-bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
+bool Action_NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   int Nhbonds = 0;
   double dist2;
   for (int hb = 0; hb < 2; hb++) {
@@ -183,12 +184,12 @@ bool NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   return false;
 }
 
-// NAstruct::basesArePaired()
+// Action_NAstruct::basesArePaired()
 /** Given two base axes for which IDs have been given and reference coords set,
   * determine whether the bases are paired via hydrogen bonding criteria.
   * NOTE: Currently only set up for WC detection
   */
-bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
+bool Action_NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   // G C
   if      ( base1->ID==AxisType::GUA && base2->ID==AxisType::CYT ) return GCpair(base1,base2);
   else if ( base1->ID==AxisType::CYT && base2->ID==AxisType::GUA ) return GCpair(base2,base1);
@@ -205,10 +206,10 @@ bool NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   return false;
 }
 
-// NAstruct::determineBasePairing()
+// Action_NAstruct::determineBasePairing()
 /** Determine which bases are paired from the individual base axes.
   */
-int NAstruct::determineBasePairing() {
+int Action_NAstruct::determineBasePairing() {
   double distance;
   std::vector<bool> isPaired( BaseAxes.size(), false);
   int base1,base2;
@@ -391,11 +392,11 @@ static void AverageMatrices(double *R, double *RotatedR1, double *RotatedR2) {
   R[8] /= r2;
 }
 
-// NAstruct::calculateParameters()
+// Action_NAstruct::calculateParameters()
 /** Given two axes, calculate translational and rotational parameters
   * between them.
   */
-int NAstruct::calculateParameters(AxisType &Axis1, AxisType &Axis2, 
+int Action_NAstruct::calculateParameters(AxisType &Axis1, AxisType &Axis2, 
                                   AxisType *BPaxis, double *Param) 
 {
   double hingeAxis[3],Y1[3],Z1[3],Y2[3],Z2[3],O1[3],O2[3];
@@ -554,8 +555,8 @@ int NAstruct::calculateParameters(AxisType &Axis1, AxisType &Axis2,
   return 0;
 }
 
-// NAstruct::helicalParameters()
-int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param) {
+// Action_NAstruct::helicalParameters()
+int Action_NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param) {
   double X1[3],X2[3],Y1[3],Y2[3],Z1[3],Z2[3],O1[3],O2[3],helicalAxis[3];
   double hingeAxis[3], R[9], RotatedR1[9], RotatedR2[9], Vec[3], r2;
   // NOTE: Just use Vec for hingeAxis?
@@ -724,12 +725,12 @@ int NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double *Param)
   return 0;
 }
 
-// NAstruct::determineBaseParameters()
+// Action_NAstruct::determineBaseParameters()
 /** For each base in a base pair, get the values of buckle, propeller twist,
   * opening, shear, stretch, and stagger. Also determine the origin and 
   * rotation matrix for each base pair reference frame.
   */
-int NAstruct::determineBaseParameters() {
+int Action_NAstruct::determineBaseParameters() {
   double Param[6];
 # ifdef NASTRUCTDEBUG
   AxisPDBwriter basepairaxesfile;
@@ -784,11 +785,11 @@ int NAstruct::determineBaseParameters() {
   return 0;
 }
 
-// NAstruct::determineBasepairParameters() 
+// Action_NAstruct::determineBasepairParameters() 
 /** For each base pair step, determine values of Tilt, Roll, Twist, Shift,
   * Slide, and Rise.
   */
-int NAstruct::determineBasepairParameters() {
+int Action_NAstruct::determineBasepairParameters() {
   double Param[6];
 # ifdef NASTRUCTDEBUG
   mprintf("\n=================== Determine BPstep Parameters ===================\n");
@@ -831,18 +832,21 @@ int NAstruct::determineBasepairParameters() {
 }
 // ----------------------------------------------------------------------------
 
-// NAstruct::init()
+// Action_NAstruct::init()
 /** Expected call: nastruct [resrange <range>] [naout <nafilename>] 
   *                         [noheader] [resmap <ResName>:{A,C,G,T,U} ...]
+  *                         [hbcut <hbcut>] [origincut <origincut>]
   */
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
 //    2) Masks
 //    3) Dataset name
-int NAstruct::init() {
+int Action_NAstruct::init() {
   char *resrange_arg, *maparg, *outputsuffix;
   ArgList maplist;
   AxisType::NAbaseType mapbase;
+  Frame* refframe = NULL;
+  Topology* refparm = NULL;
 
   // Get keywords
   outputsuffix = actionArgs.getKeyString("naout",NULL);
@@ -861,6 +865,28 @@ int NAstruct::init() {
   if (resrange_arg != NULL)
     if (resRange.SetRange( resrange_arg )) return 1;
   noheader = actionArgs.hasKey("noheader");
+  // Reference for setting up basepairs
+  int refindex = actionArgs.getKeyInt("refindex", -1);
+  if (actionArgs.hasKey("reference")) refindex = 0;
+  std::string refname = actionArgs.GetStringKey("ref");
+  if (refindex!=-1 || !refname.empty()) {
+    useReference_ = true;
+    // Reference by name/tag
+    if (!refname.empty())
+      refindex = FL->FindName( refname );
+    // Get reference by index
+    refframe = FL->GetFrame( refindex );
+    if (refframe==NULL) {
+      mprinterr("Error: nastruct: Could not get ref frame, index=%i\n",refindex);
+      return 1;
+    }
+    // Get parm for reference
+    refparm = FL->GetFrameParm( refindex );
+    if (refparm == NULL) {
+      mprinterr("Error: nastruct: Could not get parm for frame %s\n", FL->FrameName(refindex));
+      return 1;
+    }
+  }
 
   // Get custom residue maps
   while ( (maparg = actionArgs.getKeyString("resmap",NULL))!=NULL ) {
@@ -954,14 +980,26 @@ int NAstruct::init() {
   mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2lf Angstroms.\n",
           sqrt( originCut2 ) );
 
+  // Use reference to determine base pairing
+  if (useReference_) {
+    mprintf("\tUsing reference %s to determine base-pairing.\n",FL->FrameName(refindex));
+    currentParm = refparm;
+    if (setup()) return 1;
+    // Set up base axes
+    if ( setupBaseAxes(refframe) ) return 1;
+    // Determine Base Pairing
+    if ( determineBasePairing() ) return 1;
+    mprintf("\tSet up %zu base pairs.\n", BasePairAxes.size() ); 
+  }
+
   return 0;
 }
 
-// NAstruct::setup()
+// Action_NAstruct::setup()
 /** Determine the number of NA bases that will be analyzed, along with 
   * the masks that correspond to the reference frame atoms.
   */
-int NAstruct::setup() {
+int Action_NAstruct::setup() {
   AxisType axis; 
   AtomMask Mask;
   AtomMask fitMask;
@@ -1052,19 +1090,20 @@ int NAstruct::setup() {
   } // End Loop over NA residues
 
   Nbases = (int)RefCoords.size(); // Also BaseAxes, ExpFrames, and ExpMasks size.
-  mprintf("    NAstruct: Set up %i bases.\n",Nbases);
+  mprintf("\tSet up %i bases.\n",Nbases);
 
   return 0;  
 }
 
-// NAstruct::action()
-int NAstruct::action() {
+// Action_NAstruct::action()
+int Action_NAstruct::action() {
 
   // Set up base axes
   if ( setupBaseAxes(currentFrame) ) return 1;
 
   // Determine Base Pairing
-  if ( determineBasePairing() ) return 1;
+  if (!useReference_)
+    if ( determineBasePairing() ) return 1;
 
   // Determine base parameters
   determineBaseParameters();
@@ -1077,8 +1116,8 @@ int NAstruct::action() {
   return 0;
 } 
 
-// NAstruct::print()
-void NAstruct::print() {
+// Action_NAstruct::print()
+void Action_NAstruct::print() {
 /*  CpptrajFile outfile;
   CharBuffer buffer;
   int frame, nbasepair;
