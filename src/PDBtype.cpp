@@ -34,12 +34,14 @@ bool PDBtype::IsPDBkeyword() {
   return false;
 }
 
+// PDBtype::ID()
+/** Check that the first two lines contain valid PDB records. */
 bool PDBtype::ID(FileIO *IO) {
   if (!PDB_GetNextRecord(IO)) return false;
-  if (IsPDBkeyword()) return true;
+  if (!IsPDBkeyword()) return false;
   if (!PDB_GetNextRecord(IO)) return false;
-  if (IsPDBkeyword()) return true;
-  return false;
+  if (!IsPDBkeyword()) return false;
+  return true;
 }
 
 // PDBtype::IsPDBatomKeyword

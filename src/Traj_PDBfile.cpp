@@ -89,7 +89,7 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
         Atom pdbatom = pdb_Atom();
         if ( pdbatom.Name() != (*trajParm)[atom].Name() ) {
           if (debug_>1) 
-            mprintf("Warning: %s: Atom %i name [%s] does not match parm atom name [%s]\n",
+            mprintf("Warning: %s: PDB atom %i name [%s] does not match parm atom name [%s]\n",
                     BaseName(),atom+1,*(pdbatom.Name()),*((*trajParm)[atom].Name()));
           ++numMismatch;
         }
@@ -102,7 +102,7 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
     } else {
       // Check that # atoms read in this frame match the first frame
       if (atom>0 && pdbAtom_!=atom) {
-        mprintf("Warning: %s: Reading frame %i, got %i atoms, expected %i.\n",BaseName(),
+        mprintf("Warning: PDB %s: Reading frame %i, got %i atoms, expected %i.\n",BaseName(),
                   Frames+OUTPUTFRAMESHIFT,atom,pdbAtom_);
         mprintf("         Only using frames 1-%i\n",Frames);
         scanPDB = false;
@@ -114,7 +114,7 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
   this->closeTraj();
 
   if (Frames<1) {
-    mprinterr("Error: %s: No frames read. atom=%i expected %i.\n",BaseName(),
+    mprinterr("Error: PDB %s: No frames read. atom=%i expected %i.\n",BaseName(),
             atom,trajParm->Natom());
     return -1;
   }
