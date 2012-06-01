@@ -11,7 +11,7 @@ NAstruct::NAstruct() {
   //fprintf(stderr,"NAstruct Con\n");
   Nbp=0;
   Nbases=0;
-  HBdistCut2=9.61;  // Hydrogen Bond distance cutoff^2: 3.1^2
+  HBdistCut2=12.25;  // Hydrogen Bond distance cutoff^2: 3.5^2
   // NOTE: Currently not used
   HBangleCut2=2.53; // Hydrogen Bond angle cutoff (in radians, ~145 degs)
   // NOTE: Is this too big?
@@ -846,6 +846,12 @@ int NAstruct::init() {
 
   // Get keywords
   outputsuffix = actionArgs.getKeyString("naout",NULL);
+  double hbcut = actionArgs.getKeyDouble("hbcut", -1);
+  if (hbcut > 0) 
+    HBdistCut2 = hbcut * hbcut;
+  double origincut = actionArgs.getKeyDouble("origincut", -1);
+  if (origincut > 0)
+    originCut2 = origincut * origincut;
   // Require a filename
   if (outputsuffix==NULL) {
     mprinterr("Error: nastruct: Requires an output filename, 'naout <filename>'\n");
@@ -943,6 +949,10 @@ int NAstruct::init() {
     if (noheader) mprintf(", no header");
   }
   mprintf(".\n");
+  mprintf("\tHydrogen bond cutoff for determining base pairs is %.2lf Angstroms.\n",
+          sqrt( HBdistCut2 ) );
+  mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2lf Angstroms.\n",
+          sqrt( originCut2 ) );
 
   return 0;
 }
