@@ -130,12 +130,12 @@ void Traj_Mol2File::SetWriteMode(MOL2WRITEMODE modeIn) {
 /** Set parm information required for write, and check write mode against
   * number of frames to be written.
   */
-int Traj_Mol2File::setupTrajout(Topology *trajParm) {
+int Traj_Mol2File::setupTrajout(Topology *trajParm, int NframesToWrite) {
   if (trajParm==NULL) return 1;
   mol2Top_ = trajParm;
   // If writing more than 1 frame and not writing 1 pdb per frame, 
   // use @<TRIPOS>MOLECULE keyword to separate frames.
-  if (mol2WriteMode_==SINGLE && mol2Top_->Nframes()>1) 
+  if (mol2WriteMode_==SINGLE && NframesToWrite>1) 
     mol2WriteMode_=MOL;
 
   // Set # atoms; if more than 99999 atoms the file may not write correctly

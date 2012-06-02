@@ -67,7 +67,7 @@ int Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
 }
 
 // Conflib::setupTrajout()
-int Conflib::setupTrajout(Topology *trajParm) {
+int Conflib::setupTrajout(Topology *trajParm, int NframesToWrite) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }

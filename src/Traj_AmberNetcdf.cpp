@@ -198,7 +198,7 @@ int AmberNetcdf::processWriteArgs(ArgList *argIn) {
 /** Create Netcdf file specified by filename and set up dimension and
   * variable IDs. 
   */
-int AmberNetcdf::setupTrajout(Topology *trajParm) {
+int AmberNetcdf::setupTrajout(Topology *trajParm, int NframesToWrite) {
   // Set up title
   if (title_.empty())
     title_.assign("Cpptraj Generated trajectory");

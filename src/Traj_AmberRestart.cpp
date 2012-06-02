@@ -138,7 +138,7 @@ int AmberRestart::processWriteArgs(ArgList *argIn) {
 /** Allocate a character buffer based on number of coords and whether 
   * velocities/box info is present.
   */
-int AmberRestart::setupTrajout(Topology *trajParm) {
+int AmberRestart::setupTrajout(Topology *trajParm, int NframesToWrite) {
   size_t frame_lines;
 
   restartAtoms_ = trajParm->Natom();
@@ -165,7 +165,7 @@ int AmberRestart::setupTrajout(Topology *trajParm) {
 
   // If number of frames to write == 1 set singleWrite so we dont append
   // frame # to filename.
-  if (trajParm->Nframes()==1) singleWrite_=true;
+  if (NframesToWrite==1) singleWrite_=true;
 
   return 0;
 }

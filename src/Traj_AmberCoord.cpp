@@ -359,7 +359,7 @@ int AmberCoord::processWriteArgs(ArgList *argIn) {
   * size, necessary only for seeking when MPI writing. Allocate memory for
   * the frame buffer. 
   */
-int AmberCoord::setupTrajout(Topology *trajParm) {
+int AmberCoord::setupTrajout(Topology *trajParm, int NframesToWrite) {
   int frame_lines;
   //long int outfilesize;
 

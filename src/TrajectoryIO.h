@@ -32,10 +32,10 @@ class TrajectoryIO : public CpptrajFile {
     virtual int setupTrajin(Topology *) { return -1; }
     /// Set up trajectory IO for WRITE 
     /** Called inside TrajectoryFile::WriteFrame on the first write call. Takes
-      * as an argument the Topology class that will be associated with this 
-      * trajectory. 
+      * as arguments the Topology class that will be associated with this 
+      * trajectory and the expected number of frames to be written. 
       */
-    virtual int setupTrajout(Topology *) { return 1; }
+    virtual int setupTrajout(Topology *, int) { return 1; }
     /// Open traj, prepare for IO.
     virtual int openTraj() { return 1; }
     /// Read a frame from trajectory

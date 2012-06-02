@@ -151,12 +151,12 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
 
 // AmberRestartNC::setupTrajout()
 /** Setting up is done for each frame.  */
-int AmberRestartNC::setupTrajout(Topology *trajParm) {
+int AmberRestartNC::setupTrajout(Topology *trajParm, int NframesToWrite) {
   SetNcatom( trajParm->Natom() );
   //ncatom3 = ncatom * 3;
   // If number of frames to write == 1 set singleWrite so we dont append
   // frame # to filename.
-  if (trajParm->Nframes()==1) singleWrite_=true;
+  if (NframesToWrite==1) singleWrite_=true;
   return 0;
 }
 

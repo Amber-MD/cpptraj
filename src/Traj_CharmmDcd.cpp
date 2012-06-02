@@ -461,7 +461,7 @@ int CharmmDcd::processWriteArgs(ArgList *argIn) {
   * Set is64bit and isBigEndian, although they are not currently used during
   * writes; size and endianness will be OS default.
   */
-int CharmmDcd::setupTrajout(Topology *trajParm) {
+int CharmmDcd::setupTrajout(Topology *trajParm, int NframesToWrite) {
   dcdatom = trajParm->Natom();
   // dcdframes = trajParm->parmFrames;
   dcdframes = 0;

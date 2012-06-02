@@ -160,7 +160,7 @@ int Traj_PDBfile::processWriteArgs(ArgList *argIn) {
 /** Set parm information needed for write, and check write mode against
   * number of frames to be written.
   */ 
-int Traj_PDBfile::setupTrajout(Topology *trajParm) {
+int Traj_PDBfile::setupTrajout(Topology *trajParm, int NframesToWrite) {
   pdbTop_ = trajParm;
 
   pdbAtom_ = pdbTop_->Natom();
@@ -171,7 +171,7 @@ int Traj_PDBfile::setupTrajout(Topology *trajParm) {
 
   // If number of frames to write > 1 and not doing 1 pdb file per frame,
   // set write mode to MODEL
-  if (pdbWriteMode_==SINGLE && trajParm->Nframes()>1) 
+  if (pdbWriteMode_==SINGLE && NframesToWrite>1) 
     pdbWriteMode_=MODEL;
   return 0;
 }

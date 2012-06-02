@@ -166,7 +166,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
       remdio->AddReplicaTrajout( replica0 );
       // Set up write here, trajParm will not change
       if (remdio->HasBox()) replica0->SetBox();
-      if (replica0->setupTrajout(trajParm_)) {
+      if (replica0->setupTrajout(trajParm_, trajParm_->Nframes())) {
         delete remdio;
         return NULL;
       }
@@ -817,8 +817,12 @@ int TrajectoryFile::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
       if (trajParm_->BoxType()!=Box::NOBOX) 
         trajio_->SetBox();
     }
+    // Determine how many frames will be written
+    int NframesToWrite = trajParm_->Nframes();
+    if (hasRange_)
+      NframesToWrite = FrameRange_.Size();
     // Set up write for the current parm file 
-    if (trajio_->setupTrajout(trajParm_)) return 1;
+    if (trajio_->setupTrajout(trajParm_, NframesToWrite)) return 1;
     // Open output traj and mark as set up.
     if (trajio_->openTraj()) return 1;
     trajIsOpen_ = true;

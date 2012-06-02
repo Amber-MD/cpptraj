@@ -15,7 +15,7 @@ class AmberRestartNC : public TrajectoryIO, NetcdfFile {
     // Inherited functions
     bool ID_TrajFormat();
     int setupTrajin(Topology*);
-    int setupTrajout(Topology*);
+    int setupTrajout(Topology*,int);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
