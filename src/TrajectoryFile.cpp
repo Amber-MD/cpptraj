@@ -595,7 +595,20 @@ std::string TrajectoryFile::GetExtensionForType(TrajFormatType typeIn) {
   }
   return ext;
 }
-  
+
+TrajectoryFile::TrajFormatType TrajectoryFile::GetTypeFromExtension( std::string const& extIn)
+{
+  if      ( extIn == ".nc" ) return AMBERNETCDF;
+  else if ( extIn == ".ncrst" ) return AMBERRESTARTNC;
+  else if ( extIn == ".pdb" ) return PDBFILE;
+  else if ( extIn == ".mol2" ) return MOL2FILE;
+  else if ( extIn == ".dcd" ) return CHARMMDCD;
+  else if ( extIn == ".rst7" ) return AMBERRESTART;
+  else if ( extIn == ".crd") return AMBERTRAJ;
+  // No entry for CONFLIB
+  return UNKNOWN_TRAJ;
+}
+ 
 // TrajectoryFile::SetupWriteWithArgs()
 /** Like SetupWrite, but intended for internal use. Allows a static
   * space-separated string to be passed in, which will be converted
@@ -646,8 +659,18 @@ int TrajectoryFile::SetupWrite(const char *tnameIn, ArgList *argIn, Topology *tp
 
   // If a write format was not specified (UNKNOWN_TRAJ) check the argument
   // list to see if format was specified there. Defaults to AMBERTRAJ.
-  if (writeFormat==UNKNOWN_TRAJ)
+  if (writeFormat==UNKNOWN_TRAJ) {
     writeFormat = GetFormatFromArg(argIn);
+    // If still AMBERTRAJ this means no type specified. Check to see if
+    // the filename extension is recognized.
+    if (writeFormat == AMBERTRAJ) {
+      // TODO: Determine extension without having to set up a CpptrajFile
+      CpptrajFile extcheck;
+      extcheck.SetupWrite( tname, debug_ );
+      writeFormat = GetTypeFromExtension( extcheck.Extension() );
+      if (writeFormat == UNKNOWN_TRAJ) writeFormat = AMBERTRAJ;
+    }
+  }
 
   // Check for append keyword
   if (argIn!=NULL && argIn->hasKey("append")) fileAccess_ = APPENDTRAJ;

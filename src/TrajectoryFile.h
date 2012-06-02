@@ -37,6 +37,8 @@ class TrajectoryFile {
     TrajFormatType GetFormatFromArg(ArgList*);
     /// Get standard file extension for trajectory format
     std::string GetExtensionForType(TrajFormatType);
+    /// Get type from extension
+    TrajFormatType GetTypeFromExtension(std::string const&);
     // Functions that return private vars
     int CurrentFrame();
     char *TrajName();
