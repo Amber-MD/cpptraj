@@ -74,7 +74,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   if (infile.SetupRead( modesfile.c_str(), 0 )) return 1;
   if (infile.OpenFile()) return 1;
   // Read title line
-  if (infile.IO->Gets(buffer, BUFSIZE_)!=0) {
+  if (infile.Gets(buffer, BUFSIZE_)!=0) {
     mprinterr("Error: ReadEvecFile(): error while reading title (%s)\n",infile.Name());
     return 1;
   }
@@ -103,7 +103,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   }
 
   // Read number of coords for avg and evec
-  if ( infile.IO->Gets(buffer, BUFSIZE_)!=0) {
+  if ( infile.Gets(buffer, BUFSIZE_)!=0) {
     mprinterr("Error: ReadEvecFile(): error while reading number of atoms (%s)\n",infile.Name());
     return 1;
   }
@@ -134,7 +134,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   int nent = 0;
   double tmpval[7];
   for (int i = 0; i < nlines; ++i) {
-    if (infile.IO->Gets(buffer, BUFSIZE_)!=0) {
+    if (infile.Gets(buffer, BUFSIZE_)!=0) {
       mprinterr("Error: ReadEvecFile(): error while reading avg coords (%s)\n",infile.Name());
       return 1;
     }
@@ -152,14 +152,14 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
     ++nlines;
   nvect_ = 0;
   int nno = 0;
-  while ( infile.IO->Gets(buffer, BUFSIZE_)==0 ) { // This should read in ' ****'
+  while ( infile.Gets(buffer, BUFSIZE_)==0 ) { // This should read in ' ****'
     if (strncmp(buffer," ****", 5)!=0) {
       mprinterr("Error: ReadEvecFile(): When reading eigenvector %i, expected ' ****',\n",nvect_);
       mprinterr("       got %s [%s]\n", buffer, infile.Name());
       return 1;
     }
     // Read number and freq
-    if (infile.IO->Gets(buffer, BUFSIZE_)!=0) {
+    if (infile.Gets(buffer, BUFSIZE_)!=0) {
       mprinterr("Error: ReadEvecFile(): error while reading number and freq (%s)\n",infile.Name());
       return 1;
     }
@@ -175,7 +175,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
     // Read coords
     nent = 0;
     for (int i = 0; i < nlines; ++i) {
-      if (infile.IO->Gets(buffer, BUFSIZE_)!=0) {
+      if (infile.Gets(buffer, BUFSIZE_)!=0) {
         mprinterr("Error: ReadEvecFile(): error while reading evec coords (%s)\n",infile.Name());
         return 1;
       }

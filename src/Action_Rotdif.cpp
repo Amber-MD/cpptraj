@@ -293,7 +293,7 @@ double *Rotdif::randvec() {
       return NULL;
     }
     for (int i = 0; i < xyz_size; i+=3) {
-      if (vecIn.IO->Gets(buffer, BUF_SIZE) ) {
+      if (vecIn.Gets(buffer, BUF_SIZE) ) {
         mprinterr("Error: Could not read vector %i from file %s\n",(i/3)+1,randvecIn_);
         delete[] XYZ;
         return NULL;

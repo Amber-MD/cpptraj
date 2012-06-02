@@ -21,7 +21,7 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
 
   if ( infile.OpenRead( fname ) ) return 1;
   mprintf("\tReading dihedral information from %s\n", fname.c_str());
-  while (infile.IO->Gets(buffer, 256)==0) {
+  while (infile.Gets(buffer, 256)==0) {
     // Expected line format: At#1 At#2 At#3 At#4 Bins
     // ATOM NUMBERS SHOULD START FROM 0!
     int nvals = sscanf(buffer, "%i %i %i %i %i", &a1, &a2, &a3, &a4, &bins);

@@ -6,13 +6,6 @@
 /// Class to abstract handling of basic file routines.
 class CpptrajFile {
   public:
-    /** This is the interface to basic IO operations. It is exposed in 
-      * order to speed up operations that are frequently called, like
-      * Reads/Writes.
-      */
-    // TODO: Make at least protected
-    FileIO *IO; 
-
     CpptrajFile();
     virtual ~CpptrajFile(); // Virtual since class is inherited
     CpptrajFile(const CpptrajFile&);
@@ -49,14 +42,14 @@ class CpptrajFile {
     bool IsDos();
     /// Return true if the file is compressed.
     bool IsCompressed();
-  protected:
-    enum CompressType {
-      NO_COMPRESSION, GZIP, BZIP2, ZIP
-    };
-    enum AccessType {
-      READ, WRITE, APPEND
-    };
 
+    int Gets(char* buf, int num) { return IO->Gets(buf, num); }
+    int Write( char* buf, size_t num) { return IO->Write(buf, num); }
+  protected:
+    enum CompressType { NO_COMPRESSION, GZIP, BZIP2, ZIP };
+    enum AccessType   { READ, WRITE, APPEND };
+
+    FileIO* IO;                 ///< The interface to basic IO operations.
     AccessType access_;         ///< Access (Read, write, append)
     int isDos_;                 ///< 1 if CR present, need to count them as newlines
     off_t uncompressed_size_;   ///< If compressed, uncompressed file size

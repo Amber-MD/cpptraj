@@ -75,12 +75,10 @@ int FileIO_Mpi::Rewind() {
   return 0;
 }
 
-/*long int FileIO_Mpi::Tell() {
-  z_off_t zipOffset;
-
-  zipOffset = gztell(fp);
-  return (long int) zipOffset;
-}*/
+// FileIO_Mpi::Tell()
+off_t FileIO_Mpi::Tell() {
+  return ( parallel_position(pfile_) );
+}
 
 // FileIO_Mpi::Gets()
 int FileIO_Mpi::Gets(char *str, int num) {

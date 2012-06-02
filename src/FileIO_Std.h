@@ -16,6 +16,8 @@ class FileIO_Std : public FileIO {
     int Rewind();  
     off_t Tell();  // NOTE: Tell may be unnecessary if only for size reporting.
     int Gets(char *, int );
+    off_t Size(char*)     { return 0; }
+    int SetSize(long int) { return 0; }
   private:
     FILE *fp_;
     bool isStdout_;

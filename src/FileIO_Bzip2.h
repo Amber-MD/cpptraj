@@ -19,6 +19,7 @@ class FileIO_Bzip2 : public FileIO {
     int Rewind();  
     off_t Tell();  // NOTE: Tell may be unnecessary if only for size reporting.
     int Gets(char *, int );
+    int SetSize(long int) { return 0; }
   private:
     bool isBzread_;
     FILE *fp_;

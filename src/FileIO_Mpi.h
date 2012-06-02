@@ -15,9 +15,10 @@ class FileIO_Mpi : public FileIO {
     int Write(void *, size_t);  
     int Seek(off_t);
     int Rewind();  
-    //long int Tell();  // NOTE: Tell may be unnecessary if only for size reporting.
+    off_t Tell();
     int Gets(char *, int );
     int SetSize(long int);
+    off_t Size(char*) { return 0; }
   private:
     parallelType pfile_; 
 };

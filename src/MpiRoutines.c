@@ -190,6 +190,23 @@ int parallel_openFile_read(parallelType pfile, const char *filename) {
   return 1;
 }
 
+off_t parallel_position( parallelType pfile ) {
+#ifdef MPI
+  int err;
+  MPI_Offset offset;
+
+  err = MPI_File_get_position( pfile->mfp, &offset );
+
+  if (err!=MPI_SUCCESS) {
+    printMPIerr(err,"parallel_position()");
+    return 0;
+  }
+  return (off_t)offset;
+#else
+  return 0;
+#endif
+}
+
 // parallel_open_file_write()
 /** Use MPI to open a file for writing, delete if present. */
 int parallel_open_file_write(parallelType pfile, const char *filename) {

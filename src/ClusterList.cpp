@@ -282,7 +282,7 @@ void ClusterList::PrintClustersToFile(char *filename) {
       buffer[ *frame1 ] = 'X';
     }
     buffer += '\n';
-    outfile.IO->Write((char*)buffer.c_str(), buffer.size());
+    outfile.Write((char*)buffer.c_str(), buffer.size());
   }
   // Print representative frames
   outfile.Printf("#Representative frames:");

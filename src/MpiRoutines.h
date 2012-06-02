@@ -46,6 +46,7 @@ int parallel_end();
 void parallel_barrier();
 int parallel_sum(double *, double *, int );
 int parallel_openFile_read(parallelType, const char *);
+off_t parallel_position( parallelType );
 int parallel_open_file_write(parallelType, const char *);
 int parallel_closeFile(parallelType);
 int parallel_fread(parallelType, void*, int );

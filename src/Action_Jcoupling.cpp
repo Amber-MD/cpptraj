@@ -57,7 +57,7 @@ int Jcoupling::loadKarplus(std::string filename) {
   residue[4]='\0'; 
   KarplusFile.OpenFile();
   // Read through all lines of the file
-  while (KarplusFile.IO->Gets(buffer,512)==0) {
+  while (KarplusFile.Gets(buffer,512)==0) {
     // Skip newlines and comments
     if (buffer[0]=='\n' || buffer[0]=='#') continue;
     ptr=buffer;
@@ -97,7 +97,7 @@ int Jcoupling::loadKarplus(std::string filename) {
     KC.C[3]*=DEGRAD;
     // Place the read-in karplus constants in a map indexed by residue name 
     // so that all karplus constants for a given residue are in one place. 
-    KarplusFile.IO->Gets(buffer,512);
+    KarplusFile.Gets(buffer,512);
     // end will hold the end of the read-in buffer string
     end = buffer + strlen(buffer);
     for (ptr = buffer; ptr < end; ptr+=4) {

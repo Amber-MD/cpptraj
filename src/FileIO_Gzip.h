@@ -18,6 +18,7 @@ class FileIO_Gzip : public FileIO {
     int Rewind();  
     off_t Tell();  // NOTE: Tell may be unnecessary if only for size reporting.
     int Gets(char *, int );
+    int SetSize(long int) { return 0; }
   private:
     //static const unsigned int GZ_BUF_SIZE;
     gzFile fp_;
