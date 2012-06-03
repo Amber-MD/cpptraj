@@ -26,12 +26,14 @@ class Closest: public Action {
     char *prefix_;
     int closestWaters_;
     bool firstAtom_;
-    AtomMask soluteMask_;
+    //AtomMask soluteMask_;
     AtomMask stripMask_;
     AtomMask distanceMask_;
     Topology *newParm_;
-    Topology *oldParm_;
+    //Topology *oldParm_;
+    int NsolventMolecules_;
     Frame newFrame_;
+    std::vector<int> keptWaterAtomNum_;
 
     /** The moldist structure is used in order to preserve the original
       * solvent molecule and atom numbers after sorting. */
