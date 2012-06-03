@@ -401,8 +401,10 @@ void Topology::PrintMoleculeInfo() {
                                          mol != molecules_.end(); mol++)
     {
       int firstres = (*mol).FirstRes();
-      mprintf("\tMolecule %u, %i atoms, first residue %i:%s\n",mnum,(*mol).NumAtoms(),
+      mprintf("\tMolecule %u, %i atoms, first residue %i:%s",mnum,(*mol).NumAtoms(),
               firstres+1,residues_[firstres].c_str());
+      if ( (*mol).IsSolvent() ) mprintf(" SOLVENT");
+      mprintf("\n");
       ++mnum;
     }
   }
