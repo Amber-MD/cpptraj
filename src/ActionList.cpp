@@ -97,7 +97,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("surf"))           {Act=new Surf;    }
   else if (argIn.CommandIs("radgyr"))         {Act=new Radgyr;  }
   else if (argIn.CommandIs("mask"))           {Act=new ActionMask;}
-  else if (argIn.CommandIs("closest"))        {Act=new Closest; }
+  else if (argIn.CommandIs("closest"))        {Act=new Action_Closest; }
   else if (argIn.CommandIs("nastruct"))       {Act=new Action_NAstruct;}
   else if (argIn.CommandIs("pucker"))         {Act=new Action_Pucker;  }
   else if (argIn.CommandIs("outtraj"))        {Act=new Outtraj; }

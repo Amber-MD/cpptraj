@@ -2,12 +2,12 @@
 #define INC_ACTION_CLOSEST_H
 #include <vector>
 #include "Action.h"
-// Class: Closest
+// Class: Action_Closest
 /// Modify the state so that only the closest solvent molecules are kept.
-class Closest: public Action {
+class Action_Closest: public Action {
   public:
-    Closest();
-    ~Closest();
+    Action_Closest();
+    ~Action_Closest();
 
     void print();
   private:
@@ -22,25 +22,24 @@ class Closest: public Action {
     DataSet *distdata_;
     DataSet *atomdata_;
 
-    int Nclosest_;        ///< Index into Closest datasets
-    char *prefix_;
-    int closestWaters_;
-    bool firstAtom_;
-    //AtomMask soluteMask_;
-    AtomMask stripMask_;
-    AtomMask distanceMask_;
-    Topology *newParm_;
-    //Topology *oldParm_;
-    int NsolventMolecules_;
-    Frame newFrame_;
+    int Nclosest_;          ///< Index into Closest datasets.
+    char *prefix_;          ///< Output topology prefix.
+    int closestWaters_;     ///< # of waters to keep.
+    bool firstAtom_;        ///< If true just calc based on solvent first atom.
+    AtomMask stripMask_;    ///< Mask including solvent and kept waters.
+    AtomMask distanceMask_; ///< Mask of atoms to calculate distance from solvent to.
+    Topology *newParm_;     ///< New topology with solute and kept waters.
+    int NsolventMolecules_; ///< # of solvent molecules in original topology.
+    Frame newFrame_;        ///< New frame with solute and kept waters.
+    /// Hold atom #s of kept solvent in new frame.
     std::vector<int> keptWaterAtomNum_;
 
     /** The moldist structure is used in order to preserve the original
-      * solvent molecule and atom numbers after sorting. */
+      * solvent molecule numbers after sorting. */
     struct MolDist {
-      int mol;        ///< Original solvent molecule number
-      double D;       ///< Closest distance of solvent molecule to atoms in soluteMask
-      AtomMask mask;  ///< Original solvent molecule atom mask
+      int mol;        ///< Original solvent molecule number (starts from 1).
+      double D;       ///< Closest distance of solvent molecule to atoms in distanceMask.
+      AtomMask mask;  ///< Original topology solvent molecule atom mask.
     };
     /// Return true if the first molecule is closer than the second
     struct moldist_cmp {

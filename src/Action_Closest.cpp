@@ -1,4 +1,4 @@
-// Closest
+// Action_Closest
 // Find closest waters to atoms in mask.
 #include <cmath>
 #include <algorithm> // sort
@@ -11,7 +11,7 @@
 #include "ParmFile.h"
 
 // CONSTRUCTOR
-Closest::Closest() :
+Action_Closest::Action_Closest() :
   outFile_(NULL),
   framedata_(NULL),
   moldata_(NULL),
@@ -23,27 +23,26 @@ Closest::Closest() :
   firstAtom_(false),
   newParm_(NULL),
   NsolventMolecules_(0)
-//  oldParm_(NULL)
 {
   //fprintf(stderr,"Closest Con\n");
   useImage_ = true;
 } 
 
 // DESTRUCTOR
-Closest::~Closest() {
+Action_Closest::~Action_Closest() {
   //fprintf(stderr,"Closest Destructor.\n");
   if (newParm_!=NULL) delete newParm_;
 }
 
-// Closest::init()
+// Action_Closest::init()
 /** Expected call: closest <# to keep> <mask> [noimage] [first/oxygen] 
   *                [closestout <filename> [outprefix <parmprefix>]
   */
-int Closest::init( ) {
+int Action_Closest::init( ) {
   // Get Keywords
   closestWaters_ = actionArgs.getNextInteger(-1);
   if (closestWaters_ < 0) {
-    mprinterr("Error: Closest::init(): Invalid # solvent molecules to keep (%i).\n",
+    mprinterr("Error: closest: Invalid # solvent molecules to keep (%i).\n",
               closestWaters_);
     return 1;
   }
@@ -61,7 +60,7 @@ int Closest::init( ) {
     distdata_  = outList_.Add(DataSet::DOUBLE,(char*)"Dist\0","Dist");
     atomdata_  = outList_.Add(DataSet::INT,(char*)"FirstAtm\0","FirstAtm");
     if (framedata_==NULL || moldata_==NULL || distdata_==NULL || atomdata_==NULL) {
-      mprinterr("Error: Closest::init(): Could not setup data sets for output file %s\n",
+      mprinterr("Error: closest:: Could not setup data sets for output file %s\n",
                 filename);
       return 1;
     }
@@ -71,7 +70,7 @@ int Closest::init( ) {
     outFile_ = DFL->Add(filename, distdata_);
     outFile_ = DFL->Add(filename, atomdata_);
     if (outFile_==NULL) {
-      mprintf("Error: Closest::init(): Could not setup output file %s\n",filename);
+      mprintf("Error: closest: Could not setup output file %s\n",filename);
       return 1;
     }
   }
@@ -79,7 +78,7 @@ int Closest::init( ) {
   // Get Masks
   char *mask1 = actionArgs.getNextMask();
   if (mask1==NULL) {
-    mprinterr("Error: Closest::init(): No mask specified.\n");
+    mprinterr("Error: closest: No mask specified.\n");
     return 1;
   }
   distanceMask_.SetMaskString(mask1);
@@ -98,22 +97,22 @@ int Closest::init( ) {
   return 0;
 }
 
-// Closest::setup()
+// Action_Closest::setup()
 /** Like the strip action, closest will modify the current parm keeping info
   * for atoms in mask plus the closestWaters solvent molecules. Set up the
   * vector of MolDist objects, one for every solvent molecule in the original
   * parm file. Atom masks for each solvent molecule will be set up.
   */
-int Closest::setup() {
+int Action_Closest::setup() {
   // If there are no solvent molecules this action is not valid.
   if (currentParm->Nsolvent()==0) {
-    mprintf("Warning: Closest::setup: Parm %s does not contain solvent.\n",currentParm->c_str());
+    mprintf("Warning: closest: Parm %s does not contain solvent.\n",currentParm->c_str());
     return 1;
   }
   // If # solvent to keep >= solvent in this parm the action is not valid.
   // TODO: Just use max # waters?
   if (closestWaters_ >= currentParm->Nsolvent()) {
-    mprintf("Warning: Closest::setup: # solvent to keep (%i) >= # solvent molecules in\n",
+    mprintf("Warning: closest: # solvent to keep (%i) >= # solvent molecules in\n",
             closestWaters_);
     mprintf("                           %s (%i).\n",currentParm->c_str(),
             currentParm->Nsolvent());
@@ -135,42 +134,38 @@ int Closest::setup() {
   std::vector<MolDist>::iterator mdist = SolventMols_.begin();
   int molnum = 1;
   // 3: Set up the soluteMask for all non-solvent molecules.
-  //soluteMask_.ResetMask();
   stripMask_.ResetMask();
   int newnatom = 0;
   int nclosest = 0;
   keptWaterAtomNum_.resize(closestWaters_);
-  for (Topology::mol_iterator solvmol = currentParm->MolStart();
-                              solvmol != currentParm->MolEnd(); ++solvmol)
+  for (Topology::mol_iterator Mol = currentParm->MolStart();
+                              Mol != currentParm->MolEnd(); ++Mol)
   {
-    // DEBUG:
-    //if ( (*solvmol).IsSolvent() ) mprintf("\tMOL %i is SOLVENT.\n",molnum);
-    //else mprintf("\tMOL %i is not solvent.\n", molnum);
-    if ( !(*solvmol).IsSolvent() ) { // Not solvent, add to solute mask.
-      //soluteMask_.AddAtomRange( (*solvmol).BeginAtom(), (*solvmol).EndAtom() );
-      stripMask_.AddAtomRange( (*solvmol).BeginAtom(), (*solvmol).EndAtom() );
-      newnatom += (*solvmol).NumAtoms();
+    if ( !(*Mol).IsSolvent() ) { // Not solvent, add to solute mask.
+      stripMask_.AddAtomRange( (*Mol).BeginAtom(), (*Mol).EndAtom() );
+      newnatom += (*Mol).NumAtoms();
     } else {                         // Solvent, check for same # of atoms.
       if (NsolventAtoms == -1)
-        NsolventAtoms = (*solvmol).NumAtoms();
-      else if ( NsolventAtoms != (*solvmol).NumAtoms() ) {
+        NsolventAtoms = (*Mol).NumAtoms();
+      else if ( NsolventAtoms != (*Mol).NumAtoms() ) {
         mprinterr("Error: closest: Solvent molecules in %s are not of uniform size.\n",
                   currentParm->c_str());
         mprinterr("       First solvent mol = %i atoms, solvent mol %i = %i atoms.\n",
-                  NsolventAtoms, molnum, (*solvmol).NumAtoms());
+                  NsolventAtoms, molnum, (*Mol).NumAtoms());
         return 1;
       }
       // NOTE: mol here is the output molecule number which is why it
       //       starts from 1.
       (*mdist).mol = molnum;
-      (*mdist).mask.AddAtomRange( (*solvmol).BeginAtom(), (*solvmol).EndAtom() );
+      (*mdist).mask.AddAtomRange( (*Mol).BeginAtom(), (*Mol).EndAtom() );
       // For solvent molecules that will be kept, record what the atom number
       // will be in the new stripped parm.
       if (nclosest < closestWaters_) {
-        mprintf("CDBG: Mol %i old atom# %i, new atom# %i\n", molnum, (*solvmol).BeginAtom()+1, newnatom+1);
+        //mprintf("CDBG: Mol %i old atom# %i, new atom# %i\n", molnum, 
+        //        (*Mol).BeginAtom()+1, newnatom+1);
         keptWaterAtomNum_[nclosest] = newnatom;
-        stripMask_.AddAtomRange( (*solvmol).BeginAtom(), (*solvmol).EndAtom() );
-        newnatom += (*solvmol).NumAtoms();
+        stripMask_.AddAtomRange( (*Mol).BeginAtom(), (*Mol).EndAtom() );
+        newnatom += (*Mol).NumAtoms();
         ++nclosest;
       }
       //SolventMols[solventMol].mask.PrintMaskAtoms("solvent");
@@ -183,37 +178,29 @@ int Closest::setup() {
   // NOTE: Should ensure that no solvent atoms are selected!
   if ( currentParm->SetupIntegerMask(distanceMask_) ) return 1;
   if (distanceMask_.None()) {
-    mprintf("Warning: Closest::setup: Mask %s contains no atoms.\n",
+    mprintf("Warning: closest: Distance mask %s contains no atoms.\n",
             distanceMask_.MaskString());
     return 1;
   }
 
-  // Figure out what the the total size of the selected solute atoms plus
-  // the number of kept solvent atoms is in order to set up the stripped
-  // parm.
-  //stripMask_ = soluteMask_;
-  //mprintf("DEBUG:\t");
-  //stripMask.PrintMaskAtoms("stripMask");
-  // Since we have ensured all solvent atoms are of uniform size this is just
-  // the desired number of kept waters * number solvent atoms in each mol.
+  // Check the total number of solvent atoms to be kept.
   NsolventAtoms *= closestWaters_;
   mprintf("\tKeeping %i solvent atoms.\n",NsolventAtoms);
-  // Add space for kept solvent atom #s at end of mask.
-  //stripMask_.AddAtomRange( stripMask_.Nselected(), stripMask_.Nselected() + NsolventAtoms );
-  //stripMask.AddAtomRange(currentParm->solventMoleculeStart[0], 
-  //                       currentParm->solventMoleculeStop[closestWaters-1]);
-  //mprintf("DEBUG:\t");
-  //stripMask.PrintMaskAtoms("stripMaskWsolvent");
+  if (NsolventAtoms < 1) {
+    mprinterr("Error: closest: # of solvent atoms to be kept is < 1.\n");
+    return 1;
+  }
 
-  // Store old parm
-  //oldParm_ = currentParm;
+  // Store original # of molecules.
+  // NOTE: This is stored so that it can be used in the OpenMP section
+  //       of action. I dont think iterators are thread-safe.
   NsolventMolecules_ = currentParm->Nsolvent();
  
   // Create stripped Parm
   if (newParm_!=NULL) delete newParm_;
   newParm_ = currentParm->modifyStateByMask(stripMask_);
   if (newParm_==NULL) {
-    mprinterr("Error: Closest::setup: Could not create new parmtop.\n");
+    mprinterr("Error: closest: Could not create new parmtop.\n");
     return 1;
   }
   newParm_->Summary();
@@ -231,7 +218,7 @@ int Closest::setup() {
     ParmFile pfile;
     pfile.SetDebug( debug );
     if ( pfile.Write(*newParm_, newfilename, ParmFile::AMBERPARM ) ) {
-      mprinterr("Error: CLOSEST: Could not write out stripped parm file %s\n",
+      mprinterr("Error: closest: Could not write out stripped parm file %s\n",
               newParm_->c_str());
     }
   }
@@ -242,12 +229,12 @@ int Closest::setup() {
   return 0;  
 }
 
-// Closest::action()
+// Action_Closest::action()
 /** Find the minimum distance between atoms in distanceMask and each 
   * solvent Mask.
   */
-int Closest::action() {
-  int solventMol, maskPosition; //, maxSolventMolecules;
+int Action_Closest::action() {
+  int solventMol; 
   double Dist, maxD, ucell[9], recip[9];
   AtomMask::const_iterator solute_atom, solvent_atom;
 
@@ -261,10 +248,8 @@ int Closest::action() {
   }
 
   // Loop over all solvent molecules in original frame
-  //maxSolventMolecules = oldParm_->Nsolvent();
   // DEBUG
   //mprintf("Closest: Begin parallel loop for %i\n",frameNum);
-  // DEBUG
 #ifdef _OPENMP
 #pragma omp parallel private(solventMol,solute_atom,Dist,solvent_atom)
 {
@@ -312,23 +297,17 @@ int Closest::action() {
 
   // Sort distances
   sort( SolventMols_.begin(), SolventMols_.end(), moldist_cmp() );
-  // DEBUG
-  //mprintf("Closest: Distances sorted for %i\n",frameNum);
-  // DEBUG
 
   // Add first closestWaters solvent atoms to stripMask
-  solventMol = 0;
-  //maskPosition = soluteMask_.Nselected();
+  std::vector<MolDist>::iterator solventend = SolventMols_.begin() + closestWaters_;
   std::vector<int>::iterator katom = keptWaterAtomNum_.begin();
   for ( std::vector<MolDist>::iterator solvent = SolventMols_.begin();
-                                       solvent != SolventMols_.end();
-                                       solvent++ ) 
+                                       solvent != solventend; ++solvent ) 
   {
     //mprintf("DEBUG:\tmol %i ",(*solvent).mol);
     //(*solvent).mask.PrintMaskAtoms("Mask");
-    maskPosition = *katom;
+    stripMask_.AddMaskAtPosition( (*solvent).mask, *katom );
     ++katom;
-    stripMask_.AddMaskAtPosition( (*solvent).mask, maskPosition );
 
     // Record which water molecules are closest if requested
     if (outFile_!=NULL) {
@@ -344,8 +323,6 @@ int Closest::action() {
     }
     // DEBUG - print first closestWaters distances
     //mprintf("DEBUG: Mol %i   D2= %lf   Atom0= %i\n",(*it).mol, (*it).D, (*it).mask->Selected[0]);
-    ++solventMol;
-    if (solventMol==closestWaters_) break;
   }
 
   // Modify and set frame
@@ -357,13 +334,13 @@ int Closest::action() {
   return 0;
 } 
 
-// Closest::print()
+// Action_Closest::print()
 /** Set up the closest output file for writing. Since the datasets used in
   * closest are local and not part of the master data set list, call Sync
   * for them here. Also set so that the X column (which is just an index)
   * is not written.
   */
-void Closest::print() {
+void Action_Closest::print() {
   if (outFile_==NULL) return;
   // Sync up the dataset list here since it is not part of the master 
   // dataset list.

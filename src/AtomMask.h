@@ -61,7 +61,7 @@ class AtomMask {
     /// Add minAtom <= atom < maxAtom to mask
     void AddAtomRange(int,int);
     /// Add atoms in given mask to this mask at positon, update position
-    void AddMaskAtPosition(AtomMask &, int &);
+    void AddMaskAtPosition(AtomMask&, int);
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*);
     /// Return true if no atoms selected. 
