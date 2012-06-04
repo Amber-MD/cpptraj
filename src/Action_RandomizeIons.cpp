@@ -60,6 +60,7 @@ int Action_RandomizeIons::init() {
   return 0;
 }
 
+// Action_RandomizeIons::setup()
 int Action_RandomizeIons::setup() {
   if (currentParm->Nsolvent()==0) {
     mprinterr("Warning: randomizeions: This command only works if solvent information\n");
@@ -108,25 +109,37 @@ int Action_RandomizeIons::setup() {
   // Check the solvent information to make sure that each solvent listed has the
   // same number of atoms in each molecule; otherwise a uniform trajectory is not
   // possible and therefore this command will be ignored.
-  Topology::mol_iterator solvmol = currentParm->SolventStart();
-  int NsolventAtoms = (*solvmol).NumAtoms();
-  ++solvmol;
-  for (; solvmol != currentParm->SolventEnd(); solvmol++) {
-    if ( NsolventAtoms != (*solvmol).NumAtoms() ) {
-      mprinterr("Warning: randomizeions: Solvent molecules in %s are not of uniform size.\n",
-                currentParm->c_str());
-      mprinterr("       First solvent mol = %i atoms, this solvent mol = %i atoms.\n",
-                NsolventAtoms, (*solvmol).NumAtoms());
-      return 1;
+  // Also save the start and end atom of each solvent molecule.
+  int NsolventAtoms = -1;
+  solventStart_.clear();
+  solventEnd_.clear();
+  solventStart_.reserve( currentParm->Nsolvent() );
+  solventEnd_.reserve( currentParm->Nsolvent() );
+  for (Topology::mol_iterator Mol = currentParm->MolStart();
+                              Mol != currentParm->MolEnd(); ++Mol)
+  {
+    if ( (*Mol).IsSolvent() ) {
+      if (NsolventAtoms == -1)
+        NsolventAtoms = (*Mol).NumAtoms();
+      else if ( NsolventAtoms != (*Mol).NumAtoms() ) {
+
+        mprinterr("Warning: randomizeions: Solvent molecules in %s are not of uniform size.\n",
+                  currentParm->c_str());
+        mprinterr("       First solvent mol = %i atoms, this solvent mol = %i atoms.\n",
+                  NsolventAtoms, (*Mol).NumAtoms());
+        return 1;
+      }
+      solventStart_.push_back( (*Mol).BeginAtom() );
+      solventEnd_.push_back( (*Mol).EndAtom() );
     }
   }
-
   // Allocate solvent molecule mask
   solvent_.resize( currentParm->Nsolvent() );
 
   return 0;
 }
 
+// Action_RandomizeIons::action()
 int Action_RandomizeIons::action() {
   double ucell[9], recip[9], trans[3], watXYZ[3], ionXYZ[3];
 
@@ -134,18 +147,18 @@ int Action_RandomizeIons::action() {
     currentFrame->BoxToRecip(ucell, recip);
   // loop over all solvent molecules and mark those that are too close to the solute
   std::vector<bool>::iterator smask = solvent_.begin();
-  int smolnum = 1;
-  for (Topology::mol_iterator solvmol = currentParm->SolventStart();
-                              solvmol != currentParm->SolventEnd(); solvmol++)
+  //int smolnum = 1; // DEBUG
+  for (std::vector<int>::iterator beginatom = solventStart_.begin();
+                                  beginatom != solventStart_.end(); ++beginatom)
   {
     *smask = true;
     // is solvent molecule to near any atom in the around mask?
     if (aroundmask_ != 0) {
       for (AtomMask::const_iterator atom = around_.begin(); atom != around_.end(); ++atom)
       {
-        double dist = currentFrame->DIST2( (*solvmol).BeginAtom(), *atom, imageType_, 
+        double dist = currentFrame->DIST2( *beginatom, *atom, imageType_, 
                                            ucell, recip);
-        //mprintf("CDBG: @%i to @%i = %lf\n", (*solvmol).BeginAtom()+1,
+        //mprintf("CDBG: @%i to @%i = %lf\n", *beginatom+1,
         //        *atom+1, sqrt(dist));
         if (dist < min_) {
           *smask = false;
@@ -156,12 +169,12 @@ int Action_RandomizeIons::action() {
       }
     }
     ++smask;
-    ++smolnum;
+    //++smolnum; // DEBUG
   }
 
   // DEBUG - print solvent molecule mask
   //mprintf("RANDOMIZEIONS: The following waters are ACTIVE so far:\n");
-  smolnum = 1;
+  //smolnum = 1; // DEBUG
   int smoltot = 0;
   for (smask = solvent_.begin(); smask != solvent_.end(); ++smask) {
     if (*smask) {
@@ -169,7 +182,7 @@ int Action_RandomizeIons::action() {
       ++smoltot;
       //if (smoltot%10 == 0) mprintf("\n");
     }
-    ++smolnum;
+    //++smolnum; // DEBUG
   }
   if (debug > 2)
     mprintf("RANDOMIZEIONS: A total of %i waters (out of %zu) are active\n",
@@ -181,16 +194,16 @@ int Action_RandomizeIons::action() {
     //mprintf("RANDOMIZEIONS: Processing ion atom %i\n", *ion+1);
     // is a potential solvent molecule close to any of the ions (except this one)?
     smask = solvent_.begin();
-    smolnum = 1;
-    for (Topology::mol_iterator solvmol = currentParm->SolventStart();
-                                solvmol != currentParm->SolventEnd(); solvmol++)
+    //smolnum = 1; // DEBUG
+    for (std::vector<int>::iterator beginatom = solventStart_.begin();
+                                    beginatom != solventStart_.end(); ++beginatom)
     {
       if (*smask) {
         // if this solvent is active, check distance to all other ions
         for (AtomMask::const_iterator ion2 = ions_.begin(); ion2 != ions_.end(); ++ion2)
         {
           if (*ion != *ion2) {
-            double dist = currentFrame->DIST2( (*solvmol).BeginAtom(), *ion2, imageType_,
+            double dist = currentFrame->DIST2( *beginatom, *ion2, imageType_,
                                                ucell, recip);
             if (dist < overlap_) {
               *smask = false;
@@ -202,7 +215,7 @@ int Action_RandomizeIons::action() {
         } // END inner loop over ions
       }
       ++smask;
-      ++smolnum;
+      //++smolnum; // DEBUG
     } // END loop over solvent molecules
 
     // solvent should now be true for all solvent molecules eligible to
@@ -227,12 +240,12 @@ int Action_RandomizeIons::action() {
       if (debug > 2)
         mprintf("RANDOMIZEIONS: Swapping solvent mol %i for ion @%i\n", swapMol+1, *ion+1);
       currentFrame->GetAtomXYZ( ionXYZ, *ion );
-      Topology::mol_iterator solvmol = currentParm->SolventStart() + swapMol;
-      currentFrame->GetAtomXYZ( watXYZ, (*solvmol).BeginAtom() );
+      int sbegin = solventStart_[ swapMol ];
+      currentFrame->GetAtomXYZ( watXYZ, sbegin );
       trans[0] = ionXYZ[0] - watXYZ[0];
       trans[1] = ionXYZ[1] - watXYZ[1];
       trans[2] = ionXYZ[2] - watXYZ[2];
-      currentFrame->Translate( trans, (*solvmol).BeginAtom(), (*solvmol).EndAtom() );
+      currentFrame->Translate( trans, sbegin, solventEnd_[ swapMol ] );
       trans[0] = -trans[0];
       trans[1] = -trans[1];
       trans[2] = -trans[2];

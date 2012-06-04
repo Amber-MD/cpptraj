@@ -15,6 +15,11 @@ class Action_RandomizeIons : public Action {
     AtomMask around_;  ///< carg1: the around mask (region of space to avoid)
     char* aroundmask_; ///< NULL if no around mask specified.
     int seed_;         ///< iarg2: random seed
+    // TODO: Combine the below 3 into a struct?
+    /// Hold solvent molecule start atoms.
+    std::vector<int> solventStart_;
+    /// Hold solvent molecule end atoms.
+    std::vector<int> solventEnd_;
     /// True is solvent mol being considered for swap.
     std::vector<bool> solvent_;
 };
