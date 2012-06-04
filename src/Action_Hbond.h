@@ -26,7 +26,8 @@ class Action_Hbond : public Action {
     };
 
     int Nframes_;
-    char *avgout_;
+    char* avgout_;
+    char* solvout_;
     typedef std::map<int,HbondType> HBmapType;
     HBmapType HbondMap_;   ///< Track all solute-solute hbonds found
     HBmapType SolventMap_; ///< Track all solute-solvent hbonds found

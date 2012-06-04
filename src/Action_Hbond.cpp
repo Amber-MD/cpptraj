@@ -9,6 +9,7 @@
 Action_Hbond::Action_Hbond() :
   Nframes_(0),
   avgout_(NULL),
+  solvout_(NULL),
   hasDonorMask_(false),
   hasAcceptorMask_(false),
   hasSolventDonor_(false),
@@ -29,6 +30,7 @@ Action_Hbond::~Action_Hbond() {
 // Action_Hbond::init()
 /** Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [avgout <filename>]
   *                      [donormask <mask>] [acceptormask <mask>]
+  *                      [solventdonor <mask>] [solventacceptor <mask>] [solvout <filename>]
   * Search for Hbonding atoms in region specified by mask. 
   * Arg. check order is:
   * - Keywords
@@ -45,6 +47,7 @@ int Action_Hbond::init() {
   // Get keywords
   char* outfilename = actionArgs.getKeyString("out",NULL);
   avgout_ = actionArgs.getKeyString("avgout",NULL);
+  solvout_ = actionArgs.getKeyString("solvout", NULL);
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   // Convert angle cutoff to radians
   acut_ *= DEGRAD;
@@ -114,6 +117,8 @@ int Action_Hbond::init() {
     mprintf( "         Dumping # Hbond v time results to %s\n", outfilename);
   if (avgout_!=NULL)
     mprintf( "         Dumping Hbond avgs to %s\n",avgout_);
+  if (calcSolvent_ && solvout_ != NULL)
+    mprintf("          Dumping solute-solvent hbond avgs to %s\n", solvout_);
 
   return 0;
 }
@@ -434,13 +439,13 @@ void Action_Hbond::print() {
 
   // Set up data set list for all avg-related data.
   HBavg_ = new DataSetList(); 
-  DFL->Add(avgout_, HBavg_->Add(DataSet::STRING, (char*)"Acceptor", "Acceptor"));
-  DFL->Add(avgout_, HBavg_->Add(DataSet::STRING, (char*)"DonorH", "DonorH"));
-  DFL->Add(avgout_, HBavg_->Add(DataSet::STRING, (char*)"Donor", "Donor"));
-  DFL->Add(avgout_, HBavg_->Add(DataSet::INT, (char*)"Frames", "Frames"));
-  DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, (char*)"Frac", "Frac"));
-  DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, (char*)"AvgDist", "AvgDist"));
-  hbavgFile = DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, (char*)"AvgAng", "AvgAng"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::STRING, "Acceptor", "Acceptor"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::STRING, "DonorH", "DonorH"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::STRING, "Donor", "Donor"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::INT,    "Frames", "Frames"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, "Frac", "Frac"));
+  DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, "AvgDist", "AvgDist"));
+  hbavgFile = DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, "AvgAng", "AvgAng"));
 
   // Place all detected Hbonds in a list and sort 
   for (HBmapType::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) 
@@ -475,13 +480,23 @@ void Action_Hbond::print() {
   hbavgFile->ProcessArgs("noxcol");
 
   // SOLVENT Info
+  // TODO: Handle case where solvout == avgout
+  if (solvout_==NULL) return;
   if (calcSolvent_) {
+    DFL->Add(solvout_, HBavg_->Add(DataSet::STRING, "Accept", "Accept"));
+    DFL->Add(solvout_, HBavg_->Add(DataSet::STRING, "DnrH", "DnrH"));
+    DFL->Add(solvout_, HBavg_->Add(DataSet::STRING, "Dnr", "Dor"));
+    DFL->Add(solvout_, HBavg_->Add(DataSet::INT,    "Nframes", "Nframes"));
+    DFL->Add(solvout_, HBavg_->Add(DataSet::DOUBLE, "Avg", "Avg"));
+    DFL->Add(solvout_, HBavg_->Add(DataSet::DOUBLE, "AvgD", "AvgD"));
+    hbavgFile = DFL->Add(solvout_, HBavg_->Add(DataSet::DOUBLE, "AvgA", "AvgA"));
     HbondList.clear();
     for (HBmapType::iterator it = SolventMap_.begin(); it != SolventMap_.end(); ++it)
       HbondList.push_back( (*it).second );
     sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
     // Calc averages and print
-    mprintf("Solute-Solvent Hbonds:\n");
+    //mprintf("Solute-Solvent Hbonds:\n");
+    hbondnum = 0;
     for (std::vector<HbondType>::iterator hbond = HbondList.begin();
                                         hbond!=HbondList.end(); ++hbond )
     {
@@ -507,10 +522,19 @@ void Action_Hbond::print() {
         Hname = currentParm->ResAtomName((*hbond).H);
       }
 
-      mprintf("%-14s %-14s %-14s %8i %12.4lf %12.4lf %12.4lf\n",
-              Aname.c_str(), Hname.c_str(), Dname.c_str(),
-              (*hbond).Frames, avg, dist, angle);
+      HBavg_->AddData(hbondnum, (char*)Aname.c_str(), 7);
+      HBavg_->AddData(hbondnum, (char*)Hname.c_str(), 8);
+      HBavg_->AddData(hbondnum, (char*)Dname.c_str(), 9);
+      HBavg_->AddData(hbondnum, &((*hbond).Frames), 10);
+      HBavg_->AddData(hbondnum, &avg, 11);
+      HBavg_->AddData(hbondnum, &dist, 12);
+      HBavg_->AddData(hbondnum, &angle, 13);
+      ++hbondnum;
+      //mprintf("%-14s %-14s %-14s %8i %12.4lf %12.4lf %12.4lf\n",
+      //        Aname.c_str(), Hname.c_str(), Dname.c_str(),
+      //        (*hbond).Frames, avg, dist, angle);
     }
+    hbavgFile->ProcessArgs("noxcol");
   }
 }
 
