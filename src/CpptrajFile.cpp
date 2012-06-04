@@ -340,6 +340,23 @@ int CpptrajFile::SetupRead(const char *filenameIn, int debugIn) {
   return 0;
 }
 
+int CpptrajFile::OpenAppend(std::string const& nameIn) {
+  int err;
+  if (nameIn.empty())
+    // Append to STDOUT is meaningless, just open write
+    err = SetupWrite(NULL, 0);
+  else
+    err = SetupAppend(nameIn.c_str(), 0);
+  err += OpenFile();
+  if (err != 0) {
+    if (nameIn.empty())
+      mprinterr("Error: Could not set up STDOUT append (write).\n");
+    else
+      mprinterr("Error: Could not open %s for appending.\n", nameIn.c_str());
+  }
+  return err;
+}
+
 // CpptrajFile::SetupAppend()
 /** Set up the file for appending. Will first set up for read to determine
   * the type and format.
