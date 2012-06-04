@@ -111,11 +111,11 @@ void Mol2File::Mol2Bond(int &at1, int &at2) {
 Atom Mol2File::Mol2Atom() {
   char mol2name[10], mol2type[10];
   double mol2q;
-  //double XYZ_[3];
-  //sscanf(buffer_, "%*i %s %lf %lf %lf %s %*i %*s %lf", mol2name,XYZ_, XYZ_+1, XYZ_+2, 
   sscanf(buffer_, "%*i %s %*f %*f %*f %s %*i %*s %lf", mol2name, mol2type, &mol2q);
-  //return Atom( mol2name, XYZ_, mol2type, mol2q );
-  return Atom( mol2name, mol2type, mol2q );
+  NameType m2name( mol2name );
+  // Replace all asterisks with single quote.
+  m2name.ReplaceAsterisk();
+  return Atom( m2name, mol2type, mol2q );
 }
 
 // Mol2File::Mol2Residue()
@@ -123,7 +123,10 @@ Residue Mol2File::Mol2Residue() {
   char resname[10];
   int resnum;
   sscanf(buffer_,"%*i %*s %*f %*f %*f %*s %i %s",&resnum,resname);
-  return Residue(resnum, resname);
+  NameType rname( resname );
+  // Replace all asterisks with single quote.
+  rname.ReplaceAsterisk();
+  return Residue(resnum, rname);
 }
 
 // Mol2XYZ()

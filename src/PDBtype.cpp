@@ -71,32 +71,17 @@ bool PDBtype::IsPDB_END() {
 // PDBtype::pdb_Atom()
 Atom PDBtype::pdb_Atom() {
   // Atom number (6-11)
-/*  char savechar = buffer_[11];
-  buffer_[11] = '\0';
-  int anum = atoi(buffer_+6);
-  buffer_[11] = savechar;*/
   // Atom name (12-16)
   char savechar = buffer_[16];
   buffer_[16] = '\0';
   NameType aname(buffer_+12);
+  // Replace asterisks with single quotes
+  aname.ReplaceAsterisk();
   buffer_[16] = savechar;
-/*  // X coord (30-38)
-  savechar = buffer_[38];
-  buffer_[38] = '\0';
-  XYZ_[0] = atof( buffer_+30 );
-  buffer_[38] = savechar;
+  // X coord (30-38)
   // Y coord (38-46)
-  savechar = buffer_[46];
-  buffer_[46] = '\0';
-  XYZ_[1] = atof( buffer_+38 );
-  buffer_[46] = savechar;
   // Z coord (46-54)
-  savechar = buffer_[54];
-  buffer_[54] = '\0';
-  XYZ_[2] = atof( buffer_+46 );
-  buffer_[54] = savechar;*/
 
-  //return Atom(aname, XYZ_);
   return Atom(aname);
 }
 
@@ -106,6 +91,8 @@ Residue PDBtype::pdb_Residue() {
   char savechar = buffer_[20];
   buffer_[20] = '\0';
   NameType resname(buffer_+16);
+  // Replace asterisks with single quotes
+  resname.ReplaceAsterisk();
   buffer_[20] = savechar;
   // Res num (22-27)
   savechar = buffer_[27];

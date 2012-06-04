@@ -54,7 +54,6 @@ class Atom {
     inline int AtomicNumber() const          { return AtomicElementNum[element_]; }
     // NOTE: return reference?
     inline NameType Name() const             { return aname_; }
-    inline void ReplaceAsterisk()            { aname_.ReplaceAsterisk(); }
     inline NameType Type() const             { return atype_; }
     inline int TypeIndex() const             { return atype_index_; }
     inline int Mol() const                   { return mol_; }
