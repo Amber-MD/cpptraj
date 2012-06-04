@@ -287,11 +287,22 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   WriteInteger(F_IROTAT, parmIn.Irotat());
   // Write solvent info if IFBOX>0
   if (values[IFBOX] > 0) {
+    // Determine first solvent residue
+    int firstSolventMol = -1;
+    for (Topology::mol_iterator mol = parmIn.MolStart(); mol != parmIn.MolEnd(); ++mol) {
+      if ( (*mol).IsSolvent() ) { 
+        firstSolventMol = (int)(mol - parmIn.MolStart() + 1); 
+        break;
+      }
+    }
+    // If no solvent, just set to 1 beyond # of molecules
+    if (firstSolventMol == -1)
+      firstSolventMol = parmIn.Nmol() + 1;
     // Solvent Pointers
     std::vector<int> solvent_pointer(3);
     solvent_pointer[0] = parmIn.FinalSoluteRes(); // Already +1
     solvent_pointer[1] = parmIn.Nmol();
-    solvent_pointer[2] = parmIn.FirstSolventMol() + 1;
+    solvent_pointer[2] = firstSolventMol;
     if (solvent_pointer[2] == 0)
       solvent_pointer[2] = solvent_pointer[1] + 1;
     WriteInteger(F_SOLVENT_POINTER, solvent_pointer);
@@ -480,17 +491,8 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     error_count_ += TopIn.SetAmberHbond(asol, bsol, hbcut);
     error_count_ += TopIn.SetAmberExtra(solty, itree, join_array, irotat);
     error_count_ += TopIn.SetNonbondInfo(values[NTYPES], NB_index, LJ_A, LJ_B);
-    if (values[IFBOX]>0) {
-      // If there is a problem with molecules, print a warning but dont fail;
-      // molecule information can still be set by DetermineMolecules in
-      // Topology.
-      if ( TopIn.CreateMoleculeArray(atomsPerMol, parmbox, 
-                                     finalSoluteRes, firstSolvMol) != 0 )
-      {
-        mprintf("Warning: Problem with molecule information in Amber topology.\n");
-        mprintf("Warning: Molecule information will be determine from bonds.\n");
-      }
-    }
+    if (values[IFBOX]>0) 
+      TopIn.SetBox( parmbox );
   }
 
   return error_count_;

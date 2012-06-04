@@ -13,7 +13,6 @@
 Topology::Topology() :
   debug_(0),
   topology_error_(0),
-  firstSolventMol_(-1),
   NsolventMolecules_(0),
   finalSoluteRes_(-1),
   pindex_(0),
@@ -80,11 +79,6 @@ int Topology::Nres() {
 // Topology::Nmol()
 int Topology::Nmol() {
   return (int)molecules_.size();
-}
-
-// Topology::FirstSolventMol()
-int Topology::FirstSolventMol() {
-  return firstSolventMol_;
 }
 
 // Topology::Nsolvent()
@@ -281,7 +275,7 @@ int Topology::FindResidueMaxNatom() {
 int Topology::SoluteAtoms() {
   if (NsolventMolecules_ == 0)
     return (int)atoms_.size();
-  return molecules_[firstSolventMol_].BeginAtom();
+  return ( ResLastAtom( finalSoluteRes_ ) );
 }
 
 // Topology::Mass() 
@@ -308,8 +302,8 @@ void Topology::Summary() {
   mprintf("\t\t                  Box: %s\n",box_.TypeName());
   if (NsolventMolecules_>0) {
     mprintf("\t\t                  %i solvent molecules.\n", NsolventMolecules_);
-    mprintf("\t\t                  First solvent mol is %i\n", firstSolventMol_+1);
-    mprintf("\t\t                  Final solute residue is %i\n", finalSoluteRes_+1);
+    if (finalSoluteRes_>-1)
+      mprintf("\t\t                  Final solute residue is %i\n", finalSoluteRes_+1);
   }
   /*if (!bondsh_.empty() || !bonds_.empty())
     mprintf("  %zu bonds to hydrogen, %zu other bonds.\n",bondsh_.size()/3,
@@ -517,43 +511,6 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
   return 0;
 }
 
-// Topology::CreateMoleculeArray()
-int Topology::CreateMoleculeArray(std::vector<int> &atomsPerMol, Box parmbox, 
-                                  int finalSoluteRes, int firstSolvMol)
-{
-  if (atomsPerMol.empty() || finalSoluteRes < 0 || firstSolvMol < 0) {
-    mprinterr("Error: Topology: Could not set up molecule info.\n");
-    mprinterr("\tAtomsPerMol size = %zu\n",atomsPerMol.size());
-    mprinterr("\tfinalSoluteRes = %i\n",finalSoluteRes);
-    mprinterr("\tfirstSolvMol = %i\n",firstSolvMol);
-    return 1;
-  }
-  if (atoms_.empty()) {
-    mprinterr("Error: Topology: Cannot set up molecule info; no atoms present.\n");
-    return 1;
-  }
-  molecules_.clear();
-  molecules_.reserve( atomsPerMol.size() );
-  int molbegin = 0;
-  int molend = 0;
-  int molnum = 0;
-  for (std::vector<int>::iterator molsize = atomsPerMol.begin(); 
-                                  molsize != atomsPerMol.end(); molsize++)
-  {
-    molend += *molsize;
-    // Update atoms molecule numbers
-    for (int at = molbegin; at < molend; at++)
-      atoms_[at].SetMol( molnum );
-    molecules_.push_back( Molecule(molbegin, molend) );
-    molbegin = molend;
-    ++molnum;
-  }
-  box_ = parmbox;
-  finalSoluteRes_ = finalSoluteRes;
-  firstSolventMol_ = firstSolvMol;
-  return 0;
-}
-
 // Topology::SetBondInfo()
 int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh,
                           std::vector<double> &bond_rk, std::vector<double> &bond_req) 
@@ -579,14 +536,6 @@ int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh,
   bondrk_ = bond_rk;
   bondreq_ = bond_req;
 
-  /*else {
-    std::vector<double>::iterator req = bond_req.begin();
-    for (std::vector<double>::iterator rk = bond_rk.begin(); rk != bond_rk.end(); rk++)
-    {
-      bondParm_.push_back( ParmBondType( *rk, *req) );
-      ++req;
-    }
-  }*/
   return 0;
 }
 
@@ -1084,9 +1033,10 @@ void Topology::SetSolventInfo() {
   NsolventMolecules_ = 0;
   int numSolvAtoms = 0;
 
-  if (firstSolventMol_ == -1 ) { // NOTE: Not checking firstSoluteRes
+//  if (firstSolventMol_ == -1 ) { // NOTE: Not checking firstSoluteRes
     // Loop over each molecule. Check if first residue of molecule
     // is solvent.
+    int firstSolventMol = -1;
     finalSoluteRes_ = -1;
     for (std::vector<Molecule>::iterator mol = molecules_.begin();
                                          mol != molecules_.end(); mol++)
@@ -1096,16 +1046,16 @@ void Topology::SetSolventInfo() {
         (*mol).SetSolvent();
         ++NsolventMolecules_;
         numSolvAtoms += (*mol).NumAtoms();
-        if (firstSolventMol_==-1) {
+        if (firstSolventMol==-1) {
           // Final solute residue is the one prior to this
           //finalSoluteRes = residues_.begin() + firstRes - 1;
           finalSoluteRes_ = firstRes - 1;
           // This is the first solvent molecule
-          firstSolventMol_ = (int)(mol - molecules_.begin());
+          firstSolventMol = (int)(mol - molecules_.begin());
         }
       }
     }
-  } else {
+/*  } else {
     // Every molecule from firstSolventMol on is solvent.
     for (std::vector<Molecule>::iterator mol = molecules_.begin() + firstSolventMol_;
                                          mol != molecules_.end(); mol++)
@@ -1114,8 +1064,8 @@ void Topology::SetSolventInfo() {
       ++NsolventMolecules_;
       numSolvAtoms += (*mol).NumAtoms();
     }
-  }
-  if (firstSolventMol_==-1 && finalSoluteRes_ == -1)
+  }*/
+  if (firstSolventMol == -1 && finalSoluteRes_ == -1)
     finalSoluteRes_ = (int)residues_.size() - 1;
   if (debug_>0) {
     if (NsolventMolecules_ == 0) 
@@ -1490,13 +1440,11 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
   //int newatom = 0;
   int oldres = -1;
   int oldmol = -1;
-  newParm->firstSolventMol_ = -1;
+  int firstSolventMol = -1;
   // TODO: Check the map size
   for (int newatom = 0; newatom < (int)MapIn.size(); newatom++) {
     int oldatom = MapIn[ newatom ];
     if (oldatom < 0) continue;
-  //for (AtomMask::const_iterator oldatom = Mask.begin(); oldatom != Mask.end(); oldatom++) 
-  //{
     // Store map of oldatom to newatom
     atomMap[oldatom] = newatom;
     // Copy oldatom 
@@ -1512,7 +1460,6 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
     // Clear bond information from new atom
     newparmAtom.ClearBonds();
     // Set new atom num and residue num
-    //newparmAtom.SetNum( newatom );
     newparmAtom.SetResNum( newParm->residues_.size() - 1 );
     // Place new atom in newParm
     newParm->atoms_.push_back( newparmAtom );
@@ -1521,8 +1468,8 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
     int curmol = atoms_[oldatom].Mol();
     if (curmol != oldmol) {
       // Check if this is the first solvent mol of new parm
-      if (newParm->firstSolventMol_==-1 && molecules_[curmol].IsSolvent()) {
-        newParm->firstSolventMol_ = (int)newParm->molecules_.size();
+      if (firstSolventMol==-1 && molecules_[curmol].IsSolvent()) {
+        firstSolventMol = (int)newParm->molecules_.size();
         // Minus 2 since final solute residue is previous one and residues
         // has already been incremented. 
         newParm->finalSoluteRes_ = (int)newParm->residues_.size() - 2;
@@ -1534,7 +1481,6 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
     if (!itree_.empty()) newParm->itree_.push_back( itree_[oldatom] );
     if (!join_.empty()) newParm->join_.push_back( join_[oldatom] );
     if (!irotat_.empty()) newParm->irotat_.push_back( irotat_[oldatom] );
-    //++newatom;
   }
 
   // NOTE: Since in the bond/angle/dihedral atom arrays the parm indices have 

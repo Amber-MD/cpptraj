@@ -25,7 +25,6 @@ class Topology {
     int Natom();
     int Nres();
     int Nmol();
-    int FirstSolventMol();
     int Nsolvent();
     int Nframes();
     int Ntypes();
@@ -104,8 +103,9 @@ class Topology {
     void PrintMoleculeInfo();
     void PrintResidueInfo();
     // ----- Routines to Access/Modify Box info -----
-    inline Box& ParmBox() { return box_; }
+    inline Box& ParmBox()         { return box_;        }
     inline Box::BoxType BoxType() { return box_.Type(); }
+    void SetBox( Box const& bIn ) { box_ = bIn;         }
     // ----- PDB/Mol2 etc setup routines -----
     void AddAtom(Atom, Residue, const double*);
     void StartNewMol();
@@ -115,7 +115,6 @@ class Topology {
                         std::vector<int>&, std::vector<NameType>&,
                         std::vector<double>&,std::vector<double>&, 
                         std::vector<NameType>&, std::vector<int>&);
-    int CreateMoleculeArray(std::vector<int> &,Box,int,int);
     int SetBondInfo(std::vector<int> &, std::vector<int> &,
                     std::vector<double>&,std::vector<double>&);
     int SetAngleInfo(std::vector<int> &, std::vector<int> &,
@@ -186,7 +185,6 @@ class Topology {
 
     int debug_;
     int topology_error_;
-    int firstSolventMol_;
     int NsolventMolecules_;
     int finalSoluteRes_;
     int pindex_;
