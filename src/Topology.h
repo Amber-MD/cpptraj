@@ -55,8 +55,6 @@ class Topology {
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const { return molecules_.begin(); }
     inline mol_iterator MolEnd() const   { return molecules_.end();   }
-    mol_iterator SolventStart() const;
-    mol_iterator SolventEnd() const;
     // ----- Bond-specific routines -----
     inline const std::vector<int>& Bonds() const { return bonds_; }
     inline const std::vector<int>& BondsH() const { return bondsh_; }

@@ -5,22 +5,18 @@
 class Molecule {
   public:
     Molecule();
-    Molecule(int, int, int);
+    Molecule(int, int);
 
-    void SetFirst(int,int);
-    void SetLast(int);
-    void SetSolvent();
+    void SetFirst(int begin) { beginAtom_ = begin; }
+    void SetLast(int last)   { endAtom_ = last;    }
+    void SetSolvent()        { isSolvent_ = true;  }
 
     inline int BeginAtom() const  { return beginAtom_;   }
     inline int EndAtom() const    { return endAtom_;     } 
-    inline int FirstRes()         { return firstResNum_; }
     inline bool IsSolvent() const { return isSolvent_;   }
-    inline int NumAtoms() const {
-      return (endAtom_ - beginAtom_);
-    }
+    inline int NumAtoms() const   { return (endAtom_ - beginAtom_); }
 
   private:
-    int firstResNum_;
     int beginAtom_;
     int endAtom_;
     bool isSolvent_;

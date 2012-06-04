@@ -193,20 +193,6 @@ int Topology::ResSize(int resnum) {
 }
 
 // -----------------------------------------------------------------------------
-// Topology::SolventStart()
-Topology::mol_iterator Topology::SolventStart() const {
-  if (NsolventMolecules_==0)
-    return molecules_.end();
-  return molecules_.begin() + firstSolventMol_;
-}
-
-// Topology::SolventEnd()
-Topology::mol_iterator Topology::SolventEnd() const {
-  if (NsolventMolecules_==0)
-    return molecules_.end();
-  return molecules_.begin() + firstSolventMol_ + NsolventMolecules_;
-}
-// -----------------------------------------------------------------------------
 int Topology::GetBondParamIdx( int idx, double &Rk, double &Req) {
   if (idx < 0 || idx > (int)bondrk_.size()) return 1;
   Rk = bondrk_[idx];
@@ -400,7 +386,7 @@ void Topology::PrintMoleculeInfo() {
     for (std::vector<Molecule>::iterator mol = molecules_.begin(); 
                                          mol != molecules_.end(); mol++)
     {
-      int firstres = (*mol).FirstRes();
+      int firstres = atoms_[ (*mol).BeginAtom() ].ResNum();
       mprintf("\tMolecule %u, %i atoms, first residue %i:%s",mnum,(*mol).NumAtoms(),
               firstres+1,residues_[firstres].c_str());
       if ( (*mol).IsSolvent() ) mprintf(" SOLVENT");
@@ -449,16 +435,13 @@ void Topology::StartNewMol() {
   // atoms to this point as belonging to first molecule. 
   if (molecules_.empty()) {
     //mprintf("DEBUG:\tFirst molecule, atoms 0 to %zu\n",atoms_.size());
-    molecules_.push_back( Molecule(0, 0, atoms_.size()) );
+    molecules_.push_back( Molecule(0, atoms_.size()) );
   } else {
     // The first atom of this molecule will be end atom of last molecule.
     int molFirstAtom = molecules_.back().EndAtom();
     // Only add a new molecule if #atoms > first atom of the molecule.
-    if ((int)atoms_.size() > molFirstAtom) {
-      // Figure out first residue
-      int molFirstRes = atoms_[molFirstAtom].ResNum();
-      molecules_.push_back( Molecule(molFirstRes, molFirstAtom, atoms_.size()) );
-    }
+    if ((int)atoms_.size() > molFirstAtom) 
+      molecules_.push_back( Molecule( molFirstAtom, atoms_.size()) );
     // First atom
     //mprintf("DEBUG:\tMolecule %zu, atoms %i to %zu\n",
     //       molecules_.size(), lastAtom, atoms_.size());
@@ -557,12 +540,11 @@ int Topology::CreateMoleculeArray(std::vector<int> &atomsPerMol, Box parmbox,
   for (std::vector<int>::iterator molsize = atomsPerMol.begin(); 
                                   molsize != atomsPerMol.end(); molsize++)
   {
-    int firstRes = atoms_[molbegin].ResNum();
     molend += *molsize;
     // Update atoms molecule numbers
     for (int at = molbegin; at < molend; at++)
       atoms_[at].SetMol( molnum );
-    molecules_.push_back( Molecule(firstRes, molbegin, molend) );
+    molecules_.push_back( Molecule(molbegin, molend) );
     molbegin = molend;
     ++molnum;
   }
@@ -1031,7 +1013,7 @@ void Topology::DetermineMolecules() {
   molecules_.resize( mol );
   if (mol == 0) return;
   std::vector<Molecule>::iterator molecule = molecules_.begin();
-  (*molecule).SetFirst(0, 0);
+  (*molecule).SetFirst(0);
   atom = atoms_.begin(); 
   int lastMol = (*atom).Mol();
   int atomNum = 0;
@@ -1040,9 +1022,9 @@ void Topology::DetermineMolecules() {
     if ( (*atom).Mol() != lastMol ) {
       // Set last atom of molecule
       (*molecule).SetLast( atomNum );
-      // Set first atom and resnum of next molecule
+      // Set first atom of next molecule
       ++molecule;
-      (*molecule).SetFirst( atomNum, (*atom).ResNum() );
+      (*molecule).SetFirst( atomNum );
       lastMol = (*atom).Mol();
     }
     ++atomNum;
@@ -1109,7 +1091,7 @@ void Topology::SetSolventInfo() {
     for (std::vector<Molecule>::iterator mol = molecules_.begin();
                                          mol != molecules_.end(); mol++)
     {
-      int firstRes = (*mol).FirstRes();
+      int firstRes = atoms_[ (*mol).BeginAtom() ].ResNum();
       if ( residues_[firstRes].NameIsSolvent() ) {
         (*mol).SetSolvent();
         ++NsolventMolecules_;
