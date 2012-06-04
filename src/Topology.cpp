@@ -1019,9 +1019,59 @@ void Topology::DetermineExcludedAtoms() {
 }
 
 // -----------------------------------------------------------------------------
+// Topology::SetSolvent()
+/** Set solvent information from atom mask. */
+int Topology::SetSolvent(const char* maskexpr) {
+  // Require molecule information
+  if (molecules_.empty()) {
+    mprinterr("Error: SetSolvent [%s]: No molecule information.\n", c_str());
+    return 1;
+  }
+  // Setup mask
+  AtomMask mask( maskexpr );
+  SetupCharMask( mask );
+  if (mask.None()) {
+    mprinterr("Error: SetSolvent [%s]: Mask %s selects no atoms.\n", c_str(), maskexpr);
+    return 1;
+  }
+  // Loop over all molecules
+  NsolventMolecules_ = 0;
+  finalSoluteRes_ = -1;
+  int numSolvAtoms = 0;
+  int firstSolventMol = -1;
+  for (std::vector<Molecule>::iterator mol = molecules_.begin();
+                                       mol != molecules_.end(); ++mol)
+  {
+    // Reset old solvent information.
+    (*mol).SetNoSolvent();
+    // If any atoms in this molecule are selected by mask, make entire
+    // molecule solvent.
+    for (int atom = (*mol).BeginAtom(); atom < (*mol).EndAtom(); ++atom) {
+      if ( mask.AtomInCharMask( atom ) ) {
+        (*mol).SetSolvent();
+        if (firstSolventMol == -1) {
+          // This is first solvent mol. Final solute res is the one before this.
+          int firstRes = atoms_[ (*mol).BeginAtom() ].ResNum();
+          finalSoluteRes_ = firstRes - 1;
+          firstSolventMol = (int)(mol - molecules_.begin());
+        }
+        ++NsolventMolecules_;
+        numSolvAtoms += (*mol).NumAtoms();
+        break;
+      }
+    }
+  }
+
+  if (firstSolventMol == -1 && finalSoluteRes_ == -1)
+    finalSoluteRes_ = (int)residues_.size() - 1;
+  mprintf("\tSolvent Mask [%s]: %i solvent molecules, %i solvent atoms\n",
+          maskexpr, NsolventMolecules_, numSolvAtoms);
+  return 0;
+}
+
 // Topology::SetSolventInfo()
-/** Determine which molecules are solvent. Set finalSoluteRes and 
-  * firstSolventMol if not already set.
+/** Determine which molecules are solvent based on residue name. 
+  * Also set finalSoluteRes.
   */
 void Topology::SetSolventInfo() {
   // Require molecule information
@@ -1030,41 +1080,27 @@ void Topology::SetSolventInfo() {
     topology_error_ = 1;
     return;
   }
+  // Loop over each molecule. Check if first residue of molecule is solvent.
   NsolventMolecules_ = 0;
+  finalSoluteRes_ = -1;
   int numSolvAtoms = 0;
-
-//  if (firstSolventMol_ == -1 ) { // NOTE: Not checking firstSoluteRes
-    // Loop over each molecule. Check if first residue of molecule
-    // is solvent.
-    int firstSolventMol = -1;
-    finalSoluteRes_ = -1;
-    for (std::vector<Molecule>::iterator mol = molecules_.begin();
-                                         mol != molecules_.end(); mol++)
-    {
-      int firstRes = atoms_[ (*mol).BeginAtom() ].ResNum();
-      if ( residues_[firstRes].NameIsSolvent() ) {
-        (*mol).SetSolvent();
-        ++NsolventMolecules_;
-        numSolvAtoms += (*mol).NumAtoms();
-        if (firstSolventMol==-1) {
-          // Final solute residue is the one prior to this
-          //finalSoluteRes = residues_.begin() + firstRes - 1;
-          finalSoluteRes_ = firstRes - 1;
-          // This is the first solvent molecule
-          firstSolventMol = (int)(mol - molecules_.begin());
-        }
-      }
-    }
-/*  } else {
-    // Every molecule from firstSolventMol on is solvent.
-    for (std::vector<Molecule>::iterator mol = molecules_.begin() + firstSolventMol_;
-                                         mol != molecules_.end(); mol++)
-    {
+  int firstSolventMol = -1;
+  for (std::vector<Molecule>::iterator mol = molecules_.begin();
+                                       mol != molecules_.end(); mol++)
+  {
+    int firstRes = atoms_[ (*mol).BeginAtom() ].ResNum();
+    if ( residues_[firstRes].NameIsSolvent() ) {
       (*mol).SetSolvent();
       ++NsolventMolecules_;
       numSolvAtoms += (*mol).NumAtoms();
+      if (firstSolventMol==-1) {
+        // This is first solvent mol. Final solute res is the one before this.
+        finalSoluteRes_ = firstRes - 1;
+        firstSolventMol = (int)(mol - molecules_.begin());
+      }
     }
-  }*/
+  }
+
   if (firstSolventMol == -1 && finalSoluteRes_ == -1)
     finalSoluteRes_ = (int)residues_.size() - 1;
   if (debug_>0) {

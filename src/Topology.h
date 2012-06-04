@@ -95,6 +95,7 @@ class Topology {
     int FindResidueMaxNatom();
     int SoluteAtoms();
     double *Mass();
+    int SetSolvent(const char*);
     // ----- Print topology info -----
     void Summary();
     void ParmInfo();

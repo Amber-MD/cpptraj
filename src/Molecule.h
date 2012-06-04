@@ -10,6 +10,7 @@ class Molecule {
     void SetFirst(int begin) { beginAtom_ = begin; }
     void SetLast(int last)   { endAtom_ = last;    }
     void SetSolvent()        { isSolvent_ = true;  }
+    void SetNoSolvent()      { isSolvent_ = false; }
 
     inline int BeginAtom() const  { return beginAtom_;   }
     inline int EndAtom() const    { return endAtom_;     } 

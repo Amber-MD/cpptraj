@@ -122,7 +122,24 @@ int TopologyList::CheckCommand(ArgList &argIn) {
       TopList_[pindex]->ParmBox() = pbox;
     }
     return 0;
-  } 
+  }
+  // solvent [<parmindex>] <mask>
+  // Set solvent for the given parm (default 0) based on <mask>
+  if (argIn.CommandIs("solvent")) {
+    char* maskexpr = argIn.getNextMask();
+    if ( maskexpr == NULL ) {
+      mprinterr("Error: solvent: No mask specified.\n");
+      return 0;
+    }
+    // Get parm index
+    pindex = argIn.getNextInteger(0);
+    if (pindex < 0 || pindex >= (int)TopList_.size()) {
+      mprinterr("Error: solvent: parm index %i out of bounds.\n",pindex);
+      return 0;
+    }
+    TopList_[pindex]->SetSolvent( maskexpr );
+    return 0;
+  }
   // parmbondinfo [<parmindex>]: Print bond information for parm <parmindex>
   //     (0 by default).
   if (argIn.CommandIs("parmbondinfo")) {
