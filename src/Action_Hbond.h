@@ -9,7 +9,6 @@
 class Action_Hbond : public Action {
   public:
     Action_Hbond();
-    ~Action_Hbond();
 
     void print();
   private:
@@ -27,8 +26,8 @@ class Action_Hbond : public Action {
     };
 
     int Nframes_;
-    char* avgout_;
-    char* solvout_;
+    std::string avgout_;
+    std::string solvout_;
     std::string bridgeout_;
     typedef std::map<int,HbondType> HBmapType;
     HBmapType HbondMap_;   ///< Track all solute-solute hbonds found
@@ -56,7 +55,6 @@ class Action_Hbond : public Action {
     DataSet* NumHbonds_;
     DataSet* NumSolvent_;
     DataSet* NumBridge_; 
-    DataSetList* HBavg_;
     /// Return true if the first hbond has more frames than the second.
     struct hbond_cmp {
       inline bool operator()(HbondType first, HbondType second) const {
