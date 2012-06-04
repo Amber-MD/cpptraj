@@ -57,11 +57,14 @@ int Action_Dipole::setup() {
   // Traverse over solvent molecules to find out the 
   // "largest" solvent molecule; allocate space for this
   // many coordinates.
-  Topology::mol_iterator solvmol = currentParm->SolventStart();
-  int NsolventAtoms = (*solvmol).NumAtoms();
-  for (; solvmol != currentParm->SolventEnd(); ++solvmol) {
-    if ( (*solvmol).NumAtoms() > NsolventAtoms )
-      NsolventAtoms = (*solvmol).NumAtoms();
+  int NsolventAtoms = 0;
+  for (Topology::mol_iterator Mol = currentParm->MolStart();
+                              Mol != currentParm->MolEnd(); ++Mol)
+  {
+    if ( (*Mol).IsSolvent() ) {
+      if ( (*Mol).NumAtoms() > NsolventAtoms )
+        NsolventAtoms = (*Mol).NumAtoms();
+    }
   }
   //sol_.resize( NsolventAtoms );
   mprintf("\tLargest solvent mol is %i atoms.\n", NsolventAtoms);
@@ -100,9 +103,10 @@ int Action_Dipole::action() {
 
   // Traverse over solvent molecules.
   //int i_solvent = 0; // DEBUG
-  for (Topology::mol_iterator solvmol = currentParm->SolventStart();
-                              solvmol != currentParm->SolventEnd(); ++solvmol)
+  for (Topology::mol_iterator solvmol = currentParm->MolStart();
+                              solvmol != currentParm->MolEnd(); ++solvmol)
   {
+    if (!(*solvmol).IsSolvent()) continue;
     //++i_solvent; // DEBUG
     dipolar_vector[0] = 0.0;
     dipolar_vector[1] = 0.0;
