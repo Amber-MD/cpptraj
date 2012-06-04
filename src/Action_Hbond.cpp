@@ -1,6 +1,6 @@
 // Action_Hbond 
 #include <cmath> // sqrt
-#include <algorithm> // sort 
+#include <algorithm> // sort
 #include "Action_Hbond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG, DEGRAD
@@ -19,6 +19,7 @@ Action_Hbond::Action_Hbond() :
   dcut2_(0),
   NumHbonds_(NULL),
   NumSolvent_(NULL),
+  NumBridge_(NULL),
   HBavg_(NULL)
 {}
 
@@ -48,6 +49,7 @@ int Action_Hbond::init() {
   char* outfilename = actionArgs.getKeyString("out",NULL);
   avgout_ = actionArgs.getKeyString("avgout",NULL);
   solvout_ = actionArgs.getKeyString("solvout", NULL);
+  bridgeout_ = actionArgs.GetStringKey("bridgeout");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   // Convert angle cutoff to radians
   acut_ *= DEGRAD;
@@ -91,6 +93,9 @@ int Action_Hbond::init() {
     NumSolvent_ = DSL->Add(DataSet::INT, NULL, "UVHB");
     if (NumSolvent_ == NULL) return 1;
     DFL->Add(outfilename, NumSolvent_);
+    NumBridge_ = DSL->Add(DataSet::INT, NULL, "Bridge");
+    if (NumBridge_ == NULL) return 1;
+    DFL->Add(outfilename, NumBridge_);
   } 
 
   mprintf( "  HBOND: ");
@@ -119,6 +124,8 @@ int Action_Hbond::init() {
     mprintf( "         Dumping Hbond avgs to %s\n",avgout_);
   if (calcSolvent_ && solvout_ != NULL)
     mprintf("          Dumping solute-solvent hbond avgs to %s\n", solvout_);
+  if (calcSolvent_ && !bridgeout_.empty())
+    mprintf("          Dumping solvent bridging info to %s\n", bridgeout_.c_str());
 
   return 0;
 }
@@ -299,10 +306,10 @@ int Action_Hbond::AtomsAreHbonded(int a_atom, int d_atom, int h_atom, int hbidx,
   double angle = currentFrame->ANGLE(a_atom, h_atom, d_atom);
   if (angle < acut_) return 0;
   double dist = sqrt(dist2);
-  mprintf( "A-D HBOND[%6i]: %6i@%-4s ... %6i@%-4s-%6i@%-4s Dst=%6.2lf Ang=%6.2lf\n", hbidx, 
-          a_atom, (*currentParm)[a_atom].c_str(),
-          h_atom, (*currentParm)[h_atom].c_str(), 
-          d_atom, (*currentParm)[d_atom].c_str(), dist, angle*RADDEG);
+  //mprintf( "A-D HBOND[%6i]: %6i@%-4s ... %6i@%-4s-%6i@%-4s Dst=%6.2lf Ang=%6.2lf\n", hbidx, 
+  //        a_atom, (*currentParm)[a_atom].c_str(),
+  //        h_atom, (*currentParm)[h_atom].c_str(), 
+  //        d_atom, (*currentParm)[d_atom].c_str(), dist, angle*RADDEG);
   // Find hbond in map
   HBmapType::iterator entry = SolventMap_.find( hbidx );
   if (entry == SolventMap_.end() ) {
@@ -380,7 +387,10 @@ int Action_Hbond::action() {
   NumHbonds_->Add(frameNum, &numHB);
   //mprintf("HBOND: Scanned %i hbonds.\n",hbidx);
   
-  if (calcSolvent_) { 
+  if (calcSolvent_) {
+    // Contains info about which residue(s) a Hbonding solvent mol is
+    // Hbonded to.
+    std::map< int, std::set<int> > solvent2solute;
     int solventHbonds = 0;
     // SOLUTE DONOR-SOLVENT ACCEPTOR
     // Index by solute H atom. 
@@ -394,10 +404,17 @@ int Action_Hbond::action() {
         H = (*donor);
         for (HBlistType::iterator accept = SolventAcceptor_.begin(); 
                                   accept != SolventAcceptor_.end(); ++accept)
-          numHB += AtomsAreHbonded( *accept, D, H, H, true );
+        { 
+          if (AtomsAreHbonded( *accept, D, H, H, true )) {
+            ++numHB;
+            int soluteres = (*currentParm)[D].ResNum();
+            int solventmol = (*currentParm)[*accept].Mol();
+            solvent2solute[solventmol].insert( soluteres );
+            //mprintf("DBG:\t\tSolvent Mol %i bonded to solute res %i\n",solventmol+1,soluteres+1);
+          }
+        }
       }
-      //numHB = SoluteSolventHbond( Donor_, SolventAcceptor_, 1, 0 );
-      mprintf("DEBUG: # Solvent Acceptor to Solute Donor Hbonds is %i\n", numHB);
+      //mprintf("DEBUG: # Solvent Acceptor to Solute Donor Hbonds is %i\n", numHB);
       solventHbonds += numHB;
     }
     // SOLVENT DONOR-SOLUTE ACCEPTOR
@@ -412,13 +429,45 @@ int Action_Hbond::action() {
         H = (*donor);
         for (HBlistType::iterator accept = Acceptor_.begin();
                                   accept != Acceptor_.end(); ++accept)
-          numHB += AtomsAreHbonded( *accept, D, H, *accept, false );
+        {
+          if (AtomsAreHbonded( *accept, D, H, *accept, false )) {
+            ++numHB;
+            int soluteres = (*currentParm)[*accept].ResNum();
+            int solventmol = (*currentParm)[D].Mol();
+            solvent2solute[solventmol].insert( soluteres );
+            //mprintf("DBG:\t\tSolvent Mol %i bonded to solute res %i\n",solventmol+1,soluteres+1);
+          }
+        }
       }
-      //numHB = SoluteSolventHbond( SolventDonor_, Acceptor_, 0, 1 );
-      mprintf("DEBUG: # Solvent Donor to Solute Acceptor Hbonds is %i\n", numHB);
+      //mprintf("DEBUG: # Solvent Donor to Solute Acceptor Hbonds is %i\n", numHB);
       solventHbonds += numHB;
     }
     NumSolvent_->Add(frameNum, &solventHbonds);
+
+    // Determine number of bridging waters.
+    numHB = 0;
+    for (std::map< int, std::set<int> >::iterator bridge = solvent2solute.begin();
+                                                  bridge != solvent2solute.end();
+                                                  ++bridge)
+    {
+      // If solvent molecule is bound to 2 or more different residues,
+      // it is bridging. 
+      if ( (*bridge).second.size() > 1) {
+        ++numHB;
+        //mprintf("DBG:\t\tSolvent mol %i is bridging residues", (*bridge).first+1);
+        //for (std::set<int>::iterator res = (*bridge).second.begin();
+        //                             res != (*bridge).second.end(); ++res) 
+        //  mprintf(" %i", *res+1);
+        //mprintf("\n");
+        // Find bridge in map based on this combo of residues (bridge.second)
+        BridgeType::iterator b_it = BridgeMap_.find( (*bridge).second );
+        if (b_it == BridgeMap_.end() ) // New Bridge 
+          BridgeMap_.insert( b_it, std::pair<std::set<int>,int>((*bridge).second, 1) );
+        else                           // Increment bridge #frames
+          (*b_it).second++;
+      }
+    }
+    NumBridge_->Add(frameNum, &numHB);
   }
 
   ++Nframes_;
@@ -447,9 +496,10 @@ void Action_Hbond::print() {
   DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, "AvgDist", "AvgDist"));
   hbavgFile = DFL->Add(avgout_, HBavg_->Add(DataSet::DOUBLE, "AvgAng", "AvgAng"));
 
-  // Place all detected Hbonds in a list and sort 
+  // Place all detected Hbonds in a list and sort. Free memory as we go. 
   for (HBmapType::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) 
     HbondList.push_back( (*it).second );
+  HbondMap_.clear();
   sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
   // Calculate averages
   int hbondnum=0;
@@ -493,12 +543,13 @@ void Action_Hbond::print() {
     HbondList.clear();
     for (HBmapType::iterator it = SolventMap_.begin(); it != SolventMap_.end(); ++it)
       HbondList.push_back( (*it).second );
+    SolventMap_.clear();
     sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
     // Calc averages and print
     //mprintf("Solute-Solvent Hbonds:\n");
     hbondnum = 0;
     for (std::vector<HbondType>::iterator hbond = HbondList.begin();
-                                        hbond!=HbondList.end(); ++hbond )
+                                          hbond != HbondList.end(); ++hbond )
     {
       // Average wont make any sense since for any given frame multiple
       // solvent can bond to the same solute.
@@ -535,6 +586,20 @@ void Action_Hbond::print() {
       //        (*hbond).Frames, avg, dist, angle);
     }
     hbavgFile->ProcessArgs("noxcol");
-  }
+
+    // PRINT BRIDGING INFO
+    CpptrajFile outfile;
+    if (outfile.OpenWrite( bridgeout_ )) return; 
+    for (BridgeType::iterator it = BridgeMap_.begin(); 
+                              it != BridgeMap_.end(); ++it) 
+    {
+      outfile.Printf("Bridge Res");
+      for (std::set<int>::iterator res = (*it).first.begin();
+                                   res != (*it).first.end(); ++res)
+        outfile.Printf(" %i:%s", *res+1, currentParm->Res( *res ).c_str());
+      outfile.Printf(", %i frames.\n", (*it).second);
+    }
+    outfile.CloseFile();
+  } // END if calc solvent
 }
 

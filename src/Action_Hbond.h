@@ -2,6 +2,7 @@
 #define INC_ACTION_HBOND_H
 #include <vector>
 #include <map>
+#include <set>
 #include "Action.h"
 // Class: Action_Hbond
 /// Action to calculate the Hbonds present in each frame.
@@ -28,9 +29,12 @@ class Action_Hbond : public Action {
     int Nframes_;
     char* avgout_;
     char* solvout_;
+    std::string bridgeout_;
     typedef std::map<int,HbondType> HBmapType;
     HBmapType HbondMap_;   ///< Track all solute-solute hbonds found
     HBmapType SolventMap_; ///< Track all solute-solvent hbonds found
+    typedef std::map< std::set<int>, int > BridgeType;
+    BridgeType BridgeMap_; ///< Track all combos of residues bridged by solvent.
     typedef std::vector<int> HBlistType;
     HBlistType Donor_;                 ///< Array of hbond donor atoms (D0, H0, D1, H1, ...)
     HBlistType Acceptor_;              ///< Array of hbond acceptor atoms (A0, A1, ...)
@@ -49,9 +53,10 @@ class Action_Hbond : public Action {
     double acut_;
     double dcut2_;
 
-    DataSet *NumHbonds_;
-    DataSet *NumSolvent_;
-    DataSetList *HBavg_;
+    DataSet* NumHbonds_;
+    DataSet* NumSolvent_;
+    DataSet* NumBridge_; 
+    DataSetList* HBavg_;
     /// Return true if the first hbond has more frames than the second.
     struct hbond_cmp {
       inline bool operator()(HbondType first, HbondType second) const {
