@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Watershell::Watershell() :
+Action_Watershell::Action_Watershell() :
   solventmaskexpr_(0),
   //visits_(0),
   lowerCutoff_(0),
@@ -10,13 +10,13 @@ Watershell::Watershell() :
   filename_(0)
 { }
 
-// Watershell::init()
+// Action_Watershell::init()
 /** Expected call: 
   * watershell <solutemask> <filename> [lower <lower cut>] [upper <upper cut>] 
   *            [noimage] [<solventmask>]
   *      
   */
-int Watershell::init() {
+int Action_Watershell::init() {
   useImage_ = !actionArgs.hasKey("noimage");
 
   char *maskexpr = actionArgs.getNextMask();
@@ -58,11 +58,11 @@ int Watershell::init() {
   return 0;
 }
 
-// Watershell::setup()
+// Action_Watershell::setup()
 /** Set up solute and solvent masks. If no solvent mask was specified use 
   * solvent information in the current topology.
   */
-int Watershell::setup() {
+int Action_Watershell::setup() {
   // Set up solute mask
   if (currentParm->SetupIntegerMask( soluteMask_ )) return 1;
   if ( soluteMask_.None() ) {
@@ -74,10 +74,11 @@ int Watershell::setup() {
     if (currentParm->SetupIntegerMask( solventMask_ )) return 1;
   } else {
     solventMask_.ResetMask();
-    for (Topology::mol_iterator mol = currentParm->SolventStart();
-                                mol != currentParm->SolventEnd(); ++mol)
+    for (Topology::mol_iterator mol = currentParm->MolStart();
+                                mol != currentParm->MolEnd(); ++mol)
     {
-      solventMask_.AddAtomRange( (*mol).BeginAtom(), (*mol).EndAtom() );
+      if ( (*mol).IsSolvent() )
+        solventMask_.AddAtomRange( (*mol).BeginAtom(), (*mol).EndAtom() );
     }
   }
   if ( solventMask_.None() ) {
@@ -92,8 +93,8 @@ int Watershell::setup() {
   return 0;    
 }
 
-// Watershell::action()
-int Watershell::action() {
+// Action_Watershell::action()
+int Action_Watershell::action() {
   double ucell[9], recip[9];
 
   if (imageType_==Frame::NONORTHO) currentFrame->BoxToRecip(ucell,recip);
@@ -143,8 +144,8 @@ int Watershell::action() {
   return 0;
 }
 
-// Watershell::print()
-void Watershell::print() {
+// Action_Watershell::print()
+void Action_Watershell::print() {
   CpptrajFile outfile;
   if (outfile.SetupWrite( filename_, debug )) return;
   outfile.OpenFile();

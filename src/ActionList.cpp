@@ -118,7 +118,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("runavg"))         {Act=new Action_RunningAvg;}
   else if (argIn.CommandIs("rmsavgcorr"))     {Act=new RmsAvgCorr;}
   else if (argIn.CommandIs("atomicfluct"))    {Act=new AtomicFluct;}
-  else if (argIn.CommandIs("watershell"))     {Act=new Watershell;}
+  else if (argIn.CommandIs("watershell"))     {Act=new Action_Watershell;}
   else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
   else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
   else if (argIn.CommandIs("vector"))         {Act=new VectorType;}
