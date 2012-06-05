@@ -7,10 +7,7 @@ Action_Contacts::Action_Contacts() :
   byResidue_(false),
   distance_(49.0), // 7.0^2
   first_(false)
-{
-  // Do not allow reference traj
-  //ForbidRefMode( REFTRAJ );
-}
+{ }
 
 // DESTRUCTOR
 Action_Contacts::~Action_Contacts() {
