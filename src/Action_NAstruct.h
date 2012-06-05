@@ -38,6 +38,7 @@ class Action_NAstruct: public Action {
     std::vector<AtomMask> ExpMasks;     ///< Hold atom masks of each base for input coordinates
     std::vector<AtomMask> FitMasks;     ///< Hold atom masks used to RMS-fit each base
     std::vector<int> BasePair;          ///< [Base1-0,Base2-0,IsAnti-0], [Base1-1...
+    std::vector<int> NumberOfHbonds_;   ///< # hbonds between each bsae pair
     int Nbp;                            ///< Total number of base pairs
     int Nbases;                         ///< Total number of NA bases
     double HBdistCut2;                  ///< distance Cutoff^2 for determining hydrogen bonds
@@ -70,9 +71,9 @@ class Action_NAstruct: public Action {
     bool noheader;
     // Functions
     void ClearLists();
-    bool GCpair(AxisType *, AxisType *);
-    bool ATpair(AxisType *, AxisType *);
-    bool basesArePaired(AxisType *, AxisType *);
+    int GCpair(AxisType *, AxisType *);
+    int ATpair(AxisType *, AxisType *);
+    int basesArePaired(AxisType *, AxisType *);
     int determineBasePairing();
     int setupBaseAxes(Frame *);
     int calculateParameters(AxisType &, AxisType &, AxisType*, double*);

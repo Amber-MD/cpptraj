@@ -1,5 +1,4 @@
 #include <cmath>
-//#include <cstdio> // sprintf
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
@@ -38,12 +37,11 @@ Action_NAstruct::~Action_NAstruct() {
   HelixOut.CloseFile();
 }
 
-static const char BP_OUTPUT_FMT[62] = "%8i %8i %8i %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf\n";
+static const char BP_OUTPUT_FMT[66] = "%8i %8i %8i %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %2i\n";
 static const char NA_OUTPUT_FMT[73] = "%8i %4i-%-4i %4i-%-4i %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf\n";
 
 // Action_NAstruct::ClearLists()
-/** Clear all parm-dependent lists
-  */
+/** Clear all parm-dependent lists */
 void Action_NAstruct::ClearLists() {
   RefCoords.clear();
   BaseAxes.clear();
@@ -137,9 +135,8 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
   * 1. G:O6 -- C:N4  6 -- 6
   * 2. G:N1 -- C:N3  7 -- 4
   * 3. G:N2 -- C:O2  9 -- 3
-  * Atom positions are known in standard Ref. Multiply by 3 to get into X.
   */
-bool Action_NAstruct::GCpair(AxisType *DG, AxisType *DC) {
+int Action_NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   int Nhbonds = 0;
   double dist2;
   for (int hb = 0; hb < 3; hb++) {
@@ -155,8 +152,7 @@ bool Action_NAstruct::GCpair(AxisType *DG, AxisType *DC) {
 #     endif
     }
   }
-  if (Nhbonds>0) return true;
-  return false;
+  return Nhbonds;
 }
 
 // Action_NAstruct::ATpair()
@@ -164,7 +160,7 @@ bool Action_NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   * 1. A:N6 -- T:O4  6 -- 6
   * 2. A:N1 -- T:N3  7 -- 4
   */
-bool Action_NAstruct::ATpair(AxisType *DA, AxisType *DT) {
+int Action_NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   int Nhbonds = 0;
   double dist2;
   for (int hb = 0; hb < 2; hb++) {
@@ -180,8 +176,7 @@ bool Action_NAstruct::ATpair(AxisType *DA, AxisType *DT) {
 #     endif
     }
   }
-  if (Nhbonds>0) return true;
-  return false;
+  return Nhbonds;
 }
 
 // Action_NAstruct::basesArePaired()
@@ -189,7 +184,7 @@ bool Action_NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   * determine whether the bases are paired via hydrogen bonding criteria.
   * NOTE: Currently only set up for WC detection
   */
-bool Action_NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
+int Action_NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
   // G C
   if      ( base1->ID==AxisType::GUA && base2->ID==AxisType::CYT ) return GCpair(base1,base2);
   else if ( base1->ID==AxisType::CYT && base2->ID==AxisType::GUA ) return GCpair(base2,base1);
@@ -203,7 +198,7 @@ bool Action_NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
 //    mprintf("Warning: NAstruct: Unrecognized pair: %s - %s\n",NAbaseName[base1->ID],
 //             NAbaseName[base2->ID]);
 //  }
-  return false;
+  return 0;
 }
 
 // Action_NAstruct::determineBasePairing()
@@ -220,11 +215,12 @@ int Action_NAstruct::determineBasePairing() {
 
   Nbp = 0;
   BasePair.clear();
+  NumberOfHbonds_.clear();
 # ifdef NASTRUCTDEBUG  
   mprintf("\n=================== Setup Base Pairing ===================\n");
 # endif
 
-  /* For each unpaired base, determine if it is paired with another base
+  /* For each unpaired base, find the closest potential pairing base 
    * determined by the distance between their axis origins.
    */
   for (base1=0; base1 < Nbases-1; base1++) {
@@ -233,8 +229,6 @@ int Action_NAstruct::determineBasePairing() {
     minDistance = 0;
     for (base2=base1+1; base2 < Nbases; base2++) {
       if (isPaired[base2]) continue;
-      // First determine which origin axes coords are close enough to 
-      // consider pairing.
       distance = DIST2_NoImage(BaseAxes[base1].Origin(), BaseAxes[base2].Origin());
       if (distance < originCut2) {
 #       ifdef NASTRUCTDEBUG
@@ -286,7 +280,8 @@ int Action_NAstruct::determineBasePairing() {
 #           endif
             AntiParallel = false;
           }
-          if (basesArePaired(&BaseAxes[base1], &BaseAxes[base2])) {
+          int NHB = basesArePaired(&BaseAxes[base1], &BaseAxes[base2]);
+          if (NHB > 0) {
             BasePair.push_back(base1);
             BasePair.push_back(base2);
             if (AntiParallel) 
@@ -297,6 +292,7 @@ int Action_NAstruct::determineBasePairing() {
             isPaired[base2]=true;
             ++Nbp;
           }
+          NumberOfHbonds_.push_back( NHB );
 //        } // END if distance > HBangleCut2
 //      } // END if distance < originCut2
     } // END if minBaseNum!=-1
@@ -765,7 +761,9 @@ int Action_NAstruct::determineBaseParameters() {
     Param[5] *= RADDEG;
     BPOut.Printf(BP_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, 
                      BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
-                     Param[0],Param[1],Param[2],Param[5],Param[4],Param[3]);
+                     Param[0],Param[1],Param[2],Param[5],Param[4],Param[3],
+                     NumberOfHbonds_[nbasepair]);
+    //mprintf("DBG: BP %i # hbonds = %i\n", nbasepair+1, NumberOfHbonds_[nbasepair]);
 /*    SHEAR.AddData(frameNum, Param, nbasepair);
     STRETCH.AddData(frameNum, Param+1, nbasepair);
     STAGGER.AddData(frameNum, Param+2, nbasepair);
@@ -940,8 +938,8 @@ int Action_NAstruct::init() {
   }
   BPOut.OpenFile();
   if (!noheader)
-    BPOut.Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n","#Frame","Base1","Base2",
-                     "Shear","Stretch","Stagger","Buckle","Propeller","Opening");
+    BPOut.Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s\n","#Frame","Base1","Base2",
+                     "Shear","Stretch","Stagger","Buckle","Propeller","Opening", "HB");
   // Open BasePair step param output file.
   fnameout.assign( outputsuffix );
   fnameout = "BPstep." + fnameout;
@@ -1101,9 +1099,15 @@ int Action_NAstruct::action() {
   // Set up base axes
   if ( setupBaseAxes(currentFrame) ) return 1;
 
-  // Determine Base Pairing
-  if (!useReference_)
+  if (!useReference_) {
+    // Determine Base Pairing
     if ( determineBasePairing() ) return 1;
+  } else {
+    // Base pairing determined from ref. Just calc # hbonds for each pair.
+    int bp = 0;
+    for (int bp3 = 0; bp3 < (int)BasePair.size(); bp3 += 3) 
+      NumberOfHbonds_[bp++] = basesArePaired(&BaseAxes[BasePair[bp3]], &BaseAxes[BasePair[bp3+1]]); 
+  }
 
   // Determine base parameters
   determineBaseParameters();
