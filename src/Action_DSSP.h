@@ -47,7 +47,11 @@ class Action_DSSP : public Action {
     // For printString=false, Int dataset, hold SStype for each residue at each frame
     DataSetList *SSdata_;   ///< Hold data for SS assignment each frame
     DataSetList *dsspData_; ///< Used to set up datasets for averaging SS
-    // Private vars
+    NameType BB_N;
+    NameType BB_H;
+    NameType BB_C;
+    NameType BB_O;
+    // Private fns
     int isBonded(int, int);
     void SSassign(int, int, SStype);
 };

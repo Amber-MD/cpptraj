@@ -13,7 +13,11 @@ Action_DSSP::Action_DSSP() :
   SSline_(0),
   printString_(false),
   SSdata_(0),
-  dsspData_(0)
+  dsspData_(0),
+  BB_N("N"),
+  BB_H("H"),
+  BB_C("C"),
+  BB_O("O")
 {}
 
 // DESTRUCTOR
@@ -29,7 +33,8 @@ const char Action_DSSP::SSname[7][6]={"None", "Para", "Anti", "3-10", "Alpha", "
 
 // Action_DSSP::init()
 /** Expected call: secstruct [out <filename>] [<mask>] [sumout <filename>]
-  *                          [ptrajformat]
+  *                          [ptrajformat] [namen <N name>] [nameh <H name>]
+  *                          [namec <C name>] [nameo <O name>]
   * If sumout is not specified the filename specified by out is used with .sum suffix. 
   */
 // For now dont allow NULL(stdout) filename for output
@@ -48,6 +53,14 @@ int Action_DSSP::init() {
     sumOut += ".sum";
   } 
   if (actionArgs.hasKey("ptrajformat")) printString_=true;
+  temp = actionArgs.getKeyString("namen",0);
+  if (temp != 0) BB_N = temp;
+  temp = actionArgs.getKeyString("nameh",0);
+  if (temp != 0) BB_H = temp;
+  temp = actionArgs.getKeyString("namec",0);
+  if (temp != 0) BB_C = temp;
+  temp = actionArgs.getKeyString("nameo",0);
+  if (temp != 0) BB_O = temp;
   // Get masks
   char* mask = actionArgs.getNextMask();
   Mask_.SetMaskString(mask);
@@ -69,6 +82,8 @@ int Action_DSSP::init() {
     mprintf("               SS data for each residue will be stored as a string.\n");
   else
     mprintf("               SS data for each residue will be stored as integers.\n");
+  mprintf("               Backbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]\n",
+          *BB_N, *BB_H, *BB_C, *BB_O );
 
   return 0;
 }
@@ -135,22 +150,37 @@ int Action_DSSP::setup() {
     if ( atom_res >= Nres_ ) continue;
     //fprintf(stdout,"DEBUG: Atom %i Res %i [%s]\n",*atom,atom_res,P->names[*atom]);
     SecStruct_[atom_res].isSelected = true;
-    if (      (*currentParm)[*atom].Name() == "C   ")
+    if (      (*currentParm)[*atom].Name() == BB_C)
       SecStruct_[atom_res].C = (*atom) * 3;
-    else if ( (*currentParm)[*atom].Name() == "O   ")
+    else if ( (*currentParm)[*atom].Name() == BB_O)
       SecStruct_[atom_res].O = (*atom) * 3;
-    else if ( (*currentParm)[*atom].Name() == "N   ")
+    else if ( (*currentParm)[*atom].Name() == BB_N)
       SecStruct_[atom_res].N = (*atom) * 3;
-    else if ( (*currentParm)[*atom].Name() == "H   ")
+    else if ( (*currentParm)[*atom].Name() == BB_H)
       SecStruct_[atom_res].H = (*atom) * 3;
   }
 
   // For each residue selected in the mask, check if residue is already 
   // set up in SecStruct. If so update the atom indices, otherwise set it up.
   int selected = 0;
+  int missing = 0;
   for (int res = 0; res < Nres_; ++res) {
     if (!SecStruct_[res].isSelected) continue;
     // Residue needs at least C=O or N-H, Check?
+    if ( SecStruct_[res].N==-1 || SecStruct_[res].H==-1 ||
+          SecStruct_[res].C==-1 || SecStruct_[res].O==-1 )
+    {
+      ++missing;
+      if (debug > 0) {
+        mprintf("Warning: Not all BB atoms found for res %i:%s:",
+                res+1, currentParm->Res(res).c_str());
+        if (SecStruct_[res].N==-1) mprintf(" N");
+        if (SecStruct_[res].H==-1) mprintf(" H");
+        if (SecStruct_[res].C==-1) mprintf(" C");
+        if (SecStruct_[res].O==-1) mprintf(" O");
+        mprintf("\n");
+      }
+    }
     // Set up dataset if necessary 
     if (!printString_ && SecStruct_[res].resDataSet==NULL) {
       // Setup dataset name for this residue
@@ -159,6 +189,13 @@ int Action_DSSP::setup() {
       if (SecStruct_[res].resDataSet!=NULL) DFL->Add(outfilename_, SecStruct_[res].resDataSet);
     }
     ++selected;
+  }
+  if (missing > 0) {
+    mprintf("Warning: Not all BB atoms found for %i residues.\n", missing);
+    mprintf("Info: This is expected for Proline and terminal/non-standard residues.\n");
+    mprintf("Info: Expected BB atom names: N=[%s]  H=[%s]  C=[%s]  O=[%s]\n",
+          *BB_N, *BB_H, *BB_C, *BB_O );
+    mprintf("Info: Re-run with 'actiondebug 1' to see which residues are missing atoms.\n");
   }
 
   // Count number of selected residues
