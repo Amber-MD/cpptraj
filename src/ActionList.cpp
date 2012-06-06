@@ -50,6 +50,7 @@
 #include "Action_DNAionTracker.h"
 #include "Action_Scale.h"
 #include "Action_RandomizeIons.h"
+#include "Action_AutoImage.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -134,6 +135,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("dnaiontracker"))  {Act=new Action_DNAionTracker;}
   else if (argIn.CommandIs("scale"))          {Act=new Action_Scale;}
   else if (argIn.CommandIs("randomizeions"))  {Act=new Action_RandomizeIons;}
+  else if (argIn.CommandIs("autoimage"))      {Act=new Action_AutoImage;}
   else return 1; 
 
   // Pass in the argument list
