@@ -185,6 +185,8 @@ int AmberNetcdf::setupTrajin(Topology* trajParm) {
   Coord_ = new float[ Ncatom3() ];
   closeTraj();
 
+  seekable_ = true;
+
   return Ncframe();
 }
 
