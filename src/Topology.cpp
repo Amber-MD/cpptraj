@@ -161,11 +161,6 @@ const Atom& Topology::operator[](int idx) {
 }
 
 // -----------------------------------------------------------------------------
-// Topology::Res()
-const Residue& Topology::Res(int idx) {
-  return residues_[idx];
-}
-
 int Topology::ResFirstAtom(int resnum) {
   if (resnum < 0 || resnum >= (int)residues_.size())
     return (int)atoms_.size();
