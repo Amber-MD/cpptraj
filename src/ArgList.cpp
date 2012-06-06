@@ -332,6 +332,19 @@ char *ArgList::getNextMask() {
   return NULL;
 }
 
+std::string ArgList::GetMaskNext() {
+  for (unsigned int arg = 0; arg < arglist.size(); ++arg) {
+    if (!marked[arg]) {
+      size_t found = arglist[arg].find_first_of(":@*/%");
+      if (found != std::string::npos) {
+        marked[arg] = true;
+        return arglist[arg];
+      }
+    }
+  }
+  return std::string();
+}
+
 // ArgList::getNextTag()
 /** Return the next unmarked tag. A tag is defined as a character string
   * bounded by brackets, e.g. [tag].

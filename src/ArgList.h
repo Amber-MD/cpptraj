@@ -60,6 +60,7 @@ class ArgList {
     std::string GetStringNext();
     /// Return the next unmarked mask
     char *getNextMask();
+    std::string GetMaskNext();
     /// Return the next unmarked tag
     std::string getNextTag();
     /// Return the next unmarked integer
