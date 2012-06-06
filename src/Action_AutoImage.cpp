@@ -1,5 +1,6 @@
 #include "Action_AutoImage.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
@@ -153,14 +154,15 @@ int Action_AutoImage::setup() {
     }
   }
   // DEBUG: Print fixed and mobile lists
-  mprintf("\tThe following molecules are fixed to anchor:\n");
+  mprintf("\tThe following molecules are fixed to anchor:");
   for (std::vector<int>::iterator atom = fixedList_.begin(); 
                                   atom != fixedList_.end(); atom += 2)
-    mprintf("\t\t%i\n", (*currentParm)[ *atom ].Mol()+1 );
-  mprintf("\tThe following molecules are mobile:\n");
-  for (std::vector<int>::iterator atom = mobileList_.begin(); 
-                                  atom != mobileList_.end(); atom += 2)
-    mprintf("\t\t%i\n", (*currentParm)[ *atom ].Mol()+1 );
+    mprintf(" %i", (*currentParm)[ *atom ].Mol()+1 );
+  mprintf("\n\t%zu molecules are mobile.\n", mobileList_.size() / 2 );
+  //mprintf("\tThe following molecules are mobile:\n");
+  //for (std::vector<int>::iterator atom = mobileList_.begin(); 
+  //                                atom != mobileList_.end(); atom += 2)
+  //  mprintf("\t\t%i\n", (*currentParm)[ *atom ].Mol()+1 );
 
   return 0;
 }
@@ -183,17 +185,21 @@ int Action_AutoImage::action() {
   }
 
   // Create copy of currentFrame
+  // TODO: This is relatively expensive. Change so that potential
+  //       imaging translation can be calcd and not actually applied.
   Frame fixedFrame( *currentFrame );
 
-  // Image everything in fixed and mobile
+  // Image everything in fixedFrame according to fixedList, and everything
+  // in currentFrame according to mobileList. Always use molecule COM when
+  // imaging fixedList.
   if (ortho_) {
-    fixedFrame.ImageOrtho(origin_, center_, useMass_, fixedList_);
+    fixedFrame.ImageOrtho(origin_, true, useMass_, fixedList_);
     currentFrame->ImageOrtho(origin_, center_, useMass_, mobileList_);
   } else {
     // TODO: Move BoxToRecip call out of ImageNonortho
     currentFrame->BoxToRecip(ucell, recip);
     fixedFrame.ImageNonortho(origin_, NULL, (triclinic_==FAMILIAR),
-                             center_, useMass_, fixedList_);
+                             true, useMass_, fixedList_);
     currentFrame->ImageNonortho(origin_, NULL, (triclinic_==FAMILIAR),
                                 center_, useMass_, mobileList_);
   }  
@@ -212,10 +218,11 @@ int Action_AutoImage::action() {
       currentFrame->GeometricCenter(framecenter, firstAtom, lastAtom);
       fixedFrame.GeometricCenter(fixedcenter, firstAtom, lastAtom);
     }
-    double framedist2 = currentFrame->DIST2( center, framecenter, imageType_, ucell, recip );
-    double fixeddist2 = fixedFrame.DIST2( center, fixedcenter, imageType_, ucell, recip );
-    mprintf("DBG: Fixed @%i-%i dist2=%lf, imaged dist2=%lf\n", firstAtom+1, lastAtom+1,
-            framedist2, fixeddist2);
+    double framedist2 = DIST2_NoImage( center, framecenter );
+    double fixeddist2 = DIST2_NoImage( center, fixedcenter );
+    //mprintf("DBG: [%5i] Fixed @%i-%i frame dist2=%lf, imaged dist2=%lf\n", frameNum,
+    //        firstAtom+1, lastAtom+1,
+    //        framedist2, fixeddist2);
     if (fixeddist2 < framedist2) {
       // Imaging these atoms moved them closer to anchor. Update coords in currentFrame. 
       for (int idx = firstAtom*3; idx < lastAtom*3; ++idx)
