@@ -44,6 +44,10 @@ class Frame {
     bool empty();
     double MaxImagedDistance();
     void BoxXYZ(double* XYZ) { XYZ[0]=box_[0]; XYZ[1]=box_[1]; XYZ[2]=box_[2]; }
+    double BoxX() { return box_[0]; }
+    double BoxY() { return box_[1]; }
+    double BoxZ() { return box_[2]; }
+    double& operator[](int idx) { return X_[idx]; }
     // Vec3 functions
     //Vec3 GetAtomVec3(int atom) { return Vec3(X_+(atom*3)); }
     //Vec3 CenterOfMass(AtomMask &);

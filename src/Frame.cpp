@@ -193,6 +193,7 @@ Frame::Frame(const Frame &rhs) :
     maxnatom_ = natom_;
   // rhs.maxnatom may not be equal to natom. Use maxNcoord for alloc.
   int maxNcoord = maxnatom_ * 3;
+  memcpy(box_, rhs.box_, BOXSIZE_);
   X_ = NULL;
   V_ = NULL;
   Mass_ = NULL;
