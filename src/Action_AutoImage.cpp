@@ -7,6 +7,7 @@ Action_AutoImage::Action_AutoImage() :
   origin_(false),
   ortho_(false),
   center_(false),
+  truncoct_(false),
   triclinic_(OFF)
 {}
 
@@ -168,12 +169,17 @@ int Action_AutoImage::setup() {
   //                        atom != mobileList_.end(); atom += 2)
   //  mprintf("\t\t%i\n", (*currentParm)[ *atom ].Mol()+1 );
 
+  truncoct_ = (triclinic_==FAMILIAR);
+
   return 0;
 }
 
 // Action_AutoImage::action()
 int Action_AutoImage::action() {
-  double center[3], ucell[9], recip[9], fixedcenter[3], framecenter[3];
+  double center[3], ucell[9], recip[9], imagedcenter[3], framecenter[3];
+  double fcom[3];
+  double bp[3], bm[3];
+  double Trans[3];
 
   // Center w.r.t. anchor
   currentFrame->Center( anchorMask_, origin_, useMass_);
@@ -188,49 +194,59 @@ int Action_AutoImage::action() {
     center[2] = currentFrame->BoxZ() / 2;
   }
 
-  // Create copy of currentFrame
-  // TODO: This is relatively expensive. Change so that potential
-  //       imaging translation can be calcd and not actually applied.
-  Frame fixedFrame( *currentFrame );
-
-  // Image everything in fixedFrame according to fixedList, and everything
-  // in currentFrame according to mobileList. Always use molecule COM when
-  // imaging fixedList.
+  // Setup imaging, and image everything in currentFrame 
+  // according to mobileList. 
   if (ortho_) {
-    fixedFrame.ImageOrtho(origin_, true, useMass_, fixedList_);
-    currentFrame->ImageOrtho(origin_, center_, useMass_, mobileList_);
+    currentFrame->SetupImageOrtho(bp, bm, origin_);
+    currentFrame->ImageOrtho(bp, bm, center_, useMass_, mobileList_);
   } else {
-    // TODO: Move BoxToRecip call out of ImageNonortho
     currentFrame->BoxToRecip(ucell, recip);
-    fixedFrame.ImageNonortho(origin_, NULL, (triclinic_==FAMILIAR),
-                             true, useMass_, fixedList_);
-    currentFrame->ImageNonortho(origin_, NULL, (triclinic_==FAMILIAR),
+    if (truncoct_)
+      currentFrame->SetupImageTruncoct( fcom, NULL, useMass_, origin_ );
+    currentFrame->ImageNonortho(origin_, fcom, ucell, recip, truncoct_,
                                 center_, useMass_, mobileList_);
   }  
 
-  // Determine if fixed position is closer to anchor center in currentFrame or fixedFrame
+  // For each molecule defined by atom pairs in fixedList, determine if the
+  // imaged position is closer to anchor center than the current position.
+  // Always use molecule center when imaging fixedList.
   for (pairList::iterator atom1 = fixedList_.begin();
                           atom1 != fixedList_.end(); ++atom1)
   {
     int firstAtom = *atom1;
     ++atom1;
     int lastAtom = *atom1;
-    if (useMass_) {
+    Trans[0] = 0;
+    Trans[1] = 0;
+    Trans[2] = 0;
+    if (useMass_) 
       currentFrame->CenterOfMass(framecenter, firstAtom, lastAtom);
-      fixedFrame.CenterOfMass(fixedcenter, firstAtom, lastAtom);
-    } else {
+    else
       currentFrame->GeometricCenter(framecenter, firstAtom, lastAtom);
-      fixedFrame.GeometricCenter(fixedcenter, firstAtom, lastAtom);
-    }
-    double framedist2 = DIST2_NoImage( center, framecenter );
-    double fixeddist2 = DIST2_NoImage( center, fixedcenter );
-    //mprintf("DBG: [%5i] Fixed @%i-%i frame dist2=%lf, imaged dist2=%lf\n", frameNum,
-    //        firstAtom+1, lastAtom+1,
-    //        framedist2, fixeddist2);
-    if (fixeddist2 < framedist2) {
-      // Imaging these atoms moved them closer to anchor. Update coords in currentFrame. 
-      for (int idx = firstAtom*3; idx < lastAtom*3; ++idx)
-        (*currentFrame)[idx] = fixedFrame[idx];
+    // NOTE: imaging routines will modify input coords.
+    imagedcenter[0] = framecenter[0];
+    imagedcenter[1] = framecenter[1];
+    imagedcenter[2] = framecenter[2];
+    if (ortho_)
+      currentFrame->ImageOrtho(Trans, imagedcenter, bp, bm);
+    else
+      currentFrame->ImageNonortho(Trans, imagedcenter, truncoct_, origin_, ucell, recip, fcom);
+    // If molecule was imaged, determine whether imaged position is closer to anchor.
+    if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
+      imagedcenter[0] = framecenter[0] + Trans[0];
+      imagedcenter[1] = framecenter[1] + Trans[1];
+      imagedcenter[2] = framecenter[2] + Trans[2];
+      double framedist2 = DIST2_NoImage( center, framecenter );
+      double imageddist2 = DIST2_NoImage( center, imagedcenter );
+      //mprintf("DBG: [%5i] Fixed @%i-%i frame dist2=%lf, imaged dist2=%lf\n", frameNum,
+      //        firstAtom+1, lastAtom+1,
+      //        framedist2, imageddist2);
+      if (imageddist2 < framedist2) {
+        // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
+        currentFrame->Translate(Trans, firstAtom, lastAtom);
+        //for (int idx = firstAtom*3; idx < lastAtom*3; ++idx)
+        //  (*currentFrame)[idx] = fixedFrame[idx];
+      }
     }
   }
     

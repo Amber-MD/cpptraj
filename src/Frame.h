@@ -86,8 +86,12 @@ class Frame {
     void Center(AtomMask &, bool,bool);
     void CenterReference(double *, bool);
     void ShiftToGeometricCenter();
-    void ImageNonortho(bool, AtomMask *, bool, bool, bool, std::vector<int> &);
-    void ImageOrtho(bool, bool, bool, std::vector<int> &);
+    void SetupImageTruncoct(double*, AtomMask*,bool,bool);
+    void ImageNonortho(bool, double*, double*, double*, bool, bool, bool, std::vector<int> &);
+    void ImageNonortho(double*, double*, bool, bool, double*, double*, double*);
+    void SetupImageOrtho(double*, double*, bool);
+    void ImageOrtho(double*,double*, bool, bool, std::vector<int> &);
+    void ImageOrtho(double*, double*, double*, double*);
     void UnwrapNonortho( Frame&, AtomMask& );
     void UnwrapOrtho( Frame&, AtomMask& );
 

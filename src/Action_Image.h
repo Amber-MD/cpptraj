@@ -18,6 +18,7 @@ class Action_Image: public Action {
     bool center_;
     /// True if orthorhombic cell, false otherwise.
     bool ortho_;
+    bool truncoct_;
     enum TriclinicArg {OFF, FORCE, FAMILIAR};
     TriclinicArg triclinic_;
     /// Vector containing atom ranges to be imaged (first to last)

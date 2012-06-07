@@ -8,6 +8,7 @@ Action_Image::Action_Image() :
   origin_(false),
   center_(false),
   ortho_(false),
+  truncoct_(false),
   triclinic_(OFF)
 {
   //fprintf(stderr,"Image Con\n");
@@ -148,16 +149,28 @@ int Action_Image::setup() {
       mprintf("\t\tMol First-Last atom#: %i - %i\n", (*ap)+1, *(ap+1) );
   }
 
+  // Truncoct flag
+  truncoct_ = (triclinic_==FAMILIAR);
+
   return 0;  
 }
 
 // Action_Image::action()
 int Action_Image::action() {
-
-  if (ortho_)
-    currentFrame->ImageOrtho(origin_, center_, useMass_, imageList_);
-  else
-    currentFrame->ImageNonortho(origin_, ComMask_, (triclinic_==FAMILIAR),
+  // Ortho
+  double bp[3], bm[3];
+  // Nonortho
+  double ucell[9], recip[9], fcom[3];
+  
+  if (ortho_) {
+    currentFrame->SetupImageOrtho(bp, bm, origin_);
+    currentFrame->ImageOrtho(bp, bm, center_, useMass_, imageList_);
+  } else {
+    currentFrame->BoxToRecip( ucell, recip );
+    if (truncoct_)
+      currentFrame->SetupImageTruncoct( fcom, ComMask_, useMass_, origin_ );
+    currentFrame->ImageNonortho(origin_, fcom, ucell, recip, truncoct_,
                                 center_, useMass_, imageList_);
+  }
   return 0;
 } 

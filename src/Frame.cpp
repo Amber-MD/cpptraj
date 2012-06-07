@@ -1032,19 +1032,10 @@ void Frame::ShiftToGeometricCenter( ) {
   this->Translate(frameCOM);
 }
 
-// Frame::ImageNonortho()
-void Frame::ImageNonortho(bool origin, AtomMask *ComMask, bool truncoct, bool center,
-                          bool useMass, std::vector<int> &AtomPairs)
+void Frame::SetupImageTruncoct( double* fcom, AtomMask* ComMask, bool useMass, bool origin ) 
 {
-  double ucell[9], recip[9], boxTrans[3], Coord[3];
-  double fc[3], ffc[3];
-  // fcom and ixyz only needed for truncoct
-  double fcom[3];
-  int ixyz[3];
-
-  BoxToRecip(ucell, recip);
   // Set up centering if putting nonortho cell into familiar trunc. oct. shape
-  if (truncoct) {
+  //if (truncoct) {
     if (ComMask!=NULL) {
       // Use center of atoms in mask
       if (useMass)
@@ -1063,7 +1054,20 @@ void Frame::ImageNonortho(bool origin, AtomMask *ComMask, bool truncoct, bool ce
       fcom[2] = box_[2] / 2;
     }
     //fprintf(stdout,"DEBUG: fcom = %lf %lf %lf\n",fcom[0],fcom[1],fcom[2]);
-  }
+  //}
+}
+
+// Frame::ImageNonortho()
+void Frame::ImageNonortho(bool origin, double* fcom, double* ucell, double* recip,
+                          bool truncoct, bool center,
+                          bool useMass, std::vector<int> &AtomPairs)
+{
+  //double ucell[9], recip[9], 
+  double boxTrans[3], Coord[3];
+  // fcom and ixyz only needed for truncoct
+  //double fcom[3];
+
+  //BoxToRecip(ucell, recip);
 
   // Loop over atom pairs
   for (std::vector<int>::iterator atom = AtomPairs.begin();
@@ -1094,52 +1098,60 @@ void Frame::ImageNonortho(bool origin, AtomMask *ComMask, bool truncoct, bool ce
       ++atomidx;
       Coord[2] = X_[atomidx];
     }
-   
-    fc[0]=(Coord[0]*recip[0]) + (Coord[1]*recip[1]) + (Coord[2]*recip[2]);
-    fc[1]=(Coord[0]*recip[3]) + (Coord[1]*recip[4]) + (Coord[2]*recip[5]);
-    fc[2]=(Coord[0]*recip[6]) + (Coord[1]*recip[7]) + (Coord[2]*recip[8]);
 
-    if ( origin ) {
-      fc[0] += 0.5;
-      fc[1] += 0.5;
-      fc[2] += 0.5;
-    }
-
-    ffc[0] = floor(fc[0]);
-    ffc[1] = floor(fc[1]);
-    ffc[2] = floor(fc[2]);
-
-    boxTrans[0] -= (ffc[0]*ucell[0] + ffc[1]*ucell[3] + ffc[2]*ucell[6]);
-    boxTrans[1] -= (ffc[0]*ucell[1] + ffc[1]*ucell[4] + ffc[2]*ucell[7]);
-    boxTrans[2] -= (ffc[0]*ucell[2] + ffc[1]*ucell[5] + ffc[2]*ucell[8]);
-
-    // Put into familiar trunc. oct. shape
-    if (truncoct) {
-      Coord[0] += boxTrans[0];
-      Coord[1] += boxTrans[1];
-      Coord[2] += boxTrans[2];
-      MinImageNonOrtho2(Coord, fcom, box_, (int)origin, ixyz, ucell, recip);
-      if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
-        boxTrans[0] += (ixyz[0]*ucell[0] + ixyz[1]*ucell[3] + ixyz[2]*ucell[6]);
-        boxTrans[1] += (ixyz[0]*ucell[1] + ixyz[1]*ucell[4] + ixyz[2]*ucell[7]);
-        boxTrans[2] += (ixyz[0]*ucell[2] + ixyz[1]*ucell[5] + ixyz[2]*ucell[8]);
-
-        //if (debug > 2)
-        //  mprintf( "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
-        //          ixyz[0], ixyz[1], ixyz[2]);
-      }
-    }
+    ImageNonortho(boxTrans, Coord, truncoct, origin, 
+                  ucell, recip, fcom);
 
     Translate(boxTrans, firstAtom, lastAtom);
 
   } // END loop over atom pairs
 }
 
-// Frame::ImageOrtho()
-void Frame::ImageOrtho(bool origin, bool center, bool useMass, std::vector<int> &AtomPairs) 
+// Frame::ImageNonortho()
+void Frame::ImageNonortho(double* boxTrans, double* Coord, 
+                          bool truncoct, bool origin,
+                          double* ucell, double* recip, double* fcom)
 {
-  double bp[3], bm[3], boxTrans[3], Coord[3];
+  double fc[3], ffc[3];
+  int ixyz[3];
+   
+  fc[0]=(Coord[0]*recip[0]) + (Coord[1]*recip[1]) + (Coord[2]*recip[2]);
+  fc[1]=(Coord[0]*recip[3]) + (Coord[1]*recip[4]) + (Coord[2]*recip[5]);
+  fc[2]=(Coord[0]*recip[6]) + (Coord[1]*recip[7]) + (Coord[2]*recip[8]);
 
+  if ( origin ) {
+    fc[0] += 0.5;
+    fc[1] += 0.5;
+    fc[2] += 0.5;
+  }
+
+  ffc[0] = floor(fc[0]);
+  ffc[1] = floor(fc[1]);
+  ffc[2] = floor(fc[2]);
+
+  boxTrans[0] -= (ffc[0]*ucell[0] + ffc[1]*ucell[3] + ffc[2]*ucell[6]);
+  boxTrans[1] -= (ffc[0]*ucell[1] + ffc[1]*ucell[4] + ffc[2]*ucell[7]);
+  boxTrans[2] -= (ffc[0]*ucell[2] + ffc[1]*ucell[5] + ffc[2]*ucell[8]);
+
+  // Put into familiar trunc. oct. shape
+  if (truncoct) {
+    Coord[0] += boxTrans[0];
+    Coord[1] += boxTrans[1];
+    Coord[2] += boxTrans[2];
+    MinImageNonOrtho2(Coord, fcom, box_, (int)origin, ixyz, ucell, recip);
+    if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
+      boxTrans[0] += (ixyz[0]*ucell[0] + ixyz[1]*ucell[3] + ixyz[2]*ucell[6]);
+      boxTrans[1] += (ixyz[0]*ucell[1] + ixyz[1]*ucell[4] + ixyz[2]*ucell[7]);
+      boxTrans[2] += (ixyz[0]*ucell[2] + ixyz[1]*ucell[5] + ixyz[2]*ucell[8]);
+
+      //if (debug > 2)
+      //  mprintf( "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
+      //          ixyz[0], ixyz[1], ixyz[2]);
+    }
+  }
+}
+
+void Frame::SetupImageOrtho(double* bp, double* bm, bool origin) {
   // Set up boundary information for orthorhombic cell
   if (origin) {
     bp[0] = box_[0] / 2;
@@ -1156,6 +1168,13 @@ void Frame::ImageOrtho(bool origin, bool center, bool useMass, std::vector<int> 
     bm[1] = 0;
     bm[2] = 0;
   }
+}
+
+// Frame::ImageOrtho()
+void Frame::ImageOrtho(double* bp, double* bm, bool center, bool useMass, 
+                       std::vector<int> &AtomPairs) 
+{
+  double boxTrans[3], Coord[3];
 
   // Loop over atom pairs
   for (std::vector<int>::iterator atom = AtomPairs.begin();
@@ -1186,7 +1205,16 @@ void Frame::ImageOrtho(bool origin, bool center, bool useMass, std::vector<int> 
       ++atomidx;
       Coord[2] = X_[atomidx];
     }
+    
+    ImageOrtho(boxTrans, Coord,bp,bm);
 
+    // Translate atoms according to Coord
+    Translate(boxTrans,firstAtom,lastAtom);
+  } // END loop over atom pairs
+}
+
+void Frame::ImageOrtho(double* boxTrans, double* Coord, double* bp, double* bm) 
+{
     // Determine how far Coord is out of box
     for (int i=0; i < 3; i++) {
       while (Coord[i] < bm[i]) {
@@ -1198,10 +1226,6 @@ void Frame::ImageOrtho(bool origin, bool center, bool useMass, std::vector<int> 
         boxTrans[i] -= box_[i];
       }
     }
-
-    // Translate atoms according to Coord
-    Translate(boxTrans,firstAtom,lastAtom);
-  } // END loop over atom pairs
 }
 
 void Frame::UnwrapNonortho( Frame& ref, AtomMask& mask ) {
