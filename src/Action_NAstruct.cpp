@@ -834,6 +834,7 @@ int Action_NAstruct::determineBasepairParameters() {
 /** Expected call: nastruct [resrange <range>] [naout <nafilename>] 
   *                         [noheader] [resmap <ResName>:{A,C,G,T,U} ...]
   *                         [hbcut <hbcut>] [origincut <origincut>]
+  *                         [ reference | refindex <#> | ref <REF> ]
   */
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
