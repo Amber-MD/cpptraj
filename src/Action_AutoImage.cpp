@@ -4,7 +4,6 @@
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
-  refmode_(UNKNOWN_REF),
   origin_(false),
   ortho_(false),
   center_(false),
@@ -52,9 +51,14 @@ int Action_AutoImage::init() {
 }
 
 // Action_AutoImage::SetupAtomRanges()
-std::vector<int> Action_AutoImage::SetupAtomRanges( std::string const& maskexpr )
+/** Based on the given atom mask expression determine what molecules are
+  * selected by the mask.
+  * \return A list of atom pairs that mark the beginning and end of each
+  *         selected molecule.
+  */
+Action_AutoImage::pairList Action_AutoImage::SetupAtomRanges( std::string const& maskexpr )
 {
-  std::vector<int> imageList;
+  pairList imageList;
   AtomMask Mask1( maskexpr.c_str() );
 
   if (currentParm->SetupCharMask( Mask1 )) return imageList;
@@ -155,13 +159,13 @@ int Action_AutoImage::setup() {
   }
   // DEBUG: Print fixed and mobile lists
   mprintf("\tThe following molecules are fixed to anchor:");
-  for (std::vector<int>::iterator atom = fixedList_.begin(); 
-                                  atom != fixedList_.end(); atom += 2)
+  for (pairList::iterator atom = fixedList_.begin(); 
+                          atom != fixedList_.end(); atom += 2)
     mprintf(" %i", (*currentParm)[ *atom ].Mol()+1 );
   mprintf("\n\t%zu molecules are mobile.\n", mobileList_.size() / 2 );
   //mprintf("\tThe following molecules are mobile:\n");
-  //for (std::vector<int>::iterator atom = mobileList_.begin(); 
-  //                                atom != mobileList_.end(); atom += 2)
+  //for (pairList::iterator atom = mobileList_.begin(); 
+  //                        atom != mobileList_.end(); atom += 2)
   //  mprintf("\t\t%i\n", (*currentParm)[ *atom ].Mol()+1 );
 
   return 0;
@@ -171,7 +175,7 @@ int Action_AutoImage::setup() {
 int Action_AutoImage::action() {
   double center[3], ucell[9], recip[9], fixedcenter[3], framecenter[3];
 
-  // 1- Center w.r.t. anchor
+  // Center w.r.t. anchor
   currentFrame->Center( anchorMask_, origin_, useMass_);
   // Determine whether anchor center is at box center or coordinate origin
   if (origin_) {
@@ -205,8 +209,8 @@ int Action_AutoImage::action() {
   }  
 
   // Determine if fixed position is closer to anchor center in currentFrame or fixedFrame
-  for (std::vector<int>::iterator atom1 = fixedList_.begin();
-                                  atom1 != fixedList_.end(); ++atom1)
+  for (pairList::iterator atom1 = fixedList_.begin();
+                          atom1 != fixedList_.end(); ++atom1)
   {
     int firstAtom = *atom1;
     ++atom1;
