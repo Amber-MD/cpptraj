@@ -3,57 +3,6 @@
 #include "DistRoutines.h"
 #include "Constants.h" // DEGRAD
 
-/* Frame::ClosestImage()
- * Given two coordinates A and B, determine the unit XYZ vector that points 
- * towards the closest image of B to A.
- * It is assumed the coordinates are already relative to the box center.
- */
-/*
-void Frame::ClosestImage(double *A, double *B, int *ixyz) {
-  double halfBox[3];//, delta;
-  int vectorA[3], vectorB[3], i;
-
-  mprintf("DEBUG: CoordA     = %lf %lf %lf\n",A[0],A[1],A[2]);
-  mprintf("DEBUG: CoordB     = %lf %lf %lf\n",B[0],B[1],B[2]);
-
-  halfBox[0] = box[0] / 6.0; 
-  halfBox[1] = box[1] / 6.0; 
-  halfBox[2] = box[2] / 6.0;
-  mprintf("DEBUG: Half box = %lf %lf %lf\n",halfBox[0],halfBox[1],halfBox[2]);
-
-  // Vector A
-  vectorA[0] = 0; vectorA[1] = 0; vectorA[2] = 0;
-  for (i=0; i<3; i++) {
-    if (A[i] < -halfBox[i]) vectorA[i] = -1;
-    if (A[i] >  halfBox[i]) vectorA[i] =  1;
-//    delta = A[i] - boxCenter[i];
-//  if (delta > 0.0) vectorA[i] = 1;
-//  if (delta < 0.0) vectorA[i] = -1;
-//
-  }
-  mprintf("DEBUG:  VectorA = %2i %2i %2i\n",vectorA[0],vectorA[1],vectorA[2]);
-
-  // NOT Vector B
-  vectorB[0] = 0; vectorB[1] = 0; vectorB[2] = 0;
-  for (i=0; i<3; i++) {
-    if (B[i] < -halfBox[i]) vectorB[i] =  1; // NOT
-    if (B[i] >  halfBox[i]) vectorB[i] = -1; // NOT
-//    delta = B[i] - boxCenter[i];
-//  if (delta > 0.0) vectorB[i] = -1; // NOT
-//  if (delta < 0.0) vectorB[i] = 1;  // NOT
-//
-  }
-  mprintf("DEBUG: !VectorB = %2i %2i %2i\n",vectorB[0],vectorB[1],vectorB[2]);
-
-  // A & !B
-  ixyz[0]=0; ixyz[1]=0; ixyz[2]=0;
-  for (i=0; i<3; i++) {
-    if (vectorA[i] == vectorB[i]) ixyz[i] = vectorA[i];
-    //ixyz[i] = vectorA[i] & vectorB[i];
-  }
-}
-*/
-
 // MinImageNonOrtho2()
 /** Given two sets of coordinates and reciprocal space information based on
   * the current non-orthorhombic box, return the shortest imaged distance^2
