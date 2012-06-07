@@ -17,6 +17,9 @@ AtomicFluct::AtomicFluct() {
 }
 
 // AtomicFluct::init()
+/** Usage: atomicfluct [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]
+  *                    [start <start>] [stop <stop>] [offset <offset>]
+  */               
 int AtomicFluct::init() {
   // Get frame # keywords
   int startArg = actionArgs.getKeyInt("start",1);
