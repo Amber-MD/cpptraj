@@ -10,7 +10,8 @@ Action_ClusterDihedral::Action_ClusterDihedral() :
   psibins_(0),
   CUT_(0),
   lastframe_(0),
-  dcparm_(0)
+  dcparm_(0),
+  CVT_(0)
 {}
 
 // Action_ClusterDihedral::ReadDihedrals()
@@ -39,6 +40,11 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
 }
 
 // Action_ClusterDihedral::init()
+/** Usage: clusterdihedral [phibins <N>] [psibins <M>] [out <outfile>]
+  *                        [framefile <framefile>] [clusterinfo <infofile>]
+  *                        [clustervtime <cvtfile>] [cut <CUT>] 
+  *                        [dihedralfile <dfile> | <mask>]
+  */
 int Action_ClusterDihedral::init() {
   // # of phi and psi bins
   phibins_ = actionArgs.getKeyInt("phibins", 10);
@@ -54,13 +60,20 @@ int Action_ClusterDihedral::init() {
   outfile_ = actionArgs.GetStringKey("out");
   framefile_ = actionArgs.GetStringKey("framefile");
   infofile_ = actionArgs.GetStringKey("clusterinfo");
-  cvtfile_ = actionArgs.GetStringKey("clustervtime");
+  std::string cvtfile = actionArgs.GetStringKey("clustervtime");
   // Input dihedral file or scan mask
   std::string dihedralIn = actionArgs.GetStringKey("dihedralfile");
   if (!dihedralIn.empty()) {
     if ( ReadDihedrals( dihedralIn ) != 0) return 1;
   } else {
     mask_.SetMaskString( actionArgs.getNextMask() );
+  }
+
+  // CVT dataset
+  if (!cvtfile.empty()) {
+    CVT_ = DSL->Add(DataSet::INT, actionArgs.getNextString(), "DCVT");
+    if (CVT_ == NULL) return 1;
+    DFL->Add(cvtfile.c_str(), CVT_);
   }
 
   // INFO
@@ -77,8 +90,8 @@ int Action_ClusterDihedral::init() {
     mprintf("\tFrame-Cluster data will be output to %s\n", framefile_.c_str());
   if (!infofile_.empty())
     mprintf("\tCluster information (pop. & ID) will be output to %s\n", infofile_.c_str());
-  if (!cvtfile_.empty())
-    mprintf("\tNumber of clusters v time will be output to %s\n", cvtfile_.c_str());
+  if (!cvtfile.empty())
+    mprintf("\tNumber of clusters v time will be output to %s\n", cvtfile.c_str());
   
   return 0;
 }
@@ -184,6 +197,11 @@ int Action_ClusterDihedral::action() {
   }
   // Store frame number
   lastframe_ = frameNum;
+  // Update cvt dataset if specified
+  if (CVT_ != 0) {
+    int cvtdata = (int)dcarray_.size();
+    CVT_->Add(frameNum, &cvtdata);
+  }
   return 0;
 }
 

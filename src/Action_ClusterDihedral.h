@@ -79,7 +79,7 @@ class Action_ClusterDihedral : public Action {
     std::string outfile_;
     std::string framefile_; // filenames[1]
     std::string infofile_;  // filenames[2]
-    std::string cvtfile_;   // filenames[3] 
     AtomMask mask_;
+    DataSet *CVT_; ///< Hold # clusters vs time.
 };
 #endif
