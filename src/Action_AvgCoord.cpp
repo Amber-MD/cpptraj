@@ -15,7 +15,7 @@ Action_AvgCoord::~Action_AvgCoord() {
 }
 
 // Action_AvgCoord::init()
-/** Expected call: avgcoord <mask> [mass] outfile <file> [magnitude]
+/** Expected call: avgcoord [<mask>] [mass] outfile <file> [magnitude]
   */
 int Action_AvgCoord::init() {
   // Get keywords
@@ -59,8 +59,11 @@ int Action_AvgCoord::setup() {
 /** Calc avg of coordinates in frame. */
 int Action_AvgCoord::action() {
   double position[3];
-  
-  currentFrame->GeometricCenter(&Mask_, position);
+ 
+  if (useMass_)
+    currentFrame->CenterOfMass(&Mask_, position);
+  else 
+    currentFrame->GeometricCenter(&Mask_, position);
   // Calculate the magnitude
   if (calcMagnitude_) {
     double r2 = (position[0]*position[0]) + (position[1]*position[1]) + (position[2]*position[2]);
