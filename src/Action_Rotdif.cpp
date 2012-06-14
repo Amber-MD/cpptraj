@@ -32,6 +32,7 @@ Rotdif::Rotdif() :
   tfac_( 0.0 ),
   ti_( 0.0 ),
   tf_( 0.0 ),
+  NmeshPoints_( -1 ),
   itmax_( 0 ),
   delmin_( 0.0 ),
   d0_( 0.0 ),
@@ -77,7 +78,7 @@ Rotdif::~Rotdif() {
   *                       [rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]
   *                       [corrout <corrOut>]
   *                       [rvecin <randvecIn>]
-  *                       [gridsearch]
+  *                       [gridsearch] [nmesh <NmeshPoints>]
   */ 
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
@@ -103,6 +104,7 @@ int Rotdif::init( ) {
               ti_, tf_);
     return 1;
   }
+  NmeshPoints_ = actionArgs.getKeyInt("nmesh", -1);
   itmax_ = actionArgs.getKeyInt("itmax",500);
   delmin_ = actionArgs.getKeyDouble("tol",0.000001);
   d0_ = actionArgs.getKeyDouble("d0",0.03);
@@ -179,6 +181,8 @@ int Rotdif::init( ) {
   else
     mprintf(" %i\n",ncorr_);
   mprintf("            Timestep = %.4lf, T0 = %.4lf, TF = %.4lf\n",tfac_,ti_,tf_);
+  if (NmeshPoints_ != -1)
+    mprintf("            Number of mesh points for interpolation is %i\n", NmeshPoints_);
   mprintf("            Iterative solver: Max iterations = %i, tol = %lf, initial guess = %lf\n",
           itmax_, delmin_, d0_);
   mprintf("            Order of Legendre polynomial = %i\n",olegendre_);
@@ -1411,6 +1415,7 @@ int Rotdif::DetermineDeffs() {
   double *p2;              // Hold Y values of C(t) for p2
   double *pY;              // Point to p1 or p2 depending on olegendre
   Interpolate spline;      // Used to interpolate C(t)
+  int meshSize;            // Total mesh size, maxdat * NmeshPoints
   // DEBUG
   CpptrajFile outfile;
   // DEBUG
@@ -1436,7 +1441,11 @@ int Rotdif::DetermineDeffs() {
     pX[i] *= tfac_;
   }
   // Allocate mesh to hold interpolated C(t)
-  spline.Set_meshX( ti_, tf_, maxdat * 2 );
+  if (NmeshPoints_ < 1)
+    meshSize = maxdat * 2;
+  else
+    meshSize = maxdat * NmeshPoints_;
+  spline.Set_meshX( ti_, tf_, meshSize );
   // Pointer to random vectors
   double *rndvec = random_vectors_;
   // Check order of legendre polynomial to determine whether we use p1 or p2

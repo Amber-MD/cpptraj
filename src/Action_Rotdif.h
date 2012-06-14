@@ -29,16 +29,17 @@ class Rotdif: public Action {
     int action();
     void print();
 
-    int rseed_;     ///< Random seed
-    int nvecs_;     ///< Number of random vectors to generate
-    double tfac_;   ///< time step
-    double ti_;     ///< initial time (ns)
-    double tf_;     ///< final time (ns), should be less than ncorr * tfac
-    int itmax_;     ///< Max number of iterations
-    double delmin_; ///< Convergence criterion
-    double d0_;     ///< Initial guess for iso diffusion tensor
-    int olegendre_; ///< order of Legendre polynomial in the correlation function
-    int ncorr_;     ///< Max length to compute time correlation fns (# frames)
+    int rseed_;       ///< Random seed
+    int nvecs_;       ///< Number of random vectors to generate
+    double tfac_;     ///< time step
+    double ti_;       ///< initial time (ns)
+    double tf_;       ///< final time (ns), should be less than ncorr * tfac
+    int NmeshPoints_; ///< # cubic spline mesh points 
+    int itmax_;       ///< Max number of iterations
+    double delmin_;   ///< Convergence criterion
+    double d0_;       ///< Initial guess for iso diffusion tensor
+    int olegendre_;   ///< order of Legendre polynomial in the correlation function
+    int ncorr_;       ///< Max length to compute time correlation fns (# frames)
     double delqfrac_; ///< how to scale simplexes
     double amoeba_ftol_;
     int amoeba_itmax_;
