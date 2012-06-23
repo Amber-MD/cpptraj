@@ -2,6 +2,7 @@
 #include "Traj_CharmmDcd.h"
 #include "Constants.h"
 #include "CpptrajStdio.h"
+#include <cmath> // for cos, acos
 #include <cstddef>
 #include <cstring>
 
