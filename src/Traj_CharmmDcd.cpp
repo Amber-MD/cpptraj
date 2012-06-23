@@ -1,5 +1,6 @@
 // CharmmDcd
 #include "Traj_CharmmDcd.h"
+#include "Constants.h"
 #include "CpptrajStdio.h"
 #include <cstddef>
 #include <cstring>
@@ -224,11 +225,34 @@ int CharmmDcd::setupTrajin(Topology *trajParm) {
     if (isBigEndian) endian_swap8(box,6);
     if ( ReadBlock(-1) < 0) return 1;
     boxLength_[0] = box[0];
-    boxLength_[1] = box[1];
-    boxLength_[2] = box[2];
-    boxAngle_[0] = box[3];
-    boxAngle_[1] = box[4];
-    boxAngle_[2] = box[5];
+    boxLength_[1] = box[2];
+    boxLength_[2] = box[5];
+    /* CHARMM and later versions of NAMD store the box angles as cos(angle), so
+     * convert back to angle (degrees) if all of the angles are bounded between
+     * -1 and 1. Special-case 90 degree angles for numerical stability of
+     *  orthorhombic boxes
+     */
+    if (box[4] >= -1 && box[4] <= 1 &&
+        box[3] >= -1 && box[3] <= 1 &&
+        box[1] >= -1 && box[1] <= 1) {
+      if (box[4] == 0)
+        boxAngle_[0] = 90.0;
+      else
+        boxAngle_[0] = acos(box[4]) * 180.0 / PI;
+      if (box[3] == 0)
+        boxAngle_[1] = 90.0;
+      else
+        boxAngle_[1] = acos(box[3]) * 180.0 / PI;
+      if (box[1] == 0)
+        boxAngle_[2] = 90.0;
+      else
+        boxAngle_[2] = acos(box[1]) * 180.0 / PI;
+   }else {
+      // They are already in degrees.
+      boxAngle_[0] = box[4];
+      boxAngle_[1] = box[3];
+      boxAngle_[2] = box[1];
+    }
   }
   closeTraj();
   return dcdframes;
@@ -289,7 +313,7 @@ int CharmmDcd::readDcdHeader() {
     } else if ( BEbyte.i[0]==84 && LEbyte.i[1]==dcdkey.i[0]) {
       isBigEndian = true;
       is64bit = false;
-    // Otherwise who know what the heck this is
+    // Otherwise who knows what the heck this is
     } else {
       mprinterr("Error: Unrecognized DCD header [%s].\n",BaseName());
       return 1;
@@ -562,8 +586,20 @@ int CharmmDcd::writeDcdHeader() {
 int CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double T) {
   // Box coords - 6 doubles, 48 bytes
   if (hasBox_) {
+    /* The format for the 'box' array used in cpptraj is not the same as the
+     * one used for NAMD/CHARMM dcd files.  Refer to the reading routine above
+     * for a description of the box info.
+     */
+    double *boxtmp = new double[6];
+    boxtmp[0] = box[0];
+    boxtmp[2] = box[1];
+    boxtmp[5] = box[3];
+    // The angles must be reported in cos(angle) format
+    boxtmp[1] = cos(box[5] * PI / 180.0);
+    boxtmp[3] = cos(box[4] * PI / 180.0);
+    boxtmp[4] = cos(box[3] * PI / 180.0);
     WriteBlock(48);
-    IO->Write(box, sizeof(double)*6);
+    IO->Write(boxtmp, sizeof(double)*6);
     WriteBlock(48);
   }
 
