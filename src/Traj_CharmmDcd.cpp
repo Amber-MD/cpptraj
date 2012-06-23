@@ -438,10 +438,40 @@ int CharmmDcd::readDcdHeader() {
 int CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *T) {
   // Load box info
   if (hasBox_) {
+    double *boxtmp = new double[6];
     if ( ReadBlock(48) < 0) return 1;
-    IO->Read(box, sizeof(double)*6);
+    IO->Read(boxtmp, sizeof(double)*6);
     if (isBigEndian) endian_swap8(box,6);
     if ( ReadBlock(-1) < 0) return 1;
+    box[0] = boxtmp[0];
+    box[1] = boxtmp[2];
+    box[2] = boxtmp[5];
+    /* CHARMM and later versions of NAMD store the box angles as cos(angle), so
+     * convert back to angle (degrees) if all of the angles are bounded between
+     * -1 and 1. Special-case 90 degree angles for numerical stability of
+     *  orthorhombic boxes
+     */
+    if (boxtmp[4] >= -1 && boxtmp[4] <= 1 &&
+        boxtmp[3] >= -1 && boxtmp[3] <= 1 &&
+        boxtmp[1] >= -1 && boxtmp[1] <= 1) {
+      if (boxtmp[4] == 0)
+        box[3] = 90.0;
+      else
+        box[3] = acos(boxtmp[4]) * 180.0 / PI;
+      if (boxtmp[3] == 0)
+        box[4] = 90.0;
+      else
+        box[4] = acos(boxtmp[3]) * 180.0 / PI;
+      if (boxtmp[1] == 0)
+        box[5] = 90.0;
+      else
+        box[5] = acos(boxtmp[1]) * 180.0 / PI;
+   }else {
+      // They are already in degrees.
+      box[3] = boxtmp[4];
+      box[4] = boxtmp[3];
+      box[5] = boxtmp[1];
+    }
   }
   size_t coordinate_size = (size_t)dcdatom * sizeof(float); 
   // Read X coordinates
@@ -594,7 +624,7 @@ int CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double T) {
     double *boxtmp = new double[6];
     boxtmp[0] = box[0];
     boxtmp[2] = box[1];
-    boxtmp[5] = box[3];
+    boxtmp[5] = box[2];
     // The angles must be reported in cos(angle) format
     boxtmp[1] = cos(box[5] * PI / 180.0);
     boxtmp[3] = cos(box[4] * PI / 180.0);
