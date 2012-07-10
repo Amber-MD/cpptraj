@@ -51,6 +51,7 @@
 #include "Action_Scale.h"
 #include "Action_RandomizeIons.h"
 #include "Action_AutoImage.h"
+#include "Action_STFC_Diffusion.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -136,6 +137,13 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("scale"))          {Act=new Action_Scale;}
   else if (argIn.CommandIs("randomizeions"))  {Act=new Action_RandomizeIons;}
   else if (argIn.CommandIs("autoimage"))      {Act=new Action_AutoImage;}
+  // STFC code
+  else if (argIn.CommandIs("stfc"))           {
+    std::string stfcCMD = argIn.GetStringNext();
+    if (stfcCMD == "diffusion")
+      Act = new Action_STFC_Diffusion;
+    else return 1;
+  }
   else return 1; 
 
   // Pass in the argument list
