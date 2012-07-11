@@ -39,6 +39,7 @@ class Frame {
     void ConvertToPtrajXYZ(double *, double *, double *, double*);
     void SetFromPtrajXYZ(double *, double *, double *);
     void GetAtomXYZ(double*, int);
+    const double* XYZ(int atnum) { return X_ + (atnum*3); }
     void AddXYZ(const double *);
     int Natom();
     bool empty();
@@ -47,6 +48,7 @@ class Frame {
     double BoxX() { return box_[0]; }
     double BoxY() { return box_[1]; }
     double BoxZ() { return box_[2]; }
+    const double* Box() { return box_; }
     double& operator[](int idx) { return X_[idx]; }
     // Vec3 functions
     //Vec3 GetAtomVec3(int atom) { return Vec3(X_+(atom*3)); }
