@@ -60,13 +60,19 @@ void FrameBuffer::BufferBegin() {
   * newlines are skipped. buffer should be as big as N x width chars. Update
   * bufferPosition after read.
   */
-// TODO: If '*' encountered indicate error?.
 void FrameBuffer::BufferToDouble(double *X, int N, int width) {
   for (int atom = 0; atom < N; atom++) {
     // Advance past newlines / CR (dos)
     while (*bufferPosition_=='\n' || *bufferPosition_=='\r')
       ++bufferPosition_;
-    // NOTE: Search for '*'??
+    if (*bufferPosition_ == '*') {
+      fprintf(stderr,"Error: '*' encountered (atom %i", (atom / 3) + 1);
+      int problem_xyz = atom % 3;
+      if (problem_xyz == 0)      fprintf(stderr," X");
+      else if (problem_xyz == 1) fprintf(stderr," Y");
+      else                       fprintf(stderr," Z");
+      fprintf(stderr,"). This indicates coordinate overflow.\n");
+    }
     char *ptrend = bufferPosition_ + width;
     char lastchar = *ptrend;
     *ptrend = '\0';
