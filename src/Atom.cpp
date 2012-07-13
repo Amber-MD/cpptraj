@@ -230,6 +230,14 @@ void Atom::SetElementFromName() {
   char c1 = aname_[0];
   if (c1=='\0') return;
   char c2 = aname_[1];
+  // If the first char is a digit use the next 2 chars
+  if ( c1 == '0' || c1 == '1' || c1 == '2' || c1 == '3' || c1 == '4' || 
+       c1 == '5' || c1 == '6' || c1 == '7' || c1 == '8' || c1 == '9')
+  {
+    c1 = c2;
+    if (c1 =='\0') return;
+    c2 = aname_[2];
+  }
 
   switch (c1) {
     case 'H' : element_ = HYDROGEN; break;
