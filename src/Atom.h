@@ -19,7 +19,8 @@ class Atom {
       PALLADIUM,  PLATINUM,   LEAD,     POLONIUM,  RUTHENIUM,  RHODIUM,
       RHENIUM,    RADON,      RADIUM,   SILICON,   SCANDIUM,   SELENIUM,
       STRONTIUM,  TIN,        ANTIMONY, TITANIUM,  TECHNETIUM, TELLURIUM,
-      TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM 
+      TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM,
+      EXTRAPT 
     };
     static const char AtomicElementName[][3];
     // Constructors and assignment
@@ -72,7 +73,7 @@ class Atom {
     void AddExclusionList(std::set<int>&);
     //void ClearExcluded();
   protected:
-    static const size_t NUMELEMENTS = 73;
+    static const size_t NUMELEMENTS = 74;
   private:
     static const int AtomicElementNum[];
     double charge_;

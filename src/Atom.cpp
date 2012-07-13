@@ -14,7 +14,8 @@ const int Atom::AtomicElementNum[NUMELEMENTS] = { 0,
  46, 78, 82, 84, 44, 45,
  75, 86, 88, 14, 21, 34,
  38, 50, 51, 22, 43, 52,
- 73, 81, 23, 74, 54, 40
+ 73, 81, 23, 74, 54, 40,
+ 0
 };
 
 /// Atom names corresponding to AtomicElementType.
@@ -31,7 +32,8 @@ const char Atom::AtomicElementName[NUMELEMENTS][3] = { "??",
   "Pd", "Pt", "Pb", "Po", "Ru", "Rh",
   "Re", "Rn", "Ra", "Si", "Sc", "Se",
   "Sr", "Sn", "Sb", "Ti", "Tc", "Te",
-  "Ta", "Tl", "V",  "W",  "Xe", "Zr"
+  "Ta", "Tl", "V",  "W",  "Xe", "Zr",
+  "XP"
 };
 
 // CONSTRUCTOR
@@ -108,8 +110,12 @@ Atom::Atom( NameType name, double charge, int atomicnum, double mass, int atidx,
       if (AtomicElementNum[i] == atomicnum)
         element_ = (AtomicElementType) i;
   } else {
-    // Determine element from name/mass
-    SetElementFromMass();
+    // Determine element from mass. If mass is 0 this is probably an
+    // extra point.
+    if ( mass_ == 0 )
+      element_ = EXTRAPT;
+    else
+      SetElementFromMass();
   }
   
   // If element still unknown attempt to determine from name
