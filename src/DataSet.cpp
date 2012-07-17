@@ -43,7 +43,10 @@ int DataSet::Setup(const char* nameIn, int Nin) {
     return 1;
   }
   name_.assign( nameIn );
-  
+ 
+  // Attempt to allocate DataSet if necessary
+  if ( Allocate( Nin ) ) return 1;
+ 
   return 0;
 }
 
@@ -122,39 +125,31 @@ void DataSet::SetScalar( scalarMode modeIn, scalarType typeIn ) {
   * is an atomic type (i.e. int, double, float).
   */
 double DataSet::Avg(double *stdev) {
-  double sum, numvalues, avg, diff;
+  double sum;
+
   // Check # values
-  //if (current_==0) return 0;
-  if (Size()==0) return 0;
-  avg = 0;
+  if ( Size() == 0 ) return 0;
+  int numvalues = Size();
+  double avg = 0;
   // Check if this set is a good type
   if (dType_==DOUBLE || 
       dType_==FLOAT ||
       dType_==INT)
   {
     sum = 0;
-    numvalues = 0;
-    Begin();
-    do {
-      sum += CurrentValue();
-      ++numvalues;
-    } while (NextValue());
-    // NOTE: Manually calc # values since current is increment
-    //       whenever Add is called even if a value is already present.
-    //numvalues = (double) current;
-    //mprintf("DEBUG: AVG: %.0lf values.\n",numvalues);
-    avg = sum / numvalues;
+    for ( int i = 0; i < numvalues; ++i )  
+      sum += Dval( i );
+    avg = sum / (double)numvalues;
     if (stdev==NULL) return avg;
 
     // Stdev
     sum = 0;
-    Begin();
-    do {
-      diff = avg - CurrentValue();
+    for ( int i = 0; i < numvalues; ++i ) {
+      double diff = avg - Dval( i );
       diff *= diff;
       sum += diff;
-    } while(NextValue());
-    sum /= numvalues;
+    } 
+    sum /= (double)numvalues;
     *stdev = sqrt(sum);
   }
   return avg;
@@ -163,22 +158,19 @@ double DataSet::Avg(double *stdev) {
 // DataSet_double::Max()
 /** Return the maximum value in the dataset.  */
 double DataSet::Max() {
-  double max;
   // Check # values
-  //if (current_==0) return 0;
-  if (Size()==0) return 0;
-  max = 0;
+  if ( Size() == 0 ) return 0;
+  double max = 0;
   // Check if this set is a good type
   if (dType_==DOUBLE || 
       dType_==FLOAT ||
       dType_==INT)
   {
-    Begin();
-    max = CurrentValue();
-    do {
-      double val = CurrentValue();
+    max = Dval( 0 );
+    for (int i = 1; i < Size(); ++i) {
+      double val = Dval( i );
       if (val > max) max = val;
-    } while (NextValue());
+    } 
   }
   return max;
 }
@@ -186,22 +178,19 @@ double DataSet::Max() {
 // DataSet::Min()
 /** Return the minimum value in the dataset.  */
 double DataSet::Min() {
-  double min;
   // Check # values
-  //if (current_==0) return 0;
   if (Size()==0) return 0;
-  min = 0;
+  double min = 0;
   // Check if this set is a good type
   if (dType_==DOUBLE ||
       dType_==FLOAT ||
       dType_==INT)
   { 
-    Begin();
-    min = CurrentValue();
-    do {
-      double val = CurrentValue();
+    min = Dval( 0 );
+    for (int i = 1; i < Size(); ++i) {
+      double val = Dval( i );
       if (val < min) min = val;
-    } while (NextValue());
+    } 
   }
   return min;
 }

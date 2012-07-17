@@ -85,11 +85,11 @@ int Action_Dihedral::setup() {
 
 // Action_Dihedral::action()
 int Action_Dihedral::action() {
-  double Dval = currentFrame->DIHEDRAL(&M1_, &M2_, &M3_, &M4_, useMass_);
+  double torsion = currentFrame->DIHEDRAL(&M1_, &M2_, &M3_, &M4_, useMass_);
 
-  Dval *= RADDEG;
+  torsion *= RADDEG;
 
-  dih_->Add(frameNum, &Dval);
+  dih_->Add(frameNum, &torsion);
 
   //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
   

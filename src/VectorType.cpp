@@ -795,7 +795,7 @@ static double solve_cubic_eq(double a, double b, double c, double d)
   //const double PI = 3.141592654;
   const double one3 = 1.0 / 3.0;
   const double one27 = 1.0 / 27.0;
-  double droot;
+  double droot = 0;
 
   double r, s, t;
   double p, q, rho, phi;
@@ -848,11 +848,9 @@ void VectorType::leastSquaresPlane(int n, double* cx, double* cy, double* cz, do
 {
   int i;
   double dSumXX, dSumYY, dSumZZ, dSumXY, dSumXZ, dSumYZ;
-  double o, p, q, root;
+  double o, p, q;
   double dnorm;
   double x1, y1, z1, x2, y2, z2;
-
-  root = 0;
 
   if (n == 3) {
     /*Vec3 V1 = Cvec[1];
@@ -899,7 +897,7 @@ void VectorType::leastSquaresPlane(int n, double* cx, double* cy, double* cz, do
       (dSumXX * dSumYZ * dSumYZ + dSumYY * dSumXZ * dSumXZ + dSumZZ * dSumXY * dSumXY);
 
     /* Solve cubic eq. */
-    root = solve_cubic_eq(-1.0, o, p, q);
+    double root = solve_cubic_eq(-1.0, o, p, q);
 
     /* Calc determinantes */
     XYZ[0] = (dSumYY - root) * dSumXZ - dSumXY * dSumYZ;

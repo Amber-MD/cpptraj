@@ -1,19 +1,20 @@
 #ifndef INC_DATASET_STRING_H
 #define INC_DATASET_STRING_H
-#include <map>
+#include <vector>
 #include <string>
 #include "DataSet.h"
 // Class: DataSet_string
 /// Hold an array of strings.
-/** Use the C++ STL map and string classes instead of a straight array of 
-  * char*. This will allow Y values with non-consecutive X values to be 
-  * stored (e.g. when an action is not active for a certain part of the 
-  * analysis) and puts the memory management burden on STL.
+/** Actually 2 arrays; one for data and one for frame indices. This allows 
+  * Y values with non-consecutive X values to be stored, which can happen 
+  * e.g. when an action is not active for a certain trajectory because it 
+  * is not valid for that topology.
   */
 class DataSet_string : public DataSet {
   public:
     DataSet_string();
 
+    int Allocate(int);
     int Xmax();
     int Size();
     int FrameIsEmpty(int);
@@ -22,7 +23,11 @@ class DataSet_string : public DataSet {
     int Width();
     int Sync();
   private:
-    std::map<int,std::string> Data_;
-    std::map<int,std::string>::iterator datum_;
+    typedef std::vector<std::string> DType;
+    typedef std::vector<int> IType;
+    DType Data_;
+    DType::iterator datum_;
+    IType Frames_;
+    IType::iterator frame_;
 };
 #endif

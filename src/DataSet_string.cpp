@@ -1,9 +1,9 @@
 // DataSet_string
-#include <cstring>
+#include <cstring> // strcpy
+#include <algorithm>
 #include "DataSet_string.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
-using namespace std;
 
 // CONSTRUCTOR
 DataSet_string::DataSet_string() {
@@ -12,22 +12,31 @@ DataSet_string::DataSet_string() {
   SetDataSetFormat(false);
 }
 
-// DataSet_string::Xmax(()
-/** Return the maximum X value added to this set. By convention this is 
-  * always the last value added.
-  */
-int DataSet_string::Xmax() {
-  // If no data has been added return 0
-  //if (current_==0) return 0;
-  if (Data_.empty()) return 0;
-  datum_ = Data_.end();
-  --datum_;
-  return ( (*datum_).first );
+// DataSet_string::Allocate()
+/** Reserve space in the Data and Frames arrays. */
+int DataSet_string::Allocate( int sizeIn ) {
+  Data_.reserve( sizeIn );
+  Frames_.reserve( sizeIn );
+  return 0;
 }
 
 // DataSet_string::Size()
 int DataSet_string::Size() {
   return (int)Data_.size();
+}
+
+// DataSet_string::Xmax(()
+/** Return the maximum X value added to this set. By convention this is 
+  * always the last value added.
+  */
+int DataSet_string::Xmax() {
+  // FIXME: Using this to initialize iterators for buffered write. Should be
+  //        a separate routine.
+  frame_ = Frames_.begin();
+  datum_ = Data_.begin();
+  // If no data has been added return 0
+  if (Data_.empty()) return 0;
+  return Frames_.back();
 }
 
 // DataSet_string::Add()
@@ -36,37 +45,37 @@ int DataSet_string::Size() {
   * String expects char*
   */
 void DataSet_string::Add(int frame, void *vIn) {
-  char *value;
-  string Temp;
-  int strsize;
-
-  value = (char*) vIn;
-  Temp.assign(value);
-  strsize = (int) Temp.size();
+  char* value = (char*)vIn;
+  std::string Temp( value );
+  int strsize = (int)Temp.size();
   if (strsize > width_) width_ = strsize;
   // Always insert at the end
-  //it=Data.end();
-  //Data.insert( it, pair<int,string>(frame, Temp) );
-  Data_[frame]=Temp;
-  //++current_;
+  // NOTE: No check for duplicate frame values.
+  Frames_.push_back( frame );
+  Data_.push_back( Temp );
 }
 
 // DataSet_string::FrameIsEmpty()
 int DataSet_string::FrameIsEmpty(int frame) {
-  datum_ = Data_.find( frame );
-  if (datum_ == Data_.end()) return 1;
+  if ( find( Frames_.begin(), Frames_.end(), frame ) == Frames_.end() )
+    return 1;
   return 0;
 }
 
 // DataSet_string::WriteBuffer()
-/** Write data at frame to CharBuffer. If no data for frame write 0.0.
+/** Write data at frame to CharBuffer. If no data for frame write NoData..
   */
 void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
-  datum_ = Data_.find( frame );
-  if (datum_ == Data_.end())
+  while ( frame_ != Frames_.end() && frame > *frame_ )
+    ++frame_;
+
+  if (frame_ == Frames_.end() || frame != *frame_)
     cbuffer.WriteString(data_format_,"NoData");
-  else
-    cbuffer.WriteString(data_format_, (*datum_).second.c_str());
+  else {
+    cbuffer.WriteString(data_format_, (*datum_).c_str());
+    ++datum_;
+    ++frame_;
+  }
 }
 
 // DataSet_string::Width()
@@ -79,97 +88,90 @@ int DataSet_string::Width() {
 }
 
 // DataSet_string::Sync()
-/** Since it seems to be very difficult (or impossible) to define Classes
-  * as MPI datatypes, first non-master threads need to convert their maps
-  * into 2 arrays, an int array containing frame #s and a char array
-  * containing mapped values. An additional array of ints holding the size
-  * of each string is also needed since the char array will be sent as
-  * 1 big chunk. These arrays are then sent to the master, where they are 
-  * converted to pairs and inserted into the master map.
+/** First, non-master threads convert their vectors into C-arrays.
+  * These arrays are then sent to the master, where they are put 
+  * into the master arrays. It is assumed that master (rank 0) has 
+  * first chunk of data, rank 1 has next and so on.
   */
+
 int DataSet_string::Sync() {
-  int rank, i, dataSize, totalCharSize;
-  int *Frames;
-  char *Values;
-  int *Sizes;
-  char *ptr, oldChar;
-  string str;
+  unsigned int masterSize = 0;
+  unsigned int dataSize;
+  unsigned int masterStringSize = 0;
+  unsigned int stringSize;
+  char* values = 0;
+  int* frames = 0;
 
   if (worldsize==1) return 0;
 
-  for (rank = 1; rank < worldsize; rank ++) {
-    // Get size of map on rank 
-    if (worldrank>0) {
-      // NOTE: current should be equal to size(). Check for now
-      //rprintf( "DataSet_string syncing. current=%i, size=%u\n",
-      //        current_, Data_.size());
-      /*if (current != (int) Data.size()) {
-        rprintf("ERROR: current and map size are not equal.\n");
-        return 1;
-      }*/
-      dataSize = (int)Data_.size();
-    }
-
-    // Send size of map on rank to master, allocate frame and sizes arrays on 
-    // rank and master.
-    parallel_sendMaster(&dataSize, 1, rank, 0);
-    rprintf("DataSet_string allocating %i for send/recv\n",dataSize);
-    Frames = new int[ dataSize ];
-    Sizes = new int[ dataSize ];
-
-    // On non-master get the size of each string in map and total size for
-    // char array. Also get frame #s.
-    if (worldrank>0) {
-      i=0;
-      totalCharSize=0;
-      for (datum_ = Data_.begin(); datum_ != Data_.end(); datum_++) {
-        Frames[i]=(*datum_).first;
-        Sizes[i] = (*datum_).second.size();
-        totalCharSize += (*datum_).second.size();
-        i++;
+  for ( int rank = 1; rank < worldsize; ++rank) {
+    // ----- RANK -------
+    if ( worldrank == rank ) {
+      // Get size of data on rank.
+      dataSize = Data_.size();
+      // Send rank size to master
+      parallel_sendMaster(&dataSize, 1, rank, 0);
+      // If size is 0 on rank, skip this rank.
+      if (dataSize == 0) continue;
+      // Get sum size of each string on rank.
+      stringSize = 0;
+      for ( DType::iterator str_it = Data_.begin(); str_it != Data_.end(); ++str_it)
+        stringSize += ( (*str_it).size() + 1 ); // +1 for NULL char.
+      // Send sum string size to master
+      parallel_sendMaster(&stringSize, 1, rank, 0);
+      // Allocate space on rank
+      values = new char[ stringSize ];
+      frames = new int[ dataSize ];
+      // Copy each string (incl. NULL char) to the char array
+      char* ptr = values;
+      for ( DType::iterator str_it = Data_.begin(); str_it != Data_.end(); ++str_it) {
+        strcpy( ptr, (*str_it).c_str() );
+        ptr += ( (*str_it).size() + 1 );
       }
-      // Add 1 to totalCharSize for NULL character
-      totalCharSize++;
-    }
+      // Send arrays to master
+      parallel_sendMaster(frames, dataSize, rank, 0);
+      parallel_sendMaster(values, stringSize, rank, 2);
+      // Free arrays on rank
+      delete[] values;
+      delete[] frames;
 
-    // Send total size of char array to master. allocate char array on rank and master
-    parallel_sendMaster(&totalCharSize, 1, rank, 0);
-    rprintf("DataSet_string allocating %i for char send/recv\n",totalCharSize);
-    Values = new char[ totalCharSize ];
-    strcpy(Values,"");
-
-    // On non-master put all strings into giant char array
-    if (worldrank > 0) {
-      for (datum_ = Data_.begin(); datum_ != Data_.end(); datum_++) 
-        strcat(Values, (*datum_).second.c_str());
-    }
-
-    // Send arrays to master
-    parallel_sendMaster(Frames, dataSize, rank, 0);
-    parallel_sendMaster(Sizes, dataSize, rank, 1);
-    parallel_sendMaster(Values, totalCharSize, rank, 2);
-
-    // On master convert arrays to pairs and insert to master map
-    if (worldrank==0) {
-      ptr = Values;
-      for (i=0; i < dataSize; i++) { 
-        // Recover string from giant char array
-        oldChar = ptr[ Sizes[i] ];
-        ptr[ Sizes[i] ] = '\0';
-        str.assign(ptr);
-        // Insert Frame/string pair
-        Data_.insert( pair<int,string>( Frames[i], str ) );
-        // Advance pointer into giant char array
-        ptr[ Sizes[i] ] = oldChar;
-        ptr += Sizes[i];
+    // ----- MASTER -----
+    } else if (worldrank == 0) {
+      // Master receives size from rank
+      parallel_sendMaster(&dataSize, 1, rank, 0);
+      // If size was 0 on rank, skip rank.
+      if (dataSize == 0) continue;
+      // Master receives sum string size from rank
+      parallel_sendMaster(&stringSize, 1, rank, 0);
+      // Reallocate if necessary
+      if (dataSize > masterSize) {
+        if ( frames != 0 ) delete[] frames;
+        frames = new int[ dataSize ];
+        masterSize = dataSize;
+      }
+      if (stringSize > masterStringSize) {
+        if ( values != 0 ) delete[] values;
+        values = new char[ stringSize ];
+        masterStringSize = stringSize;
+      }
+      // Master receives arrays
+      parallel_sendMaster(frames, dataSize, rank, 0);
+      parallel_sendMaster(values, stringSize, rank, 2);
+      // Insert frames and values to master arrays
+      char* ptr = values;
+      for (unsigned int i = 0; i < dataSize; ++i) {
+        Frames_.push_back( frames[i] );
+        Data_.push_back( ptr );
+        ptr += ( Data_.back().size() + 1 );
       }
     }
+  } // End loop over ranks > 0
 
-    // Free arrays
-    delete[] Frames;
-    delete[] Sizes;
-    delete[] Values;
-  } // End loop over ranks>0
+  // Free master arrays
+  if (worldrank == 0) {
+    if ( values != 0 ) delete[] values;
+    if ( frames != 0 ) delete[] frames;
+  }
 
   return 0;
 }

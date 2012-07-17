@@ -1,33 +1,34 @@
 #ifndef INC_DATASET_DOUBLE_H
 #define INC_DATASET_DOUBLE_H
-#include <map>
+#include <vector>
 #include "DataSet.h"
 // Class: DataSet_double
 /// Hold an array of double values.
-/** Use the C++ STL map class instead of a straight array of doubles. This
-  * will allow Y values with non-consecutive X values to be stored. This is the
-  * case e.g. when an action is not active for a certain part of the trajectory
-  * read when it is not valid for the current parmtop.
+/** Actually 2 arrays; one for data and one for frame indices. This allows 
+  * Y values with non-consecutive X values to be stored, which can happen 
+  * e.g. when an action is not active for a certain trajectory because it 
+  * is not valid for that topology.
   */
 class DataSet_double : public DataSet {
   public:
     DataSet_double();
 
-    void Begin();
-    bool NextValue();
-    double CurrentValue();
-
+    int Allocate(int);
     int Xmax();
     int Size();
     int FrameIsEmpty(int);
     void Add( int, void * );
-    int Get(void *, int);
+    double CurrentDval();
     double Dval(int);
     void WriteBuffer(CharBuffer&, int);
     int Width();
     int Sync();
   private:
-    std::map<int,double> Data_;
-    std::map<int,double>::iterator datum_;
+    typedef std::vector<double> DType;
+    typedef std::vector<int> IType;
+    DType Data_;
+    DType::iterator datum_;
+    IType Frames_;
+    IType::iterator frame_;
 };
 #endif

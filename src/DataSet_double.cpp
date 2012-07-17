@@ -1,8 +1,8 @@
 // DataSet_double
+#include <algorithm> // find
 #include "DataSet_double.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
-using namespace std;
 
 // CONSTRUCTOR
 DataSet_double::DataSet_double() {
@@ -12,26 +12,17 @@ DataSet_double::DataSet_double() {
   SetDataSetFormat(false);
 }
 
+// DataSet_double::Allocate()
+/** Reserve space in the Data and Frames arrays. */
+int DataSet_double::Allocate( int sizeIn ) {
+  Data_.reserve( sizeIn );
+  Frames_.reserve( sizeIn );
+  return 0;
+}
+
 // DataSet_double::Size()
 int DataSet_double::Size() {
   return (int)Data_.size();
-}
-
-// DataSet_double::Begin()
-void DataSet_double::Begin() {
-  datum_ = Data_.begin();
-}
-
-// DataSet_double::NextValue();
-bool DataSet_double::NextValue() {
-  ++datum_;
-  if (datum_ == Data_.end()) return false;
-  return true;
-}
-
-// DataSet_double::CurrentValue()
-double DataSet_double::CurrentValue() {
-  return (*datum_).second;
 }
 
 // DataSet_double::Xmax(()
@@ -39,56 +30,40 @@ double DataSet_double::CurrentValue() {
   * always the last value added.
   */
 int DataSet_double::Xmax() {
+  // FIXME: Using this to initialize iterators for buffered write. Should be
+  //        a separate routine.
+  frame_ = Frames_.begin();
+  datum_ = Data_.begin();
   // If no data has been added return 0
-  //if (current_==0) return 0;
   if (Data_.empty()) return 0;
-  datum_ = Data_.end();
-  --datum_;
-  return ( (*datum_).first );
+  return Frames_.back();
 } 
 
 // DataSet_double::Add()
-/** Insert data vIn at frame.  */
+/** Insert data vIn at frame. */
 void DataSet_double::Add(int frame, void *vIn) {
-  double *value;
-
-  value = (double*) vIn;
-
   // Always insert at the end
-  Data_[frame] = (*value);
-  //it=Data.end();
-  //Data.insert( it, pair<int,double>(frame, *value) );
-  //current_++;
+  // NOTE: No check for duplicate frame values.
+  Frames_.push_back( frame );
+  Data_.push_back( *((double*)vIn) );
 }
 
-// DataSet_double::Get()
-/** Get data at frame, put into vOut. 
-  * \return 1 if no data at frame.
-  */
-int DataSet_double::Get(void *vOut, int frame) {
-  double *value;
-  
-  if (vOut==NULL) return 1;
-  //mprintf("DEBUG: Attempting to get double frame %i\n",frame);
-  value = (double*) vOut;
-  datum_ = Data_.find( frame );
-  if (datum_ == Data_.end()) return 1;
-  //mprintf("DEBUG: Double frame %i is %lf\n",frame,(*it).second);
-  *value = (*datum_).second;
-  return 0;
+// DataSet_double::CurrentDval()
+double DataSet_double::CurrentDval() {
+  return Data_.back();
 }
 
 // DataSet_double::Dval()
 double DataSet_double::Dval(int idx) {
-  double val;
-  if (Get(&val,idx)) return 0;
-  return val;
+  if (idx < 0 || idx >= (int)Data_.size())
+    return 0;
+  return Data_[idx];
 }
 
 // DataSet_double::FrameIsEmpty()
 int DataSet_double::FrameIsEmpty(int frame) {
-  datum_ = Data_.find( frame );
-  if (datum_ == Data_.end()) return 1;
+  if ( find( Frames_.begin(), Frames_.end(), frame ) == Frames_.end() )
+    return 1;
   return 0;
 }
 
@@ -97,11 +72,18 @@ int DataSet_double::FrameIsEmpty(int frame) {
   */
 void DataSet_double::WriteBuffer(CharBuffer &cbuffer, int frame) {
   double dval;
-  datum_ = Data_.find( frame );
-  if (datum_ == Data_.end())
-    dval = 0.0;
-  else
-    dval = (*datum_).second;
+
+  while ( frame_ != Frames_.end() && frame > *frame_ ) 
+    ++frame_;
+
+  if (frame_ == Frames_.end() || frame != *frame_)
+    dval = 0;
+  else {
+    dval = *datum_;
+    ++datum_;
+    ++frame_;
+  }
+
   cbuffer.WriteDouble(data_format_, dval);
 }
 
@@ -111,62 +93,68 @@ int DataSet_double::Width() {
 }
 
 // DataSet_double::Sync()
-/** Since it seems to be very difficult (or impossible) to define Classes
-  * as MPI datatypes, first non-master threads need to convert their maps
-  * into 2 arrays, an int array containing frame #s and a double array
-  * containing mapped values. These arrays are then sent to the master,
-  * where they are converted pairs and inserted into the master map.
+/** First, non-master threads convert their vectors into C-arrays.
+  * These arrays are then sent to the master, where they are put 
+  * into the master arrays. It is assumed that master (rank 0) has 
+  * first chunk of data, rank 1 has next and so on.
   */
 int DataSet_double::Sync() {
-  int rank, i, dataSize;
-  int *Frames;
-  double *Values;
+  unsigned int masterSize = 0;
+  unsigned int dataSize;
+  double* values = 0;
+  int* frames = 0;
 
   if (worldsize==1) return 0;
 
-  for (rank = 1; rank < worldsize; rank ++) {
-    // Get size of map on rank 
-    if (worldrank>0) {
-      // NOTE: current should be equal to size(). Check for now
-      /*rprintf("DataSet_double syncing. current=%i, size=%u\n",
-              current_, Data_.size());
-      if (current_ != (int) Data_.size()) {
-        rprintf("ERROR: current and map size are not equal.\n");
-        return 1;
-      }*/
-      dataSize = (int)Data_.size();
-    }
+  for ( int rank = 1; rank < worldsize; ++rank) {
+    // ----- RANK -------
+    if ( worldrank == rank ) {
+      // Get size of data on rank.
+      dataSize = Data_.size();
+      // Send rank size to master
+      parallel_sendMaster(&dataSize, 1, rank, 0);
+      // If size is 0 on rank, skip this rank.
+      if (dataSize == 0) continue;
+      // Allocate space on rank
+      values = new double[ dataSize ];
+      frames = new int[ dataSize ];
+      // Send arrays to master
+      parallel_sendMaster(frames, dataSize, rank, 0);
+      parallel_sendMaster(values, dataSize, rank, 1);
+      // Free arrays on rank
+      delete[] values;
+      delete[] frames;
 
-    // Send size of map on rank to master, allocate arrays on rank and master
-    parallel_sendMaster(&dataSize, 1, rank, 0);
-    rprintf("DataSet_double allocating %i for send/recv\n",dataSize);
-    Frames = new int[ dataSize ];
-    Values = new double[ dataSize ];
-      
-    // On non-master convert map to int and double arrays.
-    if (worldrank > 0) {
-      i=0;
-      for ( datum_ = Data_.begin(); datum_ != Data_.end(); datum_++ ) {
-        Frames[i]=(*datum_).first;
-        Values[i]=(*datum_).second;
-        ++i;
+    // ----- MASTER -----
+    } else if (worldrank == 0) {
+      // Master receives size from rank
+      parallel_sendMaster(&dataSize, 1, rank, 0);
+      // If size was 0 on rank, skip rank.
+      if (dataSize == 0) continue;
+      // Reallocate if necessary
+      if (dataSize > masterSize) {
+        if ( values != 0 ) delete[] values;
+        if ( frames != 0 ) delete[] frames;
+        values = new double[ dataSize ];
+        frames = new int[ dataSize ];
+        masterSize = dataSize;
+      }
+      // Master receives arrays
+      parallel_sendMaster(frames, dataSize, rank, 0);
+      parallel_sendMaster(values, dataSize, rank, 1);
+      // Insert frames and values to master arrays
+      for (unsigned int i = 0; i < dataSize; ++i) {
+        Frames_.push_back( frames[i] );
+        Data_.push_back( values[i] );
       }
     }
+  } // End loop over ranks > 0
 
-    // Send arrays to master
-    parallel_sendMaster(Frames, dataSize, rank, 0);
-    parallel_sendMaster(Values, dataSize, rank, 1);
-
-    // On master convert arrays to pairs and insert to master map
-    if (worldrank==0) {
-      for (i=0; i < dataSize; i++) 
-        Data_.insert( pair<int,double>( Frames[i], Values[i] ) );
-    }
-
-    // Free arrays
-    delete[] Frames;
-    delete[] Values;
-  } // End loop over ranks>0
+  // Free master arrays
+  if (worldrank == 0) {
+    if ( values != 0 ) delete[] values;
+    if ( frames != 0 ) delete[] frames;
+  }
 
   return 0;
 }

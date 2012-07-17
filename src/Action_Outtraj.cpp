@@ -41,9 +41,13 @@ int Outtraj::init() {
       mprintf("Error: Outtraj maxmin: Could not get dataset %s\n",datasetName);
       return 1;
     } else {
-      // Currently dont allow for string datasets
-      if (Dset->Type()==DataSet::STRING) {
-        mprintf("Error: Outtraj maxmin: String dataset (%s) not supported.\n",datasetName);
+      // Currently only allow int, float, or double datasets
+      if (Dset->Type() != DataSet::INT &&
+          Dset->Type() != DataSet::FLOAT &&
+          Dset->Type() != DataSet::DOUBLE) 
+      {
+        mprinterr("Error: Outtraj maxmin: Only int, float, or double dataset (%s) supported.\n",
+                datasetName);
         return 1;
       }
       max = actionArgs.getKeyDouble("max",0.0);
@@ -67,18 +71,16 @@ int Outtraj::init() {
   * satisfies the criteria; if so, write. Otherwise just write.
   */
 int Outtraj::action() {
-  double dVal;
-  int iVal;
-
   // If dataset defined, check if frame is within max/min
   if (Dset!=NULL) {
-    if (Dset->Type() == DataSet::DOUBLE) {
+    double dVal = Dset->CurrentDval();
+    /*if (Dset->Type() == DataSet::DOUBLE) {
       if (Dset->Get(&dVal, frameNum)) return 1;
     } else if (Dset->Type() == DataSet::INT) {
       if (Dset->Get(&iVal, frameNum)) return 1;
       dVal = (double) iVal;
     } else
-      return 1;
+      return 1;*/
     //mprintf("DBG: maxmin: dVal = %lf\n",dVal);
     // If value from dataset not within min/max, exit now.
     if (dVal < min || dVal > max) return 0;

@@ -73,7 +73,7 @@ int Analysis_Statistics::Analyze() {
     if (Nelements != totalFrames) {
       mprintf("Warning: analyze statistics: Set %s is missing data for some frames.\n",
               (*ds)->c_str());
-      mprintf("Warning: Xmax= %i, Nelements= %i\n", totalFrames - 1, Nelements);
+      mprintf("Warning: Xmax= %i, Nelements= %i\n", totalFrames, Nelements);
     }
     
     DataSet::scalarMode mode = (*ds)->ScalarMode();
@@ -84,7 +84,7 @@ int Analysis_Statistics::Analyze() {
       periodic = true;
 
     // ----- Compute average and standard deviation ------------------
-    for (int i = 0; i < totalFrames; ++i) {
+    for (int i = 0; i < Nelements; ++i) {
       double value = (*ds)->Dval( i ) - shift_;
       if (periodic) {
         if (value > 180.0)
@@ -95,8 +95,8 @@ int Analysis_Statistics::Analyze() {
       average += value;
       stddev += (value*value);
     }
-    average /= totalFrames;
-    stddev /= totalFrames;
+    average /= Nelements;
+    stddev /= Nelements;
     stddev -= (average * average);
     if (stddev > 0)
       stddev = sqrt( stddev );
@@ -112,15 +112,15 @@ int Analysis_Statistics::Analyze() {
     //       in DataSet.
     outfile_.Printf("   AVERAGE: %8.4f (%.4f stddev)\n", average, stddev);
     outfile_.Printf("   INITIAL: %8.4f\n   FINAL:   %8.4f\n",
-                    (*ds)->Dval( 0 ), (*ds)->Dval( totalFrames-1 ) );
+                    (*ds)->Dval( 0 ), (*ds)->Dval( Nelements-1 ) );
 
     // More specific analysis based on MODE
     if ( mode == DataSet::M_PUCKER) 
-      PuckerAnalysis( *ds, totalFrames ); 
+      PuckerAnalysis( *ds, Nelements ); 
     else if ( mode == DataSet::M_TORSION)
-      TorsionAnalysis( *ds, totalFrames );
+      TorsionAnalysis( *ds, Nelements );
     else if ( mode == DataSet::M_DISTANCE)
-      DistanceAnalysis( *ds, totalFrames, 0, 0);
+      DistanceAnalysis( *ds, Nelements, 0, 0);
 
   } // END loop over DataSets
 

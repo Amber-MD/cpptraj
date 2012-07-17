@@ -29,6 +29,7 @@ class DataSet {
     virtual ~DataSet(); // Destructor - virtual since this class is inherited
 
     // -----===== Inheritable functions =====-----
+    virtual int Allocate(int)          { return 0; }
     /// Return the largest X/frame value added to set. 
     /** By convention this should be the last value added.
       */
@@ -44,7 +45,7 @@ class DataSet {
       */
     virtual void Add( int, void * ) { return;   }
     /// Get data from the dataset
-    virtual int Get( void *, int )  { return 1; }
+    //virtual int Get( void *, int )  { return 1; }
     /// Write data at frame to character buffer
     virtual void WriteBuffer(CharBuffer&,int) { return;   }
     /// Size in characters necessary to write data from this set.
@@ -53,10 +54,12 @@ class DataSet {
     virtual int Sync()              { return 0; }
     /// Return data from data set as double precision
     virtual double Dval(int)        { return 0; }
+    /// Return last value written to data set as double precision
+    virtual double CurrentDval()    { return 0; }
     // Psuedo-iterator functions
-    virtual void Begin()            { return;       }
-    virtual bool NextValue()        { return false; }
-    virtual double CurrentValue()   { return 0;     }
+    //virtual void Begin()            { return;       }
+    //virtual bool NextValue()        { return false; }
+    //virtual double CurrentValue()   { return 0;     }
     // -------------------------------------------
 
     // Calculation routines for atomic types (DOUBLE, FLOAT, INT)
