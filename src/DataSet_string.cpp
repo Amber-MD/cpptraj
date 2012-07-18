@@ -113,7 +113,7 @@ int DataSet_string::Sync() {
       parallel_sendMaster(&dataSize, 1, rank, 0);
       // If size is 0 on rank, skip this rank.
       if (dataSize == 0) continue;
-      // Get sum size of each string on rank.
+      // Get sum size of each string on rank (incl. NULL char).
       stringSize = 0;
       for ( DType::iterator str_it = Data_.begin(); str_it != Data_.end(); ++str_it)
         stringSize += ( (*str_it).size() + 1 ); // +1 for NULL char.

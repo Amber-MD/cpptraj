@@ -4,8 +4,11 @@
 #include "CharBuffer.h"
 // Class: DataSet
 /// Base class that all dataset types will inherit.
-/** All classes inheriting the DataSet class must implement 6 routines:
-  * isEmpty, Add, Get, WriteBuffer, Width, and Sync.
+/** All atomic classes inheriting the DataSet class must implement 9 routines:
+  * Xmax, Size, FrameIsEmpty, Add, WriteBuffer, Width, Sync, Dval, and 
+  * CurrentDval (the last 2 not needed for String).
+  * Other types wishing to use DataFile output should at least implement the 
+  * Size, Xmax, WriteBuffer, and Width routines.
   */
 class DataSet {
   public:
@@ -13,11 +16,11 @@ class DataSet {
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, STRING, INT, FLOAT, VECTOR, MATRIX, MODES
     };
-    /// Source of data stored in DataSet
+    /// Source of data stored in DataSet, used by Analysis_Statistics
     enum scalarMode {
       UNKNOWN_MODE=0, M_DISTANCE, M_ANGLE, M_TORSION, M_PUCKER, M_RMS
     };
-    /// Type of DataSet
+    /// Type of DataSet, used by Analysis_Statistics
     enum scalarType {
       UNDEFINED=0, ALPHA, BETA, GAMMA, DELTA, EPSILON, ZETA, PUCKER, CHI, 
       H1P,         C2P,   PHI,  PSI,   PCHI,  HBOND,   NOE
@@ -28,7 +31,7 @@ class DataSet {
     DataSet();          // Constructor
     virtual ~DataSet(); // Destructor - virtual since this class is inherited
 
-    // -----===== Inheritable functions =====-----
+    // ----------===== Inheritable functions =====----------
     virtual int Allocate(int)          { return 0; }
     /// Return the largest X/frame value added to set. 
     /** By convention this should be the last value added.
@@ -39,13 +42,13 @@ class DataSet {
     /// Used to check if a frame in dataset has data.
     virtual int FrameIsEmpty(int)   { return 1; }
     /// Add data to the dataset.
-    /** A pointer to the data is passed in  as void - it is up to the 
+    /** A pointer to the data is passed in as void - it is up to the 
       * inheriting class to cast it. The X value for the data is passed 
-      * in as well. 
+      * in as well. It is expected that each successive X value will
+      * be greater than the preceeding one (does not need to be
+      * consecutive however). 
       */
     virtual void Add( int, void * ) { return;   }
-    /// Get data from the dataset
-    //virtual int Get( void *, int )  { return 1; }
     /// Write data at frame to character buffer
     virtual void WriteBuffer(CharBuffer&,int) { return;   }
     /// Size in characters necessary to write data from this set.
@@ -56,11 +59,7 @@ class DataSet {
     virtual double Dval(int)        { return 0; }
     /// Return last value written to data set as double precision
     virtual double CurrentDval()    { return 0; }
-    // Psuedo-iterator functions
-    //virtual void Begin()            { return;       }
-    //virtual bool NextValue()        { return false; }
-    //virtual double CurrentValue()   { return 0;     }
-    // -------------------------------------------
+    // -----------------------------------------------------
 
     // Calculation routines for atomic types (DOUBLE, FLOAT, INT)
     /// Return the average/stdev of all values in the set

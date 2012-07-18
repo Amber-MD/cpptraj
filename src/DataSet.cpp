@@ -45,7 +45,9 @@ int DataSet::Setup(const char* nameIn, int Nin) {
   name_.assign( nameIn );
  
   // Attempt to allocate DataSet if necessary
-  if ( Allocate( Nin ) ) return 1;
+  if (Nin > 0) {
+    if ( Allocate( Nin ) ) return 1;
+  }
  
   return 0;
 }
