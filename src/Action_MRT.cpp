@@ -40,5 +40,13 @@ int Action_MRT::init() {
   // If specified, filename for autocorrelation fn
   autoCorr_ = actionArgs.GetStringKey("autocorr");
 
+  // Autocorrelation parameters
+  // NOTE: Needed if autoCorr empty?
+  double wsize = actionArgs.getKeyDouble("tcorr", 400.0);
+  wsize /= (time_ + 0.5);
+  wSize_ = (int)wsize;
+
+  
+
   return 0;
 }

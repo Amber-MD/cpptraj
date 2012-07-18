@@ -19,5 +19,7 @@ class Action_MRT : public Action {
     double lowerCutoff2_;
     double upperCutoff2_;
     std::string autoCorr_;
+    int wSize_;
+    int nOffset_;
 };
 #endif
