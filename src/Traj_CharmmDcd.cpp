@@ -38,6 +38,7 @@ CharmmDcd::~CharmmDcd() {
 
 bool CharmmDcd::ID_TrajFormat() {
   char buffer[10];
+  memset(buffer, ' ', 10);
   if (OpenFile()) return false;
   IO->Gets(buffer, 9);
   CloseFile();
