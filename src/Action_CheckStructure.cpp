@@ -7,7 +7,8 @@
 // CONSTRUCTOR
 CheckStructure::CheckStructure() : 
   bondoffset_(1.0),
-  nonbondcut2_(0.64) // 0.8^2
+  nonbondcut2_(0.64), // 0.8^2
+  isSeparate_(false)
 { 
   //fprintf(stderr,"CheckStructure Con\n");
   useImage_ = true;
