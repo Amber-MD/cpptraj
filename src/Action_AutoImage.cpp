@@ -159,11 +159,14 @@ int Action_AutoImage::setup() {
     }
   }
   // DEBUG: Print fixed and mobile lists
-  mprintf("\tThe following molecules are fixed to anchor:");
-  for (pairList::iterator atom = fixedList_.begin(); 
-                          atom != fixedList_.end(); atom += 2)
-    mprintf(" %i", (*currentParm)[ *atom ].Mol()+1 );
-  mprintf("\n\t%zu molecules are mobile.\n", mobileList_.size() / 2 );
+  if (!fixedList_.empty()) {
+    mprintf("\tThe following molecules are fixed to anchor:");
+    for (pairList::iterator atom = fixedList_.begin(); 
+                            atom != fixedList_.end(); atom += 2)
+      mprintf(" %i", (*currentParm)[ *atom ].Mol()+1 );
+    mprintf("\n");
+  }
+  mprintf("\t%zu molecules are mobile.\n", mobileList_.size() / 2 );
   //mprintf("\tThe following molecules are mobile:\n");
   //for (pairList::iterator atom = mobileList_.begin(); 
   //                        atom != mobileList_.end(); atom += 2)
