@@ -11,6 +11,18 @@ DataSet_integer::DataSet_integer() {
   SetDataSetFormat(false);
 }
 
+// DataSet_integer::Resize()
+/** Make this dataset an empty one of size sizeIn that can then be randomly
+  * accessed with the [] operator.
+  */
+void DataSet_integer::Resize( int sizeIn ) {
+  Data_.resize( sizeIn, 0 );
+  Frames_.reserve( sizeIn );
+  // Assume input data will be monatomic starting from 0
+  for (int i = 0; i < sizeIn; ++i)
+    Frames_.push_back( i );
+}
+
 // DataSet_integer::Allocate()
 /** Reserve space in the Data and Frames arrays. */
 int DataSet_integer::Allocate( int sizeIn ) {

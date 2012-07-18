@@ -1,9 +1,10 @@
 // Action: Clustering
+#include <cfloat> // DBL_MAX
 #include "Action_Clustering.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
-#include <cfloat> // DBL_MAX
+#include "DataSet_integer.h" // For converting cnumvtime
 
 // CONSTRUCTOR
 Clustering::Clustering() {
@@ -393,6 +394,13 @@ int Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
 // Clustering::CreateCnumvtime()
 /** Put cluster number vs frame into dataset.  */
 void Clustering::CreateCnumvtime( ClusterList &CList ) {
+  // FIXME:
+  // Cast generic DataSet for cnumvtime back to integer dataset to 
+  // access specific integer dataset functions for resizing and []
+  // operator. Should this eventually be generic to all atomic DataSets? 
+  DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime;
+  cnum_temp->Resize( CList.MaxFrames() );
+
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); C++)
   {
@@ -408,7 +416,8 @@ void Clustering::CreateCnumvtime( ClusterList &CList ) {
                                      frame != (*C).endframe(); frame++)
     {
       //mprinterr("%i,",*frame);
-      cnumvtime->Add( *frame, &cnum );
+      //cnumvtime->Add( *frame, &cnum );
+      (*cnum_temp)[ *frame ] = cnum;
     }
     //mprinterr("\n");
     //break;

@@ -17,6 +17,7 @@ class ClusterList {
  
     void SetLinkage(LINKAGETYPE Lin) { Linkage_ = Lin; }
     int Nclusters() { return (int)clusters_.size(); }
+    int MaxFrames() { return maxframes_; }
 
     void SetDebug(int);
     void Initialize(TriangleMatrix *);

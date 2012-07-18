@@ -9,9 +9,15 @@
   * e.g. when an action is not active for a certain trajectory because it 
   * is not valid for that topology.
   */
+// TODO: Currently Resize and the [] operator are only used by Clustering
+//       to create the cnumvtime array. Should these functions be
+//       in all atomic datasets?
 class DataSet_integer : public DataSet {
   public:
     DataSet_integer();
+
+    void Resize(int);
+    int& operator[](int idx) { return Data_[idx]; }
 
     int Allocate(int);
     int Xmax();
