@@ -68,13 +68,15 @@ class AtomMask {
     bool None();
     /// Set the mask string. If NULL, set * (all)
     int SetMaskString(const char*);
+    /// Set the mask string.
+    int SetMaskString( std::string const& );
     /// Set up Selected based on given char mask 
     void SetupMask(char*,int,int);
     /// Set up CharMask based on given char mask 
     void SetupCharMask(char*, int, int);
     /// True if given atom is T in CharMask
     bool AtomInCharMask(int atom);
-    /// True if mask has no expression
+    /// True if mask expression has been set.
     bool MaskStringSet() { return (!maskString_.empty()); }
     /// Convert mask type (char->int, int->char)
     int ConvertMaskType();
