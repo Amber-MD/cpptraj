@@ -15,11 +15,14 @@ class Action_MRT : public Action {
 
     CpptrajFile outfile_;
     double time_; // darg1
-    int nStar_;
-    double lowerCutoff2_;
-    double upperCutoff2_;
-    std::string autoCorr_;
-    int wSize_;
-    int nOffset_;
+    int nStar_;              ///< Nsteps not counted as having left/entered
+    double lowerCutoff2_;    ///< define lower cutoff for inside region
+    double upperCutoff2_;    ///< define upper cutoff for inside region
+    std::string autoCorr_;   ///< filename for acf output
+    int wSize_;              ///< window size in steps
+    int nOffset_;            ///< offset between windows
+    int idxMaxWin_;          ///< maximum number of parallel windows
+    AtomMask solventmask_;   ///< Solvent mask expression
+    AtomMask solutemask_;    ///< Solute mask expression
 };
 #endif
