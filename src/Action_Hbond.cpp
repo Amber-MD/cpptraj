@@ -289,6 +289,7 @@ int Action_Hbond::setup() {
 }
 
 // Action_Hbond::AtomsAreHbonded()
+/** Used to determine if solute atoms are bonded to solvent atoms. */
 int Action_Hbond::AtomsAreHbonded(int a_atom, int d_atom, int h_atom, int hbidx, bool solutedonor) 
 {
   HbondType HB;

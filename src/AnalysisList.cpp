@@ -33,9 +33,9 @@ void AnalysisList::SetDebug(int debugIn) {
 int AnalysisList::AddAnalysis(ArgList &argIn) {
   Analysis *Ana=NULL;
  
-  if      (argIn.CommandIs("histogram")) { Ana = new Hist(); }
-  else if (argIn.CommandIs("hist"))      { Ana = new Hist(); }
-  else if (argIn.CommandIs("corr"))      { Ana = new Corr(); }
+  if      (argIn.CommandIs("histogram")) { Ana = new Analysis_Hist(); }
+  else if (argIn.CommandIs("hist"))      { Ana = new Analysis_Hist(); }
+  else if (argIn.CommandIs("corr"))      { Ana = new Analysis_Corr(); }
   else if (argIn.CommandIs("analyze")  ) { 
     if (argIn.ArgAt(1) == NULL) return 1;
     if (argIn[1] == "matrix")
@@ -47,7 +47,7 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
     else if (argIn[1] == "crank")
       Ana = new Analysis_CrankShaft;
     else if (argIn[1] == "correlationcoe")
-      Ana = new Corr; // For backwards compatibility with PTRAJ
+      Ana = new Analysis_Corr; // For backwards compatibility with PTRAJ
     else if (argIn[1] == "stat")
       Ana = new Analysis_Statistics;
     else

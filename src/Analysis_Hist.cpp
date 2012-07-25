@@ -1,10 +1,9 @@
 #include "Analysis_Hist.h"
 #include "CpptrajStdio.h"
-#include <cstdio> // sprintf
 // Analysis_Hist
 
 // CONSTRUCTOR
-Hist::Hist() :  
+Analysis_Hist::Analysis_Hist() :  
   calcFreeE_(false),
   Temp_(-1.0),
   normalize_(false),
@@ -15,12 +14,12 @@ Hist::Hist() :
   maxArgSet_(false)
 {}
 
-// Hist::CheckDimension()
+// Analysis_Hist::CheckDimension()
 /** Given an argument with format: DataSet_Name[:min:max:step:bins], check
   * that DataSet_Name exists and is valid. Add the argument to 
   * dimensionArgs and the corresponding dataset to histdata.
   */
-int Hist::CheckDimension(char *input, DataSetList *datasetlist) {
+int Analysis_Hist::CheckDimension(char *input, DataSetList *datasetlist) {
   ArgList arglist;
   // Separate input string by ':'
   arglist.SetList(input, ":");
@@ -49,13 +48,13 @@ int Hist::CheckDimension(char *input, DataSetList *datasetlist) {
   return 0;
 }
 
-// Hist::setupDimension()
+// Analysis_Hist::setupDimension()
 /** Given an ArgList containing name,[min,max,step,bins,col,N], set up a 
   * coordinate with that name and parameters min, max, step, bins.
   * If '*' or not specified, a default value will be set later.
   * \return 1 if error occurs, 0 otherwise.
   */
-int Hist::setupDimension(ArgList &arglist, DataSet *dset) {
+int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   Dimension dim;
   bool minArg = false;
   bool maxArg = false;
@@ -117,13 +116,13 @@ int Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   return 0;
 }
 
-// Hist::Setup()
+// Analysis_Hist::Setup()
 /** Set up histogram with specified data sets.
   * usage: hist(ogram) <dataset_name>[:min:max:step:bins] ...
   *        [free <temperature>] [norm] [gnu] [circular] out <filename>
   *        min <min> max <max> step <step> bins <bins>
   */
-int Hist::Setup(DataSetList *datasetlist) {
+int Analysis_Hist::Setup(DataSetList *datasetlist) {
   char *datasetstring;
 
   hist_.SetDebug(debug_);
@@ -178,8 +177,8 @@ int Hist::Setup(DataSetList *datasetlist) {
   return 0;
 }
 
-// Hist::Analyze()
-int Hist::Analyze() {
+// Analysis_Hist::Analyze()
+int Analysis_Hist::Analyze() {
   // Set up dimensions
   // Size of histdata and dimensionArgs should be the same
   for (unsigned int hd = 0; hd < histdata_.size(); hd++) {
@@ -218,11 +217,11 @@ int Hist::Analyze() {
   return 0;
 }
 
-// Hist::Print()
+// Analysis_Hist::Print()
 /** Convert 1D and 2D histograms to datafiles, otherwise use histogram
   * native output to print.
   */
-void Hist::Print(DataFileList *datafilelist) {
+void Analysis_Hist::Print(DataFileList *datafilelist) {
   DataFile *outfile=NULL;
 
   // Calc free energy if requested

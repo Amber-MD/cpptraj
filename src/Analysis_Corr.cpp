@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Corr::Corr() :
+Analysis_Corr::Analysis_Corr() :
   D1_(NULL),
   D2_(NULL),
   lagmax_(0),
@@ -11,10 +11,10 @@ Corr::Corr() :
   outfilename_(NULL)
 {}
 
-// Corr::Setup()
-/** Expected call: corr <outfilename> <Dataset1> <Dataset2> [lagmax <lagmax>]
+// Analysis_Corr::Setup()
+/** Expected call: corr out <outfilename> <Dataset1> [<Dataset2>] [lagmax <lagmax>]
   */
-int Corr::Setup(DataSetList *datasetlist) {
+int Analysis_Corr::Setup(DataSetList *datasetlist) {
   // If command was 'analyze correlationcoe' instead of 'corr' make sure
   // first two args are marked.
   if (analyzeArgs_[0] == "analyze") {
@@ -32,13 +32,14 @@ int Corr::Setup(DataSetList *datasetlist) {
   // Datasets
   char *D1name = analyzeArgs_.getNextString();
   if (D1name==NULL) {
-    mprinterr("Error: Corr: Must specify 2 dataset names.\n");
+    mprinterr("Error: Corr: Must specify at least 1 dataset name.\n");
     return 1;
   }
   char *D2name = analyzeArgs_.getNextString();
   if (D2name==NULL) {
-    mprinterr("Error: Corr: Must specify 2 dataset names.\n");
-    return 1;
+    //mprinterr("Error: Corr: Must specify 2 dataset names.\n");
+    //return 1;
+    D2name = D1name;
   }
   D1_ = datasetlist->Get(D1name);
   if (D1_==NULL) {
@@ -56,14 +57,17 @@ int Corr::Setup(DataSetList *datasetlist) {
   // Setup output dataset
   if (Ct_.Setup((char*)"Corr", lagmax_)) return 1;
 
-  mprintf("    CORR: Correlation between set %s and set %s\n",D1name,D2name);
+  if (D1name == D2name)
+    mprintf("    CORR: Auto-correlation of set %s\n", D1name);
+  else
+    mprintf("    CORR: Correlation between set %s and set %s\n",D1name,D2name);
   mprintf("          Output to %s\n",outfilename_);
 
   return 0;
 }
 
-// Corr::Analyze()
-int Corr::Analyze() {
+// Analysis_Corr::Analyze()
+int Analysis_Corr::Analyze() {
   double d1, d2, ct;
 
   // Check that D1 and D2 have same # data points.
@@ -121,8 +125,8 @@ int Corr::Analyze() {
   return 0;
 }
 
-// Corr::Print()
-void Corr::Print(DataFileList *dfl) {
+// Analysis_Corr::Print()
+void Analysis_Corr::Print(DataFileList *dfl) {
   dfl->Add(outfilename_, &Ct_);
 }
 

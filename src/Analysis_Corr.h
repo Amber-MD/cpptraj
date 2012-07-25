@@ -2,10 +2,11 @@
 #define INC_ANALYSIS_CORR_H
 #include "Analysis.h"
 #include "DataSet_double.h"
-// Class: Corr
-class Corr : public Analysis {
+// Class: Analysis_Corr
+/// Calculate autocorrelation or correlation of dataset(s).
+class Analysis_Corr : public Analysis {
   public:
-    Corr();
+    Analysis_Corr();
 
     int Setup(DataSetList*);
     int Analyze();

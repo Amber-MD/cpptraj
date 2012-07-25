@@ -2,11 +2,11 @@
 #define INC_ANALYSIS_HIST_H
 #include "Analysis.h"
 #include "Histogram.h"
-// Class: Hist
+// Class: Analysis_Hist
 /// Create an N-dimensional histogram from N input datasets
-class Hist : public Analysis {
+class Analysis_Hist : public Analysis {
   public :
-    Hist();
+    Analysis_Hist();
 
     int Setup(DataSetList*);
     int Analyze();
