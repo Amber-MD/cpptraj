@@ -89,7 +89,7 @@ class DataSet {
 
     // -----===== Functions that return private vars =====-----
     /// Dataset name
-    std::string Name()     { return name_; }
+    std::string const& Name()     { return name_; }
     /// Printf-compatible name
     const char* c_str()    { return name_.c_str(); }
     /// Set dataset index

@@ -64,10 +64,60 @@ void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
 }
 
 // DataSetList::Get()
+/** Return dataset in the list indicated by nameIn. Possible formats:
+  *  - "<name>"         : Plain dataset name.
+  *  - "<name>:<index>" : Dataset within larger overall set (e.g. perres:1)
+  *  - "<name>[<attr>]" : Dataset with name and given attribute (e.g. rog[max])
+  *  - "<name>[<attr>]:<index>" : 
+  *       Dataset with name, given attribute, and index (e.g. NA[shear]:1)
+  */
 DataSet *DataSetList::Get(const char *nameIn) {
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->Name().compare( nameIn )==0 )
+  std::string attr_arg;
+  int idx = -1;
+  std::string dsname( nameIn );
+
+  // Separate out index if present
+  size_t idx_pos = dsname.find( ':' );
+  if ( idx_pos != std::string::npos ) {
+    // Advance to after the ':'
+    std::string idx_arg = dsname.substr( idx_pos + 1 );
+    mprintf("DBG\t\tIndex Arg [%s]\n", idx_arg.c_str());
+    idx = convertToInteger( idx_arg );
+    // Allow only positive indices
+    if ( idx < 0 ) {
+      mprinterr("Error: Dataset name %s, index value must be positive! (%i)\n", 
+                nameIn, idx);
+      return NULL;
+    }
+    // Drop the index arg
+    dsname.resize( idx_pos );
+  }
+
+  // Separate out attribute if present
+  size_t attr_pos0 = dsname.find_first_of( '[' );
+  size_t attr_pos1 = dsname.find_last_of( ']' );
+  if ( attr_pos0 != std::string::npos && attr_pos1 != std::string::npos ) {
+    if ( (attr_pos0 != std::string::npos && attr_pos1 == std::string::npos) ||
+         (attr_pos0 == std::string::npos && attr_pos1 != std::string::npos) )
+    {
+      mprinterr("Error: Malformed attribute ([<attr>]) in dataset name %s\n", nameIn);
+      return NULL;
+    }
+    // Advance to after '[', length is position of ']' minus '[' minus 1 
+    std::string attr_arg = dsname.substr( attr_pos0 + 1, attr_pos1 - attr_pos0 - 1 ); 
+    mprintf("DBG\t\tAttr Arg [%s]\n", attr_arg.c_str());
+    // Drop the attribute arg
+    dsname.resize( attr_pos0 );
+  }
+
+  mprintf("DBG:\t\tName Arg [%s]\n", dsname.c_str());
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+    if ( (*ds)->Name() == dsname ) {
+      // If an index was specified, try to match it
+      if ( idx != -1 && (*ds)->Idx() != idx ) continue;
       return *ds;
+    }
+  }
   return NULL;
 }
 
