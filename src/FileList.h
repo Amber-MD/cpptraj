@@ -14,7 +14,7 @@ class FileList {
     void AddNames(char *, const char*, std::string &);
     void AddNames(char *, std::string &, std::string &);
     void AddFilename(char *);
-    int FindName(char*); // TODO: Make obsolete
+    int FindName(const char*); // TODO: Make obsolete
     int FindName(std::string);
     // TODO: Place these in definition
     std::string &Tag(int idx) {

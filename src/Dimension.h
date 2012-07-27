@@ -8,7 +8,7 @@ class Dimension {
     Dimension(const Dimension&);
     Dimension& operator=(const Dimension&);
  
-    void SetLabel(std::string&);
+    void SetLabel(std::string const&);
     void SetMin(double);
     void SetMax(double);
     void SetStep(double);

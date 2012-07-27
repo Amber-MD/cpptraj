@@ -33,7 +33,7 @@ Dimension& Dimension::operator=(const Dimension& rhs) {
   return *this;
 }
 
-void Dimension::SetLabel(std::string& labelIn) {
+void Dimension::SetLabel(std::string const& labelIn) {
   label_ = labelIn;
 }
 

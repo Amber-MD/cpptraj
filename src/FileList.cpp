@@ -28,7 +28,7 @@ void FileList::AddFilename(char *filename) {
 }
 
 // FileList::FindName()
-int FileList::FindName(char *nameIn) {
+int FileList::FindName(const char *nameIn) {
   if ( nameIn == NULL) {
     //mprinterr("Error: FileList::FindName called with NULL.\n");
     return -1;
