@@ -8,7 +8,6 @@
 Action_Rmsd::Action_Rmsd() :
   perres_(false),
   NumResidues_(0),
-  PerResRMSD_(NULL),
   perresout_(NULL),
   perrescenter_(false),
   perresinvert_(false),
@@ -28,7 +27,6 @@ Action_Rmsd::~Action_Rmsd() {
   //mprinterr("RMSD DESTRUCTOR\n");
   if (ResFrame_!=NULL) delete ResFrame_;
   if (ResRefFrame_!=NULL) delete ResRefFrame_;
-  if (PerResRMSD_!=NULL) delete PerResRMSD_;
 }
 
 // Action_Rmsd::resizeResMasks()
@@ -266,7 +264,6 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
   // successfully set up, keep track of that as well.
   //mprinterr("DEBUG: Setting up %i masks and data for %s\n",nres,currentParm->parmName);
   resizeResMasks();
-  if (PerResRMSD_==NULL) PerResRMSD_ = new DataSetList();
   resIsActive_.reserve(NumResidues_);
   resIsActive_.assign(NumResidues_, false);
   int N = -1; // Set to -1 since increment is at top of loop
@@ -290,9 +287,11 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
     }
     ++N;
     // Create dataset for res - if already present this returns NULL
-    DataSet* prDataSet = PerResRMSD_->AddMultiN(DataSet::DOUBLE, "", 
-                                                currentParm->ResidueName(tgtRes-1),
-                                                tgtRes);
+    DataSet* prDataSet = DSL->AddSetIdxAspect( DataSet::DOUBLE,
+                                               rmsd_->Name(), 
+                                               tgtRes,
+                                               currentParm->ResNameNum(tgtRes-1) );
+    PerResRMSD_.push_back( prDataSet );
     if (prDataSet != NULL) DFL->Add(perresout_, prDataSet);
 
     // Setup mask strings. Note that masks are based off user residue nums
@@ -451,7 +450,7 @@ int Action_Rmsd::action() {
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,
       //        tgtResMask[N]->MaskString(),refResMask[N]->MaskString(),R);
       // NOTE: Should check for error on AddData?
-      PerResRMSD_->AddData(frameNum, &R, N);
+      PerResRMSD_[N]->Add(frameNum, &R);
     }
   }
 
@@ -466,26 +465,24 @@ int Action_Rmsd::action() {
 void Action_Rmsd::print() {
   DataFile *outFile;
 
-  if (!perres_ || PerResRMSD_==NULL) return;
-  // Sync dataset list here since it is not part of master dataset list
-  PerResRMSD_->Sync();
+  if (!perres_ || PerResRMSD_.empty()) return;
   // Per-residue output
   outFile = DFL->GetDataFile(perresout_);
   if (outFile!=NULL) {
     // Set output file to be inverted if requested
     if (perresinvert_) 
       outFile->ProcessArgs("invert");
-    mprintf("    RMSD: Per-residue: Writing data for %i residues to %s\n",
-            PerResRMSD_->Size(), outFile->Filename());
+    mprintf("    RMSD: Per-residue: Writing data for %zu residues to %s\n",
+            PerResRMSD_.size(), outFile->Filename());
   }
 
   // Average
   if (perresavg_==NULL) return;
-  int Nperres = PerResRMSD_->Size();
+  int Nperres = (int)PerResRMSD_.size();
   // Use the per residue rmsd dataset list to add one more for averaging
-  DataSet *PerResAvg = PerResRMSD_->Add(DataSet::DOUBLE, (char*)"AvgRMSD", "AvgRMSD");
+  DataSet *PerResAvg = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Avg");
   // another for stdev
-  DataSet *PerResStdev = PerResRMSD_->Add(DataSet::DOUBLE, (char*)"Stdev", "Stdev");
+  DataSet *PerResStdev = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Stdev");
   // Add the average and stdev datasets to the master datafile list
   outFile = DFL->Add(perresavg_, PerResAvg);
   outFile = DFL->Add(perresavg_, PerResStdev);
@@ -494,9 +491,8 @@ void Action_Rmsd::print() {
   double stdev = 0;
   double avg = 0;
   for (int pridx = 0; pridx < Nperres; pridx++) {
-    DataSet *tempDS = PerResRMSD_->GetDataSetN(pridx);
-    avg = tempDS->Avg(&stdev);
-    int dsidx = tempDS->Idx() - 1; // When set up actual resnum is used - change?
+    avg = PerResRMSD_[pridx]->Avg( &stdev );
+    int dsidx = PerResRMSD_[pridx]->Idx() - 1;
     PerResAvg->Add(dsidx, &avg);
     PerResStdev->Add(dsidx,&stdev);
   }

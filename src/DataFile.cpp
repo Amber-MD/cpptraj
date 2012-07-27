@@ -43,10 +43,10 @@ int DataFile::SetupDatafile(const char* fnameIn) {
     dataType_ = DATAFILE;
   // Set up DataIO based on format. 
   switch (dataType_) {
-    case DATAFILE : dataio_ = new StdDataFile(); break;
-    case XMGRACE  : dataio_ = new GraceDataFile(); break;
-    case GNUPLOT  : dataio_ = new GnuplotDataFile(); break;
-    default       : dataio_ = new StdDataFile(); break;
+    case DATAFILE : dataio_ = new DataIO_Std(); break;
+    case XMGRACE  : dataio_ = new DataIO_Grace(); break;
+    case GNUPLOT  : dataio_ = new DataIO_Gnuplot(); break;
+    default       : dataio_ = new DataIO_Std(); break;
   }
   if (dataio_==NULL) return 1;
 
@@ -60,8 +60,10 @@ int DataFile::SetupDatafile(const char* fnameIn) {
 }
 
 // DataFile::AddSet()
-int DataFile::AddSet(DataSet *dataIn) {
-  return (SetList_.AddDataSetCopy(dataIn));
+int DataFile::AddSet(DataSet* dataIn) {
+  if (dataIn == NULL) return 1;
+  SetList_.AddCopyOfSet( dataIn );
+  return 0;
 }
 
 // DataFile::ProcessArgs()
@@ -77,6 +79,7 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   }
   if (dataio_->processWriteArgs(argIn)==1) return 1;
   if (dataio_->ProcessCommonArgs(argIn)==1) return 1;
+  argIn.CheckForMoreArgs();
   return 0;
 }
 
@@ -88,17 +91,17 @@ int DataFile::ProcessArgs(const char *argsIn) {
 }
 
 // DataFile::SetXlabel()
-void DataFile::SetXlabel(char *xlabel) {
+void DataFile::SetXlabel(const char *xlabel) {
   ArgList args;
-  args.AddArg((char*)"xlabel");
+  args.AddArg("xlabel");
   args.AddArg(xlabel);
   ProcessArgs(args);
 }
 
 // DataFile::SetYlabel()
-void DataFile::SetYlabel(char *ylabel) {
+void DataFile::SetYlabel(const char *ylabel) {
   ArgList args;
-  args.AddArg((char*)"ylabel");
+  args.AddArg("ylabel");
   args.AddArg(ylabel);
   ProcessArgs(args);
 }
@@ -118,17 +121,75 @@ void DataFile::SetCoordMinStep(double xminIn, double xstepIn,
 // DataFile::Write()
 void DataFile::Write() {
   if (dataio_->OpenFile()) return;
-  int maxFrames = SetList_.PrepareForWrite();
-  mprintf("%s: Writing %i frames.\n",dataio_->Name(),maxFrames);
-  if (maxFrames>0) {
-    dataio_->SetMaxFrames( maxFrames );
-    if (!isInverted_)
-      dataio_->WriteData(SetList_);
-    else
-      dataio_->WriteDataInverted(SetList_);
-  } else {
-    mprintf("Warning: DataFile %s has no valid sets - skipping.\n",
-            dataio_->Name());
+
+  // Remove data sets that do not contain data. Also determine max X and 
+  //ensure all datasets in this file have same dimension.
+  int maxFrames = 0;
+  int currentDim = 0;
+  DataSetList::const_iterator Dset = SetList_.end();
+  while (Dset != SetList_.begin()) {
+    --Dset;
+    // Check dimension
+    if (currentDim == 0) 
+      currentDim = (*Dset)->Dim();
+    else if (currentDim != (*Dset)->Dim()) {
+      mprinterr("Error: Writing files with datasets of different dimensions\n");
+      mprinterr("Error: is currently not supported (%i and %i present).\n",
+                currentDim, (*Dset)->Dim());
+      return;
+    }
+    // CheckSet != 0 if set has no data.
+    if ( (*Dset)->CheckSet() ) {
+      // If set has no data, remove it
+      mprintf("Warning: Set %s contains no data. Skipping.\n",(*Dset)->c_str());
+      SetList_.erase( Dset );
+      Dset = SetList_.end();
+    } else {
+      // If set has data, set its format to right-aligned initially. Also 
+      // determine what the maximum x value for the set is.
+      if ( (*Dset)->SetDataSetFormat(false) ) {
+        mprinterr("Error: could not set format string for set %s. Skipping.\n", (*Dset)->c_str());
+        SetList_.erase( Dset );
+        Dset = SetList_.end();
+      } else {
+        int maxSetFrames = (*Dset)->Xmax();
+        if (maxSetFrames > maxFrames)
+          maxFrames = maxSetFrames;
+      }
+    }
+  }
+  // If all data sets are empty no need to write
+  if (SetList_.empty()) {
+    mprintf("Warning: file %s has no sets containing data.\n", dataio_->Name());
+    return;
+  }
+
+  // Since maxFrames is the last frame, the actual # of frames is 
+  // maxFrames+1 (for use in loops).
+  ++maxFrames;
+
+  mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->Name(),
+          SetList_.size(), currentDim, maxFrames);
+
+  if ( currentDim == 1 ) {
+    mprintf("%s: Writing %i frames.\n",dataio_->Name(),maxFrames);
+    if (maxFrames>0) {
+      dataio_->SetMaxFrames( maxFrames );
+      if (!isInverted_)
+        dataio_->WriteData(SetList_);
+      else
+        dataio_->WriteDataInverted(SetList_);
+    } else {
+      mprintf("Warning: DataFile %s has no valid sets - skipping.\n",
+              dataio_->Name());
+    }
+  } else if ( currentDim == 2) {
+    int err = 0;
+    for ( DataSetList::const_iterator set = SetList_.begin();
+                                      set != SetList_.end(); ++set)
+      err = dataio_->WriteData2D( *(*set) );
+    if (err > 0) 
+      mprinterr("Error writing 2D DataSets to %s\n", dataio_->Name());
   }
   dataio_->CloseFile();
 }
@@ -148,14 +209,14 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
   if (dsetName==NULL || dsetName[0]=='*') {
     mprintf("    Setting width.precision for all sets in %s to %i.%i\n",
             dataio_->Name(),widthIn,precision);
-    for (DataSetList::const_iterator set = SetList_.begin(); set!=SetList_.end(); set++)
+    for (DataSetList::const_iterator set = SetList_.begin(); set!=SetList_.end(); ++set)
       (*set)->SetPrecision(widthIn,precision);
 
   // Otherwise find dataset <dsetName> and set precision
   } else {
     mprintf("    Setting width.precision for dataset %s to %i.%i\n",
             dsetName,widthIn,precision);
-    DataSet *Dset = SetList_.Get( dsetName );
+    DataSet *Dset = SetList_.Get(dsetName);
     if (Dset!=NULL)
       Dset->SetPrecision(widthIn,precision);
     else
@@ -174,10 +235,11 @@ const char *DataFile::Filename() {
   */
 void DataFile::DataSetNames() {
   DataSetList::const_iterator set = SetList_.begin();
-  if (SetList_.Size() > 10) {
+  if (SetList_.size() > 10) {
     int setnum = 0;
     while (setnum < 4) {
-      mprintf(" %s",(*set)->c_str());
+      //mprintf(" %s",(*set)->c_str());
+      mprintf(" %s",(*set)->Legend().c_str());
       ++setnum;
       ++set;
     }
@@ -186,12 +248,14 @@ void DataFile::DataSetNames() {
     setnum=0;
     while (setnum < 4) {
       --set;
-      mprintf(" %s",(*set)->c_str());
+      //mprintf(" %s",(*set)->c_str());
+      mprintf(" %s",(*set)->Legend().c_str());
       ++setnum;
     }
   } else {
     for (; set != SetList_.end(); set++)
-      mprintf(" %s",(*set)->c_str());
+      //mprintf(" %s",(*set)->c_str());
+      mprintf(" %s",(*set)->Legend().c_str());
   }
 }
 

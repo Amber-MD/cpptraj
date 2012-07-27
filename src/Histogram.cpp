@@ -10,7 +10,13 @@ Histogram::Histogram() :
   debug_(0),
   isCircular_(0),
   hasCycled_(false)
-{}
+{
+  // DataSet-specific vars
+  width_ = 12;
+  precision_ = 4;
+  dType_ = HIST;
+  SetDataSetFormat(false);
+}
 
 // Histogram::SetDebug()
 void Histogram::SetDebug(int debugIn) {
@@ -55,6 +61,9 @@ int Histogram::AddDimension(Dimension &dim) {
   if (debug_>0) mprintf("\tHistogram: Total Bins = %i\n",offset);
   // Allocate space for bins and set to 0
   Bins_.resize(offset, 0);
+
+  // Update number of DataSet dimensions
+  dim_ = (int)dimensions_.size();
 
   return 0;
 }
@@ -241,58 +250,32 @@ bool Histogram::IncrementBinIndices() {
   return true;
 }
 
-// Histogram::Print_1D()
-void Histogram::Print_1D(DataSetList &histout) {
-  if (dimensions_.size() != 1) {
-    mprinterr("Error: Print_1D: Histogram is not 1D (%zuD)\n",dimensions_.size());
-    return;
-  }
-  
-  DataSet *ds = histout.Add( DataSet::DOUBLE, (char*)dimensions_[0].c_str(), "Hist" );
-  if (ds==NULL) return;
+void Histogram::WriteBuffer(CharBuffer& cbuffer, int frame) {
+  if (frame < 0 || frame >= (int)Bins_.size())
+    cbuffer.WriteDouble(data_format_, 0);
+  else
+    cbuffer.WriteDouble(data_format_, Bins_[frame]);
+}
 
-  int bin = 0;
-  for (std::vector<double>::iterator data = Bins_.begin(); data != Bins_.end(); ++data) {
-    double d = *data;
-    ds->Add(bin, &d);
-    ++bin;
+void Histogram::Write2D(CpptrajFile& outfile, int x, int y) {
+  if ( x < 0 || x >= dimensions_[0].Bins())
+    outfile.Printf(data_format_, 0.0);
+  else if ( y < 0 || y >= dimensions_[1].Bins() )
+    outfile.Printf(data_format_, 0.0);
+  else {
+    // TODO: Use BinIndicesToIndex
+    int index = (x * dimensions_[0].Offset()) + (y * dimensions_[1].Offset());
+    outfile.Printf(data_format_, Bins_[index]);
   }
 }
 
-// Histogram::Print_2D()
-void Histogram::Print_2D(DataSetList &histout) {
-  //mprintf("Output for 2 dimensions.\n");
-  if (dimensions_.size() != 2) {
-    mprinterr("Error: Print_2D: Histogram is not 2D (%zuD)\n",dimensions_.size());
-    return;
-  }
-  BinStart( false );
-  // The way that datafile understands 2D data currently:
-  //   frame0 set0
-  //   frame0 set1
-  //   frame0 set2
-  //   frame1 set0
-  //   ...
-  // So need a set for each Y value (dimension 1).
-  for (int bin = 0; bin < dimensions_[1].Bins(); ++bin) {
-    std::string yname = doubleToString( (bin * dimensions_[1].Step()) + dimensions_[1].Min() );
-    //mprintf("Y%i name = %s\n",bin,yname.c_str());
-    histout.AddMultiN( DataSet::DOUBLE, yname, bin );
-  }
-  int yidx = 0;
-  int xidx = 0;
-  bool loop = true;
-  while (loop) {
-    int index = BinIndicesToIndex();
-    double data = Bins_[index];
-    //mprintf("\tAdding bin %i to x=%i y=%i\n",index,xidx,yidx);
-    histout.AddData( xidx, &data, yidx );
-    loop = IncrementBinIndices( );
-    ++yidx;
-    if (hasCycled_) {
-      ++xidx;
-      yidx = 0;
-    }
+void Histogram::GetDimensions(std::vector<int>& vIn) {
+  vIn.clear();
+  vIn.reserve( dimensions_.size() );
+  for (std::vector<Dimension>::iterator dim = dimensions_.begin(); 
+                                        dim != dimensions_.end(); ++dim)
+  {
+    vIn.push_back( (*dim).Bins() );
   }
 }
 

@@ -34,8 +34,7 @@ int Radgyr::init() {
   if (rog==NULL) return 1;
   DFL->Add(rogFile,rog);
   if (calcRogmax) {
-    rogmax = DSL->AddMulti(DataSet::DOUBLE, rogname, "Max");
-    //rogmax = DSL->Add(DOUBLE, NULL, "RoGMax");
+    rogmax = DSL->AddSetAspect(DataSet::DOUBLE, rog->Name(), "Max");
     if (rogmax == NULL) return 1; 
     DFL->Add(rogFile,rogmax);
   }

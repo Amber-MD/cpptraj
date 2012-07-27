@@ -12,8 +12,6 @@ Action_DSSP::Action_DSSP() :
   Nframe_(0),
   SSline_(0),
   printString_(false),
-  SSdata_(0),
-  dsspData_(0),
   BB_N("N"),
   BB_H("H"),
   BB_C("C"),
@@ -24,8 +22,6 @@ Action_DSSP::Action_DSSP() :
 Action_DSSP::~Action_DSSP() {
 //  debugout.CloseFile(); // DEBUG
   if (SSline_!=0) delete[] SSline_;
-  if (SSdata_!=0) delete SSdata_;
-  if (dsspData_!=0) delete dsspData_;
 }
 
 const char Action_DSSP::SSchar[7]={ '0', 'b', 'B', 'G', 'H', 'I', 'T' };
@@ -47,10 +43,10 @@ int Action_DSSP::init() {
   outfilename_ = actionArgs.getKeyString("out",NULL);
   char* temp = actionArgs.getKeyString("sumout",NULL);
   if (temp!=NULL) {
-    sumOut.assign(temp);
+    sumOut_.assign(temp);
   } else if (outfilename_!=NULL) {
-    sumOut.assign(outfilename_);
-    sumOut += ".sum";
+    sumOut_.assign(outfilename_);
+    sumOut_ += ".sum";
   } 
   if (actionArgs.hasKey("ptrajformat")) printString_=true;
   temp = actionArgs.getKeyString("namen",0);
@@ -66,18 +62,18 @@ int Action_DSSP::init() {
   Mask_.SetMaskString(mask);
 
   // Set up the DSSP data set
+  dssp_ = DSL->Add(DataSet::STRING, actionArgs.getNextString(),"DSSP");
   if (printString_) {
-    dssp_ = DSL->Add(DataSet::STRING, actionArgs.getNextString(),"DSSP");
     if (dssp_==NULL) return 1;
     DFL->Add(outfilename_, dssp_);
-  } else
-    SSdata_ = new DataSetList;
+  } //else
+    //SSdata_ = new DataSetList;
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
   if (outfilename_!=NULL) 
     mprintf("               Dumping results to %s\n", outfilename_);
-  if (!sumOut.empty())
-    mprintf("               Sum results to %s\n",sumOut.c_str());
+  if (!sumOut_.empty())
+    mprintf("               Sum results to %s\n",sumOut_.c_str());
   if (printString_) 
     mprintf("               SS data for each residue will be stored as a string.\n");
   else
@@ -184,8 +180,10 @@ int Action_DSSP::setup() {
     // Set up dataset if necessary 
     if (!printString_ && SecStruct_[res].resDataSet==NULL) {
       // Setup dataset name for this residue
-      SecStruct_[res].resDataSet = SSdata_->AddMultiN(DataSet::INT,"",
-                                                    currentParm->ResidueName(res),res+1);
+      SecStruct_[res].resDataSet = DSL->AddSetIdxAspect( DataSet::INT,
+                                                         dssp_->Name(),
+                                                         res+1,
+                                                         currentParm->ResNameNum(res) );
       if (SecStruct_[res].resDataSet!=NULL) DFL->Add(outfilename_, SecStruct_[res].resDataSet);
     }
     ++selected;
@@ -397,18 +395,15 @@ void Action_DSSP::print() {
   DataFile *dsspFile;
   int resi, ss;
   double avg;
+  std::vector<DataSet*> dsspData_(7);
 
-  // If not printing a string, sync the integer dataset here since
-  // it is not part of the master dataset list.
-  if (!printString_ && SSdata_!=0) SSdata_->Sync();
+  if (sumOut_.empty()) return;
 
-  if (sumOut.empty()) return;
-  // Set up dataset list to store averages
-  dsspData_ = new DataSetList(); 
   // Set up a dataset for each SS type
-  for (ss=1; ss<7; ss++) 
-    dsspFile = DFL->Add((char*)sumOut.c_str(), 
-                        dsspData_->Add(DataSet::DOUBLE, (char*)SSname[ss], "SS") );
+  for (ss=1; ss<7; ss++) {
+    dsspData_[ss] = DSL->AddSetAspect(DataSet::DOUBLE, dssp_->Name(), SSname[ss]);
+    dsspFile = DFL->Add( sumOut_.c_str(), dsspData_[ss] ); 
+  }
   // Change the X label to Residue
   dsspFile->ProcessArgs("xlabel Residue");
   // Dont print empty frames
@@ -418,11 +413,13 @@ void Action_DSSP::print() {
   // Calc the avg structure of each type for each selected residue 
   for (resi=0; resi < Nres_; resi++) {
     if (!SecStruct_[resi].isSelected) continue;
+    // FIXME: What about ss = 0
     for (ss=1; ss<7; ss++) {
       avg = (double)SecStruct_[resi].SSprob[ss];
       avg /= (double)Nframe_;
-      DataSet *tempDS = dsspData_->GetDataSetN(ss-1);
-      tempDS->Add(resi, &avg);
+      //DataSet *tempDS = dsspData_->GetDataSetN(ss-1);
+      //tempDS->Add(resi, &avg);
+      dsspData_[ss]->Add(resi, &avg);
     }
   }
 }

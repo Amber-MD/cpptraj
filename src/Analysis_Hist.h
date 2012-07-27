@@ -12,7 +12,7 @@ class Analysis_Hist : public Analysis {
     int Analyze();
     void Print(DataFileList*);
   private:
-    Histogram hist_;
+    Histogram* hist_;
     std::vector<DataSet*> histdata_;
     std::vector<ArgList> dimensionArgs_;
 
@@ -26,8 +26,6 @@ class Analysis_Hist : public Analysis {
     Dimension default_dim_;
     bool minArgSet_;
     bool maxArgSet_;
-
-    DataSetList histout_;
 
     int CheckDimension(char *, DataSetList *);
     int setupDimension(ArgList&, DataSet*);

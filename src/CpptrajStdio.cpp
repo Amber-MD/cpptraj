@@ -272,7 +272,7 @@ void SetIntegerFormatString(std::string &formatString, int width, bool leftAlign
   char *format = new char[ wWidth + 4 ];
   sprintf(format, "%s%%%ii", leftSpace, width);
   formatString.assign( format );
-  //mprintf("DEBUG: Integer Format string: [%s]\n",format);
+  //mprinterr("DEBUG: Integer Format string: [%s]\n",format);
   delete[] format;
 }
 

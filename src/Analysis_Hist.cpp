@@ -3,7 +3,8 @@
 // Analysis_Hist
 
 // CONSTRUCTOR
-Analysis_Hist::Analysis_Hist() :  
+Analysis_Hist::Analysis_Hist() : 
+  hist_(0), 
   calcFreeE_(false),
   Temp_(-1.0),
   normalize_(false),
@@ -71,7 +72,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   for (int i=1; i<arglist.Nargs(); i++) {
     if (debug_>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist.ArgAt(i));
     // Default explicitly requested
-    if (arglist.ArgIs(i,"*")) continue;
+    if (arglist[i] == "*") continue;
     switch (i) {
       case 1 : dim.SetMin( arglist.ArgToDouble(i) ); minArg=true; break;
       case 2 : dim.SetMax( arglist.ArgToDouble(i) ); maxArg=true; break;
@@ -111,7 +112,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   if (dim.CalcBinsOrStep()!=0) return 1;
  
   dim.PrintDim();
-  hist_.AddDimension( dim );
+  hist_->AddDimension( dim );
 
   return 0;
 }
@@ -124,8 +125,15 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   */
 int Analysis_Hist::Setup(DataSetList *datasetlist) {
   char *datasetstring;
+  //std::string histname;
 
-  hist_.SetDebug(debug_);
+  // Set up histogram DataSet
+  hist_ = (Histogram*) datasetlist->Add( DataSet::HIST, 
+                                         analyzeArgs_.getKeyString("name", NULL), 
+                                         "Hist");
+  hist_->SetDebug(debug_);
+  //hist_ = new Histogram( );
+
   // Keywords
   outfilename_ = analyzeArgs_.getKeyString("out",NULL);
   if (outfilename_==NULL) {
@@ -150,9 +158,16 @@ int Analysis_Hist::Setup(DataSetList *datasetlist) {
 
   // Datasets
   // Treat all remaining arguments as dataset names. 
-  while ( (datasetstring = analyzeArgs_.getNextString())!=NULL )
+  while ( (datasetstring = analyzeArgs_.getNextString())!=NULL ) {
     if (CheckDimension( datasetstring,datasetlist )) return 1;
+    //histname.append( datasetstring );
+  }
     //if (setupDimension(datasetstring,datasetlist)) return 1;
+
+  if (histdata_.empty()) {
+    mprinterr("Error: Hist: No datasets specified.\n");
+    return 1;
+  }
 
   mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 
           //outfilename, hist.NumDimension());
@@ -203,14 +218,14 @@ int Analysis_Hist::Analyze() {
   }
   mprintf("\tHist: %i data points in each dimension.\n", Ndata);
 
-  std::vector<double> coord( hist_.NumDimension() );
+  std::vector<double> coord( hist_->NumDimension() );
   for (int n=0; n < Ndata; n++) {
     std::vector<double>::iterator coord_it = coord.begin();
     for (std::vector<DataSet*>::iterator ds = histdata_.begin(); ds != histdata_.end(); ++ds) {
       *coord_it = (*ds)->Dval( n );
       ++coord_it;
     }
-    hist_.BinData( coord );
+    hist_->BinData( coord );
   }
 
   //hist.PrintBins(false,false);
@@ -225,39 +240,32 @@ void Analysis_Hist::Print(DataFileList *datafilelist) {
   DataFile *outfile=NULL;
 
   // Calc free energy if requested
-  if (calcFreeE_) hist_.CalcFreeE(Temp_, -1);
+  if (calcFreeE_) hist_->CalcFreeE(Temp_, -1);
 
   // Normalize if requested
-  if (normalize_) hist_.Normalize();
+  if (normalize_) hist_->Normalize();
 
-  if (hist_.NumDimension() == 1 && !gnuplot_ && !circular_) {
+  if (hist_->NumDimension() == 1 && !gnuplot_ && !circular_) {
     // For 1 dimension just need to hold bin counts
-    hist_.Print_1D( histout_ );
-    outfile = datafilelist->Add( outfilename_, histout_.GetDataSetN(0) );
+    outfile = datafilelist->Add( outfilename_, hist_ );
     if (outfile==NULL) {
       mprinterr("Error creating 1D histogram output for file %s\n",outfilename_);
       return;
     }
-    outfile->SetXlabel( (char*)hist_[0].c_str() );
+    outfile->SetXlabel( (*hist_)[0].c_str() );
     outfile->ProcessArgs("ylabel Count");
-    outfile->SetCoordMinStep(hist_[0].Min(), hist_[0].Step(), -1, -1);
+    outfile->SetCoordMinStep( (*hist_)[0].Min(), (*hist_)[0].Step(), -1, -1);
 
-  } else if (hist_.NumDimension() == 2 && !gnuplot_ && !circular_) {
-    // A DataSet is created for each Y value (dimension 1).
-    hist_.Print_2D( histout_ );
-    for (DataSetList::const_iterator dset = histout_.begin();
-                                     dset != histout_.end(); ++dset)
-    {
-      outfile = datafilelist->Add( outfilename_, *dset);
-    }
+  } else if (hist_->NumDimension() == 2 && !gnuplot_ && !circular_) {
+    outfile = datafilelist->Add( outfilename_, hist_ );
     if (outfile==NULL) {
-      mprinterr("Error creating %iD histogram output for file %s\n",
-                hist_.NumDimension(), outfilename_);
+      mprinterr("Error creating 2D histogram output for file %s\n", outfilename_);
       return;
     }
-    outfile->SetXlabel( (char*)hist_[0].c_str() );
-    outfile->SetYlabel( (char*)hist_[1].c_str() );
-    outfile->SetCoordMinStep(hist_[0].Min(), hist_[0].Step(), hist_[1].Min(), hist_[1].Step());
+    outfile->SetXlabel( (*hist_)[0].c_str() );
+    outfile->SetYlabel( (*hist_)[1].c_str() );
+    outfile->SetCoordMinStep((*hist_)[0].Min(), (*hist_)[0].Step(), 
+                             (*hist_)[1].Min(), (*hist_)[1].Step());
     outfile->ProcessArgs("noxcol");
     outfile->ProcessArgs("usemap");
     outfile->ProcessArgs("nolabels");
@@ -265,6 +273,6 @@ void Analysis_Hist::Print(DataFileList *datafilelist) {
     // If > two dimensions, create 1 coord dataset for each dimension plus
     // 1 dataset to hold bin counts.
     //hist_.Print_ND( histout_, circular_ );
-    hist_.PrintBins(outfilename_, circular_, gnuplot_);
+    hist_->PrintBins(outfilename_, circular_, gnuplot_);
   }
 }

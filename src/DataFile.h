@@ -18,8 +18,8 @@ class DataFile {
     int AddSet(DataSet*);
     int ProcessArgs(ArgList&);
     int ProcessArgs(const char*);
-    void SetXlabel(char*);
-    void SetYlabel(char*);
+    void SetXlabel(const char*);
+    void SetYlabel(const char*);
     void SetCoordMinStep(double,double,double,double);
     void Write();
 
@@ -30,7 +30,7 @@ class DataFile {
     int debug_;
     DataFormatType dataType_;
     bool isInverted_;
-    DataSetList SetList_;
+    DataSetList SetList_; 
     DataIO *dataio_;
 };
 #endif

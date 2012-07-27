@@ -214,9 +214,10 @@ char *Topology::ResidueName(int res) {
 }
 
 // Topology::ResAtomName()
-/** Given an atom number, set buffer with residue name and number along with
-  * atom name with format: <resname[res]><res+1>@<atomname>, e.g. ARG_11@CA.
-  * Replace any blanks in resname with '_'.
+/** Given an atom number, return a string containing the corresponding 
+  * residue name (replacing any blanks with '_') and number (starting
+  * from 1) along with the atom name with format: 
+  * "<resname><resnum>@<atomname>", e.g. "ARG_11@CA".
   */
 std::string Topology::ResAtomName(int atom) {
   std::string res_name;
@@ -231,6 +232,18 @@ std::string Topology::ResAtomName(int atom) {
   std::ostringstream oss;
   oss << res_name << res << "@" << atom_name;
   return oss.str();
+}
+
+// Topology::ResNameNum()
+/** Given a residue number (starting from 0), return a string containing 
+  * residue name and number (starting from 1) with format: 
+  * "<resname> <resnum>", e.g. "ARG 11".
+  */
+// FIXME: Add residue bounds check.
+std::string Topology::ResNameNum(int res) {
+  std::string resnamenum( residues_[res].c_str() );
+  resnamenum += integerToString( res+1 );
+  return resnamenum;
 }
 
 // Topology::FindAtomInResidue()

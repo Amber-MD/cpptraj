@@ -12,7 +12,14 @@ TriangleMatrix::TriangleMatrix() :
   nelements_(0),
   currentElement_(0),
   ignore_(0)
-{}
+{
+  // DataSet-specific vars
+  width_ = 12;
+  precision_ = 4;
+  dType_ = TRIMATRIX;
+  SetDataSetFormat(false);
+  dim_ = 2;
+}
 
 // CONSTRUCTOR
 TriangleMatrix::TriangleMatrix(int sizeIn) :
@@ -26,6 +33,12 @@ TriangleMatrix::TriangleMatrix(int sizeIn) :
   ignore_ = new bool[ nrows_ ];
   for (int n=0; n<nrows_; n++) 
     ignore_[n]=false;
+  // DataSet-specific vars
+  width_ = 12;
+  precision_ = 4;
+  dType_ = TRIMATRIX;
+  SetDataSetFormat(false);
+  dim_ = 2;
 }
 
 // DESTRUCTOR
@@ -35,7 +48,9 @@ TriangleMatrix::~TriangleMatrix() {
 }
 
 // COPY CONSTRUCTOR
-TriangleMatrix::TriangleMatrix(const TriangleMatrix &rhs) {
+TriangleMatrix::TriangleMatrix(const TriangleMatrix &rhs) :
+  DataSet( rhs )
+{
   nelements_ = rhs.nelements_;
   nrows_ = rhs.nrows_;
   currentElement_ = rhs.currentElement_;
@@ -49,7 +64,7 @@ TriangleMatrix::TriangleMatrix(const TriangleMatrix &rhs) {
 TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
   // Check for self assignment
   if ( this == &rhs ) return *this;
-
+  DataSet::operator=(rhs);
   // Deallocate
   if (elements_!=0) delete[] elements_;
   if (ignore_!=0) delete[] ignore_;
@@ -331,4 +346,17 @@ void TriangleMatrix::PrintElements() {
       jVal = iVal + 1;
     }
   }
+}
+
+void TriangleMatrix::Write2D( CpptrajFile& outfile, int x, int y ) {
+  if ( x==y || x < 0 || y < 0 || x >= nrows_ || y >= nrows_ ) 
+    outfile.Printf(data_format_, 0.0);
+  else {
+    int index = calcIndex(x, y);
+    outfile.Printf(data_format_, elements_[index]);
+  }
+}
+
+void TriangleMatrix::GetDimensions( std::vector<int>& vIn ) {
+  vIn.assign( 2, nrows_ );
 }

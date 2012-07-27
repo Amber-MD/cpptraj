@@ -31,7 +31,7 @@ void DataFileList::SetDebug(int debugIn) {
   */
 DataFile *DataFileList::GetDataFile(const char *nameIn) {
   if (nameIn==NULL) return NULL;
-  int idx = FindName( (char*)nameIn );
+  int idx = FindName( nameIn );
   if (idx == -1) return NULL;
   return fileList_[idx];
 }
@@ -103,11 +103,9 @@ void DataFileList::Write() {
 }
 
 // DataFileList::ProcessDataFileArgs()
-/** Process command relating to data files. All datafile commands have format:
-  *   datafile <cmd> <datafile> ...
-  */
+/** Process command relating to data files. */
 void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
-  char *df_cmd = NULL;
+  std::string df_cmd;
   char *name1 = NULL;
   char *name2 = NULL;
   DataFile *df;
@@ -121,90 +119,45 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
                                       dataArg++)
   {
     // Next string will be the argument passed to datafile
-    df_cmd = (*dataArg).getNextString();
-    mprintf("  [%s]\n",(*dataArg).ArgLine());
-    // Next string is datafile that command pertains to.
-    name1 = (*dataArg).getNextString();
-    if (name1==NULL) {
-      mprintf("Error: datafile %s: No filename given.\n",df_cmd);
+    df_cmd = (*dataArg).GetStringNext();
+    if (df_cmd.empty()) {
+      mprintf("Warning: datafile: No command given.\n");
       continue;
     }
-    df = GetDataFile(name1);
-
-    // datafile create
-    // Usage: datafile create <filename> <dataset0> <dataset1> ...
-    if ( (*dataArg).ArgIs(1,"create") ) {
+    mprintf("  [%s]\n",(*dataArg).ArgLine());
+    // Process command
+    if ( df_cmd == "create" ) {
+      // Usage: datafile create <filename> <dataset0> <dataset1> ...
+      // Next string is datafile that command pertains to.
+      name1 = (*dataArg).getNextString();
+      if (name1==NULL) {
+        mprinterr("Error: datafile create: No filename given.\n");
+        mprinterr("Error: Usage: datafile create <filename> <set1> [<set2> ...]\n");
+        continue;
+      }
+      df = GetDataFile(name1);
       if (df==NULL)
         mprintf("    Creating file %s\n",name1);
+      else
+        mprintf("    Adding sets to file %s\n",name1);
       while ( (name2=(*dataArg).getNextString())!=NULL ) {
         if ( Add(name1, masterDSL->Get(name2))==NULL ) {
           mprintf("Warning: Dataset %s does not exist in main dataset list, skipping.\n",name2);
         }
       }
-
-    // datafile xlabel
-    // Usage: datafile xlabel <filename> <label>
-    } else if ( (*dataArg).ArgIs(1,"xlabel") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile xlabel: DataFile %s does not exist.\n",name1);
+    } else if ( df_cmd == "precision" ) {
+      // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
+      //        If width/precision not specified default to 12.4
+      // Next string is datafile that command pertains to.
+      name1 = (*dataArg).getNextString();
+      if (name1==NULL) {
+        mprinterr("Error: datafile precision: No filename given.\n");
+        mprinterr("Error: Usage: datafile precision <filename> [<set>] <width> [<precision>]\n");
         continue;
       }
-      df->SetXlabel((*dataArg).getNextString());
-
-    // datafile ylabel
-    // Usage: datafile ylabel <filename> <label>
-    } else if ( (*dataArg).ArgIs(1,"ylabel") ) {
+      df = GetDataFile(name1);
       if (df==NULL) {
-        mprintf("Error: datafile ylabel: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      df->SetYlabel((*dataArg).getNextString());
-
-    // datafile time
-    // Usage: datafile time <datafile> <time>
-/*    } else if ( (*dataArg).ArgIs(1,"time") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile time: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      df->SetXstep((*dataArg).getNextDouble(1));*/
-
-    // datafile invert
-    // Usage: datafile invert <filename>
-    } else if ( (*dataArg).ArgIs(1,"invert") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile invert: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      mprintf("    Inverting datafile %s\n",name1);
-      df->ProcessArgs("invert");
-
-    // datafile noxcol
-    // Usage: datafile noxcol <filename>
-    } else if ( (*dataArg).ArgIs(1,"noxcol") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile noxcol: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      mprintf("    Not printing x column for datafile %s\n",name1);
-      df->ProcessArgs("noxcol");
-
-    // datafile noheader
-    // Usage: datafile noheader <filename>
-    } else if ( (*dataArg).ArgIs(1,"noheader") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile noheader: DataFile %s does not exist.\n",name1);
-        continue;
-      }
-      mprintf("    Not printing header for datafile %s\n",name1);
-      df->ProcessArgs("noheader");
-
-    // datafile precision
-    // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
-    //        If width/precision not specified default to 12.4
-    } else if ( (*dataArg).ArgIs(1,"precision") ) {
-      if (df==NULL) {
-        mprintf("Error: datafile precision: DataFile %s does not exist.\n",name1);
+        mprinterr("Error: datafile precision: DataFile %s does not exist.\n",name1);
         continue;
       }
       // This will break if dataset name starts with a digit...
@@ -212,8 +165,18 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
       int precision = (*dataArg).getNextInteger(4);
       name2 = (*dataArg).getNextString();
       df->SetPrecision(name2,width,precision);
+    } else {
+      // Argument is not a command but a datafile name that 
+      // args will be passed to.
+      df = GetDataFile( df_cmd.c_str() );
+      if (df == NULL) {
+        mprinterr("Error: datafile: File %s not found.\n", df_cmd.c_str());
+        continue;
+      }
+      // Pass the rest of the arglist to the datafile.
+      // FIXME: Exit on errors?
+      df->ProcessArgs( *dataArg );
     }
-
   } // END loop over datafile args
 }
 

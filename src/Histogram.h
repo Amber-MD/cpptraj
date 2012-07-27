@@ -1,10 +1,11 @@
 #ifndef INC_HISTOGRAM_H
 #define INC_HISTOGRAM_H
+#include <vector>
 #include "Dimension.h"
-#include "DataSetList.h"
+#include "DataSet.h"
 // Class: Histogram
 /// An N-dimensional histogram, the underlying data rep is 1D.
-class Histogram {
+class Histogram : public DataSet {
   public:
     Histogram();
     /// Set debug level
@@ -15,8 +16,13 @@ class Histogram {
     int BinData(std::vector<double>&); 
 
     void PrintBins(char*, bool,bool);
-    void Print_1D(DataSetList&);
-    void Print_2D(DataSetList&);
+
+    int Xmax() { return dimensions_[0].Bins()-1; }
+    int Size() { return (int)Bins_.size(); }
+    int Width() { return width_ + leadingSpace_; }
+    void WriteBuffer(CharBuffer &, int);
+    void Write2D(CpptrajFile&, int, int);
+    void GetDimensions(std::vector<int>&);
 
     int CalcFreeE(double,int);
     int Normalize();

@@ -5,13 +5,14 @@
 // Class: DataSetList
 /// Hold list of data sets.
 /** Main class for handling datasets. All dataset types can be allocated 
-  * by DataSetList. Data sets are added to the list by various actions. 
+  * by DataSetList. DataSets are added to the list by various actions. 
   * There is a master DataSetList in Cpptraj that will hold data indexed 
-  * by frame for use in analysis. Certain actions (e.g. NA structure analysis, 
-  * closest etc) have datasets that are not indexed by frame; these actons will 
-  * have their own separate dataset lists. By convention DataSetLists are the 
-  * only structures that track DataSet memory; DataFiles should only hold the 
-  * addresses of DataSets.
+  * by frame for use in analysis. All Data that may need to be available
+  * for analysis should be in the master DataSetList.
+  * This class is also used by DataFile to hold DataSets to be printed out.
+  * This is done primarily to make use of the Get() functionality of 
+  * DataSetList. In DataFile only copies of the sets are held, so they
+  * are not freed by the destructor.
   */
 class DataSetList {
   public:
@@ -23,40 +24,42 @@ class DataSetList {
     const_iterator begin() const;
     /// Iterator to end of dataset list
     const_iterator end() const;
-    //size_t DataCharSize();
-    /// Set dataset debug level
+    /// Erase set from list
+    void erase( const_iterator );
+    bool empty() { return DataList_.empty(); }
+    /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
-    /// Set the maximum # frames expected to be read in. Used to preallocate DataSet size.
+    /// Set the max # frames expected to be read in. Used to preallocate DataSet size.
     void SetMax(int);
-    /// Set width.precision of all datasets in the list.
+    /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDatasets(int, int);
-    //DataSet & operator[](int);
-    DataSet *Get(const char *);
-    /// Get dataset with given index (added with AddMultiN)
-    DataSet *GetDataSetIdx(int);
-    /// Get the dataset at the given position in the list.
-    DataSet *GetDataSetN(int);
-    /// Add dataset to the list with name prefix_suffix
-    DataSet *AddMulti(DataSet::DataType, const char *, const char *);
-    /// Add dataset to the list with name prefix_suffixN; set index.
-    DataSet *AddMultiN(DataSet::DataType, const char *, const char *, int);
-    DataSet *AddMultiN(DataSet::DataType, std::string&, int);
-    /// Add dataset to the list with given name
-    DataSet *Add( DataSet::DataType, const char*, const char*);
-    int AddDataSetCopy(DataSet*);
+    /// Get DataSet with specified name argument.
+    DataSet* Get(const char *);
+    /// Get DataSet with specified name, index, and aspect.
+    DataSet* GetSet(std::string const&, int, std::string const&);
+    /// Add DataSet to list with name, or default name if not specified.
+    DataSet* Add( DataSet::DataType, const char*, const char*);
+    /// Add DataSet to list with name and index.
+    DataSet* AddSetIdx( DataSet::DataType, std::string const&, int);
+    /// Add DataSet to list with name and aspect.
+    DataSet* AddSetAspect( DataSet::DataType, std::string const&, std::string const&);
+    /// Add DataSet to list with name, idx, and aspect.
+    DataSet* AddSetIdxAspect( DataSet::DataType, std::string const&, int, std::string const&);
+    /// Add DataSet to list with name, index, aspect, and size.
+    DataSet* AddSet( DataSet::DataType, std::string const&, int, std::string const&, int);
+    /// Add DataSet to list that has already been allocated and Setup.
     int AddDataSet(DataSet*);
-    int PrepareForWrite();
-    /// Add data to the given set in the list
-    int AddData(int, void *, int);
-    /// Print info on datasets in the list
+    /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
+    void AddCopyOfSet(DataSet*);
+    /// Print info on DataSets in the list
     void Info();
-    /// Call sync for datasets in the list (MPI only)
+    /// Call sync for DataSets in the list (MPI only)
     void Sync();
     /// Return number of datasets in the list 
-    int Size() { return (int)DataList_.size(); }
+    int size() { return (int)DataList_.size(); }
     /// Return the max # expected frames
     int MaxFrames() { return maxFrames_; }
-    
+
     void VectorBegin();
     DataSet* NextVector();
     DataSet* NextMatrix();
@@ -64,19 +67,15 @@ class DataSetList {
   private:
     /// Dataset debug level
     int debug_;
-    /// If true, this data set list only points to data sets
+    /// True if list contains copies that should not be freed in destructor.
     bool hasCopies_;
+
     typedef std::vector<DataSet*> DataListType;
     /// List of datasets
     DataListType DataList_;
-    /// Number of datasets
-    //int Ndata_;
     /// Expected number of frames to be read in.
     int maxFrames_;
     /// Used to iterate over vector datasets
     int vecidx_;
-
-    /// Check if dataset name exists or create default name
-    char *checkName(const char*, const char*);
 };
 #endif

@@ -1,13 +1,13 @@
 #include "DataIO_Grace.h"
 
 // CONSTRUCTOR
-GraceDataFile::GraceDataFile() {
+DataIO_Grace::DataIO_Grace() {
   ymin_ = 1;
   ystep_ = 1;
 }
 
-// GraceDataFile::processWriteArgs()
-int GraceDataFile::processWriteArgs(ArgList &argIn) {
+// DataIO_Grace::processWriteArgs()
+int DataIO_Grace::processWriteArgs(ArgList &argIn) {
   char *ylabel = argIn.getKeyString("ylabel",NULL);
   if (ylabel!=NULL) y_label_.assign(ylabel);
   ymin_ = argIn.getKeyDouble("ymin",ymin_);
@@ -15,8 +15,8 @@ int GraceDataFile::processWriteArgs(ArgList &argIn) {
   return 0;
 }
 
-// GraceDataFile::WriteData()
-int GraceDataFile::WriteData(DataSetList &SetList) {
+// DataIO_Grace::WriteData()
+int DataIO_Grace::WriteData(DataSetList &SetList) {
   CharBuffer buffer;
   DataSetList::const_iterator set;
   // Create format string for X column. Default precision is 3
@@ -31,8 +31,8 @@ int GraceDataFile::WriteData(DataSetList &SetList) {
   int setnum = 0;
   for (set=SetList.begin(); set != SetList.end(); set++) {
     // Set information
-    buffer.Sprintf("@  s%-8i legend \"%s\"\n@target G0.S%-8i\n@type xy\n",
-                   setnum,(*set)->c_str(),setnum);
+    buffer.Sprintf("@  s%-8i legend \"%s\"\n@target G0.S%-8i\n@type xy\n", 
+                   setnum, (*set)->Legend().c_str(), setnum );
 
     // Write Data - Reallocate for maxFrames of xwidth + width + newline
     buffer.Reallocate( maxFrames_ * (xcol_width_ + (*set)->Width() + 1) );
@@ -53,8 +53,8 @@ int GraceDataFile::WriteData(DataSetList &SetList) {
   return 0;
 }
 
-// GraceDataFile::WriteDataInverted()
-int GraceDataFile::WriteDataInverted(DataSetList &SetList) {
+// DataIO_Grace::WriteDataInverted()
+int DataIO_Grace::WriteDataInverted(DataSetList &SetList) {
   DataSetList::const_iterator set;
   CharBuffer buffer;
   // Create format string for X column. Default precision is 3

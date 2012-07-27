@@ -9,11 +9,14 @@
 #include "DataSet_string.h"
 #include "DataSet_integer.h"
 #include "DataSet_float.h"
+#include "Histogram.h"
+#include "TriangleMatrix.h"
+#include "Matrix_2D.h"
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
-  debug_(0), 
-  hasCopies_(false),
+  debug_(0),
+  hasCopies_(false), 
   maxFrames_(0),
   vecidx_(0) 
 {
@@ -23,10 +26,9 @@ DataSetList::DataSetList() :
 // DESTRUCTOR
 DataSetList::~DataSetList() {
   //fprintf(stderr,"DSL Destructor\n");
-  if (!hasCopies_) {
+  if (!hasCopies_)
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
       delete *ds; 
-  }
 }
 
 // DataSetList::begin()
@@ -38,6 +40,16 @@ DataSetList::const_iterator DataSetList::begin() const {
 DataSetList::const_iterator DataSetList::end() const {
   return DataList_.end();
 }
+
+// DataSetList::erase()
+// NOTE: In order to call erase, must use iterator and not const_iterator.
+//       Hence, the conversion. The new standard *should* allow const_iterator
+//       to be passed to erase(), but this is currently not portable.
+/** Erase element pointed to by posIn from the list. */
+void DataSetList::erase( const_iterator posIn ) {
+  std::vector<DataSet*>::iterator pos = DataList_.begin() + (posIn - DataList_.begin());  
+  DataList_.erase( pos ); 
+} 
 
 // DataSetList::SetDebug()
 void DataSetList::SetDebug(int debugIn) {
@@ -64,7 +76,8 @@ void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
 }
 
 // DataSetList::Get()
-/** Return dataset in the list indicated by nameIn. Possible formats:
+/** \return dataset in the list indicated by nameIn. 
+  * Possible formats:
   *  - "<name>"         : Plain dataset name.
   *  - "<name>:<index>" : Dataset within larger overall set (e.g. perres:1)
   *  - "<name>[<attr>]" : Dataset with name and given attribute (e.g. rog[max])
@@ -73,20 +86,21 @@ void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
   */
 DataSet *DataSetList::Get(const char *nameIn) {
   std::string attr_arg;
-  int idx = -1;
+  int idxnum = -1;
   std::string dsname( nameIn );
 
+  //mprintf("DBG: DataSetList::Get called with %s\n", nameIn);
   // Separate out index if present
   size_t idx_pos = dsname.find( ':' );
   if ( idx_pos != std::string::npos ) {
     // Advance to after the ':'
     std::string idx_arg = dsname.substr( idx_pos + 1 );
-    mprintf("DBG\t\tIndex Arg [%s]\n", idx_arg.c_str());
-    idx = convertToInteger( idx_arg );
+    //mprintf("DBG:\t\tIndex Arg [%s]\n", idx_arg.c_str());
+    idxnum = convertToInteger( idx_arg );
     // Allow only positive indices
-    if ( idx < 0 ) {
-      mprinterr("Error: Dataset name %s, index value must be positive! (%i)\n", 
-                nameIn, idx);
+    if ( idxnum < 0 ) {
+      mprinterr("Error: DataSet arg %s, index value must be positive! (%i)\n",
+                nameIn, idxnum);
       return NULL;
     }
     // Drop the index arg
@@ -104,295 +118,161 @@ DataSet *DataSetList::Get(const char *nameIn) {
       return NULL;
     }
     // Advance to after '[', length is position of ']' minus '[' minus 1 
-    std::string attr_arg = dsname.substr( attr_pos0 + 1, attr_pos1 - attr_pos0 - 1 ); 
-    mprintf("DBG\t\tAttr Arg [%s]\n", attr_arg.c_str());
+    std::string attr_arg = dsname.substr( attr_pos0 + 1, attr_pos1 - attr_pos0 - 1 );
+    //mprintf("DBG:\t\tAttr Arg [%s]\n", attr_arg.c_str());
     // Drop the attribute arg
     dsname.resize( attr_pos0 );
   }
 
-  mprintf("DBG:\t\tName Arg [%s]\n", dsname.c_str());
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-    if ( (*ds)->Name() == dsname ) {
-      // If an index was specified, try to match it
-      if ( idx != -1 && (*ds)->Idx() != idx ) continue;
-      return *ds;
-    }
-  }
+  //mprintf("DBG:\t\tName Arg [%s]\n", dsname.c_str());
+  return GetSet( dsname, idxnum, attr_arg );
+}
+
+// DataSetList::GetSet()
+/** Find dataset in the list.  
+  * \return Dataset with name (and index if not -1).
+  * \return NULL if not found.
+  */
+DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect) 
+{
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
+    if ( (*ds)->Matches( dsname, idx, aspect ) ) return *ds;
   return NULL;
-}
-
-// DataSetList::GetDataSetIdx()
-DataSet *DataSetList::GetDataSetIdx(int idxIn) {
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ((*ds)->Idx() == idxIn) 
-      return *ds;
-  return NULL;
-}
-
-// DataSetList::GetDataSetN()
-DataSet *DataSetList::GetDataSetN(int ndataset) {
-  if (ndataset < 0 || ndataset >= (int)DataList_.size()) 
-    return NULL;
-  return DataList_[ndataset];
-}
-
-// DataSetList::AddMultiN()
-/** Add a dataset to the list, basing the dataset name on prefix,
-  * suffix, and a given number. If a dataset already exists in
-  * the list NULL will be returned instead. The dataset will be named
-  *   <prefix>_<suffix><Nin> 
-  * if <prefix> is not NULL, 
-  *   <suffix><Nin> 
-  * if <prefix> is blank (i.e. ""), and 
-  *   <suffix><Nin>_XXXXX
-  * otherwise. The intended use is for things like setting up data for a 
-  * list of residues, where the residues may not be sequential or start 
-  * from 0. 
-  * \param inType type of dataset to set up
-  * \param prefix dataset name prefix
-  * \param suffix dataset name suffix
-  * \param Nin Number that can be used to uniquely identify the dataset.
-  * \return pointer to successfully set up dataset.
-  */
-// NOTE: Instead of using Nin to identify, why not use dataset name?
-DataSet *DataSetList::AddMultiN(DataSet::DataType inType, const char *prefix, 
-                                const char *suffix, int Nin) 
-{
-  char tempName[64];
-  char tempSuffix[32];
-  DataSet *tempDS = NULL;
-  // Determine if dataset with idx Nin exists.
-  tempDS = GetDataSetIdx( Nin );
-  if (tempDS != NULL) return NULL; 
-  sprintf(tempSuffix,"%s%i",suffix,Nin);
-  if (prefix==NULL) {
-    tempDS = this->Add(inType,NULL,tempSuffix);
-  } else if (strcmp(prefix,"")==0) {
-    tempDS = this->Add(inType,tempSuffix,tempSuffix);
-  // Sanity check - make sure name is not too big
-  } else {
-    if (strlen(prefix)+strlen(tempSuffix)+1 > 64) {
-      mprinterr("Internal Error: DataSetList::AddMultiN: size of %s+%s > 64\n",prefix,tempSuffix);
-      return NULL;
-    }
-    sprintf(tempName,"%s_%s",prefix,tempSuffix);
-    tempDS = this->Add(inType,tempName,tempSuffix);
-  }
-  if (tempDS!=NULL) tempDS->SetIdx( Nin );
-  return tempDS;
-}
-
-// DataSetList::AddMultiN()
-DataSet* DataSetList::AddMultiN(DataSet::DataType inType, std::string& nameIn, int Nin)
-{
-  // Determine if a dataset with idx Nin exists.
-  DataSet *tempDS = GetDataSetIdx( Nin );
-  if (tempDS != NULL) {
-    mprinterr("Internal Error: DataSet with index %i already exists.\n",Nin);
-    return NULL;
-  }
-  // Set up new dataset
-  tempDS = this->Add(inType, nameIn.c_str(), nameIn.c_str());
-  if (tempDS!=NULL) tempDS->SetIdx( Nin );
-  return tempDS;
-}
-
-// DataSetList::AddMulti()
-/** Works like Add, except the dataset will be named 
-  *   <prefix>_<suffix>
-  * if <prefix> is not NULL, and
-  *   <suffix>_XXXXX
-  * otherwise.
-  * \param inType type of dataset to set up
-  * \param prefix dataset name prefix
-  * \param suffix dataset name suffix
-  * \return pointer to successfully set up dataset.
-  */
-DataSet* DataSetList::AddMulti(DataSet::DataType inType, const char *prefix, const char *suffix) 
-{
-  char tempName[32];
-  if (prefix==NULL)
-    return this->Add(inType,NULL,suffix);
-  // Sanity check - make sure name is not too big
-  if (strlen(prefix)+strlen(suffix)+1 > 32) {
-    mprinterr("Internal Error: DataSetList::AddMulti: size of %s+%s > 32\n",prefix,suffix);
-    return NULL;
-  } 
-  sprintf(tempName,"%s_%s",prefix,suffix);
-  return this->Add(inType,tempName,suffix);
-}
-
-// DataSetList::checkName()
-/** Given a potential dataset name, check if that name exists in the
-  * DataSetList. If no name is given, generate a name based on
-  * a default name and the dataset number.
-  * \return An acceptable dataset name, or NULL if not acceptable.
-  */
-char *DataSetList::checkName(const char *nameIn, const char *defaultName) {
-  char *dsetName;
-  size_t namesize;
-  // Require all calls provide a default name
-  if (defaultName==NULL) {
-    mprinterr("Internal Error: DataSetList called without default name.\n");
-    return NULL;
-  }
-  // If no name given make one up based on the given default 
-  if (nameIn==NULL) {
-    // Determine size of name + extension
-    namesize = strlen( defaultName );
-    size_t extsize = (size_t) DigitWidth( Size() ); // # digits
-    if (extsize < 5) extsize = 5;                  // Minimum size is 5 digits
-    extsize += 2;                                  // + underscore + null
-    namesize += extsize;
-    dsetName = new char[ namesize ];
-    sprintf(dsetName,"%s_%05i", defaultName, Size());
-    //mprintf("NAME SIZE [%s] = %lu\n",dsetName,namesize);
-  } else {
-    namesize = strlen( nameIn ) + 1; // + null
-    dsetName = new char[ namesize ];
-    strcpy(dsetName, nameIn);
-  }
-  // Check if dataset name is already in use
-  if (Get(dsetName)!=NULL) {
-    mprinterr("Error: Data set %s already defined.\n",dsetName);
-    delete[] dsetName;
-    return NULL;
-  }
-  // Otherwise this dataset name is good to go
-  return dsetName;
 }
 
 // DataSetList::Add()
-/** Add a DataSet of specified type, set it up and return pointer to it. 
-  * Name the dataset nameIn if specified, otherwise give it a default
-  * name based on the given defaultName and dataset #. This routine
-  * MUST be called with a default name.
-  * \param inType type of dataset to set up
-  * \param nameIn dataset name, can be NULL.
-  * \param defaultName default name prefix for use if nameIn not specified.
-  * \return pointer to successfully set-up dataset.
-  */ 
-DataSet *DataSetList::Add(DataSet::DataType inType, const char *nameIn, const char *defaultName) 
+/** Used to add a DataSet to the DataSetList which may or may not
+  * be named. If nameIn is not specified create a name based on the 
+  * given defaultName and dataset #.
+  */
+DataSet* DataSetList::Add(DataSet::DataType inType, const char *nameIn,
+                          const char *defaultName)
 {
-  // Dont add to a list with copies
-  if (hasCopies_) {
-    mprinterr("Error: Attempting to add dataset to list with copies.\n");
+  std::string dsname;
+  // Require a default name
+  if (defaultName == NULL) {
+    mprinterr("Internal Error: DataSetList::Add() called without default name.\n");
     return NULL;
   }
-  DataSet *D=NULL;
-  char *dsetName = checkName(nameIn, defaultName);
-  if (dsetName==NULL) return NULL;
+  // If nameIn is NULL, generate a name based on defaultName
+  if (nameIn == NULL) {
+    // Determine size of name + extension
+    size_t namesize = strlen( defaultName );
+    size_t extsize = (size_t) DigitWidth( size() ); // # digits
+    if (extsize < 5) extsize = 5;                   // Minimum size is 5 digits
+    extsize += 2;                                   // + underscore + null
+    namesize += extsize;
+    char* newName = new char[ namesize ];
+    sprintf(newName,"%s_%05i", defaultName, size());
+    dsname.assign( newName );
+    delete[] newName;
+  } else
+    dsname.assign( nameIn );
+
+  return AddSet( inType, dsname, -1, std::string(), 0 );
+}
+
+// DataSetList::AddSetIdx()
+/** Add DataSet of specified type with given name and index to list. */
+DataSet* DataSetList::AddSetIdx(DataSet::DataType inType,
+                                std::string const& nameIn, int idxIn)
+{
+  return AddSet( inType, nameIn, idxIn, std::string(), 0 );
+}
+
+// DataSetList::AddSetAspect()
+/** Add DataSet of specified type with given name and aspect to list. */
+DataSet* DataSetList::AddSetAspect(DataSet::DataType inType,
+                                   std::string const& nameIn,
+                                   std::string const& aspectIn)
+{
+  return AddSet( inType, nameIn, -1, aspectIn, 0 );
+}
+
+// DataSetList::AddSetIdxAspect()
+DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
+                                      std::string const& nameIn,
+                                      int idxIn, std::string const& aspectIn)
+{
+  return AddSet( inType, nameIn, idxIn, aspectIn, 0 );
+}
+
+// DataSetList::AddSet()
+/** Add a DataSet of specified type, set it up and return pointer to it. 
+  * \param inType type of DataSet to add.
+  * \param nameIn DataSet name.
+  * \param idxIn DataSet index, -1 if not specified.
+  * \param aspectIn DataSet aspect, empty if not specified.
+  * \param MAXin Size to set dataset to; DataSet will be set to maxFrames if < 1.
+  * \return pointer to successfully set-up dataset.
+  */ 
+DataSet* DataSetList::AddSet(DataSet::DataType inType, 
+                             std::string const& nameIn, int idxIn,
+                             std::string const& aspectIn, int MAXin) 
+{
+  int err = 0;
+
+  // Do not add to a list with copies
+  if (hasCopies_) {
+    mprinterr("Internal Error: Adding DataSet %s copy to invalid list.\n", nameIn.c_str());
+    return NULL;
+  }
+
+  // Check if DataSet with same attributes already present.
+  DataSet* DS = GetSet(nameIn, idxIn, aspectIn);
+  if (DS != NULL) {
+    mprintf("Warning: DataSet %s:%i already present.\n", nameIn.c_str(), idxIn);
+    // NOTE: Should return found dataset?
+    return NULL; 
+  }
 
   switch (inType) {
-    case DataSet::DOUBLE       : D = new DataSet_double(); break;
-    case DataSet::FLOAT        : D = new DataSet_float(); break;
-    case DataSet::STRING       : D = new DataSet_string(); break;
-    case DataSet::INT          : D = new DataSet_integer(); break;
-    //case XYZ          : D = new DataSet_XYZ(); break;
+    case DataSet::DOUBLE       : DS = new DataSet_double(); break;
+    case DataSet::FLOAT        : DS = new DataSet_float(); break;
+    case DataSet::STRING       : DS = new DataSet_string(); break;
+    case DataSet::INT          : DS = new DataSet_integer(); break;
+    case DataSet::HIST         : DS = new Histogram(); break;
+    case DataSet::TRIMATRIX    : DS = new TriangleMatrix(); break;
+    case DataSet::MATRIX2D     : DS = new Matrix_2D(); break;
     case DataSet::UNKNOWN_DATA :
-    default           :
+    default:
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");
       return NULL;
   }
-  if (D==NULL) {
-    delete[] dsetName;
-    return NULL;
-  }
-  // Set up dataset
-  if ( D->Setup(dsetName,maxFrames_) ) {
-    mprinterr("Error setting up data set %s.\n",dsetName);
-    delete D;
-    delete[] dsetName;
+  if (DS==NULL) {
+    mprinterr("Internal Error: DataSet %s memory allocation failed.\n", nameIn.c_str());
     return NULL;
   }
 
-  DataList_.push_back(D); 
+  // Set up dataset with specified or default (maxFrames_) max.
+  if ( MAXin < 1 )
+    err = DS->SetupSet(nameIn, maxFrames_, idxIn, aspectIn);
+  else
+    err = DS->SetupSet(nameIn, MAXin, idxIn, aspectIn);
+  if ( err != 0 ) {
+    mprinterr("Error setting up data set %s.\n",nameIn.c_str());
+    delete DS;
+    return NULL;
+  }
+
+  DataList_.push_back(DS); 
   //fprintf(stderr,"ADDED dataset %s\n",dsetName);
-  delete[] dsetName;
-  return D;
+  return DS;
 }
 
-// DataSetList::AddDataSetCopy()
-/** Add a pointer to an existing dataset to the list. Used when
-  * DataSetList is being used as a container in DataFile.
-  */
-int DataSetList::AddDataSetCopy(DataSet *dsetIn) {
-  if (dsetIn==NULL) return 1;
+void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   if (!hasCopies_ && !DataList_.empty()) {
-    mprinterr("Error: Adding dataset copy to list with non-copies!\n");
-    return 1;
+    mprinterr("Internal Error: Adding DataSet (%s) copy to invalid list\n", dsetIn->c_str());
+    return;
   }
   hasCopies_ = true;
-  DataList_.push_back(dsetIn);
-  return 0;
+  DataList_.push_back( dsetIn );
 }
 
 // DataSetList::AddDataSet()
 int DataSetList::AddDataSet(DataSet* dsetIn) {
   if (dsetIn==NULL) return 1;
   DataList_.push_back(dsetIn);
-  return 0;
-}
-
-// DataSetList::PrepareForWrite()
-/** Prepare data sets in the list for writing. Since this is currently
-  * only used when DataSetList is being used as a container in DataFile,
-  * make this valid only if the DataSetList contains copies.
-  * Remove DataSets that dont contain data.
-  * \return Max X value in all sets, -1 on error.
-  */
-int DataSetList::PrepareForWrite() {
-  int maxSetFrames = 0;
-  int currentMax = 0;
-  // If not copies exit?
-  if (!hasCopies_) {
-    mprintf("Info: DataSetList does not have copies.\n");
-  }
-  // If no data sets, exit.
-  if (DataList_.empty()) return -1;
-  // Remove data sets that do not contain data.
-  // NOTE: CheckSet also sets up the format string for the dataset.
-  DataListType::iterator Dset = DataList_.end();
-  while (Dset != DataList_.begin()) {
-    Dset--;
-    // If set has no data, remove it
-    if ( (*Dset)->CheckSet() ) {
-      mprintf("Warning: Set %s contains no data - skipping.\n",(*Dset)->c_str()); 
-      // Remove
-      if (!hasCopies_) delete *Dset;
-      DataList_.erase( Dset );
-      Dset = DataList_.end();
-    // If set has data, set its format to right-aligned initially. Also 
-    // determine what the maximum x value for the set is.
-    } else {
-      if ((*Dset)->SetDataSetFormat(false)) return -1;
-      maxSetFrames = (*Dset)->Xmax();
-      if (maxSetFrames > currentMax) currentMax = maxSetFrames;
-    }
-  }
-  // Reset Ndata
-  //Ndata = (int)DataList_.size();
-
-  // If all data sets are empty no need to write.
-  if (DataList_.empty()) return -1;
-
-  // Since currentMax is the last frame, the actual # of frames
-  // is currentMax+1 (for use in loops).
-  ++currentMax;
-  return currentMax;
-}
-
-// DataSetList::AddData()
-/** Add data to a specific dataset in the list
-  * \param frame frame to add data to
-  * \param dataIn pointer to data to add
-  * \param SetNumber dataset to add data to
-  * \return 0 on success, 1 on error.
-  */
-int DataSetList::AddData(int frame, void *dataIn, int SetNumber) {
-  if (SetNumber<0 || SetNumber>=(int)DataList_.size()) 
-    return 1;
-  DataList_[SetNumber]->Add(frame, dataIn);
   return 0;
 }
 
@@ -411,13 +291,11 @@ void DataSetList::Info() {
 
   for (unsigned int ds=0; ds<DataList_.size(); ds++) {
     if (ds>0) mprintf(",");
-    mprintf("%s",DataList_[ds]->c_str());
+    //mprintf("%s",DataList_[ds]->c_str());
+    mprintf("%s",DataList_[ds]->Legend().c_str());
     //DataList[ds]->Info();
   }
   mprintf("\n");
-
-  // DataFile Info
-  //DFL.Info();
 }
 
 // DataSetList::Sync()

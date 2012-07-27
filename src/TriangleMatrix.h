@@ -1,13 +1,14 @@
 #ifndef INC_TRIANGLEMATRIX_H
 #define INC_TRIANGLEMATRIX_H
 #include <cstddef> // size_t
+#include "DataSet.h"
 // Class: TriangleMatrix
 /// Store the upper half of a symmetric matrix
 /** Useful when calculating e.g. all N^2 distances between all atoms, 
   * where the diagonal elements would be zero and element i,j == element j,i.
   * Accepts doubles, but internal storage is float to reduce memory footprint
   */
-class TriangleMatrix {
+class TriangleMatrix : public DataSet {
   public :
     int Nrows()            { return nrows_;     }
     int Nelements()        { return (int)nelements_; }
@@ -31,7 +32,12 @@ class TriangleMatrix {
     double FindMin(int *, int *);
     void PrintElements();
 
-    double operator[](int idx) { return (double)elements_[idx]; } 
+    double operator[](int idx) { return (double)elements_[idx]; }
+
+    int Xmax() { return nrows_ - 1; }
+    int Size() { return (int)nelements_; }
+    void Write2D( CpptrajFile&, int, int);
+    void GetDimensions(std::vector<int>&); 
   private:
     float *elements_;       ///< Hold all elements
     int nrows_;             ///< Number of elements in one row

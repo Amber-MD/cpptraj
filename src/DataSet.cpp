@@ -7,6 +7,7 @@
 DataSet::DataSet() :
   idx_(-1),
   dType_(UNKNOWN_DATA),
+  dim_(1),
   width_(0),
   precision_(0),
   leadingSpace_(1),
@@ -31,23 +32,29 @@ void DataSet::SetPrecision(int widthIn, int precisionIn) {
   SetDataSetFormat(false);
 }
 
-// DataSet::Setup()
+// DataSet::SetupSet()
 /** Set up common to all data sets. The dataset name should be unique and is
   * checked for in DataSetList prior to this call. Nin is the expected size 
   * of the dataset. If Nin<=0 the dataset will be allocated dynamically.
   */
-int DataSet::Setup(const char* nameIn, int Nin) {
+int DataSet::SetupSet(std::string const& nameIn, int Nin, int idxIn,
+                      std::string const& aspectIn)
+{
   // Dataset name
-  if (nameIn==NULL) {
+  if (nameIn.empty()) {
     mprintf("Dataset has no name.\n");
     return 1;
   }
-  name_.assign( nameIn );
+  name_ = nameIn;
  
   // Attempt to allocate DataSet if necessary
   if (Nin > 0) {
     if ( Allocate( Nin ) ) return 1;
   }
+
+  // Set index and aspect if given
+  if (idxIn != -1) idx_ = idxIn;
+  if (!aspectIn.empty()) aspect_ = aspectIn;
  
   return 0;
 }
@@ -79,7 +86,10 @@ int DataSet::CheckSet() {
 int DataSet::SetDataSetFormat(bool leftAlign) {
   // Set data format string
   switch (dType_) {
+    case HIST  :
+    case MATRIX2D:
     case DOUBLE: SetDoubleFormatString(format_, width_, precision_, 0, leftAlign); break;
+    case TRIMATRIX:
     case FLOAT : SetDoubleFormatString(format_, width_, precision_, 1, leftAlign); break;
     case INT   : SetIntegerFormatString(format_, width_, leftAlign); break;
     case STRING: SetStringFormatString(format_, width_, leftAlign); break;
@@ -105,7 +115,14 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   * so that allocation happens automatically.
   */
 void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
-  std::string temp_name = name_;
+  std::string temp_name;
+  if (!aspect_.empty() && idx_ == -1)
+    temp_name = name_ + aspect_;
+  else if (!aspect_.empty() && idx_ != -1)
+    //temp_name = aspect_ + integerToString( idx_ );
+    temp_name = aspect_;
+  else
+    temp_name = name_;
   // If left aligning, add '#' to name; ensure that name will not be
   // larger than column width.
   if (leadingSpace_ == 0) {
@@ -117,9 +134,32 @@ void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
   cbuffer.Sprintf(header_format_.c_str(), temp_name.c_str());
 }
 
+// DataSet::Legend()
+std::string DataSet::Legend() {
+  std::string temp_name;
+  if (!aspect_.empty() && idx_ == -1)
+    temp_name = name_ + aspect_;
+  else if (!aspect_.empty() && idx_ != -1)
+    //temp_name = aspect_ + integerToString( idx_ );
+    temp_name = aspect_;
+  else
+    temp_name = name_;
+  return temp_name;
+}
+
+// DataSet::SetScalar()
 void DataSet::SetScalar( scalarMode modeIn, scalarType typeIn ) {
   scalarmode_ = modeIn;
   scalartype_ = typeIn;
+}
+
+// DataSet::Matches()
+bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const& attr_arg )
+{
+  if ( dsname != name_ ) return false;
+  if (idxnum != -1 && idxnum != idx_) return false;
+  if (!attr_arg.empty() && attr_arg != aspect_) return false;
+  return true;
 }
 
 // DataSet::Avg()

@@ -2,6 +2,7 @@
 #include "Action_Rms2d.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#include "Matrix_2D.h"
 
 // CONSTRUCTOR
 Action_Rms2d::Action_Rms2d() :
@@ -142,15 +143,21 @@ int Action_Rms2d::action() {
   * Since this results in a symmetric matrix use TriangleMatrix to store
   * results.
   */
-void Action_Rms2d::Calc2drms(TriangleMatrix& Distances) {
+DataSet* Action_Rms2d::Calc2drms() {
   Frame RefFrame;
   Frame TgtFrame;
   double U[9], Trans[6];
   float R;
  
+  TriangleMatrix* Distances = (TriangleMatrix*) DSL->Add(DataSet::TRIMATRIX, rmsdFile_, "Rms2d");
+  if ( Distances == NULL ) {
+    mprinterr("Error: Could not set up DataSet for calculating 2DRMS.\n");
+    return NULL;
+  }
+
   int totalref = ReferenceCoords_.Ncoords();
-  Distances.Setup( totalref );
-  int max = Distances.Nelements();
+  Distances->Setup( totalref );
+  int max = Distances->Nelements();
   mprintf("  RMS2D: Calculating RMSDs between each frame (%i total).\n  ",max);
 
   // Set up progress Bar
@@ -200,32 +207,42 @@ void Action_Rms2d::Calc2drms(TriangleMatrix& Distances) {
         // Perform fit RMS calculation
         R = (float) TgtFrame.RMSD_CenteredRef(RefFrame, U, Trans, useMass_);
       }
-      Distances.AddElement( R );
+      Distances->AddElement( R );
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames
     progress->Update(current-1);
   } // END loop over reference frames
   //progress->Update(max);
+  // Calculate correlation if specified
+  if (corrfilename_!=NULL) AutoCorrelate( *Distances );
+
   delete progress;
+  return (DataSet*)Distances;
 }
 
 // Action_Rms2d::CalcRmsToTraj()
 /** Calc RMSD of every frame in reference traj to every frame in 
   * ReferenceCoords.
   */
-void Action_Rms2d::CalcRmsToTraj() {
+DataSet* Action_Rms2d::CalcRmsToTraj() {
   Frame RefFrame;
   Frame SelectedTgt;
   Frame SelectedRef;
   double U[9], Trans[6];
   float R;
 
+  Matrix_2D* rmsdata = (Matrix_2D*) DSL->Add( DataSet::MATRIX2D, rmsdFile_, "Rms2d" );
+  if ( rmsdata == NULL ) {
+    mprinterr("Error: Could not set up DataSet for calculating 2DRMS to traj.\n");
+    return NULL;
+  }
+
   // Set up reference mask for reference parm
   if (RefParm_->SetupIntegerMask(RefMask_)) {
     mprinterr("Error: Could not set up reference mask [%s] for parm %s\n",
               RefMask_.MaskString(), RefParm_->c_str());
-    return;
+    return NULL;
   }
   // Setup frame for selected reference atoms
   SelectedRef.SetupFrameFromMask(RefMask_, RefParm_->Mass()); 
@@ -237,9 +254,10 @@ void Action_Rms2d::CalcRmsToTraj() {
   mprintf("  RMS2D: Calculating RMSDs between each input frame and each reference\n"); 
   mprintf("         trajectory %s frame (%i total).\n  ",
           RefTraj_->TrajName(), max);
+  rmsdata->Setup( totalref, totaltgt );
   if (RefTraj_->BeginTraj(false)) {
     mprinterr("Error: Rms2d: Could not open reference trajectory.\n");
-    return;
+    return NULL;
   }
   // Set up progress Bar
   ProgressBar *progress = new ProgressBar(max);
@@ -262,9 +280,13 @@ void Action_Rms2d::CalcRmsToTraj() {
     RefTraj_->GetNextFrame(RefFrame);
   
     // Set up dataset for this reference frame
-    std::string setname = "Frame_" + integerToString( nref+1 );
-    DataSet* rmsdata = RmsData_.Add(DataSet::FLOAT, setname.c_str(), "Rms2d");
-    DFL->Add(rmsdFile_, rmsdata);
+    /*std::string setname = "Frame_" + integerToString( nref+1 );
+    DataSet* rmsdata = DSL->Add( DataSet::FLOAT, setname.c_str(), "Rms2d" );
+    if (rmsdata==NULL) {
+      mprinterr("Error: rms2d: Could not add dataset for ref frame %i\n", nref+1);
+      return;
+    }
+    DFL->Add(rmsdFile_, rmsdata);*/
     // Set reference atoms and pre-center if fitting
     SelectedRef.SetCoordinates(RefFrame, RefMask_);
     if (!nofit_)
@@ -289,7 +311,8 @@ void Action_Rms2d::CalcRmsToTraj() {
         // Perform fit RMS calculation
         R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass_);
       }
-      RmsData_.AddData(nframe, &R, nref);
+      //rmsdata->Add(nframe, &R);
+      rmsdata->AddElement( R );
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames
@@ -298,6 +321,7 @@ void Action_Rms2d::CalcRmsToTraj() {
   //progress->Update(max);
   delete progress;
   RefTraj_->EndTraj();
+  return (DataSet*)rmsdata;
 }
 
 // Action_Rms2d::AutoCorrelate()
@@ -311,13 +335,14 @@ int Action_Rms2d::AutoCorrelate(TriangleMatrix& Distances) {
   int N = ReferenceCoords_.Ncoords();
 
   // Set up output dataset and add it to the data file list.
-  if (Ct_.Setup("RmsCorr", lagmax)) return 1;
-  DFL->Add(corrfilename_, &Ct_);
+  DataSet* Ct_ = DSL->AddSetAspect( DataSet::DOUBLE, rmsdFile_, "Corr" );
+  if (Ct_ == NULL) return 1;
+  DFL->Add(corrfilename_, Ct_);
 
   // By definition for lag == 0 RMS is 0 for all frames,
   // translates to correlation of 1.
   ct = 1;
-  Ct_.Add(0, &ct); 
+  Ct_->Add(0, &ct); 
  
   for (int i = 1; i < lagmax; i++) {
     ct = 0;
@@ -328,7 +353,7 @@ int Action_Rms2d::AutoCorrelate(TriangleMatrix& Distances) {
       ct += exp( -rmsval );
     }
     ct /= jmax;
-    Ct_.Add(i, &ct);
+    Ct_->Add(i, &ct);
   }
 
   return 0;
@@ -338,32 +363,23 @@ int Action_Rms2d::AutoCorrelate(TriangleMatrix& Distances) {
 /** Perform the rms calculation of each frame to each other frame.
   */
 void Action_Rms2d::print() {
-  if (RefTraj_==NULL) {
-    TriangleMatrix* Distances = new TriangleMatrix(); 
-    Calc2drms(*Distances);
-    // Convert TriangleMatrix to a dataset.
-    // NOTE: This currently uses way more memory than it needs to.
-    // TriangleMatrix should just be a dataset that can be output.
-    for (int nref=0; nref < ReferenceCoords_.Ncoords(); nref++) {
-      // Set up dataset for this reference frame
-      std::string setname = "Frame_" + integerToString( nref+1 );
-      DataSet* rmsdata = RmsData_.Add(DataSet::FLOAT, setname.c_str(), "Rms2d");
-      DFL->Add(rmsdFile_, rmsdata);
-      for (int nframe=0; nframe < ReferenceCoords_.Ncoords(); nframe++) {
-        float R = Distances->GetElementF(nref, nframe);
-        RmsData_.AddData(nframe, &R, nref);
-      }
-    }
-    // Calculate correlation
-    if (corrfilename_!=NULL) AutoCorrelate( *Distances );
-    delete Distances;
-  } else {
-    // Sanity check
-    if (rmsdFile_==NULL) {
-      mprinterr("Error: Rms2d: 'reftraj' no output file specified with 'rmsout'.\n");
-      return;
-    }
-    CalcRmsToTraj();
+  DataSet* rmsdataset = NULL;
+
+  if (RefTraj_==NULL) 
+    rmsdataset = Calc2drms();
+  else
+    rmsdataset = CalcRmsToTraj();
+  // Sanity check
+  if (rmsdataset == NULL) {
+    mprinterr("Internal Error: Rms2d: DataSet not generated.\n");
+    return;
   }
+  if (rmsdFile_==NULL) {
+    mprinterr("Error: Rms2d: no output file specified with 'rmsout'.\n");
+    return;
+  }
+  rmsdataset->SetPrecision(8,3);
+  DataFile* rmsdatafile = DFL->Add( rmsdFile_, rmsdataset );
+  rmsdatafile->ProcessArgs("square2d");
 }
 

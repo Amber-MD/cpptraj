@@ -28,25 +28,26 @@ int Analysis_Corr::Setup(DataSetList *datasetlist) {
     mprinterr("Error: Corr: No output filename specified ('out' <filename>).\n");
     return 1;
   }
-  
-  // Datasets
+ 
+  // DataSet names
   char *D1name = analyzeArgs_.getNextString();
   if (D1name==NULL) {
     mprinterr("Error: Corr: Must specify at least 1 dataset name.\n");
     return 1;
   }
   char *D2name = analyzeArgs_.getNextString();
-  if (D2name==NULL) {
-    //mprinterr("Error: Corr: Must specify 2 dataset names.\n");
-    //return 1;
-    D2name = D1name;
-  }
+  // Get DataSet(s)
   D1_ = datasetlist->Get(D1name);
   if (D1_==NULL) {
     mprinterr("Error: Corr: Could not get dataset named %s\n",D1name);
     return 1;
   }
-  D2_ = datasetlist->Get(D2name);
+  if (D2name!=NULL)
+    D2_ = datasetlist->Get(D2name);
+  else {
+    D2_ = D1_;
+    D2name = D1name;
+  }
   if (D2_==NULL) {
     mprinterr("Error: Corr: Could not get dataset named %s\n",D2name);
     return 1;
@@ -55,7 +56,9 @@ int Analysis_Corr::Setup(DataSetList *datasetlist) {
   // TODO: Check DataSet type
 
   // Setup output dataset
-  if (Ct_.Setup((char*)"Corr", lagmax_)) return 1;
+  std::string corrname = D1_->Legend() + "-" + D2_->Legend();
+  Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, "Corr", corrname );
+  if (Ct_ == NULL) return 1;
 
   if (D1name == D2name)
     mprintf("    CORR: Auto-correlation of set %s\n", D1name);
@@ -119,7 +122,7 @@ int Analysis_Corr::Analyze() {
       ct += ((d1 - avg1) * (d2 - avg2));
     }
     ct /= norm;
-    Ct_.Add(lag, &ct);
+    Ct_->Add(lag, &ct);
   }
 
   return 0;
@@ -127,6 +130,6 @@ int Analysis_Corr::Analyze() {
 
 // Analysis_Corr::Print()
 void Analysis_Corr::Print(DataFileList *dfl) {
-  dfl->Add(outfilename_, &Ct_);
+  dfl->Add(outfilename_, Ct_);
 }
 

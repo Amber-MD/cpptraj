@@ -4,19 +4,30 @@
 #include "CharBuffer.h"
 
 // CONSTRUCTOR
-StdDataFile::StdDataFile() {
-  writeHeader_ = true;
-}
+DataIO_Std::DataIO_Std() : 
+  writeHeader_(true),
+  square2d_(false),
+  ymin_(1),
+  ystep_(1)
+{}
 
-// StdDataFile::processWriteArgs()
-int StdDataFile::processWriteArgs(ArgList &argIn) {
+// DataIO_Std::processWriteArgs()
+int DataIO_Std::processWriteArgs(ArgList &argIn) {
+  char *ylabel = argIn.getKeyString("ylabel",NULL);
+  if (ylabel!=NULL) y_label_.assign(ylabel);
+  ymin_ = argIn.getKeyDouble("ymin",ymin_);
+  ystep_ = argIn.getKeyDouble("ystep",ystep_);
+ 
   if (argIn.hasKey("noheader"))
     writeHeader_ = false;
+  if (argIn.hasKey("square2d"))
+    square2d_ = true;
+
   return 0;
 }
 
-// StdDataFile::WriteData()
-int StdDataFile::WriteData(DataSetList &SetList) {
+// DataIO_Std::WriteData()
+int DataIO_Std::WriteData(DataSetList &SetList) {
   CharBuffer buffer;
   std::string x_header_fmt;
   DataSetList::const_iterator set;
@@ -89,8 +100,8 @@ int StdDataFile::WriteData(DataSetList &SetList) {
   return 0;
 }
 
-// StdDataFile::WriteDataInverted()
-int StdDataFile::WriteDataInverted(DataSetList &SetList) {
+// DataIO_Std::WriteDataInverted()
+int DataIO_Std::WriteDataInverted(DataSetList &SetList) {
   CharBuffer buffer;
   DataSetList::const_iterator set;
   std::string dset_name, x_header_fmt;
@@ -132,3 +143,55 @@ int StdDataFile::WriteDataInverted(DataSetList &SetList) {
   IO->Write(buffer.Buffer(),buffer.CurrentSize());
   return 0;
 }
+
+int DataIO_Std::WriteData2D( DataSet& set ) {
+  std::vector<int> dimensions; 
+  const char* headerfmt; 
+
+  set.GetDimensions(dimensions);
+  if (dimensions.size() != 2) {
+    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
+              set.c_str(), Name(), dimensions.size());
+    return 1;
+  }
+  
+
+  if (square2d_) {
+    // Print XY values in a grid
+    // x0y0 x0y1 x0y2
+    // x1y0 x1y1 x1y2
+    if (writeHeader_) {
+      std::string headerstring;
+      SetIntegerFormatString( headerstring, set.Width(), false);
+      headerfmt = headerstring.c_str();
+      Printf("%-*s ",set.Width(), "#Frame");
+      for (int iy = 0; iy < dimensions[1]; ++iy)
+        Printf(headerfmt, iy+OUTPUTFRAMESHIFT);
+      Printf("\n");
+    }
+    for (int ix = 0; ix < dimensions[0]; ++ix) {
+      if (writeHeader_)
+        Printf(headerfmt, ix+OUTPUTFRAMESHIFT);
+      for (int iy = 0; iy < dimensions[1]; ++iy) {
+        set.Write2D( *this, ix, iy);
+      }
+      Printf("\n");
+    }
+  } else {
+    // Print X Y Value
+    // Print dataset name
+    Printf("#%s\n", set.c_str());
+  
+    for (int ix = 0; ix < dimensions[0]; ++ix) {
+      double xcoord = (xstep_ * (double)ix) + xmin_;
+      for (int iy = 0; iy < dimensions[1]; ++iy) {
+        double ycoord = (ystep_ * (double)iy) + ymin_;
+        Printf("%8.3f %8.3f", xcoord, ycoord);
+        set.Write2D( *this, ix, iy );
+        Printf("\n");
+      }
+    }
+  }
+  return 0;
+}
+

@@ -1,7 +1,6 @@
 #ifndef INC_DATAIO_H
 #define INC_DATAIO_H
 #include "ArgList.h"
-#include "CpptrajFile.h"
 #include "DataSetList.h"
 // Class: DataIO
 /// Base class that all DataIO objects inherit from.
@@ -17,9 +16,10 @@ class DataIO : public CpptrajFile {
  
     int ProcessCommonArgs(ArgList &); 
 
-    virtual int ReadData(DataSetList &) { return 1;}
-    virtual int processWriteArgs(ArgList &) { return 0; }
-    virtual int WriteData(DataSetList &) { return 1;}
+    virtual int ReadData(DataSetList &)          { return 1;}
+    virtual int processWriteArgs(ArgList &)      { return 0;}
+    virtual int WriteData(DataSetList &)         { return 1;}
+    virtual int WriteData2D(DataSet&)            { return 1;}
     virtual int WriteDataInverted(DataSetList &) { return 1;}
   protected:
 

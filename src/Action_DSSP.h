@@ -31,7 +31,7 @@ class Action_DSSP : public Action {
       int N;                    ///< atom idx of BB nitrogen
       int H;                    ///< atom idx of BB hydrogen
       std::vector<int> CO_HN_Hbond;  ///< Size=# residues, 1 if this residue CO-HN hbonded to res X
-      DataSet *resDataSet;
+      DataSet *resDataSet;      ///< Hold SS assignment each frame
     };
     std::vector<Residue> SecStruct_; ///< Hold SS-related data for all residues
     // Class variables
@@ -40,13 +40,11 @@ class Action_DSSP : public Action {
     AtomMask Mask_;     ///< Mask used to determine selected residues
     int Nres_;          ///< Current total # of residues
     int Nframe_;        ///< # of frames, for calculating SS avg.
-    std::string sumOut; ///< File to output SS avgs (dssp.dat.sum)
+    std::string sumOut_;///< File to output SS avgs (dssp.dat.sum)
     char *SSline_;      ///< Hold SS propensity for frame, each char represents a residue
     bool printString_;  ///< If true print 1 char per residue indicating ss type
     //CpptrajFile debugout; // DEBUG
     // For printString=false, Int dataset, hold SStype for each residue at each frame
-    DataSetList *SSdata_;   ///< Hold data for SS assignment each frame
-    DataSetList *dsspData_; ///< Used to set up datasets for averaging SS
     NameType BB_N;
     NameType BB_H;
     NameType BB_C;

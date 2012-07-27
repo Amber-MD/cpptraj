@@ -195,8 +195,8 @@ int Cpptraj::Run() {
     return 1;
 
   // Set up analysis - checks that datasets are present etc
-  if (analysisList.Setup(&DSL, &parmFileList) > 0 && exitOnError)
-    return 1;
+  //if (analysisList.Setup(&DSL, &parmFileList) > 0 && exitOnError)
+  //  return 1;
 
   // ========== R U N  P H A S E ==========
   // Loop over every trajectory in trajFileList
@@ -262,6 +262,7 @@ int Cpptraj::Run() {
   // Print Dataset information
   DSL.Info();
 
+  analysisList.Setup(&DSL, &parmFileList);
   // Do dataset output - first sync datasets
   // TODO - Also have datafilelist call a sync??
   DSL.Sync();
