@@ -897,11 +897,11 @@ int Action_NAstruct::init() {
       return 1;
     }
     // Check that second arg is A,C,G,T,or U
-    if (maplist.ArgIs(1,"A")) mapbase=AxisType::ADE;
-    else if (maplist.ArgIs(1,"C")) mapbase=AxisType::CYT;
-    else if (maplist.ArgIs(1,"G")) mapbase=AxisType::GUA;
-    else if (maplist.ArgIs(1,"T")) mapbase=AxisType::THY;
-    else if (maplist.ArgIs(1,"U")) mapbase=AxisType::URA;
+    if      (maplist[1] == "A") mapbase=AxisType::ADE;
+    else if (maplist[1] == "C") mapbase=AxisType::CYT;
+    else if (maplist[1] == "G") mapbase=AxisType::GUA;
+    else if (maplist[1] == "T") mapbase=AxisType::THY;
+    else if (maplist[1] == "U") mapbase=AxisType::URA;
     else {
       mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",maparg);
       return 1;

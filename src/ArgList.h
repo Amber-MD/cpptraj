@@ -22,18 +22,14 @@ class ArgList {
     ~ArgList();
     ArgList(const ArgList &);
     ArgList& operator=(const ArgList &);
-    std::string& operator[](int);
+    std::string& operator[](int); // FIXME: Make const ref
     /// Set the debug level
     void SetDebug(int);
     /// Set up argument list from string and given separators
     int SetList(const char *, const char *);
     int SetList(std::string const&, const char *);
     /// Add argument to the list
-    void AddArg(char*);
-    /// Unmark all arguments
-    void ResetMarked(bool);
-    /// Mark all arguments
-    void MarkAll();
+    void AddArg(const char*);
     /// Mark given argument
     void MarkArg(int);
     /// Print a warning if not all arguments are marked
@@ -44,10 +40,6 @@ class ArgList {
     const char *ArgLine();
     /// Return the argument at given position
     const char* ArgAt(int);
-    /// Return index of key if found but do not mark, -1 if not found.
-    int KeyPosition(const char*);
-    /// Return true if the argument at given position matches key
-    bool ArgIs(int,const char*);
     /// Return the first argument
     const char *Command();
     /// Return true if the first argument matches key

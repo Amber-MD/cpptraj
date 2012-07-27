@@ -49,10 +49,9 @@ int Average::init( ) {
   Mask1.SetMaskString(mask1);
 
   // Save all remaining arguments for setting up the trajectory at the end.
-  trajArgs = actionArgs;
-  // Mark all action args complete, otherwise cpptraj thinks there were
-  // unhandled args and will print a phantom error.
-  actionArgs.MarkAll(); 
+  char* arg;
+  while ( (arg = actionArgs.getNextString() ) != NULL )
+    trajArgs.AddArg( arg );
 
   mprintf("    AVERAGE: Averaging over");
   if (mask1!=NULL)

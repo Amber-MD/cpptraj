@@ -134,27 +134,13 @@ int VectorType::init() {
   }
 
   // Determine vector mode.
-  // Acceptable args: principal, principal x, principal y, principal z,
-  //                  dipole, box, corrplane, corrired, corr, ired
-  int pos = actionArgs.KeyPosition("principal");
-  if (pos == actionArgs.Nargs() - 1) {
-    actionArgs.MarkArg(pos);
+  // Acceptable args: principal [x | y | z], dipole, box, corrplane, 
+  //                  corrired, corr, ired
+  if ( actionArgs.hasKey("principal") ) {
     mode_ = VECTOR_PRINCIPAL_X;
-  } else if (pos!=-1) {
-    actionArgs.MarkArg(pos);
-    mode_ = VECTOR_PRINCIPAL_X;
-    char vecchar = actionArgs[pos+1][0];
-    if (vecchar == 'x' ||
-        vecchar == 'y' ||
-        vecchar == 'z')
-    {
-      actionArgs.MarkArg(pos+1);
-      switch (vecchar) {
-        case 'x': mode_ = VECTOR_PRINCIPAL_X; break;
-        case 'y': mode_ = VECTOR_PRINCIPAL_Y; break;
-        case 'z': mode_ = VECTOR_PRINCIPAL_Z; break;
-      }
-    }
+    if ( actionArgs.hasKey("x") ) mode_ = VECTOR_PRINCIPAL_X;
+    if ( actionArgs.hasKey("y") ) mode_ = VECTOR_PRINCIPAL_Y;
+    if ( actionArgs.hasKey("z") ) mode_ = VECTOR_PRINCIPAL_Z;
   } else if (actionArgs.hasKey("dipole"))
     mode_ = VECTOR_DIPOLE;
   else if (actionArgs.hasKey("box"))

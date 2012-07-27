@@ -12,12 +12,14 @@ ArgList::ArgList() :
   debug(0)
 {}
 
+// CONSTRUCTOR - Take string and convert to args delimited by space
 ArgList::ArgList(const char* argIn) :
   debug(0)
 {
   SetList(argIn, " ");
 }
 
+// CONSTRUCTOR - Take string and convert to args delimted by separators
 ArgList::ArgList(std::string &expression, const char *separators) :
   debug(0)
 {
@@ -47,7 +49,7 @@ ArgList &ArgList::operator=(const ArgList &rhs) {
 }
 
 // ArgList::operator[]
-std::string &ArgList::operator[](int idx) {
+std::string& ArgList::operator[](int idx) {
   if (idx < 0 || idx >= (int)arglist.size())
     throw std::out_of_range("ArgList[]");
   return arglist[idx];
@@ -60,6 +62,7 @@ void ArgList::SetDebug(int debugIn) {
     mprintf("ArgList debug level set to %i\n",debug);
 }
 
+// ArgList::SetList()
 int ArgList::SetList(std::string const& inputString, const char* separator) {
   if (inputString.empty()) return 1;
   return (SetList(inputString.c_str(), separator));
@@ -142,7 +145,7 @@ int ArgList::SetList(const char *inputString, const char *separator) {
 // ArgList::AddArg()
 /** \param input NULL terminated string to add to argument list
   */
-void ArgList::AddArg(char *input) {
+void ArgList::AddArg(const char *input) {
   string argument;
   // Dont store blank tokens
   if (input==NULL) return;
@@ -152,23 +155,6 @@ void ArgList::AddArg(char *input) {
   argline.append(argument);
   argline.append(" ");
   marked.push_back(false);
-}
-
-// ArgList::ResetMarked()
-/** \param noResetCmd If true dont reset the marked status of the first arg.
-  */
-// NOTE: Is this essential? If it is, is the bool essential?
-void ArgList::ResetMarked(bool noResetCmd) {
-  unsigned int startarg = 0;
-  if (noResetCmd) startarg = 1;
-  for (unsigned int arg = startarg; arg < marked.size(); arg++)
-    marked[arg]=false;
-}
-
-// ArgList::MarkAll()
-void ArgList::MarkAll() {
-  for (unsigned int arg = 0; arg < marked.size(); arg++)
-    marked[arg]=true;
 }
 
 // ArgList::MarkArg()
@@ -221,29 +207,6 @@ const char *ArgList::ArgLine() {
 const char *ArgList::ArgAt(int pos) {
   if (pos < 0 || pos >= (int) arglist.size()) return NULL;
   return arglist[pos].c_str();
-}
-
-// ArgList::KeyPosition()
-int ArgList::KeyPosition(const char* key) {
-  int pos = -1;
-  for (unsigned int i = 0; i < arglist.size(); ++i) {
-    if ( arglist[i].compare( key )==0 ) {
-      pos = (int)i;
-      break;
-    }
-  }
-  return pos;
-}
-
-// ArgList::ArgIs()
-/** \param pos argument position
-  * \param input Key to check arguments against.
-  * \return true if argument at pos is input
-  */
-bool ArgList::ArgIs(int pos, const char *input) {
-  if (pos < 0 || pos >= (int) arglist.size()) return false;
-  if (arglist[pos].compare( input )==0) return true;
-  return false;
 }
 
 // ArgList::Command()
