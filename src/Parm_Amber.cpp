@@ -335,8 +335,8 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
 // Parm_Amber::ReadParmAmber()
 int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<int> atomsPerMol;
-  int finalSoluteRes = -1;
-  int firstSolvMol = -1;
+  //int finalSoluteRes = -1;
+  //int firstSolvMol = -1;
   Box parmbox;
   bool chamber = false; // True if this top is a chamber-created top file.
   std::string title;
@@ -432,9 +432,9 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
       mprintf("Could not get %s from Amber Topology file.\n",AmberParmFlag[F_SOLVENT_POINTER]);
       return 1;
     }
-    finalSoluteRes = solvent_pointer[0] - 1;
+    //finalSoluteRes = solvent_pointer[0] - 1;
     int molecules = solvent_pointer[1];
-    firstSolvMol = solvent_pointer[2] - 1;
+    //firstSolvMol = solvent_pointer[2] - 1;
     atomsPerMol = GetFlagInteger(F_ATOMSPERMOL,molecules);
     // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
     std::vector<double> boxFromParm = GetFlagDouble(F_PARMBOX,4);
