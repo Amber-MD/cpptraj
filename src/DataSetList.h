@@ -37,8 +37,10 @@ class DataSetList {
     DataSet* Get(const char *);
     /// Get DataSet with specified name, index, and aspect.
     DataSet* GetSet(std::string const&, int, std::string const&);
-    /// Add DataSet to list with name, or default name if not specified.
+    /// Add DataSet to list with name, or default name if not specified. (TODO: OBSOLETE)
     DataSet* Add( DataSet::DataType, const char*, const char*);
+    /// Add DataSet to list with name, or default name if not specified.
+    DataSet* AddSet( DataSet::DataType, std::string const&, const char*);
     /// Add DataSet to list with name and index.
     DataSet* AddSetIdx( DataSet::DataType, std::string const&, int);
     /// Add DataSet to list with name and aspect.

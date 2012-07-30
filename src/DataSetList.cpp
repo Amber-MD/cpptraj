@@ -140,6 +140,16 @@ DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string con
   return NULL;
 }
 
+// DataSetList::AddSet()
+DataSet* DataSetList::AddSet( DataSet::DataType inType, std::string const& nameIn,
+                              const char* defaultName )
+{
+  if (nameIn.empty())
+    return Add( inType, NULL, defaultName );
+  else
+    return Add( inType, nameIn.c_str(), defaultName );
+}
+
 // DataSetList::Add()
 /** Used to add a DataSet to the DataSetList which may or may not
   * be named. If nameIn is not specified create a name based on the 
