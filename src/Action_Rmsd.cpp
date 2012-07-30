@@ -449,7 +449,6 @@ int Action_Rmsd::action() {
       R = ResFrame_->RMSD(ResRefFrame_, useMass_);
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,
       //        tgtResMask[N]->MaskString(),refResMask[N]->MaskString(),R);
-      // NOTE: Should check for error on AddData?
       PerResRMSD_[N]->Add(frameNum, &R);
     }
   }

@@ -136,15 +136,19 @@ void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
 
 // DataSet::Legend()
 std::string DataSet::Legend() {
-  std::string temp_name;
-  if (!aspect_.empty() && idx_ == -1)
-    temp_name = name_ + aspect_;
-  else if (!aspect_.empty() && idx_ != -1)
-    //temp_name = aspect_ + integerToString( idx_ );
-    temp_name = aspect_;
-  else
-    temp_name = name_;
-  return temp_name;
+  if (!legend_.empty())
+   return legend_;
+  else {
+    std::string temp_name;
+    if (!aspect_.empty() && idx_ == -1)
+      temp_name = name_ + aspect_;
+    else if (!aspect_.empty() && idx_ != -1)
+      //temp_name = aspect_ + integerToString( idx_ );
+      temp_name = aspect_;
+    else
+      temp_name = name_;
+    return temp_name;
+  }
 }
 
 // DataSet::SetScalar()
@@ -162,6 +166,13 @@ bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const&
   return true;
 }
 
+// DataSet::GoodCalcType()
+bool DataSet::GoodCalcType() {
+  if (dType_==DOUBLE || dType_==FLOAT || dType_==INT)
+    return true;
+  return false;
+}
+
 // DataSet::Avg()
 /** Calculate the average over values in this set if this set
   * is an atomic type (i.e. int, double, float).
@@ -174,10 +185,7 @@ double DataSet::Avg(double *stdev) {
   int numvalues = Size();
   double avg = 0;
   // Check if this set is a good type
-  if (dType_==DOUBLE || 
-      dType_==FLOAT ||
-      dType_==INT)
-  {
+  if ( GoodCalcType( ) ) {
     sum = 0;
     for ( int i = 0; i < numvalues; ++i )  
       sum += Dval( i );
@@ -204,10 +212,7 @@ double DataSet::Max() {
   if ( Size() == 0 ) return 0;
   double max = 0;
   // Check if this set is a good type
-  if (dType_==DOUBLE || 
-      dType_==FLOAT ||
-      dType_==INT)
-  {
+  if ( GoodCalcType( ) ) {
     max = Dval( 0 );
     for (int i = 1; i < Size(); ++i) {
       double val = Dval( i );
@@ -224,10 +229,7 @@ double DataSet::Min() {
   if (Size()==0) return 0;
   double min = 0;
   // Check if this set is a good type
-  if (dType_==DOUBLE ||
-      dType_==FLOAT ||
-      dType_==INT)
-  { 
+  if ( GoodCalcType( ) ) {
     min = Dval( 0 );
     for (int i = 1; i < Size(); ++i) {
       double val = Dval( i );
@@ -237,3 +239,67 @@ double DataSet::Min() {
   return min;
 }
 
+// DataSet::Corr()
+double DataSet::Corr( DataSet& D2, DataSet* Ct, int lagmax ) {
+  double d1, d2, ct;
+  // Check if D1 and D2 are valid types
+  if ( !GoodCalcType( ) ) {
+    mprinterr("Error: Corr: DataSet %s is not a valid type for this calc.\n", c_str());
+    return 0;
+  }
+  if ( !D2.GoodCalcType( ) ) {
+    mprinterr("Error: Corr: DataSet %s is not a valid type for this calc.\n", D2.c_str());
+    return 0;
+  }
+  // Check that D1 and D2 have same # data points.
+  int Nelements = Size();
+  if (Nelements != D2.Size()) {
+    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n", c_str(), Nelements);
+    mprinterr("             # elements in dataset %s (%i)\n", D2.c_str(), D2.Size());
+    return 0;
+  }
+  // Calculate averages
+  double avg1 = Avg(NULL);
+  double avg2 = D2.Avg(NULL);
+  // Compute normalization
+  double sumdiff1_2 = 0;
+  double sumdiff2_2 = 0;
+  double corr_coeff = 0;
+  //mprinterr("DATASETS %s and %s\n", c_str(), D2.c_str());
+  for (int i = 0; i < Nelements; i++) {
+    d1 = Dval(i);
+    d2 = D2.Dval(i);
+    //mprinterr("\t\t\t%f\t%f\n",d1,d2);
+    double diff1 = d1 - avg1;
+    double diff2 = d2 - avg2;
+    sumdiff1_2 += (diff1 * diff1);
+    sumdiff2_2 += (diff2 * diff2);
+    corr_coeff += (diff1 * diff2);
+  }
+  double norm = sumdiff1_2 * sumdiff2_2;
+  if (norm <= 0) {
+    mprintf("Warning: Corr: %s to %s, Normalization sqrt <= 0.\n",Legend().c_str(),
+            D2.Legend().c_str());
+    return 0;
+  }
+  norm = sqrt( norm );
+  // Correlation coefficient
+  corr_coeff /= ( sqrt( sumdiff1_2 ) * sqrt( sumdiff2_2 ) );
+  //mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
+  //        D1_->c_str(), D2_->c_str(), corr_coeff );
+
+  if (Ct != NULL) {
+    // Calculate correlation
+    for (int lag = 0; lag < lagmax; lag++) {
+      ct = 0;
+      for (int j = 0; j < Nelements - lag; j++) {
+        d1 = Dval(j);
+        d2 = D2.Dval(j+lag);
+        ct += ((d1 - avg1) * (d2 - avg2));
+      }
+      ct /= norm;
+      Ct->Add(lag, &ct);
+    }
+  }
+  return corr_coeff;
+}

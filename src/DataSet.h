@@ -11,6 +11,14 @@
   * CurrentDval (the last 2 not needed for String).
   * Other types wishing to use DataFile output should at least implement the 
   * Size, Xmax, WriteBuffer, and Width routines.
+  * DataSets are given certain attributes to make DataSet selection easier; 
+  * these are name, index, and aspect. Name is typically associated with the
+  * action that creates the dataset, e.g. RMSD or distance. Index is used
+  * when and action outputs subsets of data, e.g. with RMSD it is possible to 
+  * output per-residue RMSD, where the DataSet index corresponds to the residue
+  * number. Aspect is used to further subdivide output data type; e.g. with 
+  * nucleic acid analysis each base pair (divided by index) has shear,
+  * stagger etc calculated.
   */
 class DataSet {
   public:
@@ -76,6 +84,8 @@ class DataSet {
     double Min();
     /// Return the largest value added to the set
     double Max();
+    /// Calculate correlation between this DataSet and given DataSet.
+    double Corr( DataSet&, DataSet*, int ) ;
 
     // -----===== Public functions =====-----
     /// Set output precision
@@ -90,7 +100,12 @@ class DataSet {
     int SetDataSetFormat(bool);
     /// Write the DataSet name to character buffer
     void WriteNameToBuffer(CharBuffer &);
+    /// DataSet output label.
     std::string Legend();
+    /// Set DataSet legend.
+    void SetLegend( std::string const& lIn ) { legend_ = lIn; }
+    /// Set DataSet aspect.
+    void SetAspect( std::string const& aIn ) { aspect_ = aIn; }
     /// Set scalar mode
     void SetScalar( scalarMode mIn ) { scalarmode_ = mIn; }
     /// Set scalar mode and type
@@ -119,6 +134,7 @@ class DataSet {
     std::string name_;         ///< Name of the DataSet
     int idx_;                  ///< DataSet index
     std::string aspect_;       ///< DataSet aspect.
+    std::string legend_;       ///< DataSet legend.
     DataType dType_;           ///< The DataSet type
     int dim_;                  ///< DataSet dimension; used to determine how to write output.
     int width_;                ///< The output width of a data element
@@ -129,5 +145,7 @@ class DataSet {
     std::string header_format_;///< Output format of DataSet name
     scalarMode scalarmode_;    ///< Source of data in DataSet.
     scalarType scalartype_;    ///< Specific type of data in DataSet (if any).
+  private:
+    bool GoodCalcType();
 };
 #endif 

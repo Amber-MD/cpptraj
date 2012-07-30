@@ -14,7 +14,6 @@ class Analysis_Corr : public Analysis {
     DataSet *D1_;
     DataSet *D2_;
     int lagmax_;
-    int Nelements_;
     DataSet* Ct_;
     char *outfilename_;
 };

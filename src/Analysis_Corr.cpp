@@ -7,7 +7,6 @@ Analysis_Corr::Analysis_Corr() :
   D1_(NULL),
   D2_(NULL),
   lagmax_(0),
-  Nelements_(0),
   outfilename_(NULL)
 {}
 
@@ -71,59 +70,21 @@ int Analysis_Corr::Setup(DataSetList *datasetlist) {
 
 // Analysis_Corr::Analyze()
 int Analysis_Corr::Analyze() {
-  double d1, d2, ct;
-
   // Check that D1 and D2 have same # data points.
-  Nelements_ = D1_->Size(); 
-  if (Nelements_ != D2_->Size()) {
-    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1_->c_str(),Nelements_);
+  int Nelements = D1_->Size(); 
+  if (Nelements != D2_->Size()) {
+    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1_->c_str(),Nelements);
     mprinterr("             # elements in dataset %s (%i)\n",D2_->c_str(), D2_->Size());
     return 1;
   }
-  if (lagmax_==-1) lagmax_ = Nelements_;
+  if (lagmax_==-1) lagmax_ = Nelements;
 
-  mprintf("    CORR: %i elements, max lag %i\n",Nelements_,lagmax_);
+  mprintf("    CORR: %i elements, max lag %i\n",Nelements,lagmax_);
 
-  // Calculate averages
-  double avg1 = D1_->Avg(NULL);
-  double avg2 = D2_->Avg(NULL);
-  //mprintf("Avg1=%lf  Avg2=%lf\n",avg1,avg2);
-  
-  // Compute normalization
-  double sumdiff1_2 = 0;
-  double sumdiff2_2 = 0;
-  double corr_coeff = 0;
-  for (int i = 0; i < Nelements_; i++) {
-    d1 = D1_->Dval(i);
-    d2 = D2_->Dval(i);
-    double diff1 = d1 - avg1;
-    double diff2 = d2 - avg2;
-    sumdiff1_2 += (diff1 * diff1);
-    sumdiff2_2 += (diff2 * diff2);
-    corr_coeff += (diff1 * diff2);
-  }
-  double norm = sumdiff1_2 * sumdiff2_2;
-  if (norm <= 0) {
-    mprinterr("Error: Corr: Normalization sqrt <= 0.\n");
-    return 1;
-  }
-  norm = sqrt( norm );
-  // Correlation coefficient
-  corr_coeff /= ( sqrt( sumdiff1_2 ) * sqrt( sumdiff2_2 ) );
+  double corr_coeff = D1_->Corr( *D2_, Ct_, lagmax_ );
+
   mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
           D1_->c_str(), D2_->c_str(), corr_coeff );
-
-  // Calculate correlation
-  for (int lag = 0; lag < lagmax_; lag++) {
-    ct = 0; 
-    for (int j = 0; j < Nelements_ - lag; j++) {
-      d1 = D1_->Dval(j);
-      d2 = D2_->Dval(j+lag);
-      ct += ((d1 - avg1) * (d2 - avg2));
-    }
-    ct /= norm;
-    Ct_->Add(lag, &ct);
-  }
 
   return 0;
 }
