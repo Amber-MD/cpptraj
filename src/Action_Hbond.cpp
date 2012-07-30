@@ -15,15 +15,17 @@ Action_Hbond::Action_Hbond() :
   calcSolvent_(false),
   acut_(0),
   dcut2_(0),
+  series_(false),
   NumHbonds_(NULL),
   NumSolvent_(NULL),
   NumBridge_(NULL)
 {}
 
 // Action_Hbond::init()
-/** Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [avgout <filename>]
-  *                      [donormask <mask>] [acceptormask <mask>]
-  *                      [solventdonor <mask>] [solventacceptor <mask>] [solvout <filename>]
+/** Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [series]
+  *                      [donormask <mask>] [acceptormask <mask>] [avgout <filename>]
+  *                      [solventdonor <mask>] [solventacceptor <mask>] 
+  *                      [solvout <filename>] [bridgeout <filename>]
   * Search for Hbonding atoms in region specified by mask. 
   * Arg. check order is:
   * - Keywords
@@ -39,6 +41,7 @@ Action_Hbond::Action_Hbond() :
 int Action_Hbond::init() {
   // Get keywords
   char* outfilename = actionArgs.getKeyString("out",NULL);
+  series_ = actionArgs.hasKey("series");
   avgout_ = actionArgs.GetStringKey("avgout");
   solvout_ = actionArgs.GetStringKey("solvout");
   bridgeout_ = actionArgs.GetStringKey("bridgeout");
@@ -78,14 +81,16 @@ int Action_Hbond::init() {
   Mask_.SetMaskString(mask);
 
   // Setup datasets
-  NumHbonds_ = DSL->Add(DataSet::INT, actionArgs.getNextString(),"NumHB");
+  hbsetname_ = actionArgs.GetStringNext();
+  NumHbonds_ = DSL->AddSet(DataSet::INT, hbsetname_, "HB");
   if (NumHbonds_==NULL) return 1;
+  NumHbonds_->SetAspect("UU");
   DFL->Add(outfilename,NumHbonds_);
   if (calcSolvent_) {
-    NumSolvent_ = DSL->Add(DataSet::INT, NULL, "UVHB");
+    NumSolvent_ = DSL->AddSetAspect(DataSet::INT, NumHbonds_->Name(), "UV");
     if (NumSolvent_ == NULL) return 1;
     DFL->Add(outfilename, NumSolvent_);
-    NumBridge_ = DSL->Add(DataSet::INT, NULL, "Bridge");
+    NumBridge_ = DSL->AddSetAspect(DataSet::INT, NumHbonds_->Name(), "Bridge");
     if (NumBridge_ == NULL) return 1;
     DFL->Add(outfilename, NumBridge_);
   } 
@@ -118,6 +123,8 @@ int Action_Hbond::init() {
     mprintf("          Dumping solute-solvent hbond avgs to %s\n", solvout_.c_str());
   if (calcSolvent_ && !bridgeout_.empty())
     mprintf("          Dumping solvent bridging info to %s\n", bridgeout_.c_str());
+  if (series_)
+    mprintf("          Time series data for each hbond will be saved for analysis.\n");
 
   return 0;
 }
@@ -292,7 +299,9 @@ int Action_Hbond::setup() {
 /** Used to determine if solute atoms are bonded to solvent atoms. */
 int Action_Hbond::AtomsAreHbonded(int a_atom, int d_atom, int h_atom, int hbidx, bool solutedonor) 
 {
+  std::string hblegend;
   HbondType HB;
+
   if (a_atom == d_atom) return 0;
   double dist2 = currentFrame->DIST2(a_atom, d_atom);
   //mprintf("DEBUG: Donor @%i -- acceptor @%i = %lf\n",D, a_atom, sqrt(dist2));
@@ -312,19 +321,33 @@ int Action_Hbond::AtomsAreHbonded(int a_atom, int d_atom, int h_atom, int hbidx,
       HB.A = -1; // Do not care about which solvent acceptor
       HB.D = d_atom;
       HB.H = h_atom;
+      hblegend = currentParm->TruncResAtomName(d_atom) + "-V";
     } else {
       HB.A = a_atom;
       HB.D = -1; // Do not care about solvent donor heavy atom
       HB.H = -1; // Do not care about solvent donor H atom
+      hblegend = currentParm->TruncResAtomName(a_atom) + "-V";
     }
     HB.Frames = 1;
     HB.dist = dist;
     HB.angle = angle;
+    if (series_) {
+      HB.data_ = (DataSet_integer*) DSL->AddSetIdxAspect( DataSet::INT, NumHbonds_->Name(), 
+                                                          hbidx, "solventhb" );
+      //mprinterr("Created Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,HB.data_);
+      HB.data_->Resize( DSL->MaxFrames() );
+      HB.data_->SetLegend( hblegend );
+      (*HB.data_)[ frameNum ] = 1;
+    }
     SolventMap_.insert( entry, std::pair<int,HbondType>(hbidx, HB) );
   } else {
     (*entry).second.Frames++;
     (*entry).second.dist += dist;
     (*entry).second.angle += angle;
+    if (series_) {
+      //mprinterr("Adding Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,(*entry).second.data_);
+      (*(*entry).second.data_)[ frameNum ] = 1;
+    }
   }     
   return 1;
 }
@@ -370,11 +393,23 @@ int Action_Hbond::action() {
         HB.Frames = 1;
         HB.dist = dist;
         HB.angle = angle;
+        if (series_) {
+          std::string hblegend = currentParm->TruncResAtomName(*accept) + "-" +
+                                 currentParm->TruncResAtomName(D);
+          HB.data_ = (DataSet_integer*) DSL->AddSetIdxAspect( DataSet::INT, NumHbonds_->Name(),
+                                                              hbidx, "solutehb" );
+          //mprinterr("Created solute Hbond dataset index %i\n", hbidx);
+          HB.data_->Resize( DSL->MaxFrames() );
+          HB.data_->SetLegend( hblegend );
+          (*HB.data_)[ frameNum ] = 1 ;
+        }
         HbondMap_.insert( it, std::pair<int,HbondType>(hbidx, HB) );
       } else {
         (*it).second.Frames++;
         (*it).second.dist += dist;
         (*it).second.angle += angle;
+        if (series_)
+          (*(*it).second.data_)[ frameNum ] = 1;
       }
     }
   }
