@@ -287,10 +287,8 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
     }
     ++N;
     // Create dataset for res - if already present this returns NULL
-    DataSet* prDataSet = DSL->AddSetIdxAspect( DataSet::DOUBLE,
-                                               rmsd_->Name(), 
-                                               tgtRes,
-                                               currentParm->ResNameNum(tgtRes-1) );
+    DataSet* prDataSet = DSL->AddSetIdxAspect( DataSet::DOUBLE, rmsd_->Name(), tgtRes, "res");
+    prDataSet->SetLegend( currentParm->ResNameNum(tgtRes-1) );
     PerResRMSD_.push_back( prDataSet );
     if (prDataSet != NULL) DFL->Add(perresout_, prDataSet);
 
