@@ -8,6 +8,7 @@
 #include "Analysis_Modes.h"
 #include "Analysis_CrankShaft.h"
 #include "Analysis_Statistics.h"
+#include "Analysis_CrossCorr.h"
 
 // CONSTRUCTOR
 AnalysisList::AnalysisList() :
@@ -36,6 +37,7 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
   if      (argIn.CommandIs("histogram")) { Ana = new Analysis_Hist(); }
   else if (argIn.CommandIs("hist"))      { Ana = new Analysis_Hist(); }
   else if (argIn.CommandIs("corr"))      { Ana = new Analysis_Corr(); }
+  else if (argIn.CommandIs("crosscorr")) { Ana = new Analysis_CrossCorr(); }
   else if (argIn.CommandIs("analyze")  ) { 
     if (argIn.ArgAt(1) == NULL) return 1;
     if (argIn[1] == "matrix")
