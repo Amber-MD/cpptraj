@@ -147,7 +147,6 @@ void Action_AtomicFluct::print() {
   SumCoords_ *= SumCoords_;
   SumCoords2_ -= SumCoords_;
 
-  std::vector<double> XYZ = SumCoords2_.ConvertToDouble();
   // DEBUG
   //mprintf("DEBUG: Converting to double: Original first coord:\n");
   //SumCoords2_.printAtomCoord(0);
@@ -162,16 +161,16 @@ void Action_AtomicFluct::print() {
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
     outfile->SetYlabel( "B-factors" );
     double bfac = (8.0/3.0)*PI*PI;
-    for (unsigned int i = 0; i < XYZ.size(); i+=3) {
-      double fluct = XYZ[i] + XYZ[i+1] + XYZ[i+2];
+    for (unsigned int i = 0; i < SumCoords2_.size(); i+=3) {
+      double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
       if (fluct > 0) 
         *result = bfac * fluct;
       ++result;
     }
   } else {
     // Atomic fluctuations
-    for (unsigned int i = 0; i < XYZ.size(); i+=3) {
-      double fluct = XYZ[i] + XYZ[i+1] + XYZ[i+2];
+    for (unsigned int i = 0; i < SumCoords2_.size(); i+=3) {
+      double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
       if (fluct > 0)
         *result = sqrt(fluct);
       ++result;

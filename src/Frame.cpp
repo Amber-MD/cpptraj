@@ -330,11 +330,6 @@ std::vector<float> Frame::ConvertToFloat(AtomMask &maskIn) {
   return farray;
 }
 
-// Frame::ConvertToDouble()
-std::vector<double> Frame::ConvertToDouble() {
-  return ( std::vector<double> (X_, X_ + Ncoord_ ) );
-}
-
 // Frame::DoubleArray()
 double *Frame::DoubleArray() {
   if (natom_ < 1) return NULL;

@@ -32,7 +32,6 @@ class Frame {
     // Convert to/from arrays
     Frame &operator=(const std::vector<float>&);
     std::vector<float> ConvertToFloat(AtomMask &);
-    std::vector<double> ConvertToDouble();
     double *DoubleArray();
     // Access internal data
     const double *CoordPtr();
@@ -42,6 +41,7 @@ class Frame {
     const double* XYZ(int atnum) { return X_ + (atnum*3); }
     void AddXYZ(const double *);
     int Natom();
+    int size() { return Ncoord_; }
     bool empty();
     double MaxImagedDistance();
     void BoxXYZ(double* XYZ) { XYZ[0]=box_[0]; XYZ[1]=box_[1]; XYZ[2]=box_[2]; }
