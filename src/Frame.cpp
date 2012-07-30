@@ -330,58 +330,7 @@ std::vector<float> Frame::ConvertToFloat(AtomMask &maskIn) {
   return farray;
 }
 
-// Frame::DoubleArray()
-double *Frame::DoubleArray() {
-  if (natom_ < 1) return NULL;
-  double *darray = new double[ Ncoord_ ];
-  memcpy(darray, X_, Ncoord_*sizeof(double));
-  return darray;
-} 
-
-// Frame::CoordPtr()
-// NOTE: Right now only used for interfacing with older ptraj routines:
-//       1) setting up mask in Topology, since the mask parser still uses 
-//          double* for coordinates in order to remain compatible with ptraj 
-//          routines.
-//       2) Setting coordinates for use with ptraj routines (SetReferenceInfo).
-// TODO: Get rid of the need for this routine.  
-const double *Frame::CoordPtr() {
-  return (const double*)X_;
-}
-
-// Frame::ConvertToPtrajXYZ()
-// NOTE: As with CoordPtr() only used to interface with older ptraj routines.
-void Frame::ConvertToPtrajXYZ(double *x_coord, double *y_coord, double *z_coord,
-                              double *ptraj_box)
-{
-  double *Xptr = X_;
-  for (int atom = 0; atom < natom_; atom++) {
-    x_coord[atom] = *Xptr;
-    ++Xptr;
-    y_coord[atom] = *Xptr;
-    ++Xptr;
-    z_coord[atom] = *Xptr;
-    ++Xptr;
-  }
-  // Protect state box coords
-  memcpy(ptraj_box, box_, BOXSIZE_);
-}
-
-// Frame::SetFromPtrajXYZ()
-void Frame::SetFromPtrajXYZ(double *x_coord, double *y_coord, double *z_coord) {
-  double *Xptr = X_;
-  for (int atom = 0; atom < natom_; atom++) {
-    *Xptr = x_coord[atom];
-    ++Xptr;
-    *Xptr = y_coord[atom];
-    ++Xptr;
-    *Xptr = z_coord[atom];
-    ++Xptr;
-  }
-}
-
 // Frame::GetAtomXYZ()
-// NOTE: Currently only used by molsurf to interface with ATOM data structure
 void Frame::GetAtomXYZ(double *Coord, int atom) {
   int i3 = atom * 3;
   double *Xptr = X_ + i3;

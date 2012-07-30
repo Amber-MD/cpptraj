@@ -32,11 +32,7 @@ class Frame {
     // Convert to/from arrays
     Frame &operator=(const std::vector<float>&);
     std::vector<float> ConvertToFloat(AtomMask &);
-    double *DoubleArray();
     // Access internal data
-    const double *CoordPtr();
-    void ConvertToPtrajXYZ(double *, double *, double *, double*);
-    void SetFromPtrajXYZ(double *, double *, double *);
     void GetAtomXYZ(double*, int);
     const double* XYZ(int atnum) { return X_ + (atnum*3); }
     void AddXYZ(const double *);
@@ -130,52 +126,6 @@ class Frame {
     void RotateAroundAxis(double *, double, AtomMask &);
     void CalculateInertia(AtomMask &, double *, double *);
 
-    // TEST: Iterator to coordinates
-/*    class Iterator : public std::iterator<std::forward_iterator_tag, double*> {
-      public:
-        Iterator() : xptr_(0) {}
-        Iterator(double *p) : xptr_(p) {}
-        ~Iterator() {}
-        // Assignment
-        Iterator &operator=(const Iterator &rhs) {
-          xptr_ = rhs.xptr_;
-          return *this;
-        }
-        // Relations
-        bool operator==(const Iterator &rhs) {
-          return (xptr_ == rhs.xptr_);
-        }
-        bool operator!=(const Iterator &rhs) {
-          return (xptr_ != rhs.xptr_);
-        }
-        // Pre-increment
-        Iterator &operator++() {
-          xptr_ += 3;
-          return *this;
-        }
-        // Post-increment
-        Iterator operator++(int) { // Return copy, not reference
-          Iterator tmp(*this);
-          ++(*this);
-          return tmp;
-        }
-        // Value - Make const?
-        double* operator*() {
-          return xptr_;
-        }
-        double* operator->() {
-          return xptr_;
-        }
-      private:
-        double *xptr_;
-    }; // END class Iterator
-    Iterator begin() {
-      return( Iterator(X_) );
-    }
-    Iterator end() {
-      return( Iterator(X_ + Ncoord_) );
-    }*/
-    
   protected:
     static const size_t COORDSIZE_;
     static const size_t BOXSIZE_;
