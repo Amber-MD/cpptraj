@@ -20,7 +20,7 @@ ArgList::ArgList(const char* argIn) :
 }
 
 // CONSTRUCTOR - Take string and convert to args delimted by separators
-ArgList::ArgList(std::string &expression, const char *separators) :
+ArgList::ArgList(std::string const& expression, const char *separators) :
   debug(0)
 {
   SetList(expression.c_str(), separators);

@@ -18,7 +18,7 @@ class ArgList {
   public:
     ArgList();
     ArgList(const char*);
-    ArgList(std::string &, const char*);
+    ArgList(std::string const&, const char*);
     ~ArgList();
     ArgList(const ArgList &);
     ArgList& operator=(const ArgList &);
