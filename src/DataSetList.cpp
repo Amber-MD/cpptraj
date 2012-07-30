@@ -4,6 +4,7 @@
 // This also includes basic DataSet class and dataType
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 // Data types go here
 #include "DataSet_double.h"
 #include "DataSet_string.h"
@@ -75,8 +76,9 @@ void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
     (*ds)->SetPrecision(widthIn,precisionIn);
 }
 
-// DataSetList::Get()
-/** \return dataset in the list indicated by nameIn. 
+// DataSetList::ParseArgString()
+/** Separate argument nameIn specifying DataSet into name, index, and 
+  * attribute parts.
   * Possible formats:
   *  - "<name>"         : Plain dataset name.
   *  - "<name>:<index>" : Dataset within larger overall set (e.g. perres:1)
@@ -84,23 +86,24 @@ void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
   *  - "<name>[<attr>]:<index>" : 
   *       Dataset with name, given attribute, and index (e.g. NA[shear]:1)
   */
-DataSet *DataSetList::Get(const char *nameIn) {
-  std::string attr_arg;
-  int idxnum = -1;
+std::string DataSetList::ParseArgString(std::string const& nameIn, int& idxnum,
+                                        std::string& attr_arg)
+{
   std::string dsname( nameIn );
-
-  //mprintf("DBG: DataSetList::Get called with %s\n", nameIn);
+  attr_arg.clear();
+  idxnum = -1;
+  //mprinterr("DBG: ParseArgString called with %s\n", nameIn.c_str());
   // Separate out index if present
   size_t idx_pos = dsname.find( ':' );
   if ( idx_pos != std::string::npos ) {
     // Advance to after the ':'
     std::string idx_arg = dsname.substr( idx_pos + 1 );
-    //mprintf("DBG:\t\tIndex Arg [%s]\n", idx_arg.c_str());
+    //mprinterr("DBG:\t\tIndex Arg [%s]\n", idx_arg.c_str());
     idxnum = convertToInteger( idx_arg );
     // Allow only positive indices
     if ( idxnum < 0 ) {
       mprinterr("Error: DataSet arg %s, index value must be positive! (%i)\n",
-                nameIn, idxnum);
+                nameIn.c_str(), idxnum);
       return NULL;
     }
     // Drop the index arg
@@ -114,24 +117,57 @@ DataSet *DataSetList::Get(const char *nameIn) {
     if ( (attr_pos0 != std::string::npos && attr_pos1 == std::string::npos) ||
          (attr_pos0 == std::string::npos && attr_pos1 != std::string::npos) )
     {
-      mprinterr("Error: Malformed attribute ([<attr>]) in dataset name %s\n", nameIn);
+      mprinterr("Error: Malformed attribute ([<attr>]) in dataset name %s\n", nameIn.c_str());
       return NULL;
     }
     // Advance to after '[', length is position of ']' minus '[' minus 1 
-    std::string attr_arg = dsname.substr( attr_pos0 + 1, attr_pos1 - attr_pos0 - 1 );
-    //mprintf("DBG:\t\tAttr Arg [%s]\n", attr_arg.c_str());
+    attr_arg = dsname.substr( attr_pos0 + 1, attr_pos1 - attr_pos0 - 1 );
+    //mprinterr("DBG:\t\tAttr Arg [%s]\n", attr_arg.c_str());
     // Drop the attribute arg
     dsname.resize( attr_pos0 );
   }
+  //mprinterr("DBG:\t\tName Arg [%s]\n", dsname.c_str());
 
-  //mprintf("DBG:\t\tName Arg [%s]\n", dsname.c_str());
+  return dsname;
+}
+
+// DataSetList::GetMultipleSets()
+/** \return a list of all DataSets matching the given argument. */
+DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
+  DataSetList dsetOut;
+  dsetOut.hasCopies_ = true;
+
+  // Create a comma-separated list
+  ArgList comma_sep( nameIn, "," );
+  for (int iarg = 0; iarg < comma_sep.Nargs(); ++iarg) {
+    int idxnum = -1;
+    std::string attr_arg;
+    std::string dsname = ParseArgString( comma_sep[iarg], idxnum, attr_arg );
+    //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%i\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idxnum);
+
+    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+      if ( (*ds)->Matches( dsname, idxnum, attr_arg ) )
+      //if ( (*ds)->Name() == nameIn )
+        dsetOut.DataList_.push_back( *ds );
+    }
+  }
+
+  return dsetOut;
+}
+
+// DataSetList::Get()
+/** \return dataset in the list indicated by nameIn. 
+  */
+DataSet *DataSetList::Get(const char* nameIn) {
+  std::string attr_arg;
+  int idxnum = -1;
+  std::string dsname = ParseArgString( nameIn, idxnum, attr_arg );
+
   return GetSet( dsname, idxnum, attr_arg );
 }
 
 // DataSetList::GetSet()
-/** Find dataset in the list.  
-  * \return Dataset with name (and index if not -1).
-  * \return NULL if not found.
+/** \return Specified Dataset or NULL if not found.
   */
 DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect) 
 {
@@ -141,6 +177,9 @@ DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string con
 }
 
 // DataSetList::AddSet()
+/** Add a DataSet with given name, or if no name given create a name based on 
+  * defaultName and DataSet position.
+  */
 DataSet* DataSetList::AddSet( DataSet::DataType inType, std::string const& nameIn,
                               const char* defaultName )
 {
@@ -270,6 +309,7 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType,
   return DS;
 }
 
+// DataSetList::AddCopyOfSet()
 void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   if (!hasCopies_ && !DataList_.empty()) {
     mprinterr("Internal Error: Adding DataSet (%s) copy to invalid list\n", dsetIn->c_str());
@@ -291,7 +331,6 @@ int DataSetList::AddDataSet(DataSet* dsetIn) {
   * that will be written to.
   */
 void DataSetList::Info() {
-  mprintf("\nDATASETS:\n");
   if (DataList_.empty())
     mprintf("  There are no data sets set up for analysis.");
   else if (DataList_.size()==1)

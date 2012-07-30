@@ -260,6 +260,7 @@ int Cpptraj::Run() {
   actionList.Print( );
 
   // Print Dataset information
+  mprintf("\nDATASETS:\n");
   DSL.Info();
 
   analysisList.Setup(&DSL, &parmFileList);

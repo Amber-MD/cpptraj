@@ -26,17 +26,28 @@ class DataSetList {
     const_iterator end() const;
     /// Erase set from list
     void erase( const_iterator );
-    bool empty() { return DataList_.empty(); }
+    /// True if no DataSets in list.
+    bool empty()                  { return DataList_.empty();     }
+    /// Return DataSet at didx.
+    DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
+    /// Return number of datasets in the list 
+    int size()                    { return (int)DataList_.size(); }
+    /// Return the max # expected frames
+    int MaxFrames()               { return maxFrames_;            }
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
     /// Set the max # frames expected to be read in. Used to preallocate DataSet size.
     void SetMax(int);
     /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDatasets(int, int);
+    /// Separate input string into DataSet args.
+    std::string ParseArgString(std::string const&, int&, std::string&);
     /// Get DataSet with specified name argument.
     DataSet* Get(const char *);
     /// Get DataSet with specified name, index, and aspect.
     DataSet* GetSet(std::string const&, int, std::string const&);
+    /// Get multiple DataSets matching specified argument.
+    DataSetList GetMultipleSets( std::string const& );
     /// Add DataSet to list with name, or default name if not specified. (TODO: OBSOLETE)
     DataSet* Add( DataSet::DataType, const char*, const char*);
     /// Add DataSet to list with name, or default name if not specified.
@@ -57,10 +68,6 @@ class DataSetList {
     void Info();
     /// Call sync for DataSets in the list (MPI only)
     void Sync();
-    /// Return number of datasets in the list 
-    int size() { return (int)DataList_.size(); }
-    /// Return the max # expected frames
-    int MaxFrames() { return maxFrames_; }
 
     void VectorBegin();
     DataSet* NextVector();
