@@ -4,7 +4,7 @@
 #include "Constants.h" // PI
 
 // CONSTRUCTOR
-AtomicFluct::AtomicFluct() {
+Action_AtomicFluct::Action_AtomicFluct() {
   sets_ = 0;
   start_ = 0;
   stop_ = -1;
@@ -16,11 +16,11 @@ AtomicFluct::AtomicFluct() {
   outtype_ = BYATOM;
 }
 
-// AtomicFluct::init()
+// Action_AtomicFluct::init()
 /** Usage: atomicfluct [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]
   *                    [start <start>] [stop <stop>] [offset <offset>]
   */               
-int AtomicFluct::init() {
+int Action_AtomicFluct::init() {
   // Get frame # keywords
   int startArg = actionArgs.getKeyInt("start",1);
   stop_ = actionArgs.getKeyInt("stop",-1);
@@ -54,6 +54,8 @@ int AtomicFluct::init() {
   // Get Mask
   char *maskstring = actionArgs.getNextMask();
   Mask.SetMaskString(maskstring);
+  // Get DataSet name
+  setname_ = actionArgs.GetStringNext();
 
   mprintf("    ATOMICFLUCT: calculating");
   if (bfactor_)
@@ -74,12 +76,14 @@ int AtomicFluct::init() {
     if (offset_!=1)
       mprintf(", offset %i\n",offset_);
   }
+  if (!setname_.empty())
+    mprintf("\tData will be saved to set named %s\n", setname_.c_str());
 
   return 0;
 }
 
-// AtomicFluct::setup()
-int AtomicFluct::setup() {
+// Action_AtomicFluct::setup()
+int Action_AtomicFluct::setup() {
 
   if (SumCoords_.Natom()==0) {
     // Set up frames if not already set
@@ -109,8 +113,8 @@ int AtomicFluct::setup() {
   return 0;
 }
 
-// AtomicFluct::action()
-int AtomicFluct::action() {
+// Action_AtomicFluct::action()
+int Action_AtomicFluct::action() {
   if (frameNum == targetSet_) {
     SumCoords_ += *currentFrame;
     SumCoords2_ += ( (*currentFrame) * (*currentFrame) ) ;
@@ -122,19 +126,19 @@ int AtomicFluct::action() {
   return 0;
 }
 
-// AtomicFluct::print() 
-void AtomicFluct::print() {
-  CpptrajFile outfile;
-  int atom, res, atomnum, resstart, resstop;
+// Action_AtomicFluct::print() 
+void Action_AtomicFluct::print() {
+  int atom, res, resstart, resstop; 
   double xi, fluct, mass;
 
   mprintf("    ATOMICFLUCT: Calculating fluctuations for %i sets.\n",sets_);
-
-  if (outfile.SetupWrite(outfilename_, debug)!=0) {
-    mprinterr("Error: AtomicFluct: Could not set up output file %s\n",outfilename_);
-    return;
+  DataSet* dataout = DSL->AddSet( DataSet::DOUBLE, setname_, "Fluct" );
+  if (dataout == NULL) {
+    mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
+    return; 
   }
-  if (outfile.OpenFile()) return;
+  DataFile* outfile = DFL->Add( outfilename_, dataout );
+  outfile->ProcessArgs("noemptyframes");
 
   double Nsets = (double)sets_;
   SumCoords_.Divide(Nsets);
@@ -156,6 +160,7 @@ void AtomicFluct::print() {
   if (bfactor_) {
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
+    outfile->SetYlabel( "B-factors" );
     double bfac = (8.0/3.0)*PI*PI;
     for (unsigned int i = 0; i < XYZ.size(); i+=3) {
       double fluct = XYZ[i] + XYZ[i+1] + XYZ[i+2];
@@ -176,14 +181,15 @@ void AtomicFluct::print() {
   switch (outtype_) {
     // By atom output
     case BYATOM:
-      atomnum = 1;
+      outfile->SetXlabel("Atom");
       for (atom = 0; atom < (int)Results.size(); atom++ ) {
         if (Mask.AtomInCharMask(atom)) 
-          outfile.Printf(" %6i  %lf\n",atomnum++,Results[atom]);
+          dataout->Add( atom, &(Results[atom]) );
       }
       break;
     // By residue output
     case BYRES:
+      outfile->SetXlabel("Res");
       for (res = 0; res < fluctParm_->Nres(); res++) {
         xi = 0;
         fluct = 0;
@@ -195,12 +201,15 @@ void AtomicFluct::print() {
             fluct += Results[atom] * mass;
           }
         }
-        if (xi > SMALL)
-          outfile.Printf(" %6i  %lf\n",res+1,fluct/xi);
+        if (xi > SMALL) {
+          mass = fluct / xi;
+          dataout->Add( res, &mass );
+        }
       }
       break;
     // By mask output
     case BYMASK:
+      outfile->SetXlabel( Mask.MaskString() );
       xi = 0;
       fluct = 0;
       for (atom = 0; atom < (int)Results.size(); atom++) {
@@ -210,11 +219,11 @@ void AtomicFluct::print() {
           fluct += Results[atom] * mass;
         }
       }
-      if (xi > SMALL)
-        outfile.Printf(" %6i  %lf\n",1, fluct/xi);
+      if (xi > SMALL) {
+        mass = fluct / xi;
+        dataout->Add( 0, &mass );
+      }
       break;
   }
-  
-  outfile.CloseFile();        
 }
 

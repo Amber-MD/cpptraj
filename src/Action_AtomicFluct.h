@@ -1,18 +1,16 @@
-#ifndef INC_ATOMICFLUCT_H
-#define INC_ATOMICFLUCT_H
+#ifndef INC_ACTION_ATOMICFLUCT_H
+#define INC_ACTION_ATOMICFLUCT_H
 #include "Action.h"
-class AtomicFluct : public Action {
+class Action_AtomicFluct : public Action {
   public :
-    AtomicFluct();
+    Action_AtomicFluct();
     void print();
   private :
     int init();
     int setup();
     int action();
 
-    enum outputType {
-      BYATOM = 0, BYRES, BYMASK
-    };
+    enum outputType { BYATOM = 0, BYRES, BYMASK };
 
     Frame SumCoords_;
     Frame SumCoords2_;
@@ -26,5 +24,6 @@ class AtomicFluct : public Action {
     char *outfilename_;
     Topology *fluctParm_;
     outputType outtype_;
+    std::string setname_;
 };
 #endif
