@@ -234,6 +234,25 @@ std::string Topology::ResAtomName(int atom) {
   return oss.str();
 }
 
+std::string Topology::TruncResAtomName(int atom) {
+  std::string res_name;
+  if (atom < 0 || atom >= (int)atoms_.size()) return res_name;
+  std::string atom_name( atoms_[atom].c_str() );
+  // Remove trailing spaces
+  if (atom_name[3] == ' ') atom_name.resize(3);
+  if (atom_name[2] == ' ') atom_name.resize(2);
+  if (atom_name[1] == ' ') atom_name.resize(1);
+  int res = atoms_[atom].ResNum();
+  res_name.assign( residues_[res].c_str() );
+  // NOTE: ensure a residue size of 4?
+  if (res_name[3]==' ')
+    res_name[3]='_';
+  ++res; // want output as res+1
+  std::ostringstream oss;
+  oss << res_name << res << "@" << atom_name;
+  return oss.str();
+}
+
 // Topology::ResNameNum()
 /** Given a residue number (starting from 0), return a string containing 
   * residue name and number (starting from 1) with format: 

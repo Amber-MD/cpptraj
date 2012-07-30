@@ -92,6 +92,7 @@ class Topology {
     int ResAtomRange(int, int *, int *);
     char *ResidueName(int); // TODO: Make obsolete
     std::string ResAtomName(int);
+    std::string TruncResAtomName(int);
     std::string ResNameNum(int);
     int FindAtomInResidue(int, NameType);
     int FindResidueMaxNatom();
