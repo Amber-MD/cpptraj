@@ -9,6 +9,7 @@
 #include "Analysis_CrankShaft.h"
 #include "Analysis_Statistics.h"
 #include "Analysis_CrossCorr.h"
+#include "Analysis_Lifetime.h"
 
 // CONSTRUCTOR
 AnalysisList::AnalysisList() :
@@ -38,6 +39,7 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
   else if (argIn.CommandIs("hist"))      { Ana = new Analysis_Hist(); }
   else if (argIn.CommandIs("corr"))      { Ana = new Analysis_Corr(); }
   else if (argIn.CommandIs("crosscorr")) { Ana = new Analysis_CrossCorr(); }
+  else if (argIn.CommandIs("lifetime"))  { Ana = new Analysis_Lifetime(); }
   else if (argIn.CommandIs("analyze")  ) { 
     if (argIn.ArgAt(1) == NULL) return 1;
     if (argIn[1] == "matrix")

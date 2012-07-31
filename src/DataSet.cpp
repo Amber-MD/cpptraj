@@ -63,7 +63,7 @@ void DataSet::Info() {
   mprintf("\tData set %s",name_.c_str());
   mprintf(", size is %i", Size());
   mprintf(" [%s]", aspect_.c_str());
-  mprintf(":%i\n", idx_);
+  mprintf(":%i \"%s\"\n", idx_,Legend().c_str());
 }
 
 
