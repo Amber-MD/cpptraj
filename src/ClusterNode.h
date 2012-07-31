@@ -21,8 +21,8 @@ class ClusterNode {
     // Return internal variables
     inline double AvgDist() { return avgClusterDist_; }
     inline double Eccentricity() { return eccentricity_; }
-    inline const int Num() const { return num_; }
-    inline const int Centroid() const { return centroid_; }
+    inline int Num() const { return num_; }
+    inline int Centroid() const { return centroid_; }
     inline int Nframes() { return (int)frameList_.size(); }
     // Set internal variables 
     void SetAvgDist(double avg) { avgClusterDist_ = avg; }
