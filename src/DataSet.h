@@ -92,8 +92,8 @@ class DataSet {
     int SetupSet(std::string const&,int,int,std::string const&);
     /// Print DataSet information
     void Info();
-    /// Check if set has been written to.
-    int CheckSet();
+    /// True if set is empty. 
+    bool Empty();
     /// Used to set the data and header format strings 
     int SetDataSetFormat(bool);
     /// DataSet output label.

@@ -67,11 +67,11 @@ void DataSet::Info() {
 }
 
 
-// DataSet::CheckSet()
-/** Return 1 if size==0, which indicates set has not been written to.
-  * Otherwise return 0.
+// DataSet::Empty()
+/** \return true if size==0, which indicates set has not been written to. 
+  * \return false otherwise.
   */
-int DataSet::CheckSet() {
+bool DataSet::Empty() {
   if (Size()==0) return 1;
   return 0;
 }

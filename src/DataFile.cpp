@@ -138,8 +138,8 @@ void DataFile::Write() {
                 currentDim, (*Dset)->Dim());
       return;
     }
-    // CheckSet != 0 if set has no data.
-    if ( (*Dset)->CheckSet() ) {
+    // Check if set has no data.
+    if ( (*Dset)->Empty() ) {
       // If set has no data, remove it
       mprintf("Warning: Set %s contains no data. Skipping.\n",(*Dset)->c_str());
       SetList_.erase( Dset );
