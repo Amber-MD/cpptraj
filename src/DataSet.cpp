@@ -60,7 +60,7 @@ int DataSet::SetupSet(std::string const& nameIn, int Nin, int idxIn,
 
 // DataSet::Info()
 void DataSet::Info() {
-  mprintf("    Data set %s",name_.c_str());
+  mprintf("\tData set %s",name_.c_str());
   mprintf(", size is %i", Size());
   mprintf(" [%s]", aspect_.c_str());
   mprintf(":%i\n", idx_);
