@@ -578,6 +578,7 @@ TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromArg(ArgList *argIn)
   else if ( argIn->hasKey("restartnc")) writeFormat=AMBERRESTARTNC;
   else if ( argIn->hasKey("mol2")     ) writeFormat=MOL2FILE;
   else if ( argIn->hasKey("dcd")      ) writeFormat=CHARMMDCD;
+  else if ( argIn->hasKey("charmm")   ) writeFormat=CHARMMDCD;
   return writeFormat;
 }
 
