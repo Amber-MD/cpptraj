@@ -178,16 +178,22 @@ void Action_Hbond::SearchDonor(HBlistType& dlist, AtomMask& dmask, bool Auto) {
         isDonor=true;
     }
     if (isDonor) {
-      // Get list of hydrogen atoms bonded to this atom
-      for (Atom::bond_iterator batom = (*currentParm)[*donoratom].bondbegin();
-                               batom != (*currentParm)[*donoratom].bondend();
-                               batom++)
-      {
-        if ( (*currentParm)[*batom].Element() == Atom::HYDROGEN ) {
-          //mprintf("BOND TO H: %i@%s -- %i@%s\n",*donoratom+1,(*currentParm)[*donoratom].c_str(),
-          //        *batom+1,(*currentParm)[*batom].c_str());
-          dlist.push_back(*donoratom);
-          dlist.push_back(*batom);
+      // If no bonds to this atom assume it is an ion. Only do this if !Auto
+      if (!Auto && (*currentParm)[*donoratom].Nbonds() == 0) {
+        dlist.push_back(*donoratom);
+        dlist.push_back(*donoratom);
+      } else {
+        // Get list of hydrogen atoms bonded to this atom
+        for (Atom::bond_iterator batom = (*currentParm)[*donoratom].bondbegin();
+                                 batom != (*currentParm)[*donoratom].bondend();
+                                 batom++)
+        {
+          if ( (*currentParm)[*batom].Element() == Atom::HYDROGEN ) {
+            //mprintf("BOND TO H: %i@%s -- %i@%s\n",*donoratom+1,(*currentParm)[*donoratom].c_str(),
+            //        *batom+1,(*currentParm)[*batom].c_str());
+            dlist.push_back(*donoratom);
+            dlist.push_back(*batom);
+          }
         }
       }
     } // END atom is potential donor
@@ -301,13 +307,19 @@ int Action_Hbond::AtomsAreHbonded(int a_atom, int d_atom, int h_atom, int hbidx,
 {
   std::string hblegend;
   HbondType HB;
+  double angle;
 
   if (a_atom == d_atom) return 0;
   double dist2 = currentFrame->DIST2(a_atom, d_atom);
-  //mprintf("DEBUG: Donor @%i -- acceptor @%i = %lf\n",D, a_atom, sqrt(dist2));
   if (dist2 > dcut2_) return 0;
-  double angle = currentFrame->ANGLE(a_atom, h_atom, d_atom);
-  if (angle < acut_) return 0;
+  /*mprintf("DEBUG: Donor %i@%s -- acceptor %i@%s = %lf",
+         d_atom+1, (*currentParm)[d_atom].c_str(),
+         a_atom+1, (*currentParm)[a_atom].c_str(), sqrt(dist2));*/
+  // For ions, donor atom will be same as h atom so no angle needed.
+  if (d_atom != h_atom) {
+    angle = currentFrame->ANGLE(a_atom, h_atom, d_atom);
+    if (angle < acut_) return 0;
+  }
   double dist = sqrt(dist2);
   //mprintf( "A-D HBOND[%6i]: %6i@%-4s ... %6i@%-4s-%6i@%-4s Dst=%6.2lf Ang=%6.2lf\n", hbidx, 
   //        a_atom, (*currentParm)[a_atom].c_str(),
