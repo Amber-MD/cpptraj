@@ -137,14 +137,20 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
       }
       df = GetDataFile(name1);
       if (df==NULL)
-        mprintf("    Creating file %s\n",name1);
+        mprintf("    Creating file %s:",name1);
       else
-        mprintf("    Adding sets to file %s\n",name1);
+        mprintf("    Adding sets to file %s:",name1);
       while ( (name2=(*dataArg).getNextString())!=NULL ) {
-        if ( Add(name1, masterDSL->Get(name2))==NULL ) {
-          mprintf("Warning: Dataset %s does not exist in main dataset list, skipping.\n",name2);
+        DataSetList Sets = masterDSL->GetMultipleSets( name2 );
+        if (Sets.empty()) 
+          mprintf("Warning: %s does not correspond to any data sets.\n", name2);
+        for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
+          mprintf(" %s", (*set)->Legend().c_str());
+          if ( Add(name1, *set)==NULL ) 
+            mprinterr("Error: Could not add data set %s to file.\n", (*set)->Legend().c_str());
         }
       }
+      mprintf("\n");
     } else if ( df_cmd == "precision" ) {
       // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
       //        If width/precision not specified default to 12.4
