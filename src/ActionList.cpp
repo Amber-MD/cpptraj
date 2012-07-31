@@ -96,9 +96,9 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("center"))         {Act=new Action_Center;  }
   else if (argIn.CommandIs("hbond"))          {Act=new Action_Hbond;   }
   else if (argIn.CommandIs("image"))          {Act=new Action_Image;   }
-  else if (argIn.CommandIs("surf"))           {Act=new Surf;    }
-  else if (argIn.CommandIs("radgyr"))         {Act=new Radgyr;  }
-  else if (argIn.CommandIs("mask"))           {Act=new ActionMask;}
+  else if (argIn.CommandIs("surf"))           {Act=new Action_Surf;    }
+  else if (argIn.CommandIs("radgyr"))         {Act=new Action_Radgyr;  }
+  else if (argIn.CommandIs("mask"))           {Act=new Action_Mask;    }
   else if (argIn.CommandIs("closest"))        {Act=new Action_Closest; }
   else if (argIn.CommandIs("nastruct"))       {Act=new Action_NAstruct;}
   else if (argIn.CommandIs("pucker"))         {Act=new Action_Pucker;  }

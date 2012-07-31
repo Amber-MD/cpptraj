@@ -2,16 +2,16 @@
 #define INC_ACTION_SURF_H
 #include "Action.h"
 #include <vector>
-// Class: Surf
+// Class: Action_Surf
 /// Calculate LCPO surface area.
 /** LCPO method from:
   * -  J. Weiser, P.S. Shenkin, and W.C. Still,
   *    "Approximate atomic surfaces from linear combinations of pairwise
   *    overlaps (LCPO)", J. Comp. Chem. 20:217 (1999).
   */
-class Surf: public Action {
+class Action_Surf: public Action {
   public:
-    Surf();
+    Action_Surf();
 
     int init();
     int setup();

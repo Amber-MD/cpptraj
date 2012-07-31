@@ -1,4 +1,4 @@
-// Surf 
+// Action_Surf 
 #include "Action_Surf.h"
 #include "Constants.h" // For FOURPI, TWOPI
 #include "CpptrajStdio.h"
@@ -6,15 +6,15 @@
 #  include "omp.h"
 #endif
 // CONSTRUCTOR
-Surf::Surf() {
+Action_Surf::Action_Surf() {
   //fprintf(stderr,"Surf Con\n");
   surf=NULL;
 } 
 
-// Surf::init()
+// Action_Surf::init()
 /** Expected call: surf <name> <mask1> [out filename]
   */
-int Surf::init() {
+int Action_Surf::init() {
   char *mask1;
   char *surfFile;
 
@@ -36,11 +36,11 @@ int Surf::init() {
   return 0;
 }
 
-// Surf::setup()
+// Action_Surf::setup()
 /** Set LCPO surface area calc parameters for this parmtop if not already set. 
   * Get the mask, and check that the atoms in mask belong to solute. 
   */
-int Surf::setup() {
+int Action_Surf::setup() {
   SurfInfo SI;
   int soluteAtoms;
 
@@ -97,9 +97,9 @@ int Surf::setup() {
   return 0;  
 }
 
-// Surf::action()
+// Action_Surf::action()
 /** Calculate surface area. */
-int Surf::action() {
+int Action_Surf::action() {
   double SA;
   int atomi, idx;
   AtomMask::const_iterator atomj; 
@@ -227,10 +227,10 @@ int Surf::action() {
 } 
 
 // -----------------------------------------------------------------------------
-// Surf::AssignLCPO()
+// Action_Surf::AssignLCPO()
 /** Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
   */
-void Surf::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2,
+void Action_Surf::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2,
                       double P3, double P4) 
 {
   S->vdwradii = vdwradii + 1.4;
@@ -248,7 +248,7 @@ static void WarnLCPO(NameType &atype, int atom, int numBonds) {
   mprintf("Using default atom parameters.\n");
 }
 
-// Surf::SetAtomLCPO()
+// Action_Surf::SetAtomLCPO()
 /** Set up parameters only used in surface area calcs.
   * LCPO method from:
   *   J. Weiser, P.S. Shenkin, and W.C. Still,
@@ -258,7 +258,7 @@ static void WarnLCPO(NameType &atype, int atom, int numBonds) {
   * \return the number of solute atoms for which paramters were set. 
   * \return -1 on error.
   */
-void Surf::SetAtomLCPO(int i, const Atom &atom, SurfInfo *SIptr) {
+void Action_Surf::SetAtomLCPO(int i, const Atom &atom, SurfInfo *SIptr) {
   // Get the number of non-H bonded neighbors to this atom
   int numBonds = 0;
   for (Atom::bond_iterator batom = atom.bondbegin(); batom != atom.bondend(); batom++)

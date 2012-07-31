@@ -1,25 +1,27 @@
 #ifndef INC_ACTION_MASK_H
 #define INC_ACTION_MASK_H
 #include "Action.h"
-// Class: ActionMask
+// Class: Action_Mask
 /// Print out all atoms selected by a mask for each frame.
 /** This allows use of distance-dependent masks. This does NOT modify the
   * frame or parm. 
   */
-class ActionMask: public Action {
+class Action_Mask: public Action {
   public:
-    ActionMask();
+    Action_Mask();
 
-    int init();
-    int setup();
-    int action();
     void print();
   private:
+    int init();
+    // NOTE: No setup needed for this action. Everything is done in action so 
+    //       that the coords can be passed to the mask parser.
+    int action();
+
     /// Atoms which will be selected each frame
-    AtomMask Mask1;
+    AtomMask Mask1_;
     /// File to write selected atom info to
-    CpptrajFile outfile;
+    CpptrajFile outfile_;
     /// PDB output file name
-    char *maskpdb;
+    char* maskpdb_;
 };
 #endif  
