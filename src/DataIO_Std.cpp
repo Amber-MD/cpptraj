@@ -26,6 +26,25 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
   return 0;
 }
 
+// DataIO_Std::WriteNameToBuffer()
+void DataIO_Std::WriteNameToBuffer(CharBuffer& cbuffer, DataSet* DS, bool leftAlign) 
+{
+  std::string temp_name = DS->Legend();
+  // If left aligning, add '#' to name; ensure that name will not be
+  // larger than column width.
+  if (leftAlign) {
+    if (temp_name[0]!='#')
+      temp_name.insert(0,"#");
+  }
+  int width = DS->Width();
+  if ((int)temp_name.size() > width)
+    temp_name.resize( width );
+  // Set up header format string
+  std::string header_format;
+  SetStringFormatString(header_format, width, leftAlign);
+  cbuffer.Sprintf(header_format.c_str(), temp_name.c_str());
+}
+
 // DataIO_Std::WriteData()
 int DataIO_Std::WriteData(DataSetList &SetList) {
   CharBuffer buffer;
@@ -55,17 +74,23 @@ int DataIO_Std::WriteData(DataSetList &SetList) {
       SetStringFormatString(x_header_fmt, xcol_width_, true);
       buffer.Sprintf(x_header_fmt.c_str(), x_label_.c_str());
     }
-    // Write dataset names to header
-    for (set = SetList.begin(); set != SetList.end(); set++) 
-      (*set)->WriteNameToBuffer( buffer );
+    // Write dataset names to header, left-aligning first set if no X-column
+    set = SetList.begin();
+    if (!hasXcolumn_)
+      WriteNameToBuffer( buffer, *set, true );
+    else
+      WriteNameToBuffer( buffer, *set, false );
+    ++set;
+    for (; set != SetList.end(); ++set) 
+      WriteNameToBuffer( buffer, *set, false );
     buffer.NewLine();
   }
 
   // Ensure buffer has enough space for all data in dataset list
-  // Each dataset takes up (maxFrames * (width + newline))
+  // Each dataset takes up (maxFrames * (width + space + newline))
   size_t total_datasize = 0;
   for (set = SetList.begin(); set != SetList.end(); set++) 
-    total_datasize += (size_t)( maxFrames_ * ((*set)->Width() + 1) );
+    total_datasize += (size_t)( maxFrames_ * ((*set)->Width() + 2) );
   // If X-column present, xcol_width per frame
   if (hasXcolumn_)
     total_datasize += (maxFrames_ * xcol_width_);
@@ -134,7 +159,7 @@ int DataIO_Std::WriteDataInverted(DataSetList &SetList) {
       if (emptyFrames) continue;
     }
     // Write dataset name as first column.
-    (*set)->WriteNameToBuffer(buffer); 
+    WriteNameToBuffer(buffer, *set, false); 
     // Write each frame to subsequent columns
     for (int frame=0; frame<maxFrames_; frame++) 
       (*set)->WriteBuffer(buffer,frame);

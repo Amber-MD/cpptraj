@@ -87,11 +87,6 @@ void DataSet_float::WriteBuffer(CharBuffer &cbuffer, int frame) {
   cbuffer.WriteDouble(data_format_, dval);
 }
 
-// DataSet_float::Width()
-int DataSet_float::Width() {
-  return (width_ + leadingSpace_);
-}
-
 // DataSet_float::Sync()
 /** First, non-master threads convert their vectors into C-arrays.
   * These arrays are then sent to the master, where they are put 

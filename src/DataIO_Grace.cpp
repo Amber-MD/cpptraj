@@ -34,8 +34,8 @@ int DataIO_Grace::WriteData(DataSetList &SetList) {
     buffer.Sprintf("@  s%-8i legend \"%s\"\n@target G0.S%-8i\n@type xy\n", 
                    setnum, (*set)->Legend().c_str(), setnum );
 
-    // Write Data - Reallocate for maxFrames of xwidth + width + newline
-    buffer.Reallocate( maxFrames_ * (xcol_width_ + (*set)->Width() + 1) );
+    // Write Data - Reallocate for maxFrames of xwidth + width + space + newline
+    buffer.Reallocate( maxFrames_ * (xcol_width_ + (*set)->Width() + 2) );
 
     for (int frame=0; frame<maxFrames_; frame++) {
       // If specified, run through every set in the frame and check if empty

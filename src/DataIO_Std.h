@@ -19,5 +19,7 @@ class DataIO_Std : public DataIO {
     std::string y_label_;
     double ymin_;
     double ystep_;
+    /// Write DataSet name to CharBuffer
+    void WriteNameToBuffer(CharBuffer&, DataSet*, bool);
 };
 #endif

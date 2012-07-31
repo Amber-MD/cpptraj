@@ -21,7 +21,6 @@ class DataSet_double : public DataSet {
     double CurrentDval();
     double Dval(int);
     void WriteBuffer(CharBuffer&, int);
-    int Width();
     int Sync();
   private:
     typedef std::vector<double> DType;

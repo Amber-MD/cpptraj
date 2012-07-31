@@ -20,7 +20,6 @@ class DataSet_string : public DataSet {
     int FrameIsEmpty(int);
     void Add( int, void * );
     void WriteBuffer(CharBuffer&, int);
-    int Width();
     int Sync();
   private:
     typedef std::vector<std::string> DType;

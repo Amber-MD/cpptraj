@@ -6,11 +6,11 @@
 #include "CpptrajFile.h"
 // Class: DataSet
 /// Base class that all DataSet types will inherit.
-/** All atomic classes inheriting the DataSet class must implement 9 routines:
-  * Xmax, Size, FrameIsEmpty, Add, WriteBuffer, Width, Sync, Dval, and 
-  * CurrentDval (the last 2 not needed for String).
+/** All atomic classes inheriting the DataSet class must implement 8 routines:
+  * Xmax, Size, FrameIsEmpty, Add, WriteBuffer, Sync, Dval, and CurrentDval 
+  * (the last 2 not needed for String).
   * Other types wishing to use DataFile output should at least implement the 
-  * Size, Xmax, WriteBuffer, and Width routines.
+  * Size, Xmax, and WriteBuffer routines.
   * DataSets are given certain attributes to make DataSet selection easier; 
   * these are name, index, and aspect. Name is typically associated with the
   * action that creates the dataset, e.g. RMSD or distance. Index is used
@@ -67,8 +67,6 @@ class DataSet {
     /// Return size of all dimensions
     // NOTE: Currently only used for 2D output
     virtual void GetDimensions( std::vector<int>& ) { return; }
-    /// Size in characters necessary to write data from this set.
-    virtual int Width()             { return width_; }
     /// Consolodate this DataSet across all threads (MPI only)
     virtual int Sync()              { return 0; }
     /// Return data from data set as double precision
@@ -98,8 +96,6 @@ class DataSet {
     int CheckSet();
     /// Used to set the data and header format strings 
     int SetDataSetFormat(bool);
-    /// Write the DataSet name to character buffer
-    void WriteNameToBuffer(CharBuffer &);
     /// DataSet output label.
     std::string Legend();
     /// Set DataSet legend.
@@ -125,7 +121,9 @@ class DataSet {
     /// Return DataSet type
     DataType Type()             { return dType_; }
     /// Return DataSet dimension
-    int Dim()             { return dim_; }
+    int Dim()                   { return dim_; }
+    /// Size in characters necessary to write data from this set.
+    int Width()                 { return width_; }
     /// Return scalar mode
     scalarMode ScalarMode()     { return scalarmode_; }
     /// Return scalar type
@@ -139,10 +137,8 @@ class DataSet {
     int dim_;                  ///< DataSet dimension; used to determine how to write output.
     int width_;                ///< The output width of a data element
     int precision_;            ///< The output precision of a data element (if applicable)
-    int leadingSpace_;         ///< 0 if leftAligned, 1 otherwise
     std::string format_;       ///< Output format of data
     const char *data_format_;  ///< Used to avoid constant calls to c_str
-    std::string header_format_;///< Output format of DataSet name
     scalarMode scalarmode_;    ///< Source of data in DataSet.
     scalarType scalartype_;    ///< Specific type of data in DataSet (if any).
   private:

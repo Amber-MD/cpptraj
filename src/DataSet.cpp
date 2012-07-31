@@ -10,7 +10,6 @@ DataSet::DataSet() :
   dim_(1),
   width_(0),
   precision_(0),
-  leadingSpace_(1),
   data_format_(NULL),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
@@ -100,31 +99,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   }
   // Assign format to a constant ptr to avoid continuous calls to c_str
   data_format_ = format_.c_str();
-  // If left aligning, no leading space. 
-  if (leftAlign)  
-    leadingSpace_ = 0;
-  else
-    leadingSpace_ = 1;
-  // Set header format string
-  SetStringFormatString(header_format_, width_, leftAlign);
   return 0;
-}
-
-// DataSet::WriteNameToBuffer()
-/** Write the dataset name to the given character buffer. Use Sprintf
-  * so that allocation happens automatically.
-  */
-void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
-  std::string temp_name = Legend();
-  // If left aligning, add '#' to name; ensure that name will not be
-  // larger than column width.
-  if (leadingSpace_ == 0) {
-    if (temp_name[0]!='#')
-      temp_name.insert(0,"#");
-  }
-  if ((int)temp_name.size() > width_)
-    temp_name.resize( width_ );
-  cbuffer.Sprintf(header_format_.c_str(), temp_name.c_str());
 }
 
 // DataSet::Legend()
@@ -163,6 +138,7 @@ bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const&
 bool DataSet::GoodCalcType() {
   if (dType_==DOUBLE || dType_==FLOAT || dType_==INT)
     return true;
+  mprinterr("Error: DataSet %s is not a valid type for this calc.\n", c_str());
   return false;
 }
 
@@ -236,14 +212,8 @@ double DataSet::Min() {
 double DataSet::Corr( DataSet& D2, DataSet* Ct, int lagmax ) {
   double d1, d2, ct;
   // Check if D1 and D2 are valid types
-  if ( !GoodCalcType( ) ) {
-    mprinterr("Error: Corr: DataSet %s is not a valid type for this calc.\n", c_str());
-    return 0;
-  }
-  if ( !D2.GoodCalcType( ) ) {
-    mprinterr("Error: Corr: DataSet %s is not a valid type for this calc.\n", D2.c_str());
-    return 0;
-  }
+  if ( !GoodCalcType( )    ) return 0; 
+  if ( !D2.GoodCalcType( ) ) return 0;
   // Check that D1 and D2 have same # data points.
   int Nelements = Size();
   if (Nelements != D2.Size()) {

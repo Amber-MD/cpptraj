@@ -78,15 +78,6 @@ void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
   }
 }
 
-// DataSet_string::Width()
-/** Return the width in characters necessary to print data from this dataset.
-  * Width is set whenever data is added and is the size of the largest stored
-  * string.
-  */
-int DataSet_string::Width() {
-  return (width_ + leadingSpace_);
-}
-
 // DataSet_string::Sync()
 /** First, non-master threads convert their vectors into C-arrays.
   * These arrays are then sent to the master, where they are put 

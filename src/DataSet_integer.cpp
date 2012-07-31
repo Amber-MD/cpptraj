@@ -98,11 +98,6 @@ void DataSet_integer::WriteBuffer(CharBuffer &cbuffer, int frame) {
   cbuffer.WriteInteger(data_format_, dval);
 }
 
-// DataSet_integer::Width()
-int DataSet_integer::Width() {
-  return (width_ + leadingSpace_);
-}
-
 // DataSet_integer::Sync()
 /** First, non-master threads convert their vectors into C-arrays.
   * These arrays are then sent to the master, where they are put 
