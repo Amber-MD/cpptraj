@@ -180,11 +180,12 @@ int Action_DSSP::setup() {
     // Set up dataset if necessary 
     if (!printString_ && SecStruct_[res].resDataSet==NULL) {
       // Setup dataset name for this residue
-      SecStruct_[res].resDataSet = DSL->AddSetIdxAspect( DataSet::INT,
-                                                         dssp_->Name(),
-                                                         res+1,
-                                                         currentParm->ResNameNum(res) );
-      if (SecStruct_[res].resDataSet!=NULL) DFL->Add(outfilename_, SecStruct_[res].resDataSet);
+      SecStruct_[res].resDataSet = DSL->AddSetIdxAspect( DataSet::INT, dssp_->Name(),
+                                                         res+1, "res");
+      if (SecStruct_[res].resDataSet!=NULL) {
+        DFL->Add(outfilename_, SecStruct_[res].resDataSet);
+        SecStruct_[res].resDataSet->SetLegend( currentParm->ResNameNum(res) );
+      }
     }
     ++selected;
   }
@@ -401,7 +402,8 @@ void Action_DSSP::print() {
 
   // Set up a dataset for each SS type
   for (ss=1; ss<7; ss++) {
-    dsspData_[ss] = DSL->AddSetAspect(DataSet::DOUBLE, dssp_->Name(), SSname[ss]);
+    dsspData_[ss] = DSL->AddSetIdxAspect(DataSet::DOUBLE, dssp_->Name(), ss, "avgss");
+    dsspData_[ss]->SetLegend( SSname[ss] );
     dsspFile = DFL->Add( sumOut_.c_str(), dsspData_[ss] ); 
   }
   // Change the X label to Residue

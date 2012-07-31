@@ -62,8 +62,9 @@ int DataSet::SetupSet(std::string const& nameIn, int Nin, int idxIn,
 // DataSet::Info()
 void DataSet::Info() {
   mprintf("    Data set %s",name_.c_str());
-  mprintf(", size is %i\n", Size());
-  //mprintf(", current is %i\n",current_);
+  mprintf(", size is %i", Size());
+  mprintf(" [%s]", aspect_.c_str());
+  mprintf(":%i\n", idx_);
 }
 
 
@@ -72,7 +73,6 @@ void DataSet::Info() {
   * Otherwise return 0.
   */
 int DataSet::CheckSet() {
-  //if (current_==0) return 1;
   if (Size()==0) return 1;
   return 0;
 }
@@ -115,14 +115,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   * so that allocation happens automatically.
   */
 void DataSet::WriteNameToBuffer(CharBuffer &cbuffer) {
-  std::string temp_name;
-  if (!aspect_.empty() && idx_ == -1)
-    temp_name = name_ + aspect_;
-  else if (!aspect_.empty() && idx_ != -1)
-    //temp_name = aspect_ + integerToString( idx_ );
-    temp_name = aspect_;
-  else
-    temp_name = name_;
+  std::string temp_name = Legend();
   // If left aligning, add '#' to name; ensure that name will not be
   // larger than column width.
   if (leadingSpace_ == 0) {
