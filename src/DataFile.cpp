@@ -1,4 +1,7 @@
 #include <sstream>
+#ifdef DATAFILE_TIME
+#include <ctime>
+#endif
 #include "DataFile.h"
 #include "CpptrajStdio.h"
 // All DataIO classes go here
@@ -29,7 +32,6 @@ int DataFile::SetupDatafile(const char* fnameIn) {
   DataIO basicData;
 
   if (fnameIn==NULL) return 1;
-  //datafile_name_.assign(fnameIn);
   // Open basic data file
   int err = basicData.SetupWrite(fnameIn,debug_);
   if (err!=0) return 1;
@@ -85,8 +87,7 @@ int DataFile::ProcessArgs(ArgList &argIn) {
 
 // DataFile::ProcessArgs()
 int DataFile::ProcessArgs(const char *argsIn) {
-  ArgList args;
-  args.SetList((char*)argsIn, " ");
+  ArgList args(argsIn, " ");
   return ProcessArgs(args);
 }
 
@@ -170,7 +171,9 @@ void DataFile::Write() {
 
   mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->Name(),
           SetList_.size(), currentDim, maxFrames);
-
+#ifdef DATAFILE_TIME
+  clock_t t0 = clock();
+#endif
   if ( currentDim == 1 ) {
     mprintf("%s: Writing %i frames.\n",dataio_->Name(),maxFrames);
     if (maxFrames>0) {
@@ -191,6 +194,11 @@ void DataFile::Write() {
     if (err > 0) 
       mprinterr("Error writing 2D DataSets to %s\n", dataio_->Name());
   }
+#ifdef DATAFILE_TIME
+  clock_t tf = clock();
+  mprinterr("DataFile %s Write took %f seconds.\n", dataio_->Name(),
+            ((float)(tf - t0)) / CLOCKS_PER_SEC);
+#endif
   dataio_->CloseFile();
 }
 
@@ -238,7 +246,6 @@ void DataFile::DataSetNames() {
   if (SetList_.size() > 10) {
     int setnum = 0;
     while (setnum < 4) {
-      //mprintf(" %s",(*set)->c_str());
       mprintf(" %s",(*set)->Legend().c_str());
       ++setnum;
       ++set;
@@ -248,13 +255,11 @@ void DataFile::DataSetNames() {
     setnum=0;
     while (setnum < 4) {
       --set;
-      //mprintf(" %s",(*set)->c_str());
       mprintf(" %s",(*set)->Legend().c_str());
       ++setnum;
     }
   } else {
     for (; set != SetList_.end(); set++)
-      //mprintf(" %s",(*set)->c_str());
       mprintf(" %s",(*set)->Legend().c_str());
   }
 }

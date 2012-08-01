@@ -19,7 +19,7 @@ class DataSet_string : public DataSet {
     int Size();
     int FrameIsEmpty(int);
     void Add( int, void * );
-    void WriteBuffer(CharBuffer&, int);
+    void WriteBuffer(CpptrajFile&, int);
     int Sync();
   private:
     typedef std::vector<std::string> DType;

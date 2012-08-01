@@ -250,11 +250,11 @@ bool Histogram::IncrementBinIndices() {
   return true;
 }
 
-void Histogram::WriteBuffer(CharBuffer& cbuffer, int frame) {
+void Histogram::WriteBuffer(CpptrajFile& cbuffer, int frame) {
   if (frame < 0 || frame >= (int)Bins_.size())
-    cbuffer.WriteDouble(data_format_, 0);
+    cbuffer.Printf(data_format_, 0.0);
   else
-    cbuffer.WriteDouble(data_format_, Bins_[frame]);
+    cbuffer.Printf(data_format_, Bins_[frame]);
 }
 
 void Histogram::Write2D(CpptrajFile& outfile, int x, int y) {

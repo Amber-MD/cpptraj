@@ -399,20 +399,20 @@ int VectorType::Xmax() {
   return totalFrames_ - 1;
 }
 
-void VectorType::WriteBuffer(CharBuffer &cbuffer, int frameIn) {
+void VectorType::WriteBuffer(CpptrajFile &cbuffer, int frameIn) {
   if (frameIn < 0 || frameIn >= frame_) {
     mprinterr("ERROR: VECTOR: Frame %i is out of range.\n",frameIn);
     return;
   }
-  cbuffer.WriteDouble(data_format_, vx_[frameIn]);
-  cbuffer.WriteDouble(data_format_, vy_[frameIn]);
-  cbuffer.WriteDouble(data_format_, vz_[frameIn]);
-  cbuffer.WriteDouble(data_format_, cx_[frameIn]);
-  cbuffer.WriteDouble(data_format_, cy_[frameIn]);
-  cbuffer.WriteDouble(data_format_, cz_[frameIn]);
-  cbuffer.WriteDouble(data_format_, vx_[frameIn]+cx_[frameIn]);
-  cbuffer.WriteDouble(data_format_, vy_[frameIn]+cy_[frameIn]);
-  cbuffer.WriteDouble(data_format_, vz_[frameIn]+cz_[frameIn]);
+  cbuffer.Printf(data_format_, vx_[frameIn]);
+  cbuffer.Printf(data_format_, vy_[frameIn]);
+  cbuffer.Printf(data_format_, vz_[frameIn]);
+  cbuffer.Printf(data_format_, cx_[frameIn]);
+  cbuffer.Printf(data_format_, cy_[frameIn]);
+  cbuffer.Printf(data_format_, cz_[frameIn]);
+  cbuffer.Printf(data_format_, vx_[frameIn]+cx_[frameIn]);
+  cbuffer.Printf(data_format_, vy_[frameIn]+cy_[frameIn]);
+  cbuffer.Printf(data_format_, vz_[frameIn]+cz_[frameIn]);
 }
 
 int VectorType::Width() {

@@ -22,7 +22,7 @@ class DataIO_Gnuplot : public DataIO {
     bool useMap_;
     bool jpegout_;
 
-    std::string Pm3d( );
+    std::string Pm3d();
     void WriteRangeAndHeader(double, double, std::string const&);
     void Finish();
     void JpegOut(int,int);

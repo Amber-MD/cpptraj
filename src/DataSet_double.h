@@ -20,7 +20,7 @@ class DataSet_double : public DataSet {
     void Add( int, void * );
     double CurrentDval();
     double Dval(int);
-    void WriteBuffer(CharBuffer&, int);
+    void WriteBuffer(CpptrajFile&, int);
     int Sync();
   private:
     typedef std::vector<double> DType;

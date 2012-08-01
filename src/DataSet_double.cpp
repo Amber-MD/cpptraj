@@ -70,21 +70,17 @@ int DataSet_double::FrameIsEmpty(int frame) {
 // DataSet_double::WriteBuffer()
 /** Write data at frame to CharBuffer. If no data for frame write 0.0.
   */
-void DataSet_double::WriteBuffer(CharBuffer &cbuffer, int frame) {
-  double dval;
-
+void DataSet_double::WriteBuffer(CpptrajFile &cbuffer, int frame) {
   while ( frame_ != Frames_.end() && frame > *frame_ ) 
     ++frame_;
 
   if (frame_ == Frames_.end() || frame != *frame_)
-    dval = 0;
+    cbuffer.Printf(data_format_, 0.0);
   else {
-    dval = *datum_;
+    cbuffer.Printf(data_format_, *datum_);
     ++datum_;
     ++frame_;
   }
-
-  cbuffer.WriteDouble(data_format_, dval);
 }
 
 // DataSet_double::Sync()

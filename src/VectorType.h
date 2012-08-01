@@ -24,7 +24,7 @@ class VectorType : public DataSet, public Action {
     // DataSet functions
     int Size();
     int Xmax();
-    void WriteBuffer(CharBuffer&, int);
+    void WriteBuffer(CpptrajFile&, int);
     int Width();
 
     vectorMode Mode() { return mode_; }

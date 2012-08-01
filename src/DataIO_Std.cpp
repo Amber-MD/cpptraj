@@ -1,7 +1,5 @@
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" // SetStringFormatString
-// Eventually fold this into CpptrajFile?
-#include "CharBuffer.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() : 
@@ -27,7 +25,7 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
 }
 
 // DataIO_Std::WriteNameToBuffer()
-void DataIO_Std::WriteNameToBuffer(CharBuffer& cbuffer, DataSet* DS, bool leftAlign) 
+void DataIO_Std::WriteNameToBuffer(DataSet* DS, bool leftAlign) 
 {
   std::string temp_name = DS->Legend();
   // If left aligning, add '#' to name; ensure that name will not be
@@ -42,12 +40,11 @@ void DataIO_Std::WriteNameToBuffer(CharBuffer& cbuffer, DataSet* DS, bool leftAl
   // Set up header format string
   std::string header_format;
   SetStringFormatString(header_format, width, leftAlign);
-  cbuffer.Sprintf(header_format.c_str(), temp_name.c_str());
+  Printf(header_format.c_str(), temp_name.c_str());
 }
 
 // DataIO_Std::WriteData()
 int DataIO_Std::WriteData(DataSetList &SetList) {
-  CharBuffer buffer;
   std::string x_header_fmt;
   DataSetList::const_iterator set;
 
@@ -72,31 +69,21 @@ int DataIO_Std::WriteData(DataSetList &SetList) {
       x_label_.insert(0,"#");
       x_label_.resize( xcol_width_, ' ');
       SetStringFormatString(x_header_fmt, xcol_width_, true);
-      buffer.Sprintf(x_header_fmt.c_str(), x_label_.c_str());
+      Printf(x_header_fmt.c_str(), x_label_.c_str());
     }
     // Write dataset names to header, left-aligning first set if no X-column
     set = SetList.begin();
     if (!hasXcolumn_)
-      WriteNameToBuffer( buffer, *set, true );
+      WriteNameToBuffer( *set, true );
     else
-      WriteNameToBuffer( buffer, *set, false );
+      WriteNameToBuffer( *set, false );
     ++set;
     for (; set != SetList.end(); ++set) 
-      WriteNameToBuffer( buffer, *set, false );
-    buffer.NewLine();
+      WriteNameToBuffer( *set, false );
+    Printf("\n"); 
   }
 
-  // Ensure buffer has enough space for all data in dataset list
-  // Each dataset takes up (maxFrames * (width + space + newline))
-  size_t total_datasize = 0;
-  for (set = SetList.begin(); set != SetList.end(); set++) 
-    total_datasize += (size_t)( maxFrames_ * ((*set)->Width() + 2) );
-  // If X-column present, xcol_width per frame
-  if (hasXcolumn_)
-    total_datasize += (maxFrames_ * xcol_width_);
-  buffer.Reallocate( total_datasize );
-
-  // Write Data to buffer
+  // Write Data
   for (int frame=0; frame < maxFrames_; frame++) {
     // If not printing empty frames, make sure that every set has data
     // at this frame.
@@ -113,38 +100,19 @@ int DataIO_Std::WriteData(DataSetList &SetList) {
     // Output Frame
     if (hasXcolumn_) {
       double xcoord = (xstep_ * (double)frame) + xmin_;
-      buffer.WriteDouble(x_format_.c_str(), xcoord);
+      Printf(x_format_.c_str(), xcoord);
     }
     for (set = SetList.begin(); set != SetList.end(); set++) 
-      (*set)->WriteBuffer(buffer,frame);
-    buffer.NewLine();
+      (*set)->WriteBuffer(*this,frame);
+    Printf("\n"); 
   }
-  //buffer.DumpBuffer();
-  // Write buffer to file
-  IO->Write(buffer.Buffer(),buffer.CurrentSize());
   return 0;
 }
 
 // DataIO_Std::WriteDataInverted()
 int DataIO_Std::WriteDataInverted(DataSetList &SetList) {
-  CharBuffer buffer;
   DataSetList::const_iterator set;
   std::string dset_name, x_header_fmt;
-
-  // Determine max output file size
-  // Each set is (number of frames * width) + newline))
-  size_t dataFileSize = 0;
-  for (set = SetList.begin(); set != SetList.end(); set++) {
-    dataFileSize += (size_t)((maxFrames_ * (*set)->Width()) + 1);
-    // Add the size of the dataset name, will be x column
-    dataFileSize += (size_t)(*set)->Width();
-    //dset_name.assign( (*set)->Name() );
-    //size_t dset_name_size = dset_name.size();
-    //if ((size_t)(*set)->Width() > dset_name_size)
-    //  dset_name_size = (*set)->Width();
-    //dataFileSize += dset_name_size;
-  } 
-  buffer.Allocate( dataFileSize );
 
   for (set = SetList.begin(); set != SetList.end(); set++) {
     // if specified check for empty frames in the set
@@ -159,19 +127,17 @@ int DataIO_Std::WriteDataInverted(DataSetList &SetList) {
       if (emptyFrames) continue;
     }
     // Write dataset name as first column.
-    WriteNameToBuffer(buffer, *set, false); 
+    WriteNameToBuffer( *set, false); 
     // Write each frame to subsequent columns
     for (int frame=0; frame<maxFrames_; frame++) 
-      (*set)->WriteBuffer(buffer,frame);
-    buffer.NewLine();
+      (*set)->WriteBuffer(*this,frame);
+    Printf("\n");
   }
-  IO->Write(buffer.Buffer(),buffer.CurrentSize());
   return 0;
 }
 
 int DataIO_Std::WriteData2D( DataSet& set ) {
   std::vector<int> dimensions; 
-  const char* headerfmt; 
 
   set.GetDimensions(dimensions);
   if (dimensions.size() != 2) {
@@ -185,18 +151,17 @@ int DataIO_Std::WriteData2D( DataSet& set ) {
     // Print XY values in a grid
     // x0y0 x0y1 x0y2
     // x1y0 x1y1 x1y2
+    std::string headerstring;
     if (writeHeader_) {
-      std::string headerstring;
       SetIntegerFormatString( headerstring, set.Width(), false);
-      headerfmt = headerstring.c_str();
       Printf("%-*s ",set.Width(), "#Frame");
       for (int iy = 0; iy < dimensions[1]; ++iy)
-        Printf(headerfmt, iy+OUTPUTFRAMESHIFT);
+        Printf(headerstring.c_str(), iy+OUTPUTFRAMESHIFT);
       Printf("\n");
     }
     for (int ix = 0; ix < dimensions[0]; ++ix) {
       if (writeHeader_)
-        Printf(headerfmt, ix+OUTPUTFRAMESHIFT);
+        Printf(headerstring.c_str(), ix+OUTPUTFRAMESHIFT);
       for (int iy = 0; iy < dimensions[1]; ++iy) {
         set.Write2D( *this, ix, iy);
       }

@@ -19,7 +19,7 @@ class Histogram : public DataSet {
 
     int Xmax() { return dimensions_[0].Bins()-1; }
     int Size() { return (int)Bins_.size(); }
-    void WriteBuffer(CharBuffer &, int);
+    void WriteBuffer(CpptrajFile &, int);
     void Write2D(CpptrajFile&, int, int);
     void GetDimensions(std::vector<int>&);
 

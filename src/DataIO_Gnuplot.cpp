@@ -31,7 +31,7 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
 
 // DataIO_Gnuplot::Pm3d()
 /** Set up command for gnuplot pm3d */
-std::string DataIO_Gnuplot::Pm3d( ) {
+std::string DataIO_Gnuplot::Pm3d() {
   // PM3D command
   std::string pm3d_cmd = "with pm3d";
   switch (pm3d_) {
@@ -91,7 +91,6 @@ void DataIO_Gnuplot::JpegOut(int xsize, int ysize) {
   * done. Could be added back in later as an option.
   */
 int DataIO_Gnuplot::WriteData(DataSetList &SetList) {
-  CharBuffer buffer;
   DataSetList::const_iterator set;
   double xcoord, ycoord;
 
@@ -140,23 +139,6 @@ int DataIO_Gnuplot::WriteData(DataSetList &SetList) {
 
   WriteRangeAndHeader(xcoord, ycoord, pm3d_cmd);
 
-  // Allocate space for data.
-  // Each frame: (Nset * ((XY + setwidth + 1) [+ (XY + 2)]:!useMap) + 1 (newline)
-  size_t dataFileSize = 0;
-  for (set=SetList.begin(); set !=SetList.end(); set++) {
-    size_t dataSetSize = (xcol_width_ + xcol_width_ + 3 + (*set)->Width());
-    if (!useMap_)
-      dataSetSize += (xcol_width_ + xcol_width_ + 4);
-    ++dataSetSize; // Newline
-    dataFileSize += ((dataSetSize * maxFrames_) + 1);
-  }
-  // If !useMap, += ((Nset * (XY + 2) + 1)
-  if (!useMap_)
-    dataFileSize += ((SetList.size() * (xcol_width_ + xcol_width_ + 4))+1);
-  // + 1 (terminal newline)
-  ++dataFileSize;
-  buffer.Allocate( dataFileSize );
-
   // Data
   int frame = 0;
   for (; frame < maxFrames_; frame++) {
@@ -164,33 +146,29 @@ int DataIO_Gnuplot::WriteData(DataSetList &SetList) {
     int setnum = 0;
     for (set=SetList.begin(); set !=SetList.end(); set++) {
       ycoord = (ystep_ * setnum) + ymin_;
-      buffer.WriteXY(xy_format, xcoord, ycoord);
-      (*set)->WriteBuffer(buffer,frame);
-      buffer.NewLine();
+      Printf( xy_format, xcoord, ycoord );
+      (*set)->WriteBuffer( *this, frame );
+      Printf("\n");
       ++setnum;
     }
     if (!useMap_) {
       // Print one empty row for gnuplot pm3d without map
       ycoord = (ystep_ * setnum) + ymin_;
-      buffer.WriteXY(xy_format, xcoord, ycoord);
-      buffer.WriteInteger("%1i",0);
-      buffer.NewLine();
+      Printf(xy_format,xcoord,ycoord);
+      Printf("0\n");
     }
-    buffer.NewLine();
+    Printf("\n");
   }
   if (!useMap_) {
     // Print one empty set for gnuplot pm3d without map
     xcoord = (xstep_ * frame) + xmin_;
     for (int blankset=0; blankset <= (int)SetList.size(); blankset++) {
       ycoord = (ystep_ * blankset) + ymin_;
-      buffer.WriteXY(xy_format, xcoord, ycoord);
-      buffer.WriteInteger("%1i",0);
-      buffer.NewLine();
+      Printf(xy_format,xcoord,ycoord);
+      Printf("0\n");
     }
-    buffer.NewLine();
+    Printf("\n");
   }
-  // Write buffer
-  IO->Write(buffer.Buffer(),buffer.CurrentSize());
   // End and Pause command
   Finish();
   return 0;

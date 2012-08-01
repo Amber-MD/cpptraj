@@ -2,7 +2,6 @@
 #define INC_DATASET_H
 #include <string>
 #include <vector>
-#include "CharBuffer.h"
 #include "CpptrajFile.h"
 // Class: DataSet
 /// Base class that all DataSet types will inherit.
@@ -60,8 +59,8 @@ class DataSet {
       * consecutive however). 
       */
     virtual void Add( int, void * ) { return;   }
-    /// Write data at frame to character buffer
-    virtual void WriteBuffer(CharBuffer&,int) { return;   }
+    /// Write data at frame to file 
+    virtual void WriteBuffer(CpptrajFile&,int) { return;   }
     /// Write 2D data to file
     virtual void Write2D(CpptrajFile&,int,int) { return; }
     /// Return size of all dimensions

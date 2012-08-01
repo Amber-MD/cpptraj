@@ -65,14 +65,14 @@ int DataSet_string::FrameIsEmpty(int frame) {
 // DataSet_string::WriteBuffer()
 /** Write data at frame to CharBuffer. If no data for frame write NoData..
   */
-void DataSet_string::WriteBuffer(CharBuffer &cbuffer, int frame) {
+void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, int frame) {
   while ( frame_ != Frames_.end() && frame > *frame_ )
     ++frame_;
 
   if (frame_ == Frames_.end() || frame != *frame_)
-    cbuffer.WriteString(data_format_,"NoData");
+    cbuffer.Printf(data_format_,"NoData");
   else {
-    cbuffer.WriteString(data_format_, (*datum_).c_str());
+    cbuffer.Printf(data_format_, (*datum_).c_str());
     ++datum_;
     ++frame_;
   }

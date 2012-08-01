@@ -81,21 +81,17 @@ int DataSet_integer::FrameIsEmpty(int frame) {
 // DataSet_integer::WriteBuffer()
 /** Write data at frame to CharBuffer. If no data for frame write 0.0.
   */
-void DataSet_integer::WriteBuffer(CharBuffer &cbuffer, int frame) {
-  int dval;
-
+void DataSet_integer::WriteBuffer(CpptrajFile &cbuffer, int frame) {
   while ( frame_ != Frames_.end() && frame > *frame_ ) 
     ++frame_;
 
   if (frame_ == Frames_.end() || frame != *frame_)
-    dval = 0;
+    cbuffer.Printf(data_format_, 0);
   else {
-    dval = *datum_;
+    cbuffer.Printf(data_format_, *datum_);
     ++datum_;
     ++frame_;
   }
-
-  cbuffer.WriteInteger(data_format_, dval);
 }
 
 // DataSet_integer::Sync()
