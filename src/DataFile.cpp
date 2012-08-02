@@ -36,12 +36,11 @@ int DataFile::SetupDatafile(const char* fnameIn) {
   int err = basicData.SetupWrite(fnameIn,debug_);
   if (err!=0) return 1;
   // Determine data format from extension 
-  std::string data_extension = basicData.Extension();
-  if (data_extension==".agr")
+  if (basicData.Extension()==".agr")
     dataType_ = XMGRACE;
-  else if (data_extension==".gnu")
+  else if (basicData.Extension()==".gnu")
     dataType_ = GNUPLOT;
-  else if (data_extension==".dat")
+  else if (basicData.Extension()==".dat")
     dataType_ = DATAFILE;
   // Set up DataIO based on format. 
   switch (dataType_) {

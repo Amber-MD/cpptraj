@@ -38,7 +38,7 @@ class CpptrajFile {
     /// Return the file name without the path
     const char *BaseName();
     /// Return the file extension
-    std::string Extension();
+    std::string const& Extension() { return Ext_; }
     /// Return true if the file contains carriage returns in addition to newlines
     bool IsDos();
     /// Return true if the file is compressed.

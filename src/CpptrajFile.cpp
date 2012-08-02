@@ -131,11 +131,6 @@ const char *CpptrajFile::BaseName() {
   return basefilename_.c_str();
 }
 
-// CpptrajFile::Extension()
-std::string CpptrajFile::Extension() {
-  return Ext_;
-}
-
 // CpptrajFile::IsDos()
 bool CpptrajFile::IsDos() {
   if (isDos_==1) return true;
