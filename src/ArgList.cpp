@@ -82,8 +82,12 @@ int ArgList::SetList(const char *inputString, const char *separator) {
   if (inputString==NULL || separator==NULL) return 1;
   // Copy inputString to temp since it is destroyed by tokenize,
   // this allows const strings to be passed in.
-  char *tempString = new char[strlen(inputString)+1];
+  size_t inputStringSize = strlen(inputString);
+  char *tempString = new char[ inputStringSize+1 ];
   strcpy(tempString,inputString);
+  // Remove newline char from tempString if present
+  if ( tempString[ inputStringSize - 1 ] == '\n' )
+    tempString[ inputStringSize - 1 ] = '\0';
   
   // Free existing arglist
   arglist.clear();
