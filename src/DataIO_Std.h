@@ -7,6 +7,7 @@ class DataIO_Std : public DataIO {
   public:
     DataIO_Std();
 
+    int ReadData(DataSetList&);
     int processWriteArgs(ArgList &);
     int WriteData(DataSetList&);
     int WriteDataInverted(DataSetList&);

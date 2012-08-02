@@ -1,4 +1,3 @@
-#include <sstream>
 #ifdef DATAFILE_TIME
 #include <ctime>
 #endif
@@ -27,36 +26,66 @@ void DataFile::SetDebug(int debugIn) {
   debug_ = debugIn;
 }
 
-// DataFile::SetupDatafile()
-int DataFile::SetupDatafile(const char* fnameIn) {
-  DataIO basicData;
-
-  if (fnameIn==NULL) return 1;
-  // Open basic data file
-  int err = basicData.SetupWrite(fnameIn,debug_);
-  if (err!=0) return 1;
-  // Determine data format from extension 
-  if (basicData.Extension()==".agr")
+void DataFile::DetermineTypeFromExt( std::string const& Ext ) {
+  if (Ext==".agr")
     dataType_ = XMGRACE;
-  else if (basicData.Extension()==".gnu")
+  else if (Ext==".gnu")
     dataType_ = GNUPLOT;
-  else if (basicData.Extension()==".dat")
+  else if (Ext==".dat")
     dataType_ = DATAFILE;
-  // Set up DataIO based on format. 
+  else
+    dataType_ = DATAFILE;
+}
+
+int DataFile::SetupDataIO(DataIO& basicData) {
+  // Determine data format from extension 
+  DetermineTypeFromExt( basicData.Extension() );
+
+  if (dataio_!=NULL) delete dataio_;
   switch (dataType_) {
     case DATAFILE : dataio_ = new DataIO_Std(); break;
     case XMGRACE  : dataio_ = new DataIO_Grace(); break;
     case GNUPLOT  : dataio_ = new DataIO_Gnuplot(); break;
     default       : dataio_ = new DataIO_Std(); break;
   }
-  if (dataio_==NULL) return 1;
-
+  if (dataio_ == NULL) return 1;
   // Place the basic file in the data IO class
   dataio_->DataIO::operator=( basicData );
 
   // Set Debug
   dataio_->SetDebug( debug_ );
-  
+  return 0;
+}
+
+int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
+  DataIO basicData;
+
+  if (basicData.SetupRead(argIn.GetStringNext(), debug_)!=0) return 1;
+
+  // Set up DataIO based on format. 
+  if (SetupDataIO(basicData)) return 1;
+
+  if (dataio_->OpenFile()) return 1;
+  if ( dataio_->ReadData( datasetlist ) ) {
+    mprinterr("Error reading datafile %s\n", dataio_->Name());
+    return 1;
+  }
+  dataio_->CloseFile();
+
+  return 0;
+}
+
+// DataFile::SetupDatafile()
+int DataFile::SetupDatafile(const char* fnameIn) {
+  DataIO basicData;
+
+  if (fnameIn==NULL) return 1;
+  // Open basic data file
+  if (basicData.SetupWrite(fnameIn,debug_)!=0) return 1;
+
+  // Set up DataIO based on format. 
+  if (SetupDataIO(basicData)) return 1;
+
   return 0;
 }
 

@@ -144,6 +144,13 @@ void Cpptraj::Dispatch(char *inputLine) {
     return;
   }
 
+  // Check if we are reading sets from a datafile
+  if ( dispatchArg.CommandIs("readdata") ) {
+    DataFile dataIn;
+    dataIn.ReadData( dispatchArg, DSL );
+    return;
+  }
+
   // Check if command pertains to an action
   if ( actionList.AddAction(dispatchArg)==0 ) return;
 

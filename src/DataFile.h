@@ -14,6 +14,7 @@ class DataFile {
     ~DataFile();
 
     void SetDebug(int);
+    int ReadData(ArgList&, DataSetList&);
     int SetupDatafile(const char*);
     int AddSet(DataSet*);
     int ProcessArgs(ArgList&);
@@ -30,5 +31,8 @@ class DataFile {
     bool isInverted_;
     DataSetList SetList_; 
     DataIO *dataio_;
+
+    void DetermineTypeFromExt( std::string const& );
+    int SetupDataIO(DataIO&);
 };
 #endif

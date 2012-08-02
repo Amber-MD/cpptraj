@@ -1,3 +1,4 @@
+#include <locale>
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" // SetStringFormatString
 
@@ -8,6 +9,126 @@ DataIO_Std::DataIO_Std() :
   ymin_(1),
   ystep_(1)
 {}
+
+int DataIO_Std::ReadData(DataSetList& datasetlist) {
+  char buffer[1024];
+  ArgList labels;
+  std::locale loc;
+  bool hasLabels = false;
+  std::vector<DataSet*> DsetList;
+  int indexcol = -1;
+  DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
+
+  // Read the first line. Attempt to determine the number of columns
+  if (IO->Gets( buffer, 1024 )) return 1;
+  ArgList dataline( buffer, " ,\t" ); // whitespace, comma, or tab-delimited
+  mprintf("\tDataFile %s has %i columns.\n",Name(),dataline.Nargs());
+  if ( dataline.Nargs() == 0 ) return 1;
+
+  // If first line begins with a '#', assume it contains labels
+  if (buffer[0]=='#') {
+    labels.SetList(buffer+1, " ,\t" );
+    hasLabels = true;
+    mprintf("\tDataFile contains labels:\n");
+    labels.PrintList();
+    // If label is Frame assume it is the index column
+    if (labels[0] == "Frame") 
+      indexcol = 0;
+    // Read in next non # line, should be data.
+    while (buffer[0] == '#') {
+      if (IO->Gets( buffer, 1024 )) return 1;
+    }
+    dataline.SetList( buffer, " ,\t" );
+  }
+
+  // DEBUG
+  for (int col = 0; col < dataline.Nargs(); ++col) {
+    mprintf("\t\tFirst Data in col %i = %s", col+1, dataline[col].c_str());
+    if (col == indexcol)
+      mprintf(" INDEX");
+    // Determine data type
+    DataSet* dset = NULL;
+    if ( isalpha( dataline[col][0], loc ) ) 
+    {
+      mprintf(" STRING!\n");
+      // STRING columns cannot be index columns
+      if ( col == indexcol ) {
+        mprinterr("Error: DataFile %s index column %i has string values.\n", 
+                  Name(), indexcol+1);
+        return 1;
+      }
+      dset = datasetlist.AddSetIdx( DataSet::STRING, BaseFileName(), col );
+    } else if ( isdigit( dataline[col][0], loc) || 
+                dataline[col][0]=='+' || 
+                dataline[col][0]=='-' )
+    {
+      if (dataline[col].find_first_of(".") != std::string::npos ) {
+        mprintf(" DOUBLE!\n");
+        if ( col != indexcol )
+          dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), col );
+        else
+          indextype = DataSet::DOUBLE;
+      } else {
+        mprintf(" INTEGER!\n");
+        if (col != indexcol)
+          dset = datasetlist.AddSetIdx( DataSet::INT, BaseFileName(), col );
+        else
+          indextype = DataSet::INT;
+      }
+    }
+    // Set legend to label if present
+    if ( dset != NULL && hasLabels)
+      dset->SetLegend( labels[col] );
+
+    if ( col != indexcol && dset == NULL ) {
+      mprinterr("Error: DataFile %s: Could not identify column %i\n", Name(), col+1);
+      return 1;
+    }
+    DsetList.push_back( dset );
+  }
+
+  bool dataloop = true;
+  int ival = 0;
+  double dval = 0;
+  int indexval = -1; // So that when no index col first val incremented to 0
+  while (dataloop) {
+    // Deal with index.
+    if (indexcol != -1) {
+      switch ( indextype ) {
+        case DataSet::INT   : indexval = convertToInteger( dataline[indexcol] ); break;
+        case DataSet::DOUBLE: indexval = (int)convertToDouble( dataline[indexcol] ); break;
+        default: return 1;
+      }
+      // FIXME: Subtracting 1 since everything should go from 0
+      --indexval;
+    } else {
+      ++indexval;
+    }
+    // Convert data in columns
+    for (int i = 0; i < dataline.Nargs(); ++i) {
+      if (DsetList[i] == NULL) continue;
+      switch ( DsetList[i]->Type() ) {
+        case DataSet::INT: 
+          ival = convertToInteger( dataline[i] ); 
+          DsetList[i]->Add( indexval, &ival );
+          break;
+        case DataSet::DOUBLE: 
+          dval = convertToDouble( dataline[i] ); 
+          DsetList[i]->Add( indexval, &dval );
+          break;
+        case DataSet::STRING: 
+          DsetList[i]->Add( indexval, (char*)dataline[i].c_str() );
+          break;
+        default: continue; 
+      }
+    }
+    dataloop = (IO->Gets(buffer, 1024)==0);
+    dataline.SetList(buffer, " ,\t");
+  }
+        
+
+  return 0;
+}
 
 // DataIO_Std::processWriteArgs()
 int DataIO_Std::processWriteArgs(ArgList &argIn) {
