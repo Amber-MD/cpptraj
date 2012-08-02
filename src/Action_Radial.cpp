@@ -286,7 +286,6 @@ int Radial::action() {
 void Radial::print() {
   DataFile *outfile;
   DataSet *Dset;
-  std::string xlabel;
   double N, R, Rdr, dv, norm;
  
   if (numFrames==0) return;
@@ -352,10 +351,11 @@ void Radial::print() {
 
     Dset->Add(bin,&N);
   }
-  // Setup output datafile. Create label from mask strings
-  xlabel = '[' + Mask1.MaskExpression() + "] => [" + Mask2.MaskExpression() + ']';
-  outfile->SetCoordMinStep(0.0,spacing,0,-1);
-  outfile->SetXlabel((char*)xlabel.c_str());
+  // Setup output datafile.
+  outfile->ProcessArgs("xmin 0.0 xstep " + doubleToString(spacing));
+  // Create label from mask strings. Enclose in quotes so the label is 1 arg.
+  outfile->ProcessArgs("xlabel \"[" + Mask1.MaskExpression() + "] => [" + 
+                                      Mask2.MaskExpression() + "]\"" );
   outfile->ProcessArgs("ylabel g(r)");
 }
 

@@ -252,9 +252,9 @@ void Analysis_Hist::Print(DataFileList *datafilelist) {
       mprinterr("Error creating 1D histogram output for file %s\n",outfilename_);
       return;
     }
-    outfile->SetXlabel( (*hist_)[0].c_str() );
-    outfile->ProcessArgs("ylabel Count");
-    outfile->SetCoordMinStep( (*hist_)[0].Min(), (*hist_)[0].Step(), -1, -1);
+    outfile->ProcessArgs("xlabel " + (*hist_)[0].Label() + " ylabel Count" +
+                         " xmin "  + doubleToString( (*hist_)[0].Min()  ) +
+                         " xstep " + doubleToString( (*hist_)[0].Step() )  );
 
   } else if (hist_->NumDimension() == 2 && !gnuplot_ && !circular_) {
     outfile = datafilelist->Add( outfilename_, hist_ );
@@ -262,13 +262,13 @@ void Analysis_Hist::Print(DataFileList *datafilelist) {
       mprinterr("Error creating 2D histogram output for file %s\n", outfilename_);
       return;
     }
-    outfile->SetXlabel( (*hist_)[0].c_str() );
-    outfile->SetYlabel( (*hist_)[1].c_str() );
-    outfile->SetCoordMinStep((*hist_)[0].Min(), (*hist_)[0].Step(), 
-                             (*hist_)[1].Min(), (*hist_)[1].Step());
-    outfile->ProcessArgs("noxcol");
-    outfile->ProcessArgs("usemap");
-    outfile->ProcessArgs("nolabels");
+    outfile->ProcessArgs("xlabel "  + (*hist_)[0].Label() +
+                         " ylabel " + (*hist_)[1].Label() +
+                         " xmin "   + doubleToString( (*hist_)[0].Min()  ) +
+                         " xstep " + doubleToString( (*hist_)[0].Step() ) +
+                         " ymin "  + doubleToString( (*hist_)[1].Min()  ) +
+                         " ystep " + doubleToString( (*hist_)[1].Step() ) +
+                         "noxcol usemap nolabels");
   } else {
     // If > two dimensions, create 1 coord dataset for each dimension plus
     // 1 dataset to hold bin counts.

@@ -18,9 +18,7 @@ class DataFile {
     int AddSet(DataSet*);
     int ProcessArgs(ArgList&);
     int ProcessArgs(const char*);
-    void SetXlabel(const char*);
-    void SetYlabel(const char*);
-    void SetCoordMinStep(double,double,double,double);
+    int ProcessArgs(std::string const&);
     void Write();
 
     void SetPrecision(char *, int, int);

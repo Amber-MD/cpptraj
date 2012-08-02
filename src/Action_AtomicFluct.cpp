@@ -159,7 +159,7 @@ void Action_AtomicFluct::print() {
   if (bfactor_) {
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
-    outfile->SetYlabel( "B-factors" );
+    outfile->ProcessArgs( "ylabel B-factors" );
     double bfac = (8.0/3.0)*PI*PI;
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
       double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
@@ -180,7 +180,7 @@ void Action_AtomicFluct::print() {
   switch (outtype_) {
     // By atom output
     case BYATOM:
-      outfile->SetXlabel("Atom");
+      outfile->ProcessArgs("xlabel Atom");
       for (atom = 0; atom < (int)Results.size(); atom++ ) {
         if (Mask.AtomInCharMask(atom)) 
           dataout->Add( atom, &(Results[atom]) );
@@ -188,7 +188,7 @@ void Action_AtomicFluct::print() {
       break;
     // By residue output
     case BYRES:
-      outfile->SetXlabel("Res");
+      outfile->ProcessArgs("xlabel Res");
       for (res = 0; res < fluctParm_->Nres(); res++) {
         xi = 0;
         fluct = 0;
@@ -208,7 +208,7 @@ void Action_AtomicFluct::print() {
       break;
     // By mask output
     case BYMASK:
-      outfile->SetXlabel( Mask.MaskString() );
+      outfile->ProcessArgs( "xlabel " + Mask.MaskExpression() );
       xi = 0;
       fluct = 0;
       for (atom = 0; atom < (int)Results.size(); atom++) {

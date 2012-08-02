@@ -87,36 +87,15 @@ int DataFile::ProcessArgs(ArgList &argIn) {
 
 // DataFile::ProcessArgs()
 int DataFile::ProcessArgs(const char *argsIn) {
-  ArgList args(argsIn, " ");
+  ArgList args(argsIn);
   return ProcessArgs(args);
 }
 
-// DataFile::SetXlabel()
-void DataFile::SetXlabel(const char *xlabel) {
-  ArgList args;
-  args.AddArg("xlabel");
-  args.AddArg(xlabel);
-  ProcessArgs(args);
-}
-
-// DataFile::SetYlabel()
-void DataFile::SetYlabel(const char *ylabel) {
-  ArgList args;
-  args.AddArg("ylabel");
-  args.AddArg(ylabel);
-  ProcessArgs(args);
-}
-
-// DataFile::SetCoordMinStep()
-void DataFile::SetCoordMinStep(double xminIn, double xstepIn,
-                               double yminIn, double ystepIn)
-{
-  std::ostringstream oss;
-  ArgList args;
-  oss << "xmin " << xminIn << " xstep " << xstepIn;
-  oss << " ymin " << yminIn << " ystep " << ystepIn;
-  args.SetList((char*)oss.str().c_str(), " ");
-  ProcessArgs(args);
+// DataFile::ProcessArgs()
+int DataFile::ProcessArgs(std::string const& argsIn) {
+  if (argsIn.empty()) return 1;
+  ArgList args(argsIn.c_str());
+  return ProcessArgs(args);
 }
 
 // DataFile::Write()

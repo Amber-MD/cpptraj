@@ -16,6 +16,7 @@ class Dimension {
     void SetOffset(int);
 
     const char* c_str() { return label_.c_str(); }
+    std::string const& Label() { return label_; }
     double Min() { return min_; }
     double Max() { return max_; }
     double Step() { return step_; }
