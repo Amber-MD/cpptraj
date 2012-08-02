@@ -7,6 +7,7 @@ class DataIO_Grace : public DataIO {
   public:
     DataIO_Grace();
 
+    int ReadData(DataSetList&);
     int processWriteArgs(ArgList &);
     int WriteData(DataSetList&);
     int WriteDataInverted(DataSetList&);
