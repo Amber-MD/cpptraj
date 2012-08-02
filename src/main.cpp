@@ -9,8 +9,8 @@
 #include <cstdio>
 #include <cstdlib> // atoi
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V13.4b"
-#define CPPTRAJ_INTERNAL_VERSION "V3.3.0b"
+#define CPPTRAJ_VERSION_STRING "V13.5b"
+#define CPPTRAJ_INTERNAL_VERSION "V3.3.1b"
 #endif
 
 // Usage()
