@@ -1,48 +1,80 @@
+#include <cstdio> // sscanf
 #include "DataIO_Grace.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataIO_Grace::DataIO_Grace() {
-  ymin_ = 1;
-  ystep_ = 1;
+DataIO_Grace::DataIO_Grace() :
+  ymin_(1),
+  ystep_(1),
+  readbuffer_(0)
+{}
+
+DataIO_Grace::~DataIO_Grace() {
+  if (readbuffer_!=0) delete[] readbuffer_;
 }
 
 // Dont assume anything about set ordering
 int DataIO_Grace::ReadData(DataSetList& datasetlist) {
   ArgList dataline;
-  char buffer[1024];
+  char linebuffer[1024];
+  const char* endlinebuffer = linebuffer + 1024;
   int setnum = 0;
+  int frame = 0;
   DataSet *dset = NULL;
   std::vector<DataSet*> Dsets;
   std::vector<std::string> labels;
+  double dval;
+  
+  // Allocate and set up read buffer
+  const size_t chunksize = 16384;
+  readbuffer_ = new char[ chunksize ];
+  char* endbuffer = readbuffer_ + chunksize;
+  char* lineptr = linebuffer;
 
-  while ( IO->Gets(buffer, 1024) == 0 ) {
-    if ( buffer[0] == '@' ) { // FIXME: Dont assume it is the first char
-      // Create command line without the @
-      dataline.SetList(buffer+1, " \t");
-      if ( dataline[1] == "legend" ) {
-        labels.push_back( dataline[2] );
-      } else if (dataline[0] == "target") {
-        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), setnum++);
-        if (dset == NULL) {
-          mprinterr("Error: %s: Could not allocate data set.\n", Name());
-          return 1;
+  // Read chunks from file
+  while (IO->Read(readbuffer_, chunksize) > 0) {
+    char* ptr = readbuffer_;
+    // Get lines from chunk
+    while ( ptr < endbuffer && lineptr < endlinebuffer ) {
+      *lineptr = *ptr;
+      ++lineptr;
+      if (*ptr == '\n') {
+        // Newline encountered. Process it
+        *lineptr = '\0';
+        if (linebuffer[0] == '@') {
+          // Command: create command line without the @
+          dataline.SetList(linebuffer+1, " \t");
+          if ( !dataline.CommandIs("legend") && dataline.Contains("legend") ) {
+            // Legend keyword that does not come first.
+            labels.push_back( dataline.GetStringKey("legend") );
+          } else if (dataline.CommandIs("target")) {
+            // Indicates dataset will be read soon. Allocate new set.
+            dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), setnum++);
+            if (dset == NULL) {
+              mprinterr("Error: %s: Could not allocate data set.\n", Name());
+              return 1;
+            }
+            Dsets.push_back( dset );
+            frame = 0;
+          }
+        } else {
+          // Data
+          if (dset==NULL) {
+            mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", Name());
+            return 1;
+          }
+          // FIXME: Ignoring frame for now
+          sscanf(linebuffer,"%*s %lf", &dval);
+          dset->Add( frame++, &dval );
         }
-        Dsets.push_back( dset );
+        // Reset line
+        lineptr = linebuffer;
       }
-    } else {
-      // Data
-      if (dset==NULL) {
-        mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", Name());
-        return 1;
-      }
-      dataline.SetList(buffer, " \t");
-      int frame = convertToInteger( dataline[0] );
-      double dval = convertToDouble( dataline[1] );
-      dset->Add( frame, &dval );
-    }
-  }
+      ++ptr;
+    } // END loop over chunk
+  } // END loop over file
 
+  // Set DataSet legends if specified
   if (!labels.empty()) {
     if (Dsets.size() == labels.size()) {
       mprintf("\tLabels:\n");

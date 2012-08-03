@@ -6,6 +6,7 @@
 class DataIO_Grace : public DataIO {
   public:
     DataIO_Grace();
+    ~DataIO_Grace();
 
     int ReadData(DataSetList&);
     int processWriteArgs(ArgList &);
@@ -14,6 +15,8 @@ class DataIO_Grace : public DataIO {
   private:
     std::string y_label_;
     double ymin_;
-    double ystep_; 
+    double ystep_;
+
+    char* readbuffer_; 
 };
 #endif
