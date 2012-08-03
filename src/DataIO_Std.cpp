@@ -17,7 +17,7 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
   bool hasLabels = false;
   std::vector<DataSet*> DsetList;
   int indexcol = -1;
-  DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
+  //DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
 
   // Read the first line. Attempt to determine the number of columns
   if (IO->Gets( buffer, 1024 )) return 1;
@@ -66,14 +66,14 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
         mprintf(" DOUBLE!\n");
         if ( col != indexcol )
           dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), col );
-        else
-          indextype = DataSet::DOUBLE;
+        //else
+        //  indextype = DataSet::DOUBLE;
       } else {
         mprintf(" INTEGER!\n");
         if (col != indexcol)
           dset = datasetlist.AddSetIdx( DataSet::INT, BaseFileName(), col );
-        else
-          indextype = DataSet::INT;
+        //else
+        //  indextype = DataSet::INT;
       }
     }
     // Set legend to label if present
@@ -90,10 +90,11 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
   bool dataloop = true;
   int ival = 0;
   double dval = 0;
+  // NOTE: Temporarily disabling index.
   int indexval = -1; // So that when no index col first val incremented to 0
   while (dataloop) {
     // Deal with index.
-    if (indexcol != -1) {
+/*    if (indexcol != -1) {
       switch ( indextype ) {
         case DataSet::INT   : indexval = convertToInteger( dataline[indexcol] ); break;
         case DataSet::DOUBLE: indexval = (int)convertToDouble( dataline[indexcol] ); break;
@@ -101,9 +102,9 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       }
       // FIXME: Subtracting 1 since everything should go from 0
       --indexval;
-    } else {
+    } else {*/
       ++indexval;
-    }
+//    }
     // Convert data in columns
     for (int i = 0; i < dataline.Nargs(); ++i) {
       if (DsetList[i] == NULL) continue;
@@ -125,7 +126,6 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
     dataloop = (IO->Gets(buffer, 1024)==0);
     dataline.SetList(buffer, " ,\t");
   }
-        
 
   return 0;
 }
