@@ -62,7 +62,8 @@ int Analysis_Lifetime::Analyze() {
     double sum = 0;
     int windowcount = 0;
     int frame = 0;
-    for (int i = 0; i < (*inSet)->Size(); ++i) {
+    int setSize = (*inSet)->Size();
+    for (int i = 0; i < setSize; ++i) {
       sum += (*inSet)->Dval(i);
       ++windowcount;
       if (windowcount == windowSize_) {
