@@ -126,11 +126,14 @@ int Analysis_Lifetime::Analyze() {
           favg = (float)sumLifetimes / (float)Nlifetimes;
         //mprintf("\t\t\t[%i]Max lifetime observed: %i frames\n", frame,maximumLifetimeCount);
         //mprintf("\t\t\t[%i]Avg lifetime: %f frames\n", frame, favg); 
-        for (int j = frame; j < frame+windowcount; ++j) {
+        /*for (int j = frame; j < frame+windowcount; ++j) {
           (*outSet)->Add( j, &fval );
           (*maxSet)->Add( j, &maximumLifetimeCount );
           (*avgSet)->Add( j, &favg );
-        }
+        }*/
+        (*outSet)->Add( frame, &fval );
+        (*maxSet)->Add( frame, &maximumLifetimeCount );
+        (*avgSet)->Add( frame, &favg );
         frame += windowcount;
         windowcount = 0;
         sum = 0;
@@ -168,6 +171,9 @@ int Analysis_Lifetime::Analyze() {
 
 void Analysis_Lifetime::Print(DataFileList* datafilelist) {
   if (!outfilename_.empty()) {
+    DataFile* outfile = NULL;
+    DataFile* maxfile = NULL;
+    DataFile* avgfile = NULL;
     std::string maxname = "max." + outfilename_;
     std::string avgname = "avg." + outfilename_;
     std::vector<DataSet*>::iterator maxSet = maxDsets_.begin();
@@ -175,12 +181,18 @@ void Analysis_Lifetime::Print(DataFileList* datafilelist) {
     for (std::vector<DataSet*>::iterator outSet = outputDsets_.begin();
                                          outSet != outputDsets_.end(); ++outSet)
     {
-      datafilelist->Add( outfilename_.c_str(), *outSet ); 
-      datafilelist->Add( maxname.c_str(), *maxSet );
-      datafilelist->Add( avgname.c_str(), *avgSet );
+      outfile = datafilelist->Add( outfilename_.c_str(), *outSet ); 
+      maxfile = datafilelist->Add( maxname.c_str(), *maxSet );
+      avgfile = datafilelist->Add( avgname.c_str(), *avgSet );
       ++maxSet;
       ++avgSet;
     }
+    if (outfile!=NULL)
+      outfile->ProcessArgs("noemptyframes");
+    if (maxfile!=NULL)
+      maxfile->ProcessArgs("noemptyframes");
+    if (avgfile!=NULL)
+      avgfile->ProcessArgs("noemptyframes");
   }
 }
 
