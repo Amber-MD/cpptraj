@@ -10,6 +10,7 @@ DataIO_Gnuplot::DataIO_Gnuplot() {
   printLabels_ = true;
   useMap_ = false;
   jpegout_ = false;
+  binary_ = false;
 }
 
 // DataIO_Gnuplot::processWriteArgs()
@@ -24,6 +25,7 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   if (argIn.hasKey("pm3d")) pm3d_ = ON;
   if (argIn.hasKey("nopm3d")) pm3d_ = OFF;
   if (argIn.hasKey("jpeg")) jpegout_ = true;
+  if (argIn.hasKey("binary")) binary_ = true;
 
   if (pm3d_ == MAP) useMap_ = true;
   return 0;
@@ -76,6 +78,62 @@ void DataIO_Gnuplot::JpegOut(int xsize, int ysize) {
   }
 }
 
+int DataIO_Gnuplot::WriteData(DataSetList &SetList) {
+  //mprintf("BINARY IS %i\n", (int)binary_);
+  if (binary_)
+    return WriteDataBinary( SetList );
+  else
+    return WriteDataAscii( SetList );
+}
+
+/** Format:
+  *   <N+1>  <y0>   <y1>   <y2>  ...  <yN>
+  *    <x0> <z0,0> <z0,1> <z0,2> ... <z0,N>
+  *    <x1> <z1,0> <z1,1> <z1,2> ... <z1,N>
+  *     :      :      :      :   ...    :
+  */
+int DataIO_Gnuplot::WriteDataBinary(DataSetList &SetList) {
+  DataSetList::const_iterator set;
+
+  int Ymax = SetList.size();
+  if (!useMap_)
+    ++Ymax;
+  float fvar = (float)Ymax;
+  mprintf("Ymax = %f\n",fvar);
+  IO->Write( &fvar, sizeof(float) );
+  for (int setnum = 0; setnum < Ymax; ++setnum) {
+    double ycoord = (ystep_ * (double)setnum) + ymin_;
+    fvar = (float)ycoord;
+    IO->Write( &fvar, sizeof(float) );
+  }
+  // Data
+  for (int frame = 0; frame < maxFrames_; frame++) {
+    double xcoord = (xstep_ * (double)frame) + xmin_;
+    fvar = (float)xcoord;
+    IO->Write( &fvar, sizeof(float) );
+    for (set=SetList.begin(); set !=SetList.end(); set++) {
+      fvar = (float)(*set)->Dval( frame );
+      IO->Write( &fvar, sizeof(float) );
+    }
+    if (!useMap_) {
+      // Print one empty row for gnuplot pm3d without map
+      fvar = 0;
+      IO->Write( &fvar, sizeof(float) );
+    }
+  }
+  if (!useMap_) {
+    // Print one empty set for gnuplot pm3d without map
+    double xcoord = (xstep_ * (double)maxFrames_) + xmin_;
+    fvar = (float)xcoord;
+    IO->Write( &fvar, sizeof(float) );
+    fvar = 0;
+    for (int blankset=0; blankset < Ymax; blankset++)
+      IO->Write( &fvar, sizeof(float) ); 
+  }
+
+  return 0;
+}
+
 // DataIO_Gnuplot::WriteData()
 /** Write each frame from all sets in blocks in the following format:
   *   Frame Set   Value
@@ -91,7 +149,7 @@ void DataIO_Gnuplot::JpegOut(int xsize, int ysize) {
   * However, in the interest of keeping data consistent, this is no longer
   * done. Could be added back in later as an option.
   */
-int DataIO_Gnuplot::WriteData(DataSetList &SetList) {
+int DataIO_Gnuplot::WriteDataAscii(DataSetList &SetList) {
   DataSetList::const_iterator set;
   double xcoord, ycoord;
 
@@ -143,6 +201,18 @@ int DataIO_Gnuplot::WriteData(DataSetList &SetList) {
   // Data
   int frame = 0;
   for (; frame < maxFrames_; frame++) {
+    // If not printing empty frames, make sure that every set has data
+    // at this frame.
+    if (!printEmptyFrames_) {
+      bool emptyFrames = false;
+      for (set = SetList.begin(); set != SetList.end(); set++) {
+        if ( (*set)->FrameIsEmpty(frame) ) {
+          emptyFrames = true;
+          break;
+        }
+      }
+      if (emptyFrames) continue;
+    }
     xcoord = (xstep_ * frame) + xmin_;
     int setnum = 0;
     for (set=SetList.begin(); set !=SetList.end(); set++) {

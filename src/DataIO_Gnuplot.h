@@ -21,10 +21,13 @@ class DataIO_Gnuplot : public DataIO {
     bool printLabels_; 
     bool useMap_;
     bool jpegout_;
+    bool binary_;
 
     std::string Pm3d();
     void WriteRangeAndHeader(double, double, std::string const&);
     void Finish();
     void JpegOut(int,int);
+    int WriteDataAscii(DataSetList&);
+    int WriteDataBinary(DataSetList&);
 };
 #endif
