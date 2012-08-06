@@ -71,7 +71,8 @@ void DataIO_Gnuplot::JpegOut(int xsize, int ysize) {
       sizearg = "768,768";
     // Create jpg filename
     std::string jpegname = FullPathName() + ".jpg";
-    Printf("set terminal jpeg size %s\nset output \"%s\"\n",sizearg.c_str(),jpegname.c_str());
+    Printf("set terminal jpeg size %s\nset output \"%s\"\n",
+                  sizearg.c_str(), jpegname.c_str());
   }
 }
 

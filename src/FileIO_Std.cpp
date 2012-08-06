@@ -63,10 +63,8 @@ int FileIO_Std::Write(void *buffer, size_t num_bytes) {
   //  fprintf(stdout,"Error: FileIO_Std::Write: Attempted to write to NULL file pointer.\n");
   //  return 1;
   //}
-  // DEBUG
-  //char *temp;
-  //temp=(char*) buffer;
-  //printf("Calling standard write(%i): [%s]\n",size * count,temp);
+  //fprintf(stderr,"DBG:Std:Write(Buf=%p, Size=%zu, File=%p\n",buffer,num_bytes,fp_);
+  //fprintf(stderr,"DBG:Std:Write[%s]\n",(char*)buffer);
 
   size_t numwrite = fwrite(buffer, 1, num_bytes, fp_);
   // NOTE: Check for errors here.
