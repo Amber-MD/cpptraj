@@ -44,10 +44,7 @@ class Action_Closest: public Action {
     /// Return true if the first molecule is closer than the second
     struct moldist_cmp {
       inline bool operator()(MolDist first, MolDist second) const {
-        if (first.D < second.D)
-          return true;
-        else
-          return false;
+        return (first.D < second.D);
       }
     };
     std::vector<MolDist> SolventMols_;
