@@ -26,6 +26,8 @@ class DataSetList {
     const_iterator end() const;
     /// Erase set from list
     void erase( const_iterator );
+    /// Sort DataSets in list.
+    void sort();
     /// True if no DataSets in list.
     bool empty()                  { return DataList_.empty();     }
     /// Return DataSet at didx.
@@ -86,5 +88,11 @@ class DataSetList {
     int maxFrames_;
     /// Used to iterate over vector datasets
     int vecidx_;
+
+    struct dsl_cmp {
+      inline bool operator()(DataSet* first, DataSet* second) const {
+        return *first < *second;
+      }
+    };
 };
 #endif

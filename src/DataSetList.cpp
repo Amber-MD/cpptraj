@@ -1,6 +1,7 @@
 // DataSetList
-#include <cstdio> // sprintf
+#include <cstdio> // sprintf FIXME: Get rid of
 #include <cstring>
+#include <algorithm> // sort
 // This also includes basic DataSet class and dataType
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
@@ -51,6 +52,11 @@ void DataSetList::erase( const_iterator posIn ) {
   std::vector<DataSet*>::iterator pos = DataList_.begin() + (posIn - DataList_.begin());  
   DataList_.erase( pos ); 
 } 
+
+// DataSetList::sort()
+void DataSetList::sort() {
+  std::sort( DataList_.begin(), DataList_.end(), dsl_cmp() );
+}
 
 // DataSetList::SetDebug()
 void DataSetList::SetDebug(int debugIn) {

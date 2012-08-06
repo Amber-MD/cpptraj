@@ -21,6 +21,8 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
     mprinterr("Error: lifetime: No data sets selected.\n");
     return 1;
   }
+  // Sort input datasets
+  inputDsets_.sort();
 
   // Create output datasets
   if ( windowSize_ != -1) {

@@ -126,7 +126,19 @@ class DataSet {
     /// Return scalar mode
     scalarMode ScalarMode()     { return scalarmode_; }
     /// Return scalar type
-    scalarType ScalarType()     { return scalartype_; } 
+    scalarType ScalarType()     { return scalartype_; }
+    /// Comparison for sorting, name/aspect/idx
+    bool operator<(const DataSet& rhs) {
+      if ( name_ == rhs.name_ ) {
+        if ( aspect_ == rhs.aspect_ ) {
+          return ( idx_ < rhs.idx_ );
+        } else {
+          return ( aspect_ < rhs.aspect_ );
+        }
+      } else {
+        return ( name_ < rhs.name_ );
+      }
+    }
   protected:
     std::string name_;         ///< Name of the DataSet
     int idx_;                  ///< DataSet index
