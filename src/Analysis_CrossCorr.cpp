@@ -34,8 +34,11 @@ int Analysis_CrossCorr::Analyze() {
 
   int Nsets = dsets_.size();
   mprintf("\tDataSet Legend:\n");
-  for (int i = 0; i < Nsets; ++i)
+  for (int i = 0; i < Nsets; ++i) {
     mprintf("\t\t%8i: %s\n", i+1, dsets_[i]->Legend().c_str());
+    //Xlabels_ += (dsets_[i]->Legend() + ",");
+    Ylabels_ += (dsets_[i]->Legend() + ",");
+  }
   int Nsets1 = Nsets - 1;
   tmatrix->Setup(Nsets);
   for (int i = 0; i < Nsets1; ++i) {
@@ -51,7 +54,12 @@ int Analysis_CrossCorr::Analyze() {
 }
 
 void Analysis_CrossCorr::Print( DataFileList* datafilelist ) {
-  if (!outfilename_.empty())
-    datafilelist->Add( outfilename_.c_str(), matrix_ );
+  if (!outfilename_.empty()) {
+    DataFile* DF = datafilelist->Add( outfilename_.c_str(), matrix_ );
+    if (DF != NULL) {
+      //DF->ProcessArgs("xlabels " + Xlabels_);
+      DF->ProcessArgs("ylabels " + Ylabels_);
+    }
+  }
 }
 

@@ -16,6 +16,9 @@ class DataIO_Gnuplot : public DataIO {
     double ymin_;
     double ystep_;
 
+    std::vector<std::string> Xlabels_;
+    std::vector<std::string> Ylabels_;
+
     enum PM3D_OPT { OFF = 0, ON, MAP, C2C };
     PM3D_OPT pm3d_;
     bool printLabels_; 
@@ -23,6 +26,7 @@ class DataIO_Gnuplot : public DataIO {
     bool jpegout_;
     bool binary_;
 
+    void LabelArg(std::vector<std::string>&, std::string const&);
     std::string Pm3d();
     void WriteRangeAndHeader(double, double, std::string const&);
     void Finish();

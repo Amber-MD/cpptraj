@@ -13,6 +13,15 @@ DataIO_Gnuplot::DataIO_Gnuplot() {
   binary_ = false;
 }
 
+void DataIO_Gnuplot::LabelArg( std::vector<std::string>& labels, std::string const& labelarg) 
+{
+  if (!labelarg.empty()) {
+    ArgList commasep( labelarg, "," );
+    for (int i = 0; i < commasep.Nargs(); ++i)
+      labels.push_back( commasep[i] );
+  }
+}
+
 // DataIO_Gnuplot::processWriteArgs()
 int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   char *ylabel = argIn.getKeyString("ylabel",NULL);
@@ -26,6 +35,10 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   if (argIn.hasKey("nopm3d")) pm3d_ = OFF;
   if (argIn.hasKey("jpeg")) jpegout_ = true;
   if (argIn.hasKey("binary")) binary_ = true;
+
+  // Label arguments
+  LabelArg( Xlabels_, argIn.GetStringKey( "xlabels" ) );
+  LabelArg( Ylabels_, argIn.GetStringKey( "ylabels" ) );
 
   if (pm3d_ == MAP) useMap_ = true;
   return 0;
@@ -161,11 +174,11 @@ int DataIO_Gnuplot::WriteDataAscii(DataSetList &SetList) {
   // Turn off labels if number of sets is too large since they 
   // become unreadable. Should eventually have some sort of 
   // autotick option.
-  if (printLabels_ && SetList.size() > 30 ) {
+/*  if (printLabels_ && SetList.size() > 30 ) {
     mprintf("Warning: %s: gnuplot: number of sets (%i) > 30, turning off Y labels.\n",
             BaseName(), SetList.size());
     printLabels_ = false;
-  }
+  }*/
 
   // Check for JPEG output
   JpegOut( maxFrames_, (int)SetList.size() );
@@ -262,6 +275,29 @@ int DataIO_Gnuplot::WriteData2D( DataSet& set ) {
 
   // PM3D command
   std::string pm3d_cmd = Pm3d();
+
+  // Axes Data Labels
+  if (printLabels_) {
+    // Set up X and Y labels
+    if (!Ylabels_.empty()) {
+      Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
+      for (int iy = 0; iy < dimensions[1]; ++iy) {
+        if (iy>0) Printf(",");
+        double ycoord = (ystep_ * (double)iy) + ymin_;
+        Printf("\"%s\" %8.3f", Ylabels_[iy].c_str(), ycoord);
+      }
+      Printf(")\n");
+    }
+    if (!Xlabels_.empty()) { 
+      Printf("set xtics %8.3f,%8.3f\nset xtics(",xmin_,xstep_);
+      for (int ix = 0; ix < dimensions[0]; ++ix) {
+        if (ix>0) Printf(",");
+        double xcoord = (xstep_ * (double)ix) + xmin_;
+        Printf("\"%s\" %8.3f", Xlabels_[ix].c_str(), xcoord);
+      }
+      Printf(")\n");
+    }
+  }
 
   // Set axis label and range, write plot command
   // Make Yrange +1 and -1 so entire grid can be seen

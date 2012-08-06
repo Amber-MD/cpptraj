@@ -14,5 +14,7 @@ class Analysis_CrossCorr : public Analysis {
     std::string outfilename_;
     std::string setname_;
     DataSet* matrix_;
+    //std::string Xlabels_;
+    std::string Ylabels_;
 };
 #endif
