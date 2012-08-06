@@ -11,7 +11,10 @@ class Analysis_Lifetime : public Analysis {
   private:
     DataSetList inputDsets_;
     std::string outfilename_;
-    int windowSize_;
     std::vector<DataSet*> outputDsets_;
+    std::vector<DataSet*> maxDsets_;
+    std::vector<DataSet*> avgDsets_;
+    int windowSize_;
+    double cut_;
 };
 #endif
