@@ -267,6 +267,7 @@ int Cpptraj::Run() {
   actionList.Print( );
 
   // Print Dataset information
+  DSL.sort();
   mprintf("\nDATASETS:\n");
   DSL.Info();
 
