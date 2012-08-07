@@ -209,11 +209,11 @@ int Action_Rmsd::init( ) {
     if (!RefRange_.Empty())
       mprintf(" (reference residues %s)",RefRange_.RangeArg());
     mprintf(" using mask [:X%s].\n",perresmask_.c_str());
-    if (perresout_==NULL && perresavg_==NULL) {
+    /*if (perresout_==NULL && perresavg_==NULL) {
       mprinterr("Error: perres specified but no output filename given (perresout | perresavg).\n");
       perres_=false;
       return 1;
-    }
+    }*/
     if (perresout_!=NULL)
       mprintf("          Per-residue output file is %s\n",perresout_);
     if (perresavg_!=NULL)
@@ -290,7 +290,7 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
     DataSet* prDataSet = DSL->AddSetIdxAspect( DataSet::DOUBLE, rmsd_->Name(), tgtRes, "res");
     prDataSet->SetLegend( currentParm->ResNameNum(tgtRes-1) );
     PerResRMSD_.push_back( prDataSet );
-    if (prDataSet != NULL) DFL->Add(perresout_, prDataSet);
+    //if (prDataSet != NULL) DFL->Add(perresout_, prDataSet);
 
     // Setup mask strings. Note that masks are based off user residue nums
     std::string tgtArg = ":" + integerToString(tgtRes) + perresmask_;
@@ -331,12 +331,12 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
   }   
 
   // Check pointer to the output file
-  if (perresout_!=NULL) {
+  /*if (perresout_!=NULL) {
     if (DFL->GetDataFile(perresout_)==NULL) {
       mprinterr("Error: RMSD: Perres output file could not be set up.\n");
       return 1;
     }
-  }
+  }*/
 
   // Allocate memory for residue frame and residue reference frame. The size 
   // of each Frame is initially allocated to the maximum number of atoms.
@@ -464,34 +464,44 @@ void Action_Rmsd::print() {
 
   if (!perres_ || PerResRMSD_.empty()) return;
   // Per-residue output
-  outFile = DFL->GetDataFile(perresout_);
-  if (outFile!=NULL) {
-    // Set output file to be inverted if requested
-    if (perresinvert_) 
-      outFile->ProcessArgs("invert");
-    mprintf("    RMSD: Per-residue: Writing data for %zu residues to %s\n",
-            PerResRMSD_.size(), outFile->Filename());
+  if (perresout_ != NULL) {
+    // Add data sets to perresout
+    for (std::vector<DataSet*>::iterator set = PerResRMSD_.begin();
+                                         set != PerResRMSD_.end(); ++set)
+    {
+      outFile = DFL->Add(perresout_, *set);
+      if (outFile == NULL) 
+        mprinterr("Error adding set %s to file %s\n", (*set)->c_str(), perresout_);
+    }
+    if (outFile!=NULL) {
+      // Set output file to be inverted if requested
+      if (perresinvert_) 
+        outFile->ProcessArgs("invert");
+      mprintf("    RMSD: Per-residue: Writing data for %zu residues to %s\n",
+              PerResRMSD_.size(), outFile->Filename());
+    }
   }
 
   // Average
-  if (perresavg_==NULL) return;
-  int Nperres = (int)PerResRMSD_.size();
-  // Use the per residue rmsd dataset list to add one more for averaging
-  DataSet *PerResAvg = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Avg");
-  // another for stdev
-  DataSet *PerResStdev = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Stdev");
-  // Add the average and stdev datasets to the master datafile list
-  outFile = DFL->Add(perresavg_, PerResAvg);
-  outFile = DFL->Add(perresavg_, PerResStdev);
-  outFile->ProcessArgs("xlabel Residue");
-  // For each residue, get the average rmsd
-  double stdev = 0;
-  double avg = 0;
-  for (int pridx = 0; pridx < Nperres; pridx++) {
-    avg = PerResRMSD_[pridx]->Avg( &stdev );
-    int dsidx = PerResRMSD_[pridx]->Idx() - 1;
-    PerResAvg->Add(dsidx, &avg);
-    PerResStdev->Add(dsidx,&stdev);
+  if (perresavg_ != NULL) {
+    int Nperres = (int)PerResRMSD_.size();
+    // Use the per residue rmsd dataset list to add one more for averaging
+    DataSet *PerResAvg = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Avg");
+    // another for stdev
+    DataSet *PerResStdev = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Stdev");
+    // Add the average and stdev datasets to the master datafile list
+    outFile = DFL->Add(perresavg_, PerResAvg);
+    outFile = DFL->Add(perresavg_, PerResStdev);
+    outFile->ProcessArgs("xlabel Residue");
+    // For each residue, get the average rmsd
+    double stdev = 0;
+    double avg = 0;
+    for (int pridx = 0; pridx < Nperres; pridx++) {
+      avg = PerResRMSD_[pridx]->Avg( &stdev );
+      int dsidx = PerResRMSD_[pridx]->Idx() - 1;
+      PerResAvg->Add(dsidx, &avg);
+      PerResStdev->Add(dsidx,&stdev);
+    }
   }
 }
  
