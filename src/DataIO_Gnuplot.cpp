@@ -16,6 +16,7 @@ DataIO_Gnuplot::DataIO_Gnuplot() {
 void DataIO_Gnuplot::LabelArg( std::vector<std::string>& labels, std::string const& labelarg) 
 {
   if (!labelarg.empty()) {
+    mprinterr("DEBUG: label arg= %s\n", labelarg.c_str());
     ArgList commasep( labelarg, "," );
     for (int i = 0; i < commasep.Nargs(); ++i)
       labels.push_back( commasep[i] );
@@ -280,17 +281,23 @@ int DataIO_Gnuplot::WriteData2D( DataSet& set ) {
   if (printLabels_) {
     // Set up X and Y labels
     if (!Ylabels_.empty()) {
+      if ( (int)Ylabels_.size() != dimensions[1])
+        mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%i)\n",
+                Ylabels_.size(), dimensions[1]);
       Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
-      for (int iy = 0; iy < dimensions[1]; ++iy) {
+      for (int iy = 0; iy < (int)Ylabels_.size(); ++iy) {
         if (iy>0) Printf(",");
         double ycoord = (ystep_ * (double)iy) + ymin_;
         Printf("\"%s\" %8.3f", Ylabels_[iy].c_str(), ycoord);
       }
       Printf(")\n");
     }
-    if (!Xlabels_.empty()) { 
+    if (!Xlabels_.empty()) {
+      if ( (int)Xlabels_.size() != dimensions[0])
+        mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%i)\n",
+                Xlabels_.size(), dimensions[0]); 
       Printf("set xtics %8.3f,%8.3f\nset xtics(",xmin_,xstep_);
-      for (int ix = 0; ix < dimensions[0]; ++ix) {
+      for (int ix = 0; ix < (int)Xlabels_.size(); ++ix) {
         if (ix>0) Printf(",");
         double xcoord = (xstep_ * (double)ix) + xmin_;
         Printf("\"%s\" %8.3f", Xlabels_[ix].c_str(), xcoord);

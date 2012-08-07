@@ -147,7 +147,9 @@ void Cpptraj::Dispatch(char *inputLine) {
   // Check if we are reading sets from a datafile
   if ( dispatchArg.CommandIs("readdata") ) {
     DataFile dataIn;
-    dataIn.ReadData( dispatchArg, DSL );
+    if (dataIn.ReadData( dispatchArg, DSL )!=0) {
+      mprinterr("Error: Could not read data file.\n");
+    }
     return;
   }
 

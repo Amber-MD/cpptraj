@@ -34,11 +34,13 @@ int Analysis_CrossCorr::Analyze() {
 
   int Nsets = dsets_.size();
   mprintf("\tDataSet Legend:\n");
+  Ylabels_.assign("\"");
   for (int i = 0; i < Nsets; ++i) {
     mprintf("\t\t%8i: %s\n", i+1, dsets_[i]->Legend().c_str());
     //Xlabels_ += (dsets_[i]->Legend() + ",");
     Ylabels_ += (integerToString(i+1) + ":" + dsets_[i]->Legend() + ",");
   }
+  Ylabels_ += "\"";
   int Nsets1 = Nsets - 1;
   tmatrix->Setup(Nsets);
   for (int i = 0; i < Nsets1; ++i) {
