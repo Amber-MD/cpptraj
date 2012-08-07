@@ -618,15 +618,21 @@ void Action_Hbond::print() {
       if (outfile.OpenWrite( bridgeout_ )) return; 
     }
     outfile.Printf("#Bridging Solute Residues:\n");
+    // Place bridging values in a vector for sorting
+    std::vector<std::pair< std::set<int>, int> > bridgevector;
     for (BridgeType::iterator it = BridgeMap_.begin(); 
                               it != BridgeMap_.end(); ++it) 
+      bridgevector.push_back( *it );
+    std::sort( bridgevector.begin(), bridgevector.end(), bridge_cmp() );
+    for (std::vector<std::pair< std::set<int>, int> >::iterator bv = bridgevector.begin();
+                                                                bv != bridgevector.end(); ++bv)
     {
       outfile.Printf("Bridge Res");
-      for (std::set<int>::iterator res = (*it).first.begin();
-                                   res != (*it).first.end(); ++res)
+      for (std::set<int>::iterator res = (*bv).first.begin();
+                                   res != (*bv).first.end(); ++res)
         outfile.Printf(" %i:%s", *res+1, currentParm->Res( *res ).c_str());
-      outfile.Printf(", %i frames.\n", (*it).second);
-    }
+      outfile.Printf(", %i frames.\n", (*bv).second);
+    } 
     outfile.CloseFile();
   } 
 }

@@ -60,10 +60,11 @@ class Action_Hbond : public Action {
     DataSet* NumSolvent_;
     DataSet* NumBridge_; 
     /// Return true if the first hbond has more frames than the second.
-    /// If both have the same # of frames, pick something arbitrary just to
-    /// be sure that we have a well-defined ordering (otherwise we could get
-    /// spurious test failures) -- Order equivalent frames based on atom number
-    /// of Acceptor
+    /** If both have the same # of frames, pick something arbitrary just to
+      * be sure that we have a well-defined ordering (otherwise we could get
+      * spurious test failures) -- Order equivalent frames based on atom number
+      * of Acceptor.
+      */
     struct hbond_cmp {
       inline bool operator()(HbondType first, HbondType second) const {
         if (first.Frames > second.Frames)
@@ -72,6 +73,19 @@ class Action_Hbond : public Action {
           return false;
         else
           return (first.A < second.A);
+      }
+    };
+    /// Return true if first bridge has more frames than second.
+    struct bridge_cmp {
+      inline bool operator()(std::pair< std::set<int>, int> first, 
+                             std::pair< std::set<int>, int> second) const
+      {
+        if (first.second > second.second)
+          return true;
+        else if (first.second < second.second)
+          return false;
+        else
+          return (first.second < second.second);
       }
     };
 
