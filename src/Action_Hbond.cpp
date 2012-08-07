@@ -524,6 +524,7 @@ void Action_Hbond::print() {
   std::string Aname, Hname, Dname;
   CpptrajFile outfile;
 
+  if (currentParm == NULL) return;
   // Calculate necessary column width for strings based on how many residues.
   // ResName+'_'+ResNum+'@'+AtomName | NUM = 4+1+R+1+4 = R+10
   int NUM = DigitWidth( currentParm->Nres() ) + 10;
