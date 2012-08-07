@@ -24,7 +24,7 @@ void Cpptraj::SetGlobalDebug(int debugIn) {
 }
 
 /// Used to add parm files from the command line.
-void Cpptraj::AddParm(char *parmfile) {
+void Cpptraj::AddParm(const char* parmfile) {
   if (parmfile==NULL) return;
   parmFileList.AddParmFile( parmfile );
 }
@@ -36,7 +36,7 @@ void Cpptraj::AddParm(char *parmfile) {
  * \param inputLine NULL-terminated string consisting of commands and arguments.
  */
 // NOTE: Should differentiate between keyword rejection and outright error.
-void Cpptraj::Dispatch(char *inputLine) {
+void Cpptraj::Dispatch(const char* inputLine) {
   ArgList dispatchArg;
   Topology *tempParm; // For coordinate lists
 

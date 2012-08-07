@@ -139,7 +139,7 @@ int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
   }
 
   frames_.push_back( CurrentFrame );
-  AddNames( traj.TrajName(), traj.c_str(), reftag );
+  AddNameWithTag( traj.TrajName(), traj.FileName(), reftag );
   nums_.push_back( traj.Start() );
   parms_.push_back( CurrentParm );
   return 0;

@@ -233,17 +233,18 @@ Topology *TopologyList::GetParm(ArgList &argIn) {
 
 // TopologyList::AddParmFile()
 /** Add a parameter file to the parm file list. */
-int TopologyList::AddParmFile(char *filename) {
+int TopologyList::AddParmFile(std::string const& filename) {
   std::string emptystring;
   return AddParmFile(filename, emptystring);
 }
 
 // TopologyList::AddParmFile()
 /** Add a parameter file to the parm file list with optional tag. */
-int TopologyList::AddParmFile(char *filename, std::string &ParmTag) {
+int TopologyList::AddParmFile(std::string const& filename, std::string const& ParmTag) 
+{
   // Dont let a list that has copies add a new file
   if (hasCopies_) {
-    mprintf("    Warning: Attempting to add parm %s to a list that already\n",filename);
+    mprintf("    Warning: Attempting to add parm %s to a list that already\n",filename.c_str());
     mprintf("             has copies of parm files. This should not occur.\n");
     mprintf("             Skipping.\n");
     return 0;
@@ -251,7 +252,7 @@ int TopologyList::AddParmFile(char *filename, std::string &ParmTag) {
 
   // Check if this file has already been loaded
   if (FindName(filename)!=-1) {
-    mprintf("    Warning: Parm %s already loaded, skipping.\n",filename);
+    mprintf("    Warning: Parm %s already loaded, skipping.\n",filename.c_str());
     return 1;
   }
 
@@ -265,19 +266,19 @@ int TopologyList::AddParmFile(char *filename, std::string &ParmTag) {
   parm->SetDebug( debug_ );
   ParmFile pfile;
   pfile.SetDebug( debug_ );
-  int err = pfile.Read(*parm, filename, bondsearch_, molsearch_);
+  int err = pfile.Read(*parm, filename.c_str(), bondsearch_, molsearch_);
   if (err!=0) {
-    mprinterr("Error: Could not open parm %s\n",filename);
+    mprinterr("Error: Could not open parm %s\n",filename.c_str());
     delete parm;
     return 1;
   }
 
   // pindex is used for quick identification of the parm file
   if (debug_>0) 
-    mprintf("    PARAMETER FILE %zu: %s\n",TopList_.size(),filename);
+    mprintf("    PARAMETER FILE %zu: %s\n",TopList_.size(),filename.c_str());
   parm->SetPindex( TopList_.size() );
   TopList_.push_back(parm);
-  AddNames( filename, pfile.BaseName(), ParmTag);
+  AddNameWithTag( filename, pfile.BaseName(), ParmTag);
   return 0;
 }
 

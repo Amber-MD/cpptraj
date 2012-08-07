@@ -7,27 +7,14 @@ class FileList {
     FileList();
     virtual ~FileList();
 
-    inline void SetDebug(int dIn) {
-      debug_ = dIn;
-    }
+    inline void SetDebug(int dIn)    { debug_ = dIn;           }
+    std::string const& Tag(int idx)  { return tags_[idx];      }
+    std::string const& Name(int idx) { return basenames_[idx]; }
 
-    void AddNames(char *, const char*, std::string &);
-    void AddNames(char *, std::string &, std::string &);
-    void AddFilename(char *);
-    int FindName(const char*); // TODO: Make obsolete
-    int FindName(std::string);
-    // TODO: Place these in definition
-    std::string &Tag(int idx) {
-      return tags_[idx];
-    }
-    std::string &Name(int idx) {
-      return basenames_[idx];
-    }
-    bool HasNames() {
-      if (!tags_.empty() || !fnames_.empty() || !basenames_.empty())
-        return true;
-      return false;
-    }
+    void AddNameWithTag(std::string const&, std::string const&, std::string const&);
+    void AddFilename(std::string const&);
+    int FindName(std::string const&);
+    bool HasNames();
   protected:
     int debug_;
   private:

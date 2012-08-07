@@ -22,8 +22,8 @@ class TopologyList : public FileList {
     int CheckCommand(ArgList &);
     Topology *GetParm(int);
     Topology *GetParm(ArgList&);
-    int AddParmFile(char*); // TODO: Make obsolete
-    int AddParmFile(char*,std::string&);
+    int AddParmFile(std::string const&);
+    int AddParmFile(std::string const&,std::string const&);
     int AddParm(Topology*);
     void Print();
 

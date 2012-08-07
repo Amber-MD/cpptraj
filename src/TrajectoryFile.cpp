@@ -913,8 +913,8 @@ void TrajectoryFile::PrintInfo(int showExtended) {
 
 // Return private variables
 int TrajectoryFile::CurrentFrame()       { return currentFrame_;       }
-char *TrajectoryFile::TrajName()         { return (char*) trajName_;   }
-Topology *TrajectoryFile::TrajParm()     { return trajParm_;           }
+const char* TrajectoryFile::TrajName()   { return  trajName_;          }
+Topology* TrajectoryFile::TrajParm()     { return trajParm_;           }
 int TrajectoryFile::Start()              { return start_;              }
 int TrajectoryFile::Total_Read_Frames()  { return total_read_frames_;  }
 int TrajectoryFile::Total_Frames()       { return total_frames_;       }

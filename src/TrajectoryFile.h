@@ -41,7 +41,7 @@ class TrajectoryFile {
     TrajFormatType GetTypeFromExtension(std::string const&);
     // Functions that return private vars
     int CurrentFrame();
-    char *TrajName();
+    const char *TrajName();
     Topology *TrajParm();
     int Start();
     int Total_Read_Frames();

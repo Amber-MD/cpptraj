@@ -32,14 +32,15 @@ ParmIO *ParmFile::SetupParmIO(ParmFormatType parmFormat) {
 }
 
 // ParmFile::Read()
-int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) {
+int ParmFile::Read(Topology &Top, std::string const& fname, bool bondsearch, bool molsearch) 
+{
   ParmIO *parmio = NULL;
   ParmIO basicParm;
 
   // Set up parm for reading
   int err = basicParm.SetupRead(fname, debug_);
   if (err!=0) {
-    mprinterr("Error: Could not set up parm file %s for reading.\n",fname);
+    mprinterr("Error: Could not set up parm file %s for reading.\n",fname.c_str());
     return 1;
   }
   
@@ -57,7 +58,7 @@ int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) 
         // Read this format
         err = parmio->ReadParm( Top );
         if (err!=0) {
-          mprinterr("Error reading parm file %s\n",fname);
+          mprinterr("Error reading parm file %s\n",fname.c_str());
           delete parmio;
           return 1;
         }
@@ -71,18 +72,18 @@ int ParmFile::Read(Topology &Top, char *fname, bool bondsearch, bool molsearch) 
       delete parmio;
     }
   }
-  mprinterr("Error: Format of parm [%s] not recognized.\n",fname);
+  mprinterr("Error: Format of parm [%s] not recognized.\n",fname.c_str());
     
   return 1;
 }
 
 // ParmFile::Write()
-int ParmFile::Write( Topology &Top, std::string name, ParmFormatType fmt) {
+int ParmFile::Write( Topology &Top, std::string const& name, ParmFormatType fmt) {
   ParmIO *parmio = NULL;
   ParmIO basicParm;
   // Set up basic parm file for write
   // TODO: SetupWrite needs to take string
-  int err = basicParm.SetupWrite((char*)name.c_str(), debug_);
+  int err = basicParm.SetupWrite(name, debug_);
   if (err == 1) {
     mprinterr("Error setting up parm file %s for write.\n",name.c_str());
     return 1;
@@ -104,10 +105,5 @@ int ParmFile::Write( Topology &Top, std::string name, ParmFormatType fmt) {
   delete parmio;
 
   return 0;
-}
-
-// ParmFile::Write()
-int ParmFile::Write( Topology &Top, char *nameIn, ParmFormatType fmt) {
-  return Write(Top, std::string(nameIn), fmt);
 }
 
