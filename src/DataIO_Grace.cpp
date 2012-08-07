@@ -24,16 +24,17 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
   std::vector<DataSet*> Dsets;
   std::vector<std::string> labels;
   double dval;
+  int Nread;
   
   // Allocate and set up read buffer
   const size_t chunksize = 16384;
   readbuffer_ = new char[ chunksize ];
-  char* endbuffer = readbuffer_ + chunksize;
   char* lineptr = linebuffer;
 
   // Read chunks from file
-  while (IO->Read(readbuffer_, chunksize) > 0) {
+  while ( (Nread = IO->Read(readbuffer_, chunksize)) > 0) {
     char* ptr = readbuffer_;
+    char* endbuffer = readbuffer_ + (size_t)Nread;
     // Get lines from chunk
     while ( ptr < endbuffer && lineptr < endlinebuffer ) {
       *lineptr = *ptr;
