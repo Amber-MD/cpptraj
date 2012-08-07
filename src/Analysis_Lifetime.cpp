@@ -4,7 +4,8 @@
 // CONSTRUCTOR
 Analysis_Lifetime::Analysis_Lifetime() :
   windowSize_(0),
-  cut_(0.5)
+  cut_(0.5),
+  averageonly_(false)
 {}
 
 /** Usage: lifetime [out <filename>] <dsetarg0> [ <dsetarg1> ... ]
@@ -15,6 +16,8 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
   outfilename_ = analyzeArgs_.GetStringKey("out");
   std::string setname_ = analyzeArgs_.GetStringKey("name");
   windowSize_ = analyzeArgs_.getKeyInt("window", -1);
+  averageonly_ = analyzeArgs_.hasKey("averageonly");
+  cut_ = analyzeArgs_.getKeyDouble("cut", 0.5);
   // Select datasets
   inputDsets_ = datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
   if (inputDsets_.empty()) {
@@ -39,29 +42,35 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
       }
       outSet->SetLegend( (*set)->Legend() );
       outputDsets_.push_back( outSet );
-      // MAX
-      // FIXME: CHeck for NULLS
-      outSet = datasetlist->AddSetIdxAspect( DataSet::INT, setname_, didx, "max" );
-      outSet->SetLegend( (*set)->Legend() );
-      maxDsets_.push_back( outSet );
-      // AVG
-      outSet = datasetlist->AddSetIdxAspect( DataSet::FLOAT, setname_, didx, "avg" );
-      outSet->SetLegend( (*set)->Legend() );
-      avgDsets_.push_back( outSet );
+      if (!averageonly_) {
+        // MAX
+        // FIXME: CHeck for NULLS
+        outSet = datasetlist->AddSetIdxAspect( DataSet::INT, setname_, didx, "max" );
+        outSet->SetLegend( (*set)->Legend() );
+        maxDsets_.push_back( outSet );
+        // AVG
+        outSet = datasetlist->AddSetIdxAspect( DataSet::FLOAT, setname_, didx, "avg" );
+        outSet->SetLegend( (*set)->Legend() );
+        avgDsets_.push_back( outSet );
+      }
       ++didx;
     }
   }
 
-  mprintf("    LIFETIME: Calculating avg lifetime of data in %i sets:\n", 
-          inputDsets_.size());
+  if (!averageonly_)
+    mprintf("    LIFETIME: Calculating average lifetime using a cutoff of %f", cut_);
+  else
+    mprintf("    LIFETIME: Calculating only averages");
+  mprintf(" of data in %i sets:\n", inputDsets_.size());
   inputDsets_.Info();
   if (windowSize_ != -1) {
-    mprintf("\tAverage of lifetime data over windows will be saved to sets named %s\n",
+    mprintf("\tAverage of data over windows will be saved to sets named %s\n",
             setname_.c_str());
     mprintf("\tWindow size for averaging: %i\n", windowSize_);
     if (!outfilename_.empty()) {
-      mprintf("\tOutfile names: %s", outfilename_.c_str());
-      mprintf(", max.%s, avg.%s\n", outfilename_.c_str(), outfilename_.c_str());
+      mprintf("\tOutfile: %s", outfilename_.c_str());
+      if (!averageonly_)
+        mprintf(", max.%s, avg.%s\n", outfilename_.c_str(), outfilename_.c_str());
     }
   }
 
@@ -78,7 +87,7 @@ int Analysis_Lifetime::Analyze() {
   {
     mprintf("\t\tCalculating lifetimes for set %s\n", (*inSet)->Legend().c_str());
     // Loop over all values in set.
-    int sum = 0;
+    double sum = 0;
     int windowcount = 0;
     int frame = 0;
     int setSize = (*inSet)->Size();
@@ -89,51 +98,55 @@ int Analysis_Lifetime::Analyze() {
     for (int i = 0; i < setSize; ++i) {
       double dval = (*inSet)->Dval(i);
       //mprintf("\t\t\tValue[%i]= %.2f", i,dval);
-      if ( dval > cut_ ) {
-        // Value is present at time i
-        ++sum;
-        ++currentLifetimeCount;
-        //mprintf(" present; sum=%i LC=%i\n", sum, currentLifetimeCount);
-      } else {
-        //mprintf(" not present");
-        // Value is not present at time i
-        if (currentLifetimeCount > 0) {
-          if (currentLifetimeCount > maximumLifetimeCount)
-            maximumLifetimeCount = currentLifetimeCount;
-          sumLifetimes += currentLifetimeCount;
-          ++Nlifetimes;
-          //mprintf("; LC=%i maxLC=%i NL=%i\n", currentLifetimeCount, maximumLifetimeCount, Nlifetimes);
-          currentLifetimeCount = 0;
+      if (averageonly_) 
+        // Average only
+        sum += dval;
+      else {
+        // Lifetime calculation
+        if ( dval > cut_ ) {
+          // Value is present at time i
+          ++sum;
+          ++currentLifetimeCount;
+          //mprintf(" present; sum=%i LC=%i\n", sum, currentLifetimeCount);
+        } else {
+          //mprintf(" not present");
+          // Value is not present at time i
+          if (currentLifetimeCount > 0) {
+            if (currentLifetimeCount > maximumLifetimeCount)
+              maximumLifetimeCount = currentLifetimeCount;
+            sumLifetimes += currentLifetimeCount;
+            ++Nlifetimes;
+            //mprintf("; LC=%i maxLC=%i NL=%i\n", currentLifetimeCount, maximumLifetimeCount, Nlifetimes);
+            currentLifetimeCount = 0;
+          }
+          //mprintf("\n");
         }
-        //mprintf("\n");
       }
       //sum += (*inSet)->Dval(i);
       ++windowcount;
       if (windowcount == windowSize_) {
-        float fval = (float)sum / (float)windowcount;
-        // Store lifetime information for this window
-        // Update current lifetime total
-        if (currentLifetimeCount > 0) {
-          if (currentLifetimeCount > maximumLifetimeCount)
-            maximumLifetimeCount = currentLifetimeCount;
-          sumLifetimes += currentLifetimeCount;
-          ++Nlifetimes;
-        }
-        // If Nlifetimes is 0 then value was never present. 
-        if (Nlifetimes == 0) 
-          favg = 0.0;
-        else
-          favg = (float)sumLifetimes / (float)Nlifetimes;
-        //mprintf("\t\t\t[%i]Max lifetime observed: %i frames\n", frame,maximumLifetimeCount);
-        //mprintf("\t\t\t[%i]Avg lifetime: %f frames\n", frame, favg); 
-        /*for (int j = frame; j < frame+windowcount; ++j) {
-          (*outSet)->Add( j, &fval );
-          (*maxSet)->Add( j, &maximumLifetimeCount );
-          (*avgSet)->Add( j, &favg );
-        }*/
+        double windowavg = sum / (double)windowcount;
+        float fval = (float)windowavg;
         (*outSet)->Add( frame, &fval );
-        (*maxSet)->Add( frame, &maximumLifetimeCount );
-        (*avgSet)->Add( frame, &favg );
+        if (!averageonly_) {
+          // Store lifetime information for this window
+          // Update current lifetime total
+          if (currentLifetimeCount > 0) {
+            if (currentLifetimeCount > maximumLifetimeCount)
+              maximumLifetimeCount = currentLifetimeCount;
+            sumLifetimes += currentLifetimeCount;
+            ++Nlifetimes;
+          }
+          // If Nlifetimes is 0 then value was never present. 
+          if (Nlifetimes == 0) 
+            favg = 0.0;
+          else
+            favg = (float)sumLifetimes / (float)Nlifetimes;
+          //mprintf("\t\t\t[%i]Max lifetime observed: %i frames\n", frame,maximumLifetimeCount);
+          //mprintf("\t\t\t[%i]Avg lifetime: %f frames\n", frame, favg);
+          (*maxSet)->Add( frame, &maximumLifetimeCount );
+          (*avgSet)->Add( frame, &favg );
+        }
         frame += windowcount;
         windowcount = 0;
         sum = 0;
@@ -145,7 +158,7 @@ int Analysis_Lifetime::Analyze() {
       }
     }
     // Print lifetime information if no window
-    if ( windowSize_ == -1 ) {
+    if ( !averageonly_ && windowSize_ == -1 ) {
       // Update current lifetime total
       if (currentLifetimeCount > 0) {
         if (currentLifetimeCount > maximumLifetimeCount)
@@ -169,30 +182,29 @@ int Analysis_Lifetime::Analyze() {
   return 0;
 }
 
+void Analysis_Lifetime::PrintListToFile(DataFileList *dfl, std::vector<DataSet*>& list,
+                                        std::string const& outname)
+{
+  DataFile *outfile = NULL;
+  if (outname.empty()) return;
+  for (std::vector<DataSet*>::iterator set = list.begin(); set != list.end(); ++set)
+  {
+    outfile = dfl->Add( outname.c_str(), *set );
+    if (outfile == NULL) {
+      mprinterr("Error adding set %s to file %s\n", (*set)->c_str(), outname.c_str());
+      return;
+    }
+  }
+  outfile->ProcessArgs("noemptyframes");
+}
+
 void Analysis_Lifetime::Print(DataFileList* datafilelist) {
   if (!outfilename_.empty()) {
-    DataFile* outfile = NULL;
-    DataFile* maxfile = NULL;
-    DataFile* avgfile = NULL;
-    std::string maxname = "max." + outfilename_;
-    std::string avgname = "avg." + outfilename_;
-    std::vector<DataSet*>::iterator maxSet = maxDsets_.begin();
-    std::vector<DataSet*>::iterator avgSet = avgDsets_.begin();
-    for (std::vector<DataSet*>::iterator outSet = outputDsets_.begin();
-                                         outSet != outputDsets_.end(); ++outSet)
-    {
-      outfile = datafilelist->Add( outfilename_.c_str(), *outSet ); 
-      maxfile = datafilelist->Add( maxname.c_str(), *maxSet );
-      avgfile = datafilelist->Add( avgname.c_str(), *avgSet );
-      ++maxSet;
-      ++avgSet;
+    PrintListToFile(datafilelist, outputDsets_, outfilename_);
+    if (!averageonly_) {
+      PrintListToFile(datafilelist, maxDsets_, "max." + outfilename_);
+      PrintListToFile(datafilelist, avgDsets_, "avg." + outfilename_);
     }
-    if (outfile!=NULL)
-      outfile->ProcessArgs("noemptyframes");
-    if (maxfile!=NULL)
-      maxfile->ProcessArgs("noemptyframes");
-    if (avgfile!=NULL)
-      avgfile->ProcessArgs("noemptyframes");
   }
 }
 

@@ -16,7 +16,6 @@ DataIO_Gnuplot::DataIO_Gnuplot() {
 void DataIO_Gnuplot::LabelArg( std::vector<std::string>& labels, std::string const& labelarg) 
 {
   if (!labelarg.empty()) {
-    mprinterr("DEBUG: label arg= %s\n", labelarg.c_str());
     ArgList commasep( labelarg, "," );
     for (int i = 0; i < commasep.Nargs(); ++i)
       labels.push_back( commasep[i] );

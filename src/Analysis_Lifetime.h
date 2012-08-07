@@ -16,5 +16,8 @@ class Analysis_Lifetime : public Analysis {
     std::vector<DataSet*> avgDsets_;
     int windowSize_;
     double cut_;
+    bool averageonly_;
+
+    void PrintListToFile(DataFileList *, std::vector<DataSet*>&, std::string const&);
 };
 #endif
