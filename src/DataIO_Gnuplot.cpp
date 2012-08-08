@@ -50,7 +50,12 @@ std::string DataIO_Gnuplot::Pm3d() {
   // PM3D command
   std::string pm3d_cmd = "with pm3d";
   switch (pm3d_) {
-    case C2C: Printf("set pm3d map corners2color c1\n"); break;
+    case C2C: 
+      if (maxFrames_ == 1)
+        Printf("set pm3d map corners2color c3\n");
+      else 
+        Printf("set pm3d map corners2color c1\n"); 
+      break;
     case MAP: Printf("set pm3d map\n"); break;
     case ON : Printf("set pm3d\n"); break;
     case OFF: pm3d_cmd.clear(); break;
