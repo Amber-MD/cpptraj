@@ -6,40 +6,33 @@
 #include "vectormath.h"
 
 // CONSTRUCTOR
-Action_NAstruct::Action_NAstruct() {
-  //fprintf(stderr,"NAstruct Con\n");
-  Nbp=0;
-  Nbases=0;
-  HBdistCut2=12.25;  // Hydrogen Bond distance cutoff^2: 3.5^2
-  // NOTE: Currently not used
-  HBangleCut2=2.53; // Hydrogen Bond angle cutoff (in radians, ~145 degs)
+Action_NAstruct::Action_NAstruct() :
+  HBdistCut2_(12.25),  // Hydrogen Bond distance cutoff^2: 3.5^2
+  //HBangleCut2_(2.53),  // Hydrogen Bond angle cutoff (in radians, ~145 degs)
   // NOTE: Is this too big?
-  originCut2=6.25;  // Origin cutoff^2 for base-pairing: 2.5^2
-  Nframe=0;
-  useReference_=false;
-  //outFilename=NULL;
-  //naoutFilename=NULL;
-  noheader = false;
+  originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
+  printheader_(true),
+  useReference_(false)
 # ifdef NASTRUCTDEBUG
-  calcparam = true;
+  ,calcparam(true)
 # endif
-} 
+{ 
+  //fprintf(stderr,"NAstruct Con\n");
+}
 
 // DESTRUCTOR
 Action_NAstruct::~Action_NAstruct() { 
   ClearLists();
-  // NOTE: Since BasePairAxes are set up to correspond with SHEAR etc dont
-  // free in this routine - should only be freed at the very end.
+  // NOTE: Since BasePairAxes are set up to correspond with SHEAR etc they 
+  //       are only freed at the very end.
   BasePairAxes.clear();
-  // Close output files
-  BPOut.CloseFile();
-  BPstepOut.CloseFile();
-  HelixOut.CloseFile();
 }
 
+// Output Format Strings
 static const char BP_OUTPUT_FMT[66] = "%8i %8i %8i %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %2i\n";
 static const char NA_OUTPUT_FMT[73] = "%8i %4i-%-4i %4i-%-4i %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf\n";
 
+// ------------------------- PRIVATE FUNCTIONS --------------------------------
 // Action_NAstruct::ClearLists()
 /** Clear all parm-dependent lists */
 void Action_NAstruct::ClearLists() {
@@ -49,7 +42,6 @@ void Action_NAstruct::ClearLists() {
   FitMasks.clear();
 }
 
-// ------------------------- PRIVATE FUNCTIONS --------------------------------
 // Action_NAstruct::setupBaseAxes()
 /** For each residue defined in reference coords, get the corresponding input
   * coords and fit the reference coords (and reference axes) on top of input 
@@ -69,6 +61,7 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
 
   // For each axis in RefCoords, use corresponding mask in ExpMasks to set 
   // up an axis for ExpCoords.
+  int Nbases = (int)RefCoords.size();
   for (int base=0; base < Nbases; base++) {
     // Set exp coords based on previously set-up mask
     BaseAxes[base].SetCoordinates( *InputFrame, ExpMasks[base] );
@@ -141,7 +134,7 @@ int Action_NAstruct::GCpair(AxisType *DG, AxisType *DC) {
   double dist2;
   for (int hb = 0; hb < 3; hb++) {
     dist2 = DIST2_NoImage(DG->HbondCoord[hb], DC->HbondCoord[hb]);
-    if ( dist2 < HBdistCut2 ) {
+    if ( dist2 < HBdistCut2_ ) {
       ++Nhbonds;
 #     ifdef NASTRUCTDEBUG
       int dg_hbatom = DG->HbondAtom[hb];
@@ -165,7 +158,7 @@ int Action_NAstruct::ATpair(AxisType *DA, AxisType *DT) {
   double dist2;
   for (int hb = 0; hb < 2; hb++) {
     dist2 = DIST2_NoImage(DA->HbondCoord[hb], DT->HbondCoord[hb]);
-    if ( dist2 < HBdistCut2 ) {
+    if ( dist2 < HBdistCut2_ ) {
       ++Nhbonds;
 #     ifdef NASTRUCTDEBUG
       int da_hbatom = DA->HbondAtom[hb];
@@ -202,7 +195,8 @@ int Action_NAstruct::basesArePaired(AxisType *base1, AxisType *base2) {
 }
 
 // Action_NAstruct::determineBasePairing()
-/** Determine which bases are paired from the individual base axes.
+/** Determine which bases are paired from the individual base axes. Also 
+  * sets up BP and BP step parameter DataSets.
   */
 int Action_NAstruct::determineBasePairing() {
   double distance;
@@ -213,7 +207,6 @@ int Action_NAstruct::determineBasePairing() {
   double minDistance;
   int minBaseNum;
 
-  Nbp = 0;
   BasePair.clear();
   NumberOfHbonds_.clear();
 # ifdef NASTRUCTDEBUG  
@@ -223,14 +216,16 @@ int Action_NAstruct::determineBasePairing() {
   /* For each unpaired base, find the closest potential pairing base 
    * determined by the distance between their axis origins.
    */
-  for (base1=0; base1 < Nbases-1; base1++) {
+  int Nbases = (int)RefCoords.size();
+  int Nbases1 = Nbases - 1;
+  for (base1=0; base1 < Nbases1; base1++) {
     if (isPaired[base1]) continue;
     minBaseNum = -1;
     minDistance = 0;
     for (base2=base1+1; base2 < Nbases; base2++) {
       if (isPaired[base2]) continue;
       distance = DIST2_NoImage(BaseAxes[base1].Origin(), BaseAxes[base2].Origin());
-      if (distance < originCut2) {
+      if (distance < originCut2_) {
 #       ifdef NASTRUCTDEBUG
         mprintf("  Axes distance for %s -- %s is %lf\n",
                 BaseAxes[base1].BaseName(),BaseAxes[base2].BaseName(),sqrt(distance));
@@ -255,7 +250,7 @@ int Action_NAstruct::determineBasePairing() {
 #       ifdef NASTRUCTDEBUG
         mprintf("      Angle between Y vectors is %lf deg. (%lf)\n",distance * RADDEG,distance);
 #       endif
-        if (distance > HBangleCut2) {*/
+        if (distance > HBangleCut2_) {*/
     if (minBaseNum!=-1) {
           base2 = minBaseNum;
 #         ifdef NASTRUCTDEBUG
@@ -290,7 +285,6 @@ int Action_NAstruct::determineBasePairing() {
               BasePair.push_back(0);
             isPaired[base1]=true;
             isPaired[base2]=true;
-            ++Nbp;
           }
           NumberOfHbonds_.push_back( NHB );
 //        } // END if distance > HBangleCut2
@@ -298,71 +292,90 @@ int Action_NAstruct::determineBasePairing() {
     } // END if minBaseNum!=-1
   } // END Loop over base1
 
+  unsigned int Nbp = BasePair.size() / 3;
   if (debug>0) mprintf("    NAstruct: Set up %i base pairs.\n",Nbp);
   // Resize BasePairAxes
   BasePairAxes.resize( Nbp );
   // Print Base Pair info
   if (debug>1) {
-    base2=1;
+    base2=1; //  Base pair #
     for (base1 = 0; base1 < (int)BasePair.size(); base1+= 3) {
       int bp_1 = BasePair[base1  ];
       int bp_2 = BasePair[base1+1];
-      mprintf("        BP %i: Res %s to %s",base2,
-              BaseAxes[bp_1].BaseName(), BaseAxes[bp_2].BaseName());
+      mprintf("        BP %i: Res %i:%s to %i:%s",base2++,
+              BaseAxes[bp_1].ResNum()+1, BaseAxes[bp_1].ResName(), 
+              BaseAxes[bp_2].ResNum()+1, BaseAxes[bp_2].ResName());
       if ( BasePair[base1+2] )
         mprintf(" AntiParallel.\n");
       else
         mprintf(" Parallel.\n");
     }
   }
+  // For each BP, set up a dataset for each structural parameter if
+  // one is not already set up.
+  base2 = 1; // Base pair # and DataSet idx
+  for (base1 = 0; base1 < (int)BasePair.size(); base1+= 3) {
+      if ( base2 > (int)SHEAR_.size() ) {
+        // Create legend
+        int bp_1 = BasePair[base1  ];
+        int bp_2 = BasePair[base1+1];
+        std::string bpname = integerToString( BaseAxes[bp_1].ResNum()+1 ) +
+                             BaseAxes[bp_1].ResName() +
+                             integerToString( BaseAxes[bp_2].ResNum()+1 ) + 
+                             BaseAxes[bp_2].ResName();
+        // Create sets
+        SHEAR_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"shear",bpname) );
+        STRETCH_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"stretch",bpname));
+        STAGGER_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"stagger",bpname));
+        BUCKLE_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"buckle",bpname) );
+        PROPELLER_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"prop",bpname) );
+        OPENING_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"open",bpname) );
+        BPHBONDS_.push_back( DSL->AddSetIdxAspect(DataSet::INT,dataname_,base2,"hb",bpname) );
+      }
+    ++base2;
+  }
+  // For each BP step, set up a dataset for each structural parameter 
+  // if one is not already set up. One less than total # BP.
+  base2 = 1; // Base pair step # and DataSet idx
+  int NBPstep = (int)(BasePairAxes.size() - 1);
+  for (base1 = 0; base1 < NBPstep; ++base1) {
+    if ( base2 > (int)SHIFT_.size() ) {
+      // Create legend
+      int bpidx = base1 * 3;
+      int bp_1 = BasePair[bpidx  ];
+      int bp_2 = BasePair[bpidx+1];
+      int bp_3 = BasePair[bpidx+3];
+      int bp_4 = BasePair[bpidx+4];
+      std::string sname = integerToString( BaseAxes[bp_1].ResNum()+1 ) +
+                          BaseAxes[bp_1].ResName()[0] +
+                          integerToString( BaseAxes[bp_2].ResNum()+1 ) +
+                          BaseAxes[bp_2].ResName()[0] + "-" +
+                          integerToString( BaseAxes[bp_3].ResNum()+1 ) +
+                          BaseAxes[bp_3].ResName()[0] +
+                          integerToString( BaseAxes[bp_4].ResNum()+1 ) +
+                          BaseAxes[bp_4].ResName()[0];
+      // Create Sets
+      SHIFT_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"shift",sname) );
+      SLIDE_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"slide",sname) );
+      RISE_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"rise",sname) );
+      TILT_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"tilt",sname) );
+      ROLL_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"roll",sname) );
+      TWIST_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"twist",sname) );
+      XDISP_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"xdisp",sname) );
+      YDISP_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"ydisp",sname) );
+      HRISE_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"hrise",sname) );
+      INCL_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"incl",sname) );
+      TIP_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"tip",sname) );
+      HTWIST_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"htwist",sname) );
+    }
+    ++base2;
+  }
+  
 /*
   //mprintf("DEBUG: BasePair.size = %i\n",(int)BasePair.size());
   //mprintf("DEBUG: SHEAR.size = %i\n",(int)SHEAR.size());
   //mprintf("DEBUG: BasePairAxes.size = %i\n",(int)BasePairAxes.size());
-  //AxisType bpaxis;
-  //DataSet *na_dataset = NULL;
-  base2=1;
-  for (base1=0; base1 < (int)BasePair.size(); base1+=3) {
-    // For each base pair, set up a dataset for each structural parameter
-    // if one is not already set up.
-    if ( base2 > SHEAR.Size() ) {
-      na_dataset = SHEAR.AddMultiN(DOUBLE, "SHR", "BP", base2);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = STRETCH.AddMultiN(DOUBLE, "STR", "BP", base2);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = STAGGER.AddMultiN(DOUBLE, "STA", "BP", base2);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = BUCKLE.AddMultiN(DOUBLE, "BCK", "BP", base2);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = PROPELLER.AddMultiN(DOUBLE, "PRP", "BP", base2);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = OPENING.AddMultiN(DOUBLE, "OPN", "BP", base2);
-      DFL->Add(outFilename, na_dataset);
-      // Also set up a place to hold the base pair axes
-      BasePairAxes.push_back( bpaxis );
-    } 
-    ++base2;
-  }
-  // Also set up base pair step data. One less than # base pairs
-  //mprintf("DEBUG: SHIFT.size() = %i\n",(int)SHIFT.size());
-  for (base1=0; base1 < Nbp-1; base1++) {
-    if ( base1+1 > SHIFT.Size() ) {
-      na_dataset = SHIFT.AddMultiN(DOUBLE, "SHF", "BS", base1 + 1);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = SLIDE.AddMultiN(DOUBLE, "SLD", "BS", base1 + 1);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = RISE.AddMultiN(DOUBLE, "RIS", "BS", base1 + 1);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = TILT.AddMultiN(DOUBLE, "TLT", "BS", base1 + 1);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = ROLL.AddMultiN(DOUBLE, "RLL", "BS", base1 + 1);
-      DFL->Add(outFilename, na_dataset);
-      na_dataset = TWIST.AddMultiN(DOUBLE, "TWS", "BS", base1 + 1);
-      DFL->Add(outFilename, na_dataset);
-    }
-    // Print base pair step info
-    if (debug>1) mprintf("        BP step %i: \n",base1+1);
-  }*/
+*/
 
   return 0;
 }
@@ -759,26 +772,29 @@ int Action_NAstruct::determineBaseParameters() {
     Param[3] *= RADDEG;
     Param[4] *= RADDEG;
     Param[5] *= RADDEG;
-    BPOut.Printf(BP_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, 
-                     BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
-                     Param[0],Param[1],Param[2],Param[5],Param[4],Param[3],
-                     NumberOfHbonds_[nbasepair]);
     //mprintf("DBG: BP %i # hbonds = %i\n", nbasepair+1, NumberOfHbonds_[nbasepair]);
-/*    SHEAR.AddData(frameNum, Param, nbasepair);
-    STRETCH.AddData(frameNum, Param+1, nbasepair);
-    STAGGER.AddData(frameNum, Param+2, nbasepair);
-    OPENING.AddData(frameNum, Param+3, nbasepair);
-    PROPELLER.AddData(frameNum, Param+4, nbasepair);
-    BUCKLE.AddData(frameNum, Param+5, nbasepair);*/
-
+    // Convert everything to float to save space
+    float shear = (float)Param[0];
+    float stretch = (float)Param[1];
+    float stagger = (float)Param[2];
+    float opening = (float)Param[3];
+    float prop = (float)Param[4];
+    float buckle = (float)Param[5];
+    int n_of_hb = NumberOfHbonds_[nbasepair];
+    // Add to DataSets
+    SHEAR_[nbasepair]->Add(frameNum, &shear);
+    STRETCH_[nbasepair]->Add(frameNum, &stretch);
+    STAGGER_[nbasepair]->Add(frameNum, &stagger);
+    OPENING_[nbasepair]->Add(frameNum, &opening);
+    PROPELLER_[nbasepair]->Add(frameNum, &prop);
+    BUCKLE_[nbasepair]->Add(frameNum, &buckle);
+    BPHBONDS_[nbasepair]->Add(frameNum, &n_of_hb);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
     basepairaxesfile.WriteAxes(BasePairAxes[nbasepair], base1, BaseAxes[base1].ResName());
 #   endif
-
     ++nbasepair; // Actual base pair count; BP is nbasepair*3
   }
-  BPOut.Printf("\n");
 
   return 0;
 }
@@ -803,28 +819,38 @@ int Action_NAstruct::determineBasepairParameters() {
     Param[3] *= RADDEG;
     Param[4] *= RADDEG;
     Param[5] *= RADDEG;
-    BPstepOut.Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT, 
-                         BasePairAxes[bpi].ResNum()+1,BasePairAxes[bpi].ResNum2()+1,
-                         BasePairAxes[bpj].ResNum()+1,BasePairAxes[bpj].ResNum2()+1,
-                         Param[0],Param[1],Param[2],Param[5],Param[4],Param[3]);
-/*    SHIFT.AddData(frameNum, Param, bpi);
-    SLIDE.AddData(frameNum, Param+1, bpi);
-    RISE.AddData(frameNum, Param+2, bpi);
-    TWIST.AddData(frameNum, Param+3, bpi);
-    ROLL.AddData(frameNum, Param+4, bpi);
-    TILT.AddData(frameNum, Param+5, bpi);*/
+    // Convert everything to float to save space
+    float shift = (float)Param[0];
+    float slide = (float)Param[1];
+    float rise = (float)Param[2];
+    float twist = (float)Param[3];
+    float roll = (float)Param[4];
+    float tilt = (float)Param[5];
+    SHIFT_[bpi]->Add(frameNum, &shift);
+    SLIDE_[bpi]->Add(frameNum, &slide);
+    RISE_[bpi]->Add(frameNum, &rise);
+    TWIST_[bpi]->Add(frameNum, &twist);
+    ROLL_[bpi]->Add(frameNum, &roll);
+    TILT_[bpi]->Add(frameNum, &tilt);
     // Calc helical parameters
     helicalParameters(BasePairAxes[bpi], BasePairAxes[bpj], Param);
     Param[3] *= RADDEG;
     Param[4] *= RADDEG;
     Param[5] *= RADDEG;
-    HelixOut.Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT,
-                        BasePairAxes[bpi].ResNum()+1,BasePairAxes[bpi].ResNum2()+1,
-                        BasePairAxes[bpj].ResNum()+1,BasePairAxes[bpj].ResNum2()+1,
-                        Param[0],Param[1],Param[2],Param[3],Param[4],Param[5]);
+    // Convert to float
+    float xdisp = (float)Param[0];
+    float ydisp = (float)Param[1];
+    float hrise = (float)Param[2];
+    float incl = (float)Param[3];
+    float tip = (float)Param[4];
+    float htwist = (float)Param[5];
+    XDISP_[bpi]->Add(frameNum, &xdisp);
+    YDISP_[bpi]->Add(frameNum, &ydisp);
+    HRISE_[bpi]->Add(frameNum, &hrise);
+    INCL_[bpi]->Add(frameNum, &incl);
+    TIP_[bpi]->Add(frameNum, &tip);
+    HTWIST_[bpi]->Add(frameNum, &htwist);
   }
-  BPstepOut.Printf("\n");
-  HelixOut.Printf("\n");
 
   return 0;
 }
@@ -841,29 +867,24 @@ int Action_NAstruct::determineBasepairParameters() {
 //    2) Masks
 //    3) Dataset name
 int Action_NAstruct::init() {
-  char *resrange_arg, *maparg, *outputsuffix;
+  char *resrange_arg, *maparg;
   ArgList maplist;
   AxisType::NAbaseType mapbase;
   Frame* refframe = NULL;
   Topology* refparm = NULL;
 
   // Get keywords
-  outputsuffix = actionArgs.getKeyString("naout",NULL);
+  outputsuffix_ = actionArgs.GetStringKey("naout");
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
   if (hbcut > 0) 
-    HBdistCut2 = hbcut * hbcut;
+    HBdistCut2_ = hbcut * hbcut;
   double origincut = actionArgs.getKeyDouble("origincut", -1);
   if (origincut > 0)
-    originCut2 = origincut * origincut;
-  // Require a filename
-  if (outputsuffix==NULL) {
-    mprinterr("Error: nastruct: Requires an output filename, 'naout <filename>'\n");
-    return 1;
-  }
+    originCut2_ = origincut * origincut;
   resrange_arg = actionArgs.getKeyString("resrange",NULL);
   if (resrange_arg != NULL)
     if (resRange.SetRange( resrange_arg )) return 1;
-  noheader = actionArgs.hasKey("noheader");
+  printheader_ = !actionArgs.hasKey("noheader");
   // Reference for setting up basepairs
   int refindex = actionArgs.getKeyInt("refindex", -1);
   if (actionArgs.hasKey("reference")) refindex = 0;
@@ -919,7 +940,7 @@ int Action_NAstruct::init() {
     mprintf("\tCustom Map: [%s]\n",resname.c_str());
     //maplist.PrintList();
     // Add to CustomMap
-    customRes = CustomMap.find(resname);
+    ResMapType::iterator customRes = CustomMap.find(resname);
     if (customRes!=CustomMap.end()) {
       mprintf("Warning: nastruct: resmap: %s already mapped.\n",resname.c_str());
     } else {
@@ -928,56 +949,32 @@ int Action_NAstruct::init() {
   }
   // Get Masks
   // Dataset
-  // Add dataset to data file list
-
-  // Open BasePair param output file. 
-  std::string fnameout( outputsuffix );
-  fnameout = "BP." + fnameout;
-  if ( BPOut.SetupWrite((char*)fnameout.c_str(), debug) ) {
-    mprinterr("Error: Could not set up bpout file %s\n",fnameout.c_str());
+  dataname_ = actionArgs.GetStringNext();
+  if (dataname_.empty())
+    dataname_.assign("NA");
+  // See if the name is unique
+  DataSet* tempDS = DSL->Get( dataname_.c_str() );
+  if (tempDS!=NULL) {
+    mprinterr("Error: nastruct: Given name (%s) is not unique. Please specify a unique name.\n",
+              dataname_.c_str());
     return 1;
   }
-  BPOut.OpenFile();
-  if (!noheader)
-    BPOut.Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s\n","#Frame","Base1","Base2",
-                     "Shear","Stretch","Stagger","Buckle","Propeller","Opening", "HB");
-  // Open BasePair step param output file.
-  fnameout.assign( outputsuffix );
-  fnameout = "BPstep." + fnameout;
-  if ( BPstepOut.SetupWrite((char*)fnameout.c_str(), debug) ) {
-    mprinterr("Error: Could not set up bpstepout file %s\n",fnameout.c_str());
-    return 1;
-  }
-  BPstepOut.OpenFile();
-  if (!noheader) 
-    BPstepOut.Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
-                         "Shift","Slide","Rise","Tilt","Roll","Twist");
-  // Open Helix param output file.
-  fnameout.assign( outputsuffix );
-  fnameout = "Helix." + fnameout;
-  if ( HelixOut.SetupWrite((char*)fnameout.c_str(), debug) ) {
-    mprinterr("Error: Could not set up helixout file %s\n",fnameout.c_str());
-    return 1;
-  }
-  HelixOut.OpenFile();
-  if (!noheader)
-    HelixOut.Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
-                        "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
+  // DataSets are added to data file list in print()
 
   mprintf("    NAstruct: ");
   if (resRange.Empty())
     mprintf("Scanning all NA residues");
   else
     mprintf("Scanning residues %s",resRange.RangeArg());
-  if (outputsuffix!=NULL) {
-      mprintf(", formatted output using file suffix %s",outputsuffix);
-    if (noheader) mprintf(", no header");
+  if (!outputsuffix_.empty()) {
+      mprintf(", formatted output using file suffix %s",outputsuffix_.c_str());
+    if (!printheader_) mprintf(", no header");
   }
   mprintf(".\n");
   mprintf("\tHydrogen bond cutoff for determining base pairs is %.2lf Angstroms.\n",
-          sqrt( HBdistCut2 ) );
+          sqrt( HBdistCut2_ ) );
   mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2lf Angstroms.\n",
-          sqrt( originCut2 ) );
+          sqrt( originCut2_ ) );
 
   // Use reference to determine base pairing
   if (useReference_) {
@@ -989,6 +986,8 @@ int Action_NAstruct::init() {
     // Determine Base Pairing
     if ( determineBasePairing() ) return 1;
     mprintf("\tSet up %zu base pairs.\n", BasePairAxes.size() ); 
+  } else {
+    mprintf("\tUsing first frame to determine base pairing.\n");
   }
 
   return 0;
@@ -1039,7 +1038,7 @@ int Action_NAstruct::setup() {
     // Check if the residue at resnum matches any of the custom maps
     if (!CustomMap.empty()) {
       resname.assign( currentParm->ResidueName(*resnum) );
-      customRes = CustomMap.find( resname );
+      ResMapType::iterator customRes = CustomMap.find( resname );
       if (customRes!=CustomMap.end()) {
         mprintf("\tCustom map found: %i [%s]\n",*resnum+1,(*customRes).first.c_str());
         customBaseType = (*customRes).second;
@@ -1078,7 +1077,7 @@ int Action_NAstruct::setup() {
     if (debug>1) {
       mprintf("\tNAstruct: Res %i:%s ",*resnum+1,currentParm->ResidueName(*resnum));
       Mask.PrintMaskAtoms("NAmask");
-      mprintf("\t          Ref %i:%s ",*resnum+1,axis.BaseName());
+      mprintf("\t          Ref %i:%s ",*resnum+1,axis.ResName());
       axis.PrintAtomNames();
     }
 
@@ -1088,8 +1087,8 @@ int Action_NAstruct::setup() {
     BaseAxes.push_back( axis );
   } // End Loop over NA residues
 
-  Nbases = (int)RefCoords.size(); // Also BaseAxes, ExpFrames, and ExpMasks size.
-  mprintf("\tSet up %i bases.\n",Nbases);
+  // NOTE: RefCoords size is also BaseAxes, ExpFrames, and ExpMasks size.
+  mprintf("\tSet up %zu bases.\n", RefCoords.size());
 
   return 0;  
 }
@@ -1101,8 +1100,9 @@ int Action_NAstruct::action() {
   if ( setupBaseAxes(currentFrame) ) return 1;
 
   if (!useReference_) {
-    // Determine Base Pairing
+    // Determine Base Pairing based on first frame
     if ( determineBasePairing() ) return 1;
+    useReference_ = true;
   } else {
     // Base pairing determined from ref. Just calc # hbonds for each pair.
     int bp = 0;
@@ -1116,132 +1116,108 @@ int Action_NAstruct::action() {
   // Determine base pair parameters
   determineBasepairParameters();
 
-  ++Nframe;
-
   return 0;
 } 
 
 // Action_NAstruct::print()
 void Action_NAstruct::print() {
-/*  CpptrajFile outfile;
-  CharBuffer buffer;
-  int frame, nbasepair;
-  char tempName[64]; // NOTE: Replce with string?
-  size_t dataFileSize;
-  DataSet *na_dataset = NULL;*/
-
-  // Set precision of all datasets
-/*  int dsw = 12;
-  int dsp = 2;
-  SHEAR.SetPrecisionOfDatasets(dsw,dsp);
-  STRETCH.SetPrecisionOfDatasets(dsw,dsp);
-  STAGGER.SetPrecisionOfDatasets(dsw,dsp);
-  BUCKLE.SetPrecisionOfDatasets(dsw,dsp);
-  PROPELLER.SetPrecisionOfDatasets(dsw,dsp);
-  OPENING.SetPrecisionOfDatasets(dsw,dsp);
-  SHIFT.SetPrecisionOfDatasets(dsw,dsp);
-  SLIDE.SetPrecisionOfDatasets(dsw,dsp);
-  RISE.SetPrecisionOfDatasets(dsw,dsp);
-  TILT.SetPrecisionOfDatasets(dsw,dsp);
-  ROLL.SetPrecisionOfDatasets(dsw,dsp);
-  TWIST.SetPrecisionOfDatasets(dsw,dsp);*/
-
-/*  if (naoutFilename==NULL) return;
+  CpptrajFile outfile;
+  int nframes;
+  if (outputsuffix_.empty()) return;
 
   // ---------- Base pair parameters ----------
-  sprintf(tempName,"BP.%s",naoutFilename);
-  if ( outfile.SetupFile(tempName, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
-    mprinterr("Error: NAstruct::print(): Could not set up naout file %s\n",tempName);
-    return;
-  }
-  if ( outfile.OpenFile() ) return;
-  // Calculate dataFileSize
-  // First 2 cols 8, rest are 12 because all double datasets being used.
-  // 1) Header: [8*2] + [12*6] + 8
-  if (!noheader)
-    dataFileSize = 96;
-  else 
-    dataFileSize = 0;
-  // 2) Data: 
-  //   ((header size * nbasepair)+1) * nframes
-  dataFileSize += (((96 * SHEAR.Size())+1) * Nframe);
-  // Allocate buffer
-  buffer.Allocate( dataFileSize );
-  // Write File header
-  if (!noheader)
-    buffer.Sprintf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BasePair",
-                   "Shear","Stretch","Stagger","Buckle","Propeller","Opening");
-  // Write Base pair data for each frame
-  for (frame=0; frame < Nframe; frame++) {
-    // Base-pair parameters
-    for (nbasepair=0; nbasepair < SHEAR.Size(); nbasepair++) {
-      // Frame and base pair #
-      buffer.Sprintf("%8i %8i",frame+OUTPUTFRAMESHIFT,nbasepair+1);
-      na_dataset = SHEAR.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = STRETCH.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = STAGGER.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = BUCKLE.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = PROPELLER.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = OPENING.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      buffer.NewLine();
+  std::string outfilename = "BP." + outputsuffix_;
+  // Check that there is actually data
+  if ( SHEAR_.empty() || SHEAR_[0]->Empty() )
+    mprinterr("Error: nastruct: Could not write BP file %s: No BP data.\n",outfilename.c_str()); 
+  else {
+    if (outfile.OpenWrite( outfilename ) == 0) {
+      // Determine number of frames from SHEAR[0] DataSet
+      nframes = SHEAR_[0]->Size();
+      mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
+              outfilename.c_str(), nframes, BasePair.size() / 3);
+      //  File header
+      if (printheader_)
+        outfile.Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s\n","#Frame","Base1","Base2",
+                       "Shear","Stretch","Stagger","Buckle","Propeller","Opening", "HB");
+      // Loop over all frames
+      for (int frame = 0; frame < nframes; ++frame) {
+        int nbp = 0;
+        for (unsigned int bpidx = 0; bpidx < BasePair.size(); bpidx+= 3) {
+          int bp_1 = BasePair[bpidx  ];
+          int bp_2 = BasePair[bpidx+1];
+          // FIXME: Hack for integer
+          int n_of_hb = (int)BPHBONDS_[nbp]->Dval(frame);
+          outfile.Printf(BP_OUTPUT_FMT, frame+OUTPUTFRAMESHIFT, 
+                         BaseAxes[bp_1].ResNum()+1, BaseAxes[bp_2].ResNum()+1,
+                         SHEAR_[nbp]->Dval(frame), STRETCH_[nbp]->Dval(frame),
+                         STAGGER_[nbp]->Dval(frame), BUCKLE_[nbp]->Dval(frame),
+                         PROPELLER_[nbp]->Dval(frame), OPENING_[nbp]->Dval( frame),
+                         n_of_hb);
+          ++nbp;
+        }
+        outfile.Printf("\n");
+      }
+      outfile.CloseFile();
+    } else {
+      mprinterr("Error: nastruct: Could not open %s for writing.\n", outfilename.c_str());
     }
-    buffer.NewLine(); 
   }
-  outfile.IO->Write(buffer.Buffer(), sizeof(char), buffer.CurrentSize());
-  outfile.CloseFile();
-  
+
   // ---------- Base pair step parameters ----------
-  sprintf(tempName,"BPstep.%s",naoutFilename);
-  if ( outfile.SetupFile(tempName, WRITE, UNKNOWN_FORMAT, UNKNOWN_TYPE, debug) ) {
-    mprinterr("Error: NAstruct::print(): Could not set up naout file %s\n",tempName);
-    return;
-  }
-  if ( outfile.OpenFile() ) return;
-  // Calculate dataFileSize
-  // First 2 cols 8, rest are 12 because all double datasets being used.
-  // 1) Header: [8*2] + [12*6] + 8
-  if (!noheader)
-    dataFileSize = 96;
-  else
-    dataFileSize = 0;
-  // 2) Data: 
-  //   ((header size * nbpstep)+1) * nframes
-  dataFileSize += (((96 * SHIFT.Size())+1) * Nframe);
-  // Allocate buffer
-  buffer.Allocate( dataFileSize );
-  // Write File header
-  if (!noheader)
-    buffer.Sprintf("%-8s %8s %12s %12s %12s %12s %12s %12s\n","#Frame","BPstep",
-                   "Shift","Slide","Rise","Tilt","Roll","Twist");
-  // Write base pair step data for each frame
-  for (frame=0; frame < Nframe; frame++) {
-    // Base-pair step parameters
-    for (nbasepair=0; nbasepair < SHIFT.Size(); nbasepair++) {
-      // Frame and base pair #
-      buffer.Sprintf("%8i %8i",frame+OUTPUTFRAMESHIFT,nbasepair+1);
-      na_dataset = SHIFT.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = SLIDE.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = RISE.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = TILT.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = ROLL.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      na_dataset = TWIST.GetDataSetN(nbasepair);
-      na_dataset->WriteBuffer(buffer,frame);
-      buffer.NewLine();
+  CpptrajFile outfile2;
+  outfilename = "BPstep." + outputsuffix_;
+  std::string outfilename2 = "Helix." + outputsuffix_;
+  // Check that there is actually data
+  // TODO: Check helix data as well
+  if ( SHIFT_.empty() || SHIFT_[0]->Empty() )
+    mprinterr("Error: nastruct: Could not write BPstep / helix files: No data.\n"); 
+  else {
+    int err = 0;
+    err += outfile.OpenWrite( outfilename );
+    err += outfile2.OpenWrite( outfilename2 );
+    if (err == 0) {
+      // Determine number of frames from SHIFT[0] DataSet. Should be same as SHEAR.
+      nframes = SHIFT_[0]->Size();
+      mprintf("\tBase pair step output file %s;",outfilename.c_str());
+      mprintf("Helix output file %s; %i frames, %zu base pair steps.\n", outfilename2.c_str(),
+              nframes, BasePairAxes.size() - 1);
+      //  File headers
+      if (printheader_) {
+        outfile.Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+                       "Shift","Slide","Rise","Tilt","Roll","Twist");
+        outfile2.Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+                        "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
+      }
+      // Loop over all frames
+      for (int frame = 0; frame < nframes; ++frame) {
+        int nstep = 0;
+        for (unsigned int bpi = 0; bpi < BasePairAxes.size() - 1; bpi++) {
+          unsigned int bpj = bpi+1;
+          // BPstep write
+          outfile.Printf(NA_OUTPUT_FMT, frame+OUTPUTFRAMESHIFT, 
+                         BasePairAxes[bpi].ResNum()+1, BasePairAxes[bpi].ResNum2()+1,
+                         BasePairAxes[bpj].ResNum()+1, BasePairAxes[bpj].ResNum2()+1,
+                         SHIFT_[nstep]->Dval(frame), SLIDE_[nstep]->Dval(frame),
+                         RISE_[nstep]->Dval(frame), TILT_[nstep]->Dval(frame),
+                         ROLL_[nstep]->Dval(frame), TWIST_[nstep]->Dval(frame));
+          // Helix write
+          outfile2.Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT,
+                          BasePairAxes[bpi].ResNum()+1, BasePairAxes[bpi].ResNum2()+1,
+                          BasePairAxes[bpj].ResNum()+1, BasePairAxes[bpj].ResNum2()+1,
+                          XDISP_[nstep]->Dval(frame), YDISP_[nstep]->Dval(frame),
+                          HRISE_[nstep]->Dval(frame), INCL_[nstep]->Dval(frame),
+                          TIP_[nstep]->Dval(frame), HTWIST_[nstep]->Dval(frame));
+          ++nstep;
+        }
+        outfile.Printf("\n");
+        outfile2.Printf("\n");
+      }
+      outfile.CloseFile();
+      outfile2.CloseFile();
+    } else {
+      mprinterr("Error: nastruct: Could not open BPstep files for writing.\n");
     }
-    buffer.NewLine();
   }
-  outfile.IO->Write(buffer.Buffer(), sizeof(char), buffer.CurrentSize());
-  outfile.CloseFile();*/
 }
 

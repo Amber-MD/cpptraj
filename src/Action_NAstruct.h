@@ -38,37 +38,39 @@ class Action_NAstruct: public Action {
     std::vector<AtomMask> ExpMasks;     ///< Hold atom masks of each base for input coordinates
     std::vector<AtomMask> FitMasks;     ///< Hold atom masks used to RMS-fit each base
     std::vector<int> BasePair;          ///< [Base1-0,Base2-0,IsAnti-0], [Base1-1...
-    std::vector<int> NumberOfHbonds_;   ///< # hbonds between each bsae pair
-    int Nbp;                            ///< Total number of base pairs
-    int Nbases;                         ///< Total number of NA bases
-    double HBdistCut2;                  ///< distance Cutoff^2 for determining hydrogen bonds
-    double HBangleCut2;                 ///< Angle Cutoff^2 for determining if bases can h bond
-    double originCut2;                  ///< Cutoff^2 for determining base-pairing vi origins
-    int Nframe;                         ///< Keep track of # frames for print() function
-    bool useReference_;
-    std::map<std::string,AxisType::NAbaseType> CustomMap;
-    std::map<std::string,AxisType::NAbaseType>::iterator customRes;
-    CpptrajFile BPOut;
-    CpptrajFile BPstepOut;
-    CpptrajFile HelixOut;
- /*   // Datasets
-    DataSetList SHEAR;
-    DataSetList STRETCH;
-    DataSetList STAGGER;
-    DataSetList BUCKLE;
-    DataSetList PROPELLER;
-    DataSetList OPENING;
-    DataSetList SHIFT;
-    DataSetList SLIDE;
-    DataSetList RISE;
-    DataSetList TILT;
-    DataSetList ROLL;
-    DataSetList TWIST;*/
-    // Init Args
-    Range resRange;
-    //char *outFilename;
-    //char *naoutFilename;
-    bool noheader;
+    std::vector<int> NumberOfHbonds_;   ///< # hbonds between each base pair
+    double HBdistCut2_;                 ///< distance Cutoff^2 for determining hydrogen bonds
+    //double HBangleCut2_;                ///< Angle Cutoff^2 for determining if bases can h bond
+    double originCut2_;                 ///< Cutoff^2 for determining base-pairing vi origins
+    Range resRange;                     ///< Range to search for NA residues.
+    bool printheader_;                  ///< If true, print header to naout files.
+    bool useReference_;                 ///< If true, use reference to determine base pairing.
+    std::string outputsuffix_;          ///< Output file suffix (BP.<suffix> etc)
+    std::string dataname_;              ///< NA DataSet name (default NA).
+
+    typedef std::map<std::string,AxisType::NAbaseType> ResMapType;
+    ResMapType CustomMap;
+    // Datasets - 1 entry per BP/BPstep
+    typedef std::vector<DataSet*> Darray;
+    Darray SHEAR_;
+    Darray STRETCH_;
+    Darray STAGGER_;
+    Darray BUCKLE_;
+    Darray PROPELLER_;
+    Darray OPENING_;
+    Darray BPHBONDS_;
+    Darray SHIFT_;
+    Darray SLIDE_;
+    Darray RISE_;
+    Darray TILT_;
+    Darray ROLL_;
+    Darray TWIST_;
+    Darray XDISP_;
+    Darray YDISP_;
+    Darray HRISE_;
+    Darray INCL_;
+    Darray TIP_;
+    Darray HTWIST_;
     // Functions
     void ClearLists();
     int GCpair(AxisType *, AxisType *);
