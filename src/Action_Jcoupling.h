@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 #include "Action.h"
-// Class: Jcoupling
+// Class: Action_Jcoupling
 /// Calculate j-coupling values based on dihedrals using the Karplus equation.
 /*! \author Original Code: J. Maier, Stony Brook 2011.
     \author Adapted by: D. Roe, Rutgers 2011.
@@ -16,18 +16,31 @@
     described by Perez et al. JACS (2001) 123 p.7081-7093 and the first 
     three constants represent C0, C1, and C2.
  */
-class Jcoupling: public Action {
+class Action_Jcoupling: public Action {
+  public:
+    Action_Jcoupling();
+    ~Action_Jcoupling();
+  private:
+    int init();
+    int setup();
+    int action();
+
+    /// Load Karplus parameters from a file
+    int loadKarplus(std::string);
+
     /// Hold Karplus parameters for a dihedral
     struct karplusConstant {
       NameType atomName[4]; ///< Name of each atom involved in dihedral
-      int offset[4];    ///< Offsets
-      double C[4];      ///< Constants
-      int type;         ///< Calculation type (0=Chou, 1=Perez)
+      int offset[4];        ///< Offsets
+      double C[4];          ///< Constants
+      int type;             ///< Calculation type (0=Chou, 1=Perez)
     };
     /// Hold all Karplus constants for a given residue
-    typedef std::vector<karplusConstant> *karplusConstantList;
+    typedef std::vector<karplusConstant> karplusConstantList;
+    /// Map residue names to Karplus constants
+    typedef std::map<std::string,karplusConstantList*> karplusConstantMap;
     /// Hold Karplus constants for all residues
-    std::map<std::string,karplusConstantList> KarplusConstants;
+    karplusConstantMap KarplusConstants_;
     /// Hold info for single j-coupling calculation
     struct jcouplingInfo {
       int residue; ///< Residue number
@@ -36,20 +49,10 @@ class Jcoupling: public Action {
       int type;    ///< Calculation type (0=Chou, 1=Perez)
     };
     /// Hold info for all j-coupling calcs
-    std::vector<jcouplingInfo> JcouplingInfo;
+    std::vector<jcouplingInfo> JcouplingInfo_;
 
-    AtomMask Mask1;
-    int Nconstants;
-    // DEBUG
-    CpptrajFile outputfile;
-    /// Load Karplus parameters from a file
-    int loadKarplus(std::string);
-  public:
-    Jcoupling();
-    ~Jcoupling();
-
-    int init();
-    int setup();
-    int action();
+    AtomMask Mask1_;
+    int Nconstants_;
+    CpptrajFile outputfile_;
 };
 #endif  

@@ -1,61 +1,60 @@
-// Jcoupling
-#include "Action_Jcoupling.h"
+// Action_Jcoupling
 #include <cstdlib> //getenv
 #include <cstdio> //sscanf
 #include <cstring> //strcpy, strlen
 #include <cmath> //cos
+#include "Action_Jcoupling.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD, RADDEG
 
 // CONSTRUCTOR
-Jcoupling::Jcoupling() {
+Action_Jcoupling::Action_Jcoupling() :
+  Nconstants_(0)
+{
   //fprintf(stderr,"Jcoupling Con\n");
-  Nconstants=0;
 } 
 
 // DESTRUCTOR
-Jcoupling::~Jcoupling() {
+Action_Jcoupling::~Action_Jcoupling() {
   //fprintf(stderr,"Jcoupling Destructor.\n");
-  for (std::map<std::string,karplusConstantList>::iterator reslist = KarplusConstants.begin();
-                                                    reslist != KarplusConstants.end();
-                                                    reslist++)
+  for (karplusConstantMap::iterator reslist = KarplusConstants_.begin();
+                                    reslist != KarplusConstants_.end(); ++reslist)
   {
-    std::vector<karplusConstant> *currentList = (*reslist).second;
+    karplusConstantList* currentList = (*reslist).second;
     delete currentList;
   }
-  // DEBUG - Close output
-  outputfile.CloseFile();
+  // Close output
+  outputfile_.CloseFile();
 }
 
-// Jcoupling::loadKarplus()
+// Action_Jcoupling::loadKarplus()
 /** Load Karplus parameters from input file.
   * Expected format:
   * - {type}<+|-| ><a[4]><+|-| ><b[4]><+|-| ><c[4]><+|-| ><d[4]><A[6]><B[6]><C[6]>{<D[6]>}
   *   <reslabel[4]>* 
   * \return 0 on success, 1 on error
   */
-int Jcoupling::loadKarplus(std::string filename) {
+int Action_Jcoupling::loadKarplus(std::string filename) {
   char buffer[512],residue[5];
   char *end, *ptr;
   int i;
   CpptrajFile KarplusFile;
   karplusConstant KC;
-  std::vector<karplusConstant> *currentResList=NULL;
+  karplusConstantList* currentResList=NULL;
   std::string CurrentRes;
-  std::map<std::string,karplusConstantList>::iterator reslist;
+  karplusConstantMap::iterator reslist;
 
   if (filename.empty()) {
     mprinterr("Error: jcoupling: Could not find Karplus parameter file.\n");
     return 1;
   }
-  if (KarplusFile.SetupRead((char*)filename.c_str(),debug)) {
+  if (KarplusFile.OpenRead( filename )) {
     mprinterr("Error: jcoupling: Could not read Karplus parameter file %s\n",
               filename.c_str());
     return 1;
   }
   // residue is only for reading in 4 chars for residue names
   residue[4]='\0'; 
-  KarplusFile.OpenFile();
   // Read through all lines of the file
   while (KarplusFile.Gets(buffer,512)==0) {
     // Skip newlines and comments
@@ -108,30 +107,31 @@ int Jcoupling::loadKarplus(std::string filename) {
       residue[3] = ptr[3];
       CurrentRes.assign(residue);
       //mprintf("DEBUG:\t[%s]\n",CurrentRes.c_str());
-      reslist = KarplusConstants.find(CurrentRes);
-      // If list does not exist for residue yet, create it.
-      // Otherwise, retrieve it
-      if (reslist == KarplusConstants.end() ) {
-        currentResList = new std::vector<karplusConstant>;
-        KarplusConstants.insert(reslist, 
-                                std::pair<std::string,karplusConstantList>(
-                                  CurrentRes,currentResList));
+      reslist = KarplusConstants_.find(CurrentRes);
+      if (reslist == KarplusConstants_.end() ) {
+        // List does not exist for residue yet, create it.
+        currentResList = new karplusConstantList;
+        KarplusConstants_.insert( reslist, 
+                                  std::pair<std::string,karplusConstantList*>(
+                                    CurrentRes,currentResList) );
       } else
+        // Retrieve list for residue.
         currentResList = (*reslist).second;
 
       currentResList->push_back(KC);
-      Nconstants++;
+      ++Nconstants_;
     } // END loop over residues in residue line 
   } // END Gets over input file
   KarplusFile.CloseFile();
   // DEBUG - Print out all parameters
   if (debug>0) {
       mprintf("    KARPLUS PARAMETERS:\n");
-      for (reslist=KarplusConstants.begin(); reslist!=KarplusConstants.end(); reslist++) {
+      for (reslist=KarplusConstants_.begin(); reslist!=KarplusConstants_.end(); ++reslist) 
+      {
         mprintf("\t[%4s]\n",(*reslist).first.c_str());
-        for (std::vector<karplusConstant>::iterator kc=currentResList->begin();
-                                                    kc!=currentResList->end();
-                                                    kc++) {
+        for (karplusConstantList::iterator kc = currentResList->begin();
+                                           kc != currentResList->end(); ++kc) 
+        {
           mprintf("\t\t%1i",(*kc).type);
           mprintf(" %4s",*((*kc).atomName[0]));
           mprintf(" %4s",*((*kc).atomName[1]));
@@ -146,10 +146,10 @@ int Jcoupling::loadKarplus(std::string filename) {
 }
 
 // -----------------------------------------------------------------------------
-// Jcoupling::init()
+// Action_Jcoupling::init()
 /** Expected call: jcoupling <mask1> [outfile <filename>]
   */
-int Jcoupling::init( ) {
+int Action_Jcoupling::init( ) {
   char *mask1;
   char *outfilename;
   char *env;
@@ -161,7 +161,7 @@ int Jcoupling::init( ) {
   // Get Masks
   mask1 = actionArgs.getNextMask();
   //fprintf(stdout,"    Mask 1: %s\n",mask1);
-  Mask1.SetMaskString(mask1);
+  Mask1_.SetMaskString(mask1);
 
   // Dataset setup 
   // Add dataset to data file list
@@ -194,40 +194,39 @@ int Jcoupling::init( ) {
   if (loadKarplus(karpluspath)) 
     return 1;
 
-  mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n",Mask1.MaskString());
+  mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n",Mask1_.MaskString());
   mprintf("                Using Karplus parameters in \"%s\"\n",karpluspath.c_str());
-  mprintf("                %i parameters found for %i residues.\n",Nconstants,
-          KarplusConstants.size());
+  mprintf("                %i parameters found for %zu residues.\n",Nconstants_,
+          KarplusConstants_.size());
   mprintf("                Writing output to %s\n",outfilename);
 
-  // DEBUG - Open output
-  outputfile.SetupWrite(outfilename,debug);
-  outputfile.OpenFile();
+  // Open output
+  if ( outputfile_.OpenWrite( outfilename ) ) return 1;
 
   return 0;
 }
 
-// Jcoupling::setup()
+// Action_Jcoupling::setup()
 /** Set up a j-coupling calculation for dihedrals defined by atoms within
   * the mask.
   */
-int Jcoupling::setup() {
+int Action_Jcoupling::setup() {
   std::string resName;
-  std::vector<karplusConstant> *currentResList=NULL;
+  karplusConstantList* currentResList=NULL;
   int MaxResidues;
   jcouplingInfo JC;
 
-  if ( currentParm->SetupCharMask(Mask1) ) return 1;
-  if (Mask1.None()) {
+  if ( currentParm->SetupCharMask(Mask1_) ) return 1;
+  if (Mask1_.None()) {
     mprinterr("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
     return 1;
   }
   // If JcouplingInfo has already been set up, print a warning and reset for
   // new parm.
-  if (JcouplingInfo.size() > 0) {
+  if (!JcouplingInfo_.empty()) {
     mprintf("    Warning: Jcoupling has been set up for another parm.\n");
     mprintf("             Resetting jcoupling info for new parm %s\n",currentParm->c_str());
-    JcouplingInfo.clear();
+    JcouplingInfo_.clear();
   }
 
   // For each residue, set up 1 jcoupling calc for each parameter defined in
@@ -236,16 +235,16 @@ int Jcoupling::setup() {
   MaxResidues = currentParm->FinalSoluteRes();
   for (int residue=0; residue < MaxResidues; residue++) {
     resName.assign(currentParm->ResidueName(residue));
-    std::map<std::string,karplusConstantList>::iterator reslist = KarplusConstants.find(resName);
+    karplusConstantMap::iterator reslist = KarplusConstants_.find(resName);
     // If list does not exist for residue, skip it.
-    if (reslist == KarplusConstants.end() ) {
+    if (reslist == KarplusConstants_.end() ) {
       mprintf("    Warning: Jcoupling::setup: Karplus parameters not found for residue [%i:%s]\n",
               residue+1, resName.c_str());
       continue;
     }
     currentResList = (*reslist).second;
     // For each parameter set in the list find the corresponding atoms.
-    for (std::vector<karplusConstant>::iterator kc = currentResList->begin();
+    for (karplusConstantList::iterator kc = currentResList->begin();
                                                 kc != currentResList->end();
                                                 kc++) 
     {
@@ -273,31 +272,30 @@ int Jcoupling::setup() {
       }
       // Check that all the atoms involved in this Jcouple dihedral are
       // in the atom mask.
-      if (!Mask1.AtomInCharMask(JC.atom[0])) continue;
-      if (!Mask1.AtomInCharMask(JC.atom[1])) continue;
-      if (!Mask1.AtomInCharMask(JC.atom[2])) continue;
-      if (!Mask1.AtomInCharMask(JC.atom[3])) continue;
+      if (!Mask1_.AtomInCharMask(JC.atom[0])) continue;
+      if (!Mask1_.AtomInCharMask(JC.atom[1])) continue;
+      if (!Mask1_.AtomInCharMask(JC.atom[2])) continue;
+      if (!Mask1_.AtomInCharMask(JC.atom[3])) continue;
       // Add this jcoupling info to the list
-      JcouplingInfo.push_back(JC);
+      JcouplingInfo_.push_back(JC);
     } // END loop over karplus parameters for this residue
   } // END loop over all residues
 
   // Print info for this parm
-  mprintf("    J-COUPLING: [%s] Will calculate J-coupling for %u dihedrals.\n",Mask1.MaskString(),
-          JcouplingInfo.size());
-  if (JcouplingInfo.size()==0) {
+  mprintf("    J-COUPLING: [%s] Will calculate J-coupling for %zu dihedrals.\n",
+          Mask1_.MaskString(), JcouplingInfo_.size());
+  if (JcouplingInfo_.empty()) {
     mprintf("    Warning: No dihedrals found for J-coupling calculation!\n");
     mprintf("             Check that all atoms of dihedrals are included in mask [%s]\n",
-            Mask1.MaskString());
+            Mask1_.MaskString());
     mprintf("             and/or that dihedrals are defined in Karplus parameter file.\n");
     return 1;
   }
   // DEBUG
   if (debug>0) {
     MaxResidues=0;
-    for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo.begin();
-                                              jc !=JcouplingInfo.end();
-                                              jc++) 
+    for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
+                                              jc !=JcouplingInfo_.end(); ++jc) 
     {
       mprintf("%8i [%i:%4s]",MaxResidues+1,(*jc).residue,currentParm->ResidueName((*jc).residue));
       mprintf(" %6i:%-4s",(*jc).atom[0],(*currentParm)[(*jc).atom[0]].c_str());
@@ -312,20 +310,19 @@ int Jcoupling::setup() {
   return 0;  
 }
 
-// Jcoupling::action()
+// Action_Jcoupling::action()
 /** For each dihedral defined in JcouplingInfo, perform the dihedral and
   * Jcoupling calculation.
   */
-int Jcoupling::action() {
-  double phi,J;
-  double phitemp,C0,C1,C2,C3;
+int Action_Jcoupling::action() {
+  double phi, Jval;
+  double phitemp, C0, C1, C2, C3;
   int residue;
 
-  outputfile.Printf("#Frame %i\n",frameNum+OUTPUTFRAMESHIFT);
+  outputfile_.Printf("#Frame %i\n",frameNum+OUTPUTFRAMESHIFT);
 
-  for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo.begin();
-                                            jc !=JcouplingInfo.end();
-                                            jc++)
+  for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
+                                            jc !=JcouplingInfo_.end(); ++jc)
   {
     phi = currentFrame->DIHEDRAL( (*jc).atom[0], (*jc).atom[1], (*jc).atom[2], (*jc).atom[3] );
     C0 = (*jc).C[0];
@@ -335,29 +332,23 @@ int Jcoupling::action() {
     if ((*jc).type==1) {
       //J = JcouplingC((*jc).C, phi);
       //phitemp = phi + C3; // Only necessary if offsets become used in perez-type calc
-      J = C0 + (C1 * cos(phi)) + (C2 * cos(phi * 2.0)); 
+      Jval = C0 + (C1 * cos(phi)) + (C2 * cos(phi * 2.0)); 
     } else {
       //J = JcouplingABC((*jc).C, phi);
       phitemp = cos( phi + C3 );
-      J = (C0 * phitemp * phitemp) + (C1 * phitemp) + C2;
+      Jval = (C0 * phitemp * phitemp) + (C1 * phitemp) + C2;
     }
 
     residue = (*jc).residue;
-    // DEBUG - output
-    outputfile.Printf("%5i %4s%4s%4s%4s%4s%12lf%12lf\n",
-            residue+1,currentParm->ResidueName(residue),
-            (*currentParm)[(*jc).atom[0]].c_str(),(*currentParm)[(*jc).atom[1]].c_str(),
-            (*currentParm)[(*jc).atom[2]].c_str(),(*currentParm)[(*jc).atom[3]].c_str(),
-            phi*RADDEG,J);
-    //mprintf("%5i %4s",residue+1,P->resnames[residue]);
-    //mprintf("%4s",P->names[(*jc).atom[0]]);
-    //mprintf("%4s",P->names[(*jc).atom[1]]);
-    //mprintf("%4s",P->names[(*jc).atom[2]]);
-    //mprintf("%4s",P->names[(*jc).atom[3]]);
-    //mprintf("%12lf%12lf\n",phi,J);
+    // Output
+    outputfile_.Printf("%5i %4s%4s%4s%4s%4s%12lf%12lf\n",
+                       residue+1, currentParm->ResidueName(residue),
+                       (*currentParm)[(*jc).atom[0]].c_str(), 
+                       (*currentParm)[(*jc).atom[1]].c_str(),
+                       (*currentParm)[(*jc).atom[2]].c_str(), 
+                       (*currentParm)[(*jc).atom[3]].c_str(),
+                       phi*RADDEG, Jval);
   }
 
-  //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
-  
   return 0;
 } 

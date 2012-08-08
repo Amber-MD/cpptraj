@@ -108,7 +108,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("radial"))         {Act=new Radial;  }
   else if (argIn.CommandIs("drmsd"))          {Act=new DistRmsd;}
   else if (argIn.CommandIs("drms"))           {Act=new DistRmsd;}
-  else if (argIn.CommandIs("jcoupling"))      {Act=new Jcoupling;}
+  else if (argIn.CommandIs("jcoupling"))      {Act=new Action_Jcoupling;}
   else if (argIn.CommandIs("cluster"))        {Act=new Clustering;}
   //else if (argIn.CommandIs("pairwise"))       {Act=new Pairwise;}
   else if (argIn.CommandIs("molsurf"))        {Act=new Molsurf; }
