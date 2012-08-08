@@ -90,7 +90,7 @@ class AxisType : public Frame
     static const int URAhbonds[];
     static const double URAcoords[][3];
     /// Identify NA base from residue name
-    NAbaseType ID_base(char*);
+    NAbaseType ID_base(NameType);
     /// Strings corresponding to NAbaseType
     static const char NAbaseName[][4];
     /// Atom Names

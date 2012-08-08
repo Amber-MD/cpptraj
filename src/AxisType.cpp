@@ -230,9 +230,10 @@ double *AxisType::Origin() {
   * NOTE: Currently based only on amber residue names. Will not recognize
   * non-standard bases.
   */
-AxisType::NAbaseType AxisType::ID_base(char *resname) {
+// FIXME: Accept a reference instead of copy
+AxisType::NAbaseType AxisType::ID_base(NameType resname) {
   //mprintf("DBG:\tNAresname [%s]\n",resname);
-  if (resname==NULL) return UNKNOWN_BASE;
+  //if (resname==NULL) return UNKNOWN_BASE;
   // If residue name begins with D, assume AMBER DNA residue
   if (resname[0]=='D') {
     switch (resname[1]) {
@@ -251,16 +252,16 @@ AxisType::NAbaseType AxisType::ID_base(char *resname) {
     }
   // Look for standard 3 letter/1 letter NA residue names
   } else {
-    if (strncmp(resname,"ADE",3)==0) return ADE;
-    if (strncmp(resname,"CYT",3)==0) return CYT;
-    if (strncmp(resname,"GUA",3)==0) return GUA;
-    if (strncmp(resname,"THY",3)==0) return THY;
-    if (strncmp(resname,"URA",3)==0) return URA;
-    if (resname[0]=='A') return ADE;
-    if (resname[0]=='C') return CYT;
-    if (resname[0]=='G') return GUA;
-    if (resname[0]=='T') return THY;
-    if (resname[0]=='U') return URA;
+    if ( resname == "ADE " ) return ADE;
+    if ( resname == "CYT " ) return CYT;
+    if ( resname == "GUA " ) return GUA;
+    if ( resname == "THY " ) return THY;
+    if ( resname == "URA " ) return URA;
+    if ( resname == "A   " ) return ADE;
+    if ( resname == "C   " ) return CYT;
+    if ( resname == "G   " ) return GUA;
+    if ( resname == "T   " ) return THY;
+    if ( resname == "U   " ) return URA;
   } 
   return UNKNOWN_BASE;
 }
@@ -400,7 +401,7 @@ AxisType::RefReturn AxisType::SetRefCoord(Topology *currentParm, int resnum,
 
   // First, identify the base
   if (customBaseType==UNKNOWN_BASE) 
-    ID = ID_base(currentParm->ResidueName(resnum));
+    ID = ID_base(currentParm->Res(resnum).Name());
   else
     ID = customBaseType;
   // If unknown exit now
