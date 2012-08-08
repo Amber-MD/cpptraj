@@ -44,8 +44,7 @@ class AxisType : public Frame
     void OXYZ(double Vin[3]);
     double *Origin();
 
-    char *BaseName();
-    char *ResName();
+    const char* ResName();
     int ResNum() { return residue_number; }
     int ResNum2() { return second_resnum; }
     bool AtomNameIs(int, char *);
@@ -62,6 +61,7 @@ class AxisType : public Frame
     void FlipYZ();
     void FlipXY();
 #ifdef NASTRUCTDEBUG
+    const char* BaseName();
     void WritePDB(CpptrajFile &, int, char *, int *); // DEBUG
     void WriteAxesPDB(CpptrajFile &, int, char *, int *);
     const double operator[](int idx) {
@@ -101,8 +101,10 @@ class AxisType : public Frame
     int second_resnum;
     /// Origin coordinates
     double origin[3];
+#ifdef NASTRUCTDEBUG
     /// DEBUG - Storage for writing out BaseName + residue_number 
-    char basename_num[32];
+    std::string basename_num_;
+#endif
 
     int AllocAxis(int);
 };

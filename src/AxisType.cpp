@@ -1,7 +1,6 @@
 // AxisType
 #include <map>
-#include <cstring> // memcpy,strncmp
-#include <cstdio> //sprintf
+#include <cstring> // memcpy
 #include "AxisType.h"
 #include "CpptrajStdio.h"
 
@@ -282,15 +281,18 @@ int AxisType::AllocAxis(int natomIn) {
 }
 
 // ------------------------- PUBLIC FUNCTIONS ---------------------------------
+#ifdef NASTRUCTDEBUG
 // AxisType::BaseName()
-char *AxisType::BaseName() {
-  sprintf(basename_num,"%i:%s",residue_number+1,NAbaseName[ID]);
-  return basename_num; 
+const char* AxisType::BaseName() {
+  if (basename_num_.empty()) 
+    basename_num = integerToString(residue_number + 1) + ":" + std::string(NAbaseName[ID]);
+  return basename_num.c_str();
 }
+#endif
 
 // AxisType::ResName()
-char *AxisType::ResName() {
-  return (char*)NAbaseName[ID];
+const char* AxisType::ResName() {
+  return NAbaseName[ID];
 }
 
 // AxisType::AtomNameIs()
