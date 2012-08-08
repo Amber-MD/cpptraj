@@ -252,6 +252,18 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   return AddSet( inType, nameIn, idxIn, aspectIn, 0 );
 }
 
+// DataSetList::AddSetIdxAspect()
+DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
+                                      std::string const& nameIn,
+                                      int idxIn, std::string const& aspectIn,
+                                      std::string const& legendIn)
+{
+  DataSet* ds = AddSet( inType, nameIn, idxIn, aspectIn, 0 );
+  if (ds != NULL)
+    ds->SetLegend( legendIn );
+  return ds;
+}
+
 // DataSetList::AddSet()
 /** Add a DataSet of specified type, set it up and return pointer to it. 
   * \param inType type of DataSet to add.

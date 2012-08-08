@@ -60,6 +60,9 @@ class DataSetList {
     DataSet* AddSetAspect( DataSet::DataType, std::string const&, std::string const&);
     /// Add DataSet to list with name, idx, and aspect.
     DataSet* AddSetIdxAspect( DataSet::DataType, std::string const&, int, std::string const&);
+    /// Add DataSet to list with name, idx, aspect, and legend.
+    DataSet* AddSetIdxAspect( DataSet::DataType, std::string const&, int, std::string const&,
+                              std::string const&);
     /// Add DataSet to list with name, index, aspect, and size.
     DataSet* AddSet( DataSet::DataType, std::string const&, int, std::string const&, int);
     /// Add DataSet to list that has already been allocated and Setup.
