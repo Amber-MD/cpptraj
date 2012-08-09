@@ -37,10 +37,10 @@ CharmmDcd::~CharmmDcd() {
 }
 
 bool CharmmDcd::ID_TrajFormat() {
-  char buffer[10];
-  memset(buffer, ' ', 10);
+  unsigned char buffer[8];
+  memset(buffer, ' ', 8);
   if (OpenFile()) return false;
-  IO->Gets(buffer, 9);
+  IO->Read(buffer, 8);
   CloseFile();
   // If the second 4 chars are C O R D, charmm DCD
   if (buffer[4] == 'C' &&
