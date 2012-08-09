@@ -26,6 +26,7 @@ class ArgList {
     /// Set the debug level
     void SetDebug(int);
     /// Set up argument list from string and given separators
+    int SetList(const char *);
     int SetList(const char *, const char *);
     int SetList(std::string const&, const char *);
     /// Add argument to the list

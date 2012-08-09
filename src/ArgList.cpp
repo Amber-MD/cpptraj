@@ -63,6 +63,11 @@ void ArgList::SetDebug(int debugIn) {
 }
 
 // ArgList::SetList()
+int ArgList::SetList(const char *inputString) {
+  return SetList(inputString, " ");
+}
+
+// ArgList::SetList()
 int ArgList::SetList(std::string const& inputString, const char* separator) {
   if (inputString.empty()) return 1;
   return (SetList(inputString.c_str(), separator));
