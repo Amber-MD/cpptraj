@@ -19,16 +19,17 @@ class TrajectoryFile {
 
     TrajectoryFile();
     ~TrajectoryFile();
-    // Trajectory IO functions
+    // Trajectory Setup functions
     int SetupRead(const char *, ArgList *, Topology *);
     int SetupWriteWithArgs(const char *, const char *, Topology *, TrajFormatType);
     // TODO: Accept string instead of char*
     int SetupWrite(const char *, ArgList *, Topology *, TrajFormatType);
+    // Trajectory Read/Write functions
     int BeginTraj(bool);
     int EndTraj();
     int GetNextFrame(Frame&);
     int WriteFrame(int, Topology *, Frame&);
-    // Public functions
+
     void SetDebug(int);
     void SingleFrame();
     void PrintInfoLine();
@@ -42,7 +43,6 @@ class TrajectoryFile {
     /// Get type from extension
     TrajFormatType GetTypeFromExtension(std::string const&);
     // Functions that return private vars
-    int CurrentFrame();
     const char *TrajName();
     Topology *TrajParm();
     int Start();
@@ -50,7 +50,6 @@ class TrajectoryFile {
     int Total_Frames();
     int NumFramesProcessed();
     bool HasVelocity();
-
     std::string FileName();
     const char* c_str();
   private:

@@ -920,7 +920,6 @@ void TrajectoryFile::PrintInfo(int showExtended) {
 }
 
 // Return private variables
-int TrajectoryFile::CurrentFrame()       { return currentFrame_;       }
 const char* TrajectoryFile::TrajName()   { return  trajName_;          }
 Topology* TrajectoryFile::TrajParm()     { return trajParm_;           }
 int TrajectoryFile::Start()              { return start_;              }

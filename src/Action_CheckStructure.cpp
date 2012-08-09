@@ -1,11 +1,11 @@
-// CheckStructure
+// Action_CheckStructure
 #include <cmath>
 #include <algorithm> // sort
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-CheckStructure::CheckStructure() : 
+Action_CheckStructure::Action_CheckStructure() : 
   bondoffset_(1.0),
   nonbondcut2_(0.64), // 0.8^2
   isSeparate_(false)
@@ -15,12 +15,12 @@ CheckStructure::CheckStructure() :
 }
 
 // DESTRUCTOR
-CheckStructure::~CheckStructure() {
+Action_CheckStructure::~Action_CheckStructure() {
   //fprintf(stderr,"CheckStructure Destructor.\n");
   outfile_.CloseFile();
 }
 
-// CheckStructure::init()
+// Action_CheckStructure::init()
 /** Expected call: check[structure] [<mask1>] [reportfile <report>] [noimage] 
   *                     [offset <offset>] [cut <cut>]
   */
@@ -28,7 +28,7 @@ CheckStructure::~CheckStructure() {
 //    1) Keywords
 //    2) Masks
 //    3) Dataset name
-int CheckStructure::init( ) {
+int Action_CheckStructure::init( ) {
   // Get Keywords
   useImage_ = !(actionArgs.hasKey("noimage"));
   char *reportFile = actionArgs.getKeyString("reportfile",NULL);
@@ -58,8 +58,8 @@ int CheckStructure::init( ) {
   return 0;
 }
 
-// CheckStructure::SeparateInit()
-void CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutIn, int debugIn) 
+// Action_CheckStructure::SeparateInit()
+void Action_CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutIn, int debugIn) 
 {
   double nonbondcut;
   isSeparate_ = true;
@@ -82,7 +82,7 @@ void CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutIn, int 
   * the mask. It is expected that BndLst has 2 atom indices (i.e.
   * atom# * 3) followed by parameter index that starts from 1.
   */
-void CheckStructure::SetupBondlist(std::vector<int> const& BndLst) {
+void Action_CheckStructure::SetupBondlist(std::vector<int> const& BndLst) {
   bond_list bnd;
   for (std::vector<int>::const_iterator bondatom = BndLst.begin();
                                         bondatom != BndLst.end();
@@ -99,14 +99,14 @@ void CheckStructure::SetupBondlist(std::vector<int> const& BndLst) {
   }
 }
 
-// CheckStructure::setup()
+// Action_CheckStructure::setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Also determine whether imaging should be performed. Check if parm
   * has bonds. If so, set up a list of the bonds between atoms in mask,
   * along with the expected bond lengths. Store bond lengths as 
   * (req + bondoffset)^2 for easy comparison with calculated distance^2.
   */
-int CheckStructure::setup() {
+int Action_CheckStructure::setup() {
   double req = 0;
   double rk = 0;
   unsigned int totalbonds;
@@ -173,8 +173,8 @@ int CheckStructure::setup() {
   return 0;  
 }
 
-// CheckStructure::action()
-int CheckStructure::action() {
+// Action_CheckStructure::action()
+int Action_CheckStructure::action() {
   double ucell[9], recip[9], D2, D, bondmax;
   std::vector<bond_list>::iterator currentBond = bondL_.begin();
 
@@ -219,9 +219,9 @@ int CheckStructure::action() {
   return 0;
 }
 
-// CheckStructure::SeparateAction()
+// Action_CheckStructure::SeparateAction()
 /// Used when you want to check all input coordinates.
-int CheckStructure::SeparateAction(Frame *frameIn) {
+int Action_CheckStructure::SeparateAction(Frame *frameIn) {
   double D2, bondmax;
   std::vector<bond_list>::iterator currentBond = bondL_.begin();
   int Nproblems = 0;

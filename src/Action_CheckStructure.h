@@ -2,12 +2,12 @@
 #define INC_ACTION_CHECKSTRUCTURE_H
 #include <vector>
 #include "Action.h"
-// Class: CheckStructure 
+// Class: Action_CheckStructure 
 /// Action to check bond lengths and bad overlaps between non-bonded atoms 
-class CheckStructure: public Action {
+class Action_CheckStructure: public Action {
   public:
-    CheckStructure();
-    ~CheckStructure();
+    Action_CheckStructure();
+    ~Action_CheckStructure();
 
     void SeparateInit(double, double, int);
     int SeparateAction(Frame *);

@@ -1,4 +1,4 @@
-// Rotdif
+// Action_Rotdif
 #include <cmath>
 #include <cfloat> // DBL_MAX
 #include <cstdio> //sscanf
@@ -9,7 +9,7 @@
 #include "Integrate.h"
 #include "ProgressBar.h"
 
-// Definition of Fortran subroutines in Rotdif.f called from this class
+// Definition of Fortran subroutines called from this class
 #ifndef NO_PTRAJ_ANALYZE
 extern "C" {
   // LAPACK
@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 // CONSTRUCTOR
-Rotdif::Rotdif() :
+Action_Rotdif::Action_Rotdif() :
   rseed_( 1 ),
   nvecs_( 0 ),
   tfac_( 0.0 ),
@@ -56,7 +56,7 @@ Rotdif::Rotdif() :
 } 
 
 // DESTRUCTOR
-Rotdif::~Rotdif() {
+Action_Rotdif::~Action_Rotdif() {
   //fprintf(stderr,"Rotdif Destructor.\n");
   for (std::vector<double*>::iterator Rmatrix = Rmatrices_.begin();
                                       Rmatrix != Rmatrices_.end();
@@ -69,7 +69,7 @@ Rotdif::~Rotdif() {
   outfile_.CloseFile();
 }
 
-// Rotdif::init()
+// Action_Rotdif::init()
 /** Expected call: rotdif [rseed <rseed>] [nvecs <nvecs>]  
   *                       ref <refname> | refindex <refindex> | reference
   *                       [<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>
@@ -84,7 +84,7 @@ Rotdif::~Rotdif() {
 //    1) Keywords
 //    2) Masks
 //    3) Dataset name
-int Rotdif::init( ) {
+int Action_Rotdif::init( ) {
   int refindex;
   char *referenceName, *mask0, *outfilename;
   double Trans[3]; // Dummy variable for CenteredRef routine
@@ -215,11 +215,11 @@ int Rotdif::init( ) {
   return 0;
 }
 
-// Rotdif::setup()
+// Action_Rotdif::setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Also determine whether imaging should be performed.
   */
-int Rotdif::setup() {
+int Action_Rotdif::setup() {
 
   if ( currentParm->SetupIntegerMask( TargetMask_ ) ) return 1;
   if ( TargetMask_.None() ) {
@@ -242,10 +242,10 @@ int Rotdif::setup() {
   return 0;  
 }
 
-// Rotdif::action()
+// Action_Rotdif::action()
 /** Calculate and store the rotation matrix for frame to reference.
   */
-int Rotdif::action() {
+int Action_Rotdif::action() {
   double *U, Trans[6];
 
   // Set selected frame atoms. Masses have already been set.
@@ -260,7 +260,7 @@ int Rotdif::action() {
 } 
 
 // ---------- ROTATIONAL DIFFUSION CALC ROUTINES -------------------------------
-// Rotdif::randvec()
+// Action_Rotdif::randvec()
 /** If no input file is specified by randvecIn, generate nvecs vectors of length 
   * 1.0 centered at the coordinate origin that are randomly oriented. The x,
   * y, and z components of each vector are generated from a polar coordinate 
@@ -275,7 +275,7 @@ int Rotdif::action() {
   */
 // NOTE: Theta could also be generated in the same way as phi. Currently done
 //       to be consistent with the original implementation in randvec.F90
-double *Rotdif::randvec() {
+double *Action_Rotdif::randvec() {
   const size_t BUF_SIZE = 128;
   double *XYZ;
   int xyz_size = nvecs_ * 3;
@@ -336,7 +336,7 @@ double *Rotdif::randvec() {
   return XYZ;
 }
 
-// Rotdif::compute_corr()
+// Action_Rotdif::compute_corr()
 /** Given a normalized vector that has been randomly rotated itotframes 
   * times, compute the time correlation functions of the vector.
   * \param rotated_vectors array of vector coords for each frame, V0x,V0y,V0z,V1x,V1y,V1z 
@@ -345,7 +345,7 @@ double *Rotdif::randvec() {
   * \param p2 Will be set wit values for correlation function, l=2
   * \param p1 Will be set wit values for correlation function, l=1
   */
-int Rotdif::compute_corr(double *rotated_vectors, int maxdat, int itotframes, 
+int Action_Rotdif::compute_corr(double *rotated_vectors, int maxdat, int itotframes, 
                          double *p2, double *p1)
 {
   double *VJ, *VK;
@@ -382,7 +382,7 @@ int Rotdif::compute_corr(double *rotated_vectors, int maxdat, int itotframes,
   return 0; 
 }
 
-// Rotdif::calcEffectiveDiffusionConst()
+// Action_Rotdif::calcEffectiveDiffusionConst()
 /** computes effect diffusion constant for a vector using the integral over
   * its correlation function as input. Starting with definition:
   *
@@ -403,7 +403,7 @@ int Rotdif::compute_corr(double *rotated_vectors, int maxdat, int itotframes,
   * /param f Integral of Cl(t) from ti to tf
   * /return Effective value of D
   */
-double Rotdif::calcEffectiveDiffusionConst(double f ) {
+double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
 // Class variables used:
 //   ti,tf: Integration limits.
 //   itmax: Maximum number of iterations in subroutine itsolv.
@@ -507,7 +507,7 @@ static void PrintMatrix(CpptrajFile &outfile, const char *Title, double *U,
   outfile.Printf("\n");
 }
 
-// Rotdif::calc_Asymmetric()
+// Action_Rotdif::calc_Asymmetric()
 /** Computes tau(l=1) and tau(l=2) with full anisotropy given principal 
   * components of a rotational diffusion tensor and angular coordinates 
   * of a vector (in the PA frame, 
@@ -525,7 +525,7 @@ static void PrintMatrix(CpptrajFile &outfile, const char *Title, double *U,
   * \param matrix_D matrix of size 3x3 containing orthonormal principal vectors
   *        in COLUMN MAJOR order.
   */
-int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D) 
+int Action_Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D) 
 {
   double lambda[8];
   double dx = Dxyz[0];
@@ -686,14 +686,14 @@ int Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
   return 0;
 }
 
-// Rotdif::chi_squared()
+// Action_Rotdif::chi_squared()
 /** Given Q, calculate effective D values for random_vectors with full 
   * anisotropy and compare to the effective D values in D_eff. Sets
   * D_XYZ with principal components and D_tensor with principal vectors
   * in column major order.
   * \return Deviation of calculated D values from given D values.
   */
-double Rotdif::chi_squared(double *Qin) {
+double Action_Rotdif::chi_squared(double *Qin) {
 #ifdef NO_PTRAJ_ANALYZE
   return -1;
 #else
@@ -742,7 +742,7 @@ static void calculate_D_properties(double Dxyz[3], double Dout[3]) {
 #define SM_NP 6
 #define SM_NP1 7
 // Amotry()
-double Rotdif::Amotry(double xsmplx[SM_NP1][SM_NP], double *ysearch,
+double Action_Rotdif::Amotry(double xsmplx[SM_NP1][SM_NP], double *ysearch,
                       double *psum, int ihi, double fac)
 {
   double ytry, fac1, fac2, ptry[SM_NP];
@@ -767,7 +767,7 @@ double Rotdif::Amotry(double xsmplx[SM_NP1][SM_NP], double *ysearch,
 
 // Amoeba()
 /** Main driver for the simplex method */
-int Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
+int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
   int iter;
   bool loop1;
   bool loop2;
@@ -882,7 +882,7 @@ static void Average_vertices(double *xsearch, double xsmplx[SM_NP1][SM_NP]) {
     }
 }
 
-// Rotdif::Simplex_min()
+// Action_Rotdif::Simplex_min()
 /** Main driver routine for Amoeba (downhill simplex) minimizer. In the 
   * simplex method, N+1 initial points (where N is the dimension of the 
   * search space) must be chosen; the SVD solution provides one of these. 
@@ -892,7 +892,7 @@ static void Average_vertices(double *xsearch, double xsmplx[SM_NP1][SM_NP]) {
   * for each of the components of Q; the sign of the variation is randomly 
   * chosen.
   */
-int Rotdif::Simplex_min(double *Q_vector) {
+int Action_Rotdif::Simplex_min(double *Q_vector) {
   double xsearch[SM_NP];
   double ysearch[SM_NP1];
   double xsmplx[SM_NP1][SM_NP];
@@ -1013,14 +1013,14 @@ int Rotdif::Simplex_min(double *Q_vector) {
 #undef SM_NP
 #undef SM_NP1
 
-// Rotdif::Grid_search()
+// Action_Rotdif::Grid_search()
 /** Given a Q tensor, search for a better Q tensor by simple
   * grid search on all 6 elements. If a better solution is found
   * store it.
   * \return 1 if grid search found a better solution.
   * \return 0 if no better solution was found.
   */
-int Rotdif::Grid_search(double *Q_vector, int gridsize) {
+int Action_Rotdif::Grid_search(double *Q_vector, int gridsize) {
   double xsearch[6];
   double best[6];
   double sgn, sgn0;
@@ -1077,7 +1077,7 @@ int Rotdif::Grid_search(double *Q_vector, int gridsize) {
   return 0;
 }
 
-// Rotdif::Tensor_Fit()
+// Action_Rotdif::Tensor_Fit()
 /** Based on random_vectors and effective diffusion constants D_eff previously
   * calculated, first find the tensor Q (and therefore D) in the small
   * anisotropic limit by solving:
@@ -1086,7 +1086,7 @@ int Rotdif::Grid_search(double *Q_vector, int gridsize) {
   *   { x^2, y^2, z^2, 2xy, 2yz, 2xz }
   * \param vector_q Will be set with Q tensor for small anisotropic limit.
   */
-int Rotdif::Tensor_Fit(double *vector_q) {
+int Action_Rotdif::Tensor_Fit(double *vector_q) {
 #ifdef NO_PTRAJ_ANALYZE
   return 1;
 #else
@@ -1237,7 +1237,7 @@ int Rotdif::Tensor_Fit(double *vector_q) {
   // Diagonalize D to find eigenvalues and eigenvectors
   // (principal components and axes)
   // Determine workspace. Do not delete work after set up since the 
-  // Rotdif::chi_squared routine will use dsyev_ for diagnolization.
+  // Action_Rotdif::chi_squared routine will use dsyev_ for diagnolization.
   lwork_ = -1;
   n_cols = 3;
   dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor_, n_cols, D_XYZ_, &wkopt, lwork_, info);
@@ -1396,7 +1396,7 @@ int Rotdif::Tensor_Fit(double *vector_q) {
 #endif
 }
 
-// Rotdif::DetermineDeffs()
+// Action_Rotdif::DetermineDeffs()
 /** Calculate effective diffusion constant for each random vector. 
   * Vectors will be normalized during this phase. First rotate the vector 
   * by all rotation matrices, storing the resulting vectors. The first entry 
@@ -1406,7 +1406,7 @@ int Rotdif::Tensor_Fit(double *vector_q) {
   * Sets D_Eff, normalizes random_vectors.
   */
 // TODO: OpenMP Parallelize
-int Rotdif::DetermineDeffs() {
+int Action_Rotdif::DetermineDeffs() {
   int itotframes;          // Total number of frames (rotation matrices) 
   double *rotated_vectors; // Hold vectors after rotation with Rmatrices
   int maxdat;              // Length of C(t), itotframes + 1 (the original vector)
@@ -1536,7 +1536,7 @@ int Rotdif::DetermineDeffs() {
   return 0;
 }
 
-// Rotdif::print()
+// Action_Rotdif::print()
 /** Main tensorfit calculation.
   * - Read/generate random vectors; analogous to e.g. N-H bond vectors.
   * - For each random vector:
@@ -1551,7 +1551,7 @@ int Rotdif::DetermineDeffs() {
   * - Based on Q from small anisotropic limit, use downhill simplex
   *   minimizer to optimize Q in full anisotropic limit
   */
-void Rotdif::print() {
+void Action_Rotdif::print() {
   double Q_isotropic[6];
   double Q_anisotropic[6];
 

@@ -2,19 +2,29 @@
 #define INC_ACTION_MOLSURF_H
 #include "Action.h"
 #include "molsurf.h"
-// Class: Molsurf
+// Class: Action_Molsurf
 /// Wrapper for the molsurf routine in molsurf.c
-/** This is the cpptraj wrapper for the molsurf routine originally written
+/** \author Original C code by Paul Beroza.
+  * \author C++ adaptation by Dan Roe.
+  * This is the cpptraj wrapper for the molsurf routine originally written
   * by Paul Beroza. This calculates the Connolly surface area of the
   * molecule. See "M.L. Connolly, Analytical molecular surface calculation,
   * J. Appl. Cryst., 16, p. 548-558, 1983."
   */
-class Molsurf: public Action {
-    DataSet *sasa;
-    AtomMask Mask1;
-    ATOM *atom;
-    double probe_rad;
-    double rad_offset;
+class Action_Molsurf: public Action {
+  public:
+    Action_Molsurf();
+    ~Action_Molsurf();
+  private:
+    int init();
+    int setup();
+    int action();
+
+    DataSet* sasa_;
+    AtomMask Mask1_;
+    ATOM* atom_;
+    double probe_rad_;
+    double rad_offset_;
     // Molsurf internal data structs
   /* neighbor arrays:  these are big so amount of data stored must be small
    * upper_neighbors is of the NEIGHBOR_TORUS type, which contains 2
@@ -52,12 +62,5 @@ class Molsurf: public Action {
     // -----------------------------
     int AllocateMemory();
     void ClearMemory();
-  public:
-    Molsurf();
-    ~Molsurf();
-
-    int init();
-    int setup();
-    int action();
 };
 #endif

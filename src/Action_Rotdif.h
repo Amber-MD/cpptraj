@@ -2,7 +2,7 @@
 #define INC_ACTION_ROTDIF_H
 #include "Action.h"
 #include "Random.h"
-// Class: Rotdif
+// Class: Action_Rotdif
 /// Estimate rotational diffusion tensors from MD simulations
 /** To estimate rotational diffusion tensors from MD simulations along the
   * lines described by Wong & Case, (Evaluating rotational diffusion from
@@ -18,10 +18,10 @@
   * \author Original code: Vance Wong, George Giambasu
   * \author Adapted by: DRR
   */
-class Rotdif: public Action {
+class Action_Rotdif: public Action {
   public:
-    Rotdif();
-    ~Rotdif();
+    Action_Rotdif();
+    ~Action_Rotdif();
 
   private:
     int init();

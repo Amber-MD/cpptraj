@@ -1,15 +1,15 @@
-// Molsurf
+// Action_Molsurf
 #include <cstring> // strcpy, memset
 #include "Action_Molsurf.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Molsurf::Molsurf() {
+Action_Molsurf::Action_Molsurf() {
   //fprintf(stderr,"Angle Con\n");
-  sasa=NULL;
-  atom = NULL;
-  probe_rad = 1.4;
-  rad_offset = 0;
+  sasa_=NULL;
+  atom_ = NULL;
+  probe_rad_ = 1.4;
+  rad_offset_ = 0;
 
   upper_neighbors=NULL;
   neighbors=NULL;
@@ -36,14 +36,14 @@ Molsurf::Molsurf() {
 } 
 
 // DESTRUCTOR
-Molsurf::~Molsurf() {
+Action_Molsurf::~Action_Molsurf() {
   ClearMemory();
-  if (atom!=NULL) delete[] atom;
+  if (atom_!=NULL) delete[] atom_;
 }
 
 // MolSurf::ClearMemory()
 /// Clear mem used by molsurf data structures
-void Molsurf::ClearMemory() {
+void Action_Molsurf::ClearMemory() {
   if (upper_neighbors!=NULL) delete[] upper_neighbors;
   if (neighbors!=NULL) delete[] neighbors;
   if (probelist!=NULL) delete[] probelist;
@@ -65,11 +65,11 @@ void Molsurf::ClearMemory() {
   if (cusp_pair!=NULL) delete[] cusp_pair;
 }
 
-// Molsurf::AllocateMemory()
+// Action_Molsurf::AllocateMemory()
 /// Allocate mem used by molsurf internal data structures
-int Molsurf::AllocateMemory() {
+int Action_Molsurf::AllocateMemory() {
   int error_status = 0;
-  int natm_sel = Mask1.Nselected();
+  int natm_sel = Mask1_.Nselected();
   // ---------- Allocate Memory For molsurf routines --------------------
   upper_neighbors = new NEIGHBOR_TORUS[ NUM_NEIGHBOR * natm_sel ];
   neighbors = new NEIGHBOR [ NUM_NEIGHBOR * natm_sel ]; 
@@ -95,7 +95,7 @@ int Molsurf::AllocateMemory() {
   return error_status;
 }
 
-// Molsurf::init()
+// Action_Molsurf::init()
 /** Expected call: molsurf [<name>] [<mask1>] [out filename] [probe <probe_rad>]
                            [offset <rad_offset>]
   * Dataset name will be the last arg checked for. Check order is:
@@ -103,51 +103,51 @@ int Molsurf::AllocateMemory() {
   *    2) Masks
   *    3) Dataset name
   */
-int Molsurf::init() {
+int Action_Molsurf::init() {
   char *mask1;
   char *molsurfFile;
 
   // Get keywords
   molsurfFile = actionArgs.getKeyString("out",NULL);
-  probe_rad = actionArgs.getKeyDouble("probe",1.4);
-  rad_offset = actionArgs.getKeyDouble("offset",0.0);
+  probe_rad_ = actionArgs.getKeyDouble("probe",1.4);
+  rad_offset_ = actionArgs.getKeyDouble("offset",0.0);
 
   // Get Masks
   mask1 = actionArgs.getNextMask();
-  Mask1.SetMaskString(mask1);
+  Mask1_.SetMaskString(mask1);
 
   // Dataset to store angles
-  sasa = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"MSURF");
-  if (sasa==NULL) return 1;
+  sasa_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"MSURF");
+  if (sasa_==NULL) return 1;
   // Add dataset to data file list
-  DFL->Add(molsurfFile,sasa);
+  DFL->Add(molsurfFile,sasa_);
 
-  mprintf("    MOLSURF: [%s] Probe Radius=%.3lf\n",Mask1.MaskString(),probe_rad);
-  if (rad_offset>0)
-    mprintf("             Radii will be incremented by %.3lf\n",rad_offset);
+  mprintf("    MOLSURF: [%s] Probe Radius=%.3lf\n",Mask1_.MaskString(),probe_rad_);
+  if (rad_offset_>0)
+    mprintf("             Radii will be incremented by %.3lf\n",rad_offset_);
 
   return 0;
 }
 
-// Molsurf::setup()
-/** Set mask up for this parmtop.
-  * currentParm is set in Action::Setup
+// Action_Molsurf::setup()
+/** Set mask up for this parmtop. Allocate the ATOM structure array used 
+  * by the molsurf C routines and set everything but the atom coords.
   */
-int Molsurf::setup() {
-  if ( currentParm->SetupIntegerMask(Mask1) ) return 1;
-  if (Mask1.None()) {
+int Action_Molsurf::setup() {
+  if ( currentParm->SetupIntegerMask(Mask1_) ) return 1;
+  if (Mask1_.None()) {
     mprintf("    Error: Molsurf::setup: Mask contains 0 atoms.\n");
     return 1;
   }
 
-  mprintf("    MOLSURF: Calculating surface area for %i atoms.\n",Mask1.Nselected());
+  mprintf("    MOLSURF: Calculating surface area for %i atoms.\n",Mask1_.Nselected());
   // NOTE: If Mask is * dont include any solvent?
 
   // The ATOM structure is how molsurf organizes atomic data. Allocate
   // here and fill in parm info. Coords will be filled in during action. 
-  if (atom!=NULL) delete[] atom;
-  atom = new ATOM[ Mask1.Nselected() ];
-  if (atom==NULL) {
+  if (atom_!=NULL) delete[] atom_;
+  atom_ = new ATOM[ Mask1_.Nselected() ];
+  if (atom_==NULL) {
     mprinterr("Error: Molsurf::Setup Could not allocate memory for ATOMs.\n");
     return 1;
   }
@@ -157,9 +157,9 @@ int Molsurf::setup() {
               currentParm->c_str());
     return 1;
   }
-  ATOM *atm_ptr = atom;
-  for (AtomMask::const_iterator parmatom = Mask1.begin();
-                                parmatom != Mask1.end();
+  ATOM *atm_ptr = atom_;
+  for (AtomMask::const_iterator parmatom = Mask1_.begin();
+                                parmatom != Mask1_.end();
                                 parmatom++)
   {
     atm_ptr->anum = *parmatom + 1; // anum is for debug output only, atoms start from 1
@@ -172,7 +172,7 @@ int Molsurf::setup() {
     atm_ptr->pos[1] = 0;
     atm_ptr->pos[2] = 0;
     atm_ptr->q = patom.Charge();
-    atm_ptr->rad = patom.Radius();
+    atm_ptr->rad = patom.Radius() + rad_offset_;
     ++atm_ptr;
   }
 
@@ -185,36 +185,32 @@ int Molsurf::setup() {
   return 0;  
 }
 
-// Molsurf::action()
-int Molsurf::action() {
-  double molsurf_sasa;
-
+// Action_Molsurf::action()
+int Action_Molsurf::action() {
   // Set up coordinates for atoms in mask
-  ATOM *atm_ptr = atom;
-  for (AtomMask::const_iterator maskatom = Mask1.begin(); maskatom != Mask1.end(); maskatom++)
+  ATOM *atm_ptr = atom_;
+  for (AtomMask::const_iterator maskatom = Mask1_.begin(); maskatom != Mask1_.end(); ++maskatom)
   {
     currentFrame->GetAtomXYZ(atm_ptr->pos, *maskatom);
     ++atm_ptr;
   }
 
   // NOTE: cusp_edge is the only data structure that requires initialization 
-  memset( cusp_edge, 0, NUM_EDGE * Mask1.Nselected() * sizeof(CUSP_EDGE));
-  molsurf_sasa = molsurf( probe_rad, atom, Mask1.Nselected(),
-                          upper_neighbors, neighbors,
-                          toruslist, probelist, concave_face,
-                          saddle_face, convex_face,
-                          cone_face, broken_concave_face,
-                          concave_cycle, vertexlist,
-                          concave_edge_list, convex_edge_list,
-                          convex_circle_list, concave_circle_list,
-                          cyclelist, low_torus, cusp_edge,
-                          cusp_pair); 
+  memset( cusp_edge, 0, NUM_EDGE * Mask1_.Nselected() * sizeof(CUSP_EDGE));
+  double molsurf_sasa = molsurf( probe_rad_, atom_, Mask1_.Nselected(),
+                                 upper_neighbors, neighbors,
+                                 toruslist, probelist, concave_face,
+                                 saddle_face, convex_face,
+                                 cone_face, broken_concave_face,
+                                 concave_cycle, vertexlist,
+                                 concave_edge_list, convex_edge_list,
+                                 convex_circle_list, concave_circle_list,
+                                 cyclelist, low_torus, cusp_edge,
+                                 cusp_pair); 
 
-  sasa->Add(frameNum, &molsurf_sasa);
+  sasa_->Add(frameNum, &molsurf_sasa);
 
   //fprintf(outfile,"%10i %10.4lf\n",frameNum,molsurf_sasa);
   
   return 0;
 } 
-
-
