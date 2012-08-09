@@ -11,15 +11,16 @@ class Traj_Binpos : public TrajectoryIO {
     // Inherited functions
     bool ID_TrajFormat();
     int setupTrajin(Topology*);
-    //int setupTrajout(Topology*,int);
+    int setupTrajout(Topology*,int);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
-    //int writeFrame(int,double*,double*,double*,double);
+    int writeFrame(int,double*,double*,double*,double);
     void info();
     //int processWriteArgs(ArgList*);
 
     int bpnatom_;
+    int bpnatom3_;
     size_t frameSize_;
     float* bpbuffer_;
 };

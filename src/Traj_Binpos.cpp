@@ -4,6 +4,7 @@
 // CONSTRUCTOR
 Traj_Binpos::Traj_Binpos() :
   bpnatom_(0),
+  bpnatom3_(0),
   frameSize_(0),
   bpbuffer_(0)
 {}
@@ -76,7 +77,8 @@ int Traj_Binpos::setupTrajin(Topology* trajParm) {
               trajParm->c_str(), trajParm->Natom());
     return -1;
   }
-  frameSize_ = (size_t)(bpnatom_ * 3) * sizeof(float);
+  bpnatom3_ = bpnatom_ * 3;
+  frameSize_ = (size_t)bpnatom3_ * sizeof(float);
   off_t framesize = (off_t)frameSize_ + sizeof(int);
   off_t filesize = file_size_;
   if ( compressType_ != NO_COMPRESSION)
@@ -99,7 +101,7 @@ int Traj_Binpos::setupTrajin(Topology* trajParm) {
   // Allocate space to read in floats
   if (bpbuffer_!=0)
     delete[] bpbuffer_;
-  bpbuffer_ = new float[ bpnatom_ * 3 ];
+  bpbuffer_ = new float[ bpnatom3_ ];
 
   closeTraj();
   return Frames;
@@ -107,6 +109,14 @@ int Traj_Binpos::setupTrajin(Topology* trajParm) {
 
 int Traj_Binpos::readFrame(int set, double* X, double* V, double* box, double* T) {
   int natoms;
+  off_t offset;
+
+  if (seekable_) {
+    offset = (off_t) set;
+    offset *= (frameSize_ + sizeof(int));
+    offset += 4;
+    IO->Seek(offset);
+  }
   // Read past natom
   if (IO->Read(&natoms, sizeof(int))<1)
     return 1;
@@ -118,12 +128,35 @@ int Traj_Binpos::readFrame(int set, double* X, double* V, double* box, double* T
   // Read coords
   IO->Read(bpbuffer_, frameSize_);
   // Convert float to double
-  for (int i = 0; i < bpnatom_ * 3; ++i)
+  for (int i = 0; i < bpnatom3_; ++i)
     X[i] = (double)bpbuffer_[i];
   return 0;
 }
 
+int Traj_Binpos::setupTrajout(Topology *trajParm, int NframesToWrite) {
+  bpnatom_ = trajParm->Natom();
+  bpnatom3_ = bpnatom_ * 3;
+  frameSize_ = (size_t)bpnatom3_ * sizeof(float);
+  // Allocate space to write out floats
+  if (bpbuffer_!=0)
+    delete[] bpbuffer_;
+  bpbuffer_ = new float[ bpnatom3_ ];
+  if (hasBox_) 
+    mprintf("Warning: BINPOS format does not support writing of box coordinates.\n");
+
+  return 0;
+}
+
+int Traj_Binpos::writeFrame(int set, double* X, double* V, double* box, double T) {
+  IO->Write( &bpnatom_, sizeof(int) );
+  // Convert double to float
+  for (int i = 0; i < bpnatom3_; ++i)
+    bpbuffer_[i] = (float)X[i];
+  if (IO->Write( bpbuffer_, frameSize_ )) return 1;
+  return 0;
+}
+
 void Traj_Binpos::info() {
-  mprintf(" is a BINPOS file");
+  mprintf("is a BINPOS file");
 }
  
