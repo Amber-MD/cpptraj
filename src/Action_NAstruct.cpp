@@ -65,6 +65,12 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
   for (int base=0; base < Nbases; base++) {
     // Set exp coords based on previously set-up mask
     BaseAxes[base].SetCoordinates( *InputFrame, ExpMasks[base] );
+    // If P atom defined store phosphorus coords
+    if (BaseAxes[base].HasPatom()) 
+      BaseAxes[base].SetPcrd( InputFrame->XYZ( BaseAxes[base].Pidx() ) );
+    // If O4' atom defined store phosphorus coords
+    if (BaseAxes[base].HasO4atom())
+      BaseAxes[base].SetO4crd( InputFrame->XYZ( BaseAxes[base].O4idx() ) );
 #   ifdef NASTRUCTDEBUG
     int expbasenum = BaseAxes[base].ResNum();
     mprintf("Base REF %i:%4s   EXP %i:%4s\n",
@@ -331,6 +337,8 @@ int Action_NAstruct::determineBasePairing() {
         PROPELLER_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"prop",bpname) );
         OPENING_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"open",bpname) );
         BPHBONDS_.push_back( DSL->AddSetIdxAspect(DataSet::INT,dataname_,base2,"hb",bpname) );
+        MAJOR_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"major",bpname) );
+        MINOR_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"minor",bpname) );
       }
     ++base2;
   }
@@ -765,6 +773,27 @@ int Action_NAstruct::determineBaseParameters() {
       BaseAxes[base2].FlipYZ();
     else
       BaseAxes[base2].FlipXY();
+    // TEST - calc P--P distance
+    float dPtoP = 0.0;
+    //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].Pidx(), BaseAxes[base2].Pidx() );
+    if ( BaseAxes[base1].HasPatom() && BaseAxes[base2].HasPatom() ) {
+      double DP = DIST2_NoImage( BaseAxes[base1].Pcrd(), BaseAxes[base2].Pcrd() );
+      //mprintf(" %i to %i P--P D= %f", BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
+      //        sqrt(dPtoP) );
+      DP = sqrt(DP);
+      dPtoP = (float)DP;
+    }
+    //mprintf("\n");
+    float dOtoO = 0.0;
+    //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].O4idx(), BaseAxes[base2].O4idx() );
+    if ( BaseAxes[base1].HasO4atom() && BaseAxes[base2].HasO4atom() ) {
+      double DO4 = DIST2_NoImage( BaseAxes[base1].O4crd(), BaseAxes[base2].O4crd() );
+      //mprintf(" %i to %i O4'--O4' D= %f", BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
+      //        sqrt(dOtoO) );
+      DO4 = sqrt(DO4);
+      dOtoO = (float)DO4;
+    }
+    //mprintf("\n");
     // Calc BP parameters, set up basepair axes
     //calculateParameters(BaseAxes[base1],BaseAxes[base2],&BasePairAxes[nbasepair],Param);
     calculateParameters(BaseAxes[base2],BaseAxes[base1],&BasePairAxes[nbasepair],Param);
@@ -789,6 +818,8 @@ int Action_NAstruct::determineBaseParameters() {
     PROPELLER_[nbasepair]->Add(frameNum, &prop);
     BUCKLE_[nbasepair]->Add(frameNum, &buckle);
     BPHBONDS_[nbasepair]->Add(frameNum, &n_of_hb);
+    MAJOR_[nbasepair]->Add(frameNum, &dPtoP);
+    MINOR_[nbasepair]->Add(frameNum, &dOtoO);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
     basepairaxesfile.WriteAxes(BasePairAxes[nbasepair], base1, BaseAxes[base1].ResName());

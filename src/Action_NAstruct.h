@@ -59,6 +59,8 @@ class Action_NAstruct: public Action {
     Darray PROPELLER_;
     Darray OPENING_;
     Darray BPHBONDS_;
+    Darray MAJOR_;
+    Darray MINOR_;
     Darray SHIFT_;
     Darray SLIDE_;
     Darray RISE_;

@@ -126,6 +126,8 @@ AxisType::AxisType() {
   HbondAtom[2]=-1;
   residue_number=-1;
   second_resnum=-1;
+  patomidx_ = -1;
+  o4atomidx_ = -1;
 }
 
 // COPY CONSTRUCTOR
@@ -149,6 +151,8 @@ AxisType::AxisType(const AxisType &rhs) :
   HbondCoord[2] = X_ + (HbondAtom[2]*3);
   residue_number = rhs.residue_number;
   second_resnum = rhs.second_resnum;
+  patomidx_ = rhs.patomidx_;
+  o4atomidx_ = rhs.o4atomidx_;
 }
 
 // Assignment Operator
@@ -179,6 +183,8 @@ AxisType &AxisType::operator=(const AxisType &rhs) {
   HbondCoord[2] = X_ + (HbondAtom[2]*3);
   residue_number = rhs.residue_number;
   second_resnum = rhs.second_resnum;
+  patomidx_ = rhs.patomidx_;
+  o4atomidx_ = rhs.o4atomidx_;
 
   // Return *this
   return *this;
@@ -503,6 +509,14 @@ AxisType::RefReturn AxisType::SetRefCoord(Topology *currentParm, int resnum,
       BaseMap.insert( std::pair<int,int>(parmAtom, ref) );
     }
   }
+  // See if residue contains a phosphate atom
+  patomidx_ = currentParm->FindAtomInResidue( resnum, "P   " );
+  //if (debug_ > 0 && patomidx_ != -1)
+  //  mprintf("\tPhosphorus atom found: %i\n", patomidx_+1);
+  // See if residue contains an O4' atom
+  o4atomidx_ = currentParm->FindAtomInResidue( resnum, "O4' ");
+  //if (debug_ > 0 && o4atomidx_ != -1)
+  //  mprintf("\tO4' atom found: %i\n", o4atomidx_+1);
   // Now insert ref coords in same order as parm. Also add the parm
   // atom to the mask.
   parmMask.ResetMask();

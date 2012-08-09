@@ -363,7 +363,7 @@ double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
 // Frame::DIST2_NoImage()
 /** Return distance^2 between coordinates in a1 and a2.
   */
-double DIST2_NoImage(double *a1, double *a2) {
+double DIST2_NoImage(const double *a1, const double *a2) {
   double x,y,z,D;
 
   x = a1[0] - a2[0];

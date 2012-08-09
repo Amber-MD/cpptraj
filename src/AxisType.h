@@ -60,6 +60,23 @@ class AxisType : public Frame
     RefReturn SetRefCoord(Topology *, int, AtomMask &,AtomMask&,NAbaseType);
     void FlipYZ();
     void FlipXY();
+    // P/O4' atom routines
+    bool HasPatom() { return patomidx_ > -1; }
+    bool HasO4atom() { return o4atomidx_ > -1; }
+    int Pidx() { return patomidx_; }
+    int O4idx() { return o4atomidx_; }
+    void SetPcrd( const double* Xin ) { 
+      atomcrd_[0] = Xin[0];
+      atomcrd_[1] = Xin[1];
+      atomcrd_[2] = Xin[2];
+    }
+    void SetO4crd( const double* Xin ) {
+      atomcrd_[3] = Xin[0];
+      atomcrd_[4] = Xin[1];
+      atomcrd_[5] = Xin[2];
+    }
+    const double* Pcrd() { return atomcrd_; }
+    const double* O4crd() { return atomcrd_+3; }
 #ifdef NASTRUCTDEBUG
     const char* BaseName();
     void WritePDB(CpptrajFile &, int, char *, int *); // DEBUG
@@ -101,6 +118,12 @@ class AxisType : public Frame
     int second_resnum;
     /// Origin coordinates
     double origin[3];
+    /// Index of phosphorus atom if present
+    int patomidx_;
+    /// Index of O4' atom if present
+    int o4atomidx_;
+    /// Hold phosphorus/O4' atom coordinates
+    double atomcrd_[6];
 #ifdef NASTRUCTDEBUG
     /// DEBUG - Storage for writing out BaseName + residue_number 
     std::string basename_num_;
