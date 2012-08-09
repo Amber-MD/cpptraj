@@ -53,27 +53,22 @@ bool CharmmDcd::ID_TrajFormat() {
 
 // CharmmDcd::openTraj()
 int CharmmDcd::openTraj() {
-  int err;
+  int err = 0;
 
-  err=0;
   switch (access_) {
     case READ : 
       // Always read past the DCD header
-      err = OpenFile();
-      if (err==0) {
-        err = readDcdHeader(); 
-      }
+      if (OpenFile()) return 1;
+      err = readDcdHeader(); 
       break;
     case APPEND :
       mprintf("Error: Append not supported for dcd files.\n");
-      err=1;
+      return 1;
       break;
     case WRITE :
-      err = OpenFile();
+      if (OpenFile()) return 1;
       // Always write DCD header
-      if (err==0) {
-        err = writeDcdHeader();
-      }
+      err = writeDcdHeader();
       break;
   }
       

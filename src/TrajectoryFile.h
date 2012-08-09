@@ -12,9 +12,11 @@
   */
 class TrajectoryFile {
   public:
+    /// Known trajectory formats.
+    // NOTE: FORMAT_STRINGS must also be updated
     enum TrajFormatType {
       UNKNOWN_TRAJ=0, AMBERNETCDF, AMBERRESTARTNC, PDBFILE, MOL2FILE, CHARMMDCD,
-      AMBERRESTART, AMBERTRAJ, CONFLIB, NTRAJ 
+      BINPOS, AMBERRESTART, AMBERTRAJ, CONFLIB, NTRAJ 
     };
 
     TrajectoryFile();

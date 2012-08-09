@@ -34,7 +34,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         PDBfile.cpp PDBtype.cpp ProgressBar.cpp \
         Random.cpp Range.cpp RemdTraj.cpp Residue.cpp Topology.cpp \
         TorsionRoutines.cpp \
-        Traj_AmberCoord.cpp Traj_AmberNetcdf.cpp Traj_AmberRestart.cpp \
+        Traj_AmberCoord.cpp Traj_AmberNetcdf.cpp Traj_AmberRestart.cpp Traj_Binpos.cpp \
         Traj_AmberRestartNC.cpp Traj_CharmmDcd.cpp Traj_Conflib.cpp TrajectoryFile.cpp \
         TrajectoryIO.cpp TrajinList.cpp Traj_Mol2File.cpp TrajoutList.cpp Traj_PDBfile.cpp \
         TriangleMatrix.cpp vectormath.cpp VectorType.cpp

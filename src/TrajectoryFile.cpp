@@ -12,11 +12,12 @@
 #include "Traj_Mol2File.h"
 #include "Traj_Conflib.h"
 #include "Traj_CharmmDcd.h"
+#include "Traj_Binpos.h"
 #include "RemdTraj.h"
 
 const char TrajectoryFile::FORMAT_STRINGS[10][17] = { 
 "Unknown", "Amber NetCDF", "Amber NC Restart", "PDB", "Mol2", "Charmm DCD", 
-"Amber Restart", "Amber Trajectory", "LMOD conflib" "\0" };
+"BINPOS", "Amber Restart", "Amber Trajectory", "LMOD conflib" "\0" };
 
 // TrajectoryFile::FormatString()
 const char* TrajectoryFile::FormatString( TrajectoryFile::TrajFormatType tIn ) {
@@ -215,6 +216,7 @@ TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
     case CONFLIB     : tio = new Conflib();      break;
     case MOL2FILE    : tio = new Traj_Mol2File();     break;
     case CHARMMDCD   : tio = new CharmmDcd();    break;
+    case BINPOS      : tio = new Traj_Binpos();    break;
     default:
       return NULL;
   }
@@ -587,6 +589,7 @@ TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromArg(ArgList& argIn)
   else if ( argIn.hasKey("mol2")     ) writeFormat=MOL2FILE;
   else if ( argIn.hasKey("dcd")      ) writeFormat=CHARMMDCD;
   else if ( argIn.hasKey("charmm")   ) writeFormat=CHARMMDCD;
+  else if ( argIn.hasKey("binpos")   ) writeFormat=BINPOS;
   return writeFormat;
 }
 
@@ -600,6 +603,7 @@ std::string TrajectoryFile::GetExtensionForType(TrajFormatType typeIn) {
     case AMBERRESTARTNC: ext=".ncrst"; break;
     case MOL2FILE: ext=".mol2"; break;
     case CHARMMDCD: ext=".dcd"; break;
+    case BINPOS: ext=".binpos"; break;
     default: ext="";
   }
   return ext;
@@ -614,6 +618,7 @@ TrajectoryFile::TrajFormatType TrajectoryFile::GetTypeFromExtension( std::string
   else if ( extIn == ".dcd" ) return CHARMMDCD;
   else if ( extIn == ".rst7" ) return AMBERRESTART;
   else if ( extIn == ".crd") return AMBERTRAJ;
+  else if ( extIn == ".binpos") return BINPOS;
   // No entry for CONFLIB
   return UNKNOWN_TRAJ;
 }
