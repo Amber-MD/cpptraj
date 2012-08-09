@@ -89,7 +89,7 @@ TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
   *   Data: [4*char][int][int][nelements*float]
   *   Vars: ['C''T''M'0][nrows][nelements][elements]
   */
-int TriangleMatrix::SaveFile(char *filename) {
+int TriangleMatrix::SaveFile(const char *filename) {
   FILE *outfile;
   char magic[4];
 
@@ -121,7 +121,7 @@ int TriangleMatrix::SaveFile(char *filename) {
 }
 
 // TriangleMatrix::LoadFile
-int TriangleMatrix::LoadFile(char *filename, int sizeIn) {
+int TriangleMatrix::LoadFile(const char *filename, int sizeIn) {
   FILE *infile;
   char magic[4];
 

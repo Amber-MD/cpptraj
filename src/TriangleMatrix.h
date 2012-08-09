@@ -19,8 +19,8 @@ class TriangleMatrix : public DataSet {
     ~TriangleMatrix();
     TriangleMatrix & operator=(const TriangleMatrix &);
 
-    int SaveFile(char*);
-    int LoadFile(char*,int);
+    int SaveFile(const char*);
+    int LoadFile(const char*,int);
     int Setup(int);
     void Ignore(int);
     int AddElement(double);
