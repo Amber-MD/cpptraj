@@ -2,12 +2,11 @@
 #define INC_ACTION_DISTRMSD_H
 #include "Action.h"
 #include "TrajectoryFile.h"
-// Class: DistRmsd
+// Class: Action_DistRmsd
 /// Action to calculate the distance RMSD between frame and a reference frame.
-class DistRmsd: public Action {
+class Action_DistRmsd: public Action {
   public:
-    DistRmsd();
-
+    Action_DistRmsd();
   private:
     int init();
     int setup();
@@ -23,6 +22,7 @@ class DistRmsd: public Action {
     Frame SelectedRef_;
     AtomMask RefMask_;
     TrajectoryFile RefTraj_;
+
     int SetRefMask( Topology* );
     void SetRefStructure( Frame& );
 };

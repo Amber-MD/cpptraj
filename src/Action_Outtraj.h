@@ -1,20 +1,20 @@
 #ifndef INC_ACTION_OUTTRAJ_H
 #define INC_ACTION_OUTTRAJ_H
-// Outtraj
+// Action_Outtraj
 #include "Action.h"
 #include "TrajectoryFile.h"
 /// Write out a trajectory inside the ActionList
-class Outtraj: public Action {
-    TrajectoryFile outtraj;
-    double max;
-    double min;
-    DataSet *Dset;
+class Action_Outtraj: public Action {
   public:
-    Outtraj();
-
+    Action_Outtraj();
+  private:
     int init();
-    //int setup();
     int action();
     void print();
+
+    TrajectoryFile outtraj_;
+    double max_;
+    double min_;
+    DataSet* Dset_;
 };
 #endif

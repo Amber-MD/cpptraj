@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DistRmsd::DistRmsd() :
+Action_DistRmsd::Action_DistRmsd() :
   drmsd_(NULL),
   refmode_(UNKNOWN_REF)
 {}
@@ -11,7 +11,7 @@ DistRmsd::DistRmsd() :
 /** Setup RefMask based on given Topology. Allocate space for selected
   * reference atoms. 
   */
-int DistRmsd::SetRefMask( Topology* RefParm ) {
+int Action_DistRmsd::SetRefMask( Topology* RefParm ) {
   if (RefParm == NULL) return 1;
   if (RefParm->SetupIntegerMask( RefMask_ )) return 1;
   if (RefMask_.None()) {
@@ -26,19 +26,19 @@ int DistRmsd::SetRefMask( Topology* RefParm ) {
 /** Setup selected reference coordinates based on given frame
   * and RefMask. 
   */
-void DistRmsd::SetRefStructure( Frame& frameIn ) {
+void Action_DistRmsd::SetRefStructure( Frame& frameIn ) {
   RefFrame_ = frameIn;
   SelectedRef_.SetCoordinates( RefFrame_, RefMask_ );
 }
 
-// DistRmsd::init()
+// Action_DistRmsd::init()
 /** Called once before traj processing. Set up reference info.
   * Expected call: 
   * drmsd <name> <mask> [<refmask>] [out filename] 
   *       [ first | ref <filename> | refindex <#> | 
   *         reftraj <filename> [parm <parmname> | parmindex <#>] ] 
   */
-int DistRmsd::init( ) {
+int Action_DistRmsd::init( ) {
   std::string refname, reftrajname;
   int refindex = -1;
   Topology* RefParm = NULL;
@@ -136,11 +136,11 @@ int DistRmsd::init( ) {
   return 0;
 }
 
-// DistRmsd::setup()
+// Action_DistRmsd::setup()
 /** Called every time the trajectory changes. Set up TgtMask for the new 
   * parmtop and allocate space for selected atoms from the Frame.
   */
-int DistRmsd::setup() {
+int Action_DistRmsd::setup() {
 
   if ( currentParm->SetupIntegerMask(TgtMask_) ) return 1;
   if ( TgtMask_.None() ) {
@@ -166,11 +166,11 @@ int DistRmsd::setup() {
   return 0;
 }
 
-// DistRmsd::action()
+// Action_DistRmsd::action()
 /** Called every time a frame is read in. Calc distance RMSD.
   * If first is true, set the first frame read in as reference.
   */
-int DistRmsd::action() {
+int Action_DistRmsd::action() {
   // Perform any needed reference actions
   if (refmode_ == FIRST) {
     SetRefStructure( *currentFrame );

@@ -1,100 +1,85 @@
-// Outtraj 
+// Action_Outtraj 
 #include "Action_Outtraj.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Outtraj::Outtraj() {
+Action_Outtraj::Action_Outtraj() :
+  max_(0.0),
+  min_(0.0),
+  Dset_(NULL)
+{
   //fprintf(stderr,"Outtraj Con\n");
-  min=0.0;
-  max=0.0;
-  Dset=NULL;
 } 
 
-// Outtraj::init()
+// Action_Outtraj::init()
 /** Expected call: outtraj <filename> [ trajout args ] 
   *                        [maxmin <dataset> min <min> max <max>
   */
-int Outtraj::init() {
-  char *datasetName;
-  Topology *tempParm;
-
+int Action_Outtraj::init() {
 #ifdef MPI
   mprintf("ERROR: OUTTRAJ currently not functional with MPI.\n");
   return 1;
 #endif
 
-  outtraj.SetDebug(debug);
-  tempParm = PFL->GetParm(actionArgs);
+  outtraj_.SetDebug(debug);
+  Topology* tempParm = PFL->GetParm(actionArgs);
   if (tempParm==NULL) {
     mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",actionArgs.ArgAt(1));
     return 1;
   }
-  if ( outtraj.SetupWrite(NULL,&actionArgs,tempParm,TrajectoryFile::UNKNOWN_TRAJ) ) 
+  if ( outtraj_.SetupWrite(NULL,&actionArgs,tempParm,TrajectoryFile::UNKNOWN_TRAJ) ) 
     return 1;
   mprintf("    OUTTRAJ:");
-  outtraj.PrintInfo(1);
+  outtraj_.PrintInfo(1);
   // If maxmin, get the name of the dataset as well as the max and min values.
-  datasetName = actionArgs.getKeyString("maxmin",NULL);
+  char* datasetName = actionArgs.getKeyString("maxmin",NULL);
   if (datasetName!=NULL) {
-    Dset = DSL->Get(datasetName);
-    if (Dset==NULL) {
+    Dset_ = DSL->Get(datasetName);
+    if (Dset_==NULL) {
       mprintf("Error: Outtraj maxmin: Could not get dataset %s\n",datasetName);
       return 1;
     } else {
       // Currently only allow int, float, or double datasets
-      if (Dset->Type() != DataSet::INT &&
-          Dset->Type() != DataSet::FLOAT &&
-          Dset->Type() != DataSet::DOUBLE) 
+      if (Dset_->Type() != DataSet::INT &&
+          Dset_->Type() != DataSet::FLOAT &&
+          Dset_->Type() != DataSet::DOUBLE) 
       {
         mprinterr("Error: Outtraj maxmin: Only int, float, or double dataset (%s) supported.\n",
                 datasetName);
         return 1;
       }
-      max = actionArgs.getKeyDouble("max",0.0);
-      min = actionArgs.getKeyDouble("min",0.0);
+      max_ = actionArgs.getKeyDouble("max",0.0);
+      min_ = actionArgs.getKeyDouble("min",0.0);
       mprintf("             maxmin: Printing trajectory frames based on %lf <= %s <= %lf\n",
-              min, datasetName, max);
+              min_, datasetName, max_);
     }
   }
 
   return 0;
 } 
 
-// Outtraj::setup()
-// Unneeded, Output trajectory setup done right before first write
-//int Outtraj::setup() {
-//  return 0;  
-//}
-
-// Outtraj::action()
+// Action_Outtraj::action()
 /** If a dataset was specified for maxmin, check if this structure
   * satisfies the criteria; if so, write. Otherwise just write.
   */
-int Outtraj::action() {
+int Action_Outtraj::action() {
   // If dataset defined, check if frame is within max/min
-  if (Dset!=NULL) {
-    double dVal = Dset->CurrentDval();
-    /*if (Dset->Type() == DataSet::DOUBLE) {
-      if (Dset->Get(&dVal, frameNum)) return 1;
-    } else if (Dset->Type() == DataSet::INT) {
-      if (Dset->Get(&iVal, frameNum)) return 1;
-      dVal = (double) iVal;
-    } else
-      return 1;*/
+  if (Dset_!=NULL) {
+    double dVal = Dset_->CurrentDval();
     //mprintf("DBG: maxmin: dVal = %lf\n",dVal);
     // If value from dataset not within min/max, exit now.
-    if (dVal < min || dVal > max) return 0;
+    if (dVal < min_ || dVal > max_) return 0;
   }
-  if ( outtraj.WriteFrame(frameNum, currentParm, *currentFrame) != 0 ) 
+  if ( outtraj_.WriteFrame(frameNum, currentParm, *currentFrame) != 0 ) 
     return 1;
   return 0;
 } 
 
-// Outtraj::print()
+// Action_Outtraj::print()
 /** Close trajectory. Indicate how many frames were actually written.
   */
-void Outtraj::print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",actionArgs.ArgAt(1),outtraj.NumFramesProcessed());
-  outtraj.EndTraj();
+void Action_Outtraj::print() {
+  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",actionArgs.ArgAt(1),outtraj_.NumFramesProcessed());
+  outtraj_.EndTraj();
 }
 

@@ -1,28 +1,31 @@
 #ifndef INC_ACTION_AVERAGE_H
 #define INC_ACTION_AVERAGE_H
 #include "Action.h"
-// Class: Average
+// Class: Action_Average
 /// Sum up all coordinates and print the averaged coords in given format.
-class Average: public Action {
-    AtomMask Mask1;
-    Frame *AvgFrame;
-    Topology *AvgParm;
-    ArgList trajArgs;
-    bool parmStripped;
-    int Natom;
-    int Nframes;
-    int start;
-    int stop;
-    int offset;
-    int targetFrame;
-    char *avgfilename;
+class Action_Average: public Action {
+  public:
+    Action_Average();
+    ~Action_Average();
 
+    void print();
+  private:
     int init();
     int setup();
     int action();
-    void print();
-  public:
-    Average();
-    ~Average();
+
+    AtomMask Mask1_;
+    Frame* AvgFrame_;
+    Topology* AvgParm_;
+    ArgList trajArgs_;
+    bool parmStripped_;
+    int Natom_;
+    int Nframes_;
+    int start_;
+    int stop_;
+    int offset_;
+    int targetFrame_;
+    char *avgfilename_;
+
 };
 #endif  
