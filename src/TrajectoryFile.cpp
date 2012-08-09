@@ -14,6 +14,15 @@
 #include "Traj_CharmmDcd.h"
 #include "RemdTraj.h"
 
+const char TrajectoryFile::FORMAT_STRINGS[10][17] = { 
+"Unknown", "Amber NetCDF", "Amber NC Restart", "PDB", "Mol2", "Charmm DCD", 
+"Amber Restart", "Amber Trajectory", "LMOD conflib" "\0" };
+
+// TrajectoryFile::FormatString()
+const char* TrajectoryFile::FormatString( TrajectoryFile::TrajFormatType tIn ) {
+  return TrajectoryFile::FORMAT_STRINGS[ tIn ];
+}
+
 // CONSTRUCTOR
 TrajectoryFile::TrajectoryFile() :
   debug_(0),
@@ -427,7 +436,7 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
     // formats supported for this option.
     remdout = argIn->getKeyString("remdout",NULL);
     if (remdout!=NULL) 
-      remdfmt = GetFormatFromArg(argIn);
+      remdfmt = GetFormatFromArg(*argIn);
     if (remdfmt!=AMBERTRAJ && remdfmt!=AMBERNETCDF) {
       mprinterr("Error: remdout (%s): Unsupported format. Currently only amber\n",remdout);
       mprinterr("       trajectory and amber netcdf files supported for remdout.\n");
@@ -567,18 +576,17 @@ int TrajectoryFile::setupFrameInfo() {
 /** Given an arglist, search for one of the file format keywords.
   * Default to AmberTraj if no arglist given or no keywords present. 
   */
-TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromArg(ArgList *argIn) 
+TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromArg(ArgList& argIn) 
 {
   TrajFormatType writeFormat = AMBERTRAJ;
-  if (argIn==NULL) return writeFormat;
-  if      ( argIn->hasKey("pdb")      ) writeFormat=PDBFILE;
-  else if ( argIn->hasKey("netcdf")   ) writeFormat=AMBERNETCDF;
-  else if ( argIn->hasKey("restart")  ) writeFormat=AMBERRESTART;
-  else if ( argIn->hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
-  else if ( argIn->hasKey("restartnc")) writeFormat=AMBERRESTARTNC;
-  else if ( argIn->hasKey("mol2")     ) writeFormat=MOL2FILE;
-  else if ( argIn->hasKey("dcd")      ) writeFormat=CHARMMDCD;
-  else if ( argIn->hasKey("charmm")   ) writeFormat=CHARMMDCD;
+  if      ( argIn.hasKey("pdb")      ) writeFormat=PDBFILE;
+  else if ( argIn.hasKey("netcdf")   ) writeFormat=AMBERNETCDF;
+  else if ( argIn.hasKey("restart")  ) writeFormat=AMBERRESTART;
+  else if ( argIn.hasKey("ncrestart")) writeFormat=AMBERRESTARTNC;
+  else if ( argIn.hasKey("restartnc")) writeFormat=AMBERRESTARTNC;
+  else if ( argIn.hasKey("mol2")     ) writeFormat=MOL2FILE;
+  else if ( argIn.hasKey("dcd")      ) writeFormat=CHARMMDCD;
+  else if ( argIn.hasKey("charmm")   ) writeFormat=CHARMMDCD;
   return writeFormat;
 }
 
@@ -661,7 +669,7 @@ int TrajectoryFile::SetupWrite(const char *tnameIn, ArgList *argIn, Topology *tp
   // If a write format was not specified (UNKNOWN_TRAJ) check the argument
   // list to see if format was specified there. Defaults to AMBERTRAJ.
   if (writeFormat==UNKNOWN_TRAJ) {
-    writeFormat = GetFormatFromArg(argIn);
+    writeFormat = GetFormatFromArg(*argIn);
     // If still AMBERTRAJ this means no type specified. Check to see if
     // the filename extension is recognized.
     if (writeFormat == AMBERTRAJ) {

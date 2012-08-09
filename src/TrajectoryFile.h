@@ -34,9 +34,11 @@ class TrajectoryFile {
     void PrintInfoLine();
     void PrintInfo(int);
     /// Get format type from keyword
-    TrajFormatType GetFormatFromArg(ArgList*);
+    static TrajFormatType GetFormatFromArg(ArgList&);
+    /// Return string corresponding to given format
+    static const char* FormatString( TrajFormatType tIn );
     /// Get standard file extension for trajectory format
-    std::string GetExtensionForType(TrajFormatType);
+    static std::string GetExtensionForType(TrajFormatType);
     /// Get type from extension
     TrajFormatType GetTypeFromExtension(std::string const&);
     // Functions that return private vars
@@ -52,6 +54,7 @@ class TrajectoryFile {
     std::string FileName();
     const char* c_str();
   private:
+    static const char FORMAT_STRINGS[][17];
     /// Denote whether reading, writing, or appending.
     enum TrajAccessType { READTRAJ, WRITETRAJ, APPENDTRAJ };
     /// Trajectory debug level
