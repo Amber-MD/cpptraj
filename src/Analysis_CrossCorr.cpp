@@ -47,7 +47,7 @@ int Analysis_CrossCorr::Analyze() {
     for (int j = i + 1; j < Nsets; ++j) {
       //mprinterr("DBG:\tCross corr between %i (%s) and %i (%s)\n",
       //          i, dsets_[i]->Legend().c_str(), j, dsets_[j]->Legend().c_str());
-      double corr = dsets_[i]->Corr( *dsets_[j], NULL, 0 );
+      double corr = dsets_[i]->Corr( *dsets_[j] );
       tmatrix->AddElement( corr );
     }
   }
@@ -60,7 +60,7 @@ void Analysis_CrossCorr::Print( DataFileList* datafilelist ) {
     DataFile* DF = datafilelist->Add( outfilename_.c_str(), matrix_ );
     if (DF != NULL) {
       //DF->ProcessArgs("xlabels " + Xlabels_);
-      DF->ProcessArgs("ylabels " + Ylabels_);
+      DF->ProcessArgs("xlabel DataSets ylabels " + Ylabels_);
     }
   }
 }

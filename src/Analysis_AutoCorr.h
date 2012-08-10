@@ -14,5 +14,6 @@ class Analysis_AutoCorr : public Analysis {
     std::string outfilename_;
     std::string setname_;
     std::vector<DataSet*> outputData_;
+    int lagmax_;
 };
 #endif

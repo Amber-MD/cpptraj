@@ -176,8 +176,8 @@ void DataFile::Write() {
   // maxFrames+1 (for use in loops).
   ++maxFrames;
 
-  mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->Name(),
-          SetList_.size(), currentDim, maxFrames);
+  //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->Name(),
+  //        SetList_.size(), currentDim, maxFrames);
 #ifdef DATAFILE_TIME
   clock_t t0 = clock();
 #endif
@@ -194,6 +194,7 @@ void DataFile::Write() {
               dataio_->Name());
     }
   } else if ( currentDim == 2) {
+    mprintf("%s: Writing 2D data.\n",dataio_->Name(),maxFrames);
     int err = 0;
     for ( DataSetList::const_iterator set = SetList_.begin();
                                       set != SetList_.end(); ++set)

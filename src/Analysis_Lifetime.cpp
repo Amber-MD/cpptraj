@@ -74,7 +74,8 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
     if (!outfilename_.empty()) {
       mprintf("\tOutfile: %s", outfilename_.c_str());
       if (!averageonly_)
-        mprintf(", max.%s, avg.%s\n", outfilename_.c_str(), outfilename_.c_str());
+        mprintf(", max.%s, avg.%s", outfilename_.c_str(), outfilename_.c_str());
+      mprintf("\n");
     }
   }
 

@@ -81,8 +81,10 @@ class DataSet {
     double Min();
     /// Return the largest value added to the set
     double Max();
-    /// Calculate correlation between this DataSet and given DataSet.
-    double Corr( DataSet&, DataSet*, int ) ;
+    /// Calculate time correlation.
+    int CrossCorr( DataSet&, DataSet&, int, bool );
+    /// Calculate Pearson product-moment correlation. 
+    double Corr( DataSet& ) ;
 
     // -----===== Public functions =====-----
     /// Set output precision

@@ -208,15 +208,83 @@ double DataSet::Min() {
   return min;
 }
 
+// DataSet::CrossCorr()
+/** Calculate time correlation between two DataSets.
+  * \D2 DataSet to calculate correlation to.
+  * \Ct DataSet to store time correlation fn, must be DOUBLE.
+  * \lagmaxIn Max lag to calculate corr. -1 means use size of dataset.
+  * \calccovar If true calculate covariance (devation from avg).
+  * \return 0 on success, 1 on error.
+  */
+int DataSet::CrossCorr( DataSet& D2, DataSet& Ct, int lagmaxIn, bool calccovar ) {
+  int lagmax;
+  double d1, d2, ct;
+  // Check if D1 and D2 are valid types
+  if ( !GoodCalcType( )    ) return 1;
+  if ( !D2.GoodCalcType( ) ) return 1;
+  // Check that D1 and D2 have same # data points.
+  int Nelements = Size();
+  if (Nelements != D2.Size()) {
+    mprinterr("Error: CrossCorr: # elements in dataset %s (%i) not equal to\n", Legend().c_str(), 
+              Nelements);
+    mprinterr("                  # elements in dataset %s (%i)\n", D2.Legend().c_str(), 
+              D2.Size());
+    return 1;
+  }
+  if (Nelements < 2) {
+    mprinterr("Error: CrossCorr: # elements is less than 2 (%i)\n", Nelements);
+    return 1;
+  }
+  // Check return dataset type
+  if ( Ct.Type() != DOUBLE ) {
+    mprinterr("Internal Error: CrossCorr: Ct must be of type DataSet::DOUBLE.\n");
+    return 1;
+  }
+  // Check if lagmaxIn makes sense. Set default lag to be Nelements 
+  // if not specified.
+  if (lagmaxIn == -1)
+    lagmax = Nelements;
+  else if (lagmaxIn > Nelements) {
+    mprintf("Warning: CrossCorr [%s][%s]: max lag (%i) > Nelements (%i), setting to Nelements.\n",
+            Legend().c_str(), D2.Legend().c_str(), lagmaxIn, Nelements);
+    lagmax = Nelements;
+  } else 
+    lagmax = lagmaxIn;
+  // If calculating covariance calculate averages
+  double avg1 = 0;
+  double avg2 = 0;
+  if ( calccovar ) {
+    avg1 = Avg(NULL);
+    avg2 = D2.Avg(NULL);
+  }
+  // Calculate correlation
+  double norm = 1.0;
+  for (int lag = 0; lag < lagmax; ++lag) {
+    ct = 0;
+    int jmax = Nelements - lag;
+    for (int j = 0; j < jmax; ++j) {
+      d1 = Dval(j);
+      d2 = D2.Dval(j+lag);
+      ct += ((d1 - avg1) * (d2 - avg2));
+    }
+    if (lag == 0) {
+      if (ct != 0)
+        norm = fabs( ct );
+    }
+    //ct /= norm;
+    ct /= norm;
+    Ct.Add(lag, &ct);
+  }
+  return 0;
+}
+
 // DataSet::Corr()
-/** Calculate correlation between DataSets.
+/** Calculate Pearson product-moment correlation between DataSets.
   * \D2 DataSet to caclulate correlation to.
-  * \Ct If not NULL, DataSet to store correlation function (must be DOUBLE).
-  * \lagmax If Ct is not NULL, maximum lag to calculate correlation fn for.
   * \return Pearson product-moment correlation coefficient.
   */
-double DataSet::Corr( DataSet& D2, DataSet* Ct, int lagmax ) {
-  double d1, d2, ct;
+double DataSet::Corr( DataSet& D2 ) {
+  double d1, d2;
   // Check if D1 and D2 are valid types
   if ( !GoodCalcType( )    ) return 0; 
   if ( !D2.GoodCalcType( ) ) return 0;
@@ -230,10 +298,10 @@ double DataSet::Corr( DataSet& D2, DataSet* Ct, int lagmax ) {
   // Calculate averages
   double avg1 = Avg(NULL);
   double avg2 = D2.Avg(NULL);
-  // Compute normalization
-  double sumdiff1_2 = 0;
-  double sumdiff2_2 = 0;
-  double corr_coeff = 0;
+  // Calculate average deviations. 
+  double sumdiff1_2 = 0.0;
+  double sumdiff2_2 = 0.0;
+  double corr_coeff = 0.0;
   //mprinterr("DATASETS %s and %s\n", c_str(), D2.c_str());
   for (int i = 0; i < Nelements; i++) {
     d1 = Dval(i);
@@ -245,34 +313,14 @@ double DataSet::Corr( DataSet& D2, DataSet* Ct, int lagmax ) {
     sumdiff2_2 += (diff2 * diff2);
     corr_coeff += (diff1 * diff2);
   }
-  double norm = sumdiff1_2 * sumdiff2_2;
-  if (norm <= 0) {
-    mprintf("Warning: Corr: %s to %s, Normalization sqrt <= 0.\n",Legend().c_str(),
-            D2.Legend().c_str());
+  if (sumdiff1_2 == 0.0 || sumdiff2_2 == 0.0) {
+    mprintf("Warning: Corr: %s to %s, Normalization is 0\n",
+            Legend().c_str(),  D2.Legend().c_str());
     return 0;
   }
-  norm = sqrt( norm );
   // Correlation coefficient
   corr_coeff /= ( sqrt( sumdiff1_2 ) * sqrt( sumdiff2_2 ) );
   //mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
   //        D1_->c_str(), D2_->c_str(), corr_coeff );
-
-  if (Ct != NULL) {
-    if ( Ct->Type() != DOUBLE ) {
-      mprinterr("Internal Error: DataSet Corr Ct calc must be called with DataSet::DOUBLE.\n");
-      return corr_coeff;
-    }
-    // Calculate correlation
-    for (int lag = 0; lag < lagmax; lag++) {
-      ct = 0;
-      for (int j = 0; j < Nelements - lag; j++) {
-        d1 = Dval(j);
-        d2 = D2.Dval(j+lag);
-        ct += ((d1 - avg1) * (d2 - avg2));
-      }
-      ct /= norm;
-      Ct->Add(lag, &ct);
-    }
-  }
   return corr_coeff;
 }

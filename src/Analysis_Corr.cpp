@@ -60,10 +60,12 @@ int Analysis_Corr::Setup(DataSetList *datasetlist) {
   if (Ct_ == NULL) return 1;
 
   if (D1name == D2name)
-    mprintf("    CORR: Auto-correlation of set %s\n", D1name);
+    mprintf("    CORR: Auto-correlation of set %s", D1name);
   else
-    mprintf("    CORR: Correlation between set %s and set %s\n",D1name,D2name);
-  mprintf("          Output to %s\n",outfilename_);
+    mprintf("    CORR: Correlation between set %s and set %s",D1name,D2name);
+  if (lagmax_!=-1) 
+    mprintf(", max lag %i",lagmax_);
+  mprintf("\n\tOutput to %s\n",outfilename_);
 
   return 0;
 }
@@ -81,7 +83,7 @@ int Analysis_Corr::Analyze() {
 
   mprintf("    CORR: %i elements, max lag %i\n",Nelements,lagmax_);
 
-  double corr_coeff = D1_->Corr( *D2_, Ct_, lagmax_ );
+  double corr_coeff = D1_->CrossCorr( *D2_, *Ct_, lagmax_, true );
 
   mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
           D1_->c_str(), D2_->c_str(), corr_coeff );
