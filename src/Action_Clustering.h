@@ -19,6 +19,7 @@ class Action_Clustering: public Action {
     AtomMask Mask0_;            ///< Atoms to cluster on
     double epsilon_;            ///< Once the min distance is > epsilon, stop clustering
     int targetNclusters_;       ///< Once there are targetNclusters, stop clustering
+    int sieve_;
     DataSet* cnumvtime_;        ///< Cluster vs time dataset
     char* summaryfile_;         ///< Summary file name
     char* halffile_;            ///< 1st/2nd half summary file name

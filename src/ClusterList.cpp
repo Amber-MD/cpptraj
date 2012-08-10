@@ -206,7 +206,8 @@ void ClusterList::Summary_Half(char *summaryfile) {
   */
 int ClusterList::AddCluster( std::list<int>& framelistIn, int numIn ) {
   // Update number of frames
-  maxframes_ += framelistIn.size();
+  // NOTE: Now done in initialization
+  //maxframes_ += framelistIn.size();
   clusters_.push_back( ClusterNode( framelistIn, numIn ) );
   return 0;
 }
@@ -218,7 +219,8 @@ int ClusterList::AddCluster( std::list<int>& framelistIn, int numIn ) {
   */
 void ClusterList::Initialize(TriangleMatrix *matrixIn) {
   FrameDistances_ = matrixIn;
-  ClusterDistances_.Setup( FrameDistances_->Nrows() );
+  maxframes_ = matrixIn->Nrows();
+  ClusterDistances_.Setup( clusters_.size() );
   // Build initial cluster distances
   if (Linkage_==AVERAGELINK) {
     for (cluster_it C1_it = clusters_.begin(); 
@@ -232,6 +234,10 @@ void ClusterList::Initialize(TriangleMatrix *matrixIn) {
     for (cluster_it C1_it = clusters_.begin(); 
                     C1_it != clusters_.end(); C1_it++) 
       calcMaxDist(C1_it);
+  }
+  if (debug_ > 1) {
+    mprintf("CLUSTER: INITIAL CLUSTER DISTANCES:\n");
+    ClusterDistances_.PrintElements();
   }
 }
  
@@ -463,7 +469,7 @@ void ClusterList::calcAvgDist(cluster_it& C1_it)
                   C2_it != clusters_.end(); C2_it++) 
   {
     if (C2_it == C1_it) continue;
-    //mprintf("\t\tRecalc distance between %i and %i:\n",(*C1_it).num,(*C2_it).num);
+    //mprintf("\t\tRecalc distance between %i and %i:\n",(*C1_it).Num(),(*C2_it).Num());
     // Pick the minimum distance between newc2 and C1
     double sumDist = 0;
     double N = 0;
@@ -482,7 +488,7 @@ void ClusterList::calcAvgDist(cluster_it& C1_it)
       }
     }
     double Dist = sumDist / N;
-    //mprintf("\t\tAvg distance between %i and %i: %lf\n",(*C1_it).num,(*C2_it).num,Dist);
+    //mprintf("\t\tAvg distance between %i and %i: %lf\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
     ClusterDistances_.SetElement( (*C1_it).Num(), (*C2_it).Num(), Dist );
   } 
 }

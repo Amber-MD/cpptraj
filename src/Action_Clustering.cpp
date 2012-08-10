@@ -9,6 +9,7 @@
 Action_Clustering::Action_Clustering() :
   epsilon_(-1.0),
   targetNclusters_(-1),
+  sieve_(1),
   cnumvtime_(NULL),
   summaryfile_(NULL),
   halffile_(NULL),
@@ -48,6 +49,7 @@ int Action_Clustering::init() {
   // Get keywords
   useMass_ = actionArgs.hasKey("mass");
   targetNclusters_ = actionArgs.getKeyInt("clusters",-1);
+  sieve_ = actionArgs.getKeyInt("sieve",1);
   epsilon_ = actionArgs.getKeyDouble("epsilon",-1.0);
   if (actionArgs.hasKey("linkage")) Linkage_=ClusterList::SINGLELINK;
   if (actionArgs.hasKey("averagelinkage")) Linkage_=ClusterList::AVERAGELINK;
@@ -180,12 +182,12 @@ void Action_Clustering::print() {
     calcDistFromRmsd( Distances );
     // Save distances
     // NOTE: Only if load_pair?
-    Distances.SaveFile((char*)PAIRDISTFILE);
+    Distances.SaveFile( PAIRDISTFILE );
   } else {
     // Get distances from dataset
     calcDistFromDataset( Distances );
     // NOTE: Need to update save to indicate distance type
-    Distances.SaveFile((char*)PAIRDISTFILE);
+    Distances.SaveFile( PAIRDISTFILE );
   }
 
   // DEBUG
@@ -365,6 +367,7 @@ int Action_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
     frames.assign(1,cluster);
     CList.AddCluster(frames, cluster);
   }
+  mprintf("\t%i initial clusters.\n", CList.Nclusters());
   // Build initial cluster distance matrix.
   CList.Initialize( &FrameDistances );
 
