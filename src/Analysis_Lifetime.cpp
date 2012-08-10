@@ -5,7 +5,8 @@
 Analysis_Lifetime::Analysis_Lifetime() :
   windowSize_(0),
   cut_(0.5),
-  averageonly_(false)
+  averageonly_(false),
+  cumulative_(false)
 {}
 
 /** Usage: lifetime [out <filename>] <dsetarg0> [ <dsetarg1> ... ]
@@ -17,6 +18,7 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
   std::string setname_ = analyzeArgs_.GetStringKey("name");
   windowSize_ = analyzeArgs_.getKeyInt("window", -1);
   averageonly_ = analyzeArgs_.hasKey("averageonly");
+  cumulative_ = analyzeArgs_.hasKey("cumulative");
   cut_ = analyzeArgs_.getKeyDouble("cut", 0.5);
   // Select datasets
   inputDsets_ = datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
@@ -67,6 +69,8 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
             setname_.c_str());
     mprintf("\tWindow size for averaging: %i\n", windowSize_);
+    if (cumulative_)
+      mprintf("\tCumulative averages will be saved.\n");
     if (!outfilename_.empty()) {
       mprintf("\tOutfile: %s", outfilename_.c_str());
       if (!averageonly_)
@@ -88,7 +92,8 @@ int Analysis_Lifetime::Analyze() {
     mprintf("\t\tCalculating lifetimes for set %s\n", (*inSet)->Legend().c_str());
     // Loop over all values in set.
     double sum = 0;
-    int windowcount = 0;
+    int windowcount = 0; // Used to trigger averaging
+    int Ncount = 0; // Used in averaging; if !cumulative, == windowcount
     int frame = 0;
     int setSize = (*inSet)->Size();
     int currentLifetimeCount = 0;
@@ -123,9 +128,10 @@ int Analysis_Lifetime::Analyze() {
         }
       }
       //sum += (*inSet)->Dval(i);
+      ++Ncount;
       ++windowcount;
       if (windowcount == windowSize_) {
-        double windowavg = sum / (double)windowcount;
+        double windowavg = sum / (double)Ncount;
         float fval = (float)windowavg;
         (*outSet)->Add( frame, &fval );
         if (!averageonly_) {
@@ -148,13 +154,18 @@ int Analysis_Lifetime::Analyze() {
           (*avgSet)->Add( frame, &favg );
         }
         frame += windowcount;
+        // Window counter is always reset
         windowcount = 0;
-        sum = 0;
-        // Reset lifetime counters
-        currentLifetimeCount = 0;
-        maximumLifetimeCount = 0;
-        Nlifetimes = 0;
-        sumLifetimes = 0;
+        if (!cumulative_) {
+          // Reset average counters
+          sum = 0;
+          Ncount = 0;
+          // Reset lifetime counters
+          currentLifetimeCount = 0;
+          maximumLifetimeCount = 0;
+          Nlifetimes = 0;
+          sumLifetimes = 0;
+        }
       }
     }
     // Print lifetime information if no window

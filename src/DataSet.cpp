@@ -209,6 +209,12 @@ double DataSet::Min() {
 }
 
 // DataSet::Corr()
+/** Calculate correlation between DataSets.
+  * \D2 DataSet to caclulate correlation to.
+  * \Ct If not NULL, DataSet to store correlation function (must be DOUBLE).
+  * \lagmax If Ct is not NULL, maximum lag to calculate correlation fn for.
+  * \return Pearson product-moment correlation coefficient.
+  */
 double DataSet::Corr( DataSet& D2, DataSet* Ct, int lagmax ) {
   double d1, d2, ct;
   // Check if D1 and D2 are valid types
@@ -252,6 +258,10 @@ double DataSet::Corr( DataSet& D2, DataSet* Ct, int lagmax ) {
   //        D1_->c_str(), D2_->c_str(), corr_coeff );
 
   if (Ct != NULL) {
+    if ( Ct->Type() != DOUBLE ) {
+      mprinterr("Internal Error: DataSet Corr Ct calc must be called with DataSet::DOUBLE.\n");
+      return corr_coeff;
+    }
     // Calculate correlation
     for (int lag = 0; lag < lagmax; lag++) {
       ct = 0;

@@ -17,6 +17,7 @@ class Analysis_Lifetime : public Analysis {
     int windowSize_;
     double cut_;
     bool averageonly_;
+    bool cumulative_;
 
     void PrintListToFile(DataFileList *, std::vector<DataSet*>&, std::string const&);
 };
