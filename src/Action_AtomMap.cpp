@@ -560,20 +560,8 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
         if (numAtomsMapped<3) continue;
         // Score this mapping with an RMSD ---------------------------------
         // Set up a reference/target frame containing only mapped atoms
-        //int rmsIndex = 0;
-        //mprintf("\tRMS fitting %i atoms from target to reference.\n",numAtomsMapped);
-        //rmsRefFrame.SetupFrame(numAtomsMapped,NULL);
-        //rmsTgtFrame.SetupFrame(numAtomsMapped,NULL);
         rmsRefFrame.SetReferenceByMap(*RefFrame, AMap);
         rmsTgtFrame.SetTargetByMap(*TgtFrame, AMap);
-/*        for (int refatom = 0; refatom < Ref->natom; refatom++) {
-          int targetatom = AMap[refatom];
-          if (targetatom!=-1) {
-            rmsRefFrame.SetCoord(rmsIndex, Ref->mapFrame->Coord(refatom));
-            rmsTgtFrame.SetCoord(rmsIndex, Tgt->mapFrame->Coord(targetatom));
-            ++rmsIndex;
-          }
-        }*/
         double RmsVal = rmsTgtFrame.RMSD(&rmsRefFrame, Rot, Trans, false);
         mprintf("\tRMS fit (%i atoms) based on guess Tgt %i -> Ref %i, %lf\n",
                 numAtomsMapped,(*t)+1, (*r)+1, RmsVal);
@@ -812,16 +800,8 @@ int Action_AtomMap::init() {
   // performed using all atoms that were successfully mapped from 
   // target to reference.
   if (rmsfit) {
-    //int rmsRefIndex = 0;
     // Set up a reference frame containing only mapped reference atoms
     rmsRefFrame.SetReferenceByMap(*RefFrame, AMap);
-/*    rmsRefFrame.SetupFrame(numMappedAtoms,NULL);
-    for (refatom = 0; refatom < RefMap.natom; refatom++) {
-      targetatom = AMap[refatom];
-      if (targetatom!=-1) rmsRefFrame.SetCoord(rmsRefIndex++, RefMap.mapFrame->Coord(refatom));
-    }*/
-    // Prepare target frame to hold mapped atoms
-    //rmsTgtFrame.SetupFrame(numMappedAtoms,NULL);
     mprintf("      rmsfit: Will rms fit %i atoms from target to reference.\n",numMappedAtoms);
     return 0;
   }
@@ -918,12 +898,8 @@ int Action_AtomMap::action() {
 
   // Perform RMS fit on mapped atoms only
   if (rmsfit) {
+    // Set target frame up according to atom map.
     rmsTgtFrame.SetTargetByMap(*currentFrame, AMap);
-/*    int rmsTgtIndex = 0;
-    for (int refatom = 0; refatom < RefMap.natom; refatom++) {
-      int targetatom = AMap[refatom];
-      if (targetatom!=-1) rmsTgtFrame.SetCoord(rmsTgtIndex++, currentFrame->Coord(targetatom));
-    }*/
     R = rmsTgtFrame.RMSD(&rmsRefFrame, Rot, Trans, false);
     currentFrame->Trans_Rot_Trans(Trans,Rot);
     if (rmsdata!=NULL)
@@ -935,8 +911,6 @@ int Action_AtomMap::action() {
   // TODO: Fix this since its probably busted for unmapped atoms; also
   //       it doesnt copy velocity/masses
   newFrame->SetCoordinates(*currentFrame, AMap);
-  //for (int atom=0; atom < currentFrame->natom; atom++) 
-  //  newFrame->SetCoord(atom, currentFrame->Coord(AMap[atom]));
   currentFrame = newFrame;
   return 0;
 }
