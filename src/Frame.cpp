@@ -1,18 +1,16 @@
-#include <cmath>
-#include <cstring>
-//#include <algorithm> // std::copy, std::swap
+#include <cmath> // sqrt
+#include <cstring> // memcpy, memset
 #include "Frame.h"
 #include "Constants.h"
 #include "vectormath.h" // CROSS_PRODUCT, normalize
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 #include "CpptrajStdio.h"
-// DEBUG
-#include "Matrix_3x3.h"
+#include "Matrix_3x3.h" // For diagonalization in RMS routine.
 
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 const size_t Frame::BOXSIZE_ = 6 * sizeof(double);
-
+// ---------- CONSTRUCTION/DESTRUCTION/ASSIGNMENT ------------------------------
 /// CONSTRUCTOR
 Frame::Frame( ) : 
   natom_(0),
@@ -24,6 +22,13 @@ Frame::Frame( ) :
   T_(0.0)
 {
   memset(box_, 0, BOXSIZE_);
+}
+
+/// DESTRUCTOR
+Frame::~Frame( ) {
+  if (X_!=NULL) delete[] X_;
+  if (V_!=NULL) delete[] V_;
+  if (Mass_!=NULL) delete[] Mass_;
 }
 
 // CONSTRUCTOR
@@ -43,26 +48,6 @@ Frame::Frame(int natomIn) :
 }
 
 // CONSTRUCTOR
-/// Copy given coords
-Frame::Frame(double *Xin, int natomIn, double *massIn) :
-  natom_(natomIn), 
-  maxnatom_(natomIn),
-  Ncoord_(natomIn*3),
-  X_(NULL),
-  V_(NULL),
-  Mass_(NULL),
-  T_(0) 
-{
-  memset(box_, 0, BOXSIZE_);
-  if (Ncoord_ > 0) {
-    X_ = new double[ Ncoord_ ];
-    memcpy(X_, Xin, Ncoord_*sizeof(double));
-    Mass_ = new double[ natom_ ];
-    memcpy(Mass_, massIn, natom_*sizeof(double));
-  }
-}
-
-// CONSTRUCTOR
 /// Set up for natom, copy massIn
 Frame::Frame(int natomIn, double *massIn) :
   natom_(natomIn), 
@@ -79,31 +64,6 @@ Frame::Frame(int natomIn, double *massIn) :
     if (massIn != NULL) {
       Mass_ = new double[ natom_ ];
       memcpy(Mass_, massIn, natom_*sizeof(double));
-    }
-  }
-}
-
-// CONSTRUCTOR
-/// Set up for nselected, copy mass according to maskIn
-Frame::Frame(AtomMask &maskIn, double *massIn) :
-  natom_(maskIn.Nselected()),
-  maxnatom_(natom_),
-  Ncoord_(natom_*3),
-  X_(NULL),
-  V_(NULL),
-  Mass_(NULL),
-  T_(0)
-{
-  memset(box_, 0, BOXSIZE_);
-  if (Ncoord_ > 0) {
-    X_ = new double[ Ncoord_ ];
-    Mass_ = new double[ natom_ ];
-    double *newM = Mass_;
-    for (AtomMask::const_iterator atom = maskIn.begin();
-                                  atom != maskIn.end(); atom++)
-    {
-      *newM = massIn[ *atom ];
-      ++newM;
     }
   }
 }
@@ -158,30 +118,6 @@ Frame::Frame(Frame &frameIn, AtomMask &maskIn) {
   }
 }
 
-/// DESTRUCTOR
-Frame::~Frame( ) {
-  if (X_!=NULL) delete[] X_;
-  if (V_!=NULL) delete[] V_;
-  if (Mass_!=NULL) delete[] Mass_;
-}
-
-/// COPY CONSTRUCTOR
-// NOTE: The order of variables in the class definition is important
-//       when using initializer lists.
-/*Frame::Frame(const Frame &rhs) :
-  natom_(rhs.natom_),
-  maxnatom_(rhs.maxnatom_),
-  Ncoord_(rhs.Ncoord_),
-  X_(Ncoord_ ? new double[ Ncoord_ ] : NULL),
-  V_(rhs.V_!=NULL ? new double[ Ncoord_ ] : NULL),
-  Mass_(rhs.Mass_!=NULL ? new double[ natom_ ] : NULL),
-  T_(rhs.T_)
-{
-  std::copy(rhs.X_, rhs.X_ + Ncoord_, X_);
-  std::copy(rhs.V_, rhs.V_ + Ncoord_, V_);
-  std::copy(rhs.Mass_, rhs.Mass_ + natom_, Mass_);
-  std::copy(rhs.box_, rhs.box_ + 6, box_);
-}*/
 // COPY CONSTRUCTOR
 Frame::Frame(const Frame &rhs) :
   natom_(rhs.natom_), 
@@ -210,38 +146,6 @@ Frame::Frame(const Frame &rhs) :
     memcpy(Mass_, rhs.Mass_, natom_*sizeof(double));
   }
 }
-
-// Frame::Info()
-// For debugging
-void Frame::Info(const char *msg) {
-  if (msg!=NULL)
-    mprintf("\tFrame [%s]:",msg);
-  else
-    mprintf("\tFrame:");
-  mprintf("%i atoms, %i coords, maxnatom=%i",natom_,Ncoord_,maxnatom_);
-  if (X_!=NULL) mprintf(" X");
-  if (V_!=NULL) mprintf(" V");
-  if (Mass_!=NULL) mprintf(" M");
-  mprintf("\n");
-}
-
-// SWAP
-/*void Frame::swap(Frame &first, Frame &second) {
-  double firstbox[6];
-  // Argument-dependent lookup; bring swap into this scope.
-  using std::swap;
-  swap(first.natom_, second.natom_);
-  swap(first.maxnatom_, second.maxnatom_);
-  swap(first.Ncoord_, second.Ncoord_);
-  swap(first.X_, second.X_);
-  swap(first.V_, second.V_);
-  swap(first.Mass_, second.Mass_);
-  // Swap box
-  std::copy(first.box_, first.box_ + 6, firstbox);
-  std::copy(second.box_, second.box_ + 6, first.box_);
-  std::copy(firstbox, firstbox + 6, second.box_);
-  swap(first.T_, second.T_);
-}*/
 
 // Frame::operator=()
 /** Assignment operator. Cannot assume that *this has been previously
@@ -295,6 +199,7 @@ Frame &Frame::operator=(const Frame &rhs) {
   return *this;
 }
 
+// ---------- CONVERT TO/FROM ARRAYS -------------------------------------------
 // Float array assignment
 Frame &Frame::operator=(const std::vector<float> &farray) {
   int f_ncoord = (int) farray.size();
@@ -328,6 +233,21 @@ std::vector<float> Frame::ConvertToFloat(AtomMask &maskIn) {
     farray.push_back( fval );
   }
   return farray;
+}
+
+// ---------- ACCESS INTERNAL DATA ---------------------------------------------
+// Frame::Info()
+// For debugging
+void Frame::Info(const char *msg) {
+  if (msg!=NULL)
+    mprintf("\tFrame [%s]:",msg);
+  else
+    mprintf("\tFrame:");
+  mprintf("%i atoms, %i coords, maxnatom=%i",natom_,Ncoord_,maxnatom_);
+  if (X_!=NULL) mprintf(" X");
+  if (V_!=NULL) mprintf(" V");
+  if (Mass_!=NULL) mprintf(" M");
+  mprintf("\n");
 }
 
 // Frame::GetAtomXYZ()
@@ -378,32 +298,7 @@ double Frame::MaxImagedDistance() {
   return maxD;
 }
 
-// -----------------------------------------------------------------------------
-/*Vec3 Frame::CenterOfMass( AtomMask& Mask ) {
-  double Coord0=0.0;
-  double Coord1=0.0;
-  double Coord2=0.0;
-  double sumMass=0.0;
-
-  for (AtomMask::const_iterator atom = Mask.begin();
-                                atom != Mask.end(); ++atom)
-  {
-      int atmidx = (*atom) * 3;
-      double mass = Mass_[*atom];
-      sumMass += mass;
-      Coord0 += (X_[atmidx  ] * mass);
-      Coord1 += (X_[atmidx+1] * mass);
-      Coord2 += (X_[atmidx+2] * mass);
-  }
-
-  // NOTE: Not using == since it is unreliable for floating point numbers.
-  // Should NEVER have a mass smaller than SMALL (vectormath.h)
-  if (sumMass < SMALL) return Vec3();
-
-  return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
-}*/
-// -----------------------------------------------------------------------------
-
+// ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
 // Frame::SetupFrame()
 /** Set up frame for given number of atoms, no mass or velocity information.
   * Only reallocate memory if natomIn > maxnatom.

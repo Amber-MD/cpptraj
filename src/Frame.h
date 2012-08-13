@@ -20,19 +20,17 @@ class Frame {
     enum ImageType { NOIMAGE=0, ORTHO, NONORTHO };
     // Construction/Destruction/Assignment
     Frame();
+    virtual ~Frame(); // Destructor is virtual since this class can be inherited
     Frame(int);
-    Frame(double*, int, double*);
     Frame(int, double *);
-    Frame(AtomMask &, double *);
     Frame(Frame &, AtomMask &);
     Frame(const Frame&);
-    void Info(const char*);
-    virtual ~Frame(); // Destructor is virtual since this class can be inherited
     Frame & operator=(const Frame&);
     // Convert to/from arrays
     Frame &operator=(const std::vector<float>&);
     std::vector<float> ConvertToFloat(AtomMask &);
     // Access internal data
+    void Info(const char*);
     void GetAtomXYZ(double*, int);
     const double* XYZ(int atnum) { return X_ + (atnum*3); }
     void AddXYZ(const double *);
@@ -46,9 +44,6 @@ class Frame {
     double BoxZ() { return box_[2]; }
     const double* Box() { return box_; }
     double& operator[](int idx) { return X_[idx]; }
-    // Vec3 functions
-    //Vec3 GetAtomVec3(int atom) { return Vec3(X_+(atom*3)); }
-    //Vec3 CenterOfMass(AtomMask &);
     // Frame memory allocation/reallocation
     int SetupFrame(int);
     int SetupFrame(int, double*);

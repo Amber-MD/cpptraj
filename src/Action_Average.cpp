@@ -94,7 +94,7 @@ int Action_Average::setup() {
 
   if (AvgFrame_==NULL) {
     mprintf(" Averaging over %i atoms.\n",Mask1_.Nselected());
-    AvgFrame_ = new Frame(Mask1_, currentParm->Mass());
+    AvgFrame_ = new Frame(Mask1_.Nselected());
     AvgFrame_->ZeroCoords();
     Natom_ = AvgFrame_->Natom(); // Initiially equal to Mask1.Nselected
     // AvgParm will be used for coordinate output

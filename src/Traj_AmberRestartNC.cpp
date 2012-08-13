@@ -214,7 +214,6 @@ int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *
 
   // Read Velocity
   if (hasVelocity_ && V!=NULL) {
-    //if (F->V==NULL) F->V = new Frame(ncatom,NULL);
     if ( checkNCerr(nc_get_vara_double(ncid_, velocityVID_, start_, count_, V)) ) {
       mprinterr("Error: Getting velocities\n"); 
       return 1;
