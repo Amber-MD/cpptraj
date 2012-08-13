@@ -136,7 +136,7 @@ int TriangleMatrix::LoadFile(const char *filename, int sizeIn) {
       magic[1] != 'T' ||
       magic[2] != 'M' ||
       magic[3] != 0     ) {
-    mprinterr("Error: TriangleMatrix::LoadFile: File %s magic number not [%c%c%c%c]!\n",
+    mprinterr("Error: TriangleMatrix::LoadFile: File %s magic number not CTM0 [%c%c%c%c]!\n",
               magic[0],magic[1],magic[2],magic[3],filename);
     fclose(infile);
     return 1;
