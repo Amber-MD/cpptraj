@@ -85,7 +85,7 @@ int Action_Dihedral::setup() {
 
 // Action_Dihedral::action()
 int Action_Dihedral::action() {
-  double torsion = currentFrame->DIHEDRAL(&M1_, &M2_, &M3_, &M4_, useMass_);
+  double torsion = currentFrame->DIHEDRAL(M1_, M2_, M3_, M4_, useMass_);
 
   torsion *= RADDEG;
 

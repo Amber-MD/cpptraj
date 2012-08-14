@@ -147,8 +147,8 @@ void Action_RmsAvgCorr::print() {
 
   // Set up frames for reference and target atoms for RMSD calc that match the 
   // stripped parm; this also sets masses in case useMass specified.
-  Frame refFrame(strippedParm->Natom(), strippedParm->Mass());
-  Frame tgtFrame(strippedParm->Natom(), strippedParm->Mass());
+  Frame refFrame(strippedParm->Atoms());
+  Frame tgtFrame(strippedParm->Atoms());
   // Set up frame for holding sum of coordindates over window frames. 
   // No need for mass. 
   Frame sumFrame(strippedParm->Natom());

@@ -285,7 +285,7 @@ int Action_Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
       }
       refatoms = Mask0_.Nselected();
       // NOTE: This copies in correct masses according to Mask0
-      SelectedRef.SetupFrameFromMask(Mask0_, RefParm->Mass());
+      SelectedRef.SetupFrameFromMask(Mask0_, RefParm->Atoms());
       lastrefpindex = RefParm->Pindex();
     }
     // Get the current reference frame
@@ -316,7 +316,7 @@ int Action_Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
           continue;
         }
         // NOTE: This copies in correct masses according to Mask0
-        SelectedTgt.SetupFrameFromMask(Mask0_, TgtParm->Mass());
+        SelectedTgt.SetupFrameFromMask(Mask0_, TgtParm->Atoms());
         lasttgtpindex = TgtParm->Pindex();
       }
       // Get the current target frame
@@ -327,7 +327,7 @@ int Action_Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
 
       // Perform RMS calculation
       if (nofitrms_)
-        R = SelectedTgt.RMSD(&SelectedRef, useMass_);
+        R = SelectedTgt.RMSD(SelectedRef, useMass_);
       else 
         R = SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass_);
 

@@ -11,8 +11,7 @@ Action_Rms2d::Action_Rms2d() :
   RefTraj_(NULL),
   RefParm_(NULL),
   corrfilename_(NULL),
-  mass_ptr_(NULL),
-  mass_setup_(false)
+  mass_ptr_(NULL)
 {
   //fprintf(stderr,"Rms2d Con\n");
   useMass_=false;
@@ -116,9 +115,8 @@ int Action_Rms2d::setup() {
   // set of masses. To simplify things, only allow mass-weighting when reading
   // one parm.
   if (useMass_) {
-    if (!mass_setup_) {
-      mass_ptr_ = currentParm->Mass();
-      mass_setup_ = true;
+    if (mass_ptr_ == NULL) {
+      mass_ptr_ = currentParm;
     } else {
       mprintf("Warning: Rms2d::Setup: 'mass' only allowed with one parm. Disabling 'mass'.\n");
       mass_ptr_=NULL;
@@ -165,17 +163,15 @@ DataSet* Action_Rms2d::Calc2drms() {
   int current = 0;
   progress->Update(current);
 
-  if (mass_ptr_!=NULL) {
+  if (mass_ptr_!=NULL && useMass_) {
     // Set up mass info. If mass info present this means only 1 parm used,
     // so tgt and ref will always have same # of atoms. Use first frame
     // in ref coords to set up target and reference frames.
-    useMass_=true;
-    RefFrame.SetupFrameFromMask(FrameMask_, mass_ptr_);
-    TgtFrame.SetupFrameFromMask(FrameMask_, mass_ptr_);
+    RefFrame.SetupFrameFromMask(FrameMask_, mass_ptr_->Atoms());
+    TgtFrame.SetupFrameFromMask(FrameMask_, mass_ptr_->Atoms());
     // If no mass info ensure that RefFrame and TgtFrame are large enough to
     // hold the largest set of coords in ReferenceCoords. No mass.
   } else {
-    useMass_=false;
     int maxrefnatom = ReferenceCoords_.MaxNatom();
     RefFrame.SetupFrame( maxrefnatom );
     TgtFrame.SetupFrame( maxrefnatom );
@@ -202,7 +198,7 @@ DataSet* Action_Rms2d::Calc2drms() {
         R = -1.0;
       } else if (nofit_) {
         // Perform no fit RMS calculation
-        R = (float) TgtFrame.RMSD(&RefFrame, useMass_);
+        R = (float) TgtFrame.RMSD(RefFrame, useMass_);
       } else {
         // Perform fit RMS calculation
         R = (float) TgtFrame.RMSD_CenteredRef(RefFrame, U, Trans, useMass_);
@@ -245,8 +241,8 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
     return NULL;
   }
   // Setup frame for selected reference atoms
-  SelectedRef.SetupFrameFromMask(RefMask_, RefParm_->Mass()); 
-  RefFrame.SetupFrame(RefParm_->Natom(), RefParm_->Mass());
+  SelectedRef.SetupFrameFromMask(RefMask_, RefParm_->Atoms()); 
+  RefFrame.SetupFrameM(RefParm_->Atoms());
   int totalref = RefTraj_->Total_Read_Frames();
 
   int totaltgt = ReferenceCoords_.Ncoords();
@@ -264,13 +260,11 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
   int current=0;
   progress->Update(current);
 
-  if (mass_ptr_!=NULL) {
+  if (mass_ptr_!=NULL && useMass_) {
     // Set up selected target mass info
-    SelectedTgt.SetupFrameFromMask(FrameMask_, mass_ptr_);
-    useMass_=true;
+    SelectedTgt.SetupFrameFromMask(FrameMask_, mass_ptr_->Atoms());
   } else {
     // If no mass, ensure SelectedTgt can hold max #atoms in ReferenceCoords
-    useMass_=false;
     int maxtgtnatom = ReferenceCoords_.MaxNatom();
     SelectedTgt.SetupFrame( maxtgtnatom );
   }
@@ -306,7 +300,7 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
         R = -1.0;
       } else if (nofit_) {
         // Perform no fit RMS calculation
-        R = (float) SelectedTgt.RMSD(&SelectedRef, useMass_);
+        R = (float) SelectedTgt.RMSD(SelectedRef, useMass_);
       } else {
         // Perform fit RMS calculation
         R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass_);

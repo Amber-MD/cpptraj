@@ -65,7 +65,7 @@ AxisType.o : AxisType.cpp Atom.h AtomMask.h AxisType.h Box.h CpptrajFile.h Cpptr
 Box.o : Box.cpp Box.h Constants.h CpptrajStdio.h
 ClusterList.o : ClusterList.cpp ClusterList.h ClusterNode.h CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h TriangleMatrix.h
 ClusterNode.o : ClusterNode.cpp ClusterNode.h
-CoordList.o : CoordList.cpp AtomMask.h CoordList.h Frame.h MaskToken.h NameType.h
+CoordList.o : CoordList.cpp Atom.h AtomMask.h CoordList.h Frame.h MaskToken.h NameType.h
 CpptrajFile.o : CpptrajFile.cpp CpptrajFile.h CpptrajStdio.h FileIO.h FileIO_Bzip2.h FileIO_Gzip.h FileIO_Mpi.h FileIO_Std.h MpiRoutines.h
 Cpptraj.o : Cpptraj.cpp Action.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h Cpptraj.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h
 CpptrajStdio.o : CpptrajStdio.cpp CpptrajStdio.h MpiRoutines.h
@@ -88,7 +88,7 @@ FileIO_Gzip.o : FileIO_Gzip.cpp CpptrajStdio.h FileIO.h FileIO_Gzip.h
 FileIO_Mpi.o : FileIO_Mpi.cpp FileIO.h FileIO_Mpi.h MpiRoutines.h
 FileIO_Std.o : FileIO_Std.cpp FileIO.h FileIO_Std.h
 FileList.o : FileList.cpp FileList.h
-Frame.o : Frame.cpp AtomMask.h Constants.h CpptrajStdio.h DistRoutines.h Frame.h MaskToken.h Matrix_3x3.h NameType.h TorsionRoutines.h vectormath.h
+Frame.o : Frame.cpp Atom.h AtomMask.h Constants.h CpptrajStdio.h DistRoutines.h Frame.h MaskToken.h Matrix_3x3.h NameType.h TorsionRoutines.h vectormath.h
 FrameBuffer.o : FrameBuffer.cpp FrameBuffer.h
 FrameList.o : FrameList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h
 Grid.o : Grid.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h Grid.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h
@@ -96,7 +96,7 @@ Histogram.o : Histogram.cpp CpptrajFile.h CpptrajStdio.h DataSet.h Dimension.h F
 Integrate.o : Integrate.cpp CpptrajStdio.h Integrate.h
 main.o : main.cpp Action.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h Cpptraj.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h
 MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h
-ModesInfo.o : ModesInfo.cpp AtomMask.h CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h Frame.h MaskToken.h ModesInfo.h NameType.h
+ModesInfo.o : ModesInfo.cpp Atom.h AtomMask.h CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h Frame.h MaskToken.h ModesInfo.h NameType.h
 Matrix_3x3.o : Matrix_3x3.cpp CpptrajStdio.h Matrix_3x3.h
 MatrixType.o : MatrixType.cpp Action.h ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h MatrixType.h ModesInfo.h Molecule.h NameType.h Residue.h Topology.h TopologyList.h VectorType.h vectormath.h
 Matrix_2D.o : Matrix_2D.cpp CpptrajFile.h DataSet.h FileIO.h Matrix_2D.h

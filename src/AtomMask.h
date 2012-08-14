@@ -41,7 +41,7 @@ class AtomMask {
     /// Iterator at end of Selected
     const_iterator end() const;
     /// Return number of selected atoms
-    int Nselected();
+    int Nselected() const;
     /// Return selected atom at idx
     const int &operator[](int);
     /// Return original mask expression as char*

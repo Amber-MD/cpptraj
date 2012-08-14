@@ -99,7 +99,7 @@ int Action_Pucker::setup() {
 
 // Action_Pucker::action()
 int Action_Pucker::action() {
-  double pval = currentFrame->PUCKER(&M1_,&M2_,&M3_,&M4_,&M5_,puckerMethod_,amplitude_,useMass_);
+  double pval = currentFrame->PUCKER(M1_,M2_,M3_,M4_,M5_,puckerMethod_,amplitude_,useMass_);
   pval *= RADDEG;
 
   // Deal with offset

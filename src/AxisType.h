@@ -1,6 +1,5 @@
 #ifndef INC_AXISTYPE_H
 #define INC_AXISTYPE_H
-#include "Frame.h"
 #include "Topology.h"
 #ifdef NASTRUCTDEBUG
 #  include "CpptrajFile.h"
@@ -19,9 +18,9 @@
   *   frames.
   */
 #ifdef NASTRUCTDEBUG
-class AxisType : public Frame, PDBtype
+class AxisType : public PDBtype
 #else
-class AxisType : public Frame 
+class AxisType
 #endif
 {
   public:
@@ -47,12 +46,14 @@ class AxisType : public Frame
     const char* ResName();
     int ResNum() { return residue_number; }
     int ResNum2() { return second_resnum; }
+    const double* xAddress() { return X_; }
     bool AtomNameIs(int, char *);
     char *AtomName(int);
     void PrintAtomNames();
     void PrintAxisInfo(const char *);
 
-    void SetAxisFromMask(AxisType &, AtomMask &);
+    void SetCoordsFromFrame( Frame& ); // TODO: Make const
+    //void SetAxisFromMask(AxisType &, AtomMask &);
     void StoreRotMatrix(double*,double*);
     void StoreBPresnums(int,int);
 
@@ -106,8 +107,14 @@ class AxisType : public Frame
     static const char URAnames[][5];
     static const int URAhbonds[];
     static const double URAcoords[][3];
-    /// Identify NA base from residue name
-    NAbaseType ID_base(NameType);
+    /// Current number of atoms
+    int natom_;
+    /// Maximum number of atoms
+    int maxnatom_;
+    /// Number of coordinates
+    int Ncoord_;
+    /// Hold coordinates
+    double* X_;
     /// Strings corresponding to NAbaseType
     static const char NAbaseName[][4];
     /// Atom Names
@@ -128,7 +135,9 @@ class AxisType : public Frame
     /// DEBUG - Storage for writing out BaseName + residue_number 
     std::string basename_num_;
 #endif
-
+    /// Identify NA base from residue name
+    NAbaseType ID_base(NameType);
+    /// Allocate memory
     int AllocAxis(int);
 };
 #endif  

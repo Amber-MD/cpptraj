@@ -26,8 +26,7 @@ class Action_Rms2d: public Action {
     TrajectoryFile* RefTraj_;   ///< Reference trajectory, each frame used in turn
     Topology* RefParm_;         ///< Reference trajectory Parm
     char* corrfilename_;        ///< Auto-correlation output filename
-    double* mass_ptr_;          ///< If useMass, hold mass info for parm.
-    bool mass_setup_;           ///< Used to check if mass already set up.
+    Topology* mass_ptr_;        ///< If useMass, hold mass info for parm.
 
     int AutoCorrelate(TriangleMatrix&);
     DataSet* CalcRmsToTraj();

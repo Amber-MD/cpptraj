@@ -49,8 +49,8 @@ void Action_NAstruct::ClearLists() {
   */
 int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
   double rmsd, RotMatrix[9], TransVec[6];
-  AxisType refFrame; // Hold copy of base reference coords
-  AxisType expFrame; // Hold copy of input base coords
+  Frame refFrame; // Hold copy of base reference coords for RMS fit
+  Frame inpFrame; // Hold copy of input base coords for RMS fit
 # ifdef NASTRUCTDEBUG
   AxisPDBwriter baseaxesfile;
   baseaxesfile.Open("baseaxes.pdb");
@@ -64,7 +64,8 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
   int Nbases = (int)RefCoords.size();
   for (int base=0; base < Nbases; base++) {
     // Set exp coords based on previously set-up mask
-    BaseAxes[base].SetCoordinates( *InputFrame, ExpMasks[base] );
+    Frame expCoords( *InputFrame, ExpMasks[base] );
+    BaseAxes[base].SetCoordsFromFrame( expCoords );
     // If P atom defined store phosphorus coords
     if (BaseAxes[base].HasPatom()) 
       BaseAxes[base].SetPcrd( InputFrame->XYZ( BaseAxes[base].Pidx() ) );
@@ -94,9 +95,9 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
      * on top of input (experimental) coords. Per 3DNA procedure, not all 
      * reference atoms are used in the RMS fit; only ring atoms are used. 
      */
-    refFrame.SetAxisFromMask( RefCoords[base], FitMasks[base] );
-    expFrame.SetAxisFromMask( BaseAxes[base], FitMasks[base] );
-    rmsd = refFrame.RMSD( &expFrame, RotMatrix, TransVec, false);
+    refFrame.SetCoordinatesByMask( RefCoords[base].xAddress(), FitMasks[base] );
+    inpFrame.SetCoordinatesByMask( BaseAxes[base].xAddress(), FitMasks[base] );
+    rmsd = refFrame.RMSD( inpFrame, RotMatrix, TransVec, false);
     /* RotMatrix and TransVec now contain rotation and translation
      * that will orient refcoord to expframe. The first translation is that of
      * the reference frame to the absolute origin, the second translation is

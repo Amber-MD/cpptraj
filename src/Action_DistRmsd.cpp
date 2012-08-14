@@ -19,7 +19,7 @@ int Action_DistRmsd::SetRefMask( Topology* RefParm ) {
               RefParm->c_str(), RefMask_.MaskString());
     return 1;
   }
-  SelectedRef_.SetupFrameFromMask( RefMask_, RefParm->Mass() );
+  SelectedRef_.SetupFrameFromMask( RefMask_, RefParm->Atoms() );
   return 0;
 }
 
@@ -91,7 +91,7 @@ int Action_DistRmsd::init( ) {
         mprinterr("Error: distrmsd: Could not set up reftraj %s\n", reftrajname.c_str());
         return 1;
       }
-      RefFrame_.SetupFrameV(RefParm->Natom(), RefParm->Mass(), RefTraj_.HasVelocity());
+      RefFrame_.SetupFrameV(RefParm->Atoms(), RefTraj_.HasVelocity());
       if (RefTraj_.BeginTraj(false)) {
         mprinterr("Error: distrmsd: Could not open reftraj %s\n", reftrajname.c_str());
         return 1;
@@ -149,7 +149,7 @@ int Action_DistRmsd::setup() {
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  SelectedTgt_.SetupFrameFromMask(TgtMask_, currentParm->Mass());
+  SelectedTgt_.SetupFrameFromMask(TgtMask_, currentParm->Atoms());
 
   // Reference setup if 'first'
   if (refmode_ == FIRST) {
@@ -190,7 +190,7 @@ int Action_DistRmsd::action() {
   SelectedRef->printAtomCoord(0);
 */
 
-  double DR = SelectedTgt_.DISTRMSD( &SelectedRef_ );
+  double DR = SelectedTgt_.DISTRMSD( SelectedRef_ );
 
   drmsd_->Add(frameNum, &DR);
 

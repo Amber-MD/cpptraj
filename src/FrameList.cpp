@@ -88,11 +88,11 @@ int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
   traj.PrintInfo(1);
   // Set up input frame
   // NOTE: If ever need ref velocity change this alloc
-  Frame *CurrentFrame = new Frame( parmIn->Natom(), parmIn->Mass() );
+  Frame *CurrentFrame = new Frame( parmIn->Atoms() );
   // If averaging requested, loop over specified frames and avg coords.
   if (average) {
     mprintf("    Averaging over %i frames.\n",trajFrames);
-    Frame *AvgFrame = new Frame( parmIn->Natom(), parmIn->Mass() );
+    Frame *AvgFrame = new Frame( parmIn->Atoms() );
     AvgFrame->ZeroCoords();
     while ( traj.GetNextFrame( *CurrentFrame ) ) {
       *AvgFrame += *CurrentFrame;

@@ -393,7 +393,7 @@ AtomMask::const_iterator AtomMask::end() const {
 }
 
 // AtomMask::Nselected()
-int AtomMask::Nselected() {
+int AtomMask::Nselected() const {
   return nselected_;
 }
 

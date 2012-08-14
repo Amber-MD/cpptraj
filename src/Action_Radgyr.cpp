@@ -63,7 +63,7 @@ int Action_Radgyr::setup() {
 int Action_Radgyr::action() {
   double max;
 
-  double Rog = currentFrame->RADGYR(&Mask1_, useMass_, &max);
+  double Rog = currentFrame->RADGYR(Mask1_, useMass_, &max);
 
   rog_->Add(frameNum, &Rog);
   if (calcRogmax_)

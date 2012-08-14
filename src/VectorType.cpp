@@ -512,10 +512,10 @@ int VectorType::Action_CORR() {
     indsnap *= modinfo_->Nvect();
   // Calc COM of masks and vector v
   //CXYZ = currentFrame->CenterOfMass(mask_);
-  currentFrame->CenterOfMass( &mask_, CXYZ );
+  currentFrame->CenterOfMass( CXYZ, mask_ );
   if (mode_==VECTOR_CORR || mode_==VECTOR_CORRIRED) {
     //VXYZ = currentFrame->CenterOfMass(&mask2_);
-    currentFrame->CenterOfMass( &mask2_, VXYZ );
+    currentFrame->CenterOfMass( VXYZ, mask2_ );
     //VXYZ -= CXYZ;
     VXYZ[0] -= CXYZ[0];
     VXYZ[1] -= CXYZ[1];
@@ -727,8 +727,8 @@ int VectorType::Action_PRINCIPAL( ) {
 int VectorType::Action_MASK( ) {
   double CXYZ[3], VXYZ[3];
 
-  currentFrame->CenterOfMass( &mask_, CXYZ);
-  currentFrame->CenterOfMass( &mask2_, VXYZ);
+  currentFrame->CenterOfMass( CXYZ, mask_ );
+  currentFrame->CenterOfMass( VXYZ, mask2_ );
   vx_[frame_] = VXYZ[0] - CXYZ[0];
   vy_[frame_] = VXYZ[1] - CXYZ[1];
   vz_[frame_] = VXYZ[2] - CXYZ[2];
@@ -743,8 +743,8 @@ int VectorType::Action_MASK( ) {
 int VectorType::Action_IRED(  ) {
   double CXYZ[3], VXYZ[3];
 
-  currentFrame->CenterOfMass( &mask_, CXYZ);
-  currentFrame->CenterOfMass( &mask2_, VXYZ);
+  currentFrame->CenterOfMass( CXYZ, mask_ );
+  currentFrame->CenterOfMass( VXYZ, mask2_ );
   vx_[frame_] = VXYZ[0] - CXYZ[0];
   vy_[frame_] = VXYZ[1] - CXYZ[1];
   vz_[frame_] = VXYZ[2] - CXYZ[2];

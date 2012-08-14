@@ -511,7 +511,7 @@ int MatrixType::action() {
   } else if (type_ == MATRIX_IDEA) {
     // Get COM
     double COM[3];
-    currentFrame->CenterOfMass( &mask1_, COM );
+    currentFrame->CenterOfMass( COM, mask1_ );
     // Get ri, rj, and calc ri*rj
     int midx = 0;
     int vidx = 0;
@@ -939,7 +939,7 @@ void MatrixType::print() {
         for (AtomMask::const_iterator atomi = maskAbegin; atomi != maskAend; ++atomi)
         {
           if (useMass_)
-            mass = (*matrixParm_)[*atomj].Mass() * (*matrixParm_[*atomi].Mass());
+            mass = (*matrixParm_)[*atomj].Mass() * (*matrixParm_)[*atomi].Mass();
           valnorm += mass;
           if (mask2expr_==NULL) {
             int idx = HalfMatrixIndex( crow, ccol );

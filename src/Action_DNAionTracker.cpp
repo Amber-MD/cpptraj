@@ -129,13 +129,13 @@ int Action_DNAionTracker::action() {
 
   // Get center for P1, P2, and Base
   if (useMass_) {
-    currentFrame->CenterOfMass( &p1_, P1 );
-    currentFrame->CenterOfMass( &p2_, P2 );
-    currentFrame->CenterOfMass( &base_, BASE );
+    currentFrame->CenterOfMass( P1, p1_ );
+    currentFrame->CenterOfMass( P2, p2_ );
+    currentFrame->CenterOfMass( BASE, base_ );
   } else {
-    currentFrame->GeometricCenter( &p1_, P1 );
-    currentFrame->GeometricCenter( &p2_, P2 );
-    currentFrame->GeometricCenter( &base_, BASE );
+    currentFrame->GeometricCenter( P1, p1_ );
+    currentFrame->GeometricCenter( P2, p2_ );
+    currentFrame->GeometricCenter( BASE, base_ );
   }
  
   // Calculate P -- P distance and centroid

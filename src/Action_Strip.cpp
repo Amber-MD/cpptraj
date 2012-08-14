@@ -79,7 +79,7 @@ int Action_Strip::setup() {
   newParm_->Summary();
 
   // Allocate space for new frame
-  newFrame_.SetupFrame(newParm_->Natom(), newParm_->Mass());
+  newFrame_.SetupFrameM(newParm_->Atoms());
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {

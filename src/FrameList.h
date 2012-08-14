@@ -10,7 +10,7 @@
   * reference frames, this is the name of the reference coordinate 
   * file and the frame number). 
   */
-// NOTE: Eventually store a vector of Frames, not Frame*s
+// TODO: Eventually store a vector of Frames, not Frame*s
 class FrameList : public FileList {
   public:
 

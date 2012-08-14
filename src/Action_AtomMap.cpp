@@ -562,7 +562,7 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
         // Set up a reference/target frame containing only mapped atoms
         rmsRefFrame.SetReferenceByMap(*RefFrame, AMap);
         rmsTgtFrame.SetTargetByMap(*TgtFrame, AMap);
-        double RmsVal = rmsTgtFrame.RMSD(&rmsRefFrame, Rot, Trans, false);
+        double RmsVal = rmsTgtFrame.RMSD(rmsRefFrame, Rot, Trans, false);
         mprintf("\tRMS fit (%i atoms) based on guess Tgt %i -> Ref %i, %lf\n",
                 numAtomsMapped,(*t)+1, (*r)+1, RmsVal);
         // -----------------------------------------------------------------
@@ -849,7 +849,7 @@ int Action_AtomMap::init() {
   if (!maponly) {
     // Set up new Frame
     newFrame = new Frame();
-    newFrame->SetupFrame(TgtMap.Natom(),TgtParm->Mass());
+    newFrame->SetupFrameM( TgtParm->Atoms() );
 
     // Set up new Parm
     newParm = TgtParm->ModifyByMap(AMap);
@@ -900,7 +900,7 @@ int Action_AtomMap::action() {
   if (rmsfit) {
     // Set target frame up according to atom map.
     rmsTgtFrame.SetTargetByMap(*currentFrame, AMap);
-    R = rmsTgtFrame.RMSD(&rmsRefFrame, Rot, Trans, false);
+    R = rmsTgtFrame.RMSD(rmsRefFrame, Rot, Trans, false);
     currentFrame->Trans_Rot_Trans(Trans,Rot);
     if (rmsdata!=NULL)
       rmsdata->Add(frameNum, &R);
@@ -910,7 +910,7 @@ int Action_AtomMap::action() {
   // Modify the current frame
   // TODO: Fix this since its probably busted for unmapped atoms; also
   //       it doesnt copy velocity/masses
-  newFrame->SetCoordinates(*currentFrame, AMap);
+  newFrame->SetCoordinatesByMap(*currentFrame, AMap);
   currentFrame = newFrame;
   return 0;
 }

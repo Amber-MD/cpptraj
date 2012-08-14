@@ -54,13 +54,13 @@ int Action_RunningAvg::setup() {
     windowNatom_ = currentParm->Natom();
     // Set up a frame for each window, no masses
     for (int i = 0; i < Nwindow_; i++)
-      Window_[i].SetupFrame( windowNatom_, NULL );
+      Window_[i].SetupFrame( windowNatom_ );
     // Setup frame to hold average coords
-    avgFrame_.SetupFrame( windowNatom_, NULL );
+    avgFrame_.SetupFrame( windowNatom_ );
     // Zero avgFrame
     avgFrame_.ZeroCoords();
     // Set up result
-    resultFrame_.SetupFrame( windowNatom_, NULL );
+    resultFrame_.SetupFrame( windowNatom_ );
   } 
 
   // Print info for this parm

@@ -158,7 +158,7 @@ int Action_Rotdif::init( ) {
     return 1;
   }
   // Allocate frame for selected reference atoms
-  SelectedRef_.SetupFrameFromMask(RefMask, RefParm->Mass());
+  SelectedRef_.SetupFrameFromMask(RefMask, RefParm->Atoms());
   // Set reference frame coordinates
   SelectedRef_.SetCoordinates(*TempFrame, RefMask);
   // Always fitting; Pre-center reference frame
@@ -228,7 +228,7 @@ int Action_Rotdif::setup() {
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  SelectedTgt_.SetupFrameFromMask(TargetMask_, currentParm->Mass());
+  SelectedTgt_.SetupFrameFromMask(TargetMask_, currentParm->Atoms());
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( SelectedRef_.Natom() != TargetMask_.Nselected() ) {
     mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",TargetMask_.Nselected());

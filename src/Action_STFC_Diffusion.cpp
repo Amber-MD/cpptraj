@@ -294,7 +294,7 @@ int Action_STFC_Diffusion::action() {
       }
     } else if ( calcType_ == COM ) { // Center of Mass
       // Save initial COM
-      currentFrame->CenterOfMass( &mask_, XYZ );
+      currentFrame->CenterOfMass( XYZ, mask_ );
       initialxyz_.push_back( XYZ[0] );
       previousxyz_.push_back( XYZ[0] );
       initialxyz_.push_back( XYZ[1] );
@@ -345,7 +345,7 @@ int Action_STFC_Diffusion::action() {
   } 
   else if (calcType_ == COM) 
   {
-    currentFrame->CenterOfMass( &mask_, XYZ );
+    currentFrame->CenterOfMass( XYZ, mask_ );
     //mprintf("CDBG:\tXYZ[%i] = %lf %lf %lf\n", elapsedFrames_,XYZ[0], XYZ[1], XYZ[2]);
     calculateMSD( XYZ, 0, 0, currentFrame->Box() );
     average = distance_[0];

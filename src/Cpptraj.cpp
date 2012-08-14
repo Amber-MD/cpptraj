@@ -223,7 +223,7 @@ int Cpptraj::Run() {
     // If Parm has changed, reset Frame and actions for new topology.
     if (lastPindex != CurrentParm->Pindex()) {
       // Set up the incoming trajectory frame for this parm
-      TrajFrame.SetupFrameV(CurrentParm->Natom(), CurrentParm->Mass(), traj->HasVelocity());
+      TrajFrame.SetupFrameV(CurrentParm->Atoms(), traj->HasVelocity());
       // Set active reference for this parm
       CurrentParm->SetReferenceCoords( refFrames.ActiveReference() );
       // Set up actions for this parm

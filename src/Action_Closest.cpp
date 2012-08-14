@@ -206,7 +206,8 @@ int Action_Closest::setup() {
   newParm_->Summary();
 
   // Allocate space for new frame
-  newFrame_.SetupFrame(newParm_->Natom(), newParm_->Mass());
+  // FIXME: Should this be set up for velocity as well?
+  newFrame_.SetupFrameM( newParm_->Atoms() );
 
   // If prefix given then output stripped parm
   if (prefix_!=NULL) {

@@ -809,8 +809,8 @@ int TrajectoryFile::GetNextFrame(Frame& FrameIn) {
 #ifdef TRAJDEBUG
     mprinterr("Attempting read of frame %i from %s\n",currentFrame_,trajName_);
 #endif
-    if (trajio_->readFrame(currentFrame_,
-                           FrameIn.X_,FrameIn.V_,FrameIn.box_,&(FrameIn.T_))) 
+    if (trajio_->readFrame(currentFrame_, FrameIn.xAddress(), FrameIn.vAddress(),
+                           FrameIn.bAddress(), FrameIn.tAddress())) 
       return 0;
     //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
 #ifdef TRAJDEBUG
@@ -881,7 +881,8 @@ int TrajectoryFile::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
 
   // Write
   //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
-  if (trajio_->writeFrame(set,FrameOut.X_,FrameOut.V_,FrameOut.box_,FrameOut.T_)) return 1;
+  if (trajio_->writeFrame(set, FrameOut.xAddress(), FrameOut.vAddress(), 
+                               FrameOut.bAddress(), FrameOut.Temperature())) return 1;
   ++numFramesProcessed_;
 
   return 0;

@@ -206,7 +206,7 @@ int Action_Radial::action() {
   mydistances = 0;
   // Calculation of center of Mask1 to all atoms in Mask2
   if (center1_) {
-    currentFrame->GeometricCenter(&Mask1_,coord_center);
+    currentFrame->GeometricCenter(coord_center, Mask1_);
     int mask2_max = Mask2_.Nselected();
 #ifdef _OPENMP
 #pragma omp parallel private(nmask2,atom2,D,idx,mythread) reduction(+:mydistances)

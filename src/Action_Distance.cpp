@@ -86,7 +86,7 @@ int Action_Distance::action() {
   double ucell[9], recip[9];
 
   if (imageType_==Frame::NONORTHO) currentFrame->BoxToRecip(ucell,recip);
-  double Dist = currentFrame->DIST2(&Mask1_, &Mask2_, useMass_, imageType_, ucell, recip);
+  double Dist = currentFrame->DIST2(Mask1_, Mask2_, useMass_, imageType_, ucell, recip);
   Dist = sqrt(Dist);
 
   dist_->Add(frameNum, &Dist);

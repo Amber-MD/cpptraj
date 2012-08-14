@@ -61,9 +61,9 @@ int Action_AvgCoord::action() {
   double position[3];
  
   if (useMass_)
-    currentFrame->CenterOfMass(&Mask_, position);
+    currentFrame->CenterOfMass(position, Mask_);
   else 
-    currentFrame->GeometricCenter(&Mask_, position);
+    currentFrame->GeometricCenter(position, Mask_);
   // Calculate the magnitude
   if (calcMagnitude_) {
     double r2 = (position[0]*position[0]) + (position[1]*position[1]) + (position[2]*position[2]);

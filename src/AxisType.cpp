@@ -109,8 +109,11 @@ const char AxisType::NAbaseName[6][4] = { "UNK", "ADE", "CYT", "GUA", "THY", "UR
 
 // ------------------------- AXISTYPE FUNCTIONS -------------------------------
 // CONSTRUCTOR
-// Mostly empty - Default Frame constructor should init everything else
 AxisType::AxisType() {
+  X_ = 0;
+  natom_ = 0;
+  maxnatom_ = 0;
+  Ncoord_ = 0;
   ID = UNKNOWN_BASE;
   origin[0]=0;
   origin[1]=0;
@@ -130,11 +133,22 @@ AxisType::AxisType() {
   o4atomidx_ = -1;
 }
 
+// DESTRUCTOR
+AxisType::~AxisType() { 
+  if (X_!=0) delete[] X_;
+}
+
 // COPY CONSTRUCTOR
-// NOTE: Base class copy is part of the call
-AxisType::AxisType(const AxisType &rhs) :
-  Frame(rhs) 
+AxisType::AxisType(const AxisType &rhs) 
 {
+  natom_ = rhs.natom_;
+  maxnatom_ = rhs.maxnatom_;
+  Ncoord_ = rhs.Ncoord_;
+  if (Ncoord_ > 0) {
+    X_ = new double[ maxnatom_ * 3 ];
+    memcpy(X_, rhs.X_, Ncoord_ * sizeof(double));
+  } else
+    X_ = 0;
   ID = rhs.ID;
   Name = rhs.Name;
   origin[0] = rhs.origin[0];
@@ -160,13 +174,17 @@ AxisType::AxisType(const AxisType &rhs) :
 AxisType &AxisType::operator=(const AxisType &rhs) {
   // Check for self assignment
   if ( this == &rhs ) return *this;
-
-  // Base class assignment
-  Frame::operator=(rhs);
-
   // Deallocate
-
+  if (X_!=0) delete[] X_;
   // Allocate and copy
+  natom_ = rhs.natom_;
+  maxnatom_ = rhs.maxnatom_;
+  Ncoord_ = rhs.Ncoord_;
+  if (Ncoord_ > 0) {
+    X_ = new double[ maxnatom_ * 3 ];
+    memcpy(X_, rhs.X_, Ncoord_ * sizeof(double));
+  } else
+    X_ = 0;
   ID = rhs.ID;
   Name = rhs.Name;
   origin[0] = rhs.origin[0];
@@ -185,13 +203,9 @@ AxisType &AxisType::operator=(const AxisType &rhs) {
   second_resnum = rhs.second_resnum;
   patomidx_ = rhs.patomidx_;
   o4atomidx_ = rhs.o4atomidx_;
-
   // Return *this
   return *this;
 } 
-
-// DESTRUCTOR
-AxisType::~AxisType() { }
 
 // ------------------------- VARIABLE FUNCTIONS -------------------------------
 // AxisType::RX()
@@ -281,7 +295,6 @@ int AxisType::AllocAxis(int natomIn) {
   maxnatom_ = natom_;
   Ncoord_ = natom_ * 3;
   X_ = new double[ Ncoord_ ];
-  if (X_==NULL) return 1;
   Name.reserve( natom_ );
   return 0;
 }
@@ -333,13 +346,18 @@ void AxisType::PrintAxisInfo(const char *title) {
   mprintf("         %s Rz vec: %8.4lf %8.4lf %8.4lf\n",title,R[2],R[5],R[8]);
 }
 
+void AxisType::SetCoordsFromFrame( Frame& frameIn ) {
+  for (int i = 0; i < frameIn.size(); ++i)
+    X_[i] = frameIn[i];
+}
+
 // AxisType::SetAxisFromMask()
 /** Set coordinates (and names if debugging) of this axis based on the
   * given axis and atom mask.
   * \param AxisIn AxisType to set from.
   * \param Mask AtomMask containing atoms to keep from AxisIn.
   */
-void AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
+/*void AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
   natom_ = Mask.Nselected();
   Ncoord_ = natom_ * 3;
   if (natom_ > maxnatom_) {
@@ -357,13 +375,13 @@ void AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
                                 oldatom++)
   {
     int oldatom3 = (*oldatom) * 3;
-    memcpy(newX, AxisIn.X_ + oldatom3, COORDSIZE_);
+    memcpy(newX, AxisIn.X_ + oldatom3, 3*sizeof(double));
     newX += 3;
 #   ifdef NASTRUCTDEBUG
     Name.push_back( AxisIn.Name[*oldatom] );
 #   endif
   }
-}
+}*/
 
 // AxisType::StoreRotMatrix()
 /** Store the rotation matrix and origin coordinates associated with

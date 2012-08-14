@@ -12,7 +12,7 @@
 class Topology {
   public:
     Topology();
-    ~Topology();
+    //~Topology();
     // ----- Set internal variables -----
     void SetDebug(int);
     void SetParmName(std::string&, const char*);
@@ -42,6 +42,7 @@ class Topology {
     atom_iterator MolAtomStart(int) const;
     atom_iterator MolAtomEnd(int) const;
     const Atom &operator[](int);
+    std::vector<Atom> const& Atoms() { return atoms_; }
     // ----- Residue-specific routines -----
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -97,7 +98,7 @@ class Topology {
     int FindAtomInResidue(int, NameType);
     int FindResidueMaxNatom();
     int SoluteAtoms();
-    double *Mass();
+    //double *Mass();
     int SetSolvent(const char*);
     // ----- Print topology info -----
     void Summary();
@@ -194,7 +195,7 @@ class Topology {
     int pindex_;
     int nframes_;
     int ntypes_; // This is stored for the purpose of checking array sizes
-    double *massptr_; // TODO: remove
+    //double *massptr_; // TODO: remove
 
     void PrintBonds(std::vector<int>&);
     void SetAtomBondInfo();

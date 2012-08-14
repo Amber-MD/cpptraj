@@ -57,7 +57,7 @@ int Action_Rmsd::SetRefMask( Topology* RefParmIn ) {
               RefParm_->c_str(), RefMask_.MaskString());
     return 1;
   }
-  SelectedRef_.SetupFrameFromMask( RefMask_, RefParm_->Mass() );
+  SelectedRef_.SetupFrameFromMask( RefMask_, RefParm_->Atoms() );
   return 0;
 }
 
@@ -148,7 +148,7 @@ int Action_Rmsd::init( ) {
         mprinterr("Error: rmsd: Could not set up reftraj %s\n", reftrajname.c_str());
         return 1;
       }
-      RefFrame_.SetupFrameV(refparm->Natom(), refparm->Mass(), RefTraj_.HasVelocity());
+      RefFrame_.SetupFrameV(refparm->Atoms(), RefTraj_.HasVelocity());
       if (RefTraj_.BeginTraj(false)) {
         mprinterr("Error: rmsd: Could not open reftraj %s\n", reftrajname.c_str());
         return 1;
@@ -343,10 +343,10 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
   // Although initial masses are wrong this is ok since the number of atoms 
   // and masses will change when residue RMSD is actually being calcd.
   if (ResRefFrame_!=NULL) delete ResRefFrame_;
-  ResRefFrame_ = new Frame( RefParm->FindResidueMaxNatom(), RefParm->Mass() );
+  ResRefFrame_ = new Frame( RefParm->Atoms() );
   //ResRefFrame->Info("ResRefFrame");
   if (ResFrame_!=NULL) delete ResFrame_;
-  ResFrame_ = new Frame( currentParm->FindResidueMaxNatom(), currentParm->Mass() );
+  ResFrame_ = new Frame( currentParm->Atoms() );
   //ResFrame->Info("ResFrame");
 
   return 0;
@@ -364,7 +364,7 @@ int Action_Rmsd::setup() {
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  SelectedFrame_.SetupFrameFromMask(FrameMask_, currentParm->Mass());
+  SelectedFrame_.SetupFrameFromMask(FrameMask_, currentParm->Atoms());
 
   // Reference setup if 'first'
   if (refmode_ == FIRST) {
@@ -420,7 +420,7 @@ int Action_Rmsd::action() {
 */
 
   if (nofit_) {
-    R = SelectedFrame_.RMSD(&SelectedRef_, useMass_);
+    R = SelectedFrame_.RMSD(SelectedRef_, useMass_);
   } else {
     R = SelectedFrame_.RMSD_CenteredRef(SelectedRef_, U, Trans_, useMass_);
     currentFrame->Trans_Rot_Trans(Trans_, U);
@@ -444,7 +444,7 @@ int Action_Rmsd::action() {
         ResFrame_->ShiftToGeometricCenter( );
         ResRefFrame_->ShiftToGeometricCenter( );
       }
-      R = ResFrame_->RMSD(ResRefFrame_, useMass_);
+      R = ResFrame_->RMSD(*ResRefFrame_, useMass_);
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,
       //        tgtResMask[N]->MaskString(),refResMask[N]->MaskString(),R);
       PerResRMSD_[N]->Add(frameNum, &R);
