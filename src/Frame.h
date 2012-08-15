@@ -6,13 +6,26 @@
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
   * along with box coordinates (used in imaging calculations) and optionally 
-  * with mass information and/or velocity information. Mass is stored since 
-  * several functions (like COM, RADGYR etc) have the option to factor in 
+  * with mass information and/or velocity information. Frame can be set up
+  * coords only, coords and masses, or coords/masses/velocities. Mass is stored
+  * since several functions (like COM, RADGYR etc) have the option to factor in 
   * the mass of the atoms involved, and this avoids having to pass a mass 
   * pointer in, which takes the burden of keeping track of mass away from 
   * actions etc. Mass is stored when the frame is initially created, and is 
   * modified if necessary by SetFrame (which is the case when e.g. calculating
   * per-residue RMSD).
+  *
+  * - Implementation Details:
+  *
+  * In addition to the constructors, there are two classes of routine that
+  * can be used to set up Frames. The SetupX routines do any memory allocation,
+  * and assign masses, and the SetX routines assign coordinates. The SetX 
+  * routines will dynamically adjust the size of the frame up to maxnatom, but
+  * no reallocation will occur so the frame should be set up for the largest
+  * possible # of atoms it will hold. This avoids expensive reallocations.
+  * The representation of coordinates (X) and velocities (V) are double*
+  * instead of STL vectors so as to easily interface with the FileIO routines
+  * which are much faster than iostream ops. 
   */
 class Frame {
     //friend class TrajectoryFile;
@@ -132,14 +145,13 @@ class Frame {
     typedef std::vector<double> Darray;
 
     int natom_;     ///< Number of atoms stored in frame.
-    Darray X_;      ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
-    Darray::iterator lastx_;
-    Darray V_;      ///< Velocities
-    Darray Mass_;   ///< Masses
+    int maxnatom_;  ///< Maximum number of atoms this frame can store.
+    int ncoord_;    ///< Number of coordinates stored in frame (natom * 3).
+    double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
+    double* V_;     ///< Velocities (same arrangement as Coords).
+    Darray Mass_;   ///< Masses.
     double box_[6]; ///< Box coords, 3xlengths, 3xangles
     double T_;      ///< Temperature
-    double* xaddress_; ///< For direct input into frame coordinate array.
-    double* vaddress_; ///< For direct input into frame velocity array.
 
     void swap(Frame&, Frame&);
 };

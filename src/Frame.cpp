@@ -1,4 +1,5 @@
 #include <cmath> // sqrt
+#include <cstring> // memcpy
 #include "Frame.h"
 #include "Constants.h"
 #include "vectormath.h" // CROSS_PRODUCT, normalize
