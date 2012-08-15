@@ -11,6 +11,7 @@ const size_t AmberRestart::BUF_SIZE = 128;
 AmberRestart::AmberRestart() {
   restartAtoms_=0;
   frameSize_=0;
+  coordSize_ = 0;
   frameBuffer_=NULL;
   numBoxCoords_=0;
   restartTime_=0;
@@ -243,6 +244,7 @@ int AmberRestart::setupTrajin(Topology *trajParm) {
   // For DOS files CR present before newline
   if (isDos_) frame_lines *= 2;
   frameSize_ = (((size_t)natom3_ * 12) + frame_lines);
+  coordSize_ = frameSize_;
   frameBuffer_ = new char[ frameSize_ ];
   //if (debug_>0) mprintf("    Amber Restart frameSize= %i\n",frameSize);
 
@@ -329,8 +331,12 @@ int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) 
   BufferBegin();
   BufferToDouble(X, natom3_, 12);
   // Get velocity from buffer if present
-  if (hasVelocity_ && V!=NULL) 
-    BufferToDouble(V, natom3_, 12);
+  if (hasVelocity_) {
+    if (V != NULL) 
+      BufferToDouble(V, natom3_, 12);
+    else
+      bufferPosition_ += coordSize_;
+  }
   // Get box from buffer if present
   if (hasBox_) 
     BufferToDouble(box, numBoxCoords_, 12);

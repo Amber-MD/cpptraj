@@ -48,6 +48,7 @@ class Frame {
     void GetAtomXYZ(double*, int);
     void AddXYZ(const double *);
     bool empty()                 { return (natom_ == 0);        }
+    bool HasVelocity()           { return (V_ != NULL);         }
     int Natom()                  { return natom_;               }
     int size()                   { return ncoord_;              }
     double Temperature()         { return T_;                   }
