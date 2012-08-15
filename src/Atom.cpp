@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 
 const int Atom::AtomicElementNum[NUMELEMENTS] = { 0,
- 1,  3,  6,  7,  8,  9,  
+ 1,  5,  6,  7,  8,  9,  
  15, 16, 17, 35, 26, 20, 
  53, 12, 29, 3,  19, 37, 
  55, 30, 11, 13, 18, 33,
