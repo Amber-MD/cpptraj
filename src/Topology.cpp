@@ -18,13 +18,7 @@ Topology::Topology() :
   pindex_(0),
   nframes_(0),
   ntypes_(0)
-  //,massptr_(0)
 { }
-
-// DESTRUCTOR
-/*Topology::~Topology() {
-  if (massptr_!=0) delete[] massptr_;
-}*/
 
 // Topology::SetDebug()
 void Topology::SetDebug(int debugIn) {
@@ -305,20 +299,6 @@ int Topology::SoluteAtoms() {
   return ( ResLastAtom( finalSoluteRes_ ) );
 }
 
-// Topology::Mass() 
-// NOTE: Stopgap - need to figure out a better way
-// TODO: Figure out a better way to set up frames
-/*double *Topology::Mass() {
-  if (atoms_.empty()) return 0;
-  if (massptr_ == 0) {
-    massptr_ = new double[ atoms_.size() ];
-    unsigned int m = 0;
-    for (std::vector<Atom>::iterator atom = atoms_.begin();
-                                     atom != atoms_.end(); atom++) 
-      massptr_[m++] = (*atom).Mass();
-  }
-  return massptr_;
-}*/
 // -----------------------------------------------------------------------------
 // Topology::Summary()
 void Topology::Summary() {

@@ -404,7 +404,7 @@ const int &AtomMask::operator[](int idx) {
 }
 
 // AtomMask::MaskString()
-const char *AtomMask::MaskString() {
+const char *AtomMask::MaskString() const {
   return maskString_.c_str();
 }
 

@@ -11,6 +11,7 @@ Action_NAstruct::Action_NAstruct() :
   //HBangleCut2_(2.53),  // Hydrogen Bond angle cutoff (in radians, ~145 degs)
   // NOTE: Is this too big?
   originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
+  maxResSize_(0),
   printheader_(true),
   useReference_(false)
 # ifdef NASTRUCTDEBUG
@@ -49,8 +50,8 @@ void Action_NAstruct::ClearLists() {
   */
 int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
   double rmsd, RotMatrix[9], TransVec[6];
-  Frame refFrame; // Hold copy of base reference coords for RMS fit
-  Frame inpFrame; // Hold copy of input base coords for RMS fit
+  Frame refFrame(maxResSize_); // Hold copy of base reference coords for RMS fit
+  Frame inpFrame(maxResSize_); // Hold copy of input base coords for RMS fit
 # ifdef NASTRUCTDEBUG
   AxisPDBwriter baseaxesfile;
   baseaxesfile.Open("baseaxes.pdb");
@@ -1105,6 +1106,10 @@ int Action_NAstruct::setup() {
     }
     RefCoords.push_back( axis );
     ExpMasks.push_back( Mask );
+    // Determine the largest residue for setting up frames for RMS fit later.
+    // ExpMask is larger than or equal to FitMask so use that.
+    if (Mask.Nselected() > maxResSize_)
+      maxResSize_ = Mask.Nselected();
     FitMasks.push_back( fitMask );
     if (debug>1) {
       mprintf("\tNAstruct: Res %i:%s ",*resnum+1,currentParm->ResidueName(*resnum));

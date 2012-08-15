@@ -45,7 +45,7 @@ class AtomMask {
     /// Return selected atom at idx
     const int &operator[](int);
     /// Return original mask expression as char*
-    const char *MaskString();
+    const char *MaskString() const;
     /// Return original mask expression as std::string
     std::string MaskExpression();
     /// Reset atom mask

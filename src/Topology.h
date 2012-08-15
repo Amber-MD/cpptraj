@@ -12,7 +12,6 @@
 class Topology {
   public:
     Topology();
-    //~Topology();
     // ----- Set internal variables -----
     void SetDebug(int);
     void SetParmName(std::string&, const char*);
@@ -195,7 +194,6 @@ class Topology {
     int pindex_;
     int nframes_;
     int ntypes_; // This is stored for the purpose of checking array sizes
-    //double *massptr_; // TODO: remove
 
     void PrintBonds(std::vector<int>&);
     void SetAtomBondInfo();
