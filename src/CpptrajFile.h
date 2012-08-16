@@ -31,15 +31,17 @@ class CpptrajFile {
     /// Printf using the files Write routine for the given rank.
     void Rank_printf(int, const char *, ...);
     /// Return true if the file is open
-    bool IsOpen();
-    /// Return the file name
-    const char *Name();
-    std::string FullPathName();
-    /// Return the file name without the path
-    const char *BaseName();
-    std::string const& BaseFileName() { return basefilename_; }
+    bool IsOpen()                     { return isOpen_;               }
+    /// Return the file name with full path.
+    const char* FullFileStr()         { return FileName_.c_str();     }
+    /// String version of file name with full path.
+    std::string const& FullFileName() { return FileName_;             }
+    /// Return the file name without the path.
+    const char* BaseFileStr()         { return basefilename_.c_str(); }
+    /// String version of file name without the path.
+    std::string const& BaseFileName() { return basefilename_;         }
     /// Return the file extension
-    std::string const& Extension() { return Ext_; }
+    std::string const& Extension()    { return Ext_;                  }
     /// Return true if the file contains carriage returns in addition to newlines
     bool IsDos();
     /// Return true if the file is compressed.
@@ -71,8 +73,6 @@ class CpptrajFile {
 
     FileType fileType_;         ///< File type (determines IO)
     std::string basefilename_;  ///< Filename minus any path
-    // TODO: Make this a string
-    char *filename_;            ///< Avoids constant calls to FileName_.c_str()
     std::string Ext_;           ///< Filename extension
     char printf_buffer_[1024];  ///< Used in Printf functions
 

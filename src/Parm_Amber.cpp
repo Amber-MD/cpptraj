@@ -344,7 +344,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
 
   if (newParm_) {
     if (debug_>0) 
-      mprintf("\tReading Amber Topology file %s\n",BaseName());
+      mprintf("\tReading Amber Topology file %s\n",BaseFileStr());
     // Title. If not found check for CTITLE (chamber)
     if (PositionFileAtFlag(F_TITLE)) {
       title = GetLine();
@@ -354,7 +354,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
         chamber = true;
       } else {
         // No TITLE or CTITLE, weird, but dont crash out yet.
-        mprintf("Warning: [%s] No TITLE in Amber Parm.\n",BaseName());
+        mprintf("Warning: [%s] No TITLE in Amber Parm.\n",BaseFileStr());
       }
     }
   } else {
@@ -364,11 +364,11 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     Npointers = 30;
   }
   mprintf("\tAmberParm Title: [%s]\n",title.c_str());
-  TopIn.SetParmName( title, BaseName() );
+  TopIn.SetParmName( title, BaseFileStr() );
   // POINTERS
   std::vector<int> values = GetFlagInteger(F_POINTERS, Npointers);
   if (values.empty()) {
-    mprinterr("Error: [%s] Could not get POINTERS from Amber Topology.\n",BaseName());
+    mprinterr("Error: [%s] Could not get POINTERS from Amber Topology.\n",BaseFileStr());
     return 1;
   }
   // DEBUG
@@ -516,7 +516,7 @@ std::vector<int> Parm_Amber::GetInteger(int width, int ncols, int maxval) {
   if (err == 0)
     return iarray;
   else if (err == -1) {
-    mprinterr("Error in read of integer values from %s\n",BaseName());
+    mprinterr("Error in read of integer values from %s\n",BaseFileStr());
     ++error_count_;
     return iarray;
   }
@@ -546,7 +546,7 @@ std::vector<double> Parm_Amber::GetDouble(int width, int ncols, int maxval) {
   if (err == 0)
     return darray;
   else if (err == -1) {
-    mprinterr("Error in read of double values from %s\n",BaseName());
+    mprinterr("Error in read of double values from %s\n",BaseFileStr());
     ++error_count_;
     return darray;
   }
@@ -576,7 +576,7 @@ std::vector<NameType> Parm_Amber::GetName(int width, int ncols, int maxval) {
   if (err == 0)
     return carray;
   else if (err == -1) {
-    mprinterr("Error in read of Name values from %s\n",BaseName());
+    mprinterr("Error in read of Name values from %s\n",BaseFileStr());
     ++error_count_;
     return carray;
   }
@@ -718,7 +718,7 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
 
   // If we reached here Key was not found.
   if (debug_>0)
-    mprintf("Warning: [%s] Could not find Key %s in file.\n",BaseName(),Key);
+    mprintf("Warning: [%s] Could not find Key %s in file.\n",BaseFileStr(),Key);
   fformat_.clear();
   return false;
 }
@@ -883,7 +883,7 @@ bool Parm_Amber::SetFortranType() {
   // Type
   if (ptr==fformat_.end()) {
     mprinterr("Error: Malformed fortran format string (%s) in Amber Topology %s\n",
-              fformat_.c_str(), BaseName());
+              fformat_.c_str(), BaseFileStr());
     return false;
   }
   switch (*ptr) {

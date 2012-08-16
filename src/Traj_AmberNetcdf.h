@@ -23,6 +23,7 @@ class AmberNetcdf : public TrajectoryIO, NetcdfFile {
 
   private:
     float *Coord_;
+    float *Veloc_;
 
     // Multi-D RMED
     int remd_dimension_;

@@ -115,7 +115,7 @@ int RemdTraj::SetupTemperatureList(int natom) {
 
 // RemdTraj::PrintNoExtError()
 void RemdTraj::PrintNoExtError() {
-  mprinterr("Error: Traj %s has no numerical extension, required for automatic\n",BaseName());
+  mprinterr("Error: Traj %s has no numerical extension, required for automatic\n",BaseFileStr());
   mprinterr("       detection of replica trajectories. Expected filename format is\n");
   mprinterr("       <Prefix>.<#> (with optional compression extension, examples:\n");
   mprinterr("       Rep.traj.nc.000,  remd.x.01.gz etc.\n");

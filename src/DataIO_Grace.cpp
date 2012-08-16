@@ -52,7 +52,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
             // Indicates dataset will be read soon. Allocate new set.
             dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), setnum++);
             if (dset == NULL) {
-              mprinterr("Error: %s: Could not allocate data set.\n", Name());
+              mprinterr("Error: %s: Could not allocate data set.\n", FullFileStr());
               return 1;
             }
             Dsets.push_back( dset );
@@ -61,7 +61,8 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
         } else {
           // Data
           if (dset==NULL) {
-            mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", Name());
+            mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
+                      FullFileStr());
             return 1;
           }
           // FIXME: Ignoring frame for now

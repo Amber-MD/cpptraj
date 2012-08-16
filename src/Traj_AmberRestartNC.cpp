@@ -26,7 +26,7 @@ AmberRestartNC::~AmberRestartNC() {
 }
 
 bool AmberRestartNC::ID_TrajFormat() {
-  if ( GetNetcdfConventions( Name() ) == NC_AMBERRESTART ) return true;
+  if ( GetNetcdfConventions( FullFileStr() ) == NC_AMBERRESTART ) return true;
   return false;
 }
 
@@ -41,21 +41,21 @@ void AmberRestartNC::closeTraj() {
   * open and close calls. 
   */
 int AmberRestartNC::openTraj() {
-  //mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",BaseName(),ncid);
+  //mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",BaseFileStr(),ncid);
   // If already open, return
   if (Ncid()!=-1) return 0;
 
   switch (access_) {
 
     case READ :
-      if ( NC_openRead( Name() ) != 0 ) {
-        mprinterr("Error: Opening Netcdf restart file %s for reading.\n",BaseName());
+      if ( NC_openRead( FullFileStr() ) != 0 ) {
+        mprinterr("Error: Opening Netcdf restart file %s for reading.\n",BaseFileStr());
         return 1;
       }
       break;
     
     case APPEND: 
-      mprintf("Error: %s - Append is not supported by netcdf restart.\n",BaseName());
+      mprintf("Error: %s - Append is not supported by netcdf restart.\n",BaseFileStr());
       return 1;
       break;
     case WRITE:
@@ -63,7 +63,7 @@ int AmberRestartNC::openTraj() {
       return 0;
   }
 
-  if (debug_>0) mprintf("Successfully opened restart %s, ncid=%i\n",BaseName(),Ncid());
+  if (debug_>0) mprintf("Successfully opened restart %s, ncid=%i\n",BaseFileStr(),Ncid());
   if (debug_>1) NetcdfDebug();
 
   return 0;
@@ -80,7 +80,7 @@ int AmberRestartNC::setupTrajin(Topology *trajParm) {
   // Sanity check - Make sure this is a Netcdf restart
   if ( GetNetcdfConventions() != NC_AMBERRESTART ) {
     mprinterr("Error: Netcdf restart file %s conventions do not include \"AMBERRESTART\"\n",
-            BaseName());
+            BaseFileStr());
     return -1;
   }
 
@@ -88,7 +88,7 @@ int AmberRestartNC::setupTrajin(Topology *trajParm) {
   std::string attrText = GetAttrText("ConventionVersion");
   if (attrText!="1.0")
     mprintf("Warning: Netcdf restart file %s has ConventionVersion that is not 1.0 (%s)\n",
-            BaseName(), attrText.c_str());
+            BaseFileStr(), attrText.c_str());
 
   // Get title
   if (title_.empty())
@@ -99,7 +99,7 @@ int AmberRestartNC::setupTrajin(Topology *trajParm) {
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
-              BaseName(),Ncatom());
+              BaseFileStr(),Ncatom());
     mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
     return -1;
   }
@@ -169,9 +169,9 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
   // Create filename for this set
   // If just writing 1 frame dont modify output filename
   if (singleWrite_)
-    fname = FullPathName();
+    fname = FullFileName();
   else
-    fname = NumberFilename(FullPathName(), set+OUTPUTFRAMESHIFT);
+    fname = NumberFilename(FullFileName(), set+OUTPUTFRAMESHIFT);
 
   // Set up title
   if (title_.empty()) 
@@ -199,7 +199,7 @@ int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *
       mprinterr("Error: Getting replica temperature.\n");
       return 1;
     }
-    if (debug_>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",BaseName(),T);
+    if (debug_>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",BaseFileStr(),T);
   }
 
   // Read Coords 

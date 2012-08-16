@@ -78,7 +78,7 @@ int Action_Rms2d::init() {
   mprintf("    RMS2D: Mask [%s]",FrameMask_.MaskString());
   if (reftraj!=NULL) {
     // Set up reference trajectory and open
-    mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_->TrajName(),
+    mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_->FullTrajStr(),
             RefMask_.MaskString(), RefTraj_->Total_Read_Frames());
   }
   if (nofit_)
@@ -249,7 +249,7 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
   int max = totalref * totaltgt;
   mprintf("  RMS2D: Calculating RMSDs between each input frame and each reference\n"); 
   mprintf("         trajectory %s frame (%i total).\n  ",
-          RefTraj_->TrajName(), max);
+          RefTraj_->BaseTrajStr(), max);
   rmsdata->Setup( totalref, totaltgt );
   if (RefTraj_->BeginTraj(false)) {
     mprinterr("Error: Rms2d: Could not open reference trajectory.\n");

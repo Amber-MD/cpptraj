@@ -1,35 +1,38 @@
-// AmberCoord
+// Traj_AmberCoord
 #include <cstdlib> // atof
 #include <cstdio>  // sprintf
 #include <cstring> // strlen
 #include "Traj_AmberCoord.h"
 #include "CpptrajStdio.h"
-// Size of REMD header
-const size_t AmberCoord::REMD_HEADER_SIZE = 42;
-// Max Size of 1 line of amber coords, 80 + newline [+CR] + NULL
-const size_t AmberCoord::BUF_SIZE = 128;
+
+/// Size of REMD header
+const size_t Traj_AmberCoord::REMD_HEADER_SIZE = 42;
+/// Max Size of 1 line of amber coords, 80 + newline [+CR] + NULL
+const size_t Traj_AmberCoord::BUF_SIZE = 128;
 
 // CONSTRUCTOR
-AmberCoord::AmberCoord() {
+Traj_AmberCoord::Traj_AmberCoord() :
+  natom3_(0),
+  titleSize_(0),
+  hasREMD_(0),
+  numBoxCoords_(0),
+  outfmt_("%8.3lf"),
+  highPrecision_(false),
+  mdvel_(0)
+{
   //fprintf(stderr,"AmberCoord Constructor.\n");
-  titleSize_ = 0;
-  frameSize_ = 0;
-  hasREMD_ = 0;
-  numBoxCoords_ = 0;
-  frameBuffer_ = NULL;
-  outfmt_ = "%8.3lf";
-  highPrecision_ = false;
 }
 
 // IsRemdHeader()
-static inline bool IsRemdHeader(char* buffer) {
+static inline bool IsRemdHeader(const char* buffer) {
   if ( (buffer[0]=='R' && buffer[1]=='E' && buffer[2]=='M' && buffer[3]=='D') ||
        (buffer[0]=='H' && buffer[1]=='R' && buffer[2]=='E' && buffer[3]=='M'))
     return true;
   return false;
 }
 
-bool AmberCoord::ID_TrajFormat() {
+// Traj_AmberCoord::ID_TrajFormat()
+bool Traj_AmberCoord::ID_TrajFormat() {
   char buffer2[BUF_SIZE];
   // File must already be set up for read
   if (OpenFile()) return false;
@@ -53,24 +56,24 @@ bool AmberCoord::ID_TrajFormat() {
   return false;
 }
 
-// AmberCoord::closeTraj()
-void AmberCoord::closeTraj() {
+// Traj_AmberCoord::closeTraj()
+void Traj_AmberCoord::closeTraj() {
   CloseFile();
 }
 
-// AmberCoord::openTraj()
+// Traj_AmberCoord::openTraj()
 /** Open Amber Trajectory, read past title and set titleSize
   * Always read title so file pointer is always correctly positioned
   * to read a frame.
   */
-int AmberCoord::openTraj() {
+int Traj_AmberCoord::openTraj() {
   char titleIn[BUF_SIZE];
   switch (access_) {
     case READ:
       if (OpenFile()) return 1;
       // Read in title, set size in bytes 
       if ( IO->Gets(titleIn,BUF_SIZE) ) {
-        rprintf( "Warning: EOF encountered during reading of title from (%s)\n", BaseName());
+        rprintf( "Warning: EOF encountered during reading of title from (%s)\n", BaseFileStr());
         return 1;
       }
       title_.assign( titleIn );
@@ -97,15 +100,15 @@ int AmberCoord::openTraj() {
   return 0;
 }
 
-// AmberCoord::readFrame()
+// Traj_AmberCoord::readFrame()
 /** Read coordinates from Amber trajectory into Frame. */ 
 // NOTE: Precalculate the header, coord, and box offsets.
 // NOTE: There are currently NO checks for null for X, box, and T!
-int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T) {
+int Traj_AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T) {
   off_t offset;
 
 #ifdef TRAJDEBUG
-  mprinterr("Reading frame %10i from %s\n",set,BaseName());
+  mprinterr("Reading frame %10i from %s\n",set,BaseFileStr());
 #endif
  
   // If trajectory is not broken, seek to given frame.
@@ -142,19 +145,19 @@ int AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T)
   return 0;
 }
 
-// AmberCoord::SetHighPrecision()
+// Traj_AmberCoord::SetHighPrecision()
 /** Change the output format from 8.3 to 8.6 */
-void AmberCoord::SetHighPrecision() {
+void Traj_AmberCoord::SetHighPrecision() {
   outfmt_="%8.6lf";
   highPrecision_=true;
 }
 
-// AmberCoord::writeFrame()
+// Traj_AmberCoord::writeFrame()
 /** Write coordinates from Frame to frameBuffer. frameBuffer must be large
   * enough to accomodate all coords in F (handled by SetupWrite).
   */
 // NOTE: The output frame size is calcd here - should it just be precalcd?
-int AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T) {
+int Traj_AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T) {
   size_t outFrameSize;
 
   BufferBegin();
@@ -176,13 +179,13 @@ int AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T)
   return 0;
 }
 
-// AmberCoord::setupTrajin()
+// Traj_AmberCoord::setupTrajin()
 /** Setup opens the given file for read access, sets information.
   * \return the number of frames present in trajectory file.
   * \return -1 if an error occurs.
   * \return -2 if the number of frames could not be determined.
   */
-int AmberCoord::setupTrajin(Topology *trajParm) {
+int Traj_AmberCoord::setupTrajin(Topology *trajParm) {
   char buffer[BUF_SIZE];
   int maxi;
   size_t frame_lines, lineSize;
@@ -212,7 +215,7 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
   frameBuffer_ = new char[ frameSize_ ];
   // Read the first frame of coordinates
   if ( IO->Read(frameBuffer_, frameSize_)==-1 ) {
-    mprinterr("Error in read of Coords frame 1 of trajectory %s.\n",BaseName());
+    mprinterr("Error in read of Coords frame 1 of trajectory %s.\n",BaseFileStr());
     return -1;
   }
   // DEBUG - Print first line of coords
@@ -237,7 +240,7 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
       // enforced to only 3 or 6. Subtract 1 char for newline.
       if (debug_>0) mprintf("    Box line is %i chars.\n",lineSize);
       if ( ((lineSize-1)%24)!=0 ) {
-        mprinterr("Error in box coord line of trajectory %s.\n",BaseName());
+        mprinterr("Error in box coord line of trajectory %s.\n",BaseFileStr());
         mprinterr("      Expect only 3 or 6 box coords.\n");
         mprinterr("Problem line: %s\n",buffer);
         return -1;
@@ -276,7 +279,7 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
     // EOF.
     if (uncompressed_size_ <= 0) {
       mprintf("Warning: %s: Uncompressed size of trajectory could not be determined.\n",
-              BaseName());
+              BaseFileStr());
       if (compressType_==BZIP2)
         mprintf("         (This is normal for bzipped files)\n");
       mprintf("         Number of frames could not be calculated.\n");
@@ -315,7 +318,7 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
         seekable_ = true;
       } else {
         mprintf("Warning: %s: Number of frames in compressed traj could not be determined.\n",
-                BaseName());
+                BaseFileStr());
         mprintf("         Frames will be read until EOF.\n");
         Frames=-2;
         seekable_=false;
@@ -330,7 +333,7 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
       seekable_ = true;
     } else {
       mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
-              BaseName());
+              BaseFileStr());
       mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
               Frames);
       seekable_=false;
@@ -346,20 +349,20 @@ int AmberCoord::setupTrajin(Topology *trajParm) {
   return Frames;
 }
 
-// AmberCoord::processWriteArgs()
-int AmberCoord::processWriteArgs(ArgList *argIn) {
+// Traj_AmberCoord::processWriteArgs()
+int Traj_AmberCoord::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("remdtraj")) this->SetTemperature();
   if (argIn->hasKey("highprecision")) this->SetHighPrecision();
   return 0;
 }
 
-// AmberCoord::setupTrajout()
+// Traj_AmberCoord::setupTrajout()
 /** Set up trajectory for write. Calculate the length of each cooordinate
   * frame. Set the title and titleSize. Calculate the full output file
   * size, necessary only for seeking when MPI writing. Allocate memory for
   * the frame buffer. 
   */
-int AmberCoord::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_AmberCoord::setupTrajout(Topology *trajParm, int NframesToWrite) {
   int frame_lines;
   //long int outfilesize;
 
@@ -392,7 +395,7 @@ int AmberCoord::setupTrajout(Topology *trajParm, int NframesToWrite) {
     if (titleSize_>80) {
       title_.resize(80);
       mprintf("Warning: Amber traj title for %s too long: truncating.\n[%s]\n",
-              BaseName(), title_.c_str());
+              BaseFileStr(), title_.c_str());
     }
   }
 
@@ -410,7 +413,7 @@ int AmberCoord::setupTrajout(Topology *trajParm, int NframesToWrite) {
   if (debug_>0) {
     //rprintf("(%s): Each frame has %i chars plus %i newlines. Total %i. Filesize %li\n", 
     rprintf("(%s): Each frame has %i chars plus %i newlines. Total %lu.\n", 
-            BaseName(),natom3_*8,frame_lines,frameSize_);
+            BaseFileStr(),natom3_*8,frame_lines,frameSize_);
   }
 
   // Allocate memory to buffer 1 frame
@@ -420,8 +423,8 @@ int AmberCoord::setupTrajout(Topology *trajParm, int NframesToWrite) {
   return 0;
 }
 
-// AmberCoord::Info()
-void AmberCoord::info() {
+// Traj_AmberCoord::Info()
+void Traj_AmberCoord::info() {
   if (hasREMD_) 
     mprintf("is an AMBER REMD trajectory");
   else

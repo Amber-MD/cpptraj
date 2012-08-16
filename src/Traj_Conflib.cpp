@@ -45,7 +45,7 @@ int Conflib::setupTrajin(Topology *trajParm) {
 
   if ( (file_size_ % confFrame) != 0 ) {
     mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
-            BaseName());
+            BaseFileStr());
     mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
             Frames);
   }

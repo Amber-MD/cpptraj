@@ -20,23 +20,23 @@ TrajectoryIO::TrajectoryIO() :
 
 // COPY CONSTRUCTOR
 TrajectoryIO::TrajectoryIO(const TrajectoryIO &rhs) :
-  CpptrajFile(rhs)
+  CpptrajFile(rhs),
+  title_( rhs.title_ ),
+  seekable_( rhs.seekable_ ),
+  hasBox_( rhs.hasBox_ ),
+  hasTemperature_( rhs.hasTemperature_ ),
+  hasVelocity_( rhs.hasVelocity_ )
 {
-  title_ = rhs.title_;
-  seekable_ = rhs.seekable_;
-  hasBox_ = rhs.hasBox_;
   boxAngle_[0] = rhs.boxAngle_[0];
   boxAngle_[1] = rhs.boxAngle_[1];
   boxAngle_[2] = rhs.boxAngle_[2];
   boxLength_[0] = rhs.boxAngle_[0];
   boxLength_[1] = rhs.boxAngle_[1];
   boxLength_[2] = rhs.boxAngle_[2];
-  hasTemperature_ = rhs.hasTemperature_;
-  hasVelocity_ = rhs.hasVelocity_;
 }
 
-// Assignment
-TrajectoryIO &TrajectoryIO::operator=(const TrajectoryIO &rhs) {
+/// Assignment
+TrajectoryIO& TrajectoryIO::operator=(const TrajectoryIO& rhs) {
   // Self
   if (this == &rhs) return *this;
   // Base class 
@@ -54,6 +54,12 @@ TrajectoryIO &TrajectoryIO::operator=(const TrajectoryIO &rhs) {
   boxLength_[2] = rhs.boxAngle_[2];
   hasTemperature_ = rhs.hasTemperature_;
   hasVelocity_ = rhs.hasVelocity_;
+  return *this;
+}
+
+/// CpptrajFile base assignment only.
+TrajectoryIO& TrajectoryIO::operator=(CpptrajFile const& fileIn) {
+  CpptrajFile::operator=( fileIn );
   return *this;
 }
 
@@ -108,7 +114,7 @@ int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
   // If box coords present but no box info in associated parm, print
   // a warning.
   if (trajParm->BoxType() == Box::NOBOX) {
-    mprintf("\tWarning: Box info present in trajectory %s but not in\n",BaseName());
+    mprintf("\tWarning: Box info present in trajectory %s but not in\n",BaseFileStr());
     mprintf("\t         associated parm %s\n",trajParm->c_str());
   }
   trajbox.SetAngles( boxAngle_ );
@@ -121,7 +127,7 @@ int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
       //mprinterr("Error: No angle information present in trajectory %s\n",trajName);
       //mprinterr("       or parm %s.\n",trajParm->parmName);
       //return 1;
-      mprintf("\tWarning: No angle information present in trajectory %s\n",BaseName());
+      mprintf("\tWarning: No angle information present in trajectory %s\n",BaseFileStr());
       mprintf("\t         or parm %s - setting angles to 90.0!\n",trajParm->c_str());
       boxAngle_[0] = 90.0;
       boxAngle_[1] = 90.0;
@@ -131,7 +137,7 @@ int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
       // TODO: Just assign trajbox? Does boxAngle get used anywhere else?
       trajParm->ParmBox().ToDouble( temp );
       if (debug_>0) {
-        mprintf("\tWarning: No angle information present in trajectory %s:\n",BaseName());
+        mprintf("\tWarning: No angle information present in trajectory %s:\n",BaseFileStr());
         mprintf("\t         Using angles from parm %s (beta=%lf).\n",trajParm->c_str(),
                 temp[4]);
       }
@@ -142,30 +148,14 @@ int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
     trajbox.SetAngles( boxAngle_ );
   }
   if (debug_>0 || trajbox.Type() != Box::NOBOX) {
-    mprintf("\t[%s] Box type is %s\n",BaseName(),trajbox.TypeName());
+    mprintf("\t[%s] Box type is %s\n",BaseFileStr(),trajbox.TypeName());
   }
   // If no box info in parm, set it from trajectory
   if (trajParm->BoxType() == Box::NOBOX) {
     mprintf("\tWarning: Setting parm %s box information from trajectory %s.\n",
-            trajParm->c_str(),BaseName());
+            trajParm->c_str(),BaseFileStr());
     trajParm->ParmBox().SetAngles( boxAngle_ );
   }
   return 0;
-}
-
-bool TrajectoryIO::Seekable() {
-  return seekable_;
-}
-
-bool TrajectoryIO::HasBox() {
-  return hasBox_;
-}
-
-bool TrajectoryIO::HasTemperature() {
-  return hasTemperature_;
-}
-
-bool TrajectoryIO::HasVelocity() {
-  return hasVelocity_;
 }
 

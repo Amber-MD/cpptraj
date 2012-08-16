@@ -111,7 +111,7 @@ int AmberRestart::openTraj() {
         if (titleSize>80) {
           title_.resize(80);
           mprintf("Warning: Amber restart title for %s too long: truncating.\n[%s]\n",
-              BaseName(), title_.c_str());
+              BaseFileStr(), title_.c_str());
         }
       }
   }
@@ -188,7 +188,7 @@ int AmberRestart::getBoxAngles(char *boxline) {
     // This can occur if there is an extra newline or whitespace at the end
     // of the restart. Warn the user.
     mprintf("Warning: Restart [%s] appears to have an extra newline or whitespace.\n",
-            BaseName());
+            BaseFileStr());
     mprintf("         Assuming no box information present.\n");
     hasBox_ = false;
 
@@ -231,7 +231,7 @@ int AmberRestart::setupTrajin(Topology *trajParm) {
   // Check that natoms matches parm natoms
   if (restartAtoms_!=trajParm->Natom()) {
     mprinterr("Error: Number of atoms in Amber Restart %s (%i) does not\n",
-              BaseName(), restartAtoms_);
+              BaseFileStr(), restartAtoms_);
     mprinterr("       match number in associated parmtop (%i)\n",trajParm->Natom());
     return -1;
   }
@@ -349,14 +349,12 @@ int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) 
   * frame size since coords may have been stripped from Frame.
   */
 int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double T) {
-  char buffer[1024];
-
   // If just writing 1 frame dont modify output filename
   if (singleWrite_) {
-    if (IO->Open(Name(),"wb")) return 1;
+    if ( IO->Open(FullFileStr(), "wb") ) return 1;
   } else {
-    NumberFilename(buffer,(char*)Name(),set + OUTPUTFRAMESHIFT);
-    if (IO->Open(buffer,"wb")) return 1;
+    std::string numberedFilename = NumberFilename( FullFileName(), set + OUTPUTFRAMESHIFT );
+    if ( IO->Open(numberedFilename.c_str(), "wb") ) return 1;
   }
 
   // Write out title

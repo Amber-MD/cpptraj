@@ -40,8 +40,7 @@ CpptrajFile::CpptrajFile() :
   compressType_(NO_COMPRESSION),
   debug_(0),
   isOpen_(false),
-  fileType_(STANDARD),
-  filename_(NULL)
+  fileType_(STANDARD)
 {}
 
 // Copy Constructor
@@ -54,10 +53,6 @@ CpptrajFile::CpptrajFile(const CpptrajFile &rhs) {
   file_size_ = rhs.file_size_;
   fileType_ = rhs.fileType_;
   FileName_ = rhs.FileName_;
-  if (FileName_.empty())
-    filename_=NULL;
-  else
-    filename_ = (char*)FileName_.c_str();
   basefilename_ = rhs.basefilename_;
   Ext_ = rhs.Ext_;
   compressType_ = rhs.compressType_;
@@ -85,10 +80,6 @@ CpptrajFile &CpptrajFile::operator=(const CpptrajFile &rhs) {
   file_size_ = rhs.file_size_;
   fileType_ = rhs.fileType_;
   FileName_ = rhs.FileName_;
-  if (FileName_.empty())
-    filename_=NULL;
-  else
-    filename_ = (char*)FileName_.c_str();
   basefilename_ = rhs.basefilename_;
   Ext_ = rhs.Ext_;
   compressType_ = rhs.compressType_;
@@ -110,27 +101,6 @@ CpptrajFile::~CpptrajFile() {
    if (IO!=NULL) delete IO;
 }
 
-// CpptrajFile::IsOpen()
-bool CpptrajFile::IsOpen() { 
-  if (isOpen_) return true; 
-  return false; 
-}
-
-// CpptrajFile::Name()
-const char *CpptrajFile::Name() {
-  return FileName_.c_str();
-}
-
-// CpptrajFile::FullPathName()
-std::string CpptrajFile::FullPathName() {
-  return FileName_;
-}
-
-// CpptrajFile::BaseName()
-const char *CpptrajFile::BaseName() {
-  return basefilename_.c_str();
-}
-
 // CpptrajFile::IsDos()
 bool CpptrajFile::IsDos() {
   if (isDos_==1) return true;
@@ -150,37 +120,42 @@ int CpptrajFile::OpenFile() {
 
   switch (access_) {
     case READ:
-      if (filename_ == NULL) {
+      if (FileName_.empty()) {
         mprinterr("Error: CpptrajFile: Filename is NULL.\n");
         return 1;
       }
-      if ( IO->Open(filename_, "rb")  ) { 
-        rprintf("Could not open %s for reading.\n",filename_);
+      if ( IO->Open(FullFileStr(), "rb")  ) { 
+        rprintf("Could not open %s for reading.\n", FullFileStr());
         return 1;
       }
-      if (debug_>0) rprintf("Opened %s for reading.\n",filename_);
+      if (debug_>0) rprintf("Opened %s for reading.\n", FullFileStr());
       break;
     case APPEND:
-      if (filename_ == NULL) {
+      if (FileName_.empty()) {
         mprinterr("Error: CpptrajFile: Filename is NULL.\n");
         return 1;
       }
-      if ( IO->Open(filename_, "ab") ) {
-        rprintf("Could not open %s for appending.\n",filename_);
+      if ( IO->Open(FullFileStr(), "ab") ) {
+        rprintf("Could not open %s for appending.\n", FullFileStr());
         return 1;
       }
-      if (debug_>0) rprintf("Opened %s for appending.\n",filename_);
+      if (debug_>0) rprintf("Opened %s for appending.\n", FullFileStr());
       break;
     case WRITE:
-      if ( IO->Open(filename_, "wb") ) { 
-        rprintf("Could not open %s for writing.\n",filename_);
+      int err = 0;
+      if ( FileName_.empty() )
+        err = IO->Open(NULL, "wb");
+      else
+        err = IO->Open(FullFileStr(), "wb");
+      if ( err != 0 ) { 
+        rprintf("Could not open %s for writing.\n", FullFileStr());
         return 1;
       }
-      if (debug_>0) rprintf("Opened %s for writing.\n",filename_);
+      if (debug_>0) rprintf("Opened %s for writing.\n", FullFileStr());
       break;
   }
       
-  isOpen_=true;
+  isOpen_ = true;
   return 0;
 }
 
@@ -189,7 +164,7 @@ int CpptrajFile::OpenFile() {
 void CpptrajFile::CloseFile() {
   if (isOpen_) {
     IO->Close();
-    if (debug_>0) rprintf("Closed %s.\n",filename_);
+    if (debug_>0) rprintf("Closed %s.\n", FullFileStr());
     isOpen_=false;
   }
 }
@@ -230,12 +205,11 @@ void CpptrajFile::SetBaseFilename(const char *filenameIn) {
   //mprintf("DEBUG: Called SetBaseFilename with [%s]\n",filenameIn);
   // NULL filename allowed for WRITE (indicates STDOUT)
   if (filenameIn==NULL) {
-    filename_ = NULL;
+    FileName_.clear();
     return;
   }
   // Assign filename with full path
   FileName_.assign(filenameIn);
-  filename_ = (char*)FileName_.c_str();
 
   // Get position of last occurence of '/' to determine base filename
   size_t found = FileName_.find_last_of("/");
@@ -245,8 +219,8 @@ void CpptrajFile::SetBaseFilename(const char *filenameIn) {
     basefilename_ = FileName_.substr(found+1);
 
   if (debug_>0) {
-    mprintf("\tSetBaseFilename: Filename is %s\n",filename_);
-    mprintf("\t                 Base filename is %s\n",basefilename_.c_str());
+    mprintf("\tSetBaseFilename: Filename is %s\n", FullFileStr());
+    mprintf("\t                 Base filename is %s\n", BaseFileStr());
   }
 
   // Get the filename extension
@@ -269,7 +243,6 @@ void CpptrajFile::Reset() {
   if (IO!=NULL) delete IO;
   IO = NULL;
   FileName_.clear();
-  filename_ = NULL;
   basefilename_.clear();
   Ext_.clear();
   isOpen_ = false;
@@ -325,16 +298,15 @@ int CpptrajFile::SetupRead(const char *filenameIn, int debugIn) {
   }
   // Set up filename; sets base filename and extension
   // TODO: Pass in string
-  SetBaseFilename((char*)expandedName.c_str());
+  SetBaseFilename(expandedName.c_str());
   // Determine file type. This sets up IO. 
   if (ID_Type()) return 1;
   if (debug_>0)
-    rprintf("\t[%s] is type %s with access READ\n",filename_,FileTypeName[fileType_]);
-    //rprintf("\t[%s] is format %s and type %s with access READ\n",filename_,
-    //        File_Format(fileFormat_), File_Type(fileType_));
+    rprintf("\t[%s] is type %s with access READ\n", FullFileStr(), FileTypeName[fileType_]);
   return 0;
 }
 
+// CpptrajFile::OpenAppend()
 int CpptrajFile::OpenAppend(std::string const& nameIn) {
   int err;
   if (nameIn.empty())
@@ -362,7 +334,7 @@ int CpptrajFile::SetupAppend(const char *filenameIn, int debugIn) {
   if (SetupRead(filenameIn,debugIn)!=0) return 1;
   access_ = APPEND;
   if (debug_>0)
-    mprintf("CpptrajFile: Changed %s access to APPEND.\n",filename_);
+    mprintf("CpptrajFile: Changed %s access to APPEND.\n",FullFileStr());
   return 0;
 }
 
@@ -415,9 +387,7 @@ int CpptrajFile::SetupWrite(const char *filenameIn, int debugIn)
   // Setup IO based on type.
   if (SetupFileIO()) return 1;
   if (debug_>0)
-    rprintf("\t[%s] is type %s with access WRITE\n",filename_,FileTypeName[fileType_]);
-    //rprintf("\t[%s] is format %s and type %s with access WRITE\n",filename_,
-    //        File_Format(fileFormat_), File_Type(fileType_));
+    rprintf("\t[%s] is type %s with access WRITE\n", FullFileStr(), FileTypeName[fileType_]);
   return 0;
 }
 
@@ -432,7 +402,7 @@ int CpptrajFile::SetupFileIO() {
       IO = new FileIO_Gzip(); 
 #else
       mprinterr("Error: (%s): Compiled without Gzip support. Recompile with -DHASGZ\n",
-                filename_);
+                FullFileStr());
       return 1;
 #endif
       break;
@@ -441,7 +411,7 @@ int CpptrajFile::SetupFileIO() {
       IO = new FileIO_Bzip2();
 #else
       mprinterr("Error: (%s): Compiled without Bzip2 support. Recompile with -DHASBZ2\n",
-                filename_);
+                FullFileStr());
       return 1;
 #endif
     break;
@@ -450,13 +420,13 @@ int CpptrajFile::SetupFileIO() {
       IO = new FileIO_Mpi();
 #else
       mprinterr("Error: (%s): Compiled without MPI support. Recompile with -DMPI\n",
-                filename_);
+                FullFileStr());
       return 1;
 #endif
       break;
     //case ZIPFILE   : IO = new ZipFile(); break;
     default : 
-      mprinterr("Error: (%s): Unrecognized file type.\n",filename_);
+      mprinterr("Error: (%s): Unrecognized file type.\n",FullFileStr());
       return 1;
   }
   if (IO==NULL) return 1;
@@ -472,12 +442,13 @@ int CpptrajFile::ID_Type() {
   char buffer1[BUF_SIZE];
   struct stat frame_stat;
 
-  //mprintf("DEBUG: ID_Type( %s )\n",filename_);
+  //mprintf("DEBUG: ID_Type( %s )\n",FullFileStr());
   // Get basic file information
   // An error here means file probably doesnt exist. Dont print an error at 
   // basic debug level since this could also be used to test if file exists.
-  if (stat(filename_, &frame_stat) == -1) {
-    mprinterr( "Error: Could not find file status for %s\n", filename_);
+  if (FileName_.empty()) return 1;
+  if (stat(FullFileStr(), &frame_stat) == -1) {
+    mprinterr( "Error: Could not find file status for %s\n", FullFileStr());
     if (debug_>0) {
       perror("     Error from stat: ");
     }
@@ -490,8 +461,8 @@ int CpptrajFile::ID_Type() {
   IO = new FileIO_Std();
 
   // ID by magic number - open for binary read access
-  if ( IO->Open(filename_, "rb") ) { 
-    mprintf("Could not open %s for hex signature read.\n",filename_);
+  if ( IO->Open(FullFileStr(), "rb") ) { 
+    mprintf("Could not open %s for hex signature read.\n",FullFileStr());
     return 1;
   }
 
@@ -534,11 +505,11 @@ int CpptrajFile::ID_Type() {
   // If the file is compressed, get the uncompressed size
   // For standard files this just returns 0UL
   // Standard file size is in the frame_stat struct
-  uncompressed_size_ = IO->Size(filename_);
+  uncompressed_size_ = IO->Size(FullFileStr());
 
   // Additional file characteristics
   buffer1[0]='\0';
-  if (IO->Open(filename_,"rb")!=0) return 1; 
+  if (IO->Open(FullFileStr(),"rb")!=0) return 1; 
   IO->Gets(buffer1,BUF_SIZE);
   IO->Close();
 

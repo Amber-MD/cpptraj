@@ -60,8 +60,8 @@ int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
   std::string reftag = argIn->getNextTag();
 
   // Check and warn if filename/reftag currently in use
-  if (FindName( traj.FileName() )!=-1) {
-    mprintf("Warning: Reference with name %s already exists!\n",traj.c_str());
+  if (FindName( traj.FullTrajName() )!=-1) {
+    mprintf("Warning: Reference with name %s already exists!\n",traj.FullTrajStr());
     //return 1;
   }
   if (FindName(reftag)!=-1) {
@@ -77,12 +77,12 @@ int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
   // Check number of frames to be read
   int trajFrames = traj.Total_Read_Frames();
   if (trajFrames < 1) {
-    mprinterr("Error: No frames could be read for reference %s\n", traj.c_str());
+    mprinterr("Error: No frames could be read for reference %s\n", traj.BaseTrajStr());
     return 1;
   }
   // Start trajectory read
   if ( traj.BeginTraj(false) ) {
-    mprinterr("Error: Could not open reference %s\n.", traj.c_str());
+    mprinterr("Error: Could not open reference %s\n.", traj.BaseTrajStr());
     return 1;
   }
   traj.PrintInfo(1);
@@ -139,7 +139,7 @@ int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
   }
 
   frames_.push_back( CurrentFrame );
-  AddNameWithTag( traj.TrajName(), traj.FileName(), reftag );
+  AddNameWithTag( traj.FullTrajName(), traj.BaseTrajName(), reftag );
   nums_.push_back( traj.Start() );
   parms_.push_back( CurrentParm );
   return 0;

@@ -11,7 +11,7 @@ class FileIO_Gzip : public FileIO {
     ~FileIO_Gzip(); 
     int Open(const char *, const char *);    
     int Close();
-    off_t Size(char *);
+    off_t Size(const char *);
     int Read(void *, size_t );
     int Write(void *, size_t);  
     int Seek(off_t);

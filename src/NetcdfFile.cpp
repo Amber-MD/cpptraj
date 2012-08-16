@@ -99,6 +99,7 @@ std::string NetcdfFile::GetAttrText(int vid, const char *attribute) {
 }
 
 // NetcdfFile::GetAttrText()
+/** Get information about a netcdf global attribute. */
 std::string NetcdfFile::GetAttrText(const char *attribute) {
   return GetAttrText(NC_GLOBAL, attribute);
 }
@@ -144,6 +145,8 @@ int NetcdfFile::GetDimInfo(const char *attribute, int *length) {
   return dimID;
 }
 
+// NetcdfFile::SetupFrame()
+/** Get the frame dimension ID and # of frames (ncframe). */
 int NetcdfFile::SetupFrame() {
   frameDID_ = GetDimInfo( NCFRAME, &ncframe_ );
   if (frameDID_==-1) return 1;
@@ -182,6 +185,8 @@ int NetcdfFile::SetupCoordinates() {
   return 0;
 }
 
+// NetcdfFile::SetupVelocity()
+/** Determine if Netcdf file contains velocities; if so set velocityVID. */
 int NetcdfFile::SetupVelocity() {
   if ( nc_inq_varid(ncid_,NCVELO,&velocityVID_)==NC_NOERR ) {
     if (ncdebug_>0) mprintf("    Netcdf file has velocities.\n");
@@ -192,6 +197,8 @@ int NetcdfFile::SetupVelocity() {
   return 1;
 }
 
+// NetcdfFile::SetupTime()
+/** Set up timeVID and check units. */
 int NetcdfFile::SetupTime() {
   if ( checkNCerr( nc_inq_varid(ncid_, NCTIME, &timeVID_)) ) {
     mprinterr("Getting Netcdf time VID.\n");
@@ -204,6 +211,8 @@ int NetcdfFile::SetupTime() {
   return 0;
 }
 
+// NetcdfFile::SetupTemperature()
+/** Determine if Netcdf file contains temperature; set up temperature VID. */
 int NetcdfFile::SetupTemperature() {
   if ( nc_inq_varid(ncid_,NCTEMPERATURE,&TempVID_) == NC_NOERR ) {
     if (ncdebug_>0) mprintf("    Netcdf file has replica temperatures.\n");
@@ -213,6 +222,7 @@ int NetcdfFile::SetupTemperature() {
   return 1;
 }
 
+// NetcdfFile::SetupBox()
 /** \return 0 on success, 1 on error, -1 for no box coords. */
 int NetcdfFile::SetupBox(double *boxAngle, double *boxLength) {
   if ( nc_inq_varid(ncid_,NCCELL_LENGTHS,&cellLengthVID_)==NC_NOERR ) {
@@ -583,7 +593,7 @@ int NetcdfFile::NC_create(const char* Name, NCTYPE type, int natomIn, bool hasVe
   * NOTE: natom3 needs to match up with size of Coord!
   */
 void NetcdfFile::FloatToDouble(double *X, float *Coord) {
-  for (int i=0; i<ncatom3_; i++)
+  for (int i=0; i<ncatom3_; ++i)
     X[i]=(double) Coord[i];
 }
 
@@ -591,7 +601,7 @@ void NetcdfFile::FloatToDouble(double *X, float *Coord) {
 /** Convert double coords to float coords
   */
 void NetcdfFile::DoubleToFloat(float *Coord, double *X) {
-  for (int i=0; i<ncatom3_; i++)
+  for (int i=0; i<ncatom3_; ++i)
     Coord[i]=(float) X[i];
 }
 

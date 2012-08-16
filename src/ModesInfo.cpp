@@ -75,7 +75,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   if (infile.OpenFile()) return 1;
   // Read title line
   if (infile.Gets(buffer, BUFSIZE_)!=0) {
-    mprinterr("Error: ReadEvecFile(): error while reading title (%s)\n",infile.Name());
+    mprinterr("Error: ReadEvecFile(): error while reading title (%s)\n",infile.FullFileStr());
     return 1;
   }
   source_ = MS_FILE;
@@ -104,15 +104,17 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
 
   // Read number of coords for avg and evec
   if ( infile.Gets(buffer, BUFSIZE_)!=0) {
-    mprinterr("Error: ReadEvecFile(): error while reading number of atoms (%s)\n",infile.Name());
+    mprinterr("Error: ReadEvecFile(): error while reading number of atoms (%s)\n",
+              infile.FullFileStr());
     return 1;
   }
   int nvals = sscanf(buffer, "%i %i", &navgelem_, &nvectelem_);
   if (nvals == 0) {
-    mprinterr("Error: ReadEvecFile(): sscanf on coords failed (%s)\n",infile.Name());
+    mprinterr("Error: ReadEvecFile(): sscanf on coords failed (%s)\n",infile.FullFileStr());
     return 1;
   } else if (nvals == 1) {
-    mprintf("Warning: ReadEvecFile(): No value for nvectelem found in %s,\n", infile.Name());
+    mprintf("Warning: ReadEvecFile(): No value for nvectelem found in %s,\n", 
+            infile.FullFileStr());
     mprintf("         assuming it is navgelem (%i)\n",navgelem_);
     nvectelem_ = navgelem_;
   }
@@ -135,7 +137,8 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   double tmpval[7];
   for (int i = 0; i < nlines; ++i) {
     if (infile.Gets(buffer, BUFSIZE_)!=0) {
-      mprinterr("Error: ReadEvecFile(): error while reading avg coords (%s)\n",infile.Name());
+      mprinterr("Error: ReadEvecFile(): error while reading avg coords (%s)\n",
+                infile.FullFileStr());
       return 1;
     }
     nvals = sscanf(buffer, "%lf %lf %lf %lf %lf %lf %lf", tmpval, tmpval+1, tmpval+2,
@@ -155,16 +158,18 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   while ( infile.Gets(buffer, BUFSIZE_)==0 ) { // This should read in ' ****'
     if (strncmp(buffer," ****", 5)!=0) {
       mprinterr("Error: ReadEvecFile(): When reading eigenvector %i, expected ' ****',\n",nvect_);
-      mprinterr("       got %s [%s]\n", buffer, infile.Name());
+      mprinterr("       got %s [%s]\n", buffer, infile.FullFileStr());
       return 1;
     }
     // Read number and freq
     if (infile.Gets(buffer, BUFSIZE_)!=0) {
-      mprinterr("Error: ReadEvecFile(): error while reading number and freq (%s)\n",infile.Name());
+      mprinterr("Error: ReadEvecFile(): error while reading number and freq (%s)\n",
+                infile.FullFileStr());
       return 1;
     }
     if (sscanf(buffer, "%i%lf", &nno, tmpval) != 2) {
-      mprinterr("Error: ReadEvecFile(): error while scanning number and freq (%s)\n",infile.Name());
+      mprinterr("Error: ReadEvecFile(): error while scanning number and freq (%s)\n",
+                infile.FullFileStr());
       return 1;
     }
     //mprintf("CDBG:\tVec[%i]: #%i frequency=%lf\n", nvect_, nno, tmpval[0]);
@@ -176,7 +181,8 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
     nent = 0;
     for (int i = 0; i < nlines; ++i) {
       if (infile.Gets(buffer, BUFSIZE_)!=0) {
-        mprinterr("Error: ReadEvecFile(): error while reading evec coords (%s)\n",infile.Name());
+        mprinterr("Error: ReadEvecFile(): error while reading evec coords (%s)\n",
+                  infile.FullFileStr());
         return 1;
       }
       nvals = sscanf(buffer, "%lf %lf %lf %lf %lf %lf %lf", tmpval, tmpval+1, tmpval+2,

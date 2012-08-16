@@ -72,7 +72,7 @@ void DataIO_Gnuplot::WriteRangeAndHeader(double xcoord, double ycoord,
   Printf("set yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\n", 
          ymin_ - ystep_, ycoord + ystep_,
          xmin_ - xstep_, xcoord + xstep_);
-  Printf("splot \"-\" %s title \"%s\"\n", pm3dstr.c_str(), BaseName());
+  Printf("splot \"-\" %s title \"%s\"\n", pm3dstr.c_str(), BaseFileStr());
 }
 
 // DataIO_Gnuplot::Finish()
@@ -90,7 +90,7 @@ void DataIO_Gnuplot::JpegOut(int xsize, int ysize) {
     if (xsize == ysize)
       sizearg = "768,768";
     // Create jpg filename
-    std::string jpegname = FullPathName() + ".jpg";
+    std::string jpegname = FullFileName() + ".jpg";
     Printf("set terminal jpeg size %s\nset output \"%s\"\n",
                   sizearg.c_str(), jpegname.c_str());
   }
@@ -271,7 +271,7 @@ int DataIO_Gnuplot::WriteData2D( DataSet& set ) {
   set.GetDimensions(dimensions);
   if (dimensions.size() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              set.c_str(), Name(), dimensions.size());
+              set.c_str(), FullFileStr(), dimensions.size());
     return 1;
   } 
 

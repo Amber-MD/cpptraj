@@ -12,12 +12,13 @@
   * setupTrajin, setupTrajout, openTraj, closeTraj, readFrame, writeFrame, 
   * info, and processWriteArgs (optional).
   */
-class TrajectoryIO : public CpptrajFile {
+class TrajectoryIO : protected CpptrajFile {
   public:
     TrajectoryIO();
     virtual ~TrajectoryIO(); // virtual since this class is inherited.
     TrajectoryIO(const TrajectoryIO&);
-    TrajectoryIO &operator=(const TrajectoryIO&);
+    TrajectoryIO& operator=(const TrajectoryIO&);
+    TrajectoryIO& operator=(const CpptrajFile&);
 
     // -----------===== Inherited functions =====-----------
     /// Return true if file format matches trajectory type.
@@ -78,13 +79,13 @@ class TrajectoryIO : public CpptrajFile {
     int CheckBoxInfo(Topology*);
 
     /// Return true if the trajectory is seekable.
-    bool Seekable();
+    bool Seekable()       { return seekable_;       }
     /// Return true if the trajectory has box coordinates.
-    bool HasBox();
+    bool HasBox()         { return hasBox_;         }
     /// Return true if the trajectory has temperature info.
-    bool HasTemperature();
+    bool HasTemperature() { return hasTemperature_; }
     /// Return true if the trajectory has velocity info.
-    bool HasVelocity();
+    bool HasVelocity()    { return hasVelocity_;    }
   protected:
     std::string title_;  ///< Trajectory title.
     bool seekable_;      ///< True if can seek to frames in this traj.

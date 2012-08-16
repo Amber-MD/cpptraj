@@ -18,7 +18,7 @@ class FileIO_Mpi : public FileIO {
     off_t Tell();
     int Gets(char *, int );
     int SetSize(long int);
-    off_t Size(char*) { return 0; }
+    off_t Size(const char*) { return 0; }
   private:
     parallelType pfile_; 
 };

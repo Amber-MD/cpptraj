@@ -16,6 +16,7 @@
 // CONSTRUCTOR
 AmberNetcdf::AmberNetcdf() :
   Coord_(0),
+  Veloc_(0),
   remd_dimension_(0),
   dimensionDID_(-1),
   groupnumVID_(-1),
@@ -35,6 +36,7 @@ AmberNetcdf::~AmberNetcdf() {
   //fprintf(stderr,"Amber Netcdf Destructor\n");
   this->closeTraj();
   if (Coord_!=0) delete[] Coord_;
+  if (Veloc_!=0) delete[] Veloc_;
   if (remd_groupnum_!=0) delete[] remd_groupnum_;
   if (remd_dimtype_!=0) delete[] remd_dimtype_;
   if (remd_indices_!=0) delete[] remd_indices_;
@@ -42,7 +44,7 @@ AmberNetcdf::~AmberNetcdf() {
 }
 
 bool AmberNetcdf::ID_TrajFormat() {
-  if ( GetNetcdfConventions( Name() ) == NC_AMBERTRAJ ) return true;
+  if ( GetNetcdfConventions( FullFileStr() ) == NC_AMBERTRAJ ) return true;
   return false;
 } 
 
@@ -60,27 +62,27 @@ void AmberNetcdf::closeTraj() {
   * open and close calls.
   */
 int AmberNetcdf::openTraj() {
-  //fprintf(stdout,"DEBUG: AmberNetcdf::openTraj() called for %s, ncid=%i\n",BaseName(),ncid);
+  //fprintf(stdout,"DEBUG: AmberNetcdf::openTraj() called for %s, ncid=%i\n",BaseFileStr(),ncid);
   // If already open, return
   if (Ncid()!=-1) return 0;
 
   switch (access_) {
     case READ :
-      if ( NC_openRead( Name() ) != 0 ) {
-        mprinterr("Error: Opening Netcdf file %s for reading.\n",BaseName()); 
+      if ( NC_openRead( FullFileStr() ) != 0 ) {
+        mprinterr("Error: Opening Netcdf file %s for reading.\n",BaseFileStr()); 
         return 1;
       }
       break;
     
     case APPEND: 
     case WRITE:
-      if ( NC_openWrite( Name() ) != 0 ) {
-        mprinterr("Error: Opening Netcdf file %s for Write.\n",BaseName());
+      if ( NC_openWrite( FullFileStr() ) != 0 ) {
+        mprinterr("Error: Opening Netcdf file %s for Write.\n",BaseFileStr());
         return 1;
       }
   }
 
-  if (debug_>0) rprintf("Successfully opened %s, ncid=%i\n",BaseName(),Ncid());
+  if (debug_>0) rprintf("Successfully opened %s, ncid=%i\n",BaseFileStr(),Ncid());
   if (debug_>1) NetcdfDebug();
 
   return 0;
@@ -95,14 +97,14 @@ int AmberNetcdf::setupTrajin(Topology* trajParm) {
 
   // Sanity check - Make sure this is a Netcdf trajectory
   if ( GetNetcdfConventions() != NC_AMBERTRAJ ) {
-    mprinterr("Error: Netcdf file %s conventions do not include \"AMBER\"\n",BaseName());
+    mprinterr("Error: Netcdf file %s conventions do not include \"AMBER\"\n",BaseFileStr());
     return -1;
   }
   // Get global attributes
   std::string attrText = GetAttrText("ConventionVersion");
   if ( attrText != "1.0") 
     mprintf("Warning: Netcdf file %s has ConventionVersion that is not 1.0 (%s)\n",
-            BaseName(), attrText.c_str());
+            BaseFileStr(), attrText.c_str());
   // Get title
   if (title_.empty()) 
     title_ = GetAttrText("title");
@@ -115,10 +117,14 @@ int AmberNetcdf::setupTrajin(Topology* trajParm) {
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n",
-              BaseName(),Ncatom());
+              BaseFileStr(),Ncatom());
     mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
     return -1;
   }
+
+  // Setup Velocity
+  if (SetupVelocity() == 0)
+    hasVelocity_ = true;
 
   // Setup Time
   if ( SetupTime()!=0 ) return -1;
@@ -183,6 +189,10 @@ int AmberNetcdf::setupTrajin(Topology* trajParm) {
   // float to/from double.
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
+  if (Veloc_ != 0) delete[] Veloc_;
+  if (hasVelocity_) 
+    Veloc_ = new float[ Ncatom3() ];
+    
   closeTraj();
 
   seekable_ = true;
@@ -205,7 +215,7 @@ int AmberNetcdf::setupTrajout(Topology *trajParm, int NframesToWrite) {
   if (title_.empty())
     title_.assign("Cpptraj Generated trajectory");
 
-  if ( NC_create( Name(), NC_AMBERTRAJ, trajParm->Natom(), hasVelocity_,
+  if ( NC_create( FullFileStr(), NC_AMBERTRAJ, trajParm->Natom(), hasVelocity_,
                   hasBox_, hasTemperature_, true, title_ ) )
     return 1; 
 
@@ -256,9 +266,20 @@ int AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) 
   count_[1] = Ncatom();
   count_[2] = 3;
   if ( checkNCerr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)) ) {
-    mprinterr("Error: Getting frame %i\n",set);
+    mprinterr("Error: Getting frame %i\n", set);
     return 1;
   }
+  FloatToDouble(X, Coord_);
+
+  // Read Velocities
+  if (velocityVID_ != -1) {
+    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Veloc_)) ) {
+      mprinterr("Error: Getting velocities for frame %i\n", set);
+      return 1;
+    }
+    FloatToDouble(V, Veloc_);
+  }
+
   // Read box info 
   if (hasBox_) {
     count_[1] = 3;
@@ -273,7 +294,6 @@ int AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) 
     }
   }
 
-  FloatToDouble(X, Coord_);
 
   return 0;
 }
@@ -329,7 +349,7 @@ void AmberNetcdf::info() {
   mprintf("is a NetCDF AMBER trajectory"
             //(p->isVelocity ? " and velocities" : "")
          );
-
+  if (hasVelocity_) mprintf(" containing velocities");
   if (hasTemperature_) mprintf(" with replica temperatures");
 
   /*if (debug_ > 2) {

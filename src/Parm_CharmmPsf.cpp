@@ -36,7 +36,7 @@ int Parm_CharmmPsf::ReadParm(Topology &parmOut) {
 
   // TODO: Assign title
   std::string psftitle;
-  parmOut.SetParmName( psftitle, BaseName() );
+  parmOut.SetParmName( psftitle, BaseFileStr() );
 
   // Advance to <natom> !NATOM
   int natom = 0;

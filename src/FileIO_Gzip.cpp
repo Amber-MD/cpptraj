@@ -38,7 +38,7 @@ int FileIO_Gzip::Close() {
   * of the file. Return this value. This is used for example when attempting
   * to determine the number of frames in a gzip compressed amber traj.
   */
-off_t FileIO_Gzip::Size(char *filename) {
+off_t FileIO_Gzip::Size(const char *filename) {
   FILE *infile;
   unsigned char b1,b2,b3,b4;
   off_t val,temp;

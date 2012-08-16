@@ -151,9 +151,9 @@ bool fileExists(const char *filenameIn) {
   * The buffer should have enough space to handle the append.
   */
 // TODO: Remove this version
-void NumberFilename(char *buffer, char *filenameIn, int number) {
+/*void NumberFilename(char *buffer, char *filenameIn, int number) {
   sprintf(buffer,"%s.%i",filenameIn,number);
-}
+}*/
 
 std::string NumberFilename(std::string const &fname, int number) {
   std::ostringstream oss;

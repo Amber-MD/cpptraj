@@ -67,7 +67,7 @@ int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
 
   if (dataio_->OpenFile()) return 1;
   if ( dataio_->ReadData( datasetlist ) ) {
-    mprinterr("Error reading datafile %s\n", dataio_->Name());
+    mprinterr("Error reading datafile %s\n", dataio_->FullFileStr());
     return 1;
   }
   dataio_->CloseFile();
@@ -103,7 +103,7 @@ int DataFile::ProcessArgs(ArgList &argIn) {
     isInverted_ = true;
     // Currently GNUPLOT files cannot be inverted.
     if (dataType_ == GNUPLOT) {
-      mprintf("Warning: (%s) Gnuplot files cannot be inverted.\n",dataio_->Name());
+      mprintf("Warning: (%s) Gnuplot files cannot be inverted.\n",dataio_->FullFileStr());
       isInverted_ = false;;
     }
   }
@@ -168,7 +168,7 @@ void DataFile::Write() {
   }
   // If all data sets are empty no need to write
   if (SetList_.empty()) {
-    mprintf("Warning: file %s has no sets containing data.\n", dataio_->Name());
+    mprintf("Warning: file %s has no sets containing data.\n", dataio_->FullFileStr());
     return;
   }
 
@@ -176,13 +176,13 @@ void DataFile::Write() {
   // maxFrames+1 (for use in loops).
   ++maxFrames;
 
-  //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->Name(),
+  //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), currentDim, maxFrames);
 #ifdef DATAFILE_TIME
   clock_t t0 = clock();
 #endif
   if ( currentDim == 1 ) {
-    mprintf("%s: Writing %i frames.\n",dataio_->Name(),maxFrames);
+    mprintf("%s: Writing %i frames.\n",dataio_->FullFileStr(),maxFrames);
     if (maxFrames>0) {
       dataio_->SetMaxFrames( maxFrames );
       if (!isInverted_)
@@ -191,20 +191,20 @@ void DataFile::Write() {
         dataio_->WriteDataInverted(SetList_);
     } else {
       mprintf("Warning: DataFile %s has no valid sets - skipping.\n",
-              dataio_->Name());
+              dataio_->FullFileStr());
     }
   } else if ( currentDim == 2) {
-    mprintf("%s: Writing 2D data.\n",dataio_->Name(),maxFrames);
+    mprintf("%s: Writing 2D data.\n",dataio_->FullFileStr(),maxFrames);
     int err = 0;
     for ( DataSetList::const_iterator set = SetList_.begin();
                                       set != SetList_.end(); ++set)
       err = dataio_->WriteData2D( *(*set) );
     if (err > 0) 
-      mprinterr("Error writing 2D DataSets to %s\n", dataio_->Name());
+      mprinterr("Error writing 2D DataSets to %s\n", dataio_->FullFileStr());
   }
 #ifdef DATAFILE_TIME
   clock_t tf = clock();
-  mprinterr("DataFile %s Write took %f seconds.\n", dataio_->Name(),
+  mprinterr("DataFile %s Write took %f seconds.\n", dataio_->FullFileStr(),
             ((float)(tf - t0)) / CLOCKS_PER_SEC);
 #endif
   dataio_->CloseFile();
@@ -216,7 +216,7 @@ void DataFile::Write() {
   */
 void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
   if (widthIn<1) {
-    mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",dataio_->Name());
+    mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",dataio_->FullFileStr());
     return;
   }
   int precision = precisionIn;
@@ -224,7 +224,7 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
   // If NULL or <dsetName>=='*' specified set precision for all data sets
   if (dsetName==NULL || dsetName[0]=='*') {
     mprintf("    Setting width.precision for all sets in %s to %i.%i\n",
-            dataio_->Name(),widthIn,precision);
+            dataio_->FullFileStr(),widthIn,precision);
     for (DataSetList::const_iterator set = SetList_.begin(); set!=SetList_.end(); ++set)
       (*set)->SetPrecision(widthIn,precision);
 
@@ -236,13 +236,13 @@ void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
     if (Dset!=NULL)
       Dset->SetPrecision(widthIn,precision);
     else
-      mprintf("Error: Dataset %s not found in datafile %s\n",dsetName,dataio_->Name());
+      mprintf("Error: Dataset %s not found in datafile %s\n",dsetName,dataio_->FullFileStr());
   }
 }
 
 // DataFile::Filename()
 const char *DataFile::Filename() {
-  return dataio_->BaseName();
+  return dataio_->BaseFileStr();
 }
 
 // DataFile::DataSetNames()

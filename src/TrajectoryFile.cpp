@@ -29,7 +29,6 @@ TrajectoryFile::TrajectoryFile() :
   debug_(0),
   progress_(NULL),
   trajio_(NULL),
-  trajName_(NULL),
   trajParm_(NULL),
   fileAccess_(READTRAJ),
   numFramesProcessed_(0),
@@ -172,7 +171,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
       }
       mprintf("    Creating remd output traj: %s\n",repFilename.c_str());
       // Set up file with given type and format, and set up replica0 for the format.
-      if ( (replica0=setupTrajIO((char*)repFilename.c_str(),WRITETRAJ,remdfmt))==NULL ) 
+      if ( (replica0=setupTrajIO(repFilename.c_str(),WRITETRAJ,remdfmt))==NULL ) 
       {
         mprinterr("    Error: Could not set up T-replica file %s for writing.\n",
                   repFilename.c_str());
@@ -190,10 +189,6 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
     } // END LOOP over input remd trajectories
   } // END REMDtrajout
 
-  // Since the repeated calls to setupTrajIO have overwritten trajName, 
-  // reset it to the lowest replica name. 
-  trajName_ = remdio->BaseName();
-
   return (TrajectoryIO*) remdio;
 }
 
@@ -202,7 +197,7 @@ TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
   TrajectoryIO *tio = NULL;
   switch ( tformat ) {
     case AMBERRESTART: tio = new AmberRestart(); break;
-    case AMBERTRAJ   : tio = new AmberCoord();    break;
+    case AMBERTRAJ   : tio = new Traj_AmberCoord();    break;
     case AMBERNETCDF :
 #     ifdef BINTRAJ
       tio = new AmberNetcdf();
@@ -238,7 +233,7 @@ TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
 TrajectoryIO *TrajectoryFile::setupTrajIO(const char *tname, TrajAccessType accIn, 
                                           TrajFormatType fmtIn) 
 {
-  TrajectoryIO basicTraj;
+  CpptrajFile basicTraj;
   int err = 1;
 
   switch (accIn) {
@@ -282,8 +277,9 @@ TrajectoryIO *TrajectoryFile::setupTrajIO(const char *tname, TrajAccessType accI
     return NULL;
   }
    
-  // Set filename
-  trajName_ = tio->BaseName();
+  // Set base filename - only do this once.
+  if (baseName_.empty())
+    baseName_ = basicTraj.BaseFileName();
 
   return tio;
 }
@@ -312,7 +308,7 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
       offsetArg = 1;
     } else {
       mprinterr("Error: [%s] lastframe specified but # frames could not be determined.\n",
-                trajName_);
+                BaseTrajStr());
       return 1;
     }
   } else {
@@ -325,23 +321,24 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
   }
 
 #ifdef DEBUGTRAJ
-  mprintf("DEBUG [%s] SetArgs: Original start, stop: %i %i\n",trajName_,start_,stop_);
-  mprintf("DEBUG [%s] SetArgs: Original startArg, stopArg: %i %i\n",trajName_,startArg,stopArg);
+  mprintf("DEBUG [%s] SetArgs: Original start, stop: %i %i\n",BaseTrajStr(),start_,stop_);
+  mprintf("DEBUG [%s] SetArgs: Original startArg, stopArg: %i %i\n",
+          BaseTrajStr(),startArg,stopArg);
 #endif
   if (startArg!=1) {
     if (startArg<1) {
-      mprintf("    Warning: %s start argument %i < 1, setting to 1.\n",trajName_,startArg);
+      mprintf("    Warning: %s start argument %i < 1, setting to 1.\n",BaseTrajStr(),startArg);
       start_ = 0; // cpptraj = ptraj - 1
     } else if (total_frames_>=0 && startArg>total_frames_) {
       // If startArg==stopArg and is greater than # frames, assume we want
       // the last frame (useful when reading for reference structure).
       if (startArg==stopArg) {
         mprintf("    Warning: %s start %i > #Frames (%i), setting to last frame.\n",
-                trajName_,startArg,total_frames_);
+                BaseTrajStr(),startArg,total_frames_);
         start_ = total_frames_ - 1;
       } else {
         mprinterr("Error: [%s] start %i > #Frames (%i), no frames will be processed.\n",
-                trajName_,startArg,total_frames_);
+                BaseTrajStr(),startArg,total_frames_);
         //start=startArg - 1;
         return 1;
       }
@@ -351,12 +348,12 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
   if (stopArg!=-1) {
     if ((stopArg - 1)<start_) { // cpptraj = ptraj - 1
       mprinterr("Error: [%s] stop %i < start, no frames will be processed.\n",
-              trajName_,stopArg);
+              BaseTrajStr(),stopArg);
       //stop = start;
       return 1;
     } else if (total_frames_>=0 && stopArg>total_frames_) {
       mprintf("    Warning: %s stop %i >= #Frames (%i), setting to max.\n",
-              trajName_,stopArg,total_frames_);
+              BaseTrajStr(),stopArg,total_frames_);
       stop_ = total_frames_;
     } else
       stop_ = stopArg;
@@ -364,17 +361,18 @@ int TrajectoryFile::SetArgs(ArgList *argIn) {
   if (offsetArg!=1) {
     if (offsetArg<1) {
       mprintf("    Warning: %s offset %i < 1, setting to 1.\n",
-              trajName_,offsetArg);
+              BaseTrajStr(),offsetArg);
       offset_ = 1;
     } else if (stop_!=-1 && offsetArg > stop_ - start_) {
       mprintf("    Warning: %s offset %i is so large that only 1 set will be processed.\n",
-              trajName_,offsetArg);
+              BaseTrajStr(),offsetArg);
       offset_ = offsetArg;
     } else
       offset_ = offsetArg;
   }
   if (debug_>0)
-    mprintf("DEBUG [%s] SetArgs: Start %i Stop %i  Offset %i\n",trajName_,start_,stop_,offset_);
+    mprintf("DEBUG [%s] SetArgs: Start %i Stop %i  Offset %i\n",
+            BaseTrajStr(),start_,stop_,offset_);
   return 0;
 }
 
@@ -389,7 +387,7 @@ void TrajectoryFile::SingleFrame() {
   // should have already been called in SetupRead (and thus any errors 
   // handled there) dont check for an error here. It should return 1.
   if ( setupFrameInfo() != 1 ) {
-    mprintf("  Warning: Single frame requested for %s but not calcd!\n",trajName_);
+    mprintf("  Warning: Single frame requested for %s but not calcd!\n",BaseTrajStr());
     mprintf("           start/stop/offset (%i, %i, %i)\n",start_+1,stop_+1,offset_);
   }
 }
@@ -420,6 +418,7 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
     mprinterr("Error: TrajectoryFile::SetupRead: Filename is NULL.\n");
     return 1;
   }
+  trajName_.assign( tname );
 
   // Check that file exists
   if (!fileExists(tname)) {
@@ -461,7 +460,7 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
   // Set up file; among other things this will determine the type and 
   // format, and set up trajio for the format.
   if ( (trajio_ = setupTrajIO(tname,READTRAJ,UNKNOWN_TRAJ))==NULL ) {
-    mprinterr("    Error: Could not set up file %s for reading.\n",tname);
+    mprinterr("Error: Could not set up file %s for reading.\n",tname);
     return 1;
   }
 
@@ -470,17 +469,17 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
   // -2 indicates the number of frames could not be determined, read to EOF.
   total_frames_ = trajio_->setupTrajin(trajParm_);
   if (total_frames_ == -1) {
-    mprinterr("    Error: Could not set up %s for reading.\n",tname);
+    mprinterr("Error: Could not set up %s for reading.\n",tname);
     return 1;
   }
   if (total_frames_>-1)
-    mprintf("\t[%s] contains %i frames.\n",trajName_,total_frames_);
+    mprintf("\t[%s] contains %i frames.\n",BaseTrajStr(),total_frames_);
   else
-    mprintf("\t[%s] contains an unknown number of frames.\n",trajName_);
+    mprintf("\t[%s] contains an unknown number of frames.\n",BaseTrajStr());
 
   // Set stop based on calcd number of frames.
   if (total_frames_==0) {
-    mprinterr("  Error: trajectory %s contains no frames.\n",trajName_);
+    mprinterr("Error: trajectory %s contains no frames.\n",BaseTrajStr());
     return 1;
   }
   if (total_frames_>0)
@@ -490,7 +489,7 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
 
   // If the trajectory has box coords, set the box type from the box Angles.
   if (trajio_->CheckBoxInfo(trajParm_)!=0) {
-    mprinterr("Error in trajectory %s box information.\n",trajName_);
+    mprinterr("Error in trajectory %s box information.\n",BaseTrajStr());
     return 1;
   }
 
@@ -500,7 +499,7 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
   // Call setupFrameInfo to calc actual start and stop values based on
   // offset, as well as total_read_frames
   if ( setupFrameInfo() == 0 ) {
-    mprinterr("  Error: No frames will be read from %s based on start, stop,\n",trajName_);
+    mprinterr("Error: No frames will be read from %s based on start, stop,\n",BaseTrajStr());
     mprinterr("         and offset values (%i, %i, %i)\n",start_+1,stop_+1,offset_);
     return 1;
   }
@@ -512,7 +511,7 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
     // Check that this trajio has temperature info
     if (!trajio_->HasTemperature()) {
       mprinterr("Error: RemdTraj: Lowest replica file %s does not have temperature info.\n",
-                trajName_);
+                BaseTrajStr());
       return 1;
     }
     // Replace this trajio with a special replica traj one that will contain
@@ -670,6 +669,7 @@ int TrajectoryFile::SetupWrite(const char *tnameIn, ArgList *argIn, Topology *tp
     mprinterr("Error: TrajectoryFile::SetupWrite: Filename is NULL.\n");
     return 1;
   }
+  trajName_.assign( tname );
 
   // Check for associated parm file
   if (tparmIn==NULL) {
@@ -748,7 +748,7 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
 
   // Open the trajectory
   if (trajio_->openTraj()) {
-    mprinterr("Error: TrajectoryFile::BeginTraj: Could not open %s\n",trajName_);
+    mprinterr("Error: TrajectoryFile::BeginTraj: Could not open %s\n",BaseTrajStr());
     return 1;
   }
   trajIsOpen_ = true;
@@ -777,9 +777,9 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
 void TrajectoryFile::PrintInfoLine() {
   //rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName,currentFrame+1,stop+1,offset);
   if (stop_ != -1)
-    rprintf( "----- [%s] (%i-%i, %i) -----\n",trajName_,start_+1,stop_+1,offset_);
+    rprintf( "----- [%s] (%i-%i, %i) -----\n",BaseTrajStr(),start_+1,stop_+1,offset_);
   else
-    rprintf( "----- [%s] (%i-EOF, %i) -----\n",trajName_,start_+1,offset_);
+    rprintf( "----- [%s] (%i-EOF, %i) -----\n",BaseTrajStr(),start_+1,offset_);
 }
 
 // TrajectoryFile::EndTraj()
@@ -801,7 +801,7 @@ int TrajectoryFile::EndTraj() {
 int TrajectoryFile::GetNextFrame(Frame& FrameIn) { 
   bool tgtFrameFound;
 #ifdef TRAJDEBUG
-  mprinterr("Getting frame %i from %s (stop=%i)\n",currentFrame_,trajName_,stop_);
+  mprinterr("Getting frame %i from %s (stop=%i)\n",currentFrame_,BaseTrajStr(),stop_);
 #endif
   // If the current frame is out of range, exit
   if (currentFrame_>stop_ && stop_!=-1) return 0;
@@ -814,14 +814,15 @@ int TrajectoryFile::GetNextFrame(Frame& FrameIn) {
 
   while ( !tgtFrameFound ) {
 #ifdef TRAJDEBUG
-    mprinterr("Attempting read of frame %i from %s\n",currentFrame_,trajName_);
+    mprinterr("Attempting read of frame %i from %s\n",currentFrame_,BaseTrajStr());
 #endif
     if (trajio_->readFrame(currentFrame_, FrameIn.xAddress(), FrameIn.vAddress(),
                            FrameIn.bAddress(), FrameIn.tAddress())) 
       return 0;
     //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
 #ifdef TRAJDEBUG
-    mprinterr("Frame %i has been read from %s (target=%i)\n",currentFrame_,trajName_,targetSet_);
+    mprinterr("Frame %i has been read from %s (target=%i)\n",currentFrame_,
+              BaseTrajStr(),targetSet_);
 #endif
     if (currentFrame_ == targetSet_) {
       tgtFrameFound=true;
@@ -852,8 +853,8 @@ int TrajectoryFile::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
   // parm; this allows things like atom strippping, etc. A stripped parm will
   // have the same pindex as the original parm.
   if (!trajIsOpen_) {
-    if (debug_>0) rprintf("    Setting up %s for WRITE, %i atoms, originally %i atoms.\n",
-                          trajName_,tparmIn->Natom(),trajParm_->Natom());
+    if (debug_>0) rprintf("\tSetting up %s for WRITE, %i atoms, originally %i atoms.\n",
+                          BaseTrajStr(),tparmIn->Natom(),trajParm_->Natom());
     trajParm_ = tparmIn;
     // Use parm to set up box info for the traj unless nobox was specified.
     // If box angles are present in traj they will be used instead.
@@ -899,10 +900,10 @@ int TrajectoryFile::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
 /** Print general trajectory information. Call trajio->Info for specific information.
   */
 void TrajectoryFile::PrintInfo(int showExtended) {
-  mprintf("  [%s] ",trajName_);
+  mprintf("  [%s] ",BaseTrajStr());
   trajio_->info();
 
-  mprintf(", Parm %i",trajParm_->Pindex());
+  mprintf(", Parm %s",trajParm_->c_str());
 
   if (trajio_->HasBox()) mprintf(" (with box info)");
 
@@ -932,14 +933,6 @@ void TrajectoryFile::PrintInfo(int showExtended) {
   mprintf("\n");
 }
 
-// Return private variables
-const char* TrajectoryFile::TrajName()   { return  trajName_;          }
-Topology* TrajectoryFile::TrajParm()     { return trajParm_;           }
-int TrajectoryFile::Start()              { return start_;              }
-int TrajectoryFile::Total_Read_Frames()  { return total_read_frames_;  }
-int TrajectoryFile::Total_Frames()       { return total_frames_;       }
-int TrajectoryFile::NumFramesProcessed() { return numFramesProcessed_; }
-
 // HasVelocity()
 /** Return true if underlying trajio object indicates trajectory has velocity
   * information.
@@ -947,19 +940,5 @@ int TrajectoryFile::NumFramesProcessed() { return numFramesProcessed_; }
 bool TrajectoryFile::HasVelocity() { 
   if (trajio_!=NULL) return trajio_->HasVelocity(); 
   return false;
-}
-
-// TrajectoryFile::FileName()
-/** Return full path filename as a string. */
-std::string TrajectoryFile::FileName() {
-  if (trajio_!=NULL) return trajio_->FullPathName();
-  return std::string();
-}
-
-// TrajectoryFile::c_str()
-/** Return full path filename as a const char*. */
-const char *TrajectoryFile::c_str() {
-  if (trajio_!=NULL) return trajio_->Name();
-  return 0;
 }
 

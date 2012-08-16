@@ -22,9 +22,9 @@ class TrajectoryFile {
     TrajectoryFile();
     ~TrajectoryFile();
     // Trajectory Setup functions
+    // TODO: Accept string instead of const char*?
     int SetupRead(const char *, ArgList *, Topology *);
     int SetupWriteWithArgs(const char *, const char *, Topology *, TrajFormatType);
-    // TODO: Accept string instead of char*
     int SetupWrite(const char *, ArgList *, Topology *, TrajFormatType);
     // Trajectory Read/Write functions
     int BeginTraj(bool);
@@ -44,16 +44,18 @@ class TrajectoryFile {
     static std::string GetExtensionForType(TrajFormatType);
     /// Get type from extension
     TrajFormatType GetTypeFromExtension(std::string const&);
-    // Functions that return private vars
-    const char *TrajName();
-    Topology *TrajParm();
-    int Start();
-    int Total_Read_Frames();
-    int Total_Frames();
-    int NumFramesProcessed();
+    /// Indicate whether underlying TrajectoryIO object has velocity info.
     bool HasVelocity();
-    std::string FileName();
-    const char* c_str();
+    // Functions that return private vars
+    Topology* TrajParm()          { return trajParm_;           }
+    int Start()                   { return start_;              }
+    int Total_Read_Frames()       { return total_read_frames_;  }
+    int Total_Frames()            { return total_frames_;       }
+    int NumFramesProcessed()      { return numFramesProcessed_; }
+    const char* FullTrajStr()         { return trajName_.c_str();   }
+    std::string const& FullTrajName() { return trajName_;           }
+    const char* BaseTrajStr()         { return baseName_.c_str();   }
+    std::string const& BaseTrajName() { return baseName_;           }
   private:
     static const char FORMAT_STRINGS[][17];
     /// Denote whether reading, writing, or appending.
@@ -64,8 +66,10 @@ class TrajectoryFile {
     ProgressBar *progress_;
     /// Class that performs the actual IO for trajectory format
     TrajectoryIO *trajio_;
-    /// Trajectory name
-    const char *trajName_;
+    /// The full path to trajectory file.
+    std::string trajName_;
+    /// The base trajectory file name.
+    std::string baseName_;
     /// Associated parm
     Topology *trajParm_;
     /// Trajectory File access (R/W/A)
@@ -100,12 +104,13 @@ class TrajectoryFile {
     bool nobox_;
     /// If true trajectory has been opened.
     bool trajIsOpen_;
+
     /// Set up TrajectoryIO object for reading multiple trajectories at once
-    TrajectoryIO *setupRemdTrajIO(double, char*, TrajFormatType, ArgList&);
+    TrajectoryIO* setupRemdTrajIO(double, char*, TrajFormatType, ArgList&);
     /// Set up Trajectory IO object
-    TrajectoryIO *SetupTrajectoryIO(TrajFormatType);
+    TrajectoryIO* SetupTrajectoryIO(TrajFormatType);
     /// Set up TrajectoryIO object for the given filename
-    TrajectoryIO *setupTrajIO(const char *, TrajAccessType, TrajFormatType);
+    TrajectoryIO* setupTrajIO(const char *, TrajAccessType, TrajFormatType);
     /// Set start/stop/offset args from user input
     int SetArgs(ArgList *);
     /// Set actual start and stop

@@ -49,7 +49,7 @@ int Traj_PDBfile::openTraj() {
       break;
     case APPEND:
       // NOTE: Test this, should actually be ok
-      mprinterr("Error: %s: Append currently not supported for PDB files.\n",BaseName());
+      mprinterr("Error: %s: Append currently not supported for PDB files.\n",BaseFileStr());
       err=1;
       break;
   }
@@ -90,7 +90,7 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
         if ( pdbatom.Name() != (*trajParm)[atom].Name() ) {
           if (debug_>1) 
             mprintf("Warning: %s: PDB atom %i name [%s] does not match parm atom name [%s]\n",
-                    BaseName(),atom+1,*(pdbatom.Name()),*((*trajParm)[atom].Name()));
+                    BaseFileStr(),atom+1,*(pdbatom.Name()),*((*trajParm)[atom].Name()));
           ++numMismatch;
         }
       }
@@ -102,7 +102,7 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
     } else {
       // Check that # atoms read in this frame match the first frame
       if (atom>0 && pdbAtom_!=atom) {
-        mprintf("Warning: PDB %s: Reading frame %i, got %i atoms, expected %i.\n",BaseName(),
+        mprintf("Warning: PDB %s: Reading frame %i, got %i atoms, expected %i.\n",BaseFileStr(),
                   Frames+OUTPUTFRAMESHIFT,atom,pdbAtom_);
         mprintf("         Only using frames 1-%i\n",Frames);
         scanPDB = false;
@@ -114,15 +114,15 @@ int Traj_PDBfile::setupTrajin(Topology *trajParm) {
   this->closeTraj();
 
   if (Frames<1) {
-    mprinterr("Error: PDB %s: No frames read. atom=%i expected %i.\n",BaseName(),
+    mprinterr("Error: PDB %s: No frames read. atom=%i expected %i.\n",BaseFileStr(),
             atom,trajParm->Natom());
     return -1;
   }
-  if (debug_>0) mprintf("Traj_PDBfile: %s has %i atoms, %i frames.\n",BaseName(),
+  if (debug_>0) mprintf("Traj_PDBfile: %s has %i atoms, %i frames.\n",BaseFileStr(),
                        pdbAtom_,Frames);
   // Report mismatches of pdb atom names against parm names
   if (numMismatch > 0)
-    mprintf("Warning: In PDB file %s: %i name mismatches with parm %s.\n",BaseName(),
+    mprintf("Warning: In PDB file %s: %i name mismatches with parm %s.\n",BaseFileStr(),
             numMismatch,trajParm->c_str());
 
   return Frames;
@@ -194,7 +194,7 @@ void Traj_PDBfile::SetDumpq() {
 int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   // If writing 1 pdb per frame set up output filename and open
   if (pdbWriteMode_==MULTI) {
-    std::string fname = NumberFilename(FullPathName(), set + OUTPUTFRAMESHIFT);
+    std::string fname = NumberFilename(FullFileName(), set + OUTPUTFRAMESHIFT);
     //mprintf("DEBUG: Traj_PDBfile::writeFrame: set %i, MULTI [%s]\n",set,fname.c_str());
     if (IO->Open((char*)fname.c_str(), "wb")) return 1;
   // If specified, write MODEL keyword

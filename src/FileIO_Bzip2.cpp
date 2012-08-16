@@ -148,7 +148,7 @@ int FileIO_Bzip2::Close() {
   *       just return 0. 
   */
 //#define BUFINSIZE 10240
-off_t FileIO_Bzip2::Size(char *filename) {
+off_t FileIO_Bzip2::Size(const char *filename) {
   //off_t fileSize, numread;
   //char bufIn[BUFINSIZE];
 //  char Scan;

@@ -2,11 +2,11 @@
 #define INC_TRAJ_AMBERCOORD_H
 #include "TrajectoryIO.h"
 #include "FrameBuffer.h"
-// Class: AmberCoord
+// Class: Traj_AmberCoord
 /// Reads and writes formatted (ASCII text) amber trajectories. 
-class AmberCoord: public TrajectoryIO, FrameBuffer {
+class Traj_AmberCoord: public TrajectoryIO, FrameBuffer {
   public:
-    AmberCoord();
+    Traj_AmberCoord();
     // AmberCoord-specific functions
     void SetHighPrecision();
   private:
@@ -16,6 +16,7 @@ class AmberCoord: public TrajectoryIO, FrameBuffer {
     int numBoxCoords_;   ///< Number of box coords, 3 (ortho or truncoct) or 6 (triclinic)
     const char* outfmt_; ///< Format string for writing coordinates
     bool highPrecision_; ///< If true output format will be 8.6 instead of 8.3
+    TrajectoryIO* mdvel_;
 
     static const size_t REMD_HEADER_SIZE;
     static const size_t BUF_SIZE;

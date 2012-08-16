@@ -15,10 +15,10 @@ bool Parm_Mol2::ID_ParmFormat() {
 /** Read file as a Tripos Mol2 file. */
 int Parm_Mol2::ReadParm(Topology &parmOut) {
   if (OpenFile()) return 1;
-  mprintf("    Reading Mol2 file %s as topology file.\n",BaseName());
+  mprintf("    Reading Mol2 file %s as topology file.\n",BaseFileStr());
   // Get @<TRIPOS>MOLECULE information
   if (ReadMolecule(IO)) return 1;
-  parmOut.SetParmName( Mol2Title(), BaseName() );
+  parmOut.SetParmName( Mol2Title(), BaseFileStr() );
 
   // Allocate memory for atom names, types, and charges.
   //parmOut.names = new NAME[ parmOut.natom ];

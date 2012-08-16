@@ -123,7 +123,7 @@ int Action_DistRmsd::init( ) {
   if (refmode_ == FIRST)
     mprintf(" first frame");
   else if (refmode_==REFTRAJ)
-    mprintf(" trajectory %s",RefTraj_.TrajName());
+    mprintf(" trajectory %s",RefTraj_.FullTrajStr());
   else {
     mprintf(" reference frame");
     if (!refname.empty())

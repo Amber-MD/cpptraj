@@ -312,7 +312,7 @@ int CharmmDcd::readDcdHeader() {
       is64bit = false;
     // Otherwise who knows what the heck this is
     } else {
-      mprinterr("Error: Unrecognized DCD header [%s].\n",BaseName());
+      mprinterr("Error: Unrecognized DCD header [%s].\n",BaseFileStr());
       return 1;
     }
   }

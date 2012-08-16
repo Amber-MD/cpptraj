@@ -16,7 +16,7 @@ int Parm_PDB::ReadParm(Topology &TopIn) {
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;
-  TopIn.SetParmName( pdbtitle, BaseName() );
+  TopIn.SetParmName( pdbtitle, BaseFileStr() );
 
   CloseFile();
   return 0;

@@ -22,7 +22,7 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
   // Read the first line. Attempt to determine the number of columns
   if (IO->Gets( buffer, 1024 )) return 1;
   ArgList dataline( buffer, " ,\t" ); // whitespace, comma, or tab-delimited
-  mprintf("\tDataFile %s has %i columns.\n",Name(),dataline.Nargs());
+  mprintf("\tDataFile %s has %i columns.\n",FullFileStr(),dataline.Nargs());
   if ( dataline.Nargs() == 0 ) return 1;
 
   // If first line begins with a '#', assume it contains labels
@@ -54,7 +54,7 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       // STRING columns cannot be index columns
       if ( col == indexcol ) {
         mprinterr("Error: DataFile %s index column %i has string values.\n", 
-                  Name(), indexcol+1);
+                  FullFileStr(), indexcol+1);
         return 1;
       }
       dset = datasetlist.AddSetIdx( DataSet::STRING, BaseFileName(), col );
@@ -81,7 +81,7 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       dset->SetLegend( labels[col] );
 
     if ( col != indexcol && dset == NULL ) {
-      mprinterr("Error: DataFile %s: Could not identify column %i\n", Name(), col+1);
+      mprinterr("Error: DataFile %s: Could not identify column %i\n", FullFileStr(), col+1);
       return 1;
     }
     DsetList.push_back( dset );
@@ -263,7 +263,7 @@ int DataIO_Std::WriteData2D( DataSet& set ) {
   set.GetDimensions(dimensions);
   if (dimensions.size() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              set.c_str(), Name(), dimensions.size());
+              set.c_str(), FullFileStr(), dimensions.size());
     return 1;
   }
   

@@ -35,7 +35,7 @@ class FileIO {
     /// Get a line from the file.
     virtual int Gets(char *, int)                = 0;
     /// Return uncompressed file size; only needed for compressed files.
-    virtual off_t Size(char *)                   = 0;
+    virtual off_t Size(const char *)             = 0;
     /// Set expected file size, only needed for writes with MPI files.
     virtual int SetSize(long int)                = 0;
 };

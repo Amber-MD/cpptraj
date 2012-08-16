@@ -1,6 +1,7 @@
 #ifndef INC_NETCDFFILE_H
 #define INC_NETCDFFILE_H
 #include <string>
+/// The base interface to NetCDF trajectory files.
 class NetcdfFile {
   public:
     /// For determining netcdf file type

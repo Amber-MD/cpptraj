@@ -214,7 +214,7 @@ int Cpptraj::Run() {
   while ( (traj = trajinList.NextTraj()) != NULL ) {
     // Open up the trajectory file. If an error occurs, bail 
     if ( traj->BeginTraj(showProgress) ) {
-      mprinterr("Error: Could not open trajectory %s.\n",traj->TrajName());
+      mprinterr("Error: Could not open trajectory %s.\n",traj->FullTrajStr());
       break;
     }
     // Set current parm from current traj.

@@ -20,7 +20,7 @@ void rprinterr(const char *, ...);
 //void printwar(const char *, const char *, ...);
 std::string tildeExpansion(const char *);
 bool fileExists(const char *);
-void NumberFilename(char *, char *, int);
+//void NumberFilename(char *, char *, int);
 std::string NumberFilename(std::string const &, int);
 int DigitWidth(int);
 void SetDoubleFormatString(std::string &, int, int, int, bool);
