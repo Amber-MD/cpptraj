@@ -94,11 +94,11 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
   remdio->AddReplicaTrajin( trajio_ ); 
 
   // ------------------------------------------------------
-  // Automatically scan for additional REMD traj files.
   if (remdtraj_list.Nargs()==0) {
+    // Automatically scan for additional REMD traj files.
     replica_filenames = remdio->SearchForReplicas();
-  // Get filenames from args of remdtraj_list
   } else {
+    // Get filenames from args of remdtraj_list
     while ( (fname = remdtraj_list.getNextString()) != NULL ) {
        repFilename.assign( fname );
        replica_filenames.push_back( repFilename );
@@ -113,7 +113,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
   {
     mprintf("\t[%s]\n",(*repfile).c_str());
     // Set up replica file repnum trajectory IO
-    replica0 = setupTrajIO((char*)(*repfile).c_str(),READTRAJ,UNKNOWN_TRAJ);
+    replica0 = setupTrajIO( (*repfile).c_str(), READTRAJ, UNKNOWN_TRAJ);
     if (replica0==NULL) {
       mprinterr("    Error: RemdTraj: Could not set up replica %i file %s\n",
                 repnum,(*repfile).c_str());
@@ -125,11 +125,18 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
     // Check that number of frames matches
     int repframes = replica0->setupTrajin(trajParm_);
     if (repframes < 0 || repframes != total_frames_) {
-      mprinterr("    Error: RemdTraj: Replica %i frames (%i) does not match\n",
-                repnum,repframes);
-      mprinterr("           # frames in replica 0 (%i).\n",total_frames_);
-      delete remdio;
-      return NULL;
+      mprintf("Warning: RemdTraj: Replica %i frames (%i) does not match\n",
+               repnum, repframes);
+      mprintf("Warning:\t# frames in replica 0 (%i).\n",total_frames_); 
+      if (repframes < 0) {
+        mprinterr("Error: RemdTraj: Unknown # of frames in replica.\n");
+        delete remdio;
+        return NULL;
+      }
+      if (repframes < total_frames_) {
+        total_frames_ = repframes;
+        mprintf("Warning: RemdTraj: Setting total # of frames to %i\n", total_frames_);
+      }
     }
     // Check for temperature information
     if ( !replica0->HasTemperature()) {
