@@ -3,12 +3,12 @@
 // CONSTRUCTOR
 ParmIO::ParmIO() { }
 
-// Copy Constructor
+/// Copy Constructor
 ParmIO::ParmIO(const ParmIO &rhs) :
   CpptrajFile(rhs)
 { }
 
-// Assignment
+/// Assignment
 ParmIO &ParmIO::operator=(const ParmIO &rhs) {
   // Self
   if (this == &rhs) return *this;
@@ -16,6 +16,12 @@ ParmIO &ParmIO::operator=(const ParmIO &rhs) {
   CpptrajFile::operator=(rhs);
   // Deallocate
   // Allocate and copy
+  return *this;
+}
+
+/// CpptrajFile base assignment only.
+ParmIO& ParmIO::operator=(CpptrajFile const& fileIn) {
+  CpptrajFile::operator=( fileIn );
   return *this;
 }
 

@@ -4,12 +4,13 @@
 #include "Topology.h"
 // Class: ParmIO
 /// Base class that all ParmIO objects inherit from
-class ParmIO : public CpptrajFile {
+class ParmIO : protected CpptrajFile {
   public:
     ParmIO();
     virtual ~ParmIO() { }
     ParmIO(const ParmIO&);
     ParmIO &operator=(const ParmIO&);
+    ParmIO &operator=(const CpptrajFile&);
 
     void SetDebug(int);
 
