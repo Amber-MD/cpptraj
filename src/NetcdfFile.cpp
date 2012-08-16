@@ -172,7 +172,7 @@ int NetcdfFile::SetupCoordinates() {
   spatialDID_ = GetDimInfo(NCSPATIAL, &spatial);
   if (spatialDID_==-1) return 1;
   if (spatial!=3) {
-    mprinterr("Error: ncOpen: Expected 3 spatial dimenions, got %i\n",spatial);
+    mprinterr("Error: ncOpen: Expected 3 spatial dimensions, got %i\n",spatial);
     return 1;
   }
   if ( checkNCerr(nc_inq_varid(ncid_, NCSPATIAL, &spatialVID_)) ) {
