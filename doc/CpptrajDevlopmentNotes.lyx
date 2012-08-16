@@ -1,43 +1,70 @@
-#LyX 1.6.7 created this file. For more info see http://www.lyx.org/
-\lyxformat 345
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
 \begin_document
 \begin_header
 \textclass article
 \use_default_options true
+\maintain_unincluded_children false
 \language english
+\language_package default
 \inputencoding auto
+\fontencoding global
 \font_roman default
 \font_sans default
 \font_typewriter default
 \font_default_family default
+\use_non_tex_fonts false
 \font_sc false
 \font_osf false
 \font_sf_scale 100
 \font_tt_scale 100
 
 \graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
 \paperfontsize default
 \spacing single
-\use_hyperref false
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder false
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle true
 \papersize default
 \use_geometry false
 \use_amsmath 1
 \use_esint 1
+\use_mhchem 1
+\use_mathdots 1
 \cite_engine basic
 \use_bibtopic false
+\use_indices false
 \paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
 \secnumdepth 3
 \tocdepth 3
 \paragraph_separation indent
-\defskip medskip
+\paragraph_indentation default
 \quotes_language english
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
 \tracking_changes false
 \output_changes false
-\author "" 
-\author "" 
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
 \end_header
 
 \begin_body
@@ -49,10 +76,23 @@ CPPTRAJ Development Notes
 \begin_layout Author
 Daniel R.
  Roe
+\begin_inset Newline newline
+\end_inset
+
+Jason M.
+ Swails (Code Docs)
 \end_layout
 
 \begin_layout Date
 2010-07-21
+\begin_inset Newline newline
+\end_inset
+
+2012-08-13
+\begin_inset Newpage pagebreak
+\end_inset
+
+
 \end_layout
 
 \begin_layout Abstract
@@ -63,6 +103,10 @@ CPPTRAJ is code intended to be a complement and perhaps eventually a replacement
  to make the code more readable, leak-free, and thread-safe.
  The biggest functional change from PTRAJ is the ability to load and process
  trajectories with different topology files in the same run.
+\begin_inset Newpage pagebreak
+\end_inset
+
+
 \end_layout
 
 \begin_layout Abstract
@@ -72,84 +116,666 @@ LatexCommand tableofcontents
 \end_inset
 
 
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Part
+Coding Conventions
+\begin_inset CommandInset label
+LatexCommand label
+name "part:Coding-Conventions"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+It is important to maintain a consistent coding style within cpptraj so
+ that it remains easy to modify and understand.
+ By following code conventions, it will be easier to read code written by
+ anybody and determine what is happening.
+\end_layout
+
+\begin_layout Itemize
+Code blocks are indented using 2 spaces
+\end_layout
+
+\begin_layout Itemize
+Class types are named using 
+\emph on
+CapWords
+\emph default
+ (no spaces or underscores, start of each word is a capital letter)
+\end_layout
+
+\begin_layout Itemize
+Class methods are named using 
+\emph on
+CapWords
+\end_layout
+
+\begin_layout Itemize
+Abbreviations: 1st letter in each word is capitalized.
+ For instance, 
+\family typewriter
+Data File List
+\family default
+ may be abbreviated 
+\family typewriter
+DatFilList
+\family default
+ or 
+\family typewriter
+DFL
+\end_layout
+
+\begin_layout Itemize
+Variables that have function scope (or lower) and all public variables for
+ classes are named using 
+\emph on
+mixedCase
+\emph default
+ (same as 
+\emph on
+CapWords
+\emph default
+ except the first letter is lower-case)
+\end_layout
+
+\begin_layout Itemize
+Class variables that are 
+\family typewriter
+private
+\family default
+ or 
+\family typewriter
+protected
+\family default
+ are named using 
+\emph on
+mixedCase_
+\emph default
+ (with a trailing underscore)
+\end_layout
+
+\begin_layout Itemize
+There is a 
+\emph on
+doxygen
+\emph default
+ rule file to automatically generate code documentation using 
+\emph on
+doxygen
+\emph default
+, so please construct comments in such a doxygen-compatible manner.
+ See http://www.stack.nl/~dimitri/doxygen/manual.html for instructions.
+\end_layout
+
+\begin_layout Part
+Building Cpptraj and Documentation
+\end_layout
+
+\begin_layout Standard
+Cpptraj is built alongside AmberTools, or it can be built standalone using
+ the configure script in the 
+\family typewriter
+$AMBERHOME/AmberTools/src/cpptraj
+\family default
+ directory.
+ To build the documentation using 
+\emph on
+doxygen
+\emph default
+, you must have 
+\emph on
+doxygen
+\emph default
+ installed, and you must have configured AmberTools.
+ Run the command
+\end_layout
+
+\begin_layout LyX-Code
+make docs
+\end_layout
+
+\begin_layout Standard
+to build the documentation.
+ PDF files and HTML files are generated during this process, showing class
+ inheritance and descriptions from comments written in doxy-format.
+ Open the file 
+\family typewriter
+$AMBERHOME/AmberTools/src/cpptraj/doc/html/index.html
+\family default
+ to see the class heirarchy and descriptions.
 \end_layout
 
 \begin_layout Part
 Overall Code Organization
+\begin_inset CommandInset label
+LatexCommand label
+name "part:Overall-Code-Organization"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Cpptraj
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Cpptraj"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-The PtrajState class is the main class in cpptraj.
+The 
+\emph on
+Cpptraj
+\emph default
+ class is the main class in cpptraj.
  It is responsible for interfacing with the user and redirecting commands
  to their appropriate classes.
  It contains all relevant data and controls the flow of the program.
- Data in cpptraj can be divided into 5 categories: trajectory files, parameter
- files, actions, data sets, and data files.
- These are handled by the CoordFileList, ParmFileList, PtrajActionList,
- DataSetList, and DataFileList classes respectively.
+ Data in cpptraj can be divided into 8 categories, listed below.
+ Each item is listed with the following format with the class name that
+ defines the list and the name of the list instance defined in the main
+ Cpptraj class.
+ The various classes that define the data structures listed below are described
+ in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:FileList"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:ActionList"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+TopologyList
+\begin_inset space ~
+\end_inset
+
+parmFileList List of all Topology objects stored during the execution of
+ cpptraj
+\end_layout
+
+\begin_layout Description
+TrajinList
+\begin_inset space ~
+\end_inset
+
+trajinList List of all input trajectory files whose frames will be read
+ in and passed to each action
+\end_layout
+
+\begin_layout Description
+FrameList
+\begin_inset space ~
+\end_inset
+
+refFrames List of reference coordinate files and their frames
+\end_layout
+
+\begin_layout Description
+TrajoutList
+\begin_inset space ~
+\end_inset
+
+trajoutList List of all output trajectory files that will be written
+\end_layout
+
+\begin_layout Description
+AnalysisList
+\begin_inset space ~
+\end_inset
+
+analysisList List of all data set analyses to perform
+\end_layout
+
+\begin_layout Description
+DataSetList
+\begin_inset space ~
+\end_inset
+
+DSL
+\begin_inset CommandInset label
+LatexCommand label
+name "Master_DSL"
+
+\end_inset
+
+ List of all data sets generated by various actions
+\end_layout
+
+\begin_layout Description
+ActionList
+\begin_inset space ~
+\end_inset
+
+actionList List of all actions to be performed on every frame read from
+ trajinList
+\end_layout
+
+\begin_layout Description
+DataFileList
+\begin_inset space ~
+\end_inset
+
+DFL List of all data files that will be written from the various data sets
+\end_layout
+
+\begin_layout Section
+FileList
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+FileList
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:FileList"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+All file lists except for the 
+\emph on
+TrajinList
+\emph default
+ is handled by classes derived from 
+\emph on
+FileList
+\emph default
+.
  
+\emph on
+FileList
+\emph default
+ provides the machinery to store file names via a `base' name or a full
+ file name, and to apply tags to various file names, as well as providing
+ the machinery to look up files based on given criteria.
 \end_layout
 
-\begin_layout Section
-PtrajState
+\begin_layout Subsection
+DataFileList
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+DataFileList
 \end_layout
 
-\begin_layout Section
-CoordFileList: TrajinList, TrajoutList, ReferenceList
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-Input trajectories, input reference structures/trajectories, and output
- trajectories are all handled by classes derived from the CoordFileList
- class.
+This stores the list of output 
+\emph on
+DataFile
+\emph default
+ objects (it actually stores the pointers) that cpptraj will write after
+ all of the data sets are generated and analyzed.
+ To add to this list, you must add a data set along with the file name the
+ data set is to be printed in.
+ If the file name does not exist, a new DataFile object will be created
+ and added to the list with that data set as the first data set to be printed.
 \end_layout
 
-\begin_layout Section
-ParmFileList
+\begin_layout Subsection
+FrameList
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+FrameList
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-All parm information is stored in ParmFileList, which is a list of AmberParm
- classes.
- All other classes that use parm information (trajectories and actions)
- will have pointers into this list.
+This stores a list of 
+\emph on
+Frame
+\emph default
+ pointers that can be looked up by file name or index (although not all
+ frames need come from a unique file).
+\end_layout
+
+\begin_layout Subsection
+TopologyList
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+TopologyList
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This stores the list of topology files that are loaded into cpptraj as a
+ list of 
+\emph on
+Topology
+\emph default
+ pointers.
+ This pertains cpptraj's ability to analyze trajectories from multiple topology
+ files.
+ Topology files should be added to the master topology file list via the
+ class function 
+\emph on
+AddParmFile
+\emph default
+.
+ If another TopologyList is set up to contain copies of topology object
+ pointers (such as the 
+\emph on
+TopologyList
+\emph default
+ for the reference frames), topology files should be added via the 
+\emph on
+AddParm
+\emph default
+ function.
+ 
+\emph on
+AddParmFile
+\emph default
+ and 
+\emph on
+AddParm
+\emph default
+ should never be used by the same 
+\emph on
+TopologyList
+\emph default
+.
+\end_layout
+
+\begin_layout Subsection
+TrajoutList
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+TrajoutList
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This stores the list of pointers to output trajectory files that need to
+ be written.
+ This list is appended to every time a ``trajout'' command is encountered
+ in the input stream.
+\end_layout
+
+\begin_layout Subsection
+TrajinList
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+TrajinList
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This stores the list of pointers to input trajectories and sets them up
+ to be read and processed frame by frame.
+ Because this list does not need the machinery provided by the 
+\emph on
+FileList
+\emph default
+ base class, it does 
+\emph on
+not
+\emph default
+ inherit from it.
 \end_layout
 
 \begin_layout Section
-PtrajActionList
+ActionList
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+ActionList
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:ActionList"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
 An action is defined as an operation that will take place on specified frames
  of input trajectories.
- Actions are stored in the PtrajActionList class.
+ 
+\emph on
+Action
+\emph default
+ instances are stored in the 
+\emph on
+ActionList
+\emph default
+ class.
  During trajectory reads, each frame that is read is passed to the action
  list to be processed.
- The PtrajActionList has the power to modify the current parm and/or frame.
+ The 
+\emph on
+ActionList
+\emph default
+ has the power to modify the current parm and/or frame.
+\end_layout
+
+\begin_layout Standard
+The 
+\emph on
+AddAction
+\emph default
+ attribute takes an argument list for the command and generates a new Action
+ pointer that is added to the 
+\emph on
+ActionList
+\emph default
+ queue.
+ Therefore, when implementing new 
+\emph on
+Action
+\emph default
+s, the 
+\emph on
+ActionList::AddAction
+\emph default
+ function must be modified to properly instantiate the new 
+\emph on
+Action
+\emph default
+.
+ Every frame is passed through the 
+\emph on
+ActionList
+\emph default
+, which is sent through every action before being given to the 
+\emph on
+TrajoutList
+\emph default
+.
 \end_layout
 
 \begin_layout Section
 DataSetList
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+DataSetList
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-All data sets created by actions that should be available for further processing
- and/or analysis will be placed in the DataSetList.
+This class contains a list of pointers to 
+\emph on
+DataSet
+\emph default
+ classes.
+ The master 
+\emph on
+DataSetList
+\emph default
+ (described 
+\begin_inset CommandInset ref
+LatexCommand vpageref
+reference "Master_DSL"
+
+\end_inset
+
+) has data sets added to this list via the 
+\emph on
+AddSet
+\emph default
+, 
+\emph on
+AddSetIdx
+\emph default
+, 
+\emph on
+AddSetAspect
+\emph default
+, 
+\emph on
+AddDataSet
+\emph default
+, and 
+\emph on
+AddSetIdxAspect
+\emph default
+ methods of 
+\emph on
+DataSetList
+\emph default
+.
+ These methods will instantiate a new 
+\emph on
+DataSet
+\emph default
+ object and store its pointer inside internal data structures.
+ All other instances of 
+\emph on
+DataSetList
+\emph default
+s that are used to track existing data sets should track copies of 
+\emph on
+DataSet
+\emph default
+s via the 
+\emph on
+AddCopyOfSet
+\emph default
+ method of 
+\emph on
+DataSetList
+\emph default
+.
+ You must use either 
+\emph on
+AddCopyOfSet
+\emph default
+ exclusively to populate a 
+\emph on
+DataSetList
+\emph default
+, or any other method except 
+\emph on
+AddCopyOfSet
+\emph default
+ exclusively to populate a 
+\emph on
+DataSetList
+\emph default
+.
 \end_layout
 
 \begin_layout Section
-DataFileList
+AnalysisList
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+AnalysisList
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-List of data files to be written.
- The paradigm for Cpptraj is to do no data output (other than trajectory
- writes) during trajectory processing, since 1) this can slow things down
- quite a bit and 2) there is a subset of commands ('datafile <command>')
- that are processed after trajectory processing that allow the user to manipulat
-e datafile output.
- Data files in the DataFileList can contain pointers to DataSets in the
- DataSetList, or pointers to DataSetLists in Actions.
+This class contains a list of pointers to 
+\emph on
+Analysis
+\emph default
+ classes.
+ Analyses are analogous to Actions, except instead of acting on 
+\emph on
+Frame
+\emph default
+s, they act on 
+\emph on
+DataSet
+\emph default
+s.
 \end_layout
 
 \begin_layout Part
@@ -158,60 +784,223 @@ Basic File Handling
 
 \begin_layout Standard
 Basic file handling in Cpptraj is done by several classes.
- In Cpptraj, a file is considered to have both a Type and a Format (defined
- by enumerated types FileType and FileFormat respectively in PtrajFile.h).
- Type describes what functions actually perform IO operations for the file.
- These operations are handled by classes derived from the BaseFileIO class.
- For example, uncompressed files are handled by standard C file operations
- like fopen, fread etc which are implemented in the StdFile class.
- A class representing each file type should exist for every kind of file
- whose basic IO functions differ, e.g.
- FILE (stdio.h), gzFile (zlib.h), BZFILE (bzlib.h), MPI_File (mpi.h) and so
- on.
- See Table 
+ The 
+\emph on
+CpptrajFile
+\emph default
+ class is the base class for all File type objects.
+ These classes provide functions that allow you to open a file object for
+ reading or writing, but more importantly tracks whether a file is compressed
+ or not, allows parallel writes of standard text files with MPI, and dissects
+ the file name to give easy access to file name extensions (i.e., the characters
+ that come after the last period in the file name), base names (i.e., the
+ name of the file with extension, but no path information) and the full
+ file name (base name complete with file system location).
+ The 
+\emph on
+CpptrajFile
+\emph default
+ class is described in more detail in 
 \begin_inset CommandInset ref
-LatexCommand ref
+LatexCommand formatted
+reference "sec:CpptrajFile"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Every 
+\emph on
+CpptrajFile
+\emph default
+ (and derived class) instances contain a 
+\emph on
+FileIO
+\emph default
+-derived instance named 
+\emph on
+IO
+\emph default
+ that is responsible for direct interaction with the open file.
+ Every type of file that requires a unique set of input/output functions
+ should be assigned its own class that inherits from 
+\emph on
+FileIO
+\emph default
+.
+ For example, 
+\emph on
+FileIO_Std
+\emph default
+ is an uncompressed file whose I/O is handled by standard C file operations
+ like 
+\emph on
+fopen
+\emph default
+, 
+\emph on
+fread
+\emph default
+, 
+\emph on
+fgets
+\emph default
+, etc.
+ 
+\emph on
+FileIO_Gzip
+\emph default
+, on the other hand, is a GZIP-compressed file whose I/O is handled by calls
+ to the GZIP C-API (included through 
+\family typewriter
+zlib.h
+\family default
+) such as 
+\emph on
+gzopen
+\emph default
+, 
+\emph on
+gzread
+\emph default
+, 
+\emph on
+gzwrite
+\emph default
+, etc.
+ The 
+\emph on
+FileIO
+\emph default
+ class is described in more detail in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:FileIO"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
+CpptrajFile
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+CpptrajFile
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:CpptrajFile"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A CpptrajFile is has both a Type and an Access Type (defined by enumerated
+ types 
+\emph on
+FileType
+\emph default
+ and 
+\emph on
+AccessType
+\emph default
+ respectively in 
+\family typewriter
+CpptrajFile.h
+\family default
+).
+ The enumerated type 
+\emph on
+FileType
+\emph default
+ is used to identify what the underlying 
+\emph on
+FileIO
+\emph default
+ object is (see 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:FileIO"
+
+\end_inset
+
+ for details).
+ Each time a new 
+\emph on
+FileIO
+\emph default
+-derived class is added, another member should be added to 
+\emph on
+FileType
+\emph default
+.
+ See 
+\begin_inset CommandInset ref
+LatexCommand formatted
 reference "tab:Cpptraj-File-Types"
 
 \end_inset
 
- for a list of recognized file types.
+ for a list of currently recognized file types.
+ Note, each file type enumerated here has a corresponding partner in 
+\emph on
+FileTypeName
+\emph default
+ which must be modified along with 
+\emph on
+FileType
+\emph default
+ if another type is added.
 \end_layout
 
 \begin_layout Standard
-Format describes the overall organization of the file, and is handled by
- the main file handling class, PtrajFile.
- PtrajFile contains data common to all files (such as the file name, size,
- etc), as well as the appropriate BaseFileIO class.
- Format is detected by the SetupRead function, but this information is not
- used directly by PtrajFile; instead, Format simply indicates to whatever
- is using PtrajFile how the information in the file is organized.
- For example, if the format is AMBERTRAJ, the file has a title, followed
- by rows of 10 coordinates in %8.3f format.
- It is up to whatever is using PtrajFile to make use of this information
- by appropriate calls to the BaseFileIO class.
- See Table 
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "tab:Cpptraj-File-Formats."
-
-\end_inset
-
- for a list of recognized file formats.
+The access type declares whether the file is opened for reading, writing,
+ or appending, denoted by the members READ, WRITE, and APPEND in the enumerated
+ type 
+\emph on
+AccessType
+\emph default
+.
+ Note, each access type enumerated here has a corresponding partner in 
+\emph on
+AccessTypeName
+\emph default
+ which must be modified along with 
+\emph on
+AccessType
+\emph default
+ if another type of access is added (this is highly unlikely, though).
 \end_layout
 
 \begin_layout Standard
-Most file formats can have any file type.
- For example, an Amber Trajectory can be gzipped, or accessed using MPI
- file routines.
- The file format should not need to know anything about the file type.
- Netcdf files are the exception to this.
- Since Netcdf files are structured quite different in their underlying structure
- and are accessed through their own API, they are considered a format and
- not a type.
- Netcdf file routines require access to the entire netcdf file and so they
- cannot be compressed, therefore they can only be of type STANDARD.
- 
+There are three main, generic base classes for all Cpptraj file objects---
+\emph on
+TrajectoryIO
+\emph default
+, 
+\emph on
+DataIO
+\emph default
+, and 
+\emph on
+ParmIO
+\emph default
+---each described below.
+ Each one follows a similar trend in that each of these classes has a wrapper
+ class (described alongside them) that is responsible for abstracting the
+ implementation details of each specific type of trajectory, data format,
+ or parm format.
 \end_layout
 
 \begin_layout Standard
@@ -222,9 +1011,28 @@ status collapsed
 
 \begin_layout Plain Layout
 \align center
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:Cpptraj-File-Types"
+
+\end_inset
+
+Cpptraj File Types
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="7" columns="2">
-<features>
+<features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="0">
 <column alignment="center" valignment="top" width="0">
 <row>
@@ -321,7 +1129,7 @@ BZIP2FILE
 \begin_inset Text
 
 \begin_layout Plain Layout
-Bzip2d file.
+Bzip2-ed file.
 \end_layout
 
 \end_inset
@@ -374,17 +1182,28 @@ Normal file handled in Parallel.
 
 \end_layout
 
-\begin_layout Plain Layout
-\begin_inset Caption
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+TrajectoryIO
+\begin_inset Index idx
+status open
 
 \begin_layout Plain Layout
-\begin_inset CommandInset label
-LatexCommand label
-name "tab:Cpptraj-File-Types"
+TrajectoryIO
+\end_layout
 
 \end_inset
 
-Cpptraj File Types
+ and TrajectoryFile
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+TrajectoryFile
 \end_layout
 
 \end_inset
@@ -392,13 +1211,83 @@ Cpptraj File Types
 
 \end_layout
 
-\begin_layout Plain Layout
-
-\end_layout
+\begin_layout Standard
+The 
+\emph on
+TrajectoryIO
+\emph default
+ class is a base class for all trajectory file formats (some trajectory
+ classes inherit from other file type classes as well, such as 
+\emph on
+FrameBuffer
+\emph default
+ for 
+\emph on
+Traj_AmberRestart
+\emph default
+ and 
+\emph on
+Traj_AmberCoord
+\emph default
+).
+ The 
+\emph on
+TrajectoryFile
+\emph default
+ class is a wrapper around the 
+\emph on
+TrajectoryIO
+\emph default
+ classes that hides implementation details.
+ You should not interact directly with 
+\emph on
+TrajectoryIO
+\emph default
+ objects, but rather interact with them through a 
+\emph on
+TrajectoryFile
+\emph default
+, as described more thoroughly in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "part:TrajectoryFile"
 
 \end_inset
 
+.
+\end_layout
 
+\begin_layout Standard
+
+\emph on
+TrajectoryFile
+\emph default
+ has an enumerated type listing the different available trajectory formats.
+ Every format (i.e., class that derives from 
+\emph on
+TrajectoryIO
+\emph default
+) needs a value in the enumerated type 
+\emph on
+TrajFormatType
+\emph default
+ and a label in 
+\emph on
+FORMAT_STRINGS
+\emph default
+.
+ The currently available 
+\emph on
+TrajFormatType
+\emph default
+ enumerated values are listed and described in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tab:Cpptraj-TrajFile-Formats."
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Standard
@@ -409,9 +1298,28 @@ status collapsed
 
 \begin_layout Plain Layout
 \align center
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:Cpptraj-TrajFile-Formats."
+
+\end_inset
+
+Cpptraj File Formats.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="14" columns="2">
-<features>
+<lyxtabular version="3" rows="11" columns="2">
+<features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="0">
 <column alignment="center" valignment="top" width="10cm">
 <row>
@@ -419,7 +1327,9 @@ status collapsed
 \begin_inset Text
 
 \begin_layout Plain Layout
-FileFormat
+
+\emph on
+TrajFormatType
 \end_layout
 
 \end_inset
@@ -459,46 +1369,6 @@ Format is unknown.
 \begin_inset Text
 
 \begin_layout Plain Layout
-PDBFILE
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-PDB file.
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-AMBERTRAJ
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Amber trajectory file.
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
 AMBERNETCDF
 \end_layout
 
@@ -508,7 +1378,7 @@ AMBERNETCDF
 \begin_inset Text
 
 \begin_layout Plain Layout
-Amber netcdf trajectory file.
+Amber NetCDF trajectory file.
 \end_layout
 
 \end_inset
@@ -519,7 +1389,7 @@ Amber netcdf trajectory file.
 \begin_inset Text
 
 \begin_layout Plain Layout
-AMBERPARM
+AMBERRESTARTNC
 \end_layout
 
 \end_inset
@@ -528,7 +1398,7 @@ AMBERPARM
 \begin_inset Text
 
 \begin_layout Plain Layout
-Amber topology file.
+Amber NetCDF restart file
 \end_layout
 
 \end_inset
@@ -539,7 +1409,7 @@ Amber topology file.
 \begin_inset Text
 
 \begin_layout Plain Layout
-DATAFILE
+PDBFILE
 \end_layout
 
 \end_inset
@@ -548,7 +1418,67 @@ DATAFILE
 \begin_inset Text
 
 \begin_layout Plain Layout
-Generic data, organized into columns with an optional header (#) line.
+PDB File
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MOL2FILE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+TRIPOS Mol2 file
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CHARMMDCD
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CHARMM (and NAMD) Dcd Binary Trajectory file
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+BINPOS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Scripps binary Binpos Trajectory File
 \end_layout
 
 \end_inset
@@ -568,47 +1498,7 @@ AMBERRESTART
 \begin_inset Text
 
 \begin_layout Plain Layout
-Amber restart file.
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-AMBERREMD
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Amber trajectory with REMD/HREMD header
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-XMGRACE
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Grace (xmgrace) data file.
+Amber ASCII Restart file
 \end_layout
 
 \end_inset
@@ -636,20 +1526,409 @@ Experimental: conflib.dat file from NAB Lmod output.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
-AMBERRESTARTNC
+NTRAJ
 \end_layout
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
-Amber netcdf restart file.
+No (NULL) Trajectory file.
+ This should always be the last enumerated trajectory type.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The intent has been to make 
+\emph on
+TrajectoryIO
+\emph default
+ as independent as possible from classes that implement specific formats.
+ Therefore, it does not store any parameter information.
+ When parameter information is needed, a 
+\emph on
+Topology
+\emph default
+
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+Topology
+\end_layout
+
+\end_inset
+
+ pointer (which is independent of all parm formats, see below) is passed
+ in.
+ 
+\end_layout
+
+\begin_layout Standard
+All trajectory formats should inherit from 
+\emph on
+TrajectoryIO
+\emph default
+ and implement the following virtual functions:
+\end_layout
+
+\begin_layout Description
+bool
+\begin_inset space ~
+\end_inset
+
+ID_TrajFormat(): Checks for a tell-tale sign that this file is in fact the
+ trajectory file whose format is designated by your class.
+ Return 
+\family typewriter
+true
+\family default
+ if this is a recognized format and 
+\family typewriter
+false
+\family default
+ if it is not recognized.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+setupTrajin(Topology
+\begin_inset space ~
+\end_inset
+
+*trajparm): Called inside 
+\emph on
+TrajectoryFile::SetupRead
+\emph default
+.
+ Takes as an argument the Topology class that will be associated with this
+ trajectory.
+ Returns the number of frames in the underlying trajectory file.
+ Should set all variables (title, seekable, hasBox, boxAngle (only if hasBox),
+ hasTemperature, and hasVelocity).
+ If an error occurs should return -1.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+setupTrajout(Topology
+\begin_inset space ~
+\end_inset
+
+*trajparm,
+\begin_inset space ~
+\end_inset
+
+int
+\begin_inset space ~
+\end_inset
+
+Nframes) Called inside 
+\emph on
+TrajectoryFile::WriteFrame
+\emph default
+ on the first write call.
+ Takes as an argument the 
+\emph on
+Topology
+\emph default
+ class that will be associated with this trajectory and the total number
+ of frames that will be written to this trajectory file.
+ Should return 0 for success, 1 for error.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+openTraj() Prepare trajectory for read/write.
+ If successful, return 0.
+ Otherwise return 1.
+\end_layout
+
+\begin_layout Description
+void
+\begin_inset space ~
+\end_inset
+
+closeTraj() Finish trajectory and close the file handle
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+readFrame(int
+\begin_inset space ~
+\end_inset
+
+set,
+\begin_inset space ~
+\end_inset
+
+double
+\begin_inset space ~
+\end_inset
+
+*X,
+\begin_inset space ~
+\end_inset
+
+double
+\begin_inset space ~
+\end_inset
+
+*V,
+\begin_inset space ~
+\end_inset
+
+double
+\begin_inset space ~
+\end_inset
+
+*box,
+\begin_inset space ~
+\end_inset
+
+double
+\begin_inset space ~
+\end_inset
+
+*T) Given a frame number (set), read that frame; return the coordinates
+ in the first array, velocities in the second array, the box lengths/angles
+ in the third array, and set the temperature in the last var.
+ Return 0 for success, 1 for failure.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+writeFrame(int
+\begin_inset space ~
+\end_inset
+
+set,
+\begin_inset space ~
+\end_inset
+
+double
+\begin_inset space ~
+\end_inset
+
+*X,
+\begin_inset space ~
+\end_inset
+
+double
+\begin_inset space ~
+\end_inset
+
+*V,
+\begin_inset space ~
+\end_inset
+
+double
+\begin_inset space ~
+\end_inset
+
+*box,
+\begin_inset space ~
+\end_inset
+
+double
+\begin_inset space ~
+\end_inset
+
+T) Write to output trajectory.
+ This routine is called from 
+\emph on
+TrajectoryFile::WriteFrame
+\emph default
+ with the current action set number, not the current output number, so it
+ is up to the 
+\emph on
+TrajectoryIO
+\emph default
+ object to keep track of what frame it is writing.
+ Vars are same as in readFrame above.
+ Return 0 for success, 1 for failure.
+\end_layout
+
+\begin_layout Description
+void
+\begin_inset space ~
+\end_inset
+
+info() Print information on what kind of trajectory this is to stdout.
+\end_layout
+
+\begin_layout Description
+int
+\begin_inset space ~
+\end_inset
+
+processWriteArgs() (Optional) Process any arguments from the arg list that
+ have to do with setting the trajectory up for writing.
+ It is desireable that any changes made to the TrajectoryIO object from
+ within this function are implemented as functions that can be called independen
+tly if need be (e.g.
+ setting the write mode for PDB files).
+\end_layout
+
+\begin_layout Subsection
+DataIO
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+DataIO
+\end_layout
+
+\end_inset
+
+ and DataFile
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+DataFile
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\emph on
+DataIO
+\emph default
+ class is a base class for all data file formats.
+ This provides an easy mechanism for changing the data file output to match
+ various programs (e.g., 
+\emph on
+gnuplot
+\emph default
+ or 
+\emph on
+grace
+\emph default
+).
+ The 
+\emph on
+DataFile
+\emph default
+ class is a wrapper around the 
+\emph on
+DataIO
+\emph default
+ classes that hides implementation details for each data file type from
+ you.
+ You should interact with 
+\emph on
+DataIO
+\emph default
+ objects through 
+\emph on
+DataFile
+\emph default
+ handlers.
+\end_layout
+
+\begin_layout Standard
+Each 
+\emph on
+DataIO
+\emph default
+ class inherits the functionality to write as well as read data files in
+ that format, which enhances Cpptraj's flexibility to analyze data sets
+ (even in existing data files).
+ The current data file format options are summarized in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tbl:data_file_formats"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Data file formats and 
+\emph on
+DataIO
+\emph default
+ subclasses
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+DataIO Subclass
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Description
 \end_layout
 
 \end_inset
@@ -660,7 +1939,366 @@ Amber netcdf restart file.
 \begin_inset Text
 
 \begin_layout Plain Layout
-MOL2FILE
+DataIO_Gnuplot
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Gnuplot-formatted data file
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+DataIO_Grace
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Grace (xmgrace)-formatted data file
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+DataIO_Std
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Standard output file format, similar to ptraj-style output
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tbl:data_file_formats"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+ParmIO
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+ParmIO
+\end_layout
+
+\end_inset
+
+ and ParmFile
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+ParmFile
+\end_layout
+
+\end_inset
+
+ and Topology
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+Topology
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\emph on
+ParmIO
+\emph default
+ class is a base class for all topology file formats.
+ This provides an easy mechanism for extracting the system topology from
+ any number of file formats.
+ The 
+\emph on
+ParmFile
+\emph default
+ class is a wrapper around the 
+\emph on
+ParmIO
+\emph default
+ classes that hides the implementation details for each data file type from
+ you.
+ You should interact with 
+\emph on
+ParmIO
+\emph default
+ objects through 
+\emph on
+ParmFile
+\emph default
+ handlers.
+ 
+\emph on
+ParmFile
+\emph default
+ provides the ability to both read and write topology file objects of any
+ class.
+\end_layout
+
+\begin_layout Standard
+One thing that sets 
+\emph on
+ParmIO
+\emph default
+ and 
+\emph on
+ParmFile
+\emph default
+ apart from 
+\emph on
+TrajectoryIO/TrajectoryFile
+\emph default
+ and 
+\emph on
+DataIO/DataFile
+\emph default
+ is its connection with the 
+\emph on
+Topology
+\emph default
+ class.
+ 
+\emph on
+Topology
+\emph default
+ objects contain as much of the information in the Amber topology file as
+ can be parsed from the information present in the ParmIO object (and figured
+ out based on atomic arrangements).
+ A 
+\emph on
+Topology
+\emph default
+ instance is the first argument passed to the 
+\emph on
+ParmFile::Read
+\emph default
+ function, followed by the name of the topology file.
+ Unlike the 
+\emph on
+DataFile
+\emph default
+ and 
+\emph on
+TrajectoryFile
+\emph default
+ classes, 
+\emph on
+ParmFile
+\emph default
+ does not have a reference to the 
+\emph on
+ParmIO
+\emph default
+ object to forward read/write information to.
+ It exists simply to fill the 
+\emph on
+Topology
+\emph default
+ class with the relevant data structures and inform it how to do the rest.
+ The 
+\emph on
+Topology
+\emph default
+ class is format-independent, providing a layer of abstraction to make other
+ parts of the code that require topology information less error-prone while
+ coding.
+\end_layout
+
+\begin_layout Standard
+Every 
+\emph on
+ParmIO
+\emph default
+ subclass implements a 
+\emph on
+ReadParm
+\emph default
+ method that takes a 
+\emph on
+Topology
+\emph default
+ instance as the first argument and fills as much of the information there
+ as possible.
+ Afterwards, the CommonSetup method of the Topology class is called to finish
+ setup and determine bond information (from atom distances if not present
+ directly in the file format) and molecule information (based on the bonded
+ structure).
+ The currently available types of topologies are summarized in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tbl:Cpptraj-Parm-Formats"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Topology file formats currently implemented in Cpptraj.
+ The first column has the 
+\emph on
+ParmIO
+\emph default
+ class name as well as the 
+\emph on
+ParmFormatType
+\emph default
+ enumeration type that corresponds to that class inside 
+\emph on
+ParmFile
+\emph default
+ in parentheses.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="5" columns="2">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\emph on
+ParmIO
+\emph default
+ Subclass (
+\emph on
+ParmFormatType
+\emph default
+)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Description
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Parm_Amber (AMBERPARM)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber style topology file (OLD and NEW styles)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Parm_CharmmPsf (CHARMMPSF)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CHARMM PSF topology file format (used by NAMD, too)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Parm_Mol2 (MOL2FILE)
 \end_layout
 
 \end_inset
@@ -680,7 +2318,7 @@ TRIPOS Mol2 file
 \begin_inset Text
 
 \begin_layout Plain Layout
-GNUPLOT
+Parm_PDB
 \end_layout
 
 \end_inset
@@ -689,7 +2327,7 @@ GNUPLOT
 \begin_inset Text
 
 \begin_layout Plain Layout
-Gnuplot data file.
+PDB File
 \end_layout
 
 \end_inset
@@ -703,17 +2341,9 @@ Gnuplot data file.
 \end_layout
 
 \begin_layout Plain Layout
-\begin_inset Caption
-
-\begin_layout Plain Layout
 \begin_inset CommandInset label
 LatexCommand label
-name "tab:Cpptraj-File-Formats."
-
-\end_inset
-
-Cpptraj File Formats.
-\end_layout
+name "tbl:Cpptraj-Parm-Formats"
 
 \end_inset
 
@@ -727,28 +2357,115 @@ Cpptraj File Formats.
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+Several variables in 
+\emph on
+Topology
+\emph default
+ relate to solvent information:
+\end_layout
+
+\begin_layout Description
+finalSoluteRes_: IPTRES in sander.
+ Residue number of the final residue of solute, starts from 1.
+ Read in from the SOLVENT_POINTERS section of a parmtop if IFBOX > 0.
+\begin_inset Newline newline
+\end_inset
+
+Used in Action_DSSP.cpp, Action_Jcoupling.cpp, and Action_Rmsd.cpp when automatical
+ly determining what residues to perform calculations on.
+\end_layout
+
+\begin_layout Description
+molecules_: std::vector of Molecule instances.
+ The ATOMS_PER_MOLECULE and NSPM pointers can be set from the information
+ in here.
+\begin_inset Newline newline
+\end_inset
+
+Used in Action_Image.cpp when imaging by molecule.
+\end_layout
+
+\begin_layout Description
+atomsPerMol: NSP(NSPM) in sander.
+ Integer array of size 
+\series bold
+molecules
+\series default
+ holding the number of atoms in each molecule.
+ Read in from the ATOMS_PER_MOLECULE section of a parmtop if IFBOX > 0.
+ 
+\begin_inset Newline newline
+\end_inset
+
+Used in Traj_PDBfile.cpp to determine where TER cards should be output, and
+ in Action_Image.cpp to determine imaging by molecule.
+\end_layout
+
+\begin_layout Description
+NSolventMolecules_: The number of solvent molecules.
 \end_layout
 
 \begin_layout Section
-BaseFileIO
+FileIO
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+FileIO
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:FileIO"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-BaseFileIO will be contained inside the PtrajFile class, which will hold
- a pointer to BaseFileIO that will be assigned based on the file type, e.g.:
+A
+\emph on
+ FileIO
+\emph default
+ instance will be contained inside the File wrapper classes (e.g., TrajectoryFile
+ and DataFile, described above), which will hold a pointer to a FileIO object
+ that will be assigned based on the file type, e.g.:
 \end_layout
 
 \begin_layout LyX-Code
-BaseFileIO* IO = new GzipFile();
+FileIO* IO = new FileIO_Gzip();
 \end_layout
 
 \begin_layout Standard
-where GzipFile is a class that inherits BaseFileIO.
- BaseFileIO contains several virtual members that all inheriting file type
- classes must implement.
+where 
+\emph on
+FileIO_Gzip
+\emph default
+ is a class that inherits 
+\emph on
+FileIO
+\emph default
+.
+ 
+\emph on
+FileIO
+\emph default
+ contains several virtual members that all inheriting file type classes
+ must implement (in fact, all 
+\emph on
+FileIO
+\emph default
+ functions are virtual!).
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsection*
 Inheritable Functions
 \end_layout
 
@@ -801,25 +2518,21 @@ virtual
 \begin_inset space ~
 \end_inset
 
-long
+off_t
 \begin_inset space ~
 \end_inset
 
-long
+Size(const
 \begin_inset space ~
 \end_inset
 
-int
-\begin_inset space ~
-\end_inset
-
-Size(char
+char
 \begin_inset space ~
 \end_inset
 
 *filename) 
 \shape italic
-[Optional: Compressed Only]
+[Optional: Needed for Compressed Only]
 \shape default
  Return the uncompressed size of the file.
  
@@ -846,15 +2559,7 @@ size_t
 \begin_inset space ~
 \end_inset
 
-size,
-\begin_inset space ~
-\end_inset
-
-size_t
-\begin_inset space ~
-\end_inset
-
-count) Read size*count bytes from a file into buffer.
+size) Read size bytes from a file into buffer.
 \end_layout
 
 \begin_layout Description
@@ -878,15 +2583,7 @@ size_t
 \begin_inset space ~
 \end_inset
 
-size,
-\begin_inset space ~
-\end_inset
-
-size_t
-\begin_inset space ~
-\end_inset
-
-count) Write size*count bytes from buffer to a file.
+size) Write size bytes from buffer to a file.
 \end_layout
 
 \begin_layout Description
@@ -960,285 +2657,69 @@ int
 length) Read length bytes into buffer, up until newline, null, or EOF.
 \end_layout
 
-\begin_layout Subsection
-Functions
-\end_layout
-
-\begin_layout Description
-void
-\begin_inset space ~
-\end_inset
-
-Printf(const
-\begin_inset space ~
-\end_inset
-
-char
-\begin_inset space ~
-\end_inset
-
-*format,
-\begin_inset space ~
-\end_inset
-
-...) Write a formatted string to a file.
- Uses vsprintf to write to a buffer, then the Write() function is used.
- Note that the buffer size is only 1024 bytes, so this should be used sparingly;
- it is preferable to use the Write function directly.
-\end_layout
-
-\begin_layout Description
-void
-\begin_inset space ~
-\end_inset
-
-Rank_printf(int
-\begin_inset space ~
-\end_inset
-
-rank,
-\begin_inset space ~
-\end_inset
-
-const
-\begin_inset space ~
-\end_inset
-
-char
-\begin_inset space ~
-\end_inset
-
-*format,
-\begin_inset space ~
-\end_inset
-
-...) Only for MPI: Like Printf(), but only print for the specified worldrank.
-\end_layout
-
 \begin_layout Part
-Parameter Files
+TrajectoryFile
+\begin_inset Index idx
+status open
+
+\begin_layout Plain Layout
+TrajectoryFile
 \end_layout
 
-\begin_layout Standard
-Parameter files are read into the AmberParm class.
- 
-\end_layout
-
-\begin_layout Section
-Solvent Information
-\end_layout
-
-\begin_layout Standard
-Several variables in AmberParm relate to solvent information:
-\end_layout
-
-\begin_layout Description
-finalSoluteRes: IPTRES in sander.
- Residue number of the final residue of solute, starts from 1.
- Read in from the SOLVENT_POINTERS section of a parmtop if IFBOX > 0.
-\begin_inset Newline newline
 \end_inset
 
-Used in Action_DSSP.cpp, Action_Jcoupling.cpp, and Action_Rmsd.cpp when automatical
-ly determining what residues to perform calculations on.
-\end_layout
 
-\begin_layout Description
-molecules: NSPM in sander.
- Number of individual molecules (i.e.
- no bonds connect them) in the parm.
- Read in from the SOLVENT_POINTERS section of a parmtop if IFBOX > 0.
- 
-\begin_inset Newline newline
+\begin_inset CommandInset label
+LatexCommand label
+name "part:TrajectoryFile"
+
 \end_inset
 
-Used in Action_Image.cpp when imaging by molecule.
-\end_layout
 
-\begin_layout Description
-firstSolvMol: NSPSOL in sander.
- Molecule number of the first solvent molecule.
- Starts from 1.
- Read in from the SOLVENT_POINTERS section of a parmtop if IFBOX > 0.
- 
-\begin_inset Newline newline
-\end_inset
-
-Used in Action_Closest to determine the original molecule number of solvent
- molecules.
-\end_layout
-
-\begin_layout Description
-atomsPerMol: NSP(NSPM) in sander.
- Integer array of size 
-\series bold
-molecules
-\series default
- holding the number of atoms in each molecule.
- Read in from the ATOMS_PER_MOLECULE section of a parmtop if IFBOX > 0.
- 
-\begin_inset Newline newline
-\end_inset
-
-Used in Traj_PDBfile.cpp to determine where TER cards should be output, and
- in Action_Image.cpp to determine imaging by molecule.
-\end_layout
-
-\begin_layout Standard
-Variables originally from Ptraj:
-\end_layout
-
-\begin_layout Description
-solventMask: Char array of size 
-\series bold
-natom
-\series default
-.
- 'T' for atoms in solvent.
- 
-\begin_inset Newline newline
-\end_inset
-
-Used in AmberParm when stripping parm info.
-\end_layout
-
-\begin_layout Description
-solventMolecules: The number of solvent molecules.
-\end_layout
-
-\begin_layout Description
-solventMoleculeStart: Integer array of size 
-\series bold
-solventMolecules
-\series default
- that holds the starting atom number of the solvent molecule.
-\end_layout
-
-\begin_layout Description
-solventMoleculeStop: Integer array of size 
-\series bold
-solventMolecules
-\series default
- that holds the final atom number of the solvent molecule +1 (ostensibly
- the starting atom num of the next solvent molecule).
-\end_layout
-
-\begin_layout Description
-solventAtoms: Number of solvent atoms.
-\end_layout
-
-\begin_layout Part
-Trajectory Files
 \end_layout
 
 \begin_layout Standard
 Trajectory files comprise a subset of file formats, and are handled by a
- combination of the TrajectoryFile class, which deals with the common features
- of trajectories (number of frames, start frame, stop frame, etc), and a
- TrajectoryIO class, which handles all IO operations for the trajectory.
- The TrajectoryIO class is a base class which should be inherited by any
- class implementing trajectory IO operations.
-\end_layout
-
-\begin_layout Section
-TrajectoryIO
-\end_layout
-
-\begin_layout Standard
-TrajectoryIO will be contained inside the TrajectoryFile class, which will
- hold a pointer to TrajectoryIO that will be assigned based on the file
- format, e.g.:
-\end_layout
-
-\begin_layout LyX-Code
-TrajectoryIO* trajio = new AmberCoord();
-\end_layout
-
-\begin_layout Standard
-where AmberCoord is a class that inherits TrajectoryIO.
- TrajectoryIO contains several virtual members that all inheriting trajectory
- format classes must implement.
-\end_layout
-
-\begin_layout Standard
-The intent has been to make TrajectoryIO as independent as possible from
- other classes to increase its versatility, so that e.g.
- even though it depends on AmberParm, AmberParm is only passed in and not
- stored.
- 
-\end_layout
-
-\begin_layout Subsection
-Inheritable Functions
-\end_layout
-
-\begin_layout Description
-setupRead(): Called inside TrajectoryFile::SetupRead.
- Takes as an argument the AmberParm class that will be associated with this
- trajectory.
- Returns the number of frames in the underlying trajectory file.
- Should set all variables (title, seekable, hasBox, boxAngle (only if hasBox),
- hasTemperature, and hasVelocity.
- If an error occurs should return -1.
-\end_layout
-
-\begin_layout Description
-setupWrite() Called inside TrajectoryFile::WriteFrame on the first write
- call.
- Takes as an argument the AmberParm class that will be associated with this
- trajectory.
- 
-\end_layout
-
-\begin_layout Description
-openTraj() Prepare trajectory for read/write
-\end_layout
-
-\begin_layout Description
-closeTraj() Finish trajectory
-\end_layout
-
-\begin_layout Description
-readFrame() Given a frame number, read that frame; return the coordinates
- in the first array, velocities in the second array, the box lengths/angles
- in the third array, and set the temperature in the last var.
-\end_layout
-
-\begin_layout Description
-writeFrame() Write to output trajectory.
- This routine is called from TrajectoryFile::WriteFrame with the current
- action set number, not the current output number, so it is up to the Trajectory
-IO object to keep track of what frame it is writing.
- Vars are same as in readFrame.
-\end_layout
-
-\begin_layout Description
-info() Print information on what kind of trajectory this is.
-\end_layout
-
-\begin_layout Description
-processWriteArgs() (Optional) Process any arguments from the arg list that
- have to do with setting the trajectory up for writing.
- It is desireable that any changes made to the TrajectoryIO object from
- within this function are implemented as functions that can be called independen
-tly if need be (e.g.
- setting the write mode for PDB files).
-\end_layout
-
-\begin_layout Section
+ combination of the 
+\emph on
 TrajectoryFile
+\emph default
+ class, which deals with the common features of trajectories (number of
+ frames, start frame, stop frame, etc), and a TrajectoryIO class, which
+ handles all IO operations for the trajectory.
+ The 
+\emph on
+TrajectoryIO
+\emph default
+ class is a base class which should be inherited by any class implementing
+ trajectory IO operations.
 \end_layout
 
 \begin_layout Standard
-TrajectoryFile is the main class used for handling trajectory files.
- The intent is for TrajectoryFile to be an easy-to-use class for reading
- and writing any trajectory format that Cpptraj recognizes.
- TrajectoryFile will contain information common to all trajectory formats,
- as well as a TrajectoryIO class that will be used for reading/writing that
- specific format.
+
+\emph on
+TrajectoryFile
+\emph default
+ is the main class used for handling trajectory files.
+ The intent is for 
+\emph on
+TrajectoryFile
+\emph default
+ to be an easy-to-use class for reading and writing any trajectory format
+ that Cpptraj recognizes.
+ 
+\emph on
+TrajectoryFile
+\emph default
+ will contain information common to all trajectory formats, as well as a
+ 
+\emph on
+TrajectoryIO
+\emph default
+ class that will be used for reading/writing that specific format.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsection*
 Variables
 \end_layout
 
@@ -1292,7 +2773,7 @@ numFramesProcessed # frames actually read/written after calls to GetNextFrame
  or WriteFrame.
 \end_layout
 
-\begin_layout Subsubsection
+\begin_layout Subsubsection*
 Specific to trajectory reads:
 \end_layout
 
@@ -1381,7 +2862,7 @@ frameskip The number of frames to skip over during reads.
  For non-seekable trajectories this is 1.
 \end_layout
 
-\begin_layout Subsubsection
+\begin_layout Subsubsection*
 Specific to trajectory writes:
 \end_layout
 
@@ -1410,6 +2891,16 @@ bool
 
 setupForWrite Initially false; set to true when WriteFrame has been called
  for the first time with the topology indicated in SetupWrite.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset index_print
+LatexCommand printindex
+type "idx"
+
+\end_inset
+
+
 \end_layout
 
 \end_body

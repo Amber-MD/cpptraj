@@ -62,7 +62,7 @@ class TrajectoryIO : public CpptrajFile {
       * none of the arguments should be parm-related. It is desireable that any 
       * changes made to the TrajectoryIO object from within this function are
       * implemented as functions that can be called independently if need be 
-      * (e.g. setting the write  mode for PDB files).
+      * (e.g. setting the write mode for PDB files).
       */
     virtual int processWriteArgs(ArgList *) { return 0; }
     // -----------------------------------------------------
