@@ -41,8 +41,7 @@ int Action_Unwrap::init() {
   }
 
   // Get mask string
-  char* maskexpr = actionArgs.getNextMask();
-  mask_.SetMaskString( maskexpr );
+  mask_.SetMaskString( actionArgs.getNextMask() );
 
   mprintf("    UNWRAP: (%s), reference is ", mask_.MaskString());
   if ( refindex > -1)

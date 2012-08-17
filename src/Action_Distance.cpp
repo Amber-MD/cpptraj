@@ -19,15 +19,15 @@ int Action_Distance::init( ) {
   // Get Keywords
   useImage_ = !(actionArgs.hasKey("noimage"));
   useMass_ = !(actionArgs.hasKey("geom"));
-  char* distanceFile = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg distanceFile = actionArgs.getKeyString("out");
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
   if      ( stypename == "hbond" ) stype = DataSet::HBOND;
   else if (stypename == "noe"    ) stype = DataSet::NOE; // TODO: Grab bound and boundh
 
   // Get Masks
-  char* mask1 = actionArgs.getNextMask();
-  char* mask2 = actionArgs.getNextMask();
+  ArgList::ConstArg mask1 = actionArgs.getNextMask();
+  ArgList::ConstArg mask2 = actionArgs.getNextMask();
   //fprintf(stdout,"    Mask 1: %s\n",mask1);
   //fprintf(stdout,"    Mask 2: %s\n",mask2);
   if (mask1==NULL || mask2==NULL) {

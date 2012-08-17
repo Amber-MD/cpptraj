@@ -32,7 +32,7 @@ ParmIO *ParmFile::SetupParmIO(ParmFormatType parmFormat) {
 }
 
 // ParmFile::Read()
-int ParmFile::Read(Topology &Top, std::string const& fname, bool bondsearch, bool molsearch) 
+int ParmFile::Read(Topology &Top, std::string const& fname, bool bondsearch) 
 {
   ParmIO *parmio = NULL;
   CpptrajFile basicParm;
@@ -63,7 +63,7 @@ int ParmFile::Read(Topology &Top, std::string const& fname, bool bondsearch, boo
           return 1;
         }
         // Perform setup common to all parm files.
-        Top.CommonSetup(bondsearch,molsearch);
+        Top.CommonSetup(bondsearch);
         // Set base filename for later retrieval
         basename_ = basicParm.BaseFileName();
         delete parmio;
@@ -82,7 +82,6 @@ int ParmFile::Write( Topology &Top, std::string const& name, ParmFormatType fmt)
   ParmIO *parmio = NULL;
   CpptrajFile basicParm;
   // Set up basic parm file for write
-  // TODO: SetupWrite needs to take string
   int err = basicParm.SetupWrite(name, debug_);
   if (err == 1) {
     mprinterr("Error setting up parm file %s for write.\n",name.c_str());

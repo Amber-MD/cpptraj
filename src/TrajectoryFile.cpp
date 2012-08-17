@@ -73,7 +73,7 @@ void TrajectoryFile::SetDebug(int debugIn) {
   * to temperature trajectories with names <remdout>.<Temperature> and format
   * remdfmt. Returns a RemdTraj trajio class.
   */
-TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout, 
+TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, const char* remdout, 
                                               TrajFormatType remdfmt,
                                               ArgList &remdtraj_list) 
 {
@@ -81,7 +81,7 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, char *remdout
   TrajectoryIO *replica0=NULL;
   std::string repFilename;
   std::vector<std::string> replica_filenames;
-  char *fname;
+  ArgList::ConstArg fname;
 
   // Initial set up of remd trajio object
   remdio = new RemdTraj();
@@ -202,7 +202,7 @@ TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
 #     ifdef BINTRAJ
       tio = new AmberNetcdf();
 #     else
-      mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
+      mprinterr("    Error: Can not set up trajectory (%s):\n",trajName_.c_str());
       mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
 #     endif
       break;
@@ -210,7 +210,7 @@ TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
 #     ifdef BINTRAJ
       tio = new AmberRestartNC();
 #     else
-      mprinterr("    Error: Can not set up trajectory (%s):\n",tname);
+      mprinterr("    Error: Can not set up trajectory (%s):\n",trajName_.c_str());
       mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
 #     endif
       break;
@@ -230,7 +230,7 @@ TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
   * name to be the base filename. Return the trajectory IO object for 
   * the format.
   */
-TrajectoryIO *TrajectoryFile::setupTrajIO(const char *tname, TrajAccessType accIn, 
+TrajectoryIO *TrajectoryFile::setupTrajIO(const char* tname, TrajAccessType accIn, 
                                           TrajFormatType fmtIn) 
 {
   CpptrajFile basicTraj;
@@ -392,16 +392,20 @@ void TrajectoryFile::SingleFrame() {
   }
 }
 
-// TrajectoryFile::ReadTraj()
+// TrajectoryFile::SetupRead()
 /** Set up trajectory for reading. Input trajectory filename can be specified
   * explicitly, or if not it should be the second argument in the given
   * argument list. Associate this trajectory with the given parm file.
   */
-int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tparmIn) {
-  char *tname = NULL;
+int TrajectoryFile::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn) {
+  // Require a filename
+  if (tnameIn.empty()) {
+    mprinterr("Internal Error: SetupTrajRead: No filename given.\n");
+    return 1;
+  }
   // REMD
   double remdtrajtemp = 0.0;
-  char *remdout = NULL;
+  ArgList::ConstArg remdout = NULL;
   bool remdtraj=false;
   TrajFormatType remdfmt = AMBERTRAJ;
   ArgList remdtraj_list;
@@ -409,20 +413,11 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
   // Mark as not yet open
   trajIsOpen_ = false;
 
-  // Check for trajectory filename
-  if (tnameIn==NULL && argIn!=NULL)
-    tname = argIn->getNextString();
-  else
-    tname = (char*)tnameIn;
-  if (tname==NULL) {
-    mprinterr("Error: TrajectoryFile::SetupRead: Filename is NULL.\n");
-    return 1;
-  }
-  trajName_.assign( tname );
+  trajName_.assign( tnameIn );
 
   // Check that file exists
-  if (!fileExists(tname)) {
-    mprinterr("Error: File %s does not exist.\n",tname);
+  if (!fileExists(trajName_.c_str())) {
+    mprinterr("Error: File %s does not exist.\n",trajName_.c_str());
     return 1;
   }
 
@@ -442,7 +437,7 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
     // (default AMBERTRAJ if none specified) that will be used for writing 
     // out temperature trajectories. Currently only AmberNetcdf and AmberTraj
     // formats supported for this option.
-    remdout = argIn->getKeyString("remdout",NULL);
+    remdout = argIn->getKeyString("remdout");
     if (remdout!=NULL) 
       remdfmt = GetFormatFromArg(*argIn);
     if (remdfmt!=AMBERTRAJ && remdfmt!=AMBERNETCDF) {
@@ -459,8 +454,8 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
 
   // Set up file; among other things this will determine the type and 
   // format, and set up trajio for the format.
-  if ( (trajio_ = setupTrajIO(tname,READTRAJ,UNKNOWN_TRAJ))==NULL ) {
-    mprinterr("Error: Could not set up file %s for reading.\n",tname);
+  if ( (trajio_ = setupTrajIO(trajName_.c_str(),READTRAJ,UNKNOWN_TRAJ))==NULL ) {
+    mprinterr("Error: Could not set up file %s for reading.\n",trajName_.c_str());
     return 1;
   }
 
@@ -469,7 +464,7 @@ int TrajectoryFile::SetupRead(const char* tnameIn, ArgList *argIn, Topology *tpa
   // -2 indicates the number of frames could not be determined, read to EOF.
   total_frames_ = trajio_->setupTrajin(trajParm_);
   if (total_frames_ == -1) {
-    mprinterr("Error: Could not set up %s for reading.\n",tname);
+    mprinterr("Error: Could not set up %s for reading.\n",trajName_.c_str());
     return 1;
   }
   if (total_frames_>-1)
@@ -634,12 +629,11 @@ TrajectoryFile::TrajFormatType TrajectoryFile::GetTypeFromExtension( std::string
   * space-separated string to be passed in, which will be converted
   * to an argument list and passed to SetupWrite.
   */
-int TrajectoryFile::SetupWriteWithArgs(const char *tnameIn, const char *argstring,
-                                       Topology *tparmIn, TrajFormatType fmtIn) 
+int TrajectoryFile::SetupTrajWriteWithArgs(std::string const& tnameIn, const char *argstring,
+                                           Topology *tparmIn, TrajFormatType fmtIn) 
 {
-  ArgList tempArg;
-  tempArg.SetList((char*)argstring, " ");
-  return SetupWrite(tnameIn,&tempArg,tparmIn,fmtIn);
+  ArgList tempArg(argstring, " ");
+  return SetupTrajWrite(tnameIn,&tempArg,tparmIn,fmtIn);
 }
 
 // TrajectoryFile::SetupWrite()
@@ -650,26 +644,20 @@ int TrajectoryFile::SetupWriteWithArgs(const char *tnameIn, const char *argstrin
   * like stripped atoms and so on. 
   * NOTE: make remdtraj a generic trigger for hasTemperature?
   */
-int TrajectoryFile::SetupWrite(const char *tnameIn, ArgList *argIn, Topology *tparmIn,
-                               TrajFormatType writeFormatIn) 
+int TrajectoryFile::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn,
+                                   TrajFormatType writeFormatIn) 
 {
-  char *tname = NULL;
+  if (tnameIn.empty()) {
+    mprinterr("Internal Error: SetupTrajWrite: No filename given.\n");
+    return 1;
+  }
   fileAccess_ = WRITETRAJ;
   TrajFormatType writeFormat = writeFormatIn;;
 
   // Mark as not yet open 
   trajIsOpen_ = false;
 
-  // Check for trajectory filename
-  if (tnameIn==NULL && argIn!=NULL)
-    tname = argIn->getNextString();
-  else
-    tname = (char*)tnameIn;
-  if (tname==NULL) {
-    mprinterr("Error: TrajectoryFile::SetupWrite: Filename is NULL.\n");
-    return 1;
-  }
-  trajName_.assign( tname );
+  trajName_.assign( tnameIn );
 
   // Check for associated parm file
   if (tparmIn==NULL) {
@@ -687,7 +675,7 @@ int TrajectoryFile::SetupWrite(const char *tnameIn, ArgList *argIn, Topology *tp
     if (writeFormat == AMBERTRAJ) {
       // TODO: Determine extension without having to set up a CpptrajFile
       CpptrajFile extcheck;
-      extcheck.SetupWrite( tname, debug_ );
+      extcheck.SetupWrite( trajName_, debug_ );
       writeFormat = GetTypeFromExtension( extcheck.Extension() );
       if (writeFormat == UNKNOWN_TRAJ) writeFormat = AMBERTRAJ;
     }
@@ -697,21 +685,22 @@ int TrajectoryFile::SetupWrite(const char *tnameIn, ArgList *argIn, Topology *tp
   if (argIn!=NULL && argIn->hasKey("append")) fileAccess_ = APPENDTRAJ;
 
   // Set up file with given type and format, and set up trajio for the format.
-  if( (trajio_ = setupTrajIO(tname,fileAccess_,writeFormat))==NULL ) {
-    mprinterr("    Error: Could not set up file %s for writing.\n",tname);
+  if( (trajio_ = setupTrajIO(trajName_.c_str(),fileAccess_,writeFormat))==NULL ) {
+    mprinterr("    Error: Could not set up file %s for writing.\n",trajName_.c_str());
     return 1;
   }
 
   // Process additional arguments
   if (argIn!=NULL) {
     // Get specified title if any - will not set if NULL
-    trajio_->SetTitle( argIn->getKeyString("title", NULL) );
+    trajio_->SetTitle( argIn->getKeyString("title") );
 
     // Get a frame range for trajout
-    char* onlyframes = argIn->getKeyString("onlyframes",NULL);
+    ArgList::ConstArg onlyframes = argIn->getKeyString("onlyframes");
     if (onlyframes!=NULL) {
       if ( FrameRange_.SetRange(onlyframes) ) 
-        mprintf("Warning: trajout %s: onlyframes: %s is not a valid range.\n",tname,onlyframes);
+        mprintf("Warning: trajout %s: onlyframes: %s is not a valid range.\n",
+                trajName_.c_str(), onlyframes);
       else 
         FrameRange_.PrintRange("      Saving frames",0);
       // User frame args start from 1. Start from 0 internally.
@@ -727,7 +716,7 @@ int TrajectoryFile::SetupWrite(const char *tnameIn, ArgList *argIn, Topology *tp
     // to parm file. Options related to parm file are handled on the first
     // write in WriteFrame.
     if (trajio_->processWriteArgs(argIn)) {
-      mprinterr("Error: trajout %s: Could not process arguments.\n",tname);
+      mprinterr("Error: trajout %s: Could not process arguments.\n",trajName_.c_str());
       return 1;
     }
   }

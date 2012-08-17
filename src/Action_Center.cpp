@@ -19,8 +19,7 @@ int Action_Center::init() {
   useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
-  char *mask1 = actionArgs.getNextMask();
-  Mask_.SetMaskString(mask1);
+  Mask_.SetMaskString( actionArgs.getNextMask() );
 
   mprintf("    CENTER: To");
   if (origin_)

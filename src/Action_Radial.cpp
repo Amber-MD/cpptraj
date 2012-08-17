@@ -15,7 +15,6 @@ Action_Radial::Action_Radial() :
   center1_(false),
   useVolume_(false),
   volume_(0),
-  outfilename_(NULL),
   maximum2_(0),
   spacing_(-1),
   one_over_spacing_(-1),
@@ -46,8 +45,6 @@ Action_Radial::~Action_Radial() {
   *                       [density <density> | volume] [center1] 
   */
 int Action_Radial::init() {
-  char *mask1, *mask2;
-
   // Get Keywords
   useImage_ = !(actionArgs.hasKey("noimage"));
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
@@ -56,8 +53,8 @@ int Action_Radial::init() {
   useVolume_ = actionArgs.hasKey("volume");
 
   // Get required args
-  outfilename_ = actionArgs.getNextString();
-  if (outfilename_==NULL) {
+  outfilename_ = actionArgs.GetStringNext();
+  if (outfilename_.empty()) {
     mprinterr("Error: Radial: No output filename given.\n");
     return 1;
   }
@@ -76,7 +73,7 @@ int Action_Radial::init() {
   maximum2_ = maximum * maximum;
 
   // Get First Mask
-  mask1 = actionArgs.getNextMask();
+  ArgList::ConstArg mask1 = actionArgs.getNextMask();
   if (mask1==NULL) {
     mprinterr("Error: Radial: No mask given.\n");
     return 1;
@@ -84,7 +81,7 @@ int Action_Radial::init() {
   Mask1_.SetMaskString(mask1);
 
   // Check for second mask - if none specified use first mask
-  mask2 = actionArgs.getNextMask();
+  ArgList::ConstArg mask2 = actionArgs.getNextMask();
   if (mask2!=NULL) 
     Mask2_.SetMaskString(mask2);
   else
@@ -116,7 +113,7 @@ int Action_Radial::init() {
   mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1_.MaskString());
   if (mask2!=NULL) 
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
-  mprintf("\n            Output to %s.\n",outfilename_);
+  mprintf("\n            Output to %s.\n",outfilename_.c_str());
   if (center1_)
     mprintf("            Using center of atoms in mask1.\n");
   //mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",rdf.Max(0),
@@ -299,9 +296,9 @@ void Action_Radial::print() {
 
   // Set up output dataset. 
   Dset = DSL->Add( DataSet::DOUBLE, NULL, "g(r)");
-  outfile = DFL->Add(outfilename_, Dset);
+  outfile = DFL->AddSetToFile(outfilename_, Dset);
   if (outfile==NULL) {
-    mprinterr("Error: Radial: Could not setup output file %s\n",outfilename_);
+    mprinterr("Error: Radial: Could not setup output file %s\n",outfilename_.c_str());
     return;
   }
   // Make default precision a little higher than normal

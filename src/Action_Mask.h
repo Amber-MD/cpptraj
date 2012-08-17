@@ -22,6 +22,6 @@ class Action_Mask: public Action {
     /// File to write selected atom info to
     CpptrajFile outfile_;
     /// PDB output file name
-    char* maskpdb_;
+    std::string maskpdb_;
 };
 #endif  

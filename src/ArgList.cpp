@@ -26,9 +26,6 @@ ArgList::ArgList(std::string const& expression, const char *separators) :
   SetList(expression.c_str(), separators);
 }
 
-// DESTRUCTOR
-ArgList::~ArgList() {}
-
 // COPY CONSTRUCTOR
 ArgList::ArgList(const ArgList &rhs) {
   arglist = rhs.arglist;
@@ -49,7 +46,7 @@ ArgList &ArgList::operator=(const ArgList &rhs) {
 }
 
 // ArgList::operator[]
-std::string& ArgList::operator[](int idx) {
+std::string const& ArgList::operator[](int idx) {
   if (idx < 0 || idx >= (int)arglist.size())
     throw std::out_of_range("ArgList[]");
   return arglist[idx];
@@ -254,17 +251,16 @@ bool ArgList::CommandIs(const char *key) {
 // ArgList::getNextString()
 /** \return the next unmarked string.
   */
-// NOTE: The case back to char* is potentially dangerous if calling routine
-//        modifies the string in any way.
-char *ArgList::getNextString() {
-  for (unsigned int arg = 0; arg < arglist.size(); arg++)
+ArgList::ConstArg ArgList::getNextString() {
+  for (unsigned int arg = 0; arg < arglist.size(); ++arg)
     if (!marked[arg]) {
       marked[arg]=true;
-      return (char*)arglist[arg].c_str();
+      return arglist[arg].c_str();
     }
   return NULL;
 }
 
+// ArgList::GetStringNext()
 std::string ArgList::GetStringNext() {
   std::string emptystring;
   for (unsigned int arg = 0; arg < arglist.size(); ++arg)
@@ -279,31 +275,25 @@ std::string ArgList::GetStringNext() {
 /** Return next unmarked Mask. A mask MUST include one of the following: 
   *   ':' residue
   *   '@' atom
+  *   '/' element
+  *   '%' type
   *   '*' everything
   * \return the next unmarked atom mask expression
   */
-// NOTE: Disabling the following for now:
-// '/' element
-// '%' type
-char *ArgList::getNextMask() {
-  for (unsigned int arg=0; arg < arglist.size(); arg++) {
+ArgList::ConstArg ArgList::getNextMask() {
+  for (unsigned int arg=0; arg < arglist.size(); ++arg) {
     if (!marked[arg]) {
-      const char *argmnt = arglist[arg].c_str();
-      if ( strchr( argmnt, ':')!=NULL ||
-           strchr( argmnt, '@')!=NULL ||
-           strchr( argmnt, '*')!=NULL //||
-           //strchr( argmnt, '/')!=NULL ||
-           //strchr( argmnt, '%')!=NULL    
-         )
-      {
+      size_t found = arglist[arg].find_first_of(":@*/%");
+      if (found != std::string::npos) {
         marked[arg]=true;
-        return (char*)argmnt;
+        return arglist[arg].c_str();
       }
     }
   }
   return NULL;
 }
 
+// ArgList::GetMaskNext()
 std::string ArgList::GetMaskNext() {
   for (unsigned int arg = 0; arg < arglist.size(); ++arg) {
     if (!marked[arg]) {
@@ -388,24 +378,23 @@ double ArgList::getNextDouble(double def) {
 
 // ArgList::getKeyString()
 /** Search the argument list for key, return the argument following key
-  * as a string if found, otherwise return def.
+  * as a string if found, otherwise return 0.
   * \param key string to search for
-  * \param def Value to return if key not found.
   */
-char *ArgList::getKeyString(const char *key, char *def) {
+ArgList::ConstArg ArgList::getKeyString(const char *key) {
   unsigned int nargs = arglist.size() - 1;
-  for (unsigned int arg=0; arg < nargs; arg++)
+  for (unsigned int arg=0; arg < nargs; ++arg)
     if (!marked[arg]) {
       if (arglist[arg].compare(key)==0) { 
+        marked[arg++]=true;
         marked[arg]=true;
-        arg++;
-        marked[arg]=true;
-        return (char*)arglist[arg].c_str();
+        return arglist[arg].c_str();
       }
     }
-  return def;
+  return NULL;
 }
 
+// ArgList::GetStringKey()
 std::string ArgList::GetStringKey(const char *key) {
   std::string empty;
   unsigned int nargs = arglist.size() - 1;
@@ -420,19 +409,6 @@ std::string ArgList::GetStringKey(const char *key) {
     }
   return empty;
 }
-
-/* ArgList::getKeyIndex()
- * Search for unmarked key in arglist, return its position in the ArgList
- * if found, otherwise return -1
- */
-/*
-int ArgList::getKeyIndex(char *key) {
-  for (unsigned int arg=0; arg < arglist.size(); arg++) {
-    if (arglist[arg].compare(key)==0) return arg;
-  }
-  return -1;
-}
-*/
 
 // ArgList::getKeyInt()
 /** Search the argument list for key, return the argument following key

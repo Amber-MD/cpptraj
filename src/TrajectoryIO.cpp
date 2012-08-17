@@ -76,7 +76,7 @@ void TrajectoryIO::SetDebug(int debugIn) {
 
 // TrajectoryIO::SetTitle()
 /** Set title for this trajfile. */
-void TrajectoryIO::SetTitle(char *titleIn) {
+void TrajectoryIO::SetTitle(const char* titleIn) {
   //mprintf("DEBUG: Attempting to set title for %s: [%s]\n",trajfilename,titleIn);
   if (titleIn==NULL) return;
   title_.assign(titleIn);

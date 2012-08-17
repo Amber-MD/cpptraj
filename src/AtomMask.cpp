@@ -606,7 +606,8 @@ bool AtomMask::None() {
   * maskChar_ is used to determine whether atoms denoted by 'T' or 'F' will
   * be selected (the latter is the case e.g. with stripped atoms). 
   */
-void AtomMask::SetupMask(char *charmask,int natom,int debug) {
+void AtomMask::SetupMask(char *charmask,int natom,int debugIn) {
+  debug_ = debugIn;
   // Wipe out previous char mask if allocated
   CharMask_.clear();
 
@@ -623,7 +624,7 @@ void AtomMask::SetupMask(char *charmask,int natom,int debug) {
     }
   }
 
-  if (debug>0) {
+  if (debug_>0) {
     if (maskChar_=='F')
       mprintf("          Inverse of Mask %s corresponds to %i atoms.\n",
               maskString_.c_str(), natom - nselected_);
@@ -637,7 +638,8 @@ void AtomMask::SetupMask(char *charmask,int natom,int debug) {
 /** Given an input char mask of size natom, set up a corresponding char mask.
   * Useful for cases where we need to know both atoms in and out of mask.
   */
-void AtomMask::SetupCharMask(char *charmask, int natom, int debug) {
+void AtomMask::SetupCharMask(char *charmask, int natom, int debugIn) {
+  debug_ = debugIn;
   // Wipe out previous Selected_ mask if allocated
   Selected_.clear();
 

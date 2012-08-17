@@ -22,7 +22,7 @@ TrajoutList::~TrajoutList() {
 int TrajoutList::AddTrajout(ArgList *argIn, Topology *parmIn) {
   // Since we need to check if this filename is in use in order to prevent
   // overwrites, determine the filename here.
-  char *filename = argIn->getNextString();
+  ArgList::ConstArg filename = argIn->getNextString();
   if (filename==NULL) {
     mprinterr("Error: TrajoutList::Add: Called with NULL filename.\n");
     return 1;
@@ -40,7 +40,7 @@ int TrajoutList::AddTrajout(ArgList *argIn, Topology *parmIn) {
   }
   traj->SetDebug(debug_);
   // Default to AMBERTRAJ; format can be changed via args in the arg list
-  if (traj->SetupWrite(filename,argIn,parmIn,TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (traj->SetupTrajWrite(filename,argIn,parmIn,TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: trajout: Could not set up trajectory.\n");
     delete traj;
     return 1;

@@ -22,10 +22,9 @@ class TrajectoryFile {
     TrajectoryFile();
     ~TrajectoryFile();
     // Trajectory Setup functions
-    // TODO: Accept string instead of const char*?
-    int SetupRead(const char *, ArgList *, Topology *);
-    int SetupWriteWithArgs(const char *, const char *, Topology *, TrajFormatType);
-    int SetupWrite(const char *, ArgList *, Topology *, TrajFormatType);
+    int SetupTrajRead(std::string const&, ArgList *, Topology *);
+    int SetupTrajWriteWithArgs(std::string const&, const char *, Topology *, TrajFormatType);
+    int SetupTrajWrite(std::string const&, ArgList *, Topology *, TrajFormatType);
     // Trajectory Read/Write functions
     int BeginTraj(bool);
     int EndTraj();
@@ -106,7 +105,7 @@ class TrajectoryFile {
     bool trajIsOpen_;
 
     /// Set up TrajectoryIO object for reading multiple trajectories at once
-    TrajectoryIO* setupRemdTrajIO(double, char*, TrajFormatType, ArgList&);
+    TrajectoryIO* setupRemdTrajIO(double, const char*, TrajFormatType, ArgList&);
     /// Set up Trajectory IO object
     TrajectoryIO* SetupTrajectoryIO(TrajFormatType);
     /// Set up TrajectoryIO object for the given filename

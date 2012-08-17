@@ -250,7 +250,7 @@ int AmberRestart::setupTrajin(Topology *trajParm) {
 
   // Read past restart coords 
   if ( IO->Read(frameBuffer_,frameSize_)==-1 ) {
-    mprinterr("Error: AmberRestart::SetupRead(): Error reading coordinates.\n");
+    mprinterr("Error: AmberRestart::setupTrajin(): Error reading coordinates.\n");
     return -1; 
   }
 
@@ -282,7 +282,7 @@ int AmberRestart::setupTrajin(Topology *trajParm) {
 
   // Otherwise, who knows what was read?
   } else {
-    mprinterr("Error: AmberRestart::SetupRead(): When attempting to read in\n");
+    mprinterr("Error: AmberRestart::setupTrajin(): When attempting to read in\n");
     mprinterr("       box coords/velocity info got %lu chars, expected 0, 37,\n",lineSize);
     mprinterr("       73, or %lu.\n",frameSize_);
     mprinterr("       This usually indicates a malformed or corrupted restart file.\n");

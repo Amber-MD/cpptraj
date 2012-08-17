@@ -21,7 +21,7 @@ int Action_AvgCoord::init() {
   // Get keywords
   useMass_ = actionArgs.hasKey("mass");
   calcMagnitude_ = actionArgs.hasKey("magnitude");
-  char *filename = actionArgs.getKeyString("outfile",NULL);
+  ArgList::ConstArg filename = actionArgs.getKeyString("outfile");
   if (filename==NULL) {
     mprinterr("Error: avgcoord: must specify output file with 'outfile'\n");
     return 1;
@@ -30,8 +30,7 @@ int Action_AvgCoord::init() {
   if (outfile_.OpenFile()) return 1;
 
   // Get Masks
-  char* mask1 = actionArgs.getNextMask();
-  Mask_.SetMaskString(mask1);
+  Mask_.SetMaskString( actionArgs.getNextMask() );
 
   mprintf("    AVGCOORD: Average of atoms in mask [%s] will be output to %s\n",
           Mask_.MaskString(), filename);

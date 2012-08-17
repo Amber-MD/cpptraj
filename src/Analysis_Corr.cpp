@@ -6,8 +6,7 @@
 Analysis_Corr::Analysis_Corr() :
   D1_(NULL),
   D2_(NULL),
-  lagmax_(0),
-  outfilename_(NULL)
+  lagmax_(0)
 {}
 
 // Analysis_Corr::Setup()
@@ -22,19 +21,19 @@ int Analysis_Corr::Setup(DataSetList *datasetlist) {
   }
   // Keywords
   lagmax_ = analyzeArgs_.getKeyInt("lagmax",-1);
-  outfilename_ = analyzeArgs_.getKeyString("out",NULL);
-  if (outfilename_==NULL) {
+  outfilename_ = analyzeArgs_.GetStringKey("out");
+  if (outfilename_.empty()) {
     mprinterr("Error: Corr: No output filename specified ('out' <filename>).\n");
     return 1;
   }
  
   // DataSet names
-  char *D1name = analyzeArgs_.getNextString();
+  ArgList::ConstArg D1name = analyzeArgs_.getNextString();
   if (D1name==NULL) {
     mprinterr("Error: Corr: Must specify at least 1 dataset name.\n");
     return 1;
   }
-  char *D2name = analyzeArgs_.getNextString();
+  ArgList::ConstArg D2name = analyzeArgs_.getNextString();
   // Get DataSet(s)
   D1_ = datasetlist->Get(D1name);
   if (D1_==NULL) {
@@ -65,7 +64,7 @@ int Analysis_Corr::Setup(DataSetList *datasetlist) {
     mprintf("    CORR: Correlation between set %s and set %s",D1name,D2name);
   if (lagmax_!=-1) 
     mprintf(", max lag %i",lagmax_);
-  mprintf("\n\tOutput to %s\n",outfilename_);
+  mprintf("\n\tOutput to %s\n",outfilename_.c_str());
 
   return 0;
 }
@@ -93,6 +92,6 @@ int Analysis_Corr::Analyze() {
 
 // Analysis_Corr::Print()
 void Analysis_Corr::Print(DataFileList *dfl) {
-  dfl->Add(outfilename_, Ct_);
+  dfl->AddSetToFile(outfilename_, Ct_);
 }
 

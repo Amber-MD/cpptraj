@@ -21,7 +21,7 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
  *                   [x|y|z|xy|xz|yz|xyz]
  */
 int Action_STFC_Diffusion::init() {
-  char* maskarg = actionArgs.getKeyString("mask", NULL);
+  ArgList::ConstArg maskarg = actionArgs.getKeyString("mask");
   if (maskarg == NULL) {
     mprinterr("Error: diffusion: No mask specified.\n");
     return 1;
@@ -59,7 +59,7 @@ int Action_STFC_Diffusion::init() {
   if ( actionArgs.hasKey("xyz") ) direction_ = DXYZ;
     
   // Process second mask
-  maskarg = actionArgs.getKeyString("mask2", NULL);
+  maskarg = actionArgs.getKeyString("mask2");
   double lcut = 0;
   double ucut = 0;
   if (maskarg != NULL) {

@@ -7,7 +7,6 @@
 
 // CONSTRUCTOR
 Action_RmsAvgCorr::Action_RmsAvgCorr() :
-  separateName_(NULL),
   ReferenceParm_(NULL),
   Ct_(NULL),
   parmNatom_(0),
@@ -21,19 +20,19 @@ Action_RmsAvgCorr::Action_RmsAvgCorr() :
   */
 int Action_RmsAvgCorr::init( ) {
   // Get Keywords
-  char *outfilename = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg outfilename = actionArgs.getKeyString("out");
 # ifdef _OPENMP
   if (actionArgs.hasKey("output")) {
     mprinterr("Error: 'output' keyword not supported in OpenMP version of rmsavgcorr.\n");
     return 1;
   }
 # else
-  separateName_ = actionArgs.getKeyString("output",NULL);
+  separateName_ = actionArgs.GetStringKey("output");
 # endif
   useMass_ = actionArgs.hasKey("mass");
   maxwindow_ = actionArgs.getKeyInt("stop",-1);
   // Get Masks
-  char *rmsmask = actionArgs.getNextMask();
+  ArgList::ConstArg rmsmask = actionArgs.getNextMask();
   Mask0_.SetMaskString( rmsmask );
 
   // Set up dataset to hold correlation 
@@ -51,8 +50,8 @@ int Action_RmsAvgCorr::init( ) {
   if (outfilename!=NULL) mprintf(", Output to %s",outfilename);
   if (maxwindow_!=-1) mprintf(", max window %i",maxwindow_);
   mprintf(".\n");
-  if (separateName_ != NULL)
-    mprintf("\tSeparate datafile will be written to %s\n",separateName_);
+  if (!separateName_.empty())
+    mprintf("\tSeparate datafile will be written to %s\n",separateName_.c_str());
 
   return 0;
 }
@@ -112,11 +111,11 @@ void Action_RmsAvgCorr::print() {
   // If 'output' specified open up separate datafile that will be written
   // to as correlation is calculated; useful for very long runs.
   int error = 0;
-  if (separateName_!=NULL) {
+  if (!separateName_.empty()) {
     error += separateDatafile.SetupWrite(separateName_,debug);
     error += separateDatafile.OpenFile();
     if (error>0) {
-      mprinterr("Error: Could not set up separate data file %s\n",separateName_);
+      mprinterr("Error: Could not set up separate data file %s\n",separateName_.c_str());
       return;
     }
   }
@@ -203,7 +202,7 @@ void Action_RmsAvgCorr::print() {
 */
   avg /= ReferenceCoords_.Ncoords(); 
   Ct_->Add(0, &avg);
-  if (separateName_!=NULL)
+  if (!separateName_.empty())
     separateDatafile.Printf("%8i %lf\n",1,avg);
 
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
@@ -255,7 +254,7 @@ void Action_RmsAvgCorr::print() {
     Ct_openmp[window-1] = avg;
 #   else 
     Ct_->Add(window-1, &avg);
-    if (separateName_!=NULL)
+    if (!separateName_.empty())
       separateDatafile.Printf("%8i %lf\n",window, avg);
 #   endif
   } // END LOOP OVER WINDOWS
@@ -266,7 +265,7 @@ void Action_RmsAvgCorr::print() {
     Ct_->Add(window, Ct_openmp+window);
   delete[] Ct_openmp;
 #endif
-  if (separateName_!=NULL)
+  if (!separateName_.empty())
     separateDatafile.CloseFile();
   delete strippedParm;
 }

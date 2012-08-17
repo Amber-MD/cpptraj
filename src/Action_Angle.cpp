@@ -20,13 +20,13 @@ Action_Angle::Action_Angle() :
 //    3) Dataset name
 int Action_Angle::init() {
   // Get keywords
-  char *angleFile = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg angleFile = actionArgs.getKeyString("out");
   useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
-  char *mask1 = actionArgs.getNextMask();
-  char *mask2 = actionArgs.getNextMask();
-  char *mask3 = actionArgs.getNextMask();
+  ArgList::ConstArg mask1 = actionArgs.getNextMask();
+  ArgList::ConstArg mask2 = actionArgs.getNextMask();
+  ArgList::ConstArg mask3 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL) {
     mprinterr("Error: angle: Requires 3 masks\n");
     return 1;
@@ -40,7 +40,7 @@ int Action_Angle::init() {
   if (ang_==NULL) return 1;
   ang_->SetScalar( DataSet::M_ANGLE );
   // Add dataset to data file list
-  DFL->Add(angleFile, ang_);
+  DFL->AddSetToFile(angleFile, ang_);
 
   mprintf("    ANGLE: [%s]-[%s]-[%s]\n",Mask1_.MaskString(), Mask2_.MaskString(), 
           Mask3_.MaskString());

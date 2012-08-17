@@ -15,14 +15,14 @@ class DataFile {
 
     void SetDebug(int);
     int ReadData(ArgList&, DataSetList&);
-    int SetupDatafile(const char*);
+    int SetupDatafile(std::string const&);
     int AddSet(DataSet*);
     int ProcessArgs(ArgList&);
     int ProcessArgs(const char*);
     int ProcessArgs(std::string const&);
     void Write();
 
-    void SetPrecision(char *, int, int);
+    void SetPrecision(const char *, int, int);
     const char *Filename();
     void DataSetNames();
   private:

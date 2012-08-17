@@ -434,7 +434,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet* ds, int totalFrames) {
     outfile_.Printf("           ------------------");
     outfile_.Printf("-------------------------------------\n\n");
   }
-};
+}
 
 const char Analysis_Statistics::distance_ss[6][8] = {
   " < 2.5 ", "2.5-3.5", "3.5-4.5", "4.5-5.5", "5.5-6.5", " > 6.5 "

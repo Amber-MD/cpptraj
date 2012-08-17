@@ -85,7 +85,7 @@ static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
       // Print the input line that will be sent to dispatch
       mprintf("  [%s]\n",inputLine.c_str());
       // Call Dispatch to convert input to arglist and process.
-      State.Dispatch((char*)inputLine.c_str());
+      State.Dispatch(inputLine.c_str());
       // Reset Input line
       inputLine.clear();
       i=0;

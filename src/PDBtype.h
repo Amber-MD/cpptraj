@@ -21,7 +21,7 @@ class PDBtype {
     void pdb_XYZ(double*);
     const double* XYZ();
     void pdb_write_ATOM(FileIO*,PDB_RECTYPE,int,NameType,NameType,char,int,
-                        double,double,double,float,float,char *,bool);
+                        double,double,double,float,float,const char *,bool);
     void pdb_write_ATOM(FileIO*,PDB_RECTYPE,int,NameType,NameType,char,int,
                         double,double,double);
 /*    int pdb_atomNumber(char*);

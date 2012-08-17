@@ -4,17 +4,16 @@
 #include "Constants.h" // PI
 
 // CONSTRUCTOR
-Action_AtomicFluct::Action_AtomicFluct() {
-  sets_ = 0;
-  start_ = 0;
-  stop_ = -1;
-  offset_ = 1;
-  bfactor_ = false;
-  targetSet_ = 0;
-  outfilename_ = NULL;
-  fluctParm_ = NULL;
-  outtype_ = BYATOM;
-}
+Action_AtomicFluct::Action_AtomicFluct() :
+  sets_(0),
+  start_(0),
+  stop_(-1),
+  offset_(1),
+  targetSet_(0),
+  bfactor_(false),
+  fluctParm_(0),
+  outtype_(BYATOM)
+{}
 
 // Action_AtomicFluct::init()
 /** Usage: atomicfluct [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]
@@ -44,7 +43,7 @@ int Action_AtomicFluct::init() {
   }
   // Get other keywords
   bfactor_ = actionArgs.hasKey("bfactor");
-  outfilename_ = actionArgs.getKeyString("out",NULL);
+  outfilename_ = actionArgs.GetStringKey("out");
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRES;
   else if (actionArgs.hasKey("bymask"))
@@ -52,8 +51,7 @@ int Action_AtomicFluct::init() {
   else if (actionArgs.hasKey("byatom") || actionArgs.hasKey("byatm"))
     outtype_ = BYATOM;
   // Get Mask
-  char *maskstring = actionArgs.getNextMask();
-  Mask.SetMaskString(maskstring);
+  Mask.SetMaskString( actionArgs.getNextMask()  );
   // Get DataSet name
   setname_ = actionArgs.GetStringNext();
 
@@ -62,10 +60,10 @@ int Action_AtomicFluct::init() {
     mprintf(" B factors");
   else
     mprintf(" atomic positional fluctuations");
-  if (outfilename_==NULL)
+  if (!outfilename_.empty())
     mprintf(", output to STDOUT");
   else
-    mprintf(", output to file %s",outfilename_);
+    mprintf(", output to file %s",outfilename_.c_str());
   mprintf("\n                 Atom mask: [%s]\n",Mask.MaskString());
   if (start_>0 || stop_!=-1 || offset_!=1) {
     mprintf("                 Processing frames %i to",start_+1);
@@ -137,7 +135,7 @@ void Action_AtomicFluct::print() {
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return; 
   }
-  DataFile* outfile = DFL->Add( outfilename_, dataout );
+  DataFile* outfile = DFL->AddSetToFile( outfilename_, dataout );
   outfile->ProcessArgs("noemptyframes");
 
   double Nsets = (double)sets_;

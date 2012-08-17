@@ -34,10 +34,10 @@ int Action_DNAionTracker::init() {
     bintype_ = COUNT;
 
   // Get masks - 4 must be specified
-  char* m1 = actionArgs.getNextMask();
-  char* m2 = actionArgs.getNextMask();
-  char* m3 = actionArgs.getNextMask();
-  char* m4 = actionArgs.getNextMask();
+  ArgList::ConstArg m1 = actionArgs.getNextMask();
+  ArgList::ConstArg m2 = actionArgs.getNextMask();
+  ArgList::ConstArg m3 = actionArgs.getNextMask();
+  ArgList::ConstArg m4 = actionArgs.getNextMask();
   if (m1==NULL || m2==NULL || m3==NULL || m4==NULL) {
     mprinterr("Error: dnaiontracker requires 4 masks.\n");
     mprinterr("Error: mask1=%s  mask2=%s  mask3=%s  mask4=%s\n",m1,m2,m3,m4);
@@ -49,7 +49,7 @@ int Action_DNAionTracker::init() {
   ions_.SetMaskString(m4);
 
   // Dataset name
-  char* dsetname = actionArgs.getNextString();
+  ArgList::ConstArg dsetname = actionArgs.getNextString();
   if (dsetname==NULL) {
     mprinterr("Error: dnaiontracker: It is necessary to specify a unique name\n");
     mprinterr("Error:                for each specified tracking.\n");

@@ -14,7 +14,7 @@ class Action_RmsAvgCorr: public Action {
     int setup();
     int action();
 
-    char* separateName_;
+    std::string separateName_;
     AtomMask Mask0_;
     CoordList ReferenceCoords_;
     Topology* ReferenceParm_;

@@ -14,8 +14,7 @@ int PDBfile::OpenPDB(std::string const& nameIn) {
 }
 
 int PDBfile::OpenPDB(const char* nameIn) {
-  if (SetupWrite( nameIn, 0)) return 1;
-  if (OpenFile()) return 1;
+  if (OpenWrite( nameIn )) return 1;
   return 0;
 }
 

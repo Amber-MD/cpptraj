@@ -90,7 +90,7 @@ class Topology {
     inline const std::vector<double>& LJB() const { return ljb_; }
     // ----- Misc routines -----
     int ResAtomRange(int, int *, int *);
-    char *ResidueName(int); // TODO: Make obsolete
+    const char* ResidueName(int); // TODO: Make obsolete
     std::string ResAtomName(int);
     std::string TruncResAtomName(int);
     std::string ResNameNum(int);
@@ -133,7 +133,7 @@ class Topology {
     int SetNonbondInfo(int, std::vector<int>& nbindex, 
                        std::vector<double>&, std::vector<double>&);
     // ----- Common Setup Routines -----
-    void CommonSetup(bool,bool);
+    void CommonSetup(bool);
     void ClearBondInfo();
     void AddBond(int,int);
     // ----- Mask Routines -----

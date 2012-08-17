@@ -7,7 +7,7 @@ class NameType {
     NameType();
     NameType(const NameType&);
     NameType(const char*);
-    NameType(std::string &);
+    NameType(std::string const&);
     //NameType( char*);
     NameType& operator=(const NameType&);
 

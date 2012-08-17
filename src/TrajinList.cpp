@@ -29,7 +29,7 @@ int TrajinList::AddTrajin(ArgList *argIn, Topology *parmIn) {
     return 1;
   }
   traj->SetDebug(debug_);
-  if ( traj->SetupRead(NULL,argIn,parmIn) ) {
+  if ( traj->SetupTrajRead(argIn->GetStringNext(),argIn,parmIn) ) {
     mprinterr("Error: trajin: Could not set up trajectory.\n");
     delete traj;
     return 1;

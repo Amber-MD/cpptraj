@@ -23,6 +23,11 @@ Traj_AmberCoord::Traj_AmberCoord() :
   //fprintf(stderr,"AmberCoord Constructor.\n");
 }
 
+// DESTRUCTOR
+Traj_AmberCoord::~Traj_AmberCoord() {
+  if (mdvel_!=0) delete mdvel_;
+}
+
 // IsRemdHeader()
 static inline bool IsRemdHeader(const char* buffer) {
   if ( (buffer[0]=='R' && buffer[1]=='E' && buffer[2]=='M' && buffer[3]=='D') ||
@@ -163,7 +168,7 @@ int Traj_AmberCoord::writeFrame(int set, double *X, double *V, double *box, doub
   BufferBegin();
 
   if (hasREMD_>0) {
-    sprintf(bufferPosition_,"REMD  %8i %8i %8i %8.3lf\n",0,set+OUTPUTFRAMESHIFT,
+    sprintf(bufferPosition_,"REMD  %8i %8i %8i %8.3f\n",0,set+OUTPUTFRAMESHIFT,
             set+OUTPUTFRAMESHIFT,T);
     bufferPosition_ += hasREMD_;
   }
@@ -176,6 +181,29 @@ int Traj_AmberCoord::writeFrame(int set, double *X, double *V, double *box, doub
   
   if (IO->Write(frameBuffer_,outFrameSize)) return 1;
 
+  return 0;
+}
+
+// Traj_AmberCoord::processReadArgs()
+int Traj_AmberCoord::processReadArgs(ArgList& argIn) {
+  ArgList::ConstArg mdvelname = argIn.getKeyString("mdvel");
+  if (mdvelname!=NULL) {
+    // Set up corresponding velocity file
+    if (mdvel_!=0) delete mdvel_;
+    mdvel_ = new Traj_AmberCoord();
+    CpptrajFile velfile;
+    if (velfile.SetupRead( mdvelname, debug_ )) {
+      mprinterr("Error: mdvel %s: Could not set up file for reading.\n", mdvelname);
+      return 1;
+    }
+    mdvel_->TrajectoryIO::operator=( velfile );
+    if ( !mdvel_->ID_TrajFormat() ) {
+      mprinterr("Error: mdvel %s is not Amber ASCII velocity file.\n", mdvelname);
+      return 1;
+    }
+    mprintf("\tmdvel: %s\n", mdvelname);
+  }
+    
   return 0;
 }
 

@@ -12,11 +12,12 @@ class DataFileList : public FileList {
     ~DataFileList();
 
     void SetDebug(int);
-    DataFile *GetDataFile(const char *);
-    DataFile *Add(const char *, DataSet *);
+    DataFile* GetDataFile(std::string const&);
+    DataFile* Add(const char*, DataSet*);
+    DataFile* AddSetToFile(std::string const&,  DataSet*);
     void Info();
     void Write();
-    void ProcessDataFileArgs(DataSetList *);
+    void ProcessDataFileArgs(DataSetList*);
     void AddDatafileArg(ArgList&);
   private:
     typedef std::vector<DataFile*>::iterator df_iterator;

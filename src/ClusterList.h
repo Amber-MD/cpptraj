@@ -23,12 +23,12 @@ class ClusterList {
     void Initialize(TriangleMatrix *);
     int AddCluster(std::list<int>&, int);
     void PrintClusters();
-    void PrintClustersToFile(char *);
+    void PrintClustersToFile(const char *);
     void PrintRepFrames();
     int MergeClosest(double);
     void Renumber();
-    void Summary(char *);
-    void Summary_Half(char *);
+    void Summary(const char *);
+    void Summary_Half(const char *);
     bool CheckEpsilon(double);
     // Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;

@@ -8,10 +8,8 @@
 Action_Rmsd::Action_Rmsd() :
   perres_(false),
   NumResidues_(0),
-  perresout_(NULL),
   perrescenter_(false),
   perresinvert_(false),
-  perresavg_(NULL),
   ResFrame_(NULL),
   ResRefFrame_(NULL),
   nofit_(false),
@@ -90,7 +88,7 @@ int Action_Rmsd::init( ) {
   // Check for other keywords
   nofit_ = actionArgs.hasKey("nofit");
   useMass_ = actionArgs.hasKey("mass");
-  char *rmsdFile = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg rmsdFile = actionArgs.getKeyString("out");
   // Reference keywords
   refmode_ = UNKNOWN_REF;
   if ( actionArgs.hasKey("first") ) {
@@ -111,20 +109,20 @@ int Action_Rmsd::init( ) {
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
-    perresout_ = actionArgs.getKeyString("perresout",NULL);
+    perresout_ = actionArgs.GetStringKey("perresout");
     perresinvert_ = actionArgs.hasKey("perresinvert");
-    ResRange_.SetRange( actionArgs.getKeyString("range",NULL) );
-    RefRange_.SetRange( actionArgs.getKeyString("refrange",NULL) );
+    ResRange_.SetRange( actionArgs.getKeyString("range") );
+    RefRange_.SetRange( actionArgs.getKeyString("refrange") );
     perresmask_ = actionArgs.GetStringKey("perresmask");
     if (perresmask_.empty()) perresmask_.assign("");
     perrescenter_ = actionArgs.hasKey("perrescenter");
-    perresavg_ = actionArgs.getKeyString("perresavg",NULL);
+    perresavg_ = actionArgs.GetStringKey("perresavg");
   }
   // Get the RMS mask string for target 
-  char* mask0 = actionArgs.getNextMask();
+  ArgList::ConstArg mask0 = actionArgs.getNextMask();
   FrameMask_.SetMaskString(mask0);
   // Get the RMS mask string for reference
-  char* mask1 = actionArgs.getNextMask();
+  ArgList::ConstArg mask1 = actionArgs.getNextMask();
   if (mask1==NULL)
     mask1 = mask0;
   RefMask_.SetMaskString( mask1 );
@@ -144,7 +142,7 @@ int Action_Rmsd::init( ) {
       }
       if (SetRefMask( refparm )!=0) return 1;
       // Attempt to open reference traj.
-      if (RefTraj_.SetupRead( reftrajname.c_str(), NULL, refparm)) {
+      if (RefTraj_.SetupTrajRead( reftrajname, NULL, refparm)) {
         mprinterr("Error: rmsd: Could not set up reftraj %s\n", reftrajname.c_str());
         return 1;
       }
@@ -209,15 +207,10 @@ int Action_Rmsd::init( ) {
     if (!RefRange_.Empty())
       mprintf(" (reference residues %s)",RefRange_.RangeArg());
     mprintf(" using mask [:X%s].\n",perresmask_.c_str());
-    /*if (perresout_==NULL && perresavg_==NULL) {
-      mprinterr("Error: perres specified but no output filename given (perresout | perresavg).\n");
-      perres_=false;
-      return 1;
-    }*/
-    if (perresout_!=NULL)
-      mprintf("          Per-residue output file is %s\n",perresout_);
-    if (perresavg_!=NULL)
-      mprintf("          Avg per-residue output file is %s\n",perresavg_);
+    if (!perresout_.empty())
+      mprintf("          Per-residue output file is %s\n",perresout_.c_str());
+    if (!perresavg_.empty())
+      mprintf("          Avg per-residue output file is %s\n",perresavg_.c_str());
     if (perrescenter_)
       mprintf("          perrescenter: Each residue will be centered prior to RMS calc.\n");
     if (perresinvert_)
@@ -290,7 +283,6 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
     DataSet* prDataSet = DSL->AddSetIdxAspect( DataSet::DOUBLE, rmsd_->Name(), tgtRes, "res");
     prDataSet->SetLegend( currentParm->ResNameNum(tgtRes-1) );
     PerResRMSD_.push_back( prDataSet );
-    //if (prDataSet != NULL) DFL->Add(perresout_, prDataSet);
 
     // Setup mask strings. Note that masks are based off user residue nums
     std::string tgtArg = ":" + integerToString(tgtRes) + perresmask_;
@@ -329,14 +321,6 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
     // Indicate that these masks were properly set up
     resIsActive_[N]=true;
   }   
-
-  // Check pointer to the output file
-  /*if (perresout_!=NULL) {
-    if (DFL->GetDataFile(perresout_)==NULL) {
-      mprinterr("Error: RMSD: Perres output file could not be set up.\n");
-      return 1;
-    }
-  }*/
 
   // Allocate memory for residue frame and residue reference frame. The size 
   // of each Frame is initially allocated to the maximum number of atoms.
@@ -464,14 +448,14 @@ void Action_Rmsd::print() {
 
   if (!perres_ || PerResRMSD_.empty()) return;
   // Per-residue output
-  if (perresout_ != NULL) {
+  if (!perresout_.empty()) {
     // Add data sets to perresout
     for (std::vector<DataSet*>::iterator set = PerResRMSD_.begin();
                                          set != PerResRMSD_.end(); ++set)
     {
-      outFile = DFL->Add(perresout_, *set);
+      outFile = DFL->AddSetToFile(perresout_, *set);
       if (outFile == NULL) 
-        mprinterr("Error adding set %s to file %s\n", (*set)->c_str(), perresout_);
+        mprinterr("Error adding set %s to file %s\n", (*set)->c_str(), perresout_.c_str());
     }
     if (outFile!=NULL) {
       // Set output file to be inverted if requested
@@ -483,15 +467,15 @@ void Action_Rmsd::print() {
   }
 
   // Average
-  if (perresavg_ != NULL) {
+  if (!perresavg_.empty()) {
     int Nperres = (int)PerResRMSD_.size();
     // Use the per residue rmsd dataset list to add one more for averaging
     DataSet *PerResAvg = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Avg");
     // another for stdev
     DataSet *PerResStdev = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Stdev");
     // Add the average and stdev datasets to the master datafile list
-    outFile = DFL->Add(perresavg_, PerResAvg);
-    outFile = DFL->Add(perresavg_, PerResStdev);
+    outFile = DFL->AddSetToFile(perresavg_, PerResAvg);
+    outFile = DFL->AddSetToFile(perresavg_, PerResStdev);
     outFile->ProcessArgs("xlabel Residue");
     // For each residue, get the average rmsd
     double stdev = 0;

@@ -3,11 +3,8 @@
 
 // CONSTRUCTOR
 Action_Watershell::Action_Watershell() :
-  solventmaskexpr_(0),
-  //visits_(0),
   lowerCutoff_(0),
-  upperCutoff_(0),
-  filename_(0)
+  upperCutoff_(0)
 { }
 
 // Action_Watershell::init()
@@ -19,15 +16,15 @@ Action_Watershell::Action_Watershell() :
 int Action_Watershell::init() {
   useImage_ = !actionArgs.hasKey("noimage");
 
-  char *maskexpr = actionArgs.getNextMask();
+  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   if (maskexpr == NULL) {
     mprinterr("Error: WATERSHELL: Solute mask must be specified.\n");
     return 1;
   }
   soluteMask_.SetMaskString( maskexpr );
 
-  filename_ = actionArgs.getNextString();
-  if (filename_ == NULL) {
+  filename_ = actionArgs.GetStringNext();
+  if (filename_.empty()) {
     mprinterr("Error: WATERSHELL: Output filename must be specified.\n");
     return 1;
   }
@@ -36,9 +33,9 @@ int Action_Watershell::init() {
   upperCutoff_ = actionArgs.getKeyDouble("upper", 5.0);
 
   // Check for solvent mask
-  solventmaskexpr_ = actionArgs.getNextMask();
+  solventmaskexpr_ = actionArgs.GetMaskNext();
 
-  mprintf("    WATERSHELL: Output to %s\n",filename_);
+  mprintf("    WATERSHELL: Output to %s\n",filename_.c_str());
   if (!useImage_)
     mprintf("                Imaging is disabled.\n");
   mprintf("                The first shell will contain water < %.3lf angstroms from\n",
@@ -46,8 +43,9 @@ int Action_Watershell::init() {
   mprintf("                the solute; the second shell < %.3lf angstroms...\n",
           upperCutoff_);
   mprintf("                Solute atoms will be specified by [%s]\n",soluteMask_.MaskString());
-  if (solventmaskexpr_!=NULL) {
-    mprintf("                Solvent atoms will be specified by [%s]\n",solventmaskexpr_);
+  if (!solventmaskexpr_.empty()) {
+    mprintf("                Solvent atoms will be specified by [%s]\n",
+            solventmaskexpr_.c_str());
     solventMask_.SetMaskString( solventmaskexpr_ );
   }
 
@@ -70,7 +68,7 @@ int Action_Watershell::setup() {
     return 1;
   }
   // Set up solvent mask
-  if (solventmaskexpr_ != NULL) {
+  if (!solventmaskexpr_.empty()) {
     if (currentParm->SetupIntegerMask( solventMask_ )) return 1;
   } else {
     solventMask_.ResetMask();
@@ -82,8 +80,9 @@ int Action_Watershell::setup() {
     }
   }
   if ( solventMask_.None() ) {
-    if (solventmaskexpr_!=NULL)
-      mprinterr("Error: WATERSHELL: No solvent atoms selected by mask [%s]\n",solventmaskexpr_);
+    if (!solventmaskexpr_.empty())
+      mprinterr("Error: WATERSHELL: No solvent atoms selected by mask [%s]\n",
+                solventmaskexpr_.c_str());
     else
       mprinterr("Error: WATERSHELL: No solvent atoms in topology %s\n",currentParm->c_str());
     return 1;
@@ -147,8 +146,7 @@ int Action_Watershell::action() {
 // Action_Watershell::print()
 void Action_Watershell::print() {
   CpptrajFile outfile;
-  if (outfile.SetupWrite( filename_, debug )) return;
-  outfile.OpenFile();
+  if (outfile.OpenWrite( filename_ )) return;
 
   unsigned int frame = 1;
   std::vector<int>::iterator L = lower_.begin();

@@ -33,7 +33,7 @@ class MatrixType : public DataSet, public Action {
     int vectsize_;
     int matsize_;
     AtomMask mask1_;
-    char* mask2expr_;
+    std::string mask2expr_;
     AtomMask mask2_;
     int mask1tot_;
     int mask2tot_;

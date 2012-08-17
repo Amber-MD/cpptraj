@@ -48,15 +48,20 @@ int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
   traj.SetDebug(debug_);
   // Check if we want to obtain the average structure
   bool average = argIn->hasKey("average");
-  // Check for mask expression
-  char *maskexpr = argIn->getNextMask();
 
   // Set up trajectory
-  if ( traj.SetupRead( NULL, argIn, parmIn ) ) {
+  if ( traj.SetupTrajRead( argIn->GetStringNext(), argIn, parmIn ) ) {
     mprinterr("Error: reference: Could not set up trajectory.\n");
     return 1;
   }
-  // Check for tag - done after SetupRead so traj can process args
+
+  // Check for mask expression
+  // TODO: This is done after SetupTrajRead because forward slash is a valid
+  //       mask operand for element, so getNextMask will unfortunately pick up 
+  //       filenames as well as masks.
+  ArgList::ConstArg maskexpr = argIn->getNextMask();
+
+  // Check for tag - done after SetupTrajRead so traj can process args
   std::string reftag = argIn->getNextTag();
 
   // Check and warn if filename/reftag currently in use
@@ -159,6 +164,7 @@ int FrameList::AddFrame(Frame *F, Topology *P) {
 /** Given index of frame, return parm in FrameParm
   */
 Topology *FrameList::GetFrameParm(int idx) {
+  if (idx < 0 || idx >= (int)parms_.size()) return NULL;
   return parms_[idx];
 }
 

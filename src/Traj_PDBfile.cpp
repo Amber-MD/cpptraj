@@ -151,7 +151,7 @@ int Traj_PDBfile::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("dumpq")) this->SetDumpq();
   if (argIn->hasKey("model")) this->SetWriteMode(MODEL);
   if (argIn->hasKey("multi")) this->SetWriteMode(MULTI);
-  char *temp = argIn->getKeyString("chainid",NULL);
+  ArgList::ConstArg temp = argIn->getKeyString("chainid");
   if (temp!=NULL) chainchar_ = temp[0];
   return 0;
 }
@@ -196,7 +196,7 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   if (pdbWriteMode_==MULTI) {
     std::string fname = NumberFilename(FullFileName(), set + OUTPUTFRAMESHIFT);
     //mprintf("DEBUG: Traj_PDBfile::writeFrame: set %i, MULTI [%s]\n",set,fname.c_str());
-    if (IO->Open((char*)fname.c_str(), "wb")) return 1;
+    if (IO->Open(fname.c_str(), "wb")) return 1;
   // If specified, write MODEL keyword
   } else if (pdbWriteMode_==MODEL) {
     // 1-6 MODEL, 11-14 model serial #
@@ -217,7 +217,7 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     // Use res instead of res+1 since this TER belongs to last mol/res
     if (i == lastAtomInMol) {
       pdb_write_ATOM(IO, PDBTER, anum, "", pdbTop_->Res(res-1).Name(),
-                     chainID_[i], res, 0, 0, 0, 0, 0, (char*)"\0", dumpq_);
+                     chainID_[i], res, 0, 0, 0, 0, 0, "", dumpq_);
       ++anum;
       ++mol;
       lastAtomInMol = (*mol).EndAtom();
@@ -225,7 +225,7 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     if (dumpq_) Occ = (float) atom.Charge();
     if (dumpr_) B = (float) atom.Radius();
     pdb_write_ATOM(IO, PDBATOM, anum, atom.Name(), pdbTop_->Res(res).Name(),
-                   chainID_[i], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, (char*)"\0", dumpq_);
+                   chainID_[i], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, "", dumpq_);
     Xptr += 3;
     ++anum;
   }

@@ -9,14 +9,13 @@ class Action_Watershell : public Action {
   private:
     AtomMask soluteMask_;
     AtomMask solventMask_;
-    char *solventmaskexpr_;
+    std::string solventmaskexpr_;
     std::vector<int> activeResidues_;
     std::vector<int> lower_;
     std::vector<int> upper_;
-    //int visits_;
     double lowerCutoff_;
     double upperCutoff_;
-    char *filename_;
+    std::string filename_;
 
     int init();
     int setup();

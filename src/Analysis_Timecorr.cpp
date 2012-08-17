@@ -68,7 +68,7 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
   analyzeArgs_.MarkArg(1);
   // Get Vectors
   DSLin->VectorBegin();
-  char* vec1 = analyzeArgs_.getKeyString("vec1",NULL);
+  ArgList::ConstArg vec1 = analyzeArgs_.getKeyString("vec1");
   if (vec1==NULL) {
     mprinterr("Error: analyze timecorr: no vec1 given, ignoring command\n");
     return 1;
@@ -80,7 +80,7 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
     mprinterr("Error: analyze timecorr: no vector with name %s found.\n", vec1);
     return 1;
   }
-  char* vec2 = analyzeArgs_.getKeyString("vec2",NULL);
+  ArgList::ConstArg vec2 = analyzeArgs_.getKeyString("vec2");
   if (vec2!=NULL) {
     while ( (vinfo2_ = (VectorType*)DSLin->NextVector()) != 0 ) {
       if ( vinfo2_->Name().compare( vec2 ) == 0 ) break;
@@ -499,7 +499,7 @@ int Analysis_Timecorr::Analyze() {
       if (noeFilename_.empty())
         err = noefile.SetupWrite(NULL, debug_);
       else
-        err = noefile.SetupWrite(noeFilename_.c_str(), debug_);
+        err = noefile.SetupWrite(noeFilename_, debug_);
       if (err != 0) {
         mprinterr("Error: analyze timecorr: Could not open NOE file for write.\n");
         return 1;

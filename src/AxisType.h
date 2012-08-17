@@ -48,7 +48,7 @@ class AxisType
     int ResNum2() { return second_resnum; }
     const double* xAddress() { return X_; }
     bool AtomNameIs(int, char *);
-    char *AtomName(int);
+    const char* AtomName(int);
     void PrintAtomNames();
     void PrintAxisInfo(const char *);
 

@@ -204,7 +204,7 @@ std::vector<std::string> RemdTraj::SearchForReplicas() {
   replica_num.width( ExtWidth );
   replica_num << std::right << (lowestRepnum_ - 1);
   std::string replica_filename = Prefix + "." + replica_num.str() + CompressExt;
-  if (fileExists((char*)replica_filename.c_str())) {
+  if (fileExists(replica_filename.c_str())) {
     mprintf("    Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
     mprintf("             (Found %s)\n",replica_filename.c_str());
     mprintf("             trajin <file> remdtraj requires lowest # replica!\n");
@@ -221,7 +221,7 @@ std::vector<std::string> RemdTraj::SearchForReplicas() {
     replica_num << std::right << current_repnum;
     replica_filename = Prefix + "." + replica_num.str() + CompressExt;
     //mprintf("\t\tChecking for %s\n",replica_filename.c_str());
-    if (fileExists((char*)replica_filename.c_str()))
+    if (fileExists(replica_filename.c_str()))
       ReplicaNames.push_back( replica_filename );
     else
       search_for_files = false;
@@ -237,7 +237,7 @@ std::vector<std::string> RemdTraj::SearchForReplicas() {
   * replica numbers in this case start from 0 as opposed to incoming
   * replica filenames, where the lowest replica number can be arbitrary.
   */
-int RemdTraj::GetTemperatureName(std::string &tname, char *prefix, int repnum) {
+int RemdTraj::GetTemperatureName(std::string &tname, const char *prefix, int repnum) {
   if (TemperatureList_.empty()) {
     mprinterr("Error: RemdTraj::GetTemperatureName: TemperatureList not set.\n");
     return 1;

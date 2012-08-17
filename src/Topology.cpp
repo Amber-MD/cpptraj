@@ -201,10 +201,10 @@ int Topology::ResAtomRange(int res, int *resstart, int *resstop) {
 }
 
 // Topology::ResidueName()
-char *Topology::ResidueName(int res) {
+const char* Topology::ResidueName(int res) {
   if (res < 0 || res >= (int) residues_.size())
     return NULL;
-  return (char*)residues_[res].c_str();
+  return residues_[res].c_str();
 }
 
 // Topology::ResAtomName()
@@ -331,7 +331,7 @@ void Topology::ParmInfo() {
 // Topology::PrintAtomInfo()
 void Topology::PrintAtomInfo(const char *maskString) {
   AtomMask mask;
-  mask.SetMaskString( (char*)maskString ); // TODO: Use only strings
+  mask.SetMaskString( maskString ); // TODO: Use only strings
   ParseMask(refCoords_, mask, true);
   if ( mask.None() )
     mprintf("\tSelection is empty.\n");
@@ -653,7 +653,7 @@ void Topology::SetAtomBondInfo() {
 }
 
 // Topology::CommonSetup()
-void Topology::CommonSetup(bool bondsearch, bool molsearch) {
+void Topology::CommonSetup(bool bondsearch) {
   // Add placeholder to residues to indicate last residue
   //residues_.push_back( Residue( atoms_.size() ) );
   // Set up bond information if specified and necessary

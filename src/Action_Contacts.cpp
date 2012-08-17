@@ -60,31 +60,31 @@ int Action_Contacts::init() {
   // Square the cutoff
   distance_ = dist * dist;
   first_ = actionArgs.hasKey("first");
-  char* referenceName = actionArgs.getKeyString("ref",0);
+  ArgList::ConstArg referenceName = actionArgs.getKeyString("ref");
   int refindex = actionArgs.getKeyInt("refindex",-1);
   // For compatibility with ptraj, keyword 'reference' == 'refindex 0'
   if (actionArgs.hasKey("reference")) refindex = 0;
-  char* outfilename = actionArgs.getKeyString("out",0); // NOTE: Should be NULL?
+  ArgList::ConstArg outfilename = actionArgs.getKeyString("out"); 
   if (outfile_.SetupWrite(outfilename, debug))
     return 1;
   if (outfile_.OpenFile())
     return 1;
   if (byResidue_) {
-    if (outfilename==0) {
+    if (outfilename==NULL) {
       mprinterr("Error: Contacts 'byresidue' requires output filename.\n");
       return 1;
     }
     std::string file2name( outfilename );
     file2name += ".native";
-    if (outfile2_.SetupWrite( file2name.c_str(), debug ))
+    if (outfile2_.SetupWrite( file2name, debug ))
       return 1;
     if (outfile2_.OpenFile())
       return 1;
   }
 
   // Get Mask
-  char* mask0 = actionArgs.getNextMask();
-  if (mask0==0 && byResidue_)
+  ArgList::ConstArg mask0 = actionArgs.getNextMask();
+  if (mask0==NULL && byResidue_)
     Mask_.SetMaskString("@CA");
   else
     Mask_.SetMaskString( mask0 );
@@ -94,14 +94,14 @@ int Action_Contacts::init() {
   // 'RefTrans' to be NULL.
   //if (RefInit(true, false, Mask_.MaskString(), actionArgs, FL, PFL, NULL)!=0)
   //  return 1;
-  if (!first_ && referenceName==0 && refindex==-1) {
+  if (!first_ && referenceName==NULL && refindex==-1) {
     mprintf("\tNo reference structure specified. Defaulting to first.\n");
     first_ = true;
   }
 
   if (!first_) {
     // Attempt to get the reference index by name/tag
-    if (referenceName != 0)
+    if (referenceName != NULL)
       refindex = FL->FindName(referenceName);
     // Get reference frame by index
     // TODO: Convert FrameList to return frame reference?
@@ -137,7 +137,7 @@ int Action_Contacts::init() {
   else
     mprintf(" reference structure.\n");
   mprintf("                   Distance cutoff is %lf angstroms.\n", dist);
-  if (outfilename==0)
+  if (outfilename==NULL)
     mprintf("              Results will be written to stdout");
   else
     mprintf("              Writing results to %s", outfilename);

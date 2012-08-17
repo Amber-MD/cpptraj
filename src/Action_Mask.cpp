@@ -4,8 +4,7 @@
 #include "TrajectoryFile.h"
 
 // CONSTRUCTOR
-Action_Mask::Action_Mask() :
-  maskpdb_(NULL)
+Action_Mask::Action_Mask() 
 { 
   //fprintf(stderr,"ActionMask Con\n");
 } 
@@ -18,7 +17,7 @@ Action_Mask::Action_Mask() :
 int Action_Mask::init( ) {
   // Get Keywords
   std::string maskFilename = actionArgs.GetStringKey("maskout");
-  maskpdb_ = actionArgs.getKeyString("maskpdb",NULL);
+  maskpdb_ = actionArgs.GetStringKey("maskpdb");
 
   // Get Mask
   Mask1_.SetMaskString( actionArgs.getNextMask() );
@@ -28,8 +27,8 @@ int Action_Mask::init( ) {
   if (!maskFilename.empty())
     mprintf(" to file %s",maskFilename.c_str());
   mprintf(".\n");
-  if (maskpdb_!=NULL) 
-    mprintf("                PDBs of atoms in mask will be written to %s.X\n",maskpdb_);
+  if (!maskpdb_.empty()) 
+    mprintf("\tPDBs of atoms in mask will be written to %s.X\n",maskpdb_.c_str());
 
   // Open output file
   // TODO: Buffer write out
@@ -68,7 +67,7 @@ int Action_Mask::action() {
   }
 
   // Optional PDB write out of selected atoms for the frame.
-  if (maskpdb_!=NULL) {
+  if (!maskpdb_.empty()) {
     // Convert Mask1 to an integer mask for use in parm/frame functions
     AtomMask Mask2 = Mask1_;
     Mask2.ConvertMaskType();
@@ -80,10 +79,10 @@ int Action_Mask::action() {
     pdbout.SetDebug(debug);
     // Set pdb output options: multi so that 1 file per frame is written; dumpq
     // so that charges are written out. 
-    if (pdbout.SetupWriteWithArgs(maskpdb_,"multi dumpq",pdbParm,TrajectoryFile::PDBFILE)) 
+    if (pdbout.SetupTrajWriteWithArgs(maskpdb_,"multi dumpq",pdbParm,TrajectoryFile::PDBFILE)) 
     {
       mprinterr("Error: Action_Mask: maskpdb %s: Could not set up for write of frame %i.\n",
-                maskpdb_,frameNum);
+                maskpdb_.c_str(),frameNum);
     } else {
       pdbout.PrintInfo(0);
       pdbout.WriteFrame(frameNum,pdbParm,pdbFrame);

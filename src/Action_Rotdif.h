@@ -51,10 +51,10 @@ class Action_Rotdif: public Action {
     double D_tensor_[9];
     double D_XYZ_[3];
 
-    char *randvecOut_;
-    char *randvecIn_;
-    char *rmOut_;
-    char *deffOut_;
+    std::string randvecOut_;
+    std::string randvecIn_;
+    std::string rmOut_;
+    std::string deffOut_;
     std::string corrOut_;
 
     Frame SelectedRef_;

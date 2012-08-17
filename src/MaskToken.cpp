@@ -51,7 +51,7 @@ void MaskToken::MakeNameType() {
 }
 
 // Basic : or @ operand
-int MaskToken::SetToken( MaskTokenType typeIn, std::string &tokenString ) {
+int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) {
   std::locale loc;
   if (tokenString.empty()) return 1;
   // Set initial token type
@@ -70,7 +70,7 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string &tokenString ) {
   }
   // Check that all chars are digits or - for number range 
   if (type_ == ResNum || type_ == AtomNum) {
-    for (std::string::iterator p = tokenString.begin(); p != tokenString.end(); p++) {
+    for (std::string::const_iterator p = tokenString.begin(); p != tokenString.end(); ++p) {
       if (*p != '-' && isalpha(*p, loc)) {
         //mprintf("DEBUG: making name type because of %c\n",*p);
         MakeNameType();

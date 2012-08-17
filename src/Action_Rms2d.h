@@ -22,10 +22,10 @@ class Action_Rms2d: public Action {
     bool nofit_;                ///< Do not perform rms fitting
     AtomMask RefMask_;          ///< Reference atom mask
     AtomMask FrameMask_;        ///< Target atom mask
-    char* rmsdFile_;            ///< Output filename
+    std::string rmsdFile_;      ///< Output filename
     TrajectoryFile* RefTraj_;   ///< Reference trajectory, each frame used in turn
     Topology* RefParm_;         ///< Reference trajectory Parm
-    char* corrfilename_;        ///< Auto-correlation output filename
+    std::string corrfilename_;        ///< Auto-correlation output filename
     Topology* mass_ptr_;        ///< If useMass, hold mass info for parm.
 
     int AutoCorrelate(TriangleMatrix&);

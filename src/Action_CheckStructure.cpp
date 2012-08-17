@@ -31,14 +31,12 @@ Action_CheckStructure::~Action_CheckStructure() {
 int Action_CheckStructure::init( ) {
   // Get Keywords
   useImage_ = !(actionArgs.hasKey("noimage"));
-  char *reportFile = actionArgs.getKeyString("reportfile",NULL);
+  ArgList::ConstArg reportFile = actionArgs.getKeyString("reportfile");
   bondoffset_ = actionArgs.getKeyDouble("offset",1.0);
   double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
 
   // Get Masks
-  char *mask1 = actionArgs.getNextMask();
-  //fprintf(stdout,"    Mask 1: %s\n",mask1);
-  Mask1_.SetMaskString(mask1);
+  Mask1_.SetMaskString( actionArgs.getNextMask() );
 
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask [%s]",Mask1_.MaskString());
   if (!useImage_) 

@@ -118,7 +118,7 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
           DsetList[i]->Add( indexval, &dval );
           break;
         case DataSet::STRING: 
-          DsetList[i]->Add( indexval, (char*)dataline[i].c_str() );
+          DsetList[i]->Add( indexval, (char*)dataline[i].c_str() ); // TODO: Fix cast
           break;
         default: continue; 
       }
@@ -132,7 +132,7 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
 
 // DataIO_Std::processWriteArgs()
 int DataIO_Std::processWriteArgs(ArgList &argIn) {
-  char *ylabel = argIn.getKeyString("ylabel",NULL);
+  ArgList::ConstArg ylabel = argIn.getKeyString("ylabel");
   if (ylabel!=NULL) y_label_.assign(ylabel);
   ymin_ = argIn.getKeyDouble("ymin",ymin_);
   ystep_ = argIn.getKeyDouble("ystep",ystep_);

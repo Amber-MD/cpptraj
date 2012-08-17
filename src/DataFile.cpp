@@ -76,10 +76,10 @@ int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
 }
 
 // DataFile::SetupDatafile()
-int DataFile::SetupDatafile(const char* fnameIn) {
+int DataFile::SetupDatafile(std::string const& fnameIn) {
   DataIO basicData;
 
-  if (fnameIn==NULL) return 1;
+  if (fnameIn.empty()) return 1;
   // Open basic data file
   if (basicData.SetupWrite(fnameIn,debug_)!=0) return 1;
 
@@ -214,7 +214,7 @@ void DataFile::Write() {
 /** Set precision of the specified dataset to width.precision. If no name or
   * asterisk specified set for all datasets in file.
   */
-void DataFile::SetPrecision(char *dsetName, int widthIn, int precisionIn) {
+void DataFile::SetPrecision(const char *dsetName, int widthIn, int precisionIn) {
   if (widthIn<1) {
     mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",dataio_->FullFileStr());
     return;

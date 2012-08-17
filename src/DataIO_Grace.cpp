@@ -99,7 +99,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
       
 // DataIO_Grace::processWriteArgs()
 int DataIO_Grace::processWriteArgs(ArgList &argIn) {
-  char *ylabel = argIn.getKeyString("ylabel",NULL);
+  ArgList::ConstArg ylabel = argIn.getKeyString("ylabel");
   if (ylabel!=NULL) y_label_.assign(ylabel);
   ymin_ = argIn.getKeyDouble("ymin",ymin_);
   ystep_ = argIn.getKeyDouble("ystep",ystep_);

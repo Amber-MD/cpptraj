@@ -13,8 +13,7 @@ Action_Average::Action_Average() :
   start_(0),
   stop_(0),
   offset_(1),
-  targetFrame_(0),
-  avgfilename_(NULL)
+  targetFrame_(0)
 {
   //fprintf(stderr,"Average Con\n");
 } 
@@ -32,8 +31,8 @@ Action_Average::~Action_Average() {
   */
 int Action_Average::init( ) {
   // Get Keywords
-  avgfilename_ = actionArgs.getNextString();
-  if (avgfilename_==NULL) {
+  avgfilename_ = actionArgs.GetStringNext();
+  if (avgfilename_.empty()) {
     mprinterr("Error: average: No filename given.\n");
     return 1;
   }
@@ -47,27 +46,21 @@ int Action_Average::init( ) {
   offset_ = actionArgs.getKeyInt("offset",1);
 
   // Get Masks
-  char* mask1 = actionArgs.getNextMask();
-  //fprintf(stdout,"    Mask 1: %s\n",mask1);
-  Mask1_.SetMaskString( mask1 );
+  Mask1_.SetMaskString( actionArgs.getNextMask() );
 
   // Save all remaining arguments for setting up the trajectory at the end.
-  char* arg;
+  ArgList::ConstArg arg;
   while ( (arg = actionArgs.getNextString() ) != NULL )
     trajArgs_.AddArg( arg );
 
-  mprintf("    AVERAGE: Averaging over");
-  if (mask1!=NULL)
-    mprintf(" coordinates in mask [%s]",Mask1_.MaskString());
-  else
-    mprintf(" all atoms");
+  mprintf("    AVERAGE: Averaging over coordinates in mask [%s]",Mask1_.MaskString());
   if (stop_==-1) 
     mprintf(", starting from frame %i",start_+1);
   else
     mprintf(", frames %i-%i",start_+1,stop_+1);
   if (offset_!=1)
     mprintf(", offset %i",offset_);
-  mprintf(".\n             Writing averaged coords to [%s]\n",avgfilename_);
+  mprintf(".\n             Writing averaged coords to [%s]\n",avgfilename_.c_str());
 
   Nframes_ = 0;
 
@@ -113,14 +106,16 @@ int Action_Average::setup() {
     // If smaller, only average P->natom coords.
     if (Mask1_.Nselected() > AvgFrame_->Natom()) {
       Natom_ = AvgFrame_->Natom();
-      mprintf("Warning: Average [%s]: Parm %s selected# atoms (%i) > original parm %s\n",
-              avgfilename_,currentParm->c_str(),Mask1_.Nselected(),AvgParm_->c_str());
+      mprintf("Warning: Average [%s]: Parm %s selected # atoms (%i) > original parm %s\n",
+              avgfilename_.c_str(), currentParm->c_str(),
+              Mask1_.Nselected(), AvgParm_->c_str());
       mprintf("         selected# atoms (%i).\n",AvgFrame_->Natom());
     } else if (Mask1_.Nselected() < AvgFrame_->Natom()) {
       Natom_ = Mask1_.Nselected();
-      mprintf("Warning: Average[%s]: Parm %s selected# atoms (%i) < original parm %s\n",
-              avgfilename_, currentParm->c_str(), Mask1_.Nselected(),AvgParm_->c_str());
-      mprintf("         selected# atoms (%i).\n",AvgFrame_->Natom());
+      mprintf("Warning: Average[%s]: Parm %s selected # atoms (%i) < original parm %s\n",
+              avgfilename_.c_str(), currentParm->c_str(), 
+              Mask1_.Nselected(), AvgParm_->c_str());
+      mprintf("         selected # atoms (%i).\n",AvgFrame_->Natom());
     } else {
       Natom_ = AvgFrame_->Natom();
     }
@@ -154,8 +149,9 @@ void Action_Average::print() {
 
   mprintf("    AVERAGE: [%s]\n",this->CmdLine());
 
-  if (outfile.SetupWrite(avgfilename_, &trajArgs_, AvgParm_, TrajectoryFile::UNKNOWN_TRAJ)) {
-    mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_);
+  if (outfile.SetupTrajWrite(avgfilename_, &trajArgs_, AvgParm_, TrajectoryFile::UNKNOWN_TRAJ)) 
+  {
+    mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_.c_str());
     return;
   }
 

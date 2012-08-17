@@ -6,7 +6,6 @@ const double Action_DSSP::DSSP_fac = 27.888;
 
 // CONSTRUCTOR
 Action_DSSP::Action_DSSP() :
-  outfilename_(NULL),
   dssp_(NULL), 
   Nres_(0),
   Nframe_(0),
@@ -40,38 +39,35 @@ int Action_DSSP::init() {
 //  debugout.OpenFile();
 
   // Get keywords
-  outfilename_ = actionArgs.getKeyString("out",NULL);
-  char* temp = actionArgs.getKeyString("sumout",NULL);
-  if (temp!=NULL) {
+  outfilename_ = actionArgs.GetStringKey("out");
+  ArgList::ConstArg temp = actionArgs.getKeyString("sumout");
+  if (temp!=NULL) 
     sumOut_.assign(temp);
-  } else if (outfilename_!=NULL) {
-    sumOut_.assign(outfilename_);
-    sumOut_ += ".sum";
-  } 
+  else if (!outfilename_.empty()) 
+    sumOut_ = outfilename_ + ".sum";
   if (actionArgs.hasKey("ptrajformat")) printString_=true;
-  temp = actionArgs.getKeyString("namen",0);
-  if (temp != 0) BB_N = temp;
-  temp = actionArgs.getKeyString("nameh",0);
-  if (temp != 0) BB_H = temp;
-  temp = actionArgs.getKeyString("namec",0);
-  if (temp != 0) BB_C = temp;
-  temp = actionArgs.getKeyString("nameo",0);
-  if (temp != 0) BB_O = temp;
+  temp = actionArgs.getKeyString("namen");
+  if (temp != NULL) BB_N = temp;
+  temp = actionArgs.getKeyString("nameh");
+  if (temp != NULL) BB_H = temp;
+  temp = actionArgs.getKeyString("namec");
+  if (temp != NULL) BB_C = temp;
+  temp = actionArgs.getKeyString("nameo");
+  if (temp != NULL) BB_O = temp;
   // Get masks
-  char* mask = actionArgs.getNextMask();
-  Mask_.SetMaskString(mask);
+  Mask_.SetMaskString( actionArgs.getNextMask() );
 
   // Set up the DSSP data set
   dssp_ = DSL->Add(DataSet::STRING, actionArgs.getNextString(),"DSSP");
   if (printString_) {
     if (dssp_==NULL) return 1;
-    DFL->Add(outfilename_, dssp_);
+    DFL->AddSetToFile(outfilename_, dssp_);
   } //else
     //SSdata_ = new DataSetList;
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
-  if (outfilename_!=NULL) 
-    mprintf("               Dumping results to %s\n", outfilename_);
+  if (!outfilename_.empty()) 
+    mprintf("               Dumping results to %s\n", outfilename_.c_str());
   if (!sumOut_.empty())
     mprintf("               Sum results to %s\n",sumOut_.c_str());
   if (printString_) 
@@ -183,7 +179,7 @@ int Action_DSSP::setup() {
       SecStruct_[res].resDataSet = DSL->AddSetIdxAspect( DataSet::INT, dssp_->Name(),
                                                          res+1, "res");
       if (SecStruct_[res].resDataSet!=NULL) {
-        DFL->Add(outfilename_, SecStruct_[res].resDataSet);
+        DFL->AddSetToFile(outfilename_, SecStruct_[res].resDataSet);
         SecStruct_[res].resDataSet->SetLegend( currentParm->ResNameNum(res) );
       }
     }

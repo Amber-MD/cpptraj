@@ -13,7 +13,7 @@ class Action_RandomizeIons : public Action {
     double overlap_;   ///< darg1: the minimum distance between ions
     double min_;       ///< darg2: the minimum distance to the around mask
     AtomMask around_;  ///< carg1: the around mask (region of space to avoid)
-    char* aroundmask_; ///< NULL if no around mask specified.
+    std::string aroundmask_; ///< empty if no around mask specified.
     int seed_;         ///< iarg2: random seed
     // TODO: Combine the below 3 into a struct?
     /// Hold solvent molecule start atoms.

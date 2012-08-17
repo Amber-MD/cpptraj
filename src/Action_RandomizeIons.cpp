@@ -7,7 +7,6 @@
 Action_RandomizeIons::Action_RandomizeIons() :
   overlap_(0),
   min_(0),
-  aroundmask_(0),
   seed_(1)
 {
   // Imaging on by default.
@@ -19,7 +18,7 @@ Action_RandomizeIons::Action_RandomizeIons() :
   */
 int Action_RandomizeIons::init() {
   // Get first mask
-  char* ionmask = actionArgs.getNextMask();
+  ArgList::ConstArg ionmask = actionArgs.getNextMask();
   if (ionmask == NULL) {
     mprinterr("Error: randomizeions: No mask for ions specified.\n");
     return 1;
@@ -36,8 +35,8 @@ int Action_RandomizeIons::init() {
   overlap_ *= overlap_;
   min_ *= min_;
   // If no around mask specified, leave blank
-  aroundmask_ = actionArgs.getKeyString("around", 0);
-  if (aroundmask_!=0)
+  aroundmask_ = actionArgs.GetStringKey("around");
+  if (!aroundmask_.empty())
     around_.SetMaskString( aroundmask_ );
   
   // INFO
@@ -46,7 +45,7 @@ int Action_RandomizeIons::init() {
   mprintf("                   with the solvent. No ions can get closer than %.2f angstroms\n",
           sqrt( overlap_ ));
   mprintf("                   to another ion.\n");
-  if (aroundmask_!=0) {
+  if (!aroundmask_.empty()) {
     mprintf("                   No ion can get closer than %.2f angstroms to mask [%s]\n",
             sqrt( min_ ), around_.MaskString());
   }
@@ -79,7 +78,7 @@ int Action_RandomizeIons::setup() {
   mprintf("\tIon mask is [%s] (%i atoms)\n", ions_.MaskString(), ions_.Nselected());
 
   // Set up the around mask if necessary
-  if (aroundmask_ != 0) {
+  if (!aroundmask_.empty()) {
     if (currentParm->SetupIntegerMask( around_ )) return 1;
     if ( around_.None() ) {
       mprintf("Warning: randomizeions: Around mask [%s] has no atoms.\n",
@@ -153,7 +152,7 @@ int Action_RandomizeIons::action() {
   {
     *smask = true;
     // is solvent molecule to near any atom in the around mask?
-    if (aroundmask_ != 0) {
+    if (!aroundmask_.empty()) {
       for (AtomMask::const_iterator atom = around_.begin(); atom != around_.end(); ++atom)
       {
         double dist = currentFrame->DIST2( *beginatom, *atom, imageType_, 

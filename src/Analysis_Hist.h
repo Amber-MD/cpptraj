@@ -21,13 +21,13 @@ class Analysis_Hist : public Analysis {
     bool normalize_;
     bool gnuplot_;
     bool circular_;
-    char *outfilename_;
+    std::string outfilename_;
 
     Dimension default_dim_;
     bool minArgSet_;
     bool maxArgSet_;
 
-    int CheckDimension(char *, DataSetList *);
+    int CheckDimension(const char*, DataSetList*);
     int setupDimension(ArgList&, DataSet*);
 };
 #endif

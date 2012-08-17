@@ -44,7 +44,7 @@ int Action_DistRmsd::init( ) {
   Topology* RefParm = NULL;
 
   // Check for keywords
-  char *rmsdFile = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg rmsdFile = actionArgs.getKeyString("out");
   // Reference keywords
   refmode_ = UNKNOWN_REF;
   if ( actionArgs.hasKey("first") ) {
@@ -64,10 +64,10 @@ int Action_DistRmsd::init( ) {
   }
 
   // Get the RMS mask string for target 
-  char* mask0 = actionArgs.getNextMask();
+  ArgList::ConstArg mask0 = actionArgs.getNextMask();
   TgtMask_.SetMaskString(mask0);
   // Get the RMS mask string for reference
-  char* mask1 = actionArgs.getNextMask();
+  ArgList::ConstArg mask1 = actionArgs.getNextMask();
   if (mask1==NULL)
     mask1 = mask0;
   RefMask_.SetMaskString( mask1 );
@@ -87,7 +87,7 @@ int Action_DistRmsd::init( ) {
       }
       if (SetRefMask( RefParm )!=0) return 1;
       // Attempt to open reference traj.
-      if (RefTraj_.SetupRead( reftrajname.c_str(), NULL, RefParm)) {
+      if (RefTraj_.SetupTrajRead( reftrajname, NULL, RefParm)) {
         mprinterr("Error: distrmsd: Could not set up reftraj %s\n", reftrajname.c_str());
         return 1;
       }

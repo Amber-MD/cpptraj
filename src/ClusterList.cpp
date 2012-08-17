@@ -70,7 +70,7 @@ void ClusterList::Renumber() {
 
 // ClusterList::Summary()
 /** Print a summary of clusters.  */
-void ClusterList::Summary(char *summaryfile) {
+void ClusterList::Summary(const char* summaryfile) {
   CpptrajFile outfile;
   std::vector<double> distances;
 
@@ -146,7 +146,7 @@ void ClusterList::Summary(char *summaryfile) {
 // ClusterList::Summary_Half
 /** Print a summary of the first half of the data to the second half.
   */
-void ClusterList::Summary_Half(char *summaryfile) {
+void ClusterList::Summary_Half(const char* summaryfile) {
   CpptrajFile outfile;
 /*  int numInFirstHalf, numInSecondHalf;
   int numframes, half, color;
@@ -264,7 +264,7 @@ void ClusterList::PrintClusters() {
   * in the clusters and . for all other frames. Also print out the
   * representative frame numbers.
   */
-void ClusterList::PrintClustersToFile(char *filename) {
+void ClusterList::PrintClustersToFile(const char* filename) {
   CpptrajFile outfile;
   std::string buffer;
   

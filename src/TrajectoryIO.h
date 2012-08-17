@@ -65,10 +65,13 @@ class TrajectoryIO : protected CpptrajFile {
       * implemented as functions that can be called independently if need be 
       * (e.g. setting the write mode for PDB files).
       */
+    // TODO: Accept const ArgList&
     virtual int processWriteArgs(ArgList *) { return 0; }
+    /// Process arguments relevant to reading trajectory (optional)
+    virtual int processReadArgs(ArgList&) { return 0; }
     // -----------------------------------------------------
     /// Set the trajectory title
-    void SetTitle(char *);
+    void SetTitle(const char*);
     /// Set debug level - CpptrajFile has no SetDebug
     void SetDebug(int);
     /// For writes, indicate temperature info should be written if supported

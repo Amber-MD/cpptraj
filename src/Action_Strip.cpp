@@ -22,14 +22,12 @@ Action_Strip::~Action_Strip() {
 // Action_Strip::init()
 /** Expected call: strip <mask1> [outprefix <name>] [nobox] */
 int Action_Strip::init( ) {
-  char *mask1;
-
   // Get output stripped parm filename
   prefix_ = actionArgs.GetStringKey("outprefix");
   removeBoxInfo_ = actionArgs.hasKey("nobox");
 
   // Get mask of atoms to be stripped
-  mask1 = actionArgs.getNextMask();
+  ArgList::ConstArg mask1 = actionArgs.getNextMask();
   //mprintf("    Mask 1: %s\n",mask1);
   if (mask1==NULL) {
     mprinterr("Error: strip: Requires atom mask.\n");

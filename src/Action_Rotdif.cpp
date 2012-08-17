@@ -44,10 +44,6 @@ Action_Rotdif::Action_Rotdif() :
   do_gridsearch_( false ),
   work_( NULL ),
   lwork_( 0 ),
-  randvecOut_( NULL ),
-  randvecIn_( NULL ),
-  rmOut_( NULL ),
-  deffOut_( NULL ),
   random_vectors_( NULL ),
   D_eff_( NULL ),
   Tau_( NULL )
@@ -85,8 +81,6 @@ Action_Rotdif::~Action_Rotdif() {
 //    2) Masks
 //    3) Dataset name
 int Action_Rotdif::init( ) {
-  int refindex;
-  char *referenceName, *mask0, *outfilename;
   double Trans[3]; // Dummy variable for CenteredRef routine
   // Get Keywords
   nvecs_ = actionArgs.getKeyInt("nvecs",1000);
@@ -115,21 +109,21 @@ int Action_Rotdif::init( ) {
     return 1;
   }
   delqfrac_ = actionArgs.getKeyDouble("delqfrac",0.5);
-  randvecOut_ = actionArgs.getKeyString("rvecout",NULL);
-  randvecIn_ = actionArgs.getKeyString("rvecin",NULL);
-  rmOut_ = actionArgs.getKeyString("rmout",NULL);
-  deffOut_ = actionArgs.getKeyString("deffout",NULL);
-  outfilename = actionArgs.getKeyString("outfile",NULL);
+  randvecOut_ = actionArgs.GetStringKey("rvecout");
+  randvecIn_ = actionArgs.GetStringKey("rvecin");
+  rmOut_ = actionArgs.GetStringKey("rmout");
+  deffOut_ = actionArgs.GetStringKey("deffout");
+  ArgList::ConstArg outfilename = actionArgs.getKeyString("outfile");
   corrOut_ = actionArgs.GetStringKey("corrout");
   do_gridsearch_ = actionArgs.hasKey("gridsearch");
 
-  referenceName=actionArgs.getKeyString("ref",NULL);
-  refindex=actionArgs.getKeyInt("refindex",-1);
+  ArgList::ConstArg referenceName=actionArgs.getKeyString("ref");
+  int refindex=actionArgs.getKeyInt("refindex",-1);
   if (actionArgs.hasKey("reference")) // For compatibility with ptraj
     refindex = 0;
 
   // Get Masks
-  mask0 = actionArgs.getNextMask();
+  ArgList::ConstArg mask0 = actionArgs.getNextMask();
   AtomMask RefMask(mask0);
   TargetMask_.SetMaskString(mask0);
 
@@ -175,30 +169,30 @@ int Action_Rotdif::init( ) {
   }
 
   mprintf("    ROTDIF: Random seed %i, # of random vectors to generate: %i\n",rseed_,nvecs_);
-  mprintf("            Max length to compute time correlation functions:");
+  mprintf("\tMax length to compute time correlation functions:");
   if (ncorr_ == 0)
     mprintf(" Total # of frames\n");
   else
     mprintf(" %i\n",ncorr_);
-  mprintf("            Timestep = %.4lf, T0 = %.4lf, TF = %.4lf\n",tfac_,ti_,tf_);
+  mprintf("\tTimestep = %.4lf, T0 = %.4lf, TF = %.4lf\n",tfac_,ti_,tf_);
   if (NmeshPoints_ != -1)
-    mprintf("            Number of mesh points for interpolation is %i\n", NmeshPoints_);
-  mprintf("            Iterative solver: Max iterations = %i, tol = %lf, initial guess = %lf\n",
+    mprintf("\tNumber of mesh points for interpolation is %i\n", NmeshPoints_);
+  mprintf("\tIterative solver: Max iterations = %i, tol = %lf, initial guess = %lf\n",
           itmax_, delmin_, d0_);
-  mprintf("            Order of Legendre polynomial = %i\n",olegendre_);
-  mprintf("            Simplex scaling factor=%.4lf\n",delqfrac_);
+  mprintf("\tOrder of Legendre polynomial = %i\n",olegendre_);
+  mprintf("\tSimplex scaling factor=%.4lf\n",delqfrac_);
   if (do_gridsearch_)
-    mprintf("            Grid search will be performed for Q with full anisotropy (time consuming)\n");
-  if (randvecIn_!=NULL)
-    mprintf("            Random vectors will be read from %s\n",randvecIn_);
-  if (randvecOut_!=NULL)
-    mprintf("            Random vectors will be written to %s\n",randvecOut_);
-  if (rmOut_!=NULL)
-    mprintf("            Rotation matrices will be written out to %s\n",rmOut_);
-  if (deffOut_!=NULL)
-    mprintf("            Deff will be written out to %s\n",deffOut_);
+    mprintf("\tGrid search will be performed for Q with full anisotropy (time consuming)\n");
+  if (!randvecIn_.empty())
+    mprintf("\tRandom vectors will be read from %s\n",randvecIn_.c_str());
+  if (!randvecOut_.empty())
+    mprintf("\tRandom vectors will be written to %s\n",randvecOut_.c_str());
+  if (!rmOut_.empty())
+    mprintf("\tRotation matrices will be written out to %s\n",rmOut_.c_str());
+  if (!deffOut_.empty())
+    mprintf("\tDeff will be written out to %s\n",deffOut_.c_str());
   if (!corrOut_.empty())
-    mprintf("            Time correlation for l=1 and l=2 for vector 0 will be written to %s\n",
+    mprintf("\tTime correlation for l=1 and l=2 for vector 0 will be written to %s\n",
             corrOut_.c_str());
 #ifdef NO_PTRAJ_ANALYZE
   mprintf("------------------------------------------------------\n");
@@ -285,20 +279,20 @@ double *Action_Rotdif::randvec() {
   XYZ = new double[ xyz_size ];
 
   // ----- Read nvecs vectors from a file
-  if (randvecIn_!=NULL) {
+  if (!randvecIn_.empty()) {
     if (vecIn.SetupRead(randvecIn_, debug)) {
-      mprinterr("Error: Could not setup random vectors input file %s",randvecIn_);
+      mprinterr("Error: Could not setup random vectors input file %s",randvecIn_.c_str());
       delete[] XYZ;
       return NULL;
     }
     if (vecIn.OpenFile()) {
-      mprinterr("Error: Could not open random vectors input file %s",randvecIn_);
+      mprinterr("Error: Could not open random vectors input file %s",randvecIn_.c_str());
       delete[] XYZ;
       return NULL;
     }
     for (int i = 0; i < xyz_size; i+=3) {
       if (vecIn.Gets(buffer, BUF_SIZE) ) {
-        mprinterr("Error: Could not read vector %i from file %s\n",(i/3)+1,randvecIn_);
+        mprinterr("Error: Could not read vector %i from file %s\n",(i/3)+1,randvecIn_.c_str());
         delete[] XYZ;
         return NULL;
       }
@@ -318,10 +312,10 @@ double *Action_Rotdif::randvec() {
     }
   }
   // Print vectors
-  if (randvecOut_!=NULL) {
+  if (!randvecOut_.empty()) {
     CpptrajFile rvout;
     if (rvout.SetupWrite(randvecOut_,debug)) {
-      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",randvecOut_);
+      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",randvecOut_.c_str());
     } else {
       rvout.OpenFile();
       int idx = 0;
@@ -1498,7 +1492,7 @@ int Action_Rotdif::DetermineDeffs() {
         else
           namebuffer = NumberFilename( namebuffer, vec );
         //NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
-        outfile.SetupWrite((char*)namebuffer.c_str(), debug);
+        outfile.SetupWrite(namebuffer, debug);
         outfile.OpenFile();
         for (int i = 0; i < maxdat; i++) 
           outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
@@ -1508,7 +1502,7 @@ int Action_Rotdif::DetermineDeffs() {
           namebuffer.assign("mesh.dat");
           namebuffer = NumberFilename( namebuffer, vec );
           //NumberFilename(namebuffer, (char*)"mesh.dat", vec);
-          outfile.SetupWrite((char*)namebuffer.c_str(), debug);
+          outfile.SetupWrite(namebuffer, debug);
           outfile.OpenFile();
           for (int i=0; i < spline.Mesh_Size(); i++)
             outfile.Printf("%lf %lf\n", spline.X(i), spline.Y(i));
@@ -1572,10 +1566,10 @@ void Action_Rotdif::print() {
     matrix_transpose_3x3(*rmatrix);
   }
   // Print rotation matrices
-  if (rmOut_!=NULL) {
+  if (!rmOut_.empty()) {
     CpptrajFile rmout;
     if (rmout.SetupWrite(rmOut_,debug)) {
-      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",rmOut_);
+      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",rmOut_.c_str());
     } else {
       rmout.OpenFile();
       int rmframe=1;
@@ -1597,10 +1591,10 @@ void Action_Rotdif::print() {
   // Determine effective D for each vector
   DetermineDeffs( );
   // Print deffs
-  if (deffOut_!=NULL) {
+  if (!deffOut_.empty()) {
     CpptrajFile dout;
     if (dout.SetupWrite(deffOut_,debug)) {
-      mprinterr("    Error: Rotdif: Could not set up file %s\n",deffOut_);
+      mprinterr("    Error: Rotdif: Could not set up file %s\n",deffOut_.c_str());
     } else {
       dout.OpenFile();
       for (int vec = 0; vec < nvecs_; vec++)

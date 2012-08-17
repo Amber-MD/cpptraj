@@ -22,7 +22,7 @@ Action_Pucker::Action_Pucker() :
   */
 int Action_Pucker::init() {
   // Get keywords
-  char* puckerFile = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg puckerFile = actionArgs.getKeyString("out");
   if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
   amplitude_ = actionArgs.hasKey("amplitude");
@@ -36,11 +36,11 @@ int Action_Pucker::init() {
   if ( stypename == "pucker" ) stype = DataSet::PUCKER;
 
   // Get Masks
-  char* mask1 = actionArgs.getNextMask();
-  char* mask2 = actionArgs.getNextMask();
-  char* mask3 = actionArgs.getNextMask();
-  char* mask4 = actionArgs.getNextMask();
-  char* mask5 = actionArgs.getNextMask();
+  ArgList::ConstArg mask1 = actionArgs.getNextMask();
+  ArgList::ConstArg mask2 = actionArgs.getNextMask();
+  ArgList::ConstArg mask3 = actionArgs.getNextMask();
+  ArgList::ConstArg mask4 = actionArgs.getNextMask();
+  ArgList::ConstArg mask5 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL || mask5==NULL) {
     mprinterr("Error: pucker: Requires 5 masks\n");
     return 1;

@@ -35,7 +35,7 @@ class Action_DSSP : public Action {
     };
     std::vector<Residue> SecStruct_; ///< Hold SS-related data for all residues
     // Class variables
-    char *outfilename_; ///< Data file name
+    std::string outfilename_; ///< Data file name
     DataSet *dssp_;     ///< If printString, hold the string dataset
     AtomMask Mask_;     ///< Mask used to determine selected residues
     int Nres_;          ///< Current total # of residues

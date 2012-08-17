@@ -17,7 +17,7 @@ Action_Radgyr::Action_Radgyr() :
   */
 int Action_Radgyr::init() {
   // Get keywords
-  char* rogFile = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg rogFile = actionArgs.getKeyString("out");
   useMass_ = actionArgs.hasKey("mass");
   calcRogmax_ = !actionArgs.hasKey("nomax");
 

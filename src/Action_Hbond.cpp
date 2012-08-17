@@ -40,7 +40,7 @@ Action_Hbond::Action_Hbond() :
   */
 int Action_Hbond::init() {
   // Get keywords
-  char* outfilename = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg outfilename = actionArgs.getKeyString("out");
   series_ = actionArgs.hasKey("series");
   avgout_ = actionArgs.GetStringKey("avgout");
   solvout_ = actionArgs.GetStringKey("solvout");
@@ -51,26 +51,26 @@ int Action_Hbond::init() {
   double dcut = actionArgs.getKeyDouble("dist",3.0);
   dcut2_ = dcut * dcut;
   // Get donor mask
-  char* mask = actionArgs.getKeyString("donormask",NULL);
+  ArgList::ConstArg mask = actionArgs.getKeyString("donormask");
   if (mask!=NULL) {
     DonorMask_.SetMaskString(mask);
     hasDonorMask_=true;
   }
   // Get acceptor mask
-  mask = actionArgs.getKeyString("acceptormask",NULL);
+  mask = actionArgs.getKeyString("acceptormask");
   if (mask!=NULL) {
     AcceptorMask_.SetMaskString(mask);
     hasAcceptorMask_=true;
   }
   // Get solvent donor mask
-  mask = actionArgs.getKeyString("solventdonor", NULL);
+  mask = actionArgs.getKeyString("solventdonor");
   if (mask!=NULL) {
     SolventDonorMask_.SetMaskString(mask);
     hasSolventDonor_ = true;
     calcSolvent_ = true;
   }
   // Get solvent acceptor mask
-  mask = actionArgs.getKeyString("solventacceptor", NULL);
+  mask = actionArgs.getKeyString("solventacceptor");
   if (mask!=NULL) {
     SolventAcceptorMask_.SetMaskString(mask);
     hasSolventAcceptor_ = true;

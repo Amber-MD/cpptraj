@@ -11,7 +11,6 @@ MatrixType::MatrixType() :
   mat_(0),
   vectsize_(0),
   matsize_(0),
-  mask2expr_(NULL),
   mask1tot_(0),
   mask2tot_(0),
   matrixParm_(0),
@@ -155,7 +154,7 @@ int MatrixType::init() {
 
   // Get Masks
   mask1tot_ = 0;
-  char* maskexpr = actionArgs.getNextMask();
+  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   // IRED Setup
   if (type_ == MATRIX_IRED) {
     if (maskexpr!=NULL) {
@@ -178,12 +177,12 @@ int MatrixType::init() {
     }
   } else {
     mask1_.SetMaskString( maskexpr );
-    mask2expr_ = actionArgs.getNextMask();
+    mask2expr_ = actionArgs.GetMaskNext();
   } 
 
 
   // Check arguments
-  if ( !name_.empty() && mask2expr_!=NULL ) {
+  if ( !name_.empty() && !mask2expr_.empty() ) {
     mprintf("Error: matrix: matrix only stored if no mask2\n");
     return 1;
   }
@@ -197,7 +196,7 @@ int MatrixType::init() {
   }
 
   if ( (type_ == MATRIX_DISTCOVAR || type_ == MATRIX_IDEA) &&
-       (mask2expr_!=NULL || outtype_ != BYATOM) )
+       (!mask2expr_.empty() || outtype_ != BYATOM) )
   {
     mprinterr(
       "Error: matrix: DISTCOVAR or IDEA matrix only generated if no mask2 and byatom output\n");
@@ -247,8 +246,8 @@ void MatrixType::Info() {
   }
   if (type_!=MATRIX_IRED) {
     mprintf("            Mask1: %s\n",mask1_.MaskString());
-    if (mask2expr_!=NULL)
-      mprintf("            Mask2: %s\n",mask2expr_);
+    if (!mask2expr_.empty())
+      mprintf("            Mask2: %s\n",mask2expr_.c_str());
   }
 }
 
@@ -286,7 +285,7 @@ int MatrixType::setup() {
     }
     mask1tot_ = mask1_.Nselected();
 
-    if (mask2expr_!=NULL) {
+    if (!mask2expr_.empty()) {
       mask2_.SetMaskString(mask2expr_);
       if (currentParm->SetupIntegerMask(mask2_)) return 1;
       mprintf("\tMask2[%s]= %i atoms.\n",mask2_.MaskString(), mask2_.Nselected());
@@ -329,7 +328,7 @@ int MatrixType::setup() {
 
   // Allocate matrix memory
   if (mat_==0) {
-    if (mask2expr_ == NULL) {
+    if (mask2expr_.empty()) {
       // "upper right half" matrix, including main diagonal.
       // Nelt is set for use in indexing half matrix with HalfMatrixIndex.
       if (type_ == MATRIX_DISTCOVAR) {
@@ -397,7 +396,7 @@ int MatrixType::action() {
   // ** Calc Distance Matrix **
   if (type_ == MATRIX_DIST) {
     int idx = 0;
-    if (mask2expr_==NULL) {
+    if (mask2expr_.empty()) {
       // Upper triangle
       for (AtomMask::const_iterator atom2 = mask1_.begin();
                                     atom2 != mask1_.end(); ++atom2)
@@ -449,7 +448,7 @@ int MatrixType::action() {
                                   atom2 != mask2_.end(); ++atom2)
     {
       currentFrame->GetAtomXYZ(XYZi, *atom2);
-      if (mask2expr_!=NULL) {
+      if (!mask2expr_.empty()) {
         for (int ixyz = 0; ixyz < 3; ++ixyz) {
           vect_[vidx1] += XYZi[ixyz];
           vect2_[vidx1++] += (XYZi[ixyz]*XYZi[ixyz]);
@@ -467,9 +466,9 @@ int MatrixType::action() {
               vect2_[vidx2++] += (XYZj[ixyz]*XYZj[ixyz]);
             }
           }
-          if ( (mask2expr_==NULL && *atom1 >= *atom2) || mask2expr_!=NULL ) {
+          if ( (mask2expr_.empty() && *atom1 >= *atom2) || !mask2expr_.empty() ) {
             if ( iscovariance ) {
-              if (mask2expr_==NULL && *atom2 == *atom1) {
+              if (mask2expr_.empty() && *atom2 == *atom1) {
                 // Half matrix or diagonal
                 if (l==0) {
                   mat_[midx++] += XYZi[0]*XYZj[0];
@@ -480,7 +479,7 @@ int MatrixType::action() {
                   mat_[midx++] += XYZi[1]*XYZj[2];
                 } else  // l==2
                   mat_[midx++] += XYZi[2]*XYZj[2];
-              } else if ((mask2expr_==NULL && *atom2 < *atom1) || mask2expr_!=NULL) {
+              } else if ((mask2expr_.empty() && *atom2 < *atom1) || !mask2expr_.empty()) {
                 // Half matrix and atom2 < atom1, or Full matrix
                 if (l==0) {
                   mat_[midx++] += XYZi[0]*XYZj[0];
@@ -682,7 +681,7 @@ void MatrixType::print() {
     // Calc <rirj> - <ri><rj>
     int idx = 0;
     int vidx; 
-    if (mask2expr_==NULL)
+    if (mask2expr_.empty())
       vidx = 0;
     else
       vidx = mask1tot_;
@@ -690,8 +689,8 @@ void MatrixType::print() {
       for (int i = 0; i < mask2tot_; ++i) {
         for (int l = 0; l < 3; ++l) {
           for (int j = 0; j < mask1tot_; ++j) {
-            if ( (mask2expr_==NULL && j>=i) || mask2expr_!=NULL ) {
-              if (mask2expr_==NULL && i==j) { 
+            if ( (mask2expr_.empty() && j>=i) || !mask2expr_.empty() ) {
+              if (mask2expr_.empty() && i==j) { 
                 if (l==0) {
                   mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3  ];
                   mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3+1];
@@ -701,7 +700,7 @@ void MatrixType::print() {
                   mat_[idx++] -= vect_[(vidx + i)*3+1] * vect_[j*3+2];
                 } else // l==2
                   mat_[idx++] -= vect_[(vidx + i)*3+2] * vect_[j*3+2];
-              } else if ((mask2expr_==NULL && i<j) || mask2expr_!=NULL) {
+              } else if ((mask2expr_.empty() && i<j) || !mask2expr_.empty()) {
                 if (l==0) {
                   mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3  ];
                   mat_[idx++] -= vect_[(vidx + i)*3  ] * vect_[j*3+1];
@@ -733,7 +732,7 @@ void MatrixType::print() {
             for (AtomMask::const_iterator atomj = mask1_.begin();
                                           atomj != mask1_.end(); ++atomj)
             {
-              if (mask2expr_==NULL && *atomj >= *atomi) { // half-matrix
+              if (mask2expr_.empty() && *atomj >= *atomi) { // half-matrix
                 mass = sqrt( (*matrixParm_)[*atomi].Mass() * (*matrixParm_)[*atomj].Mass() );
                 if (row3+k <= col3) {
                   idx = HalfMatrixIndex( row3+k, col3  );
@@ -747,7 +746,7 @@ void MatrixType::print() {
                   idx = HalfMatrixIndex( row3+k, col3+2);
                   mat_[idx] *= mass;
                 }
-              } else if (mask2expr_!=NULL) { // full matrix
+              } else if (!mask2expr_.empty()) { // full matrix
                 mass = sqrt( (*matrixParm_)[*atomi].Mass() * (*matrixParm_)[*atomj].Mass() );
                 mat_[idx++] *= mass;
                 mat_[idx++] *= mass;
@@ -769,7 +768,7 @@ void MatrixType::print() {
     } else { // MATRIX_CORREL
       for (int i = 0; i < mask2tot_; ++i) {
         for (int j = 0; j < mask1tot_; ++j) {
-          if ( (mask2expr_==NULL && j>=i) || mask2expr_!=NULL ) {
+          if ( (mask2expr_.empty() && j>=i) || !mask2expr_.empty() ) {
             mat_[idx] -= (vect_[j*3  ] * vect_[(vidx + i)*3  ] +
                           vect_[j*3+1] * vect_[(vidx + i)*3+1] +
                           vect_[j*3+2] * vect_[(vidx + i)*3+2]);
@@ -788,9 +787,7 @@ void MatrixType::print() {
   // -------------------- DATA OUTPUT ---------------------------
   // Open file
   if (filename_.empty()) return;
-  /*  err = outfile.SetupWrite(NULL, debug);
-  else*/
-    err = outfile.SetupWrite(filename_.c_str(), debug);
+    err = outfile.SetupWrite(filename_, debug);
   if (err!=0) return;
   if (outfile.OpenFile()) return;
 
@@ -808,7 +805,7 @@ void MatrixType::print() {
       int nrows = mask1tot_;
       if (type_==MATRIX_DISTCOVAR)
         nrows = vectsize_;
-      if (mask2expr_==NULL) { // Half-matrix
+      if (mask2expr_.empty()) { // Half-matrix
         for (int row = 0; row < nrows; ++row) {
           for (int col = 0; col < nrows; ++col) {
             idx = HalfMatrixIndex( row, col );
@@ -829,7 +826,7 @@ void MatrixType::print() {
 
     // ----- COVAR, MWCOVAR --------------------------------
     } else if (type_ == MATRIX_COVAR || type_ == MATRIX_MWCOVAR) {
-      if (mask2expr_==NULL) { // Half-matrix
+      if (mask2expr_.empty()) { // Half-matrix
         // NOTE: Use Nelt instead of mask1tot*3?
         for (int row = 0; row < mask1tot_*3; row+=3) {
           for (int l = 0; l < 3; ++l) {
@@ -890,7 +887,7 @@ void MatrixType::print() {
                 valnorm += mass;
                 printval = printnewline = true;
                 //mprintf("Res %i-%i row=%i col=%i\n",resi+1,resj+1,crow,ccol);
-                if (mask2expr_==NULL) {
+                if (mask2expr_.empty()) {
                   int idx = HalfMatrixIndex( crow, ccol );
                   val += mat_[idx] * mass;
                 } else {
@@ -914,7 +911,7 @@ void MatrixType::print() {
     //   i==1: mask1/mask2 
     //   i==2: mask2/mask2
     int iend;
-    if (mask2expr_ == NULL)
+    if (mask2expr_.empty())
       iend = 1;
     else
       iend = 3;
@@ -941,7 +938,7 @@ void MatrixType::print() {
           if (useMass_)
             mass = (*matrixParm_)[*atomj].Mass() * (*matrixParm_)[*atomi].Mass();
           valnorm += mass;
-          if (mask2expr_==NULL) {
+          if (mask2expr_.empty()) {
             int idx = HalfMatrixIndex( crow, ccol );
             val += mat_[idx] * mass;
           } else {

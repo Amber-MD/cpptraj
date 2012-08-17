@@ -29,40 +29,46 @@ void DataFileList::SetDebug(int debugIn) {
 /** Return DataFile specified by given file name if it exists in the list,
   * otherwise return null.
   */
-DataFile *DataFileList::GetDataFile(const char *nameIn) {
-  if (nameIn==NULL) return NULL;
+DataFile* DataFileList::GetDataFile(std::string const& nameIn) {
+  if (nameIn.empty()) return NULL;
   int idx = FindName( nameIn );
   if (idx == -1) return NULL;
   return fileList_[idx];
 }
 
 // DataFileList::Add()
+DataFile* DataFileList::Add(const char* nameIn, DataSet* dsetIn) {
+  if (nameIn == NULL) return NULL;
+  return AddSetToFile( std::string(nameIn), dsetIn );
+}
+
+// DataFileList::AddSetToFile()
 /** Add dataset to datafile in list with given file name. If the file does
   * not yet exist in the list create it. Return a pointer to the datafile
   * in the list.
   */
-DataFile *DataFileList::Add(const char *nameIn, DataSet *dsetIn) {
+DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn) {
   // If no filename, no output desired
-  if (nameIn==NULL) return NULL;
+  if (nameIn.empty()) return NULL;
   // If DataSet is NULL, dont add
   if (dsetIn==NULL) {
-    mprintf("Error: Attempting to add non-existent dataset to file %s\n",nameIn);
+    mprintf("Error: Attempting to add non-existent dataset to file %s\n",nameIn.c_str());
     return NULL;
   }
 
   // Check if this filename already in use
-  DataFile *Current = GetDataFile(nameIn);
+  DataFile* Current = GetDataFile(nameIn);
 
   // If no DataFile associated with nameIn, create new datafile
   if (Current==NULL) {
     Current = new DataFile();
     if (Current->SetupDatafile(nameIn)) {
-      mprinterr("Error setting up DataFile %s\n",nameIn);
+      mprinterr("Error setting up DataFile %s\n",nameIn.c_str());
       delete Current;
       return NULL;
     } 
     fileList_.push_back(Current);
-    AddFilename( (char*)nameIn );
+    AddFilename( nameIn );
   }
 
   // Add the dataset to the current DataFile
@@ -106,8 +112,8 @@ void DataFileList::Write() {
 /** Process command relating to data files. */
 void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
   std::string df_cmd;
-  char *name1 = NULL;
-  char *name2 = NULL;
+  std::string name1;
+  ArgList::ConstArg name2 = NULL;
   DataFile *df;
 
   if (DF_Args_.empty()) return;
@@ -129,24 +135,24 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
     if ( df_cmd == "create" ) {
       // Usage: datafile create <filename> <dataset0> <dataset1> ...
       // Next string is datafile that command pertains to.
-      name1 = (*dataArg).getNextString();
-      if (name1==NULL) {
+      name1 = (*dataArg).GetStringNext();
+      if (name1.empty()) {
         mprinterr("Error: datafile create: No filename given.\n");
         mprinterr("Error: Usage: datafile create <filename> <set1> [<set2> ...]\n");
         continue;
       }
       df = GetDataFile(name1);
       if (df==NULL)
-        mprintf("    Creating file %s:",name1);
+        mprintf("    Creating file %s:",name1.c_str());
       else
-        mprintf("    Adding sets to file %s:",name1);
+        mprintf("    Adding sets to file %s:",name1.c_str());
       while ( (name2=(*dataArg).getNextString())!=NULL ) {
         DataSetList Sets = masterDSL->GetMultipleSets( name2 );
         if (Sets.empty()) 
           mprintf("Warning: %s does not correspond to any data sets.\n", name2);
         for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
           mprintf(" %s", (*set)->Legend().c_str());
-          if ( Add(name1, *set)==NULL ) 
+          if ( AddSetToFile(name1, *set)==NULL ) 
             mprinterr("Error: Could not add data set %s to file.\n", (*set)->Legend().c_str());
         }
       }
@@ -155,15 +161,15 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
       // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
       //        If width/precision not specified default to 12.4
       // Next string is datafile that command pertains to.
-      name1 = (*dataArg).getNextString();
-      if (name1==NULL) {
+      name1 = (*dataArg).GetStringNext();
+      if (name1.empty()) {
         mprinterr("Error: datafile precision: No filename given.\n");
         mprinterr("Error: Usage: datafile precision <filename> [<set>] <width> [<precision>]\n");
         continue;
       }
       df = GetDataFile(name1);
       if (df==NULL) {
-        mprinterr("Error: datafile precision: DataFile %s does not exist.\n",name1);
+        mprinterr("Error: datafile precision: DataFile %s does not exist.\n",name1.c_str());
         continue;
       }
       // This will break if dataset name starts with a digit...

@@ -19,7 +19,7 @@ Action_Dihedral::Action_Dihedral() :
   */
 int Action_Dihedral::init() {
   // Get keywords
-  char* dihedralFile = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg dihedralFile = actionArgs.getKeyString("out");
   useMass_ = actionArgs.hasKey("mass");
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
@@ -37,10 +37,10 @@ int Action_Dihedral::init() {
   else if ( stypename == "pchi"    ) stype = DataSet::PCHI;
 
   // Get Masks
-  char* mask1 = actionArgs.getNextMask();
-  char* mask2 = actionArgs.getNextMask();
-  char* mask3 = actionArgs.getNextMask();
-  char* mask4 = actionArgs.getNextMask();
+  ArgList::ConstArg mask1 = actionArgs.getNextMask();
+  ArgList::ConstArg mask2 = actionArgs.getNextMask();
+  ArgList::ConstArg mask3 = actionArgs.getNextMask();
+  ArgList::ConstArg mask4 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL) {
     mprinterr("Error: dihedral: Requires 4 masks\n");
     return 1;

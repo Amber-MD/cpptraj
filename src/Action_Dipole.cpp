@@ -31,7 +31,7 @@ int Action_Dipole::init() {
   dipolez_.resize( grid_.GridSize(), 0 );
 
   // Get mask
-  char* maskexpr = actionArgs.getNextMask();
+  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   if (maskexpr==NULL) {
     mprinterr("Error: Dipole: No mask specified.\n");
     return 1;

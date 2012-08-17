@@ -25,7 +25,7 @@ class Action_Average: public Action {
     int stop_;
     int offset_;
     int targetFrame_;
-    char *avgfilename_;
+    std::string avgfilename_;
 
 };
 #endif  

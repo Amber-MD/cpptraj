@@ -1,7 +1,6 @@
 #ifndef INC_ACTION_RADIAL_H
 #define INC_ACTION_RADIAL_H
 #include "Action.h"
-#include "Histogram.h"
 // Class: Action_Radial
 /// Calculate the radial distribution (pair correlation) function.
 class Action_Radial: public Action {
@@ -24,7 +23,7 @@ class Action_Radial: public Action {
     bool center1_;            ///< If true calculate RDF of atoms in Mask2 to COM of Mask1.
     bool useVolume_;          ///< If true normalize based on input volume.
     double volume_;           ///< Hold sum of volume for averaging.
-    char *outfilename_;       ///< Output file name.
+    std::string outfilename_; ///< Output file name.
     double maximum2_;         ///< Largest distance squared that can be binned.
     double spacing_;          ///< Bin spacing.
     double one_over_spacing_; ///< 1/spacing, used to avoid man division ops.

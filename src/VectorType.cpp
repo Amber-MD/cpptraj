@@ -198,7 +198,7 @@ int VectorType::init() {
   }
 
   // Vector Mask
-  char *maskexpr = actionArgs.getNextMask();
+  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   mask_.SetMaskString( maskexpr );
 
   // Get second mask if necessary

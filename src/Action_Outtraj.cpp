@@ -27,12 +27,13 @@ int Action_Outtraj::init() {
     mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",actionArgs.ArgAt(1));
     return 1;
   }
-  if ( outtraj_.SetupWrite(NULL,&actionArgs,tempParm,TrajectoryFile::UNKNOWN_TRAJ) ) 
+  if ( outtraj_.SetupTrajWrite(actionArgs.GetStringNext(), &actionArgs, 
+                               tempParm, TrajectoryFile::UNKNOWN_TRAJ) ) 
     return 1;
   mprintf("    OUTTRAJ:");
   outtraj_.PrintInfo(1);
   // If maxmin, get the name of the dataset as well as the max and min values.
-  char* datasetName = actionArgs.getKeyString("maxmin",NULL);
+  ArgList::ConstArg datasetName = actionArgs.getKeyString("maxmin");
   if (datasetName!=NULL) {
     Dset_ = DSL->Get(datasetName);
     if (Dset_==NULL) {

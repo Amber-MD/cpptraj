@@ -146,7 +146,7 @@ void PDBtype::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType 
                              NameType resnameIn, char chain, int resnum,
                              double X, double Y, double Z)
 {
-  pdb_write_ATOM(IO, Record, anum, name, resnameIn, chain, resnum, X, Y, Z, 0, 0, (char*)"", false);
+  pdb_write_ATOM(IO, Record, anum, name, resnameIn, chain, resnum, X, Y, Z, 0, 0, "", false);
 }
 
 /// Write out an ATOM or HETATM record
@@ -154,7 +154,7 @@ void PDBtype::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType 
 void PDBtype::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType name,
                              NameType resnameIn, char chain, int resnum,
                              double X, double Y, double Z,
-                             float Occ, float B, char *End, bool highPrecision) 
+                             float Occ, float B, const char* End, bool highPrecision) 
 {
   char resName[5], atomName[5];
 
@@ -194,9 +194,9 @@ void PDBtype::pdb_write_ATOM(FileIO *IO, PDB_RECTYPE Record, int anum, NameType 
   if (Record == PDBTER) 
     sprintf(ptr,"\n");
   else if (highPrecision)
-    sprintf(ptr,"    %8.3lf%8.3lf%8.3lf%8.4f%8.4f%10s\n", X, Y, Z, Occ, B, End);
+    sprintf(ptr,"    %8.3f%8.3f%8.3f%8.4f%8.4f%10s\n", X, Y, Z, Occ, B, End);
   else
-    sprintf(ptr,"    %8.3lf%8.3lf%8.3lf%6.2f%6.2f%14s\n", X, Y, Z, Occ, B, End);
+    sprintf(ptr,"    %8.3f%8.3f%8.3f%6.2f%6.2f%14s\n", X, Y, Z, Occ, B, End);
   IO->Write(buffer_, strlen(buffer_));
 }
  

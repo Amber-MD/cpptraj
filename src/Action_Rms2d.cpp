@@ -7,10 +7,8 @@
 // CONSTRUCTOR
 Action_Rms2d::Action_Rms2d() :
   nofit_(false),
-  rmsdFile_(NULL),
   RefTraj_(NULL),
   RefParm_(NULL),
-  corrfilename_(NULL),
   mass_ptr_(NULL)
 {
   //fprintf(stderr,"Rms2d Con\n");
@@ -35,48 +33,48 @@ int Action_Rms2d::init() {
   // Get keywords
   nofit_ = actionArgs.hasKey("nofit");
   useMass_ = actionArgs.hasKey("mass"); 
-  rmsdFile_ = actionArgs.getKeyString("rmsout",NULL);
-  char* reftraj = actionArgs.getKeyString("reftraj",NULL);
-  if (reftraj!=NULL) {
+  rmsdFile_ = actionArgs.GetStringKey("rmsout");
+  std::string reftraj = actionArgs.GetStringKey("reftraj");
+  if (!reftraj.empty()) {
     RefParm_ = PFL->GetParm(actionArgs);
     if (RefParm_==NULL) {
-      mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftraj);
+      mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftraj.c_str());
       return 1;
     }
   }
   // Check for correlation; if so, reftraj not supported
-  corrfilename_ = actionArgs.getKeyString("corr",NULL);
-  if (corrfilename_!=NULL && reftraj!=NULL) {
+  corrfilename_ = actionArgs.GetStringKey("corr");
+  if (!corrfilename_.empty() && !reftraj.empty()) {
     mprinterr("Error: Rms2d: Keyword 'corr' not supported with 'reftraj'\n");
     return 1;
   }
   // Require an output filename if corr not specified
-  if (rmsdFile_==NULL && corrfilename_==NULL) {
+  if (rmsdFile_.empty() && corrfilename_.empty()) {
     mprinterr("Error: Rms2d: No output filename specified; use 'rmsout' keyword.\n");
     return 1;
   }
 
   // Get the RMS mask string for frames
-  char* mask0 = actionArgs.getNextMask();
+  ArgList::ConstArg mask0 = actionArgs.getNextMask();
   FrameMask_.SetMaskString(mask0);
 
   // Check if reference will be a series of frames from a trajectory
-  if (reftraj!=NULL) {
+  if (!reftraj.empty()) {
     // Get RMS mask string for reference trajectory
-    char* maskRef = actionArgs.getNextMask();
+    ArgList::ConstArg maskRef = actionArgs.getNextMask();
     // If no reference mask specified, make same as RMS mask
     if (maskRef==NULL) maskRef=mask0;
     RefMask_.SetMaskString(maskRef);
     // Attempt to set up reference trajectory
     RefTraj_ = new TrajectoryFile();
-    if (RefTraj_->SetupRead(reftraj, NULL, RefParm_)) {
-      mprinterr("Error: Rms2d: Could not set up reftraj %s.\n",reftraj);
+    if (RefTraj_->SetupTrajRead(reftraj, NULL, RefParm_)) {
+      mprinterr("Error: Rms2d: Could not set up reftraj %s.\n",reftraj.c_str());
       return 1;
     }
   }
 
   mprintf("    RMS2D: Mask [%s]",FrameMask_.MaskString());
-  if (reftraj!=NULL) {
+  if (!reftraj.empty()) {
     // Set up reference trajectory and open
     mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_->FullTrajStr(),
             RefMask_.MaskString(), RefTraj_->Total_Read_Frames());
@@ -85,12 +83,12 @@ int Action_Rms2d::init() {
     mprintf(" (no fitting)");
   if (useMass_)
     mprintf(" (mass-weighted)");
-  if (rmsdFile_!=NULL) 
-    mprintf(" output to %s",rmsdFile_);
+  if (!rmsdFile_.empty()) 
+    mprintf(" output to %s",rmsdFile_.c_str());
   mprintf("\n");
-  if (corrfilename_!=NULL)
+  if (!corrfilename_.empty())
     mprintf("           RMSD auto-correlation will be calculated and output to %s\n",
-            corrfilename_);
+            corrfilename_.c_str());
 
   return 0;
 }
@@ -147,7 +145,7 @@ DataSet* Action_Rms2d::Calc2drms() {
   double U[9], Trans[6];
   float R;
  
-  TriangleMatrix* Distances = (TriangleMatrix*) DSL->Add(DataSet::TRIMATRIX, rmsdFile_, "Rms2d");
+  TriangleMatrix* Distances = (TriangleMatrix*) DSL->AddSet(DataSet::TRIMATRIX, rmsdFile_, "Rms2d");
   if ( Distances == NULL ) {
     mprinterr("Error: Could not set up DataSet for calculating 2DRMS.\n");
     return NULL;
@@ -211,7 +209,7 @@ DataSet* Action_Rms2d::Calc2drms() {
   } // END loop over reference frames
   //progress->Update(max);
   // Calculate correlation if specified
-  if (corrfilename_!=NULL) AutoCorrelate( *Distances );
+  if (!corrfilename_.empty()) AutoCorrelate( *Distances );
 
   delete progress;
   return (DataSet*)Distances;
@@ -228,7 +226,7 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
   double U[9], Trans[6];
   float R;
 
-  Matrix_2D* rmsdata = (Matrix_2D*) DSL->Add( DataSet::MATRIX2D, rmsdFile_, "Rms2d" );
+  Matrix_2D* rmsdata = (Matrix_2D*) DSL->AddSet( DataSet::MATRIX2D, rmsdFile_, "Rms2d" );
   if ( rmsdata == NULL ) {
     mprinterr("Error: Could not set up DataSet for calculating 2DRMS to traj.\n");
     return NULL;
@@ -331,7 +329,7 @@ int Action_Rms2d::AutoCorrelate(TriangleMatrix& Distances) {
   // Set up output dataset and add it to the data file list.
   DataSet* Ct_ = DSL->AddSetAspect( DataSet::DOUBLE, rmsdFile_, "Corr" );
   if (Ct_ == NULL) return 1;
-  DFL->Add(corrfilename_, Ct_);
+  DFL->AddSetToFile(corrfilename_, Ct_);
 
   // By definition for lag == 0 RMS is 0 for all frames,
   // translates to correlation of 1.
@@ -368,12 +366,12 @@ void Action_Rms2d::print() {
     mprinterr("Internal Error: Rms2d: DataSet not generated.\n");
     return;
   }
-  if (rmsdFile_==NULL) {
+  if (rmsdFile_.empty()) {
     mprinterr("Error: Rms2d: no output file specified with 'rmsout'.\n");
     return;
   }
   rmsdataset->SetPrecision(8,3);
-  DataFile* rmsdatafile = DFL->Add( rmsdFile_, rmsdataset );
+  DataFile* rmsdatafile = DFL->AddSetToFile( rmsdFile_, rmsdataset );
   rmsdatafile->ProcessArgs("square2d");
 }
 

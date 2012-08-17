@@ -20,7 +20,7 @@ int Action_GridFreeEnergy::init() {
     return 1;
 
   // Get mask
-  char* maskexpr = actionArgs.getNextMask();
+  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   if (maskexpr==NULL) {
     mprinterr("Error: GRID: No mask specified.\n");
     return 1;

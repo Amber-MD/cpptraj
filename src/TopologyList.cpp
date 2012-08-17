@@ -7,8 +7,7 @@
 // CONSTRUCTOR 
 TopologyList::TopologyList() : 
   hasCopies_(false),
-  bondsearch_(true),
-  molsearch_(true)
+  bondsearch_(true)
 {}
 
 // DESTRUCTOR
@@ -43,7 +42,7 @@ int TopologyList::CheckCommand(ArgList &argIn) {
   if (argIn.CommandIs("parminfo")) {
     pindex = argIn.getNextInteger(0);
     if (pindex>=0 && pindex<(int)TopList_.size()) {
-      char *maskarg = argIn.getNextMask();
+      ArgList::ConstArg maskarg = argIn.getNextMask();
       if (maskarg!=NULL) 
         TopList_[pindex]->PrintAtomInfo( maskarg );
       else 
@@ -54,7 +53,7 @@ int TopologyList::CheckCommand(ArgList &argIn) {
   }
   // parmwrite out <filename> [<parmindex>]: Write parm <parmindex> to <filename>
   if (argIn.CommandIs("parmwrite")) {
-    char *outfilename = argIn.getKeyString("out",NULL);
+    ArgList::ConstArg outfilename = argIn.getKeyString("out");
     if (outfilename==NULL) {
       mprinterr("Error: parmwrite: No output filename specified (use 'out <filename>').\n");
       return 0;
@@ -73,7 +72,7 @@ int TopologyList::CheckCommand(ArgList &argIn) {
   }
   // parmstrip <mask> [<parmindex>]: Strip atoms int mask from parm
   if (argIn.CommandIs("parmstrip")) {
-    char *mask0 = argIn.getNextMask();
+    ArgList::ConstArg mask0 = argIn.getNextMask();
     pindex = argIn.getNextInteger(0);
     if (pindex < 0 || pindex >= (int)TopList_.size()) {
       mprinterr("Error: parmstrip: parm index %i out of bounds.\n",pindex);
@@ -126,7 +125,7 @@ int TopologyList::CheckCommand(ArgList &argIn) {
   // solvent [<parmindex>] <mask>
   // Set solvent for the given parm (default 0) based on <mask>
   if (argIn.CommandIs("solvent")) {
-    char* maskexpr = argIn.getNextMask();
+    ArgList::ConstArg maskexpr = argIn.getNextMask();
     if ( maskexpr == NULL ) {
       mprinterr("Error: solvent: No mask specified.\n");
       return 0;
@@ -177,23 +176,15 @@ int TopologyList::CheckCommand(ArgList &argIn) {
     bondsearch_=true;
     return 0;
   }
-  // molsearch: Indicate that if molecule information not found in 
-  //     topology file it should be determined by bonding information.
-  if (argIn.CommandIs("molsearch")) {
-    mprintf("\tInfo: Molecule info will be determined from bonds if not present.\n");
-    molsearch_=true;
+  // molsearch: Deprecated - molecules are always searched for. 
+  if (argIn.CommandIs("molsearch") || argIn.CommandIs("nomolsearch")) {
+    mprintf("\tWarning: '[no]molsearch' is deprecated; molecules are always searched for.\n");
     return 0;
   }
   // nobondsearch: Turn off bond search.
   if (argIn.CommandIs("nobondsearch")) {
     mprintf("\tInfo: Bond search is off.\n");
     bondsearch_=false;
-    return 0;
-  }
-  // nomolsearch: Turn off molecule search.
-  if (argIn.CommandIs("nomolsearch")) {
-    mprintf("\tInfo: Molecule search is off.\n");
-    molsearch_=false;
     return 0;
   }
   // Unrecognized parm command
@@ -266,7 +257,7 @@ int TopologyList::AddParmFile(std::string const& filename, std::string const& Pa
   parm->SetDebug( debug_ );
   ParmFile pfile;
   pfile.SetDebug( debug_ );
-  int err = pfile.Read(*parm, filename.c_str(), bondsearch_, molsearch_);
+  int err = pfile.Read(*parm, filename.c_str(), bondsearch_);
   if (err!=0) {
     mprinterr("Error: Could not open parm %s\n",filename.c_str());
     delete parm;

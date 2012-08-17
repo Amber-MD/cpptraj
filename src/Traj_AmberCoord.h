@@ -7,6 +7,7 @@
 class Traj_AmberCoord: public TrajectoryIO, FrameBuffer {
   public:
     Traj_AmberCoord();
+    ~Traj_AmberCoord();
     // AmberCoord-specific functions
     void SetHighPrecision();
   private:
@@ -31,5 +32,6 @@ class Traj_AmberCoord: public TrajectoryIO, FrameBuffer {
     int writeFrame(int,double*,double*,double*,double);
     void info();
     int processWriteArgs(ArgList*);
+    int processReadArgs(ArgList&);
 };
 #endif

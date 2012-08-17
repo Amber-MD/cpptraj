@@ -104,17 +104,13 @@ int Action_Molsurf::AllocateMemory() {
   *    3) Dataset name
   */
 int Action_Molsurf::init() {
-  char *mask1;
-  char *molsurfFile;
-
   // Get keywords
-  molsurfFile = actionArgs.getKeyString("out",NULL);
+  ArgList::ConstArg molsurfFile = actionArgs.getKeyString("out");
   probe_rad_ = actionArgs.getKeyDouble("probe",1.4);
   rad_offset_ = actionArgs.getKeyDouble("offset",0.0);
 
   // Get Masks
-  mask1 = actionArgs.getNextMask();
-  Mask1_.SetMaskString(mask1);
+  Mask1_.SetMaskString( actionArgs.getNextMask() );
 
   // Dataset to store angles
   sasa_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"MSURF");

@@ -109,8 +109,8 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
   if ( type_ == CORR ) {
     while (analyzeArgs_.hasKey("maskp")) {
       // Next two arguments should be one-atom masks
-      char* a1mask = analyzeArgs_.getNextMask();
-      char* a2mask = analyzeArgs_.getNextMask();
+      ArgList::ConstArg a1mask = analyzeArgs_.getNextMask();
+      ArgList::ConstArg a2mask = analyzeArgs_.getNextMask();
       if (a1mask==NULL || a2mask==NULL) {
         mprinterr("Error: analyze modes: For 'corr' two 1-atom masks are expected.\n");
         return 1;

@@ -71,7 +71,7 @@ int ModesInfo::ReadEvecFile(std::string& modesfile, int ibeg, int iend) {
   CpptrajFile infile;
   char buffer[BUFSIZE_];
 
-  if (infile.SetupRead( modesfile.c_str(), 0 )) return 1;
+  if (infile.SetupRead( modesfile, 0 )) return 1;
   if (infile.OpenFile()) return 1;
   // Read title line
   if (infile.Gets(buffer, BUFSIZE_)!=0) {
@@ -418,6 +418,7 @@ void ModesInfo::ProjectIDEA(CpptrajFile& outfile, Frame& currentFrame,
     double proj3 = 0;
     for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
     {
+      currentFrame.GetAtomXYZ(XYZ, *atom);
       proj1 += XYZ[0] * evec_[idx1];
       proj2 += XYZ[1] * evec_[idx1];
       proj3 += XYZ[2] * evec_[idx1];

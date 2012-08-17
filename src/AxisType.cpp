@@ -324,9 +324,9 @@ bool AxisType::AtomNameIs(int atom, char *nameIn) {
 }
 
 // AxisType::AtomName()
-char *AxisType::AtomName(int atom) {
+const char* AxisType::AtomName(int atom) {
   if (atom<0 || atom>=natom_) return NULL;
-  return (char*)(*Name[atom]);
+  return (*Name[atom]);
 }
 
 // AxisType::PrintAtomNames()

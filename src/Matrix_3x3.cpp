@@ -14,7 +14,7 @@ Matrix_3x3::Matrix_3x3() {
   M_[6] = 0;
   M_[7] = 0;
   M_[8] = 0;
-};
+}
 
 // CONSTRUCTOR - Takes array of 9, row-major
 Matrix_3x3::Matrix_3x3(double *Min) {
@@ -163,7 +163,7 @@ int Matrix_3x3::Diagonalize( double *vecD, double* matrixV )
   }
   mprintf("Too many iterations in routine!\n");
   return 1;
-};
+}
 
 // Matrix_3x3::Diagonalize_Sort()
 /** Diagonalize the matrix and sort eigenvalues/eigenvectors in 

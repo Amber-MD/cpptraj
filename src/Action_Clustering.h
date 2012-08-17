@@ -21,12 +21,12 @@ class Action_Clustering: public Action {
     int targetNclusters_;       ///< Once there are targetNclusters, stop clustering
     int sieve_;
     DataSet* cnumvtime_;        ///< Cluster vs time dataset
-    char* summaryfile_;         ///< Summary file name
-    char* halffile_;            ///< 1st/2nd half summary file name
-    char* clusterfile_;         ///< Cluster trajectory base filename.
-    char* singlerepfile_;       ///< Cluster all rep single trajectory filename.
-    char* reptrajfile_;         ///< Cluster rep to separate trajectory filename.
-    char* clusterinfo_;         ///< Name for Ptraj-like cluster output file.
+    std::string summaryfile_;         ///< Summary file name
+    std::string halffile_;            ///< 1st/2nd half summary file name
+    std::string clusterfile_;         ///< Cluster trajectory base filename.
+    std::string singlerepfile_;       ///< Cluster all rep single trajectory filename.
+    std::string reptrajfile_;         ///< Cluster rep to separate trajectory filename.
+    std::string clusterinfo_;         ///< Name for Ptraj-like cluster output file.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found

@@ -15,6 +15,6 @@ class Analysis_Corr : public Analysis {
     DataSet *D2_;
     int lagmax_;
     DataSet* Ct_;
-    char *outfilename_;
+    std::string outfilename_;
 };
 #endif

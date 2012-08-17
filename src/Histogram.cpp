@@ -152,7 +152,7 @@ void Histogram::BinStart(bool circularIn) {
   * landscape will be printed.
   * if SD is not NULL, the standard deviation array will also be printed.
   */
-void Histogram::PrintBins(char *outfilename, bool circularIn, bool gnuplot) {
+void Histogram::PrintBins(const char *outfilename, bool circularIn, bool gnuplot) {
   CpptrajFile outfile;
   if (outfile.SetupWrite(outfilename, debug_)) return;
   if (outfile.OpenFile()) return;

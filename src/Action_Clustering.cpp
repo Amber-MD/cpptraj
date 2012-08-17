@@ -11,12 +11,6 @@ Action_Clustering::Action_Clustering() :
   targetNclusters_(-1),
   sieve_(1),
   cnumvtime_(NULL),
-  summaryfile_(NULL),
-  halffile_(NULL),
-  clusterfile_(NULL),
-  singlerepfile_(NULL),
-  reptrajfile_(NULL),
-  clusterinfo_(NULL),
   nofitrms_(false),
   grace_color_(false),
   load_pair_(true),
@@ -45,7 +39,7 @@ const char Action_Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 //    2) Masks
 //    3) Dataset name
 int Action_Clustering::init() {
-  char *dsetname;
+  ArgList::ConstArg dsetname;
   // Get keywords
   useMass_ = actionArgs.hasKey("mass");
   targetNclusters_ = actionArgs.getKeyInt("clusters",-1);
@@ -54,14 +48,14 @@ int Action_Clustering::init() {
   if (actionArgs.hasKey("linkage")) Linkage_=ClusterList::SINGLELINK;
   if (actionArgs.hasKey("averagelinkage")) Linkage_=ClusterList::AVERAGELINK;
   if (actionArgs.hasKey("complete")) Linkage_=ClusterList::COMPLETELINK;
-  char* cnumvtimefile = actionArgs.getKeyString("out",NULL);
-  clusterinfo_ = actionArgs.getKeyString("info",NULL);
-  summaryfile_ = actionArgs.getKeyString("summary",NULL);
-  halffile_ = actionArgs.getKeyString("summaryhalf",NULL);
+  ArgList::ConstArg cnumvtimefile = actionArgs.getKeyString("out");
+  clusterinfo_ = actionArgs.GetStringKey("info");
+  summaryfile_ = actionArgs.GetStringKey("summary");
+  halffile_ = actionArgs.GetStringKey("summaryhalf");
   if (actionArgs.hasKey("nofit")) nofitrms_=true;
   if (actionArgs.hasKey("gracecolor")) grace_color_=true;
   if (actionArgs.hasKey("noload")) load_pair_=false;
-  if ((dsetname = actionArgs.getKeyString("data",NULL))!=NULL) {
+  if ((dsetname = actionArgs.getKeyString("data"))!=NULL) {
     // Attempt to get dataset from datasetlist
     cluster_dataset_ = DSL->Get( dsetname );
     if (cluster_dataset_ == NULL) {
@@ -70,21 +64,20 @@ int Action_Clustering::init() {
     }
   }
   // Output trajectory stuff
-  clusterfile_ = actionArgs.getKeyString("clusterout",NULL);
-  ArgList tmpArg( actionArgs.getKeyString("clusterfmt",NULL) );
+  clusterfile_ = actionArgs.GetStringKey("clusterout");
+  ArgList tmpArg( actionArgs.getKeyString("clusterfmt") );
   clusterfmt_ = TrajectoryFile::GetFormatFromArg( tmpArg ); 
-  singlerepfile_ = actionArgs.getKeyString("singlerepout",NULL);
-  tmpArg.SetList( actionArgs.getKeyString("singlerepfmt",NULL) );
+  singlerepfile_ = actionArgs.GetStringKey("singlerepout");
+  tmpArg.SetList( actionArgs.getKeyString("singlerepfmt") );
   singlerepfmt_ = TrajectoryFile::GetFormatFromArg( tmpArg );
-  reptrajfile_ = actionArgs.getKeyString("repout",NULL);
-  tmpArg.SetList( actionArgs.getKeyString("repfmt",NULL) );
+  reptrajfile_ = actionArgs.GetStringKey("repout");
+  tmpArg.SetList( actionArgs.getKeyString("repfmt") );
   reptrajfmt_ = TrajectoryFile::GetFormatFromArg( tmpArg );
   // Get the mask string 
-  char* mask0 = actionArgs.getNextMask();
-  Mask0_.SetMaskString(mask0);
+  Mask0_.SetMaskString( actionArgs.getNextMask() );
 
   // Dataset to store cluster number v time
-  cnumvtime_ = DSL->Add(DataSet::INT,actionArgs.getNextString(),"Cnum");
+  cnumvtime_ = DSL->Add(DataSet::INT, actionArgs.getNextString(), "Cnum");
   if (cnumvtime_==NULL) return 1;
   // Add dataset to data file list
   DFL->Add(cnumvtimefile,cnumvtime_);
@@ -125,22 +118,22 @@ int Action_Clustering::init() {
             PAIRDISTFILE);
   else
     mprintf("\tPreviously calcd pair distances will be ignored.\n");
-  if (clusterinfo_!=NULL)
-    mprintf("\tCluster information will be written to %s\n",clusterinfo_);
-  if (summaryfile_!=NULL)
-    mprintf("\tSummary of cluster results will be written to %s\n",summaryfile_);
-  if (halffile_!=NULL)
+  if (!clusterinfo_.empty())
+    mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
+  if (!summaryfile_.empty())
+    mprintf("\tSummary of cluster results will be written to %s\n",summaryfile_.c_str());
+  if (!halffile_.empty())
     mprintf("\tSummary comparing first/second half of data for clusters will be written to %s\n",
-            halffile_);
-  if (clusterfile_!=NULL)
+            halffile_.c_str());
+  if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
-            clusterfile_, TrajectoryFile::FormatString(clusterfmt_));
-  if (singlerepfile_!=NULL)
+            clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
+  if (!singlerepfile_.empty())
     mprintf("\tCluster representatives will be written to 1 traj (%s), format %s\n",
-            singlerepfile_, TrajectoryFile::FormatString(singlerepfmt_));
-  if (reptrajfile_!=NULL) {
+            singlerepfile_.c_str(), TrajectoryFile::FormatString(singlerepfmt_));
+  if (!reptrajfile_.empty()) {
     mprintf("\tCluster representatives will be written to separate trajectories,\n");
-    mprintf("\t\tprefix (%s), format %s\n",reptrajfile_, 
+    mprintf("\t\tprefix (%s), format %s\n",reptrajfile_.c_str(), 
             TrajectoryFile::FormatString(reptrajfmt_));
   }
   // If epsilon not given make it huge
@@ -214,30 +207,30 @@ void Action_Clustering::print() {
   }
 
   // Print ptraj-like cluster info
-  if (clusterinfo_!=NULL)
-    CList.PrintClustersToFile(clusterinfo_);
+  if (!clusterinfo_.empty())
+    CList.PrintClustersToFile(clusterinfo_.c_str());
 
   // Print a summary of clusters
-  if (summaryfile_!=NULL)
-    CList.Summary(summaryfile_);
+  if (!summaryfile_.empty())
+    CList.Summary(summaryfile_.c_str());
 
   // Print a summary comparing first half to second half of data for clusters
-  if (halffile_!=NULL)
-    CList.Summary_Half(halffile_);
+  if (!halffile_.empty())
+    CList.Summary_Half(halffile_.c_str());
 
   // Create cluster v time data from clusters.
   CreateCnumvtime( CList );
 
   // Write clusters to trajectories
-  if (clusterfile_!=NULL)
+  if (!clusterfile_.empty())
     WriteClusterTraj( CList ); 
 
   // Write all representative frames to a single traj
-  if (singlerepfile_!=NULL)
+  if (!singlerepfile_.empty())
     WriteSingleRepTraj( CList );
 
   // Write all representative frames to separate trajs
-  if (reptrajfile_!=NULL)
+  if (!reptrajfile_.empty())
     WriteRepTraj( CList );
 }
 
@@ -439,15 +432,13 @@ void Action_Clustering::WriteClusterTraj( ClusterList &CList ) {
   {
     // Create filename based on cluster number.
     int cnum = (*C).Num();
-    std::string cfilename( clusterfile_ );
-    cfilename += ".c";
-    cfilename += integerToString( cnum );
+    std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
     // Use parm from first frame of cluster (pot. dangerous)
     TrajectoryFile *clusterout = new TrajectoryFile;
     ClusterNode::frame_iterator frame = (*C).beginframe();
     Topology *clusterparm = ReferenceFrames_.GetFrameParm( *frame );
-    if (clusterout->SetupWrite(cfilename.c_str(), NULL, clusterparm, clusterfmt_)) 
+    if (clusterout->SetupTrajWrite(cfilename, NULL, clusterparm, clusterfmt_)) 
     {
       mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
                 cfilename.c_str());
@@ -482,10 +473,10 @@ void Action_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
 
   // Set up trajectory file. Use parm from first frame of cluster (pot. dangerous)
   Topology *clusterparm = ReferenceFrames_.GetFrameParm( framenum );
-  if (clusterout.SetupWrite(singlerepfile_, NULL, clusterparm, singlerepfmt_)) 
+  if (clusterout.SetupTrajWrite(singlerepfile_, NULL, clusterparm, singlerepfmt_)) 
   {
     mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
-                singlerepfile_);
+                singlerepfile_.c_str());
      return;
   }
   // Write first cluster rep frame
@@ -522,15 +513,14 @@ void Action_Clustering::WriteRepTraj( ClusterList &CList ) {
     // Find centroid of first cluster in order to set up parm
     int framenum = (*C).Centroid();
     // Create filename
-    std::string cfilename( reptrajfile_ );
-    cfilename = cfilename + "." + integerToString(framenum+1) + tmpExt;
+    std::string cfilename = reptrajfile_ + "." + integerToString(framenum+1) + tmpExt;
     // Set up trajectory file. 
     // Use parm from first frame of cluster (pot. dangerous)
     Topology *clusterparm = ReferenceFrames_.GetFrameParm( framenum );
-    if (clusterout->SetupWrite(cfilename.c_str(), NULL, clusterparm, reptrajfmt_)) 
+    if (clusterout->SetupTrajWrite(cfilename, NULL, clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
-                reptrajfile_);
+                reptrajfile_.c_str());
        delete clusterout;
        return;
     }

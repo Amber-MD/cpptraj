@@ -34,7 +34,7 @@ Action_Image::~Action_Image() {
 //    1) Keywords
 //    2) Masks
 int Action_Image::init() {
-  char *mask1;
+  ArgList::ConstArg mask1;
 
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
@@ -44,7 +44,7 @@ int Action_Image::init() {
 
   // Get Masks
   if (triclinic_ == FAMILIAR) {
-    mask1 = actionArgs.getKeyString("com",NULL);
+    mask1 = actionArgs.getKeyString("com");
     if (mask1!=NULL) {
       ComMask_ = new AtomMask();
       ComMask_->SetMaskString(mask1);

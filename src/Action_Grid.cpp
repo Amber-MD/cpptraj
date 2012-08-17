@@ -31,7 +31,7 @@ int Action_Grid::init() {
   pdbname_ = actionArgs.GetStringKey("pdb"); 
 
   // Get mask
-  char* maskexpr = actionArgs.getNextMask();
+  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   if (maskexpr==NULL) {
     mprinterr("Error: GRID: No mask specified.\n");
     return 1;

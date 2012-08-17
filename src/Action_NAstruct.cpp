@@ -900,9 +900,6 @@ int Action_NAstruct::determineBasepairParameters() {
 //    2) Masks
 //    3) Dataset name
 int Action_NAstruct::init() {
-  char *resrange_arg, *maparg;
-  ArgList maplist;
-  AxisType::NAbaseType mapbase;
   Frame* refframe = NULL;
   Topology* refparm = NULL;
 
@@ -914,7 +911,7 @@ int Action_NAstruct::init() {
   double origincut = actionArgs.getKeyDouble("origincut", -1);
   if (origincut > 0)
     originCut2_ = origincut * origincut;
-  resrange_arg = actionArgs.getKeyString("resrange",NULL);
+  ArgList::ConstArg resrange_arg = actionArgs.getKeyString("resrange");
   if (resrange_arg != NULL)
     if (resRange.SetRange( resrange_arg )) return 1;
   printheader_ = !actionArgs.hasKey("noheader");
@@ -942,7 +939,10 @@ int Action_NAstruct::init() {
   }
 
   // Get custom residue maps
-  while ( (maparg = actionArgs.getKeyString("resmap",NULL))!=NULL ) {
+  ArgList::ConstArg maparg;
+  ArgList maplist;
+  AxisType::NAbaseType mapbase;
+  while ( (maparg = actionArgs.getKeyString("resmap"))!=NULL ) {
     // Split maparg at ':'
     maplist.SetList(maparg,":");
     // Expect only 2 args

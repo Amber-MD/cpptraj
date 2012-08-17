@@ -17,7 +17,7 @@ class RemdTraj : public TrajectoryIO {
     void SetTargetTemp(double);
     int SetupTemperatureList(int);
     std::vector<std::string> SearchForReplicas();
-    int GetTemperatureName(std::string&,char*, int);
+    int GetTemperatureName(std::string&,const char*, int);
     void AddReplicaTrajin(TrajectoryIO*);
     void AddReplicaTrajout(TrajectoryIO*);
     const char *LowestReplicaName();

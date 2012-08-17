@@ -38,7 +38,7 @@ NameType::NameType(const char *rhs) :
   FormatName();
 }
 
-NameType::NameType(std::string &str) :
+NameType::NameType(std::string const& str) :
   NameSize_(6)
 {
   unsigned int ns1 = NameSize_ - 1;

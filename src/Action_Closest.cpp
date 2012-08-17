@@ -18,7 +18,6 @@ Action_Closest::Action_Closest() :
   distdata_(NULL),
   atomdata_(NULL),
   Nclosest_(0),
-  prefix_(NULL),
   closestWaters_(0),
   firstAtom_(false),
   newParm_(NULL),
@@ -49,16 +48,16 @@ int Action_Closest::init( ) {
   if ( actionArgs.hasKey("oxygen") || actionArgs.hasKey("first") )
     firstAtom_=true;
   useImage_ = !(actionArgs.hasKey("noimage"));
-  prefix_ = actionArgs.getKeyString("outprefix",NULL);
+  prefix_ = actionArgs.GetStringKey("outprefix");
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
-  char *filename = actionArgs.getKeyString("closestout",NULL);
+  ArgList::ConstArg filename = actionArgs.getKeyString("closestout");
   if (filename != NULL) {
     // Set up datasets
-    framedata_ = outList_.Add(DataSet::INT,(char*)"Frame\0","Frame");
-    moldata_   = outList_.Add(DataSet::INT,(char*)"Mol\0","Mol");
-    distdata_  = outList_.Add(DataSet::DOUBLE,(char*)"Dist\0","Dist");
-    atomdata_  = outList_.Add(DataSet::INT,(char*)"FirstAtm\0","FirstAtm");
+    framedata_ = outList_.Add(DataSet::INT, "Frame", "Frame");
+    moldata_   = outList_.Add(DataSet::INT, "Mol", "Mol");
+    distdata_  = outList_.Add(DataSet::DOUBLE, "Dist", "Dist");
+    atomdata_  = outList_.Add(DataSet::INT, "FirstAtm", "FirstAtm");
     if (framedata_==NULL || moldata_==NULL || distdata_==NULL || atomdata_==NULL) {
       mprinterr("Error: closest:: Could not setup data sets for output file %s\n",
                 filename);
@@ -76,7 +75,7 @@ int Action_Closest::init( ) {
   }
 
   // Get Masks
-  char *mask1 = actionArgs.getNextMask();
+  ArgList::ConstArg mask1 = actionArgs.getNextMask();
   if (mask1==NULL) {
     mprinterr("Error: closest: No mask specified.\n");
     return 1;
@@ -86,14 +85,14 @@ int Action_Closest::init( ) {
   mprintf("    CLOSEST: Finding closest %i solvent molecules to atoms in mask %s\n",
           closestWaters_, distanceMask_.MaskString());
   if (!useImage_) 
-    mprintf("             Imaging will be turned off.\n");
+    mprintf("\tImaging will be turned off.\n");
   if (firstAtom_)
-    mprintf("             Only first atom of solvent molecule used for distance calc.\n");
+    mprintf("\tOnly first atom of solvent molecule used for distance calc.\n");
   if (outFile_!=NULL)
-    mprintf("             Closest molecules will be saved to %s\n",outFile_->Filename());
-  if (prefix_!=NULL)
-    mprintf("             Stripped topology file will be written with prefix %s\n",prefix_);
-
+    mprintf("\tClosest molecules will be saved to %s\n",outFile_->Filename());
+  if (!prefix_.empty())
+    mprintf("\tStripped topology file will be written with prefix %s\n",
+            prefix_.c_str());
   return 0;
 }
 
@@ -210,10 +209,8 @@ int Action_Closest::setup() {
   newFrame_.SetupFrameM( newParm_->Atoms() );
 
   // If prefix given then output stripped parm
-  if (prefix_!=NULL) {
-    std::string newfilename(prefix_);
-    newfilename += ".";
-    newfilename += currentParm->OriginalFilename();
+  if (!prefix_.empty()) {
+    std::string newfilename = prefix_ + "." + currentParm->OriginalFilename();
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),
             newfilename.c_str());
     ParmFile pfile;

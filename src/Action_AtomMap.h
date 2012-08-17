@@ -8,16 +8,29 @@ class Action_AtomMap : public Action {
   public:
     Action_AtomMap(); 
     ~Action_AtomMap();
+  private:
     int init();
     int setup();
     int action();
-  private:
-    AtomMap RefMap;
-    Frame *RefFrame;
-    Topology *RefParm;
-    AtomMap TgtMap;
-    Frame *TgtFrame;
-    Topology *TgtParm;
+
+    AtomMap RefMap_;
+    Frame* RefFrame_;
+    Topology* RefParm_;
+    AtomMap TgtMap_;
+    Frame* TgtFrame_;
+    Topology* TgtParm_ ;
+
+    std::vector<int> AMap_;
+    bool maponly_;
+    Frame* newFrame_;
+    Topology* newParm_;
+    Topology* stripParm_; // For stripping reference
+
+    Frame rmsRefFrame_;
+    Frame rmsTgtFrame_;
+    bool rmsfit_;
+    DataSet* rmsdata_;
+
     int mapBondsToUnique(AtomMap&, AtomMap&);
     int mapChiral(AtomMap&, AtomMap&);
     int mapByIndex(AtomMap&, AtomMap&);
@@ -25,16 +38,5 @@ class Action_AtomMap : public Action {
     int MapAtoms(AtomMap&, AtomMap&);
     int MapUniqueAtoms(AtomMap&, AtomMap&);
     int MapWithNoUniqueAtoms( AtomMap&, AtomMap& );
-
-    std::vector<int> AMap;
-    bool maponly;
-    Frame *newFrame;
-    Topology *newParm;
-    Topology *stripParm; // For stripping reference
-
-    Frame rmsRefFrame;
-    Frame rmsTgtFrame;
-    bool rmsfit;
-    DataSet *rmsdata;
 };
 #endif

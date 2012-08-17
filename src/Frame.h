@@ -138,7 +138,7 @@ class Frame {
     double DISTRMSD( Frame& );
 
     void SetAxisOfRotation(double *, int, int);
-    void RotateAroundAxis(double *, double, AtomMask &);
+    void RotateAroundAxis(double *, AtomMask &);
     void CalculateInertia(AtomMask&, double*, double*);
 
   private:

@@ -15,7 +15,7 @@ class Action_Closest: public Action {
     int setup();
     int action();
 
-    DataSetList outList_;
+    DataSetList outList_; // TODO: Put in master DSL
     DataFile *outFile_;
     DataSet *framedata_;
     DataSet *moldata_;
@@ -23,7 +23,7 @@ class Action_Closest: public Action {
     DataSet *atomdata_;
 
     int Nclosest_;          ///< Index into Closest datasets.
-    char *prefix_;          ///< Output topology prefix.
+    std::string prefix_;          ///< Output topology prefix.
     int closestWaters_;     ///< # of waters to keep.
     bool firstAtom_;        ///< If true just calc based on solvent first atom.
     AtomMask stripMask_;    ///< Mask including solvent and kept waters.

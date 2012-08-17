@@ -15,7 +15,7 @@ class ParmFile {
     }
 
     void SetDebug(int);
-    int Read(Topology&, std::string const&, bool,bool);
+    int Read(Topology&, std::string const&, bool);
     int Write(Topology&, std::string const&, ParmFormatType);
   private :
     int debug_;

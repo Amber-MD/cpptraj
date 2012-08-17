@@ -150,18 +150,13 @@ int Action_Jcoupling::loadKarplus(std::string filename) {
 /** Expected call: jcoupling <mask1> [outfile <filename>]
   */
 int Action_Jcoupling::init( ) {
-  char *mask1;
-  char *outfilename;
-  char *env;
   std::string karpluspath;
 
   // Get Keywords
-  outfilename = actionArgs.getKeyString("outfile",NULL);
+  ArgList::ConstArg outfilename = actionArgs.getKeyString("outfile");
 
   // Get Masks
-  mask1 = actionArgs.getNextMask();
-  //fprintf(stdout,"    Mask 1: %s\n",mask1);
-  Mask1_.SetMaskString(mask1);
+  Mask1_.SetMaskString( actionArgs.getNextMask() );
 
   // Dataset setup 
   // Add dataset to data file list
@@ -169,13 +164,13 @@ int Action_Jcoupling::init( ) {
   // Get Karplus parameters from file.
   karpluspath.clear();
   // First look in $AMBERHOME/dat/Karplus.txt
-  env = getenv("AMBERHOME");
+  char* env = getenv("AMBERHOME");
   if (env==NULL) {
     mprintf("    Warning: jcoupling: AMBERHOME not set.\n");
   } else {
     karpluspath.assign(env);
     karpluspath += "/dat/Karplus.txt";
-    if (!fileExists((char*)karpluspath.c_str())) {
+    if (!fileExists(karpluspath.c_str())) {
       mprintf("    Warning: jcoupling: %s not found\n",karpluspath.c_str());
       karpluspath.clear(); 
     }

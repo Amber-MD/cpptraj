@@ -453,7 +453,7 @@ int Analysis_Matrix::Analyze() {
   // ---------- Output average coordinates, eigenvectors, and eigenvalues
   if (!outfilename_.empty()) {
     CpptrajFile outfile;
-    if (outfile.SetupWrite(outfilename_.c_str(), debug_)) {
+    if (outfile.SetupWrite(outfilename_, debug_)) {
       mprinterr("Error opening matrix analysis output file %s\n",outfilename_.c_str());
       return 1;
     }
