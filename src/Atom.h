@@ -41,7 +41,6 @@ class Atom {
     inline excluded_iterator excludedbegin() const { return excluded_.begin(); }
     inline excluded_iterator excludedend() const   { return excluded_.end();   }
     // Info functions
-    void PrintXYZ();
     void Info();
     // Functions that set internal vars
     void SetName(NameType);
