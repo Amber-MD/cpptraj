@@ -31,8 +31,8 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfFile.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \
-        PDBfile.cpp PDBtype.cpp ProgressBar.cpp \
-        Random.cpp Range.cpp RemdTraj.cpp Residue.cpp Topology.cpp \
+        PDBfile.cpp PDBtype.cpp ProgressBar.cpp PubFFT.cpp \
+        Random.cpp Range.cpp RemdTraj.cpp Residue.cpp Thermo.cpp Topology.cpp \
         TorsionRoutines.cpp \
         Traj_AmberCoord.cpp Traj_AmberNetcdf.cpp Traj_AmberRestart.cpp Traj_Binpos.cpp \
         Traj_AmberRestartNC.cpp Traj_CharmmDcd.cpp Traj_Conflib.cpp TrajectoryFile.cpp \

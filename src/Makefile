@@ -2,7 +2,7 @@ include ../config.h
 
 include cpptrajfiles
 
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) 
 
 all: cpptraj$(SFX)
 
@@ -19,8 +19,8 @@ dependclean:
 	-/bin/rm FindDepend.o
 	-/bin/rm findDepend
 
-cpptraj$(SFX): $(OBJECTS) $(PTRAJ_OBJECTS) $(ARPACK) $(LAPACK) $(BLAS) 
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) $(FLIBS_PTRAJ) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
+cpptraj$(SFX): $(OBJECTS) pubfft.o $(ARPACK) $(LAPACK) $(BLAS) 
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pubfft.o $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
 
 
 $(BLAS): $(BLAS_HOME)/Makefile
@@ -32,14 +32,11 @@ $(ARPACK): $(ARPACK_HOME)/Makefile
 $(LAPACK): $(LAPACK_HOME)/Makefile
 	cd $(LAPACK_HOME) && $(MAKE) install
 
-thermo.o:  $(PTRAJ_HOME)/thermo.F90
-	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ $(PTRAJ_HOME)/thermo.F90
-
-pubfft.o:  $(PTRAJ_HOME)/pubfft.F90
-	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ $(PTRAJ_HOME)/pubfft.F90
+pubfft.o:  pubfft.F90
+	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pubfft.F90
 
 clean:
-	/bin/rm -f $(OBJECTS) $(PTRAJ_OBJECTS) cpptraj$(SFX)
+	/bin/rm -f $(OBJECTS) pubfft.o cpptraj$(SFX)
 
 libclean: $(BLAS_HOME)/Makefile $(ARPACK_HOME)/Makefile $(LAPACK_HOME)/Makefile
 	cd $(BLAS_HOME) && $(MAKE) clean

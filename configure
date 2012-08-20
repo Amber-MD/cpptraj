@@ -184,10 +184,8 @@ ARPACK_HOME=$AMBERHOME/AmberTools/src/arpack
 BLAS=$AMBERHOME/lib/libblas.a
 LAPACK=$AMBERHOME/lib/liblapack.a
 ARPACK=$AMBERHOME/lib/libarpack.a
-PTRAJ_HOME=$AMBERHOME/AmberTools/src/ptraj
 PTRAJ_ANALYZE=1
 FLIBS=""
-PTRAJ_OBJECTS="thermo.o pubfft.o"
 #HDF5LIB="-lhdf5_hl -lhdf5"
 HDF5LIB=""
 LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
@@ -336,8 +334,6 @@ fi
 
 # Remove ptraj objects if specified, otherwise make sure AMBERHOME is defined
 if [[ $PTRAJ_ANALYZE -eq 0 ]] ; then
-  PTRAJ_OBJECTS=""
-  PTRAJ_HOME=""
   BLAS_HOME=""
   ARPACK_HOME=""
   LAPACK_HOME=""
@@ -420,8 +416,6 @@ ARPACK=$ARPACK
 LAPACK=$LAPACK
 BLAS=$BLAS
 FLIBS=$FLIBS
-PTRAJ_HOME=$PTRAJ_HOME
-PTRAJ_OBJECTS=$PTRAJ_OBJECTS
 
 LDFLAGS=$LDFLAGS
 SFX=

@@ -1,8 +1,6 @@
 include ../../config.h
 
 CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
-# The following are needed for the ptraj_analyze routines
-PTRAJ_OBJECTS=thermo.o pubfft.o
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
 # actual locations of the arpack, lapack, blas, and netcdf libraries as 
 # installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just
@@ -31,8 +29,8 @@ dependclean:
 	-/bin/rm FindDepend.o
 	-/bin/rm findDepend
 
-cpptraj$(SFX): $(NETCDF) $(OBJECTS) $(PTRAJ_OBJECTS) $(EXTERNAL_LIBS) 
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) $(PTRAJ_OBJECTS) \
+cpptraj$(SFX): $(NETCDF) $(OBJECTS) pubfft.o $(EXTERNAL_LIBS) 
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pubfft.o \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
 
 $(INCDIR)/netcdf.mod: ../../netcdf_config.log
@@ -47,11 +45,8 @@ $(LIBDIR)/liblapack.a:
 $(LIBDIR)/libblas.a:
 	cd ../../blas && $(MAKE) $(BLAS)
 
-thermo.o:  ../../ptraj/thermo.F90
-	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/thermo.F90
-
-pubfft.o:  ../../ptraj/pubfft.F90
-	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ ../../ptraj/pubfft.F90
+pubfft.o:  pubfft.F90
+	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ pubfft.F90
 
 .c.o:
 	$(CC) -c $(CPPTRAJ_FLAGS) -o $@ $<
@@ -60,7 +55,7 @@ pubfft.o:  ../../ptraj/pubfft.F90
 	$(CXX) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 clean:
-	/bin/rm -f $(OBJECTS) $(PTRAJ_OBJECTS) cpptraj$(SFX)
+	/bin/rm -f $(OBJECTS) pubfft.o cpptraj$(SFX)
 
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX)
