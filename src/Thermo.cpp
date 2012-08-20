@@ -1,14 +1,7 @@
-#ifndef NO_PTRAJ_ANALYZE
-// This whole routine is currently disabled when LAPACK is not present.
 #include <cmath>
 #include <cstdio>
 #include "Constants.h"
-
-
-extern "C" {
-  // LAPACK
-  void dspev_(char&, char&, int&, double*, double*, double*, int&, double*, int&);
-}
+#include "Matrix_3x3.h"
 
 // MomentOfInertia()
 static void MomentOfInertia(int natom, double *X_, double* Mass_, double* pmom)
@@ -55,17 +48,27 @@ static void MomentOfInertia(int natom, double *X_, double* Mass_, double* pmom)
     yz -= *(mass++) * dy * dz;
   }
   IVEC[0] = xx;
-  IVEC[6] = yy;
-  IVEC[7] = zz;
+  IVEC[1] = xy;
+  IVEC[2] = xz;
   IVEC[3] = xy;
-  IVEC[1] = xz;
-  IVEC[4] = yz;
+  IVEC[4] = yy;
+  IVEC[5] = yz;
+  IVEC[6] = xz;
+  IVEC[7] = yz;
+  IVEC[8] = zz;
 
-  int info = 0;
+  Matrix_3x3 TEMP( IVEC );
+  // NOTE: Diagonalize sorts evals/evecs in descending order, but
+  //       thermo() expects ascending.
+  TEMP.Diagonalize_Sort( eigvec, e2 );
+  pmom[0] = e2[2];
+  pmom[1] = e2[1];
+  pmom[2] = e2[0];
+  /*int info = 0;
   char jobz = 'V';
   char uplo = 'U';
   int nvec = 3;
-  dspev_(jobz, uplo, nvec, IVEC, pmom, eigvec, nvec, e2, info);
+  dspev_(jobz, uplo, nvec, IVEC, pmom, eigvec, nvec, e2, info);*/
 }
 
 // thermo() 
@@ -370,4 +373,3 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
   }
 
 }
-#endif
