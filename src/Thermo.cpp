@@ -60,7 +60,7 @@ static void MomentOfInertia(int natom, double *X_, double* Mass_, double* pmom)
   Matrix_3x3 TEMP( IVEC );
   // NOTE: Diagonalize sorts evals/evecs in descending order, but
   //       thermo() expects ascending.
-  TEMP.Diagonalize_Sort( eigvec, e2 );
+  TEMP.Diagonalize_Sort( eigvec, eval );
   pmom[0] = eval[2];
   pmom[1] = eval[1];
   pmom[2] = eval[0];
