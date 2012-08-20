@@ -1,6 +1,7 @@
 #include <cmath> // sqrt
 #include "Analysis_Matrix.h"
 #include "CpptrajStdio.h"
+#include "Thermo.h"
 
 // Definition of Fortran subroutines called from this class
 #ifndef NO_PTRAJ_ANALYZE
@@ -15,10 +16,6 @@ extern "C" {
                char&, int&, char*, int&, double&, double*, 
                int&, double*, int&, int*, int*, double*, double*, 
                int&, int&);
-  // thermo.F90
-  void thermo_(int&, int&, int&, double*, double*, double*,
-               double*, double*, double*, double*,
-               double&, double&);
 }
 #endif
 
@@ -373,12 +370,9 @@ int Analysis_Matrix::Analyze() {
       for (AtomMask::const_iterator atomi = minfo_->Mask1().begin();
                                   atomi != minfo_->Mask1().end(); ++atomi)
         masses[crow++] = (*(minfo_->Parm()))[*atomi].Mass();
-      crow = 1;
-      double temp = 298.15;
-      double pressure = 1.0;
-      thermo_(natoms, neval, crow, vect_, masses, eigvali, 
+      thermo( natoms, neval, 1, vect_, masses, eigvali, 
               vibn, vibn + 1*neval, vibn + 2*neval, vibn + 3*neval,
-              temp, pressure);
+              298.15, 1.0 );
       delete[] eigvali;
       delete[] vibn;
       delete[] masses; 
