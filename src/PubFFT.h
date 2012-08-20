@@ -11,6 +11,10 @@ class PubFFT {
 
     void Forward(double*);
     void Back(double*);
+    int SetupFFT(int);
+    void CorF_FFT(int, double*, double*);
+
+    int size() { return fft_size_; }
   private:
     int fft_size_; ///< dimension of the FFT
     int saved_factors_size_;
