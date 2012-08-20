@@ -8,7 +8,7 @@ static void MomentOfInertia(int natom, double *X_, double* Mass_, double* pmom)
 {
   double IVEC[9];
   double eigvec[9];
-  double e2[3];
+  double eval[3];
   // Center of mass
   double cx = 0.0;
   double cy = 0.0;
@@ -61,9 +61,9 @@ static void MomentOfInertia(int natom, double *X_, double* Mass_, double* pmom)
   // NOTE: Diagonalize sorts evals/evecs in descending order, but
   //       thermo() expects ascending.
   TEMP.Diagonalize_Sort( eigvec, e2 );
-  pmom[0] = e2[2];
-  pmom[1] = e2[1];
-  pmom[2] = e2[0];
+  pmom[0] = eval[2];
+  pmom[1] = eval[1];
+  pmom[2] = eval[0];
   /*int info = 0;
   char jobz = 'V';
   char uplo = 'U';
@@ -97,7 +97,7 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
              double* svibn, double temp, double patm)
 {
   // pmom    principal moments of inertia, in amu-bohr**2 and in ascending order.
-  double pmom[10], rtemp, rtemp1, rtemp2, rtemp3;
+  double pmom[3], rtemp, rtemp1, rtemp2, rtemp3;
 
   // ----- Constants -------------------
   const double thresh = 900.0;        // vibrational frequency threshold
@@ -359,16 +359,16 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
   printf("\n\n           freq.         E                  Cv                 S\n");
   printf(    "          cm**-1      kcal/mol        cal/mol-kelvin    cal/mol-kelvin\n");
   printf(    "--------------------------------------------------------------------------------\n");
-  printf(    " Total              %11.3f        %11.3f        %11.3f    \n",etot,ctot,stot);
-  printf(    " translational      %11.3f        %11.3f        %11.3f    \n",etran,ctran,stran);
-  printf(    " rotational         %11.3f        %11.3f        %11.3f    \n",erot,crot,srot);
-  printf(    " vibrational        %11.3f        %11.3f        %11.3f    \n",evib,cvib,svib);
+  printf(    " Total              %11.3f        %11.3f        %11.3f\n",etot,ctot,stot);
+  printf(    " translational      %11.3f        %11.3f        %11.3f\n",etran,ctran,stran);
+  printf(    " rotational         %11.3f        %11.3f        %11.3f\n",erot,crot,srot);
+  printf(    " vibrational        %11.3f        %11.3f        %11.3f\n",evib,cvib,svib);
 
   for (int i = 0; i < iff; ++i) 
     printf(" %5i%10.3f\n", i+1, freq[i]);
 
   for (int i = 0; i < ndof; ++i) {
-    printf(" %5i%10.3f    %11.3f        %11.3f        %11.3f    \n",i+iff+1,
+    printf(" %5i%10.3f    %11.3f        %11.3f        %11.3f\n",i+iff+1,
            freq[i+iff], evibn[i], cvibn[i], svibn[i]);
   }
 
