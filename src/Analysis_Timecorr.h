@@ -2,6 +2,7 @@
 #define INC_ANALYSIS_TIMECORR_H
 #include "Analysis.h"
 #include "VectorType.h"
+#include "PubFFT.h"
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
   */
@@ -23,6 +24,7 @@ class Analysis_Timecorr : public Analysis {
     static const char ModeString[][6];
     timecorrMode mode_;
     timecorrType type_;
+    PubFFT pubfft_;
     bool dplr_;
     bool norm_;
     bool drct_;

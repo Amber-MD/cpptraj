@@ -1,17 +1,6 @@
-#include <cmath> // log, ldexp
 #include "Analysis_Timecorr.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
-
-// Definition of Fortran subroutines called from this class
-#ifndef NO_PTRAJ_ANALYZE
-extern "C" {
-  // pubfft.F90
-  void cffti_(int&, double*);
-  void cfftf_(int&, double*, double*);
-  void cfftb_(int&, double*, double*);
-}
-#endif
 
 /// Strings corresponding to modes, used in output.
 const char Analysis_Timecorr::ModeString[3][6] = {
@@ -146,15 +135,6 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
   drct_ = analyzeArgs_.hasKey("drct");
   relax_ = analyzeArgs_.hasKey("relax");
 
-# ifdef NO_PTRAJ_ANALYZE
-  if (!drct_) {
-    mprinterr("Error: analyze timecorr: Cpptraj was not compiled with FFT routines,\n");
-    mprinterr("       but these are needed when not using direct calculation. Either\n");
-    mprinterr("       specify 'drct' or recompile with FFT routines.\n");
-    return 1;
-  }
-# endif
-
   // Relax parameters
   if (relax_) {
     // Get freq, NH distance
@@ -259,73 +239,6 @@ static void corfdir(int ndata, double *data1, double *data2, int nsteps, double 
   }
 }
 
-/** Calculates correlation functions using the Wiener-Khinchin-Theorem
-  * (s. Comp. Sim. of Liquids, p. 188)
-  *
-  * - ndata is the length of the arrays data1/2
-  * - data1/2 is a real array of complex numbers: 
-  *   data1/2(1)=real1/2(1), data1/2(2)=img1/2(1), ...
-  * - it is recommended that the discrete data is appended
-  *     with as much zeros to avoid spurious correlations
-  * - in addition, data MUST have the dimension of power of 2
-  *     (pad the "real" data (plus zeros) with additional 
-  *     zeros up to the next power of 2)
-  * - the result is not yet normalized by (no_of_discrete_data - t)**-1 (!)
-  */
-static void corffft(int ndata, double* data1, double* data2, double* table)
-{
-#ifdef NO_PTRAJ_ANALYZE
-  mprinterr("Error: Cpptraj compiled without FFT routines.\n");
-#else
-  int i, ndata2;
-  double dtmp;
-
-  ndata2 = ndata / 2; // TODO: pass in
-
-  // FFT data
-  cfftf_(ndata2, data1, table);
-  if(data2 != NULL)
-    cfftf_(ndata2, data2, table);
-
-  // Calc square modulus (in case of cross-correlation: calc [F(data1)]' * F(data2),
-  //   where [F(data1)]' is the complex conjugate of F(data1)).
-  if (data2 == NULL) {
-    for(i = 0; i < ndata; i+=2){
-      data1[i  ] = data1[i  ] * data1[i  ] + data1[i+1] * data1[i+1];
-      data1[i+1] = 0.0;
-    }
-  } else {
-    for(i = 0; i < ndata; i+=2){
-      dtmp       = data1[i  ] * data2[i  ] + data1[i+1] * data2[i+1];
-      data1[i+1] = data1[i  ] * data2[i+1] - data2[i  ] * data1[i+1];
-      data1[i  ] = dtmp;
-    }
-  }
-
-  // Inverse FFT
-  cfftb_(ndata2, data1, table);
-
-  // Normalize with ndata/2 (since not done in inverse FFT routine)
-  dtmp = 1.0 / ((double) (ndata2));
-  for(i = 0; i < ndata; i++)
-    data1[i] *= dtmp;
-#endif
-}
-
-// NOTE: This is now in ModesInfo
-// Calc spectral density (JACS 2002, 124, 4522; eq. A24) 
-/*static double calc_spectral_density(int nevec, int nelem, double *eigval, 
-                                    double *vout, double *taum, int i, 
-                                    double omega)
-{
-  double J = 0.0;
-  for(int j = 0 ; j < nevec; j++){
-    J += (eigval[j] * (vout[j * nelem + i] * vout[j * nelem + i])) * 2.0 * taum[j] /
-         ( 1.0 + omega*omega * taum[j]*taum[j] ); //check order XXXX
-  }                                                                                                  
-  return J;
-}*/
-
 // Analysis_Timecorr::Analyze()
 int Analysis_Timecorr::Analyze() {
   // If 2 vectors, ensure they have the same # of frames
@@ -348,11 +261,18 @@ int Analysis_Timecorr::Analyze() {
     nsteps = time;
   // ndata
   int ndata = 0;
-  if (drct_)
+  //int ndata2 = 0;
+  if (drct_) {
     ndata = 2 * frame;
-  else
-    ndata = ldexp( 1.0, (int)(log((double)(4 * frame - 1)) / log(2.0)) + 1);
-  int ndata2 = ndata / 2;
+    //ndata2 = frame;
+    table_ = new double[ 2 * nsteps ];
+  } else {
+  //  ndata = ldexp( 1.0, (int)(log((double)(4 * frame - 1)) / log(2.0)) + 1);
+    // Initialize FFT
+    pubfft_.SetupFFT( frame );
+    ndata = pubfft_.size() * 2;
+    //ndata2 = pubfft_.size();
+  }
   int mtot = 2 * vinfo1_->Order() + 1;
   mprintf("CDBG: frame=%i time=%i nsteps=%i ndata=%i mtot=%i\n",frame,time,nsteps,ndata,mtot);
 
@@ -360,21 +280,6 @@ int Analysis_Timecorr::Analyze() {
   data1_ = new double[ ndata ];
   if (mode_ == CROSS)
     data2_ = new double[ ndata ];
-  if (drct_)
-    table_ = new double[ 2 * nsteps ];
-  else
-    table_ = new double[ 2 * ndata + 15 ];
-
-  // Initialize FFT
-  if (!drct_)
-# ifdef NO_PTRAJ_ANALYZE
-  {  // Sanity check - should not make it here
-    mprinterr("Error: Cpptraj compiled without FFT routines.\n");
-    return 1;
-  }
-# else
-    cffti_(ndata2, table_);
-# endif
 
   // -------------------- IRED CALCULATION ---------------------------
   if (type_ == IRED) {
@@ -432,7 +337,8 @@ int Analysis_Timecorr::Analyze() {
           for (int k = 2*frame; k < ndata; ++k)
             data1_[k] = 0;
           // Calc correlation function (= C(m,l,t) in Bruschweiler paper) using FFT
-          corffft(ndata, data1_, NULL, table_);
+          //corffft(ndata, data1_, NULL, table_);
+          pubfft_.CorF_FFT(ndata, data1_, NULL);
         }
         // Sum into cf (= C(m,t) in Bruschweiler paper)
         for (int k = 0; k < nsteps; ++k) {
@@ -697,9 +603,11 @@ int Analysis_Timecorr::Analyze() {
           }
           // Calc correlation function using FFT
           if(vinfo2_ == 0)
-            corffft(ndata, data1_, NULL, table_);
+            //corffft(ndata, data1_, NULL, table_);
+            pubfft_.CorF_FFT(ndata, data1_, NULL);
           else
-            corffft(ndata, data1_, data2_, table_);
+            //corffft(ndata, data1_, data2_, table_);
+            pubfft_.CorF_FFT(ndata, data1_, data2_);
         }
         // Sum into cf
         for (int k = 0; k < nsteps; ++k){
