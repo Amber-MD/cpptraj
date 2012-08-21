@@ -1,6 +1,7 @@
 #include <cstdio> // sscanf
 #include "DataIO_Grace.h"
 #include "CpptrajStdio.h"
+#include "ProgressBar.h"
 
 // CONSTRUCTOR
 DataIO_Grace::DataIO_Grace() :
@@ -24,7 +25,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
   std::vector<DataSet*> Dsets;
   std::vector<std::string> labels;
   double dval;
-  int Nread;
+  int Nread, total_read;
   
   // Allocate and set up read buffer
   const size_t chunksize = 16384;
@@ -32,7 +33,11 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
   char* lineptr = linebuffer;
 
   // Read chunks from file
+  ProgressBar progress( (int)FileSize() );
+  total_read = 0;
   while ( (Nread = IO->Read(readbuffer_, chunksize)) > 0) {
+    total_read += Nread;
+    progress.Update( total_read );
     char* ptr = readbuffer_;
     char* endbuffer = readbuffer_ + (size_t)Nread;
     // Get lines from chunk
