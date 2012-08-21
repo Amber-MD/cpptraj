@@ -22,6 +22,7 @@ int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
     mprinterr("Error: autocorr: No data sets selected.\n");
     return 1;
   }
+  // TODO: Generate default name
   // Setup output datasets
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
     DataSet* dsout = datasetlist->AddSet( DataSet::DOUBLE, setname_, "autocorr" );

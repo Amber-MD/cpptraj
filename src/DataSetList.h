@@ -50,6 +50,8 @@ class DataSetList {
     DataSet* GetSet(std::string const&, int, std::string const&);
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& );
+    /// Generate name based on given default and # of DataSets.
+    std::string GenerateDefaultName(const char*);
     /// Add DataSet to list with name, or default name if not specified. (TODO: OBSOLETE)
     DataSet* Add( DataSet::DataType, const char*, const char*);
     /// Add DataSet to list with name, or default name if not specified.

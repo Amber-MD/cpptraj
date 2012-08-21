@@ -195,6 +195,24 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, std::string const& nameI
     return Add( inType, nameIn.c_str(), defaultName );
 }
 
+// DataSetList::GenerateDefaultName()
+/** Create a name based on the given defaultName and # of DataSets,
+  * i.e. defaultName_XXXXX 
+  */
+std::string DataSetList::GenerateDefaultName(const char* defaultName) {
+  // Determine size of name + extension
+  size_t namesize = strlen( defaultName );
+  size_t extsize = (size_t) DigitWidth( size() ); // # digits
+  if (extsize < 5) extsize = 5;                   // Minimum size is 5 digits
+  extsize += 2;                                   // + underscore + null
+  namesize += extsize;
+  char* newName = new char[ namesize ];
+  sprintf(newName,"%s_%05i", defaultName, size());
+  std::string dsname = newName;
+  delete[] newName;
+  return dsname;
+}
+
 // DataSetList::Add()
 /** Used to add a DataSet to the DataSetList which may or may not
   * be named. If nameIn is not specified create a name based on the 
@@ -210,18 +228,9 @@ DataSet* DataSetList::Add(DataSet::DataType inType, const char *nameIn,
     return NULL;
   }
   // If nameIn is NULL, generate a name based on defaultName
-  if (nameIn == NULL) {
-    // Determine size of name + extension
-    size_t namesize = strlen( defaultName );
-    size_t extsize = (size_t) DigitWidth( size() ); // # digits
-    if (extsize < 5) extsize = 5;                   // Minimum size is 5 digits
-    extsize += 2;                                   // + underscore + null
-    namesize += extsize;
-    char* newName = new char[ namesize ];
-    sprintf(newName,"%s_%05i", defaultName, size());
-    dsname.assign( newName );
-    delete[] newName;
-  } else
+  if (nameIn == NULL)
+    dsname = GenerateDefaultName( defaultName ); 
+  else
     dsname.assign( nameIn );
 
   return AddSet( inType, dsname, -1, std::string(), 0 );

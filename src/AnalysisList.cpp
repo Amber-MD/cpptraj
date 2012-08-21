@@ -11,6 +11,7 @@
 #include "Analysis_CrossCorr.h"
 #include "Analysis_AutoCorr.h"
 #include "Analysis_Lifetime.h"
+#include "Analysis_FFT.h"
 
 // CONSTRUCTOR
 AnalysisList::AnalysisList() :
@@ -42,6 +43,7 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
   else if (argIn.CommandIs("crosscorr")) { Ana = new Analysis_CrossCorr(); }
   else if (argIn.CommandIs("autocorr"))  { Ana = new Analysis_AutoCorr(); }
   else if (argIn.CommandIs("lifetime"))  { Ana = new Analysis_Lifetime(); }
+  else if (argIn.CommandIs("fft"))       { Ana = new Analysis_FFT(); }
   else if (argIn.CommandIs("analyze")  ) { 
     if (argIn.ArgAt(1) == NULL) return 1;
     if (argIn[1] == "matrix")
