@@ -15,5 +15,7 @@ class Analysis_AutoCorr : public Analysis {
     std::string setname_;
     std::vector<DataSet*> outputData_;
     int lagmax_;
+    bool usefft_;
+    bool calc_covar_;
 };
 #endif

@@ -4,9 +4,13 @@
 
 extern "C" {
   // pubfft.F90 functions
-  void cffti_(int&, double*, int*);
-  void cfftf_(int&, double*, double*, int*);
-  void cfftb_(int&, double*, double*, int*);
+  void cffti_(int&, double*, int*);          // FFT init
+  void cfftf_(int&, double*, double*, int*); // Forward FFT
+  void cfftb_(int&, double*, double*, int*); // Backward FFT
+}
+
+inline static int NextPowOf2(int sizeIn) {
+  return (ldexp( 1.0, (int)(log((double)(4 * sizeIn - 1)) / log(2.0)) + 1));
 }
 
 // CONSTRUCTOR
@@ -25,12 +29,13 @@ PubFFT::~PubFFT() {
 }
 
 // CONSTRUCTOR
-/// Takes FFT size as input
+/// Takes FFT size as input; ensures size is power of 2
 PubFFT::PubFFT(int fft_sizeIn) :
-  fft_size_(fft_sizeIn),
-  saved_factors_size_(30),
-  saved_work_size_(4 * fft_size_)
+  saved_factors_size_(30)
 {
+  int ndata = NextPowOf2( fft_sizeIn ); 
+  fft_size_ = ndata / 2;
+  saved_work_size_ = 2 * ndata; // 4 * fft_size
   saved_factors_ = new int[ saved_factors_size_ ];
   memset(saved_factors_, 0, saved_factors_size_ * sizeof(int));
   saved_work_ = new double[ saved_work_size_ ];
@@ -89,7 +94,7 @@ void PubFFT::Back(double* fft_array) {
 
 // PubFFT::SetupFFT()
 int PubFFT::SetupFFT(int sizeIn) {
-  int ndata = ldexp( 1.0, (int)(log((double)(4 * sizeIn - 1)) / log(2.0)) + 1);
+  int ndata = NextPowOf2( sizeIn ); 
   fft_size_ = ndata / 2;
   saved_work_size_ = 2 * ndata;
   // NOTE: Do not change saved_factors_size
@@ -113,39 +118,38 @@ int PubFFT::SetupFFT(int sizeIn) {
 
 // PubFFT::CorF_FFT()
 /** /author Original Authors: Alrun N. Koller & H. Gohlke
+  * /author C++ Adaptation and Cross-correlation fix by Dan Roe
   *
-  * Calculates correlation functions using the Wiener-Khinchin-Theorem
-  * (s. Comp. Sim. of Liquids, p. 188)
+  * Calculates correlation function using Cross-correlation theorem /
+  * Wiener-Khinchin-Theorem (s. Comp. Sim. of Liquids, p. 188) if data2
+  * is NULL.
+  * \param ndata Length of arrays of complex numbers, data1 and data2; should
+  *              be 2 * fft_size.
+  * \param data1 A real array of complex numbers: real_0 img_0 real_1 img_1 ... 
+  * \param data2 A real array of complex numbers: real_0 img_0 real_1 img_1 ... 
   *
-  * - ndata is the length of the arrays data1/2
-  * - data1/2 is a real array of complex numbers: 
-  *   data1/2(1)=real1/2(1), data1/2(2)=img1/2(1), ...
-  * - it is recommended that the discrete data is appended
-  *     with as much zeros to avoid spurious correlations
-  * - in addition, data MUST have the dimension of power of 2
-  *     (pad the "real" data (plus zeros) with additional 
-  *     zeros up to the next power of 2)
-  * - the result is not yet normalized by (no_of_discrete_data - t)**-1 (!)
+  * - Data MUST have the dimension of power of 2
+  * - The discrete data should be padded with zeros to avoid spurious correlations
+  * - The result is not yet normalized by (no_of_discrete_data - t)**-1 (!)
   */
 void PubFFT::CorF_FFT(int ndata, double* data1, double* data2) {
-  //int ndata = fft_size_ * 2;
-  // FFT data
-  cfftf_(fft_size_, data1, saved_work_, saved_factors_);
-  if(data2 != NULL)
-    cfftf_(fft_size_, data2, saved_work_, saved_factors_);
-
-  // Calc square modulus (in case of cross-correlation: calc [F(data1)]' * F(data2),
-  //   where [F(data1)]' is the complex conjugate of F(data1)).
   if (data2 == NULL) {
+    // Auto-correlation
+    cfftf_(fft_size_, data1, saved_work_, saved_factors_);
+    // Calculate square modulus of F(data1).
     for (int i = 0; i < ndata; i+=2) {
       data1[i  ] = data1[i  ] * data1[i  ] + data1[i+1] * data1[i+1];
       data1[i+1] = 0.0;
     }
   } else {
-    for(int i = 0; i < ndata; i+=2) {
-      double dtmp       = data1[i  ] * data2[i  ] + data1[i+1] * data2[i+1];
-      data1[i+1] = data1[i  ] * data2[i+1] - data2[i  ] * data1[i+1];
-      data1[i  ] = dtmp;
+    // Cross-correlation
+    cfftf_(fft_size_, data1, saved_work_, saved_factors_);
+    cfftf_(fft_size_, data2, saved_work_, saved_factors_);
+    // Calculate [data1] x [data2]* where * denotes complex conjugate.
+    for (int i = 0; i < ndata; i+=2) {
+      double dtmp = data1[i  ] * data2[i  ] + data1[i+1] * data2[i+1];
+      data1[i+1]  = data1[i+1] * data2[i  ] - data1[i  ] * data2[i+1];
+      data1[i  ]  = dtmp;
     }
   }
 

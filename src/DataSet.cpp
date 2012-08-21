@@ -1,7 +1,9 @@
 // DataSet
 #include <cmath> // sqrt
+#include <cstring> // memset
 #include "DataSet.h"
 #include "CpptrajStdio.h"
+#include "PubFFT.h"
 
 // CONSTRUCTOR
 DataSet::DataSet() :
@@ -224,9 +226,10 @@ double DataSet::Min() {
   * \calccovar If true calculate covariance (devation from avg).
   * \return 0 on success, 1 on error.
   */
-int DataSet::CrossCorr( DataSet& D2, DataSet& Ct, int lagmaxIn, bool calccovar ) {
+int DataSet::CrossCorr( DataSet& D2, DataSet& Ct, int lagmaxIn, bool calccovar, bool usefft ) 
+{
   int lagmax;
-  double d1, d2, ct;
+  double ct;
   // Check if D1 and D2 are valid types
   if ( !GoodCalcType( )    ) return 1;
   if ( !D2.GoodCalcType( ) ) return 1;
@@ -267,21 +270,48 @@ int DataSet::CrossCorr( DataSet& D2, DataSet& Ct, int lagmaxIn, bool calccovar )
   }
   // Calculate correlation
   double norm = 1.0;
-  for (int lag = 0; lag < lagmax; ++lag) {
-    ct = 0;
-    int jmax = Nelements - lag;
-    for (int j = 0; j < jmax; ++j) {
-      d1 = Dval(j);
-      d2 = D2.Dval(j+lag);
-      ct += ((d1 - avg1) * (d2 - avg2));
+
+  if ( usefft ) {
+    // Calc using FFT
+    PubFFT pubfft1;
+    pubfft1.SetupFFT( Nelements );
+    int ndata = pubfft1.size() * 2; // Allocate space for real + img component
+    double* data1 = new double[ ndata ];
+    memset( data1, 0, ndata * sizeof(double) );
+    for (int i = 0; i < Nelements; ++i) 
+      data1[i*2] = Dval(i)    - avg1;
+    if (&D2 == this) 
+      pubfft1.CorF_FFT(ndata, data1, NULL);
+    else {
+      // Populate second dataset if different
+      double* data2 = new double[ ndata ];
+      memset( data2, 0, ndata * sizeof(double) );
+      for (int i = 0; i < Nelements; ++i)
+        data2[i*2] = D2.Dval(i) - avg2;
+      pubfft1.CorF_FFT(ndata, data1, data2);
+      delete[] data2;
     }
-    if (lag == 0) {
-      if (ct != 0)
-        norm = fabs( ct );
+    // Put real components of data1 in output DataSet
+    norm = 1.0 / data1[0];
+    for (int i = 0; i < lagmax; ++i) {
+      ct = data1[i*2] * norm;
+      Ct.Add(i, &ct);
     }
-    //ct /= norm;
-    ct /= norm;
-    Ct.Add(lag, &ct);
+    delete[] data1;
+  } else {
+    // Direct calc
+    for (int lag = 0; lag < lagmax; ++lag) {
+      ct = 0;
+      int jmax = Nelements - lag;
+      for (int j = 0; j < jmax; ++j) 
+        ct += ((Dval(j+lag) - avg1) * (D2.Dval(j) - avg2));
+      if (lag == 0) {
+        if (ct != 0)
+          norm = fabs( ct );
+      }
+      ct /= norm;
+      Ct.Add(lag, &ct);
+    }
   }
   return 0;
 }

@@ -82,7 +82,7 @@ class DataSet {
     /// Return the largest value added to the set
     double Max();
     /// Calculate time correlation.
-    int CrossCorr( DataSet&, DataSet&, int, bool );
+    int CrossCorr( DataSet&, DataSet&, int, bool, bool );
     /// Calculate Pearson product-moment correlation. 
     double Corr( DataSet& ) ;
 

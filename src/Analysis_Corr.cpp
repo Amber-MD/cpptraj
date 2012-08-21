@@ -1,4 +1,3 @@
-#include <cmath>
 #include "Analysis_Corr.h"
 #include "CpptrajStdio.h"
 
@@ -6,13 +5,16 @@
 Analysis_Corr::Analysis_Corr() :
   D1_(NULL),
   D2_(NULL),
-  lagmax_(0)
+  lagmax_(0),
+  usefft_(true),
+  calc_covar_(true)
 {}
 
 // Analysis_Corr::Setup()
 /** Expected call: corr out <outfilename> <Dataset1> [<Dataset2>] [lagmax <lagmax>]
   */
 int Analysis_Corr::Setup(DataSetList *datasetlist) {
+  const char* calctype;
   // If command was 'analyze correlationcoe' instead of 'corr' make sure
   // first two args are marked.
   if (analyzeArgs_[0] == "analyze") {
@@ -52,19 +54,31 @@ int Analysis_Corr::Setup(DataSetList *datasetlist) {
   }
 
   // TODO: Check DataSet type
+  std::string dataset_name = analyzeArgs_.GetStringNext();
+  if (dataset_name.empty())
+    dataset_name = "Corr";
 
   // Setup output dataset
   std::string corrname = D1_->Legend() + "-" + D2_->Legend();
-  Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, "Corr", corrname );
+  Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, dataset_name, corrname );
   if (Ct_ == NULL) return 1;
 
-  if (D1name == D2name)
-    mprintf("    CORR: Auto-correlation of set %s", D1name);
+  if (calc_covar_)
+    calctype = "covariance";
   else
-    mprintf("    CORR: Correlation between set %s and set %s",D1name,D2name);
+    calctype = "correlation";
+
+  if (std::string(D1name) == std::string(D2name))
+    mprintf("    CORR: auto-%s of set %s", calctype, D1name);
+  else
+    mprintf("    CORR: %s between set %s and set %s", calctype, D1name, D2name);
   if (lagmax_!=-1) 
     mprintf(", max lag %i",lagmax_);
   mprintf("\n\tOutput to %s\n",outfilename_.c_str());
+  if (usefft_)
+    mprintf("\tUsing FFT to calculate %s.\n", calctype);
+  else
+    mprintf("\tUsing direct method to calculate %s.\n", calctype);
 
   return 0;
 }
@@ -82,10 +96,10 @@ int Analysis_Corr::Analyze() {
 
   mprintf("    CORR: %i elements, max lag %i\n",Nelements,lagmax_);
 
-  double corr_coeff = D1_->CrossCorr( *D2_, *Ct_, lagmax_, true );
+  D1_->CrossCorr( *D2_, *Ct_, lagmax_, calc_covar_, usefft_ );
 
   mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
-          D1_->c_str(), D2_->c_str(), corr_coeff );
+          D1_->c_str(), D2_->c_str(), D1_->Corr( *D2_ ) );
 
   return 0;
 }

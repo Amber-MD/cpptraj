@@ -16,5 +16,7 @@ class Analysis_Corr : public Analysis {
     int lagmax_;
     DataSet* Ct_;
     std::string outfilename_;
+    bool usefft_;
+    bool calc_covar_;
 };
 #endif

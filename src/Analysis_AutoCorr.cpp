@@ -3,12 +3,16 @@
 
 // CONSTRUCTOR
 Analysis_AutoCorr::Analysis_AutoCorr() :
-  lagmax_(-1)
+  lagmax_(-1),
+  usefft_(true),
+  calc_covar_(true)
 {}
 
 /** Usage: autocorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] out <filename>
   */
 int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
+  const char* calctype;
+
   std::string setname_ = analyzeArgs_.GetStringKey("name");
   outfilename_ = analyzeArgs_.GetStringKey("out");
   lagmax_ = analyzeArgs_.getKeyInt("lagmax",-1);
@@ -25,8 +29,13 @@ int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
     dsout->SetLegend( (*DS)->Legend() );
     outputData_.push_back( dsout );
   }
-  
-  mprintf("    AUTOCORR: Calculating auto-correlation for %i data sets:\n", dsets_.size());
+ 
+  if (calc_covar_)
+    calctype = "covariance";
+  else
+    calctype = "correlation";
+ 
+  mprintf("    AUTOCORR: Calculating auto-%s for %i data sets:\n", calctype, dsets_.size());
   dsets_.Info();
   if (lagmax_!=-1)
     mprintf("\tLag max= %i\n", lagmax_);
@@ -34,6 +43,10 @@ int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
     mprintf("\tSet name: %s\n", setname_.c_str() );
   if ( !outfilename_.empty() )
     mprintf("\tOutfile name: %s\n", outfilename_.c_str());
+  if (usefft_)
+    mprintf("\tUsing FFT to calculate %s.\n", calctype);
+  else
+    mprintf("\tUsing direct method to calculate %s.\n", calctype);
 
   return 0;
 }
@@ -43,7 +56,7 @@ int Analysis_AutoCorr::Analyze() {
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS)
   {
     mprintf("\t\tCalculating AutoCorrelation for set %s\n", (*DS)->Legend().c_str());
-    (*DS)->CrossCorr( *(*DS), *(*dsout), lagmax_, true );
+    (*DS)->CrossCorr( *(*DS), *(*dsout), lagmax_, calc_covar_, usefft_ );
     ++dsout;
   }
 
