@@ -79,11 +79,7 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
               modinfo_->Nvect(), (end_ - beg_ + 1));
     }
   } else if (!modesname.empty()) {
-    DSLin->VectorBegin();
-    while ( (modinfo_ = (ModesInfo*)DSLin->NextModes()) != 0 ) {
-      if (modinfo_->Name() == modesname)
-        break;
-    }
+    modinfo_ = (ModesInfo*)DSLin->FindSetOfType( modesname, DataSet::MODES );
     if (modinfo_ == 0) {
       mprinterr("Error: analyze modes: modes with name %s not found.\n", modesname.c_str());
       return 1;

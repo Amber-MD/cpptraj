@@ -72,10 +72,7 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
     return 1;
   }
   // Find matrix in DataSetList.
-  DSLin->VectorBegin();
-  while ( (minfo_ = (MatrixType*)DSLin->NextMatrix()) != 0 ) {
-    if (mname == minfo_->Name() ) break;
-  }
+  minfo_ = (MatrixType*)DSLin->FindSetOfType( mname, DataSet::MATRIX );
   if (minfo_ == 0) {
     mprinterr("Error: analyze matrix: Could not find matrix named %s\n",mname.c_str());
     return 1;

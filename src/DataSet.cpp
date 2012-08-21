@@ -273,8 +273,7 @@ int DataSet::CrossCorr( DataSet& D2, DataSet& Ct, int lagmaxIn, bool calccovar, 
 
   if ( usefft ) {
     // Calc using FFT
-    PubFFT pubfft1;
-    pubfft1.SetupFFT( Nelements );
+    PubFFT pubfft1(Nelements);
     int ndata = pubfft1.size() * 2; // Allocate space for real + img component
     double* data1 = new double[ ndata ];
     memset( data1, 0, ndata * sizeof(double) );

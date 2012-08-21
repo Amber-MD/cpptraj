@@ -1,7 +1,7 @@
 #include "Analysis_Timecorr.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
-
+// FIXME: Currently cross correlation FFT is inverted w.r.t. old ptraj was (corfdrct)
 /// Strings corresponding to modes, used in output.
 const char Analysis_Timecorr::ModeString[3][6] = {
   "????", "Auto", "Cross"
@@ -56,24 +56,19 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
   analyzeArgs_.MarkArg(0);
   analyzeArgs_.MarkArg(1);
   // Get Vectors
-  DSLin->VectorBegin();
   ArgList::ConstArg vec1 = analyzeArgs_.getKeyString("vec1");
   if (vec1==NULL) {
     mprinterr("Error: analyze timecorr: no vec1 given, ignoring command\n");
     return 1;
   }
-  while ( (vinfo1_ = (VectorType*)DSLin->NextVector()) != 0 ) {
-    if ( vinfo1_->Name().compare( vec1 ) == 0 ) break;
-  }
+  vinfo1_ = (VectorType*)DSLin->FindSetOfType( vec1, DataSet::VECTOR );
   if (vinfo1_==0) {
     mprinterr("Error: analyze timecorr: no vector with name %s found.\n", vec1);
     return 1;
   }
   ArgList::ConstArg vec2 = analyzeArgs_.getKeyString("vec2");
   if (vec2!=NULL) {
-    while ( (vinfo2_ = (VectorType*)DSLin->NextVector()) != 0 ) {
-      if ( vinfo2_->Name().compare( vec2 ) == 0 ) break;
-    }
+    vinfo2_ = (VectorType*)DSLin->FindSetOfType( vec2, DataSet::VECTOR );
     if (vinfo2_==0) {
       mprinterr("Error: analyze timecorr: no vector with name %s found.\n", vec2);
       return 1;

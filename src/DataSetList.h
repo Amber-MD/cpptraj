@@ -73,25 +73,24 @@ class DataSetList {
     void Info();
     /// Call sync for DataSets in the list (MPI only)
     void Sync();
-
+    /// Find next set of specified type with given name.
+    DataSet* FindSetOfType(std::string const&, DataSet::DataType);
+    
     void VectorBegin();
     DataSet* NextVector();
-    DataSet* NextMatrix();
-    DataSet* NextModes();
   private:
-    /// Dataset debug level
+    typedef std::vector<DataSet*> DataListType;
+    /// DataSet debug level
     int debug_;
     /// True if list contains copies that should not be freed in destructor.
     bool hasCopies_;
-
-    typedef std::vector<DataSet*> DataListType;
-    /// List of datasets
+    /// List of DataSets
     DataListType DataList_;
     /// Expected number of frames to be read in.
     int maxFrames_;
-    /// Used to iterate over vector datasets
+    /// Used in NextVector routine
     int vecidx_;
-
+    /// Used to sort DataSets
     struct dsl_cmp {
       inline bool operator()(DataSet* first, DataSet* second) const {
         return *first < *second;

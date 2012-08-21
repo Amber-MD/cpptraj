@@ -20,7 +20,7 @@ DataSetList::DataSetList() :
   debug_(0),
   hasCopies_(false), 
   maxFrames_(0),
-  vecidx_(0) 
+  vecidx_(0)
 {
   //fprintf(stderr,"DSL Constructor\n");
 }
@@ -377,36 +377,28 @@ void DataSetList::Sync() {
   }
 }
 
+// DataSetList::FindSetOfType()
+DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn)
+{
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+    if ( (*ds)->Type() == typeIn ) {
+      if ( (*ds)->Name() == nameIn )
+        return (*ds);
+    }
+  }
+  return 0;
+}
+
 // ---------- VECTOR ROUTINES
+// DataSetList::VectorBegin()
 void DataSetList::VectorBegin() {
   vecidx_ = 0;
 }
 
+// DataSetList::NextVector()
 DataSet* DataSetList::NextVector() {
   for (int idx = vecidx_; idx < (int)DataList_.size(); ++idx) {
     if (DataList_[idx]->Type() == DataSet::VECTOR) {
-      // Position vecidx at the next dataset
-      vecidx_ = idx + 1;
-      return DataList_[idx];
-    }
-  }
-  return 0;
-}
-
-DataSet* DataSetList::NextMatrix() {
-  for (int idx = vecidx_; idx < (int)DataList_.size(); ++idx) {
-    if (DataList_[idx]->Type() == DataSet::MATRIX) {
-      // Position vecidx at the next dataset
-      vecidx_ = idx + 1;
-      return DataList_[idx];
-    }
-  }
-  return 0;
-}
-
-DataSet* DataSetList::NextModes() {
-  for (int idx = vecidx_; idx < (int)DataList_.size(); ++idx) {
-    if (DataList_[idx]->Type() == DataSet::MODES) {
       // Position vecidx at the next dataset
       vecidx_ = idx + 1;
       return DataList_[idx];
