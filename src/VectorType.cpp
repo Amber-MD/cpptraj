@@ -938,7 +938,7 @@ void VectorType::sphericalHarmonics(int l, int m, double* XYZ, double r, double 
     if(m == 0){
       D[0] = SH20 * (2.0*z*z - x*x - y*y) * ri * ri;
     }
-    else if(fabs(m) == 1){
+    else if(abs(m) == 1){
       D[0] = -m * SH21 * x * z * ri * ri;
       D[1] = -    SH21 * y * z * ri * ri;
     }
