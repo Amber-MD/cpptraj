@@ -70,15 +70,14 @@ void ClusterList::Renumber() {
 
 // ClusterList::Summary()
 /** Print a summary of clusters.  */
-void ClusterList::Summary(const char* summaryfile) {
+void ClusterList::Summary(std::string const& summaryfile) {
   CpptrajFile outfile;
   std::vector<double> distances;
 
-  if (outfile.SetupWrite(summaryfile, debug_)) {
+  if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: ClusterList::Summary: Could not set up file.\n");
     return;
   }
-  outfile.OpenFile();
 
   outfile.Printf("%-8s %8s %8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac",
                      "AvgDist","Stdev","Centroid","AvgCDist");
@@ -146,17 +145,13 @@ void ClusterList::Summary(const char* summaryfile) {
 // ClusterList::Summary_Half
 /** Print a summary of the first half of the data to the second half.
   */
-void ClusterList::Summary_Half(const char* summaryfile) {
+void ClusterList::Summary_Half(std::string const& summaryfile) {
   CpptrajFile outfile;
-/*  int numInFirstHalf, numInSecondHalf;
-  int numframes, half, color;
-  float frac, frac1, frac2;*/
 
-  if (outfile.SetupWrite(summaryfile, debug_)) {
+  if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: ClusterList::Summary_Half: Could not set up file.\n");
     return;
   }
-  outfile.OpenFile();
 
   // Calculate halfway point
   int half = maxframes_ / 2;
@@ -264,16 +259,15 @@ void ClusterList::PrintClusters() {
   * in the clusters and . for all other frames. Also print out the
   * representative frame numbers.
   */
-void ClusterList::PrintClustersToFile(const char* filename) {
+void ClusterList::PrintClustersToFile(std::string const& filename) {
   CpptrajFile outfile;
   std::string buffer;
   
-  if ( outfile.SetupWrite(filename,debug_) ) {
+  if ( outfile.OpenWrite(filename) ) {
     mprinterr("Error: PrintClustersToFile: Could not set up file %s\n",
-              filename);
+              filename.c_str());
     return;
   }
-  outfile.OpenFile();
   outfile.Printf("#Clustering: %u clusters %i frames\n",
                  clusters_.size(), maxframes_);
   for (cluster_it C1_it = clusters_.begin(); 
@@ -288,7 +282,7 @@ void ClusterList::PrintClustersToFile(const char* filename) {
       buffer[ *frame1 ] = 'X';
     }
     buffer += '\n';
-    outfile.Write((char*)buffer.c_str(), buffer.size());
+    outfile.Write((void*)buffer.c_str(), buffer.size());
   }
   // Print representative frames
   outfile.Printf("#Representative frames:");

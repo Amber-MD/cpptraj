@@ -197,6 +197,14 @@ void CpptrajFile::Rank_printf(int rank, const char *format, ...) {
 }
 
 // -----------------------------------------------------------------------------
+// CpptrajFile::FileSize()
+off_t CpptrajFile::FileSize() {
+  if (compressType_ == NO_COMPRESSION)
+    return file_size_;
+  else
+    return uncompressed_size_;
+}
+
 // CpptrajFile::SetBaseFilename()
 /** Set filename with full path. Strip leading path from input filename to 
   * determine the base filename. Also determine the file extension.

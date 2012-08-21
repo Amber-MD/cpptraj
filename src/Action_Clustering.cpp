@@ -208,15 +208,15 @@ void Action_Clustering::print() {
 
   // Print ptraj-like cluster info
   if (!clusterinfo_.empty())
-    CList.PrintClustersToFile(clusterinfo_.c_str());
+    CList.PrintClustersToFile(clusterinfo_);
 
   // Print a summary of clusters
   if (!summaryfile_.empty())
-    CList.Summary(summaryfile_.c_str());
+    CList.Summary(summaryfile_);
 
   // Print a summary comparing first half to second half of data for clusters
   if (!halffile_.empty())
-    CList.Summary_Half(halffile_.c_str());
+    CList.Summary_Half(halffile_);
 
   // Create cluster v time data from clusters.
   CreateCnumvtime( CList );
