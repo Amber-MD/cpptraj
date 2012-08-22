@@ -67,7 +67,6 @@ class ModesInfo : public DataSet {
     static const double AVO;
     static const double CNST;
     static const double CMTOA;
-    static const double TWOPI;
     static const double CONT; 
 
     modesType type_;

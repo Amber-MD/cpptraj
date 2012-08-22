@@ -4,6 +4,7 @@
 #include "ModesInfo.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
+#include "Constants.h" // TWOPI
 
 const size_t ModesInfo::BUFSIZE_ = 1024;
 
@@ -43,7 +44,7 @@ const double ModesInfo::TKBC2 = 0.46105E-34;
 const double ModesInfo::AVO   = 6.023E23;
 const double ModesInfo::CNST  = TKBC2 * AVO;
 const double ModesInfo::CMTOA = 1.000E8;
-const double ModesInfo::TWOPI = 6.2832;
+//const double ModesInfo::TWOPI = 6.2832;
 const double ModesInfo::CONT  = CMTOA / TWOPI;
 
 // ModesInfo::SetNavgElem()
