@@ -2,12 +2,15 @@
 #include <cmath>
 #include <cfloat> // DBL_MAX
 #include <cstdio> //sscanf
+#include <cstring> // memset
 #include "Action_Rotdif.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // TWOPI
 #include "vectormath.h"
 #include "Integrate.h"
 #include "ProgressBar.h"
+#include "VectorType.h"
+#include "PubFFT.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -384,11 +387,11 @@ double *Action_Rotdif::randvec() {
   * \param rotated_vectors array of vector coords for each frame, V0x,V0y,V0z,V1x,V1y,V1z 
   * \param maxdat Maximum length to compute time correlation functions (units of 'frames')
   * \param itotframes total number of frames provided
-  * \param p2 Will be set wit values for correlation function, l=2
-  * \param p1 Will be set wit values for correlation function, l=1
+  * \param p2 Will be set with values for correlation function, l=2
+  * \param p1 Will be set with values for correlation function, l=1
   */
-int Action_Rotdif::compute_corr(double *rotated_vectors, int maxdat, int itotframes, 
-                         double *p2, double *p1)
+int Action_Rotdif::compute_corr(double* rotated_vectors, int maxdat, int itotframes, 
+                                double* p2, double* p1)
 {
   double *VJ, *VK;
   // Initialize p1 and p2
@@ -422,6 +425,75 @@ int Action_Rotdif::compute_corr(double *rotated_vectors, int maxdat, int itotfra
   }
  
   return 0; 
+}
+
+int Action_Rotdif::fft_compute_corr(double* rotated_vectors, int maxdat, int itotframes,
+                                    double* p2, double* p1)
+{
+  double Dcomplex[2]; // 0=real, 1=imaginary
+  // Actual number of vectors is 1 (original) + total frames
+  int n_of_vecs = itotframes + 1;
+
+  // Zero output arrays
+  memset(p1, 0, maxdat * sizeof(double) );
+  memset(p2, 0, maxdat * sizeof(double) );
+
+  // Allocate space to hold complex numbers
+  int p2blocksize = 2 * ((olegendre_ * 2) + 1);
+  int p2size = (p2blocksize * n_of_vecs);
+  double* p2cftmp = new double[ p2size ];
+  memset( p2cftmp, 0, p2size * sizeof(double) );
+  // Loop over all vectors, convert to spherical harmonics
+  double* VXYZ = rotated_vectors;
+  double* P2 = p2cftmp;
+  for (int i = 0; i < n_of_vecs; ++i) {
+    // Calc vector length
+    double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
+    // Loop over m = -olegendre, ..., +olegendre
+    for (int midx = -olegendre_; midx <= olegendre_; ++midx) {
+      VectorType::sphericalHarmonics(olegendre_, midx, VXYZ, len, Dcomplex);
+      mprintf("DBG: sphereHarm[%i](m=%i) = %lf + %lfi\n",i,midx,Dcomplex[0],Dcomplex[1]);
+      *(P2++) = Dcomplex[0];
+      *(P2++) = Dcomplex[1]; 
+    }
+    VXYZ += 3;
+  }
+
+  // DEBUG: Print p2cftmp array
+  //for (int i = 0; i < p2size; ++i)
+  //  mprintf("DBG: p2cftmp[%i] = %f\n",i,p2cftmp[i]);
+
+  // Calculate correlation fn
+  PubFFT pubfft(n_of_vecs);
+  int ndata = pubfft.size() * 2;
+  double* data1 = new double[ ndata ];
+  // Loop over m = -olegendre, ..., +olegendre
+  for (int midx = -olegendre_; midx <= olegendre_; ++midx) { 
+    // Pad FFT data storage with 0
+    memset( data1, 0, ndata * sizeof(double) );
+    // Loop over all snapshots, place data for m in data1
+    int p2idx = (midx + olegendre_) * 2;
+    for (int i = 0; i < n_of_vecs*2; i+=2) {
+      data1[i  ] = p2cftmp[p2idx  ];
+      data1[i+1] = p2cftmp[p2idx+1];
+      mprintf("DBG: FFT data1: frame=%i  m=%i: %f + %fi\n",i,midx,data1[i],data1[i+1]);
+      p2idx += p2blocksize;
+    }
+    // Perform FFT for this m
+    pubfft.CorF_FFT(ndata, data1, NULL); 
+    // Sum into p2
+    for (int i = 0; i < maxdat; ++i)
+      p2[i] += data1[i*2];
+  }
+
+  // Normalize correlation fn
+  for (int i = 0; i < maxdat; ++i)
+    // 4/5*PI due to spherical harmonics addition theorem
+    p2[i] = p2[i] * FOURFIFTHSPI / (n_of_vecs - i);
+     
+  delete[] p2cftmp;
+  delete[] data1;
+  return 0;
 }
 
 // Action_Rotdif::calcEffectiveDiffusionConst()
@@ -1428,6 +1500,7 @@ int Action_Rotdif::DetermineDeffs() {
   // Allocate memory for C(t)
   p1 = new double[ maxdat ];
   p2 = new double[ maxdat ];
+  double* p2fft = new double[ maxdat ]; // FFTDEBUG
   pX = new double[ maxdat ];
   // Set X values of C(t) based on tfac
   for (int i = 0; i < maxdat; i++) {
@@ -1473,8 +1546,17 @@ int Action_Rotdif::DetermineDeffs() {
       //        rotated_y[ridx],rotated_z[ridx]);
       rotvec += 3;
     }
+    // FFTDEBUG - calc correlation using fft
+    fft_compute_corr(rotated_vectors,maxdat,itotframes,p2fft,p1);
     // Calculate time correlation function for this vector
     compute_corr(rotated_vectors,maxdat,itotframes,p2,p1);
+    // FFTDEBUG - write out fft p2 and direct p2
+    CpptrajFile fftout;
+    fftout.OpenWrite( NumberFilename("fftout.dat", vec) );
+    fftout.Printf("%-10s %10s\n","#P2","FFTP2");
+    for (int ffti = 0; ffti < maxdat; ++ffti)
+      fftout.Printf("%10.4f %10.4f\n", p2[ffti], p2fft[ffti]);
+    fftout.CloseFile();
     // Calculate spline coefficients
     spline.cubicSpline_coeff(pX, pY, maxdat);
     // Calculate mesh Y values
@@ -1526,6 +1608,7 @@ int Action_Rotdif::DetermineDeffs() {
   delete[] rotated_vectors;
   delete[] p1;
   delete[] p2;
+  delete[] p2fft; // FFTDEBUG
   delete[] pX;
   return 0;
 }

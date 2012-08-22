@@ -75,6 +75,7 @@ class Action_Rotdif: public Action {
 
     double *randvec();
     int compute_corr(double *, int, int, double *, double *);
+    int fft_compute_corr(double*, int, int, double*, double*);
     double calcEffectiveDiffusionConst(double );
 
     int calc_Asymmetric(double *, double *);

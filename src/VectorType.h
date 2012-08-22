@@ -43,6 +43,8 @@ class VectorType : public DataSet, public Action {
     }
     // Currently only used for 'analyze timecorr'
     void PrintAvgcrd(CpptrajFile&);
+
+    static void sphericalHarmonics(int, int, double*, double, double[2]);
   private:
     static const char ModeString[][12];
 
@@ -98,6 +100,5 @@ class VectorType : public DataSet, public Action {
     int Action_BOX(  );
 
     void leastSquaresPlane(int, double *, double *, double *, double *);
-    void sphericalHarmonics(int, int, double*, double, double[2]);
 };
 #endif
