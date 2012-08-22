@@ -3,8 +3,8 @@
 #include "CpptrajStdio.h"
 #include "Thermo.h"
 
+#ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
-#ifndef NO_PTRAJ_ANALYZE
 extern "C" {
   // LAPACK
   void dspev_(char&, char&, int&, double*, double*, double*, int&, double*, int&);
@@ -58,7 +58,7 @@ void Analysis_Matrix::WorkspaceStored() {
   *                [vecs <vecs>] [reduce]
   */
 int Analysis_Matrix::Setup(DataSetList* DSLin) {
-#ifdef NO_PTRAJ_ANALYZE
+#ifdef NO_MATHLIB
   mprinterr("Error: analyze matrix: Compiled without LAPACK routines.\n");
   return 1;
 #else
@@ -150,7 +150,7 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
 #endif
 }
 
-#ifndef NO_PTRAJ_ANALYZE
+#ifndef NO_MATHLIB
 // dotprod()
 // NOTE: Only needed when using dsaupd
 static void dotprod(int nelem, double *mat, double *vec, double *target){
@@ -193,7 +193,7 @@ static int calcIndex(int nrows, int iIn, int jIn) {
 
 // Analysis_Matrix::Analyze()
 int Analysis_Matrix::Analyze() {
-#ifdef NO_PTRAJ_ANALYZE
+#ifdef NO_MATHLIB
   mprinterr("Error: Compiled without LAPACK routines.\n");
   return 1;
 #else

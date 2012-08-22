@@ -19,8 +19,8 @@ Usage() {
   echo "   -nozlib    : Do not use zlib (gzip/zip)"
   echo "   -nonetcdf  : Do not use netcdf"
   echo "   -nolfs     : Do not enable large file support."
-  echo "   -noptrajanalyze: Do not include ptraj analysis functions, which requires"
-  echo "                    ptraj, arpack, lapack, and blas from AmberTools"
+  echo "   -nomathlib : Do not include routines  which require arpack, lapack,"
+  echo "                and/or blas from AmberTools."
   echo "      Static linking options:"
   echo "   --with-netcdf=<DIR>"
   echo "   --with-zlib=<DIR>"
@@ -82,23 +82,30 @@ int main() {
 EOF
 }
 
+CompileError() {
+  echo "  Error follows:"
+  cat compile.err
+  echo "  --------------------"
+  echo "       Please check your compiler settings or configure flags."
+  echo "       If errors/warnings above appear related to netcdf.h, zlib.h,"
+  echo "       or bzlib.h check that your compiler is able to find the "
+  echo "       correct libraries."
+  echo ""
+  exit 1
+}
+
 # Test compilation with flags
 TestCompile() {
   # C
   echo "Testing C compiler:"
   WriteTestProgram testp.c
-  $CC $CFLAGS -o testp testp.c $BZLIB $NETCDFLIB $ZLIB > /dev/null 2>&1 
+  $CC $CFLAGS -o testp testp.c $BZLIB $NETCDFLIB $ZLIB > /dev/null 2> compile.err 
   ./testp | grep "Testing" > /dev/null
   status=$?
   if [[ $status -gt 0 ]] ; then
       echo "  Error: Unable to compile a C program using:"
       echo "       $CC $CFLAGS $ZLIB $BZLIB $NETCDFLIB"
-      echo "       Please check your compiler settings or configure flags."
-      echo "       If errors/warnings above appear related to netcdf.h, zlib.h,"
-      echo "       or bzlib.h check that your compiler is able to find the "
-      echo "       correct libraries."
-      echo ""
-      exit 1
+      CompileError
   fi
   /bin/rm -f testp.c testp
   echo "  OK"
@@ -106,46 +113,34 @@ TestCompile() {
   # C++
   echo "Testing C++ compiler:"
   WriteTestProgram testp.cpp
-  $CXX $CXXFLAGS -o testp testp.cpp $BZLIB $NETCDFLIB $ZLIB > /dev/null 2>&1
+  $CXX $CXXFLAGS -o testp testp.cpp $BZLIB $NETCDFLIB $ZLIB > /dev/null 2> compile.err
   ./testp | grep "Testing" > /dev/null
   status=$?
   if [[ $status -gt 0 ]] ; then
       echo "  Error: Unable to compile a C++ program using:"
       echo "       $CXX $CXXFLAGS $ZLIB $BZLIB $NETCDFLIB"
-      echo "       Please check your compiler settings or configure flags."
-      echo "       If errors/warnings above appear related to netcdf.h, zlib.h,"
-      echo "       or bzlib.h check that your compiler is able to find the "
-      echo "       correct libraries."
-      echo ""
-      exit 1
+      CompileError
   fi
   /bin/rm -f testp.cpp testp
   echo "  OK"
 
-  # Fortran - only needed if ptraj analyze routines being used
-  if [[ $PTRAJ_ANALYZE -eq 1 ]] ; then
-    echo "Testing Fortran compiler:"
-    cat > testp.f <<EOF
+  # Fortran
+  echo "Testing Fortran compiler:"
+  cat > testp.f <<EOF
       program testf
       write(6,*) 'testing a Fortran program'
       end program testf
 EOF
-    $FC $FFLAGS -o testp testp.f > /dev/null 2>&1
-    ./testp | grep "testing a Fortran program" > /dev/null
-    status=$?
-    if [[ $status -gt 0 ]] ; then
-        echo "  Error: Unable to compile a Fortran program using:"
-        echo "       $FC $FFLAGS" 
-        echo "       Please check your compiler settings or configure flags."
-        echo "       If errors/warnings above appear related to netcdf.h, zlib.h,"
-        echo "       or bzlib.h check that your compiler is able to find the "
-        echo "       correct libraries."
-        echo ""
-        exit 1
-    fi
-    /bin/rm -f testp.f testp
-    echo "  OK"
+  $FC $FFLAGS -o testp testp.f > /dev/null 2> compile.err
+  ./testp | grep "testing a Fortran program" > /dev/null
+  status=$?
+  if [[ $status -gt 0 ]] ; then
+      echo "  Error: Unable to compile a Fortran program using:"
+      echo "       $FC $FFLAGS"
+      CompileError
   fi
+  /bin/rm -f testp.f testp
+  echo "  OK"
 }
 
 #---------------------------------------------------------------------
@@ -258,8 +253,8 @@ while [[ ! -z $1 ]] ; do
       echo "Not using netcdf"
       NETCDFLIB=""
       ;;
-    "-noptrajanalyze")
-      echo "Not using 'timecorr' and 'matrix' analysis functions from ptraj."
+    "-nomathlib")
+      echo "Not using BLAS/LAPACK/ARPACK routines from AmberTools."
       PTRAJ_ANALYZE=0
       ;;
     "--with-bzlib"  )
@@ -340,13 +335,13 @@ if [[ $PTRAJ_ANALYZE -eq 0 ]] ; then
   BLAS=""
   ARPACK=""
   LAPACK=""
-  #FLIBS="" # Still need FLIBS for Rotdif
-  DIRECTIVES="$DIRECTIVES -DNO_PTRAJ_ANALYZE"
+  DIRECTIVES="$DIRECTIVES -DNO_MATHLIB"
 else
   if [[ -z $AMBERHOME ]] ; then
-    echo "Error: AMBERHOME is not defined and '-noptrajanalyze' not specified."
-    echo "       The ptraj analyze routines require ptraj, blas, arpack, and"
-    echo "       lapack from AmberTools. Set AMBERHOME and re-run configure."
+    echo "Error: AMBERHOME is not defined and '-nomathlib' not specified."
+    echo "       The matrix and rotational diffusion analysis routines"
+    echo "       require BLAS, LAPACK, and ARPACK from AmberTools."
+    echo "       Set AMBERHOME and re-run configure."
     exit 1
   fi
 fi

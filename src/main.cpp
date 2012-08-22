@@ -189,8 +189,8 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
 #ifdef _OPENMP
       mprintf(" -D_OPENMP");
 #endif
-#ifdef NO_PTRAJ_ANALYZE
-      mprintf(" -DNO_PTRAJ_ANALYZE");
+#ifdef NO_MATHLIB
+      mprintf(" -DNO_MATHLIB");
 #endif
       return 2;
 

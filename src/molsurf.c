@@ -4088,7 +4088,9 @@ static int reroute (int icycle, int jcycle, int cusp1, int cusp2,
                     CUSP_EDGE cusp_edge[], EDGE concave_edge[], 
                     int *n_broken_concave_faces, BROKEN_CONCAVE_FACE broken_concave_face[])
 {
-  int ii, jj, iedge1, iedge2, ie1, ie2, je;
+  int ii, jj, ie1, ie2, je;
+  int iedge1 = 0; // To avoid compiler warning
+  int iedge2 = 0; // To avoid compiler warning
   //void dump_cycle (), split_cycle ();
   int direction1, endpoint1, direction2, endpoint2;
 

@@ -9,8 +9,8 @@
 #include "Integrate.h"
 #include "ProgressBar.h"
 
+#ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
-#ifndef NO_PTRAJ_ANALYZE
 extern "C" {
   // LAPACK
   void dgesvd_(char*, char*, int&, int&, double*,
@@ -22,6 +22,54 @@ extern "C" {
   //            double*,int&,double*,int&,double&,double*,int&);
   // DEBUG
   //void dgemv_(char*,int&,int&,double&,double*,int&,double*,int&,double&,double*,int&);
+}
+
+// Q_to_D()
+/** Convert column vector Q with format:
+  *   {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
+  * to diffusion tensor D via the formula:
+  *   D = 3*Diso*I - 2Q
+  * where
+  *   Diso = trace(Q) / 3
+  *
+  * J. Biomol. NMR 9, 287 (1997) L. K. Lee, M. Rance, W. J. Chazin, A. G. Palmer
+  * it has been assumed that the Q(l=1) has the same relationship to
+  * D(l=1) as in the l=2 case; we have not yet proved this for the
+  * non-symmetric case, but it is true for the axially symmetric case
+  * also, Deff(l=1) = 1/(2*tau(l=1)) = e^T * Q(l=1) * e yields the 
+  * correct values for tau(l=1) (known from Woessner model type 
+  * correlation functions) along principal axe
+  */
+static void Q_to_D(double *D, double *Q) {
+  double tq = Q[0] + Q[1] + Q[2];
+  
+  D[0] = tq - (2 * Q[0]); // tq-2Qxx
+  D[1] = -2 * Q[3];       // -2Qxy
+  D[2] = -2 * Q[5];       // -2Qxz
+  D[3] = D[1];            // -2Qyx
+  D[4] = tq - (2 * Q[1]); // tq-2Qyy
+  D[5] = -2 * Q[4];       // -2Qyz
+  D[6] = D[2];            // -2Qzx
+  D[7] = D[5];            // -2Qzy
+  D[8] = tq - (2 * Q[2]); // tq-2Qzz
+}
+
+// static void D_to_Q()
+/** Given diffusion tensor D[9], calculate Q[6] where Q is:
+  *   Q = {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
+  * from
+  *   Q = (3*Dav*I - D) / 2
+  * where Dav = trace(D). See Q_to_D for more discussion.
+  */
+static void D_to_Q(double *Q, double *D) {
+  double td = D[0] + D[4] + D[8];
+
+  Q[0] = (td - D[0]) / 2; // Qxx
+  Q[1] = (td - D[4]) / 2; // Qyy
+  Q[2] = (td - D[8]) / 2; // Qzz
+  Q[3] = -D[1] / 2; // Qxy
+  Q[4] = -D[5] / 2; // Qyz
+  Q[5] = -D[2] / 2; // Qxz
 }
 #endif
 
@@ -194,9 +242,9 @@ int Action_Rotdif::init( ) {
   if (!corrOut_.empty())
     mprintf("\tTime correlation for l=1 and l=2 for vector 0 will be written to %s\n",
             corrOut_.c_str());
-#ifdef NO_PTRAJ_ANALYZE
+#ifdef NO_MATHLIB
   mprintf("------------------------------------------------------\n");
-  mprintf("Warning: Cpptraj was compiled with -DNO_PTRAJ_ANALYZE.\n");
+  mprintf("Warning: Cpptraj was compiled with -DNO_MATHLIB.\n");
   mprintf("         The final tensor fit cannot be performed.\n");
   mprintf("         Only Deffs will be calculated.\n");
   mprintf("------------------------------------------------------\n");
@@ -440,54 +488,6 @@ double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
   return d; 
 }
 
-// Q_to_D()
-/** Convert column vector Q with format:
-  *   {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
-  * to diffusion tensor D via the formula:
-  *   D = 3*Diso*I - 2Q
-  * where
-  *   Diso = trace(Q) / 3
-  *
-  * J. Biomol. NMR 9, 287 (1997) L. K. Lee, M. Rance, W. J. Chazin, A. G. Palmer
-  * it has been assumed that the Q(l=1) has the same relationship to
-  * D(l=1) as in the l=2 case; we have not yet proved this for the
-  * non-symmetric case, but it is true for the axially symmetric case
-  * also, Deff(l=1) = 1/(2*tau(l=1)) = e^T * Q(l=1) * e yields the 
-  * correct values for tau(l=1) (known from Woessner model type 
-  * correlation functions) along principal axe
-  */
-static void Q_to_D(double *D, double *Q) {
-  double tq = Q[0] + Q[1] + Q[2];
-  
-  D[0] = tq - (2 * Q[0]); // tq-2Qxx
-  D[1] = -2 * Q[3];       // -2Qxy
-  D[2] = -2 * Q[5];       // -2Qxz
-  D[3] = D[1];            // -2Qyx
-  D[4] = tq - (2 * Q[1]); // tq-2Qyy
-  D[5] = -2 * Q[4];       // -2Qyz
-  D[6] = D[2];            // -2Qzx
-  D[7] = D[5];            // -2Qzy
-  D[8] = tq - (2 * Q[2]); // tq-2Qzz
-}
-
-// static void D_to_Q()
-/** Given diffusion tensor D[9], calculate Q[6] where Q is:
-  *   Q = {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
-  * from
-  *   Q = (3*Dav*I - D) / 2
-  * where Dav = trace(D). See Q_to_D for more discussion.
-  */
-static void D_to_Q(double *Q, double *D) {
-  double td = D[0] + D[4] + D[8];
-
-  Q[0] = (td - D[0]) / 2; // Qxx
-  Q[1] = (td - D[4]) / 2; // Qyy
-  Q[2] = (td - D[8]) / 2; // Qzz
-  Q[3] = -D[1] / 2; // Qxy
-  Q[4] = -D[5] / 2; // Qyz
-  Q[5] = -D[2] / 2; // Qxz
-}
-
 // PrintMatrix()
 static void PrintMatrix(CpptrajFile &outfile, const char *Title, double *U, 
                         int mrows, int ncols) 
@@ -688,7 +688,7 @@ int Action_Rotdif::calc_Asymmetric(double *Dxyz, double *matrix_D)
   * \return Deviation of calculated D values from given D values.
   */
 double Action_Rotdif::chi_squared(double *Qin) {
-#ifdef NO_PTRAJ_ANALYZE
+#ifdef NO_MATHLIB
   return -1;
 #else
   int n_cols = 3;
@@ -1081,7 +1081,7 @@ int Action_Rotdif::Grid_search(double *Q_vector, int gridsize) {
   * \param vector_q Will be set with Q tensor for small anisotropic limit.
   */
 int Action_Rotdif::Tensor_Fit(double *vector_q) {
-#ifdef NO_PTRAJ_ANALYZE
+#ifdef NO_MATHLIB
   return 1;
 #else
   int info;
@@ -1546,8 +1546,6 @@ int Action_Rotdif::DetermineDeffs() {
   *   minimizer to optimize Q in full anisotropic limit
   */
 void Action_Rotdif::print() {
-  double Q_isotropic[6];
-  double Q_anisotropic[6];
 
   mprintf("    ROTDIF:\n");
  
@@ -1612,7 +1610,10 @@ void Action_Rotdif::print() {
   double temp_delqfrac = delqfrac;
 */
   // All remaining functions require LAPACK
-# ifndef NO_PTRAJ_ANALYZE
+# ifndef NO_MATHLIB
+  double Q_isotropic[6];
+  double Q_anisotropic[6];
+
   Tensor_Fit( Q_isotropic );
 
   // Using Q (small anisotropy) as a guess, calculate Q with
