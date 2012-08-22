@@ -44,6 +44,7 @@ class Action_Rotdif: public Action {
     double amoeba_ftol_;
     int amoeba_itmax_;
     bool do_gridsearch_;
+    bool usefft_;
 
     // Workspace for LAPACK functions
     double *work_;
@@ -75,7 +76,7 @@ class Action_Rotdif: public Action {
 
     double *randvec();
     int compute_corr(double *, int, int, double *, double *);
-    int fft_compute_corr(double*, int, int, double*, double*);
+    int fft_compute_corr(double*, int, int, double*, int);
     double calcEffectiveDiffusionConst(double );
 
     int calc_Asymmetric(double *, double *);

@@ -93,6 +93,7 @@ Action_Rotdif::Action_Rotdif() :
   amoeba_ftol_(0.0000001 ),
   amoeba_itmax_(10000 ),
   do_gridsearch_( false ),
+  usefft_( true ),
   work_( NULL ),
   lwork_( 0 ),
   random_vectors_( NULL ),
@@ -123,7 +124,7 @@ Action_Rotdif::~Action_Rotdif() {
   *                       [itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]
   *                       [delqfrac <delqfrac>] [rvecout <randvecOut>]
   *                       [rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]
-  *                       [corrout <corrOut>]
+  *                       [corrout <corrOut>] [usefft]
   *                       [rvecin <randvecIn>]
   *                       [gridsearch] [nmesh <NmeshPoints>]
   */ 
@@ -134,6 +135,7 @@ Action_Rotdif::~Action_Rotdif() {
 int Action_Rotdif::init( ) {
   double Trans[3]; // Dummy variable for CenteredRef routine
   // Get Keywords
+  usefft_ = actionArgs.hasKey("usefft");
   nvecs_ = actionArgs.getKeyInt("nvecs",1000);
   rseed_ = actionArgs.getKeyInt("rseed",80531);
   ncorr_ = actionArgs.getKeyInt("ncorr",0);
@@ -226,6 +228,10 @@ int Action_Rotdif::init( ) {
   else
     mprintf(" %i\n",ncorr_);
   mprintf("\tTimestep = %.4lf, T0 = %.4lf, TF = %.4lf\n",tfac_,ti_,tf_);
+  if (usefft_)
+    mprintf("\tVector correlation functions will be calculated using FFT\n");
+  else
+    mprintf("\tVector correlation functions will be calculated directly\n");
   if (NmeshPoints_ != -1)
     mprintf("\tNumber of mesh points for interpolation is %i\n", NmeshPoints_);
   mprintf("\tIterative solver: Max iterations = %i, tol = %lf, initial guess = %lf\n",
@@ -428,18 +434,18 @@ int Action_Rotdif::compute_corr(double* rotated_vectors, int maxdat, int itotfra
 }
 
 int Action_Rotdif::fft_compute_corr(double* rotated_vectors, int maxdat, int itotframes,
-                                    double* p2, double* p1)
+                                    double* p2, int order)
 {
   double Dcomplex[2]; // 0=real, 1=imaginary
   // Actual number of vectors is 1 (original) + total frames
   int n_of_vecs = itotframes + 1;
 
-  // Zero output arrays
-  memset(p1, 0, maxdat * sizeof(double) );
+  // Zero output array
   memset(p2, 0, maxdat * sizeof(double) );
 
-  // Allocate space to hold complex numbers
-  int p2blocksize = 2 * ((olegendre_ * 2) + 1);
+  // Allocate space to hold complex numbers. Each frame has 2 doubles 
+  // (real + imaginary) for each m = -olegendre -> +olegendre
+  int p2blocksize = 2 * ((order * 2) + 1);
   int p2size = (p2blocksize * n_of_vecs);
   double* p2cftmp = new double[ p2size ];
   memset( p2cftmp, 0, p2size * sizeof(double) );
@@ -450,11 +456,11 @@ int Action_Rotdif::fft_compute_corr(double* rotated_vectors, int maxdat, int ito
     // Calc vector length
     double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
     // Loop over m = -olegendre, ..., +olegendre
-    for (int midx = -olegendre_; midx <= olegendre_; ++midx) {
-      VectorType::sphericalHarmonics(olegendre_, midx, VXYZ, len, Dcomplex);
-      mprintf("DBG: sphereHarm[%i](m=%i) = %lf + %lfi\n",i,midx,Dcomplex[0],Dcomplex[1]);
+    for (int midx = -order; midx <= order; ++midx) {
+      VectorType::sphericalHarmonics(order, midx, VXYZ, len, Dcomplex);
+      //mprintf("DBG: sphereHarm[%i](m=%i) = %lf + %lfi\n",i,midx,Dcomplex[0],Dcomplex[1]);
       *(P2++) = Dcomplex[0];
-      *(P2++) = Dcomplex[1]; 
+      *(P2++) = Dcomplex[1];
     }
     VXYZ += 3;
   }
@@ -467,29 +473,36 @@ int Action_Rotdif::fft_compute_corr(double* rotated_vectors, int maxdat, int ito
   PubFFT pubfft(n_of_vecs);
   int ndata = pubfft.size() * 2;
   double* data1 = new double[ ndata ];
+  double* CF = p2cftmp;
+  double* PX = p2;
   // Loop over m = -olegendre, ..., +olegendre
-  for (int midx = -olegendre_; midx <= olegendre_; ++midx) { 
+  for (int midx = -order; midx <= order; ++midx) { 
     // Pad FFT data storage with 0
     memset( data1, 0, ndata * sizeof(double) );
     // Loop over all snapshots, place data for m in data1
-    int p2idx = (midx + olegendre_) * 2;
+    int p2idx = (midx + order) * 2;
     for (int i = 0; i < n_of_vecs*2; i+=2) {
-      data1[i  ] = p2cftmp[p2idx  ];
-      data1[i+1] = p2cftmp[p2idx+1];
-      mprintf("DBG: FFT data1: frame=%i  m=%i: %f + %fi\n",i,midx,data1[i],data1[i+1]);
+      data1[i  ] = CF[p2idx  ];
+      data1[i+1] = CF[p2idx+1];
+      //mprintf("DBG: FFT data1: frame=%i  m=%i: %f + %fi\n",i,midx,data1[i],data1[i+1]);
       p2idx += p2blocksize;
     }
     // Perform FFT for this m
     pubfft.CorF_FFT(ndata, data1, NULL); 
-    // Sum into p2
+    // Sum into pX
     for (int i = 0; i < maxdat; ++i)
-      p2[i] += data1[i*2];
+      PX[i] += data1[i*2];
   }
-
   // Normalize correlation fn
-  for (int i = 0; i < maxdat; ++i)
-    // 4/5*PI due to spherical harmonics addition theorem
-    p2[i] = p2[i] * FOURFIFTHSPI / (n_of_vecs - i);
+  // 4/3*PI and 4/5*PI due to spherical harmonics addition theorem
+  double norm = 1.0;
+  if (order==1)
+    norm = FOURTHIRDSPI;
+  else if (order==2)
+    norm = FOURFIFTHSPI;
+  for (int i = 0; i < maxdat; ++i) {
+    p2[i] = p2[i] * norm / (n_of_vecs - i);
+  }
      
   delete[] p2cftmp;
   delete[] data1;
@@ -1500,7 +1513,6 @@ int Action_Rotdif::DetermineDeffs() {
   // Allocate memory for C(t)
   p1 = new double[ maxdat ];
   p2 = new double[ maxdat ];
-  double* p2fft = new double[ maxdat ]; // FFTDEBUG
   pX = new double[ maxdat ];
   // Set X values of C(t) based on tfac
   for (int i = 0; i < maxdat; i++) {
@@ -1537,7 +1549,7 @@ int Action_Rotdif::DetermineDeffs() {
     // Loop over rotation matrices
     for (std::vector<double*>::iterator rmatrix = Rmatrices_.begin();
                                         rmatrix != Rmatrices_.end();
-                                        rmatrix++)
+                                        ++rmatrix)
     {
       // Rotate normalized vector
       matrix_times_vector(rotvec, *rmatrix, rndvec);
@@ -1546,17 +1558,18 @@ int Action_Rotdif::DetermineDeffs() {
       //        rotated_y[ridx],rotated_z[ridx]);
       rotvec += 3;
     }
-    // FFTDEBUG - calc correlation using fft
-    fft_compute_corr(rotated_vectors,maxdat,itotframes,p2fft,p1);
     // Calculate time correlation function for this vector
-    compute_corr(rotated_vectors,maxdat,itotframes,p2,p1);
+    if (usefft_)
+      fft_compute_corr(rotated_vectors, maxdat, itotframes, pY, olegendre_);
+    else
+      compute_corr(rotated_vectors, maxdat, itotframes, p2, p1);
     // FFTDEBUG - write out fft p2 and direct p2
-    CpptrajFile fftout;
+/*    CpptrajFile fftout;
     fftout.OpenWrite( NumberFilename("fftout.dat", vec) );
-    fftout.Printf("%-10s %10s\n","#P2","FFTP2");
+    fftout.Printf("%-10s %10s %10s %10s\n","#P2","FFTP2","P1","FFTP1");
     for (int ffti = 0; ffti < maxdat; ++ffti)
-      fftout.Printf("%10.4f %10.4f\n", p2[ffti], p2fft[ffti]);
-    fftout.CloseFile();
+      fftout.Printf("%10.4f %10.4f %10.4f %10.4f\n", p2[ffti], p2fft[ffti], p1[ffti], p1fft[ffti]);
+    fftout.CloseFile();*/
     // Calculate spline coefficients
     spline.cubicSpline_coeff(pX, pY, maxdat);
     // Calculate mesh Y values
@@ -1577,7 +1590,8 @@ int Action_Rotdif::DetermineDeffs() {
         outfile.SetupWrite(namebuffer, debug);
         outfile.OpenFile();
         for (int i = 0; i < maxdat; i++) 
-          outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
+          //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
+          outfile.Printf("%lf %lf\n",pX[i], pY[i]);
         outfile.CloseFile();
         //    Write Mesh
         if (debug>3) {
@@ -1608,7 +1622,6 @@ int Action_Rotdif::DetermineDeffs() {
   delete[] rotated_vectors;
   delete[] p1;
   delete[] p2;
-  delete[] p2fft; // FFTDEBUG
   delete[] pX;
   return 0;
 }
