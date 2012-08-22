@@ -286,6 +286,10 @@ int Cpptraj::Run() {
   // DataSet Analysis
   analysisList.Analyze(&DFL);
 
+  // DataSets, post-Analysis
+  mprintf("\nDATASETS AFTER ANALYSIS:\n");
+  DSL.Info();
+
   // Process any datafile commands
   DFL.ProcessDataFileArgs(&DSL);
   // Print Datafile information

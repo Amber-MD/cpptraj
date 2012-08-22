@@ -6,13 +6,15 @@
 // CONSTRUCTOR
 Analysis_FFT::Analysis_FFT() :
   maxsize_(0),
-  powerspectrum_(true)
+  powerspectrum_(false)
 {}
 
 // Analysis_FFT::Setup()
+/** Usage: fft <sets arg> [out <outfile>] [name <outsetname>] [power] */
 int Analysis_FFT::Setup(DataSetList* datasetlist) {
   std::string setname_ = analyzeArgs_.GetStringKey("name");
   outfilename_ = analyzeArgs_.GetStringKey("out");
+  powerspectrum_ = analyzeArgs_.hasKey("power");
   // Select datasets
   input_dsets_ = datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
   if (input_dsets_.empty()) {

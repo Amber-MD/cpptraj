@@ -82,15 +82,16 @@ int Action_Hbond::init() {
 
   // Setup datasets
   hbsetname_ = actionArgs.GetStringNext();
-  NumHbonds_ = DSL->AddSet(DataSet::INT, hbsetname_, "HB");
+  if (hbsetname_.empty())
+    hbsetname_ = DSL->GenerateDefaultName("HB");
+  NumHbonds_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "UU");
   if (NumHbonds_==NULL) return 1;
-  NumHbonds_->SetAspect("UU");
   DFL->Add(outfilename,NumHbonds_);
   if (calcSolvent_) {
-    NumSolvent_ = DSL->AddSetAspect(DataSet::INT, NumHbonds_->Name(), "UV");
+    NumSolvent_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "UV");
     if (NumSolvent_ == NULL) return 1;
     DFL->Add(outfilename, NumSolvent_);
-    NumBridge_ = DSL->AddSetAspect(DataSet::INT, NumHbonds_->Name(), "Bridge");
+    NumBridge_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "Bridge");
     if (NumBridge_ == NULL) return 1;
     DFL->Add(outfilename, NumBridge_);
   } 
@@ -344,7 +345,7 @@ int Action_Hbond::AtomsAreHbonded(int a_atom, int d_atom, int h_atom, int hbidx,
     HB.dist = dist;
     HB.angle = angle;
     if (series_) {
-      HB.data_ = (DataSet_integer*) DSL->AddSetIdxAspect( DataSet::INT, NumHbonds_->Name(), 
+      HB.data_ = (DataSet_integer*) DSL->AddSetIdxAspect( DataSet::INT, hbsetname_, 
                                                           hbidx, "solventhb" );
       //mprinterr("Created Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,HB.data_);
       HB.data_->Resize( DSL->MaxFrames() );
@@ -408,7 +409,7 @@ int Action_Hbond::action() {
         if (series_) {
           std::string hblegend = currentParm->TruncResAtomName(*accept) + "-" +
                                  currentParm->TruncResAtomName(D);
-          HB.data_ = (DataSet_integer*) DSL->AddSetIdxAspect( DataSet::INT, NumHbonds_->Name(),
+          HB.data_ = (DataSet_integer*) DSL->AddSetIdxAspect( DataSet::INT, hbsetname_,
                                                               hbidx, "solutehb" );
           //mprinterr("Created solute Hbond dataset index %i\n", hbidx);
           HB.data_->Resize( DSL->MaxFrames() );

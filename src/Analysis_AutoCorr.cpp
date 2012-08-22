@@ -22,10 +22,13 @@ int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
     mprinterr("Error: autocorr: No data sets selected.\n");
     return 1;
   }
-  // TODO: Generate default name
+  // If setname is empty generate a default name
+  if (setname_.empty())
+    setname_ = datasetlist->GenerateDefaultName( "autocorr" );
   // Setup output datasets
+  int idx = 0;
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
-    DataSet* dsout = datasetlist->AddSet( DataSet::DOUBLE, setname_, "autocorr" );
+    DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++ );
     if (dsout==NULL) return 1;
     dsout->SetLegend( (*DS)->Legend() );
     outputData_.push_back( dsout );

@@ -101,8 +101,6 @@ class DataSet {
     std::string Legend();
     /// Set DataSet legend.
     void SetLegend( std::string const& lIn ) { legend_ = lIn; }
-    /// Set DataSet aspect.
-    void SetAspect( std::string const& aIn ) { aspect_ = aIn; }
     /// Set scalar mode
     void SetScalar( scalarMode mIn ) { scalarmode_ = mIn; }
     /// Set scalar mode and type
