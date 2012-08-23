@@ -318,17 +318,17 @@ void Action_ClusterDihedral::print() {
     for (std::vector<DCmask>::iterator dih = DCmasks_.begin();
                                        dih != DCmasks_.end(); ++dih)
     {
-      output.Printf("%10i %10i %10i %10i %10i\n", (*dih).A1()+1, (*dih).A2()+1,
-                    (*dih).A3()+1, (*dih).A4()+1, (*dih).Bins());
+      output.Printf("%10i %10i %10i %10i %10i %8.3f\n", (*dih).A1()+1, (*dih).A2()+1,
+                    (*dih).A3()+1, (*dih).A4()+1, (*dih).Bins(), (*dih).Min());
     }
     output.Printf("%zu\n", dcarray_.size());
-    num = 0;
+    num = 1;
     for (std::vector<DCnode>::iterator DC = dcarray_.begin();
                                        DC != dcarray_.end(); ++DC)
     {
       output.Printf("%10li %10li ", num++, (*DC).Count());
       for (DCnode::bin_it binid = (*DC).binbegin(); binid != (*DC).binend(); ++binid)
-        output.Printf("%03i", *binid);
+        output.Printf(" %3i", *binid);
       output.Printf("\n");
     }
     output.CloseFile();
