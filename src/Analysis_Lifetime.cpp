@@ -81,125 +81,8 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
 
   return 0;
 }
-/*
-void Analysis_Lifetime::CalcAvgOnly( DataSet& input, DataSet& output ) {
-  int setSize = input.Size();
-  double sum = 0.0;
-  int windowcount = 0; // Used to trigger averaging.
-  int Ncount = 0;      // Used in averaging; if !cumulative, == windowcount.
-  int frame = 0;       // Frame to add data at.
-  mprintf("\t\tCalculating averages for set %s\n", input.Legend().c_str());
-  for (int i = 0; i < setSize; ++i) {
-    sum += input.Dval(i);
-    if (windowcount == windowSize_) {
-      double windowavg = sum / (double)Ncount;
-      float fval = (float)windowavg;
-      output.Add( frame, &fval ); 
-      frame += windowcount;
-      // Window counter is always reset
-      windowcount = 0;
-      if (!cumulative_) {
-        // Reset average counters
-        sum = 0;
-        Ncount = 0;
-      }
-    }
-  }
-}
 
-void Analysis_Lifetime::CalcLifetime( DataSet& input, DataSet& output, 
-                                      DataSet& maxSet, DataSet& avgSet)
-{
-  float favg;
-  int setSize = input.Size();
-  int sum = 0;
-  int windowcount = 0; // Used to trigger averaging.
-  int Ncount = 0;      // Used in averaging; if !cumulative, == windowcount.
-  int frame = 0;       // Frame to add data at.
-  int currentLifetimeCount = 0; // # of frames value has been present this lifetime
-  int maximumLifetimeCount = 0; // Max observed lifetime
-  int Nlifetimes = 0;           // # of separate lifetimes observed
-  int sumLifetimes = 0;         // sum of lifetimeCount for each lifetime observed
-  mprintf("\t\tCalculating lifetimes for set %s\n", input.Legend().c_str());
-  for (int i = 0; i < setSize; ++i) {
-    if ( input.Dval(i) > cut_ ) {
-      // Value is present at time i
-      ++sum;
-      ++currentLifetimeCount;
-      //mprintf(" present; sum=%i LC=%i\n", sum, currentLifetimeCount);
-    } else {
-      //mprintf(" not present");
-      // Value is not present at time i
-      if (currentLifetimeCount > 0) {
-        // Current lifetime has just ended. Update counters and reset for next lifetime.
-        if (currentLifetimeCount > maximumLifetimeCount)
-          maximumLifetimeCount = currentLifetimeCount;
-        sumLifetimes += currentLifetimeCount;
-        ++Nlifetimes;
-        //mprintf("; LC=%i maxLC=%i NL=%i\n", currentLifetimeCount, maximumLifetimeCount, Nlifetimes);
-        currentLifetimeCount = 0;
-      }
-      //mprintf("\n");
-    }
-    ++Ncount;
-    ++windowcount;
-    if (windowcount == windowSize_) {
-      double windowavg = (double)sum / (double)Ncount;
-      float fval = (float)windowavg;
-      output.Add( frame, &fval );
-      // Store lifetime information for this window
-      // Update current lifetime total
-      if (currentLifetimeCount > 0) {
-        if (currentLifetimeCount > maximumLifetimeCount)
-          maximumLifetimeCount = currentLifetimeCount;
-        sumLifetimes += currentLifetimeCount;
-        ++Nlifetimes;
-      }
-      // If Nlifetimes is 0 then value was never present. 
-      if (Nlifetimes == 0)
-        favg = 0.0;
-      else
-        favg = (float)sumLifetimes / (float)Nlifetimes;
-      //mprintf("\t\t\t[%i]Max lifetime observed: %i frames\n", frame,maximumLifetimeCount);
-      //mprintf("\t\t\t[%i]Avg lifetime: %f frames\n", frame, favg);
-      maxSet.Add( frame, &maximumLifetimeCount );
-      avgSet.Add( frame, &favg );
-
-      frame += windowcount;
-      // Window counter is always reset
-      windowcount = 0;
-      if (!cumulative_) {
-        // Reset average counters
-        sum = 0;
-        Ncount = 0;
-        // Reset lifetime counters
-        currentLifetimeCount = 0;
-        maximumLifetimeCount = 0;
-        Nlifetimes = 0;
-        sumLifetimes = 0;
-      }
-    }
-  }
-  // Print lifetime information if no window
-  if ( windowSize_ == -1 ) {
-    // Update current lifetime total
-    if (currentLifetimeCount > 0) {
-      if (currentLifetimeCount > maximumLifetimeCount)
-        maximumLifetimeCount = currentLifetimeCount;
-      sumLifetimes += currentLifetimeCount;
-      ++Nlifetimes;
-    }
-    // If Nlifetimes is 0 then value was never present. 
-    if (Nlifetimes == 0) 
-      favg = 0.0;
-    else
-       favg = (float)sumLifetimes / (float)Nlifetimes;
-    mprintf("\t\t\tMax lifetime observed: %i frames\n", maximumLifetimeCount);
-    //mprintf("\t\tSumLifeTimes=%i  Nlifetimes=%i\n",sumLifetimes,Nlifetimes);
-    mprintf("\t\t\tAvg lifetime: %f frames\n", favg);
-  }
-}
-*/
+// Analysis_Lifetime::Analyze()
 int Analysis_Lifetime::Analyze() {
   float favg;
   std::vector<DataSet*>::iterator outSet = outputDsets_.begin();
@@ -208,21 +91,17 @@ int Analysis_Lifetime::Analyze() {
   for (DataSetList::const_iterator inSet = inputDsets_.begin(); 
                                    inSet != inputDsets_.end(); ++inSet)
   {
-    /*if (averageonly_)
-      CalcAvgOnly( *(*inSet), *(*outSet) );
-    else
-      CalcLifetime( *(*inSet), *(*outSet), *(*maxSet), *(*avgSet) );*/
     mprintf("\t\tCalculating lifetimes for set %s\n", (*inSet)->Legend().c_str());
     // Loop over all values in set.
+    int setSize = (*inSet)->Size();
     double sum = 0;
     int windowcount = 0; // Used to trigger averaging
-    int Ncount = 0; // Used in averaging; if !cumulative, == windowcount
-    int frame = 0;
-    int setSize = (*inSet)->Size();
-    int currentLifetimeCount = 0;
-    int maximumLifetimeCount = 0;
-    int Nlifetimes = 0;
-    int sumLifetimes = 0;
+    int Ncount = 0;      // Used in averaging; if !cumulative, == windowcount
+    int frame = 0;       // Frame to add data at.
+    int currentLifetimeCount = 0; // # of frames value has been present this lifetime
+    int maximumLifetimeCount = 0; // Max observed lifetime
+    int Nlifetimes = 0;           // # of separate lifetimes observed
+    int sumLifetimes = 0;         // sum of lifetimeCount for each lifetime observed
     for (int i = 0; i < setSize; ++i) {
       double dval = (*inSet)->Dval(i);
       //mprintf("\t\t\tValue[%i]= %.2f", i,dval);

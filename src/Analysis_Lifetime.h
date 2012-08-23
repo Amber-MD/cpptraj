@@ -19,8 +19,6 @@ class Analysis_Lifetime : public Analysis {
     bool averageonly_;
     bool cumulative_;
 
-    //void CalcAvgOnly( DataSet&, DataSet& );
-    //void CalcLifetime( DataSet&, DataSet&, DataSet&, DataSet&);
     void PrintListToFile(DataFileList *, std::vector<DataSet*>&, std::string const&);
 };
 #endif
