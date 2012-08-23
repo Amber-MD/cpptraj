@@ -11,7 +11,8 @@ Action_ClusterDihedral::Action_ClusterDihedral() :
   CUT_(0),
   lastframe_(0),
   dcparm_(0),
-  CVT_(0)
+  CVT_(0),
+  minimum_(-180.0)
 {}
 
 // Action_ClusterDihedral::ReadDihedrals()
@@ -31,7 +32,7 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
       mprinterr("Error: Problem line: [%s]\n",buffer);
       return 1; // This should automatically close infile through destructor.
     }
-    DCmasks_.push_back( DCmask(a1-1, a2-1, a3-1, a4-1, bins) );
+    DCmasks_.push_back( DCmask(a1-1, a2-1, a3-1, a4-1, bins, minimum_ ) );
     mprintf("\t\t(%i)-(%i)-(%i)-(%i) Bins=%i\n",a1,a2,a3,a4,bins);
   }
   mprintf("\tRead %zu dihedrals.\n", DCmasks_.size());
@@ -43,7 +44,7 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
 /** Usage: clusterdihedral [phibins <N>] [psibins <M>] [out <outfile>]
   *                        [framefile <framefile>] [clusterinfo <infofile>]
   *                        [clustervtime <cvtfile>] [cut <CUT>] 
-  *                        [dihedralfile <dfile> | <mask>]
+  *                        [dihedralfile <dfile> | <mask>] [min <minimum>]
   */
 int Action_ClusterDihedral::init() {
   // # of phi and psi bins
@@ -52,6 +53,11 @@ int Action_ClusterDihedral::init() {
   if ( phibins_>360 || phibins_<=1 || psibins_>360 || psibins_<=1 ) {
     mprinterr("Error: clusterdihedral: phi or psi bins out of range 1 <= x < 360 (%i, %i)\n",
               phibins_, psibins_);
+    return 1;
+  }
+  minimum_ = actionArgs.getKeyDouble("min", -180.0);
+  if (minimum_ < -180.0 || minimum_ > 180.0) {
+    mprinterr("Error: clusterdihedral: min arg out of range -180 <= x <= 180 (%f)\n", minimum_);
     return 1;
   }
   // Cluster pop cutoff
@@ -84,6 +90,7 @@ int Action_ClusterDihedral::init() {
   } else {
     mprintf(" Clustering on %zu dihedral angles.\n", DCmasks_.size());
   }
+  mprintf("\tLowest bin will be %.3f degrees.\n", minimum_);
   if (CUT_>0)
     mprintf("\tOnly clusters with population > %i will be printed.\n", CUT_);
   if (!framefile_.empty())
@@ -123,8 +130,8 @@ int Action_ClusterDihedral::setup() {
         // If we have already found the last C in phi dihedral, this N is 
         // the last atom in psi dihedral - store both.
         if ( (*currentParm)[*atom].Name() == "N   " ) {
-          DCmasks_.push_back( DCmask(C1, N2, CA, C2,    phibins_) ); // PHI
-          DCmasks_.push_back( DCmask(N2, CA, C2, *atom, psibins_) ); // PSI
+          DCmasks_.push_back( DCmask(C1, N2, CA, C2,    phibins_, minimum_) ); // PHI
+          DCmasks_.push_back( DCmask(N2, CA, C2, *atom, psibins_, minimum_) ); // PSI
           if (debug > 0)
             mprintf("DIHEDRAL PAIR FOUND: C1= %i, N2= %i, CA= %i, C2= %i, N3= %li\n",
                     C1, N2, CA, C2, *atom);
@@ -155,6 +162,22 @@ int Action_ClusterDihedral::setup() {
   Bins_.resize( DCmasks_.size() );
   dcparm_ = currentParm;
 
+  // DEBUG - Print bin ranges
+  if (debug > 0) {
+    for (std::vector<DCmask>::iterator dih = DCmasks_.begin();
+                                       dih != DCmasks_.end(); ++dih)
+    {
+      mprintf("\tDihedral %s-%s-%s-%s[", (*currentParm)[(*dih).A1()].c_str(),
+              (*currentParm)[(*dih).A2()].c_str(), (*currentParm)[(*dih).A3()].c_str(),
+              (*currentParm)[(*dih).A4()].c_str());
+      for (int phibin = 0; phibin < (*dih).Bins(); ++phibin) {
+        double PHI = ((double)phibin * (*dih).Step()) + (*dih).Min();
+        mprintf("%6.2f] %3i [", PHI, phibin);
+      }
+      mprintf("%6.2f]\n",((double)(*dih).Bins() * (*dih).Step()) + (*dih).Min());
+    }
+  }
+
   return 0;
 }
 
@@ -168,10 +191,14 @@ int Action_ClusterDihedral::action() {
     double PHI = currentFrame->DIHEDRAL( (*dih).A1(), (*dih).A2(), (*dih).A3(), (*dih).A4() );
     // NOTE: Torsion is in radians; should bins be converted to rads as well?
     PHI *= RADDEG;
-    PHI += 180;
-    double phistep = 360 / (double)(*dih).Bins();
-    PHI /= phistep;
+    //mprintf("[%6i]Dihedral=%8.3f", (*dih).A1(), PHI); // DEBUG
+    PHI -= (*dih).Min();
+    //mprintf(" Shifted=%8.3f", PHI); // DEBUG
+    if (PHI < 0) PHI += 360;
+    //mprintf(" Wrapped=%8.3f", PHI); // DEBUG
+    PHI /= (*dih).Step();
     int phibin = (int)PHI;
+    //mprintf(" Bin=%3i\n", phibin); // DEBUG
     Bins_[bidx++] = phibin;
   }
   // DEBUG - print bins

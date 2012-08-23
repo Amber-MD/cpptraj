@@ -24,14 +24,14 @@ class DCnode {
     bool BinMatch(std::vector<int>& binIn) {
       return (std::equal(BinIDs_.begin(), BinIDs_.end(), binIn.begin()));
     }
-    long int Count() { return count_; }
+    long int Count()      { return count_; }
     typedef std::vector<int>::const_iterator bin_it;
-    bin_it binbegin() { return BinIDs_.begin(); }
-    bin_it binend()   { return BinIDs_.end();   }
+    bin_it binbegin()     { return BinIDs_.begin(); }
+    bin_it binend()       { return BinIDs_.end();   }
     typedef std::vector<int>::const_iterator frame_it;
     frame_it framebegin() { return frames_.begin(); }
     frame_it frameend()   { return frames_.end();   }
-    int NumFrames() { return (int)frames_.size(); }
+    int NumFrames()       { return (int)frames_.size(); }
   private:
     std::vector<int> BinIDs_;
     std::vector<int> frames_;
@@ -41,19 +41,24 @@ class DCnode {
 class DCmask {
   public: 
     DCmask() : a1_(0), a2_(0), a3_(0), a4_(0), bins_(0) {}
-    DCmask(int a1, int a2, int a3, int a4, int bins) :
-           a1_(a1), a2_(a2), a3_(a3), a4_(a4), bins_(bins) {}
+    DCmask(int a1, int a2, int a3, int a4, int bins, double min) :
+           a1_(a1), a2_(a2), a3_(a3), a4_(a4), 
+           bins_(bins), step_(360/(double)bins), min_(min) {}
     int A1()   { return a1_; }
     int A2()   { return a2_; }
     int A3()   { return a3_; }
     int A4()   { return a4_; }
     int Bins() { return bins_; }
+    double Step() { return step_; }
+    double Min() { return min_; }
   private:
     int a1_;
     int a2_;
     int a3_;
     int a4_;
     int bins_;
+    double step_; 
+    double min_;
 };
 
 class Action_ClusterDihedral : public Action {
@@ -80,6 +85,7 @@ class Action_ClusterDihedral : public Action {
     std::string framefile_; // filenames[1]
     std::string infofile_;  // filenames[2]
     AtomMask mask_;
-    DataSet *CVT_; ///< Hold # clusters vs time.
+    DataSet* CVT_; ///< Hold # clusters vs time.
+    double minimum_; ///< Value of first bin 
 };
 #endif
