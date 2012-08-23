@@ -922,27 +922,22 @@ void VectorType::sphericalHarmonics(int l, int m, double* XYZ, double r, double 
   D[1] = 0.0;
   ri = 1.0 / r;
 
-  if(l == 0 && m == 0){
-    D[0] = SH00;
-  }
-  else if(l == 1){
-    if(m == 0){
+  if (l == 0 && m == 0) {
+    D[0] = SH00; 
+  } else if (l == 1) {
+    if (m == 0) {
       D[0] = SH10 * z * ri;
+    } else { 
+      D[0] = -m * SH11 * x * ri; 
+      D[1] =     -SH11 * y * ri;
     }
-    else{
-      D[0] = -m * SH11 * x * ri;
-      D[1]  = -    SH11 * y * ri;
-    }
-  }
-  else if(l == 2){
-    if(m == 0){
+  } else if(l == 2) {
+    if (m == 0) {
       D[0] = SH20 * (2.0*z*z - x*x - y*y) * ri * ri;
-    }
-    else if(abs(m) == 1){
+    } else if (abs(m) == 1) {
       D[0] = -m * SH21 * x * z * ri * ri;
-      D[1] = -    SH21 * y * z * ri * ri;
-    }
-    else{
+      D[1] =     -SH21 * y * z * ri * ri;
+    } else {
       D[0] = SH22 * (x*x - y*y) * ri * ri;
       D[1] = m * SH22 * x * y * ri * ri;
     }
