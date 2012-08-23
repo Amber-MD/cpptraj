@@ -24,14 +24,14 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
   mprintf("\tReading dihedral information from %s\n", fname.c_str());
   while (infile.Gets(buffer, 256)==0) {
     // Expected line format: At#1 At#2 At#3 At#4 Bins
-    // ATOM NUMBERS SHOULD START FROM 0!
+    // ATOM NUMBERS SHOULD START FROM 1!
     int nvals = sscanf(buffer, "%i %i %i %i %i", &a1, &a2, &a3, &a4, &bins);
     if (nvals < 5) {
       mprinterr("Error: Dihedral file %s: Expected 5 values, got %i\n", fname.c_str(), nvals);
       mprinterr("Error: Problem line: [%s]\n",buffer);
       return 1; // This should automatically close infile through destructor.
     }
-    DCmasks_.push_back( DCmask(a1, a2, a3, a4, bins) );
+    DCmasks_.push_back( DCmask(a1-1, a2-1, a3-1, a4-1, bins) );
     mprintf("\t\t(%i)-(%i)-(%i)-(%i) Bins=%i\n",a1,a2,a3,a4,bins);
   }
   mprintf("\tRead %zu dihedrals.\n", DCmasks_.size());
