@@ -434,7 +434,7 @@ int CharmmDcd::readDcdHeader() {
 int CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *T) {
   // Load box info
   if (hasBox_) {
-    double *boxtmp = new double[6];
+    double boxtmp[6];
     if ( ReadBlock(48) < 0) return 1;
     IO->Read(boxtmp, sizeof(double)*6);
     if (isBigEndian) endian_swap8(box,6);
@@ -617,7 +617,7 @@ int CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double T) {
      * one used for NAMD/CHARMM dcd files.  Refer to the reading routine above
      * for a description of the box info.
      */
-    double *boxtmp = new double[6];
+    double boxtmp[6];
     boxtmp[0] = box[0];
     boxtmp[2] = box[1];
     boxtmp[5] = box[2];
