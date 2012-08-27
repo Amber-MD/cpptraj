@@ -339,7 +339,8 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType,
 // DataSetList::AddCopyOfSet()
 void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   if (!hasCopies_ && !DataList_.empty()) {
-    mprinterr("Internal Error: Adding DataSet (%s) copy to invalid list\n", dsetIn->c_str());
+    mprinterr("Internal Error: Adding DataSet (%s) copy to invalid list\n", 
+    dsetIn->Legend().c_str());
     return;
   }
   hasCopies_ = true;
@@ -380,7 +381,7 @@ void DataSetList::Sync() {
   // Sync datasets - does nothing if worldsize is 1
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Sync() ) {
-      rprintf( "Error syncing dataset %s\n",(*ds)->c_str());
+      rprintf( "Error syncing dataset %s\n",(*ds)->Legend().c_str());
       //return;
     }
   }

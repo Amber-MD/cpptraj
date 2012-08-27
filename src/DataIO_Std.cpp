@@ -263,7 +263,7 @@ int DataIO_Std::WriteData2D( DataSet& set ) {
   set.GetDimensions(dimensions);
   if (dimensions.size() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              set.c_str(), FullFileStr(), dimensions.size());
+              set.Legend().c_str(), FullFileStr(), dimensions.size());
     return 1;
   }
   
@@ -291,7 +291,7 @@ int DataIO_Std::WriteData2D( DataSet& set ) {
   } else {
     // Print X Y Value
     // Print dataset name
-    Printf("#%s\n", set.c_str());
+    Printf("#%s\n", set.Legend().c_str());
   
     for (int ix = 0; ix < dimensions[0]; ++ix) {
       double xcoord = (xstep_ * (double)ix) + xmin_;

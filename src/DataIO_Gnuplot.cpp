@@ -271,7 +271,7 @@ int DataIO_Gnuplot::WriteData2D( DataSet& set ) {
   set.GetDimensions(dimensions);
   if (dimensions.size() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              set.c_str(), FullFileStr(), dimensions.size());
+              set.Legend().c_str(), FullFileStr(), dimensions.size());
     return 1;
   } 
 

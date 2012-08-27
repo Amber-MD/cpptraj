@@ -146,10 +146,10 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
   // Print Status
   mprintf("    ANALYZE TIMECORR: Calculating");
   if (mode_ == AUTO)
-    mprintf(" auto-correlation function of vector %s", vinfo1_->c_str());
+    mprintf(" auto-correlation function of vector %s", vinfo1_->Legend().c_str());
   else if (mode_ == CROSS)
-    mprintf(" cross-correlation function of vectors %s and %s", vinfo1_->c_str(),
-            vinfo2_->c_str());
+    mprintf(" cross-correlation function of vectors %s and %s", vinfo1_->Legend().c_str(),
+            vinfo2_->Legend().c_str());
   mprintf("\n\t\tCorrelation time %lf, time step %lf\n", tcorr_, tstep_);
   mprintf("\t\tCorr. func. are");
   if (dplr_)
@@ -240,7 +240,8 @@ int Analysis_Timecorr::Analyze() {
   if (vinfo2_!=0) {
     if (vinfo1_->Frame() != vinfo2_->Frame()) {
       mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
-                vinfo1_->c_str(), vinfo1_->Frame(), vinfo2_->c_str(), vinfo2_->Frame());
+                vinfo1_->Legend().c_str(), vinfo1_->Frame(), 
+                vinfo2_->Legend().c_str(), vinfo2_->Frame());
       return 1;
     }
   }

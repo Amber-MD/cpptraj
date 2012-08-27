@@ -455,7 +455,8 @@ void Action_Rmsd::print() {
     {
       outFile = DFL->AddSetToFile(perresout_, *set);
       if (outFile == NULL) 
-        mprinterr("Error adding set %s to file %s\n", (*set)->c_str(), perresout_.c_str());
+        mprinterr("Error adding set %s to file %s\n", (*set)->Legend().c_str(), 
+                   perresout_.c_str());
     }
     if (outFile!=NULL) {
       // Set output file to be inverted if requested

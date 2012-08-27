@@ -88,8 +88,10 @@ int Analysis_Corr::Analyze() {
   // Check that D1 and D2 have same # data points.
   int Nelements = D1_->Size(); 
   if (Nelements != D2_->Size()) {
-    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",D1_->c_str(),Nelements);
-    mprinterr("             # elements in dataset %s (%i)\n",D2_->c_str(), D2_->Size());
+    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",
+              D1_->Legend().c_str(), Nelements);
+    mprinterr("             # elements in dataset %s (%i)\n",
+              D2_->Legend().c_str(), D2_->Size());
     return 1;
   }
   if (lagmax_==-1) lagmax_ = Nelements;
@@ -99,7 +101,7 @@ int Analysis_Corr::Analyze() {
   D1_->CrossCorr( *D2_, *Ct_, lagmax_, calc_covar_, usefft_ );
 
   mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
-          D1_->c_str(), D2_->c_str(), D1_->Corr( *D2_ ) );
+          D1_->Legend().c_str(), D2_->Legend().c_str(), D1_->Corr( *D2_ ) );
 
   return 0;
 }

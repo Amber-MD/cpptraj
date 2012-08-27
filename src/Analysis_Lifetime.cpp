@@ -204,7 +204,7 @@ void Analysis_Lifetime::PrintListToFile(DataFileList *dfl, std::vector<DataSet*>
   {
     outfile = dfl->Add( outname.c_str(), *set );
     if (outfile == NULL) {
-      mprinterr("Error adding set %s to file %s\n", (*set)->c_str(), outname.c_str());
+      mprinterr("Error adding set %s to file %s\n", (*set)->Legend().c_str(), outname.c_str());
       return;
     }
   }

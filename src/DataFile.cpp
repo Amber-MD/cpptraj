@@ -149,14 +149,15 @@ void DataFile::Write() {
     // Check if set has no data.
     if ( (*Dset)->Empty() ) {
       // If set has no data, remove it
-      mprintf("Warning: Set %s contains no data. Skipping.\n",(*Dset)->c_str());
+      mprintf("Warning: Set %s contains no data. Skipping.\n",(*Dset)->Legend().c_str());
       SetList_.erase( Dset );
       Dset = SetList_.end();
     } else {
       // If set has data, set its format to right-aligned initially. Also 
       // determine what the maximum x value for the set is.
       if ( (*Dset)->SetDataSetFormat(false) ) {
-        mprinterr("Error: could not set format string for set %s. Skipping.\n", (*Dset)->c_str());
+        mprinterr("Error: could not set format string for set %s. Skipping.\n", 
+                  (*Dset)->Legend().c_str());
         SetList_.erase( Dset );
         Dset = SetList_.end();
       } else {

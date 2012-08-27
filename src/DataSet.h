@@ -96,7 +96,7 @@ class DataSet {
     /// Used to set the data and header format strings 
     int SetDataSetFormat(bool);
     /// DataSet output label.
-    std::string Legend();
+    std::string const& Legend();
     /// Set DataSet legend.
     void SetLegend( std::string const& lIn ) { legend_ = lIn; }
     /// Set scalar mode
@@ -109,8 +109,6 @@ class DataSet {
     // -----===== Functions that return private vars =====-----
     /// Dataset name
     std::string const& Name()   { return name_; }
-    /// Printf-compatible name
-    const char* c_str()         { return name_.c_str(); }
     /// Return DataSet index
     int Idx()                   { return idx_; }
     /// Return DataSet aspect

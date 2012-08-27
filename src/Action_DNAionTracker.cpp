@@ -76,7 +76,7 @@ int Action_DNAionTracker::init() {
     case BOTTOMCONE: 
       mprintf("count in the bottom half of the cone will be\n"); break;
   }
-  mprintf("      saved to array named %s\n", distance_->c_str());
+  mprintf("      saved to array named %s\n", distance_->Legend().c_str());
   mprintf("      Perpendicular offset for cone is %5.2f angstroms\n", poffset_);
   if (!useImage_)
     mprintf("      Imaging has been disabled\n");

@@ -45,7 +45,7 @@ int Analysis_Statistics::Setup(DataSetList *DSLin) {
   if (analyzeAll)
     mprintf("ALL accumulated values ");
   else
-    mprintf("name %s ", datasets_.back()->c_str() );
+    mprintf("name %s ", datasets_.back()->Legend().c_str() );
   if (shift_ != 0)
     mprintf("shift (about %.2f) is begin applied.", shift_);
   mprintf("\n");
@@ -67,12 +67,12 @@ int Analysis_Statistics::Analyze() {
     int Nelements = (*ds)->Size();
     if (Nelements < 1) {
       mprintf("Warning: analyze statistics: No data in dataset %s, skipping.\n",
-              (*ds)->c_str());
+              (*ds)->Legend().c_str());
       continue;
     }
     if (Nelements != totalFrames) {
       mprintf("Warning: analyze statistics: Set %s is missing data for some frames.\n",
-              (*ds)->c_str());
+              (*ds)->Legend().c_str());
       mprintf("Warning: Xmax= %i, Nelements= %i\n", totalFrames, Nelements);
     }
     
@@ -106,7 +106,7 @@ int Analysis_Statistics::Analyze() {
 
     // Output average/stddev
     outfile_.Printf("__________________________________________________________________\n\n");
-    outfile_.Printf("STATISTICS %6s\n", (*ds)->c_str());
+    outfile_.Printf("STATISTICS %6s\n", (*ds)->Legend().c_str());
     // NOTE: Here in PTRAJ, Atom/Mask selections were output for M_DISTANCE.
     //       Not done in CPPTRAJ since currently this info is not stored
     //       in DataSet.

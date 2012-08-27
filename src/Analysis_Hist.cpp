@@ -39,7 +39,8 @@ int Analysis_Hist::CheckDimension(const char* input, DataSetList *datasetlist) {
 
   // Check that dataset is not string
   if (dset->Type()==DataSet::STRING) {
-    mprintf("Error: Hist: Cannot histogram dataset %s, type STRING.\n", dset->c_str());
+    mprintf("Error: Hist: Cannot histogram dataset %s, type STRING.\n", 
+            dset->Legend().c_str());
     return 1;
   }
 
@@ -169,7 +170,7 @@ int Analysis_Hist::Setup(DataSetList *datasetlist) {
           outfilename_.c_str(), dimensionArgs_.size());
   mprintf("\t      [ ");
   for (std::vector<DataSet*>::iterator ds=histdata_.begin(); ds!=histdata_.end(); ++ds)
-    mprintf("%s ",(*ds)->c_str());
+    mprintf("%s ",(*ds)->Legend().c_str());
   mprintf("]\n");
   if (calcFreeE_)
     mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp_);
@@ -206,7 +207,7 @@ int Analysis_Hist::Analyze() {
     else {
       if (Ndata != (*ds)->Size()) {
         mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%i), expected %i.\n",
-                  (*ds)->c_str(), (*ds)->Size(), Ndata);
+                  (*ds)->Legend().c_str(), (*ds)->Size(), Ndata);
         return 1;
       }
     }

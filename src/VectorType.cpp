@@ -275,8 +275,8 @@ int VectorType::Allocate(int maxFrames) {
       // This is a child with link to master modeinfo. Also link to cftmp, which 
       // should already be allocated on master.
       if (master_->cftmp_==0) {
-        mprinterr("Error: Child vector %s cannot link to master vector %s\n", c_str(),
-                  master_->c_str());
+        mprinterr("Error: Child vector %s cannot link to master vector %s\n", Legend().c_str(),
+                  master_->Legend().c_str());
         return 1;
       }
       cftmp_ = master_->cftmp_;
@@ -315,7 +315,7 @@ int VectorType::Allocate(int maxFrames) {
 
 // VectorType::Info()
 void VectorType::Info() {
-  mprintf("    VECTOR: Storage to array named %s\n", c_str() );
+  mprintf("    VECTOR: Storage to array named %s\n", Legend().c_str() );
   mprintf("            Vector Mode: %s\n", ModeString[mode_]);
   switch (mode_) {
     case VECTOR_DIPOLE:
@@ -375,7 +375,7 @@ void VectorType::print() {
   CpptrajFile outfile;
   if (outfile.OpenWrite(filename_.c_str())) return;
 
-  mprintf("CPPTRAJ VECTOR: dumping vector information %s\n", c_str());
+  mprintf("CPPTRAJ VECTOR: dumping vector information %s\n", Legend().c_str());
   outfile.Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n");
   outfile.Printf("# FORMAT where v? is vector, c? is center of mass...\n");
   for (int i=0; i < totalFrames_; ++i) {

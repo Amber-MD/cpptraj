@@ -77,7 +77,7 @@ int Action_Projection::init() {
   mask_.SetMaskString( actionArgs.getNextMask() );
 
   mprintf("    PROJECTION: Calculating projection using modes %i to %i of file %s\n",
-          beg_, end_, modinfo_.c_str());
+          beg_, end_, modinfo_.Legend().c_str());
   mprintf("                Results are written to %s\n", filename_.c_str());
   mprintf("                Start: %i", start_+1);
   if (stop_!=-1)

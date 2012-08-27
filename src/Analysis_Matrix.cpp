@@ -129,7 +129,7 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
   DSLin->AddDataSet( (DataSet*)modinfo_ );
 
   // Print Status
-  mprintf("    ANALYZE MATRIX: Analyzing matrix %s",minfo_->c_str());
+  mprintf("    ANALYZE MATRIX: Analyzing matrix %s",minfo_->Legend().c_str());
   if (!outfilename_.empty())
     mprintf(" and dumping results to %s\n", outfilename_.c_str());
   else

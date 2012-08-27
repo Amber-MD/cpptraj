@@ -137,7 +137,7 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
 
   // Status
   mprintf("    ANALYZE MODES: Calculating %s using modes %i to %i from %s\n",
-          analysisTypeString, beg_, end_, modinfo_->c_str());
+          analysisTypeString, beg_, end_, modinfo_->Legend().c_str());
   mprintf("\tResults are written to");
   if (filename_.empty())
     mprintf(" STDOUT\n");

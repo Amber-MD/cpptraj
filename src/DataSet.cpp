@@ -96,7 +96,8 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case STRING: SetStringFormatString(format_, width_, leftAlign); break;
     case VECTOR: SetDoubleFormatString(format_, width_, precision_, 0, false); break;
     default:
-      mprinterr("Error: No format string defined for this data type (%s).\n", c_str());
+      mprinterr("Error: No format string defined for this data type (%s).\n", 
+                Legend().c_str());
       return 1;
   }
   // Assign format to a constant ptr to avoid continuous calls to c_str
@@ -105,20 +106,22 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
 }
 
 // DataSet::Legend()
-std::string DataSet::Legend() {
-  if (!legend_.empty())
-   return legend_;
-  else {
-    std::string temp_name;
+/** Return DataSet legend. If the legend is empty create one based on 
+  * DataSet name (and aspect/index if present). Possible formats are:
+  * - Name[Aspect]
+  * - Aspect:Idx
+  * - Name
+  */
+std::string const& DataSet::Legend() {
+  if (legend_.empty()) {
     if (!aspect_.empty() && idx_ == -1)
-      temp_name = name_ + aspect_;
+      legend_ = name_ + "[" + aspect_ + "]";
     else if (!aspect_.empty() && idx_ != -1)
-      //temp_name = aspect_ + integerToString( idx_ );
-      temp_name = aspect_;
+      legend_ = aspect_ + ":" + integerToString( idx_ );
     else
-      temp_name = name_;
-    return temp_name;
+      legend_ = name_;
   }
+  return legend_;
 }
 
 // DataSet::SetScalar()
@@ -148,7 +151,8 @@ bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const&
 bool DataSet::GoodCalcType() {
   if (dType_==DOUBLE || dType_==FLOAT || dType_==INT)
     return true;
-  mprinterr("Error: DataSet %s is not a valid type for this calc.\n", c_str());
+  mprinterr("Error: DataSet %s is not a valid type for this calc.\n", 
+            Legend().c_str());
   return false;
 }
 
@@ -328,8 +332,10 @@ double DataSet::Corr( DataSet& D2 ) {
   // Check that D1 and D2 have same # data points.
   int Nelements = Size();
   if (Nelements != D2.Size()) {
-    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n", c_str(), Nelements);
-    mprinterr("             # elements in dataset %s (%i)\n", D2.c_str(), D2.Size());
+    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n", 
+              Legend().c_str(), Nelements);
+    mprinterr("             # elements in dataset %s (%i)\n", 
+              D2.Legend().c_str(), D2.Size());
     return 0;
   }
   // Calculate averages

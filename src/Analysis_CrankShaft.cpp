@@ -106,9 +106,9 @@ int Analysis_CrankShaft::Analyze() {
   int Nelements = scalar1_->Size();
   if (Nelements != scalar2_->Size()) {
     mprinterr("Error: crankshaft: # elements in dataset %s (%i) not equal to\n",
-              scalar1_->c_str(), Nelements);
+              scalar1_->Legend().c_str(), Nelements);
     mprinterr("                   # elements in dataset %s (%i)\n",
-              scalar2_->c_str(), scalar2_->Size());
+              scalar2_->Legend().c_str(), scalar2_->Size());
     return 1;
   }
   if (stop_ == -1)
@@ -236,22 +236,22 @@ int Analysis_CrankShaft::Analyze() {
             // SMALL transition
             if (type_==DISTANCE) {
               mprintf("SMALL TRANSITION frame %6i (%s,%s): substate (%s) to (%s)\n",
-                      frame, scalar1_->c_str(), scalar2_->c_str(),
+                      frame, scalar1_->Legend().c_str(), scalar2_->Legend().c_str(),
                       distance_ss_2D[previous_i1][previous_i2], distance_ss_2D[i1][i2]);
             } else {
               mprintf("SMALL TRANSITION frame %6i (%s,%s): substate (%s) to (%s)\n",
-                      frame, scalar1_->c_str(), scalar2_->c_str(),
+                      frame, scalar1_->Legend().c_str(), scalar2_->Legend().c_str(),
                       torsion_ss_2D[previous_i1][previous_i2], torsion_ss_2D[i1][i2]);
             }
           } else {
             // LARGE transition
             if (type_==DISTANCE) {
               mprintf("LARGE TRANSITION frame %6i (%s,%s): substate (%s) to (%s)\n",
-                      frame, scalar1_->c_str(), scalar2_->c_str(),
+                      frame, scalar1_->Legend().c_str(), scalar2_->Legend().c_str(),
                       distance_ss_2D[previous_i1][previous_i2], distance_ss_2D[i1][i2]);
             } else {
               mprintf("LARGE TRANSITION frame %6i (%s,%s): substate (%s) to (%s)\n",
-                      frame, scalar1_->c_str(), scalar2_->c_str(),
+                      frame, scalar1_->Legend().c_str(), scalar2_->Legend().c_str(),
                       torsion_ss_2D[previous_i1][previous_i2], torsion_ss_2D[i1][i2]);
             }
           }

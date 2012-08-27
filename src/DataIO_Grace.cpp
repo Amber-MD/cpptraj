@@ -177,7 +177,7 @@ int DataIO_Grace::WriteDataInverted(DataSetList &SetList) {
       double xcoord = (ystep_ * setnum) + ymin_;
       Printf(x_format_.c_str(), xcoord);
       (*set)->WriteBuffer(*this, frame);
-      Printf("\"%s\"\n", (*set)->c_str());
+      Printf("\"%s\"\n", (*set)->Legend().c_str());
     }
   }
   return 0;
