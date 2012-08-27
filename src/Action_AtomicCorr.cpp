@@ -3,6 +3,9 @@
 #include "CpptrajStdio.h"
 #include "TriangleMatrix.h"
 #include "vectormath.h"
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 
 // CONSTRUCTOR
 Action_AtomicCorr::Action_AtomicCorr() {}
@@ -53,7 +56,9 @@ int Action_AtomicCorr::action() {
 }
 
 void Action_AtomicCorr::print() {
-  double V1[3], V2[3];
+  unsigned int idx, idx3;
+  const float *v1, *v2;
+  double V1[3], V2[3], corr_coeff;
   if (atom_vectors_.empty()) {
     mprinterr("Error: atomiccorr: No atomic vectors calcd.\n");
     return;
@@ -83,10 +88,17 @@ void Action_AtomicCorr::print() {
                 vec1 - atom_vectors_.begin(), vec2 - atom_vectors_.begin());
         tmatrix->AddElement((float)0.0);
       } else {
-        double corr_coeff = 0.0;
-        for (unsigned int i = 0; i < (*vec1).size(); i += 3) {
-          const float* v1 = &((*vec1)[i]);
-          const float* v2 = &((*vec2)[i]);
+        corr_coeff = 0.0;
+        unsigned int vec1size = (*vec1).size() / 3;
+#ifdef _OPENMP
+#pragma omp parallel private(idx, idx3, v1, v2, V1, V2) reduction(+: corr_coeff)
+{
+#pragma omp for
+#endif
+        for (idx = 0; idx < vec1size; ++idx) {
+          idx3 = idx * 3;
+          v1 = &((*vec1)[idx3]);
+          v2 = &((*vec2)[idx3]);
           V1[0] = (double)v1[0];
           V1[1] = (double)v1[1];
           V1[2] = (double)v1[2];
@@ -97,7 +109,10 @@ void Action_AtomicCorr::print() {
           normalize( V2 );
           corr_coeff += dot_product( V1, V2 );
         }
-        corr_coeff /= (double)((*vec1).size()/3);
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif
+        corr_coeff /= (double)vec1size;
         tmatrix->AddElement( corr_coeff );
       }
     } // END inner loop
