@@ -42,10 +42,8 @@ class DataSet {
     virtual ~DataSet(); // Destructor - virtual since this class is inherited
 
     // ----------===== Inheritable functions =====----------
-    virtual int Allocate(int)          { return 0; }
+    virtual int Allocate(int)       { return 0; }
     /// Return the largest X/frame value added to set. 
-    /** By convention this should be the last value added.
-      */
     virtual int Xmax()              { return 0; }
     /// Return the number of data elements stored in the set.
     virtual int Size()              { return 0; }
@@ -60,9 +58,9 @@ class DataSet {
       */
     virtual void Add( int, void * ) { return;   }
     /// Write data at frame to file 
-    virtual void WriteBuffer(CpptrajFile&,int) { return;   }
+    virtual void WriteBuffer(CpptrajFile&,int)      { return;   }
     /// Write 2D data to file
-    virtual void Write2D(CpptrajFile&,int,int) { return; }
+    virtual void Write2D(CpptrajFile&,int,int)      { return; }
     /// Return size of all dimensions
     // NOTE: Currently only used for 2D output
     virtual void GetDimensions( std::vector<int>& ) { return; }
@@ -83,7 +81,7 @@ class DataSet {
     double Max();
     /// Calculate time correlation.
     int CrossCorr( DataSet&, DataSet&, int, bool, bool );
-    /// Calculate Pearson product-moment correlation. 
+    /// Calculate Pearson product-moment correlation coefficient. 
     double Corr( DataSet& ) ;
 
     // -----===== Public functions =====-----
