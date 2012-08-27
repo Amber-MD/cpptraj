@@ -1,10 +1,11 @@
 // CharmmDcd
-#include "Traj_CharmmDcd.h"
-#include "Constants.h"
-#include "CpptrajStdio.h"
 #include <cmath> // for cos, acos
 #include <cstddef>
 #include <cstring>
+#include "Traj_CharmmDcd.h"
+#include "Constants.h"
+#include "CpptrajStdio.h"
+#include "ByteRoutines.h"
 
 // CONSTRUCTOR
 CharmmDcd::CharmmDcd() {
@@ -82,7 +83,7 @@ int CharmmDcd::openTraj() {
   * frames is right after that so seek to size of int + 4.
   */
 void CharmmDcd::closeTraj() {
-  doublebyte framecount;
+  byte8 framecount;
 
   if (isOpen_ && access_!=READ) {
     IO->Seek( sizeof(int) + 4 );
@@ -114,57 +115,6 @@ void CharmmDcd::closeTraj() {
         ((x>>40) & 0x000000000000FF00) |
         (x<<56);
 }*/
-/// Perform byte swaps on 4-byte segments.
-/** \param x starting memory address of consecutive 4-byte segments to swap
-  * \param nswap number of segments to swap
-  */
-static void endian_swap(void *x, long nswap) {
-  int *Xi;
-
-  int *addr = (int *) x;
-  for (long i=0; i<nswap; i++) {
-    Xi = addr + i;
-    *Xi=( 
-         ((*Xi>>24) & 0xFF)   | 
-         ((*Xi&0xFF)   << 24) |
-         ((*Xi>>8)  & 0xFF00) | 
-         ((*Xi&0xFF00) << 8)
-        );
-  }
-}
-/// Perform byte swaps on 8-byte segments.
-/** Break up the total swap into two 4-byte swaps.
-  * \param x starting memory address of consecutive 8-byte segments to swap
-  * \param nswap number of segments to swap
-  */
-static void endian_swap8(void *x, long nswap) {
-  int *Xi;
-  int x0, x1;
-
-  int *addr = (int *) x;
-  for (long i=0; i<nswap; i++) {
-    Xi = addr + (i<<1);
-    // Perform swap on first 4 bytes
-    x0 = Xi[0];
-    x0=(
-        ((x0>>24) & 0xFF)   | 
-        ((x0&0xFF)   << 24) |
-        ((x0>>8)  & 0xFF00) | 
-        ((x0&0xFF00) << 8)
-       );
-    // Perform swap on second 4 bytes
-    x1 = Xi[1];
-    x1=(
-        ((x1>>24) & 0xFF)   | 
-        ((x1&0xFF)   << 24) |
-        ((x1>>8)  & 0xFF00) | 
-        ((x1&0xFF00) << 8)
-       );
-    // Re-assemble swapped bytes
-    Xi[0] = x1;
-    Xi[1] = x0;
-  }
-} 
 // -----------------------------------------------------------------------------
 
 // CharmmDcd::ReadBlock()
@@ -173,7 +123,7 @@ static void endian_swap8(void *x, long nswap) {
   * Return the integer read on success, -1 on failure.
   */
 int CharmmDcd::ReadBlock(int expected) {
-  doublebyte INbyte;
+  byte8 INbyte;
   int val;
   // Read size of block
   INbyte.i[1] = 0;
@@ -260,9 +210,9 @@ int CharmmDcd::setupTrajin(Topology *trajParm) {
   * File must have already been opened. Return 1 on error, 0 on success.
   */
 int CharmmDcd::readDcdHeader() {
-  doublebyte dcdkey;
-  doublebyte LEbyte;
-  doublebyte BEbyte;
+  byte8 dcdkey;
+  byte8 LEbyte;
+  byte8 BEbyte;
   headerbyte buffer;
   int titleSize;
   int ntitle;
@@ -542,7 +492,7 @@ int CharmmDcd::setupTrajout(Topology *trajParm, int NframesToWrite) {
   * little-endian as well.
   */
 int CharmmDcd::writeDcdHeader() {
-  doublebyte dcdkey;
+  byte8 dcdkey;
   headerbyte buffer;
   // dcdtitle is used instead of title since we are writing to a binary
   // file. We want exactly 80 bytes without the trailing NULL that would

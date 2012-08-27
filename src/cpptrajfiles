@@ -19,7 +19,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Analysis_CrossCorr.cpp Analysis_Lifetime.cpp Analysis_AutoCorr.cpp \
         Analysis_FFT.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
-        ClusterList.cpp ClusterNode.cpp CoordList.cpp \
+        ByteRoutines.cpp ClusterList.cpp ClusterNode.cpp CoordList.cpp \
         CpptrajFile.cpp \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \

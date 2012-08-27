@@ -28,11 +28,6 @@ class CharmmDcd : public TrajectoryIO {
     float *ycoord;
     float *zcoord;
 
-    union doublebyte {
-      unsigned char c[8];
-      int i[2];
-      double d;
-    };
     union headerbyte {
       unsigned char c[80];
       int i[20];
