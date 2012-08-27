@@ -58,7 +58,7 @@ class DataSet {
       */
     virtual void Add( int, void * ) { return;   }
     /// Write data at frame to file 
-    virtual void WriteBuffer(CpptrajFile&,int)      { return;   }
+    virtual void WriteBuffer(CpptrajFile&,int)      { return; }
     /// Write 2D data to file
     virtual void Write2D(CpptrajFile&,int,int)      { return; }
     /// Return size of all dimensions
@@ -107,15 +107,15 @@ class DataSet {
     bool Matches(std::string const&, int, std::string const&);
 
     // -----===== Functions that return private vars =====-----
-    /// Dataset name
+    /// Return DataSet base name.
     std::string const& Name()   { return name_; }
-    /// Return DataSet index
+    /// Return DataSet index.
     int Idx()                   { return idx_; }
-    /// Return DataSet aspect
+    /// Return DataSet aspect.
     std::string const& Aspect() { return aspect_; }
-    /// Return DataSet type
+    /// Return DataSet type.
     DataType Type()             { return dType_; }
-    /// Return DataSet dimension
+    /// Return DataSet dimension.
     int Dim()                   { return dim_; }
     /// Size in characters necessary to write data from this set.
     int Width()                 { return width_; }
