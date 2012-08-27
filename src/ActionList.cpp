@@ -52,6 +52,7 @@
 #include "Action_RandomizeIons.h"
 #include "Action_AutoImage.h"
 #include "Action_STFC_Diffusion.h"
+#include "Action_AtomicCorr.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -137,6 +138,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("scale"))          {Act=new Action_Scale;}
   else if (argIn.CommandIs("randomizeions"))  {Act=new Action_RandomizeIons;}
   else if (argIn.CommandIs("autoimage"))      {Act=new Action_AutoImage;}
+  else if (argIn.CommandIs("atomiccorr"))     {Act=new Action_AtomicCorr;}
   // STFC code
   else if (argIn.CommandIs("stfc"))           {
     std::string stfcCMD = argIn.GetStringNext();
