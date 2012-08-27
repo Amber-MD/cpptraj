@@ -80,6 +80,8 @@ class AtomMask {
     bool MaskStringSet() { return (!maskString_.empty()); }
     /// Convert mask type (char->int, int->char)
     int ConvertMaskType();
+    /// Print mask string and number of selected atoms.
+    void MaskInfo();
 
     typedef std::vector<MaskToken>::const_iterator token_iterator;
     inline token_iterator begintoken() const {

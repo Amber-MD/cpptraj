@@ -585,12 +585,12 @@ int AtomMask::SetMaskString(const char* maskString_In) {
   * input string.
   * \return 0 if string was set and successfully tokenized.
   * \return 1 if tokenization failed.
-  * \return 2 if input string was empty.
   */
 int AtomMask::SetMaskString( std::string const& maskStringIn ) {
   if (!maskStringIn.empty())
     return ( SetMaskString( maskStringIn.c_str() ) );
-  return 2;
+  else
+    return ( SetMaskString( NULL ) );
 }
 
 // AtomMask::None()
@@ -704,3 +704,6 @@ int AtomMask::ConvertMaskType() {
   return 0;
 }
 
+void AtomMask::MaskInfo() {
+  mprintf("\tMask [%s] corresponds to %i atoms.\n", maskString_.c_str(), nselected_);
+}
