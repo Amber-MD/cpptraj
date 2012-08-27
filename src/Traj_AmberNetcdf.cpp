@@ -14,7 +14,7 @@
 #define NCREMD_INDICES "remd_indices"
 
 // CONSTRUCTOR
-AmberNetcdf::AmberNetcdf() :
+Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
   Veloc_(0),
   remd_dimension_(0),
@@ -32,7 +32,7 @@ AmberNetcdf::AmberNetcdf() :
 }
 
 // DESTRUCTOR
-AmberNetcdf::~AmberNetcdf() {
+Traj_AmberNetcdf::~Traj_AmberNetcdf() {
   //fprintf(stderr,"Amber Netcdf Destructor\n");
   this->closeTraj();
   if (Coord_!=0) delete[] Coord_;
@@ -43,25 +43,25 @@ AmberNetcdf::~AmberNetcdf() {
   // NOTE: Need to close file?
 }
 
-bool AmberNetcdf::ID_TrajFormat() {
+bool Traj_AmberNetcdf::ID_TrajFormat() {
   if ( GetNetcdfConventions( FullFileStr() ) == NC_AMBERTRAJ ) return true;
   return false;
 } 
 
-// AmberNetcdf::close()
+// Traj_AmberNetcdf::close()
 /** Close netcdf file. Set ncid to -1 since it can change between open
   * and close calls.
   */
-void AmberNetcdf::closeTraj() {
+void Traj_AmberNetcdf::closeTraj() {
   NC_close();
 }
 
-// AmberNetcdf::openTraj()
+// Traj_AmberNetcdf::openTraj()
 /** Open up Netcdf file and set ncid. Variable and Dimension IDs are set up
   * by SetupRead / SetupWrite and will not change for a given file between
   * open and close calls.
   */
-int AmberNetcdf::openTraj() {
+int Traj_AmberNetcdf::openTraj() {
   //fprintf(stdout,"DEBUG: AmberNetcdf::openTraj() called for %s, ncid=%i\n",BaseFileStr(),ncid);
   // If already open, return
   if (Ncid()!=-1) return 0;
@@ -88,11 +88,11 @@ int AmberNetcdf::openTraj() {
   return 0;
 }
 
-// AmberNetcdf::setupTrajin()
+// Traj_AmberNetcdf::setupTrajin()
 /** Open the netcdf file, read all dimension and variable IDs, close.
   * Return the number of frames in the file. 
   */
-int AmberNetcdf::setupTrajin(Topology* trajParm) {
+int Traj_AmberNetcdf::setupTrajin(Topology* trajParm) {
   if (openTraj()) return -1;
 
   // Sanity check - Make sure this is a Netcdf trajectory
@@ -200,17 +200,17 @@ int AmberNetcdf::setupTrajin(Topology* trajParm) {
   return Ncframe();
 }
 
-// AmberNetcdf::processWriteArgs()
-int AmberNetcdf::processWriteArgs(ArgList *argIn) {
+// Traj_AmberNetcdf::processWriteArgs()
+int Traj_AmberNetcdf::processWriteArgs(ArgList *argIn) {
   if (argIn->hasKey("remdtraj")) this->SetTemperature();
   return 0;
 }
 
-// AmberNetcdf::setupTrajout()
+// Traj_AmberNetcdf::setupTrajout()
 /** Create Netcdf file specified by filename and set up dimension and
   * variable IDs. 
   */
-int AmberNetcdf::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_AmberNetcdf::setupTrajout(Topology *trajParm, int NframesToWrite) {
   // Set up title
   if (title_.empty())
     title_.assign("Cpptraj Generated trajectory");
@@ -227,11 +227,11 @@ int AmberNetcdf::setupTrajout(Topology *trajParm, int NframesToWrite) {
   return 0;
 }
 
-// AmberNetcdf::readFrame()
+// Traj_AmberNetcdf::readFrame()
 /** Get the specified frame from amber netcdf file
   * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
   */
-int AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) {
+int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) {
   // Get temperature
   if (TempVID_!=-1) {
     start_[0] = set;
@@ -298,8 +298,8 @@ int AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) 
   return 0;
 }
 
-// AmberNetcdf::writeFrame() 
-int AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, double T) {
+// Traj_AmberNetcdf::writeFrame() 
+int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, double T) {
 
   DoubleToFloat(Coord_, X);
 
@@ -344,8 +344,8 @@ int AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, double T
   return 0;
 }  
 
-// AmberNetcdf::info()
-void AmberNetcdf::info() {
+// Traj_AmberNetcdf::info()
+void Traj_AmberNetcdf::info() {
   mprintf("is a NetCDF AMBER trajectory"
             //(p->isVelocity ? " and velocities" : "")
          );

@@ -196,11 +196,11 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, const char* r
 TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
   TrajectoryIO *tio = NULL;
   switch ( tformat ) {
-    case AMBERRESTART: tio = new AmberRestart(); break;
+    case AMBERRESTART: tio = new Traj_AmberRestart(); break;
     case AMBERTRAJ   : tio = new Traj_AmberCoord();    break;
     case AMBERNETCDF :
 #     ifdef BINTRAJ
-      tio = new AmberNetcdf();
+      tio = new Traj_AmberNetcdf();
 #     else
       mprinterr("    Error: Can not set up trajectory (%s):\n",trajName_.c_str());
       mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
@@ -208,16 +208,16 @@ TrajectoryIO *TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
       break;
     case AMBERRESTARTNC :
 #     ifdef BINTRAJ
-      tio = new AmberRestartNC();
+      tio = new Traj_AmberRestartNC();
 #     else
       mprinterr("    Error: Can not set up trajectory (%s):\n",trajName_.c_str());
       mprinterr("           Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
 #     endif
       break;
     case PDBFILE     : tio = new Traj_PDBfile();      break;
-    case CONFLIB     : tio = new Conflib();      break;
+    case CONFLIB     : tio = new Traj_Conflib();      break;
     case MOL2FILE    : tio = new Traj_Mol2File();     break;
-    case CHARMMDCD   : tio = new CharmmDcd();    break;
+    case CHARMMDCD   : tio = new Traj_CharmmDcd();    break;
     case BINPOS      : tio = new Traj_Binpos();    break;
     default:
       return NULL;

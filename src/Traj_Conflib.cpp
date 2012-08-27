@@ -1,9 +1,9 @@
-// Conflib
+// Traj_Conflib
 #include "Traj_Conflib.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Conflib::Conflib() : 
+Traj_Conflib::Traj_Conflib() : 
   energy_(0),
   radGyr_(0),
   timesFound_(0),
@@ -11,7 +11,7 @@ Conflib::Conflib() :
 {}
 
 //------------------------------------------------------------------------
-bool Conflib::ID_TrajFormat() {
+bool Traj_Conflib::ID_TrajFormat() {
   // If the file name is conflib.dat, assume this is a conflib.dat file 
   // from LMOD. Cant think of a better way to detect this since there is no 
   // magic number but the file is binary.
@@ -23,19 +23,19 @@ bool Conflib::ID_TrajFormat() {
   return false;
 }
 
-// Conflib::closeTraj()
-void Conflib::closeTraj() {
+// Traj_Conflib::closeTraj()
+void Traj_Conflib::closeTraj() {
   CloseFile();
 }
 
-// Conflib::openTraj()
-int Conflib::openTraj() {
+// Traj_Conflib::openTraj()
+int Traj_Conflib::openTraj() {
   if (OpenFile()) return 1;
   return 0;
 }
 
-// Conflib::setupTrajin()
-int Conflib::setupTrajin(Topology *trajParm) {
+// Traj_Conflib::setupTrajin()
+int Traj_Conflib::setupTrajin(Topology *trajParm) {
   long unsigned int confFrame;
   int Frames = 0;
 
@@ -53,8 +53,8 @@ int Conflib::setupTrajin(Topology *trajParm) {
   return Frames;
 }
 
-// Conflib::readFrame()
-int Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
+// Traj_Conflib::readFrame()
+int Traj_Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
 
   if (IO->Read(&energy_,sizeof(double)) < 0) return 1;
   IO->Read(&radGyr_,sizeof(double));
@@ -66,20 +66,20 @@ int Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
   return 0;
 }
 
-// Conflib::setupTrajout()
-int Conflib::setupTrajout(Topology *trajParm, int NframesToWrite) {
+// Traj_Conflib::setupTrajout()
+int Traj_Conflib::setupTrajout(Topology *trajParm, int NframesToWrite) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
-// Conflib::writeFrame()
-int Conflib::writeFrame(int set, double *X, double *V,double *box, double T) {
+// Traj_Conflib::writeFrame()
+int Traj_Conflib::writeFrame(int set, double *X, double *V,double *box, double T) {
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
-// Conflib::info()
-void Conflib::info() {
+// Traj_Conflib::info()
+void Traj_Conflib::info() {
   mprintf("is an LMOD conflib file");
 }
 

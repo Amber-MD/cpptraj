@@ -2,11 +2,11 @@
 #define INC_TRAJ_AMBERRESTART_H
 #include "TrajectoryIO.h"
 #include "FrameBuffer.h"
-// Class: AmberRestart.h
+// Class: Traj_AmberRestart.h
 /// Reads and writes formatted (ASCII text) amber
-class AmberRestart : public TrajectoryIO, FrameBuffer {
+class Traj_AmberRestart : public TrajectoryIO, FrameBuffer {
   public:
-    AmberRestart();
+    Traj_AmberRestart();
     // AmberRestart-specific functions
     void SetNoVelocity();
   private:

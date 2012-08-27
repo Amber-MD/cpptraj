@@ -1,5 +1,4 @@
 #ifdef BINTRAJ
-// EXPERIMENTAL 
 // This file contains a collection of routines designed for reading
 // (and writing?) netcdf restart files used with amber.
 // Dan Roe 2011-01-07
@@ -8,7 +7,7 @@
 #include "netcdf.h"
 
 // CONSTRUCTOR
-AmberRestartNC::AmberRestartNC() :
+Traj_AmberRestartNC::Traj_AmberRestartNC() :
   restartTime_(0),
   singleWrite_(false),
   time0_(OUTPUTFRAMESHIFT),
@@ -20,27 +19,27 @@ AmberRestartNC::AmberRestartNC() :
 }
 
 // DESTRUCTOR
-AmberRestartNC::~AmberRestartNC() {
+Traj_AmberRestartNC::~Traj_AmberRestartNC() {
   //fprintf(stderr,"Amber Netcdf Restart Destructor\n");
   // NOTE: Need to close file?
 }
 
-bool AmberRestartNC::ID_TrajFormat() {
+bool Traj_AmberRestartNC::ID_TrajFormat() {
   if ( GetNetcdfConventions( FullFileStr() ) == NC_AMBERRESTART ) return true;
   return false;
 }
 
-// AmberRestartNC::closeTraj()
-void AmberRestartNC::closeTraj() {
+// Traj_AmberRestartNC::closeTraj()
+void Traj_AmberRestartNC::closeTraj() {
   NC_close();
 }
 
-// AmberRestartNC::openTraj()
+// Traj_AmberRestartNC::openTraj()
 /** Open up Netcdf restart file and set ncid. Variable and Dimension IDs are set 
   * up by SetupRead / SetupWrite and will not change for a given file between
   * open and close calls. 
   */
-int AmberRestartNC::openTraj() {
+int Traj_AmberRestartNC::openTraj() {
   //mprintf("DEBUG: AmberRestartNC::open() called for %s, ncid=%i\n",BaseFileStr(),ncid);
   // If already open, return
   if (Ncid()!=-1) return 0;
@@ -69,12 +68,12 @@ int AmberRestartNC::openTraj() {
   return 0;
 }
 
-// AmberRestartNC::setupTrajin()
+// Traj_AmberRestartNC::setupTrajin()
 /** Set up netcdf restart file for reading, get all variable and dimension IDs. 
   * Also check number of atoms against associated parmtop.
   */
 // NOTE: Replace attrText allocs with static buffer? 
-int AmberRestartNC::setupTrajin(Topology *trajParm) {
+int Traj_AmberRestartNC::setupTrajin(Topology *trajParm) {
   if (openTraj()) return -1;
 
   // Sanity check - Make sure this is a Netcdf restart
@@ -133,13 +132,13 @@ int AmberRestartNC::setupTrajin(Topology *trajParm) {
   return 1;
 }
 
-// AmberRestartNC::SetNoVelocity()
-void AmberRestartNC::SetNoVelocity() {
+// Traj_AmberRestartNC::SetNoVelocity()
+void Traj_AmberRestartNC::SetNoVelocity() {
   hasVelocity_=false;
 }
 
-// AmberRestartNC::processWriteArgs()
-int AmberRestartNC::processWriteArgs(ArgList *argIn) {
+// Traj_AmberRestartNC::processWriteArgs()
+int Traj_AmberRestartNC::processWriteArgs(ArgList *argIn) {
   // For write, assume we want velocities unless specified
   hasVelocity_=true;
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
@@ -149,9 +148,9 @@ int AmberRestartNC::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-// AmberRestartNC::setupTrajout()
+// Traj_AmberRestartNC::setupTrajout()
 /** Setting up is done for each frame.  */
-int AmberRestartNC::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_AmberRestartNC::setupTrajout(Topology *trajParm, int NframesToWrite) {
   SetNcatom( trajParm->Natom() );
   //ncatom3 = ncatom * 3;
   // If number of frames to write == 1 set singleWrite so we dont append
@@ -160,11 +159,11 @@ int AmberRestartNC::setupTrajout(Topology *trajParm, int NframesToWrite) {
   return 0;
 }
 
-// AmberRestartNC::setupWriteForSet()
+// Traj_AmberRestartNC::setupWriteForSet()
 /** Create Netcdf restart file for the given frame and set it up. Only set
   * up velocity info if both hasVelocity and V is not NULL.
   */
-int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
+int Traj_AmberRestartNC::setupWriteForSet(int set, double *Vin) {
   std::string fname;
   // Create filename for this set
   // If just writing 1 frame dont modify output filename
@@ -188,11 +187,11 @@ int AmberRestartNC::setupWriteForSet(int set, double *Vin) {
 }
 
 
-// AmberRestartNC::readFrame()
+// Traj_AmberRestartNC::readFrame()
 /** Get the specified frame from amber netcdf file
   * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
   */
-int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *T) {
+int Traj_AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *T) {
   // Get temperature
   if (TempVID_!=-1) {
     if ( checkNCerr(nc_get_var_double(ncid_, TempVID_, T)) ) {
@@ -237,8 +236,8 @@ int AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *
   return 0;
 }
 
-// AmberRestartNC::writeFrame() 
-int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double T) {
+// Traj_AmberRestartNC::writeFrame() 
+int Traj_AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double T) {
   // Set up file for this set
   if ( this->setupWriteForSet(set,V) ) return 1;
 
@@ -302,8 +301,8 @@ int AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double
   return 0;
 }  
 
-// AmberRestartNC::info()
-void AmberRestartNC::info() {
+// Traj_AmberRestartNC::info()
+void Traj_AmberRestartNC::info() {
   mprintf("is a NetCDF AMBER restart file");
 
   if (hasVelocity_) mprintf(", with velocities");

@@ -1,14 +1,14 @@
-// AmberRestart
+// Traj_AmberRestart
 #include <cstdio> // sscanf
 #include <cstring> // strlen: file detection
 #include <cctype> // isdigit, isspace: file detection
 #include "Traj_AmberRestart.h"
 #include "CpptrajStdio.h"
 
-const size_t AmberRestart::BUF_SIZE = 128;
+const size_t Traj_AmberRestart::BUF_SIZE = 128;
 
 // CONSTRUCTOR
-AmberRestart::AmberRestart() {
+Traj_AmberRestart::Traj_AmberRestart() {
   restartAtoms_=0;
   frameSize_=0;
   coordSize_ = 0;
@@ -23,7 +23,7 @@ AmberRestart::AmberRestart() {
   singleWrite_ = false;
 }
 
-bool AmberRestart::ID_TrajFormat() {
+bool Traj_AmberRestart::ID_TrajFormat() {
   char buffer2[BUF_SIZE];
   // Assume file set up for read
   if (OpenFile()) return false;
@@ -50,15 +50,15 @@ bool AmberRestart::ID_TrajFormat() {
 }
   
 
-// AmberRestart::closeTraj()
-void AmberRestart::closeTraj() {
+// Traj_AmberRestart::closeTraj()
+void Traj_AmberRestart::closeTraj() {
   CloseFile();
 }
 
-// AmberRestart::openTraj()
+// Traj_AmberRestart::openTraj()
 /** Open the restart file. Get title, time, restart atoms, temperature
   */
-int AmberRestart::openTraj() {
+int Traj_AmberRestart::openTraj() {
   char buffer[BUF_SIZE];
   int nread; // Dont declare variables inside a switch block
 
@@ -119,13 +119,13 @@ int AmberRestart::openTraj() {
   return 0; 
 }
 
-// AmberRestart::SetNoVelocity()
-void AmberRestart::SetNoVelocity() {
+// Traj_AmberRestart::SetNoVelocity()
+void Traj_AmberRestart::SetNoVelocity() {
   hasVelocity_=false;
 }
 
-// AmberRestart::processWriteArgs()
-int AmberRestart::processWriteArgs(ArgList *argIn) {
+// Traj_AmberRestart::processWriteArgs()
+int Traj_AmberRestart::processWriteArgs(ArgList *argIn) {
   // For write, assume we want velocities unless specified
   hasVelocity_=true;
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
@@ -135,11 +135,11 @@ int AmberRestart::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-// AmberRestart::setupTrajout()
+// Traj_AmberRestart::setupTrajout()
 /** Allocate a character buffer based on number of coords and whether 
   * velocities/box info is present.
   */
-int AmberRestart::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_AmberRestart::setupTrajout(Topology *trajParm, int NframesToWrite) {
   size_t frame_lines;
 
   restartAtoms_ = trajParm->Natom();
@@ -171,11 +171,11 @@ int AmberRestart::setupTrajout(Topology *trajParm, int NframesToWrite) {
   return 0;
 }
 
-// AmberRestart::getBoxAngles()
+// Traj_AmberRestart::getBoxAngles()
 /** Based on input buffer, determine num box coords and get box angles.
   * If successful set hasBox to true.
   */
-int AmberRestart::getBoxAngles(char *boxline) {
+int Traj_AmberRestart::getBoxAngles(char *boxline) {
   double box[6];
 
   numBoxCoords_ = sscanf(boxline, "%12lf%12lf%12lf%12lf%12lf%12lf",
@@ -218,11 +218,11 @@ int AmberRestart::getBoxAngles(char *boxline) {
   return 0;
 }
 
-// AmberRestart::setupTrajin()
+// Traj_AmberRestart::setupTrajin()
 /** Set up amber restart file for reading. Check that number of atoms matches
   * number of atoms in associated parmtop. Check for box/velocity info.
   */
-int AmberRestart::setupTrajin(Topology *trajParm) {
+int Traj_AmberRestart::setupTrajin(Topology *trajParm) {
   char buffer[BUF_SIZE];
   size_t frame_lines,lineSize;
 
@@ -313,10 +313,10 @@ int AmberRestart::setupTrajin(Topology *trajParm) {
   return 1;
 }
 
-// AmberRestart::readFrame()
+// Traj_AmberRestart::readFrame()
 /** Get the restart file frame. If velocities are present, read those too.
   */
-int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) {
+int Traj_AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) {
   // Read restart coords into frameBuffer_
   if ( IO->Read(frameBuffer_,frameSize_)==-1 ) {
     mprinterr("Error: AmberRestart::getFrame(): Error reading coordinates.\n");
@@ -344,11 +344,11 @@ int AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) 
   return 0;
 }
 
-// AmberRestart::writeFrame()
+// Traj_AmberRestart::writeFrame()
 /** Write coords in Frame to file in amber restart format. Always calculate the 
   * frame size since coords may have been stripped from Frame.
   */
-int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double T) {
+int Traj_AmberRestart::writeFrame(int set, double *X, double *V, double *box, double T) {
   // If just writing 1 frame dont modify output filename
   if (singleWrite_) {
     if ( IO->Open(FullFileStr(), "wb") ) return 1;
@@ -394,8 +394,8 @@ int AmberRestart::writeFrame(int set, double *X, double *V, double *box, double 
   return 0;
 }
 
-// AmberRestart::info()
-void AmberRestart::info() {
+// Traj_AmberRestart::info()
+void Traj_AmberRestart::info() {
   mprintf("is an AMBER restart file");
   // If read access we know for sure whether there are velocities.
   if (access_!=WRITE) {

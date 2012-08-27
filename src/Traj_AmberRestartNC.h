@@ -3,12 +3,12 @@
 #ifdef BINTRAJ
 #include "TrajectoryIO.h"
 #include "NetcdfFile.h"
-// Class: AmberRestartNC
+// Class: Traj_AmberRestartNC
 /// TrajectoryIO class for reading and writing Amber Netcdf Restarts
-class AmberRestartNC : public TrajectoryIO, NetcdfFile {
+class Traj_AmberRestartNC : public TrajectoryIO, NetcdfFile {
   public:
-    AmberRestartNC();
-    ~AmberRestartNC();
+    Traj_AmberRestartNC();
+    ~Traj_AmberRestartNC();
     // AmberNetcdf-specific functions
     void SetNoVelocity();
 

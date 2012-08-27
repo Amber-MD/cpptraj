@@ -1,12 +1,12 @@
 #ifndef INC_TRAJ_CHARMMDCD_H
 #define INC_TRAJ_CHARMMDCD_H
 #include "TrajectoryIO.h"
-// Class: CharmmDcd
+// Class: Traj_CharmmDcd
 /// TrajectoryIO class for reading coordinates from charmm dcd files.
-class CharmmDcd : public TrajectoryIO {
+class Traj_CharmmDcd : public TrajectoryIO {
   public :
-    CharmmDcd();
-    ~CharmmDcd();
+    Traj_CharmmDcd();
+    ~Traj_CharmmDcd();
     // charmm dcd-specific functions
   private:
     int dcdatom;

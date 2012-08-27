@@ -1,4 +1,4 @@
-// CharmmDcd
+// Traj_CharmmDcd
 #include <cmath> // for cos, acos
 #include <cstddef>
 #include <cstring>
@@ -8,7 +8,7 @@
 #include "ByteRoutines.h"
 
 // CONSTRUCTOR
-CharmmDcd::CharmmDcd() {
+Traj_CharmmDcd::Traj_CharmmDcd() {
   dcdatom=0;
   dcdframes=0;
   dcdoutsize = 0;
@@ -30,14 +30,14 @@ CharmmDcd::CharmmDcd() {
 }
 
 // DESTRUCTOR
-CharmmDcd::~CharmmDcd() {
+Traj_CharmmDcd::~Traj_CharmmDcd() {
   if (freeat!=NULL) delete[] freeat;
   if (xcoord!=NULL) delete[] xcoord;
   if (ycoord!=NULL) delete[] ycoord;
   if (zcoord!=NULL) delete[] zcoord;
 }
 
-bool CharmmDcd::ID_TrajFormat() {
+bool Traj_CharmmDcd::ID_TrajFormat() {
   unsigned char buffer[8];
   memset(buffer, ' ', 8);
   if (OpenFile()) return false;
@@ -52,8 +52,8 @@ bool CharmmDcd::ID_TrajFormat() {
   return false;
 }
 
-// CharmmDcd::openTraj()
-int CharmmDcd::openTraj() {
+// Traj_CharmmDcd::openTraj()
+int Traj_CharmmDcd::openTraj() {
   int err = 0;
 
   switch (access_) {
@@ -76,13 +76,13 @@ int CharmmDcd::openTraj() {
   return err;
 }
 
-// CharmmDcd::closeTraj()
+// Traj_CharmmDcd::closeTraj()
 /** Close the trajectory. If not reading, update the frame count
   * Header begins with header size, which could be a 4 bit or 8 bit number
   * depending on the size of an integer, followed by CORD. The number of 
   * frames is right after that so seek to size of int + 4.
   */
-void CharmmDcd::closeTraj() {
+void Traj_CharmmDcd::closeTraj() {
   byte8 framecount;
 
   if (isOpen_ && access_!=READ) {
@@ -117,12 +117,12 @@ void CharmmDcd::closeTraj() {
 }*/
 // -----------------------------------------------------------------------------
 
-// CharmmDcd::ReadBlock()
+// Traj_CharmmDcd::ReadBlock()
 /** Read readByte number of bytes, convert to integer. If expected
   * is not -1, check that the integer matches expected.
   * Return the integer read on success, -1 on failure.
   */
-int CharmmDcd::ReadBlock(int expected) {
+int Traj_CharmmDcd::ReadBlock(int expected) {
   byte8 INbyte;
   int val;
   // Read size of block
@@ -150,19 +150,19 @@ int CharmmDcd::ReadBlock(int expected) {
   return val;
 }
 
-// CharmmDcd::WriteBlock()
+// Traj_CharmmDcd::WriteBlock()
 /** Write given integer to charmm file. For now dont worry about the
   * size and endianness (use OS default).
   */
-int CharmmDcd::WriteBlock(int blocksize) {
+int Traj_CharmmDcd::WriteBlock(int blocksize) {
   IO->Write(&blocksize, sizeof(int));
   return 0;
 }
 
-// CharmmDcd::setupTrajin()
+// Traj_CharmmDcd::setupTrajin()
 /** Call openTraj, which reads the DCD header and all necessary info.
   */
-int CharmmDcd::setupTrajin(Topology *trajParm) {
+int Traj_CharmmDcd::setupTrajin(Topology *trajParm) {
   double box[6];
   if ( openTraj() ) return -1;
   // Load box info so that it can be checked.
@@ -205,11 +205,11 @@ int CharmmDcd::setupTrajin(Topology *trajParm) {
   return dcdframes;
 }
 
-// CharmmDcd::readDcdHeader()
+// Traj_CharmmDcd::readDcdHeader()
 /** Read the header of a DCD file. Determine the endianness and bit size.
   * File must have already been opened. Return 1 on error, 0 on success.
   */
-int CharmmDcd::readDcdHeader() {
+int Traj_CharmmDcd::readDcdHeader() {
   byte8 dcdkey;
   byte8 LEbyte;
   byte8 BEbyte;
@@ -380,8 +380,8 @@ int CharmmDcd::readDcdHeader() {
   return 0;
 }
 
-// CharmmDcd::readFrame()
-int CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *T) {
+// Traj_CharmmDcd::readFrame()
+int Traj_CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *T) {
   // Load box info
   if (hasBox_) {
     double boxtmp[6];
@@ -451,18 +451,18 @@ int CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *T) {
   return 0;
 }
 
-// CharmmDcd::processWriteArgs()
-int CharmmDcd::processWriteArgs(ArgList *argIn) {
+// Traj_CharmmDcd::processWriteArgs()
+int Traj_CharmmDcd::processWriteArgs(ArgList *argIn) {
   return 0;
 }
 
-// CharmmDcd::setupTrajout()
+// Traj_CharmmDcd::setupTrajout()
 /** Set up the charmm dcd trajectory for writing. No writing is done here, the
   * actual write calls are in writeDcdHeader which is called from openTraj.
   * Set is64bit and isBigEndian, although they are not currently used during
   * writes; size and endianness will be OS default.
   */
-int CharmmDcd::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_CharmmDcd::setupTrajout(Topology *trajParm, int NframesToWrite) {
   dcdatom = trajParm->Natom();
   // dcdframes = trajParm->parmFrames;
   dcdframes = 0;
@@ -486,12 +486,12 @@ int CharmmDcd::setupTrajout(Topology *trajParm, int NframesToWrite) {
   return 0;
 }
 
-// CharmmDcd::writeDcdHeader()
+// Traj_CharmmDcd::writeDcdHeader()
 /** Write the charmm dcd header. File should already be open.  All integers 
   * will be written at default OS size no matter what. For now alway write 
   * little-endian as well.
   */
-int CharmmDcd::writeDcdHeader() {
+int Traj_CharmmDcd::writeDcdHeader() {
   byte8 dcdkey;
   headerbyte buffer;
   // dcdtitle is used instead of title since we are writing to a binary
@@ -559,8 +559,8 @@ int CharmmDcd::writeDcdHeader() {
   return 0;
 }
 
-// CharmmDcd::writeFrame()
-int CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double T) {
+// Traj_CharmmDcd::writeFrame()
+int Traj_CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double T) {
   // Box coords - 6 doubles, 48 bytes
   if (hasBox_) {
     /* The format for the 'box' array used in cpptraj is not the same as the
@@ -611,8 +611,8 @@ int CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double T) {
   return 0;
 }
  
-// CharmmDcd::info()
-void CharmmDcd::info() {
+// Traj_CharmmDcd::info()
+void Traj_CharmmDcd::info() {
   mprintf("is a CHARMM DCD file");
   if (isBigEndian)
     mprintf(" Big Endian");

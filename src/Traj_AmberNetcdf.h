@@ -3,12 +3,12 @@
 #ifdef BINTRAJ
 #include "TrajectoryIO.h"
 #include "NetcdfFile.h"
-// Class: AmberNetcdf
+// Class: Traj_AmberNetcdf
 /// Reads and writes Amber Netcdf format trajectories. 
-class AmberNetcdf : public TrajectoryIO, NetcdfFile {
+class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
   public:
-    AmberNetcdf();
-    ~AmberNetcdf();
+    Traj_AmberNetcdf();
+    ~Traj_AmberNetcdf();
     // AmberNetcdf-specific functions
     // Inherited functions
     bool ID_TrajFormat();
