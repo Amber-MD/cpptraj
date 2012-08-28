@@ -56,7 +56,7 @@ int Action_AtomicCorr::action() {
 }
 
 void Action_AtomicCorr::print() {
-  unsigned int idx, idx3;
+  int idx, idx3, vec1size;
   const float *v1, *v2;
   double V1[3], V2[3], corr_coeff;
   if (atom_vectors_.empty()) {
@@ -89,7 +89,7 @@ void Action_AtomicCorr::print() {
         tmatrix->AddElement((float)0.0);
       } else {
         corr_coeff = 0.0;
-        unsigned int vec1size = (*vec1).size() / 3;
+        vec1size = (int)((*vec1).size() / 3);
 #ifdef _OPENMP
 #pragma omp parallel private(idx, idx3, v1, v2, V1, V2) reduction(+: corr_coeff)
 {
