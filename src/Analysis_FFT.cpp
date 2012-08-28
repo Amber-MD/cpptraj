@@ -36,6 +36,7 @@ int Analysis_FFT::Setup(DataSetList* datasetlist) {
   {
     DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++ );
     if (dsout==NULL) return 1;
+    dsout->SetLegend( (*DS)->Legend() );
     if ( (*DS)->Size() > maxsize_ ) maxsize_ = (*DS)->Size();
     output_dsets_.push_back( dsout );
   }

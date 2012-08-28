@@ -19,7 +19,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
   ArgList dataline;
   char linebuffer[1024];
   const char* endlinebuffer = linebuffer + 1024;
-  int setnum = 0;
+  int setnum = 1;
   int frame = 0;
   DataSet *dset = NULL;
   std::vector<DataSet*> Dsets;
