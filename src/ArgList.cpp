@@ -115,27 +115,30 @@ int ArgList::SetList(const char *inputString, const char *separator) {
       // arguments ending with another quote into this argument
       } else {
         argument.assign(pch);
-        // Check if this argument itself ends with a quote
         unsigned int argsize = argument.size();
-        if (argsize == 1 || argument[argsize-1]!=quotechar) {
-          while (pch!=NULL) {
-            argument.append(" ");
-            pch=strtok(NULL," ");
-            // If pch is NULL at this point there was no closing quote.
-            if (pch==NULL) {
-              mprintf("\tWarning: argument missing closing quote [%c]\n",quotechar);
-              break;
+        // Check for blank quote token ("")
+        if (argsize != 2 || argument[1] != quotechar) {
+          // Check if this argument itself ends with a quote
+          if (argsize == 1 || argument[argsize-1]!=quotechar) {
+            while (pch!=NULL) {
+              argument.append(" ");
+              pch=strtok(NULL," ");
+              // If pch is NULL at this point there was no closing quote.
+              if (pch==NULL) {
+                mprintf("\tWarning: argument missing closing quote [%c]\n",quotechar);
+                break;
+              }
+              argument.append(pch);
+              if (strchr(pch,quotechar)!=NULL) break;
             }
-            argument.append(pch);
-            if (strchr(pch,quotechar)!=NULL) break;
           }
+          // Remove quotes from the argument
+          for (string::iterator character = argument.begin();
+                                character < argument.end();
+                                character++)
+            if (*character == quotechar) character = argument.erase(character);
+          arglist.push_back(argument);
         }
-        // Remove quotes from the argument
-        for (string::iterator character = argument.begin();
-                              character < argument.end();
-                              character++)
-          if (*character == quotechar) character = argument.erase(character);
-        arglist.push_back(argument);
       }
       //if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
       pch = strtok(NULL,separator);
