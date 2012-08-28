@@ -64,7 +64,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
             Dsets.push_back( dset );
             frame = 0;
           }
-        } else if (linebuffer[0] != '#') { // Skip comments
+        } else if (linebuffer[0] != '#' && linebuffer[0] != '&') { // Skip comments and dataset end
           // Data
           if (dset==NULL) {
             mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
