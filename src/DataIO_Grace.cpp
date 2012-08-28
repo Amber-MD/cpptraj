@@ -42,8 +42,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
     char* endbuffer = readbuffer_ + (size_t)Nread;
     // Get lines from chunk
     while ( ptr < endbuffer && lineptr < endlinebuffer ) {
-      *lineptr = *ptr;
-      ++lineptr;
+      *(lineptr++) = *ptr;
       if (*ptr == '\n') {
         // Newline encountered. Process it
         *lineptr = '\0';
@@ -51,8 +50,10 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
           // Command: create command line without the @
           dataline.SetList(linebuffer+1, " \t");
           if ( !dataline.CommandIs("legend") && dataline.Contains("legend") ) {
-            // Legend keyword that does not come first.
-            labels.push_back( dataline.GetStringKey("legend") );
+            // Legend keyword that does not come first. Dont store blanks.
+            std::string lbl = dataline.GetStringKey("legend");
+            if (!lbl.empty())
+              labels.push_back( lbl );
           } else if (dataline.CommandIs("target")) {
             // Indicates dataset will be read soon. Allocate new set.
             dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), setnum++);
@@ -63,7 +64,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
             Dsets.push_back( dset );
             frame = 0;
           }
-        } else {
+        } else if (linebuffer[0] != '#') { // Skip comments
           // Data
           if (dset==NULL) {
             mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
