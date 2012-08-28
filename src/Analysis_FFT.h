@@ -14,8 +14,8 @@ class Analysis_FFT : public Analysis {
     std::string outfilename_;
     std::string setname_;
     std::vector<DataSet*> output_dsets_;
-    std::vector<DataSet*> img_dsets_;
     int maxsize_;
-    bool powerspectrum_;
+    double dt_;
+    double f0_; // TODO: This will be wrong if input_dsets have diff sizes.
 };
 #endif

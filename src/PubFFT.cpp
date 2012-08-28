@@ -92,11 +92,8 @@ void PubFFT::Back(double* fft_array) {
   cfftb_( fft_size_, fft_array, saved_work_, saved_factors_);
 }
 
-// PubFFT::SetupFFT()
-int PubFFT::SetupFFT(int sizeIn) {
-  int ndata = NextPowOf2( sizeIn ); 
-  fft_size_ = ndata / 2;
-  saved_work_size_ = 2 * ndata;
+// PubFFT::Allocate()
+void PubFFT::Allocate() {
   // NOTE: Do not change saved_factors_size
   if (saved_work_ != 0) delete[] saved_work_;
   if (saved_factors_ != 0) delete[] saved_factors_;
@@ -113,6 +110,22 @@ int PubFFT::SetupFFT(int sizeIn) {
     saved_work_ = 0;
   // NOTE: Should this be called if fft_size is 0?
   cffti_( fft_size_, saved_work_, saved_factors_ );
+}
+
+// PubFFT::SetupFFT()
+int PubFFT::SetupFFT(int sizeIn) {
+  int ndata = NextPowOf2( sizeIn ); 
+  fft_size_ = ndata / 2;
+  saved_work_size_ = 2 * ndata;
+  Allocate();
+  return 0;
+}
+
+// PubFFT::SetupFFTforN()
+int PubFFT::SetupFFTforN(int sizeIn) {
+  fft_size_ = sizeIn;
+  saved_work_size_ = 4 * fft_size_;
+  Allocate();
   return 0;
 }
 

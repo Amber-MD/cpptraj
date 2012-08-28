@@ -12,6 +12,7 @@ class PubFFT {
     void Forward(double*);
     void Back(double*);
     int SetupFFT(int);
+    int SetupFFTforN(int);
     void CorF_FFT(int, double*, double*);
 
     int size() { return fft_size_; }
@@ -21,5 +22,7 @@ class PubFFT {
     int saved_work_size_;
     int* saved_factors_;
     double* saved_work_;
+
+    void Allocate();
 };
 #endif
