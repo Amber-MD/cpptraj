@@ -105,7 +105,7 @@ int Analysis_FFT::Analyze() {
      if (freq > fnyquist) break;
      double magnitude = sqrt(data1[i2]*data1[i2] + data1[i2+1]*data1[i2+1]);
      magnitude /= norm;
-     mprintf("\t\t\tReal=%f  Img=%f  Mag=%f\n",data1[i2],data1[i2+1],magnitude);
+     //mprintf("\t\t\tReal=%f  Img=%f  Mag=%f\n",data1[i2],data1[i2+1],magnitude);
      (*dsout)->Add( i1, &magnitude );
      i2 += 2;
     }
