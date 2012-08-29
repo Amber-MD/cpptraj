@@ -1,3 +1,4 @@
+#include <cmath> // log10, fabs
 #include "DataIO.h"
 #include "CpptrajStdio.h"
 
@@ -83,6 +84,14 @@ void DataIO::SetupXcolumn() {
     max_xval *= (int)xstep_;
   max_xval += (int)xmin_;
   xcol_width_ = DigitWidth( max_xval );
+  // Check if the precision is enough to support the step size
+  if (xstep_ < 1.0) {
+    double precision_exponent = fabs( log10( xstep_ ) );
+    ++precision_exponent;
+    int prec_exp_width = (int)precision_exponent; // Cast to int implicitly rounds down
+    if (prec_exp_width > xcol_precision_)
+      xcol_precision_ = prec_exp_width;
+  }
   // If the width for the x column plus the characters needed for precision
   // (plus 1 for decimal point) would be greater than 8, increment the 
   // X column width by (precision+1).
