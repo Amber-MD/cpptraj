@@ -6,6 +6,7 @@
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
+#include "Range.h"
 // Data types go here
 #include "DataSet_double.h"
 #include "DataSet_string.h"
@@ -31,6 +32,19 @@ DataSetList::~DataSetList() {
   if (!hasCopies_)
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
       delete *ds; 
+}
+
+DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
+  // It is OK if rhs does not have copies, but this should have copies.
+  // For now just set hasCopies to true.
+  hasCopies_ = true; 
+  // Append rhs entries to here
+  for (DataListType::const_iterator DS = rhs.begin(); DS != rhs.end(); ++DS)
+    DataList_.push_back( *DS );
+  // Update maxframes
+  if (rhs.maxFrames_ > maxFrames_)
+    maxFrames_ = rhs.maxFrames_;
+  return *this;
 }
 
 // DataSetList::begin()
@@ -92,31 +106,23 @@ void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
   *  - "<name>[<attr>]:<index>" : 
   *       Dataset with name, given attribute, and index (e.g. NA[shear]:1)
   */
-std::string DataSetList::ParseArgString(std::string const& nameIn, int& idxnum,
+std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& idx_arg,
                                         std::string& attr_arg)
 {
   std::string dsname( nameIn );
   attr_arg.clear();
-  idxnum = -1;
   //mprinterr("DBG: ParseArgString called with %s\n", nameIn.c_str());
-  // Separate out index if present
+  // Separate out index arg if present
   size_t idx_pos = dsname.find( ':' );
   if ( idx_pos != std::string::npos ) {
     // Advance to after the ':'
-    std::string idx_arg = dsname.substr( idx_pos + 1 );
+    idx_arg = dsname.substr( idx_pos + 1 );
     //mprinterr("DBG:\t\tIndex Arg [%s]\n", idx_arg.c_str());
-    idxnum = convertToInteger( idx_arg );
-    // Allow only positive indices
-    if ( idxnum < 0 ) {
-      mprinterr("Error: DataSet arg %s, index value must be positive! (%i)\n",
-                nameIn.c_str(), idxnum);
-      return NULL;
-    }
     // Drop the index arg
     dsname.resize( idx_pos );
   }
 
-  // Separate out attribute if present
+  // Separate out aspect arg if present
   size_t attr_pos0 = dsname.find_first_of( '[' );
   size_t attr_pos1 = dsname.find_last_of( ']' );
   if ( attr_pos0 != std::string::npos && attr_pos1 != std::string::npos ) {
@@ -143,20 +149,28 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
 
-  // Create a comma-separated list
+/*  // Create a comma-separated list
   ArgList comma_sep( nameIn, "," );
-  for (int iarg = 0; iarg < comma_sep.Nargs(); ++iarg) {
-    int idxnum = -1;
+  mprintf("DEBUG: DSL comma sep:\n");
+  comma_sep.PrintList();
+  for (int iarg = 0; iarg < comma_sep.Nargs(); ++iarg) {*/
     std::string attr_arg;
-    std::string dsname = ParseArgString( comma_sep[iarg], idxnum, attr_arg );
+    std::string idx_arg;
+    //std::string dsname = ParseArgString( comma_sep[iarg], idx_arg, attr_arg );
+    std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
     //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%i\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idxnum);
+    Range idxrange( idx_arg );
 
-    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-      if ( (*ds)->Matches( dsname, idxnum, attr_arg ) )
-      //if ( (*ds)->Name() == nameIn )
-        dsetOut.DataList_.push_back( *ds );
+    for (Range::const_iterator idxnum = idxrange.begin(); 
+                               idxnum != idxrange.end(); ++idxnum)
+    {
+      for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+        if ( (*ds)->Matches( dsname, *idxnum, attr_arg ) )
+        //if ( (*ds)->Name() == nameIn )
+          dsetOut.DataList_.push_back( *ds );
+      }
     }
-  }
+  //}
 
   return dsetOut;
 }
@@ -166,8 +180,11 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
   */
 DataSet *DataSetList::Get(const char* nameIn) {
   std::string attr_arg;
+  std::string idx_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
   int idxnum = -1;
-  std::string dsname = ParseArgString( nameIn, idxnum, attr_arg );
+  if (!idx_arg.empty())
+    idxnum = convertToInteger(idx_arg);
 
   return GetSet( dsname, idxnum, attr_arg );
 }

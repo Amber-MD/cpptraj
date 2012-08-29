@@ -11,7 +11,8 @@ int Analysis_CrossCorr::Setup( DataSetList* datasetlist ) {
   std::string setname_ = analyzeArgs_.GetStringKey("name");
   outfilename_ = analyzeArgs_.GetStringKey("out");
   // Select datasets
-  dsets_ = datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
+  while (analyzeArgs_.ArgsRemain())
+    dsets_ += datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
   if (dsets_.empty()) {
     mprinterr("Error: crosscorr: No data sets selected.\n");
     return 1;

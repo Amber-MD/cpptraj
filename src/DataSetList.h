@@ -18,6 +18,7 @@ class DataSetList {
   public:
     DataSetList();
     ~DataSetList();
+    DataSetList& operator+=(DataSetList const&);
     /// DataSetList default iterator
     typedef std::vector<DataSet*>::const_iterator const_iterator;
     /// Iterator to beginning of dataset list
@@ -43,7 +44,7 @@ class DataSetList {
     /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDatasets(int, int);
     /// Separate input string into DataSet args.
-    std::string ParseArgString(std::string const&, int&, std::string&);
+    std::string ParseArgString(std::string const&, std::string&, std::string&);
     /// Get DataSet with specified name argument.
     DataSet* Get(const char *);
     /// Get DataSet with specified name, index, and aspect.

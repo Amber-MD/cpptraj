@@ -92,6 +92,8 @@ class ArgList {
     double ArgToDouble(int);
     /// Convert arg at position to integer.
     int ArgToInteger(int);
+    /// True if any unmarked args remain.
+    bool ArgsRemain();
   private:
     /// List of arguments
     std::vector<std::string> arglist;

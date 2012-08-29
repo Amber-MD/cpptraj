@@ -146,8 +146,8 @@ void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
         mprintf("    Creating file %s:",name1.c_str());
       else
         mprintf("    Adding sets to file %s:",name1.c_str());
-      while ( (name2=(*dataArg).getNextString())!=NULL ) {
-        DataSetList Sets = masterDSL->GetMultipleSets( name2 );
+      while ( (*dataArg).ArgsRemain() ) {
+        DataSetList Sets = masterDSL->GetMultipleSets( (*dataArg).GetStringNext() );
         if (Sets.empty()) 
           mprintf("Warning: %s does not correspond to any data sets.\n", name2);
         for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {

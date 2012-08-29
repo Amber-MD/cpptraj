@@ -11,6 +11,7 @@
 class Range {
   public:
     Range();
+    Range(std::string const&);
     Range(const Range&);
     Range& operator=(const Range&);
 

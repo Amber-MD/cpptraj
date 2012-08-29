@@ -18,7 +18,8 @@ int Analysis_FFT::Setup(DataSetList* datasetlist) {
   outfilename_ = analyzeArgs_.GetStringKey("out");
   dt_ = analyzeArgs_.getKeyDouble("dt",1.0);
   // Select datasets
-  input_dsets_ = datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
+  while (analyzeArgs_.ArgsRemain()) 
+    input_dsets_ += datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
   if (input_dsets_.empty()) {
     mprinterr("Error: FFT: No data sets selected.\n");
     return 1;

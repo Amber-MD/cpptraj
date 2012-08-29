@@ -17,7 +17,8 @@ int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
   outfilename_ = analyzeArgs_.GetStringKey("out");
   lagmax_ = analyzeArgs_.getKeyInt("lagmax",-1);
   // Select datasets
-  dsets_ = datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
+  while (analyzeArgs_.ArgsRemain())
+    dsets_ += datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
   if (dsets_.empty()) {
     mprinterr("Error: autocorr: No data sets selected.\n");
     return 1;

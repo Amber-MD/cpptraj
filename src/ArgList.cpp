@@ -538,3 +538,11 @@ int ArgList::ArgToInteger(int pos) {
   return convertToInteger(arglist[pos]);
 }
 
+bool ArgList::ArgsRemain() {
+  for (std::vector<bool>::iterator mark = marked.begin();
+                                   mark != marked.end(); ++mark)
+  { // Return true as soon as an unmarked arg is encountere // Return true as soon as an unmarked arg is encounteredd
+    if ( !(*mark) ) return true;
+  }
+  return false;
+}

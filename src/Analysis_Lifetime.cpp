@@ -21,7 +21,8 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
   cumulative_ = analyzeArgs_.hasKey("cumulative");
   cut_ = analyzeArgs_.getKeyDouble("cut", 0.5);
   // Select datasets
-  inputDsets_ = datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
+  while (analyzeArgs_.ArgsRemain())
+    inputDsets_ += datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
   if (inputDsets_.empty()) {
     mprinterr("Error: lifetime: No data sets selected.\n");
     return 1;

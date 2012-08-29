@@ -6,6 +6,13 @@
 // CONSTRUCTOR
 Range::Range() { }
 
+// CONSTRUCTOR
+/// Takes argument string as input
+Range::Range( std::string const& argIn ) {
+  if (!argIn.empty())
+    SetRange( argIn.c_str() );
+}
+
 // COPY CONSTRUCTOR
 Range::Range(const Range &rhs) :
   rangeArg_(rhs.rangeArg_),
