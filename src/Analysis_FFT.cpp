@@ -26,7 +26,7 @@ int Analysis_FFT::Setup(DataSetList* datasetlist) {
   // If setname is empty generate a default name
   if (setname_.empty())
     setname_ = datasetlist->GenerateDefaultName( "FFT" );
-  // Setup output datasets - Also determine max input DataSet size
+  // Setup output datasets. Also ensure all DataSets have the same # of points. 
   int idx = 0;
   maxsize_ = 0;
   if ( input_dsets_.size() == 1 )
@@ -34,14 +34,25 @@ int Analysis_FFT::Setup(DataSetList* datasetlist) {
   for ( DataSetList::const_iterator DS = input_dsets_.begin(); 
                                     DS != input_dsets_.end(); ++DS) 
   {
+    // Check for empty set
+    if ( (*DS)->Empty() ) {
+      mprintf("Warning: FFT: Set %s is empty, skipping.\n", (*DS)->Legend().c_str() );
+      continue;
+    }
+    if ( maxsize_ == 0 ) 
+      maxsize_ = (*DS)->Size();
+    else if ( (*DS)->Size() != maxsize_ ) {
+      mprintf("Warning: FFT: Set %s does not have same size (%i) as initial set (%i). Skipping.\n",
+              (*DS)->Legend().c_str(), (*DS)->Size(), maxsize_ );
+      continue;
+    }
     DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++ );
     if (dsout==NULL) return 1;
     dsout->SetLegend( (*DS)->Legend() );
-    if ( (*DS)->Size() > maxsize_ ) maxsize_ = (*DS)->Size();
     output_dsets_.push_back( dsout );
   }
 
-  mprintf("    FFT: Calculating FFT for %i data sets (max size %i):\n", 
+  mprintf("    FFT: Calculating FFT for %i data sets (of size %i):\n", 
           input_dsets_.size(), maxsize_ );
   mprintf("\tTime step: %f\n", dt_);
   if ( !setname_.empty() )
@@ -52,14 +63,22 @@ int Analysis_FFT::Setup(DataSetList* datasetlist) {
   return 0;
 }
 
+/** Calculate FFT for input DataSets. FFT magnitude is reported. Magnitude
+  * is normalized by N / 2. Only data up to the Nyquist frequency is used. 
+  */
 int Analysis_FFT::Analyze() {
-  PubFFT pubfft( maxsize_ );
-  //PubFFT pubfft;
-  //pubfft.SetupFFTforN( maxsize_ );
+  //PubFFT pubfft( maxsize_ );
+  PubFFT pubfft;
+  pubfft.SetupFFTforN( maxsize_ );
+  mprintf("DEBUG: FFT size is %i\n",pubfft.size());
   int ndata = pubfft.size() * 2; // space for (real + img) per datapoint
   double *data1 = new double[ ndata ];
 
-  double sr = 1.0 / dt_; // 1 / sampling interval, sampling rate (freq)
+  double sr = 1.0 / dt_;      // 1 / sampling interval, sampling rate (freq)
+  double fnyquist = sr / 2.0; // Nyquist frequency
+  double total_time = dt_ * maxsize_; // Total time (fundamental period)
+  f0_ = 1.0 / total_time;     // Fundamental frequency (first harmonic)
+  double norm = (double)(maxsize_ / 2);
 
   std::vector<DataSet*>::iterator dsout = output_dsets_.begin();
   for (DataSetList::const_iterator DS = input_dsets_.begin(); 
@@ -70,10 +89,8 @@ int Analysis_FFT::Analyze() {
     memset( data1, 0, ndata*sizeof(double) );
     // Place data from DS in real spots in data1
     int datasize =  (*DS)->Size();
-    double total_time = dt_ * datasize;
-    f0_ = 1.0 / total_time;
-    mprintf("\t\t\tDT=%f ps, SR= %f ps^-1, total time=%f ps, f0=%f ps^-1\n",dt_,sr,
-            total_time, f0_);
+    mprintf("\t\t\tDT=%f ps, SR= %f ps^-1, FC= %f ps^-1, total time=%f ps, f0=%f ps^-1\n",
+            dt_, sr, fnyquist, total_time, f0_);
     for (int i = 0; i < datasize; ++i)
       data1[i*2] = (*DS)->Dval(i);
     // DEBUG
@@ -81,11 +98,14 @@ int Analysis_FFT::Analyze() {
     //  mprintf("\t\t\t%i FFTinR=%f  FFTinI=%f\n",i/2,data1[i],data1[i+1]);
     // Perform FFT
     pubfft.Forward( data1 );
-    // Place real data from FFT in output Data
+    // Place real data from FFT in output Data up to the Nyquist frequency
     int i2 = 0;
     for (int i1 = 0; i1 < datasize; ++i1) {
+     double freq = i1 * f0_;
+     if (freq > fnyquist) break;
      double magnitude = sqrt(data1[i2]*data1[i2] + data1[i2+1]*data1[i2+1]);
-     //mprintf("\t\t\tReal=%f  Img=%f  Mag=%f\n",data1[i2],data1[i2+1],magnitude);
+     magnitude /= norm;
+     mprintf("\t\t\tReal=%f  Img=%f  Mag=%f\n",data1[i2],data1[i2+1],magnitude);
      (*dsout)->Add( i1, &magnitude );
      i2 += 2;
     }

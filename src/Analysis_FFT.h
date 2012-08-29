@@ -16,6 +16,6 @@ class Analysis_FFT : public Analysis {
     std::vector<DataSet*> output_dsets_;
     int maxsize_;
     double dt_;
-    double f0_; // TODO: This will be wrong if input_dsets have diff sizes.
+    double f0_; 
 };
 #endif
