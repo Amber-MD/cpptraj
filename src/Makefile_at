@@ -29,8 +29,8 @@ dependclean:
 	-/bin/rm FindDepend.o
 	-/bin/rm findDepend
 
-cpptraj$(SFX): $(NETCDF) $(OBJECTS) pubfft.o $(EXTERNAL_LIBS) 
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pubfft.o \
+cpptraj$(SFX): $(NETCDF) $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
 
 $(INCDIR)/netcdf.mod: ../../netcdf_config.log
@@ -45,8 +45,8 @@ $(LIBDIR)/liblapack.a:
 $(LIBDIR)/libblas.a:
 	cd ../../blas && $(MAKE) $(BLAS)
 
-pubfft.o:  pubfft.F90
-	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ pubfft.F90
+pub_fft.o:  pub_fft.F90
+	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ pub_fft.F90
 
 .c.o:
 	$(CC) -c $(CPPTRAJ_FLAGS) -o $@ $<
@@ -55,7 +55,7 @@ pubfft.o:  pubfft.F90
 	$(CXX) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 clean:
-	/bin/rm -f $(OBJECTS) pubfft.o cpptraj$(SFX)
+	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX)
 
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX)

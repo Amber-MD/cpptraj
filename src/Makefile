@@ -19,8 +19,8 @@ dependclean:
 	-/bin/rm FindDepend.o
 	-/bin/rm findDepend
 
-cpptraj$(SFX): $(OBJECTS) pubfft.o $(ARPACK) $(LAPACK) $(BLAS) 
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pubfft.o $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
+cpptraj$(SFX): $(OBJECTS) pub_fft.o $(ARPACK) $(LAPACK) $(BLAS) 
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
 
 
 $(BLAS): $(BLAS_HOME)/Makefile
@@ -32,11 +32,11 @@ $(ARPACK): $(ARPACK_HOME)/Makefile
 $(LAPACK): $(LAPACK_HOME)/Makefile
 	cd $(LAPACK_HOME) && $(MAKE) install
 
-pubfft.o:  pubfft.F90
-	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pubfft.F90
+pub_fft.o:  pub_fft.F90
+	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
 
 clean:
-	/bin/rm -f $(OBJECTS) pubfft.o cpptraj$(SFX)
+	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX)
 
 libclean: $(BLAS_HOME)/Makefile $(ARPACK_HOME)/Makefile $(LAPACK_HOME)/Makefile
 	cd $(BLAS_HOME) && $(MAKE) clean

@@ -1,6 +1,6 @@
 #ifndef INC_PUBFFT_H
 #define INC_PUBFFT_H
-/// C++ interface to Amber pubfft routines (pubfft.F90)
+/// C++ interface to Amber pubfft routines (pub_fft.F90)
 class PubFFT {
   public:
     PubFFT();

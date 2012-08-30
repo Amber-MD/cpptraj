@@ -3,7 +3,7 @@
 #include "PubFFT.h"
 
 extern "C" {
-  // pubfft.F90 functions
+  // pub_fft.F90 functions
   void cffti_(int&, double*, int*);          // FFT init
   void cfftf_(int&, double*, double*, int*); // Forward FFT
   void cfftb_(int&, double*, double*, int*); // Backward FFT
