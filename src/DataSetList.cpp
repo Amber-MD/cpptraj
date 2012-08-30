@@ -148,29 +148,26 @@ std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& 
 DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
+  Range idxrange;
 
-/*  // Create a comma-separated list
-  ArgList comma_sep( nameIn, "," );
-  mprintf("DEBUG: DSL comma sep:\n");
-  comma_sep.PrintList();
-  for (int iarg = 0; iarg < comma_sep.Nargs(); ++iarg) {*/
-    std::string attr_arg;
-    std::string idx_arg;
-    //std::string dsname = ParseArgString( comma_sep[iarg], idx_arg, attr_arg );
-    std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
-    //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%i\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idxnum);
-    Range idxrange( idx_arg );
+  std::string attr_arg;
+  std::string idx_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
+  //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str());
+  if (idx_arg.empty())
+    idxrange.SetRange( -1, 0 ); 
+  else
+    idxrange.SetRange( idx_arg.c_str() );
 
-    for (Range::const_iterator idxnum = idxrange.begin(); 
-                               idxnum != idxrange.end(); ++idxnum)
-    {
-      for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-        if ( (*ds)->Matches( dsname, *idxnum, attr_arg ) )
-        //if ( (*ds)->Name() == nameIn )
-          dsetOut.DataList_.push_back( *ds );
-      }
+  for (Range::const_iterator idxnum = idxrange.begin(); 
+                             idxnum != idxrange.end(); ++idxnum)
+  {
+    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+      if ( (*ds)->Matches( dsname, *idxnum, attr_arg ) )
+      //if ( (*ds)->Name() == nameIn )
+        dsetOut.DataList_.push_back( *ds );
     }
-  //}
+  }
 
   return dsetOut;
 }
