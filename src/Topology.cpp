@@ -259,6 +259,15 @@ std::string Topology::ResNameNum(int res) {
   return resnamenum;
 }
 
+std::string Topology::TruncResNameNum(int res) {
+  std::string resnamenum( residues_[res].c_str() );
+  // Remove trailing spaces
+  if (resnamenum[3] == ' ') resnamenum.resize(3);
+  if (resnamenum[2] == ' ') resnamenum.resize(2);
+  if (resnamenum[1] == ' ') resnamenum.resize(1);
+  return resnamenum + ":" + integerToString( res+1 );
+}
+
 // Topology::FindAtomInResidue()
 /** Find the atom # of the specified atom name in the given residue.
   * \param res Residue number to search.

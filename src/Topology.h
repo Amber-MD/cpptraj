@@ -94,6 +94,7 @@ class Topology {
     std::string ResAtomName(int);
     std::string TruncResAtomName(int);
     std::string ResNameNum(int);
+    std::string TruncResNameNum(int);
     int FindAtomInResidue(int, NameType);
     int FindResidueMaxNatom();
     int SoluteAtoms();
