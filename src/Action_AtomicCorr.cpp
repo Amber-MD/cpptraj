@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "TriangleMatrix.h"
 #include "vectormath.h"
+#include "ProgressBar.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -59,6 +60,7 @@ void Action_AtomicCorr::print() {
   int idx, idx3, vec1size;
   const float *v1, *v2;
   double V1[3], V2[3], corr_coeff;
+  mprintf("    ATOMICCORR: Calculating correlations between atomic vectors:\n");
   if (atom_vectors_.empty()) {
     mprinterr("Error: atomiccorr: No atomic vectors calcd.\n");
     return;
@@ -73,10 +75,13 @@ void Action_AtomicCorr::print() {
   // Calculate correlation coefficient of each atomic vector to each other
   ACvector::iterator av_end = atom_vectors_.end();
   ACvector::iterator av_end1 = av_end - 1;
+  ProgressBar progress( tmatrix->Size() );
+  int iprogress = 0;
   for (ACvector::iterator vec1 = atom_vectors_.begin(); vec1 != av_end1; ++vec1)
   {
     for (ACvector::iterator vec2 = vec1 + 1; vec2 != av_end; ++vec2)
     {
+      progress.Update( iprogress++ );
       // Make sure same # of frames in each and not empty
       if ( (*vec1).empty() || (*vec2).empty() ) {
         mprintf("Warning: autocorr: A vector is empty: Vec%zu=%zu, Vec%zu=%zu\n",
