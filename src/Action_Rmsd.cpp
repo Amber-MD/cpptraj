@@ -342,6 +342,7 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
   */
 int Action_Rmsd::setup() {
   if ( currentParm->SetupIntegerMask( FrameMask_ ) ) return 1;
+  FrameMask_.MaskInfo();
   if ( FrameMask_.None() ) {
     mprintf("Warning: rmsd: No atoms in mask.\n");
     return 1;
@@ -367,8 +368,6 @@ int Action_Rmsd::setup() {
   if (perres_) { 
     if (perResSetup(RefParm_)) return 1;
   }
-
-  mprintf("\t%i atoms selected.\n",FrameMask_.Nselected());
 
   return 0;
 }

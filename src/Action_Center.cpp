@@ -42,11 +42,11 @@ int Action_Center::init() {
 int Action_Center::setup() {
 
   if ( currentParm->SetupIntegerMask(Mask_) ) return 1;
+  Mask_.MaskInfo();
   if (Mask_.None()) {
     mprintf("Warning: center:: Mask contains 0 atoms.\n");
     return 1;
   }
-  mprintf("\t%s (%i atoms)\n",Mask_.MaskString(), Mask_.Nselected());
 
   if (!origin_ && currentParm->BoxType()==Box::NOBOX) {
     mprintf("Warning: center: Box center specified but no box information.\n");

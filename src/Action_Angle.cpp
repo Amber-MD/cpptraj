@@ -59,9 +59,9 @@ int Action_Angle::setup() {
   if (currentParm->SetupIntegerMask(Mask1_)) return 1;
   if (currentParm->SetupIntegerMask(Mask2_)) return 1;
   if (currentParm->SetupIntegerMask(Mask3_)) return 1;
-  mprintf("\t%s (%i atoms)\n",Mask1_.MaskString(), Mask1_.Nselected());
-  mprintf("\t%s (%i atoms)\n",Mask2_.MaskString(), Mask2_.Nselected());
-  mprintf("\t%s (%i atoms)\n",Mask3_.MaskString(), Mask3_.Nselected());
+  Mask1_.MaskInfo();
+  Mask2_.MaskInfo();
+  Mask3_.MaskInfo();
   if (Mask1_.None() || Mask2_.None() || Mask3_.None()) {
     mprintf("Warning: angle: One or more masks contain 0 atoms.\n");
     return 1;

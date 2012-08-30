@@ -83,11 +83,11 @@ int Action_Pucker::setup() {
   if ( currentParm->SetupIntegerMask( M3_ ) ) return 1;
   if ( currentParm->SetupIntegerMask( M4_ ) ) return 1;
   if ( currentParm->SetupIntegerMask( M5_ ) ) return 1;
-  mprintf("\t%s (%i atoms)\n",M1_.MaskString(),M1_.Nselected());
-  mprintf("\t%s (%i atoms)\n",M2_.MaskString(),M2_.Nselected());
-  mprintf("\t%s (%i atoms)\n",M3_.MaskString(),M3_.Nselected());
-  mprintf("\t%s (%i atoms)\n",M4_.MaskString(),M4_.Nselected());
-  mprintf("\t%s (%i atoms)\n",M5_.MaskString(),M5_.Nselected());
+  M1_.MaskInfo();
+  M2_.MaskInfo();
+  M3_.MaskInfo();
+  M4_.MaskInfo();
+  M5_.MaskInfo();
 
   if ( M1_.None() || M2_.None() || M3_.None() || M4_.None() || M5_.None() ) {
     mprintf("Warning: pucker: One or more masks have no atoms.\n");
