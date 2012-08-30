@@ -9,6 +9,7 @@
 Action_Hbond::Action_Hbond() :
   Nframes_(0),
   hasDonorMask_(false),
+  hasDonorHmask_(false),
   hasAcceptorMask_(false),
   hasSolventDonor_(false),
   hasSolventAcceptor_(false),
@@ -23,7 +24,8 @@ Action_Hbond::Action_Hbond() :
 
 // Action_Hbond::init()
 /** Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [series]
-  *                      [donormask <mask>] [acceptormask <mask>] [avgout <filename>]
+  *                      [donormask <mask> [donorhmask <mask>]] [acceptormask <mask>] 
+  *                      [avgout <filename>]
   *                      [solventdonor <mask>] [solventacceptor <mask>] 
   *                      [solvout <filename>] [bridgeout <filename>]
   * Search for Hbonding atoms in region specified by mask. 
@@ -37,6 +39,8 @@ Action_Hbond::Action_Hbond() :
   * If acceptormask is specified but not donormask, donors will be automatically
   * searched for in <mask>.
   * If both donormask and acceptor mask are specified no searching will occur.
+  * If donorhmask is specified atoms in that mask will be paired with atoms in
+  * donormask instead of automatically searching for hydrogen atoms.
   */
 int Action_Hbond::init() {
   // Get keywords
@@ -55,6 +59,12 @@ int Action_Hbond::init() {
   if (mask!=NULL) {
     DonorMask_.SetMaskString(mask);
     hasDonorMask_=true;
+    // Get donorH mask (if specified)
+    mask = actionArgs.getKeyString("donorhmask");
+    if (mask!=NULL) {
+      DonorHmask_.SetMaskString(mask);
+      hasDonorHmask_=true;
+    }
   }
   // Get acceptor mask
   mask = actionArgs.getKeyString("acceptormask");
@@ -109,23 +119,25 @@ int Action_Hbond::init() {
   else
     mprintf("Donor mask is %s, Acceptor mask is %s\n",
             DonorMask_.MaskString(), AcceptorMask_.MaskString());
+  if (hasDonorHmask_)
+    mprintf("\tSeparate donor H mask is %s\n", DonorHmask_.MaskString() );
   if (hasSolventDonor_)
-    mprintf("         Will search for hbonds between solute and solvent donors in [%s]\n",
+    mprintf("\tWill search for hbonds between solute and solvent donors in [%s]\n",
             SolventDonorMask_.MaskString());
   if (hasSolventAcceptor_)
-    mprintf("         Will search for hbonds between solute and solvent acceptors in [%s]\n",
+    mprintf("\tWill search for hbonds between solute and solvent acceptors in [%s]\n",
             SolventAcceptorMask_.MaskString());
-  mprintf( "         Distance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*RADDEG);
+  mprintf("\tDistance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*RADDEG);
   if (outfilename!=NULL) 
-    mprintf( "         Dumping # Hbond v time results to %s\n", outfilename);
+    mprintf("\tDumping # Hbond v time results to %s\n", outfilename);
   if (!avgout_.empty())
-    mprintf( "         Dumping Hbond avgs to %s\n",avgout_.c_str());
+    mprintf("\tDumping Hbond avgs to %s\n",avgout_.c_str());
   if (calcSolvent_ && !solvout_.empty())
-    mprintf("          Dumping solute-solvent hbond avgs to %s\n", solvout_.c_str());
+    mprintf("\tDumping solute-solvent hbond avgs to %s\n", solvout_.c_str());
   if (calcSolvent_ && !bridgeout_.empty())
-    mprintf("          Dumping solvent bridging info to %s\n", bridgeout_.c_str());
+    mprintf("\tDumping solvent bridging info to %s\n", bridgeout_.c_str());
   if (series_)
-    mprintf("          Time series data for each hbond will be saved for analysis.\n");
+    mprintf("\tTime series data for each hbond will be saved for analysis.\n");
 
   return 0;
 }
@@ -159,11 +171,15 @@ void Action_Hbond::SearchAcceptor(HBlistType& alist, AtomMask& amask, bool Auto)
 // Action_Hbond::SearchDonor()
 /** Search for hydrogen bond donors X-H in the region specified by dmask.
   * If Auto is true select donors based on the rule that "Hydrogen bonds 
-  * are FON"
+  * are FON". If useHmask is true pair each atom in dmask with atoms
+  * in DonorHmask.
   */
-void Action_Hbond::SearchDonor(HBlistType& dlist, AtomMask& dmask, bool Auto) {
+void Action_Hbond::SearchDonor(HBlistType& dlist, AtomMask& dmask, bool Auto,
+                               bool useHmask) 
+{
   bool isDonor;
   // Set up donors: F-H, O-H, N-H
+  AtomMask::const_iterator donorhatom = DonorHmask_.begin();
   for (AtomMask::const_iterator donoratom = dmask.begin();
                                 donoratom != dmask.end(); ++donoratom)
   {
@@ -184,16 +200,27 @@ void Action_Hbond::SearchDonor(HBlistType& dlist, AtomMask& dmask, bool Auto) {
         dlist.push_back(*donoratom);
         dlist.push_back(*donoratom);
       } else {
-        // Get list of hydrogen atoms bonded to this atom
-        for (Atom::bond_iterator batom = (*currentParm)[*donoratom].bondbegin();
-                                 batom != (*currentParm)[*donoratom].bondend();
-                                 batom++)
-        {
-          if ( (*currentParm)[*batom].Element() == Atom::HYDROGEN ) {
-            //mprintf("BOND TO H: %i@%s -- %i@%s\n",*donoratom+1,(*currentParm)[*donoratom].c_str(),
-            //        *batom+1,(*currentParm)[*batom].c_str());
+        if (!useHmask) {
+          // Get list of hydrogen atoms bonded to this atom
+          for (Atom::bond_iterator batom = (*currentParm)[*donoratom].bondbegin();
+                                   batom != (*currentParm)[*donoratom].bondend();
+                                   batom++)
+          {
+            if ( (*currentParm)[*batom].Element() == Atom::HYDROGEN ) {
+              //mprintf("BOND H: %i@%s -- %i@%s\n",*donoratom+1,(*currentParm)[*donoratom].c_str(),
+              //        *batom+1,(*currentParm)[*batom].c_str());
+              dlist.push_back(*donoratom);
+              dlist.push_back(*batom);
+            }
+          }
+        } else {
+          // Use next atom in donor h atom mask
+          if (donorhatom == DonorHmask_.end())
+            mprintf("Warning: Donor %i:%s: Ran out of atoms in donor H mask.\n",
+                    *donoratom + 1, (*currentParm)[*donoratom].c_str());
+          else {
             dlist.push_back(*donoratom);
-            dlist.push_back(*batom);
+            dlist.push_back(*(donorhatom++));
           }
         }
       }
@@ -219,6 +246,19 @@ int Action_Hbond::setup() {
       mprintf("Warning: Hbond: DonorMask has no atoms.\n");
       return 1;
     }
+    if ( hasDonorHmask_ ) {
+      if ( currentParm->SetupIntegerMask( DonorHmask_ ) ) return 1;
+      if ( DonorHmask_.None() ) {
+        mprintf("Warning: Hbond: Donor H mask has no atoms.\n");
+        return 1;
+      }
+      if ( DonorHmask_.Nselected() != DonorMask_.Nselected() ) {
+        mprinterr("Error: There is not a 1 to 1 correspondance between donor and donorH masks.\n");
+        mprinterr("Error: donor (%i atoms), donorH (%i atoms).\n",DonorMask_.Nselected(),
+                  DonorHmask_.Nselected());
+        return 1;
+      }
+    }
   }
   // Set up acceptor mask
   if (hasAcceptorMask_) {
@@ -228,7 +268,7 @@ int Action_Hbond::setup() {
       return 1;
     }
   }
-  // Set up solvent donor/acceptor
+  // Set up solvent donor/acceptor masks
   if (hasSolventDonor_) {
     if (currentParm->SetupIntegerMask( SolventDonorMask_ )) return 1;
     if (SolventDonorMask_.None()) {
@@ -251,22 +291,22 @@ int Action_Hbond::setup() {
   // 1) DonorMask and AcceptorMask NULL: donors and acceptors automatically searched for.
   if (!hasDonorMask_ && !hasAcceptorMask_) {
     SearchAcceptor(Acceptor_, Mask_,true);
-    SearchDonor(Donor_, Mask_,true);
+    SearchDonor(Donor_, Mask_, true, false);
   
   // 2) DonorMask only: acceptors automatically searched for in Mask
   } else if (hasDonorMask_ && !hasAcceptorMask_) {
     SearchAcceptor(Acceptor_, Mask_,true);
-    SearchDonor(Donor_, DonorMask_, false);
+    SearchDonor(Donor_, DonorMask_, false, hasDonorHmask_);
 
   // 3) AcceptorMask only: donors automatically searched for in Mask
   } else if (!hasDonorMask_ && hasAcceptorMask_) {
     SearchAcceptor(Acceptor_, AcceptorMask_, false);
-    SearchDonor(Donor_, Mask_,true);
+    SearchDonor(Donor_, Mask_, true, false);
 
   // 4) Both DonorMask and AcceptorMask: No automatic search.
   } else {
     SearchAcceptor(Acceptor_, AcceptorMask_, false);
-    SearchDonor(Donor_, DonorMask_, false);
+    SearchDonor(Donor_, DonorMask_, false, hasDonorHmask_);
   }
 
   // Print acceptor/donor information
@@ -285,6 +325,14 @@ int Action_Hbond::setup() {
               a2+1,(*currentParm)[a2].c_str()); 
     } 
   }
+  if ( Acceptor_.empty() ) {
+    mprinterr("Error: No HBond acceptors.\n");
+    return 1;
+  }
+  if ( Donor_.empty() ) {
+    mprinterr("Error: No HBond donors.\n");
+    return 1;
+  }
 
   // SOLVENT:
   if (hasSolventAcceptor_) {
@@ -294,7 +342,7 @@ int Action_Hbond::setup() {
   }
   if (hasSolventDonor_) {
     SolventDonor_.clear();
-    SearchDonor(SolventDonor_, SolventDonorMask_, false);
+    SearchDonor(SolventDonor_, SolventDonorMask_, false, false);
     mprintf("\tSet up %zu solvent donors\n", SolventDonor_.size()/2 );
   }
 

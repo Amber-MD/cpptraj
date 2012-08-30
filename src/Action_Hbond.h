@@ -43,10 +43,12 @@ class Action_Hbond : public Action {
     HBlistType SolventAcceptor_;
     AtomMask Mask_;
     AtomMask DonorMask_;
+    AtomMask DonorHmask_;
     AtomMask AcceptorMask_;
     AtomMask SolventDonorMask_;
     AtomMask SolventAcceptorMask_;
     bool hasDonorMask_;
+    bool hasDonorHmask_;
     bool hasAcceptorMask_;
     bool hasSolventDonor_;
     bool hasSolventAcceptor_;
@@ -90,7 +92,7 @@ class Action_Hbond : public Action {
     };
 
     void SearchAcceptor(HBlistType&,AtomMask&,bool);
-    void SearchDonor(HBlistType&,AtomMask&,bool);
+    void SearchDonor(HBlistType&,AtomMask&,bool,bool);
     inline int AtomsAreHbonded(int, int, int, int,bool);
 };
 #endif
