@@ -93,7 +93,7 @@ class Grid {
     iterator begin() { return grid_; }
     iterator end() { return (grid_ + gridsize_); }
   private:
-    int increment_; ///< Set to -1 if negative, 1 if not.
+    float increment_; ///< Set to -1 if negative, 1 if not.
     bool box_;
     double dx_;
     double dy_;

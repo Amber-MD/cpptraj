@@ -12,6 +12,14 @@ Action_Grid::Action_Grid() :
 {}
 
 // Action_Grid::init()
+/** Usage: grid <filename> nx dx ny dy nz dz [origin] [negative] 
+  *             [max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]
+  *             <mask>
+  *
+  * <fraction>: Percent of max to write.
+  * <madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.
+  * <value>   : Used to smooth density.
+  */
 int Action_Grid::init() {
   // Get output filename
   filename_ = actionArgs.GetStringNext();
@@ -26,7 +34,7 @@ int Action_Grid::init() {
   // Get extra options
   max_ = actionArgs.getKeyDouble("max", 0.80);
   madura_ = actionArgs.getKeyDouble("madura", 0);
-  invert_ = actionArgs.getKeyDouble("smoothdensity", 0);
+  smooth_ = actionArgs.getKeyDouble("smoothdensity", 0);
   invert_ = actionArgs.hasKey("invert");
   pdbname_ = actionArgs.GetStringKey("pdb"); 
 
@@ -62,7 +70,7 @@ int Action_Grid::setup() {
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))
     return 1;
-  mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
+  mask_.MaskInfo();
   if (mask_.None()) {
     mprinterr("Error: GRID: No atoms selected for parm %s\n", currentParm->c_str());
     return 1;

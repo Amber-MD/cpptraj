@@ -5,7 +5,7 @@
 
 // CONSTRUCTOR
 Grid::Grid() :
-  increment_(1),
+  increment_(1.0),
   box_(false),
   dx_(0),
   dy_(0),
@@ -122,7 +122,7 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
     box_ = false;
   // Negative
   if (argIn.hasKey("negative"))
-    increment_ = -1;
+    increment_ = -1.0;
 
   // Allocate memory
   gridsize_ = nx_ * ny_ * nz_;
@@ -145,7 +145,7 @@ void Grid::GridInfo() {
   else
     mprintf(" origin");
   mprintf(" will be calculated as");
-  if (increment_==1)
+  if (increment_ > 0)
     mprintf(" positive density\n");
   else
     mprintf(" negative density\n");
@@ -184,7 +184,7 @@ int Grid::GridPoint(double xIn, double yIn, double zIn) {
       int k = (int) (zz / dz_) - 1;
       if (k >= 0 && k < nz_) {
         int idx = i*ny_*nz_ + j*nz_ + k;
-        grid_[idx] += increment_; // NOTE: Cast to float?
+        grid_[idx] += increment_;
         return idx;
       }
     }
@@ -204,7 +204,7 @@ int Grid::BinPoint(double xx, double yy, double zz) {
       int k = (int) (zz / dz_);
       if (k > 0 && k < nz_) {
         int idx = i*ny_*nz_ + j*nz_ + k;
-        grid_[idx] += increment_; // NOTE: Cast to float?
+        grid_[idx] += increment_;
         return idx;
       }
     }
