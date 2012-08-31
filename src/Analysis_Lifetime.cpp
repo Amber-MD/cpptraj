@@ -10,7 +10,8 @@ Analysis_Lifetime::Analysis_Lifetime() :
 {}
 
 /** Usage: lifetime [out <filename>] <dsetarg0> [ <dsetarg1> ... ]
-  *                 [window <windowsize> name <setname>]
+  *                 [window <windowsize> [name <setname>]] [averageonly]
+  *                 [cumulative] [cut <cutoff>]
   */
 int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
   // Get Keywords
@@ -30,10 +31,8 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
 
   // Create output datasets
   if ( windowSize_ != -1) {
-    if (setname_.empty()) {
-      mprinterr("Error: lifetime: Window size > 0 and no setname given 'name <setname>'\n");
-      return 1;
-    }
+    if (setname_.empty()) 
+      setname_ = datasetlist->GenerateDefaultName( "lifetime" );
     int didx = 0;
     for (DataSetList::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
     {
