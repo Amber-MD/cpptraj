@@ -114,7 +114,13 @@ int Action_Rmsd::init( ) {
     ResRange_.SetRange( actionArgs.getKeyString("range") );
     RefRange_.SetRange( actionArgs.getKeyString("refrange") );
     perresmask_ = actionArgs.GetStringKey("perresmask");
-    if (perresmask_.empty()) perresmask_.assign("");
+    if (perresmask_.empty()) 
+      perresmask_.assign("");
+    else {
+      // If perresmask does not start with ampersand, insert one.
+      if (perresmask_[0] != '&')
+        perresmask_ = '&' + perresmask_;
+    }
     perrescenter_ = actionArgs.hasKey("perrescenter");
     perresavg_ = actionArgs.GetStringKey("perresavg");
   }
