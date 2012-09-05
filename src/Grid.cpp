@@ -253,7 +253,7 @@ void Grid::PrintXplor(std::string const& name, const char* title,
   outfile.CloseFile();
 }
 
-void Grid::PrintPDB(std::string const& filename, double cut, double normIn, bool contours) 
+void Grid::PrintPDB(std::string const& filename, double cut, double normIn) 
 {
   double norm = normIn;
   // Calculate normalization if necessary
