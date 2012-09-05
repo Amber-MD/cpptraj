@@ -10,6 +10,7 @@ class PDBfile : CpptrajFile, PDBtype {
     int OpenPDB(std::string const&);
     int OpenPDB(const char*);
     void WriteHET(int, double, double, double);
+    void WriteATOM(int, double, double, double, const char*, double);
   private:
     int anum_;
 };

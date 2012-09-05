@@ -53,6 +53,7 @@
 #include "Action_AutoImage.h"
 #include "Action_STFC_Diffusion.h"
 #include "Action_AtomicCorr.h"
+#include "Action_Bounds.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -139,6 +140,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("randomizeions"))  {Act=new Action_RandomizeIons;}
   else if (argIn.CommandIs("autoimage"))      {Act=new Action_AutoImage;}
   else if (argIn.CommandIs("atomiccorr"))     {Act=new Action_AtomicCorr;}
+  else if (argIn.CommandIs("bounds"))         {Act=new Action_Bounds;}
   // STFC code
   else if (argIn.CommandIs("stfc"))           {
     std::string stfcCMD = argIn.GetStringNext();

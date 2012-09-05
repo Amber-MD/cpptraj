@@ -1,7 +1,6 @@
 #include <cmath>
 #include "Action_Grid.h"
 #include "CpptrajStdio.h"
-#include "PDBfile.h"
 
 // CONSTRUCTOR
 Action_Grid::Action_Grid() :
@@ -163,26 +162,7 @@ void Action_Grid::print() {
                     "rdparm generated grid density" );
 
   // PDBfile output
-  // TODO: Grid pop in Bfactor/occ column
-  PDBfile pdbout;
-  if (pdbout.OpenPDB(pdbname_)) {
-    mprinterr("Error: GRID: Cannot open PDB output.\n");
-    return;
-  }
   mprintf("    GRID: grid max is %.3lf\n", gridMax);
-  mprintf("          dumping a pseudo-pdb representing all points > %.3f\n",
-           0.80 * gridMax);
-  int res = 1;
-  for (int k = 0; k < grid_.NZ(); ++k) {
-    for (int j = 0; j < grid_.NY(); ++j) {
-      for (int i = 0; i < grid_.NX(); ++i) {
-        double gridval = grid_.GridVal(i, j, k);
-        if (gridval > (max_ * gridMax)) {
-          pdbout.WriteHET(res, grid_.Xcrd(i), grid_.Ycrd(j), grid_.Zcrd(k));
-          ++res;
-        }
-      }
-    }
-  }
+  grid_.PrintPDB( pdbname_, max_, gridMax );
 }
 

@@ -22,6 +22,7 @@ class Grid {
     int BinPoint(double, double, double); 
     /// Print Xplor format grid density
     void PrintXplor(std::string const&, const char*, std::string);
+    void PrintPDB(std::string const&, double, double);
     // DEBUG
     void PrintEntireGrid();
 

@@ -2,6 +2,7 @@
 #include "Grid.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
+#include "PDBfile.h"
 
 // CONSTRUCTOR
 Grid::Grid() :
@@ -252,6 +253,45 @@ void Grid::PrintXplor(std::string const& name, const char* title,
   outfile.CloseFile();
 }
 
+void Grid::PrintPDB(std::string const& filename, double cut, double normIn, bool contours) 
+{
+  double norm = normIn;
+  // Calculate normalization if necessary
+  if (norm <= 0) {
+    for (int i = 0; i < gridsize_; ++i)
+       if ((double)grid_[i] > norm)
+         norm = (double)grid_[i];
+    if (norm == 0) {
+      mprinterr("Error: %s: Grid max is 0. No density for PDB write.\n",
+                callingRoutine_.c_str());
+      return;
+    }
+    mprintf("\t%s: Normalizing grid by %f\n", norm);
+  }
+  norm = 1.0 / norm;
+  // Write PDB
+  PDBfile pdbout;
+  if (pdbout.OpenPDB(filename)) {
+    mprinterr("Error: %s: Cannot open PDB output.\n", callingRoutine_.c_str()); 
+    return;
+  }
+  mprintf("\tWriting PDB of grid points > %.3f of grid max.\n", cut);
+  int res = 1;
+  for (int k = 0; k < nz_; ++k) {
+    for (int j = 0; j < ny_; ++j) {
+      for (int i = 0; i < nx_; ++i) {
+        double gridval = GridVal(i, j, k) * norm;
+        if (gridval > cut)
+          pdbout.WriteATOM(res++, Xcrd(i), Ycrd(j), Zcrd(k), "GRID", gridval);
+      }
+    }
+  }
+  // Write grid boundaries
+  for (int k = 0; k <= nz_; k += nz_)
+    for (int j = 0; j <= ny_; j += ny_)
+      for (int i = 0; i <= nx_; i += nx_)
+        pdbout.WriteHET(res, Xcrd(i), Ycrd(j), Zcrd(k));
+}
 
 // Grid::GridPrint()
 void Grid::PrintEntireGrid() {

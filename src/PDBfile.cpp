@@ -19,7 +19,12 @@ int PDBfile::OpenPDB(const char* nameIn) {
 }
 
 void PDBfile::WriteHET(int res, double x, double y, double z) {
-  pdb_write_ATOM(IO, PDBtype::PDBHET, anum_, "XX", "XXX", ' ', res, x, y, z);
-  ++anum_;
+  pdb_write_ATOM(IO, PDBtype::PDBHET, anum_++, "XX", "XXX", ' ', res, x, y, z);
 }
 
+void PDBfile::WriteATOM(int res, double x, double y, double z, const char* resnameIn,
+                        double Occ)
+{
+  pdb_write_ATOM(IO, PDBtype::PDBATOM, anum_++, "XX", resnameIn, ' ',
+                 res, x, y, z, (float)Occ, 0, "", false);
+}
