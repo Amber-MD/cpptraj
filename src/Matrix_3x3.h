@@ -23,7 +23,7 @@ class Matrix_3x3 {
     double M_[9];
     // The following three variables are set during Diagonalize_Sort. They
     // indicate the original ordering of the eigenvalues/eigenvectors. This
-    // information can be used to prevent reflections when e.g. aliging
+    // information can be used to prevent reflections when e.g. aligning
     // coordinates along principal axes (see e.g. Action_Principal).
     int i1_;
     int i2_;
