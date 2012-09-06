@@ -147,6 +147,18 @@ int Parm_Amber::ReadParm( Topology &TopIn ) {
   return 0;
 }
 
+// Parm_Amber::AmberIfbox()
+/** Return Amber IFBOX type:
+  *   0: No box
+  *   1: Box
+  *   2: Truncated octahedral box
+  */
+int Parm_Amber::AmberIfbox(const Box& boxIn) {
+  if (boxIn.Type() == Box::NOBOX) return 0;
+  else if (boxIn.Type() == Box::TRUNCOCT) return 2;
+  return 1;
+}
+
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm( Topology &parmIn) {
   // For date and time
@@ -220,7 +232,7 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   values[NPTRA] = (int)parmIn.DihedralPk().size();
   values[NATYP] = (int)parmIn.Solty().size(); // Only for SOLTY
   values[NPHB] = (int)parmIn.Asol().size();
-  values[IFBOX] = parmIn.ParmBox().AmberIfbox();
+  values[IFBOX] = AmberIfbox( parmIn.ParmBox() );
   values[NMXRS] = parmIn.FindResidueMaxNatom();
     
   // Write parm
@@ -313,7 +325,12 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
       APM.push_back( (*mol).NumAtoms() );
     WriteInteger(F_ATOMSPERMOL, APM);
     // BOX DIMENSIONS
-    WriteDouble(F_PARMBOX, parmIn.ParmBox().BetaLengths());
+    std::vector<double> betaLengths(4); // Beta X Y Z
+    betaLengths[0] = parmIn.ParmBox().Beta();
+    betaLengths[1] = parmIn.ParmBox().BoxX();
+    betaLengths[2] = parmIn.ParmBox().BoxY();
+    betaLengths[3] = parmIn.ParmBox().BoxZ();
+    WriteDouble(F_PARMBOX, betaLengths);
   }
   // GB RADIUS SET, RADII, SCREENING PARAMETERS
   std::string radius_set = parmIn.GBradiiSet();
@@ -449,7 +466,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
         parmbox.SetTruncOct(); 
     // Determine box type, set Box angles and lengths from beta (boxFromParm[0])
     } else {
-      parmbox.SetBetaLengths( boxFromParm );
+      parmbox.SetBetaLengths( boxFromParm[0], boxFromParm[1], boxFromParm[2], boxFromParm[3] );
     }
     // Check for IFBOX/BoxType mismatch
     if (values[IFBOX]==2 && parmbox.Type() != Box::TRUNCOCT) {

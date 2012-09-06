@@ -133,17 +133,15 @@ int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
       boxAngle_[1] = 90.0;
       boxAngle_[2] = 90.0;
     } else {
-      double temp[6];
       // TODO: Just assign trajbox? Does boxAngle get used anywhere else?
-      trajParm->ParmBox().ToDouble( temp );
       if (debug_>0) {
         mprintf("\tWarning: No angle information present in trajectory %s:\n",BaseFileStr());
         mprintf("\t         Using angles from parm %s (beta=%lf).\n",trajParm->c_str(),
-                temp[4]);
+                trajParm->ParmBox().Beta());
       }
-      boxAngle_[0] = temp[3];
-      boxAngle_[1] = temp[4];
-      boxAngle_[2] = temp[5];
+      boxAngle_[0] = trajParm->ParmBox().Alpha();
+      boxAngle_[1] = trajParm->ParmBox().Beta();
+      boxAngle_[2] = trajParm->ParmBox().Gamma();
     }
     trajbox.SetAngles( boxAngle_ );
   }

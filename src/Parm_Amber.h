@@ -59,6 +59,7 @@ class Parm_Amber : public ParmIO {
     int AllocateAndRead(int,int,int);
     bool PositionFileAtFlag(AmberParmFlagType);
 
+    int AmberIfbox(const Box&);
     int WriteSetup(AmberParmFlagType,size_t);
     int WriteInteger(AmberParmFlagType,std::vector<int>const&);
     int WriteDouble(AmberParmFlagType,std::vector<double>const&);
