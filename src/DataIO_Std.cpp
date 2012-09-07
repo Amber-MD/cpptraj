@@ -1,4 +1,6 @@
-#include <locale>
+#include <cstdlib> // atoi, atof
+#include <cstring> // strchr
+#include <cctype>  // isdigit, isalpha
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" // SetStringFormatString
 #include "FileBuffer.h"
@@ -11,12 +13,17 @@ DataIO_Std::DataIO_Std() :
   ystep_(1)
 {}
 
+static void PrintColumnError() {
+  mprinterr("Error: Number of columns in file changes.\n");
+}
+
+// DataIO_Std::ReadData()
 int DataIO_Std::ReadData(DataSetList& datasetlist) {
   ArgList labels;
-  std::locale loc;
   bool hasLabels = false;
   std::vector<DataSet*> DsetList;
   int indexcol = -1;
+  const char* SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
   //DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
 
   // Buffer file
@@ -25,13 +32,13 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
   // Read the first line. Attempt to determine the number of columns
   const char* linebuffer = buffer.NextLine();
   if (linebuffer == 0) return 1;
-  ArgList dataline( linebuffer, " ,\t" ); // whitespace, comma, or tab-delimited
-  mprintf("\tDataFile %s has %i columns.\n", FullFileStr(), dataline.Nargs());
-  if ( dataline.Nargs() == 0 ) return 1;
+  int ntoken = buffer.TokenizeLine( SEPARATORS );
+  mprintf("\tDataFile %s has %i columns.\n", FullFileStr(), ntoken);
+  if ( ntoken == 0 ) return 1;
 
   // If first line begins with a '#', assume it contains labels
   if (linebuffer[0]=='#') {
-    labels.SetList(linebuffer+1, " ,\t" );
+    labels.SetList(linebuffer+1, SEPARATORS );
     hasLabels = true;
     mprintf("\tDataFile contains labels:\n");
     labels.PrintList();
@@ -43,17 +50,21 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       linebuffer = buffer.NextLine();
       if (linebuffer == 0) return 1;
     }
-    dataline.SetList( linebuffer, " ,\t" );
+    if (buffer.TokenizeLine( SEPARATORS ) != ntoken) {
+      PrintColumnError();
+      return 1;
+    }
   }
 
   // Determine the type of data stored in each column 
-  for (int col = 0; col < dataline.Nargs(); ++col) {
-    mprintf("\t\tFirst Data in col %i = %s", col+1, dataline[col].c_str());
+  for (int col = 0; col < ntoken; ++col) {
+    const char* token = buffer.NextToken();
+    mprintf("\t\tFirst Data in col %i = %s", col+1, token);
     if (col == indexcol)
       mprintf(" INDEX");
     // Determine data type
     DataSet* dset = NULL;
-    if ( isalpha( dataline[col][0], loc ) ) 
+    if ( isalpha( token[0] ) ) 
     {
       mprintf(" STRING!\n");
       // STRING columns cannot be index columns
@@ -63,11 +74,12 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
         return 1;
       }
       dset = datasetlist.AddSetIdx( DataSet::STRING, BaseFileName(), col+1 );
-    } else if ( isdigit( dataline[col][0], loc) || 
-                dataline[col][0]=='+' || 
-                dataline[col][0]=='-' )
+    } else if ( isdigit( token[0] ) || 
+                token[0]=='+' || 
+                token[0]=='-' ||
+                token[0]=='.'   )
     {
-      if (dataline[col].find_first_of(".") != std::string::npos ) {
+      if ( strchr( token, '.' ) != NULL ) {
         mprintf(" DOUBLE!\n");
         if ( col != indexcol )
           dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), col+1 );
@@ -92,12 +104,15 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
     DsetList.push_back( dset );
   }
 
-  bool dataloop = true;
   int ival = 0;
   double dval = 0;
   // NOTE: Temporarily disabling index.
   int indexval = -1; // So that when no index col first val incremented to 0
-  while (dataloop) {
+  do {
+    if ( buffer.TokenizeLine( SEPARATORS ) != ntoken ) {
+      PrintColumnError();
+      break;
+    } 
     // Deal with index.
 /*    if (indexcol != -1) {
       switch ( indextype ) {
@@ -111,27 +126,26 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       ++indexval;
 //    }
     // Convert data in columns
-    for (int i = 0; i < dataline.Nargs(); ++i) {
+    for (int i = 0; i < ntoken; ++i) {
+      const char* token = buffer.NextToken();
       if (DsetList[i] == NULL) continue;
       switch ( DsetList[i]->Type() ) {
         case DataSet::INT: 
-          ival = convertToInteger( dataline[i] ); 
+          ival = atoi( token ); 
           DsetList[i]->Add( indexval, &ival );
           break;
         case DataSet::DOUBLE: 
-          dval = convertToDouble( dataline[i] ); 
+          dval = atof( token ); 
           DsetList[i]->Add( indexval, &dval );
           break;
         case DataSet::STRING: 
-          DsetList[i]->Add( indexval, (char*)dataline[i].c_str() ); // TODO: Fix cast
+          DsetList[i]->Add( indexval, (char*)token ); // TODO: Fix cast
           break;
         default: continue; 
       }
     }
-    if ( (linebuffer = buffer.NextLine()) == 0) break;
-    dataline.SetList(linebuffer, " ,\t");
-  }
-
+  } while (buffer.NextLine() != 0);
+  
   return 0;
 }
 
