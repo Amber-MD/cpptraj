@@ -33,6 +33,7 @@ const char Action_Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
  *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n
  *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n
  *                        [ repout <repprefix> [repfmt <repfmt>] ]\n
+ *                        [data <setname>]
  */
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
@@ -161,27 +162,38 @@ int Action_Clustering::action() {
 /** This is where the clustering is actually performed. First the distances
   * between each frame are calculated. Then the clustering routine is called.
   */
+// TODO: Need to update save to indicate distance type
+// NOTE: Should distances be saved only if load_pair?
 void Action_Clustering::print() {
   TriangleMatrix Distances;
   ClusterList CList;
 
-  // If PAIRDISTFILE exists load pair distances from there
-  if (load_pair_ && fileExists(PAIRDISTFILE)) {
-    mprintf("CLUSTER: %s found, loading pairwise distances.\n",PAIRDISTFILE);
-    if (Distances.LoadFile(PAIRDISTFILE,ReferenceFrames_.NumFrames())) 
-      return;
-  } else if (cluster_dataset_==NULL) {
-    // Get RMSDs between frames
-    calcDistFromRmsd( Distances );
-    // Save distances
-    // NOTE: Only if load_pair?
-    Distances.SaveFile( PAIRDISTFILE );
-  } else {
-    // Get distances from dataset
+  mprintf("    CLUSTER:");
+  // Default: 0 - Get RMSDs from frames.
+  //          1 - If PAIRDISTFILE exists load pair distances from there.
+  //          2 - If DataSet was specified get pair distances from that.
+  // Calculated distances will be saved if not loaded from file.
+  int pairdist_mode = 0; 
+  if (load_pair_ && fileExists(PAIRDISTFILE))
+    pairdist_mode = 1;
+  if (cluster_dataset_ != NULL)
+    pairdist_mode = 2;
+
+  if (pairdist_mode == 2) {  // Get distances from dataset.
     calcDistFromDataset( Distances );
-    // NOTE: Need to update save to indicate distance type
     Distances.SaveFile( PAIRDISTFILE );
   }
+  if (pairdist_mode == 1) {  // Get distances from file.
+    mprintf(" %s found, loading pairwise distances.\n",PAIRDISTFILE);
+    if (Distances.LoadFile(PAIRDISTFILE,ReferenceFrames_.NumFrames())) {
+      mprintf("\tLoading pairwise distances failed - regenerating from frames.\n");
+      pairdist_mode = 0;
+    }
+  } 
+  if (pairdist_mode == 0) { // Get RMSDs between frames
+    calcDistFromRmsd( Distances );
+    Distances.SaveFile( PAIRDISTFILE );
+  } 
 
   // DEBUG
   if (debug>1) {
@@ -259,16 +271,16 @@ int Action_Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
 
   max = Distances.Nelements();
   if (nofitrms_)
-    mprintf("  CLUSTER: Calculating no-fit RMSDs between each frame (%i total).\n  ",max);
+    mprintf(" Calculating no-fit RMSDs between each frame (%i total).\n  ",max);
   else
-    mprintf("  CLUSTER: Calculating RMSDs with fitting between each frame (%i total).\n",max);
+    mprintf(" Calculating RMSDs with fitting between each frame (%i total).\n",max);
 
   // Set up progress Bar
-  ProgressBar *progress = new ProgressBar(max);
+  ProgressBar progress(max);
 
   // LOOP OVER REFERENCE FRAMES
   for (int nref=0; nref < totalref - 1; nref++) {
-    progress->Update(current);
+    progress.Update(current);
     RefParm = ReferenceFrames_.GetFrameParm( nref );
     // If the current ref parm not same as last ref parm, reset reference mask
     if (RefParm->Pindex() != lastrefpindex) {
@@ -302,7 +314,7 @@ int Action_Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
         if (Mask0_.Nselected() != refatoms) {
           mprintf("Warning: Clustering RMS: Num atoms in frame %i (%i) != num atoms \n",
                     nframe+1, Mask0_.Nselected());
-          mprintf("         in frame %i (%i). Assigning an RMS of 10000.\n",
+          mprintf("Warning:   in frame %i (%i). Assigning an RMS of 10000.\n",
                    nref+1, refatoms);
           R = 10000;
           Distances.AddElement( R );
@@ -330,8 +342,6 @@ int Action_Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
       ++current;
     } // END loop over target frames
   } // END loop over reference frames
-  progress->Update(max);
-  delete progress;
 
   return 0;
 }
@@ -377,7 +387,7 @@ int Action_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
     // Check if clustering is complete.
     // If the target number of clusters is reached we are done
     if (CList.Nclusters() <= targetNclusters_) {
-      mprintf("\tTarget # of clusters (%i) met (%u), clustering complete.\n",targetNclusters_,
+      mprintf("\n\tTarget # of clusters (%i) met (%u), clustering complete.\n",targetNclusters_,
               CList.Nclusters());
       break;
     } 
@@ -385,7 +395,7 @@ int Action_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
     cluster_progress.Update( iterations );
     ++iterations;
   }
-  mprintf("\tCLUSTER: Completed after %i iterations, %u clusters.\n",iterations,
+  mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
           CList.Nclusters());
 
   return 0;
@@ -540,15 +550,14 @@ void Action_Clustering::calcDistFromDataset( TriangleMatrix &Distances ) {
   Distances.Setup(N);
 
   int max = Distances.Nelements();
-  mprintf("  CLUSTER: Calculating distances using dataset %s (%i total).\n",
+  mprintf(" Calculating distances using dataset %s (%i total).\n",
           cluster_dataset_->Legend().c_str(),max);
 
-  ProgressBar *progress = new ProgressBar(max);
-
+  ProgressBar progress(max);
   // LOOP 
   int current = 0;
   for (int i = 0; i < N-1; i++) {
-    progress->Update(current);
+    progress.Update(current);
     double iVal = cluster_dataset_->Dval(i);
     for (int j = i + 1; j < N; j++) {
       double jVal = cluster_dataset_->Dval(j);
@@ -559,9 +568,6 @@ void Action_Clustering::calcDistFromDataset( TriangleMatrix &Distances ) {
       current++;
     }
   }
-  progress->Update(max);
-  delete progress;
-
 }
 
 
