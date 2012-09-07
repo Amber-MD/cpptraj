@@ -3,16 +3,15 @@
 /// Used to print progress to screen
 class ProgressBar {
   public:
+    ProgressBar();
     ProgressBar(int);
 
     void Update(int);
-    void PrintBar(int);
   private:
-    int max;
-    float C_over_max;
-    float targetPercent;
-    bool first;
-    bool oneframe;
-    bool unknownframes;
+    static const int UNKNOWN_FRAMESIZE;
+    int max_;
+    float C_over_max_;
+    float targetPercent_;
+    bool unknownframes_;
 };
 #endif
