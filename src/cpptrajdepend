@@ -77,8 +77,8 @@ DataFile.o : DataFile.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataFile.h Data
 DataFileList.o : DataFileList.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h
 DataIO.o : DataIO.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataIO.h DataSet.h DataSetList.h FileIO.h
 DataIO_Gnuplot.o : DataIO_Gnuplot.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Gnuplot.h DataSet.h DataSetList.h FileIO.h
-DataIO_Grace.o : DataIO_Grace.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Grace.h DataSet.h DataSetList.h FileIO.h ProgressBar.h
-DataIO_Std.o : DataIO_Std.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Std.h DataSet.h DataSetList.h FileIO.h
+DataIO_Grace.o : DataIO_Grace.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Grace.h DataSet.h DataSetList.h FileBuffer.h FileIO.h ProgressBar.h
+DataIO_Std.o : DataIO_Std.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Std.h DataSet.h DataSetList.h FileBuffer.h FileIO.h ProgressBar.h
 DataSet.o : DataSet.cpp CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h PubFFT.h
 DataSet_double.o : DataSet_double.cpp CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_double.h FileIO.h MpiRoutines.h
 DataSet_float.o : DataSet_float.cpp CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_float.h FileIO.h MpiRoutines.h
@@ -92,6 +92,7 @@ FileIO_Gzip.o : FileIO_Gzip.cpp CpptrajStdio.h FileIO.h FileIO_Gzip.h
 FileIO_Mpi.o : FileIO_Mpi.cpp FileIO.h FileIO_Mpi.h MpiRoutines.h
 FileIO_Std.o : FileIO_Std.cpp FileIO.h FileIO_Std.h
 FileList.o : FileList.cpp FileList.h
+FileBuffer.o : FileBuffer.cpp CpptrajStdio.h FileBuffer.h FileIO.h ProgressBar.h
 Frame.o : Frame.cpp Atom.h AtomMask.h Constants.h CpptrajStdio.h DistRoutines.h Frame.h MaskToken.h Matrix_3x3.h NameType.h TorsionRoutines.h vectormath.h
 FrameBuffer.o : FrameBuffer.cpp FrameBuffer.h
 FrameList.o : FrameList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h

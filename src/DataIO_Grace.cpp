@@ -1,85 +1,59 @@
 #include <cstdio> // sscanf
 #include "DataIO_Grace.h"
 #include "CpptrajStdio.h"
-#include "ProgressBar.h"
+#include "FileBuffer.h"
 
 // CONSTRUCTOR
 DataIO_Grace::DataIO_Grace() :
   ymin_(1),
-  ystep_(1),
-  readbuffer_(0)
+  ystep_(1)
 {}
-
-DataIO_Grace::~DataIO_Grace() {
-  if (readbuffer_!=0) delete[] readbuffer_;
-}
 
 // Dont assume anything about set ordering
 int DataIO_Grace::ReadData(DataSetList& datasetlist) {
   ArgList dataline;
-  char linebuffer[1024];
-  const char* endlinebuffer = linebuffer + 1024;
   int setnum = 1;
   int frame = 0;
   DataSet *dset = NULL;
   std::vector<DataSet*> Dsets;
   std::vector<std::string> labels;
   double dval;
-  int Nread, total_read;
+  const char* linebuffer;
   
   // Allocate and set up read buffer
-  const size_t chunksize = 16384;
-  readbuffer_ = new char[ chunksize ];
-  char* lineptr = linebuffer;
+  FileBuffer buffer( IO, (int)FileSize() );
 
   // Read chunks from file
-  ProgressBar progress( (int)FileSize() );
-  total_read = 0;
-  while ( (Nread = IO->Read(readbuffer_, chunksize)) > 0) {
-    total_read += Nread;
-    progress.Update( total_read );
-    char* ptr = readbuffer_;
-    char* endbuffer = readbuffer_ + (size_t)Nread;
-    // Get lines from chunk
-    while ( ptr < endbuffer && lineptr < endlinebuffer ) {
-      *(lineptr++) = *ptr;
-      if (*ptr == '\n') {
-        // Newline encountered. Process it
-        *lineptr = '\0';
-        if (linebuffer[0] == '@') {
-          // Command: create command line without the @
-          dataline.SetList(linebuffer+1, " \t");
-          if ( !dataline.CommandIs("legend") && dataline.Contains("legend") ) {
-            // Legend keyword that does not come first. Dont store blanks.
-            std::string lbl = dataline.GetStringKey("legend");
-            if (!lbl.empty())
-              labels.push_back( lbl );
-          } else if (dataline.CommandIs("target")) {
-            // Indicates dataset will be read soon. Allocate new set.
-            dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), setnum++);
-            if (dset == NULL) {
-              mprinterr("Error: %s: Could not allocate data set.\n", FullFileStr());
-              return 1;
-            }
-            Dsets.push_back( dset );
-            frame = 0;
-          }
-        } else if (linebuffer[0] != '#' && linebuffer[0] != '&') { // Skip comments and dataset end
-          // Data
-          if (dset==NULL) {
-            mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
-                      FullFileStr());
-            return 1;
-          }
-          // FIXME: Ignoring frame for now
-          sscanf(linebuffer,"%*s %lf", &dval);
-          dset->Add( frame++, &dval );
+  while ( (linebuffer = buffer.NextLine()) != 0 ) {
+    if (linebuffer[0] == '@') {
+      // Command: create command line without the @
+      dataline.SetList(linebuffer+1, " \t");
+      if ( !dataline.CommandIs("legend") && dataline.Contains("legend") ) {
+        // Legend keyword that does not come first. Dont store blanks.
+        std::string lbl = dataline.GetStringKey("legend");
+        if (!lbl.empty())
+          labels.push_back( lbl );
+      } else if (dataline.CommandIs("target")) {
+        // Indicates dataset will be read soon. Allocate new set.
+        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), setnum++);
+        if (dset == NULL) {
+          mprinterr("Error: %s: Could not allocate data set.\n", FullFileStr());
+          return 1;
         }
-        // Reset line
-        lineptr = linebuffer;
+        Dsets.push_back( dset );
+        frame = 0;
       }
-      ++ptr;
-    } // END loop over chunk
+    } else if (linebuffer[0] != '#' && linebuffer[0] != '&') { // Skip comments and dataset end
+      // Data
+      if (dset==NULL) {
+        mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
+                  FullFileStr());
+        return 1;
+      }
+      // FIXME: Ignoring frame for now
+      sscanf(linebuffer,"%*s %lf", &dval);
+      dset->Add( frame++, &dval );
+    }
   } // END loop over file
 
   // Set DataSet legends if specified
@@ -102,7 +76,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
     
   return 0;
 }
-      
+
 // DataIO_Grace::processWriteArgs()
 int DataIO_Grace::processWriteArgs(ArgList &argIn) {
   ArgList::ConstArg ylabel = argIn.getKeyString("ylabel");

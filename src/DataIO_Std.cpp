@@ -1,6 +1,7 @@
 #include <locale>
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" // SetStringFormatString
+#include "FileBuffer.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() : 
@@ -11,7 +12,6 @@ DataIO_Std::DataIO_Std() :
 {}
 
 int DataIO_Std::ReadData(DataSetList& datasetlist) {
-  char buffer[1024];
   ArgList labels;
   std::locale loc;
   bool hasLabels = false;
@@ -19,15 +19,19 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
   int indexcol = -1;
   //DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
 
+  // Buffer file
+  FileBuffer buffer( IO, (int)FileSize() );
+
   // Read the first line. Attempt to determine the number of columns
-  if (IO->Gets( buffer, 1024 )) return 1;
-  ArgList dataline( buffer, " ,\t" ); // whitespace, comma, or tab-delimited
-  mprintf("\tDataFile %s has %i columns.\n",FullFileStr(),dataline.Nargs());
+  const char* linebuffer = buffer.NextLine();
+  if (linebuffer == 0) return 1;
+  ArgList dataline( linebuffer, " ,\t" ); // whitespace, comma, or tab-delimited
+  mprintf("\tDataFile %s has %i columns.\n", FullFileStr(), dataline.Nargs());
   if ( dataline.Nargs() == 0 ) return 1;
 
   // If first line begins with a '#', assume it contains labels
-  if (buffer[0]=='#') {
-    labels.SetList(buffer+1, " ,\t" );
+  if (linebuffer[0]=='#') {
+    labels.SetList(linebuffer+1, " ,\t" );
     hasLabels = true;
     mprintf("\tDataFile contains labels:\n");
     labels.PrintList();
@@ -35,13 +39,14 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
     if (labels[0] == "Frame") 
       indexcol = 0;
     // Read in next non # line, should be data.
-    while (buffer[0] == '#') {
-      if (IO->Gets( buffer, 1024 )) return 1;
+    while (linebuffer[0] == '#') {
+      linebuffer = buffer.NextLine();
+      if (linebuffer == 0) return 1;
     }
-    dataline.SetList( buffer, " ,\t" );
+    dataline.SetList( linebuffer, " ,\t" );
   }
 
-  // DEBUG
+  // Determine the type of data stored in each column 
   for (int col = 0; col < dataline.Nargs(); ++col) {
     mprintf("\t\tFirst Data in col %i = %s", col+1, dataline[col].c_str());
     if (col == indexcol)
@@ -57,7 +62,7 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
                   FullFileStr(), indexcol+1);
         return 1;
       }
-      dset = datasetlist.AddSetIdx( DataSet::STRING, BaseFileName(), col );
+      dset = datasetlist.AddSetIdx( DataSet::STRING, BaseFileName(), col+1 );
     } else if ( isdigit( dataline[col][0], loc) || 
                 dataline[col][0]=='+' || 
                 dataline[col][0]=='-' )
@@ -65,13 +70,13 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       if (dataline[col].find_first_of(".") != std::string::npos ) {
         mprintf(" DOUBLE!\n");
         if ( col != indexcol )
-          dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), col );
+          dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), col+1 );
         //else
         //  indextype = DataSet::DOUBLE;
       } else {
         mprintf(" INTEGER!\n");
         if (col != indexcol)
-          dset = datasetlist.AddSetIdx( DataSet::INT, BaseFileName(), col );
+          dset = datasetlist.AddSetIdx( DataSet::INT, BaseFileName(), col+1 );
         //else
         //  indextype = DataSet::INT;
       }
@@ -123,8 +128,8 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
         default: continue; 
       }
     }
-    dataloop = (IO->Gets(buffer, 1024)==0);
-    dataline.SetList(buffer, " ,\t");
+    if ( (linebuffer = buffer.NextLine()) == 0) break;
+    dataline.SetList(linebuffer, " ,\t");
   }
 
   return 0;
@@ -158,6 +163,10 @@ void DataIO_Std::WriteNameToBuffer(DataSet* DS, bool leftAlign)
   int width = DS->Width();
   if ((int)temp_name.size() > width)
     temp_name.resize( width );
+  // Replace any spaces with underscores
+  for (std::string::iterator tc = temp_name.begin(); tc != temp_name.end(); ++tc)
+    if ( *tc == ' ' )
+      *tc = '_';
   // Set up header format string
   std::string header_format;
   SetStringFormatString(header_format, width, leftAlign);

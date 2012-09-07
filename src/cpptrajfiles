@@ -27,6 +27,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         DataSetList.cpp DataSet_string.cpp \
         DistRoutines.cpp Dimension.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
+        FileBuffer.cpp \
         Frame.cpp FrameBuffer.cpp FrameList.cpp Grid.cpp Histogram.cpp Integrate.cpp \
         main.cpp MapAtom.cpp ModesInfo.cpp Matrix_3x3.cpp MatrixType.cpp Matrix_2D.cpp \
         MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfFile.cpp \
