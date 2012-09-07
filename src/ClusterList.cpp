@@ -315,7 +315,8 @@ int ClusterList::MergeClosest(double epsilon) {
     mprintf("\tMinimum found between clusters %i and %i (%lf)\n",C1,C2,min);
   // If the minimum distance is greater than epsilon we are done
   if (min > epsilon) {
-    mprintf("\tMinimum distance is greater than epsilon (%lf), clustering complete.\n", epsilon);
+    mprintf("\n\tMinimum distance is greater than epsilon (%lf), clustering complete.\n",
+            epsilon);
     return 1;
   }
 

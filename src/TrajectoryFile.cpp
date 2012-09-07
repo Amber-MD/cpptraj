@@ -797,7 +797,6 @@ int TrajectoryFile::GetNextFrame(Frame& FrameIn) {
   //if (currentFrame>stop) return 0;
   if (progress_!=NULL) 
     progress_->Update(numFramesProcessed_);
-    //progress->PrintBar(currentFrame);
 
   tgtFrameFound=false;
 

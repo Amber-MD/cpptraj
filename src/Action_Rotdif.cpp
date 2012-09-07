@@ -1616,7 +1616,6 @@ int Action_Rotdif::DetermineDeffs() {
     rndvec += 3;
     //break;
   }
-  progress.Update( nvecs_ );
 
   // Cleanup
   delete[] rotated_vectors;

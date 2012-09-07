@@ -157,9 +157,7 @@ DataSet* Action_Rms2d::Calc2drms() {
   mprintf("  RMS2D: Calculating RMSDs between each frame (%i total).\n  ",max);
 
   // Set up progress Bar
-  ProgressBar *progress = new ProgressBar(max);
-  int current = 0;
-  progress->Update(current);
+  ProgressBar progress(totalref - 1);
 
   if (mass_ptr_!=NULL && useMass_) {
     // Set up mass info. If mass info present this means only 1 parm used,
@@ -177,6 +175,7 @@ DataSet* Action_Rms2d::Calc2drms() {
 
   // LOOP OVER REFERENCE FRAMES
   for (int nref=0; nref < totalref - 1; nref++) {
+    progress.Update(nref);
     // Get the current reference frame
     RefFrame = ReferenceCoords_[nref];
     // Select and pre-center reference atoms (if fitting)
@@ -185,7 +184,6 @@ DataSet* Action_Rms2d::Calc2drms() {
   
     // LOOP OVER TARGET FRAMES
     for (int nframe=nref+1; nframe < totalref; nframe++) {
-      ++current;
       // Get the current target frame
       TgtFrame = ReferenceCoords_[nframe];
       // Ensure # ref atoms == # tgt atoms
@@ -205,13 +203,10 @@ DataSet* Action_Rms2d::Calc2drms() {
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames
-    progress->Update(current-1);
   } // END loop over reference frames
-  //progress->Update(max);
   // Calculate correlation if specified
   if (!corrfilename_.empty()) AutoCorrelate( *Distances );
 
-  delete progress;
   return (DataSet*)Distances;
 }
 
@@ -254,9 +249,7 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
     return NULL;
   }
   // Set up progress Bar
-  ProgressBar *progress = new ProgressBar(max);
-  int current=0;
-  progress->Update(current);
+  ProgressBar progress(totalref);
 
   if (mass_ptr_!=NULL && useMass_) {
     // Set up selected target mass info
@@ -268,6 +261,7 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
   }
   // LOOP OVER REFERENCE FRAMES
   for (int nref=0; nref < totalref; nref++) {
+    progress.Update(nref);
     // Get the current reference frame from trajectory
     RefTraj_->GetNextFrame(RefFrame);
   
@@ -286,7 +280,6 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
 
     // LOOP OVER TARGET FRAMES
     for (int nframe=0; nframe < totaltgt; nframe++) {
-      ++current;
       // Get selected atoms of the current target frame
       SelectedTgt = ReferenceCoords_[nframe];
       // Ensure # ref atoms == # tgt atoms
@@ -308,10 +301,7 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames
-    progress->Update(current-1);
   } // END loop over reference frames
-  //progress->Update(max);
-  delete progress;
   RefTraj_->EndTraj();
   return (DataSet*)rmsdata;
 }
