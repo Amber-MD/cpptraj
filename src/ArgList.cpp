@@ -196,11 +196,11 @@ void ArgList::PrintList() {
   unsigned int nargs = arglist.size();
   if (debug==0) {
     for (unsigned int arg = 0; arg < nargs; arg++) 
-      mprintf("  %u: %s\n",arg,arglist[arg].c_str());
+      mprintf("  %u: %s\n",arg+1,arglist[arg].c_str());
   } else {
     mprintf("ArgLine: %s\n",argline.c_str());
     for (unsigned int arg = 0; arg < nargs; arg++)
-      mprintf("\tArg %u: %s (%i)\n",arg,arglist[arg].c_str(),(int)marked[arg]);
+      mprintf("\tArg %u: %s (%i)\n",arg+1,arglist[arg].c_str(),(int)marked[arg]);
   }
 }
 
