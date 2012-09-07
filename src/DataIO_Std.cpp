@@ -33,15 +33,15 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
   const char* linebuffer = buffer.NextLine();
   if (linebuffer == 0) return 1;
   int ntoken = buffer.TokenizeLine( SEPARATORS );
-  mprintf("\tDataFile %s has %i columns.\n", FullFileStr(), ntoken);
-  if ( ntoken == 0 ) return 1;
+  if ( ntoken == 0 ) {
+    mprinterr("Error: No columns detected in %s\n", FullFileStr());
+    return 1;
+  }
 
   // If first line begins with a '#', assume it contains labels
   if (linebuffer[0]=='#') {
     labels.SetList(linebuffer+1, SEPARATORS );
     hasLabels = true;
-    mprintf("\tDataFile contains labels:\n");
-    labels.PrintList();
     // If label is Frame assume it is the index column
     if (labels[0] == "Frame") 
       indexcol = 0;
@@ -59,14 +59,14 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
   // Determine the type of data stored in each column 
   for (int col = 0; col < ntoken; ++col) {
     const char* token = buffer.NextToken();
-    mprintf("\t\tFirst Data in col %i = %s", col+1, token);
-    if (col == indexcol)
-      mprintf(" INDEX");
+    //mprintf("\t\tFirst Data in col %i = %s", col+1, token);
+    //if (col == indexcol)
+    //  mprintf(" INDEX");
     // Determine data type
     DataSet* dset = NULL;
     if ( isalpha( token[0] ) ) 
     {
-      mprintf(" STRING!\n");
+      //mprintf(" STRING!\n");
       // STRING columns cannot be index columns
       if ( col == indexcol ) {
         mprinterr("Error: DataFile %s index column %i has string values.\n", 
@@ -80,13 +80,13 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
                 token[0]=='.'   )
     {
       if ( strchr( token, '.' ) != NULL ) {
-        mprintf(" DOUBLE!\n");
+        //mprintf(" DOUBLE!\n");
         if ( col != indexcol )
           dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), col+1 );
         //else
         //  indextype = DataSet::DOUBLE;
       } else {
-        mprintf(" INTEGER!\n");
+        //mprintf(" INTEGER!\n");
         if (col != indexcol)
           dset = datasetlist.AddSetIdx( DataSet::INT, BaseFileName(), col+1 );
         //else
@@ -145,7 +145,15 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       }
     }
   } while (buffer.NextLine() != 0);
-  
+
+  mprintf("\tDataFile %s has %i columns.\n", FullFileStr(), ntoken);
+  if (hasLabels) {
+    mprintf("\tDataFile contains labels:\n");
+    labels.PrintList();
+  }
+  if (indexcol != -1)
+    mprintf("\tIndex column is %i\n", indexcol + 1);
+
   return 0;
 }
 
