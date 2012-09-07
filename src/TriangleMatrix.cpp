@@ -90,7 +90,6 @@ TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
   *   Vars: ['C''T''M'0][nrows][nelements][elements]
   */
 int TriangleMatrix::SaveFile(const char *filename) {
-  FILE *outfile;
   char magic[4];
 
   magic[0]='C'; // Cpptraj
@@ -98,7 +97,7 @@ int TriangleMatrix::SaveFile(const char *filename) {
   magic[2]='M'; // Matrix
   magic[3]=0;   // Version
 
-  outfile = fopen(filename,"wb");
+  FILE* outfile = fopen(filename,"wb");
   if (outfile==NULL) {
     mprinterr("Error: TriangleMatrix::SaveFile: Could not open file %s\n",filename);
     return 1;
@@ -122,10 +121,9 @@ int TriangleMatrix::SaveFile(const char *filename) {
 
 // TriangleMatrix::LoadFile
 int TriangleMatrix::LoadFile(const char *filename, int sizeIn) {
-  FILE *infile;
   char magic[4];
 
-  infile = fopen(filename, "rb");
+  FILE* infile = fopen(filename, "rb");
   if (infile==NULL) {
     mprinterr("Error: TriangleMatrix::LoadFile: Could not open file %s\n",filename);
     return 1;
@@ -137,7 +135,7 @@ int TriangleMatrix::LoadFile(const char *filename, int sizeIn) {
       magic[2] != 'M' ||
       magic[3] != 0     ) {
     mprinterr("Error: TriangleMatrix::LoadFile: File %s magic number not CTM0 [%c%c%c%c]!\n",
-              magic[0],magic[1],magic[2],magic[3],filename);
+              filename, magic[0], magic[1], magic[2], magic[3]);
     fclose(infile);
     return 1;
   }
@@ -146,7 +144,7 @@ int TriangleMatrix::LoadFile(const char *filename, int sizeIn) {
   // If number of rows is not what was expected, abort
   if (nrows_ != sizeIn) {
     mprintf("Warning: TriangleMatrix::LoadFile: File %s has %i rows, expected %i.\n",
-            nrows_,sizeIn);
+            filename, nrows_, sizeIn);
     fclose(infile);
     return 1;
   }
