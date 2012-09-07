@@ -143,7 +143,7 @@ int TriangleMatrix::LoadFile(const char *filename, int sizeIn) {
   fread(&nrows_, sizeof(int), 1, infile);
   // If number of rows is not what was expected, abort
   if (nrows_ != sizeIn) {
-    mprintf("Warning: TriangleMatrix::LoadFile: File %s has %i rows, expected %i.\n",
+    mprinterr("Error: TriangleMatrix::LoadFile: File %s has %i rows, expected %i.\n",
             filename, nrows_, sizeIn);
     fclose(infile);
     return 1;
