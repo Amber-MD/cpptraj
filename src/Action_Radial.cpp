@@ -24,10 +24,7 @@ Action_Radial::Action_Radial() :
   numDistances_(0),
   // Default particle density (molecules/Ang^3) for water based on 1.0 g/mL
   density_(0.033456)
-{
-  //fprintf(stderr,"Radial Con\n");
-  useImage_ = true;
-} 
+{} 
 
 // DESTRUCTOR
 Action_Radial::~Action_Radial() {
@@ -46,7 +43,7 @@ Action_Radial::~Action_Radial() {
   */
 int Action_Radial::init() {
   // Get Keywords
-  useImage_ = !(actionArgs.hasKey("noimage"));
+  InitImaging( !(actionArgs.hasKey("noimage")) );
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
   center1_ = actionArgs.hasKey("center1");
@@ -124,7 +121,7 @@ int Action_Radial::init() {
     mprintf("            Normalizing based on cell volume.\n");
   else
     mprintf("            Normalizing using particle density of %lf molecules/Ang^3.\n",density_);
-  if (!useImage_) 
+  if (!UseImage()) 
     mprintf("            Imaging disabled.\n");
   if (numthreads_ > 1)
     mprintf("            Parallelizing RDF calculation with %i threads.\n",numthreads_);
@@ -148,6 +145,7 @@ int Action_Radial::setup() {
     mprintf("    Error: Radial::setup: Second mask has no atoms.\n");
     return 1;
   }
+  SetupImaging( currentParm->BoxType() );
 
   // If not computing a center for mask 1, make the outer loop for distance 
   // calculation correspond to the mask with the most atoms.
@@ -171,7 +169,7 @@ int Action_Radial::setup() {
   // Print mask and imaging info for this parm
   mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",
           Mask1_.Nselected(), Mask2_.Nselected());
-  if (imageType_ != Frame::NOIMAGE)
+  if (ImagingEnabled())
     mprintf("Imaging on.\n");
   else
     mprintf("Imaging off.\n");
@@ -189,13 +187,14 @@ int Action_Radial::action() {
   int atom1, atom2;
   int nmask1, nmask2;
   int idx, mydistances;
+  double* boxAddress = currentFrame->bAddress();
 # ifdef _OPENMP
   int mythread;
 # endif
 
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (imageType_ != Frame::NOIMAGE) {
+  if (ImagingEnabled()) {
     D = currentFrame->BoxToRecip(ucell,recip);
     if (useVolume_)  volume_ += D;
   }
@@ -213,7 +212,8 @@ int Action_Radial::action() {
 #endif
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = Mask2_[nmask2];
-      D = currentFrame->DIST2(coord_center,atom2,imageType_,ucell,recip);
+      D = DIST2(coord_center, currentFrame->XYZ(atom2), ImageType(),
+                boxAddress, ucell, recip);
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
@@ -247,7 +247,8 @@ int Action_Radial::action() {
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask_[nmask2];
         if (atom1 != atom2) {
-          D = currentFrame->DIST2(atom1,atom2,imageType_,ucell,recip);
+          D = DIST2( currentFrame->XYZ(atom1), currentFrame->XYZ(atom2),
+                     ImageType(), boxAddress, ucell, recip);
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);

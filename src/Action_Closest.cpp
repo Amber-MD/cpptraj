@@ -22,10 +22,7 @@ Action_Closest::Action_Closest() :
   firstAtom_(false),
   newParm_(NULL),
   NsolventMolecules_(0)
-{
-  //fprintf(stderr,"Closest Con\n");
-  useImage_ = true;
-} 
+{} 
 
 // DESTRUCTOR
 Action_Closest::~Action_Closest() {
@@ -47,7 +44,7 @@ int Action_Closest::init( ) {
   }
   if ( actionArgs.hasKey("oxygen") || actionArgs.hasKey("first") )
     firstAtom_=true;
-  useImage_ = !(actionArgs.hasKey("noimage"));
+  InitImaging( !(actionArgs.hasKey("noimage")) );
   prefix_ = actionArgs.GetStringKey("outprefix");
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
@@ -84,7 +81,7 @@ int Action_Closest::init( ) {
 
   mprintf("    CLOSEST: Finding closest %i solvent molecules to atoms in mask %s\n",
           closestWaters_, distanceMask_.MaskString());
-  if (!useImage_) 
+  if (!UseImage()) 
     mprintf("\tImaging will be turned off.\n");
   if (firstAtom_)
     mprintf("\tOnly first atom of solvent molecule used for distance calc.\n");
@@ -116,7 +113,8 @@ int Action_Closest::setup() {
     mprintf("                           %s (%i).\n",currentParm->c_str(),
             currentParm->Nsolvent());
     return 1;
-  } 
+  }
+  SetupImaging( currentParm->BoxType() ); 
 
   // LOOP OVER MOLECULES
   // 1: Check that all solvent molecules contain same # atoms. Solvent 
@@ -236,15 +234,17 @@ int Action_Closest::action() {
   double Dist, maxD, ucell[9], recip[9];
   AtomMask::const_iterator solute_atom, solvent_atom;
 
-  if (imageType_ != Frame::NOIMAGE) {
+  if (ImagingEnabled()) {
     currentFrame->BoxToRecip(ucell, recip);
     // Calculate max possible imaged distance
-    maxD = currentFrame->MaxImagedDistance();
+    maxD = currentFrame->BoxX() + currentFrame->BoxY() + currentFrame->BoxZ();
+    maxD *= maxD;
   } else {
     // If not imaging, set max distance to an arbitrarily large number
     maxD = DBL_MAX;
   }
 
+  double* boxAddress = currentFrame->bAddress();
   // Loop over all solvent molecules in original frame
   // DEBUG
   //mprintf("Closest: Begin parallel loop for %i\n",frameNum);
@@ -267,7 +267,9 @@ int Action_Closest::action() {
     solvent_atom = SolventMols_[solventMol].mask.begin();
     for (solute_atom = distanceMask_.begin(); solute_atom != distanceMask_.end(); solute_atom++)
     {
-      Dist = currentFrame->DIST2(*solute_atom, *solvent_atom, imageType_, ucell, recip);
+      Dist = DIST2(currentFrame->XYZ(*solute_atom),
+                   currentFrame->XYZ(*solvent_atom), ImageType(), 
+                   boxAddress, ucell, recip);
       if (Dist < SolventMols_[solventMol].D) 
         SolventMols_[solventMol].D = Dist;
       //fprintf(stdout,"D atom %i %i = %lf image %i\n",*solute_atom,*solvent_atom,minD,imageType);
@@ -276,7 +278,9 @@ int Action_Closest::action() {
         ++solvent_atom;
         for (; solvent_atom != SolventMols_[solventMol].mask.end(); solvent_atom++) 
         {
-          Dist = currentFrame->DIST2(*solute_atom, *solvent_atom, imageType_, ucell, recip);
+          Dist = DIST2(currentFrame->XYZ(*solute_atom),
+                       currentFrame->XYZ(*solvent_atom), ImageType(), 
+                       boxAddress, ucell, recip);
           if (Dist < SolventMols_[solventMol].D) 
             SolventMols_[solventMol].D = Dist;
         }

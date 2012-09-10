@@ -199,7 +199,7 @@ double Pucker_CP(double *a1, double *a2, double *a3, double *a4, double *a5, dou
 }
 
 // CalcAngle()
-double CalcAngle(double *V1, double *V2, double *V3)
+double CalcAngle(const double* V1, const double* V2, const double* V3)
 {
   double angle;
   double xij = V1[0] - V2[0];

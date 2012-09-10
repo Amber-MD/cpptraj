@@ -11,11 +11,8 @@ Action::Action() :
   PFL(0),
   FL(0),
   useMass_(false),
-  useImage_(false),
-  imageType_(Frame::NOIMAGE),
   frameNum(0),
   useMassOriginalValue_(false),
-  useImageOriginalValue_(false),
   noInit_(false), 
   noSetup_(false),
   noDelete_(false) 
@@ -72,8 +69,6 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   actionArgs.CheckForMoreArgs();
   // Store the value of useMass set by the actions init
   useMassOriginalValue_ = useMass_;
-  // Store the value of useImage set by actions init
-  useImageOriginalValue_ = useImage_;
 
   return ( err );
 }
@@ -91,23 +86,6 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   */
 int Action::Setup(Topology **ParmAddress) {
   currentParm = *ParmAddress;
-  // Set imaging to value set by init() 
-  useImage_ = useImageOriginalValue_;
-  if (!useImage_)
-    // Imaging disabled
-    imageType_ = Frame::NOIMAGE;
-  else {
-    // Set imaging based on parm box.
-    Box::BoxType parmboxtype = currentParm->BoxType();
-    if (parmboxtype == Box::NOBOX) {
-      imageType_ = Frame::NOIMAGE;
-      if (debug>0)
-        mprintf("    Warning: No box info in %s, disabling imaging.\n",currentParm->c_str());
-    } else if (parmboxtype == Box::ORTHO)
-      imageType_ = Frame::ORTHO;
-    else 
-      imageType_ = Frame::NONORTHO;
-  }
   // If useMass, check that parm actually has masses.
   // NOTE: Mass is now always set to 1 if not read in so this only depends
   //       on what the action set useMass to.

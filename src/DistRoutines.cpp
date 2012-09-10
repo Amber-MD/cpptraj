@@ -50,7 +50,9 @@ double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, int origin
   * the current non-orthorhombic box, return the shortest imaged distance^2 
   * between the coordinates.
   */
-double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip) { 
+double DIST2_ImageNonOrtho(const double* a1, const double* a2, 
+                           const double* ucell, const double* recip) 
+{ 
 // double closest2
   double f[3], f2[3];
   int ixyz[3];
@@ -73,7 +75,9 @@ double DIST2_ImageNonOrtho(double *a1, double *a2, double *ucell, double *recip)
   * The integer coefficients describing the closest reflection in reciprocal
   * space will be placed in ixyz.
   */
-double DIST2_ImageNonOrthoRecip(double *f, double *f2, double minIn, int *ixyz, double *ucell) { 
+double DIST2_ImageNonOrthoRecip(const double* f, const double* f2, double minIn, 
+                                int *ixyz, const double* ucell) 
+{ 
   //double closest2
   double fx, fy, fz, f2x, f2y, f2z, X_factor, Y_factor, Z_factor;
   double fxm1, fxp1, fym1, fyp1, fzm1, fzp1;
@@ -325,7 +329,7 @@ double DIST2_ImageNonOrthoRecip(double *f, double *f2, double minIn, int *ixyz, 
 /** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
   * and a2.
   */
-double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
+double DIST2_ImageOrtho(const double* a1, const double* a2, const double* box) {
   double x,y,z,D;
 
   x = a1[0] - a2[0];
@@ -363,7 +367,7 @@ double DIST2_ImageOrtho(double *a1, double *a2, double *box) {
 // Frame::DIST2_NoImage()
 /** Return distance^2 between coordinates in a1 and a2.
   */
-double DIST2_NoImage(const double *a1, const double *a2) {
+double DIST2_NoImage(const double* a1, const double* a2) {
   double x,y,z,D;
 
   x = a1[0] - a2[0];
@@ -383,4 +387,20 @@ double DIST2_NoImage(const double *a1, const double *a2) {
   return D;
 }
 
+double DIST2(const double* a1, const double* a2, ImagingType itype,
+             const double* box, const double* ucell, const double* recip)
+{
+  if (itype==NOIMAGE) 
+    return DIST2_NoImage( a1, a2 );
+  else if (itype==ORTHO) 
+    return DIST2_ImageOrtho( a1, a2, box );
+  else // NONORTHO
+    return DIST2_ImageNonOrtho( a1, a2, ucell, recip );
+}
+
+/*double DIST2_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
+  Vec3 vec = a1;
+  vec -= a2;
+  return vec.Magnitude2();
+}*/
 

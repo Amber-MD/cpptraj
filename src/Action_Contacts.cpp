@@ -1,5 +1,6 @@
 #include "Action_Contacts.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 // TODO: Separate byResidue stuff
 
 // CONSTRUCTOR
@@ -26,7 +27,7 @@ int Action_Contacts::SetupContacts(Frame* refframe, Topology* refparm) {
     for (AtomMask::const_iterator atom2 = atom1 + 1;
                                   atom2 != Mask_.end(); ++atom2)
     {
-      double d2 = refframe->DIST2(*atom1, *atom2);
+      double d2 = DIST2_NoImage(refframe->XYZ(*atom1), refframe->XYZ(*atom2));
       if (d2 < distance_)
         nativecontacts_.insert( contactType(*atom1, *atom2) );
     }
@@ -207,7 +208,7 @@ int Action_Contacts::action() {
     for (AtomMask::const_iterator atom2 = atom1 + 1;
                                   atom2 != Mask_.end(); ++atom2)
     {
-      double d2 = currentFrame->DIST2(*atom1, *atom2);
+      double d2 = DIST2_NoImage(currentFrame->XYZ(*atom1), currentFrame->XYZ(*atom2));
       // Contact?
       if (d2 < distance_) {
         ++numcontacts;

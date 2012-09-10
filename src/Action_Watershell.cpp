@@ -14,7 +14,7 @@ Action_Watershell::Action_Watershell() :
   *      
   */
 int Action_Watershell::init() {
-  useImage_ = !actionArgs.hasKey("noimage");
+  InitImaging( !actionArgs.hasKey("noimage") );
 
   ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   if (maskexpr == NULL) {
@@ -36,7 +36,7 @@ int Action_Watershell::init() {
   solventmaskexpr_ = actionArgs.GetMaskNext();
 
   mprintf("    WATERSHELL: Output to %s\n",filename_.c_str());
-  if (!useImage_)
+  if (!UseImage())
     mprintf("                Imaging is disabled.\n");
   mprintf("                The first shell will contain water < %.3lf angstroms from\n",
           lowerCutoff_);
@@ -87,6 +87,7 @@ int Action_Watershell::setup() {
       mprinterr("Error: WATERSHELL: No solvent atoms in topology %s\n",currentParm->c_str());
     return 1;
   }
+  SetupImaging( currentParm->BoxType() );
   // Create space for residues
   activeResidues_.resize( currentParm->Nres(), 0 );
   return 0;    
@@ -95,8 +96,9 @@ int Action_Watershell::setup() {
 // Action_Watershell::action()
 int Action_Watershell::action() {
   double ucell[9], recip[9];
+  double* boxAddress = currentFrame->bAddress();
 
-  if (imageType_==Frame::NONORTHO) currentFrame->BoxToRecip(ucell,recip);
+  if (ImageType()==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
 
   // Loop over solute atoms
   for (AtomMask::const_iterator solute_at = soluteMask_.begin();
@@ -110,8 +112,8 @@ int Action_Watershell::action() {
       int currentRes = (*currentParm)[ *solvent_at].ResNum();
       // If residue is not yet marked as 1st shell, calc distance
       if ( activeResidues_[currentRes] < 2 ) {
-        double dist = currentFrame->DIST2( *solute_at, *solvent_at, imageType_,
-                                           ucell, recip );
+        double dist = DIST2(currentFrame->XYZ(*solute_at), currentFrame->XYZ(*solvent_at), 
+                            ImageType(), boxAddress, ucell, recip );
         // Less than upper, 2nd shell
         if (dist < upperCutoff_) {
           activeResidues_[currentRes] = 1;

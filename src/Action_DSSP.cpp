@@ -1,5 +1,7 @@
+#include <cmath> // sqrt
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 /// Hbond energy calc prefactor
 // From ptraj actions.c:transformSecStruct 0.42*0.20*332
 const double Action_DSSP::DSSP_fac = 27.888;
@@ -277,10 +279,10 @@ int Action_DSSP::action() {
       N = SecStruct_[resj].N;
       H = SecStruct_[resj].H;
 
-      rON = currentFrame->COORDDIST(O, N);
-      rCH = currentFrame->COORDDIST(C, H);
-      rOH = currentFrame->COORDDIST(O, H);
-      rCN = currentFrame->COORDDIST(C, N);
+      rON = sqrt(DIST2_NoImage(currentFrame->CRD(O), currentFrame->CRD(N)));
+      rCH = sqrt(DIST2_NoImage(currentFrame->CRD(C), currentFrame->CRD(H)));
+      rOH = sqrt(DIST2_NoImage(currentFrame->CRD(O), currentFrame->CRD(H)));
+      rCN = sqrt(DIST2_NoImage(currentFrame->CRD(C), currentFrame->CRD(N)));
 
       E = DSSP_fac * (1/rON + 1/rCH - 1/rOH - 1/rCN);
       if (E < -0.5)

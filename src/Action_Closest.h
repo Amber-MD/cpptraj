@@ -1,10 +1,10 @@
 #ifndef INC_ACTION_CLOSEST_H
 #define INC_ACTION_CLOSEST_H
-#include <vector>
 #include "Action.h"
+#include "ImagedAction.h"
 // Class: Action_Closest
 /// Modify the state so that only the closest solvent molecules are kept.
-class Action_Closest: public Action {
+class Action_Closest: public Action, ImagedAction {
   public:
     Action_Closest();
     ~Action_Closest();

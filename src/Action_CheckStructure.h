@@ -1,10 +1,10 @@
 #ifndef INC_ACTION_CHECKSTRUCTURE_H
 #define INC_ACTION_CHECKSTRUCTURE_H
-#include <vector>
 #include "Action.h"
+#include "ImagedAction.h"
 // Class: Action_CheckStructure 
 /// Action to check bond lengths and bad overlaps between non-bonded atoms 
-class Action_CheckStructure: public Action {
+class Action_CheckStructure: public Action, ImagedAction {
   public:
     Action_CheckStructure();
     ~Action_CheckStructure();

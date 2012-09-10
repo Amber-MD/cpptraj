@@ -1,7 +1,8 @@
 #ifndef INC_ACTION_DNAIONTRACKER_H
 #define INC_ACTION_DNAIONTRACKER_H
 #include "Action.h"
-class Action_DNAionTracker : public Action {
+#include "ImagedAction.h"
+class Action_DNAionTracker : public Action, ImagedAction {
   public:
     Action_DNAionTracker();
   private:

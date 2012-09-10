@@ -8,10 +8,7 @@ Action_RandomizeIons::Action_RandomizeIons() :
   overlap_(0),
   min_(0),
   seed_(1)
-{
-  // Imaging on by default.
-  useImage_ = true;
-}
+{}
 
 /** randomizeions <mask> [around <mask> by <distance>] [overlap <value>] 
   *               [noimage] [seed <value>]
@@ -26,8 +23,7 @@ int Action_RandomizeIons::init() {
   ions_.SetMaskString( ionmask );
 
   // Get Keywords
-  if (actionArgs.hasKey("noimage"))
-    useImage_ = false;
+  InitImaging( !actionArgs.hasKey("noimage") );
   seed_ = actionArgs.getKeyInt("seed", -1);
   overlap_ = actionArgs.getKeyDouble("overlap", 3.5);
   min_ = actionArgs.getKeyDouble("by", 3.5);
@@ -49,7 +45,7 @@ int Action_RandomizeIons::init() {
     mprintf("                   No ion can get closer than %.2f angstroms to mask [%s]\n",
             sqrt( min_ ), around_.MaskString());
   }
-  if (!useImage_)
+  if (!UseImage())
     mprintf("                   Imaging of the coordinates will not be performed.\n");
   if (seed_ > 0) {
     mprintf("                   Random number generator seed is %i\n", seed_);
@@ -132,6 +128,7 @@ int Action_RandomizeIons::setup() {
       solventEnd_.push_back( (*Mol).EndAtom() );
     }
   }
+  SetupImaging( currentParm->BoxType() );
   // Allocate solvent molecule mask
   solvent_.resize( currentParm->Nsolvent() );
 
@@ -141,8 +138,9 @@ int Action_RandomizeIons::setup() {
 // Action_RandomizeIons::action()
 int Action_RandomizeIons::action() {
   double ucell[9], recip[9], trans[3], watXYZ[3], ionXYZ[3];
+  double* boxAddress = currentFrame->bAddress();
 
-  if (imageType_==Frame::NONORTHO)
+  if (ImageType()==NONORTHO)
     currentFrame->BoxToRecip(ucell, recip);
   // loop over all solvent molecules and mark those that are too close to the solute
   std::vector<bool>::iterator smask = solvent_.begin();
@@ -155,8 +153,8 @@ int Action_RandomizeIons::action() {
     if (!aroundmask_.empty()) {
       for (AtomMask::const_iterator atom = around_.begin(); atom != around_.end(); ++atom)
       {
-        double dist = currentFrame->DIST2( *beginatom, *atom, imageType_, 
-                                           ucell, recip);
+        double dist = DIST2( currentFrame->XYZ(*beginatom), currentFrame->XYZ(*atom), 
+                             ImageType(), boxAddress, ucell, recip);
         //mprintf("CDBG: @%i to @%i = %lf\n", *beginatom+1,
         //        *atom+1, sqrt(dist));
         if (dist < min_) {
@@ -202,8 +200,8 @@ int Action_RandomizeIons::action() {
         for (AtomMask::const_iterator ion2 = ions_.begin(); ion2 != ions_.end(); ++ion2)
         {
           if (*ion != *ion2) {
-            double dist = currentFrame->DIST2( *beginatom, *ion2, imageType_,
-                                               ucell, recip);
+            double dist = DIST2( currentFrame->XYZ(*beginatom), currentFrame->XYZ(*ion2), 
+                                 ImageType(), boxAddress, ucell, recip);
             if (dist < overlap_) {
               *smask = false;
               //mprintf("RANDOMIZEIONS: water %i only %.2f ang from ion @%i\n",

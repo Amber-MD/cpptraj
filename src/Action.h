@@ -72,8 +72,6 @@ class Action {
     TopologyList *PFL;           ///< Pointer to the parm file list in Cpptraj (init)
     FrameList *FL;               ///< Pointer to the reference frame list in Cpptraj (init)
     bool useMass_;               ///< If set to true, calculations will use mass info
-    bool useImage_;              ///< If set to true, calculations will use imaging info
-    Frame::ImageType imageType_; ///< Type of imaging to be performed.
     int frameNum;                ///< # of current frame being processed, set by ActionList
     // --== Inherited by child classes ==--
     /// actions internal setup routine, called by Setup
@@ -92,7 +90,6 @@ class Action {
       */
     virtual int init()   { return 0; }
     bool useMassOriginalValue_;  ///< Value of useMass set by init
-    bool useImageOriginalValue_; ///< Value of useImage set by init
 
     /** For actions like VectorType which can also be data, this is used
       * to indicate it should not be deleted by ActionList; DataSetList

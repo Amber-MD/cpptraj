@@ -9,8 +9,6 @@ Action_DNAionTracker::Action_DNAionTracker() :
   bintype_(COUNT),
   poffset_(0)
 {
-  // Enable imaging by default
-  useImage_ = true;
   useMass_ = true;
 }
 
@@ -22,8 +20,7 @@ int Action_DNAionTracker::init() {
   // Get keywords
   std::string filename_ = actionArgs.GetStringKey("out");
   poffset_ = actionArgs.getKeyDouble("poffset", 5.0);
-  if (actionArgs.hasKey("noimage"))
-    useImage_ = false;
+  InitImaging( !actionArgs.hasKey("noimage") );
   if (actionArgs.hasKey("shortest"))
     bintype_ = SHORTEST;
   else if (actionArgs.hasKey("counttopcone"))
@@ -78,7 +75,7 @@ int Action_DNAionTracker::init() {
   }
   mprintf("      saved to array named %s\n", distance_->Legend().c_str());
   mprintf("      Perpendicular offset for cone is %5.2f angstroms\n", poffset_);
-  if (!useImage_)
+  if (!UseImage())
     mprintf("      Imaging has been disabled\n");
   mprintf("\tPhosphate1 Mask [%s]\n", p1_.MaskString());
   mprintf("\tPhosphate2 Mask [%s]\n", p2_.MaskString());
@@ -112,6 +109,7 @@ int Action_DNAionTracker::setup() {
     mprinterr("Error: dnaiontracker: No atoms in mask4\n");
     return 1;
   }
+  SetupImaging( currentParm->BoxType() );
   mprintf("\tPhosphate1 Mask [%s] %i atoms.\n", p1_.MaskString(), p1_.Nselected());
   mprintf("\tPhosphate2 Mask [%s] %i atoms.\n", p2_.MaskString(), p2_.Nselected());
   mprintf("\t      Base Mask [%s] %i atoms.\n", base_.MaskString(), base_.Nselected());
@@ -123,8 +121,9 @@ int Action_DNAionTracker::setup() {
 int Action_DNAionTracker::action() {
   double ucell[9], recip[9], pp_centroid[3], P1[3], P2[3], BASE[3];
   double d_tmp, dval;
+  double* boxAddress = currentFrame->bAddress();
   // Setup imaging info if necessary
-  if (imageType_==Frame::NONORTHO) 
+  if (ImageType()==NONORTHO) 
     currentFrame->BoxToRecip(ucell,recip);
 
   // Get center for P1, P2, and Base
@@ -139,7 +138,7 @@ int Action_DNAionTracker::action() {
   }
  
   // Calculate P -- P distance and centroid
-  double d_pp = currentFrame->DIST2(P1, P2, imageType_, ucell, recip);
+  double d_pp = DIST2(P1, P2, ImageType(), boxAddress, ucell, recip);
   pp_centroid[0] = (P1[0] + P2[0]) / 2;
   pp_centroid[1] = (P1[1] + P2[1]) / 2;
   pp_centroid[2] = (P1[2] + P2[2]) / 2;
@@ -148,7 +147,7 @@ int Action_DNAionTracker::action() {
   double d_cut = d_pp*0.25 + (poffset_*poffset_); // TODO: precalc offset^2
 
   // Calculate P -- base centroid to median point
-  double d_pbase = currentFrame->DIST2(pp_centroid, BASE, imageType_, ucell, recip);
+  double d_pbase = DIST2(pp_centroid, BASE, ImageType(), boxAddress, ucell, recip);
 
   //double d_min = DBL_MAX;
   if (bintype_ == SHORTEST)
@@ -158,9 +157,10 @@ int Action_DNAionTracker::action() {
   // Loop over ion positions
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
-    double d_p1ion = currentFrame->DIST2(P1, *ion, imageType_, ucell, recip);
-    double d_p2ion = currentFrame->DIST2(P2, *ion, imageType_, ucell, recip);
-    double d_baseion = currentFrame->DIST2(BASE, *ion, imageType_, ucell, recip);
+    const double* ionxyz = currentFrame->XYZ(*ion);
+    double d_p1ion =   DIST2(P1,   ionxyz, ImageType(), boxAddress, ucell, recip);
+    double d_p2ion =   DIST2(P2,   ionxyz, ImageType(), boxAddress, ucell, recip);
+    double d_baseion = DIST2(BASE, ionxyz, ImageType(), boxAddress, ucell, recip);
     //mprintf("DEBUG: ion atom %i to P1 is %f\n", *ion+1, sqrt(d_p1ion));
     //mprintf("DEBUG: ion atom %i to P2 is %f\n", *ion+1, sqrt(d_p2ion));
     //mprintf("DEBUG: ion atom %i to base is %f\n", *ion+1, sqrt(d_baseion));

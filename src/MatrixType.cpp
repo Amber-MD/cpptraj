@@ -2,6 +2,7 @@
 #include "MatrixType.h"
 #include "CpptrajStdio.h"
 #include "vectormath.h" // vector_sub, dot_product
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 MatrixType::MatrixType() : 
@@ -404,7 +405,7 @@ int MatrixType::action() {
         for (AtomMask::const_iterator atom1 = atom2; 
                                       atom1 != mask1_.end(); ++atom1)
         {
-          mat_[idx] += currentFrame->DIST(*atom2, *atom1);
+          mat_[idx] += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
           ++idx;
         }
       }
@@ -416,7 +417,7 @@ int MatrixType::action() {
         for (AtomMask::const_iterator atom1 = mask1_.begin();
                                       atom1 != mask1_.end(); ++atom1)
         {
-          mat_[idx] += currentFrame->DIST(*atom2, *atom1);
+          mat_[idx] += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
           ++idx;
         }
       }
@@ -592,7 +593,7 @@ int MatrixType::action() {
       for (AtomMask::const_iterator atom2 = atom1 + 1;
                                     atom2 != mask1_.end(); ++atom2)
       {
-        vect2_[vidx++] = currentFrame->DIST( *atom1, *atom2 );
+        vect2_[vidx++] = sqrt(DIST2_NoImage(currentFrame->XYZ(*atom1), currentFrame->XYZ(*atom2)));
       }
     }
     // Create matrix from all pairs of mask1 distance pairs

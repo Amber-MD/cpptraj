@@ -1,6 +1,7 @@
 #include <cmath>
 #include "Action_STFC_Diffusion.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Action_STFC_Diffusion::Action_STFC_Diffusion() :
@@ -363,7 +364,7 @@ int Action_STFC_Diffusion::action() {
       double minDist = upperCutoff_;
       for ( AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
       {
-        double dist2 = currentFrame->DIST2( *atom1, *atom2 );
+        double dist2 = DIST2_NoImage( currentFrame->XYZ(*atom1), currentFrame->XYZ(*atom2) );
         // Find minimum distnace.
         if (dist2 < minDist) {
           minDist = dist2;

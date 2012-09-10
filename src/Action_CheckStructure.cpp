@@ -9,10 +9,7 @@ Action_CheckStructure::Action_CheckStructure() :
   bondoffset_(1.0),
   nonbondcut2_(0.64), // 0.8^2
   isSeparate_(false)
-{ 
-  //fprintf(stderr,"CheckStructure Con\n");
-  useImage_ = true;
-}
+{} 
 
 // DESTRUCTOR
 Action_CheckStructure::~Action_CheckStructure() {
@@ -30,7 +27,7 @@ Action_CheckStructure::~Action_CheckStructure() {
 //    3) Dataset name
 int Action_CheckStructure::init( ) {
   // Get Keywords
-  useImage_ = !(actionArgs.hasKey("noimage"));
+  InitImaging( !(actionArgs.hasKey("noimage")) );
   ArgList::ConstArg reportFile = actionArgs.getKeyString("reportfile");
   bondoffset_ = actionArgs.getKeyDouble("offset",1.0);
   double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
@@ -39,7 +36,7 @@ int Action_CheckStructure::init( ) {
   Mask1_.SetMaskString( actionArgs.getNextMask() );
 
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask [%s]",Mask1_.MaskString());
-  if (!useImage_) 
+  if (!UseImage()) 
     mprintf(", imaging off");
   if (reportFile!=NULL)
     mprintf(", output to %s",reportFile);
@@ -62,7 +59,7 @@ void Action_CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutI
   double nonbondcut;
   isSeparate_ = true;
   debug = debugIn;
-  useImage_ = false;
+  InitImaging( false );
   if (bondoffsetIn < 0)
     bondoffset_ = 1.0;
   else
@@ -117,6 +114,8 @@ int Action_CheckStructure::setup() {
     return 1;
   }
 
+  SetupImaging( currentParm->BoxType() );
+
   // Check bonds
   bondL_.clear();
   SetupBondlist( currentParm->Bonds() );
@@ -161,7 +160,7 @@ int Action_CheckStructure::setup() {
   if (!isSeparate_) {
     mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1_.MaskString(), Mask1_.Nselected(),
             totalbonds);
-    if (imageType_ != Frame::NOIMAGE)
+    if (ImagingEnabled())
       mprintf(", imaging on");
     else
       mprintf(", imaging off");
@@ -174,9 +173,10 @@ int Action_CheckStructure::setup() {
 // Action_CheckStructure::action()
 int Action_CheckStructure::action() {
   double ucell[9], recip[9], D2, D, bondmax;
+  double* boxAddress = currentFrame->bAddress(); 
   std::vector<bond_list>::iterator currentBond = bondL_.begin();
 
-  if (imageType_==Frame::NONORTHO) currentFrame->BoxToRecip(ucell,recip);
+  if (ImageType()==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
 
   int lastidx = Mask1_.Nselected() - 1;
   for (int maskidx1 = 0; maskidx1 < lastidx; maskidx1++) {
@@ -184,7 +184,8 @@ int Action_CheckStructure::action() {
     for (int maskidx2 = maskidx1 + 1; maskidx2 < Mask1_.Nselected(); maskidx2++) {
       int atom2 = Mask1_[maskidx2];
       // Get distance^2
-      D2 = currentFrame->DIST2(atom1,atom2,imageType_,ucell,recip);
+      D2 = DIST2(currentFrame->XYZ(atom1), currentFrame->XYZ(atom2),
+                 ImageType(), boxAddress, ucell, recip);
       // Are these atoms bonded?
       if ( (atom1==(*currentBond).atom1) && (atom2==(*currentBond).atom2) ) {
         // req has been precalced to (req + bondoffset)^2
@@ -233,7 +234,7 @@ int Action_CheckStructure::SeparateAction(Frame *frameIn) {
     int idx2 = idx1 + 3;
     for (int atom2 = atom1 + 1; atom2 < frame_natom; atom2++) {
       // Get distance^2
-      D2 = frameIn->COORDDIST2(idx1,idx2);
+      D2 = DIST2_NoImage( frameIn->CRD(idx1), frameIn->CRD(idx2) );
       // Are these atoms bonded?
       if ( (atom1==(*currentBond).atom1) && (atom2==(*currentBond).atom2) ) {
         // req has been precalced to (req + bondoffset)^2

@@ -3,7 +3,7 @@
 #include "Frame.h"
 #include "Constants.h"
 #include "vectormath.h" // CROSS_PRODUCT, normalize
-#include "DistRoutines.h"
+#include "DistRoutines.h" // TODO: Get rid of dependency
 #include "TorsionRoutines.h"
 #include "CpptrajStdio.h"
 #include "Matrix_3x3.h" // For diagonalization in RMS routine.
@@ -247,15 +247,6 @@ void Frame::AddXYZ(const double *XYZin) {
   memcpy(X_ + ncoord_, XYZin, COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
-}
-
-// ---------- BOX ROUTINES -----------------------------------------------------
-// Frame::MaxImagedDistance()
-// NOTE: Used only by closest. May not be necessary
-double Frame::MaxImagedDistance() {
-  double maxD = box_[0] + box_[1] + box_[2];
-  maxD *= maxD;
-  return maxD;
 }
 
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
@@ -659,6 +650,61 @@ void Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
 }
 
 // ---------- CENTER OF MASS / GEOMETRIC CENTER --------------------------------
+// ----- DEBUG: Vec3 routines -----
+static void ERR_DIVIDE_BY_ZERO(const char* call_fn) {
+  mprinterr("Error: %s: Divide by zero.\n", call_fn);
+}
+
+Vec3 Frame::VCenterOfMass( AtomMask const& Mask ) {
+  double Coord0 = 0.0;
+  double Coord1 = 0.0;
+  double Coord2 = 0.0;
+  double sumMass = 0.0;
+  for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom)
+  {
+    unsigned int xidx = (*atom) * 3;
+    double mass = Mass_[*atom];
+    sumMass += mass;
+    Coord0 += ( X_[xidx  ] * mass );
+    Coord1 += ( X_[xidx+1] * mass );
+    Coord2 += ( X_[xidx+2] * mass );
+  }
+  Vec3 vecOut(Coord0, Coord1, Coord2);
+  // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL.
+  if (sumMass < SMALL) {
+    ERR_DIVIDE_BY_ZERO("VCenterOfMass");
+    return vecOut;
+  }
+  vecOut /= sumMass;
+  return vecOut;
+}
+
+Vec3 Frame::VGeometricCenter( AtomMask const& Mask ) {
+  double Coord0 = 0.0;
+  double Coord1 = 0.0;
+  double Coord2 = 0.0;
+
+  for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom)
+  {
+    unsigned int xidx = (*atom) * 3;
+    Coord0 += X_[xidx  ];
+    Coord1 += X_[xidx+1];
+    Coord2 += X_[xidx+2];
+  }
+  Vec3 vecOut(Coord0, Coord1, Coord2);
+  // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL.
+  double sumMass = (double)Mask.Nselected();
+  if (sumMass < SMALL) {
+    ERR_DIVIDE_BY_ZERO("VGeometricCenter");
+    return vecOut;
+  }
+  vecOut /= sumMass;
+  return vecOut;
+}
+// ----- END DEBUG -----
+
 // Frame::CenterOfMass()
 /** Given an AtomMask put center of mass of atoms in mask into Coord. Return 
   * sum of masses in Mask.
@@ -1304,291 +1350,6 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
   recip[8] = u12z*onevolume;
 
   return volume;
-}
-
-// Frame::DIST2()
-/** Call the appropriate distance calc for atoms in Mask1 and Mask2 based on
-  * given box type.
-  *   0 = None
-  *   1 = Orthorhombic
-  *   2 = Non-orthorhombic
-  * Based on useMassIn, calculate geometric center (false) or center of mass 
-  * (true) of the atoms in each mask.
-  */
-// TODO: Make ucell/recip args const
-double Frame::DIST2(AtomMask const& Mask1, AtomMask const& Mask2, bool useMassIn, 
-                    ImageType image, double *ucell, double *recip) 
-{
-  double a1[3], a2[3];
-
-  if (useMassIn) {
-    CenterOfMass(a1, Mask1);
-    CenterOfMass(a2, Mask2);
-  } else {
-    GeometricCenter(a1, Mask1);
-    GeometricCenter(a2, Mask2);
-  }
-
-  if (image == NOIMAGE) 
-    return DIST2_NoImage(a1, a2);
-  else if (image == ORTHO) 
-    return DIST2_ImageOrtho(a1, a2, this->box_);
-  else if (image == NONORTHO) 
-    return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
-
-  mprintf("    Error: Frame::DIST: Unrecognized image type (%i)\n.", (int)image);
-
-  return (-1.0);
-}
-
-// Frame::DIST2()
-/** Call the appropriate distance calc for points in a1 and a2 based on
-  * given box type.
-  */
-// TODO: Make ucell/recip/a1/a2 args const
-double Frame::DIST2(double *a1, double *a2, ImageType image, double *ucell, double *recip) 
-{
-  if (image == NOIMAGE)
-    return DIST2_NoImage(a1, a2);
-  else if (image == ORTHO)
-    return DIST2_ImageOrtho(a1, a2, this->box_);
-  else if (image == NONORTHO)
-    return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
-
-  mprintf("    Error: Frame::DIST: Unrecognized image type (%i)\n.", (int)image);
-
-  return (-1.0);
-}
-
-// Frame::DIST2()
-/** Return the distance between atoms A1 and A2 with optional imaging.
-  *   0 = None
-  *   1 = Orthorhombic
-  *   2 = Non-orthorhombic
-  */
-// TODO: Make ucell/recip args const
-double Frame::DIST2(int A1, int A2, ImageType image, double *ucell, double *recip) {
-  int atom3;
-  double a1[3], a2[3];
-
-  atom3 = A1 * 3;
-  a1[0] = X_[atom3  ];
-  a1[1] = X_[atom3+1];
-  a1[2] = X_[atom3+2];
-  atom3 = A2 * 3;
-  a2[0] = X_[atom3  ];
-  a2[1] = X_[atom3+1];
-  a2[2] = X_[atom3+2];
-
-  if (image == NOIMAGE)
-    return DIST2_NoImage(a1, a2);
-  else if (image == ORTHO)
-    return DIST2_ImageOrtho(a1, a2, this->box_);
-  else if (image == NONORTHO) 
-    return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
-
-  mprintf("    Error: Frame::DIST: Unrecognized image type (%i)\n.", (int)image);
-
-  return (-1.0);
-}
-
-// Frame::DIST2()
-/** Return the distance between a point and atom A2 with optional imaging.
-  *   0 = None
-  *   1 = Orthorhombic
-  *   2 = Non-orthorhombic
-  * NOTE: Is this routine necessary or can it be covered by 2xdouble* version
-  */
-// TODO: Make ucell/recip/a1 args const
-double Frame::DIST2(double *a1, int A2, ImageType image, double *ucell, double *recip) {
-  int atom3;
-  double a2[3];
-  
-  atom3 = A2 * 3;
-  a2[0] = X_[atom3  ];
-  a2[1] = X_[atom3+1];
-  a2[2] = X_[atom3+2];
-  
-  if (image == NOIMAGE)
-    return DIST2_NoImage(a1, a2);
-  else if (image == ORTHO)
-    return DIST2_ImageOrtho(a1, a2, this->box_);
-  else if (image == NONORTHO) 
-    return DIST2_ImageNonOrtho(a1, a2, ucell, recip);
-
-  mprintf("    Error: Frame::DIST: Unrecognized image type (%i)\n.", (int)image);
-
-  return (-1.0);
-}
-
-// Frame::DIST()
-/** Return the distance between atoms A1 and A2, no imaging.
-  */
-double Frame::DIST(int A1, int A2) {
-  int i, j; // Actual indices into X
-  double x,y,z,D;
-
-  i = A1 * 3;
-  j = A2 * 3;
-
-  x = X_[i  ] - X_[j  ];
-  y = X_[i+1] - X_[j+1];
-  z = X_[i+2] - X_[j+2];
-
-  x=x*x;
-  y=y*y;
-  z=z*z;
-
-  D=sqrt(x + y + z);
-  return D;
-}
-
-// Frame::DIST2()
-/** Return the distance squared between atoms A1 and A2, no imaging.
-  */
-double Frame::DIST2(int A1, int A2) {
-  int i, j; // Actual indices into X
-  double x,y,z,D2;
-
-  i = A1 * 3;
-  j = A2 * 3;
-
-  x = X_[i  ] - X_[j  ];
-  y = X_[i+1] - X_[j+1];
-  z = X_[i+2] - X_[j+2];
-
-  x=x*x;
-  y=y*y;
-  z=z*z;
-
-  D2=(x + y + z);
-  return D2;
-}
-
-// Frame::COORDDIST()
-/** Return the distance between atoms i and j, no imaging. i and j
-  * should be actual indices into the coord array (i.e. atom# * 3).
-  */
-double Frame::COORDDIST(int i, int j) {
-  double x,y,z,D;
-
-  x = X_[i  ] - X_[j  ];
-  y = X_[i+1] - X_[j+1];
-  z = X_[i+2] - X_[j+2];
-
-  x=x*x;
-  y=y*y;
-  z=z*z;
-
-  D=sqrt(x + y + z);
-  return D;
-}
-
-// Frame::COORDDIST2()
-/** Return the distance between atoms i and j, no imaging. i and j
-  * should be actual indices into the coord array (i.e. atom# * 3).
-  */
-double Frame::COORDDIST2(int i, int j) {
-  double x,y,z,D;
-
-  x = X_[i  ] - X_[j  ];
-  y = X_[i+1] - X_[j+1];
-  z = X_[i+2] - X_[j+2];
-
-  x=x*x;
-  y=y*y;
-  z=z*z;
-
-  D = x + y + z;
-  return D;
-}
-
-// Frame::COORDVECTOR()
-/** Calculate the vector from atom j to atom i. i and j should be
-  * actual indices into the coord array (i.e. atom# * 3).
-  */
-void Frame::COORDVECTOR(double* V, int i, int j) {
-  V[0] = X_[i  ] - X_[j  ]; 
-  V[1] = X_[i+1] - X_[j+1]; 
-  V[2] = X_[i+2] - X_[j+2]; 
-}
-
-// Frame::ANGLE()
-/** Return the angle (in radians) between atoms in M1, M2, M3.
-  * Adapted from PTRAJ.
-  */
-double Frame::ANGLE(AtomMask& M1, AtomMask& M2, AtomMask& M3, bool useMass)
-{
-  double a1[3],a2[3],a3[3];
-  double angle, xij, yij, zij, xkj, ykj, zkj, rij, rkj;
-  
-  if (useMass) {
-    CenterOfMass(a1, M1);
-    CenterOfMass(a2, M2);
-    CenterOfMass(a3, M3);
-  } else {
-    GeometricCenter(a1, M1);
-    GeometricCenter(a2, M2);
-    GeometricCenter(a3, M3);
-  }
-
-  xij = a1[0] - a2[0];
-  yij = a1[1] - a2[1];
-  zij = a1[2] - a2[2];
-
-  xkj = a3[0] - a2[0];
-  ykj = a3[1] - a2[1]; 
-  zkj = a3[2] - a2[2];
-
-  rij = xij*xij + yij*yij + zij*zij;
-  rkj = xkj*xkj + ykj*ykj + zkj*zkj;
-
-  if (rij > SMALL && rkj > SMALL) {
-    angle = (xij*xkj + yij*ykj + zij*zkj) / sqrt(rij*rkj);
-    if (angle > 1.0)
-      angle = 1.0;
-    else if (angle < -1.0)
-      angle = -1.0;
-    angle = acos(angle);
-  } else
-    angle = 0.0;
-
-  return angle;
-}
-
-// Frame::ANGLE()
-/** Return the angle (in radians) between atoms specified by A1, A2, A3.
-  * Adapted from PTRAJ.
-  */
-double Frame::ANGLE(int A1, int A2, int A3) {
-  double angle, xij, yij, zij, xkj, ykj, zkj, rij, rkj;
-  int a1, a2, a3;
-
-  a1 = A1 * 3;
-  a2 = A2 * 3;
-  a3 = A3 * 3;
-  xij = X_[a1  ] - X_[a2  ];
-  yij = X_[a1+1] - X_[a2+1];
-  zij = X_[a1+2] - X_[a2+2];
-
-  xkj = X_[a3  ] - X_[a2  ];
-  ykj = X_[a3+1] - X_[a2+1];
-  zkj = X_[a3+2] - X_[a2+2];
-
-  rij = xij*xij + yij*yij + zij*zij;
-  rkj = xkj*xkj + ykj*ykj + zkj*zkj;
-
-  if (rij > SMALL && rkj > SMALL) {
-    angle = (xij*xkj + yij*ykj + zij*zkj) / sqrt(rij*rkj);
-    if (angle > 1.0)
-      angle = 1.0;
-    else if (angle < -1.0)
-      angle = -1.0;
-    angle = acos(angle);
-  } else
-    angle = 0.0;
-
-  return angle;
 }
 
 // Frame::DIHEDRAL()

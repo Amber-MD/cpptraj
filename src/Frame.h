@@ -2,6 +2,7 @@
 #define INC_FRAME_H
 #include "Atom.h"
 #include "AtomMask.h"
+#include "Vec3.h"
 // Class: Frame
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
@@ -29,8 +30,6 @@
   */
 class Frame {
   public:
-    /// Potential imaging types 
-    enum ImageType { NOIMAGE=0, ORTHO, NONORTHO };
     // Construction/Destruction/Assignment
     Frame();
     virtual ~Frame(); // Destructor is virtual since this class can be inherited
@@ -53,6 +52,7 @@ class Frame {
     int size()                   { return ncoord_;              }
     double Temperature()         { return T_;                   }
     const double* XYZ(int atnum) { return X_ + (atnum*3);       } // TODO: Replace?
+    const double* CRD(int idx)   { return X_ + idx;             } // TODO: Replace?
     double& operator[](int idx)  { return X_[idx];              } // TODO: Make const?
     // Box routines
     void BoxXYZ(double* XYZ) { XYZ[0]=box_[0]; XYZ[1]=box_[1]; XYZ[2]=box_[2]; }
@@ -60,7 +60,6 @@ class Frame {
     double BoxY() { return box_[1]; }
     double BoxZ() { return box_[2]; }
     const double* Box() { return box_; }
-    double MaxImagedDistance();
     // Routines for accessing internal data pointers
     inline double* xAddress() { return X_;   }
     inline double* vAddress() { return V_;   }
@@ -91,6 +90,8 @@ class Frame {
     void Divide(double);
     void AddByMask(Frame const&, AtomMask const&); 
     // Center of mass / Geometric Center
+    Vec3 VCenterOfMass(AtomMask const&);
+    Vec3 VGeometricCenter(AtomMask const&);
     double CenterOfMass(double*, AtomMask const&);
     double GeometricCenter(double*, AtomMask const&);
     double CenterOfMass(double*,int,int);
@@ -117,17 +118,6 @@ class Frame {
     void UnwrapOrtho( Frame&, AtomMask& );
     // Coordinate calculation
     double BoxToRecip(double *, double *);
-    double DIST2(AtomMask const&,AtomMask const&,bool,ImageType,double *, double *);
-    double DIST2(double *, double *, ImageType, double *, double *);
-    double DIST2(int, int, ImageType, double *, double *);
-    double DIST2(double*, int, ImageType, double *, double *);
-    double DIST(int, int);
-    double DIST2(int, int);
-    double COORDDIST(int, int);
-    double COORDDIST2(int, int);
-    void COORDVECTOR(double*, int, int);
-    double ANGLE(AtomMask&, AtomMask&, AtomMask&,bool);
-    double ANGLE(int, int, int);
     double DIHEDRAL(AtomMask&, AtomMask&, AtomMask&, AtomMask&,bool);
     double DIHEDRAL(int,int,int,int);
     double PUCKER(AtomMask&,AtomMask&,AtomMask&,AtomMask&,AtomMask&,int,bool,bool);

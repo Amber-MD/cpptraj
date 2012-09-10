@@ -2,6 +2,7 @@
 #include "Action_Angle.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG
+#include "TorsionRoutines.h"
 
 // CONSTRUCTOR
 Action_Angle::Action_Angle() :
@@ -72,7 +73,17 @@ int Action_Angle::setup() {
 
 // Action_Angle::action()
 int Action_Angle::action() {
-  double aval = currentFrame->ANGLE(Mask1_, Mask2_, Mask3_, useMass_);
+  Vec3 a1, a2, a3;
+  if (useMass_) {
+    a1 = currentFrame->VCenterOfMass( Mask1_ );
+    a2 = currentFrame->VCenterOfMass( Mask2_ );
+    a3 = currentFrame->VCenterOfMass( Mask3_ );
+  } else {
+    a1 = currentFrame->VGeometricCenter( Mask1_ );
+    a2 = currentFrame->VGeometricCenter( Mask2_ );
+    a3 = currentFrame->VGeometricCenter( Mask3_ );
+  }
+  double aval = CalcAngle( a1.Dptr(), a2.Dptr(), a3.Dptr() );
 
   aval *= RADDEG;
 

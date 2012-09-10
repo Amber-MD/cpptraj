@@ -8,7 +8,6 @@ Action_Distance::Action_Distance() :
   dist_(NULL)
 {
   //fprintf(stderr,"Action_Distance Con\n");
-  useImage_=true;
   useMass_=true;
 } 
 
@@ -17,7 +16,7 @@ Action_Distance::Action_Distance() :
   */
 int Action_Distance::init( ) {
   // Get Keywords
-  useImage_ = !(actionArgs.hasKey("noimage"));
+  InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   ArgList::ConstArg distanceFile = actionArgs.getKeyString("out");
   DataSet::scalarType stype = DataSet::UNDEFINED;
@@ -45,7 +44,7 @@ int Action_Distance::init( ) {
   DFL->Add(distanceFile, dist_);
 
   mprintf("    DISTANCE: %s to %s",Mask1_.MaskString(), Mask2_.MaskString());
-  if (!useImage_) 
+  if (!UseImage()) 
     mprintf(", non-imaged");
   if (useMass_) 
     mprintf(", center of mass");
@@ -67,7 +66,8 @@ int Action_Distance::setup() {
   // Print mask and imaging info for this parm
   mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1_.MaskString(), Mask1_.Nselected(),
           Mask2_.MaskString(),Mask2_.Nselected());
-  if (imageType_ != Frame::NOIMAGE)
+  SetupImaging( currentParm->BoxType() );
+  if (ImagingEnabled())
     mprintf(", imaged");
   else
     mprintf(", imaging off");
@@ -83,10 +83,29 @@ int Action_Distance::setup() {
 
 // Action_Distance::action()
 int Action_Distance::action() {
-  double ucell[9], recip[9];
+  double ucell[9], recip[9], Dist;
+  Vec3 a1, a2;
 
-  if (imageType_==Frame::NONORTHO) currentFrame->BoxToRecip(ucell,recip);
-  double Dist = currentFrame->DIST2(Mask1_, Mask2_, useMass_, imageType_, ucell, recip);
+  if (useMass_) {
+    a1 = currentFrame->VCenterOfMass( Mask1_ );
+    a2 = currentFrame->VCenterOfMass( Mask2_ );
+  } else {
+    a1 = currentFrame->VGeometricCenter( Mask1_ );
+    a2 = currentFrame->VGeometricCenter( Mask2_ );
+  }
+
+  switch ( ImageType() ) {
+    case NONORTHO:
+      currentFrame->BoxToRecip(ucell,recip);
+      Dist = DIST2_ImageNonOrtho(a1.Dptr(), a2.Dptr(), ucell, recip);
+      break;
+    case ORTHO:
+      Dist = DIST2_ImageOrtho(a1.Dptr(), a2.Dptr(), currentFrame->bAddress());
+      break;
+    case NOIMAGE:
+      Dist = DIST2_NoImage(a1.Dptr(), a2.Dptr());
+      break;
+  }
   Dist = sqrt(Dist);
 
   dist_->Add(frameNum, &Dist);

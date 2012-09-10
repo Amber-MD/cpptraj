@@ -1,7 +1,6 @@
 #ifndef INC_ACTION_SURF_H
 #define INC_ACTION_SURF_H
 #include "Action.h"
-#include <vector>
 // Class: Action_Surf
 /// Calculate LCPO surface area.
 /** LCPO method from:

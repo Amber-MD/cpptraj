@@ -1,9 +1,10 @@
 #ifndef INC_ACTION_RADIAL_H
 #define INC_ACTION_RADIAL_H
 #include "Action.h"
+#include "ImagedAction.h"
 // Class: Action_Radial
 /// Calculate the radial distribution (pair correlation) function.
-class Action_Radial: public Action {
+class Action_Radial: public Action, ImagedAction {
   public:
     Action_Radial();
     ~Action_Radial();

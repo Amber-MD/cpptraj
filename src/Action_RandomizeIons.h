@@ -1,7 +1,8 @@
 #ifndef INC_ACTION_RANDOMIZEIONS_H
 #define INC_ACTION_RANDOMIZEIONS_H
 #include "Action.h"
-class Action_RandomizeIons : public Action {
+#include "ImagedAction.h"
+class Action_RandomizeIons : public Action, ImagedAction {
   public:
     Action_RandomizeIons();
   private:

@@ -6,6 +6,7 @@
 #endif
 #include "Topology.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 // DEBUG
 //#include <cmath> // sqrt
 
@@ -832,7 +833,7 @@ void Topology::GetBondsFromAtomCoords() {
           atoms_[atom1].Nbonds() > 0 )
         continue;
       for (int atom2 = atom1 + 1; atom2 < stopatom; atom2++) {
-        double D2 = refCoords_.DIST2( atom1, atom2 );
+        double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
         double cutoff2 = GetBondedCut(atoms_[atom1].Element(), atoms_[atom2].Element());
         //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
         //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);
@@ -880,7 +881,7 @@ void Topology::GetBondsFromAtomCoords() {
       if (atoms_[atom1].Element()==Atom::HYDROGEN) continue;
       for (int atom2 = midatom; atom2 < stopatom; atom2++) {
         if (atoms_[atom2].Element()==Atom::HYDROGEN) continue;
-        double D2 = refCoords_.DIST2( atom1, atom2 );
+        double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
         double cutoff2 = GetBondedCut(atoms_[atom1].Element(), atoms_[atom2].Element());
         //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
         //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);
@@ -1152,6 +1153,7 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
   bool selectresidue;
   int atomi, idx, atomj;
   double d2;
+  const double* i_crd;
 
   if (REF.empty()) {
     mprinterr("Error: No reference set for [%s], cannot select by distance.\n",c_str());
@@ -1183,7 +1185,7 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
   if (byAtom) { // Select by atom
     // Loop over all atoms
 #ifdef _OPENMP
-#pragma omp parallel private(atomi, idx, atomj, d2)
+#pragma omp parallel private(atomi, idx, atomj, d2, i_crd)
 {
 #pragma omp for
 #endif
@@ -1191,9 +1193,10 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
       // No need to calculate if atomi already selected
       if (mask[atomi] == 'T') continue;
       // Loop over initially selected atoms
+      i_crd = REF.XYZ( atomi );
       for (idx = 0; idx < (int)selected.size(); idx++) {
         atomj = selected[idx];
-        d2 = REF.DIST2(atomi, atomj);
+        d2 = DIST2_NoImage(i_crd, REF.XYZ(atomj));
         if (within) {
           if (d2 < distance) {
             mask[atomi] = 'T';
@@ -1212,7 +1215,7 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
 #endif
   } else { // Select by residue
 #ifdef _OPENMP
-#pragma omp parallel private(atomi, idx, atomj, d2, resi, selectresidue, endatom)
+#pragma omp parallel private(atomi, idx, atomj, d2, resi, selectresidue, endatom, i_crd)
 {
 #pragma omp for
 #endif
@@ -1226,9 +1229,10 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
       // Loop over mask atoms
       for (idx = 0; idx < (int)selected.size(); idx++) {
         atomj = selected[idx];
+        i_crd = REF.XYZ( atomj );
         // Loop over residue atoms
         for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++) {
-          d2 = REF.DIST2(atomi, atomj);
+          d2 = DIST2_NoImage(REF.XYZ(atomi), i_crd);
           if (within) {
             if (d2 < distance) selectresidue = true;
           } else {

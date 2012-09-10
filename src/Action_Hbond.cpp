@@ -3,6 +3,8 @@
 #include <algorithm> // sort
 #include "Action_Hbond.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
+#include "TorsionRoutines.h"
 #include "Constants.h" // RADDEG, DEGRAD
 
 // CONSTRUCTOR
@@ -359,14 +361,16 @@ int Action_Hbond::AtomsAreHbonded(int a_atom, int d_atom, int h_atom, int hbidx,
   double angle;
 
   if (a_atom == d_atom) return 0;
-  double dist2 = currentFrame->DIST2(a_atom, d_atom);
+  double dist2 = DIST2_NoImage(currentFrame->XYZ(a_atom), currentFrame->XYZ(d_atom));
   if (dist2 > dcut2_) return 0;
   /*mprintf("DEBUG: Donor %i@%s -- acceptor %i@%s = %lf",
          d_atom+1, (*currentParm)[d_atom].c_str(),
          a_atom+1, (*currentParm)[a_atom].c_str(), sqrt(dist2));*/
   // For ions, donor atom will be same as h atom so no angle needed.
   if (d_atom != h_atom) {
-    angle = currentFrame->ANGLE(a_atom, h_atom, d_atom);
+    angle = CalcAngle( currentFrame->XYZ(a_atom), 
+                       currentFrame->XYZ(h_atom),
+                       currentFrame->XYZ(d_atom) );
     if (angle < acut_) return 0;
   }
   double dist = sqrt(dist2);
@@ -434,10 +438,12 @@ int Action_Hbond::action() {
                               accept != Acceptor_.end(); ++accept, ++hbidx) 
     {
       if (*accept == D) continue;
-      dist2 = currentFrame->DIST2(*accept, D);
+      dist2 = DIST2_NoImage(currentFrame->XYZ(*accept), currentFrame->XYZ(D));
       //dist2 = currentFrame->DIST2(*accept, D, (int)P->boxType, ucell, recip);
       if (dist2 > dcut2_) continue;
-      angle = currentFrame->ANGLE(*accept, H, D);
+      angle = CalcAngle( currentFrame->XYZ(*accept), 
+                         currentFrame->XYZ(H),
+                         currentFrame->XYZ(D)       );
       if (angle < acut_) continue;
 //      mprintf( "HBOND[%i]: %i:%s ... %i:%s-%i:%s Dist=%lf Angle=%lf\n", 
 //              hbidx, *accept, P->names[*accept],

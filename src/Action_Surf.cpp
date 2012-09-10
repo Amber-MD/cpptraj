@@ -1,7 +1,9 @@
 // Action_Surf 
+#include <cmath>
 #include "Action_Surf.h"
 #include "Constants.h" // For FOURPI, TWOPI
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -121,7 +123,7 @@ int Action_Surf::action() {
     for (atomj = atomj_neighborMask.begin(); atomj != atomj_neighborMask.end(); atomj++)
     {
       if (atomi != *atomj) {
-        double dij = currentFrame->DIST(atomi, *atomj);
+        double dij = sqrt( DIST2_NoImage(currentFrame->XYZ(atomi), currentFrame->XYZ(*atomj)) );
         // Count atoms as neighbors if their VDW radii touch
         if ( (vdwi + VDW[*atomj]) > dij ) {
           ineighbor.push_back(*atomj);
@@ -173,7 +175,7 @@ int Action_Surf::action() {
         if ( (*kt) == (*jt) ) continue;
         //printf("i,j,k %i %i %i\n",atomi + 1,(*jt)+1,(*kt)+1);
         double vdwk = VDW[*kt];
-        double djk = currentFrame->DIST(*jt, *kt);
+        double djk = sqrt(DIST2_NoImage(currentFrame->XYZ(*jt), currentFrame->XYZ(*kt)));
         //printf("%4s%6i%6i%12.8lf\n","DJK ",(*jt)+1,(*kt)+1,djk);
         //printf("%6s%6.2lf%6.2lf\n","AVD ",vdwj,vdwk);
         if ( (vdwj + vdwk) > djk ) {
