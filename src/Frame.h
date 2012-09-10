@@ -118,7 +118,6 @@ class Frame {
     void UnwrapOrtho( Frame&, AtomMask& );
     // Coordinate calculation
     double BoxToRecip(double *, double *);
-    double PUCKER(AtomMask&,AtomMask&,AtomMask&,AtomMask&,AtomMask&,int,bool,bool);
     double RADGYR(AtomMask &, bool, double *);
     double RMSD(Frame &, double*, double*,bool);
     double RMSD_CenteredRef( Frame const&, double[9], double[6], bool);

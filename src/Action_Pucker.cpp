@@ -2,6 +2,7 @@
 #include "Action_Pucker.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG
+#include "TorsionRoutines.h"
 
 // CONSTRUCTOR
 Action_Pucker::Action_Pucker() :
@@ -99,7 +100,34 @@ int Action_Pucker::setup() {
 
 // Action_Pucker::action()
 int Action_Pucker::action() {
-  double pval = currentFrame->PUCKER(M1_,M2_,M3_,M4_,M5_,puckerMethod_,amplitude_,useMass_);
+  Vec3 a1, a2, a3, a4, a5;
+  double pval, amp;
+
+  if (useMass_) {
+    a1 = currentFrame->VCenterOfMass( M1_ );  
+    a2 = currentFrame->VCenterOfMass( M2_ );  
+    a3 = currentFrame->VCenterOfMass( M3_ );  
+    a4 = currentFrame->VCenterOfMass( M4_ );  
+    a5 = currentFrame->VCenterOfMass( M5_ );
+  } else {
+    a1 = currentFrame->VGeometricCenter( M1_ );
+    a2 = currentFrame->VGeometricCenter( M2_ );
+    a3 = currentFrame->VGeometricCenter( M3_ );
+    a4 = currentFrame->VGeometricCenter( M4_ );
+    a5 = currentFrame->VGeometricCenter( M5_ );
+  }
+
+  switch (puckerMethod_) {
+    case ALTONA: 
+      pval = Pucker_AS( a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr(), a5.Dptr(), &amp );
+      break;
+    case CREMER:
+      pval = Pucker_CP( a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr(), a5.Dptr(), &amp );
+      break;
+  }
+  if ( amplitude_ )
+    pval = amp;
+  
   pval *= RADDEG;
 
   // Deal with offset

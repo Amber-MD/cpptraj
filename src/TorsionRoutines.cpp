@@ -49,7 +49,9 @@ double Torsion(const double *a1, const double *a2, const double *a3, const doubl
 /** Return the pucker (in radians) of coords stored in a1-a5 based on 
   * Altona & Sundaralingam method.
   */
-double Pucker_AS(double *a1, double *a2, double *a3, double *a4, double *a5, double *amp) {
+double Pucker_AS(const double* a1, const double* a2, const double* a3, 
+                 const double* a4, const double* a5, double* amp) 
+{
   double pucker;
   double v1, v2, v3, v4, v5, a, b;
   double pi_over_5;
@@ -89,7 +91,9 @@ double Pucker_AS(double *a1, double *a2, double *a3, double *a4, double *a5, dou
 /** Return the pucker (in radians) of coords in a1-a5 based on method of
   * Cremer & Pople.
   */
-double Pucker_CP(double *a1, double *a2, double *a3, double *a4, double *a5, double *amplitude) {
+double Pucker_CP(const double* a1, const double* a2, const double* a3, 
+                 const double* a4, const double* a5, double* amplitude) 
+{
   double pucker, norm;
   double x1, y1, z1;
   double x2, y2, z2;

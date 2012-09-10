@@ -4,7 +4,6 @@
 #include "Constants.h"
 #include "vectormath.h" // CROSS_PRODUCT, normalize
 #include "DistRoutines.h" // TODO: Get rid of dependency
-#include "TorsionRoutines.h"
 #include "CpptrajStdio.h"
 #include "Matrix_3x3.h" // For diagonalization in RMS routine.
 
@@ -1350,45 +1349,6 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
   recip[8] = u12z*onevolume;
 
   return volume;
-}
-
-// Frame::PUCKER()
-/** Return the pseudorotation between atoms in masks M1-M5 for the given
-  * puckerMethod:
-  *   0: Use Altona & Sundaralingam method/conventions
-  *   1: Use Cremer & Pople method
-  * If amplitude is true, return amplitude instead of pseudorotation.
-  * NOTE: Pucker routines return angles in radians.
-  */
-double Frame::PUCKER(AtomMask& M1, AtomMask& M2, AtomMask& M3, AtomMask& M4, AtomMask& M5,
-                     int puckerMethod, bool amplitude, bool useMassIn)
-{
-  double a1[3],a2[3],a3[3],a4[3],a5[3]; 
-  double angle, amp;
-
-  if (useMassIn) {
-    CenterOfMass(a1,M1);
-    CenterOfMass(a2,M2);
-    CenterOfMass(a3,M3);
-    CenterOfMass(a4,M4);
-    CenterOfMass(a5,M5);
-  } else {
-    GeometricCenter(a1,M1);
-    GeometricCenter(a2,M2);
-    GeometricCenter(a3,M3);
-    GeometricCenter(a4,M4);
-    GeometricCenter(a5,M5);
-  }
-
-  angle = 0.0;
-  amp = 0.0;
-  switch (puckerMethod) {
-    case 0 : angle = Pucker_AS(a1,a2,a3,a4,a5,&amp); break;
-    case 1 : angle = Pucker_CP(a1,a2,a3,a4,a5,&amp); break;
-  }
-
-  if (amplitude) return amp;
-  return angle;
 }
 
 // Frame::RADGYR()
