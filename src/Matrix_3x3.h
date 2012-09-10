@@ -3,6 +3,7 @@
 class Matrix_3x3 {
   public:
     Matrix_3x3();
+    Matrix_3x3(const Matrix_3x3&);
     Matrix_3x3(double*);
     Matrix_3x3(double,double,double);
     Matrix_3x3& operator=(const Matrix_3x3&);

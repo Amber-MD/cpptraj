@@ -16,7 +16,20 @@ Matrix_3x3::Matrix_3x3() {
   M_[8] = 0;
 }
 
-// CONSTRUCTOR - Takes array of 9, row-major
+// COPY CONSTRUCTOR
+Matrix_3x3::Matrix_3x3(const Matrix_3x3& rhs) {
+  M_[0] = rhs.M_[0];
+  M_[1] = rhs.M_[1];
+  M_[2] = rhs.M_[2];
+  M_[3] = rhs.M_[3];
+  M_[4] = rhs.M_[4];
+  M_[5] = rhs.M_[5];
+  M_[6] = rhs.M_[6];
+  M_[7] = rhs.M_[7];
+  M_[8] = rhs.M_[8];
+}
+
+/// CONSTRUCTOR - Takes array of 9, row-major
 Matrix_3x3::Matrix_3x3(double *Min) {
   M_[0] = Min[0]; 
   M_[1] = Min[1]; 
@@ -29,7 +42,7 @@ Matrix_3x3::Matrix_3x3(double *Min) {
   M_[8] = Min[8]; 
 }
 
-// CONSTRUCTOR - Set diagonal
+/// CONSTRUCTOR - Set diagonal
 Matrix_3x3::Matrix_3x3(double d1, double d2, double d3) {
   M_[0] = d1;
   M_[1] = 0;
