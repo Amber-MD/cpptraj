@@ -207,7 +207,7 @@ int Cpptraj::Run() {
   //if (analysisList.Setup(&DSL, &parmFileList) > 0 && exitOnError)
   //  return 1;
 
-  // ========== R U N  P H A S E ==========
+  // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
   rprintf("BEGIN TRAJECTORY PROCESSING:\n");
   trajinList.Begin();
@@ -270,26 +270,25 @@ int Cpptraj::Run() {
   // Close output traj
   trajoutList.Close();
 
-  // Do action output
+  // ========== A C T I O N  O U T P U T  P H A S E ==========
   actionList.Print( );
 
-  // Print Dataset information
-  DSL.sort();
-  mprintf("\nDATASETS:\n");
-  DSL.Info();
-
-  analysisList.Setup(&DSL, &parmFileList);
-  // Do dataset output - first sync datasets
+  // Sync DataSets and print DataSet information
   // TODO - Also have datafilelist call a sync??
   DSL.Sync();
+  DSL.sort();
+  mprintf("\nDATASETS BEFORE ANALYSIS:\n");
+  DSL.Info();
 
-  // DataSet Analysis
+  // ========== A N A L Y S I S  P H A S E ==========
+  analysisList.Setup(&DSL, &parmFileList);
   analysisList.Analyze(&DFL);
 
-  // DataSets, post-Analysis
+  // DEBUG: DataSets, post-Analysis
   mprintf("\nDATASETS AFTER ANALYSIS:\n");
   DSL.Info();
 
+  // ========== D A T A  W R I T E  P H A S E ==========
   // Process any datafile commands
   DFL.ProcessDataFileArgs(&DSL);
   // Print Datafile information
