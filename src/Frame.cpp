@@ -1352,38 +1352,6 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
   return volume;
 }
 
-// Frame::DIHEDRAL()
-/** Return dihedral angle between COM of atoms in M1-M4.
-  * NOTE: Torsion returns angles in radians.
-  */
-double Frame::DIHEDRAL(AtomMask& M1, AtomMask& M2, AtomMask& M3, AtomMask& M4,
-                       bool useMass) 
-{
-  double a1[3],a2[3],a3[3],a4[3];
-
-  if (useMass) {
-    CenterOfMass(a1, M1); 
-    CenterOfMass(a2, M2); 
-    CenterOfMass(a3, M3); 
-    CenterOfMass(a4, M4); 
-  } else {
-    GeometricCenter(a1, M1);
-    GeometricCenter(a2, M2);
-    GeometricCenter(a3, M3);
-    GeometricCenter(a4, M4);
-  }
-
-  return Torsion(a1,a2,a3,a4);
-}
-
-// Frame::DIHEDRAL()
-/** Return dihedral angle between atoms A1-A4.
-  * NOTE: Torsion returns angles in radians.
-  */
-double Frame::DIHEDRAL(int A1, int A2, int A3, int A4) {
-  return Torsion( XYZ(A1), XYZ(A2), XYZ(A3), XYZ(A4) );
-}
-
 // Frame::PUCKER()
 /** Return the pseudorotation between atoms in masks M1-M5 for the given
   * puckerMethod:

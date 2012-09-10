@@ -6,6 +6,7 @@
 #include "Action_Jcoupling.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD, RADDEG
+#include "TorsionRoutines.h"
 
 // CONSTRUCTOR
 Action_Jcoupling::Action_Jcoupling() :
@@ -319,7 +320,10 @@ int Action_Jcoupling::action() {
   for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
                                             jc !=JcouplingInfo_.end(); ++jc)
   {
-    phi = currentFrame->DIHEDRAL( (*jc).atom[0], (*jc).atom[1], (*jc).atom[2], (*jc).atom[3] );
+    phi = Torsion(currentFrame->XYZ((*jc).atom[0]),
+                  currentFrame->XYZ((*jc).atom[1]),
+                  currentFrame->XYZ((*jc).atom[2]),
+                  currentFrame->XYZ((*jc).atom[3]) );
     C0 = (*jc).C[0];
     C1 = (*jc).C[1];
     C2 = (*jc).C[2];

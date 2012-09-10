@@ -2,6 +2,7 @@
 #include "Action_Dihedral.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG
+#include "TorsionRoutines.h"
 
 // CONSTRUCTOR
 Action_Dihedral::Action_Dihedral() :
@@ -85,7 +86,20 @@ int Action_Dihedral::setup() {
 
 // Action_Dihedral::action()
 int Action_Dihedral::action() {
-  double torsion = currentFrame->DIHEDRAL(M1_, M2_, M3_, M4_, useMass_);
+  Vec3 a1, a2, a3, a4;
+
+  if (useMass_) {
+    a1 = currentFrame->VCenterOfMass( M1_ );
+    a2 = currentFrame->VCenterOfMass( M2_ );
+    a3 = currentFrame->VCenterOfMass( M3_ );
+    a4 = currentFrame->VCenterOfMass( M4_ );
+  } else {
+    a1 = currentFrame->VGeometricCenter( M1_ );
+    a2 = currentFrame->VGeometricCenter( M2_ );
+    a3 = currentFrame->VGeometricCenter( M3_ );
+    a4 = currentFrame->VGeometricCenter( M4_ );
+  }
+  double torsion = Torsion(a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr());
 
   torsion *= RADDEG;
 

@@ -2,6 +2,7 @@
 #include <list>
 #include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
+#include "TorsionRoutines.h"
 
 // CONSTRUCTOR
 Action_AtomMap::Action_AtomMap() :
@@ -202,13 +203,19 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
     }
     // Calculate reference improper dihedrals
     for (int i=0; i<notunique_r; i++) {
-      dR[i] = RefFrame_->DIHEDRAL(uR[0], uR[1], uR[2], nR[i]);
+      dR[i] = Torsion( RefFrame_->XYZ(uR[0]),
+                       RefFrame_->XYZ(uR[1]), 
+                       RefFrame_->XYZ(uR[2]),
+                       RefFrame_->XYZ(nR[i]) );
       if (debug>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
                            uR[0],uR[1],uR[2],nR[i],dR[i]);
     }
     // Calculate target improper dihedrals
     for (int i=0; i<notunique_t; i++) {
-      dT[i] = TgtFrame_->DIHEDRAL(uT[0], uT[1], uT[2], nT[i]);
+      dT[i] = Torsion( TgtFrame_->XYZ(uT[0]),
+                       TgtFrame_->XYZ(uT[1]),
+                       TgtFrame_->XYZ(uT[2]),
+                       TgtFrame_->XYZ(nT[i]) );
       if (debug>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
                            uR[0], uR[1], uR[2], nT[i], dT[i]);
     }

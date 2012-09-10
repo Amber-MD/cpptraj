@@ -3,6 +3,7 @@
 #include "Action_ClusterDihedral.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG
+#include "TorsionRoutines.h"
 
 // CONSTRUCTOR
 Action_ClusterDihedral::Action_ClusterDihedral() :
@@ -193,7 +194,10 @@ int Action_ClusterDihedral::action() {
   for (std::vector<DCmask>::iterator dih = DCmasks_.begin(); 
                                      dih != DCmasks_.end(); ++dih)
   {
-    double PHI = currentFrame->DIHEDRAL( (*dih).A1(), (*dih).A2(), (*dih).A3(), (*dih).A4() );
+    double PHI = Torsion( currentFrame->XYZ((*dih).A1()),
+                          currentFrame->XYZ((*dih).A2()),
+                          currentFrame->XYZ((*dih).A3()),
+                          currentFrame->XYZ((*dih).A4()) );
     // NOTE: Torsion is in radians; should bins be converted to rads as well?
     PHI *= RADDEG;
     //mprintf("[%6i]Dihedral=%8.3f", (*dih).A1(), PHI); // DEBUG
