@@ -78,6 +78,14 @@ void ImageNonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
 }
 
 // ImageNonortho()
+/** \param Coord Coordinate to image.
+  * \param truncoct If true, image in truncated octahedral shape.
+  * \param origin If true, image w.r.t. coordinate origin.
+  * \param ucell Unit cell matrix.
+  * \param recip Reciprocal coordinates matrix.
+  * \param fcom If truncoct, image translated coordinate w.r.t. this coord.
+  * \return Vector containing image translation.
+  */
 Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct, 
                    bool origin, const Matrix_3x3& ucell, const Matrix_3x3& recip, 
                    Vec3 const& fcom, double min)
@@ -119,6 +127,11 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
   return boxTransOut;
 }
 
+/** \param frameIn Frame to image.
+  * \param bp Output: Box + boundary.
+  * \param bm Output: Box - boundary.
+  * \param origin If true, image w.r.t. coordinate origin, otherwise box center.
+  */
 void SetupImageOrtho(Frame& frameIn, Vec3& bp, Vec3& bm, bool origin) {
   // Set up boundary information for orthorhombic cell
   if (origin) {
@@ -134,6 +147,12 @@ void SetupImageOrtho(Frame& frameIn, Vec3& bp, Vec3& bm, bool origin) {
   }
 }
 
+/** \param frameIn Frame to image.
+  * \param bp Box + boundary.
+  * \param bm Box - boundary.
+  * \param center If true image w.r.t. center of atoms, otherwise first atom.
+  * \param useMass If true calc center of mass, otherwise geometric center.
+  */
 void ImageOrtho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, bool useMass,
                 std::vector<int> const& AtomPairs)
 {
@@ -168,6 +187,11 @@ void ImageOrtho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, boo
 }
 
 // Frame::ImageOrtho()
+/** \param Coord Coordinate to image
+  * \param bp Box + boundary
+  * \param bm Box - boundary
+  * \param BoxVec box lengths.
+  */
 Vec3 ImageOrtho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Vec3 const& BoxVec)
 {
   double trans[3];
