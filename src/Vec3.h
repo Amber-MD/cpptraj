@@ -52,9 +52,14 @@ class Vec3 {
       V_[1] += rhs.V_[1];
       V_[2] += rhs.V_[2];
     }
+    Vec3 operator-(const Vec3& rhs) {
+      Vec3 tmp( *this );
+      tmp -= rhs;
+      return tmp;
+    }
 
     double operator[](int idx) const { return V_[idx]; }
-    double Magnitude() {
+    double Magnitude2() {
       double x = V_[0] * V_[0];
       double y = V_[1] * V_[1];
       double z = V_[2] * V_[2];

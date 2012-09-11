@@ -160,7 +160,7 @@ class Frame {
       if (sumMass == 0) return Vec3();
       return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
     }
-    // DEBUG -------------------------------------------------------------------
+    // END DEBUG ---------------------------------------------------------------
     double CenterOfMass(double*, AtomMask const&);
     double GeometricCenter(double*, AtomMask const&);
     double CenterOfMass(double*,int,int);
@@ -188,9 +188,6 @@ class Frame {
     void Center(AtomMask const&, bool,bool);
     void CenterReference(double *, bool);
     void ShiftToGeometricCenter();
-    // Imaging
-    void UnwrapNonortho( Frame&, AtomMask& );
-    void UnwrapOrtho( Frame&, AtomMask& );
     // Coordinate calculation
     double BoxToRecip(double *, double *);
     double RADGYR(AtomMask &, bool, double *);

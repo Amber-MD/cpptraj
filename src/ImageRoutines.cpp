@@ -128,6 +128,7 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
   return boxTransOut;
 }
 
+// SetupImageOrtho()
 /** \param frameIn Frame to image.
   * \param bp Output: Box + boundary.
   * \param bm Output: Box - boundary.
@@ -148,6 +149,7 @@ void SetupImageOrtho(Frame& frameIn, Vec3& bp, Vec3& bm, bool origin) {
   }
 }
 
+// ImageOrtho()
 /** \param frameIn Frame to image.
   * \param bp Box + boundary.
   * \param bm Box - boundary.
@@ -187,7 +189,7 @@ void ImageOrtho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, boo
   } // END loop over atom pairs
 }
 
-// Frame::ImageOrtho()
+// ImageOrtho()
 /** \param Coord Coordinate to image
   * \param bp Box + boundary
   * \param bm Box - boundary
@@ -210,5 +212,76 @@ Vec3 ImageOrtho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Vec3 const& B
     }
   }
   return Vec3( trans );
+}
+
+// UnwrapNonortho()
+void UnwrapNonortho( Frame& frameIn, Frame& ref, AtomMask const& mask,
+                     Matrix_3x3 const& ucell, Matrix_3x3 const& recip ) 
+{
+  for (AtomMask::const_iterator atom = mask.begin();
+                                atom != mask.end(); ++atom)
+  {
+    int i3 = *atom * 3;
+    Vec3 vtgt = frameIn.CRD( i3 );
+    double minX = vtgt[0];
+    double minY = vtgt[1];
+    double minZ = vtgt[2];
+    Vec3 vref = ref.CRD( i3 );
+
+    Vec3 vd = vtgt - vref; // dx dy dz
+    double minDistanceSquare = vd.Magnitude2();
+
+    recip.MultVec( vd ); // recip * dxyz
+
+    double cx = floor(vd[0]);
+    double cy = floor(vd[1]);
+    double cz = floor(vd[2]);
+
+    for (int ix = -1; ix < 2; ++ix) {
+      for (int iy = -1; iy < 2; ++iy) {
+        for (int iz = -1; iz < 2; ++iz) {
+          Vec3 vcc( cx + (double)ix, cy + (double)iy, cz + (double) iz ); // ccx ccy ccz
+
+          ucell.TransposeMultVec( vcc ); // ucell^T * ccxyz
+
+          Vec3 vnew = vtgt - vcc; 
+ 
+          Vec3 vr = vref - vnew; 
+  
+          double distanceSquare = vr.Magnitude2();
+
+          if ( minDistanceSquare > distanceSquare ) {
+              minDistanceSquare = distanceSquare;
+              minX = vnew[0];
+              minY = vnew[1];
+              minZ = vnew[2];
+          }
+        }
+      }
+    }
+    ref[i3  ] = frameIn[i3  ] = minX; 
+    ref[i3+1] = frameIn[i3+1] = minY;
+    ref[i3+2] = frameIn[i3+2] = minZ;
+
+  } // END loop over selected atoms
+}
+
+// UnwrapOrtho()
+void UnwrapOrtho( Frame& frameIn, Frame& ref, AtomMask const& mask ) {
+  double boxX = frameIn.BoxX();
+  double boxY = frameIn.BoxY();
+  double boxZ = frameIn.BoxZ();
+  for (AtomMask::const_iterator atom = mask.begin();
+                                atom != mask.end(); ++atom)
+  {
+    int i3 = *atom * 3;
+    double dx = frameIn[i3  ] - ref[i3  ];
+    double dy = frameIn[i3+1] - ref[i3+1];
+    double dz = frameIn[i3+2] - ref[i3+2];
+
+    ref[i3  ] = frameIn[i3  ] = frameIn[i3  ] - floor( dx / boxX + 0.5 ) * boxX;
+    ref[i3+1] = frameIn[i3+1] = frameIn[i3+1] - floor( dy / boxY + 0.5 ) * boxY;
+    ref[i3+2] = frameIn[i3+2] = frameIn[i3+2] - floor( dz / boxZ + 0.5 ) * boxZ;
+  }
 }
 

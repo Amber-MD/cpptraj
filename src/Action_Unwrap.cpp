@@ -1,5 +1,6 @@
 #include "Action_Unwrap.h"
 #include "CpptrajStdio.h"
+#include "ImageRoutines.h"
 
 // CONSTRUCTOR
 Action_Unwrap::Action_Unwrap() :
@@ -85,6 +86,7 @@ int Action_Unwrap::setup() {
 }
 
 int Action_Unwrap::action() {
+  double ucell[9], recip[9];
   // Set reference structure if not already set
   if (RefParm_ == 0) {
     RefParm_ = currentParm;
@@ -93,9 +95,11 @@ int Action_Unwrap::action() {
   }
  
   if (orthogonal_)
-    currentFrame->UnwrapOrtho( RefFrame_, mask_ );
-  else 
-    currentFrame->UnwrapNonortho( RefFrame_, mask_ );
+    UnwrapOrtho( *currentFrame, RefFrame_, mask_ );
+  else {
+    currentFrame->BoxToRecip( ucell, recip );
+    UnwrapNonortho( *currentFrame, RefFrame_, mask_, ucell, recip );
+  }
 
   return 0;
 } 

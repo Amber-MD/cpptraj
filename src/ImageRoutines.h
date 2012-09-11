@@ -10,4 +10,6 @@ Vec3 ImageNonortho(Vec3 const&, bool, bool,
 void SetupImageOrtho(Frame&, Vec3&, Vec3&, bool);
 void ImageOrtho(Frame&, Vec3 const&, Vec3 const&, bool, bool, std::vector<int> const&);
 Vec3 ImageOrtho(Vec3 const&, Vec3 const&, Vec3 const&, Vec3 const&);
+void UnwrapNonortho( Frame&, Frame&, AtomMask const&, Matrix_3x3 const&, Matrix_3x3 const& );
+void UnwrapOrtho( Frame&, Frame&, AtomMask const& );
 #endif
