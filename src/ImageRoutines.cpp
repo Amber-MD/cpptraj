@@ -106,7 +106,7 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
   if (truncoct) {
     Vec3 TransCoord = Coord;
     TransCoord += boxTransOut;
-    recip.MultVec( TransCoord ); // Matrix2
+    recip.MultVec( TransCoord ); 
     Vec3 f2 = fcom;
     recip.MultVec( f2 );
 

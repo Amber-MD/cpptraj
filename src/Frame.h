@@ -91,10 +91,76 @@ class Frame {
     void Divide(double);
     void AddByMask(Frame const&, AtomMask const&); 
     // Center of mass / Geometric Center
-    Vec3 VCenterOfMass(AtomMask const&);
-    Vec3 VGeometricCenter(AtomMask const&);
-    Vec3 VCenterOfMass(int,int);
-    Vec3 VGeometricCenter(int,int);
+    // DEBUG -------------------------------------------------------------------
+    // NOTE: Placing these functions in the header since most modern compilers
+    //       will actually try to inline them which results in a decent
+    //       speedup for most routines (e.g. when imaging).
+    Vec3 VCenterOfMass( AtomMask const& Mask ) {
+      double Coord0 = 0.0;
+      double Coord1 = 0.0;
+      double Coord2 = 0.0;
+      double sumMass = 0.0;
+      for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom)
+      {
+        unsigned int xidx = (*atom) * 3;
+        double mass = Mass_[*atom];
+        sumMass += mass;
+        Coord0 += ( X_[xidx  ] * mass );
+        Coord1 += ( X_[xidx+1] * mass );
+        Coord2 += ( X_[xidx+2] * mass );
+      }
+      if (sumMass == 0.0) return Vec3();
+      return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
+    }
+    Vec3 VGeometricCenter( AtomMask const& Mask ) {
+      double Coord0 = 0.0;
+      double Coord1 = 0.0;
+      double Coord2 = 0.0;
+      for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom)
+      {
+        unsigned int xidx = (*atom) * 3;
+        Coord0 += X_[xidx  ];
+        Coord1 += X_[xidx+1];
+        Coord2 += X_[xidx+2];
+      }
+      double sumMass = (double)Mask.Nselected();
+      if (sumMass == 0) return Vec3();
+      return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
+    }
+    Vec3 VCenterOfMass(int startAtom, int stopAtom) {
+      double Coord0 = 0.0;
+      double Coord1 = 0.0;
+      double Coord2 = 0.0;
+      double sumMass = 0.0;
+      Darray::iterator mass = Mass_.begin() + startAtom;
+      int startAtom3 = startAtom * 3;
+      int stopAtom3 = stopAtom * 3;
+      for (int i = startAtom3; i < stopAtom3; i += 3) {
+        sumMass += (*mass);
+        Coord0 += ( X_[i  ] * (*mass) );
+        Coord1 += ( X_[i+1] * (*mass) );
+        Coord2 += ( X_[i+2] * (*mass) );
+        ++mass;
+      }
+      if (sumMass == 0.0) return Vec3();
+      return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
+    }
+    Vec3 VGeometricCenter(int startAtom, int stopAtom) {
+      double Coord0 = 0.0;
+      double Coord1 = 0.0;
+      double Coord2 = 0.0;
+      int startAtom3 = startAtom * 3;
+      int stopAtom3 = stopAtom * 3;
+      for (int i = startAtom3; i < stopAtom3; i += 3) {
+        Coord0 += X_[i  ];
+        Coord1 += X_[i+1];
+        Coord2 += X_[i+2];
+      }
+      double sumMass = (double)(stopAtom - startAtom);
+      if (sumMass == 0) return Vec3();
+      return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
+    }
+    // DEBUG -------------------------------------------------------------------
     double CenterOfMass(double*, AtomMask const&);
     double GeometricCenter(double*, AtomMask const&);
     double CenterOfMass(double*,int,int);
