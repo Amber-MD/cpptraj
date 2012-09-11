@@ -3,7 +3,6 @@
 #include "Atom.h"
 #include "AtomMask.h"
 #include "Vec3.h"
-#include "Matrix_3x3.h"
 // Class: Frame
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,

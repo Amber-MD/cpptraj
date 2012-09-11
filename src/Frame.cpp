@@ -4,6 +4,7 @@
 #include "Constants.h" // SMALL
 #include "vectormath.h" // CROSS_PRODUCT, normalize
 #include "CpptrajStdio.h"
+#include "Matrix_3x3.h"
 
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 const size_t Frame::BOXSIZE_ = 6 * sizeof(double);
