@@ -244,7 +244,7 @@ int Action_AutoImage::action() {
       //        framedist2, imageddist2);
       if (imageddist2 < framedist2) {
         // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
-        currentFrame->Translate(Trans.Dptr(), firstAtom, lastAtom);
+        currentFrame->Translate(Trans, firstAtom, lastAtom);
         //for (int idx = firstAtom*3; idx < lastAtom*3; ++idx)
         //  (*currentFrame)[idx] = fixedFrame[idx];
       }

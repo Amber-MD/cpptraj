@@ -72,7 +72,7 @@ void ImageNonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
     // boxTrans will hold calculated translation needed to move atoms back into box
     Vec3 boxTrans = ImageNonortho(Coord, truncoct, origin, ucell, recip, fcom, min);
 
-    frameIn.Translate(boxTrans.Dptr(), firstAtom, lastAtom);
+    frameIn.Translate(boxTrans, firstAtom, lastAtom);
 
   } // END loop over atom pairs
 }
@@ -183,7 +183,7 @@ void ImageOrtho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, boo
     Vec3 boxTrans = ImageOrtho(Coord, bp, bm, BoxVec);
 
     // Translate atoms according to Coord
-    frameIn.Translate(boxTrans.Dptr(), firstAtom, lastAtom);
+    frameIn.Translate(boxTrans, firstAtom, lastAtom);
   } // END loop over atom pairs
 }
 

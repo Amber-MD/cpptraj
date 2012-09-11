@@ -170,6 +170,18 @@ class Frame {
     void Translate(const double *);
     void Translate(const double *, int,int);
     void Translate(const double *, int);
+    void Translate(const Vec3& Vec, int firstAtom, int lastAtom) {
+      double Vec0 = Vec[0];
+      double Vec1 = Vec[1];
+      double Vec2 = Vec[2];
+      int startatom3 = firstAtom * 3;
+      int stopatom3 = lastAtom * 3;
+      for (int i = startatom3; i < stopatom3; i += 3) {
+        X_[i  ] += Vec0;
+        X_[i+1] += Vec1;
+        X_[i+2] += Vec2;
+      }
+    }
     void Trans_Rot_Trans(const double *, const double *);
     void Rotate(const double *);
     void InverseRotate(const double *);
