@@ -1,6 +1,7 @@
 // Action_Image 
 #include "Action_Image.h"
 #include "CpptrajStdio.h"
+#include "ImageRoutines.h"
 
 // CONSTRUCTOR
 Action_Image::Action_Image() :
@@ -158,18 +159,19 @@ int Action_Image::setup() {
 // Action_Image::action()
 int Action_Image::action() {
   // Ortho
-  double bp[3], bm[3];
+  Vec3 bp, bm;
   // Nonortho
-  double ucell[9], recip[9], fcom[3];
+  double ucell[9], recip[9];
+  Vec3 fcom;
   
   if (ortho_) {
-    currentFrame->SetupImageOrtho(bp, bm, origin_);
-    currentFrame->ImageOrtho(bp, bm, center_, useMass_, imageList_);
+    SetupImageOrtho(*currentFrame, bp, bm, origin_);
+    ImageOrtho(*currentFrame, bp, bm, center_, useMass_, imageList_);
   } else {
     currentFrame->BoxToRecip( ucell, recip );
     if (truncoct_)
-      currentFrame->SetupImageTruncoct( fcom, ComMask_, useMass_, origin_ );
-    currentFrame->ImageNonortho(origin_, fcom, ucell, recip, truncoct_,
+      fcom = SetupImageTruncoct( *currentFrame, ComMask_, useMass_, origin_ );
+    ImageNonortho( *currentFrame, origin_, fcom, ucell, recip, truncoct_,
                                 center_, useMass_, imageList_);
   }
   return 0;

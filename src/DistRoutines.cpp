@@ -1,49 +1,5 @@
 #include <cmath> //floor
-#include <cstddef> // NULL
 #include "DistRoutines.h"
-#include "Constants.h" // DEGRAD
-
-// MinImageNonOrtho2()
-/** Given two sets of coordinates and reciprocal space information based on
-  * the current non-orthorhombic box, return the shortest imaged distance^2
-  * between the coordinates.
-  * The integer coefficients describing the closest reflection in reciprocal
-  * space will be placed in ixyz.
-  */
-double MinImageNonOrtho2(double *Coord1, double *Coord2, double *box, int origin, int *ixyz,
-                         double *ucell, double *recip) {
-  double min, f[3], f2[3];
-
-  min = 100.0 * (box[0]*box[0]+box[1]*box[1]+box[2]*box[2]);
-
-  //if (prnlev > 6) {
-  //  fprintf(stdout, "ATOM      0  XXX A1      1     %7.3f %7.3f %7.3f\n",
-  //          x1, y1, z1);
-  //  fprintf(stdout, "ATOM      1  XXX A2      1     %7.3f %7.3f %7.3f\n",
-  //          x2, y2, z2);
-  //}
-
-  f[0] = Coord1[0]*recip[0] + Coord1[1]*recip[1] + Coord1[2]*recip[2];
-  f[1] = Coord1[0]*recip[3] + Coord1[1]*recip[4] + Coord1[2]*recip[5];
-  f[2] = Coord1[0]*recip[6] + Coord1[1]*recip[7] + Coord1[2]*recip[8];
-
-  f2[0] = Coord2[0]*recip[0] + Coord2[1]*recip[1] + Coord2[2]*recip[2];
-  f2[1] = Coord2[0]*recip[3] + Coord2[1]*recip[4] + Coord2[2]*recip[5];
-  f2[2] = Coord2[0]*recip[6] + Coord2[1]*recip[7] + Coord2[2]*recip[8];
-
-  if (origin) {
-    f[0] += 0.5;
-    f[1] += 0.5;
-    f[2] += 0.5;
-    f2[0] += 0.5;
-    f2[1] += 0.5;
-    f2[2] += 0.5;
-  }
-
-  min = DIST2_ImageNonOrthoRecip(f, f2, min, ixyz, ucell);
-
-  return min;
-}
 
 // Frame::DIST2_ImageNonOrtho()
 /** Given two coordinates and reciprocal space information based on 

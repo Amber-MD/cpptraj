@@ -3,6 +3,7 @@
 #include "Atom.h"
 #include "AtomMask.h"
 #include "Vec3.h"
+#include "Matrix_3x3.h"
 // Class: Frame
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
@@ -92,6 +93,8 @@ class Frame {
     // Center of mass / Geometric Center
     Vec3 VCenterOfMass(AtomMask const&);
     Vec3 VGeometricCenter(AtomMask const&);
+    Vec3 VCenterOfMass(int,int);
+    Vec3 VGeometricCenter(int,int);
     double CenterOfMass(double*, AtomMask const&);
     double GeometricCenter(double*, AtomMask const&);
     double CenterOfMass(double*,int,int);
@@ -108,12 +111,6 @@ class Frame {
     void CenterReference(double *, bool);
     void ShiftToGeometricCenter();
     // Imaging
-    void SetupImageTruncoct(double*, AtomMask*,bool,bool);
-    void ImageNonortho(bool, double*, double*, double*, bool, bool, bool, std::vector<int> const&);
-    void ImageNonortho(double*, double*, bool, bool, double*, double*, double*);
-    void SetupImageOrtho(double*, double*, bool);
-    void ImageOrtho(double*,double*, bool, bool, std::vector<int> const&);
-    void ImageOrtho(double*, double*, double*, double*);
     void UnwrapNonortho( Frame&, AtomMask& );
     void UnwrapOrtho( Frame&, AtomMask& );
     // Coordinate calculation

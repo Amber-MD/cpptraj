@@ -5,7 +5,6 @@
  */
 /// Potential imaging types 
 enum ImagingType { NOIMAGE=0, ORTHO, NONORTHO };
-double MinImageNonOrtho2(double *, double *, double *, int, int *, double *, double *);
 double DIST2_ImageNonOrtho(const double *, const double *, const double *, const double *);
 double DIST2_ImageNonOrthoRecip(const double *, const double *, double minIn, 
                                 int *, const double *);

@@ -1,11 +1,9 @@
 #include <cmath> // sqrt
 #include <cstring> // memcpy, memset
 #include "Frame.h"
-#include "Constants.h"
+#include "Constants.h" // SMALL
 #include "vectormath.h" // CROSS_PRODUCT, normalize
-#include "DistRoutines.h" // TODO: Get rid of dependency
 #include "CpptrajStdio.h"
-#include "Matrix_3x3.h" // For diagonalization in RMS routine.
 
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 const size_t Frame::BOXSIZE_ = 6 * sizeof(double);
@@ -672,7 +670,7 @@ Vec3 Frame::VCenterOfMass( AtomMask const& Mask ) {
   // NOTE: Not using == since it is unreliable for floating point numbers.
   // Should NEVER have a mass smaller than SMALL.
   if (sumMass < SMALL) {
-    ERR_DIVIDE_BY_ZERO("VCenterOfMass");
+    ERR_DIVIDE_BY_ZERO("VCenterOfMass(AtomMask)");
     return vecOut;
   }
   vecOut /= sumMass;
@@ -696,7 +694,59 @@ Vec3 Frame::VGeometricCenter( AtomMask const& Mask ) {
   // Should NEVER have a mass smaller than SMALL.
   double sumMass = (double)Mask.Nselected();
   if (sumMass < SMALL) {
-    ERR_DIVIDE_BY_ZERO("VGeometricCenter");
+    ERR_DIVIDE_BY_ZERO("VGeometricCenter(AtomMask)");
+    return vecOut;
+  }
+  vecOut /= sumMass;
+  return vecOut;
+}
+
+Vec3 Frame::VCenterOfMass(int startAtom, int stopAtom) 
+{  
+  double Coord0 = 0.0;
+  double Coord1 = 0.0;
+  double Coord2 = 0.0;
+  double sumMass = 0.0;
+
+  Darray::iterator mass = Mass_.begin() + startAtom;
+  int startAtom3 = startAtom * 3;
+  int stopAtom3 = stopAtom * 3;
+  for (int i = startAtom3; i < stopAtom3; i += 3) {
+    sumMass += (*mass);
+    Coord0 += ( X_[i  ] * (*mass) );
+    Coord1 += ( X_[i+1] * (*mass) );
+    Coord2 += ( X_[i+2] * (*mass) );
+    ++mass;
+  }
+  Vec3 vecOut(Coord0, Coord1, Coord2);
+   // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL.
+  if (sumMass < SMALL) {
+    ERR_DIVIDE_BY_ZERO("VCenterOfMass(int,int)");
+    return vecOut;
+  }
+  vecOut /= sumMass;
+  return vecOut;
+}
+
+Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) {  
+  double Coord0 = 0.0;
+  double Coord1 = 0.0;
+  double Coord2 = 0.0;
+
+  int startAtom3 = startAtom * 3;
+  int stopAtom3 = stopAtom * 3;
+  for (int i = startAtom3; i < stopAtom3; i += 3) {
+    Coord0 += X_[i  ];
+    Coord1 += X_[i+1];
+    Coord2 += X_[i+2];
+  }
+  Vec3 vecOut(Coord0, Coord1, Coord2);
+  double sumMass = (double)(stopAtom - startAtom);
+  // NOTE: Not using == since it is unreliable for floating point numbers.
+  // Should NEVER have a mass smaller than SMALL.
+  if (sumMass < SMALL) {
+    ERR_DIVIDE_BY_ZERO("VGeometricCenter(int,int)");
     return vecOut;
   }
   vecOut /= sumMass;
@@ -1044,193 +1094,6 @@ void Frame::ShiftToGeometricCenter( ) {
 }
 
 // ---------- IMAGING ----------------------------------------------------------
-// Frame::SetupImageTruncoct()
-/** Set up centering if putting nonortho cell into familiar trunc. oct. shape.
-  */
-void Frame::SetupImageTruncoct( double* fcom, AtomMask* ComMask, bool useMass, bool origin)
-{
-  if (ComMask!=NULL) {
-    // Use center of atoms in mask
-    if (useMass)
-      CenterOfMass(fcom, *ComMask);
-    else
-      GeometricCenter(fcom, *ComMask);
-  } else if (origin) {
-    // Use origin
-    fcom[0] = 0;
-    fcom[1] = 0;
-    fcom[2] = 0;
-  } else {
-    // Use box center
-    fcom[0] = box_[0] / 2;
-    fcom[1] = box_[1] / 2;
-    fcom[2] = box_[2] / 2;
-  }
-  //fprintf(stdout,"DEBUG: fcom = %lf %lf %lf\n",fcom[0],fcom[1],fcom[2]);
-}
-
-// Frame::ImageNonortho()
-void Frame::ImageNonortho(bool origin, double* fcom, double* ucell, double* recip,
-                          bool truncoct, bool center,
-                          bool useMass, std::vector<int> const& AtomPairs)
-{
-  double boxTrans[3], Coord[3];
-
-  // Loop over atom pairs
-  for (std::vector<int>::const_iterator atom = AtomPairs.begin();
-                                        atom != AtomPairs.end(); ++atom)
-  {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    //if (debug>2)
-    //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom);
-    // boxTrans will hold calculated translation needed to move atoms back into box
-    boxTrans[0] = 0;
-    boxTrans[1] = 0;
-    boxTrans[2] = 0;
-    // Set up Coord with position to check for imaging based on first atom or 
-    // center of mass of atoms first to last.
-    if (center) {
-      if (useMass)
-        CenterOfMass(Coord,firstAtom,lastAtom);
-      else
-        GeometricCenter(Coord,firstAtom,lastAtom);
-    } else {
-      int atomidx = firstAtom * 3;
-      Coord[0] = X_[atomidx  ];
-      Coord[1] = X_[atomidx+1];
-      Coord[2] = X_[atomidx+2];
-    }
-
-    ImageNonortho(boxTrans, Coord, truncoct, origin, 
-                  ucell, recip, fcom);
-
-    Translate(boxTrans, firstAtom, lastAtom);
-
-  } // END loop over atom pairs
-}
-
-// Frame::ImageNonortho()
-void Frame::ImageNonortho(double* boxTrans, double* Coord, 
-                          bool truncoct, bool origin,
-                          double* ucell, double* recip, double* fcom)
-{
-  double fc[3], ffc[3];
-  int ixyz[3];
-   
-  fc[0]=(Coord[0]*recip[0]) + (Coord[1]*recip[1]) + (Coord[2]*recip[2]);
-  fc[1]=(Coord[0]*recip[3]) + (Coord[1]*recip[4]) + (Coord[2]*recip[5]);
-  fc[2]=(Coord[0]*recip[6]) + (Coord[1]*recip[7]) + (Coord[2]*recip[8]);
-
-  if ( origin ) {
-    fc[0] += 0.5;
-    fc[1] += 0.5;
-    fc[2] += 0.5;
-  }
-
-  ffc[0] = floor(fc[0]);
-  ffc[1] = floor(fc[1]);
-  ffc[2] = floor(fc[2]);
-
-  boxTrans[0] -= (ffc[0]*ucell[0] + ffc[1]*ucell[3] + ffc[2]*ucell[6]);
-  boxTrans[1] -= (ffc[0]*ucell[1] + ffc[1]*ucell[4] + ffc[2]*ucell[7]);
-  boxTrans[2] -= (ffc[0]*ucell[2] + ffc[1]*ucell[5] + ffc[2]*ucell[8]);
-
-  // Put into familiar trunc. oct. shape
-  if (truncoct) {
-    Coord[0] += boxTrans[0];
-    Coord[1] += boxTrans[1];
-    Coord[2] += boxTrans[2];
-    MinImageNonOrtho2(Coord, fcom, box_, (int)origin, ixyz, ucell, recip);
-    if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
-      boxTrans[0] += (ixyz[0]*ucell[0] + ixyz[1]*ucell[3] + ixyz[2]*ucell[6]);
-      boxTrans[1] += (ixyz[0]*ucell[1] + ixyz[1]*ucell[4] + ixyz[2]*ucell[7]);
-      boxTrans[2] += (ixyz[0]*ucell[2] + ixyz[1]*ucell[5] + ixyz[2]*ucell[8]);
-
-      //if (debug > 2)
-      //  mprintf( "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
-      //          ixyz[0], ixyz[1], ixyz[2]);
-    }
-  }
-}
-
-// Frame::SetupImageOrtho()
-void Frame::SetupImageOrtho(double* bp, double* bm, bool origin) {
-  // Set up boundary information for orthorhombic cell
-  if (origin) {
-    bp[0] = box_[0] / 2;
-    bp[1] = box_[1] / 2;
-    bp[2] = box_[2] / 2;
-    bm[0] = -bp[0];
-    bm[1] = -bp[1];
-    bm[2] = -bp[2];
-  } else {
-    bp[0] = box_[0];
-    bp[1] = box_[1];
-    bp[2] = box_[2];
-    bm[0] = 0;
-    bm[1] = 0;
-    bm[2] = 0;
-  }
-}
-
-// Frame::ImageOrtho()
-void Frame::ImageOrtho(double* bp, double* bm, bool center, bool useMass,
-                       std::vector<int> const& AtomPairs) 
-{
-  double boxTrans[3], Coord[3];
-
-  // Loop over atom pairs
-  for (std::vector<int>::const_iterator atom = AtomPairs.begin();
-                                        atom != AtomPairs.end(); atom++)
-  {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    //if (debug>2)
-    //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom);
-    // boxTrans will hold calculated translation needed to move atoms back into box
-    boxTrans[0] = 0;
-    boxTrans[1] = 0;
-    boxTrans[2] = 0;
-    // Set up Coord with position to check for imaging based on first atom or 
-    // center of mass of atoms first to last.
-    if (center) {
-      if (useMass)
-        CenterOfMass(Coord,firstAtom,lastAtom);
-      else
-        GeometricCenter(Coord,firstAtom,lastAtom);
-    } else {
-      int atomidx = firstAtom * 3;
-      Coord[0] = X_[atomidx  ];
-      Coord[1] = X_[atomidx+1];
-      Coord[2] = X_[atomidx+2];
-    }
-    
-    ImageOrtho(boxTrans, Coord,bp,bm);
-
-    // Translate atoms according to Coord
-    Translate(boxTrans,firstAtom,lastAtom);
-  } // END loop over atom pairs
-}
-
-// Frame::ImageOrtho()
-void Frame::ImageOrtho(double* boxTrans, double* Coord, double* bp, double* bm) 
-{
-    // Determine how far Coord is out of box
-    for (int i=0; i < 3; i++) {
-      while (Coord[i] < bm[i]) {
-        Coord[i] += box_[i];
-        boxTrans[i] += box_[i];
-      }
-      while (Coord[i] > bp[i]) {
-        Coord[i] -= box_[i];
-        boxTrans[i] -= box_[i];
-      }
-    }
-}
-
 // Frame::UnwrapNonortho()
 void Frame::UnwrapNonortho( Frame& ref, AtomMask& mask ) {
   double ucell[9], recip[9];

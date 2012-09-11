@@ -1,6 +1,7 @@
 #include "Action_AutoImage.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "ImageRoutines.h"
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
@@ -179,10 +180,10 @@ int Action_AutoImage::setup() {
 
 // Action_AutoImage::action()
 int Action_AutoImage::action() {
-  double center[3], ucell[9], recip[9], imagedcenter[3], framecenter[3];
-  double fcom[3];
-  double bp[3], bm[3];
-  double Trans[3];
+  double center[3], ucell[9], recip[9];
+  Vec3 fcom;
+  Vec3 bp, bm, BoxVec;
+  Vec3 Trans, framecenter, imagedcenter;
 
   // Center w.r.t. anchor
   currentFrame->Center( anchorMask_, origin_, useMass_);
@@ -200,13 +201,14 @@ int Action_AutoImage::action() {
   // Setup imaging, and image everything in currentFrame 
   // according to mobileList. 
   if (ortho_) {
-    currentFrame->SetupImageOrtho(bp, bm, origin_);
-    currentFrame->ImageOrtho(bp, bm, center_, useMass_, mobileList_);
+    SetupImageOrtho(*currentFrame, bp, bm, origin_);
+    BoxVec.SetVec( currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
+    ImageOrtho(*currentFrame, bp, bm, center_, useMass_, mobileList_);
   } else {
     currentFrame->BoxToRecip(ucell, recip);
     if (truncoct_)
-      currentFrame->SetupImageTruncoct( fcom, NULL, useMass_, origin_ );
-    currentFrame->ImageNonortho(origin_, fcom, ucell, recip, truncoct_,
+      fcom = SetupImageTruncoct( *currentFrame, NULL, useMass_, origin_ );
+    ImageNonortho(*currentFrame, origin_, fcom, ucell, recip, truncoct_,
                                 center_, useMass_, mobileList_);
   }  
 
@@ -219,34 +221,30 @@ int Action_AutoImage::action() {
     int firstAtom = *atom1;
     ++atom1;
     int lastAtom = *atom1;
-    Trans[0] = 0;
-    Trans[1] = 0;
-    Trans[2] = 0;
     if (useMass_) 
-      currentFrame->CenterOfMass(framecenter, firstAtom, lastAtom);
+      framecenter = currentFrame->VCenterOfMass(firstAtom, lastAtom);
     else
-      currentFrame->GeometricCenter(framecenter, firstAtom, lastAtom);
+      framecenter = currentFrame->VGeometricCenter(firstAtom, lastAtom);
     // NOTE: imaging routines will modify input coords.
-    imagedcenter[0] = framecenter[0];
-    imagedcenter[1] = framecenter[1];
-    imagedcenter[2] = framecenter[2];
+    //imagedcenter[0] = framecenter[0];
+    //imagedcenter[1] = framecenter[1];
+    //imagedcenter[2] = framecenter[2];
     if (ortho_)
-      currentFrame->ImageOrtho(Trans, imagedcenter, bp, bm);
+      Trans = ImageOrtho(framecenter, bp, bm, BoxVec);
     else
-      currentFrame->ImageNonortho(Trans, imagedcenter, truncoct_, origin_, ucell, recip, fcom);
+      Trans = ImageNonortho(Trans, framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
     // If molecule was imaged, determine whether imaged position is closer to anchor.
     if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
-      imagedcenter[0] = framecenter[0] + Trans[0];
-      imagedcenter[1] = framecenter[1] + Trans[1];
-      imagedcenter[2] = framecenter[2] + Trans[2];
-      double framedist2 = DIST2_NoImage( center, framecenter );
-      double imageddist2 = DIST2_NoImage( center, imagedcenter );
+      imagedcenter = framecenter;
+      imagedcenter += Trans;
+      double framedist2 = DIST2_NoImage( center, framecenter.Dptr() );
+      double imageddist2 = DIST2_NoImage( center, imagedcenter.Dptr() );
       //mprintf("DBG: [%5i] Fixed @%i-%i frame dist2=%lf, imaged dist2=%lf\n", frameNum,
       //        firstAtom+1, lastAtom+1,
       //        framedist2, imageddist2);
       if (imageddist2 < framedist2) {
         // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
-        currentFrame->Translate(Trans, firstAtom, lastAtom);
+        currentFrame->Translate(Trans.Dptr(), firstAtom, lastAtom);
         //for (int idx = firstAtom*3; idx < lastAtom*3; ++idx)
         //  (*currentFrame)[idx] = fixedFrame[idx];
       }

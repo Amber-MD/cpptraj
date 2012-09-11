@@ -30,7 +30,7 @@ Matrix_3x3::Matrix_3x3(const Matrix_3x3& rhs) {
 }
 
 /// CONSTRUCTOR - Takes array of 9, row-major
-Matrix_3x3::Matrix_3x3(double *Min) {
+Matrix_3x3::Matrix_3x3(const double *Min) {
   M_[0] = Min[0]; 
   M_[1] = Min[1]; 
   M_[2] = Min[2]; 
@@ -373,4 +373,21 @@ void Matrix_3x3::RotationAroundY(double a1, double a2) {
   M_[7] = 0;
   M_[8] = M_[0];   //  cos t
 }
- 
+
+Vec3 Matrix_3x3::operator*(const Vec3& rhs) const {
+  double x = rhs[0]; 
+  double y = rhs[1]; 
+  double z = rhs[2];
+  return Vec3( ((M_[0]*x) + (M_[1]*y) + (M_[2]*z)),
+               ((M_[3]*x) + (M_[4]*y) + (M_[5]*z)),
+               ((M_[6]*x) + (M_[7]*y) + (M_[8]*z))  );
+}
+
+Vec3 Matrix_3x3::TransposeMult(const Vec3& rhs) const {
+  double x = rhs[0];
+  double y = rhs[1];
+  double z = rhs[2];
+  return Vec3( ((M_[0]*x) + (M_[3]*y) + (M_[6]*z)),
+               ((M_[1]*x) + (M_[4]*y) + (M_[7]*z)),
+               ((M_[2]*x) + (M_[5]*y) + (M_[8]*z))  );
+}
