@@ -194,6 +194,7 @@ void ImageOrtho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, boo
   * \param bp Box + boundary
   * \param bm Box - boundary
   * \param BoxVec box lengths.
+  * \return Vector containing image translation
   */
 Vec3 ImageOrtho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Vec3 const& BoxVec)
 {
