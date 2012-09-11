@@ -42,7 +42,7 @@ void ImageNonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
                    bool truncoct, bool center,
                    bool useMass, std::vector<int> const& AtomPairs)
 {
-  Vec3 boxTrans, Coord;
+  Vec3 Coord;
   double min = -1.0;
 
   if (truncoct)
@@ -59,8 +59,6 @@ void ImageNonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
     int lastAtom = *atom;
     //if (debug>2)
     //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom);
-    // boxTrans will hold calculated translation needed to move atoms back into box
-    boxTrans.Zero();
     // Set up Coord with position to check for imaging based on first atom or 
     // center of mass of atoms first to last.
     if (center) {
@@ -71,7 +69,8 @@ void ImageNonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
     } else 
       Coord = frameIn.XYZ( firstAtom );
 
-    boxTrans = ImageNonortho(boxTrans, Coord, truncoct, origin, ucell, recip, fcom, min);
+    // boxTrans will hold calculated translation needed to move atoms back into box
+    Vec3 boxTrans = ImageNonortho(Coord, truncoct, origin, ucell, recip, fcom, min);
 
     frameIn.Translate(boxTrans.Dptr(), firstAtom, lastAtom);
 
@@ -79,7 +78,7 @@ void ImageNonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
 }
 
 // ImageNonortho()
-Vec3 ImageNonortho(Vec3 const& boxTrans, Vec3 const& Coord, bool truncoct, 
+Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct, 
                    bool origin, const Matrix_3x3& ucell, const Matrix_3x3& recip, 
                    Vec3 const& fcom, double min)
 {
@@ -90,11 +89,8 @@ Vec3 ImageNonortho(Vec3 const& boxTrans, Vec3 const& Coord, bool truncoct,
   if ( origin )
     fc += 0.5; 
 
-  Vec3 ffc( floor(fc[0]), floor(fc[1]), floor(fc[2]) );
-
-  Vec3 boxTransOut = boxTrans;
-
-  boxTransOut -= ucell.TransposeMult( ffc );
+  Vec3 boxTransOut = ucell.TransposeMult( Vec3( floor(fc[0]), floor(fc[1]), floor(fc[2])  ) );
+  boxTransOut.Neg();
 
   // Put into familiar trunc. oct. shape
   if (truncoct) {

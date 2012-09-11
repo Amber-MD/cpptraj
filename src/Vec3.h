@@ -65,6 +65,11 @@ class Vec3 {
       V_[1] = 0.0;
       V_[2] = 0.0;
     }
+    void Neg() {
+      V_[0] = -V_[0];
+      V_[1] = -V_[1];
+      V_[2] = -V_[2];
+    }
     void SetVec(double vx, double vy, double vz) {
       V_[0] = vx;
       V_[1] = vy;

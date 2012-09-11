@@ -232,7 +232,7 @@ int Action_AutoImage::action() {
     if (ortho_)
       Trans = ImageOrtho(framecenter, bp, bm, BoxVec);
     else
-      Trans = ImageNonortho(Trans, framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
+      Trans = ImageNonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
     // If molecule was imaged, determine whether imaged position is closer to anchor.
     if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
       imagedcenter = framecenter;
