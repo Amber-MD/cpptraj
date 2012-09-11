@@ -10,7 +10,7 @@ class Matrix_3x3 {
     Matrix_3x3& operator=(const Matrix_3x3&);
  
     // NOTE: No bounds check!
-    double operator[](int idx) { return M_[idx]; }
+    double operator[](int idx) const { return M_[idx]; }
 
     int Diagonalize( double*, double* );
     int Diagonalize_Sort(double *, double *);
@@ -20,8 +20,24 @@ class Matrix_3x3 {
     Matrix_3x3& operator*=(const Matrix_3x3&);
     void RotationAroundZ(double, double);
     void RotationAroundY(double, double);
-    Vec3 operator*(const Vec3&) const;
-    Vec3 TransposeMult(const Vec3&) const;
+    /// Multiply 3x3 matrix times 1x3 vector
+    void MultVec(Vec3& rhs) const {
+      double x = rhs[0]; 
+      double y = rhs[1]; 
+      double z = rhs[2];
+      rhs.SetVec( ((M_[0]*x) + (M_[1]*y) + (M_[2]*z)),
+                  ((M_[3]*x) + (M_[4]*y) + (M_[5]*z)),
+                  ((M_[6]*x) + (M_[7]*y) + (M_[8]*z))  );
+    }
+    /// Multiply transpose of 3x3 matrix times 1x3 vector
+    void TransposeMultVec(Vec3& rhs) const {
+      double x = rhs[0];
+      double y = rhs[1];
+      double z = rhs[2];
+      rhs.SetVec( ((M_[0]*x) + (M_[3]*y) + (M_[6]*z)),
+                  ((M_[1]*x) + (M_[4]*y) + (M_[7]*z)),
+                  ((M_[2]*x) + (M_[5]*y) + (M_[8]*z))  );
+    }
     // TODO: Get rid of this
     const double* Dptr() const { return M_; }
   private:

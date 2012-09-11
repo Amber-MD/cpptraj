@@ -92,33 +92,34 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
 {
   int ixyz[3];
 
-  Vec3 fc = recip * Coord;
+  Vec3 fc = Coord;
+  recip.MultVec( fc );
 
   if ( origin )
     fc += 0.5; 
 
-  Vec3 boxTransOut = ucell.TransposeMult( Vec3( floor(fc[0]), floor(fc[1]), floor(fc[2])  ) );
+  Vec3 boxTransOut(floor(fc[0]), floor(fc[1]), floor(fc[2]));
+  ucell.TransposeMultVec( boxTransOut );
   boxTransOut.Neg();
 
   // Put into familiar trunc. oct. shape
   if (truncoct) {
     Vec3 TransCoord = Coord;
     TransCoord += boxTransOut;
-    // ----------
-    //MinImageNonOrtho2(Coord, fcom, box_, (int)origin, ixyz, ucell, recip);
-    Vec3 f  = recip * TransCoord;
-    Vec3 f2 = recip * fcom;
+    recip.MultVec( TransCoord ); // Matrix2
+    Vec3 f2 = fcom;
+    recip.MultVec( f2 );
 
     if (origin) {
-      f += 0.5;
+      TransCoord += 0.5;
       f2 += 0.5;
     }
 
-    min = DIST2_ImageNonOrthoRecip(f.Dptr(), f2.Dptr(), min, ixyz, ucell.Dptr());
-    // ----------
+    DIST2_ImageNonOrthoRecip(TransCoord.Dptr(), f2.Dptr(), min, ixyz, ucell.Dptr());
     if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
-      boxTransOut += ucell.TransposeMult( ixyz );
-
+      Vec3 vixyz( ixyz );
+      ucell.TransposeMultVec( vixyz );
+      boxTransOut += vixyz;
       //if (debug > 2)
       //  mprintf( "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
       //          ixyz[0], ixyz[1], ixyz[2]);
