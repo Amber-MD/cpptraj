@@ -21,22 +21,22 @@ class Matrix_3x3 {
     void RotationAroundZ(double, double);
     void RotationAroundY(double, double);
     /// Multiply 3x3 matrix times 1x3 vector
-    void MultVec(Vec3& rhs) const {
+    Vec3 operator*(Vec3 const& rhs) const {
       double x = rhs[0]; 
       double y = rhs[1]; 
       double z = rhs[2];
-      rhs.SetVec( ((M_[0]*x) + (M_[1]*y) + (M_[2]*z)),
-                  ((M_[3]*x) + (M_[4]*y) + (M_[5]*z)),
-                  ((M_[6]*x) + (M_[7]*y) + (M_[8]*z))  );
+      return Vec3( ((M_[0]*x) + (M_[1]*y) + (M_[2]*z)),
+                   ((M_[3]*x) + (M_[4]*y) + (M_[5]*z)),
+                   ((M_[6]*x) + (M_[7]*y) + (M_[8]*z))  );
     }
     /// Multiply transpose of 3x3 matrix times 1x3 vector
-    void TransposeMultVec(Vec3& rhs) const {
+    Vec3 TransposeMult(Vec3 const& rhs) const {
       double x = rhs[0];
       double y = rhs[1];
       double z = rhs[2];
-      rhs.SetVec( ((M_[0]*x) + (M_[3]*y) + (M_[6]*z)),
-                  ((M_[1]*x) + (M_[4]*y) + (M_[7]*z)),
-                  ((M_[2]*x) + (M_[5]*y) + (M_[8]*z))  );
+      return Vec3( ((M_[0]*x) + (M_[3]*y) + (M_[6]*z)),
+                   ((M_[1]*x) + (M_[4]*y) + (M_[7]*z)),
+                   ((M_[2]*x) + (M_[5]*y) + (M_[8]*z))  );
     }
     // TODO: Get rid of this
     const double* Dptr() const { return M_; }

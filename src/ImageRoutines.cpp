@@ -92,23 +92,18 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
 {
   int ixyz[3];
 
-  Vec3 fc = Coord;
-  recip.MultVec( fc );
+  Vec3 fc = recip * Coord;
 
   if ( origin )
     fc += 0.5; 
 
-  Vec3 boxTransOut(floor(fc[0]), floor(fc[1]), floor(fc[2]));
-  ucell.TransposeMultVec( boxTransOut );
+  Vec3 boxTransOut = ucell.TransposeMult( Vec3(floor(fc[0]), floor(fc[1]), floor(fc[2])) );
   boxTransOut.Neg();
 
   // Put into familiar trunc. oct. shape
   if (truncoct) {
-    Vec3 TransCoord = Coord;
-    TransCoord += boxTransOut;
-    recip.MultVec( TransCoord ); 
-    Vec3 f2 = fcom;
-    recip.MultVec( f2 );
+    Vec3 TransCoord = recip * (Coord + boxTransOut);
+    Vec3 f2 = recip * fcom;
 
     if (origin) {
       TransCoord += 0.5;
@@ -117,9 +112,7 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
 
     DIST2_ImageNonOrthoRecip(TransCoord.Dptr(), f2.Dptr(), min, ixyz, ucell.Dptr());
     if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
-      Vec3 vixyz( ixyz );
-      ucell.TransposeMultVec( vixyz );
-      boxTransOut += vixyz;
+      boxTransOut += ucell.TransposeMult( ixyz );
       //if (debug > 2)
       //  mprintf( "  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", 
       //          ixyz[0], ixyz[1], ixyz[2]);
@@ -232,18 +225,18 @@ void UnwrapNonortho( Frame& frameIn, Frame& ref, AtomMask const& mask,
     Vec3 vd = vtgt - vref; // dx dy dz
     double minDistanceSquare = vd.Magnitude2();
 
-    recip.MultVec( vd ); // recip * dxyz
+    vd = recip * vd ; // recip * dxyz
 
     double cx = floor(vd[0]);
     double cy = floor(vd[1]);
     double cz = floor(vd[2]);
-
+    
     for (int ix = -1; ix < 2; ++ix) {
       for (int iy = -1; iy < 2; ++iy) {
         for (int iz = -1; iz < 2; ++iz) {
-          Vec3 vcc( cx + (double)ix, cy + (double)iy, cz + (double) iz ); // ccx ccy ccz
-
-          ucell.TransposeMultVec( vcc ); // ucell^T * ccxyz
+          Vec3 vcc = ucell.TransposeMult( Vec3( cx+(double)ix, 
+                                                cy+(double)iy, 
+                                                cz+(double)iz ) ); // ucell^T * ccxyz
 
           Vec3 vnew = vtgt - vcc; 
  
