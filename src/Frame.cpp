@@ -220,14 +220,6 @@ void Frame::Info(const char *msg) {
   mprintf("\n");
 }
 
-// Frame::GetAtomXYZ()
-void Frame::GetAtomXYZ(double *Coord, int atom) {
-  double* Xptr = X_ + (atom * 3);
-  Coord[0] = *(Xptr++);
-  Coord[1] = *(Xptr++);
-  Coord[2] = *(Xptr);
-}
-
 // Frame::AddXYZ()
 /** Append the given XYZ coord to this frame. */
 void Frame::AddXYZ(const double *XYZin) {

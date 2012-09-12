@@ -187,7 +187,8 @@ int Action_Molsurf::action() {
   ATOM *atm_ptr = atom_;
   for (AtomMask::const_iterator maskatom = Mask1_.begin(); maskatom != Mask1_.end(); ++maskatom)
   {
-    currentFrame->GetAtomXYZ(atm_ptr->pos, *maskatom);
+    const double* XYZ = currentFrame->XYZ( *maskatom );
+    memcpy(atm_ptr->pos, XYZ, 3*sizeof(double));
     ++atm_ptr;
   }
 

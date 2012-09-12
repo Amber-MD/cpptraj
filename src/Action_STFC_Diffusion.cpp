@@ -276,7 +276,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
 
 // Action_STFC_Diffusion::action()
 int Action_STFC_Diffusion::action() {
-  double XYZ[3], Time, average, avgx, avgy, avgz;
+  double Time, average, avgx, avgy, avgz;
 
   // ----- Load initial frame if necessary -------
   if ( initialxyz_.empty() ) {
@@ -285,7 +285,7 @@ int Action_STFC_Diffusion::action() {
       for (AtomMask::const_iterator selected_atom = mask_.begin();
                                     selected_atom != mask_.end(); ++selected_atom)
       {
-        currentFrame->GetAtomXYZ(XYZ, *selected_atom);
+        const double* XYZ = currentFrame->XYZ(*selected_atom);
         initialxyz_.push_back( XYZ[0] );
         previousxyz_.push_back( XYZ[0] );
         initialxyz_.push_back( XYZ[1] );
@@ -295,7 +295,7 @@ int Action_STFC_Diffusion::action() {
       }
     } else if ( calcType_ == COM ) { // Center of Mass
       // Save initial COM
-      currentFrame->CenterOfMass( XYZ, mask_ );
+      Vec3 XYZ = currentFrame->VCenterOfMass( mask_ );
       initialxyz_.push_back( XYZ[0] );
       previousxyz_.push_back( XYZ[0] );
       initialxyz_.push_back( XYZ[1] );
@@ -305,7 +305,7 @@ int Action_STFC_Diffusion::action() {
     } else if (calcType_ == DIST ) { // Region Based
       // Save all coords 
       for (int atnum = 0; atnum < currentParm->Natom(); ++atnum) {
-        currentFrame->GetAtomXYZ(XYZ, atnum);
+        const double* XYZ = currentFrame->XYZ(atnum);
         initialxyz_.push_back( XYZ[0] );
         previousxyz_.push_back( XYZ[0] );
         initialxyz_.push_back( XYZ[1] );
@@ -346,9 +346,9 @@ int Action_STFC_Diffusion::action() {
   } 
   else if (calcType_ == COM) 
   {
-    currentFrame->CenterOfMass( XYZ, mask_ );
+    Vec3 XYZ = currentFrame->VCenterOfMass( mask_ );
     //mprintf("CDBG:\tXYZ[%i] = %lf %lf %lf\n", elapsedFrames_,XYZ[0], XYZ[1], XYZ[2]);
-    calculateMSD( XYZ, 0, 0, currentFrame->Box() );
+    calculateMSD( XYZ.Dptr(), 0, 0, currentFrame->Box() );
     average = distance_[0];
     avgx = distancexyz_[0];
     avgy = distancexyz_[1];

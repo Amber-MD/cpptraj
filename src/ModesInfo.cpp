@@ -384,7 +384,6 @@ double* ModesInfo::CalcDipoleCorr(int ibeg, int iend, bool ibose,
 void ModesInfo::ProjectCovar(CpptrajFile& outfile, Frame& currentFrame, 
                              AtomMask& mask, std::vector<double> const& sqrtMasses)
 {
-  double XYZ[3];
   int idx1 = 0;
   for (int i = 0; i < nvect_; ++i) {
     double proj = 0;
@@ -392,7 +391,7 @@ void ModesInfo::ProjectCovar(CpptrajFile& outfile, Frame& currentFrame,
     std::vector<double>::const_iterator sqrtmass = sqrtMasses.begin();
     for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
     {
-      currentFrame.GetAtomXYZ( XYZ, *atom );
+      const double* XYZ = currentFrame.XYZ( *atom );
       double mass = *sqrtmass;
       proj += (XYZ[0] - avg_[idx2  ]) * mass * evec_[idx1  ];
       proj += (XYZ[1] - avg_[idx2+1]) * mass * evec_[idx1+1];
@@ -411,7 +410,6 @@ void ModesInfo::ProjectCovar(CpptrajFile& outfile, Frame& currentFrame,
 void ModesInfo::ProjectIDEA(CpptrajFile& outfile, Frame& currentFrame,
                              AtomMask& mask)
 {
-  double XYZ[3];
   int idx1 = 0;
   for (int i = 0; i < nvect_; ++i) {
     double proj1 = 0;
@@ -419,7 +417,7 @@ void ModesInfo::ProjectIDEA(CpptrajFile& outfile, Frame& currentFrame,
     double proj3 = 0;
     for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
     {
-      currentFrame.GetAtomXYZ(XYZ, *atom);
+      const double* XYZ = currentFrame.XYZ(*atom);
       proj1 += XYZ[0] * evec_[idx1];
       proj2 += XYZ[1] * evec_[idx1];
       proj3 += XYZ[2] * evec_[idx1];

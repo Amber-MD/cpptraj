@@ -44,7 +44,6 @@ class Frame {
     // Access internal data
     void printAtomCoord(int);
     void Info(const char*);
-    void GetAtomXYZ(double*, int);
     void AddXYZ(const double *);
     bool empty()                 { return (natom_ == 0);        }
     bool HasVelocity()           { return (V_ != NULL);         }

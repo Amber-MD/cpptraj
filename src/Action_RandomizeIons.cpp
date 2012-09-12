@@ -137,7 +137,7 @@ int Action_RandomizeIons::setup() {
 
 // Action_RandomizeIons::action()
 int Action_RandomizeIons::action() {
-  double ucell[9], recip[9], trans[3], watXYZ[3], ionXYZ[3];
+  double ucell[9], recip[9], trans[3];
   double* boxAddress = currentFrame->bAddress();
 
   if (ImageType()==NONORTHO)
@@ -236,9 +236,9 @@ int Action_RandomizeIons::action() {
     } else {
       if (debug > 2)
         mprintf("RANDOMIZEIONS: Swapping solvent mol %i for ion @%i\n", swapMol+1, *ion+1);
-      currentFrame->GetAtomXYZ( ionXYZ, *ion );
+      const double* ionXYZ = currentFrame->XYZ( *ion );
       int sbegin = solventStart_[ swapMol ];
-      currentFrame->GetAtomXYZ( watXYZ, sbegin );
+      const double* watXYZ = currentFrame->XYZ( sbegin );
       trans[0] = ionXYZ[0] - watXYZ[0];
       trans[1] = ionXYZ[1] - watXYZ[1];
       trans[2] = ionXYZ[2] - watXYZ[2];

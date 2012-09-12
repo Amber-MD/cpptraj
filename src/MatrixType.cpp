@@ -1,7 +1,6 @@
 #include <cmath> // sqrt
 #include "MatrixType.h"
 #include "CpptrajStdio.h"
-#include "vectormath.h" // vector_sub, dot_product
 #include "DistRoutines.h"
 
 // CONSTRUCTOR
@@ -432,8 +431,6 @@ int MatrixType::action() {
     int midx = 0;
     int vidx1 = mask1tot_*3;  // Index into vector arrays
     int vidx2 = 0;
-    double XYZi[3]; // For retrieving atom coordinates
-    double XYZj[3];
     int lend;
     bool iscovariance;
     if ( type_ == MATRIX_CORREL ) {
@@ -448,7 +445,7 @@ int MatrixType::action() {
     for (AtomMask::const_iterator atom2 = mask2_.begin();
                                   atom2 != mask2_.end(); ++atom2)
     {
-      currentFrame->GetAtomXYZ(XYZi, *atom2);
+      const double* XYZi = currentFrame->XYZ(*atom2);
       if (!mask2expr_.empty()) {
         for (int ixyz = 0; ixyz < 3; ++ixyz) {
           vect_[vidx1] += XYZi[ixyz];
@@ -460,7 +457,7 @@ int MatrixType::action() {
         for (AtomMask::const_iterator atom1 = mask1_.begin();
                                       atom1 != mask1_.end(); ++atom1)
         {
-          currentFrame->GetAtomXYZ(XYZj, *atom1);
+          const double* XYZj = currentFrame->XYZ(*atom1);
           if (kidx==1) {
             for (int ixyz = 0; ixyz < 3; ++ixyz) {
               vect_[vidx2] += XYZj[ixyz];
@@ -510,25 +507,22 @@ int MatrixType::action() {
   // ** See Proteins 2002, 46, 177; eq. 7 **
   } else if (type_ == MATRIX_IDEA) {
     // Get COM
-    double COM[3];
-    currentFrame->CenterOfMass( COM, mask1_ );
+    Vec3 COM = currentFrame->VCenterOfMass( mask1_ );
     // Get ri, rj, and calc ri*rj
     int midx = 0;
     int vidx = 0;
-    double ri[3];
-    double rj[3];
     // Matrix IDEA only uses 1 mask.
     for (AtomMask::const_iterator atomi = mask1_.begin();
                                   atomi != mask1_.end(); ++atomi)
     {
-      currentFrame->GetAtomXYZ(ri, *atomi);
-      vector_sub(ri, ri, COM);
+      Vec3 ri = currentFrame->XYZ(*atomi);
+      ri -= COM;
       for (AtomMask::const_iterator atomj = atomi; 
                                     atomj != mask1_.end(); ++atomj)
       {
-        currentFrame->GetAtomXYZ(rj, *atomj);
-        vector_sub(rj, rj, COM);
-        double val = dot_product(ri, rj);
+        Vec3 rj = currentFrame->XYZ(*atomj);
+        rj -= COM;
+        double val = ri * rj;
         mat_[midx++] += val; 
         if (*atomj == *atomi) {
           vect_[vidx] += val;

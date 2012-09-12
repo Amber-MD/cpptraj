@@ -99,13 +99,12 @@ int Action_Diffusion::setup() {
 }
 
 int Action_Diffusion::action() {
-  double XYZ[3], iXYZ[3];
   // Load initial frame if necessary
   if (initial_.empty()) {
     initial_ = *currentFrame;
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     {
-      currentFrame->GetAtomXYZ(XYZ, *atom);
+      const double* XYZ = currentFrame->XYZ(*atom);
       //initial_.push_back( XYZ[0] );
       previousx_.push_back( XYZ[0] );
       //initial_.push_back( XYZ[1] );
@@ -138,8 +137,8 @@ int Action_Diffusion::action() {
     double avgz = 0;
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     { // Get current and initial coords for this atom.
-      currentFrame->GetAtomXYZ(XYZ, *atom);
-      initial_.GetAtomXYZ(iXYZ, *atom);
+      const double* XYZ = currentFrame->XYZ(*atom);
+      const double* iXYZ = initial_.XYZ(*atom);
       // Calculate distance to previous frames coordinates.
       double delx = XYZ[0] - *px;
       double dely = XYZ[1] - *py;

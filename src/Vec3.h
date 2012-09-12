@@ -62,6 +62,9 @@ class Vec3 {
       tmp += rhs;
       return tmp;
     }
+    double operator*(const Vec3& rhs) const { // Dot product
+      return ( (V_[0]*rhs.V_[0]) + (V_[1]*rhs.V_[1]) + (V_[2]*rhs.V_[2]) );
+    }
     double operator[](int idx) const { return V_[idx]; }
     double Magnitude2() {
       double x = V_[0] * V_[0];

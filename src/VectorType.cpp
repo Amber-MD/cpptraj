@@ -500,44 +500,36 @@ int VectorType::action() {
 
 // VectorType::Action_CORR()
 int VectorType::Action_CORR() {
-  double CXYZ[3], VXYZ[3];
   double Dplus[2], Dminus[2]; // 0=real, 1=imaginary
   double r3i = 0;
   int indtot;
-  //Vec3 CXYZ, VXYZ;
+  Vec3 CXYZ, VXYZ;
 
   // Calc snapshot index
   int indsnap = (2*order_ + 1) * frame_;
   if (mode_==VECTOR_CORRIRED)
     indsnap *= modinfo_->Nvect();
   // Calc COM of masks and vector v
-  //CXYZ = currentFrame->CenterOfMass(mask_);
-  currentFrame->CenterOfMass( CXYZ, mask_ );
+  CXYZ = currentFrame->VCenterOfMass(mask_);
   if (mode_==VECTOR_CORR || mode_==VECTOR_CORRIRED) {
-    //VXYZ = currentFrame->CenterOfMass(&mask2_);
-    currentFrame->CenterOfMass( VXYZ, mask2_ );
-    //VXYZ -= CXYZ;
-    VXYZ[0] -= CXYZ[0];
-    VXYZ[1] -= CXYZ[1];
-    VXYZ[2] -= CXYZ[2];
+    VXYZ = currentFrame->VCenterOfMass(mask2_);
+    VXYZ -= CXYZ;
   } else if (mode_==VECTOR_CORRPLANE) {
     int idx = 0;
     for (AtomMask::const_iterator atom = mask_.begin();
                                   atom != mask_.end(); ++atom) 
     {
-      //VXYZ = currentFrame->GetAtomVec3( *atom );
-      currentFrame->GetAtomXYZ( VXYZ, *atom );
-      //C_[idx] = currentFrame->GetAtomVec3( *atom );
-      //C_[idx] -= CXYZ;
-      cx_[idx] = VXYZ[0] - CXYZ[0];
-      cy_[idx] = VXYZ[1] - CXYZ[1];
-      cz_[idx] = VXYZ[2] - CXYZ[2];
+      VXYZ = currentFrame->XYZ( *atom );
+      VXYZ -= CXYZ;
+      cx_[idx] = VXYZ[0];
+      cy_[idx] = VXYZ[1];
+      cz_[idx] = VXYZ[2];
       ++idx;
     }
-    leastSquaresPlane(idx, cx_, cy_, cz_, VXYZ); 
+    VXYZ = leastSquaresPlane(idx, cx_, cy_, cz_); 
   }
   // Calc vector length
-  double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
+  double len = sqrt( VXYZ.Magnitude2() );
   // Update avgcrd, rave, r3iave, r6iave for VECTOR_CORR, VECTOR_CORRPLANE
   if (mode_== VECTOR_CORR || mode_ == VECTOR_CORRPLANE) {
     avgcrd_[0] += VXYZ[0];
@@ -556,10 +548,10 @@ int VectorType::Action_CORR() {
   Dminus[1] = 0; // DBG
   for (int idx = 0; idx <= order_; ++idx) {
     // Calc Spherical Harmonics
-    sphericalHarmonics(order_, idx, VXYZ, len, Dplus);
+    sphericalHarmonics(order_, idx, VXYZ.Dptr(), len, Dplus);
     int indplus = order_ + idx; 
     if (idx > 0) {
-      sphericalHarmonics(order_, -idx, VXYZ, len, Dminus);
+      sphericalHarmonics(order_, -idx, VXYZ.Dptr(), len, Dminus);
       indminus = order_ - idx;
     }
     // CORRIRED
@@ -613,7 +605,7 @@ int VectorType::Action_CORR() {
 // VectorType::Action_DIPOLE()
 int VectorType::Action_DIPOLE()
 {
-  double CXYZ[3], VXYZ[3], XYZ[3];
+  double CXYZ[3], VXYZ[3];
   CXYZ[0] = 0;
   CXYZ[1] = 0;
   CXYZ[2] = 0;
@@ -624,7 +616,7 @@ int VectorType::Action_DIPOLE()
   for (AtomMask::const_iterator atom = mask_.begin(); 
                                 atom != mask_.end(); ++atom)
   {
-    currentFrame->GetAtomXYZ( XYZ, *atom );
+    const double* XYZ = currentFrame->XYZ( *atom );
     double mass = (*currentParm)[*atom].Mass();
     total_mass += mass;
     CXYZ[0] += (mass * XYZ[0]);
@@ -829,13 +821,13 @@ static double solve_cubic_eq(double a, double b, double c, double d)
   * following: Crystal Structure Analysis for Chem. and Biol.,
   * Glusker, Lewis, Rossi, S. 460ff
   */
-void VectorType::leastSquaresPlane(int n, double* cx, double* cy, double* cz, double* XYZ) 
+Vec3 VectorType::leastSquaresPlane(int n, double* cx, double* cy, double* cz) 
 //void VectorType::leastSquaresPlane(std::vector<Vec3>& Cvec, Vec3& XYZ) 
 {
   int i;
   double dSumXX, dSumYY, dSumZZ, dSumXY, dSumXZ, dSumYZ;
   double o, p, q;
-  double dnorm;
+  double dnorm, Xout, Yout, Zout;
   double x1, y1, z1, x2, y2, z2;
 
   if (n == 3) {
@@ -852,9 +844,9 @@ void VectorType::leastSquaresPlane(int n, double* cx, double* cy, double* cz, do
     y2 = cy[2] - cy[1];
     z2 = cz[2] - cz[1];
 
-    XYZ[0] = y1 * z2 - z1 * y2;
-    XYZ[1] = z1 * x2 - x1 * z2;
-    XYZ[2] = x1 * y2 - y1 * x2;
+    Xout = y1 * z2 - z1 * y2;
+    Yout = z1 * x2 - x1 * z2;
+    Zout = x1 * y2 - y1 * x2;
   }
   else{
     /* Calc Var. */
@@ -886,16 +878,17 @@ void VectorType::leastSquaresPlane(int n, double* cx, double* cy, double* cz, do
     double root = solve_cubic_eq(-1.0, o, p, q);
 
     /* Calc determinantes */
-    XYZ[0] = (dSumYY - root) * dSumXZ - dSumXY * dSumYZ;
-    XYZ[1] = (dSumXX - root) * dSumYZ - dSumXY * dSumXZ;
-    XYZ[2] =  dSumXY         * dSumXY - (dSumYY - root) * (dSumXX - root);
+    Xout = (dSumYY - root) * dSumXZ - dSumXY * dSumYZ;
+    Yout = (dSumXX - root) * dSumYZ - dSumXY * dSumXZ;
+    Zout =  dSumXY         * dSumXY - (dSumYY - root) * (dSumXX - root);
 
   }
   /* Normalize */
-  dnorm = 1.0 / sqrt((XYZ[0]) * (XYZ[0]) + (XYZ[1]) * (XYZ[1]) + (XYZ[2]) * (XYZ[2]));
-  XYZ[0] *= dnorm;
-  XYZ[1] *= dnorm;
-  XYZ[2] *= dnorm;
+  dnorm = 1.0 / sqrt((Xout * Xout) + (Yout) * (Yout) + (Zout) * (Zout));
+  Xout *= dnorm;
+  Yout *= dnorm;
+  Zout *= dnorm;
+  return Vec3(Xout, Yout, Zout);
 }
 
 /** Calc spherical harmonics of order l=0,1,2
@@ -903,7 +896,7 @@ void VectorType::leastSquaresPlane(int n, double* cx, double* cy, double* cz, do
   * (see e.g. Merzbacher, Quantum Mechanics, p. 186)
   * D[0] is the real part, D[1] is the imaginary part.
   */
-void VectorType::sphericalHarmonics(int l, int m, double* XYZ, double r, double D[2])
+void VectorType::sphericalHarmonics(int l, int m, const double* XYZ, double r, double D[2])
 {
   const double SH00=0.28209479;
   const double SH10=0.48860251;

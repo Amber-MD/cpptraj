@@ -80,7 +80,7 @@ int Action_Grid::setup() {
 
 // Action_Grid::action()
 int Action_Grid::action() {
-  double XYZ[3], boxcrd[3];
+  double boxcrd[3];
   if (grid_.GridBox()) {
     currentFrame->BoxXYZ( boxcrd );
     boxcrd[0] /= 2.0;
@@ -89,7 +89,7 @@ int Action_Grid::action() {
     for (AtomMask::const_iterator atom = mask_.begin();
                                   atom != mask_.end(); ++atom)
     {
-      currentFrame->GetAtomXYZ( XYZ, *atom );
+      const double* XYZ = currentFrame->XYZ( *atom );
       double xx = XYZ[0] - boxcrd[0];
       double yy = XYZ[1] - boxcrd[1];
       double zz = XYZ[2] - boxcrd[2];
@@ -100,7 +100,7 @@ int Action_Grid::action() {
     for (AtomMask::const_iterator atom = mask_.begin();
                                   atom != mask_.end(); ++atom)
     {
-      currentFrame->GetAtomXYZ( XYZ, *atom );
+      const double* XYZ = currentFrame->XYZ( *atom );
       //mprintf("ATOM %6i ", *atom + 1);
       grid_.GridPoint( XYZ[0], XYZ[1], XYZ[2] );
     }

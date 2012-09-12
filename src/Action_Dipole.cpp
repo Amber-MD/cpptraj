@@ -86,7 +86,7 @@ int Action_Dipole::setup() {
 
 // Action_Dipole::action()
 int Action_Dipole::action() {
-  double boxcrd[3], XYZ[3], sol[3];
+  double boxcrd[3], sol[3];
   double dipolar_vector[3], COM[3];
 
   // Set up center to origin or box center
@@ -120,7 +120,7 @@ int Action_Dipole::action() {
     {
       if ( mask_.AtomInCharMask(satom) ) {
         // Get coordinates and shift to origin and then to appropriate spacing
-        currentFrame->GetAtomXYZ( XYZ, satom );
+        const double* XYZ = currentFrame->XYZ( satom );
         sol[0] = XYZ[0] + grid_.SX() - boxcrd[0];
         sol[1] = XYZ[1] + grid_.SY() - boxcrd[1];
         sol[2] = XYZ[2] + grid_.SZ() - boxcrd[2];
