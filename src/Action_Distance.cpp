@@ -100,7 +100,9 @@ int Action_Distance::action() {
       Dist = DIST2_ImageNonOrtho(a1.Dptr(), a2.Dptr(), ucell, recip);
       break;
     case ORTHO:
-      Dist = DIST2_ImageOrtho(a1.Dptr(), a2.Dptr(), currentFrame->bAddress());
+      Dist = DIST2_ImageOrtho(a1.Dptr(), a2.Dptr(), Vec3( currentFrame->BoxX(),
+                                                          currentFrame->BoxY(),
+                                                          currentFrame->BoxZ() ));
       break;
     case NOIMAGE:
       Dist = DIST2_NoImage(a1.Dptr(), a2.Dptr());

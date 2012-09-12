@@ -54,11 +54,9 @@ class Frame {
     const double* CRD(int idx)   { return X_ + idx;             } // TODO: Replace?
     double& operator[](int idx)  { return X_[idx];              } // TODO: Make const?
     // Box routines
-    void BoxXYZ(double* XYZ) { XYZ[0]=box_[0]; XYZ[1]=box_[1]; XYZ[2]=box_[2]; }
     double BoxX() { return box_[0]; }
     double BoxY() { return box_[1]; }
     double BoxZ() { return box_[2]; }
-    const double* Box() { return box_; }
     // Routines for accessing internal data pointers
     inline double* xAddress() { return X_;   }
     inline double* vAddress() { return V_;   }

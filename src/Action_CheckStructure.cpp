@@ -173,7 +173,7 @@ int Action_CheckStructure::setup() {
 // Action_CheckStructure::action()
 int Action_CheckStructure::action() {
   double ucell[9], recip[9], D2, D, bondmax;
-  double* boxAddress = currentFrame->bAddress(); 
+  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() ); 
   std::vector<bond_list>::iterator currentBond = bondL_.begin();
 
   if (ImageType()==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
@@ -185,7 +185,7 @@ int Action_CheckStructure::action() {
       int atom2 = Mask1_[maskidx2];
       // Get distance^2
       D2 = DIST2(currentFrame->XYZ(atom1), currentFrame->XYZ(atom2),
-                 ImageType(), boxAddress, ucell, recip);
+                 ImageType(), boxXYZ, ucell, recip);
       // Are these atoms bonded?
       if ( (atom1==(*currentBond).atom1) && (atom2==(*currentBond).atom2) ) {
         // req has been precalced to (req + bondoffset)^2

@@ -86,19 +86,18 @@ int Action_Dipole::setup() {
 
 // Action_Dipole::action()
 int Action_Dipole::action() {
-  double boxcrd[3], sol[3];
+  double sol[3], cX, cY, cZ;
   double dipolar_vector[3], COM[3];
 
   // Set up center to origin or box center
   if (grid_.GridBox()) {
-    currentFrame->BoxXYZ( boxcrd );
-    boxcrd[0] /= 2.0;
-    boxcrd[1] /= 2.0;
-    boxcrd[2] /= 2.0;
+    cX = currentFrame->BoxX() / 2;
+    cY = currentFrame->BoxY() / 2;
+    cZ = currentFrame->BoxZ() / 2;
   } else {
-    boxcrd[0] = 0.0;
-    boxcrd[1] = 0.0;
-    boxcrd[2] = 0.0;
+    cX = 0.0;
+    cY = 0.0;
+    cZ = 0.0;
   }
 
   // Traverse over solvent molecules.
@@ -121,9 +120,9 @@ int Action_Dipole::action() {
       if ( mask_.AtomInCharMask(satom) ) {
         // Get coordinates and shift to origin and then to appropriate spacing
         const double* XYZ = currentFrame->XYZ( satom );
-        sol[0] = XYZ[0] + grid_.SX() - boxcrd[0];
-        sol[1] = XYZ[1] + grid_.SY() - boxcrd[1];
-        sol[2] = XYZ[2] + grid_.SZ() - boxcrd[2];
+        sol[0] = XYZ[0] + grid_.SX() - cX;
+        sol[1] = XYZ[1] + grid_.SY() - cY;
+        sol[2] = XYZ[2] + grid_.SZ() - cZ;
         // Calculate dipole vector. The center of mass of the solvent is used 
         // as the "origin" for the vector.
         // NOTE: the total charge on the solvent should be neutral for this 

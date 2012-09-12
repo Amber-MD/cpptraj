@@ -244,7 +244,7 @@ int Action_Closest::action() {
     maxD = DBL_MAX;
   }
 
-  double* boxAddress = currentFrame->bAddress();
+  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
   // Loop over all solvent molecules in original frame
   // DEBUG
   //mprintf("Closest: Begin parallel loop for %i\n",frameNum);
@@ -269,7 +269,7 @@ int Action_Closest::action() {
     {
       Dist = DIST2(currentFrame->XYZ(*solute_atom),
                    currentFrame->XYZ(*solvent_atom), ImageType(), 
-                   boxAddress, ucell, recip);
+                   boxXYZ, ucell, recip);
       if (Dist < SolventMols_[solventMol].D) 
         SolventMols_[solventMol].D = Dist;
       //fprintf(stdout,"D atom %i %i = %lf image %i\n",*solute_atom,*solvent_atom,minD,imageType);
@@ -280,7 +280,7 @@ int Action_Closest::action() {
         {
           Dist = DIST2(currentFrame->XYZ(*solute_atom),
                        currentFrame->XYZ(*solvent_atom), ImageType(), 
-                       boxAddress, ucell, recip);
+                       boxXYZ, ucell, recip);
           if (Dist < SolventMols_[solventMol].D) 
             SolventMols_[solventMol].D = Dist;
         }

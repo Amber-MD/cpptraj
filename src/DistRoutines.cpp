@@ -285,7 +285,7 @@ double DIST2_ImageNonOrthoRecip(const double* f, const double* f2, double minIn,
 /** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
   * and a2.
   */
-double DIST2_ImageOrtho(const double* a1, const double* a2, const double* box) {
+double DIST2_ImageOrtho(const double* a1, const double* a2, Vec3 const& box) {
   double x,y,z,D;
 
   x = a1[0] - a2[0];
@@ -344,7 +344,7 @@ double DIST2_NoImage(const double* a1, const double* a2) {
 }
 
 double DIST2(const double* a1, const double* a2, ImagingType itype,
-             const double* box, const double* ucell, const double* recip)
+             Vec3 const& box, const double* ucell, const double* recip)
 {
   if (itype==NOIMAGE) 
     return DIST2_NoImage( a1, a2 );

@@ -29,7 +29,6 @@ class Action_Diffusion : public Action {
     CpptrajFile outputz_;
     CpptrajFile outputr_;
     CpptrajFile outputa_;
-    double boxcrd_[3];    ///< Hold box coordinates each frame
     double boxcenter_[3]; ///< Hold center of box each frame
 };
 #endif

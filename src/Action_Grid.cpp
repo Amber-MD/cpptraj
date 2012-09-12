@@ -80,21 +80,17 @@ int Action_Grid::setup() {
 
 // Action_Grid::action()
 int Action_Grid::action() {
-  double boxcrd[3];
   if (grid_.GridBox()) {
-    currentFrame->BoxXYZ( boxcrd );
-    boxcrd[0] /= 2.0;
-    boxcrd[1] /= 2.0;
-    boxcrd[2] /= 2.0;
+    Vec3 boxCenter( currentFrame->BoxX() / 2.0,
+                    currentFrame->BoxY() / 2.0,
+                    currentFrame->BoxZ() / 2.0 );
     for (AtomMask::const_iterator atom = mask_.begin();
                                   atom != mask_.end(); ++atom)
     {
-      const double* XYZ = currentFrame->XYZ( *atom );
-      double xx = XYZ[0] - boxcrd[0];
-      double yy = XYZ[1] - boxcrd[1];
-      double zz = XYZ[2] - boxcrd[2];
+      Vec3 XYZ = currentFrame->XYZ( *atom );
+      XYZ -= boxCenter;
       //mprintf("BATM %6i ", *atom + 1);
-      grid_.GridPoint( xx, yy, zz );
+      grid_.GridPoint( XYZ[0], XYZ[1], XYZ[2] );
     }
   } else {
     for (AtomMask::const_iterator atom = mask_.begin();

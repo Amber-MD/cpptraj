@@ -8,9 +8,6 @@ Action_Diffusion::Action_Diffusion() :
   time_(1),
   hasBox_(false)
 {
-  boxcrd_[0] = 0;
-  boxcrd_[1] = 0;
-  boxcrd_[2] = 0;
   boxcenter_[0] = 0;
   boxcenter_[1] = 0;
   boxcenter_[2] = 0;
@@ -65,9 +62,17 @@ int Action_Diffusion::setup() {
   }
 
   // Check for box
-  if ( currentParm->BoxType()!=Box::NOBOX )
-    hasBox_ = true;
-  else
+  if ( currentParm->BoxType() != Box::NOBOX ) {
+    // Currently only works for orthogonal boxes
+    if ( currentParm->BoxType() != Box::ORTHO ) {
+      mprintf("Warning: diffusion command currently only works with orthogonal boxes.\n");
+      mprintf("Warning: imaging will be disabled for this command. This may result in\n");
+      mprintf("Warning: large jumps if target molecule is imaged. To counter this please\n");
+      mprintf("Warning: use the 'unwrap' command prior to 'diffusion'.\n");
+      hasBox_ = false;
+    } else 
+      hasBox_ = true;
+  } else
     hasBox_ = false;
 
   // Allocate the distance arrays
@@ -114,10 +119,9 @@ int Action_Diffusion::action() {
     }
   } else {
     if (hasBox_) {
-      currentFrame->BoxXYZ(boxcrd_);
-      boxcenter_[0] = boxcrd_[0] / 2;
-      boxcenter_[1] = boxcrd_[1] / 2;
-      boxcenter_[2] = boxcrd_[2] / 2;
+      boxcenter_[0] = currentFrame->BoxX() / 2;
+      boxcenter_[1] = currentFrame->BoxY() / 2;
+      boxcenter_[2] = currentFrame->BoxZ() / 2;
     }
     // Set iterators
     std::vector<double>::iterator px = previousx_.begin();
@@ -147,12 +151,12 @@ int Action_Diffusion::action() {
       // it was imaged and adjust the distance of the total
       // movement with respect to the original frame.
       if (hasBox_) {
-        if      (delx >  boxcenter_[0]) *dx -= boxcrd_[0];
-        else if (delx < -boxcenter_[0]) *dx += boxcrd_[0];
-        else if (dely >  boxcenter_[1]) *dy -= boxcrd_[1];
-        else if (dely < -boxcenter_[1]) *dy += boxcrd_[1];
-        else if (delz >  boxcenter_[2]) *dz -= boxcrd_[2];
-        else if (delz < -boxcenter_[2]) *dz += boxcrd_[2];
+        if      (delx >  boxcenter_[0]) *dx -= currentFrame->BoxX();
+        else if (delx < -boxcenter_[0]) *dx += currentFrame->BoxX();
+        else if (dely >  boxcenter_[1]) *dy -= currentFrame->BoxY();
+        else if (dely < -boxcenter_[1]) *dy += currentFrame->BoxY();
+        else if (delz >  boxcenter_[2]) *dz -= currentFrame->BoxZ();
+        else if (delz < -boxcenter_[2]) *dz += currentFrame->BoxZ();
       }
       // DEBUG
       if (debug > 2)

@@ -749,11 +749,9 @@ int VectorType::Action_IRED(  ) {
 
 // VectorType::Action_BOX()
 int VectorType::Action_BOX(  ) {
-  double XYZ[3];
-  currentFrame->BoxXYZ( XYZ );
-  vx_[frame_] = XYZ[0];
-  vy_[frame_] = XYZ[1];
-  vz_[frame_] = XYZ[2];
+  vx_[frame_] = currentFrame->BoxX();
+  vy_[frame_] = currentFrame->BoxY();
+  vz_[frame_] = currentFrame->BoxZ();
   cx_[frame_] = 0;
   cy_[frame_] = 0;
   cz_[frame_] = 0;

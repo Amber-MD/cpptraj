@@ -96,8 +96,8 @@ int Action_Watershell::setup() {
 // Action_Watershell::action()
 int Action_Watershell::action() {
   double ucell[9], recip[9];
-  double* boxAddress = currentFrame->bAddress();
-
+  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
+ 
   if (ImageType()==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
 
   // Loop over solute atoms
@@ -113,7 +113,7 @@ int Action_Watershell::action() {
       // If residue is not yet marked as 1st shell, calc distance
       if ( activeResidues_[currentRes] < 2 ) {
         double dist = DIST2(currentFrame->XYZ(*solute_at), currentFrame->XYZ(*solvent_at), 
-                            ImageType(), boxAddress, ucell, recip );
+                            ImageType(), boxXYZ, ucell, recip );
         // Less than upper, 2nd shell
         if (dist < upperCutoff_) {
           activeResidues_[currentRes] = 1;

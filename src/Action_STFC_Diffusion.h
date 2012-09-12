@@ -13,7 +13,7 @@ class Action_STFC_Diffusion : public Action {
     int action();
     void print();
 
-    void calculateMSD(const double*,int,int,const double*);
+    void calculateMSD(const double*,int,int,Vec3 const&);
 
     bool printDistances_; // iarg1
     enum CalcType { DEFAULT = 0, COM, DIST };

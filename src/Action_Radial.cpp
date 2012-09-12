@@ -187,7 +187,7 @@ int Action_Radial::action() {
   int atom1, atom2;
   int nmask1, nmask2;
   int idx, mydistances;
-  double* boxAddress = currentFrame->bAddress();
+  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
 # ifdef _OPENMP
   int mythread;
 # endif
@@ -213,7 +213,7 @@ int Action_Radial::action() {
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = Mask2_[nmask2];
       D = DIST2(coord_center, currentFrame->XYZ(atom2), ImageType(),
-                boxAddress, ucell, recip);
+                boxXYZ, ucell, recip);
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
@@ -248,7 +248,7 @@ int Action_Radial::action() {
         atom2 = InnerMask_[nmask2];
         if (atom1 != atom2) {
           D = DIST2( currentFrame->XYZ(atom1), currentFrame->XYZ(atom2),
-                     ImageType(), boxAddress, ucell, recip);
+                     ImageType(), boxXYZ, ucell, recip);
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);

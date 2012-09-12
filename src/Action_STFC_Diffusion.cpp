@@ -197,7 +197,7 @@ int Action_STFC_Diffusion::setup() {
   * \param idx2 Current atom index.
   * \param box Current box coordinates.
   */
-void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, const double* box)
+void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, Vec3 const& box)
 {
   double sum = 0;
   double sum2 = 0;
@@ -326,13 +326,14 @@ int Action_STFC_Diffusion::action() {
   avgy = 0;
   avgz = 0;
 
+  Vec3 Box( currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
   if ( calcType_ == DEFAULT ) 
   {
     int idx2 = 0;
     int idx23 = 0;
     for ( AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     {
-      calculateMSD( currentFrame->XYZ(*atom), *atom, idx2, currentFrame->Box() );
+      calculateMSD( currentFrame->XYZ(*atom), *atom, idx2, Box );
       average += distance_[idx2];
       avgx += distancexyz_[idx23++];
       avgy += distancexyz_[idx23++];
@@ -348,7 +349,7 @@ int Action_STFC_Diffusion::action() {
   {
     Vec3 XYZ = currentFrame->VCenterOfMass( mask_ );
     //mprintf("CDBG:\tXYZ[%i] = %lf %lf %lf\n", elapsedFrames_,XYZ[0], XYZ[1], XYZ[2]);
-    calculateMSD( XYZ.Dptr(), 0, 0, currentFrame->Box() );
+    calculateMSD( XYZ.Dptr(), 0, 0, Box );
     average = distance_[0];
     avgx = distancexyz_[0];
     avgy = distancexyz_[1];
@@ -373,7 +374,7 @@ int Action_STFC_Diffusion::action() {
       }
       if (minDist > lowerCutoff_ && minDist < upperCutoff_) {
         nInside_[ *atom1 ] = 1;
-        calculateMSD( currentFrame->XYZ(*atom1), *atom1, *atom1, currentFrame->Box() );
+        calculateMSD( currentFrame->XYZ(*atom1), *atom1, *atom1, Box );
       }
     }
     // Calc average

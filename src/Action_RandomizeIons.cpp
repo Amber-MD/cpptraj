@@ -138,7 +138,7 @@ int Action_RandomizeIons::setup() {
 // Action_RandomizeIons::action()
 int Action_RandomizeIons::action() {
   double ucell[9], recip[9], trans[3];
-  double* boxAddress = currentFrame->bAddress();
+  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
 
   if (ImageType()==NONORTHO)
     currentFrame->BoxToRecip(ucell, recip);
@@ -154,7 +154,7 @@ int Action_RandomizeIons::action() {
       for (AtomMask::const_iterator atom = around_.begin(); atom != around_.end(); ++atom)
       {
         double dist = DIST2( currentFrame->XYZ(*beginatom), currentFrame->XYZ(*atom), 
-                             ImageType(), boxAddress, ucell, recip);
+                             ImageType(), boxXYZ, ucell, recip);
         //mprintf("CDBG: @%i to @%i = %lf\n", *beginatom+1,
         //        *atom+1, sqrt(dist));
         if (dist < min_) {
@@ -201,7 +201,7 @@ int Action_RandomizeIons::action() {
         {
           if (*ion != *ion2) {
             double dist = DIST2( currentFrame->XYZ(*beginatom), currentFrame->XYZ(*ion2), 
-                                 ImageType(), boxAddress, ucell, recip);
+                                 ImageType(), boxXYZ, ucell, recip);
             if (dist < overlap_) {
               *smask = false;
               //mprintf("RANDOMIZEIONS: water %i only %.2f ang from ion @%i\n",
