@@ -7,7 +7,6 @@ FileBuffer::FileBuffer() :
   IO_(0),
   endlinebuffer_(linebuffer_ + LINE_BUF_SIZE),
   total_read_(0),
-  readbuffer_(0),
   lineptr_(linebuffer_),
   ptr_(0),
   endbuffer_(0) 
@@ -18,21 +17,11 @@ FileBuffer::FileBuffer(FileIO* IOin, int sizeIn) :
   IO_(IOin),
   endlinebuffer_(linebuffer_ + LINE_BUF_SIZE),
   total_read_(0),
-  readbuffer_(0),
   lineptr_(linebuffer_),
-  ptr_(0),
-  endbuffer_(0),
+  ptr_(readbuffer_),
+  endbuffer_(ptr_), // This guarantees on first read buffer will be filled
   progress_(sizeIn)
-{
-  readbuffer_ = new char[ DEFAULT_CHUNKSIZE ];
-  ptr_ = readbuffer_;
-  endbuffer_ = ptr_; // This guarantees on first read buffer will be filled
-}
-
-// DESTRUCTOR
-FileBuffer::~FileBuffer() {
-  if (readbuffer_!=0) delete[] readbuffer_;
-}
+{}
 
 /** Get the next newline-terminated line from the buffer. */
 const char* FileBuffer::NextLine() {
