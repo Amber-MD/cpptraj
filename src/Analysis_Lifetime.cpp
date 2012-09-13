@@ -6,7 +6,8 @@ Analysis_Lifetime::Analysis_Lifetime() :
   windowSize_(0),
   cut_(0.5),
   averageonly_(false),
-  cumulative_(false)
+  cumulative_(false),
+  deltaAvg_(false)
 {}
 
 /** Usage: lifetime [out <filename>] <dsetarg0> [ <dsetarg1> ... ]
@@ -20,6 +21,7 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
   windowSize_ = analyzeArgs_.getKeyInt("window", -1);
   averageonly_ = analyzeArgs_.hasKey("averageonly");
   cumulative_ = analyzeArgs_.hasKey("cumulative");
+  deltaAvg_ = analyzeArgs_.hasKey("delta");
   cut_ = analyzeArgs_.getKeyDouble("cut", 0.5);
   // Select datasets
   while (analyzeArgs_.ArgsRemain())
@@ -71,6 +73,8 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
     mprintf("\tWindow size for averaging: %i\n", windowSize_);
     if (cumulative_)
       mprintf("\tCumulative averages will be saved.\n");
+    if (deltaAvg_)
+      mprintf("\tChange of average from previous average will be saved.\n");
     if (!outfilename_.empty()) {
       mprintf("\tOutfile: %s", outfilename_.c_str());
       if (!averageonly_)
@@ -94,7 +98,8 @@ int Analysis_Lifetime::Analyze() {
     mprintf("\t\tCalculating lifetimes for set %s\n", (*inSet)->Legend().c_str());
     // Loop over all values in set.
     int setSize = (*inSet)->Size();
-    double sum = 0;
+    double sum = 0.0;
+    double previous_windowavg = 0.0;
     int windowcount = 0; // Used to trigger averaging
     int Ncount = 0;      // Used in averaging; if !cumulative, == windowcount
     int frame = 0;       // Frame to add data at.
@@ -134,7 +139,8 @@ int Analysis_Lifetime::Analyze() {
       ++windowcount;
       if (windowcount == windowSize_) {
         double windowavg = sum / (double)Ncount;
-        float fval = (float)windowavg;
+        float fval = (float)(windowavg - previous_windowavg);
+        if (deltaAvg_) previous_windowavg = windowavg;
         (*outSet)->Add( frame, &fval );
         if (!averageonly_) {
           // Store lifetime information for this window

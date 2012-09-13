@@ -18,6 +18,7 @@ class Analysis_Lifetime : public Analysis {
     double cut_;
     bool averageonly_;
     bool cumulative_;
+    bool deltaAvg_;
 
     void PrintListToFile(DataFileList *, std::vector<DataSet*>&, std::string const&);
 };
