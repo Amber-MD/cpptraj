@@ -15,13 +15,15 @@
 
 // Usage()
 /// Print command line usage.
-static void Usage(char *programName) {
-  mprinterr("Usage: %s [-p <Top1>, -p <Top2>, ...] [-i <Input>] [-debug <N>]\n",programName);
-  mprinterr("       %s <Top1> <Input>\n",programName);
-  mprinterr("       Additional options:\n");
-  mprinterr("         --help, -help: print usage information and exit.\n");
-  mprinterr("         -V, --version: print version information and exit.\n");
-  mprinterr("             --defines: print list of defines used in compilation.\n");
+static void Usage(const char *programName) {
+  mprinterr("\nUsage: %s [-p <Top1>, -p <Top2>, ...] [-i <Input1>, -i <Input2>, ...]\n",
+            programName);
+  mprinterr(  "       %s <Top> <Input>\n",programName);
+  mprinterr(  "       Additional options:\n");
+  mprinterr(  "         --help, -help : Print usage information and exit.\n");
+  mprinterr(  "         -V, --version : Print version information and exit.\n");
+  mprinterr(  "         --defines     : Print list of defines used in compilation.\n");
+  mprinterr(  "         -debug <N>    : Set global debug level.\n");
 }
 
 // ProcessInputStream()
@@ -31,8 +33,9 @@ static void Usage(char *programName) {
   * Cpptraj::Dispatch routine.
   * Leading and consectuive whitespace is skipped. \n or NULL executes command.
   * 'go' or EOF ends input read. lines ending with \ continue to the next line.
+  * \return 0 on success, 1 on error, 2 on exit.
   */
-static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
+static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
   FILE *infile;
   std::string inputLine;
 
@@ -80,7 +83,7 @@ static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
       // If "quit" then abort 
       if (inputLine.compare("quit")==0) {
         if (!isStdin) fclose(infile);
-        return 1;
+        return 2;
       }
       // Print the input line that will be sent to dispatch
       mprintf("  [%s]\n",inputLine.c_str());
@@ -137,7 +140,6 @@ static int ProcessInputStream(char *inputFilename, Cpptraj &State) {
  *         we should just quit.
  */
 static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
-  char *inputFilename = NULL;
   int debug=0; 
 
   for (int i=1; i<argc; i++) {
@@ -159,8 +161,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
     // -i: Input file
     } else if (strcmp(argv[i],"-i")==0 && i+1!=argc) {
       i++;
-      //ProcessInputFile(argv[i]);
-      inputFilename=argv[i];
+      if (ProcessInputStream(argv[i], State)) return 2;
 
     // -debug: Set overall debug level
     } else if (strcmp(argv[i],"-debug")==0 && i+1!=argc) {
@@ -170,7 +171,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
 
     // Print information on compiler defines used and exit
     } else if (strcmp(argv[i],"--defines")==0) {
-      mprintf("Compiled with:");
+      mprintf("\nCompiled with:");
 #ifdef DEBUG
       mprintf(" -DDEBUG");
 #endif
@@ -192,6 +193,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
 #ifdef NO_MATHLIB
       mprintf(" -DNO_MATHLIB");
 #endif
+      mprintf("\n");
       return 2;
 
     // The following 2 are for backwards compatibility with PTRAJ
@@ -200,7 +202,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
       State.AddParm(argv[i]);
     // Position 2: INPUT file
     } else if (i==2) {
-      inputFilename=argv[i];
+      if (ProcessInputStream(argv[i], State)) return 2;
 
     // Unrecognized
     } else {
@@ -208,8 +210,6 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
       return 1;
     }
   }
-
-  if ( ProcessInputStream(inputFilename,State) ) return 2;
 
   return 0;
 }
@@ -230,12 +230,14 @@ int main(int argc, char **argv) {
   mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
   mprintf("    ___  ___  ___  ___\n");
   mprintf("     | \\/ | \\/ | \\/ | \n");
-  mprintf("    _|_/\\_|_/\\_|_/\\_|_\n\n");
+  mprintf("    _|_/\\_|_/\\_|_/\\_|_\n");
 #ifdef MPI
-  mprintf("Running on %i processors\n\n",worldsize);
+  mprintf("Running on %i processors\n",worldsize);
 #endif
-
-  err = ProcessCmdLineArgs(argc,argv,State);
+  if (argc == 1) // No command line args, interactive
+    err = ProcessInputStream(NULL, State);
+  else
+    err = ProcessCmdLineArgs(argc,argv,State);
   switch ( err ) {
     case 0 : State.Run(); break;
     case 1 : Usage(argv[0]); break;
