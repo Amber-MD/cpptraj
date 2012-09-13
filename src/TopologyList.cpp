@@ -214,8 +214,8 @@ Topology *TopologyList::GetParm(ArgList &argIn) {
     pindex = FindName(parmfilename);
   Topology *ParmOut = GetParm(pindex);
   if (ParmOut==NULL) {
-    mprinterr("    Error: Could not get parameter file:\n");
-    mprinterr("           parmname=%s, pindex=%i\n",parmfilename.c_str(),pindex);
+    mprintf("    Warning: Could not get parameter file:\n");
+    mprintf("             parmname=%s, pindex=%i\n",parmfilename.c_str(),pindex);
     return NULL;
   }
 
