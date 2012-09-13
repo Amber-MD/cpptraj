@@ -84,11 +84,16 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
       if (inputLine.compare("quit")==0) {
         if (!isStdin) fclose(infile);
         return 2;
+      } else if (inputLine.compare(0,2,"ls")==0)
+        system(inputLine.c_str());
+      else if (inputLine.compare("pwd")==0)
+        system("pwd");
+      else {
+        // Print the input line that will be sent to dispatch
+        mprintf("  [%s]\n",inputLine.c_str());
+        // Call Dispatch to convert input to arglist and process.
+        State.Dispatch(inputLine.c_str());
       }
-      // Print the input line that will be sent to dispatch
-      mprintf("  [%s]\n",inputLine.c_str());
-      // Call Dispatch to convert input to arglist and process.
-      State.Dispatch(inputLine.c_str());
       // Reset Input line
       inputLine.clear();
       i=0;
