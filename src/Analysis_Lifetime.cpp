@@ -1,5 +1,6 @@
 #include "Analysis_Lifetime.h"
 #include "CpptrajStdio.h"
+#include "ProgressBar.h"
 
 // CONSTRUCTOR
 Analysis_Lifetime::Analysis_Lifetime() :
@@ -65,8 +66,9 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
     mprintf("    LIFETIME: Calculating average lifetime using a cutoff of %f", cut_);
   else
     mprintf("    LIFETIME: Calculating only averages");
-  mprintf(" of data in %i sets:\n", inputDsets_.size());
-  inputDsets_.Info();
+  mprintf(" of data in %i sets\n", inputDsets_.size());
+  if (debug_ > 0)
+    inputDsets_.Info();
   if (windowSize_ != -1) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
             setname_.c_str());
@@ -89,13 +91,16 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
 // Analysis_Lifetime::Analyze()
 int Analysis_Lifetime::Analyze() {
   float favg;
+  int current = 0;
+  ProgressBar progress( inputDsets_.size() );
   std::vector<DataSet*>::iterator outSet = outputDsets_.begin();
   std::vector<DataSet*>::iterator maxSet = maxDsets_.begin();
   std::vector<DataSet*>::iterator avgSet = avgDsets_.begin();
   for (DataSetList::const_iterator inSet = inputDsets_.begin(); 
                                    inSet != inputDsets_.end(); ++inSet)
   {
-    mprintf("\t\tCalculating lifetimes for set %s\n", (*inSet)->Legend().c_str());
+    //mprintf("\t\tCalculating lifetimes for set %s\n", (*inSet)->Legend().c_str());
+    progress.Update( current++ );
     // Loop over all values in set.
     int setSize = (*inSet)->Size();
     double sum = 0.0;
