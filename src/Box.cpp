@@ -113,6 +113,11 @@ void Box::SetMissingInfo(const Box& rhs) {
   SetBoxType();
 }
 
+static bool IsTruncOct(double angle) {
+  if (angle > 109.47 && angle < 109.48) return true;
+  return false;
+}
+
 // Box::SetBoxType()
 /** Determine box type (none/ortho/nonortho) based on box angles. */
 void Box::SetBoxType() {
@@ -120,9 +125,12 @@ void Box::SetBoxType() {
   // No angles, no box
   if ( box_[3] <= 0 && box_[4] <= 0 && box_[5] <= 0)
     btype_ = NOBOX;
-  // Determine orthogonal / non-orthogonal from angles
+  // All 90, orthogonal 
   else if (box_[3] == 90.0 && box_[4] == 90.0 && box_[5] == 90.0)
     btype_ = ORTHO;
+  // All 109.47, truncated octahedron
+  else if ( IsTruncOct( box_[3] ) && IsTruncOct( box_[4] ) && IsTruncOct( box_[5] ) )
+    btype_ = TRUNCOCT;
   else if (box_[3] == 0 && box_[4] != 0 && box_[5] == 0) {
     // Only beta angle is set (e.g. from Amber topology).
     if (box_[4] == 90.0) {
@@ -131,7 +139,7 @@ void Box::SetBoxType() {
       box_[5] = 90.0;
       //if (debug_>0)
       //  mprintf("    Setting box to be orthogonal\n");
-    } else if (box_[4] > 109.47 && box_[4] < 109.48) {
+    } else if ( IsTruncOct( box_[4] ) ) {
       btype_ = TRUNCOCT;
       //Box[3] = TRUNCOCTBETA;
       box_[3] = box_[4];

@@ -144,6 +144,12 @@ int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
       boxAngle_[2] = trajParm->ParmBox().Gamma();
     }
     trajbox.SetAngles( boxAngle_ );
+  } else if (trajbox.Type() != trajParm->BoxType()) {
+    mprintf("\tWarning: Traj box type (%s) does not match parm box type (%s)\n",
+            trajbox.TypeName(), trajParm->ParmBox().TypeName());
+    mprintf("\tWarning: Setting parm box angles from traj (%f, %f, %f)\n",
+            boxAngle_[0], boxAngle_[1], boxAngle_[2]);
+    trajParm->ParmBox().SetAngles( boxAngle_ );
   }
   if (debug_>0 || trajbox.Type() != Box::NOBOX) {
     mprintf("\t[%s] Box type is %s\n",BaseFileStr(),trajbox.TypeName());
