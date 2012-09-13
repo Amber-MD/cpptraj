@@ -8,6 +8,9 @@ class Action_Image: public Action {
     Action_Image();
     ~Action_Image();
   private:
+    enum ImageMode { BYMOL = 0, BYRES, BYATOM };
+    static const char ImageModeString[][9];
+    ImageMode imageMode_;
     /// Only atoms in Mask1 will be imaged
     AtomMask Mask1_;
     /// If defined, image w.r.t. the center of atoms in ComMask.
@@ -27,5 +30,6 @@ class Action_Image: public Action {
     int init();
     int setup();
     int action();
+    void CheckRange(int,int);
 };
 #endif

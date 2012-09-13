@@ -5,6 +5,7 @@
 
 // CONSTRUCTOR
 Action_Image::Action_Image() :
+  imageMode_(BYMOL),
   ComMask_(NULL),
   origin_(false),
   center_(false),
@@ -21,8 +22,13 @@ Action_Image::~Action_Image() {
   if (ComMask_!=NULL) delete ComMask_;
 }
 
+const char Action_Image::ImageModeString[3][9] = {
+  "molecule", "residue", "atom"
+};
+
 // Action_Image::init()
-/** Expected call: image [origin] [center] [triclinic | familiar [com <mask>]] <mask>  
+/** Expected call: image [origin] [center] [triclinic | familiar [com <mask>]] <mask> 
+  *                      [ bymol | byres | byatom ] 
   * - origin: center at 0.0, 0.0, 0.0, otherwise center at box center.
   * - center: Use center of mass for imaging, otherwise use first atom.
   * - triclinic: Force imaging with triclinic code.
@@ -42,6 +48,12 @@ int Action_Image::init() {
   center_ = actionArgs.hasKey("center");
   if (actionArgs.hasKey("familiar")) triclinic_ = FAMILIAR;
   if (actionArgs.hasKey("triclinic")) triclinic_ = FORCE;
+  if (actionArgs.hasKey("bymol"))
+    imageMode_ = BYMOL;
+  else if (actionArgs.hasKey("byres"))
+    imageMode_ = BYRES;
+  else if (actionArgs.hasKey("byatom"))
+    imageMode_ = BYATOM;
 
   // Get Masks
   if (triclinic_ == FAMILIAR) {
@@ -54,7 +66,7 @@ int Action_Image::init() {
   mask1 = actionArgs.getNextMask();
   Mask1_.SetMaskString(mask1);
   
-  mprintf("    IMAGE: To");
+  mprintf("    IMAGE: By %s to", ImageModeString[imageMode_]);
   if (origin_)
     mprintf(" origin");
   else
@@ -77,14 +89,31 @@ int Action_Image::init() {
   return 0;
 }
 
+/** Check that at least 1 atom in the range is in Mask1 */
+void Action_Image::CheckRange(int firstAtom, int lastAtom) {
+  bool rangeIsValid = false;
+  for (int atom = firstAtom; atom < lastAtom; ++atom) {
+    if (Mask1_.AtomInCharMask(atom)) {
+      rangeIsValid = true; 
+      break;
+    }
+  }
+  if (rangeIsValid) {
+    imageList_.push_back( firstAtom );
+    imageList_.push_back( lastAtom );
+  }
+}
+
 // Action_Image::setup()
 /** Set Imaging up for this parmtop. Get masks etc.
   * currentParm is set in Action::Setup
   */
 int Action_Image::setup() {
-  //atomPair apair;
-
-  if ( currentParm->SetupCharMask( Mask1_ ) ) return 1;
+  if ( imageMode_ == BYMOL || imageMode_ == BYRES ) {
+    if ( currentParm->SetupCharMask( Mask1_ ) ) return 1;
+  } else { // BYATOM
+    if ( currentParm->SetupIntegerMask( Mask1_ ) ) return 1;
+  }
   if (Mask1_.None()) {
     mprintf("Warning: Image::setup: Mask contains 0 atoms.\n");
     return 1;
@@ -122,32 +151,35 @@ int Action_Image::setup() {
   // last atom of each molecule. Check that all atoms between first and last
   // are actually in the mask.
   imageList_.clear();
-  imageList_.reserve( currentParm->Nmol() );
-  for (Topology::mol_iterator mol = currentParm->MolStart();
-                              mol != currentParm->MolEnd(); mol++)
-  {
-    int firstAtom = (*mol).BeginAtom();
-    int lastAtom = (*mol).EndAtom();
-    // Check that each atom in the range is in Mask1
-    bool rangeIsValid = true;
-    for (int atom = firstAtom; atom < lastAtom; atom++) {
-      if (!Mask1_.AtomInCharMask(atom)) {
-        rangeIsValid = false; 
-        break;
+
+  switch (imageMode_) {
+    case BYMOL:
+      imageList_.reserve( currentParm->Nmol()*2 );
+      for (Topology::mol_iterator mol = currentParm->MolStart();
+                                  mol != currentParm->MolEnd(); ++mol)
+        CheckRange( (*mol).BeginAtom(), (*mol).EndAtom());
+     break;
+    case BYRES:
+      imageList_.reserve( currentParm->Nres()*2 );
+      for (int resnum = 0; resnum < currentParm->Nres(); ++resnum)
+        CheckRange( currentParm->ResFirstAtom( resnum ), currentParm->ResLastAtom( resnum ) );
+      break;
+    case BYATOM:
+      imageList_.reserve( currentParm->Natom()*2 );
+      for (AtomMask::const_iterator atom = Mask1_.begin(); atom != Mask1_.end(); ++atom) {
+        imageList_.push_back( *atom );
+        imageList_.push_back( (*atom)+1 );
       }
-    }
-    if (rangeIsValid) {
-      imageList_.push_back( firstAtom );
-      imageList_.push_back( lastAtom );
-    }
+      break;
   }
-  mprintf("\tNumber of molecules to be imaged is %u based on mask [%s]\n", imageList_.size()/2,
-           Mask1_.MaskString()); 
+  mprintf("\tNumber of %ss to be imaged is %zu based on mask [%s]\n", 
+           ImageModeString[imageMode_], imageList_.size()/2, Mask1_.MaskString());
+ 
   // DEBUG: Print all pairs
   if (debug>0) {
     for (std::vector<int>::iterator ap = imageList_.begin();
                                     ap != imageList_.end(); ap+=2)
-      mprintf("\t\tMol First-Last atom#: %i - %i\n", (*ap)+1, *(ap+1) );
+      mprintf("\t\tFirst-Last atom#: %i - %i\n", (*ap)+1, *(ap+1) );
   }
 
   // Truncoct flag
