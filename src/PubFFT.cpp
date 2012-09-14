@@ -158,10 +158,10 @@ void PubFFT::CorF_FFT(int ndata, double* data1, double* data2) {
     // Cross-correlation
     cfftf_(fft_size_, data1, saved_work_, saved_factors_);
     cfftf_(fft_size_, data2, saved_work_, saved_factors_);
-    // Calculate [data1] x [data2]* where * denotes complex conjugate.
+    // Calculate [data1]* x [data2] where * denotes complex conjugate.
     for (int i = 0; i < ndata; i+=2) {
       double dtmp = data1[i  ] * data2[i  ] + data1[i+1] * data2[i+1];
-      data1[i+1]  = data1[i+1] * data2[i  ] - data1[i  ] * data2[i+1];
+      data1[i+1]  = data1[i  ] * data2[i+1] - data1[i+1] * data2[i  ];
       data1[i  ]  = dtmp;
     }
   }

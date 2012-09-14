@@ -23,6 +23,7 @@ int Analysis_Corr::Setup(DataSetList *datasetlist) {
   }
   // Keywords
   lagmax_ = analyzeArgs_.getKeyInt("lagmax",-1);
+  usefft_ = !analyzeArgs_.hasKey("direct");
   outfilename_ = analyzeArgs_.GetStringKey("out");
   if (outfilename_.empty()) {
     mprinterr("Error: Corr: No output filename specified ('out' <filename>).\n");
@@ -56,7 +57,7 @@ int Analysis_Corr::Setup(DataSetList *datasetlist) {
   // TODO: Check DataSet type
   std::string dataset_name = analyzeArgs_.GetStringNext();
   if (dataset_name.empty())
-    dataset_name = "Corr";
+    dataset_name = datasetlist->GenerateDefaultName( "Corr" );
 
   // Setup output dataset
   std::string corrname = D1_->Legend() + "-" + D2_->Legend();

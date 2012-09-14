@@ -282,7 +282,7 @@ int DataSet::CrossCorr( DataSet& D2, DataSet& Ct, int lagmaxIn, bool calccovar, 
     double* data1 = new double[ ndata ];
     memset( data1, 0, ndata * sizeof(double) );
     for (int i = 0; i < Nelements; ++i) 
-      data1[i*2] = Dval(i)    - avg1;
+      data1[i*2] = Dval(i) - avg1;
     if (&D2 == this) 
       pubfft1.CorF_FFT(ndata, data1, NULL);
     else {
@@ -295,7 +295,7 @@ int DataSet::CrossCorr( DataSet& D2, DataSet& Ct, int lagmaxIn, bool calccovar, 
       delete[] data2;
     }
     // Put real components of data1 in output DataSet
-    norm = 1.0 / data1[0];
+    norm = 1.0 / fabs( data1[0] );
     for (int i = 0; i < lagmax; ++i) {
       ct = data1[i*2] * norm;
       Ct.Add(i, &ct);
@@ -307,7 +307,7 @@ int DataSet::CrossCorr( DataSet& D2, DataSet& Ct, int lagmaxIn, bool calccovar, 
       ct = 0;
       int jmax = Nelements - lag;
       for (int j = 0; j < jmax; ++j) 
-        ct += ((Dval(j+lag) - avg1) * (D2.Dval(j) - avg2));
+        ct += ((Dval(j) - avg1) * (D2.Dval(j+lag) - avg2));
       if (lag == 0) {
         if (ct != 0)
           norm = fabs( ct );

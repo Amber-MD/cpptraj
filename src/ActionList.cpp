@@ -100,6 +100,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("image"))          {Act=new Action_Image;   }
   else if (argIn.CommandIs("surf"))           {Act=new Action_Surf;    }
   else if (argIn.CommandIs("radgyr"))         {Act=new Action_Radgyr;  }
+  else if (argIn.CommandIs("rog"))            {Act=new Action_Radgyr;  }
   else if (argIn.CommandIs("mask"))           {Act=new Action_Mask;    }
   else if (argIn.CommandIs("closest"))        {Act=new Action_Closest; }
   else if (argIn.CommandIs("nastruct"))       {Act=new Action_NAstruct;}
