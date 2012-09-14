@@ -26,6 +26,11 @@ static void Usage(const char *programName) {
   mprinterr(  "         -debug <N>    : Set global debug level.\n");
 }
 
+static inline bool EndChar(char ptr) {
+  if (ptr=='\n' || ptr=='\r' || ptr=='\0' || ptr==EOF) return true;
+  return false;
+}
+
 // ProcessInputStream()
 /// Process input from the file specified by filename. 
 /** If filename is NULL process input from STDIN. Set up an input line that 
@@ -70,9 +75,9 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
     //fprintf(stdout,"DEBUG: %i %c %i\n",i,ptr,ptr);
     // If '#' is encountered, skip the rest of the line
     if (ptr=='#')
-      while (ptr!='\n' && ptr!=EOF && ptr!='\0') ptr=(char)fgetc(infile); 
+      while (!EndChar(ptr)) ptr=(char)fgetc(infile); 
     // newline, NULL, or EOF terminates the line
-    if (ptr=='\n' || ptr=='\0' || ptr==EOF) {
+    if (EndChar(ptr)) {
       // If no chars in string continue
       if (inputLine.empty()) {
         if (isStdin) fprintf(stdout,"> ");
@@ -113,7 +118,7 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
     if (ptr=='\\') {
       ptr = (char)fgetc(infile);
       if ( ptr == EOF ) break;
-      if (ptr == '\n') continue;
+      if (ptr == '\n' || ptr == '\r') continue;
       inputLine += "\\";
       /*while ( (ptr = (char)fgetc(infile))!='\n' ) 
         if ( ptr == EOF ) break;
@@ -122,8 +127,7 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
     }
     // Skip any line beginning with # character
     if (i==0 && ptr=='#') {
-      while ( (ptr = (char)fgetc(infile))!='\n' ) 
-        if ( ptr == EOF ) break;
+      while ( !EndChar(ptr) ) ptr = (char)fgetc(infile);
       if (isStdin) fprintf(stdout,"> ");
       continue;
     }
