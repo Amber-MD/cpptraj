@@ -24,16 +24,6 @@ class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
   private:
     float *Coord_;
     float *Veloc_;
-
-    // Multi-D RMED
-    int remd_dimension_;
-    int dimensionDID_;
-    int groupnumVID_;
-    int dimtypeVID_;
-    int indicesVID_;
-    int *remd_groupnum_;
-    int *remd_dimtype_;
-    int *remd_indices_;
 };
 #endif
 #endif

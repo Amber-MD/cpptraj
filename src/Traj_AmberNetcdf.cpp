@@ -7,24 +7,10 @@
 #include "Traj_AmberNetcdf.h"
 #include "CpptrajStdio.h"
 
-// DEFINES 
-#define NCREMD_DIMENSION "remd_dimension"
-#define NCREMD_GROUPNUM "remd_groupnum"
-#define NCREMD_DIMTYPE "remd_dimtype"
-#define NCREMD_INDICES "remd_indices"
-
 // CONSTRUCTOR
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
-  Veloc_(0),
-  remd_dimension_(0),
-  dimensionDID_(-1),
-  groupnumVID_(-1),
-  dimtypeVID_(-1),
-  indicesVID_(-1),
-  remd_groupnum_(0),
-  remd_dimtype_(0),
-  remd_indices_(0)
+  Veloc_(0)
 {
   //fprintf(stderr,"Amber Netcdf Constructor\n");
   // Netcdf files are always seekable
@@ -37,9 +23,6 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
   this->closeTraj();
   if (Coord_!=0) delete[] Coord_;
   if (Veloc_!=0) delete[] Veloc_;
-  if (remd_groupnum_!=0) delete[] remd_groupnum_;
-  if (remd_dimtype_!=0) delete[] remd_dimtype_;
-  if (remd_indices_!=0) delete[] remd_indices_;
   // NOTE: Need to close file?
 }
 
@@ -144,40 +127,7 @@ int Traj_AmberNetcdf::setupTrajin(Topology* trajParm) {
   if (SetupTemperature() == 0)
     hasTemperature_ = true;
 
-/*  // Multi-d REMD info
-  if ( nc_inq_dimid(ncid, NCREMD_DIMENSION, &dimensionDID) == NC_NOERR) {
-    // Although this is a second call to dimid, makes for easier code
-    if ( (dimensionDID = GetDimInfo(ncid, NCREMD_DIMENSION, &remd_dimension))==-1 )
-      return -1;
-    mprintf("    Netcdf file has multi-D REMD info, %i dimensions.\n",remd_dimension);
-    // Ensure valid # dimensions
-    if (remd_dimension < 1) {
-      mprinterr("Error: Number of REMD dimensions is less than 1!\n");
-      return -1;
-    }
-    // Start and count for groupnum and dimtype, allocate mem
-    start[0]=0; start[1]=0; start[2]=0;
-    count[0]=remd_dimension; count[1]=0; count[2]=0;
-    remd_groupnum = new int[ remd_dimension ];
-    remd_dimtype = new int[ remd_dimension ];
-    remd_indices = new int[ remd_dimension ];
-    // Get number of groups in each dimension
-    if ( checkNCerr(nc_inq_varid(ncid, NCREMD_GROUPNUM, &groupnumVID),
-                    "Getting group variable ID for each dimension.")!=0 ) return -1; 
-    if ( checkNCerr(nc_get_vara_int(ncid, groupnumVID, start, count, remd_groupnum),
-                    "Getting group numbers in each dimension.")!=0 ) return -1;
-    // Get dimension types
-    if ( checkNCerr(nc_inq_varid(ncid, NCREMD_DIMTYPE, &dimtypeVID),
-                    "Getting dimension type variable ID for each dimension.")!=0 ) return -1;
-    if ( checkNCerr(nc_get_vara_int(ncid, dimtypeVID, start, count, remd_dimtype),
-                    "Getting dimension type in each dimension.")!=0 ) return -1;
-    // Get VID for replica indices
-    if ( checkNCerr(nc_inq_varid(ncid, NCREMD_INDICES, &indicesVID),
-                    "Getting replica indices variable ID.")!=0 ) return -1;
-    // Print info for each dimension
-    for (int dim = 0; dim < remd_dimension; dim++)
-      mprintf("\tDim %i: type %i (%i)\n",dim+1, remd_dimtype[dim], remd_groupnum[dim]);
-  }*/
+  if ( SetupMultiD() == -1 ) return 1;
 
   // NOTE: TO BE ADDED
   // labelDID;

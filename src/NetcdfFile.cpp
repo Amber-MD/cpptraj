@@ -35,6 +35,9 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCTIME "time"
 #define NCLABEL "label"
 #define NCLABELLEN 5
+#define NCREMD_DIMENSION "remd_dimension"
+#define NCREMD_DIMTYPE "remd_dimtype"
+#define NCREMD_INDICES "remd_indices"
 
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
@@ -46,6 +49,9 @@ NetcdfFile::NetcdfFile() :
   cellAngleVID_(-1),
   cellLengthVID_(-1),
   timeVID_(-1),
+  remd_dimension_(0),
+  indicesVID_(-1),
+  remd_indices_(0),
   ncdebug_(0),
   frameDID_(-1),
   atomDID_(-1),
@@ -66,6 +72,11 @@ NetcdfFile::NetcdfFile() :
   count_[0] = 0;
   count_[1] = 0;
   count_[2] = 0;
+}
+
+// DESTRUCTOR
+NetcdfFile::~NetcdfFile() {
+  if ( remd_indices_ != 0 ) delete[] remd_indices_;
 }
 
 // NetcdfFile::GetAttrText()
@@ -220,6 +231,52 @@ int NetcdfFile::SetupTemperature() {
   } 
   TempVID_=-1;
   return 1;
+}
+
+/** Determine if Netcdf file contains multi-D REMD info. */
+int NetcdfFile::SetupMultiD() {
+  int dimensionDID;
+
+  if ( nc_inq_dimid(ncid_, NCREMD_DIMENSION, &dimensionDID) != NC_NOERR)
+    return 1;
+ 
+  // Although this is a second call to dimid, makes for easier code
+  if ( (dimensionDID = GetDimInfo(NCREMD_DIMENSION, &remd_dimension_))==-1 )
+    return -1;
+  mprintf("\tNetcdf file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
+  // Ensure valid # dimensions
+  if (remd_dimension_ < 1) {
+    mprinterr("Error: Number of REMD dimensions is less than 1!\n");
+    return -1;
+  }
+  // Start and count for groupnum and dimtype, allocate mem
+  start_[0]=0; 
+  start_[1]=0; 
+  start_[2]=0;
+  count_[0]=remd_dimension_; 
+  count_[1]=0; 
+  count_[2]=0;
+  int* remd_dimtype = new int[ remd_dimension_ ];
+  remd_indices_ = new int[ remd_dimension_ ];
+  // Get dimension types
+  int dimtypeVID;
+  if ( checkNCerr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
+    mprinterr("Error: Getting dimension type variable ID for each dimension.\n");
+    return -1;
+  }
+  if ( checkNCerr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, remd_dimtype)) ) {
+    mprinterr("Error: Getting dimension type in each dimension.\n");
+    return -1;
+  }
+  // Get VID for replica indices
+  if ( checkNCerr(nc_inq_varid(ncid_, NCREMD_INDICES, &indicesVID_)) ) {
+    mprinterr("Error: Getting replica indices variable ID.\n");
+    return -1;
+  }
+  // Print info for each dimension
+  for (int dim = 0; dim < remd_dimension_; ++dim)
+    mprintf("\tDim %i: type %i\n",dim+1, remd_dimtype[dim]);
+  return 0; 
 }
 
 // NetcdfFile::SetupBox()

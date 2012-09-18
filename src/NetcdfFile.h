@@ -11,6 +11,7 @@ class NetcdfFile {
     NetcdfFile() { }
 #   else 
     NetcdfFile();
+    virtual ~NetcdfFile();
 
     void NetcdfDebug();
     std::string GetAttrText(const char *);
@@ -26,6 +27,7 @@ class NetcdfFile {
     int SetupTime();
     int SetupBox(double *, double *);
     int SetupTemperature();
+    int SetupMultiD();
 
     void FloatToDouble(double*,float*);
     void DoubleToFloat(float*,double*); 
@@ -48,6 +50,10 @@ class NetcdfFile {
     int cellAngleVID_;
     int cellLengthVID_;
     int timeVID_;
+    // MultiD REMD
+    int remd_dimension_;
+    int indicesVID_;
+    int* remd_indices_;
 
     bool checkNCerr(int);
   private:
