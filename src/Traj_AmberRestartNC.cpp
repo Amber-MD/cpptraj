@@ -123,6 +123,8 @@ int Traj_AmberRestartNC::setupTrajin(Topology *trajParm) {
   if ( SetupTemperature() == 0 )
     hasTemperature_ = true;
 
+  if ( SetupMultiD() == -1 ) return 1;
+
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;
@@ -199,6 +201,19 @@ int Traj_AmberRestartNC::readFrame(int set,double *X, double *V,double *box, dou
       return 1;
     }
     if (debug_>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",BaseFileStr(),T);
+  }
+
+  // Get replica indices
+  if (indicesVID_!=-1) {
+    start_[0] = 0;
+    count_[1] = remd_dimension_;
+    if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, remd_indices_)) ) {
+      mprinterr("Error: Getting replica indices.\n");
+      return 1;
+    }
+    mprintf("DEBUG:\tReplica indices:");
+    for (int dim=0; dim < remd_dimension_; dim++) mprintf(" %i",remd_indices_[dim]);
+    mprintf("\n");
   }
 
   // Read Coords 
