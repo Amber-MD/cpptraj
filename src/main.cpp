@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
 #endif
   err = ProcessCmdLineArgs(argc,argv,State);
   if (err == 3) // More input needed, go to interactive mode
-    ProcessInputStream(NULL, State);
+    err = ProcessInputStream(NULL, State);
   switch ( err ) {
     case 0 : State.Run(); break;
     case 1 : Usage(argv[0]); break;
