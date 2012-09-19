@@ -145,11 +145,16 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
 /** Process the input file last
  * despite its position on the command line to allow any prmtops to
  * load.
- * \return 1 if unrecognized input on command line, 2 if ProcessInputStream indicates 
- *         we should just quit.
+ * \return 0 on success
+ * \return 1 if unrecognized input on command line
+ * \return 2 if ProcessInputStream indicates we should just quit.
+ * \return 3 if input from STDIN needed
  */
 static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
-  int debug=0; 
+  int debug=0;
+  bool hasInput = false;
+
+  if (argc == 1) return 3; // No command line args, interactive
 
   for (int i=1; i<argc; i++) {
     // --help, -help: Print usage and exit
@@ -171,6 +176,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
     } else if (strcmp(argv[i],"-i")==0 && i+1!=argc) {
       i++;
       if (ProcessInputStream(argv[i], State)) return 2;
+      hasInput = true;
 
     // -debug: Set overall debug level
     } else if (strcmp(argv[i],"-debug")==0 && i+1!=argc) {
@@ -212,6 +218,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
     // Position 2: INPUT file
     } else if (i==2) {
       if (ProcessInputStream(argv[i], State)) return 2;
+      hasInput = true;
 
     // Unrecognized
     } else {
@@ -219,6 +226,8 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
       return 1;
     }
   }
+
+  if (!hasInput) return 3;
 
   return 0;
 }
@@ -243,10 +252,9 @@ int main(int argc, char **argv) {
 #ifdef MPI
   mprintf("Running on %i processors\n",worldsize);
 #endif
-  if (argc == 1) // No command line args, interactive
-    err = ProcessInputStream(NULL, State);
-  else
-    err = ProcessCmdLineArgs(argc,argv,State);
+  err = ProcessCmdLineArgs(argc,argv,State);
+  if (err == 3) // More input needed, go to interactive mode
+    ProcessInputStream(NULL, State);
   switch ( err ) {
     case 0 : State.Run(); break;
     case 1 : Usage(argv[0]); break;
