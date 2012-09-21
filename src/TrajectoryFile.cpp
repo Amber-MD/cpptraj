@@ -149,12 +149,20 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, const char* r
     }
     // Check box information
     if ( replica0->HasBox() != remdio->HasBox() ) {
-      mprinterr("    Error: RemdTraj: Replica %i box info does not match lowest replica.\n");
+      mprinterr("    Error: RemdTraj: Replica %i box info does not match lowest replica.\n",repnum);
+      delete remdio;
+      return NULL;
+    }
+    // Check indices
+    if (!remd_indices.empty() && replica0->NreplicaDimensions() != (int)remd_indices.size())
+    {
+      mprinterr("Error: RemdTraj: Replica %i # of dim (%i) not equal to target # dim (%zu)\n",
+                repnum, replica0->NreplicaDimensions(), remd_indices.size());
       delete remdio;
       return NULL;
     }
     // Increment
-    repnum++;
+    ++repnum;
   }
 
   // If remdout was specified, set up output trajectories

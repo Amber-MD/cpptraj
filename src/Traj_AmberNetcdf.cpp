@@ -193,21 +193,6 @@ int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double
     //fprintf(stderr,"DEBUG: Replica Temperature %lf\n",F->T);
   }
 
-  // Get replica indices
-  if (indicesVID_!=-1) {
-    start_[0] = set;
-    start_[1] = 0;
-    count_[0] = 1;
-    count_[1] = remd_dimension_;
-    if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, remd_indices_)) ) {
-      mprinterr("Error: Getting replica indices.\n");
-      return 1;
-    }
-    mprintf("DEBUG:\tReplica indices:");
-    for (int dim=0; dim < remd_dimension_; dim++) mprintf(" %i",remd_indices_[dim]);
-    mprintf("\n");
-  }
-
   // Read Coords 
   start_[0] = set;
   start_[1] = 0;
@@ -245,6 +230,26 @@ int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double
   }
 
 
+  return 0;
+}
+
+/** Read REMD indices. Input array must be allocated to be size remd_dimension
+  * by prior call to NreplicaDimensions().
+  */
+int Traj_AmberNetcdf::readIndices(int set, int* remd_indices) {
+  if (indicesVID_!=-1) {
+    start_[0] = set;
+    start_[1] = 0;
+    count_[0] = 1;
+    count_[1] = remd_dimension_;
+    if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, remd_indices)) ) {
+      mprinterr("Error: Getting replica indices.\n");
+      return 1;
+    }
+    //mprintf("DEBUG:\tReplica indices:");
+    //for (int dim=0; dim < remd_dimension_; dim++) mprintf(" %i",remd_indices[dim]);
+    //mprintf("\n");
+  }
   return 0;
 }
 
@@ -296,11 +301,10 @@ int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, dou
 
 // Traj_AmberNetcdf::info()
 void Traj_AmberNetcdf::info() {
-  mprintf("is a NetCDF AMBER trajectory"
-            //(p->isVelocity ? " and velocities" : "")
-         );
+  mprintf("is a NetCDF AMBER trajectory");
   if (hasVelocity_) mprintf(" containing velocities");
   if (hasTemperature_) mprintf(" with replica temperatures");
+  if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
 
   /*if (debug_ > 2) {
       if (title != NULL)

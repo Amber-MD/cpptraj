@@ -11,7 +11,6 @@ class NetcdfFile {
     NetcdfFile() { }
 #   else 
     NetcdfFile();
-    virtual ~NetcdfFile();
 
     void NetcdfDebug();
     std::string GetAttrText(const char *);
@@ -53,7 +52,6 @@ class NetcdfFile {
     // MultiD REMD
     int remd_dimension_;
     int indicesVID_;
-    int* remd_indices_;
 
     bool checkNCerr(int);
   private:

@@ -69,6 +69,9 @@ class TrajectoryIO : protected CpptrajFile {
     virtual int processWriteArgs(ArgList *) { return 0; }
     /// Process arguments relevant to reading trajectory (optional)
     virtual int processReadArgs(ArgList&) { return 0; }
+    /// Return # of replica dimensions if applicable
+    virtual int NreplicaDimensions()      { return 0; }
+    virtual int readIndices(int,int*)     { return 0; }
     // -----------------------------------------------------
     /// Set the trajectory title
     void SetTitle(const char*);

@@ -8,6 +8,7 @@
 // CONSTRUCTOR
 RemdTraj::RemdTraj() :
   remdtrajtemp_(0.0),
+  remd_indices_(0),
   lowestRepnum_(0),
   targetType_(TEMP),
   // Used for writing replica trajectories
@@ -35,6 +36,7 @@ RemdTraj::~RemdTraj() {
     delete *replica;
   if (remdX_!=0) delete[] remdX_;
   if (remdV_!=0) delete[] remdV_;
+  if (remd_indices_!=0) delete[] remd_indices_;
 }
 
 // RemdTraj::SetTargetTemp()
@@ -47,6 +49,7 @@ void RemdTraj::SetTargetTemp(double tempIn) {
 void RemdTraj::SetTargetIdx(RemdIdxType const& idxIn) {
   remdtrajidx_ = idxIn;
   targetType_ = INDICES;
+  remd_indices_ = new int[ remdtrajidx_.size() ];
 }
 
 // RemdTraj::AddReplicaTrajin()
@@ -299,11 +302,11 @@ void RemdTraj::closeTraj() {
   }
 }
 
-bool RemdTraj::IsTarget(double tempIn, const int* idxIn) {
+bool RemdTraj::IsTarget(double tempIn) {
   if ( targetType_ == TEMP ) {
     if ( tempIn == remdtrajtemp_ ) return true;
   } else {
-    const int* tgtIdx = idxIn;
+    const int* tgtIdx = remd_indices_;
     for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
     {
       if ( *tgtIdx != *idx ) return false;
@@ -323,15 +326,16 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
   std::vector<TrajectoryIO *>::iterator reptrajout;
   int trajout, nrep;
   bool found = false;
-  int Idx[2]; Idx[0] = 0; Idx[1] = 0; // DEBUG
   
-  for (reptrajin=REMDtraj_.begin(); reptrajin!=REMDtraj_.end(); reptrajin++) {
+  for (reptrajin=REMDtraj_.begin(); reptrajin!=REMDtraj_.end(); ++reptrajin) {
     // No conversion to replica trajectories: Just find target temp
     if (!hasTrajout_) {
       if ((*reptrajin)->readFrame(set,X,V,box,T)) return 1;
+      (*reptrajin)->readIndices(set,remd_indices_);
       // Check if this is the target temp
-      if ( IsTarget(*T, Idx) ) {
+      if ( IsTarget(*T) ) {
         //printf("REMDTRAJ: Set %i TEMP=%lf\n",set,F->T);
+        //mprintf("REMDTRAJ: Replica %zu matches!\n", reptrajin - REMDtraj_.begin());
         return 0;
       }
 
@@ -339,8 +343,9 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
     } else {
       // remdX, remdV, remdN is allocated in SetupTemperatureList 
       if ((*reptrajin)->readFrame(set,remdX_,remdV_,remdbox_,&remdT_)) return 1;
+      (*reptrajin)->readIndices(set,remd_indices_);
       // Check if this is the target temp. If so, set main Frame coords/box/temp
-      if ( IsTarget(remdT_, Idx) ) {
+      if ( IsTarget(remdT_) ) {
         //mprintf("REMDTRAJ: remdout: Set %i TEMP=%lf\n",set+1,remdT);
         memcpy(X, remdX_, remdN_ * sizeof(double));
         if (V!=0 && hasVelocity_) 
@@ -396,6 +401,13 @@ void RemdTraj::info() {
     for (unsigned int repnum=0; repnum < REMDtraj_.size(); repnum++)
       mprintf("\t\t[%6.2lf]\n",TemperatureList_[repnum]);
   }
-  mprintf("        Looking for frames at %.2lf K",remdtrajtemp_);
+  if (remdtrajidx_.empty())
+    mprintf("\tLooking for frames at %.2lf K",remdtrajtemp_);
+  else {
+    mprintf("\tLooking for indices [");
+    for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
+      mprintf(" %i", *idx);
+    mprintf(" ]");
+  }
 }
  

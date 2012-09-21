@@ -20,6 +20,8 @@ class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
     int writeFrame(int,double*,double*,double*,double);
     void info();
     int processWriteArgs(ArgList *);
+    int NreplicaDimensions() { return remd_dimension_; }
+    int readIndices(int,int*);
 
   private:
     float *Coord_;

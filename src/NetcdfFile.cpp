@@ -51,7 +51,6 @@ NetcdfFile::NetcdfFile() :
   timeVID_(-1),
   remd_dimension_(0),
   indicesVID_(-1),
-  remd_indices_(0),
   ncdebug_(0),
   frameDID_(-1),
   atomDID_(-1),
@@ -72,11 +71,6 @@ NetcdfFile::NetcdfFile() :
   count_[0] = 0;
   count_[1] = 0;
   count_[2] = 0;
-}
-
-// DESTRUCTOR
-NetcdfFile::~NetcdfFile() {
-  if ( remd_indices_ != 0 ) delete[] remd_indices_;
 }
 
 // NetcdfFile::GetAttrText()
@@ -257,7 +251,6 @@ int NetcdfFile::SetupMultiD() {
   count_[1]=0; 
   count_[2]=0;
   int* remd_dimtype = new int[ remd_dimension_ ];
-  remd_indices_ = new int[ remd_dimension_ ];
   // Get dimension types
   int dimtypeVID;
   if ( checkNCerr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
