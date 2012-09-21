@@ -75,7 +75,8 @@ void TrajectoryFile::SetDebug(int debugIn) {
   */
 TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, const char* remdout, 
                                               TrajFormatType remdfmt,
-                                              ArgList &remdtraj_list) 
+                                              ArgList &remdtraj_list, 
+                                              std::vector<int> const& remd_indices) 
 {
   RemdTraj *remdio=NULL;
   TrajectoryIO *replica0=NULL;
@@ -87,8 +88,11 @@ TrajectoryIO *TrajectoryFile::setupRemdTrajIO(double remdtrajtemp, const char* r
   remdio = new RemdTraj();
   // Make remdio a copy of trajio, which should be the lowest replica.
   remdio->TrajectoryIO::operator=( *trajio_ );
-  // Set target temperature
-  remdio->SetTargetTemp(remdtrajtemp);
+  // Set target temperature or indices
+  if (!remd_indices.empty())
+    remdio->SetTargetIdx( remd_indices );
+  else
+    remdio->SetTargetTemp(remdtrajtemp);
   // Add trajio as first replica.
   remdio->AddReplicaTrajin( trajio_ ); 
 
@@ -409,6 +413,7 @@ int TrajectoryFile::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, To
   bool remdtraj=false;
   TrajFormatType remdfmt = AMBERTRAJ;
   ArgList remdtraj_list;
+  RemdTraj::RemdIdxType remd_indices;
 
   // Mark as not yet open
   trajIsOpen_ = false;
@@ -431,8 +436,18 @@ int TrajectoryFile::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, To
   // Check for remdtraj keyword; if present, get args pertaining to REMD traj.
   if (argIn!=NULL && argIn->hasKey("remdtraj")) {
     remdtraj=true;
-    // Get target temperature
-    remdtrajtemp=argIn->getKeyDouble("remdtrajtemp",0.0);
+    // Check if we are looking for temperature or indices
+    if (argIn->Contains("remdtrajidx")) {
+      ArgList indicesArg(argIn->GetStringKey("remdtrajidx"), ",");
+      if (indicesArg.empty()) {
+        mprinterr("Error: remdtrajidx expects comma-separated list of target indices (e.g. 1,0,1)\n");
+        return 1;
+      }
+      for (int argidx = 0; argidx < indicesArg.Nargs(); ++argidx)
+         remd_indices.push_back( indicesArg.ArgToInteger(argidx) );
+    } else 
+      // Get target temperature
+      remdtrajtemp = argIn->getKeyDouble("remdtrajtemp",0.0);
     // If remdout specified, get a filename and optionally a format keyword
     // (default AMBERTRAJ if none specified) that will be used for writing 
     // out temperature trajectories. Currently only AmberNetcdf and AmberTraj
@@ -446,7 +461,7 @@ int TrajectoryFile::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, To
       return 1;
     }
     // Check if replica trajectories are explicitly listed
-    remdtraj_list = argIn->getKeyArgList("trajnames");
+    remdtraj_list.SetList( argIn->GetStringKey("trajnames"), "," );
   }
 
   // Set this trajectory access to READ
@@ -511,7 +526,7 @@ int TrajectoryFile::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, To
     }
     // Replace this trajio with a special replica traj one that will contain
     // trajio objects for all replicas
-    if ( (trajio_ = setupRemdTrajIO(remdtrajtemp, remdout, remdfmt, remdtraj_list))==NULL )
+    if ( (trajio_ = setupRemdTrajIO(remdtrajtemp, remdout, remdfmt, remdtraj_list, remd_indices))==NULL )
       return 1;
   }
   

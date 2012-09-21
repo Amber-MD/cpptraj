@@ -10,11 +10,14 @@
   */
 class RemdTraj : public TrajectoryIO {
   public:
+    typedef std::vector<int> RemdIdxType;
+
     RemdTraj();
     ~RemdTraj();
     
     // RemdTraj-specific functions
     void SetTargetTemp(double);
+    void SetTargetIdx(RemdIdxType const&);
     int SetupTemperatureList(int);
     std::vector<std::string> SearchForReplicas();
     int GetTemperatureName(std::string&,const char*, int);
@@ -24,11 +27,14 @@ class RemdTraj : public TrajectoryIO {
 
     int Nreplicas();
   private:
+    enum TargetType { TEMP = 0, INDICES };
     // RemdTraj-specific variables 
     double remdtrajtemp_;                    ///< Get frames with this temperature on read
+    RemdIdxType remdtrajidx_;           ///< Get frames with these indices on read
     std::vector<TrajectoryIO*> REMDtraj_;    ///< Input replica trajectories
     std::vector<TrajectoryIO*> REMDtrajout_; ///< Output replica trajectories
     int lowestRepnum_;                       ///< Hold the lowest replica number
+    TargetType targetType_;
 
     // For T-trajectory writes 
     bool hasTrajout_;         ///< True if writing replica trajectories during read
@@ -40,6 +46,7 @@ class RemdTraj : public TrajectoryIO {
     std::vector<double> TemperatureList_; ///< List of temperatures found in replicas
 
     void PrintNoExtError();
+    bool IsTarget(double, const int*);
 
     // Inherited functions
     int openTraj();

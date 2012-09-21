@@ -105,7 +105,7 @@ class TrajectoryFile {
     bool trajIsOpen_;
 
     /// Set up TrajectoryIO object for reading multiple trajectories at once
-    TrajectoryIO* setupRemdTrajIO(double, const char*, TrajFormatType, ArgList&);
+    TrajectoryIO* setupRemdTrajIO(double, const char*, TrajFormatType, ArgList&, std::vector<int> const&);
     /// Set up Trajectory IO object
     TrajectoryIO* SetupTrajectoryIO(TrajFormatType);
     /// Set up TrajectoryIO object for the given filename

@@ -6,21 +6,23 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-RemdTraj::RemdTraj() {
-  remdtrajtemp_=0.0;
-  lowestRepnum_=0;
-  hasTrajout_=false;
+RemdTraj::RemdTraj() :
+  remdtrajtemp_(0.0),
+  lowestRepnum_(0),
+  targetType_(TEMP),
   // Used for writing replica trajectories
-  remdX_ = NULL;
-  remdV_ = NULL;
+  hasTrajout_(false),
+  remdX_(0),
+  remdV_(0),
+  remdT_(0.0),
+  remdN_(0)
+{
   remdbox_[0]=0.0;
   remdbox_[1]=0.0;
   remdbox_[2]=0.0;
   remdbox_[3]=0.0;
   remdbox_[4]=0.0;
   remdbox_[5]=0.0;
-  remdT_=0.0;
-  remdN_=0;
 }
 
 // DESTRUCTOR
@@ -31,13 +33,20 @@ RemdTraj::~RemdTraj() {
     delete *replica;
   for (replica=REMDtrajout_.begin(); replica!=REMDtrajout_.end(); replica++)
     delete *replica;
-  if (remdX_!=NULL) delete[] remdX_;
-  if (remdV_!=NULL) delete[] remdV_;
+  if (remdX_!=0) delete[] remdX_;
+  if (remdV_!=0) delete[] remdV_;
 }
 
 // RemdTraj::SetTargetTemp()
 void RemdTraj::SetTargetTemp(double tempIn) {
   remdtrajtemp_ = tempIn;
+  targetType_ = TEMP;
+}
+
+// RemdTraj::SetTargetIdx
+void RemdTraj::SetTargetIdx(RemdIdxType const& idxIn) {
+  remdtrajidx_ = idxIn;
+  targetType_ = INDICES;
 }
 
 // RemdTraj::AddReplicaTrajin()
@@ -79,15 +88,15 @@ int RemdTraj::SetupTemperatureList(int natom) {
   int err = 0;
   double tempIn;
 
-  if (remdX_!=NULL) delete[] remdX_;
-  if (remdV_!=NULL) delete[] remdV_;
+  if (remdX_!=0) delete[] remdX_;
+  if (remdV_!=0) delete[] remdV_;
   // Allocate space for reading in coords and velocities
   remdN_ = natom * 3; 
   remdX_ = new double[ remdN_ ];
-  if (remdX_==NULL) return 1;
+  if (remdX_==0) return 1;
   if (hasVelocity_) {
     remdV_ = new double[ remdN_ ];
-    if (remdV_==NULL) return 1;
+    if (remdV_==0) return 1;
   }
 
   // Get a list of all temperatures present in input REMD trajectories
@@ -242,7 +251,7 @@ int RemdTraj::GetTemperatureName(std::string &tname, const char *prefix, int rep
     mprinterr("Error: RemdTraj::GetTemperatureName: TemperatureList not set.\n");
     return 1;
   }
-  if (prefix==NULL) return 1;
+  if (prefix==0) return 1;
   if (repnum<0 || repnum >= (int)REMDtraj_.size()) return 1;
 
   std::string Prefix( prefix );
@@ -290,6 +299,21 @@ void RemdTraj::closeTraj() {
   }
 }
 
+bool RemdTraj::IsTarget(double tempIn, const int* idxIn) {
+  if ( targetType_ == TEMP ) {
+    if ( tempIn == remdtrajtemp_ ) return true;
+  } else {
+    const int* tgtIdx = idxIn;
+    for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
+    {
+      if ( *tgtIdx != *idx ) return false;
+      ++tgtIdx;
+    }
+    return true;
+  }
+  return false;
+}
+
 // RemdTraj::readFrame()
 /** Read the next frame from the list of input trajectories. Choose the
   * one that matches remdtrajtemp. Write trajectories if specified.
@@ -299,13 +323,14 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
   std::vector<TrajectoryIO *>::iterator reptrajout;
   int trajout, nrep;
   bool found = false;
+  int Idx[2]; Idx[0] = 0; Idx[1] = 0; // DEBUG
   
   for (reptrajin=REMDtraj_.begin(); reptrajin!=REMDtraj_.end(); reptrajin++) {
     // No conversion to replica trajectories: Just find target temp
     if (!hasTrajout_) {
       if ((*reptrajin)->readFrame(set,X,V,box,T)) return 1;
       // Check if this is the target temp
-      if (*T == remdtrajtemp_) {
+      if ( IsTarget(*T, Idx) ) {
         //printf("REMDTRAJ: Set %i TEMP=%lf\n",set,F->T);
         return 0;
       }
@@ -315,10 +340,10 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
       // remdX, remdV, remdN is allocated in SetupTemperatureList 
       if ((*reptrajin)->readFrame(set,remdX_,remdV_,remdbox_,&remdT_)) return 1;
       // Check if this is the target temp. If so, set main Frame coords/box/temp
-      if (remdT_ == remdtrajtemp_) {
+      if ( IsTarget(remdT_, Idx) ) {
         //mprintf("REMDTRAJ: remdout: Set %i TEMP=%lf\n",set+1,remdT);
         memcpy(X, remdX_, remdN_ * sizeof(double));
-        if (V!=NULL && hasVelocity_) 
+        if (V!=0 && hasVelocity_) 
           memcpy(V, remdV_, remdN_*sizeof(double));
         memcpy(box, remdbox_, 6 * sizeof(double));
         *T = remdT_;
@@ -347,11 +372,18 @@ int RemdTraj::readFrame(int set, double *X, double *V, double *box, double *T) {
   }  // END LOOP over input remd trajectories
   if (found) return 0;
   // If we have made it here this means target was not found
-  mprinterr("\nError: RemdTraj: Final repTemp value read= %lf, set %i\n",*T,set+OUTPUTFRAMESHIFT);
-  mprinterr("Could not find target %lf in any of the replica trajectories.\n",
-            remdtrajtemp_);
+  if (targetType_ == TEMP) {
+    mprinterr("\nError: RemdTraj: Final repTemp value read= %lf, set %i\n",*T,set+OUTPUTFRAMESHIFT);
+    mprinterr("Could not find target %lf in any of the replica trajectories.\n",
+              remdtrajtemp_);
+  } else {
+    mprinterr("Error: RemdTraj: Could not find target indices ");
+    for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx!=remdtrajidx_.end(); ++idx)
+      mprinterr("%i,",*idx);
+    mprinterr(" in any of the replica trajectories.\n");
+  } 
   mprinterr("Check that all replica trajectory files were found and that\n");
-  mprinterr("none of the trajectories are corrupted (e.g. missing a temperature).\n");
+  mprinterr("none of the trajectories are corrupted (e.g. missing a temperature etc).\n");
   return 1;
 }
 
