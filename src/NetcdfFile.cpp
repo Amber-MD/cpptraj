@@ -276,6 +276,7 @@ int NetcdfFile::SetupMultiD() {
   // Print info for each dimension
   for (int dim = 0; dim < remd_dimension_; ++dim)
     mprintf("\tDim %i: type %i\n",dim+1, remd_dimtype[dim]);
+  delete[] remd_dimtype;
   return 0; 
 }
 
