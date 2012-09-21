@@ -59,7 +59,8 @@ class ArgList {
     bool CommandIs(const char*);
     //bool CommandIs(const char*,size_t);
     /// Return the number of arguments
-    int Nargs() { return (int)arglist.size(); }
+    int Nargs()  { return (int)arglist.size(); }
+    bool empty() { return arglist.empty();     }
     /// Return const char* to next unmarked string.
     ConstArg getNextString();
     /// Return the next unmarked string
@@ -82,8 +83,6 @@ class ArgList {
     int getKeyInt(const char *, int);
     /// Return the double following the given key
     double getKeyDouble(const char*, double);
-    /// Return the comma-separated arg following the given key
-    ArgList getKeyArgList(const char *);
     /// Return true if the key is present in the list
     bool hasKey(const char*);
     /// Return true if they key is in the list but do not mark.
