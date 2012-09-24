@@ -32,7 +32,11 @@ class ArgList {
     ArgList(std::string const&, const char*);
     ArgList(const ArgList&);
     ArgList& operator=(const ArgList &);
-    std::string const& operator[](int); 
+    std::string const& operator[](int);
+    // Iterators
+    typedef std::vector<std::string>::const_iterator const_iterator;
+    const_iterator begin() { return arglist.begin(); }
+    const_iterator end()   { return arglist.end();   }
     /// Set the debug level
     void SetDebug(int);
     /// Set up argument list from string using space as a separator.
