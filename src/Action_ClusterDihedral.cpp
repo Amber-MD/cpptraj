@@ -280,7 +280,7 @@ void Action_ClusterDihedral::print() {
   {
     if ( (*DC).Count() > CUT_ ) {
       //mprintf("DEBUG: Cluster %li has %i frames.\n", num, (*DC).NumFrames());
-      output.Printf("Cluster %10li %10li [ ", num, (*DC).Count());
+      output.Printf("Cluster %10li %10li [ ", num+1, (*DC).Count());
       for (DCnode::bin_it binid = (*DC).binbegin(); binid != (*DC).binend(); ++binid)
         output.Printf("%3i ", *binid);
       output.Printf(" ]\n");
@@ -306,7 +306,7 @@ void Action_ClusterDihedral::print() {
                                          cnum != framecluster.end(); ++cnum)
     {
       // Frame, cluster num, cluster count
-      output.Printf("%10li %10i %10li ", num++, *cnum, dcarray_[*cnum].Count());
+      output.Printf("%10li %10i %10li ", num++, *cnum + 1, dcarray_[*cnum].Count());
       // Print binID
       for (DCnode::bin_it binid = dcarray_[*cnum].binbegin();
                           binid != dcarray_[*cnum].binend(); ++binid)
