@@ -36,18 +36,19 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Top
     mprinterr("Error: Could not set up file %s for reading.\n", tnameIn.c_str());
     return 1;
   }
+  // Set up the format for reading and get the number of frames.
+  if (SetupTrajIO( trajio_, argIn )) return 1;
+  // Check how many frames will actually be read
+  if (setupFrameInfo() == 0) return 1;
   // If the trajectory has box coords, set the box type from the box Angles.
   if (trajio_->CheckBoxInfo(TrajParm())!=0) {
     mprinterr("Error in trajectory %s box information.\n",BaseTrajStr());
     return 1;
   }
-  // Set up the format for reading and get the number of frames.
-  if (StartStopOffset( trajio_, argIn )) return 1;
-  // Check how many frames will actually be read
-  if (setupFrameInfo() == 0) return 1;
   return 0;
 }
 
+// Trajin_Single::BeginTraj()
 int Trajin_Single::BeginTraj(bool showProgress) {
   // Open the trajectory
   if (trajio_->openTraj()) {
@@ -59,10 +60,12 @@ int Trajin_Single::BeginTraj(bool showProgress) {
   return 0;
 }
 
+// Trajin_Single::EndTraj()
 void Trajin_Single::EndTraj() {
   trajio_->closeTraj();
 }
 
+// Trajin_Single::GetNextFrame()
 int Trajin_Single::GetNextFrame( Frame& frameIn ) {
   // If the current frame is out of range, exit
   if ( CheckFinished() ) return 0;
@@ -79,6 +82,7 @@ int Trajin_Single::GetNextFrame( Frame& frameIn ) {
   return 1;
 }
 
+// Trajin_Single::PrintInfo()
 void Trajin_Single::PrintInfo(int showExtended) {
   mprintf("  [%s] ",BaseTrajStr());
   trajio_->info();
@@ -91,6 +95,7 @@ void Trajin_Single::PrintInfo(int showExtended) {
   mprintf("\n");
 }
 
+// Trajin_Single::HasVelocity()
 bool Trajin_Single::HasVelocity() {
   if (trajio_!=0) return trajio_->HasVelocity();
   return false;

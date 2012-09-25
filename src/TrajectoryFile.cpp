@@ -103,11 +103,11 @@ int TrajectoryFile::SetTrajParm( Topology* tparmIn ) {
   return 0;
 }
 
-// TrajectoryFile::SetupTrajectoryIO()
+// TrajectoryFile::AllocTrajIO()
 /** \param tformat Trajectory format to set up for.
   * \return TrajectoryIO class based on tformat. 0 on error.
   */
-TrajectoryIO* TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
+TrajectoryIO* TrajectoryFile::AllocTrajIO(TrajFormatType tformat) {
   TrajectoryIO *tio = 0;
   switch ( tformat ) {
     case AMBERRESTART: tio = new Traj_AmberRestart(); break;
@@ -143,7 +143,7 @@ TrajectoryIO* TrajectoryFile::SetupTrajectoryIO(TrajFormatType tformat) {
 TrajectoryIO* TrajectoryFile::DetectFormat(CpptrajFile& fileIn) {
   TrajectoryIO* tio = 0;
   for (int fmtidx = (int)UNKNOWN_TRAJ + 1; fmtidx != (int)NTRAJ; ++fmtidx) {
-    tio = SetupTrajectoryIO( (TrajFormatType)fmtidx );
+    tio = AllocTrajIO( (TrajFormatType)fmtidx );
     if (tio != 0) {
       // Set TrajectoryIO file information from input file. 
       tio->TrajectoryIO::operator=( fileIn ); // NOTE: Should also set debug

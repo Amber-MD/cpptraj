@@ -34,7 +34,7 @@ class TrajectoryFile {
   protected:
     int debug_;            ///< Trajectory debug level.
 
-    TrajectoryIO* SetupTrajectoryIO(TrajFormatType);
+    TrajectoryIO* AllocTrajIO(TrajFormatType);
     TrajectoryIO* DetectFormat(CpptrajFile&);
   private:
     /// Strings describing each TrajFormatType

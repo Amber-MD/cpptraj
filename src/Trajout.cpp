@@ -55,7 +55,7 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
     }
   }
   // Set up for the specified format
-  trajio_ = SetupTrajectoryIO( writeFormat );
+  trajio_ = AllocTrajIO( writeFormat );
   if (trajio_ == 0) return 1;
   // Set up file information from the baseFile
   trajio_->TrajectoryIO::operator=( baseFile ); // NOTE: Should also set debug 

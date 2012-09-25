@@ -219,9 +219,14 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     REMDtraj_.push_back( replica0 );
     if (lowestRep) {
       // Set up the lowest for reading and get the number of frames.
-      if (StartStopOffset( replica0, argIn )) return 1;
+      if (SetupTrajIO( replica0, argIn )) return 1;
       // Check how many frames will actually be read
       if (setupFrameInfo() == 0) return 1;
+      // If lowest has box coords, set box type from box Angles
+      if (replica0->CheckBoxInfo( TrajParm() ) != 0) {
+        mprinterr("Error in replica %s box info.\n", (*repfile).c_str());
+        return 1;
+      }
       // If lowest rep has box info, all others must have box info.
       repBoxInfo = replica0->HasBox();
       // If lowest rep has velocity, all others must have velocity.
@@ -285,6 +290,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   return 0;
 }
 
+// Trajin_Multi::BeginTraj()
 int Trajin_Multi::BeginTraj(bool showProgress) {
   // Open the trajectories
   mprintf("\tREMD: OPENING REMD TRAJECTORIES\n");
@@ -301,11 +307,13 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
   return 0;
 }
 
+// Trajin_Multi::EndTraj()
 void Trajin_Multi::EndTraj() {
   for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     (*replica)->closeTraj();
 }
 
+// Trajin_Multi::IsTarget()
 bool Trajin_Multi::IsTarget(double tempIn) {
   if ( targetType_ == TEMP ) {
     if ( tempIn == remdtrajtemp_ ) return true;
@@ -321,6 +329,7 @@ bool Trajin_Multi::IsTarget(double tempIn) {
   return false;
 }
 
+// Trajin_Multi::GetNextFrame()
 int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
   // If the current frame is out of range, exit
   if ( CheckFinished() ) return 0;
@@ -350,6 +359,7 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
   return 1;
 }
 
+// Trajin_Multi::PrintInfo()
 void Trajin_Multi::PrintInfo(int showExtended) {
   mprintf("  REMD trajectories (%u total), lowest replica [%s]\n", REMDtraj_.size(),
           BaseTrajStr());

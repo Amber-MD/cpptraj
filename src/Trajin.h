@@ -13,7 +13,7 @@ class Trajin : public TrajectoryFile {
     virtual void PrintInfo(int) = 0;
     virtual bool HasVelocity() = 0;
 
-    int StartStopOffset( TrajectoryIO*, ArgList* ); 
+    int SetupTrajIO( TrajectoryIO*, ArgList* ); 
     int setupFrameInfo();
     void SingleFrame();
     void PrepareForRead(bool,bool);

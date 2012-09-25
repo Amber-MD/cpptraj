@@ -15,7 +15,8 @@ Trajin::Trajin() :
   useProgress_(true)
 {}
 
-int Trajin::StartStopOffset( TrajectoryIO* trajio, ArgList* argIn ) {
+// Trajin::SetupTrajIO()
+int Trajin::SetupTrajIO( TrajectoryIO* trajio, ArgList* argIn ) {
   // -1 indicates an error.
   // -2 indicates the number of frames could not be determined, read to EOF.
   total_frames_ = trajio->setupTrajin(TrajParm());
