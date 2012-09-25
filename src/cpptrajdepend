@@ -124,7 +124,6 @@ ProgressBar.o : ProgressBar.cpp CpptrajStdio.h ProgressBar.h
 PubFFT.o : PubFFT.cpp PubFFT.h
 Random.o : Random.cpp CpptrajStdio.h Random.h
 Range.o : Range.cpp ArgList.h CpptrajStdio.h Range.h
-RemdTraj.o : RemdTraj.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h RemdTraj.h Residue.h Topology.h TrajectoryIO.h Vec3.h
 Residue.o : Residue.cpp NameType.h Residue.h
 Thermo.o : Thermo.cpp Constants.h Matrix_3x3.h Vec3.h
 Topology.o : Topology.cpp Atom.h AtomMask.h Box.h CpptrajStdio.h DistRoutines.h Frame.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h Vec3.h
