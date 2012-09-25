@@ -2,16 +2,13 @@
 #include <cstddef> //NULL
 #include "TrajinList.h"
 #include "CpptrajStdio.h"
-//#include "MpiRoutines.h" // worldrank,worldsize
+#include "Trajin_Single.h"
+#include "Trajin_Multi.h"
 
-TrajinList::TrajinList() : debug_(0)
-{ 
-  currentTraj_ = trajin_.end();
-}
+TrajinList::TrajinList() : debug_(0) { }
 
 TrajinList::~TrajinList() {
-  for (std::vector<TrajectoryFile*>::iterator traj = trajin_.begin();
-                                              traj != trajin_.end(); traj++)
+  for (ListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj)
     delete *traj;
 }
 
@@ -23,8 +20,12 @@ TrajinList::~TrajinList() {
   *        [remdtraj remdtrajtemp <T>]
   */
 int TrajinList::AddTrajin(ArgList *argIn, Topology *parmIn) {
-  TrajectoryFile *traj = new TrajectoryFile(); 
-  if (traj==NULL) {
+  Trajin* traj = 0;
+  if (argIn != 0 && argIn->hasKey("remdtraj"))
+    traj = new Trajin_Multi();
+  else
+    traj = new Trajin_Single(); 
+  if (traj==0) {
     mprinterr("Error: TrajinList::Add: Could not allocate memory for traj.\n");
     return 1;
   }
@@ -49,13 +50,11 @@ int TrajinList::AddTrajin(ArgList *argIn, Topology *parmIn) {
   * Return the total number of frames to be processed across all trajins.
   */
 int TrajinList::SetupFrames() {
-  std::vector<TrajectoryFile*>::iterator traj;
   int maxFrames = 0;
 
-  for (std::vector<TrajectoryFile*>::iterator traj = trajin_.begin(); 
-                                              traj != trajin_.end(); traj++) 
+  for (ListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj) 
   {
-    int trajFrames = (*traj)->Total_Read_Frames();
+    int trajFrames = (*traj)->TotalReadFrames();
     // If < 0 frames this indicates the number of frames could not be determined. 
     if (trajFrames < 0) {
       maxFrames = -1;
@@ -69,21 +68,5 @@ int TrajinList::SetupFrames() {
   }
 
   return maxFrames;
-}
-
-// TrajinList::Begin()
-void TrajinList::Begin() {
-  currentTraj_ = trajin_.begin();
-}
-
-// TrajinList::NextTraj()
-/** /return Trajectory pointed to by iterator, or NULL if no more trajectories.
-  */
-TrajectoryFile *TrajinList::NextTraj() {
-  if (currentTraj_ == trajin_.end()) 
-    return NULL;
-  TrajectoryFile *trj = *currentTraj_;
-  ++currentTraj_;
-  return trj;
 }
 

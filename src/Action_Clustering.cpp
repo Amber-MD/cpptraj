@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 #include "DataSet_integer.h" // For converting cnumvtime
+#include "Trajout.h"
 
 // CONSTRUCTOR
 Action_Clustering::Action_Clustering() :
@@ -445,7 +446,7 @@ void Action_Clustering::WriteClusterTraj( ClusterList &CList ) {
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
     // Use parm from first frame of cluster (pot. dangerous)
-    TrajectoryFile *clusterout = new TrajectoryFile;
+    Trajout *clusterout = new Trajout;
     ClusterNode::frame_iterator frame = (*C).beginframe();
     Topology *clusterparm = ReferenceFrames_.GetFrameParm( *frame );
     if (clusterout->SetupTrajWrite(cfilename, NULL, clusterparm, clusterfmt_)) 
@@ -474,7 +475,7 @@ void Action_Clustering::WriteClusterTraj( ClusterList &CList ) {
 // Action_Clustering::WriteSingleRepTraj()
 /** Write representative frame of each cluster to a trajectory file.  */
 void Action_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
-  TrajectoryFile clusterout;
+  Trajout clusterout;
 
   // Find centroid of first cluster in order to set up parm
   // NOTE: This is redundant if the Summary routine has already been called.
@@ -519,7 +520,7 @@ void Action_Clustering::WriteRepTraj( ClusterList &CList ) {
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
-    TrajectoryFile *clusterout = new TrajectoryFile();
+    Trajout *clusterout = new Trajout();
     // Find centroid of first cluster in order to set up parm
     int framenum = (*C).Centroid();
     // Create filename

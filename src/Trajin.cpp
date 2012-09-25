@@ -11,6 +11,7 @@ Trajin::Trajin() :
   currentFrame_(0),
   targetSet_(0),
   frameskip_(1),
+  numFramesProcessed_(0),
   useProgress_(true)
 {}
 
@@ -37,7 +38,7 @@ int Trajin::StartStopOffset( TrajectoryIO* trajio, ArgList* argIn ) {
     stop_ = -1;
   // Set the start, stop, and offset args based on user input. Do some bounds
   // checking. 
-  if (argIn != NULL) {
+  if (argIn != 0) {
     // Frame args start at 1. Internal frame #s start at 0. 
     // So for a traj with 10 frames:
     // - Internal #: 0 1 2 3 4 5 6 7 8 9
@@ -170,4 +171,53 @@ int Trajin::setupFrameInfo() {
   }
 
   return total_read_frames_;
+}
+
+// Trajin::SingleFrame()
+/** Tell the trajectory to set up stop and offset so that only start frame
+  * will be processed.
+  */
+void Trajin::SingleFrame() {
+  stop_ = start_ + 1;
+  offset_ = 1;
+  // Call setupFrameInfo to recalc total_read_frames. Since setupFrameInfo 
+  // should have already been called in SetupRead (and thus any errors 
+  // handled there) dont check for an error here. It should return 1.
+  if ( setupFrameInfo() != 1 ) {
+    mprintf("  Warning: Single frame requested for %s but not calcd!\n",BaseTrajStr());
+    mprintf("           start/stop/offset (%i, %i, %i)\n",start_+1,stop_+1,offset_);
+  }
+}
+
+void Trajin::PrepareForRead(bool useIn, bool seekable) {
+  numFramesProcessed_ = 0;
+  // Setup progress bar
+  useProgress_ = useIn;
+  if (useProgress_) progress_.SetupProgress( total_read_frames_ );
+  // Determine what frames will be read
+  targetSet_ = start_;
+  if (seekable) {
+    frameskip_ = offset_;
+    currentFrame_ = start_;
+  } else {
+    frameskip_ = 1;
+    currentFrame_ = 0;
+  }
+}
+
+void Trajin::PrintInfoLine() {
+  if (stop_ != -1)
+    rprintf( "----- [%s] (%i-%i, %i) -----\n",BaseTrajStr(),start_+1,stop_+1,offset_);
+  else
+    rprintf( "----- [%s] (%i-EOF, %i) -----\n",BaseTrajStr(),start_+1,offset_);
+}
+
+void Trajin::PrintFrameInfo() {
+  if (stop_!=-1 && total_frames_>0)
+    //mprintf(": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,total_frames);
+    mprintf(" (reading %i of %i)",total_read_frames_,total_frames_);
+  else if (stop_!=-1 && total_frames_ < 0)
+    mprintf(" (reading %i)",total_read_frames_);
+  else
+    mprintf(", unknown #frames, start=%i offset=%i",start_,offset_);
 }

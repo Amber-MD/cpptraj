@@ -66,7 +66,7 @@ int Action_Rms2d::init() {
     if (maskRef==NULL) maskRef=mask0;
     RefMask_.SetMaskString(maskRef);
     // Attempt to set up reference trajectory
-    RefTraj_ = new TrajectoryFile();
+    RefTraj_ = new Trajin_Single();
     if (RefTraj_->SetupTrajRead(reftraj, NULL, RefParm_)) {
       mprinterr("Error: Rms2d: Could not set up reftraj %s.\n",reftraj.c_str());
       return 1;
@@ -77,7 +77,7 @@ int Action_Rms2d::init() {
   if (!reftraj.empty()) {
     // Set up reference trajectory and open
     mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_->FullTrajStr(),
-            RefMask_.MaskString(), RefTraj_->Total_Read_Frames());
+            RefMask_.MaskString(), RefTraj_->TotalReadFrames());
   }
   if (nofit_)
     mprintf(" (no fitting)");
@@ -236,7 +236,7 @@ DataSet* Action_Rms2d::CalcRmsToTraj() {
   // Setup frame for selected reference atoms
   SelectedRef.SetupFrameFromMask(RefMask_, RefParm_->Atoms()); 
   RefFrame.SetupFrameM(RefParm_->Atoms());
-  int totalref = RefTraj_->Total_Read_Frames();
+  int totalref = RefTraj_->TotalReadFrames();
 
   int totaltgt = ReferenceCoords_.Ncoords();
   int max = totalref * totaltgt;

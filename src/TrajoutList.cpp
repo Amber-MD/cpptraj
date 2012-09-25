@@ -7,8 +7,7 @@
 TrajoutList::TrajoutList() { }
 
 TrajoutList::~TrajoutList() {
-  for (std::vector<TrajectoryFile*>::iterator traj = trajout_.begin(); 
-                                              traj != trajout_.end(); traj++) 
+  for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj) 
     delete *traj;
 }
 
@@ -33,7 +32,7 @@ int TrajoutList::AddTrajout(ArgList *argIn, Topology *parmIn) {
     return 1;
   }
 
-  TrajectoryFile *traj = new TrajectoryFile();
+  Trajout *traj = new Trajout();
   if (traj==NULL) {
     mprinterr("Error: TrajoutList::Add: Could not allocate memory for traj.\n");
     return 1;
@@ -60,8 +59,7 @@ int TrajoutList::AddTrajout(ArgList *argIn, Topology *parmIn) {
   * be opened, no need to call BeginTraj.
   */ 
 int TrajoutList::Write(int set, Topology *CurrentParm, Frame *CurrentFrame) { 
-  for (std::vector<TrajectoryFile*>::iterator traj = trajout_.begin(); 
-                                              traj != trajout_.end(); traj++) 
+  for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj) 
   {
     if ( (*traj)->WriteFrame(set, CurrentParm, *CurrentFrame) ) {
       mprinterr("Error writing output trajectory.\n");
@@ -76,8 +74,7 @@ int TrajoutList::Write(int set, Topology *CurrentParm, Frame *CurrentFrame) {
 /** Close output trajectories. Called after input traj processing completed.
   */
 void TrajoutList::Close() {
-  for (std::vector<TrajectoryFile*>::iterator traj = trajout_.begin(); 
-                                              traj != trajout_.end(); traj++) 
+  for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
     (*traj)->EndTraj();
 }
 
@@ -85,8 +82,7 @@ void TrajoutList::Info() {
   if (trajout_.empty()) {
     mprintf("  No files.\n");
   } else {
-    for (std::vector<TrajectoryFile*>::iterator traj = trajout_.begin();
-                                                traj != trajout_.end(); traj++)
+    for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
       (*traj)->PrintInfo( 1 );
   }
 }

@@ -18,7 +18,10 @@ class Trajout : public TrajectoryFile {
     void EndTraj();
     int WriteFrame(int, Topology*, Frame&);
     void PrintInfo(int);
+
+    int NumFramesProcessed() { return numFramesProcessed_; }
   private:
+    int numFramesProcessed_;
     TrajectoryIO* trajio_;
     bool trajIsOpen_;                  ///< If true trajectory has been opened.
     bool nobox_;                       ///< If true do not put box information in output traj

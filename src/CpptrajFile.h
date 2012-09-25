@@ -21,7 +21,7 @@ class CpptrajFile {
     int OpenWrite(std::string const&);
     int OpenAppend(std::string const&);
     /// Prepare file for appending. 
-    int SetupAppend(const char*, int);
+    int SetupAppend(std::string const&, int);
     /// Open file.
     int OpenFile();
     /// Close file.

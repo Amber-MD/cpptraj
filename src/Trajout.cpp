@@ -3,6 +3,7 @@
 
 // CONSTRUCTOR
 Trajout::Trajout() :
+  numFramesProcessed_(0),
   trajio_(0),
   trajIsOpen_(false),
   nobox_(false),
@@ -137,6 +138,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
     // If a framerange is defined set it to the begining of the range
     if (hasRange_)
       rangeframe_ = FrameRange_.begin();
+    numFramesProcessed_ = 0;
   }
   // If there is a framerange defined, check if this frame matches. If so,
   // write this frame and increment to the next frame in the range.
@@ -153,7 +155,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
   //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
   if (trajio_->writeFrame(set, FrameOut.xAddress(), FrameOut.vAddress(),
                                FrameOut.bAddress(), FrameOut.Temperature())) return 1;
-  //++numFramesProcessed_;
+  ++numFramesProcessed_;
 
   return 0;
 }

@@ -3,6 +3,22 @@
 #include "Trajin_Multi.h"
 #include "CpptrajStdio.h"
 
+// CONSTRUCTOR
+Trajin_Multi::Trajin_Multi() :
+    remdtrajtemp_(0.0),
+  remd_indices_(0),
+  lowestRepnum_(0),
+  isSeekable_(true),
+  hasVelocity_(false),
+  targetType_(TEMP)
+{}
+
+// DESTRUCTOR
+Trajin_Multi::~Trajin_Multi() {
+  for (IOarrayType::iterator replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    delete *replica;
+}
+
 // PrintNoExtError()
 static void PrintNoExtError(const char* nameIn) {
   mprinterr("Error: Traj %s has no numerical extension, required for automatic\n", nameIn);
@@ -185,6 +201,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   // Loop over all filenames in replica_filenames 
   bool lowestRep = true;
   bool repBoxInfo = false;
+  isSeekable_ = true;
+  hasVelocity_ = false;
   for (std::vector<std::string>::iterator repfile = replica_filenames.begin();
                                           repfile != replica_filenames.end(); ++repfile)
   {
@@ -206,6 +224,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
       if (setupFrameInfo() == 0) return 1;
       // If lowest rep has box info, all others must have box info.
       repBoxInfo = replica0->HasBox();
+      // If lowest rep has velocity, all others must have velocity.
+      hasVelocity_ = replica0->HasVelocity();
     } else {
       // Check total frames in this replica against lowest rep.
       int repframes = replica0->setupTrajin( TrajParm() );
@@ -228,7 +248,16 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
                   (*repfile).c_str());
         return 1;
       }
+      // Check velocity info against lowest rep.
+      if ( replica0->HasVelocity() != hasVelocity_ ) {
+        mprinterr("Error: RemdTraj: Replica %s velocity info does not match first replica.\n",
+                  (*repfile).c_str());
+        return 1;
+      }
     }
+    // All must be seekable or none will be
+    if (isSeekable_ && !replica0->Seekable())
+      isSeekable_ = false;
     // Check for temperature information
     if ( !replica0->HasTemperature()) {
       mprinterr("Error: RemdTraj: Replica %s does not have temperature info.\n",
@@ -244,6 +273,99 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     }
     lowestRep = false;
   }
+  if (REMDtraj_.empty()) {
+    mprinterr("Error: No replica trajectories set up.\n");
+    return 1;
+  }
+  if (!isSeekable_) {
+    mprinterr("Error: Currently all replica trajectories must be seekable.\n");
+    return 1;
+  }
 
   return 0;
+}
+
+int Trajin_Multi::BeginTraj(bool showProgress) {
+  // Open the trajectories
+  mprintf("\tREMD: OPENING REMD TRAJECTORIES\n");
+  for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+  {
+    if ( (*replica)->openTraj()) {
+      mprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica # %zu\n",
+                replica - REMDtraj_.begin() );
+      return 1;
+    }
+  }
+  // Set progress bar, start and offset.
+  PrepareForRead( showProgress, isSeekable_ );
+  return 0;
+}
+
+void Trajin_Multi::EndTraj() {
+  for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    (*replica)->closeTraj();
+}
+
+bool Trajin_Multi::IsTarget(double tempIn) {
+  if ( targetType_ == TEMP ) {
+    if ( tempIn == remdtrajtemp_ ) return true;
+  } else {
+    const int* tgtIdx = remd_indices_;
+    for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
+    {
+      if ( *tgtIdx != *idx ) return false;
+      ++tgtIdx;
+    }
+    return true;
+  }
+  return false;
+}
+
+int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
+  // If the current frame is out of range, exit
+  if ( CheckFinished() ) return 0;
+
+  bool tgtFrameFound = false;
+  while ( !tgtFrameFound ) {
+    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    {
+      // Locate the target temp/indices out of all the replicas
+      if ( (*replica)->readFrame(CurrentFrame(), frameIn.xAddress(), frameIn.vAddress(),
+                                 frameIn.bAddress(), frameIn.tAddress()))
+        return 0;
+      (*replica)->readIndices(CurrentFrame(),remd_indices_);
+      // Check if this is the target replica
+      if ( IsTarget(frameIn.Temperature()) ) {
+        //printf("REMDTRAJ: Set %i TEMP=%lf\n",set,F->T);
+        //mprintf("REMDTRAJ: Replica %zu matches!\n", reptrajin - REMDtraj_.begin());
+        // TODO: I think if !isSeekable this will break the read since some
+        //       trajectories will not have readFrame called and so will be
+        //       behind those that did.
+        break;
+      }
+    } // END loop over replicas
+    tgtFrameFound = ProcessFrame();
+  }
+
+  return 1;
+}
+
+void Trajin_Multi::PrintInfo(int showExtended) {
+  mprintf("  REMD trajectories (%u total), lowest replica [%s]\n", REMDtraj_.size(),
+          BaseTrajStr());
+  if (showExtended == 1) {
+    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    {
+      mprintf("\t");
+      (*replica)->info();
+    }
+  }
+  if (remdtrajidx_.empty())
+    mprintf("\tLooking for frames at %.2lf K",remdtrajtemp_);
+  else {
+    mprintf("\tLooking for indices [");
+    for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
+      mprintf(" %i", *idx);
+    mprintf(" ]");
+  }
 }

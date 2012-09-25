@@ -1,7 +1,7 @@
 // Action_Average
 #include "Action_Average.h"
 #include "CpptrajStdio.h"
-#include "TrajectoryFile.h"
+#include "Trajout.h"
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
@@ -140,7 +140,7 @@ int Action_Average::action() {
 
 // Action_Average::print()
 void Action_Average::print() {
-  TrajectoryFile outfile;
+  Trajout outfile;
   double d_Nframes;
 
   if (Nframes_ < 1) return;

@@ -2,7 +2,7 @@
 #define INC_ACTION_OUTTRAJ_H
 // Action_Outtraj
 #include "Action.h"
-#include "TrajectoryFile.h"
+#include "Trajout.h"
 /// Write out a trajectory inside the ActionList
 class Action_Outtraj: public Action {
   public:
@@ -12,7 +12,7 @@ class Action_Outtraj: public Action {
     int action();
     void print();
 
-    TrajectoryFile outtraj_;
+    Trajout outtraj_;
     double max_;
     double min_;
     DataSet* Dset_;

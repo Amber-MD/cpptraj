@@ -1,6 +1,6 @@
 #ifndef INC_TRAJINLIST_H
 #define INC_TRAJINLIST_H
-#include "TrajectoryFile.h"
+#include "Trajin.h"
 // Class: TrajinList
 /// Hold input trajectories
 class TrajinList {
@@ -13,12 +13,13 @@ class TrajinList {
     /// Set up frames to be processed 
     int SetupFrames();
 
-    void Begin();
-    TrajectoryFile *NextTraj();
+    typedef std::vector<Trajin*> ListType;
+    typedef ListType::const_iterator const_iterator;
+    const_iterator begin() { return trajin_.begin(); }
+    const_iterator end()   { return trajin_.end();   }
   private:
-    std::vector<TrajectoryFile*> trajin_;
+    std::vector<Trajin*> trajin_;
     int debug_;
-    std::vector<TrajectoryFile*>::iterator currentTraj_;
 };
 #endif
 

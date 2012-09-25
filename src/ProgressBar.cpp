@@ -12,16 +12,11 @@ ProgressBar::ProgressBar() :
   unknownframes_(true)
 {}
 
-// CONSTRUCTOR
-/** Takes value needed to be considered complete as input. If expected
-  * max is less than 0 assume max number of iterations is unknown.
-  */
-ProgressBar::ProgressBar(int maxIn) :
-  max_(maxIn - 1),
-  C_over_max_(1.0),
-  targetPercent_(0.0),
-  unknownframes_(false)
-{
+void ProgressBar::SetupProgress(int maxIn) {
+  max_ = maxIn - 1;
+  C_over_max_ = 1.0;
+  targetPercent_ = 0.0;
+  unknownframes_ = false;
   if (max_ < 0) {
     unknownframes_ = true;
     mprintf("\tProgress: '+' = %i iterations.\n", UNKNOWN_FRAMESIZE);
@@ -33,6 +28,14 @@ ProgressBar::ProgressBar(int maxIn) :
     else 
       C_over_max_ = 100.0 / (float)max_;
   }
+}
+
+// CONSTRUCTOR
+/** Takes value needed to be considered complete as input. If expected
+  * max is less than 0 assume max number of iterations is unknown.
+  */
+ProgressBar::ProgressBar(int maxIn) {
+  SetupProgress( maxIn );
 }
 
 // ProgressBar::Update()

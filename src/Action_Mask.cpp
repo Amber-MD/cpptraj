@@ -1,7 +1,7 @@
 // Action_Mask
 #include "Action_Mask.h"
 #include "CpptrajStdio.h"
-#include "TrajectoryFile.h"
+#include "Trajout.h"
 
 // CONSTRUCTOR
 Action_Mask::Action_Mask() 
@@ -43,7 +43,7 @@ int Action_Mask::init( ) {
 
 // Action_Mask::action()
 int Action_Mask::action() {
-  TrajectoryFile pdbout;
+  Trajout pdbout;
 
   // Get atom selection
   if ( currentParm->SetupCharMask(Mask1_, *currentFrame) ) {

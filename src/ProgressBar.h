@@ -5,7 +5,7 @@ class ProgressBar {
   public:
     ProgressBar();
     ProgressBar(int);
-
+    void SetupProgress(int);
     void Update(int);
   private:
     static const int UNKNOWN_FRAMESIZE;

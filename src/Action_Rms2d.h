@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_RMS2D_H
 #define INC_ACTION_RMS2D_H
 #include "Action.h"
-#include "TrajectoryFile.h"
+#include "Trajin_Single.h"
 #include "CoordList.h"
 #include "TriangleMatrix.h"
 // Class: Action_Rms2d
@@ -23,7 +23,7 @@ class Action_Rms2d: public Action {
     AtomMask RefMask_;          ///< Reference atom mask
     AtomMask FrameMask_;        ///< Target atom mask
     std::string rmsdFile_;      ///< Output filename
-    TrajectoryFile* RefTraj_;   ///< Reference trajectory, each frame used in turn
+    Trajin_Single* RefTraj_;   ///< Reference trajectory, each frame used in turn
     Topology* RefParm_;         ///< Reference trajectory Parm
     std::string corrfilename_;        ///< Auto-correlation output filename
     Topology* mass_ptr_;        ///< If useMass, hold mass info for parm.

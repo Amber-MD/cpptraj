@@ -337,9 +337,19 @@ int CpptrajFile::OpenAppend(std::string const& nameIn) {
   * the type and format.
   * \return 0 on success, 1 on error.
   */
-int CpptrajFile::SetupAppend(const char *filenameIn, int debugIn) {
-  // First set up for read to determine type and format.
-  if (SetupRead(filenameIn,debugIn)!=0) return 1;
+int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
+  // Make append to NULL an error
+  if (filenameIn.empty()) {
+    mprinterr("Error: SetupAppend(): NULL filename specified\n");
+    return 1;
+  }
+  if (fileExists(filenameIn.c_str())) {
+    // If file exists, first set up for read to determine type and format.
+    if (SetupRead(filenameIn,debugIn)!=0) return 1;
+  } else {
+    // File does not exist, just set up for write.
+    if (SetupWrite(filenameIn,debugIn)!=0) return 1;
+  }
   access_ = APPEND;
   if (debug_>0)
     mprintf("CpptrajFile: Changed %s access to APPEND.\n",FullFileStr());

@@ -3,7 +3,7 @@
 #include <vector>
 #include "Action.h"
 #include "Range.h"
-#include "TrajectoryFile.h"
+#include "Trajin_Single.h"
 // Class: Action_Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
 class Action_Rmsd: public Action {
@@ -46,7 +46,7 @@ class Action_Rmsd: public Action {
     Topology* RefParm_; // Needed for PerResSetup
     Frame SelectedRef_;
     AtomMask RefMask_;
-    TrajectoryFile RefTraj_;
+    Trajin_Single RefTraj_;
     int SetRefMask( Topology* );
     void SetRefStructure( Frame& );
 

@@ -1,8 +1,7 @@
 #ifndef INC_TRAJOUTLIST_H
 #define INC_TRAJOUTLIST_H
 #include "FileList.h"
-#include "TrajectoryFile.h"
-#include "Frame.h"
+#include "Trajout.h"
 // Class: TrajoutList
 /// Hold trajectories for output
 class TrajoutList : public FileList {
@@ -17,7 +16,8 @@ class TrajoutList : public FileList {
     void Close();
     void Info();
   private:
-    std::vector<TrajectoryFile*> trajout_;
+    typedef std::vector<Trajout*> ListType;
+    ListType trajout_;
 };
 #endif
 

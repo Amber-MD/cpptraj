@@ -1,6 +1,6 @@
 // FrameList
 #include "FrameList.h"
-#include "TrajectoryFile.h"
+#include "Trajin_Single.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -43,7 +43,7 @@ void FrameList::SetActiveRef(int numIn) {
   * respectively. Store the associated parm in FrameParm. 
   */
 int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
-  TrajectoryFile traj;
+  Trajin_Single traj;
 
   traj.SetDebug(debug_);
   // Check if we want to obtain the average structure
@@ -80,7 +80,7 @@ int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
     traj.SingleFrame();
 
   // Check number of frames to be read
-  int trajFrames = traj.Total_Read_Frames();
+  int trajFrames = traj.TotalReadFrames();
   if (trajFrames < 1) {
     mprinterr("Error: No frames could be read for reference %s\n", traj.BaseTrajStr());
     return 1;
