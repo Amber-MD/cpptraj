@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG
 #include "TorsionRoutines.h"
+#include "DataSet_integer.h"
 
 // CONSTRUCTOR
 Action_ClusterDihedral::Action_ClusterDihedral() :
@@ -233,11 +234,6 @@ int Action_ClusterDihedral::action() {
   }
   // Store frame number
   lastframe_ = frameNum;
-  // Update cvt dataset if specified
-  if (CVT_ != 0) {
-    int cvtdata = (int)dcarray_.size();
-    CVT_->Add(frameNum, &cvtdata);
-  }
   return 0;
 }
 
@@ -296,6 +292,16 @@ void Action_ClusterDihedral::print() {
     ++num;
   }
   output.CloseFile();
+
+  // Place reordered cluster nums in CVT
+  if (CVT_ != 0) {
+    DataSet_integer* iCVT = (DataSet_integer*)CVT_;
+    iCVT->Resize( framecluster.size() );
+    num = 0;
+    for (std::vector<long int>::iterator cnum = framecluster.begin();
+                                         cnum != framecluster.end(); ++cnum)
+      (*iCVT)[ num++ ] = (int)*cnum + 1;
+  }
 
   // Print cluster for each frame
   if (!framefile_.empty()) {
