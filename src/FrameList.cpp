@@ -18,6 +18,19 @@ FrameList::~FrameList() {
     delete *parm;
 }
 
+// FrameList::CheckCommand()
+int FrameList::CheckCommand(ArgList& argIn, TopologyList& topListIn) {
+  if (argIn.CommandIs("reference")) {
+    Topology* tempParm = topListIn.GetParm(argIn);
+    return AddReference( argIn, tempParm );
+  } else if (argIn.CommandIs("activeref")) {
+    SetActiveRef( argIn.getNextInteger(0) );
+    return 0;
+  }
+  return 1; // Command does not pertain to FrameList
+}
+
+// -----------------------------------------------------------------------------
 // FrameList::ActiveReference()
 /** Return the address of the frame pointed to by refFrameNum_.
   */
@@ -42,15 +55,15 @@ void FrameList::SetActiveRef(int numIn) {
   * name and frame number that this frame came from in frameNames and frameNums 
   * respectively. Store the associated parm in FrameParm. 
   */
-int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
+int FrameList::AddReference(ArgList& argIn, Topology *parmIn) {
   Trajin_Single traj;
 
   traj.SetDebug(debug_);
   // Check if we want to obtain the average structure
-  bool average = argIn->hasKey("average");
+  bool average = argIn.hasKey("average");
 
   // Set up trajectory
-  if ( traj.SetupTrajRead( argIn->GetStringNext(), argIn, parmIn ) ) {
+  if ( traj.SetupTrajRead( argIn.GetStringNext(), &argIn, parmIn ) ) {
     mprinterr("Error: reference: Could not set up trajectory.\n");
     return 1;
   }
@@ -59,10 +72,10 @@ int FrameList::AddReference(ArgList *argIn, Topology *parmIn) {
   // TODO: This is done after SetupTrajRead because forward slash is a valid
   //       mask operand for element, so getNextMask will unfortunately pick up 
   //       filenames as well as masks.
-  ArgList::ConstArg maskexpr = argIn->getNextMask();
+  ArgList::ConstArg maskexpr = argIn.getNextMask();
 
   // Check for tag - done after SetupTrajRead so traj can process args
-  std::string reftag = argIn->getNextTag();
+  std::string reftag = argIn.getNextTag();
 
   // Check and warn if filename/reftag currently in use
   if (FindName( traj.FullTrajName() )!=-1) {

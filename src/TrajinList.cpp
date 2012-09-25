@@ -1,5 +1,4 @@
 // TrajinList
-#include <cstddef> //NULL
 #include "TrajinList.h"
 #include "CpptrajStdio.h"
 #include "Trajin_Single.h"
@@ -19,18 +18,25 @@ TrajinList::~TrajinList() {
   * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
   *        [remdtraj remdtrajtemp <T>]
   */
-int TrajinList::AddTrajin(ArgList *argIn, Topology *parmIn) {
+int TrajinList::AddTrajin(ArgList& argIn, TopologyList& topListIn) {
   Trajin* traj = 0;
-  if (argIn != 0 && argIn->hasKey("remdtraj"))
+  if ( argIn.CommandIs("trajin") ) {
+    if (argIn.hasKey("remdtraj"))
+      traj = new Trajin_Multi();
+    else
+      traj = new Trajin_Single();
+  } else if ( argIn.CommandIs("ensemble") ) {
     traj = new Trajin_Multi();
-  else
-    traj = new Trajin_Single(); 
+  } else
+    return 1; // Command does not pertain to TrajinList
   if (traj==0) {
     mprinterr("Error: TrajinList::Add: Could not allocate memory for traj.\n");
     return 1;
   }
+  // Get parm from TopologyList based on args
+  Topology* tempParm = topListIn.GetParm( argIn );
   traj->SetDebug(debug_);
-  if ( traj->SetupTrajRead(argIn->GetStringNext(),argIn,parmIn) ) {
+  if ( traj->SetupTrajRead(argIn.GetStringNext(), &argIn, tempParm) ) {
     mprinterr("Error: trajin: Could not set up trajectory.\n");
     delete traj;
     return 1;

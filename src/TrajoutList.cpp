@@ -1,5 +1,4 @@
 // TrajoutList
-#include <cstddef> // NULL
 #include "TrajoutList.h"
 #include "CpptrajStdio.h"
 //#include "MpiRoutines.h" //worldsize
@@ -18,17 +17,18 @@ TrajoutList::~TrajoutList() {
   * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
   *         [<range>]
   */
-int TrajoutList::AddTrajout(ArgList *argIn, Topology *parmIn) {
+int TrajoutList::AddTrajout(ArgList& argIn, TopologyList& topListIn) {
+  if (!argIn.CommandIs("trajout")) return 1;
   // Since we need to check if this filename is in use in order to prevent
   // overwrites, determine the filename here.
-  ArgList::ConstArg filename = argIn->getNextString();
-  if (filename==NULL) {
+  std::string filename = argIn.GetStringNext();
+  if (filename.empty()) {
     mprinterr("Error: TrajoutList::Add: Called with NULL filename.\n");
     return 1;
   }
   // Check if filename is in use
   if (FindName(filename) != -1) {
-    mprinterr("Error: trajout: Filename %s already in use.\n",filename);
+    mprinterr("Error: trajout: Filename %s already in use.\n",filename.c_str());
     return 1;
   }
 
@@ -37,9 +37,11 @@ int TrajoutList::AddTrajout(ArgList *argIn, Topology *parmIn) {
     mprinterr("Error: TrajoutList::Add: Could not allocate memory for traj.\n");
     return 1;
   }
+  // Get parm from TopologyList based on args
+  Topology* tempParm = topListIn.GetParm( argIn );
   traj->SetDebug(debug_);
   // Default to AMBERTRAJ; format can be changed via args in the arg list
-  if (traj->SetupTrajWrite(filename,argIn,parmIn,TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (traj->SetupTrajWrite(filename, &argIn, tempParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: trajout: Could not set up trajectory.\n");
     delete traj;
     return 1;

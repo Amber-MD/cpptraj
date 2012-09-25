@@ -1,6 +1,7 @@
 #ifndef INC_TRAJIN_MULTI_H
 #define INC_TRAJIN_MULTI_H
 #include "Trajin.h"
+#include "FrameArray.h"
 class Trajin_Multi : public Trajin {
   public:
     Trajin_Multi();
@@ -12,6 +13,8 @@ class Trajin_Multi : public Trajin {
     int GetNextFrame( Frame& );
     void PrintInfo(int);
     bool HasVelocity() { return hasVelocity_; }
+
+    int GetNextEnsemble( FrameArray& );
   private:
     /// Define type that will hold REMD indices
     typedef std::vector<int> RemdIdxType;

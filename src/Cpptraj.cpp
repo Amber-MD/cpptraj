@@ -38,7 +38,6 @@ void Cpptraj::AddParm(const char* parmfile) {
 // NOTE: Should differentiate between keyword rejection and outright error.
 void Cpptraj::Dispatch(const char* inputLine) {
   ArgList dispatchArg;
-  Topology *tempParm; // For coordinate lists
 
   dispatchArg.SetList(inputLine," "); // Space delimited only?
   //printf("    *** %s ***\n",dispatchArg.ArgLine());
@@ -103,7 +102,7 @@ void Cpptraj::Dispatch(const char* inputLine) {
 
   // Mask Selection.
   if (dispatchArg.CommandIs("select")) {
-    tempParm = parmFileList.GetParm(dispatchArg);
+    Topology* tempParm = parmFileList.GetParm(dispatchArg);
     AtomMask *tempMask = new AtomMask();
     tempMask->SetMaskString( dispatchArg.getNextMask() );
     // NOTE: No coords for now, Frame list not set up.
@@ -115,25 +114,12 @@ void Cpptraj::Dispatch(const char* inputLine) {
 
   // Check if command pertains to coordinate lists
   // If it does, get a parm based on parm/parmindex keywords in arg list
-  if (dispatchArg.CommandIs("trajin")) {
-    tempParm = parmFileList.GetParm(dispatchArg);
-    trajinList.AddTrajin(&dispatchArg, tempParm);
+  if (trajinList.AddTrajin(dispatchArg, parmFileList)==0) 
     return;
-  }
-  if (dispatchArg.CommandIs("reference")) {
-    tempParm = parmFileList.GetParm(dispatchArg);
-    refFrames.AddReference(&dispatchArg, tempParm);
+  if (refFrames.CheckCommand(dispatchArg, parmFileList)==0)
     return;
-  }
-  if (dispatchArg.CommandIs("activeref")) {
-    refFrames.SetActiveRef( dispatchArg.getNextInteger(0) );
+  if (trajoutList.AddTrajout(dispatchArg, parmFileList)==0)
     return;
-  }
-  if (dispatchArg.CommandIs("trajout")) {
-    tempParm = parmFileList.GetParm(dispatchArg);
-    trajoutList.AddTrajout(&dispatchArg, tempParm);
-    return;
-  }
 
   // Check if command pertains to a parm file
   if (parmFileList.CheckCommand(dispatchArg)==0) return;
@@ -167,13 +153,11 @@ void Cpptraj::Dispatch(const char* inputLine) {
  *  to the actions in actionList for processing.
  */
 int Cpptraj::Run() {
-  int maxFrames=0;        // Total # of frames that will be read
-  int actionSet=0;        // Internal data frame
-  int readSets=0;         // Number of frames actually read
-  int lastPindex=-1;      // Index of the last loaded parm file
-  Topology *CurrentParm=NULL; // Parm for actions; can be modified 
-  Frame *CurrentFrame=NULL;    // Frame for actions; can be modified
-  Frame TrajFrame;       // Original Frame read in from traj
+  int maxFrames=0;            // Total # of frames that will be read
+  int actionSet=0;            // Internal data frame
+  int readSets=0;             // Number of frames actually read
+  int lastPindex=-1;          // Index of the last loaded parm file
+  Frame TrajFrame;            // Original Frame read in from traj
 
   // ========== S E T U P   P H A S E ========== 
   // Calculate frame division among trajectories
@@ -198,7 +182,7 @@ int Cpptraj::Run() {
   // Set max frames in the data set list
   DSL.SetMax(maxFrames); 
   
-  // Initialize actions and set up data set and data file list
+  // Initialize actions 
   if (actionList.Init( &DSL, &refFrames, &DFL, &parmFileList, exitOnError)) 
     return 1;
 
@@ -218,7 +202,7 @@ int Cpptraj::Run() {
       break;
     }
     // Set current parm from current traj.
-    CurrentParm = (*traj)->TrajParm();
+    Topology* CurrentParm = (*traj)->TrajParm();
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
 
@@ -246,7 +230,7 @@ int Cpptraj::Run() {
     (*traj)->PrintInfoLine();
     while ( (*traj)->GetNextFrame(TrajFrame) ) {
       // Since Frame can be modified by actions, save original and use CurrentFrame
-      CurrentFrame = &TrajFrame;
+      Frame* CurrentFrame = &TrajFrame;
       // Perform Actions on Frame
       bool suppress_output = actionList.DoActions(&CurrentFrame, actionSet);
       // Do Output

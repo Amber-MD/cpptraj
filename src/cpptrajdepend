@@ -95,7 +95,7 @@ FileList.o : FileList.cpp FileList.h
 FileBuffer.o : FileBuffer.cpp CpptrajStdio.h FileBuffer.h FileIO.h ProgressBar.h
 Frame.o : Frame.cpp Atom.h AtomMask.h Constants.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h vectormath.h
 FrameBuffer.o : FrameBuffer.cpp FrameBuffer.h
-FrameList.o : FrameList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
+FrameList.o : FrameList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
 Grid.o : Grid.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h Grid.h MaskToken.h Molecule.h NameType.h PDBfile.h PDBtype.h Residue.h Topology.h Vec3.h
 Histogram.o : Histogram.cpp CpptrajFile.h CpptrajStdio.h DataSet.h Dimension.h FileIO.h Histogram.h
 Integrate.o : Integrate.cpp CpptrajStdio.h Integrate.h
@@ -130,7 +130,7 @@ Topology.o : Topology.cpp Atom.h AtomMask.h Box.h CpptrajStdio.h DistRoutines.h 
 TorsionRoutines.o : TorsionRoutines.cpp Constants.h TorsionRoutines.h vectormath.h
 Trajin.o : Trajin.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h Vec3.h
 Trajin_Single.o : Trajin_Single.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
-Trajin_Multi.o : Trajin_Multi.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Multi.h Vec3.h
+Trajin_Multi.o : Trajin_Multi.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h FrameArray.h MaskToken.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Multi.h Vec3.h
 Trajout.o : Trajout.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h Range.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajout.h Vec3.h
 Traj_AmberCoord.o : Traj_AmberCoord.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h FrameBuffer.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h Traj_AmberCoord.h TrajectoryIO.h Vec3.h
 Traj_AmberNetcdf.o : Traj_AmberNetcdf.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h NetcdfFile.h Residue.h Topology.h Traj_AmberNetcdf.h TrajectoryIO.h Vec3.h
@@ -141,9 +141,9 @@ Traj_CharmmDcd.o : Traj_CharmmDcd.cpp ArgList.h Atom.h AtomMask.h Box.h ByteRout
 Traj_Conflib.o : Traj_Conflib.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h Traj_Conflib.h TrajectoryIO.h Vec3.h
 TrajectoryFile.o : TrajectoryFile.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h FrameBuffer.h MaskToken.h Mol2File.h Molecule.h NameType.h NetcdfFile.h PDBtype.h Residue.h Topology.h Traj_AmberCoord.h Traj_AmberNetcdf.h Traj_AmberRestart.h Traj_AmberRestartNC.h Traj_Binpos.h Traj_CharmmDcd.h Traj_Conflib.h Traj_Mol2File.h Traj_PDBfile.h TrajectoryFile.h TrajectoryIO.h Vec3.h
 TrajectoryIO.o : TrajectoryIO.cpp ArgList.h Atom.h AtomMask.h Box.h Constants.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h Residue.h Topology.h TrajectoryIO.h Vec3.h
-TrajinList.o : TrajinList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h TrajinList.h Trajin_Multi.h Trajin_Single.h Vec3.h
+TrajinList.o : TrajinList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileList.h Frame.h FrameArray.h MaskToken.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h TrajinList.h Trajin_Multi.h Trajin_Single.h Vec3.h
 Traj_Mol2File.o : Traj_Mol2File.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Mol2File.h Molecule.h NameType.h Residue.h Topology.h Traj_Mol2File.h TrajectoryIO.h Vec3.h
-TrajoutList.o : TrajoutList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileList.h Frame.h MaskToken.h Molecule.h NameType.h Range.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajout.h TrajoutList.h Vec3.h
+TrajoutList.o : TrajoutList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileList.h Frame.h MaskToken.h Molecule.h NameType.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajout.h TrajoutList.h Vec3.h
 Traj_PDBfile.o : Traj_PDBfile.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h PDBtype.h Residue.h Topology.h Traj_PDBfile.h TrajectoryIO.h Vec3.h
 TriangleMatrix.o : TriangleMatrix.cpp CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h TriangleMatrix.h
 vectormath.o : vectormath.cpp Constants.h CpptrajStdio.h vectormath.h

@@ -368,6 +368,27 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
   return 1;
 }
 
+// Trajin_Multi::GetNextEnsemble()
+int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
+  // If the current frame is out of range, exit
+  if ( CheckFinished() ) return 0;
+  bool tgtFrameFound = false;
+  while ( !tgtFrameFound ) {
+    FrameArray::iterator frame = f_ensemble.begin();
+    // Read in all replicas
+    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    {
+      if ( (*replica)->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
+                                  (*frame).bAddress(), (*frame).tAddress()) )
+        return 0;
+      // TODO: Indices read
+      ++frame;
+    }
+    tgtFrameFound = ProcessFrame();
+  }
+  return 1;
+}
+
 // Trajin_Multi::PrintInfo()
 void Trajin_Multi::PrintInfo(int showExtended) {
   mprintf("  REMD trajectories (%u total), lowest replica [%s]\n", REMDtraj_.size(),

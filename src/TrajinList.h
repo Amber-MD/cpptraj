@@ -1,6 +1,7 @@
 #ifndef INC_TRAJINLIST_H
 #define INC_TRAJINLIST_H
 #include "Trajin.h"
+#include "TopologyList.h"
 // Class: TrajinList
 /// Hold input trajectories
 class TrajinList {
@@ -9,7 +10,7 @@ class TrajinList {
     ~TrajinList();
     void SetDebug(int dIn) { debug_ = dIn; }
     /// Add a traj file to the list based on input from arg list
-    int AddTrajin(ArgList*, Topology*);
+    int AddTrajin(ArgList&, TopologyList&);
     /// Set up frames to be processed 
     int SetupFrames();
 
