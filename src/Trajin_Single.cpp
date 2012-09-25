@@ -3,12 +3,16 @@
 
 // CONSTRUCTOR
 Trajin_Single::Trajin_Single() :
-  trajio_(0)
+  trajio_(0),
+  trajIsOpen_(false)
 {}
 
 // DESTRUCTOR
 Trajin_Single::~Trajin_Single() {
-  if (trajio_!=0) delete trajio_;
+  if (trajio_!=0) {
+    if (trajIsOpen_) EndTraj();
+    delete trajio_;
+  }
 }
 
 // Trajin_Single::SetupTrajRead()
@@ -57,12 +61,16 @@ int Trajin_Single::BeginTraj(bool showProgress) {
   }
   // Set progress bar, start and offset.
   PrepareForRead( showProgress, trajio_->Seekable() );
+  trajIsOpen_ = true;
   return 0;
 }
 
 // Trajin_Single::EndTraj()
 void Trajin_Single::EndTraj() {
-  trajio_->closeTraj();
+  if (trajIsOpen_) {
+    trajio_->closeTraj();
+    trajIsOpen_ = false;
+  }
 }
 
 // Trajin_Single::GetNextFrame()

@@ -5,16 +5,18 @@
 
 // CONSTRUCTOR
 Trajin_Multi::Trajin_Multi() :
-    remdtrajtemp_(0.0),
+  remdtrajtemp_(0.0),
   remd_indices_(0),
   lowestRepnum_(0),
   isSeekable_(true),
   hasVelocity_(false),
+  replicasAreOpen_(false),
   targetType_(TEMP)
 {}
 
 // DESTRUCTOR
 Trajin_Multi::~Trajin_Multi() {
+  if (replicasAreOpen_) EndTraj();
   for (IOarrayType::iterator replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     delete *replica;
 }
@@ -34,8 +36,8 @@ static void PrintNoExtError(const char* nameIn) {
   * compression extension. 
   * \return Found replica filenames, or an empty list on error. 
   */
-std::vector<std::string> Trajin_Multi::SearchForReplicas(bool isCompressed) {
-  std::vector<std::string> ReplicaNames;
+Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas(bool isCompressed) {
+  NameListType ReplicaNames;
   std::string Prefix;
   std::string CompressExt;
   std::string ReplicaExt;
@@ -143,8 +145,7 @@ std::vector<std::string> Trajin_Multi::SearchForReplicas(bool isCompressed) {
   */
 int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn)
 {
-  std::vector<std::string> replica_filenames;
-
+  replica_filenames_.clear();
   // Require a base filename
   if (tnameIn.empty()) {
     mprinterr("Internal Error: Trajin_Multi: No base filename given.\n");
@@ -189,13 +190,13 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   ArgList remdtraj_list( argIn->GetStringKey("trajnames"), "," );
   if (remdtraj_list.Nargs()==0) {
     // Automatically scan for additional REMD traj files.
-    replica_filenames = SearchForReplicas(baseFile.IsCompressed());
+    replica_filenames_ = SearchForReplicas(baseFile.IsCompressed());
   } else {
     // Get filenames from args of remdtraj_list
-    replica_filenames.push_back( tnameIn );
+    replica_filenames_.push_back( tnameIn );
     for (ArgList::const_iterator fname = remdtraj_list.begin();
                                  fname != remdtraj_list.end(); ++fname) 
-       replica_filenames.push_back( *fname );
+       replica_filenames_.push_back( *fname );
   }
 
   // Loop over all filenames in replica_filenames 
@@ -203,8 +204,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   bool repBoxInfo = false;
   isSeekable_ = true;
   hasVelocity_ = false;
-  for (std::vector<std::string>::iterator repfile = replica_filenames.begin();
-                                          repfile != replica_filenames.end(); ++repfile)
+  for (NameListType::iterator repfile = replica_filenames_.begin();
+                              repfile != replica_filenames_.end(); ++repfile)
   {
     // Set file info
     if (!lowestRep)
@@ -282,6 +283,10 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     mprinterr("Error: No replica trajectories set up.\n");
     return 1;
   }
+  if (REMDtraj_.size() != replica_filenames_.size()) { // SANITY CHECK
+    mprinterr("Error: Not all replica files were set up.\n");
+    return 1;
+  }
   if (!isSeekable_) {
     mprinterr("Error: Currently all replica trajectories must be seekable.\n");
     return 1;
@@ -304,13 +309,17 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
   }
   // Set progress bar, start and offset.
   PrepareForRead( showProgress, isSeekable_ );
+  replicasAreOpen_ = true;
   return 0;
 }
 
 // Trajin_Multi::EndTraj()
 void Trajin_Multi::EndTraj() {
-  for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
-    (*replica)->closeTraj();
+  if (replicasAreOpen_) {
+    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+      (*replica)->closeTraj();
+    replicasAreOpen_ = false;
+  }
 }
 
 // Trajin_Multi::IsTarget()
@@ -364,10 +373,13 @@ void Trajin_Multi::PrintInfo(int showExtended) {
   mprintf("  REMD trajectories (%u total), lowest replica [%s]\n", REMDtraj_.size(),
           BaseTrajStr());
   if (showExtended == 1) {
+    unsigned int repnum = 0;
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
-      mprintf("\t");
+      mprintf("\t%u:[%s] ", repnum, replica_filenames_[repnum].c_str());
+      ++repnum;
       (*replica)->info();
+      mprintf("\n");
     }
   }
   if (remdtrajidx_.empty())

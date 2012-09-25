@@ -14,7 +14,10 @@ Trajout::Trajout() :
 
 // DESTRUCTOR
 Trajout::~Trajout() {
-  if (trajio_!=0) delete trajio_;
+  if (trajio_!=0) {
+    if (trajIsOpen_) EndTraj();
+    delete trajio_;
+  }
 }
 
 // Trajout::SetupTrajWrite()
@@ -95,6 +98,7 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
   return 0;
 }
 
+// Trajout::SetupTrajWriteWithArgs()
 int Trajout::SetupTrajWriteWithArgs(std::string const& tnameIn, const char *argstring,
                                            Topology *tparmIn, TrajFormatType fmtIn)
 {
@@ -102,6 +106,7 @@ int Trajout::SetupTrajWriteWithArgs(std::string const& tnameIn, const char *args
   return SetupTrajWrite(tnameIn,&tempArg,tparmIn,fmtIn);
 }
 
+// Trajout::EndTraj()
 void Trajout::EndTraj() {
   if (trajIsOpen_) {
     trajio_->closeTraj();
@@ -109,6 +114,7 @@ void Trajout::EndTraj() {
   }
 }
 
+// Trajout::WriteFrame()
 int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
   // Check that input parm matches setup parm - if not, skip
   if (tparmIn->Pindex() != TrajParm()->Pindex()) return 0;
@@ -160,6 +166,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
   return 0;
 }
 
+// Trajout::PrintInfo()
 void Trajout::PrintInfo(int showExtended) {
   mprintf("  [%s] ",BaseTrajStr());
   trajio_->info();

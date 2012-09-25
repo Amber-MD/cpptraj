@@ -13,6 +13,7 @@ class Trajin_Single : public Trajin {
     void PrintInfo(int);
     bool HasVelocity();
   private:
-    TrajectoryIO* trajio_;   ///< Hold class that will interface with traj format.  
+    TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
+    bool trajIsOpen_;      ///< True is trajectory is open. 
 };
 #endif

@@ -16,6 +16,7 @@ class Trajin_Multi : public Trajin {
     /// Define type that will hold REMD indices
     typedef std::vector<int> RemdIdxType;
     typedef std::vector<TrajectoryIO*> IOarrayType;
+    typedef std::vector<std::string> NameListType;
     enum TargetType { TEMP = 0, INDICES };
 
     double remdtrajtemp_;     ///< Get frames with this temperature on read
@@ -25,9 +26,11 @@ class Trajin_Multi : public Trajin {
     int lowestRepnum_;        ///< Hold the lowest replica number
     bool isSeekable_;         ///< True if all trajs are seekable.
     bool hasVelocity_;        ///< True if all trajs have velocities.
-    TargetType targetType_;
+    bool replicasAreOpen_;    ///< True is replicas are open.
+    TargetType targetType_;   ///< Hold type of REMD frame being searched for.
+    NameListType replica_filenames_;
 
-    std::vector<std::string> SearchForReplicas(bool);
+    NameListType SearchForReplicas(bool);
     bool IsTarget(double);
 };
 #endif

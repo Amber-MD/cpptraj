@@ -117,6 +117,7 @@ int Trajin::SetupTrajIO( TrajectoryIO* trajio, ArgList* argIn ) {
   return 0;
 }
 
+// Trajin::setupFrameInfo()
 /** Calculate number of frames that will be read based on start, stop, and
   * offset (total_read_frames). 
   * \return the total number of frames that will be read for this traj.
@@ -190,6 +191,7 @@ void Trajin::SingleFrame() {
   }
 }
 
+// Trajin::PrepareForRead()
 void Trajin::PrepareForRead(bool useIn, bool seekable) {
   numFramesProcessed_ = 0;
   // Setup progress bar
@@ -206,6 +208,7 @@ void Trajin::PrepareForRead(bool useIn, bool seekable) {
   }
 }
 
+// Trajin::PrintInfoLine()
 void Trajin::PrintInfoLine() {
   if (stop_ != -1)
     rprintf( "----- [%s] (%i-%i, %i) -----\n",BaseTrajStr(),start_+1,stop_+1,offset_);
@@ -213,6 +216,7 @@ void Trajin::PrintInfoLine() {
     rprintf( "----- [%s] (%i-EOF, %i) -----\n",BaseTrajStr(),start_+1,offset_);
 }
 
+// Trajin::PrintFrameInfo()
 void Trajin::PrintFrameInfo() {
   if (stop_!=-1 && total_frames_>0)
     //mprintf(": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,total_frames);

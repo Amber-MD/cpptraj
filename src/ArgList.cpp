@@ -23,7 +23,8 @@ ArgList::ArgList(const char* argIn) :
 ArgList::ArgList(std::string const& expression, const char *separators) :
   debug(0)
 {
-  SetList(expression.c_str(), separators);
+  if (!expression.empty())
+    SetList(expression.c_str(), separators);
 }
 
 // COPY CONSTRUCTOR
