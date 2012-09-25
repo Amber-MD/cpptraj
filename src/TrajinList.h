@@ -19,8 +19,10 @@ class TrajinList {
     const_iterator begin() { return trajin_.begin(); }
     const_iterator end()   { return trajin_.end();   }
   private:
-    std::vector<Trajin*> trajin_;
+    enum TrajModeType { UNDEFINED, NORMAL, ENSEMBLE };
+    ListType trajin_;
     int debug_;
+    TrajModeType mode_; ///< Trajectory processing mode 
 };
 #endif
 

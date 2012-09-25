@@ -4,7 +4,7 @@
 #include "Trajin_Single.h"
 #include "Trajin_Multi.h"
 
-TrajinList::TrajinList() : debug_(0) { }
+TrajinList::TrajinList() : debug_(0), mode_(UNDEFINED) { }
 
 TrajinList::~TrajinList() {
   for (ListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj)
@@ -21,12 +21,19 @@ TrajinList::~TrajinList() {
 int TrajinList::AddTrajin(ArgList& argIn, TopologyList& topListIn) {
   Trajin* traj = 0;
   if ( argIn.CommandIs("trajin") ) {
+    // trajin and ensemble are currently mutually exclusive
+    if (mode_ == ENSEMBLE) {
+      mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
+      return 1;
+    }
     if (argIn.hasKey("remdtraj"))
       traj = new Trajin_Multi();
     else
       traj = new Trajin_Single();
+    mode_ = NORMAL;
   } else if ( argIn.CommandIs("ensemble") ) {
     traj = new Trajin_Multi();
+    mode_ = ENSEMBLE;
   } else
     return 1; // Command does not pertain to TrajinList
   if (traj==0) {
