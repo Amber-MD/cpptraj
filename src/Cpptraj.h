@@ -32,6 +32,11 @@ class Cpptraj {
     TrajinList trajinList;
     /// List of reference coordinate files
     FrameList refFrames; 
+
+    typedef std::vector<ArgList> ArgsArray;
+    ArgsArray trajoutArgs;
+    ArgsArray actionArgs;
+
     /// List of output trajectory files 
     TrajoutList trajoutList;
     /// List of analyses to be performed on datasets
@@ -53,5 +58,8 @@ class Cpptraj {
     bool showProgress;
     /// If true cpptraj will exit if errors are encountered instead of trying to continue
     bool exitOnError;
+
+    int RunEnsemble();
+    int RunNormal();
 };
 #endif

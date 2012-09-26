@@ -177,5 +177,6 @@ void Trajout::PrintInfo(int showExtended) {
   else
     mprintf(": Writing %i frames", TrajParm()->Nframes());
   if (append_) mprintf(", appended");
+  mprintf("\n");
 }
 

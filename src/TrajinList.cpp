@@ -32,6 +32,10 @@ int TrajinList::AddTrajin(ArgList& argIn, TopologyList& topListIn) {
       traj = new Trajin_Single();
     mode_ = NORMAL;
   } else if ( argIn.CommandIs("ensemble") ) {
+    if (mode_ == NORMAL) {
+      mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
+      return 1;
+    }
     traj = new Trajin_Multi();
     mode_ = ENSEMBLE;
   } else
@@ -56,11 +60,10 @@ int TrajinList::AddTrajin(ArgList& argIn, TopologyList& topListIn) {
 }
 
 // TrajinList::SetupFrames()
-/** Only called for input trajectories.
-  * Loop over all trajectories and call their setup frames routine to calc
-  * actual start and stop and how many frames total will be processed. Update 
-  * the number of frames that will be read for the associated traj parm.
-  * Return the total number of frames to be processed across all trajins.
+/** Loop over all trajectories to determine the total number of input frames 
+  * will be processed. Update the number of frames that will be read for the 
+  * Topology associated with each traj.
+  * \return The total number of frames to be processed across all trajins.
   */
 int TrajinList::SetupFrames() {
   int maxFrames = 0;
@@ -79,6 +82,11 @@ int TrajinList::SetupFrames() {
     // Print input traj information
     (*traj)->PrintInfo( 1 );
   }
+
+  if (maxFrames<0)
+    mprintf("  Coordinate processing will occur on an unknown number of frames.\n");
+  else
+    mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
 
   return maxFrames;
 }

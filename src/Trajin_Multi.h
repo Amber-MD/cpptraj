@@ -1,5 +1,6 @@
 #ifndef INC_TRAJIN_MULTI_H
 #define INC_TRAJIN_MULTI_H
+#include <map>
 #include "Trajin.h"
 #include "FrameArray.h"
 class Trajin_Multi : public Trajin {
@@ -14,7 +15,10 @@ class Trajin_Multi : public Trajin {
     void PrintInfo(int);
     bool HasVelocity() { return hasVelocity_; }
 
+    int EnsembleSetup( FrameArray& );
     int GetNextEnsemble( FrameArray& );
+    int EnsembleSize() { return (int)REMDtraj_.size(); }
+    int EnsemblePosition(int member) { return frameidx_[member]; }
   private:
     /// Define type that will hold REMD indices
     typedef std::vector<int> RemdIdxType;
@@ -32,6 +36,9 @@ class Trajin_Multi : public Trajin {
     bool replicasAreOpen_;    ///< True is replicas are open.
     TargetType targetType_;   ///< Hold type of REMD frame being searched for.
     NameListType replica_filenames_;
+    // ENSEMBLE
+    RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
+    std::map<double,int> TemperatureMap_;
 
     NameListType SearchForReplicas(bool);
     bool IsTarget(double);

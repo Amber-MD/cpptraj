@@ -291,7 +291,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     mprinterr("Error: Currently all replica trajectories must be seekable.\n");
     return 1;
   }
-
+  
   return 0;
 }
 
@@ -368,27 +368,6 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
   return 1;
 }
 
-// Trajin_Multi::GetNextEnsemble()
-int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
-  // If the current frame is out of range, exit
-  if ( CheckFinished() ) return 0;
-  bool tgtFrameFound = false;
-  while ( !tgtFrameFound ) {
-    FrameArray::iterator frame = f_ensemble.begin();
-    // Read in all replicas
-    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
-    {
-      if ( (*replica)->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
-                                  (*frame).bAddress(), (*frame).tAddress()) )
-        return 0;
-      // TODO: Indices read
-      ++frame;
-    }
-    tgtFrameFound = ProcessFrame();
-  }
-  return 1;
-}
-
 // Trajin_Multi::PrintInfo()
 void Trajin_Multi::PrintInfo(int showExtended) {
   mprintf("  REMD trajectories (%u total), lowest replica [%s]\n", REMDtraj_.size(),
@@ -412,3 +391,72 @@ void Trajin_Multi::PrintInfo(int showExtended) {
     mprintf(" ]");
   }
 }
+
+// Trajin_Multi::EnsembleSetup()
+int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
+  // Allocate space to hold position of each incoming frame in replica space.
+  frameidx_.resize( REMDtraj_.size() );
+  f_ensemble.resize( REMDtraj_.size() );
+  f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity() );
+  // TODO: Should be a different way to discern the ensemble type, i.e. are
+  //       we reading in indices or just temperatures.
+  if (targetType_ == TEMP) {
+    // Get a list of all temperature present in input REMD trajectories
+    // by reading the first frame.
+    TemperatureMap_.clear();
+    FrameArray::iterator frame = f_ensemble.begin();
+    int repnum = 0;
+    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    {
+      if ( (*replica)->openTraj() ) return 1;
+      if ( (*replica)->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
+                                  (*frame).bAddress(), (*frame).tAddress()) )
+        return 1;
+      (*replica)->closeTraj();
+      std::pair<std::map<double,int>::iterator,bool> ret = 
+        TemperatureMap_.insert(std::pair<double,int>((*frame).Temperature(),repnum++));
+      if (!ret.second) {
+        mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f)\n",
+                  (*frame).Temperature());
+        return 1;
+      }
+    } 
+    mprintf("\tEnsemble Temperature Map:\n");
+    for (std::map<double,int>::iterator tmap = TemperatureMap_.begin();
+                                       tmap != TemperatureMap_.end(); ++tmap)
+      mprintf("\t\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
+  } else if (targetType_ == INDICES) {
+    return 1;
+  } 
+  return 0;
+}
+
+// Trajin_Multi::GetNextEnsemble()
+int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
+  // If the current frame is out of range, exit
+  if ( CheckFinished() ) return 0;
+  bool tgtFrameFound = false;
+  while ( !tgtFrameFound ) {
+    FrameArray::iterator frame = f_ensemble.begin();
+    RemdIdxType::iterator fidx = frameidx_.begin();
+    // Read in all replicas
+    //mprintf("DBG: Ensemble frame %i:",CurrentFrame()+1); // DEBUG
+    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    {
+      if ( (*replica)->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
+                                  (*frame).bAddress(), (*frame).tAddress()) )
+        return 0;
+      // TODO: Indices read
+      std::map<double,int>::iterator tmap = TemperatureMap_.find( (*frame).Temperature() );
+      *fidx = (*tmap).second;
+      //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
+      ++fidx;
+      ++frame;
+    }
+    //mprintf("\n"); // DEBUG
+    tgtFrameFound = ProcessFrame();
+  }
+  return 1;
+}
+
+

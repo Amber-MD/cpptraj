@@ -1,6 +1,8 @@
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
+#include "Trajin_Multi.h"
+#include "FrameArray.h"
 
 // Constructor
 Cpptraj::Cpptraj() {
@@ -118,8 +120,11 @@ void Cpptraj::Dispatch(const char* inputLine) {
     return;
   if (refFrames.CheckCommand(dispatchArg, parmFileList)==0)
     return;
-  if (trajoutList.AddTrajout(dispatchArg, parmFileList)==0)
+  if (trajoutList.CheckCommand(dispatchArg)) {
+    trajoutArgs.push_back( dispatchArg );
+    trajoutList.AddTrajout(dispatchArg, parmFileList); // TODO: Check for error
     return;
+  }
 
   // Check if command pertains to a parm file
   if (parmFileList.CheckCommand(dispatchArg)==0) return;
@@ -140,7 +145,10 @@ void Cpptraj::Dispatch(const char* inputLine) {
   }
 
   // Check if command pertains to an action
-  if ( actionList.AddAction(dispatchArg)==0 ) return;
+  if ( actionList.AddAction(dispatchArg)==0 ) {
+    actionArgs.push_back( dispatchArg ); 
+    return;
+  }
 
   // Check if command pertains to analysis
   if ( analysisList.AddAnalysis(dispatchArg)==0 ) return; 
@@ -149,10 +157,192 @@ void Cpptraj::Dispatch(const char* inputLine) {
 }
 
 // Cpptraj::Run()
+int Cpptraj::Run() {
+  int err = 0;
+  switch ( trajinList.Mode() ) {
+    case TrajinList::NORMAL   : err = RunNormal(); break;
+    case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
+    default: err = 1; break;
+  }
+  return err;
+}
+
+// Cpptraj::RunEnsemble()
+int Cpptraj::RunEnsemble() {
+  FrameArray FrameEnsemble;
+
+  mprintf("\nINPUT ENSEMBLE:\n");
+  // Ensure all ensembles are of the same size
+  int ensembleSize = -1;
+  for (TrajinList::const_iterator traj = trajinList.begin(); traj != trajinList.end(); ++traj) 
+  {
+    Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
+    if (ensembleSize == -1)
+      ensembleSize = mtraj->EnsembleSize();
+    else if (ensembleSize != mtraj->EnsembleSize()) {
+      mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
+                mtraj->EnsembleSize(), ensembleSize);
+      return 1;
+    }
+    // Perform ensemble setup - this also resizes FrameEnsemble
+    if ( mtraj->EnsembleSetup( FrameEnsemble ) ) return 1;
+  }
+  mprintf("  Ensemble size is %i\n", ensembleSize);
+
+  // Calculate frame division among trajectories
+  int maxFrames = trajinList.SetupFrames();
+  // Parameter file information
+  parmFileList.Print();
+  // Print reference information 
+  mprintf("\nREFERENCE COORDS:\n");
+  refFrames.Info();
+
+  // Allocate an ActionList, TrajoutList, and DataSetList for each
+  // member of the ensemble.
+  std::vector<ActionList> ActionEnsemble( ensembleSize );
+  std::vector<TrajoutList> TrajoutEnsemble( ensembleSize );
+  std::vector<DataSetList> DataSetEnsemble( ensembleSize );
+
+  // Set up output trajectories for each member of the ensemble
+  for (ArgsArray::iterator targ = trajoutArgs.begin(); targ != trajoutArgs.end(); ++targ)
+  {
+    for (int member = 0; member < ensembleSize; ++member) 
+      TrajoutEnsemble[member].AddEnsembleTrajout( *targ, parmFileList, member );
+  }
+  mprintf("\nOUTPUT TRAJECTORIES:\n");
+  for (int member = 0; member < ensembleSize; ++member) {
+    mprintf(" Member %i:\n", member);
+    TrajoutEnsemble[member].Info();
+  }
+
+  // TODO: One loop over member?
+  for (int member = 0; member < ensembleSize; ++member) {
+    mprintf("***** ENSEMBLE MEMBER %i: ", member);
+    // Set max frames in the data set list
+    DataSetEnsemble[member].SetMax(maxFrames);
+    // Initialize actions 
+    for (ArgsArray::iterator aarg = actionArgs.begin(); aarg != actionArgs.end(); ++aarg) 
+      ActionEnsemble[member].AddAction( *aarg );
+    if (ActionEnsemble[member].Init( &(DataSetEnsemble[member]), &refFrames, &DFL, 
+                                     &parmFileList, exitOnError))
+      return 1;
+  }
+      
+  // ========== A C T I O N  P H A S E ==========
+  int lastPindex=-1;          // Index of the last loaded parm file
+  int readSets = 0;
+  int actionSet = 0;
+  bool hasVelocity = false;
+  // Loop over every trajectory in trajFileList
+  rprintf("BEGIN ENSEMBLE PROCESSING:\n");
+  for ( TrajinList::const_iterator traj = trajinList.begin();
+                                   traj != trajinList.end(); ++traj)
+  {
+    // Open up the trajectory file. If an error occurs, bail 
+    if ( (*traj)->BeginTraj(showProgress) ) {
+      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->FullTrajStr());
+      break;
+    }
+    // Set current parm from current traj.
+    Topology* CurrentParm = (*traj)->TrajParm();
+    // Check if parm has changed
+    bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
+
+    // If Parm has changed or trajectory velocity status has changed,
+    // reset the frame.
+    if (parmHasChanged || (hasVelocity != (*traj)->HasVelocity()))
+      FrameEnsemble.SetupFrames(CurrentParm->Atoms(), (*traj)->HasVelocity());
+    hasVelocity = (*traj)->HasVelocity();
+
+    // If Parm has changed, reset actions for new topology.
+    if (parmHasChanged) {
+      // Set active reference for this parm
+      CurrentParm->SetReferenceCoords( refFrames.ActiveReference() );
+      // Set up actions for this parm
+      bool setupOK = true;
+      for (int member = 0; member < ensembleSize; ++member) {
+        if (ActionEnsemble[member].Setup( &CurrentParm )) {
+          mprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
+                  member, CurrentParm->c_str());
+          setupOK = false;
+        }
+      }
+      if (!setupOK) continue;
+      //fprintf(stdout,"DEBUG: After setup of Actions in Cpptraj parm name is %s\n",
+      //        CurrentParm->parmName);
+      lastPindex = CurrentParm->Pindex();
+    }
+
+    // Loop over every collection of frames in the ensemble
+    (*traj)->PrintInfoLine();
+    Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
+    while ( mtraj->GetNextEnsemble(FrameEnsemble) ) {
+      // Loop over all members of the ensemble
+      for (int member = 0; member < ensembleSize; ++member) {
+        // Get this members current position
+        int pos = mtraj->EnsemblePosition( member );
+        // Since Frame can be modified by actions, save original and use CurrentFrame
+        Frame* CurrentFrame = &(FrameEnsemble[member]);
+        // Perform Actions on Frame
+        bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
+        // Do Output
+        if (!suppress_output) 
+          TrajoutEnsemble[pos].Write(actionSet, CurrentParm, CurrentFrame);
+      } // END loop over ensemble
+      // Increment frame counter
+      ++actionSet;
+    }
+
+    // Close the trajectory file
+    (*traj)->EndTraj();
+    // Update how many frames have been processed.
+    readSets += (*traj)->NumFramesProcessed();
+    mprintf("\n");
+  } // End loop over trajin
+  rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
+
+  // Close output trajectories
+  for (int member = 0; member < ensembleSize; ++member)
+    TrajoutEnsemble[member].Close();
+
+  // ========== A C T I O N  O U T P U T  P H A S E ==========
+  for (int member = 0; member < ensembleSize; ++member)
+    actionList.Print( );
+
+  // Sync DataSets and print DataSet information
+  // TODO - Also have datafilelist call a sync??
+  for (int member = 0; member < ensembleSize; ++member) {
+    DataSetEnsemble[member].Sync();
+    DataSetEnsemble[member].sort();
+    mprintf("\nENSEMBLE MEMBER %i DATASETS:\n",member);
+    DataSetEnsemble[member].Info();
+  }
+
+  // ========== A N A L Y S I S  P H A S E ==========
+//  analysisList.Setup(&DSL, &parmFileList);
+//  analysisList.Analyze(&DFL);
+
+  // DEBUG: DataSets, post-Analysis
+//  mprintf("\nDATASETS AFTER ANALYSIS:\n");
+//  DSL.Info();
+
+  // ========== D A T A  W R I T E  P H A S E ==========
+  // Process any datafile commands
+//  DFL.ProcessDataFileArgs(&DSL);
+  // Print Datafile information
+  DFL.Info();
+  // Only Master does DataFile output
+  if (worldrank==0)
+    DFL.Write();
+
+  return 0;
+}
+
+// Cpptraj::RunNormal()
 /** Process trajectories in trajinList. Each frame in trajinList is sent
  *  to the actions in actionList for processing.
  */
-int Cpptraj::Run() {
+int Cpptraj::RunNormal() {
   int maxFrames=0;            // Total # of frames that will be read
   int actionSet=0;            // Internal data frame
   int readSets=0;             // Number of frames actually read
@@ -160,17 +350,12 @@ int Cpptraj::Run() {
   Frame TrajFrame;            // Original Frame read in from traj
 
   // ========== S E T U P   P H A S E ========== 
-  // Calculate frame division among trajectories
   mprintf("\nINPUT TRAJECTORIES:\n");
-  maxFrames = trajinList.SetupFrames();
-  if (maxFrames<0)  
-    mprintf("  Coordinate processing will occur on an unknown number of frames.\n");
-  else
-    mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
 
+  // Calculate frame division among trajectories
+  maxFrames = trajinList.SetupFrames();
   // Parameter file information
   parmFileList.Print();
-
   // Print reference information 
   mprintf("\nREFERENCE COORDS:\n");
   refFrames.Info();

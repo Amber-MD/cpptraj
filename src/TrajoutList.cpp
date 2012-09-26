@@ -1,7 +1,7 @@
 // TrajoutList
 #include "TrajoutList.h"
 #include "CpptrajStdio.h"
-//#include "MpiRoutines.h" //worldsize
+//#incl ude "MpiRoutines.h" //worldsize
 
 TrajoutList::TrajoutList() { }
 
@@ -10,15 +10,31 @@ TrajoutList::~TrajoutList() {
     delete *traj;
 }
 
+// TrajoutList::CheckCommand()
+bool TrajoutList::CheckCommand(ArgList& argIn) {
+  if ( argIn.CommandIs("trajout") ) return true;
+  return false;
+}
+
+// TrajoutList::AddEnsembleTrajout()
+int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList& topListIn, int member)
+{
+  // Make a copy of input arg list so that args remain unmarked for the next
+  // member of the ensemble.
+  ArgList args = argIn;
+  std::string filename = args.GetStringNext();
+  if (filename.empty()) {
+    mprinterr("Error: TrajoutList::AddEnsemble: Called with NULL filename.\n");
+    return 1;
+  }
+  // Modify filename by member
+  filename += ("." + integerToString( member ));
+  return AddTrajout( filename, args, topListIn );
+}
+
 // TrajoutList::AddTrajout()
-/** Add trajectory to the trajectory list as an output trajectory. 
-  * Associate the trajectory with one of the parm files in the 
-  * TopologyList. 
-  * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
-  *         [<range>]
-  */
 int TrajoutList::AddTrajout(ArgList& argIn, TopologyList& topListIn) {
-  if (!argIn.CommandIs("trajout")) return 1;
+   if (!argIn.CommandIs("trajout")) return 1;
   // Since we need to check if this filename is in use in order to prevent
   // overwrites, determine the filename here.
   std::string filename = argIn.GetStringNext();
@@ -26,14 +42,26 @@ int TrajoutList::AddTrajout(ArgList& argIn, TopologyList& topListIn) {
     mprinterr("Error: TrajoutList::Add: Called with NULL filename.\n");
     return 1;
   }
+  return AddTrajout( filename, argIn, topListIn );
+} 
+
+// TrajoutList::AddTrajout()
+/** Add trajectory to the trajectory list as an output trajectory. 
+  * Associate the trajectory with one of the parm files in the 
+  * TopologyList. 
+  * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
+  *         [<range>]
+  */
+int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, TopologyList& topListIn) 
+{
   // Check if filename is in use
   if (FindName(filename) != -1) {
     mprinterr("Error: trajout: Filename %s already in use.\n",filename.c_str());
     return 1;
   }
-
+  // Create trajout.
   Trajout *traj = new Trajout();
-  if (traj==NULL) {
+  if (traj==0) {
     mprinterr("Error: TrajoutList::Add: Could not allocate memory for traj.\n");
     return 1;
   }
@@ -80,6 +108,7 @@ void TrajoutList::Close() {
     (*traj)->EndTraj();
 }
 
+// TrajoutList::Info()
 void TrajoutList::Info() {
   if (trajout_.empty()) {
     mprintf("  No files.\n");

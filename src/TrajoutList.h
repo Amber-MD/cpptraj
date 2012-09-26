@@ -8,6 +8,8 @@ class TrajoutList : public FileList {
   public:
     TrajoutList();
     ~TrajoutList();
+    static bool CheckCommand(ArgList&);
+    int AddEnsembleTrajout(ArgList const&, TopologyList&, int);
     /// Add a traj file to the list with given access and associate with a parm
     int AddTrajout(ArgList&, TopologyList&);
     /// Call write for all trajectories
@@ -18,6 +20,8 @@ class TrajoutList : public FileList {
   private:
     typedef std::vector<Trajout*> ListType;
     ListType trajout_;
+
+    int AddTrajout(std::string const&, ArgList&, TopologyList&);
 };
 #endif
 
