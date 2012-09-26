@@ -209,9 +209,9 @@ int Cpptraj::RunEnsemble() {
     for (int member = 0; member < ensembleSize; ++member) 
       TrajoutEnsemble[member].AddEnsembleTrajout( *targ, parmFileList, member );
   }
-  mprintf("\nOUTPUT TRAJECTORIES:\n");
+  mprintf("\n");
   for (int member = 0; member < ensembleSize; ++member) {
-    mprintf(" Member %i:\n", member);
+    mprintf("OUTPUT TRAJECTORIES Member %i:\n", member);
     TrajoutEnsemble[member].Info();
   }
 
