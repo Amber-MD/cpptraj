@@ -159,6 +159,16 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     mprinterr("Internal Error: Trajin_Multi: No arguments given.\n");
     return 1;
   }
+  // Check for deprecated args
+  if (argIn->hasKey("remdout")) {
+    mprinterr("Error: 'remdout' is deprecated. To convert an entire replica ensemble\n");
+    mprinterr("Error: the correct usage is:\n");
+    mprinterr("Error:\t  ensemble <trajinfile> # (in place of 'trajin')\n");
+    mprinterr("Error:\t  trajout <trajoutfile> [<trajoutargs>]\n");
+    mprinterr("Error: Note that output trajectories will now have an integer\n");
+    mprinterr("Error: appended to them to indicate their place in the ensemble.\n");
+    return 1;
+  }
   // Check that base file exists
   if (!fileExists(tnameIn.c_str())) {
     mprinterr("Error: File %s does not exist.\n",tnameIn.c_str());
