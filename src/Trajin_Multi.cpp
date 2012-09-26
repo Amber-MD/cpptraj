@@ -460,8 +460,6 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   frameidx_.resize( REMDtraj_.size() );
   f_ensemble.resize( REMDtraj_.size() );
   f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity() );
-  // TODO: Should be a different way to discern the ensemble type, i.e. are
-  //       we reading in indices or just temperatures.
   if (targetType_ == TEMP) {
     // Get a list of all temperature present in input REMD trajectories
     // by reading the first frame.
