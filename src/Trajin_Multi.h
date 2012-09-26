@@ -39,7 +39,8 @@ class Trajin_Multi : public Trajin {
     NameListType replica_filenames_;
     // ENSEMBLE
     RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
-    std::map<double,int> TemperatureMap_;
+    typedef std::map<double,int> TmapType;
+    TmapType TemperatureMap_;
 
     NameListType SearchForReplicas(bool);
     bool IsTarget(double);

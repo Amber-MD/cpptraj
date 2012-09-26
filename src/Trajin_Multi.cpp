@@ -373,6 +373,7 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
 
   bool tgtFrameFound = false;
   while ( !tgtFrameFound ) {
+    bool replicaFound = false;
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
       // Locate the target temp/indices out of all the replicas
@@ -387,9 +388,16 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
         // TODO: I think if !isSeekable this will break the read since some
         //       trajectories will not have readFrame called and so will be
         //       behind those that did.
+        replicaFound = true;
         break;
       }
     } // END loop over replicas
+    if (!replicaFound) {
+      mprinterr("Error: Target replica not found. Check that all replica trajectories\n");
+      mprinterr("Error: were found and that the target temperature or indices are valid\n");
+      mprinterr("Error: for this ensemble.\n");
+      return 0; 
+    }
     tgtFrameFound = ProcessFrame();
   }
 
@@ -428,13 +436,14 @@ void Trajin_Multi::PrintInfo(int showExtended) {
     else {
       mprintf(" replica temperatures\n");
       mprintf("\tEnsemble Temperature Map:\n");
-      for (std::map<double,int>::iterator tmap = TemperatureMap_.begin();
+      for (TmapType::iterator tmap = TemperatureMap_.begin();
                                           tmap != TemperatureMap_.end(); ++tmap)
         mprintf("\t\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
     }
   }
 }
 
+// -----------------------------------------------------------------------------
 // Trajin_Multi::EnsembleSetup()
 int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   // Allocate space to hold position of each incoming frame in replica space.
@@ -456,7 +465,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
                                   (*frame).bAddress(), (*frame).tAddress()) )
         return 1;
       (*replica)->closeTraj();
-      std::pair<std::map<double,int>::iterator,bool> ret = 
+      std::pair<TmapType::iterator,bool> ret = 
         TemperatureMap_.insert(std::pair<double,int>((*frame).Temperature(),repnum++));
       if (!ret.second) {
         mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f)\n",
@@ -486,7 +495,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
                                   (*frame).bAddress(), (*frame).tAddress()) )
         return 0;
       // TODO: Indices read
-      std::map<double,int>::iterator tmap = TemperatureMap_.find( (*frame).Temperature() );
+      TmapType::iterator tmap = TemperatureMap_.find( (*frame).Temperature() );
       *fidx = (*tmap).second;
       //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
       ++fidx;
