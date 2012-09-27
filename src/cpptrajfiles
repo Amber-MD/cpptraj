@@ -13,6 +13,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_Unwrap.cpp Action_Diffusion.cpp Action_DNAionTracker.cpp \
         Action_Scale.cpp Action_RandomizeIons.cpp Action_AutoImage.cpp \
         Action_STFC_Diffusion.cpp Action_AtomicCorr.cpp Action_Bounds.cpp \
+        Action_Vector.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
         Analysis_Matrix.cpp Analysis_Timecorr.cpp \
         Analysis_Modes.cpp Analysis_CrankShaft.cpp Analysis_Statistics.cpp \
@@ -24,7 +25,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
         DataSet.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
-        DataSetList.cpp DataSet_string.cpp \
+        DataSetList.cpp DataSet_string.cpp DataSet_Vector.cpp \
         DistRoutines.cpp Dimension.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
         FileBuffer.cpp \

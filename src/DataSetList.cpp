@@ -324,6 +324,7 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType,
     case DataSet::HIST         : DS = new Histogram(); break;
     case DataSet::TRIMATRIX    : DS = new TriangleMatrix(); break;
     case DataSet::MATRIX2D     : DS = new Matrix_2D(); break;
+    case DataSet::VECTOR       : DS = new DataSet_Vector(); break;
     case DataSet::UNKNOWN_DATA :
     default:
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");
