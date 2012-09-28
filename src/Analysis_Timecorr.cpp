@@ -20,6 +20,10 @@ Analysis_Timecorr::Analysis_Timecorr() :
   distnh_(1.02),
   freq_(-1),
   ndata_(0),
+  order_(2),
+  ibeg_(0),
+  iend_(0),
+  npair_(0),
   table_(0),
   data1_(0),
   data2_(0),
@@ -28,6 +32,7 @@ Analysis_Timecorr::Analysis_Timecorr() :
   p2cf_(0),
   rcf_(0),
   cf_cjt_(0),
+  modinfo_(0),
   taum_(0),
   vinfo1_(0),
   vinfo2_(0)
@@ -43,70 +48,106 @@ Analysis_Timecorr::~Analysis_Timecorr() {
   if (data2_!=0) delete[] data2_;
   if (table_!=0) delete[] table_;
   if (cf_cjt_!=0) delete[] cf_cjt_;
+  if (modinfo_!=0) {
+    if (modinfo_->Source() == ModesInfo::MS_FILE)
+      delete modinfo_;
+  }
   if (taum_!=0) delete[] taum_;
 }
 
 // Analysis_Timecorr::Setup()
 /** analyze timecorr vec1 <vecname1> [vec2 <vecname2>]
-  *                  [relax] [freq <hz>] [NHdist <distnh>]
+  *                  [relax] [freq <hz>] [NHdist <distnh>] [order <order>]
   *                  tstep <tstep> tcorr <tcorr> out <filename>
+  *                  [ corrired modes <modesname> [beg <ibeg> end <iend>] ]
   */
 int Analysis_Timecorr::Setup(DataSetList* DSLin) {
+  std::string modesfile;
   // Ensure first 2 args (should be 'analyze' 'timecorr') are marked.
   analyzeArgs_.MarkArg(0);
   analyzeArgs_.MarkArg(1);
   // Get Vectors
-  ArgList::ConstArg vec1 = analyzeArgs_.getKeyString("vec1");
-  if (vec1==NULL) {
+  std::string vec1name = analyzeArgs_.GetStringKey("vec1");
+  if (vec1name.empty()) {
     mprinterr("Error: analyze timecorr: no vec1 given, ignoring command\n");
     return 1;
   }
-  vinfo1_ = (VectorType*)DSLin->FindSetOfType( vec1, DataSet::VECTOR );
+  vinfo1_ = (DataSet_Vector*)DSLin->FindSetOfType( vec1name, DataSet::VECTOR );
   if (vinfo1_==0) {
-    mprinterr("Error: analyze timecorr: no vector with name %s found.\n", vec1);
+    mprinterr("Error: analyze timecorr: no vector with name %s found.\n", vec1name.c_str());
     return 1;
   }
-  ArgList::ConstArg vec2 = analyzeArgs_.getKeyString("vec2");
-  if (vec2!=NULL) {
-    vinfo2_ = (VectorType*)DSLin->FindSetOfType( vec2, DataSet::VECTOR );
+  std::string vec2name = analyzeArgs_.GetStringKey("vec2");
+  if (vec2name.empty()) {
+    vinfo2_ = (DataSet_Vector*)DSLin->FindSetOfType( vec2name, DataSet::VECTOR );
     if (vinfo2_==0) {
-      mprinterr("Error: analyze timecorr: no vector with name %s found.\n", vec2);
+      mprinterr("Error: analyze timecorr: no vector with name %s found.\n", vec2name.c_str());
       return 1;
     }
   }
-
+  // Get order for Legendre polynomial
+  order_ = analyzeArgs_.getKeyInt("order",2);
+  if (order_ < 0 || order_ > 2) {
+    mprintf("Warning: vector order out of bounds (<0 or >2), resetting to 2.\n");
+    order_ = 2;
+  }
   // Determine mode and type
-  // CORRIRED
-  if (vinfo1_->Mode() == VectorType::VECTOR_CORRIRED) {
+  if (analyzeArgs_.hasKey("corrired")) {
+    // TODO: Check that vinfo1 is IRED?
+    // CORRIRED
     mode_ = AUTO;
     type_ = IRED;
     if (vinfo2_!=0) {
       mprintf("Warning: analyze timecorr: only calculating IRED corr for vec1, ignoring vec2\n");
       vinfo2_ = 0;
     }
-  // CORR, CORRPLANE
-  } else if ( vinfo1_->Mode() == VectorType::VECTOR_CORR ||
-              vinfo1_->Mode() == VectorType::VECTOR_CORRPLANE)
-  {
+    // Count and store the number of previously defined IRED vectors.
+    DataSet_Vector* Vtmp;
+    DSL->VectorBegin();
+    while ( (Vtmp = (DataSet_Vector*)DSL->NextVector()) != 0 ) {
+      if (Vtmp->IsIred()) 
+        IredVectors_.push_back( Vtmp );
+    }
+    if (IredVectors_.empty()) {
+      mprinterr("Error: analyze timecorr: corrired: No IRED vectors defined.\n");
+      return 1;
+    }
+    // Get Pair number
+    npair_ = analyzeArgs_.getKeyInt("npair",0);
+    if (npair_ == 0) {
+      mprinterr("Error: analyze timecorr: No 'npair <#>' arg given, needed for 'corrired'.\n");
+      return 1;
+    }
+    // Actual pair number needs to start from 0
+    --npair_;
+    ibeg_ = analyzeArgs_.getKeyInt("beg",1);
+    iend_ = analyzeArgs_.getKeyInt("end", 50);
+    // Get modes name
+    modesfile = analyzeArgs_.GetStringKey("modes");
+    if (modesfile.empty()) {
+      mprinterr("Error: analyze timecorr: No 'modes' <name> arg given, needed for 'corrired'.\n");
+      return 1;
+    }
+    // Check if modes name exists on the stack
+    modinfo_ = (ModesInfo*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
+    if (modinfo_ == 0) {
+      // If not on stack, check for file.
+      if ( fileExists(modesfile.c_str()) ) {
+        modinfo_ = new ModesInfo;
+        if (modinfo_->ReadEvecFile( modesfile, ibeg_, iend_ )) return 1;
+      }
+    }
+    if (modinfo_ == 0) {
+      mprinterr("Error: analyze timecorr: Modes %s DataSet/file not found.\n");
+      return 1;
+    }
+  } else {
+    // CORR, CORRPLANE
     type_ = NORMAL;
     if (vinfo2_ == 0)
       mode_ = AUTO;
-    else {
-      // NOTE: Vector frame count is not yet initialized. Check in analysis.
-      if ( (vinfo2_->Mode() != VectorType::VECTOR_CORR &&
-            vinfo2_->Mode() != VectorType::VECTOR_CORRPLANE) ||
-           //vinfo1_->Frame() != vinfo2_->Frame() ||
-           vinfo1_->Order() != vinfo2_->Order() )
-      {
-        mprinterr("Error: analyze timecorr: different attributes for vec1 and vec2\n");
-        return 1;
-      }
+    else 
       mode_ = CROSS;
-    }
-  // EVERYTHING ELSE
-  } else {
-    mprinterr("Error: analyze timecorr: wrong vector type given.\n");
-    return 1;
   }
   // Sanity check
   if (mode_ == M_UNKNOWN || type_ == T_UNKNOWN) {
@@ -163,6 +204,10 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
     mprintf(" direct approach.\n");
   else
     mprintf(" FFT approach.\n");
+  if (type_ == IRED) {
+    mprintf("\tIRED modes %i to %i are read from %s,\n", ibeg_, iend_,modesfile.c_str());
+    mprintf("\tand the pair %i is considered\n", npair_+1);
+  }
   if (relax_) {
     mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n");
     mprintf("\t\t  approach using an NH distance of %lf and a frequency of %lf\n",
@@ -238,16 +283,16 @@ static void corfdir(int ndata, double *data1, double *data2, int nsteps, double 
 int Analysis_Timecorr::Analyze() {
   // If 2 vectors, ensure they have the same # of frames
   if (vinfo2_!=0) {
-    if (vinfo1_->Frame() != vinfo2_->Frame()) {
+    if (vinfo1_->Size() != vinfo2_->Size()) {
       mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
-                vinfo1_->Legend().c_str(), vinfo1_->Frame(), 
-                vinfo2_->Legend().c_str(), vinfo2_->Frame());
+                vinfo1_->Legend().c_str(), vinfo1_->Size(), 
+                vinfo2_->Legend().c_str(), vinfo2_->Size());
       return 1;
     }
   }
 
   // Determine sizes
-  int frame = vinfo1_->Frame();
+  int frame = vinfo1_->Size();
   int time = (int)(tcorr_ / tstep_) + 1;
   // nsteps
   int nsteps = 0;
@@ -269,7 +314,7 @@ int Analysis_Timecorr::Analyze() {
     ndata = pubfft_.size() * 2;
     //ndata2 = pubfft_.size();
   }
-  int mtot = 2 * vinfo1_->Order() + 1;
+  int mtot = 2 * order_ + 1;
   mprintf("CDBG: frame=%i time=%i nsteps=%i ndata=%i mtot=%i\n",frame,time,nsteps,ndata,mtot);
 
   // Allocate common memory and initialize arrays
@@ -277,15 +322,15 @@ int Analysis_Timecorr::Analyze() {
   if (mode_ == CROSS)
     data2_ = new double[ ndata ];
 
+  // Convert Vector 1 to spherical harmonics
+
   // -------------------- IRED CALCULATION ---------------------------
   if (type_ == IRED) {
-    double* cftmp1 = vinfo1_->Cftmp();
     // Store ModesInfo
-    ModesInfo* modinfo = vinfo1_->ModeInfo();
-    int nvect = modinfo->Nvect();
-    int nvectelem = modinfo->NvectElem();
-    double* eigval = modinfo->Freq();
-    double* vout = modinfo->Evec();
+    int nvect = modinfo_->Nvect();
+    int nvectelem = modinfo_->NvectElem();
+    double* eigval = modinfo_->Freq();
+    double* vout = modinfo_->Evec();
     // Initialize memory
     cf_ = new double[ nvect * nsteps ];
     cf_cjt_ = new double[ nvect * nsteps ];
@@ -302,23 +347,31 @@ int Analysis_Timecorr::Analyze() {
         taum_[i] = 0;
     }
 
+    // Loop over all vector frames in all vectors.
+    int n_total = 2 * frame * (2 * order_ + 1) * nvect;
+    double *cftmp1 = new double[ ntotal ];
+    memset(cftmp1, 0, ntotal * sizeof(double));
+    for (DataSet_Vector::iterator vec = vinfo1_->begin(); vec != vinfo1_->end(); ++vec) {
+    
+
     // Loop over all eigenvectors
+    int p2blocksize = 2 * ((order_ * 2) + 1); // Real + Img. for each -order <= m <= order
     for (int i = 0; i < nvect; ++i) {
       int idx1 = nsteps * i;
       // Loop over all m = -L, ...., L
-      for (int j = 0; j < mtot; ++j) {
-        int idx2 = nvect * j;
+      for (int midx = -order_; midx <= order_; ++midx) {
         // Loop over all snapshots
         double cfinfavgreal = 0;
         double cfinfavgimg = 0;
-        for (int k = 0; k < frame; ++k) {
-          int idx3 = 2 * (nvect * mtot * k + idx2 + i);
-          data1_[2*k  ] = cftmp1[idx3  ];
-          cfinfavgreal += cftmp1[idx3  ];
-          data1_[2*k+1] = cftmp1[idx3+1];
-          cfinfavgimg  += cftmp1[idx3+1];
+        double* CF = cftmp1 + ((midx + order_) * 2);
+        for (DataSet_Vector::iterator vec = vinfo1_->begin(); vec != vinfo1_->end(); ++vec) {
+          data1_[2*k  ] = *CF;
+          cfinfavgreal += *CF;
+          data1_[2*k+1] = *(CF+1);
+          cfinfavgimg  += *(CF+1);
           //mprintf("CDBG:\tVec=%i Frame=%i data1[%i]=%lf data1_[%i]=%lf\n",i,k,
           //        2*k, data1_[2*k], 2*k+1, data1_[2*k+1]);
+          CF += p2blocksize; 
         }
         cfinfavgreal /= frame;
         cfinfavgimg  /= frame;

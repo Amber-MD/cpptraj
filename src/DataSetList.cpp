@@ -12,6 +12,7 @@
 #include "DataSet_string.h"
 #include "DataSet_integer.h"
 #include "DataSet_float.h"
+#include "DataSet_Vector.h"
 #include "Histogram.h"
 #include "TriangleMatrix.h"
 #include "Matrix_2D.h"

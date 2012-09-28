@@ -37,7 +37,8 @@
 #include "Action_Watershell.h"
 #include "Action_AvgCoord.h"
 #include "Action_Contacts.h"
-#include "VectorType.h"
+//#incl ude "VectorType.h"
+#include "Action_Vector.h"
 #include "Action_Principal.h"
 #include "MatrixType.h"
 #include "Action_Grid.h"
@@ -126,7 +127,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("watershell"))     {Act=new Action_Watershell;}
   else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
   else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
-  else if (argIn.CommandIs("vector"))         {Act=new VectorType;}
+  else if (argIn.CommandIs("vector"))         {Act=new Action_Vector;}
   else if (argIn.CommandIs("principal"))      {Act=new Action_Principal;}
   else if (argIn.CommandIs("matrix"))         {Act=new MatrixType;}
   else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}

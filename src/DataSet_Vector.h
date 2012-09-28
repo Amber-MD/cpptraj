@@ -1,90 +1,102 @@
 #ifndef INC_DATASET_VECTOR_H
 #define INC_DATASET_VECTOR_H
+#include "DataSet.h"
 #include "ArgList.h"
-#include "ModesInfo.h"
-// DEBUG
-//#incl ude "CpptrajFile.h"
-//#incl ude "PDBfile.h"
-/// Hold coordinate vector information
-//NOTE: Adapted from PTRAJ transformVectorInfo
+#include "Vec3.h"
 class DataSet_Vector : public DataSet {
   public:
-    enum vectorMode {
-      VECTOR_NOOP=0,    VECTOR_PRINCIPAL_X, VECTOR_PRINCIPAL_Y, VECTOR_PRINCIPAL_Z,
-      VECTOR_DIPOLE,    VECTOR_BOX,         VECTOR_MASK,        VECTOR_IRED,
-      VECTOR_CORRPLANE, VECTOR_CORR,        VECTOR_CORRIRED
-    };
-
     DataSet_Vector();
     ~DataSet_Vector();
-
-    bool operator==(const DataSet_Vector&);
-    int SetModeFromArgs( ArgList& );
-    int SetupCorrIred( DataSet_Vector*, ArgList& );
+    // DataSet functions -------------------------
+    int Size()  { return currentidx_ / 6;       }
+    int Xmax()  { return (currentidx_ / 6) - 1; }
+    int Width() { return ((width_ + 1) * 9);  }
     int Allocate(int);
-    int AllocCorrPlane(int);
-    void Info(const char*, const char*);
-
-    Vec3 VXYZ(int i) { return Vec3( vx_[i], vy_[i], vz_[i] ); }
-    Vec3 CXYZ(int i) { return Vec3( cx_[i], cy_[i], cz_[i] ); }
-
-    // DataSet functions
-    int Size();
-    int Xmax();
     void WriteBuffer(CpptrajFile&, int);
-    int Width();
+    // -------------------------------------------
 
-    vectorMode Mode() { return mode_; }
-    int Frame()       { return frame_; }
-    int Order()       { return order_; }
-    ModesInfo* ModeInfo() { return modinfo_; }
-    // NOTE: Should calcs involving Cftmp etc be done internally?
-    // Next 3 only used for 'analyze timecorr'
-    double* Cftmp() { return cftmp_; }
-    double* P2cftmp() { return p2cftmp_; }
-    double* Rcftmp() { return rcftmp_; }
+    void AddVxyz(Vec3 const& vxyz, Vec3 const& cxyz) {
+      if (currentidx_ == totalidx_)
+        IncreaseSize();
+      xyz_[currentidx_  ] = vxyz[0];
+      xyz_[currentidx_+1] = vxyz[1];
+      xyz_[currentidx_+2] = vxyz[2];
+      xyz_[currentidx_+3] = cxyz[0];
+      xyz_[currentidx_+4] = cxyz[1];
+      xyz_[currentidx_+5] = cxyz[2];
+      currentidx_ += 6;
+    }
 
+    void AddVxyz(Vec3 const& xyz) {
+      if (currentidx_ == totalidx_)
+        IncreaseSize();
+      xyz_[currentidx_  ] = xyz[0];
+      xyz_[currentidx_+1] = xyz[1];
+      xyz_[currentidx_+2] = xyz[2];
+      currentidx_ += 6;
+    }
+
+    Vec3 VXYZ(int i) {
+      int idx = i * 6;
+      return Vec3( xyz_[idx], xyz_[idx+1], xyz_[idx+2] ); 
+    }
+    Vec3 CXYZ(int i) {
+      int idx = (i * 6) + 3;
+      return Vec3( xyz_[idx], xyz_[idx+1], xyz_[idx+2] ); 
+    }
+
+    void SetIred() { isIred_ = true; }
+    bool IsIred()  { return isIred_; }
     // Currently only used for matrix IRED
     double Dot(const DataSet_Vector& rhs) {
-      return (vx_[0]*rhs.vx_[0] + vy_[0]*rhs.vy_[0] + vz_[0]*rhs.vz_[0]);
+      return (xyz_[currentidx_-6]*rhs.xyz_[currentidx_-6] + 
+              xyz_[currentidx_-5]*rhs.xyz_[currentidx_-5] + 
+              xyz_[currentidx_-4]*rhs.xyz_[currentidx_-4]  );
     }
-    // Currently only used for 'analyze timecorr'
-    void PrintAvgcrd(CpptrajFile&);
 
+    static void sphericalHarmonics(int,int,const double*,double, double[2]);
+    double* SphericalHarmonics(int);
+
+    // Iterator over vectors
+    class iterator : public std::iterator<std::forward_iterator_tag, const double*>
+    {
+      public:
+        iterator() : ptr_(0) {}
+        iterator(const iterator& rhs) : ptr_(rhs.ptr_) {}
+        iterator(const double* pin) : ptr_(pin) {}
+        iterator& operator=(const iterator& rhs) {
+          if (this == &rhs) return *this;
+          ptr_ = rhs.ptr_;
+          return *this;
+        }
+        // Relations
+        bool operator==(const iterator& rhs) { return (ptr_==rhs.ptr_);}
+        bool operator!=(const iterator& rhs) { return (ptr_!=rhs.ptr_);}
+        // Increment
+        iterator& operator++() {
+          ptr_ += 6;
+          return *this;
+        }
+        iterator operator++(int) {
+          iterator tmp(*this);
+          ++(*this);
+          return tmp;
+        }
+        // Value
+        const double* operator*() { return ptr_; }
+        // Address
+        const double** operator->() { return &ptr_; }
+      private:
+        const double* ptr_;
+    };
+    iterator begin() { return xyz_;               }
+    iterator end()   { return xyz_ + currentidx_; }
   private:
-    static const char ModeString[][12];
+    int totalidx_;    ///< Size of the xyz array
+    int currentidx_;  ///< Current position in the xyz array
+    double* xyz_;     ///< 3x Vector lengths followed by 3x vector origin
+    bool isIred_;     ///< If true this vector can be used to calc subsequent IRED matrix
 
-    int totalFrames_;
-    int frame_;
-    vectorMode mode_;
-    double *cx_; 
-    double *cy_;
-    double *cz_;
-    double *vx_; 
-    double *vy_;
-    double *vz_;
-
-    DataSet_Vector* master_;    ///< If 0 this vector has master ModesInfo 
-    ModesInfo* modinfo_;    ///< Eigenmode info for CORRIRED
-    std::string modesfile_;
-    int ibeg_;
-    int iend_;
-    int order_;
-    int npair_;
-    // Below only used in analyze timecorr
-    double avgcrd_[3];
-    double rave_;
-    double r3iave_;
-    double r6iave_;
-    double *cftmp_;
-    double *p2cftmp_;
-    double *rcftmp_;
-    // DEBUG
-    //PDBfile PDB;
-    //CpptrajFile debugpdb;
-    //CpptrajFile debuginert;
-
-    int AssignMaster(DataSet_Vector*);
-    int ReadModesFromFile();
+    void IncreaseSize();
 };
 #endif

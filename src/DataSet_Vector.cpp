@@ -1,369 +1,144 @@
+#include <cstring> // memcpy
 #include <cmath> // sqrt
 #include "DataSet_Vector.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 DataSet_Vector::DataSet_Vector() :
-  totalFrames_(-1),
-  frame_(0),
-  mode_(VECTOR_NOOP),
-  cx_(0),
-  cy_(0),
-  cz_(0),
-  vx_(0),
-  vy_(0),
-  vz_(0),
-  master_(0),
-  modinfo_(0),
-  ibeg_(1),
-  iend_(50),
-  order_(2),
-  npair_(-1),
-  rave_(0),
-  r3iave_(0),
-  r6iave_(0),
-  cftmp_(0),
-  p2cftmp_(0),
-  rcftmp_(0)
-{
-  width_ = 8;
-  precision_ = 4;
-  dType_ = VECTOR;
-  SetDataSetFormat(false);
-  avgcrd_[0] = 0;
-  avgcrd_[1] = 0;
-  avgcrd_[2] = 0;
-  // DEBUG
-  //debugpdb.SetupWrite("PRINCIPAL.PDB",0);
-  //debugpdb.OpenFile();
-  //debuginert.SetupWrite("INERT.PDB",0);
-  //debuginert.OpenFile();
-}
-
-const char DataSet_Vector::ModeString[11][12] = {
-  "NO_OP", "Principal X", "Principal Y", "Principal Z",
-  "Dipole", "Box", "Mask", "Ired", 
-  "CorrPlane", "Corr", "CorrIred"
-};
+  DataSet(VECTOR, 8, 4),
+  totalidx_(0),
+  currentidx_(0),
+  xyz_(0),
+  isIred_(false)
+{ }
 
 // DESTRUCTOR
 DataSet_Vector::~DataSet_Vector() {
-  // Free shared CORRIRED mem on master
-  if (mode_==VECTOR_CORRIRED) {
-    if (master_==0) { 
-      if (modinfo_!=0) delete modinfo_;
-      if (cftmp_!=0) delete[] cftmp_;
-    }
+  if (xyz_!=0) delete[] xyz_;
+}
+
+// DataSet_Vector::IncreaseSize()
+void DataSet_Vector::IncreaseSize() {
+  int newsize = totalidx_ + 3000; // 500 frames * 6
+  double* newxyz = new double[ newsize ];
+  if (totalidx_ > 0) {
+    memcpy(newxyz,        xyz_, totalidx_ * sizeof(double));
+    memset(newxyz+totalidx_, 0,      3000 * sizeof(double));
+    delete[] xyz_;
+  }
+  totalidx_ = newsize;
+  xyz_ = newxyz;
+}
+
+// DataSet_Vector::Allocate()  
+int DataSet_Vector::Allocate(int Nin) {
+  if (xyz_!=0) delete[] xyz_;
+  if (Nin < 1) {
+    // # of frames is not known. Allocation will happen via IncreaseSize( )
+    totalidx_ = 0;
+    xyz_ = 0;
   } else {
-    if (cftmp_!=0) delete[] cftmp_;
-    if (p2cftmp_!=0) delete[] p2cftmp_;
-    if (rcftmp_!=0) delete[] rcftmp_;
-    if (cx_!=0) delete[] cx_;
-    if (cy_!=0) delete[] cy_;
-    if (cz_!=0) delete[] cz_;
-    if (vx_!=0) delete[] vx_;
-    if (vy_!=0) delete[] vy_;
-    if (vz_!=0) delete[] vz_;
+    totalidx_ = 6 * Nin;
+    xyz_ = new double[ totalidx_ ];
+    memset( xyz_, 0, totalidx_ * sizeof(double) );
   }
-  // DEBUG
-  //debugpdb.CloseFile();
-  //debuginert.CloseFile();
-}
-
-// DataSet_Vector::operator==()
-/** If vector modesfile names are the same, and the beginning and ending
-  * vector number is the same, then consider these two vectors the same.
-  * Currently only used for CORRIRED. 
-  */
-bool DataSet_Vector::operator==(const DataSet_Vector& rhs) {
-  if (mode_ == rhs.mode_ &&
-      modesfile_ == rhs.modesfile_ &&
-      ibeg_ == rhs.ibeg_ &&
-      iend_ == rhs.iend_) 
-    return true;
-  return false; 
-}
-
-int DataSet_Vector::SetModeFromArgs( ArgList& actionArgs ) {
-  // Get order for Legendre polynomial
-  order_ = actionArgs.getKeyInt("order",2);
-  if (order_ < 0 || order_ > 2) {
-    mprintf("Warning: vector order out of bounds (<0 or >2), resetting to 2.\n");
-    order_ = 2;
-  }
-  // Acceptable args: principal [x | y | z], dipole, box, corrplane, 
-  //                  corrired, corr, ired
-  if ( actionArgs.hasKey("principal") ) {
-    mode_ = VECTOR_PRINCIPAL_X;
-    if ( actionArgs.hasKey("x") ) mode_ = VECTOR_PRINCIPAL_X;
-    if ( actionArgs.hasKey("y") ) mode_ = VECTOR_PRINCIPAL_Y;
-    if ( actionArgs.hasKey("z") ) mode_ = VECTOR_PRINCIPAL_Z;
-  } else if (actionArgs.hasKey("dipole"))
-    mode_ = VECTOR_DIPOLE;
-  else if (actionArgs.hasKey("box"))
-    mode_ = VECTOR_BOX;
-  else if (actionArgs.hasKey("corrplane"))
-    mode_ = VECTOR_CORRPLANE;
-  else if (actionArgs.hasKey("corrired"))
-    mode_ = VECTOR_CORRIRED;
-  else if (actionArgs.hasKey("corr"))
-    mode_ = VECTOR_CORR;
-  else if (actionArgs.hasKey("ired"))
-    mode_ = VECTOR_IRED;
-  else
-    mode_ = VECTOR_MASK;
-
-  if (mode_ == VECTOR_NOOP) {
-    mprinterr("Error: No vector mode specified.\n");
-    return 1;
-  }
+  currentidx_ = 0;
+    
   return 0;
 }
 
-int DataSet_Vector::SetupCorrIred( DataSet_Vector* Vmaster, ArgList& actionArgs ) {
-  if (mode_ == VECTOR_CORRIRED) {
-    // Get Pair number
-    npair_ = actionArgs.getKeyInt("npair",0);
-    if (npair_ == 0) {
-      mprinterr("Error: Action_Vector::Init(): No 'npair <#>' arg given, needed for 'corrired'.\n");
-      return 1;
-    }
-    // Actual pair number needs to start from 0
-    --npair_;
-    modesfile_ = actionArgs.GetStringKey("modes");
-    if (modesfile_.empty()) {
-      mprinterr("Error: Action_Vector::Init(): No 'modes' <file> arg given, needed for 'corrired'.\n");
-      return 1;
-    }
-    ibeg_ = actionArgs.getKeyInt("beg",1);
-    iend_ = actionArgs.getKeyInt("end", 50);
-    // check if modes need to be read or have been
-    // previously read in by another DataSet_Vector.
-    if (Vmaster != 0) {
-      if (AssignMaster( Vmaster )) {
-        mprinterr("Error: Could not assign vector master for CORRIRED.\n");
-        return 1;
-      }
-    }
-    // Load modes from file specified by modesfile. 
-    if (modinfo_==0)
-      if (ReadModesFromFile()) {
-        return 1;
-      }
-  }
-  return 0;
-}
-
-// DataSet_Vector::AssignMaster()
-/** Assign this vectors ModesInfo to vecIn. vecIn is considered the
-  * 'master' vector as far as ModesInfo is concerned. This means
-  * among other things that this vector will not try to free
-  * modinfo during destruction.
-  */
-int DataSet_Vector::AssignMaster( DataSet_Vector* vecIn ) {
-  if (vecIn==0) return 1;
-  if (vecIn->modinfo_==0) return 1;
-  modinfo_ = vecIn->modinfo_;
-  master_ = vecIn;
-  return 0;
-}
-
-// DataSet_Vector::ReadModesFromFile()
-int DataSet_Vector::ReadModesFromFile() {
-  if (modesfile_.empty()) {
-    mprinterr("Error: DataSet_Vector::ReadModesFromFile: filename not set.\n");
-    return 1;
-  }
-  // NOTE: Warn here? If any other vecs linked this will mess them up.
-  if (master_==0 && modinfo_!=0) {
-    mprintf("Warning: Vector CORRIRED: Replacing ModesInfo.\n");
-    delete modinfo_;
-  }
-  modinfo_ = new ModesInfo();
-  return (modinfo_->ReadEvecFile( modesfile_, ibeg_, iend_ ));
-}
-
-// DataSet_Vector::Allocate()
-int DataSet_Vector::Allocate(int maxFrames) {
-  // Allocate data
-  if (maxFrames <=0) {
-    mprinterr("Error: VECTOR in cpptraj currently unsupported for unknown # of frames.\n");
-    return 1;
-  }
-
-  if (mode_ == VECTOR_IRED)
-    totalFrames_ = 1;
-  else
-    totalFrames_ = maxFrames;
-
-  // NOTE: cftmp_ stores the complex numbers resulting from conversion of 
-  //       vector coords to spherical harmonics. For each frame:
-  //       [m0R][m0I][
-  // CORRIRED Allocation ---------------
-  if (mode_==VECTOR_CORRIRED) {
-    // AssignMaster should be called if this does not have original modeinfo
-    if (master_==0) {
-      // This is the master with modeinfo. Allocate mem for cftmp.
-      int ntotal = 2 * totalFrames_ * (2 * order_ + 1) * modinfo_->Nvect();
-      cftmp_ = new double[ ntotal ];
-      for (int i = 0; i < ntotal; ++i)
-        cftmp_[i] = 0; 
-    } else {
-      // This is a child with link to master modeinfo. Also link to cftmp, which 
-      // should already be allocated on master.
-      if (master_->cftmp_==0) {
-        mprinterr("Error: Child vector %s cannot link to master vector %s\n", Legend().c_str(),
-                  master_->Legend().c_str());
-        return 1;
-      }
-      cftmp_ = master_->cftmp_;
-    }
-
-  // CORRPLANE / CORR Allocation -------
-  } else if (mode_ == VECTOR_CORRPLANE || mode_ == VECTOR_CORR) {
-    // avgcrd is now static size [3]
-    int ntotal = 2 * totalFrames_ * (2 * order_ + 1);
-    cftmp_ = new double[ ntotal ];
-    p2cftmp_ = new double[ ntotal ];
-    for (int i = 0; i < ntotal; ++i) {
-      cftmp_[i] = 0; 
-      p2cftmp_[i] = 0;
-    }
-    ntotal = 2 * totalFrames_;
-    rcftmp_ = new double[ ntotal ];
-    for (int i = 0; i < ntotal; ++i) 
-      rcftmp_[i] = 0;
-    // NOTE: CORRPLANE also needs cx/cy/cz allocd to # of selected in mask
-
-  // Everything Else -------------------
-  } else {
-    //C_.resize( totalFrames_ );
-    //V_.resize( totalFrames_ );
-    cx_ = new double[ totalFrames_ ];
-    cy_ = new double[ totalFrames_ ];
-    cz_ = new double[ totalFrames_ ];
-    vx_ = new double[ totalFrames_ ];
-    vy_ = new double[ totalFrames_ ];
-    vz_ = new double[ totalFrames_ ];
-  } 
-
-  return 0; 
-}
-
-// DataSet_Vector::AllocCorrPlane()
-int DataSet_Vector::AllocCorrPlane( int Nselected ) {
-  if (mode_==VECTOR_CORRPLANE) {
-    if (cx_!=0 || cy_!=0 || cz_!=0)
-    //if (!C_.empty())
-    {
-      mprinterr("Error: VECTOR_CORRPLANE not yet supported for multiple topology files.\n");
-      return 1;
-    }
-    if (Nselected < 3) {
-      mprinterr("Error: < 3 atoms specified for VECTOR_CORRPLANE\n");
-      return 1;
-    }
-    //C_.resize( mask_.Nselected() );
-    cx_ = new double[ Nselected ];
-    cy_ = new double[ Nselected ];
-    cz_ = new double[ Nselected ];
-  }
-  return 0;
-}
-
-// DataSet_Vector::Info()
-void DataSet_Vector::Info(const char* mask1, const char* mask2) {
-  mprintf("    VECTOR: Storage to array named %s\n", Legend().c_str() );
-  mprintf("            Vector Mode: %s\n", ModeString[mode_]);
-  switch (mode_) {
-    case VECTOR_DIPOLE:
-      mprintf("\tThe dipole moment vector with respect to the center of mass\n");
-      mprintf("\twill be processed for atoms in mask expression [%s]\n", mask1);
-      break;
-
-    case VECTOR_PRINCIPAL_X:
-    case VECTOR_PRINCIPAL_Y:
-    case VECTOR_PRINCIPAL_Z:
-      mprintf("\tThe principal axis vector for");
-      if (mode_==VECTOR_PRINCIPAL_X) mprintf(" (X)");
-      else if (mode_==VECTOR_PRINCIPAL_Y) mprintf(" (Y)");
-      else if (mode_==VECTOR_PRINCIPAL_Z) mprintf(" (Z)");
-      mprintf(" will be calcd with respect to the\n");
-      mprintf("\tcenter of mass of atoms in mask expression [%s]\n", mask1);
-      break;
-
-    case VECTOR_MASK:
-    case VECTOR_IRED:
-    case VECTOR_CORR:
-    case VECTOR_CORRIRED:
-      mprintf("\tCalculate the vector between the center of mass of the two atom selections\n");
-      mprintf("\twhich follow (with the origin at the center of mass of the first)\n");
-      mprintf("\tMask1: [%s]  Mask2: [%s]\n", mask1, mask2);
-      break;
-
-    case VECTOR_CORRPLANE:
-      mprintf("\tCalculate the vector perpendicular to the least squares best plane\n");
-      mprintf("\tthrough the atom selection [%s]\n",mask1);
-      break;
-
-    case VECTOR_BOX:
-      mprintf("\tThe box lengths will be treated as a vector\n");
-      break;
-
-    default:
-      mprinterr("Error: No vector mode defined.\n");
-  }
-
-  if (mode_ == VECTOR_CORRPLANE ||
-      mode_ == VECTOR_CORR ||
-      mode_ == VECTOR_CORRIRED)
-    mprintf("\tThe order of Legendre polynomials is %i\n", order_);
-
-  if (mode_ == VECTOR_CORRIRED) {
-    mprintf("\tIRED modes are read from %s,\n", modesfile_.c_str());
-    mprintf("\tand the pair %i is considered\n", npair_+1);
-  }
-
-}
-
-// -----------------------------------------------------------------------------
-int DataSet_Vector::Size() {
-  return totalFrames_;
-}
-
-int DataSet_Vector::Xmax() {
-  return totalFrames_ - 1;
-}
-
+// DataSet_Vector::WriteBuffer()
 void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, int frameIn) {
-  if (frameIn < 0 || frameIn >= frame_) {
-    mprinterr("ERROR: VECTOR: Frame %i is out of range.\n",frameIn);
+  int idx = frameIn * 6;
+  if (idx < 0 || frameIn >= currentidx_) {
+    mprinterr("Eerror: DataSet_Vector: Frame %i is out of range.\n",frameIn);
     return;
   }
-  cbuffer.Printf(data_format_, vx_[frameIn]);
-  cbuffer.Printf(data_format_, vy_[frameIn]);
-  cbuffer.Printf(data_format_, vz_[frameIn]);
-  cbuffer.Printf(data_format_, cx_[frameIn]);
-  cbuffer.Printf(data_format_, cy_[frameIn]);
-  cbuffer.Printf(data_format_, cz_[frameIn]);
-  cbuffer.Printf(data_format_, vx_[frameIn]+cx_[frameIn]);
-  cbuffer.Printf(data_format_, vy_[frameIn]+cy_[frameIn]);
-  cbuffer.Printf(data_format_, vz_[frameIn]+cz_[frameIn]);
+  cbuffer.Printf(data_format_, xyz_[idx  ]);
+  cbuffer.Printf(data_format_, xyz_[idx+1]);
+  cbuffer.Printf(data_format_, xyz_[idx+2]);
+  cbuffer.Printf(data_format_, xyz_[idx+3]);
+  cbuffer.Printf(data_format_, xyz_[idx+4]);
+  cbuffer.Printf(data_format_, xyz_[idx+5]);
+  cbuffer.Printf(data_format_, xyz_[idx  ] + xyz_[idx+3]);
+  cbuffer.Printf(data_format_, xyz_[idx+1] + xyz_[idx+4]);
+  cbuffer.Printf(data_format_, xyz_[idx+2] + xyz_[idx+5]);
 }
 
-int DataSet_Vector::Width() {
-  return ( ((width_+1)*9) );
+// VectorType::sphericalHarmonics()
+/** Calc spherical harmonics of order l=0,1,2
+  * and -l<=m<=l with cartesian coordinates as input
+  * (see e.g. Merzbacher, Quantum Mechanics, p. 186)
+  * D[0] is the real part, D[1] is the imaginary part.
+  */
+void DataSet_Vector::sphericalHarmonics(int l, int m, const double* XYZ, double r, double D[2])
+{
+  const double SH00=0.28209479;
+  const double SH10=0.48860251;
+  const double SH11=0.34549415;
+  const double SH20=0.31539157;
+  const double SH21=0.77254840;
+  const double SH22=0.38627420;
+
+  double ri;
+  double x = XYZ[0];
+  double y = XYZ[1];
+  double z = XYZ[2];
+  //mprintf("CDBG: x=%.10lE y=%.10lE z=%.10lE\n",x,y,z);
+
+  D[0] = 0.0;
+  D[1] = 0.0;
+  ri = 1.0 / r;
+
+  if (l == 0 && m == 0) {
+    D[0] = SH00;
+  } else if (l == 1) {
+    if (m == 0) {
+      D[0] = SH10 * z * ri;
+    } else {
+      D[0] = -m * SH11 * x * ri;
+      D[1] =     -SH11 * y * ri;
+    }
+  } else if(l == 2) {
+    if (m == 0) {
+      D[0] = SH20 * (2.0*z*z - x*x - y*y) * ri * ri;
+    } else if (std::abs(m) == 1) {
+      D[0] = -m * SH21 * x * z * ri * ri;
+      D[1] =     -SH21 * y * z * ri * ri;
+    } else {
+      D[0] = SH22 * (x*x - y*y) * ri * ri;
+      D[1] = m * SH22 * x * y * ri * ri;
+    }
+  }
+  //mprintf("CDBG: dreal=%.10lE dimg=%.10lE\n",D[0],D[1]);
 }
 
-// -----------------------------------------------------------------------------
+// DataSet_Vector::SphericalHarmonics()
+double* DataSet_Vector::SphericalHarmonics(int order) {
+  double Dcomplex[2];
 
-// NOTE: Only used in 'analyze timecorr'
-void DataSet_Vector::PrintAvgcrd(CpptrajFile& outfile) {
-  double dnorm = 1.0 / (double)frame_;
-  outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
-          rave_ * dnorm,
-          sqrt(avgcrd_[0]*avgcrd_[0] + avgcrd_[1]*avgcrd_[1] + avgcrd_[2]*avgcrd_[2]) * dnorm,
-          r3iave_ * dnorm,
-          r6iave_ * dnorm);
+  // Allocate space to hold complex numbers. Each frame has 2 doubles
+  // (real + imaginary)  for each m = -olegendre -> +olegendre
+  int n_of_vecs = currentidx_ / 6;
+  int p2blocksize = 2 * ((order * 2) + 1);
+  int p2size = (p2blocksize * n_of_vecs);
+  double* p2cftmp = new double[ p2size ];
+  memset( p2cftmp, 0, p2size * sizeof(double) );
+   // Loop over all vectors, convert to spherical harmonics
+  double* VXYZ = xyz_;
+  double* P2 = p2cftmp;
+  for (int i = 0; i < n_of_vecs; ++i) {
+    // Calc vector length
+    double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
+    // Loop over m = -olegendre, ..., +olegendre
+    for (int midx = -order; midx <= order; ++midx) {
+      sphericalHarmonics(order, midx, VXYZ, len, Dcomplex);
+      //mprintf("DBG: sphereHarm[%i](m=%i) = %lf + %lfi\n",i,midx,Dcomplex[0],Dcomplex[1]);
+      *(P2++) = Dcomplex[0];
+      *(P2++) = Dcomplex[1];
+    }
+    VXYZ += 3;
+  }
+  return p2cftmp;
 }
 

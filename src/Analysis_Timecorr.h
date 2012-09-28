@@ -1,7 +1,8 @@
 #ifndef INC_ANALYSIS_TIMECORR_H
 #define INC_ANALYSIS_TIMECORR_H
 #include "Analysis.h"
-#include "VectorType.h"
+#include "DataSet_Vector.h"
+#include "ModesInfo.h"
 #include "PubFFT.h"
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
@@ -36,6 +37,9 @@ class Analysis_Timecorr : public Analysis {
     std::string filename_;
     std::string noeFilename_;
     int ndata_;
+    int order_;
+    int ibeg_;
+    int iend_;
     double* table_;
     double* data1_;
     double* data2_;
@@ -45,10 +49,12 @@ class Analysis_Timecorr : public Analysis {
     double* rcf_;
     // IRED only
     double* cf_cjt_;
+    ModesInfo* modinfo_;
+    std::vector<DataSet_Vector*> IredVectors_;
     // IRED relax only
     double* taum_;
     
-    VectorType* vinfo1_;
-    VectorType* vinfo2_;
+    DataSet_Vector* vinfo1_;
+    DataSet_Vector* vinfo2_;
 };
 #endif
