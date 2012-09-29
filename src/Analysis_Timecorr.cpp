@@ -1,3 +1,4 @@
+#include <cstring> // memset
 #include "Analysis_Timecorr.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
@@ -74,14 +75,16 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
   }
   vinfo1_ = (DataSet_Vector*)DSLin->FindSetOfType( vec1name, DataSet::VECTOR );
   if (vinfo1_==0) {
-    mprinterr("Error: analyze timecorr: no vector with name %s found.\n", vec1name.c_str());
+    mprinterr("Error: analyze timecorr: vec1: no vector with name %s found.\n", 
+              vec1name.c_str());
     return 1;
   }
   std::string vec2name = analyzeArgs_.GetStringKey("vec2");
-  if (vec2name.empty()) {
+  if (!vec2name.empty()) {
     vinfo2_ = (DataSet_Vector*)DSLin->FindSetOfType( vec2name, DataSet::VECTOR );
     if (vinfo2_==0) {
-      mprinterr("Error: analyze timecorr: no vector with name %s found.\n", vec2name.c_str());
+      mprinterr("Error: analyze timecorr: vec2: no vector with name %s found.\n", 
+                vec2name.c_str());
       return 1;
     }
   }
@@ -103,8 +106,8 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
     }
     // Count and store the number of previously defined IRED vectors.
     DataSet_Vector* Vtmp;
-    DSL->VectorBegin();
-    while ( (Vtmp = (DataSet_Vector*)DSL->NextVector()) != 0 ) {
+    DSLin->VectorBegin();
+    while ( (Vtmp = (DataSet_Vector*)DSLin->NextVector()) != 0 ) {
       if (Vtmp->IsIred()) 
         IredVectors_.push_back( Vtmp );
     }
@@ -322,8 +325,6 @@ int Analysis_Timecorr::Analyze() {
   if (mode_ == CROSS)
     data2_ = new double[ ndata ];
 
-  // Convert Vector 1 to spherical harmonics
-
   // -------------------- IRED CALCULATION ---------------------------
   if (type_ == IRED) {
     // Store ModesInfo
@@ -347,37 +348,56 @@ int Analysis_Timecorr::Analyze() {
         taum_[i] = 0;
     }
 
-    // Loop over all vector frames in all vectors.
-    int n_total = 2 * frame * (2 * order_ + 1) * nvect;
+    // Allocate memory to project spherical harmonics on eigenmodes
+    int p2blocksize = 2 * mtot;             // Real + Img. for each -order <= m <= order
+    int nsphereharm = frame * p2blocksize;  // Spherical Harmonics for each frame
+    int ntotal = nvect * nsphereharm;       // Each vector has set of spherical harmonics
     double *cftmp1 = new double[ ntotal ];
     memset(cftmp1, 0, ntotal * sizeof(double));
-    for (DataSet_Vector::iterator vec = vinfo1_->begin(); vec != vinfo1_->end(); ++vec) {
+    // Project spherical harmonics for each IRED vector on eigenmodes
+    for (std::vector<DataSet_Vector*>::iterator ivec = IredVectors_.begin();
+                                                ivec != IredVectors_.end(); ++ivec)
+    {
+      double* sphereHarm = (*ivec)->SphericalHarmonics( order_ );
+      // Loop over all eigenvectors
+      double *CF = cftmp1;
+      for (int veci = 0; veci < nvect; ++veci) {
+        double Qvec = modinfo_->Evec(veci, npair_);
+        // Loop over all m = -L, ...., L
+        for (int midx = -order_; midx <= order_; ++midx) {
+          // Loop over spherical harmonic coords for this m (Complex, [Real][Img])
+          for ( int sidx = + midx + order_; sidx < nsphereharm; sidx += p2blocksize) {
+            *(CF++) += (Qvec * sphereHarm[sidx  ]);
+            *(CF++) += (Qvec * sphereHarm[sidx+1]);
+          }
+        }
+      }
+      delete[] sphereHarm;
+    }
+    // cftmp1 now contains avgs over every IRED vector for each eigenvector:
+    //   [m-2R0][m-2I0][m-2R1][m-2I1] ... [m-2RN][m-2IN][m-1R0][m-1I0] ... 
     
-
     // Loop over all eigenvectors
-    int p2blocksize = 2 * ((order_ * 2) + 1); // Real + Img. for each -order <= m <= order
-    for (int i = 0; i < nvect; ++i) {
-      int idx1 = nsteps * i;
+    double* CF = cftmp1;
+    for (int veci = 0; veci < nvect; ++veci) {
       // Loop over all m = -L, ...., L
       for (int midx = -order_; midx <= order_; ++midx) {
         // Loop over all snapshots
         double cfinfavgreal = 0;
         double cfinfavgimg = 0;
-        double* CF = cftmp1 + ((midx + order_) * 2);
-        for (DataSet_Vector::iterator vec = vinfo1_->begin(); vec != vinfo1_->end(); ++vec) {
-          data1_[2*k  ] = *CF;
-          cfinfavgreal += *CF;
-          data1_[2*k+1] = *(CF+1);
-          cfinfavgimg  += *(CF+1);
+        for (int k = 0; k < frame*2; k += 2) {
+          data1_[k  ]   = *CF;
+          cfinfavgreal += *(CF++);
+          data1_[k+1]   = *(CF);
+          cfinfavgimg  += *(CF++);
           //mprintf("CDBG:\tVec=%i Frame=%i data1[%i]=%lf data1_[%i]=%lf\n",i,k,
           //        2*k, data1_[2*k], 2*k+1, data1_[2*k+1]);
-          CF += p2blocksize; 
         }
         cfinfavgreal /= frame;
         cfinfavgimg  /= frame;
         //mprintf("CDBG:\tVect[%i] cfinfavgreal=%lf cfinfavgimg=%lf\n",i,cfinfavgreal,cfinfavgimg);
         // Calc plateau value of correlation function (= C(m,t->T) in Bruschweiler paper (A20))
-        cfinf_[i] += (cfinfavgreal * cfinfavgreal) + (cfinfavgimg * cfinfavgimg);
+        cfinf_[veci] += (cfinfavgreal * cfinfavgreal) + (cfinfavgimg * cfinfavgimg);
         if (drct_) {
           // Calc correlation function (= C(m,l,t) in Bruschweiler paper) using direct approach
           corfdir(ndata, data1_, NULL, nsteps, table_);
@@ -392,7 +412,7 @@ int Analysis_Timecorr::Analyze() {
         // Sum into cf (= C(m,t) in Bruschweiler paper)
         for (int k = 0; k < nsteps; ++k) {
           //mprintf("CDBG: cf[%i] += data1[%i] (%lf)\n",idx1+k, 2*k, data1_[2 * k]);
-          cf_[idx1 + k] += data1_[2 * k];
+          cf_[nsteps * veci + k] += data1_[2 * k];
         }
       }
     }
@@ -491,24 +511,24 @@ int Analysis_Timecorr::Analyze() {
       for (int i = 0; i < nvectelem; ++i) {
         // Eq. A1 in Prompers & Brüschweiler, JACS  124, 4522, 2002
         double R1 = d2 / 20.0 * (
-              modinfo->calc_spectral_density( taum_, i, lamfreqh - lamfreqn ) 
-              + 3.0 * modinfo->calc_spectral_density( taum_, i, lamfreqn ) 
-              + 6.0 * modinfo->calc_spectral_density( taum_, i, lamfreqh + lamfreqn)
-            ) + c2 / 15.0 * modinfo->calc_spectral_density( taum_, i, lamfreqn );
+              modinfo_->calc_spectral_density( taum_, i, lamfreqh - lamfreqn ) 
+              + 3.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqn ) 
+              + 6.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqh + lamfreqn)
+            ) + c2 / 15.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqn );
         // Eq. A2 in Prompers & Brüschweiler, JACS  124, 4522, 2002
         double R2 = d2 / 40.0 * ( 4.0 *
-              modinfo->calc_spectral_density(  taum_, i, 0.0 ) 
-              + modinfo->calc_spectral_density( taum_, i, lamfreqh - lamfreqn )
-              + 3.0 * modinfo->calc_spectral_density( taum_, i, lamfreqn )
-              + 6.0 * modinfo->calc_spectral_density( taum_, i, lamfreqh ) 
-              + 6.0 * modinfo->calc_spectral_density( taum_, i, lamfreqh + lamfreqn)
+              modinfo_->calc_spectral_density(  taum_, i, 0.0 ) 
+              + modinfo_->calc_spectral_density( taum_, i, lamfreqh - lamfreqn )
+              + 3.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqn )
+              + 6.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqh ) 
+              + 6.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqh + lamfreqn)
             ) + c2 / 90.0 * ( 4.0 *
-              modinfo->calc_spectral_density( taum_, i, 0.0 ) 
-              + 3.0 * modinfo->calc_spectral_density( taum_, i, lamfreqn) );
+              modinfo_->calc_spectral_density( taum_, i, 0.0 ) 
+              + 3.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqn) );
         // Eq. A3 in Prompers & Brüschweiler, JACS  124, 4522, 2002
         double Tj = d2 / 20.0 * ( 6.0 *
-              modinfo->calc_spectral_density( taum_, i, lamfreqh + lamfreqn ) 
-              - modinfo->calc_spectral_density( taum_, i, lamfreqh + lamfreqn ) );
+              modinfo_->calc_spectral_density( taum_, i, lamfreqh + lamfreqn ) 
+              - modinfo_->calc_spectral_density( taum_, i, lamfreqh + lamfreqn ) );
 
         double Noe = 1.0 + ( gamma_h * 1.0/gamma_n ) * ( 1.0 / R1 ) * Tj;
         noefile.Printf("%6i   %10.5f   %10.5f   %10.5f\n", i, R1, R2, Noe);
@@ -582,7 +602,8 @@ int Analysis_Timecorr::Analyze() {
 
   // -------------------- NORMAL CALCULATION -------------------------
   } else if (type_ == NORMAL) {
-    // Initialize memory
+    return 1; // DEBUG
+/*    // Initialize memory
     p2cf_ = new double[ nsteps ];
     for (int i = 0; i < nsteps; ++i)
       p2cf_[i] = 0;
@@ -718,6 +739,7 @@ int Analysis_Timecorr::Analyze() {
       }
     }
     outfile.CloseFile();
+*/
   }
 
   return 0;
