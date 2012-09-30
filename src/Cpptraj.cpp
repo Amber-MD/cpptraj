@@ -276,7 +276,6 @@ int Cpptraj::Run() {
   // Sync DataSets and print DataSet information
   // TODO - Also have datafilelist call a sync??
   DSL.Sync();
-  DSL.sort();
   mprintf("\nDATASETS BEFORE ANALYSIS:\n");
   DSL.Info();
 
@@ -286,6 +285,7 @@ int Cpptraj::Run() {
 
   // DEBUG: DataSets, post-Analysis
   mprintf("\nDATASETS AFTER ANALYSIS:\n");
+  DSL.sort();
   DSL.Info();
 
   // ========== D A T A  W R I T E  P H A S E ==========

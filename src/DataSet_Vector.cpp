@@ -133,11 +133,11 @@ double* DataSet_Vector::SphericalHarmonics(int order) {
     // Loop over m = -olegendre, ..., +olegendre
     for (int midx = -order; midx <= order; ++midx) {
       sphericalHarmonics(order, midx, VXYZ, len, Dcomplex);
-      //mprintf("DBG: sphereHarm[%i](m=%i) = %lf + %lfi\n",i,midx,Dcomplex[0],Dcomplex[1]);
+      //mprinterr("DBG: Vec %i sphereHarm[%u](m=%i) = %f + %fi\n",i,P2-p2cftmp,midx,Dcomplex[0],Dcomplex[1]);
       *(P2++) = Dcomplex[0];
       *(P2++) = Dcomplex[1];
     }
-    VXYZ += 3;
+    VXYZ += 6;
   }
   return p2cftmp;
 }

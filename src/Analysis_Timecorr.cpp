@@ -24,7 +24,7 @@ Analysis_Timecorr::Analysis_Timecorr() :
   order_(2),
   ibeg_(0),
   iend_(0),
-  npair_(0),
+//  npair_(0),
   table_(0),
   data1_(0),
   data2_(0),
@@ -116,13 +116,13 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
       return 1;
     }
     // Get Pair number
-    npair_ = analyzeArgs_.getKeyInt("npair",0);
+/*    npair_ = analyzeArgs_.getKeyInt("npair",0);
     if (npair_ == 0) {
       mprinterr("Error: analyze timecorr: No 'npair <#>' arg given, needed for 'corrired'.\n");
       return 1;
     }
     // Actual pair number needs to start from 0
-    --npair_;
+    --npair_;*/
     ibeg_ = analyzeArgs_.getKeyInt("beg",1);
     iend_ = analyzeArgs_.getKeyInt("end", 50);
     // Get modes name
@@ -209,7 +209,7 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
     mprintf(" FFT approach.\n");
   if (type_ == IRED) {
     mprintf("\tIRED modes %i to %i are read from %s,\n", ibeg_, iend_,modesfile.c_str());
-    mprintf("\tand the pair %i is considered\n", npair_+1);
+//    mprintf("\tand the pair %i is considered\n", npair_+1);
   }
   if (relax_) {
     mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n");
@@ -355,29 +355,29 @@ int Analysis_Timecorr::Analyze() {
     double *cftmp1 = new double[ ntotal ];
     memset(cftmp1, 0, ntotal * sizeof(double));
     // Project spherical harmonics for each IRED vector on eigenmodes
+    int n_ivec = 0;
     for (std::vector<DataSet_Vector*>::iterator ivec = IredVectors_.begin();
                                                 ivec != IredVectors_.end(); ++ivec)
     {
+      double *CF = cftmp1;
       double* sphereHarm = (*ivec)->SphericalHarmonics( order_ );
       // Loop over all eigenvectors
-      double *CF = cftmp1;
       for (int veci = 0; veci < nvect; ++veci) {
-        double Qvec = modinfo_->Evec(veci, npair_);
+        double Qvec = modinfo_->Evec(veci, n_ivec);
         // Loop over all m = -L, ...., L
         for (int midx = -order_; midx <= order_; ++midx) {
           // Loop over spherical harmonic coords for this m (Complex, [Real][Img])
-          for ( int sidx = + midx + order_; sidx < nsphereharm; sidx += p2blocksize) {
+          for ( int sidx = 2 * (midx + order_); sidx < nsphereharm; sidx += p2blocksize) {
             *(CF++) += (Qvec * sphereHarm[sidx  ]);
             *(CF++) += (Qvec * sphereHarm[sidx+1]);
           }
         }
       }
       delete[] sphereHarm;
+      ++n_ivec;
     }
     // cftmp1 now contains avgs over every IRED vector for each eigenvector:
     //   [m-2R0][m-2I0][m-2R1][m-2I1] ... [m-2RN][m-2IN][m-1R0][m-1I0] ... 
-    for (int i = 0; i < ntotal; ++i)
-      mprinterr("Cftmp1[%i]= %12.4f\n",i,cftmp1[i]);
     
     // Loop over all eigenvectors
     double* CF = cftmp1;

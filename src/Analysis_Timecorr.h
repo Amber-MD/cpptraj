@@ -40,7 +40,7 @@ class Analysis_Timecorr : public Analysis {
     int order_;
     int ibeg_;
     int iend_;
-    int npair_;
+//    int npair_;
     double* table_;
     double* data1_;
     double* data2_;
