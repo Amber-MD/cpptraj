@@ -376,6 +376,8 @@ int Analysis_Timecorr::Analyze() {
     }
     // cftmp1 now contains avgs over every IRED vector for each eigenvector:
     //   [m-2R0][m-2I0][m-2R1][m-2I1] ... [m-2RN][m-2IN][m-1R0][m-1I0] ... 
+    for (int i = 0; i < ntotal; ++i)
+      mprinterr("Cftmp1[%i]= %12.4f\n",i,cftmp1[i]);
     
     // Loop over all eigenvectors
     double* CF = cftmp1;
