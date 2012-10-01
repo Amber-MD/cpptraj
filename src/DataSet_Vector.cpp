@@ -114,6 +114,9 @@ void DataSet_Vector::sphericalHarmonics(int l, int m, const double* XYZ, double 
 }
 
 // DataSet_Vector::SphericalHarmonics()
+// TODO: Change memory layout so order of all vecs follow each other,
+//       i.e. order 2: m-2[0], m-2[1], ... m-2[N], m-1[0] ...
+// TODO: Use STL vectors
 double* DataSet_Vector::SphericalHarmonics(int order) {
   double Dcomplex[2];
 

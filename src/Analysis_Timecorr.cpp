@@ -418,6 +418,7 @@ int Analysis_Timecorr::Analyze() {
         }
       }
     }
+    delete[] cftmp1;
     // Calculate correlation function for each vector:
     // Cj(t) according to eq. A23 in Prompers & Brüschweiler, JACS  124, 4522, 2002; 
     // added by A.N. Koller & H. Gohlke
