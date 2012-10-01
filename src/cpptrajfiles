@@ -15,7 +15,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_STFC_Diffusion.cpp Action_AtomicCorr.cpp Action_Bounds.cpp \
         Action_Vector.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
-        Analysis_Matrix.cpp Analysis_Timecorr.cpp \
+        Analysis_Matrix.cpp Analysis_Timecorr.cpp Analysis_IRED.cpp \
         Analysis_Modes.cpp Analysis_CrankShaft.cpp Analysis_Statistics.cpp \
         Analysis_CrossCorr.cpp Analysis_Lifetime.cpp Analysis_AutoCorr.cpp \
         Analysis_FFT.cpp \

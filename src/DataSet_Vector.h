@@ -54,8 +54,13 @@ class DataSet_Vector : public DataSet {
               xyz_[currentidx_-4]*rhs.xyz_[currentidx_-4]  );
     }
 
+    double R3(int i) { return R3i_[i]; }
+
+    static void corfdir(int, double *, double *, int, double *);
     static void sphericalHarmonics(int,int,const double*,double, double[2]);
-    double* SphericalHarmonics(int);
+    double* SphericalHarmonics(int); // TODO: Store internally
+    void CalculateAverages();
+    void PrintAvgcrd(CpptrajFile&);
 
     // Iterator over vectors
     class iterator : public std::iterator<std::forward_iterator_tag, const double*>
@@ -96,6 +101,14 @@ class DataSet_Vector : public DataSet {
     int currentidx_;  ///< Current position in the xyz array
     double* xyz_;     ///< 3x Vector lengths followed by 3x vector origin
     bool isIred_;     ///< If true this vector can be used to calc subsequent IRED matrix
+    // For use with Analysis_Timecorr only
+    double avgx_;
+    double avgy_;
+    double avgz_;
+    double rave_;
+    double r3iave_;
+    double r6iave_;
+    double* R3i_;
 
     void IncreaseSize();
 };

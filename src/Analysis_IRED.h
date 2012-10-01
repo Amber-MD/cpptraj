@@ -1,45 +1,42 @@
-#ifndef INC_ANALYSIS_TIMECORR_H
-#define INC_ANALYSIS_TIMECORR_H
+#ifndef INC_ANALYSIS_IRED_H
+#define INC_ANALYSIS_IRED_H
 #include "Analysis.h"
 #include "DataSet_Vector.h"
+#include "ModesInfo.h"
 #include "PubFFT.h"
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
   */
-class Analysis_Timecorr : public Analysis {
+class Analysis_IRED : public Analysis {
   public:
-    Analysis_Timecorr();
-    ~Analysis_Timecorr();
+    Analysis_IRED();
+    ~Analysis_IRED();
 
     int Setup(DataSetList*);
     int Analyze();
     //void Print(DataFileList*);
   private:
-    enum timecorrMode { AUTO = 0, CROSS };
     //static const double factor_;
     // 4/5*PI due to spherical harmonics addition theorem
     // FOURFIFTHSPI in Constants.h
-    static const char ModeString[][6];
-
+    double freq_;
     double tstep_;
     double tcorr_;
+    double distnh_;
     int order_;
-    timecorrMode mode_;
-    bool dplr_;
+    bool relax_;
     bool norm_;
     bool drct_;
-    double* table_;
     double* data1_;
-    double* data2_;
+    double* table_;
     double* cf_;
-    double* p2cf_;
-    double* rcf_;
-    DataSet_Vector* vinfo1_;
-    DataSet_Vector* vinfo2_;
+    double* cf_cjt_;
+    double* cfinf_;
+    double* taum_;
+    std::string noeFilename_;
     std::string filename_;
     PubFFT pubfft_;
-    
-    static void FillData(double*,double*,int,int,int);
-    void CalcCorr(int,int,int);
+    ModesInfo* modinfo_;
+    std::vector<DataSet_Vector*> IredVectors_;
 };
 #endif

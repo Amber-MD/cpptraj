@@ -9,12 +9,21 @@ DataSet_Vector::DataSet_Vector() :
   totalidx_(0),
   currentidx_(0),
   xyz_(0),
-  isIred_(false)
+  isIred_(false),
+  // Analysis_TimeCorr vars
+  avgx_(0.0),
+  avgy_(0.0),
+  avgz_(0.0),
+  rave_(0.0),
+  r3iave_(0.0),
+  r6iave_(0.0),
+  R3i_(0)
 { }
 
 // DESTRUCTOR
 DataSet_Vector::~DataSet_Vector() {
   if (xyz_!=0) delete[] xyz_;
+  if (R3i_!=0) delete[] R3i_;
 }
 
 // DataSet_Vector::IncreaseSize()
@@ -64,6 +73,63 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, int frameIn) {
   cbuffer.Printf(data_format_, xyz_[idx+1] + xyz_[idx+4]);
   cbuffer.Printf(data_format_, xyz_[idx+2] + xyz_[idx+5]);
 }
+
+/** Calculates correlation functions using the "direct" approach
+  * (s. Comp. Sim. of Liquids, p.185)
+  * - the result is not yet normalized by (no_of_discrete_data - t)**-1 (!)
+  */
+void DataSet_Vector::corfdir(int ndata, double *data1, double *data2, int nsteps, double *dtmp)
+{
+  int i, j;
+  int ind1, ind2;
+  double dsum, dsumi;
+  int ndata2 = ndata / 2; // TODO: Pass in
+
+  if (data2 == NULL) {
+    for(i = 0; i < ndata2; i++){
+      dsum = 0.0;
+      for(j = i; j < ndata2; j++){
+        ind1 = 2 * j;
+        ind2 = 2 * (j-i);
+        dsum += data1[ind1] * data1[ind2] + data1[ind1+1] * data1[ind2+1];
+      }
+      if(i < nsteps){
+        ind1 = 2 * i;
+        dtmp[ind1  ] = dsum;
+        dtmp[ind1+1] = 0.0;
+      }
+      else{
+        break;
+      }
+    }
+  } else {
+    for(i = 0; i < ndata2; i++){
+      dsum = 0.0;
+      dsumi = 0.0;
+      for(j = i; j < ndata2; j++){
+        ind1 = 2 * j;
+        ind2 = 2 * (j-i);
+        dsum  += data2[ind1] * data1[ind2  ] + data2[ind1+1] * data1[ind2+1];
+        dsumi += data2[ind1] * data1[ind2+1] - data2[ind1+1] * data1[ind2  ];
+      }
+      if(i < nsteps){
+        ind1 = 2 * i;
+        dtmp[ind1  ] = dsum;
+        dtmp[ind1+1] = dsumi;
+      }
+      else{
+        break;
+      }
+    }
+  }
+
+  for(i = 0; i < nsteps; i++){
+    ind1 = 2 * i;
+    data1[ind1  ] = dtmp[ind1  ];
+    data1[ind1+1] = dtmp[ind1+1];
+  }
+}
+
 
 // DataSet_Vector::sphericalHarmonics()
 /** Calc spherical harmonics of order l=0,1,2
@@ -122,7 +188,7 @@ double* DataSet_Vector::SphericalHarmonics(int order) {
 
   // Allocate space to hold complex numbers. Each frame has 2 doubles
   // (real + imaginary)  for each m = -olegendre -> +olegendre
-  int n_of_vecs = currentidx_ / 6;
+  int n_of_vecs = Size();
   int p2blocksize = 2 * ((order * 2) + 1);
   int p2size = (p2blocksize * n_of_vecs);
   double* p2cftmp = new double[ p2size ];
@@ -145,3 +211,43 @@ double* DataSet_Vector::SphericalHarmonics(int order) {
   return p2cftmp;
 }
 
+// DataSet_Vector::CalculateAverages()
+void DataSet_Vector::CalculateAverages() {
+  // If r3i is not NULL assume CalculateAverages was already called.
+  if (R3i_ != 0) return;
+  int n_of_vecs = Size();
+  R3i_ = new double[ n_of_vecs ];
+  avgx_ = 0.0;
+  avgy_ = 0.0;
+  avgz_ = 0.0;
+  rave_ = 0.0;
+  r3iave_ = 0.0;
+  r6iave_ = 0.0;
+  // Loop over all vectors
+  double* VXYZ = xyz_;
+  for (int i = 0; i < n_of_vecs; ++i) {
+    // Calc vector length
+    double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
+    // Update avgcrd, rave, r3iave, r6iave
+    avgx_ += VXYZ[0];
+    avgy_ += VXYZ[1];
+    avgz_ += VXYZ[2];
+    rave_ += len;
+    double r3i = 1.0 / (len*len*len);
+    r3iave_ += r3i;
+    r6iave_ += r3i*r3i;
+    R3i_[i] = r3i;
+    VXYZ += 6;
+  }
+}
+
+// NOTE: Only used in 'analyze timecorr'
+void DataSet_Vector::PrintAvgcrd(CpptrajFile& outfile) {
+  double dnorm = 1.0 / (double)Size();
+  outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
+          rave_ * dnorm,
+          sqrt(avgx_*avgx_ + avgy_*avgy_ + avgz_*avgz_) * dnorm,
+          r3iave_ * dnorm,
+          r6iave_ * dnorm);
+}
+ 
