@@ -41,9 +41,10 @@ class Cpptraj {
     /// List of actions to be performed each frame
     // NOTE: This is placed after DataSetList so that its
     //       destructor is called first, since things like
-    //       VectorType which can be both actions and datasets
+    //       MatrixType which can be both actions and datasets
     //       will by convention be freed in the DataSetList. This
     //       way they can stick around for analysis.
+    // TODO: Remove this dependency; Actions and DataSets should be separate.
     ActionList actionList;    
     /// List of datafiles that data sets will be written to
     DataFileList DFL;

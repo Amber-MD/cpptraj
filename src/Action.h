@@ -85,10 +85,11 @@ class Action {
     virtual int init()   { return 0; }
     bool useMassOriginalValue_;  ///< Value of useMass set by init
 
-    /** For actions like VectorType which can also be data, this is used
+    /** For actions like MatrixType which can also be data, this is used
       * to indicate it should not be deleted by ActionList; DataSetList
       * will take care of it.
       */
+    // TODO: Remove this; DataSets and Actions should always be separate.
     void SetNoDelete() { noDelete_ = true; }
   private:
     bool noInit_;                ///< True if action could not be initialized

@@ -65,7 +65,7 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, int frameIn) {
   cbuffer.Printf(data_format_, xyz_[idx+2] + xyz_[idx+5]);
 }
 
-// VectorType::sphericalHarmonics()
+// DataSet_Vector::sphericalHarmonics()
 /** Calc spherical harmonics of order l=0,1,2
   * and -l<=m<=l with cartesian coordinates as input
   * (see e.g. Merzbacher, Quantum Mechanics, p. 186)

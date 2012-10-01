@@ -37,7 +37,6 @@
 #include "Action_Watershell.h"
 #include "Action_AvgCoord.h"
 #include "Action_Contacts.h"
-//#incl ude "VectorType.h"
 #include "Action_Vector.h"
 #include "Action_Principal.h"
 #include "MatrixType.h"

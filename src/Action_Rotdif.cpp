@@ -9,7 +9,7 @@
 #include "vectormath.h"
 #include "Integrate.h"
 #include "ProgressBar.h"
-#include "VectorType.h"
+#include "DataSet_Vector.h"
 #include "PubFFT.h"
 
 #ifndef NO_MATHLIB
@@ -443,6 +443,7 @@ int Action_Rotdif::fft_compute_corr(double* rotated_vectors, int maxdat, int ito
   // Zero output array
   memset(p2, 0, maxdat * sizeof(double) );
 
+  // TODO: Use DataSet_Vector
   // Allocate space to hold complex numbers. Each frame has 2 doubles 
   // (real + imaginary) for each m = -olegendre -> +olegendre
   int p2blocksize = 2 * ((order * 2) + 1);
@@ -457,7 +458,7 @@ int Action_Rotdif::fft_compute_corr(double* rotated_vectors, int maxdat, int ito
     double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
     // Loop over m = -olegendre, ..., +olegendre
     for (int midx = -order; midx <= order; ++midx) {
-      VectorType::sphericalHarmonics(order, midx, VXYZ, len, Dcomplex);
+      DataSet_Vector::sphericalHarmonics(order, midx, VXYZ, len, Dcomplex);
       //mprintf("DBG: sphereHarm[%i](m=%i) = %lf + %lfi\n",i,midx,Dcomplex[0],Dcomplex[1]);
       *(P2++) = Dcomplex[0];
       *(P2++) = Dcomplex[1];
