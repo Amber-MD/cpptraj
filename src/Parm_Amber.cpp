@@ -159,6 +159,12 @@ int Parm_Amber::AmberIfbox(const Box& boxIn) {
   return 1;
 }
 
+void Parm_Amber::CheckNameWidth(const char* typeIn, NameType& nameIn) {
+  if (nameIn[4] != '\0')
+    mprintf("Warning: Parm_Amber: %s name (%s) is too large and will be truncated (4 chars max).\n",
+            typeIn, *nameIn);
+}
+
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm( Topology &parmIn) {
   // For date and time
@@ -179,11 +185,13 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++) 
   {
     names.push_back( (*atom).Name() );
+    CheckNameWidth("Atom",names.back());
     charge.push_back( (*atom).Charge() * ELECTOAMBER );
     at_num.push_back( (*atom).AtomicNumber() );
     mass.push_back( (*atom).Mass() );
     atype_index.push_back( (*atom).TypeIndex() );
     types.push_back( (*atom).Type() );
+    CheckNameWidth("Type",types.back());
     gb_radii.push_back( (*atom).Radius() );
     gb_screen.push_back( (*atom).Screen() );
     // Amber atom exclusion list prints a 0 placeholder for atoms with
