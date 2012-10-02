@@ -164,7 +164,40 @@ int Traj_CharmmDcd::WriteBlock(int blocksize) {
   */
 int Traj_CharmmDcd::setupTrajin(Topology *trajParm) {
   double box[6];
+  size_t boxBytes, dim;
+
   if ( openTraj() ) return -1;
+  // DCD file may have less frames than is stored in the header.
+  // Check the file size against the reported number of frames.
+  if (hasBox_)
+    boxBytes = 56; // 6(crds) * 8(double) + 4(hdr) + 4(end hdr)
+  else
+    boxBytes = 0;
+  if (dcd4D)
+    dim = 4;
+  else
+    dim = 3;
+  size_t dimBytes = dim * sizeof(float);
+  size_t frame1Bytes = (((size_t) dcdatom+2         ) * dimBytes) + boxBytes;
+  size_t frameNBytes = (((size_t)(dcdatom - namnf)+2) * dimBytes) + boxBytes;
+  // Header size should be current position after open, which automatically
+  // reads DCD header.
+  size_t headerBytes = (size_t)IO->Tell();
+  size_t file_size = (size_t)file_size_ - headerBytes - frame1Bytes;
+  if ( (file_size % frameNBytes) != 0 ) {
+    mprintf("Warning: %s: Number of frames in DCD file could not be accurately determined.\n",
+            BaseFileStr());
+    mprintf("Warning:\t\tFile may be corrupted.\n");
+  }
+  int nframes = (int)(file_size / frameNBytes) + 1; // +1 for first frame
+  if (nframes != dcdframes) {
+    mprintf("Warning: %s: Reported number of frames in DCD file is %i,\n",
+            BaseFileStr(), dcdframes);
+    mprintf("Warning:\tactual number of frames is %i. Only reading %i frames.\n",
+            nframes, nframes);
+    dcdframes = nframes;
+  }
+
   // Load box info so that it can be checked.
   if (hasBox_) {
     if ( ReadBlock(48) < 0) return 1;
