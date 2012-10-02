@@ -39,6 +39,7 @@ class DataSet {
     // DIH         DIH    DIH   DIH    DIH    DIST     DIST
 
     DataSet();          // Constructor
+    DataSet(DataType,int,int);
     virtual ~DataSet(); // Destructor - virtual since this class is inherited
 
     // ----------===== Inheritable functions =====----------

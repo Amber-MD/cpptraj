@@ -18,12 +18,6 @@
   *   init function. The currentParm is checked for mass information each time
   *   Setup is called, and if no mass information is present useMass is set
   *   to false for the parm. 
-  * useImage Common Functionality:
-  *   Actions that require imaging should set useImage to true in their init
-  *   function. Each time Setup is called imageType is set based on the box
-  *   information present in currentParm. If currentParm has no box information
-  *   imaging is disabled for the parm. The action can then use imageType in
-  *   its action function to determine what kind of imaging to perform.
   */
 class Action {
   public:
@@ -91,10 +85,11 @@ class Action {
     virtual int init()   { return 0; }
     bool useMassOriginalValue_;  ///< Value of useMass set by init
 
-    /** For actions like VectorType which can also be data, this is used
+    /** For actions like MatrixType which can also be data, this is used
       * to indicate it should not be deleted by ActionList; DataSetList
       * will take care of it.
       */
+    // TODO: Remove this; DataSets and Actions should always be separate.
     void SetNoDelete() { noDelete_ = true; }
   private:
     bool noInit_;                ///< True if action could not be initialized

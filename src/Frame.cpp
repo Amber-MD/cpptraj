@@ -44,6 +44,23 @@ Frame::Frame(int natomIn) :
     X_ = new double[ ncoord_ ];
 }
 
+#ifdef NASTRUCTDEBUG
+Frame::Frame(int natomIn, const double* Xin) :
+  natom_(natomIn),
+  maxnatom_(natomIn),
+  ncoord_(natomIn*3),
+  T_(0.0),
+  X_(NULL),
+  V_(NULL)
+{
+  memset(box_, 0, BOXSIZE_);
+  if (ncoord_ > 0) {
+    X_ = new double[ ncoord_ ];
+    memcpy(X_, Xin, natom_ * COORDSIZE_);
+  }
+}
+#endif
+
 // CONSTRUCTOR
 /// Set up for the given atom array (including mass).
 Frame::Frame(std::vector<Atom> const& atoms) :

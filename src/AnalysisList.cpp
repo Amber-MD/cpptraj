@@ -5,6 +5,7 @@
 #include "Analysis_Corr.h"
 #include "Analysis_Matrix.h"
 #include "Analysis_Timecorr.h"
+#include "Analysis_IRED.h"
 #include "Analysis_Modes.h"
 #include "Analysis_CrankShaft.h"
 #include "Analysis_Statistics.h"
@@ -50,6 +51,8 @@ int AnalysisList::AddAnalysis(ArgList &argIn) {
       Ana = new Analysis_Matrix;
     else if (argIn[1] == "timecorr")
       Ana = new Analysis_Timecorr;
+    else if (argIn[1] == "ired")
+      Ana = new Analysis_IRED;
     else if (argIn[1] == "modes")
       Ana = new Analysis_Modes;
     else if (argIn[1] == "crank")

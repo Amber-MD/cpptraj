@@ -163,10 +163,10 @@ int MatrixType::init() {
     }
     // Count and store the number of previously defined IRED vectors.
     // mask1tot is used in memory allocation.
-    VectorType *Vtmp;
+    DataSet_Vector* Vtmp;
     DSL->VectorBegin();
-    while ( (Vtmp = (VectorType*)DSL->NextVector()) != 0 ) {
-      if (Vtmp->Mode() == VectorType::VECTOR_IRED) {
+    while ( (Vtmp = (DataSet_Vector*)DSL->NextVector()) != 0 ) {
+      if (Vtmp->IsIred()) {
         IredVectors_.push_back( Vtmp );
         ++mask1tot_;
       }
@@ -540,39 +540,35 @@ int MatrixType::action() {
   } else if (type_ == MATRIX_IRED) {
     // Store length of vectors in vect2
     int vidx = 0;
-    for (std::vector<VectorType*>::iterator Vtmp = IredVectors_.begin();
-                                            Vtmp != IredVectors_.end(); ++Vtmp)
+    for (std::vector<DataSet_Vector*>::iterator Vtmp = IredVectors_.begin();
+                                                Vtmp != IredVectors_.end(); ++Vtmp)
     {
-      if ((*Vtmp)->Mode()==VectorType::VECTOR_IRED) {
-        if (vidx >= mask1tot_) {
-          // This can happen if IRED vectors are defined after IRED matrix
-          mprinterr("Error: matrix: IRED vectors defined after IRED matrix command.\n");
-          return 1;
-        }
-        vect2_[vidx++] = sqrt( (*Vtmp)->Dot( *(*Vtmp) ) ); 
+      if (vidx >= mask1tot_) {
+        // This can happen if IRED vectors are defined after IRED matrix
+        mprinterr("Error: matrix: IRED vectors defined after IRED matrix command.\n");
+        return 1;
       }
+      vect2_[vidx++] = sqrt( (*Vtmp)->Dot( *(*Vtmp) ) ); 
     }
    
     // Loop over all pairs of IRED vectors 
     vidx = 0;     // ind2
     int vidx2 =0; // ind3
     int midx = 0; // ind
-    for (std::vector<VectorType*>::iterator Vtmp = IredVectors_.begin();
-                                            Vtmp != IredVectors_.end(); ++Vtmp)
+    for (std::vector<DataSet_Vector*>::iterator Vtmp = IredVectors_.begin();
+                                                Vtmp != IredVectors_.end(); ++Vtmp)
     {
-      if ((*Vtmp)->Mode()==VectorType::VECTOR_IRED) {
-        double val1 = vect2_[vidx];
-        vidx2 = vidx;
-        for (std::vector<VectorType*>::iterator Vtmp2 = Vtmp;
-                                                Vtmp2 != IredVectors_.end(); ++Vtmp2)
-        {
-          double val2 = vect2_[vidx2++];
-          double val3 = LegendrePoly(order_, (*Vtmp)->Dot( *(*Vtmp2) ) / (val1 * val2) );
-          mat_[midx++] += val3;
-          if (Vtmp == Vtmp2)
-            vect_[vidx++] += val3;
-        } 
-      }
+      double val1 = vect2_[vidx];
+      vidx2 = vidx;
+      for (std::vector<DataSet_Vector*>::iterator Vtmp2 = Vtmp;
+                                                  Vtmp2 != IredVectors_.end(); ++Vtmp2)
+      {
+        double val2 = vect2_[vidx2++];
+        double val3 = LegendrePoly(order_, (*Vtmp)->Dot( *(*Vtmp2) ) / (val1 * val2) );
+        mat_[midx++] += val3;
+        if (Vtmp == Vtmp2)
+          vect_[vidx++] += val3;
+      } 
     }
 
   // ---------------------------------------------

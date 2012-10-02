@@ -19,6 +19,20 @@ DataSet::DataSet() :
   //fprintf(stderr,"DataSet Constructor.\n");
 }
 
+/// CONSTRUCTOR - Take type, width, and precision
+DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn) :
+  idx_(-1),
+  dType_(typeIn),
+  dim_(1),
+  width_(widthIn),
+  precision_(precisionIn),
+  data_format_(NULL),
+  scalarmode_(UNKNOWN_MODE),
+  scalartype_(UNDEFINED)
+{
+  SetDataSetFormat(false);
+}  
+
 // DESTRUCTOR
 DataSet::~DataSet() {
   //fprintf(stderr,"DataSet Destructor\n");

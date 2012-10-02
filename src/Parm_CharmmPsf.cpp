@@ -26,7 +26,7 @@ int Parm_CharmmPsf::ReadParm(Topology &parmOut) {
 
   if (OpenFile()) return 1;
 
-  mprintf("    Reading Charmm PSF file %s as topology file.\n",parmOut.c_str());
+  mprintf("    Reading Charmm PSF file %s as topology file.\n",BaseFileStr());
   memset(buffer_,' ',BUF_SIZE_);
   memset(tag,' ',TAGSIZE);
   tag[0]='\0';

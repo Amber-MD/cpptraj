@@ -159,6 +159,12 @@ int Parm_Amber::AmberIfbox(const Box& boxIn) {
   return 1;
 }
 
+void Parm_Amber::CheckNameWidth(const char* typeIn, NameType& nameIn) {
+  if (nameIn[4] != '\0')
+    mprintf("Warning: Parm_Amber: %s name (%s) is too large and will be truncated (4 chars max).\n",
+            typeIn, *nameIn);
+}
+
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm( Topology &parmIn) {
   // For date and time
@@ -179,11 +185,13 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++) 
   {
     names.push_back( (*atom).Name() );
+    CheckNameWidth("Atom",names.back());
     charge.push_back( (*atom).Charge() * ELECTOAMBER );
     at_num.push_back( (*atom).AtomicNumber() );
     mass.push_back( (*atom).Mass() );
     atype_index.push_back( (*atom).TypeIndex() );
     types.push_back( (*atom).Type() );
+    CheckNameWidth("Type",types.back());
     gb_radii.push_back( (*atom).Radius() );
     gb_screen.push_back( (*atom).Screen() );
     // Amber atom exclusion list prints a 0 placeholder for atoms with
@@ -779,8 +787,9 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>const& iar
   char *ptr = buffer_;
   int col = 0;
   for (std::vector<int>::const_iterator it = iarray.begin(); it != iarray.end(); it++) {
-    int ncharwritten = sprintf(ptr, FORMAT, *it);
-    ptr += ncharwritten;
+    sprintf(ptr, FORMAT, *it);
+    // If # chars written > width, this silently truncates
+    ptr += fwidth_;
     ++col;
     if (col == fncols_) {
       sprintf(ptr,"\n");
@@ -806,8 +815,9 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& d
   char *ptr = buffer_;
   int col = 0;
   for (std::vector<double>::const_iterator it = darray.begin(); it != darray.end(); it++) {
-    int ncharwritten = sprintf(ptr, FORMAT, *it);
-    ptr += ncharwritten;
+    sprintf(ptr, FORMAT, *it);
+    // If # chars written > width, this silently truncates
+    ptr += fwidth_;
     ++col;
     if (col == fncols_) {
       sprintf(ptr,"\n");
@@ -833,8 +843,9 @@ int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>const& c
   char *ptr = buffer_;
   int col = 0;
   for (std::vector<NameType>::const_iterator it = carray.begin(); it != carray.end(); it++) {
-    int ncharwritten = sprintf(ptr, FORMAT, *(*it));
-    ptr += ncharwritten;
+    sprintf(ptr, FORMAT, *(*it));
+    // If # chars written > width, this silently truncates
+    ptr += fwidth_;
     ++col;
     if (col == fncols_) {
       sprintf(ptr,"\n");

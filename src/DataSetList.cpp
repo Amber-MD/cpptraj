@@ -12,9 +12,11 @@
 #include "DataSet_string.h"
 #include "DataSet_integer.h"
 #include "DataSet_float.h"
+#include "DataSet_Vector.h"
 #include "Histogram.h"
 #include "TriangleMatrix.h"
 #include "Matrix_2D.h"
+#include "ModesInfo.h"
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
@@ -324,6 +326,8 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType,
     case DataSet::HIST         : DS = new Histogram(); break;
     case DataSet::TRIMATRIX    : DS = new TriangleMatrix(); break;
     case DataSet::MATRIX2D     : DS = new Matrix_2D(); break;
+    case DataSet::VECTOR       : DS = new DataSet_Vector(); break;
+    case DataSet::MODES        : DS = new ModesInfo(); break;
     case DataSet::UNKNOWN_DATA :
     default:
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");

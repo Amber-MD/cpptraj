@@ -2,6 +2,7 @@
 #define INC_ANALYSIS_MATRIX_H
 #include "Analysis.h"
 #include "MatrixType.h"
+#include "ModesInfo.h"
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
   */

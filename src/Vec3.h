@@ -37,6 +37,11 @@ class Vec3 {
       V_[1] /= xIn;
       V_[2] /= xIn;
     }
+    void operator*=(double xIn) {
+      V_[0] *= xIn;
+      V_[1] *= xIn;
+      V_[2] *= xIn;
+    }
     void operator+=(double xIn) {
       V_[0] += xIn;
       V_[1] += xIn;
@@ -64,6 +69,11 @@ class Vec3 {
     }
     double operator*(const Vec3& rhs) const { // Dot product
       return ( (V_[0]*rhs.V_[0]) + (V_[1]*rhs.V_[1]) + (V_[2]*rhs.V_[2]) );
+    }
+    Vec3 operator*(double xIn) {
+      Vec3 tmp( *this );
+      tmp *= xIn;
+      return tmp;
     }
     double operator[](int idx) const { return V_[idx]; }
     double Magnitude2() {
