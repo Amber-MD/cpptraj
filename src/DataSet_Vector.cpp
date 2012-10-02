@@ -8,6 +8,7 @@ DataSet_Vector::DataSet_Vector() :
   DataSet(VECTOR, 8, 4),
   totalidx_(0),
   currentidx_(0),
+  order_(0),
   xyz_(0),
   isIred_(false),
   // Analysis_TimeCorr vars
@@ -179,36 +180,57 @@ void DataSet_Vector::sphericalHarmonics(int l, int m, const double* XYZ, double 
   //mprintf("CDBG: dreal=%.10lE dimg=%.10lE\n",D[0],D[1]);
 }
 
-// DataSet_Vector::SphericalHarmonics()
+// DataSet_Vector::CalcSphericalHarmonics()
 // TODO: Change memory layout so order of all vecs follow each other,
 //       i.e. order 2: m-2[0], m-2[1], ... m-2[N], m-1[0] ...
-// TODO: Use STL vectors
-double* DataSet_Vector::SphericalHarmonics(int order) {
+void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
   double Dcomplex[2];
-
+  // If sphereharm is not empty assume SphericalHarmonics was already called.
+  if (!sphereharm_.empty()) return;
+  // Store order for checking calls to FillData
+  order_ = orderIn;
   // Allocate space to hold complex numbers. Each frame has 2 doubles
   // (real + imaginary)  for each m = -olegendre -> +olegendre
   int n_of_vecs = Size();
-  int p2blocksize = 2 * ((order * 2) + 1);
+  int p2blocksize = 2 * ((order_ * 2) + 1);
   int p2size = (p2blocksize * n_of_vecs);
-  double* p2cftmp = new double[ p2size ];
-  memset( p2cftmp, 0, p2size * sizeof(double) );
+  sphereharm_.resize( p2size );
    // Loop over all vectors, convert to spherical harmonics
   double* VXYZ = xyz_;
-  double* P2 = p2cftmp;
+  std::vector<double>::iterator P2 = sphereharm_.begin();
+  // TODO: Use iterator?
   for (int i = 0; i < n_of_vecs; ++i) {
     // Calc vector length
     double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
     // Loop over m = -olegendre, ..., +olegendre
-    for (int midx = -order; midx <= order; ++midx) {
-      sphericalHarmonics(order, midx, VXYZ, len, Dcomplex);
-      //mprinterr("DBG: Vec %i sphereHarm[%u](m=%i) = %f + %fi\n",i,P2-p2cftmp,midx,Dcomplex[0],Dcomplex[1]);
+    for (int midx = -order_; midx <= order_; ++midx) {
+      sphericalHarmonics(order_, midx, VXYZ, len, Dcomplex);
+      //mprinterr("DBG: Vec %i sphereHarm[%u](m=%i) = %f + %fi\n",i,P2-sphereharm_.begin(),midx,Dcomplex[0],Dcomplex[1]);
       *(P2++) = Dcomplex[0];
       *(P2++) = Dcomplex[1];
     }
     VXYZ += 6;
   }
-  return p2cftmp;
+}
+
+// DataSet_Vector::FillData()
+int DataSet_Vector::FillData(double* dest, int midx) {
+  if (dest==0) return -1;
+  if ( std::abs(midx) > order_ ) {
+    mprinterr("Internal Error: Vector %s: FillData called with m=%i (max order= %i)\n",
+              Legend().c_str(), midx, order_);
+    return 1;
+  }
+  int p2blocksize = 2 * (2 * order_ + 1);
+  double *CF = dest;
+  for ( std::vector<double>::iterator sidx = sphereharm_.begin() + 2 * (midx + order_);
+                                      sidx < sphereharm_.end();
+                                      sidx += p2blocksize)
+  {
+    *(CF++) = *sidx;
+    *(CF++) = *(sidx+1);
+  }
+  return 0;
 }
 
 // DataSet_Vector::CalculateAverages()

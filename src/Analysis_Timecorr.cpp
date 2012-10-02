@@ -36,21 +36,8 @@ Analysis_Timecorr::~Analysis_Timecorr() {
   if (rcf_!=0) delete[] rcf_;
 }
 
-// Analysis_Timecorr::FillData()
-/** \param dest Destination array
-  * \param order Overall order.
-  */
-void Analysis_Timecorr::FillData(double* dest, double* source, int length, int midx, int order) {
-  if (dest==0 || source==0) return;
-  int p2blocksize = 2 * (2 * order + 1);
-  double *CF = dest;
-  for ( int sidx = 2 * (midx + order); sidx < length; sidx += p2blocksize ) {
-    *(CF++) = source[sidx  ];
-    *(CF++) = source[sidx+1];
-  }
-}
-
 // Analysis_Timecorr::CalcCorr()
+// TODO: Move to DataSet_Vector
 void Analysis_Timecorr::CalcCorr(int ndata, int nsteps, int frame) {
   if (drct_) {
     // Calc correlation function using direct approach
@@ -193,11 +180,9 @@ int Analysis_Timecorr::Analyze() {
       vinfo2_->CalculateAverages();
   }
   // Real + Img. for each -order <= m <= order, spherical Harmonics for each frame
-  int nsphereharm = 2 * mtot * frame;     
-  double* sphereHarm1 = vinfo1_->SphericalHarmonics(order_);
-  double* sphereHarm2 = 0;
-    if (vinfo2_ != 0)
-      sphereHarm2 = vinfo2_->SphericalHarmonics(order_);
+  vinfo1_->CalcSphericalHarmonics(order_);
+  if (vinfo2_ != 0)
+    vinfo2_->CalcSphericalHarmonics(order_);
   // ---------------------------------------------------------------------------
 
   // Allocate common memory and initialize arrays
@@ -221,8 +206,9 @@ int Analysis_Timecorr::Analyze() {
 
   // P2
   for (int midx = -order_; midx <= order_; ++midx) {
-    FillData(data1_, sphereHarm1, nsphereharm, midx, order_);
-    FillData(data2_, sphereHarm2, nsphereharm, midx, order_);
+    vinfo1_->FillData( data1_, midx );
+    if (vinfo2_ != 0)
+      vinfo2_->FillData( data2_, midx);
     CalcCorr( ndata, nsteps, frame );
     for (int k = 0; k < nsteps; ++k)
       p2cf_[k] += data1_[2 * k];
@@ -230,8 +216,9 @@ int Analysis_Timecorr::Analyze() {
   if (dplr_) {
     // C
     for (int midx = -order_; midx <= order_; ++midx) {
-      FillData(data1_, sphereHarm1, nsphereharm, midx, order_);
-      FillData(data2_, sphereHarm2, nsphereharm, midx, order_);
+      vinfo1_->FillData( data1_, midx );
+      if (vinfo2_ != 0)
+        vinfo2_->FillData( data2_, midx);
       for (int i = 0; i < frame; ++i) {
         int i2 = i * 2;
         double r3i = vinfo1_->R3( i ); 

@@ -55,10 +55,12 @@ class DataSet_Vector : public DataSet {
     }
 
     double R3(int i) { return R3i_[i]; }
+    double SphereHarm(int i) { return sphereharm_[i]; } // TODO: Replace
 
     static void corfdir(int, double *, double *, int, double *);
     static void sphericalHarmonics(int,int,const double*,double, double[2]);
-    double* SphericalHarmonics(int); // TODO: Store internally
+    void CalcSphericalHarmonics(int);
+    int FillData(double*, int); 
     void CalculateAverages();
     void PrintAvgcrd(CpptrajFile&);
 
@@ -99,6 +101,8 @@ class DataSet_Vector : public DataSet {
   private:
     int totalidx_;    ///< Size of the xyz array
     int currentidx_;  ///< Current position in the xyz array
+    int order_;       ///< Order of spherical harmonics
+    std::vector<double> sphereharm_;
     double* xyz_;     ///< 3x Vector lengths followed by 3x vector origin
     bool isIred_;     ///< If true this vector can be used to calc subsequent IRED matrix
     // For use with Analysis_Timecorr only

@@ -39,7 +39,6 @@ class Analysis_Timecorr : public Analysis {
     std::string filename_;
     PubFFT pubfft_;
     
-    static void FillData(double*,double*,int,int,int);
     void CalcCorr(int,int,int);
 };
 #endif

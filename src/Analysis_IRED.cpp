@@ -215,7 +215,7 @@ int Analysis_IRED::Analyze() {
                                               ivec != IredVectors_.end(); ++ivec)
   {
     double* CF = cftmp1;
-    double* sphereHarm = (*ivec)->SphericalHarmonics( order_ );
+    (*ivec)->CalcSphericalHarmonics( order_ );
     // Loop over all eigenvectors
     for (int veci = 0; veci < nvect; ++veci) {
       double Qvec = modinfo_->Evec(veci, n_ivec);
@@ -223,12 +223,11 @@ int Analysis_IRED::Analyze() {
       for (int midx = -order_; midx <= order_; ++midx) {
         // Loop over spherical harmonic coords for this m (Complex, [Real][Img])
         for ( int sidx = 2 * (midx + order_); sidx < nsphereharm; sidx += p2blocksize) {
-          *(CF++) += (Qvec * sphereHarm[sidx  ]);
-          *(CF++) += (Qvec * sphereHarm[sidx+1]);
+          *(CF++) += (Qvec * (*ivec)->SphereHarm(sidx  ));
+          *(CF++) += (Qvec * (*ivec)->SphereHarm(sidx+1));
         }
       }
     }
-    delete[] sphereHarm;
     ++n_ivec;
   }
   // cftmp1 now contains avgs over every IRED vector for each eigenvector:
