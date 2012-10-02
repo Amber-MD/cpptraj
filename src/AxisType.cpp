@@ -295,7 +295,7 @@ int AxisType::AllocAxis(int natomIn) {
   maxnatom_ = natom_;
   Ncoord_ = natom_ * 3;
   X_ = new double[ Ncoord_ ];
-  Name.reserve( natom_ );
+  Name.resize( natom_ );
   return 0;
 }
 
@@ -304,8 +304,8 @@ int AxisType::AllocAxis(int natomIn) {
 // AxisType::BaseName()
 const char* AxisType::BaseName() {
   if (basename_num_.empty()) 
-    basename_num = integerToString(residue_number + 1) + ":" + std::string(NAbaseName[ID]);
-  return basename_num.c_str();
+    basename_num_ = integerToString(residue_number + 1) + ":" + std::string(NAbaseName[ID]);
+  return basename_num_.c_str();
 }
 #endif
 
@@ -350,38 +350,6 @@ void AxisType::SetCoordsFromFrame( Frame& frameIn ) {
   for (int i = 0; i < frameIn.size(); ++i)
     X_[i] = frameIn[i];
 }
-
-// AxisType::SetAxisFromMask()
-/** Set coordinates (and names if debugging) of this axis based on the
-  * given axis and atom mask.
-  * \param AxisIn AxisType to set from.
-  * \param Mask AtomMask containing atoms to keep from AxisIn.
-  */
-/*void AxisType::SetAxisFromMask(AxisType &AxisIn, AtomMask &Mask) {
-  natom_ = Mask.Nselected();
-  Ncoord_ = natom_ * 3;
-  if (natom_ > maxnatom_) {
-    delete[] X_;
-    X_ = new double[ Ncoord_ ];
-#   ifdef NASTRUCTDEBUG
-    // Need names when debugging
-    Name.clear();
-#   endif
-    maxnatom_ = natom_;
-  }
-  double *newX = X_;
-  for (AtomMask::const_iterator oldatom = Mask.begin();
-                                oldatom != Mask.end();
-                                oldatom++)
-  {
-    int oldatom3 = (*oldatom) * 3;
-    memcpy(newX, AxisIn.X_ + oldatom3, 3*sizeof(double));
-    newX += 3;
-#   ifdef NASTRUCTDEBUG
-    Name.push_back( AxisIn.Name[*oldatom] );
-#   endif
-  }
-}*/
 
 // AxisType::StoreRotMatrix()
 /** Store the rotation matrix and origin coordinates associated with
@@ -618,44 +586,3 @@ void AxisType::FlipXY() {
   R[7] = -R[7]; // -Yz
 }
 
-#ifdef NASTRUCTDEBUG
-// DEBUG
-// AxisType::WritePDB()
-// Write coordinates to file in PDB format.
-void AxisType::WritePDB(CpptrajFile &outfile, int resnum, char *resname, int *atom) {
-  int i3=0;
-  for (int i=0; i<natom_; i++) {
-    pdb_write_ATOM(outfile.IO,PDBATOM,(*atom)+i+1,Name[i],resname,'X',resnum+1,
-                   X_[i3],X_[i3+1],X_[i3+2],1.0,0.0,(char*)"\0",false);
-    i3 += 3;
-  }
-  (*atom) += natom_;
-}
-// AxisType::WriteAxesPDB()
-void AxisType::WriteAxesPDB(CpptrajFile &outfile, int resnum, char *resname, int *atom) {
-  double dx,dy,dz;
-  // Origin
-  pdb_write_ATOM(outfile.IO, PDBATOM, (*atom)+1, (char*)"Orig", resname, 'X', resnum+1,
-                 origin[0],origin[1],origin[2],1.0,0.0,(char*)"\0",false);
-  // X vector
-  dx = origin[0] + R[0];
-  dy = origin[1] + R[3];
-  dz = origin[2] + R[6];
-  pdb_write_ATOM(outfile.IO, PDBATOM, (*atom)+2, (char*)"X", resname, 'X', resnum+1,
-                 dx,dy,dz,1.0,0.0,(char*)"\0",false);
-  // Y vector
-  dx = origin[0] + R[1];
-  dy = origin[1] + R[4];
-  dz = origin[2] + R[7];
-  pdb_write_ATOM(outfile.IO, PDBATOM, (*atom)+3, (char*)"Y", resname, 'X', resnum+1,
-                 dx,dy,dz,1.0,0.0,(char*)"\0",false);
-  // Z vector
-  dx = origin[0] + R[2];
-  dy = origin[1] + R[5];
-  dz = origin[2] + R[8];
-  pdb_write_ATOM(outfile.IO, PDBATOM, (*atom)+4, (char*)"Z", resname, 'X', resnum+1,
-                 dx,dy,dz,1.0,0.0,(char*)"\0",false);
-
-  (*atom) = (*atom) + 4;
-}
-#endif

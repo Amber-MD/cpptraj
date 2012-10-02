@@ -1,10 +1,6 @@
 #ifndef INC_AXISTYPE_H
 #define INC_AXISTYPE_H
 #include "Topology.h"
-#ifdef NASTRUCTDEBUG
-#  include "CpptrajFile.h"
-#  include "PDBtype.h"
-#endif
 /*! \file AxisType.h
     \brief Hold classes and functions used for NA structure analysis.
  */
@@ -17,12 +13,7 @@
   * - For holding the coordinates and rotation matrix/ origin of input 
   *   frames.
   */
-#ifdef NASTRUCTDEBUG
-class AxisType : public PDBtype
-#else
-class AxisType
-#endif
-{
+class AxisType {
   public:
     /// Type for each standard NA base.
     enum NAbaseType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
@@ -53,7 +44,6 @@ class AxisType
     void PrintAxisInfo(const char *);
 
     void SetCoordsFromFrame( Frame& ); // TODO: Make const
-    //void SetAxisFromMask(AxisType &, AtomMask &);
     void StoreRotMatrix(double*,double*);
     void StoreBPresnums(int,int);
 
@@ -80,11 +70,8 @@ class AxisType
     const double* O4crd() { return atomcrd_+3; }
 #ifdef NASTRUCTDEBUG
     const char* BaseName();
-    void WritePDB(CpptrajFile &, int, char *, int *); // DEBUG
-    void WriteAxesPDB(CpptrajFile &, int, char *, int *);
-    const double operator[](int idx) {
-      return X_[idx];
-    }
+    int Natom() { return natom_; }
+    double operator[](int idx) { return X_[idx]; }
 #endif
   private:
     static const int ADENATOM;

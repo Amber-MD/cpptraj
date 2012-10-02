@@ -6,6 +6,9 @@
 #include "Action.h"
 #include "AxisType.h"
 #include "Range.h"
+#ifdef NASTRUCTDEBUG
+#include "PDBtype.h"
+#endif
 /// Basic Nucleic acid structure analysis. 
 /** Calculate nucleic acid base/base pair structural parameters.
   * Algorithms for calculation of base/base pair structural parameters
@@ -87,22 +90,40 @@ class Action_NAstruct: public Action {
     int determineBasepairParameters();
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Class to hold PDB output
-    class AxisPDBwriter {
-        int pdbatom;
-        CpptrajFile pdbfile;
+    class AxisPDBwriter : CpptrajFile, PDBtype {
       public:
-        AxisPDBwriter() { pdbatom=0; }
-        ~AxisPDBwriter() { pdbfile.CloseFile(); }
-        void Open(const char *fname) {
-          pdbfile.SetupWrite((char*)fname, 0);
-          pdbfile.OpenFile();
+        AxisPDBwriter() : pdbatom_(1) { }
+        ~AxisPDBwriter() { CloseFile(); }
+        void Open(const char *fname) { OpenWrite( fname ); }
+        void Write(AxisType &axis, const double* XYZin, int res, const char *resname) {
+          const double* XYZ = XYZin;
+          for (int i = 0; i < axis.Natom(); ++i) {
+            pdb_write_ATOM( IO, PDBATOM, pdbatom_++, axis.AtomName(i), resname, 'X', res+1,
+                            XYZ[0], XYZ[1], XYZ[2], 1.0, 0.0, "", false);
+            XYZ += 3;
+          }
         }
-        void Write(AxisType &axis, int res, char *resname) {
-          axis.WritePDB(pdbfile, res, resname, &pdbatom);
+        void WriteAxes(AxisType &axis, int res, const char *resname) {
+          double OXYZ[3], V[3];
+          axis.OXYZ( OXYZ );
+          // Origin
+          pdb_write_ATOM( IO, PDBATOM, pdbatom_++, "Orig", resname, 'X', res+1,
+                          OXYZ[0], OXYZ[1], OXYZ[2], 1.0, 0.0, "", false);
+          // X vector
+          axis.RX( V );
+          pdb_write_ATOM( IO, PDBATOM, pdbatom_++, "X", resname, 'X', res+1,
+                          OXYZ[0]+V[0], OXYZ[1]+V[1], OXYZ[2]+V[2], 1.0, 0.0, "", false);
+          // Y vector
+          axis.RY( V );
+          pdb_write_ATOM( IO, PDBATOM, pdbatom_++, "Y", resname, 'X', res+1,
+                          OXYZ[0]+V[0], OXYZ[1]+V[1], OXYZ[2]+V[2], 1.0, 0.0, "", false);
+          // Z vector
+          axis.RZ( V );
+          pdb_write_ATOM( IO, PDBATOM, pdbatom_++, "Z", resname, 'X', res+1,
+                          OXYZ[0]+V[0], OXYZ[1]+V[1], OXYZ[2]+V[2], 1.0, 0.0, "", false);
         }
-        void WriteAxes(AxisType &axis, int res, char *resname) {
-          axis.WriteAxesPDB(pdbfile, res, resname, &pdbatom);
-        }
+      private:
+        int pdbatom_;
     };
     // DEBUG - used to trigger AxisPDBwriter for first call of calculateParameters
     bool calcparam;

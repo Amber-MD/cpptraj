@@ -34,6 +34,9 @@ class Frame {
     Frame();
     virtual ~Frame(); // Destructor is virtual since this class can be inherited
     Frame(int);
+#ifdef NASTRUCTDEBUG
+    Frame(int,const double*);
+#endif
     Frame(std::vector<Atom> const&);
     Frame(Frame const&, AtomMask const&);
     Frame(const Frame&);

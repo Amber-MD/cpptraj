@@ -83,9 +83,10 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
     mprintf("#  %4s %8s %8s %8s   %4s %8s %8s %8s\n","Ref","Rx","Ry","Rz","Exp","Ex","Ey","Ez");
     for (int i = 0; i < RefCoords[base].Natom(); i++) {
       int j = i * 3;
-      mprintf("%-2i %4s %8.3lf %8.3lf %8.3lf   %4s %8.3lf %8.3lf %8.3lf\n",i,
+      mprintf("%-2i %4s %8.3lf %8.3lf %8.3lf",i,
               RefCoords[base].AtomName(i),
-              RefCoords[base][j],RefCoords[base][j+1],RefCoords[base][j+2],
+              RefCoords[base][j],RefCoords[base][j+1],RefCoords[base][j+2]);
+      mprintf("   %4s %8.3lf %8.3lf %8.3lf\n",
               BaseAxes[base].AtomName(i),
               BaseAxes[base][j],BaseAxes[base][j+1],BaseAxes[base][j+2]);
     }
@@ -122,9 +123,9 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
     // DEBUG - Write base axis to file
     baseaxesfile.WriteAxes(BaseAxes[base], base, BaseAxes[base].ResName());
     // Overlap ref coords onto input coords.
-    refFrame = RefCoords[base]; 
-    refFrame.Trans_Rot_Trans(TransVec,RotMatrix);
-    basesfile.Write(refFrame, base, RefCoords[base].ResName());
+    Frame reftemp(RefCoords[base].Natom(), RefCoords[base].xAddress() ); 
+    reftemp.Trans_Rot_Trans(TransVec,RotMatrix);
+    basesfile.Write(RefCoords[base], reftemp.xAddress(), base, RefCoords[base].ResName());
 #   endif
   } // END loop over bases
 
