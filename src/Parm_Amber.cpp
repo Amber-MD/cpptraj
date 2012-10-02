@@ -779,8 +779,9 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>const& iar
   char *ptr = buffer_;
   int col = 0;
   for (std::vector<int>::const_iterator it = iarray.begin(); it != iarray.end(); it++) {
-    int ncharwritten = sprintf(ptr, FORMAT, *it);
-    ptr += ncharwritten;
+    sprintf(ptr, FORMAT, *it);
+    // If # chars written > width, this silently truncates
+    ptr += fwidth_;
     ++col;
     if (col == fncols_) {
       sprintf(ptr,"\n");
@@ -806,8 +807,9 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& d
   char *ptr = buffer_;
   int col = 0;
   for (std::vector<double>::const_iterator it = darray.begin(); it != darray.end(); it++) {
-    int ncharwritten = sprintf(ptr, FORMAT, *it);
-    ptr += ncharwritten;
+    sprintf(ptr, FORMAT, *it);
+    // If # chars written > width, this silently truncates
+    ptr += fwidth_;
     ++col;
     if (col == fncols_) {
       sprintf(ptr,"\n");
@@ -833,8 +835,9 @@ int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>const& c
   char *ptr = buffer_;
   int col = 0;
   for (std::vector<NameType>::const_iterator it = carray.begin(); it != carray.end(); it++) {
-    int ncharwritten = sprintf(ptr, FORMAT, *(*it));
-    ptr += ncharwritten;
+    sprintf(ptr, FORMAT, *(*it));
+    // If # chars written > width, this silently truncates
+    ptr += fwidth_;
     ++col;
     if (col == fncols_) {
       sprintf(ptr,"\n");
