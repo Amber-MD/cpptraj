@@ -1,4 +1,5 @@
 #include <cstring> // memcpy
+#include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <cmath> // sqrt
 #include "DataSet_Vector.h"
 #include "CpptrajStdio.h"
@@ -169,7 +170,7 @@ void DataSet_Vector::sphericalHarmonics(int l, int m, const double* XYZ, double 
   } else if(l == 2) {
     if (m == 0) {
       D[0] = SH20 * (2.0*z*z - x*x - y*y) * ri * ri;
-    } else if (std::abs(m) == 1) {
+    } else if (abs(m) == 1) {
       D[0] = -m * SH21 * x * z * ri * ri;
       D[1] =     -SH21 * y * z * ri * ri;
     } else {
@@ -216,7 +217,7 @@ void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
 // DataSet_Vector::FillData()
 int DataSet_Vector::FillData(double* dest, int midx) {
   if (dest==0) return -1;
-  if ( std::abs(midx) > order_ ) {
+  if ( abs(midx) > order_ ) {
     mprinterr("Internal Error: Vector %s: FillData called with m=%i (max order= %i)\n",
               Legend().c_str(), midx, order_);
     return 1;
