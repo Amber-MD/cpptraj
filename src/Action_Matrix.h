@@ -17,6 +17,7 @@ class Action_Matrix : public Action {
     int action();
 
     DataSet_Matrix* Mat_;
+    DataFile* outfile_;
     AtomMask mask1_;
     AtomMask mask2_;
     std::string filename_;

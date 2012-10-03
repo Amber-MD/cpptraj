@@ -6,6 +6,7 @@
 // CONSTRUCTOR
 Action_Matrix::Action_Matrix() :
   Mat_(0),
+  outfile_(0),
   outtype_(BYATOM),
   type_(DataSet_Matrix::MATRIX_NULL),
   start_(0),
@@ -105,7 +106,7 @@ int Action_Matrix::init() {
   Mat_->SetType( type_ );
   // Add set to output file if not doing ptraj-compatible output
   //if (!ptrajoutput_)
-    DFL->AddSetToFile(filename_, Mat_);
+    outfile_ = DFL->AddSetToFile(filename_, Mat_);
 
   mprintf("    MATRIX: Calculating %s", MatrixModeString[ type_ ]);
   switch (outtype_) {
@@ -234,5 +235,8 @@ void Action_Matrix::print() {
   // ---------- Calculate average over number of sets ------
   Mat_->AverageOverSnapshots();
 
+  if (outfile_ != 0) {
+    outfile_->ProcessArgs("xlabel Atom");
+  }
   return;
 }
