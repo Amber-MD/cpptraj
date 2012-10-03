@@ -11,6 +11,41 @@ class DataSet_Matrix : public DataSet {
 
     DataSet_Matrix();
     ~DataSet_Matrix();
+
+    // Iterator over matrix elements
+    class iterator : public std::iterator<std::forward_iterator_tag, double>
+    {
+      public:
+        iterator() : ptr_(0) {}
+        iterator(const iterator& rhs) : ptr_(rhs.ptr_) {}
+        iterator(double* pin) : ptr_(pin) {}
+        iterator& operator=(const iterator& rhs) {
+          if (this == &rhs) return *this;
+          ptr_ = rhs.ptr_;
+          return *this;
+        }
+        // Relations
+        bool operator==(const iterator& rhs) { return (ptr_==rhs.ptr_);}
+        bool operator!=(const iterator& rhs) { return (ptr_!=rhs.ptr_);}
+        // Increment
+        iterator& operator++() {
+          ++ptr_;
+          return *this;
+        }
+        iterator operator++(int) {
+          iterator tmp(*this);
+          ++(*this);
+          return tmp;
+        }
+        // Value
+        double& operator*() { return *ptr_; }
+        // Address
+        double* operator->() { return ptr_; }
+      private:
+        double* ptr_;
+    };
+    iterator begin() { return mat_; }
+    iterator end() { return (mat_ + matsize_); }
   private:
     double* mat_;     ///< Hold matrix elements
     double* vect_;    ///< Hold diagonal elements | avg coords
