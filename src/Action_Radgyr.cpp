@@ -1,38 +1,47 @@
 // Radius of Gyration 
+#include <cmath> // sqrt
 #include "Action_Radgyr.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Action_Radgyr::Action_Radgyr() :
-  rog_(NULL),
-  rogmax_(NULL),
-  calcRogmax_(true)
+  rog_(0),
+  rogmax_(0),
+  rogtensor_(0),
+  calcRogmax_(true),
+  calcTensor_(false)
 {
   //fprintf(stderr,"Radgyr Con\n");
   useMass_ = false;
 } 
 
 // Action_Radgyr::init()
-/** Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax]
+/** Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax] [tensor]
   */
 int Action_Radgyr::init() {
   // Get keywords
-  ArgList::ConstArg rogFile = actionArgs.getKeyString("out");
+  std::string rogFile = actionArgs.GetStringKey("out");
   useMass_ = actionArgs.hasKey("mass");
   calcRogmax_ = !actionArgs.hasKey("nomax");
+  calcTensor_ = actionArgs.hasKey("tensor");
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.getNextMask() );
+  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Datasets to store radius of gyration and max
   // Also add datasets to data file list
-  rog_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(), "RoG");
-  if (rog_==NULL) return 1;
-  DFL->Add(rogFile, rog_);
+  rog_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RoG");
+  if (rog_==0) return 1;
+  DFL->AddSetToFile(rogFile, rog_);
   if (calcRogmax_) {
     rogmax_ = DSL->AddSetAspect(DataSet::DOUBLE, rog_->Name(), "Max");
-    if (rogmax_ == NULL) return 1; 
-    DFL->Add(rogFile, rogmax_);
+    if (rogmax_ == 0) return 1; 
+    DFL->AddSetToFile(rogFile, rogmax_);
+  }
+  if (calcTensor_) {
+    rogtensor_ = DSL->AddSetAspect(DataSet::VECTOR, rog_->Name(), "Tensor");
+    if (rogtensor_ == 0) return 1;
+    DFL->AddSetToFile(rogFile, rogtensor_);
   }
 
   mprintf("    RADGYR: Calculating for atoms in mask %s",Mask1_.MaskString());
@@ -40,7 +49,9 @@ int Action_Radgyr::init() {
     mprintf(" using mass weighting");
   mprintf(".\n");
   if (!calcRogmax_)
-    mprintf("            RoG max will not be stored.\n");
+    mprintf("\tRoG max will not be stored.\n");
+  if (calcTensor_)
+    mprintf("\tRoG tensor will also be calcd.\n");
 
   return 0;
 }
@@ -59,15 +70,91 @@ int Action_Radgyr::setup() {
   return 0;  
 }
 
+// CalcTensor()
+static inline void CalcTensor(double* tsum, double dx, double dy, double dz, double mass) {
+  double xx = dx * dx * mass;
+  double yy = dy * dy * mass;
+  double zz = dz * dz * mass;
+  double xy = dx * dy * mass;
+  double xz = dx * dz * mass;
+  double yz = dy * dz * mass;
+
+  tsum[0] += xx;
+  tsum[1] += yy;
+  tsum[2] += zz;
+  tsum[3] += xy;
+  tsum[4] += xz;
+  tsum[5] += yz;
+}
+
 // Action_Radgyr::action()
+/** Calc the radius of gyration of atoms in mask. Also record the maximum 
+  * distance from center. Use center of mass if useMass is true.
+  */
 int Action_Radgyr::action() {
-  double max;
+  double max = 0.0;
+  double total_mass = 0.0;
+  double maxMass = 1.0;
+  double sumDist2 = 0.0;
+  double tsum[6];
+  tsum[0] = 0.0; tsum[1] = 0.0; tsum[2] = 0.0;
+  tsum[3] = 0.0; tsum[4] = 0.0; tsum[5] = 0.0;
 
-  double Rog = currentFrame->RADGYR(Mask1_, useMass_, &max);
+  // TODO: Make sumMass part of Frame?
+  if (useMass_) {
+    Vec3 mid = currentFrame->VCenterOfMass( Mask1_ );
+    for (AtomMask::const_iterator atom = Mask1_.begin(); atom != Mask1_.end(); ++atom)
+    {
+      const double* XYZ = currentFrame->XYZ( *atom );
+      double dx = XYZ[0] - mid[0];
+      double dy = XYZ[1] - mid[1];
+      double dz = XYZ[2] - mid[2];
+      double mass = (*currentParm)[ *atom ].Mass();
+      if (calcTensor_) CalcTensor(tsum, dx, dy, dz, mass);
+      total_mass += mass;
+      double dist2 = ((dx*dx) + (dy*dy) + (dz*dz)) * mass;
+      if (dist2 > max) {
+        max = dist2;
+        maxMass = mass;
+      }
+      sumDist2 += dist2;
+    }
+  } else {
+    Vec3 mid = currentFrame->VGeometricCenter( Mask1_ );
+    total_mass = (double)Mask1_.Nselected();
+    for (AtomMask::const_iterator atom = Mask1_.begin(); atom != Mask1_.end(); ++atom)
+    {
+      const double* XYZ = currentFrame->XYZ( *atom );
+      double dx = XYZ[0] - mid[0];
+      double dy = XYZ[1] - mid[1];
+      double dz = XYZ[2] - mid[2];
+      if (calcTensor_) CalcTensor(tsum, dx, dy, dz, 1.0);
+      double dist2 = ((dx*dx) + (dy*dy) + (dz*dz));
+      if (dist2 > max)
+        max = dist2;
+      sumDist2 += dist2;
+    }
+  }
 
+  if (total_mass == 0.0) {
+    mprinterr("Error: radgyr: divide by zero.\n");
+    return 1;
+  }
+  double Rog = sqrt( sumDist2 / total_mass );
   rog_->Add(frameNum, &Rog);
-  if (calcRogmax_)
+  if (calcRogmax_) {
+    max = sqrt( max / maxMass );
     rogmax_->Add(frameNum, &max);
+  }
+  if (calcTensor_) {
+    tsum[0] /= total_mass;
+    tsum[1] /= total_mass;
+    tsum[2] /= total_mass;
+    tsum[3] /= total_mass;
+    tsum[4] /= total_mass;
+    tsum[5] /= total_mass;
+    rogtensor_->Add(frameNum, tsum);
+  }
 
   //fprintf(outfile,"%10i %10.4lf %10.4lf\n",frameNum,Rog,max);
   

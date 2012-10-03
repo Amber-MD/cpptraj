@@ -190,7 +190,6 @@ class Frame {
     void ShiftToGeometricCenter();
     // Coordinate calculation
     double BoxToRecip(double *, double *);
-    double RADGYR(AtomMask &, bool, double *);
     double RMSD(Frame &, double*, double*,bool);
     double RMSD_CenteredRef( Frame const&, double[9], double[6], bool);
     double RMSD(Frame const&,bool);

@@ -13,6 +13,18 @@ class DataSet_Vector : public DataSet {
     int Width() { return ((width_ + 1) * 9);  }
     int Allocate(int);
     void WriteBuffer(CpptrajFile&, int);
+    void Add(int frameNum, void* vIn) { // TODO: Somehow incorporate frameNum?
+      double* xyz = (double*)vIn;
+      if (currentidx_ == totalidx_)
+        IncreaseSize();
+      xyz_[currentidx_  ] = xyz[0];
+      xyz_[currentidx_+1] = xyz[1];
+      xyz_[currentidx_+2] = xyz[2];
+      xyz_[currentidx_+3] = xyz[3];
+      xyz_[currentidx_+4] = xyz[4];
+      xyz_[currentidx_+5] = xyz[5];
+      currentidx_ += 6;
+    }
     // -------------------------------------------
 
     void AddVxyz(Vec3 const& vxyz, Vec3 const& cxyz) {
@@ -104,6 +116,7 @@ class DataSet_Vector : public DataSet {
     int order_;       ///< Order of spherical harmonics
     std::vector<double> sphereharm_;
     double* xyz_;     ///< 3x Vector lengths followed by 3x vector origin
+    bool writeSum_;   ///< If true will print vx+cx vy+cy vz+cz in WriteBuffer
     bool isIred_;     ///< If true this vector can be used to calc subsequent IRED matrix
     // For use with Analysis_Timecorr only
     double avgx_;
