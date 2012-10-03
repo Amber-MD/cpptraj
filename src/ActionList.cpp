@@ -40,6 +40,7 @@
 #include "Action_Vector.h"
 #include "Action_Principal.h"
 #include "MatrixType.h"
+#include "Action_Matrix.h"
 #include "Action_Grid.h"
 #include "Action_GridFreeEnergy.h"
 #include "Action_Dipole.h"
@@ -129,6 +130,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("vector"))         {Act=new Action_Vector;}
   else if (argIn.CommandIs("principal"))      {Act=new Action_Principal;}
   else if (argIn.CommandIs("matrix"))         {Act=new MatrixType;}
+  else if (argIn.CommandIs("mattest"))        {Act=new Action_Matrix;}
   else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}
   else if (argIn.CommandIs("gfe"))            {Act=new Action_GridFreeEnergy;}
   else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}

@@ -1,3 +1,4 @@
+#include <cstring> // memset
 #include "DataSet_Matrix.h"
 #include "CpptrajStdio.h"
 
@@ -13,7 +14,8 @@ DataSet_Matrix::DataSet_Matrix() :
   ncols_(0),
   vectsize_(0),
   snap_(0),
-  type_(MATRIX_NULL)
+  type_(MATRIX_NULL),
+  calcIndex(0)
 {}
 
 // DESTRUCTOR
@@ -49,7 +51,9 @@ int DataSet_Matrix::MatrixAlloc(AtomMask& mask1, AtomMask& mask2,
     }
     if (vectsize_ > 0) {
       vect_ = new double[ vectsize_ ];
+      memset(vect_, 0, vectsize_*sizeof(double));
       vect2_ = new double[ vectsize_ ];
+      memset(vect2_, 0, vectsize_*sizeof(double));
     }
   }
   // Determine matrix size in memory
@@ -70,6 +74,7 @@ int DataSet_Matrix::MatrixAlloc(AtomMask& mask1, AtomMask& mask2,
         ncols_ = mask1tot;
         matrixSize = ncols_ * (mask1tot + 1) / 2;
     }
+    calcIndex = calcHalfIndex;
   } else {
     // Full matrix - no MATRIX_DISTCOVAR, MATRIX_IDEA, or MATRIX_IRED possible
     switch( type_ ) {
@@ -89,6 +94,7 @@ int DataSet_Matrix::MatrixAlloc(AtomMask& mask1, AtomMask& mask2,
         ncols_ = mask1tot;
         nrows_ = mask2tot;
     }
+    calcIndex = calcFullIndex;
   }
   // Allocate Matrix
   if (mat_ == 0) {
@@ -98,6 +104,7 @@ int DataSet_Matrix::MatrixAlloc(AtomMask& mask1, AtomMask& mask2,
     }
     matsize_ = matrixSize;
     mat_ = new double[ matsize_ ];
+    memset(mat_, 0, matsize_ * sizeof(double));
   } else if (matsize_ != matrixSize) {
     // Already allocated. Make sure size does not change.
     mprinterr("Error: DataSet_Matrix: Attempting to reallocate matrix with different size.\n");
@@ -117,3 +124,53 @@ int DataSet_Matrix::MatrixAlloc(AtomMask& mask1, AtomMask& mask2,
   
   return 0;
 }
+
+int DataSet_Matrix::calcFullIndex(int ncols, int i, int j) { 
+  return ( (j*ncols)+i ); 
+}
+
+int DataSet_Matrix::calcHalfIndex(int ncols, int row, int col) {
+  int i, j;
+  if (row>col) {
+    i = col;
+    j = row;
+  } else {
+    i = row;
+    j = col;
+  }
+  //mprintf("CDBG:\ti=%i j=%i N=%i idx=%i\n",i,j,Nelt_,
+  //        (i * Nelt_ - (i * (i-1) / 2) + (j - i)));
+  return (i * ncols - (i * (i-1) / 2) + (j - i));
+}
+
+void DataSet_Matrix::Write2D( CpptrajFile& outfile, int x, int y ) {
+  int index = calcIndex(ncols_, x, y);
+  if (index < 0 || index >= matsize_)
+    outfile.Printf(data_format_, 0.0);
+  else
+    outfile.Printf(data_format_, mat_[index]);
+}
+
+void DataSet_Matrix::GetDimensions( std::vector<int>& vIn ) {
+  vIn.resize( 2 );
+  if (nrows_ > 0) {
+    vIn[0] = ncols_;
+    vIn[1] = nrows_;
+  } else {
+    vIn[0] = ncols_;
+    vIn[1] = ncols_;
+  }
+}
+
+void DataSet_Matrix::AverageOverSnapshots() {
+  double dsnap = (double)snap_;
+  if (vect_!=0) {
+    for (int i = 0; i < vectsize_; ++i) {
+      vect_[i] /= dsnap;
+      vect2_[i] /= dsnap;
+    }
+  }
+  for (int i = 0; i < matsize_; ++i)
+    mat_[i] /= dsnap;
+}
+

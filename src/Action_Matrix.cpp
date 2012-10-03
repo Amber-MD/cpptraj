@@ -1,5 +1,7 @@
+#include <cmath> // sqrt
 #include "Action_Matrix.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Action_Matrix::Action_Matrix() :
@@ -103,7 +105,7 @@ int Action_Matrix::init() {
   Mat_->SetType( type_ );
   // Add set to output file if not doing ptraj-compatible output
   //if (!ptrajoutput_)
-  //  DFL->AddSetToFile(filename_, Mat_);
+    DFL->AddSetToFile(filename_, Mat_);
 
   mprintf("    MATRIX: Calculating %s", MatrixModeString[ type_ ]);
   switch (outtype_) {
@@ -169,4 +171,68 @@ int Action_Matrix::setup() {
   }
 
   return 0;
+}
+
+// LegendrePoly()
+/** Calculate Legendre Polynomial. Used only by IRED. */
+static double LegendrePoly(int order, double val) {
+  if (order == 0)
+    return 1.0;
+  else if (order == 1)
+    return val;
+
+  double pNminus1 = 1.0;
+  double pN = val;
+  double twox = 2.0 * val;
+  double f2 = val;
+  double d = 1.0;
+
+  for(int i=2; i<=order; i++){
+    double f1 = d++;
+    f2 += twox;
+    double pNplus1 = (f2 * pN - f1 * pNminus1) / d;
+    pNminus1 = pN;
+    pN = pNplus1;
+  }
+  return pN;
+}
+
+// Action_Matrix::action()
+int Action_Matrix::action() {
+  // If the current frame is less than start exit
+  if (frameNum < start_) return 0;
+  // If the current frame is greater than stop exit
+  if (stop_!=-1 && frameNum >= stop_) return 0;
+  // Increment number of snapshots, update next target frame
+  Mat_->IncrementSnap(); 
+  start_ += offset_;
+
+  DataSet_Matrix::iterator mat = Mat_->begin();
+  switch (type_) {
+    // ---------------------------------------------
+    // ** Calc Distance Matrix **
+    case DataSet_Matrix::MATRIX_DIST:
+      if (!useMask2_) {
+        // Upper Triangle
+        for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != mask1_.end(); ++atom2)
+          for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
+            *(mat++) += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
+      } else {
+        // Full matrix
+        for (AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
+          for (AtomMask::const_iterator atom1 = mask1_.begin(); atom1 != mask1_.end(); ++atom1)
+            *(mat++) += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
+      }
+      break;
+    default: return 1;
+  }
+
+  return 0;
+}
+
+void Action_Matrix::print() {
+  // ---------- Calculate average over number of sets ------
+  Mat_->AverageOverSnapshots();
+
+  return;
 }

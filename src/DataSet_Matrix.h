@@ -21,7 +21,9 @@ class DataSet_Matrix : public DataSet {
     // -------------------------------------------
 
     void SetType( Matrix_Type typeIn ) { type_ = typeIn; }
+    void IncrementSnap() { ++snap_; } 
     int MatrixAlloc(AtomMask&, AtomMask&, std::vector<Atom> const&);
+    void AverageOverSnapshots();
 
     // Iterator over matrix elements
     class iterator : public std::iterator<std::forward_iterator_tag, double>
@@ -68,5 +70,10 @@ class DataSet_Matrix : public DataSet {
     int vectsize_;    ///< Sizes of vect | vect2
     int snap_;        ///< Number of snapshots
     Matrix_Type type_; ///< Type of matrix.
+    /// Pointer to index calculator for current matrix type
+    int (*calcIndex)(int,int,int);
+
+    static int calcFullIndex(int,int,int);
+    static int calcHalfIndex(int,int,int);
 };
 #endif
