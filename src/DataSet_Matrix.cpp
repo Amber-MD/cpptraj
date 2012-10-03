@@ -2,7 +2,7 @@
 
 // CONSTRUCTOR
 DataSet_Matrix::DataSet_Matrix() :
-  DataSet(MATRIX, 6, 3),
+  DataSet(MATRIX, 6, 3, 2),
   mat_(0),
   vect_(0),
   vect2_(0),

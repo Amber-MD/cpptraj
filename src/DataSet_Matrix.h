@@ -4,13 +4,15 @@
 /// Matrix, hold average over frames
 class DataSet_Matrix : public DataSet {
   public:
-    enum matrixMode {
+    enum Matrix_Type {
       MATRIX_NULL=0, MATRIX_DIST,      MATRIX_COVAR, MATRIX_MWCOVAR,
       MATRIX_CORREL, MATRIX_DISTCOVAR, MATRIX_IDEA,  MATRIX_IRED
     };
 
     DataSet_Matrix();
     ~DataSet_Matrix();
+
+    void SetType( Matrix_Type typeIn ) { type_ = typeIn; }
 
     // Iterator over matrix elements
     class iterator : public std::iterator<std::forward_iterator_tag, double>
@@ -56,6 +58,6 @@ class DataSet_Matrix : public DataSet {
     int ncols_;       ///< Number of columns in the matrix
     int vectsize_;    ///< Sizes of vect | vect2
     int snap_;        ///< Number of snapshots
-    matrixMode type_; ///< Type of matrix.
+    Matrix_Type type_; ///< Type of matrix.
 };
 #endif

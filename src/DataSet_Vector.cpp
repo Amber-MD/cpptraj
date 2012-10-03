@@ -6,7 +6,7 @@
 
 // CONSTRUCTOR
 DataSet_Vector::DataSet_Vector() :
-  DataSet(VECTOR, 8, 4),
+  DataSet(VECTOR, 8, 4, 1),
   totalidx_(0),
   currentidx_(0),
   order_(0),

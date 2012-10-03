@@ -21,6 +21,7 @@ class Action_Matrix : public Action {
     AtomMask mask2_;
     std::string filename_;
     OutputType outtype_;
+    DataSet_Matrix::Matrix_Type type_;
     // TODO: Put start, stop, offset into its own class
     int start_;
     int stop_;
