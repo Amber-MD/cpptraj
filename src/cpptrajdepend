@@ -88,6 +88,7 @@ DataSet_integer.o : DataSet_integer.cpp CpptrajFile.h CpptrajStdio.h DataSet.h D
 DataSetList.o : DataSetList.cpp ArgList.h Atom.h AtomMask.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_Vector.h DataSet_double.h DataSet_float.h DataSet_integer.h DataSet_string.h Dimension.h FileIO.h Frame.h Histogram.h MaskToken.h Matrix_2D.h ModesInfo.h NameType.h Range.h TriangleMatrix.h Vec3.h
 DataSet_string.o : DataSet_string.cpp CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_string.h FileIO.h MpiRoutines.h
 DataSet_Vector.o : DataSet_Vector.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_Vector.h FileIO.h Vec3.h
+DataSet_Matrix.o : DataSet_Matrix.cpp CpptrajFile.h DataSet.h DataSet_Matrix.h FileIO.h
 DistRoutines.o : DistRoutines.cpp DistRoutines.h Vec3.h
 Dimension.o : Dimension.cpp CpptrajStdio.h Dimension.h
 FileIO_Bzip2.o : FileIO_Bzip2.cpp CpptrajStdio.h FileIO.h FileIO_Bzip2.h
