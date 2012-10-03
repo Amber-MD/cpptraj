@@ -29,5 +29,7 @@ class Action_Matrix : public Action {
     // IRED only
     int order_;
     std::vector<DataSet_Vector*> IredVectors_;
+    
+    bool useMask2_;
 };
 #endif

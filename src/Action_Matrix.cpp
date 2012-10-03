@@ -9,7 +9,8 @@ Action_Matrix::Action_Matrix() :
   start_(0),
   stop_(-1),
   offset_(1),
-  order_(2)
+  order_(2),
+  useMask2_(false)
 {}
 
 const char Action_Matrix::MatrixModeString[8][27] = {
@@ -23,6 +24,7 @@ const char Action_Matrix::MatrixModeString[8][27] = {
   "ired matrix"
 };
 
+// Action_Matrix::init()
 int Action_Matrix::init() {
   // Get Keywords
   filename_ = actionArgs.GetStringKey("out");
@@ -66,7 +68,16 @@ int Action_Matrix::init() {
   if (type_ != DataSet_Matrix::MATRIX_IRED) {
     // Get masks if not IRED
     mask1_.SetMaskString( actionArgs.GetMaskNext() );
-    mask2_.SetMaskString( actionArgs.GetMaskNext() );
+    std::string maskexpr = actionArgs.GetMaskNext();
+    if (!maskexpr.empty()) useMask2_ = true;
+    if ( type_ == DataSet_Matrix::MATRIX_IDEA ||
+         type_ == DataSet_Matrix::MATRIX_DISTCOVAR )
+    {
+      mprintf("Warning: Mask 2 specified but not used for %s\n",MatrixModeString[type_]);
+      useMask2_ = false;
+    }
+    if (useMask2_)
+      mask2_.SetMaskString( maskexpr );
   } else {
     // Setup IRED vectors and determine Legendre order
     order_ = actionArgs.getKeyInt("order",1);
@@ -94,9 +105,68 @@ int Action_Matrix::init() {
   //if (!ptrajoutput_)
   //  DFL->AddSetToFile(filename_, Mat_);
 
-  mprintf("    MATRIX: Type %s", MatrixModeString[ type_ ]);
+  mprintf("    MATRIX: Calculating %s", MatrixModeString[ type_ ]);
+  switch (outtype_) {
+    case BYATOM:    mprintf("by atom"); break;
+    case BYRESIDUE: mprintf("by residue"); break;
+    case BYMASK:    mprintf("by mask"); break;
+  }
+  if (useMass_)
+    mprintf(", using mass weighting\n");
+  else
+    mprintf(", using no mass weighting\n");
+
+  if (type_==DataSet_Matrix::MATRIX_IRED)
+    mprintf("            Order of Legendre polynomials: %i\n",order_);
+  if (!filename_.empty())
+    mprintf("            Printing to file %s\n",filename_.c_str());
+  if (!name.empty())
+    mprintf("            Storing matrix on internal stack with name: %s\n", 
+            Mat_->Legend().c_str());
+  if (start_!=0 || stop_!=-1 || offset_!=1) {
+    mprintf("            start: %i  stop:",start_);
+    if (stop_==-1)
+      mprintf(" Final frame");
+    else
+      mprintf(" %i",stop_);
+    mprintf("  offset: %i\n",offset_);
+  }
+  if (type_!=DataSet_Matrix::MATRIX_IRED) {
+    mprintf("            Mask1: %s\n",mask1_.MaskString());
+    if (useMask2_)
+      mprintf("            Mask2: %s\n",mask2_.MaskString());
+  }
+
   mprintf("\n");
 
   return 0;
 }
 
+// Action_Matrix::setup()
+int Action_Matrix::setup() {
+  // Set up masks
+  if (type_!=DataSet_Matrix::MATRIX_IRED) {
+    if (currentParm->SetupIntegerMask(mask1_)) return 1;
+    mask1_.MaskInfo();
+    if (mask1_.None()) {
+      mprinterr("Error: No atoms selected for mask1.\n");
+      return 1;
+    }
+    if (useMask2_) {
+      if (currentParm->SetupIntegerMask(mask2_)) return 1;
+      mask2_.MaskInfo(); 
+      if (mask2_.None()) {
+        mprinterr("Error: No atoms selected for mask2.\n");
+        return 1;
+      }
+    }
+  }
+
+  // Allocate matrix memory.
+  if (Mat_->MatrixAlloc(mask1_, mask2_, currentParm->Atoms())) {
+    mprinterr("Error: matrix: Could not allocate memory.\n");
+    return 1;
+  }
+
+  return 0;
+}

@@ -1,5 +1,7 @@
 #ifndef INC_DATASET_MATRIX_H
 #define INC_DATASET_MATRIX_H
+#include "Atom.h"
+#include "AtomMask.h"
 #include "DataSet.h"
 /// Matrix, hold average over frames
 class DataSet_Matrix : public DataSet {
@@ -11,8 +13,15 @@ class DataSet_Matrix : public DataSet {
 
     DataSet_Matrix();
     ~DataSet_Matrix();
+    // DataSet functions -------------------------
+    int Xmax() { return nrows_ - 1; }
+    int Size() { return matsize_;   }
+    void Write2D( CpptrajFile&, int, int);
+    void GetDimensions(std::vector<int>&);
+    // -------------------------------------------
 
     void SetType( Matrix_Type typeIn ) { type_ = typeIn; }
+    int MatrixAlloc(AtomMask&, AtomMask&, std::vector<Atom> const&);
 
     // Iterator over matrix elements
     class iterator : public std::iterator<std::forward_iterator_tag, double>
