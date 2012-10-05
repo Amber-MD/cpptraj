@@ -6,7 +6,7 @@
 
 // CONSTRUCTOR
 Action_CheckStructure::Action_CheckStructure() : 
-  bondoffset_(1.0),
+  bondoffset_(1.15),
   nonbondcut2_(0.64), // 0.8^2
   isSeparate_(false)
 {} 
@@ -29,7 +29,7 @@ int Action_CheckStructure::init( ) {
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
   ArgList::ConstArg reportFile = actionArgs.getKeyString("reportfile");
-  bondoffset_ = actionArgs.getKeyDouble("offset",1.0);
+  bondoffset_ = actionArgs.getKeyDouble("offset",1.15);
   double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
 
   // Get Masks
@@ -61,7 +61,7 @@ void Action_CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutI
   debug = debugIn;
   InitImaging( false );
   if (bondoffsetIn < 0)
-    bondoffset_ = 1.0;
+    bondoffset_ = 1.15;
   else
     bondoffset_ = bondoffsetIn;
   if (nonbondcutIn < 0)
@@ -133,7 +133,7 @@ int Action_CheckStructure::setup() {
         // If no parameters exist for bond. Get cutoff from atom names.
         req = currentParm->GetBondedCutoff( (*it).atom1, (*it).atom2 );
       }
-      req = (req + bondoffset_);
+      req += bondoffset_;
       req *= req;
       (*it).req = req;
     }

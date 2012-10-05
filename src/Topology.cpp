@@ -12,6 +12,7 @@
 
 // CONSTRUCTOR
 Topology::Topology() :
+  offset_(0.20),
   debug_(0),
   topology_error_(0),
   NsolventMolecules_(0),
@@ -20,6 +21,11 @@ Topology::Topology() :
   nframes_(0),
   ntypes_(0)
 { }
+
+// Topology::SetOffset()
+void Topology::SetOffset( double oIn ) {
+  if (oIn > 0.0) offset_ = oIn;
+}
 
 // Topology::SetDebug()
 void Topology::SetDebug(int debugIn) {
@@ -186,7 +192,7 @@ int Topology::GetBondParamIdx( int idx, double &Rk, double &Req) {
 double Topology::GetBondedCutoff(int atom1, int atom2) {
   if (atom1 < 0 || atom2 < 0) return -1;
   if (atom1 >= Natom() || atom2 >= Natom()) return -1;
-  return GetBondedCut( atoms_[atom1].Element(), atoms_[atom2].Element() );
+  return GetBondLength( atoms_[atom1].Element(), atoms_[atom2].Element() );
 }
 // -----------------------------------------------------------------------------
 // Topology::ResAtomRange()
@@ -364,7 +370,7 @@ void Topology::PrintBonds(std::vector<int>& barray) {
                                      atom2+1, atoms_[atom2].c_str());
     ++batom;
     if (*batom==-1) {
-      double req = GetBondedCut(atoms_[atom1].Element(),atoms_[atom2].Element());
+      double req = GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element());
       mprintf("  EQ=%lf\n", req);
     } else {
       // TODO: Bond index should be -1
@@ -663,19 +669,19 @@ void Topology::SetAtomBondInfo() {
 }
 
 // Topology::CommonSetup()
-void Topology::CommonSetup(bool bondsearch) {
+int Topology::CommonSetup(bool bondsearch) {
   // Add placeholder to residues to indicate last residue
   //residues_.push_back( Residue( atoms_.size() ) );
   // Set up bond information if specified and necessary
   if (bondsearch) {
     if (bonds_.empty() && bondsh_.empty() && !refCoords_.empty()) {
       GetBondsFromAtomCoords();
-      DetermineMolecules();
+      if (DetermineMolecules()) return 1;
     }
   }
   
   if (molecules_.empty()) 
-    DetermineMolecules();
+    if (DetermineMolecules()) return 1;
 
   // Set up solvent information
   SetSolventInfo();
@@ -698,6 +704,7 @@ void Topology::CommonSetup(bool bondsearch) {
     for (unsigned int idx = 2; idx < bondsh_.size(); idx += 3)
       bondsh_[idx] = 1;
   }
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -716,10 +723,10 @@ bool Topology::compareElement(Atom::AtomicElementType a1, Atom::AtomicElementTyp
   return false;
 }
 
-// Topology::GetBondedCut() 
-/** Return a cutoff based on optimal covalent bond distance based on the 
-  * identities of atom1 and atom2. When multiple hybridizations are possible
-  * the longest possible bond length is used.
+// Topology::GetBondLength() 
+/** Return optimal covalent bond distance based on the element types of atom1 
+  * and atom2. When multiple hybridizations are possible the longest possible 
+  * bond length is used.
   * Unless otherwise noted values taken from:
   * - Huheey, pps. A-21 to A-34; T.L. Cottrell, "The Strengths of Chemical Bonds," 
   *       2nd ed., Butterworths, London, 1958; 
@@ -728,8 +735,8 @@ bool Topology::compareElement(Atom::AtomicElementType a1, Atom::AtomicElementTyp
   * Can be found on the web at:
   * - http://www.wiredchemist.com/chemistry/data/bond_energies_lengths.html
   */
-// NOTE: Store cutoff^2 instead??
-double Topology::GetBondedCut(Atom::AtomicElementType atom1, Atom::AtomicElementType atom2) 
+// NOTE: Store cut^2 instead??
+double Topology::GetBondLength(Atom::AtomicElementType atom1, Atom::AtomicElementType atom2) 
 {
   // Default cutoff
   double cut = 1.60;
@@ -800,36 +807,26 @@ double Topology::GetBondedCut(Atom::AtomicElementType atom1, Atom::AtomicElement
     cut=2.07;
   // No cutoff, use default
   else {
-    mprintf("Warning: GetBondedCut: Cut not found for %s - %s\n",
+    mprintf("Warning: GetBondLength: Bond length not found for %s - %s\n",
             Atom::AtomicElementName[atom1],Atom::AtomicElementName[atom2]);
-    mprintf("                       Using default cutoff of %lf\n",cut);
+    mprintf("                       Using default length of %lf\n",cut);
   }
 
   //mprintf("\t\tCUTOFF: [%s] -- [%s] = %lf\n",AtomicElementName[atom1],
   //        AtomicElementName[atom2],cut);
 
-  // Padding value
-  cut += 0.15;
   return cut;
 }
 
 // Topology::GetBondsFromAtomCoords()
 void Topology::GetBondsFromAtomCoords() {
   int stopatom;
-  // Dont want to check for bonds between residues once we are in a 
-  // solvent region, so set the last residue to be searched to the final
-  // solute residue.
-  std::vector<Residue>::iterator firstSolventResidue = residues_.end();
 
   mprintf("\t%s: determining bond info from distances.\n",c_str());
   // ----- STEP 1: Determine bonds within residues
-  //int resnum = 0; // DEBUG 
   for (std::vector<Residue>::iterator res = residues_.begin(); 
-                                      res != residues_.end(); res++) 
+                                      res != residues_.end(); ++res) 
   {
-    // Check if this residue is the first solvent residue.
-    if (firstSolventResidue!=residues_.end() && (*res).NameIsSolvent())
-      firstSolventResidue = res;
     // Get residue start atom.
     int startatom = (*res).FirstAtom();
     // Get residue end atom.
@@ -843,14 +840,14 @@ void Topology::GetBondsFromAtomCoords() {
     //atoms_[startatom].PrintXYZ();
     //mprintf("\n");
     // Check for bonds between each atom in the residue.
-    for (int atom1 = startatom; atom1 < stopatom - 1; atom1++) {
+    for (int atom1 = startatom; atom1 < stopatom - 1; ++atom1) {
       // If this is a hydrogen and it already has a bond, move on.
       if (atoms_[atom1].Element()==Atom::HYDROGEN &&
           atoms_[atom1].Nbonds() > 0 )
         continue;
-      for (int atom2 = atom1 + 1; atom2 < stopatom; atom2++) {
+      for (int atom2 = atom1 + 1; atom2 < stopatom; ++atom2) {
         double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
-        double cutoff2 = GetBondedCut(atoms_[atom1].Element(), atoms_[atom2].Element());
+        double cutoff2 = GetBondLength(atoms_[atom1].Element(), atoms_[atom2].Element()) + offset_;
         //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
         //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);
         cutoff2 *= cutoff2;
@@ -861,7 +858,6 @@ void Topology::GetBondsFromAtomCoords() {
         }
       }
     }
-    //++resnum; // DEBUG
   }
 
   // ----- STEP 2: Determine bonds between adjacent residues
@@ -869,7 +865,7 @@ void Topology::GetBondsFromAtomCoords() {
   if (!molecules_.empty())
     ++nextmol;
   for (std::vector<Residue>::iterator res = residues_.begin() + 1;
-                                      res != firstSolventResidue; res++)
+                                      res != residues_.end(); ++res)
   {
     // If molecule information is already present, check if first atom of 
     // this residue >= first atom of next molecule, which indicates this
@@ -880,12 +876,22 @@ void Topology::GetBondsFromAtomCoords() {
       ++nextmol;
       continue;
     }
-    // Get first residue start atom
+    // If this residue is recognized as solvent, no need to check previous or
+    // next residue
+    if ((*res).NameIsSolvent()) {
+      ++res;
+      if (res == residues_.end()) break;
+      continue;
+    }
+    // Get previous residue
     std::vector<Residue>::iterator previous_res = res - 1;
+    // If previous residue is recognized as solvent, no need to check previous.
+    if ((*previous_res).NameIsSolvent()) continue;
+    // Get previous residue start atom
     int startatom = (*previous_res).FirstAtom();
-    // First residue stop atom, second residue start atom
+    // Previous residue stop atom, this residue start atom
     int midatom = (*res).FirstAtom();
-    // Second residue stop atom
+    // This residue stop atom
     std::vector<Residue>::iterator nextres = res + 1;
     if (nextres == residues_.end())
       stopatom = atoms_.size();
@@ -898,7 +904,7 @@ void Topology::GetBondsFromAtomCoords() {
       for (int atom2 = midatom; atom2 < stopatom; atom2++) {
         if (atoms_[atom2].Element()==Atom::HYDROGEN) continue;
         double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
-        double cutoff2 = GetBondedCut(atoms_[atom1].Element(), atoms_[atom2].Element());
+        double cutoff2 = GetBondLength(atoms_[atom1].Element(), atoms_[atom2].Element()) + offset_;
         //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
         //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);
         cutoff2 *= cutoff2;
@@ -966,7 +972,7 @@ void Topology::VisitAtom(int atomnum, int mol) {
 /** Determine individual molecules using bond information. Performs a 
   * recursive search over the bonds of each atom.
   */
-void Topology::DetermineMolecules() {
+int Topology::DetermineMolecules() {
   std::vector<Atom>::iterator atom;
 
   mprintf("\t%s: determining molecule info from bonds.\n",c_str());
@@ -989,7 +995,7 @@ void Topology::DetermineMolecules() {
 
   // Update molecule information
   molecules_.resize( mol );
-  if (mol == 0) return;
+  if (mol == 0) return 0;
   std::vector<Molecule>::iterator molecule = molecules_.begin();
   (*molecule).SetFirst(0);
   atom = atoms_.begin(); 
@@ -997,17 +1003,28 @@ void Topology::DetermineMolecules() {
   int atomNum = 0;
   for (; atom != atoms_.end(); atom++)
   {
-    if ( (*atom).Mol() != lastMol ) {
+    if ( (*atom).Mol() > lastMol ) {
       // Set last atom of molecule
       (*molecule).SetLast( atomNum );
       // Set first atom of next molecule
       ++molecule;
       (*molecule).SetFirst( atomNum );
       lastMol = (*atom).Mol();
+    } else if ( (*atom).Mol()  < lastMol) {
+      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n",
+                atom - atoms_.begin() + 1);
+      mprinterr("Error: This can happen if bond information is incorrect or missing.\n");
+      mprinterr("Error: Detected # of molecules is %i. If this is incorrect and your\n",
+                mol);
+      mprinterr("Error: topology does not have bond information (e.g. PDB file), try\n");
+      mprinterr("Error: increasing the bond search cutoff offset (currently %f).\n",offset_);
+      molecules_.clear();
+      return 1;
     }
     ++atomNum;
   }
   (*molecule).SetLast( atoms_.size() );
+  return 0;
 }
 
 // Topology::AtomDistance()
@@ -1562,7 +1579,10 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
   newParm->bondrk_ = bondrk_;
   newParm->bondreq_ = bondreq_;
   // Set new molecule information based on new bonds
-  newParm->DetermineMolecules();
+  if (newParm->DetermineMolecules()) {
+    delete newParm;
+    return 0;
+  }
   // Set new solvent information based on new molecules
   newParm->SetSolventInfo(); 
   // Set up new angle info
