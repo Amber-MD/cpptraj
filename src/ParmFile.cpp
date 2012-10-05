@@ -63,7 +63,10 @@ int ParmFile::Read(Topology &Top, std::string const& fname, bool bondsearch)
           return 1;
         }
         // Perform setup common to all parm files.
-        Top.CommonSetup(bondsearch);
+        if (Top.CommonSetup(bondsearch)) {
+          delete parmio;
+          return 1;
+        }
         // Set base filename for later retrieval
         basename_ = basicParm.BaseFileName();
         delete parmio;

@@ -13,6 +13,7 @@ class Topology {
   public:
     Topology();
     // ----- Set internal variables -----
+    void SetOffset(double oIn);
     void SetDebug(int);
     void SetParmName(std::string&, const char*);
     void SetGBradiiSet(std::string&);
@@ -134,7 +135,7 @@ class Topology {
     int SetNonbondInfo(int, std::vector<int>& nbindex, 
                        std::vector<double>&, std::vector<double>&);
     // ----- Common Setup Routines -----
-    void CommonSetup(bool);
+    int CommonSetup(bool);
     void ClearBondInfo();
     void AddBond(int,int);
     // ----- Mask Routines -----
@@ -188,6 +189,7 @@ class Topology {
     Box box_;
     Frame refCoords_;
 
+    double offset_;         ///< Offset used when searching for bonds
     int debug_;
     int topology_error_;
     int NsolventMolecules_;
@@ -200,10 +202,10 @@ class Topology {
     void SetAtomBondInfo();
     bool compareElement(Atom::AtomicElementType, Atom::AtomicElementType,
                         Atom::AtomicElementType, Atom::AtomicElementType);
-    double GetBondedCut(Atom::AtomicElementType, Atom::AtomicElementType);
+    double GetBondLength(Atom::AtomicElementType, Atom::AtomicElementType);
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);
-    void DetermineMolecules();
+    int DetermineMolecules();
     void AtomDistance(int, int, int, std::set<int>&);
     void DetermineExcludedAtoms();
     void SetSolventInfo();
