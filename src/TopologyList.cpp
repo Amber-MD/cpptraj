@@ -6,8 +6,7 @@
 
 // CONSTRUCTOR 
 TopologyList::TopologyList() : 
-  hasCopies_(false),
-  bondsearch_(true)
+  hasCopies_(false)
 {}
 
 // DESTRUCTOR
@@ -25,10 +24,12 @@ TopologyList::~TopologyList() {
   */
 int TopologyList::CheckCommand(ArgList &argIn) {
   int pindex;
-  // parm <filename> [<tag>]: Add <filename> to parm list
+  // parm <filename> [<tag>] [nobondsearch | bondsearch [<offset>]]: Add <filename> to parm list
   if (argIn.CommandIs("parm")) {
     std::string parmtag = argIn.getNextTag();
-    this->AddParmFile(argIn.getNextString(), parmtag);
+    bool bondsearch = !argIn.hasKey("nobondsearch");
+    double offset = argIn.getKeyDouble("bondsearch", -1.0);
+    this->AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
     return 0;
   }
   // parmlist: Print list of loaded parm files
@@ -169,23 +170,16 @@ int TopologyList::CheckCommand(ArgList &argIn) {
       mprinterr("Error: parm %i not loaded.\n",pindex);
     return 0;
   }
-  // bondsearch: Indicate that if bond information not found in topology
-  //     it should be determined by distance search.
-  if (argIn.CommandIs("bondsearch")) {
-    mprintf("\tInfo: Bond info will be determined from distance search if not present.\n");
-    bondsearch_=true;
-    return 0;
+  // bondsearch: Deprecated. Should be specified on parm command line now. 
+  if (argIn.CommandIs("bondsearch") || argIn.CommandIs("nobondsearch")) {
+    mprintf("Warning: '[no]bondsearch' is deprecated; '[no]bondsearch [<offset>]]' should\n");
+    mprintf("Warning: now be specified with the 'parm' command.\n");
+    return 1;
   }
   // molsearch: Deprecated - molecules are always searched for. 
   if (argIn.CommandIs("molsearch") || argIn.CommandIs("nomolsearch")) {
-    mprintf("\tWarning: '[no]molsearch' is deprecated; molecules are always searched for.\n");
-    return 0;
-  }
-  // nobondsearch: Turn off bond search.
-  if (argIn.CommandIs("nobondsearch")) {
-    mprintf("\tInfo: Bond search is off.\n");
-    bondsearch_=false;
-    return 0;
+    mprintf("Warning: '[no]molsearch' is deprecated; molecules are always searched for.\n");
+    return 1;
   }
   // Unrecognized parm command
   return 1;
@@ -226,12 +220,13 @@ Topology *TopologyList::GetParm(ArgList &argIn) {
 /** Add a parameter file to the parm file list. */
 int TopologyList::AddParmFile(std::string const& filename) {
   std::string emptystring;
-  return AddParmFile(filename, emptystring);
+  return AddParmFile(filename, emptystring, true, -1.0);
 }
 
 // TopologyList::AddParmFile()
 /** Add a parameter file to the parm file list with optional tag. */
-int TopologyList::AddParmFile(std::string const& filename, std::string const& ParmTag) 
+int TopologyList::AddParmFile(std::string const& filename, std::string const& ParmTag,
+                              bool bondsearch, double offset) 
 {
   // Dont let a list that has copies add a new file
   if (hasCopies_) {
@@ -255,9 +250,10 @@ int TopologyList::AddParmFile(std::string const& filename, std::string const& Pa
 
   Topology *parm = new Topology();
   parm->SetDebug( debug_ );
+  parm->SetOffset( offset );
   ParmFile pfile;
   pfile.SetDebug( debug_ );
-  int err = pfile.Read(*parm, filename.c_str(), bondsearch_);
+  int err = pfile.Read(*parm, filename.c_str(), bondsearch);
   if (err!=0) {
     mprinterr("Error: Could not open parm %s\n",filename.c_str());
     delete parm;

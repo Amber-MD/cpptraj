@@ -1044,58 +1044,6 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
   return volume;
 }
 
-// Frame::RADGYR()
-/** Return the radius of gyration of atoms in mask. Also set the maximum 
-  * distance from center. Use center of mass if useMassIn is true.
-  */
-double Frame::RADGYR(AtomMask& Mask, bool useMassIn, double *max) 
-{
-  double mid[3];
-  double total_mass = 0.0;
-  double maxMass = 1.0;
-  double sumDist2 = 0.0;
-  *max = 0.0;
-
-  if (useMassIn) {
-    total_mass = this->CenterOfMass(mid, Mask);
-    for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom)
-    {
-      int xidx = *atom * 3;
-      double dx = X_[xidx  ] - mid[0];
-      double dy = X_[xidx+1] - mid[1];
-      double dz = X_[xidx+2] - mid[2];
-      double dist2 = (dx*dx) + (dy*dy) + (dz*dz);
-      double mass = Mass_[ *atom ];
-      dist2 *= mass;
-      if (dist2 > *max) {
-        *max = dist2;
-        maxMass = mass;
-      }
-      sumDist2 += dist2;
-    }
-  } else {
-    total_mass = this->GeometricCenter(mid, Mask);
-    for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom)
-    {
-      int xidx = *atom * 3;
-      double dx = X_[xidx  ] - mid[0];
-      double dy = X_[xidx+1] - mid[1];
-      double dz = X_[xidx+2] - mid[2];
-      double dist2 = (dx*dx) + (dy*dy) + (dz*dz);
-      if (dist2 > *max)
-        *max = dist2;
-      sumDist2 += dist2;
-    }
-  }
-  // NOTE: Not using == since it is unreliable for floating point numbers.
-  // Should NEVER have a mass smaller than SMALL (vectormath.h)
-  if (total_mass < SMALL) return 0;
-
-  *max = sqrt(*max / maxMass);
-
-  return ( sqrt(sumDist2 / total_mass) ); // Radius of Gyration
-}
-
 // Frame::RMSD()
 /** Get the RMSD of this Frame to Ref Frame. Ref frame must contain the same
   * number of atoms as this Frame - should be checked for before this routine

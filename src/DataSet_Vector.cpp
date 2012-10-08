@@ -11,6 +11,7 @@ DataSet_Vector::DataSet_Vector() :
   currentidx_(0),
   order_(0),
   xyz_(0),
+  writeSum_(false),
   isIred_(false),
   // Analysis_TimeCorr vars
   avgx_(0.0),
@@ -62,7 +63,7 @@ int DataSet_Vector::Allocate(int Nin) {
 void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, int frameIn) {
   int idx = frameIn * 6;
   if (idx < 0 || frameIn >= currentidx_) {
-    mprinterr("Eerror: DataSet_Vector: Frame %i is out of range.\n",frameIn);
+    mprinterr("Error: DataSet_Vector: Frame %i is out of range.\n",frameIn);
     return;
   }
   cbuffer.Printf(data_format_, xyz_[idx  ]);
@@ -71,9 +72,11 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, int frameIn) {
   cbuffer.Printf(data_format_, xyz_[idx+3]);
   cbuffer.Printf(data_format_, xyz_[idx+4]);
   cbuffer.Printf(data_format_, xyz_[idx+5]);
-  cbuffer.Printf(data_format_, xyz_[idx  ] + xyz_[idx+3]);
-  cbuffer.Printf(data_format_, xyz_[idx+1] + xyz_[idx+4]);
-  cbuffer.Printf(data_format_, xyz_[idx+2] + xyz_[idx+5]);
+  if (writeSum_) {
+    cbuffer.Printf(data_format_, xyz_[idx  ] + xyz_[idx+3]);
+    cbuffer.Printf(data_format_, xyz_[idx+1] + xyz_[idx+4]);
+    cbuffer.Printf(data_format_, xyz_[idx+2] + xyz_[idx+5]);
+  }
 }
 
 /** Calculates correlation functions using the "direct" approach

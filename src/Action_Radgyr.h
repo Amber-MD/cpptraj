@@ -13,7 +13,9 @@ class Action_Radgyr: public Action {
 
     DataSet* rog_;
     DataSet* rogmax_;
+    DataSet* rogtensor_;
     AtomMask Mask1_;
     bool calcRogmax_;
+    bool calcTensor_;
 };
 #endif

@@ -2965,6 +2965,95 @@ setupForWrite Initially false; set to true when WriteFrame has been called
  for the first time with the topology indicated in SetupWrite.
 \end_layout
 
+\begin_layout Part
+Actions
+\end_layout
+
+\begin_layout Section
+DataSets and DataFiles
+\end_layout
+
+\begin_layout Standard
+One of the goals in writing cpptraj was to try and generalize data collection
+ and output, so that e.g.
+ any action could output in any format known to cpptraj without having to
+ write any extra code.
+ To that end actions have access to a main DataSetList (named DSL inside
+ actions) and DataFileList (named DFL inside actions).
+ I will give a simple usage example based on the 'distance' action (Action_Dista
+nce, I will actually modify the code that is there slightly to reflect updates
+ that will eventually be made).
+ The first step is to create the DataSet in the init() routine.
+\end_layout
+
+\begin_layout LyX-Code
+dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Dis");
+\end_layout
+
+\begin_layout LyX-Code
+if (dist_==0) return 1;
+\end_layout
+
+\begin_layout Standard
+In the first line I am adding a DataSet class of type DOUBLE to the master
+ DataSetList.
+ The various types are enumerated in DataSet.h.
+ The DataSet will be named whatever the next string is in the actionArgs
+ ArgList.
+ If there is no name, a default one will be created based on the given default
+ "Dis" and the DataSet's overall position in the DataSetList (so in this
+ case the default could be something like Dis_00000).
+ What is returned is a pointer to the DataSet; DataSet is actually a base
+ class that specific DataSet types inherit (in this case DataSet_double).
+ In this way the interface is generalized.
+\end_layout
+
+\begin_layout Standard
+The next step is to add the DataSet to the DataFileList.
+\end_layout
+
+\begin_layout LyX-Code
+DFL->AddSetToFile(distanceFile, dist_);
+\end_layout
+
+\begin_layout Standard
+In this line I am adding DataSet dist_ to a file named distanceFile (string
+ obtained previously with something like distanceFile = actionArgs.GetStringKey("
+out");).
+ If distanceFile is empty the statement has no effect.
+ If distanceFile is already in DFL the DataSet will be added to that file
+ (in this way output from multiple actions can be combined rather than overwritt
+en).
+ The machinery of the DataFileList takes care of output from there.
+\end_layout
+
+\begin_layout Standard
+The final phase is actually adding data to the DataSet.
+ So for example in the action() routine you could have:
+\end_layout
+
+\begin_layout LyX-Code
+double distance = sqrt( DIST2_NoImage( V1, V2 ) );
+\end_layout
+
+\begin_layout LyX-Code
+dist_->Add(frameNum, &distance);
+\end_layout
+
+\begin_layout Standard
+In the first line the value 'distance' is being calculated.
+ In the next line the value from 'distance' is being added to DataSet dist_
+ with frame number 'frameNum' (automatically set within Action).
+ Notice that the address of 'distance' is passed rather than the value;
+ this is a necessity from the generalization of the DataSet interface.
+ DataSet has no idea a prior what the data type might be, so in the Add
+ routine the value is cast to what the underlying DataSet implementation
+ expects.
+ This allows the Add routine to be used for double, float, int, string,
+ etc.
+ 
+\end_layout
+
 \begin_layout Standard
 \begin_inset CommandInset index_print
 LatexCommand printindex

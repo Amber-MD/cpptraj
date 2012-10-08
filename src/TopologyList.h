@@ -23,7 +23,7 @@ class TopologyList : public FileList {
     Topology *GetParm(int);
     Topology *GetParm(ArgList&);
     int AddParmFile(std::string const&);
-    int AddParmFile(std::string const&,std::string const&);
+    int AddParmFile(std::string const&,std::string const&,bool,double);
     int AddParm(Topology*);
     void Print();
 
