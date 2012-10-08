@@ -21,7 +21,10 @@ class DataSet_Matrix : public DataSet {
     // -------------------------------------------
 
     void SetType( Matrix_Type typeIn ) { type_ = typeIn; }
-    void IncrementSnap() { ++snap_; } 
+    void IncrementSnap() { ++snap_; }
+    int Nrows() { return nrows_; }
+    int Ncols() { return ncols_; }
+
     int MatrixAlloc(AtomMask&, AtomMask&, std::vector<Atom> const&);
     void AverageOverSnapshots();
     void Vect2MinusVect();

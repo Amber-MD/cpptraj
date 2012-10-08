@@ -126,7 +126,7 @@ int DataSet_Matrix::MatrixAlloc(AtomMask& mask1, AtomMask& mask2,
 }
 
 int DataSet_Matrix::calcFullIndex(int ncols, int i, int j) { 
-  return ( (j*ncols)+i ); 
+  return ( (i*ncols)+j ); 
 }
 
 int DataSet_Matrix::calcHalfIndex(int ncols, int row, int col) {
@@ -176,7 +176,7 @@ void DataSet_Matrix::AverageOverSnapshots() {
 
 /** Calc <riri> - <ri><ri> */
 void DataSet_Matrix::Vect2MinusVect() {
-  for (int i = 0; i < vectsize_*3; ++i) {
+  for (int i = 0; i < vectsize_; ++i) {
     //mprintf("CDBG:\tvect2[%i] = %lf\n",i,vect2_[i]);
     vect2_[i] -= (vect_[i]*vect_[i]);
     //mprintf("CDBG:\tvect2[%i] = %lf\n",i,vect2_[i]);

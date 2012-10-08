@@ -30,11 +30,17 @@ class Action_Matrix : public Action {
     // IRED only
     int order_;
     std::vector<DataSet_Vector*> IredVectors_;
+    // MWcovar only
+    std::vector<double> mass1_;
+    std::vector<double> mass2_;
     
     bool useMask2_;
 
+    void FillMassArray(std::vector<double>&, AtomMask&);
     void CalcDistanceMatrix();
     void StoreVec(DataSet_Matrix::iterator&,DataSet_Matrix::iterator&,const double*);
     void CalcCovarianceMatrix();
+
+    void FinishCovariance();
 };
 #endif

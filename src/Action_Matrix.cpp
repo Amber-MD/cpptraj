@@ -110,9 +110,9 @@ int Action_Matrix::init() {
 
   mprintf("    MATRIX: Calculating %s", MatrixModeString[ type_ ]);
   switch (outtype_) {
-    case BYATOM:    mprintf("by atom"); break;
-    case BYRESIDUE: mprintf("by residue"); break;
-    case BYMASK:    mprintf("by mask"); break;
+    case BYATOM:    mprintf(" by atom"); break;
+    case BYRESIDUE: mprintf(" by residue"); break;
+    case BYMASK:    mprintf(" by mask"); break;
   }
   if (useMass_)
     mprintf(", using mass weighting\n");
@@ -145,9 +145,19 @@ int Action_Matrix::init() {
   return 0;
 }
 
+// Action_Matrix::FillMassArray()
+void Action_Matrix::FillMassArray(std::vector<double>& mass, AtomMask& mask) {
+  mass.clear();
+  if (type_ == DataSet_Matrix::MATRIX_MWCOVAR) {
+    mass.reserve( mask.Nselected() );
+    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) 
+      mass.push_back( (*currentParm)[ *atom ].Mass() );
+  }
+}
+
 // Action_Matrix::setup()
 int Action_Matrix::setup() {
-  // Set up masks
+  // Set up masks. Store mass info for masks if MWCOVAR
   if (type_!=DataSet_Matrix::MATRIX_IRED) {
     if (currentParm->SetupIntegerMask(mask1_)) return 1;
     mask1_.MaskInfo();
@@ -155,6 +165,7 @@ int Action_Matrix::setup() {
       mprinterr("Error: No atoms selected for mask1.\n");
       return 1;
     }
+    FillMassArray(mass1_, mask1_); // MWCOVAR only
     if (useMask2_) {
       if (currentParm->SetupIntegerMask(mask2_)) return 1;
       mask2_.MaskInfo(); 
@@ -162,6 +173,7 @@ int Action_Matrix::setup() {
         mprinterr("Error: No atoms selected for mask2.\n");
         return 1;
       }
+      FillMassArray(mass2_, mask2_); // MWCOVAR only
     }
   }
 
@@ -174,6 +186,7 @@ int Action_Matrix::setup() {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // LegendrePoly()
 /** Calculate Legendre Polynomial. Used only by IRED. */
 static double LegendrePoly(int order, double val) {
@@ -262,9 +275,8 @@ void Action_Matrix::CalcCovarianceMatrix() {
     }
   } else {
     // Half Matrix
-    AtomMask::const_iterator atom2end = mask1_.end() - 1;
     // OUTER LOOP
-    for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != atom2end; ++atom2)
+    for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != mask1_.end(); ++atom2)
     {
       const double* XYZi = currentFrame->XYZ( *atom2 );
       // Store veci and veci^2
@@ -276,13 +288,20 @@ void Action_Matrix::CalcCovarianceMatrix() {
         for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
         {
           const double* XYZj = currentFrame->XYZ( *atom1 );
-          for (int jidx = iidx; jidx < 3; ++jidx)
-            *(mat++) += Vi * XYZj[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
+          if ( atom1 == atom2 ) { // TODO: This saves 3 doubles / frame. Worth it?
+            for (int jidx = iidx; jidx < 3; ++jidx)
+              *(mat++) += Vi * XYZj[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
+          } else {
+            *(mat++) += Vi * XYZj[0];
+            *(mat++) += Vi * XYZj[1];
+            *(mat++) += Vi * XYZj[2];
+          }
         }
       }
     }
   }
 }
+// -----------------------------------------------------------------------------
 
 // Action_Matrix::action()
 int Action_Matrix::action() {
@@ -305,12 +324,97 @@ int Action_Matrix::action() {
   return 0;
 }
 
+// Action_Matrix::FinishCovariance()
+void Action_Matrix::FinishCovariance() {
+  double Mass = 1.0;
+  double mass2 = 1.0;
+  DataSet_Matrix::iterator mat = Mat_->begin();
+  // Calc <riri> - <ri><ri>
+  Mat_->Vect2MinusVect(); // TODO: Is this ever used??
+  // Calc <rirj> - <ri><rj>
+  if (useMask2_) {
+    // Full Matrix
+    std::vector<double>::iterator m2 = mass2_.begin();
+    // Position for mask2 halfway through vect/vect2
+    DataSet_Matrix::iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols();
+    for (DataSet_Matrix::iterator v1idx2 = v1idx2begin; 
+                                  v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    {
+      if (type_ == DataSet_Matrix::MATRIX_MWCOVAR)
+        mass2 = *(m2++);
+      for (int iidx = 0; iidx < 3; ++iidx) {
+        std::vector<double>::iterator m1 = mass1_.begin();
+        double Vi = *(v1idx2 + iidx);
+        for (DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
+                                      v1idx1 != v1idx2begin; v1idx1 += 3)
+        {
+          if (type_ == DataSet_Matrix::MATRIX_MWCOVAR)
+            Mass = sqrt( mass2 * *(m1++) );
+          *mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
+          ++mat;
+          *mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
+          ++mat;
+          *mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
+          ++mat;
+          //*(mat++) -= Vi * *(v1idx1  );
+          //*(mat++) -= Vi * *(v1idx1+1);
+          //*(mat++) -= Vi * *(v1idx1+2);
+        }
+      }
+    }
+  } else {
+    // Half Matrix
+    std::vector<double>::iterator m2 = mass1_.begin();
+    for (DataSet_Matrix::iterator v1idx2 = Mat_->v1begin();
+                                  v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    {
+      if (type_ == DataSet_Matrix::MATRIX_MWCOVAR)
+        mass2 = *m2;
+      for (int iidx = 0; iidx < 3; ++iidx) {
+        std::vector<double>::iterator m1 = m2;
+        double Vi = *(v1idx2 + iidx);
+        for (DataSet_Matrix::iterator v1idx1 = v1idx2;
+                                      v1idx1 != Mat_->v1end(); v1idx1 += 3)
+        {
+          if (type_ == DataSet_Matrix::MATRIX_MWCOVAR)
+            Mass = sqrt( mass2 * *(m1++) );
+          if ( v1idx1 == v1idx2 ) {
+            for (int jidx = iidx; jidx < 3; ++jidx) {
+              *mat = (*mat - (Vi * *(v1idx1 + jidx))) * Mass;
+              ++mat;
+              //*(mat++) -= Vi * *(v1idx1 + jidx); // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
+            }
+          } else {
+            *mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
+            ++mat;
+            *mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
+            ++mat;
+            *mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
+            ++mat;
+          }
+        }
+      }
+      ++m2;
+    }
+  }
+}
+
+// Action_Matrix::print()
 void Action_Matrix::print() {
   // ---------- Calculate average over number of sets ------
   Mat_->AverageOverSnapshots();
 
+  switch (type_) {
+    case DataSet_Matrix::MATRIX_COVAR:
+    case DataSet_Matrix::MATRIX_MWCOVAR: FinishCovariance(); break;
+
+    default: break; 
+  }
+
+  // Process output file args
   if (outfile_ != 0) {
     outfile_->ProcessArgs("xlabel Atom");
+    outfile_->ProcessArgs("square2d noxcol noheader");
   }
   return;
 }
