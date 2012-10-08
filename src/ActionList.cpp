@@ -55,6 +55,8 @@
 #include "Action_STFC_Diffusion.h"
 #include "Action_AtomicCorr.h"
 #include "Action_Bounds.h"
+#include "Action_Rotate.h"
+#include "Action_Translate.h"
 
 // CONSTRUCTOR
 ActionList::ActionList() :
@@ -144,6 +146,8 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("autoimage"))      {Act=new Action_AutoImage;}
   else if (argIn.CommandIs("atomiccorr"))     {Act=new Action_AtomicCorr;}
   else if (argIn.CommandIs("bounds"))         {Act=new Action_Bounds;}
+  else if (argIn.CommandIs("rotate"))         {Act=new Action_Rotate;}
+  else if (argIn.CommandIs("trans"))          {Act=new Action_Translate;}
   // STFC code
   else if (argIn.CommandIs("stfc"))           {
     std::string stfcCMD = argIn.GetStringNext();

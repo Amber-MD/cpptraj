@@ -185,6 +185,17 @@ class Frame {
     void Trans_Rot_Trans(const double *, const double *);
     void Rotate(const double *);
     void InverseRotate(const double *);
+    void Rotate(const double* RotMatrix, AtomMask& mask) {
+      for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
+        double* XYZ = X_ + (*atom * 3) ;
+        double x = XYZ[0];
+        double y = XYZ[1];
+        double z = XYZ[2];
+        XYZ[0] = (x*RotMatrix[0]) + (y*RotMatrix[3]) + (z*RotMatrix[6]);
+        XYZ[1] = (x*RotMatrix[1]) + (y*RotMatrix[4]) + (z*RotMatrix[7]);
+        XYZ[2] = (x*RotMatrix[2]) + (y*RotMatrix[5]) + (z*RotMatrix[8]);
+      }
+    }
     void Center(AtomMask const&, bool,bool);
     void CenterReference(double *, bool);
     void ShiftToGeometricCenter();
