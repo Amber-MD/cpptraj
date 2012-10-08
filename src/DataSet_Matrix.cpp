@@ -174,3 +174,12 @@ void DataSet_Matrix::AverageOverSnapshots() {
     mat_[i] /= dsnap;
 }
 
+/** Calc <riri> - <ri><ri> */
+void DataSet_Matrix::Vect2MinusVect() {
+  for (int i = 0; i < vectsize_*3; ++i) {
+    //mprintf("CDBG:\tvect2[%i] = %lf\n",i,vect2_[i]);
+    vect2_[i] -= (vect_[i]*vect_[i]);
+    //mprintf("CDBG:\tvect2[%i] = %lf\n",i,vect2_[i]);
+  }
+}
+

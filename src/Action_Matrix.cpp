@@ -198,6 +198,92 @@ static double LegendrePoly(int order, double val) {
   return pN;
 }
 
+/** Calc Distance Matrix */
+void Action_Matrix::CalcDistanceMatrix() {
+  DataSet_Matrix::iterator mat = Mat_->begin();
+  if (!useMask2_) {
+    // Upper Triangle
+    for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != mask1_.end(); ++atom2)
+      for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
+        *(mat++) += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
+  } else {
+    // Full matrix
+    for (AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
+      for (AtomMask::const_iterator atom1 = mask1_.begin(); atom1 != mask1_.end(); ++atom1)
+        *(mat++) += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
+  }
+}
+
+// Action_Matrix::StoreVec()
+void Action_Matrix::StoreVec(DataSet_Matrix::iterator& v1, DataSet_Matrix::iterator& v2,
+                             const double* XYZ) 
+{
+  *(v1++) += XYZ[0];
+  *(v2++) += (XYZ[0] * XYZ[0]);
+  *(v1++) += XYZ[1];
+  *(v2++) += (XYZ[1] * XYZ[1]);
+  *(v1++) += XYZ[2];
+  *(v2++) += (XYZ[2] * XYZ[2]);
+}
+
+/** Calc Covariance Matrix */
+void Action_Matrix::CalcCovarianceMatrix() {
+  DataSet_Matrix::iterator mat = Mat_->begin();
+  DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
+  DataSet_Matrix::iterator v2idx1 = Mat_->v2begin();
+  if (useMask2_) {
+    // Full Matrix
+    // Position for mask2 halfway through vect/vect2
+    DataSet_Matrix::iterator v1idx2 = Mat_->v1begin() + (mask1_.Nselected() * 3); 
+    DataSet_Matrix::iterator v2idx2 = Mat_->v2begin() + (mask1_.Nselected() * 3); 
+    bool storeVecj = true; // Only store vecj|vecj^2 first time through inner loop
+    // OUTER LOOP
+    for (AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
+    {
+      const double* XYZi = currentFrame->XYZ( *atom2 );
+      // Store veci and veci^2
+      StoreVec(v1idx2, v2idx2, XYZi);
+      // Loop over X, Y, and Z of veci
+      for (int iidx = 0; iidx < 3; ++iidx) {
+        double Vi = XYZi[iidx];
+        // INNER LOOP
+        for (AtomMask::const_iterator atom1 = mask1_.begin(); atom1 != mask1_.end(); ++atom1)
+        {
+          const double* XYZj = currentFrame->XYZ( *atom1 );
+          // Store vecj and vecj^2, first time through only
+          if (storeVecj) 
+            StoreVec(v1idx1, v2idx1, XYZj);
+          *(mat++) += Vi * XYZj[0];
+          *(mat++) += Vi * XYZj[1];
+          *(mat++) += Vi * XYZj[2];
+        }
+        storeVecj = false;
+      }
+    }
+  } else {
+    // Half Matrix
+    AtomMask::const_iterator atom2end = mask1_.end() - 1;
+    // OUTER LOOP
+    for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != atom2end; ++atom2)
+    {
+      const double* XYZi = currentFrame->XYZ( *atom2 );
+      // Store veci and veci^2
+      StoreVec(v1idx1, v2idx1, XYZi);
+      // Loop over X, Y, and Z of veci
+      for (int iidx = 0; iidx < 3; ++iidx) {
+        double Vi = XYZi[iidx];
+        // INNER LOOP
+        for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
+        {
+          const double* XYZj = currentFrame->XYZ( *atom1 );
+          for (int jidx = iidx; jidx < 3; ++jidx)
+            *(mat++) += Vi * XYZj[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
+        }
+      }
+    }
+  }
+}
+
 // Action_Matrix::action()
 int Action_Matrix::action() {
   // If the current frame is less than start exit
@@ -208,23 +294,11 @@ int Action_Matrix::action() {
   Mat_->IncrementSnap(); 
   start_ += offset_;
 
-  DataSet_Matrix::iterator mat = Mat_->begin();
   switch (type_) {
-    // ---------------------------------------------
-    // ** Calc Distance Matrix **
-    case DataSet_Matrix::MATRIX_DIST:
-      if (!useMask2_) {
-        // Upper Triangle
-        for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != mask1_.end(); ++atom2)
-          for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
-            *(mat++) += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
-      } else {
-        // Full matrix
-        for (AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
-          for (AtomMask::const_iterator atom1 = mask1_.begin(); atom1 != mask1_.end(); ++atom1)
-            *(mat++) += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
-      }
-      break;
+    case DataSet_Matrix::MATRIX_DIST: CalcDistanceMatrix(); break;
+    case DataSet_Matrix::MATRIX_COVAR:
+    case DataSet_Matrix::MATRIX_MWCOVAR: CalcCovarianceMatrix(); break;
+
     default: return 1;
   }
 

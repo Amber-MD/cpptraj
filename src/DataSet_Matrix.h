@@ -24,6 +24,7 @@ class DataSet_Matrix : public DataSet {
     void IncrementSnap() { ++snap_; } 
     int MatrixAlloc(AtomMask&, AtomMask&, std::vector<Atom> const&);
     void AverageOverSnapshots();
+    void Vect2MinusVect();
 
     // Iterator over matrix elements
     class iterator : public std::iterator<std::forward_iterator_tag, double>
@@ -54,11 +55,25 @@ class DataSet_Matrix : public DataSet {
         double& operator*() { return *ptr_; }
         // Address
         double* operator->() { return ptr_; }
+        // Addition
+        iterator& operator+=(int offset) {
+          ptr_ += offset;
+          return *this;
+        }
+        iterator operator+(int offset) {
+          iterator tmp(*this);
+          tmp += offset;
+          return tmp;
+        }
       private:
         double* ptr_;
     };
     iterator begin() { return mat_; }
     iterator end() { return (mat_ + matsize_); }
+    iterator v1begin() { return vect_;}
+    iterator v1end()   { return (vect_ + vectsize_);}
+    iterator v2begin() { return vect2_;}
+    iterator v2end()   { return (vect2_ + vectsize_);}
   private:
     double* mat_;     ///< Hold matrix elements
     double* vect_;    ///< Hold diagonal elements | avg coords

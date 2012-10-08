@@ -32,5 +32,9 @@ class Action_Matrix : public Action {
     std::vector<DataSet_Vector*> IredVectors_;
     
     bool useMask2_;
+
+    void CalcDistanceMatrix();
+    void StoreVec(DataSet_Matrix::iterator&,DataSet_Matrix::iterator&,const double*);
+    void CalcCovarianceMatrix();
 };
 #endif
