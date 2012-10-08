@@ -40,7 +40,10 @@ class Action_Matrix : public Action {
     void CalcDistanceMatrix();
     void StoreVec(DataSet_Matrix::iterator&,DataSet_Matrix::iterator&,const double*);
     void CalcCovarianceMatrix();
+    void CalcIdeaMatrix();
+    void CalcCorrelationMatrix();
 
     void FinishCovariance();
+    void FinishCorrelation();
 };
 #endif

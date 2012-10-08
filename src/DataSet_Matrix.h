@@ -24,9 +24,10 @@ class DataSet_Matrix : public DataSet {
     void IncrementSnap() { ++snap_; }
     int Nrows() { return nrows_; }
     int Ncols() { return ncols_; }
+    int Nsnap() { return snap_;  }
 
     int MatrixAlloc(AtomMask&, AtomMask&, std::vector<Atom> const&);
-    void AverageOverSnapshots();
+    void DivideBy(double);
     void Vect2MinusVect();
 
     // Iterator over matrix elements

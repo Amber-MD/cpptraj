@@ -301,7 +301,80 @@ void Action_Matrix::CalcCovarianceMatrix() {
     }
   }
 }
-// -----------------------------------------------------------------------------
+
+/** Calc Isotropically distributed ensemble matrix.
+  * See Proteins 2002, 46, 177; eq. 7 
+  */
+void Action_Matrix::CalcIdeaMatrix() {
+  DataSet_Matrix::iterator mat = Mat_->begin();
+  DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
+  DataSet_Matrix::iterator v2idx1 = Mat_->v2begin();
+  // Get COM
+  Vec3 COM = currentFrame->VCenterOfMass( mask1_ );
+  // Get ri, rj, and calc ri*rj
+  // Matrix IDEA only uses 1 mask.
+  for (AtomMask::const_iterator atomi = mask1_.begin(); atomi != mask1_.end(); ++atomi)
+  {
+    Vec3 ri = currentFrame->XYZ(*atomi);
+    ri -= COM;
+    for (AtomMask::const_iterator atomj = atomi; atomj != mask1_.end(); ++atomj)
+    {
+      Vec3 rj = currentFrame->XYZ(*atomj);
+      rj -= COM;
+      double val = ri * rj;
+      *(mat++) += val;
+      if (atomj == atomi) {
+        *(v1idx1++) += val;
+        *(v2idx1++) += (val * val);
+      }
+    }
+  }
+}
+
+/** Calc correlation matrix. */
+void Action_Matrix::CalcCorrelationMatrix() {
+  DataSet_Matrix::iterator mat = Mat_->begin();
+  DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
+  DataSet_Matrix::iterator v2idx1 = Mat_->v2begin();
+  if (useMask2_) {
+    // Full Matrix
+    // Position for mask2 halfway through vect/vect2
+    DataSet_Matrix::iterator v1idx2 = Mat_->v1begin() + (mask1_.Nselected() * 3);
+    DataSet_Matrix::iterator v2idx2 = Mat_->v2begin() + (mask1_.Nselected() * 3);
+    bool storeVecj = true; // Only store vecj|vecj^2 first time through inner loop
+    // OUTER LOOP
+    for (AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
+    {
+      const double* XYZi = currentFrame->XYZ( *atom2 );
+      // Store veci and veci^2
+      StoreVec(v1idx2, v2idx2, XYZi);
+      // INNER LOOP
+      for (AtomMask::const_iterator atom1 = mask1_.begin(); atom1 != mask1_.end(); ++atom1)
+      {
+        const double* XYZj = currentFrame->XYZ( *atom1 );
+        // Store vecj and vecj^2, first time through only
+        if (storeVecj)
+          StoreVec(v1idx1, v2idx1, XYZj);
+        *(mat++) += (XYZi[0]*XYZj[0] + XYZi[1]*XYZj[1] + XYZi[2]*XYZj[2]);
+      }
+      storeVecj = false;
+    }
+  } else {
+    // Half Matrix
+    // OUTER LOOP
+    for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != mask1_.end(); ++atom2)
+    {
+      const double* XYZi = currentFrame->XYZ( *atom2 );
+      // Store veci and veci^2
+      StoreVec(v1idx1, v2idx1, XYZi);
+      for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
+      {
+        const double* XYZj = currentFrame->XYZ( *atom1 );
+        *(mat++) += (XYZi[0]*XYZj[0] + XYZi[1]*XYZj[1] + XYZi[2]*XYZj[2]);
+      }
+    }
+  }
+}
 
 // Action_Matrix::action()
 int Action_Matrix::action() {
@@ -317,6 +390,8 @@ int Action_Matrix::action() {
     case DataSet_Matrix::MATRIX_DIST: CalcDistanceMatrix(); break;
     case DataSet_Matrix::MATRIX_COVAR:
     case DataSet_Matrix::MATRIX_MWCOVAR: CalcCovarianceMatrix(); break;
+    case DataSet_Matrix::MATRIX_CORREL: CalcCorrelationMatrix(); break;
+    case DataSet_Matrix::MATRIX_IDEA: CalcIdeaMatrix(); break;
 
     default: return 1;
   }
@@ -324,6 +399,7 @@ int Action_Matrix::action() {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // Action_Matrix::FinishCovariance()
 void Action_Matrix::FinishCovariance() {
   double Mass = 1.0;
@@ -399,14 +475,72 @@ void Action_Matrix::FinishCovariance() {
   }
 }
 
+static inline void DotProdAndNorm(DataSet_Matrix::iterator& mat,
+                                  DataSet_Matrix::iterator& vecti, 
+                                  DataSet_Matrix::iterator& vectj,
+                                  DataSet_Matrix::iterator& vect2i,
+                                  DataSet_Matrix::iterator& vect2j)
+{
+  *(mat) -= ( *(vectj  ) * *(vecti  ) +
+              *(vectj+1) * *(vecti+1) +
+              *(vectj+2) * *(vecti+2)   );
+  // Normalize
+  *(mat++) /= sqrt( (*(vect2j) + *(vect2j+1) + *(vect2j+2)) *
+                    (*(vect2i) + *(vect2i+1) + *(vect2i+2))   );
+}
+
+void Action_Matrix::FinishCorrelation() {
+  DataSet_Matrix::iterator mat = Mat_->begin();
+  // Calc <ri * ri> - <ri> * <ri>
+  Mat_->Vect2MinusVect(); // TODO: Is this only for Correlation? 
+  // Calc <ri * rj> - <ri> * <rj>
+  if (useMask2_) {
+    // Full Matrix
+    // Position for mask2 halfway through vect/vect2
+    // Vect has 3 entries per atom, but matrix only has 1 (as opposed to 
+    // COVAR/MWCOVAR which has 3 for vect and matrix).
+    DataSet_Matrix::iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols() * 3;
+    DataSet_Matrix::iterator v2idx2      = Mat_->v2begin() + Mat_->Ncols() * 3;
+    for (DataSet_Matrix::iterator v1idx2 = v1idx2begin;
+                                  v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    {
+      DataSet_Matrix::iterator v2idx1 = Mat_->v2begin();
+      for (DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
+                                    v1idx1 != v1idx2begin; v1idx1 += 3)
+      {
+        DotProdAndNorm( mat, v1idx2, v1idx1, v2idx2, v2idx1 );
+        v2idx1 += 3;
+      }
+      v2idx2 += 3;
+    }
+  } else {
+    // Half Matrix
+    DataSet_Matrix::iterator v2idx2 = Mat_->v2begin();
+    for (DataSet_Matrix::iterator v1idx2 = Mat_->v1begin();
+                                  v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    {
+      DataSet_Matrix::iterator v2idx1 = v2idx2;
+      for (DataSet_Matrix::iterator v1idx1 = v1idx2;
+                                    v1idx1 != Mat_->v1end(); v1idx1 += 3)
+      {
+        DotProdAndNorm( mat, v1idx2, v1idx1, v2idx2, v2idx1 );
+        v2idx1 += 3;
+      }
+      v2idx2 += 3;
+    }
+  }
+}
+
 // Action_Matrix::print()
 void Action_Matrix::print() {
   // ---------- Calculate average over number of sets ------
-  Mat_->AverageOverSnapshots();
+  Mat_->DivideBy((double)Mat_->Nsnap());
 
   switch (type_) {
     case DataSet_Matrix::MATRIX_COVAR:
     case DataSet_Matrix::MATRIX_MWCOVAR: FinishCovariance(); break;
+    case DataSet_Matrix::MATRIX_CORREL: FinishCorrelation(); break;
+    case DataSet_Matrix::MATRIX_IDEA: Mat_->DivideBy(3.0); break;
 
     default: break; 
   }

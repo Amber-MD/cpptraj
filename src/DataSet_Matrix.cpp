@@ -45,6 +45,7 @@ int DataSet_Matrix::MatrixAlloc(AtomMask& mask1, AtomMask& mask2,
     switch( type_ ) {
       case MATRIX_DIST:      vectsize_ = 0; break;
       case MATRIX_DISTCOVAR: vectsize_ = mask1tot * (mask1tot - 1) / 2; break;
+      case MATRIX_CORREL:
       case MATRIX_COVAR:
       case MATRIX_MWCOVAR:   vectsize_ = (mask1tot + mask2tot) * 3; break;
       default:               vectsize_ = mask1tot + mask2tot;
@@ -162,16 +163,15 @@ void DataSet_Matrix::GetDimensions( std::vector<int>& vIn ) {
   }
 }
 
-void DataSet_Matrix::AverageOverSnapshots() {
-  double dsnap = (double)snap_;
+void DataSet_Matrix::DivideBy(double dval) {
   if (vect_!=0) {
     for (int i = 0; i < vectsize_; ++i) {
-      vect_[i] /= dsnap;
-      vect2_[i] /= dsnap;
+      vect_[i] /= dval;
+      vect2_[i] /= dval;
     }
   }
   for (int i = 0; i < matsize_; ++i)
-    mat_[i] /= dsnap;
+    mat_[i] /= dval;
 }
 
 /** Calc <riri> - <ri><ri> */
