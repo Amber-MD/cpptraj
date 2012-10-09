@@ -708,19 +708,12 @@ int Topology::CommonSetup(bool bondsearch) {
 }
 
 // -----------------------------------------------------------------------------
-// Topology::compareElement()
-/** Compare a pair of elements a1 and a2 with target values b1 and b2.
-  * If either combination of a1 and a2 match b1 and b2 (i.e. a1==b1 and 
-  * a2==b2, or a1==b2 and a2==b1) return true, otherwise return false.
-  */
-bool Topology::compareElement(Atom::AtomicElementType a1, Atom::AtomicElementType a2,
-                              Atom::AtomicElementType b1, Atom::AtomicElementType b2)
-{
-  if      (a1==b1 && a2==b2)
-    return true;
-  else if (a1==b2 && a2==b1)
-    return true;
-  return false;
+// WarnBondLengthDefault()
+void Topology::WarnBondLengthDefault(Atom::AtomicElementType atom1,
+                                     Atom::AtomicElementType atom2, double cut) {
+  mprintf("Warning: GetBondLength: Bond length not found for %s - %s\n",
+          Atom::AtomicElementName[atom1], Atom::AtomicElementName[atom2]);
+  mprintf("                        Using default length of %f\n", cut);
 }
 
 // Topology::GetBondLength() 
@@ -740,81 +733,92 @@ double Topology::GetBondLength(Atom::AtomicElementType atom1, Atom::AtomicElemen
 {
   // Default cutoff
   double cut = 1.60;
-  // Self
   if (atom1==atom2) {
-    if      (atom1==Atom::HYDROGEN   ) cut=0.74;
-    else if (atom1==Atom::NITROGEN   ) cut=1.45;
-    else if (atom1==Atom::CARBON     ) cut=1.54;
-    else if (atom1==Atom::OXYGEN     ) cut=1.48;
-    else if (atom1==Atom::PHOSPHORUS ) cut=2.21;
-    else if (atom1==Atom::SULFUR     ) cut=2.05; // S-S gas-phase value; S=S is 1.49
+    // Self
+    switch (atom1) {
+      case Atom::HYDROGEN  : cut=0.74; break;
+      case Atom::CARBON    : cut=1.54; break;
+      case Atom::NITROGEN  : cut=1.45; break;
+      case Atom::OXYGEN    : cut=1.48; break;
+      case Atom::PHOSPHORUS: cut=2.21; break;
+      case Atom::SULFUR    : cut=2.05; break; // S-S gas-phase value; S=S is 1.49
+      default: WarnBondLengthDefault(atom1,atom2,cut);
+    }
+  } else {
+    Atom::AtomicElementType e1, e2;
+    if (atom1 < atom2) {
+      e1 = atom1;
+      e2 = atom2;
+    } else {
+      e1 = atom2;
+      e2 = atom1;
+    }
+    switch (e1) {
+      case Atom::HYDROGEN: // Bonds to H
+        switch (e2) {
+          case Atom::CARBON    : cut=1.09; break;
+          case Atom::NITROGEN  : cut=1.01; break;
+          case Atom::OXYGEN    : cut=0.96; break;
+          case Atom::PHOSPHORUS: cut=1.44; break;
+          case Atom::SULFUR    : cut=1.34; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case Atom::CARBON: // Bonds to C
+        switch (e2) {
+          case Atom::NITROGEN  : cut=1.47; break;
+          case Atom::OXYGEN    : cut=1.43; break;
+          case Atom::FLUORINE  : cut=1.35; break;
+          case Atom::PHOSPHORUS: cut=1.84; break;
+          case Atom::SULFUR    : cut=1.82; break;
+          case Atom::CHLORINE  : cut=1.77; break;
+          case Atom::BROMINE   : cut=1.94; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case Atom::NITROGEN: // Bonds to N
+        switch (e2) {
+          case Atom::OXYGEN    : cut=1.40; break;
+          case Atom::FLUORINE  : cut=1.36; break;
+          case Atom::PHOSPHORUS: cut=1.71; // Avg over all nX-pX from gaff.dat
+          case Atom::SULFUR    : cut=1.68; break; // Postma & Vos, Acta Cryst. (1973) B29, 915
+          case Atom::CHLORINE  : cut=1.75; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case Atom::OXYGEN: // Bonds to O
+        switch (e2) {
+          case Atom::FLUORINE  : cut=1.42; break;
+          case Atom::PHOSPHORUS: cut=1.63; break;
+          case Atom::SULFUR    : cut=1.48; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case Atom::FLUORINE: // Bonds to F
+        switch (e2) {
+          case Atom::PHOSPHORUS: cut=1.54; break;
+          case Atom::SULFUR    : cut=1.56; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;  
+      case Atom::PHOSPHORUS: // Bonds to P
+        switch (e2) {
+          case Atom::SULFUR  : cut=1.86; break;
+          case Atom::CHLORINE: cut=2.03; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case Atom::SULFUR: // Bonds to S
+        switch (e2) {
+          case Atom::CHLORINE: cut=2.07; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      default: WarnBondLengthDefault(e1,e2,cut);
+    } // END switch(e1)
   }
-  // Bonds to H 
-  else if ( compareElement(atom1,atom2,Atom::HYDROGEN,Atom::CARBON) )
-    cut=1.09;
-  else if ( compareElement(atom1,atom2,Atom::HYDROGEN,Atom::NITROGEN) )
-    cut=1.01;
-  else if ( compareElement(atom1,atom2,Atom::HYDROGEN,Atom::OXYGEN) )
-    cut=0.96;
-  else if ( compareElement(atom1,atom2,Atom::HYDROGEN,Atom::PHOSPHORUS) )
-    cut=1.44;
-  else if ( compareElement(atom1,atom2,Atom::HYDROGEN,Atom::SULFUR) )
-    cut=1.34;
-  // Bonds to C
-  else if ( compareElement(atom1,atom2,Atom::CARBON,Atom::NITROGEN) )
-    cut=1.47;
-  else if ( compareElement(atom1,atom2,Atom::CARBON,Atom::OXYGEN) )
-    cut=1.43;
-  else if ( compareElement(atom1,atom2,Atom::CARBON,Atom::PHOSPHORUS) )
-    cut=1.84;
-  else if ( compareElement(atom1,atom2,Atom::CARBON,Atom::FLUORINE) )
-    cut=1.35;
-  else if ( compareElement(atom1,atom2,Atom::CARBON,Atom::CHLORINE) )
-    cut=1.77;
-  else if ( compareElement(atom1,atom2,Atom::CARBON,Atom::BROMINE) )
-    cut=1.94;
-  else if ( compareElement(atom1,atom2,Atom::CARBON,Atom::SULFUR) )
-    cut=1.82;
-  // Bonds to N
-  else if ( compareElement(atom1,atom2,Atom::NITROGEN,Atom::OXYGEN) )
-    cut=1.40;
-  else if ( compareElement(atom1,atom2,Atom::NITROGEN,Atom::SULFUR) )
-    cut=1.68; // Postma & Vos, Acta Cryst. (1973) B29, 915
-  else if ( compareElement(atom1,atom2,Atom::NITROGEN,Atom::FLUORINE) )
-    cut=1.36;
-  else if ( compareElement(atom1,atom2,Atom::NITROGEN,Atom::CHLORINE) )
-    cut=1.75;
-  else if ( compareElement(atom1,atom2,Atom::NITROGEN,Atom::PHOSPHORUS) )
-    cut=1.71; // Avg over all nX-pX from gaff.dat
-  // Bonds to P
-  else if ( compareElement(atom1,atom2,Atom::PHOSPHORUS,Atom::OXYGEN) )
-    cut=1.63;
-  else if ( compareElement(atom1,atom2,Atom::PHOSPHORUS,Atom::SULFUR) )
-    cut=1.86;
-  else if ( compareElement(atom1,atom2,Atom::PHOSPHORUS,Atom::FLUORINE) )
-    cut=1.54;
-  else if ( compareElement(atom1,atom2,Atom::PHOSPHORUS,Atom::CHLORINE) )
-    cut=2.03;
-  // Bonds to O
-  else if ( compareElement(atom1,atom2,Atom::OXYGEN,Atom::SULFUR) )
-    cut=1.48;
-  else if ( compareElement(atom1,atom2,Atom::OXYGEN,Atom::FLUORINE) )
-    cut=1.42;
-  // Bonds to S
-  else if ( compareElement(atom1,atom2,Atom::SULFUR,Atom::FLUORINE) )
-    cut=1.56;
-  else if ( compareElement(atom1,atom2,Atom::SULFUR,Atom::CHLORINE) )
-    cut=2.07;
-  // No cutoff, use default
-  else {
-    mprintf("Warning: GetBondLength: Bond length not found for %s - %s\n",
-            Atom::AtomicElementName[atom1],Atom::AtomicElementName[atom2]);
-    mprintf("                       Using default length of %lf\n",cut);
-  }
-
   //mprintf("\t\tCUTOFF: [%s] -- [%s] = %lf\n",AtomicElementName[atom1],
   //        AtomicElementName[atom2],cut);
-
   return cut;
 }
 
