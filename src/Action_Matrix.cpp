@@ -115,17 +115,19 @@ int Action_Matrix::init() {
   if (outtype_ == BYATOM)
     outfile_ = DFL->AddSetToFile(filename_, Mat_);
 
-  mprintf("    MATRIX: Calculating %s", MatrixModeString[ type_ ]);
+  mprintf("    MATRIX: Calculating %s, output is", MatrixModeString[ type_ ]);
   switch (outtype_) {
     case BYATOM:    mprintf(" by atom"); break;
     case BYRESIDUE: mprintf(" by residue"); break;
     case BYMASK:    mprintf(" by mask"); break;
   }
-  if (useMass_)
-    mprintf(", using mass weighting\n");
-  else
-    mprintf(", using no mass weighting\n");
-
+  if (outtype_ != BYATOM) {
+    if (useMass_)
+      mprintf(" using mass weighting");
+    else
+      mprintf(" using no mass weighting");
+  }
+  mprintf("\n");
   if (type_ == IRED)
     mprintf("            Order of Legendre polynomials: %i\n",order_);
   if (!filename_.empty()) {
