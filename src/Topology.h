@@ -200,8 +200,8 @@ class Topology {
 
     void PrintBonds(std::vector<int>&);
     void SetAtomBondInfo();
-    bool compareElement(Atom::AtomicElementType, Atom::AtomicElementType,
-                        Atom::AtomicElementType, Atom::AtomicElementType);
+    static void WarnBondLengthDefault(Atom::AtomicElementType,
+                                      Atom::AtomicElementType,double);
     double GetBondLength(Atom::AtomicElementType, Atom::AtomicElementType);
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);
