@@ -6,11 +6,6 @@
 /// Matrix, hold average over frames
 class DataSet_Matrix : public DataSet {
   public:
-    enum Matrix_Type {
-      MATRIX_NULL=0, MATRIX_DIST,      MATRIX_COVAR, MATRIX_MWCOVAR,
-      MATRIX_CORREL, MATRIX_DISTCOVAR, MATRIX_IDEA,  MATRIX_IRED
-    };
-
     DataSet_Matrix();
     ~DataSet_Matrix();
     // DataSet functions -------------------------
@@ -20,13 +15,14 @@ class DataSet_Matrix : public DataSet {
     void GetDimensions(std::vector<int>&);
     // -------------------------------------------
 
-    void SetType( Matrix_Type typeIn ) { type_ = typeIn; }
     void IncrementSnap() { ++snap_; }
     int Nrows() { return nrows_; }
     int Ncols() { return ncols_; }
     int Nsnap() { return snap_;  }
 
-    int MatrixAlloc(AtomMask&, AtomMask&, std::vector<Atom> const&);
+    int AllocateVectors(int);
+    int AllocateMatrix(int,int,int);
+    void StoreMass(std::vector<double> const&);
     void DivideBy(double);
     void Vect2MinusVect();
 
@@ -88,7 +84,6 @@ class DataSet_Matrix : public DataSet {
     int ncols_;       ///< Number of columns in the matrix
     int vectsize_;    ///< Sizes of vect | vect2
     int snap_;        ///< Number of snapshots
-    Matrix_Type type_; ///< Type of matrix.
     /// Pointer to index calculator for current matrix type
     int (*calcIndex)(int,int,int);
 
