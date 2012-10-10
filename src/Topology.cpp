@@ -689,21 +689,6 @@ int Topology::CommonSetup(bool bondsearch) {
   // Determine excluded atoms
   DetermineExcludedAtoms();
 
-  // If bond information present but no parameters, add dummy parameters.
-  if ( (!bonds_.empty() || !bondsh_.empty()) &&
-       (bondrk_.empty() && bondreq_.empty())    )
-  {
-    mprintf("Warning: [%s] Bond information present but no bond parameters.\n",c_str());
-    mprintf("Warning: This can occur e.g. when bonds are determined from PDB.\n");
-    mprintf("Warning: Dummy parameters will be created as placeholders.\n");
-    mprintf("Warning: DO NOT USE AMBER TOPOLOGIES WRITTEN FROM THIS FOR SIMULATIONS!\n");
-    bondrk_.push_back(1.0);
-    bondreq_.push_back(1.0);
-    for (unsigned int idx = 2; idx < bonds_.size(); idx += 3)
-      bonds_[idx] = 1;
-    for (unsigned int idx = 2; idx < bondsh_.size(); idx += 3)
-      bondsh_[idx] = 1;
-  }
   return 0;
 }
 

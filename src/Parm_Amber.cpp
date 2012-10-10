@@ -219,12 +219,35 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
     resnums.push_back( (*res).FirstAtom()+1 );
   }
 
+  // Get bond information. If atom bonding info is present but bond
+  // parameters are not, create placeholder since other programs
+  // may expect bond parameters if bonds/bondsh arrays defined.
+  std::vector<int> Bonds = parmIn.Bonds();
+  std::vector<int> BondsH = parmIn.BondsH();
+  std::vector<double> BondRk = parmIn.BondRk();
+  std::vector<double> BondReq = parmIn.BondReq();
+  if ( (!Bonds.empty() || !BondsH.empty()) &&
+       (BondRk.empty() && BondReq.empty())    )
+  {
+    mprintf("Warning: [%s] Bond information present but no bond parameters.\n",
+            BaseFileStr());
+    mprintf("Warning: This can occur e.g. when bonds are determined from PDB.\n");
+    mprintf("Warning: Dummy parameters will be created as placeholders.\n");
+    mprintf("Warning: DO NOT USE THIS AMBER TOPOLOGY FOR SIMULATIONS!\n");
+    BondRk.push_back(1.0);
+    BondReq.push_back(1.0);
+    for (unsigned int idx = 2; idx < Bonds.size(); idx += 3)
+      Bonds[idx] = 1;
+    for (unsigned int idx = 2; idx < BondsH.size(); idx += 3)
+      BondsH[idx] = 1;
+  }
+
   // Create pointer array
   std::vector<int> values(AMBERPOINTERS, 0);
   values[NATOM] = parmIn.Natom();
   values[NTYPES] = parmIn.Ntypes();
-  values[NBONH] = (int)parmIn.BondsH().size() / 3; // NOTE: Check divisible by 3?
-  values[MBONA] = (int)parmIn.Bonds().size() / 3; // NOTE: Check divisible by 3?
+  values[NBONH] = (int)BondsH.size() / 3; // NOTE: Check divisible by 3?
+  values[MBONA] = (int)Bonds.size() / 3; // NOTE: Check divisible by 3?
   values[NTHETH] = (int)parmIn.AnglesH().size() / 4;
   values[MTHETA] = (int)parmIn.Angles().size() / 4;
   values[NPHIH] = (int)parmIn.DihedralsH().size() / 5; 
@@ -235,7 +258,7 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   values[NBONA] = values[MBONA];
   values[NTHETA] = values[MTHETA];
   values[NPHIA] = values[MPHIA];
-  values[NUMBND] = (int)parmIn.BondRk().size();
+  values[NUMBND] = (int)BondRk.size();
   values[NUMANG] = (int)parmIn.AngleTk().size();
   values[NPTRA] = (int)parmIn.DihedralPk().size();
   values[NATYP] = (int)parmIn.Solty().size(); // Only for SOLTY
@@ -271,8 +294,8 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   WriteName(F_RESNAMES, resnames);
   WriteInteger(F_RESNUMS, resnums);
   // BOND, ANGLE, and DIHEDRAL FORCE CONSTANT and EQUIL VALUES
-  WriteDouble(F_BONDRK, parmIn.BondRk());
-  WriteDouble(F_BONDREQ, parmIn.BondReq());
+  WriteDouble(F_BONDRK, BondRk);
+  WriteDouble(F_BONDREQ, BondReq);
   WriteDouble(F_ANGLETK, parmIn.AngleTk());
   WriteDouble(F_ANGLETEQ, parmIn.AngleTeq());
   WriteDouble(F_DIHPK, parmIn.DihedralPk());
@@ -286,8 +309,8 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   WriteDouble(F_LJ_A, parmIn.LJA());
   WriteDouble(F_LJ_B, parmIn.LJB());
   // BONDS/ANGLES/DIHEDRAL INDICES WITH AND WITHOUT HYDROGEN
-  WriteInteger(F_BONDSH, parmIn.BondsH()); 
-  WriteInteger(F_BONDS, parmIn.Bonds());
+  WriteInteger(F_BONDSH, BondsH); 
+  WriteInteger(F_BONDS, Bonds);
   WriteInteger(F_ANGLESH, parmIn.AnglesH());
   WriteInteger(F_ANGLES, parmIn.Angles());
   WriteInteger(F_DIHH, parmIn.DihedralsH());
