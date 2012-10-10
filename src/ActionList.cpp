@@ -39,7 +39,6 @@
 #include "Action_Contacts.h"
 #include "Action_Vector.h"
 #include "Action_Principal.h"
-#include "MatrixType.h"
 #include "Action_Matrix.h"
 #include "Action_Grid.h"
 #include "Action_GridFreeEnergy.h"
@@ -67,7 +66,7 @@ ActionList::ActionList() :
 ActionList::~ActionList() {
     // No need to cast back to whatever action was allocd since Action destructor is virtual
     for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
-      if (!(*act)->NoDelete())delete *act; 
+      delete *act; 
 }
 
 // ActionList::SetDebug()
@@ -131,8 +130,7 @@ int ActionList::AddAction(ArgList &argIn) {
   else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
   else if (argIn.CommandIs("vector"))         {Act=new Action_Vector;}
   else if (argIn.CommandIs("principal"))      {Act=new Action_Principal;}
-  else if (argIn.CommandIs("matrix"))         {Act=new MatrixType;}
-  else if (argIn.CommandIs("mattest"))        {Act=new Action_Matrix;}
+  else if (argIn.CommandIs("matrix"))        {Act=new Action_Matrix;}
   else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}
   else if (argIn.CommandIs("gfe"))            {Act=new Action_GridFreeEnergy;}
   else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}

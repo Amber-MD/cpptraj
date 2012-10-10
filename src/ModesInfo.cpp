@@ -10,6 +10,7 @@ const size_t ModesInfo::BUFSIZE_ = 1024;
 
 // CONSTRUCTOR
 ModesInfo::ModesInfo() :
+  DataSet(MODES, 9, 3, 0), // 0 should disable datafile write
   type_(MT_UNKNOWN),
   source_(MS_UNKNOWN),
   navgelem_(0),
@@ -18,13 +19,11 @@ ModesInfo::ModesInfo() :
   nvectelem_(0),
   freq_(0),
   evec_(0)
-{
-  dType_ = MODES;
-}
+{ }
 
 // CONSTRUCTOR
-ModesInfo::ModesInfo(modesType tIn, modesSource sIn, std::string& nameIn) :
-  type_(tIn),
+/*ModesInfo::ModesInfo(modesType tIn, modesSource sIn, std::string& nameIn) :
+  type_(MT_UNKNOWN),
   source_(sIn),
   navgelem_(0),
   avg_(0),
@@ -36,7 +35,7 @@ ModesInfo::ModesInfo(modesType tIn, modesSource sIn, std::string& nameIn) :
   // DataSet
   name_ = nameIn;
   dType_ = MODES;
-}
+}*/
 
 // Constants used in the CalcXXX routines.
 const double ModesInfo::CONSQ = 2.39805E-3;
@@ -48,7 +47,7 @@ const double ModesInfo::CMTOA = 1.000E8;
 const double ModesInfo::CONT  = CMTOA / TWOPI;
 
 // ModesInfo::SetNavgElem()
-int ModesInfo::SetNavgElem(int mask1tot) {
+/*int ModesInfo::SetNavgElem(int mask1tot) {
   // TODO: This is already calcd in MatrixType Nelt.
   if (type_ == MT_DIST || type_ == MT_IDEA || type_ == MT_IRED)
     navgelem_ = mask1tot;
@@ -58,13 +57,22 @@ int ModesInfo::SetNavgElem(int mask1tot) {
     navgelem_ = 3 * mask1tot;
   //mprintf("CDBG: mask1tot=%i ModesInfo::navgelem = %i\n",mask1tot, navgelem_);
   return navgelem_;
-}
+}*/
 
 // DESTRUCTOR
 ModesInfo::~ModesInfo() {
   if (avg_!=0) delete[] avg_;
   if (freq_!=0) delete[] freq_;
   if (evec_!=0) delete[] evec_;
+}
+
+void ModesInfo::SetAvg(int navgelemIn, const double* vectIn) {
+  if (avg_!=0) delete[] avg_;
+  navgelem_ = navgelemIn;
+  if (navgelem_ > 0) {
+    avg_ = new double[ navgelem_ ];
+    memcpy( avg_, vectIn, navgelem_ * sizeof(double) );
+  }
 }
 
 // ModesInfo::ReadEvecFile()

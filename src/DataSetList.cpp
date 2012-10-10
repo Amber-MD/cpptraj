@@ -367,13 +367,6 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   DataList_.push_back( dsetIn );
 }
 
-// DataSetList::AddDataSet()
-int DataSetList::AddDataSet(DataSet* dsetIn) {
-  if (dsetIn==NULL) return 1;
-  DataList_.push_back(dsetIn);
-  return 0;
-}
-
 // DataSetList::Info()
 /** Print information on all data sets in the list, as well as any datafiles
   * that will be written to.

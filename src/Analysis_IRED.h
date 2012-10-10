@@ -35,6 +35,7 @@ class Analysis_IRED : public Analysis {
     double* taum_;
     std::string noeFilename_;
     std::string filename_;
+    std::string orderparamfile_;
     PubFFT pubfft_;
     ModesInfo* modinfo_;
     std::vector<DataSet_Vector*> IredVectors_;

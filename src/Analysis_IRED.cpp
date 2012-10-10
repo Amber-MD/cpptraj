@@ -81,6 +81,7 @@ int Analysis_IRED::Setup(DataSetList* DSLin) {
     return 1;
   }
   // TODO: Check that number of evecs match number of IRED vecs
+  orderparamfile_ = analyzeArgs_.GetStringKey("orderparamfile");
 
   // Get tstep, tcorr, filenames
   tstep_ = analyzeArgs_.getKeyDouble("tstep", 1.0);
@@ -112,6 +113,8 @@ int Analysis_IRED::Setup(DataSetList* DSLin) {
 
   // Print Status
   mprintf("    ANALYZE IRED: IRED calculation.\n");
+  if (!orderparamfile_.empty())
+    mprintf("\tOrder parameters will be written to %s\n",orderparamfile_.c_str());
   mprintf("\tCorrelation time %lf, time step %lf\n", tcorr_, tstep_);
   mprintf("\tCorrelation functions are");
   if (norm_)
@@ -142,6 +145,34 @@ int Analysis_IRED::Setup(DataSetList* DSLin) {
 
 // Analysis_IRED::Analyze()
 int Analysis_IRED::Analyze() {
+  if (!orderparamfile_.empty()) {
+    // Calculation of S2 order parameters according to 
+    //   Prompers & Brüschweiler, JACS  124, 4522, 2002; 
+    // Originally added by A.N. Koller & H. Gohlke.
+    CpptrajFile orderout;
+    if (orderout.OpenWrite(orderparamfile_)) {
+      mprinterr("Error: Could not set up order parameter file.\n");
+      return 1;
+    }
+    orderout.Printf("\n\t************************************\n");
+    orderout.Printf("\t- Calculated iRed order parameters -\n");
+    orderout.Printf("\t************************************\n\n");
+    orderout.Printf("vector    S2\n----------------------\n");
+    // Loop over all vector elements
+    double* vout = modinfo_->Evec();
+    for (int i = 0; i < modinfo_->Navgelem(); ++i) {
+      // sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
+      double sum = 0.0;
+      // loop over all eigenvectors except the first five ones
+      for (int j = modinfo_->Nvect() - 6; j >= 0; j--) {
+        double vecelem = vout[j * modinfo_->Navgelem() + i];
+        sum += modinfo_->Freq(j) * vecelem * vecelem;
+      }
+      orderout.Printf(" %4i  %10.5f\n", i, 1.0 - sum);
+    }
+    orderout.CloseFile();
+  }
+
   // All IRED vectors must have the same size
   int Nframes_ = -1;
   for (std::vector<DataSet_Vector*>::iterator Vtmp = IredVectors_. begin();

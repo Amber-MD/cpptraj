@@ -255,7 +255,7 @@ int Action_Matrix::setup() {
         nrows = mask2tot;
     }
   }
-  if (Mat_->AllocateMatrix(ncols, nrows, matrixSize)) return 1;
+  if (Mat_->AllocateMatrix(ncols, nrows, mask1tot, matrixSize)) return 1;
 
   // Mass info needed for MWCOVAR analysis, store in matrix dataset.
   if (type_ == MWCOVAR) 

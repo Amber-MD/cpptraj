@@ -14,8 +14,7 @@ Action::Action() :
   frameNum(0),
   useMassOriginalValue_(false),
   noInit_(false), 
-  noSetup_(false),
-  noDelete_(false) 
+  noSetup_(false)
 {}
 
 // DESTRUCTOR

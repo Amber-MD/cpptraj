@@ -22,12 +22,11 @@ extern "C" {
 // CONSTRUCTOR
 Analysis_Matrix::Analysis_Matrix() :
   minfo_(0),
-  thermopt_(OFF),
+  thermopt_(false),
   nevec_(0),
   reduce_(false),
   modinfo_(0),
   freeWork_(true),
-  vect_(0),
   eigval_(0),
   vout_(0)
 {}
@@ -35,9 +34,6 @@ Analysis_Matrix::Analysis_Matrix() :
 // DESTRUCTOR
 Analysis_Matrix::~Analysis_Matrix() {
   if (freeWork_) {
-    // NOTE: Vect not freed here since it exists in a MatrixType structure.
-    //       It is used in thermo and for output.
-    //if (vect_!=0) delete[] vect_;
     if (eigval_!=0) delete[] eigval_;
     if (vout_!=0) delete[] vout_;
   }
@@ -72,61 +68,47 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
     return 1;
   }
   // Find matrix in DataSetList.
-  minfo_ = (MatrixType*)DSLin->FindSetOfType( mname, DataSet::MATRIX );
+  minfo_ = (DataSet_Matrix*)DSLin->FindSetOfType( mname, DataSet::MATRIX );
   if (minfo_ == 0) {
     mprinterr("Error: analyze matrix: Could not find matrix named %s\n",mname.c_str());
     return 1;
   }
   // Filenames
   outfilename_ = analyzeArgs_.GetStringKey("out");
-  orderparamfile_ = analyzeArgs_.GetStringKey("orderparamfile");
-  // Thermo/order flag
-  if (analyzeArgs_.hasKey("thermo"))
-    thermopt_ = THERMO;
-  else if (analyzeArgs_.hasKey("order"))
-    thermopt_ = ORDER;
-  else
-
-    thermopt_ = OFF;
-  if (thermopt_==THERMO && minfo_->Type()!=MatrixType::MATRIX_MWCOVAR) {
+  // Thermo flag
+  thermopt_ = analyzeArgs_.hasKey("thermo");
+  if (thermopt_)
+    outthermo_ = analyzeArgs_.GetStringKey("outthermo");
+  if (thermopt_ && minfo_->Mass()==0) {
     mprinterr("Error: analyze matrix: parameter 'thermo' only works for\n");
     mprinterr("       mass-weighted covariance matrix ('mwcovar').\n");
     return 1;
   }
-  if (thermopt_==ORDER && minfo_->Type()!=MatrixType::MATRIX_IRED) {
-    mprinterr("Error: analyze matrix: parameter 'order' only works for\n");
-    mprinterr("       IRED matrices.\n");
-    return 1;
-  }
   // Number of eigenvectors; allow "0" only in case of 'thermo'
   nevec_ = analyzeArgs_.getKeyInt("vecs",0);
-  if (thermopt_ == THERMO) {
+  if (thermopt_) {
     if (nevec_ < 0) nevec_ = 0;
   } else if (nevec_ <= 0) {
     nevec_ = 1;
   }
   // Reduce flag
   reduce_ = analyzeArgs_.hasKey("reduce");
-  if ( reduce_ && minfo_->Type() != MatrixType::MATRIX_MWCOVAR &&
+  /*if ( reduce_ && minfo_->Type() != MatrixType::MATRIX_MWCOVAR &&
                   minfo_->Type() != MatrixType::MATRIX_COVAR &&
-                  minfo_->Type() != MatrixType::MATRIX_DISTCOVAR)
+                  minfo_->Type() != MatrixType::MATRIX_DISTCOVAR)*/
+  if ( reduce_ && minfo_->Ncols() == minfo_->Nelts() )
   {
     mprinterr("Error: analyze matrix: parameter 'reduce only works for\n");
-    mprinterr("       (mass-weighted) covariance and distance covariance matrices.\n");
+    mprinterr("       covariance and distance covariance matrices.\n");
     return 1;
   }
   // Set up ModesInfo
   std::string modesname = analyzeArgs_.GetStringKey("name");
-  // TODO: Pass in MatrixType Nelt
-  if (!modesname.empty()) {
-    modinfo_=new ModesInfo((ModesInfo::modesType)minfo_->Type(),ModesInfo::MS_STACK,modesname);
-  } else {
-    modinfo_=new ModesInfo((ModesInfo::modesType)minfo_->Type(),ModesInfo::MS_UNKNOWN,modesname );
-  }
   // Unlike PTRAJ, always put ModesInfo into the DataSetList; this way
   // DataSetList always handles the destruction.
-  // TODO: Check for name conflicts.
-  DSLin->AddDataSet( (DataSet*)modinfo_ );
+  modinfo_ = (ModesInfo*)DSLin->AddSet( DataSet::MODES, modesname, "Modes" );
+  // TODO: Pass in MatrixType Nelt
+  if (modinfo_==0) return 1;
 
   // Print Status
   mprintf("    ANALYZE MATRIX: Analyzing matrix %s",minfo_->Legend().c_str());
@@ -135,17 +117,13 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
   else
     mprintf(" and printing results to STDOUT\n");
   mprintf("      Calculating %i eigenvectors", nevec_);
-  if (thermopt_==THERMO)
+  if (thermopt_)
     mprintf(" and thermodynamic data");
-  else if (thermopt_==ORDER)
-    mprintf(" and order parameters");
   mprintf("\n");
   if (nevec_>0 && reduce_)
     mprintf("      Eigenvectors will be reduced\n");
   if (!modesname.empty())
     mprintf("      Storing modes with name: %s\n",modesname.c_str());
-  if (!orderparamfile_.empty())
-    mprintf("      Order parameters will be written to %s\n",orderparamfile_.c_str());
   return 0;
 #endif
 }
@@ -202,16 +180,17 @@ int Analysis_Matrix::Analyze() {
   int info = 0;
   double* workd = 0;
 
-  vect_ = minfo_->VectPtr();
+  const double* vect = minfo_->Vect();
   // TODO: Just pass in matrix Nelt?
-  int nelem = modinfo_->SetNavgElem(minfo_->Mask1Tot());
+  int nelem = minfo_->Ncols();
+  //modinfo_->SetNavgElem( nelem ); // NOTE: Now done below when avg crds are set in ModesInfo
   //mprintf("CDBG: nevec=%i  nelem=%i\n",nevec_, nelem);
   if (nevec_ > nelem) {
     nevec_ = nelem;
     mprintf("Warning: NEVEC > NELEM: Number of calculated evecs were reduced to %i\n",nevec_);
   }
-  if (nevec_ > minfo_->Snap()) {
-    nevec_ = minfo_->Snap();
+  if (nevec_ > minfo_->Nsnap()) {
+    nevec_ = minfo_->Nsnap();
     mprintf("Warning: NEVEC > #Snapshots: Number of calculated evecs were reduced to %i\n",nevec_);
   }
 
@@ -250,8 +229,6 @@ int Analysis_Matrix::Analyze() {
       mprinterr("Error: analyze matrix: dspev returned %i\n",info);
       return 1;
     }
-    
-
   } else {
     // get up to n-1 eigenvectors
     int ncv;
@@ -328,7 +305,8 @@ int Analysis_Matrix::Analyze() {
     }
   }
 
-  if (minfo_->Type() == MatrixType::MATRIX_MWCOVAR) {
+  //if (minfo_->Type() == MatrixType::MATRIX_MWCOVAR) {
+  if (minfo_->Mass() != 0) {
     // Convert eigenvalues to cm^-1
     for (int i = 0; i < neval; ++i) {
       if (eigval_[i] > 0)
@@ -342,66 +320,43 @@ int Analysis_Matrix::Analyze() {
       }
     }
     // Mass-weight eigenvectors 
-    int crow = 0;
-    for (AtomMask::const_iterator atomi = minfo_->Mask1().begin(); 
+    //int crow = 0;
+    const double* mptr = minfo_->Mass();
+    for ( int crow = 0; crow < minfo_->Ncols(); crow += 3) { // This will ONLY work for COVAR
+    /*for (AtomMask::const_iterator atomi = minfo_->Mask1().begin(); 
                                   atomi != minfo_->Mask1().end(); ++atomi)
-    {
-      double mass = 1.0 / sqrt( (*(minfo_->Parm()))[*atomi].Mass() );
+    {*/
+      double mass = 1.0 / sqrt( *(mptr++) );
       for (int i = 0; i < nevec_; ++i) {
-        int idx = i*nelem + crow*3;
+        int idx = i*nelem + crow;
         vout_[idx  ] *= mass;
         vout_[idx+1] *= mass;
         vout_[idx+2] *= mass;
       }
-      ++crow;
     }
     // Calc thermo chemistry if specified
-    if (thermopt_ == THERMO) {
+    if (thermopt_) {
       double* eigvali = new double[ neval ];
       double* vibn = new double[ 4 * neval ];
-      int natoms = minfo_->Mask1Tot();
-      double* masses = new double[ natoms ];
+      //int natoms = minfo_->Mask1Tot();
+      int natoms = minfo_->Ncols() / 3; // This will ONLY work for COVAR
+      //double* masses = new double[ natoms ];
       for (int i = 0; i < neval; ++i)
         eigvali[i] = eigval_[neval - 1 - i];
-      crow = 0;
+      /*crow = 0;
       for (AtomMask::const_iterator atomi = minfo_->Mask1().begin();
                                   atomi != minfo_->Mask1().end(); ++atomi)
-        masses[crow++] = (*(minfo_->Parm()))[*atomi].Mass();
-      thermo( natoms, neval, 1, vect_, masses, eigvali, 
+        masses[crow++] = (*(minfo_->Parm()))[*atomi].Mass();*/
+      CpptrajFile outfile;
+      outfile.OpenWrite(outthermo_);
+      thermo( outfile, natoms, neval, 1, vect, minfo_->Mass(), eigvali, 
               vibn, vibn + 1*neval, vibn + 2*neval, vibn + 3*neval,
               298.15, 1.0 );
+      outfile.CloseFile();
       delete[] eigvali;
       delete[] vibn;
-      delete[] masses; 
+      //delete[] masses; 
     }
-  }
-
-  // Calculation of S2 order parameters according to 
-  //   Prompers & Brüschweiler, JACS  124, 4522, 2002; 
-  // Originally added by A.N. Koller & H. Gohlke.
-  if (minfo_->Type() == MatrixType::MATRIX_IRED && thermopt_==ORDER) {
-    CpptrajFile orderout;
-    if (orderout.SetupWrite(orderparamfile_, debug_)) {
-      mprinterr("Error: Could not set up order parameter file.\n");
-      return 1;
-    }
-    orderout.OpenFile();
-    orderout.Printf("\n\t************************************\n");
-    orderout.Printf("\t- Calculated iRed order parameters -\n");
-    orderout.Printf("\t************************************\n\n");
-    orderout.Printf("vector    S2\n----------------------\n");
-    // Loop over all vector elements
-    for (int i = 0; i < nelem; ++i) {
-      // sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
-      double sum = 0.0;
-      // loop over all eigenvectors except the first five ones
-      for (int j = nevec_ - 6; j >= 0; j--) {
-        double vecelem = vout_[j * nelem + i];
-        sum += eigval_[j] * vecelem * vecelem;
-      }
-      orderout.Printf(" %4i  %10.5f\n", i, 1.0 - sum);
-    }
-    orderout.CloseFile();
   }
 
   // Reduction of eigenvectors (s. Abseher & Nilges, JMB 1998, 279, 911-920.)
@@ -409,10 +364,12 @@ int Analysis_Matrix::Analyze() {
   int nout = 0;
   if (reduce_) {
     voutput = vout_ + nevec_ * nelem;
-    nout = minfo_->Mask1Tot();
-    if (minfo_->Type()==MatrixType::MATRIX_COVAR ||
+    nout = minfo_->Nelts();
+    mprinterr("CDBG: reduce: nout = %i\n", nout);
+    if ( nout * 3 == minfo_->Ncols() ) { // 3 cols per elt, assume COVAR
+    /*if (minfo_->Type()==MatrixType::MATRIX_COVAR ||
         minfo_->Type()==MatrixType::MATRIX_MWCOVAR)
-    {
+    {*/
       for (int i = 0; i < nevec_; ++i) {
         for (int j = 0; j < nout; ++j) {
           int idx = i*nelem + j*3;
@@ -421,7 +378,8 @@ int Analysis_Matrix::Analyze() {
                                 vout_[idx+2] * vout_[idx+2];
         }
       }
-    } else if (minfo_->Type()==MatrixType::MATRIX_DISTCOVAR) {
+    } else { // Otherwise assume DISTCOVAR - could be dangerous...
+    //if (minfo_->Type()==MatrixType::MATRIX_DISTCOVAR) {
       for (int i = 0; i < nevec_; ++i) {
         for (int j = 0; j < nout; ++j) {
           int vidx = i*nout + j;
@@ -453,18 +411,19 @@ int Analysis_Matrix::Analyze() {
       outfile.Printf(" Reduced Eigenvector file: ");
     else
       outfile.Printf(" Eigenvector file: ");
-    outfile.Printf("%s\n", MatrixType::MatrixOutput[minfo_->Type()]);
+    //outfile.Printf("%s\n", MatrixType::MatrixOutput[minfo_->Type()]);
+    outfile.Printf("TEMP\n");
     outfile.Printf(" %4i %4i\n", nelem, nout);
     //mprintf("CDBG: neval = %i  nevec = %i  nout = %i\n", neval,nevec_, nout);
-    if (minfo_->Type()!=MatrixType::MATRIX_DIST) {
+    //if (minfo_->Type()!=MatrixType::MATRIX_DIST) {
       for (int i = 0; i < nelem; ++i) {
-        outfile.Printf(" %10.5f", vect_[i]);
+        outfile.Printf(" %10.5f", vect[i]);
         if ((i+1)%7 == 0)
           outfile.Printf("\n");
       }
       if (nelem%7 != 0)
         outfile.Printf("\n");
-    }
+    //}
     // Eigenvectors and eigenvalues
     for (int i = neval - 1; i >= 0; i--) {
       outfile.Printf(" ****\n %4i  %10.5f\n", neval - i, eigval_[i]);
@@ -508,7 +467,7 @@ int Analysis_Matrix::Analyze() {
   }
 
   // Store average coordinates, eigenvectors, and eigenvalues in modesInfo
-  modinfo_->SetAvg( vect_ );
+  modinfo_->SetAvg( minfo_->Ncols(), vect );
   if (nevec_ > 0)
     modinfo_->SetNvect( neval );
   else

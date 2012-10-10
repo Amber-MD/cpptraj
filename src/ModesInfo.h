@@ -16,7 +16,7 @@
   */
 class ModesInfo : public DataSet {
   public:
-    // NOTE: THIS MUST BE IN SAME ORDER AS MatrixType::matrixMode. 
+    // NOTE: THIS MUST BE IN SAME ORDER AS DataSet_Matrix::Matrix_Type. 
     //       Is it even necessary?
     enum modesType {
       MT_UNKNOWN=0, MT_DIST,      MT_COVAR, MT_MWCOVAR,
@@ -30,9 +30,10 @@ class ModesInfo : public DataSet {
     typedef std::list< std::pair<int,int> >::const_iterator modestack_it;
 
     ModesInfo();
-    ModesInfo(modesType,modesSource,std::string&);
+    //ModesInfo(modesType,modesSource,std::string&);
     ~ModesInfo();
 
+    void SetAvg( int, const double* );
     int ReadEvecFile(std::string&, int, int);
     double calc_spectral_density(double *, int, double);
     double* CalcRMSfluct(int, int, bool);
@@ -42,12 +43,12 @@ class ModesInfo : public DataSet {
     void ProjectIDEA(CpptrajFile&, Frame&, AtomMask&);
 
     // NOTE: Replace all these with a constructor eventually?
-    int SetNavgElem(int);
-    void SetAvg( double* avgIn )   { avg_ = avgIn;       }
-    void SetNvect( int nvIn )      { nvect_ = nvIn;      }
-    void SetNvectElem( int nveIn ) { nvectelem_ = nveIn; }
-    void SetFreq( double* fIn )    { freq_ = fIn;        }
-    void SetEvec( double* eIn )    { evec_ = eIn;        }
+    //void SetNavgElem(int nelemIn)  { navgelem_ = nelemIn; } 
+    //void SetAvg( double* avgIn )   { avg_ = avgIn;        }
+    void SetNvect( int nvIn )      { nvect_ = nvIn;       }
+    void SetNvectElem( int nveIn ) { nvectelem_ = nveIn;  }
+    void SetFreq( double* fIn )    { freq_ = fIn;         }
+    void SetEvec( double* eIn )    { evec_ = eIn;         }
 
     int Nvect()          { return nvect_;     }
     int NvectElem()      { return nvectelem_; }

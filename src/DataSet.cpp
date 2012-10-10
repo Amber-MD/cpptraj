@@ -108,6 +108,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case FLOAT : SetDoubleFormatString(format_, width_, precision_, 1, leftAlign); break;
     case INT   : SetIntegerFormatString(format_, width_, leftAlign); break;
     case STRING: SetStringFormatString(format_, width_, leftAlign); break;
+    case MODES :
     case MATRIX:
     case VECTOR: SetDoubleFormatString(format_, width_, precision_, 0, false); break;
     default:

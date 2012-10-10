@@ -12,6 +12,7 @@ DataSet_Matrix::DataSet_Matrix() :
   matsize_(0),
   nrows_(0),
   ncols_(0),
+  nelts_(0),
   vectsize_(0),
   snap_(0),
   calcIndex(0)
@@ -49,7 +50,7 @@ int DataSet_Matrix::AllocateVectors(int sizeIn) {
 }
 
 // DataSet_Matrix::AllocateMatrix()
-int DataSet_Matrix::AllocateMatrix(int ncolsIn, int nrowsIn, int sizeIn)
+int DataSet_Matrix::AllocateMatrix(int ncolsIn, int nrowsIn, int neltsIn, int sizeIn)
 {
   if (mat_ == 0) {
     matsize_ = sizeIn;
@@ -59,6 +60,7 @@ int DataSet_Matrix::AllocateMatrix(int ncolsIn, int nrowsIn, int sizeIn)
     }
     ncols_ = ncolsIn;
     nrows_ = nrowsIn;
+    nelts_ = neltsIn;
     if (nrows_ == 0) 
       calcIndex = calcHalfIndex;
     else

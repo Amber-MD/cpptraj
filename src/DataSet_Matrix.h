@@ -18,11 +18,15 @@ class DataSet_Matrix : public DataSet {
     void IncrementSnap() { ++snap_; }
     int Nrows() { return nrows_; }
     int Ncols() { return ncols_; }
+    int Nelts() { return nelts_; }
     int Nsnap() { return snap_;  }
+    const double* Mass() { return mass_; }
+    const double* Vect() { return vect_; }
+    double* MatrixPtr()  { return mat_;  } // For interfacing w/fortran routines
     double GetElement(int col, int row) { return mat_[calcIndex(ncols_, col, row)]; } 
 
     int AllocateVectors(int);
-    int AllocateMatrix(int,int,int);
+    int AllocateMatrix(int,int,int,int);
     void StoreMass(std::vector<double> const&);
     void DivideBy(double);
     void Vect2MinusVect();
@@ -83,6 +87,7 @@ class DataSet_Matrix : public DataSet {
     int matsize_;     ///< Total number of matrix elements
     int nrows_;       ///< Number of rows in the matrix
     int ncols_;       ///< Number of columns in the matrix
+    int nelts_;       ///< Number of elements in a row of the matrix.
     int vectsize_;    ///< Sizes of vect | vect2
     int snap_;        ///< Number of snapshots
     /// Pointer to index calculator for current matrix type
