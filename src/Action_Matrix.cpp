@@ -64,6 +64,12 @@ int Action_Matrix::init() {
     outtype_ = BYATOM;
   else
     outtype_ = BYATOM;
+  // Check if output type is valid for matrix type
+  if ( outtype_ != BYATOM && (type_ == COVAR || type_ == MWCOVAR || type_ == IRED ) )
+  {
+    mprinterr("Error: matrix: for COVAR, MWCOVAR, or IRED matrix only byatom output possible\n");
+    return 1;
+  }
   // Get matrix name
   std::string name = actionArgs.GetStringKey("name");
   // UseMass
@@ -105,8 +111,8 @@ int Action_Matrix::init() {
   // Set up matrix DataSet and type
   Mat_ = (DataSet_Matrix*)DSL->AddSet(DataSet::MATRIX, name, "Mat");
   if (Mat_ == 0) return 1;
-  // Add set to output file if not doing ptraj-compatible output
-  //if (!ptrajoutput_)
+  // Add set to output file if doing BYATOM output
+  if (outtype_ == BYATOM)
     outfile_ = DFL->AddSetToFile(filename_, Mat_);
 
   mprintf("    MATRIX: Calculating %s", MatrixModeString[ type_ ]);
@@ -122,8 +128,13 @@ int Action_Matrix::init() {
 
   if (type_ == IRED)
     mprintf("            Order of Legendre polynomials: %i\n",order_);
-  if (!filename_.empty())
+  if (!filename_.empty()) {
     mprintf("            Printing to file %s\n",filename_.c_str());
+    if (outtype_ != BYATOM) {
+      mprintf("Warning: Output type is not 'byatom'. File will not be stored on internal\n");
+      mprintf("Warning: DataFile stack, only basic formatting is possible.\n");
+    }
+  }
   if (!name.empty())
     mprintf("            Storing matrix on internal stack with name: %s\n", 
             Mat_->Legend().c_str());
@@ -678,6 +689,107 @@ void Action_Matrix::print() {
     case DISTCOVAR: FinishDistanceCovariance(); break;
     case IDEA: Mat_->DivideBy(3.0); break;
     default: break; 
+  }
+
+  // If byres/bymask output is desired, write the current matrix now since 
+  // it is not stored in DataFileList.
+  // TODO: Convert byres to new matrix so it can be output formatted.
+  // TODO: Check that currentParm is still valid?
+  if (!filename_.empty() && outtype_ == BYRESIDUE) {
+    // ---------- Print out BYRESIDUE
+    CpptrajFile outfile;
+    outfile.OpenWrite(filename_);
+    // Convert masks to char masks in order to check whether an atom
+    // is selected.
+    mask1_.ConvertMaskType();
+    if (useMask2_)
+      mask2_.ConvertMaskType();
+    else
+      mask2_ = mask1_;
+    // Loop over residue pairs
+    int crow = 0;
+    double mass = 1.0;
+    for (int resi = 0; resi < currentParm->Nres(); ++resi) { // Row
+      bool printnewline = false;
+      int crowold = crow;
+      int ccol = 0;
+      for (int resj = 0; resj < currentParm->Nres(); ++resj) { // Column
+        bool printval = false;
+        double val = 0;
+        double valnorm = 0;
+        crow = crowold;
+        int ccolold = ccol;
+        for (int atomi = currentParm->ResFirstAtom(resi);
+                 atomi < currentParm->ResLastAtom(resi); ++atomi)
+        {
+          if ( mask2_.AtomInCharMask(atomi) ) {
+            ccol = ccolold;
+            for (int atomj = currentParm->ResFirstAtom(resj);
+                     atomj < currentParm->ResLastAtom(resj); ++atomj)
+            {
+              if ( mask1_.AtomInCharMask(atomj) ) {
+                if (useMass_)
+                  mass = (*currentParm)[atomi].Mass() * (*currentParm)[atomj].Mass();
+                valnorm += mass;
+                printval = printnewline = true;
+                //mprintf("Res %i-%i row=%i col=%i\n",resi+1,resj+1,crow,ccol);
+                val += (Mat_->GetElement( crow, ccol ) * mass);
+                ++ccol;
+              }
+            }
+            ++crow;
+          }
+        }
+        if (printval) outfile.Printf("%6.2f ",val / valnorm);
+      }
+      if (printnewline) outfile.Printf("\n");
+    }
+    outfile.CloseFile();
+  } else if (!filename_.empty() && outtype_ == BYMASK) {
+    // ---------- Print out BYMASK
+    CpptrajFile outfile;
+    outfile.OpenWrite(filename_);
+    // If only 1 mask, internal average over mask1, otherwise
+    //   i==0: mask1/mask1 
+    //   i==1: mask1/mask2 
+    //   i==2: mask2/mask2
+    int iend;
+    if (!useMask2_)
+      iend = 1;
+    else
+      iend = 3;
+    AtomMask::const_iterator maskAbegin = mask1_.begin();
+    AtomMask::const_iterator maskAend = mask1_.end();
+    AtomMask::const_iterator maskBbegin = mask1_.begin();
+    AtomMask::const_iterator maskBend = mask1_.end();
+    double mass = 1.0;
+    for (int i = 0; i < iend; ++i) {
+      if (i > 0) {
+        maskAbegin = maskBbegin;
+        maskAend = maskBend;
+        maskBbegin = mask2_.begin();
+        maskBend = mask2_.end();
+      }
+      double val = 0;
+      double valnorm = 0;
+      int crow = 0;
+      for (AtomMask::const_iterator atomj = maskBbegin; atomj != maskBend; ++atomj)
+      {
+        int ccol = 0;
+        for (AtomMask::const_iterator atomi = maskAbegin; atomi != maskAend; ++atomi)
+        {
+          if (useMass_)
+            mass = (*currentParm)[*atomj].Mass() * (*currentParm)[*atomi].Mass();
+          valnorm += mass;
+          val += (Mat_->GetElement( crow, ccol ) * mass);
+          ++ccol;
+        }
+        ++crow;
+      }
+      outfile.Printf("%6.2f ", val / valnorm);
+    }
+    outfile.Printf("\n");
+    outfile.CloseFile();
   }
 
   // Process output file args

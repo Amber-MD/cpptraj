@@ -19,6 +19,7 @@ class DataSet_Matrix : public DataSet {
     int Nrows() { return nrows_; }
     int Ncols() { return ncols_; }
     int Nsnap() { return snap_;  }
+    double GetElement(int col, int row) { return mat_[calcIndex(ncols_, col, row)]; } 
 
     int AllocateVectors(int);
     int AllocateMatrix(int,int,int);
