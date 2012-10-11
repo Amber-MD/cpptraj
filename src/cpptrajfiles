@@ -26,6 +26,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
         DataSet.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
         DataSetList.cpp DataSet_string.cpp DataSet_Vector.cpp DataSet_Matrix.cpp \
+        DataSet_Modes.cpp \
         DistRoutines.cpp Dimension.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
         FileBuffer.cpp \

@@ -22,6 +22,7 @@ class Analysis {
     const char* ParmName();
     void SetSetup(bool sIn) { isSetup_ = sIn; }
     bool IsSetup() { return isSetup_; }
+    void CheckForMoreArgs() { analyzeArgs_.CheckForMoreArgs(); }
   
     virtual int Setup(DataSetList*)   {return 1;}
     virtual int Analyze()             {return 1;}
