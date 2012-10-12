@@ -5,6 +5,14 @@
 #include "DataSet.h"
 #include "ArgList.h"
 /// Matrix, hold average over frames
+/** 
+  * At the end of the calc vect will hold:
+  *  -Average coordinates in the case of COVAR, MWCOVAR, CORREL;
+  *  -average distances in the case of DISTCOVAR;
+  *  -average of r*r/3 with r = "center of mass to atom" vector in the case of IDEA;
+  *  -average of Legendre polynomial P(cos(angle(ri, rj))) in the case of IRED;
+  *  -nothing in the case of DIST
+  */
 class DataSet_Matrix : public DataSet {
   public:
     DataSet_Matrix();
@@ -34,6 +42,7 @@ class DataSet_Matrix : public DataSet {
     int Ncols() { return ncols_; }
     int Nelts() { return nelts_; }
     int Nsnap() { return snap_;  }
+    int VectSize() { return vectsize_; }
     const double* Mass() { return mass_; }
     const double* Vect() { return vect_; }
     double* MatrixPtr()  { return mat_;  } // For interfacing w/fortran routines

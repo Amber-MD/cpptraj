@@ -76,6 +76,7 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
   if (modes_==0) return 1;
   // Output string for writing modes file.
   modes_->SetType( matrix_->Type() );
+  modes_->SetAvgCoords( matrix_->VectSize(), matrix_->Vect() );
 
   // Print Status
   mprintf("    ANALYZE MATRIX: Analyzing matrix %s",matrix_->Legend().c_str());
@@ -132,10 +133,15 @@ int Analysis_Matrix::Analyze() {
     else if ( matrix_->Type() == DataSet_Matrix::DISTCOVAR )
       modes_->ReduceDistCovar( matrix_->Nelts() );
   }
-  modes_->PrintModes(); // DEBUG
+  //modes_->PrintModes(); // DEBUG
   return 0;
 }
 
 void Analysis_Matrix::Print(DataFileList* DFLin) {
-  return;
+  if (!outfilename_.empty()) {
+    CpptrajFile outfile;
+    outfile.OpenWrite( outfilename_ );
+    modes_->WriteToFile( outfile );
+    outfile.CloseFile();
+  }
 }

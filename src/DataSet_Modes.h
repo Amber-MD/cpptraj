@@ -11,8 +11,10 @@ class DataSet_Modes : public DataSet {
 
     // ---------- DataSet routines
     int Size() { return nmodes_; }
+    void WriteToFile(CpptrajFile&);
     // ---------------------------
 
+    void SetAvgCoords(int, const double*);
     int CalcEigen(DataSet_Matrix&,int); // TODO: Make const ref
     void PrintModes();
     int EigvalToFreq();

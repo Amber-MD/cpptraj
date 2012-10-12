@@ -2,6 +2,7 @@
 #include <cstring> // memcpy, memset
 #include "DataSet_Modes.h"
 #include "CpptrajStdio.h"
+#include "FrameBuffer.h"
 //#incl ude "vectormath.h" // printModes
 
 #ifndef NO_MATHLIB
@@ -22,7 +23,7 @@ extern "C" {
 
 // CONSTRUCTOR
 DataSet_Modes::DataSet_Modes() :
-  DataSet(MODES, 9, 3, 0), // 0 dim should disable datafile write
+  DataSet(MODES, 10, 5, 0), // 0 dim indicates DataSet-specific write
   evalues_(0),
   evectors_(0),
   nmodes_(0),
@@ -34,6 +35,13 @@ DataSet_Modes::DataSet_Modes() :
 DataSet_Modes::~DataSet_Modes() {
   if (evalues_!=0) delete[] evalues_;
   if (evectors_!=0) delete[] evectors_;
+}
+
+// DataSet_Modes::SetAvgCoords()
+void DataSet_Modes::SetAvgCoords(int ncoords, const double* Xin) {
+  const double* Xend = Xin + ncoords;
+  for (const double* Xptr = Xin; Xptr < Xend; Xptr += 3)
+    avg_.AddXYZ( Xptr );
 }
 
 /** Get eigenvectors and eigenvalues. */
@@ -86,7 +94,7 @@ int DataSet_Modes::CalcEigen(DataSet_Matrix& mIn, int n_to_calc) {
     double* work = new double[ 3 * nmodes_ ];
     // NOTE: The call to dspev is supposed to store eigenvectors in columns. 
     //       However as mentioned above fortran array layout is inverted
-    //       w.r.t. C/C++ so eigenvectors are in rows.
+    //       w.r.t. C/C++ so eigenvectors end up in rows.
     // NOTE: Eigenvalues/vectors are returned in ascending order.
     dspev_(jobz, uplo, nmodes_, mat, evalues_, evectors_, vecsize_, work, info);
     delete[] work;
@@ -107,6 +115,8 @@ int DataSet_Modes::CalcEigen(DataSet_Matrix& mIn, int n_to_calc) {
   } else {
     // Calculate up to n-1 eigenvalues/vectors using the Implicitly Restarted
     // Arnoldi iteration.
+    // FIXME: Eigenvectors obtained with this method appear to have signs
+    //        flipped compared to full method - is dot product wrong?
     int nelem = mIn.Ncols(); // Dimension of input matrix (N)
     // Allocate memory to store eigenvectors
     vecsize_ = mIn.Ncols();
@@ -211,6 +221,50 @@ void DataSet_Modes::PrintModes() {
   //printMatrix("Eigenvectors (Rows):", evectors_, nmodes_, vecsize_);
 }
 
+/** Write eigenvalues and if present eigenvectors/avg coords to file
+  * in PTRAJ-compatible format.
+  */
+void DataSet_Modes::WriteToFile(CpptrajFile& outfile) {
+  if (!outfile.IsOpen()) {
+    mprinterr("Internal Error: DataSet_Modes: File %s is not open for write.\n",
+              outfile.FullFileStr());
+    return;
+  }
+  if (reduced_)
+    outfile.Printf(" Reduced Eigenvector file: ");
+  else
+    outfile.Printf(" Eigenvector file: ");
+  outfile.Printf("%s\n", DataSet_Matrix::MatrixOutputString[type_]);
+  // First number is # avg coords, second is size of each vector
+  outfile.Printf(" %4i %4i\n", avg_.size(), vecsize_);
+  // Set up framebuffer, default 7 columns
+  // Since data format has leading space, actual width is width + 1
+  int colwidth = width_ + 1;
+  int bufsize;
+  if (avg_.size() > vecsize_)
+    bufsize = avg_.size();
+  else
+    bufsize = vecsize_;
+  FrameBuffer fbuffer(bufsize, colwidth, 7, outfile.IsDos());
+  // Print average coords
+  fbuffer.DoubleToBuffer( avg_.xAddress(), avg_.size(), data_format_, colwidth, 7);
+  outfile.Write( fbuffer.Buffer(), fbuffer.CurrentSize() );
+  // Eigenvectors and eigenvalues
+  // TODO: Reverse order of eigenvalues prior to this call.
+  int imode = 1;
+  for (int mode = nmodes_ - 1; mode >= 0; --mode) {
+    outfile.Printf(" ****\n %4i ", imode++);
+    outfile.Printf(data_format_, evalues_[mode]);
+    outfile.Printf("\n");
+    if (evectors_ != 0) {
+      const double* Vec = Eigenvector(mode);
+      fbuffer.BufferBegin();
+      fbuffer.DoubleToBuffer( Vec, vecsize_, data_format_, colwidth, 7 );
+      outfile.Write( fbuffer.Buffer(), fbuffer.CurrentSize() ); 
+    }
+  }
+}
+
 /** Convert eigenvalues to cm^-1 */
 int DataSet_Modes::EigvalToFreq() {
   mprintf("\tConverting eigenvalues to frequencies.\n");
@@ -306,7 +360,6 @@ int DataSet_Modes::ReduceDistCovar(int nelts) {
     const double* Vec = Eigenvector(mode);
     for (int row = 0; row < nelts; ++row) {
       *newVec = 0.0;
-      mprinterr("newVec[%u] = 0.0 \n", newVec - newEvectors);
       for (int col = 0; col < nelts; ++col) {
         if (row != col) {
           // Calculate distance index into half-matrix w.o. diagonal,

@@ -44,8 +44,8 @@ const char DataSet_Matrix::MatrixOutputString[8][10] = {
   "DIST",
   "COVAR",
   "MWCOVAR",
-  "DISTCOVAR",
   "CORREL",
+  "DISTCOVAR",
   "IDEA",
   "IRED"
 };

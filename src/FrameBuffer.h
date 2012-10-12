@@ -5,14 +5,18 @@ class FrameBuffer {
   public : 
     FrameBuffer();
     ~FrameBuffer();
+    FrameBuffer(int,int,int,bool);
     FrameBuffer(const FrameBuffer&);
     FrameBuffer& operator=(const FrameBuffer&);
 
     void BufferBegin(size_t);
     void BufferBegin();
     void BufferToDouble(double *, int, int);
-    void DoubleToBuffer(double *, int, const char*, int, int);
-    void BoxToBuffer(double *, int, const char*, int);
+    void DoubleToBuffer(const double *, int, const char*, int, int);
+    void BoxToBuffer(const double *, int, const char*, int);
+
+    char* Buffer() { return frameBuffer_; }
+    size_t CurrentSize() { return (bufferPosition_ - frameBuffer_); }
   protected :
     char *frameBuffer_;
     char *bufferPosition_;
