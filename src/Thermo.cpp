@@ -65,11 +65,6 @@ static void MomentOfInertia(int natom, const double *X_, const double* Mass_, do
   pmom[0] = eval[2];
   pmom[1] = eval[1];
   pmom[2] = eval[0];
-  /*int info = 0;
-  char jobz = 'V';
-  char uplo = 'U';
-  int nvec = 3;
-  dspev_(jobz, uplo, nvec, IVEC, pmom, eigvec, nvec, e2, info);*/
 }
 
 // thermo() 
@@ -94,7 +89,6 @@ static void MomentOfInertia(int natom, const double *X_, const double* Mass_, do
 */
 void thermo( CpptrajFile& outfile, int natoms, int nvecs, int ilevel, 
              const double* crd, const double* amass, double* freq, 
-             //double* vtemp, double* evibn, double* cvibn, double* svibn, 
              double temp, double patm)
 {
   // pmom    principal moments of inertia, in amu-bohr**2 and in ascending order.
