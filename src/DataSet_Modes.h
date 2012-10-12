@@ -24,6 +24,7 @@ class DataSet_Modes : public DataSet {
 
     void SetType( DataSet_Matrix::MatrixType typeIn ) { type_ = typeIn; }
     int Nmodes() { return nmodes_; }
+    const double* Eigenvalues() { return evalues_; }
     double Eigenvalue(int i) { return evalues_[i]; }
     const double* Eigenvector(int i) {
       return evectors_ + (i * vecsize_);

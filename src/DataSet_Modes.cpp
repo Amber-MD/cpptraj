@@ -44,7 +44,9 @@ void DataSet_Modes::SetAvgCoords(int ncoords, const double* Xin) {
     avg_.AddXYZ( Xptr );
 }
 
-/** Get eigenvectors and eigenvalues. */
+/** Get eigenvectors and eigenvalues. They will be stored in descending 
+  * order (largest eigenvalue first).
+  */
 int DataSet_Modes::CalcEigen(DataSet_Matrix& mIn, int n_to_calc) {
   bool eigenvaluesOnly;
   int info = 0;
@@ -202,6 +204,30 @@ int DataSet_Modes::CalcEigen(DataSet_Matrix& mIn, int n_to_calc) {
       return 1;
     }
   }
+  // Eigenvalues and eigenvectors are in ascending order. Resort so that
+  // they are in descending order (i.e. largest eigenvalue first).
+  int pivot = nmodes_ / 2;
+  int nmode = nmodes_ - 1;
+  double* vtmp = 0;
+  if (evectors_ != 0) 
+    vtmp = new double[ vecsize_ ];
+  for (int mode = 0; mode < pivot; ++mode) {
+    // Swap eigenvalue
+    double eval = evalues_[mode];
+    evalues_[mode] = evalues_[nmode];
+    evalues_[nmode] = eval;
+    // Swap eigenvector
+    if (vtmp != 0) {
+      double* Vec0 = evectors_ + (mode  * vecsize_);
+      double* Vec1 = evectors_ + (nmode * vecsize_);
+      memcpy( vtmp, Vec0, vecsize_ * sizeof(double) );
+      memcpy( Vec0, Vec1, vecsize_ * sizeof(double) );
+      memcpy( Vec1, vtmp, vecsize_ * sizeof(double) );
+    }
+    --nmode;
+  }
+  if (vtmp != 0) delete[] vtmp;
+
   return 0;
 }
 
@@ -250,10 +276,8 @@ void DataSet_Modes::WriteToFile(CpptrajFile& outfile) {
   fbuffer.DoubleToBuffer( avg_.xAddress(), avg_.size(), data_format_, colwidth, 7);
   outfile.Write( fbuffer.Buffer(), fbuffer.CurrentSize() );
   // Eigenvectors and eigenvalues
-  // TODO: Reverse order of eigenvalues prior to this call.
-  int imode = 1;
-  for (int mode = nmodes_ - 1; mode >= 0; --mode) {
-    outfile.Printf(" ****\n %4i ", imode++);
+  for (int mode = 0; mode < nmodes_; ++mode) {
+    outfile.Printf(" ****\n %4i ", mode+1);
     outfile.Printf(data_format_, evalues_[mode]);
     outfile.Printf("\n");
     if (evectors_ != 0) {

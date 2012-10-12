@@ -111,19 +111,13 @@ int Analysis_Matrix::Analyze() {
     if (modes_->MassWtEigvect( matrix_->Mass() )) return 1;
     // Calc thermo-chemistry if specified
     if (thermopt_) {
-      // Temp storage for sorting eigenvalues in descending order
-      double* eigvali = new double[ modes_->Nmodes() ];
-      int j = modes_->Nmodes() - 1;
-      for (int i = 0; i < modes_->Nmodes(); ++i)
-        eigvali[j--] = modes_->Eigenvalue(i);
       // # of atoms - currently assuming COVAR (i.e. 3 matrix elts / coord)
       int natoms = matrix_->Nelts();
       CpptrajFile outfile;
       outfile.OpenWrite(outthermo_);
       thermo( outfile, natoms, modes_->Nmodes(), 1, matrix_->Vect(), 
-              matrix_->Mass(), eigvali, 298.15, 1.0 );
+              matrix_->Mass(), modes_->Eigenvalues(), 298.15, 1.0 );
       outfile.CloseFile();
-      delete[] eigvali;
     }
   }
   if (reduce_) {

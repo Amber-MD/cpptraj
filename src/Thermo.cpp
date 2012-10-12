@@ -88,7 +88,7 @@ static void MomentOfInertia(int natom, const double *X_, const double* Mass_, do
   * \param patm    pressure, in atmospheres
 */
 void thermo( CpptrajFile& outfile, int natoms, int nvecs, int ilevel, 
-             const double* crd, const double* amass, double* freq, 
+             const double* crd, const double* amass, const double* freq, 
              double temp, double patm)
 {
   // pmom    principal moments of inertia, in amu-bohr**2 and in ascending order.
