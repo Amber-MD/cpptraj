@@ -26,7 +26,8 @@ DataSet_Modes::DataSet_Modes() :
   evalues_(0),
   evectors_(0),
   nmodes_(0),
-  vecsize_(0)
+  vecsize_(0),
+  reduced_(false)
 {}
 
 // DESTRUCTOR
@@ -251,38 +252,83 @@ int DataSet_Modes::MassWtEigvect(const double* massIn) {
   return 0;
 }
 
-/** Reduce eigenvectors (s. Abseher & Nilges, JMB 1998, 279, 911-920.)
+/** Reduce covariance eigenvectors. Each eigenvector is assumed to have
+  * X, Y, and Z components. Each eigenvector element is reduced via
+  * Ei = Eix^2 + Eiy^2 + Eiz^2. See Abseher & Nilges, JMB 1998, 279, 911-920.
   */
-int DataSet_Modes::Reduce() {
+int DataSet_Modes::ReduceCovar() {
   if (evectors_ == 0) {
     mprinterr("Error: reduce: No eigenvectors present.\n");
     return 1;
   }
-  if ( type_ == DataSet_Matrix::COVAR ||
-       type_ == DataSet_Matrix::MWCOVAR ) 
-  {
-    int newvecsize = vecsize_ / 3;
-    mprintf("\tReducing size of %i eigenvectors from %i to %i\n",nmodes_,vecsize_,newvecsize);
-    double* newEvectors = new double[ nmodes_ * newvecsize ];
-    // Each eigenvector element is reduced via Ei = Eix^2 + Eiy^2 + Eiz^2
-    for (int mode = 0; mode < nmodes_; ++mode) {
-      const double* Vec = Eigenvector(mode);
-      double* newVec = newEvectors + (mode * newvecsize);
-      for (int vi = 0; vi < vecsize_; vi += 3) { 
-        //mprinterr("newVec[%u]=%f*%f + %f*%f + %f*%f\n",newVec-(newEvectors + (mode * newvecsize)),
-        //          Vec[vi],Vec[vi],Vec[vi+1],Vec[vi+1],Vec[vi+2],Vec[vi+2]); // DEBUG
-        *(newVec++) = Vec[vi]*Vec[vi] + Vec[vi+1]*Vec[vi+1] + Vec[vi+2]*Vec[vi+2];
-      }
+  int newvecsize = vecsize_ / 3;
+  mprintf("\tReducing size of %i eigenvectors from %i to %i\n",nmodes_,vecsize_,newvecsize);
+  double* newEvectors = new double[ nmodes_ * newvecsize ];
+  for (int mode = 0; mode < nmodes_; ++mode) {
+    const double* Vec = Eigenvector(mode);
+    double* newVec = newEvectors + (mode * newvecsize);
+    for (int vi = 0; vi < vecsize_; vi += 3) { 
+      //mprinterr("newVec[%u]=%f*%f + %f*%f + %f*%f\n",newVec-(newEvectors + (mode * newvecsize)),
+      //          Vec[vi],Vec[vi],Vec[vi+1],Vec[vi+1],Vec[vi+2],Vec[vi+2]); // DEBUG
+      *(newVec++) = Vec[vi]*Vec[vi] + Vec[vi+1]*Vec[vi+1] + Vec[vi+2]*Vec[vi+2];
     }
-    delete[] evectors_;
-    evectors_ = newEvectors;
-    vecsize_ = newvecsize;
-  } else if ( type_ == DataSet_Matrix::DISTCOVAR ) {
-    return 1;
-  } else {
-    mprinterr("Error: reduce not supported for %s\n", DataSet_Matrix::MatrixTypeString[type_]);
-    mprinterr("Error: reduce only supported for COVAR, MWCOVAR, and DISTCOVAR\n");
+  }
+  delete[] evectors_;
+  evectors_ = newEvectors;
+  vecsize_ = newvecsize;
+  reduced_ = true;
+  return 0;
+}
+
+/** Reduce distance covariance eigenvectors. Each eigenvector element 
+  * corresponds to a different atom pair. E.g., for 4 atoms there are 
+  * 6 possible pairs: {0[0,1], 1[0,2], 2[0,3], 3[1,2], 4[1,3], 5[2,3]}
+  * which in a symmetric half-matrix (no diagonal) looks like:
+  *   X 0 1 2
+  *   0 X 3 4
+  *   1 3 X 5
+  *   2 4 5 X
+  * Eigenvectors are reduced by taking the sum of the squares of each row:
+  * 0[0^2 + 1^2 + 2^2], 1[0^2 + 3^2 + 4^2], 2[1^2 + 3^2 + 5^2], etc
+  */
+int DataSet_Modes::ReduceDistCovar(int nelts) {
+  int i, j;
+  if (evectors_ == 0) {
+    mprinterr("Error: reduce: No eigenvectors present.\n");
     return 1;
   }
+  // TODO: Check that nelts * (nelts-1) / 2 == vecsize
+  int newvecsize = nelts;
+  mprintf("\tReducing size of %i eigenvectors from %i to %i\n",nmodes_,vecsize_,newvecsize);
+  double* newEvectors = new double[ nmodes_ * newvecsize ];
+  double* newVec = newEvectors;
+  for (int mode = 0; mode < nmodes_; ++mode) {
+    const double* Vec = Eigenvector(mode);
+    for (int row = 0; row < nelts; ++row) {
+      *newVec = 0.0;
+      mprinterr("newVec[%u] = 0.0 \n", newVec - newEvectors);
+      for (int col = 0; col < nelts; ++col) {
+        if (row != col) {
+          // Calculate distance index into half-matrix w.o. diagonal,
+          // see TriangleMatrix::calcIndex
+          if (row > col) {
+            j = row;
+            i = col;
+          } else {
+            i = row;
+            j = col;
+          }
+          int i1 = i + 1;
+          double v = Vec[ ( (nelts * i) - ((i1 * i) / 2) ) + j - i1 ];
+          *newVec += (v * v);
+        }
+      }
+      ++newVec;
+    }
+  }
+  delete[] evectors_;
+  evectors_ = newEvectors;
+  vecsize_ = newvecsize;
+  reduced_ = true;
   return 0;
 }  

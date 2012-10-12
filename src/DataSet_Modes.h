@@ -17,7 +17,8 @@ class DataSet_Modes : public DataSet {
     void PrintModes();
     int EigvalToFreq();
     int MassWtEigvect( const double* );
-    int Reduce();
+    int ReduceCovar();
+    int ReduceDistCovar(int);
 
     void SetType( DataSet_Matrix::MatrixType typeIn ) { type_ = typeIn; }
     int Nmodes() { return nmodes_; }
@@ -32,5 +33,6 @@ class DataSet_Modes : public DataSet {
     int nmodes_;
     int vecsize_;
     DataSet_Matrix::MatrixType type_;
+    bool reduced_;
 };
 #endif

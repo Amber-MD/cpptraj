@@ -125,8 +125,13 @@ int Analysis_Matrix::Analyze() {
       delete[] eigvali;
     }
   }
-  if (reduce_)
-    modes_->Reduce();  
+  if (reduce_) {
+    if ( matrix_->Type() == DataSet_Matrix::COVAR ||
+         matrix_->Type() == DataSet_Matrix::MWCOVAR )
+      modes_->ReduceCovar();
+    else if ( matrix_->Type() == DataSet_Matrix::DISTCOVAR )
+      modes_->ReduceDistCovar( matrix_->Nelts() );
+  }
   modes_->PrintModes(); // DEBUG
   return 0;
 }

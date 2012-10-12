@@ -9,16 +9,17 @@
 #include "DataIO_Gnuplot.h"
 
 // CONSTUCTOR
-DataFile::DataFile() {
-  debug_ = 0;
-  dataType_ = DATAFILE;
-  dataio_ = NULL;
-  isInverted_ = false;
-}
+DataFile::DataFile() :
+  debug_(0),
+  dimension_(-1),
+  dataType_(DATAFILE),
+  isInverted_(false),
+  dataio_(0)
+{}
 
 // DESTRUCTOR
 DataFile::~DataFile() {
-  if (dataio_ != NULL) delete dataio_;
+  if (dataio_ != 0) delete dataio_;
 }
 
 // DataFile::SetDebug()
@@ -41,14 +42,14 @@ int DataFile::SetupDataIO(DataIO& basicData) {
   // Determine data format from extension 
   DetermineTypeFromExt( basicData.Extension() );
 
-  if (dataio_!=NULL) delete dataio_;
+  if (dataio_!=0) delete dataio_;
   switch (dataType_) {
     case DATAFILE : dataio_ = new DataIO_Std(); break;
     case XMGRACE  : dataio_ = new DataIO_Grace(); break;
     case GNUPLOT  : dataio_ = new DataIO_Gnuplot(); break;
     default       : dataio_ = new DataIO_Std(); break;
   }
-  if (dataio_ == NULL) return 1;
+  if (dataio_ == 0) return 1;
   // Place the basic file in the data IO class
   dataio_->DataIO::operator=( basicData );
 
@@ -91,14 +92,24 @@ int DataFile::SetupDatafile(std::string const& fnameIn) {
 
 // DataFile::AddSet()
 int DataFile::AddSet(DataSet* dataIn) {
-  if (dataIn == NULL) return 1;
+  if (dataIn == 0) return 1;
+  if (SetList_.empty())
+    dimension_ = dataIn->Dim();
+  else if (dataIn->Dim() != dimension_) {
+    mprinterr("Error: DataSets in DataFile %s have dimension %i\n", dataio_->BaseFileStr());
+    mprinterr("Error: Attempting to add set %s of dimension %i\n", 
+              dataIn->Legend().c_str(), dataIn->Dim());
+    mprinterr("Error: Adding DataSets with different dimensions to same file\n");
+    mprinterr("Error: is currently unsupported.\n");
+    return 1;
+  }
   SetList_.AddCopyOfSet( dataIn );
   return 0;
 }
 
 // DataFile::ProcessArgs()
 int DataFile::ProcessArgs(ArgList &argIn) {
-  if (dataio_==NULL) return 1;
+  if (dataio_==0) return 1;
   if (argIn.hasKey("invert")) {
     isInverted_ = true;
     // Currently GNUPLOT files cannot be inverted.
@@ -128,24 +139,13 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 
 // DataFile::Write()
 void DataFile::Write() {
-  if (dataio_->OpenFile()) return;
 
-  // Remove data sets that do not contain data. Also determine max X and 
-  //ensure all datasets in this file have same dimension.
+  // Remove data sets that do not contain data. Also determine max X.
+  // All DataSets should have same dimension (enforced by AddSet()).
   int maxFrames = 0;
-  int currentDim = 0;
   DataSetList::const_iterator Dset = SetList_.end();
   while (Dset != SetList_.begin()) {
     --Dset;
-    // Check dimension
-    if (currentDim == 0) 
-      currentDim = (*Dset)->Dim();
-    else if (currentDim != (*Dset)->Dim()) {
-      mprinterr("Error: Writing files with datasets of different dimensions\n");
-      mprinterr("Error: is currently not supported (%i and %i present).\n",
-                currentDim, (*Dset)->Dim());
-      return;
-    }
     // Check if set has no data.
     if ( (*Dset)->Empty() ) {
       // If set has no data, remove it
@@ -178,11 +178,12 @@ void DataFile::Write() {
   ++maxFrames;
 
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
-  //        SetList_.size(), currentDim, maxFrames);
+  //        SetList_.size(), dimenison_, maxFrames);
+  if (dataio_->OpenFile()) return;
 #ifdef DATAFILE_TIME
   clock_t t0 = clock();
 #endif
-  if ( currentDim == 1 ) {
+  if ( dimension_ == 1 ) {
     mprintf("%s: Writing %i frames.\n",dataio_->FullFileStr(),maxFrames);
     if (maxFrames>0) {
       dataio_->SetMaxFrames( maxFrames );
@@ -194,12 +195,12 @@ void DataFile::Write() {
       mprintf("Warning: DataFile %s has no valid sets - skipping.\n",
               dataio_->FullFileStr());
     }
-  } else if ( currentDim == 2) {
+  } else if ( dimension_ == 2) {
     mprintf("%s: Writing 2D data.\n",dataio_->FullFileStr(),maxFrames);
     int err = 0;
     for ( DataSetList::const_iterator set = SetList_.begin();
                                       set != SetList_.end(); ++set)
-      err = dataio_->WriteData2D( *(*set) );
+      err += dataio_->WriteData2D( *(*set) );
     if (err > 0) 
       mprinterr("Error writing 2D DataSets to %s\n", dataio_->FullFileStr());
   }
@@ -223,7 +224,7 @@ void DataFile::SetPrecision(const char *dsetName, int widthIn, int precisionIn) 
   int precision = precisionIn;
   if (precisionIn<0) precision = 0;
   // If NULL or <dsetName>=='*' specified set precision for all data sets
-  if (dsetName==NULL || dsetName[0]=='*') {
+  if (dsetName==0 || dsetName[0]=='*') {
     mprintf("    Setting width.precision for all sets in %s to %i.%i\n",
             dataio_->FullFileStr(),widthIn,precision);
     for (DataSetList::const_iterator set = SetList_.begin(); set!=SetList_.end(); ++set)
@@ -234,7 +235,7 @@ void DataFile::SetPrecision(const char *dsetName, int widthIn, int precisionIn) 
     mprintf("    Setting width.precision for dataset %s to %i.%i\n",
             dsetName,widthIn,precision);
     DataSet *Dset = SetList_.Get(dsetName);
-    if (Dset!=NULL)
+    if (Dset!=0)
       Dset->SetPrecision(widthIn,precision);
     else
       mprintf("Error: Dataset %s not found in datafile %s\n",dsetName,dataio_->FullFileStr());
