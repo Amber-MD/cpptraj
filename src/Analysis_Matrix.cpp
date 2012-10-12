@@ -61,16 +61,21 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
   }
   // Reduce flag
   reduce_ = analyzeArgs_.hasKey("reduce");
-  if ( reduce_ && matrix_->Ncols() == matrix_->Nelts() )
+  if ( reduce_ && matrix_->Type() != DataSet_Matrix::MWCOVAR &&
+                  matrix_->Type() != DataSet_Matrix::COVAR   &&
+                  matrix_->Type() != DataSet_Matrix::DISTCOVAR  )
   {
-    mprinterr("Error: analyze matrix: parameter 'reduce only works for\n");
-    mprinterr("       covariance and distance covariance matrices.\n");
+    mprinterr("Error: analyze matrix: reduce not supported for %s\n", 
+              DataSet_Matrix::MatrixTypeString[matrix_->Type()]);
+    mprinterr("Error: reduce only works for covariance and distance covariance matrices.\n");
     return 1;
   }
   // Set up DataSet_Modes
   std::string modesname = analyzeArgs_.GetStringKey("name");
   modes_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesname, "Modes" );
   if (modes_==0) return 1;
+  // Output string for writing modes file.
+  modes_->SetType( matrix_->Type() );
 
   // Print Status
   mprintf("    ANALYZE MATRIX: Analyzing matrix %s",matrix_->Legend().c_str());
@@ -98,7 +103,7 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
 int Analysis_Matrix::Analyze() {
   // Calculate eigenvalues / eigenvectors
   if (modes_->CalcEigen( *matrix_, nevec_ )) return 1;
-  if (matrix_->Mass() != 0) {
+  if (matrix_->Type() == DataSet_Matrix::MWCOVAR) {
     // Convert eigenvalues to cm^-1
     if (modes_->EigvalToFreq()) return 1;
     // Mass-wt eigenvectors
@@ -120,7 +125,8 @@ int Analysis_Matrix::Analyze() {
       delete[] eigvali;
     }
   }
-  
+  if (reduce_)
+    modes_->Reduce();  
   modes_->PrintModes(); // DEBUG
   return 0;
 }

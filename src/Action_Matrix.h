@@ -9,10 +9,6 @@ class Action_Matrix : public Action {
     Action_Matrix();
     void print();
   private:
-    enum Matrix_Type {
-      NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED
-    };
-    static const char MatrixModeString[][27];
     enum OutputType { BYATOM=0, BYRESIDUE, BYMASK };
 
     int init();
@@ -25,7 +21,7 @@ class Action_Matrix : public Action {
     AtomMask mask2_;
     std::string filename_;
     OutputType outtype_;
-    Matrix_Type type_;
+    DataSet_Matrix::MatrixType type_;
     // TODO: Put start, stop, offset into its own class
     int start_;
     int stop_;

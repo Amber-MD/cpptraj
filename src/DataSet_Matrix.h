@@ -3,11 +3,25 @@
 #include "Atom.h"
 #include "AtomMask.h"
 #include "DataSet.h"
+#include "ArgList.h"
 /// Matrix, hold average over frames
 class DataSet_Matrix : public DataSet {
   public:
     DataSet_Matrix();
     ~DataSet_Matrix();
+    // Matrix Types ------------------------------
+    // NOTE: Stored here instead of in Action_Matrix since certain types
+    //       of analysis depend on the type of matrix, e.g. COVAR/MWCOVAR
+    //       matrices have 3 coordinates per entry as opposed to DIST which
+    //       only has 1.
+    enum MatrixType {
+      NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED
+    };
+    static const char MatrixTypeString[][27];
+    static const char MatrixOutputString[][10];
+    static MatrixType TypeFromArg(ArgList&);
+    void SetType(MatrixType typeIn) { type_ = typeIn; }
+    MatrixType Type() { return type_; }
     // DataSet functions -------------------------
     int Xmax() { return nrows_ - 1; }
     int Size() { return matsize_;   }
@@ -84,6 +98,7 @@ class DataSet_Matrix : public DataSet {
     double* vect_;    ///< Hold diagonal elements | avg coords
     double* vect2_;   ///< Square of vect_. May not need to be stored.
     double* mass_;    ///< Hold masses. Currently only for square (i.e. size is nrows)?
+    MatrixType type_; ///< Type of matrix
     int matsize_;     ///< Total number of matrix elements
     int nrows_;       ///< Number of rows in the matrix
     int ncols_;       ///< Number of columns in the matrix

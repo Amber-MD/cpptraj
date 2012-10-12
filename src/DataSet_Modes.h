@@ -17,7 +17,9 @@ class DataSet_Modes : public DataSet {
     void PrintModes();
     int EigvalToFreq();
     int MassWtEigvect( const double* );
+    int Reduce();
 
+    void SetType( DataSet_Matrix::MatrixType typeIn ) { type_ = typeIn; }
     int Nmodes() { return nmodes_; }
     double Eigenvalue(int i) { return evalues_[i]; }
     const double* Eigenvector(int i) {
@@ -29,5 +31,6 @@ class DataSet_Modes : public DataSet {
     double* evectors_;
     int nmodes_;
     int vecsize_;
+    DataSet_Matrix::MatrixType type_;
 };
 #endif

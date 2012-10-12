@@ -9,6 +9,7 @@ DataSet_Matrix::DataSet_Matrix() :
   vect_(0),
   vect2_(0),
   mass_(0),
+  type_(NO_OP),
   matsize_(0),
   nrows_(0),
   ncols_(0),
@@ -24,6 +25,49 @@ DataSet_Matrix::~DataSet_Matrix() {
   if (vect_!=0) delete[] vect_;
   if (vect2_!=0) delete[] vect2_;
   if (mass_!=0) delete[] mass_;
+}
+
+/// Strings corresponding to MatrixType enumerated type.
+const char DataSet_Matrix::MatrixTypeString[8][27] = {
+  "UNDEFINED",
+  "distance matrix",
+  "covar matrix",
+  "mass weighted covar matrix",
+  "correlation matrix",
+  "distance covar matrix",
+  "idea matrix",
+  "ired matrix"
+};
+
+const char DataSet_Matrix::MatrixOutputString[8][10] = {
+  "UNKNOWN",
+  "DIST",
+  "COVAR",
+  "MWCOVAR",
+  "DISTCOVAR",
+  "CORREL",
+  "IDEA",
+  "IRED"
+};
+
+/** Determine matrix type from arglist. Default to DIST. */
+DataSet_Matrix::MatrixType DataSet_Matrix::TypeFromArg(ArgList& actionArgs) {
+  MatrixType mtype = DIST;
+  if (actionArgs.hasKey("distcovar"))
+    mtype = DISTCOVAR;
+  else if (actionArgs.hasKey("mwcovar"))
+    mtype = MWCOVAR;
+  else if (actionArgs.hasKey("dist"))
+    mtype = DIST;
+  else if (actionArgs.hasKey("covar"))
+    mtype = COVAR;
+  else if (actionArgs.hasKey("correl"))
+    mtype = CORREL;
+  else if (actionArgs.hasKey("idea"))
+    mtype = IDEA;
+  else if (actionArgs.hasKey("ired"))
+    mtype = IRED;
+  return mtype;
 }
 
 // DataSet_Matrix::AllocateVectors()
