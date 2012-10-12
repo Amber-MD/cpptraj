@@ -110,20 +110,17 @@ int Analysis_Matrix::Analyze() {
       int j = modes_->Nmodes() - 1;
       for (int i = 0; i < modes_->Nmodes(); ++i)
         eigvali[j--] = modes_->Eigenvalue(i);
-      // Temp work array for thermo
-      double* vibn = new double[ 4 * modes_->Nmodes() ];
       // # of atoms - currently assuming COVAR (i.e. 3 matrix elts / coord)
-      int natoms = matrix_->Ncols() / 3;
+      int natoms = matrix_->Nelts();
       CpptrajFile outfile;
       outfile.OpenWrite(outthermo_);
-      thermo( outfile, natoms, modes_->Nmodes(), 1, matrix_->Vect(), matrix_->Mass(), eigvali,
-              vibn, vibn + modes_->Nmodes(), vibn + 2*modes_->Nmodes(), vibn + 3*modes_->Nmodes(),
-              298.15, 1.0 );
+      thermo( outfile, natoms, modes_->Nmodes(), 1, matrix_->Vect(), 
+              matrix_->Mass(), eigvali, 298.15, 1.0 );
       outfile.CloseFile();
       delete[] eigvali;
-      delete[] vibn;
     }
   }
+  
   modes_->PrintModes(); // DEBUG
   return 0;
 }

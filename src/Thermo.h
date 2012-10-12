@@ -4,6 +4,6 @@
 /*! \file Thermo.h
     \brief Calculate thermochemistry. 
  */
-void thermo( CpptrajFile&, int, int, int, const double*, const double*, 
-             double*, double*, double*, double*, double*, double, double);
+void thermo( CpptrajFile&, int, int, int, const double*, const double*, double*, 
+             double, double);
 #endif

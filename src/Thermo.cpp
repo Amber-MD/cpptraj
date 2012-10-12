@@ -83,20 +83,19 @@ static void MomentOfInertia(int natom, const double *X_, const double* Mass_, do
   * The si system of units is used internally. Conversion to units
   * more familiar to most chemists is made for output.
   *
+  * \param outfile output file, should already be open.
+  * \param natoms  Number of atoms
+  * \param nvecs   Number of eigenvectors (already converted to frequencies)
   * \param crd     coordinates in Angstroms
   * \param amass   atomic weights, in amu.
   * \param freq    vibrational frequencies, in cm**-1 and in ascending order
-  * \param vtemp   vibrational temperatures, in kelvin.
-  * \param evibn   contribution to e from the vibration n.
-  * \param cvibn   contribution to cv from the vibration n.
-  * \param svibn   contribution to s from the vibration n.
   * \param temp    temperature
   * \param patm    pressure, in atmospheres
 */
 void thermo( CpptrajFile& outfile, int natoms, int nvecs, int ilevel, 
-             const double* crd, const double* amass,
-             double* freq, double* vtemp, double* evibn, double* cvibn,
-             double* svibn, double temp, double patm)
+             const double* crd, const double* amass, double* freq, 
+             //double* vtemp, double* evibn, double* cvibn, double* svibn, 
+             double temp, double patm)
 {
   // pmom    principal moments of inertia, in amu-bohr**2 and in ascending order.
   double pmom[3], rtemp, rtemp1, rtemp2, rtemp3;
@@ -143,11 +142,11 @@ void thermo( CpptrajFile& outfile, int natoms, int nvecs, int ilevel,
   outfile.Printf(" molecular mass (principal isotopes) %11.5f amu\n", weight);
   weight *= tokg;
 
-  //     trap non-unit multiplicities.
-  //     if (multip != 1) {
-  //       outfile.Printf("\n Warning-- assumptions made about the electronic partition function\n");
-  //       outfile.Printf(  "           are not valid for multiplets!\n\n");
-
+  //trap non-unit multiplicities.
+  //if (multip != 1) {
+  //  outfile.Printf("\n Warning-- assumptions made about the electronic partition function\n");
+  //  outfile.Printf(  "           are not valid for multiplets!\n\n");
+  //}
   //     compute contributions due to translation:
   //        etran-- internal energy
   //        ctran-- constant v heat capacity
@@ -180,6 +179,17 @@ void thermo( CpptrajFile& outfile, int natoms, int nvecs, int ilevel,
            ctran, ctran * tocal);
     return;
   }
+
+  // Allocate workspace memory
+  // vtemp   vibrational temperatures, in kelvin.
+  // evibn   contribution to e from the vibration n.
+  // cvibn   contribution to cv from the vibration n.
+  // svibn   contribution to s from the vibration n.
+  double* WorkSpace = new double[ 4 * nvecs ];
+  double* vtemp = WorkSpace;
+  double* evibn = WorkSpace + nvecs;
+  double* cvibn = WorkSpace + nvecs*2;
+  double* svibn = WorkSpace + nvecs*3;
 
   //     compute contributions due to rotation.
 
@@ -378,5 +388,5 @@ void thermo( CpptrajFile& outfile, int natoms, int nvecs, int ilevel,
     outfile.Printf(" %5i%10.3f    %11.3f        %11.3f        %11.3f\n",i+iff+1,
            freq[i+iff], evibn[i], cvibn[i], svibn[i]);
   }
-
+  delete[] WorkSpace;
 }
