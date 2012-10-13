@@ -30,11 +30,12 @@ class DataSet_Modes : public DataSet {
       return evectors_ + (i * vecsize_);
     }
   private:
-    Frame avg_;
+    double* avgcrd_;
     double* evalues_;
     double* evectors_;
     int nmodes_;
     int vecsize_;
+    int navgcrd_;
     DataSet_Matrix::MatrixType type_;
     bool reduced_;
 };

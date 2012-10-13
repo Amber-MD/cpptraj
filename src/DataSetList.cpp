@@ -17,7 +17,6 @@
 #include "Histogram.h"
 #include "TriangleMatrix.h"
 #include "Matrix_2D.h"
-//#include "ModesInfo.h"
 #include "DataSet_Modes.h"
 
 // CONSTRUCTOR

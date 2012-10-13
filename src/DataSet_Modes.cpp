@@ -24,24 +24,31 @@ extern "C" {
 // CONSTRUCTOR
 DataSet_Modes::DataSet_Modes() :
   DataSet(MODES, 10, 5, 0), // 0 dim indicates DataSet-specific write
+  avgcrd_(0),
   evalues_(0),
   evectors_(0),
   nmodes_(0),
   vecsize_(0),
+  navgcrd_(0),
   reduced_(false)
 {}
 
 // DESTRUCTOR
 DataSet_Modes::~DataSet_Modes() {
+  if (avgcrd_ != 0) delete[] avgcrd_;
   if (evalues_!=0) delete[] evalues_;
   if (evectors_!=0) delete[] evectors_;
 }
 
 // DataSet_Modes::SetAvgCoords()
 void DataSet_Modes::SetAvgCoords(int ncoords, const double* Xin) {
-  const double* Xend = Xin + ncoords;
-  for (const double* Xptr = Xin; Xptr < Xend; Xptr += 3)
-    avg_.AddXYZ( Xptr );
+  if (avgcrd_!=0) delete[] avgcrd_;
+  navgcrd_ = ncoords;
+  if (navgcrd_ > 0) {
+    avgcrd_ = new double[ navgcrd_ ];
+    memcpy( avgcrd_, Xin, navgcrd_ * sizeof(double));
+  } else
+    avgcrd_ = 0;
 }
 
 /** Get eigenvectors and eigenvalues. They will be stored in descending 
@@ -262,18 +269,18 @@ void DataSet_Modes::WriteToFile(CpptrajFile& outfile) {
     outfile.Printf(" Eigenvector file: ");
   outfile.Printf("%s\n", DataSet_Matrix::MatrixOutputString[type_]);
   // First number is # avg coords, second is size of each vector
-  outfile.Printf(" %4i %4i\n", avg_.size(), vecsize_);
+  outfile.Printf(" %4i %4i\n", navgcrd_, vecsize_);
   // Set up framebuffer, default 7 columns
   // Since data format has leading space, actual width is width + 1
   int colwidth = width_ + 1;
   int bufsize;
-  if (avg_.size() > vecsize_)
-    bufsize = avg_.size();
+  if (navgcrd_ > vecsize_)
+    bufsize = navgcrd_;
   else
     bufsize = vecsize_;
   FrameBuffer fbuffer(bufsize, colwidth, 7, outfile.IsDos());
   // Print average coords
-  fbuffer.DoubleToBuffer( avg_.xAddress(), avg_.size(), data_format_, colwidth, 7);
+  fbuffer.DoubleToBuffer( avgcrd_, navgcrd_, data_format_, colwidth, 7);
   outfile.Write( fbuffer.Buffer(), fbuffer.CurrentSize() );
   // Eigenvectors and eigenvalues
   for (int mode = 0; mode < nmodes_; ++mode) {
