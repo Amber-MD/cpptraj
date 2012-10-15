@@ -402,12 +402,13 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   if (vecsize_ > 0) 
     evectors_ = new double[ modesToRead * vecsize_ ];
   nmodes_ = 0;
+  int currentMode = 0;
   int nno = 0;
   bool firstRead = true;
   while ( infile.Gets(buffer, BUFSIZE)==0 ) { // This should read in ' ****'
     if (strncmp(buffer," ****", 5)!=0) {
       mprinterr("Error: ReadEvecFile(): When reading eigenvector %i, expected ' ****',\n",
-                nmodes_+1);
+                currentMode+1);
       mprinterr("       got %s [%s]\n", buffer, infile.FullFileStr());
       return 1;
     }
@@ -446,7 +447,9 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
       }
       // Check if mode read was between ibeg and iend (which start from 1).
       // If so, increment number of modes.
-      if (nmodes_+1 >= ibeg && nmodes_ < iend) ++nmodes_;
+      if (currentMode+1 >= ibeg && currentMode < iend) ++nmodes_;
+      if (nmodes_ == modesToRead) break; 
+      ++currentMode;
     } else if (vecsize_ == -1) {
       // Blank read past empty eigenvector
       infile.Gets(buffer,BUFSIZE);

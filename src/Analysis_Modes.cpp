@@ -189,7 +189,7 @@ int Analysis_Modes::Analyze() {
     mprinterr("Error: analyze modes: 'beg %i' is out of bounds.\n", beg_+1);
     return 1;
   }
-  if (end_ >= modinfo_->Nmodes()) {
+  if (end_ > modinfo_->Nmodes()) {
     mprintf("Warning: analyze modes: 'end %i' is > # of modes, setting to %i\n",
             end_, modinfo_->Nmodes());
     end_ = modinfo_->Nmodes();
