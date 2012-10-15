@@ -13,7 +13,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_Unwrap.cpp Action_Diffusion.cpp Action_DNAionTracker.cpp \
         Action_Scale.cpp Action_RandomizeIons.cpp Action_AutoImage.cpp \
         Action_STFC_Diffusion.cpp Action_AtomicCorr.cpp Action_Bounds.cpp \
-        Action_Vector.cpp Action_Rotate.cpp Action_Translate.cpp \
+        Action_Vector.cpp Action_Matrix.cpp Action_Rotate.cpp Action_Translate.cpp \
         Analysis_Corr.cpp Analysis.cpp Analysis_Hist.cpp AnalysisList.cpp \
         Analysis_Matrix.cpp Analysis_Timecorr.cpp Analysis_IRED.cpp \
         Analysis_Modes.cpp Analysis_CrankShaft.cpp Analysis_Statistics.cpp \
@@ -25,13 +25,14 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
         DataSet.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
-        DataSetList.cpp DataSet_string.cpp DataSet_Vector.cpp \
+        DataSetList.cpp DataSet_string.cpp DataSet_Vector.cpp DataSet_Matrix.cpp \
+        DataSet_Modes.cpp \
         DistRoutines.cpp Dimension.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
         FileBuffer.cpp \
         Frame.cpp FrameBuffer.cpp FrameList.cpp Grid.cpp Histogram.cpp Integrate.cpp \
         ImageRoutines.cpp \
-        main.cpp MapAtom.cpp ModesInfo.cpp Matrix_3x3.cpp MatrixType.cpp Matrix_2D.cpp \
+        main.cpp MapAtom.cpp Matrix_3x3.cpp Matrix_2D.cpp \
         MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfFile.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \

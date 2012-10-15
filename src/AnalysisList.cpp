@@ -98,6 +98,7 @@ int AnalysisList::Setup(DataSetList *datasetlist, TopologyList *parmfilelist) {
       (*ana)->SetSetup(false);
       ++nfail;
     }
+    (*ana)->CheckForMoreArgs();
   }
   mprintf("\n");   
   //mprintf("    ...................................................\n\n");

@@ -15,6 +15,20 @@ FrameBuffer::~FrameBuffer() {
   if (frameBuffer_!=0) delete[] frameBuffer_;
 }
 
+/// CONSTRUCTOR - Set up for # elements, element width, elts per line.
+FrameBuffer::FrameBuffer(int Nelts, int eltWidth, int eltsPerLine, bool isDos) {
+  int frame_lines = Nelts / eltsPerLine;
+  if ((Nelts % eltsPerLine) > 0)
+    ++frame_lines;
+  // If DOS, CR present for each newline
+  if (isDos) frame_lines *= 2;
+  frameSize_ = (((size_t)Nelts * eltWidth) + frame_lines);
+  // Add +1 for NULL
+  ++frameSize_;
+  frameBuffer_ = new char[ frameSize_ ];
+  bufferPosition_ = frameBuffer_;
+}
+
 // Copy Constructor
 FrameBuffer::FrameBuffer(const FrameBuffer& rhs) :
   frameBuffer_(0),
@@ -86,7 +100,7 @@ void FrameBuffer::BufferToDouble(double *X, int N, int width) {
 /** Given an array of double, format, and character width corresponding
   * to format, write coords in array to frameBuffer. 
   */
-void FrameBuffer::DoubleToBuffer(double *X, int N, const char *format,
+void FrameBuffer::DoubleToBuffer(const double *X, int N, const char *format,
                                  int width, int numCols)
 {
   int coord = 0;
@@ -113,7 +127,7 @@ void FrameBuffer::DoubleToBuffer(double *X, int N, const char *format,
 /** Given an array of double[6], format, and character width corresponding
   * to format, write box coords to frameBuffer.
   */
-void FrameBuffer::BoxToBuffer(double *box, int numBox,
+void FrameBuffer::BoxToBuffer(const double *box, int numBox,
                               const char *format, int width) {
   // Box
   sprintf(bufferPosition_,format,box[0]);

@@ -68,8 +68,6 @@ class DataSetList {
                               std::string const&);
     /// Add DataSet to list with name, index, aspect, and size.
     DataSet* AddSet( DataSet::DataType, std::string const&, int, std::string const&, int);
-    /// Add DataSet to list that has already been allocated and Setup.
-    int AddDataSet(DataSet*);
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
     /// Print info on DataSets in the list

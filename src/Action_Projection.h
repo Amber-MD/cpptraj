@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_PROJECTION_H
 #define INC_ACTION_PROJECTION_H
 #include "Action.h"
-#include "ModesInfo.h"
+#include "DataSet_Modes.h"
 /// project snapshots on normal modes
 class Action_Projection : public Action {
   public:
@@ -11,8 +11,7 @@ class Action_Projection : public Action {
     int setup();
     int action();
 
-    ModesInfo::modesType type_;
-    ModesInfo modinfo_;
+    DataSet_Modes modinfo_;
     int beg_;
     int end_;
     int start_;

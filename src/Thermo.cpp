@@ -1,10 +1,11 @@
 #include <cmath>
-#include <cstdio>
+#include "Thermo.h"
 #include "Constants.h"
 #include "Matrix_3x3.h"
+#include "CpptrajStdio.h"
 
 // MomentOfInertia()
-static void MomentOfInertia(int natom, double *X_, double* Mass_, double* pmom)
+static void MomentOfInertia(int natom, const double *X_, const double* Mass_, double* pmom)
 {
   double IVEC[9];
   double eigvec[9];
@@ -14,7 +15,7 @@ static void MomentOfInertia(int natom, double *X_, double* Mass_, double* pmom)
   double cy = 0.0;
   double cz = 0.0;
   double sumMass = 0.0;
-  double* mass = Mass_;
+  const double* mass = Mass_;
   int natom3 = natom * 3;
   for (int i = 0; i < natom3; i+=3) {
     sumMass += (*mass);
@@ -64,11 +65,6 @@ static void MomentOfInertia(int natom, double *X_, double* Mass_, double* pmom)
   pmom[0] = eval[2];
   pmom[1] = eval[1];
   pmom[2] = eval[0];
-  /*int info = 0;
-  char jobz = 'V';
-  char uplo = 'U';
-  int nvec = 3;
-  dspev_(jobz, uplo, nvec, IVEC, pmom, eigvec, nvec, e2, info);*/
 }
 
 // thermo() 
@@ -82,19 +78,18 @@ static void MomentOfInertia(int natom, double *X_, double* Mass_, double* pmom)
   * The si system of units is used internally. Conversion to units
   * more familiar to most chemists is made for output.
   *
+  * \param outfile output file, should already be open.
+  * \param natoms  Number of atoms
+  * \param nvecs   Number of eigenvectors (already converted to frequencies)
   * \param crd     coordinates in Angstroms
   * \param amass   atomic weights, in amu.
   * \param freq    vibrational frequencies, in cm**-1 and in ascending order
-  * \param vtemp   vibrational temperatures, in kelvin.
-  * \param evibn   contribution to e from the vibration n.
-  * \param cvibn   contribution to cv from the vibration n.
-  * \param svibn   contribution to s from the vibration n.
   * \param temp    temperature
   * \param patm    pressure, in atmospheres
 */
-void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
-             double* freq, double* vtemp, double* evibn, double* cvibn,
-             double* svibn, double temp, double patm)
+void thermo( CpptrajFile& outfile, int natoms, int nvecs, int ilevel, 
+             const double* crd, const double* amass, const double* freq, 
+             double temp, double patm)
 {
   // pmom    principal moments of inertia, in amu-bohr**2 and in ascending order.
   double pmom[3], rtemp, rtemp1, rtemp2, rtemp3;
@@ -120,11 +115,16 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
   const double tocal  = 1.0 / jpcal;
   const double tokcal = tocal / 1000.0;
 
+  if (!outfile.IsOpen()) {
+    mprinterr("Internal Error: thermo: output file is not open.\n");
+    return;
+  }
+
   //     print the temperature and pressure.
-  printf("\n                    *******************\n");
-  printf(  "                    - Thermochemistry -\n");
-  printf(  "                    *******************\n\n");
-  printf("\n temperature %9.3f kelvin\n pressure    %9.5f atm\n",temp,patm);
+  outfile.Printf("\n                    *******************\n");
+  outfile.Printf(  "                    - Thermochemistry -\n");
+  outfile.Printf(  "                    *******************\n\n");
+  outfile.Printf("\n temperature %9.3f kelvin\n pressure    %9.5f atm\n",temp,patm);
   double pressure = pstd * patm;
   double rt = gas * temp;
 
@@ -133,14 +133,14 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
   double weight = 0.0;
   for (int iat = 0; iat < natoms; ++iat)
     weight += amass[iat];
-  printf(" molecular mass (principal isotopes) %11.5f amu\n", weight);
+  outfile.Printf(" molecular mass (principal isotopes) %11.5f amu\n", weight);
   weight *= tokg;
 
-  //     trap non-unit multiplicities.
-  //     if (multip != 1) {
-  //       printf("\n Warning-- assumptions made about the electronic partition function\n");
-  //       printf(  "           are not valid for multiplets!\n\n");
-
+  //trap non-unit multiplicities.
+  //if (multip != 1) {
+  //  outfile.Printf("\n Warning-- assumptions made about the electronic partition function\n");
+  //  outfile.Printf(  "           are not valid for multiplets!\n\n");
+  //}
   //     compute contributions due to translation:
   //        etran-- internal energy
   //        ctran-- constant v heat capacity
@@ -165,14 +165,25 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
 
   //     for monatomics print and return.
   if (natoms <= 1){ 
-    printf("\n internal energy:   %10.3f joule/mol         %10.3f kcal/mol\n",
+    outfile.Printf("\n internal energy:   %10.3f joule/mol         %10.3f kcal/mol\n",
            etran, etran * tokcal);
-    printf(  " entropy:           %10.3f joule/k-mol       %10.3f cal/k-mol\n",
+    outfile.Printf(  " entropy:           %10.3f joule/k-mol       %10.3f cal/k-mol\n",
            stran, stran * tocal);
-    printf(  " heat capacity cv:  %10.3f joule/k-mol       %10.3f  cal/k-mol\n",
+    outfile.Printf(  " heat capacity cv:  %10.3f joule/k-mol       %10.3f  cal/k-mol\n",
            ctran, ctran * tocal);
     return;
   }
+
+  // Allocate workspace memory
+  // vtemp   vibrational temperatures, in kelvin.
+  // evibn   contribution to e from the vibration n.
+  // cvibn   contribution to cv from the vibration n.
+  // svibn   contribution to s from the vibration n.
+  double* WorkSpace = new double[ 4 * nvecs ];
+  double* vtemp = WorkSpace;
+  double* evibn = WorkSpace + nvecs;
+  double* cvibn = WorkSpace + nvecs*2;
+  double* svibn = WorkSpace + nvecs*3;
 
   //     compute contributions due to rotation.
 
@@ -181,8 +192,8 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
   //     the rotational temperatures.  Note the imbedded conversion
   //     of the moments to SI units.
   MomentOfInertia( natoms, crd, amass, pmom );
-  printf("\n principal moments of inertia (nuclei only) in amu-A**2:\n");
-  printf(  "      %12.2f%12.2f%12.2f\n", pmom[0], pmom[1], pmom[2]);
+  outfile.Printf("\n principal moments of inertia (nuclei only) in amu-A**2:\n");
+  outfile.Printf(  "      %12.2f%12.2f%12.2f\n", pmom[0], pmom[1], pmom[2]);
   
   bool linear = false;
   // Symmetry number: only for linear molecules. for others symmetry number is unity
@@ -191,26 +202,26 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
     linear = true;
     if (amass[0] == amass[1]) sn = 2.0;
   }
-  printf("\n rotational symmetry number %3.0f\n", sn);
+  outfile.Printf("\n rotational symmetry number %3.0f\n", sn);
 
   double con = planck / (boltz*8.0*pipi);
   con = (con / tokg)  *  (planck / (tomet*tomet));
   if (linear) {
     rtemp = con / pmom[2];
     if (rtemp < 0.2) {
-      printf("\n Warning-- assumption of classical behavior for rotation\n");
-      printf(  " may cause significant error\n");
+      outfile.Printf("\n Warning-- assumption of classical behavior for rotation\n");
+      outfile.Printf(  "           may cause significant error\n");
     }
-    printf("\n rotational temperature (kelvin) %12.5f\n", rtemp);                 
+    outfile.Printf("\n rotational temperature (kelvin) %12.5f\n", rtemp);                 
   } else {
     rtemp1 = con / pmom[0];
     rtemp2 = con / pmom[1];
     rtemp3 = con / pmom[2];
     if (rtemp1 < 0.2) {
-      printf("\n Warning-- assumption of classical behavior for rotation\n");
-      printf(  " may cause significant error\n");
+      outfile.Printf("\n Warning-- assumption of classical behavior for rotation\n");
+      outfile.Printf(  "           may cause significant error\n");
     }
-    printf("\n rotational temperatures (kelvin) %12.5f%12.5f%12.5f\n", 
+    outfile.Printf("\n rotational temperatures (kelvin) %12.5f%12.5f%12.5f\n", 
            rtemp1, rtemp2, rtemp3);
   }
 
@@ -258,9 +269,9 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
      ezpe    += freq[i+iff] * 3.0e10;
   }
   ezpe = 0.5 * planck * ezpe;
-  printf("\n zero point vibrational energy %12.1f (joules/mol) \n",ezpe * avog);
-  printf(  "                               %12.5f (kcal/mol)\n",ezpe * tokcal * avog);
-  printf(  "                               %12.7f (hartree/particle)\n", ezpe / hartre); 
+  outfile.Printf("\n zero point vibrational energy %12.1f (joules/mol) \n",ezpe * avog);
+  outfile.Printf(  "                               %12.5f (kcal/mol)\n",ezpe * tokcal * avog);
+  outfile.Printf(  "                               %12.7f (hartree/particle)\n", ezpe / hartre); 
   //     compute the number of vibrations for which more than 5% of an
   //     assembly of molecules would exist in vibrational excited states.
   //     special printing for these modes is done to allow the user to
@@ -273,10 +284,10 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
     if (vtemp[i] < thresh)
       ++lofreq;
   if (lofreq != 0) {
-    printf("\n Warning-- %3i vibrations have low frequencies and may represent hindered \n",
+    outfile.Printf("\n Warning-- %3i vibrations have low frequencies and may represent hindered \n",
            lofreq);
-    printf(  "         internal rotations.  The contributions printed below assume that these \n");
-    printf(  "         really are vibrations.\n");
+    outfile.Printf(  "         internal rotations.  The contributions printed below assume that these \n");
+    outfile.Printf(  "         really are vibrations.\n");
   }
 
   //     compute:
@@ -303,7 +314,7 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
         scont = tovt/em1 - log(argd);
      else {
         scont = 0.0;
-        printf(" warning: setting vibrational entropy to zero for mode %i with vtemp = %f\n",
+        outfile.Printf(" warning: setting vibrational entropy to zero for mode %i with vtemp = %f\n",
                i+1, vtemp[i]);
      }
      //       if (lofreq .ge. i) then
@@ -356,20 +367,20 @@ void thermo( int natoms, int nvecs, int ilevel, double* crd, double* amass,
      svibn[i] *= tocal;
   }
 
-  printf("\n\n           freq.         E                  Cv                 S\n");
-  printf(    "          cm**-1      kcal/mol        cal/mol-kelvin    cal/mol-kelvin\n");
-  printf(    "--------------------------------------------------------------------------------\n");
-  printf(    " Total              %11.3f        %11.3f        %11.3f\n",etot,ctot,stot);
-  printf(    " translational      %11.3f        %11.3f        %11.3f\n",etran,ctran,stran);
-  printf(    " rotational         %11.3f        %11.3f        %11.3f\n",erot,crot,srot);
-  printf(    " vibrational        %11.3f        %11.3f        %11.3f\n",evib,cvib,svib);
+  outfile.Printf("\n\n           freq.         E                  Cv                 S\n");
+  outfile.Printf(    "          cm**-1      kcal/mol        cal/mol-kelvin    cal/mol-kelvin\n");
+  outfile.Printf(    "--------------------------------------------------------------------------------\n");
+  outfile.Printf(    " Total              %11.3f        %11.3f        %11.3f\n",etot,ctot,stot);
+  outfile.Printf(    " translational      %11.3f        %11.3f        %11.3f\n",etran,ctran,stran);
+  outfile.Printf(    " rotational         %11.3f        %11.3f        %11.3f\n",erot,crot,srot);
+  outfile.Printf(    " vibrational        %11.3f        %11.3f        %11.3f\n",evib,cvib,svib);
 
   for (int i = 0; i < iff; ++i) 
-    printf(" %5i%10.3f\n", i+1, freq[i]);
+    outfile.Printf(" %5i%10.3f\n", i+1, freq[i]);
 
   for (int i = 0; i < ndof; ++i) {
-    printf(" %5i%10.3f    %11.3f        %11.3f        %11.3f\n",i+iff+1,
+    outfile.Printf(" %5i%10.3f    %11.3f        %11.3f        %11.3f\n",i+iff+1,
            freq[i+iff], evibn[i], cvibn[i], svibn[i]);
   }
-
+  delete[] WorkSpace;
 }

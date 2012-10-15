@@ -27,6 +27,7 @@ class DataFile {
     void DataSetNames();
   private:
     int debug_;
+    int dimension_;           ///< The dimension of all sets in the datafile.
     DataFormatType dataType_;
     bool isInverted_;
     DataSetList SetList_; 

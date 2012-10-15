@@ -13,10 +13,11 @@
 #include "DataSet_integer.h"
 #include "DataSet_float.h"
 #include "DataSet_Vector.h"
+#include "DataSet_Matrix.h"
 #include "Histogram.h"
 #include "TriangleMatrix.h"
 #include "Matrix_2D.h"
-#include "ModesInfo.h"
+#include "DataSet_Modes.h"
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
@@ -327,7 +328,8 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType,
     case DataSet::TRIMATRIX    : DS = new TriangleMatrix(); break;
     case DataSet::MATRIX2D     : DS = new Matrix_2D(); break;
     case DataSet::VECTOR       : DS = new DataSet_Vector(); break;
-    case DataSet::MODES        : DS = new ModesInfo(); break;
+    case DataSet::MATRIX       : DS = new DataSet_Matrix(); break;
+    case DataSet::MODES        : DS = new DataSet_Modes(); break;
     case DataSet::UNKNOWN_DATA :
     default:
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");
@@ -363,13 +365,6 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   }
   hasCopies_ = true;
   DataList_.push_back( dsetIn );
-}
-
-// DataSetList::AddDataSet()
-int DataSetList::AddDataSet(DataSet* dsetIn) {
-  if (dsetIn==NULL) return 1;
-  DataList_.push_back(dsetIn);
-  return 0;
 }
 
 // DataSetList::Info()

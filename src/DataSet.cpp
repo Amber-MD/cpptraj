@@ -19,11 +19,11 @@ DataSet::DataSet() :
   //fprintf(stderr,"DataSet Constructor.\n");
 }
 
-/// CONSTRUCTOR - Take type, width, and precision
-DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn) :
+/// CONSTRUCTOR - Take type, width, precision, and dimension
+DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   idx_(-1),
   dType_(typeIn),
-  dim_(1),
+  dim_(dimIn),
   width_(widthIn),
   precision_(precisionIn),
   data_format_(NULL),
@@ -108,6 +108,8 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case FLOAT : SetDoubleFormatString(format_, width_, precision_, 1, leftAlign); break;
     case INT   : SetIntegerFormatString(format_, width_, leftAlign); break;
     case STRING: SetStringFormatString(format_, width_, leftAlign); break;
+    case MODES :
+    case MATRIX:
     case VECTOR: SetDoubleFormatString(format_, width_, precision_, 0, false); break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", 

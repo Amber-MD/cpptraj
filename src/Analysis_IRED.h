@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_IRED_H
 #include "Analysis.h"
 #include "DataSet_Vector.h"
-#include "ModesInfo.h"
+#include "DataSet_Modes.h"
 #include "PubFFT.h"
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
@@ -35,8 +35,11 @@ class Analysis_IRED : public Analysis {
     double* taum_;
     std::string noeFilename_;
     std::string filename_;
+    std::string orderparamfile_;
     PubFFT pubfft_;
-    ModesInfo* modinfo_;
+    DataSet_Modes* modinfo_;
     std::vector<DataSet_Vector*> IredVectors_;
+
+    double calc_spectral_density(int, double);
 };
 #endif

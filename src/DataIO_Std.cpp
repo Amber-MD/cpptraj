@@ -306,13 +306,14 @@ int DataIO_Std::WriteData2D( DataSet& set ) {
     std::string headerstring;
     if (writeHeader_) {
       SetIntegerFormatString( headerstring, set.Width(), false);
-      Printf("%-*s ",set.Width(), "#Frame");
+      if (hasXcolumn_)
+        Printf("%-*s ",set.Width(), "#Frame");
       for (int iy = 0; iy < dimensions[1]; ++iy)
         Printf(headerstring.c_str(), iy+OUTPUTFRAMESHIFT);
       Printf("\n");
     }
     for (int ix = 0; ix < dimensions[0]; ++ix) {
-      if (writeHeader_)
+      if (hasXcolumn_)
         Printf(headerstring.c_str(), ix+OUTPUTFRAMESHIFT);
       for (int iy = 0; iy < dimensions[1]; ++iy) {
         set.Write2D( *this, ix, iy);
