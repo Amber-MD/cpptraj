@@ -15,6 +15,7 @@ Analysis_Modes::Analysis_Modes() :
   results_(0)
 {}
 
+//#define TWOPI 6.2832
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
 const double Analysis_Modes::CONSQ = 2.39805E-3;
 const double Analysis_Modes::TKBC2 = 0.46105E-34;
@@ -155,11 +156,9 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
     }
   }
 
-  // Memory allocation for results vector is done in ModesInfo.
-
   // Status
   mprintf("    ANALYZE MODES: Calculating %s using modes %i to %i from %s\n",
-          analysisTypeString, beg_+1, end_, modinfo_->Legend().c_str());
+          analysisTypeString[type_], beg_+1, end_, modinfo_->Legend().c_str());
   mprintf("\tResults are written to");
   if (filename_.empty())
     mprintf(" STDOUT\n");
@@ -185,6 +184,21 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
 // Analysis_Modes::Analyze()
 int Analysis_Modes::Analyze() {
   CpptrajFile outfile;
+  // Check # of modes
+  if (beg_ < 0 || beg_ >= modinfo_->Nmodes()) {
+    mprinterr("Error: analyze modes: 'beg %i' is out of bounds.\n", beg_+1);
+    return 1;
+  }
+  if (end_ >= modinfo_->Nmodes()) {
+    mprintf("Warning: analyze modes: 'end %i' is > # of modes, setting to %i\n",
+            end_, modinfo_->Nmodes());
+    end_ = modinfo_->Nmodes();
+  }
+  if (end_ <= beg_) {
+    mprinterr("Warning: analyze modes: beg must be <= end, (%i -- %i)\n", beg_+1, end_);
+    return 1;
+  }
+
   // ----- FLUCT PRINT -----
   if (type_ == FLUCT) {
     // Calc rms atomic fluctuations
@@ -236,8 +250,31 @@ int Analysis_Modes::Analyze() {
   // ----- DISPLACE PRINT -----
   } else if (type_ == DISPLACE) {
     // Calc displacement of coordinates along normal mode directions
-    //results_ = modinfo_->CalcDisplacement(beg_, end_, bose_, factor_);
-    if (results_ == 0) return 1;
+    results_ = new double[ modinfo_->NavgCrd() ];
+    memset(results_, 0, modinfo_->NavgCrd()*sizeof(double));
+    double sqrtcnst = sqrt(CNST) * CONT * factor_;
+    // Loop over all modes
+    for (int mode = beg_; mode < end_; ++mode) {
+      double frq = modinfo_->Eigenvalue(mode);
+      if (frq >= 0.5) {
+        // Don't use eigenvectors associated with zero or negative eigenvalues
+        double fi = 1.0 / frq;
+        if (bose_) {
+          double argq = CONSQ * frq;
+          fi *= (fi * argq / tanh(argq));
+          fi = sqrt(fi);
+        }
+        fi *= sqrtcnst; // * CONT * factor
+        // Loop over all vector elements
+        const double* Vec = modinfo_->Eigenvector(mode);
+        for (int vi = 0; vi < modinfo_->NavgCrd(); vi += 3) {
+          results_[vi  ] += Vec[vi  ] * fi;
+          results_[vi+1] += Vec[vi+1] * fi;
+          results_[vi+2] += Vec[vi+2] * fi;
+        }
+      }
+    }
+    // Output
     outfile.OpenWrite( filename_ );
     outfile.Printf("Analysis of modes: DISPLACEMENT\n");
     outfile.Printf("%10s %10s %10s %10s\n", "Atom no.", "displX", "displY", "displZ");
