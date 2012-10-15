@@ -12,6 +12,7 @@ Action_Matrix::Action_Matrix() :
   start_(0),
   stop_(-1),
   offset_(1),
+  snap_(0),
   order_(2),
   useMask2_(false)
 {}
@@ -495,7 +496,7 @@ int Action_Matrix::action() {
   // If the current frame is greater than stop exit
   if (stop_!=-1 && frameNum >= stop_) return 0;
   // Increment number of snapshots, update next target frame
-  Mat_->IncrementSnap(); 
+  ++snap_; 
   start_ += offset_;
 
   switch (type_) {
@@ -659,7 +660,7 @@ void Action_Matrix::FinishDistanceCovariance() {
 // Action_Matrix::print()
 void Action_Matrix::print() {
   // ---------- Calculate average over number of sets ------
-  Mat_->DivideBy((double)Mat_->Nsnap());
+  Mat_->DivideBy((double)snap_);
 
   switch (type_) {
     case DataSet_Matrix::COVAR    :

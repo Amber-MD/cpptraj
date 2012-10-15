@@ -26,6 +26,7 @@ class Action_Matrix : public Action {
     int start_;
     int stop_;
     int offset_;
+    int snap_;
     // IRED only
     int order_;
     std::vector<DataSet_Vector*> IredVectors_;

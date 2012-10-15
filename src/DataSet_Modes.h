@@ -24,17 +24,16 @@ class DataSet_Modes : public DataSet {
     int ReduceDistCovar(int);
 
     void SetType( DataSet_Matrix::MatrixType typeIn ) { type_ = typeIn; }
-    int Nmodes() { return nmodes_; }
-    const double* Eigenvalues() { return evalues_; }
-    const double* Eigenvectors() { return evectors_; }
-    double Eigenvalue(int i) { return evalues_[i]; }
-    DataSet_Matrix::MatrixType Type() { return type_; }
-    const double* Eigenvector(int i) {
-      return evectors_ + (i * vecsize_);
-    }
-    const double* AvgCrd() { return avgcrd_; }
-    int NavgCrd() { return navgcrd_; }
-    int VectorSize() { return vecsize_; }
+
+    const double* AvgCrd()            { return avgcrd_;                    }
+    const double* Eigenvalues()       { return evalues_;                   } 
+    double Eigenvalue(int i)          { return evalues_[i];                }
+    const double* Eigenvectors()      { return evectors_;                  }
+    const double* Eigenvector(int i)  { return evectors_ + (i * vecsize_); }
+    int Nmodes()                      { return nmodes_;                    }
+    int VectorSize()                  { return vecsize_;                   }
+    int NavgCrd()                     { return navgcrd_;                   }
+    DataSet_Matrix::MatrixType Type() { return type_;                      }
   private:
     double* avgcrd_;
     double* evalues_;

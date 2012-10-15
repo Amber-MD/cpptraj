@@ -15,7 +15,6 @@ DataSet_Matrix::DataSet_Matrix() :
   ncols_(0),
   nelts_(0),
   vectsize_(0),
-  snap_(0),
   calcIndex(0)
 {}
 

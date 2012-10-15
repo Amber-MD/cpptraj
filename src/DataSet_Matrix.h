@@ -37,11 +37,9 @@ class DataSet_Matrix : public DataSet {
     void GetDimensions(std::vector<int>&);
     // -------------------------------------------
 
-    void IncrementSnap() { ++snap_; }
     int Nrows() { return nrows_; }
     int Ncols() { return ncols_; }
     int Nelts() { return nelts_; }
-    int Nsnap() { return snap_;  }
     int VectSize() { return vectsize_; }
     const double* Mass() { return mass_; }
     const double* Vect() { return vect_; }
@@ -113,7 +111,6 @@ class DataSet_Matrix : public DataSet {
     int ncols_;       ///< Number of columns in the matrix
     int nelts_;       ///< Number of elements in a row of the matrix.
     int vectsize_;    ///< Sizes of vect | vect2
-    int snap_;        ///< Number of snapshots
     /// Pointer to index calculator for current matrix type
     int (*calcIndex)(int,int,int);
 
