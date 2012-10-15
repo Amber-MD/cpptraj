@@ -3,19 +3,13 @@
 
 // CONSTRUCTOR
 Matrix_2D::Matrix_2D() :
+  DataSet(MATRIX2D, 12, 4, 2),
   elements_(0),
   ncols_(0),
   nrows_(0),
   nelements_(0),
   currentElement_(0)
-{
-  // DataSet-specific vars
-  width_ = 12;
-  precision_ = 4;
-  dType_ = MATRIX2D;
-  SetDataSetFormat(false);
-  dim_ = 2;
-}
+{ }
 
 // DESTRUCTOR
 Matrix_2D::~Matrix_2D() {
