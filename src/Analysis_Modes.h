@@ -1,6 +1,5 @@
 #ifndef INC_ANALYSIS_MODES_H
 #define INC_ANALYSIS_MODES_H
-#include <list>
 #include "Analysis.h"
 #include "DataSet_Modes.h"
 class Analysis_Modes : public Analysis {
@@ -21,7 +20,7 @@ class Analysis_Modes : public Analysis {
 
     enum modeAnalysisType { FLUCT=0, DISPLACE, CORR };
     static const char analysisTypeString[][22];
-    typedef std::list< std::pair<int,int> > modestackType;
+    typedef std::vector< std::pair<int,int> > modestackType;
     typedef modestackType::const_iterator modestack_it;
 
     modeAnalysisType type_; // iarg1
@@ -35,5 +34,6 @@ class Analysis_Modes : public Analysis {
     double* results_;
 
     void CheckDeprecated(std::string&, const char*);
+    void CalcDipoleCorr();
 };
 #endif

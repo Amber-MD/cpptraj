@@ -40,10 +40,11 @@ Analysis_Modes::~Analysis_Modes() {
     delete[] results_;
 }
 
+// Analysis_Modes::CheckDeprecated()
 void Analysis_Modes::CheckDeprecated(std::string& modesname, const char* key) {
   std::string arg = analyzeArgs_.GetStringKey( key );
   if (!arg.empty()) {
-    mprintf("Warning: analyze modes: Argument %s is deprecated, use 'name <modes>' instead.\n",
+    mprintf("Warning: analyze modes: Argument '%s' is deprecated, use 'name <modes>' instead.\n",
             key);
     if (modesname.empty()) modesname = arg;
   }
@@ -141,8 +142,7 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
       analyzeParm_->SetupIntegerMask( m2 );
       if ( m1.Nselected()==1 && m2.Nselected()==1 )
         // Store atom pair
-        // NOTE: use push_front to mimic stack behavior
-        atompairStack_.push_front( std::pair<int,int>( m1[0], m2[0] ) );
+        atompairStack_.push_back( std::pair<int,int>( m1[0], m2[0] ) );
       else {
         mprinterr("Error: analyze modes: For 'corr', masks should specify only one atom.\n");
         mprinterr("\tM1[%s]=%i atoms, M2[%s]=%i atoms.\n", m1.MaskString(), m1.Nselected(),
@@ -285,7 +285,7 @@ int Analysis_Modes::Analyze() {
   // ----- CORR PRINT -----
   } else if (type_ == CORR) {
     // Calc dipole-dipole correlation functions
-    //results_ = modinfo_->CalcDipoleCorr( beg_, end_, bose_, atompairStack_); // TODO
+    CalcDipoleCorr();
     if (results_==0) return 1;
     outfile.OpenWrite( filename_ );
     outfile.Printf("Analysis of modes: CORRELATION FUNCTIONS\n");
@@ -297,15 +297,13 @@ int Analysis_Modes::Analyze() {
     {
       outfile.Printf("%10i %10i\n", (*apair).first+1, (*apair).second+1);
       double val = 1.0;
-      for (int i = 0; i < modinfo_->Nmodes(); ++i) {
-        if (i+1 >= beg_ && i+1 <= end_) { // TODO: Pre-calc the shift
-          double frq = modinfo_->Eigenvalue(i);
-          if (frq >= 0.5) {
-            val += results_[ncnt];
-            outfile.Printf("%10s %10s %10i %10.5f %10.5f %10.5f\n",
-                           "", "", i, frq, results_[ncnt], val);
-            ++ncnt;
-          }
+      for (int mode = beg_; mode < end_; ++mode) {
+        double frq = modinfo_->Eigenvalue(mode);
+        if (frq >= 0.5) {
+          val += results_[ncnt];
+          outfile.Printf("%10s %10s %10i %10.5f %10.5f %10.5f\n",
+                         "", "", mode, frq, results_[ncnt], val);
+          ++ncnt;
         }
       }
     } // END loop over CORR atom pairs
@@ -314,4 +312,80 @@ int Analysis_Modes::Analyze() {
   outfile.CloseFile();
 
   return 0;
-} 
+}
+
+// Analysis_Modes::CalcDipoleCorr()
+void Analysis_Modes::CalcDipoleCorr() {
+  double qcorr = 1.0; // For when bose is false
+  int rsize = atompairStack_.size() * (end_ - beg_ + 1);
+  results_ = new double[ rsize ];
+  memset(results_, 0, rsize*sizeof(double));
+  // Loop over atom pairs 
+  double* Res = results_;
+  const double* Avg = modinfo_->AvgCrd();
+  for (modestack_it apair = atompairStack_.begin(); apair != atompairStack_.end(); ++apair)
+  {
+    int idx1 = (*apair).first  * 3;
+    int idx2 = (*apair).second * 3;
+    // Check if coordinates are out of bounds
+    if (idx1 >= modinfo_->NavgCrd() || idx2 >= modinfo_->NavgCrd()) {
+      mprintf("Warning: Atom pair %i -- %i is out of bounds (# avg atoms in modes = %i)\n",
+              (*apair).first + 1, (*apair).second + 1, modinfo_->NavgCrd() / 3);
+      continue;
+    }
+    // Calc unit vector along at2->at1 bond
+    Vec3 vec = Vec3(Avg + idx1) - Vec3(Avg + idx2);
+    double dnorm = sqrt( vec.Magnitude2() );
+    vec /= dnorm;
+    // Precalc certain values
+    dnorm = 3.0 / (dnorm * dnorm);
+    double vx2 = vec[0] * vec[0];
+    double vxy = vec[0] * vec[1];
+    double vxz = vec[0] * vec[2];
+    double vy2 = vec[1] * vec[1];
+    double vyz = vec[1] * vec[2];
+    double vz2 = vec[2] * vec[2]; 
+    // Loop over desired modes
+    for (int mode = beg_; mode < end_; ++mode) {
+      double eval = modinfo_->Eigenvalue(mode);
+      if (eval >= 0.5) {
+        // Don't use eigenvectors associated with zero or negative eigenvalues
+        // NOTE: Where is 11791.79 from? Should it be a const?
+        double frq = eval * eval / 11791.79;
+        if (bose_) {
+          double argq = CONSQ * eval;
+          qcorr = argq / tanh(argq);
+        }
+        /* Calc the correlation matrix for delta
+         *    as in eq. 7.16 of lamm and szabo, J Chem Phys 1986, 85, 7334.
+         *  Note that the rhs of this eq. should be multiplied by kT
+         */
+        double qcorrf = (qcorr / frq) * 0.6;
+        const double* Evec = modinfo_->Eigenvector(mode);
+        double dx = (Evec[idx1  ] - Evec[idx2  ]);
+        double dy = (Evec[idx1+1] - Evec[idx2+1]);
+        double dz = (Evec[idx1+2] - Evec[idx2+2]);
+        double delx2 = qcorrf * dx * dx;
+        double delxy = qcorrf * dx * dy;
+        double delxz = qcorrf * dx * dz;
+        double dely2 = qcorrf * dy * dy;
+        double delyz = qcorrf * dy * dz;
+        double delz2 = qcorrf * dz * dz;
+        // Correlation in length, eq. 10.2 of lamm and szabo
+        // NOTE: Commented out in PTRAJ
+        /*****
+        rtr0 = 0.0;
+        for(j = 0; j < 3; j++)
+          for(k = 0; k < 3; k++)
+            rtr0 += e[j] * e[k] * del[j][k];
+        *****/
+        // Librational correlation function, using eq. 7.12 of lamm and szabo
+        // (w/o beta on the lhs).
+        *(Res++) = (-delx2 + (vx2 * delx2) + (vxy * delxy) + (vxz * delxz)
+                    -dely2 + (vxy * delxy) + (vy2 * dely2) + (vyz * delyz)
+                    -delz2 + (vxz * delxz) + (vyz * delyz) + (vz2 * delz2))
+                   * dnorm; // Here dnorm is actually (3 / dnorm^2)
+      } // END if positive definite eigenvalue
+    } // END loop over modes
+  } // END loop over atom pairs
+}
