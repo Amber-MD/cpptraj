@@ -32,7 +32,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         FileBuffer.cpp \
         Frame.cpp FrameBuffer.cpp FrameList.cpp Grid.cpp Histogram.cpp Integrate.cpp \
         ImageRoutines.cpp \
-        main.cpp MapAtom.cpp ModesInfo.cpp Matrix_3x3.cpp Matrix_2D.cpp \
+        main.cpp MapAtom.cpp Matrix_3x3.cpp Matrix_2D.cpp \
         MaskToken.cpp Mol2File.cpp Molecule.cpp NameType.cpp NetcdfFile.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp ParmIO.cpp \
         Parm_Mol2.cpp Parm_PDB.cpp \

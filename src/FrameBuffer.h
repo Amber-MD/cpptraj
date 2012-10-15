@@ -17,6 +17,7 @@ class FrameBuffer {
 
     char* Buffer() { return frameBuffer_; }
     size_t CurrentSize() { return (bufferPosition_ - frameBuffer_); }
+    size_t ReadSize() { return frameSize_ - 1; } // No NULL char
   protected :
     char *frameBuffer_;
     char *bufferPosition_;

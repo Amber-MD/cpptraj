@@ -62,22 +62,24 @@ int Analysis_IRED::Setup(DataSetList* DSLin) {
   // Get modes name
   std::string modesfile = analyzeArgs_.GetStringKey("modes");
   if (modesfile.empty()) {
-    mprinterr("Error: analyze ired: No 'modes' <name> arg given, needed for 'corrired'.\n");
+    mprinterr("Error: analyze ired: No 'modes <name>' arg given, needed for 'corrired'.\n");
     return 1;
   }
   // Check if modes name exists on the stack
-  modinfo_ = (ModesInfo*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
+  bool modesFromFile = false;
+  modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
     // If not on stack, check for file.
     if ( fileExists(modesfile.c_str()) ) {
       ibeg = analyzeArgs_.getKeyInt("beg",1);
       iend = analyzeArgs_.getKeyInt("end", 50);
-      modinfo_ = (ModesInfo*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
+      modinfo_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
       if (modinfo_->ReadEvecFile( modesfile, ibeg, iend )) return 1;
+      modesFromFile = true;
     }
   }
   if (modinfo_ == 0) {
-    mprinterr("Error: analyze ired: Modes %s DataSet/file not found.\n");
+    mprinterr("Error: analyze ired: Modes %s DataSet/file not found.\n",modesfile.c_str());
     return 1;
   }
   // TODO: Check that number of evecs match number of IRED vecs
@@ -126,7 +128,7 @@ int Analysis_IRED::Setup(DataSetList* DSLin) {
     mprintf(" direct approach.\n");
   else
     mprintf(" FFT approach.\n");
-  if (modinfo_->Source() == ModesInfo::MS_FILE) 
+  if (modesFromFile) 
     mprintf("\tIRED modes %i to %i are read from %s,\n", ibeg, iend, modesfile.c_str());
   else
     mprintf("\tIRED modes taken from DataSet %s\n", modinfo_->Legend().c_str());
@@ -142,6 +144,18 @@ int Analysis_IRED::Setup(DataSetList* DSLin) {
 
   return 0;
 }
+
+double Analysis_IRED::calc_spectral_density(int vi, double omega) {
+  // Loop over all eigenvector elements vi for all modes
+  double Jval = 0.0;
+  const double* Vec = modinfo_->Eigenvectors() + vi;
+  for (int mode = 0; mode < modinfo_->Nmodes(); ++mode) {
+    Jval += (modinfo_->Eigenvalue(mode) * (*Vec * *Vec)) * 2.0 * taum_[mode] /
+            (1.0 + omega*omega * taum_[mode]*taum_[mode]);
+    Vec += modinfo_->VectorSize();
+  }
+  return Jval;
+}           
 
 // Analysis_IRED::Analyze()
 int Analysis_IRED::Analyze() {
@@ -159,18 +173,24 @@ int Analysis_IRED::Analyze() {
     orderout.Printf("\t************************************\n\n");
     orderout.Printf("vector    S2\n----------------------\n");
     // Loop over all vector elements
-    double* vout = modinfo_->Evec();
-    for (int i = 0; i < modinfo_->Navgelem(); ++i) {
-      // sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
+    for (int vi = 0; vi < modinfo_->VectorSize(); ++vi) {
+      // Sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
       double sum = 0.0;
-      // loop over all eigenvectors except the first five ones
-      for (int j = modinfo_->Nvect() - 6; j >= 0; j--) {
-        double vecelem = vout[j * modinfo_->Navgelem() + i];
-        sum += modinfo_->Freq(j) * vecelem * vecelem;
+      // Loop over all eigenvectors except the first five ones
+      const double* evectorElem = modinfo_->Eigenvector(5) + vi;
+      for (int mode = 5; mode < modinfo_->Nmodes(); ++mode) {
+        sum += modinfo_->Eigenvalue(mode) * (*evectorElem) * (*evectorElem);
+        evectorElem += modinfo_->VectorSize();
       }
-      orderout.Printf(" %4i  %10.5f\n", i, 1.0 - sum);
+      orderout.Printf(" %4i  %10.5f\n", vi, 1.0 - sum);
     }
     orderout.CloseFile();
+  }
+
+  if (modinfo_->Nmodes() != (int)IredVectors_.size()) {
+    mprinterr("Error: analyze ired: # Modes in %s (%i) does not match # of Ired Vecs (%u)\n",
+              modinfo_->Legend().c_str(), modinfo_->Nmodes(), IredVectors_.size());
+    return 1;
   }
 
   // All IRED vectors must have the same size
@@ -213,11 +233,11 @@ int Analysis_IRED::Analyze() {
   data1_ = new double[ ndata ];
 
   // -------------------- IRED CALCULATION ---------------------------
-  // Store ModesInfo
-  int nvect = modinfo_->Nvect();
-  int nvectelem = modinfo_->NvectElem();
-  double* eigval = modinfo_->Freq();
-  double* vout = modinfo_->Evec();
+  // Store Modes Info
+  int nvect = modinfo_->Nmodes();
+  int nvectelem = modinfo_->VectorSize();
+  const double* eigval = modinfo_->Eigenvalues();
+  const double* vout = modinfo_->Eigenvectors();
   // Initialize memory
   cf_ = new double[ nvect * nsteps ];
   cf_cjt_ = new double[ nvect * nsteps ];
@@ -249,7 +269,7 @@ int Analysis_IRED::Analyze() {
     (*ivec)->CalcSphericalHarmonics( order_ );
     // Loop over all eigenvectors
     for (int veci = 0; veci < nvect; ++veci) {
-      double Qvec = modinfo_->Evec(veci, n_ivec);
+      double Qvec = vout[veci * nvectelem + n_ivec];
       // Loop over all m = -L, ...., L
       for (int midx = -order_; midx <= order_; ++midx) {
         // Loop over spherical harmonic coords for this m (Complex, [Real][Img])
@@ -399,24 +419,24 @@ int Analysis_IRED::Analyze() {
     for (int i = 0; i < nvectelem; ++i) {
       // Eq. A1 in Prompers & Brüschweiler, JACS  124, 4522, 2002
       double R1 = d2 / 20.0 * (
-            modinfo_->calc_spectral_density( taum_, i, lamfreqh - lamfreqn ) 
-            + 3.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqn ) 
-            + 6.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqh + lamfreqn)
-          ) + c2 / 15.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqn );
+            calc_spectral_density( i, lamfreqh - lamfreqn ) 
+            + 3.0 * calc_spectral_density( i, lamfreqn ) 
+            + 6.0 * calc_spectral_density( i, lamfreqh + lamfreqn)
+          ) + c2 / 15.0 * calc_spectral_density( i, lamfreqn );
       // Eq. A2 in Prompers & Brüschweiler, JACS  124, 4522, 2002
       double R2 = d2 / 40.0 * ( 4.0 *
-            modinfo_->calc_spectral_density(  taum_, i, 0.0 ) 
-            + modinfo_->calc_spectral_density( taum_, i, lamfreqh - lamfreqn )
-            + 3.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqn )
-            + 6.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqh ) 
-            + 6.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqh + lamfreqn)
+            calc_spectral_density( i, 0.0 ) 
+            + calc_spectral_density( i, lamfreqh - lamfreqn )
+            + 3.0 * calc_spectral_density( i, lamfreqn )
+            + 6.0 * calc_spectral_density( i, lamfreqh ) 
+            + 6.0 * calc_spectral_density( i, lamfreqh + lamfreqn)
           ) + c2 / 90.0 * ( 4.0 *
-            modinfo_->calc_spectral_density( taum_, i, 0.0 ) 
-            + 3.0 * modinfo_->calc_spectral_density( taum_, i, lamfreqn) );
+            calc_spectral_density( i, 0.0 ) 
+            + 3.0 * calc_spectral_density( i, lamfreqn) );
       // Eq. A3 in Prompers & Brüschweiler, JACS  124, 4522, 2002
       double Tj = d2 / 20.0 * ( 6.0 *
-            modinfo_->calc_spectral_density( taum_, i, lamfreqh + lamfreqn ) 
-            - modinfo_->calc_spectral_density( taum_, i, lamfreqh + lamfreqn ) );
+            calc_spectral_density( i, lamfreqh + lamfreqn ) 
+            - calc_spectral_density( i, lamfreqh + lamfreqn ) );
 
       double Noe = 1.0 + ( gamma_h * 1.0/gamma_n ) * ( 1.0 / R1 ) * Tj;
       noefile.Printf("%6i   %10.5f   %10.5f   %10.5f\n", i, R1, R2, Noe);

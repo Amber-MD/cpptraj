@@ -23,7 +23,7 @@ class DataSet_Matrix : public DataSet {
     //       matrices have 3 coordinates per entry as opposed to DIST which
     //       only has 1.
     enum MatrixType {
-      NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED
+      NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED, NMAT
     };
     static const char MatrixTypeString[][27];
     static const char MatrixOutputString[][10];

@@ -51,6 +51,7 @@ class CpptrajFile {
 
     int Gets(char* buf, int num) { return IO->Gets(buf, num); }
     int Write(void* buf, size_t num) { return IO->Write(buf, num); }
+    int Read(void* buf, size_t num) { return IO->Read(buf, num); }
   protected:
     enum CompressType { NO_COMPRESSION, GZIP, BZIP2, ZIP };
     enum AccessType   { READ, WRITE, APPEND };

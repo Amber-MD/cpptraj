@@ -4,7 +4,6 @@
 
 // CONSTRUCTOR
 Action_Projection::Action_Projection() :
-  type_(ModesInfo::MT_UNKNOWN),
   beg_(0),
   end_(0),
   start_(0),
@@ -33,17 +32,11 @@ int Action_Projection::init() {
     return 1;
   }
   if (modinfo_.ReadEvecFile( modesname, beg_, end_ )) return 1;
-  // NOTE: This warning may be redundant
-  if (modinfo_.Nvect() != (end_ - beg_ + 1)) {
-    mprintf("Warning: projection: # read evecs is %i, # requested is %i\n",
-            modinfo_.Nvect(), (end_ - beg_ + 1));
-  }
 
   // Check modes type
-  type_ = modinfo_.Mtype();
-  if (type_ != ModesInfo::MT_COVAR &&
-      type_ != ModesInfo::MT_MWCOVAR &&
-      type_ != ModesInfo::MT_IDEA)
+  if (modinfo_.Type() != DataSet_Matrix::COVAR &&
+      modinfo_.Type() != DataSet_Matrix::MWCOVAR &&
+      modinfo_.Type() != DataSet_Matrix::IDEA)
   {
     mprinterr("Error: projection: evecs type is not COVAR, MWCOVAR, or IDEA.\n");
     return 1;
@@ -61,14 +54,14 @@ int Action_Projection::init() {
   outfile_.Printf("Projection of snapshots onto modes\n%10s", "Snapshot");
   int colwidth = 9;
   int tgti = 10;
-  for (int i = beg_; i < modinfo_.Nvect() + beg_; ++i) {
+  for (int i = beg_; i < modinfo_.Nmodes() + beg_; ++i) {
     if (i == tgti) {
       --colwidth;
       if (colwidth < 5) colwidth = 5;
       tgti *= 10;
     }
     outfile_.Printf("%*s%i",colwidth, "Mode", i);
-    if (type_ == ModesInfo::MT_IDEA)
+    if (modinfo_.Type() == DataSet_Matrix::IDEA)
       outfile_.Printf("                              ");
   }
   outfile_.Printf("\n");
@@ -92,6 +85,7 @@ int Action_Projection::init() {
   return 0;
 }
 
+// Action_Projection::setup()
 int Action_Projection::setup() {
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ )) return 1;
@@ -101,30 +95,35 @@ int Action_Projection::setup() {
   }
   mprintf("\t[%s] selected %i atoms.\n", mask_.MaskString(), mask_.Nselected());
   // Check # of selected atoms against modes info
-  if ( type_ == ModesInfo::MT_COVAR || type_ == ModesInfo::MT_MWCOVAR)
+  if ( modinfo_.Type() == DataSet_Matrix::COVAR || 
+       modinfo_.Type() == DataSet_Matrix::MWCOVAR)
   {
     // Check if (3 * number of atoms in mask) and nvectelem agree
     int natom3 = mask_.Nselected() * 3;
-    if ( natom3 != modinfo_.Navgelem() || natom3 != modinfo_.NvectElem() )
-    {
-      mprinterr("Error: projection: # selected coords (%i) != # evec elements (%i, %i)\n",
-                natom3, modinfo_.Navgelem(), modinfo_.NvectElem() );
+    if ( natom3 != modinfo_.NavgCrd() ) {
+      mprinterr("Error: projection: # selected coords != # avg coords in %s (%i)\n",
+                natom3, modinfo_.Legend().c_str(), modinfo_.NavgCrd());
       return 1;
     }
-  } else if ( type_ == ModesInfo::MT_IDEA ) {
+    if ( natom3 != modinfo_.VectorSize() ) {
+      mprinterr("Error: projection: # selected coords (%i) != eigenvector size (%i)\n",
+                natom3, modinfo_.VectorSize() );
+      return 1;
+    }
+  } else if ( modinfo_.Type() == DataSet_Matrix::IDEA ) {
     // Check if (number of atoms in mask) and nvectelem agree
-    if (mask_.Nselected() != modinfo_.Navgelem() ||
-        mask_.Nselected() != modinfo_.NvectElem()) 
+    if (//mask_.Nselected() != modinfo_.Navgelem() ||
+        mask_.Nselected() != modinfo_.VectorSize()) 
     {
-      mprinterr("Error: projection: # selected atoms (%i) != # evec elements (%i, %i)\n",
-                mask_.Nselected(), modinfo_.Navgelem(), modinfo_.NvectElem() );
+      mprinterr("Error: projection: # selected atoms (%i) != eigenvector size (%i)\n",
+                mask_.Nselected(), modinfo_.VectorSize() );
       return 1;
     }
   }
 
   // Precalc sqrt of mass for each coordinate
   sqrtmasses_.clear();
-  if ( type_ == ModesInfo::MT_MWCOVAR ) {
+  if ( modinfo_.Type() == DataSet_Matrix::MWCOVAR ) {
     sqrtmasses_.reserve( mask_.Nselected() );
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
       sqrtmasses_.push_back( sqrt( (*currentParm)[*atom].Mass() ) );
@@ -136,6 +135,7 @@ int Action_Projection::setup() {
   return 0;
 }
 
+// Action_Projection::action()
 int Action_Projection::action() {
     // If the current frame is less than start exit
   if (frameNum < start_) return 0;
@@ -145,11 +145,44 @@ int Action_Projection::action() {
   start_ += offset_;
 
   outfile_.Printf("%10i", frameNum+1);
+  // Always start at first eigenvector element of first mode.
+  const double* Vec = modinfo_.Eigenvector(0);
   // Project snapshots on modes
-  if ( type_ == ModesInfo::MT_COVAR || type_ == ModesInfo::MT_MWCOVAR )
-    modinfo_.ProjectCovar(outfile_, *currentFrame, mask_, sqrtmasses_);
-  else // if type_ == MT_IDEA
-    modinfo_.ProjectIDEA(outfile_, *currentFrame, mask_);
-     
+  if ( modinfo_.Type() == DataSet_Matrix::COVAR || 
+       modinfo_.Type() == DataSet_Matrix::MWCOVAR ) 
+  {
+    for (int mode = 0; mode < modinfo_.Nmodes(); ++mode) {
+      const double* Avg = modinfo_.AvgCrd();
+      double proj = 0;
+      std::vector<double>::const_iterator sqrtmass = sqrtmasses_.begin();
+      for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
+      {
+        const double* XYZ = currentFrame->XYZ( *atom );
+        double mass = *(sqrtmass++);
+        proj += (XYZ[0] - Avg[0]) * mass * Vec[0]; 
+        proj += (XYZ[1] - Avg[1]) * mass * Vec[1]; 
+        proj += (XYZ[2] - Avg[2]) * mass * Vec[2]; 
+        Avg += 3;
+        Vec += 3;
+      }
+      outfile_.Printf(" %9.3f", proj);
+    }
+  } else { // if modinfo_.Type() == IDEA
+    for (int mode = 0; mode < modinfo_.Nmodes(); ++mode) {
+      double proj1 = 0;
+      double proj2 = 0;
+      double proj3 = 0;
+      for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
+      {
+        const double* XYZ = currentFrame->XYZ(*atom);
+        proj1 += XYZ[0] * *(Vec  );
+        proj2 += XYZ[1] * *(Vec  );
+        proj3 += XYZ[2] * *(Vec++);
+      }
+      outfile_.Printf(" %9.3f %9.3f %9.3f %9.3f", proj1, proj2, proj3,
+                      sqrt(proj1*proj1 + proj2*proj2 + proj3*proj3) );
+    }
+  }
+  outfile_.Printf("\n");
   return 0;
 }
