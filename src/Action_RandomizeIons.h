@@ -5,6 +5,7 @@
 class Action_RandomizeIons : public Action, ImagedAction {
   public:
     Action_RandomizeIons();
+    void print() {}
   private:
     int init();
     int setup();

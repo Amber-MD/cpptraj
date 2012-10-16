@@ -6,6 +6,7 @@
 class Action_Center: public Action {
   public:
     Action_Center();
+    void print() {}
   private:
     int init();
     int setup();

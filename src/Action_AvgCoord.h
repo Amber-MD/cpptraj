@@ -8,10 +8,12 @@ class Action_AvgCoord: public Action {
     Action_AvgCoord();
     ~Action_AvgCoord();
 
+    void print() {}
+  private:
     int init();
     int setup();
     int action();
-  private:
+
     bool calcMagnitude_;
     bool useMass_;
     AtomMask Mask_;

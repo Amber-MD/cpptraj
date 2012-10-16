@@ -20,6 +20,7 @@ class Action_Jcoupling: public Action {
   public:
     Action_Jcoupling();
     ~Action_Jcoupling();
+    void print() {}
   private:
     int init();
     int setup();

@@ -5,6 +5,7 @@
 class Action_Dihedral: public Action {
   public:
     Action_Dihedral();
+    void print() {}
   private:
     DataSet* dih_;
     bool useMass_;

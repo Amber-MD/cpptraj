@@ -7,6 +7,7 @@ class Action_Strip: public Action {
   public:
     Action_Strip();
     ~Action_Strip();
+    void print() {}
   private:
     int init();
     int setup();
@@ -25,7 +26,9 @@ class Action_Unstrip: public Action {
   public:
     Action_Unstrip() {}
   private:
+    int init()   {return 0;}
     int setup()  {return 2;}
     int action() {return 2;}
+    void print() {}
 };
 #endif  

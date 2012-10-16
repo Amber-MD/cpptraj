@@ -15,6 +15,7 @@ class Action_Molsurf: public Action {
   public:
     Action_Molsurf();
     ~Action_Molsurf();
+    void print() {}
   private:
     int init();
     int setup();

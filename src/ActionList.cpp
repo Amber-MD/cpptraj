@@ -178,7 +178,7 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL,
   for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
   {
     mprintf("  %u: [%s]\n", actnum++, (*act)->CmdLine());
-    if ((*act)->NoInit()) {
+    if ((*act)->Status() == Action::INACTIVE) {
       mprintf("Warning: Action %s is not active.\n", (*act)->ActionCommand());
     } else {
       if ( (*act)->Init( DSL, FL, DFL, PFL, debug_ ) ) {
@@ -188,7 +188,6 @@ int ActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL,
         } else {
           mprintf("Warning: Init failed for [%s]: DEACTIVATING\n",
                   (*act)->CmdLine());
-          (*act)->SetNoInit();
         }
       }
     }
@@ -210,20 +209,17 @@ int ActionList::Setup(Topology **ParmAddress) {
   unsigned int actnum = 0;
   for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
   {
-    if ((*act)->NoInit()) {
-      // If action was not initialized, it cannot be setup.
-      (*act)->SetNoSetup();
-    } else {
-      // Attempt to set up action.
+    if ((*act)->Status() != Action::INACTIVE) {
+      // Only attempt to set up action if active 
       mprintf("  %u: [%s]\n", actnum++, (*act)->CmdLine());
-      (*act)->ResetSetup();
-      int err = (*act)->Setup(ParmAddress);
-      if (err==1) {
+      // Reset action status to INIT (pre-setup)
+      (*act)->SetStatus( Action::INIT );
+      Action::ActionReturnType err = (*act)->Setup(ParmAddress);
+      if (err==Action::ACTION_ERR) {
         mprintf("Warning: Setup failed for [%s]: Skipping\n",
                 (*act)->CmdLine());
-        (*act)->SetNoSetup();
         //return 1;
-      } else if (err==2) {
+      } else if (err==Action::ACTION_USEORIGINALFRAME) {
         // Return value of 2 requests return to original parm
         *ParmAddress = OriginalParm;
       }
@@ -249,27 +245,28 @@ bool ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
   //fprintf(stdout,"DEBUG: Performing %i actions on frame %i.\n",Naction,frameNumIn);
   for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act) 
   {
-    // Skip deactivated actions
-    if ((*act)->NoSetup()) continue;
-    // Perform action on frame
-    Action::ActionReturnType err = (*act)->DoAction(FrameAddress, frameNumIn);
-    // Check for action special conditions/errors
-    if (err != Action::ACTION_OK) {
-      if (err == Action::ACTION_USEORIGINALFRAME) {
-        // Return value of 2 requests return to original frame
-        *FrameAddress = OriginalFrame;
-      } else if (err == Action::ACTION_SUPPRESSCOORDOUTPUT) {
-        // Skip the rest of the actions and suppress output. Necessary when
-        // e.g. performing a running average over coords.
-        return true;
-      } else {
-        // If here return type is ACTION_ERR.
-        // Treat actions that fail as if they could not be set up
-        mprintf("Warning: Action [%s] failed, frame %i.\n", (*act)->CmdLine(),
-              frameNumIn);
-        (*act)->SetNoSetup();
+    // Only do actions which were properly set up
+    if ((*act)->Status() == Action::SETUP) { 
+      // Perform action on frame
+      Action::ActionReturnType err = (*act)->DoAction(FrameAddress, frameNumIn);
+      // Check for action special conditions/errors
+      if (err != Action::ACTION_OK) {
+        if (err == Action::ACTION_USEORIGINALFRAME) {
+          // Return value of 2 requests return to original frame
+          *FrameAddress = OriginalFrame;
+        } else if (err == Action::ACTION_SUPPRESSCOORDOUTPUT) {
+          // Skip the rest of the actions and suppress output. Necessary when
+          // e.g. performing a running average over coords.
+          return true;
+        } else {
+          // If here return type is ACTION_ERR.
+          // Treat actions that fail as if they could not be set up
+          mprintf("Warning: Action [%s] failed, frame %i.\n", (*act)->CmdLine(),
+                frameNumIn);
+          (*act)->SetStatus(Action::INIT);
+        }
       }
-    } 
+    }
   }
   return false;
 }
@@ -280,7 +277,7 @@ void ActionList::Print() {
   for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
   {
     // Skip deactivated actions
-    if ((*act)->NoInit()) continue;
+    if ((*act)->Status() == Action::INACTIVE) continue;
     (*act)->print();
   }
 }

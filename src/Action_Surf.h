@@ -15,6 +15,7 @@ class Action_Surf: public Action {
     int init();
     int setup();
     int action();
+    void print() {}
   private:
     DataSet *surf;
     AtomMask Mask1;

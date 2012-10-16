@@ -7,6 +7,7 @@ class Action_Image: public Action {
   public:
     Action_Image();
     ~Action_Image();
+    void print() {}
   private:
     enum ImageMode { BYMOL = 0, BYRES, BYATOM };
     static const char ImageModeString[][9];

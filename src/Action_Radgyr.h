@@ -6,6 +6,7 @@
 class Action_Radgyr: public Action {
   public:
     Action_Radgyr();
+    void print() {}
   private:
     int init();
     int setup();

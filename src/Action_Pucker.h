@@ -6,6 +6,7 @@
 class Action_Pucker: public Action {
   public:
     Action_Pucker();
+    void print() {}
   private:
     DataSet *puck_;
     AtomMask M1_;

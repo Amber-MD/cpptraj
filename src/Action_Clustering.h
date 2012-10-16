@@ -13,6 +13,7 @@ class Action_Clustering: public Action {
     void print();
   private:
     int init();
+    int setup() { return 0; }
     int action();
 
     FrameList ReferenceFrames_; ///< Hold frames from all trajin stmts

@@ -7,6 +7,7 @@
 class Action_DistRmsd: public Action {
   public:
     Action_DistRmsd();
+    void print() {}
   private:
     int init();
     int setup();

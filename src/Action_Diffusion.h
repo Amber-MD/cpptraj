@@ -4,6 +4,7 @@
 class Action_Diffusion : public Action {
   public:
     Action_Diffusion();
+    void print() {}
   private:
     int init();
     int setup();

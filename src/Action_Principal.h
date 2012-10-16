@@ -4,6 +4,7 @@
 class Action_Principal : public Action {
   public:
     Action_Principal();
+    void print() {}
   private:
     bool doRotation_;
     bool useMass_;

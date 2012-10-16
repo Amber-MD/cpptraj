@@ -20,15 +20,13 @@ class Action {
     enum ActionReturnType { ACTION_OK=0, ACTION_ERR, ACTION_USEORIGINALFRAME,
                             ACTION_SUPPRESSCOORDOUTPUT 
                           };
-    // Action initialization and setup status variables.
-    bool NoInit() { return noInit_; }
-    bool NoSetup() { return noSetup_; }
-    void SetNoInit() { noInit_ = true; }
-    void SetNoSetup() { noSetup_ = true; }
-    void ResetSetup() { noSetup_ = false; }
+    /// Action initialization and setup status.
+    enum ActionStatusType { NO_INIT=0, INIT, NO_SETUP, SETUP, INACTIVE };
+    void SetStatus(ActionStatusType stat) { status_ = stat; }
+    ActionStatusType Status() { return status_; }
   
     Action();               // Constructor
-    virtual ~Action();      // Destructor - virtual since this class is inherited
+    virtual ~Action() {}    // Destructor - virtual since this class is inherited
 
     void SetArg(const ArgList&); ///< Set the argument list
     const char *ActionCommand(); ///< Print the command that calls the action
@@ -37,7 +35,7 @@ class Action {
     /// Initialize action, call init()
     int Init(DataSetList*, FrameList*, DataFileList*, TopologyList *,int); 
     /// Set up action for parm, call setup()
-    int Setup(Topology **);
+    ActionReturnType Setup(Topology **);
     /// Perform action on frame, call action()
     ActionReturnType DoAction(Frame **,int);    
 
@@ -48,37 +46,35 @@ class Action {
       * several passes must be made over the input frames, which are stored
       * by that action.
       */
-    virtual void print() { }
+    virtual void print() = 0; 
 
   protected:
     int debug;                   ///< action debug level
     ArgList actionArgs;          ///< The action arguments (setArg)
-    Topology *currentParm;       ///< The current parmtop (setup)
-    Frame *currentFrame;         ///< The current frame (action)
-    DataSetList *DSL;            ///< Pointer to the data set list in Cpptraj (init)
-    DataFileList *DFL;           ///< Pointer to the data file list in Cpptraj (init)
-    TopologyList *PFL;           ///< Pointer to the parm file list in Cpptraj (init)
-    FrameList *FL;               ///< Pointer to the reference frame list in Cpptraj (init)
+    Topology* currentParm;       ///< The current parmtop (setup)
+    Frame* currentFrame;         ///< The current frame (action)
+    DataSetList* DSL;            ///< Pointer to the data set list in Cpptraj (init)
+    DataFileList* DFL;           ///< Pointer to the data file list in Cpptraj (init)
+    TopologyList* PFL;           ///< Pointer to the parm file list in Cpptraj (init)
+    FrameList* FL;               ///< Pointer to the reference frame list in Cpptraj (init)
     int frameNum;                ///< # of current frame being processed, set by ActionList
     // --== Inherited by child classes ==--
     /// actions internal setup routine, called by Setup
     /** Setup action. Process any parm-dependent things like masks.
       */
-    virtual int setup()  { return 0; }
+    virtual int setup() = 0;
     /// actions internal action routine, called by DoAction
     /** Perform action. Only parts of the action which depend on input
       * coordinates should be implemented here.
       */
-    virtual int action() { return 0; }
+    virtual int action() = 0;
     /// actions internal init routine, called by Init
     /** Initialize action. Parse arguments from actionArgs. Called prior to reading
       * input trajectories. Expected order of checking args is: 1) Keywords, 2) 
       * Masks, 3) dataset names.
       */
-    virtual int init()   { return 0; }
-    bool useMassOriginalValue_;  ///< Value of useMass set by init
+    virtual int init() = 0;
   private:
-    bool noInit_;                ///< True if action could not be initialized
-    bool noSetup_;               ///< True if action could not be set up
+    ActionStatusType status_; 
 };
 #endif  

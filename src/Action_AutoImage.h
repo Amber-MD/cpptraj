@@ -4,7 +4,7 @@
 class Action_AutoImage : public Action {
   public:
     Action_AutoImage();
-
+    void print() {}
   private:
     int init();
     int setup();

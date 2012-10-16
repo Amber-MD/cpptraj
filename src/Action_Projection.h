@@ -6,6 +6,7 @@
 class Action_Projection : public Action {
   public:
     Action_Projection();
+    void print() {}
   private:
     int init();
     int setup();

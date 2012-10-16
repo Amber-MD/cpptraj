@@ -6,7 +6,7 @@
 class Action_Angle: public Action {
   public:
     Action_Angle();
-
+    void print() {}
   private:
     int init();
     int setup();

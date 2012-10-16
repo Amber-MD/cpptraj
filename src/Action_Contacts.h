@@ -7,6 +7,7 @@ class Action_Contacts : public Action {
   public:
     Action_Contacts();
     ~Action_Contacts();
+    void print() {}
   private:
     AtomMask Mask_;
     bool byResidue_;

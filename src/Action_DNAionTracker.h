@@ -5,6 +5,7 @@
 class Action_DNAionTracker : public Action, ImagedAction {
   public:
     Action_DNAionTracker();
+    void print() {}
   private:
     int init();
     int setup();

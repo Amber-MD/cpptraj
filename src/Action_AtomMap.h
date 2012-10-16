@@ -8,6 +8,7 @@ class Action_AtomMap : public Action {
   public:
     Action_AtomMap(); 
     ~Action_AtomMap();
+    void print() {}
   private:
     int init();
     int setup();

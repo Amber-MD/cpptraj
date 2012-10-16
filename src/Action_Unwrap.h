@@ -4,6 +4,7 @@
 class Action_Unwrap : public Action {
   public:
     Action_Unwrap();
+    void print() {}
   private:
     int init();
     int setup();
