@@ -386,7 +386,7 @@ int Action_Hbond::AtomsAreHbonded(int a_atom, int d_atom, int h_atom, int hbidx,
       HB.A = -1; // Do not care about which solvent acceptor
       HB.D = d_atom;
       HB.H = h_atom;
-      hblegend = currentParm->TruncResAtomName(d_atom) + "-V";
+      hblegend = currentParm->TruncResAtomName(h_atom) + "-V";
     } else {
       HB.A = a_atom;
       HB.D = -1; // Do not care about solvent donor heavy atom
