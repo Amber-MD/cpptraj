@@ -31,6 +31,8 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
     mprinterr("Error: lifetime: No data sets selected.\n");
     return 1;
   }
+  // Sort input datasets
+  inputDsets_.sort();
 
   // Create output datasets
   if ( windowSize_ != -1) {
@@ -60,6 +62,9 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
       }
       ++didx;
     }
+  } else if (!outfilename_.empty()) {
+    mprinterr("Error: Output file name specified but no window size given ('window <N>')\n");
+    return 1;
   }
 
   if (!averageonly_)
@@ -213,7 +218,7 @@ void Analysis_Lifetime::PrintListToFile(DataFileList *dfl, std::vector<DataSet*>
   if (outname.empty()) return;
   for (std::vector<DataSet*>::iterator set = list.begin(); set != list.end(); ++set)
   {
-    outfile = dfl->Add( outname.c_str(), *set );
+    outfile = dfl->AddSetToFile( outname, *set );
     if (outfile == NULL) {
       mprinterr("Error adding set %s to file %s\n", (*set)->Legend().c_str(), outname.c_str());
       return;

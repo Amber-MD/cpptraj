@@ -269,10 +269,10 @@ void Atom::SetElementFromName() {
     case 'P' : element_ = PHOSPHORUS; break;
     case 'S' : element_ = SULFUR; break;
     case 'M' :
-      if (c2=='G') element_ = MAGNESIUM;
+      if (c2=='g' || c2=='G') element_ = MAGNESIUM;
       break;
     case 'Z' :
-      if (c2=='n') element_ = ZINC;
+      if (c2=='n' || c2 =='N') element_ = ZINC;
       break;
     case 'L' :
       if (c2=='i') element_ = LITHIUM;
