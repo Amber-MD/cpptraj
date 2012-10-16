@@ -110,8 +110,8 @@ int Histogram::BinData(std::vector<double>& DataIn) {
   } else {
     mprintf("\tWarning: Coordinates out of bounds %i {",index);
     for (data = DataIn.begin(); data != DataIn.end(); ++data) 
-      mprintf("%lf", *data);
-    mprintf("}\n");
+      mprintf(" %f", *data);
+    mprintf(" }\n");
   }
 
   if (debug_>1) mprintf("}\n");

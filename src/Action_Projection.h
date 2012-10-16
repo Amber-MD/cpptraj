@@ -11,6 +11,9 @@ class Action_Projection : public Action {
     int setup();
     int action();
 
+    typedef std::vector<DataSet*> Darray;
+
+    Darray project_;
     DataSet_Modes modinfo_;
     int beg_;
     int end_;
@@ -19,6 +22,5 @@ class Action_Projection : public Action {
     int offset_;
     std::vector<double> sqrtmasses_;
     AtomMask mask_;
-    CpptrajFile outfile_;
 };
 #endif
