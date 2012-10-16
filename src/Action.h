@@ -13,11 +13,6 @@
   * setup, and action which in the main action list are called from Init,
   * Setup, and DoAction respectively. A fourth function, print, is optional
   * and is called after all frames are processed.
-  * useMass Common Functionality:
-  *   Actions that require mass information should set useMass to true in their
-  *   init function. The currentParm is checked for mass information each time
-  *   Setup is called, and if no mass information is present useMass is set
-  *   to false for the parm. 
   */
 class Action {
   public:
@@ -64,7 +59,6 @@ class Action {
     DataFileList *DFL;           ///< Pointer to the data file list in Cpptraj (init)
     TopologyList *PFL;           ///< Pointer to the parm file list in Cpptraj (init)
     FrameList *FL;               ///< Pointer to the reference frame list in Cpptraj (init)
-    bool useMass_;               ///< If set to true, calculations will use mass info
     int frameNum;                ///< # of current frame being processed, set by ActionList
     // --== Inherited by child classes ==--
     /// actions internal setup routine, called by Setup

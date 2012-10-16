@@ -21,5 +21,6 @@ class Action_RmsAvgCorr: public Action {
     DataSet* Ct_;
     int parmNatom_;
     int maxwindow_;
+    bool useMass_;
 };
 #endif  

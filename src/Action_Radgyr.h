@@ -17,5 +17,6 @@ class Action_Radgyr: public Action {
     AtomMask Mask1_;
     bool calcRogmax_;
     bool calcTensor_;
+    bool useMass_;
 };
 #endif

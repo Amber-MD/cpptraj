@@ -9,6 +9,7 @@ Action_AutoImage::Action_AutoImage() :
   ortho_(false),
   center_(false),
   truncoct_(false),
+  useMass_(false),
   triclinic_(OFF)
 {}
 

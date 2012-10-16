@@ -7,10 +7,9 @@
 Action_DNAionTracker::Action_DNAionTracker() :
   distance_(0),
   bintype_(COUNT),
-  poffset_(0)
-{
-  useMass_ = true;
-}
+  poffset_(0),
+  useMass_(true)
+{ }
 
 /** dnaiontracker name mask_p1 mask_p2 mask_base mask_ions 
   *               [poffset <value>] [out <filename>] [time <interval>] [noimage] 

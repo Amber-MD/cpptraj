@@ -21,6 +21,7 @@ class Action_Image: public Action {
     bool center_;
     /// True if orthorhombic cell, false otherwise.
     bool ortho_;
+    bool useMass_;
     bool truncoct_;
     enum TriclinicArg {OFF, FORCE, FAMILIAR};
     TriclinicArg triclinic_;

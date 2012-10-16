@@ -7,13 +7,11 @@
 // CONSTRUCTOR
 Action_Rms2d::Action_Rms2d() :
   nofit_(false),
+  useMass_(false),
   RefTraj_(NULL),
   RefParm_(NULL),
   mass_ptr_(NULL)
-{
-  //fprintf(stderr,"Rms2d Con\n");
-  useMass_=false;
-} 
+{ } 
 
 // DESTRUCTOR
 Action_Rms2d::~Action_Rms2d() {

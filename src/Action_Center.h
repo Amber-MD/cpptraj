@@ -13,5 +13,6 @@ class Action_Center: public Action {
 
     AtomMask Mask_;
     bool origin_;
+    bool useMass_;
 };
 #endif

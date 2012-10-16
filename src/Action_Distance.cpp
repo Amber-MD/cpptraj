@@ -5,11 +5,9 @@
 
 // CONSTRUCTOR
 Action_Distance::Action_Distance() :
-  dist_(NULL)
-{
-  //fprintf(stderr,"Action_Distance Con\n");
-  useMass_=true;
-} 
+  dist_(NULL),
+  useMass_(true)
+{ } 
 
 // Action_Distance::init()
 /** Expected call: distance <name> <mask1> <mask2> [out filename] [geom] [noimage]

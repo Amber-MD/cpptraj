@@ -35,6 +35,7 @@ class Action_Matrix : public Action {
     std::vector<double> mass2_;
     
     bool useMask2_;
+    bool useMass_;
 
     void FillMassArray(std::vector<double>&, AtomMask&);
     void CalcIredMatrix();

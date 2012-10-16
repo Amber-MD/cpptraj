@@ -13,6 +13,7 @@ class Action_AvgCoord: public Action {
     int action();
   private:
     bool calcMagnitude_;
+    bool useMass_;
     AtomMask Mask_;
     CpptrajFile outfile_;
 };

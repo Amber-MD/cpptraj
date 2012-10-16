@@ -13,6 +13,7 @@ class Action_Angle: public Action {
     int action();
 
     DataSet *ang_;
+    bool useMass_;
     AtomMask Mask1_;
     AtomMask Mask2_;
     AtomMask Mask3_;

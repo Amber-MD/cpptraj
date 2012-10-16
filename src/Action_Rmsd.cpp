@@ -13,12 +13,11 @@ Action_Rmsd::Action_Rmsd() :
   ResFrame_(NULL),
   ResRefFrame_(NULL),
   nofit_(false),
+  useMass_(false),
   rmsd_(NULL),
   refmode_(UNKNOWN_REF),
   RefParm_(NULL)
-{
-  useMass_=false;
-}
+{ }
 
 // DESTRUCTOR
 Action_Rmsd::~Action_Rmsd() {

@@ -20,6 +20,7 @@ class Action_Rms2d: public Action {
   private:
     CoordList ReferenceCoords_; ///< Hold coords from input frames.
     bool nofit_;                ///< Do not perform rms fitting
+    bool useMass_;
     AtomMask RefMask_;          ///< Reference atom mask
     AtomMask FrameMask_;        ///< Target atom mask
     std::string rmsdFile_;      ///< Output filename

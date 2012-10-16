@@ -16,6 +16,7 @@ class Action_Pucker: public Action {
     enum PmethodType { ALTONA=0, CREMER };
     PmethodType puckerMethod_;
     bool amplitude_;
+    bool useMass_;
     double offset_;
     double puckermin_;
     double puckermax_;

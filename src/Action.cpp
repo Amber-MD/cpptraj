@@ -10,7 +10,6 @@ Action::Action() :
   DFL(0),
   PFL(0),
   FL(0),
-  useMass_(false),
   frameNum(0),
   useMassOriginalValue_(false),
   noInit_(false), 
@@ -66,8 +65,6 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   int err = this->init();
   // Check for unhandled keywords
   actionArgs.CheckForMoreArgs();
-  // Store the value of useMass set by the actions init
-  useMassOriginalValue_ = useMass_;
 
   return ( err );
 }
@@ -85,15 +82,6 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   */
 int Action::Setup(Topology **ParmAddress) {
   currentParm = *ParmAddress;
-  // If useMass, check that parm actually has masses.
-  // NOTE: Mass is now always set to 1 if not read in so this only depends
-  //       on what the action set useMass to.
-  useMass_ = useMassOriginalValue_;
-/*  if (currentParm->mass==NULL && useMass) {
-    mprintf("    Warning: %s: Mass for this parm is NULL.\n",actionArgs.Command());
-    mprintf("             Geometric center will be used instead of center of mass.\n");
-    useMass=false;
-  }*/
   // Set up actions for this parm
   int err = this->setup();
   if (err) return err;
