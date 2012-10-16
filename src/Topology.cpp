@@ -1,6 +1,5 @@
 #include <stack> // For ParseMask
 #include <algorithm> // sort
-#include <sstream> // ostringstream
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -230,9 +229,10 @@ std::string Topology::ResAtomName(int atom) {
   if (res_name[3]==' ')
     res_name[3]='_';
   ++res; // want output as res+1
-  std::ostringstream oss;
-  oss << res_name << res << "@" << atom_name;
-  return oss.str();
+  res_name += integerToString(res);
+  res_name += "@";
+  res_name += atom_name;
+  return res_name;
 }
 
 std::string Topology::TruncResAtomName(int atom) {
@@ -246,12 +246,15 @@ std::string Topology::TruncResAtomName(int atom) {
   int res = atoms_[atom].ResNum();
   res_name.assign( residues_[res].c_str() );
   // NOTE: ensure a residue size of 4?
-  if (res_name[3]==' ')
-    res_name[3]='_';
+  if (res_name[3]==' ') res_name.resize(3);
+  if (res_name[2]==' ') res_name.resize(2);
+  if (res_name[1]==' ') res_name.resize(1);
   ++res; // want output as res+1
-  std::ostringstream oss;
-  oss << res_name << res << "@" << atom_name;
-  return oss.str();
+  res_name += "_";
+  res_name += integerToString(res);
+  res_name += "@";
+  res_name += atom_name;
+  return res_name;
 }
 
 // Topology::ResNameNum()
