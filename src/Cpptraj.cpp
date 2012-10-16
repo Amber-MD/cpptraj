@@ -285,7 +285,6 @@ int Cpptraj::Run() {
 
   // DEBUG: DataSets, post-Analysis
   mprintf("\nDATASETS AFTER ANALYSIS:\n");
-  DSL.sort();
   DSL.Info();
 
   // ========== D A T A  W R I T E  P H A S E ==========
