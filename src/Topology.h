@@ -217,7 +217,8 @@ class Topology {
     void MaskSelectResidues(int, int, char *);
     // TODO: NameType Reference
     void MaskSelectResidues(NameType, char *);
-    void MaskSelectTypes( NameType, char* mask );
+    void MaskSelectElements( NameType, char* );
+    void MaskSelectTypes( NameType, char* );
     void MaskSelectAtoms(int,int,char*);
     void MaskSelectAtoms(NameType,char*);
     bool ParseMask(Frame &, AtomMask &,bool);

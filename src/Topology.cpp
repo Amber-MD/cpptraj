@@ -1359,6 +1359,19 @@ void Topology::MaskSelectResidues(int res1, int res2, char *mask) {
   std::fill(mask + startatom, mask + endatom, 'T');
 }
 
+// Topology::MaskSelectElements()
+void Topology::MaskSelectElements( NameType element, char* mask ) {
+  unsigned int m = 0;
+  for (std::vector<Atom>::iterator atom = atoms_.begin();
+                                   atom != atoms_.end(); ++atom)
+  {
+    NameType atom_element( Atom::AtomicElementName[(*atom).Element()] );
+    if ( atom_element.Match( element ) )
+      mask[m] = 'T';
+    ++m;
+  } 
+}
+
 // Topology::MaskSelectTypes()
 void Topology::MaskSelectTypes( NameType type, char* mask ) {
   unsigned int m = 0;
@@ -1435,6 +1448,9 @@ bool Topology::ParseMask(Frame &REF, AtomMask &maskIn, bool intMask) {
         break;
       case MaskToken::AtomType :
         MaskSelectTypes( (*token).Name(), pMask );
+        break;
+      case MaskToken::AtomElement :
+        MaskSelectElements( (*token).Name(), pMask );
         break;
       case MaskToken::SelectAll :
         std::fill(pMask, pMask + atoms_.size(), 'T');
