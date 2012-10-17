@@ -338,6 +338,10 @@ int AtomMask::Tokenize() {
           tokenString.assign( buffer.begin()+1, buffer.end() );
         else
           tokenString.assign( buffer.begin()+2, buffer.end() );
+        if (tokenString.empty()) {
+          mprinterr("Error: empty token for '%c'\n",buffer[0]);
+          return 1;
+        }
         // DEBUG
         //mprintf("DEBUG: buffer=[%s]  tokenString=[%s]\n",buffer.c_str(),tokenString.c_str());
         // Split operand by comma

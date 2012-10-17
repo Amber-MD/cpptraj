@@ -1359,6 +1359,18 @@ void Topology::MaskSelectResidues(int res1, int res2, char *mask) {
   std::fill(mask + startatom, mask + endatom, 'T');
 }
 
+// Topology::MaskSelectTypes()
+void Topology::MaskSelectTypes( NameType type, char* mask ) {
+  unsigned int m = 0;
+  for (std::vector<Atom>::iterator atom = atoms_.begin();
+                                   atom != atoms_.end(); ++atom)
+  {
+    if ( (*atom).Type().Match( type ) )
+      mask[m] = 'T';
+    ++m;
+  } 
+}
+
 // Topology::MaskSelectAtoms()
 void Topology::MaskSelectAtoms( NameType name, char *mask) {
   //mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
@@ -1421,6 +1433,9 @@ bool Topology::ParseMask(Frame &REF, AtomMask &maskIn, bool intMask) {
       case MaskToken::AtomName :
         MaskSelectAtoms( (*token).Name(), pMask );
         break;
+      case MaskToken::AtomType :
+        MaskSelectTypes( (*token).Name(), pMask );
+        break;
       case MaskToken::SelectAll :
         std::fill(pMask, pMask + atoms_.size(), 'T');
         break;
@@ -1444,7 +1459,8 @@ bool Topology::ParseMask(Frame &REF, AtomMask &maskIn, bool intMask) {
                              (*token).Distance() );
         break;
       default:
-        mprinterr("Error: Invalid mask token (Mask [%s]).\n",maskIn.MaskString());
+        mprinterr("Error: Invalid mask token (Mask [%s], type [%s]).\n",
+                  maskIn.MaskString(), (*token).TypeName() );
     }
     // Check if this mask should now go on the stack
     if ( (*token).OnStack() ) {

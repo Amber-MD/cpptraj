@@ -86,6 +86,7 @@ int ArgList::SetList(const char *inputString, const char *separator) {
   // this allows const strings to be passed in.
   size_t inputStringSize = strlen(inputString);
   char *tempString = new char[ inputStringSize+1 ];
+  if (inputStringSize < 1) return 1;
   strcpy(tempString,inputString);
   // Remove newline char from tempString if present
   if ( tempString[ inputStringSize - 1 ] == '\n' )
