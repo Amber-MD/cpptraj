@@ -38,7 +38,7 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
 
 /// Used to sort clusters by # of frames in cluster
 /** Use > since we give higher priority to larger clusters. */
-bool ClusterNode::operator<(const ClusterNode& rhs) {
+bool ClusterNode::operator<(const ClusterNode& rhs) const {
   return ( frameList_.size() > rhs.frameList_.size() );
 }
 
