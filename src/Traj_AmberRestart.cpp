@@ -344,6 +344,21 @@ int Traj_AmberRestart::readFrame(int set,double *X,double *V,double *box, double
   return 0;
 }
 
+int Traj_AmberRestart::readVelocity(int set, double* V) {
+  if (hasVelocity_) {
+    // Read past restart coords
+    if ( IO->Read(frameBuffer_,frameSize_)==-1 ) {
+      mprinterr("Error: AmberRestart::getFrame(): Error reading coordinates.\n");
+      return 1;
+    }
+    BufferBegin();
+    bufferPosition_ += coordSize_;
+    BufferToDouble(V, natom3_, 12);
+    return 0;
+  }
+  return 1;
+}
+
 // Traj_AmberRestart::writeFrame()
 /** Write coords in Frame to file in amber restart format. Always calculate the 
   * frame size since coords may have been stripped from Frame.

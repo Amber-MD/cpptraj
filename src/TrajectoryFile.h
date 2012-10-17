@@ -65,6 +65,7 @@ class TrajectoryFile {
     ProgressBar *progress_;
     /// Class that performs the actual IO for trajectory format
     TrajectoryIO *trajio_;
+    TrajectoryIO *velio_;
     /// The full path to trajectory file.
     std::string trajName_;
     /// The base trajectory file name.

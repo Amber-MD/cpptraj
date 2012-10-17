@@ -29,6 +29,7 @@ TrajectoryFile::TrajectoryFile() :
   debug_(0),
   progress_(NULL),
   trajio_(NULL),
+  velio_(0),
   trajParm_(NULL),
   fileAccess_(READTRAJ),
   numFramesProcessed_(0),
@@ -54,6 +55,7 @@ TrajectoryFile::~TrajectoryFile() {
     if (trajIsOpen_) EndTraj();
     delete trajio_;
   }
+  if (velio_!=0) delete velio_;
   if (progress_!=NULL) delete progress_;
 }
 
@@ -522,6 +524,30 @@ int TrajectoryFile::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, To
     return 1;
   }
 
+  // Check if a separate mdvel file will be read
+  if (argIn!=0 && argIn->Contains("mdvel")) {
+    std::string mdvelname = argIn->GetStringKey("mdvel");
+    if (mdvelname.empty()) {
+      mprinterr("Error: mdvel: Usage 'mdvel <velocity filename>'\n");
+      return 1;
+    }
+    if ( (velio_ = setupTrajIO(mdvelname.c_str(),READTRAJ,UNKNOWN_TRAJ))==NULL ) {
+      mprinterr("Error: Could not set up velocity file %s for reading.\n",mdvelname.c_str());
+      return 1;
+    }
+    int vel_frames = velio_->setupTrajin(trajParm_);
+    if (vel_frames != total_frames_) {
+      mprinterr("Error: velocity file %s frames (%i) != traj file frames (%i)\n",
+                mdvelname.c_str(), vel_frames, total_frames_);
+      return 1;
+    }
+    if (trajio_->Seekable() && !velio_->Seekable()) {
+      mprinterr("Error: traj %s is seekable but velocity file %s is not.\n",
+                FullTrajStr(), mdvelname.c_str());
+      return 1;
+    }
+  }
+
   // For replica trajectories, replace the current trajio (which should be
   // the lowest replica) with a special trajio object that will have 
   // a list of trajio objects, each one pertaining to a different replica.
@@ -763,6 +789,10 @@ int TrajectoryFile::BeginTraj(bool showProgress) {
     mprinterr("Error: TrajectoryFile::BeginTraj: Could not open %s\n",BaseTrajStr());
     return 1;
   }
+  if (velio_!=0 && velio_->openTraj()) {
+    mprinterr("Error: TrajectoryFile::BeginTraj: Could not open mdvel file\n");
+    return 1;
+  }
   trajIsOpen_ = true;
   numFramesProcessed_ = 0;
 
@@ -799,6 +829,7 @@ void TrajectoryFile::PrintInfoLine() {
   */
 int TrajectoryFile::EndTraj() {
   trajio_->closeTraj();
+  if (velio_!=0) velio_->closeTraj();
   trajIsOpen_ = false;
   return 0;
 }
@@ -829,6 +860,8 @@ int TrajectoryFile::GetNextFrame(Frame& FrameIn) {
 #endif
     if (trajio_->readFrame(currentFrame_, FrameIn.xAddress(), FrameIn.vAddress(),
                            FrameIn.bAddress(), FrameIn.tAddress())) 
+      return 0;
+    if (velio_ != 0 && velio_->readVelocity(currentFrame_, FrameIn.vAddress()))
       return 0;
     //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
 #ifdef TRAJDEBUG
@@ -942,6 +975,11 @@ void TrajectoryFile::PrintInfo(int showExtended) {
     mprintf(", %i atoms, Box %i, seekable %i",trajParm_->Natom(),(int)trajio_->HasBox(),
             (int)trajio_->Seekable());
   mprintf("\n");
+  if (velio_!=0) {
+    mprintf("\tMDVEL: ");
+    velio_->info();
+    mprintf("\n");
+  }
 }
 
 // HasVelocity()
@@ -949,7 +987,12 @@ void TrajectoryFile::PrintInfo(int showExtended) {
   * information.
   */
 bool TrajectoryFile::HasVelocity() { 
-  if (trajio_!=NULL) return trajio_->HasVelocity(); 
+  if (trajio_!=NULL) {
+    if (velio_ == NULL)
+      return trajio_->HasVelocity();
+    else
+      return true;
+  }
   return false;
 }
 

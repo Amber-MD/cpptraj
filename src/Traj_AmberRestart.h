@@ -29,6 +29,7 @@ class Traj_AmberRestart : public TrajectoryIO, FrameBuffer {
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
+    int readVelocity(int, double*);
     int writeFrame(int,double*,double*,double*,double);
     int processWriteArgs(ArgList*);
     void info();

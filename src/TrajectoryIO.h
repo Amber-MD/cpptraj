@@ -52,6 +52,7 @@ class TrajectoryIO : protected CpptrajFile {
       * the TrajectoryIO object to keep track of what frame it is
       * writing. Vars are same as in readFrame.
       */
+    virtual int readVelocity(int, double*) { return 1;}
     virtual int writeFrame(int,double*,double*,double*,double) { return 1; }
     /// Close trajectory
     virtual void closeTraj() { return; }
