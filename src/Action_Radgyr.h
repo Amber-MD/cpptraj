@@ -6,6 +6,7 @@
 class Action_Radgyr: public Action {
   public:
     Action_Radgyr();
+    void print() {}
   private:
     int init();
     int setup();
@@ -17,5 +18,6 @@ class Action_Radgyr: public Action {
     AtomMask Mask1_;
     bool calcRogmax_;
     bool calcTensor_;
+    bool useMass_;
 };
 #endif

@@ -15,14 +15,14 @@ Analysis_Hist::Analysis_Hist() :
 {}
 
 // Analysis_Hist::CheckDimension()
-/** Given an argument with format: DataSet_Name[:min:max:step:bins], check
+/** Given an argument with format, DataSet_Name[,min,max,step,bins], check
   * that DataSet_Name exists and is valid. Add the argument to 
   * dimensionArgs and the corresponding dataset to histdata.
   */
 int Analysis_Hist::CheckDimension(const char* input, DataSetList *datasetlist) {
   ArgList arglist;
-  // Separate input string by ':'
-  arglist.SetList(input, ":");
+  // Separate input string by ','
+  arglist.SetList(input, ",");
   if (arglist.Nargs()<1) {
     mprintf("Warning: Hist::CheckDimension: No arguments found in input: %s\n",input);
     return 1;
@@ -119,7 +119,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
 
 // Analysis_Hist::Setup()
 /** Set up histogram with specified data sets.
-  * usage: hist(ogram) <dataset_name>[:min:max:step:bins] ...
+  * usage, hist(ogram) <dataset_name>[,min,max,step,bins] ...
   *        [free <temperature>] [norm] [gnu] [circular] out <filename>
   *        min <min> max <max> step <step> bins <bins>
   */

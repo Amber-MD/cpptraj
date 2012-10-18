@@ -4,10 +4,9 @@
 
 // CONSTRUCTOR
 Action_AvgCoord::Action_AvgCoord() :
-  calcMagnitude_(false)
-{
-  useMass_ = false;
-} 
+  calcMagnitude_(false),
+  useMass_(false)
+{ } 
 
 // DESTRUCTOR
 Action_AvgCoord::~Action_AvgCoord() {

@@ -4,11 +4,9 @@
 
 // CONSTRUCTOR
 Action_Center::Action_Center() :
-  origin_(false)
-{
-  //fprintf(stderr,"Center Con\n");
-  useMass_ = false;
-} 
+  origin_(false),
+  useMass_(false)
+{ } 
 
 // Action_Center::init()
 /** Expected call: center <mask> [origin] [mass] 

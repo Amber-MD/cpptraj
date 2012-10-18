@@ -44,6 +44,7 @@ class Action_Rotdif: public Action {
     double amoeba_ftol_;
     int amoeba_itmax_;
     bool do_gridsearch_;
+    bool useMass_;
     bool usefft_;
 
     // Workspace for LAPACK functions

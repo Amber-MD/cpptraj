@@ -4,6 +4,7 @@
 class Action_Scale : public Action {
   public:
     Action_Scale();
+    void print() {}
   private:
     int init();
     int setup();

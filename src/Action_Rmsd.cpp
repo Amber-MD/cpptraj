@@ -13,12 +13,12 @@ Action_Rmsd::Action_Rmsd() :
   ResFrame_(NULL),
   ResRefFrame_(NULL),
   nofit_(false),
+  rotate_(true),
+  useMass_(false),
   rmsd_(NULL),
   refmode_(UNKNOWN_REF),
   RefParm_(NULL)
-{
-  useMass_=false;
-}
+{ }
 
 // DESTRUCTOR
 Action_Rmsd::~Action_Rmsd() {
@@ -74,7 +74,7 @@ void Action_Rmsd::SetRefStructure( Frame& frameIn ) {
 // Action_Rmsd::init()
 /** Called once before traj processing. Set up reference info.
   * Expected call: 
-  * rmsd <name> <mask> [<refmask>] [out filename] [nofit] [mass]
+  * rmsd <name> <mask> [<refmask>] [out filename] [nofit | norotate] [mass]
   *      [ first | ref <filename> | refindex <#> | 
   *        reftraj <filename> [parm <parmname> | parmindex <#>] ] 
   *      [ perres perresout <filename> [range <res range>] [refrange <ref res range>] 
@@ -87,6 +87,8 @@ int Action_Rmsd::init( ) {
 
   // Check for other keywords
   nofit_ = actionArgs.hasKey("nofit");
+  if (!nofit_)
+    rotate_ = !actionArgs.hasKey("norotate");
   useMass_ = actionArgs.hasKey("mass");
   ArgList::ConstArg rmsdFile = actionArgs.getKeyString("out");
   // Reference keywords
@@ -198,8 +200,11 @@ int Action_Rmsd::init( ) {
 
   if (nofit_)
     mprintf(", no fitting");
-  else
+  else {
     mprintf(", with fitting");
+    if (!rotate_)
+      mprintf(" (no rotation)");
+  }
   if (useMass_) 
     mprintf(", mass-weighted");
   mprintf(".\n");
@@ -412,7 +417,14 @@ int Action_Rmsd::action() {
     R = SelectedFrame_.RMSD(SelectedRef_, useMass_);
   } else {
     R = SelectedFrame_.RMSD_CenteredRef(SelectedRef_, U, Trans_, useMass_);
-    currentFrame->Trans_Rot_Trans(Trans_, U);
+    if (rotate_)
+      currentFrame->Trans_Rot_Trans(Trans_, U);
+    else {
+      Trans_[0] += Trans_[3];
+      Trans_[1] += Trans_[4];
+      Trans_[2] += Trans_[5];
+      currentFrame->Translate(Trans_);
+    }
   }
 
   rmsd_->Add(frameNum, &R);

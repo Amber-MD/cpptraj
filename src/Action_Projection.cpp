@@ -19,9 +19,8 @@ int Action_Projection::init() {
   // Get ibeg, iend, start, stop, offset
   beg_ = actionArgs.getKeyInt("beg", 1);
   end_ = actionArgs.getKeyInt("end", 2);
-  start_ = actionArgs.getKeyInt("start", 1);
   // Frames start from 0
-  --start_;
+  start_ = actionArgs.getKeyInt("start", 1) - 1;
   stop_ = actionArgs.getKeyInt("stop", -1);
   offset_ = actionArgs.getKeyInt("offset", 1);
 
@@ -49,25 +48,34 @@ int Action_Projection::init() {
     return 1;
   }
 
-  // Open output file, write header
-  if (outfile_.OpenWrite( filename_ )) return 1;
-  outfile_.Printf("Projection of snapshots onto modes\n%10s", "Snapshot");
-  int colwidth = 9;
-  int tgti = 10;
-  for (int i = beg_; i < modinfo_.Nmodes() + beg_; ++i) {
-    if (i == tgti) {
-      --colwidth;
-      if (colwidth < 5) colwidth = 5;
-      tgti *= 10;
-    }
-    outfile_.Printf("%*s%i",colwidth, "Mode", i);
-    if (modinfo_.Type() == DataSet_Matrix::IDEA)
-      outfile_.Printf("                              ");
-  }
-  outfile_.Printf("\n");
-
   // Get mask
-  mask_.SetMaskString( actionArgs.getNextMask() );
+  mask_.SetMaskString( actionArgs.GetMaskNext() );
+
+  // Set up data sets
+  std::string setname = actionArgs.GetStringNext();
+  if (setname.empty())
+    setname = DSL->GenerateDefaultName("Proj");
+  int imode = beg_;
+  for (int mode = 0; mode < modinfo_.Nmodes(); ++mode) {
+    if (modinfo_.Type() != DataSet_Matrix::IDEA) { // COVAR, MWCOVAR
+      DataSet* dout = DSL->AddSetIdx( DataSet::FLOAT, setname, imode++ );
+      if (dout == 0) {
+        mprinterr("Error creating output dataset for mode %i\n",imode-1);
+        return 1;
+      }
+      project_.push_back( dout );
+      DFL->AddSetToFile( filename_, dout );
+    } else { // IDEA TODO: Error check
+      project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "X") );
+      DFL->AddSetToFile( filename_, project_.back() );
+      project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "Y") );
+      DFL->AddSetToFile( filename_, project_.back() );
+      project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "Z") );
+      DFL->AddSetToFile( filename_, project_.back() );
+      project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode++, "R") );
+      DFL->AddSetToFile( filename_, project_.back() );
+    }
+  }
 
   mprintf("    PROJECTION: Calculating projection using modes %i to %i of file %s\n",
           beg_, end_, modinfo_.Legend().c_str());
@@ -93,7 +101,7 @@ int Action_Projection::setup() {
     mprinterr("Error: projection: No atoms selected.\n");
     return 1;
   }
-  mprintf("\t[%s] selected %i atoms.\n", mask_.MaskString(), mask_.Nselected());
+  mask_.MaskInfo();
   // Check # of selected atoms against modes info
   if ( modinfo_.Type() == DataSet_Matrix::COVAR || 
        modinfo_.Type() == DataSet_Matrix::MWCOVAR)
@@ -101,8 +109,8 @@ int Action_Projection::setup() {
     // Check if (3 * number of atoms in mask) and nvectelem agree
     int natom3 = mask_.Nselected() * 3;
     if ( natom3 != modinfo_.NavgCrd() ) {
-      mprinterr("Error: projection: # selected coords != # avg coords in %s (%i)\n",
-                natom3, modinfo_.Legend().c_str(), modinfo_.NavgCrd());
+      mprinterr("Error: projection: # selected coords (%i) != # avg coords (%i) in %s\n",
+                natom3, modinfo_.NavgCrd(), modinfo_.Legend().c_str());
       return 1;
     }
     if ( natom3 != modinfo_.VectorSize() ) {
@@ -144,7 +152,6 @@ int Action_Projection::action() {
   // Update next target frame
   start_ += offset_;
 
-  outfile_.Printf("%10i", frameNum+1);
   // Always start at first eigenvector element of first mode.
   const double* Vec = modinfo_.Eigenvector(0);
   // Project snapshots on modes
@@ -165,9 +172,11 @@ int Action_Projection::action() {
         Avg += 3;
         Vec += 3;
       }
-      outfile_.Printf(" %9.3f", proj);
+      float fproj = (float)proj;
+      project_[mode]->Add( frameNum, &fproj );
     }
   } else { // if modinfo_.Type() == IDEA
+    int ip = 0;
     for (int mode = 0; mode < modinfo_.Nmodes(); ++mode) {
       double proj1 = 0;
       double proj2 = 0;
@@ -179,10 +188,16 @@ int Action_Projection::action() {
         proj2 += XYZ[1] * *(Vec  );
         proj3 += XYZ[2] * *(Vec++);
       }
-      outfile_.Printf(" %9.3f %9.3f %9.3f %9.3f", proj1, proj2, proj3,
-                      sqrt(proj1*proj1 + proj2*proj2 + proj3*proj3) );
+      float fproj1 = (float)proj1;
+      float fproj2 = (float)proj2;
+      float fproj3 = (float)proj3;
+      double proj4 = sqrt(proj1*proj1 + proj2*proj2 + proj3*proj3);
+      float fproj4 = (float)proj4;
+      project_[ip++]->Add( frameNum, &fproj1 );
+      project_[ip++]->Add( frameNum, &fproj2 );
+      project_[ip++]->Add( frameNum, &fproj3 );
+      project_[ip++]->Add( frameNum, &fproj4 );
     }
   }
-  outfile_.Printf("\n");
   return 0;
 }

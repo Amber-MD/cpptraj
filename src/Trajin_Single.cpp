@@ -4,6 +4,7 @@
 // CONSTRUCTOR
 Trajin_Single::Trajin_Single() :
   trajio_(0),
+  velio_(0),
   trajIsOpen_(false)
 {}
 
@@ -13,6 +14,7 @@ Trajin_Single::~Trajin_Single() {
     if (trajIsOpen_) EndTraj();
     delete trajio_;
   }
+  if (velio_!=0) delete velio_;
 }
 
 // Trajin_Single::SetupTrajRead()
@@ -49,6 +51,33 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Top
     mprinterr("Error in trajectory %s box information.\n",BaseTrajStr());
     return 1;
   }
+  // Check if a separate mdvel file will be read
+  if (argIn!=0 && argIn->Contains("mdvel")) {
+    std::string mdvelname = argIn->GetStringKey("mdvel");
+    if (mdvelname.empty()) {
+      mprinterr("Error: mdvel: Usage 'mdvel <velocity filename>'\n");
+      return 1;
+    }
+    CpptrajFile mdvelFile;
+    if (mdvelFile.SetupRead( mdvelname, debug_ )) return 1;
+    // Detect mdvel format
+    if ( (velio_ = DetectFormat( mdvelFile )) == 0 ) {
+      mprinterr("Error: Could not set up velocity file %s for reading.\n",mdvelname.c_str());
+      return 1;
+    }
+    // Set up the format for reading mdvel, get # of mdvel frames
+    int vel_frames = velio_->setupTrajin(TrajParm());
+    if (vel_frames != TotalFrames()) {
+      mprinterr("Error: velocity file %s frames (%i) != traj file frames (%i)\n",
+                mdvelname.c_str(), vel_frames, TotalFrames());
+      return 1;
+    }
+    if (trajio_->Seekable() && !velio_->Seekable()) {
+      mprinterr("Error: traj %s is seekable but velocity file %s is not.\n",
+                FullTrajStr(), mdvelname.c_str());
+      return 1;
+    }
+  }
   return 0;
 }
 
@@ -57,6 +86,11 @@ int Trajin_Single::BeginTraj(bool showProgress) {
   // Open the trajectory
   if (trajio_->openTraj()) {
     mprinterr("Error: Trajin_Single::BeginTraj: Could not open %s\n",BaseTrajStr());
+    return 1;
+  }
+  // Open mdvel file if present
+  if (velio_!=0 && velio_->openTraj()) {
+    mprinterr("Error: Could not open mdvel file.\n");
     return 1;
   }
   // Set progress bar, start and offset.
@@ -69,6 +103,7 @@ int Trajin_Single::BeginTraj(bool showProgress) {
 void Trajin_Single::EndTraj() {
   if (trajIsOpen_) {
     trajio_->closeTraj();
+    if (velio_!=0) velio_->closeTraj();
     trajIsOpen_ = false;
   }
 }
@@ -82,6 +117,8 @@ int Trajin_Single::GetNextFrame( Frame& frameIn ) {
   while ( !tgtFrameFound ) {
     if (trajio_->readFrame(CurrentFrame(), frameIn.xAddress(), frameIn.vAddress(),
                            frameIn.bAddress(), frameIn.tAddress()))
+      return 0;
+    if (velio_ != 0 && velio_->readVelocity(CurrentFrame(), frameIn.vAddress()))
       return 0;
     //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
     tgtFrameFound = ProcessFrame();
@@ -101,11 +138,21 @@ void Trajin_Single::PrintInfo(int showExtended) {
     mprintf(", %i atoms, Box %i, seekable %i",TrajParm()->Natom(),(int)trajio_->HasBox(),
             (int)trajio_->Seekable());
   mprintf("\n");
+  if (velio_!=0) {
+    mprintf("\tMDVEL: ");
+    velio_->info();
+    mprintf("\n");
+  }
 }
 
 // Trajin_Single::HasVelocity()
 bool Trajin_Single::HasVelocity() {
-  if (trajio_!=0) return trajio_->HasVelocity();
+  if (trajio_!=0) {
+    if (velio_ == 0)
+      return trajio_->HasVelocity();
+    else
+      return true;
+  }
   return false;
 }
 

@@ -7,10 +7,9 @@
 
 // CONSTRUCTOR
 Action_Principal::Action_Principal() :
-  doRotation_(false)
-{
-  useMass_ = false;
-}
+  doRotation_(false),
+  useMass_(false)
+{ }
 
 // Action_Principal::init()
 int Action_Principal::init() {

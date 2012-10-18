@@ -6,11 +6,9 @@
 
 // CONSTRUCTOR
 Action_Angle::Action_Angle() :
-  ang_(NULL)
-{
-  //fprintf(stderr,"Action_Angle Con\n");
-  useMass_ = false;
-} 
+  ang_(NULL),
+  useMass_(false)
+{ } 
 
 // Action_Angle::init()
 /** Expected call: angle <name> <mask1> <mask2> <mask3> [out filename] [mass]

@@ -9,12 +9,14 @@ class Action_Outtraj: public Action {
     Action_Outtraj();
   private:
     int init();
+    int setup() { return 0; }
     int action();
     void print();
 
     Trajout outtraj_;
-    double max_;
-    double min_;
-    DataSet* Dset_;
+    std::vector<double> Max_;
+    std::vector<double> Min_;
+    std::vector<DataSet*> Dsets_;
+    DataSet* maxmin_;
 };
 #endif

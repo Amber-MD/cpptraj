@@ -14,7 +14,8 @@ Action_Matrix::Action_Matrix() :
   offset_(1),
   snap_(0),
   order_(2),
-  useMask2_(false)
+  useMask2_(false),
+  useMass_(false)
 {}
 
 // Action_Matrix::init()

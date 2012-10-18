@@ -7,8 +7,10 @@
 class Action_Distance: public Action, ImagedAction {
   public:
     Action_Distance();
+    void print() {}
   private:
     DataSet *dist_;
+    bool useMass_;
     AtomMask Mask1_;
     AtomMask Mask2_;
 

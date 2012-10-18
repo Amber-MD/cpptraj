@@ -6,13 +6,14 @@
 class Action_Angle: public Action {
   public:
     Action_Angle();
-
+    void print() {}
   private:
     int init();
     int setup();
     int action();
 
     DataSet *ang_;
+    bool useMass_;
     AtomMask Mask1_;
     AtomMask Mask2_;
     AtomMask Mask3_;

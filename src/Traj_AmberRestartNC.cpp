@@ -114,9 +114,21 @@ int Traj_AmberRestartNC::setupTrajin(Topology *trajParm) {
   int boxerr = SetupBox(boxAngle_, boxLength_);
   if (boxerr == 1)
     return 1;
-  else if (boxerr == 0)
+  else if (boxerr == 0) {
     hasBox_ = true;
-  else
+    // Get box lengths and angle so they can be checked
+    count_[0] = 3;
+    count_[1] = 0;
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, boxLength_)) ) {
+      mprinterr("Error: Getting cell lengths.\n"); 
+      return 1;
+    }
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, boxAngle_)) ) {
+      mprinterr("Error: Getting cell angles.\n");
+      return 1;
+    }
+ 
+  } else
     hasBox_ = false;
 
   // Replica Temperatures - allowed to fail gracefully

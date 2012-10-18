@@ -36,6 +36,8 @@ class Action_Rmsd: public Action {
     // ------------------------ 
     AtomMask FrameMask_;               ///< Target mask.
     bool nofit_;                       ///< If true do not calculate best-fit RMSD
+    bool rotate_;                      ///< If true and fitting, do not rotate coords.
+    bool useMass_;
     double Trans_[6];                  ///< For fit, hold 2 translations: tgt->origin, origin->ref
     Frame SelectedFrame_;              ///< Hold only selected target frame coords.
     DataSet *rmsd_;

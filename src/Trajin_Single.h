@@ -14,6 +14,7 @@ class Trajin_Single : public Trajin {
     bool HasVelocity();
   private:
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
+    TrajectoryIO* velio_;  ///< Hold class that will interface with opt. mdvel file.
     bool trajIsOpen_;      ///< True is trajectory is open. 
 };
 #endif

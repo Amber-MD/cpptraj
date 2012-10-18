@@ -4,7 +4,7 @@
 class Action_AutoImage : public Action {
   public:
     Action_AutoImage();
-
+    void print() {}
   private:
     int init();
     int setup();
@@ -19,6 +19,7 @@ class Action_AutoImage : public Action {
     bool ortho_;          ///< If true imaging is orthogonal.
     bool center_;         ///< If true imaging of mobile region uses molecule center.
     bool truncoct_;
+    bool useMass_;
     enum TriclinicArg {OFF, FORCE, FAMILIAR};
     TriclinicArg triclinic_; ///< Determine whether triclinic code should be used.
 

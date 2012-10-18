@@ -13,6 +13,7 @@ class Action_Clustering: public Action {
     void print();
   private:
     int init();
+    int setup() { return 0; }
     int action();
 
     FrameList ReferenceFrames_; ///< Hold frames from all trajin stmts
@@ -28,6 +29,7 @@ class Action_Clustering: public Action {
     std::string reptrajfile_;         ///< Cluster rep to separate trajectory filename.
     std::string clusterinfo_;         ///< Name for Ptraj-like cluster output file.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
+    bool useMass_;
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
     DataSet* cluster_dataset_;  ///< Dataset to use for clustering.
@@ -39,7 +41,7 @@ class Action_Clustering: public Action {
     TrajectoryFile::TrajFormatType singlerepfmt_;
     /// Cluster rep to separate trajectory format.
     TrajectoryFile::TrajFormatType reptrajfmt_;
-    static const char PAIRDISTFILE[];
+    static const char PAIRDISTFILE[]; // TODO: Make this a user option
 
     int calcDistFromRmsd( TriangleMatrix &);
     int ClusterHierAgglo( TriangleMatrix &, ClusterList&);

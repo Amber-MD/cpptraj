@@ -212,6 +212,17 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-FR"
       FOPTFLAGS="-ip -O3"
       FLIBS="$FLIBS -lifport -lifcore"
+      ;;
+    "pgi" )
+      echo "Using PGI compilers"
+      CC=pgcc
+      CXX=pgc++
+      FC=pgf90
+      OPTFLAGS="-O2"
+      OMPFLAGS="-mp"
+      FFLAGS="-Mfree"
+      FOPTFLAGS="-fast -O3"
+      FLIBS="-pgf90libs"
       ;; 
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"

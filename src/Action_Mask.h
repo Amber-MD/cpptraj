@@ -9,12 +9,13 @@
 class Action_Mask: public Action {
   public:
     Action_Mask();
-
+    
     void print();
   private:
     int init();
     // NOTE: No setup needed for this action. Everything is done in action so 
     //       that the coords can be passed to the mask parser.
+    int setup() { return 0; }
     int action();
 
     /// Atoms which will be selected each frame

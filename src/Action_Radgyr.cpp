@@ -9,11 +9,9 @@ Action_Radgyr::Action_Radgyr() :
   rogmax_(0),
   rogtensor_(0),
   calcRogmax_(true),
-  calcTensor_(false)
-{
-  //fprintf(stderr,"Radgyr Con\n");
-  useMass_ = false;
-} 
+  calcTensor_(false),
+  useMass_(false)
+{ } 
 
 // Action_Radgyr::init()
 /** Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax] [tensor]

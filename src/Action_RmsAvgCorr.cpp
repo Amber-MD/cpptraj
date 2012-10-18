@@ -10,10 +10,9 @@ Action_RmsAvgCorr::Action_RmsAvgCorr() :
   ReferenceParm_(NULL),
   Ct_(NULL),
   parmNatom_(0),
-  maxwindow_(-1)
-{
-  useMass_ = false;
-} 
+  maxwindow_(-1),
+  useMass_(false)
+{ } 
 
 // Action_RmsAvgCorr::init()
 /** Expected call: rmsavgcorr [<mask>] [out <filename>] [output <separatename>] 

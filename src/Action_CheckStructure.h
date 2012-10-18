@@ -11,6 +11,7 @@ class Action_CheckStructure: public Action, ImagedAction {
 
     void SeparateInit(double, double, int);
     int SeparateAction(Frame *);
+    void print() {}
   private:
     int init();
     int setup();

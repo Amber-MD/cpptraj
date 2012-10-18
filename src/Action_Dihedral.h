@@ -5,8 +5,10 @@
 class Action_Dihedral: public Action {
   public:
     Action_Dihedral();
+    void print() {}
   private:
     DataSet* dih_;
+    bool useMass_;
     AtomMask M1_;
     AtomMask M2_;
     AtomMask M3_;

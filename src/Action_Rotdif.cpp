@@ -93,15 +93,14 @@ Action_Rotdif::Action_Rotdif() :
   amoeba_ftol_(0.0000001 ),
   amoeba_itmax_(10000 ),
   do_gridsearch_( false ),
+  useMass_(false),
   usefft_( true ),
   work_( NULL ),
   lwork_( 0 ),
   random_vectors_( NULL ),
   D_eff_( NULL ),
   Tau_( NULL )
-{
-  //fprintf(stderr,"Rotdif Con\n") ),
-} 
+{ } 
 
 // DESTRUCTOR
 Action_Rotdif::~Action_Rotdif() {

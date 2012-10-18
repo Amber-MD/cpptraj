@@ -9,13 +9,11 @@ Action_Pucker::Action_Pucker() :
   puck_(NULL),
   puckerMethod_(ALTONA),
   amplitude_(false),
+  useMass_(true),
   offset_(0),
   puckermin_( -180.0),
   puckermax_( 180.0)
-{
-  //fprintf(stderr,"Pucker Con\n");
-  useMass_ = true;
-} 
+{ } 
 
 // Action_Pucker::init()
 /** Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>

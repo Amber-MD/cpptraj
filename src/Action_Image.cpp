@@ -10,12 +10,10 @@ Action_Image::Action_Image() :
   origin_(false),
   center_(false),
   ortho_(false),
+  useMass_(true),
   truncoct_(false),
   triclinic_(OFF)
-{
-  //fprintf(stderr,"Image Con\n");
-  useMass_ = true;
-} 
+{ } 
 
 // DESTRUCTOR
 Action_Image::~Action_Image() {

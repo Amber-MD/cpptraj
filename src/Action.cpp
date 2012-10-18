@@ -10,17 +10,9 @@ Action::Action() :
   DFL(0),
   PFL(0),
   FL(0),
-  useMass_(false),
   frameNum(0),
-  useMassOriginalValue_(false),
-  noInit_(false), 
-  noSetup_(false)
+  status_(NO_INIT)
 {}
-
-// DESTRUCTOR
-Action::~Action() {
-  //fprintf(stderr,"Action Destructor.\n"); 
-}
 
 // Action::SetArg()
 /** \param inA argument list for the action
@@ -64,10 +56,12 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   debug = debugIn;
   // Initialize action
   int err = this->init();
+  if (err == 0)
+    status_ = INIT;
+  else
+    status_ = INACTIVE;
   // Check for unhandled keywords
   actionArgs.CheckForMoreArgs();
-  // Store the value of useMass set by the actions init
-  useMassOriginalValue_ = useMass_;
 
   return ( err );
 }
@@ -83,23 +77,16 @@ int Action::Init(DataSetList *DSLin, FrameList *FLin, DataFileList *DFLin,
   * \param ParmAddress memory address of current parm; may be changed
   *        by the action.
   */
-int Action::Setup(Topology **ParmAddress) {
+Action::ActionReturnType Action::Setup(Topology **ParmAddress) {
   currentParm = *ParmAddress;
-  // If useMass, check that parm actually has masses.
-  // NOTE: Mass is now always set to 1 if not read in so this only depends
-  //       on what the action set useMass to.
-  useMass_ = useMassOriginalValue_;
-/*  if (currentParm->mass==NULL && useMass) {
-    mprintf("    Warning: %s: Mass for this parm is NULL.\n",actionArgs.Command());
-    mprintf("             Geometric center will be used instead of center of mass.\n");
-    useMass=false;
-  }*/
   // Set up actions for this parm
-  int err = this->setup();
-  if (err) return err;
-  // Set the value of parm address in case parm was changed, e.g. in strip
-  *ParmAddress = currentParm;
-  return 0;
+  ActionReturnType err = (ActionReturnType)this->setup(); // TODO: Fix cast
+  if (err != ACTION_ERR) {
+    status_ = SETUP;
+    // Set the value of parm address in case parm was changed, e.g. in strip
+    *ParmAddress = currentParm;
+  }
+  return err;
 }
 
 // Action::DoAction() 
@@ -114,7 +101,7 @@ Action::ActionReturnType Action::DoAction(Frame **FrameAddress, int frameNumIn)
 {
   currentFrame = *FrameAddress;
   frameNum = frameNumIn;
-  ActionReturnType err = (ActionReturnType)this->action(); // NOTE: Fix return type eventually
+  ActionReturnType err = (ActionReturnType)this->action(); // TODO: Fix return type eventually
   // Any state but ok means do not modify the frame. Return now.
   if (err!=ACTION_OK) return err;
   // Set the value of frame address in case frame was changed, e.g. in strip

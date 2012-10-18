@@ -13,6 +13,7 @@ Action_Clustering::Action_Clustering() :
   sieve_(1),
   cnumvtime_(NULL),
   nofitrms_(false),
+  useMass_(false),
   grace_color_(false),
   load_pair_(true),
   cluster_dataset_(NULL),
@@ -20,10 +21,7 @@ Action_Clustering::Action_Clustering() :
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
-{
-  //fprintf(stderr,"Clustering Con\n");
-  useMass_=false;
-} 
+{ } 
 
 const char Action_Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 

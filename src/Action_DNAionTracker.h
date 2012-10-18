@@ -5,6 +5,7 @@
 class Action_DNAionTracker : public Action, ImagedAction {
   public:
     Action_DNAionTracker();
+    void print() {}
   private:
     int init();
     int setup();
@@ -14,6 +15,7 @@ class Action_DNAionTracker : public Action, ImagedAction {
     enum BINTYPE { COUNT=0, SHORTEST, TOPCONE, BOTTOMCONE };
     BINTYPE bintype_; // iarg3
     double poffset_; // darg2
+    bool useMass_;
     AtomMask p1_;
     AtomMask p2_;
     AtomMask base_;

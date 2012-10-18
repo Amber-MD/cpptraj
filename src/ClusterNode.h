@@ -9,7 +9,7 @@ class ClusterNode {
     ClusterNode(const ClusterNode&);
     ClusterNode& operator=(const ClusterNode&);
     /// Used in sorting
-    bool operator<(const ClusterNode&);
+    bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
     void MergeFrames(ClusterNode&);
     // Iterator over frames

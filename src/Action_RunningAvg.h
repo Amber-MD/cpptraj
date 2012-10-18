@@ -6,6 +6,7 @@
 class Action_RunningAvg: public Action {
   public:
     Action_RunningAvg();
+    void print() {}
   private:
     int Nwindow_;               ///< Size of the running average
     double d_Nwindow_;          ///< For frame division (avoids constant recasting)

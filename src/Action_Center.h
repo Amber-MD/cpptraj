@@ -6,6 +6,7 @@
 class Action_Center: public Action {
   public:
     Action_Center();
+    void print() {}
   private:
     int init();
     int setup();
@@ -13,5 +14,6 @@ class Action_Center: public Action {
 
     AtomMask Mask_;
     bool origin_;
+    bool useMass_;
 };
 #endif

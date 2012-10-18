@@ -6,11 +6,9 @@
 
 // CONSTRUCTOR
 Action_Dihedral::Action_Dihedral() :
-  dih_(NULL)
-{
-  //fprintf(stderr,"Action_Dihedral Con\n");
-  useMass_=false;
-} 
+  dih_(NULL),
+  useMass_(false)
+{ } 
 
 // Action_Dihedral::init()
 /** Expected call: dihedral <name> <mask1> <mask2> <mask3> <mask4> [out filename]
