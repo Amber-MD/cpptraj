@@ -71,7 +71,7 @@ class DataSetList {
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
     /// Print info on DataSets in the list
-    void Info();
+    void List();
     /// Call sync for DataSets in the list (MPI only)
     void Sync();
     /// Find next set of specified type with given name.

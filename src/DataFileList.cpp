@@ -83,9 +83,9 @@ DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn)
   return Current;
 }
 
-// DataFileList::Info()
+// DataFileList::List()
 /** Print information on what datasets are going to what datafiles */
-void DataFileList::Info() {
+void DataFileList::List() {
   if (fileList_.empty()) {
     //mprintf("NO DATASETS WILL BE OUTPUT\n");
     return;

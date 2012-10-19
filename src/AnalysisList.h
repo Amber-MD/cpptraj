@@ -11,6 +11,7 @@ class AnalysisList {
     int AddAnalysis(ArgList &);
     int Setup(DataSetList*,TopologyList*);
     void Analyze(DataFileList*);
+    void List();
   private:
     typedef std::vector<Analysis*> aListType;
     typedef std::vector<Analysis*>::iterator aListIt;

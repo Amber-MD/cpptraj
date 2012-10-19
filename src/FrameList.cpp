@@ -193,10 +193,10 @@ int FrameList::ReplaceFrame(int idx, Frame *newFrame, Topology *newParm) {
   return 0;
 }
 
-// FrameList::Info()
+// FrameList::List()
 /** Print a list of trajectory names that frames have been taken from.
   */
-void FrameList::Info() {
+void FrameList::List() {
   if (frames_.empty()) {
     mprintf("  No frames defined.\n");
     return;

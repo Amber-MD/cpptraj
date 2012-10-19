@@ -21,7 +21,7 @@ int Analysis_CrossCorr::Setup( DataSetList* datasetlist ) {
   matrix_ = datasetlist->AddSet( DataSet::TRIMATRIX, setname_, "crosscorr" );
   
   mprintf("    CROSSCORR: Calculating correlation between %i data sets:\n", dsets_.size());
-  dsets_.Info();
+  dsets_.List();
   if ( !setname_.empty() )
     mprintf("\tSet name: %s\n", setname_.c_str() );
   if ( !outfilename_.empty() )

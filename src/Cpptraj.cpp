@@ -5,7 +5,7 @@
 #include "ReadLine.h"
 
 void Cpptraj::Help_List() {
-  mprintf("list <type> (<type> = actions,trajin,trajout,parm)\n");
+  mprintf("list <type> (<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)\n");
 }
 
 void Cpptraj::Help_Help() {
@@ -79,8 +79,12 @@ void Cpptraj::Help(ArgList& argIn) {
 void Cpptraj::List(ArgList& argIn) {
   if      (argIn.hasKey("actions")) actionList.List();
   else if (argIn.hasKey("trajin")) trajinList.List();
+  else if (argIn.hasKey("ref")) refFrames.List();
   else if (argIn.hasKey("trajout")) trajoutList.List();
   else if (argIn.hasKey("parm")) parmFileList.List();
+  else if (argIn.hasKey("analysis")) analysisList.List();
+  else if (argIn.hasKey("datafile")) DFL.List();
+  else if (argIn.hasKey("dataset")) DSL.List();
   else {
     mprinterr("Error: list: unrecognized list type (%s)\n", argIn.ArgLine());
     Help_List();
@@ -298,7 +302,7 @@ int Cpptraj::Run() {
 
   // Print reference information 
   mprintf("\nREFERENCE COORDS:\n");
-  refFrames.Info();
+  refFrames.List();
 
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");
@@ -385,7 +389,7 @@ int Cpptraj::Run() {
   // TODO - Also have datafilelist call a sync??
   DSL.Sync();
   mprintf("\nDATASETS BEFORE ANALYSIS:\n");
-  DSL.Info();
+  DSL.List();
 
   // ========== A N A L Y S I S  P H A S E ==========
   analysisList.Setup(&DSL, &parmFileList);
@@ -393,13 +397,13 @@ int Cpptraj::Run() {
 
   // DEBUG: DataSets, post-Analysis
   mprintf("\nDATASETS AFTER ANALYSIS:\n");
-  DSL.Info();
+  DSL.List();
 
   // ========== D A T A  W R I T E  P H A S E ==========
   // Process any datafile commands
   DFL.ProcessDataFileArgs(&DSL);
   // Print Datafile information
-  DFL.Info();
+  DFL.List();
   // Only Master does DataFile output
   if (worldrank==0)
     DFL.Write();

@@ -122,3 +122,9 @@ void AnalysisList::Analyze(DataFileList *datafilelist) {
   mprintf("\n");
   //mprintf("    ...................................................\n\n");
 }
+
+void AnalysisList::List() {
+  unsigned int iana = 0;
+  for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
+    mprintf("  %u: [%s] (Parm: %s)\n", iana++, (*ana)->CmdLine(), (*ana)->ParmName());
+}

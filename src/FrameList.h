@@ -24,7 +24,7 @@ class FrameList : public FileList {
     Topology *GetFrameParm(int);
     Frame *GetFrame(int idx);
     int ReplaceFrame(int, Frame *, Topology *);
-    void Info();
+    void List();
     const char *FrameName(int);
 
     inline int NumFrames() { 

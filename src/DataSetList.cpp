@@ -367,11 +367,11 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   DataList_.push_back( dsetIn );
 }
 
-// DataSetList::Info()
+// DataSetList::List()
 /** Print information on all data sets in the list, as well as any datafiles
   * that will be written to.
   */
-void DataSetList::Info() {
+void DataSetList::List() {
   if (DataList_.empty())
     mprintf("  There are no data sets set up for analysis.");
   else if (DataList_.size()==1)

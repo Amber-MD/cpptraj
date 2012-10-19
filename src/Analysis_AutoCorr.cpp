@@ -41,7 +41,7 @@ int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
     calctype = "correlation";
  
   mprintf("    AUTOCORR: Calculating auto-%s for %i data sets:\n", calctype, dsets_.size());
-  dsets_.Info();
+  dsets_.List();
   if (lagmax_!=-1)
     mprintf("\tLag max= %i\n", lagmax_);
   if ( !setname_.empty() )

@@ -73,7 +73,7 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
     mprintf("    LIFETIME: Calculating only averages");
   mprintf(" of data in %i sets\n", inputDsets_.size());
   if (debug_ > 0)
-    inputDsets_.Info();
+    inputDsets_.List();
   if (windowSize_ != -1) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
             setname_.c_str());
