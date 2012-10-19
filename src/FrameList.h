@@ -13,10 +13,9 @@
 // TODO: Eventually store a vector of Frames, not Frame*s
 class FrameList : public FileList {
   public:
-
     FrameList();
     ~FrameList();
-
+    static void Help();
     Frame *ActiveReference();
     void SetActiveRef(int);
     int AddReference(ArgList *, Topology *);

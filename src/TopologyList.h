@@ -25,7 +25,7 @@ class TopologyList : public FileList {
     int AddParmFile(std::string const&);
     int AddParmFile(std::string const&,std::string const&,bool,double);
     int AddParm(Topology*);
-    void Print();
+    void List();
 
   private:
     std::vector<Topology*> TopList_;

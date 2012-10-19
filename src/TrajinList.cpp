@@ -15,12 +15,15 @@ TrajinList::~TrajinList() {
     delete *traj;
 }
 
+void TrajinList::Help() { 
+  mprintf("trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]\n");
+  mprintf("       [remdtraj remdtrajtemp <T>]\n");
+}
+
 // TrajinList::AddTrajin()
 /** Add trajectory to the trajectory list as an input trajectory. 
   * Associate the trajectory with one of the parm files in the 
   * TopologyList. 
-  * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
-  *        [remdtraj remdtrajtemp <T>]
   */
 int TrajinList::AddTrajin(ArgList *argIn, Topology *parmIn) {
   TrajectoryFile *traj = new TrajectoryFile(); 
@@ -87,3 +90,9 @@ TrajectoryFile *TrajinList::NextTraj() {
   return trj;
 }
 
+void TrajinList::List() {
+  mprintf("INPUT TRAJECTORIES:\n");
+  for (std::vector<TrajectoryFile*>::iterator traj = trajin_.begin();
+                                              traj != trajin_.end(); traj++)
+    (*traj)->PrintInfo( 1 );
+}

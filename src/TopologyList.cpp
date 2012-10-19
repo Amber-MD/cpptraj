@@ -34,7 +34,7 @@ int TopologyList::CheckCommand(ArgList &argIn) {
   }
   // parmlist: Print list of loaded parm files
   if (argIn.CommandIs("parmlist")) {
-    this->Print();
+    this->List();
     return 0;
   }
   // parminfo [<parmindex>] [<mask>]: Print information on parm <parmindex> 
@@ -286,9 +286,9 @@ int TopologyList::AddParm(Topology *ParmIn) {
   return 0;
 }
 
-// TopologyList::Print()
-/// Print list of loaded parameter files
-void TopologyList::Print() {
+// TopologyList::List()
+/** Print list of loaded parameter files */
+void TopologyList::List() {
   mprintf("\nPARAMETER FILES:\n");
   if (TopList_.empty()) {
     mprintf("  No parameter files defined.\n");

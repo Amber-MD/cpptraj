@@ -5,7 +5,7 @@
 #include "ReadLine.h"
 
 void Cpptraj::Help_List() {
-  mprintf("list <type> (<type> = actions,)\n");
+  mprintf("list <type> (<type> = actions,trajin,trajout,parm)\n");
 }
 
 void Cpptraj::Help_Help() {
@@ -16,26 +16,49 @@ void Cpptraj::Help_Debug() {
   mprintf("debug [<type>] <#> ((<type> = actions,trajin,trajout,ref,parm,analysis,datafile)\n");
 }
 
-enum GeneralCmds { LIST = 0, HELP, QUIT, RUN, DEBUG };
+void Cpptraj::Help_ActiveRef() {
+  mprintf("activeref <#>\n");
+  mprintf("Set the reference structure to be used for coordinate-based mask parsing.\n");
+}
 
-const DispatchObject::Token Cpptraj::DispatchArray[] = {
-  { DispatchObject::GENERAL, "list" , 0,  Help_List, LIST },
-  { DispatchObject::GENERAL, "help" , 0,  Help_Help, HELP },
-  { DispatchObject::GENERAL, "quit" , 0,          0, QUIT },
-  { DispatchObject::GENERAL, "go"   , 0,          0, RUN  },
-  { DispatchObject::GENERAL, "debug", 0, Help_Debug, DEBUG},
-  { DispatchObject::NONE,         0,  0,          0,     0}
+
+enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, SYSTEM,
+                       ACTIVEREF };
+
+const DispatchObject::Token Cpptraj::GeneralCmds[] = {
+  { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef, ACTIVEREF },
+  { DispatchObject::GENERAL, "debug",         0, Help_Debug, DEBUG    },
+  { DispatchObject::GENERAL, "go"   ,         0,          0, RUN      },
+  { DispatchObject::GENERAL, "help" ,         0,  Help_Help, HELP     },
+  { DispatchObject::GENERAL, "list" ,         0,  Help_List, LIST     },
+  { DispatchObject::GENERAL, "ls",            0,          0, SYSTEM   },
+  { DispatchObject::GENERAL, "noexitonerror", 0,          0, NOEXITERR},
+  { DispatchObject::GENERAL, "noprogress",    0,          0, NOPROG   },
+  { DispatchObject::GENERAL, "prnlev",        0, Help_Debug, DEBUG    },
+  { DispatchObject::GENERAL, "pwd",           0,          0, SYSTEM   },
+  { DispatchObject::GENERAL, "quit" ,         0,          0, QUIT     },
+  { DispatchObject::NONE,                  0, 0,          0,      0   }
+};
+
+const DispatchObject::Token Cpptraj::CoordCmds[] = {
+  { DispatchObject::REFERENCE, "reference",     0, FrameList::Help,   0 },
+  { DispatchObject::TRAJIN,  "trajin",        0, TrajinList::Help,  0 },
+  { DispatchObject::TRAJOUT, "trajout",       0, TrajoutList::Help, 0 },
+  { DispatchObject::NONE,                  0, 0,                 0, 0 }
 };
 
 // Constructor
-Cpptraj::Cpptraj() {
-  debug=0;
-  showProgress=true;
-  exitOnError = true;
-}
+Cpptraj::Cpptraj() : 
+  debug_(0),
+  showProgress_(true),
+  exitOnError_(true)
+{}
 
 void Cpptraj::List(ArgList& argIn) {
-  if (argIn.hasKey("actions")) actionList.List();
+  if      (argIn.hasKey("actions")) actionList.List();
+  else if (argIn.hasKey("trajin")) trajinList.List();
+  else if (argIn.hasKey("trajout")) trajoutList.List();
+  else if (argIn.hasKey("parm")) parmFileList.List();
   else {
     mprinterr("Error: list: unrecognized list type (%s)\n", argIn.ArgLine());
     Help_List();
@@ -49,7 +72,9 @@ void Cpptraj::Help(ArgList& argIn) {
   if (arg.empty()) {
     listAllCommands = true;
     mprintf("General Commands:\n");
-    SearchTokenArray( DispatchArray, listAllCommands, arg );
+    SearchTokenArray( GeneralCmds, listAllCommands, arg );
+    mprintf("Coordinate Commands:\n");
+    SearchTokenArray( CoordCmds, listAllCommands, arg );
     mprintf("Action Commands:\n");
     SearchTokenArray( ActionList::DispatchArray, listAllCommands, arg );
   } else {
@@ -61,29 +86,29 @@ void Cpptraj::Help(ArgList& argIn) {
 }
 
 void Cpptraj::Debug(ArgList& argIn) {
-  debug = argIn.getNextInteger(0);
-  if (argIn.hasKey("actions")) actionList.SetDebug( debug );
-  else if (argIn.hasKey("trajin")) trajinList.SetDebug( debug );
-  else if (argIn.hasKey("ref")) refFrames.SetDebug( debug );
-  else if (argIn.hasKey("trajout")) trajoutList.SetDebug( debug );
-  else if (argIn.hasKey("parm")) parmFileList.SetDebug( debug );
-  else if (argIn.hasKey("analysis")) analysisList.SetDebug( debug );
-  else if (argIn.hasKey("datafile")) DFL.SetDebug( debug );
-  else SetGlobalDebug(debug);
+  debug_ = argIn.getNextInteger(0);
+  if (argIn.hasKey("actions")) actionList.SetDebug( debug_ );
+  else if (argIn.hasKey("trajin")) trajinList.SetDebug( debug_ );
+  else if (argIn.hasKey("ref")) refFrames.SetDebug( debug_ );
+  else if (argIn.hasKey("trajout")) trajoutList.SetDebug( debug_ );
+  else if (argIn.hasKey("parm")) parmFileList.SetDebug( debug_ );
+  else if (argIn.hasKey("analysis")) analysisList.SetDebug( debug_ );
+  else if (argIn.hasKey("datafile")) DFL.SetDebug( debug_ );
+  else SetGlobalDebug(debug_);
 }
 
 // Cpptraj::SetGlobalDebug()
 /** Set the debug level for all components of Cpptraj. */
 void Cpptraj::SetGlobalDebug(int debugIn) {
-  debug = debugIn;
-  rprintf("DEBUG LEVEL SET TO %i\n",debug);
-  trajinList.SetDebug(debug);
-  refFrames.SetDebug(debug);
-  trajoutList.SetDebug(debug);
-  parmFileList.SetDebug(debug);
-  actionList.SetDebug(debug);
-  analysisList.SetDebug(debug);
-  DFL.SetDebug(debug);
+  debug_ = debugIn;
+  rprintf("DEBUG LEVEL SET TO %i\n",debug_);
+  trajinList.SetDebug(debug_);
+  refFrames.SetDebug(debug_);
+  trajoutList.SetDebug(debug_);
+  parmFileList.SetDebug(debug_);
+  actionList.SetDebug(debug_);
+  analysisList.SetDebug(debug_);
+  DFL.SetDebug(debug_);
 }
 
 /// Used to add parm files from the command line.
@@ -99,18 +124,26 @@ void Cpptraj::AddParm(const char* parmfile) {
 int Cpptraj::SearchTokenArray(const DispatchObject::Token* DispatchArray,
                               bool listAllCommands, const ArgList& arg)
 {
+  int col = 0;
+  if (listAllCommands) mprintf("\t");
   // List/search Action Commands
   for (const DispatchObject::Token* token = DispatchArray;
                                     token->Type != DispatchObject::NONE; ++token)
   {
     //mprintf("DBG: CMD [%s] HELP=%i LISTALLCMD=%i\n", token->Cmd,(int)help,(int)listAllCommands);
-    if (listAllCommands)
-       mprintf("\t%s\n", token->Cmd);
-    else if ( arg.CommandIs( token->Cmd ) ) {
+    if (listAllCommands) {
+      mprintf("%s  ", token->Cmd);
+      ++col;
+      if (col == 8) {
+        mprintf("\n\t");
+        col = 0;
+      }
+    } else if ( arg.CommandIs( token->Cmd ) ) {
       dispatchToken_ = token;
       return 1;
     }
   }
+  if (listAllCommands && col > 0) mprintf("\n");
   return 0;
 }
 
@@ -121,7 +154,8 @@ int Cpptraj::SearchTokenArray(const DispatchObject::Token* DispatchArray,
   */
 int Cpptraj::SearchToken(const ArgList& argIn) {
   dispatchToken_ = 0;
-  if (SearchTokenArray( DispatchArray, false, argIn )) return 1;
+  if (SearchTokenArray( GeneralCmds, false, argIn )) return 1;
+  if (SearchTokenArray( CoordCmds, false, argIn )) return 1;
   if (SearchTokenArray( ActionList::DispatchArray, false, argIn)) return 1;
   mprinterr("[%s]: Command not found.\n",argIn.Command());
   return 0;
@@ -131,9 +165,11 @@ int Cpptraj::SearchToken(const ArgList& argIn) {
 void Cpptraj::Interactive() {
   ReadLine inputLine;
   bool readLoop = true;
+  Topology* tempParm = 0; // For coordinate lists
   while ( readLoop ) {
     inputLine.GetInput(); 
-    mprintf("\t[%s]\n", inputLine.c_str());
+    //mprintf("\t[%s]\n", inputLine.c_str());
+// -------- DISPATCH
     ArgList command( inputLine.c_str() );
     command.MarkArg(0); // Always mark the command
     if ( SearchToken( command ) == 0)
@@ -145,16 +181,41 @@ void Cpptraj::Interactive() {
           break;
         case DispatchObject::GENERAL :
           switch ( dispatchToken_->Idx ) {
-            case LIST : List(command); break;
-            case HELP : Help(command); break;
-            case DEBUG: Debug(command); break;
-            case RUN  : Run(); // Fall through to quit
-            case QUIT : readLoop = false; break;
+            case LIST  : List(command); break;
+            case HELP  : Help(command); break;
+            case DEBUG : Debug(command); break;
+            case NOPROG: 
+              showProgress_ = false; 
+              mprintf("\tProgress bar will not be shown.\n");
+              break;
+            case NOEXITERR:
+              exitOnError_ = false;
+              mprintf("\tcpptraj will attempt to ignore errors if possible.\n");
+              break;
+            case ACTIVEREF:
+              refFrames.SetActiveRef( command.getNextInteger(0) );
+              break;
+            case SYSTEM: system( command.ArgLine() ); break;
+            case RUN   : Run(); // Fall through to quit
+            case QUIT  : readLoop = false; break;
           }
+          break;
+        case DispatchObject::TRAJIN :
+          tempParm = parmFileList.GetParm(command);
+          trajinList.AddTrajin(&command, tempParm);
+          break;
+        case DispatchObject::TRAJOUT :
+          tempParm = parmFileList.GetParm(command);
+          trajoutList.AddTrajout(&command, tempParm);
+          break;
+        case DispatchObject::REFERENCE :
+          tempParm = parmFileList.GetParm(command);
+          refFrames.AddReference(&command, tempParm);
           break;
         default: mprintf("Dispatch type is currently not handled.\n");
       }
     }
+// -----------------
   }
 }
 
@@ -173,70 +234,13 @@ void Cpptraj::Dispatch(const char* inputLine) {
   //printf("    *** %s ***\n",dispatchArg.ArgLine());
   // First argument is the command
   if (dispatchArg.Command()==NULL) {
-    if (debug>0) mprintf("NULL Command.\n");
+    if (debug_>0) mprintf("NULL Command.\n");
     return;
   }
   // Always mark the first argument.
   dispatchArg.MarkArg(0);
 
   // General commands
-  // noprogress: Turn off progress bar when processing trajectories.
-  if (dispatchArg.CommandIs("noprogress")) {
-    showProgress=false;
-    mprintf("    noprogress: Progress bar will not be shown.\n");
-    return;
-  }
-  if (dispatchArg.CommandIs("noexitonerror")) {
-    mprintf("    noexitonerror: cpptraj will attempt to ignore errors if possible.\n");
-    exitOnError=false;
-    return;
-  }
-  // debug: Set global debug level
-  if (dispatchArg.CommandIs("debug") || dispatchArg.CommandIs("prnlev")) {
-    SetGlobalDebug( dispatchArg.getNextInteger(0) );
-    return ;
-  }
-  // ls, pwd
-  if (dispatchArg.CommandIs("ls") || dispatchArg.CommandIs("pwd")) {
-    system( dispatchArg.ArgLine() );
-    return;
-  }
-  // actiondebug: Set actions debug level
-  if (dispatchArg.CommandIs("actiondebug")) {
-    actionList.SetDebug( dispatchArg.getNextInteger(0) );
-    return;
-  }
-  // analysisdebug: Set analyses debug level
-  if (dispatchArg.CommandIs("analysisdebug")) {
-    analysisList.SetDebug( dispatchArg.getNextInteger(0) );
-    return;
-  }
-  // trajindebug: Set input trajectory debug level
-  if (dispatchArg.CommandIs("trajindebug")) {
-    trajinList.SetDebug( dispatchArg.getNextInteger(0) );
-    return;
-  }
-  // trajoutdebug: Set output trajectory debug level
-  if (dispatchArg.CommandIs("trajoutdebug")) {
-    trajoutList.SetDebug( dispatchArg.getNextInteger(0) );
-    return;
-  }
-  // referencedebug: Set reference trajectory debug level
-  if (dispatchArg.CommandIs("referencedebug")) {
-    refFrames.SetDebug( dispatchArg.getNextInteger(0) );
-    return;
-  }
-  // parmdebug: Set parm debug level
-  if (dispatchArg.CommandIs("parmdebug")) {
-    parmFileList.SetDebug( dispatchArg.getNextInteger(0) );
-    return;
-  }
-  // datafiledebug: Set master data file list debug
-  if (dispatchArg.CommandIs("datafiledebug")) {
-    DFL.SetDebug( dispatchArg.getNextInteger(0) );
-    return;
-  }
-
   // Mask Selection.
   if (dispatchArg.CommandIs("select")) {
     tempParm = parmFileList.GetParm(dispatchArg);
@@ -246,28 +250,6 @@ void Cpptraj::Dispatch(const char* inputLine) {
     tempParm->SetupIntegerMask( *tempMask );
     tempMask->PrintMaskAtoms("Selected");
     delete tempMask;
-    return;
-  }
-
-  // Check if command pertains to coordinate lists
-  // If it does, get a parm based on parm/parmindex keywords in arg list
-  if (dispatchArg.CommandIs("trajin")) {
-    tempParm = parmFileList.GetParm(dispatchArg);
-    trajinList.AddTrajin(&dispatchArg, tempParm);
-    return;
-  }
-  if (dispatchArg.CommandIs("reference")) {
-    tempParm = parmFileList.GetParm(dispatchArg);
-    refFrames.AddReference(&dispatchArg, tempParm);
-    return;
-  }
-  if (dispatchArg.CommandIs("activeref")) {
-    refFrames.SetActiveRef( dispatchArg.getNextInteger(0) );
-    return;
-  }
-  if (dispatchArg.CommandIs("trajout")) {
-    tempParm = parmFileList.GetParm(dispatchArg);
-    trajoutList.AddTrajout(&dispatchArg, tempParm);
     return;
   }
 
@@ -322,7 +304,7 @@ int Cpptraj::Run() {
     mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
 
   // Parameter file information
-  parmFileList.Print();
+  parmFileList.List();
 
   // Print reference information 
   mprintf("\nREFERENCE COORDS:\n");
@@ -330,17 +312,17 @@ int Cpptraj::Run() {
 
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");
-  trajoutList.Info();
+  trajoutList.List();
  
   // Set max frames in the data set list
   DSL.SetMax(maxFrames); 
   
   // Initialize actions and set up data set and data file list
-  if (actionList.Init( &DSL, &refFrames, &DFL, &parmFileList, exitOnError)) 
+  if (actionList.Init( &DSL, &refFrames, &DFL, &parmFileList, exitOnError_)) 
     return 1;
 
   // Set up analysis - checks that datasets are present etc
-  //if (analysisList.Setup(&DSL, &parmFileList) > 0 && exitOnError)
+  //if (analysisList.Setup(&DSL, &parmFileList) > 0 && exitOnError_)
   //  return 1;
 
   // ========== A C T I O N  P H A S E ==========
@@ -349,7 +331,7 @@ int Cpptraj::Run() {
   trajinList.Begin();
   while ( (traj = trajinList.NextTraj()) != NULL ) {
     // Open up the trajectory file. If an error occurs, bail 
-    if ( traj->BeginTraj(showProgress) ) {
+    if ( traj->BeginTraj(showProgress_) ) {
       mprinterr("Error: Could not open trajectory %s.\n",traj->FullTrajStr());
       break;
     }

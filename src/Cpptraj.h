@@ -30,11 +30,13 @@ class Cpptraj {
     static void Help_List();
     static void Help_Help();
     static void Help_Debug();
+    static void Help_ActiveRef();
     void List(ArgList&);
     void Help(ArgList&);
     void Debug(ArgList&);
 
-    static const DispatchObject::Token DispatchArray[];
+    static const DispatchObject::Token GeneralCmds[];
+    static const DispatchObject::Token CoordCmds[];
     int SearchTokenArray(const DispatchObject::Token* DispatchArray,
                          bool, const ArgList&);
     int SearchToken(const ArgList&);
@@ -56,10 +58,10 @@ class Cpptraj {
     /// List of datafiles that data sets will be written to
     DataFileList DFL;
     /// The debug level
-    int debug;
+    int debug_;
     /// If true the progress of reading input trajectories will be shown
-    bool showProgress;
+    bool showProgress_;
     /// If true cpptraj will exit if errors are encountered instead of trying to continue
-    bool exitOnError;
+    bool exitOnError_;
 };
 #endif

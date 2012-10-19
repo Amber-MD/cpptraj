@@ -37,6 +37,10 @@ void FrameList::SetActiveRef(int numIn) {
   refFrameNum_ = numIn;
 }
 
+void FrameList::Help() {
+  mprintf("reference <filename> [<frame#>] [average] [<mask>] [TAG] [lastframe]\n");
+}
+
 // -----------------------------------------------------------------------------
 /** Add Frame from the given trajectory file to the FrameList. Store trajectory 
   * name and frame number that this frame came from in frameNames and frameNums 

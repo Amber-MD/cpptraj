@@ -12,12 +12,15 @@ TrajoutList::~TrajoutList() {
     delete *traj;
 }
 
+void TrajoutList::Help() {
+  mprintf("trajout <filename> <fileformat> [append] [nobox]\n");
+  mprintf("[parm <parmfile> | parmindex <#>] [<range>]\n");
+}
+
 // TrajoutList::AddTrajout()
 /** Add trajectory to the trajectory list as an output trajectory. 
   * Associate the trajectory with one of the parm files in the 
   * TopologyList. 
-  * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
-  *         [<range>]
   */
 int TrajoutList::AddTrajout(ArgList *argIn, Topology *parmIn) {
   // Since we need to check if this filename is in use in order to prevent
@@ -81,7 +84,7 @@ void TrajoutList::Close() {
     (*traj)->EndTraj();
 }
 
-void TrajoutList::Info() {
+void TrajoutList::List() {
   if (trajout_.empty()) {
     mprintf("  No files.\n");
   } else {
