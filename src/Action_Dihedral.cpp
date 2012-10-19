@@ -10,6 +10,10 @@ Action_Dihedral::Action_Dihedral() :
   useMass_(false)
 { } 
 
+void Action_Dihedral::Help() {
+
+}
+
 // Action_Dihedral::init()
 /** Expected call: dihedral <name> <mask1> <mask2> <mask3> <mask4> [out filename]
   *                         [mass]

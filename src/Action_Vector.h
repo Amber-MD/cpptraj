@@ -5,6 +5,10 @@
 class Action_Vector : public Action {
   public:
     Action_Vector();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Vector(); }
+    static void Help();
+
     ~Action_Vector();
 
     void print();

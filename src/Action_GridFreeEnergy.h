@@ -10,6 +10,10 @@ class Action_GridFreeEnergy : public Action {
   public:
     Action_GridFreeEnergy();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_GridFreeEnergy(); }
+    static void Help();
+
+
     // Action member
     void print();
   private:

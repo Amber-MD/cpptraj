@@ -8,6 +8,10 @@ Action_Scale::Action_Scale() :
   sz_(1)
 {}
 
+void Action_Scale::Help() {
+
+}
+
 // Action_Scale::init()
 /** Usage: scale x <sx> y <sy> z <sz> <mask> */
 int Action_Scale::init() {

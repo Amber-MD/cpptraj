@@ -10,6 +10,10 @@ Action_RandomizeIons::Action_RandomizeIons() :
   seed_(1)
 {}
 
+void Action_RandomizeIons::Help() {
+
+}
+
 /** randomizeions <mask> [around <mask> by <distance>] [overlap <value>] 
   *               [noimage] [seed <value>]
   */

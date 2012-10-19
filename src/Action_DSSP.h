@@ -6,6 +6,10 @@
 class Action_DSSP : public Action {
   public:
     Action_DSSP();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_DSSP(); }
+    static void Help();
+
     ~Action_DSSP();
 
     void print();

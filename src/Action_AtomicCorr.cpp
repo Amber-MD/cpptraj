@@ -16,6 +16,10 @@ Action_AtomicCorr::Action_AtomicCorr() :
   min_(0)
 {}
 
+void Action_AtomicCorr::Help() {
+
+}
+
 const char Action_AtomicCorr::ModeString[2][8] = {"atom", "residue"};
 
 /** Usage: atomiccorr [<mask>] out <filename> */

@@ -13,6 +13,10 @@ Action_Diffusion::Action_Diffusion() :
   boxcenter_[2] = 0;
 }
 
+void Action_Diffusion::Help() {
+
+}
+
 /** diffusion mask [average] [time <time per frame>] */
 int Action_Diffusion::init() {
   printIndividual_ = !(actionArgs.hasKey("average"));

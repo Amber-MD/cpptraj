@@ -4,6 +4,10 @@
 class Action_Principal : public Action {
   public:
     Action_Principal();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Principal(); }
+    static void Help();
+
     void print() {}
   private:
     bool doRotation_;

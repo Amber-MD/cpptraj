@@ -48,6 +48,10 @@ class DihedralScan: public Action {
   public:
     DihedralScan();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new DihedralScan(); }
+    static void Help();
+
+
     int init();
     int setup();
     int action();

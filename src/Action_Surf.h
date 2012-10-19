@@ -12,6 +12,10 @@ class Action_Surf: public Action {
   public:
     Action_Surf();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Surf(); }
+    static void Help();
+
+
     int init();
     int setup();
     int action();

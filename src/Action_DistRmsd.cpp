@@ -8,6 +8,10 @@ Action_DistRmsd::Action_DistRmsd() :
   refmode_(UNKNOWN_REF)
 {}
 
+void Action_DistRmsd::Help() {
+
+}
+
 /** Setup RefMask based on given Topology. Allocate space for selected
   * reference atoms. 
   */

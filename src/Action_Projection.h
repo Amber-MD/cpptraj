@@ -6,6 +6,10 @@
 class Action_Projection : public Action {
   public:
     Action_Projection();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Projection(); }
+    static void Help();
+
     void print() {}
   private:
     int init();

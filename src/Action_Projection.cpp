@@ -11,6 +11,10 @@ Action_Projection::Action_Projection() :
   offset_(1)
 {}
 
+void Action_Projection::Help() {
+
+}
+
 /** projection modes <modesfile> out <outfile>
   *            [beg <beg>] [end <end>] [<mask>]
   *            [start <start>] [stop <stop>] [offset <offset>]

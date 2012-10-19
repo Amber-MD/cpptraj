@@ -7,6 +7,10 @@ Action_Outtraj::Action_Outtraj() :
   maxmin_(0)
 { } 
 
+void Action_Outtraj::Help() {
+
+}
+
 // Action_Outtraj::init()
 /** Expected call: outtraj <filename> [ trajout args ]
   *                        [maxmin <dataset> min <min> max <max>] ...

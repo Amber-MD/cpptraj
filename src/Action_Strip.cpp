@@ -12,6 +12,10 @@ Action_Strip::Action_Strip() :
   //fprintf(stderr,"Strip Con\n");
 } 
 
+void Action_Strip::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Strip::~Action_Strip() {
   //fprintf(stderr,"Strip Des\n");

@@ -9,6 +9,10 @@ Action_Mask::Action_Mask()
   //fprintf(stderr,"ActionMask Con\n");
 } 
 
+void Action_Mask::Help() {
+
+}
+
 // Action_Mask::init()
 /** Expected call: mask <mask1> [maskout <filename>] [maskpdb <filename>] 
   */

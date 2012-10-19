@@ -6,6 +6,10 @@
 class Action_Pucker: public Action {
   public:
     Action_Pucker();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Pucker(); }
+    static void Help();
+
     void print() {}
   private:
     DataSet *puck_;

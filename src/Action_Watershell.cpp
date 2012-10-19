@@ -7,6 +7,10 @@ Action_Watershell::Action_Watershell() :
   upperCutoff_(0)
 { }
 
+void Action_Watershell::Help() {
+
+}
+
 // Action_Watershell::init()
 /** Expected call: 
   * watershell <solutemask> <filename> [lower <lower cut>] [upper <upper cut>] 

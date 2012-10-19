@@ -8,6 +8,10 @@ Action_Dipole::Action_Dipole() :
   max_(0)
 {}
 
+void Action_Dipole::Help() {
+
+}
+
 // Action_Dipole::init()
 int Action_Dipole::init() {
   // Get output filename

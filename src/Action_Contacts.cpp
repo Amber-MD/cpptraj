@@ -10,6 +10,10 @@ Action_Contacts::Action_Contacts() :
   first_(false)
 { }
 
+void Action_Contacts::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Contacts::~Action_Contacts() {
   outfile_.CloseFile();

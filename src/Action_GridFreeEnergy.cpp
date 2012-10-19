@@ -7,6 +7,10 @@ Action_GridFreeEnergy::Action_GridFreeEnergy() :
   maxVoxelOccupancyCount_(600) // NOTE: See header for comments.
 {}
 
+void Action_GridFreeEnergy::Help() {
+
+}
+
 // Action_GridFreeEnergy::init()
 int Action_GridFreeEnergy::init() {
   // Get output filename

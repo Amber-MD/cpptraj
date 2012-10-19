@@ -27,6 +27,10 @@
 class Action_NAstruct: public Action {
   public:
     Action_NAstruct();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_NAstruct(); }
+    static void Help();
+
     ~Action_NAstruct();
 
     void print();

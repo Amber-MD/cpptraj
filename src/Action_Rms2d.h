@@ -14,6 +14,10 @@
 class Action_Rms2d: public Action {
   public:
     Action_Rms2d();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rms2d(); }
+    static void Help();
+
     ~Action_Rms2d();
 
     void print();

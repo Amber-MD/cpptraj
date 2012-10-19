@@ -5,6 +5,10 @@
 class Action_Bounds : public Action {
   public:
     Action_Bounds();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Bounds(); }
+    static void Help();
+
     void print();
   private:
     int init();

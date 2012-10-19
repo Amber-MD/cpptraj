@@ -13,6 +13,10 @@ Action_Rms2d::Action_Rms2d() :
   mass_ptr_(NULL)
 { } 
 
+void Action_Rms2d::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Rms2d::~Action_Rms2d() {
   if (RefTraj_!=NULL) delete RefTraj_; 

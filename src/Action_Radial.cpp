@@ -26,6 +26,10 @@ Action_Radial::Action_Radial() :
   density_(0.033456)
 {} 
 
+void Action_Radial::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Radial::~Action_Radial() {
   //fprintf(stderr,"Radial Destructor.\n");

@@ -11,6 +11,10 @@ class Action_Hbond : public Action {
   public:
     Action_Hbond();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Hbond(); }
+    static void Help();
+
+
     void print();
   private:
     int init();

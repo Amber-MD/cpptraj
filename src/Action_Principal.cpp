@@ -11,6 +11,10 @@ Action_Principal::Action_Principal() :
   useMass_(false)
 { }
 
+void Action_Principal::Help() {
+
+}
+
 // Action_Principal::init()
 int Action_Principal::init() {
   // Keywords

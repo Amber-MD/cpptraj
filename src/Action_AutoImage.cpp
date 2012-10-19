@@ -13,6 +13,10 @@ Action_AutoImage::Action_AutoImage() :
   triclinic_(OFF)
 {}
 
+void Action_AutoImage::Help() {
+
+}
+
 // Action_AutoImage::init()
 /** Usage: autoimage <mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]
   *                  [origin] [familiar | triclinic]

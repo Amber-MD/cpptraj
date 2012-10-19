@@ -52,6 +52,10 @@ class Pairwise: public Action {
 
   public:
     Pairwise();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Pairwise(); }
+    static void Help();
+
     ~Pairwise();
 
     int init();

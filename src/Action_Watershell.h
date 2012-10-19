@@ -7,6 +7,10 @@ class Action_Watershell : public Action, ImagedAction {
   public:
     Action_Watershell();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Watershell(); }
+    static void Help();
+
+
   private:
     AtomMask soluteMask_;
     AtomMask solventMask_;

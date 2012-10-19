@@ -19,6 +19,10 @@
 class Action_Jcoupling: public Action {
   public:
     Action_Jcoupling();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Jcoupling(); }
+    static void Help();
+
     ~Action_Jcoupling();
     void print() {}
   private:

@@ -102,6 +102,10 @@ Action_Rotdif::Action_Rotdif() :
   Tau_( NULL )
 { } 
 
+void Action_Rotdif::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Rotdif::~Action_Rotdif() {
   //fprintf(stderr,"Rotdif Destructor.\n");

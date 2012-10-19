@@ -6,6 +6,10 @@
 class Action_Image: public Action {
   public:
     Action_Image();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Image(); }
+    static void Help();
+
     ~Action_Image();
     void print() {}
   private:

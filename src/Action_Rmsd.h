@@ -9,10 +9,11 @@
 class Action_Rmsd: public Action {
   public:
     Action_Rmsd();
-    ~Action_Rmsd();
 
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rmsd(); }
     static void Help();
+
+    ~Action_Rmsd();
 
     void print();
   private:

@@ -4,6 +4,10 @@
 class Action_Scale : public Action {
   public:
     Action_Scale();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Scale(); }
+    static void Help();
+
     void print() {}
   private:
     int init();

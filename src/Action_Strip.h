@@ -6,6 +6,10 @@
 class Action_Strip: public Action {
   public:
     Action_Strip();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Strip(); }
+    static void Help();
+
     ~Action_Strip();
     void print() {}
   private:
@@ -25,6 +29,9 @@ class Action_Strip: public Action {
 class Action_Unstrip: public Action {
   public:
     Action_Unstrip() {}
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Unstrip(); }
+    static void Help() { }
+
   private:
     int init()   {return 0;}
     int setup()  {return 2;}

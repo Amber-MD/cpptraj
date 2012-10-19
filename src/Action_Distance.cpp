@@ -9,6 +9,10 @@ Action_Distance::Action_Distance() :
   useMass_(true)
 { } 
 
+void Action_Distance::Help() {
+
+}
+
 // Action_Distance::init()
 /** Expected call: distance <name> <mask1> <mask2> [out filename] [geom] [noimage]
   */

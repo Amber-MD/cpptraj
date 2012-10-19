@@ -24,6 +24,10 @@ Action_Closest::Action_Closest() :
   NsolventMolecules_(0)
 {} 
 
+void Action_Closest::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Closest::~Action_Closest() {
   //fprintf(stderr,"Closest Destructor.\n");

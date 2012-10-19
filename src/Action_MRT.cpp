@@ -12,6 +12,10 @@ Action_MRT::Action_MRT() :
   idxMaxWin_(0)
 {}
 
+void Action_MRT::Help() {
+
+}
+
 // Action_MRT::init()
 /** Usage: 
   * mrt out <filename> ([autocorr <filename> [tcorr <time>] [toffset <time>]])

@@ -8,6 +8,10 @@ Action_Unwrap::Action_Unwrap() :
   orthogonal_(false)
 { }
 
+void Action_Unwrap::Help() {
+
+}
+
 int Action_Unwrap::init() {
   // Get reference
   int refindex = -1;

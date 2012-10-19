@@ -6,6 +6,10 @@
 class Action_Angle: public Action {
   public:
     Action_Angle();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Angle(); }
+    static void Help();
+
     void print() {}
   private:
     int init();

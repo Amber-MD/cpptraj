@@ -5,6 +5,10 @@
 // CONSTRUCTOR
 Action_Bounds::Action_Bounds() {}
 
+void Action_Bounds::Help() {
+
+}
+
 /** Usage: bounds [<mask>] [out <filename>] */
 int Action_Bounds::init() {
   outfilename_ = actionArgs.GetStringKey("out");

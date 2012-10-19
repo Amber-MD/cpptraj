@@ -7,6 +7,10 @@
 class Action_Matrix : public Action {
   public:
     Action_Matrix();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Matrix(); }
+    static void Help();
+
     void print();
   private:
     enum OutputType { BYATOM=0, BYRESIDUE, BYMASK };

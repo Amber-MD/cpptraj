@@ -21,6 +21,10 @@ Action_NAstruct::Action_NAstruct() :
   //fprintf(stderr,"NAstruct Con\n");
 }
 
+void Action_NAstruct::Help() {
+
+}
+
 // DESTRUCTOR
 Action_NAstruct::~Action_NAstruct() { 
   ClearLists();

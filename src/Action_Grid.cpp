@@ -10,6 +10,10 @@ Action_Grid::Action_Grid() :
   invert_(false)
 {}
 
+void Action_Grid::Help() {
+
+}
+
 // Action_Grid::init()
 /** Usage: grid <filename> nx dx ny dy nz dz [origin] [negative] 
   *             [max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]

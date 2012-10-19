@@ -8,6 +8,10 @@ Action_Translate::Action_Translate() {
   Trans_[2] = 0.0;
 }
 
+void Action_Translate::Help() {
+
+}
+
 /** Usage: trans [<mask>] [x <dx>] [y <dy>] [z <dz>]
   */
 int Action_Translate::init() {

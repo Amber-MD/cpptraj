@@ -6,6 +6,10 @@
 class Action_Contacts : public Action {
   public:
     Action_Contacts();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Contacts(); }
+    static void Help();
+
     ~Action_Contacts();
     void print() {}
   private:

@@ -7,6 +7,10 @@
 class Action_Outtraj: public Action {
   public:
     Action_Outtraj();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Outtraj(); }
+    static void Help();
+
   private:
     int init();
     int setup() { return 0; }

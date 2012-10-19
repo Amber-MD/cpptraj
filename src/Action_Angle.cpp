@@ -10,6 +10,10 @@ Action_Angle::Action_Angle() :
   useMass_(false)
 { } 
 
+void Action_Angle::Help() {
+
+}
+
 // Action_Angle::init()
 /** Expected call: angle <name> <mask1> <mask2> <mask3> [out filename] [mass]
   */

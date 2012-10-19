@@ -65,6 +65,10 @@ class Action_ClusterDihedral : public Action {
   public:
     Action_ClusterDihedral();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_ClusterDihedral(); }
+    static void Help();
+
+
     void print();
   private:
     int ReadDihedrals(std::string const&);    

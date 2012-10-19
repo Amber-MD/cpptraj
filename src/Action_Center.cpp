@@ -8,6 +8,10 @@ Action_Center::Action_Center() :
   useMass_(false)
 { } 
 
+void Action_Center::Help() {
+
+}
+
 // Action_Center::init()
 /** Expected call: center <mask> [origin] [mass] 
   */

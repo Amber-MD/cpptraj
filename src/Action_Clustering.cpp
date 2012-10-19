@@ -22,6 +22,10 @@ Action_Clustering::Action_Clustering() :
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
 { } 
 
+void Action_Clustering::Help() {
+
+}
+
 const char Action_Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 
 // Action_Clustering::init()

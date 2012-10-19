@@ -15,6 +15,10 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
   elapsedFrames_(0)
 {}
 
+void Action_STFC_Diffusion::Help() {
+
+}
+
 // Action_STFC_Diffusion::init()
 /** Usage: diffusion mask <mask> [out <file>] [time <time per frame>]
  *                   ([mask2 <mask>] [lower <distance>] [upper <distance>]

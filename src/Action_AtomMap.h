@@ -7,6 +7,10 @@
 class Action_AtomMap : public Action {
   public:
     Action_AtomMap(); 
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomMap(); }
+    static void Help();
+
     ~Action_AtomMap();
     void print() {}
   private:

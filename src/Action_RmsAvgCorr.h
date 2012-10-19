@@ -8,6 +8,10 @@ class Action_RmsAvgCorr: public Action {
   public:
     Action_RmsAvgCorr();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_RmsAvgCorr(); }
+    static void Help();
+
+
     void print();
   private:
     int init();

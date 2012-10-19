@@ -17,6 +17,10 @@ Action_ClusterDihedral::Action_ClusterDihedral() :
   minimum_(-180.0)
 {}
 
+void Action_ClusterDihedral::Help() {
+
+}
+
 // Action_ClusterDihedral::ReadDihedrals()
 int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
   CpptrajFile infile;

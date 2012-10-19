@@ -4,6 +4,10 @@
 class Action_AutoImage : public Action {
   public:
     Action_AutoImage();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_AutoImage(); }
+    static void Help();
+
     void print() {}
   private:
     int init();

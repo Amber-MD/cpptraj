@@ -7,6 +7,10 @@
 class Action_Radial: public Action, ImagedAction {
   public:
     Action_Radial();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Radial(); }
+    static void Help();
+
     ~Action_Radial();
 
     void print();

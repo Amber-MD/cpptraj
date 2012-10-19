@@ -6,6 +6,10 @@
 class Action_RunningAvg: public Action {
   public:
     Action_RunningAvg();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_RunningAvg(); }
+    static void Help();
+
     void print() {}
   private:
     int Nwindow_;               ///< Size of the running average

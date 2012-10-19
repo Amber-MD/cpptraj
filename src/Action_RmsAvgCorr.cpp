@@ -14,6 +14,10 @@ Action_RmsAvgCorr::Action_RmsAvgCorr() :
   useMass_(false)
 { } 
 
+void Action_RmsAvgCorr::Help() {
+
+}
+
 // Action_RmsAvgCorr::init()
 /** Expected call: rmsavgcorr [<mask>] [out <filename>] [output <separatename>] 
   */

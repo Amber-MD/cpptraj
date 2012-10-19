@@ -6,6 +6,10 @@ class Action_Grid : public Action {
   public:
     Action_Grid();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Grid(); }
+    static void Help();
+
+
     void print();
   private:
     double max_;

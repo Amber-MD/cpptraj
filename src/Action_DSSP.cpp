@@ -19,6 +19,10 @@ Action_DSSP::Action_DSSP() :
   BB_O("O")
 {}
 
+void Action_DSSP::Help() {
+
+}
+
 // DESTRUCTOR
 Action_DSSP::~Action_DSSP() {
 //  debugout.CloseFile(); // DEBUG

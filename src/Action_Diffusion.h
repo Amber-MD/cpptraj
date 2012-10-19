@@ -4,6 +4,10 @@
 class Action_Diffusion : public Action {
   public:
     Action_Diffusion();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Diffusion(); }
+    static void Help();
+
     void print() {}
   private:
     int init();

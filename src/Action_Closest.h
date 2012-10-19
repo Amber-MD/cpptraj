@@ -7,6 +7,10 @@
 class Action_Closest: public Action, ImagedAction {
   public:
     Action_Closest();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Closest(); }
+    static void Help();
+
     ~Action_Closest();
 
     void print();

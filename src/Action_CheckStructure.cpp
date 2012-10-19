@@ -11,6 +11,10 @@ Action_CheckStructure::Action_CheckStructure() :
   isSeparate_(false)
 {} 
 
+void Action_CheckStructure::Help() {
+
+}
+
 // DESTRUCTOR
 Action_CheckStructure::~Action_CheckStructure() {
   //fprintf(stderr,"CheckStructure Destructor.\n");

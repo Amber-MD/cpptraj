@@ -15,6 +15,10 @@ Action_Jcoupling::Action_Jcoupling() :
   //fprintf(stderr,"Jcoupling Con\n");
 } 
 
+void Action_Jcoupling::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Jcoupling::~Action_Jcoupling() {
   //fprintf(stderr,"Jcoupling Destructor.\n");

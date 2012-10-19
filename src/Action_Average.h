@@ -6,6 +6,10 @@
 class Action_Average: public Action {
   public:
     Action_Average();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Average(); }
+    static void Help();
+
     ~Action_Average();
 
     void print();

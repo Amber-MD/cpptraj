@@ -12,6 +12,10 @@ Action_Vector::Action_Vector() :
   ptrajoutput_(false)
 {}
 
+void Action_Vector::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Vector::~Action_Vector() {
   if (vcorr_!=0) delete[] vcorr_;

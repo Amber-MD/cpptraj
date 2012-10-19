@@ -24,6 +24,10 @@ Action_Hbond::Action_Hbond() :
   NumBridge_(NULL)
 {}
 
+void Action_Hbond::Help() {
+
+}
+
 // Action_Hbond::init()
 /** Expected call: hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [series]
   *                      [donormask <mask> [donorhmask <mask>]] [acceptormask <mask>] 

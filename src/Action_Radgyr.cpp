@@ -13,6 +13,10 @@ Action_Radgyr::Action_Radgyr() :
   useMass_(false)
 { } 
 
+void Action_Radgyr::Help() {
+
+}
+
 // Action_Radgyr::init()
 /** Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax] [tensor]
   */

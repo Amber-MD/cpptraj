@@ -10,6 +10,10 @@ class Action_Clustering: public Action {
   public:
     Action_Clustering();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Clustering(); }
+    static void Help();
+
+
     void print();
   private:
     int init();

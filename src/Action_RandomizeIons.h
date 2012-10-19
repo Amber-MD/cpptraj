@@ -5,6 +5,10 @@
 class Action_RandomizeIons : public Action, ImagedAction {
   public:
     Action_RandomizeIons();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_RandomizeIons(); }
+    static void Help();
+
     void print() {}
   private:
     int init();

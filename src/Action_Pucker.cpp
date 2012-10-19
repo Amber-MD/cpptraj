@@ -15,6 +15,10 @@ Action_Pucker::Action_Pucker() :
   puckermax_( 180.0)
 { } 
 
+void Action_Pucker::Help() {
+
+}
+
 // Action_Pucker::init()
 /** Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>
   *                [range360] [amplitude] [altona | cremer] [offset <offset>]

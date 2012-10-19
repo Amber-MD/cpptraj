@@ -7,6 +7,10 @@
 class Action_CheckStructure: public Action, ImagedAction {
   public:
     Action_CheckStructure();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_CheckStructure(); }
+    static void Help();
+
     ~Action_CheckStructure();
 
     void SeparateInit(double, double, int);

@@ -9,6 +9,10 @@
 class Action_Mask: public Action {
   public:
     Action_Mask();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Mask(); }
+    static void Help();
+
     
     void print();
   private:

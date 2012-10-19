@@ -11,6 +11,10 @@ Action_RunningAvg::Action_RunningAvg() :
   windowNatom_(0)
 {} 
 
+void Action_RunningAvg::Help() {
+
+}
+
 // Action_RunningAvg::init()
 /// Expected call: runningaverage [window <value>] 
 int Action_RunningAvg::init( ) {

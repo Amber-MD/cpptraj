@@ -5,6 +5,10 @@
 class Action_Dipole : public Action {
   public:
     Action_Dipole();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Dipole(); }
+    static void Help();
+
     void print();
   private:
     int init();

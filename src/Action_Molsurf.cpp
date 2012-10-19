@@ -41,6 +41,10 @@ Action_Molsurf::~Action_Molsurf() {
   if (atom_!=NULL) delete[] atom_;
 }
 
+void Action_Molsurf::Help() {
+
+}
+
 // MolSurf::ClearMemory()
 /// Clear mem used by molsurf data structures
 void Action_Molsurf::ClearMemory() {

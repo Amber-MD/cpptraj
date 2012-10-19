@@ -4,6 +4,10 @@
 class Action_AtomicCorr : public Action {
   public:
     Action_AtomicCorr();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomicCorr(); }
+    static void Help();
+
     
     void print();
   private:

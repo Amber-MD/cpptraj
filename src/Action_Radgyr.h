@@ -6,6 +6,10 @@
 class Action_Radgyr: public Action {
   public:
     Action_Radgyr();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Radgyr(); }
+    static void Help();
+
     void print() {}
   private:
     int init();

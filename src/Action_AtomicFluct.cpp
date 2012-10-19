@@ -15,6 +15,10 @@ Action_AtomicFluct::Action_AtomicFluct() :
   outtype_(BYATOM)
 {}
 
+void Action_AtomicFluct::Help() {
+
+}
+
 // Action_AtomicFluct::init()
 /** Usage: atomicfluct [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]
   *                    [start <start>] [stop <stop>] [offset <offset>]

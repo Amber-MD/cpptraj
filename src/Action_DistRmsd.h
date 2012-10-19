@@ -7,6 +7,10 @@
 class Action_DistRmsd: public Action {
   public:
     Action_DistRmsd();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_DistRmsd(); }
+    static void Help();
+
     void print() {}
   private:
     int init();

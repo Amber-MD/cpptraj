@@ -4,6 +4,10 @@
 class Action_Translate : public Action {
   public:
     Action_Translate();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Translate(); }
+    static void Help();
+
   private:
     double Trans_[3];
     AtomMask mask_;

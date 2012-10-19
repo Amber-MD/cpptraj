@@ -7,6 +7,10 @@
 class Action_Distance: public Action, ImagedAction {
   public:
     Action_Distance();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Distance(); }
+    static void Help();
+
     void print() {}
   private:
     DataSet *dist_;

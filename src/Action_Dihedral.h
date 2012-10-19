@@ -5,6 +5,10 @@
 class Action_Dihedral: public Action {
   public:
     Action_Dihedral();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Dihedral(); }
+    static void Help();
+
     void print() {}
   private:
     DataSet* dih_;

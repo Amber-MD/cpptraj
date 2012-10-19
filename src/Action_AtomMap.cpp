@@ -18,6 +18,10 @@ Action_AtomMap::Action_AtomMap() :
   rmsdata_(NULL)
 {}
 
+void Action_AtomMap::Help() {
+
+}
+
 // DESTRUCTOR
 Action_AtomMap::~Action_AtomMap() {
   if (newFrame_!=NULL) delete newFrame_;

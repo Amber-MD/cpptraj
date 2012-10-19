@@ -15,6 +15,10 @@ Action_Image::Action_Image() :
   triclinic_(OFF)
 { } 
 
+void Action_Image::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Image::~Action_Image() {
   if (ComMask_!=NULL) delete ComMask_;

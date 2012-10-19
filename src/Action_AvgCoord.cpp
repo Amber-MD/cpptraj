@@ -8,6 +8,10 @@ Action_AvgCoord::Action_AvgCoord() :
   useMass_(false)
 { } 
 
+void Action_AvgCoord::Help() {
+
+}
+
 // DESTRUCTOR
 Action_AvgCoord::~Action_AvgCoord() {
   outfile_.CloseFile();

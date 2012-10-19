@@ -18,6 +18,10 @@ Action_Matrix::Action_Matrix() :
   useMass_(false)
 {}
 
+void Action_Matrix::Help() {
+
+}
+
 // Action_Matrix::init()
 int Action_Matrix::init() {
   // Get Keywords

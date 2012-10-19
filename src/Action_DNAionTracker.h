@@ -5,6 +5,10 @@
 class Action_DNAionTracker : public Action, ImagedAction {
   public:
     Action_DNAionTracker();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_DNAionTracker(); }
+    static void Help();
+
     void print() {}
   private:
     int init();

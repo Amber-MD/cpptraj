@@ -16,6 +16,10 @@ Action_Rotate::Action_Rotate() {
   RotMatrix_[8] = 0.0;
 }
 
+void Action_Rotate::Help() {
+
+}
+
 /** Usage: rotate [<mask>] [x <xdeg>] [y <ydeg>] [z <zdeg>]
   */
 int Action_Rotate::init() {

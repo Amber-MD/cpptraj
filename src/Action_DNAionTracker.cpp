@@ -11,6 +11,10 @@ Action_DNAionTracker::Action_DNAionTracker() :
   useMass_(true)
 { }
 
+void Action_DNAionTracker::Help() {
+
+}
+
 /** dnaiontracker name mask_p1 mask_p2 mask_base mask_ions 
   *               [poffset <value>] [out <filename>] [time <interval>] [noimage] 
   *               [shortest | counttopcone| countbottomcone | count]

@@ -4,6 +4,10 @@
 class Action_AtomicFluct : public Action {
   public :
     Action_AtomicFluct();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomicFluct(); }
+    static void Help();
+
     void print();
   private :
     int init();

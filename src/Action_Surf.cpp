@@ -13,6 +13,10 @@ Action_Surf::Action_Surf() {
   surf=NULL;
 } 
 
+void Action_Surf::Help() {
+
+}
+
 // Action_Surf::init()
 /** Expected call: surf <name> <mask1> [out filename]
   */

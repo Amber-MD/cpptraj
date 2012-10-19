@@ -18,6 +18,10 @@ Action_Average::Action_Average() :
   //fprintf(stderr,"Average Con\n");
 } 
 
+void Action_Average::Help() {
+
+}
+
 // DESTRUCTOR
 Action_Average::~Action_Average() {
   //fprintf(stderr,"Average Destructor.\n");
