@@ -1,5 +1,6 @@
 #ifndef INC_TOPOLOGYLIST_H
 #define INC_TOPOLOGYLIST_H
+#include "DispatchObject.h"
 #include "Topology.h"
 #include "FileList.h"
 #include "ArgList.h"
@@ -15,11 +16,21 @@
   */
 class TopologyList : public FileList {
   public:
+    static void Help_Parm();
+    static void Help_ParmInfo();
+    static void Help_ParmWrite();
+    static void Help_ParmStrip();
+    static void Help_ParmBox();
+    static void Help_Solvent();
+    static void Help_BondInfo();
+    static void Help_ResInfo();
+    static void Help_MolInfo();
 
+    static const DispatchObject::Token ParmCmds[];
     TopologyList();
     ~TopologyList();
 
-    int CheckCommand(ArgList &);
+    int CheckCommand(int,ArgList &);
     Topology *GetParm(int);
     Topology *GetParm(ArgList&);
     int AddParmFile(std::string const&);
@@ -30,7 +41,13 @@ class TopologyList : public FileList {
   private:
     std::vector<Topology*> TopList_;
     bool hasCopies_;  ///< true: List contains addresses of topologies, do not delete
-    bool bondsearch_; ///< true: When parm is opened bond info will be filled in
-    bool molsearch_;  ///< true: When parm is opened molecule info will be filled in
+
+    int LoadParm(ArgList&);
+    int ParmInfo(ArgList&);
+    int ParmWrite(ArgList&);
+    int ParmStrip(ArgList&);
+    int ParmBox(ArgList&);
+    int ParmSolvent(ArgList&);
+    int Select(ArgList&);
 };
 #endif

@@ -54,17 +54,6 @@ Cpptraj::Cpptraj() :
   exitOnError_(true)
 {}
 
-void Cpptraj::List(ArgList& argIn) {
-  if      (argIn.hasKey("actions")) actionList.List();
-  else if (argIn.hasKey("trajin")) trajinList.List();
-  else if (argIn.hasKey("trajout")) trajoutList.List();
-  else if (argIn.hasKey("parm")) parmFileList.List();
-  else {
-    mprinterr("Error: list: unrecognized list type (%s)\n", argIn.ArgLine());
-    Help_List();
-  }
-}
-
 void Cpptraj::Help(ArgList& argIn) {
   bool listAllCommands = false;
   ArgList arg = argIn;
@@ -73,6 +62,8 @@ void Cpptraj::Help(ArgList& argIn) {
     listAllCommands = true;
     mprintf("General Commands:\n");
     SearchTokenArray( GeneralCmds, listAllCommands, arg );
+    mprintf("Topology Commands:\n");
+    SearchTokenArray( TopologyList::ParmCmds, listAllCommands, arg );
     mprintf("Coordinate Commands:\n");
     SearchTokenArray( CoordCmds, listAllCommands, arg );
     mprintf("Action Commands:\n");
@@ -84,6 +75,18 @@ void Cpptraj::Help(ArgList& argIn) {
       dispatchToken_->Help();
   }
 }
+
+void Cpptraj::List(ArgList& argIn) {
+  if      (argIn.hasKey("actions")) actionList.List();
+  else if (argIn.hasKey("trajin")) trajinList.List();
+  else if (argIn.hasKey("trajout")) trajoutList.List();
+  else if (argIn.hasKey("parm")) parmFileList.List();
+  else {
+    mprinterr("Error: list: unrecognized list type (%s)\n", argIn.ArgLine());
+    Help_List();
+  }
+}
+
 
 void Cpptraj::Debug(ArgList& argIn) {
   debug_ = argIn.getNextInteger(0);
@@ -155,6 +158,7 @@ int Cpptraj::SearchTokenArray(const DispatchObject::Token* DispatchArray,
 int Cpptraj::SearchToken(const ArgList& argIn) {
   dispatchToken_ = 0;
   if (SearchTokenArray( GeneralCmds, false, argIn )) return 1;
+  if (SearchTokenArray( TopologyList::ParmCmds, false, argIn )) return 1;
   if (SearchTokenArray( CoordCmds, false, argIn )) return 1;
   if (SearchTokenArray( ActionList::DispatchArray, false, argIn)) return 1;
   mprinterr("[%s]: Command not found.\n",argIn.Command());
@@ -212,6 +216,9 @@ void Cpptraj::Interactive() {
           tempParm = parmFileList.GetParm(command);
           refFrames.AddReference(&command, tempParm);
           break;
+        case DispatchObject::PARM :
+          parmFileList.CheckCommand(dispatchToken_->Idx, command);
+          break;
         default: mprintf("Dispatch type is currently not handled.\n");
       }
     }
@@ -228,7 +235,6 @@ void Cpptraj::Interactive() {
 // NOTE: Should differentiate between keyword rejection and outright error.
 void Cpptraj::Dispatch(const char* inputLine) {
   ArgList dispatchArg;
-  Topology *tempParm; // For coordinate lists
 
   dispatchArg.SetList(inputLine," "); // Space delimited only?
   //printf("    *** %s ***\n",dispatchArg.ArgLine());
@@ -239,22 +245,6 @@ void Cpptraj::Dispatch(const char* inputLine) {
   }
   // Always mark the first argument.
   dispatchArg.MarkArg(0);
-
-  // General commands
-  // Mask Selection.
-  if (dispatchArg.CommandIs("select")) {
-    tempParm = parmFileList.GetParm(dispatchArg);
-    AtomMask *tempMask = new AtomMask();
-    tempMask->SetMaskString( dispatchArg.getNextMask() );
-    // NOTE: No coords for now, Frame list not set up.
-    tempParm->SetupIntegerMask( *tempMask );
-    tempMask->PrintMaskAtoms("Selected");
-    delete tempMask;
-    return;
-  }
-
-  // Check if command pertains to a parm file
-  if (parmFileList.CheckCommand(dispatchArg)==0) return;
 
   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {

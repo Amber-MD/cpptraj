@@ -100,11 +100,11 @@ class Topology {
     int FindResidueMaxNatom();
     int SoluteAtoms();
     //double *Mass();
-    int SetSolvent(const char*);
+    int SetSolvent(std::string const&);
     // ----- Print topology info -----
     void Summary();
     void ParmInfo();
-    void PrintAtomInfo(const char*);
+    void PrintAtomInfo(std::string const&);
     void PrintBondInfo();
     void PrintMoleculeInfo();
     void PrintResidueInfo();
