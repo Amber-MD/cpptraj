@@ -1,6 +1,8 @@
+#include <cstdlib> // system
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
+#include "ReadLine.h"
 
 // Constructor
 Cpptraj::Cpptraj() {
@@ -27,6 +29,19 @@ void Cpptraj::SetGlobalDebug(int debugIn) {
 void Cpptraj::AddParm(const char* parmfile) {
   if (parmfile==NULL) return;
   parmFileList.AddParmFile( parmfile );
+}
+
+void Cpptraj::Interactive() {
+  ReadLine inputLine;
+
+  while ( inputLine.GetInput() ) {
+    if ( *inputLine == "go" ) {
+      Run();
+      break;
+    }
+    mprintf("\t[%s]\n", inputLine.c_str());
+    Dispatch( inputLine.c_str() );
+  }
 }
 
 // Cpptraj::Dispatch()
@@ -64,6 +79,11 @@ void Cpptraj::Dispatch(const char* inputLine) {
   if (dispatchArg.CommandIs("debug") || dispatchArg.CommandIs("prnlev")) {
     SetGlobalDebug( dispatchArg.getNextInteger(0) );
     return ;
+  }
+  // ls, pwd
+  if (dispatchArg.CommandIs("ls") || dispatchArg.CommandIs("pwd")) {
+    system( dispatchArg.ArgLine() );
+    return;
   }
   // actiondebug: Set actions debug level
   if (dispatchArg.CommandIs("actiondebug")) {

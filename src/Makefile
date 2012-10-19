@@ -4,6 +4,8 @@ include cpptrajfiles
 
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) 
 
+READLINE_OBJECTS=$(READLINE_SOURCES:.c=.o)
+
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) 
@@ -20,7 +22,7 @@ dependclean:
 	-/bin/rm findDepend
 
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(ARPACK) $(LAPACK) $(BLAS) 
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS)
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(FLIBS) readline/libreadline.a
 
 
 $(BLAS): $(BLAS_HOME)/Makefile
@@ -32,6 +34,9 @@ $(ARPACK): $(ARPACK_HOME)/Makefile
 $(LAPACK): $(LAPACK_HOME)/Makefile
 	cd $(LAPACK_HOME) && $(MAKE) install
 
+readline/libreadline.a: readline
+	cd readline && $(MAKE)
+
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
 
@@ -42,6 +47,7 @@ libclean: $(BLAS_HOME)/Makefile $(ARPACK_HOME)/Makefile $(LAPACK_HOME)/Makefile
 	cd $(BLAS_HOME) && $(MAKE) clean
 	cd $(LAPACK_HOME) && $(MAKE) clean
 	cd $(ARPACK_HOME) && $(MAKE) clean
+	cd readline && $(MAKE) clean
 	/bin/rm -f $(BLAS) $(ARPACK) $(LAPACK)
 
 # Header dependencies

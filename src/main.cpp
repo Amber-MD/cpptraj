@@ -9,8 +9,8 @@
 #include <cstdio>
 #include <cstdlib> // atoi
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V13.8.2b"
-#define CPPTRAJ_INTERNAL_VERSION "V3.6.3b"
+#define CPPTRAJ_VERSION_STRING "V13.8.2i"
+#define CPPTRAJ_INTERNAL_VERSION "V3.6.3i"
 #endif
 
 // Usage()
@@ -31,6 +31,8 @@ static inline bool EndChar(char ptr) {
   return false;
 }
 
+enum CpptrajMode { CPPTRAJ_RUN = 0, CPPTRAJ_USAGE, CPPTRAJ_QUIT, CPPTRAJ_INTERACTIVE };
+
 // ProcessInputStream()
 /// Process input from the file specified by filename. 
 /** If filename is NULL process input from STDIN. Set up an input line that 
@@ -40,7 +42,7 @@ static inline bool EndChar(char ptr) {
   * 'go' or EOF ends input read. lines ending with \ continue to the next line.
   * \return 0 on success, 1 on error, 2 on exit.
   */
-static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
+static CpptrajMode ProcessInputStream(const char *inputFilename, Cpptraj& State) {
   FILE *infile;
   std::string inputLine;
 
@@ -51,7 +53,7 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
     if (worldsize > 1) {
       mprintf("Error: Reading from STDIN not allowed with more than 1 thread.\n");
       mprintf("       To run cpptraj in parallel please use an input file.\n");
-      return 1;
+      return CPPTRAJ_USAGE;
     }
     mprintf("INPUT: Reading Input from STDIN, type \"go\" to run, \"quit\" to exit:\n");
     infile=stdin;
@@ -60,7 +62,7 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
     rprintf("INPUT: Reading Input from file %s\n",inputFilename);
     if ( (infile=fopen(inputFilename,"r"))==NULL ) {
       rprintf("Error: Could not open input file %s\n",inputFilename);
-      return 1;
+      return CPPTRAJ_USAGE;
     }
   }
 
@@ -88,12 +90,8 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
       // If "quit" then abort 
       if (inputLine.compare("quit")==0) {
         if (!isStdin) fclose(infile);
-        return 2;
-      } else if (inputLine.compare(0,2,"ls")==0)
-        system(inputLine.c_str());
-      else if (inputLine.compare("pwd")==0)
-        system("pwd");
-      else {
+        return CPPTRAJ_QUIT;
+      } else {
         // Print the input line that will be sent to dispatch
         mprintf("  [%s]\n",inputLine.c_str());
         // Call Dispatch to convert input to arglist and process.
@@ -137,7 +135,7 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
   }
 
   if (!isStdin) fclose(infile);
-  return 0;
+  return CPPTRAJ_RUN;
 }
 
 // ProcessCmdLineArgs()
@@ -150,21 +148,21 @@ static int ProcessInputStream(const char *inputFilename, Cpptraj& State) {
  * \return 2 if ProcessInputStream indicates we should just quit.
  * \return 3 if input from STDIN needed
  */
-static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
+static CpptrajMode ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
   int debug=0;
   bool hasInput = false;
 
-  if (argc == 1) return 3; // No command line args, interactive
+  if (argc == 1) return CPPTRAJ_INTERACTIVE; // No command line args, interactive
 
   for (int i=1; i<argc; i++) {
     // --help, -help: Print usage and exit
     if (strcmp(argv[i],"--help")==0 || strcmp(argv[i],"-help")==0) {
-      return 1;
+      return CPPTRAJ_USAGE;
 
     // -V, --version: Print version number and exit
     // NOTE: version number is already printed - should order be changed?
     } else if (strcmp(argv[i],"-V")==0 || strcmp(argv[i],"--version")==0) {
-      return 2;
+      return CPPTRAJ_QUIT;
 
     // -p: Topology file
     } else if (strcmp(argv[i],"-p")==0 && i+1!=argc) {
@@ -175,7 +173,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
     // -i: Input file
     } else if (strcmp(argv[i],"-i")==0 && i+1!=argc) {
       i++;
-      if (ProcessInputStream(argv[i], State)) return 2;
+      if (ProcessInputStream(argv[i], State)) return CPPTRAJ_QUIT;
       hasInput = true;
 
     // -debug: Set overall debug level
@@ -209,7 +207,7 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
       mprintf(" -DNO_MATHLIB");
 #endif
       mprintf("\n");
-      return 2;
+      return CPPTRAJ_QUIT;
 
     // The following 2 are for backwards compatibility with PTRAJ
     // Position 1: TOP file
@@ -217,19 +215,19 @@ static int ProcessCmdLineArgs(int argc, char **argv, Cpptraj &State) {
       State.AddParm(argv[i]);
     // Position 2: INPUT file
     } else if (i==2) {
-      if (ProcessInputStream(argv[i], State)) return 2;
+      if (ProcessInputStream(argv[i], State)) return CPPTRAJ_QUIT;
       hasInput = true;
 
     // Unrecognized
     } else {
       mprintf("  Unrecognized input on command line: %i: %s\n", i,argv[i]);
-      return 1;
+      return CPPTRAJ_USAGE;
     }
   }
 
-  if (!hasInput) return 3;
+  if (!hasInput) return CPPTRAJ_INTERACTIVE;
 
-  return 0;
+  return CPPTRAJ_RUN;
 }
 
 // ----------========== CPPTRAJ MAIN ROUTINE ==========----------
@@ -253,11 +251,11 @@ int main(int argc, char **argv) {
   mprintf("Running on %i processors\n",worldsize);
 #endif
   err = ProcessCmdLineArgs(argc,argv,State);
-  if (err == 3) // More input needed, go to interactive mode
-    err = ProcessInputStream(NULL, State);
   switch ( err ) {
-    case 0 : State.Run(); break;
-    case 1 : Usage(argv[0]); break;
+    case CPPTRAJ_RUN         : State.Run(); break;
+    case CPPTRAJ_USAGE       : Usage(argv[0]); break;
+    case CPPTRAJ_INTERACTIVE : State.Interactive(); break;
+    case CPPTRAJ_QUIT        : break;
   }
 
   parallel_end();

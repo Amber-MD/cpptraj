@@ -76,7 +76,7 @@ ClusterList.o : ClusterList.cpp ClusterList.h ClusterNode.h CpptrajFile.h Cpptra
 ClusterNode.o : ClusterNode.cpp ClusterNode.h
 CoordList.o : CoordList.cpp Atom.h AtomMask.h CoordList.h Frame.h MaskToken.h NameType.h Vec3.h
 CpptrajFile.o : CpptrajFile.cpp CpptrajFile.h CpptrajStdio.h FileIO.h FileIO_Bzip2.h FileIO_Gzip.h FileIO_Mpi.h FileIO_Std.h MpiRoutines.h
-Cpptraj.o : Cpptraj.cpp Action.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h Cpptraj.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h Vec3.h
+Cpptraj.o : Cpptraj.cpp Action.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h Cpptraj.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h Frame.h FrameList.h MaskToken.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h ReadLine.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h TrajinList.h TrajoutList.h Vec3.h
 CpptrajStdio.o : CpptrajStdio.cpp CpptrajStdio.h MpiRoutines.h
 DataFile.o : DataFile.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataFile.h DataIO.h DataIO_Gnuplot.h DataIO_Grace.h DataIO_Std.h DataSet.h DataSetList.h FileIO.h
 DataFileList.o : DataFileList.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h FileIO.h FileList.h
@@ -128,6 +128,7 @@ PDBfile.o : PDBfile.cpp Atom.h AtomMask.h Box.h CpptrajFile.h FileIO.h Frame.h M
 PDBtype.o : PDBtype.cpp Atom.h AtomMask.h Box.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h PDBtype.h Residue.h Topology.h Vec3.h
 ProgressBar.o : ProgressBar.cpp CpptrajStdio.h ProgressBar.h
 PubFFT.o : PubFFT.cpp PubFFT.h
+ReadLine.o : ReadLine.cpp ReadLine.h
 Random.o : Random.cpp CpptrajStdio.h Random.h
 Range.o : Range.cpp ArgList.h CpptrajStdio.h Range.h
 RemdTraj.o : RemdTraj.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h Frame.h MaskToken.h Molecule.h NameType.h RemdTraj.h Residue.h Topology.h TrajectoryIO.h Vec3.h
