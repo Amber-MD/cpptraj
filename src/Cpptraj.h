@@ -27,6 +27,18 @@ class Cpptraj {
     /// Controls main flow of the program.
     int Run();
   private:
+    static void Help_List();
+    static void Help_Help();
+    static void Help_Debug();
+    void List(ArgList&);
+    void Help(ArgList&);
+    void Debug(ArgList&);
+
+    static const DispatchObject::Token DispatchArray[];
+    int SearchTokenArray(const DispatchObject::Token* DispatchArray,
+                         bool, const ArgList&);
+    int SearchToken(const ArgList&);
+    DispatchObject::Token const* dispatchToken_;
     /// List of parameter files 
     TopologyList parmFileList;
     /// List of input trajectory files

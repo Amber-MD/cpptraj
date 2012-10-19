@@ -57,6 +57,11 @@
 #include "Action_Rotate.h"
 #include "Action_Translate.h"
 
+const DispatchObject::Token ActionList::DispatchArray[] = {
+  { DispatchObject::ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, 0 },
+  { DispatchObject::NONE,        0,                  0,                 0, 0 }
+};
+
 // CONSTRUCTOR
 ActionList::ActionList() :
   debug_(0)
@@ -74,6 +79,14 @@ void ActionList::SetDebug(int debugIn) {
   debug_ = debugIn;
   if (debug_>0)
     mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug_);
+}
+
+int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList const& argIn)
+{
+  Action* act = (Action*)Alloc();
+  act->SetArg( argIn );
+  actionlist_.push_back( act );
+  return 0;
 }
 
 // ActionList::AddAction()
@@ -280,4 +293,11 @@ void ActionList::Print() {
     if ((*act)->Status() == Action::INACTIVE) continue;
     (*act)->print();
   }
+}
+
+void ActionList::List() {
+  unsigned int actnum = 0;
+  mprintf("ACTIONS:\n");
+  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
+    mprintf("  %u: [%s]\n", actnum++, (*act)->CmdLine());   
 }

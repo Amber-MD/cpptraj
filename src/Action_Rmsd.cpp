@@ -71,14 +71,16 @@ void Action_Rmsd::SetRefStructure( Frame& frameIn ) {
     SelectedRef_.CenterReference( Trans_+3, useMass_ );
 }
 
+void Action_Rmsd::Help() {
+  mprintf("rmsd [<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n");
+  mprintf("     [ first | ref <filename> | refindex <#> |\n");
+  mprintf("     reftraj <filename> [parm <parmname> | parmindex <#>] ]\n");
+  mprintf("     [ perres perresout <filename> [range <res range>] [refrange <ref res range>]\n");
+  mprintf("     [perresmask <addtl mask>] [perresinvert] [perrescenter] perresavg <pravg> ]\n");
+}
+
 // Action_Rmsd::init()
 /** Called once before traj processing. Set up reference info.
-  * Expected call: 
-  * rmsd <name> <mask> [<refmask>] [out filename] [nofit | norotate] [mass]
-  *      [ first | ref <filename> | refindex <#> | 
-  *        reftraj <filename> [parm <parmname> | parmindex <#>] ] 
-  *      [ perres perresout <filename> [range <res range>] [refrange <ref res range>] 
-  *        [perresmask <addtl mask>] [perresinvert] [perrescenter] perresavg <pravg> ]
   */
 int Action_Rmsd::init( ) {
   std::string refname, reftrajname;

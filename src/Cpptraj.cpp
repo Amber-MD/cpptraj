@@ -4,11 +4,72 @@
 #include "CpptrajStdio.h"
 #include "ReadLine.h"
 
+void Cpptraj::Help_List() {
+  mprintf("list <type> (<type> = actions,)\n");
+}
+
+void Cpptraj::Help_Help() {
+  mprintf("help [<cmd>]\n");
+}
+
+void Cpptraj::Help_Debug() {
+  mprintf("debug [<type>] <#> ((<type> = actions,trajin,trajout,ref,parm,analysis,datafile)\n");
+}
+
+enum GeneralCmds { LIST = 0, HELP, QUIT, RUN, DEBUG };
+
+const DispatchObject::Token Cpptraj::DispatchArray[] = {
+  { DispatchObject::GENERAL, "list" , 0,  Help_List, LIST },
+  { DispatchObject::GENERAL, "help" , 0,  Help_Help, HELP },
+  { DispatchObject::GENERAL, "quit" , 0,          0, QUIT },
+  { DispatchObject::GENERAL, "go"   , 0,          0, RUN  },
+  { DispatchObject::GENERAL, "debug", 0, Help_Debug, DEBUG},
+  { DispatchObject::NONE,         0,  0,          0,     0}
+};
+
 // Constructor
 Cpptraj::Cpptraj() {
   debug=0;
   showProgress=true;
   exitOnError = true;
+}
+
+void Cpptraj::List(ArgList& argIn) {
+  if (argIn.hasKey("actions")) actionList.List();
+  else {
+    mprinterr("Error: list: unrecognized list type (%s)\n", argIn.ArgLine());
+    Help_List();
+  }
+}
+
+void Cpptraj::Help(ArgList& argIn) {
+  bool listAllCommands = false;
+  ArgList arg = argIn;
+  arg.RemoveFirstArg();
+  if (arg.empty()) {
+    listAllCommands = true;
+    mprintf("General Commands:\n");
+    SearchTokenArray( DispatchArray, listAllCommands, arg );
+    mprintf("Action Commands:\n");
+    SearchTokenArray( ActionList::DispatchArray, listAllCommands, arg );
+  } else {
+    if (SearchToken( arg )==0 || dispatchToken_->Help == 0) 
+      mprinterr("No help found for %s\n", arg.Command());
+    else
+      dispatchToken_->Help();
+  }
+}
+
+void Cpptraj::Debug(ArgList& argIn) {
+  debug = argIn.getNextInteger(0);
+  if (argIn.hasKey("actions")) actionList.SetDebug( debug );
+  else if (argIn.hasKey("trajin")) trajinList.SetDebug( debug );
+  else if (argIn.hasKey("ref")) refFrames.SetDebug( debug );
+  else if (argIn.hasKey("trajout")) trajoutList.SetDebug( debug );
+  else if (argIn.hasKey("parm")) parmFileList.SetDebug( debug );
+  else if (argIn.hasKey("analysis")) analysisList.SetDebug( debug );
+  else if (argIn.hasKey("datafile")) DFL.SetDebug( debug );
+  else SetGlobalDebug(debug);
 }
 
 // Cpptraj::SetGlobalDebug()
@@ -31,16 +92,69 @@ void Cpptraj::AddParm(const char* parmfile) {
   parmFileList.AddParmFile( parmfile );
 }
 
+// Cpptraj::SearchTokenArray()
+/** Search the given array for command. If command is found set token
+  * and return 1, otherwise return 0.
+  */
+int Cpptraj::SearchTokenArray(const DispatchObject::Token* DispatchArray,
+                              bool listAllCommands, const ArgList& arg)
+{
+  // List/search Action Commands
+  for (const DispatchObject::Token* token = DispatchArray;
+                                    token->Type != DispatchObject::NONE; ++token)
+  {
+    //mprintf("DBG: CMD [%s] HELP=%i LISTALLCMD=%i\n", token->Cmd,(int)help,(int)listAllCommands);
+    if (listAllCommands)
+       mprintf("\t%s\n", token->Cmd);
+    else if ( arg.CommandIs( token->Cmd ) ) {
+      dispatchToken_ = token;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+// Cpptraj::SearchToken()
+/** Search each token list for the given command. If the command is found in
+  * a list then dispatchToken is set by SearchTokenArray and 1 is returned.
+  * \return 1 if the token is found, 0 if not.
+  */
+int Cpptraj::SearchToken(const ArgList& argIn) {
+  dispatchToken_ = 0;
+  if (SearchTokenArray( DispatchArray, false, argIn )) return 1;
+  if (SearchTokenArray( ActionList::DispatchArray, false, argIn)) return 1;
+  mprinterr("[%s]: Command not found.\n",argIn.Command());
+  return 0;
+}
+
+// Cpptraj::Interactive()
 void Cpptraj::Interactive() {
   ReadLine inputLine;
-
-  while ( inputLine.GetInput() ) {
-    if ( *inputLine == "go" ) {
-      Run();
-      break;
-    }
+  bool readLoop = true;
+  while ( readLoop ) {
+    inputLine.GetInput(); 
     mprintf("\t[%s]\n", inputLine.c_str());
-    Dispatch( inputLine.c_str() );
+    ArgList command( inputLine.c_str() );
+    command.MarkArg(0); // Always mark the command
+    if ( SearchToken( command ) == 0)
+      Dispatch( inputLine.c_str() ); // TODO: Remove this
+    else {
+      switch (dispatchToken_->Type) {
+        case DispatchObject::ACTION : 
+          actionList.AddAction( dispatchToken_->Alloc, command ); 
+          break;
+        case DispatchObject::GENERAL :
+          switch ( dispatchToken_->Idx ) {
+            case LIST : List(command); break;
+            case HELP : Help(command); break;
+            case DEBUG: Debug(command); break;
+            case RUN  : Run(); // Fall through to quit
+            case QUIT : readLoop = false; break;
+          }
+          break;
+        default: mprintf("Dispatch type is currently not handled.\n");
+      }
+    }
   }
 }
 
@@ -62,6 +176,8 @@ void Cpptraj::Dispatch(const char* inputLine) {
     if (debug>0) mprintf("NULL Command.\n");
     return;
   }
+  // Always mark the first argument.
+  dispatchArg.MarkArg(0);
 
   // General commands
   // noprogress: Turn off progress bar when processing trajectories.

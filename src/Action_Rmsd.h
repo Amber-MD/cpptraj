@@ -11,6 +11,9 @@ class Action_Rmsd: public Action {
     Action_Rmsd();
     ~Action_Rmsd();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rmsd(); }
+    static void Help();
+
     void print();
   private:
     int init();

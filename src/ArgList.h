@@ -53,10 +53,11 @@ class ArgList {
     const char *ArgLine();
     /// Return the argument at given position
     const char* ArgAt(int);
+    void RemoveFirstArg();
     /// Return the first argument
-    const char *Command();
+    const char *Command() const;
     /// Return true if the first argument matches key
-    bool CommandIs(const char*);
+    bool CommandIs(const char*) const;
     //bool CommandIs(const char*,size_t);
     /// Return the number of arguments
     int Nargs()  { return (int)arglist.size(); }

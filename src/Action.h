@@ -1,5 +1,6 @@
 #ifndef INC_ACTION_H
 #define INC_ACTION_H
+#include "DispatchObject.h"
 #include "FrameList.h"
 #include "ArgList.h"
 #include "DataSetList.h"
@@ -14,7 +15,7 @@
   * Setup, and DoAction respectively. A fourth function, print, is optional
   * and is called after all frames are processed.
   */
-class Action {
+class Action : public DispatchObject {
   public:
     /// Enumerate potential return states from DoAction.
     enum ActionReturnType { ACTION_OK=0, ACTION_ERR, ACTION_USEORIGINALFRAME,

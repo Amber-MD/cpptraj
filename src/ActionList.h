@@ -18,8 +18,11 @@ class ActionList {
     ActionList();
     ~ActionList();
 
+    static const DispatchObject::Token DispatchArray[];
+
     /// Set the debug level for actions
     void SetDebug(int);
+    int AddAction(DispatchObject::DispatchAllocatorType, ArgList const&);
     /// Add an action to the action list.
     int AddAction(ArgList &);
     /// Initialize actions
@@ -30,6 +33,7 @@ class ActionList {
     bool DoActions(Frame **, int);
     /// Call print for each action
     void Print();
+    void List();
   private:
     /// List of actions
     std::vector<Action*> actionlist_;
