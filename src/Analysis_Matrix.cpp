@@ -13,7 +13,7 @@ Analysis_Matrix::Analysis_Matrix() :
 {}
 
 void Analysis_Matrix::Help() {
-
+  mprintf("analyze matrix <name> out <filename> [thermo outthermo <filename>] [vecs <#>]\n");
 }
 
 // Analysis_Matrix::Setup()

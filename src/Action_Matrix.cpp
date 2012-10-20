@@ -19,7 +19,9 @@ Action_Matrix::Action_Matrix() :
 {}
 
 void Action_Matrix::Help() {
-
+  mprintf("matrix [out <filename>] [start <#>] [stop|end <#>] [offset <#>]\n");
+  mprintf("\t[byatom|byres|bymask] dist|correl|covar|mwcovar|distcovar|ired|idea\n");
+  mprintf("\tname <name> [<mask1>] [<mask2>] [mass]\n");
 }
 
 // Action_Matrix::init()

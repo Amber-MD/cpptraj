@@ -162,11 +162,18 @@ int Cpptraj::SearchTokenArray(const DispatchObject::Token* DispatchArray,
   */
 int Cpptraj::SearchToken(const ArgList& argIn) {
   dispatchToken_ = 0;
-  if (SearchTokenArray( GeneralCmds, false, argIn )) return 1;
-  if (SearchTokenArray( TopologyList::ParmCmds, false, argIn )) return 1;
-  if (SearchTokenArray( CoordCmds, false, argIn )) return 1;
-  if (SearchTokenArray( ActionList::DispatchArray, false, argIn)) return 1;
-  if (SearchTokenArray( AnalysisList::DispatchArray, false, argIn)) return 1;
+  // SPECIAL CASE: For backwards compat. remove analyze prefix
+  if (argIn.CommandIs("analyze")) {
+    ArgList analyzeArg = argIn;
+    analyzeArg.RemoveFirstArg();
+    if (SearchTokenArray( AnalysisList::DispatchArray, false, analyzeArg)) return 1;
+  } else {
+    if (SearchTokenArray( GeneralCmds, false, argIn )) return 1;
+    if (SearchTokenArray( TopologyList::ParmCmds, false, argIn )) return 1;
+    if (SearchTokenArray( CoordCmds, false, argIn )) return 1;
+    if (SearchTokenArray( ActionList::DispatchArray, false, argIn)) return 1;
+    if (SearchTokenArray( AnalysisList::DispatchArray, false, argIn)) return 1;
+  }
   mprinterr("[%s]: Command not found.\n",argIn.Command());
   return 0;
 }
