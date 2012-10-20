@@ -22,9 +22,8 @@ class ActionList {
 
     /// Set the debug level for actions
     void SetDebug(int);
+    /// Add given action to the action list
     int AddAction(DispatchObject::DispatchAllocatorType, ArgList const&);
-    /// Add an action to the action list.
-    int AddAction(ArgList &);
     /// Initialize actions
     int Init(DataSetList *, FrameList *, DataFileList *, TopologyList*,bool);
     /// Set up actions for the given parm

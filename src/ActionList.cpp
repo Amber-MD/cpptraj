@@ -109,6 +109,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, 0 },
   { DispatchObject::ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, 0 },
   { DispatchObject::ACTION, "secstruct", Action_DSSP::Alloc, Action_DSSP::Help, 0 },
+  { DispatchObject::ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, 0 },
   { DispatchObject::ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, 0 },
   { DispatchObject::ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, 0 },
   { DispatchObject::ACTION, "trans", Action_Translate::Alloc, Action_Translate::Help, 0 },
@@ -144,96 +145,6 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList c
   act->SetArg( argIn );
   actionlist_.push_back( act );
   return 0;
-}
-
-// ActionList::AddAction()
-/** Check if the first argument of the given arglist is an action keyword.
-  * if so set up the appropriate action class.
-  * \param argIn input argument list
-  * \return 0 if action successfully added to the list, 1 if argument
-  *           not recognized.
-  */
-int ActionList::AddAction(ArgList &argIn) {
-  Action *Act;
-
-  // Decide what action this is based on the command.
-  if      (argIn.CommandIs("distance"))       {Act=new Action_Distance;}
-  else if (argIn.CommandIs("rms2d"))          {Act=new Action_Rms2d;   }
-  else if (argIn.CommandIs("2drms"))          {Act=new Action_Rms2d;   }
-  else if (argIn.CommandIs("rmsd"))           {Act=new Action_Rmsd;    }
-  else if (argIn.CommandIs("rms"))            {Act=new Action_Rmsd;    }
-  else if (argIn.CommandIs("dihedral"))       {Act=new Action_Dihedral;}
-  else if (argIn.CommandIs("atommap"))        {Act=new Action_AtomMap; }
-  else if (argIn.CommandIs("angle"))          {Act=new Action_Angle;   }
-  else if (argIn.CommandIs("strip"))          {Act=new Action_Strip;   }
-  else if (argIn.CommandIs("secstruct"))      {Act=new Action_DSSP;    }
-  else if (argIn.CommandIs("center"))         {Act=new Action_Center;  }
-  else if (argIn.CommandIs("hbond"))          {Act=new Action_Hbond;   }
-  else if (argIn.CommandIs("image"))          {Act=new Action_Image;   }
-  else if (argIn.CommandIs("surf"))           {Act=new Action_Surf;    }
-  else if (argIn.CommandIs("radgyr"))         {Act=new Action_Radgyr;  }
-  else if (argIn.CommandIs("rog"))            {Act=new Action_Radgyr;  }
-  else if (argIn.CommandIs("mask"))           {Act=new Action_Mask;    }
-  else if (argIn.CommandIs("closest"))        {Act=new Action_Closest; }
-  else if (argIn.CommandIs("nastruct"))       {Act=new Action_NAstruct;}
-  else if (argIn.CommandIs("pucker"))         {Act=new Action_Pucker;  }
-  else if (argIn.CommandIs("outtraj"))        {Act=new Action_Outtraj; }
-  else if (argIn.CommandIs("unstrip"))        {Act=new Action_Unstrip; }
-  else if (argIn.CommandIs("average"))        {Act=new Action_Average; }
-  else if (argIn.CommandIs("radial"))         {Act=new Action_Radial;  }
-  else if (argIn.CommandIs("drmsd"))          {Act=new Action_DistRmsd;}
-  else if (argIn.CommandIs("drms"))           {Act=new Action_DistRmsd;}
-  else if (argIn.CommandIs("jcoupling"))      {Act=new Action_Jcoupling;}
-  else if (argIn.CommandIs("cluster"))        {Act=new Action_Clustering;}
-  //else if (argIn.CommandIs("pairwise"))       {Act=new Pairwise;}
-  else if (argIn.CommandIs("molsurf"))        {Act=new Action_Molsurf; }
-  else if (argIn.CommandIs("checkstructure")) {Act=new Action_CheckStructure;}
-  else if (argIn.CommandIs("check"))          {Act=new Action_CheckStructure;}
-  //else if (argIn.CommandIs("dihedralscan"))   {Act=new DihedralScan;}
-  else if (argIn.CommandIs("rotdif"))         {Act=new Action_Rotdif;}
-  else if (argIn.CommandIs("runningaverage")) {Act=new Action_RunningAvg;}
-  else if (argIn.CommandIs("runavg"))         {Act=new Action_RunningAvg;}
-  else if (argIn.CommandIs("rmsavgcorr"))     {Act=new Action_RmsAvgCorr;}
-  else if (argIn.CommandIs("atomicfluct"))    {Act=new Action_AtomicFluct;}
-  else if (argIn.CommandIs("watershell"))     {Act=new Action_Watershell;}
-  else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
-  else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
-  else if (argIn.CommandIs("vector"))         {Act=new Action_Vector;}
-  else if (argIn.CommandIs("principal"))      {Act=new Action_Principal;}
-  else if (argIn.CommandIs("matrix"))        {Act=new Action_Matrix;}
-  else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}
-  else if (argIn.CommandIs("gfe"))            {Act=new Action_GridFreeEnergy;}
-  else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}
-  else if (argIn.CommandIs("projection"))     {Act=new Action_Projection;}
-  else if (argIn.CommandIs("clusterdihedral")){Act=new Action_ClusterDihedral;}
-  else if (argIn.CommandIs("unwrap"))         {Act=new Action_Unwrap;}
-  else if (argIn.CommandIs("diffusion"))      {Act=new Action_Diffusion;}
-  else if (argIn.CommandIs("dnaiontracker"))  {Act=new Action_DNAionTracker;}
-  else if (argIn.CommandIs("scale"))          {Act=new Action_Scale;}
-  else if (argIn.CommandIs("randomizeions"))  {Act=new Action_RandomizeIons;}
-  else if (argIn.CommandIs("autoimage"))      {Act=new Action_AutoImage;}
-  else if (argIn.CommandIs("atomiccorr"))     {Act=new Action_AtomicCorr;}
-  else if (argIn.CommandIs("bounds"))         {Act=new Action_Bounds;}
-  else if (argIn.CommandIs("rotate"))         {Act=new Action_Rotate;}
-  else if (argIn.CommandIs("trans"))          {Act=new Action_Translate;}
-  // STFC code
-  else if (argIn.CommandIs("stfc"))           {
-    std::string stfcCMD = argIn.GetStringNext();
-    if (stfcCMD == "diffusion")
-      Act = new Action_STFC_Diffusion;
-    else return 1;
-  }
-  else return 1; 
-
-  // Pass in the argument list
-  Act->SetArg(argIn);
-  // Debug
-  if (debug_>0) mprintf("    Added action %s\n", Act->ActionCommand());
-
-  // Store action in list
-  actionlist_.push_back(Act);
-
-  return 0;  
 }
 
 // ActionList::Init()

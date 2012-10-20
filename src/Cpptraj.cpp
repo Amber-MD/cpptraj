@@ -265,9 +265,6 @@ void Cpptraj::Dispatch(const char* inputLine) {
     return;
   }
 
-  // Check if command pertains to an action
-  if ( actionList.AddAction(dispatchArg)==0 ) return;
-
   // Check if command pertains to analysis
   if ( analysisList.AddAnalysis(dispatchArg)==0 ) return; 
 
