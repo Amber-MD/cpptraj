@@ -5,6 +5,10 @@
 // CONSTRUCTOR
 Analysis_CrossCorr::Analysis_CrossCorr() {}
 
+void Analysis_CrossCorr::Help() {
+
+}
+
 /** Usage: crosscorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] out <filename>
   */
 int Analysis_CrossCorr::Setup( DataSetList* datasetlist ) {

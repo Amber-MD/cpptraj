@@ -9,6 +9,10 @@
 class Analysis_Timecorr : public Analysis {
   public:
     Analysis_Timecorr();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Timecorr(); }
+    static void Help();
+
     ~Analysis_Timecorr();
 
     int Setup(DataSetList*);

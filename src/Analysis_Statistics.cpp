@@ -9,6 +9,10 @@ Analysis_Statistics::Analysis_Statistics() :
   shift_(0)
 {}
 
+void Analysis_Statistics::Help() {
+
+}
+
 /** analyze statistics {<name> | ALL} [shift <value>] */
 int Analysis_Statistics::Setup(DataSetList *DSLin) {
   bool analyzeAll = false;

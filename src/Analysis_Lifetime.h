@@ -5,6 +5,10 @@ class Analysis_Lifetime : public Analysis {
   public:
     Analysis_Lifetime();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Lifetime(); }
+    static void Help();
+
+
     int Setup(DataSetList*);
     int Analyze();
     void Print(DataFileList*);

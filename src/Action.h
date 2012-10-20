@@ -30,6 +30,7 @@ class Action : public DispatchObject {
     virtual ~Action() {}    // Destructor - virtual since this class is inherited
 
     void SetArg(const ArgList&); ///< Set the argument list
+    void SetDebug(int dIn) { debug = dIn; }
     const char *ActionCommand(); ///< Print the command that calls the action
     const char *CmdLine();       ///< Print the entire argument line
 

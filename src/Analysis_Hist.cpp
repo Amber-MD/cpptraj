@@ -14,6 +14,10 @@ Analysis_Hist::Analysis_Hist() :
   maxArgSet_(false)
 {}
 
+void Analysis_Hist::Help() {
+
+}
+
 // Analysis_Hist::CheckDimension()
 /** Given an argument with format, DataSet_Name[,min,max,step,bins], check
   * that DataSet_Name exists and is valid. Add the argument to 

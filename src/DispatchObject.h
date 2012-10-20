@@ -8,7 +8,8 @@ class DispatchObject {
     void Help()              {               }
     DispatchObject* Alloc()  { return 0;     }
 
-    enum DispatchType { NONE=0, ACTION, TRAJIN, TRAJOUT, REFERENCE, PARM, DATAFILE, GENERAL };
+    enum DispatchType { NONE=0, ACTION, ANALYSIS, TRAJIN, TRAJOUT, REFERENCE, 
+                        PARM, DATAFILE, GENERAL };
     // Function pointers
     typedef DispatchObject* (*DispatchAllocatorType)();
     typedef void (*DispatchHelpType)();

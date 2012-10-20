@@ -1,5 +1,6 @@
 #ifndef INC_ANALYSIS_H
 #define INC_ANALYSIS_H
+#include "DispatchObject.h"
 #include "ArgList.h"
 #include "DataSetList.h"
 #include "DataFileList.h"
@@ -9,7 +10,7 @@
 /** Analysis occurs after trajectories are read and data sets populated.
   * Analysis operates on those data sets.
   */
-class Analysis {
+class Analysis : public DispatchObject {
   public:
     Analysis();
     virtual ~Analysis();

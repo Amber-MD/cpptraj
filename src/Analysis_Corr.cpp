@@ -10,6 +10,10 @@ Analysis_Corr::Analysis_Corr() :
   calc_covar_(true)
 {}
 
+void Analysis_Corr::Help() {
+
+}
+
 // Analysis_Corr::Setup()
 /** Expected call: corr out <outfilename> <Dataset1> [<Dataset2>] [lagmax <lagmax>]
   */

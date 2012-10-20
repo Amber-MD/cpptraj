@@ -15,6 +15,10 @@ Analysis_Modes::Analysis_Modes() :
   results_(0)
 {}
 
+void Analysis_Modes::Help() {
+
+}
+
 //#define TWOPI 6.2832
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
 const double Analysis_Modes::CONSQ = 2.39805E-3;

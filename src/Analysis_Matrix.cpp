@@ -12,6 +12,10 @@ Analysis_Matrix::Analysis_Matrix() :
   eigenvaluesOnly_(false)
 {}
 
+void Analysis_Matrix::Help() {
+
+}
+
 // Analysis_Matrix::Setup()
 int Analysis_Matrix::Setup(DataSetList* DSLin) {
 #ifdef NO_MATHLIB

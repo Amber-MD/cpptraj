@@ -21,7 +21,7 @@ class Cpptraj {
     void AddParm(const char *);
     void Interactive();
     /// Function that decides where to send commands
-    void Dispatch(const char*);        
+    bool Dispatch(const char*);        
 
     Cpptraj();
     /// Controls main flow of the program.

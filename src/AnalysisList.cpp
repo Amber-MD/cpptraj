@@ -14,6 +14,24 @@
 #include "Analysis_Lifetime.h"
 #include "Analysis_FFT.h"
 
+const DispatchObject::Token AnalysisList::DispatchArray[] = {
+  { DispatchObject::ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, 0 },
+  { DispatchObject::ANALYSIS, "corr", Analysis_Corr::Alloc, Analysis_Corr::Help, 0 },
+  { DispatchObject::ANALYSIS, "correlationcoe", Analysis_Corr::Alloc, Analysis_Corr::Help, 0 },
+  { DispatchObject::ANALYSIS, "crank", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, 0 },
+  { DispatchObject::ANALYSIS, "crosscorr", Analysis_CrossCorr::Alloc, Analysis_CrossCorr::Help, 0 },
+  { DispatchObject::ANALYSIS, "fft", Analysis_FFT::Alloc, Analysis_FFT::Help, 0 },
+  { DispatchObject::ANALYSIS, "hist", Analysis_Hist::Alloc, Analysis_Hist::Help, 0 },
+  { DispatchObject::ANALYSIS, "histogram", Analysis_Hist::Alloc, Analysis_Hist::Help, 0 },
+  { DispatchObject::ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, 0 },
+  { DispatchObject::ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, 0 },
+  { DispatchObject::ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, 0 },
+  { DispatchObject::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, 0 },
+  { DispatchObject::ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, 0 },
+  { DispatchObject::ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, 0 },
+  { DispatchObject::NONE,        0,                  0,                 0, 0 }
+};
+
 // CONSTRUCTOR
 AnalysisList::AnalysisList() :
   debug_(0)
@@ -33,48 +51,12 @@ void AnalysisList::SetDebug(int debugIn) {
     mprintf("AnalysisList DEBUG LEVEL SET TO %i\n",debug_);
 }
 
-// AnalysisList::AddAnalysis()
-/** Add specific type of analysis to the list.  */
-int AnalysisList::AddAnalysis(ArgList &argIn) {
-  Analysis *Ana=NULL;
- 
-  if      (argIn.CommandIs("histogram")) { Ana = new Analysis_Hist(); }
-  else if (argIn.CommandIs("hist"))      { Ana = new Analysis_Hist(); }
-  else if (argIn.CommandIs("corr"))      { Ana = new Analysis_Corr(); }
-  else if (argIn.CommandIs("crosscorr")) { Ana = new Analysis_CrossCorr(); }
-  else if (argIn.CommandIs("autocorr"))  { Ana = new Analysis_AutoCorr(); }
-  else if (argIn.CommandIs("lifetime"))  { Ana = new Analysis_Lifetime(); }
-  else if (argIn.CommandIs("fft"))       { Ana = new Analysis_FFT(); }
-  else if (argIn.CommandIs("analyze")  ) { 
-    if (argIn.ArgAt(1) == NULL) return 1;
-    if (argIn[1] == "matrix")
-      Ana = new Analysis_Matrix;
-    else if (argIn[1] == "timecorr")
-      Ana = new Analysis_Timecorr;
-    else if (argIn[1] == "ired")
-      Ana = new Analysis_IRED;
-    else if (argIn[1] == "modes")
-      Ana = new Analysis_Modes;
-    else if (argIn[1] == "crank")
-      Ana = new Analysis_CrankShaft;
-    else if (argIn[1] == "correlationcoe")
-      Ana = new Analysis_Corr; // For backwards compatibility with PTRAJ
-    else if (argIn[1] == "stat")
-      Ana = new Analysis_Statistics;
-    else
-      return 1; 
-  }
-  else return 1;
-
-  // Pass in the argument list
-  Ana->SetArg(argIn);
-
-  // Set the debug level
-  if (debug_>0) Ana->SetDebug(debug_);
-
-  // Store in analysis list
-  analysisList_.push_back(Ana);
-
+int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgList const& argIn)
+{
+  Analysis* ana = (Analysis*)Alloc();
+  ana->SetArg( argIn );
+  ana->SetDebug( debug_ );
+  analysisList_.push_back( ana );
   return 0;
 }
 

@@ -11,6 +11,10 @@ Analysis_Lifetime::Analysis_Lifetime() :
   deltaAvg_(false)
 {}
 
+void Analysis_Lifetime::Help() {
+
+}
+
 /** Usage: lifetime [out <filename>] <dsetarg0> [ <dsetarg1> ... ]
   *                 [window <windowsize> [name <setname>]] [averageonly]
   *                 [cumulative] [cut <cutoff>]

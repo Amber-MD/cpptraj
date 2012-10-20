@@ -11,6 +11,10 @@ Analysis_FFT::Analysis_FFT() :
   f0_(0.0)
 {}
 
+void Analysis_FFT::Help() {
+
+}
+
 // Analysis_FFT::Setup()
 /** Usage: fft <sets arg> [out <outfile>] [name <outsetname>] [d] */
 int Analysis_FFT::Setup(DataSetList* datasetlist) {

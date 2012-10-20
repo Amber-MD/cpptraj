@@ -4,6 +4,10 @@
 class Analysis_CrankShaft : public Analysis {
   public: 
     Analysis_CrankShaft();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CrankShaft(); }
+    static void Help();
+
     
     int Setup(DataSetList*);
     int Analyze();

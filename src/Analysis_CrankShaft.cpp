@@ -14,6 +14,10 @@ Analysis_CrankShaft::Analysis_CrankShaft() :
   scalar2_(0)
 {}
 
+void Analysis_CrankShaft::Help() {
+
+}
+
 const char Analysis_CrankShaft::CSstring[2][9] = {
   "angle", "distance"
 };

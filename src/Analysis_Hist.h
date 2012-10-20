@@ -8,6 +8,10 @@ class Analysis_Hist : public Analysis {
   public :
     Analysis_Hist();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Hist(); }
+    static void Help();
+
+
     int Setup(DataSetList*);
     int Analyze();
     void Print(DataFileList*);

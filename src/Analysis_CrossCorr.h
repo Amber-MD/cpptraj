@@ -5,6 +5,10 @@ class Analysis_CrossCorr : public Analysis {
   public:
     Analysis_CrossCorr();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CrossCorr(); }
+    static void Help();
+
+
     int Setup( DataSetList* );
     int Analyze();
     void Print( DataFileList* );

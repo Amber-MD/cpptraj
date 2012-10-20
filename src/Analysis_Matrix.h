@@ -7,6 +7,10 @@ class Analysis_Matrix : public Analysis {
   public:
     Analysis_Matrix();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Matrix(); }
+    static void Help();
+
+
     int Setup(DataSetList*);
     int Analyze();
     void Print(DataFileList*);

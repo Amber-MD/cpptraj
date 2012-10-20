@@ -9,6 +9,10 @@ class Analysis_Statistics : public Analysis {
 
     Analysis_Statistics();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Statistics(); }
+    static void Help();
+
+
     int Setup(DataSetList*);
     int Analyze();
   private:

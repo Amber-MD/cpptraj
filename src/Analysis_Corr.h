@@ -7,6 +7,10 @@ class Analysis_Corr : public Analysis {
   public:
     Analysis_Corr();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Corr(); }
+    static void Help();
+
+
     int Setup(DataSetList*);
     int Analyze();
     void Print(DataFileList*);

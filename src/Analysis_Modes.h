@@ -5,6 +5,10 @@
 class Analysis_Modes : public Analysis {
   public:
     Analysis_Modes();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Modes(); }
+    static void Help();
+
     ~Analysis_Modes();
 
     int Setup(DataSetList*);

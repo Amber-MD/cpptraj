@@ -6,6 +6,10 @@ class Analysis_FFT : public Analysis {
   public:
     Analysis_FFT();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_FFT(); }
+    static void Help();
+
+
     int Setup(DataSetList*);
     int Analyze();
     void Print(DataFileList*);

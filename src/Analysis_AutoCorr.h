@@ -5,6 +5,10 @@ class Analysis_AutoCorr : public Analysis {
   public:
     Analysis_AutoCorr();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_AutoCorr(); }
+    static void Help();
+
+
     int Setup( DataSetList* );
     int Analyze();
     void Print( DataFileList* );

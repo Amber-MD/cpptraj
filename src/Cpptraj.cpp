@@ -68,6 +68,8 @@ void Cpptraj::Help(ArgList& argIn) {
     SearchTokenArray( CoordCmds, listAllCommands, arg );
     mprintf("Action Commands:\n");
     SearchTokenArray( ActionList::DispatchArray, listAllCommands, arg );
+    mprintf("Analysis Commands:\n");
+    SearchTokenArray( AnalysisList::DispatchArray, listAllCommands, arg );
   } else {
     if (SearchToken( arg )==0 || dispatchToken_->Help == 0) 
       mprinterr("No help found for %s\n", arg.Command());
@@ -90,7 +92,6 @@ void Cpptraj::List(ArgList& argIn) {
     Help_List();
   }
 }
-
 
 void Cpptraj::Debug(ArgList& argIn) {
   debug_ = argIn.getNextInteger(0);
@@ -137,7 +138,7 @@ int Cpptraj::SearchTokenArray(const DispatchObject::Token* DispatchArray,
   for (const DispatchObject::Token* token = DispatchArray;
                                     token->Type != DispatchObject::NONE; ++token)
   {
-    //mprintf("DBG: CMD [%s] HELP=%i LISTALLCMD=%i\n", token->Cmd,(int)help,(int)listAllCommands);
+    //mprintf("DBG: CMD [%s] LISTALLCMD=%i  ARG=%s\n", token->Cmd,(int)listAllCommands,arg.Command());
     if (listAllCommands) {
       mprintf("%s  ", token->Cmd);
       ++col;
@@ -165,6 +166,7 @@ int Cpptraj::SearchToken(const ArgList& argIn) {
   if (SearchTokenArray( TopologyList::ParmCmds, false, argIn )) return 1;
   if (SearchTokenArray( CoordCmds, false, argIn )) return 1;
   if (SearchTokenArray( ActionList::DispatchArray, false, argIn)) return 1;
+  if (SearchTokenArray( AnalysisList::DispatchArray, false, argIn)) return 1;
   mprinterr("[%s]: Command not found.\n",argIn.Command());
   return 0;
 }
@@ -173,60 +175,9 @@ int Cpptraj::SearchToken(const ArgList& argIn) {
 void Cpptraj::Interactive() {
   ReadLine inputLine;
   bool readLoop = true;
-  Topology* tempParm = 0; // For coordinate lists
   while ( readLoop ) {
     inputLine.GetInput(); 
-    //mprintf("\t[%s]\n", inputLine.c_str());
-// -------- DISPATCH
-    ArgList command( inputLine.c_str() );
-    command.MarkArg(0); // Always mark the command
-    if ( SearchToken( command ) == 0)
-      Dispatch( inputLine.c_str() ); // TODO: Remove this
-    else {
-      switch (dispatchToken_->Type) {
-        case DispatchObject::ACTION : 
-          actionList.AddAction( dispatchToken_->Alloc, command ); 
-          break;
-        case DispatchObject::GENERAL :
-          switch ( dispatchToken_->Idx ) {
-            case LIST  : List(command); break;
-            case HELP  : Help(command); break;
-            case DEBUG : Debug(command); break;
-            case NOPROG: 
-              showProgress_ = false; 
-              mprintf("\tProgress bar will not be shown.\n");
-              break;
-            case NOEXITERR:
-              exitOnError_ = false;
-              mprintf("\tcpptraj will attempt to ignore errors if possible.\n");
-              break;
-            case ACTIVEREF:
-              refFrames.SetActiveRef( command.getNextInteger(0) );
-              break;
-            case SYSTEM: system( command.ArgLine() ); break;
-            case RUN   : Run(); // Fall through to quit
-            case QUIT  : readLoop = false; break;
-          }
-          break;
-        case DispatchObject::TRAJIN :
-          tempParm = parmFileList.GetParm(command);
-          trajinList.AddTrajin(&command, tempParm);
-          break;
-        case DispatchObject::TRAJOUT :
-          tempParm = parmFileList.GetParm(command);
-          trajoutList.AddTrajout(&command, tempParm);
-          break;
-        case DispatchObject::REFERENCE :
-          tempParm = parmFileList.GetParm(command);
-          refFrames.AddReference(&command, tempParm);
-          break;
-        case DispatchObject::PARM :
-          parmFileList.CheckCommand(dispatchToken_->Idx, command);
-          break;
-        default: mprintf("Dispatch type is currently not handled.\n");
-      }
-    }
-// -----------------
+    readLoop = Dispatch( inputLine.c_str() );
   }
 }
 
@@ -237,8 +188,61 @@ void Cpptraj::Interactive() {
  * \param inputLine NULL-terminated string consisting of commands and arguments.
  */
 // NOTE: Should differentiate between keyword rejection and outright error.
-void Cpptraj::Dispatch(const char* inputLine) {
-  ArgList dispatchArg;
+bool Cpptraj::Dispatch(const char* inputLine) {
+  Topology* tempParm = 0; // For coordinate lists
+  //mprintf("\t[%s]\n", inputLine);
+  ArgList command( inputLine );
+  command.MarkArg(0); // Always mark the command
+  if ( SearchToken( command ) ) {
+    //mprintf("TOKEN FOUND. CMD=%s  TYPE=%i\n", dispatchToken_->Cmd, (int)dispatchToken_->Type);
+    switch (dispatchToken_->Type) {
+      case DispatchObject::ACTION : 
+        actionList.AddAction( dispatchToken_->Alloc, command ); 
+        break;
+      case DispatchObject::ANALYSIS :
+        analysisList.AddAnalysis( dispatchToken_->Alloc, command );
+        break;
+      case DispatchObject::GENERAL :
+        switch ( dispatchToken_->Idx ) {
+          case LIST  : List(command); break;
+          case HELP  : Help(command); break;
+          case DEBUG : Debug(command); break;
+          case NOPROG: 
+            showProgress_ = false; 
+            mprintf("\tProgress bar will not be shown.\n");
+            break;
+          case NOEXITERR:
+            exitOnError_ = false;
+            mprintf("\tcpptraj will attempt to ignore errors if possible.\n");
+            break;
+          case ACTIVEREF:
+            refFrames.SetActiveRef( command.getNextInteger(0) );
+            break;
+          case SYSTEM: system( command.ArgLine() ); break;
+          case RUN   : Run(); // Fall through to quit
+          case QUIT  : return false; break;
+        }
+        break;
+      case DispatchObject::TRAJIN :
+        tempParm = parmFileList.GetParm(command);
+        trajinList.AddTrajin(&command, tempParm);
+        break;
+      case DispatchObject::TRAJOUT :
+        tempParm = parmFileList.GetParm(command);
+        trajoutList.AddTrajout(&command, tempParm);
+        break;
+      case DispatchObject::REFERENCE :
+        tempParm = parmFileList.GetParm(command);
+        refFrames.AddReference(&command, tempParm);
+        break;
+      case DispatchObject::PARM :
+        parmFileList.CheckCommand(dispatchToken_->Idx, command);
+        break;
+      default: mprintf("Dispatch type is currently not handled.\n");
+    }
+  }
+  return true;
+/*  ArgList dispatchArg;
 
   dispatchArg.SetList(inputLine," "); // Space delimited only?
   //printf("    *** %s ***\n",dispatchArg.ArgLine());
@@ -265,10 +269,7 @@ void Cpptraj::Dispatch(const char* inputLine) {
     return;
   }
 
-  // Check if command pertains to analysis
-  if ( analysisList.AddAnalysis(dispatchArg)==0 ) return; 
-
-  mprintf("Warning: Unknown Command %s.\n",dispatchArg.Command());
+  mprintf("Warning: Unknown Command %s.\n",dispatchArg.Command());*/
 }
 
 // Cpptraj::Run()

@@ -22,6 +22,10 @@ Analysis_IRED::Analysis_IRED() :
   modinfo_(0)
 {}
 
+void Analysis_IRED::Help() {
+
+}
+
 // DESTRUCTOR
 Analysis_IRED::~Analysis_IRED() {
   if (data1_!=0) delete[] data1_;

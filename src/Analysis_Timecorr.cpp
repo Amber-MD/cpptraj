@@ -26,6 +26,10 @@ Analysis_Timecorr::Analysis_Timecorr() :
   vinfo2_(0)
 {}
 
+void Analysis_Timecorr::Help() {
+
+}
+
 // DESTRUCTOR
 Analysis_Timecorr::~Analysis_Timecorr() {
   if (table_!=0) delete[] table_;

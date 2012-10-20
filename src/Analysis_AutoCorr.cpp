@@ -8,6 +8,10 @@ Analysis_AutoCorr::Analysis_AutoCorr() :
   calc_covar_(true)
 {}
 
+void Analysis_AutoCorr::Help() {
+
+}
+
 /** Usage: autocorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] out <filename>
   */
 int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {

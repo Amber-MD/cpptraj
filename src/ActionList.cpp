@@ -143,6 +143,7 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList c
 {
   Action* act = (Action*)Alloc();
   act->SetArg( argIn );
+  act->SetDebug( debug_ );
   actionlist_.push_back( act );
   return 0;
 }

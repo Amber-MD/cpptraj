@@ -10,6 +10,10 @@
 class Analysis_IRED : public Analysis {
   public:
     Analysis_IRED();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_IRED(); }
+    static void Help();
+
     ~Analysis_IRED();
 
     int Setup(DataSetList*);

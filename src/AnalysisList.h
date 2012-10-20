@@ -3,12 +3,13 @@
 #include "Analysis.h"
 /// Hold all analyses to be performed.
 class AnalysisList {
-  public: 
+  public:
+    static const DispatchObject::Token DispatchArray[];
     AnalysisList();
     ~AnalysisList();
     
     void SetDebug(int);
-    int AddAnalysis(ArgList &);
+    int AddAnalysis(DispatchObject::DispatchAllocatorType, ArgList const&);
     int Setup(DataSetList*,TopologyList*);
     void Analyze(DataFileList*);
     void List();
