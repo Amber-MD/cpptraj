@@ -14,30 +14,34 @@
   */
 class ActionList {
   public:
-
     ActionList();
     ~ActionList();
-
+    /// Hold all recognized action commands.
     static const DispatchObject::Token DispatchArray[];
-
-    /// Set the debug level for actions
+    /// Set the debug level for actions.
     void SetDebug(int);
-    /// Add given action to the action list
+    /// Add given action to the action list.
     int AddAction(DispatchObject::DispatchAllocatorType, ArgList const&);
-    /// Initialize actions
-    int Init(DataSetList *, FrameList *, DataFileList *, TopologyList*,bool);
-    /// Set up actions for the given parm
-    int Setup(Topology **);
-    /// Perform actions on the given frame
+    /// Initialize actions.
+    int InitActions(DataSetList *, FrameList *, DataFileList *, TopologyList*,bool);
+    /// Set up actions for the given parm.
+    int SetupActions(Topology **);
+    /// Perform actions on the given frame.
     bool DoActions(Frame **, int);
-    /// Call print for each action
+    /// Call print for each action.
     void Print();
+    /// List all actions in the action list.
     void List();
   private:
+    /// Action initialization and setup status.
+    enum ActionStatusType { NO_INIT=0, INIT, NO_SETUP, SETUP, INACTIVE };
     /// List of actions
     std::vector<Action*> actionlist_;
-    typedef std::vector<Action*>::iterator action_it;
-    /// debug level for actions
+    /// List of action commands
+    std::vector<std::string> actioncmd_;
+    /// List of action statuses
+    std::vector<ActionStatusType> actionstatus_;
+    /// Default debug level for actions
     int debug_;
 };
 #endif
