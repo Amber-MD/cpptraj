@@ -16,6 +16,7 @@
  */
 class Cpptraj {
   public:
+    int ReadData(ArgList&);
     /// Set debug level for all components
     void SetGlobalDebug(int);
     void AddParm(const char *);

@@ -18,12 +18,12 @@ void Cpptraj::Help_Debug() {
 
 void Cpptraj::Help_ActiveRef() {
   mprintf("activeref <#>\n");
-  mprintf("Set the reference structure to be used for coordinate-based mask parsing.\n");
+  mprintf("\tSet the reference structure to be used for coordinate-based mask parsing.\n");
 }
 
 
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, SYSTEM,
-                       ACTIVEREF };
+                       ACTIVEREF, READDATA };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef, ACTIVEREF },
@@ -37,6 +37,7 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "prnlev",        0, Help_Debug, DEBUG    },
   { DispatchObject::GENERAL, "pwd",           0,          0, SYSTEM   },
   { DispatchObject::GENERAL, "quit" ,         0,          0, QUIT     },
+  { DispatchObject::GENERAL, "readdata",      0,          0, READDATA },
   { DispatchObject::NONE,                  0, 0,          0,      0   }
 };
 
@@ -102,6 +103,7 @@ void Cpptraj::Debug(ArgList& argIn) {
   else if (argIn.hasKey("parm")) parmFileList.SetDebug( debug_ );
   else if (argIn.hasKey("analysis")) analysisList.SetDebug( debug_ );
   else if (argIn.hasKey("datafile")) DFL.SetDebug( debug_ );
+  else if (argIn.hasKey("dataset")) DSL.SetDebug( debug_ );
   else SetGlobalDebug(debug_);
 }
 
@@ -109,7 +111,7 @@ void Cpptraj::Debug(ArgList& argIn) {
 /** Set the debug level for all components of Cpptraj. */
 void Cpptraj::SetGlobalDebug(int debugIn) {
   debug_ = debugIn;
-  rprintf("DEBUG LEVEL SET TO %i\n",debug_);
+  rprintf("GLOBAL DEBUG LEVEL SET TO %i\n",debug_);
   trajinList.SetDebug(debug_);
   refFrames.SetDebug(debug_);
   trajoutList.SetDebug(debug_);
@@ -117,12 +119,22 @@ void Cpptraj::SetGlobalDebug(int debugIn) {
   actionList.SetDebug(debug_);
   analysisList.SetDebug(debug_);
   DFL.SetDebug(debug_);
+  DSL.SetDebug(debug_);
 }
 
 /// Used to add parm files from the command line.
 void Cpptraj::AddParm(const char* parmfile) {
   if (parmfile==NULL) return;
   parmFileList.AddParmFile( parmfile );
+}
+
+int Cpptraj::ReadData(ArgList& argIn) {
+  DataFile dataIn;
+  if (dataIn.ReadData( argIn, DSL )!=0) {
+    mprinterr("Error: Could not read data file.\n");
+    return 1;
+  }
+  return 0;
 }
 
 // Cpptraj::SearchTokenArray()
@@ -225,9 +237,10 @@ bool Cpptraj::Dispatch(const char* inputLine) {
           case ACTIVEREF:
             refFrames.SetActiveRef( command.getNextInteger(0) );
             break;
-          case SYSTEM: system( command.ArgLine() ); break;
-          case RUN   : Run(); // Fall through to quit
-          case QUIT  : return false; break;
+          case READDATA: ReadData( command ); break;
+          case SYSTEM  : system( command.ArgLine() ); break;
+          case RUN     : Run(); // Fall through to quit
+          case QUIT    : return false; break;
         }
         break;
       case DispatchObject::TRAJIN :
@@ -269,11 +282,6 @@ bool Cpptraj::Dispatch(const char* inputLine) {
 
   // Check if we are reading sets from a datafile
   if ( dispatchArg.CommandIs("readdata") ) {
-    DataFile dataIn;
-    if (dataIn.ReadData( dispatchArg, DSL )!=0) {
-      mprinterr("Error: Could not read data file.\n");
-    }
-    return;
   }
 
   mprintf("Warning: Unknown Command %s.\n",dispatchArg.Command());*/
