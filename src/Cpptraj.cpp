@@ -291,6 +291,11 @@ bool Cpptraj::Dispatch(const char* inputLine) {
              && exitOnError_)
           return false;
         break;
+      case DispatchObject::PARM :
+        if ( parmFileList.CheckCommand(dispatchToken_->Idx, command) 
+             && exitOnError_ )
+          return false;
+        break;
       case DispatchObject::GENERAL :
         switch ( dispatchToken_->Idx ) {
           case TRAJIN :
@@ -335,9 +340,6 @@ bool Cpptraj::Dispatch(const char* inputLine) {
           case RUN     : Run(); // Fall through to quit
           case QUIT    : return false; break;
         }
-        break;
-      case DispatchObject::PARM :
-        parmFileList.CheckCommand(dispatchToken_->Idx, command);
         break;
       default: mprintf("Dispatch type is currently not handled.\n");
     }
