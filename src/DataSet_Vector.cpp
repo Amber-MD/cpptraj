@@ -35,9 +35,9 @@ void DataSet_Vector::IncreaseSize() {
   double* newxyz = new double[ newsize ];
   if (totalidx_ > 0) {
     memcpy(newxyz,        xyz_, totalidx_ * sizeof(double));
-    memset(newxyz+totalidx_, 0,      3000 * sizeof(double));
     delete[] xyz_;
   }
+  memset(newxyz+totalidx_, 0,      3000 * sizeof(double));
   totalidx_ = newsize;
   xyz_ = newxyz;
 }
