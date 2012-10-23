@@ -63,12 +63,12 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   // Get DataSet name
   setname_ = actionArgs.GetStringNext();
   // Add output dataset
-  DataSet* dataout_ = DSL->AddSet( DataSet::DOUBLE, setname_, "Fluct" );
+  dataout_ = DSL->AddSet( DataSet::DOUBLE, setname_, "Fluct" );
   if (dataout_ == NULL) {
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
   }
-  DataFile* outfile_ = DFL->AddSetToFile( outfilename, dataout_ );
+  outfile_ = DFL->AddSetToFile( outfilename, dataout_ );
   outfile_->ProcessArgs("noemptyframes");
 
 
