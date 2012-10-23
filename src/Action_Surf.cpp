@@ -92,7 +92,7 @@ Action::RetType Action_Surf::Setup(Topology* currentParm, Topology** parmAddress
   VDW.clear();
   VDW.reserve( soluteAtoms );
   for (int atomj=0; atomj < soluteAtoms; atomj++) {
-    SetAtomLCPO( *currentParm, atomj+1, &SI );
+    SetAtomLCPO( *currentParm, atomj, &SI );
     VDW.push_back( SI.vdwradii );
     if (SI.vdwradii > 2.5)
       atomj_neighborMask.AddAtom(atomj);
