@@ -12,15 +12,14 @@ class Action_Watershell : public Action, ImagedAction {
     AtomMask solventMask_;
     std::string solventmaskexpr_;
     std::vector<int> activeResidues_;
-    std::vector<int> lower_;
-    std::vector<int> upper_;
     double lowerCutoff_;
     double upperCutoff_;
-    std::string filename_;
+    DataSet* lower_;
+    DataSet* upper_;
 
     int init();
     int setup();
     int action();
-    void print();
+    void print() {}
 };
 #endif
