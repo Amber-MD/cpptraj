@@ -15,12 +15,10 @@ Action_RmsAvgCorr::Action_RmsAvgCorr() :
 { } 
 
 void Action_RmsAvgCorr::Help() {
-
+  mprintf("rmsavgcorr [<mask>] [out <filename>] [output <separatename>]\n");
 }
 
 // Action_RmsAvgCorr::init()
-/** Expected call: rmsavgcorr [<mask>] [out <filename>] [output <separatename>] 
-  */
 Action::RetType Action_RmsAvgCorr::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
