@@ -102,6 +102,14 @@ void TrajectoryIO::SetBox() {
 int TrajectoryIO::CheckBoxInfo(Topology *trajParm) {
   Box trajbox;
   if (trajParm==NULL) return 1;
+  if (!hasBox_ && trajParm->BoxType() != Box::NOBOX) {
+    // No box in traj but box in parm - disable parm box.
+    mprintf("Warning: Box information present in parm but not in trajectory.\n");
+    mprintf("Warning: DISABLING BOX in parm [%s]!\n", trajParm->c_str());
+    trajParm->ParmBox().SetNoBox();
+    return 0;
+  }
+  // No box in traj or parm - exit.
   if (!hasBox_) return 0;
   // Check for zero box lengths
   if (boxLength_[0] < SMALL || boxLength_[1] < SMALL || boxLength_[2] < SMALL) {
