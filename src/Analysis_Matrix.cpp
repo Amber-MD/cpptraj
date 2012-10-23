@@ -79,7 +79,6 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   if (modes_==0) return Analysis::ERR;
   // Output string for writing modes file.
   modes_->SetType( matrix_->Type() );
-  modes_->SetAvgCoords( matrix_->VectSize(), matrix_->Vect() );
 
   // Print Status
   mprintf("    ANALYZE MATRIX: Analyzing matrix %s",matrix_->Legend().c_str());
@@ -105,6 +104,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
 }
 
 Analysis::RetType Analysis_Matrix::Analyze() {
+  modes_->SetAvgCoords( matrix_->VectSize(), matrix_->Vect() );
   // Calculate eigenvalues / eigenvectors
   if (modes_->CalcEigen( *matrix_, nevec_ )) return Analysis::ERR;
   if (matrix_->Type() == DataSet_Matrix::MWCOVAR) {

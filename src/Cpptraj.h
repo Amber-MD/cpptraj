@@ -44,7 +44,7 @@ class Cpptraj {
     static const DispatchObject::Token CoordCmds[];
     int SearchTokenArray(const DispatchObject::Token* DispatchArray,
                          bool, const ArgList&);
-    int SearchToken(const ArgList&);
+    int SearchToken(ArgList&);
     DispatchObject::Token const* dispatchToken_;
     /// List of parameter files 
     TopologyList parmFileList;

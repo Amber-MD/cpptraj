@@ -31,8 +31,7 @@ void Cpptraj::Help_Precision() {
 }
 
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, SYSTEM,
-                       ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE, REFERENCE,
-                       TRAJIN, TRAJOUT };
+                       ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef, ACTIVEREF },
@@ -53,10 +52,12 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::NONE,                  0, 0,          0,      0   }
 };
 
+enum CoordCmdTypes { REFERENCE, TRAJIN, TRAJOUT };
+
 const DispatchObject::Token Cpptraj::CoordCmds[] = {
-  { DispatchObject::GENERAL, "reference",     0, FrameList::Help,   REFERENCE },
-  { DispatchObject::GENERAL, "trajin",        0, TrajinList::Help,  TRAJIN },
-  { DispatchObject::GENERAL, "trajout",       0, TrajoutList::Help, TRAJOUT },
+  { DispatchObject::COORD, "reference",     0, FrameList::Help,   REFERENCE },
+  { DispatchObject::COORD, "trajin",        0, TrajinList::Help,  TRAJIN },
+  { DispatchObject::COORD, "trajout",       0, TrajoutList::Help, TRAJOUT },
   { DispatchObject::NONE,                  0, 0,                 0, 0 }
 };
 
@@ -236,13 +237,13 @@ int Cpptraj::SearchTokenArray(const DispatchObject::Token* DispatchArray,
   * a list then dispatchToken is set by SearchTokenArray and 1 is returned.
   * \return 1 if the token is found, 0 if not.
   */
-int Cpptraj::SearchToken(const ArgList& argIn) {
+int Cpptraj::SearchToken(ArgList& argIn) {
   dispatchToken_ = 0;
   // SPECIAL CASE: For backwards compat. remove analyze prefix
   if (argIn.CommandIs("analyze")) {
-    ArgList analyzeArg = argIn;
-    analyzeArg.RemoveFirstArg();
-    if (SearchTokenArray( AnalysisList::DispatchArray, false, analyzeArg)) return 1;
+    argIn.RemoveFirstArg();
+    argIn.MarkArg(0); // Mark new first arg as command
+    if (SearchTokenArray( AnalysisList::DispatchArray, false, argIn)) return 1;
   } else {
     if (SearchTokenArray( GeneralCmds, false, argIn )) return 1;
     if (SearchTokenArray( TopologyList::ParmCmds, false, argIn )) return 1;
@@ -281,6 +282,30 @@ bool Cpptraj::Dispatch(const char* inputLine) {
   if ( SearchToken( command ) ) {
     //mprintf("TOKEN FOUND. CMD=%s  TYPE=%i\n", dispatchToken_->Cmd, (int)dispatchToken_->Type);
     switch (dispatchToken_->Type) {
+      case DispatchObject::PARM :
+        if ( parmFileList.CheckCommand(dispatchToken_->Idx, command) 
+             && exitOnError_ )
+          return false;
+        break;
+      case DispatchObject::COORD :
+        switch ( dispatchToken_->Idx ) {
+          case TRAJIN :
+            tempParm = parmFileList.GetParm(command);
+            if (trajinList.AddTrajin(&command, tempParm) && exitOnError_)
+              return false;
+            break;
+          case TRAJOUT :
+            tempParm = parmFileList.GetParm(command);
+            if (trajoutList.AddTrajout(&command, tempParm) && exitOnError_)
+              return false;
+            break;
+          case REFERENCE :
+            tempParm = parmFileList.GetParm(command);
+            if (refFrames.AddReference(&command, tempParm) && exitOnError_)
+              return false;
+            break;
+        }
+        break;
       case DispatchObject::ACTION : 
         if (actionList.AddAction( dispatchToken_->Alloc, command, &parmFileList,
                                   &refFrames, &DSL, &DFL ) != 0 && exitOnError_ )
@@ -291,25 +316,8 @@ bool Cpptraj::Dispatch(const char* inputLine) {
              && exitOnError_)
           return false;
         break;
-      case DispatchObject::PARM :
-        if ( parmFileList.CheckCommand(dispatchToken_->Idx, command) 
-             && exitOnError_ )
-          return false;
-        break;
       case DispatchObject::GENERAL :
         switch ( dispatchToken_->Idx ) {
-          case TRAJIN :
-            tempParm = parmFileList.GetParm(command);
-            trajinList.AddTrajin(&command, tempParm);
-            break;
-          case TRAJOUT :
-            tempParm = parmFileList.GetParm(command);
-            trajoutList.AddTrajout(&command, tempParm);
-            break;
-          case REFERENCE :
-            tempParm = parmFileList.GetParm(command);
-            refFrames.AddReference(&command, tempParm);
-            break;
           case LIST  : List(command); break;
           case HELP  : Help(command); break;
           case DEBUG : Debug(command); break;
@@ -394,7 +402,7 @@ int Cpptraj::Run() {
 
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
-  rprintf("BEGIN TRAJECTORY PROCESSING:\n");
+  rprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
   trajinList.Begin();
   while ( (traj = trajinList.NextTraj()) != NULL ) {
     // Open up the trajectory file. If an error occurs, bail 
