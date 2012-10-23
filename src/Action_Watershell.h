@@ -11,21 +11,20 @@ class Action_Watershell : public Action, ImagedAction {
     static void Help();
 
   private:
-    AtomMask soluteMask_;
-    AtomMask solventMask_;
-    std::string solventmaskexpr_;
-    std::vector<int> activeResidues_;
-    std::vector<int> lower_;
-    std::vector<int> upper_;
-    double lowerCutoff_;
-    double upperCutoff_;
-    std::string filename_;
-    Topology* CurrentParm_;
-
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print();
+    void Print() { return; }
+
+    AtomMask soluteMask_;
+    AtomMask solventMask_;
+    std::string solventmaskexpr_;
+    std::vector<int> activeResidues_;
+    double lowerCutoff_;
+    double upperCutoff_;
+    Topology* CurrentParm_;
+    DataSet* lower_;
+    DataSet* upper_;
 };
 #endif

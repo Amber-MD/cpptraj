@@ -5,7 +5,9 @@
 Action_Watershell::Action_Watershell() :
   lowerCutoff_(0),
   upperCutoff_(0),
-  CurrentParm_(0)
+  CurrentParm_(0),
+  lower_(0),
+  upper_(0)
 { }
 
 void Action_Watershell::Help() {
@@ -20,15 +22,15 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, 
 {
   InitImaging( !actionArgs.hasKey("noimage") );
 
-  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
-  if (maskexpr == NULL) {
+  std::string maskexpr = actionArgs.GetMaskNext();
+  if (maskexpr.empty()) {
     mprinterr("Error: WATERSHELL: Solute mask must be specified.\n");
     return Action::ERR;
   }
   soluteMask_.SetMaskString( maskexpr );
 
-  filename_ = actionArgs.GetStringNext();
-  if (filename_.empty()) {
+  std::string filename = actionArgs.GetStringNext();
+  if (filename.empty()) {
     mprinterr("Error: WATERSHELL: Output filename must be specified.\n");
     return Action::ERR;
   }
@@ -39,7 +41,17 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, 
   // Check for solvent mask
   solventmaskexpr_ = actionArgs.GetMaskNext();
 
-  mprintf("    WATERSHELL: Output to %s\n",filename_.c_str());
+  // Set up datasets
+  std::string dsname = actionArgs.GetStringNext();
+  if (dsname.empty())
+    dsname = DSL->GenerateDefaultName("WS");
+  lower_ = DSL->AddSetAspect(DataSet::INT, dsname, "lower");
+  upper_ = DSL->AddSetAspect(DataSet::INT, dsname, "upper");
+  if (lower_ == 0 || upper_ == 0) return Action::ERR;
+  DFL->AddSetToFile(filename, lower_);
+  DFL->AddSetToFile(filename, upper_);
+
+  mprintf("    WATERSHELL: Output to %s\n",filename.c_str());
   if (!UseImage())
     mprintf("                Imaging is disabled.\n");
   mprintf("                The first shell will contain water < %.3lf angstroms from\n",
@@ -132,37 +144,23 @@ Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, F
   } // END loop over solute atoms
 
   // Now each residue is marked 0 (no shell), 1 (second shell), 2 (first shell)
-  // TODO: Use datasets instead
-  lower_.push_back( 0 );
-  upper_.push_back( 0 );
+  int nlower = 0;
+  int nupper = 0;
   for (std::vector<int>::iterator shell = activeResidues_.begin();
                                   shell != activeResidues_.end(); ++shell)
   {
     if ( *shell > 0 ) {
-      ++(upper_.back());
+      ++nupper;
       if ( *shell > 1 ) {
-        ++(lower_.back());
+        ++nlower;
       }
     }
     // Reset for next pass
     *shell = 0;
   }
+  lower_->Add(frameNum, &nlower);
+  upper_->Add(frameNum, &nupper);
 
   return Action::OK;
-}
-
-// Action_Watershell::print()
-void Action_Watershell::Print() {
-  CpptrajFile outfile;
-  if (outfile.OpenWrite( filename_ )) return;
-
-  unsigned int frame = 1;
-  std::vector<int>::iterator L = lower_.begin();
-  for (std::vector<int>::iterator U = upper_.begin(); U != upper_.end(); ++U) { 
-    outfile.Printf("%i %i %i\n", frame++, *L, *U);
-    ++L;
-  }
-  
-  outfile.CloseFile();
 }
 
