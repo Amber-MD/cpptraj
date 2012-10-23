@@ -16,7 +16,18 @@ Analysis_Modes::Analysis_Modes() :
 {}
 
 void Analysis_Modes::Help() {
-
+  mprintf("analyze modes fluct|displ|corr name <modesname>\n"); 
+  mprintf("              [beg <beg>] [end <end>] [bose] [factor <factor>]\n");
+  mprintf("              [out <outfile>] [maskp <mask1> <mask2> [...]]\n");
+  mprintf("\tfluct: rms fluctations from normal modes\n");
+  mprintf("\tdispl: displacement of cartesian coordinates along normal mode directions\n");
+  mprintf(" Results vector usage:\n");
+  mprintf("   fluct:\n");
+  mprintf("\t[rmsx(at1), rmsy(at1), rmsz(at1), rms(at1), ..., rmsx(atN), ..., rms(atN)]\n");
+  mprintf("   displ:\n");
+  mprintf("\t[displx(at1), disply(at1), displz(at1), ..., displx(atN), ..., displz(atN)]\n");
+  mprintf("   corr:\n");
+  mprintf("\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
 }
 
 //#define TWOPI 6.2832
@@ -45,8 +56,9 @@ Analysis_Modes::~Analysis_Modes() {
 }
 
 // Analysis_Modes::CheckDeprecated()
-void Analysis_Modes::CheckDeprecated(std::string& modesname, const char* key) {
-  std::string arg = analyzeArgs_.GetStringKey( key );
+void Analysis_Modes::CheckDeprecated(ArgList& analyzeArgs, std::string& modesname, 
+                                     const char* key) {
+  std::string arg = analyzeArgs.GetStringKey( key );
   if (!arg.empty()) {
     mprintf("Warning: analyze modes: Argument '%s' is deprecated, use 'name <modes>' instead.\n",
             key);
@@ -55,67 +67,50 @@ void Analysis_Modes::CheckDeprecated(std::string& modesname, const char* key) {
 }
 
 // Analysis_Modes::Setup()
-/** analyze modes fluct|displ|corr
-  *                            name <modesname> 
-  *                            [beg <beg>] [end <end>] 
-  *                            [bose] [factor <factor>]
-  *                            [out <outfile>] [maskp <mask1> <mask2> [...]]
-  *  - fluct: rms fluctations from normal modes
-  *  - displ: displacement of cartesian coordinates along normal mode directions
-  *
-  * results vector usage:
-  *  - fluct:
-  *      [rmsx(atom1), rmsy(atom1), rmsz(atom1), rms(atom1), ..., rmsx(atomN), ..., rms(atomN)]
-  *  - displ:
-  *      [displx(atom1), disply(atom1), displz(atom1), ..., displx(atomN), ..., displz(atomN)]
-  *  - corr:
-  *      [corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)
-  */
-int Analysis_Modes::Setup(DataSetList* DSLin) {
-  // Ensure first 2 args (should be 'analyze' 'modes') are marked.
-  analyzeArgs_.MarkArg(0);
-  analyzeArgs_.MarkArg(1);
+Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
+                            TopologyList* PFLin, int debugIn)
+{
   // Analysis type
-  if (analyzeArgs_.hasKey("fluct"))
+  if (analyzeArgs.hasKey("fluct"))
     type_ = FLUCT;
-  else if (analyzeArgs_.hasKey("displ"))
+  else if (analyzeArgs.hasKey("displ"))
     type_ = DISPLACE;
-  else if (analyzeArgs_.hasKey("corr"))
+  else if (analyzeArgs.hasKey("corr"))
     type_ = CORR;
   else {
     mprinterr("Error: analyze modes: no analysis type specified.\n");
-    return 1;
+    return Analysis::ERR;
   }
 
   // Get beg, end, factor, bose
-  bose_ = analyzeArgs_.hasKey("bose");
-  factor_ = analyzeArgs_.getKeyDouble("factor",1.0);
+  bose_ = analyzeArgs.hasKey("bose");
+  factor_ = analyzeArgs.getKeyDouble("factor",1.0);
 
   // Get modes name
-  std::string modesfile = analyzeArgs_.GetStringKey("name");
+  std::string modesfile = analyzeArgs.GetStringKey("name");
   if (modesfile.empty()) {
     // Check for deprecated args
-    CheckDeprecated(modesfile, "file");
-    CheckDeprecated(modesfile, "stack");
+    CheckDeprecated(analyzeArgs, modesfile, "file");
+    CheckDeprecated(analyzeArgs, modesfile, "stack");
     if (modesfile.empty()) {
       mprinterr("Error: analyze modes: No 'modes <name>' arg given.\n");
-      return 1;
+      return Analysis::ERR;
     }
   }
-  beg_ = analyzeArgs_.getKeyInt("beg",7) - 1; // Args start at 1
-  end_ = analyzeArgs_.getKeyInt("end", 50);
+  beg_ = analyzeArgs.getKeyInt("beg",7) - 1; // Args start at 1
+  end_ = analyzeArgs.getKeyInt("end", 50);
   // Check if modes name exists on the stack
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
     // If not on stack, check for file.
     if ( fileExists(modesfile.c_str()) ) {
       modinfo_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
-      if (modinfo_->ReadEvecFile( modesfile, beg_+1, end_ )) return 1;
+      if (modinfo_->ReadEvecFile( modesfile, beg_+1, end_ )) return Analysis::ERR;
     }
   }
   if (modinfo_ == 0) {
     mprinterr("Error: analyze modes: Modes %s DataSet/file not found.\n");
-    return 1;
+    return Analysis::ERR;
   }
 
   // Check modes type
@@ -123,27 +118,32 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
       modinfo_->Type() != DataSet_Matrix::MWCOVAR)
   {
     mprinterr("Error: analyze modes: evecs must be of type COVAR or MWCOVAR.\n");
-    return 1;
+    return Analysis::ERR;
   }
 
   // Get output filename
-  filename_ = analyzeArgs_.GetStringKey("out");
+  filename_ = analyzeArgs.GetStringKey("out");
 
   // Get mask pair info for ANALYZEMODES_CORR option and build the atom pair stack
   if ( type_ == CORR ) {
-    while (analyzeArgs_.hasKey("maskp")) {
+    Topology* analyzeParm = PFLin->GetParm( analyzeArgs );
+    if (analyzeParm == 0) {
+      mprinterr("Error: analyze modes: corr requires topology (parm <file>, parmindex <#>).\n");
+      return Analysis::ERR;
+    }
+    while (analyzeArgs.hasKey("maskp")) {
       // Next two arguments should be one-atom masks
-      ArgList::ConstArg a1mask = analyzeArgs_.getNextMask();
-      ArgList::ConstArg a2mask = analyzeArgs_.getNextMask();
+      ArgList::ConstArg a1mask = analyzeArgs.getNextMask();
+      ArgList::ConstArg a2mask = analyzeArgs.getNextMask();
       if (a1mask==NULL || a2mask==NULL) {
         mprinterr("Error: analyze modes: For 'corr' two 1-atom masks are expected.\n");
-        return 1;
+        return Analysis::ERR;
       }
       // Check that each mask is just 1 atom
       AtomMask m1( a1mask );
       AtomMask m2( a2mask );
-      analyzeParm_->SetupIntegerMask( m1 ); 
-      analyzeParm_->SetupIntegerMask( m2 );
+      analyzeParm->SetupIntegerMask( m1 ); 
+      analyzeParm->SetupIntegerMask( m2 );
       if ( m1.Nselected()==1 && m2.Nselected()==1 )
         // Store atom pair
         atompairStack_.push_back( std::pair<int,int>( m1[0], m2[0] ) );
@@ -151,12 +151,12 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
         mprinterr("Error: analyze modes: For 'corr', masks should specify only one atom.\n");
         mprinterr("\tM1[%s]=%i atoms, M2[%s]=%i atoms.\n", m1.MaskString(), m1.Nselected(),
                   m2.MaskString(), m2.Nselected());
-        return 1;
+        return Analysis::ERR;
       }
     }
     if ( atompairStack_.empty() ) {
       mprinterr("Error: analyze modes: no atom pairs found (use 'maskp <mask1> <mask2>')\n");
-      return 1;
+      return Analysis::ERR;
     }
   }
 
@@ -182,16 +182,16 @@ int Analysis_Modes::Setup(DataSetList* DSLin) {
     mprintf("\n");
   }
 
-  return 0;
+  return Analysis::OK;
 }
 
 // Analysis_Modes::Analyze()
-int Analysis_Modes::Analyze() {
+Analysis::RetType Analysis_Modes::Analyze() {
   CpptrajFile outfile;
   // Check # of modes
   if (beg_ < 0 || beg_ >= modinfo_->Nmodes()) {
     mprinterr("Error: analyze modes: 'beg %i' is out of bounds.\n", beg_+1);
-    return 1;
+    return Analysis::ERR;
   }
   if (end_ > modinfo_->Nmodes()) {
     mprintf("Warning: analyze modes: 'end %i' is > # of modes, setting to %i\n",
@@ -200,7 +200,7 @@ int Analysis_Modes::Analyze() {
   }
   if (end_ <= beg_) {
     mprinterr("Warning: analyze modes: beg must be <= end, (%i -- %i)\n", beg_+1, end_);
-    return 1;
+    return Analysis::ERR;
   }
 
   // ----- FLUCT PRINT -----
@@ -290,7 +290,7 @@ int Analysis_Modes::Analyze() {
   } else if (type_ == CORR) {
     // Calc dipole-dipole correlation functions
     CalcDipoleCorr();
-    if (results_==0) return 1;
+    if (results_==0) return Analysis::ERR;
     outfile.OpenWrite( filename_ );
     outfile.Printf("Analysis of modes: CORRELATION FUNCTIONS\n");
     outfile.Printf("%10s %10s %10s %10s %10s %10s\n", "Atom1", "Atom2", "Mode", 
@@ -312,10 +312,10 @@ int Analysis_Modes::Analyze() {
       }
     } // END loop over CORR atom pairs
   } else // SANITY CHECK
-    return 1;
+    return Analysis::ERR;
   outfile.CloseFile();
 
-  return 0;
+  return Analysis::OK;
 }
 
 // Analysis_Modes::CalcDipoleCorr()

@@ -6,20 +6,20 @@
 Analysis_CrossCorr::Analysis_CrossCorr() {}
 
 void Analysis_CrossCorr::Help() {
-
+  mprintf("crosscorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] out <filename>\n");
 }
 
-/** Usage: crosscorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] out <filename>
-  */
-int Analysis_CrossCorr::Setup( DataSetList* datasetlist ) {
-  std::string setname_ = analyzeArgs_.GetStringKey("name");
-  outfilename_ = analyzeArgs_.GetStringKey("out");
+Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
+                            TopologyList* PFLin, int debugIn)
+{
+  std::string setname_ = analyzeArgs.GetStringKey("name");
+  outfilename_ = analyzeArgs.GetStringKey("out");
   // Select datasets
-  while (analyzeArgs_.ArgsRemain())
-    dsets_ += datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
+  while (analyzeArgs.ArgsRemain())
+    dsets_ += datasetlist->GetMultipleSets( analyzeArgs.GetStringNext() );
   if (dsets_.empty()) {
     mprinterr("Error: crosscorr: No data sets selected.\n");
-    return 1;
+    return Analysis::ERR;
   }
   // Setup output dataset
   matrix_ = datasetlist->AddSet( DataSet::TRIMATRIX, setname_, "crosscorr" );
@@ -31,10 +31,10 @@ int Analysis_CrossCorr::Setup( DataSetList* datasetlist ) {
   if ( !outfilename_.empty() )
     mprintf("\tOutfile name: %s\n", outfilename_.c_str());
 
-  return 0;
+  return Analysis::OK;
 }
 
-int Analysis_CrossCorr::Analyze() {
+Analysis::RetType Analysis_CrossCorr::Analyze() {
   TriangleMatrix* tmatrix = (TriangleMatrix*)matrix_;
 
   int Nsets = dsets_.size();
@@ -57,7 +57,7 @@ int Analysis_CrossCorr::Analyze() {
     }
   }
 
-  return 0;
+  return Analysis::OK;
 }
 
 void Analysis_CrossCorr::Print( DataFileList* datafilelist ) {

@@ -9,9 +9,8 @@ class Analysis_FFT : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_FFT(); }
     static void Help();
 
-
-    int Setup(DataSetList*);
-    int Analyze();
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
     void Print(DataFileList*);
   private:
     DataSetList input_dsets_;

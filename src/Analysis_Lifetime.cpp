@@ -12,28 +12,28 @@ Analysis_Lifetime::Analysis_Lifetime() :
 {}
 
 void Analysis_Lifetime::Help() {
-
+  mprintf("lifetime [out <filename>] <dsetarg0> [ <dsetarg1> ... ]\n");
+  mprintf("         [window <windowsize> [name <setname>]] [averageonly]\n");
+  mprintf("         [cumulative] [cut <cutoff>]\n");
 }
 
-/** Usage: lifetime [out <filename>] <dsetarg0> [ <dsetarg1> ... ]
-  *                 [window <windowsize> [name <setname>]] [averageonly]
-  *                 [cumulative] [cut <cutoff>]
-  */
-int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
+Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
+                            TopologyList* PFLin, int debugIn)
+{
   // Get Keywords
-  outfilename_ = analyzeArgs_.GetStringKey("out");
-  std::string setname_ = analyzeArgs_.GetStringKey("name");
-  windowSize_ = analyzeArgs_.getKeyInt("window", -1);
-  averageonly_ = analyzeArgs_.hasKey("averageonly");
-  cumulative_ = analyzeArgs_.hasKey("cumulative");
-  deltaAvg_ = analyzeArgs_.hasKey("delta");
-  cut_ = analyzeArgs_.getKeyDouble("cut", 0.5);
+  outfilename_ = analyzeArgs.GetStringKey("out");
+  std::string setname_ = analyzeArgs.GetStringKey("name");
+  windowSize_ = analyzeArgs.getKeyInt("window", -1);
+  averageonly_ = analyzeArgs.hasKey("averageonly");
+  cumulative_ = analyzeArgs.hasKey("cumulative");
+  deltaAvg_ = analyzeArgs.hasKey("delta");
+  cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
   // Select datasets
-  while (analyzeArgs_.ArgsRemain())
-    inputDsets_ += datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
+  while (analyzeArgs.ArgsRemain())
+    inputDsets_ += datasetlist->GetMultipleSets( analyzeArgs.GetStringNext() );
   if (inputDsets_.empty()) {
     mprinterr("Error: lifetime: No data sets selected.\n");
-    return 1;
+    return Analysis::ERR;
   }
   // Sort input datasets
   inputDsets_.sort();
@@ -49,7 +49,7 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
       if (outSet==NULL) {
         mprinterr("Error: lifetime: Could not allocate output set for %s\n", 
                   (*set)->Legend().c_str());
-        return 1;
+        return Analysis::ERR;
       }
       outSet->SetLegend( (*set)->Legend() );
       outputDsets_.push_back( outSet );
@@ -68,7 +68,7 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
     }
   } else if (!outfilename_.empty()) {
     mprinterr("Error: Output file name specified but no window size given ('window <N>')\n");
-    return 1;
+    return Analysis::ERR;
   }
 
   if (!averageonly_)
@@ -76,7 +76,7 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
   else
     mprintf("    LIFETIME: Calculating only averages");
   mprintf(" of data in %i sets\n", inputDsets_.size());
-  if (debug_ > 0)
+  if (debugIn > 0)
     inputDsets_.List();
   if (windowSize_ != -1) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
@@ -94,11 +94,11 @@ int Analysis_Lifetime::Setup( DataSetList* datasetlist ) {
     }
   }
 
-  return 0;
+  return Analysis::OK;
 }
 
 // Analysis_Lifetime::Analyze()
-int Analysis_Lifetime::Analyze() {
+Analysis::RetType Analysis_Lifetime::Analyze() {
   float favg;
   int current = 0;
   ProgressBar progress( inputDsets_.size() );
@@ -212,7 +212,7 @@ int Analysis_Lifetime::Analyze() {
     ++maxSet;
     ++avgSet;
   }
-  return 0;
+  return Analysis::OK;
 }
 
 void Analysis_Lifetime::PrintListToFile(DataFileList *dfl, std::vector<DataSet*>& list,

@@ -11,9 +11,9 @@ class Analysis_Modes : public Analysis {
 
     ~Analysis_Modes();
 
-    int Setup(DataSetList*);
-    int Analyze();
-
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
+    void Print(DataFileList*) { return; }
   private:
     static const double CONSQ;
     static const double TKBC2;
@@ -37,7 +37,7 @@ class Analysis_Modes : public Analysis {
     modestackType atompairStack_;
     double* results_;
 
-    void CheckDeprecated(std::string&, const char*);
+    void CheckDeprecated(ArgList&,std::string&, const char*);
     void CalcDipoleCorr();
 };
 #endif

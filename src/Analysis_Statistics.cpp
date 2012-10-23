@@ -6,43 +6,43 @@
 
 // CONSTRUCTOR
 Analysis_Statistics::Analysis_Statistics() :
-  shift_(0)
+  shift_(0),
+  debug_(0)
 {}
 
 void Analysis_Statistics::Help() {
-
+  mprintf("analyze statistics {<name> | ALL} [shift <value>]\n");
 }
 
-/** analyze statistics {<name> | ALL} [shift <value>] */
-int Analysis_Statistics::Setup(DataSetList *DSLin) {
+Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
+                            TopologyList* PFLin, int debugIn)
+{
+  debug_ = debugIn;
   bool analyzeAll = false;
-  // Ensure first two args are marked (analyze statistics).
-  analyzeArgs_.MarkArg(0);
-  analyzeArgs_.MarkArg(1);
   // Get keywords.
-  shift_ = analyzeArgs_.getKeyDouble("shift", 0);
-  filename_ = analyzeArgs_.GetStringKey("out");
+  shift_ = analyzeArgs.getKeyDouble("shift", 0);
+  filename_ = analyzeArgs.GetStringKey("out");
   // Get dataset or all datasets
-  if (analyzeArgs_.hasKey("all")) {
+  if (analyzeArgs.hasKey("all")) {
     analyzeAll = true;
     for (DataSetList::const_iterator ds = DSLin->begin(); ds != DSLin->end(); ++ds)
       datasets_.push_back( *ds );
   } else {
-    std::string dsetname = analyzeArgs_.GetStringNext();
+    std::string dsetname = analyzeArgs.GetStringNext();
     if (dsetname.empty()) {
       mprinterr("Error: analyze statistics: No dataset name or 'all' specified.\n");
-      return 1;
+      return Analysis::ERR;
     }
     DataSet *tempds = DSLin->Get( dsetname.c_str() );
     if (tempds == NULL) {
       mprinterr("Error: analyze statistics: No dataset with name %s\n", dsetname.c_str());
-      return 1;
+      return Analysis::ERR;
     }
     datasets_.push_back( tempds );
   }
   if (datasets_.empty()) {
     mprinterr("Error: analyze statistics: No datasets to analyze.\n");
-    return 1;
+    return Analysis::ERR;
   }
   // INFO
   mprintf("    ANALYZE STATISTICS: ");
@@ -56,11 +56,11 @@ int Analysis_Statistics::Setup(DataSetList *DSLin) {
   if (!filename_.empty())
     mprintf("\tOutput to file %s\n", filename_.c_str());
 
-  return 0;
+  return Analysis::OK;
 }
 
-int Analysis_Statistics::Analyze() {
-  if (outfile_.OpenWrite( filename_ )) return 1;
+Analysis::RetType Analysis_Statistics::Analyze() {
+  if (outfile_.OpenWrite( filename_ )) return Analysis::ERR;
   for (std::vector<DataSet*>::iterator ds = datasets_.begin();
                                        ds != datasets_.end(); ++ds)
   {
@@ -128,7 +128,7 @@ int Analysis_Statistics::Analyze() {
 
   } // END loop over DataSets
 
-  return 0;
+  return Analysis::OK;
 }
 
 const char Analysis_Statistics::pucker_ss[10][9] = {

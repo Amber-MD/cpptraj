@@ -12,21 +12,22 @@ Analysis_FFT::Analysis_FFT() :
 {}
 
 void Analysis_FFT::Help() {
-
+  mprintf("fft <sets arg> [out <outfile>] [name <outsetname>] [d]\n");
 }
 
 // Analysis_FFT::Setup()
-/** Usage: fft <sets arg> [out <outfile>] [name <outsetname>] [d] */
-int Analysis_FFT::Setup(DataSetList* datasetlist) {
-  std::string setname_ = analyzeArgs_.GetStringKey("name");
-  outfilename_ = analyzeArgs_.GetStringKey("out");
-  dt_ = analyzeArgs_.getKeyDouble("dt",1.0);
+Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
+                            TopologyList* PFLin, int debugIn)
+{
+  std::string setname_ = analyzeArgs.GetStringKey("name");
+  outfilename_ = analyzeArgs.GetStringKey("out");
+  dt_ = analyzeArgs.getKeyDouble("dt",1.0);
   // Select datasets
-  while (analyzeArgs_.ArgsRemain()) 
-    input_dsets_ += datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
+  while (analyzeArgs.ArgsRemain()) 
+    input_dsets_ += datasetlist->GetMultipleSets( analyzeArgs.GetStringNext() );
   if (input_dsets_.empty()) {
     mprinterr("Error: FFT: No data sets selected.\n");
-    return 1;
+    return Analysis::ERR;
   }
   // If setname is empty generate a default name
   if (setname_.empty())
@@ -52,7 +53,7 @@ int Analysis_FFT::Setup(DataSetList* datasetlist) {
       continue;
     }
     DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++ );
-    if (dsout==NULL) return 1;
+    if (dsout==NULL) return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
     output_dsets_.push_back( dsout );
   }
@@ -65,13 +66,13 @@ int Analysis_FFT::Setup(DataSetList* datasetlist) {
   if ( !outfilename_.empty() )
     mprintf("\tOutfile name: %s\n", outfilename_.c_str());
 
-  return 0;
+  return Analysis::OK;
 }
 
 /** Calculate FFT for input DataSets. FFT magnitude is reported. Magnitude
   * is normalized by N / 2. Only data up to the Nyquist frequency is used. 
   */
-int Analysis_FFT::Analyze() {
+Analysis::RetType Analysis_FFT::Analyze() {
   //PubFFT pubfft( maxsize_ );
   PubFFT pubfft;
   pubfft.SetupFFTforN( maxsize_ );
@@ -117,7 +118,7 @@ int Analysis_FFT::Analyze() {
     ++dsout;
   }
   delete[] data1;
-  return 0;
+  return Analysis::OK;
 }
 
 void Analysis_FFT::Print( DataFileList* datafilelist ) {

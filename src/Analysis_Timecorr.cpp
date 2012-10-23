@@ -27,7 +27,10 @@ Analysis_Timecorr::Analysis_Timecorr() :
 {}
 
 void Analysis_Timecorr::Help() {
-
+  mprintf("analyze timecorr vec1 <vecname1> [vec2 <vecname2>]\n");
+  mprintf("                 [relax] [freq <hz>] [NHdist <distnh>] [order <order>]\n");
+  mprintf("                 tstep <tstep> tcorr <tcorr> out <filename>\n");
+  mprintf("                 [ corrired modes <modesname> [beg <ibeg> end <iend>] ]\n");
 }
 
 // DESTRUCTOR
@@ -59,34 +62,28 @@ void Analysis_Timecorr::CalcCorr(int ndata, int nsteps, int frame) {
 
 
 // Analysis_Timecorr::Setup()
-/** analyze timecorr vec1 <vecname1> [vec2 <vecname2>]
-  *                  [relax] [freq <hz>] [NHdist <distnh>] [order <order>]
-  *                  tstep <tstep> tcorr <tcorr> out <filename>
-  *                  [ corrired modes <modesname> [beg <ibeg> end <iend>] ]
-  */
-int Analysis_Timecorr::Setup(DataSetList* DSLin) {
-  // Ensure first 2 args (should be 'analyze' 'timecorr') are marked.
-  analyzeArgs_.MarkArg(0);
-  analyzeArgs_.MarkArg(1);
+Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
+                            TopologyList* PFLin, int debugIn)
+{
   // Get Vectors
-  std::string vec1name = analyzeArgs_.GetStringKey("vec1");
+  std::string vec1name = analyzeArgs.GetStringKey("vec1");
   if (vec1name.empty()) {
     mprinterr("Error: analyze timecorr: no vec1 given, ignoring command\n");
-    return 1;
+    return Analysis::ERR;
   }
   vinfo1_ = (DataSet_Vector*)DSLin->FindSetOfType( vec1name, DataSet::VECTOR );
   if (vinfo1_==0) {
     mprinterr("Error: analyze timecorr: vec1: no vector with name %s found.\n", 
               vec1name.c_str());
-    return 1;
+    return Analysis::ERR;
   }
-  std::string vec2name = analyzeArgs_.GetStringKey("vec2");
+  std::string vec2name = analyzeArgs.GetStringKey("vec2");
   if (!vec2name.empty()) {
     vinfo2_ = (DataSet_Vector*)DSLin->FindSetOfType( vec2name, DataSet::VECTOR );
     if (vinfo2_==0) {
       mprinterr("Error: analyze timecorr: vec2: no vector with name %s found.\n", 
                 vec2name.c_str());
-      return 1;
+      return Analysis::ERR;
     }
   }
   // Determine auto or cross correlation 
@@ -98,25 +95,25 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
   else
     mode_ = CROSS;
   // Get order for Legendre polynomial
-  order_ = analyzeArgs_.getKeyInt("order",2);
+  order_ = analyzeArgs.getKeyInt("order",2);
   if (order_ < 0 || order_ > 2) {
     mprintf("Warning: vector order out of bounds (<0 or >2), resetting to 2.\n");
     order_ = 2;
   }
 
   // Get tstep, tcorr, filename
-  tstep_ = analyzeArgs_.getKeyDouble("tstep", 1.0);
-  tcorr_ = analyzeArgs_.getKeyDouble("tcorr", 10000.0);
-  filename_ = analyzeArgs_.GetStringKey("out");
+  tstep_ = analyzeArgs.getKeyDouble("tstep", 1.0);
+  tcorr_ = analyzeArgs.getKeyDouble("tcorr", 10000.0);
+  filename_ = analyzeArgs.GetStringKey("out");
   if (filename_.empty()) {
     mprinterr("Error: analyze timecorr: No outfile given ('out <filename>').\n");
-    return 1;
+    return Analysis::ERR;
   }
 
   // Get dplr, norm, drct
-  dplr_ = analyzeArgs_.hasKey("dplr");
-  norm_ = analyzeArgs_.hasKey("norm");
-  drct_ = analyzeArgs_.hasKey("drct");
+  dplr_ = analyzeArgs.hasKey("dplr");
+  norm_ = analyzeArgs.hasKey("norm");
+  drct_ = analyzeArgs.hasKey("drct");
 
   // Print Status
   mprintf("    ANALYZE TIMECORR: Calculating");
@@ -140,18 +137,18 @@ int Analysis_Timecorr::Setup(DataSetList* DSLin) {
     mprintf(" FFT approach.\n");
   mprintf("\t\tResults are written to %s\n", filename_.c_str());
 
-  return 0;
+  return Analysis::OK;
 }
 
 // Analysis_Timecorr::Analyze()
-int Analysis_Timecorr::Analyze() {
+Analysis::RetType Analysis_Timecorr::Analyze() {
   // If 2 vectors, ensure they have the same # of frames
   if (vinfo2_!=0) {
     if (vinfo1_->Size() != vinfo2_->Size()) {
       mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
                 vinfo1_->Legend().c_str(), vinfo1_->Size(), 
                 vinfo2_->Legend().c_str(), vinfo2_->Size());
-      return 1;
+      return Analysis::ERR;
     }
   }
 
@@ -255,7 +252,7 @@ int Analysis_Timecorr::Analyze() {
     
   // ----- PRINT NORMAL -----
   CpptrajFile outfile;
-  if (outfile.OpenWrite(filename_)) return 1;
+  if (outfile.OpenWrite(filename_)) return Analysis::ERR;
   outfile.Printf("%s-correlation functions, normal type\n",ModeString[mode_]);
   if (dplr_) {
     outfile.Printf("***** Vector length *****\n");
@@ -300,6 +297,6 @@ int Analysis_Timecorr::Analyze() {
   }
   outfile.CloseFile();
 
-  return 0;
+  return Analysis::OK;
 }
 

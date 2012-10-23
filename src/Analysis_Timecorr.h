@@ -15,9 +15,9 @@ class Analysis_Timecorr : public Analysis {
 
     ~Analysis_Timecorr();
 
-    int Setup(DataSetList*);
-    int Analyze();
-    //void Print(DataFileList*);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
+    void Print(DataFileList*) { return; }
   private:
     enum timecorrMode { AUTO = 0, CROSS };
     //static const double factor_;

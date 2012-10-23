@@ -10,9 +10,8 @@ class Analysis_Corr : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Corr(); }
     static void Help();
 
-
-    int Setup(DataSetList*);
-    int Analyze();
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
     void Print(DataFileList*);
   private:
     DataSet *D1_;

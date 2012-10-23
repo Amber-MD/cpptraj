@@ -8,9 +8,9 @@ class Analysis_CrankShaft : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CrankShaft(); }
     static void Help();
 
-    
-    int Setup(DataSetList*);
-    int Analyze();
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
+    void Print(DataFileList*) { return; }
   private:
     enum CSangleType { NOTYPE = 0, EPSILON_ZETA, ALPHA_GAMMA };
     enum CStype { ANGLE=0, DISTANCE };
@@ -19,6 +19,7 @@ class Analysis_CrankShaft : public Analysis {
     static const char torsion_ss_2D[][6][6];
 
     std::string filename_;
+    int debug_;
     int start_;
     int stop_;
     int offset_;

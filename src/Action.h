@@ -1,10 +1,10 @@
 #ifndef INC_ACTION_H
 #define INC_ACTION_H
 #include "DispatchObject.h"
-#include "FrameList.h"
 #include "ArgList.h"
-#include "DataSetList.h"
 #include "DataFileList.h"
+#include "DataSetList.h"
+#include "FrameList.h"
 #include "TopologyList.h"
 // Class: Action 
 /// The abstract base class that all other actions inherit. 
@@ -18,7 +18,7 @@
   */
 class Action : public DispatchObject {
   public:
-    /// Enumerate potential return states from DoAction.
+    /// Enumerate potential return states from Init, Setup, and DoAction.
     enum RetType { OK=0, ERR, USEORIGINALFRAME, SUPPRESSCOORDOUTPUT };
     /// Destructor - virtual since this class is inherited
     virtual ~Action() {}

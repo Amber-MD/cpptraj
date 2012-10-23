@@ -9,14 +9,21 @@ class AnalysisList {
     ~AnalysisList();
     
     void SetDebug(int);
-    int AddAnalysis(DispatchObject::DispatchAllocatorType, ArgList const&);
-    int Setup(DataSetList*,TopologyList*);
-    void Analyze(DataFileList*);
+    int AddAnalysis(DispatchObject::DispatchAllocatorType, ArgList&,
+                    TopologyList*, DataSetList*);
+    void DoAnalyses(DataFileList*);
     void List();
   private:
+    /// Analysis setup status
+    enum AnalysisStatusType { NO_SETUP = 0, SETUP, INACTIVE };
     typedef std::vector<Analysis*> aListType;
-    typedef std::vector<Analysis*>::iterator aListIt;
-    std::vector<Analysis*> analysisList_;
+    /// List of analyses
+    aListType analysisList_;
+    /// List of analysis commands
+    std::vector<std::string> analysisCmd_;
+    /// List of analysis statuses
+    std::vector<AnalysisStatusType> analysisStatus_;
+    /// Default debug level for analyses
     int debug_;
 };
 #endif

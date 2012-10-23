@@ -287,7 +287,9 @@ bool Cpptraj::Dispatch(const char* inputLine) {
           return false; 
         break;
       case DispatchObject::ANALYSIS :
-        analysisList.AddAnalysis( dispatchToken_->Alloc, command );
+        if ( analysisList.AddAnalysis( dispatchToken_->Alloc, command, &parmFileList, &DSL ) 
+             && exitOnError_)
+          return false;
         break;
       case DispatchObject::GENERAL :
         switch ( dispatchToken_->Idx ) {
@@ -466,8 +468,7 @@ int Cpptraj::Run() {
   DSL.List();
 
   // ========== A N A L Y S I S  P H A S E ==========
-  analysisList.Setup(&DSL, &parmFileList);
-  analysisList.Analyze(&DFL);
+  analysisList.DoAnalyses(&DFL);
 
   // DEBUG: DataSets, post-Analysis
   mprintf("\nDATASETS AFTER ANALYSIS:\n");

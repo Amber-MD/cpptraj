@@ -12,14 +12,15 @@ class Analysis_Statistics : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Statistics(); }
     static void Help();
 
-
-    int Setup(DataSetList*);
-    int Analyze();
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
+    void Print(DataFileList*) { return; }
   private:
     std::vector<DataSet*> datasets_;
     std::string filename_;
     CpptrajFile outfile_;
     double shift_;
+    int debug_;
 
     static const char pucker_ss[][9];
     void PuckerAnalysis( DataSet*, int );

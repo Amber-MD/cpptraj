@@ -39,7 +39,7 @@ AnalysisList::AnalysisList() :
 
 // DESTRUCTOR
 AnalysisList::~AnalysisList() {
-  for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
+  for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
     delete *ana;
 }
 
@@ -51,62 +51,49 @@ void AnalysisList::SetDebug(int debugIn) {
     mprintf("AnalysisList DEBUG LEVEL SET TO %i\n",debug_);
 }
 
-int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgList const& argIn)
+// AnalysisList::AddAnalysis()
+/** Add specified analysis to the analysis list with given args and 
+  * DataSetList.
+  */
+int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
+                              TopologyList* PFLin, DataSetList* DSLin)
 {
   Analysis* ana = (Analysis*)Alloc();
-  ana->SetArg( argIn );
-  ana->SetDebug( debug_ );
+  // Attempt to set up analysis
+  if (ana->Setup( argIn, DSLin, PFLin, debug_) != Analysis::OK) {
+    mprinterr("Error: Could not setup analysis [%s]\n", argIn.Command());
+    return 1;
+  }
+  argIn.CheckForMoreArgs();
   analysisList_.push_back( ana );
+  analysisCmd_.push_back( argIn.ArgLine() );
+  analysisStatus_.push_back( SETUP );
   return 0;
 }
 
-// AnalysisList::Setup()
-/** Set up all analysis in list with given datasetlist. Also set the parm
-  * (first parm will be set if parm/parmindex keywords not specified).
-  */
-int AnalysisList::Setup(DataSetList *datasetlist, TopologyList *parmfilelist) {
-  int nfail = 0;
-  if (analysisList_.empty()) return 0;
-  mprintf("\nANALYSIS: Setting up %zu analyses:\n",analysisList_.size());
-  int iana = 0;
-  for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana) {
-    // Set parm for analysis.
-    (*ana)->SetParm(parmfilelist);
-    mprintf("  %i: [%s] (Parm: %s)\n", iana++, (*ana)->CmdLine(), (*ana)->ParmName());
-    (*ana)->SetSetup(true);
-    if ((*ana)->Setup(datasetlist)) {
-      mprinterr("Error setting up analysis %i [%s] - skipping.\n",iana,
-                (*ana)->AnalysisCommand());
-      (*ana)->SetSetup(false);
-      ++nfail;
-    }
-    (*ana)->CheckForMoreArgs();
-  }
-  mprintf("\n");   
-  //mprintf("    ...................................................\n\n");
-  return nfail;
-}
-
-// AnalysisList::Analyze()
-void AnalysisList::Analyze(DataFileList *datafilelist) {
+// AnalysisList::DoAnalyses()
+void AnalysisList::DoAnalyses(DataFileList *datafilelist) {
   if (analysisList_.empty()) return;
   mprintf("\nANALYSIS: Performing %zu analyses:\n",analysisList_.size());
-  int iana = 0;
-  for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana) {
-    if ((*ana)->IsSetup()) {
-      mprintf("  %i: [%s]\n",iana, (*ana)->CmdLine());
-      if ((*ana)->Analyze()==0) 
+  unsigned int ananum = 0;
+  for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana) {
+    if ( analysisStatus_[ananum] == SETUP ) {
+      mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
+      if ((*ana)->Analyze()==Analysis::OK) 
         (*ana)->Print(datafilelist); 
       // NOTE: Move print function ??
     }
-    ++iana;
+    ++ananum;
   }
   mprintf("\n");
   //mprintf("    ...................................................\n\n");
 }
 
 void AnalysisList::List() {
-  unsigned int iana = 0;
-  for (aListIt ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
-    mprintf("  %u: [%s] (Parm: %s)\n", iana++, (*ana)->CmdLine(), (*ana)->ParmName());
+  unsigned int ananum = 0;
+  for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
+  {
+    mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
+    ++ananum;
+  }
 }

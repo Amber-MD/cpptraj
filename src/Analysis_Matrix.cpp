@@ -17,44 +17,43 @@ void Analysis_Matrix::Help() {
 }
 
 // Analysis_Matrix::Setup()
-int Analysis_Matrix::Setup(DataSetList* DSLin) {
+Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
+                            TopologyList* PFLin, int debugIn)
+{
 #ifdef NO_MATHLIB
   mprinterr("Error: analyze matrix: Compiled without LAPACK routines.\n");
   return 1;
 #else
-  // Ensure first 2 args (should be 'analyze' 'matrix') are marked.
-  analyzeArgs_.MarkArg(0);
-  analyzeArgs_.MarkArg(1);
   // Get matrix name
-  std::string mname = analyzeArgs_.GetStringNext();
+  std::string mname = analyzeArgs.GetStringNext();
   if (mname.empty()) {
     mprinterr("Error: analyze matrix: missing matrix name (first argument).\n");
-    return 1;
+    return Analysis::ERR;
   }
   // Find matrix in DataSetList.
   matrix_ = (DataSet_Matrix*)DSLin->FindSetOfType( mname, DataSet::MATRIX );
   if (matrix_ == 0) {
     mprinterr("Error: analyze matrix: Could not find matrix named %s\n",mname.c_str());
-    return 1;
+    return Analysis::ERR;
   }
   // Check that matrix is symmetric (half-matrix incl. diagonal).
   if (matrix_->Nrows() > 0) {
     mprinterr("Error: analyze matrix: Only works for symmetric matrices (i.e. no mask2)\n");
-    return 1;
+    return Analysis::ERR;
   }
   // Filenames
-  outfilename_ = analyzeArgs_.GetStringKey("out");
+  outfilename_ = analyzeArgs.GetStringKey("out");
   // Thermo flag
-  thermopt_ = analyzeArgs_.hasKey("thermo");
+  thermopt_ = analyzeArgs.hasKey("thermo");
   if (thermopt_)
-    outthermo_ = analyzeArgs_.GetStringKey("outthermo");
+    outthermo_ = analyzeArgs.GetStringKey("outthermo");
   if (thermopt_ && matrix_->Mass()==0) {
     mprinterr("Error: analyze matrix: parameter 'thermo' only works for\n");
     mprinterr("       mass-weighted covariance matrix ('mwcovar').\n");
-    return 1;
+    return Analysis::ERR;
   }
   // Number of eigenvectors; allow "0" only in case of 'thermo'
-  nevec_ = analyzeArgs_.getKeyInt("vecs",0);
+  nevec_ = analyzeArgs.getKeyInt("vecs",0);
   if (thermopt_) {
     if (nevec_ < 0) nevec_ = 0;
   } else if (nevec_ <= 0) {
@@ -64,7 +63,7 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
     nevec_ = 1;
   }
   // Reduce flag
-  reduce_ = analyzeArgs_.hasKey("reduce");
+  reduce_ = analyzeArgs.hasKey("reduce");
   if ( reduce_ && matrix_->Type() != DataSet_Matrix::MWCOVAR &&
                   matrix_->Type() != DataSet_Matrix::COVAR   &&
                   matrix_->Type() != DataSet_Matrix::DISTCOVAR  )
@@ -72,12 +71,12 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
     mprinterr("Error: analyze matrix: reduce not supported for %s\n", 
               DataSet_Matrix::MatrixTypeString[matrix_->Type()]);
     mprinterr("Error: reduce only works for covariance and distance covariance matrices.\n");
-    return 1;
+    return Analysis::ERR;
   }
   // Set up DataSet_Modes
-  std::string modesname = analyzeArgs_.GetStringKey("name");
+  std::string modesname = analyzeArgs.GetStringKey("name");
   modes_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesname, "Modes" );
-  if (modes_==0) return 1;
+  if (modes_==0) return Analysis::ERR;
   // Output string for writing modes file.
   modes_->SetType( matrix_->Type() );
   modes_->SetAvgCoords( matrix_->VectSize(), matrix_->Vect() );
@@ -101,18 +100,18 @@ int Analysis_Matrix::Setup(DataSetList* DSLin) {
     mprintf("      Eigenvectors will be reduced\n");
   if (!modesname.empty())
     mprintf("      Storing modes with name: %s\n",modesname.c_str());
-  return 0;
+  return Analysis::OK;
 #endif
 }
 
-int Analysis_Matrix::Analyze() {
+Analysis::RetType Analysis_Matrix::Analyze() {
   // Calculate eigenvalues / eigenvectors
-  if (modes_->CalcEigen( *matrix_, nevec_ )) return 1;
+  if (modes_->CalcEigen( *matrix_, nevec_ )) return Analysis::ERR;
   if (matrix_->Type() == DataSet_Matrix::MWCOVAR) {
     // Convert eigenvalues to cm^-1
-    if (modes_->EigvalToFreq()) return 1;
+    if (modes_->EigvalToFreq()) return Analysis::ERR;
     // Mass-wt eigenvectors
-    if (modes_->MassWtEigvect( matrix_->Mass() )) return 1;
+    if (modes_->MassWtEigvect( matrix_->Mass() )) return Analysis::ERR;
     // Calc thermo-chemistry if specified
     if (thermopt_) {
       // # of atoms - currently assuming COVAR (i.e. 3 matrix elts / coord)
@@ -132,7 +131,7 @@ int Analysis_Matrix::Analyze() {
       modes_->ReduceDistCovar( matrix_->Nelts() );
   }
   //modes_->PrintModes(); // DEBUG
-  return 0;
+  return Analysis::OK;
 }
 
 void Analysis_Matrix::Print(DataFileList* DFLin) {

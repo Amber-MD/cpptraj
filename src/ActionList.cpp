@@ -149,42 +149,12 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
     mprinterr("Error: Could not initialize action [%s]\n", argIn.Command());
     return 1;
   }
+  argIn.CheckForMoreArgs();
   actionlist_.push_back( act );
   actioncmd_.push_back( argIn.ArgLine() );
   actionstatus_.push_back( INIT );
   return 0;
 }
-
-// ActionList::Init()
-/** Initialize non-parm-specific data for each action (like datasets). If an 
-  * action cannot be initialized deactivate it. Also set action debug level.
-  */
-/*int ActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL, 
-                      TopologyList *PFL, bool exitOnError) 
-{
-  mprintf("\nACTIONS: Initializing %zu actions:\n",actionlist_.size());
-  unsigned int actnum = 0;
-  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
-  {
-    mprintf("  %u: [%s]\n", actnum++, (*act)->CmdLine());
-    if ((*act)->Status() == Action::INACTIVE) {
-      mprintf("Warning: Action %s is not active.\n", (*act)->ActionCommand());
-    } else {
-      if ( (*act)->Init( DSL, FL, DFL, PFL, debug_ ) ) {
-        if (exitOnError) {
-          mprinterr("Error: Init failed for [%s].\n", (*act)->CmdLine());
-          return 1;
-        } else {
-          mprintf("Warning: Init failed for [%s]: DEACTIVATING\n",
-                  (*act)->CmdLine());
-        }
-      }
-    }
-    mprintf("\n");
-  }
-
-  return 0;
-}*/
 
 // ActionList::SetupActions()
 /** Attempt to set up all actions in the action list with the given parm
