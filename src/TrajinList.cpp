@@ -4,7 +4,9 @@
 #include "CpptrajStdio.h"
 //#include "MpiRoutines.h" // worldrank,worldsize
 
-TrajinList::TrajinList() : debug_(0)
+TrajinList::TrajinList() : 
+  debug_(0),
+  maxframes_(0)
 { 
   currentTraj_ = trajin_.end();
 }
@@ -40,38 +42,18 @@ int TrajinList::AddTrajin(ArgList *argIn, Topology *parmIn) {
 
   // Add to trajectory file list
   trajin_.push_back(traj);
-
-  return 0;
-}
-
-// TrajinList::SetupFrames()
-/** Only called for input trajectories.
-  * Loop over all trajectories and call their setup frames routine to calc
-  * actual start and stop and how many frames total will be processed. Update 
-  * the number of frames that will be read for the associated traj parm.
-  * Return the total number of frames to be processed across all trajins.
-  */
-int TrajinList::SetupFrames() {
-  std::vector<TrajectoryFile*>::iterator traj;
-  int maxFrames = 0;
-
-  for (std::vector<TrajectoryFile*>::iterator traj = trajin_.begin(); 
-                                              traj != trajin_.end(); traj++) 
-  {
-    int trajFrames = (*traj)->Total_Read_Frames();
-    // If < 0 frames this indicates the number of frames could not be determined. 
-    if (trajFrames < 0) {
-      maxFrames = -1;
-    } else if (maxFrames != -1) {
-      // Only update # of frames if total # of frames so far is known.
-      (*traj)->TrajParm()->IncreaseFrames( trajFrames );
-      maxFrames += trajFrames;
-    }
-    // Print input traj information
-    (*traj)->PrintInfo( 1 );
+  // Update total # of frames
+  int trajFrames = traj->Total_Read_Frames();
+  // If < 0 frames this indicates the number of frames could not be determined. 
+  if (trajFrames < 0) 
+    maxframes_ = -1;
+  else if (maxframes_ != -1) {
+    // Only update # of frames if total # of frames so far is known.
+    traj->TrajParm()->IncreaseFrames( trajFrames );
+    maxframes_ += trajFrames;
   }
 
-  return maxFrames;
+  return 0;
 }
 
 // TrajinList::Begin()
@@ -91,8 +73,12 @@ TrajectoryFile *TrajinList::NextTraj() {
 }
 
 void TrajinList::List() {
-  mprintf("INPUT TRAJECTORIES:\n");
+  mprintf("\nINPUT TRAJECTORIES:\n");
   for (std::vector<TrajectoryFile*>::iterator traj = trajin_.begin();
                                               traj != trajin_.end(); traj++)
     (*traj)->PrintInfo( 1 );
+  if (maxframes_ < 0)
+    mprintf("  Total number of frames is unknown.\n");
+  else
+    mprintf("  Total number of frames is %i.\n", maxframes_);
 }

@@ -11,15 +11,14 @@ class TrajinList {
     void SetDebug(int dIn) { debug_ = dIn; }
     /// Add a traj file to the list based on input from arg list
     int AddTrajin(ArgList*, Topology*);
-    /// Set up frames to be processed 
-    int SetupFrames();
-
     void Begin();
     TrajectoryFile *NextTraj();
     void List();
+    int MaxFrames() { return maxframes_; }
   private:
     std::vector<TrajectoryFile*> trajin_;
     int debug_;
+    int maxframes_;
     std::vector<TrajectoryFile*>::iterator currentTraj_;
 };
 #endif

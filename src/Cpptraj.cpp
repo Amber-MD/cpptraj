@@ -365,16 +365,11 @@ int Cpptraj::Run() {
   Frame TrajFrame;       // Original Frame read in from traj
 
   // ========== S E T U P   P H A S E ========== 
-  // Calculate frame division among trajectories
-  mprintf("\nINPUT TRAJECTORIES:\n");
-  maxFrames = trajinList.SetupFrames();
-  if (maxFrames<0)  
-    mprintf("  Coordinate processing will occur on an unknown number of frames.\n");
-  else
-    mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
-
   // Parameter file information
   parmFileList.List();
+
+  trajinList.List();
+  maxFrames = trajinList.MaxFrames();
 
   // Print reference information 
   mprintf("\nREFERENCE COORDS:\n");
