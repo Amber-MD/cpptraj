@@ -6,9 +6,7 @@
 // CONSTRUCTOR
 DataFileList::DataFileList() :
   debug_(0)
-{
-//  fprintf(stderr,"DataFileList CONSTRUCTOR\n");
-}
+{ }
 
 // DESTRUCTOR
 DataFileList::~DataFileList() {
@@ -110,90 +108,20 @@ void DataFileList::Write() {
 
 // DataFileList::ProcessDataFileArgs()
 /** Process command relating to data files. */
-void DataFileList::ProcessDataFileArgs(DataSetList *masterDSL) {
-  std::string df_cmd;
-  std::string name1;
-  ArgList::ConstArg name2 = NULL;
-  DataFile *df;
-
-  if (DF_Args_.empty()) return;
-  mprintf("DATAFILE SETUP:\n");
-
-  // Loop through all "datafile" arguments
-  for (std::vector<ArgList>::iterator dataArg = DF_Args_.begin();
-                                      dataArg != DF_Args_.end();
-                                      dataArg++)
-  {
-    // Next string will be the argument passed to datafile
-    df_cmd = (*dataArg).GetStringNext();
-    if (df_cmd.empty()) {
-      mprintf("Warning: datafile: No command given.\n");
-      continue;
-    }
-    mprintf("  [%s]\n",(*dataArg).ArgLine());
-    // Process command
-    if ( df_cmd == "create" ) {
-      // Usage: datafile create <filename> <dataset0> <dataset1> ...
-      // Next string is datafile that command pertains to.
-      name1 = (*dataArg).GetStringNext();
-      if (name1.empty()) {
-        mprinterr("Error: datafile create: No filename given.\n");
-        mprinterr("Error: Usage: datafile create <filename> <set1> [<set2> ...]\n");
-        continue;
-      }
-      df = GetDataFile(name1);
-      if (df==NULL)
-        mprintf("    Creating file %s:",name1.c_str());
-      else
-        mprintf("    Adding sets to file %s:",name1.c_str());
-      while ( (*dataArg).ArgsRemain() ) {
-        DataSetList Sets = masterDSL->GetMultipleSets( (*dataArg).GetStringNext() );
-        if (Sets.empty()) 
-          mprintf("Warning: %s does not correspond to any data sets.\n", name2);
-        for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
-          mprintf(" %s", (*set)->Legend().c_str());
-          if ( AddSetToFile(name1, *set)==NULL ) 
-            mprinterr("Error: Could not add data set %s to file.\n", (*set)->Legend().c_str());
-        }
-      }
-      mprintf("\n");
-    } else if ( df_cmd == "precision" ) {
-      // Usage: datafile precision <filename> <dataset> [<width>] [<precision>]
-      //        If width/precision not specified default to 12.4
-      // Next string is datafile that command pertains to.
-      name1 = (*dataArg).GetStringNext();
-      if (name1.empty()) {
-        mprinterr("Error: datafile precision: No filename given.\n");
-        mprinterr("Error: Usage: datafile precision <filename> [<set>] <width> [<precision>]\n");
-        continue;
-      }
-      df = GetDataFile(name1);
-      if (df==NULL) {
-        mprinterr("Error: datafile precision: DataFile %s does not exist.\n",name1.c_str());
-        continue;
-      }
-      // This will break if dataset name starts with a digit...
-      int width = (*dataArg).getNextInteger(12);
-      int precision = (*dataArg).getNextInteger(4);
-      name2 = (*dataArg).getNextString();
-      df->SetPrecision(name2,width,precision);
-    } else {
-      // Argument is not a command but a datafile name that 
-      // args will be passed to.
-      df = GetDataFile( df_cmd.c_str() );
-      if (df == NULL) {
-        mprinterr("Error: datafile: File %s not found.\n", df_cmd.c_str());
-        continue;
-      }
-      // Pass the rest of the arglist to the datafile.
-      // FIXME: Exit on errors?
-      df->ProcessArgs( *dataArg );
-    }
-  } // END loop over datafile args
-}
-
-// DataFileList::AddDatafileArg()
-void DataFileList::AddDatafileArg(ArgList &argIn) {
-  DF_Args_.push_back( argIn );
+int DataFileList::ProcessDataFileArgs(ArgList& dataArg) {
+  // Next string is DataFile name that command will be passed to.
+  std::string df_cmd = dataArg.GetStringNext();
+  if (df_cmd.empty()) {
+    mprintf("Warning: datafile: No filename given.\n");
+    return 0;
+  }
+  //mprintf("  [%s]\n",(*dataArg).ArgLine());
+  DataFile* df = GetDataFile( df_cmd.c_str() );
+  if (df == NULL) {
+    mprinterr("Error: datafile: File %s not found.\n", df_cmd.c_str());
+    return 1;
+  }
+  // Process command
+  return df->ProcessArgs( dataArg );
 }
 

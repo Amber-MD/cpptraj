@@ -32,9 +32,13 @@ class Cpptraj {
     static void Help_Help();
     static void Help_Debug();
     static void Help_ActiveRef();
+    static void Help_Create_DataFile();
+    static void Help_Precision();
     void List(ArgList&);
     void Help(ArgList&);
     void Debug(ArgList&);
+    int Create_DataFile(ArgList&);
+    int Precision(ArgList&);
 
     static const DispatchObject::Token GeneralCmds[];
     static const DispatchObject::Token CoordCmds[];

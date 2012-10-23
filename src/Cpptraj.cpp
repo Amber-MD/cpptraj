@@ -21,12 +21,23 @@ void Cpptraj::Help_ActiveRef() {
   mprintf("\tSet the reference structure to be used for coordinate-based mask parsing.\n");
 }
 
+void Cpptraj::Help_Create_DataFile() {
+  mprintf("create <filename> <dataset0> <dataset1> ...\n");
+}
+
+void Cpptraj::Help_Precision() {
+  mprintf("datafile precision <filename> <dataset> [<width>] [<precision>]\n");
+  mprintf("\tIf width/precision not specified default to 12.4\n");
+}
 
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, SYSTEM,
-                       ACTIVEREF, READDATA };
+                       ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE, REFERENCE,
+                       TRAJIN, TRAJOUT };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef, ACTIVEREF },
+  { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE },
+  { DispatchObject::GENERAL, "datafile",        0, 0, DATAFILE },
   { DispatchObject::GENERAL, "debug",         0, Help_Debug, DEBUG    },
   { DispatchObject::GENERAL, "go"   ,         0,          0, RUN      },
   { DispatchObject::GENERAL, "help" ,         0,  Help_Help, HELP     },
@@ -34,6 +45,7 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "ls",            0,          0, SYSTEM   },
   { DispatchObject::GENERAL, "noexitonerror", 0,          0, NOEXITERR},
   { DispatchObject::GENERAL, "noprogress",    0,          0, NOPROG   },
+  { DispatchObject::GENERAL, "precision",    0,   Help_Precision, PRECISION   },
   { DispatchObject::GENERAL, "prnlev",        0, Help_Debug, DEBUG    },
   { DispatchObject::GENERAL, "pwd",           0,          0, SYSTEM   },
   { DispatchObject::GENERAL, "quit" ,         0,          0, QUIT     },
@@ -42,9 +54,9 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
 };
 
 const DispatchObject::Token Cpptraj::CoordCmds[] = {
-  { DispatchObject::REFERENCE, "reference",     0, FrameList::Help,   0 },
-  { DispatchObject::TRAJIN,  "trajin",        0, TrajinList::Help,  0 },
-  { DispatchObject::TRAJOUT, "trajout",       0, TrajoutList::Help, 0 },
+  { DispatchObject::GENERAL, "reference",     0, FrameList::Help,   REFERENCE },
+  { DispatchObject::GENERAL, "trajin",        0, TrajinList::Help,  TRAJIN },
+  { DispatchObject::GENERAL, "trajout",       0, TrajoutList::Help, TRAJOUT },
   { DispatchObject::NONE,                  0, 0,                 0, 0 }
 };
 
@@ -126,6 +138,58 @@ void Cpptraj::SetGlobalDebug(int debugIn) {
 void Cpptraj::AddParm(const char* parmfile) {
   if (parmfile==NULL) return;
   parmFileList.AddParmFile( parmfile );
+}
+
+int Cpptraj::Create_DataFile(ArgList& dataArg) {
+  // Next string is datafile that command pertains to.
+  std::string name1 = dataArg.GetStringNext();
+  if (name1.empty()) {
+    mprinterr("Error: create: No filename given.\nError: Usage: ");
+    Help_Create_DataFile();
+    return 1;
+  }
+  DataFile* df = DFL.GetDataFile(name1);
+  if (df==NULL)
+    mprintf("    Creating file %s:",name1.c_str());
+  else
+    mprintf("    Adding sets to file %s:",name1.c_str());
+  int err = 0;
+  while ( dataArg.ArgsRemain() ) {
+    std::string name2 = dataArg.GetStringNext();
+    DataSetList Sets = DSL.GetMultipleSets( name2 );
+    if (Sets.empty())
+      mprintf("Warning: %s does not correspond to any data sets.\n", name2.c_str());
+    for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
+      mprintf(" %s", (*set)->Legend().c_str());
+      if ( DFL.AddSetToFile(name1, *set)==NULL ) {
+        mprinterr("Error: Could not add data set %s to file.\n", (*set)->Legend().c_str());
+        ++err;
+      }
+    }
+  }
+  mprintf("\n");
+  return err;
+}
+
+int Cpptraj::Precision(ArgList& dataArg) {
+  // Next string is datafile that command pertains to.
+  std::string name1 = dataArg.GetStringNext();
+  if (name1.empty()) {
+    mprinterr("Error: precision: No filename given.\nError: Usage: ");
+    Help_Precision();
+    return 1;
+  }
+  DataFile* df = DFL.GetDataFile(name1);
+  if (df==NULL) {
+    mprinterr("Error: precision: DataFile %s does not exist.\n",name1.c_str());
+    return 1;
+  }
+  // This will break if dataset name starts with a digit...
+  int width = dataArg.getNextInteger(12);
+  int precision = dataArg.getNextInteger(4);
+  std::string name2 = dataArg.GetStringNext();
+  df->SetPrecision(name2, width, precision);
+  return 0;
 }
 
 int Cpptraj::ReadData(ArgList& argIn) {
@@ -227,6 +291,18 @@ bool Cpptraj::Dispatch(const char* inputLine) {
         break;
       case DispatchObject::GENERAL :
         switch ( dispatchToken_->Idx ) {
+          case TRAJIN :
+            tempParm = parmFileList.GetParm(command);
+            trajinList.AddTrajin(&command, tempParm);
+            break;
+          case TRAJOUT :
+            tempParm = parmFileList.GetParm(command);
+            trajoutList.AddTrajout(&command, tempParm);
+            break;
+          case REFERENCE :
+            tempParm = parmFileList.GetParm(command);
+            refFrames.AddReference(&command, tempParm);
+            break;
           case LIST  : List(command); break;
           case HELP  : Help(command); break;
           case DEBUG : Debug(command); break;
@@ -241,23 +317,22 @@ bool Cpptraj::Dispatch(const char* inputLine) {
           case ACTIVEREF:
             refFrames.SetActiveRef( command.getNextInteger(0) );
             break;
-          case READDATA: ReadData( command ); break;
+          case READDATA: 
+            if (ReadData( command ) && exitOnError_) return false;
+            break;
+          case CREATE:
+            if (Create_DataFile( command ) && exitOnError_) return false;
+            break;
+          case PRECISION:
+            if (Precision( command ) && exitOnError_) return false;
+            break;
+          case DATAFILE:
+            if (DFL.ProcessDataFileArgs( command ) && exitOnError_) return false;
+            break;
           case SYSTEM  : system( command.ArgLine() ); break;
           case RUN     : Run(); // Fall through to quit
           case QUIT    : return false; break;
         }
-        break;
-      case DispatchObject::TRAJIN :
-        tempParm = parmFileList.GetParm(command);
-        trajinList.AddTrajin(&command, tempParm);
-        break;
-      case DispatchObject::TRAJOUT :
-        tempParm = parmFileList.GetParm(command);
-        trajoutList.AddTrajout(&command, tempParm);
-        break;
-      case DispatchObject::REFERENCE :
-        tempParm = parmFileList.GetParm(command);
-        refFrames.AddReference(&command, tempParm);
         break;
       case DispatchObject::PARM :
         parmFileList.CheckCommand(dispatchToken_->Idx, command);
@@ -266,29 +341,11 @@ bool Cpptraj::Dispatch(const char* inputLine) {
     }
   }
   return true;
-/*  ArgList dispatchArg;
-
-  dispatchArg.SetList(inputLine," "); // Space delimited only?
-  //printf("    *** %s ***\n",dispatchArg.ArgLine());
-  // First argument is the command
-  if (dispatchArg.Command()==NULL) {
-    if (debug_>0) mprintf("NULL Command.\n");
-    return;
-  }
-  // Always mark the first argument.
-  dispatchArg.MarkArg(0);
-
-  // Check if command pertains to datafiles
+/*   // Check if command pertains to datafiles
   if ( dispatchArg.CommandIs("datafile") ) {
     DFL.AddDatafileArg(dispatchArg);
     return;
-  }
-
-  // Check if we are reading sets from a datafile
-  if ( dispatchArg.CommandIs("readdata") ) {
-  }
-
-  mprintf("Warning: Unknown Command %s.\n",dispatchArg.Command());*/
+  }*/
 }
 
 // Cpptraj::Run()
@@ -417,8 +474,6 @@ int Cpptraj::Run() {
   DSL.List();
 
   // ========== D A T A  W R I T E  P H A S E ==========
-  // Process any datafile commands
-  DFL.ProcessDataFileArgs(&DSL);
   // Print Datafile information
   DFL.List();
   // Only Master does DataFile output
