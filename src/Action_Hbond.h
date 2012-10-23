@@ -15,11 +15,12 @@ class Action_Hbond : public Action {
     static void Help();
 
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     struct HbondType {
       int A;        ///< Acceptor atom#
@@ -31,6 +32,7 @@ class Action_Hbond : public Action {
       DataSet_integer* data_; ///< If series, keep track of frames hbond is present.
     };
 
+    int debug_;
     int Nframes_;
     std::string avgout_;
     std::string solvout_;
@@ -59,12 +61,16 @@ class Action_Hbond : public Action {
     bool calcSolvent_;
     double acut_;
     double dcut2_;
+    Topology* CurrentParm_;
 
     bool series_;
     std::string hbsetname_;
     DataSet* NumHbonds_;
     DataSet* NumSolvent_;
-    DataSet* NumBridge_; 
+    DataSet* NumBridge_;
+    // TODO: Replace these with new DataSet type
+    DataSetList* masterDSL_;
+    DataFileList* masterDFL_; 
     /// Return true if the first hbond has more frames than the second.
     /** If both have the same # of frames, pick something arbitrary just to
       * be sure that we have a well-defined ordering (otherwise we could get
@@ -97,6 +103,6 @@ class Action_Hbond : public Action {
 
     void SearchAcceptor(HBlistType&,AtomMask&,bool);
     void SearchDonor(HBlistType&,AtomMask&,bool,bool);
-    inline int AtomsAreHbonded(int, int, int, int,bool);
+    inline int AtomsAreHbonded(Frame*, int, int, int, int, int,bool);
 };
 #endif

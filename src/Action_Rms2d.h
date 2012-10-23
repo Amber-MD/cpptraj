@@ -20,25 +20,26 @@ class Action_Rms2d: public Action {
 
     ~Action_Rms2d();
 
-    void print();
+    void Print();
   private:
     CoordList ReferenceCoords_; ///< Hold coords from input frames.
     bool nofit_;                ///< Do not perform rms fitting
     bool useMass_;
     AtomMask RefMask_;          ///< Reference atom mask
     AtomMask FrameMask_;        ///< Target atom mask
-    std::string rmsdFile_;      ///< Output filename
     TrajectoryFile* RefTraj_;   ///< Reference trajectory, each frame used in turn
     Topology* RefParm_;         ///< Reference trajectory Parm
-    std::string corrfilename_;        ///< Auto-correlation output filename
     Topology* mass_ptr_;        ///< If useMass, hold mass info for parm.
+    DataSet* rmsdataset_;
+    DataSet* Ct_;
 
     int AutoCorrelate(TriangleMatrix&);
-    DataSet* CalcRmsToTraj();
-    DataSet* Calc2drms();
+    int CalcRmsToTraj();
+    int Calc2drms();
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 };
 #endif

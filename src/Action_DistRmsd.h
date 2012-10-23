@@ -11,11 +11,12 @@ class Action_DistRmsd: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_DistRmsd(); }
     static void Help();
 
-    void print() {}
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     DataSet *drmsd_;    ///< DRMSD DataSet
     AtomMask TgtMask_;  ///< Target mask.

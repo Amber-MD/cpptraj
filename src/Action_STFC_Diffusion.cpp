@@ -12,6 +12,7 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
   lowerCutoff_(0),
   upperCutoff_(0),
   hasBox_(false),
+  n_atom_(0),
   elapsedFrames_(0)
 {}
 
@@ -25,11 +26,13 @@ void Action_STFC_Diffusion::Help() {
  *                   [nwout <file>]) [avout <file>] [distances] [com]
  *                   [x|y|z|xy|xz|yz|xyz]
  */
-int Action_STFC_Diffusion::init() {
+Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   ArgList::ConstArg maskarg = actionArgs.getKeyString("mask");
   if (maskarg == NULL) {
     mprinterr("Error: diffusion: No mask specified.\n");
-    return 1;
+    return Action::ERR;
   }
   mask_.SetMaskString( maskarg );
 
@@ -38,7 +41,7 @@ int Action_STFC_Diffusion::init() {
     outfileName = "diffusion.dat";
   if ( output_.OpenWrite( outfileName ) ) {
     mprinterr("Error: diffusion: Could not open output file %s\n", outfileName.c_str());
-    return 1;
+    return Action::ERR;
   }
 
   outputAverDist_ = actionArgs.GetStringKey("avout");
@@ -46,7 +49,7 @@ int Action_STFC_Diffusion::init() {
   time_ = actionArgs.getKeyDouble("time", 1.0);
   if (time_ < 0) {
     mprinterr("Error: diffusion: time argument cannot be < 0 (%lf)\n", time_);
-    return 1;
+    return Action::ERR;
   }
 
   printDistances_ = actionArgs.hasKey("distances");
@@ -79,7 +82,7 @@ int Action_STFC_Diffusion::init() {
     if ( outputnw_.OpenWrite( outputNumWat_ ) ) {
       mprinterr("Error: diffusion: Could not open nwout file %s\n", 
                 outputNumWat_.c_str());
-      return 1;
+      return Action::ERR;
     }
     calcType_ = DIST;
   }
@@ -120,23 +123,24 @@ int Action_STFC_Diffusion::init() {
 
   mprintf("\t\tThe time step between frames is %.3f ps.\n", time_);
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_STFC_Diffusion::setup()
-int Action_STFC_Diffusion::setup() {
+Action::RetType Action_STFC_Diffusion::Setup(Topology* currentParm, Topology** parmAddress) {
+  n_atom_ = currentParm->Natom();
   // Setup atom mask
-  if (currentParm->SetupIntegerMask( mask_ )) return 1;
+  if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
   if (mask_.None()) {
     mprinterr("Error: diffusion: No atoms selected.\n");
-    return 1;
+    return Action::ERR;
   }
   // Setup second mask if necessary
   if ( calcType_ == DIST ) {
-    if (currentParm->SetupIntegerMask( mask2_ )) return 1;
+    if (currentParm->SetupIntegerMask( mask2_ )) return Action::ERR;
     if (mask2_.None()) {
       mprinterr("Error: diffusion: No atoms selected in second mask.\n");
-      return 1;
+      return Action::ERR;
     }
   }
 
@@ -151,9 +155,9 @@ int Action_STFC_Diffusion::setup() {
   // NOTE: Shouldnt matter for COM.
   if ( calcType_ != COM ) {
     int initial_natom = (int)initialxyz_.size() / 3;
-    if ( !initialxyz_.empty() && currentParm->Natom() > initial_natom ) {
+    if ( !initialxyz_.empty() && n_atom_ > initial_natom ) {
       mprintf("Warning: # atoms in current parm (%s, %i) > # atoms in initial frame (%i)\n",
-               currentParm->c_str(), currentParm->Natom(), initial_natom );
+               currentParm->c_str(), n_atom_, initial_natom );
       mprintf("Warning: This may lead to segmentation faults.\n");
     }
   }
@@ -163,7 +167,7 @@ int Action_STFC_Diffusion::setup() {
   //   2- Allocate the distance arrays
   //   3- Allocate the delta arrays
   if ( calcType_ == DEFAULT ) { // All
-      initialxyz_.reserve( currentParm->Natom()*3 );
+      initialxyz_.reserve( n_atom_*3 );
       int selectedcrd = mask_.Nselected() * 3;
       previousxyz_.reserve( selectedcrd );
       distancexyz_.resize( selectedcrd );
@@ -176,20 +180,20 @@ int Action_STFC_Diffusion::setup() {
     distance_.resize( 1 );
     deltaxyz_.resize( 3 );
   } else if ( calcType_ == DIST ) { // Region based
-    int ncrd = currentParm->Natom()*3;
+    int ncrd = n_atom_*3;
     initialxyz_.reserve( ncrd );
     previousxyz_.reserve( ncrd );
     distancexyz_.resize( ncrd );
-    distance_.resize( currentParm->Natom() );
+    distance_.resize( n_atom_ );
     deltaxyz_.assign( ncrd, 0 );
-    nInside_.resize( currentParm->Natom() );
+    nInside_.resize( n_atom_ );
   }
 
   // Allocate the dSum arrays
-  dSum1_.resize( currentParm->Natom(), 0);
-  dSum2_.resize( currentParm->Natom(), 0);
+  dSum1_.resize( n_atom_, 0);
+  dSum2_.resize( n_atom_, 0);
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_STFC_Diffusion::calculateMSD()
@@ -279,7 +283,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
 }
 
 // Action_STFC_Diffusion::action()
-int Action_STFC_Diffusion::action() {
+Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double Time, average, avgx, avgy, avgz;
 
   // ----- Load initial frame if necessary -------
@@ -308,7 +312,7 @@ int Action_STFC_Diffusion::action() {
       previousxyz_.push_back( XYZ[2] );
     } else if (calcType_ == DIST ) { // Region Based
       // Save all coords 
-      for (int atnum = 0; atnum < currentParm->Natom(); ++atnum) {
+      for (int atnum = 0; atnum < n_atom_; ++atnum) {
         const double* XYZ = currentFrame->XYZ(atnum);
         initialxyz_.push_back( XYZ[0] );
         previousxyz_.push_back( XYZ[0] );
@@ -318,7 +322,7 @@ int Action_STFC_Diffusion::action() {
         previousxyz_.push_back( XYZ[2] );
       }
     }
-    return 0;
+    return Action::OK;
   } 
 
   // ----- Initial frame is loaded ---------------
@@ -363,7 +367,7 @@ int Action_STFC_Diffusion::action() {
   {
     // Check which atoms from mask1 are inside or outside the region defined
     // by lower and upper.
-    nInside_.assign( currentParm->Natom(), 0 );
+    nInside_.assign( n_atom_, 0 );
     for ( AtomMask::const_iterator atom1 = mask_.begin(); atom1 != mask_.end(); ++atom1)
     {
       double minDist = upperCutoff_;
@@ -384,7 +388,7 @@ int Action_STFC_Diffusion::action() {
     // Calc average
     int Nin = 0;
     int i3 = 0;
-    for (int i=0; i < currentParm->Natom(); ++i) {
+    for (int i=0; i < n_atom_; ++i) {
       if ( nInside_[i] == 1 ) {
         average += distance_[i];
         avgx += distancexyz_[i3  ];
@@ -398,7 +402,7 @@ int Action_STFC_Diffusion::action() {
     }
     if (Nin == 0) {
       mprinterr("Error: diffusion: No atoms of mask 1 left for processing.\n");
-      return 1;
+      return Action::ERR;
     }
     average /= (double)Nin;
     avgx /= (double)Nin;
@@ -424,11 +428,11 @@ int Action_STFC_Diffusion::action() {
 
   output_.Printf("\n");
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_STFC_Diffusion::print()
-void Action_STFC_Diffusion::print() {
+void Action_STFC_Diffusion::Print() {
   CpptrajFile outputad;
 
   if (!outputAverDist_.empty()) {

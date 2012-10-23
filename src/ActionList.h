@@ -21,9 +21,10 @@ class ActionList {
     /// Set the debug level for actions.
     void SetDebug(int);
     /// Add given action to the action list.
-    int AddAction(DispatchObject::DispatchAllocatorType, ArgList const&);
+    int AddAction(DispatchObject::DispatchAllocatorType, ArgList&,
+                  TopologyList*,FrameList*,DataSetList*,DataFileList*);
     /// Initialize actions.
-    int InitActions(DataSetList *, FrameList *, DataFileList *, TopologyList*,bool);
+    //int InitActions(DataSetList *, FrameList *, DataFileList *, TopologyList*,bool);
     /// Set up actions for the given parm.
     int SetupActions(Topology **);
     /// Perform actions on the given frame.
@@ -34,9 +35,10 @@ class ActionList {
     void List();
   private:
     /// Action initialization and setup status.
-    enum ActionStatusType { NO_INIT=0, INIT, NO_SETUP, SETUP, INACTIVE };
+    enum ActionStatusType { NO_INIT=0, INIT, SETUP, INACTIVE };
+    typedef std::vector<Action*> Aarray;
     /// List of actions
-    std::vector<Action*> actionlist_;
+    Aarray actionlist_;
     /// List of action commands
     std::vector<std::string> actioncmd_;
     /// List of action statuses

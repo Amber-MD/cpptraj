@@ -8,14 +8,16 @@ class Action_Principal : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Principal(); }
     static void Help();
 
-    void print() {}
+    void Print() {}
   private:
     bool doRotation_;
     bool useMass_;
+    int debug_;
     AtomMask mask_;
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 };
 #endif

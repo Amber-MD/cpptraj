@@ -23,12 +23,14 @@ void Action_MRT::Help() {
   *    ([solvent <mask> | solute <mask>])
   *    (siteatoms <mask> | onemol <mask> | <sitemask1> ... <sitemaskN>)
   */
-int Action_MRT::init() {
+Action::RetType Action_MRT::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   useImage_ = !(actionArgs.hasKey("noimage"));
   std::string filename = actionArgs.GetStringKey("out");
   if (filename.empty()) {
     mprinterr("Error: MRT: No output filename specified 'out <filename>'\n");
-    return 1;
+    return Action::ERR;
   }
   time_ = actionArgs.getKeyDouble("time", 1.0);
 
@@ -60,12 +62,12 @@ int Action_MRT::init() {
   if (nOffset_ < 1 || nOffset_ > wSize_) {
     mprinterr("Error: MRT: toffset must be in the range from %8.3f to %8.3f.\n",
                time_, (double)wSize_ * time_);
-    return 1;
+    return Action::ERR;
   }
 
   if ( (wSize_ % nOffset_) != 0 ) {
     mprinterr("Error: MRT: tcorr must be multiple of toffset.\n");
-    return 1;
+    return Action::ERR;
   }
 
   int nWin = wSize_ / nOffset_;
@@ -83,5 +85,5 @@ int Action_MRT::init() {
   //   2) onemol <mask> means a single
   //   3) <mask1>...<maskN> multiple sites, use center-of-mass 
 
-  return 0;
+  return Action::OK;
 }

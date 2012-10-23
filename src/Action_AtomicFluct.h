@@ -8,11 +8,12 @@ class Action_AtomicFluct : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomicFluct(); }
     static void Help();
 
-    void print();
+    void Print();
   private :
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     enum outputType { BYATOM = 0, BYRES, BYMASK };
 
@@ -29,5 +30,7 @@ class Action_AtomicFluct : public Action {
     Topology *fluctParm_;
     outputType outtype_;
     std::string setname_;
+    DataSet* dataout_;
+    DataFile* outfile_;
 };
 #endif

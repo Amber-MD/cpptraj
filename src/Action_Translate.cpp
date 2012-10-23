@@ -14,7 +14,9 @@ void Action_Translate::Help() {
 
 /** Usage: trans [<mask>] [x <dx>] [y <dy>] [z <dz>]
   */
-int Action_Translate::init() {
+Action::RetType Action_Translate::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   Trans_[0] = actionArgs.getKeyDouble("x",0.0);
   Trans_[1] = actionArgs.getKeyDouble("y",0.0);
   Trans_[2] = actionArgs.getKeyDouble("z",0.0);
@@ -23,22 +25,22 @@ int Action_Translate::init() {
   mprintf("    TRANSLATE: Translating atoms in mask %s\n", mask_.MaskString());
   mprintf("\t%f Ang. in X, %f Ang. in Y, %f Ang. in Z\n",
           Trans_[0], Trans_[1], Trans_[2]);
-  return 0;
+  return Action::OK;
 };
 
-int Action_Translate::setup() {
-  if ( currentParm->SetupIntegerMask( mask_ ) ) return 1;
+Action::RetType Action_Translate::Setup(Topology* currentParm, Topology** parmAddress) {
+  if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
     mprinterr("Error: translate: No atoms selected.\n");
-    return 1;
+    return Action::ERR;
   }
-  return 0;
+  return Action::OK;
 }
 
-int Action_Translate::action() {
+Action::RetType Action_Translate::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     currentFrame->Translate(Trans_, *atom);
-  return 0;
+  return Action::OK;
 }
 

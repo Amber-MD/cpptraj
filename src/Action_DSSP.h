@@ -12,11 +12,12 @@ class Action_DSSP : public Action {
 
     ~Action_DSSP();
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
     // Enum and static vars
     enum SStype { 
       SECSTRUCT_NULL, SECSTRUCT_PARA, SECSTRUCT_ANTI, SECSTRUCT_3_10, 
@@ -39,6 +40,7 @@ class Action_DSSP : public Action {
     };
     std::vector<Residue> SecStruct_; ///< Hold SS-related data for all residues
     // Class variables
+    int debug_;
     std::string outfilename_; ///< Data file name
     DataSet *dssp_;     ///< If printString, hold the string dataset
     AtomMask Mask_;     ///< Mask used to determine selected residues
@@ -47,6 +49,9 @@ class Action_DSSP : public Action {
     std::string sumOut_;///< File to output SS avgs (dssp.dat.sum)
     char *SSline_;      ///< Hold SS propensity for frame, each char represents a residue
     bool printString_;  ///< If true print 1 char per residue indicating ss type
+    // TODO: Replace these with new type of DataSet
+    DataSetList* masterDSL_;
+    DataFileList* masterDFL_;
     //CpptrajFile debugout; // DEBUG
     // For printString=false, Int dataset, hold SStype for each residue at each frame
     NameType BB_N;

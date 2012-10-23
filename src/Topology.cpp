@@ -156,7 +156,7 @@ Topology::atom_iterator Topology::MolAtomEnd(int molnum) const {
 }
 
 // Topology::operator[]
-const Atom& Topology::operator[](int idx) {
+const Atom& Topology::operator[](int idx) const {
   return atoms_[idx];
 }
 

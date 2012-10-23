@@ -20,7 +20,9 @@ void Action_Surf::Help() {
 // Action_Surf::init()
 /** Expected call: surf <name> <mask1> [out filename]
   */
-int Action_Surf::init() {
+Action::RetType Action_Surf::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get keywords
   ArgList::ConstArg surfFile = actionArgs.getKeyString("out");
 
@@ -29,34 +31,34 @@ int Action_Surf::init() {
 
   // Dataset to store surface area 
   surf = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"SA");
-  if (surf==NULL) return 1;
+  if (surf==NULL) return Action::ERR;
   // Add dataset to data file list
   DFL->Add(surfFile,surf);
 
   mprintf("    SURF: Calculating surface area for atoms in mask [%s]\n",Mask1.MaskString());
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Surf::setup()
 /** Set LCPO surface area calc parameters for this parmtop if not already set. 
   * Get the mask, and check that the atoms in mask belong to solute. 
   */
-int Action_Surf::setup() {
+Action::RetType Action_Surf::Setup(Topology* currentParm, Topology** parmAddress) {
   SurfInfo SI;
   int soluteAtoms;
 
-  if (currentParm->SetupIntegerMask( Mask1 )) return 1;
+  if (currentParm->SetupIntegerMask( Mask1 )) return Action::ERR;
   if (Mask1.None()) {
     mprintf("    Error: Surf::setup: Mask contains 0 atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Setup surface area calc for this parm
   soluteAtoms = currentParm->SoluteAtoms();
   if (soluteAtoms <= 0) {
     mprinterr("Error: Surf: No solute atoms in %s.\n",currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
   mprintf("      SURF: %i solute atoms.\n",soluteAtoms);
   mprintf("            LCPO surface area will be calculated for %i atoms.\n",Mask1.Nselected());
@@ -71,7 +73,7 @@ int Action_Surf::setup() {
   SurfaceInfo_neighbor.clear();
   SurfaceInfo_noNeighbor.clear();
   for (AtomMask::const_iterator atomi = Mask1.begin(); atomi!=Mask1.end(); atomi++) {
-    SetAtomLCPO( (*atomi)+1, (*currentParm)[*atomi], &SI ); 
+    SetAtomLCPO( *currentParm, *atomi, &SI ); 
     if (SI.vdwradii > 2.5) {
       atomi_neighborMask.AddAtom(*atomi);
       SurfaceInfo_neighbor.push_back( SI );
@@ -82,7 +84,7 @@ int Action_Surf::setup() {
     if (*atomi >= soluteAtoms) {
       mprintf("Error: Surf::setup(): Atom %i in mask %s does not belong to solute.\n",
               *atomi+1, Mask1.MaskString());
-      return 1;
+      return Action::ERR;
     }
   }
   // From all atoms, create a second mask for building atom neighbor list
@@ -90,18 +92,18 @@ int Action_Surf::setup() {
   VDW.clear();
   VDW.reserve( soluteAtoms );
   for (int atomj=0; atomj < soluteAtoms; atomj++) {
-    SetAtomLCPO( atomj+1, (*currentParm)[atomj], &SI );
+    SetAtomLCPO( *currentParm, atomj+1, &SI );
     VDW.push_back( SI.vdwradii );
     if (SI.vdwradii > 2.5)
       atomj_neighborMask.AddAtom(atomj);
   }
  
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Surf::action()
 /** Calculate surface area. */
-int Action_Surf::action() {
+Action::RetType Action_Surf::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double SA;
   int atomi, idx;
   AtomMask::const_iterator atomj; 
@@ -225,7 +227,7 @@ int Action_Surf::action() {
 
   surf->Add(frameNum, &SA);
 
-  return 0;
+  return Action::OK;
 } 
 
 // -----------------------------------------------------------------------------
@@ -263,11 +265,14 @@ static void WarnLCPO(NameType &atype, int atom, int numBonds) {
   * \return the number of solute atoms for which paramters were set. 
   * \return -1 on error.
   */
-void Action_Surf::SetAtomLCPO(int atnum, const Atom& atom, SurfInfo* SIptr) {
+void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* SIptr) 
+{
+  const Atom& atom = currentParm[atidx];
+  int atnum = atidx + 1;
   // Get the number of non-H bonded neighbors to this atom
   int numBonds = 0;
   for (Atom::bond_iterator batom = atom.bondbegin(); batom != atom.bondend(); batom++)
-    if ( (*currentParm)[ *batom ].Element() != Atom::HYDROGEN )
+    if ( currentParm[ *batom ].Element() != Atom::HYDROGEN )
       ++numBonds;
   NameType atype = atom.Type();
 

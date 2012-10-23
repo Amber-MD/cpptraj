@@ -13,26 +13,32 @@
 Action_AtomicCorr::Action_AtomicCorr() :
   acorr_mode_(ATOM),
   cut_(0.0),
-  min_(0)
+  min_(0),
+  debug_(0),
+  dset_(0),
+  outfile_(0)
 {}
 
 void Action_AtomicCorr::Help() {
-
+  mprintf("atomiccorr [<mask>] out <filename>\n");
 }
 
 const char Action_AtomicCorr::ModeString[2][8] = {"atom", "residue"};
 
-/** Usage: atomiccorr [<mask>] out <filename> */
-int Action_AtomicCorr::init() {
-  outname_ = actionArgs.GetStringKey("out");
-  if (outname_.empty()) {
+// Action_AtomicCorr::Init()
+Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
+  std::string outname = actionArgs.GetStringKey("out");
+  if (outname.empty()) {
     mprinterr("Error: atomiccorr: No output filename specified [out <filename>]\n");
-    return 1;
+    return Action::ERR;
   }
   cut_ = actionArgs.getKeyDouble("cut", 0.0);
   if (cut_ < 0.0 || cut_ > 1.0) {
     mprinterr("Error: atomiccorr: cut value must be between 0 and 1.\n");
-    return 1;
+    return Action::ERR;
   }
   min_ = actionArgs.getKeyInt("min",0);
   if (actionArgs.hasKey("byatom"))
@@ -40,10 +46,23 @@ int Action_AtomicCorr::init() {
   else if (actionArgs.hasKey("byres"))
     acorr_mode_ = RES;
   mask_.SetMaskString( actionArgs.GetMaskNext() );
+  
+  // Set up DataSet
+  dset_ = DSL->AddSet( DataSet::TRIMATRIX, actionArgs.GetStringNext(), "ACorr" );
+  if (dset_ == NULL) {
+    mprinterr("Error: atomiccorr: Could not allocate output dataset.\n");
+    return Action::ERR;
+  }
+  // Add DataSet to output file
+  outfile_ = DFL->AddSetToFile( outname, dset_ );
+  if (outfile_ == 0) {
+    mprinterr("Error: Unable to add set to DataFile %s\n", outname.c_str());
+    return Action::ERR;
+  }
 
   mprintf("    ATOMICCORR: Correlation of %s motions will be calculated for\n",
           ModeString[acorr_mode_]);
-  mprintf("\tatoms in mask [%s], output to file %s\n", mask_.MaskString(), outname_.c_str());
+  mprintf("\tatoms in mask [%s], output to file %s\n", mask_.MaskString(), outname.c_str());
   if (cut_ != 0)
     mprintf("\tOnly correlations greater than %.2f or less than -%.2f will be printed.\n",
             cut_,cut_);
@@ -51,13 +70,13 @@ int Action_AtomicCorr::init() {
     mprintf("\tOnly correlations for %ss > %i apart will be calculated.\n",
             ModeString[acorr_mode_],min_);
 
-  return 0;
+  return Action::OK;
 }
 
-int Action_AtomicCorr::setup() {
-  if (currentParm->SetupIntegerMask( mask_ )) return 1;
+Action::RetType Action_AtomicCorr::Setup(Topology* currentParm, Topology** parmAddress) {
+  if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
   mask_.MaskInfo();
-  if (mask_.None()) return 1;
+  if (mask_.None()) return Action::ERR;
   if (acorr_mode_ == ATOM) {
     // Setup output array; labels and index
     atom_vectors_.clear();
@@ -86,7 +105,7 @@ int Action_AtomicCorr::setup() {
     for (std::map<int,AtomMask>::iterator rmask = rmaskmap.begin();
                                           rmask != rmaskmap.end(); ++rmask)
     {
-      if (debug > 0)
+      if (debug_ > 0)
         mprintf("DBG:\tRes mask for %i has %i atoms\n",(*rmask).first,(*rmask).second.Nselected());
       resmasks_.push_back( (*rmask).second );
       atom_vectors_.push_back( AtomVector( currentParm->TruncResNameNum( (*rmask).first ),
@@ -94,10 +113,10 @@ int Action_AtomicCorr::setup() {
     }
     mprintf("\tSelected %zu residues.\n", resmasks_.size());
   }
-  return 0;
+  return Action::OK;
 }
 
-int Action_AtomicCorr::action() {
+Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double RXYZ[3], CXYZ[3];
   // On first pass through refframe will be empty and first frame will become ref.
   if (!refframe_.empty()) {
@@ -128,10 +147,10 @@ int Action_AtomicCorr::action() {
   }
   // Store this frame as new reference frame
   refframe_ = *currentFrame;
-  return 0;
+  return Action::OK;
 }
 
-void Action_AtomicCorr::print() {
+void Action_AtomicCorr::Print() {
   int idx, idx3, vec1size;
   double V1[3], V2[3], corr_coeff;
   mprintf("    ATOMICCORR: Calculating correlations between %s vectors:\n",
@@ -140,12 +159,7 @@ void Action_AtomicCorr::print() {
     mprinterr("Error: atomiccorr: No vectors calcd.\n");
     return;
   }
-  TriangleMatrix* tmatrix = (TriangleMatrix*)DSL->AddSet( DataSet::TRIMATRIX,
-                                                          "", "ACorr" );
-  if (tmatrix == NULL) {
-    mprinterr("Error: atomiccorr: Could not allocate output dataset.\n");
-    return;
-  }
+  TriangleMatrix* tmatrix = (TriangleMatrix*)dset_;
   tmatrix->Setup( atom_vectors_.size() );
   // Calculate correlation coefficient of each atomic vector to each other
   ACvector::iterator av_end = atom_vectors_.end();
@@ -195,16 +209,14 @@ void Action_AtomicCorr::print() {
     } // END inner loop
   } // END outer loop
 
-  // Add dataset to output file
-  DataFile* outfile = DFL->AddSetToFile( outname_, (DataSet*)tmatrix );
   if (acorr_mode_ == ATOM)
-    outfile->ProcessArgs("xlabel Atom");
+    outfile_->ProcessArgs("xlabel Atom");
   else
-    outfile->ProcessArgs("xlabel Residue");
+    outfile_->ProcessArgs("xlabel Residue");
   std::string ylabels = "ylabels ";
   for (ACvector::iterator atom = atom_vectors_.begin();
                           atom != atom_vectors_.end(); ++atom)
     ylabels += ( (*atom).Label() + "," );
-  outfile->ProcessArgs( ylabels );
+  outfile_->ProcessArgs( ylabels );
 }
 

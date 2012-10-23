@@ -19,7 +19,9 @@ void Action_DNAionTracker::Help() {
   *               [poffset <value>] [out <filename>] [time <interval>] [noimage] 
   *               [shortest | counttopcone| countbottomcone | count]
   */
-int Action_DNAionTracker::init() {
+Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get keywords
   std::string filename_ = actionArgs.GetStringKey("out");
   poffset_ = actionArgs.getKeyDouble("poffset", 5.0);
@@ -41,7 +43,7 @@ int Action_DNAionTracker::init() {
   if (m1==NULL || m2==NULL || m3==NULL || m4==NULL) {
     mprinterr("Error: dnaiontracker requires 4 masks.\n");
     mprinterr("Error: mask1=%s  mask2=%s  mask3=%s  mask4=%s\n",m1,m2,m3,m4);
-    return 1;
+    return Action::ERR;
   }
   p1_.SetMaskString(m1);
   p2_.SetMaskString(m2);
@@ -53,14 +55,14 @@ int Action_DNAionTracker::init() {
   if (dsetname==NULL) {
     mprinterr("Error: dnaiontracker: It is necessary to specify a unique name\n");
     mprinterr("Error:                for each specified tracking.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Add dataset to dataset list (and datafile list if filename specified)
   distance_ = DSL->Add(DataSet::DOUBLE, dsetname, "DNAion");
   // NOTE: Set to mode distance in PTRAJ
   distance_->SetScalar( DataSet::M_DISTANCE );
-  if (distance_==NULL) return 1;
+  if (distance_==NULL) return Action::ERR;
   if (!filename_.empty())
     DFL->Add( filename_.c_str(), distance_ );
 
@@ -87,30 +89,30 @@ int Action_DNAionTracker::init() {
   if (!filename_.empty())
     mprintf("      Data will be printed to a file named %s\n", filename_.c_str());
 
-  return 0;
+  return Action::OK;
 }
 
-int Action_DNAionTracker::setup() {
+Action::RetType Action_DNAionTracker::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup masks
-  if (currentParm->SetupIntegerMask( p1_ )) return 1; 
+  if (currentParm->SetupIntegerMask( p1_ )) return Action::ERR; 
   if ( p1_.None() ) {
     mprinterr("Error: dnaiontracker: No atoms in mask1\n");
-    return 1;
+    return Action::ERR;
   }
-  if (currentParm->SetupIntegerMask( p2_ )) return 1;  
+  if (currentParm->SetupIntegerMask( p2_ )) return Action::ERR;  
   if ( p2_.None() ) {
     mprinterr("Error: dnaiontracker: No atoms in mask2\n");
-    return 1;
+    return Action::ERR;
   }
-  if (currentParm->SetupIntegerMask( base_ )) return 1;  
+  if (currentParm->SetupIntegerMask( base_ )) return Action::ERR;  
   if ( base_.None() ) {
     mprinterr("Error: dnaiontracker: No atoms in mask3\n");
-    return 1;
+    return Action::ERR;
   }
-  if (currentParm->SetupIntegerMask( ions_ )) return 1;  
+  if (currentParm->SetupIntegerMask( ions_ )) return Action::ERR;  
   if ( ions_.None() ) {
     mprinterr("Error: dnaiontracker: No atoms in mask4\n");
-    return 1;
+    return Action::ERR;
   }
   SetupImaging( currentParm->BoxType() );
   mprintf("\tPhosphate1 Mask [%s] %i atoms.\n", p1_.MaskString(), p1_.Nselected());
@@ -118,10 +120,10 @@ int Action_DNAionTracker::setup() {
   mprintf("\t      Base Mask [%s] %i atoms.\n", base_.MaskString(), base_.Nselected());
   mprintf("\t      Ions Mask [%s] %i atoms.\n", ions_.MaskString(), ions_.Nselected());
 
-  return 0;
+  return Action::OK;
 }
 
-int Action_DNAionTracker::action() {
+Action::RetType Action_DNAionTracker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double ucell[9], recip[9], pp_centroid[3], P1[3], P2[3], BASE[3];
   double d_tmp, dval;
   Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
@@ -205,5 +207,5 @@ int Action_DNAionTracker::action() {
     dval = sqrt(dval);
   distance_->Add(frameNum, &dval);
   
-  return 0;
+  return Action::OK;
 }

@@ -10,13 +10,13 @@
 
 // CONSTRUCTOR
 Action_Jcoupling::Action_Jcoupling() :
-  Nconstants_(0)
-{
-  //fprintf(stderr,"Jcoupling Con\n");
-} 
+  debug_(0),
+  Nconstants_(0),
+  CurrentParm_(0)
+{ } 
 
 void Action_Jcoupling::Help() {
-
+  mprintf("jcoupling <mask1> [outfile <filename>]\n");
 }
 
 // DESTRUCTOR
@@ -129,7 +129,7 @@ int Action_Jcoupling::loadKarplus(std::string filename) {
   } // END Gets over input file
   KarplusFile.CloseFile();
   // DEBUG - Print out all parameters
-  if (debug>0) {
+  if (debug_>0) {
       mprintf("    KARPLUS PARAMETERS:\n");
       for (reslist=KarplusConstants_.begin(); reslist!=KarplusConstants_.end(); ++reslist) 
       {
@@ -152,9 +152,10 @@ int Action_Jcoupling::loadKarplus(std::string filename) {
 
 // -----------------------------------------------------------------------------
 // Action_Jcoupling::init()
-/** Expected call: jcoupling <mask1> [outfile <filename>]
-  */
-int Action_Jcoupling::init( ) {
+Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   std::string karpluspath;
 
   // Get Keywords
@@ -186,13 +187,13 @@ int Action_Jcoupling::init( ) {
     if (env==NULL) {
       mprinterr("Error: jcoupling: Karplus parameters $AMBERHOME/dat/Karplus.txt not found\n");
       mprinterr("       and KARPLUS environment variable not set.\n");
-      return 1;
+      return Action::ERR;
     }
     karpluspath.assign(env);
   }
   // Load Karplus parameters
   if (loadKarplus(karpluspath)) 
-    return 1;
+    return Action::ERR;
 
   mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n",Mask1_.MaskString());
   mprintf("                Using Karplus parameters in \"%s\"\n",karpluspath.c_str());
@@ -201,25 +202,25 @@ int Action_Jcoupling::init( ) {
   mprintf("                Writing output to %s\n",outfilename);
 
   // Open output
-  if ( outputfile_.OpenWrite( outfilename ) ) return 1;
+  if ( outputfile_.OpenWrite( outfilename ) ) return Action::ERR;
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Jcoupling::setup()
 /** Set up a j-coupling calculation for dihedrals defined by atoms within
   * the mask.
   */
-int Action_Jcoupling::setup() {
+Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAddress) {
   std::string resName;
   karplusConstantList* currentResList=NULL;
   int MaxResidues;
   jcouplingInfo JC;
 
-  if ( currentParm->SetupCharMask(Mask1_) ) return 1;
+  if ( currentParm->SetupCharMask(Mask1_) ) return Action::ERR;
   if (Mask1_.None()) {
     mprinterr("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
-    return 1;
+    return Action::ERR;
   }
   // If JcouplingInfo has already been set up, print a warning and reset for
   // new parm.
@@ -267,7 +268,7 @@ int Action_Jcoupling::setup() {
         if (JC.atom[idx]==-1) {
           mprinterr("Error: jcoupling::setup: Atom %4s:%i not found for residue %i\n",
                     *((*kc).atomName[idx]), idx, residue+(*kc).offset[idx]);
-          return 1;
+          return Action::ERR;
         }
       }
       // Check that all the atoms involved in this Jcouple dihedral are
@@ -289,10 +290,10 @@ int Action_Jcoupling::setup() {
     mprintf("             Check that all atoms of dihedrals are included in mask [%s]\n",
             Mask1_.MaskString());
     mprintf("             and/or that dihedrals are defined in Karplus parameter file.\n");
-    return 1;
+    return Action::ERR;
   }
   // DEBUG
-  if (debug>0) {
+  if (debug_>0) {
     MaxResidues=0;
     for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
                                               jc !=JcouplingInfo_.end(); ++jc) 
@@ -306,15 +307,16 @@ int Action_Jcoupling::setup() {
               (*jc).type);
       MaxResidues++;
     }
-  }    
-  return 0;  
+  }
+  CurrentParm_ = currentParm;    
+  return Action::OK;  
 }
 
 // Action_Jcoupling::action()
 /** For each dihedral defined in JcouplingInfo, perform the dihedral and
   * Jcoupling calculation.
   */
-int Action_Jcoupling::action() {
+Action::RetType Action_Jcoupling::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double phi, Jval;
   double phitemp, C0, C1, C2, C3;
   int residue;
@@ -345,13 +347,13 @@ int Action_Jcoupling::action() {
     residue = (*jc).residue;
     // Output
     outputfile_.Printf("%5i %4s%4s%4s%4s%4s%12lf%12lf\n",
-                       residue+1, currentParm->ResidueName(residue),
-                       (*currentParm)[(*jc).atom[0]].c_str(), 
-                       (*currentParm)[(*jc).atom[1]].c_str(),
-                       (*currentParm)[(*jc).atom[2]].c_str(), 
-                       (*currentParm)[(*jc).atom[3]].c_str(),
+                       residue+1, CurrentParm_->ResidueName(residue),
+                       (*CurrentParm_)[(*jc).atom[0]].c_str(), 
+                       (*CurrentParm_)[(*jc).atom[1]].c_str(),
+                       (*CurrentParm_)[(*jc).atom[2]].c_str(), 
+                       (*CurrentParm_)[(*jc).atom[3]].c_str(),
                        phi*RADDEG, Jval);
   }
 
-  return 0;
+  return Action::OK;
 } 

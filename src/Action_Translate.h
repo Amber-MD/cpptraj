@@ -12,9 +12,10 @@ class Action_Translate : public Action {
     double Trans_[3];
     AtomMask mask_;
 
-    int init();
-    int setup();
-    int action();
-    void print() {}
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 };
 #endif

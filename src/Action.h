@@ -27,9 +27,9 @@ class Action : public DispatchObject {
     virtual RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*, 
                          DataFileList*, int) = 0;
     /// Set up action for given Topology
-    virtual RetType Setup(Topology*) = 0;
+    virtual RetType Setup(Topology*,Topology**) = 0;
     /// Perform action for given frame number and Frame.
-    virtual RetType DoAction(int,Frame*) = 0;
+    virtual RetType DoAction(int,Frame*,Frame**) = 0;
     /// Print anything besides datasets, called at end of execution
     /** Perform any output not related to master dataset output, or any 
       * necessary post-trajectory calculations, e.g. in the 2drms command

@@ -15,12 +15,13 @@ class Action_GridFreeEnergy : public Action {
 
 
     // Action member
-    void print();
+    void Print();
   private:
     // Action members
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     /// maximum expected voxel occupancy count
     // TODO Work out a smart way of calculating this since it will be a 

@@ -9,7 +9,9 @@ Action_DistRmsd::Action_DistRmsd() :
 {}
 
 void Action_DistRmsd::Help() {
-
+  mprintf("drmsd <name> <mask> [<refmask>] [out filename]\n");
+  mprintf("      [ first | ref <filename> | refindex <#> |\n");
+  mprintf("      [ reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"); 
 }
 
 /** Setup RefMask based on given Topology. Allocate space for selected
@@ -36,13 +38,10 @@ void Action_DistRmsd::SetRefStructure( Frame& frameIn ) {
 }
 
 // Action_DistRmsd::init()
-/** Called once before traj processing. Set up reference info.
-  * Expected call: 
-  * drmsd <name> <mask> [<refmask>] [out filename] 
-  *       [ first | ref <filename> | refindex <#> | 
-  *         reftraj <filename> [parm <parmname> | parmindex <#>] ] 
-  */
-int Action_DistRmsd::init( ) {
+/** Called once before traj processing. Set up reference info. */
+Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   std::string refname, reftrajname;
   int refindex = -1;
   Topology* RefParm = NULL;
@@ -87,18 +86,18 @@ int Action_DistRmsd::init( ) {
       // Reference trajectory
       if (RefParm == NULL) {
         mprinterr("Error: distrmsd: Could not get parm for reftraj %s\n", reftrajname.c_str());
-        return 1;
+        return Action::ERR;
       }
-      if (SetRefMask( RefParm )!=0) return 1;
+      if (SetRefMask( RefParm )!=0) return Action::ERR;
       // Attempt to open reference traj.
       if (RefTraj_.SetupTrajRead( reftrajname, NULL, RefParm)) {
         mprinterr("Error: distrmsd: Could not set up reftraj %s\n", reftrajname.c_str());
-        return 1;
+        return Action::ERR;
       }
       RefFrame_.SetupFrameV(RefParm->Atoms(), RefTraj_.HasVelocity());
       if (RefTraj_.BeginTraj(false)) {
         mprinterr("Error: distrmsd: Could not open reftraj %s\n", reftrajname.c_str());
-        return 1;
+        return Action::ERR;
       }
     } else {
       // Reference by name/tag
@@ -110,16 +109,16 @@ int Action_DistRmsd::init( ) {
       RefParm = FL->GetFrameParm( refindex );
       if (RefParm == NULL) {
         mprinterr("Error: distrmsd: Could not get parm for frame %s\n", FL->FrameName(refindex));
-        return 1;
+        return Action::ERR;
       }
-      if (SetRefMask( RefParm )!=0) return 1;
+      if (SetRefMask( RefParm )!=0) return Action::ERR;
       SetRefStructure( *TempFrame );
     }
   }
 
   // Set up the RMSD data set
   drmsd_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"DRMSD");
-  if (drmsd_==NULL) return 1;
+  if (drmsd_==NULL) return Action::ERR;
   // Add dataset to data file list
   DFL->Add(rmsdFile,drmsd_);
 
@@ -137,19 +136,19 @@ int Action_DistRmsd::init( ) {
   }
   mprintf(" (%s)\n",RefMask_.MaskString());
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_DistRmsd::setup()
 /** Called every time the trajectory changes. Set up TgtMask for the new 
   * parmtop and allocate space for selected atoms from the Frame.
   */
-int Action_DistRmsd::setup() {
+Action::RetType Action_DistRmsd::Setup(Topology* currentParm, Topology** parmAddress) {
 
-  if ( currentParm->SetupIntegerMask(TgtMask_) ) return 1;
+  if ( currentParm->SetupIntegerMask(TgtMask_) ) return Action::ERR;
   if ( TgtMask_.None() ) {
     mprintf("    Error: DistRmsd::setup: No atoms in mask.\n");
-    return 1;
+    return Action::ERR;
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
@@ -157,24 +156,24 @@ int Action_DistRmsd::setup() {
 
   // Reference setup if 'first'
   if (refmode_ == FIRST) {
-    if ( SetRefMask( currentParm )!=0 ) return 1;
+    if ( SetRefMask( currentParm )!=0 ) return Action::ERR;
   }
 
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( RefMask_.Nselected() != TgtMask_.Nselected() ) {
     mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",TgtMask_.Nselected());
     mprintf( "           equal number of atoms in Ref mask (%i).\n",RefMask_.Nselected());
-    return 1;
+    return Action::ERR;
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_DistRmsd::action()
 /** Called every time a frame is read in. Calc distance RMSD.
   * If first is true, set the first frame read in as reference.
   */
-int Action_DistRmsd::action() {
+Action::RetType Action_DistRmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Perform any needed reference actions
   if (refmode_ == FIRST) {
     SetRefStructure( *currentFrame );
@@ -198,6 +197,6 @@ int Action_DistRmsd::action() {
 
   drmsd_->Add(frameNum, &DR);
 
-  return 0;
+  return Action::OK;
 }
 

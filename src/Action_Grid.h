@@ -10,7 +10,7 @@ class Action_Grid : public Action {
     static void Help();
 
 
-    void print();
+    void Print();
   private:
     double max_;
     double madura_;
@@ -21,8 +21,9 @@ class Action_Grid : public Action {
     std::string pdbname_;
     Grid grid_;
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 };
 #endif

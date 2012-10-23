@@ -15,11 +15,12 @@ class Action_Rmsd: public Action {
 
     ~Action_Rmsd();
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     // PerResRMSD -------------
     bool perres_;                      ///< If true calculate per-residue rmsd
@@ -45,6 +46,9 @@ class Action_Rmsd: public Action {
     double Trans_[6];                  ///< For fit, hold 2 translations: tgt->origin, origin->ref
     Frame SelectedFrame_;              ///< Hold only selected target frame coords.
     DataSet *rmsd_;
+    // TODO: Replace these with new DataSet type
+    DataSetList* masterDSL_;
+    DataFileList* masterDFL_;
     // Reference variables and functions
     enum RefModeType { UNKNOWN_REF=0, FIRST, REF, REFTRAJ };
     RefModeType refmode_;
@@ -59,6 +63,6 @@ class Action_Rmsd: public Action {
     /// Resize per-residue RMSD masks
     void resizeResMasks();
     /// Set up per-residue RMSD calc
-    int perResSetup(Topology*);
+    int perResSetup(Topology*,Topology*);
 };
 #endif

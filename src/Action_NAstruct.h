@@ -33,11 +33,12 @@ class Action_NAstruct: public Action {
 
     ~Action_NAstruct();
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
     // Variables
     std::vector<AxisType> RefCoords;    ///< Hold reference frame coordinates for each base
     std::vector<AxisType> BaseAxes;     ///< Hold axis coordinates for each base
@@ -50,6 +51,7 @@ class Action_NAstruct: public Action {
     //double HBangleCut2_;                ///< Angle Cutoff^2 for determining if bases can h bond
     double originCut2_;                 ///< Cutoff^2 for determining base-pairing vi origins
     int maxResSize_;                    ///< Max residue size, used to set up frames for RMS fit.
+    int debug_;
     Range resRange;                     ///< Range to search for NA residues.
     bool printheader_;                  ///< If true, print header to naout files.
     bool useReference_;                 ///< If true, use reference to determine base pairing.
@@ -81,6 +83,8 @@ class Action_NAstruct: public Action {
     Darray INCL_;
     Darray TIP_;
     Darray HTWIST_;
+    // TODO: Replace these with new DataSet type
+    DataSetList* masterDSL_;
     // Functions
     void ClearLists();
     int GCpair(AxisType *, AxisType *);
@@ -90,8 +94,8 @@ class Action_NAstruct: public Action {
     int setupBaseAxes(Frame *);
     int calculateParameters(AxisType &, AxisType &, AxisType*, double*);
     int helicalParameters(AxisType &, AxisType &, double *);
-    int determineBaseParameters();
-    int determineBasepairParameters();
+    int determineBaseParameters(int);
+    int determineBasepairParameters(int);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Class to hold PDB output
     class AxisPDBwriter : CpptrajFile, PDBtype {

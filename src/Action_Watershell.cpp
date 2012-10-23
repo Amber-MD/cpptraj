@@ -4,33 +4,33 @@
 // CONSTRUCTOR
 Action_Watershell::Action_Watershell() :
   lowerCutoff_(0),
-  upperCutoff_(0)
+  upperCutoff_(0),
+  CurrentParm_(0)
 { }
 
 void Action_Watershell::Help() {
-
+  mprintf("watershell <solutemask> <filename> [lower <lower cut>] [upper <upper cut>]\n");
+  mprintf("           [noimage] [<solventmask>]\n");
+  mprintf("\tCalculate # of waters in 1st and 2nd solvation shells.\n");
 }
 
 // Action_Watershell::init()
-/** Expected call: 
-  * watershell <solutemask> <filename> [lower <lower cut>] [upper <upper cut>] 
-  *            [noimage] [<solventmask>]
-  *      
-  */
-int Action_Watershell::init() {
+Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   InitImaging( !actionArgs.hasKey("noimage") );
 
   ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   if (maskexpr == NULL) {
     mprinterr("Error: WATERSHELL: Solute mask must be specified.\n");
-    return 1;
+    return Action::ERR;
   }
   soluteMask_.SetMaskString( maskexpr );
 
   filename_ = actionArgs.GetStringNext();
   if (filename_.empty()) {
     mprinterr("Error: WATERSHELL: Output filename must be specified.\n");
-    return 1;
+    return Action::ERR;
   }
 
   lowerCutoff_ = actionArgs.getKeyDouble("lower", 3.4);
@@ -57,23 +57,23 @@ int Action_Watershell::init() {
   lowerCutoff_ *= lowerCutoff_;
   upperCutoff_ *= upperCutoff_;
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Watershell::setup()
 /** Set up solute and solvent masks. If no solvent mask was specified use 
   * solvent information in the current topology.
   */
-int Action_Watershell::setup() {
+Action::RetType Action_Watershell::Setup(Topology* currentParm, Topology** parmAddress) {
   // Set up solute mask
-  if (currentParm->SetupIntegerMask( soluteMask_ )) return 1;
+  if (currentParm->SetupIntegerMask( soluteMask_ )) return Action::ERR;
   if ( soluteMask_.None() ) {
     mprinterr("Error: WATERSHELL: No atoms in solute mask [%s].\n",soluteMask_.MaskString());
-    return 1;
+    return Action::ERR;
   }
   // Set up solvent mask
   if (!solventmaskexpr_.empty()) {
-    if (currentParm->SetupIntegerMask( solventMask_ )) return 1;
+    if (currentParm->SetupIntegerMask( solventMask_ )) return Action::ERR;
   } else {
     solventMask_.ResetMask();
     for (Topology::mol_iterator mol = currentParm->MolStart();
@@ -89,16 +89,18 @@ int Action_Watershell::setup() {
                 solventmaskexpr_.c_str());
     else
       mprinterr("Error: WATERSHELL: No solvent atoms in topology %s\n",currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
   SetupImaging( currentParm->BoxType() );
   // Create space for residues
   activeResidues_.resize( currentParm->Nres(), 0 );
-  return 0;    
+  // Store current Parm
+  CurrentParm_ = currentParm;
+  return Action::OK;    
 }
 
 // Action_Watershell::action()
-int Action_Watershell::action() {
+Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double ucell[9], recip[9];
   Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
  
@@ -113,7 +115,7 @@ int Action_Watershell::action() {
                                   solvent_at != solventMask_.end(); ++solvent_at)
     {
       // Figure out which solvent residue this is
-      int currentRes = (*currentParm)[ *solvent_at].ResNum();
+      int currentRes = (*CurrentParm_)[ *solvent_at].ResNum();
       // If residue is not yet marked as 1st shell, calc distance
       if ( activeResidues_[currentRes] < 2 ) {
         double dist = DIST2(currentFrame->XYZ(*solute_at), currentFrame->XYZ(*solvent_at), 
@@ -146,11 +148,11 @@ int Action_Watershell::action() {
     *shell = 0;
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Watershell::print()
-void Action_Watershell::print() {
+void Action_Watershell::Print() {
   CpptrajFile outfile;
   if (outfile.OpenWrite( filename_ )) return;
 

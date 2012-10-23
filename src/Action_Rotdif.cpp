@@ -78,6 +78,7 @@ static void D_to_Q(double *Q, double *D) {
 
 // CONSTRUCTOR
 Action_Rotdif::Action_Rotdif() :
+  debug_(0),
   rseed_( 1 ),
   nvecs_( 0 ),
   tfac_( 0.0 ),
@@ -101,9 +102,17 @@ Action_Rotdif::Action_Rotdif() :
   D_eff_( NULL ),
   Tau_( NULL )
 { } 
-
+// TODO: MAKE ANALYSIS
 void Action_Rotdif::Help() {
-
+  mprintf("rotdif [rseed <rseed>] [nvecs <nvecs>]\n");
+  mprintf("       ref <refname> | refindex <refindex> | reference\n");
+  mprintf("       [<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>\n");
+  mprintf("       [itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]\n");
+  mprintf("       [delqfrac <delqfrac>] [rvecout <randvecOut>]\n");
+  mprintf("       [rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]\n");
+  mprintf("       [corrout <corrOut>] [usefft]\n");
+  mprintf("       [rvecin <randvecIn>]\n");
+  mprintf("       [gridsearch] [nmesh <NmeshPoints>]\n");
 }
 
 // DESTRUCTOR
@@ -121,22 +130,11 @@ Action_Rotdif::~Action_Rotdif() {
 }
 
 // Action_Rotdif::init()
-/** Expected call: rotdif [rseed <rseed>] [nvecs <nvecs>]  
-  *                       ref <refname> | refindex <refindex> | reference
-  *                       [<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>
-  *                       [itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]
-  *                       [delqfrac <delqfrac>] [rvecout <randvecOut>]
-  *                       [rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]
-  *                       [corrout <corrOut>] [usefft]
-  *                       [rvecin <randvecIn>]
-  *                       [gridsearch] [nmesh <NmeshPoints>]
-  */ 
-// Dataset name will be the last arg checked for. Check order is:
-//    1) Keywords
-//    2) Masks
-//    3) Dataset name
-int Action_Rotdif::init( ) {
+Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   double Trans[3]; // Dummy variable for CenteredRef routine
+  debug_ = debugIn;
   // Get Keywords
   usefft_ = actionArgs.hasKey("usefft");
   nvecs_ = actionArgs.getKeyInt("nvecs",1000);
@@ -145,14 +143,14 @@ int Action_Rotdif::init( ) {
   tfac_ = actionArgs.getKeyDouble("dt",0);
   if (tfac_<=0) {
     mprinterr("    Error: Rotdif: dt (timestep) must be specified and > 0.\n");
-    return 1;
+    return Action::ERR;
   }
   ti_ = actionArgs.getKeyDouble("ti",0);
   tf_ = actionArgs.getKeyDouble("tf",0);
   if (tf_ <= ti_) {
     mprinterr("    Error: Rotdif: Initial time ti (%lf) must be < final time tf (%lf).\n",
               ti_, tf_);
-    return 1;
+    return Action::ERR;
   }
   NmeshPoints_ = actionArgs.getKeyInt("nmesh", -1);
   itmax_ = actionArgs.getKeyInt("itmax",500);
@@ -162,14 +160,14 @@ int Action_Rotdif::init( ) {
   if (olegendre_!=1 && olegendre_!=2) {
     mprinterr("    Error: Rotdif: Order of legendre polynomial (%i) must be 1 or 2.\n",
               olegendre_);
-    return 1;
+    return Action::ERR;
   }
   delqfrac_ = actionArgs.getKeyDouble("delqfrac",0.5);
   randvecOut_ = actionArgs.GetStringKey("rvecout");
   randvecIn_ = actionArgs.GetStringKey("rvecin");
   rmOut_ = actionArgs.GetStringKey("rmout");
   deffOut_ = actionArgs.GetStringKey("deffout");
-  ArgList::ConstArg outfilename = actionArgs.getKeyString("outfile");
+  std::string outfilename = actionArgs.GetStringKey("outfile");
   corrOut_ = actionArgs.GetStringKey("corrout");
   do_gridsearch_ = actionArgs.hasKey("gridsearch");
 
@@ -196,16 +194,16 @@ int Action_Rotdif::init( ) {
   Frame* TempFrame=FL->GetFrame(refindex);
   if (TempFrame==NULL) {
     mprinterr("    Error: Rotdif::init: Could not get reference index %i\n",refindex);
-    return 1;
+    return Action::ERR;
   }
   //RefFrame = *TempFrame;
   // Set reference parm
   Topology* RefParm = FL->GetFrameParm(refindex);
   // Setup reference mask
-  if (RefParm->SetupIntegerMask( RefMask )) return 1;
+  if (RefParm->SetupIntegerMask( RefMask )) return Action::ERR;
   if (RefMask.None()) {
     mprintf("    Error: Rotdif::init: No atoms in reference mask.\n");
-    return 1;
+    return Action::ERR;
   }
   // Allocate frame for selected reference atoms
   SelectedRef_.SetupFrameFromMask(RefMask, RefParm->Atoms());
@@ -215,13 +213,9 @@ int Action_Rotdif::init( ) {
   SelectedRef_.CenterReference(Trans, useMass_); 
 
   // Open output file. Defaults to stdout if no name specified
-  if (outfile_.SetupWrite(outfilename,debug)) {
-    mprinterr("Error setting up Rotdif output file.\n");
-    return 1;
-  }
-  if (outfile_.OpenFile()) {
-    mprinterr("Error opening Rotdif output file.\n");
-    return 1;
+  if (outfile_.OpenWrite(outfilename)) {
+    mprinterr("Error opening Rotdif output file %s.\n", outfilename.c_str());
+    return Action::ERR;
   }
 
   mprintf("    ROTDIF: Random seed %i, # of random vectors to generate: %i\n",rseed_,nvecs_);
@@ -261,24 +255,25 @@ int Action_Rotdif::init( ) {
   mprintf("         Only Deffs will be calculated.\n");
   mprintf("------------------------------------------------------\n");
 #else
-  if (outfilename!=NULL)
-    mprintf("            Diffusion constants and tau will be written to %s\n",outfilename);
+  if (!outfilename.empty())
+    mprintf("            Diffusion constants and tau will be written to %s\n",
+            outfilename.c_str());
   else
     mprintf("            Diffusion constants and tau will be written to STDOUT.\n");
 #endif
-  return 0;
+  return Action::OK;
 }
 
 // Action_Rotdif::setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Also determine whether imaging should be performed.
   */
-int Action_Rotdif::setup() {
+Action::RetType Action_Rotdif::Setup(Topology* currentParm, Topology** parmAddress) {
 
-  if ( currentParm->SetupIntegerMask( TargetMask_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( TargetMask_ ) ) return Action::ERR;
   if ( TargetMask_.None() ) {
     mprintf("    Error: Rotdif::setup: No atoms in mask.\n");
-    return 1;
+    return Action::ERR;
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
@@ -287,19 +282,19 @@ int Action_Rotdif::setup() {
   if ( SelectedRef_.Natom() != TargetMask_.Nselected() ) {
     mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",TargetMask_.Nselected());
     mprintf( "           equal number of atoms in Ref mask (%i).\n",SelectedRef_.Natom());
-    return 1;
+    return Action::ERR;
   }
   
   // Print info for this parm
   mprintf("    ROTDIF: %i atoms selected for RMS fit.\n",TargetMask_.Nselected());
         
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Rotdif::action()
 /** Calculate and store the rotation matrix for frame to reference.
   */
-int Action_Rotdif::action() {
+Action::RetType Action_Rotdif::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double *U, Trans[6];
 
   // Set selected frame atoms. Masses have already been set.
@@ -310,7 +305,7 @@ int Action_Rotdif::action() {
 
   Rmatrices_.push_back( U );
 
-  return 0;
+  return Action::OK;
 } 
 
 // ---------- ROTATIONAL DIFFUSION CALC ROUTINES -------------------------------
@@ -340,12 +335,7 @@ double *Action_Rotdif::randvec() {
 
   // ----- Read nvecs vectors from a file
   if (!randvecIn_.empty()) {
-    if (vecIn.SetupRead(randvecIn_, debug)) {
-      mprinterr("Error: Could not setup random vectors input file %s",randvecIn_.c_str());
-      delete[] XYZ;
-      return NULL;
-    }
-    if (vecIn.OpenFile()) {
+    if (vecIn.OpenRead(randvecIn_)) {
       mprinterr("Error: Could not open random vectors input file %s",randvecIn_.c_str());
       delete[] XYZ;
       return NULL;
@@ -374,10 +364,9 @@ double *Action_Rotdif::randvec() {
   // Print vectors
   if (!randvecOut_.empty()) {
     CpptrajFile rvout;
-    if (rvout.SetupWrite(randvecOut_,debug)) {
+    if (rvout.OpenWrite(randvecOut_)) {
       mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",randvecOut_.c_str());
     } else {
-      rvout.OpenFile();
       int idx = 0;
       for (int i = 1; i <= nvecs_; i++) {
         rvout.Printf("%6i  %15.8lf  %15.8lf  %15.8lf\n",i,XYZ[idx],XYZ[idx+1],XYZ[idx+2]);
@@ -562,7 +551,7 @@ double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
      d = d / (fac*f);
      del = (d-di)/di;
      if (del < 0) del = -del; // Abs value
-     if (debug>2)
+     if (debug_>2)
        mprintf("ITSOLV: %6i  %15.8e  %15.8e  %15.8e\n", i,di,d,del);
      di = d;
      ++i;
@@ -571,7 +560,7 @@ double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
      mprintf("\tWarning, itsolv did not converge: # iterations=%i, fractional change=%lf\n",
              i, del);
   } else {
-    if (debug>1) mprintf("\tITSOLV Converged: # iterations=%i\n",i);
+    if (debug_>1) mprintf("\tITSOLV Converged: # iterations=%i\n",i);
   }
 
   return d; 
@@ -1085,7 +1074,7 @@ int Action_Rotdif::Simplex_min(double *Q_vector) {
    
     // cycle over main loop, but first reduce the size of delqfrac:
     delqfrac_ *= 0.750;
-    if (debug>0)mprintf("\tAmoeba: Setting delqfrac to %15.7lf\n",delqfrac_);
+    if (debug_>0)mprintf("\tAmoeba: Setting delqfrac to %15.7lf\n",delqfrac_);
   }
 
   // Set q vector to the final average result from simpmin
@@ -1220,7 +1209,7 @@ int Action_Rotdif::Tensor_Fit(double *vector_q) {
     At += 6;
     rvecs += 3;
   }
-  if (debug>1) {
+  if (debug_>1) {
     printMatrix("matrix_A",matrix_A,n_cols,m_rows);
     printMatrix("matrix_At",matrix_At,m_rows,n_cols);
   }
@@ -1248,7 +1237,7 @@ int Action_Rotdif::Tensor_Fit(double *vector_q) {
   delete[] matrix_A;
   delete[] work_;
   // DEBUG - Print Sigma
-  if (debug>0) {
+  if (debug_>0) {
     for (int i = 0; i < s_dim; i++) 
       mprintf("Sigma %6i%12.6lf\n",i+1,matrix_S[i]);
   }
@@ -1265,7 +1254,7 @@ int Action_Rotdif::Tensor_Fit(double *vector_q) {
   // DEBUG: Print U and Vt
   // NOTE: U and Vt are in column-major order from fortran routine
   //       so are currently implicitly transposed.
-  if (debug>1) {
+  if (debug_>1) {
     printMatrix("matrix_Ut",matrix_U,m_rows,m_rows);
     printMatrix("matrix_V",matrix_Vt,n_cols,n_cols);
   }
@@ -1352,7 +1341,7 @@ int Action_Rotdif::Tensor_Fit(double *vector_q) {
   // Back-calculate the local diffusion constants via At*Q=Deff
   // First convert original D back to Q
   D_to_Q(vector_q_local, matrix_D_local);
-  if (debug>0) printMatrix("D_to_Q",vector_q_local,1,6);
+  if (debug_>0) printMatrix("D_to_Q",vector_q_local,1,6);
   deff_local = new double[ nvecs_ ];
   At = matrix_At;
   // At*Q
@@ -1584,25 +1573,25 @@ int Action_Rotdif::DetermineDeffs() {
     D_eff_[vec] = calcEffectiveDiffusionConst(integral);
 
     // DEBUG: Write out p1 and p2 ------------------------------------
-    if (!corrOut_.empty() || debug > 3) {
+    if (!corrOut_.empty() || debug_ > 3) {
         std::string namebuffer("p1p2.dat");
         if (!corrOut_.empty())
           namebuffer = NumberFilename( corrOut_, vec );
         else
           namebuffer = NumberFilename( namebuffer, vec );
         //NumberFilename(namebuffer, (char*)"p1p2.dat", vec);
-        outfile.SetupWrite(namebuffer, debug);
+        outfile.SetupWrite(namebuffer, debug_);
         outfile.OpenFile();
         for (int i = 0; i < maxdat; i++) 
           //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
           outfile.Printf("%lf %lf\n",pX[i], pY[i]);
         outfile.CloseFile();
         //    Write Mesh
-        if (debug>3) {
+        if (debug_>3) {
           namebuffer.assign("mesh.dat");
           namebuffer = NumberFilename( namebuffer, vec );
           //NumberFilename(namebuffer, (char*)"mesh.dat", vec);
-          outfile.SetupWrite(namebuffer, debug);
+          outfile.SetupWrite(namebuffer, debug_);
           outfile.OpenFile();
           for (int i=0; i < spline.Mesh_Size(); i++)
             outfile.Printf("%lf %lf\n", spline.X(i), spline.Y(i));
@@ -1611,7 +1600,7 @@ int Action_Rotdif::DetermineDeffs() {
         if (!corrOut_.empty()) 
           corrOut_.clear();
     }
-    if (debug > 0) {
+    if (debug_ > 0) {
       mprintf("DBG: Vec %i Spline integral= %12.4lf\n",vec,integral);
       mprintf("DBG: deff is %lf\n",D_eff_[vec]);
     }
@@ -1644,7 +1633,7 @@ int Action_Rotdif::DetermineDeffs() {
   * - Based on Q from small anisotropic limit, use downhill simplex
   *   minimizer to optimize Q in full anisotropic limit
   */
-void Action_Rotdif::print() {
+void Action_Rotdif::Print() {
 
   mprintf("    ROTDIF:\n");
  
@@ -1665,7 +1654,7 @@ void Action_Rotdif::print() {
   // Print rotation matrices
   if (!rmOut_.empty()) {
     CpptrajFile rmout;
-    if (rmout.SetupWrite(rmOut_,debug)) {
+    if (rmout.SetupWrite(rmOut_,debug_)) {
       mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",rmOut_.c_str());
     } else {
       rmout.OpenFile();
@@ -1690,7 +1679,7 @@ void Action_Rotdif::print() {
   // Print deffs
   if (!deffOut_.empty()) {
     CpptrajFile dout;
-    if (dout.SetupWrite(deffOut_,debug)) {
+    if (dout.SetupWrite(deffOut_,debug_)) {
       mprinterr("    Error: Rotdif: Could not set up file %s\n",deffOut_.c_str());
     } else {
       dout.OpenFile();
@@ -1730,7 +1719,7 @@ void Action_Rotdif::print() {
     Grid_search( Q_anisotropic, 5 );
 # endif
   //int lflag = olegendre;
-  //tensorfit_(random_vectors_,nvecs_,temp_deff,nvecs_,lflag,temp_delqfrac_,debug);
+  //tensorfit_(random_vectors_,nvecs_,temp_deff,nvecs_,lflag,temp_delqfrac_,debug_);
   //delete[] temp_deff;
 }
   

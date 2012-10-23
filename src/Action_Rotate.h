@@ -12,9 +12,10 @@ class Action_Rotate : public Action {
     double RotMatrix_[9];
     AtomMask mask_;
 
-    int init();
-    int setup();
-    int action();
-    void print() {}
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 };
 #endif

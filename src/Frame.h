@@ -56,6 +56,7 @@ class Frame {
     const double* XYZ(int atnum) { return X_ + (atnum*3);       } // TODO: Replace?
     const double* CRD(int idx)   { return X_ + idx;             } // TODO: Replace?
     double& operator[](int idx)  { return X_[idx];              } // TODO: Make const?
+    double Mass(int atnum)       { return Mass_[atnum];         }
     // Box routines
     double BoxX() { return box_[0]; }
     double BoxY() { return box_[1]; }

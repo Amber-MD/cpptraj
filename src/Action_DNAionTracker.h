@@ -9,11 +9,12 @@ class Action_DNAionTracker : public Action, ImagedAction {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_DNAionTracker(); }
     static void Help();
 
-    void print() {}
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     DataSet* distance_;
     enum BINTYPE { COUNT=0, SHORTEST, TOPCONE, BOTTOMCONE };

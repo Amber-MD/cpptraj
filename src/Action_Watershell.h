@@ -10,7 +10,6 @@ class Action_Watershell : public Action, ImagedAction {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Watershell(); }
     static void Help();
 
-
   private:
     AtomMask soluteMask_;
     AtomMask solventMask_;
@@ -21,10 +20,12 @@ class Action_Watershell : public Action, ImagedAction {
     double lowerCutoff_;
     double upperCutoff_;
     std::string filename_;
+    Topology* CurrentParm_;
 
-    int init();
-    int setup();
-    int action();
-    void print();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 };
 #endif

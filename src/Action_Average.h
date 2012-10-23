@@ -12,11 +12,12 @@ class Action_Average: public Action {
 
     ~Action_Average();
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     AtomMask Mask1_;
     Frame* AvgFrame_;

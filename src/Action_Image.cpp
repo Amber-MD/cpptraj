@@ -12,7 +12,8 @@ Action_Image::Action_Image() :
   ortho_(false),
   useMass_(true),
   truncoct_(false),
-  triclinic_(OFF)
+  triclinic_(OFF),
+  debug_(0)
 { } 
 
 void Action_Image::Help() {
@@ -42,9 +43,11 @@ const char Action_Image::ImageModeString[3][9] = {
 // Check order is:
 //    1) Keywords
 //    2) Masks
-int Action_Image::init() {
+Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   ArgList::ConstArg mask1;
-
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
   center_ = actionArgs.hasKey("center");
@@ -88,7 +91,7 @@ int Action_Image::init() {
     mprintf(".\n");
   }
 
-  return 0;
+  return Action::OK;
 }
 
 /** Check that at least 1 atom in the range is in Mask1 */
@@ -110,21 +113,21 @@ void Action_Image::CheckRange(int firstAtom, int lastAtom) {
 /** Set Imaging up for this parmtop. Get masks etc.
   * currentParm is set in Action::Setup
   */
-int Action_Image::setup() {
+Action::RetType Action_Image::Setup(Topology* currentParm, Topology** parmAddress) {
   if ( imageMode_ == BYMOL || imageMode_ == BYRES ) {
-    if ( currentParm->SetupCharMask( Mask1_ ) ) return 1;
+    if ( currentParm->SetupCharMask( Mask1_ ) ) return Action::ERR;
   } else { // BYATOM
-    if ( currentParm->SetupIntegerMask( Mask1_ ) ) return 1;
+    if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
   }
   if (Mask1_.None()) {
     mprintf("Warning: Image::setup: Mask contains 0 atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
   if (currentParm->BoxType()==Box::NOBOX) {
     mprintf("Warning: Image::setup: Parm %s does not contain box information.\n",
             currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
 
   ortho_ = false;  
@@ -139,10 +142,10 @@ int Action_Image::setup() {
 
   if (triclinic_ == FAMILIAR) {
     if (ComMask_!=NULL) {
-      if ( currentParm->SetupIntegerMask( *ComMask_ ) ) return 1;
+      if ( currentParm->SetupIntegerMask( *ComMask_ ) ) return Action::ERR;
       if (ComMask_->None()) {
         mprintf("Warning: Image::setup: Mask for 'familiar com' contains no atoms.\n");
-        return 1;
+        return Action::ERR;
       }
       mprintf("\tcom: mask [%s] contains %i atoms.\n",ComMask_->MaskString(),ComMask_->Nselected());
     }
@@ -178,7 +181,7 @@ int Action_Image::setup() {
            ImageModeString[imageMode_], imageList_.size()/2, Mask1_.MaskString());
  
   // DEBUG: Print all pairs
-  if (debug>0) {
+  if (debug_>0) {
     for (std::vector<int>::iterator ap = imageList_.begin();
                                     ap != imageList_.end(); ap+=2)
       mprintf("\t\tFirst-Last atom#: %i - %i\n", (*ap)+1, *(ap+1) );
@@ -187,11 +190,11 @@ int Action_Image::setup() {
   // Truncoct flag
   truncoct_ = (triclinic_==FAMILIAR);
 
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Image::action()
-int Action_Image::action() {
+Action::RetType Action_Image::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Ortho
   Vec3 bp, bm;
   // Nonortho
@@ -208,5 +211,5 @@ int Action_Image::action() {
     ImageNonortho( *currentFrame, origin_, fcom, ucell, recip, truncoct_,
                                 center_, useMass_, imageList_);
   }
-  return 0;
+  return Action::OK;
 } 

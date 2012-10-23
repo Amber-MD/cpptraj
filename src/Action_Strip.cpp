@@ -13,7 +13,7 @@ Action_Strip::Action_Strip() :
 } 
 
 void Action_Strip::Help() {
-
+  mprintf("strip <mask1> [outprefix <name>] [nobox]\n");
 }
 
 // DESTRUCTOR
@@ -24,8 +24,9 @@ Action_Strip::~Action_Strip() {
 }
 
 // Action_Strip::init()
-/** Expected call: strip <mask1> [outprefix <name>] [nobox] */
-int Action_Strip::init( ) {
+Action::RetType Action_Strip::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get output stripped parm filename
   prefix_ = actionArgs.GetStringKey("outprefix");
   removeBoxInfo_ = actionArgs.hasKey("nobox");
@@ -35,7 +36,7 @@ int Action_Strip::init( ) {
   //mprintf("    Mask 1: %s\n",mask1);
   if (mask1==NULL) {
     mprinterr("Error: strip: Requires atom mask.\n");
-    return 1;
+    return Action::ERR;
   }
   M1_.SetMaskString(mask1);
   // We want to strip the atoms inside the mask and keep those outside
@@ -49,18 +50,18 @@ int Action_Strip::init( ) {
   if (removeBoxInfo_)
     mprintf("           Any existing box information will be removed.\n");
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Strip::Setup()
 /** Attempt to create a new stripped down version of the input parmtop
   */
-int Action_Strip::setup() {
-  if (currentParm->SetupIntegerMask( M1_ )) return 1;
+Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddress) {
+  if (currentParm->SetupIntegerMask( M1_ )) return Action::ERR;
   //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
   if (M1_.None()) {
     mprintf("Warning: strip: Mask [%s] has no atoms.\n",M1_.MaskString());
-    return 1;
+    return Action::ERR;
   }
   mprintf("\tStripping %i atoms.\n",currentParm->Natom() - M1_.Nselected());
 
@@ -72,7 +73,7 @@ int Action_Strip::setup() {
   newParm_ = currentParm->modifyStateByMask(M1_);
   if (newParm_==NULL) {
     mprinterr("Error: strip: Could not create new parmtop.\n");
-    return 1;
+    return Action::ERR;
   }
   // Remove box information if asked
   if (removeBoxInfo_)
@@ -90,7 +91,7 @@ int Action_Strip::setup() {
     newfilename += oldParm_->OriginalFilename();
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),newfilename.c_str());
     ParmFile pfile;
-    pfile.SetDebug( debug );
+    //pfile.SetDebug( debug );
     if ( pfile.Write( *newParm_, newfilename, ParmFile::AMBERPARM ) ) {
       mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
                 newParm_->c_str());
@@ -98,20 +99,20 @@ int Action_Strip::setup() {
   }
 
   // Set parm
-  currentParm = newParm_;
+  *parmAddress = newParm_;
 
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Strip::action()
 /** Modify the coordinate frame to reflect stripped parmtop. */
-int Action_Strip::action() {
+Action::RetType Action_Strip::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
 
   newFrame_.SetFrame(*currentFrame, M1_);
 
   // Set frame
-  currentFrame = &newFrame_;
+  *frameAddress = &newFrame_;
 
-  return 0;
+  return Action::OK;
 } 
 

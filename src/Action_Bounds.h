@@ -9,11 +9,12 @@ class Action_Bounds : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Bounds(); }
     static void Help();
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
     AtomMask mask_;
     std::string outfilename_;
     double max_[3];

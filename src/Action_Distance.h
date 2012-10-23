@@ -11,15 +11,16 @@ class Action_Distance: public Action, ImagedAction {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Distance(); }
     static void Help();
 
-    void print() {}
+    void Print() {}
   private:
     DataSet *dist_;
     bool useMass_;
     AtomMask Mask1_;
     AtomMask Mask2_;
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 };
 #endif  

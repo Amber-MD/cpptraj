@@ -12,17 +12,18 @@ Action_RunningAvg::Action_RunningAvg() :
 {} 
 
 void Action_RunningAvg::Help() {
-
+  mprintf("runningaverage [window <value>]\n");
 }
 
 // Action_RunningAvg::init()
-/// Expected call: runningaverage [window <value>] 
-int Action_RunningAvg::init( ) {
+Action::RetType Action_RunningAvg::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get Keywords
   Nwindow_ = actionArgs.getKeyInt("window",5);
   if (Nwindow_ < 1 ) {
     mprinterr("Error: RunningAvg: window must be >= 1.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Reserve space for Nwindow frames
@@ -39,11 +40,11 @@ int Action_RunningAvg::init( ) {
   mprintf("    RUNNINGAVG: Running average of size %i will be performed over input coords.\n",
           Nwindow_);
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_RunningAvg::setup()
-int Action_RunningAvg::setup() {
+Action::RetType Action_RunningAvg::Setup(Topology* currentParm, Topology** parmAddress) {
   // If windowNatom is 0, this is the first setup.
   // If windowNatom is not 0, setup has been called for another parm.
   // Check if the number of atoms has changed. If so the running average
@@ -53,7 +54,7 @@ int Action_RunningAvg::setup() {
       mprintf("Warning: # atoms in parm %s different than previous parm.\n",
               currentParm->c_str());
       mprintf("         Running average will NOT be carried over between parms!\n");
-      return 1;
+      return Action::ERR;
     }
     windowNatom_ = currentParm->Natom();
     // Set up a frame for each window, no masses
@@ -69,11 +70,11 @@ int Action_RunningAvg::setup() {
 
   // Print info for this parm
   mprintf("\tRunning average set up for %i atoms.\n",windowNatom_);
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_RunningAvg::action()
-int Action_RunningAvg::action() {
+Action::RetType Action_RunningAvg::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // If frameNum is >= Nwindow, subtract from avgFrame. currentWindow is at
   // the frame that should be subtracted.
   if (frameNum > frameThreshold_) { 
@@ -96,15 +97,15 @@ int Action_RunningAvg::action() {
   // If not enough frames to average yet return 3 to indicate further
   // processing should be suppressed.
   if (frameNum < frameThreshold_)
-    return (int)ACTION_SUPPRESSCOORDOUTPUT;
+    return Action::SUPPRESSCOORDOUTPUT;
   // Otherwise there are enough frames to start processing the running average
   else {
     //mprintf("DBG:\tCalculating average for frame %i\n",frameNum); 
     resultFrame_.Divide( avgFrame_, d_Nwindow_ );
     // Set frame
-    currentFrame = &resultFrame_;
+    *frameAddress = &resultFrame_;
   }
 
-  return (int)ACTION_OK;
+  return Action::OK;
 } 
 

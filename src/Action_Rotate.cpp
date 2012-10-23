@@ -22,7 +22,9 @@ void Action_Rotate::Help() {
 
 /** Usage: rotate [<mask>] [x <xdeg>] [y <ydeg>] [z <zdeg>]
   */
-int Action_Rotate::init() {
+Action::RetType Action_Rotate::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   double xrot = actionArgs.getKeyDouble("x",0.0);
   double yrot = actionArgs.getKeyDouble("y",0.0);
   double zrot = actionArgs.getKeyDouble("z",0.0);
@@ -34,21 +36,21 @@ int Action_Rotate::init() {
   mprintf("    ROTATE: Rotating atoms in mask %s\n", mask_.MaskString());
   mprintf("\t%f degrees around X, %f degrees around Y, %f degrees around Z\n",
           xrot, yrot, zrot);
-  return 0;
+  return Action::OK;
 };
 
-int Action_Rotate::setup() {
-  if ( currentParm->SetupIntegerMask( mask_ ) ) return 1;
+Action::RetType Action_Rotate::Setup(Topology* currentParm, Topology** parmAddress) {
+  if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
     mprinterr("Error: rotate: No atoms selected.\n");
-    return 1;
+    return Action::ERR;
   }
-  return 0;
+  return Action::OK;
 }
 
-int Action_Rotate::action() {
+Action::RetType Action_Rotate::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   currentFrame->Rotate(RotMatrix_, mask_);
-  return 0;
+  return Action::OK;
 }
 

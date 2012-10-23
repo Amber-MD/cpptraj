@@ -16,6 +16,8 @@ Action_Rmsd::Action_Rmsd() :
   rotate_(true),
   useMass_(false),
   rmsd_(NULL),
+  masterDSL_(0),
+  masterDFL_(0),
   refmode_(UNKNOWN_REF),
   RefParm_(NULL)
 { }
@@ -80,9 +82,10 @@ void Action_Rmsd::Help() {
 }
 
 // Action_Rmsd::init()
-/** Called once before traj processing. Set up reference info.
-  */
-int Action_Rmsd::init( ) {
+/** Called once before traj processing. Set up reference info. */
+Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   std::string refname, reftrajname;
   int refindex = -1;
   Topology* refparm = NULL;
@@ -148,18 +151,18 @@ int Action_Rmsd::init( ) {
       // Reference trajectory
       if (refparm == NULL) {
         mprinterr("Error: rmsd: Could not get parm for reftraj %s\n", reftrajname.c_str());
-        return 1;
+        return Action::ERR;
       }
-      if (SetRefMask( refparm )!=0) return 1;
+      if (SetRefMask( refparm )!=0) return Action::ERR;
       // Attempt to open reference traj.
       if (RefTraj_.SetupTrajRead( reftrajname, NULL, refparm)) {
         mprinterr("Error: rmsd: Could not set up reftraj %s\n", reftrajname.c_str());
-        return 1;
+        return Action::ERR;
       }
       RefFrame_.SetupFrameV(refparm->Atoms(), RefTraj_.HasVelocity());
       if (RefTraj_.BeginTraj(false)) {
         mprinterr("Error: rmsd: Could not open reftraj %s\n", reftrajname.c_str());
-        return 1;
+        return Action::ERR;
       }
     } else {
       // Reference by name/tag
@@ -171,16 +174,16 @@ int Action_Rmsd::init( ) {
       refparm = FL->GetFrameParm( refindex );
       if (refparm == NULL) {
         mprinterr("Error: rmsd: Could not get parm for frame %s\n", FL->FrameName(refindex));
-        return 1;
+        return Action::ERR;
       }
-      if (SetRefMask( refparm )!=0) return 1;
+      if (SetRefMask( refparm )!=0) return Action::ERR;
       SetRefStructure( *TempFrame );
     } 
   }
 
   // Set up the RMSD data set. 
   rmsd_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"RMSD");
-  if (rmsd_==NULL) return 1;
+  if (rmsd_==NULL) return Action::ERR;
   rmsd_->SetScalar( DataSet::M_RMS );
   // Add dataset to data file list
   DFL->Add(rmsdFile, rmsd_);
@@ -229,8 +232,9 @@ int Action_Rmsd::init( ) {
     if (perresinvert_)
       mprintf("          perresinvert: Frames will be written in rows instead of columns.\n");
   }
-
-  return 0;
+  masterDSL_ = DSL;
+  masterDFL_ = DFL;
+  return Action::OK;
 }
 
 // Action_Rmsd::perResSetup()
@@ -240,7 +244,7 @@ int Action_Rmsd::init( ) {
   * NOTE: Residues in the range arguments from user start at 1, internal
   *       res nums start from 0.
   */
-int Action_Rmsd::perResSetup(Topology *RefParm) {
+int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
   Range tgt_range;
   Range ref_range;
 
@@ -293,7 +297,7 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
     }
     ++N;
     // Create dataset for res - if already present this returns NULL
-    DataSet* prDataSet = DSL->AddSetIdxAspect( DataSet::DOUBLE, rmsd_->Name(), tgtRes, "res");
+    DataSet* prDataSet = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, rmsd_->Name(), tgtRes, "res");
     prDataSet->SetLegend( currentParm->ResNameNum(tgtRes-1) );
     PerResRMSD_.push_back( prDataSet );
 
@@ -353,12 +357,12 @@ int Action_Rmsd::perResSetup(Topology *RefParm) {
 /** Called every time the trajectory changes. Set up FrameMask for the new 
   * parmtop and allocate space for selected atoms from the Frame.
   */
-int Action_Rmsd::setup() {
-  if ( currentParm->SetupIntegerMask( FrameMask_ ) ) return 1;
+Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress) {
+  if ( currentParm->SetupIntegerMask( FrameMask_ ) ) return Action::ERR;
   FrameMask_.MaskInfo();
   if ( FrameMask_.None() ) {
     mprintf("Warning: rmsd: No atoms in mask.\n");
-    return 1;
+    return Action::ERR;
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
@@ -366,7 +370,7 @@ int Action_Rmsd::setup() {
 
   // Reference setup if 'first'
   if (refmode_ == FIRST) {
-    if ( SetRefMask( currentParm )!=0 ) return 1;
+    if ( SetRefMask( currentParm )!=0 ) return Action::ERR;
   }
   
   // Check that num atoms in frame mask from this parm match ref parm mask
@@ -374,15 +378,15 @@ int Action_Rmsd::setup() {
     mprintf("Warning: Number of atoms in RMS mask (%i) does not equal number of\n",
               FrameMask_.Nselected());
     mprintf("Warning: atoms in reference mask (%i).\n",RefMask_.Nselected());
-    return 1;
+    return Action::ERR;
   }
 
   // Per residue rmsd setup
   if (perres_) { 
-    if (perResSetup(RefParm_)) return 1;
+    if (perResSetup(currentParm, RefParm_)) return Action::ERR;
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Rmsd::action()
@@ -391,7 +395,7 @@ int Action_Rmsd::setup() {
   * SetRefStructure pre-centers the reference coordinates at the origin
   * and puts the translation from origin to reference in Trans[3-5]. 
   */
-int Action_Rmsd::action() {
+Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double R, U[9];
 
   // Perform any needed reference actions
@@ -454,7 +458,7 @@ int Action_Rmsd::action() {
     }
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Rmsd::print()
@@ -462,7 +466,7 @@ int Action_Rmsd::action() {
   * it is not part of the master DataSetList in Cpptraj. Setup output
   * file options. Calculate averages if requested.
   */
-void Action_Rmsd::print() {
+void Action_Rmsd::Print() {
   DataFile *outFile;
 
   if (!perres_ || PerResRMSD_.empty()) return;
@@ -472,7 +476,7 @@ void Action_Rmsd::print() {
     for (std::vector<DataSet*>::iterator set = PerResRMSD_.begin();
                                          set != PerResRMSD_.end(); ++set)
     {
-      outFile = DFL->AddSetToFile(perresout_, *set);
+      outFile = masterDFL_->AddSetToFile(perresout_, *set);
       if (outFile == NULL) 
         mprinterr("Error adding set %s to file %s\n", (*set)->Legend().c_str(), 
                    perresout_.c_str());
@@ -490,12 +494,12 @@ void Action_Rmsd::print() {
   if (!perresavg_.empty()) {
     int Nperres = (int)PerResRMSD_.size();
     // Use the per residue rmsd dataset list to add one more for averaging
-    DataSet *PerResAvg = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Avg");
+    DataSet *PerResAvg = masterDSL_->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Avg");
     // another for stdev
-    DataSet *PerResStdev = DSL->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Stdev");
+    DataSet *PerResStdev = masterDSL_->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Stdev");
     // Add the average and stdev datasets to the master datafile list
-    outFile = DFL->AddSetToFile(perresavg_, PerResAvg);
-    outFile = DFL->AddSetToFile(perresavg_, PerResStdev);
+    outFile = masterDFL_->AddSetToFile(perresavg_, PerResAvg);
+    outFile = masterDFL_->AddSetToFile(perresavg_, PerResStdev);
     outFile->ProcessArgs("xlabel Residue");
     // For each residue, get the average rmsd
     double stdev = 0;

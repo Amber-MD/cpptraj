@@ -9,7 +9,8 @@
 Action_Vector::Action_Vector() :
   Vec_(0),
   vcorr_(0),
-  ptrajoutput_(false)
+  ptrajoutput_(false),
+  CurrentParm_(0)
 {}
 
 void Action_Vector::Help() {
@@ -27,22 +28,24 @@ const char Action_Vector::ModeString[11][12] = {
   "CorrPlane", "Corr", "CorrIred"
 };
 
-static int WarnDeprecated() {
+static Action::RetType WarnDeprecated() {
   mprinterr("Error: Vector: 'corrired' and 'corr' are deprecated.\n");
   mprinterr("Error: 'corrired' functionality is now part of the\n");
   mprinterr("Error: IRED analysis. 'corr' can now be done with a normal 2-mask\n");
   mprinterr("Error: vector and TIMECORR analysis.\n");
-  return 1;
+  return Action::ERR;
 }
 
 // Action_Vector::init()
-int Action_Vector::init() {
+Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // filename is saved in case ptraj-compatible output is desired
   filename_ = actionArgs.GetStringKey("out");
   ptrajoutput_ = actionArgs.hasKey("ptrajoutput");
   if (ptrajoutput_ && filename_.empty()) {
     mprinterr("Error: 'ptrajoutput' specified but no 'out <filename>' arg given.\n");
-    return 1;
+    return Action::ERR;
   }
   // Acceptable args: principal [x | y | z], dipole, box, corrplane, 
   // Deprecated: corrired, corr, ired
@@ -77,13 +80,13 @@ int Action_Vector::init() {
     std::string maskexpr = actionArgs.GetMaskNext();
     if (maskexpr.empty()) {
       mprinterr("Error: vector: Specified vector mode requires a second mask.\n");
-      return 1;
+      return Action::ERR;
     }
     mask2_.SetMaskString( maskexpr );
   }
   // Set up vector dataset and IRED status
   Vec_ = (DataSet_Vector*)DSL->AddSet(DataSet::VECTOR, name, "Vec");
-  if (Vec_ == 0) return 1;
+  if (Vec_ == 0) return Action::ERR;
   if (isIred)
     Vec_->SetIred( );
   // Add set to output file if not doing ptraj-compatible output
@@ -106,21 +109,21 @@ int Action_Vector::init() {
   }
   mprintf("\n");
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Vector::setup()
-int Action_Vector::setup() {
+Action::RetType Action_Vector::Setup(Topology* currentParm, Topology** parmAddress) {
   if (mode_ == BOX) {
     // Check for box info
     if (currentParm->BoxType() == Box::NOBOX) {
       mprinterr("Error: vector box: Parm %s does not have box information.\n",
                 currentParm->c_str());
-      return 1;
+      return Action::ERR;
     }
   } else {
     // Setup mask 1
-    if (currentParm->SetupIntegerMask(mask_)) return 1;
+    if (currentParm->SetupIntegerMask(mask_)) return Action::ERR;
     mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
             mask_.MaskString(), mask_.Nselected());
   }
@@ -133,11 +136,12 @@ int Action_Vector::setup() {
 
   // Setup mask 2
   if (mask2_.MaskStringSet()) {
-    if (currentParm->SetupIntegerMask(mask2_)) return 1;
+    if (currentParm->SetupIntegerMask(mask2_)) return Action::ERR;
     mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
             mask2_.MaskString(), mask2_.Nselected());
   }
-  return 0;
+  CurrentParm_ = currentParm;
+  return Action::OK;
 }
 
 // -----------------------------------------------------------------------------
@@ -250,24 +254,24 @@ Vec3 Action_Vector::leastSquaresPlane(int n, const double* vcorr) {
 }
 
 // -----------------------------------------------------------------------------
-void Action_Vector::Mask() {
+void Action_Vector::Mask(Frame* currentFrame) {
   Vec3 CXYZ = currentFrame->VCenterOfMass(mask_);
   Vec3 VXYZ = currentFrame->VCenterOfMass(mask2_);
   VXYZ -= CXYZ;
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
-void Action_Vector::Dipole() {
+void Action_Vector::Dipole(Frame* currentFrame) {
   Vec3 VXYZ, CXYZ;
   double total_mass = 0;
   for (AtomMask::const_iterator atom = mask_.begin();
                                 atom != mask_.end(); ++atom)
   {
-    double mass = (*currentParm)[*atom].Mass();
+    double mass = (*CurrentParm_)[*atom].Mass();
     total_mass += mass;
     Vec3 XYZ = currentFrame->XYZ( *atom );
     CXYZ += ( XYZ * mass );
-    double charge = (*currentParm)[*atom].Charge();
+    double charge = (*CurrentParm_)[*atom].Charge();
     XYZ *= charge;
     VXYZ += ( XYZ );
   }
@@ -275,13 +279,13 @@ void Action_Vector::Dipole() {
   Vec_->AddVxyz( VXYZ, CXYZ );
 }
 
-void Action_Vector::Principal() {
+void Action_Vector::Principal(Frame* currentFrame) {
   double Inertia[9], Evec[9], Eval[3], CXYZ[3];
   // TODO: Convert to Vec3 and Matrix_3x3
   currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
   Matrix_3x3 TEMP( Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
-  TEMP.Diagonalize_Sort_Chirality( Evec, Eval, debug );
+  TEMP.Diagonalize_Sort_Chirality( Evec, Eval, 0 );
   /*if (debug > 2) {
     printVector("PRINCIPAL EIGENVALUES", Eval );
     //TEMP.Print("GENERAL");
@@ -295,7 +299,7 @@ void Action_Vector::Principal() {
     Vec_->AddVxyz( Evec + 6, CXYZ ); // Third row = third eigenvector
 }
 
-void Action_Vector::CorrPlane() {
+void Action_Vector::CorrPlane(Frame* currentFrame) {
   Vec3 CXYZ = currentFrame->VCenterOfMass(mask_);
   int idx = 0;
   for (AtomMask::const_iterator atom = mask_.begin();
@@ -311,29 +315,29 @@ void Action_Vector::CorrPlane() {
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
-void Action_Vector::Box() {
+void Action_Vector::Box(Frame* currentFrame) {
   Vec_->AddVxyz( currentFrame->BoxLengths() );
 }
 
 // Action_Vector::action()
-int Action_Vector::action() {
+Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   switch ( mode_ ) {
     case MASK        :
     case CORR        :
-    case CORRIRED    : Mask(); break;
-    case DIPOLE      : Dipole(); break;
+    case CORRIRED    : Mask(currentFrame); break;
+    case DIPOLE      : Dipole(currentFrame); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :
-    case PRINCIPAL_Z : Principal(); break;
-    case CORRPLANE   : CorrPlane(); break;
-    case BOX         : Box(); break;
-    default                          : return 1; break; // NO_OP
+    case PRINCIPAL_Z : Principal(currentFrame); break;
+    case CORRPLANE   : CorrPlane(currentFrame); break;
+    case BOX         : Box(currentFrame); break;
+    default                          : return Action::ERR; break; // NO_OP
   } // END switch over vectorMode
-  return 0;
+  return Action::OK;
 }
 
 // Action_Vector::print()
-void Action_Vector::print() {
+void Action_Vector::Print() {
   if (ptrajoutput_) {
     CpptrajFile outfile;
     if (outfile.OpenWrite(filename_.c_str())) return;

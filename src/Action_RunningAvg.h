@@ -10,7 +10,7 @@ class Action_RunningAvg: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_RunningAvg(); }
     static void Help();
 
-    void print() {}
+    void Print() {}
   private:
     int Nwindow_;               ///< Size of the running average
     double d_Nwindow_;          ///< For frame division (avoids constant recasting)
@@ -21,8 +21,9 @@ class Action_RunningAvg: public Action {
     Frame avgFrame_;            ///< Frame to hold sum of coords in window to be avgd.
     Frame resultFrame_;         ///< Frame to hold result of averaging coords.
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 };
 #endif  

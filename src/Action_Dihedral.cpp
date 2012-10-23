@@ -20,7 +20,9 @@ void Action_Dihedral::Help() {
   *                         [type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p
   *                                h1p  |phi |psi  |pchi}]
   */
-int Action_Dihedral::init() {
+Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get keywords
   ArgList::ConstArg dihedralFile = actionArgs.getKeyString("out");
   useMass_ = actionArgs.hasKey("mass");
@@ -46,7 +48,7 @@ int Action_Dihedral::init() {
   ArgList::ConstArg mask4 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL) {
     mprinterr("Error: dihedral: Requires 4 masks\n");
-    return 1;
+    return Action::ERR;
   }
   M1_.SetMaskString(mask1);
   M2_.SetMaskString(mask2);
@@ -55,7 +57,7 @@ int Action_Dihedral::init() {
 
   // Setup dataset
   dih_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Dih");
-  if (dih_==NULL) return 1;
+  if (dih_==NULL) return Action::ERR;
   dih_->SetScalar( DataSet::M_TORSION, stype );
   // Add dataset to datafile list
   DFL->Add(dihedralFile, dih_);
@@ -65,29 +67,29 @@ int Action_Dihedral::init() {
   if (useMass_)
     mprintf("              Using center of mass of atoms in masks.\n");
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Dihedral::setup
-int Action_Dihedral::setup() {
-  if (currentParm->SetupIntegerMask(M1_)) return 1;
-  if (currentParm->SetupIntegerMask(M2_)) return 1;
-  if (currentParm->SetupIntegerMask(M3_)) return 1;
-  if (currentParm->SetupIntegerMask(M4_)) return 1;
+Action::RetType Action_Dihedral::Setup(Topology* currentParm, Topology** parmAddress) {
+  if (currentParm->SetupIntegerMask(M1_)) return Action::ERR;
+  if (currentParm->SetupIntegerMask(M2_)) return Action::ERR;
+  if (currentParm->SetupIntegerMask(M3_)) return Action::ERR;
+  if (currentParm->SetupIntegerMask(M4_)) return Action::ERR;
   M1_.MaskInfo();
   M2_.MaskInfo();
   M3_.MaskInfo();
   M4_.MaskInfo();
   if ( M1_.None() || M2_.None() || M3_.None() || M4_.None() ) {
     mprintf("Warning: dihedral: One or more masks have no atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Dihedral::action()
-int Action_Dihedral::action() {
+Action::RetType Action_Dihedral::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Vec3 a1, a2, a3, a4;
 
   if (useMass_) {
@@ -109,6 +111,6 @@ int Action_Dihedral::action() {
 
   //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
   
-  return 0;
+  return Action::OK;
 } 
 

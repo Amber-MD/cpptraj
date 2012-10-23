@@ -58,9 +58,10 @@ class Pairwise: public Action {
 
     ~Pairwise();
 
-    int init();
-    int setup();
-    int action();
-    void print();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 };
 #endif  

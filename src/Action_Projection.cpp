@@ -19,7 +19,9 @@ void Action_Projection::Help() {
   *            [beg <beg>] [end <end>] [<mask>]
   *            [start <start>] [stop <stop>] [offset <offset>]
   */
-int Action_Projection::init() {
+Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get ibeg, iend, start, stop, offset
   beg_ = actionArgs.getKeyInt("beg", 1);
   end_ = actionArgs.getKeyInt("end", 2);
@@ -32,9 +34,9 @@ int Action_Projection::init() {
   std::string modesname = actionArgs.GetStringKey("modes");
   if (modesname.empty()) {
     mprinterr("Error: projection: no modes file specified ('modes <filename>')\n");
-    return 1;
+    return Action::ERR;
   }
-  if (modinfo_.ReadEvecFile( modesname, beg_, end_ )) return 1;
+  if (modinfo_.ReadEvecFile( modesname, beg_, end_ )) return Action::ERR;
 
   // Check modes type
   if (modinfo_.Type() != DataSet_Matrix::COVAR &&
@@ -42,14 +44,14 @@ int Action_Projection::init() {
       modinfo_.Type() != DataSet_Matrix::IDEA)
   {
     mprinterr("Error: projection: evecs type is not COVAR, MWCOVAR, or IDEA.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Output Filename
   std::string filename_ = actionArgs.GetStringKey("out");
   if (filename_.empty()) {
     mprinterr("Error: projection: No output file specified ('out <filename>')\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Get mask
@@ -65,7 +67,7 @@ int Action_Projection::init() {
       DataSet* dout = DSL->AddSetIdx( DataSet::FLOAT, setname, imode++ );
       if (dout == 0) {
         mprinterr("Error creating output dataset for mode %i\n",imode-1);
-        return 1;
+        return Action::ERR;
       }
       project_.push_back( dout );
       DFL->AddSetToFile( filename_, dout );
@@ -94,16 +96,16 @@ int Action_Projection::init() {
   mprintf("\n");
   mprintf("                Atom Mask: [%s]\n", mask_.MaskString());
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Projection::setup()
-int Action_Projection::setup() {
+Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup mask
-  if (currentParm->SetupIntegerMask( mask_ )) return 1;
+  if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
   if (mask_.None()) {
     mprinterr("Error: projection: No atoms selected.\n");
-    return 1;
+    return Action::ERR;
   }
   mask_.MaskInfo();
   // Check # of selected atoms against modes info
@@ -115,12 +117,12 @@ int Action_Projection::setup() {
     if ( natom3 != modinfo_.NavgCrd() ) {
       mprinterr("Error: projection: # selected coords (%i) != # avg coords (%i) in %s\n",
                 natom3, modinfo_.NavgCrd(), modinfo_.Legend().c_str());
-      return 1;
+      return Action::ERR;
     }
     if ( natom3 != modinfo_.VectorSize() ) {
       mprinterr("Error: projection: # selected coords (%i) != eigenvector size (%i)\n",
                 natom3, modinfo_.VectorSize() );
-      return 1;
+      return Action::ERR;
     }
   } else if ( modinfo_.Type() == DataSet_Matrix::IDEA ) {
     // Check if (number of atoms in mask) and nvectelem agree
@@ -129,7 +131,7 @@ int Action_Projection::setup() {
     {
       mprinterr("Error: projection: # selected atoms (%i) != eigenvector size (%i)\n",
                 mask_.Nselected(), modinfo_.VectorSize() );
-      return 1;
+      return Action::ERR;
     }
   }
 
@@ -144,15 +146,15 @@ int Action_Projection::setup() {
     sqrtmasses_.resize( mask_.Nselected(), 1.0 );
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Projection::action()
-int Action_Projection::action() {
+Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
     // If the current frame is less than start exit
-  if (frameNum < start_) return 0;
+  if (frameNum < start_) return Action::OK;
   // If the current frame is greater than stop exit
-  if (stop_!=-1 && frameNum >= stop_) return 0;
+  if (stop_!=-1 && frameNum >= stop_) return Action::OK;
   // Update next target frame
   start_ += offset_;
 
@@ -203,5 +205,5 @@ int Action_Projection::action() {
       project_[ip++]->Add( frameNum, &fproj4 );
     }
   }
-  return 0;
+  return Action::OK;
 }

@@ -193,6 +193,8 @@ int Cpptraj::SearchToken(const ArgList& argIn) {
 // Cpptraj::Interactive()
 void Cpptraj::Interactive() {
   ReadLine inputLine;
+  // By default when interactive do not exit on errors
+  exitOnError_ = false;
   bool readLoop = true;
   while ( readLoop ) {
     inputLine.GetInput(); 
@@ -216,7 +218,9 @@ bool Cpptraj::Dispatch(const char* inputLine) {
     //mprintf("TOKEN FOUND. CMD=%s  TYPE=%i\n", dispatchToken_->Cmd, (int)dispatchToken_->Type);
     switch (dispatchToken_->Type) {
       case DispatchObject::ACTION : 
-        actionList.AddAction( dispatchToken_->Alloc, command ); 
+        if (actionList.AddAction( dispatchToken_->Alloc, command, &parmFileList,
+                                  &refFrames, &DSL, &DFL ) != 0 && exitOnError_ )
+          return false; 
         break;
       case DispatchObject::ANALYSIS :
         analysisList.AddAnalysis( dispatchToken_->Alloc, command );
@@ -325,8 +329,8 @@ int Cpptraj::Run() {
   DSL.SetMax(maxFrames); 
   
   // Initialize actions and set up data set and data file list
-  if (actionList.Init( &DSL, &refFrames, &DFL, &parmFileList, exitOnError_)) 
-    return 1;
+  //if (actionList.Init( &DSL, &refFrames, &DFL, &parmFileList, exitOnError_)) 
+  //  return 1;
 
   // Set up analysis - checks that datasets are present etc
   //if (analysisList.Setup(&DSL, &parmFileList) > 0 && exitOnError_)
@@ -357,7 +361,7 @@ int Cpptraj::Run() {
       // Set active reference for this parm
       CurrentParm->SetReferenceCoords( refFrames.ActiveReference() );
       // Set up actions for this parm
-      if (actionList.Setup( &CurrentParm )) {
+      if (actionList.SetupActions( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
                 CurrentParm->c_str());
         continue;

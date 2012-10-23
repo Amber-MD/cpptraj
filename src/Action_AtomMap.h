@@ -12,12 +12,14 @@ class Action_AtomMap : public Action {
     static void Help();
 
     ~Action_AtomMap();
-    void print() {}
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
+    int debug_;
     AtomMap RefMap_;
     Frame* RefFrame_;
     Topology* RefParm_;

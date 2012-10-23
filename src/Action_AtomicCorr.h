@@ -9,7 +9,7 @@ class Action_AtomicCorr : public Action {
     static void Help();
 
     
-    void print();
+    void Print();
   private:
     class AtomVector {
       public:
@@ -31,21 +31,24 @@ class Action_AtomicCorr : public Action {
         int idx_;
     };
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     enum AcorrModeType { ATOM = 0, RES };
     static const char ModeString[][8];
     AcorrModeType acorr_mode_;
     double cut_;
     int min_;
+    int debug_;
+    DataSet* dset_;
+    DataFile* outfile_;
 
     typedef std::vector< AtomVector > ACvector;
     ACvector atom_vectors_;
     AtomMask mask_;
     std::vector<AtomMask> resmasks_;
-    std::string outname_;
     Frame refframe_;
 };
 #endif

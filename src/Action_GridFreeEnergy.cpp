@@ -12,22 +12,24 @@ void Action_GridFreeEnergy::Help() {
 }
 
 // Action_GridFreeEnergy::init()
-int Action_GridFreeEnergy::init() {
+Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get output filename
   filename_ = actionArgs.GetStringNext();
   if (filename_.empty()) {
     mprinterr("Error: GridFreeEnergy: no filename specified.\n");
-    return 1;
+    return Action::ERR;
   }
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
   if (grid_.GridInit( "GridFreeEnergy", actionArgs ))
-    return 1;
+    return Action::ERR;
 
   // Get mask
   ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   if (maskexpr==NULL) {
     mprinterr("Error: GRID: No mask specified.\n");
-    return 1;
+    return Action::ERR;
   }
   mask_.SetMaskString(maskexpr);
 
@@ -39,28 +41,28 @@ int Action_GridFreeEnergy::init() {
   // Allocate grid
   //if (GridAllocate()) return 1;
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_GridFreeEnergy::setup()
-int Action_GridFreeEnergy::setup() {
+Action::RetType Action_GridFreeEnergy::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup grid, checks box info.
-  if (grid_.GridSetup( currentParm )) return 1;
+  if (grid_.GridSetup( currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))
-    return 1;
+    return Action::ERR;
   mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
   if (mask_.None()) {
     mprinterr("Error: GridFreeEnergy: No atoms selected for parm %s\n", currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_GridFreeEnergy::action()
-int Action_GridFreeEnergy::action() {
+Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   if (grid_.GridBox()) {
     // Grid based on box dimensions - get box center.
     Vec3 boxCenter( currentFrame->BoxX() / 2.0,
@@ -85,11 +87,11 @@ int Action_GridFreeEnergy::action() {
     }
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_GridFreeEnergy::print()
-void Action_GridFreeEnergy::print() {
+void Action_GridFreeEnergy::Print() {
   CpptrajFile outfile;
   /* How times does this occupancy count value arise?
    *    i.e. if  

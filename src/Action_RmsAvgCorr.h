@@ -12,11 +12,12 @@ class Action_RmsAvgCorr: public Action {
     static void Help();
 
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     std::string separateName_;
     AtomMask Mask0_;

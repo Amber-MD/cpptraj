@@ -10,13 +10,13 @@ Action_Distance::Action_Distance() :
 { } 
 
 void Action_Distance::Help() {
-
+  mprintf("distance <name> <mask1> <mask2> [out filename] [geom] [noimage]\n");
 }
 
 // Action_Distance::init()
-/** Expected call: distance <name> <mask1> <mask2> [out filename] [geom] [noimage]
-  */
-int Action_Distance::init( ) {
+Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
@@ -33,14 +33,14 @@ int Action_Distance::init( ) {
   //fprintf(stdout,"    Mask 2: %s\n",mask2);
   if (mask1==NULL || mask2==NULL) {
     mprinterr("Error: distance: Requires 2 masks\n");
-    return 1;
+    return Action::ERR;
   }
   Mask1_.SetMaskString(mask1);
   Mask2_.SetMaskString(mask2);
 
   // Dataset to store distances
   dist_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Dis");
-  if (dist_==NULL) return 1;
+  if (dist_==NULL) return Action::ERR;
   dist_->SetScalar( DataSet::M_DISTANCE, stype );
   // Add dataset to data file list
   DFL->Add(distanceFile, dist_);
@@ -54,16 +54,16 @@ int Action_Distance::init( ) {
     mprintf(", geometric center");
   mprintf(".\n");
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Distance::setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Imaging is checked for in Action::Setup. 
   */
-int Action_Distance::setup() {
-  if (currentParm->SetupIntegerMask( Mask1_ )) return 1;
-  if (currentParm->SetupIntegerMask( Mask2_ )) return 1;
+Action::RetType Action_Distance::Setup(Topology* currentParm, Topology** parmAddress) {
+  if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
+  if (currentParm->SetupIntegerMask( Mask2_ )) return Action::ERR;
 
   // Print mask and imaging info for this parm
   mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1_.MaskString(), Mask1_.Nselected(),
@@ -77,14 +77,14 @@ int Action_Distance::setup() {
 
   if (Mask1_.None() || Mask2_.None()) {
     mprintf("Warning: distance: One or both masks have no atoms.\n");
-    return 1;
+    return Action::ERR;
   }
        
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Distance::action()
-int Action_Distance::action() {
+Action::RetType Action_Distance::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double ucell[9], recip[9], Dist;
   Vec3 a1, a2;
 
@@ -116,6 +116,6 @@ int Action_Distance::action() {
 
   //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
   
-  return 0;
+  return Action::OK;
 } 
 

@@ -12,15 +12,17 @@ class Action_Outtraj: public Action {
     static void Help();
 
   private:
-    int init();
-    int setup() { return 0; }
-    int action();
-    void print();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
     TrajectoryFile outtraj_;
     std::vector<double> Max_;
     std::vector<double> Min_;
     std::vector<DataSet*> Dsets_;
     DataSet* maxmin_;
+    Topology* CurrentParm_;
 };
 #endif

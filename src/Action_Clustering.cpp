@@ -19,29 +19,27 @@ Action_Clustering::Action_Clustering() :
   Linkage_(ClusterList::AVERAGELINK),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
-  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
+  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  CurrentParm_(0)
 { } 
 
 void Action_Clustering::Help() {
-
+ mprintf("cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
+ mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit]\n");
+ mprintf("        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n");
+ mprintf("        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
+ mprintf("        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
+ mprintf("        [ repout <repprefix> [repfmt <repfmt>] ]\n");
+ mprintf("        [data <setname>]\n");
 }
 
 const char Action_Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
 
 // Action_Clustering::init()
-/** Expected call: cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n 
- *                        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit]\n
- *                        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n
- *                        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n
- *                        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n
- *                        [ repout <repprefix> [repfmt <repfmt>] ]\n
- *                        [data <setname>]
- */
-// Dataset name will be the last arg checked for. Check order is:
-//    1) Keywords
-//    2) Masks
-//    3) Dataset name
-int Action_Clustering::init() {
+Action::RetType Action_Clustering::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   ArgList::ConstArg dsetname;
   // Get keywords
   useMass_ = actionArgs.hasKey("mass");
@@ -63,7 +61,7 @@ int Action_Clustering::init() {
     cluster_dataset_ = DSL->Get( dsetname );
     if (cluster_dataset_ == NULL) {
       mprinterr("Error: cluster: dataset %s not found.\n",dsetname);
-      return 1;
+      return Action::ERR;
     }
   }
   // Output trajectory stuff
@@ -81,7 +79,7 @@ int Action_Clustering::init() {
 
   // Dataset to store cluster number v time
   cnumvtime_ = DSL->Add(DataSet::INT, actionArgs.getNextString(), "Cnum");
-  if (cnumvtime_==NULL) return 1;
+  if (cnumvtime_==NULL) return Action::ERR;
   // Add dataset to data file list
   DFL->Add(cnumvtimefile,cnumvtime_);
 
@@ -145,7 +143,12 @@ int Action_Clustering::init() {
   // if target clusters not given make it 1
   if (targetNclusters_ == -1) targetNclusters_=1;
 
-  return 0;
+  return Action::OK;
+}
+
+Action::RetType Action_Clustering::Setup(Topology* currentParm, Topology** parmAddress) {
+  CurrentParm_ = currentParm;
+  return Action::OK;
 }
 
 // Action_Clustering::action()
@@ -153,11 +156,11 @@ int Action_Clustering::init() {
   * not calculating RMSD since we may need to print representative
   * frames etc.
   */
-int Action_Clustering::action() {
+Action::RetType Action_Clustering::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Frame *fCopy = currentFrame->FrameCopy();
-  ReferenceFrames_.AddFrame(fCopy,currentParm);
+  ReferenceFrames_.AddFrame(fCopy,CurrentParm_);
   
-  return 0;
+  return Action::OK;
 } 
 
 // Action_Clustering::print()
@@ -166,7 +169,7 @@ int Action_Clustering::action() {
   */
 // TODO: Need to update save to indicate distance type
 // NOTE: Should distances be saved only if load_pair?
-void Action_Clustering::print() {
+void Action_Clustering::Print() {
   TriangleMatrix Distances;
   ClusterList CList;
 
@@ -198,13 +201,13 @@ void Action_Clustering::print() {
   } 
 
   // DEBUG
-  if (debug>1) {
+  if (debug_>1) {
     mprintf("INTIAL FRAME DISTANCES:\n");
     Distances.PrintElements();
   }
 
   // Cluster
-  CList.SetDebug(debug);
+  CList.SetDebug(debug_);
   CList.SetLinkage(Linkage_);
   ClusterHierAgglo( Distances, CList);
 
@@ -213,7 +216,7 @@ void Action_Clustering::print() {
   CList.Renumber();
 
   // DEBUG
-  if (debug>0) {
+  if (debug_>0) {
     mprintf("\nFINAL CLUSTERS:\n");
     CList.PrintClusters();
     mprintf("\nREPRESENTATIVE FRAMES:\n");
@@ -377,7 +380,7 @@ int Action_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
   CList.Initialize( &FrameDistances );
 
   // DEBUG
-  if (debug>1) CList.PrintClusters();
+  if (debug_>1) CList.PrintClusters();
 
   // Initial check to see if epsilon is satisfied.
   //clusteringComplete = CList->CheckEpsilon(epsilon_);

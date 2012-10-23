@@ -107,7 +107,9 @@ int Action_Molsurf::AllocateMemory() {
   *    2) Masks
   *    3) Dataset name
   */
-int Action_Molsurf::init() {
+Action::RetType Action_Molsurf::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get keywords
   ArgList::ConstArg molsurfFile = actionArgs.getKeyString("out");
   probe_rad_ = actionArgs.getKeyDouble("probe",1.4);
@@ -118,7 +120,7 @@ int Action_Molsurf::init() {
 
   // Dataset to store angles
   sasa_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"MSURF");
-  if (sasa_==NULL) return 1;
+  if (sasa_==NULL) return Action::ERR;
   // Add dataset to data file list
   DFL->Add(molsurfFile,sasa_);
 
@@ -126,18 +128,18 @@ int Action_Molsurf::init() {
   if (rad_offset_>0)
     mprintf("             Radii will be incremented by %.3lf\n",rad_offset_);
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Molsurf::setup()
 /** Set mask up for this parmtop. Allocate the ATOM structure array used 
   * by the molsurf C routines and set everything but the atom coords.
   */
-int Action_Molsurf::setup() {
-  if ( currentParm->SetupIntegerMask(Mask1_) ) return 1;
+Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddress) {
+  if ( currentParm->SetupIntegerMask(Mask1_) ) return Action::ERR;
   if (Mask1_.None()) {
     mprintf("    Error: Molsurf::setup: Mask contains 0 atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
   mprintf("    MOLSURF: Calculating surface area for %i atoms.\n",Mask1_.Nselected());
@@ -149,13 +151,13 @@ int Action_Molsurf::setup() {
   atom_ = new ATOM[ Mask1_.Nselected() ];
   if (atom_==NULL) {
     mprinterr("Error: Molsurf::Setup Could not allocate memory for ATOMs.\n");
-    return 1;
+    return Action::ERR;
   }
   // Set up parm info for atoms in mask
   if ( (*currentParm)[0].Radius() == 0 ) {
     mprinterr("Error: Molsurf::Setup: Molsurf requires radii, but no radii in %s\n",
               currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
   ATOM *atm_ptr = atom_;
   for (AtomMask::const_iterator parmatom = Mask1_.begin();
@@ -178,15 +180,15 @@ int Action_Molsurf::setup() {
 
   // De-allocate memory first since # atoms may have changed
   ClearMemory();
-  if (AllocateMemory()) return 1;
+  if (AllocateMemory()) return Action::ERR;
 
-  if (debug>0) memory_usage();
+  //if (debug>0) memory_usage();
 
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Molsurf::action()
-int Action_Molsurf::action() {
+Action::RetType Action_Molsurf::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Set up coordinates for atoms in mask
   ATOM *atm_ptr = atom_;
   for (AtomMask::const_iterator maskatom = Mask1_.begin(); maskatom != Mask1_.end(); ++maskatom)
@@ -213,5 +215,5 @@ int Action_Molsurf::action() {
 
   //fprintf(outfile,"%10i %10.4lf\n",frameNum,molsurf_sasa);
   
-  return 0;
+  return Action::OK;
 } 

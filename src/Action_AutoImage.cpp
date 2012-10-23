@@ -21,7 +21,9 @@ void Action_AutoImage::Help() {
 /** Usage: autoimage <mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]
   *                  [origin] [familiar | triclinic]
   */
-int Action_AutoImage::init() {
+Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
   center_ = actionArgs.hasKey("center");
@@ -54,7 +56,7 @@ int Action_AutoImage::init() {
     mprintf("\tAtoms in mask [%s] will be imaged independently of anchor region.\n",
             mobile_.c_str());
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_AutoImage::SetupAtomRanges()
@@ -63,7 +65,8 @@ int Action_AutoImage::init() {
   * \return A list of atom pairs that mark the beginning and end of each
   *         selected molecule.
   */
-Action_AutoImage::pairList Action_AutoImage::SetupAtomRanges( std::string const& maskexpr )
+Action_AutoImage::pairList Action_AutoImage::SetupAtomRanges( Topology* currentParm, 
+                                             std::string const& maskexpr )
 {
   pairList imageList;
   AtomMask Mask1( maskexpr.c_str() );
@@ -93,7 +96,7 @@ Action_AutoImage::pairList Action_AutoImage::SetupAtomRanges( std::string const&
 }
 
 // Action_AutoImage::setup()
-int Action_AutoImage::setup() {
+Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAddress) {
   bool fixedauto = false;
   bool mobileauto = false;
 
@@ -101,7 +104,7 @@ int Action_AutoImage::setup() {
   if (currentParm->BoxType()==Box::NOBOX) {
     mprintf("Warning: Image::setup: Parm %s does not contain box information.\n",
             currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
   ortho_ = false;
   if (currentParm->BoxType()==Box::ORTHO && triclinic_==OFF) ortho_=true;
@@ -114,7 +117,7 @@ int Action_AutoImage::setup() {
 
   // Set up anchor region
   if (!anchor_.empty()) {
-    anchorList_ = SetupAtomRanges( anchor_ );
+    anchorList_ = SetupAtomRanges( currentParm, anchor_ );
   } else {
     anchorList_.clear();
     anchorList_.push_back( currentParm->Mol(0).BeginAtom() );
@@ -123,7 +126,7 @@ int Action_AutoImage::setup() {
   if (anchorList_.empty() || anchorList_.size() > 2) {
     mprinterr("Error: Anchor mask [%s] corresponds to %zu mols, should only be 1.\n",
               anchor_.c_str(), anchorList_.size() / 2);
-    return 1;
+    return Action::ERR;
   }
   // Set up mask for centering anchor
   anchorMask_.AddAtomRange( anchorList_[0], anchorList_[1] );
@@ -131,12 +134,12 @@ int Action_AutoImage::setup() {
   mprintf("\tAnchor molecule is %i\n", anchormolnum+1);
   // Set up fixed region
   if (!fixed_.empty()) 
-    fixedList_ = SetupAtomRanges( fixed_ );
+    fixedList_ = SetupAtomRanges( currentParm, fixed_ );
   else 
     fixedauto = true;
   // Set up mobile region
   if (!mobile_.empty())
-    mobileList_ = SetupAtomRanges( mobile_ );
+    mobileList_ = SetupAtomRanges( currentParm, mobile_ );
   else
     mobileauto = true;
   // Automatic search through molecules for fixed/mobile
@@ -180,11 +183,11 @@ int Action_AutoImage::setup() {
 
   truncoct_ = (triclinic_==FAMILIAR);
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_AutoImage::action()
-int Action_AutoImage::action() {
+Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double center[3], ucell[9], recip[9];
   Vec3 fcom;
   Vec3 bp, bm, BoxVec;
@@ -256,6 +259,6 @@ int Action_AutoImage::action() {
     }
   }
     
-  return 0;
+  return Action::OK;
 }
 

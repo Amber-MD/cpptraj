@@ -23,16 +23,18 @@ void Action_Grid::Help() {
   * <madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.
   * <value>   : Used to smooth density.
   */
-int Action_Grid::init() {
+Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get output filename
   filename_ = actionArgs.GetStringNext();
   if (filename_.empty()) {
     mprinterr("Error: GRID: no filename specified.\n");
-    return 1;
+    return Action::ERR;
   }
   // Get grid options
   if (grid_.GridInit( "GRID", actionArgs ))
-    return 1;
+    return Action::ERR;
 
   // Get extra options
   max_ = actionArgs.getKeyDouble("max", 0.80);
@@ -45,7 +47,7 @@ int Action_Grid::init() {
   ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   if (maskexpr==NULL) {
     mprinterr("Error: GRID: No mask specified.\n");
-    return 1;
+    return Action::ERR;
   }
   mask_.SetMaskString(maskexpr);
 
@@ -62,28 +64,28 @@ int Action_Grid::init() {
   // Allocate grid
   //if (GridAllocate()) return 1;
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Grid::setup()
-int Action_Grid::setup() {
+Action::RetType Action_Grid::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup grid, checks box info.
-  if (grid_.GridSetup( currentParm )) return 1;
+  if (grid_.GridSetup( currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))
-    return 1;
+    return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
     mprinterr("Error: GRID: No atoms selected for parm %s\n", currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Grid::action()
-int Action_Grid::action() {
+Action::RetType Action_Grid::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   if (grid_.GridBox()) {
     Vec3 boxCenter( currentFrame->BoxX() / 2.0,
                     currentFrame->BoxY() / 2.0,
@@ -106,11 +108,11 @@ int Action_Grid::action() {
     }
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Grid::print()
-void Action_Grid::print() {
+void Action_Grid::Print() {
   // DEBUG
   //mprintf("CDBG: Printing grid.\n");
   //PrintEntireGrid();

@@ -21,7 +21,9 @@ void Action_RmsAvgCorr::Help() {
 // Action_RmsAvgCorr::init()
 /** Expected call: rmsavgcorr [<mask>] [out <filename>] [output <separatename>] 
   */
-int Action_RmsAvgCorr::init( ) {
+Action::RetType Action_RmsAvgCorr::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get Keywords
   ArgList::ConstArg outfilename = actionArgs.getKeyString("out");
 # ifdef _OPENMP
@@ -40,7 +42,7 @@ int Action_RmsAvgCorr::init( ) {
 
   // Set up dataset to hold correlation 
   Ct_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"RACorr");
-  if (Ct_==NULL) return 1;
+  if (Ct_==NULL) return Action::ERR;
   // Add dataset to data file list
   DFL->Add(outfilename,Ct_);
 
@@ -56,21 +58,21 @@ int Action_RmsAvgCorr::init( ) {
   if (!separateName_.empty())
     mprintf("\tSeparate datafile will be written to %s\n",separateName_.c_str());
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_RmsAvgCorr::setup()
 /** Check that # atoms never changes. Currently this action will not
   * work with multiple parms.
   */
-int Action_RmsAvgCorr::setup() {
+Action::RetType Action_RmsAvgCorr::Setup(Topology* currentParm, Topology** parmAddress) {
   if (parmNatom_==0) {
     parmNatom_ = currentParm->Natom();
     ReferenceParm_ = currentParm;
   } else {
     if (parmNatom_ != currentParm->Natom()) {
       mprinterr("Error: RmsAvgCorr: Currently cannot be used with multiple topologies.\n");
-      return 1;
+      return Action::ERR;
     }
   }
 
@@ -78,20 +80,20 @@ int Action_RmsAvgCorr::setup() {
   if ( currentParm->SetupIntegerMask(Mask0_) ) {
     mprinterr("Error: RmsAvgCorr::setup: Could not set up mask [%s] for parm %s\n",
               Mask0_.MaskString(), currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
-  return 0; 
+  return Action::OK; 
 }
 
 // Action_RmsAvgCorr::action()
 /** Store input frames for later calculation of RMSDs using running 
   * averages with different window sizes. 
   */
-int Action_RmsAvgCorr::action() {
+Action::RetType Action_RmsAvgCorr::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Store coordinates to be used in RMS fit. 
   if (ReferenceCoords_.AddFrameByMask(*currentFrame, Mask0_))
-    return 1;
-  return 0;
+    return Action::ERR;
+  return Action::OK;
 } 
 
 // Action_RmsAvgCorr::print()
@@ -99,7 +101,7 @@ int Action_RmsAvgCorr::action() {
   * ReferenceCoords with different window sizes. The average RMSD for each 
   * window size will be the "correlation" value.
   */ 
-void Action_RmsAvgCorr::print() {
+void Action_RmsAvgCorr::Print() {
   double avg;
   int window, frame, WindowMax;
   Topology *strippedParm;
@@ -113,11 +115,8 @@ void Action_RmsAvgCorr::print() {
 
   // If 'output' specified open up separate datafile that will be written
   // to as correlation is calculated; useful for very long runs.
-  int error = 0;
   if (!separateName_.empty()) {
-    error += separateDatafile.SetupWrite(separateName_,debug);
-    error += separateDatafile.OpenFile();
-    if (error>0) {
+    if (separateDatafile.OpenWrite(separateName_)) {
       mprinterr("Error: Could not set up separate data file %s\n",separateName_.c_str());
       return;
     }

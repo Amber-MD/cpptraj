@@ -12,10 +12,11 @@ class Action_STFC_Diffusion : public Action {
     static void Help();
 
   private:
-    int init();
-    int setup();
-    int action();
-    void print();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
     void calculateMSD(const double*,int,int,Vec3 const&);
 
@@ -33,8 +34,8 @@ class Action_STFC_Diffusion : public Action {
     double time_;
     double lowerCutoff_;
     double upperCutoff_;
-
     bool hasBox_;
+    int n_atom_;
 
     typedef std::vector<double> Darray;
     Darray initialxyz_;

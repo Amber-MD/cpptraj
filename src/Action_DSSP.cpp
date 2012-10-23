@@ -8,11 +8,14 @@ const double Action_DSSP::DSSP_fac = 27.888;
 
 // CONSTRUCTOR
 Action_DSSP::Action_DSSP() :
+  debug_(0),
   dssp_(NULL), 
   Nres_(0),
   Nframe_(0),
   SSline_(0),
   printString_(false),
+  masterDSL_(0),
+  masterDFL_(0),
   BB_N("N"),
   BB_H("H"),
   BB_C("C"),
@@ -20,7 +23,10 @@ Action_DSSP::Action_DSSP() :
 {}
 
 void Action_DSSP::Help() {
-
+  mprintf("secstruct [out <filename>] [<mask>] [sumout <filename>]\n");
+  mprintf("          [ptrajformat] [namen <N name>] [nameh <H name>]\n");
+  mprintf("          [namec <C name>] [nameo <O name>]\n");
+  mprintf("\tIf sumout not specified, the filename specified by out is used with .sum suffix.\n");
 }
 
 // DESTRUCTOR
@@ -33,13 +39,11 @@ const char Action_DSSP::SSchar[7]={ '0', 'b', 'B', 'G', 'H', 'I', 'T' };
 const char Action_DSSP::SSname[7][6]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn"};
 
 // Action_DSSP::init()
-/** Expected call: secstruct [out <filename>] [<mask>] [sumout <filename>]
-  *                          [ptrajformat] [namen <N name>] [nameh <H name>]
-  *                          [namec <C name>] [nameo <O name>]
-  * If sumout is not specified the filename specified by out is used with .sum suffix. 
-  */
 // For now dont allow NULL(stdout) filename for output
-int Action_DSSP::init() {
+Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   // DEBUG
 //  debugout.SetupFile((char*)"dsspdebug.out",WRITE,UNKNOWN_FORMAT,STANDARD,0);
 //  debugout.OpenFile();
@@ -66,7 +70,7 @@ int Action_DSSP::init() {
   // Set up the DSSP data set
   dssp_ = DSL->Add(DataSet::STRING, actionArgs.getNextString(),"DSSP");
   if (printString_) {
-    if (dssp_==NULL) return 1;
+    if (dssp_==NULL) return Action::ERR;
     DFL->AddSetToFile(outfilename_, dssp_);
   } //else
     //SSdata_ = new DataSetList;
@@ -82,8 +86,9 @@ int Action_DSSP::init() {
     mprintf("               SS data for each residue will be stored as integers.\n");
   mprintf("               Backbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]\n",
           *BB_N, *BB_H, *BB_C, *BB_O );
-
-  return 0;
+  masterDSL_ = DSL;
+  masterDFL_ = DFL;
+  return Action::OK;
 }
 
 // Action_DSSP::setup()
@@ -95,14 +100,14 @@ int Action_DSSP::init() {
   */
 // NOTE: Currently relatively memory-intensive. Eventually set up so that SecStruct and
 // CO_HN_Hbond members exist only for selected residues? Use Map?
-int Action_DSSP::setup() {
+Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress) {
   Residue RES;
 
   // Set up mask for this parm
-  if ( currentParm->SetupIntegerMask( Mask_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask_ ) ) return Action::ERR;
   if ( Mask_.None() ) {
     mprintf("Warning: DSSP: Mask has no atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Initially mark all residues already set up as not selected and 
@@ -117,7 +122,7 @@ int Action_DSSP::setup() {
 
   // Set up SecStruct for each solute residue
   Nres_ = currentParm->FinalSoluteRes();
-  if (debug>0) mprintf("\tDSSP: Setting up for %i residues.\n",Nres_);
+  if (debug_>0) mprintf("\tDSSP: Setting up for %i residues.\n",Nres_);
 
   // Set up for each residue of the current Parm if not already set-up.
   RES.sstype=SECSTRUCT_NULL;
@@ -169,7 +174,7 @@ int Action_DSSP::setup() {
           SecStruct_[res].C==-1 || SecStruct_[res].O==-1 )
     {
       ++missing;
-      if (debug > 0) {
+      if (debug_ > 0) {
         mprintf("Warning: Not all BB atoms found for res %i:%s:",
                 res+1, currentParm->Res(res).c_str());
         if (SecStruct_[res].N==-1) mprintf(" N");
@@ -182,10 +187,10 @@ int Action_DSSP::setup() {
     // Set up dataset if necessary 
     if (!printString_ && SecStruct_[res].resDataSet==NULL) {
       // Setup dataset name for this residue
-      SecStruct_[res].resDataSet = DSL->AddSetIdxAspect( DataSet::INT, dssp_->Name(),
+      SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INT, dssp_->Name(),
                                                          res+1, "res");
       if (SecStruct_[res].resDataSet!=NULL) {
-        DFL->AddSetToFile(outfilename_, SecStruct_[res].resDataSet);
+        masterDFL_->AddSetToFile(outfilename_, SecStruct_[res].resDataSet);
         SecStruct_[res].resDataSet->SetLegend( currentParm->ResNameNum(res) );
       }
     }
@@ -216,7 +221,7 @@ int Action_DSSP::setup() {
 //              SecStruct_[res].O/3, SecStruct_[res].N/3, SecStruct_[res].H/3);
 //  }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_DSSP::isBonded()
@@ -250,7 +255,7 @@ void Action_DSSP::SSassign(int res1, int res2, SStype typeIn) {
  
 // Action_DSSP::action()
 /** Determine secondary structure by hydrogen bonding pattern. */    
-int Action_DSSP::action() {
+Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   int resi, resj;
   int C, O, H, N;
   double rON, rCH, rOH, rCN, E;
@@ -387,14 +392,14 @@ int Action_DSSP::action() {
   //fprintf(stdout,"\n");
   ++Nframe_;
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_DSSP::print()
 /** Calculate the average of each secondary structure type across all residues.
   * Prepare for output via the master data file list.
   */
-void Action_DSSP::print() {
+void Action_DSSP::Print() {
   DataFile *dsspFile;
   int resi, ss;
   double avg;
@@ -404,9 +409,9 @@ void Action_DSSP::print() {
 
   // Set up a dataset for each SS type
   for (ss=1; ss<7; ss++) {
-    dsspData_[ss] = DSL->AddSetIdxAspect(DataSet::DOUBLE, dssp_->Name(), ss, "avgss");
+    dsspData_[ss] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dssp_->Name(), ss, "avgss");
     dsspData_[ss]->SetLegend( SSname[ss] );
-    dsspFile = DFL->Add( sumOut_.c_str(), dsspData_[ss] ); 
+    dsspFile = masterDFL_->Add( sumOut_.c_str(), dsspData_[ss] ); 
   }
   // Change the X label to Residue
   dsspFile->ProcessArgs("xlabel Residue");

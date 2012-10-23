@@ -19,7 +19,9 @@ Action_Average::Action_Average() :
 } 
 
 void Action_Average::Help() {
-
+  mprintf("average <filename> [mask] [start <start>] [stop <stop>] [offset <offset>]\n");
+  mprintf("        [TRAJOUT ARGS]\n");
+  mprintf("\tCalculate the average structure over input frames.\n");
 }
 
 // DESTRUCTOR
@@ -30,15 +32,14 @@ Action_Average::~Action_Average() {
 }
 
 // Action_Average::init()
-/** Expected call: average <filename> [mask] [start <start>] [stop <stop>] [offset <offset>]
-  *                [TRAJOUT ARGS]  
-  */
-int Action_Average::init( ) {
+Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get Keywords
   avgfilename_ = actionArgs.GetStringNext();
   if (avgfilename_.empty()) {
     mprinterr("Error: average: No filename given.\n");
-    return 1;
+    return Action::ERR;
   }
   // TODO: Create frame tracker class for actions
   // User start/stop args are +1
@@ -68,7 +69,7 @@ int Action_Average::init( ) {
 
   Nframes_ = 0;
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Average::setup()
@@ -78,13 +79,13 @@ int Action_Average::init( ) {
   * less than the original # atoms. Never calculate more than the original
   * # atoms.
   */
-int Action_Average::setup() {
+Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddress) {
 
-  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
 
   if (Mask1_.None()) {
     mprintf("    Error: Average::setup: No Atoms in mask.\n");
-    return 1;
+    return Action::ERR;
   }
 
   mprintf("    AVERAGE:");
@@ -126,12 +127,12 @@ int Action_Average::setup() {
     mprintf("    AVERAGE: %i atoms will be averaged for this parm.\n",Natom_);
   }
         
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Average::action()
-int Action_Average::action() {
-  if (frameNum != targetFrame_) return 0;
+Action::RetType Action_Average::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+  if (frameNum != targetFrame_) return Action::OK;
 
   AvgFrame_->AddByMask(*currentFrame, Mask1_);
   ++Nframes_; 
@@ -139,11 +140,11 @@ int Action_Average::action() {
   targetFrame_ += offset_;
   // Since frameNum will never be -1 this effectively disables the routine
   if (targetFrame_>stop_ && stop_!=-1) targetFrame_=-1;
-  return 0;
+  return Action::OK;
 } 
 
 // Action_Average::print()
-void Action_Average::print() {
+void Action_Average::Print() {
   TrajectoryFile outfile;
   double d_Nframes;
 
@@ -151,7 +152,7 @@ void Action_Average::print() {
   d_Nframes = (double) Nframes_;
   AvgFrame_->Divide(d_Nframes);
 
-  mprintf("    AVERAGE: [%s]\n",this->CmdLine());
+  mprintf("    AVERAGE: [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
 
   if (outfile.SetupTrajWrite(avgfilename_, &trajArgs_, AvgParm_, TrajectoryFile::UNKNOWN_TRAJ)) 
   {

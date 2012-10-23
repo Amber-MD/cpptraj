@@ -19,11 +19,12 @@ class Action_Molsurf: public Action {
     static void Help();
 
     ~Action_Molsurf();
-    void print() {}
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     DataSet* sasa_;
     AtomMask Mask1_;

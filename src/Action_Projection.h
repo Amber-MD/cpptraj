@@ -10,11 +10,12 @@ class Action_Projection : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Projection(); }
     static void Help();
 
-    void print() {}
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     typedef std::vector<DataSet*> Darray;
 

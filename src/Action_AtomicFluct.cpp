@@ -12,7 +12,9 @@ Action_AtomicFluct::Action_AtomicFluct() :
   targetSet_(0),
   bfactor_(false),
   fluctParm_(0),
-  outtype_(BYATOM)
+  outtype_(BYATOM),
+  dataout_(0),
+  outfile_(0)
 {}
 
 void Action_AtomicFluct::Help() {
@@ -23,7 +25,9 @@ void Action_AtomicFluct::Help() {
 /** Usage: atomicfluct [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]
   *                    [start <start>] [stop <stop>] [offset <offset>]
   */               
-int Action_AtomicFluct::init() {
+Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get frame # keywords
   int startArg = actionArgs.getKeyInt("start",1);
   stop_ = actionArgs.getKeyInt("stop",-1);
@@ -32,22 +36,22 @@ int Action_AtomicFluct::init() {
   // Cpptraj frame #s start from 0
   if (startArg<1) {
     mprinterr("Error: AtomicFluct: start arg must be >= 1 (%i)\n",startArg);
-    return 1;
+    return Action::ERR;
   }
   if (stop_!=-1 && startArg>stop_) {
     mprinterr("Error: AtomicFluct: start arg (%i) > stop arg (%i)\n",startArg,stop_);
-    return 1;
+    return Action::ERR;
   }
   start_ = startArg - 1;
   targetSet_ = start_;
   offset_ = actionArgs.getKeyInt("offset",1);
   if (offset_<1) {
     mprinterr("Error: AtomicFluct: offset arg must be >= 1 (%i)\n",offset_);
-    return 1;
+    return Action::ERR;
   }
   // Get other keywords
   bfactor_ = actionArgs.hasKey("bfactor");
-  outfilename_ = actionArgs.GetStringKey("out");
+  std::string outfilename = actionArgs.GetStringKey("out");
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRES;
   else if (actionArgs.hasKey("bymask"))
@@ -58,16 +62,25 @@ int Action_AtomicFluct::init() {
   Mask.SetMaskString( actionArgs.getNextMask()  );
   // Get DataSet name
   setname_ = actionArgs.GetStringNext();
+  // Add output dataset
+  DataSet* dataout_ = DSL->AddSet( DataSet::DOUBLE, setname_, "Fluct" );
+  if (dataout_ == NULL) {
+    mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
+    return Action::ERR; 
+  }
+  DataFile* outfile_ = DFL->AddSetToFile( outfilename, dataout_ );
+  outfile_->ProcessArgs("noemptyframes");
+
 
   mprintf("    ATOMICFLUCT: calculating");
   if (bfactor_)
     mprintf(" B factors");
   else
     mprintf(" atomic positional fluctuations");
-  if (!outfilename_.empty())
+  if (!outfilename.empty())
     mprintf(", output to STDOUT");
   else
-    mprintf(", output to file %s",outfilename_.c_str());
+    mprintf(", output to file %s",outfilename.c_str());
   mprintf("\n                 Atom mask: [%s]\n",Mask.MaskString());
   if (start_>0 || stop_!=-1 || offset_!=1) {
     mprintf("                 Processing frames %i to",start_+1);
@@ -81,11 +94,11 @@ int Action_AtomicFluct::init() {
   if (!setname_.empty())
     mprintf("\tData will be saved to set named %s\n", setname_.c_str());
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_AtomicFluct::setup()
-int Action_AtomicFluct::setup() {
+Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parmAddress) {
 
   if (SumCoords_.Natom()==0) {
     // Set up frames if not already set
@@ -98,25 +111,25 @@ int Action_AtomicFluct::setup() {
     // Set up atom mask
     if (currentParm->SetupCharMask( Mask )) {
       mprinterr("Error: AtomicFluct: Could not set up mask [%s]\n",Mask.MaskString());
-      return 1;
+      return Action::ERR;
     }
     if (Mask.None()) {
       mprinterr("Error: AtomicFluct: No atoms selected [%s]\n",Mask.MaskString());
-      return 1;
+      return Action::ERR;
     }
   } else if (currentParm->Natom() != SumCoords_.Natom()) {
     // Check that current #atoms matches
     mprinterr("Error: AtomicFluct not yet supported for mulitple topologies with different\n");
     mprinterr("       #s of atoms (set up for %i, this topology has %i\n",
               SumCoords_.Natom(), currentParm->Natom());
-    return 1;
+    return Action::ERR;
   } 
   // NOTE: Print warning here when setting up multiple topologies?
-  return 0;
+  return Action::OK;
 }
 
 // Action_AtomicFluct::action()
-int Action_AtomicFluct::action() {
+Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   if (frameNum == targetSet_) {
     SumCoords_ += *currentFrame;
     SumCoords2_ += ( (*currentFrame) * (*currentFrame) ) ;
@@ -125,22 +138,15 @@ int Action_AtomicFluct::action() {
     if (targetSet_ >= stop_ && stop_!=-1)
       targetSet_ = -1;
   }
-  return 0;
+  return Action::OK;
 }
 
 // Action_AtomicFluct::print() 
-void Action_AtomicFluct::print() {
+void Action_AtomicFluct::Print() {
   int atom, res, resstart, resstop; 
   double xi, fluct, mass;
 
   mprintf("    ATOMICFLUCT: Calculating fluctuations for %i sets.\n",sets_);
-  DataSet* dataout = DSL->AddSet( DataSet::DOUBLE, setname_, "Fluct" );
-  if (dataout == NULL) {
-    mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
-    return; 
-  }
-  DataFile* outfile = DFL->AddSetToFile( outfilename_, dataout );
-  outfile->ProcessArgs("noemptyframes");
 
   double Nsets = (double)sets_;
   SumCoords_.Divide(Nsets);
@@ -161,7 +167,7 @@ void Action_AtomicFluct::print() {
   if (bfactor_) {
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
-    outfile->ProcessArgs( "ylabel B-factors" );
+    outfile_->ProcessArgs( "ylabel B-factors" );
     double bfac = (8.0/3.0)*PI*PI;
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
       double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
@@ -182,15 +188,15 @@ void Action_AtomicFluct::print() {
   switch (outtype_) {
     // By atom output
     case BYATOM:
-      outfile->ProcessArgs("xlabel Atom");
+      outfile_->ProcessArgs("xlabel Atom");
       for (atom = 0; atom < (int)Results.size(); atom++ ) {
         if (Mask.AtomInCharMask(atom)) 
-          dataout->Add( atom, &(Results[atom]) );
+          dataout_->Add( atom, &(Results[atom]) );
       }
       break;
     // By residue output
     case BYRES:
-      outfile->ProcessArgs("xlabel Res");
+      outfile_->ProcessArgs("xlabel Res");
       for (res = 0; res < fluctParm_->Nres(); res++) {
         xi = 0;
         fluct = 0;
@@ -204,13 +210,13 @@ void Action_AtomicFluct::print() {
         }
         if (xi > SMALL) {
           mass = fluct / xi;
-          dataout->Add( res, &mass );
+          dataout_->Add( res, &mass );
         }
       }
       break;
     // By mask output
     case BYMASK:
-      outfile->ProcessArgs( "xlabel " + Mask.MaskExpression() );
+      outfile_->ProcessArgs( "xlabel " + Mask.MaskExpression() );
       xi = 0;
       fluct = 0;
       for (atom = 0; atom < (int)Results.size(); atom++) {
@@ -222,7 +228,7 @@ void Action_AtomicFluct::print() {
       }
       if (xi > SMALL) {
         mass = fluct / xi;
-        dataout->Add( 0, &mass );
+        dataout_->Add( 0, &mass );
       }
       break;
   }
