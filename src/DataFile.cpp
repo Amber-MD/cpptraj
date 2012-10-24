@@ -223,24 +223,11 @@ void DataFile::SetPrecision(std::string const& dsetName, int widthIn, int precis
   }
   int precision = precisionIn;
   if (precisionIn<0) precision = 0;
-  // If NULL or <dsetName>=='*' specified set precision for all data sets
-  if (dsetName.empty() || dsetName[0]=='*') {
-    mprintf("    Setting width.precision for all sets in %s to %i.%i\n",
-            dataio_->FullFileStr(),widthIn,precision);
-    for (DataSetList::const_iterator set = SetList_.begin(); set!=SetList_.end(); ++set)
-      (*set)->SetPrecision(widthIn,precision);
-
-  // Otherwise find dataset <dsetName> and set precision
-  } else {
-    mprintf("    Setting width.precision for dataset %s to %i.%i\n",
-            dsetName.c_str(), widthIn, precision);
-    DataSet *Dset = SetList_.Get(dsetName.c_str());
-    if (Dset!=0)
-      Dset->SetPrecision(widthIn,precision);
-    else
-      mprintf("Error: Dataset %s not found in datafile %s\n",dsetName.c_str(),
-              dataio_->FullFileStr());
-  }
+  DataSetList dsets = SetList_.GetMultipleSets( dsetName );
+  mprintf("    Setting width.precision for %i sets to %i.%i\n", dsets.size(), 
+          widthIn, precision);
+  for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
+    (*set)->SetPrecision(widthIn, precision);
 }
 
 // DataFile::Filename()

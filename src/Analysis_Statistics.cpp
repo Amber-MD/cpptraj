@@ -33,7 +33,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
       mprinterr("Error: analyze statistics: No dataset name or 'all' specified.\n");
       return Analysis::ERR;
     }
-    DataSet *tempds = DSLin->Get( dsetname.c_str() );
+    DataSet *tempds = DSLin->GetDataSet( dsetname );
     if (tempds == NULL) {
       mprinterr("Error: analyze statistics: No dataset with name %s\n", dsetname.c_str());
       return Analysis::ERR;

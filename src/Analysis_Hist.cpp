@@ -38,7 +38,7 @@ int Analysis_Hist::CheckDimension(const char* input, DataSetList *datasetlist) {
   // First argument should specify dataset name
   if (debug_>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
                        arglist.ArgAt(0));
-  DataSet *dset = datasetlist->Get( arglist.ArgAt(0) );
+  DataSet *dset = datasetlist->GetDataSet( arglist[0] );
   if (dset == NULL) {
     mprintf("\t      Dataset %s not found.\n",arglist.ArgAt(0));
     return 1;

@@ -35,6 +35,7 @@ class Cpptraj {
     int Create_DataFile(ArgList&);
     int Precision(ArgList&);
     int ReadData(ArgList&);
+    void SelectDS(ArgList&);
 
     static const DispatchObject::Token GeneralCmds[];
     static const DispatchObject::Token CoordCmds[];

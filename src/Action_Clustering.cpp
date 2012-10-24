@@ -41,7 +41,6 @@ Action::RetType Action_Clustering::Init(ArgList& actionArgs, TopologyList* PFL, 
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
-  ArgList::ConstArg dsetname;
   // Get keywords
   useMass_ = actionArgs.hasKey("mass");
   targetNclusters_ = actionArgs.getKeyInt("clusters",-1);
@@ -57,11 +56,12 @@ Action::RetType Action_Clustering::Init(ArgList& actionArgs, TopologyList* PFL, 
   if (actionArgs.hasKey("nofit")) nofitrms_=true;
   if (actionArgs.hasKey("gracecolor")) grace_color_=true;
   if (actionArgs.hasKey("noload")) load_pair_=false;
-  if ((dsetname = actionArgs.getKeyString("data"))!=NULL) {
+  std::string dsetname = actionArgs.GetStringKey("data");
+  if (!dsetname.empty()) {
     // Attempt to get dataset from datasetlist
-    cluster_dataset_ = DSL->Get( dsetname );
-    if (cluster_dataset_ == NULL) {
-      mprinterr("Error: cluster: dataset %s not found.\n",dsetname);
+    cluster_dataset_ = DSL->GetDataSet( dsetname );
+    if (cluster_dataset_ == 0) {
+      mprinterr("Error: cluster: dataset %s not found.\n",dsetname.c_str());
       return Action::ERR;
     }
   }
@@ -89,8 +89,8 @@ Action::RetType Action_Clustering::Init(ArgList& actionArgs, TopologyList* PFL, 
     targetNclusters_ = 10;
 
   mprintf("    CLUSTER:");
-  if (dsetname!=NULL) {
-    mprintf(" On dataset %s",dsetname);
+  if (!dsetname.empty()) {
+    mprintf(" On dataset %s",dsetname.c_str());
   } else {
     mprintf(" Using RMSD (mask [%s])",Mask0_.MaskString());
     if (useMass_)

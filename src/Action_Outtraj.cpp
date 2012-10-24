@@ -36,11 +36,11 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   outtraj_.PrintInfo(1);
   // If maxmin, get the name of the dataset as well as the max and min values.
   while ( actionArgs.Contains("maxmin") ) {
-    ArgList::ConstArg datasetName = actionArgs.getKeyString("maxmin");
-    if (datasetName!=NULL) {
-      DataSet* dset = DSL->Get(datasetName);
-      if (dset==NULL) {
-        mprintf("Error: Outtraj maxmin: Could not get dataset %s\n",datasetName);
+    std::string datasetName = actionArgs.GetStringKey("maxmin");
+    if (!datasetName.empty()) {
+      DataSet* dset = DSL->GetDataSet(datasetName);
+      if (dset==0) {
+        mprintf("Error: Outtraj maxmin: Could not get dataset %s\n",datasetName.c_str());
         return Action::ERR;
       } else {
         // Currently only allow int, float, or double datasets
@@ -49,14 +49,14 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
             dset->Type() != DataSet::DOUBLE) 
         {
           mprinterr("Error: Outtraj maxmin: Only int, float, or double dataset (%s) supported.\n",
-                  datasetName);
+                  datasetName.c_str());
           return Action::ERR;
         }
         Dsets_.push_back( dset );
         Max_.push_back( actionArgs.getKeyDouble("max",0.0) );
         Min_.push_back( actionArgs.getKeyDouble("min",0.0) );
         mprintf("             maxmin: Printing trajectory frames based on %f <= %s <= %f\n",
-                Min_.back(), datasetName, Max_.back());
+                Min_.back(), datasetName.c_str(), Max_.back());
       }
     } else {
       mprinterr("Error: outtraj: maxmin Usage: maxmin <setname> <max> <min>\n");

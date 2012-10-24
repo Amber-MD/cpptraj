@@ -29,26 +29,26 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
  
   // DataSet names
-  ArgList::ConstArg D1name = analyzeArgs.getNextString();
-  if (D1name==NULL) {
+  std::string D1name = analyzeArgs.GetStringNext();
+  if (D1name.empty()) {
     mprinterr("Error: Corr: Must specify at least 1 dataset name.\n");
     return Analysis::ERR;
   }
-  ArgList::ConstArg D2name = analyzeArgs.getNextString();
+  std::string D2name = analyzeArgs.GetStringNext();
   // Get DataSet(s)
-  D1_ = datasetlist->Get(D1name);
-  if (D1_==NULL) {
-    mprinterr("Error: Corr: Could not get dataset named %s\n",D1name);
+  D1_ = datasetlist->GetDataSet(D1name);
+  if (D1_==0) {
+    mprinterr("Error: Corr: Could not get dataset named %s\n",D1name.c_str());
     return Analysis::ERR;
   }
-  if (D2name!=NULL)
-    D2_ = datasetlist->Get(D2name);
+  if (!D2name.empty())
+    D2_ = datasetlist->GetDataSet(D2name);
   else {
     D2_ = D1_;
     D2name = D1name;
   }
   if (D2_==NULL) {
-    mprinterr("Error: Corr: Could not get dataset named %s\n",D2name);
+    mprinterr("Error: Corr: Could not get dataset named %s\n",D2name.c_str());
     return Analysis::ERR;
   }
 
@@ -67,10 +67,10 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   else
     calctype = "correlation";
 
-  if (std::string(D1name) == std::string(D2name))
-    mprintf("    CORR: auto-%s of set %s", calctype, D1name);
+  if (D1name == D2name)
+    mprintf("    CORR: auto-%s of set %s", calctype, D1name.c_str());
   else
-    mprintf("    CORR: %s between set %s and set %s", calctype, D1name, D2name);
+    mprintf("    CORR: %s between set %s and set %s", calctype, D1name.c_str(), D2name.c_str());
   if (lagmax_!=-1) 
     mprintf(", max lag %i",lagmax_);
   mprintf("\n\tOutput to %s\n",outfilename_.c_str());

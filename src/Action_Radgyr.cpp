@@ -14,12 +14,11 @@ Action_Radgyr::Action_Radgyr() :
 { } 
 
 void Action_Radgyr::Help() {
-
+  mprintf("radgyr <name> <mask1> [out filename] [mass] [nomax] [tensor]\n");
+  mprintf("\tCalculate radius of gyration of atoms in <mask>\n");
 }
 
 // Action_Radgyr::init()
-/** Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax] [tensor]
-  */
 Action::RetType Action_Radgyr::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

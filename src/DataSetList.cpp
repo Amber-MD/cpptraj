@@ -147,6 +147,15 @@ std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& 
   return dsname;
 }
 
+DataSet* DataSetList::GetDataSet( std::string const& nameIn ) {
+  std::string attr_arg;
+  std::string idx_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
+  int idx = -1;
+  if (!idx_arg.empty()) idx = convertToInteger(idx_arg); // TODO: Set idx_arg to -1
+  return GetSet( dsname, idx, attr_arg );
+}
+
 // DataSetList::GetMultipleSets()
 /** \return a list of all DataSets matching the given argument. */
 DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
@@ -163,31 +172,37 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
   else
     idxrange.SetRange( idx_arg.c_str() );
 
-  for (Range::const_iterator idxnum = idxrange.begin(); 
-                             idxnum != idxrange.end(); ++idxnum)
-  {
+  // All start selected
+  std::vector<char> SelectedSets(DataList_.size(), 'T');
+  // First check name
+  std::vector<char>::iterator selected = SelectedSets.begin();
+  if ( dsname != "*" ) {
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-      if ( (*ds)->Matches( dsname, *idxnum, attr_arg ) )
-      //if ( (*ds)->Name() == nameIn )
-        dsetOut.DataList_.push_back( *ds );
+      if ( (*ds)->Name() != dsname ) *selected = 'F';
+      ++selected;
     }
   }
-
+  // Second check aspect
+  if ( !attr_arg.empty() && attr_arg != "*" ) {
+    selected = SelectedSets.begin();
+    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+      if ( *selected == 'T' && (*ds)->Aspect() != attr_arg ) *selected = 'F';
+      ++selected;
+    }
+  }
+  // Last check index
+  if ( !idx_arg.empty() && idx_arg != "*" ) {
+    selected = SelectedSets.begin();
+    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+      if ( *selected == 'T' && !idxrange.InRange( (*ds)->Idx() ) ) *selected = 'F';
+      ++selected;
+    }
+  }
+  // Add selected DataSets to dsetOut
+  selected = SelectedSets.begin();
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ( *(selected++) == 'T' ) dsetOut.DataList_.push_back( *ds );
   return dsetOut;
-}
-
-// DataSetList::Get()
-/** \return dataset in the list indicated by nameIn. 
-  */
-DataSet *DataSetList::Get(const char* nameIn) {
-  std::string attr_arg;
-  std::string idx_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
-  int idxnum = -1;
-  if (!idx_arg.empty())
-    idxnum = convertToInteger(idx_arg);
-
-  return GetSet( dsname, idxnum, attr_arg );
 }
 
 // DataSetList::GetSet()

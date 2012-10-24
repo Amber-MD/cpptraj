@@ -14,6 +14,7 @@ void Cpptraj::Usage(const char* programName) {
   mprinterr(  "         -V, --version : Print version information and exit.\n");
   mprinterr(  "         --defines     : Print list of defines used in compilation.\n");
   mprinterr(  "         -debug <N>    : Set global debug level.\n");
+  mprinterr(  "         --interactive : Enter interactive mode.\n");
 }
 
 void Cpptraj::Help_List() {
@@ -43,8 +44,9 @@ void Cpptraj::Help_Precision() {
   mprintf("If width/precision not specified default to 12.4\n");
 }
 
-enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, SYSTEM,
-                       ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE };
+enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
+                       SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
+                       SELECTDS };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef, ACTIVEREF },
@@ -62,6 +64,7 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "pwd",           0,          0, SYSTEM   },
   { DispatchObject::GENERAL, "quit" ,         0,          0, QUIT     },
   { DispatchObject::GENERAL, "readdata",      0,          0, READDATA },
+  { DispatchObject::GENERAL, "selectds",      0,          0, SELECTDS },
   { DispatchObject::NONE,                  0, 0,          0,      0   }
 };
 
@@ -211,6 +214,14 @@ int Cpptraj::ReadData(ArgList& argIn) {
   return 0;
 }
 
+void Cpptraj::SelectDS(ArgList& argIn) {
+  std::string dsarg = argIn.GetStringNext();
+  DataSetList dsets = DSL.GetMultipleSets( dsarg );
+  mprintf("SelectDS: Arg [%s] selects %i data sets:\n", dsarg.c_str(), dsets.size());
+  for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
+    (*set)->Info();
+}
+
 // -----------------------------------------------------------------------------
 // Cpptraj::SearchTokenArray()
 /** Search the given array for command. If command is found set token
@@ -353,6 +364,7 @@ int Cpptraj::ProcessInput(std::string const& inputFilename) {
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   if (argc == 1) return C_INTERACTIVE;
   bool hasInput = false;
+  bool interactive = false;
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]); 
     if ( arg == "--help" || arg == "-help" ) {
@@ -391,7 +403,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       mprintf("\n");
       return C_QUIT;
     }
-    if ( arg == "-debug" && i+1 != argc) 
+    if ( arg == "--interactive" )
+      interactive = true;
+    else if ( arg == "-debug" && i+1 != argc) 
       // -debug: Set overall debug level
       SetGlobalDebug( convertToInteger( argv[++i] ) ); 
     else if ( arg == "-p" && i+1 != argc) {
@@ -415,7 +429,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return C_QUIT;
     }
   }
-  if (!hasInput) return C_INTERACTIVE;
+  if (!hasInput || interactive) return C_INTERACTIVE;
   // If Run has already been called, just quit.
   if (nrun_ > 0) return C_QUIT;
   return C_OK;
@@ -478,6 +492,7 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case LIST  : List(command); break;
           case HELP  : Help(command); break;
           case DEBUG : Debug(command); break;
+          case SELECTDS: SelectDS(command); break;
           case NOPROG: 
             showProgress_ = false; 
             mprintf("\tProgress bar will not be shown.\n");

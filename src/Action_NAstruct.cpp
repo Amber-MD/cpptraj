@@ -992,14 +992,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Dataset
   dataname_ = actionArgs.GetStringNext();
   if (dataname_.empty())
-    dataname_.assign("NA");
-  // See if the name is unique
-  DataSet* tempDS = DSL->Get( dataname_.c_str() );
-  if (tempDS!=NULL) {
-    mprinterr("Error: nastruct: Given name (%s) is not unique. Please specify a unique name.\n",
-              dataname_.c_str());
-    return Action::ERR;
-  }
+    dataname_ = DSL->GenerateDefaultName("NA");
   // DataSets are added to data file list in print()
 
   mprintf("    NAstruct: ");

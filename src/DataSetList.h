@@ -45,10 +45,7 @@ class DataSetList {
     void SetPrecisionOfDatasets(int, int);
     /// Separate input string into DataSet args.
     std::string ParseArgString(std::string const&, std::string&, std::string&);
-    /// Get DataSet with specified name argument.
-    DataSet* Get(const char *);
-    /// Get DataSet with specified name, index, and aspect.
-    DataSet* GetSet(std::string const&, int, std::string const&);
+    DataSet* GetDataSet( std::string const& );
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& );
     /// Generate name based on given default and # of DataSets.
@@ -89,6 +86,9 @@ class DataSetList {
     int maxFrames_;
     /// Used in NextVector routine
     int vecidx_;
+
+    /// Get DataSet with specified name, index, and aspect.
+    DataSet* GetSet(std::string const&, int, std::string const&);
     /// Used to sort DataSets
     struct dsl_cmp {
       inline bool operator()(DataSet* first, DataSet* second) const {
