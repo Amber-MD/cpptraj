@@ -266,8 +266,8 @@ Topology *TopologyList::GetParm(ArgList &argIn) {
     pindex = FindName(parmfilename);
   Topology *ParmOut = GetParm(pindex);
   if (ParmOut==NULL) {
-    mprintf("    Warning: Could not get parameter file:\n");
-    mprintf("             parmname=%s, pindex=%i\n",parmfilename.c_str(),pindex);
+    mprintf("Warning: Could not get parameter file:\n");
+    mprintf("Warning: parmname=%s, pindex=%i\n",parmfilename.c_str(),pindex);
     return NULL;
   }
 
@@ -288,21 +288,21 @@ int TopologyList::AddParmFile(std::string const& filename, std::string const& Pa
 {
   // Dont let a list that has copies add a new file
   if (hasCopies_) {
-    mprintf("    Warning: Attempting to add parm %s to a list that already\n",filename.c_str());
-    mprintf("             has copies of parm files. This should not occur.\n");
-    mprintf("             Skipping.\n");
+    mprintf("Warning: Attempting to add parm %s to a list that already\n",filename.c_str());
+    mprintf("Warning: has copies of parm files. This should not occur.\n");
+    mprintf("Warning: Skipping.\n");
     return 0;
   }
 
   // Check if this file has already been loaded
   if (FindName(filename)!=-1) {
-    mprintf("    Warning: Parm %s already loaded, skipping.\n",filename.c_str());
-    return 1;
+    mprintf("Warning: Parm %s already loaded, skipping.\n",filename.c_str());
+    return 0;
   }
 
   // If tag specified, check if tag already in use
   if (FindName(ParmTag)!=-1) {
-    mprintf("    Warning: Parm tag [%s] already in use.\n",ParmTag.c_str());
+    mprinterr("Error: Parm tag [%s] already in use.\n",ParmTag.c_str());
     return 1;
   }
 
