@@ -26,7 +26,7 @@ void TopologyList::Help_Parm() {
 void TopologyList::Help_ParmInfo() {
   mprintf("parminfo [<parmindex>] [<mask>]:\n");
   mprintf("\tPrint information on parm <parmindex> (0 by default). If <mask> is given\n");
-  mprintf("\tprint info on atoms in mask. If no mask given print overall information.\n");
+  mprintf("print info on atoms in mask. If no mask given print overall information.\n");
 }
 
 void TopologyList::Help_ParmWrite() {

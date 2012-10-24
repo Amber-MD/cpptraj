@@ -38,8 +38,9 @@ void Cpptraj::Help_Create_DataFile() {
 }
 
 void Cpptraj::Help_Precision() {
-  mprintf("datafile precision <filename> <dataset> [<width>] [<precision>]\n");
-  mprintf("\tIf width/precision not specified default to 12.4\n");
+  mprintf("precision <filename> [<dataset>] [<width>] [<precision>]\n");
+  mprintf("\tSet precision for dataset(s) in given datafile to <width>.<precision>\n");
+  mprintf("If width/precision not specified default to 12.4\n");
 }
 
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, SYSTEM,
