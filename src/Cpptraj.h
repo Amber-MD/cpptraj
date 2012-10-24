@@ -8,7 +8,6 @@
 #include "DataFileList.h"
 #include "ActionList.h"
 #include "AnalysisList.h"
-#include "ArgList.h"
 // Class: Cpptraj:
 /// Hold state information.
 /** This is the main class for cpptraj. It holds all data and controls the 
@@ -16,18 +15,13 @@
  */
 class Cpptraj {
   public:
-    int ReadData(ArgList&);
-    /// Set debug level for all components
-    void SetGlobalDebug(int);
-    void AddParm(const char *);
-    void Interactive();
-    /// Function that decides where to send commands
-    bool Dispatch(const char*);        
-
+    enum Mode { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
     Cpptraj();
-    /// Controls main flow of the program.
+    void Interactive();
+    Mode ProcessCmdLineArgs(int,char**);
     int Run();
   private:
+    static void Usage(const char*);
     static void Help_List();
     static void Help_Help();
     static void Help_Debug();
@@ -37,14 +31,20 @@ class Cpptraj {
     void List(ArgList&);
     void Help(ArgList&);
     void Debug(ArgList&);
+    void SetGlobalDebug(int);  ///< Set debug level for all components
     int Create_DataFile(ArgList&);
     int Precision(ArgList&);
+    int ReadData(ArgList&);
 
     static const DispatchObject::Token GeneralCmds[];
     static const DispatchObject::Token CoordCmds[];
     int SearchTokenArray(const DispatchObject::Token* DispatchArray,
                          bool, const ArgList&);
     int SearchToken(ArgList&);
+
+    int ProcessInput(std::string const&);
+    Mode Dispatch(const char*);        ///< Function that decides where to send commands
+
     DispatchObject::Token const* dispatchToken_;
     /// List of parameter files 
     TopologyList parmFileList;
@@ -68,5 +68,7 @@ class Cpptraj {
     bool showProgress_;
     /// If true cpptraj will exit if errors are encountered instead of trying to continue
     bool exitOnError_;
+    /// Number of times the Run routine has been called.
+    int nrun_;
 };
 #endif

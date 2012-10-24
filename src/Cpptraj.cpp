@@ -1,8 +1,20 @@
+#include <cstdio> 
 #include <cstdlib> // system
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 #include "ReadLine.h"
+
+void Cpptraj::Usage(const char* programName) {
+  mprinterr("\nUsage: %s [-p <Top1>, -p <Top2>, ...] [-i <Input1>, -i <Input2>, ...]\n",
+            programName);
+  mprinterr(  "       %s <Top> <Input>\n",programName);
+  mprinterr(  "       Additional options:\n");
+  mprinterr(  "         --help, -help : Print usage information and exit.\n");
+  mprinterr(  "         -V, --version : Print version information and exit.\n");
+  mprinterr(  "         --defines     : Print list of defines used in compilation.\n");
+  mprinterr(  "         -debug <N>    : Set global debug level.\n");
+}
 
 void Cpptraj::Help_List() {
   mprintf("list <type> (<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)\n");
@@ -61,11 +73,13 @@ const DispatchObject::Token Cpptraj::CoordCmds[] = {
   { DispatchObject::NONE,                  0, 0,                 0, 0 }
 };
 
+// -----------------------------------------------------------------------------
 // Constructor
 Cpptraj::Cpptraj() : 
   debug_(0),
   showProgress_(true),
-  exitOnError_(true)
+  exitOnError_(true),
+  nrun_(0)
 {}
 
 void Cpptraj::Help(ArgList& argIn) {
@@ -135,12 +149,6 @@ void Cpptraj::SetGlobalDebug(int debugIn) {
   DSL.SetDebug(debug_);
 }
 
-/// Used to add parm files from the command line.
-void Cpptraj::AddParm(const char* parmfile) {
-  if (parmfile==NULL) return;
-  parmFileList.AddParmFile( parmfile );
-}
-
 int Cpptraj::Create_DataFile(ArgList& dataArg) {
   // Next string is datafile that command pertains to.
   std::string name1 = dataArg.GetStringNext();
@@ -202,6 +210,7 @@ int Cpptraj::ReadData(ArgList& argIn) {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // Cpptraj::SearchTokenArray()
 /** Search the given array for command. If command is found set token
   * and return 1, otherwise return 0.
@@ -255,26 +264,173 @@ int Cpptraj::SearchToken(ArgList& argIn) {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // Cpptraj::Interactive()
 void Cpptraj::Interactive() {
   ReadLine inputLine;
   // By default when interactive do not exit on errors
   exitOnError_ = false;
-  bool readLoop = true;
-  while ( readLoop ) {
+  Mode readLoop = C_OK;
+  while ( readLoop == C_OK ) {
     inputLine.GetInput(); 
     readLoop = Dispatch( inputLine.c_str() );
   }
 }
 
+static inline bool EndChar(char ptr) {
+  if (ptr=='\n' || ptr=='\r' || ptr=='\0' || ptr==EOF) return true;
+  return false;
+}
+
+/** Read commands from an input file. '#' indicates the beginning of a
+  * comment, backslash at the end of a line indicates continuation
+  * (otherwise indicates 'literal').
+  * \return 0 if successfully read, 1 on error.
+  */
+int Cpptraj::ProcessInput(std::string const& inputFilename) {
+  FILE *infile;
+  if (inputFilename.empty()) return 1;
+  mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
+  if ( (infile=fopen(inputFilename.c_str(),"r"))==NULL ) {
+    rprintf("Error: Could not open input file %s\n",inputFilename.c_str());
+    return 1;
+  }
+  // Read in each line of input. Newline or NULL terminates. \ continues line.
+  std::string inputLine;
+  unsigned int idx = 0;
+  char lastchar = '0';
+  char ptr = 0;
+  Mode cmode = C_OK;
+  while ( ptr != EOF ) {
+    ptr = (char)fgetc(infile);
+    // Skip leading whitespace
+    if (idx == 0 && isspace(ptr)) {
+      while ( (ptr = (char)fgetc(infile))!=EOF )
+        if ( !isspace(ptr) ) break;
+    }
+    // If '#' is encountered, skip the rest of the line
+    if (ptr=='#') 
+      while (!EndChar(ptr)) ptr=(char)fgetc(infile);
+    // newline, NULL, or EOF terminates the line
+    if (EndChar(ptr)) {
+      // If no chars in string continue
+      if (inputLine.empty()) continue;
+      // Print the input line that will be sent to dispatch
+      mprintf("  [%s]\n",inputLine.c_str());
+      // Call Dispatch to convert input to arglist and process.
+      cmode = Dispatch(inputLine.c_str());
+      if (cmode != C_OK) break;
+      // Reset Input line
+      inputLine.clear();
+      idx = 0;
+      continue;
+    }
+    // Any consecutive whitespace is skipped
+    if (idx > 0) lastchar = inputLine[idx-1];
+    if (isspace(ptr) && isspace(lastchar)) continue;
+    // Backslash followed by newline continues to next line. Otherwise backslash
+    // followed by next char will be inserted. 
+    if (ptr=='\\') {
+      ptr = (char)fgetc(infile);
+      if ( ptr == EOF ) break;
+      if (ptr == '\n' || ptr == '\r') continue;
+      inputLine += "\\";
+      inputLine += ptr;
+      idx += 2;
+      continue;
+    }
+    // Add character to input line
+    inputLine += ptr;
+    ++idx;
+  }
+  fclose(infile);
+  if (cmode == C_ERR) return 1;
+  return 0;
+} 
+
+/** Read command line args. */
+Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
+  if (argc == 1) return C_INTERACTIVE;
+  bool hasInput = false;
+  for (int i = 1; i < argc; i++) {
+    std::string arg(argv[i]); 
+    if ( arg == "--help" || arg == "-help" ) {
+      // --help, -help: Print usage and exit
+      Usage( argv[0] );
+      return C_QUIT;
+    }
+    if ( arg == "-V" || arg == "--version" ) 
+      // -V, --version: Print version number and exit
+      // Since version number should be printed before this is called, quit.
+      return C_QUIT;
+    if ( arg == "--defines" ) {
+      // --defines: Print information on compiler defines used and exit
+      mprintf("\nCompiled with:");
+#     ifdef DEBUG
+      mprintf(" -DDEBUG");
+#     endif
+#     ifdef HASBZ2
+      mprintf(" -DHASBZ2");
+#     endif
+#     ifdef HASGZ
+      mprintf(" -DHASGZ");
+#     endif
+#     ifdef BINTRAJ
+      mprintf(" -DBINTRAJ");
+#     endif
+#     ifdef MPI
+      mprintf(" -DMPI");
+#     endif
+#     ifdef _OPENMP
+      mprintf(" -D_OPENMP");
+#     endif
+#     ifdef NO_MATHLIB
+      mprintf(" -DNO_MATHLIB");
+#     endif
+      mprintf("\n");
+      return C_QUIT;
+    }
+    if ( arg == "-debug" && i+1 != argc) 
+      // -debug: Set overall debug level
+      SetGlobalDebug( convertToInteger( argv[++i] ) ); 
+    else if ( arg == "-p" && i+1 != argc) {
+      // -p: Topology file
+      if (parmFileList.AddParmFile( argv[++i] )) return C_ERR;
+    } else if (arg == "-i" && i+1 != argc) {
+      // -i: Input file(s)
+      if (ProcessInput( argv[++i] )) return C_ERR;
+      hasInput = true;
+    } else if ( i == 1 ) {
+      // For backwards compatibility with PTRAJ; Position 1 = TOP file
+      if (parmFileList.AddParmFile( argv[i])) return C_ERR;
+    } else if ( i == 2 ) {
+      // For backwards compatibility with PTRAJ; Position 2 = INPUT file
+      if (ProcessInput( argv[i])) return C_ERR;
+      hasInput = true;
+    } else {
+      // Unrecognized
+      mprintf("  Unrecognized input on command line: %i: %s\n", i,argv[i]);
+      Usage(argv[0]);
+      return C_QUIT;
+    }
+  }
+  if (!hasInput) return C_INTERACTIVE;
+  // If Run has already been called, just quit.
+  if (nrun_ > 0) return C_QUIT;
+  return C_OK;
+}
+
 // Cpptraj::Dispatch()
-/** Send commands to their appropriate classes.
- * The command is tried on each class in turn. If the class rejects command
- * move onto the next one. If command is accepted return.
- * \param inputLine NULL-terminated string consisting of commands and arguments.
- */
+/** The input line is converted into a whitespace-delimited array of
+  * arguments, the first of which is considered the command. This command
+  * is searched for and if it is recognized it is sent to the appropriate
+  * class. 
+  * \param inputLine NULL-terminated string consisting of command and arguments.
+  * \return true if command was accepted or no error occurred.
+  * \return false if error occurred or exit requested.
+  */
 // NOTE: Should differentiate between keyword rejection and outright error.
-bool Cpptraj::Dispatch(const char* inputLine) {
+Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
   Topology* tempParm = 0; // For coordinate lists
   //mprintf("\t[%s]\n", inputLine);
   ArgList command( inputLine );
@@ -285,36 +441,36 @@ bool Cpptraj::Dispatch(const char* inputLine) {
       case DispatchObject::PARM :
         if ( parmFileList.CheckCommand(dispatchToken_->Idx, command) 
              && exitOnError_ )
-          return false;
+          return C_ERR;
         break;
       case DispatchObject::COORD :
         switch ( dispatchToken_->Idx ) {
           case TRAJIN :
             tempParm = parmFileList.GetParm(command);
             if (trajinList.AddTrajin(&command, tempParm) && exitOnError_)
-              return false;
+              return C_ERR;
             break;
           case TRAJOUT :
             tempParm = parmFileList.GetParm(command);
             if (trajoutList.AddTrajout(&command, tempParm) && exitOnError_)
-              return false;
+              return C_ERR;
             break;
           case REFERENCE :
             tempParm = parmFileList.GetParm(command);
             if (refFrames.AddReference(&command, tempParm) && exitOnError_)
-              return false;
+              return C_ERR;
             break;
         }
         break;
       case DispatchObject::ACTION : 
         if (actionList.AddAction( dispatchToken_->Alloc, command, &parmFileList,
                                   &refFrames, &DSL, &DFL ) != 0 && exitOnError_ )
-          return false; 
+          return C_ERR; 
         break;
       case DispatchObject::ANALYSIS :
         if ( analysisList.AddAnalysis( dispatchToken_->Alloc, command, &parmFileList, &DSL ) 
              && exitOnError_)
-          return false;
+          return C_ERR;
         break;
       case DispatchObject::GENERAL :
         switch ( dispatchToken_->Idx ) {
@@ -333,33 +489,29 @@ bool Cpptraj::Dispatch(const char* inputLine) {
             refFrames.SetActiveRef( command.getNextInteger(0) );
             break;
           case READDATA: 
-            if (ReadData( command ) && exitOnError_) return false;
+            if (ReadData( command ) && exitOnError_) return C_ERR;
             break;
           case CREATE:
-            if (Create_DataFile( command ) && exitOnError_) return false;
+            if (Create_DataFile( command ) && exitOnError_) return C_ERR;
             break;
           case PRECISION:
-            if (Precision( command ) && exitOnError_) return false;
+            if (Precision( command ) && exitOnError_) return C_ERR;
             break;
           case DATAFILE:
-            if (DFL.ProcessDataFileArgs( command ) && exitOnError_) return false;
+            if (DFL.ProcessDataFileArgs( command ) && exitOnError_) return C_ERR;
             break;
           case SYSTEM  : system( command.ArgLine() ); break;
-          case RUN     : Run(); // Fall through to quit
-          case QUIT    : return false; break;
+          case RUN     : Run(); break; 
+          case QUIT    : return C_QUIT; break;
         }
         break;
       default: mprintf("Dispatch type is currently not handled.\n");
     }
   }
-  return true;
-/*   // Check if command pertains to datafiles
-  if ( dispatchArg.CommandIs("datafile") ) {
-    DFL.AddDatafileArg(dispatchArg);
-    return;
-  }*/
+  return C_OK;
 }
 
+// -----------------------------------------------------------------------------
 // Cpptraj::Run()
 /** Process trajectories in trajinList. Each frame in trajinList is sent
  *  to the actions in actionList for processing.
@@ -371,8 +523,9 @@ int Cpptraj::Run() {
   int readSets=0;         // Number of frames actually read
   int lastPindex=-1;      // Index of the last loaded parm file
   Topology *CurrentParm=NULL; // Parm for actions; can be modified 
-  Frame *CurrentFrame=NULL;    // Frame for actions; can be modified
-  Frame TrajFrame;       // Original Frame read in from traj
+  Frame *CurrentFrame=NULL;   // Frame for actions; can be modified
+  Frame TrajFrame;            // Original Frame read in from traj
+  ++nrun_;
 
   // ========== S E T U P   P H A S E ========== 
   // Parameter file information
@@ -392,14 +545,6 @@ int Cpptraj::Run() {
   // Set max frames in the data set list
   DSL.SetMax(maxFrames); 
   
-  // Initialize actions and set up data set and data file list
-  //if (actionList.Init( &DSL, &refFrames, &DFL, &parmFileList, exitOnError_)) 
-  //  return 1;
-
-  // Set up analysis - checks that datasets are present etc
-  //if (analysisList.Setup(&DSL, &parmFileList) > 0 && exitOnError_)
-  //  return 1;
-
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
   rprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
