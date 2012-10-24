@@ -39,8 +39,8 @@ class DataSetList {
     int MaxFrames()               { return maxFrames_;            }
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
-    /// Set the max # frames expected to be read in. Used to preallocate DataSet size.
-    void SetMax(int);
+    /// Allocate DataSet memory. Sets the max # elts expected to be read in.
+    void AllocateSets(int);
     /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDatasets(int, int);
     /// Separate input string into DataSet args.
@@ -66,8 +66,6 @@ class DataSetList {
     /// Add DataSet to list with name, idx, aspect, and legend.
     DataSet* AddSetIdxAspect( DataSet::DataType, std::string const&, int, std::string const&,
                               std::string const&);
-    /// Add DataSet to list with name, index, aspect, and size.
-    DataSet* AddSet( DataSet::DataType, std::string const&, int, std::string const&, int);
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
     /// Print info on DataSets in the list

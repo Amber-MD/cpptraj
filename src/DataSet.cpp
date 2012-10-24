@@ -50,10 +50,9 @@ void DataSet::SetPrecision(int widthIn, int precisionIn) {
 // DataSet::SetupSet()
 /** Set up common to all data sets. The dataset name should be unique and is
   * checked for in DataSetList prior to this call. Nin is the expected size 
-  * of the dataset. If Nin<=0 the dataset will be allocated dynamically.
+  * of the dataset. 
   */
-int DataSet::SetupSet(std::string const& nameIn, int Nin, int idxIn,
-                      std::string const& aspectIn)
+int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& aspectIn)
 {
   // Dataset name
   if (nameIn.empty()) {
@@ -61,12 +60,6 @@ int DataSet::SetupSet(std::string const& nameIn, int Nin, int idxIn,
     return 1;
   }
   name_ = nameIn;
- 
-  // Attempt to allocate DataSet if necessary
-  if (Nin > 0) {
-    if ( Allocate( Nin ) ) return 1;
-  }
-
   // Set index and aspect if given
   if (idxIn != -1) idx_ = idxIn;
   if (!aspectIn.empty()) aspect_ = aspectIn;

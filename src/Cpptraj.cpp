@@ -518,7 +518,6 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
  */
 int Cpptraj::Run() {
   TrajectoryFile* traj;
-  int maxFrames=0;        // Total # of frames that will be read
   int actionSet=0;        // Internal data frame
   int readSets=0;         // Number of frames actually read
   int lastPindex=-1;      // Index of the last loaded parm file
@@ -530,20 +529,16 @@ int Cpptraj::Run() {
   // ========== S E T U P   P H A S E ========== 
   // Parameter file information
   parmFileList.List();
-
+  // Input coordinate file information
   trajinList.List();
-  maxFrames = trajinList.MaxFrames();
-
   // Print reference information 
   mprintf("\nREFERENCE COORDS:\n");
   refFrames.List();
-
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");
   trajoutList.List();
- 
-  // Set max frames in the data set list
-  DSL.SetMax(maxFrames); 
+  // Allocate DataSets in the master DataSetList based on # frames to be read
+  DSL.AllocateSets(trajinList.MaxFrames()); 
   
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
