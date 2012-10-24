@@ -14,9 +14,7 @@ Action_Average::Action_Average() :
   stop_(0),
   offset_(1),
   targetFrame_(0)
-{
-  //fprintf(stderr,"Average Con\n");
-} 
+{ } 
 
 void Action_Average::Help() {
   mprintf("average <filename> [mask] [start <start>] [stop <stop>] [offset <offset>]\n");

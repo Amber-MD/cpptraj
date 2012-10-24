@@ -24,13 +24,14 @@ Action_Clustering::Action_Clustering() :
 { } 
 
 void Action_Clustering::Help() {
- mprintf("cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
- mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit]\n");
- mprintf("        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n");
- mprintf("        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
- mprintf("        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
- mprintf("        [ repout <repprefix> [repfmt <repfmt>] ]\n");
- mprintf("        [data <setname>]\n");
+  mprintf("cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
+  mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit]\n");
+  mprintf("        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n");
+  mprintf("        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
+  mprintf("        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
+  mprintf("        [ repout <repprefix> [repfmt <repfmt>] ]\n");
+  mprintf("        [data <setname>]\n");
+  mprintf("\tCluster structures based on RMSD or a given DataFile.\n");
 }
 
 const char Action_Clustering::PAIRDISTFILE[16]="CpptrajPairDist";

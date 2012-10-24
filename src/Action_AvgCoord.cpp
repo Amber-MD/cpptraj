@@ -9,7 +9,8 @@ Action_AvgCoord::Action_AvgCoord() :
 { } 
 
 void Action_AvgCoord::Help() {
-
+  mprintf("avgcoord [<mask>] [mass] outfile <file> [magnitude]\n");
+  mprintf("\tCalculate average coordinates of atoms in <mask> each frame\n");
 }
 
 // DESTRUCTOR
@@ -18,8 +19,6 @@ Action_AvgCoord::~Action_AvgCoord() {
 }
 
 // Action_AvgCoord::init()
-/** Expected call: avgcoord [<mask>] [mass] outfile <file> [magnitude]
-  */
 Action::RetType Action_AvgCoord::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

@@ -23,6 +23,7 @@ void Action_ClusterDihedral::Help() {
   mprintf("                [framefile <framefile>] [clusterinfo <infofile>]\n");
   mprintf("                [clustervtime <cvtfile>] [cut <CUT>]\n");
   mprintf("                [dihedralfile <dfile> | <mask>] [min <minimum>]\n");
+  mprintf("\tAssign input structures a cluster based on binning dihedral angles.\n");
 }
 
 // Action_ClusterDihedral::ReadDihedrals()

@@ -14,13 +14,12 @@ Action_AutoImage::Action_AutoImage() :
 {}
 
 void Action_AutoImage::Help() {
-
+  mprintf("autoimage [<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n");
+  mprintf("          [origin] [familiar | triclinic]\n");
+  mprintf("\tAutomatically center and image periodic trajectory.\n");
 }
 
 // Action_AutoImage::init()
-/** Usage: autoimage <mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]
-  *                  [origin] [familiar | triclinic]
-  */
 Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

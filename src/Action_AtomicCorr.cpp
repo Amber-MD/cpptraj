@@ -21,6 +21,7 @@ Action_AtomicCorr::Action_AtomicCorr() :
 
 void Action_AtomicCorr::Help() {
   mprintf("atomiccorr [<mask>] out <filename>\n");
+  mprintf("\tCalculate average correlations between the motion of atoms in <mask>\n");
 }
 
 const char Action_AtomicCorr::ModeString[2][8] = {"atom", "residue"};

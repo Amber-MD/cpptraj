@@ -18,13 +18,12 @@ Action_AtomicFluct::Action_AtomicFluct() :
 {}
 
 void Action_AtomicFluct::Help() {
-
+  mprintf("atomicfluct [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]\n");
+  mprintf("            [start <start>] [stop <stop>] [offset <offset>]\n");
+  mprintf("\tCalculate atomic fluctuations of atoms in <mask>\n");
 }
 
 // Action_AtomicFluct::init()
-/** Usage: atomicfluct [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]
-  *                    [start <start>] [stop <stop>] [offset <offset>]
-  */               
 Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

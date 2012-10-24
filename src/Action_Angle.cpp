@@ -11,16 +11,11 @@ Action_Angle::Action_Angle() :
 { } 
 
 void Action_Angle::Help() {
-
+  mprintf("angle [<name>] <mask1> <mask2> <mask3> [out filename] [mass]\n");
+  mprintf("\tCalculate the angle between atoms in masks 1-3\n");
 }
 
 // Action_Angle::init()
-/** Expected call: angle <name> <mask1> <mask2> <mask3> [out filename] [mass]
-  */
-// Dataset name will be the last arg checked for. Check order is:
-//    1) Keywords
-//    2) Masks
-//    3) Dataset name
 Action::RetType Action_Angle::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

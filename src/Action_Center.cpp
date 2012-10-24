@@ -9,12 +9,10 @@ Action_Center::Action_Center() :
 { } 
 
 void Action_Center::Help() {
-
+  mprintf("center <mask> [origin] [mass]\n\tCenter coordinates.\n");
 }
 
 // Action_Center::init()
-/** Expected call: center <mask> [origin] [mass] 
-  */
 Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
