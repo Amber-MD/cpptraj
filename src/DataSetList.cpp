@@ -183,7 +183,7 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
     }
   }
   // Second check aspect
-  if ( !attr_arg.empty() && attr_arg != "*" ) {
+  if ( attr_arg != "*" ) {
     selected = SelectedSets.begin();
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
       if ( *selected == 'T' && (*ds)->Aspect() != attr_arg ) *selected = 'F';
