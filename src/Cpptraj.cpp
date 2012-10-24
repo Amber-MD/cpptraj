@@ -44,9 +44,19 @@ void Cpptraj::Help_Precision() {
   mprintf("If width/precision not specified default to 12.4\n");
 }
 
+void Cpptraj::Help_SelectDS() {
+  mprintf("selectds <dataset selection>\n");
+  mprintf("\tShow results of data set selection. Data set selection format is:\n");
+  mprintf("\t\t<name>[<aspect]:<idx range>\n");
+  mprintf("Where '<name>' is the data set name, '[<aspect>]' is the data set aspect,\n");
+  mprintf("and <idx range> is a numerical range specifying data set indices (i.e. 2-5,7 etc).\n");
+  mprintf("The aspect and index portions may be optional. An asterisk '*' may be used as\n");
+  mprintf("a wildcard. E.g. 'selectds R2', 'selectds RoG[Max]', 'selectds PR[res]:2-12'\n");
+}
+
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
                        SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
-                       SELECTDS };
+                       SELECTDS, READINPUT };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef, ACTIVEREF },
@@ -64,7 +74,8 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "pwd",           0,          0, SYSTEM   },
   { DispatchObject::GENERAL, "quit" ,         0,          0, QUIT     },
   { DispatchObject::GENERAL, "readdata",      0,          0, READDATA },
-  { DispatchObject::GENERAL, "selectds",      0,          0, SELECTDS },
+  { DispatchObject::GENERAL, "readinput",      0,          0, READINPUT },
+  { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS, SELECTDS },
   { DispatchObject::NONE,                  0, 0,          0,      0   }
 };
 
@@ -506,6 +517,9 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
             break;
           case READDATA: 
             if (ReadData( command ) && exitOnError_) return C_ERR;
+            break;
+          case READINPUT:
+            if (ProcessInput( command.GetStringNext() ) && exitOnError_) return C_ERR;
             break;
           case CREATE:
             if (Create_DataFile( command ) && exitOnError_) return C_ERR;

@@ -28,6 +28,7 @@ class Cpptraj {
     static void Help_ActiveRef();
     static void Help_Create_DataFile();
     static void Help_Precision();
+    static void Help_SelectDS();
     void List(ArgList&);
     void Help(ArgList&);
     void Debug(ArgList&);
