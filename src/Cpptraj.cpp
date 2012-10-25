@@ -56,14 +56,16 @@ void Cpptraj::Help_SelectDS() {
 
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
                        SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
-                       SELECTDS, READINPUT };
+                       SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef, ACTIVEREF },
+  { DispatchObject::GENERAL, "runanalysis",     0, 0, RUN_ANALYSIS },
   { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE },
   { DispatchObject::GENERAL, "datafile",        0, 0, DATAFILE },
   { DispatchObject::GENERAL, "debug",         0, Help_Debug, DEBUG    },
   { DispatchObject::GENERAL, "go"   ,         0,          0, RUN      },
+  { DispatchObject::GENERAL, "head" ,         0,  0, SYSTEM     },
   { DispatchObject::GENERAL, "help" ,         0,  Help_Help, HELP     },
   { DispatchObject::GENERAL, "list" ,         0,  Help_List, LIST     },
   { DispatchObject::GENERAL, "ls",            0,          0, SYSTEM   },
@@ -75,6 +77,7 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "quit" ,         0,          0, QUIT     },
   { DispatchObject::GENERAL, "readdata",      0,          0, READDATA },
   { DispatchObject::GENERAL, "readinput",      0,          0, READINPUT },
+  { DispatchObject::GENERAL, "writedata",      0,          0, WRITEDATA },
   { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS, SELECTDS },
   { DispatchObject::NONE,                  0, 0,          0,      0   }
 };
@@ -530,9 +533,11 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case DATAFILE:
             if (DFL.ProcessDataFileArgs( command ) && exitOnError_) return C_ERR;
             break;
-          case SYSTEM  : system( command.ArgLine() ); break;
-          case RUN     : Run(); break; 
-          case QUIT    : return C_QUIT; break;
+          case SYSTEM      : system( command.ArgLine() ); break;
+          case RUN         : Run(); break;
+          case RUN_ANALYSIS: analysisList.DoAnalyses(&DFL); break;
+          case WRITEDATA   : if (worldrank == 0) DFL.Write(); break;
+          case QUIT        : return C_QUIT; break;
         }
         break;
       default: mprintf("Dispatch type is currently not handled.\n");
