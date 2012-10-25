@@ -26,7 +26,9 @@ int main(int argc, char **argv) {
   Cpptraj::Mode cmode = State.ProcessCmdLineArgs(argc,argv);
   switch ( cmode ) {
     case Cpptraj::C_OK          : State.Run(); break;
-    case Cpptraj::C_INTERACTIVE : State.Interactive(); break;
+    case Cpptraj::C_INTERACTIVE : 
+      if (State.Interactive() == Cpptraj::C_OK) State.Run(); 
+      break;
     case Cpptraj::C_ERR         : 
     case Cpptraj::C_QUIT        : break;
   }

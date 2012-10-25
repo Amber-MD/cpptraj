@@ -66,6 +66,7 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE },
   { DispatchObject::GENERAL, "datafile",        0, 0, DATAFILE },
   { DispatchObject::GENERAL, "debug",         0, Help_Debug, DEBUG    },
+  { DispatchObject::GENERAL, "exit" ,         0,          0, QUIT     },
   { DispatchObject::GENERAL, "go"   ,         0,          0, RUN      },
   { DispatchObject::GENERAL, "head" ,         0,  0, SYSTEM     },
   { DispatchObject::GENERAL, "help" ,         0,  Help_Help, HELP     },
@@ -295,15 +296,20 @@ int Cpptraj::SearchToken(ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 // Cpptraj::Interactive()
-void Cpptraj::Interactive() {
+Cpptraj::Mode Cpptraj::Interactive() {
   ReadLine inputLine;
   // By default when interactive do not exit on errors
+  // TODO: deal with comments
   exitOnError_ = false;
   Mode readLoop = C_OK;
   while ( readLoop == C_OK ) {
     if (inputLine.GetInput()) break; 
     readLoop = Dispatch( inputLine.c_str() );
   }
+  // If we broke out of loop because of EOF and Run has been called at least
+  // once, indicate that we can safely quit.
+  if (readLoop == C_OK && nrun_ > 0) return C_QUIT;
+  return readLoop;
 }
 
 static inline bool EndChar(char ptr) {
@@ -553,6 +559,7 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
 // Cpptraj::Run()
 int Cpptraj::Run() {
   int err = 0;
+  ++nrun_;
   switch ( trajinList.Mode() ) {
     case TrajinList::NORMAL   : err = RunNormal(); break;
     case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
@@ -747,7 +754,6 @@ int Cpptraj::RunNormal() {
   int readSets=0;             // Number of frames actually read
   int lastPindex=-1;          // Index of the last loaded parm file
   Frame TrajFrame;            // Original Frame read in from traj
-  ++nrun_;
 
   // ========== S E T U P   P H A S E ========== 
   // Parameter file information

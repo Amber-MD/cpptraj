@@ -17,7 +17,7 @@ class Cpptraj {
   public:
     enum Mode { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
     Cpptraj();
-    void Interactive();
+    Mode Interactive();
     Mode ProcessCmdLineArgs(int,char**);
     int Run();
   private:
