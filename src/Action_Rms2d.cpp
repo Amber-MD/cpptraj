@@ -55,15 +55,15 @@ Action::RetType Action_Rms2d::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   }
 
   // Get the RMS mask string for frames
-  ArgList::ConstArg mask0 = actionArgs.getNextMask();
+  std::string mask0 = actionArgs.GetMaskNext();
   FrameMask_.SetMaskString(mask0);
 
   // Check if reference will be a series of frames from a trajectory
   if (!reftraj.empty()) {
     // Get RMS mask string for reference trajectory
-    ArgList::ConstArg maskRef = actionArgs.getNextMask();
+    std::string maskRef = actionArgs.GetMaskNext();
     // If no reference mask specified, make same as RMS mask
-    if (maskRef==NULL) maskRef=mask0;
+    if (maskRef.empty()) maskRef = mask0;
     RefMask_.SetMaskString(maskRef);
     // Attempt to set up reference trajectory
     RefTraj_ = new TrajectoryFile();

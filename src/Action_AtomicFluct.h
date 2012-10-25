@@ -29,7 +29,6 @@ class Action_AtomicFluct : public Action {
     std::string outfilename_;
     Topology *fluctParm_;
     outputType outtype_;
-    std::string setname_;
     DataSet* dataout_;
     DataFile* outfile_;
 };

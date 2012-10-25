@@ -30,7 +30,7 @@ Action_Radial::Action_Radial() :
 
 void Action_Radial::Help() {
   mprintf("radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
-  mprintf("       [density <density> | volume] [center1]\n");
+  mprintf("       [density <density> | volume] [center1] [<name>]\n");
 }
 
 // DESTRUCTOR
@@ -77,22 +77,22 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   maximum2_ = maximum * maximum;
 
   // Get First Mask
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
-  if (mask1==NULL) {
+  std::string mask1 = actionArgs.GetMaskNext();
+  if (mask1.empty()) {
     mprinterr("Error: Radial: No mask given.\n");
     return Action::ERR;
   }
   Mask1_.SetMaskString(mask1);
 
   // Check for second mask - if none specified use first mask
-  ArgList::ConstArg mask2 = actionArgs.getNextMask();
-  if (mask2!=NULL) 
+  std::string mask2 = actionArgs.GetMaskNext();
+  if (!mask2.empty()) 
     Mask2_.SetMaskString(mask2);
   else
     Mask2_.SetMaskString(mask1);
 
   // Set up output dataset. 
-  Dset_ = DSL->Add( DataSet::DOUBLE, NULL, "g(r)");
+  Dset_ = DSL->AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
   DataFile* outfile = DFL->AddSetToFile(outfilename, Dset_);
   if (outfile==NULL) {
     mprinterr("Error: Radial: Could not setup output file %s\n",outfilename.c_str());
@@ -131,7 +131,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 # endif
   
   mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1_.MaskString());
-  if (mask2!=NULL) 
+  if (!mask2.empty()) 
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
   mprintf("\n            Output to %s.\n",outfilename.c_str());
   if (center1_)

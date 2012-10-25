@@ -60,9 +60,9 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   // Get Mask
   Mask.SetMaskString( actionArgs.getNextMask()  );
   // Get DataSet name
-  setname_ = actionArgs.GetStringNext();
+  std::string setname = actionArgs.GetStringNext();
   // Add output dataset
-  dataout_ = DSL->AddSet( DataSet::DOUBLE, setname_, "Fluct" );
+  dataout_ = DSL->AddSet( DataSet::DOUBLE, setname, "Fluct" );
   if (dataout_ == NULL) {
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
@@ -90,8 +90,8 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
     if (offset_!=1)
       mprintf(", offset %i\n",offset_);
   }
-  if (!setname_.empty())
-    mprintf("\tData will be saved to set named %s\n", setname_.c_str());
+  if (!setname.empty())
+    mprintf("\tData will be saved to set named %s\n", setname.c_str());
 
   return Action::OK;
 }
