@@ -584,6 +584,7 @@ int Cpptraj::RunEnsemble() {
   mprintf("  Ensemble size is %i\n", ensembleSize);
 
   // Calculate frame division among trajectories
+  trajinList.List();
   int maxFrames = trajinList.MaxFrames();
   // Parameter file information
   parmFileList.List();

@@ -456,6 +456,7 @@ void Trajin_Multi::PrintInfo(int showExtended) {
 // -----------------------------------------------------------------------------
 // Trajin_Multi::EnsembleSetup()
 int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
+  std::set<double> tList;
   // Allocate space to hold position of each incoming frame in replica space.
   frameidx_.resize( REMDtraj_.size() );
   f_ensemble.resize( REMDtraj_.size() );
@@ -463,9 +464,9 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   if (targetType_ == TEMP) {
     // Get a list of all temperature present in input REMD trajectories
     // by reading the first frame.
+    // Assume that temperatures should be sorted lowest to highest.
     TemperatureMap_.clear();
     FrameArray::iterator frame = f_ensemble.begin();
-    int repnum = 0;
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
       if ( (*replica)->openTraj() ) return 1;
@@ -473,14 +474,19 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
                                   (*frame).bAddress(), (*frame).tAddress()) )
         return 1;
       (*replica)->closeTraj();
-      std::pair<TmapType::iterator,bool> ret = 
-        TemperatureMap_.insert(std::pair<double,int>((*frame).Temperature(),repnum++));
+      std::pair<std::set<double>::iterator,bool> ret = tList.insert( (*frame).Temperature() );
+      //std::pair<TmapType::iterator,bool> ret = 
+      //  TemperatureMap_.insert(std::pair<double,int>((*frame).Temperature(),repnum++));
       if (!ret.second) {
         mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f)\n",
                   (*frame).Temperature());
         return 1;
       }
-    } 
+    }
+    // Temperatures are already sorted lowest to highest in set.
+    int repnum = 0;
+    for (std::set<double>::iterator temp0 = tList.begin(); temp0 != tList.end(); ++temp0)
+      TemperatureMap_.insert(std::pair<double,int>(*temp0, repnum++)); 
   } else if (targetType_ == INDICES) {
     return 1;
   } 
