@@ -27,7 +27,7 @@ Action::RetType Action_RmsAvgCorr::Init(ArgList& actionArgs, TopologyList* PFL, 
 # ifdef _OPENMP
   if (actionArgs.hasKey("output")) {
     mprinterr("Error: 'output' keyword not supported in OpenMP version of rmsavgcorr.\n");
-    return 1;
+    return Action::ERR;
   }
 # else
   separateName_ = actionArgs.GetStringKey("output");
