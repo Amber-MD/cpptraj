@@ -301,7 +301,7 @@ void Cpptraj::Interactive() {
   exitOnError_ = false;
   Mode readLoop = C_OK;
   while ( readLoop == C_OK ) {
-    inputLine.GetInput(); 
+    if (inputLine.GetInput()) break; 
     readLoop = Dispatch( inputLine.c_str() );
   }
 }

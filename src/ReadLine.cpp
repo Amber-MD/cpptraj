@@ -5,10 +5,14 @@
 #include <history.h>
 #include "ReadLine.h"
 
-void ReadLine::GetInput() {
+int ReadLine::GetInput() {
   char* line = readline("> ");
-  if (line && *line) add_history(line);
+  if (line) {
+    if (*line) add_history(line);
+  } else
+    return 1;
   input_.assign( line );
   free(line);
+  return 0;
 }
   

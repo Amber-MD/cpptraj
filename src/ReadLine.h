@@ -5,7 +5,7 @@
 class ReadLine {
   public:
     ReadLine() {}
-   void GetInput();
+   int GetInput();
    const char* c_str()            { return input_.c_str(); }
    std::string const& operator*() { return input_;         }
   private:

@@ -20,7 +20,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
 {
 #ifdef MPI
   mprintf("ERROR: OUTTRAJ currently not functional with MPI.\n");
-  return 1;
+  return Action::ERR;
 #endif
 
   outtraj_.SetDebug(debugIn);
