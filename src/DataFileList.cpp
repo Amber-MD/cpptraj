@@ -115,6 +115,10 @@ int DataFileList::ProcessDataFileArgs(ArgList& dataArg) {
     mprintf("Warning: datafile: No filename given.\n");
     return 0;
   }
+  // Check for deprecated commands
+  if (df_cmd == "create" || df_cmd == "precision") 
+    mprintf("Warning: 'datafile %s' is deprecated; use %s instead.\n", 
+            df_cmd.c_str(), df_cmd.c_str());
   //mprintf("  [%s]\n",(*dataArg).ArgLine());
   DataFile* df = GetDataFile( df_cmd.c_str() );
   if (df == NULL) {
