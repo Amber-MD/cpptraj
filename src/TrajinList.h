@@ -9,7 +9,8 @@ class TrajinList {
     enum TrajModeType { UNDEFINED, NORMAL, ENSEMBLE };
     TrajinList();
     ~TrajinList();
-    static void Help();
+    static void Help_Trajin();
+    static void Help_Ensemble();
     void SetDebug(int dIn) { debug_ = dIn; }
     TrajModeType Mode() { return mode_; }
     /// Add a traj file to the list based on input from arg list

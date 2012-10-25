@@ -88,8 +88,8 @@ enum CoordCmdTypes { REFERENCE, TRAJIN, TRAJOUT };
 
 const DispatchObject::Token Cpptraj::CoordCmds[] = {
   { DispatchObject::COORD, "reference",     0, FrameList::Help,   REFERENCE },
-  { DispatchObject::COORD, "trajin",        0, TrajinList::Help,  TRAJIN },
-  { DispatchObject::COORD, "ensemble",        0, TrajinList::Help,  TRAJIN },
+  { DispatchObject::COORD, "trajin",        0, TrajinList::Help_Trajin,  TRAJIN },
+  { DispatchObject::COORD, "ensemble",        0, TrajinList::Help_Ensemble,  TRAJIN },
   { DispatchObject::COORD, "trajout",       0, TrajoutList::Help, TRAJOUT },
   { DispatchObject::NONE,                  0, 0,                 0, 0 }
 };
