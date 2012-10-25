@@ -10,12 +10,6 @@ TrajoutList::~TrajoutList() {
     delete *traj;
 }
 
-// TrajoutList::CheckCommand()
-bool TrajoutList::CheckCommand(ArgList& argIn) {
-  if ( argIn.CommandIs("trajout") ) return true;
-  return false;
-}
-
 // TrajoutList::AddEnsembleTrajout()
 int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList& topListIn, int member)
 {
@@ -45,12 +39,15 @@ int TrajoutList::AddTrajout(ArgList& argIn, TopologyList& topListIn) {
   return AddTrajout( filename, argIn, topListIn );
 } 
 
+void TrajoutList::Help() {
+  mprintf("trajout <filename> <fileformat> [append] [nobox]\n");
+  mprintf("[parm <parmfile> | parmindex <#>] [<range>]\n");
+}
+
 // TrajoutList::AddTrajout()
 /** Add trajectory to the trajectory list as an output trajectory. 
   * Associate the trajectory with one of the parm files in the 
   * TopologyList. 
-  * trajout <filename> <fileformat> [append] [nobox] [parm <parmfile> | parmindex <#>]
-  *         [<range>]
   */
 int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, TopologyList& topListIn) 
 {
@@ -108,8 +105,7 @@ void TrajoutList::Close() {
     (*traj)->EndTraj();
 }
 
-// TrajoutList::Info()
-void TrajoutList::Info() {
+void TrajoutList::List() {
   if (trajout_.empty()) {
     mprintf("  No files.\n");
   } else {

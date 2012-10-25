@@ -10,14 +10,15 @@ Action_Angle::Action_Angle() :
   useMass_(false)
 { } 
 
+void Action_Angle::Help() {
+  mprintf("angle [<name>] <mask1> <mask2> <mask3> [out filename] [mass]\n");
+  mprintf("\tCalculate the angle between atoms in masks 1-3\n");
+}
+
 // Action_Angle::init()
-/** Expected call: angle <name> <mask1> <mask2> <mask3> [out filename] [mass]
-  */
-// Dataset name will be the last arg checked for. Check order is:
-//    1) Keywords
-//    2) Masks
-//    3) Dataset name
-int Action_Angle::init() {
+Action::RetType Action_Angle::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get keywords
   ArgList::ConstArg angleFile = actionArgs.getKeyString("out");
   useMass_ = actionArgs.hasKey("mass");
@@ -28,7 +29,7 @@ int Action_Angle::init() {
   ArgList::ConstArg mask3 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL) {
     mprinterr("Error: angle: Requires 3 masks\n");
-    return 1;
+    return Action::ERR;
   }
   Mask1_.SetMaskString(mask1);
   Mask2_.SetMaskString(mask2);
@@ -36,7 +37,7 @@ int Action_Angle::init() {
 
   // Dataset to store angles
   ang_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Ang");
-  if (ang_==NULL) return 1;
+  if (ang_==NULL) return Action::ERR;
   ang_->SetScalar( DataSet::M_ANGLE );
   // Add dataset to data file list
   DFL->AddSetToFile(angleFile, ang_);
@@ -46,31 +47,31 @@ int Action_Angle::init() {
   if (useMass_)
     mprintf("              Using center of mass of atoms in masks.\n");
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Angle::setup()
 /** Set angle up for this parmtop. Get masks etc.
   */
 // currentParm is set in Action::Setup
-int Action_Angle::setup() {
+Action::RetType Action_Angle::Setup(Topology* currentParm, Topology** parmAddress) {
 
-  if (currentParm->SetupIntegerMask(Mask1_)) return 1;
-  if (currentParm->SetupIntegerMask(Mask2_)) return 1;
-  if (currentParm->SetupIntegerMask(Mask3_)) return 1;
+  if (currentParm->SetupIntegerMask(Mask1_)) return Action::ERR;
+  if (currentParm->SetupIntegerMask(Mask2_)) return Action::ERR;
+  if (currentParm->SetupIntegerMask(Mask3_)) return Action::ERR;
   Mask1_.MaskInfo();
   Mask2_.MaskInfo();
   Mask3_.MaskInfo();
   if (Mask1_.None() || Mask2_.None() || Mask3_.None()) {
     mprintf("Warning: angle: One or more masks contain 0 atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Angle::action()
-int Action_Angle::action() {
+Action::RetType Action_Angle::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Vec3 a1, a2, a3;
   if (useMass_) {
     a1 = currentFrame->VCenterOfMass( Mask1_ );
@@ -87,6 +88,6 @@ int Action_Angle::action() {
 
   ang_->Add(frameNum, &aval);
 
-  return 0;
+  return Action::OK;
 }
 

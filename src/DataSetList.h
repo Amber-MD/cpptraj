@@ -39,16 +39,13 @@ class DataSetList {
     int MaxFrames()               { return maxFrames_;            }
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
-    /// Set the max # frames expected to be read in. Used to preallocate DataSet size.
-    void SetMax(int);
+    /// Allocate DataSet memory. Sets the max # elts expected to be read in.
+    void AllocateSets(int);
     /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDatasets(int, int);
     /// Separate input string into DataSet args.
     std::string ParseArgString(std::string const&, std::string&, std::string&);
-    /// Get DataSet with specified name argument.
-    DataSet* Get(const char *);
-    /// Get DataSet with specified name, index, and aspect.
-    DataSet* GetSet(std::string const&, int, std::string const&);
+    DataSet* GetDataSet( std::string const& );
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& );
     /// Generate name based on given default and # of DataSets.
@@ -66,12 +63,10 @@ class DataSetList {
     /// Add DataSet to list with name, idx, aspect, and legend.
     DataSet* AddSetIdxAspect( DataSet::DataType, std::string const&, int, std::string const&,
                               std::string const&);
-    /// Add DataSet to list with name, index, aspect, and size.
-    DataSet* AddSet( DataSet::DataType, std::string const&, int, std::string const&, int);
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
     /// Print info on DataSets in the list
-    void Info();
+    void List();
     /// Call sync for DataSets in the list (MPI only)
     void Sync();
     /// Find next set of specified type with given name.
@@ -91,6 +86,9 @@ class DataSetList {
     int maxFrames_;
     /// Used in NextVector routine
     int vecidx_;
+
+    /// Get DataSet with specified name, index, and aspect.
+    DataSet* GetSet(std::string const&, int, std::string const&);
     /// Used to sort DataSets
     struct dsl_cmp {
       inline bool operator()(DataSet* first, DataSet* second) const {

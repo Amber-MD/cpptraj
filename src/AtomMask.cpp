@@ -14,7 +14,7 @@ AtomMask::AtomMask() :
 {}
 
 // CONSTRUCTOR
-AtomMask::AtomMask(const char *maskstring) :
+AtomMask::AtomMask(std::string const& maskstring) :
   debug_(0),
   maskChar_('T'),
   Natom_(0),

@@ -6,6 +6,7 @@
 
 // CONSTRUCTOR
 Action_AtomMap::Action_AtomMap() :
+  debug_(0),
   RefFrame_(NULL),
   RefParm_(NULL),
   TgtFrame_(NULL),
@@ -17,6 +18,13 @@ Action_AtomMap::Action_AtomMap() :
   rmsfit_(false),
   rmsdata_(NULL)
 {}
+
+void Action_AtomMap::Help() {
+  mprintf("atommap <target> <reference> [mapout <filename>] [maponly]\n");
+  mprintf("        [rmsfit [ rmsout <rmsout> ]]\n");
+  mprintf("\tAttempt to create a map from atoms in target to atoms in reference solely\n");
+  mprintf("based on how they are bonded (not how they are named).\n");
+}
 
 // DESTRUCTOR
 Action_AtomMap::~Action_AtomMap() {
@@ -80,7 +88,7 @@ int Action_AtomMap::mapBondsToUnique(AtomMap& Ref, AtomMap& Tgt) {
           // At this point t is the only one of its kind bonded to tatom.
           // Check if its atomID matches r. If so, map it.
           if ( Ref[*r].AtomID() == Tgt[*t].AtomID() ) {
-            if (debug>0) 
+            if (debug_>0) 
               mprintf("    Mapping tgt %i:%s to ref %i:%s based on single bond to unique.\n",
                       *t+1, Tgt[*t].c_str(), *r+1, Ref[*r].c_str());
             AMap_[*r] = *t;
@@ -181,7 +189,7 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
     // notunique_r may not be the same as notunique_t if the # atoms is different
     if (notunique_r != notunique_t) 
       mprintf("Warning: Ref and Tgt do not have the same # of nonmapped atoms.\n");
-    if (debug>0) { 
+    if (debug_>0) { 
       mprintf("  Potential Chiral center %i_%c/%i_%c: Mapped atoms=%i, non-Mapped=%i/%i\n",
               ratom+1, Ref[ratom].CharName(), tatom+1, Tgt[tatom].CharName(),
               nunique, notunique_r, notunique_t);
@@ -197,7 +205,7 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
     //if (nunique==5) continue;
     // Require at least 3 unique atoms for dihedral calc. 
     if (nunique<3) {
-      if (debug>0) 
+      if (debug_>0) 
         mprintf("    Warning: Center has < 3 mapped atoms, dihedral cannot be calcd.\n");
       continue;
     }
@@ -207,7 +215,7 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
                        RefFrame_->XYZ(uR[1]), 
                        RefFrame_->XYZ(uR[2]),
                        RefFrame_->XYZ(nR[i]) );
-      if (debug>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
+      if (debug_>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
                            uR[0],uR[1],uR[2],nR[i],dR[i]);
     }
     // Calculate target improper dihedrals
@@ -216,7 +224,7 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
                        TgtFrame_->XYZ(uT[1]),
                        TgtFrame_->XYZ(uT[2]),
                        TgtFrame_->XYZ(nT[i]) );
-      if (debug>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
+      if (debug_>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
                            uR[0], uR[1], uR[2], nT[i], dT[i]);
     }
     // Match impropers to each other using a cutoff. Note that all torsions
@@ -228,7 +236,7 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
         double delta = dR[i] - dT[j];
         if (delta<0.0) delta=-delta;
         if (delta<0.17453292519943295769236907684886) {
-          if (debug>0)
+          if (debug_>0)
             mprintf("    Mapping tgt atom %i:%s to ref atom %i:%s based on chirality.\n",
                     nT[j]+1, Tgt[nT[j]].c_str(), nR[i], Ref[nR[i]].c_str() );
           AMap_[ nR[i] ] = nT[j];
@@ -273,7 +281,7 @@ int Action_AtomMap::mapUniqueRefToTgt(AtomMap& Ref, AtomMap& Tgt, int ratom) {
     // Check char name
     // NOTE: Should this be checking element instead?
     if ( Tgt[tatom].CharName() == Ref[ratom].CharName() ) {
-      if (debug>1) 
+      if (debug_>1) 
         mprintf("        Attempting match of Tgt %i:%s to Ref %i:%s\n",
                 tatom+1,Tgt[tatom].c_str(), ratom+1, Ref[ratom].c_str());
       // Check that at least 1 bond is in common
@@ -284,7 +292,7 @@ int Action_AtomMap::mapUniqueRefToTgt(AtomMap& Ref, AtomMap& Tgt, int ratom) {
         int t = AMap_[ *r ];
         // If no mapping exists cant check it
         if (t<0) continue;
-        if (debug>1) 
+        if (debug_>1) 
           mprintf("          Ref %i:%s bonded to %i:%s (%i:%s in tgt)\n",
                   ratom+1, Ref[ratom].c_str(), 
                   *r+1,    Ref[*r].c_str(), 
@@ -294,7 +302,7 @@ int Action_AtomMap::mapUniqueRefToTgt(AtomMap& Ref, AtomMap& Tgt, int ratom) {
         for (Atom::bond_iterator tbond = Tgt[tatom].bondbegin(); 
                                  tbond != Tgt[tatom].bondend(); tbond++) 
         {
-          if (debug>1)
+          if (debug_>1)
             mprintf("            Tgt %i:%s bonded to %i:%s\n",
                     tatom+1, Tgt[tatom].c_str(), *tbond+1, Tgt[*tbond].c_str());
           if (t == *tbond) 
@@ -316,7 +324,7 @@ int Action_AtomMap::mapUniqueRefToTgt(AtomMap& Ref, AtomMap& Tgt, int ratom) {
   }
   if (match==-1) return 0;
   // Only one match found - map it
-  if (debug>0) 
+  if (debug_>0) 
     mprintf("    Mapping target %i:%s to unique ref %i:%s\n",match+1,Tgt[match].c_str(),
             ratom+1, Ref[ratom].c_str());
   AMap_[ratom] = match;
@@ -385,12 +393,12 @@ int Action_AtomMap::mapByIndex(AtomMap& Ref, AtomMap& Tgt) {
     // This atom is mapped, but bonded atoms are not completely mapped. Try
     // to map the unmapped reference atoms bonded to <atom> to the unmapped
     // target atoms bonded to <tatom>. 
-    if (debug>1)
+    if (debug_>1)
       mprintf("DBG: Checking bonds of mapped Ref %i:%s against mapped Tgt %i:%s\n",
               ratom+1,Ref[ratom].c_str(),tatom,Tgt[tatom].c_str());
     for (Atom::bond_iterator r = Ref[ratom].bondbegin(); r != Ref[ratom].bondend(); r++)
     {
-      if (debug>1) 
+      if (debug_>1) 
         mprintf("\t\tRefBond %i:%s [%1i]\n",*r+1,Ref[*r].c_str(),(int)Ref[*r].IsMapped());
       if (Ref[*r].IsMapped()) continue;
       // Dont map atoms that are single-bonded to chiral centers; let
@@ -399,7 +407,7 @@ int Action_AtomMap::mapByIndex(AtomMap& Ref, AtomMap& Tgt) {
       match = -1;
       for (Atom::bond_iterator t = Tgt[tatom].bondbegin(); t != Tgt[tatom].bondend(); t++)
       {
-        if (debug>1) 
+        if (debug_>1) 
           mprintf("\t\t\tTgtBond %i:%s [%1i]\n",*t+1,Tgt[*t].c_str(),(int)Tgt[*t].IsMapped());
         if (Tgt[*t].IsMapped()) continue;
         // Atom r bonded to atom, atom t bonded to tatom. r and t are not
@@ -425,7 +433,7 @@ int Action_AtomMap::mapByIndex(AtomMap& Ref, AtomMap& Tgt) {
       } // End loop tbond over bonds in target atom
       // If a match was found, Map it
       if (match!=-1) {
-        if (debug>0) mprintf("    Mapping Tgt %i:%s to Ref %i:%s based on name/bonding.\n",
+        if (debug_>0) mprintf("    Mapping Tgt %i:%s to Ref %i:%s based on name/bonding.\n",
                              match+1,Tgt[match].c_str(),*r+1,Ref[*r].c_str());
         AMap_[*r] = match;
         Ref[*r].SetMapped();
@@ -469,7 +477,7 @@ int Action_AtomMap::MapUniqueAtoms(AtomMap& Ref, AtomMap& Tgt) {
             Ref[refatom].SetMapped();
             Tgt[targetatom].SetMapped();
             ++numAtomsMapped;
-            if (debug>0) {
+            if (debug_>0) {
               mprintf("    Mapping Tgt %i:%s to Ref %i:%s based on unique ID\n",
                       targetatom+1, Tgt[targetatom].c_str(),
                       refatom+1, Ref[refatom].c_str());
@@ -632,7 +640,7 @@ int Action_AtomMap::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
     //sprintf(name,"Tgt.%i.u.mol2",iterations);
     //Tgt->WriteMol2(name);
     // END DEBUG
-    if (debug>0)
+    if (debug_>0)
       mprintf("* [%3i] mapBondsToUnique: %i atoms mapped.\n",iterations,numAtomsMapped);
     if (numAtomsMapped<0) return 1;
     // Next assign based on chirality
@@ -643,7 +651,7 @@ int Action_AtomMap::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
     //sprintf(name,"Tgt.%i.c.mol2",iterations);
     //Tgt->WriteMol2(name);
     // END DEBUG
-    if (debug>0)
+    if (debug_>0)
       mprintf("* [%3i]        mapChiral: %i atoms mapped.\n",iterations,numAtomsMapped);
     if (numAtomsMapped<0) return 1;
     if (numAtomsMapped>0) continue;
@@ -655,28 +663,25 @@ int Action_AtomMap::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
     //sprintf(name,"Tgt.%i.i.mol2",iterations);
     //Tgt->WriteMol2(name);
     // END DEBUG
-    if (debug>0)
+    if (debug_>0)
       mprintf("* [%3i]       mapByIndex: %i atoms mapped.\n",iterations,numAtomsMapped);
     if (numAtomsMapped<0) return 1;
     if (numAtomsMapped==0) mapatoms=false;
   }
-  if (debug>0) mprintf("* %i iterations.\n",iterations);
+  if (debug_>0) mprintf("* %i iterations.\n",iterations);
   return 0;
 }
 
 // Action_AtomMap::init()
-/** Expected call: atommap <target> <reference> [mapout <filename>] [maponly]
-  *                        [rmsfit [ rmsout <rmsout> ]]
-  * Attempt to create a map from atoms in target to atoms in reference solely
-  * based on how they are bonded (not how they are named). 
-  */
-int Action_AtomMap::init() {
+Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   std::string rmsout;
   CpptrajFile outputfile;
   int refatom,targetatom;
-  
-  RefMap_.SetDebug(debug);
-  TgtMap_.SetDebug(debug);
+  debug_ = debugIn; 
+  RefMap_.SetDebug(debug_);
+  TgtMap_.SetDebug(debug_);
 
   // Get Args
   ArgList::ConstArg outputname = actionArgs.getKeyString("mapout");
@@ -688,11 +693,11 @@ int Action_AtomMap::init() {
   ArgList::ConstArg refName = actionArgs.getNextString();
   if (targetName==NULL) {
     mprintf("AtomMap::init: Error: No target specified.\n");
-    return 1;
+    return Action::ERR;
   }
   if (refName==NULL) {
     mprintf("AtomMap::init: Error: No reference specified.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Get reference index based on filename 
@@ -703,7 +708,7 @@ int Action_AtomMap::init() {
   RefParm_ = FL->GetFrameParm(refIndex);
   if (RefFrame_==NULL || RefParm_==NULL) {
     mprintf("AtomMap::init: Error: Could not get reference frame %s\n",refName);
-    return 1;
+    return Action::ERR;
   }
   // Get target index based on filename
   int targetIndex = FL->FindName(targetName);
@@ -713,7 +718,7 @@ int Action_AtomMap::init() {
   TgtParm_ = FL->GetFrameParm(targetIndex);
   if (TgtFrame_==NULL || TgtParm_==NULL) {
     mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName);
-    return 1;
+    return Action::ERR;
   }
 
   mprintf("    ATOMMAP: Atoms in trajectories associated with parm %s will be\n",
@@ -727,7 +732,7 @@ int Action_AtomMap::init() {
     mprintf("             rmsfit: Will rms fit mapped atoms in tgt to reference.\n");
     if (!rmsout.empty()) {
       rmsdata_ = DSL->Add(DataSet::DOUBLE,actionArgs.getNextString(),"RMSD");
-      if (rmsdata_==NULL) return 1;
+      if (rmsdata_==NULL) return Action::ERR;
       DFL->AddSetToFile(rmsout,rmsdata_);
     }
   }
@@ -737,13 +742,13 @@ int Action_AtomMap::init() {
   // cutoffs, the give each atom an ID based on what atoms are bonded to
   // it, noting which IDs are unique for that map. 
 
-  if (RefMap_.Setup(RefParm_)!=0) return 1;
-  if (RefMap_.CheckBonds()!=0) return 1;
+  if (RefMap_.Setup(RefParm_)!=0) return Action::ERR;
+  if (RefMap_.CheckBonds()!=0) return Action::ERR;
   //RefMap_.WriteMol2((char*)"RefMap.mol2\0"); // DEBUG
   RefMap_.DetermineAtomIDs();
 
-  if (TgtMap_.Setup(TgtParm_)!=0) return 1;
-  if (TgtMap_.CheckBonds()!=0) return 1;
+  if (TgtMap_.Setup(TgtParm_)!=0) return Action::ERR;
+  if (TgtMap_.CheckBonds()!=0) return Action::ERR;
   //TgtMap_.WriteMol2((char*)"TgtMap.mol2\0"); // DEBUG
   TgtMap_.DetermineAtomIDs();
 
@@ -763,14 +768,14 @@ int Action_AtomMap::init() {
   AMap_.resize( RefMap_.Natom(), -1); 
   // Map unique atoms
   int numMappedAtoms = MapUniqueAtoms(RefMap_, TgtMap_);
-  if (debug>0)
+  if (debug_>0)
     mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",numMappedAtoms);
   // If no unique atoms mapped system is highly symmetric and needs to be
   // iteratively mapped. Otherwise just map remaining atoms.
   if (numMappedAtoms==0) { 
-    if (MapWithNoUniqueAtoms(RefMap_,TgtMap_)) return 1;
+    if (MapWithNoUniqueAtoms(RefMap_,TgtMap_)) return Action::ERR;
   } else {
-    if (MapAtoms(RefMap_,TgtMap_)) return 1;
+    if (MapAtoms(RefMap_,TgtMap_)) return Action::ERR;
   }
 
   // Print atom map and count # mapped atoms
@@ -796,7 +801,7 @@ int Action_AtomMap::init() {
   }
   outputfile.CloseFile();
   mprintf("      %i total atoms were mapped.\n",numMappedAtoms);
-  if (maponly_) return 0;
+  if (maponly_) return Action::OK;
 
   // If rmsfit is specified, an rms fit of target to reference will be
   // performed using all atoms that were successfully mapped from 
@@ -805,7 +810,7 @@ int Action_AtomMap::init() {
     // Set up a reference frame containing only mapped reference atoms
     rmsRefFrame_.SetReferenceByMap(*RefFrame_, AMap_);
     mprintf("      rmsfit: Will rms fit %i atoms from target to reference.\n",numMappedAtoms);
-    return 0;
+    return Action::OK;
   }
 
   // Check if not all atoms could be mapped
@@ -829,7 +834,7 @@ int Action_AtomMap::init() {
       // Replace reference with stripped versions
       if (FL->ReplaceFrame(refIndex, newFrame_, stripParm_)) {
         mprintf("Error: AtomMap: Could not strip reference.\n");
-        return 1;
+        return Action::ERR;
       }
       // Since AMap[ ref ] = tgt but ref is now missing any stripped atoms,
       // the indices of AMap must be shifted to match
@@ -856,17 +861,17 @@ int Action_AtomMap::init() {
     newParm_ = TgtParm_->ModifyByMap(AMap_);
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_AtomMap::setup()
 /** If the current parm does not match the target parm, deactivate. Otherwise
   * replace current parm with mapped parm.
   */
-int Action_AtomMap::setup() {
+Action::RetType Action_AtomMap::Setup(Topology* currentParm, Topology** parmAddress) {
   if (maponly_) {
     mprintf("    ATOMMAP: maponly was specified, not using atom map during traj read.\n");
-    return 0;
+    return Action::OK;
   }
   if (currentParm->Pindex() != TgtParm_->Pindex() ||
       currentParm->Natom() != TgtParm_->Natom()) 
@@ -876,26 +881,26 @@ int Action_AtomMap::setup() {
     mprintf("             Current parm %s (%i atom).\n",currentParm->c_str(),
             currentParm->Natom());
     mprintf("             Not using map for this parm.\n");
-    return 1;
+    return Action::ERR;
   }
   if (rmsfit_) {
     mprintf("    ATOMMAP: rmsfit specified, %i atoms.\n",rmsRefFrame_.Natom());
-    return 0;
+    return Action::OK;
   }
   mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TgtParm_->c_str(),
           RefParm_->c_str(), TgtParm_->Natom());
 
-  currentParm = newParm_;
+  *parmAddress = newParm_;
   
-  return 0;
+  return Action::OK;
 }
 
 // Action_AtomMap::action()
 /** Modify the current frame based on the atom map. 
   */
-int Action_AtomMap::action() {
+Action::RetType Action_AtomMap::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double Rot[9], Trans[6], R;
-  if (maponly_) return 0;
+  if (maponly_) return Action::OK;
 
   // Perform RMS fit on mapped atoms only
   if (rmsfit_) {
@@ -905,14 +910,14 @@ int Action_AtomMap::action() {
     currentFrame->Trans_Rot_Trans(Trans,Rot);
     if (rmsdata_!=NULL)
       rmsdata_->Add(frameNum, &R);
-    return 0;
+    return Action::OK;
   }
 
   // Modify the current frame
   // TODO: Fix this since its probably busted for unmapped atoms; also
   //       it doesnt copy velocity/masses
   newFrame_->SetCoordinatesByMap(*currentFrame, AMap_);
-  currentFrame = newFrame_;
-  return 0;
+  *frameAddress = newFrame_;
+  return Action::OK;
 }
 

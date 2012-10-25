@@ -8,14 +8,18 @@ class Analysis_Hist : public Analysis {
   public :
     Analysis_Hist();
 
-    int Setup(DataSetList*);
-    int Analyze();
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Hist(); }
+    static void Help();
+
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
     void Print(DataFileList*);
   private:
     Histogram* hist_;
     std::vector<DataSet*> histdata_;
     std::vector<ArgList> dimensionArgs_;
 
+    int debug_;
     bool calcFreeE_;
     double Temp_;
     bool normalize_;

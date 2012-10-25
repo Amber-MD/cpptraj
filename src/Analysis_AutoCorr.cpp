@@ -8,20 +8,24 @@ Analysis_AutoCorr::Analysis_AutoCorr() :
   calc_covar_(true)
 {}
 
-/** Usage: autocorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] out <filename>
-  */
-int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
+void Analysis_AutoCorr::Help() {
+  mprintf("autocorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] out <filename>\n");
+}
+
+Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
+                            TopologyList* PFLin, int debugIn)
+{
   const char* calctype;
 
-  std::string setname_ = analyzeArgs_.GetStringKey("name");
-  outfilename_ = analyzeArgs_.GetStringKey("out");
-  lagmax_ = analyzeArgs_.getKeyInt("lagmax",-1);
+  std::string setname_ = analyzeArgs.GetStringKey("name");
+  outfilename_ = analyzeArgs.GetStringKey("out");
+  lagmax_ = analyzeArgs.getKeyInt("lagmax",-1);
   // Select datasets
-  while (analyzeArgs_.ArgsRemain())
-    dsets_ += datasetlist->GetMultipleSets( analyzeArgs_.GetStringNext() );
+  while (analyzeArgs.ArgsRemain())
+    dsets_ += datasetlist->GetMultipleSets( analyzeArgs.GetStringNext() );
   if (dsets_.empty()) {
     mprinterr("Error: autocorr: No data sets selected.\n");
-    return 1;
+    return Analysis::ERR;
   }
   // If setname is empty generate a default name
   if (setname_.empty())
@@ -30,7 +34,7 @@ int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
   int idx = 0;
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
     DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++ );
-    if (dsout==NULL) return 1;
+    if (dsout==NULL) return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
     outputData_.push_back( dsout );
   }
@@ -41,7 +45,7 @@ int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
     calctype = "correlation";
  
   mprintf("    AUTOCORR: Calculating auto-%s for %i data sets:\n", calctype, dsets_.size());
-  dsets_.Info();
+  dsets_.List();
   if (lagmax_!=-1)
     mprintf("\tLag max= %i\n", lagmax_);
   if ( !setname_.empty() )
@@ -53,10 +57,10 @@ int Analysis_AutoCorr::Setup( DataSetList* datasetlist ) {
   else
     mprintf("\tUsing direct method to calculate %s.\n", calctype);
 
-  return 0;
+  return Analysis::OK;
 }
 
-int Analysis_AutoCorr::Analyze() {
+Analysis::RetType Analysis_AutoCorr::Analyze() {
   std::vector<DataSet*>::iterator dsout = outputData_.begin();
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS)
   {
@@ -65,7 +69,7 @@ int Analysis_AutoCorr::Analyze() {
     ++dsout;
   }
 
-  return 0;
+  return Analysis::OK;
 }
 
 void Analysis_AutoCorr::Print( DataFileList* datafilelist ) {

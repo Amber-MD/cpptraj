@@ -5,11 +5,16 @@
 class Action_Dipole : public Action {
   public:
     Action_Dipole();
-    void print();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Dipole(); }
+    static void Help();
+
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     Grid grid_;
     std::vector<double> dipolex_;
@@ -18,5 +23,6 @@ class Action_Dipole : public Action {
     std::string filename_;
     AtomMask mask_;
     double max_;
+    Topology* CurrentParm_;
 };
 #endif

@@ -5,16 +5,23 @@
 
 // CONSTRUCTOR
 Action_Dipole::Action_Dipole() :
-  max_(0)
+  max_(0),
+  CurrentParm_(0)
 {}
 
+void Action_Dipole::Help() {
+
+}
+
 // Action_Dipole::init()
-int Action_Dipole::init() {
+Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get output filename
   filename_ = actionArgs.GetStringNext();
   if (filename_.empty()) {
     mprinterr("Error: Dipole: no filename specified.\n");
-    return 1;
+    return Action::ERR;
   }
   // 'negative' means something different here than for other grid actions,
   // so get it here. Done this way to be consistent with PTRAJ behavior.
@@ -24,7 +31,7 @@ int Action_Dipole::init() {
     max_ = actionArgs.getKeyDouble("max", 0);
   // Get grid options
   if (grid_.GridInit( "Dipole", actionArgs ))
-    return 1;
+    return Action::ERR;
   // Setup dipole x, y, and z grids
   dipolex_.resize( grid_.GridSize(), 0 );
   dipoley_.resize( grid_.GridSize(), 0 );
@@ -34,7 +41,7 @@ int Action_Dipole::init() {
   ArgList::ConstArg maskexpr = actionArgs.getNextMask();
   if (maskexpr==NULL) {
     mprinterr("Error: Dipole: No mask specified.\n");
-    return 1;
+    return Action::ERR;
   }
   mask_.SetMaskString(maskexpr);
 
@@ -45,14 +52,14 @@ int Action_Dipole::init() {
   if (max_ > 0)
     mprintf("\tOnly keeping density >= to %.0lf%% of the maximum density\n", max_);
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Dipole::setup()
-int Action_Dipole::setup() {
+Action::RetType Action_Dipole::Setup(Topology* currentParm, Topology** parmAddress) {
   if (currentParm->Nsolvent() < 1) {
     mprinterr("Error: Dipole: no solvent present in %s.\n", currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
   // Traverse over solvent molecules to find out the 
   // "largest" solvent molecule; allocate space for this
@@ -70,22 +77,22 @@ int Action_Dipole::setup() {
   mprintf("\tLargest solvent mol is %i atoms.\n", NsolventAtoms);
 
   // Setup grid, checks box info.
-  if (grid_.GridSetup( currentParm )) return 1;
+  if (grid_.GridSetup( currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupCharMask( mask_ ))
-    return 1;
+    return Action::ERR;
   mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
   if (mask_.None()) {
     mprinterr("Error: Dipole: No atoms selected for parm %s\n", currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
-
-  return 0;
+  CurrentParm_ = currentParm;
+  return Action::OK;
 }
 
 // Action_Dipole::action()
-int Action_Dipole::action() {
+Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double sol[3], cX, cY, cZ;
   double dipolar_vector[3], COM[3];
 
@@ -102,8 +109,8 @@ int Action_Dipole::action() {
 
   // Traverse over solvent molecules.
   //int i_solvent = 0; // DEBUG
-  for (Topology::mol_iterator solvmol = currentParm->MolStart();
-                              solvmol != currentParm->MolEnd(); ++solvmol)
+  for (Topology::mol_iterator solvmol = CurrentParm_->MolStart();
+                              solvmol != CurrentParm_->MolEnd(); ++solvmol)
   {
     if (!(*solvmol).IsSolvent()) continue;
     //++i_solvent; // DEBUG
@@ -127,13 +134,13 @@ int Action_Dipole::action() {
         // as the "origin" for the vector.
         // NOTE: the total charge on the solvent should be neutral for this 
         //       to have any meaning.
-        double mass = (*currentParm)[satom].Mass();
+        double mass = (*CurrentParm_)[satom].Mass();
         total_mass += mass;
         COM[0] += (mass * sol[0]);
         COM[1] += (mass * sol[1]);
         COM[2] += (mass * sol[2]);
 
-        double charge = (*currentParm)[satom].Charge();
+        double charge = (*CurrentParm_)[satom].Charge();
         dipolar_vector[0] += (charge * sol[0]);
         dipolar_vector[1] += (charge * sol[1]);
         dipolar_vector[2] += (charge * sol[2]);
@@ -158,14 +165,14 @@ int Action_Dipole::action() {
     }
   } // END loop over solvent molecules
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Dipole::print()
 /** Print dipole data in format for Chris Bayly's discern delegate that 
   * comes with Midas/Plus.
   */
-void Action_Dipole::print() {
+void Action_Dipole::Print() {
   double max_density;
   CpptrajFile outfile;
 

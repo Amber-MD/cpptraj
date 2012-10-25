@@ -8,11 +8,16 @@ class Action_RmsAvgCorr: public Action {
   public:
     Action_RmsAvgCorr();
 
-    void print();
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_RmsAvgCorr(); }
+    static void Help();
+
+
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     std::string separateName_;
     AtomMask Mask0_;

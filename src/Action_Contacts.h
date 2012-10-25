@@ -6,14 +6,18 @@
 class Action_Contacts : public Action {
   public:
     Action_Contacts();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Contacts(); }
+    static void Help();
+
     ~Action_Contacts();
-    void print() {}
+    void Print() {}
   private:
     AtomMask Mask_;
     bool byResidue_;
     double distance_;
-    //Topology* RefParm_;
     bool first_;
+    Topology* CurrentParm_;
     CpptrajFile outfile_;
     CpptrajFile outfile2_;
     typedef std::pair<int,int> contactType;
@@ -24,9 +28,10 @@ class Action_Contacts : public Action {
     std::vector<int> residueNative_;
     std::set<int> activeResidues_;
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     int SetupContacts(Frame*, Topology*);
 };

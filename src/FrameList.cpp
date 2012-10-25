@@ -18,18 +18,6 @@ FrameList::~FrameList() {
     delete *parm;
 }
 
-// FrameList::CheckCommand()
-int FrameList::CheckCommand(ArgList& argIn, TopologyList& topListIn) {
-  if (argIn.CommandIs("reference")) {
-    Topology* tempParm = topListIn.GetParm(argIn);
-    return AddReference( argIn, tempParm );
-  } else if (argIn.CommandIs("activeref")) {
-    SetActiveRef( argIn.getNextInteger(0) );
-    return 0;
-  }
-  return 1; // Command does not pertain to FrameList
-}
-
 // -----------------------------------------------------------------------------
 // FrameList::ActiveReference()
 /** Return the address of the frame pointed to by refFrameNum_.
@@ -50,15 +38,21 @@ void FrameList::SetActiveRef(int numIn) {
   refFrameNum_ = numIn;
 }
 
+void FrameList::Help() {
+  mprintf("reference <filename> [<frame#>] [average] [<mask>] [TAG] [lastframe]\n");
+}
+
 // -----------------------------------------------------------------------------
 /** Add Frame from the given trajectory file to the FrameList. Store trajectory 
   * name and frame number that this frame came from in frameNames and frameNums 
   * respectively. Store the associated parm in FrameParm. 
   */
-int FrameList::AddReference(ArgList& argIn, Topology *parmIn) {
+int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   Trajin_Single traj;
 
   traj.SetDebug(debug_);
+  // Get associated parmtop
+  Topology* parmIn = topListIn.GetParm( argIn );
   // Check if we want to obtain the average structure
   bool average = argIn.hasKey("average");
 
@@ -202,10 +196,10 @@ int FrameList::ReplaceFrame(int idx, Frame *newFrame, Topology *newParm) {
   return 0;
 }
 
-// FrameList::Info()
+// FrameList::List()
 /** Print a list of trajectory names that frames have been taken from.
   */
-void FrameList::Info() {
+void FrameList::List() {
   if (frames_.empty()) {
     mprintf("  No frames defined.\n");
     return;

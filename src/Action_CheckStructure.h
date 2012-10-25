@@ -7,15 +7,20 @@
 class Action_CheckStructure: public Action, ImagedAction {
   public:
     Action_CheckStructure();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_CheckStructure(); }
+    static void Help();
+
     ~Action_CheckStructure();
 
     void SeparateInit(double, double, int);
     int SeparateAction(Frame *);
-    void print() {}
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     /// Used to cache bond parameters
     struct bond_list {
@@ -42,6 +47,8 @@ class Action_CheckStructure: public Action, ImagedAction {
     double nonbondcut2_;
     CpptrajFile outfile_;
     bool isSeparate_; ///< True if set up outside main Action List
+    Topology* CurrentParm_;
+    int debug_;
 
     void SetupBondlist(std::vector<int> const&);
 };

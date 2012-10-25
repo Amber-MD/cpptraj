@@ -30,6 +30,7 @@ class Range {
     void ShiftBy(int);
     void AddToRange(int);
     void RemoveFromRange(int);
+    bool InRange(int);
 
   private:
     std::string rangeArg_;

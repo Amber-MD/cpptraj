@@ -52,11 +52,16 @@ class Pairwise: public Action {
 
   public:
     Pairwise();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Pairwise(); }
+    static void Help();
+
     ~Pairwise();
 
-    int init();
-    int setup();
-    int action();
-    void print();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 };
 #endif  

@@ -65,13 +65,18 @@ class Action_ClusterDihedral : public Action {
   public:
     Action_ClusterDihedral();
 
-    void print();
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_ClusterDihedral(); }
+    static void Help();
+
+
+    void Print();
   private:
     int ReadDihedrals(std::string const&);    
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     std::vector<DCnode> dcarray_;  ///< Hold counts for each bin# combo.
     std::vector<DCmask> DCmasks_;  ///< Hold 4 atom mask for each dihedral
@@ -87,5 +92,6 @@ class Action_ClusterDihedral : public Action {
     AtomMask mask_;
     DataSet* CVT_; ///< Hold # clusters vs time.
     double minimum_; ///< Value of first bin 
+    int debug_;
 };
 #endif

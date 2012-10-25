@@ -48,8 +48,13 @@ class DihedralScan: public Action {
   public:
     DihedralScan();
 
-    int init();
-    int setup();
-    int action();
+    static DispatchObject* Alloc() { return (DispatchObject*)new DihedralScan(); }
+    static void Help();
+
+
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 };
 #endif  

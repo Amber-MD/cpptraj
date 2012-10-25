@@ -7,8 +7,10 @@ CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
 # containe -lnetcdf / -larpack etc this avoids triggering an unnecessary build 
 # of these libraries each time 'make' is invoked.
 # NOTE: Since -nobintraj is possible and the dependency for netcdf is not
-#       set correctly by configure there is no way this can work for netcdf 
-EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a
+#       set correctly by configure there is no way this can work for netcdf
+READLINE_HOME=$(AMBERHOME)/AmberTools/src/gleap/freelib/readline
+READLINE=$(READLINE_HOME)/libreadline.a
+EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a $(READLINE)
 
 include cpptrajfiles
 
@@ -31,7 +33,7 @@ dependclean:
 
 cpptraj$(SFX): $(NETCDF) $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
 	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
-               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
+               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
 
 $(INCDIR)/netcdf.mod: ../../netcdf_config.log
 	cd ../../netcdf/src && $(MAKE) install
@@ -45,8 +47,14 @@ $(LIBDIR)/liblapack.a:
 $(LIBDIR)/libblas.a:
 	cd ../../blas && $(MAKE) $(BLAS)
 
+$(READLINE):
+	cd $(READLINE_HOME) && $(MAKE)
+
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ pub_fft.F90
+
+ReadLine.o: ReadLine.cpp
+	$(CXX) -c $(CPPTRAJ_FLAGS) -I$(READLINE_HOME) -o $@ ReadLine.cpp
 
 .c.o:
 	$(CC) -c $(CPPTRAJ_FLAGS) -o $@ $<

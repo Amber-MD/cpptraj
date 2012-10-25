@@ -21,14 +21,20 @@
 class Action_Rotdif: public Action {
   public:
     Action_Rotdif();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rotdif(); }
+    static void Help();
+
     ~Action_Rotdif();
 
   private:
-    int init();
-    int setup();
-    int action();
-    void print();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
+    int debug_;
     int rseed_;       ///< Random seed
     int nvecs_;       ///< Number of random vectors to generate
     double tfac_;     ///< time step

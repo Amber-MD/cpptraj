@@ -12,10 +12,15 @@ class Action_Surf: public Action {
   public:
     Action_Surf();
 
-    int init();
-    int setup();
-    int action();
-    void print() {}
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Surf(); }
+    static void Help();
+
+
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
   private:
     DataSet *surf;
     AtomMask Mask1;
@@ -39,6 +44,6 @@ class Action_Surf: public Action {
     std::vector<double> VDW;
 
     void AssignLCPO(SurfInfo *, double, double, double, double , double );
-    void SetAtomLCPO(int,const Atom &, SurfInfo*);
+    void SetAtomLCPO(Topology const&,int, SurfInfo*);
 };
 #endif

@@ -10,18 +10,19 @@
 // TODO: Eventually store a vector of Frames, not Frame*s
 class FrameList : public FileList {
   public:
-
     FrameList();
     ~FrameList();
 
-    int CheckCommand(ArgList&, TopologyList&);
+    static void Help();
+
     Frame *ActiveReference();
-    //int AddRefFrame(Frame *, char *, const char *,Topology *,int,std::string&);
+    int AddReference(ArgList&, TopologyList&);
+    void SetActiveRef(int);
     int AddFrame(Frame *, Topology *);
     Topology *GetFrameParm(int);
     Frame *GetFrame(int idx);
     int ReplaceFrame(int, Frame *, Topology *);
-    void Info();
+    void List();
     const char *FrameName(int);
 
     int NumFrames() { return (int)frames_.size(); }
@@ -32,7 +33,5 @@ class FrameList : public FileList {
     std::vector<Topology*> StrippedRefParms_;
     int refFrameNum_;
 
-    void SetActiveRef(int);
-    int AddReference(ArgList&, Topology*);
 };
 #endif

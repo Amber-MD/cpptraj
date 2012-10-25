@@ -8,7 +8,13 @@ Action_Unwrap::Action_Unwrap() :
   orthogonal_(false)
 { }
 
-int Action_Unwrap::init() {
+void Action_Unwrap::Help() {
+
+}
+
+Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get reference
   int refindex = -1;
   if (actionArgs.hasKey("reference"))
@@ -20,7 +26,7 @@ int Action_Unwrap::init() {
       refindex = FL->FindName( refname );
       if (refindex == -1) {
         mprinterr("Error: unwrap: Reference [%s] not found.\n", refname.c_str());
-        return 1;
+        return Action::ERR;
       }
     }
   }
@@ -29,7 +35,7 @@ int Action_Unwrap::init() {
     Frame *tempframe = FL->GetFrame(refindex);
     if (tempframe==NULL) {
       mprinterr("Error: unwrap: Could not get reference index %i\n", refindex);
-      return 1;
+      return Action::ERR;
     }
     RefFrame_ = *tempframe;
     // Get reference parm for frame
@@ -37,7 +43,7 @@ int Action_Unwrap::init() {
     if (RefParm_ == NULL) {
       mprinterr("Error: unwrap: Could not get reference parm for frame %s\n",
                 FL->FrameName(refindex));
-      return 1;
+      return Action::ERR;
     }
   }
 
@@ -51,24 +57,24 @@ int Action_Unwrap::init() {
     mprintf("first frame.");
   mprintf("\n");
 
-  return 0;
+  return Action::OK;
 }
 
-int Action_Unwrap::setup() {
+Action::RetType Action_Unwrap::Setup(Topology* currentParm, Topology** parmAddress) {
   // Ensure same number of atoms in current parm and ref parm
   if ( RefParm_!=0 ) {
     if ( currentParm->Natom() != RefParm_->Natom() ) {
       mprinterr("Error: unwrap: # atoms in reference parm %s is not\n", RefParm_->c_str());
       mprinterr("Error:         equal to # atoms in parm %s\n", currentParm->c_str());
-      return 1;
+      return Action::ERR;
     }
   }
 
   // Setup mask
-  if ( currentParm->SetupIntegerMask( mask_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
   if (mask_.None()) {
     mprinterr("Error: unwrap: No atoms selected.\n");
-    return 1;
+    return Action::ERR;
   }
   mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
 
@@ -76,22 +82,23 @@ int Action_Unwrap::setup() {
   if (currentParm->BoxType()==Box::NOBOX) {
     mprintf("Error: unwrap: Parm %s does not contain box information.\n",
             currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
   orthogonal_ = false;
   if (currentParm->BoxType()==Box::ORTHO)
     orthogonal_ = true;
-
-  return 0;
+  // Use current parm as reference if not already set
+  if (RefParm_ == 0)
+    RefParm_ = currentParm;
+  return Action::OK;
 }
 
-int Action_Unwrap::action() {
+Action::RetType Action_Unwrap::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double ucell[9], recip[9];
   // Set reference structure if not already set
-  if (RefParm_ == 0) {
-    RefParm_ = currentParm;
+  if (RefFrame_.empty()) {
     RefFrame_ = *currentFrame;
-    return 0;
+    return Action::OK;
   }
  
   if (orthogonal_)
@@ -101,5 +108,5 @@ int Action_Unwrap::action() {
     UnwrapNonortho( *currentFrame, RefFrame_, mask_, ucell, recip );
   }
 
-  return 0;
+  return Action::OK;
 } 

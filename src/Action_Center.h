@@ -6,11 +6,16 @@
 class Action_Center: public Action {
   public:
     Action_Center();
-    void print() {}
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Center(); }
+    static void Help();
+
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     AtomMask Mask_;
     bool origin_;

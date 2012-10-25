@@ -7,19 +7,24 @@ class Action_Watershell : public Action, ImagedAction {
   public:
     Action_Watershell();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Watershell(); }
+    static void Help();
+
   private:
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() { return; }
+
     AtomMask soluteMask_;
     AtomMask solventMask_;
     std::string solventmaskexpr_;
     std::vector<int> activeResidues_;
     double lowerCutoff_;
     double upperCutoff_;
+    Topology* CurrentParm_;
     DataSet* lower_;
     DataSet* upper_;
-
-    int init();
-    int setup();
-    int action();
-    void print() {}
 };
 #endif

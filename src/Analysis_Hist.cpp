@@ -4,7 +4,8 @@
 
 // CONSTRUCTOR
 Analysis_Hist::Analysis_Hist() : 
-  hist_(0), 
+  hist_(0),
+  debug_(0), 
   calcFreeE_(false),
   Temp_(-1.0),
   normalize_(false),
@@ -13,6 +14,12 @@ Analysis_Hist::Analysis_Hist() :
   minArgSet_(false),
   maxArgSet_(false)
 {}
+
+void Analysis_Hist::Help() {
+  mprintf("hist <dataset_name>[,min,max,step,bins] ...\n");
+  mprintf("     [free <temperature>] [norm] [gnu] [circular] out <filename>\n");
+  mprintf("     min <min> max <max> step <step> bins <bins>\n");
+}
 
 // Analysis_Hist::CheckDimension()
 /** Given an argument with format, DataSet_Name[,min,max,step,bins], check
@@ -31,7 +38,7 @@ int Analysis_Hist::CheckDimension(const char* input, DataSetList *datasetlist) {
   // First argument should specify dataset name
   if (debug_>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
                        arglist.ArgAt(0));
-  DataSet *dset = datasetlist->Get( arglist.ArgAt(0) );
+  DataSet *dset = datasetlist->GetDataSet( arglist[0] );
   if (dset == NULL) {
     mprintf("\t      Dataset %s not found.\n",arglist.ArgAt(0));
     return 1;
@@ -118,52 +125,51 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
 }
 
 // Analysis_Hist::Setup()
-/** Set up histogram with specified data sets.
-  * usage, hist(ogram) <dataset_name>[,min,max,step,bins] ...
-  *        [free <temperature>] [norm] [gnu] [circular] out <filename>
-  *        min <min> max <max> step <step> bins <bins>
-  */
-int Analysis_Hist::Setup(DataSetList *datasetlist) {
+/** Set up histogram with specified data sets. */
+Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
+                            TopologyList* PFLin, int debugIn)
+{
+  debug_ = debugIn;
   ArgList::ConstArg datasetstring;
 
   // Set up histogram DataSet
   hist_ = (Histogram*) datasetlist->Add( DataSet::HIST, 
-                                         analyzeArgs_.getKeyString("name"), 
+                                         analyzeArgs.getKeyString("name"), 
                                          "Hist");
   hist_->SetDebug(debug_);
   //hist_ = new Histogram( );
 
   // Keywords
-  outfilename_ = analyzeArgs_.GetStringKey("out");
+  outfilename_ = analyzeArgs.GetStringKey("out");
   if (outfilename_.empty()) {
     mprintf("Error: Hist: No output filename specified.\n");
-    return 1;
+    return Analysis::ERR;
   }
-  Temp_ = analyzeArgs_.getKeyDouble("free",-1.0);
+  Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
   if (Temp_!=-1.0) calcFreeE_ = true;
-  gnuplot_ = analyzeArgs_.hasKey("gnu");
-  normalize_ = analyzeArgs_.hasKey("norm");
-  circular_ = analyzeArgs_.hasKey("circular");
-  if ( analyzeArgs_.Contains("min") ) {
-    default_dim_.SetMin( analyzeArgs_.getKeyDouble("min",0.0) );
+  gnuplot_ = analyzeArgs.hasKey("gnu");
+  normalize_ = analyzeArgs.hasKey("norm");
+  circular_ = analyzeArgs.hasKey("circular");
+  if ( analyzeArgs.Contains("min") ) {
+    default_dim_.SetMin( analyzeArgs.getKeyDouble("min",0.0) );
     minArgSet_ = true;
   }
-  if ( analyzeArgs_.Contains("max") ) {
-    default_dim_.SetMax( analyzeArgs_.getKeyDouble("max",0.0) );
+  if ( analyzeArgs.Contains("max") ) {
+    default_dim_.SetMax( analyzeArgs.getKeyDouble("max",0.0) );
     maxArgSet_ = true;
   }
-  default_dim_.SetStep( analyzeArgs_.getKeyDouble("step",-1.0) );
-  default_dim_.SetBins( analyzeArgs_.getKeyInt("bins",-1) );
+  default_dim_.SetStep( analyzeArgs.getKeyDouble("step",-1.0) );
+  default_dim_.SetBins( analyzeArgs.getKeyInt("bins",-1) );
 
   // Datasets
   // Treat all remaining arguments as dataset names. 
-  while ( (datasetstring = analyzeArgs_.getNextString())!=NULL ) {
-    if (CheckDimension( datasetstring,datasetlist )) return 1;
+  while ( (datasetstring = analyzeArgs.getNextString())!=NULL ) {
+    if (CheckDimension( datasetstring,datasetlist )) return Analysis::ERR;
   }
 
   if (histdata_.empty()) {
     mprinterr("Error: Hist: No datasets specified.\n");
-    return 1;
+    return Analysis::ERR;
   }
 
   mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 
@@ -185,16 +191,16 @@ int Analysis_Hist::Setup(DataSetList *datasetlist) {
   if (normalize_)
     mprintf("\t      norm: Bins will be normalized to 1.0.\n");
 
-  return 0;
+  return Analysis::OK;
 }
 
 // Analysis_Hist::Analyze()
-int Analysis_Hist::Analyze() {
+Analysis::RetType Analysis_Hist::Analyze() {
   // Set up dimensions
   // Size of histdata and dimensionArgs should be the same
   for (unsigned int hd = 0; hd < histdata_.size(); hd++) {
     if ( setupDimension(dimensionArgs_[hd], histdata_[hd]) ) 
-      return 1;
+      return Analysis::ERR;
   }
 
   // Check that the number of data points in each dimension are equal
@@ -208,7 +214,7 @@ int Analysis_Hist::Analyze() {
       if (Ndata != (*ds)->Size()) {
         mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%i), expected %i.\n",
                   (*ds)->Legend().c_str(), (*ds)->Size(), Ndata);
-        return 1;
+        return Analysis::ERR;
       }
     }
   }
@@ -225,7 +231,7 @@ int Analysis_Hist::Analyze() {
   }
 
   //hist.PrintBins(false,false);
-  return 0;
+  return Analysis::OK;
 }
 
 // Analysis_Hist::Print()

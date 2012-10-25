@@ -7,18 +7,26 @@
 Action_RandomizeIons::Action_RandomizeIons() :
   overlap_(0),
   min_(0),
-  seed_(1)
+  seed_(1),
+  debug_(0),
+  n_solvent_(0)
 {}
 
-/** randomizeions <mask> [around <mask> by <distance>] [overlap <value>] 
-  *               [noimage] [seed <value>]
-  */
-int Action_RandomizeIons::init() {
+void Action_RandomizeIons::Help() {
+  mprintf("randomizeions <mask> [around <mask> by <distance>] [overlap <value>]\n");
+  mprintf("              [noimage] [seed <value>]\n");
+}
+
+// Action_RandomizeIons::Init()
+Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   // Get first mask
   ArgList::ConstArg ionmask = actionArgs.getNextMask();
   if (ionmask == NULL) {
     mprinterr("Error: randomizeions: No mask for ions specified.\n");
-    return 1;
+    return Action::ERR;
   }
   ions_.SetMaskString( ionmask );
 
@@ -52,30 +60,31 @@ int Action_RandomizeIons::init() {
     srandom((unsigned) seed_);
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_RandomizeIons::setup()
-int Action_RandomizeIons::setup() {
-  if (currentParm->Nsolvent()==0) {
+Action::RetType Action_RandomizeIons::Setup(Topology* currentParm, Topology** parmAddress) {
+  n_solvent_ = currentParm->Nsolvent();
+  if (n_solvent_==0) {
     mprinterr("Warning: randomizeions: This command only works if solvent information\n");
     mprinterr("Warning:                has been specified.");
     //mprinterr(" See the \"solvent\" command.");
     mprinterr("\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Set up ion mask
-  if (currentParm->SetupIntegerMask( ions_ )) return 1;
+  if (currentParm->SetupIntegerMask( ions_ )) return Action::ERR;
   if ( ions_.None() ) {
     mprinterr("Warning: randomizeions: Mask [%s] has no atoms.\n", ions_.MaskString());
-    return 1;
+    return Action::ERR;
   }
   mprintf("\tIon mask is [%s] (%i atoms)\n", ions_.MaskString(), ions_.Nselected());
 
   // Set up the around mask if necessary
   if (!aroundmask_.empty()) {
-    if (currentParm->SetupIntegerMask( around_ )) return 1;
+    if (currentParm->SetupIntegerMask( around_ )) return Action::ERR;
     if ( around_.None() ) {
       mprintf("Warning: randomizeions: Around mask [%s] has no atoms.\n",
               around_.MaskString());
@@ -90,7 +99,7 @@ int Action_RandomizeIons::setup() {
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
     int res = (*currentParm)[*ion].ResNum();
-    if (debug > 0)
+    if (debug_ > 0)
       mprintf("\tAtom %i is in residue %i which is %i atoms\n",
               *ion+1, res+1, currentParm->ResSize( res ) );
     if ( currentParm->ResSize( res ) > 1 ) {
@@ -108,8 +117,8 @@ int Action_RandomizeIons::setup() {
   int NsolventAtoms = -1;
   solventStart_.clear();
   solventEnd_.clear();
-  solventStart_.reserve( currentParm->Nsolvent() );
-  solventEnd_.reserve( currentParm->Nsolvent() );
+  solventStart_.reserve( n_solvent_ );
+  solventEnd_.reserve( n_solvent_ );
   for (Topology::mol_iterator Mol = currentParm->MolStart();
                               Mol != currentParm->MolEnd(); ++Mol)
   {
@@ -122,7 +131,7 @@ int Action_RandomizeIons::setup() {
                   currentParm->c_str());
         mprinterr("       First solvent mol = %i atoms, this solvent mol = %i atoms.\n",
                   NsolventAtoms, (*Mol).NumAtoms());
-        return 1;
+        return Action::ERR;
       }
       solventStart_.push_back( (*Mol).BeginAtom() );
       solventEnd_.push_back( (*Mol).EndAtom() );
@@ -130,13 +139,13 @@ int Action_RandomizeIons::setup() {
   }
   SetupImaging( currentParm->BoxType() );
   // Allocate solvent molecule mask
-  solvent_.resize( currentParm->Nsolvent() );
+  solvent_.resize( n_solvent_ );
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_RandomizeIons::action()
-int Action_RandomizeIons::action() {
+Action::RetType Action_RandomizeIons::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double ucell[9], recip[9], trans[3];
   Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
 
@@ -181,7 +190,7 @@ int Action_RandomizeIons::action() {
     }
     //++smolnum; // DEBUG
   }
-  if (debug > 2)
+  if (debug_ > 2)
     mprintf("RANDOMIZEIONS: A total of %i waters (out of %zu) are active\n",
             smoltot, solvent_.size());
 
@@ -222,7 +231,7 @@ int Action_RandomizeIons::action() {
     while (loop > 0 && loop < 10000) {
       // Run the random number generator so that the same number is not produced
       // when the seed was set manually.
-      swapMol = random() % currentParm->Nsolvent();
+      swapMol = random() % n_solvent_;
       if ( solvent_[swapMol] ) 
         loop = -1;
       else 
@@ -234,7 +243,7 @@ int Action_RandomizeIons::action() {
       mprintf("Warning: randomizeions: Tried to swap ion @%i with %i random waters\n",*ion+1,loop);
       mprintf("Warning:                and couldn't meet criteria; skipping.\n");
     } else {
-      if (debug > 2)
+      if (debug_ > 2)
         mprintf("RANDOMIZEIONS: Swapping solvent mol %i for ion @%i\n", swapMol+1, *ion+1);
       const double* ionXYZ = currentFrame->XYZ( *ion );
       int sbegin = solventStart_[ swapMol ];
@@ -251,5 +260,5 @@ int Action_RandomizeIons::action() {
 
   } // END outer loop over all ions
 
-  return 0;
+  return Action::OK;
 }

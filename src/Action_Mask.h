@@ -9,20 +9,23 @@
 class Action_Mask: public Action {
   public:
     Action_Mask();
-    
-    void print();
-  private:
-    int init();
-    // NOTE: No setup needed for this action. Everything is done in action so 
-    //       that the coords can be passed to the mask parser.
-    int setup() { return 0; }
-    int action();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Mask(); }
+    static void Help();
+
+    void Print();
+  private:
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
     /// Atoms which will be selected each frame
     AtomMask Mask1_;
     /// File to write selected atom info to
     CpptrajFile outfile_;
     /// PDB output file name
     std::string maskpdb_;
+    Topology* CurrentParm_;
+    int debug_;
 };
 #endif  

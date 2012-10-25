@@ -13,10 +13,15 @@ Action_Radgyr::Action_Radgyr() :
   useMass_(false)
 { } 
 
+void Action_Radgyr::Help() {
+  mprintf("radgyr <name> <mask1> [out filename] [mass] [nomax] [tensor]\n");
+  mprintf("\tCalculate radius of gyration of atoms in <mask>\n");
+}
+
 // Action_Radgyr::init()
-/** Expected call: radgyr <name> <mask1> [out filename] [mass] [nomax] [tensor]
-  */
-int Action_Radgyr::init() {
+Action::RetType Action_Radgyr::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get keywords
   std::string rogFile = actionArgs.GetStringKey("out");
   useMass_ = actionArgs.hasKey("mass");
@@ -29,16 +34,16 @@ int Action_Radgyr::init() {
   // Datasets to store radius of gyration and max
   // Also add datasets to data file list
   rog_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RoG");
-  if (rog_==0) return 1;
+  if (rog_==0) return Action::ERR;
   DFL->AddSetToFile(rogFile, rog_);
   if (calcRogmax_) {
     rogmax_ = DSL->AddSetAspect(DataSet::DOUBLE, rog_->Name(), "Max");
-    if (rogmax_ == 0) return 1; 
+    if (rogmax_ == 0) return Action::ERR; 
     DFL->AddSetToFile(rogFile, rogmax_);
   }
   if (calcTensor_) {
     rogtensor_ = DSL->AddSetAspect(DataSet::VECTOR, rog_->Name(), "Tensor");
-    if (rogtensor_ == 0) return 1;
+    if (rogtensor_ == 0) return Action::ERR;
     DFL->AddSetToFile(rogFile, rogtensor_);
   }
 
@@ -51,21 +56,21 @@ int Action_Radgyr::init() {
   if (calcTensor_)
     mprintf("\tRoG tensor will also be calcd.\n");
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Radgyr::setup()
 /** Set radius of gyration up for this parmtop. Get masks etc. */
 // currentParm is set in Action::Setup
-int Action_Radgyr::setup() {
-  if ( currentParm->SetupIntegerMask(Mask1_)) return 1;
+Action::RetType Action_Radgyr::Setup(Topology* currentParm, Topology** parmAddress) {
+  if ( currentParm->SetupIntegerMask(Mask1_)) return Action::ERR;
   mprintf("\t%s (%i atoms).\n",Mask1_.MaskString(),Mask1_.Nselected());
   if (Mask1_.None()) {
     mprintf("Warning: Radgyr::setup: Mask contains 0 atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
-  return 0;  
+  return Action::OK;  
 }
 
 // CalcTensor()
@@ -89,7 +94,7 @@ static inline void CalcTensor(double* tsum, double dx, double dy, double dz, dou
 /** Calc the radius of gyration of atoms in mask. Also record the maximum 
   * distance from center. Use center of mass if useMass is true.
   */
-int Action_Radgyr::action() {
+Action::RetType Action_Radgyr::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double max = 0.0;
   double total_mass = 0.0;
   double maxMass = 1.0;
@@ -107,7 +112,7 @@ int Action_Radgyr::action() {
       double dx = XYZ[0] - mid[0];
       double dy = XYZ[1] - mid[1];
       double dz = XYZ[2] - mid[2];
-      double mass = (*currentParm)[ *atom ].Mass();
+      double mass = currentFrame->Mass( *atom );
       if (calcTensor_) CalcTensor(tsum, dx, dy, dz, mass);
       total_mass += mass;
       double dist2 = ((dx*dx) + (dy*dy) + (dz*dz)) * mass;
@@ -136,7 +141,7 @@ int Action_Radgyr::action() {
 
   if (total_mass == 0.0) {
     mprinterr("Error: radgyr: divide by zero.\n");
-    return 1;
+    return Action::ERR;
   }
   double Rog = sqrt( sumDist2 / total_mass );
   rog_->Add(frameNum, &Rog);
@@ -156,6 +161,6 @@ int Action_Radgyr::action() {
 
   //fprintf(outfile,"%10i %10.4lf %10.4lf\n",frameNum,Rog,max);
   
-  return 0;
+  return Action::OK;
 } 
 

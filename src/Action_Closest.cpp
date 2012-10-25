@@ -21,8 +21,15 @@ Action_Closest::Action_Closest() :
   closestWaters_(0),
   firstAtom_(false),
   newParm_(NULL),
-  NsolventMolecules_(0)
+  NsolventMolecules_(0),
+  debug_(0)
 {} 
+
+void Action_Closest::Help() {
+  mprintf("closest <# to keep> <mask> [noimage] [first/oxygen]\n");
+  mprintf("        [closestout <filename> [outprefix <parmprefix>]\n");
+  mprintf("\tKeep only the closest <# to keep> molecules to atoms in <mask>\n");
+}
 
 // DESTRUCTOR
 Action_Closest::~Action_Closest() {
@@ -31,16 +38,16 @@ Action_Closest::~Action_Closest() {
 }
 
 // Action_Closest::init()
-/** Expected call: closest <# to keep> <mask> [noimage] [first/oxygen] 
-  *                [closestout <filename> [outprefix <parmprefix>]
-  */
-int Action_Closest::init( ) {
+Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   // Get Keywords
   closestWaters_ = actionArgs.getNextInteger(-1);
   if (closestWaters_ < 0) {
     mprinterr("Error: closest: Invalid # solvent molecules to keep (%i).\n",
               closestWaters_);
-    return 1;
+    return Action::ERR;
   }
   if ( actionArgs.hasKey("oxygen") || actionArgs.hasKey("first") )
     firstAtom_=true;
@@ -58,7 +65,7 @@ int Action_Closest::init( ) {
     if (framedata_==NULL || moldata_==NULL || distdata_==NULL || atomdata_==NULL) {
       mprinterr("Error: closest:: Could not setup data sets for output file %s\n",
                 filename);
-      return 1;
+      return Action::ERR;
     }
     // Add sets to datafile in list.
     outFile_ = DFL->Add(filename, framedata_);
@@ -67,7 +74,7 @@ int Action_Closest::init( ) {
     outFile_ = DFL->Add(filename, atomdata_);
     if (outFile_==NULL) {
       mprintf("Error: closest: Could not setup output file %s\n",filename);
-      return 1;
+      return Action::ERR;
     }
   }
 
@@ -75,7 +82,7 @@ int Action_Closest::init( ) {
   ArgList::ConstArg mask1 = actionArgs.getNextMask();
   if (mask1==NULL) {
     mprinterr("Error: closest: No mask specified.\n");
-    return 1;
+    return Action::ERR;
   }
   distanceMask_.SetMaskString(mask1);
 
@@ -90,7 +97,7 @@ int Action_Closest::init( ) {
   if (!prefix_.empty())
     mprintf("\tStripped topology file will be written with prefix %s\n",
             prefix_.c_str());
-  return 0;
+  return Action::OK;
 }
 
 // Action_Closest::setup()
@@ -99,11 +106,11 @@ int Action_Closest::init( ) {
   * vector of MolDist objects, one for every solvent molecule in the original
   * parm file. Atom masks for each solvent molecule will be set up.
   */
-int Action_Closest::setup() {
+Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddress) {
   // If there are no solvent molecules this action is not valid.
   if (currentParm->Nsolvent()==0) {
     mprintf("Warning: closest: Parm %s does not contain solvent.\n",currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
   // If # solvent to keep >= solvent in this parm the action is not valid.
   // TODO: Just use max # waters?
@@ -112,7 +119,7 @@ int Action_Closest::setup() {
             closestWaters_);
     mprintf("                           %s (%i).\n",currentParm->c_str(),
             currentParm->Nsolvent());
-    return 1;
+    return Action::ERR;
   }
   SetupImaging( currentParm->BoxType() ); 
 
@@ -149,7 +156,7 @@ int Action_Closest::setup() {
                   currentParm->c_str());
         mprinterr("       First solvent mol = %i atoms, solvent mol %i = %i atoms.\n",
                   NsolventAtoms, molnum, (*Mol).NumAtoms());
-        return 1;
+        return Action::ERR;
       }
       // NOTE: mol here is the output molecule number which is why it
       //       starts from 1.
@@ -173,11 +180,11 @@ int Action_Closest::setup() {
 
   // Setup distance atom mask
   // NOTE: Should ensure that no solvent atoms are selected!
-  if ( currentParm->SetupIntegerMask(distanceMask_) ) return 1;
+  if ( currentParm->SetupIntegerMask(distanceMask_) ) return Action::ERR;
   if (distanceMask_.None()) {
     mprintf("Warning: closest: Distance mask %s contains no atoms.\n",
             distanceMask_.MaskString());
-    return 1;
+    return Action::ERR;
   }
 
   // Check the total number of solvent atoms to be kept.
@@ -185,7 +192,7 @@ int Action_Closest::setup() {
   mprintf("\tKeeping %i solvent atoms.\n",NsolventAtoms);
   if (NsolventAtoms < 1) {
     mprinterr("Error: closest: # of solvent atoms to be kept is < 1.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Store original # of molecules.
@@ -198,7 +205,7 @@ int Action_Closest::setup() {
   newParm_ = currentParm->modifyStateByMask(stripMask_);
   if (newParm_==NULL) {
     mprinterr("Error: closest: Could not create new parmtop.\n");
-    return 1;
+    return Action::ERR;
   }
   newParm_->Summary();
 
@@ -212,7 +219,7 @@ int Action_Closest::setup() {
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),
             newfilename.c_str());
     ParmFile pfile;
-    pfile.SetDebug( debug );
+    pfile.SetDebug( debug_ );
     if ( pfile.Write(*newParm_, newfilename, ParmFile::AMBERPARM ) ) {
       mprinterr("Error: closest: Could not write out stripped parm file %s\n",
               newParm_->c_str());
@@ -220,16 +227,16 @@ int Action_Closest::setup() {
   }
 
   // Set parm
-  currentParm = newParm_;
+  *parmAddress = newParm_;
 
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Closest::action()
 /** Find the minimum distance between atoms in distanceMask and each 
   * solvent Mask.
   */
-int Action_Closest::action() {
+Action::RetType Action_Closest::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   int solventMol; 
   double Dist, maxD, ucell[9], recip[9];
   AtomMask::const_iterator solute_atom, solvent_atom;
@@ -331,9 +338,9 @@ int Action_Closest::action() {
   //mprintf("DEBUG:\t");
   //stripMask.PrintMaskAtoms("action_stripMask");
   newFrame_.SetFrame(*currentFrame, stripMask_);
-  currentFrame = &newFrame_;
+  *frameAddress = &newFrame_;
 
-  return 0;
+  return Action::OK;
 } 
 
 // Action_Closest::print()
@@ -342,7 +349,7 @@ int Action_Closest::action() {
   * for them here. Also set so that the X column (which is just an index)
   * is not written.
   */
-void Action_Closest::print() {
+void Action_Closest::Print() {
   if (outFile_==NULL) return;
   // Sync up the dataset list here since it is not part of the master 
   // dataset list.

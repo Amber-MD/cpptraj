@@ -23,8 +23,15 @@ Action_Radial::Action_Radial() :
   numFrames_(0),
   numDistances_(0),
   // Default particle density (molecules/Ang^3) for water based on 1.0 g/mL
-  density_(0.033456)
+  density_(0.033456),
+  Dset_(0),
+  debug_(0)
 {} 
+
+void Action_Radial::Help() {
+  mprintf("radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
+  mprintf("       [density <density> | volume] [center1] [<name>]\n");
+}
 
 // DESTRUCTOR
 Action_Radial::~Action_Radial() {
@@ -38,10 +45,10 @@ Action_Radial::~Action_Radial() {
 }
 
 // Action_Radial::init()
-/** Expected call: radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]
-  *                       [density <density> | volume] [center1] 
-  */
-int Action_Radial::init() {
+Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
@@ -50,39 +57,55 @@ int Action_Radial::init() {
   useVolume_ = actionArgs.hasKey("volume");
 
   // Get required args
-  outfilename_ = actionArgs.GetStringNext();
-  if (outfilename_.empty()) {
+  std::string outfilename = actionArgs.GetStringNext();
+  if (outfilename.empty()) {
     mprinterr("Error: Radial: No output filename given.\n");
-    return 1;
+    return Action::ERR;
   }
   spacing_ = actionArgs.getNextDouble(-1.0);
   if (spacing_ < 0) {
     mprinterr("Error: Radial: No spacing argument or arg < 0.\n");
-    return 1;
+    return Action::ERR;
   }
   double maximum = actionArgs.getNextDouble(-1.0);
   if (maximum < 0) {
     mprinterr("Error: Radial: No maximum argument or arg < 0.\n");
-    return 1;
+    return Action::ERR;
   }
   // Store max^2, distances^2 greater than max^2 do not need to be
   // binned and therefore do not need a sqrt calc.
   maximum2_ = maximum * maximum;
 
   // Get First Mask
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
-  if (mask1==NULL) {
+  std::string mask1 = actionArgs.GetMaskNext();
+  if (mask1.empty()) {
     mprinterr("Error: Radial: No mask given.\n");
-    return 1;
+    return Action::ERR;
   }
   Mask1_.SetMaskString(mask1);
 
   // Check for second mask - if none specified use first mask
-  ArgList::ConstArg mask2 = actionArgs.getNextMask();
-  if (mask2!=NULL) 
+  std::string mask2 = actionArgs.GetMaskNext();
+  if (!mask2.empty()) 
     Mask2_.SetMaskString(mask2);
   else
     Mask2_.SetMaskString(mask1);
+
+  // Set up output dataset. 
+  Dset_ = DSL->AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
+  DataFile* outfile = DFL->AddSetToFile(outfilename, Dset_);
+  if (outfile==NULL) {
+    mprinterr("Error: Radial: Could not setup output file %s\n",outfilename.c_str());
+    return Action::ERR;
+  }
+  // Make default precision a little higher than normal
+  Dset_->SetPrecision(12,6);
+  // Setup output datafile.
+  outfile->ProcessArgs("xmin 0.0 xstep " + doubleToString(spacing_));
+  // Create label from mask strings. Enclose in quotes so the label is 1 arg.
+  outfile->ProcessArgs("xlabel \"[" + Mask1_.MaskExpression() + "] => [" + 
+                                      Mask2_.MaskExpression() + "]\"" );
+  outfile->ProcessArgs("ylabel g(r)");
 
   // Set up histogram
   one_over_spacing_ = 1 / spacing_;
@@ -108,9 +131,9 @@ int Action_Radial::init() {
 # endif
   
   mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1_.MaskString());
-  if (mask2!=NULL) 
+  if (!mask2.empty()) 
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
-  mprintf("\n            Output to %s.\n",outfilename_.c_str());
+  mprintf("\n            Output to %s.\n",outfilename.c_str());
   if (center1_)
     mprintf("            Using center of atoms in mask1.\n");
   //mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",rdf.Max(0),
@@ -126,24 +149,24 @@ int Action_Radial::init() {
   if (numthreads_ > 1)
     mprintf("            Parallelizing RDF calculation with %i threads.\n",numthreads_);
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Radial::setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Also determine whether imaging should be performed.
   */
-int Action_Radial::setup() {
+Action::RetType Action_Radial::Setup(Topology* currentParm, Topology** parmAddress) {
 
-  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
   if (Mask1_.None()) {
     mprintf("    Error: Radial::setup: Masks has no atoms.\n");
-    return 1;
+    return Action::ERR;
   }
-  if (currentParm->SetupIntegerMask( Mask2_ ) ) return 1;
+  if (currentParm->SetupIntegerMask( Mask2_ ) ) return Action::ERR;
   if (Mask2_.None()) {
     mprintf("    Error: Radial::setup: Second mask has no atoms.\n");
-    return 1;
+    return Action::ERR;
   }
   SetupImaging( currentParm->BoxType() );
 
@@ -163,7 +186,7 @@ int Action_Radial::setup() {
   if (useVolume_ && currentParm->BoxType()==Box::NOBOX) {
     mprintf("    Warning: Radial: 'volume' specified but no box information for %s, skipping.\n",
             currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
 
   // Print mask and imaging info for this parm
@@ -174,7 +197,7 @@ int Action_Radial::setup() {
   else
     mprintf("Imaging off.\n");
         
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Radial::action()
@@ -182,7 +205,7 @@ int Action_Radial::setup() {
   * bin them.
   */
 // NOTE: Because of maximum2 not essential to check idx>numBins?
-int Action_Radial::action() {
+Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double D, ucell[9], recip[9], coord_center[3];
   int atom1, atom2;
   int nmask1, nmask2;
@@ -273,7 +296,7 @@ int Action_Radial::action() {
   numDistances_ += mydistances;
   ++numFrames_;
 
-  return 0;
+  return Action::OK;
 } 
 
 // Action_Radial::print()
@@ -282,9 +305,7 @@ int Action_Radial::action() {
 // NOTE: Currently the normalization is based on number of atoms in each mask;
 //       if multiple prmtops are loaded and number of atoms changes from 
 //       prmtop to prmtop this will throw off normalization.
-void Action_Radial::print() {
-  DataFile *outfile;
-  DataSet *Dset;
+void Action_Radial::Print() {
   double N, R, Rdr, dv, norm;
  
   if (numFrames_==0) return;
@@ -294,16 +315,6 @@ void Action_Radial::print() {
     for (int bin = 0; bin < numBins_; bin++) 
       RDF_[bin] += rdf_thread_[thread][bin];
 #  endif
-
-  // Set up output dataset. 
-  Dset = DSL->Add( DataSet::DOUBLE, NULL, "g(r)");
-  outfile = DFL->AddSetToFile(outfilename_, Dset);
-  if (outfile==NULL) {
-    mprinterr("Error: Radial: Could not setup output file %s\n",outfilename_.c_str());
-    return;
-  }
-  // Make default precision a little higher than normal
-  Dset->SetPrecision(12,6);
 
   mprintf("    RADIAL: %i frames, %i distances.\n",numFrames_,numDistances_);
 
@@ -342,20 +353,14 @@ void Action_Radial::print() {
     dv = FOURTHIRDSPI * ( (Rdr * Rdr * Rdr) - (R * R * R) );
     // Expected # distances in this volume slice
     norm = dv * density_;
-    if (debug>0)
+    if (debug_>0)
       mprintf("    \tBin %lf->%lf <Pop>=%lf, V=%lf, D=%lf, norm %lf distances.\n",
               R,Rdr,N/numFrames_,dv,density_,norm);
     // Divide by # frames
     norm *= numFrames_;
     N /= norm;
 
-    Dset->Add(bin,&N);
+    Dset_->Add(bin,&N);
   }
-  // Setup output datafile.
-  outfile->ProcessArgs("xmin 0.0 xstep " + doubleToString(spacing_));
-  // Create label from mask strings. Enclose in quotes so the label is 1 arg.
-  outfile->ProcessArgs("xlabel \"[" + Mask1_.MaskExpression() + "] => [" + 
-                                      Mask2_.MaskExpression() + "]\"" );
-  outfile->ProcessArgs("ylabel g(r)");
 }
 

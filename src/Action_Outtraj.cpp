@@ -4,39 +4,44 @@
 
 // CONSTRUCTOR
 Action_Outtraj::Action_Outtraj() :
-  maxmin_(0)
+  maxmin_(0),
+  CurrentParm_(0)
 { } 
 
+void Action_Outtraj::Help() {
+  mprintf("outtraj <filename> [ trajout args ]\n");
+  mprintf("        [maxmin <dataset> min <min> max <max>] ...\n");
+  mprintf("        maxmindata <file>\n");
+}
+
 // Action_Outtraj::init()
-/** Expected call: outtraj <filename> [ trajout args ]
-  *                        [maxmin <dataset> min <min> max <max>] ...
-  *                        maxmindata <file>
-  */
-int Action_Outtraj::init() {
+Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
 #ifdef MPI
   mprintf("ERROR: OUTTRAJ currently not functional with MPI.\n");
   return 1;
 #endif
 
-  outtraj_.SetDebug(debug);
+  outtraj_.SetDebug(debugIn);
   Topology* tempParm = PFL->GetParm(actionArgs);
   if (tempParm==NULL) {
     mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",actionArgs.ArgAt(1));
-    return 1;
+    return Action::ERR;
   }
   if ( outtraj_.SetupTrajWrite(actionArgs.GetStringNext(), &actionArgs, 
                                tempParm, TrajectoryFile::UNKNOWN_TRAJ) ) 
-    return 1;
+    return Action::ERR;
   mprintf("    OUTTRAJ:");
   outtraj_.PrintInfo(1);
   // If maxmin, get the name of the dataset as well as the max and min values.
   while ( actionArgs.Contains("maxmin") ) {
-    ArgList::ConstArg datasetName = actionArgs.getKeyString("maxmin");
-    if (datasetName!=NULL) {
-      DataSet* dset = DSL->Get(datasetName);
-      if (dset==NULL) {
-        mprintf("Error: Outtraj maxmin: Could not get dataset %s\n",datasetName);
-        return 1;
+    std::string datasetName = actionArgs.GetStringKey("maxmin");
+    if (!datasetName.empty()) {
+      DataSet* dset = DSL->GetDataSet(datasetName);
+      if (dset==0) {
+        mprintf("Error: Outtraj maxmin: Could not get dataset %s\n",datasetName.c_str());
+        return Action::ERR;
       } else {
         // Currently only allow int, float, or double datasets
         if (dset->Type() != DataSet::INT &&
@@ -44,38 +49,42 @@ int Action_Outtraj::init() {
             dset->Type() != DataSet::DOUBLE) 
         {
           mprinterr("Error: Outtraj maxmin: Only int, float, or double dataset (%s) supported.\n",
-                  datasetName);
-          return 1;
+                  datasetName.c_str());
+          return Action::ERR;
         }
         Dsets_.push_back( dset );
         Max_.push_back( actionArgs.getKeyDouble("max",0.0) );
         Min_.push_back( actionArgs.getKeyDouble("min",0.0) );
         mprintf("             maxmin: Printing trajectory frames based on %f <= %s <= %f\n",
-                Min_.back(), datasetName, Max_.back());
+                Min_.back(), datasetName.c_str(), Max_.back());
       }
     } else {
       mprinterr("Error: outtraj: maxmin Usage: maxmin <setname> <max> <min>\n");
-      return 1;
+      return Action::ERR;
     }
   }
   if (!Dsets_.empty()) {
     std::string maxmindata = actionArgs.GetStringKey("maxmindata");
     if (!maxmindata.empty()) {
       maxmin_ = DSL->AddSet( DataSet::INT, actionArgs.GetStringNext(), "maxmin" );
-      if (maxmin_ == 0) return 1;
+      if (maxmin_ == 0) return Action::ERR;
       DFL->AddSetToFile( maxmindata, maxmin_ );
       mprintf("\tMaxMin frame info will be written to %s\n", maxmindata.c_str());
     }
   }
-  
-  return 0;
+  return Action::OK;
 } 
+
+Action::RetType Action_Outtraj::Setup(Topology* currentParm, Topology** parmAddress) {
+  CurrentParm_ = currentParm; 
+  return Action::OK;
+}
 
 // Action_Outtraj::action()
 /** If a dataset was specified for maxmin, check if this structure
   * satisfies the criteria; if so, write. Otherwise just write.
   */
-int Action_Outtraj::action() {
+Action::RetType Action_Outtraj::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   static int ONE = 1;
   // If dataset defined, check if frame is within max/min
   if (!Dsets_.empty()) {
@@ -84,21 +93,22 @@ int Action_Outtraj::action() {
       double dVal = Dsets_[ds]->Dval(frameNum);
       //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
       // If value from dataset not within min/max, exit now.
-      if (dVal < Min_[ds] || dVal > Max_[ds]) return 0;
+      if (dVal < Min_[ds] || dVal > Max_[ds]) return Action::OK;
     }
     if (maxmin_ != 0)
       maxmin_->Add( frameNum, &ONE );
   }
-  if ( outtraj_.WriteFrame(frameNum, currentParm, *currentFrame) != 0 ) 
-    return 1;
-  return 0;
+  if ( outtraj_.WriteFrame(frameNum, CurrentParm_, *currentFrame) != 0 ) 
+    return Action::ERR;
+  return Action::OK;
 } 
 
 // Action_Outtraj::print()
 /** Close trajectory. Indicate how many frames were actually written.
   */
-void Action_Outtraj::print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",actionArgs.ArgAt(1),outtraj_.NumFramesProcessed());
+void Action_Outtraj::Print() {
+  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.BaseTrajStr(),
+          outtraj_.NumFramesProcessed());
   outtraj_.EndTraj();
 }
 

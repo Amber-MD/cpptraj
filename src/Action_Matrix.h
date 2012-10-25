@@ -7,13 +7,18 @@
 class Action_Matrix : public Action {
   public:
     Action_Matrix();
-    void print();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Matrix(); }
+    static void Help();
+
+    void Print();
   private:
     enum OutputType { BYATOM=0, BYRESIDUE, BYMASK };
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     DataSet_Matrix* Mat_;
     DataFile* outfile_;
@@ -36,15 +41,16 @@ class Action_Matrix : public Action {
     
     bool useMask2_;
     bool useMass_;
+    Topology* CurrentParm_; // For ByResidue output
 
-    void FillMassArray(std::vector<double>&, AtomMask&);
+    void FillMassArray(Topology*, std::vector<double>&, AtomMask&);
     void CalcIredMatrix();
-    void CalcDistanceMatrix();
+    void CalcDistanceMatrix(Frame*);
     void StoreVec(DataSet_Matrix::iterator&,DataSet_Matrix::iterator&,const double*);
-    void CalcCovarianceMatrix();
-    void CalcIdeaMatrix();
-    void CalcCorrelationMatrix();
-    void CalcDistanceCovarianceMatrix();
+    void CalcCovarianceMatrix(Frame*);
+    void CalcIdeaMatrix(Frame*);
+    void CalcCorrelationMatrix(Frame*);
+    void CalcDistanceCovarianceMatrix(Frame*);
 
     void FinishCovariance();
     void FinishCorrelation();

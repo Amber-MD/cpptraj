@@ -4,11 +4,16 @@
 class Action_Unwrap : public Action {
   public:
     Action_Unwrap();
-    void print() {}
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Unwrap(); }
+    static void Help();
+
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     AtomMask mask_;
     Frame RefFrame_;

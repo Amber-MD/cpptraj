@@ -19,12 +19,17 @@
 class Action_Jcoupling: public Action {
   public:
     Action_Jcoupling();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Jcoupling(); }
+    static void Help();
+
     ~Action_Jcoupling();
-    void print() {}
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     /// Load Karplus parameters from a file
     int loadKarplus(std::string);
@@ -53,7 +58,9 @@ class Action_Jcoupling: public Action {
     std::vector<jcouplingInfo> JcouplingInfo_;
 
     AtomMask Mask1_;
+    int debug_;
     int Nconstants_;
+    Topology* CurrentParm_;
     CpptrajFile outputfile_;
 };
 #endif  

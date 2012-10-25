@@ -7,13 +7,18 @@
 class Action_Closest: public Action, ImagedAction {
   public:
     Action_Closest();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Closest(); }
+    static void Help();
+
     ~Action_Closest();
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     DataSetList outList_; // TODO: Put in master DSL
     DataFile *outFile_;
@@ -30,6 +35,7 @@ class Action_Closest: public Action, ImagedAction {
     AtomMask distanceMask_; ///< Mask of atoms to calculate distance from solvent to.
     Topology *newParm_;     ///< New topology with solute and kept waters.
     int NsolventMolecules_; ///< # of solvent molecules in original topology.
+    int debug_;
     Frame newFrame_;        ///< New frame with solute and kept waters.
     /// Hold atom #s of kept solvent in new frame.
     std::vector<int> keptWaterAtomNum_;

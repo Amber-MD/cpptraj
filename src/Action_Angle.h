@@ -6,11 +6,16 @@
 class Action_Angle: public Action {
   public:
     Action_Angle();
-    void print() {}
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Angle(); }
+    static void Help();
+
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     DataSet *ang_;
     bool useMass_;

@@ -7,16 +7,22 @@
 class Action_Outtraj: public Action {
   public:
     Action_Outtraj();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Outtraj(); }
+    static void Help();
+
   private:
-    int init();
-    int setup() { return 0; }
-    int action();
-    void print();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
     Trajout outtraj_;
     std::vector<double> Max_;
     std::vector<double> Min_;
     std::vector<DataSet*> Dsets_;
     DataSet* maxmin_;
+    Topology* CurrentParm_;
 };
 #endif

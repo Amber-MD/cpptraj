@@ -220,24 +220,26 @@ const char *ArgList::ArgAt(int pos) {
   return arglist[pos].c_str();
 }
 
+void ArgList::RemoveFirstArg() {
+  if (arglist.empty()) return;
+  arglist.erase( arglist.begin() );
+  marked.erase( marked.begin() );
+}
+
 // ArgList::Command()
-/** Return the first argument and mark it, even if already marked.
- * \return pointer to the first argument
+/* \return pointer to the first argument
  */
-const char *ArgList::Command() {
+const char *ArgList::Command() const {
   if (arglist.empty()) return NULL;
-  marked[0]=true;
   return arglist[0].c_str();
 }
 
 // ArgList::CommandIs()
-/** Check if key matches the first argument. Mark command no matter what.
-  * \param key Key to check first argument against
+/** \param key Key to check first argument against
   * \return true if first argument matches key
   */
-bool ArgList::CommandIs(const char *key) {
+bool ArgList::CommandIs(const char *key) const {
   if (arglist.empty()) return false;
-  marked[0]=true;
   if (arglist[0].compare( key )==0) return true;
   return false;
 }

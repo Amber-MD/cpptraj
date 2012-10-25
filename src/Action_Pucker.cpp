@@ -15,11 +15,17 @@ Action_Pucker::Action_Pucker() :
   puckermax_( 180.0)
 { } 
 
+void Action_Pucker::Help() {
+
+}
+
 // Action_Pucker::init()
 /** Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>
   *                [range360] [amplitude] [altona | cremer] [offset <offset>]
   */
-int Action_Pucker::init() {
+Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get keywords
   ArgList::ConstArg puckerFile = actionArgs.getKeyString("out");
   if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
@@ -42,7 +48,7 @@ int Action_Pucker::init() {
   ArgList::ConstArg mask5 = actionArgs.getNextMask();
   if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL || mask5==NULL) {
     mprinterr("Error: pucker: Requires 5 masks\n");
-    return 1;
+    return Action::ERR;
   }
   M1_.SetMaskString(mask1);
   M2_.SetMaskString(mask2);
@@ -52,7 +58,7 @@ int Action_Pucker::init() {
 
   // Setup dataset
   puck_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Pucker");
-  if (puck_==NULL) return 1;
+  if (puck_==NULL) return Action::ERR;
   puck_->SetScalar( DataSet::M_PUCKER, stype );
   // Add dataset to datafile list
   DFL->Add(puckerFile, puck_);
@@ -72,16 +78,16 @@ int Action_Pucker::init() {
     mprintf("            Offset: %lf will be added to values.\n");
   mprintf  ("            Values will range from %.1lf to %.1lf\n",puckermin_,puckermax_);
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Pucker::setup
-int Action_Pucker::setup() {
-  if ( currentParm->SetupIntegerMask( M1_ ) ) return 1;
-  if ( currentParm->SetupIntegerMask( M2_ ) ) return 1;
-  if ( currentParm->SetupIntegerMask( M3_ ) ) return 1;
-  if ( currentParm->SetupIntegerMask( M4_ ) ) return 1;
-  if ( currentParm->SetupIntegerMask( M5_ ) ) return 1;
+Action::RetType Action_Pucker::Setup(Topology* currentParm, Topology** parmAddress) {
+  if ( currentParm->SetupIntegerMask( M1_ ) ) return Action::ERR;
+  if ( currentParm->SetupIntegerMask( M2_ ) ) return Action::ERR;
+  if ( currentParm->SetupIntegerMask( M3_ ) ) return Action::ERR;
+  if ( currentParm->SetupIntegerMask( M4_ ) ) return Action::ERR;
+  if ( currentParm->SetupIntegerMask( M5_ ) ) return Action::ERR;
   M1_.MaskInfo();
   M2_.MaskInfo();
   M3_.MaskInfo();
@@ -90,14 +96,14 @@ int Action_Pucker::setup() {
 
   if ( M1_.None() || M2_.None() || M3_.None() || M4_.None() || M5_.None() ) {
     mprintf("Warning: pucker: One or more masks have no atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Pucker::action()
-int Action_Pucker::action() {
+Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Vec3 a1, a2, a3, a4, a5;
   double pval, amp;
 
@@ -139,6 +145,6 @@ int Action_Pucker::action() {
 
   //fprintf(outfile,"%10i %10.4lf\n",frameNum,pval);
   
-  return 0;
+  return Action::OK;
 } 
 

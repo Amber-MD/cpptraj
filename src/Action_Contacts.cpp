@@ -7,8 +7,15 @@
 Action_Contacts::Action_Contacts() :
   byResidue_(false),
   distance_(49.0), // 7.0^2
-  first_(false)
+  first_(false),
+  CurrentParm_(0)
 { }
+
+void Action_Contacts::Help() {
+  mprintf("contacts [ first | reference | ref <ref> | refindex <#> ] [byresidue]\n");
+  mprintf("         [out <filename>] [time <interval>] [distance <cutoff>] [<mask>]\n");
+  mprintf("\tbyresidue: calculate number of contacts for every specified atom and save result per residue\n");
+}
 
 // DESTRUCTOR
 Action_Contacts::~Action_Contacts() {
@@ -45,16 +52,10 @@ int Action_Contacts::SetupContacts(Frame* refframe, Topology* refparm) {
   return 0;
 }
 
-/** USAGE:
-  *
-  *  contacts [ first | reference | ref <ref> | refindex <#> ] [byresidue]
-  *      [out <filename>] [time <interval>] [distance <cutoff>] [<mask>]
-  *
-  *  action argument usage:
-  *
-  *  byresidue: calculate number of contacts for every specified atom and save result per residue
-  */
-int Action_Contacts::init() {
+// Action_Contacts::Init()
+Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
 
   byResidue_ = actionArgs.hasKey("byresidue");
   double dist = actionArgs.getKeyDouble("distance", 7.0);
@@ -66,21 +67,21 @@ int Action_Contacts::init() {
   // For compatibility with ptraj, keyword 'reference' == 'refindex 0'
   if (actionArgs.hasKey("reference")) refindex = 0;
   ArgList::ConstArg outfilename = actionArgs.getKeyString("out"); 
-  if (outfile_.SetupWrite(outfilename, debug))
-    return 1;
+  if (outfile_.SetupWrite(outfilename, debugIn))
+    return Action::ERR;
   if (outfile_.OpenFile())
-    return 1;
+    return Action::ERR;
   if (byResidue_) {
     if (outfilename==NULL) {
       mprinterr("Error: Contacts 'byresidue' requires output filename.\n");
-      return 1;
+      return Action::ERR;
     }
     std::string file2name( outfilename );
     file2name += ".native";
-    if (outfile2_.SetupWrite( file2name, debug ))
-      return 1;
+    if (outfile2_.SetupWrite( file2name, debugIn ))
+      return Action::ERR;
     if (outfile2_.OpenFile())
-      return 1;
+      return Action::ERR;
   }
 
   // Get Mask
@@ -109,16 +110,16 @@ int Action_Contacts::init() {
     Frame* RefFrame = FL->GetFrame(refindex);
     if (RefFrame == 0) {
       mprinterr("Error: Could not get reference index %i\n",refindex);
-      return 1;
+      return Action::ERR;
     }
     // Get reference parm for frame
     Topology* RefParm = FL->GetFrameParm(refindex);
     if (RefParm==0) {
       mprinterr("Error: Could not get parm for frame %s\n", FL->FrameName(refindex));
-      return 1;
+      return Action::ERR;
     }
     // Set up atom mask for reference frame
-    if (RefParm->SetupIntegerMask(Mask_, *RefFrame)) return 1;
+    if (RefParm->SetupIntegerMask(Mask_, *RefFrame)) return Action::ERR;
     // Set up reference contacts 
     SetupContacts(RefFrame, RefParm);
   }
@@ -146,14 +147,14 @@ int Action_Contacts::init() {
   if (byResidue_)
     mprintf("              Results are output on a per-residue basis.\n");
 
-  return 0;
+  return Action::OK;
 }
 
-int Action_Contacts::setup() {
+Action::RetType Action_Contacts::Setup(Topology* currentParm, Topology** parmAddress) {
   //if (first_) 
   //  RefParm_ = currentParm;
   // Set up atom mask 
-  if (currentParm->SetupIntegerMask(Mask_)) return 1;
+  if (currentParm->SetupIntegerMask(Mask_)) return Action::ERR;
 
   // Determine which residues are active based on the mask
   activeResidues_.clear();
@@ -181,21 +182,21 @@ int Action_Contacts::setup() {
   // Reserve space for residue contact counts
   residueContacts_.reserve( currentParm->Nres() );
   residueNative_.reserve( currentParm->Nres() );
-
-
-  return 0;
+  
+  CurrentParm_ = currentParm;
+  return Action::OK;
 }
 
-int Action_Contacts::action() {
+Action::RetType Action_Contacts::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   if (first_) {
-    SetupContacts( currentFrame, currentParm );
+    SetupContacts( currentFrame, CurrentParm_ );
     first_ = false;
   }
 
   // Determine how many contacts and how many native contacts are present.
   //contactListType::iterator native = nativecontacts_.begin();
-  residueContacts_.assign( currentParm->Nres(), 0 );
-  residueNative_.assign( currentParm->Nres(), 0 );
+  residueContacts_.assign( CurrentParm_->Nres(), 0 );
+  residueNative_.assign( CurrentParm_->Nres(), 0 );
 
   // Determine which pairs of atoms satisfy cutoff
   int numcontacts = 0;
@@ -204,7 +205,7 @@ int Action_Contacts::action() {
   for (AtomMask::const_iterator atom1 = Mask_.begin();
                                 atom1 != atom1end; ++atom1)
   {
-    int res1 = (*currentParm)[*atom1].ResNum();
+    int res1 = (*CurrentParm_)[*atom1].ResNum();
     for (AtomMask::const_iterator atom2 = atom1 + 1;
                                   atom2 != Mask_.end(); ++atom2)
     {
@@ -212,7 +213,7 @@ int Action_Contacts::action() {
       // Contact?
       if (d2 < distance_) {
         ++numcontacts;
-        int res2 = (*currentParm)[*atom2].ResNum();
+        int res2 = (*CurrentParm_)[*atom2].ResNum();
         mprintf("CONTACT: %i res %i to %i res %i [%i]",*atom1,res1,*atom2,res2,numcontacts);
         ++residueContacts_[res1];
         ++residueContacts_[res2];
@@ -263,6 +264,6 @@ int Action_Contacts::action() {
     outfile2_.Printf("\t%i\n", numnative*2);
   }
 
-  return 0;
+  return Action::OK;
 }
      

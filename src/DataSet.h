@@ -89,7 +89,7 @@ class DataSet {
     /// Set output precision
     void SetPrecision(int,int);
     /// Set up DataSet with given name and size
-    int SetupSet(std::string const&,int,int,std::string const&);
+    int SetupSet(std::string const&,int,std::string const&);
     /// Print DataSet information
     void Info();
     /// True if set is empty. 

@@ -6,7 +6,11 @@ class Action_Grid : public Action {
   public:
     Action_Grid();
 
-    void print();
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Grid(); }
+    static void Help();
+
+
+    void Print();
   private:
     double max_;
     double madura_;
@@ -17,8 +21,9 @@ class Action_Grid : public Action {
     std::string pdbname_;
     Grid grid_;
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 };
 #endif

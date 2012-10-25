@@ -1,4 +1,5 @@
 // Range
+#include <algorithm> // find
 #include "Range.h"
 #include "ArgList.h"
 #include "CpptrajStdio.h"
@@ -166,4 +167,7 @@ void Range::PrintRange(const char* header, int offset) {
     mprintf(" %i",(*it)+offset);
   //mprintf("\n");
 }
- 
+
+bool Range::InRange(int idx) {
+  return ( std::find( rangeList_.begin(), rangeList_.end(), idx ) != rangeList_.end() );
+}

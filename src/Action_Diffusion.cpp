@@ -6,21 +6,28 @@
 Action_Diffusion::Action_Diffusion() :
   printIndividual_(false),
   time_(1),
-  hasBox_(false)
+  hasBox_(false),
+  debug_(0)
 {
   boxcenter_[0] = 0;
   boxcenter_[1] = 0;
   boxcenter_[2] = 0;
 }
 
-/** diffusion mask [average] [time <time per frame>] */
-int Action_Diffusion::init() {
+void Action_Diffusion::Help() {
+  mprintf("diffusion mask [average] [time <time per frame>]\n");
+}
+
+Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   printIndividual_ = !(actionArgs.hasKey("average"));
   mask_.SetMaskString( actionArgs.getNextMask() );
   time_ = actionArgs.getNextDouble(1.0);
   if (time_ < 0) {
     mprinterr("Error: diffusion: time per frame incorrectly specified\n");
-    return 1;
+    return Action::ERR;
   }
   std::string outputNameRoot = actionArgs.GetStringNext();
   // Default filename: 'diffusion'
@@ -29,15 +36,15 @@ int Action_Diffusion::init() {
   
   // Open output files
   std::string fname = outputNameRoot + "_x.xmgr";
-  if (outputx_.OpenWrite( fname )) return 1;
+  if (outputx_.OpenWrite( fname )) return Action::ERR;
   fname = outputNameRoot + "_y.xmgr";
-  if (outputy_.OpenWrite( fname )) return 1;
+  if (outputy_.OpenWrite( fname )) return Action::ERR;
   fname = outputNameRoot + "_z.xmgr";
-  if (outputz_.OpenWrite( fname )) return 1;
+  if (outputz_.OpenWrite( fname )) return Action::ERR;
   fname = outputNameRoot + "_r.xmgr";
-  if (outputr_.OpenWrite( fname )) return 1;
+  if (outputr_.OpenWrite( fname )) return Action::ERR;
   fname = outputNameRoot + "_a.xmgr";
-  if (outputa_.OpenWrite( fname )) return 1;
+  if (outputa_.OpenWrite( fname )) return Action::ERR;
 
   mprintf("    DIFFUSION:\n");
   if (printIndividual_)
@@ -50,15 +57,15 @@ int Action_Diffusion::init() {
   mprintf("\tand multiply by 10.0/6.0; this will give units of 1x10**-5 cm**2/s\n");
   mprintf("\tAtom Mask is [%s]\n", mask_.MaskString());
 
-  return 0;
+  return Action::OK;
 }
 
-int Action_Diffusion::setup() {
+Action::RetType Action_Diffusion::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup atom mask
-  if (currentParm->SetupIntegerMask( mask_ )) return 1;
+  if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
   if (mask_.None()) {
     mprinterr("Error: diffusion: No atoms selected.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Check for box
@@ -100,10 +107,10 @@ int Action_Diffusion::setup() {
     mprintf("Warning: This may lead to segmentation faults.\n");
   }
 
-  return 0;
+  return Action::OK;
 }
 
-int Action_Diffusion::action() {
+Action::RetType Action_Diffusion::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Load initial frame if necessary
   if (initial_.empty()) {
     initial_ = *currentFrame;
@@ -159,7 +166,7 @@ int Action_Diffusion::action() {
         else if (delz < -boxcenter_[2]) *dz += currentFrame->BoxZ();
       }
       // DEBUG
-      if (debug > 2)
+      if (debug_ > 2)
         mprintf("ATOM: %5i %10.3f %10.3f %10.3f",*atom,XYZ[0],delx,*dx);
       // Set the current x with reference to the un-imaged trajectory.
       double xx = XYZ[0] + *dx; 
@@ -171,7 +178,7 @@ int Action_Diffusion::action() {
       dely = yy - iXYZ[1];
       delz = zz - iXYZ[2];
       // DEBUG
-      if (debug > 2)
+      if (debug_ > 2)
         mprintf(" %10.3f\n", delx);
       // Store distance for this atom
       *distx = delx*delx;
@@ -231,5 +238,5 @@ int Action_Diffusion::action() {
     outputa_.Printf("\n");
   }
 
-  return 0;
+  return Action::OK;
 }  

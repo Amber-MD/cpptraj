@@ -10,11 +10,16 @@ class Action_Clustering: public Action {
   public:
     Action_Clustering();
 
-    void print();
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Clustering(); }
+    static void Help();
+
+
+    void Print();
   private:
-    int init();
-    int setup() { return 0; }
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     FrameList ReferenceFrames_; ///< Hold frames from all trajin stmts
     AtomMask Mask0_;            ///< Atoms to cluster on
@@ -41,6 +46,8 @@ class Action_Clustering: public Action {
     TrajectoryFile::TrajFormatType singlerepfmt_;
     /// Cluster rep to separate trajectory format.
     TrajectoryFile::TrajFormatType reptrajfmt_;
+    Topology* CurrentParm_;
+    int debug_;
     static const char PAIRDISTFILE[]; // TODO: Make this a user option
 
     int calcDistFromRmsd( TriangleMatrix &);

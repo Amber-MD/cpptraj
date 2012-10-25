@@ -7,8 +7,11 @@ class Analysis_Corr : public Analysis {
   public:
     Analysis_Corr();
 
-    int Setup(DataSetList*);
-    int Analyze();
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Corr(); }
+    static void Help();
+
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
     void Print(DataFileList*);
   private:
     DataSet *D1_;

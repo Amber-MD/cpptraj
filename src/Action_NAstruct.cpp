@@ -12,13 +12,22 @@ Action_NAstruct::Action_NAstruct() :
   // NOTE: Is this too big?
   originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
   maxResSize_(0),
+  debug_(0),
   printheader_(true),
-  useReference_(false)
+  useReference_(false),
+  masterDSL_(0)
 # ifdef NASTRUCTDEBUG
   ,calcparam(true)
 # endif
 { 
   //fprintf(stderr,"NAstruct Con\n");
+}
+
+void Action_NAstruct::Help() {
+  mprintf("nastruct [resrange <range>] [naout <nafilename>]\n");
+  mprintf("         [noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n");
+  mprintf("         [hbcut <hbcut>] [origincut <origincut>]\n");
+  mprintf("         [ reference | refindex <#> | ref <REF> ]\n");
 }
 
 // DESTRUCTOR
@@ -113,7 +122,7 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
     Vec[1]=(TransVec[0]*RotMatrix[3]+TransVec[1]*RotMatrix[4]+TransVec[2]*RotMatrix[5])+TransVec[4];
     Vec[2]=(TransVec[0]*RotMatrix[6]+TransVec[1]*RotMatrix[7]+TransVec[2]*RotMatrix[8])+TransVec[5];
     BaseAxes[base].StoreRotMatrix( RotMatrix, Vec );
-    if (debug>0) { 
+    if (debug_>0) { 
       mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
       //printMatrix_3x3("Rotation matrix:",RotMatrix);
       //printRotTransInfo(RotMatrix,TransVec);
@@ -302,11 +311,11 @@ int Action_NAstruct::determineBasePairing() {
   } // END Loop over base1
 
   unsigned int Nbp = BasePair.size() / 3;
-  if (debug>0) mprintf("    NAstruct: Set up %i base pairs.\n",Nbp);
+  if (debug_>0) mprintf("    NAstruct: Set up %i base pairs.\n",Nbp);
   // Resize BasePairAxes
   BasePairAxes.resize( Nbp );
   // Print Base Pair info
-  if (debug>1) {
+  if (debug_>1) {
     base2=1; //  Base pair #
     for (base1 = 0; base1 < (int)BasePair.size(); base1+= 3) {
       int bp_1 = BasePair[base1  ];
@@ -333,15 +342,15 @@ int Action_NAstruct::determineBasePairing() {
                              integerToString( BaseAxes[bp_2].ResNum()+1 ) + 
                              BaseAxes[bp_2].ResName();
         // Create sets
-        SHEAR_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"shear",bpname) );
-        STRETCH_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"stretch",bpname));
-        STAGGER_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"stagger",bpname));
-        BUCKLE_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"buckle",bpname) );
-        PROPELLER_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"prop",bpname) );
-        OPENING_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"open",bpname) );
-        BPHBONDS_.push_back( DSL->AddSetIdxAspect(DataSet::INT,dataname_,base2,"hb",bpname) );
-        MAJOR_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"major",bpname) );
-        MINOR_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"minor",bpname) );
+        SHEAR_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"shear",bpname) );
+        STRETCH_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"stretch",bpname));
+        STAGGER_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"stagger",bpname));
+        BUCKLE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"buckle",bpname) );
+        PROPELLER_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"prop",bpname) );
+        OPENING_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"open",bpname) );
+        BPHBONDS_.push_back( masterDSL_->AddSetIdxAspect(DataSet::INT,dataname_,base2,"hb",bpname) );
+        MAJOR_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"major",bpname) );
+        MINOR_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"minor",bpname) );
       }
     ++base2;
   }
@@ -366,18 +375,18 @@ int Action_NAstruct::determineBasePairing() {
                           integerToString( BaseAxes[bp_4].ResNum()+1 ) +
                           BaseAxes[bp_4].ResName()[0];
       // Create Sets
-      SHIFT_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"shift",sname) );
-      SLIDE_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"slide",sname) );
-      RISE_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"rise",sname) );
-      TILT_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"tilt",sname) );
-      ROLL_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"roll",sname) );
-      TWIST_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"twist",sname) );
-      XDISP_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"xdisp",sname) );
-      YDISP_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"ydisp",sname) );
-      HRISE_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"hrise",sname) );
-      INCL_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"incl",sname) );
-      TIP_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"tip",sname) );
-      HTWIST_.push_back( DSL->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"htwist",sname) );
+      SHIFT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"shift",sname) );
+      SLIDE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"slide",sname) );
+      RISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"rise",sname) );
+      TILT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"tilt",sname) );
+      ROLL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"roll",sname) );
+      TWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"twist",sname) );
+      XDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"xdisp",sname) );
+      YDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"ydisp",sname) );
+      HRISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"hrise",sname) );
+      INCL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"incl",sname) );
+      TIP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"tip",sname) );
+      HTWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,base2,"htwist",sname) );
     }
     ++base2;
   }
@@ -750,7 +759,7 @@ int Action_NAstruct::helicalParameters(AxisType &Axis1, AxisType &Axis2, double 
   * opening, shear, stretch, and stagger. Also determine the origin and 
   * rotation matrix for each base pair reference frame.
   */
-int Action_NAstruct::determineBaseParameters() {
+int Action_NAstruct::determineBaseParameters(int frameNum) {
   double Param[6];
 # ifdef NASTRUCTDEBUG
   AxisPDBwriter basepairaxesfile;
@@ -837,7 +846,7 @@ int Action_NAstruct::determineBaseParameters() {
 /** For each base pair step, determine values of Tilt, Roll, Twist, Shift,
   * Slide, and Rise.
   */
-int Action_NAstruct::determineBasepairParameters() {
+int Action_NAstruct::determineBasepairParameters(int frameNum) {
   double Param[6];
 # ifdef NASTRUCTDEBUG
   mprintf("\n=================== Determine BPstep Parameters ===================\n");
@@ -891,16 +900,14 @@ int Action_NAstruct::determineBasepairParameters() {
 // ----------------------------------------------------------------------------
 
 // Action_NAstruct::init()
-/** Expected call: nastruct [resrange <range>] [naout <nafilename>] 
-  *                         [noheader] [resmap <ResName>:{A,C,G,T,U} ...]
-  *                         [hbcut <hbcut>] [origincut <origincut>]
-  *                         [ reference | refindex <#> | ref <REF> ]
-  */
 // Dataset name will be the last arg checked for. Check order is:
 //    1) Keywords
 //    2) Masks
 //    3) Dataset name
-int Action_NAstruct::init() {
+Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   Frame* refframe = NULL;
   Topology* refparm = NULL;
 
@@ -914,7 +921,7 @@ int Action_NAstruct::init() {
     originCut2_ = origincut * origincut;
   ArgList::ConstArg resrange_arg = actionArgs.getKeyString("resrange");
   if (resrange_arg != NULL)
-    if (resRange.SetRange( resrange_arg )) return 1;
+    if (resRange.SetRange( resrange_arg )) return Action::ERR;
   printheader_ = !actionArgs.hasKey("noheader");
   // Reference for setting up basepairs
   int refindex = actionArgs.getKeyInt("refindex", -1);
@@ -929,13 +936,13 @@ int Action_NAstruct::init() {
     refframe = FL->GetFrame( refindex );
     if (refframe==NULL) {
       mprinterr("Error: nastruct: Could not get ref frame, index=%i\n",refindex);
-      return 1;
+      return Action::ERR;
     }
     // Get parm for reference
     refparm = FL->GetFrameParm( refindex );
     if (refparm == NULL) {
       mprinterr("Error: nastruct: Could not get parm for frame %s\n", FL->FrameName(refindex));
-      return 1;
+      return Action::ERR;
     }
   }
 
@@ -949,7 +956,7 @@ int Action_NAstruct::init() {
     // Expect only 2 args
     if (maplist.Nargs()!=2) {
       mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",maparg);
-      return 1;
+      return Action::ERR;
     }
     // Check that second arg is A,C,G,T,or U
     if      (maplist[1] == "A") mapbase=AxisType::ADE;
@@ -959,13 +966,13 @@ int Action_NAstruct::init() {
     else if (maplist[1] == "U") mapbase=AxisType::URA;
     else {
       mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",maparg);
-      return 1;
+      return Action::ERR;
     }
     // Check that residue name is <= 4 chars
     std::string resname = maplist[0]; 
     if (resname.size() > 4) {
       mprinterr("Error: nastruct: resmap resname > 4 chars (%s)\n",maparg);
-      return 1;
+      return Action::ERR;
     }
     // Format residue name
     // TODO: Use NameType in map
@@ -985,14 +992,7 @@ int Action_NAstruct::init() {
   // Dataset
   dataname_ = actionArgs.GetStringNext();
   if (dataname_.empty())
-    dataname_.assign("NA");
-  // See if the name is unique
-  DataSet* tempDS = DSL->Get( dataname_.c_str() );
-  if (tempDS!=NULL) {
-    mprinterr("Error: nastruct: Given name (%s) is not unique. Please specify a unique name.\n",
-              dataname_.c_str());
-    return 1;
-  }
+    dataname_ = DSL->GenerateDefaultName("NA");
   // DataSets are added to data file list in print()
 
   mprintf("    NAstruct: ");
@@ -1013,25 +1013,24 @@ int Action_NAstruct::init() {
   // Use reference to determine base pairing
   if (useReference_) {
     mprintf("\tUsing reference %s to determine base-pairing.\n",FL->FrameName(refindex));
-    currentParm = refparm;
-    if (setup()) return 1;
+    if (Setup(refparm, 0)) return Action::ERR;
     // Set up base axes
-    if ( setupBaseAxes(refframe) ) return 1;
+    if ( setupBaseAxes(refframe) ) return Action::ERR;
     // Determine Base Pairing
-    if ( determineBasePairing() ) return 1;
+    if ( determineBasePairing() ) return Action::ERR;
     mprintf("\tSet up %zu base pairs.\n", BasePairAxes.size() ); 
   } else {
     mprintf("\tUsing first frame to determine base pairing.\n");
   }
-
-  return 0;
+  masterDSL_ = DSL;
+  return Action::OK;
 }
 
 // Action_NAstruct::setup()
 /** Determine the number of NA bases that will be analyzed, along with 
   * the masks that correspond to the reference frame atoms.
   */
-int Action_NAstruct::setup() {
+Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAddress) {
   AxisType axis; 
   AtomMask Mask;
   AtomMask fitMask;
@@ -1057,7 +1056,7 @@ int Action_NAstruct::setup() {
   // Exit if no residues specified
   if (actualRange.Empty()) {
     mprinterr("Error: NAstruct::setup: No residues specified for %s\n",currentParm->c_str());
-    return 1;
+    return Action::ERR;
   }
 
   // DEBUG - print all residues
@@ -1093,17 +1092,17 @@ int Action_NAstruct::setup() {
     } else if ( refreturn == AxisType::NA_ERROR  ) {
       mprinterr("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
                 *resnum+1, currentParm->ResidueName(*resnum));
-      return 1;
+      return Action::ERR;
     }
     if (Mask.None()) {
       mprintf("Error:: NAstruct::setup: No atoms found for residue %i:%s\n",
               *resnum+1, currentParm->ResidueName(*resnum));
-      return 1;
+      return Action::ERR;
     }
     if (fitMask.None()) {
       mprintf("Error:: NAstruct::setup: No fit atoms found for residue %i:%s\n",
               *resnum+1, currentParm->ResidueName(*resnum));
-      return 1;
+      return Action::ERR;
     }
     RefCoords.push_back( axis );
     ExpMasks.push_back( Mask );
@@ -1112,7 +1111,7 @@ int Action_NAstruct::setup() {
     if (Mask.Nselected() > maxResSize_)
       maxResSize_ = Mask.Nselected();
     FitMasks.push_back( fitMask );
-    if (debug>1) {
+    if (debug_>1) {
       mprintf("\tNAstruct: Res %i:%s ",*resnum+1,currentParm->ResidueName(*resnum));
       Mask.PrintMaskAtoms("NAmask");
       mprintf("\t          Ref %i:%s ",*resnum+1,axis.ResName());
@@ -1128,18 +1127,18 @@ int Action_NAstruct::setup() {
   // NOTE: RefCoords size is also BaseAxes, ExpFrames, and ExpMasks size.
   mprintf("\tSet up %zu bases.\n", RefCoords.size());
 
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_NAstruct::action()
-int Action_NAstruct::action() {
+Action::RetType Action_NAstruct::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
 
   // Set up base axes
-  if ( setupBaseAxes(currentFrame) ) return 1;
+  if ( setupBaseAxes(currentFrame) ) return Action::ERR;
 
   if (!useReference_) {
     // Determine Base Pairing based on first frame
-    if ( determineBasePairing() ) return 1;
+    if ( determineBasePairing() ) return Action::ERR;
     useReference_ = true;
   } else {
     // Base pairing determined from ref. Just calc # hbonds for each pair.
@@ -1149,16 +1148,16 @@ int Action_NAstruct::action() {
   }
 
   // Determine base parameters
-  determineBaseParameters();
+  determineBaseParameters(frameNum);
 
   // Determine base pair parameters
-  determineBasepairParameters();
+  determineBasepairParameters(frameNum);
 
-  return 0;
+  return Action::OK;
 } 
 
 // Action_NAstruct::print()
-void Action_NAstruct::print() {
+void Action_NAstruct::Print() {
   CpptrajFile outfile;
   int nframes;
   if (outputsuffix_.empty()) return;
@@ -1240,7 +1239,7 @@ void Action_NAstruct::print() {
                          RISE_[nstep]->Dval(frame), TILT_[nstep]->Dval(frame),
                          ROLL_[nstep]->Dval(frame), TWIST_[nstep]->Dval(frame));
           // Helix write
-          outfile2.Printf(NA_OUTPUT_FMT, frameNum+OUTPUTFRAMESHIFT,
+          outfile2.Printf(NA_OUTPUT_FMT, frame+OUTPUTFRAMESHIFT,
                           BasePairAxes[bpi].ResNum()+1, BasePairAxes[bpi].ResNum2()+1,
                           BasePairAxes[bpj].ResNum()+1, BasePairAxes[bpj].ResNum2()+1,
                           XDISP_[nstep]->Dval(frame), YDISP_[nstep]->Dval(frame),

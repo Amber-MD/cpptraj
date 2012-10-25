@@ -41,7 +41,7 @@ class Topology {
     atom_iterator ResAtomEnd(int) const;
     atom_iterator MolAtomStart(int) const;
     atom_iterator MolAtomEnd(int) const;
-    const Atom &operator[](int);
+    const Atom &operator[](int) const;
     std::vector<Atom> const& Atoms() { return atoms_; }
     // ----- Residue-specific routines -----
     typedef std::vector<Residue>::const_iterator res_iterator;
@@ -100,11 +100,11 @@ class Topology {
     int FindResidueMaxNatom();
     int SoluteAtoms();
     //double *Mass();
-    int SetSolvent(const char*);
+    int SetSolvent(std::string const&);
     // ----- Print topology info -----
     void Summary();
     void ParmInfo();
-    void PrintAtomInfo(const char*);
+    void PrintAtomInfo(std::string const&);
     void PrintBondInfo();
     void PrintMoleculeInfo();
     void PrintResidueInfo();

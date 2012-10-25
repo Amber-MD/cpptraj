@@ -8,8 +8,16 @@
 Action_CheckStructure::Action_CheckStructure() : 
   bondoffset_(1.15),
   nonbondcut2_(0.64), // 0.8^2
-  isSeparate_(false)
+  isSeparate_(false),
+  CurrentParm_(0),
+  debug_(0)
 {} 
+
+void Action_CheckStructure::Help() {
+  mprintf("check[structure] [<mask1>] [reportfile <report>] [noimage]\n");
+  mprintf("                 [offset <offset>] [cut <cut>]\n");
+  mprintf("\tCheck frames for atomic overlaps and unusual bond lengths\n");
+}
 
 // DESTRUCTOR
 Action_CheckStructure::~Action_CheckStructure() {
@@ -18,14 +26,10 @@ Action_CheckStructure::~Action_CheckStructure() {
 }
 
 // Action_CheckStructure::init()
-/** Expected call: check[structure] [<mask1>] [reportfile <report>] [noimage] 
-  *                     [offset <offset>] [cut <cut>]
-  */
-// Dataset name will be the last arg checked for. Check order is:
-//    1) Keywords
-//    2) Masks
-//    3) Dataset name
-int Action_CheckStructure::init( ) {
+Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
   ArgList::ConstArg reportFile = actionArgs.getKeyString("reportfile");
@@ -46,11 +50,11 @@ int Action_CheckStructure::init( ) {
   mprintf("                    and non-bond distance < %.2lf\n",nonbondcut);
   nonbondcut2_ = nonbondcut * nonbondcut;
 
-  if (outfile_.SetupWrite(reportFile, debug))
-    return 1;
+  if (outfile_.SetupWrite(reportFile, debug_))
+    return Action::ERR;
   outfile_.OpenFile();
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_CheckStructure::SeparateInit()
@@ -58,7 +62,7 @@ void Action_CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutI
 {
   double nonbondcut;
   isSeparate_ = true;
-  debug = debugIn;
+  debug_ = debugIn;
   InitImaging( false );
   if (bondoffsetIn < 0)
     bondoffset_ = 1.15;
@@ -101,17 +105,17 @@ void Action_CheckStructure::SetupBondlist(std::vector<int> const& BndLst) {
   * along with the expected bond lengths. Store bond lengths as 
   * (req + bondoffset)^2 for easy comparison with calculated distance^2.
   */
-int Action_CheckStructure::setup() {
+Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** parmAddress) {
   double req = 0;
   double rk = 0;
   unsigned int totalbonds;
 
   // Initially set up character mask to easily determine whether
   // both atoms of a bond are in the mask.
-  if ( currentParm->SetupCharMask(Mask1_) ) return 1;
+  if ( currentParm->SetupCharMask(Mask1_) ) return Action::ERR;
   if (Mask1_.None()) {
     mprintf("    Error: CheckStructure::setup: Mask has no atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
   SetupImaging( currentParm->BoxType() );
@@ -138,7 +142,7 @@ int Action_CheckStructure::setup() {
       (*it).req = req;
     }
     // DEBUG
-    if (debug>0) {
+    if (debug_>0) {
       mprintf("DEBUG:\tSorted bond list:\n");
       for (std::vector<bond_list>::iterator it = bondL_.begin(); it!=bondL_.end(); it++)
         mprintf("\t%8i %8i %8i %6.2lf\n",(*it).atom1,(*it).atom2,(*it).param, (*it).req);
@@ -155,7 +159,7 @@ int Action_CheckStructure::setup() {
   bondL_.push_back(bnd);
       
   // Reset to integer mask.
-  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return 1;
+  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
   // Print imaging info for this parm
   if (!isSeparate_) {
     mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1_.MaskString(), Mask1_.Nselected(),
@@ -166,12 +170,12 @@ int Action_CheckStructure::setup() {
       mprintf(", imaging off");
     mprintf(".\n");
   }
-        
-  return 0;  
+  CurrentParm_ = currentParm;      
+  return Action::OK;  
 }
 
 // Action_CheckStructure::action()
-int Action_CheckStructure::action() {
+Action::RetType Action_CheckStructure::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double ucell[9], recip[9], D2, D, bondmax;
   Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() ); 
   std::vector<bond_list>::iterator currentBond = bondL_.begin();
@@ -196,8 +200,8 @@ int Action_CheckStructure::action() {
           outfile_.Printf(
                   "%i\t Warning: Unusual bond length %i@%s to %i@%s (%.2lf)\n",
                   frameNum+OUTPUTFRAMESHIFT,
-                  atom1+1, (*currentParm)[atom1].c_str(), 
-                  atom2+1, (*currentParm)[atom2].c_str(), D);
+                  atom1+1, (*CurrentParm_)[atom1].c_str(), 
+                  atom2+1, (*CurrentParm_)[atom2].c_str(), D);
         }
         // Next bond
         currentBond++;
@@ -208,14 +212,14 @@ int Action_CheckStructure::action() {
           outfile_.Printf(
                   "%i\t Warning: Atoms %i@%s and %i@%s are close (%.2lf)\n",
                   frameNum+OUTPUTFRAMESHIFT,
-                  atom1+1, (*currentParm)[atom1].c_str(), 
-                  atom2+1, (*currentParm)[atom2].c_str(), D);
+                  atom1+1, (*CurrentParm_)[atom1].c_str(), 
+                  atom2+1, (*CurrentParm_)[atom2].c_str(), D);
         }
       }
     } // END second loop over mask atoms
   } // END first loop over mask atoms
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_CheckStructure::SeparateAction()
@@ -242,10 +246,10 @@ int Action_CheckStructure::SeparateAction(Frame *frameIn) {
         // Check for long bond length; distance2 > (req+bondoffset)^2
         if (D2 > bondmax) {
           Nproblems++; 
-          if (debug>0)
+          if (debug_>0)
             mprintf("\t\tWarning: Unusual bond length %i@%s to %i@%s (%.2lf)\n",
-                    atom1+1, (*currentParm)[atom1].c_str(), 
-                    atom2+1, (*currentParm)[atom2].c_str(), sqrt(D2));
+                    atom1+1, (*CurrentParm_)[atom1].c_str(), 
+                    atom2+1, (*CurrentParm_)[atom2].c_str(), sqrt(D2));
         }
         // Next bond
         currentBond++;
@@ -253,10 +257,10 @@ int Action_CheckStructure::SeparateAction(Frame *frameIn) {
       } else {
         if (D2 < nonbondcut2_) {
           Nproblems++;
-          if (debug>0)
+          if (debug_>0)
             mprintf("\t\tWarning: Atoms %i@%s and %i@%s are close (%.2lf)\n",
-                    atom1+1, (*currentParm)[atom1].c_str(), 
-                    atom2+1, (*currentParm)[atom1].c_str(), sqrt(D2));
+                    atom1+1, (*CurrentParm_)[atom1].c_str(), 
+                    atom2+1, (*CurrentParm_)[atom1].c_str(), sqrt(D2));
         }
       }
       idx2+=3;

@@ -4,17 +4,22 @@
 #include "Trajout.h"
 
 // CONSTRUCTOR
-Action_Mask::Action_Mask() 
-{ 
-  //fprintf(stderr,"ActionMask Con\n");
-} 
+Action_Mask::Action_Mask() :
+  CurrentParm_(0),
+  debug_(0) 
+{ } 
+
+void Action_Mask::Help() {
+  mprintf("mask <mask1> [maskout <filename>] [maskpdb <filename>]\n");
+}
 
 // Action_Mask::init()
-/** Expected call: mask <mask1> [maskout <filename>] [maskpdb <filename>] 
-  */
 // NOTE: Could also split the arglist at maskpdb and make it so any type of 
 //       file can be written out.
-int Action_Mask::init( ) {
+Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   // Get Keywords
   std::string maskFilename = actionArgs.GetStringKey("maskout");
   maskpdb_ = actionArgs.GetStringKey("maskpdb");
@@ -33,35 +38,40 @@ int Action_Mask::init( ) {
   // Open output file
   // TODO: Buffer write out
   if ( outfile_.OpenWrite( maskFilename ) )
-    return 1;
+    return Action::ERR;
   // Header
   outfile_.Printf("%-8s %8s %4s %8s %4s %8s\n","#Frame","AtomNum","Atom",
                   "ResNum","Res", "MolNum");
 
-  return 0;
+  return Action::OK;
+}
+
+Action::RetType Action_Mask::Setup(Topology* currentParm, Topology** parmAddress) {
+  CurrentParm_ = currentParm;
+  return Action::OK;
 }
 
 // Action_Mask::action()
-int Action_Mask::action() {
+Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Trajout pdbout;
 
   // Get atom selection
-  if ( currentParm->SetupCharMask(Mask1_, *currentFrame) ) {
+  if ( CurrentParm_->SetupCharMask(Mask1_, *currentFrame) ) {
     mprintf("Warning: ActionMask::action: Could not set up atom mask [%s]\n",
             Mask1_.MaskString());
-    return 1;
+    return Action::ERR;
   }
 
   // Print out information for every atom in the mask
-  for (int atom=0; atom < currentParm->Natom(); atom++) {
+  for (int atom=0; atom < CurrentParm_->Natom(); atom++) {
     if (Mask1_.AtomInCharMask(atom)) {
-      int res = (*currentParm)[atom].ResNum();
+      int res = (*CurrentParm_)[atom].ResNum();
       outfile_.Printf("%8i %8i %4s %8i %4s %8i\n", frameNum+OUTPUTFRAMESHIFT,
-                      atom+1, (*currentParm)[atom].c_str(), res+1,
-                      currentParm->ResidueName(res), (*currentParm)[atom].Mol()+1);
-      /*mprintf(" Type=%4s",currentParm->types[atom]);
-      mprintf(" Charge=%lf",currentParm->charge[atom]);
-      mprintf(" Mass=%lf",currentParm->mass[atom]);
+                      atom+1, (*CurrentParm_)[atom].c_str(), res+1,
+                      CurrentParm_->ResidueName(res), (*CurrentParm_)[atom].Mol()+1);
+      /*mprintf(" Type=%4s",CurrentParm_->types[atom]);
+      mprintf(" Charge=%lf",CurrentParm_->charge[atom]);
+      mprintf(" Mass=%lf",CurrentParm_->mass[atom]);
       outfile.Printf("\n");*/
     }
   }
@@ -72,11 +82,11 @@ int Action_Mask::action() {
     AtomMask Mask2 = Mask1_;
     Mask2.ConvertMaskType();
     // Create new parm and frame based on atoms in Mask
-    Topology* pdbParm = currentParm->modifyStateByMask(Mask2);
+    Topology* pdbParm = CurrentParm_->modifyStateByMask(Mask2);
     //pdbParm->Summary(); // DEBUG
     Frame pdbFrame(*currentFrame, Mask2);
     // Set up output file. 
-    pdbout.SetDebug(debug);
+    pdbout.SetDebug(debug_);
     // Set pdb output options: multi so that 1 file per frame is written; dumpq
     // so that charges are written out. 
     if (pdbout.SetupTrajWriteWithArgs(maskpdb_,"multi dumpq",pdbParm,TrajectoryFile::PDBFILE)) 
@@ -91,12 +101,12 @@ int Action_Mask::action() {
     delete pdbParm;
   }
 
-  return 0;
+  return Action::OK;
 } 
 
 // Action_Mask::print()
 /** Close the output file. */
-void Action_Mask::print() {
+void Action_Mask::Print() {
   outfile_.CloseFile();
 }
 

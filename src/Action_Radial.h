@@ -7,13 +7,18 @@
 class Action_Radial: public Action, ImagedAction {
   public:
     Action_Radial();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Radial(); }
+    static void Help();
+
     ~Action_Radial();
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     int* RDF_;                ///< Hold bin counts.
     int **rdf_thread_;        ///< Hold bin count on each thread.
@@ -24,7 +29,6 @@ class Action_Radial: public Action, ImagedAction {
     bool center1_;            ///< If true calculate RDF of atoms in Mask2 to COM of Mask1.
     bool useVolume_;          ///< If true normalize based on input volume.
     double volume_;           ///< Hold sum of volume for averaging.
-    std::string outfilename_; ///< Output file name.
     double maximum2_;         ///< Largest distance squared that can be binned.
     double spacing_;          ///< Bin spacing.
     double one_over_spacing_; ///< 1/spacing, used to avoid man division ops.
@@ -33,5 +37,7 @@ class Action_Radial: public Action, ImagedAction {
     int numFrames_;           ///< Number of frames for which RDF is calcd.
     int numDistances_;        ///< Number of distances binned, only informational.
     double density_;          ///< Particle density (molecules/Ang^3).
+    DataSet* Dset_;
+    int debug_;
 };
 #endif  

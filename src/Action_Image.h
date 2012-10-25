@@ -6,8 +6,12 @@
 class Action_Image: public Action {
   public:
     Action_Image();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Image(); }
+    static void Help();
+
     ~Action_Image();
-    void print() {}
+    void Print() {}
   private:
     enum ImageMode { BYMOL = 0, BYRES, BYATOM };
     static const char ImageModeString[][9];
@@ -26,12 +30,14 @@ class Action_Image: public Action {
     bool truncoct_;
     enum TriclinicArg {OFF, FORCE, FAMILIAR};
     TriclinicArg triclinic_;
+    int debug_;
     /// Vector containing atom ranges to be imaged (first to last)
     std::vector<int> imageList_; 
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
     void CheckRange(int,int);
 };
 #endif

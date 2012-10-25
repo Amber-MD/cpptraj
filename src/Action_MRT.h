@@ -10,8 +10,13 @@
 class Action_MRT : public Action {
   public:
     Action_MRT();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_MRT(); }
+    static void Help();
+
   private:
-    int init();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
 
     CpptrajFile outfile_;
     double time_; // darg1

@@ -216,30 +216,18 @@ void DataFile::Write() {
 /** Set precision of the specified dataset to width.precision. If no name or
   * asterisk specified set for all datasets in file.
   */
-void DataFile::SetPrecision(const char *dsetName, int widthIn, int precisionIn) {
+void DataFile::SetPrecision(std::string const& dsetName, int widthIn, int precisionIn) {
   if (widthIn<1) {
     mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",dataio_->FullFileStr());
     return;
   }
   int precision = precisionIn;
   if (precisionIn<0) precision = 0;
-  // If NULL or <dsetName>=='*' specified set precision for all data sets
-  if (dsetName==0 || dsetName[0]=='*') {
-    mprintf("    Setting width.precision for all sets in %s to %i.%i\n",
-            dataio_->FullFileStr(),widthIn,precision);
-    for (DataSetList::const_iterator set = SetList_.begin(); set!=SetList_.end(); ++set)
-      (*set)->SetPrecision(widthIn,precision);
-
-  // Otherwise find dataset <dsetName> and set precision
-  } else {
-    mprintf("    Setting width.precision for dataset %s to %i.%i\n",
-            dsetName,widthIn,precision);
-    DataSet *Dset = SetList_.Get(dsetName);
-    if (Dset!=0)
-      Dset->SetPrecision(widthIn,precision);
-    else
-      mprintf("Error: Dataset %s not found in datafile %s\n",dsetName,dataio_->FullFileStr());
-  }
+  DataSetList dsets = SetList_.GetMultipleSets( dsetName );
+  mprintf("    Setting width.precision for %i sets to %i.%i\n", dsets.size(), 
+          widthIn, precision);
+  for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
+    (*set)->SetPrecision(widthIn, precision);
 }
 
 // DataFile::Filename()

@@ -10,6 +10,7 @@ Analysis_IRED::Analysis_IRED() :
   tcorr_(10000),
   distnh_(1.02),
   order_(2),
+  debug_(0),
   relax_(false),
   norm_(false),
   drct_(false),
@@ -22,6 +23,12 @@ Analysis_IRED::Analysis_IRED() :
   modinfo_(0)
 {}
 
+void Analysis_IRED::Help() {
+  mprintf("analyze ired [relax] [freq <hz>] [NHdist <distnh>] [order <order>]\n");
+  mprintf("             tstep <tstep> tcorr <tcorr> out <filename>\n");
+  mprintf("             modes <modesname> [beg <ibeg> end <iend>]\n");
+}
+
 // DESTRUCTOR
 Analysis_IRED::~Analysis_IRED() {
   if (data1_!=0) delete[] data1_;
@@ -33,15 +40,11 @@ Analysis_IRED::~Analysis_IRED() {
 }
 
 // Analysis_IRED::Setup()
-/** analyze ired [relax] [freq <hz>] [NHdist <distnh>] [order <order>]
-  *              tstep <tstep> tcorr <tcorr> out <filename>
-  *              modes <modesname> [beg <ibeg> end <iend>] 
-  */
-int Analysis_IRED::Setup(DataSetList* DSLin) {
+Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
+                            TopologyList* PFLin, int debugIn)
+{
+  debug_ = debugIn;
   int ibeg=0, iend=0;
-  // Ensure first 2 args (should be 'analyze' 'ired') are marked.
-  analyzeArgs_.MarkArg(0);
-  analyzeArgs_.MarkArg(1);
   // Count and store the number of previously defined IRED vectors.
   DataSet_Vector* Vtmp;
   DSLin->VectorBegin();
@@ -51,19 +54,19 @@ int Analysis_IRED::Setup(DataSetList* DSLin) {
   }
   if (IredVectors_.empty()) {
     mprinterr("Error: analyze ired: corrired: No IRED vectors defined.\n");
-    return 1;
+    return Analysis::ERR;
   }
   // Get order for Legendre polynomial
-  order_ = analyzeArgs_.getKeyInt("order",2);
+  order_ = analyzeArgs.getKeyInt("order",2);
   if (order_ < 0 || order_ > 2) {
     mprintf("Warning: vector order out of bounds (<0 or >2), resetting to 2.\n");
     order_ = 2;
   }
   // Get modes name
-  std::string modesfile = analyzeArgs_.GetStringKey("modes");
+  std::string modesfile = analyzeArgs.GetStringKey("modes");
   if (modesfile.empty()) {
     mprinterr("Error: analyze ired: No 'modes <name>' arg given, needed for 'corrired'.\n");
-    return 1;
+    return Analysis::ERR;
   }
   // Check if modes name exists on the stack
   bool modesFromFile = false;
@@ -71,46 +74,46 @@ int Analysis_IRED::Setup(DataSetList* DSLin) {
   if (modinfo_ == 0) {
     // If not on stack, check for file.
     if ( fileExists(modesfile.c_str()) ) {
-      ibeg = analyzeArgs_.getKeyInt("beg",1);
-      iend = analyzeArgs_.getKeyInt("end", 50);
+      ibeg = analyzeArgs.getKeyInt("beg",1);
+      iend = analyzeArgs.getKeyInt("end", 50);
       modinfo_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
-      if (modinfo_->ReadEvecFile( modesfile, ibeg, iend )) return 1;
+      if (modinfo_->ReadEvecFile( modesfile, ibeg, iend )) return Analysis::ERR;
       modesFromFile = true;
     }
   }
   if (modinfo_ == 0) {
     mprinterr("Error: analyze ired: Modes %s DataSet/file not found.\n",modesfile.c_str());
-    return 1;
+    return Analysis::ERR;
   }
   // TODO: Check that number of evecs match number of IRED vecs
-  orderparamfile_ = analyzeArgs_.GetStringKey("orderparamfile");
+  orderparamfile_ = analyzeArgs.GetStringKey("orderparamfile");
 
   // Get tstep, tcorr, filenames
-  tstep_ = analyzeArgs_.getKeyDouble("tstep", 1.0);
-  tcorr_ = analyzeArgs_.getKeyDouble("tcorr", 10000.0);
-  noeFilename_ = analyzeArgs_.GetStringKey("noefile");
-  filename_ = analyzeArgs_.GetStringKey("out");
+  tstep_ = analyzeArgs.getKeyDouble("tstep", 1.0);
+  tcorr_ = analyzeArgs.getKeyDouble("tcorr", 10000.0);
+  noeFilename_ = analyzeArgs.GetStringKey("noefile");
+  filename_ = analyzeArgs.GetStringKey("out");
   if (filename_.empty()) {
     mprinterr("Error: analyze ired: No outfile given ('out <filename>').\n");
-    return 1;
+    return Analysis::ERR;
   }
 
   // Get norm, drct, relax
-  norm_ = analyzeArgs_.hasKey("norm");
-  drct_ = analyzeArgs_.hasKey("drct");
-  relax_ = analyzeArgs_.hasKey("relax");
+  norm_ = analyzeArgs.hasKey("norm");
+  drct_ = analyzeArgs.hasKey("drct");
+  relax_ = analyzeArgs.hasKey("relax");
 
   // Relax parameters
   if (relax_) {
     // Get freq, NH distance
-    freq_ = analyzeArgs_.getKeyDouble("freq", -1.0);
+    freq_ = analyzeArgs.getKeyDouble("freq", -1.0);
     if (freq_ == -1.0) {
       mprinterr("Error: analyze ired: No frequency for calculation of relaxation\n");
       mprinterr("       parameters given ('freq <frequency>').\n");
-      return 1;
+      return Analysis::ERR;
     }
     // 1.02 * 10**(-10) in Angstroms
-    distnh_ = analyzeArgs_.getKeyDouble("NHdist", 1.02);
+    distnh_ = analyzeArgs.getKeyDouble("NHdist", 1.02);
   }
 
   // Print Status
@@ -142,7 +145,7 @@ int Analysis_IRED::Setup(DataSetList* DSLin) {
             noeFilename_.c_str());
   mprintf("\t\tResults are written to %s\n", filename_.c_str());
 
-  return 0;
+  return Analysis::OK;
 }
 
 double Analysis_IRED::calc_spectral_density(int vi, double omega) {
@@ -158,7 +161,7 @@ double Analysis_IRED::calc_spectral_density(int vi, double omega) {
 }           
 
 // Analysis_IRED::Analyze()
-int Analysis_IRED::Analyze() {
+Analysis::RetType Analysis_IRED::Analyze() {
   if (!orderparamfile_.empty()) {
     // Calculation of S2 order parameters according to 
     //   Prompers & Brüschweiler, JACS  124, 4522, 2002; 
@@ -166,7 +169,7 @@ int Analysis_IRED::Analyze() {
     CpptrajFile orderout;
     if (orderout.OpenWrite(orderparamfile_)) {
       mprinterr("Error: Could not set up order parameter file.\n");
-      return 1;
+      return Analysis::ERR;
     }
     orderout.Printf("\n\t************************************\n");
     orderout.Printf("\t- Calculated iRed order parameters -\n");
@@ -190,7 +193,7 @@ int Analysis_IRED::Analyze() {
   if (modinfo_->Nmodes() != (int)IredVectors_.size()) {
     mprinterr("Error: analyze ired: # Modes in %s (%i) does not match # of Ired Vecs (%u)\n",
               modinfo_->Legend().c_str(), modinfo_->Nmodes(), IredVectors_.size());
-    return 1;
+    return Analysis::ERR;
   }
 
   // All IRED vectors must have the same size
@@ -204,7 +207,7 @@ int Analysis_IRED::Analyze() {
       mprinterr("Error: All IRED vectors must have the same size.\n");
       mprinterr("Error: Vector %s size = %i, first vector size = %i\n",
                 (*Vtmp)->Legend().c_str(), (*Vtmp)->Size(), Nframes_);
-      return 1;
+      return Analysis::ERR;
     }
   }
 
@@ -352,7 +355,7 @@ int Analysis_IRED::Analyze() {
     if (nvectelem != nvect) {
       mprinterr("Error: analyze ired: Different number of eigenmodes (%i) and\n", nvect);
       mprinterr("       eigenmode elements (%i)\n", nvectelem);
-      return 1;
+      return Analysis::ERR;
     }
     // consider only first third of the correlation curve to avoid fitting errors
     // NOTE: Done this way to be consistent with PTRAJ behavior. This really should
@@ -385,7 +388,7 @@ int Analysis_IRED::Analyze() {
       err = noefile.SetupWrite(noeFilename_, debug_);
     if (err != 0) {
       mprinterr("Error: analyze ired: Could not open NOE file for write.\n");
-      return 1;
+      return Analysis::ERR;
     }
     noefile.OpenFile();
     noefile.Printf("\n\t****************************************");
@@ -449,10 +452,10 @@ int Analysis_IRED::Analyze() {
   // Setup and open files with .cjt/.cmt extensions.
   std::string cmtname = filename_ + ".cmt";
   CpptrajFile cmtfile;
-  if (cmtfile.OpenWrite( cmtname )) return 1;
+  if (cmtfile.OpenWrite( cmtname )) return Analysis::ERR;
   std::string cjtname = filename_ + ".cjt";
   CpptrajFile cjtfile;
-  if (cjtfile.OpenWrite( cjtname )) return 1;  
+  if (cjtfile.OpenWrite( cjtname )) return Analysis::ERR;  
   // Print headers
   cmtfile.Printf("Auto-correlation functions Cm(t) for each eigenmode m, IRED type according to eq. A18 Prompers & Brüschweiler, JACS  124, 4522, 2002\n");
   cjtfile.Printf("Auto-correlation functions Cj(t) for each ired vector j, IRED type according to eq. A23 Prompers & Brüschweiler, JACS  124, 4522, 2002\n");
@@ -508,6 +511,6 @@ int Analysis_IRED::Analyze() {
   cmtfile.CloseFile();
   cjtfile.CloseFile();
 
-  return 0;
+  return Analysis::OK;
 }
 

@@ -14,8 +14,17 @@ Action_ClusterDihedral::Action_ClusterDihedral() :
   lastframe_(0),
   dcparm_(0),
   CVT_(0),
-  minimum_(-180.0)
+  minimum_(-180.0),
+  debug_(0)
 {}
+
+void Action_ClusterDihedral::Help() {
+  mprintf("clusterdihedral [phibins <N>] [psibins <M>] [out <outfile>]\n");
+  mprintf("                [framefile <framefile>] [clusterinfo <infofile>]\n");
+  mprintf("                [clustervtime <cvtfile>] [cut <CUT>]\n");
+  mprintf("                [dihedralfile <dfile> | <mask>] [min <minimum>]\n");
+  mprintf("\tAssign input structures a cluster based on binning dihedral angles.\n");
+}
 
 // Action_ClusterDihedral::ReadDihedrals()
 int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
@@ -48,24 +57,22 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
 }
 
 // Action_ClusterDihedral::init()
-/** Usage: clusterdihedral [phibins <N>] [psibins <M>] [out <outfile>]
-  *                        [framefile <framefile>] [clusterinfo <infofile>]
-  *                        [clustervtime <cvtfile>] [cut <CUT>] 
-  *                        [dihedralfile <dfile> | <mask>] [min <minimum>]
-  */
-int Action_ClusterDihedral::init() {
+Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   // # of phi and psi bins
   phibins_ = actionArgs.getKeyInt("phibins", 10);
   psibins_ = actionArgs.getKeyInt("psibins", 10);
   if ( phibins_>360 || phibins_<=1 || psibins_>360 || psibins_<=1 ) {
     mprinterr("Error: clusterdihedral: phi or psi bins out of range 1 <= x < 360 (%i, %i)\n",
               phibins_, psibins_);
-    return 1;
+    return Action::ERR;
   }
   minimum_ = actionArgs.getKeyDouble("min", -180.0);
   if (minimum_ < -180.0 || minimum_ > 180.0) {
     mprinterr("Error: clusterdihedral: min arg out of range -180 <= x <= 180 (%f)\n", minimum_);
-    return 1;
+    return Action::ERR;
   }
   // Cluster pop cutoff
   CUT_ = actionArgs.getKeyInt("cut",0);
@@ -77,7 +84,7 @@ int Action_ClusterDihedral::init() {
   // Input dihedral file or scan mask
   std::string dihedralIn = actionArgs.GetStringKey("dihedralfile");
   if (!dihedralIn.empty()) {
-    if ( ReadDihedrals( dihedralIn ) != 0) return 1;
+    if ( ReadDihedrals( dihedralIn ) != 0) return Action::ERR;
   } else {
     mask_.SetMaskString( actionArgs.getNextMask() );
   }
@@ -85,7 +92,7 @@ int Action_ClusterDihedral::init() {
   // CVT dataset
   if (!cvtfile.empty()) {
     CVT_ = DSL->Add(DataSet::INT, actionArgs.getNextString(), "DCVT");
-    if (CVT_ == NULL) return 1;
+    if (CVT_ == NULL) return Action::ERR;
     DFL->Add(cvtfile.c_str(), CVT_);
   }
 
@@ -107,24 +114,24 @@ int Action_ClusterDihedral::init() {
   if (!cvtfile.empty())
     mprintf("\tNumber of clusters v time will be output to %s\n", cvtfile.c_str());
   
-  return 0;
+  return Action::OK;
 }
 
 // Action_ClusterDihedral::setup()
-int Action_ClusterDihedral::setup() {
+Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** parmAddress) {
   // Currently setup can only be performed based on first prmtop
   if (dcparm_!=0) {
     mprintf("Warning: clusterdihedral is only setup based on the first prmtop\n");
     mprintf("Warning: read in. Skipping setup for this prmtop.\n");
-    return 0;
+    return Action::OK;
   }
   // Set up backbone dihedral angles if none were read
   if (DCmasks_.empty()) {
     // Setup mask
-    if ( currentParm->SetupIntegerMask( mask_ ) ) return 1;
+    if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
     if ( mask_.None()) {
       mprinterr("Error clusterdihedral: No atoms selected by mask [%s]\n", mask_.MaskString());
-      return 1;
+      return Action::ERR;
     }
     // NOTE: This code relies on selection having contiguous residues!
     int C1 = -1;
@@ -139,7 +146,7 @@ int Action_ClusterDihedral::setup() {
         if ( (*currentParm)[*atom].Name() == "N   " ) {
           DCmasks_.push_back( DCmask(C1, N2, CA, C2,    phibins_, minimum_) ); // PHI
           DCmasks_.push_back( DCmask(N2, CA, C2, *atom, psibins_, minimum_) ); // PSI
-          if (debug > 0)
+          if (debug_ > 0)
             mprintf("DIHEDRAL PAIR FOUND: C1= %i, N2= %i, CA= %i, C2= %i, N3= %li\n",
                     C1, N2, CA, C2, *atom);
           // Since the carbonyl C/amide N probably starts a new dihedral,
@@ -162,7 +169,7 @@ int Action_ClusterDihedral::setup() {
 
   if (DCmasks_.empty()) {
     mprinterr("Error: clusterdihedral: No dihedral angles defined.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Allocate space to hold Bin IDs each frame
@@ -170,7 +177,7 @@ int Action_ClusterDihedral::setup() {
   dcparm_ = currentParm;
 
   // DEBUG - Print bin ranges
-  if (debug > 0) {
+  if (debug_ > 0) {
     for (std::vector<DCmask>::iterator dih = DCmasks_.begin();
                                        dih != DCmasks_.end(); ++dih)
     {
@@ -185,11 +192,11 @@ int Action_ClusterDihedral::setup() {
     }
   }
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_ClusterDihedral::action()
-int Action_ClusterDihedral::action() {
+Action::RetType Action_ClusterDihedral::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // For each dihedral, calculate which bin it should go into and store bin#
   int bidx = 0;
   for (std::vector<DCmask>::iterator dih = DCmasks_.begin(); 
@@ -234,11 +241,11 @@ int Action_ClusterDihedral::action() {
   }
   // Store frame number
   lastframe_ = frameNum;
-  return 0;
+  return Action::OK;
 }
 
 // Action_ClusterDihedral::print()
-void Action_ClusterDihedral::print() {
+void Action_ClusterDihedral::Print() {
   // Setup output file
   CpptrajFile output;
   if (output.OpenWrite( outfile_ )) return;

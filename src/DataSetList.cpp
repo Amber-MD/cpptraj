@@ -83,12 +83,13 @@ void DataSetList::SetDebug(int debugIn) {
 }
 
 // DataSetList::SetMax()
-/** Set the max number frames expected to be read in. Used to preallocate
-  * data set sizes in the list.
-  */
-void DataSetList::SetMax(int expectedMax) {
+/** Call Allocate for each DataSet in the list. */
+void DataSetList::AllocateSets(int expectedMax) {
   maxFrames_ = expectedMax;
-  if (maxFrames_<0) maxFrames_=0;
+  if (maxFrames_<0) maxFrames_ = 0;
+  if (maxFrames_ == 0) return;
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    (*ds)->Allocate( maxFrames_ );
 }
 
 /* DataSetList::SetPrecisionOfDatasets()
@@ -146,6 +147,15 @@ std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& 
   return dsname;
 }
 
+DataSet* DataSetList::GetDataSet( std::string const& nameIn ) {
+  std::string attr_arg;
+  std::string idx_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
+  int idx = -1;
+  if (!idx_arg.empty()) idx = convertToInteger(idx_arg); // TODO: Set idx_arg to -1
+  return GetSet( dsname, idx, attr_arg );
+}
+
 // DataSetList::GetMultipleSets()
 /** \return a list of all DataSets matching the given argument. */
 DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
@@ -162,31 +172,37 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
   else
     idxrange.SetRange( idx_arg.c_str() );
 
-  for (Range::const_iterator idxnum = idxrange.begin(); 
-                             idxnum != idxrange.end(); ++idxnum)
-  {
+  // All start selected
+  std::vector<char> SelectedSets(DataList_.size(), 'T');
+  // First check name
+  std::vector<char>::iterator selected = SelectedSets.begin();
+  if ( dsname != "*" ) {
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-      if ( (*ds)->Matches( dsname, *idxnum, attr_arg ) )
-      //if ( (*ds)->Name() == nameIn )
-        dsetOut.DataList_.push_back( *ds );
+      if ( (*ds)->Name() != dsname ) *selected = 'F';
+      ++selected;
     }
   }
-
+  // Second check aspect
+  if ( attr_arg != "*" ) {
+    selected = SelectedSets.begin();
+    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+      if ( *selected == 'T' && (*ds)->Aspect() != attr_arg ) *selected = 'F';
+      ++selected;
+    }
+  }
+  // Last check index
+  if ( !idx_arg.empty() && idx_arg != "*" ) {
+    selected = SelectedSets.begin();
+    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+      if ( *selected == 'T' && !idxrange.InRange( (*ds)->Idx() ) ) *selected = 'F';
+      ++selected;
+    }
+  }
+  // Add selected DataSets to dsetOut
+  selected = SelectedSets.begin();
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ( *(selected++) == 'T' ) dsetOut.DataList_.push_back( *ds );
   return dsetOut;
-}
-
-// DataSetList::Get()
-/** \return dataset in the list indicated by nameIn. 
-  */
-DataSet *DataSetList::Get(const char* nameIn) {
-  std::string attr_arg;
-  std::string idx_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
-  int idxnum = -1;
-  if (!idx_arg.empty())
-    idxnum = convertToInteger(idx_arg);
-
-  return GetSet( dsname, idxnum, attr_arg );
 }
 
 // DataSetList::GetSet()
@@ -250,7 +266,7 @@ DataSet* DataSetList::Add(DataSet::DataType inType, const char *nameIn,
   else
     dsname.assign( nameIn );
 
-  return AddSet( inType, dsname, -1, std::string(), 0 );
+  return AddSetIdxAspect( inType, dsname, -1, std::string() );
 }
 
 // DataSetList::AddSetIdx()
@@ -258,7 +274,7 @@ DataSet* DataSetList::Add(DataSet::DataType inType, const char *nameIn,
 DataSet* DataSetList::AddSetIdx(DataSet::DataType inType,
                                 std::string const& nameIn, int idxIn)
 {
-  return AddSet( inType, nameIn, idxIn, std::string(), 0 );
+  return AddSetIdxAspect( inType, nameIn, idxIn, std::string() );
 }
 
 // DataSetList::AddSetAspect()
@@ -267,15 +283,7 @@ DataSet* DataSetList::AddSetAspect(DataSet::DataType inType,
                                    std::string const& nameIn,
                                    std::string const& aspectIn)
 {
-  return AddSet( inType, nameIn, -1, aspectIn, 0 );
-}
-
-// DataSetList::AddSetIdxAspect()
-DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
-                                      std::string const& nameIn,
-                                      int idxIn, std::string const& aspectIn)
-{
-  return AddSet( inType, nameIn, idxIn, aspectIn, 0 );
+  return AddSetIdxAspect( inType, nameIn, -1, aspectIn );
 }
 
 // DataSetList::AddSetIdxAspect()
@@ -284,13 +292,13 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
                                       int idxIn, std::string const& aspectIn,
                                       std::string const& legendIn)
 {
-  DataSet* ds = AddSet( inType, nameIn, idxIn, aspectIn, 0 );
+  DataSet* ds = AddSetIdxAspect( inType, nameIn, idxIn, aspectIn );
   if (ds != NULL)
     ds->SetLegend( legendIn );
   return ds;
 }
 
-// DataSetList::AddSet()
+// DataSetList::AddSetIdxAspect()
 /** Add a DataSet of specified type, set it up and return pointer to it. 
   * \param inType type of DataSet to add.
   * \param nameIn DataSet name.
@@ -299,12 +307,10 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   * \param MAXin Size to set dataset to; DataSet will be set to maxFrames if < 1.
   * \return pointer to successfully set-up dataset.
   */ 
-DataSet* DataSetList::AddSet(DataSet::DataType inType, 
-                             std::string const& nameIn, int idxIn,
-                             std::string const& aspectIn, int MAXin) 
+DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType, 
+                                     std::string const& nameIn, int idxIn,
+                                     std::string const& aspectIn) 
 {
-  int err = 0;
-
   // Do not add to a list with copies
   if (hasCopies_) {
     mprinterr("Internal Error: Adding DataSet %s copy to invalid list.\n", nameIn.c_str());
@@ -340,12 +346,8 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType,
     return NULL;
   }
 
-  // Set up dataset with specified or default (maxFrames_) max.
-  if ( MAXin < 1 )
-    err = DS->SetupSet(nameIn, maxFrames_, idxIn, aspectIn);
-  else
-    err = DS->SetupSet(nameIn, MAXin, idxIn, aspectIn);
-  if ( err != 0 ) {
+  // Set up dataset 
+  if ( DS->SetupSet(nameIn, idxIn, aspectIn) ) {
     mprinterr("Error setting up data set %s.\n",nameIn.c_str());
     delete DS;
     return NULL;
@@ -367,11 +369,11 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   DataList_.push_back( dsetIn );
 }
 
-// DataSetList::Info()
+// DataSetList::List()
 /** Print information on all data sets in the list, as well as any datafiles
   * that will be written to.
   */
-void DataSetList::Info() {
+void DataSetList::List() {
   if (DataList_.empty())
     mprintf("  There are no data sets set up for analysis.");
   else if (DataList_.size()==1)

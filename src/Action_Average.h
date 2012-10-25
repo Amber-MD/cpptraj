@@ -6,13 +6,18 @@
 class Action_Average: public Action {
   public:
     Action_Average();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Average(); }
+    static void Help();
+
     ~Action_Average();
 
-    void print();
+    void Print();
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     AtomMask Mask1_;
     Frame* AvgFrame_;

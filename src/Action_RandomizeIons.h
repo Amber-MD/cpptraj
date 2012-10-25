@@ -5,11 +5,16 @@
 class Action_RandomizeIons : public Action, ImagedAction {
   public:
     Action_RandomizeIons();
-    void print() {}
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_RandomizeIons(); }
+    static void Help();
+
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     AtomMask ions_;    ///< the list of ions to be moved.
     double overlap_;   ///< darg1: the minimum distance between ions
@@ -17,6 +22,8 @@ class Action_RandomizeIons : public Action, ImagedAction {
     AtomMask around_;  ///< carg1: the around mask (region of space to avoid)
     std::string aroundmask_; ///< empty if no around mask specified.
     int seed_;         ///< iarg2: random seed
+    int debug_;
+    int n_solvent_;
     // TODO: Combine the below 3 into a struct?
     /// Hold solvent molecule start atoms.
     std::vector<int> solventStart_;

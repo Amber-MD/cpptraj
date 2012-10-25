@@ -4,19 +4,26 @@
 #include "Trajin_Single.h"
 #include "Trajin_Multi.h"
 
-TrajinList::TrajinList() : debug_(0), mode_(UNDEFINED) { }
+TrajinList::TrajinList() : 
+  debug_(0),
+  maxframes_(0),
+  mode_(UNDEFINED) 
+{}
 
 TrajinList::~TrajinList() {
   for (ListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj)
     delete *traj;
 }
 
+void TrajinList::Help() { 
+  mprintf("trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]\n");
+  mprintf("       [remdtraj remdtrajtemp <T>]\n");
+}
+
 // TrajinList::AddTrajin()
 /** Add trajectory to the trajectory list as an input trajectory. 
   * Associate the trajectory with one of the parm files in the 
   * TopologyList. 
-  * trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]
-  *        [remdtraj remdtrajtemp <T>]
   */
 int TrajinList::AddTrajin(ArgList& argIn, TopologyList& topListIn) {
   Trajin* traj = 0;
@@ -55,39 +62,26 @@ int TrajinList::AddTrajin(ArgList& argIn, TopologyList& topListIn) {
 
   // Add to trajectory file list
   trajin_.push_back(traj);
+  // Update total # of frames
+  int trajFrames = traj->TotalReadFrames();
+  // If < 0 frames this indicates the number of frames could not be determined. 
+  if (trajFrames < 0) 
+    maxframes_ = -1;
+  else if (maxframes_ != -1) {
+    // Only update # of frames if total # of frames so far is known.
+    traj->TrajParm()->IncreaseFrames( trajFrames );
+    maxframes_ += trajFrames;
+  }
 
   return 0;
 }
 
-// TrajinList::SetupFrames()
-/** Loop over all trajectories to determine the total number of input frames 
-  * will be processed. Update the number of frames that will be read for the 
-  * Topology associated with each traj.
-  * \return The total number of frames to be processed across all trajins.
-  */
-int TrajinList::SetupFrames() {
-  int maxFrames = 0;
-
+void TrajinList::List() {
+  mprintf("\nINPUT TRAJECTORIES:\n");
   for (ListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj) 
-  {
-    int trajFrames = (*traj)->TotalReadFrames();
-    // If < 0 frames this indicates the number of frames could not be determined. 
-    if (trajFrames < 0) {
-      maxFrames = -1;
-    } else if (maxFrames != -1) {
-      // Only update # of frames if total # of frames so far is known.
-      (*traj)->TrajParm()->IncreaseFrames( trajFrames );
-      maxFrames += trajFrames;
-    }
-    // Print input traj information
     (*traj)->PrintInfo( 1 );
-  }
-
-  if (maxFrames<0)
-    mprintf("  Coordinate processing will occur on an unknown number of frames.\n");
+  if (maxframes_ < 0)
+    mprintf("  Total number of frames is unknown.\n");
   else
-    mprintf("  Coordinate processing will occur on %i frames.\n",maxFrames);
-
-  return maxFrames;
+    mprintf("  Total number of frames is %i.\n", maxframes_);
 }
-

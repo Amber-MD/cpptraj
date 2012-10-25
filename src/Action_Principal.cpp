@@ -8,11 +8,19 @@
 // CONSTRUCTOR
 Action_Principal::Action_Principal() :
   doRotation_(false),
-  useMass_(false)
+  useMass_(false),
+  debug_(0)
 { }
 
+void Action_Principal::Help() {
+
+}
+
 // Action_Principal::init()
-int Action_Principal::init() {
+Action::RetType Action_Principal::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   // Keywords
   doRotation_ = actionArgs.hasKey("dorotation");
   useMass_ = actionArgs.hasKey("mass");
@@ -31,20 +39,20 @@ int Action_Principal::init() {
     mprintf(" center of geometry");
   mprintf(", atoms selected by [%s]\n", mask_.MaskString());
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Principal::setup()
-int Action_Principal::setup() {
-  if (currentParm->SetupIntegerMask(mask_)) return 1;
+Action::RetType Action_Principal::Setup(Topology* currentParm, Topology** parmAddress) {
+  if (currentParm->SetupIntegerMask(mask_)) return Action::ERR;
 
   if (mask_.None()) {
     mprintf("Warning: No atoms selected for %s [%s].\n",currentParm->c_str(), mask_.MaskString());
-    return 1;
+    return Action::ERR;
   }
 
   mprintf("\tSelected %i atoms.\n", mask_.Nselected());
-  return 0;
+  return Action::OK;
 }
 
 // DEBUG
@@ -68,7 +76,7 @@ int Action_Principal::setup() {
 }*/
 
 // Action_Principal::action()
-int Action_Principal::action() {
+Action::RetType Action_Principal::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double Inertia[9], CXYZ[3], Evec[9], Eval[3];
 
   currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
@@ -76,8 +84,8 @@ int Action_Principal::action() {
 
   Matrix_3x3 TEMP( Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
-  TEMP.Diagonalize_Sort_Chirality( Evec, Eval, debug );
-  if (debug > 2) {
+  TEMP.Diagonalize_Sort_Chirality( Evec, Eval, debug_ );
+  if (debug_ > 2) {
     printVector("PRINCIPAL EIGENVALUES", Eval );
     //TEMP.Print("GENERAL");
     printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
@@ -89,6 +97,6 @@ int Action_Principal::action() {
   if (doRotation_)
     currentFrame->Rotate( Evec );
 
-  return 0;
+  return Action::OK;
 }
 

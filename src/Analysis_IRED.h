@@ -10,11 +10,15 @@
 class Analysis_IRED : public Analysis {
   public:
     Analysis_IRED();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_IRED(); }
+    static void Help();
+
     ~Analysis_IRED();
 
-    int Setup(DataSetList*);
-    int Analyze();
-    //void Print(DataFileList*);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
+    void Print(DataFileList*) { return; }
   private:
     //static const double factor_;
     // 4/5*PI due to spherical harmonics addition theorem
@@ -24,6 +28,7 @@ class Analysis_IRED : public Analysis {
     double tcorr_;
     double distnh_;
     int order_;
+    int debug_;
     bool relax_;
     bool norm_;
     bool drct_;

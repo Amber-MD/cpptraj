@@ -57,6 +57,70 @@
 #include "Action_Rotate.h"
 #include "Action_Translate.h"
 
+const DispatchObject::Token ActionList::DispatchArray[] = {
+  { DispatchObject::ACTION, "2drms", Action_Rms2d::Alloc, Action_Rms2d::Help, 0 },
+  { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },
+  { DispatchObject::ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, 0 },
+  { DispatchObject::ACTION, "atomicfluct", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, 0 },
+    { DispatchObject::ACTION, "atommap", Action_AtomMap::Alloc, Action_AtomMap::Help, 0 },
+  { DispatchObject::ACTION, "autoimage", Action_AutoImage::Alloc, Action_AutoImage::Help, 0 },
+  { DispatchObject::ACTION, "average", Action_Average::Alloc, Action_Average::Help, 0 },
+  { DispatchObject::ACTION, "avgcoord", Action_AvgCoord::Alloc, Action_AvgCoord::Help, 0 },
+  { DispatchObject::ACTION, "bounds", Action_Bounds::Alloc, Action_Bounds::Help, 0 },
+  { DispatchObject::ACTION, "center", Action_Center::Alloc, Action_Center::Help, 0 },
+  { DispatchObject::ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
+  { DispatchObject::ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
+  { DispatchObject::ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, 0 },
+  { DispatchObject::ACTION, "cluster", Action_Clustering::Alloc, Action_Clustering::Help, 0 },
+  { DispatchObject::ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, 0 },
+  { DispatchObject::ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, 0 },
+  { DispatchObject::ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, 0 },
+  { DispatchObject::ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral::Help, 0 },
+//  { DispatchObject::ACTION, "dihedralscan", DihedralScan::Alloc, DihedralScan::Help, 0 },
+  { DispatchObject::ACTION, "dipole", Action_Dipole::Alloc, Action_Dipole::Help, 0 },
+  { DispatchObject::ACTION, "distance", Action_Distance::Alloc, Action_Distance::Help, 0 },
+  { DispatchObject::ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, 0 },
+  { DispatchObject::ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, 0 },
+  { DispatchObject::ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, 0 },
+  { DispatchObject::ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, 0 },
+  { DispatchObject::ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, 0 },
+  { DispatchObject::ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, 0 },
+  { DispatchObject::ACTION, "image", Action_Image::Alloc, Action_Image::Help, 0 },
+  { DispatchObject::ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, 0 },
+  { DispatchObject::ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, 0 },
+  { DispatchObject::ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, 0 },
+  { DispatchObject::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, 0 },
+  { DispatchObject::ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, 0 },
+  { DispatchObject::ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, 0 },
+//  { DispatchObject::ACTION, "pairwise", Pairwise::Alloc, Pairwise::Help, 0 },
+  { DispatchObject::ACTION, "principal", Action_Principal::Alloc, Action_Principal::Help, 0 },
+  { DispatchObject::ACTION, "projection", Action_Projection::Alloc, Action_Projection::Help, 0 },
+  { DispatchObject::ACTION, "pucker", Action_Pucker::Alloc, Action_Pucker::Help, 0 },
+  { DispatchObject::ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, 0 },
+  { DispatchObject::ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, 0 },
+  { DispatchObject::ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, 0 },
+  { DispatchObject::ACTION, "rms2d", Action_Rms2d::Alloc, Action_Rms2d::Help, 0 },
+  { DispatchObject::ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, 0 },
+  { DispatchObject::ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, 0 },
+  { DispatchObject::ACTION, "rmsavgcorr", Action_RmsAvgCorr::Alloc, Action_RmsAvgCorr::Help, 0 },
+  { DispatchObject::ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, 0 },
+  { DispatchObject::ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, 0 },
+  { DispatchObject::ACTION, "rotdif", Action_Rotdif::Alloc, Action_Rotdif::Help, 0 },
+  { DispatchObject::ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, 0 },
+  { DispatchObject::ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, 0 },
+  { DispatchObject::ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, 0 },
+  { DispatchObject::ACTION, "secstruct", Action_DSSP::Alloc, Action_DSSP::Help, 0 },
+  { DispatchObject::ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, 0 },
+  { DispatchObject::ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, 0 },
+  { DispatchObject::ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, 0 },
+  { DispatchObject::ACTION, "trans", Action_Translate::Alloc, Action_Translate::Help, 0 },
+  { DispatchObject::ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, 0 },
+  { DispatchObject::ACTION, "unwrap", Action_Unwrap::Alloc, Action_Unwrap::Help, 0 },
+  { DispatchObject::ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, 0 },
+  { DispatchObject::ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, 0 },
+  { DispatchObject::NONE,        0,                  0,                 0, 0 }
+};
+
 // CONSTRUCTOR
 ActionList::ActionList() :
   debug_(0)
@@ -65,7 +129,7 @@ ActionList::ActionList() :
 // DESTRUCTOR
 ActionList::~ActionList() {
     // No need to cast back to whatever action was allocd since Action destructor is virtual
-    for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
+    for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
       delete *act; 
 }
 
@@ -76,155 +140,53 @@ void ActionList::SetDebug(int debugIn) {
     mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug_);
 }
 
-// ActionList::AddAction()
-/** Check if the first argument of the given arglist is an action keyword.
-  * if so set up the appropriate action class.
-  * \param argIn input argument list
-  * \return 0 if action successfully added to the list, 1 if argument
-  *           not recognized.
-  */
-int ActionList::AddAction(ArgList &argIn) {
-  Action *Act;
-
-  // Decide what action this is based on the command.
-  if      (argIn.CommandIs("distance"))       {Act=new Action_Distance;}
-  else if (argIn.CommandIs("rms2d"))          {Act=new Action_Rms2d;   }
-  else if (argIn.CommandIs("2drms"))          {Act=new Action_Rms2d;   }
-  else if (argIn.CommandIs("rmsd"))           {Act=new Action_Rmsd;    }
-  else if (argIn.CommandIs("rms"))            {Act=new Action_Rmsd;    }
-  else if (argIn.CommandIs("dihedral"))       {Act=new Action_Dihedral;}
-  else if (argIn.CommandIs("atommap"))        {Act=new Action_AtomMap; }
-  else if (argIn.CommandIs("angle"))          {Act=new Action_Angle;   }
-  else if (argIn.CommandIs("strip"))          {Act=new Action_Strip;   }
-  else if (argIn.CommandIs("secstruct"))      {Act=new Action_DSSP;    }
-  else if (argIn.CommandIs("center"))         {Act=new Action_Center;  }
-  else if (argIn.CommandIs("hbond"))          {Act=new Action_Hbond;   }
-  else if (argIn.CommandIs("image"))          {Act=new Action_Image;   }
-  else if (argIn.CommandIs("surf"))           {Act=new Action_Surf;    }
-  else if (argIn.CommandIs("radgyr"))         {Act=new Action_Radgyr;  }
-  else if (argIn.CommandIs("rog"))            {Act=new Action_Radgyr;  }
-  else if (argIn.CommandIs("mask"))           {Act=new Action_Mask;    }
-  else if (argIn.CommandIs("closest"))        {Act=new Action_Closest; }
-  else if (argIn.CommandIs("nastruct"))       {Act=new Action_NAstruct;}
-  else if (argIn.CommandIs("pucker"))         {Act=new Action_Pucker;  }
-  else if (argIn.CommandIs("outtraj"))        {Act=new Action_Outtraj; }
-  else if (argIn.CommandIs("unstrip"))        {Act=new Action_Unstrip; }
-  else if (argIn.CommandIs("average"))        {Act=new Action_Average; }
-  else if (argIn.CommandIs("radial"))         {Act=new Action_Radial;  }
-  else if (argIn.CommandIs("drmsd"))          {Act=new Action_DistRmsd;}
-  else if (argIn.CommandIs("drms"))           {Act=new Action_DistRmsd;}
-  else if (argIn.CommandIs("jcoupling"))      {Act=new Action_Jcoupling;}
-  else if (argIn.CommandIs("cluster"))        {Act=new Action_Clustering;}
-  //else if (argIn.CommandIs("pairwise"))       {Act=new Pairwise;}
-  else if (argIn.CommandIs("molsurf"))        {Act=new Action_Molsurf; }
-  else if (argIn.CommandIs("checkstructure")) {Act=new Action_CheckStructure;}
-  else if (argIn.CommandIs("check"))          {Act=new Action_CheckStructure;}
-  //else if (argIn.CommandIs("dihedralscan"))   {Act=new DihedralScan;}
-  else if (argIn.CommandIs("rotdif"))         {Act=new Action_Rotdif;}
-  else if (argIn.CommandIs("runningaverage")) {Act=new Action_RunningAvg;}
-  else if (argIn.CommandIs("runavg"))         {Act=new Action_RunningAvg;}
-  else if (argIn.CommandIs("rmsavgcorr"))     {Act=new Action_RmsAvgCorr;}
-  else if (argIn.CommandIs("atomicfluct"))    {Act=new Action_AtomicFluct;}
-  else if (argIn.CommandIs("watershell"))     {Act=new Action_Watershell;}
-  else if (argIn.CommandIs("avgcoord"))       {Act=new Action_AvgCoord;}
-  else if (argIn.CommandIs("contacts"))       {Act=new Action_Contacts;}
-  else if (argIn.CommandIs("vector"))         {Act=new Action_Vector;}
-  else if (argIn.CommandIs("principal"))      {Act=new Action_Principal;}
-  else if (argIn.CommandIs("matrix"))        {Act=new Action_Matrix;}
-  else if (argIn.CommandIs("grid"))           {Act=new Action_Grid;}
-  else if (argIn.CommandIs("gfe"))            {Act=new Action_GridFreeEnergy;}
-  else if (argIn.CommandIs("dipole"))         {Act=new Action_Dipole;}
-  else if (argIn.CommandIs("projection"))     {Act=new Action_Projection;}
-  else if (argIn.CommandIs("clusterdihedral")){Act=new Action_ClusterDihedral;}
-  else if (argIn.CommandIs("unwrap"))         {Act=new Action_Unwrap;}
-  else if (argIn.CommandIs("diffusion"))      {Act=new Action_Diffusion;}
-  else if (argIn.CommandIs("dnaiontracker"))  {Act=new Action_DNAionTracker;}
-  else if (argIn.CommandIs("scale"))          {Act=new Action_Scale;}
-  else if (argIn.CommandIs("randomizeions"))  {Act=new Action_RandomizeIons;}
-  else if (argIn.CommandIs("autoimage"))      {Act=new Action_AutoImage;}
-  else if (argIn.CommandIs("atomiccorr"))     {Act=new Action_AtomicCorr;}
-  else if (argIn.CommandIs("bounds"))         {Act=new Action_Bounds;}
-  else if (argIn.CommandIs("rotate"))         {Act=new Action_Rotate;}
-  else if (argIn.CommandIs("trans"))          {Act=new Action_Translate;}
-  // STFC code
-  else if (argIn.CommandIs("stfc"))           {
-    std::string stfcCMD = argIn.GetStringNext();
-    if (stfcCMD == "diffusion")
-      Act = new Action_STFC_Diffusion;
-    else return 1;
-  }
-  else return 1; 
-
-  // Pass in the argument list
-  Act->SetArg(argIn);
-  // Debug
-  if (debug_>0) mprintf("    Added action %s\n", Act->ActionCommand());
-
-  // Store action in list
-  actionlist_.push_back(Act);
-
-  return 0;  
-}
-
-// ActionList::Init()
-/** Initialize non-parm-specific data for each action (like datasets). If an 
-  * action cannot be initialized deactivate it. Also set action debug level.
-  */
-int ActionList::Init( DataSetList *DSL, FrameList *FL, DataFileList *DFL, 
-                      TopologyList *PFL, bool exitOnError) 
+int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
+                          TopologyList* PFL, FrameList* FL, DataSetList* DSL,
+                          DataFileList* DFL)
 {
-  mprintf("\nACTIONS: Initializing %zu actions:\n",actionlist_.size());
-  unsigned int actnum = 0;
-  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
-  {
-    mprintf("  %u: [%s]\n", actnum++, (*act)->CmdLine());
-    if ((*act)->Status() == Action::INACTIVE) {
-      mprintf("Warning: Action %s is not active.\n", (*act)->ActionCommand());
-    } else {
-      if ( (*act)->Init( DSL, FL, DFL, PFL, debug_ ) ) {
-        if (exitOnError) {
-          mprinterr("Error: Init failed for [%s].\n", (*act)->CmdLine());
-          return 1;
-        } else {
-          mprintf("Warning: Init failed for [%s]: DEACTIVATING\n",
-                  (*act)->CmdLine());
-        }
-      }
-    }
-    mprintf("\n");
+  Action* act = (Action*)Alloc();
+  // Attempt to initialize action
+  if ( act->Init( argIn, PFL, FL, DSL, DFL, debug_ ) != Action::OK ) {
+    mprinterr("Error: Could not initialize action [%s]\n", argIn.Command());
+    return 1;
   }
-
+  argIn.CheckForMoreArgs();
+  actionlist_.push_back( act );
+  actioncmd_.push_back( argIn.ArgLine() );
+  actionstatus_.push_back( INIT );
   return 0;
 }
 
-// ActionList::Setup()
+// ActionList::SetupActions()
 /** Attempt to set up all actions in the action list with the given parm
   * If an action cannot be set up skip it.
   */
-int ActionList::Setup(Topology **ParmAddress) {
+int ActionList::SetupActions(Topology **ParmAddress) {
   Topology *OriginalParm = *ParmAddress;
 
   mprintf(".....................................................\n");
   mprintf("PARM [%s]: Setting up %zu actions.\n",(*ParmAddress)->c_str(),actionlist_.size());
   unsigned int actnum = 0;
-  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
+  for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
   {
-    if ((*act)->Status() != Action::INACTIVE) {
-      // Only attempt to set up action if active 
-      mprintf("  %u: [%s]\n", actnum++, (*act)->CmdLine());
-      // Reset action status to INIT (pre-setup)
-      (*act)->SetStatus( Action::INIT );
-      Action::ActionReturnType err = (*act)->Setup(ParmAddress);
-      if (err==Action::ACTION_ERR) {
+    // Only attempt to set up action if active 
+    if (actionstatus_[actnum] != INACTIVE) {
+      mprintf("  %u: [%s]\n", actnum, actioncmd_[actnum].c_str());
+      actionstatus_[actnum] = SETUP;
+      Action::RetType err = (*act)->Setup(*ParmAddress, ParmAddress);
+      if (err == Action::ERR) {
         mprintf("Warning: Setup failed for [%s]: Skipping\n",
-                (*act)->CmdLine());
+                actioncmd_[actnum].c_str());
+        // Reset action status to INIT (pre-setup)
+        actionstatus_[actnum] = INIT;
         //return 1;
-      } else if (err==Action::ACTION_USEORIGINALFRAME) {
+      } else if (err == Action::USEORIGINALFRAME) {
         // Return value of 2 requests return to original parm
         *ParmAddress = OriginalParm;
       }
       //fprintf(stdout,"DEBUG: After Action %i Setup parmName is %s\n",act,P->parmName);
     }
+    ++actnum;
   }
   //mprintf(".....................................................\n");
 
@@ -243,30 +205,32 @@ bool ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
   Frame *OriginalFrame = *FrameAddress;
 
   //fprintf(stdout,"DEBUG: Performing %i actions on frame %i.\n",Naction,frameNumIn);
-  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act) 
+  unsigned int actnum = 0;
+  for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act) 
   {
     // Only do actions which were properly set up
-    if ((*act)->Status() == Action::SETUP) { 
+    if (actionstatus_[actnum] == SETUP) { 
       // Perform action on frame
-      Action::ActionReturnType err = (*act)->DoAction(FrameAddress, frameNumIn);
+      Action::RetType err = (*act)->DoAction(frameNumIn, *FrameAddress, FrameAddress);
       // Check for action special conditions/errors
-      if (err != Action::ACTION_OK) {
-        if (err == Action::ACTION_USEORIGINALFRAME) {
+      if (err != Action::OK) {
+        if (err == Action::USEORIGINALFRAME) {
           // Return value of 2 requests return to original frame
           *FrameAddress = OriginalFrame;
-        } else if (err == Action::ACTION_SUPPRESSCOORDOUTPUT) {
+        } else if (err == Action::SUPPRESSCOORDOUTPUT) {
           // Skip the rest of the actions and suppress output. Necessary when
           // e.g. performing a running average over coords.
           return true;
         } else {
           // If here return type is ACTION_ERR.
           // Treat actions that fail as if they could not be set up
-          mprintf("Warning: Action [%s] failed, frame %i.\n", (*act)->CmdLine(),
+          mprintf("Warning: Action [%s] failed, frame %i.\n", actioncmd_[actnum].c_str(),
                 frameNumIn);
-          (*act)->SetStatus(Action::INIT);
+          actionstatus_[actnum] = INIT;
         }
       }
     }
+    ++actnum;
   }
   return false;
 }
@@ -274,10 +238,17 @@ bool ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
 // ActionList::Print()
 void ActionList::Print() {
   mprintf("\nACTION OUTPUT:\n");
-  for (action_it act = actionlist_.begin(); act != actionlist_.end(); ++act)
+  unsigned int actnum = 0;
+  for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
   {
     // Skip deactivated actions
-    if ((*act)->Status() == Action::INACTIVE) continue;
-    (*act)->print();
+    if (actionstatus_[actnum++] != INACTIVE)
+      (*act)->Print();
   }
+}
+
+void ActionList::List() {
+  mprintf("ACTIONS:\n");
+  for (unsigned int actnum = 0; actnum < actionlist_.size(); ++actnum)
+    mprintf("  %u: [%s]\n", actnum, actioncmd_[actnum].c_str());   
 }

@@ -5,8 +5,14 @@
 // CONSTRUCTOR
 Action_Bounds::Action_Bounds() {}
 
-/** Usage: bounds [<mask>] [out <filename>] */
-int Action_Bounds::init() {
+void Action_Bounds::Help() {
+  mprintf("bounds [<mask>] [out <filename>]\n");
+  mprintf("\tCalcuate the max/min coordinates (X,Y,Z) of atoms in <mask>\n");
+}
+
+Action::RetType Action_Bounds::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   outfilename_ = actionArgs.GetStringKey("out");
   
   mask_.SetMaskString( actionArgs.GetMaskNext() );
@@ -21,20 +27,20 @@ int Action_Bounds::init() {
   mprintf("    BOUNDS: Calculating bounds for atoms in mask [%s]\n", mask_.MaskString());
   if (!outfilename_.empty())
     mprintf("\tOutput to file %s\n", outfilename_.c_str());
-  return 0;
+  return Action::OK;
 }
 
-int Action_Bounds::setup() {
-  if ( currentParm->SetupIntegerMask( mask_ ) ) return 1;
+Action::RetType Action_Bounds::Setup(Topology* currentParm, Topology** parmAddress) {
+  if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
     mprinterr("Error: bounds: No atoms selected in mask.\n");
-    return 1;
+    return Action::ERR;
   }
-  return 0;
+  return Action::OK;
 }
 
-int Action_Bounds::action() {
+Action::RetType Action_Bounds::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
   {
     const double* xyz = currentFrame->XYZ( *atom );
@@ -45,10 +51,10 @@ int Action_Bounds::action() {
     if (xyz[2] < min_[2]) min_[2] = xyz[2];
     if (xyz[2] > max_[2]) max_[2] = xyz[2];
   }
-  return 0;
+  return Action::OK;
 }
 
-void Action_Bounds::print() {
+void Action_Bounds::Print() {
   CpptrajFile outfile;
 
   if ( outfile.OpenWrite( outfilename_ ) ) return;

@@ -7,8 +7,12 @@ class Analysis_Matrix : public Analysis {
   public:
     Analysis_Matrix();
 
-    int Setup(DataSetList*);
-    int Analyze();
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Matrix(); }
+    static void Help();
+
+
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
     void Print(DataFileList*);
   private:
     DataSet_Matrix* matrix_;

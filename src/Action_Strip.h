@@ -6,12 +6,17 @@
 class Action_Strip: public Action {
   public:
     Action_Strip();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Strip(); }
+    static void Help();
+
     ~Action_Strip();
-    void print() {}
+    void Print() {}
   private:
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 
     Topology *oldParm_;
     Topology *newParm_;
@@ -25,10 +30,14 @@ class Action_Strip: public Action {
 class Action_Unstrip: public Action {
   public:
     Action_Unstrip() {}
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Unstrip(); }
+    static void Help() { }
+
   private:
-    int init()   {return 0;}
-    int setup()  {return 2;}
-    int action() {return 2;}
-    void print() {}
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                         DataFileList*, int)       { return Action::OK;               }
+    Action::RetType Setup(Topology*, Topology**)   { return Action::USEORIGINALFRAME; }
+    Action::RetType DoAction(int, Frame*, Frame**) { return Action::USEORIGINALFRAME; }
+    void Print() {}
 };
 #endif  

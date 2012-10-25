@@ -6,7 +6,11 @@
 class Action_Pucker: public Action {
   public:
     Action_Pucker();
-    void print() {}
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Pucker(); }
+    static void Help();
+
+    void Print() {}
   private:
     DataSet *puck_;
     AtomMask M1_;
@@ -22,8 +26,9 @@ class Action_Pucker: public Action {
     double puckermin_;
     double puckermax_;
 
-    int init();
-    int setup();
-    int action();
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
 };
 #endif  

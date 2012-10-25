@@ -8,9 +8,15 @@ Action_Scale::Action_Scale() :
   sz_(1)
 {}
 
+void Action_Scale::Help() {
+
+}
+
 // Action_Scale::init()
 /** Usage: scale x <sx> y <sy> z <sz> <mask> */
-int Action_Scale::init() {
+Action::RetType Action_Scale::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   sx_ = actionArgs.getKeyDouble("x", 1);
   sy_ = actionArgs.getKeyDouble("y", 1);
   sz_ = actionArgs.getKeyDouble("z", 1);
@@ -19,21 +25,21 @@ int Action_Scale::init() {
   mprintf("    SCALE coordinates: X by %.3f, Y by %.3f, Z by %.3f\n", sx_, sy_, sz_);
   mprintf("                       Mask is [%s]\n", mask_.MaskString());
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Scale::setup()
-int Action_Scale::setup() {
-  if ( currentParm->SetupIntegerMask( mask_ ) ) return 1;
+Action::RetType Action_Scale::Setup(Topology* currentParm, Topology** parmAddress) {
+  if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
   if ( mask_.None() ) {
     mprintf("Warning: scale: No atoms selected.\n");
-    return 1;
+    return Action::ERR;
   }
-  return 0;
+  return Action::OK;
 }
 
 // Action_Scale::action()
-int Action_Scale::action() {
+Action::RetType Action_Scale::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   currentFrame->SCALE(mask_, sx_, sy_, sz_);
-  return 0;
+  return Action::OK;
 }

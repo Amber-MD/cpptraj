@@ -5,6 +5,7 @@
 #include "Analysis_Statistics.h" // torsion_ss, torsion_offset
 
 Analysis_CrankShaft::Analysis_CrankShaft() :
+  debug_(0),
   start_(0),
   stop_(-1),
   offset_(1),
@@ -14,56 +15,55 @@ Analysis_CrankShaft::Analysis_CrankShaft() :
   scalar2_(0)
 {}
 
-const char Analysis_CrankShaft::CSstring[2][9] = {
-  "angle", "distance"
-};
+void Analysis_CrankShaft::Help() {
+  mprintf("analyze crankshaft {angle | distance} <scalar-name1> <scalar-name2>\n");
+  mprintf("                   info <string>\n");
+}
 
-/** analyze crankshaft {angle | distance} <scalar-name1> <scalar-name2> 
-  *                     info <string>
-  */
-int Analysis_CrankShaft::Setup(DataSetList *DSLin) {
-  // Ensure first 2 args (should be 'analyze' 'crank') are marked.
-  analyzeArgs_.MarkArg(0);
-  analyzeArgs_.MarkArg(1);
+const char Analysis_CrankShaft::CSstring[2][9] = { "angle", "distance" };
 
-  info_ = analyzeArgs_.GetStringKey("info");
+Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
+                            TopologyList* PFLin, int debugIn)
+{
+  debug_ = debugIn;
+  info_ = analyzeArgs.GetStringKey("info");
   if (info_.empty())
     info_.assign("");
 
-  if (analyzeArgs_.hasKey("angle"))
+  if (analyzeArgs.hasKey("angle"))
     type_ = ANGLE;
-  else if (analyzeArgs_.hasKey("distance"))
+  else if (analyzeArgs.hasKey("distance"))
     type_ = DISTANCE;
 
-  filename_ = analyzeArgs_.GetStringKey("out");
+  filename_ = analyzeArgs.GetStringKey("out");
 
-  start_ = analyzeArgs_.getKeyInt("start", 1);
+  start_ = analyzeArgs.getKeyInt("start", 1);
   --start_;
-  stop_ = analyzeArgs_.getKeyInt("stop", -1);
-  offset_ = analyzeArgs_.getKeyInt("offset",1);
+  stop_ = analyzeArgs.getKeyInt("stop", -1);
+  offset_ = analyzeArgs.getKeyInt("offset",1);
 
   // Get dataset names
-  std::string name1 = analyzeArgs_.GetStringNext();
+  std::string name1 = analyzeArgs.GetStringNext();
   if (name1.empty()) {
     mprinterr("Error: crankshaft: No name specified for dataset 1.\n");
-    return 1;
+    return Analysis::ERR;
   }
-  std::string name2 = analyzeArgs_.GetStringNext();
+  std::string name2 = analyzeArgs.GetStringNext();
   if (name2.empty()) {
     mprinterr("Error: crankshaft: No name specified for dataset 2.\n");
-    return 1;
+    return Analysis::ERR;
   }
 
   // Get datasets
-  scalar1_ = DSLin->Get( name1.c_str() );
+  scalar1_ = DSLin->GetDataSet( name1 );
   if (scalar1_ == NULL) {
     mprinterr("Error: crankshaft: Dataset %s not found.\n", name1.c_str());
-    return 1;
+    return Analysis::ERR;
   }
-  scalar2_ = DSLin->Get( name2.c_str() );
+  scalar2_ = DSLin->GetDataSet( name2 );
   if (scalar2_ == NULL) {
     mprinterr("Error: crankshaft: Dataset %s not found.\n", name2.c_str());
-    return 1;
+    return Analysis::ERR;
   } 
 
   // INFO:
@@ -76,7 +76,7 @@ int Analysis_CrankShaft::Setup(DataSetList *DSLin) {
     mprintf("%i", stop_);
   mprintf(", offset %i\n", offset_);
 
-  return 0;
+  return Analysis::OK;
 }
 
 const char  Analysis_CrankShaft::distance_ss_2D[6][6][9] = {
@@ -98,7 +98,7 @@ const char  Analysis_CrankShaft::torsion_ss_2D[6][6][6] = {
 };
 
 // Analysis_CrankShaft::Analyze()
-int Analysis_CrankShaft::Analyze() {
+Analysis::RetType Analysis_CrankShaft::Analyze() {
   double v1_avg[6][6], v2_avg[6][6], v1_sd[6][6], v2_sd[6][6];
   int visits[6][6], transitions[6][6];
 
@@ -109,13 +109,13 @@ int Analysis_CrankShaft::Analyze() {
               scalar1_->Legend().c_str(), Nelements);
     mprinterr("                   # elements in dataset %s (%i)\n",
               scalar2_->Legend().c_str(), scalar2_->Size());
-    return 1;
+    return Analysis::ERR;
   }
   if (stop_ == -1)
     stop_ = Nelements;
   if (start_ >= Nelements) {
     mprinterr("Error: crankshaft: start (%i) >= total # elements.\n",start_+1, Nelements);
-    return 1;
+    return Analysis::ERR;
   }
   int totalFrames = (stop_ - start_) / offset_;
   mprintf("\tcrankshaft: Processing %i frames.\n", totalFrames);
@@ -135,7 +135,7 @@ int Analysis_CrankShaft::Analyze() {
 
   // Open output file
   CpptrajFile outfile;
-  if (outfile.OpenWrite( filename_ )) return 1;
+  if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
 
   // MAIN LOOP over frames
   int i1 = 0;
@@ -387,6 +387,6 @@ int Analysis_CrankShaft::Analyze() {
     outfile.Printf("        |-----------------------------------------------------------------------------------------------|\n");
   }
 
-  return 0;
+  return Analysis::OK;
 }
 

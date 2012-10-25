@@ -156,7 +156,7 @@ Topology::atom_iterator Topology::MolAtomEnd(int molnum) const {
 }
 
 // Topology::operator[]
-const Atom& Topology::operator[](int idx) {
+const Atom& Topology::operator[](int idx) const {
   return atoms_[idx];
 }
 
@@ -348,8 +348,8 @@ void Topology::ParmInfo() {
 }
 
 // Topology::PrintAtomInfo()
-void Topology::PrintAtomInfo(const char *maskString) {
-  AtomMask mask;
+void Topology::PrintAtomInfo(std::string const& maskString) {
+  AtomMask mask(maskString);
   mask.SetMaskString( maskString ); // TODO: Use only strings
   ParseMask(refCoords_, mask, true);
   if ( mask.None() )
@@ -1059,7 +1059,7 @@ void Topology::DetermineExcludedAtoms() {
 // -----------------------------------------------------------------------------
 // Topology::SetSolvent()
 /** Set solvent information from atom mask. */
-int Topology::SetSolvent(const char* maskexpr) {
+int Topology::SetSolvent(std::string const& maskexpr) {
   // Require molecule information
   if (molecules_.empty()) {
     mprinterr("Error: SetSolvent [%s]: No molecule information.\n", c_str());
@@ -1069,7 +1069,7 @@ int Topology::SetSolvent(const char* maskexpr) {
   AtomMask mask( maskexpr );
   SetupCharMask( mask );
   if (mask.None()) {
-    mprinterr("Error: SetSolvent [%s]: Mask %s selects no atoms.\n", c_str(), maskexpr);
+    mprinterr("Error: SetSolvent [%s]: Mask %s selects no atoms.\n", c_str(), maskexpr.c_str());
     return 1;
   }
   // Loop over all molecules
@@ -1103,7 +1103,7 @@ int Topology::SetSolvent(const char* maskexpr) {
   if (firstSolventMol == -1 && finalSoluteRes_ == -1)
     finalSoluteRes_ = (int)residues_.size() - 1;
   mprintf("\tSolvent Mask [%s]: %i solvent molecules, %i solvent atoms\n",
-          maskexpr, NsolventMolecules_, numSolvAtoms);
+          maskexpr.c_str(), NsolventMolecules_, numSolvAtoms);
   return 0;
 }
 

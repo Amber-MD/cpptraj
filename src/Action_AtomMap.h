@@ -7,13 +7,19 @@
 class Action_AtomMap : public Action {
   public:
     Action_AtomMap(); 
-    ~Action_AtomMap();
-    void print() {}
-  private:
-    int init();
-    int setup();
-    int action();
 
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomMap(); }
+    static void Help();
+
+    ~Action_AtomMap();
+    void Print() {}
+  private:
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+
+    int debug_;
     AtomMap RefMap_;
     Frame* RefFrame_;
     Topology* RefParm_;

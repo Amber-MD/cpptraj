@@ -8,10 +8,14 @@ Action_Center::Action_Center() :
   useMass_(false)
 { } 
 
+void Action_Center::Help() {
+  mprintf("center <mask> [origin] [mass]\n\tCenter coordinates.\n");
+}
+
 // Action_Center::init()
-/** Expected call: center <mask> [origin] [mass] 
-  */
-int Action_Center::init() {
+Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
   useMass_ = actionArgs.hasKey("mass");
@@ -31,36 +35,36 @@ int Action_Center::init() {
     mprintf(" geometry");
   mprintf(" using atoms in mask %s\n",Mask_.MaskString());
 
-  return 0;
+  return Action::OK;
 }
 
 // Action_Center::setup()
 /** Set angle up for this parmtop. Get masks etc. */
 // currentParm is set in Action::Setup
-int Action_Center::setup() {
+Action::RetType Action_Center::Setup(Topology* currentParm, Topology** parmAddress) {
 
-  if ( currentParm->SetupIntegerMask(Mask_) ) return 1;
+  if ( currentParm->SetupIntegerMask(Mask_) ) return Action::ERR;
   Mask_.MaskInfo();
   if (Mask_.None()) {
     mprintf("Warning: center:: Mask contains 0 atoms.\n");
-    return 1;
+    return Action::ERR;
   }
 
   if (!origin_ && currentParm->BoxType()==Box::NOBOX) {
     mprintf("Warning: center: Box center specified but no box information.\n");
     //fprintf(stdout,"                            Centering on origin.\n");
-    return 1;
+    return Action::ERR;
   }
 
-  return 0;  
+  return Action::OK;  
 }
 
 // Action_Center::action()
 /** Center coordinates in frame to coord origin or box origin (corner).
   */
-int Action_Center::action() {
+Action::RetType Action_Center::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
 
   currentFrame->Center(Mask_, origin_, useMass_);
 
-  return 0;
+  return Action::OK;
 } 
