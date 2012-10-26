@@ -93,7 +93,7 @@ int Topology::Nframes() {
 }
 
 // Topology::Ntypes()
-int Topology::Ntypes() {
+int Topology::Ntypes() const {
   return ntypes_;
 }
 

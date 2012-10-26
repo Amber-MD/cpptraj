@@ -47,6 +47,7 @@ class Atom {
     void SetResNum(int);
     void SetMol(int);
     bool NoMol();
+    void SetCharge(double qin) { charge_ = qin; }
     // Inline functions returning internal vars
     inline const char *c_str() const         { return *aname_; }
     inline int ResNum() const                { return resnum_; }

@@ -27,16 +27,19 @@ class Topology {
     int Nmol();
     int Nsolvent();
     int Nframes();
-    int Ntypes();
+    int Ntypes() const;
     void IncreaseFrames(int);
     const char *c_str();
     std::string ParmName();
     std::string OriginalFilename();
     std::string GBradiiSet();
     // ---- Atom-specific routines -----
+    typedef std::vector<Atom>::iterator iterator;
+    inline iterator begin() { return atoms_.begin(); }
+    inline iterator end()   { return atoms_.end();   }
     typedef std::vector<Atom>::const_iterator atom_iterator;
     inline atom_iterator begin() const { return atoms_.begin(); }
-    inline atom_iterator end() const   { return atoms_.end();   }
+    inline atom_iterator end()   const { return atoms_.end();   }
     atom_iterator ResAtomStart(int) const;
     atom_iterator ResAtomEnd(int) const;
     atom_iterator MolAtomStart(int) const;
