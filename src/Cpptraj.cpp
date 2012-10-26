@@ -304,7 +304,8 @@ Cpptraj::Mode Cpptraj::Interactive() {
   Mode readLoop = C_OK;
   while ( readLoop == C_OK ) {
     if (inputLine.GetInput()) break; 
-    readLoop = Dispatch( inputLine.c_str() );
+    if (!inputLine.empty())
+      readLoop = Dispatch( inputLine.c_str() );
   }
   // If we broke out of loop because of EOF and Run has been called at least
   // once, indicate that we can safely quit.
@@ -471,6 +472,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
 Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
   //mprintf("\t[%s]\n", inputLine);
   ArgList command( inputLine );
+  if ( command.empty() ) return C_OK;
   command.MarkArg(0); // Always mark the command
   if ( SearchToken( command ) ) {
     //mprintf("TOKEN FOUND. CMD=%s  TYPE=%i\n", dispatchToken_->Cmd, (int)dispatchToken_->Type);
