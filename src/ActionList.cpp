@@ -26,7 +26,7 @@
 #include "Action_DistRmsd.h"
 #include "Action_Jcoupling.h"
 #include "Action_Clustering.h"
-//#include "Action_Pairwise.h"
+#include "Action_Pairwise.h"
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
 //#include "Action_DihedralScan.h"
@@ -92,7 +92,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, 0 },
   { DispatchObject::ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, 0 },
   { DispatchObject::ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, 0 },
-//  { DispatchObject::ACTION, "pairwise", Pairwise::Alloc, Pairwise::Help, 0 },
+  { DispatchObject::ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, 0 },
   { DispatchObject::ACTION, "principal", Action_Principal::Alloc, Action_Principal::Help, 0 },
   { DispatchObject::ACTION, "projection", Action_Projection::Alloc, Action_Projection::Help, 0 },
   { DispatchObject::ACTION, "pucker", Action_Pucker::Alloc, Action_Pucker::Help, 0 },
