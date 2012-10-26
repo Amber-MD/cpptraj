@@ -565,7 +565,9 @@ int Cpptraj::Run() {
   switch ( trajinList.Mode() ) {
     case TrajinList::NORMAL   : err = RunNormal(); break;
     case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
-    default: err = 1; break;
+    default: 
+      mprinterr("No trajectories loaded. Exiting.\n");
+      err = 1; 
   }
   return err;
 }
