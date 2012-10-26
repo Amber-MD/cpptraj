@@ -26,6 +26,10 @@ int ReadLine::GetInput() {
     input_ += line;
     end = strlen( line );
   }
+  // Remove leading whitespace.
+  std::string::iterator beg = input_.begin();
+  while ( beg != input_.end() && isspace(*beg) )
+    beg = input_.erase(beg);
   // Find '#' not preceded by blackslash; indicates comment
   end = input_.find_first_of('#');
   if (end != std::string::npos) {
