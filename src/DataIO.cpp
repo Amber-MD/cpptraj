@@ -1,6 +1,7 @@
 #include <cmath> // log10, fabs
 #include "DataIO.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // DoubleFormatString
 
 // CONSTRUCTOR
 DataIO::DataIO() {

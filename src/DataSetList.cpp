@@ -5,6 +5,7 @@
 // This also includes basic DataSet class and dataType
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // convertToInteger and DigitWidth
 #include "ArgList.h"
 #include "Range.h"
 // Data types go here

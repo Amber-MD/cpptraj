@@ -4,6 +4,7 @@
 // Dan Roe 2011-01-07
 #include "Traj_AmberRestartNC.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // NumberFilename
 #include "netcdf.h"
 
 // CONSTRUCTOR

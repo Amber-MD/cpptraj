@@ -7,6 +7,7 @@
 #include <cstdarg> // va_X functions
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // fileExists, tildeExpansion
 // File Types
 #include "FileIO_Std.h"
 #ifdef HASGZ

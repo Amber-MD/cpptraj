@@ -1,6 +1,7 @@
 #include <cstring> // memset
 #include "Analysis_IRED.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // fileExists
 #include "Constants.h" // PI
 
 // CONSTRUCTOR

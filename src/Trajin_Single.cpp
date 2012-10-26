@@ -1,5 +1,6 @@
 #include "Trajin_Single.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
 Trajin_Single::Trajin_Single() :
@@ -28,6 +29,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Top
   // Check and set associated parm file
   if ( SetTrajParm( tparmIn ) ) return 1;
   // Check that file exists
+  // FIXME: Is this necessary? Just let cpptrajfile check this?
   if (!fileExists(tnameIn.c_str())) {
     mprinterr("Error: File %s does not exist.\n",tnameIn.c_str());
     return 1;

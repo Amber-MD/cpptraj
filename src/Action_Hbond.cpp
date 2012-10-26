@@ -3,6 +3,7 @@
 #include <algorithm> // sort
 #include "Action_Hbond.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // DigitWidth
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 #include "Constants.h" // RADDEG, DEGRAD

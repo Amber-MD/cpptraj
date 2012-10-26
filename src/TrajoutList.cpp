@@ -1,6 +1,7 @@
 // TrajoutList
 #include "TrajoutList.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString 
 //#incl ude "MpiRoutines.h" //worldsize
 
 TrajoutList::TrajoutList() { }

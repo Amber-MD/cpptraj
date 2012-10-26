@@ -1,6 +1,7 @@
 #include <cmath>
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 #include "DistRoutines.h"
 #include "Constants.h" // RADDEG
 #include "vectormath.h"

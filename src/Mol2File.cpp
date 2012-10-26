@@ -1,7 +1,8 @@
 #include <cstring>
 #include <cstdio>
 #include "Mol2File.h"
-#include "CpptrajStdio.h"
+#include "CpptrajStdio.h" // To print debug info
+#include "StringRoutines.h" // RemoveTrailingWhitespace
 
 // CONSTRUCTOR
 Mol2File::Mol2File() : 

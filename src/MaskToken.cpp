@@ -1,6 +1,7 @@
 #include <locale>
 #include "MaskToken.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // convertToInteger, convertToDouble
 
 MaskToken::MaskToken() :
   type_(OP_NONE),

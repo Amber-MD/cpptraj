@@ -3,6 +3,7 @@
 #include <cstring> // memset
 #include "DataSet.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // SetStringFormatString etc
 #include "PubFFT.h"
 
 // CONSTRUCTOR

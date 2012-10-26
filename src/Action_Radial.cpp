@@ -3,6 +3,7 @@
 #include <cstring> // memset
 #include "Action_Radial.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // doubleToString
 #include "Constants.h" // FOURTHIRDSPI
 #ifdef _OPENMP
 #  include "omp.h"

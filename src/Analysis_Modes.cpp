@@ -2,6 +2,7 @@
 #include <cstring> // memset
 #include "Analysis_Modes.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // fileExists
 #include "Constants.h" // TWOPI
 
 // CONSTRUCTOR

@@ -5,6 +5,7 @@
 #include <cstdlib> // atoi, atof
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // RemoveTrailingWhitespace, SetIntegerFormatString etc
 #include "Box.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
 

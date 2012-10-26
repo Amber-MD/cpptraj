@@ -2,6 +2,7 @@
 #include <sstream>
 #include "Trajin_Multi.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
 Trajin_Multi::Trajin_Multi() :

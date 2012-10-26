@@ -3,6 +3,7 @@
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // convertToInteger
 #include "Trajin_Multi.h"
 #include "FrameArray.h"
 #include "ReadLine.h"

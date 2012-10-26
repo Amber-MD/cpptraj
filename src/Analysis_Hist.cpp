@@ -1,5 +1,6 @@
 #include "Analysis_Hist.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // doubleToString
 // Analysis_Hist
 
 // CONSTRUCTOR

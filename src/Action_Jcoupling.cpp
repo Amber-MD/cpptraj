@@ -5,6 +5,7 @@
 #include <cmath> //cos
 #include "Action_Jcoupling.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // fileExists
 #include "Constants.h" // DEGRAD, RADDEG
 #include "TorsionRoutines.h"
 

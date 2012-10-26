@@ -2,6 +2,7 @@
 #include <cmath> // sqrt
 #include "Analysis_FFT.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // doubleToString
 #include "PubFFT.h"
 
 // CONSTRUCTOR

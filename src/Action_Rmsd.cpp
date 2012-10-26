@@ -1,6 +1,7 @@
 // RMSD
 #include "Action_Rmsd.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 
 // TODO: Make all Frames non-pointers
 

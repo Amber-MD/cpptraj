@@ -2,7 +2,8 @@
 #include <cstring> // strchr
 #include <cctype>  // isdigit, isalpha
 #include "DataIO_Std.h"
-#include "CpptrajStdio.h" // SetStringFormatString
+#include "CpptrajStdio.h" 
+#include "StringRoutines.h" // SetStringFormatString
 #include "FileBuffer.h"
 
 // CONSTRUCTOR

@@ -1,6 +1,7 @@
 #include <cmath> // log
 #include "Action_GridFreeEnergy.h"
 #include "CpptrajStdio.h" // mprintf, mprinterr
+#include "StringRoutines.h" // integerToString
 
 // CONSTRUCTOR
 Action_GridFreeEnergy::Action_GridFreeEnergy() :

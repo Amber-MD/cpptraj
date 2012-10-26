@@ -4,6 +4,7 @@
 #include <locale>
 #include <stdexcept> // ArgList[]
 #include "CpptrajStdio.h"
+#include "StringRoutines.h"
  
 using namespace std;
 
@@ -520,10 +521,11 @@ int ArgList::ArgToInteger(int pos) {
   return convertToInteger(arglist[pos]);
 }
 
+/** Return true as soon as an unmarked arg is encountered. */
 bool ArgList::ArgsRemain() {
   for (std::vector<bool>::iterator mark = marked.begin();
                                    mark != marked.end(); ++mark)
-  { // Return true as soon as an unmarked arg is encountere // Return true as soon as an unmarked arg is encounteredd
+  {  
     if ( !(*mark) ) return true;
   }
   return false;

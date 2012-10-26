@@ -2,6 +2,7 @@
 #include <map>
 #include "Action_AtomicCorr.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 #include "TriangleMatrix.h"
 #include "vectormath.h"
 #include "ProgressBar.h"

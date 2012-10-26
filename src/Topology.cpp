@@ -5,6 +5,7 @@
 #endif
 #include "Topology.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString 
 #include "DistRoutines.h"
 // DEBUG
 //#include <cmath> // sqrt

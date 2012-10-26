@@ -4,6 +4,7 @@
 #include <cctype> // isdigit, isspace: file detection
 #include "Traj_AmberRestart.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // NumberFilename
 
 const size_t Traj_AmberRestart::BUF_SIZE = 128;
 

@@ -5,6 +5,7 @@
 #include <cstring> // memset
 #include "Action_Rotdif.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // NumberFilename
 #include "Constants.h" // TWOPI
 #include "vectormath.h"
 #include "Integrate.h"

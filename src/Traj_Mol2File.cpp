@@ -1,6 +1,7 @@
 // Traj_Mol2File
 #include "Traj_Mol2File.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // NumberFilename
 
 // CONSTRUCTOR
 Traj_Mol2File::Traj_Mol2File() : 

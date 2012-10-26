@@ -2,6 +2,7 @@
 #include <cfloat> // DBL_MAX
 #include "Action_Clustering.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // fileExists, integerToString
 #include "ProgressBar.h"
 #include "DataSet_integer.h" // For converting cnumvtime
 #include "Trajout.h"

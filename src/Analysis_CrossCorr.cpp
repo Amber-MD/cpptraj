@@ -1,6 +1,7 @@
 #include "Analysis_CrossCorr.h"
 #include "TriangleMatrix.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 
 // CONSTRUCTOR
 Analysis_CrossCorr::Analysis_CrossCorr() {}

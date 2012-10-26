@@ -1,6 +1,7 @@
 // Traj_PDBfile
 #include "Traj_PDBfile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // NumberFilename
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
