@@ -104,6 +104,11 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   mask = actionArgs.getNextMask();
   Mask_.SetMaskString(mask);
 
+  // If calculating solvent and avgout filename is specified but 
+  // solvout is not, set solvout = avgout
+  if ( calcSolvent_ && solvout_.empty() && !avgout_.empty() )
+    solvout_ = avgout_;
+
   // Setup datasets
   hbsetname_ = actionArgs.GetStringNext();
   if (hbsetname_.empty())
@@ -341,12 +346,8 @@ Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddres
               a2+1,(*currentParm)[a2].c_str()); 
     } 
   }
-  if ( Acceptor_.empty() ) {
-    mprinterr("Error: No HBond acceptors.\n");
-    return Action::ERR;
-  }
-  if ( Donor_.empty() ) {
-    mprinterr("Error: No HBond donors.\n");
+  if ( Acceptor_.empty() && Donor_.empty() ) {
+    mprinterr("Error: No HBond donors or acceptors.\n");
     return Action::ERR;
   }
 
