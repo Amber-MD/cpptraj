@@ -20,7 +20,7 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, TopologyList* PFL, Frame
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  ArgList::ConstArg angleFile = actionArgs.getKeyString("out");
+  std::string angleFile = actionArgs.GetStringKey("out");
   useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
