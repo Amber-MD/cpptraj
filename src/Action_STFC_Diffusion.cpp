@@ -17,15 +17,13 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
 {}
 
 void Action_STFC_Diffusion::Help() {
-
+  mprintf("diffusion mask <mask> [out <file>] [time <time per frame>]\n");
+  mprintf("          ([mask2 <mask>] [lower <distance>] [upper <distance>]\n");
+  mprintf("          [nwout <file>]) [avout <file>] [distances] [com]\n");
+  mprintf("          [x|y|z|xy|xz|yz|xyz]\n");
 }
 
 // Action_STFC_Diffusion::init()
-/** Usage: diffusion mask <mask> [out <file>] [time <time per frame>]
- *                   ([mask2 <mask>] [lower <distance>] [upper <distance>]
- *                   [nwout <file>]) [avout <file>] [distances] [com]
- *                   [x|y|z|xy|xz|yz|xyz]
- */
 Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

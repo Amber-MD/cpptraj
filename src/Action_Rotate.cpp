@@ -17,11 +17,9 @@ Action_Rotate::Action_Rotate() {
 }
 
 void Action_Rotate::Help() {
-
+  mprintf("rotate [<mask>] [x <xdeg>] [y <ydeg>] [z <zdeg>]\n");
 }
 
-/** Usage: rotate [<mask>] [x <xdeg>] [y <ydeg>] [z <zdeg>]
-  */
 Action::RetType Action_Rotate::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

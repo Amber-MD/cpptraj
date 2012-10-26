@@ -42,7 +42,8 @@ Action_Molsurf::~Action_Molsurf() {
 }
 
 void Action_Molsurf::Help() {
-
+  mprintf("molsurf [<name>] [<mask1>] [out filename] [probe <probe_rad>] [offset <rad_offset>]\n");
+  mprintf("\tCalculate Connolly surface area of atoms in <mask1>\n");
 }
 
 // MolSurf::ClearMemory()
@@ -100,13 +101,6 @@ int Action_Molsurf::AllocateMemory() {
 }
 
 // Action_Molsurf::init()
-/** Expected call: molsurf [<name>] [<mask1>] [out filename] [probe <probe_rad>]
-                           [offset <rad_offset>]
-  * Dataset name will be the last arg checked for. Check order is:
-  *    1) Keywords
-  *    2) Masks
-  *    3) Dataset name
-  */
 Action::RetType Action_Molsurf::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

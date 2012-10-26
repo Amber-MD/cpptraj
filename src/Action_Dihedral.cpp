@@ -11,15 +11,11 @@ Action_Dihedral::Action_Dihedral() :
 { } 
 
 void Action_Dihedral::Help() {
-
+  mprintf("dihedral [<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n");
+  mprintf("         [type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n");
 }
 
 // Action_Dihedral::init()
-/** Expected call: dihedral <name> <mask1> <mask2> <mask3> <mask4> [out filename]
-  *                         [mass]
-  *                         [type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p
-  *                                h1p  |phi |psi  |pchi}]
-  */
 Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

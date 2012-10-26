@@ -17,7 +17,15 @@ Action_Image::Action_Image() :
 { } 
 
 void Action_Image::Help() {
-
+  mprintf("Expected call: image [origin] [center] [triclinic | familiar [com <mask>]] <mask>\n"); 
+  mprintf("                     [ bymol | byres | byatom ]\n");
+  mprintf("- origin: center at 0.0, 0.0, 0.0, otherwise center at box center.\n");
+  mprintf("- center: Use center of mass for imaging, otherwise use first atom.\n");
+  mprintf("- triclinic: Force imaging with triclinic code.\n");
+  mprintf("- familiar: Image with triclinic code and shape into familiar trunc. oct. shape.\n");
+  mprintf("- com <mask>: If familiar, center based on COM of atoms in mask, otherwise use\n");
+  mprintf("              origin/box.\n");
+  mprintf("- <mask>: Only image atoms in <mask>. If no mask given all atoms are imaged.\n");
 }
 
 // DESTRUCTOR
@@ -30,19 +38,6 @@ const char Action_Image::ImageModeString[3][9] = {
 };
 
 // Action_Image::init()
-/** Expected call: image [origin] [center] [triclinic | familiar [com <mask>]] <mask> 
-  *                      [ bymol | byres | byatom ] 
-  * - origin: center at 0.0, 0.0, 0.0, otherwise center at box center.
-  * - center: Use center of mass for imaging, otherwise use first atom.
-  * - triclinic: Force imaging with triclinic code.
-  * - familiar: Image with triclinic code and shape into familiar trunc. oct. shape.
-  * - com <mask>: If familiar, center based on COM of atoms in mask, otherwise use
-  *               origin/box.
-  * - <mask>: Only image atoms in <mask>. If no mask given all atoms are imaged.
-  */
-// Check order is:
-//    1) Keywords
-//    2) Masks
 Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

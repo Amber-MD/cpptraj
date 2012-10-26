@@ -14,12 +14,11 @@ Action_Surf::Action_Surf() {
 } 
 
 void Action_Surf::Help() {
-
+  mprintf("surf <name> <mask1> [out filename]\n");
+  mprintf("\tCalculate LCPO surface area of atoms in <mask1>\n");
 }
 
 // Action_Surf::init()
-/** Expected call: surf <name> <mask1> [out filename]
-  */
 Action::RetType Action_Surf::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

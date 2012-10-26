@@ -12,13 +12,11 @@ Action_DNAionTracker::Action_DNAionTracker() :
 { }
 
 void Action_DNAionTracker::Help() {
-
+  mprintf("dnaiontracker name mask_p1 mask_p2 mask_base mask_ions\n");
+  mprintf("              [poffset <value>] [out <filename>] [time <interval>] [noimage]\n");
+  mprintf("              [shortest | counttopcone| countbottomcone | count]\n");
 }
 
-/** dnaiontracker name mask_p1 mask_p2 mask_base mask_ions 
-  *               [poffset <value>] [out <filename>] [time <interval>] [noimage] 
-  *               [shortest | counttopcone| countbottomcone | count]
-  */
 Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

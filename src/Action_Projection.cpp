@@ -12,13 +12,11 @@ Action_Projection::Action_Projection() :
 {}
 
 void Action_Projection::Help() {
-
+  mprintf("projection modes <modesfile> out <outfile>\n");
+  mprintf("           [beg <beg>] [end <end>] [<mask>]\n");
+  mprintf("           [start <start>] [stop <stop>] [offset <offset>]\n");
 }
 
-/** projection modes <modesfile> out <outfile>
-  *            [beg <beg>] [end <end>] [<mask>]
-  *            [start <start>] [stop <stop>] [offset <offset>]
-  */
 Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

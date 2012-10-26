@@ -9,11 +9,10 @@ Action_Scale::Action_Scale() :
 {}
 
 void Action_Scale::Help() {
-
+  mprintf("scale x <sx> y <sy> z <sz> <mask>\n");
 }
 
 // Action_Scale::init()
-/** Usage: scale x <sx> y <sy> z <sz> <mask> */
 Action::RetType Action_Scale::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

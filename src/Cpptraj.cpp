@@ -81,6 +81,7 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "quit" ,         0,          0, QUIT     },
   { DispatchObject::GENERAL, "readdata",      0,          0, READDATA },
   { DispatchObject::GENERAL, "readinput",      0,          0, READINPUT },
+  { DispatchObject::GENERAL, "run"   ,         0,          0, RUN      },
   { DispatchObject::GENERAL, "writedata",      0,          0, WRITEDATA },
   { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS, SELECTDS },
   { DispatchObject::NONE,                  0, 0,          0,      0   }

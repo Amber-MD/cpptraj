@@ -11,18 +11,14 @@ Action_Grid::Action_Grid() :
 {}
 
 void Action_Grid::Help() {
-
+  mprintf("grid <filename> nx dx ny dy nz dz [origin] [negative] <mask>\n"); 
+  mprintf("     [max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
+  mprintf("<fraction>: Percent of max to write.\n");
+  mprintf("<madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n");
+  mprintf("<value>   : Used to smooth density.\n");
 }
 
 // Action_Grid::init()
-/** Usage: grid <filename> nx dx ny dy nz dz [origin] [negative] 
-  *             [max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]
-  *             <mask>
-  *
-  * <fraction>: Percent of max to write.
-  * <madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.
-  * <value>   : Used to smooth density.
-  */
 Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

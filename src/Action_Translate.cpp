@@ -9,11 +9,9 @@ Action_Translate::Action_Translate() {
 }
 
 void Action_Translate::Help() {
-
+  mprintf("trans [<mask>] [x <dx>] [y <dy>] [z <dz>]\n");
 }
 
-/** Usage: trans [<mask>] [x <dx>] [y <dy>] [z <dz>]
-  */
 Action::RetType Action_Translate::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

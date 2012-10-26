@@ -16,13 +16,11 @@ Action_Pucker::Action_Pucker() :
 { } 
 
 void Action_Pucker::Help() {
-
+  mprintf("pucker [<name>] <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>\n");
+  mprintf("       [range360] [amplitude] [altona | cremer] [offset <offset>]\n");
 }
 
 // Action_Pucker::init()
-/** Expected call: pucker <name> <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>
-  *                [range360] [amplitude] [altona | cremer] [offset <offset>]
-  */
 Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
