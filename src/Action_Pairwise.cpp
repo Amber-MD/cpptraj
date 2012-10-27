@@ -6,21 +6,20 @@
 #include "Constants.h" // ELECTOAMBER
 
 // CONSTRUCTOR
-Action_Pairwise::Action_Pairwise() {
-  //fprintf(stderr,"Pairwise Con\n");
-  nb_calcType = NORMAL;
-  RefParm=NULL;
-  CurrentParm_ = 0;
-  RefFrame=NULL;
-  kes = 1.0;
-  ELJ=0;
-  Eelec=0;
-  cut_eelec=1.0;
-  cut_eelec1=-1.0;
-  cut_evdw=1.0;
-  cut_evdw1=-1.0;
-  N_ref_interactions=0;
-} 
+Action_Pairwise::Action_Pairwise() :
+  nb_calcType_(NORMAL),
+  CurrentParm_(0),
+  N_ref_interactions_(0),
+  kes_(1.0),
+  ds_vdw_(0),
+  ds_elec_(0),
+  ELJ_(0),
+  Eelec_(0),
+  cut_evdw_(1.0),
+  cut_evdw1_(-1.0),
+  cut_eelec_(1.0),
+  cut_eelec1_(-1.0)
+{} 
 
 void Action_Pairwise::Help() {
   mprintf("pairwise [<name>] [<mask>] [out <filename>] [cuteelec <cute>] [cutevdw <cutv>]\n");
@@ -30,7 +29,7 @@ void Action_Pairwise::Help() {
 // DESTRUCTOR
 Action_Pairwise::~Action_Pairwise() {
   //fprintf(stderr,"Pairwise Destructor.\n");
-  Eout.CloseFile();
+  Eout_.CloseFile();
 }
 
 // Action_Pairwise::init()
@@ -42,74 +41,75 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   std::string eout = actionArgs.GetStringKey("eout");
   std::string referenceName = actionArgs.GetStringKey("ref");
   int refindex = actionArgs.getKeyInt("refindex",-1);
-  cut_eelec = actionArgs.getKeyDouble("cuteelec",1.0);
-  cut_eelec1 = -cut_eelec;
-  cut_evdw = actionArgs.getKeyDouble("cutevdw",1.0);
-  cut_evdw1 = -cut_evdw;
+  cut_eelec_ = actionArgs.getKeyDouble("cuteelec",1.0);
+  cut_eelec1_ = -cut_eelec_;
+  cut_evdw_ = actionArgs.getKeyDouble("cutevdw",1.0);
+  cut_evdw1_ = -cut_evdw_;
   cutout_ = actionArgs.GetStringKey("cutout");
   
   // Get Masks
-  Mask0.SetMaskString( actionArgs.GetMaskNext() );
+  Mask0_.SetMaskString( actionArgs.GetMaskNext() );
   std::string refmask = actionArgs.GetMaskNext();
   if (!refmask.empty())
-    RefMask.SetMaskString(refmask);
+    RefMask_.SetMaskString(refmask);
   else
-    RefMask.SetMaskString( Mask0.MaskString() );
+    RefMask_.SetMaskString( Mask0_.MaskString() );
 
   // Datasets
   std::string ds_name = actionArgs.GetStringNext();
-  ds_vdw = DSL->AddSet(DataSet::DOUBLE, ds_name, "EVDW");
-  ds_elec= DSL->AddSet(DataSet::DOUBLE, ds_name, "EELEC");
+  ds_vdw_  = DSL->AddSet(DataSet::DOUBLE, ds_name, "EVDW");
+  ds_elec_ = DSL->AddSet(DataSet::DOUBLE, ds_name, "EELEC");
   // Add datasets to data file list
-  DFL->AddSetToFile(dataout, ds_vdw);
-  DFL->AddSetToFile(dataout, ds_elec);
+  DFL->AddSetToFile(dataout, ds_vdw_);
+  DFL->AddSetToFile(dataout, ds_elec_);
 
   // Get reference structure
+  Frame* RefFrame = 0;
   if (!referenceName.empty() || refindex!=-1) {
     // Attempt to get reference index by name
     if (!referenceName.empty())
       refindex = FL->FindName( referenceName );
     // Get reference frame by index
     RefFrame = FL->GetFrame(refindex);
-    if (RefFrame==NULL) {
+    if (RefFrame==0) {
       mprinterr("    Error: Pairwise::init: Could not get reference index %i\n",refindex);
       return Action::ERR;
     }
     // Set reference parm
-    RefParm = FL->GetFrameParm(refindex);
+    Topology* RefParm = FL->GetFrameParm(refindex);
     // Set up reference mask
-    if ( RefParm->SetupIntegerMask(RefMask) ) return Action::ERR;
-    if (RefMask.None()) {
+    if ( RefParm->SetupIntegerMask(RefMask_) ) return Action::ERR;
+    if (RefMask_.None()) {
       mprinterr("    Error: Pairwise::init: No atoms selected in reference mask.\n");
       return Action::ERR;
     }
     // Set up nonbonded params for reference
-    if ( (N_ref_interactions=SetupNonbondParm( RefMask, RefParm )) == -1 ) return Action::ERR;
+    if ( (N_ref_interactions_=SetupNonbondParm( RefMask_, RefParm )) == -1 ) return Action::ERR;
     // Calculate energy for reference
-    nb_calcType = SET_REF;
-    NonbondEnergy(RefFrame, RefParm, RefMask);
-    mprintf("DEBUG:\tReference ELJ= %12.4lf  Eelec= %12.4lf\n",ELJ,Eelec);
-    mprintf("DEBUG:\tSize of reference eelec array: %u\n",ref_nonbondEnergy.size());
-    mprintf("DEBUG:\tSize of reference evdw array: %u\n",ref_nonbondEnergy.size());
-    nb_calcType = COMPARE_REF;
+    nb_calcType_ = SET_REF;
+    NonbondEnergy(RefFrame, RefParm, RefMask_);
+    mprintf("DEBUG:\tReference ELJ= %12.4lf  Eelec= %12.4lf\n",ELJ_,Eelec_);
+    mprintf("DEBUG:\tSize of reference eelec array: %u\n",ref_nonbondEnergy_.size());
+    mprintf("DEBUG:\tSize of reference evdw array: %u\n",ref_nonbondEnergy_.size());
+    nb_calcType_ = COMPARE_REF;
   }
 
   // Output for individual atom energy | dEnergy
   if (!eout.empty()) {
-    if (Eout.OpenWrite(eout)) {
+    if (Eout_.OpenWrite(eout)) {
       mprinterr("Error: Pairwise: Could not set up file %s for eout.\n",eout.c_str());
       return Action::ERR;
     }
   }
 
   // Action Info
-  mprintf("    PAIRWISE: Atoms in mask [%s].\n",Mask0.MaskString());
+  mprintf("    PAIRWISE: Atoms in mask [%s].\n",Mask0_.MaskString());
   if (!eout.empty())
     mprintf("\tEnergy info for each atom will be written to %s\n",eout.c_str());
-  if (RefFrame!=NULL) 
-    mprintf("\tReference index %i, mask [%s]\n",refindex, RefMask.MaskString());
-  mprintf("\tEelec absolute cutoff: %12.4lf\n",cut_eelec);
-  mprintf("\tEvdw absolute cutoff: %12.4lf\n",cut_evdw);
+  if (RefFrame!=0) 
+    mprintf("\tReference index %i, mask [%s]\n",refindex, RefMask_.MaskString());
+  mprintf("\tEelec absolute cutoff: %12.4lf\n",cut_eelec_);
+  mprintf("\tEvdw absolute cutoff: %12.4lf\n",cut_evdw_);
   if (!cutout_.empty())
     mprintf("\tAtoms satisfying cutoff will be printed to %s.eX.mol2\n",
             cutout_.c_str());
@@ -128,10 +128,10 @@ int Action_Pairwise::SetupNonbondParm(AtomMask &maskIn, Topology *ParmIn) {
   // create a new charged array multiplied by 18.2223. This makes calcs with 
   // Amber-converted charges more accurate at the cost of making non-Amber 
   // charges less accurate.
-  atom_charge.clear();
-  atom_charge.reserve( ParmIn->Natom() );
+  atom_charge_.clear();
+  atom_charge_.reserve( ParmIn->Natom() );
   for (Topology::atom_iterator atom = ParmIn->begin(); atom != ParmIn->end(); ++atom)
-    atom_charge.push_back( (*atom).Charge() * ELECTOAMBER );
+    atom_charge_.push_back( (*atom).Charge() * ELECTOAMBER );
   // Check if LJ parameters present - need at least 2 atoms for it to matter.
   if (ParmIn->Natom() > 1 && (ParmIn->LJA().empty() || ParmIn->LJB().empty())) {
     mprinterr("Error: Pairwise::setup(): Parm does not have LJ information.\n");
@@ -166,33 +166,33 @@ int Action_Pairwise::SetupNonbondParm(AtomMask &maskIn, Topology *ParmIn) {
   */
 Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAddress) {
   // Set up mask
-  if ( currentParm->SetupIntegerMask( Mask0 ) ) return Action::ERR;
-  if (Mask0.None()) {
+  if ( currentParm->SetupIntegerMask( Mask0_ ) ) return Action::ERR;
+  if (Mask0_.None()) {
     mprintf("    Error: Pairwise::setup: Mask has no atoms.\n");
     return Action::ERR;
   }
 
   // Set up exclusion list and determine total # interactions.
-  int N_interactions = SetupNonbondParm(Mask0, currentParm);
+  int N_interactions = SetupNonbondParm(Mask0_, currentParm);
 
   // If comparing to a reference frame for atom-by-atom comparison make sure
   // the number of interactions is the same in reference and parm.
-  if (nb_calcType==COMPARE_REF) {
-    if (N_interactions != N_ref_interactions) {
+  if (nb_calcType_==COMPARE_REF) {
+    if (N_interactions != N_ref_interactions_) {
       mprinterr(
         "Error: Pairwise: # reference interactions (%i) != # interactions for this parm (%i)\n",
-        N_ref_interactions,N_interactions
+        N_ref_interactions_,N_interactions
       );
       return Action::ERR;
     }
   }
   // Set up cumulative energy arrays
-  atom_eelec.clear();
-  atom_eelec.resize(currentParm->Natom(), 0);
-  atom_evdw.clear();
-  atom_evdw.resize(currentParm->Natom(), 0);
+  atom_eelec_.clear();
+  atom_eelec_.resize(currentParm->Natom(), 0);
+  atom_evdw_.clear();
+  atom_evdw_.resize(currentParm->Natom(), 0);
   // Print pairwise info for this parm
-  Mask0.MaskInfo();
+  Mask0_.MaskInfo();
   CurrentParm_ = currentParm;      
   return Action::OK;  
 }
@@ -221,9 +221,9 @@ void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &
   std::vector<NonbondEnergyType>::iterator refpair;
   NonbondEnergyType refE;
 
-  ELJ = 0;
-  Eelec = 0;
-  refpair = ref_nonbondEnergy.begin();
+  ELJ_ = 0.0;
+  Eelec_ = 0.0;
+  refpair = ref_nonbondEnergy_.begin();
   // Loop over all atom pairs and set information
   AtomMask::const_iterator mask_end = maskIn.end();
   AtomMask::const_iterator mask_end1 = maskIn.end();
@@ -256,69 +256,69 @@ void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &
         JI /= rij;
         // LJ energy 
         GetLJparam(*parmIn, Acoef, Bcoef, *maskatom1, *maskatom2);
-        double r2=1/rij2;
-        double r6=r2*r2*r2;
-        double r12=r6*r6;
-        double f12=Acoef*r12; // A/r^12
-        double f6=Bcoef*r6;   // B/r^6
-        double e_vdw=f12-f6;  // (A/r^12)-(B/r^6)
-        ELJ += e_vdw;
+        double r2    = 1 / rij2;
+        double r6    = r2 * r2 * r2;
+        double r12   = r6 * r6;
+        double f12   = Acoef * r12;  // A/r^12
+        double f6    = Bcoef * r6;   // B/r^6
+        double e_vdw = f12 - f6;     // (A/r^12)-(B/r^6)
+        ELJ_ += e_vdw;
         // LJ Force 
         //force=((12*f12)-(6*f6))*r2; // (12A/r^13)-(6B/r^7)
         //scalarmult(f,JI,F);
         // Coulomb energy 
-        double qiqj = atom_charge[*maskatom1] * atom_charge[*maskatom2];
-        double e_elec=kes * (qiqj/rij);
-        Eelec += e_elec;
+        double qiqj = atom_charge_[*maskatom1] * atom_charge_[*maskatom2];
+        double e_elec = kes_ * (qiqj/rij);
+        Eelec_ += e_elec;
         // Coulomb Force
-        //force=e_elec/rij; // kes*(qiqj/r)*(1/r)
+        //force=e_elec/rij; // kes_*(qiqj/r)*(1/r)
         //scalarmult(f,JI,F);
 
         // ----------------------------------------
         int atom1 = *maskatom1;
         int atom2 = *maskatom2;
         // 1 - Comparison to reference, cumulative dEnergy on atoms
-        if (nb_calcType == COMPARE_REF) {
+        if (nb_calcType_ == COMPARE_REF) {
           // dEvdw
           double delta_vdw = (*refpair).evdw - e_vdw;
           // dEelec
           double delta_eelec = (*refpair).eelec - e_elec;
           // Output
-          if (Eout.IsOpen()) {
-            if (delta_vdw > cut_evdw || delta_vdw < cut_evdw1) {
-              Eout.Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",
+          if (Eout_.IsOpen()) {
+            if (delta_vdw > cut_evdw_ && delta_vdw < cut_evdw1_) {
+              Eout_.Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",
                               atom1+1, (*parmIn)[atom1].c_str(),
                               atom2+1, (*parmIn)[atom2].c_str(), delta_vdw);
             }
-            if (delta_eelec > cut_eelec || delta_eelec < cut_eelec1) {
-              Eout.Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",
+            if (delta_eelec > cut_eelec_ && delta_eelec < cut_eelec1_) {
+              Eout_.Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",
                               atom1+1, (*parmIn)[atom1].c_str(),
                               atom2+1, (*parmIn)[atom2].c_str(),delta_eelec);
             }
           }
           // Divide the total pair dEvdw between both atoms.
           delta2 = delta_vdw * 0.5;
-          atom_evdw[atom1] += delta2;
-          atom_evdw[atom2] += delta2;
+          atom_evdw_[atom1] += delta2;
+          atom_evdw_[atom2] += delta2;
           // Divide the total pair dEelec between both atoms.
           delta2 = delta_eelec * 0.5;
-          atom_eelec[atom1] += delta2;
-          atom_eelec[atom2] += delta2;
+          atom_eelec_[atom1] += delta2;
+          atom_eelec_[atom2] += delta2;
         // 2 - No reference, just cumulative Energy on atoms
-        } else if (nb_calcType == NORMAL) {
+        } else if (nb_calcType_ == NORMAL) {
           // Cumulative evdw - divide between both atoms
           delta2 = e_vdw * 0.5;
-          atom_evdw[atom1] += delta2;
-          atom_evdw[atom2] += delta2;
+          atom_evdw_[atom1] += delta2;
+          atom_evdw_[atom2] += delta2;
           // Cumulative eelec - divide between both atoms
           delta2 = e_elec * 0.5;
-          atom_eelec[atom1] += delta2;
-          atom_eelec[atom2] += delta2;
+          atom_eelec_[atom1] += delta2;
+          atom_eelec_[atom2] += delta2;
         // 3 - Store the reference nonbond energy for this pair
-        } else { // if nb_calcType == SET_REF
+        } else { // if nb_calcType_ == SET_REF
           refE.evdw = e_vdw;
           refE.eelec = e_elec;
-          ref_nonbondEnergy.push_back( refE );
+          ref_nonbondEnergy_.push_back( refE );
         }
         ++refpair;
         // ----------------------------------------
@@ -367,20 +367,20 @@ void Action_Pairwise::PrintCutAtoms(Frame *frame, int frameNum) {
   AtomMask CutMask; // TEST
   std::vector<double> CutCharges; // TEST
   // EVDW
-  if (Eout.IsOpen()) {
-    if (nb_calcType==COMPARE_REF)
-      Eout.Printf("\tPAIRWISE: Cumulative dEvdw:");
+  if (Eout_.IsOpen()) {
+    if (nb_calcType_==COMPARE_REF)
+      Eout_.Printf("\tPAIRWISE: Cumulative dEvdw:");
     else
-      Eout.Printf("\tPAIRWISE: Cumulative Evdw:");
-    Eout.Printf(" Evdw < %.4lf, Evdw > %.4lf\n",cut_evdw1,cut_evdw);
+      Eout_.Printf("\tPAIRWISE: Cumulative Evdw:");
+    Eout_.Printf(" Evdw < %.4lf, Evdw > %.4lf\n",cut_evdw1_,cut_evdw_);
   }
   for (int atom = 0; atom < CurrentParm_->Natom(); atom++) {
-    if (atom_evdw[atom]>cut_evdw || atom_evdw[atom]<cut_evdw1) {
-      if (Eout.IsOpen()) 
-        Eout.Printf("\t\t%6i@%s: %12.4lf\n",atom+1,
-                    (*CurrentParm_)[atom].c_str(),atom_evdw[atom]);
+    if (atom_evdw_[atom]>cut_evdw_ && atom_evdw_[atom]<cut_evdw1_) {
+      if (Eout_.IsOpen()) 
+        Eout_.Printf("\t\t%6i@%s: %12.4lf\n",atom+1,
+                    (*CurrentParm_)[atom].c_str(),atom_evdw_[atom]);
       CutMask.AddAtom(atom);
-      CutCharges.push_back(atom_evdw[atom]);
+      CutCharges.push_back(atom_evdw_[atom]);
     }
   }
   if (!cutout_.empty() && !CutMask.None()) {
@@ -390,20 +390,20 @@ void Action_Pairwise::PrintCutAtoms(Frame *frame, int frameNum) {
   CutMask.ResetMask();
   CutCharges.clear();
   // EELEC
-  if (Eout.IsOpen()) {
-    if (nb_calcType==COMPARE_REF)
-      Eout.Printf("\tPAIRWISE: Cumulative dEelec:");
+  if (Eout_.IsOpen()) {
+    if (nb_calcType_==COMPARE_REF)
+      Eout_.Printf("\tPAIRWISE: Cumulative dEelec:");
     else
-      Eout.Printf("\tPAIRWISE: Cumulative Eelec:");
-    Eout.Printf(" Eelec < %.4lf, Eelec > %.4lf\n",cut_eelec1,cut_eelec);
+      Eout_.Printf("\tPAIRWISE: Cumulative Eelec:");
+    Eout_.Printf(" Eelec < %.4lf, Eelec > %.4lf\n",cut_eelec1_,cut_eelec_);
   }
   for (int atom = 0; atom < CurrentParm_->Natom(); atom++) { 
-    if (atom_eelec[atom]>cut_eelec || atom_eelec[atom]<cut_eelec1) {
-      if (Eout.IsOpen()) 
-        Eout.Printf("\t\t%6i@%s: %12.4lf\n",atom+1,
-                    (*CurrentParm_)[atom].c_str(), atom_eelec[atom]);
+    if (atom_eelec_[atom]>cut_eelec_ && atom_eelec_[atom]<cut_eelec1_) {
+      if (Eout_.IsOpen()) 
+        Eout_.Printf("\t\t%6i@%s: %12.4lf\n",atom+1,
+                    (*CurrentParm_)[atom].c_str(), atom_eelec_[atom]);
       CutMask.AddAtom(atom);
-      CutCharges.push_back(atom_eelec[atom]);
+      CutCharges.push_back(atom_eelec_[atom]);
     }  
   }
   if (!cutout_.empty() && !CutMask.None()) {
@@ -416,15 +416,15 @@ void Action_Pairwise::PrintCutAtoms(Frame *frame, int frameNum) {
 Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   //if (Energy(&Mask0, currentFrame, currentParm)) return 1;
-  if (Eout.IsOpen()) Eout.Printf("PAIRWISE: Frame %i\n",frameNum);
-  NonbondEnergy( currentFrame, CurrentParm_, Mask0 );
+  if (Eout_.IsOpen()) Eout_.Printf("PAIRWISE: Frame %i\n",frameNum);
+  NonbondEnergy( currentFrame, CurrentParm_, Mask0_ );
   PrintCutAtoms( currentFrame, frameNum );
   // Reset cumulative energy arrays
-  atom_eelec.assign(CurrentParm_->Natom(), 0);
-  atom_evdw.assign(CurrentParm_->Natom(), 0);
+  atom_eelec_.assign(CurrentParm_->Natom(), 0);
+  atom_evdw_.assign(CurrentParm_->Natom(), 0);
 
-  ds_vdw->Add(frameNum, &ELJ);
-  ds_elec->Add(frameNum, &Eelec);
+  ds_vdw_->Add(frameNum, &ELJ_);
+  ds_elec_->Add(frameNum, &Eelec_);
 
   return Action::OK;
 } 

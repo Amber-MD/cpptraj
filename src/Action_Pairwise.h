@@ -25,32 +25,33 @@ class Action_Pairwise: public Action {
     void Print();
   private:
     enum PairCalcType { SET_REF, COMPARE_REF, NORMAL };
-    PairCalcType nb_calcType;       ///< Type of nonbonded calc being performed
-    AtomMask Mask0;                 ///< Calculate energy for atoms in mask
-    AtomMask RefMask;               ///< Reference mask
-    Topology *RefParm;             ///< Reference parm
-    Topology* CurrentParm_;
-    Frame *RefFrame;                ///< Reference coordinates
-    int N_ref_interactions;         ///< Number of interactions in Ref w/exclusions
-    double kes;                     ///< Electrostatic constant, 1.0 when using Amber units
-    DataSet *ds_vdw;                ///< Evdw dataset
-    DataSet *ds_elec;               ///< Eelec dataset
-    double ELJ, Eelec;              ///< Total Evdw and Eelec over all atoms
-    double cut_evdw, cut_evdw1;     ///< Evdw cutoff ( Evdw < cutevdw1 && Evdw > cutevdw )
-    std::vector<double> atom_evdw;  ///< Cumulative Evdw on each atom
-    double cut_eelec, cut_eelec1;   ///< Eelec cutoff ( Eelec < cuteelec1 && Eelec > cuteelec )
-    std::vector<double> atom_eelec; ///< Cumulative Eelec on each atom
-    std::string cutout_;                   ///< Mol2 file prefix for atoms satisfying cutoffs
-    CpptrajFile Eout;               ///< Output file for atom energies.
+    PairCalcType nb_calcType_;       ///< Type of nonbonded calc being performed
+    AtomMask Mask0_;                 ///< Calculate energy for atoms in mask
+    AtomMask RefMask_;               ///< Reference mask
+    Topology* CurrentParm_;          ///< Set to the current topology file.
+    int N_ref_interactions_;         ///< Number of interactions in Ref w/exclusions
+    double kes_;                     ///< Electrostatic constant, 1.0 when using Amber units
+    DataSet* ds_vdw_;                ///< Evdw dataset
+    DataSet* ds_elec_;               ///< Eelec dataset
+    double ELJ_;                     ///< Total VDW energy over all selected atoms.
+    double Eelec_;                   ///< Total elec. energy over all selected atoms.
+    double cut_evdw_;                ///< Min Evdw cutoff
+    double cut_evdw1_;               ///< Max Evdw cutoff
+    std::vector<double> atom_evdw_;  ///< Cumulative Evdw on each atom
+    double cut_eelec_;               ///< Min Eelec cutoff
+    double cut_eelec1_;              ///< Max Eelec cutoff
+    std::vector<double> atom_eelec_; ///< Cumulative Eelec on each atom
+    std::string cutout_;             ///< Mol2 file prefix for atoms satisfying cutoffs
+    CpptrajFile Eout_;               ///< Output file for atom energies.
     /// HACK: Hold charges * 18.2223
-    std::vector<double> atom_charge;
+    std::vector<double> atom_charge_;
     /// Hold nonbond energy for a given atom pair
     struct NonbondEnergyType {
       double evdw;
       double eelec;
     };
     /// Hold nonbond energy for each pair of atoms in reference
-    std::vector<NonbondEnergyType> ref_nonbondEnergy;
+    std::vector<NonbondEnergyType> ref_nonbondEnergy_;
     /// Hold cumulative LJ and elec energy for each atom
     //std::vector<NonbondEnergyType> atom_nonbondEnergy;
 
@@ -61,6 +62,5 @@ class Action_Pairwise: public Action {
     int WriteCutFrame(int, Topology *, AtomMask&, std::vector<double> const&, 
                       Frame *, std::string const&);
     void PrintCutAtoms(Frame *,int);
-
 };
 #endif  
