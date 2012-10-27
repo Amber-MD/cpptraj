@@ -1,6 +1,5 @@
 #ifndef INC_ACTION_PAIRWISE_H
 #define INC_ACTION_PAIRWISE_H
-#include <vector>
 #include "Action.h"
 // Class: Pairwise 
 /// Action to calculate nonbonded energy between pairs of atoms.

@@ -29,7 +29,7 @@
 #include "Action_Pairwise.h"
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
-//#include "Action_DihedralScan.h"
+#include "Action_DihedralScan.h"
 #include "Action_Rotdif.h"
 #include "Action_RunningAvg.h"
 #include "Action_RmsAvgCorr.h"
@@ -76,7 +76,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, 0 },
   { DispatchObject::ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, 0 },
   { DispatchObject::ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral::Help, 0 },
-//  { DispatchObject::ACTION, "dihedralscan", DihedralScan::Alloc, DihedralScan::Help, 0 },
+  { DispatchObject::ACTION, "dihedralscan", Action_DihedralScan::Alloc, Action_DihedralScan::Help, 0 },
   { DispatchObject::ACTION, "dipole", Action_Dipole::Alloc, Action_Dipole::Help, 0 },
   { DispatchObject::ACTION, "distance", Action_Distance::Alloc, Action_Distance::Help, 0 },
   { DispatchObject::ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, 0 },

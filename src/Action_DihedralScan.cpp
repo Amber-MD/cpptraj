@@ -1,11 +1,11 @@
-// DihedralScan
+// Action_DihedralScan
 #include <cmath>
-#include <cstdlib> // rand, srand
 #include <ctime> // time
 #include "Action_DihedralScan.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD
 #include "vectormath.h" // calcRotationMatrix
+#include "DistRoutines.h"
 
 // Activate DEBUG info
 //#define DEBUG_DIHEDRALSCAN
@@ -14,12 +14,10 @@
 #endif
 
 // CONSTRUCTOR
-DihedralScan::DihedralScan() {
+Action_DihedralScan::Action_DihedralScan() {
   //fprintf(stderr,"DihedralScan Con\n");
   random_angle=false;
   interval = 60.0;
-  outfilename=NULL;
-  outfmt=NULL;
   check_for_clashes = false;
   max_rotations = 0;
   cutoff = 0.64; // 0.8^2
@@ -28,63 +26,64 @@ DihedralScan::DihedralScan() {
   increment = 1;
   max_increment = 360;
   max_factor = 2;
+  debug_ = 0;
+  CurrentParm_ = 0;
 } 
 
-// DihedralScan::init()
-/** Expected call: dihedralscan <mask> [<interval> | random ] [rseed <rseed>] outtraj <traj>
-  *                             [ check [cutoff <cutoff>] [rescutoff <rescutoff>]
-  *                               [backtrack <backtrack>] [increment <increment>] 
-                                  [maxfactor <max_factor>]                        ]
-  */
-// Dataset name will be the last arg checked for. Check order is:
-//    1) Keywords
-//    2) Masks
-//    3) Dataset name
-int DihedralScan::init( ) {
-  int rseed_arg;
-  unsigned int rseed;
-  char *problemFile;
+void Action_DihedralScan::Help() {
+  mprintf("dihedralscan <mask> [<interval> | random ] [rseed <rseed>] outtraj <traj>\n");
+  mprintf("             [ check [cutoff <cutoff>] [rescutoff <rescutoff>]\n");
+  mprintf("             [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>] ]\n");
+}
+
+// Action_DihedralScan::init()
+Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
   // Get mask
-  Mask1.SetMaskString( actionArgs.getNextMask() );
+  Mask1.SetMaskString( actionArgs.GetMaskNext() );
 
   // Get Keywords
   random_angle = actionArgs.hasKey("random");
   if (!random_angle) 
     interval = actionArgs.getNextDouble(60.0);
-  outfilename = actionArgs.getKeyString("outtraj",NULL);
-  outfmt = actionArgs.getKeyString("outfmt",NULL);
-  rseed_arg = actionArgs.getKeyInt("rseed",-1);
+  outfilename_ = actionArgs.GetStringKey("outtraj");
+  outfmt_ = actionArgs.GetStringKey("outfmt");
   check_for_clashes = actionArgs.hasKey("check");
   cutoff = actionArgs.getKeyDouble("cutoff",0.8);
   rescutoff = actionArgs.getKeyDouble("rescutoff",10.0);
   backtrack = actionArgs.getKeyInt("backtrack",4);
   increment = actionArgs.getKeyInt("increment",1);
   max_factor = actionArgs.getKeyInt("maxfactor",2);
-  problemFile = actionArgs.getKeyString("out",NULL);
+  std::string problemFile = actionArgs.GetStringKey("out");
+  // Seed random number gen
+  int rseed_arg = actionArgs.getKeyInt("rseed",-1);
+  RN_.rn_set( rseed_arg );
 
   // Check validity of args
   if (cutoff < SMALL) {
     mprinterr("Error: cutoff too small.\n");
-    return 1;
+    return Action::ERR;
   }
   if (rescutoff < SMALL) {
     mprinterr("Error: rescutoff too small.\n");
-    return 1;
+    return Action::ERR;
   }
   if (backtrack < 0) {
     mprinterr("Error: backtrack value must be >= 0\n");
-    return 1;
+    return Action::ERR;
   }
   if ( increment<1 || (360 % increment)!=0 ) {
     mprinterr("Error: increment must be a factor of 360.\n");
-    return 1;
+    return Action::ERR;
   }
 
   // Dataset to store number of problems
-  number_of_problems = DSL->Add(DataSet::INT, actionArgs.getNextString(),"Nprob");
-  if (number_of_problems==NULL) return 1;
+  number_of_problems = DSL->AddSet(DataSet::INT, actionArgs.GetStringNext(),"Nprob");
+  if (number_of_problems==NULL) return Action::ERR;
   // Add dataset to data file list
-  DFL->Add(problemFile,number_of_problems);
+  DFL->AddSetToFile(problemFile,number_of_problems);
 
   mprintf("    DIHEDRALSCAN: Dihedrals in mask [%s]\n",Mask1.MaskString());
   if (random_angle) {
@@ -96,27 +95,17 @@ int DihedralScan::init( ) {
   } else
     mprintf("                  Dihedrals will be rotated at intervals of %.2lf degrees.\n",
             interval);
-  if (outfilename!=NULL)
-    mprintf("                  Coordinates output to %s, format %s\n",outfilename, outfmt);
+  if (!outfilename_.empty())
+    mprintf("\tCoordinates output to %s, format %s\n",outfilename_.c_str(), outfmt_.c_str());
   if (check_for_clashes) {
-    mprintf("                  Will attempt to recover from bad steric clashes.\n");
-    mprintf("                  Atom cutoff %.2lf, residue cutoff %.2lf, backtrack = %i\n",
+    mprintf("\tWill attempt to recover from bad steric clashes.\n");
+    mprintf("\tAtom cutoff %.2lf, residue cutoff %.2lf, backtrack = %i\n",
             cutoff, rescutoff, backtrack);
-    mprintf("                  When clashes occur dihedral will be incremented by %i\n",increment);
-    mprintf("                  Max # attempted rotations = %i times number dihedrals.\n",
+    mprintf("\tWhen clashes occur dihedral will be incremented by %i\n",increment);
+    mprintf("\tMax # attempted rotations = %i times number dihedrals.\n",
             max_factor);
   }
   
-  // Seed random number generator
-  if (random_angle) {
-    if (rseed_arg == -1)
-      rseed = (unsigned int) time(NULL);
-    else
-      rseed = (unsigned int) rseed_arg;
-    mprintf("                  Seeding random number generator: [%u]\n",rseed);
-    srand( rseed );
-  }
-
   // Square cutoffs to compare to dist^2 instead of dist
   cutoff *= cutoff;
   rescutoff *= rescutoff;
@@ -128,55 +117,77 @@ int DihedralScan::init( ) {
   max_increment = 360 / increment;
 
   // Initialize CheckStructure
-  checkStructure.SeparateInit(-1,-1,debug);
+  checkStructure.SeparateInit(-1,-1,debug_);
 
-  return 0;
+  return Action::OK;
 }
 
-// DihedralScan::setup()
+static int GetBondedAtomIdx(Topology const& topIn, int atom, NameType nameIn) {
+  for (Atom::bond_iterator bndatm = topIn[atom].bondbegin();
+                           bndatm != topIn[atom].bondend(); ++bndatm)
+  {
+    if ( topIn[*bndatm].Name() == nameIn ) return *bndatm;
+  }
+  return -1;
+}
+
+static void VisitAtom( Topology const& topIn, int atm, std::vector<char>& Visited )
+{
+  // If this atom has already been visited return
+  if (Visited[atm] == 'T') return;
+  // Mark this atom as visited
+  Visited[atm] = 'T';
+  // Visit each atom bonded to this atom
+  for (Atom::bond_iterator bondedatom = topIn[atm].bondbegin();
+                           bondedatom != topIn[atm].bondend(); ++bondedatom)
+    VisitAtom(topIn, *bondedatom, Visited);
+}
+
+// Action_DihedralScan::setup()
 /** Determine from selected mask atoms which dihedrals will be rotated.
   */
-int DihedralScan::setup() {
+Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** parmAddress) {
   DihedralScanType dst;
-  int Nres, a1res_start, a1res_stop;
-  ResidueCheckType rct;
-  std::vector<char> tmpMask;
 
-  if ( currentParm->SetupCharMask( Mask1 ) ) return 1;
+  if ( currentParm->SetupCharMask( Mask1 ) ) return Action::ERR;
   if (Mask1.None()) {
     mprintf("    Error: DihedralScan::setup: Mask has no atoms.\n");
-    return 1;
+    return Action::ERR;
   }
-
-  // Need bonding info to determine whether two atoms are actually
-  // bonded, so that the bond can be rotated around. Set up for all
-  // atoms. 
-  if (currentParm->SetupBondInfo()) return 1;
 
   // For now just focus on backbone phi/psi dihedrals:
   //   C-N-CA-C  N-CA-C-N
-  for (int atom=0; atom < currentParm->natom; atom++) {
+  std::vector<char> Visited( currentParm->Natom(), 'F' );
+  for (int atom=0; atom < currentParm->Natom(); atom++) {
     if (Mask1.AtomInCharMask(atom)) {
       int atom2 = -1;
       // PHI: C-N-CA-C
-      if (currentParm->AtomNameIs(atom,"N   ")) {
-        atom2 = currentParm->GetBondedAtomIdx(atom,"CA  ");
+      if ((*currentParm)[atom].Name() == "N   ") {
+        atom2 = GetBondedAtomIdx(*currentParm, atom, "CA  ");
       // PSI: N-CA-C-N
-      } else if (currentParm->AtomNameIs(atom,"CA  ")) {
-        atom2 = currentParm->GetBondedAtomIdx(atom,"C   ");
+      } else if ((*currentParm)[atom].Name() == "CA  ") {
+        atom2 = GetBondedAtomIdx(*currentParm, atom, "C   ");
       }
       // If a second atom was found dihedral is defined and in mask, store it
       if (atom2 != -1 && Mask1.AtomInCharMask(atom2)) {
         // Set up mask of atoms that will move upon rotation of dihedral.
         // Also set up mask of atoms in this residue that will not move
         // upon rotation of dihedral, including atom2
-        if (currentParm->MaskOfAtomsAroundBond(atom, atom2, tmpMask)) return 1;
+        //if (currentParm->MaskOfAtomsAroundBond(atom, atom2, tmpMask)) return Action::ERR;
         dst.Rmask.ResetMask();
+        Visited.assign( currentParm->Natom(), 'F' );
+        for (Atom::bond_iterator bndatm = (*currentParm)[atom2].bondbegin();
+                                 bndatm != (*currentParm)[atom2].bondend(); ++bndatm)
+        {
+          if ( *bndatm != atom )
+            VisitAtom( *currentParm, *bndatm, Visited );
+        }
         dst.checkAtoms.clear();
-        int a1res = currentParm->atomToResidue( atom );
-        currentParm->ResAtomRange(a1res, &a1res_start, &a1res_stop);
-        for (int maskatom = 0; maskatom < currentParm->natom; maskatom++) {
-          if (tmpMask[maskatom]=='T')
+        int a1res = (*currentParm)[atom].ResNum();
+        int a1res_start = currentParm->ResFirstAtom( a1res );
+        int a1res_stop = currentParm->ResLastAtom( a1res );
+        for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
+          if (Visited[maskatom]=='T')
             dst.Rmask.AddAtom(maskatom);
           else {
             // If this atom is in the same residue but will not move, it needs
@@ -192,7 +203,7 @@ int DihedralScan::setup() {
         // Since only the second atom and atoms it is
         // bonded to move during rotation, base the check
         // on the residue of the second atom.
-        dst.resnum = currentParm->atomToResidue( atom2 );
+        dst.resnum = (*currentParm)[atom2].ResNum();
         dst.currentVal = 0;
         dst.interval = interval;
         dst.maxVal = (int) (360.0 / interval);
@@ -203,14 +214,14 @@ int DihedralScan::setup() {
   }
 
   // DEBUG: List defined dihedrals
-  if (debug>0) {
+  if (debug_>0) {
     mprintf("DEBUG: Dihedrals (central 2 atoms only):\n");
     for (unsigned int dih = 0; dih < BB_dihedrals.size(); dih++) {
       mprintf("\t%8i%4s %8i%4s %8i%4s\n",
-              BB_dihedrals[dih].atom1, currentParm->AtomName(BB_dihedrals[dih].atom1), 
-              BB_dihedrals[dih].atom2, currentParm->AtomName(BB_dihedrals[dih].atom2), 
-              BB_dihedrals[dih].resnum, currentParm->ResidueName(BB_dihedrals[dih].resnum));
-      if (debug>1) {
+              BB_dihedrals[dih].atom1, (*currentParm)[BB_dihedrals[dih].atom1].c_str(), 
+              BB_dihedrals[dih].atom2, (*currentParm)[BB_dihedrals[dih].atom2].c_str(), 
+              BB_dihedrals[dih].resnum, currentParm->Res(BB_dihedrals[dih].resnum).c_str());
+      if (debug_>1) {
         mprintf("\t\tCheckAtoms=");
         for (std::vector<int>::iterator ca = BB_dihedrals[dih].checkAtoms.begin();
                                         ca != BB_dihedrals[dih].checkAtoms.end(); ca++)
@@ -219,14 +230,14 @@ int DihedralScan::setup() {
         }
         mprintf("\n");
       }
-      if (debug>2) {
+      if (debug_>2) {
         mprintf("\t\t");
         BB_dihedrals[dih].Rmask.PrintMaskAtoms("Rmask:");
       }
     }
   }
   // Set up CheckStructure for this parm
-  checkStructure.Setup(&currentParm);
+  checkStructure.Setup(currentParm, &currentParm);
 
   // Set the overall max number of rotations to try
   max_rotations = (int) BB_dihedrals.size();
@@ -238,21 +249,23 @@ int DihedralScan::setup() {
   // to see if residues are in each others neighborhood. Second step
   // is to check the atoms in each close residue.
   if (check_for_clashes) {
-    Nres = currentParm->FinalSoluteRes();
+    ResidueCheckType rct;
+    int Nres = currentParm->FinalSoluteRes();
     for (int res = 0; res < Nres; res++) {
       rct.resnum = res;
-      currentParm->ResAtomRange(res, &(rct.start), &(rct.stop));
+      rct.start = currentParm->ResFirstAtom( res );
+      rct.stop = currentParm->ResLastAtom( res );
       rct.checkatom = rct.start;
       ResCheck.push_back(rct);
     }
   }
-
-  return 0;  
+  CurrentParm_ = currentParm;
+  return Action::OK;  
 }
 
 /*
-// DihedralScan::CheckResidues()
-int DihedralScan::CheckResidues( Frame *frameIn, int second_atom ) {
+// Action_DihedralScan::CheckResidues()
+int Action_DihedralScan::CheckResidues( Frame *frameIn, int second_atom ) {
   int Nproblems = 0;
   double atomD2;
   // Check residues in resulting structure
@@ -310,11 +323,11 @@ int DihedralScan::CheckResidues( Frame *frameIn, int second_atom ) {
 }
 */
 
-// DihedralScan::CheckResidue()
+// Action_DihedralScan::CheckResidue()
 /** \return 1 if a new dihedral should be tried, 0 if no clashes, -1 if
   * \return further rotations will not help.
   */
-int DihedralScan::CheckResidue( Frame *FrameIn, DihedralScanType &dih, int nextres,
+int Action_DihedralScan::CheckResidue( Frame *FrameIn, DihedralScanType &dih, int nextres,
                                 double *clash ) 
 {
   int resnumIn = dih.resnum;
@@ -328,7 +341,7 @@ int DihedralScan::CheckResidue( Frame *FrameIn, DihedralScanType &dih, int nextr
 #endif
   for (int atom1 = rstart; atom1 < rstop - 1; atom1++) {
     for (int atom2 = atom1 + 1; atom2 < rstop; atom2++) {
-      double atomD2 = FrameIn->DIST2(atom1, atom2);
+      double atomD2 = DIST2_NoImage(FrameIn->XYZ(atom1), FrameIn->XYZ(atom2));
       if (atomD2 < cutoff) {
 #ifdef DEBUG_DIHEDRALSCAN 
         mprintf("\t\tRes %i Atoms %i@%s and %i@%s are close (%.3lf)\n", resnumIn+1, 
@@ -347,7 +360,7 @@ int DihedralScan::CheckResidue( Frame *FrameIn, DihedralScanType &dih, int nextr
     int rstart2 = ResCheck[ res ].start;
     int rstop2 = ResCheck[ res ].stop;
     int rcheck2 = ResCheck[ res ].checkatom;
-    double resD2 = FrameIn->DIST2(rcheck, rcheck2);
+    double resD2 = DIST2_NoImage(FrameIn->XYZ(rcheck), FrameIn->XYZ(rcheck2));
     // If residues are close enough check each atom
     if (resD2 < rescutoff) { 
 #ifdef DEBUG_DIHEDRALSCAN
@@ -355,7 +368,7 @@ int DihedralScan::CheckResidue( Frame *FrameIn, DihedralScanType &dih, int nextr
 #endif
       for (int atom1 = rstart; atom1 < rstop; atom1++) {
         for (int atom2 = rstart2; atom2 < rstop2; atom2++) {
-          double D2 = FrameIn->DIST2(atom1, atom2);
+          double D2 = DIST2_NoImage(FrameIn->XYZ(atom1), FrameIn->XYZ(atom2));
           if (D2 < cutoff) {
 #ifdef DEBUG_DIHEDRALSCAN
             mprintf("\t\tRes %i atom %i@%s and res %i atom %i@%s are close (%.3lf)\n", resnumIn+1,
@@ -381,8 +394,8 @@ int DihedralScan::CheckResidue( Frame *FrameIn, DihedralScanType &dih, int nextr
   return 0;
 } 
 
-// DihedralScan::action()
-int DihedralScan::action() {
+// Action_DihedralScan::action()
+Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double axisOfRotation[3], rotationMatrix[9], theta_in_degrees, theta_in_radians;
   int n_problems, next_resnum;
   double bestClash, clash; // The largest distance observed during clashes
@@ -415,24 +428,28 @@ int DihedralScan::action() {
     // Generate random value to rotate by in radians
     // Guaranteed to rotate by at least 1 degree.
     // NOTE: could potentially rotate 360 - prevent?
-    theta_in_degrees = (rand() % 360) + 1;
+    // FIXME: Just use 2PI and rn_gen, get everything in radians
+    if ((*dih).isRandom)
+      theta_in_degrees = ((int)(RN_.rn_gen()*100000) % 360) + 1;
+    else
+      theta_in_degrees = (*dih).interval;
     theta_in_radians = theta_in_degrees * DEGRAD;
     // Calculate rotation matrix for random theta
     calcRotationMatrix(rotationMatrix, axisOfRotation, theta_in_radians);
-    bool rotate_dihedral = true;
+    bool rotate_dihedral = (*dih).isRandom;
     int loop_count = 0;
     clash = 0;
     bestClash = 0;
-    if (debug>0) mprintf("DEBUG: Rotating res %8i:\n",(*dih).resnum+1);
+    if (debug_>0) mprintf("DEBUG: Rotating res %8i:\n",(*dih).resnum+1);
     while (rotate_dihedral) {
-      if (debug>0) {
+      if (debug_>0) {
         mprintf("\t%8i %8i%4s %8i%4s, +%.2lf degrees (%i).\n",(*dih).resnum+1,
-                (*dih).atom1+1, currentParm->AtomName((*dih).atom1),
-                (*dih).atom2+1, currentParm->AtomName((*dih).atom2),
+                (*dih).atom1+1, (*CurrentParm_)[(*dih).atom1].c_str(),
+                (*dih).atom2+1, (*CurrentParm_)[(*dih).atom2].c_str(),
                 theta_in_degrees,loop_count);
       }
       // Rotate around axis
-      currentFrame->RotateAroundAxis(rotationMatrix, theta_in_radians, (*dih).Rmask);
+      currentFrame->Rotate(rotationMatrix, (*dih).Rmask);
 #ifdef DEBUG_DIHEDRALSCAN
       // DEBUG
       DebugTraj.WriteFrame(debugframenum++,currentParm,*currentFrame);
@@ -448,7 +465,7 @@ int DihedralScan::action() {
         dih--; // -1
         next_dih = dih;
         next_dih++;
-        if (debug>0)
+        if (debug_>0)
           mprintf("\tCannot resolve clash with further rotations, trying previous again.\n");
         break;
       }
@@ -459,7 +476,7 @@ int DihedralScan::action() {
       //  rotate_dihedral = false;
       //} else if (loop_count==0) {
       if (loop_count==0 && rotate_dihedral) {
-        if (debug>0)
+        if (debug_>0)
           mprintf("\tTrying dihedral increments of +%i\n",increment);
         // Instead of a new random dihedral, try increments
         theta_in_degrees = (double)increment;
@@ -469,14 +486,14 @@ int DihedralScan::action() {
       }
       ++loop_count;
       if (loop_count == max_increment) {
-        if (debug>0)
+        if (debug_>0)
           mprintf("%i iterations! Best clash= %.3lf at %i\n",max_increment,
                   sqrt(bestClash),bestLoop);
         for (int bt = 0; bt < backtrack; bt++)
           dih--;
         next_dih = dih;
         next_dih++;
-        if (debug>0)
+        if (debug_>0)
           mprintf("\tCannot resolve clash with further rotations, trying previous %i again.\n",
                   backtrack - 1);
         break;
@@ -519,6 +536,6 @@ int DihedralScan::action() {
   //mprintf("%i\tResulting structure has %i problems.\n",frameNum,n_problems);
   number_of_problems->Add(frameNum, &n_problems);
 
-  return 0;
+  return Action::OK;
 } 
 

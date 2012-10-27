@@ -14,12 +14,12 @@ class Action_CheckStructure: public Action, ImagedAction {
     ~Action_CheckStructure();
 
     void SeparateInit(double, double, int);
+    Action::RetType Setup(Topology*, Topology**);
     int SeparateAction(Frame *);
     void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
 
     /// Used to cache bond parameters

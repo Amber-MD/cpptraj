@@ -1,11 +1,23 @@
 #ifndef INC_ACTION_DIHEDRALSCAN_H
 #define INC_ACTION_DIHEDRALSCAN_H
-#include <vector>
 #include "Action.h"
 #include "Action_CheckStructure.h"
-// Class: DihedralScan
+#include "Random.h"
+// Class: Action_DihedralScan
 /// Action to rotate dihedrals randomly or in intervals 
-class DihedralScan: public Action {
+class Action_DihedralScan: public Action {
+  public:
+    Action_DihedralScan();
+
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_DihedralScan(); }
+    static void Help();
+
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
+  private:
     struct DihedralScanType {
       AtomMask Rmask;
       std::vector<int> checkAtoms;
@@ -30,8 +42,8 @@ class DihedralScan: public Action {
     AtomMask Mask1;
     bool random_angle;
     bool check_for_clashes;
-    char *outfilename;
-    char *outfmt;
+    std::string outfilename_;
+    std::string outfmt_;
     double interval;
     int max_rotations;
     int max_factor;
@@ -40,21 +52,13 @@ class DihedralScan: public Action {
     int backtrack;
     int increment;     ///< Value in degrees to increment random dihedral by if clash happens
     int max_increment; ///< 360 / increment
+    int debug_;
+    Topology* CurrentParm_;
     DataSet *number_of_problems;
-    CheckStructure checkStructure;
+    Action_CheckStructure checkStructure;
+    Random_Number RN_;
 
     //int CheckResidues( Frame *, int );
     int CheckResidue( Frame *, DihedralScanType&,int,double*);
-  public:
-    DihedralScan();
-
-    static DispatchObject* Alloc() { return (DispatchObject*)new DihedralScan(); }
-    static void Help();
-
-
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
 };
 #endif  
