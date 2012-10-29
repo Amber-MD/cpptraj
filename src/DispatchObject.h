@@ -4,10 +4,6 @@
 /// Abstract base class that all dispatchable objects will inherit.
 class DispatchObject {
   public:
-    virtual ~DispatchObject() {}
-    void Help()              {               }
-    DispatchObject* Alloc()  { return 0;     }
-
     enum DispatchType { NONE=0, PARM, COORD, ACTION, ANALYSIS, GENERAL };
     // Function pointers
     typedef DispatchObject* (*DispatchAllocatorType)();
