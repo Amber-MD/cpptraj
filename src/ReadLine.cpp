@@ -14,7 +14,7 @@ int ReadLine::GetInput() {
   char* line = readline("> ");
   if (line == 0) return 1; // EOF
   input_ += line;
-  // Backslash requests a continutation
+  // Terminal backslash requests a continuation of the line
   size_t end = strlen( line );
   while (end > 1 && line[end - 1] == '\\') {
     // Remove that backlash
@@ -30,7 +30,8 @@ int ReadLine::GetInput() {
   std::string::iterator beg = input_.begin();
   while ( beg != input_.end() && isspace(*beg) )
     beg = input_.erase(beg);
-  // Find '#' not preceded by blackslash; indicates comment
+  // Find '#' not preceded by blackslash; indicates comment.
+  // Remove it and all after.
   end = input_.find_first_of('#');
   if (end != std::string::npos) {
     if (end == 0 || (end > 0 && input_[end-1] != '\\'))
@@ -41,4 +42,3 @@ int ReadLine::GetInput() {
   if (line != 0) free( line );
   return 0;
 }
-  

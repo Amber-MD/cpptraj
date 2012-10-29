@@ -301,7 +301,6 @@ int Cpptraj::SearchToken(ArgList& argIn) {
 Cpptraj::Mode Cpptraj::Interactive() {
   ReadLine inputLine;
   // By default when interactive do not exit on errors
-  // TODO: deal with comments
   exitOnError_ = false;
   Mode readLoop = C_OK;
   while ( readLoop == C_OK ) {

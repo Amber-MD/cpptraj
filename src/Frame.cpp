@@ -30,7 +30,6 @@ Frame::~Frame( ) {
 }
 
 // CONSTRUCTOR
-/// Set up for natom
 Frame::Frame(int natomIn) :
   natom_(natomIn),
   maxnatom_(natomIn),
@@ -62,7 +61,6 @@ Frame::Frame(int natomIn, const double* Xin) :
 #endif
 
 // CONSTRUCTOR
-/// Set up for the given atom array (including mass).
 Frame::Frame(std::vector<Atom> const& atoms) :
   natom_(atoms.size()),
   maxnatom_(natom_),
@@ -81,7 +79,6 @@ Frame::Frame(std::vector<Atom> const& atoms) :
 }
 
 // CONSTRUCTOR
-/// Copy frameIn according to maskIn
 Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) : 
   natom_( maskIn.Nselected() ),
   maxnatom_(natom_),
@@ -258,8 +255,7 @@ void Frame::AddXYZ(const double *XYZin) {
 
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
 // Frame::SetupFrame()
-/** Set up frame for given number of atoms, no mass or velocity information.
-  */
+/** Set up frame for given number of atoms, no mass or velocity information. */
 int Frame::SetupFrame(int natomIn) {
   natom_ = natomIn;
   ncoord_ = natom_ * 3;
@@ -607,7 +603,7 @@ const Frame Frame::operator*(const Frame& rhs) const {
 }
 
 // Frame::Divide()
-/** Divide all coord values of this frame by divisor and store in dividend.
+/** Divide all coord values of dividend by divisor and store in this frame.
   */
 int Frame::Divide(Frame const& dividend, double divisor) {
   if (divisor < SMALL) {
@@ -639,6 +635,7 @@ void Frame::Divide(double divisor) {
 // Frame::AddByMask()
 /** Increment atoms in this frame by the selected atoms in given frame.
   */
+// TODO: Should this be removed in favor of SetByMask followed by '+='?
 void Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
   if (maskIn.Nselected() > maxnatom_) {
     mprinterr("Error: AddByMask: Input mask #atoms (%i) > frame #atoms (%i)\n",

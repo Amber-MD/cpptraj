@@ -9,9 +9,9 @@
   * along with box coordinates (used in imaging calculations) and optionally 
   * with mass information and/or velocity information. Frame can be set up
   * coords only, coords and masses, or coords/masses/velocities. Mass is stored
-  * since several functions (like COM, RADGYR etc) have the option to factor in 
-  * the mass of the atoms involved, and this avoids having to pass a mass 
-  * pointer in, which takes the burden of keeping track of mass away from 
+  * since several functions (like COM, RMSD, Inertia etc) have the option to 
+  * factor in the mass of the atoms involved, and this avoids having to pass a 
+  * mass pointer in, which takes the burden of keeping track of mass away from 
   * actions etc. Mass is stored when the frame is initially created, and is 
   * modified if necessary by SetFrame (which is the case when e.g. calculating
   * per-residue RMSD).
@@ -32,12 +32,15 @@ class Frame {
   public:
     // Construction/Destruction/Assignment
     Frame();
-    virtual ~Frame(); // Destructor is virtual since this class can be inherited
+    ~Frame();
+    /// Set up empty frame for given # of atoms.
     Frame(int);
 #ifdef NASTRUCTDEBUG
     Frame(int,const double*);
 #endif
+    /// Set up to be the size of given atom array (including masses).
     Frame(std::vector<Atom> const&);
+    /// Copy input frame according to input mask.
     Frame(Frame const&, AtomMask const&);
     Frame(const Frame&);
     Frame& operator=(Frame);
@@ -53,8 +56,8 @@ class Frame {
     int Natom()                  { return natom_;               }
     int size()                   { return ncoord_;              }
     double Temperature()         { return T_;                   }
-    const double* XYZ(int atnum) { return X_ + (atnum*3);       } // TODO: Replace?
-    const double* CRD(int idx)   { return X_ + idx;             } // TODO: Replace?
+    const double* XYZ(int atnum) { return X_ + (atnum*3);       } 
+    const double* CRD(int idx)   { return X_ + idx;             } 
     double& operator[](int idx)  { return X_[idx];              } // TODO: Make const?
     double Mass(int atnum)       { return Mass_[atnum];         }
     // Box routines
@@ -73,7 +76,7 @@ class Frame {
     int SetupFrameV(std::vector<Atom> const&,bool);
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
     // Frame setup of coords (no memory realloc)
-    void SetCoordinatesByMask(const double*, AtomMask const&); 
+    void SetCoordinatesByMask(const double*, AtomMask const&); // TODO: Convert to Vec3 array 
     void SetCoordinates(Frame const&, AtomMask const&);
     void SetCoordinates(Frame const&);
     void SetFrame(Frame const&, AtomMask const&);
