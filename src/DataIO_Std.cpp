@@ -99,7 +99,8 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       dset->SetLegend( labels[col] );
 
     if ( col != indexcol && dset == NULL ) {
-      mprinterr("Error: DataFile %s: Could not identify column %i\n", FullFileStr(), col+1);
+      mprinterr("Error: DataFile %s: Could not identify column %i", FullFileStr(), col+1);
+      mprinterr(" (token=%s)\n",token);
       return 1;
     }
     DsetList.push_back( dset );
