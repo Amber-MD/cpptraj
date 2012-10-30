@@ -2,6 +2,7 @@
 #define INC_TRAJIN_H
 #include "TrajectoryFile.h"
 #include "ProgressBar.h"
+/// Class that all input trajectories will inherit.
 class Trajin : public TrajectoryFile {
   public:
     Trajin();

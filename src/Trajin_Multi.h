@@ -3,6 +3,7 @@
 #include <map>
 #include "Trajin.h"
 #include "FrameArray.h"
+/// Class for reading in multiple trajectories at the same time (e.g. REMD ensemble)
 class Trajin_Multi : public Trajin {
   public:
     Trajin_Multi();

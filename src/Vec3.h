@@ -1,5 +1,6 @@
 #ifndef INC_VEC3_H
 #define INC_VEC3_H
+/// Designed to hold array of size 3 (like XYZ coord etc).
 class Vec3 {
   public:
     Vec3() {

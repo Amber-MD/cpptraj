@@ -466,10 +466,10 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   * is searched for and if it is recognized it is sent to the appropriate
   * class. 
   * \param inputLine NULL-terminated string consisting of command and arguments.
-  * \return true if command was accepted or no error occurred.
-  * \return false if error occurred or exit requested.
+  * \return C_OK if command was accepted or no error occurred.
+  * \return C_ERR if error occurred.
+  * \return C_QUIT if quit requested.
   */
-// NOTE: Should differentiate between keyword rejection and outright error.
 Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
   //mprintf("\t[%s]\n", inputLine);
   ArgList command( inputLine );
@@ -730,17 +730,6 @@ int Cpptraj::RunEnsemble() {
     DataSetEnsemble[member].List();
   }
 
-  // ========== A N A L Y S I S  P H A S E ==========
-//  analysisList.Setup(&DSL, &parmFileList);
-//  analysisList.Analyze(&DFL);
-
-  // DEBUG: DataSets, post-Analysis
-//  mprintf("\nDATASETS AFTER ANALYSIS:\n");
-//  DSL.Info();
-
-  // ========== D A T A  W R I T E  P H A S E ==========
-  // Process any datafile commands
-//  DFL.ProcessDataFileArgs(&DSL);
   // Print Datafile information
   DFL.List();
   // Only Master does DataFile output
@@ -842,7 +831,6 @@ int Cpptraj::RunNormal() {
   actionList.Print( );
 
   // Sync DataSets and print DataSet information
-  // TODO - Also have datafilelist call a sync??
   DSL.Sync();
   mprintf("\nDATASETS BEFORE ANALYSIS:\n");
   DSL.List();

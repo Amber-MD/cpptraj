@@ -1,6 +1,7 @@
 #ifndef TRAJIN_SINGLE_H
 #define TRAJIN_SINGLE_H
 #include "Trajin.h"
+/// Class for reading in single trajectories.
 class Trajin_Single : public Trajin {
   public:
     Trajin_Single();

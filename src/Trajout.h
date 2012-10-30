@@ -2,6 +2,7 @@
 #define INC_TRAJOUT_H
 #include "TrajectoryFile.h"
 #include "Range.h"
+/// Output trajectory class.
 class Trajout : public TrajectoryFile {
   public:
     Trajout();

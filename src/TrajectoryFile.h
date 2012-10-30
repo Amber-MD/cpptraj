@@ -1,6 +1,7 @@
 #ifndef INC_TRAJECTORYFILE_H
 #define INC_TRAJECTORYFILE_H
 #include "TrajectoryIO.h"
+/// Base class that all input and output trajectories will inherit.
 class TrajectoryFile {
   public:
     /// Known trajectory formats.
