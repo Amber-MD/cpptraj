@@ -40,14 +40,13 @@ class Cpptraj {
 
     static const DispatchObject::Token GeneralCmds[];
     static const DispatchObject::Token CoordCmds[];
-    int SearchTokenArray(const DispatchObject::Token* DispatchArray,
-                         bool, const ArgList&);
-    int SearchToken(ArgList&);
+    void ListAllCommands(const DispatchObject::Token*);
+    DispatchObject::TokenPtr SearchTokenArray(const DispatchObject::Token*, ArgList const&);
+    DispatchObject::TokenPtr SearchToken(ArgList&);
 
     int ProcessInput(std::string const&);
     Mode Dispatch(const char*);        ///< Function that decides where to send commands
 
-    DispatchObject::Token const* dispatchToken_;
     /// List of parameter files 
     TopologyList parmFileList;
     /// List of input trajectory files
@@ -56,7 +55,9 @@ class Cpptraj {
     FrameList refFrames; 
 
     typedef std::vector<ArgList> ArgsArray;
+    /// Array of trajout args for setting up ensemble trajout.
     ArgsArray trajoutArgs_;
+    /// Array of action args for setting up ensemble actions.
     ArgsArray actionArgs_;
 
     /// List of output trajectory files 

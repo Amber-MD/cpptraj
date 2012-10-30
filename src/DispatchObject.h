@@ -18,5 +18,6 @@ class DispatchObject {
       DispatchHelpType Help;
       int Idx;
     };
+    typedef const Token* TokenPtr;
 };
 #endif

@@ -107,26 +107,25 @@ Cpptraj::Cpptraj() :
 {}
 
 void Cpptraj::Help(ArgList& argIn) {
-  bool listAllCommands = false;
   ArgList arg = argIn;
   arg.RemoveFirstArg();
   if (arg.empty()) {
-    listAllCommands = true;
     mprintf("General Commands:\n");
-    SearchTokenArray( GeneralCmds, listAllCommands, arg );
+    ListAllCommands( GeneralCmds );
     mprintf("Topology Commands:\n");
-    SearchTokenArray( TopologyList::ParmCmds, listAllCommands, arg );
+    ListAllCommands( TopologyList::ParmCmds );
     mprintf("Coordinate Commands:\n");
-    SearchTokenArray( CoordCmds, listAllCommands, arg );
+    ListAllCommands( CoordCmds );
     mprintf("Action Commands:\n");
-    SearchTokenArray( ActionList::DispatchArray, listAllCommands, arg );
+    ListAllCommands( ActionList::DispatchArray );
     mprintf("Analysis Commands:\n");
-    SearchTokenArray( AnalysisList::DispatchArray, listAllCommands, arg );
+    ListAllCommands( AnalysisList::DispatchArray );
   } else {
-    if (SearchToken( arg )==0 || dispatchToken_->Help == 0) 
+    DispatchObject::TokenPtr dispatchToken = SearchToken( arg );
+    if (dispatchToken == 0 || dispatchToken->Help == 0) 
       mprinterr("No help found for %s\n", arg.Command());
     else
-      dispatchToken_->Help();
+      dispatchToken->Help();
   }
 }
 
@@ -243,54 +242,64 @@ void Cpptraj::SelectDS(ArgList& argIn) {
 }
 
 // -----------------------------------------------------------------------------
-// Cpptraj::SearchTokenArray()
-/** Search the given array for command. If command is found set token
-  * and return 1, otherwise return 0.
-  */
-int Cpptraj::SearchTokenArray(const DispatchObject::Token* DispatchArray,
-                              bool listAllCommands, const ArgList& arg)
-{
+// Cpptraj::ListAllCommands()
+/** List all commands in the given token array. */
+void Cpptraj::ListAllCommands(DispatchObject::TokenPtr DispatchArray) {
   int col = 0;
-  if (listAllCommands) mprintf("\t");
-  // List/search Action Commands
-  for (const DispatchObject::Token* token = DispatchArray;
-                                    token->Type != DispatchObject::NONE; ++token)
+  mprintf("\t");
+  for (DispatchObject::TokenPtr token = DispatchArray;
+                                token->Type != DispatchObject::NONE; ++token)
   {
-    //mprintf("DBG: CMD [%s] LISTALLCMD=%i  ARG=%s\n", token->Cmd,(int)listAllCommands,arg.Command());
-    if (listAllCommands) {
-      mprintf("%s  ", token->Cmd);
-      ++col;
-      if (col == 8) {
-        mprintf("\n\t");
-        col = 0;
-      }
-    } else if ( arg.CommandIs( token->Cmd ) ) {
-      dispatchToken_ = token;
-      return 1;
+    mprintf("%s  ", token->Cmd);
+    ++col;
+    if (col == 8) {
+      mprintf("\n\t");
+      col = 0;
     }
   }
-  if (listAllCommands && col > 0) mprintf("\n");
+  if (col > 0) mprintf("\n");
+}
+
+// Cpptraj::SearchTokenArray()
+/** Search the given token array for command.
+  * \return DispatchObject associated with command or 0 if not found.
+  */
+DispatchObject::TokenPtr Cpptraj::SearchTokenArray(DispatchObject::TokenPtr DispatchArray, 
+                                                   ArgList const& arg)
+{
+  for (DispatchObject::TokenPtr token = DispatchArray;
+                                token->Type != DispatchObject::NONE; ++token)
+  {
+    //mprintf("DBG: CMD [%s] LISTALLCMD=%i  ARG=%s\n", token->Cmd,(int)listAllCommands,arg.Command());
+    if ( arg.CommandIs( token->Cmd ) ) 
+      return token;
+  }
   return 0;
 }
 
 // Cpptraj::SearchToken()
 /** Search each token list for the given command. If the command is found in
   * a list then dispatchToken is set by SearchTokenArray and 1 is returned.
-  * \return 1 if the token is found, 0 if not.
+  * \return the token if found, 0 if not.
   */
-int Cpptraj::SearchToken(ArgList& argIn) {
-  dispatchToken_ = 0;
+DispatchObject::TokenPtr Cpptraj::SearchToken(ArgList& argIn) {
+  DispatchObject::TokenPtr tkn = 0;
   // SPECIAL CASE: For backwards compat. remove analyze prefix
   if (argIn.CommandIs("analyze")) {
     argIn.RemoveFirstArg();
     argIn.MarkArg(0); // Mark new first arg as command
-    if (SearchTokenArray( AnalysisList::DispatchArray, false, argIn)) return 1;
+    return SearchTokenArray( AnalysisList::DispatchArray, argIn);
   } else {
-    if (SearchTokenArray( GeneralCmds, false, argIn )) return 1;
-    if (SearchTokenArray( TopologyList::ParmCmds, false, argIn )) return 1;
-    if (SearchTokenArray( CoordCmds, false, argIn )) return 1;
-    if (SearchTokenArray( ActionList::DispatchArray, false, argIn)) return 1;
-    if (SearchTokenArray( AnalysisList::DispatchArray, false, argIn)) return 1;
+    tkn = SearchTokenArray( GeneralCmds, argIn );
+    if (tkn != 0) return tkn;
+    tkn = SearchTokenArray( TopologyList::ParmCmds, argIn );
+    if (tkn != 0) return tkn;
+    tkn = SearchTokenArray( CoordCmds, argIn );
+    if (tkn != 0) return tkn;
+    tkn = SearchTokenArray( ActionList::DispatchArray, argIn);
+    if (tkn != 0) return tkn;
+    tkn = SearchTokenArray( AnalysisList::DispatchArray, argIn);
+    if (tkn != 0) return tkn;
   }
   mprinterr("[%s]: Command not found.\n",argIn.Command());
   return 0;
@@ -475,16 +484,17 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
   ArgList command( inputLine );
   if ( command.empty() ) return C_OK;
   command.MarkArg(0); // Always mark the command
-  if ( SearchToken( command ) ) {
-    //mprintf("TOKEN FOUND. CMD=%s  TYPE=%i\n", dispatchToken_->Cmd, (int)dispatchToken_->Type);
-    switch (dispatchToken_->Type) {
+  DispatchObject::TokenPtr dispatchToken = SearchToken( command );
+  if ( dispatchToken != 0 ) {
+    //mprintf("TOKEN FOUND. CMD=%s  TYPE=%i\n", dispatchToken->Cmd, (int)dispatchToken->Type);
+    switch (dispatchToken->Type) {
       case DispatchObject::PARM :
-        if ( parmFileList.CheckCommand(dispatchToken_->Idx, command) 
+        if ( parmFileList.CheckCommand(dispatchToken->Idx, command) 
              && exitOnError_ )
           return C_ERR;
         break;
       case DispatchObject::COORD :
-        switch ( dispatchToken_->Idx ) {
+        switch ( dispatchToken->Idx ) {
           case TRAJIN :
             if (trajinList.AddTrajin(command, parmFileList) && exitOnError_)
               return C_ERR;
@@ -504,17 +514,17 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
       case DispatchObject::ACTION : 
         // For setting up ensemble, save action arg
         actionArgs_.push_back(command);
-        if (actionList.AddAction( dispatchToken_->Alloc, command, &parmFileList,
+        if (actionList.AddAction( dispatchToken->Alloc, command, &parmFileList,
                                   &refFrames, &DSL, &DFL ) != 0 && exitOnError_ )
           return C_ERR;
         break;
       case DispatchObject::ANALYSIS :
-        if ( analysisList.AddAnalysis( dispatchToken_->Alloc, command, &parmFileList, &DSL ) 
+        if ( analysisList.AddAnalysis( dispatchToken->Alloc, command, &parmFileList, &DSL ) 
              && exitOnError_)
           return C_ERR;
         break;
       case DispatchObject::GENERAL :
-        switch ( dispatchToken_->Idx ) {
+        switch ( dispatchToken->Idx ) {
           case LIST  : List(command); break;
           case HELP  : Help(command); break;
           case DEBUG : Debug(command); break;
@@ -630,10 +640,11 @@ int Cpptraj::RunEnsemble() {
     // Initialize actions 
     for (ArgsArray::iterator aarg = actionArgs_.begin(); aarg != actionArgs_.end(); ++aarg)
     {
-      if ( SearchToken( *aarg ) ) {
+      DispatchObject::TokenPtr dispatchToken = SearchToken( *aarg );
+      if ( dispatchToken != 0 ) {
         // Create copy of arg list so that args remain unmarked for next member
         ArgList command = *aarg;
-        if (ActionEnsemble[member].AddAction( dispatchToken_->Alloc, command, &parmFileList,
+        if (ActionEnsemble[member].AddAction( dispatchToken->Alloc, command, &parmFileList,
                                           &refFrames, &(DataSetEnsemble[member]), &DFL ))
           return 1;
       }
