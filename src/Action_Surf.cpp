@@ -253,21 +253,14 @@ static void WarnLCPO(NameType &atype, int atom, int numBonds) {
 
 // Action_Surf::SetAtomLCPO()
 /** Set up parameters only used in surface area calcs.
-  * LCPO method from:
-  *   J. Weiser, P.S. Shenkin, and W.C. Still,
-  *   "Approximate atomic surfaces from linear combinations of pairwise
-  *   overlaps (LCPO)", J. Comp. Chem. 20:217 (1999).
-  * Adapted from gbsa=1 method in SANDER, mdread.f
-  * \param atnum The atom number (starting from 1), only used in output messages.
-  * \param atom The atom to set up parameters for
+  * Adapted from gbsa=1 method in SANDER, mdread.F90
+  * \param currentParm The Topology containing atom information. 
+  * \param atidx The atom number to set up parameters for.
   * \param SIptr Address to store the SI parameters.
-  * \return the number of solute atoms for which paramters were set. 
-  * \return -1 on error.
   */
 void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* SIptr) 
 {
   const Atom& atom = currentParm[atidx];
-  int atnum = atidx + 1;
   // Get the number of non-H bonded neighbors to this atom
   int numBonds = 0;
   for (Atom::bond_iterator batom = atom.bondbegin(); batom != atom.bondend(); batom++)
@@ -283,14 +276,14 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
       case 2: AssignLCPO(SIptr, 1.70, 0.56482, -0.19608, -0.0010219, 0.0002658);  break;
       case 3: AssignLCPO(SIptr, 1.70, 0.23348, -0.072627, -0.00020079, 0.00007967); break;
       case 4: AssignLCPO(SIptr, 1.70, 0.00000, 0.00000, 0.00000, 0.00000); break;
-      default: WarnLCPO(atype,atnum,numBonds);
+      default: WarnLCPO(atype,atidx + 1,numBonds);
               AssignLCPO(SIptr, 1.70, 0.77887, -0.28063, -0.0012968, 0.00039328);
     }
   } else if (atype[0]=='C' || atype[0]=='c') {
     switch ( numBonds ) {
       case 2: AssignLCPO(SIptr, 1.70, 0.51245, -0.15966, -0.00019781, 0.00016392); break;
       case 3: AssignLCPO(SIptr, 1.70, 0.070344, -0.019015, -0.000022009, 0.000016875); break;
-      default: WarnLCPO(atype,atnum,numBonds);
+      default: WarnLCPO(atype,atidx + 1,numBonds);
               AssignLCPO(SIptr, 1.70, 0.77887, -0.28063, -0.0012968, 0.00039328);
     }
   } else if (atype[0]=='O' && atype[1]==' ') {
@@ -301,7 +294,7 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
     switch (numBonds) {
       case 1: AssignLCPO(SIptr, 1.60, 0.77914, -0.25262, -0.0016056, 0.00035071); break;
       case 2: AssignLCPO(SIptr, 1.60, 0.49392, -0.16038, -0.00015512, 0.00016453); break;
-      default: WarnLCPO(atype,atnum,numBonds);
+      default: WarnLCPO(atype,atidx + 1,numBonds);
               AssignLCPO(SIptr, 1.60, 0.77914, -0.25262, -0.0016056, 0.00035071);
     }
   } else if (atype[0]=='N' && atype[1]=='3') {
@@ -309,7 +302,7 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
       case 1: AssignLCPO(SIptr, 1.65, 0.078602, -0.29198, -0.0006537, 0.00036247); break;
       case 2: AssignLCPO(SIptr, 1.65, 0.22599, -0.036648, -0.0012297, 0.000080038); break;
       case 3: AssignLCPO(SIptr, 1.65, 0.051481, -0.012603, -0.00032006, 0.000024774); break;
-      default: WarnLCPO(atype,atnum,numBonds);
+      default: WarnLCPO(atype,atidx + 1,numBonds);
               AssignLCPO(SIptr, 1.65, 0.078602, -0.29198, -0.0006537, 0.00036247);
     }
   } else if (atype[0]=='N' || atype[0]=='n') {
@@ -317,7 +310,7 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
       case 1: AssignLCPO(SIptr, 1.65, 0.73511, -0.22116, -0.00089148, 0.0002523); break;
       case 2: AssignLCPO(SIptr, 1.65, 0.41102, -0.12254, -0.000075448, 0.00011804); break;
       case 3: AssignLCPO(SIptr, 1.65, 0.062577, -0.017874, -0.00008312, 0.000019849); break;
-      default: WarnLCPO(atype,atnum,numBonds);
+      default: WarnLCPO(atype,atidx + 1,numBonds);
               AssignLCPO(SIptr, 1.65, 0.078602, -0.29198, -0.0006537, 0.00036247);
     }
   } else if (atype[0]=='S' && atype[1]=='H') {
@@ -328,7 +321,7 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
     switch (numBonds) {
       case 3: AssignLCPO(SIptr, 1.90, 0.3865, -0.18249, -0.0036598, 0.0004264); break;
       case 4: AssignLCPO(SIptr, 1.90, 0.03873, -0.0089339, 0.0000083582, 0.0000030381); break;
-      default: WarnLCPO(atype,atnum,numBonds);
+      default: WarnLCPO(atype,atidx + 1,numBonds);
         AssignLCPO(SIptr, 1.90, 0.3865, -0.18249, -0.0036598, 0.0004264);
     }
   } else if (atype[0]=='Z') {
@@ -344,17 +337,7 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
     //  compared to all other elements which had been parametrized
     AssignLCPO(SIptr, 1.18, 0.49392, -0.16038, -0.00015512, 0.00016453);
   } else {
-    mprintf("Warning: Using carbon SA parms for unknown atom %i type %s\n",atnum,*atype);
+    mprintf("Warning: Using carbon SA parms for unknown atom %i type %s\n",atidx + 1,*atype);
     AssignLCPO(SIptr, 1.70, 0.51245, -0.15966, -0.00019781, 0.00016392);
   }
-
-  // DEBUG
-  /*
-  for (i=0; i<numSoluteAtoms; i++) {
-    fprintf(stdout,"%6i %4s: %6.2lf %lf %lf %lf %lf\n",i+1,types[i],SurfaceInfo[i].vdwradii,
-    fprintf(stdout,"%6i%6.2lf%12.8lf%12.8lf%12.8lf%12.8lf\n",i+1,SurfaceInfo[i].vdwradii,
-            SurfaceInfo[i].P1,SurfaceInfo[i].P2,SurfaceInfo[i].P3,SurfaceInfo[i].P4);
-  }
-  */
 }
-
