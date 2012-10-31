@@ -6,7 +6,7 @@
 // CONSTRUCTOR
 DataIO::DataIO() {
   maxFrames_ = 0;
-
+  debug_ = 0;
   hasXcolumn_ = true;
   xcol_width_ = 0;
   xcol_precision_ = 3;
@@ -22,6 +22,7 @@ DataIO::DataIO(const DataIO &rhs) :
   CpptrajFile(rhs)
 {
   maxFrames_ = rhs.maxFrames_;
+  debug_ = rhs.debug_;
   hasXcolumn_ = rhs.hasXcolumn_;
   xcol_width_ = rhs.xcol_width_;
   xcol_precision_ = rhs.xcol_precision_;

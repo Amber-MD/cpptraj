@@ -5,8 +5,11 @@
 class Parm_PDB : public ParmIO, PDBtype {
   public :
     Parm_PDB() { }
-    int ReadParm(Topology&);
-    bool ID_ParmFormat();
+    static ParmIO* Alloc() { return (ParmIO*)new Parm_PDB(); }
+    bool ID_ParmFormat(CpptrajFile&);
+    int ReadParm(std::string const&, Topology&);
+    int WriteParm(std::string const&, Topology const&) { return 1; }
+    void SetDebug(int) {}
 };
 #endif
 

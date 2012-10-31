@@ -15,16 +15,16 @@ class NetcdfFile {
     void NetcdfDebug();
     std::string GetAttrText(const char *);
     NCTYPE GetNetcdfConventions();
-    int NC_openRead(const char*);
-    int NC_openWrite(const char*);
-    int NC_create(const char*,NCTYPE,int,bool,bool,bool,bool,std::string const&);
+    int NC_openRead(std::string const&);
+    int NC_openWrite(std::string const&);
+    int NC_create(std::string const&,NCTYPE,int,bool,bool,bool,bool,std::string const&);
     void NC_close();
 
     int SetupFrame();
     int SetupCoordinates();
     int SetupVelocity();
     int SetupTime();
-    int SetupBox(double *, double *);
+    int SetupBox(double*);
     int SetupTemperature();
     int SetupMultiD();
 

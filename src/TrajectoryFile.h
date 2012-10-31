@@ -5,10 +5,9 @@
 class TrajectoryFile {
   public:
     /// Known trajectory formats.
-    // NOTE: FORMAT_STRINGS must also be updated
     enum TrajFormatType {
       UNKNOWN_TRAJ=0, AMBERNETCDF, AMBERRESTARTNC, PDBFILE, MOL2FILE, CHARMMDCD,
-      BINPOS, AMBERRESTART, AMBERTRAJ, CONFLIB, NTRAJ
+      BINPOS, AMBERRESTART, AMBERTRAJ, CONFLIB
     };
 
     TrajectoryFile();
@@ -24,25 +23,30 @@ class TrajectoryFile {
     static TrajFormatType GetTypeFromExtension(std::string const&);
 
     void SetDebug(int);
-    void SetFileNames( std::string const&, std::string const& );
+    void SetFileName( std::string const& );
     int SetTrajParm( Topology* );
 
-    Topology* TrajParm()              { return trajParm_;           }
-    const char* FullTrajStr()         { return trajName_.c_str();   }
-    std::string const& FullTrajName() { return trajName_;           }
-    const char* BaseTrajStr()         { return baseName_.c_str();   }
-    std::string const& BaseTrajName() { return baseName_;           }
+    Topology* TrajParm()              { return trajParm_;                  }
+    const char* FullTrajStr()         { return trajName_.Full().c_str();   }
+    std::string const& FullTrajName() { return trajName_.Full();           }
+    const char* BaseTrajStr()         { return trajName_.Base().c_str();   }
+    std::string const& BaseTrajName() { return trajName_.Base();           }
   protected:
     int debug_;            ///< Trajectory debug level.
 
-    TrajectoryIO* AllocTrajIO(TrajFormatType);
-    TrajectoryIO* DetectFormat(CpptrajFile&);
+    static TrajectoryIO* AllocTrajIO(TrajFormatType);
+    static TrajectoryIO* DetectFormat(CpptrajFile&);
   private:
-    /// Strings describing each TrajFormatType
-    static const char FORMAT_STRINGS[][17];
-
+    struct TrajToken {
+      TrajFormatType Type;
+      const char* Key;
+      const char* Description;
+      const char* Extension;
+      TrajectoryIO::AllocatorType Alloc;
+    };
+    static const TrajToken TrajArray[];
+    typedef const TrajToken* TokenPtr;
     Topology *trajParm_;   ///< Associated parm
-    std::string trajName_; ///< The full path to trajectory file.
-    std::string baseName_; ///< The base trajectory file name.
+    FileName trajName_;    ///< The full path to trajectory file.
 };
 #endif

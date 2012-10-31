@@ -4,7 +4,10 @@
 #include "Mol2File.h"
 class Parm_Mol2 : public ParmIO, Mol2File {
   public :
-    bool ID_ParmFormat();
-    int ReadParm(Topology&);
+    static ParmIO* Alloc() { return (ParmIO*)new Parm_Mol2(); }
+    bool ID_ParmFormat(CpptrajFile&);
+    int ReadParm(std::string const&, Topology&);
+    int WriteParm(std::string const&, Topology const&) { return 1; }
+    void SetDebug(int) {}
 };
 #endif

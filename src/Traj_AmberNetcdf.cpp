@@ -6,16 +6,15 @@
 #include "netcdf.h"
 #include "Traj_AmberNetcdf.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
-  Veloc_(0)
-{
-  //fprintf(stderr,"Amber Netcdf Constructor\n");
-  // Netcdf files are always seekable
-  seekable_=true;
-}
+  Veloc_(0),
+  access_(CpptrajFile::READ),
+  debug_(0)
+{ }
 
 // DESTRUCTOR
 Traj_AmberNetcdf::~Traj_AmberNetcdf() {
@@ -26,8 +25,8 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
   // NOTE: Need to close file?
 }
 
-bool Traj_AmberNetcdf::ID_TrajFormat() {
-  if ( GetNetcdfConventions( FullFileStr() ) == NC_AMBERTRAJ ) return true;
+bool Traj_AmberNetcdf::ID_TrajFormat(CpptrajFile& fileIn) {
+  if ( GetNetcdfConventions( fileIn.FullFileStr() ) == NC_AMBERTRAJ ) return true;
   return false;
 } 
 
@@ -45,27 +44,26 @@ void Traj_AmberNetcdf::closeTraj() {
   * open and close calls.
   */
 int Traj_AmberNetcdf::openTraj() {
-  //fprintf(stdout,"DEBUG: AmberNetcdf::openTraj() called for %s, ncid=%i\n",BaseFileStr(),ncid);
+  //fprintf(stdout,"DEBUG: AmberNetcdf::openTraj() called for %s, ncid=%i\n",filename_.base(),ncid);
   // If already open, return
   if (Ncid()!=-1) return 0;
 
   switch (access_) {
-    case READ :
-      if ( NC_openRead( FullFileStr() ) != 0 ) {
-        mprinterr("Error: Opening Netcdf file %s for reading.\n",BaseFileStr()); 
+    case CpptrajFile::READ :
+      if ( NC_openRead( filename_.Full() ) != 0 ) {
+        mprinterr("Error: Opening Netcdf file %s for reading.\n", filename_.base()); 
         return 1;
       }
       break;
-    
-    case APPEND: 
-    case WRITE:
-      if ( NC_openWrite( FullFileStr() ) != 0 ) {
-        mprinterr("Error: Opening Netcdf file %s for Write.\n",BaseFileStr());
+    case CpptrajFile::APPEND: 
+    case CpptrajFile::WRITE:
+      if ( NC_openWrite( filename_.Full() ) != 0 ) {
+        mprinterr("Error: Opening Netcdf file %s for Write.\n", filename_.base());
         return 1;
       }
   }
 
-  if (debug_>0) rprintf("Successfully opened %s, ncid=%i\n",BaseFileStr(),Ncid());
+  if (debug_>0) rprintf("Successfully opened %s, ncid=%i\n", filename_.base(), Ncid());
   if (debug_>1) NetcdfDebug();
 
   return 0;
@@ -75,22 +73,27 @@ int Traj_AmberNetcdf::openTraj() {
 /** Open the netcdf file, read all dimension and variable IDs, close.
   * Return the number of frames in the file. 
   */
-int Traj_AmberNetcdf::setupTrajin(Topology* trajParm) {
+int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm,
+                    TrajInfo& tinfo)
+{
+  access_ = CpptrajFile::READ;
+  filename_.SetFileName( fname.c_str() );
   if (openTraj()) return -1;
+  tinfo.IsSeekable = true;
 
   // Sanity check - Make sure this is a Netcdf trajectory
   if ( GetNetcdfConventions() != NC_AMBERTRAJ ) {
-    mprinterr("Error: Netcdf file %s conventions do not include \"AMBER\"\n",BaseFileStr());
+    mprinterr("Error: Netcdf file %s conventions do not include \"AMBER\"\n",filename_.base());
     return -1;
   }
   // Get global attributes
   std::string attrText = GetAttrText("ConventionVersion");
   if ( attrText != "1.0") 
     mprintf("Warning: Netcdf file %s has ConventionVersion that is not 1.0 (%s)\n",
-            BaseFileStr(), attrText.c_str());
+            filename_.base(), attrText.c_str());
   // Get title
-  if (title_.empty()) 
-    title_ = GetAttrText("title");
+  if (tinfo.Title.empty()) 
+    tinfo.Title = GetAttrText("title");
 
   // Get Frame info
   if ( SetupFrame()!=0 ) return -1;
@@ -100,59 +103,52 @@ int Traj_AmberNetcdf::setupTrajin(Topology* trajParm) {
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n",
-              BaseFileStr(),Ncatom());
+              filename_.base(),Ncatom());
     mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
     return -1;
   }
 
   // Setup Velocity
   if (SetupVelocity() == 0)
-    hasVelocity_ = true;
+    tinfo.HasV = true;
 
   // Setup Time
   if ( SetupTime()!=0 ) return -1;
 
   // Box info
-  // NOTE: If no box info found in parm should really try to determine correct
-  //       box type from angles.
-  int boxerr = SetupBox(boxAngle_, boxLength_);
-  if (boxerr == 1)
+  double boxcrd[6];
+  if (SetupBox(boxcrd) == 1) // 1 indicates an error
     return 1;
-  else if (boxerr == 0)
-    hasBox_ = true;
-  else
-    hasBox_ = false;
+  tinfo.BoxInfo.SetBox(boxcrd);
  
   // Replica Temperatures - Allowed to fail gracefully
   if (SetupTemperature() == 0)
-    hasTemperature_ = true;
+    tinfo.HasT = true; 
 
   if ( SetupMultiD() == -1 ) return 1;
+  tinfo.NreplicaDim = remd_dimension_;
 
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;
   //int spatialVID, cell_spatialVID, cell_angularVID;
 
-
   // Amber Netcdf coords are float. Allocate a float array for converting
   // float to/from double.
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
   if (Veloc_ != 0) delete[] Veloc_;
-  if (hasVelocity_) 
+  if (velocityVID_ != -1) 
     Veloc_ = new float[ Ncatom3() ];
     
   closeTraj();
-
-  seekable_ = true;
 
   return Ncframe();
 }
 
 // Traj_AmberNetcdf::processWriteArgs()
-int Traj_AmberNetcdf::processWriteArgs(ArgList *argIn) {
-  if (argIn->hasKey("remdtraj")) this->SetTemperature();
+int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
+  //if (argIn.hasKey("remdtraj")) this->SetTemperature();
   return 0;
 }
 
@@ -160,20 +156,32 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList *argIn) {
 /** Create Netcdf file specified by filename and set up dimension and
   * variable IDs. 
   */
-int Traj_AmberNetcdf::setupTrajout(Topology *trajParm, int NframesToWrite) {
-  // Set up title
-  if (title_.empty())
-    title_.assign("Cpptraj Generated trajectory");
-
-  if ( NC_create( FullFileStr(), NC_AMBERTRAJ, trajParm->Natom(), hasVelocity_,
-                  hasBox_, hasTemperature_, true, title_ ) )
-    return 1; 
-
-  // Allocate memory and close the file. It will be reopened WRITE
-  if (Coord_!=0) delete[] Coord_;
-  Coord_ = new float[ Ncatom3() ];
-  closeTraj();
-  
+int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
+                     int NframesToWrite, TrajInfo const& tinfo, bool append)
+{
+  if (!append || !fileExists(fname.c_str())) {
+    filename_.SetFileName( fname.c_str());
+    access_ = CpptrajFile::WRITE;
+    // Set up title
+    std::string title = tinfo.Title;
+    if (title.empty())
+      title.assign("Cpptraj Generated trajectory");
+    // Create NetCDF file.
+    if ( NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), tinfo.HasV,
+                    (tinfo.BoxInfo.Type() != Box::NOBOX), tinfo.HasT, true, title ) )
+      return 1;
+    // Allocate memory
+    if (Coord_!=0) delete[] Coord_;
+    Coord_ = new float[ Ncatom3() ];
+  } else {
+    // Call setupTrajin to set input parameters. This will also allocate
+    // memory for coords.
+    TrajInfo read_info;
+    if (setupTrajin(fname, trajParm, read_info)) return 1;
+    mprintf("\tNetCDF: Appending %s starting at frame %i\n", filename_.base(), Ncframe()); 
+    access_ = CpptrajFile::APPEND;
+  }   
+ 
   return 0;
 }
 
@@ -216,7 +224,7 @@ int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double
   }
 
   // Read box info 
-  if (hasBox_) {
+  if (cellLengthVID_ != -1) {
     count_[1] = 3;
     count_[2] = 0;
     if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, box)) ) {
@@ -271,7 +279,7 @@ int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, dou
   }
 
   // Write box
-  if (hasBox_) {
+  if (cellLengthVID_ != -1) {
     count_[1] = 3;
     count_[2] = 0;
     if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,box)) ) {
@@ -302,8 +310,8 @@ int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, dou
 // Traj_AmberNetcdf::info()
 void Traj_AmberNetcdf::info() {
   mprintf("is a NetCDF AMBER trajectory");
-  if (hasVelocity_) mprintf(" containing velocities");
-  if (hasTemperature_) mprintf(" with replica temperatures");
+  if (velocityVID_ != -1) mprintf(" containing velocities");
+  if (TempVID_ != -1) mprintf(" with replica temperatures");
   if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
 
   /*if (debug_ > 2) {

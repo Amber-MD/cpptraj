@@ -4,15 +4,15 @@
 #include "Parm_CharmmPsf.h"
 #include "CpptrajStdio.h"
 
-bool Parm_CharmmPsf::ID_ParmFormat() {
+bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
   // Assumes already set up
-  if (OpenFile()) return false;
-  if (IO->Gets(buffer_, BUF_SIZE_)) return false;
+  if (fileIn.OpenFile()) return false;
+  if (fileIn.Gets(buffer_, BUF_SIZE_)) return false;
   if (buffer_[0]=='P' && buffer_[1]=='S' && buffer_[2]=='F') {
-    CloseFile();
+    fileIn.CloseFile();
     return true;
   }
-  CloseFile();
+  fileIn.CloseFile();
   return false;
 }
 
@@ -20,28 +20,29 @@ bool Parm_CharmmPsf::ID_ParmFormat() {
 /** Open the Charmm PSF file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
   */
-int Parm_CharmmPsf::ReadParm(Topology &parmOut) {
+int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   const size_t TAGSIZE = 10; 
   char tag[TAGSIZE];
 
-  if (OpenFile()) return 1;
+  CpptrajFile infile;
+  if (infile.OpenRead(fname)) return 1;
 
-  mprintf("    Reading Charmm PSF file %s as topology file.\n",BaseFileStr());
+  mprintf("    Reading Charmm PSF file %s as topology file.\n",infile.BaseFileStr());
   memset(buffer_,' ',BUF_SIZE_);
   memset(tag,' ',TAGSIZE);
   tag[0]='\0';
 
   // Read the first line, should contain PSF...
-  if (IO->Gets(buffer_,BUF_SIZE_)) return 1;
+  if (infile.Gets(buffer_,BUF_SIZE_)) return 1;
 
   // TODO: Assign title
   std::string psftitle;
-  parmOut.SetParmName( psftitle, BaseFileStr() );
+  parmOut.SetParmName( psftitle, infile.BaseFileStr() );
 
   // Advance to <natom> !NATOM
   int natom = 0;
   while (strncmp(tag,"!NATOM",6)!=0) {
-    if (IO->Gets(buffer_,BUF_SIZE_)) return 1;
+    if (infile.Gets(buffer_,BUF_SIZE_)) return 1;
     sscanf(buffer_,"%i %10s",&natom,tag);
   }
   mprintf("\tPSF: !NATOM tag found, natom=%i\n", natom);
@@ -64,7 +65,7 @@ int Parm_CharmmPsf::ReadParm(Topology &parmOut) {
   double psfcharge;
   double psfmass;
   for (int atom=0; atom < natom; atom++) {
-    if (IO->Gets(buffer_,BUF_SIZE_) ) {
+    if (infile.Gets(buffer_,BUF_SIZE_) ) {
       mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
       return 1;
     }
@@ -85,13 +86,13 @@ int Parm_CharmmPsf::ReadParm(Topology &parmOut) {
   int nbond = 0;
   int bondatoms[8];
   while (strncmp(tag,"!NBOND",6)!=0) {
-    if (IO->Gets(buffer_,BUF_SIZE_)) return 1;
+    if (infile.Gets(buffer_,BUF_SIZE_)) return 1;
     sscanf(buffer_,"%i %10s",&nbond,tag);
   }
   int nlines = nbond / 4;
   if ( (nbond % 4) != 0) nlines++;
   for (int bondline=0; bondline < nlines; bondline++) {
-    if (IO->Gets(buffer_,BUF_SIZE_) ) {
+    if (infile.Gets(buffer_,BUF_SIZE_) ) {
       mprinterr("Error: ReadParmPSF(): Reading bond line %i\n",bondline+1);
       return 1;
     }
@@ -114,7 +115,7 @@ int Parm_CharmmPsf::ReadParm(Topology &parmOut) {
     mprintf("    PSF contains %i atoms, %i residues.\n",
             parmOut.Natom(), parmOut.Nres());
 
-  CloseFile();
+  infile.CloseFile();
 
   return 0;
 }

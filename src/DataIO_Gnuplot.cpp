@@ -118,35 +118,35 @@ int DataIO_Gnuplot::WriteDataBinary(DataSetList &SetList) {
     ++Ymax;
   float fvar = (float)Ymax;
   mprintf("Ymax = %f\n",fvar);
-  IO->Write( &fvar, sizeof(float) );
+  Write( &fvar, sizeof(float) );
   for (int setnum = 0; setnum < Ymax; ++setnum) {
     double ycoord = (ystep_ * (double)setnum) + ymin_;
     fvar = (float)ycoord;
-    IO->Write( &fvar, sizeof(float) );
+    Write( &fvar, sizeof(float) );
   }
   // Data
   for (int frame = 0; frame < maxFrames_; frame++) {
     double xcoord = (xstep_ * (double)frame) + xmin_;
     fvar = (float)xcoord;
-    IO->Write( &fvar, sizeof(float) );
+    Write( &fvar, sizeof(float) );
     for (set=SetList.begin(); set !=SetList.end(); set++) {
       fvar = (float)(*set)->Dval( frame );
-      IO->Write( &fvar, sizeof(float) );
+      Write( &fvar, sizeof(float) );
     }
     if (!useMap_) {
       // Print one empty row for gnuplot pm3d without map
       fvar = 0;
-      IO->Write( &fvar, sizeof(float) );
+      Write( &fvar, sizeof(float) );
     }
   }
   if (!useMap_) {
     // Print one empty set for gnuplot pm3d without map
     double xcoord = (xstep_ * (double)maxFrames_) + xmin_;
     fvar = (float)xcoord;
-    IO->Write( &fvar, sizeof(float) );
+    Write( &fvar, sizeof(float) );
     fvar = 0;
     for (int blankset=0; blankset < Ymax; blankset++)
-      IO->Write( &fvar, sizeof(float) ); 
+      Write( &fvar, sizeof(float) ); 
   }
 
   return 0;

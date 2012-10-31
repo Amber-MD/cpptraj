@@ -58,37 +58,37 @@ void Topology::SetReferenceCoords( Frame *frameptr ) {
 // -----------------------------------------------------------------------------
 // Topology::FinalSoluteRes()
 /** Return 1 past the last solute residue. */
-int Topology::FinalSoluteRes() {
+int Topology::FinalSoluteRes() const {
   return finalSoluteRes_ + 1;
 }
 
 // Topology::Pindex()
-int Topology::Pindex() {
+int Topology::Pindex() const {
   return pindex_;
 }
 
 // Topology::Natom()
-int Topology::Natom() {
+int Topology::Natom() const {
   return (int)atoms_.size();
 }
 
 // Topology::Nres()
-int Topology::Nres() {
+int Topology::Nres() const {
   return (int)residues_.size();
 }
 
 // Topology::Nmol()
-int Topology::Nmol() {
+int Topology::Nmol() const {
   return (int)molecules_.size();
 }
 
 // Topology::Nsolvent()
-int Topology::Nsolvent() {
+int Topology::Nsolvent() const {
   return NsolventMolecules_;
 }
 
 // Topology::Nframes()
-int Topology::Nframes() {
+int Topology::Nframes() const {
   return nframes_;
 }
 
@@ -113,7 +113,7 @@ const char *Topology::c_str() {
 }
 
 // Topology::ParmName()
-std::string Topology::ParmName() { 
+std::string Topology::ParmName() const { 
   return parmName_;
 }
 
@@ -123,7 +123,7 @@ std::string Topology::OriginalFilename() {
 }
 
 // Topology::GBradiiSet()
-std::string Topology::GBradiiSet() {
+std::string Topology::GBradiiSet() const {
   return radius_set_;
 }
 
@@ -296,13 +296,13 @@ int Topology::FindAtomInResidue(int res, NameType atname) {
 
 // Topology::FindResidueMaxNatom()
 /** Return the # atoms in the largest residue. */
-int Topology::FindResidueMaxNatom() {
+int Topology::FindResidueMaxNatom() const {
   if (residues_.size() <= 1)
     return (int)atoms_.size();
   int largest_natom = 0;
   int lastatom = (int)atoms_.size();
-  for (std::vector<Residue>::iterator res = residues_.end() - 1;
-                                      res != residues_.begin(); res--)
+  for (std::vector<Residue>::const_iterator res = residues_.end() - 1;
+                                            res != residues_.begin(); res--)
   {
     int firstatom = (*res).FirstAtom();
     int diff = lastatom - firstatom;

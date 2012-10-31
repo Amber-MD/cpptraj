@@ -28,7 +28,7 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
   //DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
 
   // Buffer file
-  FileBuffer buffer( IO, (int)FileSize() );
+  FileBuffer buffer( IOptr(), (int)FileSize() );
 
   // Read the first line. Attempt to determine the number of columns
   const char* linebuffer = buffer.NextLine();

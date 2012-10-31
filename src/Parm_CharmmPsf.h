@@ -3,8 +3,11 @@
 #include "ParmIO.h"
 class Parm_CharmmPsf : public ParmIO {
   public :
-    bool ID_ParmFormat();
-    int ReadParm(Topology&);
+    static ParmIO* Alloc() { return (ParmIO*)new Parm_CharmmPsf(); }
+    bool ID_ParmFormat(CpptrajFile&);
+    int ReadParm(std::string const&, Topology&);
+    int WriteParm(std::string const&, Topology const&) { return 1; }
+    void SetDebug(int) {}
   private:
     static const size_t BUF_SIZE_ = 256;
     char buffer_[BUF_SIZE_];

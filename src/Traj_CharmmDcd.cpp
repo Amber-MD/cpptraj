@@ -37,7 +37,7 @@ Traj_CharmmDcd::~Traj_CharmmDcd() {
   if (zcoord!=NULL) delete[] zcoord;
 }
 
-bool Traj_CharmmDcd::ID_TrajFormat() {
+bool Traj_CharmmDcd::ID_TrajFormat(CpptrajFile& fileIn) {
   unsigned char buffer[8];
   memset(buffer, ' ', 8);
   if (OpenFile()) return false;
@@ -162,7 +162,9 @@ int Traj_CharmmDcd::WriteBlock(int blocksize) {
 // Traj_CharmmDcd::setupTrajin()
 /** Call openTraj, which reads the DCD header and all necessary info.
   */
-int Traj_CharmmDcd::setupTrajin(Topology *trajParm) {
+int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm,
+                    TrajInfo& tinfo)
+{
   double box[6];
   size_t boxBytes, dim;
 
@@ -485,7 +487,7 @@ int Traj_CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *
 }
 
 // Traj_CharmmDcd::processWriteArgs()
-int Traj_CharmmDcd::processWriteArgs(ArgList *argIn) {
+int processWriteArgs(ArgList& argIn) {
   return 0;
 }
 
@@ -495,7 +497,9 @@ int Traj_CharmmDcd::processWriteArgs(ArgList *argIn) {
   * Set is64bit and isBigEndian, although they are not currently used during
   * writes; size and endianness will be OS default.
   */
-int Traj_CharmmDcd::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_CharmmDcd::setupTrajout(std::string const& fname, Topology* trajParm,
+                     int NframesToWrite, TrajInfo const& tinfo)
+{
   dcdatom = trajParm->Natom();
   // dcdframes = trajParm->parmFrames;
   dcdframes = 0;

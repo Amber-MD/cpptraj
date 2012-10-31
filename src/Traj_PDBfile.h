@@ -15,6 +15,7 @@ class Traj_PDBfile: public TrajectoryIO, PDBtype {
     enum PDBWRITEMODE {SINGLE = 0, MODEL, MULTI};
 
     Traj_PDBfile();
+    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_PDBfile(); }
     // Traj_PDBfile-specfic functions
     void SetWriteMode(PDBWRITEMODE);
     void SetDumpq();
@@ -30,14 +31,17 @@ class Traj_PDBfile: public TrajectoryIO, PDBtype {
     char chainchar_;
 
     // Inherited functions
-    bool ID_TrajFormat();
-    int setupTrajin(Topology*);
-    int setupTrajout(Topology*,int);
+    bool ID_TrajFormat(CpptrajFile&);
+    int setupTrajin(std::string const&, Topology*, TrajInfo&);
+    int setupTrajout(std::string const&, Topology*, int, TrajInfo const&,bool);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
     void info();
-    int processWriteArgs(ArgList*);
+    int processWriteArgs(ArgList&);
+    int readVelocity(int, double*) { return 1; }
+    int readIndices(int,int*) { return 1; }
+    int processReadArgs(ArgList&) { return 0; }
 };
 #endif

@@ -10,7 +10,7 @@ Traj_Mol2File::Traj_Mol2File() :
   hasCharges_(false)
 {}
 
-bool Traj_Mol2File::ID_TrajFormat() {
+bool Traj_Mol2File::ID_TrajFormat(CpptrajFile& fileIn) {
   if (OpenFile()) return false;
   //mprintf("DEBUG: Checking Mol2 parm format.\n");
   bool ismol2file = ID( IO );
@@ -56,7 +56,9 @@ void Traj_Mol2File::closeTraj() {
 /** See how many MOLECULE records are in file, make sure num atoms match
   * parm and each frame.
   */
-int Traj_Mol2File::setupTrajin(Topology *trajParm) {
+int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm,
+                    TrajInfo& tinfo)
+{
   int frameAtom;
   int Frames=0;
 
@@ -114,7 +116,7 @@ int Traj_Mol2File::readFrame(int set,double *X, double *V,double *box, double *T
 }
 
 // Traj_Mol2File::processWriteArgs()
-int Traj_Mol2File::processWriteArgs(ArgList *argIn) {
+int processWriteArgs(ArgList& argIn) {
   if (argIn->hasKey("single")) this->SetWriteMode(MOL);
   if (argIn->hasKey("multi"))  this->SetWriteMode(MULTI);
   return 0;
@@ -131,7 +133,9 @@ void Traj_Mol2File::SetWriteMode(MOL2WRITEMODE modeIn) {
 /** Set parm information required for write, and check write mode against
   * number of frames to be written.
   */
-int Traj_Mol2File::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
+                     int NframesToWrite, TrajInfo const& tinfo)
+{
   if (trajParm==NULL) return 1;
   mol2Top_ = trajParm;
   // If writing more than 1 frame and not writing 1 pdb per frame, 

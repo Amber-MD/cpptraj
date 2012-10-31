@@ -1,25 +1,22 @@
 #ifndef INC_PARMFILE_H
 #define INC_PARMFILE_H
 #include "ParmIO.h"
-#include "Topology.h"
 class ParmFile {
   public :
-    enum ParmFormatType {
-      UNKNOWN_PARM=0, PDBFILE, AMBERPARM, MOL2FILE, CHARMMPSF, NPARM
-    };
+    enum ParmFormatType { UNKNOWN_PARM=0, PDBFILE, AMBERPARM, MOL2FILE, CHARMMPSF };
 
-    ParmFile();
-
-    inline std::string &BaseName() {
-      return basename_;
-    }
-
-    void SetDebug(int);
-    int Read(Topology&, std::string const&, bool);
-    int Write(Topology&, std::string const&, ParmFormatType);
+    ParmFile() {}
+    int Read(Topology&, std::string const&, bool,int);
+    int Write(Topology const&, std::string const&, ParmFormatType,int);
+    std::string const& BaseName() { return baseName_; }
   private :
-    int debug_;
-    std::string basename_;
-    ParmIO *SetupParmIO(ParmFormatType);
+    struct ParmToken {
+      ParmFormatType Type;
+      const char* Key;
+      ParmIO::AllocatorType Alloc;
+    };
+    static const ParmToken ParmArray[];
+    typedef const ParmToken* TokenPtr;
+    std::string baseName_; ///< Used on Read for TopologyList
 };
 #endif

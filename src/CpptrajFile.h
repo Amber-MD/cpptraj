@@ -1,11 +1,14 @@
 #ifndef INC_CPPTRAJFILE_H
 #define INC_CPPTRAJFILE_H
-#include <string>
+#include "FileName.h" 
 #include "FileIO.h"
 // Class: CpptrajFile
 /// Class to abstract handling of basic file routines.
 class CpptrajFile {
   public:
+    enum AccessType   { READ, WRITE, APPEND };
+    enum CompressType { NO_COMPRESSION, GZIP, BZIP2, ZIP };
+
     CpptrajFile();
     virtual ~CpptrajFile(); // Virtual since class is inherited
     CpptrajFile(const CpptrajFile&);
@@ -22,6 +25,8 @@ class CpptrajFile {
     int OpenAppend(std::string const&);
     /// Prepare file for appending. 
     int SetupAppend(std::string const&, int);
+    /// Switch file access mode
+    int SwitchAccess(AccessType);
     /// Open file.
     int OpenFile();
     /// Close file.
@@ -30,58 +35,54 @@ class CpptrajFile {
     void Printf(const char*, ...);
     /// Printf using the files Write routine for the given rank.
     void Rank_printf(int, const char *, ...);
+    /// Return the access file is currently set up for.
+    AccessType Access()               { return access_;               }
+    /// Return the compression type
+    CompressType Compression()        { return compressType_;         }
     /// Return true if the file is open
     bool IsOpen()                     { return isOpen_;               }
     /// Return the file name with full path.
-    const char* FullFileStr()         { return FileName_.c_str();     }
+    const char* FullFileStr()         { return fname_.Full().c_str(); }
     /// String version of file name with full path.
-    std::string const& FullFileName() { return FileName_;             }
+    std::string const& FullFileName() { return fname_.Full();         }
     /// Return the file name without the path.
-    const char* BaseFileStr()         { return basefilename_.c_str(); }
+    const char* BaseFileStr()         { return fname_.Base().c_str(); }
     /// String version of file name without the path.
-    std::string const& BaseFileName() { return basefilename_;         }
+    std::string const& BaseFileName() { return fname_.Base();         }
     /// Return the file extension
-    std::string const& Extension()    { return Ext_;                  }
+    std::string const& Extension()    { return fname_.Ext();          }
     /// Return true if the file contains carriage returns in addition to newlines
     bool IsDos();
     /// Return true if the file is compressed.
     bool IsCompressed();
-    /// Return file size (uncompressed size if file is compressed).
-    off_t FileSize();
+    /// Return uncompressed file size (just size if file is not compressed).
+    off_t UncompressedSize();
+    FileIO* IOptr()                  { return IO_; } // TODO: Remove 
+    int Gets(char* buf, int num)     { return IO_->Gets(buf, num);  }
+    int Write(void* buf, size_t num) { return IO_->Write(buf, num); }
+    int Read(void* buf, size_t num)  { return IO_->Read(buf, num);  }
+    int Seek(off_t offset)           { return IO_->Seek(offset);    }
+    int Rewind()                     { return IO_->Rewind();        }
+  private:
+    enum FileType { UNKNOWN_TYPE, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE };
+    static const char FileTypeName[][13];
+    static const char AccessTypeName[][2];
+    static const size_t BUF_SIZE;
 
-    int Gets(char* buf, int num) { return IO->Gets(buf, num); }
-    int Write(void* buf, size_t num) { return IO->Write(buf, num); }
-    int Read(void* buf, size_t num) { return IO->Read(buf, num); }
-  protected:
-    enum CompressType { NO_COMPRESSION, GZIP, BZIP2, ZIP };
-    enum AccessType   { READ, WRITE, APPEND };
-
-    FileIO* IO;                 ///< The interface to basic IO operations.
+    FileIO* IO_;                ///< The interface to basic IO operations.
     AccessType access_;         ///< Access (Read, write, append)
     int isDos_;                 ///< 1 if CR present, need to count them as newlines
     off_t uncompressed_size_;   ///< If compressed, uncompressed file size
     off_t file_size_;           ///< Actual file size
     CompressType compressType_; ///< Type of compression
-    std::string FileName_;      ///< Passed in filename
     int debug_;                 ///< Debug level
     bool isOpen_;               ///< If true, file is open and ready for IO.
-
-  private:
-    enum FileType {
-      UNKNOWN_TYPE, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE
-    };
-    static const char FileTypeName[][13];
-    static const char AccessTypeName[][2];
-    static const size_t BUF_SIZE;
-
     FileType fileType_;         ///< File type (determines IO)
-    std::string basefilename_;  ///< Filename minus any path
-    std::string Ext_;           ///< Filename extension
+    FileName fname_;            ///< Holds full and base file name + any extensions.
     char printf_buffer_[1024];  ///< Used in Printf functions
 
     void Reset();
-    void SetBaseFilename(const char*);
     int SetupFileIO();
-    int ID_Type();
+    int ID_Type(const char*);
 };
 #endif

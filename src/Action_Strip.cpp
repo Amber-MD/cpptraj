@@ -77,7 +77,7 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
   }
   // Remove box information if asked
   if (removeBoxInfo_)
-    newParm_->ParmBox().SetNoBox(); 
+    newParm_->SetBox( Box() ); 
 
   newParm_->Summary();
 
@@ -91,8 +91,7 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
     newfilename += oldParm_->OriginalFilename();
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),newfilename.c_str());
     ParmFile pfile;
-    //pfile.SetDebug( debug );
-    if ( pfile.Write( *newParm_, newfilename, ParmFile::AMBERPARM ) ) {
+    if ( pfile.Write( *newParm_, newfilename, ParmFile::AMBERPARM, 0 ) ) {
       mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
                 newParm_->c_str());
     }

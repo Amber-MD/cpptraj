@@ -14,7 +14,7 @@ Traj_PDBfile::Traj_PDBfile() :
 {}
 
 //------------------------------------------------------------------------
-bool Traj_PDBfile::ID_TrajFormat() {
+bool Traj_PDBfile::ID_TrajFormat(CpptrajFile& fileIn) {
   // Assumes already set up
   if (OpenFile()) return false;
   bool ispdbfile = ID( IO );
@@ -63,7 +63,9 @@ int Traj_PDBfile::openTraj() {
   * also be checked to ensure that the atom names match those in the parm file
   * in TrajectoryFile.
   */
-int Traj_PDBfile::setupTrajin(Topology *trajParm) {
+int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm,
+                    TrajInfo& tinfo)
+{
   int atom;
   if ( this->openTraj() ) return -1;
 
@@ -148,7 +150,7 @@ int Traj_PDBfile::readFrame(int set,double *X, double *V,double *box, double *T)
 }
 
 // Traj_PDBfile::processWriteArgs()
-int Traj_PDBfile::processWriteArgs(ArgList *argIn) {
+int processWriteArgs(ArgList& argIn) {
   if (argIn->hasKey("dumpq")) this->SetDumpq();
   if (argIn->hasKey("model")) this->SetWriteMode(MODEL);
   if (argIn->hasKey("multi")) this->SetWriteMode(MULTI);
@@ -161,7 +163,9 @@ int Traj_PDBfile::processWriteArgs(ArgList *argIn) {
 /** Set parm information needed for write, and check write mode against
   * number of frames to be written.
   */ 
-int Traj_PDBfile::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
+                     int NframesToWrite, TrajInfo const& tinfo)
+{
   pdbTop_ = trajParm;
 
   pdbAtom_ = pdbTop_->Natom();

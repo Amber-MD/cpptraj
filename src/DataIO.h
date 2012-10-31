@@ -22,9 +22,8 @@ class DataIO : public CpptrajFile {
     virtual int WriteData2D(DataSet&)            { return 1;}
     virtual int WriteDataInverted(DataSetList &) { return 1;}
   protected:
-
     int maxFrames_;
-
+    int debug_;
     bool hasXcolumn_;
     int xcol_width_;
     int xcol_precision_;

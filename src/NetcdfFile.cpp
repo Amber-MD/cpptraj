@@ -275,7 +275,13 @@ int NetcdfFile::SetupMultiD() {
 
 // NetcdfFile::SetupBox()
 /** \return 0 on success, 1 on error, -1 for no box coords. */
-int NetcdfFile::SetupBox(double *boxAngle, double *boxLength) {
+int NetcdfFile::SetupBox(double* boxIn) {
+  boxIn[0] = 0.0;
+  boxIn[1] = 0.0;
+  boxIn[2] = 0.0;
+  boxIn[3] = 0.0;
+  boxIn[4] = 0.0;
+  boxIn[5] = 0.0;
   if ( nc_inq_varid(ncid_,NCCELL_LENGTHS,&cellLengthVID_)==NC_NOERR ) {
     if (checkNCerr(nc_inq_varid(ncid_,NCCELL_ANGLES,&cellAngleVID_)) ) {
       mprinterr("Error: Getting cell angles.\n");
@@ -290,11 +296,13 @@ int NetcdfFile::SetupBox(double *boxAngle, double *boxLength) {
     count_[0]=1; 
     count_[1]=3; 
     count_[2]=0;
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, boxLength)) ) {
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, boxIn )) )
+    {
       mprinterr("Error: Getting cell lengths.\n");
       return 1;
     }
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, boxAngle)) ) {
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, boxIn+3)) )
+    {
       mprinterr("Error: Getting cell angles.\n");
       return 1;
     }
@@ -350,8 +358,9 @@ void NetcdfFile::NetcdfDebug() {
 }
 
 // NetcdfFile::NC_openRead()
-int NetcdfFile::NC_openRead(const char* Name) {
-  if ( checkNCerr( nc_open( Name, NC_NOWRITE, &ncid_ ) ) )
+int NetcdfFile::NC_openRead(std::string const& Name) {
+  if (Name.empty()) return 1;
+  if ( checkNCerr( nc_open( Name.c_str(), NC_NOWRITE, &ncid_ ) ) )
     return 1;
   return 0;
 }
@@ -365,28 +374,29 @@ void NetcdfFile::NC_close() {
   ncid_ = -1;
 }
 
-
 // NetcdfFile::NC_openWrite()
-int NetcdfFile::NC_openWrite(const char* Name) {
-  if ( checkNCerr( nc_open( Name, NC_WRITE, &ncid_ ) ) )
+int NetcdfFile::NC_openWrite(std::string const& Name) {
+  if (Name.empty()) return 1;
+  if ( checkNCerr( nc_open( Name.c_str(), NC_WRITE, &ncid_ ) ) )
     return 1;
   return 0;
 }
 
 // NetcdfFile::NC_create()
-int NetcdfFile::NC_create(const char* Name, NCTYPE type, int natomIn, bool hasVelocity,
+int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, bool hasVelocity,
                           bool hasBox, bool hasTemperature, bool hasTime, 
                           std::string const& title) 
 {
+  if (Name.empty()) return 1;
   int dimensionID[NC_MAX_VAR_DIMS];
   int NDIM;
   nc_type dataType;
 
   if (ncdebug_>1)
     mprintf("DEBUG: NC_create: %s  natom=%i V=%i  box=%i  temp=%i  time=%i\n",
-            Name, natomIn, (int)hasVelocity, (int)hasBox, (int)hasTemperature, (int)hasTime);
+            Name.c_str(),natomIn,(int)hasVelocity,(int)hasBox,(int)hasTemperature,(int)hasTime);
 
-  if ( checkNCerr( nc_create( Name, NC_64BIT_OFFSET, &ncid_) ) )
+  if ( checkNCerr( nc_create( Name.c_str(), NC_64BIT_OFFSET, &ncid_) ) )
     return 1;
 
   ncatom_ = natomIn;
@@ -403,7 +413,7 @@ int NetcdfFile::NC_create(const char* Name, NCTYPE type, int natomIn, bool hasVe
       dataType = NC_DOUBLE;
       break;
     default:
-      mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n",Name,(int)type);
+      mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n",Name.c_str(),(int)type);
       return 1;
   }
 

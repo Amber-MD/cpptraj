@@ -13,7 +13,7 @@ Traj_Binpos::~Traj_Binpos() {
   if (bpbuffer_!=0) delete[] bpbuffer_;
 }
 
-bool Traj_Binpos::ID_TrajFormat() {
+bool Traj_Binpos::ID_TrajFormat(CpptrajFile& fileIn) {
   unsigned char buffer[4];
   buffer[0] = ' ';
   buffer[1] = ' ';
@@ -61,7 +61,9 @@ void Traj_Binpos::closeTraj() {
   CloseFile();
 }
 
-int Traj_Binpos::setupTrajin(Topology* trajParm) {
+int Traj_Binpos::setupTrajin(std::string const& fname, Topology* trajParm,
+                    TrajInfo& tinfo)
+{
   // Open - reads past the 4 byte header
   if (openTraj()) return 1;
 
@@ -133,7 +135,9 @@ int Traj_Binpos::readFrame(int set, double* X, double* V, double* box, double* T
   return 0;
 }
 
-int Traj_Binpos::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_Binpos::setupTrajout(std::string const& fname, Topology* trajParm,
+                     int NframesToWrite, TrajInfo const& tinfo)
+{
   bpnatom_ = trajParm->Natom();
   bpnatom3_ = bpnatom_ * 3;
   frameSize_ = (size_t)bpnatom3_ * sizeof(float);

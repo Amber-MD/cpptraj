@@ -1,9 +1,10 @@
 #include "Parm_PDB.h"
 
-int Parm_PDB::ReadParm(Topology &TopIn) {
-  if (OpenFile()) return 1;
+int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
+  CpptrajFile infile;
+  if (infile.OpenRead(fname)) return 1;
   // Loop over PDB records 
-  while ( PDB_GetNextRecord( IO ) ) {
+  while ( PDB_GetNextRecord( infile.IOptr() ) ) {
     if (IsPDBatomKeyword()) {
       // If this is an ATOM / HETATM keyword, add to topology
       TopIn.AddAtom(pdb_Atom(), pdb_Residue(), XYZ());
@@ -16,18 +17,18 @@ int Parm_PDB::ReadParm(Topology &TopIn) {
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;
-  TopIn.SetParmName( pdbtitle, BaseFileStr() );
+  TopIn.SetParmName( pdbtitle, infile.BaseFileStr() );
 
-  CloseFile();
+  infile.CloseFile();
   return 0;
 }
 
 
-bool Parm_PDB::ID_ParmFormat() {
+bool Parm_PDB::ID_ParmFormat(CpptrajFile& fileIn) {
   // Assumes already set up
-  if (OpenFile()) return false;
-  bool ispdbfile = ID( IO );
-  CloseFile();
+  if (fileIn.OpenFile()) return false;
+  bool ispdbfile = ID( fileIn.IOptr() );
+  fileIn.CloseFile();
   return ispdbfile;
 }
 

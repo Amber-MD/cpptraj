@@ -20,19 +20,19 @@ class Topology {
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
     // ----- Return internal variables -----
-    int FinalSoluteRes();
-    int Pindex();
-    int Natom();
-    int Nres();
-    int Nmol();
-    int Nsolvent();
-    int Nframes();
+    int FinalSoluteRes() const;
+    int Pindex() const;
+    int Natom() const;
+    int Nres() const;
+    int Nmol() const;
+    int Nsolvent() const;
+    int Nframes() const;
     int Ntypes() const;
     void IncreaseFrames(int);
     const char *c_str();
-    std::string ParmName();
+    std::string ParmName() const;
     std::string OriginalFilename();
-    std::string GBradiiSet();
+    std::string GBradiiSet() const;
     // ---- Atom-specific routines -----
     typedef std::vector<Atom>::iterator iterator;
     inline iterator begin() { return atoms_.begin(); }
@@ -100,7 +100,7 @@ class Topology {
     std::string ResNameNum(int);
     std::string TruncResNameNum(int);
     int FindAtomInResidue(int, NameType);
-    int FindResidueMaxNatom();
+    int FindResidueMaxNatom() const;
     int SoluteAtoms();
     //double *Mass();
     int SetSolvent(std::string const&);
@@ -112,9 +112,9 @@ class Topology {
     void PrintMoleculeInfo();
     void PrintResidueInfo();
     // ----- Routines to Access/Modify Box info -----
-    inline Box& ParmBox()         { return box_;        }
-    inline Box::BoxType BoxType() { return box_.Type(); }
-    void SetBox( Box const& bIn ) { box_ = bIn;         }
+    inline Box const& ParmBox() const { return box_;        }
+    inline Box::BoxType BoxType()     { return box_.Type(); }
+    void SetBox( Box const& bIn )     { box_ = bIn;         }
     // ----- PDB/Mol2 etc setup routines -----
     void AddAtom(Atom, Residue, const double*);
     void StartNewMol();

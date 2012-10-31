@@ -83,7 +83,8 @@ const char Parm_Amber::AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
 
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
-Parm_Amber::Parm_Amber() : 
+Parm_Amber::Parm_Amber() :
+  debug_(0), 
   newParm_(false),
   ftype_(UNKNOWN_FTYPE),
   fncols_(0),
@@ -101,51 +102,50 @@ Parm_Amber::~Parm_Amber() {
 }
 
 // Parm_Amber::ID_ParmFormat()
-bool Parm_Amber::ID_ParmFormat() {
+bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
   int iamber[12];
+  char lineBuf[BUF_SIZE];
   // Assumes already set up for READ
-  if (OpenFile()) return false;
-  IO->Gets(lineBuffer_, BUF_SIZE);
+  if (fileIn.OpenFile()) return false;
+  fileIn.Gets(lineBuf, BUF_SIZE);
   // Check for %VERSION
-  if (strncmp(lineBuffer_,"%VERSION",8)==0) {
-    IO->Gets(lineBuffer_, BUF_SIZE);
+  if (strncmp(lineBuf,"%VERSION",8)==0) {
+    fileIn.Gets(lineBuf, BUF_SIZE);
     // Check for %FLAG
-    if (strncmp(lineBuffer_,"%FLAG",5)==0) {
+    if (strncmp(lineBuf,"%FLAG",5)==0) {
       if (debug_>0) mprintf("  AMBER TOPOLOGY file\n");
       newParm_ = true;
-      CloseFile();
+      fileIn.CloseFile();
       return true;
     }
   } else {
     // Since %VERSION not present, If first line is 81 bytes and the second 
     // line has 12 numbers in 12I6 format, assume old-style Amber topology
     // NOTE: Could also be less than 81? Only look for 12 numbers?
-    int line1size = (int)strlen(lineBuffer_);
-    if (line1size == (81 + isDos_)) {
-      IO->Gets(lineBuffer_, BUF_SIZE);
-      if ( sscanf(lineBuffer_,"%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i", 
+    int line1size = (int)strlen(lineBuf);
+    if (line1size == (81 + fileIn.IsDos())) {
+      fileIn.Gets(lineBuf, BUF_SIZE);
+      if ( sscanf(lineBuf,"%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i", 
                   iamber,   iamber+1, iamber+2,  iamber+3, 
                   iamber+4, iamber+5, iamber+6,  iamber+7, 
                   iamber+8, iamber+9, iamber+10, iamber+11) == 12 )
       {
         if (debug_>0) mprintf("  AMBER TOPOLOGY, OLD FORMAT\n");
-        CloseFile();
+        fileIn.CloseFile();
         return true;
       }
     }
   }
-  CloseFile();
+  fileIn.CloseFile();
   return false;
 }
 
 // Parm_Amber::ReadParm()
-int Parm_Amber::ReadParm( Topology &TopIn ) {
-  if (OpenFile()) return 1;
+int Parm_Amber::ReadParm(std::string const& fname, Topology &TopIn ) {
+  if (file_.OpenRead( fname )) return 1;
   int err = ReadParmAmber( TopIn );
-  CloseFile();
-  if (err != 0) return 1;
-
-  return 0;
+  file_.CloseFile();
+  return err;
 }
 
 // Parm_Amber::AmberIfbox()
@@ -167,7 +167,7 @@ void Parm_Amber::CheckNameWidth(const char* typeIn, NameType& nameIn) {
 }
 
 // Parm_Amber::WriteParm()
-int Parm_Amber::WriteParm( Topology &parmIn) {
+int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   // For date and time
   time_t rawtime;
   struct tm *timeinfo;
@@ -231,7 +231,7 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
        (BondRk.empty() && BondReq.empty())    )
   {
     mprintf("Warning: [%s] Bond information present but no bond parameters.\n",
-            BaseFileStr());
+            file_.BaseFileStr());
     mprintf("Warning: This can occur e.g. when bonds are determined from PDB.\n");
     mprintf("Warning: Dummy parameters will be created as placeholders.\n");
     mprintf("Warning: DO NOT USE THIS AMBER TOPOLOGY FOR SIMULATIONS!\n");
@@ -268,19 +268,19 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
   values[NMXRS] = parmIn.FindResidueMaxNatom();
     
   // Write parm
-  if (OpenFile()) return 1;
+  if (file_.OpenWrite( fname )) return 1;
   // HEADER AND TITLE (4 lines, version, flag, format, title)
   time( &rawtime );
   timeinfo = localtime(&rawtime);
-  Printf("%-44s%02i/%02i/%02i  %02i:%02i:%02i                  \n",
-         "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
-                     timeinfo->tm_mon+1,timeinfo->tm_mday,timeinfo->tm_year%100,
-                     timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
+  file_.Printf("%-44s%02i/%02i/%02i  %02i:%02i:%02i                  \n",
+               "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
+               timeinfo->tm_mon+1,timeinfo->tm_mday,timeinfo->tm_year%100,
+               timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
   std::string title = parmIn.ParmName();
   // Resize title to max 80 char
   if (title.size() > 80)
     title.resize(80);
-  Printf("%-80s\n%-80s\n%-80s\n","%FLAG TITLE","%FORMAT(20a4)",title.c_str());
+  file_.Printf("%-80s\n%-80s\n%-80s\n","%FLAG TITLE","%FORMAT(20a4)",title.c_str());
   // POINTERS
   WriteInteger(F_POINTERS, values);
   // NAMES, CHARGE, ATOMIC NUMBER, MASS, TYPE INDEX, EXCLUDED, NB INDEX
@@ -370,12 +370,12 @@ int Parm_Amber::WriteParm( Topology &parmIn) {
     WriteSetup(F_RADSET, 1);
     if (radius_set.size()>80)
       radius_set.resize(80);
-    Printf("%-80s\n",radius_set.c_str());
+    file_.Printf("%-80s\n",radius_set.c_str());
   }
   WriteDouble(F_RADII, gb_radii);
   WriteDouble(F_SCREEN, gb_screen);
  
-  CloseFile();
+  file_.CloseFile();
 
   return 0;
 }
@@ -393,7 +393,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
 
   if (newParm_) {
     if (debug_>0) 
-      mprintf("\tReading Amber Topology file %s\n",BaseFileStr());
+      mprintf("\tReading Amber Topology file %s\n",file_.BaseFileStr());
     // Title. If not found check for CTITLE (chamber)
     if (PositionFileAtFlag(F_TITLE)) {
       title = GetLine();
@@ -403,7 +403,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
         chamber = true;
       } else {
         // No TITLE or CTITLE, weird, but dont crash out yet.
-        mprintf("Warning: [%s] No TITLE in Amber Parm.\n",BaseFileStr());
+        mprintf("Warning: [%s] No TITLE in Amber Parm.\n",file_.BaseFileStr());
       }
     }
   } else {
@@ -413,11 +413,11 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     Npointers = 30;
   }
   mprintf("\tAmberParm Title: [%s]\n",title.c_str());
-  TopIn.SetParmName( title, BaseFileStr() );
+  TopIn.SetParmName( title, file_.BaseFileStr() );
   // POINTERS
   std::vector<int> values = GetFlagInteger(F_POINTERS, Npointers);
   if (values.empty()) {
-    mprinterr("Error: [%s] Could not get POINTERS from Amber Topology.\n",BaseFileStr());
+    mprinterr("Error: [%s] Could not get POINTERS from Amber Topology.\n",file_.BaseFileStr());
     return 1;
   }
   // DEBUG
@@ -550,7 +550,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
 // -----------------------------------------------------------------------------
 // Parm_Amber::GetLine()
 std::string Parm_Amber::GetLine() {
-  IO->Gets(lineBuffer_, BUF_SIZE);
+  file_.Gets(lineBuffer_, BUF_SIZE);
   std::string line( lineBuffer_ );
   // Remove any trailing whitespace
   RemoveTrailingWhitespace( line );
@@ -565,7 +565,7 @@ std::vector<int> Parm_Amber::GetInteger(int width, int ncols, int maxval) {
   if (err == 0)
     return iarray;
   else if (err == -1) {
-    mprinterr("Error in read of integer values from %s\n",BaseFileStr());
+    mprinterr("Error in read of integer values from %s\n",file_.BaseFileStr());
     ++error_count_;
     return iarray;
   }
@@ -595,7 +595,7 @@ std::vector<double> Parm_Amber::GetDouble(int width, int ncols, int maxval) {
   if (err == 0)
     return darray;
   else if (err == -1) {
-    mprinterr("Error in read of double values from %s\n",BaseFileStr());
+    mprinterr("Error in read of double values from %s\n",file_.BaseFileStr());
     ++error_count_;
     return darray;
   }
@@ -625,7 +625,7 @@ std::vector<NameType> Parm_Amber::GetName(int width, int ncols, int maxval) {
   if (err == 0)
     return carray;
   else if (err == -1) {
-    mprinterr("Error in read of Name values from %s\n",BaseFileStr());
+    mprinterr("Error in read of Name values from %s\n",file_.BaseFileStr());
     ++error_count_;
     return carray;
   }
@@ -715,7 +715,7 @@ int Parm_Amber::AllocateAndRead(int width, int ncols, int maxval) {
   // If # expected values is 0 there will still be a newline placeholder
   // in the parmtop. Read past that and return
   if (maxval==0) {
-    IO->Gets(temp,2);
+    file_.Gets(temp,2);
     return 0;
   }
   // Allocate buffer to read in entire section
@@ -723,7 +723,7 @@ int Parm_Amber::AllocateAndRead(int width, int ncols, int maxval) {
   if (buffer_!=0) delete[] buffer_;
   buffer_ = new char[ BufferSize ];
   // Read section from file
-  int err = IO->Read(buffer_,BufferSize);
+  int err = file_.Read(buffer_,BufferSize);
   return err;
 }
 
@@ -737,7 +737,7 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
   if (debug_ > 0) mprintf("Reading %s\n",Key);
   // Search for '%FLAG <Key>'
   while ( searchFile ) {
-    while ( IO->Gets(lineBuffer_, BUF_SIZE) == 0 ) {
+    while ( file_.Gets(lineBuffer_, BUF_SIZE) == 0 ) {
       if ( strncmp(lineBuffer_,"%FLAG",5)==0 ) {
         // Check flag Key
         sscanf(lineBuffer_, "%*s %s",value);
@@ -745,9 +745,9 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
           if (debug_>1) mprintf("DEBUG: Found Flag Key [%s]\n",value);
           // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
           // read past until you get to the FORMAT line
-          IO->Gets(lineBuffer_, BUF_SIZE); 
+          file_.Gets(lineBuffer_, BUF_SIZE); 
           while (strncmp(lineBuffer_, "%FORMAT",7)!=0)
-            IO->Gets(lineBuffer_, BUF_SIZE);
+            file_.Gets(lineBuffer_, BUF_SIZE);
           if (debug_>1) mprintf("DEBUG: Format line [%s]\n",lineBuffer_);
           // Set format
           // NOTE: Check against stored formats?
@@ -759,7 +759,7 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
     // If we havent yet tried to search from the beginning, try it now.
     // Otherwise the Key has not been found.
     if (!hasLooped) {
-      IO->Rewind();
+      file_.Rewind();
       hasLooped = true;
     } else
       searchFile = false;
@@ -767,7 +767,7 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
 
   // If we reached here Key was not found.
   if (debug_>0)
-    mprintf("Warning: [%s] Could not find Key %s in file.\n",BaseFileStr(),Key);
+    mprintf("Warning: [%s] Could not find Key %s in file.\n",file_.BaseFileStr(),Key);
   fformat_.clear();
   return false;
 }
@@ -781,10 +781,10 @@ int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
   // Set type, cols, width, and precision from format string
   if (!SetFortranType()) return 1;
   // Write FLAG and FORMAT lines
-  Printf("%%FLAG %-74s\n%-80s\n",AmberParmFlag[fflag],AmberParmFmt[fflag]);
+  file_.Printf("%%FLAG %-74s\n%-80s\n",AmberParmFlag[fflag],AmberParmFmt[fflag]);
   // If Nelements is 0 just print newline and exit
   if (Nelements == 0) {
-    Printf("\n");
+    file_.Printf("\n");
     return 1;
   }
   // Allocate character buffer space for memory, +1 for NULL
@@ -823,7 +823,7 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>const& iar
   }
   //mprinterr("INT: Last col written = %i (%i)\n",col,fncols_);
   if (col != 0) sprintf(ptr,"\n");
-  IO->Write(buffer_, buffer_size_);
+  file_.Write(buffer_, buffer_size_);
 
   return 0;
 }
@@ -851,7 +851,7 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& d
   }
   //mprinterr("DOUBLE: Last col written = %i (%i)\n",col,fncols_);
   if (col != 0) sprintf(ptr,"\n");
-  IO->Write(buffer_, buffer_size_);
+  file_.Write(buffer_, buffer_size_);
 
   return 0;
 }
@@ -879,7 +879,7 @@ int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>const& c
   }
   //mprinterr("NAME: Last col written = %i (%i)\n",col,fncols_);
   if (col != 0) sprintf(ptr,"\n");
-  IO->Write(buffer_, buffer_size_);
+  file_.Write(buffer_, buffer_size_);
 
   return 0;
 }
@@ -897,7 +897,7 @@ size_t Parm_Amber::GetFortranBufferSize(int width, int ncols, int N) {
   bufferLines = N / ncols;
   if ((N % ncols)!=0) ++bufferLines;
   // If DOS file there are CRs before Newlines
-  if (isDos_) bufferLines *= 2;
+  if (file_.IsDos()) bufferLines *= 2;
   BufferSize += bufferLines;
   //if (debug_>0) 
   //  fprintf(stdout,"*** Buffer size is %i including %i newlines.\n",BufferSize,bufferLines);
@@ -935,7 +935,7 @@ bool Parm_Amber::SetFortranType() {
   // Type
   if (ptr==fformat_.end()) {
     mprinterr("Error: Malformed fortran format string (%s) in Amber Topology %s\n",
-              fformat_.c_str(), BaseFileStr());
+              fformat_.c_str(), file_.BaseFileStr());
     return false;
   }
   switch (*ptr) {

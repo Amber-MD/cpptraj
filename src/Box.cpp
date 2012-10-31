@@ -78,6 +78,32 @@ void Box::SetAngles(const double* abg) {
   SetBoxType();
 }
 
+void Box::SetLengths(const double* xyz) {
+  if (xyz==0) {
+    mprinterr("Error: SetLengths: Input array is NULL\n");
+    return;
+  }
+  box_[0] = xyz[0];
+  box_[1] = xyz[1];
+  box_[2] = xyz[2];
+  if (btype_ == NOBOX)
+    btype_ = NOANGLES;
+}
+
+void Box::SetBox(const double* xyzabg) {
+  if (xyzabg == 0) {
+    mprinterr("Error: SetBox: Input array is NULL\n");
+    return;
+  }
+  box_[0] = xyzabg[0];
+  box_[1] = xyzabg[1];
+  box_[2] = xyzabg[2];
+  box_[3] = xyzabg[3];
+  box_[4] = xyzabg[4];
+  box_[5] = xyzabg[5];
+  SetBoxType();
+}
+
 // Box::SetTruncOct()
 /** Set as truncated octahedron with no lengths. */
 void Box::SetTruncOct() {

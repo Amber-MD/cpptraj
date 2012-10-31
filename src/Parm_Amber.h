@@ -5,9 +5,11 @@ class Parm_Amber : public ParmIO {
   public :
     Parm_Amber();
     ~Parm_Amber();
-    bool ID_ParmFormat();
-    int ReadParm(Topology&);
-    int WriteParm(Topology&);
+    static ParmIO* Alloc() { return (ParmIO*)new Parm_Amber(); }
+    bool ID_ParmFormat(CpptrajFile&);
+    int ReadParm(std::string const&, Topology&);
+    int WriteParm(std::string const&, Topology const&);
+    void SetDebug(int debugIn) { debug_ = debugIn; }
   private :
     /// Enumerated type for Fortran data type
     enum FortranType {
@@ -35,6 +37,7 @@ class Parm_Amber : public ParmIO {
     //       increase the size to handle non-standard files.
     static const size_t BUF_SIZE = 256;
     char lineBuffer_[BUF_SIZE];
+    int debug_;
     bool newParm_;
     std::string fformat_;
     FortranType ftype_;
@@ -45,6 +48,7 @@ class Parm_Amber : public ParmIO {
     char *buffer_;
     size_t buffer_size_;
     size_t buffer_max_size_;
+    CpptrajFile file_;
 
     int ReadParmAmber(Topology&);
 

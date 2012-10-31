@@ -1,21 +1,16 @@
 #ifndef INC_PARMIO_H
 #define INC_PARMIO_H
-#include "CpptrajFile.h"
 #include "Topology.h"
+#include "CpptrajFile.h"
 // Class: ParmIO
-/// Base class that all ParmIO objects inherit from
-class ParmIO : protected CpptrajFile {
+/// Abstract base class that all ParmIO objects inherit from
+class ParmIO {
   public:
-    ParmIO();
     virtual ~ParmIO() { }
-    ParmIO(const ParmIO&);
-    ParmIO &operator=(const ParmIO&);
-    ParmIO &operator=(const CpptrajFile&);
-
-    void SetDebug(int);
-
-    virtual int ReadParm(Topology &) { return 1; }
-    virtual int WriteParm(Topology &) { return 1; }
-    virtual bool ID_ParmFormat() { return false; }
+    virtual bool ID_ParmFormat(CpptrajFile&) = 0; 
+    virtual int ReadParm(std::string const&, Topology&) = 0;
+    virtual int WriteParm(std::string const&, Topology const&) = 0;
+    virtual void SetDebug(int) = 0;
+    typedef ParmIO* (*AllocatorType)();
 };
 #endif

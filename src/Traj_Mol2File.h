@@ -15,6 +15,7 @@ class Traj_Mol2File : public TrajectoryIO, Mol2File {
     enum MOL2WRITEMODE { SINGLE = 0, MOL, MULTI };
 
     Traj_Mol2File();
+    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_Mol2File(); }
     // Mol2-specific functions
     void SetWriteMode(MOL2WRITEMODE);
   private:
@@ -24,14 +25,17 @@ class Traj_Mol2File : public TrajectoryIO, Mol2File {
     std::vector<int> trajBonds_; 
 
     // Inherited functions
-    bool ID_TrajFormat();
-    int setupTrajin(Topology *);
-    int setupTrajout(Topology *,int);
+    bool ID_TrajFormat(CpptrajFile&);
+    int setupTrajin(std::string const&, Topology*, TrajInfo&);
+    int setupTrajout(std::string const&, Topology*, int, TrajInfo const&,bool);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
     void info();
-    int processWriteArgs(ArgList *);
+    int processWriteArgs(ArgList&);
+    int readVelocity(int, double*) { return 1; }
+    int readIndices(int,int*) { return 1; }
+    int processReadArgs(ArgList&) { return 0; }
 };
 #endif

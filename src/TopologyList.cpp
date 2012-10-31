@@ -124,8 +124,7 @@ int TopologyList::ParmWrite(ArgList& argIn) {
   mprintf("\tWriting parm %i (%s) to Amber parm %s\n",pindex,
           TopList_[pindex]->c_str(), outfilename.c_str());
   ParmFile pfile;
-  pfile.SetDebug( debug_ );
-  pfile.Write( *TopList_[pindex], outfilename, ParmFile::AMBERPARM );
+  pfile.Write( *TopList_[pindex], outfilename, ParmFile::AMBERPARM, debug_ );
   return 0;
 }
 
@@ -170,11 +169,11 @@ int TopologyList::ParmBox(ArgList& argIn) {
     return 1;
   }
   if (nobox)
-    TopList_[pindex]->ParmBox().SetNoBox();
+    TopList_[pindex]->SetBox( Box() );
   else {
     // Fill in missing parm box information from specified parm
     pbox.SetMissingInfo( TopList_[pindex]->ParmBox() );
-    TopList_[pindex]->ParmBox() = pbox;
+    TopList_[pindex]->SetBox( pbox );
   }
   return 0;
 }
@@ -310,17 +309,16 @@ int TopologyList::AddParmFile(std::string const& filename, std::string const& Pa
   parm->SetDebug( debug_ );
   parm->SetOffset( offset );
   ParmFile pfile;
-  pfile.SetDebug( debug_ );
-  int err = pfile.Read(*parm, filename.c_str(), bondsearch);
+  int err = pfile.Read(*parm, filename, bondsearch, debug_);
   if (err!=0) {
     mprinterr("Error: Could not open parm %s\n",filename.c_str());
     delete parm;
     return 1;
   }
 
-  // pindex is used for quick identification of the parm file
   if (debug_>0) 
     mprintf("    PARAMETER FILE %zu: %s\n",TopList_.size(),filename.c_str());
+  // pindex is used for quick identification of the parm file
   parm->SetPindex( TopList_.size() );
   TopList_.push_back(parm);
   AddNameWithTag( filename, pfile.BaseName(), ParmTag);

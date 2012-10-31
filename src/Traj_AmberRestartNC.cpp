@@ -25,7 +25,7 @@ Traj_AmberRestartNC::~Traj_AmberRestartNC() {
   // NOTE: Need to close file?
 }
 
-bool Traj_AmberRestartNC::ID_TrajFormat() {
+bool Traj_AmberRestartNC::ID_TrajFormat(CpptrajFile& fileIn) {
   if ( GetNetcdfConventions( FullFileStr() ) == NC_AMBERRESTART ) return true;
   return false;
 }
@@ -74,7 +74,9 @@ int Traj_AmberRestartNC::openTraj() {
   * Also check number of atoms against associated parmtop.
   */
 // NOTE: Replace attrText allocs with static buffer? 
-int Traj_AmberRestartNC::setupTrajin(Topology *trajParm) {
+int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajParm,
+                    TrajInfo& tinfo)
+{
   if (openTraj()) return -1;
 
   // Sanity check - Make sure this is a Netcdf restart
@@ -153,7 +155,7 @@ void Traj_AmberRestartNC::SetNoVelocity() {
 }
 
 // Traj_AmberRestartNC::processWriteArgs()
-int Traj_AmberRestartNC::processWriteArgs(ArgList *argIn) {
+int processWriteArgs(ArgList& argIn) {
   // For write, assume we want velocities unless specified
   hasVelocity_=true;
   if (argIn->hasKey("novelocity")) this->SetNoVelocity();
@@ -165,7 +167,9 @@ int Traj_AmberRestartNC::processWriteArgs(ArgList *argIn) {
 
 // Traj_AmberRestartNC::setupTrajout()
 /** Setting up is done for each frame.  */
-int Traj_AmberRestartNC::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_AmberRestartNC::setupTrajout(std::string const& fname, Topology* trajParm,
+                     int NframesToWrite, TrajInfo const& tinfo)
+{
   SetNcatom( trajParm->Natom() );
   //ncatom3 = ncatom * 3;
   // If number of frames to write == 1 set singleWrite so we dont append

@@ -11,7 +11,7 @@ Traj_Conflib::Traj_Conflib() :
 {}
 
 //------------------------------------------------------------------------
-bool Traj_Conflib::ID_TrajFormat() {
+bool Traj_Conflib::ID_TrajFormat(CpptrajFile& fileIn) {
   // If the file name is conflib.dat, assume this is a conflib.dat file 
   // from LMOD. Cant think of a better way to detect this since there is no 
   // magic number but the file is binary.
@@ -35,7 +35,9 @@ int Traj_Conflib::openTraj() {
 }
 
 // Traj_Conflib::setupTrajin()
-int Traj_Conflib::setupTrajin(Topology *trajParm) {
+int Traj_Conflib::setupTrajin(std::string const& fname, Topology* trajParm,
+                    TrajInfo& tinfo)
+{
   long unsigned int confFrame;
   int Frames = 0;
 
@@ -67,7 +69,9 @@ int Traj_Conflib::readFrame(int set, double *X, double *V,double *box, double *T
 }
 
 // Traj_Conflib::setupTrajout()
-int Traj_Conflib::setupTrajout(Topology *trajParm, int NframesToWrite) {
+int Traj_Conflib::setupTrajout(std::string const& fname, Topology* trajParm,
+                     int NframesToWrite, TrajInfo const& tinfo)
+{
   mprintf("Error: conflib writes not yet implemented.\n");
   return 1;
 }

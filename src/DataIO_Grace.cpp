@@ -21,7 +21,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
   const char* linebuffer;
   
   // Allocate and set up read buffer
-  FileBuffer buffer( IO, (int)FileSize() );
+  FileBuffer buffer( IOptr(), (int)FileSize() );
 
   // Read chunks from file
   while ( (linebuffer = buffer.NextLine()) != 0 ) {

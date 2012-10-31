@@ -6,6 +6,7 @@
 class Traj_CharmmDcd : public TrajectoryIO {
   public :
     Traj_CharmmDcd();
+    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_CharmmDcd(); }
     ~Traj_CharmmDcd();
     // charmm dcd-specific functions
   private:
@@ -28,26 +29,25 @@ class Traj_CharmmDcd : public TrajectoryIO {
     float *ycoord;
     float *zcoord;
 
-    union headerbyte {
-      unsigned char c[80];
-      int i[20];
-      float f[20];
-    };
+    union headerbyte { unsigned char c[80]; int i[20]; float f[20]; };
     int ReadBlock(int);
     int WriteBlock(int);
     int readDcdHeader();
     int writeDcdHeader();
 
     // Inherited functions
-    bool ID_TrajFormat();
-    int setupTrajin(Topology *);
-    int setupTrajout(Topology *,int);
+    bool ID_TrajFormat(CpptrajFile&);
+    int setupTrajin(std::string const&, Topology*, TrajInfo&);
+    int setupTrajout(std::string const&, Topology*, int, TrajInfo const&,bool);
     int openTraj();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
     void info();
-    int processWriteArgs(ArgList *);
+    int processWriteArgs(ArgList&);
 
+    int readVelocity(int, double*) { return 1; }
+    int readIndices(int,int*) { return 1; }
+    int processReadArgs(ArgList&) { return 0; }
 };
 #endif

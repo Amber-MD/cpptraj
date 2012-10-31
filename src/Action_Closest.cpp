@@ -219,8 +219,7 @@ Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddr
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),
             newfilename.c_str());
     ParmFile pfile;
-    pfile.SetDebug( debug_ );
-    if ( pfile.Write(*newParm_, newfilename, ParmFile::AMBERPARM ) ) {
+    if ( pfile.Write(*newParm_, newfilename, ParmFile::AMBERPARM, debug_ ) ) {
       mprinterr("Error: closest: Could not write out stripped parm file %s\n",
               newParm_->c_str());
     }
