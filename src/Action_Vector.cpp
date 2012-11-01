@@ -340,7 +340,7 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
 void Action_Vector::Print() {
   if (ptrajoutput_) {
     CpptrajFile outfile;
-    if (outfile.OpenWrite(filename_.c_str())) return;
+    if (outfile.OpenWrite(filename_)) return;
     mprintf("CPPTRAJ VECTOR: dumping vector information %s\n", Vec_->Legend().c_str());
     outfile.Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n");
     outfile.Printf("# FORMAT where v? is vector, c? is center of mass...\n");
