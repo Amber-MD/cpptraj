@@ -15,20 +15,24 @@
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
-#ifdef BINTRAJ
-  { AMBERNETCDF,    "netcdf",    "Amber NetCDF",     ".nc",      Traj_AmberNetcdf::Alloc },
+# ifdef BINTRAJ
+  { AMBERNETCDF,    "netcdf",    "Amber NetCDF",     ".nc",      Traj_AmberNetcdf::Alloc    },
   { AMBERRESTARTNC, "ncrestart", "Amber NC Restart", ".ncrst",   Traj_AmberRestartNC::Alloc },
   { AMBERRESTARTNC, "restartnc", "Amber NC Restart", ".ncrst",   Traj_AmberRestartNC::Alloc },
-#endif
-  { PDBFILE,        "pdb",       "PDB",              ".pdb",     Traj_PDBfile::Alloc },
-  { MOL2FILE,       "mol2",      "Mol2",             ".mol2",    Traj_Mol2File::Alloc },
-  { CHARMMDCD,      "dcd",       "Charmm DCD",       ".dcd",     Traj_CharmmDcd::Alloc },
-  { CHARMMDCD,      "charmm",    "Charmm DCD",       ".dcd",     Traj_CharmmDcd::Alloc },
-  { BINPOS,         "binpos",    "BINPOS",           ".binpos",  Traj_Binpos::Alloc },
-  { AMBERRESTART,   "restart",   "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc },
-  { AMBERTRAJ,      "crd",       "Amber Trajectory", ".crd",     Traj_AmberCoord::Alloc },
-  { CONFLIB,        "conflib",   "LMOD conflib",     ".conflib", Traj_Conflib::Alloc },
-  { UNKNOWN_TRAJ,   0,           "Unknown" ,         0,          0                   }
+# else
+  { AMBERNETCDF,    "netcdf",    "Amber NetCDF",     ".nc",      0                          },
+  { AMBERRESTARTNC, "ncrestart", "Amber NC Restart", ".ncrst",   0                          },
+  { AMBERRESTARTNC, "restartnc", "Amber NC Restart", ".ncrst",   0                          },
+# endif
+  { PDBFILE,        "pdb",       "PDB",              ".pdb",     Traj_PDBfile::Alloc        },
+  { MOL2FILE,       "mol2",      "Mol2",             ".mol2",    Traj_Mol2File::Alloc       },
+  { CHARMMDCD,      "dcd",       "Charmm DCD",       ".dcd",     Traj_CharmmDcd::Alloc      },
+  { CHARMMDCD,      "charmm",    "Charmm DCD",       ".dcd",     Traj_CharmmDcd::Alloc      },
+  { BINPOS,         "binpos",    "BINPOS",           ".binpos",  Traj_Binpos::Alloc         },
+  { AMBERRESTART,   "restart",   "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc   },
+  { AMBERTRAJ,      "crd",       "Amber Trajectory", ".crd",     Traj_AmberCoord::Alloc     },
+  { CONFLIB,        "conflib",   "LMOD conflib",     ".conflib", Traj_Conflib::Alloc        },
+  { UNKNOWN_TRAJ,   0,           "Unknown" ,         0,          0                          }
 };
 
 // TrajectoryFile::GetFormatFromArg()
@@ -99,18 +103,29 @@ int TrajectoryFile::SetTrajParm( Topology* tparmIn ) {
   * \return TrajectoryIO class based on tformat. 0 on error.
   */
 TrajectoryIO* TrajectoryFile::AllocTrajIO(TrajFormatType tformat) {
-  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token)
-    if (token->Type == tformat) return (TrajectoryIO*)token->Alloc;
+  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token) {
+    if (token->Type == tformat) {
+      if (token->Alloc == 0) {
+        mprinterr("Error: CPPTRAJ was compiled without support for %s files.\n",
+                  token->Description);
+        return 0;
+      } else
+        return (TrajectoryIO*)token->Alloc;
+    }
+  }
   return 0;
 }
+
 // TrajectoryFile::DetectFormat()
 TrajectoryIO* TrajectoryFile::DetectFormat(CpptrajFile& fileIn) {
   // Assume fileIn set up for reading
   for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token) {
-    TrajectoryIO* trajio = (TrajectoryIO*)token->Alloc;
-    // TODO: Set debug
-    if ( trajio->ID_TrajFormat( fileIn ) ) return trajio;
-    delete trajio;
+    if (token->Alloc != 0) {
+      TrajectoryIO* trajio = (TrajectoryIO*)token->Alloc;
+      // TODO: Set debug
+      if ( trajio->ID_TrajFormat( fileIn ) ) return trajio;
+      delete trajio;
+    }
   }
   return 0;
 }
