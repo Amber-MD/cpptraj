@@ -77,11 +77,7 @@ int Traj_AmberCoord::openTraj() {
   switch (file_.Access()) {
     case CpptrajFile::READ: // Read in title, set size in bytes 
       if ( file_.OpenFile() ) return 1;
-      if ( file_.Gets(titleIn,BUF_SIZE) ) {
-        rprintf("Warning: EOF encountered during reading of title from (%s)\n", 
-                file_.BaseFileStr());
-        return 1;
-      }
+      title_ = file_.GetLine();
       title_.assign( titleIn );
       titleSize_ = title_.size();
       break;
@@ -199,7 +195,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm,
   // Check for box coordinates. If present, update the frame size and
   // reallocate the frame buffer.
   tinfo.BoxInfo.SetNoBox();
-  std::string nextLine = file_.GetLineUnbuffered();
+  std::string nextLine = file_.GetLine();
   if ( !nextLine.empty() ) {
     if (debug_>0) rprintf("DEBUG: Line after first frame: (%s)\n", nextLine.c_str());
     if ( IsRemdHeader(nextLine.c_str()) ) {
@@ -308,7 +304,6 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm,
   closeTraj();
   // Set trajectory info.
   tinfo.NreplicaDim = 0;
-  tinfo.BoxInfo.SetAngles( boxAngle_ );
   tinfo.HasV = false;
   tinfo.HasT = (hasREMD_ > 0);
   tinfo.IsSeekable = seekable_;

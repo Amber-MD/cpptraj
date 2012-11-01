@@ -11,12 +11,11 @@ class Traj_AmberRestart : public TrajectoryIO {
     // AmberRestart-specific functions
     void SetNoVelocity();
   private:
-    static const size_t BUF_SIZE;
-
     int debug_;
     int restartAtoms_;     ///< Number of atoms in restart file
     int natom3_;           ///< Number of coords
     int numBoxCoords_;     ///< Number of box coords (3 or 6)
+    size_t coordSize_;     ///< Size of coords in bytes, for reading past coords.
     double restartTime_;   ///< Time in restart file, read in
     double restartTemp_;   ///< (Optional) replica temperature, read in.
     double time0_;         ///< For writes, restart time offset
